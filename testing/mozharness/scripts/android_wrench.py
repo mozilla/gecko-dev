@@ -5,7 +5,6 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 # ***** END LICENSE BLOCK *****
 
-from __future__ import absolute_import
 import datetime
 import enum
 import os
@@ -18,10 +17,7 @@ import time
 sys.path.insert(1, os.path.dirname(sys.path[0]))
 
 from mozharness.base.script import BaseScript
-from mozharness.mozilla.automation import (
-    EXIT_STATUS_DICT,
-    TBPL_FAILURE,
-)
+from mozharness.mozilla.automation import EXIT_STATUS_DICT, TBPL_FAILURE
 from mozharness.mozilla.mozbase import MozbaseMixin
 from mozharness.mozilla.testing.android import AndroidMixin
 from mozharness.mozilla.testing.testbase import TestingMixin

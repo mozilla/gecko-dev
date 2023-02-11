@@ -2,21 +2,19 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function
-
 import os
-import sys
-import tempfile
 import shutil
-import zipfile
-import tarfile
 import subprocess
+import sys
+import tarfile
+import tempfile
+import zipfile
 from pathlib import Path
 
 import mozpack.path as mozpath
+
 from mozbuild.repackaging.application_ini import get_application_ini_value
 from mozbuild.util import ensureParentDir
-
 
 _BCJ_OPTIONS = {
     "x86": ["--x86"],

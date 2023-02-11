@@ -7,9 +7,7 @@
 # This configuration should be combined with platform-specific mozharness
 # configuration such as android-x86_64.py, android_hw, or similar.
 
-from __future__ import absolute_import
 import os
-
 
 NODEJS_PATH = None
 if "MOZ_FETCHES_DIR" in os.environ:

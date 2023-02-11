@@ -234,7 +234,6 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
 
   // nsIGlobalObject
   bool ShouldResistFingerprinting() const final;
-  uint32_t GetPrincipalHashValue() const final;
   mozilla::OriginTrials Trials() const final;
   mozilla::dom::FontFaceSet* Fonts() final;
 
@@ -687,7 +686,7 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
   double GetInnerWidthOuter(mozilla::ErrorResult& aError);
 
  protected:
-  nsresult GetInnerWidth(double* aWidth) override;
+  nsresult GetInnerWidth(double* aInnerWidth) override;
   void SetInnerWidthOuter(double aInnerWidth,
                           mozilla::dom::CallerType aCallerType,
                           mozilla::ErrorResult& aError);
@@ -696,7 +695,7 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
   double GetInnerHeightOuter(mozilla::ErrorResult& aError);
 
  protected:
-  nsresult GetInnerHeight(double* aHeight) override;
+  nsresult GetInnerHeight(double* aInnerHeight) override;
   void SetInnerHeightOuter(double aInnerHeight,
                            mozilla::dom::CallerType aCallerType,
                            mozilla::ErrorResult& aError);
@@ -830,9 +829,6 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
   // Outer windows only.
   // Arguments to this function should have values in app units
   void SetCSSViewportWidthAndHeight(nscoord width, nscoord height);
-  // Arguments to this function should have values in device pixels
-  MOZ_CAN_RUN_SCRIPT_BOUNDARY
-  nsresult SetDocShellSize(const mozilla::LayoutDeviceIntSize& aInnerSize);
 
   static bool CanSetProperty(const char* aPrefName);
 
@@ -861,6 +857,12 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
   void SetOuterSize(int32_t aLengthCSSPixels, bool aIsWidth,
                     mozilla::dom::CallerType aCallerType,
                     mozilla::ErrorResult& aError);
+  void SetInnerSize(int32_t aLengthCSSPixels, bool aIsWidth,
+                    mozilla::dom::CallerType aCallerType,
+                    mozilla::ErrorResult& aError);
+  void SetScreenCoord(int32_t aCoordCSSPixels, bool aIsX,
+                      mozilla::dom::CallerType aCallerType,
+                      mozilla::ErrorResult& aError);
   nsRect GetInnerScreenRect();
   static mozilla::Maybe<mozilla::CSSIntSize> GetRDMDeviceSize(
       const Document& aDocument);
@@ -894,8 +896,6 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
 
   bool ShouldShowFocusRing() override;
 
-  void SetKeyboardIndicators(UIStateChangeType aShowFocusRings) override;
-
  public:
   already_AddRefed<nsPIWindowRoot> GetTopWindowRoot() override;
 
@@ -905,8 +905,6 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
   void ClearStatus();
 
   void UpdateParentTarget() override;
-
-  void InitializeShowFocusRings();
 
  protected:
   // Helper for getComputedStyle and getDefaultComputedStyle
@@ -1053,8 +1051,34 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
       mozilla::TaskCategory aCategory) override;
 
  protected:
-  bool mFullscreen : 1;
-  bool mFullscreenMode : 1;
+  nsresult ProcessWidgetFullscreenRequest(FullscreenReason aReason,
+                                          bool aFullscreen);
+
+  // Indicates whether browser window should be in fullscreen mode and the
+  // reason, e.g. browser fullscreen mode or DOM fullscreen API, which should
+  // never be ForForceExitFullscreen. Nothing if browser window should not be in
+  // fullscreen mode.
+  mozilla::Maybe<FullscreenReason> mFullscreen;
+
+  // Indicates whether new fullscreen request have been made when previous
+  // fullscreen request is still in-process.
+  bool mFullscreenHasChangedDuringProcessing : 1;
+
+  using FullscreenRequest = struct FullscreenRequest {
+    FullscreenRequest(FullscreenReason aReason, bool aFullscreen)
+        : mReason(aReason), mFullscreen(aFullscreen) {
+      MOZ_ASSERT(
+          mReason != FullscreenReason::ForForceExitFullscreen || !mFullscreen,
+          "FullscreenReason::ForForceExitFullscreen can only be used with "
+          "exiting fullscreen");
+    }
+    FullscreenReason mReason;
+    bool mFullscreen : 1;
+  };
+  // The current in-process fullscreen request. Nothing if there is no
+  // in-process request.
+  mozilla::Maybe<FullscreenRequest> mInProcessFullscreenRequest;
+
   bool mForceFullScreenInWidget : 1;
   bool mIsClosed : 1;
   bool mInClose : 1;

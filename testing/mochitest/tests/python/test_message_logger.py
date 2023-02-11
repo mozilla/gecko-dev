@@ -1,15 +1,13 @@
 # Any copyright is dedicated to the Public Domain.
 # http://creativecommons.org/publicdomain/zero/1.0/
 
-from __future__ import absolute_import, print_function
-
-import six
 import json
 import time
 import types
 
 import mozunit
 import pytest
+import six
 from conftest import setup_args
 from mozlog.formatters import JSONFormatter
 from mozlog.handlers.base import StreamHandler

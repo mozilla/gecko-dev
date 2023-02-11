@@ -4,15 +4,11 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import
-
 import os
 import unittest
 
 import mozunit
-
-from manifestparser import ManifestParser
-from manifestparser import combine_fields
+from manifestparser import ManifestParser, combine_fields
 
 here = os.path.dirname(os.path.abspath(__file__))
 

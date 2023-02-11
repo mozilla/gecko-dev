@@ -128,6 +128,7 @@ suites:
             raptor-youtube-playback-v9-full-1080p30-firefox: "FF"
             raptor-youtube-playback-v9-full-1080p60-firefox: "FF"
             speedometer: "FF, CH, CU, FE, GV, RB, CH-M"
+            speedometer3: "FF, CH, CU, FE, GV, RB, CH-M"
             stylebench: "FF, CH, CU"
             sunspider: "FF, CH, CU"
             twitch-animation: "FF"
@@ -172,6 +173,7 @@ suites:
             browsertime: "Used to run vanilla browsertime tests through raptor. For example: `./mach raptor --browsertime -t browsertime --browsertime-arg url=https://www.sitespeed.io --browsertime-arg iterations=3`"
             process-switch: "Measures process switch time"
             welcome: "Measures pageload metrics for the first-install about:welcome page"
+            grandprix: "Runs the Grandprix benchmark"
     interactive:
         description: "Browsertime tests that interact with the webpage. Includes responsiveness tests as they make use of this support for navigation. These form of tests allow the specification of browsertime commands through the test manifest."
         tests:

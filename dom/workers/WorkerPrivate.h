@@ -13,6 +13,7 @@
 #include "js/ContextOptions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/AutoRestore.h"
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/CondVar.h"
 #include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/Maybe.h"
@@ -440,7 +441,7 @@ class WorkerPrivate final
     return data->mOnLine;
   }
 
-  void StopSyncLoop(nsIEventTarget* aSyncLoopTarget, bool aResult);
+  void StopSyncLoop(nsIEventTarget* aSyncLoopTarget, nsresult aResult);
 
   bool AllPendingRunnablesShouldBeCanceled() const {
     return mCancelAllPendingRunnables;
@@ -737,35 +738,28 @@ class WorkerPrivate final
     mLoadInfo.mChannelInfo = aChannelInfo;
   }
 
-  nsIPrincipal* GetPrincipal() const {
-    AssertIsOnMainThread();
-    return mLoadInfo.mPrincipal;
-  }
+  nsIPrincipal* GetPrincipal() const { return mLoadInfo.mPrincipal; }
 
   nsIPrincipal* GetLoadingPrincipal() const {
-    AssertIsOnMainThread();
     return mLoadInfo.mLoadingPrincipal;
   }
 
   nsIPrincipal* GetPartitionedPrincipal() const {
-    AssertIsOnMainThread();
     return mLoadInfo.mPartitionedPrincipal;
   }
 
-  const nsAString& OriginNoSuffix() const { return mLoadInfo.mOriginNoSuffix; }
-
-  const nsACString& Origin() const { return mLoadInfo.mOrigin; }
-
-  const nsACString& EffectiveStoragePrincipalOrigin() const;
+  nsIPrincipal* GetEffectiveStoragePrincipal() const;
 
   nsILoadGroup* GetLoadGroup() const {
     AssertIsOnMainThread();
     return mLoadInfo.mLoadGroup;
   }
 
-  bool UsesSystemPrincipal() const { return mLoadInfo.mPrincipalIsSystem; }
+  bool UsesSystemPrincipal() const {
+    return GetPrincipal()->IsSystemPrincipal();
+  }
   bool UsesAddonOrExpandedAddonPrincipal() const {
-    return mLoadInfo.mPrincipalIsAddonOrExpandedAddon;
+    return GetPrincipal()->GetIsAddonOrExpandedAddonPrincipal();
   }
 
   const mozilla::ipc::PrincipalInfo& GetPrincipalInfo() const {
@@ -774,10 +768,6 @@ class WorkerPrivate final
 
   const mozilla::ipc::PrincipalInfo& GetPartitionedPrincipalInfo() const {
     return *mLoadInfo.mPartitionedPrincipalInfo;
-  }
-
-  uint32_t GetPrincipalHashValue() const {
-    return mLoadInfo.mPrincipalHashValue;
   }
 
   const mozilla::ipc::PrincipalInfo& GetEffectiveStoragePrincipalInfo() const;
@@ -1051,6 +1041,8 @@ class WorkerPrivate final
   void IncreaseWorkerFinishedRunnableCount() { ++mWorkerFinishedRunnableCount; }
   void DecreaseWorkerFinishedRunnableCount() { --mWorkerFinishedRunnableCount; }
 
+  void RunShutdownTasks();
+
  private:
   WorkerPrivate(
       WorkerPrivate* aParent, const nsAString& aScriptURL, bool aIsChromeWorker,
@@ -1118,9 +1110,9 @@ class WorkerPrivate final
   already_AddRefed<nsISerialEventTarget> CreateNewSyncLoop(
       WorkerStatus aFailStatus);
 
-  bool RunCurrentSyncLoop();
+  nsresult RunCurrentSyncLoop();
 
-  bool DestroySyncLoop(uint32_t aLoopIndex);
+  nsresult DestroySyncLoop(uint32_t aLoopIndex);
 
   void InitializeGCTimers();
 
@@ -1143,6 +1135,12 @@ class WorkerPrivate final
     return !(data->mChildWorkers.IsEmpty() && data->mTimeouts.IsEmpty() &&
              data->mWorkerRefs.IsEmpty());
   }
+
+  friend class WorkerEventTarget;
+
+  bool RegisterShutdownTask(nsITargetShutdownTask* aTask);
+
+  bool UnregisterShutdownTask(nsITargetShutdownTask* aTask);
 
   // Internal logic to dispatch a runnable. This is separate from Dispatch()
   // to allow runnables to be atomically dispatched in bulk.
@@ -1255,8 +1253,8 @@ class WorkerPrivate final
     explicit SyncLoopInfo(EventTarget* aEventTarget);
 
     RefPtr<EventTarget> mEventTarget;
+    nsresult mResult;
     bool mCompleted;
-    bool mResult;
 #ifdef DEBUG
     bool mHasRun;
 #endif
@@ -1470,6 +1468,11 @@ class WorkerPrivate final
 
   Atomic<uint32_t> mTopLevelWorkerFinishedRunnableCount;
   Atomic<uint32_t> mWorkerFinishedRunnableCount;
+
+  nsTArray<nsCOMPtr<nsITargetShutdownTask>> mShutdownTasks
+      MOZ_GUARDED_BY(mMutex);
+  bool mRunShutdownTasksStarted MOZ_GUARDED_BY(mMutex) = false;
+  bool mRunShutdownTasksFinished MOZ_GUARDED_BY(mMutex) = false;
 };
 
 class AutoSyncLoopHolder {
@@ -1490,12 +1493,12 @@ class AutoSyncLoopHolder {
   ~AutoSyncLoopHolder() {
     if (mWorkerPrivate && mTarget) {
       mWorkerPrivate->AssertIsOnWorkerThread();
-      mWorkerPrivate->StopSyncLoop(mTarget, false);
+      mWorkerPrivate->StopSyncLoop(mTarget, NS_ERROR_FAILURE);
       mWorkerPrivate->DestroySyncLoop(mIndex);
     }
   }
 
-  bool Run() {
+  nsresult Run() {
     CheckedUnsafePtr<WorkerPrivate> workerPrivate = mWorkerPrivate;
     mWorkerPrivate = nullptr;
 

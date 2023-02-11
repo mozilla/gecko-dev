@@ -33,12 +33,17 @@ USE_STATIC_LIBS = True
 OS_LIBS += [
     "advapi32",
     "comctl32",
+    "ole32",
     "shell32",
+    "uuid",
     "userenv",
     "ws2_32",
 ]
 
 if CONFIG["MOZ_LAUNCHER_PROCESS"]:
+    LOCAL_INCLUDES += [
+        "/toolkit/mozapps/update/common",
+    ]
     GeckoCppUnitTests(
         [
             "TestLauncherRegistryInfo",

@@ -25,11 +25,6 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   AppConstants: "resource://gre/modules/AppConstants.sys.mjs",
 });
-loader.lazyRequireGetter(
-  this,
-  "constants",
-  "resource://devtools/client/webconsole/constants.js"
-);
 
 loader.lazyRequireGetter(
   this,
@@ -62,9 +57,6 @@ class WebConsoleUI {
     this.isBrowserToolboxConsole =
       this.hud.commands.descriptorFront.isBrowserProcessDescriptor &&
       !this.isBrowserConsole;
-    this.fissionSupport = Services.prefs.getBoolPref(
-      constants.PREFS.FEATURES.BROWSER_TOOLBOX_FISSION
-    );
 
     this.window = this.hud.iframeWindow;
 
@@ -76,7 +68,6 @@ class WebConsoleUI {
     this._onTargetDestroyed = this._onTargetDestroyed.bind(this);
     this._onResourceAvailable = this._onResourceAvailable.bind(this);
     this._onNetworkResourceUpdated = this._onNetworkResourceUpdated.bind(this);
-    this.clearPrivateMessages = this.clearPrivateMessages.bind(this);
     this._onScopePrefChanged = this._onScopePrefChanged.bind(this);
 
     if (this.isBrowserConsole) {
@@ -87,14 +78,6 @@ class WebConsoleUI {
     }
 
     EventEmitter.decorate(this);
-  }
-
-  /**
-   * Getter for the WebConsoleFront.
-   * @type object
-   */
-  get webConsoleFront() {
-    return this._webConsoleFront;
   }
 
   /**
@@ -187,8 +170,8 @@ class WebConsoleUI {
         resourceCommand.TYPES.CONSOLE_MESSAGE,
         resourceCommand.TYPES.ERROR_MESSAGE,
         resourceCommand.TYPES.PLATFORM_MESSAGE,
-        resourceCommand.TYPES.CLONED_CONTENT_PROCESS_MESSAGE,
         resourceCommand.TYPES.DOCUMENT_EVENT,
+        resourceCommand.TYPES.LAST_PRIVATE_CONTEXT_EXIT,
       ],
       { onAvailable: this._onResourceAvailable }
     );
@@ -198,7 +181,6 @@ class WebConsoleUI {
 
     this.stopWatchingNetworkResources();
 
-    this._webConsoleFront = null;
     this.networkDataProvider.destroy();
     this.networkDataProvider = null;
 
@@ -268,7 +250,7 @@ class WebConsoleUI {
   }
 
   inspectObjectActor(objectActor) {
-    const { webConsoleFront } = this;
+    const { targetFront } = this.hud.commands.targetCommand;
     this.wrapper.dispatchMessageAdd(
       {
         helperResult: {
@@ -276,7 +258,7 @@ class WebConsoleUI {
           object:
             objectActor && objectActor.getGrip
               ? objectActor
-              : getAdHocFrontOrPrimitiveGrip(objectActor, webConsoleFront),
+              : getAdHocFrontOrPrimitiveGrip(objectActor, targetFront),
         },
       },
       true
@@ -337,8 +319,8 @@ class WebConsoleUI {
         resourceCommand.TYPES.CONSOLE_MESSAGE,
         resourceCommand.TYPES.ERROR_MESSAGE,
         resourceCommand.TYPES.PLATFORM_MESSAGE,
-        resourceCommand.TYPES.CLONED_CONTENT_PROCESS_MESSAGE,
         resourceCommand.TYPES.DOCUMENT_EVENT,
+        resourceCommand.TYPES.LAST_PRIVATE_CONTEXT_EXIT,
       ],
       { onAvailable: this._onResourceAvailable }
     );
@@ -371,15 +353,11 @@ class WebConsoleUI {
       }
     );
 
-    // Until we enable NETWORK_EVENT server watcher in the browser toolbox
-    // we still have to support the console actor codepath.
-    const hasNetworkResourceCommandSupport = resourceCommand.hasResourceCommandSupport(
-      resourceCommand.TYPES.NETWORK_EVENT
-    );
-    const supportsWatcherRequest = commands.targetCommand.hasTargetWatcherSupport();
-    if (hasNetworkResourceCommandSupport && supportsWatcherRequest) {
+    // When opening a worker toolbox from about:debugging,
+    // we do not instantiate any Watcher actor yet and would throw here.
+    // But even once we do, we wouldn't support network inspection anyway.
+    if (commands.targetCommand.hasTargetWatcherSupport()) {
       const networkFront = await commands.watcherFront.getNetworkParentActor();
-      //
       // There is no way to view response bodies from the Browser Console, so do
       // not waste the memory.
       const saveBodies =
@@ -472,14 +450,21 @@ class WebConsoleUI {
         this.handleDocumentEvent(resource);
         continue;
       }
+      if (resource.resourceType == TYPES.LAST_PRIVATE_CONTEXT_EXIT) {
+        // Private messages only need to be removed from the output in Browser Console/Browser Toolbox
+        // (but in theory this resource should only be send from parent process watchers)
+        if (this.isBrowserConsole || this.isBrowserToolboxConsole) {
+          this.clearPrivateMessages();
+        }
+        continue;
+      }
       // Ignore messages forwarded from content processes if we're in fission browser toolbox.
       if (
         !this.wrapper ||
         ((resource.resourceType === TYPES.ERROR_MESSAGE ||
           resource.resourceType === TYPES.CSS_MESSAGE) &&
           resource.pageError?.isForwardedFromContentProcess &&
-          (this.isBrowserToolboxConsole || this.isBrowserConsole) &&
-          this.fissionSupport)
+          (this.isBrowserToolboxConsole || this.isBrowserConsole))
       ) {
         continue;
       }
@@ -536,43 +521,8 @@ class WebConsoleUI {
    *        composed of a WindowGlobalTargetFront or ContentProcessTargetFront.
    */
   async _onTargetAvailable({ targetFront }) {
-    if (this._destroyed) {
-      return;
-    }
-
-    // Once we support only server watcher for NETWORK_EVENT, we will be able to drop this.
-    // We have to wait for the fully enabling of NETWORK_EVENT watchers, especially on the Browser Toolbox.
-    const { targetCommand, resourceCommand } = this.hud.commands;
-    const hasNetworkResourceCommandSupport = resourceCommand.hasResourceCommandSupport(
-      resourceCommand.TYPES.NETWORK_EVENT
-    );
-    const supportsWatcherRequest = targetCommand.hasTargetWatcherSupport();
-    if (!hasNetworkResourceCommandSupport || !supportsWatcherRequest) {
-      // There is no way to view response bodies from the Browser Console, so do
-      // not waste the memory.
-      const saveBodies =
-        !this.isBrowserConsole &&
-        Services.prefs.getBoolPref(
-          "devtools.netmonitor.saveRequestAndResponseBodies"
-        );
-
-      const front = await targetFront.getFront("console");
-      // Make sure the web console client connection is established first.
-      await front.setPreferences({
-        "NetworkMonitor.saveRequestAndResponseBodies": saveBodies,
-      });
-    }
-
-    if (targetFront.isTopLevel) {
-      this._webConsoleFront = await targetFront.getFront("console");
-      if (this.isBrowserConsole || this.isBrowserToolboxConsole) {
-        // Private messages only need to be removed from the output in Browser Console/Browser Toolbox
-        this.webConsoleFront.on(
-          "lastPrivateContextExited",
-          this.clearPrivateMessages
-        );
-      }
-    }
+    // onTargetAvailable is a mandatory argument for watchTargets,
+    // we still define it solely for being able to use onTargetDestroyed.
   }
 
   _onTargetDestroyed({ targetFront, isModeSwitching }) {

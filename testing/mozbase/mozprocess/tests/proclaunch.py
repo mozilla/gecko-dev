@@ -1,12 +1,10 @@
 #!/usr/bin/env python
 
-from __future__ import absolute_import, print_function
-
 import argparse
 import collections
 import multiprocessing
-
 import time
+
 from six.moves import configparser
 
 ProcessNode = collections.namedtuple("ProcessNode", ["maxtime", "children"])

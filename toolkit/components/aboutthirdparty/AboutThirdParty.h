@@ -12,8 +12,11 @@
 #include "nsInterfaceHashtable.h"
 #include "nsTArray.h"
 #include "nsTHashMap.h"
+#include "nsTHashSet.h"
 
 namespace mozilla {
+
+class DynamicBlocklistWriter;
 
 using InstallLocationT =
     CompactPair<nsString, nsCOMPtr<nsIInstalledApplication>>;
@@ -77,6 +80,16 @@ class AboutThirdParty final : public nsIAboutThirdParty {
   nsTHashMap<nsStringCaseInsensitiveHashKey, uint32_t> mKnownModules;
   ComponentPathMapT mComponentPaths;
   nsTArray<InstallLocationT> mLocations;
+
+#if defined(MOZ_LAUNCHER_PROCESS)
+  Atomic<DynamicBlocklistWriter*> mPendingWriter;
+  // The current blocklist. May differ from mDynamicBlocklistAtLaunch
+  // if the user has blocked/unblocked modules. Note that this does not
+  // take effect until restart.
+  nsTHashSet<nsStringCaseInsensitiveHashKey> mDynamicBlocklist;
+  // The blocklist that was used at launch, which is currently in effect.
+  nsTHashSet<nsStringCaseInsensitiveHashKey> mDynamicBlocklistAtLaunch;
+#endif
 
   ~AboutThirdParty() = default;
   void BackgroundThread();

@@ -91,6 +91,10 @@ nsresult DOMSubtreeIterator::Init(nsRange& aRange) {
  * mozilla::EditorElementStyle
  *****************************************************************************/
 
+bool EditorElementStyle::IsCSSEditable(const nsStaticAtom& aTagName) const {
+  return CSSEditUtils::IsCSSEditableStyle(aTagName, *this);
+}
+
 bool EditorElementStyle::IsCSSEditable(const Element& aElement) const {
   return CSSEditUtils::IsCSSEditableStyle(aElement, *this);
 }
@@ -104,6 +108,55 @@ PendingStyleCache EditorInlineStyle::ToPendingStyleCache(
   return PendingStyleCache(*mHTMLProperty,
                            mAttribute ? mAttribute->AsStatic() : nullptr,
                            std::move(aValue));
+}
+
+bool EditorInlineStyle::IsRepresentedBy(const nsIContent& aContent) const {
+  MOZ_ASSERT(!IsStyleToClearAllInlineStyles());
+
+  if (!aContent.IsHTMLElement()) {
+    return false;
+  }
+  const Element& element = *aContent.AsElement();
+  if (mHTMLProperty == element.NodeInfo()->NameAtom() ||
+      mHTMLProperty == GetSimilarElementNameAtom()) {
+    // <a> cannot be nested.  Therefore, if we're the style of <a>, we should
+    // treat existing it even if the attribute does not match.
+    if (mHTMLProperty == nsGkAtoms::a) {
+      return true;
+    }
+    return !mAttribute || element.HasAttr(kNameSpaceID_None, mAttribute);
+  }
+  // Special case for linking or naming an <a> element.
+  if ((mHTMLProperty == nsGkAtoms::href && HTMLEditUtils::IsLink(&element)) ||
+      (mHTMLProperty == nsGkAtoms::name &&
+       HTMLEditUtils::IsNamedAnchor(&element))) {
+    return true;
+  }
+  // If the style is font size, it's also represented by <big> or <small>.
+  if (mHTMLProperty == nsGkAtoms::font && mAttribute == nsGkAtoms::size &&
+      aContent.IsAnyOfHTMLElements(nsGkAtoms::big, nsGkAtoms::small)) {
+    return true;
+  }
+  return false;
+}
+
+Result<bool, nsresult> EditorInlineStyle::IsSpecifiedBy(
+    const HTMLEditor& aHTMLEditor, Element& aElement) const {
+  MOZ_ASSERT(!IsStyleToClearAllInlineStyles());
+  if (!IsCSSEditable(aElement)) {
+    return false;
+  }
+  // Special case in the CSS mode.  We should treat <u>, <s>, <strike>, <ins>
+  // and <del> specifies text-decoration (bug 1802668).
+  if (aHTMLEditor.IsCSSEnabled() &&
+      IsStyleOfTextDecoration(IgnoreSElement::No) &&
+      aElement.IsAnyOfHTMLElements(nsGkAtoms::u, nsGkAtoms::s,
+                                   nsGkAtoms::strike, nsGkAtoms::ins,
+                                   nsGkAtoms::del)) {
+    return true;
+  }
+  return CSSEditUtils::HaveSpecifiedCSSEquivalentStyles(aHTMLEditor, aElement,
+                                                        *this);
 }
 
 }  // namespace mozilla

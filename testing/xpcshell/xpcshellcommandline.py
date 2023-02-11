@@ -2,14 +2,19 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import
-
 import argparse
 
 from mozlog import commandline
 
 
 def add_common_arguments(parser):
+    parser.add_argument(
+        "--app-binary",
+        type=str,
+        dest="app_binary",
+        default=None,
+        help="path to application binary (eg: c:\program files\mozilla firefox\firefox.exe)",
+    )
     parser.add_argument(
         "--app-path",
         type=str,

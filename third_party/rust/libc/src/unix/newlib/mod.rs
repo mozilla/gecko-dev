@@ -41,7 +41,7 @@ pub type tcflag_t = ::c_uint;
 pub type useconds_t = u32;
 
 cfg_if! {
-    if #[cfg(target_os = "horizon")] {
+    if #[cfg(any(target_os = "horizon", all(target_os = "espidf", espidf_time64)))] {
         pub type time_t = ::c_longlong;
     } else {
         pub type time_t = i32;
@@ -621,7 +621,6 @@ extern "C" {
     pub fn sem_init(sem: *mut sem_t, pshared: ::c_int, value: ::c_uint) -> ::c_int;
 
     pub fn abs(i: ::c_int) -> ::c_int;
-    pub fn atof(s: *const ::c_char) -> ::c_double;
     pub fn labs(i: ::c_long) -> ::c_long;
     pub fn rand() -> ::c_int;
     pub fn srand(seed: ::c_uint);

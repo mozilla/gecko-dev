@@ -209,7 +209,7 @@ async function getOriginalLocation(
 
   let originalLocation = null;
   try {
-    originalLocation = await toolbox.sourceMapService.getOriginalLocation({
+    originalLocation = await toolbox.sourceMapLoader.getOriginalLocation({
       sourceId: generatedID,
       line: generatedLine,
       column: generatedColumn,
@@ -240,6 +240,6 @@ exports.viewSource = async function(toolbox, sourceURL, sourceLine) {
   const utils = toolbox.gViewSourceUtils;
   utils.viewSource({
     URL: sourceURL,
-    lineNumber: sourceLine || 0,
+    lineNumber: sourceLine || -1,
   });
 };

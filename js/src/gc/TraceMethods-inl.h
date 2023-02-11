@@ -43,8 +43,15 @@ inline void js::BaseScript::traceChildren(JSTracer* trc) {
 
 inline void js::Shape::traceChildren(JSTracer* trc) {
   TraceCellHeaderEdge(trc, this, "base");
+  if (isNative()) {
+    asNative().traceChildren(trc);
+  }
+}
+
+inline void js::NativeShape::traceChildren(JSTracer* trc) {
   TraceNullableEdge(trc, &propMap_, "propertymap");
 }
+
 template <uint32_t opts>
 void js::GCMarker::eagerlyMarkChildren(Shape* shape) {
   MOZ_ASSERT(shape->isMarked(markColor()));
@@ -55,8 +62,10 @@ void js::GCMarker::eagerlyMarkChildren(Shape* shape) {
     base->traceChildren(tracer());
   }
 
-  if (PropMap* map = shape->propMap()) {
-    markAndTraverseEdge<opts>(shape, map);
+  if (shape->isNative()) {
+    if (PropMap* map = shape->asNative().propMap()) {
+      markAndTraverseEdge<opts>(shape, map);
+    }
   }
 }
 

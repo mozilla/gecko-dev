@@ -19,6 +19,8 @@ using mozilla::net::NetAddr from "mozilla/net/DNS.h";
 using nsILoadInfo::CrossOriginOpenerPolicy from "nsILoadInfo.h";
 [RefCounted] using class nsIReferrerInfo from "nsIReferrerInfo.h";
 [RefCounted] using class nsITransportSecurityInfo from "nsITransportSecurityInfo.h";
+using nsIRequest::TRRMode from "nsIRequest.h";
+using TRRSkippedReason from "nsITRRSkipReason.h";
 
 namespace mozilla {
 namespace net {
@@ -55,6 +57,8 @@ struct HttpChannelOnStartRequestArgs
   bool dataFromSocketProcess;
   bool hasHTTPSRR;
   bool isProxyUsed;
+  TRRMode effectiveTRRMode;
+  TRRSkippedReason trrSkipReason;
 };
 
 struct HttpChannelAltDataStream

@@ -2,7 +2,8 @@ mozcrash ~= 2.0
 mozrunner ~= 7.0
 mozprofile ~= 2.1
 manifestparser >= 1.1
-wptserve ~= 3.0
+../tools/wptserve
+../tools/wpt_third_party/pywebsocket3
 mozdevice >= 4.0.0
 mozpower >= 1.0.0
 mozversion >= 1.0

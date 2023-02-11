@@ -18,11 +18,13 @@ class NeqoHttp3Conn final {
                        uint32_t aMaxTableSize, uint16_t aMaxBlockedStreams,
                        uint64_t aMaxData, uint64_t aMaxStreamData,
                        bool aVersionNegotiation, bool aWebTransport,
-                       const nsACString& aQlogDir, NeqoHttp3Conn** aConn) {
-    return neqo_http3conn_new(
-        &aOrigin, &aAlpn, &aLocalAddr, &aRemoteAddr, aMaxTableSize,
-        aMaxBlockedStreams, aMaxData, aMaxStreamData, aVersionNegotiation,
-        aWebTransport, &aQlogDir, (const mozilla::net::NeqoHttp3Conn**)aConn);
+                       const nsACString& aQlogDir, uint32_t aDatagramSize,
+                       NeqoHttp3Conn** aConn) {
+    return neqo_http3conn_new(&aOrigin, &aAlpn, &aLocalAddr, &aRemoteAddr,
+                              aMaxTableSize, aMaxBlockedStreams, aMaxData,
+                              aMaxStreamData, aVersionNegotiation,
+                              aWebTransport, &aQlogDir, aDatagramSize,
+                              (const mozilla::net::NeqoHttp3Conn**)aConn);
   }
 
   void Close(uint64_t aError) { neqo_http3conn_close(this, aError); }
@@ -133,6 +135,18 @@ class NeqoHttp3Conn final {
                                     uint64_t* aStreamId) {
     return neqo_http3conn_webtransport_create_stream(this, aSessionId,
                                                      aStreamType, aStreamId);
+  }
+
+  nsresult WebTransportSendDatagram(uint64_t aSessionId,
+                                    nsTArray<uint8_t>& aData,
+                                    uint64_t aTrackingId) {
+    return neqo_http3conn_webtransport_send_datagram(this, aSessionId, &aData,
+                                                     aTrackingId);
+  }
+
+  nsresult WebTransportMaxDatagramSize(uint64_t aSessionId, uint64_t* aResult) {
+    return neqo_http3conn_webtransport_max_datagram_size(this, aSessionId,
+                                                         aResult);
   }
 
  private:

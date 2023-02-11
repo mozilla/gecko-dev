@@ -17,17 +17,17 @@ Services.scriptloader.loadSubScript(
 add_task(async function() {
   await pushPref("devtools.aboutdebugging.process-debugging", true);
   await pushPref("devtools.aboutdebugging.test-local-process-debugging", true);
-  // Disable Multiprocess Browser Toolbox for now as it introduces exceptions
-  await pushPref("devtools.browsertoolbox.fission", false);
 
   const { document, tab, window } = await openAboutDebugging();
   await selectThisFirefoxPage(document, window.AboutDebugging.store);
 
   info("Check debug target item of the main process");
-  const mainProcessItem = findDebugTargetByText("Main Process", document);
+  const mainProcessItem = findDebugTargetByText("Multiprocess", document);
   ok(mainProcessItem, "Debug target item of the main process should display");
   ok(
-    mainProcessItem.textContent.includes("Main Process for the target browser"),
+    mainProcessItem.textContent.includes(
+      "Main Process and Content Processes for the target browser"
+    ),
     "Debug target item of the main process should contains the description"
   );
 

@@ -8,26 +8,23 @@
 # It is defined inline because this was easiest to make test archive
 # generation faster.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import argparse
 import itertools
 import os
 import sys
 import time
 
+import buildconfig
+import mozpack.path as mozpath
 from manifestparser import TestManifest
-from reftest import ReftestManifest
-
-from mozbuild.util import ensureParentDir
 from mozpack.archive import create_tar_gz_from_files
 from mozpack.copier import FileRegistry
 from mozpack.files import ExistingFile, FileFinder
 from mozpack.manifests import InstallManifest
 from mozpack.mozjar import JarWriter
-import mozpack.path as mozpath
+from reftest import ReftestManifest
 
-import buildconfig
+from mozbuild.util import ensureParentDir
 
 STAGE = mozpath.join(buildconfig.topobjdir, "dist", "test-stage")
 

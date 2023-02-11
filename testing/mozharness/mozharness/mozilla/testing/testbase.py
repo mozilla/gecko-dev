@@ -5,14 +5,11 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 # ***** END LICENSE BLOCK *****
 
-from __future__ import absolute_import
 import copy
+import json
 import os
 import platform
-from six.moves import urllib
-import json
 import ssl
-from six.moves.urllib.parse import urlparse, ParseResult
 
 from mozharness.base.errors import BaseErrorList
 from mozharness.base.log import FATAL, WARNING
@@ -21,17 +18,18 @@ from mozharness.base.python import (
     VirtualenvMixin,
     virtualenv_config_options,
 )
-from mozharness.mozilla.automation import AutomationMixin, TBPL_WARNING
+from mozharness.lib.python.authentication import get_credentials
+from mozharness.mozilla.automation import TBPL_WARNING, AutomationMixin
 from mozharness.mozilla.structuredlog import StructuredOutputParser
-from mozharness.mozilla.testing.unittest import DesktopUnittestOutputParser
 from mozharness.mozilla.testing.try_tools import TryToolsMixin, try_config_options
+from mozharness.mozilla.testing.unittest import DesktopUnittestOutputParser
 from mozharness.mozilla.testing.verify_tools import (
     VerifyToolsMixin,
     verify_config_options,
 )
 from mozharness.mozilla.tooltool import TooltoolMixin
-
-from mozharness.lib.python.authentication import get_credentials
+from six.moves import urllib
+from six.moves.urllib.parse import ParseResult, urlparse
 
 INSTALLER_SUFFIXES = (
     ".apk",  # Android
@@ -520,7 +518,12 @@ You can set this by specifying --test-url URL
     def _download_and_extract_symbols(self):
         dirs = self.query_abs_dirs()
         if self.config.get("download_symbols") == "ondemand":
-            self.symbols_url = self.query_symbols_url()
+            self.symbols_url = self.retry(
+                action=self.query_symbols_url,
+                kwargs={"raise_on_failure": True},
+                sleeptime=10,
+                failure_status=None,
+            )
             self.symbols_path = self.symbols_url
             return
 
@@ -634,6 +637,7 @@ Did you run with --create-virtualenv? Is mozinstall in virtualenv_modules?"""
 
     def install(self):
         self.binary_path = self.install_app(app=self.config.get("application"))
+        self.install_dir = os.path.dirname(self.binary_path)
 
     def uninstall_app(self, install_dir=None):
         """Dependent on mozinstall"""

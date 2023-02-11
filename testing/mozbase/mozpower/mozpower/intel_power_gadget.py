@@ -1,14 +1,12 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
-from __future__ import absolute_import, division, unicode_literals
-
 import csv
 import os
-import subprocess
 import re
-import time
+import subprocess
 import threading
+import time
 
 from .mozpowerutils import get_logger
 

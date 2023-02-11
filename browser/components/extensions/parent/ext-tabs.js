@@ -602,10 +602,6 @@ this.tabs = class extends ExtensionAPIPersistent {
       // that it may not otherwise have access to, we set the triggering
       // principal to the url that is being opened.  This is used for newtab,
       // about: and moz-extension: protocols.
-      // We also prevent discarded, or lazy tabs by setting allowInheritPrincipal to false.
-      if (url.startsWith("about:")) {
-        options.allowInheritPrincipal = false;
-      }
       options.triggeringPrincipal = Services.scriptSecurityManager.createContentPrincipal(
         Services.io.newURI(url),
         {
@@ -713,12 +709,7 @@ this.tabs = class extends ExtensionAPIPersistent {
           }).then(window => {
             let url;
 
-            let options = {
-              // When allowInheritPrincipal is false, tabs cannot be discarded, so we set it to true.
-              // TODO bug 1488053: Remove allowInheritPrincipal: true
-              allowInheritPrincipal: true,
-              triggeringPrincipal: context.principal,
-            };
+            let options = { triggeringPrincipal: context.principal };
             if (createProperties.cookieStoreId) {
               // May throw if validation fails.
               options.userContextId = getUserContextIdForCookieStoreId(
@@ -1210,26 +1201,22 @@ this.tabs = class extends ExtensionAPIPersistent {
           return Promise.resolve();
         },
 
-        _getZoomSettings(tabId) {
+        async getZoomSettings(tabId) {
           let nativeTab = getTabOrActive(tabId);
 
-          let { FullZoom } = nativeTab.ownerGlobal;
+          let { FullZoom, ZoomUI } = nativeTab.ownerGlobal;
 
           return {
             mode: "automatic",
             scope: FullZoom.siteSpecific ? "per-origin" : "per-tab",
-            defaultZoomFactor: 1,
+            defaultZoomFactor: await ZoomUI.getGlobalValue(),
           };
         },
 
-        getZoomSettings(tabId) {
-          return Promise.resolve(this._getZoomSettings(tabId));
-        },
-
-        setZoomSettings(tabId, settings) {
+        async setZoomSettings(tabId, settings) {
           let nativeTab = getTabOrActive(tabId);
 
-          let currentSettings = this._getZoomSettings(
+          let currentSettings = await this.getZoomSettings(
             tabTracker.getId(nativeTab)
           );
 
@@ -1238,11 +1225,10 @@ this.tabs = class extends ExtensionAPIPersistent {
               key => settings[key] === currentSettings[key]
             )
           ) {
-            return Promise.reject(
+            throw new ExtensionError(
               `Unsupported zoom settings: ${JSON.stringify(settings)}`
             );
           }
-          return Promise.resolve();
         },
 
         onZoomChange: new EventManager({
@@ -1277,7 +1263,7 @@ this.tabs = class extends ExtensionAPIPersistent {
               }
             };
 
-            let zoomListener = event => {
+            let zoomListener = async event => {
               let browser = event.originalTarget;
 
               // For non-remote browsers, this event is dispatched on the document
@@ -1308,7 +1294,7 @@ this.tabs = class extends ExtensionAPIPersistent {
                   tabId,
                   oldZoomFactor,
                   newZoomFactor,
-                  zoomSettings: tabsApi.tabs._getZoomSettings(tabId),
+                  zoomSettings: await tabsApi.tabs.getZoomSettings(tabId),
                 });
               }
             };

@@ -2,21 +2,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, unicode_literals
-
-import six
 import logging
 import os
 import sys
 
-from mozbuild.base import (
-    MachCommandConditions as conditions,
-    BinaryNotFoundException,
-)
-
-from mach.decorators import (
-    Command,
-)
+import six
+from mach.decorators import Command
+from mozbuild.base import BinaryNotFoundException
+from mozbuild.base import MachCommandConditions as conditions
 
 
 def setup_argument_parser_functional():
@@ -29,9 +22,10 @@ def setup_argument_parser_functional():
 
 
 def run_firefox_ui_test(topsrcdir=None, **kwargs):
-    from mozlog.structured import commandline
     from argparse import Namespace
+
     import firefox_ui_harness
+    from mozlog.structured import commandline
 
     parser = setup_argument_parser_functional()
 

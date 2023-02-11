@@ -208,6 +208,8 @@ def run_tools(mach_cmd, kwargs):
         artifacts = _create_artifacts_dir(kwargs, SRC_ROOT)
     tempdir = tempfile.mkdtemp()
 
+    if "output" in kwargs:
+        kwargs.pop("output")
     s = SideBySide(str(tempdir))
     s.run(**kwargs)
 
@@ -229,6 +231,7 @@ def main(argv=sys.argv[1:]):
     from mach.util import get_state_dir
     from mozbuild.base import MachCommandBase, MozbuildObject
     from mozbuild.mozconfig import MozconfigLoader
+
     from mozperftest import PerftestArgumentParser, PerftestToolsArgumentParser
 
     mozconfig = SRC_ROOT / "browser" / "config" / "mozconfig"

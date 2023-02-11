@@ -22,8 +22,8 @@ UNIFIED_SOURCES += [
     "FileSystemManagerParent.cpp",
     "FileSystemManagerParentFactory.cpp",
     "FileSystemQuotaClient.cpp",
+    "FileSystemStreamCallbacks.cpp",
     "FileSystemWritableFileStreamParent.cpp",
-    "GetDirectoryForOrigin.cpp",
     "ResultStatement.cpp",
 ]
 

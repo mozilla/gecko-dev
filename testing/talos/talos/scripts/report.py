@@ -2,19 +2,17 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, division
-
 import argparse
 import collections
 import csv
 import os
-import six
 import sys
 from calendar import day_name
 from datetime import datetime
 
 import compare
 import numpy
+import six
 
 sys.path.insert(1, os.path.join(sys.path[0], ".."))
 

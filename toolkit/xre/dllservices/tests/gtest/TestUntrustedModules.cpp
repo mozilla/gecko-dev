@@ -274,11 +274,17 @@ void UntrustedModulesFixture::ValidateUntrustedModules(
     const wchar_t* mName;
     ModuleLoadInfo::Status mStatus;
   } kKnownModules[] = {
-      // Sorted by mName for binary-search
-      {L"TestDllBlocklist_MatchByName.dll", ModuleLoadInfo::Status::Blocked},
-      {L"TestDllBlocklist_MatchByVersion.dll", ModuleLoadInfo::Status::Blocked},
-      {L"TestDllBlocklist_NoOpEntryPoint.dll",
-       ModuleLoadInfo::Status::Redirected},
+    // Sorted by mName for binary-search
+    {L"TestDllBlocklist_MatchByName.dll", ModuleLoadInfo::Status::Blocked},
+    {L"TestDllBlocklist_MatchByVersion.dll", ModuleLoadInfo::Status::Blocked},
+    {L"TestDllBlocklist_NoOpEntryPoint.dll",
+     ModuleLoadInfo::Status::Redirected},
+#if !defined(MOZ_ASAN)
+    // With ASAN, the test uses mozglue's blocklist where
+    // the user blocklist is not used. So only check for this
+    // DLL in the non-ASAN case.
+    {L"TestDllBlocklist_UserBlocked.dll", ModuleLoadInfo::Status::Blocked},
+#endif  // !defined(MOZ_ASAN)
   };
 
   EXPECT_EQ(aData.mProcessType, GeckoProcessType_Default);
@@ -403,6 +409,7 @@ TEST_F(UntrustedModulesFixture, Serialize) {
       u"\"resolvedDllName\":\"TestUntrustedModules_Dll1\\.dll\","
       u"\"fileVersion\":\"1\\.2\\.3\\.4\","
       u"\"companyName\":\"Mozilla Corporation\",\"trustFlags\":0}\\],"
+    u"\"blockedModules\":\\[.*?\\]," // allow for the case where there are some blocked modules
     u"\"processes\":{"
       PROCESS_OBJ(u"browser", u"0xabc") u","
       PROCESS_OBJ(u"browser", u"0x4") u","

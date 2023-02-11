@@ -3574,9 +3574,6 @@ nsresult HTMLEditor::SetHTMLBackgroundColorWithTransaction(
           // is stack only class and keeps grabbing it until it's destroyed.
           nsresult rv = RemoveAttributeWithTransaction(
               MOZ_KnownLive(cellElement), *nsGkAtoms::bgcolor);
-          if (NS_WARN_IF(Destroyed())) {
-            return NS_ERROR_EDITOR_DESTROYED;
-          }
           if (NS_FAILED(rv)) {
             NS_WARNING(
                 "EditorBase::RemoveAttributeWithTransaction(nsGkAtoms::bgcolor)"
@@ -5821,9 +5818,12 @@ nsresult HTMLEditor::SetAttributeOrEquivalent(Element* aElement,
   if (aAttribute == nsGkAtoms::style) {
     // if it is the style attribute, just add the new value to the existing
     // style attribute's value
-    nsAutoString existingValue;
+    nsString existingValue;  // Use nsString to avoid copying the string
+                             // buffer at setting the attribute below.
     aElement->GetAttr(kNameSpaceID_None, nsGkAtoms::style, existingValue);
-    existingValue.Append(HTMLEditUtils::kSpace);
+    if (!existingValue.IsEmpty()) {
+      existingValue.Append(HTMLEditUtils::kSpace);
+    }
     existingValue.Append(aValue);
     if (aSuppressTransaction) {
       nsresult rv = aElement->SetAttr(kNameSpaceID_None, nsGkAtoms::style,

@@ -14,8 +14,8 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1513343
     SimpleTest.waitForExplicitFinish();
 
     async function runTest() {
-      let win = window.browsingContext.topChromeWindow.open("file_edit_contextmenu.xhtml", "context-menu", "chrome,width=600,height=600");
-      await new Promise(r => win.addEventListener("load", r, { once: true}));
+      let win = window.browsingContext.topChromeWindow.open("file_edit_contextmenu.xhtml", "_blank", "chrome,width=600,height=600");
+      await new Promise(r => win.addEventListener("load", r, { once: true }));
       await SimpleTest.promiseFocus(win);
 
       const elements = [
@@ -27,6 +27,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1513343
       for (const element of elements) {
         await testElement(element, win);
       }
+      win.close();
       SimpleTest.finish();
     }
 
@@ -66,13 +67,13 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1513343
       ok(contextmenu.querySelector("[command=cmd_delete]").hasAttribute("disabled"), "delete disabled");
       ok(!contextmenu.querySelector("[command=cmd_selectAll]").hasAttribute("disabled"), "select all enabled");
 
-      contextmenu.querySelector("[command=cmd_undo]").click();
-      is(element.value, "", "undo worked");
-
-      // Close the context menu to avoid affecting next test
       let popuphidden = new Promise(r => win.addEventListener("popuphidden", r, { once: true }));
-      contextmenu.hidePopup();
+
+      contextmenu.activateItem(contextmenu.querySelector("[command=cmd_undo]"));
+
       await popuphidden;
+
+      is(element.value, "", "undo worked");
       contextmenu.remove();
     }
   </script>

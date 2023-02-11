@@ -2133,10 +2133,16 @@ void MacroAssembler::loadMegamorphicCache(Register dest) {
   movePtr(ImmPtr(runtime()->addressOfMegamorphicCache()), dest);
 }
 
+void MacroAssembler::loadStringToAtomCacheLastLookups(Register dest) {
+  uintptr_t cachePtr = uintptr_t(runtime()->addressOfStringToAtomCache());
+  void* offset = (void*)(cachePtr + StringToAtomCache::offsetOfLastLookups());
+  movePtr(ImmPtr(offset), dest);
+}
+
 void MacroAssembler::loadAtomOrSymbolAndHash(ValueOperand value, Register outId,
                                              Register outHash,
                                              Label* cacheMiss) {
-  Label isString, fatInline, done;
+  Label isString, fatInline, done, nonAtom, atom, lastLookupAtom;
 
   {
     ScratchTagScope tag(*this, value);
@@ -2153,8 +2159,9 @@ void MacroAssembler::loadAtomOrSymbolAndHash(ValueOperand value, Register outId,
   bind(&isString);
   unboxString(value, outId);
   branchTest32(Assembler::Zero, Address(outId, JSString::offsetOfFlags()),
-               Imm32(JSString::ATOM_BIT), cacheMiss);
+               Imm32(JSString::ATOM_BIT), &nonAtom);
 
+  bind(&atom);
   move32(Imm32(JSString::FAT_INLINE_MASK), outHash);
   and32(Address(outId, JSString::offsetOfFlags()), outHash);
 
@@ -2164,13 +2171,168 @@ void MacroAssembler::loadAtomOrSymbolAndHash(ValueOperand value, Register outId,
   jump(&done);
   bind(&fatInline);
   load32(Address(outId, FatInlineAtom::offsetOfHash()), outHash);
+  jump(&done);
+
+  bind(&nonAtom);
+  loadStringToAtomCacheLastLookups(outHash);
+
+  // Compare each entry in the StringToAtomCache's lastLookups_ array
+  size_t stringOffset = StringToAtomCache::LastLookup::offsetOfString();
+  branchPtr(Assembler::Equal, Address(outHash, stringOffset), outId,
+            &lastLookupAtom);
+  for (size_t i = 0; i < StringToAtomCache::NumLastLookups - 1; ++i) {
+    addPtr(Imm32(sizeof(StringToAtomCache::LastLookup)), outHash);
+    branchPtr(Assembler::Equal, Address(outHash, stringOffset), outId,
+              &lastLookupAtom);
+  }
+
+  // Couldn't find us in the cache, so fall back to the C++ call
+  jump(cacheMiss);
+
+  // We found a hit in the lastLookups_ array! Load the associated atom
+  // and jump back up to our usual atom handling code
+  bind(&lastLookupAtom);
+  size_t atomOffset = StringToAtomCache::LastLookup::offsetOfAtom();
+  loadPtr(Address(outHash, atomOffset), outId);
+  jump(&atom);
 
   bind(&done);
 }
 
+void MacroAssembler::emitExtractValueFromMegamorphicCacheEntry(
+    Register obj, Register entry, Register scratch1, Register scratch2,
+    ValueOperand output, Label* cacheHit, Label* cacheMiss) {
+  Label isMissing, dynamicSlot, protoLoopHead, protoLoopTail;
+
+  // scratch2 = entry->numHops_
+  load8ZeroExtend(Address(entry, MegamorphicCache::Entry::offsetOfNumHops()),
+                  scratch2);
+  // if (scratch2 == NumHopsForMissingOwnProperty) goto cacheMiss
+  branch32(Assembler::Equal, scratch2,
+           Imm32(MegamorphicCache::Entry::NumHopsForMissingOwnProperty),
+           cacheMiss);
+  // if (scratch2 == NumHopsForMissingProperty) goto isMissing
+  branch32(Assembler::Equal, scratch2,
+           Imm32(MegamorphicCache::Entry::NumHopsForMissingProperty),
+           &isMissing);
+
+  // NOTE: Where this is called, `output` can actually alias `obj`, and before
+  // the last cacheMiss branch above we can't write to `obj`, so we can't
+  // use `output`'s scratch register there. However a cache miss is impossible
+  // now, so we're free to use `output` as we like.
+  Register outputScratch = output.scratchReg();
+  if (!outputScratch.aliases(obj)) {
+    // We're okay with paying this very slight extra cost to avoid a potential
+    // footgun of writing to what callers understand as only an input register.
+    movePtr(obj, outputScratch);
+  }
+  branchTest32(Assembler::Zero, scratch2, scratch2, &protoLoopTail);
+  bind(&protoLoopHead);
+  loadObjProto(outputScratch, outputScratch);
+  branchSub32(Assembler::NonZero, Imm32(1), scratch2, &protoLoopHead);
+  bind(&protoLoopTail);
+
+  // scratch1 = outputScratch->numFixedSlots()
+  loadPtr(Address(outputScratch, JSObject::offsetOfShape()), scratch1);
+  load32(Address(scratch1, Shape::offsetOfImmutableFlags()), scratch1);
+  and32(Imm32(NativeShape::fixedSlotsMask()), scratch1);
+  rshift32(Imm32(NativeShape::fixedSlotsShift()), scratch1);
+
+  // scratch2 = entry->slot()
+  load16ZeroExtend(Address(entry, MegamorphicCache::Entry::offsetOfSlot()),
+                   scratch2);
+  // if (scratch2 >= scratch1) goto dynamicSlot
+  branch32(Assembler::GreaterThanOrEqual, scratch2, scratch1, &dynamicSlot);
+
+  static_assert(sizeof(HeapSlot) == 8);
+  // output = outputScratch->fixedSlots()[scratch2]
+  loadValue(BaseValueIndex(outputScratch, scratch2, sizeof(NativeObject)),
+            output);
+  jump(cacheHit);
+
+  bind(&dynamicSlot);
+  // scratch2 -= scratch1
+  sub32(scratch1, scratch2);
+  // output = outputScratch->slots_[scratch2]
+  loadPtr(Address(outputScratch, NativeObject::offsetOfSlots()), outputScratch);
+  loadValue(BaseValueIndex(outputScratch, scratch2, 0), output);
+  jump(cacheHit);
+
+  bind(&isMissing);
+  // output = undefined
+  moveValue(UndefinedValue(), output);
+  jump(cacheHit);
+}
+
+void MacroAssembler::emitMegamorphicCacheLookupByValueCommon(
+    ValueOperand id, Register obj, Register scratch1, Register scratch2,
+    Register outEntryPtr, Label* cacheMiss) {
+  // A lot of this code is shared with emitMegamorphicCacheLookup. It would
+  // be nice to be able to avoid the duplication here, but due to a few
+  // differences like taking the id in a ValueOperand instead of being able
+  // to bake it in as an immediate, and only needing a Register for the output
+  // value, it seemed more awkward to read once it was deduplicated.
+
+  // outEntryPtr = obj->shape()
+  loadPtr(Address(obj, JSObject::offsetOfShape()), outEntryPtr);
+
+  movePtr(outEntryPtr, scratch2);
+
+  // outEntryPtr = (outEntryPtr >> 3) ^ (outEntryPtr >> 13) + idHash
+  rshiftPtr(Imm32(MegamorphicCache::ShapeHashShift1), outEntryPtr);
+  rshiftPtr(Imm32(MegamorphicCache::ShapeHashShift2), scratch2);
+  xorPtr(scratch2, outEntryPtr);
+
+  loadAtomOrSymbolAndHash(id, scratch1, scratch2, cacheMiss);
+  addPtr(scratch2, outEntryPtr);
+
+  // outEntryPtr %= MegamorphicCache::NumEntries
+  constexpr size_t cacheSize = MegamorphicCache::NumEntries;
+  static_assert(mozilla::IsPowerOfTwo(cacheSize));
+  size_t cacheMask = cacheSize - 1;
+  and32(Imm32(cacheMask), outEntryPtr);
+
+  loadMegamorphicCache(scratch2);
+  // outEntryPtr = &scratch2->entries_[outEntryPtr]
+  constexpr size_t entrySize = sizeof(MegamorphicCache::Entry);
+  static_assert(sizeof(void*) == 4 || entrySize == 24);
+  if constexpr (sizeof(void*) == 4) {
+    mul32(Imm32(entrySize), outEntryPtr);
+    computeEffectiveAddress(BaseIndex(scratch2, outEntryPtr, TimesOne,
+                                      MegamorphicCache::offsetOfEntries()),
+                            outEntryPtr);
+  } else {
+    computeEffectiveAddress(BaseIndex(outEntryPtr, outEntryPtr, TimesTwo),
+                            outEntryPtr);
+    computeEffectiveAddress(BaseIndex(scratch2, outEntryPtr, TimesEight,
+                                      MegamorphicCache::offsetOfEntries()),
+                            outEntryPtr);
+  }
+
+  // if (outEntryPtr->key_ != scratch1) goto cacheMiss
+  branchPtr(Assembler::NotEqual,
+            Address(outEntryPtr, MegamorphicCache::Entry::offsetOfKey()),
+            scratch1, cacheMiss);
+  loadPtr(Address(obj, JSObject::offsetOfShape()), scratch1);
+
+  // if (outEntryPtr->shape_ != scratch1) goto cacheMiss
+  branchPtr(Assembler::NotEqual,
+            Address(outEntryPtr, MegamorphicCache::Entry::offsetOfShape()),
+            scratch1, cacheMiss);
+
+  // scratch2 = scratch2->generation_
+  load16ZeroExtend(Address(scratch2, MegamorphicCache::offsetOfGeneration()),
+                   scratch2);
+  load16ZeroExtend(
+      Address(outEntryPtr, MegamorphicCache::Entry::offsetOfGeneration()),
+      scratch1);
+  // if (outEntryPtr->generation_ != scratch2) goto cacheMiss
+  branch32(Assembler::NotEqual, scratch1, scratch2, cacheMiss);
+}
+
 void MacroAssembler::emitMegamorphicCacheLookup(
     PropertyKey id, Register obj, Register scratch1, Register scratch2,
-    Register scratch3, ValueOperand output, Label* fail, Label* cacheHit) {
+    Register scratch3, ValueOperand output, Label* cacheHit) {
   Label cacheMiss, isMissing, dynamicSlot, protoLoopHead, protoLoopTail;
 
   // scratch1 = obj->shape()
@@ -2227,136 +2389,32 @@ void MacroAssembler::emitMegamorphicCacheLookup(
   // if (scratch2->generation_ != scratch3) goto cacheMiss
   branch32(Assembler::NotEqual, scratch1, scratch3, &cacheMiss);
 
-  // scratch3 = scratch2->numHops_
-  load8ZeroExtend(Address(scratch2, MegamorphicCache::Entry::offsetOfNumHops()),
-                  scratch3);
-  // if (scratch3 == NumHopsForMissingOwnProperty) goto cacheMiss
-  branch32(Assembler::Equal, scratch3,
-           Imm32(MegamorphicCache::Entry::NumHopsForMissingOwnProperty),
-           &cacheMiss);
-  // if (scratch3 == NumHopsForMissingProperty) goto isMissing
-  branch32(Assembler::Equal, scratch3,
-           Imm32(MegamorphicCache::Entry::NumHopsForMissingProperty),
-           &isMissing);
+  emitExtractValueFromMegamorphicCacheEntry(obj, scratch2, scratch1, scratch3,
+                                            output, cacheHit, &cacheMiss);
 
-  // NOTE: Where this is called, `output` can actually alias `obj`, and before
-  // the last cacheMiss branch above we can't write to `obj`, so we can't
-  // use `output`'s scratch register there. However a cache miss is impossible
-  // now, so we're free to use `output` as we like.
-  Register outputScratch = output.scratchReg();
-  if (!outputScratch.aliases(obj)) {
-    // We're okay with paying this very slight extra cost to avoid a potential
-    // footgun of writing to what callers understand as only an input register.
-    movePtr(obj, outputScratch);
-  }
-  branchTest32(Assembler::Zero, scratch3, scratch3, &protoLoopTail);
-  bind(&protoLoopHead);
-  loadObjProto(outputScratch, outputScratch);
-  branchSub32(Assembler::NonZero, Imm32(1), scratch3, &protoLoopHead);
-  bind(&protoLoopTail);
+  bind(&cacheMiss);
+}
 
-  // scratch1 = outputScratch->numFixedSlots()
-  loadPtr(Address(outputScratch, JSObject::offsetOfShape()), scratch1);
-  load32(Address(scratch1, Shape::offsetOfImmutableFlags()), scratch1);
-  and32(Imm32(Shape::fixedSlotsMask()), scratch1);
-  rshift32(Imm32(Shape::fixedSlotsShift()), scratch1);
-
-  // scratch3 = scratch2->slot()
-  load16ZeroExtend(Address(scratch2, MegamorphicCache::Entry::offsetOfSlot()),
-                   scratch3);
-  // if (scratch3 >= scratch1) goto dynamicSlot
-  branch32(Assembler::GreaterThanOrEqual, scratch3, scratch1, &dynamicSlot);
-
-  static_assert(sizeof(HeapSlot) == 8);
-  // output = outputScratch->fixedSlots()[scratch3]
-  loadValue(BaseValueIndex(outputScratch, scratch3, sizeof(NativeObject)),
-            output);
-  jump(cacheHit);
-
-  bind(&dynamicSlot);
-  // scratch3 -= scratch1
-  sub32(scratch1, scratch3);
-  // output = outputScratch->slots_[scratch3]
-  loadPtr(Address(outputScratch, NativeObject::offsetOfSlots()), outputScratch);
-  loadValue(BaseValueIndex(outputScratch, scratch3, 0), output);
-  jump(cacheHit);
-
-  bind(&isMissing);
-  // output = undefined
-  moveValue(UndefinedValue(), output);
-  jump(cacheHit);
-
+void MacroAssembler::emitMegamorphicCacheLookupByValue(
+    ValueOperand id, Register obj, Register scratch1, Register scratch2,
+    Register scratch3, ValueOperand output, Label* cacheHit) {
+  Label cacheMiss;
+  emitMegamorphicCacheLookupByValueCommon(id, obj, scratch1, scratch2, scratch3,
+                                          &cacheMiss);
+  emitExtractValueFromMegamorphicCacheEntry(obj, scratch3, scratch1, scratch2,
+                                            output, cacheHit, &cacheMiss);
   bind(&cacheMiss);
 }
 
 void MacroAssembler::emitMegamorphicCacheLookupExists(
     ValueOperand id, Register obj, Register scratch1, Register scratch2,
-    Register scratch3, Register output, Label* fail, Label* cacheHit,
-    bool hasOwn) {
-  // A lot of this code is shared with emitMegamorphicCacheLookup. It would
-  // be nice to be able to avoid the duplication here, but due to a few
-  // differences like taking the id in a ValueOperand instead of being able
-  // to bake it in as an immediate, and only needing a Register for the output
-  // value, it seemed more awkward to read once it was deduplicated.
-  Label cacheMiss, isMissing, cacheHitFalse;
+    Register scratch3, Register output, Label* cacheHit, bool hasOwn) {
+  Label cacheMiss, cacheHitFalse;
+  emitMegamorphicCacheLookupByValueCommon(id, obj, scratch1, scratch2, scratch3,
+                                          &cacheMiss);
 
-  // scratch2 = obj->shape()
-  loadPtr(Address(obj, JSObject::offsetOfShape()), scratch2);
-
-  movePtr(scratch2, scratch3);
-
-  // scratch2 = (scratch2 >> 3) ^ (scratch2 >> 13) + idHash
-  rshiftPtr(Imm32(MegamorphicCache::ShapeHashShift1), scratch2);
-  rshiftPtr(Imm32(MegamorphicCache::ShapeHashShift2), scratch3);
-  xorPtr(scratch3, scratch2);
-
-  loadAtomOrSymbolAndHash(id, scratch1, scratch3, &cacheMiss);
-  addPtr(scratch3, scratch2);
-
-  // scratch2 %= MegamorphicCache::NumEntries
-  constexpr size_t cacheSize = MegamorphicCache::NumEntries;
-  static_assert(mozilla::IsPowerOfTwo(cacheSize));
-  size_t cacheMask = cacheSize - 1;
-  and32(Imm32(cacheMask), scratch2);
-
-  loadMegamorphicCache(scratch3);
-  // scratch2 = &scratch3->entries_[scratch2]
-  constexpr size_t entrySize = sizeof(MegamorphicCache::Entry);
-  static_assert(sizeof(void*) == 4 || entrySize == 24);
-  if constexpr (sizeof(void*) == 4) {
-    mul32(Imm32(entrySize), scratch2);
-    computeEffectiveAddress(BaseIndex(scratch3, scratch2, TimesOne,
-                                      MegamorphicCache::offsetOfEntries()),
-                            scratch2);
-  } else {
-    computeEffectiveAddress(BaseIndex(scratch2, scratch2, TimesTwo), scratch2);
-    computeEffectiveAddress(BaseIndex(scratch3, scratch2, TimesEight,
-                                      MegamorphicCache::offsetOfEntries()),
-                            scratch2);
-  }
-
-  // if (scratch2->key_ != scratch4) goto cacheMiss
-  branchPtr(Assembler::NotEqual,
-            Address(scratch2, MegamorphicCache::Entry::offsetOfKey()), scratch1,
-            &cacheMiss);
-  loadPtr(Address(obj, JSObject::offsetOfShape()), scratch1);
-
-  // if (scratch2->shape_ != scratch1) goto cacheMiss
-  branchPtr(Assembler::NotEqual,
-            Address(scratch2, MegamorphicCache::Entry::offsetOfShape()),
-            scratch1, &cacheMiss);
-
-  // scratch3 = scratch3->generation_
-  load16ZeroExtend(Address(scratch3, MegamorphicCache::offsetOfGeneration()),
-                   scratch3);
-  load16ZeroExtend(
-      Address(scratch2, MegamorphicCache::Entry::offsetOfGeneration()),
-      scratch1);
-  // if (scratch2->generation_ != scratch3) goto cacheMiss
-  branch32(Assembler::NotEqual, scratch1, scratch3, &cacheMiss);
-
-  // scratch3 = scratch2->numHops_
-  load8ZeroExtend(Address(scratch2, MegamorphicCache::Entry::offsetOfNumHops()),
+  // scratch3 = scratch3->numHops_
+  load8ZeroExtend(Address(scratch3, MegamorphicCache::Entry::offsetOfNumHops()),
                   scratch3);
 
   branch32(Assembler::Equal, scratch3,
@@ -4139,9 +4197,10 @@ void MacroAssembler::branchTestObjCompartment(
 
 void MacroAssembler::branchIfNonNativeObj(Register obj, Register scratch,
                                           Label* label) {
-  loadObjClassUnsafe(obj, scratch);
-  branchTest32(Assembler::NonZero, Address(scratch, JSClass::offsetOfFlags()),
-               Imm32(JSClass::NON_NATIVE), label);
+  loadPtr(Address(obj, JSObject::offsetOfShape()), scratch);
+  branchTest32(Assembler::Zero,
+               Address(scratch, Shape::offsetOfImmutableFlags()),
+               Imm32(Shape::isNativeBit()), label);
 }
 
 void MacroAssembler::branchIfObjectNotExtensible(Register obj, Register scratch,
@@ -4376,6 +4435,7 @@ void MacroAssembler::wasmCallIndirect(const wasm::CallSiteDesc& desc,
     case wasm::CallIndirectIdKind::Immediate:
       move32(Imm32(callIndirectId.immediate()), WasmTableCallSigReg);
       break;
+    case wasm::CallIndirectIdKind::AsmJS:
     case wasm::CallIndirectIdKind::None:
       break;
   }
@@ -4525,6 +4585,69 @@ void MacroAssembler::wasmCallRef(const wasm::CallSiteDesc& desc,
   bind(&done);
 }
 
+void MacroAssembler::branchWasmTypeDefIsSubtype(Register subTypeDef,
+                                                Register superTypeDef,
+                                                Register scratch,
+                                                uint32_t subTypingDepth,
+                                                Label* label, bool onSuccess) {
+  MOZ_ASSERT_IF(subTypingDepth >= wasm::MinSuperTypeVectorLength,
+                scratch != Register::Invalid());
+
+  // We generate just different enough code for 'is' subtype vs 'is not'
+  // subtype that we handle them separately.
+  if (onSuccess) {
+    Label failed;
+
+    // Fast path for the type defs being equal.
+    branchPtr(Assembler::Equal, subTypeDef, superTypeDef, label);
+
+    // Slower path for checking the supertype vector of `subTypeDef`. We don't
+    // need `subTypeDef` at this point, so we use it as a scratch for storing
+    // the super type vector and entry from it.
+    loadPtr(Address(subTypeDef, wasm::TypeDef::offsetOfSuperTypeVector()),
+            subTypeDef);
+
+    // Emit a bounds check if the super type depth may be out-of-bounds.
+    if (subTypingDepth >= wasm::MinSuperTypeVectorLength) {
+      // Slowest path for having a bounds check of the super type vector
+      load32(Address(subTypeDef, wasm::SuperTypeVector::offsetOfLength()),
+             scratch);
+      branch32(Assembler::LessThanOrEqual, scratch, Imm32(subTypingDepth),
+               &failed);
+    }
+
+    // Load the `subTypingDepth` entry from subTypeDef's super type vector. This
+    // will be `superTypeDef` if `subTypeDef` is indeed a subtype.
+    loadPtr(Address(subTypeDef, wasm::SuperTypeVector::offsetOfTypeDefInVector(
+                                    subTypingDepth)),
+            subTypeDef);
+    branchPtr(Assembler::Equal, subTypeDef, superTypeDef, label);
+
+    // Fallthrough to the failed case
+    bind(&failed);
+    return;
+  }
+
+  // Load the super type vector from subTypeDef
+  loadPtr(Address(subTypeDef, wasm::TypeDef::offsetOfSuperTypeVector()),
+          subTypeDef);
+
+  // Emit a bounds check if the super type depth may be out-of-bounds.
+  if (subTypingDepth >= wasm::MinSuperTypeVectorLength) {
+    load32(Address(subTypeDef, wasm::SuperTypeVector::offsetOfLength()),
+           scratch);
+    branch32(Assembler::LessThanOrEqual, scratch, Imm32(subTypingDepth), label);
+  }
+
+  // Load the `subTypingDepth` entry from subTypeDef's super type vector. This
+  // will be `superTypeDef` if `subTypeDef` is indeed a subtype.
+  loadPtr(Address(subTypeDef, wasm::SuperTypeVector::offsetOfTypeDefInVector(
+                                  subTypingDepth)),
+          subTypeDef);
+  branchPtr(Assembler::NotEqual, subTypeDef, superTypeDef, label);
+  // Fallthrough to the success case
+}
+
 void MacroAssembler::nopPatchableToCall(const wasm::CallSiteDesc& desc) {
   CodeOffset offset = nopPatchableToCall();
   append(desc, offset);
@@ -4555,8 +4678,8 @@ void MacroAssembler::emitPreBarrierFastPath(JSRuntime* rt, MIRType type,
 #endif
 
   // Load the chunk address in temp2.
-  movePtr(ImmWord(~gc::ChunkMask), temp2);
-  andPtr(temp1, temp2);
+  movePtr(temp1, temp2);
+  andPtr(Imm32(int32_t(~gc::ChunkMask)), temp2);
 
   // If the GC thing is in the nursery, we don't need to barrier it.
   if (type == MIRType::Value || type == MIRType::Object ||
@@ -4781,7 +4904,7 @@ void MacroAssembler::debugAssertObjHasFixedSlots(Register obj,
   loadPtr(Address(obj, JSObject::offsetOfShape()), scratch);
   branchTest32(Assembler::NonZero,
                Address(scratch, Shape::offsetOfImmutableFlags()),
-               Imm32(Shape::fixedSlotsMask()), &hasFixedSlots);
+               Imm32(NativeShape::fixedSlotsMask()), &hasFixedSlots);
   assumeUnreachable("Expected a fixed slot");
   bind(&hasFixedSlots);
 #endif

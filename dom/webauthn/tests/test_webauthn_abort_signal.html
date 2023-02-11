@@ -25,10 +25,8 @@
     add_task(() => {
       // Enable USB tokens.
       return SpecialPowers.pushPrefEnv({"set": [
-        ["security.webauth.webauthn", true],
         ["security.webauth.webauthn_enable_softtoken", false],
         ["security.webauth.webauthn_enable_usbtoken", true],
-        ["security.webauth.webauthn_enable_android_fido2", false],
       ]});
     });
 
@@ -65,7 +63,7 @@
     }
 
     // Create an AbortController and abort immediately.
-    add_task(async () => {
+    add_task(async function test_create_abortcontroller_and_abort() {
       let ctrl = new AbortController();
       ctrl.abort();
 
@@ -84,7 +82,7 @@
     });
 
     // Request a new credential and abort the request.
-    add_task(async () => {
+    add_task(async function test_request_credential_and_abort() {
       let aborted = false;
       let ctrl = new AbortController();
 
@@ -114,7 +112,7 @@
     });
 
     // Request a new assertion and abort the request.
-    add_task(async () => {
+    add_task(async function test_request_assertion_and_abort() {
       let aborted = false;
       let ctrl = new AbortController();
 

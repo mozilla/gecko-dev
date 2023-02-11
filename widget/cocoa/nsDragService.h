@@ -11,13 +11,6 @@
 
 #include <Cocoa/Cocoa.h>
 
-extern NSString* const kPublicUrlPboardType;
-extern NSString* const kPublicUrlNamePboardType;
-extern NSString* const kUrlsWithTitlesPboardType;
-extern NSString* const kMozWildcardPboardType;
-extern NSString* const kMozCustomTypesPboardType;
-extern NSString* const kMozFileUrlsPboardType;
-
 class nsDragService : public nsBaseDragService {
  public:
   nsDragService();
@@ -53,12 +46,6 @@ class nsDragService : public nsBaseDragService {
   NSImage* ConstructDragImage(nsINode* aDOMNode,
                               const mozilla::Maybe<mozilla::CSSIntRegion>& aRegion,
                               mozilla::CSSIntPoint aPoint, mozilla::LayoutDeviceIntRect* aDragRect);
-
-  bool IsValidType(NSString* availableType, bool allowFileURL);
-  NSString* GetStringForType(NSPasteboardItem* item, const NSString* type,
-                             bool allowFileURL = false);
-  NSString* GetTitleForURL(NSPasteboardItem* item);
-  NSString* GetFilePath(NSPasteboardItem* item);
 
   nsCOMPtr<nsIArray> mDataItems;  // only valid for a drag started within gecko
   ChildView* mNativeDragView;

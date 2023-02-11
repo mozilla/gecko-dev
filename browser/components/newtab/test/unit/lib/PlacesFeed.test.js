@@ -1,4 +1,7 @@
-import { actionCreators as ac, actionTypes as at } from "common/Actions.jsm";
+import {
+  actionCreators as ac,
+  actionTypes as at,
+} from "common/Actions.sys.mjs";
 import { GlobalOverrider } from "test/unit/utils";
 import injector from "inject!lib/PlacesFeed.jsm";
 
@@ -739,13 +742,15 @@ describe("PlacesFeed", () => {
     });
     it("should properly handle handoff with text data passed in", () => {
       const sessionId = "decafc0ffee";
-      sandbox.stub(AboutNewTab.activityStream.store.feeds, "get").returns({
-        sessions: {
-          get: () => {
-            return { session_id: sessionId };
+      sandbox
+        .stub(global.AboutNewTab.activityStream.store.feeds, "get")
+        .returns({
+          sessions: {
+            get: () => {
+              return { session_id: sessionId };
+            },
           },
-        },
-      });
+        });
       feed.handoffSearchToAwesomebar({
         _target: { browser: { ownerGlobal: { gURLBar: fakeUrlBar } } },
         data: { text: "foo" },
@@ -835,13 +840,15 @@ describe("PlacesFeed", () => {
     });
     it("should properly handoff a newtab session id with no text passed in", () => {
       const sessionId = "decafc0ffee";
-      sandbox.stub(AboutNewTab.activityStream.store.feeds, "get").returns({
-        sessions: {
-          get: () => {
-            return { session_id: sessionId };
+      sandbox
+        .stub(global.AboutNewTab.activityStream.store.feeds, "get")
+        .returns({
+          sessions: {
+            get: () => {
+              return { session_id: sessionId };
+            },
           },
-        },
-      });
+        });
       feed.handoffSearchToAwesomebar({
         _target: { browser: { ownerGlobal: { gURLBar: fakeUrlBar } } },
         data: {},

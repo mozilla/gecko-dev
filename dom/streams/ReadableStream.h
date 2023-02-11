@@ -12,6 +12,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/BindingDeclarations.h"
+#include "mozilla/dom/IterableIterator.h"
 #include "mozilla/dom/QueuingStrategyBinding.h"
 #include "mozilla/dom/ReadableStreamController.h"
 #include "mozilla/dom/ReadableStreamDefaultController.h"
@@ -26,6 +27,7 @@ class ReadableStreamGenericReader;
 class ReadableStreamDefaultReader;
 class ReadableStreamGenericReader;
 struct ReadableStreamGetReaderOptions;
+struct ReadableStreamIteratorOptions;
 struct ReadIntoRequest;
 class WritableStream;
 struct ReadableWritablePair;
@@ -84,15 +86,13 @@ class ReadableStream : public nsISupports, public nsWrapperCache {
     mStoredError = aStoredError;
   }
 
-  void SetNativeUnderlyingSource(BodyStreamHolder* aUnderlyingSource);
-  BodyStreamHolder* GetNativeUnderlyingSource() {
-    return mNativeUnderlyingSource;
+  BodyStreamHolder* GetBodyStreamHolder() {
+    if (UnderlyingSourceAlgorithmsBase* algorithms =
+            Controller()->GetAlgorithms()) {
+      return algorithms->GetBodyStreamHolder();
+    }
+    return nullptr;
   }
-  bool HasNativeUnderlyingSource() { return mNativeUnderlyingSource; }
-
-  // XXX(krosylight): BodyStream should really be a subclass of ReadableStream
-  // instead of owning ReadableStream this way. See bug 1803386.
-  void ReleaseObjectsFromBodyStream();
 
   // [Transferable]
   // https://html.spec.whatwg.org/multipage/structured-data.html#transfer-steps
@@ -103,7 +103,21 @@ class ReadableStream : public nsISupports, public nsWrapperCache {
       JSContext* aCx, nsIGlobalObject* aGlobal, MessagePort& aPort,
       JS::MutableHandle<JSObject*> aReturnObject);
 
- public:
+  // Public functions to implement other specs
+
+  // https://streams.spec.whatwg.org/#other-specs-rs-create
+  // The following algorithms must only be used on ReadableStream instances
+  // initialized via the above set up or set up with byte reading support
+  // algorithms (not, e.g., on web-developer-created instances):
+
+  MOZ_CAN_RUN_SCRIPT void CloseNative(JSContext* aCx, ErrorResult& aRv);
+
+  MOZ_CAN_RUN_SCRIPT void EnqueueNative(JSContext* aCx,
+                                        JS::Handle<JS::Value> aChunk,
+                                        ErrorResult& aRv);
+
+  // IDL layer functions
+
   nsIGlobalObject* GetParentObject() const { return mGlobal; }
 
   JSObject* WrapObject(JSContext* aCx,
@@ -140,6 +154,25 @@ class ReadableStream : public nsISupports, public nsWrapperCache {
                               nsTArray<RefPtr<ReadableStream>>& aResult,
                               ErrorResult& aRv);
 
+  struct IteratorData {
+    void Traverse(nsCycleCollectionTraversalCallback& cb);
+    void Unlink();
+
+    RefPtr<ReadableStreamDefaultReader> mReader;
+    bool mPreventCancel;
+  };
+
+  using Iterator = AsyncIterableIterator<ReadableStream>;
+
+  void InitAsyncIteratorData(IteratorData& aData, Iterator::IteratorType aType,
+                             const ReadableStreamIteratorOptions& aOptions,
+                             ErrorResult& aRv);
+  MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> GetNextIterationResult(
+      Iterator* aIterator, ErrorResult& aRv);
+  MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> IteratorReturn(
+      JSContext* aCx, Iterator* aIterator, JS::Handle<JS::Value> aValue,
+      ErrorResult& aRv);
+
   // Internal Slots:
  private:
   RefPtr<ReadableStreamController> mController;
@@ -147,23 +180,6 @@ class ReadableStream : public nsISupports, public nsWrapperCache {
   RefPtr<ReadableStreamGenericReader> mReader;
   ReaderState mState = ReaderState::Readable;
   JS::Heap<JS::Value> mStoredError;
-
-  // Optional strong reference to an Underlying Source; This
-  // exists because NativeUnderlyingSource callbacks don't hold
-  // a strong reference to the underlying source: So we need
-  // something else to hold onto that. As well, some of the integration
-  // desires the ability to extract the underlying source from the
-  // ReadableStream.
-  //
-  // While theoretically this ought to be some base class type to support
-  // multiple native underlying source types, I'm not sure what base class
-  // makes any sense for BodyStream, and given there's only body streams
-  // as the underlying source right now, I'm going to punt that problem to
-  // the future where we need to provide other native underlying sources
-  // (i.e. perhaps WebTransport.)
-  //
-  // See bug 1803386.
-  RefPtr<BodyStreamHolder> mNativeUnderlyingSource;
 };
 
 bool IsReadableStreamLocked(ReadableStream* aStream);

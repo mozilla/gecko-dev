@@ -48,6 +48,12 @@ Example 1: Simple Barrier client
 
 The following snippet presents an example of a client of FooService that has a shutdown dependency upon FooService. In this case, the client wishes to ensure that FooService is not shutdown before some state has been reached. An example is clients that need write data asynchronously and need to ensure that they have fully written their state to disk before shutdown, even if due to some user manipulation shutdown takes place immediately.
 
+.. warning::
+    `addBlocker()` can throw if it's too late in the shutdown process to add a
+    new blocker. The consumer must handle this case, especially if the blocker
+    contains code unblocking other shutdown phases.
+    `nsIShutdownClient.isClosed` can also be used to check for this condition.
+
 .. code-block:: javascript
 
     // Some client of FooService called FooClient
@@ -76,8 +82,8 @@ outstanding operations before FooService shuts down.
 
     // Module FooService
 
-    const { AsyncShutdown } = ChromeUtils.import(
-      "resource://gre/modules/AsyncShutdown.jsm"
+    const { AsyncShutdown } = ChromeUtils.importESModule(
+      "resource://gre/modules/AsyncShutdown.sys.mjs"
     );
 
     this.exports = ["FooService"];
@@ -158,8 +164,8 @@ Example 4: A service with both internal and external dependencies
 
     // Module FooService2
 
-    let { AsyncShutdown } = ChromeUtils.import(
-      "resource://gre/modules/AsyncShutdown.jsm"
+    let { AsyncShutdown } = ChromeUtils.importESModule(
+      "resource://gre/modules/AsyncShutdown.sys.mjs"
     );
     let { PromiseUtils } = ChromeUtils.importESModule(
       "resource://gre/modules/PromiseUtils.sys.mjs"

@@ -61,7 +61,6 @@
 #include "nsStreamUtils.h"
 #include "nsThreadUtils.h"
 #include "nsCORSListenerProxy.h"
-#include "ClassifierDummyChannel.h"
 #include "nsIOService.h"
 
 #include <functional>
@@ -433,6 +432,8 @@ void HttpChannelChild::OnStartRequest(
   StoreDeliveringAltData(aArgs.deliveringAltData());
   mAltDataLength = aArgs.altDataLength();
   StoreResolvedByTRR(aArgs.isResolvedByTRR());
+  mEffectiveTRRMode = aArgs.effectiveTRRMode();
+  mTRRSkipReason = aArgs.trrSkipReason();
 
   SetApplyConversion(aArgs.applyConversion());
 

@@ -50,9 +50,10 @@ const { AppConstants } = ChromeUtils.importESModule(
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  AsyncShutdown: "resource://gre/modules/AsyncShutdown.sys.mjs",
+  E10SUtils: "resource://gre/modules/E10SUtils.sys.mjs",
   ExtensionDNR: "resource://gre/modules/ExtensionDNR.sys.mjs",
   ExtensionDNRStore: "resource://gre/modules/ExtensionDNRStore.sys.mjs",
-  E10SUtils: "resource://gre/modules/E10SUtils.sys.mjs",
   Log: "resource://gre/modules/Log.sys.mjs",
   SITEPERMS_ADDON_TYPE:
     "resource://gre/modules/addons/siteperms-addon-utils.sys.mjs",
@@ -62,7 +63,6 @@ XPCOMUtils.defineLazyModuleGetters(lazy, {
   AddonManager: "resource://gre/modules/AddonManager.jsm",
   AddonManagerPrivate: "resource://gre/modules/AddonManager.jsm",
   AddonSettings: "resource://gre/modules/addons/AddonSettings.jsm",
-  AsyncShutdown: "resource://gre/modules/AsyncShutdown.jsm",
   ExtensionPermissions: "resource://gre/modules/ExtensionPermissions.jsm",
   ExtensionPreferencesManager:
     "resource://gre/modules/ExtensionPreferencesManager.jsm",
@@ -179,7 +179,7 @@ const SVG_CONTEXT_PROPERTIES_PERMISSION =
 
 // The userContextID reserved for the extension storage (its purpose is ensuring that the IndexedDB
 // storage used by the browser.storage.local API is not directly accessible from the extension code,
-// it is defined and reserved as "userContextIdInternal.webextStorageLocal" in ContextualIdentityService.jsm).
+// it is defined and reserved as "userContextIdInternal.webextStorageLocal" in ContextualIdentityService.sys.mjs).
 const WEBEXT_STORAGE_USER_CONTEXT_ID = -1 >>> 0;
 
 // The maximum time to wait for extension child shutdown blockers to complete.
@@ -232,6 +232,9 @@ const INSTALL_AND_UPDATE_STARTUP_REASONS = new Set([
   "ADDON_UPGRADE",
   "ADDON_DOWNGRADE",
 ]);
+
+const PROTOCOL_HANDLER_OPEN_PERM_KEY = "open-protocol-handler";
+const PERMISSION_KEY_DELIMITER = "^";
 
 // Returns true if the extension is owned by Mozilla (is either privileged,
 // using one of the @mozilla.com/@mozilla.org protected addon id suffixes).
@@ -572,6 +575,16 @@ var ExtensionAddonObserver = {
         "WebExtensions-unlimitedStorage"
       );
       Services.perms.removeFromPrincipal(principal, "persistent-storage");
+    }
+
+    // Clear any protocol handler permissions granted to this add-on.
+    let permissions = Services.perms.getAllWithTypePrefix(
+      PROTOCOL_HANDLER_OPEN_PERM_KEY + PERMISSION_KEY_DELIMITER
+    );
+    for (let perm of permissions) {
+      if (perm.principal.equalsURI(baseURI)) {
+        Services.perms.removePermission(perm);
+      }
     }
 
     if (!Services.prefs.getBoolPref(LEAVE_UUID_PREF, false)) {
@@ -1732,6 +1745,13 @@ class ExtensionData {
   // distributed via Normandy into a system location.
   get isAppProvided() {
     return this.addonData.builtIn || this.addonData.isSystem;
+  }
+
+  get isHidden() {
+    return (
+      this.addonData.locationHidden ||
+      (this.isPrivileged && this.manifest.hidden)
+    );
   }
 
   // Normalizes a Chrome-compatible locale code to the appropriate

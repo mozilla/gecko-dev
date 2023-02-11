@@ -7,9 +7,10 @@
 #include "mozilla/layers/APZInputBridge.h"
 
 #include "AsyncPanZoomController.h"
-#include "InputData.h"                      // for MouseInput, etc
-#include "InputBlockState.h"                // for InputBlockState
-#include "OverscrollHandoffState.h"         // for OverscrollHandoffState
+#include "InputData.h"               // for MouseInput, etc
+#include "InputBlockState.h"         // for InputBlockState
+#include "OverscrollHandoffState.h"  // for OverscrollHandoffState
+#include "mozilla/EventForwards.h"
 #include "mozilla/dom/WheelEventBinding.h"  // for WheelEvent constants
 #include "mozilla/EventStateManager.h"      // for EventStateManager
 #include "mozilla/layers/APZThreadUtils.h"  // for AssertOnControllerThread, etc
@@ -69,15 +70,41 @@ void APZEventResult::SetStatusAsConsumeDoDefault(
                : APZHandledResult{APZHandledPlace::HandledByContent, aTarget});
 }
 
-void APZEventResult::SetStatusAsConsumeDoDefaultWithTargetConfirmationFlags(
+void APZEventResult::SetStatusForTouchEvent(
     const InputBlockState& aBlock, TargetConfirmationFlags aFlags,
-    const AsyncPanZoomController& aTarget) {
-  mStatus = nsEventStatus_eConsumeDoDefault;
+    PointerEventsConsumableFlags aConsumableFlags,
+    const AsyncPanZoomController* aTarget) {
+  // Note, we need to continue setting mStatus to eIgnore in the {mHasRoom=true,
+  // mAllowedByTouchAction=false} case because this is the behaviour expected by
+  // APZEventState::ProcessTouchEvent() when it determines when to send a
+  // `pointercancel` event. TODO: Use something more descriptive than
+  // nsEventStatus for this purpose.
+  bool consumable = aConsumableFlags.IsConsumable();
+  mStatus =
+      consumable ? nsEventStatus_eConsumeDoDefault : nsEventStatus_eIgnore;
 
-  if (!aTarget.IsRootContent()) {
+  // If the touch event's effect is disallowed by touch-action, treat it as if
+  // a touch event listener had preventDefault()-ed it (i.e. return
+  // HandledByContent, except we can do it eagerly rather than having to wait
+  // for the listener to run).
+  if (!aConsumableFlags.mAllowedByTouchAction) {
+    mHandledResult =
+        Some(APZHandledResult{APZHandledPlace::HandledByContent, aTarget});
+    return;
+  }
+
+  if (mHandledResult && !aFlags.mDispatchToContent &&
+      !aConsumableFlags.mHasRoom) {
+    // Set result to Unhandled if we have no room to scroll, unless it
+    // was HandledByContent because we're over a dispatch-to-content region,
+    // in which case it should remain HandledByContent.
+    mHandledResult->mPlace = APZHandledPlace::Unhandled;
+  }
+
+  if (aTarget && !aTarget->IsRootContent()) {
     auto [result, rootApzc] =
         aBlock.GetOverscrollHandoffChain()->ScrollingDownWillMoveDynamicToolbar(
-            &aTarget);
+            aTarget);
     if (result) {
       MOZ_ASSERT(rootApzc && rootApzc->IsRootContent());
       // The event is actually consumed by a non-root APZC but scroll
@@ -93,7 +120,9 @@ void APZEventResult::SetStatusAsConsumeDoDefaultWithTargetConfirmationFlags(
       mHandledResult = aFlags.mDispatchToContent
                            ? Nothing()
                            : Some(APZHandledResult{
-                                 APZHandledPlace::HandledByRoot, rootApzc});
+                                 consumable ? APZHandledPlace::HandledByRoot
+                                            : APZHandledPlace::Unhandled,
+                                 rootApzc});
     }
   }
 }
@@ -226,7 +255,7 @@ APZEventResult APZInputBridge::ReceiveInputEvent(
         if (wheelEvent.mDeltaX || wheelEvent.mDeltaY) {
           ScreenPoint origin(wheelEvent.mRefPoint.x, wheelEvent.mRefPoint.y);
           ScrollWheelInput input(
-              wheelEvent.mTime, wheelEvent.mTimeStamp, 0, scrollMode,
+              wheelEvent.mTimeStamp, 0, scrollMode,
               ScrollWheelInput::DeltaTypeForDeltaMode(wheelEvent.mDeltaMode),
               origin, wheelEvent.mDeltaX, wheelEvent.mDeltaY,
               wheelEvent.mAllowToOverrideSystemScrollSpeed, strategy);

@@ -179,8 +179,7 @@ interface mixin HTMLOrForeignElement {
   // See bug 1389421
   // attribute DOMString nonce; // intentionally no [CEReactions]
 
-  // See bug 1575154
-  // [CEReactions] attribute boolean autofocus;
+  [CEReactions, SetterThrows, Pure] attribute boolean autofocus;
   [CEReactions, SetterThrows, Pure] attribute long tabIndex;
   [Throws, NeedsCallerType] undefined focus(optional FocusOptions options = {});
   [Throws] undefined blur();
@@ -402,6 +401,6 @@ dictionary SetHTMLOptions {
 };
 
 partial interface Element {
-  [SecureContext, UseCounter, Throws, Pref="dom.security.sanitizer.enabled"]
-    undefined setHTML(DOMString aInnerHTML, optional SetHTMLOptions options = {});
+  [SecureContext, UseCounter, Throws, Pref="dom.security.setHTML.enabled"]
+  undefined setHTML(DOMString aInnerHTML, optional SetHTMLOptions options = {});
 };

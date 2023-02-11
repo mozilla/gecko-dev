@@ -2,18 +2,15 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 r"""This module contains code for managing clobbering of the tree."""
 
 import errno
 import os
 import subprocess
 import sys
-
-from mozfile.mozfile import remove as mozfileremove
 from textwrap import TextWrapper
 
+from mozfile.mozfile import remove as mozfileremove
 
 CLOBBER_MESSAGE = "".join(
     [

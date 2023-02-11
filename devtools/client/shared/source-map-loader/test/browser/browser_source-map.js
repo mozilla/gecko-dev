@@ -57,7 +57,9 @@ add_task(async function testGetOriginalURLs() {
 add_task(async function testGetGeneratedRangesForOriginal() {
   const originals = await fetchFixtureSourceMap("intermingled-sources");
 
-  const ranges = await getGeneratedRangesForOriginal(originals[0].id);
+  const ranges = await gSourceMapLoader.getGeneratedRangesForOriginal(
+    originals[0].id
+  );
 
   Assert.deepEqual(
     ranges,
@@ -120,7 +122,7 @@ add_task(async function testGetGeneratedRangesForOriginal() {
     // Note that we have to clear the source map in order to get the merged ranges,
     // otherwise we are still fetching the previous unmerged ones!
     const secondOriginals = await fetchFixtureSourceMap("intermingled-sources");
-    const mergedRanges = await getGeneratedRangesForOriginal(
+    const mergedRanges = await gSourceMapLoader.getGeneratedRangesForOriginal(
       secondOriginals[0].id,
       true
     );
@@ -144,17 +146,24 @@ add_task(async function testGetGeneratedRangesForOriginal() {
   }
 });
 
-add_task(async function testErrorHandling() {
+add_task(async function testBaseURLErrorHandling() {
   const source = {
     id: "missingmap.js",
     sourceMapURL: "missingmap.js.map",
     // Notice the duplicated ":" which cause the error here
-    sourceMapBaseURL: "http:://example.com/missingmap.js",
+    sourceMapBaseURL: "http:://example.com/",
   };
 
-  await Assert.rejects(
-    getOriginalURLs(source),
-    /http::\/\/example.com\/missingmap.js is not a valid URL/,
-    "Throws on network error"
+  const onError = gSourceMapLoader.once("source-map-error");
+  is(
+    await gSourceMapLoader.getOriginalURLs(source),
+    null,
+    "The error is silented..."
+  );
+  info("Wait for source-map-error event");
+  const error = await onError;
+  is(
+    error,
+    `Source map error: Error: URL constructor: http:://example.com/ is not a valid URL.\nResource URL: undefined\nSource Map URL: missingmap.js.map`
   );
 });

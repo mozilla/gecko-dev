@@ -8,6 +8,11 @@ import os
 import re
 from datetime import datetime, timedelta
 
+from redo import retry
+from taskgraph.parameters import Parameters
+from taskgraph.target_tasks import _target_task, get_method
+from taskgraph.util.taskcluster import find_task_id
+
 from gecko_taskgraph import GECKO, try_option_syntax
 from gecko_taskgraph.util.attributes import (
     match_run_on_hg_branches,
@@ -15,10 +20,6 @@ from gecko_taskgraph.util.attributes import (
 )
 from gecko_taskgraph.util.hg import find_hg_revision_push_info, get_hg_commit_message
 from gecko_taskgraph.util.platforms import platform_family
-from redo import retry
-from taskgraph.parameters import Parameters
-from taskgraph.target_tasks import _target_task, get_method
-from taskgraph.util.taskcluster import find_task_id
 
 # Some tasks show up in the target task set, but are possibly special cases,
 # uncommon tasks, or tasks running against limited hardware set that they
@@ -43,7 +44,7 @@ UNCOMMON_TRY_TASK_LABELS = [
     r"-profiling-",  # talos/raptor profiling jobs are run too often
     # Hide shippable versions of tests we have opt versions of because the non-shippable
     # versions are faster to run. This is mostly perf tests.
-    r"-shippable(?!.*(awsy|browsertime|marionette-headless|mochitest-devtools-chrome-fis|msix|raptor|talos|web-platform-tests-wdspec-headless|mochitest-plain-headless))",  # noqa - too long
+    r"-shippable(?!.*(awsy|browsertime|marionette-headless|mochitest-devtools-chrome-fis|raptor|talos|web-platform-tests-wdspec-headless|mochitest-plain-headless))",  # noqa - too long
 ]
 
 
@@ -242,6 +243,8 @@ def accept_raptor_android_build(platform):
     if "shippable" not in platform:
         return False
     if "p2" in platform and "aarch64" in platform:
+        return False
+    if "p5" in platform and "aarch64" in platform:
         return False
     if "g5" in platform:
         return False
@@ -763,6 +766,9 @@ def target_tasks_general_perf_testing(full_task_graph, parameters, graph_config)
                     if "speedometer" in try_name:
                         return True
                 if "safari" and "benchmark" in try_name:
+                    # Speedometer 3 is broken on Safari, see bug 1802922
+                    if "speedometer3" in try_name:
+                        return False
                     return True
             else:
                 # Don't run tp6 raptor tests
@@ -770,8 +776,10 @@ def target_tasks_general_perf_testing(full_task_graph, parameters, graph_config)
                     return False
         # Android selection
         elif accept_raptor_android_build(platform):
-            # Bug 1780817 - a51 and p2 are failing to install chrome
-            if "chrome-m" in try_name and ("-a51" in platform or "-p2" in platform):
+            # Bug 1780817 - a51 and p2/p5 are failing to install chrome
+            if "chrome-m" in try_name and (
+                "-a51" in platform or "-p2" in platform or "-p5" in platform
+            ):
                 return False
             # Ignore all fennec tests here, we run those weekly
             if "fennec" in try_name:

@@ -27,7 +27,7 @@ class NameResolver : public ParseNodeVisitor<NameResolver> {
 
   static const size_t MaxParents = 100;
 
-  JSContext* cx_;
+  FrontendContext* fc_;
   ParserAtomsTable& parserAtoms_;
   TaggedParserAtomIndex prefix_;
 
@@ -64,8 +64,12 @@ class NameResolver : public ParseNodeVisitor<NameResolver> {
     }
 
     /* Quote the string as needed. */
-    UniqueChars source = parserAtoms_.toQuotedString(cx_, name);
-    return source && buf_.append('[') &&
+    UniqueChars source = parserAtoms_.toQuotedString(name);
+    if (!source) {
+      ReportOutOfMemory(fc_);
+      return false;
+    }
+    return buf_.append('[') &&
            buf_.append(source.get(), strlen(source.get())) && buf_.append(']');
   }
 
@@ -240,7 +244,7 @@ class NameResolver : public ParseNodeVisitor<NameResolver> {
           !buf_.append(parserAtoms_, funbox->displayAtom())) {
         return false;
       }
-      *retId = buf_.finishParserAtom(parserAtoms_, ec_);
+      *retId = buf_.finishParserAtom(parserAtoms_, fc_);
       return !!*retId;
     }
 
@@ -349,7 +353,7 @@ class NameResolver : public ParseNodeVisitor<NameResolver> {
       return true;
     }
 
-    *retId = buf_.finishParserAtom(parserAtoms_, ec_);
+    *retId = buf_.finishParserAtom(parserAtoms_, fc_);
     if (!*retId) {
       return false;
     }
@@ -485,13 +489,13 @@ class NameResolver : public ParseNodeVisitor<NameResolver> {
     return internalVisitSpecList(pn);
   }
 
-  NameResolver(JSContext* cx, ErrorContext* ec, JS::NativeStackLimit stackLimit,
+  NameResolver(FrontendContext* fc, JS::NativeStackLimit stackLimit,
                ParserAtomsTable& parserAtoms)
-      : ParseNodeVisitor(ec, stackLimit),
-        cx_(cx),
+      : ParseNodeVisitor(fc, stackLimit),
+        fc_(fc),
         parserAtoms_(parserAtoms),
         nparents_(0),
-        buf_(cx, ec) {}
+        buf_(fc) {}
 
   /*
    * Resolve names for all anonymous functions in the given ParseNode tree.
@@ -522,9 +526,9 @@ class NameResolver : public ParseNodeVisitor<NameResolver> {
 
 } /* anonymous namespace */
 
-bool frontend::NameFunctions(JSContext* cx, ErrorContext* ec,
+bool frontend::NameFunctions(FrontendContext* fc,
                              JS::NativeStackLimit stackLimit,
                              ParserAtomsTable& parserAtoms, ParseNode* pn) {
-  NameResolver nr(cx, ec, stackLimit, parserAtoms);
+  NameResolver nr(fc, stackLimit, parserAtoms);
   return nr.visit(pn);
 }

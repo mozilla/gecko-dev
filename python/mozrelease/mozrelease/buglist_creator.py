@@ -3,17 +3,15 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function
-
 import logging
 import os
 import re
-import requests
-from taskcluster import Notify
-from taskcluster import optionsFromEnvironment
 from operator import itemgetter
 
+import requests
 from mozilla_version.gecko import GeckoVersion
+
+from taskcluster import Notify, optionsFromEnvironment
 
 BUGLIST_TEMPLATE = "* [Bugs since previous changeset]({url})\n"
 BACKOUT_REGEX = re.compile(r"back(\s?)out|backed out|backing out", re.IGNORECASE)

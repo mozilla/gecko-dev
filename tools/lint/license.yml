@@ -31,12 +31,12 @@ license:
         - intl/l10n/rust/l10nregistry-rs
         # tests
         - js/src/devtools/rootAnalysis/t/
-        - mobile/android/components/extensions
         - mobile/android/geckoview/src/main/AndroidManifest.xml
         - mobile/android/geckoview/src/main/AndroidManifest_overlay.jinja
         - mobile/android/geckoview/src/main/res/drawable/ic_generic_file.xml
         - mobile/android/geckoview_example/src/main
         - testing/webcompat/interventions/
+        - testing/webcompat/shims/
         # might not work with license
         - mobile/android/gradle/dotgradle-offline/gradle.properties
         # might not work with license

@@ -91,18 +91,18 @@ inline void JSObject::finalize(JS::GCContext* gcx) {
   }
 #endif
 
-  const JSClass* clasp = getClass();
-  js::NativeObject* nobj =
-      clasp->isNativeObject() ? &as<js::NativeObject>() : nullptr;
+  js::Shape* objShape = shape();
 
+  const JSClass* clasp = objShape->getObjectClass();
   if (clasp->hasFinalize()) {
     clasp->doFinalize(gcx, this);
   }
 
-  if (!nobj) {
+  if (!objShape->isNative()) {
     return;
   }
 
+  js::NativeObject* nobj = &as<js::NativeObject>();
   if (nobj->hasDynamicSlots()) {
     js::ObjectSlots* slotsHeader = nobj->getSlotsHeader();
     size_t size = js::ObjectSlots::allocSize(slotsHeader->capacity());
@@ -524,14 +524,12 @@ inline bool GetClassOfValue(JSContext* cx, HandleValue v, ESClass* cls) {
   return JS::GetBuiltinClass(cx, obj, cls);
 }
 
-extern NativeObject* InitClass(JSContext* cx, HandleObject obj,
-                               HandleObject parent_proto, const JSClass* clasp,
-                               JSNative constructor, unsigned nargs,
-                               const JSPropertySpec* ps,
-                               const JSFunctionSpec* fs,
-                               const JSPropertySpec* static_ps,
-                               const JSFunctionSpec* static_fs,
-                               NativeObject** ctorp = nullptr);
+extern NativeObject* InitClass(
+    JSContext* cx, HandleObject obj, const JSClass* protoClass,
+    HandleObject protoProto, const char* name, JSNative constructor,
+    unsigned nargs, const JSPropertySpec* ps, const JSFunctionSpec* fs,
+    const JSPropertySpec* static_ps, const JSFunctionSpec* static_fs,
+    NativeObject** ctorp = nullptr);
 
 MOZ_ALWAYS_INLINE const char* GetObjectClassName(JSContext* cx,
                                                  HandleObject obj) {

@@ -41,9 +41,7 @@ content from the current directory, defines a single API endpoint
   httpd.start(block=True)
 
 """
-from __future__ import absolute_import
-
-from .mozhttpd import MozHttpd, Request, RequestHandler, main
 from .handlers import json_response
+from .mozhttpd import MozHttpd, Request, RequestHandler, main
 
 __all__ = ["MozHttpd", "Request", "RequestHandler", "main", "json_response"]

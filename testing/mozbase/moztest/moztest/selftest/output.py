@@ -4,8 +4,6 @@
 
 """Methods for testing interactions with mozharness."""
 
-from __future__ import absolute_import
-
 import json
 import os
 import sys
@@ -17,8 +15,8 @@ here = os.path.abspath(os.path.dirname(__file__))
 build = MozbuildObject.from_environment(cwd=here)
 
 sys.path.insert(0, os.path.join(build.topsrcdir, "testing", "mozharness"))
-from mozharness.base.log import INFO
 from mozharness.base.errors import BaseErrorList
+from mozharness.base.log import INFO
 from mozharness.mozilla.structuredlog import StructuredOutputParser
 from mozharness.mozilla.testing.errors import HarnessErrorList
 

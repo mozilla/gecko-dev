@@ -8,15 +8,13 @@
 # linux) to the information; I certainly wouldn't want anyone parsing this
 # information and having behaviour depend on it
 
-from __future__ import absolute_import, print_function
-
 import os
 import platform
 import re
 import sys
+from ctypes.util import find_library
 
 from .string_version import StringVersion
-from ctypes.util import find_library
 
 # keep a copy of the os module since updating globals overrides this
 _os = os
@@ -166,7 +164,7 @@ if info["os"] == "win" and version == "10.0.19041":
     info["win10_2004"] = True
 
 info["win11_2009"] = False
-if info["os"] == "win" and version == "10.0.22000":
+if info["os"] == "win" and version == "10.0.22621":
     info["win11_2009"] = True
 
 info["version"] = version
@@ -243,8 +241,9 @@ def update(new_info):
 
     if isinstance(new_info, string_types):
         # lazy import
-        import mozfile
         import json
+
+        import mozfile
 
         f = mozfile.load(new_info)
         new_info = json.loads(f.read())
@@ -288,8 +287,8 @@ def find_and_update_from_json(*dirs, **kwargs):
     """
     # First, see if we're in an objdir
     try:
-        from mozbuild.base import MozbuildObject, BuildEnvironmentNotFoundException
         from mozboot.mozconfig import MozconfigFindException
+        from mozbuild.base import BuildEnvironmentNotFoundException, MozbuildObject
 
         build = MozbuildObject.from_environment()
         json_path = _os.path.join(build.topobjdir, "mozinfo.json")

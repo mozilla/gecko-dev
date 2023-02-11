@@ -353,6 +353,7 @@ PeerConnectionImpl::PeerConnectionImpl(const GlobalObject* aGlobal)
   if (aGlobal) {
     if (IsPrivateBrowsing(mWindow)) {
       mPrivateWindow = true;
+      mDisableLongTermStats = true;
     }
     mWindow->AddPeerConnection();
     mActiveOnWindow = true;
@@ -476,6 +477,11 @@ nsresult PeerConnectionImpl::Initialize(PeerConnectionObserver& aObserver,
 
   // Initialize the media object.
   mForceProxy = ShouldForceProxy();
+
+  // We put this here, in case we later want to set this based on a non-standard
+  // param in RTCConfiguration.
+  mAllowOldSetParameters = Preferences::GetBool(
+      "media.peerconnection.allow_old_setParameters", false);
 
   // setup the stun local addresses IPC async call
   InitLocalAddrs();
@@ -926,18 +932,7 @@ nsresult PeerConnectionImpl::AddRtpTransceiverToJsepSession(
     return res;
   }
 
-  res = mJsepSession->AddTransceiver(transceiver);
-
-  if (NS_FAILED(res)) {
-    std::string errorString = mJsepSession->GetLastError();
-    CSFLogError(LOGTAG, "%s (%s) : pc = %s, error = %s", __FUNCTION__,
-                transceiver->GetMediaType() == SdpMediaSection::kAudio
-                    ? "audio"
-                    : "video",
-                mHandle.c_str(), errorString.c_str());
-    return NS_ERROR_FAILURE;
-  }
-
+  mJsepSession->AddTransceiver(transceiver);
   return NS_OK;
 }
 
@@ -954,6 +949,9 @@ static Maybe<SdpMediaSection::MediaType> ToSdpMediaType(
 already_AddRefed<RTCRtpTransceiver> PeerConnectionImpl::AddTransceiver(
     const dom::RTCRtpTransceiverInit& aInit, const nsAString& aKind,
     dom::MediaStreamTrack* aSendTrack, ErrorResult& aRv) {
+  // Copy, because we might need to modify
+  RTCRtpTransceiverInit init(aInit);
+
   Maybe<SdpMediaSection::MediaType> type = ToSdpMediaType(aKind);
   if (NS_WARN_IF(!type.isSome())) {
     MOZ_ASSERT(false, "Invalid media kind");
@@ -974,9 +972,93 @@ already_AddRefed<RTCRtpTransceiver> PeerConnectionImpl::AddTransceiver(
     return nullptr;
   }
 
+  auto& sendEncodings = init.mSendEncodings;
+
+  // CheckAndRectifyEncodings covers these six:
+  // If any encoding contains a rid member whose value does not conform to the
+  // grammar requirements specified in Section 10 of [RFC8851], throw a
+  // TypeError.
+
+  // If some but not all encodings contain a rid member, throw a TypeError.
+
+  // If any encoding contains a rid member whose value is the same as that of a
+  // rid contained in another encoding in sendEncodings, throw a TypeError.
+
+  // If kind is "audio", remove the scaleResolutionDownBy member from all
+  // encodings that contain one.
+
+  // If any encoding contains a scaleResolutionDownBy member whose value is
+  // less than 1.0, throw a RangeError.
+
+  // Verify that the value of each maxFramerate member in sendEncodings that is
+  // defined is greater than 0.0. If one of the maxFramerate values does not
+  // meet this requirement, throw a RangeError.
+  RTCRtpSender::CheckAndRectifyEncodings(sendEncodings,
+                                         *type == SdpMediaSection::kVideo, aRv);
+  if (aRv.Failed()) {
+    return nullptr;
+  }
+
+  // If any encoding contains a read-only parameter other than rid, throw an
+  // InvalidAccessError.
+  // NOTE: We don't support any additional read-only params right now. Also,
+  // spec shoehorns this in between checks that setParameters also performs
+  // (between the rid checks and the scaleResolutionDownBy checks).
+
+  // If any encoding contains a scaleResolutionDownBy member, then for each
+  // encoding without one, add a scaleResolutionDownBy member with the value
+  // 1.0.
+  for (const auto& constEncoding : sendEncodings) {
+    if (constEncoding.mScaleResolutionDownBy.WasPassed()) {
+      for (auto& encoding : sendEncodings) {
+        if (!encoding.mScaleResolutionDownBy.WasPassed()) {
+          encoding.mScaleResolutionDownBy.Construct(1.0f);
+        }
+      }
+      break;
+    }
+  }
+
+  // Let maxN be the maximum number of total simultaneous encodings the user
+  // agent may support for this kind, at minimum 1.This should be an optimistic
+  // number since the codec to be used is not known yet.
+  size_t maxN =
+      (*type == SdpMediaSection::kVideo) ? webrtc::kMaxSimulcastStreams : 1;
+
+  // If the number of encodings stored in sendEncodings exceeds maxN, then trim
+  // sendEncodings from the tail until its length is maxN.
+  // NOTE: Spec has this after all validation steps; even if there are elements
+  // that we will trim off, we still validate them.
+  if (sendEncodings.Length() > maxN) {
+    sendEncodings.TruncateLength(maxN);
+  }
+
+  // If kind is "video" and none of the encodings contain a
+  // scaleResolutionDownBy member, then for each encoding, add a
+  // scaleResolutionDownBy member with the value 2^(length of sendEncodings -
+  // encoding index - 1). This results in smaller-to-larger resolutions where
+  // the last encoding has no scaling applied to it, e.g. 4:2:1 if the length
+  // is 3.
+  // NOTE: The code above ensures that these are all set, or all unset, so we
+  // can just check the first one.
+  if (sendEncodings.Length() && *type == SdpMediaSection::kVideo &&
+      !sendEncodings[0].mScaleResolutionDownBy.WasPassed()) {
+    double scale = 1.0f;
+    for (auto it = sendEncodings.rbegin(); it != sendEncodings.rend(); ++it) {
+      it->mScaleResolutionDownBy.Construct(scale);
+      scale *= 2;
+    }
+  }
+
+  // If the number of encodings now stored in sendEncodings is 1, then remove
+  // any rid member from the lone entry.
+  if (sendEncodings.Length() == 1) {
+    sendEncodings[0].mRid.Reset();
+  }
+
   RefPtr<RTCRtpTransceiver> transceiver = CreateTransceiver(
       jsepTransceiver->GetUuid(),
-      jsepTransceiver->GetMediaType() == SdpMediaSection::kVideo, aInit,
+      jsepTransceiver->GetMediaType() == SdpMediaSection::kVideo, init,
       aSendTrack, aRv);
 
   if (aRv.Failed()) {
@@ -1531,6 +1613,22 @@ dom::RTCSdpType ToDomSdpType(JsepSdpType aType) {
   MOZ_CRASH("Nonexistent JsepSdpType");
 }
 
+JsepSdpType ToJsepSdpType(dom::RTCSdpType aType) {
+  switch (aType) {
+    case dom::RTCSdpType::Offer:
+      return kJsepSdpOffer;
+    case dom::RTCSdpType::Pranswer:
+      return kJsepSdpPranswer;
+    case dom::RTCSdpType::Answer:
+      return kJsepSdpAnswer;
+    case dom::RTCSdpType::Rollback:
+      return kJsepSdpRollback;
+    case dom::RTCSdpType::EndGuard_:;
+  }
+
+  MOZ_CRASH("Nonexistent dom::RTCSdpType");
+}
+
 NS_IMETHODIMP
 PeerConnectionImpl::SetLocalDescription(int32_t aAction, const char* aSDP) {
   PC_AUTO_ENTER_API_CALL(true);
@@ -1987,6 +2085,12 @@ void PeerConnectionImpl::StampTimecard(const char* aEvent) {
   STAMP_TIMECARD(mTimeCard, aEvent);
 }
 
+void PeerConnectionImpl::SendWarningToConsole(const nsCString& aWarning) {
+  nsAutoString msg = NS_ConvertASCIItoUTF16(aWarning);
+  nsContentUtils::ReportToConsoleByWindowID(msg, nsIScriptError::warningFlag,
+                                            "WebRTC"_ns, mWindow->WindowID());
+}
+
 nsresult PeerConnectionImpl::CalculateFingerprint(
     const std::string& algorithm, std::vector<uint8_t>* fingerprint) const {
   DtlsDigest digest(algorithm);
@@ -2094,6 +2198,32 @@ nsresult PeerConnectionImpl::CheckApiState(bool assert_ice_ready) const {
   return NS_OK;
 }
 
+void PeerConnectionImpl::StoreFinalStats(
+    UniquePtr<RTCStatsReportInternal>&& report) {
+  using namespace Telemetry;
+
+  report->mClosed = true;
+
+  for (const auto& inboundRtpStats : report->mInboundRtpStreamStats) {
+    bool isVideo = (inboundRtpStats.mId.Value().Find(u"video") != -1);
+    if (!isVideo) {
+      continue;
+    }
+    if (inboundRtpStats.mDiscardedPackets.WasPassed() &&
+        report->mCallDurationMs.WasPassed()) {
+      double mins = report->mCallDurationMs.Value() / (1000 * 60);
+      if (mins > 0) {
+        Accumulate(
+            WEBRTC_VIDEO_DECODER_DISCARDED_PACKETS_PER_CALL_PPM,
+            uint32_t(double(inboundRtpStats.mDiscardedPackets.Value()) / mins));
+      }
+    }
+  }
+
+  // Finally, store the stats
+  mFinalStats = std::move(report);
+}
+
 NS_IMETHODIMP
 PeerConnectionImpl::Close() {
   CSFLogDebug(LOGTAG, "%s: for %s", __FUNCTION__, mHandle.c_str());
@@ -2105,16 +2235,11 @@ PeerConnectionImpl::Close() {
 
   STAMP_TIMECARD(mTimeCard, "Close");
 
-  // When ICE completes, we record a bunch of statistics that outlive the
-  // PeerConnection. This includes a call to GetStats, as well as some
-  // telemetry. We do this at the end of the call because we want to make sure
-  // we've waited for all trickle ICE candidates to come in; this can happen
-  // well after we've transitioned to connected. As a bonus, this allows us to
-  // detect race conditions where a stats dispatch happens right as the PC
-  // closes.
-  if (!mPrivateWindow) {
-    WebrtcGlobalInformation::StoreLongTermICEStatistics(*this);
-  }
+  // When ICE completes, we record some telemetry. We do this at the end of the
+  // call because we want to make sure we've waited for all trickle ICE
+  // candidates to come in; this can happen well after we've transitioned to
+  // connected. As a bonus, this allows us to detect race conditions where a
+  // stats dispatch happens right as the PC closes.
   RecordEndOfCallTelemetry();
 
   CSFLogInfo(LOGTAG,
@@ -2166,26 +2291,48 @@ PeerConnectionImpl::Close() {
   }
 
   // Clear any resources held by libwebrtc through our Call instance.
-  RefPtr<GenericPromise> promise;
+  RefPtr<GenericPromise> callDestroyPromise;
   if (mCall) {
     // Make sure the compiler does not get confused and try to acquire a
     // reference to this thread _after_ we null out mCall.
     auto callThread = mCall->mCallThread;
-    promise = InvokeAsync(callThread, __func__, [call = std::move(mCall)]() {
-      call->Destroy();
-      return GenericPromise::CreateAndResolve(
-          true, "PCImpl->WebRtcCallWrapper::Destroy");
-    });
+    callDestroyPromise =
+        InvokeAsync(callThread, __func__, [call = std::move(mCall)]() {
+          call->Destroy();
+          return GenericPromise::CreateAndResolve(
+              true, "PCImpl->WebRtcCallWrapper::Destroy");
+        });
   } else {
-    promise = GenericPromise::CreateAndResolve(true, __func__);
+    callDestroyPromise = GenericPromise::CreateAndResolve(true, __func__);
   }
 
-  // We do this after the call is destroyed, to allow things like RTCP BYE to
-  // make it out on the wire before we shut the MediaTransportHandler down.
-  // Before we can tear down the MediaTransportHandler, we also need to unhook
-  // from sigslot, which is accomplished by destroying mSignalHandler.
+  mFinalStatsQuery =
+      GetStats(nullptr, true)
+          ->Then(
+              GetMainThreadSerialEventTarget(), __func__,
+              [this, self = RefPtr<PeerConnectionImpl>(this)](
+                  UniquePtr<dom::RTCStatsReportInternal>&& aReport) mutable {
+                StoreFinalStats(std::move(aReport));
+                return GenericNonExclusivePromise::CreateAndResolve(true,
+                                                                    __func__);
+              },
+              [](nsresult aError) {
+                return GenericNonExclusivePromise::CreateAndResolve(true,
+                                                                    __func__);
+              });
+
+  // 1. Allow final stats query to complete.
+  // 2. Tear down call, if necessary. We do this before we shut down the
+  //    transport handler, so RTCP BYE can be sent.
+  // 3. Unhook from the signal handler (sigslot) for transport stuff. This must
+  //    be done before we tear down the transport handler.
+  // 4. Tear down the transport handler, and deregister from PeerConnectionCtx.
+  //    When we deregister from PeerConnectionCtx, our final stats (if any)
+  //    will be stored.
   MOZ_RELEASE_ASSERT(mSTSThread);
-  promise
+  mFinalStatsQuery
+      ->Then(GetMainThreadSerialEventTarget(), __func__,
+             [callDestroyPromise]() mutable { return callDestroyPromise; })
       ->Then(
           mSTSThread, __func__,
           [signalHandler = std::move(mSignalHandler)]() mutable {
@@ -2220,6 +2367,21 @@ void PeerConnectionImpl::BreakCycles() {
     transceiver->BreakCycles();
   }
   mTransceivers.Clear();
+}
+
+bool PeerConnectionImpl::HasPendingSetParameters() const {
+  for (const auto& transceiver : mTransceivers) {
+    if (transceiver->Sender()->HasPendingSetParameters()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void PeerConnectionImpl::InvalidateLastReturnedParameters() {
+  for (const auto& transceiver : mTransceivers) {
+    transceiver->Sender()->InvalidateLastReturnedParameters();
+  }
 }
 
 nsresult PeerConnectionImpl::SetConfiguration(
@@ -2265,6 +2427,7 @@ nsresult PeerConnectionImpl::SetConfiguration(
 
   // Store the configuration for about:webrtc
   StoreConfigurationForAboutWebrtc(aConfiguration);
+
   return NS_OK;
 }
 
@@ -2425,31 +2588,52 @@ void PeerConnectionImpl::DoSetDescriptionSuccessPostProcessing(
 
         MOZ_ASSERT(mUncommittedJsepSession);
 
-        // Check for transceivers added by addTrack/addTransceiver while
-        // a sRD/sLD was in progress
+        // sRD/sLD needs to be redone in certain circumstances
+        bool needsRedo = HasPendingSetParameters();
+        if (!needsRedo && aRemote && (aSdpType == dom::RTCSdpType::Offer)) {
+          for (auto& transceiver : mTransceivers) {
+            if (!mUncommittedJsepSession->GetTransceiver(
+                    transceiver->GetJsepTransceiverId())) {
+              needsRedo = true;
+              break;
+            }
+          }
+        }
+
+        if (needsRedo) {
+          // Spec says to abort, and re-do the sRD!
+          // This happens either when there is a SetParameters call in
+          // flight (that will race against the [[SendEncodings]]
+          // modification caused by sRD(offer)), or when addTrack has been
+          // called while sRD(offer) was in progress.
+          mUncommittedJsepSession.reset(mJsepSession->Clone());
+          JsepSession::Result result;
+          if (aRemote) {
+            mUncommittedJsepSession->SetRemoteDescription(
+                ToJsepSdpType(aSdpType), mRemoteRequestedSDP);
+          } else {
+            mUncommittedJsepSession->SetLocalDescription(
+                ToJsepSdpType(aSdpType), mLocalRequestedSDP);
+          }
+          if (result.mError.isSome()) {
+            // wat
+            nsCString error(
+                "When redoing sRD/sLD because it raced against "
+                "addTrack or setParameters, we encountered a failure that "
+                "did not happen "
+                "the first time. This should never happen. The error was: ");
+            error += mUncommittedJsepSession->GetLastError().c_str();
+            aP->MaybeRejectWithOperationError(error);
+            MOZ_ASSERT(false);
+          } else {
+            DoSetDescriptionSuccessPostProcessing(aSdpType, aRemote, aP);
+          }
+          return;
+        }
+
         for (auto& transceiver : mTransceivers) {
           if (!mUncommittedJsepSession->GetTransceiver(
                   transceiver->GetJsepTransceiverId())) {
-            if (aSdpType == dom::RTCSdpType::Offer && aRemote) {
-              // Spec says to abort, and re-do the sRD(offer)!
-              mUncommittedJsepSession.reset(mJsepSession->Clone());
-              JsepSession::Result result =
-                  mUncommittedJsepSession->SetRemoteDescription(
-                      kJsepSdpOffer, mRemoteRequestedSDP);
-              MOZ_ASSERT(!!mUncommittedJsepSession->GetTransceiver(
-                  transceiver->GetJsepTransceiverId()));
-              if (result.mError.isSome()) {
-                // wat
-                aP->MaybeRejectWithOperationError(
-                    "When redoing sRD(offer) because it raced against "
-                    "addTrack, we encountered a failure that did not happen "
-                    "the first time. This should never happen.");
-                MOZ_ASSERT(false);
-              } else {
-                DoSetDescriptionSuccessPostProcessing(aSdpType, aRemote, aP);
-              }
-              return;
-            }
             // sLD, or sRD(answer), just make sure the new transceiver is
             // added, no need to re-do anything.
             mUncommittedJsepSession->AddTransceiver(
@@ -2464,6 +2648,11 @@ void PeerConnectionImpl::DoSetDescriptionSuccessPostProcessing(
 
         auto newSignalingState = GetSignalingState();
         SyncFromJsep();
+        if (aRemote || aSdpType == dom::RTCSdpType::Pranswer ||
+            aSdpType == dom::RTCSdpType::Answer) {
+          InvalidateLastReturnedParameters();
+        }
+
         // Section 4.4.1.5 Set the RTCSessionDescription:
         if (aSdpType == dom::RTCSdpType::Rollback) {
           // - step 4.5.10, type is rollback
@@ -3049,10 +3238,36 @@ nsTArray<dom::RTCCodecStats> PeerConnectionImpl::GetCodecStats(
 RefPtr<dom::RTCStatsReportPromise> PeerConnectionImpl::GetStats(
     dom::MediaStreamTrack* aSelector, bool aInternalStats) {
   MOZ_ASSERT(NS_IsMainThread());
+
+  if (mFinalStatsQuery) {
+    // This case should be _extremely_ rare; this will basically only happen
+    // when WebrtcGlobalInformation tries to get our stats while we are tearing
+    // down.
+    return mFinalStatsQuery->Then(
+        GetMainThreadSerialEventTarget(), __func__,
+        [this, self = RefPtr<PeerConnectionImpl>(this)]() {
+          UniquePtr<dom::RTCStatsReportInternal> finalStats =
+              MakeUnique<dom::RTCStatsReportInternal>();
+          // Might not be set if this encountered some error.
+          if (mFinalStats) {
+            *finalStats = *mFinalStats;
+          }
+          return RTCStatsReportPromise::CreateAndResolve(std::move(finalStats),
+                                                         __func__);
+        });
+  }
+
   nsTArray<RefPtr<dom::RTCStatsPromise>> promises;
   DOMHighResTimeStamp now = mTimestampMaker.GetNow();
 
   nsTArray<dom::RTCCodecStats> codecStats = GetCodecStats(now);
+  std::set<std::string> transportIds;
+
+  if (!aSelector) {
+    // There might not be any senders/receivers if we're DataChannel only, so we
+    // don't handle the null selector case in the loop below.
+    transportIds.insert("");
+  }
 
   nsTArray<
       std::tuple<RTCRtpTransceiver*, RefPtr<RTCStatsPromise::AllPromiseType>>>
@@ -3063,19 +3278,24 @@ RefPtr<dom::RTCStatsReportPromise> PeerConnectionImpl::GetStats(
     if (!sendSelected && !recvSelected) {
       continue;
     }
+
+    if (aSelector) {
+      transportIds.insert(transceiver->GetTransportId());
+    }
+
     nsTArray<RefPtr<RTCStatsPromise>> rtpStreamPromises;
     // Get all rtp stream stats for the given selector. Then filter away any
     // codec stat not related to the selector, and assign codec ids to the
     // stream stats.
+    // Skips the ICE stats; we do our own queries based on |transportIds| to
+    // avoid duplicates
     if (sendSelected) {
       rtpStreamPromises.AppendElements(
-          transceiver->Sender()->GetStatsInternal());
+          transceiver->Sender()->GetStatsInternal(true));
     }
     if (recvSelected) {
-      // Right now, returns two promises; one for RTP/RTCP stats, and
-      // another for ICE stats.
       rtpStreamPromises.AppendElements(
-          transceiver->Receiver()->GetStatsInternal());
+          transceiver->Receiver()->GetStatsInternal(true));
     }
     transceiverStatsPromises.AppendElement(
         std::make_tuple(transceiver.get(),
@@ -3086,17 +3306,8 @@ RefPtr<dom::RTCStatsReportPromise> PeerConnectionImpl::GetStats(
   promises.AppendElement(RTCRtpTransceiver::ApplyCodecStats(
       std::move(codecStats), std::move(transceiverStatsPromises)));
 
-  // TODO(bug 1616937): We need to move this is RTCRtpSender, to make
-  // getStats on those objects work properly. It might be worth optimizing
-  // the null selector case, so we don't end up with bunches of copies of
-  // the same transport information in the final report.
-  if (aSelector) {
-    std::string transportId = GetTransportIdMatchingSendTrack(*aSelector);
-    if (!transportId.empty()) {
-      promises.AppendElement(mTransportHandler->GetIceStats(transportId, now));
-    }
-  } else {
-    promises.AppendElement(mTransportHandler->GetIceStats("", now));
+  for (const auto& transportId : transportIds) {
+    promises.AppendElement(mTransportHandler->GetIceStats(transportId, now));
   }
 
   promises.AppendElement(GetDataChannelStats(mDataConnection, now));

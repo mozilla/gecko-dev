@@ -187,7 +187,7 @@ fn read_response(stream: &mut TcpStream, has_output: bool, has_length: bool) -> 
             // command failed. First split-off the `FAIL` and length of the message.
             response = response.split_off(8);
 
-            let message = std::str::from_utf8(&*response).map(|s| format!("adb error: {}", s))?;
+            let message = std::str::from_utf8(&response).map(|s| format!("adb error: {}", s))?;
 
             return Err(DeviceError::Adb(message));
         }
@@ -404,7 +404,7 @@ impl Device {
         };
         device
             .tempfile
-            .push(Uuid::new_v4().to_hyphenated().to_string());
+            .push(Uuid::new_v4().as_hyphenated().to_string());
 
         // check for rooted devices
         let uid_check = |id: String| id.contains("uid=0");

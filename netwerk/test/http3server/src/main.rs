@@ -10,12 +10,11 @@ use neqo_common::{event::Provider, qdebug, qinfo, qtrace, Datagram, Header};
 use neqo_crypto::{generate_ech_keys, init_db, AllowZeroRtt, AntiReplay};
 use neqo_http3::{
     Error, Http3OrWebTransportStream, Http3Parameters, Http3Server, Http3ServerEvent,
-    WebTransportRequest, WebTransportServerEvent,
+    WebTransportRequest, WebTransportServerEvent, WebTransportSessionAcceptAction,
 };
 use neqo_transport::server::Server;
 use neqo_transport::{
-    ConnectionEvent, ConnectionParameters, Output, RandomConnectionIdGenerator,
-    StreamType
+    ConnectionEvent, ConnectionParameters, Output, RandomConnectionIdGenerator, StreamType,
 };
 use std::env;
 
@@ -95,7 +94,7 @@ impl Http3TestServer {
 
     fn new_response(&mut self, mut stream: Http3OrWebTransportStream, mut data: Vec<u8>) {
         if data.len() == 0 {
-            stream.stream_close_send().unwrap();
+            let _ = stream.stream_close_send();
             return;
         }
         match stream.send_data(&data) {
@@ -397,16 +396,16 @@ impl HttpServer for Http3TestServer {
                         self.current_connection_hash = h.finish();
                     }
                 }
-                Http3ServerEvent::PriorityUpdate { .. }
-                | Http3ServerEvent::StreamReset { .. } => {}
-                Http3ServerEvent::StreamStopSending {
-                    stream,
-                    error
-                } => {
+                Http3ServerEvent::PriorityUpdate { .. } => {}
+                Http3ServerEvent::StreamReset { stream, error } => {
+                    qtrace!("Http3ServerEvent::StreamReset {:?} {:?}", stream, error);
+                }
+                Http3ServerEvent::StreamStopSending { stream, error } => {
                     qtrace!(
                         "Http3ServerEvent::StreamStopSending {:?} {:?}",
                         stream,
-                        error);
+                        error
+                    );
                 }
                 Http3ServerEvent::WebTransport(WebTransportServerEvent::NewSession {
                     mut session,
@@ -423,13 +422,33 @@ impl HttpServer for Http3TestServer {
                             let path = ph.value();
                             qtrace!("Serve request {}", path);
                             if path == "/success" {
-                                session.response(true).unwrap();
+                                session
+                                    .response(&WebTransportSessionAcceptAction::Accept)
+                                    .unwrap();
+                            } else if path == "/redirect" {
+                                session
+                                    .response(&WebTransportSessionAcceptAction::Reject(
+                                        [
+                                            Header::new(":status", "302"),
+                                            Header::new("location", "/"),
+                                        ]
+                                        .to_vec(),
+                                    ))
+                                    .unwrap();
                             } else if path == "/reject" {
-                                session.response(false).unwrap();
+                                session
+                                    .response(&WebTransportSessionAcceptAction::Reject(
+                                        [Header::new(":status", "404")].to_vec(),
+                                    ))
+                                    .unwrap();
                             } else if path == "/closeafter0ms" {
-                                session.response(true).unwrap();
+                                session
+                                    .response(&WebTransportSessionAcceptAction::Accept)
+                                    .unwrap();
                             } else if path == "/closeafter100ms" {
-                                session.response(true).unwrap();
+                                session
+                                    .response(&WebTransportSessionAcceptAction::Accept)
+                                    .unwrap();
                                 let expires = Instant::now() + Duration::from_millis(100);
                                 if !self.sessions_to_close.contains_key(&expires) {
                                     self.sessions_to_close.insert(expires, Vec::new());
@@ -439,17 +458,29 @@ impl HttpServer for Http3TestServer {
                                     .unwrap()
                                     .push(session);
                             } else if path == "/create_unidi_stream" {
-                                session.response(true).unwrap();
-                                self.sessions_to_create_stream.push((session, StreamType::UniDi));
+                                session
+                                    .response(&WebTransportSessionAcceptAction::Accept)
+                                    .unwrap();
+                                self.sessions_to_create_stream
+                                    .push((session, StreamType::UniDi));
                             } else if path == "/create_bidi_stream" {
-                                session.response(true).unwrap();
-                                self.sessions_to_create_stream.push((session, StreamType::BiDi));
+                                session
+                                    .response(&WebTransportSessionAcceptAction::Accept)
+                                    .unwrap();
+                                self.sessions_to_create_stream
+                                    .push((session, StreamType::BiDi));
                             } else {
-                                session.response(true).unwrap();
+                                session
+                                    .response(&WebTransportSessionAcceptAction::Accept)
+                                    .unwrap();
                             }
                         }
                         _ => {
-                            session.response(false).unwrap();
+                            session
+                                .response(&WebTransportSessionAcceptAction::Reject(
+                                    [Header::new(":status", "404")].to_vec(),
+                                ))
+                                .unwrap();
                         }
                     }
                 }
@@ -467,6 +498,17 @@ impl HttpServer for Http3TestServer {
                     if !stream.stream_info.is_http() {
                         self.webtransport_bidi_stream.insert(stream);
                     }
+                }
+                Http3ServerEvent::WebTransport(WebTransportServerEvent::Datagram {
+                    mut session,
+                    datagram,
+                }) => {
+                    qdebug!(
+                        "WebTransportServerEvent::Datagram {:?} {:?}",
+                        session,
+                        datagram
+                    );
+                    session.send_datagram(datagram.as_ref(), None).unwrap();
                 }
             }
         }
@@ -702,7 +744,8 @@ impl ServersRunner {
                         .max_table_size_encoder(MAX_TABLE_SIZE)
                         .max_table_size_decoder(MAX_TABLE_SIZE)
                         .max_blocked_streams(MAX_BLOCKED_STREAMS)
-                        .webtransport(true),
+                        .webtransport(true)
+                        .connection_parameters(ConnectionParameters::default().datagram_size(1200)),
                     None,
                 )
                 .expect("We cannot make a server!"),

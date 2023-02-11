@@ -111,13 +111,6 @@
   outline-offset: var(--focus-outline-inset);
 }
 
-/* The selected tab should appear above the border between the tabs toolbar and
-   the navigation toolbar. */
-.tabbrowser-tab[visuallyselected=true] {
-  position: relative;
-  z-index: 2;
-}
-
 .tab-content {
   padding: 0 var(--inline-tab-padding);
   min-width: 0;
@@ -507,7 +500,6 @@
   border-left: .5px solid rgba(255,255,255,.2);
   pointer-events: none;
   position: relative;
-  z-index: 3; /* the selected tab's z-index + 1 */
   border-bottom: .5px solid transparent;
 }
 
@@ -559,7 +551,6 @@
 #TabsToolbar #firefox-view-button[open] > .toolbarbutton-icon,
 .tab-background:is([selected], [multiselected]) {
   background-color: var(--tab-selected-bgcolor, var(--toolbar-bgcolor));
-  background-image: var(--tab-selected-bgimage, var(--toolbar-bgimage));
   background-origin: border-box;
   background-repeat: repeat-x;
 }
@@ -653,9 +644,7 @@ toolbar[brighttext] {
   margin-inline-start: -12px;
   background: url(chrome://browser/skin/tabbrowser/tab-drag-indicator.svg) no-repeat center;
   position: relative;
-  /* The z-index needs to be big enough to trump other positioned UI pieces
-     that we want to overlay. The selected tab uses 2. */
-  z-index: 3;
+  z-index: 2;
 }
 
 /* Drag space */
@@ -673,8 +662,11 @@ toolbar[brighttext] {
 
 /* Firefox View button and menu item */
 
-:root:not([privatebrowsingmode=temporary]) :is(toolbarbutton, toolbarpaletteitem) + #tabbrowser-tabs,
-:root[privatebrowsingmode=temporary] :is(toolbarbutton:not(#firefox-view-button), toolbarpaletteitem:not(#wrapper-firefox-view-button)) + #tabbrowser-tabs {
+:root:not([privatebrowsingmode=temporary], [firefoxviewhidden]) :is(toolbarbutton, toolbarpaletteitem) + #tabbrowser-tabs,
+:root[privatebrowsingmode=temporary]:not([firefoxviewhidden]) :is(
+  toolbarbutton:not(#firefox-view-button),
+  toolbarpaletteitem:not(#wrapper-firefox-view-button)
+) + #tabbrowser-tabs {
   border-inline-start: 1px solid color-mix(in srgb, currentColor 25%, transparent);
   padding-inline-start: calc(var(--tab-overflow-pinned-tabs-width) + 2px);
   margin-inline-start: 2px;

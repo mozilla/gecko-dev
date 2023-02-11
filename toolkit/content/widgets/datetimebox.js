@@ -119,8 +119,12 @@ this.DateTimeBoxWidget = class {
     this.buildEditFields();
 
     if (focused) {
-      this.mInputElement.focus();
+      this._focusFirstField();
     }
+  }
+
+  _focusFirstField() {
+    this.shadowRoot.querySelector(".datetime-edit-field")?.focus();
   }
 
   setup() {
@@ -221,6 +225,10 @@ this.DateTimeBoxWidget = class {
 
     if (this.mInputElement.value) {
       this.setFieldsFromInputValue();
+    }
+
+    if (this.mInputElement.matches(":focus")) {
+      this._focusFirstField();
     }
   }
 
@@ -686,13 +694,26 @@ this.DateTimeBoxWidget = class {
         aEvent.preventDefault();
         break;
       }
+      case "Delete":
       case "Backspace": {
-        // TODO(emilio, bug 1571533): These functions should look at
-        // defaultPrevented.
+        if (aEvent.originalTarget == this.mCalendarButton) {
+          // Do not remove Calendar button
+          aEvent.preventDefault();
+          break;
+        }
         if (this.isEditable()) {
-          let targetField = aEvent.originalTarget;
-          this.clearFieldValue(targetField);
-          this.setInputValueFromFields();
+          // TODO(emilio, bug 1571533): These functions should look at
+          // defaultPrevented.
+          // Ctrl+Backspace/Delete on non-macOS and
+          // Cmd+Backspace/Delete on macOS to clear the field
+          if (aEvent.getModifierState("Accel")) {
+            // Clear the input's value
+            this.clearInputFields(false);
+          } else {
+            let targetField = aEvent.originalTarget;
+            this.clearFieldValue(targetField);
+            this.setInputValueFromFields();
+          }
           aEvent.preventDefault();
         }
         break;

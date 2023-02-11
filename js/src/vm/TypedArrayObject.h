@@ -128,12 +128,8 @@ class TypedArrayObject : public ArrayBufferViewObject {
                                          const JS::HandleValueArray args,
                                          MutableHandleObject res);
 
-  /*
-   * Maximum allowed byte length for any typed array.
-   */
-  static size_t maxByteLength() {
-    return ArrayBufferObject::maxBufferByteLength();
-  }
+  // Maximum allowed byte length for any typed array.
+  static constexpr size_t MaxByteLength = ArrayBufferObject::MaxByteLength;
 
   static bool isOriginalLengthGetter(Native native);
 

@@ -29,6 +29,9 @@
 #include "nsUnicharUtils.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_dom.h"
+#ifdef FUZZING
+#  include "mozilla/StaticPrefs_fuzzing.h"
+#endif
 #include "mozilla/StaticPrefs_media.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/StaticPrefs_pdfjs.h"
@@ -91,7 +94,6 @@
 
 #include "nsJSUtils.h"
 
-#include "mozilla/dom/NavigatorBinding.h"
 #include "mozilla/dom/Promise.h"
 
 #include "nsIUploadChannel2.h"
@@ -113,6 +115,9 @@
 #include "mozilla/dom/WindowGlobalChild.h"
 
 #include "mozilla/intl/LocaleService.h"
+#include "mozilla/dom/AudioContext.h"
+#include "mozilla/dom/HTMLMediaElement.h"
+#include "AutoplayPolicy.h"
 
 namespace mozilla::dom {
 
@@ -1595,10 +1600,17 @@ void Navigator::GetGamepads(nsTArray<RefPtr<Gamepad>>& aGamepads,
 }
 
 GamepadServiceTest* Navigator::RequestGamepadServiceTest(ErrorResult& aRv) {
+#ifdef FUZZING
+  if (!StaticPrefs::fuzzing_enabled()) {
+    aRv.Throw(NS_ERROR_UNEXPECTED);
+    return nullptr;
+  }
+#else
   if (!xpc::IsInAutomation()) {
     aRv.Throw(NS_ERROR_UNEXPECTED);
     return nullptr;
   }
+#endif
 
   if (!mGamepadServiceTest) {
     mGamepadServiceTest = GamepadServiceTest::CreateTestService(mWindow);
@@ -2269,6 +2281,25 @@ bool Navigator::Webdriver() {
 #endif
 
   return false;
+}
+
+AutoplayPolicy Navigator::GetAutoplayPolicy(AutoplayPolicyMediaType aType) {
+  if (!mWindow) {
+    return AutoplayPolicy::Disallowed;
+  }
+  nsCOMPtr<Document> doc = mWindow->GetExtantDoc();
+  if (!doc) {
+    return AutoplayPolicy::Disallowed;
+  }
+  return media::AutoplayPolicy::GetAutoplayPolicy(aType, *doc);
+}
+
+AutoplayPolicy Navigator::GetAutoplayPolicy(HTMLMediaElement& aElement) {
+  return media::AutoplayPolicy::GetAutoplayPolicy(aElement);
+}
+
+AutoplayPolicy Navigator::GetAutoplayPolicy(AudioContext& aContext) {
+  return media::AutoplayPolicy::GetAutoplayPolicy(aContext);
 }
 
 }  // namespace mozilla::dom

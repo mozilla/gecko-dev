@@ -7,7 +7,6 @@
 #include "js/Value.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/Logging.h"
-#include "mozilla/ipc/Shmem.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/WebGPUBinding.h"
 #include "Device.h"
@@ -39,20 +38,7 @@ GPU_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_INHERITED(Device, DOMEventTargetHelper,
 NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED_0(Device, DOMEventTargetHelper)
 GPU_IMPL_JS_WRAP(Device)
 
-static void mapFreeCallback(void* aContents, void* aUserData) {
-  Unused << aContents;
-  Unused << aUserData;
-}
-
 RefPtr<WebGPUChild> Device::GetBridge() { return mBridge; }
-
-JSObject* Device::CreateExternalArrayBuffer(JSContext* aCx, size_t aOffset,
-                                            size_t aSize,
-                                            const ipc::Shmem& aShmem) {
-  MOZ_ASSERT(aOffset + aSize <= aShmem.Size<uint8_t>());
-  return JS::NewExternalArrayBuffer(aCx, aSize, aShmem.get<uint8_t>() + aOffset,
-                                    &mapFreeCallback, nullptr);
-}
 
 Device::Device(Adapter* const aParent, RawId aId,
                UniquePtr<ffi::WGPULimits> aRawLimits)
@@ -300,7 +286,7 @@ already_AddRefed<dom::Promise> Device::CreateRenderPipelineAsync(
 
 already_AddRefed<Texture> Device::InitSwapChain(
     const dom::GPUCanvasConfiguration& aDesc,
-    const layers::CompositableHandle& aHandle, gfx::SurfaceFormat aFormat,
+    const layers::RemoteTextureOwnerId aOwnerId, gfx::SurfaceFormat aFormat,
     gfx::IntSize* aCanvasSize) {
   if (!mBridge->CanSend()) {
     return nullptr;
@@ -327,7 +313,7 @@ already_AddRefed<Texture> Device::InitSwapChain(
   const layers::RGBDescriptor rgbDesc(size, aFormat);
   // buffer count doesn't matter much, will be created on demand
   const size_t maxBufferCount = 10;
-  mBridge->DeviceCreateSwapChain(mId, rgbDesc, maxBufferCount, aHandle);
+  mBridge->DeviceCreateSwapChain(mId, rgbDesc, maxBufferCount, aOwnerId);
 
   dom::GPUTextureDescriptor desc;
   desc.mDimension = dom::GPUTextureDimension::_2d;

@@ -28,12 +28,12 @@ import { features } from "../utils/prefs";
  * @static
  */
 export function addExpression(cx, input) {
-  return async ({ dispatch, getState, evaluationsParser }) => {
+  return async ({ dispatch, getState, parserWorker }) => {
     if (!input) {
       return null;
     }
 
-    const expressionError = await evaluationsParser.hasSyntaxError(input);
+    const expressionError = await parserWorker.hasSyntaxError(input);
 
     const expression = getExpression(getState(), input);
     if (expression) {
@@ -71,12 +71,12 @@ export function clearExpressionError() {
 }
 
 export function updateExpression(cx, input, expression) {
-  return async ({ dispatch, getState, parser }) => {
+  return async ({ dispatch, getState, parserWorker }) => {
     if (!input) {
       return;
     }
 
-    const expressionError = await parser.hasSyntaxError(input);
+    const expressionError = await parserWorker.hasSyntaxError(input);
     dispatch({
       type: "UPDATE_EXPRESSION",
       cx,
@@ -125,7 +125,7 @@ export function evaluateExpressions(cx) {
 }
 
 function evaluateExpression(cx, expression) {
-  return async function({ dispatch, getState, client, sourceMaps }) {
+  return async function({ dispatch, getState, client }) {
     if (!expression.input) {
       console.warn("Expressions should not be empty");
       return null;
@@ -166,19 +166,13 @@ function evaluateExpression(cx, expression) {
  * and replaces all posible generated names.
  */
 export function getMappedExpression(expression) {
-  return async function({
-    dispatch,
-    getState,
-    client,
-    sourceMaps,
-    evaluationsParser,
-  }) {
+  return async function({ dispatch, getState, parserWorker }) {
     const thread = getCurrentThread(getState());
     const mappings = getSelectedScopeMappings(getState(), thread);
     const bindings = getSelectedFrameBindings(getState(), thread);
 
     // We bail early if we do not need to map the expression. This is important
-    // because mapping an expression can be slow if the evaluationsParser
+    // because mapping an expression can be slow if the parserWorker
     // worker is busy doing other work.
     //
     // 1. there are no mappings - we do not need to map original expressions
@@ -189,7 +183,7 @@ export function getMappedExpression(expression) {
       return null;
     }
 
-    return evaluationsParser.mapExpression(
+    return parserWorker.mapExpression(
       expression,
       mappings,
       bindings || [],

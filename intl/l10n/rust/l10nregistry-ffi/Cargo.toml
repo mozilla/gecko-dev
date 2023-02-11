@@ -1,8 +1,9 @@
 [package]
 name = "l10nregistry-ffi"
 version = "0.1.0"
-authors = ["nobody@mozilla.org"]
+authors = ["The Mozilla Project Developers"]
 edition = "2018"
+license = "MPL-2.0"
 
 [dependencies]
 futures-channel = "0.3"

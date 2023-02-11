@@ -36,6 +36,7 @@
 #include "ScrollbarDrawing.h"
 
 #include "gtkdrawing.h"
+#include "nsString.h"
 #include "nsStyleConsts.h"
 #include "gfxFontConstants.h"
 #include "WidgetUtils.h"
@@ -889,14 +890,14 @@ nsresult nsLookAndFeel::NativeGetInt(IntID aID, int32_t& aResult) {
       break;
     case IntID::IMERawInputUnderlineStyle:
     case IntID::IMEConvertedTextUnderlineStyle:
-      aResult = NS_STYLE_TEXT_DECORATION_STYLE_SOLID;
+      aResult = static_cast<int32_t>(StyleTextDecorationStyle::Solid);
       break;
     case IntID::IMESelectedRawTextUnderlineStyle:
     case IntID::IMESelectedConvertedTextUnderline:
-      aResult = NS_STYLE_TEXT_DECORATION_STYLE_NONE;
+      aResult = static_cast<int32_t>(StyleTextDecorationStyle::None);
       break;
     case IntID::SpellCheckerUnderlineStyle:
-      aResult = NS_STYLE_TEXT_DECORATION_STYLE_WAVY;
+      aResult = static_cast<int32_t>(StyleTextDecorationStyle::Wavy);
       break;
     case IntID::MenuBarDrag:
       EnsureInit();
@@ -985,9 +986,21 @@ nsresult nsLookAndFeel::NativeGetInt(IntID aID, int32_t& aResult) {
       break;
     }
     case IntID::PanelAnimations:
-      // Disabled on systems without CSD, see bug 1385079.
-      // Disabled on wayland, see bug 1800442 and bug 1800368.
-      aResult = sCSDAvailable && !GdkIsWaylandDisplay();
+      aResult = [&]() -> bool {
+        if (!sCSDAvailable) {
+          // Disabled on systems without CSD, see bug 1385079.
+          return false;
+        }
+        if (GdkIsWaylandDisplay()) {
+          // Disabled on wayland, see bug 1800442 and bug 1800368.
+          return false;
+        }
+        if (IsKdeDesktopEnvironment()) {
+          // Disabled on KDE, see bug 1810797.
+          return false;
+        }
+        return true;
+      }();
       break;
     case IntID::UseOverlayScrollbars: {
       aResult = StaticPrefs::widget_gtk_overlay_scrollbars_enabled();
@@ -2075,15 +2088,13 @@ bool nsLookAndFeel::GetDefaultDrawInTitlebar() {
     }
 
     // Don't hide titlebar when it's disabled on current desktop.
-    const char* currentDesktop = getenv("XDG_CURRENT_DESKTOP");
-    if (!currentDesktop || !sCSDAvailable) {
+    if (!sCSDAvailable) {
       return false;
     }
 
     // We hide system titlebar on Gnome/ElementaryOS without any restriction.
-    return strstr(currentDesktop, "GNOME-Flashback:GNOME") ||
-           strstr(currentDesktop, "GNOME") ||
-           strstr(currentDesktop, "Pantheon");
+    return IsGnomeDesktopEnvironment() ||
+           FindInReadable("pantheon"_ns, GetDesktopEnvironmentIdentifier());
   }();
   return drawInTitlebar;
 }

@@ -7,6 +7,7 @@
 #include "Screen.h"
 
 #include "mozilla/dom/DOMTypes.h"
+#include "mozilla/dom/ScreenBinding.h"
 #include "mozilla/Hal.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/StaticPrefs_layout.h"
@@ -108,6 +109,14 @@ NS_IMETHODIMP
 Screen::GetAvailRectDisplayPix(int32_t* aOutLeft, int32_t* aOutTop,
                                int32_t* aOutWidth, int32_t* aOutHeight) {
   mAvailRectDisplayPix.GetRect(aOutLeft, aOutTop, aOutWidth, aOutHeight);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+Screen::GetColorGamut(dom::ScreenColorGamut* aScreenColorGamut) {
+  // TODO(zrhoffman, bug 1771373): Return a wider color gamut when one is
+  // available
+  *aScreenColorGamut = dom::ScreenColorGamut::Srgb;
   return NS_OK;
 }
 

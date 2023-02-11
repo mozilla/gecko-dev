@@ -142,6 +142,7 @@ treeherder:
         'X-spi-nw-nofis': 'Xpcshell tests with networking on socket process without fission enabled'
         'X-f': 'Xpcshell tests that fail on a given config'
         'X-f-spi-nw': 'Xpcshell tests that fail on a given config w/socket process'
+        'X-msix': 'Xpcshell tests on msix packages'
         'L10n': 'Localised Repacks'
         'L10n-Rpk': 'Localized Repackaged Repacks'
         'BM': 'Beetmover'
@@ -205,6 +206,7 @@ treeherder:
         'l10n': 'Localization checks'
         'fxrec': 'Desktop startup recorder (fxrecord)'
         'wc': 'webcompat'
+        'Boot': 'Bootstrap'
 
 index:
     products:
@@ -478,7 +480,7 @@ workers:
             provisioner: '{trust-domain}-{level}'
             implementation: generic-worker
             os: windows
-            worker-type: '{alias}'
+            worker-type: '{alias}-azure'
         image:
             provisioner: '{trust-domain}-{level}'
             implementation: docker-worker
@@ -667,7 +669,7 @@ workers:
             provisioner: '{trust-domain}-t'
             implementation: docker-worker
             os: linux
-            worker-type: misc
+            worker-type: misc-gcp
 
 
 mac-notarization:

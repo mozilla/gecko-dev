@@ -34,6 +34,7 @@
         "visit_count = visit_count + (SELECT NEW.visit_type NOT IN "         \
         "(" EXCLUDED_VISIT_TYPES                                             \
         ")), "                                                               \
+        "recalc_frecency = (frecency <> 0), "                                \
         "last_visit_date = MAX(IFNULL(last_visit_date, 0), NEW.visit_date) " \
         "WHERE id = NEW.place_id;"                                           \
         "END")
@@ -48,6 +49,7 @@
         "visit_count = visit_count - (SELECT OLD.visit_type NOT IN "    \
         "(" EXCLUDED_VISIT_TYPES                                        \
         ")), "                                                          \
+        "recalc_frecency = (frecency <> 0), "                           \
         "last_visit_date = (SELECT visit_date FROM moz_historyvisits "  \
         "WHERE place_id = OLD.place_id "                                \
         "ORDER BY visit_date DESC LIMIT 1) "                            \
@@ -220,6 +222,7 @@
         "MAX(NEW.frecency, 0) - MAX(OLD.frecency, 0)) "                   \
         "ON CONFLICT(prefix, host) DO UPDATE "                            \
         "SET frecency_delta = frecency_delta + EXCLUDED.frecency_delta; " \
+        "UPDATE moz_places SET recalc_frecency = 0 WHERE id = NEW.id; "   \
         "END ")
 // This trigger corresponds to the previous trigger.  It runs on deletes on
 // moz_updateoriginsupdate_temp -- logically, after updates to
@@ -262,7 +265,8 @@
         "AFTER DELETE ON moz_bookmarks FOR EACH ROW "                          \
         "BEGIN "                                                               \
         "UPDATE moz_places "                                                   \
-        "SET foreign_count = foreign_count - 1 "                               \
+        "SET foreign_count = foreign_count - 1, "                              \
+        "    recalc_frecency = (frecency <> 0) "                               \
         "WHERE id = OLD.fk;"                                                   \
         "END")
 
@@ -274,7 +278,8 @@
         "SELECT store_last_inserted_id('moz_bookmarks', NEW.id); "             \
         "SELECT note_sync_change() WHERE NEW.syncChangeCounter > 0; "          \
         "UPDATE moz_places "                                                   \
-        "SET foreign_count = foreign_count + 1 "                               \
+        "SET foreign_count = foreign_count + 1, "                              \
+        "    recalc_frecency = (frecency <> 0) "                               \
         "WHERE id = NEW.fk;"                                                   \
         "END")
 
@@ -286,10 +291,12 @@
         "SELECT note_sync_change() "                                           \
         "WHERE NEW.syncChangeCounter <> OLD.syncChangeCounter; "               \
         "UPDATE moz_places "                                                   \
-        "SET foreign_count = foreign_count + 1 "                               \
+        "SET foreign_count = foreign_count + 1, "                              \
+        "    recalc_frecency = (frecency <> 0) "                               \
         "WHERE OLD.fk <> NEW.fk AND id = NEW.fk;"                              \
         "UPDATE moz_places "                                                   \
-        "SET foreign_count = foreign_count - 1 "                               \
+        "SET foreign_count = foreign_count - 1, "                              \
+        "    recalc_frecency = (frecency <> 0) "                               \
         "WHERE OLD.fk <> NEW.fk AND id = OLD.fk;"                              \
         "END")
 
@@ -350,25 +357,6 @@
         "SELECT note_sync_change(); "                                       \
         "END")
 
-// This trigger updates last_interaction_at when interactions are created. It
-// also updates first_interaction_at and document_type in cases where a snapshot
-// was created before its corresponding interaction.
-#  define CREATE_PLACES_METADATA_AFTERINSERT_TRIGGER                   \
-    nsLiteralCString(                                                  \
-        "CREATE TEMP TRIGGER moz_places_metadata_afterinsert_trigger " \
-        "AFTER INSERT ON moz_places_metadata "                         \
-        "FOR EACH ROW  "                                               \
-        "BEGIN "                                                       \
-        "UPDATE moz_places_metadata_snapshots "                        \
-        "SET last_interaction_at = NEW.created_at "                    \
-        "WHERE place_id = NEW.place_id; "                              \
-        "UPDATE moz_places_metadata_snapshots "                        \
-        "SET first_interaction_at = NEW.created_at, document_type = "  \
-        "CASE WHEN NEW.document_type <> 0 "                            \
-        "THEN NEW.document_type ELSE document_type END "               \
-        "WHERE place_id = NEW.place_id AND first_interaction_at = 0;"  \
-        "END")
-
 // This trigger removes orphan search terms when interactions are removed from
 // the metadata table.
 #  define CREATE_PLACES_METADATA_AFTERDELETE_TRIGGER                   \
@@ -382,54 +370,6 @@
         "SELECT id FROM moz_places_metadata "                          \
         "WHERE search_query_id = OLD.search_query_id "                 \
         "); "                                                          \
-        "END")
-
-// This trigger increments foreign_count when snapshots are created.
-#  define CREATE_PLACES_METADATA_SNAPSHOTS_AFTERINSERT_TRIGGER     \
-    nsLiteralCString(                                              \
-        "CREATE TEMP TRIGGER "                                     \
-        "moz_places_metadata_snapshots_afterinsert_trigger "       \
-        "AFTER INSERT ON moz_places_metadata_snapshots "           \
-        "FOR EACH ROW "                                            \
-        "BEGIN "                                                   \
-        "UPDATE moz_places SET foreign_count = foreign_count + 1 " \
-        "WHERE id = NEW.place_id; "                                \
-        "END")
-
-// This trigger decrements foreign_count when snapshots are removed.
-#  define CREATE_PLACES_METADATA_SNAPSHOTS_AFTERDELETE_TRIGGER     \
-    nsLiteralCString(                                              \
-        "CREATE TEMP TRIGGER "                                     \
-        "moz_places_metadata_snapshots_afterdelete_trigger "       \
-        "AFTER DELETE ON moz_places_metadata_snapshots "           \
-        "FOR EACH ROW "                                            \
-        "BEGIN "                                                   \
-        "UPDATE moz_places SET foreign_count = foreign_count - 1 " \
-        "WHERE id = OLD.place_id; "                                \
-        "END")
-
-// This trigger increments foreign_count when sessions are altered.
-#  define CREATE_PLACES_SESSION_TO_PLACE_AFTERINSERT_TRIGGER       \
-    nsLiteralCString(                                              \
-        "CREATE TEMP TRIGGER "                                     \
-        "moz_session_to_places_after_insert_trigger "              \
-        "AFTER INSERT ON moz_session_to_places "                   \
-        "FOR EACH ROW "                                            \
-        "BEGIN "                                                   \
-        "UPDATE moz_places SET foreign_count = foreign_count + 1 " \
-        "WHERE id = NEW.place_id; "                                \
-        "END")
-
-// This trigger decrements foreign_count when sessions are removed.
-#  define CREATE_PLACES_SESSION_TO_PLACE_AFTERDELETE_TRIGGER       \
-    nsLiteralCString(                                              \
-        "CREATE TEMP TRIGGER "                                     \
-        "moz_session_to_places_afterdelete_trigger "               \
-        "AFTER DELETE ON moz_session_to_places "                   \
-        "FOR EACH ROW "                                            \
-        "BEGIN "                                                   \
-        "UPDATE moz_places SET foreign_count = foreign_count - 1 " \
-        "WHERE id = OLD.place_id; "                                \
         "END")
 
 #endif  // __nsPlacesTriggers_h__

@@ -3,8 +3,6 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # flake8: noqa: E501
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 try:
     import cPickle as pickle
 except ImportError:
@@ -25,12 +23,11 @@ from mozbuild.base import MozbuildObject
 from mozbuild.frontend.reader import BuildReader
 from mozbuild.test.common import MockConfig
 from mozfile import NamedTemporaryFile
-
 from moztest.resolve import (
+    TEST_SUITES,
     BuildBackendLoader,
     TestManifestLoader,
     TestResolver,
-    TEST_SUITES,
 )
 
 here = os.path.abspath(os.path.dirname(__file__))

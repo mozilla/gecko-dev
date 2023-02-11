@@ -16,8 +16,13 @@ namespace mozilla::dom {
 class HTMLMediaElement;
 class AudioContext;
 class Document;
+enum class AutoplayPolicy : uint8_t;
+enum class AutoplayPolicyMediaType : uint8_t;
 enum class DocumentAutoplayPolicy : uint8_t;
 
+}  // namespace mozilla::dom
+
+namespace mozilla::media {
 /**
  * AutoplayPolicy is used to manage autoplay logic for all kinds of media,
  * including MediaElement, Web Audio and Web Speech.
@@ -33,17 +38,30 @@ enum class DocumentAutoplayPolicy : uint8_t;
 class AutoplayPolicy {
  public:
   // Returns a DocumentAutoplayPolicy for given document.
-  static DocumentAutoplayPolicy IsAllowedToPlay(const Document& aDocument);
+  static dom::DocumentAutoplayPolicy IsAllowedToPlay(
+      const dom::Document& aDocument);
 
   // Returns whether a given media element is allowed to play.
-  static bool IsAllowedToPlay(const HTMLMediaElement& aElement);
+  static bool IsAllowedToPlay(const dom::HTMLMediaElement& aElement);
 
   // Returns whether a given AudioContext is allowed to play.
-  static bool IsAllowedToPlay(const AudioContext& aContext);
+  static bool IsAllowedToPlay(const dom::AudioContext& aContext);
 
-  // Return the value of the autoplay permissin for given principal. The return
+  // Return the value of the autoplay permission for given principal. The return
   // value can be 0=unknown, 1=allow, 2=block audio, 5=block audio and video.
   static uint32_t GetSiteAutoplayPermission(nsIPrincipal* aPrincipal);
+
+  // Following methods are used for the internal implementation for the Autoplay
+  // Policy Detection API, the public JS interfaces are in exposed on Navigator.
+  // https://w3c.github.io/autoplay/#autoplay-detection-methods
+  static dom::AutoplayPolicy GetAutoplayPolicy(
+      const dom::HTMLMediaElement& aElement);
+
+  static dom::AutoplayPolicy GetAutoplayPolicy(
+      const dom::AudioContext& aContext);
+
+  static dom::AutoplayPolicy GetAutoplayPolicy(
+      const dom::AutoplayPolicyMediaType& aType, const dom::Document& aDoc);
 };
 
 /**
@@ -59,9 +77,9 @@ class AutoplayPolicyTelemetryUtils {
   // Note: this is for telemetry purposes, and doesn't check the prefs
   // which enable/disable block autoplay. Do not use for blocking logic!
   static bool WouldBeAllowedToPlayIfAutoplayDisabled(
-      const AudioContext& aContext);
+      const dom::AudioContext& aContext);
 };
 
-}  // namespace mozilla::dom
+}  // namespace mozilla::media
 
 #endif

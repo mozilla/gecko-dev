@@ -206,7 +206,7 @@ Like Isolated Web Content, these processes are keyed by the site loaded within t
     In ``about:processes``, COOP+COEP Web Content processes will be listed with a "cross-origin isolated" note after the PID, like ``https://example.com (12345, cross-origin isolated)``.
 
 ServiceWorker Web Content
-""""""""""""""""""""
+"""""""""""""""""""""""""
 
 :remoteType: ``webServiceWorker=$SITE``
 :default count: 1 per-site using ServiceWorkers
@@ -286,6 +286,8 @@ Fork Server
 The fork server process is used to reduce the memory overhead and improve launch efficiency for new processes. When a new supported process is requested and the feature is enabled, the parent process will ask the fork server to ``fork(2)`` itself, and then begin executing. This avoids the need to re-load ``libxul.so`` and re-perform relocations.
 
 The fork server must run before having initialized XPCOM or the IPC layer, and therefore uses a custom low-level IPC system called ``MiniTransceiver`` rather than IPDL to communicate.
+
+.. _launcher-process:
 
 Launcher Process
 ----------------

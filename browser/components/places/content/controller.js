@@ -17,9 +17,7 @@ ChromeUtils.defineESModuleGetters(this, {
  * items.
  *
  * @param {object} options an object containing the following properties:
- * @param {number} options.parentId
- *     The identifier of the parent container
- * @param {*} options.parentGuid
+ * @param {string} options.parentGuid
  *     The unique identifier of the parent container
  * @param {number} [options.index]
  *     The index within the container where to insert, defaults to appending
@@ -34,14 +32,12 @@ ChromeUtils.defineESModuleGetters(this, {
  *     When defined index will be calculated based on this node
  */
 function PlacesInsertionPoint({
-  parentId,
   parentGuid,
   index = PlacesUtils.bookmarks.DEFAULT_INDEX,
   orientation = Ci.nsITreeView.DROP_ON,
   tagName = null,
   dropNearNode = null,
 }) {
-  this.itemId = parentId;
   this.guid = parentGuid;
   this._index = index;
   this.orientation = orientation;
@@ -1372,7 +1368,7 @@ PlacesController.prototype = {
     const [title, body, forget] = await document.l10n.formatValues([
       { id: "places-forget-about-this-site-confirmation-title" },
       {
-        id: "places-forget-about-this-site-confirmation-message",
+        id: "places-forget-about-this-site-confirmation-msg",
         args: { hostOrBaseDomain: baseDomain ?? host },
       },
       { id: "places-forget-about-this-site-forget" },
@@ -1408,21 +1404,16 @@ PlacesController.prototype = {
 
   showInFolder(aBookmarkGuid) {
     // Open containing folder in left pane/sidebar bookmark tree
-    if (
-      this._view._rootElt &&
-      this._view._rootElt.id.includes("bookmarksMenu")
-    ) {
-      // We're in the toolbar bookmarks menu
+    let documentUrl = document.documentURI.toLowerCase();
+    if (documentUrl.endsWith("browser.xhtml")) {
+      // We're in a menu or a panel.
       window.SidebarUI._show("viewBookmarksSidebar").then(() => {
         let theSidebar = document.getElementById("sidebar");
         theSidebar.contentDocument
           .getElementById("bookmarks-view")
           .selectItems([aBookmarkGuid]);
       });
-    } else if (
-      this._view.parentElement &&
-      this._view.parentElement.id.includes("Panel")
-    ) {
+    } else if (documentUrl.includes("sidebar")) {
       // We're in the sidebar - clear the search box first
       let searchBox = document.getElementById("search-box");
       searchBox.value = "";
@@ -1455,7 +1446,9 @@ PlacesController.prototype = {
  */
 var PlacesControllerDragHelper = {
   /**
-   * DOM Element currently being dragged over
+   * For views using DOM nodes like toolbars, menus and panels, this is the DOM
+   * element currently being dragged over. For other views not handling DOM
+   * nodes, like trees, it is a Places result node instead.
    */
   currentDropTarget: null,
 
@@ -1564,18 +1557,39 @@ var PlacesControllerDragHelper = {
           return false;
         }
 
-        // The following loop disallows the dropping of a folder on itself or
-        // on any of its descendants.
+        // Disallow dropping of a folder on itself or any of its descendants.
+        // This check is done to show an appropriate drop indicator, a stricter
+        // check is done later by the bookmarks API.
         if (
           dragged.type == PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER ||
           (dragged.uri && dragged.uri.startsWith("place:"))
         ) {
-          let parentId = ip.itemId;
-          while (parentId != PlacesUtils.placesRootId) {
-            if (dragged.concreteId == parentId || dragged.id == parentId) {
+          let dragOverPlacesNode = this.currentDropTarget;
+          if (!(dragOverPlacesNode instanceof Ci.nsINavHistoryResultNode)) {
+            // If it's a DOM node, it should have a _placesNode expando, or it
+            // may be a static element in a places container, like the [empty]
+            // menuitem.
+            dragOverPlacesNode =
+              dragOverPlacesNode._placesNode ??
+              dragOverPlacesNode.parentNode?._placesNode;
+          }
+
+          // If we couldn't get a target Places result node then we can't check
+          // whether the drag is allowed, just let it go through.
+          if (dragOverPlacesNode) {
+            let guid = dragged.concreteGuid ?? dragged.itemGuid;
+            // Dragging over itself.
+            if (PlacesUtils.getConcreteItemGuid(dragOverPlacesNode) == guid) {
               return false;
             }
-            parentId = PlacesUtils.bookmarks.getFolderIdForItem(parentId);
+            // Dragging over a descendant.
+            for (let ancestor of PlacesUtils.nodeAncestors(
+              dragOverPlacesNode
+            )) {
+              if (PlacesUtils.getConcreteItemGuid(ancestor) == guid) {
+                return false;
+              }
+            }
           }
         }
 

@@ -3,20 +3,20 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function
-
 import sys
 
 sys.path.append("/builds/worker/checkouts/gecko/third_party/python")
 sys.path.append(".")
 
-import os
-import stat
 import base64
-import signal
+import os
 import platform
-import requests
+import signal
+import stat
 import subprocess
+
+import requests
+
 import taskcluster
 
 # Bump this number when you need to cause a commit for the job to re-run: 21

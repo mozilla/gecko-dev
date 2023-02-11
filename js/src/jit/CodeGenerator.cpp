@@ -78,6 +78,7 @@
 #endif
 #include "wasm/WasmBinary.h"
 #include "wasm/WasmGC.h"
+#include "wasm/WasmGcObject.h"
 #include "wasm/WasmStubs.h"
 
 #include "builtin/Boolean-inl.h"
@@ -4240,7 +4241,7 @@ void CodeGenerator::visitMegamorphicLoadSlot(LMegamorphicLoadSlot* lir) {
   Label bail, cacheHit;
   if (JitOptions.enableWatchtowerMegamorphic) {
     masm.emitMegamorphicCacheLookup(lir->mir()->name(), obj, temp0, temp1,
-                                    temp2, output, &bail, &cacheHit);
+                                    temp2, output, &cacheHit);
   }
 
   masm.branchIfNonNativeObj(obj, temp0, &bail);
@@ -4275,9 +4276,17 @@ void CodeGenerator::visitMegamorphicLoadSlotByValue(
   ValueOperand idVal = ToValue(lir, LMegamorphicLoadSlotByValue::IdIndex);
   Register temp0 = ToRegister(lir->temp0());
   Register temp1 = ToRegister(lir->temp1());
+  Register temp2 = ToRegister(lir->temp2());
   ValueOperand output = ToOutValue(lir);
 
-  Label bail;
+  Label bail, cacheHit;
+  if (JitOptions.enableWatchtowerMegamorphic) {
+    masm.emitMegamorphicCacheLookupByValue(idVal, obj, temp0, temp1, temp2,
+                                           output, &cacheHit);
+  }
+
+  masm.branchIfNonNativeObj(obj, temp0, &bail);
+
   // idVal will be in vp[0], result will be stored in vp[1].
   masm.reserveStack(sizeof(Value));
   masm.Push(idVal);
@@ -4305,6 +4314,7 @@ void CodeGenerator::visitMegamorphicLoadSlotByValue(
   masm.setFramePushed(framePushed);
   masm.Pop(output);
 
+  masm.bind(&cacheHit);
   bailoutFrom(&bail, lir->snapshot());
 }
 
@@ -4347,7 +4357,7 @@ void CodeGenerator::visitMegamorphicHasProp(LMegamorphicHasProp* lir) {
   Label bail, cacheHit;
   if (JitOptions.enableWatchtowerMegamorphic) {
     masm.emitMegamorphicCacheLookupExists(idVal, obj, temp0, temp1, temp2,
-                                          output, &bail, &cacheHit,
+                                          output, &cacheHit,
                                           lir->mir()->hasOwn());
   }
 
@@ -5218,37 +5228,27 @@ static void LoadDOMPrivate(MacroAssembler& masm, Register obj, Register priv,
   // will be in the first slot but may be fixed or non-fixed.
   MOZ_ASSERT(obj != priv);
 
-  // Check if it's a proxy.
-  Label isProxy, done;
-  if (kind == DOMObjectKind::Unknown) {
-    masm.branchTestObjectIsProxy(true, obj, priv, &isProxy);
-  }
-
-  if (kind != DOMObjectKind::Proxy) {
-    // If it's a native object, the value must be in a fixed slot.
-    masm.debugAssertObjHasFixedSlots(obj, priv);
-    masm.loadPrivate(Address(obj, NativeObject::getFixedSlotOffset(0)), priv);
-    if (kind == DOMObjectKind::Unknown) {
-      masm.jump(&done);
+  switch (kind) {
+    case DOMObjectKind::Native:
+      // If it's a native object, the value must be in a fixed slot.
+      masm.debugAssertObjHasFixedSlots(obj, priv);
+      masm.loadPrivate(Address(obj, NativeObject::getFixedSlotOffset(0)), priv);
+      break;
+    case DOMObjectKind::Proxy: {
+#ifdef DEBUG
+      // Sanity check: it must be a DOM proxy.
+      Label isDOMProxy;
+      masm.branchTestProxyHandlerFamily(
+          Assembler::Equal, obj, priv, GetDOMProxyHandlerFamily(), &isDOMProxy);
+      masm.assumeUnreachable("Expected a DOM proxy");
+      masm.bind(&isDOMProxy);
+#endif
+      masm.loadPtr(Address(obj, ProxyObject::offsetOfReservedSlots()), priv);
+      masm.loadPrivate(
+          Address(priv, js::detail::ProxyReservedSlots::offsetOfSlot(0)), priv);
+      break;
     }
   }
-
-  if (kind != DOMObjectKind::Native) {
-    masm.bind(&isProxy);
-#ifdef DEBUG
-    // Sanity check: it must be a DOM proxy.
-    Label isDOMProxy;
-    masm.branchTestProxyHandlerFamily(Assembler::Equal, obj, priv,
-                                      GetDOMProxyHandlerFamily(), &isDOMProxy);
-    masm.assumeUnreachable("Expected a DOM proxy");
-    masm.bind(&isDOMProxy);
-#endif
-    masm.loadPtr(Address(obj, ProxyObject::offsetOfReservedSlots()), priv);
-    masm.loadPrivate(
-        Address(priv, js::detail::ProxyReservedSlots::offsetOfSlot(0)), priv);
-  }
-
-  masm.bind(&done);
 }
 
 void CodeGenerator::visitCallDOMNative(LCallDOMNative* call) {
@@ -8238,6 +8238,17 @@ void CodeGenerator::visitWasmCallIndirectAdjunctSafepoint(
       lir->framePushedAtStackMapBase());
 }
 
+template <typename InstructionWithMaybeTrapSite>
+void EmitSignalNullCheckTrapSite(MacroAssembler& masm,
+                                 InstructionWithMaybeTrapSite* ins) {
+  if (!ins->maybeTrap()) {
+    return;
+  }
+  wasm::BytecodeOffset trapOffset(ins->maybeTrap()->offset);
+  masm.append(wasm::Trap::NullPointerDereference,
+              wasm::TrapSite(masm.currentOffset(), trapOffset));
+}
+
 void CodeGenerator::visitWasmLoadSlot(LWasmLoadSlot* ins) {
   MIRType type = ins->type();
   MWideningOp wideningOp = ins->wideningOp();
@@ -8245,6 +8256,7 @@ void CodeGenerator::visitWasmLoadSlot(LWasmLoadSlot* ins) {
   Address addr(container, ins->offset());
   AnyRegister dst = ToAnyRegister(ins->output());
 
+  EmitSignalNullCheckTrapSite(masm, ins);
   switch (type) {
     case MIRType::Int32:
       switch (wideningOp) {
@@ -8301,6 +8313,7 @@ void CodeGenerator::visitWasmStoreSlot(LWasmStoreSlot* ins) {
     MOZ_RELEASE_ASSERT(narrowingOp == MNarrowingOp::None);
   }
 
+  EmitSignalNullCheckTrapSite(masm, ins);
   switch (type) {
     case MIRType::Int32:
       switch (narrowingOp) {
@@ -8378,6 +8391,7 @@ void CodeGenerator::visitWasmLoadSlotI64(LWasmLoadSlotI64* ins) {
   Register container = ToRegister(ins->containerRef());
   Address addr(container, ins->offset());
   Register64 output = ToOutRegister64(ins);
+  EmitSignalNullCheckTrapSite(masm, ins);
   masm.load64(addr, output);
 }
 
@@ -8385,6 +8399,7 @@ void CodeGenerator::visitWasmStoreSlotI64(LWasmStoreSlotI64* ins) {
   Register container = ToRegister(ins->containerRef());
   Address addr(container, ins->offset());
   Register64 value = ToRegister64(ins->value());
+  EmitSignalNullCheckTrapSite(masm, ins);
   masm.store64(value, addr);
 }
 
@@ -13426,7 +13441,7 @@ bool CodeGenerator::link(JSContext* cx, const WarpSnapshot* snapshot) {
   ionScript->setInvalidationEpilogueOffset(invalidate_.offset());
 
   if (PerfEnabled()) {
-    perfSpewer_.saveProfile(script, code);
+    perfSpewer_.saveProfile(cx, script, code);
   }
 
 #ifdef MOZ_VTUNE
@@ -16195,6 +16210,48 @@ void CodeGenerator::visitWasmTrap(LWasmTrap* lir) {
   const MWasmTrap* mir = lir->mir();
 
   masm.wasmTrap(mir->trap(), mir->bytecodeOffset());
+}
+
+void CodeGenerator::visitWasmGcObjectIsSubtypeOf(
+    LWasmGcObjectIsSubtypeOf* ins) {
+  MOZ_ASSERT(gen->compilingWasm());
+  const MWasmGcObjectIsSubtypeOf* mir = ins->mir();
+  Register object = ToRegister(ins->object());
+  Register superTypeDef = ToRegister(ins->superTypeDef());
+  Register subTypeDef = ToRegister(ins->temp0());
+  Register scratch = ins->temp1()->isBogusTemp() ? Register::Invalid()
+                                                 : ToRegister(ins->temp1());
+  Register result = ToRegister(ins->output());
+  Label failed;
+  Label success;
+  Label join;
+  masm.branchTestPtr(Assembler::Zero, object, object, &failed);
+  masm.loadPtr(Address(object, WasmGcObject::offsetOfTypeDef()), subTypeDef);
+  masm.branchWasmTypeDefIsSubtype(subTypeDef, superTypeDef, scratch,
+                                  mir->subTypingDepth(), &success, true);
+  masm.bind(&failed);
+  masm.xor32(result, result);
+  masm.jump(&join);
+  masm.bind(&success);
+  masm.move32(Imm32(1), result);
+  masm.bind(&join);
+}
+
+void CodeGenerator::visitWasmGcObjectIsSubtypeOfAndBranch(
+    LWasmGcObjectIsSubtypeOfAndBranch* ins) {
+  MOZ_ASSERT(gen->compilingWasm());
+  Register object = ToRegister(ins->object());
+  Register superTypeDef = ToRegister(ins->superTypeDef());
+  Register subTypeDef = ToRegister(ins->temp0());
+  Register scratch = ins->temp1()->isBogusTemp() ? Register::Invalid()
+                                                 : ToRegister(ins->temp1());
+  masm.branchTestPtr(Assembler::Zero, object, object,
+                     ins->ifFalse()->lir()->label());
+  masm.loadPtr(Address(object, WasmGcObject::offsetOfTypeDef()), subTypeDef);
+  masm.branchWasmTypeDefIsSubtype(subTypeDef, superTypeDef, scratch,
+                                  ins->subTypingDepth(),
+                                  ins->ifTrue()->lir()->label(), true);
+  jumpToBlock(ins->ifFalse());
 }
 
 void CodeGenerator::visitWasmBoundsCheck(LWasmBoundsCheck* ins) {

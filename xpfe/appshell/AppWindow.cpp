@@ -27,9 +27,9 @@
 #include "nsIAppShellService.h"
 #include "nsIContentViewer.h"
 #include "mozilla/dom/Document.h"
+#include "mozilla/dom/CanonicalBrowsingContext.h"
 #include "nsPIDOMWindow.h"
 #include "nsScreen.h"
-#include "nsIEmbeddingSiteWindow.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIIOService.h"
@@ -284,13 +284,9 @@ NS_IMETHODIMP AppWindow::GetInterface(const nsIID& aIID, void** aSink) {
   }
   if (aIID.Equals(NS_GET_IID(nsIWebBrowserChrome)) &&
       NS_SUCCEEDED(EnsureContentTreeOwner()) &&
-      NS_SUCCEEDED(mContentTreeOwner->QueryInterface(aIID, aSink)))
+      NS_SUCCEEDED(mContentTreeOwner->QueryInterface(aIID, aSink))) {
     return NS_OK;
-
-  if (aIID.Equals(NS_GET_IID(nsIEmbeddingSiteWindow)) &&
-      NS_SUCCEEDED(EnsureContentTreeOwner()) &&
-      NS_SUCCEEDED(mContentTreeOwner->QueryInterface(aIID, aSink)))
-    return NS_OK;
+  }
 
   return QueryInterface(aIID, aSink);
 }
@@ -791,6 +787,23 @@ NS_IMETHODIMP AppWindow::GetPositionAndSize(int32_t* x, int32_t* y, int32_t* cx,
   return NS_OK;
 }
 
+NS_IMETHODIMP
+AppWindow::SetDimensions(DimensionRequest&& aRequest) {
+  // For the chrome the inner size is the root shell size, and for the content
+  // it's the primary content size. We lack an indicator here that would allow
+  // us to distinguish between the two.
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+AppWindow::GetDimensions(DimensionKind aDimensionKind, int32_t* aX, int32_t* aY,
+                         int32_t* aCX, int32_t* aCY) {
+  // For the chrome the inner size is the root shell size, and for the content
+  // it's the primary content size. We lack an indicator here that would allow
+  // us to distinguish between the two.
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
 NS_IMETHODIMP AppWindow::Center(nsIAppWindow* aRelative, bool aScreen,
                                 bool aAlert) {
   DesktopIntRect rect;
@@ -1105,48 +1118,39 @@ NS_IMETHODIMP AppWindow::ForceRoundedDimensions() {
     return NS_OK;
   }
 
-  int32_t availWidthCSS = 0;
-  int32_t availHeightCSS = 0;
-  int32_t contentWidthCSS = 0;
-  int32_t contentHeightCSS = 0;
-  int32_t windowWidthCSS = 0;
-  int32_t windowHeightCSS = 0;
-  double devicePerCSSPixels = UnscaledDevicePixelsPerCSSPixel().scale;
+  CSSToLayoutDeviceScale scale = UnscaledDevicePixelsPerCSSPixel();
 
-  GetAvailScreenSize(&availWidthCSS, &availHeightCSS);
+  CSSIntSize availSizeCSS;
+  GetAvailScreenSize(&availSizeCSS.width, &availSizeCSS.height);
 
   // To get correct chrome size, we have to resize the window to a proper
   // size first. So, here, we size it to its available size.
-  SetSpecifiedSize(availWidthCSS, availHeightCSS);
+  SetSpecifiedSize(availSizeCSS.width, availSizeCSS.height);
 
   // Get the current window size for calculating chrome UI size.
-  GetSize(&windowWidthCSS, &windowHeightCSS);  // device pixels
-  windowWidthCSS = NSToIntRound(windowWidthCSS / devicePerCSSPixels);
-  windowHeightCSS = NSToIntRound(windowHeightCSS / devicePerCSSPixels);
+  CSSIntSize windowSizeCSS = RoundedToInt(GetSize() / scale);
 
   // Get the content size for calculating chrome UI size.
-  GetPrimaryContentSize(&contentWidthCSS, &contentHeightCSS);
+  LayoutDeviceIntSize contentSizeDev;
+  GetPrimaryContentSize(&contentSizeDev.width, &contentSizeDev.height);
+  CSSIntSize contentSizeCSS = RoundedToInt(contentSizeDev / scale);
 
   // Calculate the chrome UI size.
-  int32_t chromeWidth = 0, chromeHeight = 0;
-  chromeWidth = windowWidthCSS - contentWidthCSS;
-  chromeHeight = windowHeightCSS - contentHeightCSS;
+  CSSIntSize chromeSizeCSS = windowSizeCSS - contentSizeCSS;
 
-  int32_t targetContentWidth = 0, targetContentHeight = 0;
-
+  CSSIntSize targetSizeCSS;
   // Here, we use the available screen dimensions as the input dimensions to
   // force the window to be rounded as the maximum available content size.
   nsContentUtils::CalcRoundedWindowSizeForResistingFingerprinting(
-      chromeWidth, chromeHeight, availWidthCSS, availHeightCSS, availWidthCSS,
-      availHeightCSS,
+      chromeSizeCSS.width, chromeSizeCSS.height, availSizeCSS.width,
+      availSizeCSS.height, availSizeCSS.width, availSizeCSS.height,
       false,  // aSetOuterWidth
       false,  // aSetOuterHeight
-      &targetContentWidth, &targetContentHeight);
+      &targetSizeCSS.width, &targetSizeCSS.height);
 
-  targetContentWidth = NSToIntRound(targetContentWidth * devicePerCSSPixels);
-  targetContentHeight = NSToIntRound(targetContentHeight * devicePerCSSPixels);
+  LayoutDeviceIntSize targetSizeDev = RoundedToInt(targetSizeCSS * scale);
 
-  SetPrimaryContentSize(targetContentWidth, targetContentHeight);
+  SetPrimaryContentSize(targetSizeDev.width, targetSizeDev.height);
 
   return NS_OK;
 }
@@ -1370,12 +1374,15 @@ void AppWindow::SetSpecifiedSize(int32_t aSpecWidth, int32_t aSpecHeight) {
 
   mIntrinsicallySized = false;
 
-  // Convert specified values to device pixels, and resize if needed
+  // Convert specified values to device pixels, and resize
   auto newSize = RoundedToInt(CSSIntSize(aSpecWidth, aSpecHeight) *
                               UnscaledDevicePixelsPerCSSPixel());
-  if (newSize != GetSize()) {
-    SetSize(newSize.width, newSize.height, false);
-  }
+
+  // Note: Because of the asynchronous resizing on Linux we have to call
+  // SetSize even when the size doesn't appear to change. A previous call that
+  // has yet to complete can still change the size. We want the latest call to
+  // define the final size.
+  SetSize(newSize.width, newSize.height, false);
 }
 
 /* Miscellaneous persistent attributes are attributes named in the
@@ -2163,8 +2170,15 @@ nsresult AppWindow::GetPrimaryRemoteTabSize(int32_t* aWidth, int32_t* aHeight) {
   RefPtr<dom::Element> element = host->GetOwnerElement();
   NS_ENSURE_STATE(element);
 
-  *aWidth = element->ClientWidth();
-  *aHeight = element->ClientHeight();
+  CSSIntSize size(element->ClientWidth(), element->ClientHeight());
+  LayoutDeviceIntSize sizeDev =
+      RoundedToInt(size * UnscaledDevicePixelsPerCSSPixel());
+  if (aWidth) {
+    *aWidth = sizeDev.width;
+  }
+  if (aHeight) {
+    *aHeight = sizeDev.height;
+  }
   return NS_OK;
 }
 
@@ -2175,14 +2189,13 @@ nsresult AppWindow::GetPrimaryContentShellSize(int32_t* aWidth,
   nsCOMPtr<nsIBaseWindow> shellWindow(do_QueryInterface(mPrimaryContentShell));
   NS_ENSURE_STATE(shellWindow);
 
-  // We want to return CSS pixels. First, we get device pixels
-  // from the content area...
-  // And then get the device pixel scaling factor. Dividing device
-  // pixels by this scaling factor gives us CSS pixels.
-  CSSIntSize size = RoundedToInt(
-      shellWindow->GetSize() / shellWindow->UnscaledDevicePixelsPerCSSPixel());
-  *aWidth = size.width;
-  *aHeight = size.height;
+  LayoutDeviceIntSize sizeDev = shellWindow->GetSize();
+  if (aWidth) {
+    *aWidth = sizeDev.width;
+  }
+  if (aHeight) {
+    *aHeight = sizeDev.height;
+  }
   return NS_OK;
 }
 
@@ -2190,7 +2203,8 @@ NS_IMETHODIMP
 AppWindow::SetPrimaryContentSize(int32_t aWidth, int32_t aHeight) {
   if (mPrimaryBrowserParent) {
     return SetPrimaryRemoteTabSize(aWidth, aHeight);
-  } else if (mPrimaryContentShell) {
+  }
+  if (mPrimaryContentShell) {
     return SizeShellTo(mPrimaryContentShell, aWidth, aHeight);
   }
   return NS_ERROR_UNEXPECTED;
@@ -2199,12 +2213,7 @@ AppWindow::SetPrimaryContentSize(int32_t aWidth, int32_t aHeight) {
 nsresult AppWindow::SetPrimaryRemoteTabSize(int32_t aWidth, int32_t aHeight) {
   int32_t shellWidth, shellHeight;
   GetPrimaryRemoteTabSize(&shellWidth, &shellHeight);
-
-  // FIXME: This is wrong (pre-existing), the above call acounts for zoom and
-  // this one doesn't.
-  double scale = UnscaledDevicePixelsPerCSSPixel().scale;
-  SizeShellToWithLimit(aWidth, aHeight, shellWidth * scale,
-                       shellHeight * scale);
+  SizeShellToWithLimit(aWidth, aHeight, shellWidth, shellHeight);
   return NS_OK;
 }
 
@@ -2737,6 +2746,10 @@ NS_IMETHODIMP AppWindow::SetXULBrowserWindow(
   return NS_OK;
 }
 
+// Given the dimensions of some content area held within this XUL window, and
+// assuming that that content area will change its dimensions in linear
+// proportion to the dimensions of this XUL window, changes the size of the XUL
+// window so that the content area reaches a particular size.
 void AppWindow::SizeShellToWithLimit(int32_t aDesiredWidth,
                                      int32_t aDesiredHeight,
                                      int32_t shellItemWidth,
@@ -2744,19 +2757,22 @@ void AppWindow::SizeShellToWithLimit(int32_t aDesiredWidth,
   int32_t widthDelta = aDesiredWidth - shellItemWidth;
   int32_t heightDelta = aDesiredHeight - shellItemHeight;
 
-  if (widthDelta || heightDelta) {
-    int32_t winWidth = 0;
-    int32_t winHeight = 0;
+  int32_t winWidth = 0;
+  int32_t winHeight = 0;
 
-    GetSize(&winWidth, &winHeight);
-    // There's no point in trying to make the window smaller than the
-    // desired content area size --- that's not likely to work. This whole
-    // function assumes that the outer docshell is adding some constant
-    // "border" chrome to the content area.
-    winWidth = std::max(winWidth + widthDelta, aDesiredWidth);
-    winHeight = std::max(winHeight + heightDelta, aDesiredHeight);
-    SetSize(winWidth, winHeight, true);
-  }
+  GetSize(&winWidth, &winHeight);
+  // There's no point in trying to make the window smaller than the
+  // desired content area size --- that's not likely to work. This whole
+  // function assumes that the outer docshell is adding some constant
+  // "border" chrome to the content area.
+  winWidth = std::max(winWidth + widthDelta, aDesiredWidth);
+  winHeight = std::max(winHeight + heightDelta, aDesiredHeight);
+
+  // Note: Because of the asynchronous resizing on Linux we have to call
+  // SetSize even when the size doesn't appear to change. A previous call that
+  // has yet to complete can still change the size. We want the latest call to
+  // define the final size.
+  SetSize(winWidth, winHeight, true);
 }
 
 nsresult AppWindow::GetTabCount(uint32_t* aResult) {
@@ -2882,9 +2898,8 @@ void AppWindow::SizeModeChanged(nsSizeMode aSizeMode) {
   if (ourWindow) {
     // Ensure that the fullscreen state is synchronized between
     // the widget and the outer window object.
-    if (aSizeMode == nsSizeMode_Fullscreen) {
-      ourWindow->SetFullScreen(true);
-    } else if (aSizeMode != nsSizeMode_Minimized) {
+    if (aSizeMode != nsSizeMode_Fullscreen &&
+        aSizeMode != nsSizeMode_Minimized) {
       if (ourWindow->GetFullScreen()) {
         // The first SetFullscreenInternal call below ensures that we do
         // not trigger any fullscreen transition even if the window was
@@ -2982,18 +2997,11 @@ void AppWindow::RecomputeBrowsingContextVisibility() {
   if (!mDocShell) {
     return;
   }
-  if (RefPtr bc = mDocShell->GetBrowsingContext()) {
-    nsCOMPtr<nsIWidget> widget;
-    mDocShell->GetMainWidget(getter_AddRefs(widget));
-    const bool isActive = [&] {
-      if (!widget) {
-        return false;
-      }
-      return widget->SizeMode() != nsSizeMode_Minimized &&
-             !widget->IsFullyOccluded();
-    }();
-    bc->SetIsActive(isActive, IgnoreErrors());
+  RefPtr bc = mDocShell->GetBrowsingContext();
+  if (!bc) {
+    return;
   }
+  bc->Canonical()->RecomputeAppWindowVisibility();
 }
 
 void AppWindow::OcclusionStateChanged(bool aIsFullyOccluded) {

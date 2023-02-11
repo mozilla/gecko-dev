@@ -21,7 +21,7 @@ extern MOZ_COLD JS_PUBLIC_API void JS_ReportOutOfMemory(JSContext* cx);
 
 namespace js {
 
-class ErrorContext;
+class FrontendContext;
 
 enum class AllocFunction { Malloc, Calloc, Realloc };
 
@@ -94,7 +94,7 @@ class SystemAllocPolicy : public AllocPolicyBase {
 };
 
 MOZ_COLD JS_PUBLIC_API void ReportOutOfMemory(JSContext* cx);
-MOZ_COLD JS_PUBLIC_API void ReportOutOfMemory(ErrorContext* ec);
+MOZ_COLD JS_PUBLIC_API void ReportOutOfMemory(FrontendContext* fc);
 
 /*
  * Allocation policy that calls the system memory functions and reports errors
@@ -109,7 +109,7 @@ class JS_PUBLIC_API TempAllocPolicy : public AllocPolicyBase {
   // Type tag for context_bits_
   static constexpr uintptr_t JsContextTag = 0x1;
 
-  // Either a JSContext* (if JsContextTag is set), or ErrorContext*
+  // Either a JSContext* (if JsContextTag is set), or FrontendContext*
   uintptr_t const context_bits_;
 
   MOZ_ALWAYS_INLINE bool hasJSContext() const {
@@ -121,9 +121,9 @@ class JS_PUBLIC_API TempAllocPolicy : public AllocPolicyBase {
     return reinterpret_cast<JSContext*>(context_bits_ ^ JsContextTag);
   }
 
-  MOZ_ALWAYS_INLINE ErrorContext* ec() const {
+  MOZ_ALWAYS_INLINE FrontendContext* fc() const {
     MOZ_ASSERT(!hasJSContext());
-    return reinterpret_cast<ErrorContext*>(context_bits_);
+    return reinterpret_cast<FrontendContext*>(context_bits_);
   }
 
   /*
@@ -155,9 +155,9 @@ class JS_PUBLIC_API TempAllocPolicy : public AllocPolicyBase {
       : context_bits_(uintptr_t(cx) | JsContextTag) {
     MOZ_ASSERT((uintptr_t(cx) & JsContextTag) == 0);
   }
-  MOZ_IMPLICIT TempAllocPolicy(ErrorContext* ec)
-      : context_bits_(uintptr_t(ec)) {
-    MOZ_ASSERT((uintptr_t(ec) & JsContextTag) == 0);
+  MOZ_IMPLICIT TempAllocPolicy(FrontendContext* fc)
+      : context_bits_(uintptr_t(fc)) {
+    MOZ_ASSERT((uintptr_t(fc) & JsContextTag) == 0);
   }
 
   template <typename T>
@@ -219,7 +219,7 @@ class JS_PUBLIC_API TempAllocPolicy : public AllocPolicyBase {
       if (hasJSContext()) {
         ReportOutOfMemory(cx());
       } else {
-        ReportOutOfMemory(ec());
+        ReportOutOfMemory(fc());
       }
       return false;
     }

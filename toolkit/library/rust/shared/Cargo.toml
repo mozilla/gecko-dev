@@ -2,7 +2,7 @@
 [package]
 name = "gkrust-shared"
 version = "0.1.0"
-authors = ["nobody@mozilla.org"]
+authors = ["The Mozilla Project Developers"]
 license = "MPL-2.0"
 description = "Shared Rust code for libxul"
 
@@ -58,7 +58,7 @@ audio_thread_priority = { version = "0.26.1", default_features = false, features
 mdns_service = { path="../../../../dom/media/webrtc/transport/mdns_service", optional = true }
 neqo_glue = { path = "../../../../netwerk/socket/neqo_glue" }
 wgpu_bindings = { path = "../../../../gfx/wgpu_bindings" }
-mapped_hyph = { git = "https://github.com/jfkthame/mapped_hyph.git", rev = "746743227485a83123784df0c53227ab466612ed" }
+mapped_hyph = { git = "https://github.com/jfkthame/mapped_hyph.git", rev = "c7651a0cffff41996ad13c44f689bd9cd2192c01" }
 fog_control = { path = "../../../components/glean" }
 app_services_logger = { path = "../../../../services/common/app_services_logger" }
 http_sfv = { path = "../../../../netwerk/base/http-sfv" }
@@ -75,20 +75,22 @@ origin-trials-ffi = { path = "../../../../dom/origin-trials/ffi" }
 jog = { path = "../../../components/glean/bindings/jog" }
 dap_ffi = { path = "../../../components/telemetry/dap/ffi" }
 data-encoding-ffi = { path = "../../../../dom/fs/parent/rust/data-encoding-ffi" }
-uniffi-example-arithmetic = { git = "https://github.com/mozilla/uniffi-rs.git", rev = "bb2039f077a29dba0879372a67e764e6ace8e33f", optional = true }
-uniffi-example-geometry = { git = "https://github.com/mozilla/uniffi-rs.git", rev = "bb2039f077a29dba0879372a67e764e6ace8e33f", optional = true }
-uniffi-example-rondpoint = { git = "https://github.com/mozilla/uniffi-rs.git", rev = "bb2039f077a29dba0879372a67e764e6ace8e33f", optional = true }
-uniffi-example-sprites = { git = "https://github.com/mozilla/uniffi-rs.git", rev = "bb2039f077a29dba0879372a67e764e6ace8e33f", optional = true }
-uniffi-example-todolist = { git = "https://github.com/mozilla/uniffi-rs.git", rev = "bb2039f077a29dba0879372a67e764e6ace8e33f", optional = true }
+uniffi-example-arithmetic = { git = "https://github.com/mozilla/uniffi-rs.git", rev = "846612a1d4fb5d11e246bf0682da4a499409424c", optional = true }
+uniffi-example-geometry = { git = "https://github.com/mozilla/uniffi-rs.git", rev = "846612a1d4fb5d11e246bf0682da4a499409424c", optional = true }
+uniffi-example-rondpoint = { git = "https://github.com/mozilla/uniffi-rs.git", rev = "846612a1d4fb5d11e246bf0682da4a499409424c", optional = true }
+uniffi-example-sprites = { git = "https://github.com/mozilla/uniffi-rs.git", rev = "846612a1d4fb5d11e246bf0682da4a499409424c", optional = true }
+uniffi-example-todolist = { git = "https://github.com/mozilla/uniffi-rs.git", rev = "846612a1d4fb5d11e246bf0682da4a499409424c", optional = true }
 uniffi-example-custom-types = { path = "../../../components/uniffi-example-custom-types/", optional = true }
+uniffi-fixture-callbacks = { path = "../../../components/uniffi-fixture-callbacks/", optional = true }
 uniffi-fixture-external-types = { path = "../../../components/uniffi-fixture-external-types/", optional = true }
+binary_http = { path = "../../../../netwerk/protocol/http/binary_http" }
 oblivious_http = { path = "../../../../netwerk/protocol/http/oblivious_http" }
 
 # Note: `modern_sqlite` means rusqlite's bindings file be for a sqlite with
 # version less than or equal to what we link to. This isn't a problem because we
 # tend to keep this up to date, but it needs to be taken into consideration when
 # changing this version.
-rusqlite = { version = "0.27.0", features = ["modern_sqlite", "in_gecko"] }
+rusqlite = { version = "0.28.0", features = ["modern_sqlite", "in_gecko"] }
 
 fluent = { version = "0.16.0", features = ["fluent-pseudo"] }
 fluent-ffi = { path = "../../../../intl/l10n/rust/fluent-ffi" }
@@ -100,7 +102,7 @@ localization-ffi = { path = "../../../../intl/l10n/rust/localization-ffi" }
 processtools = { path = "../../../components/processtools" }
 qcms = { path = "../../../../gfx/qcms", features = ["c_bindings", "neon"], default-features = false }
 
-wpf-gpu-raster = { git = "https://github.com/FirefoxGraphics/wpf-gpu-raster", rev = "e07e3741d1613b1b7ddb85a1120ed4071b3d6a56" }
+wpf-gpu-raster = { git = "https://github.com/FirefoxGraphics/wpf-gpu-raster", rev = "a6514854d4518b02f2805719ff6cd74dae7dfde6" }
 aa-stroke = { git = "https://github.com/FirefoxGraphics/aa-stroke", rev = "07d3c25322518f294300e96246e09b95e118555d" }
 
 # Force url to stay at 2.1.0. See bug 1734538.
@@ -109,8 +111,7 @@ url = "=2.1.0"
 # Force mio to stay at 0.8.0 to avoid windows-sys dependencies.
 mio = "=0.8.0"
 
-# Since we're building with at least rustc 1.63, enable rust 1.57 features.
-# This happens to work around issues the older code has with 1.65.
+# Since we're building with at least rustc 1.63, enable rust 1.57 features (use of try_reserve methods).
 fallible_collections = { version = "0.4", features = ["rust_1_57"] }
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
@@ -146,7 +147,8 @@ with_dbus = ["audio_thread_priority/with_dbus"]
 thread_sanitizer = ["xpcom/thread_sanitizer"]
 uniffi_fixtures = [
     "uniffi-example-arithmetic", "uniffi-example-geometry", "uniffi-example-rondpoint", "uniffi-example-sprites",
-    "uniffi-example-todolist", "uniffi-example-custom-types", "uniffi-fixture-external-types",
+    "uniffi-example-todolist", "uniffi-example-custom-types", "uniffi-fixture-callbacks",
+    "uniffi-fixture-external-types",
 ]
 webmidi_midir_impl = ["midir_impl"]
 

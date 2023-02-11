@@ -6,17 +6,17 @@
 
 #include "SharedSection.h"
 
+#include <algorithm>
 #include "CheckForCaller.h"
+#include "mozilla/BinarySearch.h"
 
 namespace {
 
-bool AddString(void* aBuffer, size_t aBufferSize, const UNICODE_STRING& aStr) {
-  size_t offset = 0;
-  while (offset < aBufferSize) {
+bool AddString(mozilla::Span<wchar_t> aBuffer, const UNICODE_STRING& aStr) {
+  size_t offsetElements = 0;
+  while (offsetElements < aBuffer.Length()) {
     UNICODE_STRING uniStr;
-    ::RtlInitUnicodeString(&uniStr,
-                           reinterpret_cast<wchar_t*>(
-                               reinterpret_cast<uintptr_t>(aBuffer) + offset));
+    ::RtlInitUnicodeString(&uniStr, aBuffer.data() + offsetElements);
 
     if (uniStr.Length == 0) {
       // Reached to the array's last item.
@@ -29,17 +29,19 @@ bool AddString(void* aBuffer, size_t aBufferSize, const UNICODE_STRING& aStr) {
     }
 
     // Go to the next string.
-    offset += uniStr.MaximumLength;
+    offsetElements += uniStr.MaximumLength / sizeof(wchar_t);
   }
 
   // Ensure enough space including the last empty string at the end.
-  if (offset + aStr.MaximumLength + sizeof(wchar_t) > aBufferSize) {
+  if (offsetElements * sizeof(wchar_t) + aStr.Length + sizeof(wchar_t) +
+          sizeof(wchar_t) >
+      aBuffer.LengthBytes()) {
     return false;
   }
 
-  auto newStr = reinterpret_cast<uint8_t*>(aBuffer) + offset;
-  memcpy(newStr, aStr.Buffer, aStr.Length);
-  memset(newStr + aStr.Length, 0, sizeof(wchar_t));
+  auto newStr = aBuffer.Subspan(offsetElements);
+  memcpy(newStr.data(), aStr.Buffer, aStr.Length);
+  memset(newStr.data() + aStr.Length / sizeof(wchar_t), 0, sizeof(wchar_t));
   return true;
 }
 
@@ -49,14 +51,6 @@ namespace mozilla {
 namespace freestanding {
 
 SharedSection gSharedSection;
-
-bool Kernel32ExportsSolver::IsInitialized() const {
-  return mState == State::Initialized || IsResolved();
-}
-
-bool Kernel32ExportsSolver::IsResolved() const {
-  return mState == State::Resolved;
-}
 
 // Why don't we use ::GetProcAddress?
 // If the export table of kernel32.dll is tampered in the current process,
@@ -80,10 +74,6 @@ bool Kernel32ExportsSolver::IsResolved() const {
       base + reinterpret_cast<uintptr_t>(m##name))
 
 void Kernel32ExportsSolver::Init() {
-  if (mState == State::Initialized || mState == State::Resolved) {
-    return;
-  }
-
   interceptor::MMPolicyInProcess policy;
   auto k32Exports = nt::PEExportSection<interceptor::MMPolicyInProcess>::Get(
       ::GetModuleHandleW(L"kernel32.dll"), policy);
@@ -96,24 +86,18 @@ void Kernel32ExportsSolver::Init() {
   INIT_FUNCTION(k32Exports, GetModuleHandleW);
   INIT_FUNCTION(k32Exports, GetSystemInfo);
   INIT_FUNCTION(k32Exports, VirtualProtect);
-
-  mState = State::Initialized;
 }
 
-void Kernel32ExportsSolver::ResolveInternal() {
-  if (mState == State::Resolved) {
-    return;
-  }
-
-  MOZ_RELEASE_ASSERT(mState == State::Initialized);
-
-  UNICODE_STRING k32Name;
-  ::RtlInitUnicodeString(&k32Name, L"kernel32.dll");
+bool Kernel32ExportsSolver::Resolve() {
+  const UNICODE_STRING k32Name = MOZ_LITERAL_UNICODE_STRING(L"kernel32.dll");
 
   // We cannot use GetModuleHandleW because this code can be called
   // before IAT is resolved.
   auto k32Module = nt::GetModuleHandleFromLeafName(k32Name);
-  MOZ_RELEASE_ASSERT(k32Module.isOk());
+  if (k32Module.isErr()) {
+    // Probably this is called before kernel32.dll is loaded.
+    return false;
+  }
 
   uintptr_t k32Base =
       nt::PEHeaders::HModuleToBaseAddr<uintptr_t>(k32Module.unwrap());
@@ -123,34 +107,25 @@ void Kernel32ExportsSolver::ResolveInternal() {
   RESOLVE_FUNCTION(k32Base, GetSystemInfo);
   RESOLVE_FUNCTION(k32Base, VirtualProtect);
 
-  mState = State::Resolved;
-}
-
-/* static */
-ULONG NTAPI Kernel32ExportsSolver::ResolveOnce(PRTL_RUN_ONCE aRunOnce,
-                                               PVOID aParameter, PVOID*) {
-  reinterpret_cast<Kernel32ExportsSolver*>(aParameter)->ResolveInternal();
-  return TRUE;
-}
-
-void Kernel32ExportsSolver::Resolve(RTL_RUN_ONCE& aRunOnce) {
-  ::RtlRunOnceExecuteOnce(&aRunOnce, &ResolveOnce, this, nullptr);
+  return true;
 }
 
 HANDLE SharedSection::sSectionHandle = nullptr;
-void* SharedSection::sWriteCopyView = nullptr;
+SharedSection::Layout* SharedSection::sWriteCopyView = nullptr;
+RTL_RUN_ONCE SharedSection::sEnsureOnce = RTL_RUN_ONCE_INIT;
 
-void SharedSection::Reset(HANDLE aNewSecionObject) {
+void SharedSection::Reset(HANDLE aNewSectionObject) {
   if (sWriteCopyView) {
     nt::AutoMappedView view(sWriteCopyView);
     sWriteCopyView = nullptr;
+    ::RtlRunOnceInitialize(&sEnsureOnce);
   }
 
-  if (sSectionHandle != aNewSecionObject) {
+  if (sSectionHandle != aNewSectionObject) {
     if (sSectionHandle) {
       ::CloseHandle(sSectionHandle);
     }
-    sSectionHandle = aNewSecionObject;
+    sSectionHandle = aNewSectionObject;
   }
 }
 
@@ -169,7 +144,7 @@ void SharedSection::ConvertToReadOnly() {
   Reset(readonlyHandle);
 }
 
-LauncherVoidResult SharedSection::Init(const nt::PEHeaders& aPEHeaders) {
+LauncherVoidResult SharedSection::Init() {
   static_assert(
       kSharedViewSize >= sizeof(Layout),
       "kSharedViewSize is too small to represent SharedSection::Layout.");
@@ -191,36 +166,186 @@ LauncherVoidResult SharedSection::Init(const nt::PEHeaders& aPEHeaders) {
     return LAUNCHER_ERROR_FROM_LAST();
   }
 
-  SharedSection::Layout* view = writableView.as<SharedSection::Layout>();
+  Layout* view = writableView.as<Layout>();
   view->mK32Exports.Init();
-
+  view->mState = Layout::State::kInitialized;
+  // Leave view->mDependentModulePathArrayStart to be zero to indicate
+  // we can add blocklist entries
   return Ok();
 }
 
-LauncherVoidResult SharedSection::AddDepenentModule(PCUNICODE_STRING aNtPath) {
+LauncherVoidResult SharedSection::AddDependentModule(PCUNICODE_STRING aNtPath) {
   nt::AutoMappedView writableView(sSectionHandle, PAGE_READWRITE);
   if (!writableView) {
     return LAUNCHER_ERROR_FROM_WIN32(::RtlGetLastWin32Error());
   }
 
-  SharedSection::Layout* view = writableView.as<SharedSection::Layout>();
-  if (!AddString(view->mModulePathArray,
-                 kSharedViewSize - sizeof(Kernel32ExportsSolver), *aNtPath)) {
+  Layout* view = writableView.as<Layout>();
+  if (!view->mDependentModulePathArrayStart) {
+    // This is the first time AddDependentModule is called.  We set the initial
+    // value to mDependentModulePathArrayStart, which *closes* the blocklist.
+    // After this, AddBlocklist is no longer allowed.
+    view->mDependentModulePathArrayStart =
+        FIELD_OFFSET(Layout, mFirstBlockEntry) + sizeof(DllBlockInfo);
+  }
+
+  if (!AddString(view->GetDependentModules(), *aNtPath)) {
     return LAUNCHER_ERROR_FROM_WIN32(ERROR_INSUFFICIENT_BUFFER);
   }
 
   return Ok();
 }
 
-LauncherResult<SharedSection::Layout*> SharedSection::GetView() {
+LauncherVoidResult SharedSection::SetBlocklist(
+    const DynamicBlockList& aBlocklist, bool isDisabled) {
+  if (!aBlocklist.GetPayloadSize()) {
+    return Ok();
+  }
+
+  nt::AutoMappedView writableView(sSectionHandle, PAGE_READWRITE);
+  if (!writableView) {
+    return LAUNCHER_ERROR_FROM_WIN32(::RtlGetLastWin32Error());
+  }
+
+  Layout* view = writableView.as<Layout>();
+  if (view->mDependentModulePathArrayStart > 0) {
+    // If the dependent module array is already available, we must not update
+    // the blocklist.
+    return LAUNCHER_ERROR_FROM_WIN32(ERROR_INVALID_STATE);
+  }
+
+  view->mBlocklistIsDisabled = isDisabled ? 1 : 0;
+  uintptr_t bufferEnd = reinterpret_cast<uintptr_t>(view) + kSharedViewSize;
+  size_t bytesCopied = aBlocklist.CopyTo(
+      view->mFirstBlockEntry,
+      bufferEnd - reinterpret_cast<uintptr_t>(view->mFirstBlockEntry));
+  if (!bytesCopied) {
+    return LAUNCHER_ERROR_FROM_WIN32(ERROR_INSUFFICIENT_BUFFER);
+  }
+
+  // Setting mDependentModulePathArrayStart to a non-zero value means
+  // we no longer accept blocklist entries
+  // Just to be safe, make sure we don't overwrite mFirstBlockEntry even
+  // if there are no entries.
+  view->mDependentModulePathArrayStart =
+      FIELD_OFFSET(Layout, mFirstBlockEntry) +
+      std::max(bytesCopied, sizeof(DllBlockInfo));
+  return Ok();
+}
+
+/* static */
+ULONG NTAPI SharedSection::EnsureWriteCopyViewOnce(PRTL_RUN_ONCE, PVOID,
+                                                   PVOID*) {
   if (!sWriteCopyView) {
     nt::AutoMappedView view(sSectionHandle, PAGE_WRITECOPY);
     if (!view) {
-      return LAUNCHER_ERROR_FROM_WIN32(::RtlGetLastWin32Error());
+      return TRUE;
     }
-    sWriteCopyView = view.release();
+    sWriteCopyView = view.as<Layout>();
+    view.release();
   }
-  return reinterpret_cast<SharedSection::Layout*>(sWriteCopyView);
+  return sWriteCopyView->Resolve() ? TRUE : FALSE;
+}
+
+SharedSection::Layout* SharedSection::EnsureWriteCopyView(
+    bool requireKernel32Exports /*= false */) {
+  ::RtlRunOnceExecuteOnce(&sEnsureOnce, &EnsureWriteCopyViewOnce, nullptr,
+                          nullptr);
+  if (!sWriteCopyView) {
+    return nullptr;
+  }
+  auto requiredState = requireKernel32Exports
+                           ? Layout::State::kResolved
+                           : Layout::State::kLoadedDynamicBlocklistEntries;
+  return sWriteCopyView->mState >= requiredState ? sWriteCopyView : nullptr;
+}
+
+bool SharedSection::Layout::Resolve() {
+  if (mState == State::kResolved) {
+    return true;
+  }
+  if (mState == State::kUninitialized) {
+    return false;
+  }
+  if (mState == State::kInitialized) {
+    if (!mNumBlockEntries) {
+      uintptr_t arrayBase = reinterpret_cast<uintptr_t>(mFirstBlockEntry);
+      uint32_t numEntries = 0;
+      for (DllBlockInfo* entry = mFirstBlockEntry;
+           entry->mName.Length && numEntries < GetMaxNumBlockEntries();
+           ++entry) {
+        entry->mName.Buffer = reinterpret_cast<wchar_t*>(
+            arrayBase + reinterpret_cast<uintptr_t>(entry->mName.Buffer));
+        ++numEntries;
+      }
+      mNumBlockEntries = numEntries;
+      // Sort by name so that we can binary-search
+      std::sort(mFirstBlockEntry, mFirstBlockEntry + mNumBlockEntries,
+                [](const DllBlockInfo& a, const DllBlockInfo& b) {
+                  return ::RtlCompareUnicodeString(&a.mName, &b.mName, TRUE) <
+                         0;
+                });
+    }
+    mState = State::kLoadedDynamicBlocklistEntries;
+  }
+
+  if (!mK32Exports.Resolve()) {
+    return false;
+  }
+
+  mState = State::kResolved;
+  return true;
+}
+
+Span<wchar_t> SharedSection::Layout::GetDependentModules() {
+  if (!mDependentModulePathArrayStart) {
+    return nullptr;
+  }
+  return Span<wchar_t>(
+      reinterpret_cast<wchar_t*>(reinterpret_cast<uintptr_t>(this) +
+                                 mDependentModulePathArrayStart),
+      (kSharedViewSize - mDependentModulePathArrayStart) / sizeof(wchar_t));
+}
+
+bool SharedSection::Layout::IsDisabled() const {
+  return !!mBlocklistIsDisabled;
+}
+
+const DllBlockInfo* SharedSection::Layout::SearchBlocklist(
+    const UNICODE_STRING& aLeafName) const {
+  MOZ_ASSERT(mState >= State::kLoadedDynamicBlocklistEntries);
+  DllBlockInfoComparator comp(aLeafName);
+  size_t match;
+  if (!BinarySearchIf(mFirstBlockEntry, 0, mNumBlockEntries, comp, &match)) {
+    return nullptr;
+  }
+  return &mFirstBlockEntry[match];
+}
+
+Kernel32ExportsSolver* SharedSection::GetKernel32Exports() {
+  Layout* writeCopyView = EnsureWriteCopyView(true);
+  return writeCopyView ? &writeCopyView->mK32Exports : nullptr;
+}
+
+Span<const wchar_t> SharedSection::GetDependentModules() {
+  Layout* writeCopyView = EnsureWriteCopyView();
+  return writeCopyView ? writeCopyView->GetDependentModules() : nullptr;
+}
+
+Span<const DllBlockInfo> SharedSection::GetDynamicBlocklist() {
+  Layout* writeCopyView = EnsureWriteCopyView();
+  return writeCopyView ? writeCopyView->GetModulePathArray() : nullptr;
+}
+
+const DllBlockInfo* SharedSection::SearchBlocklist(
+    const UNICODE_STRING& aLeafName) {
+  Layout* writeCopyView = EnsureWriteCopyView();
+  return writeCopyView ? writeCopyView->SearchBlocklist(aLeafName) : nullptr;
+}
+
+bool SharedSection::IsDisabled() {
+  Layout* writeCopyView = EnsureWriteCopyView();
+  return writeCopyView ? writeCopyView->IsDisabled() : false;
 }
 
 LauncherVoidResult SharedSection::TransferHandle(
@@ -235,29 +360,6 @@ LauncherVoidResult SharedSection::TransferHandle(
 
   return aTransferMgr.Transfer(aDestinationAddress, &remoteHandle,
                                sizeof(remoteHandle));
-}
-
-// This exported function is invoked by SandboxBroker of xul.dll
-// in order to add dependent modules to the CIG exception list.
-extern "C" MOZ_EXPORT const wchar_t* GetDependentModulePaths() {
-  // We enable pre-spawn CIG only in early Beta or earlier for now
-  // because it caused a compat issue (bug 1682304 and 1704373).
-#if defined(EARLY_BETA_OR_EARLIER)
-  const bool isCallerXul = CheckForAddress(RETURN_ADDRESS(), L"xul.dll");
-  MOZ_ASSERT(isCallerXul);
-  if (!isCallerXul) {
-    return nullptr;
-  }
-
-  LauncherResult<SharedSection::Layout*> resultView = gSharedSection.GetView();
-  if (resultView.isErr()) {
-    return nullptr;
-  }
-
-  return resultView.inspect()->mModulePathArray;
-#else
-  return nullptr;
-#endif
 }
 
 }  // namespace freestanding

@@ -3,17 +3,15 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
+import json
+from pathlib import Path
 
 import mozunit
 import pytest
-
-import json
-from mozrelease.util import load as yaml_load
-from pathlib import Path
+from mozilla_version.gecko import GeckoVersion
 
 from mozrelease.balrog import generate_update_properties
-from mozilla_version.gecko import GeckoVersion
+from mozrelease.util import load as yaml_load
 
 DATA_PATH = Path(__file__).parent.joinpath("data")
 

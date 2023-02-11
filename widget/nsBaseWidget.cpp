@@ -105,8 +105,6 @@ static int32_t gNumWidgets;
 #  include "nsCocoaFeatures.h"
 #endif
 
-nsIRollupListener* nsBaseWidget::gRollupListener = nullptr;
-
 using namespace mozilla::dom;
 using namespace mozilla::layers;
 using namespace mozilla::ipc;
@@ -1805,9 +1803,7 @@ const widget::SizeConstraints nsBaseWidget::GetSizeConstraints() {
 
 // static
 nsIRollupListener* nsBaseWidget::GetActiveRollupListener() {
-  // If set, then this is likely an <html:select> dropdown.
-  if (gRollupListener) return gRollupListener;
-
+  // TODO: Simplify this.
   return nsXULPopupManager::GetInstance();
 }
 
@@ -1843,14 +1839,6 @@ void nsBaseWidget::NotifySizeMoveDone() {
 
 void nsBaseWidget::NotifyThemeChanged(ThemeChangeKind aKind) {
   LookAndFeel::NotifyChangedAllWindows(aKind);
-}
-
-void nsBaseWidget::NotifyUIStateChanged(UIStateChangeType aShowFocusRings) {
-  if (Document* doc = GetDocument()) {
-    if (nsPIDOMWindowOuter* win = doc->GetWindow()) {
-      win->SetKeyboardIndicators(aShowFocusRings);
-    }
-  }
 }
 
 nsresult nsBaseWidget::NotifyIME(const IMENotification& aIMENotification) {
@@ -2135,10 +2123,9 @@ nsresult nsIWidget::ClearNativeTouchSequence(nsIObserver* aObserver) {
 }
 
 MultiTouchInput nsBaseWidget::UpdateSynthesizedTouchState(
-    MultiTouchInput* aState, uint32_t aTime, mozilla::TimeStamp aTimeStamp,
-    uint32_t aPointerId, TouchPointerState aPointerState,
-    LayoutDeviceIntPoint aPoint, double aPointerPressure,
-    uint32_t aPointerOrientation) {
+    MultiTouchInput* aState, mozilla::TimeStamp aTimeStamp, uint32_t aPointerId,
+    TouchPointerState aPointerState, LayoutDeviceIntPoint aPoint,
+    double aPointerPressure, uint32_t aPointerOrientation) {
   ScreenIntPoint pointerScreenPoint = ViewAs<ScreenPixel>(
       aPoint, PixelCastJustification::LayoutDeviceIsScreenForBounds);
 
@@ -2149,7 +2136,6 @@ MultiTouchInput nsBaseWidget::UpdateSynthesizedTouchState(
   // touch(es). We use |inputToDispatch| for this purpose.
   MultiTouchInput inputToDispatch;
   inputToDispatch.mInputType = MULTITOUCH_INPUT;
-  inputToDispatch.mTime = aTime;
   inputToDispatch.mTimeStamp = aTimeStamp;
 
   int32_t index = aState->IndexOfTouch((int32_t)aPointerId);

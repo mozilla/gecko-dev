@@ -5,7 +5,6 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 
-from __future__ import absolute_import, print_function, unicode_literals
 import argparse
 import json
 import logging
@@ -15,15 +14,9 @@ import time
 import traceback
 from functools import partial
 
-from mach.decorators import (
-    Command,
-    CommandArgument,
-    SettingsProvider,
-    SubCommand,
-)
-
 import gecko_taskgraph.main
 from gecko_taskgraph.main import commands as taskgraph_commands
+from mach.decorators import Command, CommandArgument, SettingsProvider, SubCommand
 
 logger = logging.getLogger("taskcluster")
 

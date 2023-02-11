@@ -111,6 +111,7 @@
 #include "mozilla/PresShell.h"
 #include "mozilla/ProcessHangMonitor.h"
 #include "mozilla/StaticPrefs_dom.h"
+#include "mozilla/StaticPrefs_full_screen_api.h"
 #include "mozilla/StaticPrefs_print.h"
 #include "mozilla/StaticPrefs_fission.h"
 #include "mozilla/ThrottledEventQueue.h"
@@ -133,7 +134,6 @@
 #include "mozilla/dom/Document.h"
 #include "Crypto.h"
 #include "nsDOMString.h"
-#include "nsIEmbeddingSiteWindow.h"
 #include "nsThreadUtils.h"
 #include "nsILoadContext.h"
 #include "nsIScrollableFrame.h"
@@ -1297,8 +1297,7 @@ static JSObject* NewOuterWindowProxy(JSContext* cx,
 
 nsGlobalWindowOuter::nsGlobalWindowOuter(uint64_t aWindowID)
     : nsPIDOMWindowOuter(aWindowID),
-      mFullscreen(false),
-      mFullscreenMode(false),
+      mFullscreenHasChangedDuringProcessing(false),
       mForceFullScreenInWidget(false),
       mIsClosed(false),
       mInClose(false),
@@ -1672,13 +1671,6 @@ bool nsGlobalWindowOuter::ShouldResistFingerprinting() const {
   return nsContentUtils::ShouldResistFingerprinting(
       "If we do not have a document then we do not have any context"
       "to make an informed RFP choice, so we fall back to the global pref");
-}
-
-uint32_t nsGlobalWindowOuter::GetPrincipalHashValue() const {
-  if (mDoc) {
-    return mDoc->NodePrincipal()->GetHashValue();
-  }
-  return 0;
 }
 
 OriginTrials nsGlobalWindowOuter::Trials() const {
@@ -2843,7 +2835,7 @@ bool nsGlobalWindowOuter::AreDialogsEnabled() {
 bool nsGlobalWindowOuter::ConfirmDialogIfNeeded() {
   NS_ENSURE_TRUE(mDocShell, false);
   nsCOMPtr<nsIPromptService> promptSvc =
-      do_GetService("@mozilla.org/embedcomp/prompt-service;1");
+      do_GetService("@mozilla.org/prompter;1");
 
   if (!promptSvc) {
     return true;
@@ -3022,30 +3014,6 @@ nsIPrincipal* nsGlobalWindowOuter::PartitionedPrincipal() {
 //*****************************************************************************
 // nsGlobalWindowOuter::nsIDOMWindow
 //*****************************************************************************
-
-void nsPIDOMWindowOuter::SetInitialKeyboardIndicators(
-    UIStateChangeType aShowFocusRings) {
-  MOZ_ASSERT(!GetCurrentInnerWindow());
-
-  nsPIDOMWindowOuter* piWin = GetPrivateRoot();
-  if (!piWin) {
-    return;
-  }
-
-  MOZ_ASSERT(piWin == this);
-
-  // only change the flags that have been modified
-  nsCOMPtr<nsPIWindowRoot> windowRoot = do_QueryInterface(mChromeEventHandler);
-  if (!windowRoot) {
-    return;
-  }
-
-  if (aShowFocusRings != UIStateChangeType_NoChange) {
-    windowRoot->SetShowFocusRings(aShowFocusRings == UIStateChangeType_Set);
-  }
-
-  nsContentUtils::SetKeyboardIndicatorsOnRemoteChildren(this, aShowFocusRings);
-}
 
 Element* nsPIDOMWindowOuter::GetFrameElementInternal() const {
   return mFrameElement;
@@ -3527,40 +3495,66 @@ nsresult nsGlobalWindowOuter::GetInnerWidth(double* aInnerWidth) {
   FORWARD_TO_INNER(GetInnerWidth, (aInnerWidth), NS_ERROR_UNEXPECTED);
 }
 
-void nsGlobalWindowOuter::SetInnerWidthOuter(double aInnerWidth,
-                                             CallerType aCallerType,
-                                             ErrorResult& aError) {
+void nsGlobalWindowOuter::SetInnerSize(int32_t aLengthCSSPixels, bool aIsWidth,
+                                       mozilla::dom::CallerType aCallerType,
+                                       mozilla::ErrorResult& aError) {
   if (!mDocShell) {
     aError.Throw(NS_ERROR_UNEXPECTED);
     return;
   }
 
-  // We only allow setting integers, for now.
-  int32_t value = std::round(ToZeroIfNonfinite(aInnerWidth));
+  CSSIntCoord length(aLengthCSSPixels);
 
-  CheckSecurityWidthAndHeight(&value, nullptr, aCallerType);
+  CheckSecurityWidthAndHeight((aIsWidth ? &length.value : nullptr),
+                              (aIsWidth ? nullptr : &length.value),
+                              aCallerType);
+
   RefPtr<PresShell> presShell = mDocShell->GetPresShell();
 
-  // Setting inner width should set the CSS viewport. If the CSS viewport
+  // Setting inner size should set the CSS viewport. If the CSS viewport
   // has been overridden, change the override.
   if (presShell && presShell->UsesMobileViewportSizing()) {
-    nscoord height = 0;
-
     RefPtr<nsPresContext> presContext;
     presContext = presShell->GetPresContext();
 
     nsRect shellArea = presContext->GetVisibleArea();
-    height = shellArea.Height();
-    SetCSSViewportWidthAndHeight(CSSPixel::ToAppUnits(value), height);
+    if (aIsWidth) {
+      shellArea.width = CSSPixel::ToAppUnits(CSSCoord(length));
+    } else {
+      shellArea.height = CSSPixel::ToAppUnits(CSSCoord(length));
+    }
+
+    SetCSSViewportWidthAndHeight(shellArea.Width(), shellArea.Height());
     return;
   }
 
-  // Nothing has been overridden, so change the docshell itself.
-  nsCOMPtr<nsIBaseWindow> docShellAsWin(do_QueryInterface(mDocShell));
-  LayoutDeviceIntSize size = docShellAsWin->GetSize();
-  size.width =
-      (CSSCoord(value) * CSSToDevScaleForBaseWindow(docShellAsWin)).Rounded();
-  aError = SetDocShellSize(size);
+  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin = GetTreeOwnerWindow();
+  if (!treeOwnerAsWin) {
+    aError.Throw(NS_ERROR_FAILURE);
+    return;
+  }
+
+  auto scale = CSSToDevScaleForBaseWindow(treeOwnerAsWin);
+  LayoutDeviceIntCoord valueDev = (CSSCoord(length) * scale).Rounded();
+
+  Maybe<LayoutDeviceIntCoord> width, height;
+  if (aIsWidth) {
+    width.emplace(valueDev);
+  } else {
+    height.emplace(valueDev);
+  }
+
+  aError = treeOwnerAsWin->SetDimensions(
+      {DimensionKind::Inner, Nothing(), Nothing(), width, height});
+
+  CheckForDPIChange();
+}
+
+void nsGlobalWindowOuter::SetInnerWidthOuter(double aInnerWidth,
+                                             CallerType aCallerType,
+                                             ErrorResult& aError) {
+  SetInnerSize(NSToIntRound(ToZeroIfNonfinite(aInnerWidth)),
+               /* aIsWidth */ true, aCallerType, aError);
 }
 
 double nsGlobalWindowOuter::GetInnerHeightOuter(ErrorResult& aError) {
@@ -3576,35 +3570,8 @@ nsresult nsGlobalWindowOuter::GetInnerHeight(double* aInnerHeight) {
 void nsGlobalWindowOuter::SetInnerHeightOuter(double aInnerHeight,
                                               CallerType aCallerType,
                                               ErrorResult& aError) {
-  if (!mDocShell) {
-    aError.Throw(NS_ERROR_UNEXPECTED);
-    return;
-  }
-
-  int32_t value = std::round(ToZeroIfNonfinite(aInnerHeight));
-  CheckSecurityWidthAndHeight(nullptr, &value, aCallerType);
-  RefPtr<PresShell> presShell = mDocShell->GetPresShell();
-
-  // Setting inner height should set the CSS viewport. If the CSS viewport
-  // has been overridden, change the override.
-  if (presShell && presShell->UsesMobileViewportSizing()) {
-    nscoord width = 0;
-
-    RefPtr<nsPresContext> presContext;
-    presContext = presShell->GetPresContext();
-
-    nsRect shellArea = presContext->GetVisibleArea();
-    width = shellArea.Width();
-    SetCSSViewportWidthAndHeight(width, CSSPixel::ToAppUnits(value));
-    return;
-  }
-
-  // Nothing has been overriden, so change the docshell itself.
-  nsCOMPtr<nsIBaseWindow> docShellAsWin(do_QueryInterface(mDocShell));
-  LayoutDeviceIntSize size = docShellAsWin->GetSize();
-  size.height =
-      (CSSCoord(value) * CSSToDevScaleForBaseWindow(docShellAsWin)).Rounded();
-  aError = SetDocShellSize(size);
+  SetInnerSize(NSToIntRound(ToZeroIfNonfinite(aInnerHeight)),
+               /* aIsWidth */ false, aCallerType, aError);
 }
 
 CSSIntSize nsGlobalWindowOuter::GetOuterSize(CallerType aCallerType,
@@ -3657,11 +3624,19 @@ void nsGlobalWindowOuter::SetOuterSize(int32_t aLengthCSSPixels, bool aIsWidth,
                               aIsWidth ? nullptr : &aLengthCSSPixels,
                               aCallerType);
 
-  LayoutDeviceIntSize size = treeOwnerAsWin->GetSize();
   auto scale = CSSToDevScaleForBaseWindow(treeOwnerAsWin);
-  (aIsWidth ? size.width : size.height) =
-      (CSSCoord(aLengthCSSPixels) * scale).Rounded();
-  aError = treeOwnerAsWin->SetSize(size.width, size.height, true);
+  LayoutDeviceIntCoord value =
+      (CSSCoord(CSSIntCoord(aLengthCSSPixels)) * scale).Rounded();
+
+  Maybe<LayoutDeviceIntCoord> width, height;
+  if (aIsWidth) {
+    width.emplace(value);
+  } else {
+    height.emplace(value);
+  }
+
+  aError = treeOwnerAsWin->SetDimensions(
+      {DimensionKind::Outer, Nothing(), Nothing(), width, height});
 
   CheckForDPIChange();
 }
@@ -3792,25 +3767,39 @@ float nsGlobalWindowOuter::GetMozInnerScreenYOuter(CallerType aCallerType) {
   return nsPresContext::AppUnitsToFloatCSSPixels(r.y);
 }
 
-void nsGlobalWindowOuter::SetScreenXOuter(int32_t aScreenX,
-                                          CallerType aCallerType,
-                                          ErrorResult& aError) {
+void nsGlobalWindowOuter::SetScreenCoord(int32_t aCoordCSSPixels, bool aIsX,
+                                         CallerType aCallerType,
+                                         ErrorResult& aError) {
   nsCOMPtr<nsIBaseWindow> treeOwnerAsWin = GetTreeOwnerWindow();
   if (!treeOwnerAsWin) {
     aError.Throw(NS_ERROR_FAILURE);
     return;
   }
 
-  LayoutDeviceIntPoint pos = treeOwnerAsWin->GetPosition();
+  CheckSecurityLeftAndTop(aIsX ? &aCoordCSSPixels : nullptr,
+                          aIsX ? nullptr : &aCoordCSSPixels, aCallerType);
 
-  CheckSecurityLeftAndTop(&aScreenX, nullptr, aCallerType);
+  auto scale = CSSToDevScaleForBaseWindow(treeOwnerAsWin);
+  LayoutDeviceIntCoord coord =
+      (CSSCoord(CSSIntCoord(aCoordCSSPixels)) * scale).Rounded();
 
-  pos.x = (CSSCoord(aScreenX) * CSSToDevScaleForBaseWindow(treeOwnerAsWin))
-              .Rounded();
+  Maybe<LayoutDeviceIntCoord> x, y;
+  if (aIsX) {
+    x.emplace(coord);
+  } else {
+    y.emplace(coord);
+  }
 
-  aError = treeOwnerAsWin->SetPosition(pos.x, pos.y);
+  aError = treeOwnerAsWin->SetDimensions(
+      {DimensionKind::Outer, x, y, Nothing(), Nothing()});
 
   CheckForDPIChange();
+}
+
+void nsGlobalWindowOuter::SetScreenXOuter(int32_t aScreenX,
+                                          CallerType aCallerType,
+                                          ErrorResult& aError) {
+  SetScreenCoord(aScreenX, /* aIsX */ true, aCallerType, aError);
 }
 
 int32_t nsGlobalWindowOuter::GetScreenYOuter(CallerType aCallerType,
@@ -3821,19 +3810,7 @@ int32_t nsGlobalWindowOuter::GetScreenYOuter(CallerType aCallerType,
 void nsGlobalWindowOuter::SetScreenYOuter(int32_t aScreenY,
                                           CallerType aCallerType,
                                           ErrorResult& aError) {
-  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin = GetTreeOwnerWindow();
-  if (!treeOwnerAsWin) {
-    aError.Throw(NS_ERROR_FAILURE);
-    return;
-  }
-
-  LayoutDeviceIntPoint pos = treeOwnerAsWin->GetPosition();
-  CheckSecurityLeftAndTop(nullptr, &aScreenY, aCallerType);
-  pos.y = (CSSCoord(aScreenY) * CSSToDevScaleForBaseWindow(treeOwnerAsWin))
-              .Rounded();
-  aError = treeOwnerAsWin->SetPosition(pos.x, pos.y);
-
-  CheckForDPIChange();
+  SetScreenCoord(aScreenY, /* aIsX */ false, aCallerType, aError);
 }
 
 // NOTE: Arguments to this function should have values scaled to
@@ -3860,22 +3837,6 @@ void nsGlobalWindowOuter::CheckSecurityWidthAndHeight(int32_t* aWidth,
       }
     }
   }
-}
-
-// NOTE: Arguments to this function should have values in device pixels
-nsresult nsGlobalWindowOuter::SetDocShellSize(
-    const LayoutDeviceIntSize& aSize) {
-  NS_ENSURE_TRUE(mDocShell, NS_ERROR_FAILURE);
-
-  nsCOMPtr<nsIDocShell> docShell = mDocShell;
-  nsCOMPtr<nsIDocShellTreeOwner> treeOwner;
-  docShell->GetTreeOwner(getter_AddRefs(treeOwner));
-  NS_ENSURE_TRUE(treeOwner, NS_ERROR_FAILURE);
-
-  NS_ENSURE_SUCCESS(treeOwner->SizeShellTo(docShell, aSize.width, aSize.height),
-                    NS_ERROR_FAILURE);
-
-  return NS_OK;
 }
 
 // NOTE: Arguments to this function should have values in app units
@@ -4255,15 +4216,6 @@ FullscreenTransitionTask::Run() {
   } else if (stage == eToggleFullscreen) {
     PROFILER_MARKER_UNTYPED("Fullscreen toggle start", DOM);
     mFullscreenChangeStartTime = TimeStamp::Now();
-    if (MOZ_UNLIKELY(mWindow->mFullscreen != mFullscreen)) {
-      // This could happen in theory if several fullscreen requests in
-      // different direction happen continuously in a short time. We
-      // need to ensure the fullscreen state matches our target here,
-      // otherwise the widget would change the window state as if we
-      // toggle for Fullscreen Mode instead of Fullscreen API.
-      NS_WARNING("The fullscreen state of the window does not match");
-      mWindow->mFullscreen = mFullscreen;
-    }
     // Toggle the fullscreen state on the widget
     if (!mWindow->SetWidgetFullscreen(FullscreenReason::ForFullscreenAPI,
                                       mFullscreen, mWidget)) {
@@ -4374,6 +4326,44 @@ static bool MakeWidgetFullscreen(nsGlobalWindowOuter* aWindow,
   return true;
 }
 
+nsresult nsGlobalWindowOuter::ProcessWidgetFullscreenRequest(
+    FullscreenReason aReason, bool aFullscreen) {
+  mInProcessFullscreenRequest.emplace(aReason, aFullscreen);
+
+  // Prevent chrome documents which are still loading from resizing
+  // the window after we set fullscreen mode.
+  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin = GetTreeOwnerWindow();
+  nsCOMPtr<nsIAppWindow> appWin(do_GetInterface(treeOwnerAsWin));
+  if (aFullscreen && appWin) {
+    appWin->SetIntrinsicallySized(false);
+  }
+
+  // Sometimes we don't want the top-level widget to actually go fullscreen:
+  // - in the B2G desktop client, we don't want the emulated screen dimensions
+  //   to appear to increase when entering fullscreen mode; we just want the
+  //   content to fill the entire client area of the emulator window.
+  // - in FxR Desktop, we don't want fullscreen to take over the monitor, but
+  //   instead we want fullscreen to fill the FxR window in the the headset.
+  if (!StaticPrefs::full_screen_api_ignore_widgets() &&
+      !mForceFullScreenInWidget) {
+    if (MakeWidgetFullscreen(this, aReason, aFullscreen)) {
+      // The rest of code for switching fullscreen is in nsGlobalWindowOuter::
+      // FinishFullscreenChange() which will be called after sizemodechange
+      // event is dispatched.
+      return NS_OK;
+    }
+  }
+
+#if defined(NIGHTLY_BUILD) && defined(XP_WIN)
+  if (FxRWindowManager::GetInstance()->IsFxRWindow(mWindowID)) {
+    mozilla::gfx::VRShMem shmem(nullptr, true /*aRequiresMutex*/);
+    shmem.SendFullscreenState(mWindowID, aFullscreen);
+  }
+#endif  // NIGHTLY_BUILD && XP_WIN
+  FinishFullscreenChange(aFullscreen);
+  return NS_OK;
+}
+
 nsresult nsGlobalWindowOuter::SetFullscreenInternal(FullscreenReason aReason,
                                                     bool aFullscreen) {
   MOZ_ASSERT(nsContentUtils::IsSafeToRunScript(),
@@ -4410,8 +4400,27 @@ nsresult nsGlobalWindowOuter::SetFullscreenInternal(FullscreenReason aReason,
   if (mDocShell->ItemType() != nsIDocShellTreeItem::typeChrome)
     return NS_ERROR_FAILURE;
 
-  // If we are already in full screen mode, just return.
-  if (mFullscreen == aFullscreen) {
+  // FullscreenReason::ForForceExitFullscreen can only be used with exiting
+  // fullscreen
+  MOZ_ASSERT_IF(
+      mFullscreen.isSome(),
+      mFullscreen.value() != FullscreenReason::ForForceExitFullscreen);
+
+  // If we are already in full screen mode, just return, we don't care about the
+  // reason here, because,
+  // - If we are in fullscreen mode due to browser fullscreen mode, requesting
+  //   DOM fullscreen does not change anything.
+  // - If we are in fullscreen mode due to DOM fullscreen, requesting browser
+  //   fullscreen should not change anything, either. Note that we should not
+  //   update reason to ForFullscreenMode, otherwise the subsequent DOM
+  //   fullscreen exit will be ignored and user will be confused. And ideally
+  //   this should never happen as `window.fullscreen` returns `true` for DOM
+  //   fullscreen as well.
+  if (mFullscreen.isSome() == aFullscreen) {
+    // How come we get browser fullscreen request while we are already in DOM
+    // fullscreen?
+    MOZ_ASSERT_IF(aFullscreen && aReason == FullscreenReason::ForFullscreenMode,
+                  mFullscreen.value() != FullscreenReason::ForFullscreenAPI);
     return NS_OK;
   }
 
@@ -4419,61 +4428,45 @@ nsresult nsGlobalWindowOuter::SetFullscreenInternal(FullscreenReason aReason,
   // consequential calls to this method, those calls will be skipped
   // at the condition above.
   if (aReason == FullscreenReason::ForFullscreenMode) {
-    if (!aFullscreen && !mFullscreenMode) {
+    if (!aFullscreen && mFullscreen &&
+        mFullscreen.value() == FullscreenReason::ForFullscreenAPI) {
       // If we are exiting fullscreen mode, but we actually didn't
-      // entered fullscreen mode, the fullscreen state was only for
+      // entered browser fullscreen mode, the fullscreen state was only for
       // the Fullscreen API. Change the reason here so that we can
       // perform transition for it.
       aReason = FullscreenReason::ForFullscreenAPI;
-    } else {
-      mFullscreenMode = aFullscreen;
     }
   } else {
     // If we are exiting from DOM fullscreen while we initially make
-    // the window fullscreen because of fullscreen mode, don't restore
+    // the window fullscreen because of browser fullscreen mode, don't restore
     // the window. But we still need to exit the DOM fullscreen state.
-    if (!aFullscreen && mFullscreenMode) {
-      FinishDOMFullscreenChange(mDoc, false);
+    if (!aFullscreen && mFullscreen &&
+        mFullscreen.value() == FullscreenReason::ForFullscreenMode) {
+      // If there is a in-process fullscreen request, FinishDOMFullscreenChange
+      // will be called when the request is finished.
+      if (!mInProcessFullscreenRequest.isSome()) {
+        FinishDOMFullscreenChange(mDoc, false);
+      }
       return NS_OK;
     }
-  }
-
-  // Prevent chrome documents which are still loading from resizing
-  // the window after we set fullscreen mode.
-  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin = GetTreeOwnerWindow();
-  nsCOMPtr<nsIAppWindow> appWin(do_GetInterface(treeOwnerAsWin));
-  if (aFullscreen && appWin) {
-    appWin->SetIntrinsicallySized(false);
   }
 
   // Set this before so if widget sends an event indicating its
   // gone full screen, the state trap above works.
-  mFullscreen = aFullscreen;
-
-  // Sometimes we don't want the top-level widget to actually go fullscreen:
-  // - in the B2G desktop client, we don't want the emulated screen dimensions
-  //   to appear to increase when entering fullscreen mode; we just want the
-  //   content to fill the entire client area of the emulator window.
-  // - in FxR Desktop, we don't want fullscreen to take over the monitor, but
-  //   instead we want fullscreen to fill the FxR window in the the headset.
-  if (!Preferences::GetBool("full-screen-api.ignore-widgets", false) &&
-      !mForceFullScreenInWidget) {
-    if (MakeWidgetFullscreen(this, aReason, aFullscreen)) {
-      // The rest of code for switching fullscreen is in nsGlobalWindowOuter::
-      // FinishFullscreenChange() which will be called after sizemodechange
-      // event is dispatched.
-      return NS_OK;
-    }
+  if (aFullscreen) {
+    mFullscreen.emplace(aReason);
+  } else {
+    mFullscreen.reset();
   }
 
-#if defined(NIGHTLY_BUILD) && defined(XP_WIN)
-  if (FxRWindowManager::GetInstance()->IsFxRWindow(mWindowID)) {
-    mozilla::gfx::VRShMem shmem(nullptr, true /*aRequiresMutex*/);
-    shmem.SendFullscreenState(mWindowID, aFullscreen);
+  // If we are in process of fullscreen request, only keep the latest fullscreen
+  // state, we will sync up later while the processing request is finished.
+  if (mInProcessFullscreenRequest.isSome()) {
+    mFullscreenHasChangedDuringProcessing = true;
+    return NS_OK;
   }
-#endif  // NIGHTLY_BUILD && XP_WIN
-  FinishFullscreenChange(aFullscreen);
-  return NS_OK;
+
+  return ProcessWidgetFullscreenRequest(aReason, aFullscreen);
 }
 
 // Support a per-window, dynamic equivalent of enabling
@@ -4515,6 +4508,28 @@ bool nsGlobalWindowOuter::SetWidgetFullscreen(FullscreenReason aReason,
 
 /* virtual */
 void nsGlobalWindowOuter::FullscreenWillChange(bool aIsFullscreen) {
+  if (!mInProcessFullscreenRequest.isSome()) {
+    // If there is no in-process fullscreen request, the fullscreen state change
+    // is triggered from the OS directly, e.g. user use built-in window button
+    // to enter/exit fullscreen on macOS.
+    mInProcessFullscreenRequest.emplace(FullscreenReason::ForFullscreenMode,
+                                        aIsFullscreen);
+    if (mFullscreen.isSome() != aIsFullscreen) {
+      if (aIsFullscreen) {
+        mFullscreen.emplace(FullscreenReason::ForFullscreenMode);
+      } else {
+        mFullscreen.reset();
+      }
+    } else {
+      // It is possible that FullscreenWillChange is notified with current
+      // fullscreen state, e.g. browser goes into fullscreen when widget
+      // fullscreen is prevented, and then user triggers fullscreen from the OS
+      // directly again.
+      MOZ_ASSERT(StaticPrefs::full_screen_api_ignore_widgets() ||
+                     mForceFullScreenInWidget,
+                 "This should only happen when widget fullscreen is prevented");
+    }
+  }
   if (aIsFullscreen) {
     DispatchCustomEvent(u"willenterfullscreen"_ns, ChromeOnlyDispatch::eYes);
   } else {
@@ -4524,23 +4539,23 @@ void nsGlobalWindowOuter::FullscreenWillChange(bool aIsFullscreen) {
 
 /* virtual */
 void nsGlobalWindowOuter::FinishFullscreenChange(bool aIsFullscreen) {
-  if (aIsFullscreen != mFullscreen) {
+  mozilla::Maybe<FullscreenRequest> currentInProcessRequest =
+      std::move(mInProcessFullscreenRequest);
+  if (!mFullscreenHasChangedDuringProcessing &&
+      aIsFullscreen != mFullscreen.isSome()) {
     NS_WARNING("Failed to toggle fullscreen state of the widget");
     // We failed to make the widget enter fullscreen.
     // Stop further changes and restore the state.
     if (!aIsFullscreen) {
-      mFullscreen = false;
-      mFullscreenMode = false;
+      mFullscreen.reset();
     } else {
 #ifndef XP_MACOSX
       MOZ_ASSERT_UNREACHABLE("Failed to exit fullscreen?");
 #endif
-      mFullscreen = true;
-      // At least on macOS, we may reach here because the system fails
-      // to let us exit the system fullscreen mode. In that case, we may
-      // have already exited DOM fullscreen before, so set fullscreen
-      // mode to true here so that it has a saner state.
-      mFullscreenMode = true;
+      // Restore fullscreen state with FullscreenReason::ForFullscreenAPI reason
+      // in order to make subsequent DOM fullscreen exit request can exit
+      // browser fullscreen mode.
+      mFullscreen.emplace(FullscreenReason::ForFullscreenAPI);
     }
     return;
   }
@@ -4549,7 +4564,7 @@ void nsGlobalWindowOuter::FinishFullscreenChange(bool aIsFullscreen) {
   // of the document before dispatching the "fullscreen" event, so
   // that the chrome can distinguish between browser fullscreen mode
   // and DOM fullscreen.
-  FinishDOMFullscreenChange(mDoc, mFullscreen);
+  FinishDOMFullscreenChange(mDoc, aIsFullscreen);
 
   // dispatch a "fullscreen" DOM event so that XUL apps can
   // respond visually if we are kicked into full screen mode
@@ -4562,6 +4577,24 @@ void nsGlobalWindowOuter::FinishFullscreenChange(bool aIsFullscreen) {
         rd->Thaw();
       }
       mChromeFields.mFullscreenPresShell = nullptr;
+    }
+  }
+
+  // If fullscreen state has changed during processing fullscreen request, we
+  // need to ensure widget matches our latest fullscreen state here.
+  if (mFullscreenHasChangedDuringProcessing) {
+    mFullscreenHasChangedDuringProcessing = false;
+    // Widget doesn't care about the reason that makes it entering/exiting
+    // fullscreen, so here we just need to ensure the fullscreen state is
+    // matched.
+    if (aIsFullscreen != mFullscreen.isSome()) {
+      // If we end up need to exit fullscreen, use the same reason that brings
+      // us into fullscreen mode, so that we will perform the same fullscreen
+      // transistion effect for exiting.
+      ProcessWidgetFullscreenRequest(
+          mFullscreen.isSome() ? mFullscreen.value()
+                               : currentInProcessRequest.value().mReason,
+          mFullscreen.isSome());
     }
   }
 }
@@ -4600,7 +4633,7 @@ void nsGlobalWindowOuter::MacFullscreenMenubarOverlapChanged(
 }
 
 bool nsGlobalWindowOuter::Fullscreen() const {
-  NS_ENSURE_TRUE(mDocShell, mFullscreen);
+  NS_ENSURE_TRUE(mDocShell, mFullscreen.isSome());
 
   // Get the fullscreen value of the root window, to always have the value
   // accurate, even when called from content.
@@ -4609,7 +4642,7 @@ bool nsGlobalWindowOuter::Fullscreen() const {
   if (rootItem == mDocShell) {
     if (!XRE_IsContentProcess()) {
       // We are the root window. Return our internal value.
-      return mFullscreen;
+      return mFullscreen.isSome();
     }
     if (nsCOMPtr<nsIWidget> widget = GetNearestWidget()) {
       // We are in content process, figure out the value from
@@ -4620,7 +4653,7 @@ bool nsGlobalWindowOuter::Fullscreen() const {
   }
 
   nsCOMPtr<nsPIDOMWindowOuter> window = rootItem->GetWindow();
-  NS_ENSURE_TRUE(window, mFullscreen);
+  NS_ENSURE_TRUE(window, mFullscreen.isSome());
 
   return nsGlobalWindowOuter::Cast(window)->Fullscreen();
 }
@@ -5032,27 +5065,9 @@ void nsGlobalWindowOuter::BlurOuter(CallerType aCallerType) {
     return;
   }
 
-  // If embedding apps don't implement nsIEmbeddingSiteWindow, we
-  // shouldn't throw exceptions to web content.
-
-  nsCOMPtr<nsIDocShellTreeOwner> treeOwner = GetTreeOwner();
-  nsCOMPtr<nsIEmbeddingSiteWindow> siteWindow(do_GetInterface(treeOwner));
-  if (siteWindow) {
-    // This method call may cause mDocShell to become nullptr.
-    siteWindow->Blur();
-
-    // if the root is focused, clear the focus
-    if (mDoc) {
-      if (RefPtr<nsFocusManager> fm = nsFocusManager::GetFocusManager()) {
-        RefPtr<Element> element;
-        fm->GetFocusedElementForWindow(this, false, nullptr,
-                                       getter_AddRefs(element));
-        if (element == mDoc->GetRootElement()) {
-          OwningNonNull<nsGlobalWindowOuter> kungFuDeathGrip(*this);
-          fm->ClearFocus(kungFuDeathGrip);
-        }
-      }
-    }
+  nsCOMPtr<nsIWebBrowserChrome> chrome = GetWebBrowserChrome();
+  if (chrome) {
+    chrome->Blur();
   }
 }
 
@@ -5744,7 +5759,7 @@ bool nsGlobalWindowOuter::GatherPostMessageData(
 
   // First, get the caller's window
   RefPtr<nsGlobalWindowInner> callerInnerWin =
-      nsContentUtils::CallerInnerWindow();
+      nsContentUtils::IncumbentInnerWindow();
   nsIPrincipal* callerPrin;
   if (callerInnerWin) {
     RefPtr<Document> doc = callerInnerWin->GetExtantDoc();
@@ -5955,7 +5970,6 @@ void nsGlobalWindowOuter::PostMessageMozOuter(JSContext* aCx,
       scriptLocation, callerAgentClusterId);
 
   JS::CloneDataPolicy clonePolicy;
-  clonePolicy.allowErrorStackFrames();
 
   if (GetDocGroup() && callerAgentClusterId.isSome() &&
       GetDocGroup()->AgentClusterId().Equals(callerAgentClusterId.value())) {
@@ -6661,42 +6675,6 @@ uint32_t nsGlobalWindowOuter::GetFocusMethod() {
 
 bool nsGlobalWindowOuter::ShouldShowFocusRing() {
   FORWARD_TO_INNER(ShouldShowFocusRing, (), false);
-}
-
-void nsGlobalWindowOuter::SetKeyboardIndicators(
-    UIStateChangeType aShowFocusRings) {
-  nsPIDOMWindowOuter* piWin = GetPrivateRoot();
-  if (!piWin) {
-    return;
-  }
-
-  MOZ_ASSERT(piWin == this);
-
-  bool oldShouldShowFocusRing = ShouldShowFocusRing();
-
-  // only change the flags that have been modified
-  nsCOMPtr<nsPIWindowRoot> windowRoot = do_QueryInterface(mChromeEventHandler);
-  if (!windowRoot) {
-    return;
-  }
-
-  if (aShowFocusRings != UIStateChangeType_NoChange) {
-    windowRoot->SetShowFocusRings(aShowFocusRings == UIStateChangeType_Set);
-  }
-
-  nsContentUtils::SetKeyboardIndicatorsOnRemoteChildren(this, aShowFocusRings);
-
-  bool newShouldShowFocusRing = ShouldShowFocusRing();
-  if (mInnerWindow && nsGlobalWindowInner::Cast(mInnerWindow)->mHasFocus &&
-      mInnerWindow->mFocusedElement &&
-      oldShouldShowFocusRing != newShouldShowFocusRing) {
-    // Update focusedNode's state.
-    if (newShouldShowFocusRing) {
-      mInnerWindow->mFocusedElement->AddStates(ElementState::FOCUSRING);
-    } else {
-      mInnerWindow->mFocusedElement->RemoveStates(ElementState::FOCUSRING);
-    }
-  }
 }
 
 bool nsGlobalWindowOuter::TakeFocus(bool aFocus, uint32_t aFocusMethod) {

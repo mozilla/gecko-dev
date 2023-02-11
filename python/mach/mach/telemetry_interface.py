@@ -2,10 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import print_function, absolute_import
-
 import sys
-
 from pathlib import Path
 from typing import Union
 from unittest.mock import Mock
@@ -73,6 +70,7 @@ class GleanTelemetry(object):
 
     def submit(self, _):
         from pathlib import Path
+
         from glean import load_pings
 
         pings = load_pings(Path(__file__).parent.parent / "pings.yaml")

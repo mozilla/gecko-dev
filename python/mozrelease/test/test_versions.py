@@ -1,10 +1,7 @@
-from __future__ import absolute_import
-
 import mozunit
 import pytest
 
 from mozrelease.versions import MozillaVersion
-
 
 ALL_VERSIONS = [  # Keep this sorted
     "3.0",

@@ -1,17 +1,13 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
-
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   PromiseUtils: "resource://gre/modules/PromiseUtils.sys.mjs",
+  QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
+  TelemetryTestUtils: "resource://testing-common/TelemetryTestUtils.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
-});
-
-XPCOMUtils.defineLazyModuleGetters(lazy, {
-  TelemetryTestUtils: "resource://testing-common/TelemetryTestUtils.jsm",
 });
 
 const { HttpServer } = ChromeUtils.import("resource://testing-common/httpd.js");
@@ -56,18 +52,47 @@ const RESPONSE_HISTOGRAM_VALUES = {
   timeout: 1,
   network_error: 2,
   http_error: 3,
+  no_suggestion: 4,
 };
+
+const WEATHER_SUGGESTION = {
+  title: "Weather for San Francisco",
+  url: "http://example.com/weather",
+  provider: "accuweather",
+  is_sponsored: false,
+  score: 0.2,
+  icon: null,
+  city_name: "San Francisco",
+  current_conditions: {
+    url: "http://example.com/weather-current-conditions",
+    summary: "Mostly cloudy",
+    icon_id: 6,
+    temperature: { c: 15.5, f: 60.0 },
+  },
+  forecast: {
+    url: "http://example.com/weather-forecast",
+    summary: "Pleasant Saturday",
+    high: { c: 21.1, f: 70.0 },
+    low: { c: 13.9, f: 57.0 },
+  },
+};
+
+// We set the weather suggestion fetch interval to an absurdly large value so it
+// absolutely will not fire during tests.
+const WEATHER_FETCH_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 /**
  * Test utils for Merino.
  */
-export class MerinoTestUtils {
+class _MerinoTestUtils {
   /**
+   * Initializes the utils.
+   *
    * @param {object} scope
    *   The global JS scope where tests are being run. This allows the instance
    *   to access test helpers like `Assert` that are available in the scope.
    */
-  constructor(scope) {
+  init(scope) {
     if (!scope) {
       throw new Error("MerinoTestUtils() must be called with a scope");
     }
@@ -106,6 +131,14 @@ export class MerinoTestUtils {
   }
 
   /**
+   * @returns {object}
+   *   A mock weather suggestion.
+   */
+  get WEATHER_SUGGESTION() {
+    return WEATHER_SUGGESTION;
+  }
+
+  /**
    * @returns {MockMerinoServer}
    *   The mock Merino server. The server isn't started until its `start()`
    *   method is called.
@@ -117,16 +150,39 @@ export class MerinoTestUtils {
   /**
    * Clears the Merino-related histograms and returns them.
    *
+   * @param {object} options
+   *   Options
+   * @param {string} options.extraLatency
+   *   The name of another latency histogram you expect to be updated.
+   * @param {string} options.extraResponse
+   *   The name of another response histogram you expect to be updated.
    * @returns {object}
    *   An object of histograms: `{ latency, response }`
+   *   `latency` and `response` are both arrays of Histogram objects.
    */
-  getAndClearHistograms() {
-    return {
-      latency: lazy.TelemetryTestUtils.getAndClearHistogram(HISTOGRAM_LATENCY),
-      response: lazy.TelemetryTestUtils.getAndClearHistogram(
-        HISTOGRAM_RESPONSE
-      ),
+  getAndClearHistograms({
+    extraLatency = undefined,
+    extraResponse = undefined,
+  } = {}) {
+    let histograms = {
+      latency: [
+        lazy.TelemetryTestUtils.getAndClearHistogram(HISTOGRAM_LATENCY),
+      ],
+      response: [
+        lazy.TelemetryTestUtils.getAndClearHistogram(HISTOGRAM_RESPONSE),
+      ],
     };
+    if (extraLatency) {
+      histograms.latency.push(
+        lazy.TelemetryTestUtils.getAndClearHistogram(extraLatency)
+      );
+    }
+    if (extraResponse) {
+      histograms.response.push(
+        lazy.TelemetryTestUtils.getAndClearHistogram(extraResponse)
+      );
+    }
+    return histograms;
   }
 
   /**
@@ -155,39 +211,47 @@ export class MerinoTestUtils {
     latencyRecorded,
     latencyStopwatchRunning = false,
   }) {
-    // Check the response histogram.
+    // Check the response histograms.
     if (response) {
       this.Assert.ok(
         RESPONSE_HISTOGRAM_VALUES.hasOwnProperty(response),
         "Sanity check: Expected response is valid: " + response
       );
-      lazy.TelemetryTestUtils.assertHistogram(
-        histograms.response,
-        RESPONSE_HISTOGRAM_VALUES[response],
-        1
-      );
+      for (let histogram of histograms.response) {
+        lazy.TelemetryTestUtils.assertHistogram(
+          histogram,
+          RESPONSE_HISTOGRAM_VALUES[response],
+          1
+        );
+      }
     } else {
-      this.Assert.strictEqual(
-        histograms.response.snapshot().sum,
-        0,
-        "Response histogram not updated"
-      );
+      for (let histogram of histograms.response) {
+        this.Assert.strictEqual(
+          histogram.snapshot().sum,
+          0,
+          "Response histogram not updated: " + histogram.name()
+        );
+      }
     }
 
-    // Check the latency histogram.
+    // Check the latency histograms.
     if (latencyRecorded) {
       // There should be a single value across all buckets.
-      this.Assert.deepEqual(
-        Object.values(histograms.latency.snapshot().values).filter(v => v > 0),
-        [1],
-        "Latency histogram updated"
-      );
+      for (let histogram of histograms.latency) {
+        this.Assert.deepEqual(
+          Object.values(histogram.snapshot().values).filter(v => v > 0),
+          [1],
+          "Latency histogram updated: " + histogram.name()
+        );
+      }
     } else {
-      this.Assert.strictEqual(
-        histograms.latency.snapshot().sum,
-        0,
-        "Latency histogram not updated"
-      );
+      for (let histogram of histograms.latency) {
+        this.Assert.strictEqual(
+          histogram.snapshot().sum,
+          0,
+          "Latency histogram not updated: " + histogram.name()
+        );
+      }
     }
 
     // Check the latency stopwatch.
@@ -201,9 +265,42 @@ export class MerinoTestUtils {
     );
 
     // Clear histograms.
-    for (let histogram of Object.values(histograms)) {
-      histogram.clear();
+    for (let histogramArray of Object.values(histograms)) {
+      for (let histogram of histogramArray) {
+        histogram.clear();
+      }
     }
+  }
+
+  /**
+   * Initializes the quick suggest weather feature and mock Merino server.
+   */
+  async initWeather() {
+    await this.server.start();
+    this.server.response.body.suggestions = [WEATHER_SUGGESTION];
+
+    lazy.QuickSuggest.weather._test_setFetchIntervalMs(
+      WEATHER_FETCH_INTERVAL_MS
+    );
+
+    // Enabling weather will trigger a fetch. Wait for it to finish so the
+    // suggestion is ready when this function returns.
+    let fetchPromise = lazy.QuickSuggest.weather.waitForFetches();
+    lazy.UrlbarPrefs.set("weather.featureGate", true);
+    lazy.UrlbarPrefs.set("suggest.weather", true);
+    await fetchPromise;
+
+    this.Assert.equal(
+      lazy.QuickSuggest.weather._test_pendingFetchCount,
+      0,
+      "No pending fetches after awaiting initial fetch"
+    );
+
+    this.registerCleanupFunction?.(async () => {
+      lazy.UrlbarPrefs.clear("weather.featureGate");
+      lazy.UrlbarPrefs.clear("suggest.weather");
+      lazy.QuickSuggest.weather._test_setFetchIntervalMs(-1);
+    });
   }
 
   #server = null;
@@ -620,3 +717,5 @@ class MockMerinoServer {
   #nextDelayedResponseID = 0;
   #delayedResponseRecords = new Set();
 }
+
+export var MerinoTestUtils = new _MerinoTestUtils();

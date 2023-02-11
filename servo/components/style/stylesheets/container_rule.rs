@@ -12,16 +12,16 @@ use crate::logical_geometry::{LogicalSize, WritingMode};
 use crate::media_queries::Device;
 use crate::parser::ParserContext;
 use crate::properties::ComputedValues;
+use crate::queries::condition::KleeneValue;
 use crate::queries::feature::{AllowsRanges, Evaluator, FeatureFlags, QueryFeatureDescription};
 use crate::queries::values::Orientation;
 use crate::queries::{FeatureType, QueryCondition};
-use crate::queries::condition::KleeneValue;
 use crate::shared_lock::{
     DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard,
 };
 use crate::str::CssStringWriter;
 use crate::stylesheets::CssRules;
-use crate::values::computed::{ContainerType, CSSPixelLength, Context, Ratio};
+use crate::values::computed::{CSSPixelLength, ContainerType, Context, Ratio};
 use crate::values::specified::ContainerName;
 use app_units::Au;
 use cssparser::{Parser, SourceLocation};
@@ -135,15 +135,26 @@ enum TraversalResult<T> {
     Done(T),
 }
 
-fn traverse_container<E, F, R>(mut e: E, evaluator: F) -> Option<(E, R)>
+fn traverse_container<E, F, R>(
+    mut e: E,
+    originating_element_style: Option<&ComputedValues>,
+    evaluator: F,
+) -> Option<(E, R)>
 where
     E: TElement,
-    F: Fn(E) -> TraversalResult<R>
+    F: Fn(E, Option<&ComputedValues>) -> TraversalResult<R>,
 {
-    while let Some(element) = e.traversal_parent() {
-        match evaluator(element) {
+    if originating_element_style.is_some() {
+        match evaluator(e, originating_element_style) {
             TraversalResult::InProgress => {},
-            TraversalResult::StopTraversal => break,
+            TraversalResult::StopTraversal => return None,
+            TraversalResult::Done(result) => return Some((e, result)),
+        }
+    }
+    while let Some(element) = e.traversal_parent() {
+        match evaluator(element, None) {
+            TraversalResult::InProgress => {},
+            TraversalResult::StopTraversal => return None,
             TraversalResult::Done(result) => return Some((element, result)),
         }
         e = element;
@@ -173,16 +184,23 @@ impl ContainerCondition {
 
     fn valid_container_info<E>(
         &self,
-        potential_container: E
+        potential_container: E,
+        originating_element_style: Option<&ComputedValues>,
     ) -> TraversalResult<ContainerLookupResult<E>>
     where
         E: TElement,
     {
-        let data = match potential_container.borrow_data() {
-            Some(data) => data,
-            None => return TraversalResult::InProgress,
+        let data;
+        let style = match originating_element_style {
+            Some(s) => s,
+            None => {
+                data = match potential_container.borrow_data() {
+                    Some(d) => d,
+                    None => return TraversalResult::InProgress,
+                };
+                &**data.styles.primary()
+            },
         };
-        let style = data.styles.primary();
         let wm = style.writing_mode;
         let box_style = style.get_box();
 
@@ -201,8 +219,8 @@ impl ContainerCondition {
             }
         }
 
-        let size = potential_container.query_container_size();
-        let style = style.clone();
+        let size = potential_container.query_container_size(&box_style.clone_display());
+        let style = style.to_arc();
         TraversalResult::Done(ContainerLookupResult {
             element: potential_container,
             info: ContainerInfo { size, wm },
@@ -211,11 +229,21 @@ impl ContainerCondition {
     }
 
     /// Performs container lookup for a given element.
-    pub fn find_container<E>(&self, e: E) -> Option<ContainerLookupResult<E>>
+    pub fn find_container<E>(
+        &self,
+        e: E,
+        originating_element_style: Option<&ComputedValues>,
+    ) -> Option<ContainerLookupResult<E>>
     where
         E: TElement,
     {
-        match traverse_container(e, |element| self.valid_container_info(element)) {
+        match traverse_container(
+            e,
+            originating_element_style,
+            |element, originating_element_style| {
+                self.valid_container_info(element, originating_element_style)
+            },
+        ) {
             Some((_, result)) => Some(result),
             None => None,
         }
@@ -226,28 +254,34 @@ impl ContainerCondition {
         &self,
         device: &Device,
         element: E,
+        originating_element_style: Option<&ComputedValues>,
         invalidation_flags: &mut ComputedValueFlags,
     ) -> KleeneValue
     where
         E: TElement,
     {
-        let result = self.find_container(element);
+        let result = self.find_container(element, originating_element_style);
         let (container, info) = match result {
             Some(r) => (Some(r.element), Some((r.info, r.style))),
             None => (None, None),
         };
         // Set up the lookup for the container in question, as the condition may be using container query lengths.
-        let size_query_container_lookup = ContainerSizeQuery::for_option_element(container);
+        let size_query_container_lookup = ContainerSizeQuery::for_option_element(container, None);
         Context::for_container_query_evaluation(
             device,
             info,
             size_query_container_lookup,
             |context| {
                 let matches = self.condition.matches(context);
-                if context.style().flags().contains(ComputedValueFlags::USES_VIEWPORT_UNITS) {
+                if context
+                    .style()
+                    .flags()
+                    .contains(ComputedValueFlags::USES_VIEWPORT_UNITS)
+                {
                     // TODO(emilio): Might need something similar to improve
                     // invalidation of font relative container-query lengths.
-                    invalidation_flags.insert(ComputedValueFlags::USES_VIEWPORT_UNITS_ON_CONTAINER_QUERIES);
+                    invalidation_flags
+                        .insert(ComputedValueFlags::USES_VIEWPORT_UNITS_ON_CONTAINER_QUERIES);
                 }
                 matches
             },
@@ -260,6 +294,12 @@ impl ContainerCondition {
 pub struct ContainerInfo {
     size: Size2D<Option<Au>>,
     wm: WritingMode,
+}
+
+impl ContainerInfo {
+    fn size(&self) -> Option<Size2D<Au>> {
+        Some(Size2D::new(self.size.width?, self.size.height?))
+    }
 }
 
 fn eval_width(context: &Context) -> Option<CSSPixelLength> {
@@ -292,15 +332,18 @@ fn eval_block_size(context: &Context) -> Option<CSSPixelLength> {
 
 fn eval_aspect_ratio(context: &Context) -> Option<Ratio> {
     let info = context.container_info.as_ref()?;
-    Some(Ratio::new(info.size.width?.0 as f32, info.size.height?.0 as f32))
+    Some(Ratio::new(
+        info.size.width?.0 as f32,
+        info.size.height?.0 as f32,
+    ))
 }
 
-fn eval_orientation(context: &Context, value: Option<Orientation>) -> bool {
-    let info = match context.container_info.as_ref() {
-        Some(info) => info,
-        None => return false,
+fn eval_orientation(context: &Context, value: Option<Orientation>) -> KleeneValue {
+    let size = match context.container_info.as_ref().and_then(|info| info.size()) {
+        Some(size) => size,
+        None => return KleeneValue::Unknown,
     };
-    Orientation::eval(info.size, value)
+    KleeneValue::from(Orientation::eval(size, value))
 }
 
 /// https://drafts.csswg.org/css-contain-3/#container-features
@@ -441,17 +484,23 @@ pub enum ContainerSizeQuery<'a> {
 
 impl<'a> ContainerSizeQuery<'a> {
     fn evaluate_potential_size_container<E>(
-        e: E
+        e: E,
+        originating_element_style: Option<&ComputedValues>,
     ) -> TraversalResult<ContainerSizeQueryResult>
     where
-        E: TElement
+        E: TElement,
     {
-        let data = match e.borrow_data() {
-            Some(data) => data,
-            None => return TraversalResult::InProgress,
+        let data;
+        let style = match originating_element_style {
+            Some(s) => s,
+            None => {
+                data = match e.borrow_data() {
+                    Some(d) => d,
+                    None => return TraversalResult::InProgress,
+                };
+                &**data.styles.primary()
+            },
         };
-
-        let style = data.styles.primary();
         if !style
             .flags
             .contains(ComputedValueFlags::SELF_OR_ANCESTOR_HAS_SIZE_CONTAINER_TYPE)
@@ -464,31 +513,23 @@ impl<'a> ContainerSizeQuery<'a> {
         let box_style = style.get_box();
 
         let container_type = box_style.clone_container_type();
-        let size = e.query_container_size();
+        let size = e.query_container_size(&box_style.clone_display());
         match container_type {
-            ContainerType::Size => {
-                TraversalResult::Done(
-                    ContainerSizeQueryResult {
-                        width: size.width,
-                        height: size.height,
-                    }
-                )
-            },
+            ContainerType::Size => TraversalResult::Done(ContainerSizeQueryResult {
+                width: size.width,
+                height: size.height,
+            }),
             ContainerType::InlineSize => {
                 if wm.is_horizontal() {
-                    TraversalResult::Done(
-                        ContainerSizeQueryResult {
-                            width: size.width,
-                            height: None,
-                        }
-                    )
+                    TraversalResult::Done(ContainerSizeQueryResult {
+                        width: size.width,
+                        height: None,
+                    })
                 } else {
-                    TraversalResult::Done(
-                        ContainerSizeQueryResult {
-                            width: None,
-                            height: size.height,
-                        }
-                    )
+                    TraversalResult::Done(ContainerSizeQueryResult {
+                        width: None,
+                        height: size.height,
+                    })
                 }
             },
             ContainerType::Normal => TraversalResult::InProgress,
@@ -496,53 +537,75 @@ impl<'a> ContainerSizeQuery<'a> {
     }
 
     /// Find the query container size for a given element. Meant to be used as a callback for new().
-    fn lookup<E>(element: E) -> ContainerSizeQueryResult
+    fn lookup<E>(
+        element: E,
+        originating_element_style: Option<&ComputedValues>,
+    ) -> ContainerSizeQueryResult
     where
         E: TElement + 'a,
     {
-        match traverse_container(element, |e| { Self::evaluate_potential_size_container(e) }) {
-            Some((container, result)) => if result.is_complete() {
+        match traverse_container(
+            element,
+            originating_element_style,
+            |e, originating_element_style| {
+                Self::evaluate_potential_size_container(e, originating_element_style)
+            },
+        ) {
+            Some((container, result)) => {
+                if result.is_complete() {
                     result
                 } else {
                     // Traverse up from the found size container to see if we can get a complete containment.
-                    result.merge(Self::lookup(container))
+                    result.merge(Self::lookup(container, None))
+                }
             },
             None => ContainerSizeQueryResult::default(),
         }
     }
 
     /// Create a new instance of the container size query for given element, with a deferred lookup callback.
-    pub fn for_element<E>(element: E) -> Self
+    pub fn for_element<E>(element: E, originating_element_style: Option<&'a ComputedValues>) -> Self
     where
         E: TElement + 'a,
     {
-        // No need to bother if we're the top element.
-        if let Some(parent) = element.traversal_parent() {
-            let should_traverse = match parent.borrow_data() {
-                Some(data) => {
-                    let style = data.styles.primary();
-                    style
-                        .flags
-                        .contains(ComputedValueFlags::SELF_OR_ANCESTOR_HAS_SIZE_CONTAINER_TYPE)
-                }
-                None => true, // `display: none`, still want to show a correct computed value, so give it a try.
-            };
-            if should_traverse {
-                return Self::NotEvaluated(Box::new(move || {
-                    Self::lookup(element)
-                }));
-            }
+        let parent;
+        let data;
+        let style = match originating_element_style {
+            Some(s) => Some(s),
+            None => {
+                // No need to bother if we're the top element.
+                parent = match element.traversal_parent() {
+                    Some(parent) => parent,
+                    None => return Self::none(),
+                };
+                data = parent.borrow_data();
+                data.as_ref().map(|data| &**data.styles.primary())
+            },
+        };
+        let should_traverse = match style {
+            Some(style) => style
+                .flags
+                .contains(ComputedValueFlags::SELF_OR_ANCESTOR_HAS_SIZE_CONTAINER_TYPE),
+            None => true, // `display: none`, still want to show a correct computed value, so give it a try.
+        };
+        if should_traverse {
+            return Self::NotEvaluated(Box::new(move || {
+                Self::lookup(element, originating_element_style)
+            }));
         }
         Self::none()
     }
 
     /// Create a new instance, but with optional element.
-    pub fn for_option_element<E>(element: Option<E>) -> Self
+    pub fn for_option_element<E>(
+        element: Option<E>,
+        originating_element_style: Option<&'a ComputedValues>,
+    ) -> Self
     where
         E: TElement + 'a,
     {
         if let Some(e) = element {
-            Self::for_element(e)
+            Self::for_element(e, originating_element_style)
         } else {
             Self::none()
         }

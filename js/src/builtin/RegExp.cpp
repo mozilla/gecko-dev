@@ -12,6 +12,7 @@
 
 #include "jsapi.h"
 
+#include "frontend/FrontendContext.h"  // AutoReportFrontendContext
 #include "frontend/TokenStream.h"
 #include "irregexp/RegExpAPI.h"
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_NEWREGEXP_FLAGGED
@@ -19,7 +20,6 @@
 #include "js/RegExpFlags.h"  // JS::RegExpFlag, JS::RegExpFlags
 #include "util/StringBuffer.h"
 #include "util/Unicode.h"
-#include "vm/ErrorContext.h"  // AutoReportFrontendContext
 #include "vm/JSContext.h"
 #include "vm/RegExpObject.h"
 #include "vm/RegExpStatics.h"
@@ -344,9 +344,9 @@ bool js::ExecuteRegExpLegacy(JSContext* cx, RegExpStatics* res,
 static bool CheckPatternSyntaxSlow(JSContext* cx, Handle<JSAtom*> pattern,
                                    RegExpFlags flags) {
   LifoAllocScope allocScope(&cx->tempLifoAlloc());
-  AutoReportFrontendContext ec(cx);
+  AutoReportFrontendContext fc(cx);
   CompileOptions options(cx);
-  frontend::DummyTokenStream dummyTokenStream(cx, &ec, options);
+  frontend::DummyTokenStream dummyTokenStream(&fc, options);
   return irregexp::CheckPatternSyntax(cx, cx->stackLimitForCurrentPrincipal(),
                                       dummyTokenStream, pattern, flags);
 }
@@ -1807,13 +1807,11 @@ bool js::RegExpGetSubstitution(JSContext* cx, Handle<ArrayObject*> matchResult,
   JSStringBuilder result(cx);
   if (NeedTwoBytes(string, replacement, matched, captures, namedCaptures)) {
     if (!result.ensureTwoByteChars()) {
-      result.failure();
       return false;
     }
   }
 
   if (!result.reserve(reserveLength)) {
-    result.failure();
     return false;
   }
 
@@ -1828,11 +1826,9 @@ bool js::RegExpGetSubstitution(JSContext* cx, Handle<ArrayObject*> matchResult,
   // Step 12.
   JSString* resultString = result.finishString();
   if (!resultString) {
-    result.failure();
     return false;
   }
 
-  result.ok();
   rval.setString(resultString);
   return true;
 }

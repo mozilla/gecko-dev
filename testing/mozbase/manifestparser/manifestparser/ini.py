@@ -2,8 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import
-
 import io
 import os
 import sys
@@ -137,7 +135,9 @@ def read_ini(
 
                 # make sure this key isn't already in the section
                 if key:
-                    assert key not in current_section
+                    assert (
+                        key not in current_section
+                    ), f"Found duplicate key {key} in section {section}"
 
                 if strict:
                     # make sure this key isn't empty

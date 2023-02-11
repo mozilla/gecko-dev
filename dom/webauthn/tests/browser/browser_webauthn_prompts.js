@@ -6,6 +6,30 @@
 
 const TEST_URL = "https://example.com/";
 
+add_task(async function test_setup_usbtoken() {
+  return SpecialPowers.pushPrefEnv({
+    set: [
+      ["security.webauth.webauthn_enable_softtoken", false],
+      ["security.webauth.webauthn_enable_usbtoken", true],
+    ],
+  });
+});
+add_task(test_register);
+add_task(test_sign);
+add_task(test_register_direct_cancel);
+add_task(test_tab_switching);
+add_task(test_window_switching);
+add_task(async function test_setup_softtoken() {
+  return SpecialPowers.pushPrefEnv({
+    set: [
+      ["security.webauth.webauthn_enable_softtoken", true],
+      ["security.webauth.webauthn_enable_usbtoken", false],
+    ],
+  });
+});
+add_task(test_register_direct_proceed);
+add_task(test_register_direct_proceed_anon);
+
 function promiseNotification(id) {
   return new Promise(resolve => {
     PopupNotifications.panel.addEventListener("popupshown", function shown() {
@@ -29,7 +53,7 @@ function triggerMainPopupCommand(popup) {
   return EventUtils.synthesizeMouseAtCenter(notification.button, {});
 }
 
-let expectAbortError = expectError("Abort");
+let expectNotAllowedError = expectError("NotAllowed");
 
 function verifyAnonymizedCertificate(result) {
   let { attObj, rawId } = result;
@@ -50,20 +74,7 @@ function verifyDirectCertificate(result) {
   });
 }
 
-add_task(async function test_setup_usbtoken() {
-  await SpecialPowers.pushPrefEnv({
-    set: [
-      ["security.webauth.u2f", false],
-      ["security.webauth.webauthn", true],
-      ["security.webauth.webauthn_enable_softtoken", false],
-      ["security.webauth.webauthn_enable_android_fido2", false],
-      ["security.webauth.webauthn_enable_usbtoken", true],
-      ["security.webauthn.ctap2", false],
-    ],
-  });
-});
-
-add_task(async function test_register() {
+async function test_register() {
   // Open a new tab.
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, TEST_URL);
 
@@ -71,7 +82,7 @@ add_task(async function test_register() {
   let active = true;
   let request = promiseWebAuthnMakeCredential(tab, "none", {})
     .then(arrivingHereIsBad)
-    .catch(expectAbortError)
+    .catch(expectNotAllowedError)
     .then(() => (active = false));
   await promiseNotification("webauthn-prompt-register");
 
@@ -82,9 +93,9 @@ add_task(async function test_register() {
 
   // Close tab.
   await BrowserTestUtils.removeTab(tab);
-});
+}
 
-add_task(async function test_sign() {
+async function test_sign() {
   // Open a new tab.
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, TEST_URL);
 
@@ -92,7 +103,7 @@ add_task(async function test_sign() {
   let active = true;
   let request = promiseWebAuthnGetAssertion(tab)
     .then(arrivingHereIsBad)
-    .catch(expectAbortError)
+    .catch(expectNotAllowedError)
     .then(() => (active = false));
   await promiseNotification("webauthn-prompt-sign");
 
@@ -103,9 +114,9 @@ add_task(async function test_sign() {
 
   // Close tab.
   await BrowserTestUtils.removeTab(tab);
-});
+}
 
-add_task(async function test_register_direct_cancel() {
+async function test_register_direct_cancel() {
   // Open a new tab.
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, TEST_URL);
 
@@ -113,7 +124,7 @@ add_task(async function test_register_direct_cancel() {
   let active = true;
   let promise = promiseWebAuthnMakeCredential(tab, "direct", {})
     .then(arrivingHereIsBad)
-    .catch(expectAbortError)
+    .catch(expectNotAllowedError)
     .then(() => (active = false));
   await promiseNotification("webauthn-prompt-register-direct");
 
@@ -124,11 +135,11 @@ add_task(async function test_register_direct_cancel() {
 
   // Close tab.
   await BrowserTestUtils.removeTab(tab);
-});
+}
 
 // Add two tabs, open WebAuthn in the first, switch, assert the prompt is
 // not visible, switch back, assert the prompt is there and cancel it.
-add_task(async function test_tab_switching() {
+async function test_tab_switching() {
   // Open a new tab.
   let tab_one = await BrowserTestUtils.openNewForegroundTab(gBrowser, TEST_URL);
 
@@ -136,7 +147,7 @@ add_task(async function test_tab_switching() {
   let active = true;
   let request = promiseWebAuthnMakeCredential(tab_one, "none", {})
     .then(arrivingHereIsBad)
-    .catch(expectAbortError)
+    .catch(expectNotAllowedError)
     .then(() => (active = false));
   await promiseNotification("webauthn-prompt-register");
   is(PopupNotifications.panel.state, "open", "Doorhanger is visible");
@@ -170,11 +181,11 @@ add_task(async function test_tab_switching() {
 
   // Close tab.
   await BrowserTestUtils.removeTab(tab_one);
-});
+}
 
 // Add two tabs, open WebAuthn in the first, switch, assert the prompt is
 // not visible, switch back, assert the prompt is there and cancel it.
-add_task(async function test_window_switching() {
+async function test_window_switching() {
   // Open a new tab.
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, TEST_URL);
 
@@ -182,7 +193,7 @@ add_task(async function test_window_switching() {
   let active = true;
   let request = promiseWebAuthnMakeCredential(tab, "none", {})
     .then(arrivingHereIsBad)
-    .catch(expectAbortError)
+    .catch(expectNotAllowedError)
     .then(() => (active = false));
   await promiseNotification("webauthn-prompt-register");
 
@@ -221,20 +232,9 @@ add_task(async function test_window_switching() {
 
   // Close tab.
   await BrowserTestUtils.removeTab(tab);
-});
+}
 
-add_task(async function test_setup_softtoken() {
-  await SpecialPowers.pushPrefEnv({
-    set: [
-      ["security.webauth.u2f", false],
-      ["security.webauth.webauthn", true],
-      ["security.webauth.webauthn_enable_softtoken", true],
-      ["security.webauth.webauthn_enable_usbtoken", false],
-    ],
-  });
-});
-
-add_task(async function test_register_direct_proceed() {
+async function test_register_direct_proceed() {
   // Open a new tab.
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, TEST_URL);
 
@@ -250,9 +250,9 @@ add_task(async function test_register_direct_proceed() {
 
   // Close tab.
   await BrowserTestUtils.removeTab(tab);
-});
+}
 
-add_task(async function test_register_direct_proceed_anon() {
+async function test_register_direct_proceed_anon() {
   // Open a new tab.
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, TEST_URL);
 
@@ -269,4 +269,4 @@ add_task(async function test_register_direct_proceed_anon() {
 
   // Close tab.
   await BrowserTestUtils.removeTab(tab);
-});
+}

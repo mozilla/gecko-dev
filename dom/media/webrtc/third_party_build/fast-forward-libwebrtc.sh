@@ -28,8 +28,8 @@ else
   exit
 fi
 
-if [ "x$MOZ_LIBWEBRTC_COMMIT" = "x" ]; then
-  echo "MOZ_LIBWEBRTC_COMMIT is not defined, see README.md"
+if [ "x$MOZ_LIBWEBRTC_BRANCH" = "x" ]; then
+  echo "MOZ_LIBWEBRTC_BRANCH is not defined, see README.md"
   exit
 fi
 
@@ -41,6 +41,14 @@ ERROR_HELP=""
 RESUME=""
 if [ -f log_resume.txt ]; then
   RESUME=`tail -1 log_resume.txt`
+fi
+
+GIT_IS_REBASING=`cd $MOZ_LIBWEBRTC_SRC && git status | grep "interactive rebase in progress" | wc -l | tr -d " " || true`
+if [ "x$GIT_IS_REBASING" != "x0" ]; then
+  echo "There is currently a git rebase operation in progress at $MOZ_LIBWEBRTC_SRC."
+  echo "Please resolve the rebase before attempting to continue the fast-forward"
+  echo "operation."
+  exit 1
 fi
 
 if [ "x$RESUME" = "x" ]; then
@@ -60,7 +68,6 @@ else
   SKIP_TO=$RESUME
   hg revert -C third_party/libwebrtc/README.moz-ff-commit &> /dev/null
 fi
-
 
 find_base_commit
 find_next_commit
@@ -90,7 +97,7 @@ echo "SKIP_TO: $SKIP_TO"
 echo "-------"
 echo "------- Write cmd-line to third_party/libwebrtc/README.moz-ff-commit"
 echo "-------"
-echo "# MOZ_LIBWEBRTC_SRC=$MOZ_LIBWEBRTC_SRC MOZ_LIBWEBRTC_COMMIT=$MOZ_LIBWEBRTC_COMMIT bash $0" \
+echo "# MOZ_LIBWEBRTC_SRC=$MOZ_LIBWEBRTC_SRC MOZ_LIBWEBRTC_BRANCH=$MOZ_LIBWEBRTC_BRANCH bash $0" \
     >> third_party/libwebrtc/README.moz-ff-commit
 
 echo "-------"
@@ -101,17 +108,19 @@ echo "$MOZ_LIBWEBRTC_NEXT_BASE" >> third_party/libwebrtc/README.moz-ff-commit
 
 REBASE_HELP=$"
 The rebase operation onto $MOZ_LIBWEBRTC_NEXT_BASE has failed.  Please
-resolve all the rebase conflicts.  When the github rebase is complete,
-re-run the previous command to resume the fast-forward process.
+resolve all the rebase conflicts.  To fix this issue, you will need to
+jump to the github repo at $MOZ_LIBWEBRTC_SRC .
+When the github rebase is complete, re-run the script to resume the
+fast-forward process.
 "
 #"rebase_mozlibwebrtc_stack help for rebase failure"
 function rebase_mozlibwebrtc_stack {
   echo "-------"
-  echo "------- Rebase $MOZ_LIBWEBRTC_COMMIT to $MOZ_LIBWEBRTC_NEXT_BASE"
+  echo "------- Rebase $MOZ_LIBWEBRTC_BRANCH to $MOZ_LIBWEBRTC_NEXT_BASE"
   echo "-------"
   ERROR_HELP=$REBASE_HELP
   ( cd $MOZ_LIBWEBRTC_SRC && \
-    git checkout -q $MOZ_LIBWEBRTC_COMMIT && \
+    git checkout -q $MOZ_LIBWEBRTC_BRANCH && \
     git rebase $MOZ_LIBWEBRTC_NEXT_BASE \
     &> log-rebase-moz-libwebrtc.txt \
   )
@@ -120,11 +129,11 @@ function rebase_mozlibwebrtc_stack {
 
 function vendor_off_next_commit {
   echo "-------"
-  echo "------- Vendor $MOZ_LIBWEBRTC_COMMIT from $MOZ_LIBWEBRTC_SRC"
+  echo "------- Vendor $MOZ_LIBWEBRTC_BRANCH from $MOZ_LIBWEBRTC_SRC"
   echo "-------"
   ./mach python $SCRIPT_DIR/vendor-libwebrtc.py \
             --from-local $MOZ_LIBWEBRTC_SRC \
-            --commit $MOZ_LIBWEBRTC_COMMIT \
+            --commit $MOZ_LIBWEBRTC_BRANCH \
             libwebrtc
 }
 

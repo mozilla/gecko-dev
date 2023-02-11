@@ -20,8 +20,12 @@ class HTMLElement final : public nsGenericHTMLFormElement {
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(HTMLElement,
                                            nsGenericHTMLFormElement)
 
+  // EventTarget
+  void GetEventTargetParent(EventChainPreVisitor& aVisitor) override;
+
   // nsINode
   nsresult Clone(dom::NodeInfo*, nsINode** aResult) const override;
+  nsINode* GetScopeChainParent() const override;
 
   // nsIContent
   nsresult BindToTree(BindContext&, nsINode& aParent) override;
@@ -36,6 +40,7 @@ class HTMLElement final : public nsGenericHTMLFormElement {
   // https://html.spec.whatwg.org/multipage/custom-elements.html#dom-attachinternals
   already_AddRefed<mozilla::dom::ElementInternals> AttachInternals(
       ErrorResult& aRv) override;
+  bool IsDisabledForEvents(WidgetEvent* aEvent) override;
 
   // nsGenericHTMLFormElement
   bool IsFormAssociatedElement() const override;

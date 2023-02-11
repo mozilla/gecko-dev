@@ -13,6 +13,7 @@
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Casting.h"
 
+#include "frontend/FrontendContext.h"  // AutoReportFrontendContext
 #include "frontend/TokenStream.h"
 #include "gc/GC.h"
 #include "gc/Zone.h"
@@ -31,7 +32,6 @@
 #include "js/friend/ErrorMessages.h"  // JSMSG_*
 #include "js/friend/StackLimits.h"    // js::ReportOverRecursed
 #include "util/StringBuffer.h"
-#include "vm/ErrorContext.h"  // AutoReportFrontendContext
 #include "vm/MatchPairs.h"
 #include "vm/PlainObject.h"
 #include "vm/RegExpShared.h"
@@ -139,6 +139,13 @@ static uint32_t ErrorNumber(RegExpError err) {
       return JSMSG_UNTERM_CLASS;
     case RegExpError::kOutOfOrderCharacterClass:
       return JSMSG_BAD_CLASS_RANGE;
+
+    case RegExpError::kInvalidClassSetOperation:
+    case RegExpError::kInvalidCharacterInClass:
+    case RegExpError::kNegatedCharacterClassWithStrings:
+      // TODO: implement support for /v flag (bug 1713657)
+      MOZ_CRASH("Unicode sets not supported");
+
     case RegExpError::NumErrors:
       MOZ_CRASH("Unreachable");
   }
@@ -184,11 +191,14 @@ static void ReportSyntaxError(TokenStreamAnyChars& ts,
                               size_t length, ...) {
   MOZ_ASSERT(line.isSome() == column.isSome());
 
-  gc::AutoSuppressGC suppressGC(ts.jsContext());
+  Maybe<gc::AutoSuppressGC> suppressGC;
+  if (JSContext* maybeCx = ts.context()->maybeCurrentJSContext()) {
+    suppressGC.emplace(maybeCx);
+  }
   uint32_t errorNumber = ErrorNumber(result.error);
 
   if (errorNumber == JSMSG_OVER_RECURSED) {
-    ReportOverRecursed(ts.jsContext());
+    ReportOverRecursed(ts.context());
     return;
   }
 
@@ -244,7 +254,7 @@ static void ReportSyntaxError(TokenStreamAnyChars& ts,
 
   // Create the windowed string, not including the potential line
   // terminator.
-  StringBuffer windowBuf(ts.jsContext(), ts.context());
+  StringBuffer windowBuf(ts.context());
   if (!windowBuf.append(windowStart, windowEnd)) {
     return;
   }
@@ -284,27 +294,27 @@ static void ReportSyntaxError(TokenStreamAnyChars& ts,
 }
 
 template <typename CharT>
-static bool CheckPatternSyntaxImpl(JSContext* cx,
+static bool CheckPatternSyntaxImpl(js::LifoAlloc& alloc,
                                    JS::NativeStackLimit stackLimit,
                                    const CharT* input, uint32_t inputLength,
                                    JS::RegExpFlags flags,
                                    RegExpCompileData* result,
                                    JS::AutoAssertNoGC& nogc) {
-  LifoAllocScope allocScope(&cx->tempLifoAlloc());
+  LifoAllocScope allocScope(&alloc);
   Zone zone(allocScope.alloc());
 
   return RegExpParser::VerifyRegExpSyntax(&zone, stackLimit, input, inputLength,
                                           flags, result, nogc);
 }
 
-bool CheckPatternSyntax(JSContext* cx, JS::NativeStackLimit stackLimit,
+bool CheckPatternSyntax(js::LifoAlloc& alloc, JS::NativeStackLimit stackLimit,
                         TokenStreamAnyChars& ts,
                         const mozilla::Range<const char16_t> chars,
                         JS::RegExpFlags flags, mozilla::Maybe<uint32_t> line,
                         mozilla::Maybe<uint32_t> column) {
   RegExpCompileData result;
-  JS::AutoAssertNoGC nogc(cx);
-  if (!CheckPatternSyntaxImpl(cx, stackLimit, chars.begin().get(),
+  JS::AutoAssertNoGC nogc;
+  if (!CheckPatternSyntaxImpl(alloc, stackLimit, chars.begin().get(),
                               chars.length(), flags, &result, nogc)) {
     ReportSyntaxError(ts, line, column, result, chars.begin().get(),
                       chars.length());
@@ -319,15 +329,17 @@ bool CheckPatternSyntax(JSContext* cx, JS::NativeStackLimit stackLimit,
   RegExpCompileData result;
   JS::AutoAssertNoGC nogc(cx);
   if (pattern->hasLatin1Chars()) {
-    if (!CheckPatternSyntaxImpl(cx, stackLimit, pattern->latin1Chars(nogc),
-                                pattern->length(), flags, &result, nogc)) {
+    if (!CheckPatternSyntaxImpl(cx->tempLifoAlloc(), stackLimit,
+                                pattern->latin1Chars(nogc), pattern->length(),
+                                flags, &result, nogc)) {
       ReportSyntaxError(ts, result, pattern);
       return false;
     }
     return true;
   }
-  if (!CheckPatternSyntaxImpl(cx, stackLimit, pattern->twoByteChars(nogc),
-                              pattern->length(), flags, &result, nogc)) {
+  if (!CheckPatternSyntaxImpl(cx->tempLifoAlloc(), stackLimit,
+                              pattern->twoByteChars(nogc), pattern->length(),
+                              flags, &result, nogc)) {
     ReportSyntaxError(ts, result, pattern);
     return false;
   }
@@ -413,7 +425,8 @@ class RegExpDepthCheck final : public v8::internal::RegExpVisitor {
   LEAF_DEPTH(Assertion)
   LEAF_DEPTH(Atom)
   LEAF_DEPTH(BackReference)
-  LEAF_DEPTH(CharacterClass)
+  LEAF_DEPTH(ClassSetOperand)
+  LEAF_DEPTH(ClassRanges)
   LEAF_DEPTH(Empty)
   LEAF_DEPTH(Text)
 #undef LEAF_DEPTH
@@ -460,6 +473,21 @@ class RegExpDepthCheck final : public v8::internal::RegExpVisitor {
       return nullptr;
     }
     for (auto* child : *node->alternatives()) {
+      if (!child->Accept(this, nullptr)) {
+        return nullptr;
+      }
+    }
+    return (void*)true;
+  }
+  void* VisitClassSetExpression(v8::internal::RegExpClassSetExpression* node,
+                                void*) override {
+    uint8_t padding[FRAME_PADDING];
+    dummy_ = padding; /* Prevent padding from being optimized away.*/
+    AutoCheckRecursionLimit recursion(cx_);
+    if (!recursion.checkDontReport(cx_)) {
+      return nullptr;
+    }
+    for (auto* child : *node->operands()) {
       if (!child->Accept(this, nullptr)) {
         return nullptr;
       }
@@ -552,7 +580,7 @@ enum class AssembleResult {
   RegExpMacroAssembler* masm_ptr = masm.get();
 #ifdef DEBUG
   UniquePtr<RegExpMacroAssembler> tracer_masm;
-  if (jit::JitOptions.traceRegExpAssembler) {
+  if (jit::JitOptions.trace_regexp_assembler) {
     tracer_masm = MakeUnique<RegExpMacroAssemblerTracer>(cx->isolate, masm_ptr);
     masm_ptr = tracer_masm.get();
   }
@@ -680,9 +708,9 @@ bool CompilePattern(JSContext* cx, MutableHandleRegExpShared re,
     V8HandleString wrappedPattern(v8::internal::String(pattern), cx->isolate);
     if (!RegExpParser::ParseRegExpFromHeapString(
             cx->isolate, &zone, wrappedPattern, flags, &data)) {
-      AutoReportFrontendContext ec(cx);
+      AutoReportFrontendContext fc(cx);
       JS::CompileOptions options(cx);
-      DummyTokenStream dummyTokenStream(cx, &ec, options);
+      DummyTokenStream dummyTokenStream(&fc, options);
       ReportSyntaxError(dummyTokenStream, data, pattern);
       return false;
     }

@@ -10,6 +10,7 @@
 
 #include "GestureEventListener.h"
 #include "InputBlockState.h"
+#include "mozilla/EventForwards.h"
 #include "mozilla/layers/APZInputBridge.h"
 #include "mozilla/layers/APZThreadUtils.h"
 #include "mozilla/ToString.h"
@@ -180,18 +181,19 @@ APZEventResult InputQueue::ReceiveTouchInput(
     INPQ_LOG("dropping event due to block %p being in fast motion\n",
              block.get());
     result.SetStatusAsConsumeNoDefault();
-  } else if (target && target->ArePointerEventsConsumable(block, aEvent)) {
-    if (block->UpdateSlopState(aEvent, true)) {
-      INPQ_LOG("dropping event due to block %p being in slop\n", block.get());
+  } else {  // handling depends on ArePointerEventsConsumable()
+    PointerEventsConsumableFlags consumableFlags;
+    if (target) {
+      consumableFlags = target->ArePointerEventsConsumable(block, aEvent);
+    }
+    bool consumable = consumableFlags.IsConsumable();
+    if (block->UpdateSlopState(aEvent, consumable)) {
+      INPQ_LOG("dropping event due to block %p being in %sslop\n", block.get(),
+               consumable ? "" : "mini-");
       result.SetStatusAsConsumeNoDefault();
     } else {
-      result.SetStatusAsConsumeDoDefaultWithTargetConfirmationFlags(
-          *block, aFlags, *target);
+      result.SetStatusForTouchEvent(*block, aFlags, consumableFlags, target);
     }
-  } else if (block->UpdateSlopState(aEvent, false)) {
-    INPQ_LOG("dropping event due to block %p being in mini-slop\n",
-             block.get());
-    result.SetStatusAsConsumeNoDefault();
   }
   mQueuedInputs.AppendElement(MakeUnique<QueuedInput>(aEvent, *block));
   ProcessQueue();
@@ -709,9 +711,9 @@ InputBlockState* InputQueue::GetBlockForId(uint64_t aInputBlockId) {
 }
 
 void InputQueue::AddInputBlockCallback(uint64_t aInputBlockId,
-                                       InputBlockCallback&& aCallback) {
-  mInputBlockCallbacks.insert(
-      InputBlockCallbackMap::value_type(aInputBlockId, std::move(aCallback)));
+                                       InputBlockCallbackInfo&& aCallbackInfo) {
+  mInputBlockCallbacks.insert(InputBlockCallbackMap::value_type(
+      aInputBlockId, std::move(aCallbackInfo)));
 }
 
 InputBlockState* InputQueue::FindBlockForId(uint64_t aInputBlockId,
@@ -912,7 +914,7 @@ void InputQueue::SetBrowserGestureResponse(uint64_t aInputBlockId,
 
 static APZHandledResult GetHandledResultFor(
     const AsyncPanZoomController* aApzc,
-    const InputBlockState& aCurrentInputBlock) {
+    const InputBlockState& aCurrentInputBlock, nsEventStatus aEagerStatus) {
   if (aCurrentInputBlock.ShouldDropEvents()) {
     return APZHandledResult{APZHandledPlace::HandledByContent, aApzc};
   }
@@ -922,7 +924,15 @@ static APZHandledResult GetHandledResultFor(
   }
 
   if (aApzc->IsRootContent()) {
-    return aApzc->CanVerticalScrollWithDynamicToolbar()
+    // If the eager status was eIgnore, we would have returned an eager result
+    // of Unhandled if there had been no event handler. Now that we know the
+    // event handler did not preventDefault() the input block, return Unhandled
+    // as the delayed result.
+    // FIXME: A more accurate implementation would be to re-do the entire
+    // computation that determines the status (i.e. calling
+    // ArePointerEventsConsumable()) with the confirmed target APZC.
+    return (aEagerStatus == nsEventStatus_eConsumeDoDefault &&
+            aApzc->CanVerticalScrollWithDynamicToolbar())
                ? APZHandledResult{APZHandledPlace::HandledByRoot, aApzc}
                : APZHandledResult{APZHandledPlace::Unhandled, aApzc};
   }
@@ -960,8 +970,9 @@ void InputQueue::ProcessQueue() {
     // input block, invoke it.
     auto it = mInputBlockCallbacks.find(curBlock->GetBlockId());
     if (it != mInputBlockCallbacks.end()) {
-      APZHandledResult handledResult = GetHandledResultFor(target, *curBlock);
-      it->second(curBlock->GetBlockId(), handledResult);
+      APZHandledResult handledResult =
+          GetHandledResultFor(target, *curBlock, it->second.mEagerStatus);
+      it->second.mCallback(curBlock->GetBlockId(), handledResult);
       // The callback is one-shot; discard it after calling it.
       mInputBlockCallbacks.erase(it);
     }

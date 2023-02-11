@@ -6,9 +6,6 @@
 // We want to ensure that non-normalized credit card data is normalized
 // correctly as part of the save credit card flow
 add_task(async function test_new_submitted_card_is_normalized() {
-  await SpecialPowers.pushPrefEnv({
-    set: [[CREDITCARDS_USED_STATUS_PREF, 0]],
-  });
   const testCard = {
     "cc-name": "Test User",
     "cc-number": "5038146897157463",
@@ -56,12 +53,10 @@ add_task(async function test_new_submitted_card_is_normalized() {
     let actual = savedCreditCard[key];
     Assert.equal(expected, actual, `${key} should match`);
   }
+  await removeAllRecords();
 });
 
 add_task(async function test_updated_card_is_normalized() {
-  await SpecialPowers.pushPrefEnv({
-    set: [[CREDITCARDS_USED_STATUS_PREF, 0]],
-  });
   const testCard = {
     "cc-name": "Test User",
     "cc-number": "5038146897157463",
@@ -110,4 +105,5 @@ add_task(async function test_updated_card_is_normalized() {
     let actual = savedCreditCard[key];
     Assert.equal(expected, actual, `${key} should match`);
   }
+  await removeAllRecords();
 });

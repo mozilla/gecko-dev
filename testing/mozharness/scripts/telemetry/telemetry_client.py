@@ -6,7 +6,6 @@
 # ***** END LICENSE BLOCK *****
 
 
-from __future__ import absolute_import
 import copy
 import os
 import sys
@@ -16,14 +15,11 @@ sys.path.insert(1, os.path.dirname(os.path.dirname(sys.path[0])))
 
 from mozharness.base.python import PreScriptAction
 from mozharness.mozilla.structuredlog import StructuredOutputParser
-from mozharness.mozilla.testing.testbase import (
-    TestingMixin,
-    testing_config_options,
-)
 from mozharness.mozilla.testing.codecoverage import (
     CodeCoverageMixin,
     code_coverage_config_options,
 )
+from mozharness.mozilla.testing.testbase import TestingMixin, testing_config_options
 from mozharness.mozilla.vcstools import VCSToolsScript
 
 # General command line arguments for Firefox ui tests

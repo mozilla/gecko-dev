@@ -3,7 +3,6 @@ file-whitespace:
     description: File content sanity check
     include:
         - .
-        - tools/moztreedocs/requirements.txt
         - tools/lint/python/flake8_requirements.txt
         - tools/lint/python/pylint_requirements.txt
         - tools/lint/python/black_requirements.txt
@@ -120,6 +119,7 @@ file-whitespace:
         - toolkit/content/tests/chrome
         - tools/jprof/README.html
         - tools/lint/eslint
+        - tools/lint/test/test_clang_format.py
         - view/crashtests
         - widget/cocoa/crashtests
         - widget/nsFilePickerProxy.cpp
@@ -146,12 +146,16 @@ file-whitespace:
         - .cpp
         - .css
         - .dtd
+        - .idl
         - .ftl
         - .h
         - .html
+        - .md
         - .properties
+        - .py
         - .rs
         - .rst
+        - .webidl
         - .xhtml
     support-files:
         - 'tools/lint/file-whitespace/**'

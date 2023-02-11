@@ -2,8 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function
-
 import hashlib
 import os
 import shutil
@@ -13,19 +11,14 @@ import tempfile
 import unittest
 
 import pytest
-
-import sys
-
 from mozpack.archive import (
     DEFAULT_MTIME,
+    create_tar_bz2_from_files,
     create_tar_from_files,
     create_tar_gz_from_files,
-    create_tar_bz2_from_files,
 )
 from mozpack.files import GeneratedFile
-
 from mozunit import main
-
 
 MODE_STANDARD = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH
 
@@ -117,16 +110,8 @@ class TestArchive(unittest.TestCase):
             with open(tp, "wb") as fh:
                 create_tar_from_files(fh, files)
 
-            # Output should be deterministic. Checking for Python version because of Bug 1735396.
-            if sys.version_info.major == 3 and sys.version_info.minor <= 8:
-                self.assertEqual(
-                    file_hash(tp), "01cd314e277f060e98c7de6c8ea57f96b3a2065c"
-                )
-            # The else statement below assumes Python 3.9 and newer.
-            else:
-                self.assertEqual(
-                    file_hash(tp), "50fe1aaadf0d44abb69bdea174b4dd6cdb4f4898"
-                )
+            # Output should be deterministic.
+            self.assertEqual(file_hash(tp), "01cd314e277f060e98c7de6c8ea57f96b3a2065c")
 
             with tarfile.open(tp, "r") as tf:
                 self._verify_basic_tarfile(tf)
@@ -165,14 +150,7 @@ class TestArchive(unittest.TestCase):
             with open(gp, "wb") as fh:
                 create_tar_gz_from_files(fh, files)
 
-            if sys.version_info.major == 3 and sys.version_info.minor <= 8:
-                self.assertEqual(
-                    file_hash(gp), "7c4da5adc5088cdf00911d5daf9a67b15de714b7"
-                )
-            else:
-                self.assertEqual(
-                    file_hash(gp), "766117873af9754915ee93c56243616d000d7e5e"
-                )
+            self.assertEqual(file_hash(gp), "7c4da5adc5088cdf00911d5daf9a67b15de714b7")
 
             with tarfile.open(gp, "r:gz") as tf:
                 self._verify_basic_tarfile(tf)
@@ -189,14 +167,7 @@ class TestArchive(unittest.TestCase):
             with open(gp, "wb") as fh:
                 create_tar_gz_from_files(fh, files, filename="foobar")
 
-            if sys.version_info.major == 3 and sys.version_info.minor <= 8:
-                self.assertEqual(
-                    file_hash(gp), "721e00083c17d16df2edbddf40136298c06d0c49"
-                )
-            else:
-                self.assertEqual(
-                    file_hash(gp), "059916c8e6b6f22be774dc56aabb3819460fee53"
-                )
+            self.assertEqual(file_hash(gp), "721e00083c17d16df2edbddf40136298c06d0c49")
 
             with tarfile.open(gp, "r:gz") as tf:
                 self._verify_basic_tarfile(tf)
@@ -213,14 +184,7 @@ class TestArchive(unittest.TestCase):
             with open(bp, "wb") as fh:
                 create_tar_bz2_from_files(fh, files)
 
-            if sys.version_info.major == 3 and sys.version_info.minor <= 8:
-                self.assertEqual(
-                    file_hash(bp), "eb5096d2fbb71df7b3d690001a6f2e82a5aad6a7"
-                )
-            else:
-                self.assertEqual(
-                    file_hash(bp), "600883e25722fdde5eb78c6c40955ab80b7ac114"
-                )
+            self.assertEqual(file_hash(bp), "eb5096d2fbb71df7b3d690001a6f2e82a5aad6a7")
 
             with tarfile.open(bp, "r:bz2") as tf:
                 self._verify_basic_tarfile(tf)

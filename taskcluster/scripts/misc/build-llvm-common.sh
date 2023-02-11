@@ -76,6 +76,12 @@ case "$target" in
   # Give it a fake one.
   echo "#!/bin/sh" > codesign
   chmod +x codesign
+  # cmake makes decisions based on the output of the mac-only sw_vers, which is
+  # obviously missing when cross-compiling, so create a fake one. The exact
+  # version doesn't really matter: as of writing, cmake checks at most for 10.5.
+  echo "#!/bin/sh" > sw_vers
+  echo echo 10.12 >> sw_vers
+  chmod +x sw_vers
   PATH="$PATH:$PWD"
   ;;
 *-linux-android)
@@ -126,8 +132,6 @@ case "$target" in
   "
   ;;
 *-pc-windows-msvc)
-  export LD_PRELOAD="/builds/worker/fetches/liblowercase/liblowercase.so"
-  export LOWERCASE_DIRS="/builds/worker/fetches/vs"
   EXTRA_CMAKE_FLAGS="
     $EXTRA_CMAKE_FLAGS
     -DCMAKE_TOOLCHAIN_FILE=$MOZ_FETCHES_DIR/llvm-project/llvm/cmake/platforms/WinMsvc.cmake

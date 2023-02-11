@@ -16,10 +16,10 @@
 #include <limits>
 #include <type_traits>
 
+#include "frontend/FrontendContext.h"
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "util/StringBuffer.h"
 #include "util/Unicode.h"  // unicode::REPLACEMENT_CHARACTER
-#include "vm/ErrorContext.h"
 #include "vm/JSContext.h"
 
 using mozilla::AsChars;
@@ -167,16 +167,16 @@ template UTF8CharsZ JS::CharsToNewUTF8CharsZ(
     JSContext* cx, const mozilla::Range<const char16_t> chars);
 
 template UTF8CharsZ JS::CharsToNewUTF8CharsZ(
-    ErrorAllocator* cx, const mozilla::Range<Latin1Char> chars);
+    FrontendAllocator* cx, const mozilla::Range<Latin1Char> chars);
 
 template UTF8CharsZ JS::CharsToNewUTF8CharsZ(
-    ErrorAllocator* cx, const mozilla::Range<char16_t> chars);
+    FrontendAllocator* cx, const mozilla::Range<char16_t> chars);
 
 template UTF8CharsZ JS::CharsToNewUTF8CharsZ(
-    ErrorAllocator* cx, const mozilla::Range<const Latin1Char> chars);
+    FrontendAllocator* cx, const mozilla::Range<const Latin1Char> chars);
 
 template UTF8CharsZ JS::CharsToNewUTF8CharsZ(
-    ErrorAllocator* cx, const mozilla::Range<const char16_t> chars);
+    FrontendAllocator* cx, const mozilla::Range<const char16_t> chars);
 
 static constexpr uint32_t INVALID_UTF8 = std::numeric_limits<char32_t>::max();
 
@@ -594,6 +594,8 @@ bool JS::StringIsASCII(const char* s) {
 bool JS::StringIsASCII(Span<const char> s) { return IsAscii(s); }
 
 bool StringBuffer::append(const Utf8Unit* units, size_t len) {
+  MOZ_ASSERT(maybeCx_);
+
   if (isLatin1()) {
     Latin1CharBuffer& latin1 = latin1Chars();
 
@@ -632,7 +634,7 @@ bool StringBuffer::append(const Utf8Unit* units, size_t len) {
     utf16Len++;
     return LoopDisposition::Continue;
   };
-  if (!InflateUTF8ToUTF16<OnUTF8Error::Throw>(cx_, remainingUtf8,
+  if (!InflateUTF8ToUTF16<OnUTF8Error::Throw>(maybeCx_, remainingUtf8,
                                               countInflated)) {
     return false;
   }
@@ -652,8 +654,8 @@ bool StringBuffer::append(const Utf8Unit* units, size_t len) {
     return LoopDisposition::Continue;
   };
 
-  MOZ_ALWAYS_TRUE(
-      InflateUTF8ToUTF16<OnUTF8Error::Throw>(cx_, remainingUtf8, appendUtf16));
+  MOZ_ALWAYS_TRUE(InflateUTF8ToUTF16<OnUTF8Error::Throw>(
+      maybeCx_, remainingUtf8, appendUtf16));
   MOZ_ASSERT(toFill == buf.end());
   return true;
 }

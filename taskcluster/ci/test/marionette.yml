@@ -36,7 +36,10 @@ job-defaults:
                 by-test-platform:
                     .*/debug: built-projects
                     default: []
-            default: built-projects
+            default:
+                by-test-platform:
+                    .*tsan.*: []
+                    default: built-projects
     virtualization: virtual
 
 marionette:
@@ -44,7 +47,7 @@ marionette:
     treeherder-symbol: Mn
     max-run-time:
         by-test-platform:
-            .*asan.*: 3600
+            .*asan.*: 5400
             .*ccov.*: 3600
             .*debug.*: 3600
             default: 2700

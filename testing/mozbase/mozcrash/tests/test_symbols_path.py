@@ -1,16 +1,13 @@
 #!/usr/bin/env python
 # coding=UTF-8
 
-from __future__ import absolute_import
-
 import zipfile
-from six import BytesIO
-from six.moves.urllib.parse import urlunsplit
 
 import mozhttpd
 import mozunit
-
 from conftest import fspath
+from six import BytesIO
+from six.moves.urllib.parse import urlunsplit
 
 
 def test_symbols_path_not_present(check_for_crashes, minidump_files):

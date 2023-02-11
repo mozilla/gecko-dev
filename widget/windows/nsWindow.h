@@ -190,9 +190,6 @@ class nsWindow final : public nsBaseWidget {
   void Resize(double aX, double aY, double aWidth, double aHeight,
               bool aRepaint) override;
   mozilla::Maybe<bool> IsResizingNativeWidget() override;
-  [[nodiscard]] nsresult BeginResizeDrag(mozilla::WidgetGUIEvent* aEvent,
-                                         int32_t aHorizontal,
-                                         int32_t aVertical) override;
   void PlaceBehind(nsTopLevelWidgetZPlacement aPlacement, nsIWidget* aWidget,
                    bool aActivate) override;
   void SetSizeMode(nsSizeMode aMode) override;
@@ -231,9 +228,8 @@ class nsWindow final : public nsBaseWidget {
   nsresult DispatchEvent(mozilla::WidgetGUIEvent* aEvent,
                          nsEventStatus& aStatus) override;
   void EnableDragDrop(bool aEnable) override;
-  void CaptureMouse(bool aCapture) override;
-  void CaptureRollupEvents(nsIRollupListener* aListener,
-                           bool aDoCapture) override;
+  void CaptureMouse(bool aCapture);
+  void CaptureRollupEvents(bool aDoCapture) override;
   [[nodiscard]] nsresult GetAttention(int32_t aCycleCount) override;
   bool HasPendingInputEvent() override;
   WindowRenderer* GetWindowRenderer() override;
@@ -476,7 +472,7 @@ class nsWindow final : public nsBaseWidget {
     nsSizeMode mLastSizeMode = nsSizeMode_Normal;
     // The old size mode before going into fullscreen mode. This should never
     // be nsSizeMode_Fullscreen.
-    nsSizeMode mOldSizeMode = nsSizeMode_Normal;
+    nsSizeMode mPreFullscreenSizeMode = nsSizeMode_Normal;
     // Whether we're in fullscreen. We need to keep this state out of band,
     // rather than just using mSizeMode, because a window can be minimized
     // while fullscreen, and we don't store the fullscreen state anywhere else.
@@ -596,8 +592,8 @@ class nsWindow final : public nsBaseWidget {
   bool OnTouch(WPARAM wParam, LPARAM lParam);
   bool OnHotKey(WPARAM wParam, LPARAM lParam);
   bool OnPaint(HDC aDC, uint32_t aNestingLevel);
+  void OnWindowPosChanging(WINDOWPOS* info);
   void OnWindowPosChanged(WINDOWPOS* wp);
-  void OnWindowPosChanging(LPWINDOWPOS& info);
   void OnSysColorChanged();
   void OnDPIChanged(int32_t x, int32_t y, int32_t width, int32_t height);
   bool OnPointerEvents(UINT msg, WPARAM wParam, LPARAM lParam);
@@ -696,7 +692,7 @@ class nsWindow final : public nsBaseWidget {
                         uint32_t aOrientation = 90);
 
   void OnFullscreenWillChange(bool aFullScreen);
-  void OnFullscreenChanged(bool aFullScreen);
+  void OnFullscreenChanged(nsSizeMode aOldSizeMode, bool aFullScreen);
 
   static void OnCloakEvent(HWND aWnd, bool aCloaked);
   void OnCloakChanged(bool aCloaked);

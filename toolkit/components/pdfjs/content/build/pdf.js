@@ -42,7 +42,7 @@ return /******/ (() => { // webpackBootstrap
 Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
-exports.VerbosityLevel = exports.Util = exports.UnknownErrorException = exports.UnexpectedResponseException = exports.UNSUPPORTED_FEATURES = exports.TextRenderingMode = exports.StreamType = exports.RenderingIntentFlag = exports.PermissionFlag = exports.PasswordResponses = exports.PasswordException = exports.PageActionEventType = exports.OPS = exports.MissingPDFException = exports.LINE_FACTOR = exports.LINE_DESCENT_FACTOR = exports.InvalidPDFException = exports.ImageKind = exports.IDENTITY_MATRIX = exports.FormatError = exports.FontType = exports.FeatureTest = exports.FONT_IDENTITY_MATRIX = exports.DocumentActionEventType = exports.CMapCompressionType = exports.BaseException = exports.BASELINE_FACTOR = exports.AnnotationType = exports.AnnotationStateModelType = exports.AnnotationReviewState = exports.AnnotationReplyType = exports.AnnotationMode = exports.AnnotationMarkedState = exports.AnnotationFlag = exports.AnnotationFieldFlag = exports.AnnotationEditorType = exports.AnnotationEditorPrefix = exports.AnnotationEditorParamsType = exports.AnnotationBorderStyleType = exports.AnnotationActionEventType = exports.AbortException = void 0;
+exports.VerbosityLevel = exports.Util = exports.UnknownErrorException = exports.UnexpectedResponseException = exports.UNSUPPORTED_FEATURES = exports.TextRenderingMode = exports.RenderingIntentFlag = exports.PermissionFlag = exports.PasswordResponses = exports.PasswordException = exports.PageActionEventType = exports.OPS = exports.MissingPDFException = exports.LINE_FACTOR = exports.LINE_DESCENT_FACTOR = exports.InvalidPDFException = exports.ImageKind = exports.IDENTITY_MATRIX = exports.FormatError = exports.FeatureTest = exports.FONT_IDENTITY_MATRIX = exports.DocumentActionEventType = exports.CMapCompressionType = exports.BaseException = exports.BASELINE_FACTOR = exports.AnnotationType = exports.AnnotationStateModelType = exports.AnnotationReviewState = exports.AnnotationReplyType = exports.AnnotationMode = exports.AnnotationMarkedState = exports.AnnotationFlag = exports.AnnotationFieldFlag = exports.AnnotationEditorType = exports.AnnotationEditorPrefix = exports.AnnotationEditorParamsType = exports.AnnotationBorderStyleType = exports.AnnotationActionEventType = exports.AbortException = void 0;
 exports.arrayByteLength = arrayByteLength;
 exports.arraysToBytes = arraysToBytes;
 exports.assert = assert;
@@ -267,34 +267,6 @@ const PageActionEventType = {
   C: "PageClose"
 };
 exports.PageActionEventType = PageActionEventType;
-const StreamType = {
-  UNKNOWN: "UNKNOWN",
-  FLATE: "FLATE",
-  LZW: "LZW",
-  DCT: "DCT",
-  JPX: "JPX",
-  JBIG: "JBIG",
-  A85: "A85",
-  AHX: "AHX",
-  CCF: "CCF",
-  RLX: "RLX"
-};
-exports.StreamType = StreamType;
-const FontType = {
-  UNKNOWN: "UNKNOWN",
-  TYPE1: "TYPE1",
-  TYPE1STANDARD: "TYPE1STANDARD",
-  TYPE1C: "TYPE1C",
-  CIDFONTTYPE0: "CIDFONTTYPE0",
-  CIDFONTTYPE0C: "CIDFONTTYPE0C",
-  TRUETYPE: "TRUETYPE",
-  CIDFONTTYPE2: "CIDFONTTYPE2",
-  TYPE3: "TYPE3",
-  OPENTYPE: "OPENTYPE",
-  TYPE0: "TYPE0",
-  MMTYPE1: "MMTYPE1"
-};
-exports.FontType = FontType;
 const VerbosityLevel = {
   ERRORS: 0,
   WARNINGS: 1,
@@ -397,28 +369,7 @@ const OPS = {
   constructPath: 91
 };
 exports.OPS = OPS;
-const UNSUPPORTED_FEATURES = {
-  forms: "forms",
-  javaScript: "javaScript",
-  signatures: "signatures",
-  smask: "smask",
-  shadingPattern: "shadingPattern",
-  errorTilingPattern: "errorTilingPattern",
-  errorExtGState: "errorExtGState",
-  errorXObject: "errorXObject",
-  errorFontLoadType3: "errorFontLoadType3",
-  errorFontState: "errorFontState",
-  errorFontMissing: "errorFontMissing",
-  errorFontTranslate: "errorFontTranslate",
-  errorColorSpace: "errorColorSpace",
-  errorOperatorList: "errorOperatorList",
-  errorFontToUnicode: "errorFontToUnicode",
-  errorFontLoadNative: "errorFontLoadNative",
-  errorFontBuildPath: "errorFontBuildPath",
-  errorFontGetPath: "errorFontGetPath",
-  errorMarkedContent: "errorMarkedContent",
-  errorContentSubStream: "errorContentSubStream"
-};
+const UNSUPPORTED_FEATURES = null;
 exports.UNSUPPORTED_FEATURES = UNSUPPORTED_FEATURES;
 const PasswordResponses = {
   NEED_PASSWORD: 1,
@@ -920,7 +871,6 @@ Object.defineProperty(exports, "__esModule", ({
 }));
 exports.build = exports.RenderTask = exports.PDFWorkerUtil = exports.PDFWorker = exports.PDFPageProxy = exports.PDFDocumentProxy = exports.PDFDocumentLoadingTask = exports.PDFDataRangeTransport = exports.LoopbackPort = exports.DefaultStandardFontDataFactory = exports.DefaultCanvasFactory = exports.DefaultCMapReaderFactory = void 0;
 exports.getDocument = getDocument;
-exports.setPDFNetworkStreamFactory = setPDFNetworkStreamFactory;
 exports.version = void 0;
 var _util = __w_pdfjs_require__(1);
 var _annotation_storage = __w_pdfjs_require__(3);
@@ -944,9 +894,7 @@ let DefaultStandardFontDataFactory = _display_utils.DOMStandardFontDataFactory;
 exports.DefaultStandardFontDataFactory = DefaultStandardFontDataFactory;
 ;
 let createPDFNetworkStream;
-function setPDFNetworkStreamFactory(pdfNetworkStreamFactory) {
-  createPDFNetworkStream = pdfNetworkStreamFactory;
-}
+;
 function getDocument(src) {
   const task = new PDFDocumentLoadingTask();
   let source;
@@ -1015,6 +963,7 @@ function getDocument(src) {
   params.CMapReaderFactory = params.CMapReaderFactory || DefaultCMapReaderFactory;
   params.StandardFontDataFactory = params.StandardFontDataFactory || DefaultStandardFontDataFactory;
   params.ignoreErrors = params.stopAtErrors !== true;
+  params.transferPdfData = params.transferPdfData === true;
   params.fontExtraProperties = params.fontExtraProperties === true;
   params.pdfBug = params.pdfBug === true;
   params.enableXfa = params.enableXfa === true;
@@ -1034,7 +983,7 @@ function getDocument(src) {
     params.standardFontDataUrl = null;
   }
   if (typeof params.useWorkerFetch !== "boolean") {
-    params.useWorkerFetch = params.CMapReaderFactory === _display_utils.DOMCMapReaderFactory && params.StandardFontDataFactory === _display_utils.DOMStandardFontDataFactory;
+    params.useWorkerFetch = true;
   }
   if (typeof params.isEvalSupported !== "boolean") {
     params.isEvalSupported = true;
@@ -1081,21 +1030,14 @@ function getDocument(src) {
         networkStream = new _transport_stream.PDFDataTransportStream({
           length: params.length,
           initialData: params.initialData,
+          transferPdfData: params.transferPdfData,
           progressiveDone: params.progressiveDone,
           contentDispositionFilename: params.contentDispositionFilename,
           disableRange: params.disableRange,
           disableStream: params.disableStream
         }, rangeTransport);
       } else if (!params.data) {
-        networkStream = createPDFNetworkStream({
-          url: params.url,
-          length: params.length,
-          httpHeaders: params.httpHeaders,
-          withCredentials: params.withCredentials,
-          rangeChunkSize: params.rangeChunkSize,
-          disableRange: params.disableRange,
-          disableStream: params.disableStream
-        });
+        throw new Error("Not implemented: createPDFNetworkStream");
       }
       resolve(networkStream);
     });
@@ -1121,9 +1063,10 @@ async function _fetchDocument(worker, source, pdfDataRangeTransport, docId) {
     source.progressiveDone = pdfDataRangeTransport.progressiveDone;
     source.contentDispositionFilename = pdfDataRangeTransport.contentDispositionFilename;
   }
+  const transfers = source.transferPdfData && source.data ? [source.data.buffer] : null;
   const workerId = await worker.messageHandler.sendWithPromise("GetDocRequest", {
     docId,
-    apiVersion: '3.2.47',
+    apiVersion: '3.3.56',
     data: source.data,
     password: source.password,
     disableAutoFetch: source.disableAutoFetch,
@@ -1142,10 +1085,7 @@ async function _fetchDocument(worker, source, pdfDataRangeTransport, docId) {
       cMapUrl: source.useWorkerFetch ? source.cMapUrl : null,
       standardFontDataUrl: source.useWorkerFetch ? source.standardFontDataUrl : null
     }
-  });
-  if (source.data) {
-    source.data = null;
-  }
+  }, transfers);
   if (worker.destroyed) {
     throw new Error("Worker was destroyed");
   }
@@ -1166,10 +1106,7 @@ class PDFDocumentLoadingTask {
   get onUnsupportedFeature() {
     return this.#onUnsupportedFeature;
   }
-  set onUnsupportedFeature(callback) {
-    (0, _display_utils.deprecated)("The PDFDocumentLoadingTask onUnsupportedFeature property will be removed in the future.");
-    this.#onUnsupportedFeature = callback;
-  }
+  set onUnsupportedFeature(callback) {}
   get promise() {
     return this._capability.promise;
   }
@@ -1257,12 +1194,8 @@ class PDFDocumentProxy {
   get fingerprints() {
     return this._pdfInfo.fingerprints;
   }
-  get stats() {
-    (0, _display_utils.deprecated)("The PDFDocumentProxy stats property will be removed in the future.");
-    return this._transport.stats;
-  }
   get isPureXfa() {
-    return !!this._transport._htmlForXfa;
+    return (0, _util.shadow)(this, "isPureXfa", !!this._transport._htmlForXfa);
   }
   get allXfaHtml() {
     return this._transport._htmlForXfa;
@@ -1364,7 +1297,6 @@ class PDFPageProxy {
     this.cleanupAfterRender = false;
     this.pendingCleanup = false;
     this._intentStates = new Map();
-    this._annotationPromises = new Map();
     this.destroyed = false;
   }
   get pageNumber() {
@@ -1402,15 +1334,13 @@ class PDFPageProxy {
     intent = "display"
   } = {}) {
     const intentArgs = this._transport.getRenderingIntent(intent);
-    let promise = this._annotationPromises.get(intentArgs.cacheKey);
-    if (!promise) {
-      promise = this._transport.getAnnotations(this._pageIndex, intentArgs.renderingIntent);
-      this._annotationPromises.set(intentArgs.cacheKey, promise);
-    }
-    return promise;
+    return this._transport.getAnnotations(this._pageIndex, intentArgs.renderingIntent);
   }
   getJSActions() {
-    return this._jsActionsPromise ||= this._transport.getPageJSActions(this._pageIndex);
+    return this._transport.getPageJSActions(this._pageIndex);
+  }
+  get isPureXfa() {
+    return (0, _util.shadow)(this, "isPureXfa", !!this._transport._htmlForXfa);
   }
   async getXfa() {
     return this._transport._htmlForXfa?.children[this._pageIndex] || null;
@@ -1615,8 +1545,6 @@ class PDFPageProxy {
       bitmap.close();
     }
     this._bitmaps.clear();
-    this._annotationPromises.clear();
-    this._jsActionsPromise = null;
     this.pendingCleanup = false;
     return Promise.all(waitOn);
   }
@@ -1638,8 +1566,6 @@ class PDFPageProxy {
     }
     this._intentStates.clear();
     this.objs.clear();
-    this._annotationPromises.clear();
-    this._jsActionsPromise = null;
     if (resetStats && this._stats) {
       this._stats = new _display_utils.StatTimer();
     }
@@ -1731,19 +1657,27 @@ class PDFPageProxy {
     if (!intentState.streamReader) {
       return;
     }
+    if (intentState.streamReaderCancelTimeout) {
+      clearTimeout(intentState.streamReaderCancelTimeout);
+      intentState.streamReaderCancelTimeout = null;
+    }
     if (!force) {
       if (intentState.renderTasks.size > 0) {
         return;
       }
       if (reason instanceof _display_utils.RenderingCancelledException) {
+        let delay = RENDERING_CANCELLED_TIMEOUT;
+        if (reason.extraDelay > 0 && reason.extraDelay < 1000) {
+          delay += reason.extraDelay;
+        }
         intentState.streamReaderCancelTimeout = setTimeout(() => {
+          intentState.streamReaderCancelTimeout = null;
           this._abortOperatorList({
             intentState,
             reason,
             force: true
           });
-          intentState.streamReaderCancelTimeout = null;
-        }, RENDERING_CANCELLED_TIMEOUT);
+        }, delay);
         return;
       }
     }
@@ -1981,7 +1915,6 @@ class PDFWorker {
 }
 exports.PDFWorker = PDFWorker;
 class WorkerTransport {
-  #docStats = null;
   #pageCache = new Map();
   #pagePromises = new Map();
   #metadataPromise = null;
@@ -2015,9 +1948,6 @@ class WorkerTransport {
   }
   get annotationStorage() {
     return (0, _util.shadow)(this, "annotationStorage", new _annotation_storage.AnnotationStorage());
-  }
-  get stats() {
-    return this.#docStats;
   }
   getRenderingIntent(intent, annotationMode = _util.AnnotationMode.ENABLE, printAnnotationStorage = null, isOpList = false) {
     let renderingIntent = _util.RenderingIntentFlag.DISPLAY;
@@ -2354,16 +2284,6 @@ class WorkerTransport {
         total: data.total
       });
     });
-    messageHandler.on("DocStats", data => {
-      if (this.destroyed) {
-        return;
-      }
-      this.#docStats = Object.freeze({
-        streamTypes: Object.freeze(data.streamTypes),
-        fontTypes: Object.freeze(data.fontTypes)
-      });
-    });
-    messageHandler.on("UnsupportedFeature", this._onUnsupportedFeature.bind(this));
     messageHandler.on("FetchBuiltInCMap", data => {
       if (this.destroyed) {
         return Promise.reject(new Error("Worker was destroyed."));
@@ -2385,12 +2305,7 @@ class WorkerTransport {
   }
   _onUnsupportedFeature({
     featureId
-  }) {
-    if (this.destroyed) {
-      return;
-    }
-    this.loadingTask.onUnsupportedFeature?.(featureId);
-  }
+  }) {}
   getData() {
     return this.messageHandler.sendWithPromise("GetData", null);
   }
@@ -2595,8 +2510,8 @@ class RenderTask {
   get promise() {
     return this.#internalRenderTask.capability.promise;
   }
-  cancel() {
-    this.#internalRenderTask.cancel();
+  cancel(extraDelay = 0) {
+    this.#internalRenderTask.cancel(null, extraDelay);
   }
   get separateAnnots() {
     const {
@@ -2691,14 +2606,14 @@ class InternalRenderTask {
     this.graphicsReady = true;
     this.graphicsReadyCallback?.();
   }
-  cancel(error = null) {
+  cancel(error = null, extraDelay = 0) {
     this.running = false;
     this.cancelled = true;
     this.gfx?.endDrawing();
     if (this._canvas) {
       InternalRenderTask.#canvasInUse.delete(this._canvas);
     }
-    this.callback(error || new _display_utils.RenderingCancelledException(`Rendering cancelled, page ${this._pageIndex + 1}`, "canvas"));
+    this.callback(error || new _display_utils.RenderingCancelledException(`Rendering cancelled, page ${this._pageIndex + 1}`, "canvas", extraDelay));
   }
   operatorListChanged() {
     if (!this.graphicsReady) {
@@ -2750,9 +2665,9 @@ class InternalRenderTask {
     }
   }
 }
-const version = '3.2.47';
+const version = '3.3.56';
 exports.version = version;
-const build = 'feb6f5951';
+const build = '1e938a688';
 exports.build = build;
 
 /***/ }),
@@ -2907,6 +2822,7 @@ class AnnotationEditor {
   #hasBeenSelected = false;
   #isEditing = false;
   #isInEditMode = false;
+  _uiManager = null;
   #zIndex = AnnotationEditor._zIndex++;
   static _colorManager = new _tools.ColorManager();
   static _zIndex = 1;
@@ -2920,25 +2836,45 @@ class AnnotationEditor {
     this.pageIndex = parameters.parent.pageIndex;
     this.name = parameters.name;
     this.div = null;
-    const [width, height] = this.parent.viewportBaseDimensions;
+    this._uiManager = parameters.uiManager;
+    const {
+      rotation,
+      rawDims: {
+        pageWidth,
+        pageHeight,
+        pageX,
+        pageY
+      }
+    } = this.parent.viewport;
+    this.rotation = rotation;
+    this.pageDimensions = [pageWidth, pageHeight];
+    this.pageTranslation = [pageX, pageY];
+    const [width, height] = this.parentDimensions;
     this.x = parameters.x / width;
     this.y = parameters.y / height;
-    this.rotation = this.parent.viewport.rotation;
     this.isAttachedToDOM = false;
-    this._serialized = undefined;
   }
   static get _defaultLineColor() {
     return (0, _util.shadow)(this, "_defaultLineColor", this._colorManager.getHexCode("CanvasText"));
   }
-  setParent(parent) {
-    this._serialized = !parent ? this.serialize() : undefined;
-    this.parent = parent;
+  addCommands(params) {
+    this._uiManager.addCommands(params);
+  }
+  get currentLayer() {
+    return this._uiManager.currentLayer;
   }
   setInBackground() {
     this.div.style.zIndex = 0;
   }
   setInForeground() {
     this.div.style.zIndex = this.#zIndex;
+  }
+  setParent(parent) {
+    if (parent !== null) {
+      this.pageIndex = parent.pageIndex;
+      this.pageDimensions = parent.pageDimensions;
+    }
+    this.parent = parent;
   }
   focusin(event) {
     if (!this.#hasBeenSelected) {
@@ -2956,7 +2892,7 @@ class AnnotationEditor {
       return;
     }
     event.preventDefault();
-    if (!this.parent.isMultipleSelection) {
+    if (!this.parent?.isMultipleSelection) {
       this.commitOrRemove();
     }
   }
@@ -2968,7 +2904,10 @@ class AnnotationEditor {
     }
   }
   commit() {
-    this.parent.addToAnnotationStorage(this);
+    this.addToAnnotationStorage();
+  }
+  addToAnnotationStorage() {
+    this._uiManager.addToAnnotationStorage(this);
   }
   dragstart(event) {
     const rect = this.parent.div.getBoundingClientRect();
@@ -2978,7 +2917,7 @@ class AnnotationEditor {
     event.dataTransfer.effectAllowed = "move";
   }
   setAt(x, y, tx, ty) {
-    const [width, height] = this.parent.viewportBaseDimensions;
+    const [width, height] = this.parentDimensions;
     [tx, ty] = this.screenToPageTranslation(tx, ty);
     this.x = (x + tx) / width;
     this.y = (y + ty) / height;
@@ -2986,7 +2925,7 @@ class AnnotationEditor {
     this.div.style.top = `${100 * this.y}%`;
   }
   translate(x, y) {
-    const [width, height] = this.parent.viewportBaseDimensions;
+    const [width, height] = this.parentDimensions;
     [x, y] = this.screenToPageTranslation(x, y);
     this.x += x / width;
     this.y += y / height;
@@ -2994,10 +2933,7 @@ class AnnotationEditor {
     this.div.style.top = `${100 * this.y}%`;
   }
   screenToPageTranslation(x, y) {
-    const {
-      rotation
-    } = this.parent.viewport;
-    switch (rotation) {
+    switch (this.parentRotation) {
       case 90:
         return [y, -x];
       case 180:
@@ -3008,8 +2944,21 @@ class AnnotationEditor {
         return [x, y];
     }
   }
+  get parentScale() {
+    return this._uiManager.viewParameters.realScale;
+  }
+  get parentRotation() {
+    return this._uiManager.viewParameters.rotation;
+  }
+  get parentDimensions() {
+    const {
+      realScale
+    } = this._uiManager.viewParameters;
+    const [pageWidth, pageHeight] = this.pageDimensions;
+    return [pageWidth * realScale, pageHeight * realScale];
+  }
   setDims(width, height) {
-    const [parentWidth, parentHeight] = this.parent.viewportBaseDimensions;
+    const [parentWidth, parentHeight] = this.parentDimensions;
     this.div.style.width = `${100 * width / parentWidth}%`;
     this.div.style.height = `${100 * height / parentHeight}%`;
   }
@@ -3026,7 +2975,7 @@ class AnnotationEditor {
     if (widthPercent && heightPercent) {
       return;
     }
-    const [parentWidth, parentHeight] = this.parent.viewportBaseDimensions;
+    const [parentWidth, parentHeight] = this.parentDimensions;
     if (!widthPercent) {
       style.width = `${100 * parseFloat(width) / parentWidth}%`;
     }
@@ -3067,23 +3016,24 @@ class AnnotationEditor {
     this.#hasBeenSelected = true;
   }
   getRect(tx, ty) {
-    const [parentWidth, parentHeight] = this.parent.viewportBaseDimensions;
-    const [pageWidth, pageHeight] = this.parent.pageDimensions;
-    const shiftX = pageWidth * tx / parentWidth;
-    const shiftY = pageHeight * ty / parentHeight;
+    const scale = this.parentScale;
+    const [pageWidth, pageHeight] = this.pageDimensions;
+    const [pageX, pageY] = this.pageTranslation;
+    const shiftX = tx / scale;
+    const shiftY = ty / scale;
     const x = this.x * pageWidth;
     const y = this.y * pageHeight;
     const width = this.width * pageWidth;
     const height = this.height * pageHeight;
     switch (this.rotation) {
       case 0:
-        return [x + shiftX, pageHeight - y - shiftY - height, x + shiftX + width, pageHeight - y - shiftY];
+        return [x + shiftX + pageX, pageHeight - y - shiftY - height + pageY, x + shiftX + width + pageX, pageHeight - y - shiftY + pageY];
       case 90:
-        return [x + shiftY, pageHeight - y + shiftX, x + shiftY + height, pageHeight - y + shiftX + width];
+        return [x + shiftY + pageX, pageHeight - y + shiftX + pageY, x + shiftY + height + pageX, pageHeight - y + shiftX + width + pageY];
       case 180:
-        return [x - shiftX - width, pageHeight - y + shiftY, x - shiftX, pageHeight - y + shiftY + height];
+        return [x - shiftX - width + pageX, pageHeight - y + shiftY + pageY, x - shiftX + pageX, pageHeight - y + shiftY + height + pageY];
       case 270:
-        return [x - shiftY - height, pageHeight - y - shiftX - width, x - shiftY, pageHeight - y - shiftX];
+        return [x - shiftY - height + pageX, pageHeight - y - shiftX - width + pageY, x - shiftY + pageX, pageHeight - y - shiftX + pageY];
       default:
         throw new Error("Invalid rotation");
     }
@@ -3130,13 +3080,14 @@ class AnnotationEditor {
   serialize() {
     (0, _util.unreachable)("An editor must be serializable");
   }
-  static deserialize(data, parent) {
+  static deserialize(data, parent, uiManager) {
     const editor = new this.prototype.constructor({
       parent,
-      id: parent.getNextId()
+      id: parent.getNextId(),
+      uiManager
     });
     editor.rotation = data.rotation;
-    const [pageWidth, pageHeight] = parent.pageDimensions;
+    const [pageWidth, pageHeight] = editor.pageDimensions;
     const [x, y, width, height] = editor.getRectInCurrentCoords(data.rect, pageHeight);
     editor.x = x / pageWidth;
     editor.y = y / pageHeight;
@@ -3376,9 +3327,11 @@ class AnnotationEditorUIManager {
   #activeEditor = null;
   #allEditors = new Map();
   #allLayers = new Map();
+  #annotationStorage = null;
   #commandManager = new CommandManager();
   #currentPageIndex = 0;
   #editorTypes = null;
+  #editorsToRescale = new Set();
   #eventBus = null;
   #idManager = new IdManager();
   #isEnabled = false;
@@ -3390,6 +3343,8 @@ class AnnotationEditorUIManager {
   #boundKeydown = this.keydown.bind(this);
   #boundOnEditingAction = this.onEditingAction.bind(this);
   #boundOnPageChanging = this.onPageChanging.bind(this);
+  #boundOnScaleChanging = this.onScaleChanging.bind(this);
+  #boundOnRotationChanging = this.onRotationChanging.bind(this);
   #previousStates = {
     isEditing: false,
     isEmpty: true,
@@ -3399,21 +3354,31 @@ class AnnotationEditorUIManager {
   };
   #container = null;
   static _keyboardManager = new KeyboardManager([[["ctrl+a", "mac+meta+a"], AnnotationEditorUIManager.prototype.selectAll], [["ctrl+z", "mac+meta+z"], AnnotationEditorUIManager.prototype.undo], [["ctrl+y", "ctrl+shift+Z", "mac+meta+shift+Z"], AnnotationEditorUIManager.prototype.redo], [["Backspace", "alt+Backspace", "ctrl+Backspace", "shift+Backspace", "mac+Backspace", "mac+alt+Backspace", "mac+ctrl+Backspace", "Delete", "ctrl+Delete", "shift+Delete"], AnnotationEditorUIManager.prototype.delete], [["Escape", "mac+Escape"], AnnotationEditorUIManager.prototype.unselectAll]]);
-  constructor(container, eventBus) {
+  constructor(container, eventBus, annotationStorage) {
     this.#container = container;
     this.#eventBus = eventBus;
     this.#eventBus._on("editingaction", this.#boundOnEditingAction);
     this.#eventBus._on("pagechanging", this.#boundOnPageChanging);
+    this.#eventBus._on("scalechanging", this.#boundOnScaleChanging);
+    this.#eventBus._on("rotationchanging", this.#boundOnRotationChanging);
+    this.#annotationStorage = annotationStorage;
+    this.viewParameters = {
+      realScale: _display_utils.PixelsPerInch.PDF_TO_CSS_UNITS,
+      rotation: 0
+    };
   }
   destroy() {
     this.#removeKeyboardManager();
     this.#eventBus._off("editingaction", this.#boundOnEditingAction);
     this.#eventBus._off("pagechanging", this.#boundOnPageChanging);
+    this.#eventBus._off("scalechanging", this.#boundOnScaleChanging);
+    this.#eventBus._off("rotationchanging", this.#boundOnRotationChanging);
     for (const layer of this.#allLayers.values()) {
       layer.destroy();
     }
     this.#allLayers.clear();
     this.#allEditors.clear();
+    this.#editorsToRescale.clear();
     this.#activeEditor = null;
     this.#selectedEditors.clear();
     this.#commandManager.destroy();
@@ -3425,6 +3390,32 @@ class AnnotationEditorUIManager {
   }
   focusMainContainer() {
     this.#container.focus();
+  }
+  addShouldRescale(editor) {
+    this.#editorsToRescale.add(editor);
+  }
+  removeShouldRescale(editor) {
+    this.#editorsToRescale.delete(editor);
+  }
+  onScaleChanging({
+    scale
+  }) {
+    this.commitOrRemove();
+    this.viewParameters.realScale = scale * _display_utils.PixelsPerInch.PDF_TO_CSS_UNITS;
+    for (const editor of this.#editorsToRescale) {
+      editor.onScaleChanging();
+    }
+  }
+  onRotationChanging({
+    pagesRotation
+  }) {
+    this.commitOrRemove();
+    this.viewParameters.rotation = pagesRotation;
+  }
+  addToAnnotationStorage(editor) {
+    if (!editor.isEmpty() && this.#annotationStorage && !this.#annotationStorage.has(editor.id)) {
+      this.#annotationStorage.setValue(editor.id, editor);
+    }
   }
   #addKeyboardManager() {
     this.#container.addEventListener("keydown", this.#boundKeydown);
@@ -3567,6 +3558,12 @@ class AnnotationEditorUIManager {
   getId() {
     return this.#idManager.getId();
   }
+  get currentLayer() {
+    return this.#allLayers.get(this.#currentPageIndex);
+  }
+  get currentPageIndex() {
+    return this.#currentPageIndex;
+  }
   addLayer(layer) {
     this.#allLayers.set(layer.pageIndex, layer);
     if (this.#isEnabled) {
@@ -3646,6 +3643,7 @@ class AnnotationEditorUIManager {
   removeEditor(editor) {
     this.#allEditors.delete(editor.id);
     this.unselect(editor);
+    this.#annotationStorage?.remove(editor.id);
   }
   #addEditorToLayer(editor) {
     const layer = this.#allLayers.get(editor.pageIndex);
@@ -3836,6 +3834,7 @@ exports.isDataScheme = isDataScheme;
 exports.isPdfFile = isPdfFile;
 exports.isValidFetchUrl = isValidFetchUrl;
 exports.loadScript = loadScript;
+exports.setLayerDimensions = setLayerDimensions;
 var _base_factory = __w_pdfjs_require__(7);
 var _util = __w_pdfjs_require__(1);
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -3962,6 +3961,17 @@ class PageViewport {
     this.width = width;
     this.height = height;
   }
+  get rawDims() {
+    const {
+      viewBox
+    } = this;
+    return (0, _util.shadow)(this, "rawDims", {
+      pageWidth: viewBox[2] - viewBox[0],
+      pageHeight: viewBox[3] - viewBox[1],
+      pageX: viewBox[0],
+      pageY: viewBox[1]
+    });
+  }
   clone({
     scale = this.scale,
     rotation = this.rotation,
@@ -3992,9 +4002,10 @@ class PageViewport {
 }
 exports.PageViewport = PageViewport;
 class RenderingCancelledException extends _util.BaseException {
-  constructor(msg, type) {
+  constructor(msg, type, extraDelay = 0) {
     super(msg, "RenderingCancelledException");
     this.type = type;
+    this.extraDelay = extraDelay;
   }
 }
 exports.RenderingCancelledException = RenderingCancelledException;
@@ -4206,6 +4217,29 @@ function getCurrentTransformInverse(ctx) {
     f
   } = ctx.getTransform().invertSelf();
   return [a, b, c, d, e, f];
+}
+function setLayerDimensions(div, viewport, mustFlip = false, mustRotate = true) {
+  if (viewport instanceof PageViewport) {
+    const {
+      pageWidth,
+      pageHeight
+    } = viewport.rawDims;
+    const {
+      style
+    } = div;
+    const widthStr = `calc(var(--scale-factor) * ${pageWidth}px)`;
+    const heightStr = `calc(var(--scale-factor) * ${pageHeight}px)`;
+    if (!mustFlip || viewport.rotation % 180 === 0) {
+      style.width = widthStr;
+      style.height = heightStr;
+    } else {
+      style.width = heightStr;
+      style.height = widthStr;
+    }
+  }
+  if (mustRotate) {
+    div.setAttribute("data-main-rotation", viewport.rotation);
+  }
 }
 
 /***/ }),
@@ -4472,7 +4506,6 @@ class FontLoader {
     ownerDocument = globalThis.document,
     styleElement = null
   }) {
-    this._onUnsupportedFeature = onUnsupportedFeature;
     this._document = ownerDocument;
     this.nativeFontFaces = [];
     this.styleElement = null;
@@ -4511,9 +4544,6 @@ class FontLoader {
         try {
           await nativeFontFace.loaded;
         } catch (ex) {
-          this._onUnsupportedFeature({
-            featureId: _util.UNSUPPORTED_FEATURES.errorFontLoadNative
-          });
           (0, _util.warn)(`Failed to load font '${nativeFontFace.family}': '${ex}'.`);
           font.disableFontFace = true;
           throw ex;
@@ -4563,7 +4593,6 @@ class FontFaceObject {
     this.isEvalSupported = isEvalSupported !== false;
     this.disableFontFace = disableFontFace === true;
     this.ignoreErrors = ignoreErrors === true;
-    this._onUnsupportedFeature = onUnsupportedFeature;
     this.fontRegistry = fontRegistry;
   }
   createNativeFontFace() {
@@ -4615,9 +4644,6 @@ class FontFaceObject {
       if (!this.ignoreErrors) {
         throw ex;
       }
-      this._onUnsupportedFeature({
-        featureId: _util.UNSUPPORTED_FEATURES.errorFontGetPath
-      });
       (0, _util.warn)(`getPathGenerator - ignoring character: "${ex}".`);
       return this.compiledGlyphs[character] = function (c, size) {};
     }
@@ -8086,20 +8112,29 @@ exports.PDFDataTransportStream = void 0;
 var _util = __w_pdfjs_require__(1);
 var _display_utils = __w_pdfjs_require__(6);
 class PDFDataTransportStream {
-  constructor(params, pdfDataRangeTransport) {
+  #transferPdfData = false;
+  constructor({
+    length,
+    initialData,
+    transferPdfData = false,
+    progressiveDone = false,
+    contentDispositionFilename = null,
+    disableRange = false,
+    disableStream = false
+  }, pdfDataRangeTransport) {
     (0, _util.assert)(pdfDataRangeTransport, 'PDFDataTransportStream - missing required "pdfDataRangeTransport" argument.');
     this._queuedChunks = [];
-    this._progressiveDone = params.progressiveDone || false;
-    this._contentDispositionFilename = params.contentDispositionFilename || null;
-    const initialData = params.initialData;
+    this.#transferPdfData = transferPdfData;
+    this._progressiveDone = progressiveDone;
+    this._contentDispositionFilename = contentDispositionFilename;
     if (initialData?.length > 0) {
-      const buffer = new Uint8Array(initialData).buffer;
+      const buffer = this.#transferPdfData ? initialData.buffer : new Uint8Array(initialData).buffer;
       this._queuedChunks.push(buffer);
     }
     this._pdfDataRangeTransport = pdfDataRangeTransport;
-    this._isStreamingSupported = !params.disableStream;
-    this._isRangeSupported = !params.disableRange;
-    this._contentLength = params.length;
+    this._isStreamingSupported = !disableStream;
+    this._isRangeSupported = !disableRange;
+    this._contentLength = length;
     this._fullRequestReader = null;
     this._rangeReaders = [];
     this._pdfDataRangeTransport.addRangeListener((begin, chunk) => {
@@ -8124,9 +8159,12 @@ class PDFDataTransportStream {
     });
     this._pdfDataRangeTransport.transportReady();
   }
-  _onReceiveData(args) {
-    const buffer = new Uint8Array(args.chunk).buffer;
-    if (args.begin === undefined) {
+  _onReceiveData({
+    begin,
+    chunk
+  }) {
+    const buffer = this.#transferPdfData && chunk?.length >= 0 ? chunk.buffer : new Uint8Array(chunk).buffer;
+    if (begin === undefined) {
       if (this._fullRequestReader) {
         this._fullRequestReader._enqueue(buffer);
       } else {
@@ -8134,7 +8172,7 @@ class PDFDataTransportStream {
       }
     } else {
       const found = this._rangeReaders.some(function (rangeReader) {
-        if (rangeReader._begin !== args.begin) {
+        if (rangeReader._begin !== begin) {
           return false;
         }
         rangeReader._enqueue(buffer);
@@ -8623,11 +8661,16 @@ class TextLayerRenderTask {
       properties: null,
       ctx: getCtx(0, isOffscreenCanvasSupported)
     };
-    const [pageLLx, pageLLy, pageURx, pageURy] = viewport.viewBox;
-    this._transform = [1, 0, 0, -1, -pageLLx, pageURy];
-    this._pageWidth = pageURx - pageLLx;
-    this._pageHeight = pageURy - pageLLy;
-    setTextLayerDimensions(container, viewport);
+    const {
+      pageWidth,
+      pageHeight,
+      pageX,
+      pageY
+    } = viewport.rawDims;
+    this._transform = [1, 0, 0, -1, -pageX, pageY + pageHeight];
+    this._pageWidth = pageWidth;
+    this._pageHeight = pageHeight;
+    (0, _display_utils.setLayerDimensions)(container, viewport);
     this._capability.promise.finally(() => {
       this._layoutTextParams = null;
     }).catch(() => {});
@@ -8728,7 +8771,7 @@ function updateTextLayer({
   mustRescale = true
 }) {
   if (mustRotate) {
-    setTextLayerDimensions(container, {
+    (0, _display_utils.setLayerDimensions)(container, {
       rotation: viewport.rotation
     });
   }
@@ -8750,21 +8793,6 @@ function updateTextLayer({
     }
   }
 }
-function setTextLayerDimensions(div, viewport) {
-  if (!viewport.viewBox) {
-    div.setAttribute("data-main-rotation", viewport.rotation);
-    return;
-  }
-  const [pageLLx, pageLLy, pageURx, pageURy] = viewport.viewBox;
-  const pageWidth = pageURx - pageLLx;
-  const pageHeight = pageURy - pageLLy;
-  const {
-    style
-  } = div;
-  style.width = `calc(var(--scale-factor) * ${pageWidth}px)`;
-  style.height = `calc(var(--scale-factor) * ${pageHeight}px)`;
-  div.setAttribute("data-main-rotation", viewport.rotation);
-}
 
 /***/ }),
 /* 21 */
@@ -8780,6 +8808,7 @@ var _util = __w_pdfjs_require__(1);
 var _tools = __w_pdfjs_require__(5);
 var _freetext = __w_pdfjs_require__(22);
 var _ink = __w_pdfjs_require__(23);
+var _display_utils = __w_pdfjs_require__(6);
 class AnnotationEditorLayer {
   #accessibilityManager;
   #allowClick = false;
@@ -8798,7 +8827,6 @@ class AnnotationEditorLayer {
     }
     options.uiManager.registerEditorTypes([_freetext.FreeTextEditor, _ink.InkEditor]);
     this.#uiManager = options.uiManager;
-    this.annotationStorage = options.annotationStorage;
     this.pageIndex = options.pageIndex;
     this.div = options.div;
     this.#accessibilityManager = options.accessibilityManager;
@@ -8880,7 +8908,6 @@ class AnnotationEditorLayer {
   remove(editor) {
     this.#uiManager.removeEditor(editor);
     this.detach(editor);
-    this.annotationStorage.remove(editor.id);
     editor.div.style.display = "none";
     setTimeout(() => {
       editor.div.style.display = "";
@@ -8899,7 +8926,6 @@ class AnnotationEditorLayer {
       return;
     }
     this.attach(editor);
-    editor.pageIndex = this.pageIndex;
     editor.parent?.detach(editor);
     editor.setParent(this);
     if (editor.div && editor.isAttachedToDOM) {
@@ -8918,15 +8944,10 @@ class AnnotationEditorLayer {
     }
     this.moveEditorInDOM(editor);
     editor.onceAdded();
-    this.addToAnnotationStorage(editor);
+    this.#uiManager.addToAnnotationStorage(editor);
   }
   moveEditorInDOM(editor) {
     this.#accessibilityManager?.moveElementInDOM(this.div, editor.div, editor.contentDiv, true);
-  }
-  addToAnnotationStorage(editor) {
-    if (!editor.isEmpty() && !this.annotationStorage.has(editor.id)) {
-      this.annotationStorage.setValue(editor.id, editor);
-    }
   }
   addOrRebuild(editor) {
     if (editor.needsToBeRebuilt()) {
@@ -8976,9 +8997,9 @@ class AnnotationEditorLayer {
   deserialize(data) {
     switch (data.annotationType) {
       case _util.AnnotationEditorType.FREETEXT:
-        return _freetext.FreeTextEditor.deserialize(data, this);
+        return _freetext.FreeTextEditor.deserialize(data, this, this.#uiManager);
       case _util.AnnotationEditorType.INK:
-        return _ink.InkEditor.deserialize(data, this);
+        return _ink.InkEditor.deserialize(data, this, this.#uiManager);
     }
     return null;
   }
@@ -8988,7 +9009,8 @@ class AnnotationEditorLayer {
       parent: this,
       id,
       x: event.offsetX,
-      y: event.offsetY
+      y: event.offsetY,
+      uiManager: this.#uiManager
     });
     if (editor) {
       this.add(editor);
@@ -9066,8 +9088,8 @@ class AnnotationEditorLayer {
     }
     for (const editor of this.#editors.values()) {
       this.#accessibilityManager?.removePointerInTextLayer(editor.contentDiv);
-      editor.isAttachedToDOM = false;
       editor.setParent(null);
+      editor.isAttachedToDOM = false;
       editor.div.remove();
     }
     this.div = null;
@@ -9083,50 +9105,33 @@ class AnnotationEditorLayer {
     }
     this.#isCleaningUp = false;
   }
-  render(parameters) {
-    this.viewport = parameters.viewport;
+  render({
+    viewport
+  }) {
+    this.viewport = viewport;
+    (0, _display_utils.setLayerDimensions)(this.div, viewport);
     (0, _tools.bindEvents)(this, this.div, ["dragover", "drop"]);
-    this.setDimensions();
     for (const editor of this.#uiManager.getEditors(this.pageIndex)) {
       this.add(editor);
     }
     this.updateMode();
   }
-  update(parameters) {
+  update({
+    viewport
+  }) {
     this.#uiManager.commitOrRemove();
-    this.viewport = parameters.viewport;
-    this.setDimensions();
+    this.viewport = viewport;
+    (0, _display_utils.setLayerDimensions)(this.div, {
+      rotation: viewport.rotation
+    });
     this.updateMode();
   }
-  get scaleFactor() {
-    return this.viewport.scale;
-  }
   get pageDimensions() {
-    const [pageLLx, pageLLy, pageURx, pageURy] = this.viewport.viewBox;
-    const width = pageURx - pageLLx;
-    const height = pageURy - pageLLy;
-    return [width, height];
-  }
-  get viewportBaseDimensions() {
     const {
-      width,
-      height,
-      rotation
-    } = this.viewport;
-    return rotation % 180 === 0 ? [width, height] : [height, width];
-  }
-  setDimensions() {
-    const {
-      width,
-      height,
-      rotation
-    } = this.viewport;
-    const flipOrientation = rotation % 180 !== 0,
-      widthStr = Math.floor(width) + "px",
-      heightStr = Math.floor(height) + "px";
-    this.div.style.width = flipOrientation ? heightStr : widthStr;
-    this.div.style.height = flipOrientation ? widthStr : heightStr;
-    this.div.setAttribute("data-main-rotation", rotation);
+      pageWidth,
+      pageHeight
+    } = this.viewport.rawDims;
+    return [pageWidth, pageHeight];
   }
 }
 exports.AnnotationEditorLayer = AnnotationEditorLayer;
@@ -9203,12 +9208,12 @@ class FreeTextEditor extends _editor.AnnotationEditor {
   #updateFontSize(fontSize) {
     const setFontsize = size => {
       this.editorDiv.style.fontSize = `calc(${size}px * var(--scale-factor))`;
-      this.translate(0, -(size - this.#fontSize) * this.parent.scaleFactor);
+      this.translate(0, -(size - this.#fontSize) * this.parentScale);
       this.#fontSize = size;
       this.#setEditorDimensions();
     };
     const savedFontsize = this.#fontSize;
-    this.parent.addCommands({
+    this.addCommands({
       cmd: () => {
         setFontsize(fontSize);
       },
@@ -9223,14 +9228,12 @@ class FreeTextEditor extends _editor.AnnotationEditor {
   }
   #updateColor(color) {
     const savedColor = this.#color;
-    this.parent.addCommands({
+    this.addCommands({
       cmd: () => {
-        this.#color = color;
-        this.editorDiv.style.color = color;
+        this.#color = this.editorDiv.style.color = color;
       },
       undo: () => {
-        this.#color = savedColor;
-        this.editorDiv.style.color = savedColor;
+        this.#color = this.editorDiv.style.color = savedColor;
       },
       mustExec: true,
       type: _util.AnnotationEditorParamsType.FREETEXT_COLOR,
@@ -9239,7 +9242,8 @@ class FreeTextEditor extends _editor.AnnotationEditor {
     });
   }
   getInitialTranslation() {
-    return [-FreeTextEditor._internalPadding * this.parent.scaleFactor, -(FreeTextEditor._internalPadding + this.#fontSize) * this.parent.scaleFactor];
+    const scale = this.parentScale;
+    return [-FreeTextEditor._internalPadding * scale, -(FreeTextEditor._internalPadding + this.#fontSize) * scale];
   }
   rebuild() {
     super.rebuild();
@@ -9280,7 +9284,9 @@ class FreeTextEditor extends _editor.AnnotationEditor {
     this.editorDiv.removeEventListener("focus", this.#boundEditorDivFocus);
     this.editorDiv.removeEventListener("blur", this.#boundEditorDivBlur);
     this.editorDiv.removeEventListener("input", this.#boundEditorDivInput);
-    this.div.focus();
+    this.div.focus({
+      preventScroll: true
+    });
     this.isEditing = false;
     this.parent.div.classList.add("freeTextEditing");
   }
@@ -9318,12 +9324,29 @@ class FreeTextEditor extends _editor.AnnotationEditor {
     return buffer.join("\n");
   }
   #setEditorDimensions() {
-    const [parentWidth, parentHeight] = this.parent.viewportBaseDimensions;
-    const rect = this.div.getBoundingClientRect();
+    const [parentWidth, parentHeight] = this.parentDimensions;
+    let rect;
+    if (this.isAttachedToDOM) {
+      rect = this.div.getBoundingClientRect();
+    } else {
+      const {
+        currentLayer,
+        div
+      } = this;
+      const savedDisplay = div.style.display;
+      div.style.display = "hidden";
+      currentLayer.div.append(this.div);
+      rect = div.getBoundingClientRect();
+      div.remove();
+      div.style.display = savedDisplay;
+    }
     this.width = rect.width / parentWidth;
     this.height = rect.height / parentHeight;
   }
   commit() {
+    if (!this.isInEditMode()) {
+      return;
+    }
     super.commit();
     if (!this.#hasAlreadyBeenCommitted) {
       this.#hasAlreadyBeenCommitted = true;
@@ -9394,7 +9417,7 @@ class FreeTextEditor extends _editor.AnnotationEditor {
     this.div.append(this.overlayDiv);
     (0, _tools.bindEvents)(this, this.div, ["dblclick", "keydown"]);
     if (this.width) {
-      const [parentWidth, parentHeight] = this.parent.viewportBaseDimensions;
+      const [parentWidth, parentHeight] = this.parentDimensions;
       this.setAt(baseX * parentWidth, baseY * parentHeight, this.width * parentWidth, this.height * parentHeight);
       for (const line of this.#content.split("\n")) {
         const div = document.createElement("div");
@@ -9412,29 +9435,26 @@ class FreeTextEditor extends _editor.AnnotationEditor {
   get contentDiv() {
     return this.editorDiv;
   }
-  static deserialize(data, parent) {
-    const editor = super.deserialize(data, parent);
+  static deserialize(data, parent, uiManager) {
+    const editor = super.deserialize(data, parent, uiManager);
     editor.#fontSize = data.fontSize;
     editor.#color = _util.Util.makeHexColor(...data.color);
     editor.#content = data.value;
     return editor;
   }
   serialize() {
-    if (this._serialized !== undefined) {
-      return this._serialized;
-    }
     if (this.isEmpty()) {
       return null;
     }
-    const padding = FreeTextEditor._internalPadding * this.parent.scaleFactor;
+    const padding = FreeTextEditor._internalPadding * this.parentScale;
     const rect = this.getRect(padding, padding);
-    const color = _editor.AnnotationEditor._colorManager.convert(getComputedStyle(this.editorDiv).color);
+    const color = _editor.AnnotationEditor._colorManager.convert(this.isAttachedToDOM ? getComputedStyle(this.editorDiv).color : this.#color);
     return {
       annotationType: _util.AnnotationEditorType.FREETEXT,
       color,
       fontSize: this.#fontSize,
       value: this.#content,
-      pageIndex: this.parent.pageIndex,
+      pageIndex: this.pageIndex,
       rect,
       rotation: this.rotation
     };
@@ -9537,7 +9557,7 @@ class InkEditor extends _editor.AnnotationEditor {
   }
   #updateThickness(thickness) {
     const savedThickness = this.thickness;
-    this.parent.addCommands({
+    this.addCommands({
       cmd: () => {
         this.thickness = thickness;
         this.#fitToContent();
@@ -9554,7 +9574,7 @@ class InkEditor extends _editor.AnnotationEditor {
   }
   #updateColor(color) {
     const savedColor = this.color;
-    this.parent.addCommands({
+    this.addCommands({
       cmd: () => {
         this.color = color;
         this.#redraw();
@@ -9572,7 +9592,7 @@ class InkEditor extends _editor.AnnotationEditor {
   #updateOpacity(opacity) {
     opacity /= 100;
     const savedOpacity = this.opacity;
-    this.parent.addCommands({
+    this.addCommands({
       cmd: () => {
         this.opacity = opacity;
         this.#redraw();
@@ -9616,6 +9636,20 @@ class InkEditor extends _editor.AnnotationEditor {
     this.#observer = null;
     super.remove();
   }
+  setParent(parent) {
+    if (!this.parent && parent) {
+      this._uiManager.removeShouldRescale(this);
+    } else if (this.parent && parent === null) {
+      this._uiManager.addShouldRescale(this);
+    }
+    super.setParent(parent);
+  }
+  onScaleChanging() {
+    const [parentWidth, parentHeight] = this.parentDimensions;
+    const width = this.width * parentWidth;
+    const height = this.height * parentHeight;
+    this.setDimensions(width, height);
+  }
   enableEditMode() {
     if (this.#disableEditing || this.canvas === null) {
       return;
@@ -9643,27 +9677,34 @@ class InkEditor extends _editor.AnnotationEditor {
   }
   #getInitialBBox() {
     const {
-      width,
-      height,
-      rotation
-    } = this.parent.viewport;
-    switch (rotation) {
+      parentRotation,
+      parentDimensions: [width, height]
+    } = this;
+    switch (parentRotation) {
       case 90:
-        return [0, width, width, height];
+        return [0, height, height, width];
       case 180:
         return [width, height, width, height];
       case 270:
-        return [height, 0, width, height];
+        return [width, 0, height, width];
       default:
         return [0, 0, width, height];
     }
   }
   #setStroke() {
-    this.ctx.lineWidth = this.thickness * this.parent.scaleFactor / this.scaleFactor;
-    this.ctx.lineCap = "round";
-    this.ctx.lineJoin = "round";
-    this.ctx.miterLimit = 10;
-    this.ctx.strokeStyle = `${this.color}${(0, _tools.opacityToHex)(this.opacity)}`;
+    const {
+      ctx,
+      color,
+      opacity,
+      thickness,
+      parentScale,
+      scaleFactor
+    } = this;
+    ctx.lineWidth = thickness * parentScale / scaleFactor;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.miterLimit = 10;
+    ctx.strokeStyle = `${color}${(0, _tools.opacityToHex)(opacity)}`;
   }
   #startDrawing(x, y) {
     this.isEditing = true;
@@ -9742,7 +9783,7 @@ class InkEditor extends _editor.AnnotationEditor {
         this.#fitToContent();
       }
     };
-    this.parent.addCommands({
+    this.addCommands({
       cmd,
       undo,
       mustExec: true
@@ -9778,7 +9819,9 @@ class InkEditor extends _editor.AnnotationEditor {
     this.#fitToContent(true);
     this.parent.addInkEditorIfNeeded(true);
     this.parent.moveEditorInDOM(this);
-    this.div.focus();
+    this.div.focus({
+      preventScroll: true
+    });
   }
   focusin(event) {
     super.focusin(event);
@@ -9819,7 +9862,7 @@ class InkEditor extends _editor.AnnotationEditor {
     this.#stopDrawing(event.offsetX, event.offsetY);
     this.canvas.removeEventListener("pointerleave", this.#boundCanvasPointerleave);
     this.canvas.removeEventListener("pointermove", this.#boundCanvasPointermove);
-    this.parent.addToAnnotationStorage(this);
+    this.addToAnnotationStorage();
   }
   #createCanvas() {
     this.canvas = document.createElement("canvas");
@@ -9862,7 +9905,7 @@ class InkEditor extends _editor.AnnotationEditor {
     this.setDims(w, h);
     this.#createCanvas();
     if (this.width) {
-      const [parentWidth, parentHeight] = this.parent.viewportBaseDimensions;
+      const [parentWidth, parentHeight] = this.parentDimensions;
       this.setAt(baseX * parentWidth, baseY * parentHeight, this.width * parentWidth, this.height * parentHeight);
       this.#isCanvasInitialized = true;
       this.#setCanvasDims();
@@ -9881,7 +9924,7 @@ class InkEditor extends _editor.AnnotationEditor {
     if (!this.#isCanvasInitialized) {
       return;
     }
-    const [parentWidth, parentHeight] = this.parent.viewportBaseDimensions;
+    const [parentWidth, parentHeight] = this.parentDimensions;
     this.canvas.width = Math.ceil(this.width * parentWidth);
     this.canvas.height = Math.ceil(this.height * parentHeight);
     this.#updateTransform();
@@ -9899,7 +9942,7 @@ class InkEditor extends _editor.AnnotationEditor {
       height = Math.ceil(width / this.#aspectRatio);
       this.setDims(width, height);
     }
-    const [parentWidth, parentHeight] = this.parent.viewportBaseDimensions;
+    const [parentWidth, parentHeight] = this.parentDimensions;
     this.width = width / parentWidth;
     this.height = height / parentHeight;
     if (this.#disableEditing) {
@@ -10011,7 +10054,7 @@ class InkEditor extends _editor.AnnotationEditor {
     return [xMin, yMin, xMax, yMax];
   }
   #getPadding() {
-    return this.#disableEditing ? Math.ceil(this.thickness * this.parent.scaleFactor) : 0;
+    return this.#disableEditing ? Math.ceil(this.thickness * this.parentScale) : 0;
   }
   #fitToContent(firstTime = false) {
     if (this.isEmpty()) {
@@ -10027,7 +10070,7 @@ class InkEditor extends _editor.AnnotationEditor {
     this.#baseHeight = Math.max(RESIZER_SIZE, bbox[3] - bbox[1]);
     const width = Math.ceil(padding + this.#baseWidth * this.scaleFactor);
     const height = Math.ceil(padding + this.#baseHeight * this.scaleFactor);
-    const [parentWidth, parentHeight] = this.parent.viewportBaseDimensions;
+    const [parentWidth, parentHeight] = this.parentDimensions;
     this.width = width / parentWidth;
     this.height = height / parentHeight;
     this.#aspectRatio = width / height;
@@ -10056,15 +10099,15 @@ class InkEditor extends _editor.AnnotationEditor {
       style.minHeight = `${Math.round(RESIZER_SIZE / this.#aspectRatio)}px`;
     }
   }
-  static deserialize(data, parent) {
-    const editor = super.deserialize(data, parent);
+  static deserialize(data, parent, uiManager) {
+    const editor = super.deserialize(data, parent, uiManager);
     editor.thickness = data.thickness;
     editor.color = _util.Util.makeHexColor(...data.color);
     editor.opacity = data.opacity;
-    const [pageWidth, pageHeight] = parent.pageDimensions;
+    const [pageWidth, pageHeight] = editor.pageDimensions;
     const width = editor.width * pageWidth;
     const height = editor.height * pageHeight;
-    const scaleFactor = parent.scaleFactor;
+    const scaleFactor = editor.parentScale;
     const padding = data.thickness / 2;
     editor.#aspectRatio = width / height;
     editor.#disableEditing = true;
@@ -10098,9 +10141,6 @@ class InkEditor extends _editor.AnnotationEditor {
     return editor;
   }
   serialize() {
-    if (this._serialized !== undefined) {
-      return this._serialized;
-    }
     if (this.isEmpty()) {
       return null;
     }
@@ -10112,8 +10152,8 @@ class InkEditor extends _editor.AnnotationEditor {
       color,
       thickness: this.thickness,
       opacity: this.opacity,
-      paths: this.#serializePaths(this.scaleFactor / this.parent.scaleFactor, this.translationX, this.translationY, height),
-      pageIndex: this.parent.pageIndex,
+      paths: this.#serializePaths(this.scaleFactor / this.parentScale, this.translationX, this.translationY, height),
+      pageIndex: this.pageIndex,
       rect,
       rotation: this.rotation
     };
@@ -10532,7 +10572,6 @@ class AnnotationElement {
     this.enableScripting = parameters.enableScripting;
     this.hasJSActions = parameters.hasJSActions;
     this._fieldObjects = parameters.fieldObjects;
-    this._mouseState = parameters.mouseState;
     if (isRenderable) {
       this.container = this._createContainer(ignoreBorder);
     }
@@ -10541,18 +10580,23 @@ class AnnotationElement {
     }
   }
   _createContainer(ignoreBorder = false) {
-    const data = this.data,
-      page = this.page,
-      viewport = this.viewport;
+    const {
+      data,
+      page,
+      viewport
+    } = this;
     const container = document.createElement("section");
+    container.setAttribute("data-annotation-id", data.id);
+    const {
+      pageWidth,
+      pageHeight,
+      pageX,
+      pageY
+    } = viewport.rawDims;
     const {
       width,
       height
     } = getRectDims(data.rect);
-    const [pageLLx, pageLLy, pageURx, pageURy] = viewport.viewBox;
-    const pageWidth = pageURx - pageLLx;
-    const pageHeight = pageURy - pageLLy;
-    container.setAttribute("data-annotation-id", data.id);
     const rect = _util.Util.normalizeRect([data.rect[0], page.view[3] - data.rect[1] + page.view[1], data.rect[2], page.view[3] - data.rect[3] + page.view[1]]);
     if (!ignoreBorder && data.borderStyle.width > 0) {
       container.style.borderWidth = `${data.borderStyle.width}px`;
@@ -10591,8 +10635,8 @@ class AnnotationElement {
         container.style.borderWidth = 0;
       }
     }
-    container.style.left = `${100 * (rect[0] - pageLLx) / pageWidth}%`;
-    container.style.top = `${100 * (rect[1] - pageLLy) / pageHeight}%`;
+    container.style.left = `${100 * (rect[0] - pageX) / pageWidth}%`;
+    container.style.top = `${100 * (rect[1] - pageY) / pageHeight}%`;
     const {
       rotation
     } = data;
@@ -10605,9 +10649,10 @@ class AnnotationElement {
     return container;
   }
   setRotation(angle, container = this.container) {
-    const [pageLLx, pageLLy, pageURx, pageURy] = this.viewport.viewBox;
-    const pageWidth = pageURx - pageLLx;
-    const pageHeight = pageURy - pageLLy;
+    const {
+      pageWidth,
+      pageHeight
+    } = this.viewport.rawDims;
     const {
       width,
       height
@@ -11192,7 +11237,8 @@ class TextWidgetAnnotationElement extends WidgetAnnotationElement {
       const elementData = {
         userValue: textContent,
         formattedValue: null,
-        lastCommittedValue: null
+        lastCommittedValue: null,
+        commitKey: 1
       };
       if (this.data.multiLine) {
         element = document.createElement("textarea");
@@ -11246,6 +11292,7 @@ class TextWidgetAnnotationElement extends WidgetAnnotationElement {
             target.value = elementData.userValue;
           }
           elementData.lastCommittedValue = target.value;
+          elementData.commitKey = 1;
         });
         element.addEventListener("updatefromsandbox", jsEvent => {
           const actions = {
@@ -11309,13 +11356,14 @@ class TextWidgetAnnotationElement extends WidgetAnnotationElement {
           this._dispatchEventFromSandbox(actions, jsEvent);
         });
         element.addEventListener("keydown", event => {
+          elementData.commitKey = 1;
           let commitKey = -1;
           if (event.key === "Escape") {
             commitKey = 0;
           } else if (event.key === "Enter" && !this.data.multiLine) {
             commitKey = 2;
           } else if (event.key === "Tab") {
-            commitKey = 3;
+            elementData.commitKey = 3;
           }
           if (commitKey === -1) {
             return;
@@ -11344,11 +11392,14 @@ class TextWidgetAnnotationElement extends WidgetAnnotationElement {
         const _blurListener = blurListener;
         blurListener = null;
         element.addEventListener("blur", event => {
+          if (!event.relatedTarget) {
+            return;
+          }
           const {
             value
           } = event.target;
           elementData.userValue = value;
-          if (this._mouseState.isDown && elementData.lastCommittedValue !== value) {
+          if (elementData.lastCommittedValue !== value) {
             this.linkService.eventBus?.dispatch("dispatcheventinsandbox", {
               source: this,
               detail: {
@@ -11356,7 +11407,7 @@ class TextWidgetAnnotationElement extends WidgetAnnotationElement {
                 name: "Keystroke",
                 value,
                 willCommit: true,
-                commitKey: 1,
+                commitKey: elementData.commitKey,
                 selStart: event.target.selectionStart,
                 selEnd: event.target.selectionEnd
               }
@@ -11674,14 +11725,18 @@ class ChoiceWidgetAnnotationElement extends WidgetAnnotationElement {
       };
       selectElement.addEventListener("input", removeEmptyEntry);
     }
-    const getValue = (event, isExport) => {
+    const getValue = isExport => {
       const name = isExport ? "value" : "textContent";
-      const options = event.target.options;
-      if (!event.target.multiple) {
+      const {
+        options,
+        multiple
+      } = selectElement;
+      if (!multiple) {
         return options.selectedIndex === -1 ? null : options[options.selectedIndex][name];
       }
       return Array.prototype.filter.call(options, option => option.selected).map(option => option[name]);
     };
+    let selectedValues = getValue(false);
     const getItems = event => {
       const options = event.target.options;
       return Array.prototype.map.call(options, option => {
@@ -11702,8 +11757,9 @@ class ChoiceWidgetAnnotationElement extends WidgetAnnotationElement {
               option.selected = values.has(option.value);
             }
             storage.setValue(id, {
-              value: getValue(event, true)
+              value: getValue(true)
             });
+            selectedValues = getValue(false);
           },
           multipleSelection(event) {
             selectElement.multiple = true;
@@ -11720,9 +11776,10 @@ class ChoiceWidgetAnnotationElement extends WidgetAnnotationElement {
               }
             }
             storage.setValue(id, {
-              value: getValue(event, true),
+              value: getValue(true),
               items: getItems(event)
             });
+            selectedValues = getValue(false);
           },
           clear(event) {
             while (selectElement.length !== 0) {
@@ -11732,6 +11789,7 @@ class ChoiceWidgetAnnotationElement extends WidgetAnnotationElement {
               value: null,
               items: []
             });
+            selectedValues = getValue(false);
           },
           insert(event) {
             const {
@@ -11749,9 +11807,10 @@ class ChoiceWidgetAnnotationElement extends WidgetAnnotationElement {
               selectElement.append(optionElement);
             }
             storage.setValue(id, {
-              value: getValue(event, true),
+              value: getValue(true),
               items: getItems(event)
             });
+            selectedValues = getValue(false);
           },
           items(event) {
             const {
@@ -11774,9 +11833,10 @@ class ChoiceWidgetAnnotationElement extends WidgetAnnotationElement {
               selectElement.options[0].selected = true;
             }
             storage.setValue(id, {
-              value: getValue(event, true),
+              value: getValue(true),
               items: getItems(event)
             });
+            selectedValues = getValue(false);
           },
           indices(event) {
             const indices = new Set(event.detail.indices);
@@ -11784,8 +11844,9 @@ class ChoiceWidgetAnnotationElement extends WidgetAnnotationElement {
               option.selected = indices.has(option.index);
             }
             storage.setValue(id, {
-              value: getValue(event, true)
+              value: getValue(true)
             });
+            selectedValues = getValue(false);
           },
           editable(event) {
             event.target.disabled = !event.detail.editable;
@@ -11794,19 +11855,19 @@ class ChoiceWidgetAnnotationElement extends WidgetAnnotationElement {
         this._dispatchEventFromSandbox(actions, jsEvent);
       });
       selectElement.addEventListener("input", event => {
-        const exportValue = getValue(event, true);
-        const value = getValue(event, false);
+        const exportValue = getValue(true);
         storage.setValue(id, {
           value: exportValue
         });
+        event.preventDefault();
         this.linkService.eventBus?.dispatch("dispatcheventinsandbox", {
           source: this,
           detail: {
             id,
             name: "Keystroke",
-            value,
+            value: selectedValues,
             changeEx: exportValue,
-            willCommit: true,
+            willCommit: false,
             commitKey: 1,
             keyDown: false
           }
@@ -11816,7 +11877,7 @@ class ChoiceWidgetAnnotationElement extends WidgetAnnotationElement {
     } else {
       selectElement.addEventListener("input", function (event) {
         storage.setValue(id, {
-          value: getValue(event, true)
+          value: getValue(true)
         });
       });
     }
@@ -11859,11 +11920,14 @@ class PopupAnnotationElement extends AnnotationElement {
     const rect = _util.Util.normalizeRect([this.data.parentRect[0], page.view[3] - this.data.parentRect[1] + page.view[1], this.data.parentRect[2], page.view[3] - this.data.parentRect[3] + page.view[1]]);
     const popupLeft = rect[0] + this.data.parentRect[2] - this.data.parentRect[0];
     const popupTop = rect[1];
-    const [pageLLx, pageLLy, pageURx, pageURy] = this.viewport.viewBox;
-    const pageWidth = pageURx - pageLLx;
-    const pageHeight = pageURy - pageLLy;
-    this.container.style.left = `${100 * (popupLeft - pageLLx) / pageWidth}%`;
-    this.container.style.top = `${100 * (popupTop - pageLLy) / pageHeight}%`;
+    const {
+      pageWidth,
+      pageHeight,
+      pageX,
+      pageY
+    } = this.viewport.rawDims;
+    this.container.style.left = `${100 * (popupLeft - pageX) / pageWidth}%`;
+    this.container.style.top = `${100 * (popupTop - pageY) / pageHeight}%`;
     this.container.append(popup.render());
     return this.container;
   }
@@ -12335,14 +12399,29 @@ class AnnotationLayer {
     div.append(element);
     accessibilityManager?.moveElementInDOM(div, element, contentElement, false);
   }
-  static render(parameters) {
+  static render(params) {
     const {
       annotations,
       div,
       viewport,
       accessibilityManager
-    } = parameters;
-    this.#setDimensions(div, viewport);
+    } = params;
+    (0, _display_utils.setLayerDimensions)(div, viewport);
+    const elementParams = {
+      data: null,
+      layer: div,
+      page: params.page,
+      viewport,
+      linkService: params.linkService,
+      downloadManager: params.downloadManager,
+      imageResourcesPath: params.imageResourcesPath || "",
+      renderForms: params.renderForms !== false,
+      svgFactory: new _display_utils.DOMSVGFactory(),
+      annotationStorage: params.annotationStorage || new _annotation_storage.AnnotationStorage(),
+      enableScripting: params.enableScripting === true,
+      hasJSActions: params.hasJSActions,
+      fieldObjects: params.fieldObjects
+    };
     let zIndex = 0;
     for (const data of annotations) {
       if (data.annotationType !== _util.AnnotationType.POPUP) {
@@ -12354,70 +12433,42 @@ class AnnotationLayer {
           continue;
         }
       }
-      const element = AnnotationElementFactory.create({
-        data,
-        layer: div,
-        page: parameters.page,
-        viewport,
-        linkService: parameters.linkService,
-        downloadManager: parameters.downloadManager,
-        imageResourcesPath: parameters.imageResourcesPath || "",
-        renderForms: parameters.renderForms !== false,
-        svgFactory: new _display_utils.DOMSVGFactory(),
-        annotationStorage: parameters.annotationStorage || new _annotation_storage.AnnotationStorage(),
-        enableScripting: parameters.enableScripting,
-        hasJSActions: parameters.hasJSActions,
-        fieldObjects: parameters.fieldObjects,
-        mouseState: parameters.mouseState || {
-          isDown: false
+      elementParams.data = data;
+      const element = AnnotationElementFactory.create(elementParams);
+      if (!element.isRenderable) {
+        continue;
+      }
+      const rendered = element.render();
+      if (data.hidden) {
+        rendered.style.visibility = "hidden";
+      }
+      if (Array.isArray(rendered)) {
+        for (const renderedElement of rendered) {
+          renderedElement.style.zIndex = zIndex++;
+          AnnotationLayer.#appendElement(renderedElement, data.id, div, accessibilityManager);
         }
-      });
-      if (element.isRenderable) {
-        const rendered = element.render();
-        if (data.hidden) {
-          rendered.style.visibility = "hidden";
-        }
-        if (Array.isArray(rendered)) {
-          for (const renderedElement of rendered) {
-            renderedElement.style.zIndex = zIndex++;
-            AnnotationLayer.#appendElement(renderedElement, data.id, div, accessibilityManager);
-          }
+      } else {
+        rendered.style.zIndex = zIndex++;
+        if (element instanceof PopupAnnotationElement) {
+          div.prepend(rendered);
         } else {
-          rendered.style.zIndex = zIndex++;
-          if (element instanceof PopupAnnotationElement) {
-            div.prepend(rendered);
-          } else {
-            AnnotationLayer.#appendElement(rendered, data.id, div, accessibilityManager);
-          }
+          AnnotationLayer.#appendElement(rendered, data.id, div, accessibilityManager);
         }
       }
     }
-    this.#setAnnotationCanvasMap(div, parameters.annotationCanvasMap);
+    this.#setAnnotationCanvasMap(div, params.annotationCanvasMap);
   }
-  static update(parameters) {
+  static update(params) {
     const {
       annotationCanvasMap,
       div,
       viewport
-    } = parameters;
-    this.#setDimensions(div, viewport);
+    } = params;
+    (0, _display_utils.setLayerDimensions)(div, {
+      rotation: viewport.rotation
+    });
     this.#setAnnotationCanvasMap(div, annotationCanvasMap);
     div.hidden = false;
-  }
-  static #setDimensions(div, {
-    width,
-    height,
-    rotation
-  }) {
-    const {
-      style
-    } = div;
-    const flipOrientation = rotation % 180 !== 0,
-      widthStr = Math.floor(width) + "px",
-      heightStr = Math.floor(height) + "px";
-    style.width = flipOrientation ? heightStr : widthStr;
-    style.height = flipOrientation ? widthStr : heightStr;
-    div.setAttribute("data-main-rotation", rotation);
   }
   static #setAnnotationCanvasMap(div, annotationCanvasMap) {
     if (!annotationCanvasMap) {
@@ -12984,6 +13035,12 @@ Object.defineProperty(exports, "renderTextLayer", ({
     return _text_layer.renderTextLayer;
   }
 }));
+Object.defineProperty(exports, "setLayerDimensions", ({
+  enumerable: true,
+  get: function () {
+    return _display_utils.setLayerDimensions;
+  }
+}));
 Object.defineProperty(exports, "shadow", ({
   enumerable: true,
   get: function () {
@@ -13010,12 +13067,10 @@ var _annotation_editor_layer = __w_pdfjs_require__(21);
 var _tools = __w_pdfjs_require__(5);
 var _annotation_layer = __w_pdfjs_require__(26);
 var _worker_options = __w_pdfjs_require__(14);
-var _is_node = __w_pdfjs_require__(10);
 var _svg = __w_pdfjs_require__(29);
 var _xfa_layer = __w_pdfjs_require__(28);
-const pdfjsVersion = '3.2.47';
-const pdfjsBuild = 'feb6f5951';
-;
+const pdfjsVersion = '3.3.56';
+const pdfjsBuild = '1e938a688';
 })();
 
 /******/ 	return __webpack_exports__;

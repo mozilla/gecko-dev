@@ -3,8 +3,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, division, print_function
-
 import argparse
 import asyncio
 import configparser
@@ -14,14 +12,14 @@ import os
 import shutil
 import tempfile
 import time
-from distutils.util import strtobool
 from contextlib import AsyncExitStack
+from distutils.util import strtobool
 from pathlib import Path
 
 import aiohttp
 from mardor.reader import MarReader
 from mardor.signing import get_keysize
-from scriptworker.utils import retry_async, get_hash
+from scriptworker.utils import get_hash, retry_async
 
 log = logging.getLogger(__name__)
 

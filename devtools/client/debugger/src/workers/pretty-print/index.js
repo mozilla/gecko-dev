@@ -5,29 +5,21 @@
 import { prefs } from "../../utils/prefs";
 import { WorkerDispatcher } from "devtools/client/shared/worker-utils";
 
-let dispatcher;
-let workerPath;
+const WORKER_URL =
+  "resource://devtools/client/debugger/dist/pretty-print-worker.js";
 
-export const start = path => {
-  workerPath = path;
-};
-export const stop = () => {
-  if (dispatcher) {
-    dispatcher.stop();
-    dispatcher = null;
-    workerPath = null;
-  }
-};
-
-export async function prettyPrint({ text, url }) {
-  if (!dispatcher) {
-    dispatcher = new WorkerDispatcher();
-    dispatcher.start(workerPath);
+export class PrettyPrintDispatcher extends WorkerDispatcher {
+  constructor(jestUrl) {
+    super(jestUrl || WORKER_URL);
   }
 
-  return dispatcher.invoke("prettyPrint", {
-    url,
-    indent: prefs.indentSize,
-    sourceText: text,
-  });
+  #prettyPrintTask = this.task("prettyPrint");
+
+  prettyPrint({ url, text }) {
+    return this.#prettyPrintTask({
+      url,
+      indent: prefs.indentSize,
+      sourceText: text,
+    });
+  }
 }

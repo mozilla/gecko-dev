@@ -1,21 +1,17 @@
 #!/usr/bin/env python
 
-from __future__ import absolute_import
-
+import errno
 import os
-import stat
 import shutil
+import stat
 import threading
 import time
 import unittest
-import errno
 from contextlib import contextmanager
-
-import mozunit
 
 import mozfile
 import mozinfo
-
+import mozunit
 import stubs
 
 

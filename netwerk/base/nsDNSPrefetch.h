@@ -16,9 +16,9 @@
 
 #include "nsIDNSListener.h"
 #include "nsIRequest.h"
+#include "nsIDNSService.h"
 
 class nsIURI;
-class nsIDNSService;
 class nsIDNSHTTPSSVCRecord;
 
 class nsDNSPrefetch final : public nsIDNSListener {
@@ -45,9 +45,12 @@ class nsDNSPrefetch final : public nsIDNSListener {
   static nsresult Shutdown();
 
   // Call one of the following methods to start the Prefetch.
-  nsresult PrefetchHigh(bool refreshDNS = false);
-  nsresult PrefetchMedium(bool refreshDNS = false);
-  nsresult PrefetchLow(bool refreshDNS = false);
+  nsresult PrefetchHigh(
+      nsIDNSService::DNSFlags = nsIDNSService::RESOLVE_DEFAULT_FLAGS);
+  nsresult PrefetchMedium(
+      nsIDNSService::DNSFlags = nsIDNSService::RESOLVE_DEFAULT_FLAGS);
+  nsresult PrefetchLow(
+      nsIDNSService::DNSFlags = nsIDNSService::RESOLVE_DEFAULT_FLAGS);
 
   nsresult FetchHTTPSSVC(
       bool aRefreshDNS, bool aPrefetch,
@@ -63,7 +66,7 @@ class nsDNSPrefetch final : public nsIDNSListener {
   mozilla::TimeStamp mEndTimestamp;
   nsWeakPtr mListener;
 
-  nsresult Prefetch(uint32_t flags);
+  nsresult Prefetch(nsIDNSService::DNSFlags flags);
 };
 
 #endif

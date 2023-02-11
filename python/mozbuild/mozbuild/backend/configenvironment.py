@@ -2,27 +2,24 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function
-
-import os
-import six
-import sys
 import json
-
-from collections.abc import Iterable
+import os
+import sys
 from collections import OrderedDict
+from collections.abc import Iterable
 from pathlib import Path
 from types import ModuleType
 
 import mozpack.path as mozpath
+import six
 
+from mozbuild.shellutil import quote as shell_quote
 from mozbuild.util import (
     FileAvoidWrite,
-    memoized_property,
     ReadOnlyDict,
+    memoized_property,
     system_encoding,
 )
-from mozbuild.shellutil import quote as shell_quote
 
 
 class ConfigStatusFailure(Exception):

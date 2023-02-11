@@ -2,13 +2,11 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
-import six.moves.cPickle as pickle
 from collections import defaultdict
-import six
 
 import mozpack.path as mozpath
+import six
+import six.moves.cPickle as pickle
 
 from mozbuild.backend.base import PartialBackend
 from mozbuild.frontend.data import TestManifest

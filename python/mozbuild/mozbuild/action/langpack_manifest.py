@@ -11,8 +11,6 @@
 # and from other information in the `xpi-stage` directory.
 ###
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import argparse
 import datetime
 import io
@@ -26,8 +24,9 @@ import mozpack.path as mozpath
 import mozversioncontrol
 import requests
 from fluent.syntax.parser import FluentParser
-from mozbuild.configure.util import Version
 from mozpack.chrome.manifest import Manifest, ManifestLocale, parse_manifest
+
+from mozbuild.configure.util import Version
 
 
 def write_file(path, content):

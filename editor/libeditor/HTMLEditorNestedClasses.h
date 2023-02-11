@@ -6,6 +6,7 @@
 #ifndef HTMLEditorNestedClasses_h
 #define HTMLEditorNestedClasses_h
 
+#include "EditorDOMPoint.h"
 #include "EditorForwards.h"
 #include "HTMLEditor.h"       // for HTMLEditor
 #include "HTMLEditHelpers.h"  // for EditorInlineStyleAndValue
@@ -30,6 +31,18 @@ class MOZ_STACK_CLASS HTMLEditor::AutoInlineStyleSetter final
       const EditorInlineStyleAndValue& aStyleAndValue)
       : EditorInlineStyleAndValue(aStyleAndValue) {}
 
+  void Reset() {
+    mFirstHandledPoint.Clear();
+    mLastHandledPoint.Clear();
+  }
+
+  const EditorDOMPoint& FirstHandledPointRef() const {
+    return mFirstHandledPoint;
+  }
+  const EditorDOMPoint& LastHandledPointRef() const {
+    return mLastHandledPoint;
+  }
+
   /**
    * Split aText at aStartOffset and aEndOffset (except when they are start or
    * end of its data) and wrap the middle text node in an element to apply the
@@ -38,22 +51,54 @@ class MOZ_STACK_CLASS HTMLEditor::AutoInlineStyleSetter final
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<SplitRangeOffFromNodeResult, nsresult>
   SplitTextNodeAndApplyStyleToMiddleNode(HTMLEditor& aHTMLEditor, Text& aText,
                                          uint32_t aStartOffset,
-                                         uint32_t aEndOffset) const;
+                                         uint32_t aEndOffset);
 
   /**
    * Remove same style from children and apply the style entire (except
    * non-editable nodes) aContent.
    */
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<CaretPoint, nsresult>
-  ApplyStyleToNodeOrChildrenAndRemoveNestedSameStyle(
-      HTMLEditor& aHTMLEditor, nsIContent& aContent) const;
+  ApplyStyleToNodeOrChildrenAndRemoveNestedSameStyle(HTMLEditor& aHTMLEditor,
+                                                     nsIContent& aContent);
+
+  /**
+   * Invert the style with creating new element or something.  This should
+   * be called only when IsInvertibleWithCSS() returns true.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
+  InvertStyleIfApplied(HTMLEditor& aHTMLEditor, Element& aElement);
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<SplitRangeOffFromNodeResult, nsresult>
+  InvertStyleIfApplied(HTMLEditor& aHTMLEditor, Text& aTextNode,
+                       uint32_t aStartOffset, uint32_t aEndOffset);
+
+  /**
+   * Extend or shrink aRange for applying the style to the range.
+   * See comments in the definition what this does.
+   */
+  Result<EditorRawDOMRange, nsresult> ExtendOrShrinkRangeToApplyTheStyle(
+      const HTMLEditor& aHTMLEditor, const EditorDOMRange& aRange) const;
+
+  /**
+   * Returns next/previous sibling of aContent or an ancestor of it if it's
+   * editable and does not cross block boundary.
+   */
+  [[nodiscard]] static nsIContent* GetNextEditableInlineContent(
+      const nsIContent& aContent, const nsINode* aLimiter = nullptr);
+  [[nodiscard]] static nsIContent* GetPreviousEditableInlineContent(
+      const nsIContent& aContent, const nsINode* aLimiter = nullptr);
 
  private:
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<CaretPoint, nsresult> ApplyStyle(
-      HTMLEditor& aHTMLEditor, nsIContent& aContent) const;
+      HTMLEditor& aHTMLEditor, nsIContent& aContent);
 
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<CaretPoint, nsresult>
-  ApplyCSSTextDecoration(HTMLEditor& aHTMLEditor, nsIContent& aContent) const;
+  ApplyCSSTextDecoration(HTMLEditor& aHTMLEditor, nsIContent& aContent);
+
+  /**
+   * Returns true if aStyledElement is a good element to set `style` attribute.
+   */
+  [[nodiscard]] bool ElementIsGoodContainerToSetStyle(
+      nsStyledElement& aStyledElement) const;
 
   /**
    * ElementIsGoodContainerForTheStyle() returns true if aElement is a
@@ -64,6 +109,66 @@ class MOZ_STACK_CLASS HTMLEditor::AutoInlineStyleSetter final
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<bool, nsresult>
   ElementIsGoodContainerForTheStyle(HTMLEditor& aHTMLEditor,
                                     Element& aElement) const;
+
+  /**
+   * Return true if the node is an element node and it represents the style or
+   * sets the style (including when setting different value) with `style`
+   * attribute.
+   */
+  [[nodiscard]] bool ContentIsElementSettingTheStyle(
+      const HTMLEditor& aHTMLEditor, nsIContent& aContent) const;
+
+  /**
+   * Helper methods to shrink range to apply the style.
+   */
+  [[nodiscard]] EditorRawDOMPoint GetShrunkenRangeStart(
+      const HTMLEditor& aHTMLEditor, const EditorDOMRange& aRange,
+      const nsINode& aCommonAncestorOfRange,
+      const nsIContent* aFirstEntirelySelectedContentNodeInRange) const;
+  [[nodiscard]] EditorRawDOMPoint GetShrunkenRangeEnd(
+      const HTMLEditor& aHTMLEditor, const EditorDOMRange& aRange,
+      const nsINode& aCommonAncestorOfRange,
+      const nsIContent* aLastEntirelySelectedContentNodeInRange) const;
+
+  /**
+   * Helper methods to extend the range to apply the style.
+   */
+  [[nodiscard]] EditorRawDOMPoint
+  GetExtendedRangeStartToWrapAncestorApplyingSameStyle(
+      const HTMLEditor& aHTMLEditor,
+      const EditorRawDOMPoint& aStartPoint) const;
+  [[nodiscard]] EditorRawDOMPoint
+  GetExtendedRangeEndToWrapAncestorApplyingSameStyle(
+      const HTMLEditor& aHTMLEditor, const EditorRawDOMPoint& aEndPoint) const;
+  [[nodiscard]] EditorRawDOMRange
+  GetExtendedRangeToMinimizeTheNumberOfNewElements(
+      const HTMLEditor& aHTMLEditor, const nsINode& aCommonAncestor,
+      EditorRawDOMPoint&& aStartPoint, EditorRawDOMPoint&& aEndPoint) const;
+
+  /**
+   * OnHandled() are called when this class creates new element to apply the
+   * style, applies new style to existing element or ignores to apply the style
+   * due to already set.
+   */
+  void OnHandled(const EditorDOMPoint& aStartPoint,
+                 const EditorDOMPoint& aEndPoint) {
+    if (!mFirstHandledPoint.IsSet()) {
+      mFirstHandledPoint = aStartPoint;
+    }
+    mLastHandledPoint = aEndPoint;
+  }
+  void OnHandled(nsIContent& aContent) {
+    if (!mFirstHandledPoint.IsSet()) {
+      mFirstHandledPoint.Set(&aContent, 0u);
+    }
+    mLastHandledPoint = EditorDOMPoint::AtEndOf(aContent);
+  }
+
+  // mFirstHandledPoint and mLastHandledPoint store the first and last points
+  // which are newly created or apply the new style, or just ignored at trying
+  // to split a text node.
+  EditorDOMPoint mFirstHandledPoint;
+  EditorDOMPoint mLastHandledPoint;
 };
 
 }  // namespace mozilla

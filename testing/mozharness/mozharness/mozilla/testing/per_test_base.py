@@ -5,13 +5,13 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 # ***** END LICENSE BLOCK *****
 
-from __future__ import absolute_import
 import itertools
 import json
 import math
 import os
 import posixpath
 import sys
+
 import mozinfo
 from manifestparser import TestManifest
 
@@ -219,6 +219,11 @@ class SingleTestMixin(object):
                     "a11y",
                     None,
                 ): "mochitest-browser-a11y",
+                (
+                    "mochitest-browser-chrome",
+                    "media-bc",
+                    None,
+                ): "mochitest-browser-media",
                 (
                     "mochitest-browser-chrome",
                     "devtools",

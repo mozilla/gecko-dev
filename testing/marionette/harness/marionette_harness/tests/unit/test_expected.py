@@ -2,8 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import
-
 from six.moves.urllib.parse import quote
 
 from marionette_driver import expected
@@ -153,7 +151,7 @@ class TestExpected(marionette_test.MarionetteTestCase):
     def test_element_displayed_when_stale_element(self):
         self.marionette.navigate(static_element)
         el = self.marionette.find_element(By.TAG_NAME, "p")
-        self.marionette.navigate("about:blank")
+        self.marionette.execute_script("arguments[0].remove()", [el])
         missing = expected.element_displayed(el)(self.marionette)
         self.assertFalse(missing)
 
@@ -182,7 +180,7 @@ class TestExpected(marionette_test.MarionetteTestCase):
     def test_element_not_displayed_when_stale_element(self):
         self.marionette.navigate(static_element)
         el = self.marionette.find_element(By.TAG_NAME, "p")
-        self.marionette.navigate("about:blank")
+        self.marionette.execute_script("arguments[0].remove()", [el])
         missing = expected.element_not_displayed(el)(self.marionette)
         self.assertTrue(missing)
 

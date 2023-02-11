@@ -452,7 +452,7 @@ partial interface Document {
   Promise<any> blockParsing(Promise<any> promise,
                             optional BlockParsingOptions options = {});
 
-  [Func="nsContentUtils::IsPDFJS", BinaryName="blockUnblockOnloadForPDFJS"]
+  [Func="nsContentUtils::IsSystemOrPDFJS", BinaryName="blockUnblockOnloadForSystemOrPDFJS"]
   undefined blockUnblockOnload(boolean block);
 
   // like documentURI, except that for error pages, it returns the URI we were
@@ -617,7 +617,6 @@ partial interface Document {
 
 Document includes XPathEvaluatorMixin;
 Document includes GlobalEventHandlers;
-Document includes DocumentAndElementEventHandlers;
 Document includes TouchEventHandlers;
 Document includes ParentNode;
 Document includes OnErrorEventHandlerForNodes;

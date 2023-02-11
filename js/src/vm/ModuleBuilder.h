@@ -32,13 +32,13 @@ class ParseNode;
 // Process a module's parse tree to collate the import and export data used when
 // creating a ModuleObject.
 class MOZ_STACK_CLASS ModuleBuilder {
-  explicit ModuleBuilder(JSContext* cx, ErrorContext* ec,
+  explicit ModuleBuilder(JSContext* cx, FrontendContext* fc,
                          const frontend::EitherParser& eitherParser);
 
  public:
   template <class Parser>
-  explicit ModuleBuilder(JSContext* cx, ErrorContext* ec, Parser* parser)
-      : ModuleBuilder(cx, ec, frontend::EitherParser(parser)) {}
+  explicit ModuleBuilder(JSContext* cx, FrontendContext* fc, Parser* parser)
+      : ModuleBuilder(cx, fc, frontend::EitherParser(parser)) {}
 
   bool processImport(frontend::BinaryNode* importNode);
   bool processExport(frontend::ParseNode* exportNode);
@@ -50,14 +50,15 @@ class MOZ_STACK_CLASS ModuleBuilder {
 
   // During BytecodeEmitter we note top-level functions, and afterwards we must
   // call finishFunctionDecls on the list.
-  bool noteFunctionDeclaration(ErrorContext* ec, uint32_t funIndex);
+  bool noteFunctionDeclaration(FrontendContext* fc, uint32_t funIndex);
   void finishFunctionDecls(frontend::StencilModuleMetadata& metadata);
 
   void noteAsync(frontend::StencilModuleMetadata& metadata);
 
  private:
-  using RequestedModuleVector =
-      Vector<frontend::StencilModuleEntry, 0, js::SystemAllocPolicy>;
+  using MaybeModuleRequestIndex = frontend::MaybeModuleRequestIndex;
+  using ModuleRequestVector = frontend::StencilModuleMetadata::RequestVector;
+  using RequestedModuleVector = frontend::StencilModuleMetadata::EntryVector;
 
   using AtomSet = HashSet<frontend::TaggedParserAtomIndex,
                           frontend::TaggedParserAtomIndexHasher>;
@@ -67,10 +68,11 @@ class MOZ_STACK_CLASS ModuleBuilder {
               frontend::TaggedParserAtomIndexHasher>;
 
   JSContext* cx_;
-  ErrorContext* ec_;
+  FrontendContext* fc_;
   frontend::EitherParser eitherParser_;
 
   // These are populated while parsing.
+  ModuleRequestVector moduleRequests_;
   AtomSet requestedModuleSpecifiers_;
   RequestedModuleVector requestedModules_;
   ImportEntryMap importEntries_;
@@ -87,17 +89,20 @@ class MOZ_STACK_CLASS ModuleBuilder {
   bool processExportArrayBinding(frontend::ListNode* array);
   bool processExportObjectBinding(frontend::ListNode* obj);
 
+  MaybeModuleRequestIndex appendModuleRequest(
+      frontend::TaggedParserAtomIndex specifier,
+      frontend::ListNode* assertionList);
+
   bool appendExportEntry(frontend::TaggedParserAtomIndex exportName,
                          frontend::TaggedParserAtomIndex localName,
                          frontend::ParseNode* node = nullptr);
 
-  bool maybeAppendRequestedModule(frontend::TaggedParserAtomIndex specifier,
-                                  frontend::ParseNode* node,
-                                  frontend::ListNode* assertionList);
+  bool maybeAppendRequestedModule(MaybeModuleRequestIndex moduleRequest,
+                                  frontend::ParseNode* node);
 
   void markUsedByStencil(frontend::TaggedParserAtomIndex name);
 
-  [[nodiscard]] bool processAssertions(frontend::StencilModuleEntry& entry,
+  [[nodiscard]] bool processAssertions(frontend::StencilModuleRequest& request,
                                        frontend::ListNode* assertionList);
 
   [[nodiscard]] bool isAssertionSupported(

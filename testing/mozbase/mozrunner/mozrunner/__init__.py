@@ -3,12 +3,10 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import
+import mozrunner.base
+import mozrunner.devices
+import mozrunner.utils
 
 from .cli import *
 from .errors import *
 from .runners import *
-
-import mozrunner.base
-import mozrunner.devices
-import mozrunner.utils

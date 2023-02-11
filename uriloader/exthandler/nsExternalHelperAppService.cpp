@@ -3281,6 +3281,13 @@ nsExternalHelperAppService::ValidateFileNameForSaving(
                       aMimeType.EqualsLiteral(BINARY_OCTET_STREAM) ||
                       aMimeType.EqualsLiteral("application/x-msdownload");
 
+  // We don't want to save hidden files starting with a dot, so remove any
+  // leading periods. This is done first, so that the remainder will be
+  // treated as the filename, and not an extension.
+  // Also, Windows ignores terminating dots. So we have to as well, so
+  // that our security checks do "the right thing"
+  fileName.Trim(".");
+
   // We get the mime service here even though we're the default implementation
   // of it, so it's possible to override only the mime service and not need to
   // reimplement the whole external helper app service itself.
@@ -3294,8 +3301,9 @@ nsExternalHelperAppService::ValidateFileNameForSaving(
         nsAutoCString leafName;
         url->GetFileName(leafName);
         if (!leafName.IsEmpty()) {
-          if (NS_SUCCEEDED(UnescapeFragment(leafName, url, fileName))) {
-            CopyUTF8toUTF16(leafName, aFileName);  // use escaped name
+          if (NS_FAILED(UnescapeFragment(leafName, url, fileName))) {
+            CopyUTF8toUTF16(leafName, fileName);  // use escaped name instead
+            fileName.Trim(".");
           }
         }
 
@@ -3355,10 +3363,6 @@ nsExternalHelperAppService::ValidateFileNameForSaving(
       }
     }
   }
-
-  // Windows ignores terminating dots. So we have to as well, so
-  // that our security checks do "the right thing"
-  fileName.Trim(".", false);
 
   // If an empty filename is allowed, then return early. It will be saved
   // using the filename of the temporary file that was created for the download.
@@ -3438,11 +3442,14 @@ nsExternalHelperAppService::ValidateFileNameForSaving(
   nsLocalFile::CheckForReservedFileName(fileName);
 #endif
 
-  // If the extension is .lnk or .local, replace it with .download, as these
+  // If the extension is one these types, replace it with .download, as these
   // types of files can have signifance on Windows. This happens for any file,
   // not just those with the shortcut mime type.
-  if (StringEndsWith(fileName, u".lnk"_ns) ||
-      StringEndsWith(fileName, u".local"_ns)) {
+  if (StringEndsWith(fileName, u".lnk"_ns, nsCaseInsensitiveStringComparator) ||
+      StringEndsWith(fileName, u".local"_ns,
+                     nsCaseInsensitiveStringComparator) ||
+      StringEndsWith(fileName, u".url"_ns, nsCaseInsensitiveStringComparator) ||
+      StringEndsWith(fileName, u".scf"_ns, nsCaseInsensitiveStringComparator)) {
     fileName.AppendLiteral(".download");
   }
 

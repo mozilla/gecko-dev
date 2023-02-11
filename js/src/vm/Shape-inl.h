@@ -47,13 +47,14 @@ template <class ObjectSubclass>
   return true;
 }
 
-MOZ_ALWAYS_INLINE PropMap* Shape::lookup(JSContext* cx, PropertyKey key,
-                                         uint32_t* index) {
+MOZ_ALWAYS_INLINE PropMap* NativeShape::lookup(JSContext* cx, PropertyKey key,
+                                               uint32_t* index) {
   uint32_t len = propMapLength();
   return len > 0 ? propMap_->lookup(cx, len, key, index) : nullptr;
 }
 
-MOZ_ALWAYS_INLINE PropMap* Shape::lookupPure(PropertyKey key, uint32_t* index) {
+MOZ_ALWAYS_INLINE PropMap* NativeShape::lookupPure(PropertyKey key,
+                                                   uint32_t* index) {
   uint32_t len = propMapLength();
   return len > 0 ? propMap_->lookupPure(len, key, index) : nullptr;
 }
@@ -69,7 +70,14 @@ inline void Shape::finalize(JS::GCContext* gcx) {
   if (!cache_.isNone()) {
     purgeCache(gcx);
   }
+  if (isWasmGC()) {
+    asWasmGC().finalize(gcx);
+  }
 }
+
+inline void WasmGCShape::init() { recGroup_->AddRef(); }
+
+inline void WasmGCShape::finalize(JS::GCContext* gcx) { recGroup_->Release(); }
 
 inline SharedPropMap* SharedShape::propMapMaybeForwarded() const {
   MOZ_ASSERT(isShared());

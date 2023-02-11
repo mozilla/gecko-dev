@@ -1,8 +1,6 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
-from __future__ import absolute_import
-
 import json
 import os
 import signal
@@ -16,11 +14,11 @@ from mozprocess import ProcessHandler
 from mozproxy.backends.base import Playback
 from mozproxy.recordings import RecordingFile
 from mozproxy.utils import (
-    download_file_from_url,
-    transform_platform,
-    tooltool_download,
-    get_available_port,
     LOG,
+    download_file_from_url,
+    get_available_port,
+    tooltool_download,
+    transform_platform,
 )
 
 here = os.path.dirname(__file__)
@@ -373,7 +371,6 @@ class Mitmproxy(Playback):
             command,
             logfile=os.path.join(self.upload_dir, "mitmproxy.log"),
             env=env,
-            processStderrLine=LOG.error,
             storeOutput=False,
         )
         self.mitmproxy_proc.run()
@@ -420,10 +417,10 @@ class Mitmproxy(Playback):
                 return
 
             if mozinfo.os == "win":
-                from mozprocess.winprocess import (
+                from mozprocess.winprocess import (  # noqa
                     ERROR_CONTROL_C_EXIT,
                     ERROR_CONTROL_C_EXIT_DECIMAL,
-                )  # noqa
+                )
 
                 if exit_code in [ERROR_CONTROL_C_EXIT, ERROR_CONTROL_C_EXIT_DECIMAL]:
                     LOG.info(

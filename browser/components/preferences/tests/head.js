@@ -131,11 +131,13 @@ async function runSearchInput(input) {
 
 async function evaluateSearchResults(
   keyword,
-  searchReults,
+  searchResults,
   includeExperiments = false
 ) {
-  searchReults = Array.isArray(searchReults) ? searchReults : [searchReults];
-  searchReults.push("header-searchResults");
+  searchResults = Array.isArray(searchResults)
+    ? searchResults
+    : [searchResults];
+  searchResults.push("header-searchResults");
 
   await runSearchInput(keyword);
 
@@ -145,7 +147,7 @@ async function evaluateSearchResults(
     if (!includeExperiments && child.id?.startsWith("pane-experimental")) {
       continue;
     }
-    if (searchReults.includes(child.id)) {
+    if (searchResults.includes(child.id)) {
       is_element_visible(child, `${child.id} should be in search results`);
     } else if (child.id) {
       is_element_hidden(child, `${child.id} should not be in search results`);
@@ -288,4 +290,46 @@ async function waitForAndAssertPrefState(pref, expectedValue, message) {
     is(value, expectedValue, message);
     return true;
   });
+}
+
+/**
+ * The Relay promo is not shown for distributions with a custom FxA instance,
+ * since Relay requires an account on our own server. These prefs are set to a
+ * dummy address by the test harness, filling the prefs with a "user value."
+ * This temporarily sets the default value equal to the dummy value, so that
+ * Firefox thinks we've configured the correct FxA server.
+ * @returns {Promise<MockFxAUtilityFunctions>} { mock, unmock }
+ */
+async function mockDefaultFxAInstance() {
+  /**
+   * @typedef {Object} MockFxAUtilityFunctions
+   * @property {function():void} mock - Makes the dummy values default, creating
+   *                             the illusion of a production FxA instance.
+   * @property {function():void} unmock - Restores the true defaults, creating
+   *                             the illusion of a custom FxA instance.
+   */
+
+  const defaultPrefs = Services.prefs.getDefaultBranch("");
+  const userPrefs = Services.prefs.getBranch("");
+  const realAuth = defaultPrefs.getCharPref("identity.fxaccounts.auth.uri");
+  const realRoot = defaultPrefs.getCharPref("identity.fxaccounts.remote.root");
+  const mockAuth = userPrefs.getCharPref("identity.fxaccounts.auth.uri");
+  const mockRoot = userPrefs.getCharPref("identity.fxaccounts.remote.root");
+  const mock = () => {
+    defaultPrefs.setCharPref("identity.fxaccounts.auth.uri", mockAuth);
+    defaultPrefs.setCharPref("identity.fxaccounts.remote.root", mockRoot);
+    userPrefs.clearUserPref("identity.fxaccounts.auth.uri");
+    userPrefs.clearUserPref("identity.fxaccounts.remote.root");
+  };
+  const unmock = () => {
+    defaultPrefs.setCharPref("identity.fxaccounts.auth.uri", realAuth);
+    defaultPrefs.setCharPref("identity.fxaccounts.remote.root", realRoot);
+    userPrefs.setCharPref("identity.fxaccounts.auth.uri", mockAuth);
+    userPrefs.setCharPref("identity.fxaccounts.remote.root", mockRoot);
+  };
+
+  mock();
+  registerCleanupFunction(unmock);
+
+  return { mock, unmock };
 }

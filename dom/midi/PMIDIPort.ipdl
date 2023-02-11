@@ -4,16 +4,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-include protocol PBackground;
 include MIDITypes;
 
 namespace mozilla {
 namespace dom {
 
-[ManualDealloc]
 async protocol PMIDIPort
 {
-  manager PBackground;
 parent:
   async Shutdown();
   async Send(MIDIMessage[] msg);
@@ -25,7 +22,6 @@ child:
   // Actually takes a MIDIDeviceConnectionState and MIDIPortConnectionState
   // respectively.
   async UpdateStatus(uint32_t deviceState, uint32_t connectionState);
-  async __delete__();
 };
 
 }

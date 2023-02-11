@@ -32,6 +32,10 @@ add_task(async function selected_result_tip() {
       expected: "tip_onboard",
     },
     {
+      type: "searchTip_persist",
+      expected: "tip_persist",
+    },
+    {
       type: "searchTip_redirect",
       expected: "tip_redirect",
     },
@@ -115,6 +119,13 @@ add_task(async function selected_result_intervention_refresh() {
 });
 
 add_task(async function selected_result_intervention_update() {
+  // Updates are disabled for MSIX packages, this test is irrelevant for them.
+  if (
+    AppConstants.platform === "win" &&
+    Services.sysinfo.getProperty("hasWinPackageId")
+  ) {
+    return;
+  }
   await UpdateUtils.setAppUpdateAutoEnabled(false);
   await initUpdate({ queryString: "&noUpdates=1" });
   UrlbarProviderInterventions.checkForBrowserUpdate(true);

@@ -4,26 +4,17 @@
 
 # Integrates the xpcshell test runner with mach.
 
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import errno
 import logging
 import os
 import sys
-
-from mozlog import structured
-
-from mozbuild.base import (
-    MozbuildObject,
-    MachCommandConditions as conditions,
-    BinaryNotFoundException,
-)
-
-from mach.decorators import (
-    Command,
-)
-
 from multiprocessing import cpu_count
+
+from mach.decorators import Command
+from mozbuild.base import BinaryNotFoundException
+from mozbuild.base import MachCommandConditions as conditions
+from mozbuild.base import MozbuildObject
+from mozlog import structured
 from xpcshellcommandline import parser_desktop, parser_remote
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -260,9 +251,9 @@ def run_xpcshell_test(command_context, test_objects=None, **params):
         or command_context.substs.get("MOZ_BUILD_APP") == "b2g"
     ):
         from mozrunner.devices.android_device import (
-            verify_android_device,
-            get_adb_path,
             InstallIntent,
+            get_adb_path,
+            verify_android_device,
         )
 
         install = InstallIntent.YES if params["setup"] else InstallIntent.NO

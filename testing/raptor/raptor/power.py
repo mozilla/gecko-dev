@@ -2,15 +2,12 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, division
-
 import os
 import re
 import time
 
 from logger.logger import RaptorLogger
 from mozdevice import ADBError, ADBTimeoutError
-
 
 LOG = RaptorLogger(component="raptor-power")
 

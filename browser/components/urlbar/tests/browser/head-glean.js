@@ -9,11 +9,18 @@ ChromeUtils.defineESModuleGetters(this, {
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
 });
 
-XPCOMUtils.defineLazyGetter(this, "QuickSuggestTestUtils", () => {
-  const { QuickSuggestTestUtils: Utils } = ChromeUtils.importESModule(
+const lazy = {};
+
+XPCOMUtils.defineLazyGetter(lazy, "QuickSuggestTestUtils", () => {
+  const { QuickSuggestTestUtils: module } = ChromeUtils.importESModule(
     "resource://testing-common/QuickSuggestTestUtils.sys.mjs"
   );
-  return new Utils(this);
+  module.init(this);
+  return module;
+});
+
+ChromeUtils.defineESModuleGetters(lazy, {
+  UrlbarTestUtils: "resource://testing-common/UrlbarTestUtils.sys.mjs",
 });
 
 async function addTopSites(url) {
@@ -58,34 +65,36 @@ function _assertGleanTelemetry(telemetryName, expectedExtraList) {
 }
 
 async function ensureQuickSuggestInit() {
-  return QuickSuggestTestUtils.ensureQuickSuggestInit([
-    {
-      id: 1,
-      url: "https://example.com/sponsored",
-      title: "Sponsored suggestion",
-      keywords: ["sponsored"],
-      click_url: "https://example.com/click",
-      impression_url: "https://example.com/impression",
-      advertiser: "TestAdvertiser",
-      iab_category: "22 - Shopping",
-    },
-    {
-      id: 2,
-      url: `https://example.com/nonsponsored`,
-      title: "Non-sponsored suggestion",
-      keywords: ["nonsponsored"],
-      click_url: "https://example.com/click",
-      impression_url: "https://example.com/impression",
-      advertiser: "TestAdvertiser",
-      iab_category: "5 - Education",
-    },
-  ]);
+  return lazy.QuickSuggestTestUtils.ensureQuickSuggestInit({
+    remoteSettingsResults: [
+      {
+        id: 1,
+        url: "https://example.com/sponsored",
+        title: "Sponsored suggestion",
+        keywords: ["sponsored"],
+        click_url: "https://example.com/click",
+        impression_url: "https://example.com/impression",
+        advertiser: "TestAdvertiser",
+        iab_category: "22 - Shopping",
+      },
+      {
+        id: 2,
+        url: `https://example.com/nonsponsored`,
+        title: "Non-sponsored suggestion",
+        keywords: ["nonsponsored"],
+        click_url: "https://example.com/click",
+        impression_url: "https://example.com/impression",
+        advertiser: "TestAdvertiser",
+        iab_category: "5 - Education",
+      },
+    ],
+  });
 }
 
 async function doTest(testFn) {
   await Services.fog.testFlushAllChildren();
   Services.fog.testResetFOG();
-  gURLBar.controller.engagementEvent.discard();
+  gURLBar.controller.engagementEvent.reset();
   await PlacesUtils.history.clear();
   await PlacesUtils.bookmarks.eraseEverything();
   await PlacesTestUtils.clearHistoryVisits();
@@ -254,11 +263,17 @@ async function loadRemoteTab(url) {
 }
 
 async function openPopup(input) {
-  await UrlbarTestUtils.promiseAutocompleteResultPopup({
-    window,
-    value: input,
-    fireInputEvent: true,
+  await UrlbarTestUtils.promisePopupOpen(window, async () => {
+    EventUtils.synthesizeMouseAtCenter(gURLBar.inputField, {});
+    await BrowserTestUtils.waitForCondition(
+      () =>
+        gURLBar.inputField.ownerDocument.activeElement === gURLBar.inputField
+    );
+    for (let i = 0; i < input.length; i++) {
+      EventUtils.synthesizeKey(input.charAt(i));
+    }
   });
+  await UrlbarTestUtils.promiseSearchComplete(window);
 }
 
 async function selectRowByURL(url) {
@@ -286,8 +301,9 @@ async function setup() {
     set: [
       ["browser.urlbar.searchEngagementTelemetry.enabled", true],
       ["browser.urlbar.quickactions.enabled", true],
-      ["browser.urlbar.suggest.quickactions", true],
       ["browser.urlbar.quickactions.showInZeroPrefix", true],
+      ["browser.urlbar.suggest.quickactions", true],
+      ["browser.urlbar.shortcuts.quickactions", true],
     ],
   });
 
@@ -308,6 +324,10 @@ async function setup() {
       Ci.nsISearchService.CHANGE_REASON_UNKNOWN
     );
   });
+}
+
+async function setupNimbus(variables) {
+  return lazy.UrlbarTestUtils.initNimbusFeature(variables);
 }
 
 async function showResultByArrowDown() {

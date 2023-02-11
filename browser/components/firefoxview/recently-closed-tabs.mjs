@@ -238,6 +238,15 @@ class RecentlyClosedTabsList extends HTMLElement {
       }
     }
 
+    // Remove existing tabs from tabsList if not in latest closedTabsData
+    // which is necessary when using "Reopen Closed Tab" from the toolbar
+    // or when selecting "Forget this site" in History
+    [...this.tabsList.children].forEach(existingTab => {
+      if (!this.closedTabsData.get(parseInt(existingTab.dataset.tabid, 10))) {
+        this.tabsList.removeChild(existingTab);
+      }
+    });
+
     // If there's nothing to add/update, return.
     if (!tabsToAdd.length && !tabsToUpdate.length) {
       return;
@@ -327,10 +336,14 @@ class RecentlyClosedTabsList extends HTMLElement {
   // have all the requisite information for them immediately.
   updateURLForListItem(li, targetURI) {
     li.dataset.targetURI = targetURI;
-    document.l10n.setAttributes(li, "firefoxview-tabs-list-tab-button", {
-      targetURI,
-    });
     let urlElement = li.querySelector(".closed-tab-li-url");
+    document.l10n.setAttributes(
+      urlElement,
+      "firefoxview-tabs-list-tab-button",
+      {
+        targetURI,
+      }
+    );
     if (targetURI) {
       urlElement.textContent = formatURIForDisplay(targetURI);
       urlElement.title = targetURI;

@@ -2,20 +2,15 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import errno
 import os
 import shutil
 
+import mozpack.path as mozpath
 from buildconfig import topsrcdir
-
 from mach.logging import LoggingManager
 
 from mozbuild.util import ReadOnlyDict
-
-import mozpack.path as mozpath
-
 
 # By including this module, tests get structured logging.
 log_manager = LoggingManager()

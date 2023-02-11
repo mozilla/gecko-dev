@@ -42,7 +42,13 @@ async function loadGeneratedSource(state, sourceActor, client) {
   };
 }
 
-async function loadOriginalSource(state, source, client, sourceMaps) {
+async function loadOriginalSource(
+  state,
+  source,
+  client,
+  sourceMapLoader,
+  prettyPrintWorker
+) {
   if (isPretty(source)) {
     const generatedSource = getGeneratedSource(state, source);
     if (!generatedSource) {
@@ -57,14 +63,15 @@ async function loadOriginalSource(state, source, client, sourceMaps) {
     );
 
     return prettyPrintSource(
-      sourceMaps,
+      sourceMapLoader,
+      prettyPrintWorker,
       generatedSource,
       content,
       getSourceActorsForSource(state, generatedSource.id)
     );
   }
 
-  const result = await sourceMaps.getOriginalSourceText(source.id);
+  const result = await sourceMapLoader.getOriginalSourceText(source.id);
   if (!result) {
     // The way we currently try to load and select a pending
     // selected location, it is possible that we will try to fetch the
@@ -78,7 +85,7 @@ async function loadOriginalSource(state, source, client, sourceMaps) {
 async function loadGeneratedSourceTextPromise(
   cx,
   sourceActor,
-  { dispatch, getState, client, parser }
+  { dispatch, getState, client, parserWorker }
 ) {
   const epoch = getSourcesEpoch(getState());
 
@@ -89,30 +96,47 @@ async function loadGeneratedSourceTextPromise(
     [PROMISE]: loadGeneratedSource(getState(), sourceActor, client),
   });
 
-  await setParserAndBreakpointsTextContent(cx, sourceActor.source, {
-    state: getState(),
-    parser,
-    dispatch,
-  });
+  await setParserAndBreakpointsTextContent(
+    cx,
+    sourceActor.source,
+    sourceActor.actor,
+    {
+      state: getState(),
+      parserWorker,
+      dispatch,
+    }
+  );
 }
 
 async function loadOriginalSourceTextPromise(
   cx,
   source,
-  { dispatch, getState, client, sourceMaps, parser }
+  {
+    dispatch,
+    getState,
+    client,
+    sourceMapLoader,
+    parserWorker,
+    prettyPrintWorker,
+  }
 ) {
   const epoch = getSourcesEpoch(getState());
-
   await dispatch({
     type: "LOAD_ORIGINAL_SOURCE_TEXT",
     sourceId: source.id,
     epoch,
-    [PROMISE]: loadOriginalSource(getState(), source, client, sourceMaps),
+    [PROMISE]: loadOriginalSource(
+      getState(),
+      source,
+      client,
+      sourceMapLoader,
+      prettyPrintWorker
+    ),
   });
 
-  await setParserAndBreakpointsTextContent(cx, source.id, {
+  await setParserAndBreakpointsTextContent(cx, source.id, null, {
     state: getState(),
-    parser,
+    parserWorker,
     dispatch,
   });
 }
@@ -120,22 +144,25 @@ async function loadOriginalSourceTextPromise(
 async function setParserAndBreakpointsTextContent(
   cx,
   sourceId,
-  { dispatch, state, parser }
+  sourceActorId,
+  { dispatch, state, parserWorker }
 ) {
   const source = getSource(state, sourceId);
 
   if (!source) {
     return;
   }
+
   const content = getSettledSourceTextContent(
     state,
     createLocation({
       sourceId: source.id,
+      sourceActorId,
     })
   );
 
   if (!source.isWasm && content) {
-    parser.setSource(
+    parserWorker.setSource(
       source.id,
       isFulfilled(content)
         ? content.value

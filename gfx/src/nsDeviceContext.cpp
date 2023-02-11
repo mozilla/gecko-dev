@@ -189,6 +189,19 @@ uint32_t nsDeviceContext::GetDepth() {
   return uint32_t(depth);
 }
 
+dom::ScreenColorGamut nsDeviceContext::GetColorGamut() {
+  nsCOMPtr<nsIScreen> screen;
+  FindScreen(getter_AddRefs(screen));
+  if (!screen) {
+    auto& screenManager = ScreenManager::GetSingleton();
+    screenManager.GetPrimaryScreen(getter_AddRefs(screen));
+    MOZ_ASSERT(screen);
+  }
+  dom::ScreenColorGamut colorGamut;
+  screen->GetColorGamut(&colorGamut);
+  return colorGamut;
+}
+
 nsresult nsDeviceContext::GetDeviceSurfaceDimensions(nscoord& aWidth,
                                                      nscoord& aHeight) {
   if (IsPrinterContext()) {
@@ -270,7 +283,7 @@ nsresult nsDeviceContext::BeginDocument(const nsAString& aTitle,
   return rv;
 }
 
-nsresult nsDeviceContext::EndDocument() {
+RefPtr<PrintEndDocumentPromise> nsDeviceContext::EndDocument() {
   MOZ_DIAGNOSTIC_ASSERT(mIsCurrentlyPrintingDoc,
                         "Mismatched BeginDocument/EndDocument calls");
   MOZ_DIAGNOSTIC_ASSERT(mPrintTarget);
@@ -278,16 +291,20 @@ nsresult nsDeviceContext::EndDocument() {
   mIsCurrentlyPrintingDoc = false;
 
   if (mPrintTarget) {
-    MOZ_TRY(mPrintTarget->EndPrinting());
+    auto result = mPrintTarget->EndPrinting();
+    if (NS_FAILED(result)) {
+      return PrintEndDocumentPromise::CreateAndReject(NS_ERROR_NOT_AVAILABLE,
+                                                      __func__);
+    }
     mPrintTarget->Finish();
     mPrintTarget = nullptr;
   }
 
   if (mDeviceContextSpec) {
-    MOZ_TRY(mDeviceContextSpec->EndDocument());
+    return mDeviceContextSpec->EndDocument();
   }
 
-  return NS_OK;
+  return PrintEndDocumentPromise::CreateAndResolve(true, __func__);
 }
 
 nsresult nsDeviceContext::AbortDocument() {
@@ -298,7 +315,7 @@ nsresult nsDeviceContext::AbortDocument() {
   mIsCurrentlyPrintingDoc = false;
 
   if (mDeviceContextSpec) {
-    mDeviceContextSpec->EndDocument();
+    Unused << mDeviceContextSpec->EndDocument();
   }
 
   mPrintTarget = nullptr;

@@ -431,27 +431,31 @@ static void AddCachedDirRule(sandbox::TargetPolicy* aPolicy,
 // (e.g. when the launcher process is disabled), so the process should not
 // enable pre-spawn CIG.
 static const Maybe<Vector<const wchar_t*>>& GetPrespawnCigExceptionModules() {
-  // sDependentModules points to a shared section created in the launcher
-  // process and the mapped address is static in each process, so we cache
-  // it as a static variable instead of retrieving it every time.
+  // We enable pre-spawn CIG only in Nightly for now
+  // because it caused a compat issue (bug 1682304 and 1704373).
+#if defined(NIGHTLY)
+  // The shared section contains a list of dependent modules as a
+  // null-delimited string.  We convert it to a string vector and
+  // cache it to avoid converting the same data every time.
   static Maybe<Vector<const wchar_t*>> sDependentModules =
       []() -> Maybe<Vector<const wchar_t*>> {
-    using GetDependentModulePathsFn = const wchar_t* (*)();
-    GetDependentModulePathsFn getDependentModulePaths =
-        reinterpret_cast<GetDependentModulePathsFn>(::GetProcAddress(
-            ::GetModuleHandleW(nullptr), "GetDependentModulePaths"));
-    if (!getDependentModulePaths) {
+    RefPtr<DllServices> dllSvc(DllServices::Get());
+    auto sharedSection = dllSvc->GetSharedSection();
+    if (!sharedSection) {
       return Nothing();
     }
 
-    const wchar_t* arrayBase = getDependentModulePaths();
-    if (!arrayBase) {
+    Span<const wchar_t> dependentModules = sharedSection->GetDependentModules();
+    if (dependentModules.IsEmpty()) {
       return Nothing();
     }
 
     // Convert a null-delimited string set to a string vector.
     Vector<const wchar_t*> paths;
-    for (const wchar_t* p = arrayBase; *p;) {
+    for (const wchar_t* p = dependentModules.data();
+         (p - dependentModules.data() <
+              static_cast<long long>(dependentModules.size()) &&
+          *p);) {
       Unused << paths.append(p);
       while (*p) {
         ++p;
@@ -463,6 +467,10 @@ static const Maybe<Vector<const wchar_t*>>& GetPrespawnCigExceptionModules() {
   }();
 
   return sDependentModules;
+#else
+  static const Maybe<Vector<const wchar_t*>> sNothing = Nothing();
+  return sNothing;
+#endif
 }
 
 static sandbox::ResultCode InitSignedPolicyRulesToBypassCig(

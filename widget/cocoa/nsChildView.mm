@@ -1021,8 +1021,8 @@ nsresult nsChildView::SynthesizeNativeTouchPoint(
 
   LayoutDeviceIntPoint pointInWindow = aPoint - WidgetToScreenOffset();
   MultiTouchInput inputToDispatch = UpdateSynthesizedTouchState(
-      mSynthesizedTouchInput.get(), PR_IntervalNow(), TimeStamp::Now(), aPointerId, aPointerState,
-      pointInWindow, aPointerPressure, aPointerOrientation);
+      mSynthesizedTouchInput.get(), TimeStamp::Now(), aPointerId, aPointerState, pointInWindow,
+      aPointerPressure, aPointerOrientation);
   DispatchTouchInput(inputToDispatch);
   return NS_OK;
 
@@ -1953,10 +1953,8 @@ void nsChildView::DispatchDoubleTapGesture(TimeStamp aEventTimeStamp,
                                            LayoutDeviceIntPoint aScreenPosition,
                                            mozilla::Modifiers aModifiers) {
   if (StaticPrefs::apz_mac_enable_double_tap_zoom_touchpad_gesture()) {
-    PRIntervalTime eventIntervalTime = PR_IntervalNow();
-
     TapGestureInput event{
-        TapGestureInput::TAPGESTURE_DOUBLE, eventIntervalTime, aEventTimeStamp,
+        TapGestureInput::TAPGESTURE_DOUBLE, aEventTimeStamp,
         ViewAs<ScreenPixel>(aScreenPosition,
                             PixelCastJustification::LayoutDeviceIsScreenForUntransformedEvent),
         aModifiers};
@@ -1968,7 +1966,6 @@ void nsChildView::DispatchDoubleTapGesture(TimeStamp aEventTimeStamp,
     // do what convertCocoaMouseEvent does basically.
     geckoEvent.mRefPoint = aScreenPosition;
     geckoEvent.mModifiers = aModifiers;
-    geckoEvent.mTime = PR_IntervalNow();
     geckoEvent.mTimeStamp = aEventTimeStamp;
     geckoEvent.mClickCount = 1;
 
@@ -2520,7 +2517,6 @@ NSEvent* gLastDragMouseDownEvent = nil;  // [strong]
       ViewAs<ExternalPixel>(mGeckoChild->WidgetToScreenOffset(),
                             PixelCastJustification::LayoutDeviceIsScreenForUntransformedEvent);
 
-  PRIntervalTime eventIntervalTime = PR_IntervalNow();
   TimeStamp eventTimeStamp = nsCocoaUtils::GetEventTimeStamp([anEvent timestamp]);
   NSEventPhase eventPhase = [anEvent phase];
   PinchGestureInput::PinchGestureType pinchGestureType;
@@ -2547,7 +2543,6 @@ NSEvent* gLastDragMouseDownEvent = nil;  // [strong]
 
   PinchGestureInput event{pinchGestureType,
                           PinchGestureInput::TRACKPAD,
-                          eventIntervalTime,
                           eventTimeStamp,
                           screenOffset,
                           position,
@@ -3153,7 +3148,6 @@ static gfx::IntPoint GetIntegerDeltaForEvent(NSEvent* aEvent) {
 
   Modifiers modifiers = nsCocoaUtils::ModifiersForEvent(theEvent);
 
-  PRIntervalTime eventIntervalTime = PR_IntervalNow();
   TimeStamp eventTimeStamp = nsCocoaUtils::GetEventTimeStamp([theEvent timestamp]);
 
   ScreenPoint preciseDelta;
@@ -3165,26 +3159,25 @@ static gfx::IntPoint GetIntegerDeltaForEvent(NSEvent* aEvent) {
   }
 
   if (usePreciseDeltas && hasPhaseInformation) {
-    PanGestureInput panEvent =
-        nsCocoaUtils::CreatePanGestureEvent(theEvent, eventIntervalTime, eventTimeStamp, position,
-                                            preciseDelta, lineOrPageDelta, modifiers);
+    PanGestureInput panEvent = nsCocoaUtils::CreatePanGestureEvent(
+        theEvent, eventTimeStamp, position, preciseDelta, lineOrPageDelta, modifiers);
 
     geckoChildDeathGrip->DispatchAPZWheelInputEvent(panEvent);
   } else if (usePreciseDeltas) {
     // This is on 10.6 or old touchpads that don't have any phase information.
-    ScrollWheelInput wheelEvent(
-        eventIntervalTime, eventTimeStamp, modifiers, ScrollWheelInput::SCROLLMODE_INSTANT,
-        ScrollWheelInput::SCROLLDELTA_PIXEL, position, preciseDelta.x, preciseDelta.y, false,
-        // This parameter is used for wheel delta
-        // adjustment, such as auto-dir scrolling,
-        // but we do't need to do anything special here
-        // since this wheel event is sent to
-        // DispatchAPZWheelInputEvent, which turns this
-        // ScrollWheelInput back into a WidgetWheelEvent
-        // and then it goes through the regular handling
-        // in APZInputBridge. So passing |eNone| won't
-        // pass up the necessary wheel delta adjustment.
-        WheelDeltaAdjustmentStrategy::eNone);
+    ScrollWheelInput wheelEvent(eventTimeStamp, modifiers, ScrollWheelInput::SCROLLMODE_INSTANT,
+                                ScrollWheelInput::SCROLLDELTA_PIXEL, position, preciseDelta.x,
+                                preciseDelta.y, false,
+                                // This parameter is used for wheel delta
+                                // adjustment, such as auto-dir scrolling,
+                                // but we do't need to do anything special here
+                                // since this wheel event is sent to
+                                // DispatchAPZWheelInputEvent, which turns this
+                                // ScrollWheelInput back into a WidgetWheelEvent
+                                // and then it goes through the regular handling
+                                // in APZInputBridge. So passing |eNone| won't
+                                // pass up the necessary wheel delta adjustment.
+                                WheelDeltaAdjustmentStrategy::eNone);
     wheelEvent.mLineOrPageDeltaX = lineOrPageDelta.x;
     wheelEvent.mLineOrPageDeltaY = lineOrPageDelta.y;
     wheelEvent.mIsMomentum = nsCocoaUtils::IsMomentumScrollEvent(theEvent);
@@ -3194,7 +3187,7 @@ static gfx::IntPoint GetIntegerDeltaForEvent(NSEvent* aEvent) {
     if (StaticPrefs::general_smoothScroll() && StaticPrefs::general_smoothScroll_mouseWheel()) {
       scrollMode = ScrollWheelInput::SCROLLMODE_SMOOTH;
     }
-    ScrollWheelInput wheelEvent(eventIntervalTime, eventTimeStamp, modifiers, scrollMode,
+    ScrollWheelInput wheelEvent(eventTimeStamp, modifiers, scrollMode,
                                 ScrollWheelInput::SCROLLDELTA_LINE, position, lineOrPageDelta.x,
                                 lineOrPageDelta.y, false,
                                 // This parameter is used for wheel delta
@@ -3345,11 +3338,11 @@ static gfx::IntPoint GetIntegerDeltaForEvent(NSEvent* aEvent) {
     MOZ_ASSERT(aOutGeckoEvent->mPressure >= 0.0 && aOutGeckoEvent->mPressure <= 1.0);
   }
   aOutGeckoEvent->mInputSource = dom::MouseEvent_Binding::MOZ_SOURCE_PEN;
-  aOutGeckoEvent->tiltX = lround([aPointerEvent tilt].x * 90);
-  aOutGeckoEvent->tiltY = lround([aPointerEvent tilt].y * 90);
+  aOutGeckoEvent->tiltX = (int32_t)lround([aPointerEvent tilt].x * 90);
+  aOutGeckoEvent->tiltY = (int32_t)lround([aPointerEvent tilt].y * 90);
   aOutGeckoEvent->tangentialPressure = [aPointerEvent tangentialPressure];
   // Make sure the twist value is in the range of 0-359.
-  int32_t twist = fmod([aPointerEvent rotation], 360);
+  int32_t twist = (int32_t)fmod([aPointerEvent rotation], 360);
   aOutGeckoEvent->twist = twist >= 0 ? twist : twist + 360;
   NS_OBJC_END_TRY_IGNORE_BLOCK;
 }

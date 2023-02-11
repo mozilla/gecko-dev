@@ -2,16 +2,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, unicode_literals
-
 import sys
 import unittest
+from collections.abc import Iterable
+from pathlib import Path
+from typing import List, Optional, Union
 
 import pytest
-from collections.abc import Iterable
-from typing import Optional, Union, List
 from buildconfig import topsrcdir
-from pathlib import Path
 
 try:
     from StringIO import StringIO

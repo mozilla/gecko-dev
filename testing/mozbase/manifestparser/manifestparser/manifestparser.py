@@ -2,8 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function
-
 import codecs
 import fnmatch
 import io
@@ -13,15 +11,12 @@ import shutil
 import sys
 import types
 
-from six import string_types, StringIO
+from six import StringIO, string_types
 
+from .filters import DEFAULT_FILTERS, enabled
+from .filters import exists as _exists
+from .filters import filterlist
 from .ini import read_ini
-from .filters import (
-    DEFAULT_FILTERS,
-    enabled,
-    exists as _exists,
-    filterlist,
-)
 
 __all__ = ["ManifestParser", "TestManifest", "convert"]
 

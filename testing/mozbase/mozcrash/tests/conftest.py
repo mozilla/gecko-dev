@@ -1,13 +1,10 @@
 # coding=UTF-8
 
-from __future__ import absolute_import
-
 import uuid
 
+import mozcrash
 import pytest
 from py._path.common import fspath
-
-import mozcrash
 
 
 @pytest.fixture(scope="session")

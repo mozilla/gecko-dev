@@ -2,18 +2,16 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import os
-import mozunit
 import time
 import unittest
-from tempfile import mkdtemp
 from shutil import rmtree
+from tempfile import mkdtemp
 
-from mozbuild.artifact_cache import ArtifactCache
+import mozunit
+
 from mozbuild import artifact_cache
-
+from mozbuild.artifact_cache import ArtifactCache
 
 CONTENTS = {
     "http://server/foo": b"foo",

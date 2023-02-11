@@ -22,6 +22,7 @@ const { AppConstants } = ChromeUtils.importESModule(
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  ClientID: "resource://gre/modules/ClientID.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   SearchSERPTelemetry: "resource:///modules/SearchSERPTelemetry.sys.mjs",
   clearInterval: "resource://gre/modules/Timer.sys.mjs",
@@ -31,7 +32,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 XPCOMUtils.defineLazyModuleGetters(lazy, {
-  ClientID: "resource://gre/modules/ClientID.jsm",
   CustomizableUI: "resource:///modules/CustomizableUI.jsm",
   PageActions: "resource:///modules/PageActions.jsm",
   WindowsInstallsInfo:
@@ -1158,7 +1158,7 @@ let BrowserUsageTelemetry = {
       // time.
       fileData = { version: "1", profileTelemetryIds: [] };
       if (!(ex.name == "NotFoundError")) {
-        Cu.reportError(ex);
+        console.error(ex);
         // Don't just return here on a read error. We need to send the error
         // value to telemetry and we want to attempt to fix the file.
         // However, we will still report an error for this ping, even if we
@@ -1184,7 +1184,7 @@ let BrowserUsageTelemetry = {
           JSON.stringify(fileData)
         );
       } catch (ex) {
-        Cu.reportError(ex);
+        console.error(ex);
         writeError = true;
       }
     }

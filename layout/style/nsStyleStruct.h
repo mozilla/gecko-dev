@@ -717,7 +717,7 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleList {
 
   already_AddRefed<nsIURI> GetListStyleImageURI() const;
 
-  uint8_t mListStylePosition;
+  mozilla::StyleListStylePosition mListStylePosition;
 
   mozilla::CounterStylePtr mCounterStyle;
   mozilla::StyleQuotes mQuotes;
@@ -833,7 +833,7 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStylePosition {
   StyleImplicitGridTracks mGridAutoRows;
   mozilla::StyleAspectRatio mAspectRatio;
   mozilla::StyleGridAutoFlow mGridAutoFlow;
-  uint8_t mMasonryAutoFlow;  // NS_STYLE_MASONRY_*
+  mozilla::StyleMasonryAutoFlow mMasonryAutoFlow;
 
   mozilla::StyleAlignContent mAlignContent;
   mozilla::StyleAlignItems mAlignItems;
@@ -919,7 +919,7 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleTextReset {
   mozilla::StyleTextOverflow mTextOverflow;
 
   mozilla::StyleTextDecorationLine mTextDecorationLine;
-  uint8_t mTextDecorationStyle;  // NS_STYLE_TEXT_DECORATION_STYLE_*
+  mozilla::StyleTextDecorationStyle mTextDecorationStyle;
   mozilla::StyleUnicodeBidi mUnicodeBidi;
   nscoord mInitialLetterSink;  // 0 means normal
   float mInitialLetterSize;    // 0.0f means normal
@@ -1599,23 +1599,13 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleDisplay {
 
   bool IsContainAny() const { return !!mEffectiveContainment; }
 
-  bool PrecludesSizeContainment() const {
-    return IsInternalRubyDisplayType() ||
-           DisplayInside() == mozilla::StyleDisplayInside::Table ||
-           IsInnerTableStyle();
-  }
+  // This is similar to PrecludesSizeContainmentOrContentVisibility, but also
+  // takes into account whether or not the given frame is a non-atomic,
+  // inline-level box.
+  bool PrecludesSizeContainmentOrContentVisibilityWithFrame(
+      const nsIFrame&) const;
 
-  bool IsContentVisibilityVisible() const {
-    return mContentVisibility == StyleContentVisibility::Visible;
-  }
-
-  bool IsContentVisibilityHidden() const {
-    return mContentVisibility == StyleContentVisibility::Hidden;
-  }
-
-  bool IsContentVisibilityAuto() const {
-    return mContentVisibility == StyleContentVisibility::Auto;
-  }
+  StyleContentVisibility ContentVisibility(const nsIFrame&) const;
 
   /* Returns whether the element has the transform property or a related
    * property. */
@@ -1987,9 +1977,7 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleColumn {
   mozilla::StyleColumnFill mColumnFill = mozilla::StyleColumnFill::Balance;
   mozilla::StyleColumnSpan mColumnSpan = mozilla::StyleColumnSpan::None;
 
-  nscoord GetComputedColumnRuleWidth() const {
-    return (IsVisibleBorderStyle(mColumnRuleStyle) ? mColumnRuleWidth : 0);
-  }
+  nscoord GetColumnRuleWidth() const { return mActualColumnRuleWidth; }
 
   bool IsColumnContainerStyle() const {
     return mColumnCount != kColumnCountAuto || !mColumnWidth.IsAuto();
@@ -2000,7 +1988,16 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleColumn {
   }
 
  protected:
-  nscoord mColumnRuleWidth;  // coord
+  // This is the specified value of column-rule-width, but with length values
+  // computed to absolute.  mActualColumnRuleWidth stores the column-rule-width
+  // value used by layout.  (We must store mColumnRuleWidth for the same
+  // style struct resolution reasons that we do nsStyleBorder::mBorder;
+  // see that field's comment.)
+  nscoord mColumnRuleWidth;
+  // The actual value of column-rule-width is the computed value (an absolute
+  // length, forced to zero when column-rule-style is none) rounded to device
+  // pixels.  This is the value used by layout.
+  nscoord mActualColumnRuleWidth;
   nscoord mTwipsPerPixel;
 };
 

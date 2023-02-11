@@ -10,6 +10,7 @@
 #include "FileSystemDatabaseManagerVersion001.h"
 #include "FileSystemFileManager.h"
 #include "FileSystemHashSource.h"
+#include "ResultStatement.h"
 #include "SchemaVersion001.h"
 #include "fs/FileSystemConstants.h"
 #include "mozIStorageService.h"
@@ -23,6 +24,7 @@
 #include "mozilla/dom/quota/QuotaCommon.h"
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/dom/quota/ResultExtensions.h"
+#include "mozilla/dom/quota/UsageInfo.h"
 #include "mozilla/ipc/BackgroundParent.h"
 #include "nsBaseHashtable.h"
 #include "nsCOMPtr.h"
@@ -108,20 +110,13 @@ void RemoveFileSystemDataManager(const Origin& aOrigin) {
   }
 }
 
-/**
- * TODO: Maybe this and CreateStorageConnection from IndexedDB could be united?
- */
 Result<ResultConnection, QMResult> GetStorageConnection(
     const Origin& aOrigin, const int64_t aDirectoryLockId) {
   MOZ_ASSERT(aDirectoryLockId >= 0);
 
-  bool exists = false;
-  QM_TRY_INSPECT(const nsCOMPtr<nsIFile>& databaseFile,
-                 GetDatabasePath(aOrigin, exists));
-  Unused << exists;
-
+  // Ensure that storage is initialized and file system folder exists!
   QM_TRY_INSPECT(const auto& dbFileUrl,
-                 GetDatabaseFileURL(databaseFile, aDirectoryLockId));
+                 GetDatabaseFileURL(aOrigin, aDirectoryLockId));
 
   QM_TRY_INSPECT(
       const auto& storageService,
@@ -349,6 +344,8 @@ void FileSystemDataManager::UnlockExclusive(const EntryId& aEntryId) {
 
   LOG_VERBOSE(("ExclusiveUnlock"));
   mExclusiveLocks.Remove(aEntryId);
+
+  QM_WARNONLY_TRY(MOZ_TO_RESULT(mDatabaseManager->UpdateUsage(aEntryId)));
 }
 
 bool FileSystemDataManager::LockShared(const EntryId& aEntryId) {
@@ -413,23 +410,9 @@ RefPtr<BoolPromise> FileSystemDataManager::BeginOpen() {
                                                      __func__);
                }
 
-               quota::QuotaManager* quotaManager = quota::QuotaManager::Get();
-               QM_TRY(MOZ_TO_RESULT(quotaManager), CreateAndRejectBoolPromise);
-
-               QM_TRY(MOZ_TO_RESULT(quotaManager->EnsureStorageIsInitialized()),
-                      CreateAndRejectBoolPromise);
-
                QM_TRY(MOZ_TO_RESULT(
-                          quotaManager->EnsureTemporaryStorageIsInitialized()),
+                          EnsureFileSystemDirectory(self->mOriginMetadata)),
                       CreateAndRejectBoolPromise);
-
-               QM_TRY_INSPECT(
-                   const auto& dirInfo,
-                   quotaManager->EnsureTemporaryOriginIsInitialized(
-                       quota::PERSISTENCE_TYPE_DEFAULT, self->mOriginMetadata),
-                   CreateAndRejectBoolPromise);
-
-               Unused << dirInfo;
 
                return BoolPromise::CreateAndResolve(true, __func__);
              })

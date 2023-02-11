@@ -44,7 +44,7 @@ import sourceQueue from "../../utils/source-queue";
 import { validateNavigateContext, ContextError } from "../../utils/context";
 
 function loadSourceMaps(cx, sources) {
-  return async function({ dispatch, sourceMaps }) {
+  return async function({ dispatch }) {
     try {
       const sourceList = await Promise.all(
         sources.map(async sourceActor => {
@@ -52,7 +52,7 @@ function loadSourceMaps(cx, sources) {
             loadSourceMap(cx, sourceActor)
           );
           originalSourcesInfo.forEach(
-            sourceInfo => (sourceInfo.thread = sourceActor.thread)
+            sourcesInfo => (sourcesInfo.sourceActor = sourceActor)
           );
           sourceQueue.queueOriginalSources(originalSourcesInfo);
           return originalSourcesInfo;
@@ -77,7 +77,7 @@ function loadSourceMaps(cx, sources) {
  * @static
  */
 function loadSourceMap(cx, sourceActor) {
-  return async function({ dispatch, getState, sourceMaps }) {
+  return async function({ dispatch, getState, sourceMapLoader }) {
     if (!prefs.clientSourceMapsEnabled || !sourceActor.sourceMapURL) {
       return [];
     }
@@ -88,7 +88,7 @@ function loadSourceMap(cx, sourceActor) {
       // we currently treat sourcemaps as Source-wide, not SourceActor-specific.
       const source = getSourceByActorId(getState(), sourceActor.id);
       if (source) {
-        data = await sourceMaps.getOriginalURLs({
+        data = await sourceMapLoader.getOriginalURLs({
           // Using source ID here is historical and eventually we'll want to
           // switch to all of this being per-source-actor.
           id: source.id,
@@ -205,32 +205,51 @@ function restoreBlackBoxedSources(cx, sources) {
   };
 }
 
-// Wrapper around newOriginalSources, only used by tests
-export function newOriginalSource(sourceInfo) {
-  return async ({ dispatch }) => {
-    const sources = await dispatch(newOriginalSources([sourceInfo]));
-    return sources[0];
-  };
-}
-
 export function newOriginalSources(originalSourcesInfo) {
   return async ({ dispatch, getState }) => {
     const state = getState();
     const seen = new Set();
-    const sources = [];
 
-    for (const { id, url, thread } of originalSourcesInfo) {
+    const actors = [];
+    const actorsSources = {};
+
+    for (const { id, url, sourceActor } of originalSourcesInfo) {
       if (seen.has(id) || getSource(state, id)) {
         continue;
       }
-
       seen.add(id);
 
-      sources.push(createSourceMapOriginalSource(id, url, thread));
+      if (!actorsSources[sourceActor.actor]) {
+        actors.push(sourceActor);
+        actorsSources[sourceActor.actor] = [];
+      }
+
+      actorsSources[sourceActor.actor].push(
+        createSourceMapOriginalSource(id, url)
+      );
     }
 
     const cx = getContext(state);
-    dispatch(addSources(cx, sources));
+
+    // Add the original sources per the generated source actors that
+    // they are primarily from.
+    actors.forEach(sourceActor => {
+      dispatch({
+        type: "ADD_ORIGINAL_SOURCES",
+        cx,
+        originalSources: actorsSources[sourceActor.actor],
+        generatedSourceActor: sourceActor,
+      });
+    });
+
+    // Accumulate the sources back into one list
+    const actorsSourcesValues = Object.values(actorsSources);
+    let sources = [];
+    if (actorsSourcesValues.length) {
+      sources = actorsSourcesValues.reduce((acc, sourceList) =>
+        acc.concat(sourceList)
+      );
+    }
 
     await dispatch(checkNewSources(cx, sources));
 

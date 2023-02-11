@@ -2,12 +2,10 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import
-
 import inspect
+
 import six
-from six.moves import range
-from six.moves import zip
+from six.moves import range, zip
 
 convertor_registry = {}
 missing = object()

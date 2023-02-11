@@ -1,15 +1,11 @@
 # Any copyright is dedicated to the public domain.
 # http://creativecommons.org/publicdomain/zero/1.0/
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import pytest
-from mozunit import main
-from tryselect.selectors.auto import TRY_AUTO_PARAMETERS
-
 from gecko_taskgraph.util.bugbug import push_schedules
 from gecko_taskgraph.util.chunking import BugbugLoader
-
+from mozunit import main
+from tryselect.selectors.auto import TRY_AUTO_PARAMETERS
 
 pytestmark = pytest.mark.slow
 PARAMS = TRY_AUTO_PARAMETERS.copy()

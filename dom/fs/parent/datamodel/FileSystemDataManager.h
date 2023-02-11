@@ -7,6 +7,7 @@
 #ifndef DOM_FS_PARENT_DATAMODEL_FILESYSTEMDATAMANAGER_H_
 #define DOM_FS_PARENT_DATAMODEL_FILESYSTEMDATAMANAGER_H_
 
+#include "ResultConnection.h"
 #include "mozilla/NotNull.h"
 #include "mozilla/TaskQueue.h"
 #include "mozilla/ThreadBound.h"
@@ -72,6 +73,10 @@ class FileSystemDataManager
   NS_INLINE_DECL_REFCOUNTING(FileSystemDataManager)
 
   void AssertIsOnIOTarget() const;
+
+  const quota::OriginMetadata& OriginMetadataRef() const {
+    return mOriginMetadata;
+  }
 
   nsISerialEventTarget* MutableBackgroundTargetPtr() const {
     return mBackgroundTarget.get();

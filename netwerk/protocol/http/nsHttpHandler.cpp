@@ -385,9 +385,6 @@ nsresult nsHttpHandler::Init() {
   nsAutoCString uaVersion;
   GetFirefoxVersionForUserAgent(uaVersion);
 
-  mMisc.AssignLiteral("rv:");
-  mMisc.Append(uaVersion);
-
   mCompatFirefox.AssignLiteral("Firefox/");
   mCompatFirefox.Append(uaVersion);
 
@@ -405,6 +402,16 @@ nsresult nsHttpHandler::Init() {
     mAppName.StripChars(R"( ()<>@,;:\"/[]?={})");
   } else {
     mAppVersion.AssignLiteral(MOZ_APP_UA_VERSION);
+  }
+
+  mMisc.AssignLiteral("rv:");
+  bool isFirefox = mAppName.EqualsLiteral("Firefox");
+  uint32_t forceVersion =
+      mozilla::StaticPrefs::network_http_useragent_forceRVOnly();
+  if (forceVersion && (isFirefox || mCompatFirefoxEnabled)) {
+    mMisc.Append(nsPrintfCString("%u.0", forceVersion));
+  } else {
+    mMisc.Append(uaVersion);
   }
 
   // Generate the spoofed User Agent for fingerprinting resistance.
@@ -2256,8 +2263,12 @@ nsresult nsHttpHandler::SpeculativeConnectInternal(
   if (mDebugObservations && obsService) {
     // this is basically used for test coverage of an otherwise 'hintable'
     // feature
+
+    // This is used to test if the `crossOrigin` attribute is parsed correctly.
+    nsPrintfCString debugURL("%s%s", aURI->GetSpecOrDefault().get(),
+                             anonymous ? "anonymous" : "use-credentials");
     obsService->NotifyObservers(nullptr, "speculative-connect-request",
-                                nullptr);
+                                NS_ConvertUTF8toUTF16(debugURL).get());
     for (auto* cp :
          dom::ContentParent::AllProcesses(dom::ContentParent::eLive)) {
       PNeckoParent* neckoParent =

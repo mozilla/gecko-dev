@@ -2,18 +2,12 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, division
-
-from contextlib import contextmanager
 import multiprocessing
 import sys
 import time
 import warnings
-
-from collections import (
-    OrderedDict,
-    namedtuple,
-)
+from collections import OrderedDict, namedtuple
+from contextlib import contextmanager
 
 
 class PsutilStub(object):

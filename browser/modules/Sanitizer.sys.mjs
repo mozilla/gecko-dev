@@ -3,21 +3,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
-
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  ContextualIdentityService:
+    "resource://gre/modules/ContextualIdentityService.sys.mjs",
   FormHistory: "resource://gre/modules/FormHistory.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   PrincipalsCollector: "resource://gre/modules/PrincipalsCollector.sys.mjs",
-});
-
-XPCOMUtils.defineLazyModuleGetters(lazy, {
-  ContextualIdentityService:
-    "resource://gre/modules/ContextualIdentityService.jsm",
 });
 
 var logConsole;
@@ -188,11 +183,10 @@ export var Sanitizer = {
         options.progress = { clearHonoringExceptions: true };
         await this.sanitize(itemsToClear, options);
       } catch (ex) {
-        Cu.reportError(
-          "A previously pending sanitization failed: " +
-            itemsToClear +
-            "\n" +
-            ex
+        console.error(
+          "A previously pending sanitization failed: ",
+          itemsToClear,
+          ex
         );
       }
     }
@@ -272,13 +266,20 @@ export var Sanitizer = {
    *         - range (default: null): array-tuple of [from, to] timestamps
    *         - privateStateForNewWindow (default: "non-private"): when clearing
    *           open windows, defines the private state for the newly opened window.
+   * @returns {object} An object containing debug information about the
+   *          sanitization progress. This state object is also used as
+   *          AsyncShutdown metadata.
    */
   async sanitize(itemsToClear = null, options = {}) {
-    let progress = options.progress || {};
+    let progress = options.progress;
+    if (!progress) {
+      progress = options.progress = {};
+    }
+
     if (!itemsToClear) {
       itemsToClear = getItemsToClearFromPrefBranch(this.PREF_CPD_BRANCH);
     }
-    let promise = sanitizeInternal(this.items, itemsToClear, progress, options);
+    let promise = sanitizeInternal(this.items, itemsToClear, options);
 
     // Depending on preferences, the sanitizer may perform asynchronous
     // work before it starts cleaning up the Places database (e.g. closing
@@ -297,6 +298,7 @@ export var Sanitizer = {
     } finally {
       Services.obs.notifyObservers(null, "sanitizer-sanitization-complete");
     }
+    return progress;
   },
 
   observe(subject, topic, data) {
@@ -361,6 +363,9 @@ export var Sanitizer = {
         await clearData(range, Ci.nsIClearDataService.CLEAR_ALL_CACHES);
         TelemetryStopwatch.finish("FX_SANITIZE_CACHE", refObj);
       },
+      shouldClearPerPrincipal: () => {
+        return false;
+      },
     },
 
     cookies: {
@@ -369,7 +374,7 @@ export var Sanitizer = {
         TelemetryStopwatch.start("FX_SANITIZE_COOKIES_2", refObj);
         // This is true if called by sanitizeOnShutdown.
         // On shutdown we clear by principal to be able to honor the users exceptions
-        if (progress && principalsForShutdownClearing) {
+        if (principalsForShutdownClearing) {
           await maybeSanitizeSessionPrincipals(
             progress,
             principalsForShutdownClearing,
@@ -382,13 +387,18 @@ export var Sanitizer = {
         await clearData(range, Ci.nsIClearDataService.CLEAR_MEDIA_DEVICES);
         TelemetryStopwatch.finish("FX_SANITIZE_COOKIES_2", refObj);
       },
+      // This category should be cleared per principal only on Shutdown,
+      // therefore the return value always needs to mirror the value of clearHonoringexceptions
+      shouldClearPerPrincipal: clearHonoringExceptions => {
+        return clearHonoringExceptions;
+      },
     },
 
     offlineApps: {
       async clear(range, { progress, principalsForShutdownClearing }) {
         // This is true if called by sanitizeOnShutdown.
         // On shutdown we clear by principal to be able to honor the users exceptions
-        if (progress && principalsForShutdownClearing) {
+        if (principalsForShutdownClearing) {
           // Cleaning per principal to be able to consider the users exceptions
           await maybeSanitizeSessionPrincipals(
             progress,
@@ -400,12 +410,24 @@ export var Sanitizer = {
           await clearData(range, Ci.nsIClearDataService.CLEAR_DOM_STORAGES);
         }
       },
+      shouldClearPerPrincipal: clearHonoringExceptions => {
+        return clearHonoringExceptions;
+      },
     },
 
     history: {
-      async clear(range) {
+      async clear(range, { progress, principalsForShutdownClearing }) {
+        // TODO: This check is needed for the case that this method is invoked directly and not via the sanitizer.sanitize API.
+        // This can be removed once bug 1803799 has landed.
+        if (!principalsForShutdownClearing) {
+          let principalsCollector = new lazy.PrincipalsCollector();
+          principalsForShutdownClearing = await principalsCollector.getAllPrincipals(
+            progress
+          );
+        }
         let refObj = {};
         TelemetryStopwatch.start("FX_SANITIZE_HISTORY", refObj);
+        progress.step = "clearing browsing history";
         await clearData(
           range,
           Ci.nsIClearDataService.CLEAR_HISTORY |
@@ -419,16 +441,19 @@ export var Sanitizer = {
         // indicates that we can purge cookies and site data for tracking origins without
         // user interaction, we need to ensure that we only delete those permissions that
         // do not have any existing storage.
-        let principalsCollector = new lazy.PrincipalsCollector();
-        let principals = await principalsCollector.getAllPrincipals();
+        progress.step = "clearing user interaction";
         await new Promise(resolve => {
           Services.clearData.deleteUserInteractionForClearingHistory(
-            principals,
+            principalsForShutdownClearing,
             range ? range[0] : 0,
             resolve
           );
         });
         TelemetryStopwatch.finish("FX_SANITIZE_HISTORY", refObj);
+      },
+      // We always clear per principal regardless of shutdown or not, so we always return true here
+      shouldClearPerPrincipal: () => {
+        return true;
       },
     },
 
@@ -489,6 +514,9 @@ export var Sanitizer = {
           throw seenException;
         }
       },
+      shouldClearPerPrincipal: () => {
+        return false;
+      },
     },
 
     downloads: {
@@ -497,6 +525,9 @@ export var Sanitizer = {
         TelemetryStopwatch.start("FX_SANITIZE_DOWNLOADS", refObj);
         await clearData(range, Ci.nsIClearDataService.CLEAR_DOWNLOADS);
         TelemetryStopwatch.finish("FX_SANITIZE_DOWNLOADS", refObj);
+      },
+      shouldClearPerPrincipal: () => {
+        return false;
       },
     },
 
@@ -510,6 +541,9 @@ export var Sanitizer = {
             Ci.nsIClearDataService.CLEAR_AUTH_CACHE
         );
         TelemetryStopwatch.finish("FX_SANITIZE_SESSIONS", refObj);
+      },
+      shouldClearPerPrincipal: () => {
+        return false;
       },
     },
 
@@ -527,6 +561,9 @@ export var Sanitizer = {
             Ci.nsIClearDataService.CLEAR_CREDENTIAL_MANAGER_STATE
         );
         TelemetryStopwatch.finish("FX_SANITIZE_SITESETTINGS", refObj);
+      },
+      shouldClearPerPrincipal: () => {
+        return false;
       },
     },
 
@@ -546,7 +583,7 @@ export var Sanitizer = {
           win.skipNextCanClose = false;
         }
       },
-      async clear(range, privateStateForNewWindow = "non-private") {
+      async clear(range, { privateStateForNewWindow = "non-private" }) {
         // NB: this closes all *browser* windows, not other windows like the library, about window,
         // browser console, etc.
 
@@ -673,16 +710,22 @@ export var Sanitizer = {
         newWindow.focus();
         await promiseReady;
       },
+      shouldClearPerPrincipal: () => {
+        return false;
+      },
     },
 
     pluginData: {
       async clear(range) {},
+      shouldClearPerPrincipal: () => {
+        return false;
+      },
     },
   },
 };
 
-async function sanitizeInternal(items, aItemsToClear, progress, options = {}) {
-  let { ignoreTimespan = true, range } = options;
+async function sanitizeInternal(items, aItemsToClear, options) {
+  let { ignoreTimespan = true, range, progress } = options;
   let seenError = false;
   // Shallow copy the array, as we are going to modify it in place later.
   if (!Array.isArray(aItemsToClear)) {
@@ -701,6 +744,12 @@ async function sanitizeInternal(items, aItemsToClear, progress, options = {}) {
   // Store the list of items to clear, for debugging/forensics purposes
   for (let k of itemsToClear) {
     progress[k] = "ready";
+    // Create a progress object specific to each cleaner. We'll pass down this
+    // to the cleaners instead of the main progress object, so they don't end
+    // up overriding properties each other.
+    // This specific progress is deleted if the cleaner completes successfully,
+    // so the metadata will only contain progress of unresolved cleaners.
+    progress[k + "Progress"] = {};
   }
 
   // Ensure open windows get cleared first, if they're in our list, so that
@@ -710,8 +759,12 @@ async function sanitizeInternal(items, aItemsToClear, progress, options = {}) {
   let openWindowsIndex = itemsToClear.indexOf("openWindows");
   if (openWindowsIndex != -1) {
     itemsToClear.splice(openWindowsIndex, 1);
-    await items.openWindows.clear(null, options);
+    await items.openWindows.clear(
+      null,
+      Object.assign(options, { progress: progress.openWindowsProgress })
+    );
     progress.openWindows = "cleared";
+    delete progress.openWindowsProgress;
   }
 
   // If we ignore timespan, clear everything,
@@ -736,35 +789,49 @@ async function sanitizeInternal(items, aItemsToClear, progress, options = {}) {
   };
 
   // When clearing on shutdown we clear by principal for certain cleaning categories, to consider the users exceptions
-  if (progress.clearHonoringExceptions) {
+  // Whenever we clear the category 'history', we need principals for the call deleteUserInteractionForClearingHistory to the clear data service
+  // Let's check if one of the cleaners needs principals
+  if (
+    itemsToClear
+      .map(name => items[name])
+      .some(item =>
+        item.shouldClearPerPrincipal(progress.clearHonoringExceptions)
+      )
+  ) {
     let principalsCollector = new lazy.PrincipalsCollector();
-    let principals = await principalsCollector.getAllPrincipals(progress);
-    options.principalsForShutdownClearing = principals;
-    options.progress = progress;
+    options.principalsForShutdownClearing = await principalsCollector.getAllPrincipals(
+      progress
+    );
   }
   // Array of objects in form { name, promise }.
   // `name` is the item's name and `promise` may be a promise, if the
   // sanitization is asynchronous, or the function return value, otherwise.
   let handles = [];
   for (let name of itemsToClear) {
+    progress[name] = "blocking";
     let item = items[name];
     try {
       // Catch errors here, so later we can just loop through these.
       handles.push({
         name,
-        promise: item.clear(range, options).then(
-          () => (progress[name] = "cleared"),
-          ex => annotateError(name, ex)
-        ),
+        promise: item
+          .clear(
+            range,
+            Object.assign(options, { progress: progress[name + "Progress"] })
+          )
+          .then(
+            () => {
+              progress[name] = "cleared";
+              delete progress[name + "Progress"];
+            },
+            ex => annotateError(name, ex)
+          ),
       });
     } catch (ex) {
       annotateError(name, ex);
     }
   }
-  for (let handle of handles) {
-    progress[handle.name] = "blocking";
-    await handle.promise;
-  }
+  await Promise.all(handles.map(h => h.promise));
 
   // Sanitization is complete.
   TelemetryStopwatch.finish("FX_SANITIZE_TOTAL", refObj);
@@ -838,49 +905,52 @@ async function sanitizeOnShutdown(progress) {
     Services.prefs.savePrefFile(null);
   }
 
-  // In case the user has not activated sanitizeOnShutdown but has explicitely set exceptions
-  // to always clear particular origins, we clear those here
-  let principalsCollector = new lazy.PrincipalsCollector();
+  if (!Sanitizer.shouldSanitizeOnShutdown) {
+    // In case the user has not activated sanitizeOnShutdown but has explicitely set exceptions
+    // to always clear particular origins, we clear those here
+    let principalsCollector = new lazy.PrincipalsCollector();
 
-  progress.advancement = "session-permission";
+    progress.advancement = "session-permission";
 
-  let exceptions = 0;
-  // Let's see if we have to forget some particular site.
-  for (let permission of Services.perms.all) {
-    if (
-      permission.type != "cookie" ||
-      permission.capability != Ci.nsICookiePermission.ACCESS_SESSION
-    ) {
-      continue;
+    let exceptions = 0;
+    // Let's see if we have to forget some particular site.
+    for (let permission of Services.perms.all) {
+      if (
+        permission.type != "cookie" ||
+        permission.capability != Ci.nsICookiePermission.ACCESS_SESSION
+      ) {
+        continue;
+      }
+
+      // We consider just permissions set for http, https and file URLs.
+      if (!isSupportedPrincipal(permission.principal)) {
+        continue;
+      }
+
+      log(
+        "Custom session cookie permission detected for: " +
+          permission.principal.asciiSpec
+      );
+      exceptions++;
+
+      // We use just the URI here, because permissions ignore OriginAttributes.
+      // The principalsCollector is lazy, this is computed only once
+      let principals = await principalsCollector.getAllPrincipals(progress);
+      let selectedPrincipals = extractMatchingPrincipals(
+        principals,
+        permission.principal.host
+      );
+      await maybeSanitizeSessionPrincipals(
+        progress,
+        selectedPrincipals,
+        Ci.nsIClearDataService.CLEAR_ALL_CACHES |
+          Ci.nsIClearDataService.CLEAR_COOKIES |
+          Ci.nsIClearDataService.CLEAR_DOM_STORAGES |
+          Ci.nsIClearDataService.CLEAR_EME
+      );
     }
-
-    // We consider just permissions set for http, https and file URLs.
-    if (!isSupportedPrincipal(permission.principal)) {
-      continue;
-    }
-
-    log(
-      "Custom session cookie permission detected for: " +
-        permission.principal.asciiSpec
-    );
-    exceptions++;
-
-    // We use just the URI here, because permissions ignore OriginAttributes.
-    let principals = await principalsCollector.getAllPrincipals(progress);
-    let selectedPrincipals = extractMatchingPrincipals(
-      principals,
-      permission.principal.host
-    );
-    await maybeSanitizeSessionPrincipals(
-      progress,
-      selectedPrincipals,
-      Ci.nsIClearDataService.CLEAR_ALL_CACHES |
-        Ci.nsIClearDataService.CLEAR_COOKIES |
-        Ci.nsIClearDataService.CLEAR_DOM_STORAGES |
-        Ci.nsIClearDataService.CLEAR_EME
-    );
+    progress.sanitizationPrefs.session_permission_exceptions = exceptions;
   }
-  progress.sanitizationPrefs.session_permission_exceptions = exceptions;
   progress.advancement = "done";
 }
 
@@ -1076,7 +1146,7 @@ function safeGetPendingSanitizations() {
       Services.prefs.getStringPref(Sanitizer.PREF_PENDING_SANITIZATIONS, "[]")
     );
   } catch (ex) {
-    Cu.reportError("Invalid JSON value for pending sanitizations: " + ex);
+    console.error("Invalid JSON value for pending sanitizations: ", ex);
     return [];
   }
 }

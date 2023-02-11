@@ -9,14 +9,13 @@ List mozbase package dependencies or generate changelogs
 from commit messages.
 """
 
-from __future__ import absolute_import, print_function
-
-from collections.abc import Iterable
-from packaging.version import Version
 import argparse
 import os
 import subprocess
 import sys
+from collections.abc import Iterable
+
+from packaging.version import Version
 
 here = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, here)

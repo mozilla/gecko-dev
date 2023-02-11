@@ -12,6 +12,7 @@
 #include "mozilla/intl/Bidi.h"
 #include "mozilla/AppUnits.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/DepthOrderedFrameList.h"
 #include "mozilla/EnumeratedArray.h"
 #include "mozilla/MediaEmulationData.h"
 #include "mozilla/MemoryReporting.h"
@@ -1127,10 +1128,10 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
   }
 
   void DidUseFrameRateMultiplier() {
-    if (!mNextFrameRateMultiplier) {
-      mNextFrameRateMultiplier = 1;
-    } else if (mNextFrameRateMultiplier < 8) {
-      mNextFrameRateMultiplier = mNextFrameRateMultiplier * 2;
+    // This heuristic is used to reduce frame rate between fcp and the end of
+    // the page load.
+    if (mNextFrameRateMultiplier < 8) {
+      ++mNextFrameRateMultiplier;
     }
   }
 
@@ -1287,8 +1288,9 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
   // that we can avoid repeatedly reporting the same font.
   nsTHashSet<nsCString> mBlockedFonts;
 
-  // The set of container query boxes currently in the document.
-  nsTHashSet<nsIFrame*> mContainerQueryFrames;
+  // The set of container query boxes currently in the document, sorted by
+  // depth.
+  mozilla::DepthOrderedFrameList mContainerQueryFrames;
   // The set of container query elements currently in the document that have
   // been updated so far. This is necessary to avoid reentering on container
   // query style changes which cause us to do frame reconstruction.

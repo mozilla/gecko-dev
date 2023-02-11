@@ -822,18 +822,7 @@ FrameChildListID nsLayoutUtils::GetChildListNameFor(nsIFrame* aChildFrame) {
     }
   } else {
     LayoutFrameType childType = aChildFrame->Type();
-    if (LayoutFrameType::MenuPopup == childType) {
-      nsIFrame* parent = aChildFrame->GetParent();
-      MOZ_ASSERT(parent, "nsMenuPopupFrame can't be the root frame");
-      MOZ_ASSERT(parent->IsMenuFrame(),
-                 "nsMenuPopupFrame should be out of flow if not under a menu");
-      nsIFrame* firstPopup =
-          parent->GetChildList(FrameChildListID::Popup).FirstChild();
-      MOZ_ASSERT(!firstPopup || !firstPopup->GetNextSibling(),
-                 "We assume popupList only has one child, but it has more.");
-      id = firstPopup == aChildFrame ? FrameChildListID::Popup
-                                     : FrameChildListID::Principal;
-    } else if (LayoutFrameType::TableColGroup == childType) {
+    if (LayoutFrameType::TableColGroup == childType) {
       id = FrameChildListID::ColGroup;
     } else if (aChildFrame->IsTableCaption()) {
       id = FrameChildListID::Caption;
@@ -1444,11 +1433,6 @@ static nsIFrame* GetNearestScrollableOrOverflowClipFrame(
       "GetNearestScrollableOrOverflowClipFrame expects a non-null frame");
 
   auto GetNextFrame = [aFlags](const nsIFrame* aFrame) -> nsIFrame* {
-    if (aFlags & nsLayoutUtils::SCROLLABLE_FOLLOW_OOF_TO_PLACEHOLDER) {
-      return (aFlags & nsLayoutUtils::SCROLLABLE_SAME_DOC)
-                 ? nsLayoutUtils::GetParentOrPlaceholderFor(aFrame)
-                 : nsLayoutUtils::GetParentOrPlaceholderForCrossDoc(aFrame);
-    }
     return (aFlags & nsLayoutUtils::SCROLLABLE_SAME_DOC)
                ? aFrame->GetParent()
                : nsLayoutUtils::GetCrossDocParentFrameInProcess(aFrame);
@@ -2885,8 +2869,7 @@ nsIScrollableFrame* nsLayoutUtils::GetAsyncScrollableAncestorFrame(
     nsIFrame* aTarget) {
   uint32_t flags = nsLayoutUtils::SCROLLABLE_ALWAYS_MATCH_ROOT |
                    nsLayoutUtils::SCROLLABLE_ONLY_ASYNC_SCROLLABLE |
-                   nsLayoutUtils::SCROLLABLE_FIXEDPOS_FINDS_ROOT |
-                   nsLayoutUtils::SCROLLABLE_FOLLOW_OOF_TO_PLACEHOLDER;
+                   nsLayoutUtils::SCROLLABLE_FIXEDPOS_FINDS_ROOT;
   return nsLayoutUtils::GetNearestScrollableFrame(aTarget, flags);
 }
 
@@ -3310,6 +3293,9 @@ void nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext, nsIFrame* aFrame,
         autoRecording;
 
     ViewID id = ScrollableLayerGuid::NULL_SCROLL_ID;
+    nsDisplayListBuilder::AutoCurrentActiveScrolledRootSetter asrSetter(
+        builder);
+
     if (presShell->GetDocument() &&
         presShell->GetDocument()->IsRootDisplayDocument() &&
         !presShell->GetRootScrollFrame()) {
@@ -3342,7 +3328,7 @@ void nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext, nsIFrame* aFrame,
       }
     }
 
-    nsDisplayListBuilder::AutoCurrentScrollParentIdSetter idSetter(builder, id);
+    asrSetter.SetCurrentScrollParentId(id);
 
     builder->SetVisibleRect(visibleRect);
     builder->SetIsBuilding(true);
@@ -9466,12 +9452,14 @@ static nsRect ComputeSVGReferenceRect(nsIFrame* aFrame,
       break;
     }
     case StyleGeometryBox::ViewBox: {
-      nsIContent* content = aFrame->GetContent();
-      SVGElement* element = static_cast<SVGElement*>(content);
-      SVGViewportElement* svgElement = element->GetCtx();
-      MOZ_ASSERT(svgElement);
+      SVGViewportElement* viewportElement =
+          SVGElement::FromNode(aFrame->GetContent())->GetCtx();
+      if (!viewportElement) {
+        // We should not render without a viewport so return an empty rect.
+        break;
+      }
 
-      if (svgElement && svgElement->HasViewBox()) {
+      if (viewportElement->HasViewBox()) {
         // If a `viewBox` attribute is specified for the SVG viewport creating
         // element:
         // 1. The reference box is positioned at the origin of the coordinate
@@ -9479,7 +9467,7 @@ static nsRect ComputeSVGReferenceRect(nsIFrame* aFrame,
         // 2. The dimension of the reference box is set to the width and height
         //    values of the `viewBox` attribute.
         const SVGViewBox& value =
-            svgElement->GetAnimatedViewBox()->GetAnimValue();
+            viewportElement->GetAnimatedViewBox()->GetAnimValue();
         r = nsRect(nsPresContext::CSSPixelsToAppUnits(value.x),
                    nsPresContext::CSSPixelsToAppUnits(value.y),
                    nsPresContext::CSSPixelsToAppUnits(value.width),
@@ -9487,7 +9475,7 @@ static nsRect ComputeSVGReferenceRect(nsIFrame* aFrame,
       } else {
         // No viewBox is specified, uses the nearest SVG viewport as reference
         // box.
-        svgFloatSize viewportSize = svgElement->GetViewportSize();
+        svgFloatSize viewportSize = viewportElement->GetViewportSize();
         r = nsRect(0, 0, nsPresContext::CSSPixelsToAppUnits(viewportSize.width),
                    nsPresContext::CSSPixelsToAppUnits(viewportSize.height));
       }

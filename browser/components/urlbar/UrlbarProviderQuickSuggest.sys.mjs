@@ -18,7 +18,11 @@ ChromeUtils.defineESModuleGetters(lazy, {
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarProviderTopSites: "resource:///modules/UrlbarProviderTopSites.sys.mjs",
   UrlbarResult: "resource:///modules/UrlbarResult.sys.mjs",
+  UrlbarView: "resource:///modules/UrlbarView.sys.mjs",
 });
+
+const MERINO_PROVIDER_WEATHER = "accuweather";
+const WEATHER_PROVIDER_DISPLAY_NAME = "AccuWeather";
 
 const TELEMETRY_PREFIX = "contextual.services.quicksuggest";
 
@@ -28,21 +32,117 @@ const TELEMETRY_SCALARS = {
   BLOCK_DYNAMIC_WIKIPEDIA: `${TELEMETRY_PREFIX}.block_dynamic_wikipedia`,
   BLOCK_NONSPONSORED: `${TELEMETRY_PREFIX}.block_nonsponsored`,
   BLOCK_NONSPONSORED_BEST_MATCH: `${TELEMETRY_PREFIX}.block_nonsponsored_bestmatch`,
+  BLOCK_WEATHER: `${TELEMETRY_PREFIX}.block_weather`,
   CLICK_SPONSORED: `${TELEMETRY_PREFIX}.click_sponsored`,
   CLICK_NONSPONSORED: `${TELEMETRY_PREFIX}.click_nonsponsored`,
   CLICK_NONSPONSORED_BEST_MATCH: `${TELEMETRY_PREFIX}.click_nonsponsored_bestmatch`,
   CLICK_SPONSORED_BEST_MATCH: `${TELEMETRY_PREFIX}.click_sponsored_bestmatch`,
   CLICK_DYNAMIC_WIKIPEDIA: `${TELEMETRY_PREFIX}.click_dynamic_wikipedia`,
+  CLICK_WEATHER: `${TELEMETRY_PREFIX}.click_weather`,
+  EXPOSURE_WEATHER: `${TELEMETRY_PREFIX}.exposure_weather`,
   HELP_SPONSORED: `${TELEMETRY_PREFIX}.help_sponsored`,
   HELP_NONSPONSORED: `${TELEMETRY_PREFIX}.help_nonsponsored`,
   HELP_NONSPONSORED_BEST_MATCH: `${TELEMETRY_PREFIX}.help_nonsponsored_bestmatch`,
   HELP_SPONSORED_BEST_MATCH: `${TELEMETRY_PREFIX}.help_sponsored_bestmatch`,
   HELP_DYNAMIC_WIKIPEDIA: `${TELEMETRY_PREFIX}.help_dynamic_wikipedia`,
+  HELP_WEATHER: `${TELEMETRY_PREFIX}.help_weather`,
   IMPRESSION_SPONSORED: `${TELEMETRY_PREFIX}.impression_sponsored`,
   IMPRESSION_NONSPONSORED: `${TELEMETRY_PREFIX}.impression_nonsponsored`,
   IMPRESSION_NONSPONSORED_BEST_MATCH: `${TELEMETRY_PREFIX}.impression_nonsponsored_bestmatch`,
   IMPRESSION_SPONSORED_BEST_MATCH: `${TELEMETRY_PREFIX}.impression_sponsored_bestmatch`,
   IMPRESSION_DYNAMIC_WIKIPEDIA: `${TELEMETRY_PREFIX}.impression_dynamic_wikipedia`,
+  IMPRESSION_WEATHER: `${TELEMETRY_PREFIX}.impression_weather`,
+};
+
+const WEATHER_DYNAMIC_TYPE = "weather";
+const WEATHER_VIEW_TEMPLATE = {
+  attributes: {
+    role: "group",
+    selectable: true,
+  },
+  children: [
+    {
+      name: "currentConditions",
+      tag: "span",
+      children: [
+        {
+          name: "currently",
+          tag: "div",
+        },
+        {
+          name: "currentTemperature",
+          tag: "div",
+          children: [
+            {
+              name: "temperature",
+              tag: "span",
+            },
+            {
+              name: "weatherIcon",
+              tag: "img",
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: "summary",
+      tag: "span",
+      children: [
+        {
+          name: "top",
+          tag: "div",
+          children: [
+            {
+              name: "topNoWrap",
+              tag: "span",
+              children: [
+                { name: "title", tag: "span", classList: ["urlbarView-title"] },
+                {
+                  name: "titleSeparator",
+                  tag: "span",
+                  classList: ["urlbarView-title-separator"],
+                },
+              ],
+            },
+            {
+              name: "url",
+              tag: "span",
+              classList: ["urlbarView-url"],
+            },
+          ],
+        },
+        {
+          name: "middle",
+          tag: "div",
+          children: [
+            {
+              name: "middleNoWrap",
+              tag: "span",
+              children: [
+                {
+                  name: "summaryText",
+                  tag: "span",
+                },
+                {
+                  name: "summaryTextSeparator",
+                  tag: "span",
+                },
+              ],
+            },
+            {
+              name: "highLow",
+              tag: "span",
+            },
+          ],
+        },
+        {
+          name: "bottom",
+          tag: "div",
+        },
+      ],
+    },
+  ],
 };
 
 /**
@@ -50,6 +150,15 @@ const TELEMETRY_SCALARS = {
  * they have currently typed so they can navigate directly.
  */
 class ProviderQuickSuggest extends UrlbarProvider {
+  constructor(...args) {
+    super(...args);
+    lazy.UrlbarResult.addDynamicResultType(WEATHER_DYNAMIC_TYPE);
+    lazy.UrlbarView.addDynamicViewTemplate(
+      WEATHER_DYNAMIC_TYPE,
+      WEATHER_VIEW_TEMPLATE
+    );
+  }
+
   /**
    * Returns the name of this provider.
    *
@@ -124,6 +233,73 @@ class ProviderQuickSuggest extends UrlbarProvider {
       lazy.UrlbarPrefs.get("suggest.quicksuggest.sponsored") ||
       lazy.UrlbarPrefs.get("quicksuggest.dataCollection.enabled")
     );
+  }
+
+  /**
+   * This is called only for dynamic result types, when the urlbar view updates
+   * the view of one of the results of the provider.  It should return an object
+   * describing the view update.
+   *
+   * @param {UrlbarResult} result
+   *   The result whose view will be updated.
+   * @param {Map} idsByName
+   *   A Map from an element's name, as defined by the provider; to its ID in
+   *   the DOM, as defined by the browser.This is useful if parts of the view
+   *   update depend on element IDs, as some ARIA attributes do.
+   * @returns {object} An object describing the view update.
+   */
+  getViewUpdate(result, idsByName) {
+    let uppercaseUnit = result.payload.temperatureUnit.toUpperCase();
+
+    return {
+      currently: { l10n: { id: "firefox-suggest-weather-currently" } },
+      temperature: {
+        l10n: {
+          id: "firefox-suggest-weather-temperature",
+          args: {
+            value: result.payload.temperature,
+            unit: uppercaseUnit,
+          },
+        },
+      },
+      weatherIcon: {
+        attributes: { iconId: result.payload.iconId },
+      },
+      title: {
+        l10n: {
+          id: "firefox-suggest-weather-title",
+          args: { city: result.payload.city },
+        },
+      },
+      url: {
+        textContent: result.payload.url,
+      },
+      summaryText: {
+        l10n: {
+          id: "firefox-suggest-weather-summary-text",
+          args: {
+            currentConditions: result.payload.currentConditions,
+            forecast: result.payload.forecast,
+          },
+        },
+      },
+      highLow: {
+        l10n: {
+          id: "firefox-suggest-weather-high-low",
+          args: {
+            high: result.payload.high,
+            low: result.payload.low,
+            unit: uppercaseUnit,
+          },
+        },
+      },
+      bottom: {
+        l10n: {
+          id: "firefox-suggest-weather-sponsored",
+          args: { provider: WEATHER_PROVIDER_DISPLAY_NAME },
+        },
+      },
+    };
   }
 
   /**
@@ -203,16 +379,23 @@ class ProviderQuickSuggest extends UrlbarProvider {
       sponsoredIabCategory: suggestion.iab_category,
       isSponsored: suggestion.is_sponsored,
       helpUrl: lazy.QuickSuggest.HELP_URL,
-      helpL10n: { id: "firefox-suggest-urlbar-learn-more" },
+      helpL10n: {
+        id: lazy.UrlbarPrefs.get("resultMenu")
+          ? "urlbar-result-menu-learn-more-about-firefox-suggest"
+          : "firefox-suggest-urlbar-learn-more",
+      },
+      blockL10n: {
+        id: lazy.UrlbarPrefs.get("resultMenu")
+          ? "urlbar-result-menu-dismiss-firefox-suggest"
+          : "firefox-suggest-urlbar-block",
+      },
       source: suggestion.source,
       requestId: suggestion.request_id,
     };
 
     // Determine if the suggestion itself is a best match.
     let isSuggestionBestMatch = false;
-    if (typeof suggestion._test_is_best_match == "boolean") {
-      isSuggestionBestMatch = suggestion._test_is_best_match;
-    } else if (suggestion?.is_top_pick) {
+    if (suggestion.is_top_pick) {
       isSuggestionBestMatch = true;
     } else if (lazy.QuickSuggest.remoteSettings.config.best_match) {
       let { best_match } = lazy.QuickSuggest.remoteSettings.config;
@@ -231,13 +414,11 @@ class ProviderQuickSuggest extends UrlbarProvider {
       // `full_keyword`, and the user's search string is highlighted.
       payload.title = [suggestion.title, UrlbarUtils.HIGHLIGHT.TYPED];
       payload.isBlockable = lazy.UrlbarPrefs.get("bestMatchBlockingEnabled");
-      payload.blockL10n = { id: "firefox-suggest-urlbar-block" };
     } else {
       // Show the result as a usual quick suggest. Include the `full_keyword`
       // and highlight the parts that aren't in the search string.
       payload.title = suggestion.title;
       payload.isBlockable = lazy.UrlbarPrefs.get("quickSuggestBlockingEnabled");
-      payload.blockL10n = { id: "firefox-suggest-urlbar-block" };
       payload.qsSuggestion = [
         suggestion.full_keyword,
         UrlbarUtils.HIGHLIGHT.SUGGESTED,
@@ -316,9 +497,10 @@ class ProviderQuickSuggest extends UrlbarProvider {
    *   Whether the result was blocked.
    */
   blockResult(queryContext, result) {
-    if (result.payload.merinoProvider == "accuweather") {
+    if (result.payload.merinoProvider == MERINO_PROVIDER_WEATHER) {
       this.logger.info("Blocking weather result");
       lazy.UrlbarPrefs.set("suggest.weather", false);
+      this._recordEngagementTelemetry(result, queryContext.isPrivate, "block");
       return true;
     }
 
@@ -335,6 +517,21 @@ class ProviderQuickSuggest extends UrlbarProvider {
     lazy.QuickSuggest.blockedSuggestions.add(result.payload.originalUrl);
     this._recordEngagementTelemetry(result, queryContext.isPrivate, "block");
     return true;
+  }
+
+  onResultsShown(queryContext, results) {
+    let weatherResult = results.find(
+      r => r.payload.merinoProvider == MERINO_PROVIDER_WEATHER
+    );
+    if (weatherResult) {
+      // Telemetry indexes are 1-based.
+      let telemetryResultIndex = weatherResult.rowIndex + 1;
+      Services.telemetry.keyedScalarAdd(
+        TELEMETRY_SCALARS.EXPOSURE_WEATHER,
+        telemetryResultIndex,
+        1
+      );
+    }
   }
 
   /**
@@ -441,6 +638,7 @@ class ProviderQuickSuggest extends UrlbarProvider {
     let telemetryResultIndex = result.rowIndex + 1;
     let isDynamicWikipedia =
       result.payload.sponsoredAdvertiser == "dynamic-wikipedia";
+    let isWeather = result.payload.merinoProvider == MERINO_PROVIDER_WEATHER;
 
     // impression scalars
     Services.telemetry.keyedScalarAdd(
@@ -458,7 +656,13 @@ class ProviderQuickSuggest extends UrlbarProvider {
         1
       );
     }
-
+    if (isWeather) {
+      Services.telemetry.keyedScalarAdd(
+        TELEMETRY_SCALARS.IMPRESSION_WEATHER,
+        telemetryResultIndex,
+        1
+      );
+    }
     if (result.isBestMatch) {
       Services.telemetry.keyedScalarAdd(
         result.payload.isSponsored
@@ -481,6 +685,9 @@ class ProviderQuickSuggest extends UrlbarProvider {
         if (isDynamicWikipedia) {
           clickScalars.push(TELEMETRY_SCALARS.CLICK_DYNAMIC_WIKIPEDIA);
         }
+        if (isWeather) {
+          clickScalars.push(TELEMETRY_SCALARS.CLICK_WEATHER);
+        }
         if (result.isBestMatch) {
           clickScalars.push(
             result.payload.isSponsored
@@ -498,6 +705,9 @@ class ProviderQuickSuggest extends UrlbarProvider {
         if (isDynamicWikipedia) {
           clickScalars.push(TELEMETRY_SCALARS.HELP_DYNAMIC_WIKIPEDIA);
         }
+        if (isWeather) {
+          clickScalars.push(TELEMETRY_SCALARS.HELP_WEATHER);
+        }
         if (result.isBestMatch) {
           clickScalars.push(
             result.payload.isSponsored
@@ -514,6 +724,9 @@ class ProviderQuickSuggest extends UrlbarProvider {
         );
         if (isDynamicWikipedia) {
           clickScalars.push(TELEMETRY_SCALARS.BLOCK_DYNAMIC_WIKIPEDIA);
+        }
+        if (isWeather) {
+          clickScalars.push(TELEMETRY_SCALARS.BLOCK_WEATHER);
         }
         if (result.isBestMatch) {
           clickScalars.push(
@@ -537,11 +750,15 @@ class ProviderQuickSuggest extends UrlbarProvider {
 
     // engagement event
     let match_type = result.isBestMatch ? "best-match" : "firefox-suggest";
-    let suggestion_type = result.payload.isSponsored
-      ? "sponsored"
-      : "nonsponsored";
+    let suggestion_type;
     if (isDynamicWikipedia) {
       suggestion_type = "dynamic-wikipedia";
+    } else if (isWeather) {
+      suggestion_type = "weather";
+    } else {
+      suggestion_type = result.payload.isSponsored
+        ? "sponsored"
+        : "nonsponsored";
     }
     Services.telemetry.recordEvent(
       lazy.QuickSuggest.TELEMETRY_EVENT_CATEGORY,
@@ -556,56 +773,72 @@ class ProviderQuickSuggest extends UrlbarProvider {
       }
     );
 
-    // custom pings
+    // custom engagement pings
     if (!isPrivate) {
-      // `is_clicked` is whether the user clicked the suggestion. `selType` will
-      // be "quicksuggest" in that case. See this method's JSDoc for all
-      // possible `selType` values.
-      let is_clicked = selType == "quicksuggest";
-      let payload = {
+      this._sendEngagementPings({
+        selType,
         match_type,
-        // Always use lowercase to make the reporting consistent
-        advertiser: result.payload.sponsoredAdvertiser.toLocaleLowerCase(),
-        block_id: result.payload.sponsoredBlockId,
-        improve_suggest_experience_checked: lazy.UrlbarPrefs.get(
-          "quicksuggest.dataCollection.enabled"
-        ),
-        position: telemetryResultIndex,
-        request_id: result.payload.requestId,
-        source: result.payload.source,
-      };
+        result,
+        telemetryResultIndex,
+      });
+    }
+  }
 
-      // impression
+  _sendEngagementPings({ selType, match_type, result, telemetryResultIndex }) {
+    // Custom engagement pings are sent only for the main sponsored and non-
+    // sponsored suggestions with an advertiser in their payload, not for other
+    // types of suggestions like navigational suggestions, weather, etc.
+    if (!result.payload.sponsoredAdvertiser) {
+      return;
+    }
+
+    // `is_clicked` is whether the user clicked the suggestion. `selType` will
+    // be "quicksuggest" in that case. See this method's JSDoc for all
+    // possible `selType` values.
+    let is_clicked = selType == "quicksuggest";
+    let payload = {
+      match_type,
+      // Always use lowercase to make the reporting consistent
+      advertiser: result.payload.sponsoredAdvertiser.toLocaleLowerCase(),
+      block_id: result.payload.sponsoredBlockId,
+      improve_suggest_experience_checked: lazy.UrlbarPrefs.get(
+        "quicksuggest.dataCollection.enabled"
+      ),
+      position: telemetryResultIndex,
+      request_id: result.payload.requestId,
+      source: result.payload.source,
+    };
+
+    // impression
+    lazy.PartnerLinkAttribution.sendContextualServicesPing(
+      {
+        ...payload,
+        is_clicked,
+        reporting_url: result.payload.sponsoredImpressionUrl,
+      },
+      lazy.CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION
+    );
+
+    // click
+    if (is_clicked) {
       lazy.PartnerLinkAttribution.sendContextualServicesPing(
         {
           ...payload,
-          is_clicked,
-          reporting_url: result.payload.sponsoredImpressionUrl,
+          reporting_url: result.payload.sponsoredClickUrl,
         },
-        lazy.CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION
+        lazy.CONTEXTUAL_SERVICES_PING_TYPES.QS_SELECTION
       );
+    }
 
-      // click
-      if (is_clicked) {
-        lazy.PartnerLinkAttribution.sendContextualServicesPing(
-          {
-            ...payload,
-            reporting_url: result.payload.sponsoredClickUrl,
-          },
-          lazy.CONTEXTUAL_SERVICES_PING_TYPES.QS_SELECTION
-        );
-      }
-
-      // block
-      if (selType == "block") {
-        lazy.PartnerLinkAttribution.sendContextualServicesPing(
-          {
-            ...payload,
-            iab_category: result.payload.sponsoredIabCategory,
-          },
-          lazy.CONTEXTUAL_SERVICES_PING_TYPES.QS_BLOCK
-        );
-      }
+    // block
+    if (selType == "block") {
+      lazy.PartnerLinkAttribution.sendContextualServicesPing(
+        {
+          ...payload,
+          iab_category: result.payload.sponsoredIabCategory,
+        },
+        lazy.CONTEXTUAL_SERVICES_PING_TYPES.QS_BLOCK
+      );
     }
   }
 
@@ -672,33 +905,38 @@ class ProviderQuickSuggest extends UrlbarProvider {
       return null;
     }
 
-    let unit = Services.locale.appLocaleAsBCP47 == "en-US" ? "f" : "c";
+    let unit = Services.locale.regionalPrefsLocales[0] == "en-US" ? "f" : "c";
     let result = new lazy.UrlbarResult(
-      UrlbarUtils.RESULT_TYPE.URL,
-      UrlbarUtils.RESULT_SOURCE.OTHER_NETWORK,
+      UrlbarUtils.RESULT_TYPE.DYNAMIC,
+      UrlbarUtils.RESULT_SOURCE.SEARCH,
       {
-        title:
-          suggestion.city_name +
-          " • " +
-          suggestion.current_conditions.temperature[unit] +
-          "° " +
-          suggestion.current_conditions.summary +
-          " • " +
-          suggestion.forecast.summary +
-          " • H " +
-          suggestion.forecast.high[unit] +
-          "° • L " +
-          suggestion.forecast.low[unit] +
-          "°",
         url: suggestion.url,
-        icon: "chrome://global/skin/icons/highlights.svg",
+        iconId: suggestion.current_conditions.icon_id,
         helpUrl: lazy.QuickSuggest.HELP_URL,
-        helpL10n: { id: "firefox-suggest-urlbar-learn-more" },
+        helpL10n: {
+          id: lazy.UrlbarPrefs.get("resultMenu")
+            ? "urlbar-result-menu-learn-more-about-firefox-suggest"
+            : "firefox-suggest-urlbar-learn-more",
+        },
         isBlockable: true,
-        blockL10n: { id: "firefox-suggest-urlbar-block" },
+        blockL10n: {
+          id: lazy.UrlbarPrefs.get("resultMenu")
+            ? "urlbar-result-menu-dismiss-firefox-suggest"
+            : "firefox-suggest-urlbar-block",
+        },
         requestId: suggestion.request_id,
         source: suggestion.source,
         merinoProvider: suggestion.provider,
+        dynamicType: WEATHER_DYNAMIC_TYPE,
+        city: suggestion.city_name,
+        temperatureUnit: unit,
+        temperature: suggestion.current_conditions.temperature[unit],
+        currentConditions: suggestion.current_conditions.summary,
+        forecast: suggestion.forecast.summary,
+        high: suggestion.forecast.high[unit],
+        low: suggestion.forecast.low[unit],
+        isWeather: true,
+        shouldNavigate: true,
       }
     );
 

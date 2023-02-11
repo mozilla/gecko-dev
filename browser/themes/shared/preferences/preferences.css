@@ -387,10 +387,6 @@ checkbox {
   margin: 0;
 }
 
-.certManagerRichlistBox > richlistitem {
-  min-height: 30px !important;
-}
-
 .typeIcon,
 .actionIcon,
 .actionsMenu::part(icon) {
@@ -1255,12 +1251,14 @@ richlistitem .text-link:hover {
   background-position-x: right;
 }
 
-#moreFromMozillaCategory .description {
-  display: inline flow-root;
-  color: var(--in-content-text-color);
+#moreFromMozillaCategory .product-description-box {
   padding-inline-start: 30px;
   margin: 2px 0;
   line-height: 1.4em;
+}
+
+#moreFromMozillaCategory .description {
+  display: inline;
 }
 
 #moreFromMozillaCategory .small-button {
@@ -1268,33 +1266,16 @@ richlistitem .text-link:hover {
   margin-inline: 30px 0;
 }
 
-#moreFromMozillaCategory .text-link {
-  line-height: 1.4em;
-
-  margin-block: 2px 0;
-  margin-inline: 6px 0;
-}
-
-#moreFromMozillaCategory .simple .text-link {
-  display: inline flow-root;
-  margin-inline-start: 4px;
-}
-
-#moreFromMozillaCategory .text-link.hidden {
-  display: none;
-}
-
 #firefox-mobile {
-  background-image: url("chrome://devtools/skin/images/browsers/mobile.svg");
-  padding-top: 5px;
+  background-image: url("chrome://browser/skin/device-phone.svg");
 }
 
 #mozilla-vpn {
   background-image: url("chrome://browser/skin/preferences/vpn-logo.svg");
 }
 
-#mozilla-rally {
-  background-image: url("chrome://browser/skin/preferences/rally-logo.svg");
+#firefox-relay {
+  background-image: url("chrome://browser/skin/preferences/relay-logo.svg");
 }
 
 /*
@@ -1361,8 +1342,6 @@ richlistitem .text-link:hover {
 #moreFromMozillaCategory .qr-code-link {
   font-size: .87em;
   line-height: 1.42em;
-  margin-block-start: 0;
-  margin-inline: 0; /* make sure we're correctly centered by overriding button rule */
 }
 
 @media (prefers-color-scheme: dark) {

@@ -9,8 +9,6 @@ with the necessary tool and target support for the Firefox
 build environment.
 """
 
-from __future__ import absolute_import, print_function
-
 import argparse
 import errno
 import glob
@@ -18,13 +16,12 @@ import hashlib
 import os
 import shutil
 import subprocess
-from contextlib import contextmanager
 import tarfile
 import textwrap
+from contextlib import contextmanager
 
 import requests
-import pytoml as toml
-
+import toml
 import zstandard
 
 
@@ -346,7 +343,7 @@ def fetch_manifest(channel="stable", host=None, targets=()):
     url = "https://static.rust-lang.org/dist%s/channel-rust-%s.toml" % (prefix, channel)
     req = requests.get(url)
     req.raise_for_status()
-    manifest = toml.loads(req.content)
+    manifest = toml.loads(req.text)
     if manifest["manifest-version"] != "2":
         raise NotImplementedError(
             "Unrecognized manifest version %s." % manifest["manifest-version"]
@@ -405,6 +402,7 @@ def build_src(install_dir, host, targets, patches):
 
         [rust]
         ignore-git = false
+        use-lld = true
 
         [install]
         prefix = "{prefix}"
@@ -437,7 +435,6 @@ def build_src(install_dir, host, targets, patches):
         file.write(final_config)
 
     # Setup the env so compilers and toolchains are visible
-    binutils = os.path.join(fetches, "binutils", "bin")
     clang = os.path.join(fetches, "clang")
     clang_bin = os.path.join(clang, "bin")
     clang_lib = os.path.join(clang, "lib")
@@ -445,7 +442,7 @@ def build_src(install_dir, host, targets, patches):
     env = os.environ.copy()
     env.update(
         {
-            "PATH": os.pathsep.join((binutils, clang_bin, os.environ["PATH"])),
+            "PATH": os.pathsep.join((clang_bin, os.environ["PATH"])),
             "LD_LIBRARY_PATH": clang_lib,
         }
     )

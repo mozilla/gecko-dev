@@ -26,7 +26,6 @@
 #include "mozilla/dom/IPCBlobUtils.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/quota/QuotaCommon.h"
-#include "mozilla/ipc/RandomAccessStreamUtils.h"
 
 namespace mozilla::dom::fs {
 
@@ -124,17 +123,14 @@ RefPtr<FileSystemSyncAccessHandle> MakeResolution(
     RefPtr<FileSystemManager>& aManager) {
   auto& properties = aResponse.get_FileSystemAccessHandleProperties();
 
-  QM_TRY_UNWRAP(nsCOMPtr<nsIRandomAccessStream> stream,
-                DeserializeRandomAccessStream(properties.streamParams()),
-                nullptr);
-
   auto* const actor =
       static_cast<FileSystemAccessHandleChild*>(properties.accessHandleChild());
 
-  RefPtr<FileSystemSyncAccessHandle> result = new FileSystemSyncAccessHandle(
-      aGlobal, aManager, actor, std::move(stream), aMetadata);
-
-  actor->SetAccessHandle(result);
+  QM_TRY_UNWRAP(RefPtr<FileSystemSyncAccessHandle> result,
+                FileSystemSyncAccessHandle::Create(
+                    aGlobal, aManager, actor,
+                    std::move(properties.streamParams()), aMetadata),
+                nullptr);
 
   return result;
 }
@@ -154,10 +150,6 @@ RefPtr<FileSystemWritableFileStream> MakeResolution(
   RefPtr<FileSystemWritableFileStream> result =
       FileSystemWritableFileStream::Create(
           aGlobal, aManager, actor, properties.fileDescriptor(), aMetadata);
-
-  if (result) {
-    actor->SetStream(result);
-  }
 
   return result;
 }
@@ -342,6 +334,7 @@ void FileSystemRequestHandler::GetRootHandle(
     ErrorResult& aError) {
   MOZ_ASSERT(aManager);
   MOZ_ASSERT(aPromise);
+  LOG(("GetRootHandle"));
 
   if (aManager->IsShutdown()) {
     aError.Throw(NS_ERROR_ILLEGAL_DURING_SHUTDOWN);
@@ -366,7 +359,7 @@ void FileSystemRequestHandler::GetDirectoryHandle(
   MOZ_ASSERT(aManager);
   MOZ_ASSERT(!aDirectory.parentId().IsEmpty());
   MOZ_ASSERT(aPromise);
-  LOG(("getDirectoryHandle"));
+  LOG(("GetDirectoryHandle"));
 
   if (aManager->IsShutdown()) {
     aError.Throw(NS_ERROR_ILLEGAL_DURING_SHUTDOWN);
@@ -398,7 +391,7 @@ void FileSystemRequestHandler::GetFileHandle(
   MOZ_ASSERT(aManager);
   MOZ_ASSERT(!aFile.parentId().IsEmpty());
   MOZ_ASSERT(aPromise);
-  LOG(("getFileHandle"));
+  LOG(("GetFileHandle"));
 
   if (aManager->IsShutdown()) {
     aError.Throw(NS_ERROR_ILLEGAL_DURING_SHUTDOWN);
@@ -457,8 +450,7 @@ void FileSystemRequestHandler::GetWritable(RefPtr<FileSystemManager>& aManager,
        aKeepData));
 
   // XXX This should be removed once bug 1798513 is fixed.
-  if (NS_IsMainThread() &&
-      !StaticPrefs::dom_fs_main_thread_writable_file_stream()) {
+  if (!StaticPrefs::dom_fs_writable_file_stream_enabled()) {
     aError.Throw(NS_ERROR_NOT_IMPLEMENTED);
     return;
   }
@@ -542,7 +534,7 @@ void FileSystemRequestHandler::RemoveEntry(
   MOZ_ASSERT(aManager);
   MOZ_ASSERT(!aEntry.parentId().IsEmpty());
   MOZ_ASSERT(aPromise);
-  LOG(("removeEntry"));
+  LOG(("RemoveEntry"));
 
   if (aManager->IsShutdown()) {
     aError.Throw(NS_ERROR_ILLEGAL_DURING_SHUTDOWN);

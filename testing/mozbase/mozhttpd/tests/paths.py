@@ -3,15 +3,11 @@
 # Any copyright is dedicated to the Public Domain.
 # http://creativecommons.org/publicdomain/zero/1.0/
 
-from __future__ import absolute_import
-
-from six.moves.urllib.request import urlopen
-from six.moves.urllib.error import HTTPError
-
-import pytest
-
-import mozunit
 import mozhttpd
+import mozunit
+import pytest
+from six.moves.urllib.error import HTTPError
+from six.moves.urllib.request import urlopen
 
 
 def try_get(url, expected_contents):

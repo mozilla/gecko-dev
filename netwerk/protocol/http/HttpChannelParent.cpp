@@ -536,8 +536,7 @@ bool HttpChannelParent::DoAsyncOpen(
   }
 
   RefPtr<ParentChannelListener> parentListener = new ParentChannelListener(
-      this, mBrowserParent ? mBrowserParent->GetBrowsingContext() : nullptr,
-      mLoadContext && mLoadContext->UsePrivateBrowsing());
+      this, mBrowserParent ? mBrowserParent->GetBrowsingContext() : nullptr);
 
   httpChannel->SetRequestMethod(nsDependentCString(requestMethod.get()));
 
@@ -1258,6 +1257,14 @@ HttpChannelParent::OnStartRequest(nsIRequest* aRequest) {
       }
     }
   }
+
+  nsIRequest::TRRMode effectiveMode = nsIRequest::TRR_DEFAULT_MODE;
+  mChannel->GetEffectiveTRRMode(&effectiveMode);
+  args.effectiveTRRMode() = effectiveMode;
+
+  TRRSkippedReason reason = TRRSkippedReason::TRR_UNSET;
+  mChannel->GetTrrSkipReason(&reason);
+  args.trrSkipReason() = reason;
 
   if (mIPCClosed ||
       !mBgParent->OnStartRequest(

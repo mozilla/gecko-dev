@@ -2,18 +2,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
-from mozbuild.makeutil import (
-    Makefile,
-    read_dep_makefile,
-    Rule,
-    write_dep_makefile,
-)
-from mozunit import main
 import os
-from six import StringIO
 import unittest
+
+from mozunit import main
+from six import StringIO
+
+from mozbuild.makeutil import Makefile, Rule, read_dep_makefile, write_dep_makefile
 
 
 class TestMakefile(unittest.TestCase):

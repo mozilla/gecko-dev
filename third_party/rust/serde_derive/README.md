@@ -1,6 +1,6 @@
 # Serde &emsp; [![Build Status]][actions] [![Latest Version]][crates.io] [![serde: rustc 1.13+]][Rust 1.13] [![serde_derive: rustc 1.31+]][Rust 1.31]
 
-[Build Status]: https://img.shields.io/github/workflow/status/serde-rs/serde/CI/master
+[Build Status]: https://img.shields.io/github/actions/workflow/status/serde-rs/serde/ci.yml?branch=master
 [actions]: https://github.com/serde-rs/serde/actions?query=branch%3Amaster
 [Latest Version]: https://img.shields.io/crates/v/serde.svg
 [crates.io]: https://crates.io/crates/serde
@@ -19,7 +19,7 @@ You may be looking for:
 - [Data formats supported by Serde](https://serde.rs/#data-formats)
 - [Setting up `#[derive(Serialize, Deserialize)]`](https://serde.rs/derive.html)
 - [Examples](https://serde.rs/examples.html)
-- [API documentation](https://docs.serde.rs/serde/)
+- [API documentation](https://docs.rs/serde)
 - [Release notes](https://github.com/serde-rs/serde/releases)
 
 ## Serde in action

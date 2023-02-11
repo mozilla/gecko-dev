@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
-import {} from "../../../workers/parser";
 import { locColumn } from "./locColumn";
 import { loadRangeMetadata, findMatchingRange } from "./rangeMetadata";
 
@@ -29,10 +28,12 @@ export async function buildMappedScopes(
   content,
   frame,
   scopes,
-  { client, parser, sourceMaps }
+  { client, parserWorker, sourceMapLoader }
 ) {
-  const originalAstScopes = await parser.getScopes(frame.location);
-  const generatedAstScopes = await parser.getScopes(frame.generatedLocation);
+  const originalAstScopes = await parserWorker.getScopes(frame.location);
+  const generatedAstScopes = await parserWorker.getScopes(
+    frame.generatedLocation
+  );
 
   if (!originalAstScopes || !generatedAstScopes) {
     return null;
@@ -41,7 +42,7 @@ export async function buildMappedScopes(
   const originalRanges = await loadRangeMetadata(
     frame.location,
     originalAstScopes,
-    sourceMaps
+    sourceMapLoader
   );
 
   if (hasLineMappings(originalRanges)) {
@@ -69,7 +70,7 @@ export async function buildMappedScopes(
     originalAstScopes,
     generatedAstBindings,
     client,
-    sourceMaps
+    sourceMapLoader
   );
 
   const globalLexicalScope = scopes
@@ -92,7 +93,7 @@ async function mapOriginalBindingsToGenerated(
   originalAstScopes,
   generatedAstBindings,
   client,
-  sourceMaps
+  sourceMapLoader
 ) {
   const expressionLookup = {};
   const mappedOriginalScopes = [];
@@ -100,7 +101,7 @@ async function mapOriginalBindingsToGenerated(
   const cachedSourceMaps = batchScopeMappings(
     originalAstScopes,
     source,
-    sourceMaps
+    sourceMapLoader
   );
 
   for (const item of originalAstScopes) {
@@ -180,7 +181,7 @@ function hasLineMappings(ranges) {
   );
 }
 
-function batchScopeMappings(originalAstScopes, source, sourceMaps) {
+function batchScopeMappings(originalAstScopes, source, sourceMapLoader) {
   const precalculatedRanges = new Map();
   const precalculatedLocations = new Map();
 
@@ -197,15 +198,15 @@ function batchScopeMappings(originalAstScopes, source, sourceMaps) {
         for (const loc of locs) {
           precalculatedRanges.set(
             buildLocationKey(loc.start),
-            sourceMaps.getGeneratedRanges(loc.start)
+            sourceMapLoader.getGeneratedRanges(loc.start)
           );
           precalculatedLocations.set(
             buildLocationKey(loc.start),
-            sourceMaps.getGeneratedLocation(loc.start)
+            sourceMapLoader.getGeneratedLocation(loc.start)
           );
           precalculatedLocations.set(
             buildLocationKey(loc.end),
-            sourceMaps.getGeneratedLocation(loc.end)
+            sourceMapLoader.getGeneratedLocation(loc.end)
           );
         }
       }
@@ -218,7 +219,7 @@ function batchScopeMappings(originalAstScopes, source, sourceMaps) {
 
       if (!precalculatedRanges.has(key)) {
         log("Bad precalculated mapping");
-        return sourceMaps.getGeneratedRanges(pos);
+        return sourceMapLoader.getGeneratedRanges(pos);
       }
       return precalculatedRanges.get(key);
     },
@@ -227,7 +228,7 @@ function batchScopeMappings(originalAstScopes, source, sourceMaps) {
 
       if (!precalculatedLocations.has(key)) {
         log("Bad precalculated mapping");
-        return sourceMaps.getGeneratedLocation(pos);
+        return sourceMapLoader.getGeneratedLocation(pos);
       }
       return precalculatedLocations.get(key);
     },
@@ -340,7 +341,7 @@ function hasValidIdent(range, pos) {
 
 // eslint-disable-next-line complexity
 async function findGeneratedBinding(
-  sourceMaps,
+  sourceMapLoader,
   client,
   source,
   content,
@@ -366,7 +367,7 @@ async function findGeneratedBinding(
       pos,
       originalBinding.type,
       locationType,
-      sourceMaps
+      sourceMapLoader
     );
     if (applicableBindings.length) {
       hadApplicableBindings = true;
@@ -383,7 +384,7 @@ async function findGeneratedBinding(
     }
     if (
       locationType !== "ref" &&
-      !(await originalRangeStartsInside(source, pos, sourceMaps))
+      !(await originalRangeStartsInside(source, pos, sourceMapLoader))
     ) {
       applicableBindings = [];
     }

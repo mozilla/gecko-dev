@@ -141,10 +141,16 @@ let propNameWhitelist = [
   // when expanding the shorthands. See https://github.com/w3c/csswg-drafts/issues/2515
   { propName: "--bezier-diagonal-color", isFromDevTools: true },
   { propName: "--bezier-grid-color", isFromDevTools: true },
-  { propName: "--page-border", isFromDevTools: false },
 
   // This variable is used from CSS embedded in JS in adjustableTitle.js
   { propName: "--icon-url", isFromDevTools: false },
+
+  // These are referenced from devtools files.
+  {
+    propName: "--browser-stack-z-index-devtools-splitter",
+    isFromDevTools: false,
+  },
+  { propName: "--browser-stack-z-index-rdm-toolbar", isFromDevTools: false },
 ];
 
 // Add suffix to stylesheets' URI so that we always load them here and
@@ -389,7 +395,7 @@ function chromeFileExists(aURI) {
   } catch (e) {
     if (e.result != Cr.NS_ERROR_FILE_NOT_FOUND) {
       dump("Checking " + aURI + ": " + e + "\n");
-      Cu.reportError(e);
+      console.error(e);
     }
   }
   return available > 0;

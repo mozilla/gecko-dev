@@ -501,8 +501,8 @@ impl<'a> Display for Expected + 'a {
 /// by Serde.
 ///
 /// Serde provides `Deserialize` implementations for many Rust primitive and
-/// standard library types. The complete list is [here][de]. All of these can
-/// be deserialized using Serde out of the box.
+/// standard library types. The complete list is [here][crate::de]. All of these
+/// can be deserialized using Serde out of the box.
 ///
 /// Additionally, Serde provides a procedural macro called `serde_derive` to
 /// automatically generate `Deserialize` implementations for structs and enums
@@ -518,7 +518,6 @@ impl<'a> Display for Expected + 'a {
 /// `LinkedHashMap<K, V>` type that is deserializable by Serde because the crate
 /// provides an implementation of `Deserialize` for it.
 ///
-/// [de]: https://docs.serde.rs/serde/de/index.html
 /// [derive]: https://serde.rs/derive.html
 /// [impl-deserialize]: https://serde.rs/impl-deserialize.html
 ///
@@ -565,7 +564,7 @@ pub trait Deserialize<'de>: Sized {
         D: Deserializer<'de>,
     {
         // Default implementation just delegates to `deserialize` impl.
-        *place = Deserialize::deserialize(deserializer)?;
+        *place = try!(Deserialize::deserialize(deserializer));
         Ok(())
     }
 }
@@ -862,10 +861,10 @@ where
 /// The `Deserializer` trait supports two entry point styles which enables
 /// different kinds of deserialization.
 ///
-/// 1. The `deserialize` method. Self-describing data formats like JSON are able
-///    to look at the serialized data and tell what it represents. For example
-///    the JSON deserializer may see an opening curly brace (`{`) and know that
-///    it is seeing a map. If the data format supports
+/// 1. The `deserialize_any` method. Self-describing data formats like JSON are
+///    able to look at the serialized data and tell what it represents. For
+///    example the JSON deserializer may see an opening curly brace (`{`) and
+///    know that it is seeing a map. If the data format supports
 ///    `Deserializer::deserialize_any`, it will drive the Visitor using whatever
 ///    type it sees in the input. JSON uses this approach when deserializing
 ///    `serde_json::Value` which is an enum that can represent any JSON

@@ -2,14 +2,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function
-
 import argparse
-import buildconfig
-import subprocess
-import shutil
-import sys
 import os
+import shutil
+import subprocess
+import sys
+
+import buildconfig
 
 
 def dump_symbols(target, tracking_file, count_ctors=False):

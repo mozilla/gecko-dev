@@ -4,6 +4,11 @@
 "use strict";
 
 const MONTH_YEAR = ".month-year",
+  BTN_MONTH_YEAR = "#month-year-label",
+  MONTH_YEAR_VIEW = ".month-year-view",
+  BTN_PREV_MONTH = ".prev",
+  BTN_NEXT_MONTH = ".next",
+  DAYS_VIEW = ".days-view",
   DAY_SELECTED = ".selection";
 const DATE_FORMAT = new Intl.DateTimeFormat("en-US", {
   year: "numeric",
@@ -30,6 +35,105 @@ async function testCalendarBtnAttribute(attr, val) {
       `Calendar button has ${attr} attribute set to ${val}`
     );
   });
+}
+
+/**
+ * Helper function to test if a submission/dismissal keyboard shortcut works
+ * on a month or a year selection spinner
+ *
+ * @param {String} key: A keyboard Event.key that will be synthesized
+ * @param {Object} document: Reference to the content document
+ *                 of the #dateTimePopupFrame
+ * @param {Number} tabs: How many times "Tab" key should be pressed
+ *                 to move a keyboard focus to a needed spinner
+ *                 (1 for month/default and 2 for year)
+ *
+ * @description Starts with the month-year toggle button being focused
+ *              on the date/datetime-local input's datepicker panel
+ */
+async function testKeyOnSpinners(key, document, tabs = 1) {
+  info(`Testing "${key}" key behavior`);
+
+  Assert.equal(
+    document.activeElement,
+    helper.getElement(BTN_MONTH_YEAR),
+    "The month-year toggle button is focused"
+  );
+
+  // Open the month-year selection panel with spinners:
+  await EventUtils.synthesizeKey(" ", {});
+
+  Assert.equal(
+    helper.getElement(BTN_MONTH_YEAR).getAttribute("aria-expanded"),
+    "true",
+    "Month-year button is expanded when the spinners are shown"
+  );
+  Assert.ok(
+    BrowserTestUtils.is_visible(helper.getElement(MONTH_YEAR_VIEW)),
+    "Month-year selection panel is visible"
+  );
+
+  // Move focus from the month-year toggle button to one of spinners:
+  await EventUtils.synthesizeKey("KEY_Tab", { repeat: tabs });
+
+  Assert.equal(
+    document.activeElement.getAttribute("role"),
+    "spinbutton",
+    "The spinner is focused"
+  );
+
+  // Confirm the spinbutton choice and close the month-year selection panel:
+  await EventUtils.synthesizeKey(key, {});
+
+  Assert.equal(
+    helper.getElement(BTN_MONTH_YEAR).getAttribute("aria-expanded"),
+    "false",
+    "Month-year button is collapsed when the spinners are hidden"
+  );
+  Assert.ok(
+    BrowserTestUtils.is_hidden(helper.getElement(MONTH_YEAR_VIEW)),
+    "Month-year selection panel is not visible"
+  );
+  Assert.equal(
+    document.activeElement,
+    helper.getElement(DAYS_VIEW).querySelector('[tabindex="0"]'),
+    "A focusable day within a calendar grid is focused"
+  );
+
+  // Return the focus to the month-year toggle button for future tests
+  // (passing a Previous button along the way):
+  await EventUtils.synthesizeKey("KEY_Tab", { repeat: 2 });
+}
+
+/**
+ * Helper function to find and return a gridcell element
+ * for a specific day of the month
+ *
+ * @param {Number} day: A day of the month to find in the month grid
+ *
+ * @return {HTMLElement} A gridcell that represents the needed day of the month
+ */
+function getDayEl(dayNum) {
+  const dayEls = Array.from(
+    helper.getElement(DAYS_VIEW).querySelectorAll("td")
+  );
+  return dayEls.find(el => el.textContent === dayNum.toString());
+}
+
+/**
+ * Helper function to find and return a gridcell element
+ * for a specific day of the month
+ *
+ * @return {Array[String]} TextContent of each gridcell within a calendar grid
+ */
+function getCalendarText() {
+  let calendarCells = [];
+  for (const tr of helper.getChildren(DAYS_VIEW)) {
+    for (const td of tr.children) {
+      calendarCells.push(td.textContent);
+    }
+  }
+  return calendarCells;
 }
 
 let helper = new DateTimeTestHelper();
@@ -59,7 +163,7 @@ add_task(async function test_datepicker_keyboard_nav() {
   let closed = helper.promisePickerClosed();
 
   // Close on Escape anywhere
-  EventUtils.synthesizeKey("VK_ESCAPE", {});
+  EventUtils.synthesizeKey("KEY_Escape", {});
 
   await closed;
 
@@ -85,7 +189,7 @@ add_task(async function test_datepicker_keyboard_nav() {
   //
   // This assumes en-US locale, which seems fine for testing purposes (as
   // DATE_FORMAT and other bits around do the same).
-  BrowserTestUtils.synthesizeKey("VK_DOWN", {}, browser);
+  BrowserTestUtils.synthesizeKey("KEY_ArrowDown", {}, browser);
 
   // Toggle the picker on Space anywhere within the input
   BrowserTestUtils.synthesizeKey(" ", {}, browser);
@@ -107,14 +211,17 @@ add_task(async function test_datepicker_keyboard_nav() {
     "Picker is opened with a focus set to the currently selected date"
   );
 
-  // It'd be good to use something else than waitForCondition for this but
-  // there's no exposed event atm when the value changes from the child.
-  await BrowserTestUtils.waitForCondition(() => {
-    return (
-      helper.getElement(MONTH_YEAR).textContent ==
-      DATE_FORMAT(new Date(prevMonth))
-    );
-  }, `Should change to November 2016, instead got ${helper.getElement(MONTH_YEAR).textContent}`);
+  let monthYearEl = helper.getElement(MONTH_YEAR);
+  await BrowserTestUtils.waitForMutationCondition(
+    monthYearEl,
+    { childList: true },
+    () => {
+      return monthYearEl.textContent == DATE_FORMAT(new Date(prevMonth));
+    },
+    `Should change to November 2016, instead got ${
+      helper.getElement(MONTH_YEAR).textContent
+    }`
+  );
 
   Assert.ok(
     true,
@@ -124,7 +231,7 @@ add_task(async function test_datepicker_keyboard_nav() {
   closed = helper.promisePickerClosed();
 
   // Close on Escape and return the focus to the input field  (the month input in en-US locale)
-  EventUtils.synthesizeKey("VK_ESCAPE", {}, window);
+  EventUtils.synthesizeKey("KEY_Escape", {}, window);
 
   await closed;
 
@@ -134,20 +241,30 @@ add_task(async function test_datepicker_keyboard_nav() {
     "Panel should be closed on Escape"
   );
 
-  // The focus should return to the input field.
-  let isFocused = await SpecialPowers.spawn(browser, [], () => {
-    return (
-      content.document.querySelector("#date") === content.document.activeElement
+  // Check the focus is returned to the Month field
+  await SpecialPowers.spawn(browser, [], async () => {
+    const input = content.document.querySelector("input");
+    const shadowRoot = SpecialPowers.wrap(input).openOrClosedShadowRoot;
+    // Separators "/" are odd children of the wrapper
+    const monthField = shadowRoot.getElementById("edit-wrapper").children[0];
+    // Testing the focus position within content:
+    Assert.equal(
+      input,
+      content.document.activeElement,
+      `The input field includes programmatic focus`
+    );
+    // Testing the focus indication within the shadow-root:
+    Assert.ok(
+      monthField.matches(":focus"),
+      `The keyboard focus was returned to the Month field`
     );
   });
 
-  Assert.ok(isFocused, "<input> should again be focused");
-
   // Move focus to the second field (the day input in en-US locale)
-  BrowserTestUtils.synthesizeKey("VK_RIGHT", {}, browser);
+  BrowserTestUtils.synthesizeKey("KEY_ArrowRight", {}, browser);
 
   // Change the day to 2016-12-16
-  BrowserTestUtils.synthesizeKey("VK_UP", {}, browser);
+  BrowserTestUtils.synthesizeKey("KEY_ArrowUp", {}, browser);
 
   ready = helper.waitForPickerReady();
 
@@ -160,9 +277,17 @@ add_task(async function test_datepicker_keyboard_nav() {
 
   Assert.equal(helper.panel.state, "open", "Panel should be opened on Space");
 
-  await BrowserTestUtils.waitForCondition(() => {
-    return helper.getElement(DAY_SELECTED).textContent === "16";
-  }, `Should change to the 16th, instead got ${helper.getElement(DAY_SELECTED).textContent}`);
+  let selectedDayEl = helper.getElement(DAY_SELECTED);
+  await BrowserTestUtils.waitForMutationCondition(
+    selectedDayEl,
+    { childList: true },
+    () => {
+      return selectedDayEl.textContent === "16";
+    },
+    `Should change to the 16th, instead got ${
+      helper.getElement(DAY_SELECTED).textContent
+    }`
+  );
 
   Assert.ok(
     true,
@@ -172,7 +297,7 @@ add_task(async function test_datepicker_keyboard_nav() {
   closed = helper.promisePickerClosed();
 
   // Close on Escape and return the focus to the input field  (the day input in en-US locale)
-  EventUtils.synthesizeKey("VK_ESCAPE", {}, window);
+  EventUtils.synthesizeKey("KEY_Escape", {}, window);
 
   await closed;
 
@@ -183,6 +308,25 @@ add_task(async function test_datepicker_keyboard_nav() {
   );
 
   await testCalendarBtnAttribute("aria-expanded", "false");
+
+  // Check the focus is returned to the Day field
+  await SpecialPowers.spawn(browser, [], async () => {
+    const input = content.document.querySelector("input");
+    const shadowRoot = SpecialPowers.wrap(input).openOrClosedShadowRoot;
+    // Separators "/" are odd children of the wrapper
+    const dayField = shadowRoot.getElementById("edit-wrapper").children[2];
+    // Testing the focus position within content:
+    Assert.equal(
+      input,
+      content.document.activeElement,
+      `The input field includes programmatic focus`
+    );
+    // Testing the focus indication within the shadow-root:
+    Assert.ok(
+      dayField.matches(":focus"),
+      `The keyboard focus was returned to the Day field`
+    );
+  });
 
   info("Test the Calendar button can toggle the picker with Enter/Space");
 
@@ -204,7 +348,7 @@ add_task(async function test_datepicker_keyboard_nav() {
   await testCalendarBtnAttribute("aria-expanded", "true");
 
   // Move focus from 2016-11-16 to 2016-11-17
-  EventUtils.synthesizeKey("VK_RIGHT", {});
+  EventUtils.synthesizeKey("KEY_ArrowRight", {});
 
   // Make a selection by pressing Space on date gridcell
   await EventUtils.synthesizeKey(" ", {});
@@ -216,8 +360,42 @@ add_task(async function test_datepicker_keyboard_nav() {
     "closed",
     "Panel should be closed on Space from the date gridcell"
   );
-
   await testCalendarBtnAttribute("aria-expanded", "false");
+
+  // Check the focus is returned to the Calendar button
+  await SpecialPowers.spawn(browser, [], async () => {
+    const input = content.document.querySelector("input");
+    const shadowRoot = SpecialPowers.wrap(input).openOrClosedShadowRoot;
+    const calendarBtn = shadowRoot.getElementById("calendar-button");
+    // Testing the focus position within content:
+    Assert.equal(
+      input,
+      content.document.activeElement,
+      `The input field includes programmatic focus`
+    );
+    // Testing the focus indication within the shadow-root:
+    Assert.ok(
+      calendarBtn.matches(":focus"),
+      `The keyboard focus was returned to the Calendar button`
+    );
+  });
+
+  // Check the Backspace on Calendar button is not doing anything
+  await EventUtils.synthesizeKey("KEY_Backspace", {});
+
+  // The Calendar button is on its place and the input value is not changed
+  // (bug 1804669)
+  await SpecialPowers.spawn(browser, [], () => {
+    const input = content.document.querySelector("input");
+    const shadowRoot = SpecialPowers.wrap(input).openOrClosedShadowRoot;
+    const calendarBtn = shadowRoot.getElementById("calendar-button");
+    Assert.equal(
+      calendarBtn.children[0].tagName,
+      "svg",
+      `Calendar button has an <svg> child`
+    );
+    Assert.equal(input.value, "2016-11-17", `Input's value is not removed`);
+  });
 
   // Toggle the picker on Space on Calendar button
   await EventUtils.synthesizeKey(" ", {});
@@ -251,7 +429,7 @@ add_task(async function test_datepicker_keyboard_arrows() {
   Assert.equal(helper.panel.state, "open", "Panel should be opened");
 
   // Move focus from 2016-12-10 to 2016-12-11:
-  EventUtils.synthesizeKey("VK_RIGHT", {});
+  EventUtils.synthesizeKey("KEY_ArrowRight", {});
 
   Assert.equal(
     pickerDoc.activeElement.textContent,
@@ -260,7 +438,7 @@ add_task(async function test_datepicker_keyboard_arrows() {
   );
 
   // Move focus from 2016-12-11 to 2016-12-04:
-  EventUtils.synthesizeKey("VK_UP", {});
+  EventUtils.synthesizeKey("KEY_ArrowUp", {});
 
   Assert.equal(
     pickerDoc.activeElement.textContent,
@@ -269,7 +447,7 @@ add_task(async function test_datepicker_keyboard_arrows() {
   );
 
   // Move focus from 2016-12-04 to 2016-12-03:
-  EventUtils.synthesizeKey("VK_LEFT", {});
+  EventUtils.synthesizeKey("KEY_ArrowLeft", {});
 
   Assert.equal(
     pickerDoc.activeElement.textContent,
@@ -278,7 +456,7 @@ add_task(async function test_datepicker_keyboard_arrows() {
   );
 
   // Move focus from 2016-12-03 to 2016-11-26:
-  EventUtils.synthesizeKey("VK_UP", {});
+  EventUtils.synthesizeKey("KEY_ArrowUp", {});
 
   Assert.equal(
     pickerDoc.activeElement.textContent,
@@ -292,7 +470,7 @@ add_task(async function test_datepicker_keyboard_arrows() {
   );
 
   // Move focus from 2016-11-26 to 2016-12-03:
-  EventUtils.synthesizeKey("VK_DOWN", {});
+  EventUtils.synthesizeKey("KEY_ArrowDown", {});
   Assert.equal(
     pickerDoc.activeElement.textContent,
     "3",
@@ -305,7 +483,7 @@ add_task(async function test_datepicker_keyboard_arrows() {
   );
 
   // Move focus from 2016-12-03 to 2016-12-10:
-  EventUtils.synthesizeKey("VK_DOWN", {});
+  EventUtils.synthesizeKey("KEY_ArrowDown", {});
 
   Assert.equal(
     pickerDoc.activeElement.textContent,
@@ -332,7 +510,7 @@ add_task(async function test_datepicker_keyboard_home_end() {
   Assert.equal(helper.panel.state, "open", "Panel should be opened");
 
   // Move focus from 2016-12-15 to 2016-12-11 (in the en-US locale):
-  EventUtils.synthesizeKey("VK_HOME", {});
+  EventUtils.synthesizeKey("KEY_Home", {});
 
   Assert.equal(
     pickerDoc.activeElement.textContent,
@@ -341,7 +519,7 @@ add_task(async function test_datepicker_keyboard_home_end() {
   );
 
   // Move focus from 2016-12-11 to 2016-12-17 (in the en-US locale):
-  EventUtils.synthesizeKey("VK_END", {});
+  EventUtils.synthesizeKey("KEY_End", {});
 
   Assert.equal(
     pickerDoc.activeElement.textContent,
@@ -350,7 +528,7 @@ add_task(async function test_datepicker_keyboard_home_end() {
   );
 
   // Move focus from 2016-12-17 to 2016-12-31:
-  EventUtils.synthesizeKey("VK_END", { ctrlKey: true });
+  EventUtils.synthesizeKey("KEY_End", { ctrlKey: true });
 
   Assert.equal(
     pickerDoc.activeElement.textContent,
@@ -359,7 +537,7 @@ add_task(async function test_datepicker_keyboard_home_end() {
   );
 
   // Move focus from 2016-12-31 to 2016-12-01:
-  EventUtils.synthesizeKey("VK_HOME", { ctrlKey: true });
+  EventUtils.synthesizeKey("KEY_Home", { ctrlKey: true });
 
   Assert.equal(
     pickerDoc.activeElement.textContent,
@@ -368,7 +546,7 @@ add_task(async function test_datepicker_keyboard_home_end() {
   );
 
   // Move focus from 2016-12-01 to 2016-11-27 (in the en-US locale):
-  EventUtils.synthesizeKey("VK_HOME", {});
+  EventUtils.synthesizeKey("KEY_Home", {});
 
   Assert.equal(
     pickerDoc.activeElement.textContent,
@@ -382,7 +560,7 @@ add_task(async function test_datepicker_keyboard_home_end() {
   );
 
   // Move focus from 2016-11-27 to 2016-12-03 (in the en-US locale):
-  EventUtils.synthesizeKey("VK_END", {});
+  EventUtils.synthesizeKey("KEY_End", {});
 
   Assert.equal(
     pickerDoc.activeElement.textContent,
@@ -401,11 +579,12 @@ add_task(async function test_datepicker_keyboard_home_end() {
 /**
  * Ensure calendar follows Page Up/Down key bindings appropriately.
  */
-add_task(async function test_datepicker_keyboard_home_end() {
+add_task(async function test_datepicker_keyboard_pgup_pgdown() {
   info("Ensure calendar follows Page Up/Down key bindings appropriately.");
 
   const inputValue = "2023-01-31";
   const prevMonth = "2022-12-31";
+  const prevYear = "2021-12-01";
   const nextMonth = "2023-01-31";
   const nextShortMonth = "2023-03-03";
   await helper.openPicker(
@@ -426,10 +605,11 @@ add_task(async function test_datepicker_keyboard_home_end() {
   Assert.equal(
     helper.getElement(MONTH_YEAR).textContent,
     DATE_FORMAT(new Date(prevMonth)),
-    "Page Up key updates the spinner to show the previous month"
+    "Page Up key updates the month-year button to show the previous month"
   );
 
-  // Move focus from 2022-12-31 to 2022-12-01:
+  // Move focus from 2022-12-31 to 2022-12-01
+  // (because 2022-11-31 does not exist):
   EventUtils.synthesizeKey("KEY_PageUp", {});
 
   Assert.equal(
@@ -441,11 +621,64 @@ add_task(async function test_datepicker_keyboard_home_end() {
   Assert.equal(
     helper.getElement(MONTH_YEAR).textContent,
     DATE_FORMAT(new Date(prevMonth)),
-    "Page Up key keeps the spinner to show the current month"
+    `When the same day does not exist in the previous month
+    Page Up key does not update the month-year button and shows the current month`
+  );
+
+  // Move focus from 2022-12-01 to 2021-12-01:
+  EventUtils.synthesizeKey("KEY_PageUp", { shiftKey: true });
+  Assert.equal(
+    pickerDoc.activeElement.textContent,
+    "1",
+    "Page Up with Shift key moves focus to the same day of the same month of the previous year"
+  );
+  Assert.equal(
+    helper.getElement(MONTH_YEAR).textContent,
+    DATE_FORMAT(new Date(prevYear)),
+    "Page Up with Shift key updates the month-year button to show the same month of the previous year"
+  );
+
+  // Move focus from 2021-12-01 to 2022-12-01 month by month (bug 1806645):
+  EventUtils.synthesizeKey("KEY_PageDown", { repeat: 12 });
+  Assert.equal(
+    pickerDoc.activeElement.textContent,
+    "1",
+    "When repeated, Page Down key moves focus to the same day of the same month of the next year"
+  );
+  Assert.equal(
+    helper.getElement(MONTH_YEAR).textContent,
+    DATE_FORMAT(new Date(prevMonth)),
+    "When repeated, Page Down key updates the month-year button to show the same month of the next year"
+  );
+
+  // Move focus from 2022-12-01 to 2021-12-01 month by month (bug 1806645):
+  EventUtils.synthesizeKey("KEY_PageUp", { repeat: 12 });
+  Assert.equal(
+    pickerDoc.activeElement.textContent,
+    "1",
+    "When repeated, Page Up moves focus to the same day of the same month of the previous year"
+  );
+  Assert.equal(
+    helper.getElement(MONTH_YEAR).textContent,
+    DATE_FORMAT(new Date(prevYear)),
+    "When repeated, Page Up key updates the month-year button to show the same month of the previous year"
+  );
+
+  // Move focus from 2021-12-01 to 2022-12-01:
+  EventUtils.synthesizeKey("KEY_PageDown", { shiftKey: true });
+  Assert.equal(
+    pickerDoc.activeElement.textContent,
+    "1",
+    "Page Down with Shift key moves focus to the same day of the same month of the next year"
+  );
+  Assert.equal(
+    helper.getElement(MONTH_YEAR).textContent,
+    DATE_FORMAT(new Date(prevMonth)),
+    "Page Down with Shift key updates the month-year button to show the same month of the next year"
   );
 
   // Move focus from 2016-12-01 to 2016-12-31:
-  EventUtils.synthesizeKey("VK_END", { ctrlKey: true });
+  EventUtils.synthesizeKey("KEY_End", { ctrlKey: true });
   // Move focus from 2022-12-31 to 2023-01-31:
   EventUtils.synthesizeKey("KEY_PageDown", {});
 
@@ -457,7 +690,7 @@ add_task(async function test_datepicker_keyboard_home_end() {
   Assert.equal(
     helper.getElement(MONTH_YEAR).textContent,
     DATE_FORMAT(new Date(nextMonth)),
-    "Page Down key updates the spinner to show the next month"
+    "Page Down key updates the month-year button to show the next month"
   );
 
   // Move focus from 2023-01-31 to 2023-03-03:
@@ -472,7 +705,419 @@ add_task(async function test_datepicker_keyboard_home_end() {
   Assert.equal(
     helper.getElement(MONTH_YEAR).textContent,
     DATE_FORMAT(new Date(nextShortMonth)),
-    "Page Down key updates the spinner to show the month after"
+    "Page Down key updates the month-year button to show the month after"
+  );
+
+  await helper.tearDown();
+});
+
+/**
+ * Ensure the month-year panel of a date input handles Space and Enter appropriately.
+ */
+add_task(async function test_monthyear_close_date() {
+  info(
+    "Ensure the month-year panel of a date input handles Space and Enter appropriately."
+  );
+
+  const inputValue = "2022-11-11";
+
+  await helper.openPicker(
+    `data:text/html, <input type="date" value=${inputValue}>`
+  );
+  let pickerDoc = helper.panel.querySelector("#dateTimePopupFrame")
+    .contentDocument;
+
+  // Move focus from the selected date to the month-year toggle button:
+  await EventUtils.synthesizeKey("KEY_Tab", { repeat: 2 });
+
+  // Test a month spinner
+  await testKeyOnSpinners("KEY_Enter", pickerDoc);
+  await testKeyOnSpinners(" ", pickerDoc);
+
+  // Test a year spinner
+  await testKeyOnSpinners("KEY_Enter", pickerDoc, 2);
+  await testKeyOnSpinners(" ", pickerDoc, 2);
+
+  await helper.tearDown();
+});
+
+/**
+ * Ensure the month-year panel of a datetime-local input handles Space and Enter appropriately.
+ */
+add_task(async function test_monthyear_close_datetime() {
+  info(
+    "Ensure the month-year panel of a datetime-local input handles Space and Enter appropriately."
+  );
+
+  const inputValue = "2022-11-11T11:11";
+
+  await helper.openPicker(
+    `data:text/html, <input type="datetime-local" value=${inputValue}>`
+  );
+  let pickerDoc = helper.panel.querySelector("#dateTimePopupFrame")
+    .contentDocument;
+
+  // Move focus from the selected date to the month-year toggle button:
+  await EventUtils.synthesizeKey("KEY_Tab", { repeat: 2 });
+
+  // Test a month spinner
+  await testKeyOnSpinners("KEY_Enter", pickerDoc);
+  await testKeyOnSpinners(" ", pickerDoc);
+
+  // Test a year spinner
+  await testKeyOnSpinners("KEY_Enter", pickerDoc, 2);
+  await testKeyOnSpinners(" ", pickerDoc, 2);
+
+  await helper.tearDown();
+});
+
+/**
+ * Ensure the month-year panel of a date input can be closed with Escape key.
+ */
+add_task(async function test_monthyear_escape_date() {
+  info("Ensure the month-year panel of a date input can be closed with Esc.");
+
+  const inputValue = "2022-12-12";
+
+  await helper.openPicker(
+    `data:text/html, <input type="date" value=${inputValue}>`
+  );
+  let pickerDoc = helper.panel.querySelector("#dateTimePopupFrame")
+    .contentDocument;
+
+  // Move focus from the today's date to the month-year toggle button:
+  EventUtils.synthesizeKey("KEY_Tab", { repeat: 2 });
+
+  // Test a month spinner
+  await testKeyOnSpinners("KEY_Escape", pickerDoc);
+
+  // Test a year spinner
+  await testKeyOnSpinners("KEY_Escape", pickerDoc, 2);
+
+  await helper.tearDown();
+});
+
+/**
+ * Ensure the month-year panel of a datetime-local input can be closed with Escape key.
+ */
+add_task(async function test_monthyear_escape_datetime() {
+  info(
+    "Ensure the month-year panel of a datetime-local input can be closed with Esc."
+  );
+
+  const inputValue = "2022-12-12";
+
+  await helper.openPicker(
+    `data:text/html, <input type="date" value=${inputValue}>`
+  );
+  let pickerDoc = helper.panel.querySelector("#dateTimePopupFrame")
+    .contentDocument;
+
+  // Move focus from the today's date to the month-year toggle button:
+  EventUtils.synthesizeKey("KEY_Tab", { repeat: 2 });
+
+  // Test a month spinner
+  await testKeyOnSpinners("KEY_Escape", pickerDoc);
+
+  // Test a year spinner
+  await testKeyOnSpinners("KEY_Escape", pickerDoc, 2);
+
+  await helper.tearDown();
+});
+
+/**
+ * When the Previous Month button is pressed, calendar should display
+ * the dates for the previous month.
+ */
+add_task(async function test_datepicker_prev_month_btn() {
+  const inputValue = "2016-12-15";
+  const prevMonth = "2016-11-01";
+
+  await helper.openPicker(
+    `data:text/html, <input type="date" value="${inputValue}">`
+  );
+
+  // Move focus from the selected date to the Previous Month button:
+  EventUtils.synthesizeKey("KEY_Tab");
+  EventUtils.synthesizeKey(" ");
+
+  // 2016-11-15:
+  const focusableDay = getDayEl(15);
+
+  Assert.equal(
+    helper.getElement(MONTH_YEAR).textContent,
+    DATE_FORMAT(new Date(prevMonth))
+  );
+  Assert.deepEqual(
+    getCalendarText(),
+    [
+      "30",
+      "31",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12",
+      "13",
+      "14",
+      "15",
+      "16",
+      "17",
+      "18",
+      "19",
+      "20",
+      "21",
+      "22",
+      "23",
+      "24",
+      "25",
+      "26",
+      "27",
+      "28",
+      "29",
+      "30",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+    ],
+    "The calendar is updated to show the previous month (2016-11)"
+  );
+  Assert.ok(
+    helper.getElement(BTN_PREV_MONTH).matches(":focus"),
+    "Focus stays on a Previous Month button after it's pressed"
+  );
+  Assert.equal(
+    focusableDay.textContent,
+    "15",
+    "The same day of the month is present within a calendar grid"
+  );
+  Assert.equal(
+    focusableDay,
+    helper.getElement(DAYS_VIEW).querySelector('[tabindex="0"]'),
+    "The same day of the month is focusable within a calendar grid"
+  );
+
+  // Move focus from the Previous Month button to the same day of the month (2016-11-15):
+  EventUtils.synthesizeKey("KEY_Tab", { repeat: 3 });
+
+  Assert.ok(
+    focusableDay.matches(":focus"),
+    "The same day of the previous month can be focused with a keyboard"
+  );
+
+  await helper.tearDown();
+});
+
+/**
+ * When the Next Month button is clicked, calendar should display the dates for
+ * the next month.
+ */
+add_task(async function test_datepicker_next_month_btn() {
+  const inputValue = "2016-12-15";
+  const nextMonth = "2017-01-01";
+
+  await helper.openPicker(
+    `data:text/html, <input type="date" value="${inputValue}">`
+  );
+
+  // Move focus from the selected date to the Next Month button:
+  EventUtils.synthesizeKey("KEY_Tab", { repeat: 3 });
+  EventUtils.synthesizeKey(" ");
+
+  // 2017-01-15:
+  const focusableDay = getDayEl(15);
+
+  Assert.equal(
+    helper.getElement(MONTH_YEAR).textContent,
+    DATE_FORMAT(new Date(nextMonth))
+  );
+  Assert.deepEqual(
+    getCalendarText(),
+    [
+      "25",
+      "26",
+      "27",
+      "28",
+      "29",
+      "30",
+      "31",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12",
+      "13",
+      "14",
+      "15",
+      "16",
+      "17",
+      "18",
+      "19",
+      "20",
+      "21",
+      "22",
+      "23",
+      "24",
+      "25",
+      "26",
+      "27",
+      "28",
+      "29",
+      "30",
+      "31",
+      "1",
+      "2",
+      "3",
+      "4",
+    ],
+    "The calendar is updated to show the next month (2017-01)."
+  );
+  Assert.ok(
+    helper.getElement(BTN_NEXT_MONTH).matches(":focus"),
+    "Focus stays on a Next Month button after it's pressed"
+  );
+  Assert.equal(
+    focusableDay.textContent,
+    "15",
+    "The same day of the month is present within a calendar grid"
+  );
+  Assert.equal(
+    focusableDay,
+    helper.getElement(DAYS_VIEW).querySelector('[tabindex="0"]'),
+    "The same day of the month is focusable within a calendar grid"
+  );
+
+  // Move focus from the Next Month button to the same day of the month (2017-01-15):
+  EventUtils.synthesizeKey("KEY_Tab");
+
+  Assert.ok(
+    focusableDay.matches(":focus"),
+    "The same day of the next month can be focused with a keyboard"
+  );
+
+  await helper.tearDown();
+});
+
+/**
+ * When the Previous Month button is pressed, calendar should display
+ * the dates for the previous month on RTL build (bug 1806823).
+ */
+add_task(async function test_datepicker_prev_month_btn_rtl() {
+  const inputValue = "2016-12-15";
+  const prevMonth = "2016-11-01";
+
+  await SpecialPowers.pushPrefEnv({ set: [["intl.l10n.pseudo", "bidi"]] });
+
+  await helper.openPicker(
+    `data:text/html, <input type="date" value="${inputValue}">`
+  );
+
+  // Move focus from the selected date to the Previous Month button:
+  EventUtils.synthesizeKey("KEY_Tab");
+  EventUtils.synthesizeKey(" ");
+
+  // 2016-11-15:
+  const focusableDay = getDayEl(15);
+
+  Assert.equal(
+    helper.getElement(MONTH_YEAR).textContent,
+    DATE_FORMAT(new Date(prevMonth)),
+    "The calendar is updated to show the previous month (2016-11)"
+  );
+  Assert.ok(
+    helper.getElement(BTN_PREV_MONTH).matches(":focus"),
+    "Focus stays on a Previous Month button after it's pressed"
+  );
+  Assert.equal(
+    focusableDay.textContent,
+    "15",
+    "The same day of the month is present within a calendar grid"
+  );
+  Assert.equal(
+    focusableDay,
+    helper.getElement(DAYS_VIEW).querySelector('[tabindex="0"]'),
+    "The same day of the month is focusable within a calendar grid"
+  );
+
+  // Move focus from the Previous Month button to the same day of the month (2016-11-15):
+  EventUtils.synthesizeKey("KEY_Tab", { repeat: 3 });
+
+  Assert.ok(
+    focusableDay.matches(":focus"),
+    "The same day of the previous month can be focused with a keyboard"
+  );
+
+  await helper.tearDown();
+});
+
+/**
+ * When the Next Month button is clicked, calendar should display the dates for
+ * the next month on RTL build (bug 1806823).
+ */
+add_task(async function test_datepicker_next_month_btn_rtl() {
+  const inputValue = "2016-12-15";
+  const nextMonth = "2017-01-01";
+
+  await SpecialPowers.pushPrefEnv({ set: [["intl.l10n.pseudo", "bidi"]] });
+
+  await helper.openPicker(
+    `data:text/html, <input type="date" value="${inputValue}">`
+  );
+
+  // Move focus from the selected date to the Next Month button:
+  EventUtils.synthesizeKey("KEY_Tab", { repeat: 3 });
+  EventUtils.synthesizeKey(" ");
+
+  // 2017-01-15:
+  const focusableDay = getDayEl(15);
+
+  Assert.equal(
+    helper.getElement(MONTH_YEAR).textContent,
+    DATE_FORMAT(new Date(nextMonth)),
+    "The calendar is updated to show the next month (2017-01)."
+  );
+  Assert.ok(
+    helper.getElement(BTN_NEXT_MONTH).matches(":focus"),
+    "Focus stays on a Next Month button after it's pressed"
+  );
+  Assert.equal(
+    focusableDay.textContent,
+    "15",
+    "The same day of the month is present within a calendar grid"
+  );
+  Assert.equal(
+    focusableDay,
+    helper.getElement(DAYS_VIEW).querySelector('[tabindex="0"]'),
+    "The same day of the month is focusable within a calendar grid"
+  );
+
+  // Move focus from the Next Month button to the same day of the month (2017-01-15):
+  EventUtils.synthesizeKey("KEY_Tab");
+
+  Assert.ok(
+    focusableDay.matches(":focus"),
+    "The same day of the next month can be focused with a keyboard"
   );
 
   await helper.tearDown();

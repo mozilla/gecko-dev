@@ -13,6 +13,10 @@ job-defaults:
                 by-variant:
                     msix: target.installer.msix
                     default: null
+            windows10-64-2004-qr/opt:
+                by-variant:
+                    msix: target.installer.msix
+                    default: null
             default: null
     tier:
         by-variant:
@@ -190,6 +194,7 @@ mochitest-browser-chrome:
         - webrender-sw+a11y-checks
         - webrender-sw+wayland
         - socketprocess_networking
+        - msix
     run-on-projects:
         by-variant:
             webrender-sw:
@@ -210,6 +215,11 @@ mochitest-browser-chrome:
                     (linux.*64|macosx.*64|windows10-64-2004)(-shippable)?-qr/(opt|debug): ['autoland', 'mozilla-central']
                     default: []
             webrender-sw+wayland: []
+            msix:
+                by-test-platform:
+                    windows10-64-2004-shippable-qr/opt: built-projects
+                    windows10-64-2004-qr/opt: built-projects
+                    default: []
             default:
                 by-test-platform:
                     android.*: []
@@ -233,14 +243,17 @@ mochitest-browser-chrome:
             windows10-32-qr/debug: 12
             default: 7
     max-run-time:
-        by-test-platform:
-            linux.*64-ccov.*/.*: 9000
-            windows10-64-2004-ccov.*/.*: 10800
-            macosx.*64-ccov.*/.*: 10800
-            linux.*64-tsan-qr/opt: 10800
-            linux.*-qr/opt: 5400
-            .*/debug: 5400
-            default: 3600
+        by-variant:
+            msix: 5400
+            default:
+                by-test-platform:
+                    linux.*64-ccov.*/.*: 9000
+                    windows10-64-2004-ccov.*/.*: 10800
+                    macosx.*64-ccov.*/.*: 10800
+                    linux.*64-tsan-qr/opt: 10800
+                    linux.*-qr/opt: 5400
+                    .*/debug: 5400
+                    default: 3600
     mozharness:
         mochitest-flavor: browser
         chunked: true
@@ -271,7 +284,32 @@ mochitest-browser-a11y:
                     android.*: []
                     default: built-projects
     tier: default
-    max-run-time: 1800
+    max-run-time:
+        by-test-platform:
+            .*tsan.*: 2700
+            default: 1800
+    mozharness:
+        mochitest-flavor: browser
+    instance-size: default
+    allow-software-gl-layers: false
+    virtualization: virtual
+
+mochitest-browser-media:
+    description: "Mochitest browser media"
+    suite:
+        name: mochitest-browser-media
+    treeherder-symbol: M(mda-bc)
+    schedules-component: mochitest-browser-media
+    loopback-video: true
+    run-on-projects:
+        by-test-platform:
+            android.*: []
+            default: built-projects
+    tier: default
+    max-run-time:
+        by-test-platform:
+            .*tsan.*: 1800
+            default: 1200
     mozharness:
         mochitest-flavor: browser
     instance-size: default
@@ -324,12 +362,8 @@ mochitest-chrome:
             1proc: built-projects
     chunks:
         by-test-platform:
-            .*(-ccov|-qr).*/.*: 3
-            windows10-64-2004-ccov-qr/opt: 3
-            .*-asan(-qr)?/opt: 3
-            .*-tsan-qr/opt: 6
-            (linux.*64|windows.*|macosx1015-64)/debug: 3
-            default: 2
+            .*tsan.*/opt: 6
+            default: 3
     max-run-time: 3600
     mozharness:
         mochitest-flavor: chrome
@@ -587,6 +621,7 @@ mochitest-media:
             msix:
                 by-test-platform:
                     windows10-64-2004-shippable-qr/opt: built-projects
+                    windows10-64-2004-qr/opt: ['autoland']
                     default: []
             default:
                 by-test-platform:
@@ -602,14 +637,11 @@ mochitest-media:
             wmf-media-engine: 1
             default:
                 by-test-platform:
-                    android-em-7.*: 1
-                    windows10-64-2004.*: 1
-                    macosx.*64.*/.*: 2
-                    windows10-aarch64-qr/.*: 1
-                    windows.*32-shippable/.*: 2
-                    linux1804-64(-shippable|-devedition|-.*qr)/opt: 2
-                    linux.*64-tsan-qr/opt: 4
-                    default: 3
+                    (android|macos).*/opt: 1
+                    ^(?!.*asan).*windows10.*/opt: 1
+                    linux.*/debug: 3
+                    linux.*64-tsan-qr/opt: 5
+                    default: 2
     mozharness:
         mochitest-flavor: plain
         chunked:
@@ -670,6 +702,7 @@ mochitest-webgl1-core:
             webgl-ipc:
                 by-test-platform:
                     .*-ccov.*: []
+                    .*-tsan.*: []
                     linux.*-64.*: ["trunk"]
                     mac.*: ["trunk"]
                     win.*: ["trunk"]
@@ -697,6 +730,7 @@ mochitest-webgl1-core:
             default:
                 by-test-platform:
                     android.*: []
+                    .*-tsan.*: []
                     default: built-projects
     # Bug 1296733: llvmpipe with mesa 9.2.1 lacks thread safety
     allow-software-gl-layers: false
@@ -729,6 +763,7 @@ mochitest-webgl1-ext:
             webgl-ipc:
                 by-test-platform:
                     .*-ccov.*: []
+                    .*-tsan.*: []
                     linux.*-64.*: built-projects
                     mac.*: ["trunk"]
                     windows10-64-2004.*: built-projects
@@ -756,6 +791,7 @@ mochitest-webgl1-ext:
             default:
                 by-test-platform:
                     android.*: []
+                    .*-tsan.*: []
                     default: built-projects
     # Bug 1296733: llvmpipe with mesa 9.2.1 lacks thread safety
     allow-software-gl-layers: false
@@ -789,6 +825,7 @@ mochitest-webgl2-core:
             webgl-ipc:
                 by-test-platform:
                     .*-ccov.*/.*: []
+                    .*-tsan.*: []
                     android.*: []
                     linux.*-64.*: ["trunk"]
                     mac.*: ["trunk"]
@@ -817,6 +854,7 @@ mochitest-webgl2-core:
             default:
                 by-test-platform:
                     android.*: []
+                    .*-tsan.*: []
                     default: built-projects
     # Bug 1296733: llvmpipe with mesa 9.2.1 lacks thread safety
     allow-software-gl-layers: false
@@ -840,6 +878,7 @@ mochitest-webgl2-ext:
             webgl-ipc:
                 by-test-platform:
                     .*ccov.*/.*: []
+                    .*-tsan.*: []
                     linux.*-64.*: ["trunk"]
                     mac.*: ["trunk"]
                     win.*: ["trunk"]
@@ -865,6 +904,7 @@ mochitest-webgl2-ext:
             default:
                 by-test-platform:
                     android.*: []
+                    .*-tsan.*: []
                     default: built-projects
     chunks: 4
     test-manifest-loader: null  # don't load tests in the taskgraph

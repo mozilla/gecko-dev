@@ -4,24 +4,31 @@ file-perm:
     include:
         - .
     extensions:
+        - .build
         - .c
         - .cc
         - .cpp
         - .flac
         - .h
         - .html
+        - .idl
+        - .js
         - .jsm
         - .jsx
         - .m
         - .m4s
+        - .md
         - .mjs
         - .mm
+        - .mozbuild
         - .mp4
         - .png
         - .rs
+        - .rst
         - .svg
         - .ttf
         - .wasm
+        - .webidl
         - .xhtml
         - .xml
         - .xul

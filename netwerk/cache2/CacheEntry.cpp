@@ -24,6 +24,7 @@
 #include "nsISeekableStream.h"
 #include "nsISizeOf.h"
 #include "nsIURI.h"
+#include "nsNetCID.h"
 #include "nsProxyRelease.h"
 #include "nsServiceManagerUtils.h"
 #include "nsString.h"
@@ -1887,7 +1888,22 @@ void CacheOutputCloseListener::OnOutputClosed() {
   // We need this class and to redispatch since this callback is invoked
   // under the file's lock and to do the job we need to enter the entry's
   // lock too.  That would lead to potential deadlocks.
-  NS_DispatchToCurrentThread(this);
+
+  if (NS_IsMainThread()) {
+    // If we're already on the main thread, dispatch to the main thread instead
+    // of the sts. Always dispatching to the sts can cause problems late in
+    // shutdown, when threadpools may no longer be available (bug 1806332).
+    //
+    // This may also avoid some unnecessary thread-hops when invoking callbacks,
+    // which can require that they be called on the main thread.
+    MOZ_ALWAYS_SUCCEEDS(NS_DispatchToMainThread(do_AddRef(this)));
+    return;
+  }
+
+  nsCOMPtr<nsIEventTarget> sts =
+      do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID);
+  MOZ_DIAGNOSTIC_ASSERT(sts);
+  MOZ_ALWAYS_SUCCEEDS(sts->Dispatch(do_AddRef(this)));
 }
 
 NS_IMETHODIMP CacheOutputCloseListener::Run() {

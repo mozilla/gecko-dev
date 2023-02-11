@@ -408,8 +408,7 @@ DocumentLoadListener::DocumentLoadListener(
     : mIsDocumentLoad(aIsDocumentLoad) {
   LOG(("DocumentLoadListener ctor [this=%p]", this));
   mParentChannelListener =
-      new ParentChannelListener(this, aLoadingBrowsingContext,
-                                aLoadingBrowsingContext->UsePrivateBrowsing());
+      new ParentChannelListener(this, aLoadingBrowsingContext);
 }
 
 DocumentLoadListener::~DocumentLoadListener() {
@@ -2097,6 +2096,12 @@ DocumentLoadListener::RedirectToRealChannel(
 
     cp->TransmitBlobDataIfBlobURL(args.uri());
 
+    if (CanonicalBrowsingContext* bc = GetDocumentBrowsingContext()) {
+      if (bc->IsTop() && bc->IsActive()) {
+        nsContentUtils::RequestGeckoTaskBurst();
+      }
+    }
+
     return cp->SendCrossProcessRedirect(args,
                                         std::move(aStreamFilterEndpoints));
   }
@@ -2914,11 +2919,12 @@ NS_IMETHODIMP DocumentLoadListener::OnStatus(nsIRequest* aRequest,
   return NS_OK;
 }
 
-NS_IMETHODIMP DocumentLoadListener::EarlyHint(
-    const nsACString& aLinkHeader, const nsACString& aReferrerPolicy) {
+NS_IMETHODIMP DocumentLoadListener::EarlyHint(const nsACString& aLinkHeader,
+                                              const nsACString& aReferrerPolicy,
+                                              const nsACString& aCSPHeader) {
   LOG(("DocumentLoadListener::EarlyHint.\n"));
   mEarlyHintsService.EarlyHint(aLinkHeader, GetChannelCreationURI(), mChannel,
-                               aReferrerPolicy);
+                               aReferrerPolicy, aCSPHeader);
   return NS_OK;
 }
 

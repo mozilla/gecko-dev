@@ -11,6 +11,7 @@
 #include "nsTHashMap.h"
 #include "nsTHashSet.h"
 #include "nsIObserver.h"
+#include "nsIWebProgressListener.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/StaticPtr.h"
 
@@ -18,10 +19,17 @@ namespace mozilla {
 
 class CookieBannerDomainPrefService;
 
+namespace dom {
+class BrowsingContext;
+}  // namespace dom
+
 class nsCookieBannerService final : public nsIObserver,
-                                    public nsICookieBannerService {
+                                    public nsICookieBannerService,
+                                    public nsIWebProgressListener,
+                                    public nsSupportsWeakReference {
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
+  NS_DECL_NSIWEBPROGRESSLISTENER
 
   NS_DECL_NSICOOKIEBANNERSERVICE
 
@@ -44,6 +52,12 @@ class nsCookieBannerService final : public nsIObserver,
   // Map of global cookie banner rules keyed by id.
   nsTHashMap<nsCStringHashKey, nsCOMPtr<nsICookieBannerRule>> mGlobalRules;
 
+  // The hash map to track if a top-level browsing context has either click
+  // or cookie rule under its browsing context tree. We use the browsing context
+  // id as the key. And the value is a tuple with two booleans that indicate
+  // the existence of click rule and cookie rule respectively.
+  nsTHashMap<uint64_t, Tuple<bool, bool>> mReloadTelemetryData;
+
   // Pref change callback which initializes and shuts down the service. This is
   // also called on startup.
   static void OnPrefChange(const char* aPref, void* aData);
@@ -59,9 +73,34 @@ class nsCookieBannerService final : public nsIObserver,
    */
   [[nodiscard]] nsresult Shutdown();
 
+  nsresult GetClickRulesForDomainInternal(
+      const nsACString& aDomain, const bool aIsTopLevel,
+      const bool aReportTelemetry, nsTArray<RefPtr<nsIClickRule>>& aRules);
+
+  nsresult GetCookieRulesForDomainInternal(
+      const nsACString& aBaseDomain, const nsICookieBannerService::Modes aMode,
+      const bool aIsTopLevel, const bool aReportTelemetry,
+      nsTArray<RefPtr<nsICookieRule>>& aCookies);
+
+  nsresult HasRuleForBrowsingContextInternal(
+      mozilla::dom::BrowsingContext* aBrowsingContext, bool& aHasClickRule,
+      bool& aHasCookieRule);
+
   nsresult GetRuleForDomain(const nsACString& aDomain, bool aIsTopLevel,
                             nsICookieBannerRule** aRule,
                             bool aReportTelemetry = false);
+
+  /**
+   * Lookup a domain pref by base domain.
+   */
+  nsresult GetDomainPrefInternal(const nsACString& aBaseDomain,
+                                 const bool aIsPrivate,
+                                 nsICookieBannerService::Modes* aModes);
+
+  nsresult SetDomainPrefInternal(nsIURI* aTopLevelURI,
+                                 nsICookieBannerService::Modes aModes,
+                                 const bool aIsPrivate,
+                                 const bool aPersistInPrivateBrowsing);
 
   /**
    * Get the rule matching the provided URI.
@@ -77,6 +116,13 @@ class nsCookieBannerService final : public nsIObserver,
   nsresult GetRuleForURI(nsIURI* aURI, bool aIsTopLevel,
                          nsICookieBannerRule** aRule, nsACString& aDomain,
                          bool aReportTelemetry = false);
+
+  nsresult GetServiceModeForBrowsingContext(
+      dom::BrowsingContext* aBrowsingContext,
+      nsICookieBannerService::Modes* aMode);
+
+  nsresult RegisterWebProgressListener(nsISupports* aSubject);
+  nsresult RemoveWebProgressListener(nsISupports* aSubject);
 
   void DailyReportTelemetry();
 

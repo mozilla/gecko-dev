@@ -10,7 +10,7 @@ job-defaults:
     worker:
         max-run-time: 1800
     run:
-        script: build-fix-stacks.sh
+        script: build-rust-based-toolchain.sh
         toolchain-artifact: public/build/fix-stacks.tar.zst
     fetches:
         fetch:
@@ -23,7 +23,6 @@ linux64-fix-stacks:
         arguments: ['x86_64-unknown-linux-gnu']
     fetches:
         toolchain:
-            - linux64-binutils
             - linux64-clang-toolchain
             - linux64-rust-toolchain
             - sysroot-x86_64-linux-gnu
@@ -60,7 +59,6 @@ win32-fix-stacks:
     fetches:
         toolchain:
             - linux64-clang-toolchain
-            - linux64-liblowercase
             - linux64-rust-windows-toolchain
             - win64-vs2017
 
@@ -72,6 +70,5 @@ win64-fix-stacks:
     fetches:
         toolchain:
             - linux64-clang-toolchain
-            - linux64-liblowercase
             - linux64-rust-windows-toolchain
             - win64-vs2017

@@ -21,6 +21,7 @@
 #include "mozilla/AppUnits.h"         // for AppUnits
 #include "nsFontMetrics.h"            // for nsFontMetrics::Params
 #include "mozilla/gfx/PrintTarget.h"  // for PrintTarget::PageDoneCallback
+#include "mozilla/gfx/PrintPromise.h"
 
 class gfxContext;
 class gfxTextPerfMetrics;
@@ -32,6 +33,10 @@ class nsIScreen;
 class nsIScreenManager;
 class nsIWidget;
 struct nsRect;
+
+namespace mozilla::dom {
+enum class ScreenColorGamut : uint8_t;
+}  // namespace mozilla::dom
 
 class nsDeviceContext final {
  public:
@@ -119,6 +124,11 @@ class nsDeviceContext final {
   uint32_t GetDepth();
 
   /**
+   * Return the color gamut of the device.
+   */
+  mozilla::dom::ScreenColorGamut GetColorGamut();
+
+  /**
    * Get the size of the displayable area of the output device
    * in app units.
    * @param aWidth out parameter for width
@@ -179,9 +189,9 @@ class nsDeviceContext final {
    * Inform the output device that output of a document is ending.
    * Used for print related device contexts. Must be matched 1:1 with
    * BeginDocument()
-   * @return error status
+   * @return Promise that can be chained once the operation is complete.
    */
-  nsresult EndDocument();
+  RefPtr<mozilla::gfx::PrintEndDocumentPromise> EndDocument();
 
   /**
    * Inform the output device that output of a document is being aborted.

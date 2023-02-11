@@ -14,9 +14,9 @@ whether IGNORE, DEBUG, INFO, WARNING, ERROR, CRITICAL, or FATAL.
 
 """
 
-from __future__ import absolute_import
 import re
-from mozharness.base.log import INFO, WARNING, ERROR
+
+from mozharness.base.log import ERROR, INFO, WARNING
 
 # ErrorLists {{{1
 _mochitest_summary = {

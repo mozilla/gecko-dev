@@ -104,23 +104,90 @@ describe("MultiStageAboutWelcomeProton module", () => {
       assert.equal(wrapper.find("main").prop("pos"), "center");
     });
 
-    it("should render action buttons container with dual-action-buttons class", () => {
+    it("should not render multiple action buttons if an additional button does not exist", () => {
       const SCREEN_PROPS = {
         content: {
-          position: "split",
           title: "test title",
-          dual_action_buttons: true,
           primary_button: {
             label: "test primary button",
-          },
-          secondary_button: {
-            label: "test secondary button",
           },
         },
       };
       const wrapper = mount(<MultiStageProtonScreen {...SCREEN_PROPS} />);
       assert.ok(wrapper.exists());
-      assert.ok(wrapper.find(".dual-action-buttons").text());
+      assert.isFalse(wrapper.find(".additional-cta").exists());
+    });
+
+    it("should render an additional action button with primary styling if no style has been specified", () => {
+      const SCREEN_PROPS = {
+        content: {
+          title: "test title",
+          primary_button: {
+            label: "test primary button",
+          },
+          additional_button: {
+            label: "test additional button",
+          },
+        },
+      };
+      const wrapper = mount(<MultiStageProtonScreen {...SCREEN_PROPS} />);
+      assert.ok(wrapper.exists());
+      assert.isTrue(wrapper.find(".additional-cta.primary").exists());
+    });
+
+    it("should render an additional action button with secondary styling", () => {
+      const SCREEN_PROPS = {
+        content: {
+          title: "test title",
+          primary_button: {
+            label: "test primary button",
+          },
+          additional_button: {
+            label: "test additional button",
+            style: "secondary",
+          },
+        },
+      };
+      const wrapper = mount(<MultiStageProtonScreen {...SCREEN_PROPS} />);
+      assert.ok(wrapper.exists());
+      assert.equal(wrapper.find(".additional-cta.secondary").exists(), true);
+    });
+
+    it("should render an additional action button with primary styling", () => {
+      const SCREEN_PROPS = {
+        content: {
+          title: "test title",
+          primary_button: {
+            label: "test primary button",
+          },
+          additional_button: {
+            label: "test additional button",
+            style: "primary",
+          },
+        },
+      };
+      const wrapper = mount(<MultiStageProtonScreen {...SCREEN_PROPS} />);
+      assert.ok(wrapper.exists());
+      assert.equal(wrapper.find(".additional-cta.primary").exists(), true);
+    });
+
+    it("should render an additional action with link styling", () => {
+      const SCREEN_PROPS = {
+        content: {
+          position: "split",
+          title: "test title",
+          primary_button: {
+            label: "test primary button",
+          },
+          additional_button: {
+            label: "test additional button",
+            style: "link",
+          },
+        },
+      };
+      const wrapper = mount(<MultiStageProtonScreen {...SCREEN_PROPS} />);
+      assert.ok(wrapper.exists());
+      assert.equal(wrapper.find(".additional-cta.cta-link").exists(), true);
     });
   });
 
@@ -260,7 +327,7 @@ describe("MultiStageAboutWelcomeProton module", () => {
       ],
     };
     it("should not set url for default qrcode svg", async () => {
-      sandbox.stub(AppConstants, "isChinaRepack").returns(false);
+      sandbox.stub(global.AppConstants, "isChinaRepack").returns(false);
       const data = await AboutWelcomeDefaults.prepareContentForReact(
         TEST_CONTENT
       );
@@ -271,7 +338,7 @@ describe("MultiStageAboutWelcomeProton module", () => {
       );
     });
     it("should set url for cn qrcode svg", async () => {
-      sandbox.stub(AppConstants, "isChinaRepack").returns(true);
+      sandbox.stub(global.AppConstants, "isChinaRepack").returns(true);
       const data = await AboutWelcomeDefaults.prepareContentForReact(
         TEST_CONTENT
       );
@@ -347,7 +414,9 @@ describe("MultiStageAboutWelcomeProton module", () => {
       );
     });
     it("should remove theme screens on win7", async () => {
-      sandbox.stub(AppConstants, "isPlatformAndVersionAtMost").returns(true);
+      sandbox
+        .stub(global.AppConstants, "isPlatformAndVersionAtMost")
+        .returns(true);
 
       const { screens } = await AboutWelcomeDefaults.prepareContentForReact({
         screens: [
@@ -369,7 +438,9 @@ describe("MultiStageAboutWelcomeProton module", () => {
       assert.deepEqual(screens, [{ id: "hello" }, { id: "world" }]);
     });
     it("shouldn't remove colorway screens on win7", async () => {
-      sandbox.stub(AppConstants, "isPlatformAndVersionAtMost").returns(true);
+      sandbox
+        .stub(global.AppConstants, "isPlatformAndVersionAtMost")
+        .returns(true);
 
       const { screens } = await AboutWelcomeDefaults.prepareContentForReact({
         screens: [
@@ -397,18 +468,6 @@ describe("MultiStageAboutWelcomeProton module", () => {
         { id: "hello" },
         { id: "world" },
       ]);
-    });
-
-    it("should not render action buttons if a primary and secondary button does not exist", async () => {
-      const SCREEN_PROPS = {
-        content: {
-          title: "test title",
-          subtitle: "test subtitle",
-        },
-      };
-      const wrapper = mount(<MultiStageProtonScreen {...SCREEN_PROPS} />);
-      assert.ok(wrapper.exists());
-      assert.equal(wrapper.find(".action-buttons").exists(), false);
     });
   });
 });

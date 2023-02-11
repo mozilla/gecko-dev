@@ -10,8 +10,6 @@ const TEST_URI =
   "data:text/html;charset=utf8,<!DOCTYPE html>Test browser console clear cache";
 
 add_task(async function() {
-  await pushPref("devtools.browserconsole.contentMessages", true);
-  await pushPref("devtools.browsertoolbox.fission", true);
   await pushPref("devtools.browsertoolbox.scope", "everything");
 
   await addTab(TEST_URI);

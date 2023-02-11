@@ -2,6 +2,17 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this file,
    - You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
+
+let lazy = {};
+
+XPCOMUtils.defineLazyServiceGetter(
+  lazy,
+  "dragService",
+  "@mozilla.org/widget/dragservice;1",
+  "nsIDragService"
+);
+
 /**
  * The SubDialog resize callback.
  * @callback SubDialog~resizeCallback
@@ -164,6 +175,18 @@ SubDialog.prototype = {
     }
     this._addDialogEventListeners();
 
+    // Ensure we end any pending drag sessions:
+    try {
+      // The drag service getService call fails in puppeteer tests on Linux,
+      // so this is in a try...catch as it shouldn't stop us from opening the
+      // dialog. Bug 1806870 tracks fixing this.
+      if (lazy.dragService.getCurrentSession()) {
+        lazy.dragService.endDragSession(true);
+      }
+    } catch (ex) {
+      console.error(ex);
+    }
+
     // If the parent is chrome we also need open the dialog as chrome, otherwise
     // the openDialog call will fail.
     let dialogFeatures = `resizable,dialog=no,centerscreen,chrome=${
@@ -241,7 +264,7 @@ SubDialog.prototype = {
     this._box.style.removeProperty("--box-max-width-requested");
     this._box.style.removeProperty("min-height");
     this._box.style.removeProperty("min-width");
-    this._overlay.parentNode.style.removeProperty("--inner-height");
+    this._overlay.style.removeProperty("--subdialog-inner-height");
 
     let onClosed = () => {
       this._openedURL = null;
@@ -366,8 +389,8 @@ SubDialog.prototype = {
     let oldResizeBy = this._frame.contentWindow.resizeBy;
     this._frame.contentWindow.resizeBy = (resizeByWidth, resizeByHeight) => {
       // Only handle resizeByHeight currently.
-      let frameHeight = this._overlay.parentNode.style.getPropertyValue(
-        "--inner-height"
+      let frameHeight = this._overlay.style.getPropertyValue(
+        "--subdialog-inner-height"
       );
       if (frameHeight) {
         frameHeight = parseFloat(frameHeight);
@@ -380,8 +403,8 @@ SubDialog.prototype = {
 
       this._box.style.minHeight = boxMinHeight + resizeByHeight + "px";
 
-      this._overlay.parentNode.style.setProperty(
-        "--inner-height",
+      this._overlay.style.setProperty(
+        "--subdialog-inner-height",
         frameHeight + resizeByHeight + "px"
       );
 
@@ -623,10 +646,10 @@ SubDialog.prototype = {
       contentPane?.classList.add("doScroll");
     }
 
-    this._overlay.parentNode.style.setProperty("--inner-height", frameHeight);
+    this._overlay.style.setProperty("--subdialog-inner-height", frameHeight);
     this._frame.style.height = `min(
       calc(100vh - ${frameOverhead}px),
-      var(--inner-height, ${frameHeight})
+      var(--subdialog-inner-height, ${frameHeight})
     )`;
     this._box.style.minHeight = `calc(
       ${boxVerticalBorder + titleBarHeight + frameVerticalMargin}px +
@@ -635,7 +658,7 @@ SubDialog.prototype = {
   },
 
   /**
-   * Helper for convertting em to px because an em value from the dialog window could
+   * Helper for converting em to px because an em value from the dialog window could
    * translate to something else in the host window, as font sizes may vary.
    *
    * @param {String} val

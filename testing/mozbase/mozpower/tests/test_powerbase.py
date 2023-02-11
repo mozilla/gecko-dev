@@ -1,15 +1,13 @@
 #!/usr/bin/env python
 
-from __future__ import absolute_import
-
 from unittest import mock
+
 import mozunit
 import pytest
-
 from mozpower.powerbase import (
-    PowerBase,
     IPGExecutableMissingError,
     PlatformUnsupportedError,
+    PowerBase,
 )
 
 

@@ -13,6 +13,25 @@ exclude: true
 
 ⚠️  breaking change and deprecation notices
 
+## v110
+- Added [`GeckoSession.ContentDelegate.onCookieBannerDetected`][110.1] and [`GeckoSession.ContentDelegate.onCookieBannerHandled`][110.2]
+- Added [`CookieBannerMode.COOKIE_BANNER_MODE_DETECT_ONLY`][110.3], for detecting cookie banners but not handle them, see ([bug 1797581]({{bugzilla}}1806188))
+- Added [`StorageController.setCookieBannerModeAndPersistInPrivateBrowsingForDomain`][110.4]  see ([bug 1804747]({{bugzilla}}1804747))
+- Added [`Autofill.Node.getScreenRect`][110.5] for fission compatible.
+- ⚠️ Deprecated [`Autofill.Node.getDimensions`][110.6].
+  ([bug 1803733]({{bugzilla}}1803733))
+- Added [`ColorPrompt.predefinedValues`][110.7] to expose predefined values by [`datalist`][110.8] element in the color prompt.
+  ([bug 1805616]({{bugzilla}}1805616))
+
+[110.1]: {{javadoc_uri}}/GeckoSession.ContentDelegate.html#onCookieBannerDetected(org.mozilla.geckoview.GeckoSession)
+[110.2]: {{javadoc_uri}}/GeckoSession.ContentDelegate.html#onCookieBannerHandled(org.mozilla.geckoview.GeckoSession)
+[110.3]: {{javadoc_uri}}/ContentBlocking.CookieBannerMode.html#COOKIE_BANNER_MODE_DETECT_ONLY
+[110.4]: {{javadoc_uri}}/StorageController.html#setCookieBannerModeAndPersistInPrivateBrowsingForDomain(java.lang.String,int)
+[110.5]: {{javadoc_uri}}/Autofill.Node.html#getScreenRect()
+[110.6]: {{javadoc_uri}}/Autofill.Node.html#getDimensions()
+[110.7]: {{javadoc_uri}}/GeckoSession.PromptDelegate.ColorPrompt.html#predefinedValues
+[110.8]: https://developer.mozilla.org/en/docs/Web/HTML/Element/datalist
+
 ## v109
 - Added [`SelectionActionDelegate.Selection.screenRect`][109.1] for fission compatible.
 - ⚠️ Deprecated [`SelectionActionDelegate.Selection.clientRect`][109.2],
@@ -1277,4 +1296,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: 56b14bd2184591e39396f9cf74aeb2b5d2b09b33
+[api-version]: a08a53cd6a57e5b698d1b74d82a7be789926754c

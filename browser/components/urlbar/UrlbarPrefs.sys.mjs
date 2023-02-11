@@ -14,12 +14,12 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   Region: "resource://gre/modules/Region.sys.mjs",
+  TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.sys.mjs",
   UrlbarUtils: "resource:///modules/UrlbarUtils.sys.mjs",
 });
 
 XPCOMUtils.defineLazyModuleGetters(lazy, {
   NimbusFeatures: "resource://nimbus/ExperimentAPI.jsm",
-  TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.jsm",
 });
 
 const PREF_URLBAR_BRANCH = "browser.urlbar.";
@@ -130,7 +130,8 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // Applies URL highlighting and other styling to the text in the urlbar input.
   ["formatting.enabled", true],
 
-  // Whether search engagement telemetry should be recorded.
+  // Whether search engagement telemetry should be recorded. This pref is a
+  // fallback for the Nimbus variable `searchEngagementTelemetryEnabled`.
   ["searchEngagementTelemetry.enabled", false],
 
   // Interval time until taking pause impression telemetry.
@@ -1483,7 +1484,7 @@ class Preferences {
   /**
    * Initializes the showSearchSuggestionsFirst pref based on the matchGroups
    * pref.  This function can be removed when the corresponding UI migration in
-   * BrowserGlue.jsm is no longer needed.
+   * BrowserGlue.sys.mjs is no longer needed.
    */
   initializeShowSearchSuggestionsFirstPref() {
     let matchGroups = [];
@@ -1516,6 +1517,19 @@ class Preferences {
     if (oldValue == showSearchSuggestionsFirst) {
       this.onPrefChanged("showSearchSuggestionsFirst");
     }
+  }
+
+  /**
+   * Return whether or not persisted search terms is enabled.
+   *
+   * @returns {boolean} true: if enabled.
+   */
+  isPersistedSearchTermsEnabled() {
+    return (
+      this.get("showSearchTermsFeatureGate") &&
+      this.get("showSearchTerms.enabled") &&
+      !this.get("browser.search.widget.inNavBar")
+    );
   }
 }
 

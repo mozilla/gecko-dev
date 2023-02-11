@@ -13,10 +13,20 @@
 
 <script>
 async function runTest() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["dom.events.dataTransfer.imageAsFile.enabled", true]],
+  });
+
   let dt = await synthesizePlainDragAndCancel({
       srcElement: document.getElementById('green-png'),
       finalY: 20,
   }, null);
+
+  info(`DataTransfer types: ${dt.types}`);
+
+  for (let type of dt.types) {
+    info(`getData(${type}) = ${dt.getData(type)}`)
+  }
 
   ok(dt.types.includes("Files"), "types should contains 'Files'");
   is(dt.files.length, 1, "files contains one File");

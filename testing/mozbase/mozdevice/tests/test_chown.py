@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 
-from __future__ import absolute_import
-
 import logging
-
 from unittest.mock import patch
 
 import mozunit

@@ -3,8 +3,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import print_function
-
 import os
 import sys
 
@@ -13,6 +11,7 @@ from ipdl.ast import TypeSpec, UnionDecl, UsingStmt, Visitor, StringLiteral
 from ipdl.ast import ASYNC, SYNC, INTR
 from ipdl.ast import IN, OUT, INOUT
 from ipdl.ast import NOT_NESTED, INSIDE_SYNC_NESTED, INSIDE_CPOW_NESTED
+from ipdl.ast import priorityList
 import ipdl.builtin as builtin
 from ipdl.util import hash_str
 
@@ -306,6 +305,7 @@ class MessageType(IPDLType):
         cdtype=None,
         compress=False,
         tainted=False,
+        lazySend=False,
     ):
         assert not (ctor and dtor)
         assert not (ctor or dtor) or cdtype is not None
@@ -322,6 +322,7 @@ class MessageType(IPDLType):
         self.cdtype = cdtype
         self.compress = compress
         self.tainted = tainted
+        self.lazySend = lazySend
 
     def isMessage(self):
         return True
@@ -1290,10 +1291,11 @@ class GatherDecls(TcheckVisitor):
             {
                 "Tainted": None,
                 "Compress": (None, "all"),
-                "Priority": ("normal", "input", "vsync", "mediumhigh", "control"),
+                "Priority": priorityList,
                 "Nested": ("not", "inside_sync", "inside_cpow"),
                 "LegacyIntr": None,
                 "VirtualSendImpl": None,
+                "LazySend": None,
             },
         )
 
@@ -1309,6 +1311,9 @@ class GatherDecls(TcheckVisitor):
 
         if md.sendSemantics is INTR and "Nested" in md.attributes:
             self.error(loc, "intr message `%s' cannot specify [Nested]", msgname)
+
+        if md.sendSemantics is not ASYNC and "LazySend" in md.attributes:
+            self.error(loc, "non-async message `%s' cannot specify [LazySend]", msgname)
 
         isctor = False
         isdtor = False
@@ -1346,6 +1351,7 @@ class GatherDecls(TcheckVisitor):
             cdtype=cdtype,
             compress=md.attributes.get("Compress"),
             tainted="Tainted" in md.attributes,
+            lazySend="LazySend" in md.attributes,
         )
 
         # replace inparam Param nodes with proper Decls

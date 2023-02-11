@@ -186,8 +186,8 @@ HRESULT MFMediaEngineVideoStream::CreateMediaType(const TrackInfo& aInfo,
 bool MFMediaEngineVideoStream::HasEnoughRawData() const {
   // If more than this much raw video is queued, we'll hold off request more
   // video.
-  static const int64_t VIDEO_VIDEO_USECS = 500000;
-  return mRawDataQueueForFeedingEngine.Duration() >= VIDEO_VIDEO_USECS;
+  return mRawDataQueueForFeedingEngine.Duration() >=
+         StaticPrefs::media_wmf_media_engine_raw_data_threshold_video();
 }
 
 bool MFMediaEngineVideoStream::IsDCompImageReady() {
@@ -298,6 +298,9 @@ void MFMediaEngineVideoStream::UpdateConfig(const VideoInfo& aInfo) {
   }
 
   LOGV("Video config changed, will update stream descriptor");
+  PROFILER_MARKER_TEXT("VideoConfigChange", MEDIA_PLAYBACK, {},
+                       nsPrintfCString("stream=%s, id=%" PRIu64,
+                                       GetDescriptionName().get(), mStreamId));
   ComPtr<IMFMediaType> mediaType;
   RETURN_VOID_IF_FAILED(CreateMediaType(aInfo, mediaType.GetAddressOf()));
   RETURN_VOID_IF_FAILED(GenerateStreamDescriptor(mediaType));

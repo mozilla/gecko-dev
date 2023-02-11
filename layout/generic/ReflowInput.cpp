@@ -2127,17 +2127,6 @@ static eNormalLineHeightControl GetNormalLineHeightCalcControl(void) {
   return sNormalLineHeightControl;
 }
 
-static inline bool IsSideCaption(nsIFrame* aFrame,
-                                 const nsStyleDisplay* aStyleDisplay,
-                                 WritingMode aWM) {
-  if (aStyleDisplay->mDisplay != StyleDisplay::TableCaption) {
-    return false;
-  }
-  auto captionSide = aFrame->StyleTableBorder()->mCaptionSide;
-  return captionSide == StyleCaptionSide::Left ||
-         captionSide == StyleCaptionSide::Right;
-}
-
 // XXX refactor this code to have methods for each set of properties
 // we are computing: width,height,line-height; margin; offsets
 
@@ -2421,14 +2410,35 @@ void ReflowInput::InitConstraints(
       mFlags.mIsBSizeSetByAspectRatio =
           size.mAspectRatioUsage == nsIFrame::AspectRatioUsage::ToComputeBSize;
 
-      // Exclude inline tables, side captions, outside ::markers, flex and grid
-      // items from block margin calculations.
-      if (isBlockLevel && !IsSideCaption(mFrame, mStyleDisplay, cbwm) &&
-          mStyleDisplay->mDisplay != StyleDisplay::InlineTable &&
-          !mFrame->IsTableFrame() && !alignCB->IsFlexOrGridContainer() &&
-          !(mFrame->Style()->GetPseudoType() == PseudoStyleType::marker &&
+      const bool shouldCalculateBlockSideMargins = [&]() {
+        if (!isBlockLevel) {
+          return false;
+        }
+        if (mStyleDisplay->mDisplay == StyleDisplay::InlineTable) {
+          return false;
+        }
+        if (mFrame->IsTableFrame()) {
+          return false;
+        }
+        if (alignCB->IsFlexOrGridContainer()) {
+          // Exclude flex and grid items.
+          return false;
+        }
+        const auto pseudoType = mFrame->Style()->GetPseudoType();
+        if (pseudoType == PseudoStyleType::marker &&
             mFrame->GetParent()->StyleList()->mListStylePosition ==
-                NS_STYLE_LIST_STYLE_POSITION_OUTSIDE)) {
+                StyleListStylePosition::Outside) {
+          // Exclude outside ::markers.
+          return false;
+        }
+        if (pseudoType == PseudoStyleType::columnContent) {
+          // Exclude -moz-column-content since it cannot have any margin.
+          return false;
+        }
+        return true;
+      }();
+
+      if (shouldCalculateBlockSideMargins) {
         CalculateBlockSideMargins();
       }
     }

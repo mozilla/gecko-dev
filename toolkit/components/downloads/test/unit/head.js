@@ -28,13 +28,13 @@ ChromeUtils.defineESModuleGetters(this, {
   MockRegistrar: "resource://testing-common/MockRegistrar.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   PromiseUtils: "resource://gre/modules/PromiseUtils.sys.mjs",
+  TelemetryTestUtils: "resource://testing-common/TelemetryTestUtils.sys.mjs",
   TestUtils: "resource://testing-common/TestUtils.sys.mjs",
 });
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   HttpServer: "resource://testing-common/httpd.js",
   NetUtil: "resource://gre/modules/NetUtil.jsm",
-  TelemetryTestUtils: "resource://testing-common/TelemetryTestUtils.jsm",
 });
 
 XPCOMUtils.defineLazyServiceGetter(
@@ -83,7 +83,7 @@ const TEST_STORE_FILE_NAME = "test-downloads.json";
 const TEST_REFERRER_URL = "https://www.example.com/referrer.html";
 
 const TEST_DATA_SHORT = "This test string is downloaded.";
-// Generate using gzipCompressString in TelemetryController.jsm.
+// Generate using gzipCompressString in TelemetryController.sys.mjs.
 const TEST_DATA_SHORT_GZIP_ENCODED_FIRST = [
   31,
   139,
@@ -1166,37 +1166,40 @@ add_setup(function test_common_initialize() {
   // During unit tests, most of the functions that require profile access or
   // operating system features will be disabled. Individual tests may override
   // them again to check for specific behaviors.
-  Integration.downloads.register(base => ({
-    __proto__: base,
-    loadPublicDownloadListFromStore: () => Promise.resolve(),
-    shouldKeepBlockedData: () => Promise.resolve(false),
-    shouldBlockForParentalControls: () => Promise.resolve(false),
-    shouldBlockForReputationCheck: () =>
-      Promise.resolve({
-        shouldBlock: false,
-        verdict: "",
-      }),
-    confirmLaunchExecutable: () => Promise.resolve(),
-    launchFile: () => Promise.resolve(),
-    showContainingDirectory: () => Promise.resolve(),
-    // This flag allows re-enabling the default observers during their tests.
-    allowObservers: false,
-    addListObservers() {
-      return this.allowObservers
-        ? super.addListObservers(...arguments)
-        : Promise.resolve();
-    },
-    // This flag allows re-enabling the download directory logic for its tests.
-    _allowDirectories: false,
-    set allowDirectories(value) {
-      this._allowDirectories = value;
-      // We have to invalidate the previously computed directory path.
-      this._downloadsDirectory = null;
-    },
-    _getDirectory(name) {
-      return super._getDirectory(this._allowDirectories ? name : "TmpD");
-    },
-  }));
+  Integration.downloads.register(base => {
+    let override = {
+      loadPublicDownloadListFromStore: () => Promise.resolve(),
+      shouldKeepBlockedData: () => Promise.resolve(false),
+      shouldBlockForParentalControls: () => Promise.resolve(false),
+      shouldBlockForReputationCheck: () =>
+        Promise.resolve({
+          shouldBlock: false,
+          verdict: "",
+        }),
+      confirmLaunchExecutable: () => Promise.resolve(),
+      launchFile: () => Promise.resolve(),
+      showContainingDirectory: () => Promise.resolve(),
+      // This flag allows re-enabling the default observers during their tests.
+      allowObservers: false,
+      addListObservers() {
+        return this.allowObservers
+          ? super.addListObservers(...arguments)
+          : Promise.resolve();
+      },
+      // This flag allows re-enabling the download directory logic for its tests.
+      _allowDirectories: false,
+      set allowDirectories(value) {
+        this._allowDirectories = value;
+        // We have to invalidate the previously computed directory path.
+        this._downloadsDirectory = null;
+      },
+      _getDirectory(name) {
+        return super._getDirectory(this._allowDirectories ? name : "TmpD");
+      },
+    };
+    Object.setPrototypeOf(override, base);
+    return override;
+  });
 
   // Make sure that downloads started using nsIExternalHelperAppService are
   // saved to disk without asking for a destination interactively.

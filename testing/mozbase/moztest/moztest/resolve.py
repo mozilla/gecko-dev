@@ -2,22 +2,18 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import fnmatch
 import os
 import pickle
 import sys
-
-import six
-
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 
 import mozpack.path as mozpath
-from manifestparser import combine_fields, TestManifest
+import six
+from manifestparser import TestManifest, combine_fields
 from mozbuild.base import MozbuildObject
-from mozbuild.testing import TEST_MANIFESTS, REFTEST_FLAVORS
+from mozbuild.testing import REFTEST_FLAVORS, TEST_MANIFESTS
 from mozbuild.util import OrderedDefaultDict
 from mozpack.files import FileFinder
 
@@ -184,6 +180,20 @@ TEST_SUITES = {
             "test-verify($|.*(-1|[^0-9])$)",
         ],
     },
+    "mochitest-browser-media": {
+        "aliases": ("bmda", "browser-mda"),
+        "build_flavor": "browser-chrome",
+        "mach_command": "mochitest",
+        "kwargs": {
+            "flavor": "browser-chrome",
+            "subsuite": "media-bc",
+            "test_paths": None,
+        },
+        "task_regex": [
+            "mochitest-browser-media($|.*(-1|[^0-9])$)",
+            "test-verify($|.*(-1|[^0-9])$)",
+        ],
+    },
     "mochitest-plain": {
         "aliases": (
             "mp",
@@ -293,7 +303,7 @@ TEST_SUITES = {
     "web-platform-tests-print-reftest": {
         "aliases": ("wpt",),
         "mach_command": "web-platform-tests",
-        "kwargs": {"include": []},
+        "kwargs": {"subsuite": "print-reftest"},
         "task_regex": [
             "web-platform-tests-print-reftest($|.*(-1|[^0-9])$)",
             "test-verify-wpt",
@@ -331,6 +341,13 @@ TEST_SUITES = {
         "kwargs": {"test_file": "all"},
         "task_regex": ["xpcshell($|.*(-1|[^0-9])$)", "test-verify($|.*(-1|[^0-9])$)"],
     },
+    "xpcshell-msix": {
+        "aliases": ("x",),
+        "build_flavor": "xpcshell",
+        "mach_command": "xpcshell-test",
+        "kwargs": {"test_file": "all"},
+        "task_regex": ["xpcshell($|.*(-1|[^0-9])$)", "test-verify($|.*(-1|[^0-9])$)"],
+    },
 }
 """Definitions of all test suites and the metadata needed to run and process
 them. Each test suite definition can contain the following keys.
@@ -359,6 +376,13 @@ for i in range(1, MOCHITEST_TOTAL_CHUNKS + 1):
         },
     }
 
+
+WPT_TYPES = set()
+for suite, data in TEST_SUITES.items():
+    if suite.startswith("web-platform-tests"):
+        WPT_TYPES.add(data["kwargs"]["subsuite"])
+
+
 _test_flavors = {
     "a11y": "mochitest-a11y",
     "browser-chrome": "mochitest-browser-chrome",
@@ -379,6 +403,7 @@ _test_flavors = {
 _test_subsuites = {
     ("browser-chrome", "a11y"): "mochitest-browser-a11y",
     ("browser-chrome", "devtools"): "mochitest-devtools-chrome",
+    ("browser-chrome", "media"): "mochitest-browser-media",
     ("browser-chrome", "remote"): "mochitest-remote",
     ("browser-chrome", "screenshots"): "mochitest-browser-chrome-screenshots",
     ("chrome", "gpu"): "mochitest-chrome-gpu",
@@ -393,6 +418,7 @@ _test_subsuites = {
     ("mochitest", "webgpu"): "mochitest-webgpu",
     ("web-platform-tests", "testharness"): "web-platform-tests",
     ("web-platform-tests", "crashtest"): "web-platform-tests-crashtest",
+    ("web-platform-tests", "print-reftest"): "web-platform-tests-print-reftest",
     ("web-platform-tests", "reftest"): "web-platform-tests-reftest",
     ("web-platform-tests", "wdspec"): "web-platform-tests-wdspec",
 }
@@ -834,8 +860,9 @@ class TestResolver(MozbuildObject):
         wpt_path = os.path.join(self.topsrcdir, "testing", "web-platform")
         sys.path = [wpt_path] + sys.path
 
-        import manifestupdate
         import logging
+
+        import manifestupdate
 
         logger = logging.getLogger("manifestupdate")
         logger.disabled = True
@@ -862,7 +889,7 @@ class TestResolver(MozbuildObject):
             for test_type, path, tests in manifest:
                 full_path = mozpath.join(tests_root, path)
                 src_path = mozpath.relpath(full_path, self.topsrcdir)
-                if test_type not in ["testharness", "reftest", "wdspec", "crashtest"]:
+                if test_type not in WPT_TYPES:
                     continue
 
                 full_path = mozpath.join(tests_root, path)  # absolute path on disk

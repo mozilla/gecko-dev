@@ -513,7 +513,7 @@ void nsAccessibilityService::ContentRangeInserted(PresShell* aPresShell,
 #ifdef A11Y_LOG
   if (logging::IsEnabled(logging::eTree)) {
     logging::MsgBegin("TREE", "content inserted; doc: %p", document);
-    logging::Node("container", aStartChild->GetParent());
+    logging::Node("container", aStartChild->GetParentNode());
     for (nsIContent* child = aStartChild; child != aEndChild;
          child = child->GetNextSibling()) {
       logging::Node("content", child);
@@ -573,8 +573,13 @@ void nsAccessibilityService::TableLayoutGuessMaybeChanged(
   if (DocAccessible* document = GetDocAccessible(aPresShell)) {
     if (LocalAccessible* acc = document->GetAccessible(aContent)) {
       if (LocalAccessible* table = nsAccUtils::TableFor(acc)) {
-        document->FireDelayedEvent(
-            nsIAccessibleEvent::EVENT_TABLE_STYLING_CHANGED, table);
+        if (!StaticPrefs::accessibility_cache_enabled_AtStartup()) {
+          // Only fire this event when the cache is off -- we don't
+          // need to maintain the mac table cache otherwise, since
+          // we'll use the core cache instead.
+          document->FireDelayedEvent(
+              nsIAccessibleEvent::EVENT_TABLE_STYLING_CHANGED, table);
+        }
         document->QueueCacheUpdate(table, CacheDomain::Table);
       }
     }
@@ -1204,10 +1209,17 @@ LocalAccessible* nsAccessibilityService::CreateAccessible(
       } else if (content->IsSVGElement(nsGkAtoms::text)) {
         newAcc = new HyperTextAccessibleWrap(content->AsElement(), document);
       } else if (content->IsSVGElement(nsGkAtoms::svg)) {
-        newAcc = new EnumRoleAccessible<roles::DIAGRAM>(content, document);
+        // An <svg> element could contain <foreignobject>, which contains HTML
+        // but does not normally create its own Accessible. This means that the
+        // <svg> Accessible could have TextLeafAccessible children, so it must
+        // be a HyperTextAccessible.
+        newAcc =
+            new EnumRoleHyperTextAccessible<roles::DIAGRAM>(content, document);
       } else if (content->IsSVGElement(nsGkAtoms::g) &&
                  MustSVGElementBeAccessible(content)) {
-        newAcc = new EnumRoleAccessible<roles::GROUPING>(content, document);
+        // <g> can also contain <foreignobject>.
+        newAcc =
+            new EnumRoleHyperTextAccessible<roles::GROUPING>(content, document);
       }
 
     } else if (content->IsMathMLElement()) {
@@ -1223,7 +1235,7 @@ LocalAccessible* nsAccessibilityService::CreateAccessible(
                          nsGkAtoms::mpadded_, nsGkAtoms::mphantom_,
                          nsGkAtoms::maligngroup_, nsGkAtoms::malignmark_,
                          nsGkAtoms::mspace_, nsGkAtoms::semantics_)) {
-        newAcc = new HyperTextAccessible(content, document);
+        newAcc = new HyperTextAccessibleWrap(content, document);
       }
     } else if (content->IsGeneratedContentContainerForMarker()) {
       if (aContext->IsHTMLListItem()) {
@@ -1247,11 +1259,11 @@ LocalAccessible* nsAccessibilityService::CreateAccessible(
     // accessibility property. If it's interesting we need it in the
     // accessibility hierarchy so that events or other accessibles can point to
     // it, or so that it can hold a state, etc.
-    if (content->IsHTMLElement()) {
-      // Interesting HTML container which may have selectable text and/or
+    if (content->IsHTMLElement() || content->IsMathMLElement()) {
+      // Interesting HTML/MathML container which may have selectable text and/or
       // embedded objects
       newAcc = new HyperTextAccessibleWrap(content, document);
-    } else {  // XUL, SVG, MathML etc.
+    } else {  // XUL, SVG, etc.
       // Interesting generic non-HTML container
       newAcc = new AccessibleWrap(content, document);
     }

@@ -1,10 +1,9 @@
 #!/usr/bin/env python
-from __future__ import absolute_import, print_function
 import os
-
 from unittest import mock
-import mozunit
+
 import mozinfo
+import mozunit
 import requests
 from mozproxy import get_playback
 from support import tempdir

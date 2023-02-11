@@ -87,16 +87,6 @@ function configureStore(webConsoleUI, options = {}) {
     ui: UiState({
       networkMessageActiveTabId: "headers",
       persistLogs: getBoolPref(PREFS.UI.PERSIST),
-      // Only look into the pref for Browser Console/Toolbox without fission support.
-      // When there's fission support, the visibility of the messages is driven by
-      // the ChromeDebugToolbar instead
-      // This should be ultimately removed once we have fission support everywhere.
-      showContentMessages:
-        (webConsoleUI.isBrowserConsole ||
-          webConsoleUI.isBrowserToolboxConsole) &&
-        !webConsoleUI.fissionSupport
-          ? getBoolPref(PREFS.UI.CONTENT_MESSAGES)
-          : true,
       editor: getBoolPref(PREFS.UI.EDITOR),
       editorWidth: getIntPref(PREFS.UI.EDITOR_WIDTH),
       showEditorOnboarding: getBoolPref(PREFS.UI.EDITOR_ONBOARDING),
@@ -119,7 +109,7 @@ function configureStore(webConsoleUI, options = {}) {
       ...options.thunkArgs,
     }),
     historyPersistence.bind(null, webConsoleUI),
-    eventTelemetry.bind(null, options.telemetry, sessionId)
+    eventTelemetry.bind(null, options.telemetry)
   );
 
   return createStore(

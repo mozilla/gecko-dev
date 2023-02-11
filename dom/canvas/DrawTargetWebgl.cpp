@@ -12,6 +12,7 @@
 #include "mozilla/gfx/AAStroke.h"
 #include "mozilla/gfx/Blur.h"
 #include "mozilla/gfx/DrawTargetSkia.h"
+#include "mozilla/gfx/gfxVars.h"
 #include "mozilla/gfx/Helpers.h"
 #include "mozilla/gfx/HelpersSkia.h"
 #include "mozilla/gfx/Logging.h"
@@ -428,6 +429,10 @@ bool DrawTargetWebgl::SharedContext::Initialize() {
 
   mMaxTextureSize = mWebgl->Limits().maxTex2dSize;
 
+  if (kIsMacOS) {
+    mRasterizationTruncates = mWebgl->Vendor() == gl::GLVendor::ATI;
+  }
+
   CachePrefs();
 
   if (!CreateShaders()) {
@@ -716,7 +721,7 @@ bool DrawTargetWebgl::IsValid() const {
 
 already_AddRefed<DrawTargetWebgl> DrawTargetWebgl::Create(
     const IntSize& aSize, SurfaceFormat aFormat) {
-  if (!StaticPrefs::gfx_canvas_accelerated()) {
+  if (!gfxVars::UseAcceleratedCanvas2D()) {
     return nullptr;
   }
 
@@ -2543,10 +2548,11 @@ static Maybe<QuantizedPath> GenerateQuantizedPath(const SkPath& aPath,
 // Get the output vertex buffer using WGR from an input quantized path.
 static Maybe<WGR::VertexBuffer> GeneratePathVertexBuffer(
     const QuantizedPath& aPath, const IntRect& aClipRect,
-    WGR::OutputVertex* aBuffer, size_t aBufferCapacity) {
+    bool aRasterizationTruncates, WGR::OutputVertex* aBuffer,
+    size_t aBufferCapacity) {
   WGR::VertexBuffer vb = WGR::wgr_path_rasterize_to_tri_list(
       &aPath.mPath, aClipRect.x, aClipRect.y, aClipRect.width, aClipRect.height,
-      true, false, aBuffer, aBufferCapacity);
+      true, false, aRasterizationTruncates, aBuffer, aBufferCapacity);
   if (!vb.len || (aBuffer && vb.len > aBufferCapacity)) {
     WGR::wgr_vertex_buffer_release(vb);
     return Nothing();
@@ -2854,7 +2860,7 @@ bool DrawTargetWebgl::SharedContext::DrawPathAccel(
     if (!aStrokeOptions) {
       wgrVB = GeneratePathVertexBuffer(
           entry->GetPath(), IntRect(-intBounds.TopLeft(), mViewportSize),
-          outputBuffer, outputBufferCapacity);
+          mRasterizationTruncates, outputBuffer, outputBufferCapacity);
     } else {
       if (mPathAAStroke &&
           SupportsAAStroke(aPattern, aOptions, *aStrokeOptions)) {
@@ -2892,7 +2898,7 @@ bool DrawTargetWebgl::SharedContext::DrawPathAccel(
                     fillPath, quantBounds, currentTransform)) {
               wgrVB = GeneratePathVertexBuffer(
                   *qp, IntRect(-intBounds.TopLeft(), mViewportSize),
-                  outputBuffer, outputBufferCapacity);
+                  mRasterizationTruncates, outputBuffer, outputBufferCapacity);
             }
           }
         }
@@ -3198,8 +3204,8 @@ bool DrawTargetWebgl::StrokeLineAccel(const Point& aStart, const Point& aEnd,
                                       const DrawOptions& aOptions) {
   // Approximating a wide line as a rectangle works only with certain cap styles
   // in the general case (butt or square). However, if the line width is
-  // sufficiently thin, we can ignore the round cap without causing
-  // objectionable artifacts.
+  // sufficiently thin, we can either ignore the round cap (or treat it like
+  // square for zero-length lines) without causing objectionable artifacts.
   if (mWebglValid && SupportsPattern(aPattern) &&
       (aStrokeOptions.mLineCap == CapStyle::BUTT ||
        aStrokeOptions.mLineCap == CapStyle::SQUARE ||
@@ -3213,11 +3219,34 @@ bool DrawTargetWebgl::StrokeLineAccel(const Point& aStart, const Point& aEnd,
     // as rounded rectangles are currently not supported for round line caps.
     Point start = aStart;
     Point dirX = aEnd - aStart;
-    float scale = aStrokeOptions.mLineWidth / dirX.Length();
-    Point dirY = Point(-dirX.y, dirX.x) * scale;
-    if (aStrokeOptions.mLineCap == CapStyle::SQUARE) {
-      start -= (dirX * scale) * 0.5f;
-      dirX += dirX * scale;
+    Point dirY;
+    float dirLen = dirX.Length();
+    float scale = aStrokeOptions.mLineWidth;
+    if (dirLen == 0.0f) {
+      // If the line is zero-length, then only a cap is rendered.
+      switch (aStrokeOptions.mLineCap) {
+        case CapStyle::BUTT:
+          // The cap doesn't extend beyond the line so nothing is drawn.
+          return true;
+        case CapStyle::ROUND:
+        case CapStyle::SQUARE:
+          // Draw a unit square centered at the single point.
+          dirX = Point(scale, 0.0f);
+          dirY = Point(0.0f, scale);
+          // Offset the start by half a unit.
+          start.x -= 0.5f * scale;
+          break;
+      }
+    } else {
+      // Make the scale map to a single unit length.
+      scale /= dirLen;
+      dirY = Point(-dirX.y, dirX.x) * scale;
+      if (aStrokeOptions.mLineCap == CapStyle::SQUARE) {
+        // Offset the start by half a unit.
+        start -= (dirX * scale) * 0.5f;
+        // Ensure the extent also accounts for the start and end cap.
+        dirX += dirX * scale;
+      }
     }
     Matrix lineXform(dirX.x, dirX.y, dirY.x, dirY.y, start.x - 0.5f * dirY.x,
                      start.y - 0.5f * dirY.y);
@@ -3996,6 +4025,13 @@ void DrawTargetWebgl::BeginFrame(const IntRect& aPersistedRect) {
 
 // For use within CanvasRenderingContext2D, called on ReturnDrawTarget.
 void DrawTargetWebgl::EndFrame() {
+  if (StaticPrefs::gfx_canvas_accelerated_debug()) {
+    // Draw a green rectangle in the upper right corner to indicate
+    // acceleration.
+    IntRect corner = IntRect(mSize.width - 16, 0, 16, 16).Intersect(GetRect());
+    DrawRect(Rect(corner), ColorPattern(DeviceColor(0.0f, 1.0f, 0.0f, 1.0f)),
+             DrawOptions(), Nothing(), nullptr, false, false);
+  }
   mProfile.EndFrame();
   // Ensure we're not somehow using more than the allowed texture memory.
   mSharedContext->PruneTextureMemory();

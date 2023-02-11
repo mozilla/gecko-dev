@@ -1,11 +1,9 @@
-from __future__ import absolute_import, unicode_literals
+import os
+import sys
 
 import mozinfo
 import mozunit
-import os
 import pytest
-import sys
-
 from six.moves.urllib.parse import parse_qs, urlsplit
 
 # need this so raptor imports work both from /raptor and via mach

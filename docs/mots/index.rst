@@ -218,7 +218,13 @@ Tools related to build and release automation and configuration of release build
 
     * - Owner(s)
       -
-        | `Aki Sasaki (aki) <https://people.mozilla.org/s?query=aki>`__
+        | `Julien Cristau (jcristau) <https://people.mozilla.org/s?query=jcristau>`__
+    * - Peer(s)
+      -
+        | `Heitor Neiva (hneiva) <https://people.mozilla.org/s?query=hneiva>`__
+        | `bhearsum (bhearsum) <https://people.mozilla.org/s?query=bhearsum>`__
+    * - Owner(s) Emeritus
+      - Aki Sasaki
     * - Includes
       -
         | `tools/update-packaging/\*\*/\* <https://searchfox.org/mozilla-central/search?q=&path=tools/update-packaging/\*\*/\*>`__
@@ -2602,7 +2608,7 @@ Standalone Web Browser.
     * - Peer(s)
       -
         | `Dão Gottwald (dao) <https://people.mozilla.org/s?query=dao>`__
-        | `jaws <https://people.mozilla.org/s?query=jaws>`__
+        | `Jared Wein (jaws) <https://people.mozilla.org/s?query=jaws>`__
         | `Marco Bonardo (mak) <https://people.mozilla.org/s?query=mak>`__
         | `Matthew N (MattN) <https://people.mozilla.org/s?query=MattN>`__
     * - Peer(s) Emeritus
@@ -2749,7 +2755,7 @@ The main browser UI except where covered by more specific submodules.
 
     * - Owner(s)
       -
-        | `jaws <https://people.mozilla.org/s?query=jaws>`__
+        | `Jared Wein (jaws) <https://people.mozilla.org/s?query=jaws>`__
     * - Peer(s)
       -
         | `Mike Conley (mconley) <https://people.mozilla.org/s?query=mconley>`__
@@ -2798,7 +2804,7 @@ System policies for controlling Firefox.
     * - Peer(s)
       -
         | `Dão Gottwald (dao) <https://people.mozilla.org/s?query=dao>`__
-        | `jaws <https://people.mozilla.org/s?query=jaws>`__
+        | `Jared Wein (jaws) <https://people.mozilla.org/s?query=jaws>`__
         | `Marco Bonardo (mak) <https://people.mozilla.org/s?query=mak>`__
         | `Matthew N (MattN) <https://people.mozilla.org/s?query=MattN>`__
     * - Includes
@@ -2988,7 +2994,7 @@ Managing, saving and filling logins.
         | `Sergey Galich (serg) <https://people.mozilla.org/s?query=serg>`__
     * - Peer(s)
       -
-        | `jaws <https://people.mozilla.org/s?query=jaws>`__
+        | `Jared Wein (jaws) <https://people.mozilla.org/s?query=jaws>`__
         | `Tim Giles (tgiles) <https://people.mozilla.org/s?query=tgiles>`__
         | `Dimi Lee (dimi) <https://people.mozilla.org/s?query=dimi>`__
         | `Sam Foster (sfoster) <https://people.mozilla.org/s?query=sfoster>`__
@@ -3066,7 +3072,7 @@ Code relating to Screenshots functionality
         | `Sam Foster (sfoster) <https://people.mozilla.org/s?query=sfoster>`__
     * - Peer(s)
       -
-        | `Jared Hirsch (jhirsch) <https://people.mozilla.org/s?query=jhirsch>`__
+        | `jhirsch <https://people.mozilla.org/s?query=jhirsch>`__
         | `Niklas Baumgardner (niklas) <https://people.mozilla.org/s?query=niklas>`__
     * - Owner(s) Emeritus
       - Emma Malysz, Ian Bicking
@@ -3176,7 +3182,7 @@ The front-end settings user interface.
 
     * - Owner(s)
       -
-        | `jaws <https://people.mozilla.org/s?query=jaws>`__
+        | `Jared Wein (jaws) <https://people.mozilla.org/s?query=jaws>`__
     * - Peer(s)
       -
         | `Mark Striemer (mstriemer) <https://people.mozilla.org/s?query=mstriemer>`__
@@ -3207,7 +3213,7 @@ The UI component controlling browser tabs.
     * - Peer(s)
       -
         | `Dão Gottwald (dao) <https://people.mozilla.org/s?query=dao>`__
-        | `jaws <https://people.mozilla.org/s?query=jaws>`__
+        | `Jared Wein (jaws) <https://people.mozilla.org/s?query=jaws>`__
         | `Marco Bonardo (mak) <https://people.mozilla.org/s?query=mak>`__
         | `Matthew N (MattN) <https://people.mozilla.org/s?query=MattN>`__
     * - Includes
@@ -3290,11 +3296,14 @@ Configuration-driven script harness.
 
     * - Owner(s)
       -
-        | `Aki Sasaki (aki) <https://people.mozilla.org/s?query=aki>`__
+        | `Geoff Brown (gbrown) <https://people.mozilla.org/s?query=gbrown>`__
     * - Peer(s)
       -
-        | `Justin Wood (Callek) <https://people.mozilla.org/s?query=Callek>`__
-        | `Tom Prince (tomprince) <https://people.mozilla.org/s?query=tomprince>`__
+        | `Joel Maher (jmaher) <https://people.mozilla.org/s?query=jmaher>`__
+    * - Owner(s) Emeritus
+      - Aki Sasaki
+    * - Peer(s) Emeritus
+      - Justin Wood, Tom Prince
     * - Includes
       -
         | `testing/mozharness/\*\*/\* <https://searchfox.org/mozilla-central/search?q=&path=testing/mozharness/\*\*/\*>`__
@@ -3433,7 +3442,7 @@ Base modules used for implementing test components.
 
 Performance Testing
 ~~~~~~~~~~~~~~~~~~~
-This module encompasses all of our performance test frameworks: Raptor, Talos, MozPerfTest, AWSY.
+This module encompasses all of our performance testing projects, e.g.  Raptor,  Talos, MozPerfTest, AWSY, mach try perf, etc.. See our PerfDocs for more information  on the owners/peers of the various components (linked below).
 
 
 .. list-table::
@@ -3445,15 +3454,26 @@ This module encompasses all of our performance test frameworks: Raptor, Talos, M
         | `Greg Mierzwinski (sparky) <https://people.mozilla.org/s?query=sparky>`__
     * - Peer(s)
       -
+        | `Andrej Glavic (andrej) <https://people.mozilla.org/s?query=andrej>`__
+        | `Dave Hunt (davehunt) <https://people.mozilla.org/s?query=davehunt>`__
         | `Kimberly Sereduck (kimberlythegeek) <https://people.mozilla.org/s?query=kimberlythegeek>`__
+        | `Kash Shampur (kshampur) <https://people.mozilla.org/s?query=kshampur>`__
     * - Includes
       -
         | `testing/raptor/\*\*/\* <https://searchfox.org/mozilla-central/search?q=&path=testing/raptor/\*\*/\*>`__
         | `testing/talos/\*\*/\* <https://searchfox.org/mozilla-central/search?q=&path=testing/talos/\*\*/\*>`__
         | `python/mozperftest/\*\*/\* <https://searchfox.org/mozilla-central/search?q=&path=python/mozperftest/\*\*/\*>`__
         | `testing/awsy/\*\*/\* <https://searchfox.org/mozilla-central/search?q=&path=testing/awsy/\*\*/\*>`__
+        | `tools/lint/perfdocs/\*\*/\* <https://searchfox.org/mozilla-central/search?q=&path=tools/lint/perfdocs/\*\*/\*>`__
+        | `testing/perfdocs/\*\*/\* <https://searchfox.org/mozilla-central/search?q=&path=testing/perfdocs/\*\*/\*>`__
+        | `testing/performance/\*\*/\* <https://searchfox.org/mozilla-central/search?q=&path=testing/performance/\*\*/\*>`__
+        | `testing/condprofile/\*\*/\* <https://searchfox.org/mozilla-central/search?q=&path=testing/condprofile/\*\*/\*>`__
+        | `tools/browsertime/\*\*/\* <https://searchfox.org/mozilla-central/search?q=&path=tools/browsertime/\*\*/\*>`__
+        | `tools/tryselect/selectors/perf.py <https://searchfox.org/mozilla-central/search?q=&path=tools/tryselect/selectors/perf.py>`__
+    * - URL
+      - :ref:`Performance Testing`
     * - Bugzilla Components
-      - Testing :: Raptor, Testing :: Talos, Testing :: AWSY, Testing :: Performance
+      - Testing :: Raptor, Testing :: Talos, Testing :: AWSY, Testing :: Performance, Testing :: mozperftest, Testing :: Condprofile
 
 Reftest (+ jsreftest + crashtest)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -3558,7 +3578,7 @@ Components shared between desktop and mobile browsers.
         | `Gijs <https://people.mozilla.org/s?query=Gijs>`__
     * - Peer(s)
       -
-        | `jaws <https://people.mozilla.org/s?query=jaws>`__
+        | `Jared Wein (jaws) <https://people.mozilla.org/s?query=jaws>`__
         | `Marco Bonardo (mak) <https://people.mozilla.org/s?query=mak>`__
         | `Matthew N (MattN) <https://people.mozilla.org/s?query=MattN>`__
     * - Includes
@@ -3636,7 +3656,7 @@ The base widgets used throughout the UI.
         | `Neil Deakin (enndeakin) <https://people.mozilla.org/s?query=enndeakin>`__
     * - Peer(s)
       -
-        | `jaws <https://people.mozilla.org/s?query=jaws>`__
+        | `Jared Wein (jaws) <https://people.mozilla.org/s?query=jaws>`__
         | `Marco Bonardo (mak) <https://people.mozilla.org/s?query=mak>`__
         | `Matthew N (MattN) <https://people.mozilla.org/s?query=MattN>`__
     * - Peer(s) Emeritus

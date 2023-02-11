@@ -9,7 +9,6 @@ import { recordEvent } from "../../utils/telemetry";
 import { updateBreakpointsForNewPrettyPrintedSource } from "../breakpoints";
 
 import { setSymbols } from "./symbols";
-import { prettyPrint } from "../../workers/pretty-print";
 import {
   getPrettySourceURL,
   isGenerated,
@@ -37,7 +36,8 @@ function getPrettyOriginalSourceURL(generatedSource) {
 }
 
 export async function prettyPrintSource(
-  sourceMaps,
+  sourceMapLoader,
+  prettyPrintWorker,
   generatedSource,
   content,
   actors
@@ -55,16 +55,16 @@ export async function prettyPrintSource(
   }
 
   const url = getPrettyOriginalSourceURL(generatedSource);
-  const { code, mappings } = await prettyPrint({
+  const { code, mappings } = await prettyPrintWorker.prettyPrint({
     text: contentValue.value,
     url,
   });
-  await sourceMaps.applySourceMap(generatedSource.id, url, code, mappings);
+  await sourceMapLoader.applySourceMap(generatedSource.id, url, code, mappings);
 
   // The source map URL service used by other devtools listens to changes to
   // sources based on their actor IDs, so apply the mapping there too.
   for (const { actor } of actors) {
-    await sourceMaps.applySourceMap(actor, url, code, mappings);
+    await sourceMapLoader.applySourceMap(actor, url, code, mappings);
   }
   return {
     text: code,
@@ -73,17 +73,17 @@ export async function prettyPrintSource(
 }
 
 export function createPrettySource(cx, sourceId) {
-  return async ({ dispatch, getState, sourceMaps }) => {
+  return async ({ dispatch, getState }) => {
     const source = getSourceFromId(getState(), sourceId);
     const url = getPrettyOriginalSourceURL(source);
     const id = generatedToOriginalId(sourceId, url);
-    const prettySource = createPrettyPrintOriginalSource(
-      id,
-      url,
-      source.thread
-    );
+    const prettySource = createPrettyPrintOriginalSource(id, url);
 
-    dispatch({ type: "ADD_SOURCES", cx, sources: [prettySource] });
+    dispatch({
+      type: "ADD_ORIGINAL_SOURCES",
+      cx,
+      originalSources: [prettySource],
+    });
 
     await dispatch(selectSource(cx, id));
 
@@ -92,13 +92,13 @@ export function createPrettySource(cx, sourceId) {
 }
 
 function selectPrettyLocation(cx, prettySource, generatedLocation) {
-  return async ({ dispatch, sourceMaps, getState }) => {
+  return async ({ dispatch, sourceMapLoader, getState }) => {
     let location = generatedLocation
       ? generatedLocation
       : getSelectedLocation(getState());
 
     if (location && location.line >= 1) {
-      location = await sourceMaps.getOriginalLocation(location);
+      location = await sourceMapLoader.getOriginalLocation(location);
 
       return dispatch(
         selectSpecificLocation(cx, { ...location, sourceId: prettySource.id })
@@ -122,7 +122,7 @@ function selectPrettyLocation(cx, prettySource, generatedLocation) {
  *          [aSource, error].
  */
 export function togglePrettyPrint(cx, sourceId) {
-  return async ({ dispatch, getState, client, sourceMaps }) => {
+  return async ({ dispatch, getState }) => {
     const source = getSource(getState(), sourceId);
     if (!source) {
       return {};

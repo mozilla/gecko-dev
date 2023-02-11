@@ -5,20 +5,18 @@
 # This file contains a build backend for generating Visual Studio project
 # files.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import errno
 import os
 import re
 import sys
 import uuid
 from pathlib import Path
-
 from xml.dom import getDOMImplementation
 
 from mozpack.files import FileFinder
 
-from .common import CommonBackend
+from mozbuild.base import ExecutionSummary
+
 from ..frontend.data import (
     Defines,
     HostProgram,
@@ -26,12 +24,11 @@ from ..frontend.data import (
     Library,
     LocalInclude,
     Program,
-    Sources,
     SandboxedWasmLibrary,
+    Sources,
     UnifiedSources,
 )
-from mozbuild.base import ExecutionSummary
-
+from .common import CommonBackend
 
 MSBUILD_NAMESPACE = "http://schemas.microsoft.com/developer/msbuild/2003"
 MSNATVIS_NAMESPACE = "http://schemas.microsoft.com/vstudio/debugger/natvis/2010"

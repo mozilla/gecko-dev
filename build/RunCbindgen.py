@@ -2,22 +2,20 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import print_function
-
 import os
 import subprocess
 
 import buildconfig
 import mozpack.path as mozpath
-import pytoml
 import six
+import toml
 
 
 # Try to read the package name or otherwise assume same name as the crate path.
 def _get_crate_name(crate_path):
     try:
         with open(mozpath.join(crate_path, "Cargo.toml"), encoding="utf-8") as f:
-            return pytoml.load(f)["package"]["name"]
+            return toml.load(f)["package"]["name"]
     except Exception:
         return mozpath.basename(crate_path)
 

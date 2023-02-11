@@ -78,11 +78,6 @@ class ShutdownObserver : public nsIObserver {
       deviceFamily = nullptr;
     }
 
-    for (auto& desktop : GfxDriverInfo::sDesktopEnvironment) {
-      delete desktop;
-      desktop = nullptr;
-    }
-
     for (auto& windowProtocol : GfxDriverInfo::sWindowProtocol) {
       delete windowProtocol;
       windowProtocol = nullptr;
@@ -259,6 +254,9 @@ static const char* GetPrefNameForFeature(int32_t aFeature) {
       break;
     case nsIGfxInfo::FEATURE_BACKDROP_FILTER:
       name = BLOCKLIST_PREF_BRANCH "backdrop.filter";
+      break;
+    case nsIGfxInfo::FEATURE_ACCELERATED_CANVAS2D:
+      name = BLOCKLIST_PREF_BRANCH "accelerated-canvas2d";
       break;
     default:
       MOZ_ASSERT_UNREACHABLE("Unexpected nsIGfxInfo feature?!");
@@ -533,6 +531,9 @@ static int32_t BlocklistFeatureToGfxFeature(const nsAString& aFeature) {
   if (aFeature.EqualsLiteral("BACKDROP_FILTER")) {
     return nsIGfxInfo::FEATURE_BACKDROP_FILTER;
   }
+  if (aFeature.EqualsLiteral("ACCELERATED_CANVAS2D")) {
+    return nsIGfxInfo::FEATURE_ACCELERATED_CANVAS2D;
+  }
 
   // If we don't recognize the feature, it may be new, and something
   // this version doesn't understand.  So, nothing to do.  This is
@@ -662,8 +663,6 @@ static bool BlocklistEntryToDriverInfo(const nsACString& aBlocklistEntry,
       aDriverInfo.mOperatingSystem = BlocklistOSToOperatingSystem(dataValue);
     } else if (key.EqualsLiteral("osversion")) {
       aDriverInfo.mOperatingSystemVersion = strtoul(value.get(), nullptr, 10);
-    } else if (key.EqualsLiteral("desktopEnvironment")) {
-      aDriverInfo.mDesktopEnvironment = dataValue;
     } else if (key.EqualsLiteral("windowProtocol")) {
       aDriverInfo.mWindowProtocol = dataValue;
     } else if (key.EqualsLiteral("vendor")) {
@@ -1068,11 +1067,6 @@ int32_t GfxInfoBase::FindBlocklistedDeviceInList(
       continue;
     }
 
-    if (!DoesDesktopEnvironmentMatch(info[i].mDesktopEnvironment,
-                                     desktopEnvironment)) {
-      continue;
-    }
-
     if (!DoesWindowProtocolMatch(info[i].mWindowProtocol, windowProtocol)) {
       continue;
     }
@@ -1231,15 +1225,6 @@ void GfxInfoBase::SetFeatureStatus(nsTArray<gfx::GfxInfoFeatureStatus>&& aFS) {
   InitFeatureStatus(new nsTArray<gfx::GfxInfoFeatureStatus>(std::move(aFS)));
 }
 
-bool GfxInfoBase::DoesDesktopEnvironmentMatch(
-    const nsAString& aBlocklistDesktop, const nsAString& aDesktopEnv) {
-  return aBlocklistDesktop.Equals(aDesktopEnv,
-                                  nsCaseInsensitiveStringComparator) ||
-         aBlocklistDesktop.Equals(
-             GfxDriverInfo::GetDesktopEnvironment(DesktopEnvironment::All),
-             nsCaseInsensitiveStringComparator);
-}
-
 bool GfxInfoBase::DoesWindowProtocolMatch(
     const nsAString& aBlocklistWindowProtocol,
     const nsAString& aWindowProtocol) {
@@ -1269,8 +1254,7 @@ bool GfxInfoBase::DoesDriverVendorMatch(const nsAString& aBlocklistVendor,
 }
 
 bool GfxInfoBase::IsFeatureAllowlisted(int32_t aFeature) const {
-  return aFeature == nsIGfxInfo::FEATURE_VIDEO_OVERLAY ||
-         aFeature == nsIGfxInfo::FEATURE_HW_DECODED_VIDEO_ZERO_COPY;
+  return aFeature == nsIGfxInfo::FEATURE_HW_DECODED_VIDEO_ZERO_COPY;
 }
 
 nsresult GfxInfoBase::GetFeatureStatusImpl(

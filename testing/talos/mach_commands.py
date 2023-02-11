@@ -4,20 +4,15 @@
 
 # Integrates Talos mozharness with mach
 
-from __future__ import absolute_import, print_function, unicode_literals
-
+import json
 import logging
 import os
-import six
-import sys
-import json
 import socket
+import sys
 
-from mozbuild.base import (
-    MozbuildObject,
-    BinaryNotFoundException,
-)
+import six
 from mach.decorators import Command
+from mozbuild.base import BinaryNotFoundException, MozbuildObject
 
 HERE = os.path.dirname(os.path.realpath(__file__))
 

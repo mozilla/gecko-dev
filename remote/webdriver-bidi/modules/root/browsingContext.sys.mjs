@@ -13,6 +13,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   assert: "chrome://remote/content/shared/webdriver/Assert.sys.mjs",
   BrowsingContextListener:
     "chrome://remote/content/shared/listeners/BrowsingContextListener.sys.mjs",
+  capture: "chrome://remote/content/shared/Capture.sys.mjs",
   ContextDescriptorType:
     "chrome://remote/content/shared/messagehandler/MessageHandler.sys.mjs",
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
@@ -63,6 +64,7 @@ const WaitCondition = {
 
 class BrowsingContextModule extends Module {
   #contextListener;
+  #subscribedEvents;
 
   /**
    * Create a new module instance.
@@ -76,11 +78,59 @@ class BrowsingContextModule extends Module {
     // Create the console-api listener and listen on "message" events.
     this.#contextListener = new lazy.BrowsingContextListener();
     this.#contextListener.on("attached", this.#onContextAttached);
+
+    // Set of event names which have active subscriptions.
+    this.#subscribedEvents = new Set();
   }
 
   destroy() {
     this.#contextListener.off("attached", this.#onContextAttached);
     this.#contextListener.destroy();
+
+    this.#subscribedEvents = null;
+  }
+
+  /**
+   * Capture a base64-encoded screenshot of the provided browsing context.
+   *
+   * @param {Object=} options
+   * @param {string} context
+   *     Id of the browsing context to screenshot.
+   *
+   * @throws {NoSuchFrameError}
+   *     If the browsing context cannot be found.
+   */
+  async captureScreenshot(options = {}) {
+    const { context: contextId } = options;
+
+    lazy.assert.string(
+      contextId,
+      `Expected "context" to be a string, got ${contextId}`
+    );
+    const context = this.#getBrowsingContext(contextId);
+
+    const rect = await this.messageHandler.handleCommand({
+      moduleName: "browsingContext",
+      commandName: "_getScreenshotRect",
+      destination: {
+        type: lazy.WindowGlobalMessageHandler.type,
+        id: context.id,
+      },
+      retryOnAbort: true,
+    });
+
+    const canvas = await lazy.capture.canvas(
+      context.topChromeWindow,
+      context,
+      rect.x,
+      rect.y,
+      rect.width,
+      rect.height
+    );
+
+    return {
+      data: lazy.capture.toBase64(canvas),
+    };
   }
 
   /**
@@ -561,12 +611,14 @@ class BrowsingContextModule extends Module {
   #subscribeEvent(event) {
     if (event === "browsingContext.contextCreated") {
       this.#contextListener.startListening();
+      this.#subscribedEvents.add(event);
     }
   }
 
   #unsubscribeEvent(event) {
     if (event === "browsingContext.contextCreated") {
       this.#contextListener.stopListening();
+      this.#subscribedEvents.delete(event);
     }
   }
 
@@ -575,17 +627,26 @@ class BrowsingContextModule extends Module {
    */
 
   _applySessionData(params) {
-    // Note: for now events from this module are only subscribed globally,
-    // but once it will be possible to subscribe to a specific eg. tab, the
-    // contextListener will need to read the contextDescriptor from the params.
-    const { category, added = [], removed = [] } = params;
+    // TODO: Bug 1775231. Move this logic to a shared module or an abstract
+    // class.
+    const { category } = params;
     if (category === "event") {
-      for (const event of added) {
-        this.#subscribeEvent(event);
+      const filteredSessionData = params.sessionData.filter(item =>
+        this.messageHandler.matchesContext(item.contextDescriptor)
+      );
+      for (const event of this.#subscribedEvents.values()) {
+        const hasSessionItem = filteredSessionData.some(
+          item => item.value === event
+        );
+        // If there are no session items for this context, we should unsubscribe from the event.
+        if (!hasSessionItem) {
+          this.#unsubscribeEvent(event);
+        }
       }
 
-      for (const event of removed) {
-        this.#unsubscribeEvent(event);
+      // Subscribe to all events, which have an item in SessionData.
+      for (const { value } of filteredSessionData) {
+        this.#subscribeEvent(value);
       }
     }
   }

@@ -58,6 +58,19 @@ nsresult CreateFiles(ResultConnection& aConn) {
       ";"_ns);
 }
 
+nsresult CreateUsages(ResultConnection& aConn) {
+  return aConn->ExecuteSimpleSQL(
+      "CREATE TABLE IF NOT EXISTS Usages ( "
+      "handle BLOB PRIMARY KEY, "
+      "usage INTEGER NOT NULL DEFAULT 0, "
+      "tracked BOOLEAN NOT NULL DEFAULT 0 CHECK (tracked IN (0, 1)), "
+      "CONSTRAINT handles_are_files "
+      "FOREIGN KEY (handle) "
+      "REFERENCES Files (handle) "
+      "ON DELETE CASCADE ) "
+      ";"_ns);
+}
+
 class KeepForeignKeysOffUntilScopeExit final {
  public:
   explicit KeepForeignKeysOffUntilScopeExit(const ResultConnection& aConn)
@@ -122,15 +135,6 @@ nsresult CreateRootEntry(ResultConnection& aConn, const Origin& aOrigin) {
   return transaction.Commit();
 }
 
-nsresult CreateUsages(ResultConnection& aConn) {
-  return aConn->ExecuteSimpleSQL(
-      "CREATE TABLE IF NOT EXISTS Usages ( "
-      "usage INTEGER NOT NULL, "
-      "aggregated BOOLEAN DEFAULT FALSE "
-      ") "
-      ";"_ns);
-}
-
 Result<bool, QMResult> CheckIfEmpty(ResultConnection& aConn) {
   const nsLiteralCString areThereTablesQuery =
       "SELECT EXISTS ("
@@ -143,51 +147,39 @@ Result<bool, QMResult> CheckIfEmpty(ResultConnection& aConn) {
   return stmt.YesOrNoQuery();
 };
 
-Result<DatabaseVersion, QMResult> GetDatabaseVersion(ResultConnection& aConn) {
-  const nsLiteralCString getUserVersionQuery = "PRAGMA USER_VERSION;"_ns;
-  QM_TRY_UNWRAP(ResultStatement stmt,
-                ResultStatement::Create(aConn, getUserVersionQuery));
-
-  return stmt.GetDatabaseVersion();
-}
-
-nsresult SetDatabaseVersion(ResultConnection& aConn) {
-  // Unfortunately bind does not work.
-  nsCString setUserVersionQuery = "PRAGMA USER_VERSION = "_ns;
-  setUserVersionQuery.AppendInt(SchemaVersion001::sVersion);
-  setUserVersionQuery.Append(" ;"_ns);
-
-  QM_TRY_UNWRAP(ResultStatement stmt,
-                ResultStatement::Create(aConn, setUserVersionQuery));
-  QM_TRY(MOZ_TO_RESULT(stmt.Execute()));
-
-  return NS_OK;
-}
-
 }  // namespace
 
 Result<DatabaseVersion, QMResult> SchemaVersion001::InitializeConnection(
     ResultConnection& aConn, const Origin& aOrigin) {
   QM_TRY_UNWRAP(bool isEmpty, CheckIfEmpty(aConn));
 
-  DatabaseVersion previous = 0;
+  DatabaseVersion currentVersion = 0;
 
   if (isEmpty) {
     QM_TRY(QM_TO_RESULT(SetEncoding(aConn)));
   } else {
-    QM_TRY_UNWRAP(previous, GetDatabaseVersion(aConn));
+    QM_TRY(QM_TO_RESULT(aConn->GetSchemaVersion(&currentVersion)));
   }
 
-  if (previous < sVersion) {
+  if (currentVersion < sVersion) {
+    mozStorageTransaction transaction(
+        aConn.get(),
+        /* commit on complete */ false,
+        mozIStorageConnection::TRANSACTION_IMMEDIATE);
+
     QM_TRY(QM_TO_RESULT(CreateEntries(aConn)));
     QM_TRY(QM_TO_RESULT(CreateDirectories(aConn)));
     QM_TRY(QM_TO_RESULT(CreateFiles(aConn)));
     QM_TRY(QM_TO_RESULT(CreateUsages(aConn)));
     QM_TRY(QM_TO_RESULT(CreateRootEntry(aConn, aOrigin)));
-    QM_TRY(QM_TO_RESULT(SetDatabaseVersion(aConn)));
+    QM_TRY(QM_TO_RESULT(aConn->SetSchemaVersion(sVersion)));
+
+    QM_TRY(QM_TO_RESULT(transaction.Commit()));
   }
 
-  return GetDatabaseVersion(aConn);
+  QM_TRY(QM_TO_RESULT(aConn->GetSchemaVersion(&currentVersion)));
+
+  return currentVersion;
 }
 
 }  // namespace mozilla::dom::fs

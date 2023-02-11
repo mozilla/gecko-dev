@@ -28,11 +28,9 @@
 
 :root {
   --toolbar-bgcolor: var(--toolbar-non-lwt-bgcolor);
-  --toolbar-bgimage: var(--toolbar-non-lwt-bgimage);
   --toolbar-color: var(--toolbar-non-lwt-textcolor);
   --toolbarbutton-border-radius: 4px;
 
-  --tab-selected-bgimage: var(--tab-selected-non-lwt-bgimage);
   --tabs-navbar-shadow-size: 1px;
 
   --panel-shortcut-color: inherit;
@@ -116,10 +114,8 @@
 
 :root:-moz-lwtheme {
   --toolbar-bgcolor: rgba(255,255,255,.4);
-  --toolbar-bgimage: none;
   --toolbar-color: var(--lwt-text-color, inherit);
 
-  --tab-selected-bgimage: none;
   color: var(--lwt-text-color);
 }
 
@@ -714,6 +710,7 @@ menupopup::part(drop-indicator) {
 
 .webRTC-selectDevice-selector-container > menulist {
   flex: 1;
+  min-width: 0;
 }
 
 popupnotificationcontent {
@@ -836,4 +833,62 @@ popupnotificationcontent {
 
 #tab-notification-deck {
   display: block;
+}
+
+.relay-integration-header {
+  display: flex;
+  align-items: center;
+  font-size: 2em;
+}
+
+.relay-integration-header > div {
+  width: 32px;
+  height: 32px;
+  background-image: url("chrome://browser/content/logos/relay.svg");
+  background-repeat: no-repeat;
+}
+
+.relay-integration-header > span:first-of-type {
+  font-weight: bold;
+  margin-inline-start: 8px;
+}
+
+.relay-integration-header > span:last-of-type {
+  font-weight: normal;
+  white-space: pre;
+}
+
+.popup-notification-description[popupid="relay-integration-offer-notification"] > html|div:first-of-type {
+  font-weight: normal;
+  display: grid;
+  grid-template-columns: auto;
+  grid-template-rows: auto auto auto auto;
+}
+
+#relay-integration-reuse-masks-notification > popupnotificationcontent > div {
+  font-weight: normal;
+  display: grid;
+  grid-template-columns: auto;
+  grid-template-rows: auto auto auto auto;
+}
+
+.reusable-relay-masks {
+  display: flex;
+  flex-direction: column;
+}
+
+.reusable-relay-masks > button {
+  padding: 4px;
+  margin: 4px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.reusable-relay-masks > button > span:first-child {
+  margin-inline-end: 20px;
+}
+
+.reusable-relay-masks > button > span:last-child {
+  opacity: 0.6;
 }

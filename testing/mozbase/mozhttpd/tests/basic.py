@@ -1,14 +1,11 @@
 #!/usr/bin/env python
 
-from __future__ import absolute_import
-
-import mozhttpd
-import mozfile
 import os
 
-import pytest
-
+import mozfile
+import mozhttpd
 import mozunit
+import pytest
 
 
 @pytest.fixture(name="files")

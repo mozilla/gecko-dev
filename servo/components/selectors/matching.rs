@@ -8,7 +8,7 @@ use crate::attr::{
 };
 use crate::bloom::{BloomFilter, BLOOM_HASH_MASK};
 use crate::nth_index_cache::NthIndexCacheInner;
-use crate::parser::{AncestorHashes, Combinator, Component, LocalName};
+use crate::parser::{AncestorHashes, Combinator, Component, LocalName, NthSelectorData};
 use crate::parser::{NonTSPseudoClass, Selector, SelectorImpl, SelectorIter, SelectorList};
 use crate::tree::Element;
 use smallvec::SmallVec;
@@ -384,17 +384,9 @@ fn hover_and_active_quirk_applies<Impl: SelectorImpl>(
         Component::Class(_) |
         Component::PseudoElement(_) |
         Component::Negation(_) |
-        Component::FirstChild |
-        Component::LastChild |
-        Component::OnlyChild |
         Component::Empty |
-        Component::NthChild(_, _) |
-        Component::NthLastChild(_, _) |
-        Component::NthOfType(_, _) |
-        Component::NthLastOfType(_, _) |
-        Component::FirstOfType |
-        Component::LastOfType |
-        Component::OnlyOfType => false,
+        Component::Nth(_) |
+        Component::NthOf(_) => false,
         Component::NonTSPseudoClass(ref pseudo_class) => pseudo_class.is_active_or_hover(),
         _ => true,
     })
@@ -784,12 +776,6 @@ where
             }
             element.match_non_ts_pseudo_class(pc, &mut context.shared)
         },
-        Component::FirstChild => matches_first_child(element, context.shared),
-        Component::LastChild => matches_last_child(element, context.shared),
-        Component::OnlyChild => {
-            matches_first_child(element, context.shared) &&
-                matches_last_child(element, context.shared)
-        },
         Component::Root => element.is_root(),
         Component::Empty => {
             if context.shared.needs_selector_flags() {
@@ -812,27 +798,12 @@ where
             Some(ref scope_element) => element.opaque() == *scope_element,
             None => element.is_root(),
         },
-        Component::NthChild(a, b) => {
-            matches_generic_nth_child(element, context.shared, a, b, false, false)
+        Component::Nth(ref nth_data) => {
+            matches_generic_nth_child(element, context.shared, nth_data)
         },
-        Component::NthLastChild(a, b) => {
-            matches_generic_nth_child(element, context.shared, a, b, false, true)
-        },
-        Component::NthOfType(a, b) => {
-            matches_generic_nth_child(element, context.shared, a, b, true, false)
-        },
-        Component::NthLastOfType(a, b) => {
-            matches_generic_nth_child(element, context.shared, a, b, true, true)
-        },
-        Component::FirstOfType => {
-            matches_generic_nth_child(element, context.shared, 0, 1, true, false)
-        },
-        Component::LastOfType => {
-            matches_generic_nth_child(element, context.shared, 0, 1, true, true)
-        },
-        Component::OnlyOfType => {
-            matches_generic_nth_child(element, context.shared, 0, 1, true, false) &&
-                matches_generic_nth_child(element, context.shared, 0, 1, true, true)
+        Component::NthOf(ref nth_of_data) => {
+            // TODO(zrhoffman, bug 1808228): Use selectors() when matching
+            matches_generic_nth_child(element, context.shared, nth_of_data.nth_data())
         },
         Component::Is(ref list) | Component::Where(ref list) => context.shared.nest(|context| {
             for selector in &**list {
@@ -892,14 +863,10 @@ fn to_unconditional_case_sensitivity<'a, E: Element>(
     }
 }
 
-#[inline]
 fn matches_generic_nth_child<E>(
     element: &E,
     context: &mut MatchingContext<E::Impl>,
-    a: i32,
-    b: i32,
-    is_of_type: bool,
-    is_from_end: bool,
+    nth_data: &NthSelectorData,
 ) -> bool
 where
     E: Element,
@@ -908,12 +875,38 @@ where
         return false;
     }
 
+    let NthSelectorData { ty, a, b, .. } = *nth_data;
+    let is_of_type = ty.is_of_type();
+    if ty.is_only() {
+        return matches_generic_nth_child(element, context, &NthSelectorData::first(is_of_type)) &&
+            matches_generic_nth_child(element, context, &NthSelectorData::last(is_of_type));
+    }
+
+    let is_from_end = ty.is_from_end();
+
+    // It's useful to know whether this can only select the first/last element
+    // child for optimization purposes, see the `HAS_EDGE_CHILD_SELECTOR` flag.
+    let is_edge_child_selector = a == 0 && b == 1 && !is_of_type;
+
     if context.needs_selector_flags() {
-        element.apply_selector_flags(if is_from_end {
+        element.apply_selector_flags(if is_edge_child_selector {
+            ElementSelectorFlags::HAS_EDGE_CHILD_SELECTOR
+        } else if is_from_end {
             ElementSelectorFlags::HAS_SLOW_SELECTOR
         } else {
             ElementSelectorFlags::HAS_SLOW_SELECTOR_LATER_SIBLINGS
         });
+    }
+
+    // :first/last-child are rather trivial to match, don't bother with the
+    // cache.
+    if is_edge_child_selector {
+        return if is_from_end {
+            element.next_sibling_element()
+        } else {
+            element.prev_sibling_element()
+        }
+        .is_none();
     }
 
     // Grab a reference to the appropriate cache.
@@ -1005,26 +998,4 @@ where
     }
 
     index
-}
-
-#[inline]
-fn matches_first_child<E>(element: &E, context: &MatchingContext<E::Impl>) -> bool
-where
-    E: Element,
-{
-    if context.needs_selector_flags() {
-        element.apply_selector_flags(ElementSelectorFlags::HAS_EDGE_CHILD_SELECTOR);
-    }
-    element.prev_sibling_element().is_none()
-}
-
-#[inline]
-fn matches_last_child<E>(element: &E, context: &MatchingContext<E::Impl>) -> bool
-where
-    E: Element,
-{
-    if context.needs_selector_flags() {
-        element.apply_selector_flags(ElementSelectorFlags::HAS_EDGE_CHILD_SELECTOR);
-    }
-    element.next_sibling_element().is_none()
 }

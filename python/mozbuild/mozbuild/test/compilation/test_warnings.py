@@ -2,18 +2,17 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function
-
 import os
 import unittest
 
 from mozfile.mozfile import NamedTemporaryFile
-
-from mozbuild.compilation.warnings import CompilerWarning
-from mozbuild.compilation.warnings import WarningsCollector
-from mozbuild.compilation.warnings import WarningsDatabase
-
 from mozunit import main
+
+from mozbuild.compilation.warnings import (
+    CompilerWarning,
+    WarningsCollector,
+    WarningsDatabase,
+)
 
 CLANG_TESTS = [
     (

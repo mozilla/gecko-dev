@@ -40,7 +40,7 @@ function DatePicker(context) {
       this._setDefaultState();
       this._createComponents();
       this._update();
-      this.components.calendar.focus();
+      this.components.calendar.focusDay();
       document.dispatchEvent(new CustomEvent("PickerReady"));
     },
 
@@ -141,7 +141,15 @@ function DatePicker(context) {
             calViewSize: CAL_VIEW_SIZE,
             locale: this.state.locale,
             setSelection: this.state.setSelection,
-            setMonthByOffset: this.state.setMonthByOffset,
+            // Year and month could be changed without changing a selection
+            setCalendarMonth: (year, month) => {
+              this.state.dateKeeper.setCalendarMonth({
+                year,
+                month,
+              });
+              this._update();
+              this._dispatchState();
+            },
             getDayString: this.state.getDayString,
             getWeekHeaderString: this.state.getWeekHeaderString,
           },
@@ -266,15 +274,33 @@ function DatePicker(context) {
         case "keydown": {
           switch (event.key) {
             case "Enter":
-            case " ": {
+            case " ":
+            case "Escape": {
+              if (
+                this.state.isMonthPickerVisible &&
+                this.context.monthYearView.contains(event.target)
+              ) {
+                // While the spinner on the month-year picker panel is focused,
+                // keep the spinner's selection and close the month picker dialog
+                event.stopPropagation();
+                event.preventDefault();
+                this.state.toggleMonthPicker();
+                this.components.calendar.focusDay();
+                break;
+              }
+              if (event.key == "Escape") {
+                // Close the date picker on Escape from within the picker
+                this._closePopup();
+                break;
+              }
               if (event.target == this.context.buttonPrev) {
                 event.target.classList.add("active");
-                this.state.dateKeeper.setMonthByOffset(-1);
-                this._update();
+                this.state.setMonthByOffset(-1);
+                this.context.buttonPrev.focus();
               } else if (event.target == this.context.buttonNext) {
                 event.target.classList.add("active");
-                this.state.dateKeeper.setMonthByOffset(1);
-                this._update();
+                this.state.setMonthByOffset(1);
+                this.context.buttonNext.focus();
               }
               break;
             }

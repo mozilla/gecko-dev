@@ -2,11 +2,11 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, unicode_literals
-
 from pathlib import Path
-from mach.main import COMMAND_ERROR_TEMPLATE, MODULE_ERROR_TEMPLATE
+
 from mozunit import main
+
+from mach.main import COMMAND_ERROR_TEMPLATE, MODULE_ERROR_TEMPLATE
 
 
 def test_command_error(run_mach):

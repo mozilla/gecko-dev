@@ -161,7 +161,7 @@ describe("pause", () => {
       const source = await dispatch(
         actions.newGeneratedSource(makeSource("foo"))
       );
-      await dispatch(actions.newOriginalSource(makeOriginalSource(source)));
+      await dispatch(actions.newOriginalSources([makeOriginalSource(source)]));
 
       await dispatch(actions.paused(mockPauseInfo));
       expect(selectors.getFrames(getState(), "FakeThread")).toEqual([
@@ -224,7 +224,7 @@ describe("pause", () => {
         column: 0,
       };
 
-      const sourceMapsMock = {
+      const sourceMapLoaderMock = {
         getOriginalLocation: () => Promise.resolve(originalLocation),
         getOriginalLocations: async items => items,
         getOriginalSourceText: async () => ({
@@ -235,7 +235,7 @@ describe("pause", () => {
       };
 
       const client = { ...mockCommandClient };
-      const store = createStore(client, {}, sourceMapsMock);
+      const store = createStore(client, {}, sourceMapLoaderMock);
       const { dispatch, getState } = store;
       const mockPauseInfo = createPauseInfo(generatedLocation);
 
@@ -293,7 +293,7 @@ describe("pause", () => {
         },
       ];
 
-      const sourceMapsMock = {
+      const sourceMapLoaderMock = {
         getOriginalStackFrames: loc => Promise.resolve(originStackFrames),
         getOriginalLocation: () => Promise.resolve(originalLocation),
         getOriginalLocations: async items => items,
@@ -305,7 +305,7 @@ describe("pause", () => {
       };
 
       const client = { ...mockCommandClient };
-      const store = createStore(client, {}, sourceMapsMock);
+      const store = createStore(client, {}, sourceMapLoaderMock);
       const { dispatch, getState } = store;
       const mockPauseInfo = createPauseInfo(generatedLocation);
       const { frames } = mockPauseInfo;
@@ -316,7 +316,8 @@ describe("pause", () => {
           makeSource("foo-wasm", { introductionType: "wasm" })
         )
       );
-      await dispatch(actions.newOriginalSource(makeOriginalSource(source)));
+
+      await dispatch(actions.newOriginalSources([makeOriginalSource(source)]));
 
       await dispatch(actions.paused(mockPauseInfo));
       expect(selectors.getFrames(getState(), "FakeThread")).toEqual([
@@ -330,7 +331,7 @@ describe("pause", () => {
           location: {
             column: 1,
             line: 1,
-            sourceActorId: null,
+            sourceActorId: "foo-wasm-1-actor",
             sourceId: "foo-wasm/originalSource",
           },
           originalDisplayName: "fooBar",

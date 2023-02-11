@@ -458,6 +458,7 @@ GCRuntime::GCRuntime(JSRuntime* rt)
       alwaysPreserveCode(false),
       lowMemoryState(false),
       lock(mutexid::GCLock),
+      delayedMarkingLock(mutexid::GCDelayedMarkingLock),
       allocTask(this, emptyChunks_.ref()),
       unmarkTask(this),
       markTask(this),
@@ -1011,8 +1012,11 @@ void GCRuntime::restoreSharedAtomsZone() {
 
 bool GCRuntime::setParameter(JSContext* cx, JSGCParamKey key, uint32_t value) {
   MOZ_ASSERT(CurrentThreadCanAccessRuntime(rt));
+
+  AutoStopVerifyingBarriers pauseVerification(rt, false);
   FinishGC(cx);
   waitBackgroundSweepEnd();
+
   AutoLockGC lock(this);
   return setParameter(key, value, lock);
 }
@@ -1083,7 +1087,11 @@ bool GCRuntime::setParameter(JSGCParamKey key, uint32_t value,
 
 void GCRuntime::resetParameter(JSContext* cx, JSGCParamKey key) {
   MOZ_ASSERT(CurrentThreadCanAccessRuntime(rt));
+
+  AutoStopVerifyingBarriers pauseVerification(rt, false);
   FinishGC(cx);
+  waitBackgroundSweepEnd();
+
   AutoLockGC lock(this);
   resetParameter(key, lock);
 }
@@ -1298,12 +1306,12 @@ void GCRuntime::updateHelperThreadCount() {
 }
 
 size_t GCRuntime::markingWorkerCount() const {
-  if (!parallelMarkingEnabled) {
+  if (!CanUseExtraThreads() || !parallelMarkingEnabled) {
     return 1;
   }
 
   // Limit parallel marking to use at most two threads initially.
-  return std::min(parallelWorkerCount(), size_t(2));
+  return std::min(GetHelperThreadCount(), size_t(2));
 }
 
 #ifdef DEBUG
@@ -2171,7 +2179,6 @@ void GCRuntime::sweepZones(JS::GCContext* gcx, bool destroyingRuntime) {
         zone->arenas.checkEmptyFreeLists();
         zone->sweepCompartments(gcx, false, destroyingRuntime);
         MOZ_ASSERT(zone->compartments().empty());
-        MOZ_ASSERT(zone->rttValueObjects().empty());
         zone->destroy(gcx);
         continue;
       }
@@ -2370,6 +2377,7 @@ void GCRuntime::startCollection(JS::GCReason reason) {
   cleanUpEverything = ShouldCleanUpEverything(gcOptions());
   isCompacting = shouldCompact();
   rootsRemoved = false;
+  sweepGroupIndex = 0;
   lastGCStartTime_ = TimeStamp::Now();
 
 #ifdef DEBUG
@@ -2959,7 +2967,10 @@ bool GCRuntime::appendTestMarkQueue(const JS::Value& value) {
   return testMarkQueue.append(value);
 }
 
-void GCRuntime::clearTestMarkQueue() { testMarkQueue.clear(); }
+void GCRuntime::clearTestMarkQueue() {
+  testMarkQueue.clear();
+  queuePos = 0;
+}
 
 size_t GCRuntime::testMarkQueuePos() const { return queuePos; }
 

@@ -718,8 +718,8 @@
     "toolkit/components/formautofill/FormAutofillStorageBase.jsm",
   "resource://autofill/FormAutofillSync.jsm":
     "toolkit/components/formautofill/FormAutofillSync.jsm",
-  "resource://autofill/FormAutofillTelemetryUtils.jsm":
-    "toolkit/components/formautofill/FormAutofillTelemetryUtils.jsm",
+  "resource://autofill/Autofilltelemetry.jsm":
+    "toolkit/components/formautofill/Autofilltelemetry.jsm",
   "resource://autofill/FormAutofillUtils.jsm":
     "toolkit/components/formautofill/FormAutofillUtils.jsm",
   "resource://autofill/ProfileAutoCompleteResult.jsm":
@@ -1190,8 +1190,6 @@
     "mobile/android/modules/geckoview/GeckoViewProgress.jsm",
   "resource://gre/modules/GeckoViewPrompt.jsm":
     "mobile/android/components/geckoview/GeckoViewPrompt.jsm",
-  "resource://gre/modules/GeckoViewPrompter.jsm":
-    "mobile/android/components/geckoview/GeckoViewPrompter.jsm",
   "resource://gre/modules/GeckoViewPush.jsm":
     "mobile/android/components/geckoview/GeckoViewPush.jsm",
   "resource://gre/modules/GeckoViewPushController.jsm":

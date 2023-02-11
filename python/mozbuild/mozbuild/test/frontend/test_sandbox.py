@@ -2,34 +2,21 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import unittest
 
+import mozpack.path as mozpath
 from mozunit import main
 
-from mozbuild.frontend.reader import (
-    MozbuildSandbox,
-    SandboxCalledError,
-)
-
-from mozbuild.frontend.sandbox import (
-    Sandbox,
-    SandboxExecutionError,
-    SandboxLoadError,
-)
-
 from mozbuild.frontend.context import (
-    Context,
     FUNCTIONS,
-    SourcePath,
     SPECIAL_VARIABLES,
     VARIABLES,
+    Context,
+    SourcePath,
 )
-
+from mozbuild.frontend.reader import MozbuildSandbox, SandboxCalledError
+from mozbuild.frontend.sandbox import Sandbox, SandboxExecutionError, SandboxLoadError
 from mozbuild.test.common import MockConfig
-
-import mozpack.path as mozpath
 
 test_data_path = mozpath.abspath(mozpath.dirname(__file__))
 test_data_path = mozpath.join(test_data_path, "data")

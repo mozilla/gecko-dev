@@ -15,8 +15,11 @@
 #include "ErrorList.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/Buffer.h"
+#include "mozilla/dom/Promise.h"
 #include "mozilla/DynamicallyLinkedFunctionPtr.h"
+#include "mozilla/ErrorResult.h"
 #include "mozilla/mscom/COMWrappers.h"
+#include "mozilla/mscom/Utils.h"
 #include "mozilla/Logging.h"
 #include "mozilla/Services.h"
 #include "mozilla/WidgetUtils.h"
@@ -25,17 +28,22 @@
 #include "nsComponentManagerUtils.h"
 #include "nsCOMPtr.h"
 #include "nsIObserverService.h"
+#include "nsIWindowMediator.h"
+#include "nsPIDOMWindow.h"
 #include "nsString.h"
 #include "nsThreadUtils.h"
 #include "nsWindowsHelpers.h"
 #include "nsXREDirProvider.h"
 #include "prenv.h"
 #include "ToastNotificationHandler.h"
+#include "ToastNotificationHeaderOnlyUtils.h"
 #include "WinTaskbar.h"
 #include "WinUtils.h"
 
 namespace mozilla {
 namespace widget {
+
+using namespace toastnotification;
 
 using namespace ABI::Windows::Foundation;
 using namespace Microsoft::WRL;
@@ -348,9 +356,8 @@ ToastNotification::Observe(nsISupports* aSubject, const char* aTopic,
 
   for (auto iter = mActiveHandlers.Iter(); !iter.Done(); iter.Next()) {
     RefPtr<ToastNotificationHandler> handler = iter.UserData();
-    if (topic == "last-pb-context-exited"_ns) {
-      handler->HideIfPrivate();
-    } else if (topic == "quit-application"_ns) {
+
+    auto removeNotification = [&]() {
       // The handlers' destructors will do the right thing (de-register with
       // Windows).
       iter.Remove();
@@ -358,6 +365,15 @@ ToastNotification::Observe(nsISupports* aSubject, const char* aTopic,
       // Break the cycle between the handler and the MSCOM notification so the
       // handler's destructor will be called.
       handler->UnregisterHandler();
+    };
+
+    if (topic == "last-pb-context-exited"_ns) {
+      if (handler->IsPrivate()) {
+        handler->HideAlert();
+        removeNotification();
+      }
+    } else if (topic == "quit-application"_ns) {
+      removeNotification();
     }
   }
 
@@ -430,6 +446,9 @@ ToastNotification::ShowAlert(nsIAlertNotification* aAlert,
   bool textClickable;
   MOZ_TRY(aAlert->GetTextClickable(&textClickable));
 
+  bool isSilent;
+  MOZ_TRY(aAlert->GetSilent(&isSilent));
+
   nsAutoString hostPort;
   MOZ_TRY(aAlert->GetSource(hostPort));
 
@@ -455,7 +474,7 @@ ToastNotification::ShowAlert(nsIAlertNotification* aAlert,
   RefPtr<ToastNotificationHandler> handler = new ToastNotificationHandler(
       this, mAumid.ref(), aAlertListener, name, cookie, title, text, hostPort,
       textClickable, requireInteraction, actions, isSystemPrincipal, launchUrl,
-      inPrivateBrowsing);
+      inPrivateBrowsing, isSilent);
   mActiveHandlers.InsertOrUpdate(name, RefPtr{handler});
 
   MOZ_LOG(sWASLog, LogLevel::Debug,
@@ -502,6 +521,9 @@ ToastNotification::GetXmlStringForWindowsAlert(nsIAlertNotification* aAlert,
   bool textClickable;
   MOZ_TRY(aAlert->GetTextClickable(&textClickable));
 
+  bool isSilent;
+  MOZ_TRY(aAlert->GetSilent(&isSilent));
+
   nsAutoString hostPort;
   MOZ_TRY(aAlert->GetSource(hostPort));
 
@@ -525,7 +547,7 @@ ToastNotification::GetXmlStringForWindowsAlert(nsIAlertNotification* aAlert,
   RefPtr<ToastNotificationHandler> handler = new ToastNotificationHandler(
       this, mAumid.ref(), nullptr /* aAlertListener */, name, cookie, title,
       text, hostPort, textClickable, requireInteraction, actions,
-      isSystemPrincipal, launchUrl, inPrivateBrowsing);
+      isSystemPrincipal, launchUrl, inPrivateBrowsing, isSilent);
 
   // Usually, this will be empty during testing, making test output
   // deterministic.
@@ -537,13 +559,10 @@ ToastNotification::GetXmlStringForWindowsAlert(nsIAlertNotification* aAlert,
   return handler->CreateToastXmlString(imageURL, aString);
 }
 
-NS_IMETHODIMP
-ToastNotification::HandleWindowsTag(const nsAString& aWindowsTag,
-                                    nsIUnknownWindowsTagListener* aListener,
-                                    bool* aRetVal) {
-  *aRetVal = false;
-  NS_ENSURE_TRUE(mAumid.isSome(), NS_ERROR_UNEXPECTED);
-
+// Verifies that the tag recieved associates to a notification created during
+// this application's session, or handles fallback behavior.
+RefPtr<ToastHandledPromise> ToastNotification::VerifyTagPresentOrFallback(
+    const nsAString& aWindowsTag) {
   MOZ_LOG(sWASLog, LogLevel::Debug,
           ("Iterating %d handlers", mActiveHandlers.Count()));
 
@@ -561,29 +580,8 @@ ToastNotification::HandleWindowsTag(const nsAString& aWindowsTag,
         MOZ_LOG(sWASLog, LogLevel::Debug,
                 ("External windowsTag '%s' is handled by handler [%p]",
                  NS_ConvertUTF16toUTF8(aWindowsTag).get(), handler.get()));
-        *aRetVal = true;
-
-        nsString eventName(aWindowsTag);
-        nsAutoHandle event(
-            OpenEventW(EVENT_MODIFY_STATE, FALSE, eventName.get()));
-        if (event.get()) {
-          if (SetEvent(event)) {
-            MOZ_LOG(sWASLog, LogLevel::Info,
-                    ("Set event for event named '%s'",
-                     NS_ConvertUTF16toUTF8(eventName).get()));
-          } else {
-            MOZ_LOG(
-                sWASLog, LogLevel::Error,
-                ("Failed to set event for event named '%s' (GetLastError=%lu)",
-                 NS_ConvertUTF16toUTF8(eventName).get(), GetLastError()));
-          }
-        } else {
-          MOZ_LOG(sWASLog, LogLevel::Error,
-                  ("Failed to open event named '%s' (GetLastError=%lu)",
-                   NS_ConvertUTF16toUTF8(eventName).get(), GetLastError()));
-        }
-
-        return NS_OK;
+        ToastHandledResolve handled{u""_ns, u""_ns};
+        return ToastHandledPromise::CreateAndResolve(handled, __func__);
       }
     } else {
       MOZ_LOG(sWASLog, LogLevel::Debug,
@@ -591,31 +589,219 @@ ToastNotification::HandleWindowsTag(const nsAString& aWindowsTag,
     }
   }
 
-  MOZ_LOG(sWASLog, LogLevel::Debug, ("aListener [%p]", aListener));
-  if (aListener) {
-    bool foundTag;
-    nsAutoString launchUrl;
-    nsAutoString privilegedName;
-    MOZ_TRY(
-        ToastNotificationHandler::FindLaunchURLAndPrivilegedNameForWindowsTag(
-            aWindowsTag, mAumid.ref(), foundTag, launchUrl, privilegedName));
+  // Fallback handling
 
-    // The tag should always be found, so invoke the callback (even just for
-    // logging).
-    aListener->HandleUnknownWindowsTag(aWindowsTag, launchUrl, privilegedName);
+  RefPtr<ToastHandledPromise::Private> fallbackPromise =
+      new ToastHandledPromise::Private(__func__);
+
+  // TODO: Bug 1806005 - At time of writing this function is called in a call
+  // stack containing `WndProc` callback on an STA thread. As a result attempts
+  // to create a `ToastNotificationManager` instance results an an
+  // `RPC_E_CANTCALLOUT_ININPUTSYNCCALL` error. We can simplify the the XPCOM
+  // interface and synchronize the COM interactions if notification fallback
+  // handling were no longer handled in a `WndProc` context.
+  NS_DispatchBackgroundTask(NS_NewRunnableFunction(
+      "VerifyTagPresentOrFallback fallback background task",
+      [fallbackPromise, aWindowsTag = nsString(aWindowsTag),
+       aAumid = nsString(mAumid.ref())]() {
+        MOZ_ASSERT(mscom::IsCOMInitializedOnCurrentThread());
+
+        bool foundTag;
+        nsAutoString launchUrl;
+        nsAutoString privilegedName;
+
+        nsresult rv = ToastNotificationHandler::
+            FindLaunchURLAndPrivilegedNameForWindowsTag(
+                aWindowsTag, aAumid, foundTag, launchUrl, privilegedName);
+
+        if (NS_FAILED(rv) || !foundTag) {
+          MOZ_LOG(sWASLog, LogLevel::Error,
+                  ("Failed to get launch URL and privileged name for "
+                   "notification tag '%s'",
+                   NS_ConvertUTF16toUTF8(aWindowsTag).get()));
+
+          fallbackPromise->Reject(false, __func__);
+          return;
+        }
+
+        MOZ_LOG(sWASLog, LogLevel::Debug,
+                ("Found launch URL '%s' and privileged name '%s' for "
+                 "windowsTag '%s'",
+                 NS_ConvertUTF16toUTF8(launchUrl).get(),
+                 NS_ConvertUTF16toUTF8(privilegedName).get(),
+                 NS_ConvertUTF16toUTF8(aWindowsTag).get()));
+
+        ToastHandledResolve handled{launchUrl, privilegedName};
+        fallbackPromise->Resolve(handled, __func__);
+      }));
+
+  return fallbackPromise;
+}
+
+// Send our window's PID to the notification server so that it can grant us
+// `SetForegroundWindow` permissions. PID 0 is sent to signal no window PID.
+// Absense of PID which may occur when we are yet unable to retrieve the
+// window during startup, which is not a problem in practice as new windows
+// receive focus by default.
+void ToastNotification::SignalComNotificationHandled(
+    const nsAString& aWindowsTag) {
+  DWORD pid = 0;
+
+  nsCOMPtr<nsIWindowMediator> winMediator(
+      do_GetService(NS_WINDOWMEDIATOR_CONTRACTID));
+  if (winMediator) {
+    nsCOMPtr<mozIDOMWindowProxy> navWin;
+    winMediator->GetMostRecentWindow(u"navigator:browser",
+                                     getter_AddRefs(navWin));
+    if (navWin) {
+      nsCOMPtr<nsIWidget> widget =
+          WidgetUtils::DOMWindowToWidget(nsPIDOMWindowOuter::From(navWin));
+      if (widget) {
+        HWND hwnd = (HWND)widget->GetNativeData(NS_NATIVE_WINDOW);
+        GetWindowThreadProcessId(hwnd, &pid);
+      } else {
+        MOZ_LOG(sWASLog, LogLevel::Debug, ("Failed to get widget"));
+      }
+    } else {
+      MOZ_LOG(sWASLog, LogLevel::Debug, ("Failed to get navWin"));
+    }
+  } else {
+    MOZ_LOG(sWASLog, LogLevel::Debug, ("Failed to get WinMediator"));
   }
 
+  // Run pipe communication off the main thread to prevent UI jank from
+  // blocking. Nothing relies on the COM server's response or that it has
+  // responded at time of commit.
+  NS_DispatchBackgroundTask(
+      NS_NewRunnableFunction(
+          "SignalComNotificationHandled background task",
+          [pid, aWindowsTag = nsString{aWindowsTag}]() mutable {
+            std::wstring pipeName = GetNotificationPipeName(aWindowsTag.get());
+
+            nsAutoHandle pipe;
+            pipe.own(CreateFileW(pipeName.c_str(), GENERIC_READ | GENERIC_WRITE,
+                                 0, nullptr, OPEN_EXISTING,
+                                 FILE_FLAG_OVERLAPPED, nullptr));
+            if (pipe.get() == INVALID_HANDLE_VALUE) {
+              MOZ_LOG(sWASLog, LogLevel::Error,
+                      ("Unable to open notification server pipe."));
+              return;
+            }
+
+            DWORD pipeFlags = PIPE_READMODE_MESSAGE;
+            if (!SetNamedPipeHandleState(pipe.get(), &pipeFlags, nullptr,
+                                         nullptr)) {
+              MOZ_LOG(sWASLog, LogLevel::Error,
+                      ("Error setting pipe handle state, error %lu",
+                       GetLastError()));
+              return;
+            }
+
+            // Pass our window's PID to the COM server receive
+            // `SetForegroundWindow` permissions, and wait for a message
+            // acknowledging the permission has been granted.
+            ToastNotificationPidMessage in{};
+            in.pid = pid;
+            ToastNotificationPermissionMessage out{};
+            auto transact = [&](OVERLAPPED& overlapped) {
+              return TransactNamedPipe(pipe.get(), &in, sizeof(in), &out,
+                                       sizeof(out), nullptr, &overlapped);
+            };
+            bool result =
+                SyncDoOverlappedIOWithTimeout(pipe, sizeof(out), transact);
+
+            if (result && out.setForegroundPermissionGranted && pid != 0) {
+              MOZ_LOG(
+                  sWASLog, LogLevel::Info,
+                  ("SetForegroundWindow permission granted to our window."));
+            } else {
+              MOZ_LOG(sWASLog, LogLevel::Error,
+                      ("SetForegroundWindow permission not granted to our "
+                       "window."));
+            }
+          }),
+      NS_DISPATCH_EVENT_MAY_BLOCK);
+}
+
+NS_IMETHODIMP
+ToastNotification::HandleWindowsTag(const nsAString& aWindowsTag,
+                                    JSContext* aCx, dom::Promise** aPromise) {
+  NS_ENSURE_TRUE(mAumid.isSome(), NS_ERROR_UNEXPECTED);
+  NS_ENSURE_TRUE(NS_IsMainThread(), NS_ERROR_NOT_SAME_THREAD);
+
+  ErrorResult rv;
+  RefPtr<dom::Promise> promise =
+      dom::Promise::Create(xpc::CurrentNativeGlobal(aCx), rv);
+  ENSURE_SUCCESS(rv, rv.StealNSResult());
+
+  this->VerifyTagPresentOrFallback(aWindowsTag)
+      ->Then(
+          GetMainThreadSerialEventTarget(), __func__,
+          [aWindowsTag = nsString(aWindowsTag),
+           promise](const ToastHandledResolve& aResolved) {
+            // We no longer need to query toast information from OS and can
+            // allow the COM server to proceed (toast information is lost once
+            // the COM server's `Activate` callback returns).
+            SignalComNotificationHandled(aWindowsTag);
+
+            dom::AutoJSAPI js;
+            if (NS_WARN_IF(!js.Init(promise->GetGlobalObject()))) {
+              promise->MaybeReject(NS_ERROR_FAILURE);
+              return;
+            }
+
+            // Resolve the DOM Promise with a JS object. Set `launchUrl` and/or
+            // `privilegedName` properties if fallback handling is necessary.
+
+            JSContext* cx = js.cx();
+            JS::Rooted<JSObject*> obj(cx, JS_NewPlainObject(cx));
+
+            auto setProperty = [&](const char* name, const nsString& value) {
+              JS::Rooted<JSString*> title(cx,
+                                          JS_NewUCStringCopyZ(cx, value.get()));
+              JS::Rooted<JS::Value> attVal(cx, JS::StringValue(title));
+              Unused << NS_WARN_IF(!JS_SetProperty(cx, obj, name, attVal));
+            };
+
+            if (!aResolved.launchUrl.IsEmpty()) {
+              setProperty("launchUrl", aResolved.launchUrl);
+            }
+            if (!aResolved.privilegedName.IsEmpty()) {
+              setProperty("privilegedName", aResolved.privilegedName);
+            }
+
+            promise->MaybeResolve(obj);
+          },
+          [aWindowsTag = nsString(aWindowsTag), promise]() {
+            // We no longer need to query toast information from OS and can
+            // allow the COM server to proceed (toast information is lost once
+            // the COM server's `Activate` callback returns).
+            SignalComNotificationHandled(aWindowsTag);
+
+            promise->MaybeReject(NS_ERROR_FAILURE);
+          });
+
+  promise.forget(aPromise);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-ToastNotification::CloseAlert(const nsAString& aAlertName) {
+ToastNotification::CloseAlert(const nsAString& aAlertName,
+                              bool aContextClosed) {
   RefPtr<ToastNotificationHandler> handler;
   if (NS_WARN_IF(!mActiveHandlers.Get(aAlertName, getter_AddRefs(handler)))) {
     return NS_OK;
   }
+
+  if (!aContextClosed || handler->IsPrivate()) {
+    // Hide the alert when not implicitly closed by tab/window closing or when
+    // notification originated from a private tab.
+    handler->HideAlert();
+  }
+
   mActiveHandlers.Remove(aAlertName);
   handler->UnregisterHandler();
+
   return NS_OK;
 }
 

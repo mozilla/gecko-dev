@@ -2,8 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import os
 import shutil
 import subprocess
@@ -11,9 +9,10 @@ import sys
 from pathlib import Path
 
 import mozfile
-from mozbuild.base import MozbuildObject
 from mozfile import TemporaryDirectory
 from mozpack.files import FileFinder
+
+from mozbuild.base import MozbuildObject
 
 EXCLUDED_PACKAGES = {
     # dlmanager's package on PyPI only has metadata, but is missing the code.

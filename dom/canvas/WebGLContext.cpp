@@ -623,6 +623,7 @@ RefPtr<WebGLContext> WebGLContext::Create(HostWebGLContext& host,
   out->options = webgl->mOptions;
   out->limits = *webgl->mLimits;
   out->uploadableSdTypes = UploadableSdTypes();
+  out->vendor = webgl->gl->Vendor();
 
   return webgl;
 }
@@ -1098,6 +1099,10 @@ bool WebGLContext::PushRemoteTexture(WebGLFramebuffer* fb,
   const auto onFailure = [&]() -> bool {
     GenerateWarning("Remote texture creation failed.");
     LoseContext();
+    if (mRemoteTextureOwner) {
+      mRemoteTextureOwner->PushDummyTexture(options.remoteTextureId,
+                                            options.remoteTextureOwnerId);
+    }
     return false;
   };
 
@@ -1122,7 +1127,9 @@ bool WebGLContext::PushRemoteTexture(WebGLFramebuffer* fb,
     };
 
     swapChain.SetDestroyedCallback(destroyedCallback);
-    mRemoteTextureOwner->RegisterTextureOwner(ownerId);
+    mRemoteTextureOwner->RegisterTextureOwner(
+        ownerId,
+        /* aIsSyncMode */ gfx::gfxVars::WebglOopAsyncPresentForceSync());
   }
 
   MOZ_ASSERT(fb || surf);

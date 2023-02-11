@@ -2,13 +2,11 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
-import re
 import os
-import six
+import re
 
 import mozpack.path as mozpath
+import six
 from mozpack.chrome.flags import Flags
 from mozpack.errors import errors
 from six.moves.urllib.parse import urlparse

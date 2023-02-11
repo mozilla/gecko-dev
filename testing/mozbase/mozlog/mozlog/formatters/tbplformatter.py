@@ -2,16 +2,15 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, division
-
 import functools
 from collections import deque
+from functools import reduce
 
+import six
+
+from ..handlers import SummaryHandler
 from .base import BaseFormatter
 from .process import strstatus
-from ..handlers import SummaryHandler
-import six
-from functools import reduce
 
 
 def output_subtests(func):

@@ -624,7 +624,9 @@ LoadInfo::LoadInfo(const LoadInfo& rhs)
       mIsOriginTrialCoepCredentiallessEnabledForTopLevel(
           rhs.mIsOriginTrialCoepCredentiallessEnabledForTopLevel),
       mUnstrippedURI(rhs.mUnstrippedURI),
-      mInterceptionInfo(rhs.mInterceptionInfo) {}
+      mInterceptionInfo(rhs.mInterceptionInfo),
+      mHasInjectedCookieForCookieBannerHandling(
+          rhs.mHasInjectedCookieForCookieBannerHandling) {}
 
 LoadInfo::LoadInfo(
     nsIPrincipal* aLoadingPrincipal, nsIPrincipal* aTriggeringPrincipal,
@@ -665,7 +667,8 @@ LoadInfo::LoadInfo(
     uint32_t aRequestBlockingReason, nsINode* aLoadingContext,
     nsILoadInfo::CrossOriginEmbedderPolicy aLoadingEmbedderPolicy,
     bool aIsOriginTrialCoepCredentiallessEnabledForTopLevel,
-    nsIURI* aUnstrippedURI, nsIInterceptionInfo* aInterceptionInfo)
+    nsIURI* aUnstrippedURI, nsIInterceptionInfo* aInterceptionInfo,
+    bool aHasInjectedCookieForCookieBannerHandling)
     : mLoadingPrincipal(aLoadingPrincipal),
       mTriggeringPrincipal(aTriggeringPrincipal),
       mPrincipalToInherit(aPrincipalToInherit),
@@ -735,7 +738,9 @@ LoadInfo::LoadInfo(
       mIsOriginTrialCoepCredentiallessEnabledForTopLevel(
           aIsOriginTrialCoepCredentiallessEnabledForTopLevel),
       mUnstrippedURI(aUnstrippedURI),
-      mInterceptionInfo(aInterceptionInfo) {
+      mInterceptionInfo(aInterceptionInfo),
+      mHasInjectedCookieForCookieBannerHandling(
+          aHasInjectedCookieForCookieBannerHandling) {
   // Only top level TYPE_DOCUMENT loads can have a null loadingPrincipal
   MOZ_ASSERT(mLoadingPrincipal ||
              aContentPolicyType == nsIContentPolicy::TYPE_DOCUMENT);
@@ -1541,14 +1546,11 @@ LoadInfo::AppendRedirectHistoryEntry(nsIChannel* aChannel,
     if (referrerInfo) {
       referrer = referrerInfo->GetComputedReferrer();
     }
-  }
 
-  // ClassifierDummyChannel implements this, but not nsIHttpChannel,
-  // whereas NullHttpChannel implements nsIHttpChannel but not this, so
-  // we can't make assumptions by nesting these QIs.
-  nsCOMPtr<nsIHttpChannelInternal> intChannel(do_QueryInterface(aChannel));
-  if (intChannel) {
-    Unused << intChannel->GetRemoteAddress(remoteAddress);
+    nsCOMPtr<nsIHttpChannelInternal> intChannel(do_QueryInterface(aChannel));
+    if (intChannel) {
+      Unused << intChannel->GetRemoteAddress(remoteAddress);
+    }
   }
 
   nsCOMPtr<nsIPrincipal> truncatedPrincipal =
@@ -2211,6 +2213,22 @@ nsIInterceptionInfo* LoadInfo::InterceptionInfo() { return mInterceptionInfo; }
 
 void LoadInfo::SetInterceptionInfo(nsIInterceptionInfo* aInfo) {
   mInterceptionInfo = aInfo;
+}
+
+NS_IMETHODIMP
+LoadInfo::GetHasInjectedCookieForCookieBannerHandling(
+    bool* aHasInjectedCookieForCookieBannerHandling) {
+  *aHasInjectedCookieForCookieBannerHandling =
+      mHasInjectedCookieForCookieBannerHandling;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+LoadInfo::SetHasInjectedCookieForCookieBannerHandling(
+    bool aHasInjectedCookieForCookieBannerHandling) {
+  mHasInjectedCookieForCookieBannerHandling =
+      aHasInjectedCookieForCookieBannerHandling;
+  return NS_OK;
 }
 
 }  // namespace mozilla::net

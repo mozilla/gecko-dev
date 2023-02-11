@@ -6,9 +6,11 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from textwrap import dedent
 
 import mozunit
 from buildconfig import topsrcdir
+
 from mach.requirements import MachEnvRequirements
 from mach.site import PythonVirtualenv
 
@@ -17,6 +19,9 @@ def _resolve_command_site_names():
     site_names = []
     for child in (Path(topsrcdir) / "python" / "sites").iterdir():
         if not child.is_file():
+            continue
+
+        if child.suffix != ".txt":
             continue
 
         if child.name == "mach.txt":
@@ -153,7 +158,7 @@ def test_sites_compatible(tmpdir: str):
 
         # Attempt to install combined set of dependencies (global Mach + current
         # command)
-        subprocess.check_call(
+        proc = subprocess.run(
             [
                 virtualenv.python_path,
                 "-m",
@@ -164,6 +169,20 @@ def test_sites_compatible(tmpdir: str):
             ],
             cwd=topsrcdir,
         )
+        if proc.returncode != 0:
+            print(
+                dedent(
+                    f"""
+                Error: The '{name}' site contains dependencies that are not
+                compatible with the 'mach' site. Check the following files for
+                any conflicting packages mentioned in the prior error message:
+
+                  python/sites/mach.txt
+                  python/sites/{name}.txt
+                        """
+                )
+            )
+            assert False
 
 
 if __name__ == "__main__":

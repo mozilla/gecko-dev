@@ -4,6 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "ErrorList.h"
 #include "HTMLEditor.h"
 #include "HTMLEditorInlines.h"
 #include "HTMLEditorNestedClasses.h"
@@ -247,30 +248,36 @@ void HTMLEditor::OnStartToHandleTopLevelEditSubAction(
       *TopLevelEditSubActionDataRef().mSelectedRange);
 
   // Remember current inline styles for deletion and normal insertion ops
-  bool cacheInlineStyles;
-  switch (aTopLevelEditSubAction) {
-    case EditSubAction::eInsertText:
-    case EditSubAction::eInsertTextComingFromIME:
-    case EditSubAction::eDeleteSelectedContent:
-      cacheInlineStyles = true;
-      break;
-    default:
-      cacheInlineStyles =
-          IsPendingStyleCachePreservingSubAction(aTopLevelEditSubAction);
-      break;
-  }
+  const bool cacheInlineStyles = [&]() {
+    switch (aTopLevelEditSubAction) {
+      case EditSubAction::eInsertText:
+      case EditSubAction::eInsertTextComingFromIME:
+      case EditSubAction::eDeleteSelectedContent:
+        return true;
+      default:
+        return IsPendingStyleCachePreservingSubAction(aTopLevelEditSubAction);
+    }
+  }();
   if (cacheInlineStyles) {
-    nsIContent* const containerContent = nsIContent::FromNodeOrNull(
-        aDirectionOfTopLevelEditSubAction == nsIEditor::eNext
-            ? TopLevelEditSubActionDataRef().mSelectedRange->mEndContainer
-            : TopLevelEditSubActionDataRef().mSelectedRange->mStartContainer);
-    if (NS_WARN_IF(!containerContent)) {
+    const RefPtr<Element> editingHost =
+        ComputeEditingHost(LimitInBodyElement::No);
+    if (NS_WARN_IF(!editingHost)) {
       aRv.Throw(NS_ERROR_FAILURE);
       return;
     }
-    if (const RefPtr<Element> element =
-            containerContent->GetAsElementOrParentElement()) {
-      nsresult rv = CacheInlineStyles(*element);
+
+    nsIContent* const startContainer =
+        HTMLEditUtils::GetContentToPreserveInlineStyles(
+            TopLevelEditSubActionDataRef()
+                .mSelectedRange->StartPoint<EditorRawDOMPoint>(),
+            *editingHost);
+    if (NS_WARN_IF(!startContainer)) {
+      aRv.Throw(NS_ERROR_FAILURE);
+      return;
+    }
+    if (const RefPtr<Element> startContainerElement =
+            startContainer->GetAsElementOrParentElement()) {
+      nsresult rv = CacheInlineStyles(*startContainerElement);
       if (NS_FAILED(rv)) {
         NS_WARNING("HTMLEditor::CacheInlineStyles() failed");
         aRv.Throw(rv);
@@ -865,7 +872,7 @@ nsresult HTMLEditor::MaybeCreatePaddingBRElementForEmptyEditor() {
   }
   NS_WARNING_ASSERTION(
       !ignoredError.Failed(),
-      "TextEditor::OnStartToHandleTopLevelEditSubAction() failed, but ignored");
+      "HTMLEditor::OnStartToHandleTopLevelEditSubAction() failed, but ignored");
   ignoredError.SuppressException();
 
   RefPtr<Element> rootElement = GetRoot();
@@ -1474,11 +1481,30 @@ nsresult HTMLEditor::InsertLineBreakAsSubAction() {
       NS_WARNING("HTMLEditor::InsertBRElement(WithTransaction::Yes) failed");
       return insertBRElementResult.unwrapErr();
     }
-    nsresult rv =
-        insertBRElementResult.inspect().SuggestCaretPointTo(*this, {});
+    CreateElementResult unwrappedInsertBRElementResult =
+        insertBRElementResult.unwrap();
+    MOZ_ASSERT(unwrappedInsertBRElementResult.GetNewNode());
+    // Next inserting text should be inserted into styled inline elements if
+    // they have first visible thing in the new line.
+    auto pointToPutCaret = [&]() -> EditorDOMPoint {
+      WSScanResult forwardScanResult =
+          WSRunScanner::ScanNextVisibleNodeOrBlockBoundary(
+              editingHost, EditorRawDOMPoint::After(
+                               *unwrappedInsertBRElementResult.GetNewNode()));
+      if (forwardScanResult.InVisibleOrCollapsibleCharacters()) {
+        unwrappedInsertBRElementResult.IgnoreCaretPointSuggestion();
+        return forwardScanResult.Point<EditorDOMPoint>();
+      }
+      if (forwardScanResult.ReachedSpecialContent()) {
+        unwrappedInsertBRElementResult.IgnoreCaretPointSuggestion();
+        return forwardScanResult.PointAtContent<EditorDOMPoint>();
+      }
+      return unwrappedInsertBRElementResult.UnwrapCaretPoint();
+    }();
+
+    nsresult rv = CollapseSelectionTo(pointToPutCaret);
     NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                          "CreateElementResult::SuggestCaretPointTo() failed");
-    MOZ_ASSERT(insertBRElementResult.inspect().GetNewNode());
     return rv;
   }
 
@@ -3659,9 +3685,6 @@ Result<EditActionResult, nsresult> HTMLEditor::ConvertContentAroundRangesToList(
       }
       nsresult rv = RemoveAttributeWithTransaction(MOZ_KnownLive(*element),
                                                    *nsGkAtoms::type);
-      if (NS_WARN_IF(Destroyed())) {
-        return Err(NS_ERROR_EDITOR_DESTROYED);
-      }
       if (NS_FAILED(rv)) {
         NS_WARNING(
             "EditorBase::RemoveAttributeWithTransaction(nsGkAtoms::type) "
@@ -7867,9 +7890,6 @@ Result<SplitNodeResult, nsresult> HTMLEditor::SplitParagraphWithTransaction(
   // unwrappedSplitDivOrPResult.
   nsresult rv = RemoveAttributeWithTransaction(
       MOZ_KnownLive(*rightDivOrParagraphElement), *nsGkAtoms::id);
-  if (NS_WARN_IF(Destroyed())) {
-    return Err(NS_ERROR_EDITOR_DESTROYED);
-  }
   if (NS_FAILED(rv)) {
     NS_WARNING(
         "EditorBase::RemoveAttributeWithTransaction(nsGkAtoms::id) failed");
@@ -8772,6 +8792,10 @@ HTMLEditor::MaybeSplitAncestorsForInsertWithTransaction(
     const Element& aEditingHost) {
   MOZ_ASSERT(IsEditActionDataAvailable());
 
+  if (NS_WARN_IF(!aEditingHost.IsInComposedDoc())) {
+    return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
+  }
+
   if (NS_WARN_IF(!aStartOfDeepestRightNode.IsSet())) {
     return Err(NS_ERROR_INVALID_ARG);
   }
@@ -8805,7 +8829,10 @@ HTMLEditor::MaybeSplitAncestorsForInsertWithTransaction(
     }
   }
 
-  MOZ_DIAGNOSTIC_ASSERT(pointToInsert.IsSet());
+  // If we got lost the editing host, we can do nothing.
+  if (NS_WARN_IF(!pointToInsert.IsSet())) {
+    return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
+  }
 
   // If the point itself can contain the tag, we don't need to split any
   // ancestor nodes.  In this case, we should return the given split point
@@ -9034,7 +9061,87 @@ nsresult HTMLEditor::GetInlineStyles(
   MOZ_ASSERT(IsEditActionDataAvailable());
   MOZ_ASSERT(aPendingStyleCacheArray.IsEmpty());
 
-  bool useCSS = IsCSSEnabled();
+  if (!IsCSSEnabled()) {
+    // In the HTML styling mode, we should preserve the order of inline styles
+    // specified with HTML elements, then, we can keep same order as original
+    // one when we create new elements to apply the styles at new place.
+    // XXX Currently, we don't preserve all inline parents, therefore, we cannot
+    //     restore all inline elements as-is.  Perhaps, we should store all
+    //     inline elements with more details (e.g., all attributes), and store
+    //     same elements.  For example, web apps may give style as:
+    //     em {
+    //       font-style: italic;
+    //     }
+    //     em em {
+    //       font-style: normal;
+    //       font-weight: bold;
+    //     }
+    //     but we cannot restore the style as-is.
+    nsString value;
+    const bool givenElementIsEditable =
+        HTMLEditUtils::IsSimplyEditableNode(aElement);
+    auto NeedToAppend = [&](nsStaticAtom& aTagName, nsStaticAtom* aAttribute) {
+      if (mPendingStylesToApplyToNewContent->GetStyleState(
+              aTagName, aAttribute) != PendingStyleState::NotUpdated) {
+        return false;  // The style has already been changed.
+      }
+      if (aPendingStyleCacheArray.Contains(aTagName, aAttribute)) {
+        return false;  // Already preserved
+      }
+      return true;
+    };
+    for (Element* const inclusiveAncestor :
+         aElement.InclusiveAncestorsOfType<Element>()) {
+      if (HTMLEditUtils::IsBlockElement(*inclusiveAncestor) ||
+          (givenElementIsEditable &&
+           !HTMLEditUtils::IsSimplyEditableNode(*inclusiveAncestor))) {
+        break;
+      }
+      if (inclusiveAncestor->IsAnyOfHTMLElements(
+              nsGkAtoms::b, nsGkAtoms::i, nsGkAtoms::u, nsGkAtoms::s,
+              nsGkAtoms::strike, nsGkAtoms::tt, nsGkAtoms::em,
+              nsGkAtoms::strong, nsGkAtoms::dfn, nsGkAtoms::code,
+              nsGkAtoms::samp, nsGkAtoms::var, nsGkAtoms::cite, nsGkAtoms::abbr,
+              nsGkAtoms::acronym, nsGkAtoms::sub, nsGkAtoms::sup)) {
+        nsStaticAtom& tagName = const_cast<nsStaticAtom&>(
+            *inclusiveAncestor->NodeInfo()->NameAtom()->AsStatic());
+        if (NeedToAppend(tagName, nullptr)) {
+          aPendingStyleCacheArray.AppendElement(
+              PendingStyleCache(tagName, nullptr, EmptyString()));
+        }
+        continue;
+      }
+      if (inclusiveAncestor->IsHTMLElement(nsGkAtoms::font)) {
+        if (NeedToAppend(*nsGkAtoms::font, nsGkAtoms::face)) {
+          inclusiveAncestor->GetAttr(kNameSpaceID_None, nsGkAtoms::face, value);
+          if (!value.IsEmpty()) {
+            aPendingStyleCacheArray.AppendElement(
+                PendingStyleCache(*nsGkAtoms::font, nsGkAtoms::face, value));
+            value.Truncate();
+          }
+        }
+        if (NeedToAppend(*nsGkAtoms::font, nsGkAtoms::size)) {
+          inclusiveAncestor->GetAttr(kNameSpaceID_None, nsGkAtoms::size, value);
+          if (!value.IsEmpty()) {
+            aPendingStyleCacheArray.AppendElement(
+                PendingStyleCache(*nsGkAtoms::font, nsGkAtoms::size, value));
+            value.Truncate();
+          }
+        }
+        if (NeedToAppend(*nsGkAtoms::font, nsGkAtoms::color)) {
+          inclusiveAncestor->GetAttr(kNameSpaceID_None, nsGkAtoms::color,
+                                     value);
+          if (!value.IsEmpty()) {
+            aPendingStyleCacheArray.AppendElement(
+                PendingStyleCache(*nsGkAtoms::font, nsGkAtoms::color, value));
+            value.Truncate();
+          }
+        }
+        continue;
+      }
+    }
+    return NS_OK;
+  }
 
   for (nsStaticAtom* property : {nsGkAtoms::b,
                                  nsGkAtoms::i,
@@ -9073,7 +9180,7 @@ nsresult HTMLEditor::GetInlineStyles(
     nsString value;  // Don't use nsAutoString here because it requires memcpy
                      // at creating new PendingStyleCache instance.
     // Don't use CSS for <font size>, we don't support it usefully (bug 780035)
-    if (!useCSS || (property == nsGkAtoms::size)) {
+    if (property == nsGkAtoms::size) {
       isSet = HTMLEditUtils::IsInlineStyleSetByElement(aElement, style, nullptr,
                                                        &value);
     } else if (style.IsCSSEditable(aElement)) {
@@ -10184,9 +10291,6 @@ Result<EditorDOMPoint, nsresult> HTMLEditor::RemoveAlignFromDescendants(
     if (HTMLEditUtils::SupportsAlignAttr(blockOrHRElement)) {
       nsresult rv =
           RemoveAttributeWithTransaction(blockOrHRElement, *nsGkAtoms::align);
-      if (NS_WARN_IF(Destroyed())) {
-        return Err(NS_ERROR_EDITOR_DESTROYED);
-      }
       if (NS_FAILED(rv)) {
         NS_WARNING(
             "EditorBase::RemoveAttributeWithTransaction(nsGkAtoms::align) "
@@ -10444,7 +10548,7 @@ Result<EditorDOMPoint, nsresult> HTMLEditor::ChangeMarginStart(
 
   // Remove unnecessary divs
   if (!aElement.IsHTMLElement(nsGkAtoms::div) ||
-      HTMLEditUtils::ElementHasAttributesExceptMozDirty(aElement)) {
+      HTMLEditUtils::ElementHasAttribute(aElement)) {
     return EditorDOMPoint();
   }
   // Don't touch editing host nor node which is outside of it.

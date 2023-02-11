@@ -35,6 +35,76 @@ function getL10n() {
   return gL10n;
 }
 
+const MIGRATOR_MODULES = Object.freeze({
+  EdgeProfileMigrator: {
+    moduleURI: "resource:///modules/EdgeProfileMigrator.sys.mjs",
+    platforms: ["win"],
+  },
+  FirefoxProfileMigrator: {
+    moduleURI: "resource:///modules/FirefoxProfileMigrator.sys.mjs",
+    platforms: ["linux", "macosx", "win"],
+  },
+  IEProfileMigrator: {
+    moduleURI: "resource:///modules/IEProfileMigrator.sys.mjs",
+    platforms: ["win"],
+  },
+  SafariProfileMigrator: {
+    moduleURI: "resource:///modules/SafariProfileMigrator.sys.mjs",
+    platforms: ["macosx"],
+  },
+
+  // The following migrators are all variants of the ChromeProfileMigrator
+
+  BraveProfileMigrator: {
+    moduleURI: "resource:///modules/ChromeProfileMigrator.sys.mjs",
+    platforms: ["linux", "macosx", "win"],
+  },
+  CanaryProfileMigrator: {
+    moduleURI: "resource:///modules/ChromeProfileMigrator.sys.mjs",
+    platforms: ["macosx", "win"],
+  },
+  ChromeProfileMigrator: {
+    moduleURI: "resource:///modules/ChromeProfileMigrator.sys.mjs",
+    platforms: ["linux", "macosx", "win"],
+  },
+  ChromeBetaMigrator: {
+    moduleURI: "resource:///modules/ChromeProfileMigrator.sys.mjs",
+    platforms: ["linux", "win"],
+  },
+  ChromeDevMigrator: {
+    moduleURI: "resource:///modules/ChromeProfileMigrator.sys.mjs",
+    platforms: ["linux"],
+  },
+  ChromiumProfileMigrator: {
+    moduleURI: "resource:///modules/ChromeProfileMigrator.sys.mjs",
+    platforms: ["linux", "macosx", "win"],
+  },
+  Chromium360seMigrator: {
+    moduleURI: "resource:///modules/ChromeProfileMigrator.sys.mjs",
+    platforms: ["win"],
+  },
+  ChromiumEdgeMigrator: {
+    moduleURI: "resource:///modules/ChromeProfileMigrator.sys.mjs",
+    platforms: ["macosx", "win"],
+  },
+  ChromiumEdgeBetaMigrator: {
+    moduleURI: "resource:///modules/ChromeProfileMigrator.sys.mjs",
+    platforms: ["macosx", "win"],
+  },
+  OperaProfileMigrator: {
+    moduleURI: "resource:///modules/ChromeProfileMigrator.sys.mjs",
+    platforms: ["linux", "macosx", "win"],
+  },
+  VivaldiProfileMigrator: {
+    moduleURI: "resource:///modules/ChromeProfileMigrator.sys.mjs",
+    platforms: ["linux", "macosx", "win"],
+  },
+  OperaGXProfileMigrator: {
+    moduleURI: "resource:///modules/ChromeProfileMigrator.sys.mjs",
+    platforms: ["macosx", "win"],
+  },
+});
+
 /**
  * The singleton MigrationUtils service. This service is the primary mechanism
  * by which migrations from other browsers to this browser occur. The singleton
@@ -42,13 +112,15 @@ function getL10n() {
  */
 class MigrationUtils {
   resourceTypes = Object.freeze({
-    COOKIES: Ci.nsIBrowserProfileMigrator.COOKIES,
-    HISTORY: Ci.nsIBrowserProfileMigrator.HISTORY,
-    FORMDATA: Ci.nsIBrowserProfileMigrator.FORMDATA,
-    PASSWORDS: Ci.nsIBrowserProfileMigrator.PASSWORDS,
-    BOOKMARKS: Ci.nsIBrowserProfileMigrator.BOOKMARKS,
-    OTHERDATA: Ci.nsIBrowserProfileMigrator.OTHERDATA,
-    SESSION: Ci.nsIBrowserProfileMigrator.SESSION,
+    ALL: 0x0000,
+    /* 0x01 used to be used for settings, but was removed. */
+    COOKIES: 0x0002,
+    HISTORY: 0x0004,
+    FORMDATA: 0x0008,
+    PASSWORDS: 0x0010,
+    BOOKMARKS: 0x0020,
+    OTHERDATA: 0x0040,
+    SESSION: 0x0080,
   });
 
   /**
@@ -188,6 +260,23 @@ class MigrationUtils {
   get #migrators() {
     if (!gMigrators) {
       gMigrators = new Map();
+      for (let [symbol, { moduleURI, platforms }] of Object.entries(
+        MIGRATOR_MODULES
+      )) {
+        if (platforms.includes(AppConstants.platform)) {
+          let { [symbol]: migratorClass } = ChromeUtils.importESModule(
+            moduleURI
+          );
+          if (gMigrators.has(migratorClass.key)) {
+            console.error(
+              "A pre-existing migrator exists with key " +
+                `${migratorClass.key}. Not registering.`
+            );
+            continue;
+          }
+          gMigrators.set(migratorClass.key, new migratorClass());
+        }
+      }
     }
     return gMigrators;
   }
@@ -244,18 +333,10 @@ class MigrationUtils {
    *   import any data, null otherwise.
    */
   async getMigrator(aKey) {
-    let migrator = null;
-    if (this.#migrators.has(aKey)) {
-      migrator = this.#migrators.get(aKey);
-    } else {
-      try {
-        migrator = Cc[
-          "@mozilla.org/profile/migrator;1?app=browser&type=" + aKey
-        ].createInstance(Ci.nsIBrowserProfileMigrator);
-      } catch (ex) {
-        Cu.reportError(ex);
-      }
-      this.#migrators.set(aKey, migrator);
+    let migrator = this.#migrators.get(aKey);
+    if (!migrator) {
+      console.error(`Could not find a migrator class for key ${aKey}`);
+      return null;
     }
 
     try {
@@ -264,6 +345,19 @@ class MigrationUtils {
       Cu.reportError(ex);
       return null;
     }
+  }
+
+  /**
+   * Returns true if a migrator is registered with key aKey. No check is made
+   * to determine if a profile exists that the migrator can migrate from.
+   *
+   * @param {string} aKey
+   *   Internal name of the migration source. See `availableMigratorKeys`
+   *   for supported values by OS.
+   * @returns {boolean}
+   */
+  migratorExists(aKey) {
+    return this.#migrators.has(aKey);
   }
 
   /**
@@ -381,26 +475,31 @@ class MigrationUtils {
 
   /**
    * Show the migration wizard.  On mac, this may just focus the wizard if it's
-   * already running, in which case aOpener and aParams are ignored.
+   * already running, in which case aOpener and aOptions are ignored.
+   *
+   * NB: If you add new consumers, please add a migration entry point constant to
+   * MIGRATION_ENTRYPOINTS and supply that entrypoint with the entrypoint property
+   * in the aOptions argument.
    *
    * @param {Window} [aOpener=null]
    *   optional; the window that asks to open the wizard.
-   * @param {Array} [aParams=null]
-   *   optional arguments for the migration wizard, in the form of an array
-   *   This is passed as-is for the params argument of
-   *   nsIWindowWatcher.openWindow. The array elements we expect are, in
-   *   order:
-   *   - {Number} migration entry point constant (see below)
-   *   - {String} source browser identifier
-   *   - {nsIBrowserProfileMigrator} actual migrator object
-   *   - {Boolean} whether this is a startup migration
-   *   - {Boolean} whether to skip the 'source' page
-   *   - {String} an identifier for the profile to use when migrating
-   *   NB: If you add new consumers, please add a migration entry point
-   *   constant below, and specify at least the first element of the array
-   *   (the migration entry point for purposes of telemetry).
+   * @param {object} [aOptions=null]
+   *   optional named arguments for the migration wizard.
+   * @param {number} [aOptions.entrypoint=undefined]
+   *   migration entry point constant. See MIGRATION_ENTRYPOINTS.
+   * @param {string} [aOptions.migratorKey=undefined]
+   *   The key for which migrator to use automatically. This is the key that is exposed
+   *   as a static getter on the migrator class.
+   * @param {MigratorBase} [aOptions.migrator=undefined]
+   *   A migrator instance to use automatically.
+   * @param {boolean} [aOptions.isStartupMigration=undefined]
+   *   True if this is a startup migration.
+   * @param {boolean} [aOptions.skipSourceSelection=undefined]
+   *   True if the source selection page of the wizard should be skipped.
+   * @param {string} [aOptions.profileId]
+   *   An identifier for the profile to use when migrating.
    */
-  showMigrationWizard(aOpener, aParams) {
+  showMigrationWizard(aOpener, aOptions) {
     const DIALOG_URL = "chrome://browser/content/migration/migration.xhtml";
     let features = "chrome,dialog,modal,centerscreen,titlebar,resizable=no";
     if (AppConstants.platform == "macosx" && !this.isStartupMigration) {
@@ -414,55 +513,6 @@ class MigrationUtils {
       features = "centerscreen,chrome,resizable=no";
     }
 
-    // nsIWindowWatcher doesn't deal with raw arrays, so we convert the input
-    let params;
-    if (Array.isArray(aParams)) {
-      params = Cc["@mozilla.org/array;1"].createInstance(Ci.nsIMutableArray);
-      for (let item of aParams) {
-        let comtaminatedVal;
-        if (item && item instanceof Ci.nsISupports) {
-          comtaminatedVal = item;
-        } else {
-          switch (typeof item) {
-            case "boolean":
-              comtaminatedVal = Cc[
-                "@mozilla.org/supports-PRBool;1"
-              ].createInstance(Ci.nsISupportsPRBool);
-              comtaminatedVal.data = item;
-              break;
-            case "number":
-              comtaminatedVal = Cc[
-                "@mozilla.org/supports-PRUint32;1"
-              ].createInstance(Ci.nsISupportsPRUint32);
-              comtaminatedVal.data = item;
-              break;
-            case "string":
-              comtaminatedVal = Cc[
-                "@mozilla.org/supports-cstring;1"
-              ].createInstance(Ci.nsISupportsCString);
-              comtaminatedVal.data = item;
-              break;
-
-            case "undefined":
-            case "object":
-              if (!item) {
-                comtaminatedVal = null;
-                break;
-              }
-            /* intentionally falling through to error out here for
-                 non-null/undefined things: */
-            default:
-              throw new Error(
-                "Unexpected parameter type " + typeof item + ": " + item
-              );
-          }
-        }
-        params.appendElement(comtaminatedVal);
-      }
-    } else {
-      params = aParams;
-    }
-
     if (
       Services.prefs.getBoolPref(
         "browser.migrate.content-modal.enabled",
@@ -473,9 +523,9 @@ class MigrationUtils {
     ) {
       const { gBrowser } = aOpener;
       const { selectedBrowser } = gBrowser;
-      gBrowser.getTabDialogBox(selectedBrowser).open(DIALOG_URL, params);
+      gBrowser.getTabDialogBox(selectedBrowser).open(DIALOG_URL, aOptions);
     } else {
-      Services.ww.openWindow(aOpener, DIALOG_URL, "_blank", features, params);
+      Services.ww.openWindow(aOpener, DIALOG_URL, "_blank", features, aOptions);
     }
   }
 
@@ -523,7 +573,7 @@ class MigrationUtils {
     }
     gProfileStartup = aProfileStartup;
 
-    let skipSourcePage = false,
+    let skipSourceSelection = false,
       migrator = null,
       migratorKey = "";
     if (aMigratorKey) {
@@ -539,7 +589,7 @@ class MigrationUtils {
         );
       }
       migratorKey = aMigratorKey;
-      skipSourcePage = true;
+      skipSourceSelection = true;
     } else {
       let defaultBrowserKey = this.getMigratorKeyForDefaultBrowser();
       if (defaultBrowserKey) {
@@ -566,22 +616,23 @@ class MigrationUtils {
     }
 
     let isRefresh =
-      migrator && skipSourcePage && migratorKey == AppConstants.MOZ_APP_NAME;
+      migrator &&
+      skipSourceSelection &&
+      migratorKey == AppConstants.MOZ_APP_NAME;
 
-    let migrationEntryPoint = this.MIGRATION_ENTRYPOINTS.FIRSTRUN;
+    let entrypoint = this.MIGRATION_ENTRYPOINTS.FIRSTRUN;
     if (isRefresh) {
-      migrationEntryPoint = this.MIGRATION_ENTRYPOINTS.FXREFRESH;
+      entrypoint = this.MIGRATION_ENTRYPOINTS.FXREFRESH;
     }
 
-    let params = [
-      migrationEntryPoint,
+    this.showMigrationWizard(null, {
+      entrypoint,
       migratorKey,
       migrator,
-      aProfileStartup,
-      skipSourcePage,
-      aProfileToMigrate,
-    ];
-    this.showMigrationWizard(null, params);
+      isStartupMigration: !!aProfileStartup,
+      skipSourceSelection,
+      profileId: aProfileToMigrate,
+    });
   }
 
   /**
@@ -816,53 +867,7 @@ class MigrationUtils {
   }
 
   get availableMigratorKeys() {
-    if (AppConstants.platform == "win") {
-      return [
-        "firefox",
-        "edge",
-        "ie",
-        "opera",
-        "opera-gx",
-        "vivaldi",
-        "brave",
-        "chrome",
-        "chromium-edge",
-        "chromium-edge-beta",
-        "chrome-beta",
-        "chromium",
-        "chromium-360se",
-        "canary",
-      ];
-    }
-    if (AppConstants.platform == "macosx") {
-      return [
-        "firefox",
-        "safari",
-        "opera",
-        "opera-gx",
-        "vivaldi",
-        "brave",
-        "chrome",
-        "chromium-edge",
-        "chromium-edge-beta",
-        "chromium",
-        "canary",
-      ];
-    }
-    if (AppConstants.XP_UNIX) {
-      return [
-        "firefox",
-        "opera",
-        "vivaldi",
-        "brave",
-        "chrome",
-        "chrome-beta",
-        "chrome-dev",
-        "chromium",
-        "opera-gx",
-      ];
-    }
-    return [];
+    return [...this.#migrators.keys()];
   }
 
   /**

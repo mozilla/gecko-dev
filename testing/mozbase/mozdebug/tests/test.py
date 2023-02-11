@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-from __future__ import absolute_import, print_function
-
 import os
 
 import mozunit
@@ -11,7 +9,6 @@ from mozdebug.mozdebug import (
     DebuggerSearch,
     get_default_debugger_name,
 )
-
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -33,8 +30,9 @@ def set_debuggers(monkeypatch):
 
 @pytest.mark.parametrize("os_name", ["android", "linux", "mac", "win", "unknown"])
 def test_default_debugger_name(os_name, set_debuggers, monkeypatch):
-    import mozinfo
     import sys
+
+    import mozinfo
 
     def update_os_name(*args, **kwargs):
         mozinfo.info["os"] = os_name

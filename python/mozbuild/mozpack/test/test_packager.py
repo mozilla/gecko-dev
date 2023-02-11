@@ -2,32 +2,29 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
-import unittest
-import mozunit
 import os
+import unittest
+
+import mozpack.path as mozpath
+import mozunit
 from buildconfig import topobjdir
-from mozpack.packager import (
-    preprocess_manifest,
-    CallDeque,
-    Component,
-    SimplePackager,
-    SimpleManifestSink,
-)
-from mozpack.files import GeneratedFile
 from mozpack.chrome.manifest import (
     ManifestBinaryComponent,
     ManifestContent,
     ManifestResource,
 )
-from mozunit import MockedOpen
-from mozbuild.preprocessor import Preprocessor
-from mozpack.errors import (
-    errors,
-    ErrorMessage,
+from mozpack.errors import ErrorMessage, errors
+from mozpack.files import GeneratedFile
+from mozpack.packager import (
+    CallDeque,
+    Component,
+    SimpleManifestSink,
+    SimplePackager,
+    preprocess_manifest,
 )
-import mozpack.path as mozpath
+from mozunit import MockedOpen
+
+from mozbuild.preprocessor import Preprocessor
 
 MANIFEST = """
 bar/*

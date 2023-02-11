@@ -4,14 +4,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function
-from abc import ABCMeta, abstractmethod
-from collections import deque
 import csv
 import os
 import re
 import subprocess
+from abc import ABCMeta, abstractmethod
+from collections import deque
 from uuid import UUID
+
 import six
 
 # This constant must match the event declared in

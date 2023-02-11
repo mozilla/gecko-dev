@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-from __future__ import absolute_import, print_function
-
 import os
 from copy import deepcopy
 from pprint import pprint
@@ -9,17 +7,16 @@ from pprint import pprint
 import mozpack.path as mozpath
 import mozunit
 import pytest
-
 from manifestparser.filters import (
     enabled,
     fail_if,
+    failures,
     filterlist,
     pathprefix,
     run_if,
     skip_if,
     subsuite,
     tags,
-    failures,
 )
 
 here = os.path.dirname(os.path.abspath(__file__))

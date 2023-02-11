@@ -4,20 +4,17 @@
 
 # This module provides mixins to perform process execution.
 
-from __future__ import absolute_import, unicode_literals
-
 import logging
 import os
 import signal
 import subprocess
 import sys
 from pathlib import Path
-
 from typing import Optional
+
 from mozprocess.processhandler import ProcessHandlerMixin
 
 from .logging import LoggingMixin
-
 
 # Perform detection of operating system environment. This is used by command
 # execution. We only do this once to save redundancy. Yes, this can fail module

@@ -2,8 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import argparse
 import os
 import re
@@ -90,6 +88,11 @@ class MozharnessRunner(MozbuildObject):
                 "script": "desktop_unittest.py",
                 "config": desktop_unittest_config
                 + ["--mochitest-suite", "mochitest-browser-a11y"],
+            },
+            "mochitest-browser-media": {
+                "script": "desktop_unittest.py",
+                "config": desktop_unittest_config
+                + ["--mochitest-suite", "mochitest-browser-media"],
             },
             "mochitest-devtools-chrome": {
                 "script": "desktop_unittest.py",

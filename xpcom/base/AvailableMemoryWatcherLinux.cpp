@@ -39,7 +39,7 @@ class nsAvailableMemoryWatcher final : public nsITimerCallback,
   ~nsAvailableMemoryWatcher() = default;
   void StartPolling(const MutexAutoLock&);
   void StopPolling(const MutexAutoLock&);
-  void ShutDown(const MutexAutoLock&);
+  void ShutDown();
   void UpdateCrashAnnotation(const MutexAutoLock&);
   static bool IsMemoryLow();
 
@@ -148,14 +148,21 @@ bool nsAvailableMemoryWatcher::IsMemoryLow() {
   return aResult;
 }
 
-void nsAvailableMemoryWatcher::ShutDown(const MutexAutoLock&)
-    MOZ_REQUIRES(mMutex) {
-  if (mTimer) {
-    mTimer->Cancel();
+void nsAvailableMemoryWatcher::ShutDown() {
+  nsCOMPtr<nsIThread> thread;
+  {
+    MutexAutoLock lock(mMutex);
+    if (mTimer) {
+      mTimer->Cancel();
+      mTimer = nullptr;
+    }
+    thread = mThread.forget();
   }
-
-  if (mThread) {
-    mThread->Shutdown();
+  // thread->Shutdown() spins a nested event loop while waiting for the thread
+  // to end. But the thread might execute some previously dispatched event that
+  // wants to lock our mutex, too, before arriving at the shutdown event.
+  if (thread) {
+    thread->Shutdown();
   }
 }
 
@@ -186,6 +193,10 @@ nsAvailableMemoryWatcher::Notify(nsITimer* aTimer) {
 
 void nsAvailableMemoryWatcher::HandleLowMemory() {
   MutexAutoLock lock(mMutex);
+  if (!mTimer) {
+    // We have been shut down from outside while in flight.
+    return;
+  }
   if (!mUnderMemoryPressure) {
     mUnderMemoryPressure = true;
     UpdateCrashAnnotation(lock);
@@ -213,6 +224,10 @@ void nsAvailableMemoryWatcher::UpdateCrashAnnotation(const MutexAutoLock&)
 // We can also adjust our polling interval.
 void nsAvailableMemoryWatcher::MaybeHandleHighMemory() {
   MutexAutoLock lock(mMutex);
+  if (!mTimer) {
+    // We have been shut down from outside while in flight.
+    return;
+  }
   if (mUnderMemoryPressure) {
     RecordTelemetryEventOnHighMemory();
     NS_NotifyOfEventualMemoryPressure(MemoryPressureState::NoPressure);
@@ -251,13 +266,17 @@ nsAvailableMemoryWatcher::Observe(nsISupports* aSubject, const char* aTopic,
     return rv;
   }
 
-  MutexAutoLock lock(mMutex);
   if (strcmp(aTopic, "xpcom-shutdown") == 0) {
-    ShutDown(lock);
-  } else if (strcmp(aTopic, "user-interaction-active") == 0) {
-    StartPolling(lock);
-  } else if (strcmp(aTopic, "user-interaction-inactive") == 0) {
-    StopPolling(lock);
+    ShutDown();
+  } else {
+    MutexAutoLock lock(mMutex);
+    if (mTimer) {
+      if (strcmp(aTopic, "user-interaction-active") == 0) {
+        StartPolling(lock);
+      } else if (strcmp(aTopic, "user-interaction-inactive") == 0) {
+        StopPolling(lock);
+      }
+    }
   }
 
   return NS_OK;

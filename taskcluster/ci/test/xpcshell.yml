@@ -3,10 +3,23 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ---
 job-defaults:
-    suite: xpcshell
+    suite:
+        category: xpcshell
+        name:
+            by-variant:
+                msix: xpcshell-msix
+                default: xpcshell
     target:
         by-test-platform:
             android-em-7.*: geckoview-test_runner.apk
+            windows10-64-2004-shippable-qr/opt:
+                by-variant:
+                    msix: target.installer.msix
+                    default: null
+            windows10-64-2004-qr/opt:
+                by-variant:
+                    msix: target.installer.msix
+                    default: null
             default: null
     mozharness:
         script:
@@ -44,30 +57,32 @@ xpcshell:
         - socketprocess_networking+no-fission
         - socketprocess_networking
         - no-fission
+        - msix
     run-on-projects:
         by-variant:
             conditioned_profile:
                 by-test-platform:
-                    linux1804-64(-shippable)?-qr/opt: ['trunk']
-                    windows10-64-2004(-shippable)?-qr/opt: ['trunk']
+                    (linux1804-64|windows10-64-2004)(-shippable)?-qr/opt: ['trunk']
                     default: []
             socketprocess_networking+no-fission:
                 by-test-platform:
-                    linux1804-64(-qr)?/debug: ['autoland', 'mozilla-central']
+                    linux1804-64.*: ['trunk']
                     default: []
             socketprocess_networking:
                 by-test-platform:
-                    macosx.*-64(-shippable|-devedition)?(-qr)?/.*: ['autoland', 'mozilla-central']
-                    linux1804-64(-qr)?/debug: ['autoland', 'mozilla-central']
-                    windows.*(-shippable|-devedition.*-qr)?/.*: ['autoland', 'mozilla-central']
-                    windows10-64-2004-asan-qr/opt: []  # No XPCShell on ASAN yet
+                    (linux1804-64|macosx).*: ['trunk']  # All Linux & Mac variants
+                    ^(?!.*asan).*windows.*: ['trunk']   # All Windows except ASAN
                     default: []
             no-fission:
                 by-test-platform:
                     android-em-7.0-x86_64-qr/debug-isolated-process: []
                     android.*: built-projects
-                    linux1804-64-qr/debug: ['trunk']
-                    linux1804-64(-shippable|-asan)?-qr/opt: ['trunk']
+                    linux1804-64.*: ['trunk']
+                    default: []
+            msix:
+                by-test-platform:
+                    windows10-64-2004-shippable-qr/opt: built-projects
+                    windows10-64-2004-qr/opt: built-projects
                     default: []
             default:
                 by-test-platform:
@@ -76,20 +91,20 @@ xpcshell:
                     default: built-projects
     chunks:
         by-test-platform:
+            .*-asan-qr/opt: 4
             .*-ccov.*/.*: 6
-            windows10-64-2004-ccov-qr/opt: 6
-            android-em-7.*: 2
-            macosx.*-64(-shippable|-devedition|-asan)?(-qr)?/.*: 2
-            linux1804-64(-qr)?/debug: 6
             .*-tsan-qr/opt: 8
-            windows.*(-shippable|-devedition|-asan|.*-qr)?/.*: 4
-            default: 5
+            (android-em-7.*|macosx.*|linux1804-64.*/opt): 2
+            default: 4
     max-run-time:
-        by-test-platform:
-            .*64-ccov(-qr)?/.*: 7200
-            .*64-2004-ccov(-qr)?/.*: 7200  # Windows 10 x64 2004 CCov specific, the line above does not catch this case.
-            .*-tsan-qr/opt: 7200
-            default: 5400
+        by-variant:
+            msix: 7200
+            default:
+                by-test-platform:
+                    .*64-ccov(-qr)?/.*: 7200
+                    .*64-2004-ccov(-qr)?/.*: 7200  # Windows 10 x64 2004 CCov specific, the line above does not catch this case.
+                    .*-tsan-qr/opt: 7200
+                    default: 5400
     allow-software-gl-layers: false
     tier:
         by-test-platform:
@@ -138,9 +153,7 @@ xpcshell:
 xpcshell-failures:
     description: "xpcshell specific failures test run"
     treeherder-symbol: X-f(X)
-    run-on-projects:
-        by-variant:
-            default: ["mozilla-central"]
+    run-on-projects: ["mozilla-central"]
     chunks: 2
     max-run-time: 2700
     allow-software-gl-layers: false

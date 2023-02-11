@@ -2,12 +2,11 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, unicode_literals, print_function
-
-import buildconfig
 import pipes
 import subprocess
 import sys
+
+import buildconfig
 import six
 
 SCRIPT_ALLOWLIST = [buildconfig.topsrcdir + "/devtools/client/shared/build/build.js"]

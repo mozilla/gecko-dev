@@ -2,14 +2,12 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function
-
-import unittest
-
 import os
 import os.path
-from tempfile import mkdtemp
+import unittest
 from shutil import rmtree
+from tempfile import mkdtemp
+
 import mozunit
 
 from mozbuild.action.buildlist import addEntriesToListFile

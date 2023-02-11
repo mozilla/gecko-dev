@@ -1,14 +1,11 @@
 # Any copyright is dedicated to the Public Domain.
 # https://creativecommons.org/publicdomain/zero/1.0/
 
-from __future__ import absolute_import
-
 import os
-import six
 import sys
 
 import mozunit
-
+import six
 from mozfile import which
 
 here = os.path.abspath(os.path.dirname(__file__))

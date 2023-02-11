@@ -49,7 +49,6 @@ linux64-cctools-port:
     fetches:
         toolchain:
             - linux64-clang-toolchain
-            - linux64-binutils
             - linux64-toolchain-sysroot
         fetch:
             - cctools-port
@@ -129,7 +128,6 @@ linux64-mar-tools:
     fetches:
         toolchain:
             - linux64-clang-toolchain
-            - linux64-binutils
     run:
         script: build-mar-tools.sh
         sparse-profile: null
@@ -218,20 +216,6 @@ wrench-deps:
         toolchain:
             - linux64-rust  # whatever m-c is built with
 
-linux64-liblowercase:
-    description: "liblowercase"
-    treeherder:
-        symbol: TL(lc)
-    run:
-        script: build-liblowercase.sh
-        sparse-profile: liblowercase
-        toolchain-artifact: public/build/liblowercase.tar.zst
-        resources:
-            - build/liblowercase/
-    fetches:
-        toolchain:
-            - linux64-rust-toolchain
-
 linux64-wine:
     description: "Wine build for Windows Cross Compile"
     attributes:
@@ -279,21 +263,26 @@ win64-winchecksec:
             - winchecksec
         toolchain:
             - linux64-clang-toolchain
-            - linux64-liblowercase
             - win64-vs2017
 
 linux64-makecab:
     description: "makecab toolchain build"
     treeherder:
         symbol: TL(cab)
+    worker:
+        env:
+            FETCH: rust-makecab
     run:
-        script: build-makecab.sh
+        script: build-rust-based-toolchain.sh
+        arguments: ['x86_64-unknown-linux-gnu']
         toolchain-artifact: public/build/makecab.tar.zst
     fetches:
         fetch:
             - makecab
         toolchain:
+            - linux64-clang-toolchain
             - linux64-rust-toolchain
+            - sysroot-x86_64-linux-gnu
 
 win64-mozmake:
     description: "mozmake for Windows"
@@ -301,15 +290,14 @@ win64-mozmake:
         local-toolchain: true
     treeherder:
         symbol: TW64(mozmake)
-    worker-type: b-win2012
     run:
         script: build-mozmake.sh
         toolchain-artifact: public/build/mozmake.tar.zst
-        tooltool-downloads: internal
     fetches:
         fetch:
             - gnumake
         toolchain:
+            - linux64-clang-toolchain
             - win64-vs2017
 
 nsis:

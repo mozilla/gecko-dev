@@ -186,8 +186,7 @@ using WindowPtr = jni::NativeWeakPtr<GeckoViewSupport>;
  * it separate from GeckoViewSupport.
  */
 class NPZCSupport final
-    : public java::PanZoomController::NativeProvider::Natives<NPZCSupport>,
-      public AndroidVsync::Observer {
+    : public java::PanZoomController::NativeProvider::Natives<NPZCSupport> {
   WindowPtr mWindow;
   java::PanZoomController::NativeProvider::WeakRef mNPZC;
 
@@ -253,6 +252,38 @@ class NPZCSupport final
     bool IsUIEvent() const override { return true; }
   };
 
+  class MOZ_HEAP_CLASS Observer final : public AndroidVsync::Observer {
+   public:
+    static Observer* Create(jni::NativeWeakPtr<NPZCSupport>&& aNPZCSupport) {
+      return new Observer(std::move(aNPZCSupport));
+    }
+
+   private:
+    // Private constructor, part of a strategy to make sure
+    // we're only able to create these on the heap.
+    explicit Observer(jni::NativeWeakPtr<NPZCSupport>&& aNPZCSupport)
+        : mNPZCSupport(std::move(aNPZCSupport)) {}
+
+    void OnVsync(const TimeStamp& aTimeStamp) override {
+      auto accessor = mNPZCSupport.Access();
+
+      if (!accessor) {
+        return;
+      }
+
+      accessor->mTouchResampler.NotifyFrame(
+          aTimeStamp -
+          TimeDuration::FromMilliseconds(kTouchResampleVsyncAdjustMs));
+      accessor->ConsumeMotionEventsFromResampler();
+    }
+
+    void Dispose() override { delete this; }
+
+    jni::NativeWeakPtr<NPZCSupport> mNPZCSupport;
+  };
+
+  Observer* mObserver = nullptr;
+
   template <typename Lambda>
   void PostInputEvent(Lambda&& aLambda) {
     // Use priority queue for input events.
@@ -281,7 +312,7 @@ class NPZCSupport final
   ~NPZCSupport() {
     if (mListeningToVsync) {
       MOZ_RELEASE_ASSERT(mAndroidVsync);
-      mAndroidVsync->UnregisterObserver(this, AndroidVsync::INPUT);
+      mAndroidVsync->UnregisterObserver(mObserver, AndroidVsync::INPUT);
       mListeningToVsync = false;
     }
   }
@@ -382,8 +413,8 @@ class NPZCSupport final
     }
 
     ScrollWheelInput input(
-        aTime, nsWindow::GetEventTimeStamp(aTime),
-        nsWindow::GetModifiers(aMetaState), ScrollWheelInput::SCROLLMODE_SMOOTH,
+        nsWindow::GetEventTimeStamp(aTime), nsWindow::GetModifiers(aMetaState),
+        ScrollWheelInput::SCROLLMODE_SMOOTH,
         ScrollWheelInput::SCROLLDELTA_PIXEL, origin, aHScroll, aVScroll, false,
         // XXX Do we need to support auto-dir scrolling
         // for Android widgets with a wheel device?
@@ -566,8 +597,8 @@ class NPZCSupport final
 
     MouseInput input(
         mouseType, buttonType, MouseEvent_Binding::MOZ_SOURCE_MOUSE,
-        ConvertButtons(buttons), origin, aTime,
-        nsWindow::GetEventTimeStamp(aTime), nsWindow::GetModifiers(aMetaState));
+        ConvertButtons(buttons), origin, nsWindow::GetEventTimeStamp(aTime),
+        nsWindow::GetModifiers(aMetaState));
 
     APZEventResult result = controller->InputBridge()->ReceiveInputEvent(input);
     if (result.GetStatus() == nsEventStatus_eConsumeNoDefault) {
@@ -769,17 +800,21 @@ class NPZCSupport final
   void RegisterOrUnregisterForVsync(bool aNeedVsync) {
     MOZ_RELEASE_ASSERT(mAndroidVsync);
     if (aNeedVsync && !mListeningToVsync) {
-      mAndroidVsync->RegisterObserver(this, AndroidVsync::INPUT);
+      MOZ_ASSERT(!mObserver);
+      auto win = mWindow.Access();
+      if (!win) {
+        return;
+      }
+      nsWindow* gkWindow = win->GetNsWindow();
+      jni::NativeWeakPtr<NPZCSupport> weakPtrToThis =
+          gkWindow->GetNPZCSupportWeakPtr();
+      mObserver = Observer::Create(std::move(weakPtrToThis));
+      mAndroidVsync->RegisterObserver(mObserver, AndroidVsync::INPUT);
     } else if (!aNeedVsync && mListeningToVsync) {
-      mAndroidVsync->UnregisterObserver(this, AndroidVsync::INPUT);
+      mAndroidVsync->UnregisterObserver(mObserver, AndroidVsync::INPUT);
+      mObserver = nullptr;
     }
     mListeningToVsync = aNeedVsync;
-  }
-
-  void OnVsync(const TimeStamp& aTimeStamp) override {
-    mTouchResampler.NotifyFrame(aTimeStamp - TimeDuration::FromMilliseconds(
-                                                 kTouchResampleVsyncAdjustMs));
-    ConsumeMotionEventsFromResampler();
   }
 
   void ConsumeMotionEventsFromResampler() {
@@ -851,21 +886,9 @@ class NPZCSupport final
       window->DispatchHitTest(touchEvent);
     });
 
-    if (result.GetStatus() == nsEventStatus_eIgnore) {
-      if (aReturnResult) {
-        aReturnResult->Complete(java::PanZoomController::InputResultDetail::New(
-            INPUT_RESULT_UNHANDLED,
-            java::PanZoomController::SCROLLABLE_FLAG_NONE,
-            java::PanZoomController::OVERSCROLL_FLAG_NONE));
-      }
-      return;
-    }
-
-    MOZ_ASSERT(result.GetStatus() == nsEventStatus_eConsumeDoDefault);
-
     if (aReturnResult && result.GetHandledResult() != Nothing()) {
-      // We know conclusively that the root APZ handled this or not and
-      // don't need to do any more work.
+      MOZ_ASSERT(result.GetStatus() == nsEventStatus_eConsumeDoDefault ||
+                 result.GetStatus() == nsEventStatus_eIgnore);
       aReturnResult->Complete(
           ConvertAPZHandledResult(result.GetHandledResult().value()));
     }
@@ -900,7 +923,8 @@ class LayerViewSupport final
   int32_t mWidth;
   int32_t mHeight;
   // Used to communicate with the gecko compositor from the UI thread.
-  // Set in NotifyCompositorCreated and cleared in NotifyCompositorSessionLost.
+  // Set in NotifyCompositorCreated and cleared in
+  // NotifyCompositorSessionLost.
   RefPtr<UiCompositorControllerChild> mUiCompositorControllerChild;
 
   Maybe<uint32_t> mDefaultClearColor;
@@ -1025,8 +1049,8 @@ class LayerViewSupport final
 
     if (!mCompositorPaused) {
       // If we are using SurfaceControl but mSurface is null, that means the
-      // previous surface was destroyed along with the the previous compositor,
-      // and we need to create a new one.
+      // previous surface was destroyed along with the the previous
+      // compositor, and we need to create a new one.
       if (mSurfaceControl && !mSurface) {
         mSurface = java::SurfaceControlManager::GetInstance()->GetChildSurface(
             mSurfaceControl, mWidth, mHeight);
@@ -1051,7 +1075,8 @@ class LayerViewSupport final
 
     if (mSurfaceControl) {
       // If we are using SurfaceControl then we must set the Surface to null
-      // here to ensure we create a new one when the new compositor is created.
+      // here to ensure we create a new one when the new compositor is
+      // created.
       mSurface = nullptr;
     }
 
@@ -1479,8 +1504,8 @@ class LayerViewSupport final
         } else {
           result->CompleteExceptionally(
               java::sdk::IllegalStateException::New(
-                  "Failed to create flipped snapshot surface (probably out of "
-                  "memory)")
+                  "Failed to create flipped snapshot surface (probably out "
+                  "of memory)")
                   .Cast<jni::Throwable>());
         }
       } else {
@@ -2488,8 +2513,6 @@ void nsWindow::InitEvent(WidgetGUIEvent& event, LayoutDeviceIntPoint* aPoint) {
   } else {
     event.mRefPoint = LayoutDeviceIntPoint(0, 0);
   }
-
-  event.mTime = PR_Now() / 1000;
 }
 
 void nsWindow::UpdateOverscrollVelocity(const float aX, const float aY) {
@@ -2937,6 +2960,10 @@ void nsWindow::UpdateSafeAreaInsets(const ScreenIntMargin& aSafeAreaInsets) {
   if (mAttachedWidgetListener) {
     mAttachedWidgetListener->SafeAreaInsetsChanged(aSafeAreaInsets);
   }
+}
+
+jni::NativeWeakPtr<NPZCSupport> nsWindow::GetNPZCSupportWeakPtr() {
+  return mNPZCSupport;
 }
 
 already_AddRefed<nsIWidget> nsIWidget::CreateTopLevelWindow() {

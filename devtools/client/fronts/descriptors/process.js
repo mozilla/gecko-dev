@@ -83,10 +83,6 @@ class ProcessDescriptorFront extends DescriptorMixin(
     return this._isParent && !this._isWindowlessParent;
   }
 
-  get isBrowserToolboxFission() {
-    return Services.prefs.getBoolPref("devtools.browsertoolbox.fission", false);
-  }
-
   get isParentProcessDescriptor() {
     return this._isParent;
   }
@@ -112,8 +108,12 @@ class ProcessDescriptorFront extends DescriptorMixin(
     this._targetFrontPromise = (async () => {
       let targetFront = null;
       try {
+        // @backward-compat { version 110 } isBrowserToolboxFission is no longer
+        // necessary for servers with version 110 or newer. This can be replaced
+        // with `const targetForm = await super.getTarget();` when 110 reaches
+        // the release channel.
         const targetForm = await super.getTarget({
-          isBrowserToolboxFission: this.isBrowserToolboxFission,
+          isBrowserToolboxFission: true,
         });
         targetFront = await this._createProcessTargetFront(targetForm);
       } catch (e) {
@@ -134,9 +134,12 @@ class ProcessDescriptorFront extends DescriptorMixin(
     return this._targetFrontPromise;
   }
 
+  // @backward-compat { version 110 } isBrowserToolboxFission is no longer
+  // necessary for servers with version 110 or newer. This method can be
+  // completely removed from the front when 110 reaches the release channel.
   getWatcher() {
     return super.getWatcher({
-      isBrowserToolboxFission: this.isBrowserToolboxFission,
+      isBrowserToolboxFission: true,
     });
   }
 

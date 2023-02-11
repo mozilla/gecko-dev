@@ -331,6 +331,7 @@ def enable_alsa_or_midir_linux_support(alsa_enabled, midir_linux_support):
 pkg_check_modules("MOZ_ALSA", "alsa", when=enable_alsa_or_midir_linux_support)
 
 set_config("MOZ_ALSA", True, when="--enable-alsa")
+set_define("MOZ_ALSA", True, when="--enable-alsa")
 
 # JACK cubeb backend
 # ==============================================================
@@ -351,6 +352,7 @@ option(
 pulseaudio = pkg_check_modules("MOZ_PULSEAUDIO", "libpulse", when="--enable-pulseaudio")
 
 set_config("MOZ_PULSEAUDIO", depends_if(pulseaudio)(lambda _: True))
+set_define("MOZ_PULSEAUDIO", depends_if(pulseaudio)(lambda _: True))
 
 # sndio cubeb backend
 # ==============================================================
@@ -926,14 +928,12 @@ project_flag("MOZ_PLACES", help="Build Places if required", set_as_define=True)
 project_flag(
     "MOZ_SERVICES_HEALTHREPORT",
     help="Build Firefox Health Reporter Service",
-    set_for_old_configure=True,
     set_as_define=True,
 )
 
 project_flag(
     "MOZ_NORMANDY",
     help="Enable Normandy recipe runner",
-    set_for_old_configure=True,
     set_as_define=True,
 )
 
@@ -971,9 +971,6 @@ option(
 )
 
 set_define("MOZ_TELEMETRY_REPORTING", True, when="MOZ_TELEMETRY_REPORTING")
-add_old_configure_assignment(
-    "MOZ_TELEMETRY_REPORTING", True, when="MOZ_TELEMETRY_REPORTING"
-)
 
 
 @depends("MOZ_TELEMETRY_REPORTING", milestone.is_nightly)
@@ -2372,11 +2369,12 @@ def wasm_sandboxing_libraries():
     )
 
 
-@depends(dependable(wasm_sandboxing_libraries))
-def default_wasm_sandboxing_libraries(libraries):
-    non_default_libs = set()
+@depends(dependable(wasm_sandboxing_libraries), build_project)
+def default_wasm_sandboxing_libraries(libraries, build_project):
+    if build_project != "tools/rusttests":
+        non_default_libs = set()
 
-    return tuple(l for l in libraries if l not in non_default_libs)
+        return tuple(l for l in libraries if l not in non_default_libs)
 
 
 option(
@@ -2387,6 +2385,16 @@ option(
     choices=dependable(wasm_sandboxing_libraries),
     default=default_wasm_sandboxing_libraries,
 )
+
+
+@depends(target, host, when="--with-wasm-sandboxed-libraries")
+def check_wasm_sandboxing(target, host):
+    if target.kernel == "WINNT" and host.kernel == "WINNT" and target.cpu != host.cpu:
+        # Bug 1741233
+        die(
+            f"Wasm sandboxing is not supported yet when building for {target.cpu} on {host.cpu} Windows. "
+            "Please use --without-wasm-sandboxed-libraries for now."
+        )
 
 
 @depends("--with-wasm-sandboxed-libraries")
@@ -2413,21 +2421,10 @@ with only_when(requires_wasm_sandboxing & compile_environment):
     @depends(
         "--with-wasi-sysroot",
         bootstrap_path("sysroot-wasm32-wasi", when=bootstrap_wasi_sysroot),
-        "--with-wasm-sandboxed-libraries",
     )
     @imports("os")
-    def wasi_sysroot(wasi_sysroot, bootstrapped_sysroot, sandboxed_libs):
+    def wasi_sysroot(wasi_sysroot, bootstrapped_sysroot):
         if not wasi_sysroot:
-            if not bootstrapped_sysroot:
-                suggest_disable = ""
-                if sandboxed_libs.origin == "default":
-                    suggest_disable = (
-                        " Or build with --without-wasm-sandboxed-libraries."
-                    )
-                die(
-                    "Cannot find a wasi sysroot. Please give its location with "
-                    "--with-wasi-sysroot." + suggest_disable
-                )
             return bootstrapped_sysroot
 
         wasi_sysroot = wasi_sysroot[0]
@@ -2438,24 +2435,59 @@ with only_when(requires_wasm_sandboxing & compile_environment):
 
         return wasi_sysroot
 
+    @depends(wasi_sysroot)
+    def wasi_sysroot_flags(wasi_sysroot):
+        if wasi_sysroot:
+            log.info("Using wasi sysroot in %s", wasi_sysroot)
+            return ["--sysroot=%s" % wasi_sysroot]
+        return []
+
     set_config("WASI_SYSROOT", wasi_sysroot)
 
-    def wasm_compiler_with_flags(compiler, sysroot):
-        if not sysroot:
-            return
-        elif compiler:
+    def wasm_compiler_with_flags(compiler, sysroot_flags):
+        if compiler:
             return (
-                compiler.wrapper
-                + [compiler.compiler]
-                + compiler.flags
-                + ["--sysroot=%s" % sysroot]
+                compiler.wrapper + [compiler.compiler] + compiler.flags + sysroot_flags
             )
 
-    wasm_cc = compiler("C", wasm, other_compiler=c_compiler)
+    @template
+    def wasm_compiler_error(msg):
+        @depends("--with-wasm-sandboxed-libraries")
+        def wasm_compiler_error(sandboxed_libs):
+            suggest_disable = ""
+            if sandboxed_libs.origin == "default":
+                suggest_disable = " Or build with --without-wasm-sandboxed-libraries."
+            return lambda: die(msg + suggest_disable)
 
-    @depends(wasm_cc, wasi_sysroot)
-    def wasm_cc_with_flags(wasm_cc, wasi_sysroot):
-        return wasm_compiler_with_flags(wasm_cc, wasi_sysroot)
+        return wasm_compiler_error
+
+    @template
+    def check_wasm_compiler(compiler, language):
+        compiler.try_compile(
+            includes=["cstring" if language == "C++" else "string.h"],
+            flags=wasi_sysroot_flags,
+            check_msg="the wasm %s compiler can find wasi headers" % language,
+            onerror=wasm_compiler_error(
+                "Cannot find wasi headers or problem with the wasm compiler. "
+                "Please fix the problem."
+            ),
+        )
+
+        compiler.try_run(
+            flags=wasi_sysroot_flags,
+            check_msg="the wasm %s linker can find wasi libraries" % language,
+            onerror=wasm_compiler_error(
+                "Cannot find wasi libraries or problem with the wasm linker. "
+                "Please fix the problem."
+            ),
+        )
+
+    wasm_cc = compiler("C", wasm, other_compiler=c_compiler)
+    check_wasm_compiler(wasm_cc, "C")
+
+    @depends(wasm_cc, wasi_sysroot_flags)
+    def wasm_cc_with_flags(wasm_cc, wasi_sysroot_flags):
+        return wasm_compiler_with_flags(wasm_cc, wasi_sysroot_flags)
 
     set_config("WASM_CC", wasm_cc_with_flags)
 
@@ -2466,10 +2498,11 @@ with only_when(requires_wasm_sandboxing & compile_environment):
         other_compiler=cxx_compiler,
         other_c_compiler=c_compiler,
     )
+    check_wasm_compiler(wasm_cxx, "C++")
 
-    @depends(wasm_cxx, wasi_sysroot)
-    def wasm_cxx_with_flags(wasm_cxx, wasi_sysroot):
-        return wasm_compiler_with_flags(wasm_cxx, wasi_sysroot)
+    @depends(wasm_cxx, wasi_sysroot_flags)
+    def wasm_cxx_with_flags(wasm_cxx, wasi_sysroot_flags):
+        return wasm_compiler_with_flags(wasm_cxx, wasi_sysroot_flags)
 
     set_config("WASM_CXX", wasm_cxx_with_flags)
 
@@ -2517,20 +2550,6 @@ def wasm_sandboxing_config_defines():
 
 
 wasm_sandboxing_config_defines()
-
-
-# new XULStore implementation
-# ==============================================================
-
-
-@depends(milestone)
-def new_xulstore(milestone):
-    if milestone.is_nightly:
-        return True
-
-
-set_config("MOZ_NEW_XULSTORE", True, when=new_xulstore)
-set_define("MOZ_NEW_XULSTORE", True, when=new_xulstore)
 
 
 # new Notification Store implementation
@@ -2851,7 +2870,6 @@ option(
 
 set_config("MOZ_CRASHREPORTER", True, when="--enable-crashreporter")
 set_define("MOZ_CRASHREPORTER", True, when="--enable-crashreporter")
-add_old_configure_assignment("MOZ_CRASHREPORTER", True, when="--enable-crashreporter")
 
 with only_when(compile_environment):
     with only_when("--enable-crashreporter"):
@@ -2871,6 +2889,23 @@ with only_when(compile_environment):
             True,
             when=depends(target)(lambda t: t.os == "WINNT" and t.bitness == 32),
         )
+
+
+# If we have any service that uploads data (and requires data submission
+# policy alert), set MOZ_DATA_REPORTING.
+# ==============================================================
+@depends(
+    "MOZ_TELEMETRY_REPORTING",
+    "MOZ_SERVICES_HEALTHREPORT",
+    "--enable-crashreporter",
+    "MOZ_NORMANDY",
+)
+def data_reporting(telemetry, healthreport, crashreporter, normandy):
+    return telemetry or healthreport or crashreporter or normandy
+
+
+set_config("MOZ_DATA_REPORTING", True, when=data_reporting)
+set_define("MOZ_DATA_REPORTING", True, when=data_reporting)
 
 
 # Gtk+

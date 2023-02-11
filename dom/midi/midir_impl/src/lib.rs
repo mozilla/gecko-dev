@@ -277,6 +277,11 @@ pub unsafe extern "C" fn midir_impl_init(callback: AddCallback) -> *mut MidirWra
     if let Ok(mut midir_impl) = MidirWrapper::new() {
         midir_impl.refresh(callback, None);
 
+        // Gecko invokes this initialization on a separate thread from all the
+        // other operations, so make it clear to Rust this needs to be Send.
+        fn assert_send<T: Send>(_: &T) {}
+        assert_send(&midir_impl);
+
         let midir_box = Box::new(midir_impl);
         // Leak the object as it will be owned by the C++ code from now on
         Box::leak(midir_box) as *mut _
@@ -376,7 +381,7 @@ fn collect_input_ports(input: &MidiInput, wrappers: &mut Vec<MidiPortWrapper>) {
     let ports = input.ports();
     for port in ports {
         let id = Uuid::new_v4()
-            .to_hyphenated()
+            .as_hyphenated()
             .encode_lower(&mut Uuid::encode_buffer())
             .to_owned();
         let name = input
@@ -396,7 +401,7 @@ fn collect_output_ports(output: &MidiOutput, wrappers: &mut Vec<MidiPortWrapper>
     let ports = output.ports();
     for port in ports {
         let id = Uuid::new_v4()
-            .to_hyphenated()
+            .as_hyphenated()
             .encode_lower(&mut Uuid::encode_buffer())
             .to_owned();
         let name = output

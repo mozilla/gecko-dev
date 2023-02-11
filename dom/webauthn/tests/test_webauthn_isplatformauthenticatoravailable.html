@@ -21,12 +21,7 @@
 // Execute the full-scope test
 SimpleTest.waitForExplicitFinish();
 
-SpecialPowers.pushPrefEnv({"set": [["security.webauth.webauthn", true],
-                                   ["security.webauth.webauthn_enable_softtoken", true],
-                                   ["security.webauth.webauthn_enable_usbtoken", false],
-                                   ["security.webauth.webauthn_enable_android_fido2", false],
-                                  ]},
-async function() {
+add_task(async function test_is_platform_available() {
   // This test ensures that isUserVerifyingPlatformAuthenticatorAvailable()
   // is a callable method, but with the softtoken enabled, it's not useful to
   // figure out what it actually returns, so we'll just make sure it runs.
@@ -37,8 +32,6 @@ async function() {
   .catch(function(aProblem) {
     ok(false, "Problem encountered: " + aProblem);
   });
-
-  SimpleTest.finish();
 });
 
 </script>

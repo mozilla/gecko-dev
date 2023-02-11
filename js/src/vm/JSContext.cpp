@@ -30,6 +30,7 @@
 #include "jsexn.h"
 #include "jstypes.h"
 
+#include "frontend/FrontendContext.h"
 #include "gc/GC.h"
 #include "irregexp/RegExpAPI.h"
 #include "jit/Simulator.h"
@@ -50,7 +51,6 @@
 #include "util/Text.h"
 #include "util/WindowsWrapper.h"
 #include "vm/BytecodeUtil.h"  // JSDVG_IGNORE_STACK
-#include "vm/ErrorContext.h"
 #include "vm/ErrorObject.h"
 #include "vm/ErrorReporting.h"
 #include "vm/JSFunction.h"
@@ -298,10 +298,10 @@ JS_PUBLIC_API void js::ReportOutOfMemory(JSContext* cx) {
   cx->onOutOfMemory();
 }
 
-JS_PUBLIC_API void js::ReportOutOfMemory(ErrorContext* ec) {
+JS_PUBLIC_API void js::ReportOutOfMemory(FrontendContext* fc) {
   MaybeReportOutOfMemoryForDifferentialTesting();
 
-  ec->onOutOfMemory();
+  fc->onOutOfMemory();
 }
 
 static void MaybeReportOverRecursedForDifferentialTesting() {
@@ -348,10 +348,10 @@ JS_PUBLIC_API void js::ReportOverRecursed(JSContext* maybecx) {
   maybecx->onOverRecursed();
 }
 
-JS_PUBLIC_API void js::ReportOverRecursed(ErrorContext* ec) {
+JS_PUBLIC_API void js::ReportOverRecursed(FrontendContext* fc) {
   MaybeReportOverRecursedForDifferentialTesting();
 
-  ec->onOverRecursed();
+  fc->onOverRecursed();
 }
 
 void js::ReportOversizedAllocation(JSContext* cx, const unsigned errorNumber) {
@@ -384,8 +384,8 @@ void js::ReportAllocationOverflow(JSContext* cx) {
   cx->reportAllocationOverflow();
 }
 
-void js::ReportAllocationOverflow(ErrorContext* ec) {
-  ec->onAllocationOverflow();
+void js::ReportAllocationOverflow(FrontendContext* fc) {
+  fc->onAllocationOverflow();
 }
 
 /* |callee| requires a usage string provided by JS_DefineFunctionsWithHelp. */
@@ -727,7 +727,7 @@ JSObject* js::CreateErrorNotesArray(JSContext* cx, JSErrorReport* report) {
 void JSContext::recoverFromOutOfMemory() {
   if (isHelperThreadContext()) {
     // Keep in sync with addPendingOutOfMemory.
-    if (OffThreadFrontendErrors* errors = offThreadFrontendErrors()) {
+    if (FrontendErrors* errors = frontendErrors()) {
       errors->outOfMemory = false;
     }
   } else {
@@ -966,7 +966,7 @@ mozilla::GenericErrorResult<OOM> JSContext::alreadyReportedOOM() {
 #ifdef DEBUG
   if (isHelperThreadContext()) {
     // Keep in sync with addPendingOutOfMemory.
-    if (OffThreadFrontendErrors* errors = offThreadFrontendErrors()) {
+    if (FrontendErrors* errors = frontendErrors()) {
       MOZ_ASSERT(errors->outOfMemory);
     }
   } else {

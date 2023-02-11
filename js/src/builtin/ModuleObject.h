@@ -9,6 +9,7 @@
 
 #include "mozilla/HashTable.h"  // mozilla::{HashMap, DefaultHasher}
 #include "mozilla/Maybe.h"      // mozilla::Maybe
+#include "mozilla/Span.h"
 
 #include <stddef.h>  // size_t
 #include <stdint.h>  // int32_t, uint32_t
@@ -60,6 +61,9 @@ class ModuleRequestObject : public NativeObject {
   JSAtom* specifier() const;
   ArrayObject* assertions() const;
 };
+
+using ModuleRequestVector =
+    GCVector<HeapPtr<ModuleRequestObject*>, 0, SystemAllocPolicy>;
 
 class ImportEntry {
   const HeapPtr<ModuleRequestObject*> moduleRequest_;
@@ -182,18 +186,25 @@ class IndirectBindingMap {
   mozilla::Maybe<Map> map_;
 };
 
+// Vector of atoms representing the names exported from a module namespace.
+//
+// Barriers are not required because this is either used as a root, or a
+// non-mutable field of ModuleNamespaceObject. Don't change this without adding
+// barriers.
+using ExportNameVector = GCVector<JSAtom*, 0, SystemAllocPolicy>;
+
 class ModuleNamespaceObject : public ProxyObject {
  public:
   enum ModuleNamespaceSlot { ExportsSlot = 0, BindingsSlot };
 
   static bool isInstance(HandleValue value);
-  static ModuleNamespaceObject* create(JSContext* cx,
-                                       Handle<ModuleObject*> module,
-                                       Handle<ArrayObject*> exports,
-                                       UniquePtr<IndirectBindingMap> bindings);
+  static ModuleNamespaceObject* create(
+      JSContext* cx, Handle<ModuleObject*> module,
+      MutableHandle<UniquePtr<ExportNameVector>> exports,
+      MutableHandle<UniquePtr<IndirectBindingMap>> bindings);
 
   ModuleObject& module();
-  ArrayObject& exports();
+  const ExportNameVector& exports() const;
   IndirectBindingMap& bindings();
 
   bool addBinding(JSContext* cx, Handle<JSAtom*> exportedName,
@@ -242,6 +253,9 @@ class ModuleNamespaceObject : public ProxyObject {
   };
 
   bool hasBindings() const;
+  bool hasExports() const;
+
+  ExportNameVector& mutableExports();
 
  public:
   static const ProxyHandler proxyHandler;
@@ -312,9 +326,8 @@ class ModuleObject : public NativeObject {
   void initImportExportData(
       MutableHandle<RequestedModuleVector> requestedModules,
       MutableHandle<ImportEntryVector> importEntries,
-      MutableHandle<ExportEntryVector> localExportEntries,
-      MutableHandle<ExportEntryVector> indirectExportEntries,
-      MutableHandle<ExportEntryVector> starExportEntries);
+      MutableHandle<ExportEntryVector> exportEntries, uint32_t localExportCount,
+      uint32_t indirectExportCount, uint32_t starExportCount);
   static bool Freeze(JSContext* cx, Handle<ModuleObject*> self);
 #ifdef DEBUG
   static bool AssertFrozen(JSContext* cx, Handle<ModuleObject*> self);
@@ -335,11 +348,11 @@ class ModuleObject : public NativeObject {
   Value evaluationError() const;
   JSObject* metaObject() const;
   ScriptSourceObject* scriptSourceObject() const;
-  const RequestedModuleVector& requestedModules() const;
-  const ImportEntryVector& importEntries() const;
-  const ExportEntryVector& localExportEntries() const;
-  const ExportEntryVector& indirectExportEntries() const;
-  const ExportEntryVector& starExportEntries() const;
+  mozilla::Span<const RequestedModule> requestedModules() const;
+  mozilla::Span<const ImportEntry> importEntries() const;
+  mozilla::Span<const ExportEntry> localExportEntries() const;
+  mozilla::Span<const ExportEntry> indirectExportEntries() const;
+  mozilla::Span<const ExportEntry> starExportEntries() const;
   IndirectBindingMap& importBindings();
 
   void setStatus(ModuleStatus newStatus);
@@ -384,18 +397,14 @@ class ModuleObject : public NativeObject {
 
   static bool execute(JSContext* cx, Handle<ModuleObject*> self);
 
-  static ModuleNamespaceObject* createNamespace(JSContext* cx,
-                                                Handle<ModuleObject*> self,
-                                                HandleObject exports);
+  static ModuleNamespaceObject* createNamespace(
+      JSContext* cx, Handle<ModuleObject*> self,
+      MutableHandle<UniquePtr<ExportNameVector>> exports);
 
   static bool createEnvironment(JSContext* cx, Handle<ModuleObject*> self);
 
   void initAsyncSlots(JSContext* cx, bool hasTopLevelAwait,
                       Handle<ListObject*> asyncParentModules);
-
-  static bool GatherAsyncParentCompletions(
-      JSContext* cx, Handle<ModuleObject*> module,
-      MutableHandle<ArrayObject*> execList);
 
  private:
   static const JSClassOps classOps_;

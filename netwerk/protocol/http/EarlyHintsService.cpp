@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "EarlyHintsService.h"
+#include "EarlyHintPreconnect.h"
 #include "EarlyHintPreloader.h"
 #include "mozilla/PreloadHashKey.h"
 #include "mozilla/Telemetry.h"
@@ -30,7 +31,8 @@ EarlyHintsService::~EarlyHintsService() = default;
 
 void EarlyHintsService::EarlyHint(const nsACString& aLinkHeader,
                                   nsIURI* aBaseURI, nsIChannel* aChannel,
-                                  const nsACString& aReferrerPolicy) {
+                                  const nsACString& aReferrerPolicy,
+                                  const nsACString& aCSPHeader) {
   mEarlyHintsCount++;
   if (mFirstEarlyHint.isNothing()) {
     mFirstEarlyHint.emplace(TimeStamp::NowLoRes());
@@ -85,9 +87,13 @@ void EarlyHintsService::EarlyHint(const nsACString& aLinkHeader,
 
   for (auto& linkHeader : linkHeaders) {
     CollectLinkTypeTelemetry(linkHeader.mRel);
-    EarlyHintPreloader::MaybeCreateAndInsertPreload(
-        mOngoingEarlyHints, linkHeader, aBaseURI, principal, cookieJarSettings,
-        aReferrerPolicy);
+    if (linkHeader.mRel.LowerCaseEqualsLiteral("preconnect")) {
+      EarlyHintPreconnect::MaybePreconnect(linkHeader, aBaseURI, principal);
+    } else if (linkHeader.mRel.LowerCaseEqualsLiteral("preload")) {
+      EarlyHintPreloader::MaybeCreateAndInsertPreload(
+          mOngoingEarlyHints, linkHeader, aBaseURI, principal,
+          cookieJarSettings, aReferrerPolicy, aCSPHeader);
+    }
   }
 }
 

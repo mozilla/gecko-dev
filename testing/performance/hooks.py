@@ -1,10 +1,9 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
-from __future__ import absolute_import
 import os
-from mozperftest.test.browsertime import add_options, add_option
 
+from mozperftest.test.browsertime import add_option, add_options
 
 sites = os.path.join(os.path.dirname(__file__), "sites.txt")
 with open(sites) as f:

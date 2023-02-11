@@ -33,8 +33,7 @@ using mozilla::NegativeInfinity;
 using mozilla::PositiveInfinity;
 
 struct FoldInfo {
-  JSContext* cx;
-  ErrorContext* ec;
+  FrontendContext* fc;
   JS::NativeStackLimit stackLimit;
   ParserAtomsTable& parserAtoms;
   FullParseHandler* handler;
@@ -83,8 +82,8 @@ static bool ListContainsHoistedDeclaration(FoldInfo& info, ListNode* list,
 // |node| being completely eliminated as dead.
 static bool ContainsHoistedDeclaration(FoldInfo& info, ParseNode* node,
                                        bool* result) {
-  AutoCheckRecursionLimit recursion(info.ec);
-  if (!recursion.check(info.ec, info.stackLimit)) {
+  AutoCheckRecursionLimit recursion(info.fc);
+  if (!recursion.check(info.fc, info.stackLimit)) {
     return false;
   }
 
@@ -494,7 +493,7 @@ static bool FoldType(FoldInfo info, ParseNode** pnp, ParseNodeKind kind) {
       case ParseNodeKind::StringExpr:
         if (pn->isKind(ParseNodeKind::NumberExpr)) {
           TaggedParserAtomIndex atom =
-              pn->as<NumericLiteral>().toAtom(info.ec, info.parserAtoms);
+              pn->as<NumericLiteral>().toAtom(info.fc, info.parserAtoms);
           if (!atom) {
             return false;
           }
@@ -1126,7 +1125,7 @@ static bool FoldElement(FoldInfo info, ParseNode** nodePtr) {
       // Optimization 2: We have something like expr[3.14]. The number
       // isn't an array index, so it converts to a string ("3.14"),
       // enabling optimization 3 below.
-      name = numeric->toAtom(info.ec, info.parserAtoms);
+      name = numeric->toAtom(info.fc, info.parserAtoms);
       if (!name) {
         return false;
       }
@@ -1244,7 +1243,7 @@ static bool FoldAdd(FoldInfo info, ParseNode** nodePtr) {
         }
 
         if (!accum) {
-          accum.emplace(info.cx, info.ec);
+          accum.emplace(info.fc);
           if (!accum->append(info.parserAtoms, firstAtom)) {
             return false;
           }
@@ -1262,7 +1261,7 @@ static bool FoldAdd(FoldInfo info, ParseNode** nodePtr) {
 
       // Replace with concatenation if we multiple nodes.
       if (accum) {
-        auto combination = accum->finishParserAtom(info.parserAtoms, info.ec);
+        auto combination = accum->finishParserAtom(info.parserAtoms, info.fc);
         if (!combination) {
           return false;
         }
@@ -1315,19 +1314,17 @@ static bool FoldAdd(FoldInfo info, ParseNode** nodePtr) {
 class FoldVisitor : public RewritingParseNodeVisitor<FoldVisitor> {
   using Base = RewritingParseNodeVisitor;
 
-  JSContext* cx;
   ParserAtomsTable& parserAtoms;
   FullParseHandler* handler;
 
   FoldInfo info() const {
-    return FoldInfo{cx, ec_, stackLimit_, parserAtoms, handler};
+    return FoldInfo{fc_, stackLimit_, parserAtoms, handler};
   }
 
  public:
-  FoldVisitor(JSContext* cx, ErrorContext* ec, JS::NativeStackLimit stackLimit,
+  FoldVisitor(FrontendContext* fc, JS::NativeStackLimit stackLimit,
               ParserAtomsTable& parserAtoms, FullParseHandler* handler)
-      : RewritingParseNodeVisitor(ec, stackLimit),
-        cx(cx),
+      : RewritingParseNodeVisitor(fc, stackLimit),
         parserAtoms(parserAtoms),
         handler(handler) {}
 
@@ -1574,20 +1571,19 @@ class FoldVisitor : public RewritingParseNodeVisitor<FoldVisitor> {
   }
 };
 
-static bool Fold(JSContext* cx, ErrorContext* ec,
-                 JS::NativeStackLimit stackLimit, ParserAtomsTable& parserAtoms,
-                 FullParseHandler* handler, ParseNode** pnp) {
-  FoldVisitor visitor(cx, ec, stackLimit, parserAtoms, handler);
+static bool Fold(FrontendContext* fc, JS::NativeStackLimit stackLimit,
+                 ParserAtomsTable& parserAtoms, FullParseHandler* handler,
+                 ParseNode** pnp) {
+  FoldVisitor visitor(fc, stackLimit, parserAtoms, handler);
   return visitor.visit(*pnp);
 }
 static bool Fold(FoldInfo info, ParseNode** pnp) {
-  return Fold(info.cx, info.ec, info.stackLimit, info.parserAtoms, info.handler,
-              pnp);
+  return Fold(info.fc, info.stackLimit, info.parserAtoms, info.handler, pnp);
 }
 
-bool frontend::FoldConstants(JSContext* cx, ErrorContext* ec,
+bool frontend::FoldConstants(FrontendContext* fc,
                              JS::NativeStackLimit stackLimit,
                              ParserAtomsTable& parserAtoms, ParseNode** pnp,
                              FullParseHandler* handler) {
-  return Fold(cx, ec, stackLimit, parserAtoms, handler, pnp);
+  return Fold(fc, stackLimit, parserAtoms, handler, pnp);
 }

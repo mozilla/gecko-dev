@@ -215,9 +215,7 @@ const kLastIndex = Number.MAX_SAFE_INTEGER - 1;
 
 import { PrivateBrowsingUtils } from "resource://gre/modules/PrivateBrowsingUtils.sys.mjs";
 
-const { TelemetryTimestamps } = ChromeUtils.import(
-  "resource://gre/modules/TelemetryTimestamps.jsm"
-);
+import { TelemetryTimestamps } from "resource://gre/modules/TelemetryTimestamps.sys.mjs";
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 import { GlobalState } from "resource:///modules/sessionstore/GlobalState.sys.mjs";
@@ -229,6 +227,7 @@ XPCOMUtils.defineLazyServiceGetters(lazy, {
 });
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  AsyncShutdown: "resource://gre/modules/AsyncShutdown.sys.mjs",
   DevToolsShim: "chrome://devtools-startup/content/DevToolsShim.sys.mjs",
   E10SUtils: "resource://gre/modules/E10SUtils.sys.mjs",
   PrivacyFilter: "resource://gre/modules/sessionstore/PrivacyFilter.sys.mjs",
@@ -247,7 +246,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 XPCOMUtils.defineLazyModuleGetters(lazy, {
-  AsyncShutdown: "resource://gre/modules/AsyncShutdown.jsm",
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.jsm",
   HomePage: "resource:///modules/HomePage.jsm",
   TabCrashHandler: "resource:///modules/ContentCrashHandlers.jsm",
@@ -1180,6 +1178,10 @@ var SessionStoreInternal = {
           return null;
         }
 
+        TelemetryStopwatch.start(
+          "FX_SESSION_RESTORE_COLLECT_SESSION_HISTORY_MS"
+        );
+
         let fromIndex = collectFull ? -1 : this._fromIndex;
         this._fromIndex = kNoIndex;
 
@@ -1199,6 +1201,10 @@ var SessionStoreInternal = {
             data: { historychange },
           });
         }
+
+        TelemetryStopwatch.finish(
+          "FX_SESSION_RESTORE_COLLECT_SESSION_HISTORY_MS"
+        );
 
         return historychange;
       }
@@ -1936,7 +1942,7 @@ var SessionStoreInternal = {
         this._closedWindowTabs.set(permanentKey, tabData);
       }
 
-      if (isFullyLoaded) {
+      if (isFullyLoaded && !winData.title) {
         winData.title =
           tabbrowser.selectedBrowser.contentTitle ||
           tabbrowser.selectedTab.label;
@@ -2699,7 +2705,7 @@ var SessionStoreInternal = {
       // Discard was likely called before state can be cached.  Update
       // the persistent tab state cache with browser information so a
       // restore will be successful.  This information is necessary for
-      // restoreTabContent in ContentRestore.jsm to work properly.
+      // restoreTabContent in ContentRestore.sys.mjs to work properly.
       lazy.TabStateCache.update(browser.permanentKey, {
         userTypedValue,
         userTypedClear: 1,
@@ -4212,15 +4218,13 @@ var SessionStoreInternal = {
       tabsData.push(tabData);
     }
 
-    // The FxView tab isn't recorded in the session state and because of this the
-    // selected tab can be off by 1 when we restore the previous state.
-    // To open the correct selected tab on restore we adjust the selected tab before saving.
     let selectedIndex = tabbrowser.tabbox.selectedIndex + 1;
-    if (
-      aWindow.FirefoxViewHandler.tab &&
-      !aWindow.FirefoxViewHandler.tab.selected
-    ) {
-      selectedIndex -= 1;
+    // We don't store the Firefox View tab in Session Store, so if it was the last selected "tab" when
+    // a window is closed, point to the first item in the tab strip instead (it will never be the Firefox View tab,
+    // since it's only inserted into the tab strip after it's selected).
+    if (aWindow.FirefoxViewHandler.tab?.selected) {
+      selectedIndex = 1;
+      winData.title = tabbrowser.tabs[0].label;
     }
     winData.selected = selectedIndex;
 
@@ -6238,8 +6242,8 @@ var SessionStoreInternal = {
         return callbacks.onHistoryReload();
       },
 
-      // TODO(kashav): ContentRestore.jsm handles OnHistoryNewEntry separately,
-      // so we should eventually support that here as well.
+      // TODO(kashav): ContentRestore.sys.mjs handles OnHistoryNewEntry
+      // separately, so we should eventually support that here as well.
       OnHistoryNewEntry() {},
       OnHistoryGotoIndex() {},
       OnHistoryPurge() {},

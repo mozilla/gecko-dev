@@ -18,6 +18,8 @@ ChromeUtils.defineESModuleGetters(this, {
   BrowserSearchTelemetry: "resource:///modules/BrowserSearchTelemetry.sys.mjs",
   BrowserTelemetryUtils: "resource://gre/modules/BrowserTelemetryUtils.sys.mjs",
   Color: "resource://gre/modules/Color.sys.mjs",
+  ContextualIdentityService:
+    "resource://gre/modules/ContextualIdentityService.sys.mjs",
   Deprecated: "resource://gre/modules/Deprecated.sys.mjs",
   DevToolsSocketStatus:
     "resource://devtools/shared/security/DevToolsSocketStatus.sys.mjs",
@@ -46,6 +48,7 @@ ChromeUtils.defineESModuleGetters(this, {
   SubDialogManager: "resource://gre/modules/SubDialog.sys.mjs",
   TabsSetupFlowManager:
     "resource:///modules/firefox-view-tabs-setup-manager.sys.mjs",
+  TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.sys.mjs",
   UpdateUtils: "resource://gre/modules/UpdateUtils.sys.mjs",
   UrlbarInput: "resource:///modules/UrlbarInput.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
@@ -66,8 +69,6 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   BrowserUIUtils: "resource:///modules/BrowserUIUtils.jsm",
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.jsm",
   CFRPageActions: "resource://activity-stream/lib/CFRPageActions.jsm",
-  ContextualIdentityService:
-    "resource://gre/modules/ContextualIdentityService.jsm",
   CustomizableUI: "resource:///modules/CustomizableUI.jsm",
   DownloadUtils: "resource://gre/modules/DownloadUtils.jsm",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.jsm",
@@ -84,10 +85,8 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   Pocket: "chrome://pocket/content/Pocket.jsm",
   ProcessHangMonitor: "resource:///modules/ProcessHangMonitor.jsm",
   PromptUtils: "resource://gre/modules/SharedPromptUtils.jsm",
-
   // TODO (Bug 1529552): Remove once old urlbar code goes away.
   ReaderMode: "resource://gre/modules/ReaderMode.jsm",
-
   RFPHelper: "resource://gre/modules/RFPHelper.jsm",
   SafeBrowsing: "resource://gre/modules/SafeBrowsing.jsm",
   SaveToPocket: "chrome://pocket/content/SaveToPocket.jsm",
@@ -95,7 +94,6 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   SitePermissions: "resource:///modules/SitePermissions.jsm",
   TabModalPrompt: "chrome://global/content/tabprompts.jsm",
   TabCrashHandler: "resource:///modules/ContentCrashHandlers.jsm",
-  TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.jsm",
   Translation: "resource:///modules/translation/TranslationParent.jsm",
   UITour: "resource:///modules/UITour.jsm",
   Weave: "resource://services-sync/main.js",
@@ -245,7 +243,12 @@ XPCOMUtils.defineLazyScriptGetter(
 XPCOMUtils.defineLazyScriptGetter(
   this,
   "gEditItemOverlay",
-  "chrome://browser/content/places/instantEditBookmark.js"
+  Services.prefs.getBoolPref(
+    "browser.bookmarks.editDialog.delayedApply.enabled",
+    false
+  )
+    ? "chrome://browser/content/places/editBookmark.js"
+    : "chrome://browser/content/places/instantEditBookmark.js"
 );
 XPCOMUtils.defineLazyScriptGetter(
   this,
@@ -285,7 +288,6 @@ XPCOMUtils.defineLazyServiceGetters(this, {
     "nsIURIClassifier",
   ],
   Favicons: ["@mozilla.org/browser/favicon-service;1", "nsIFaviconService"],
-  gDNSService: ["@mozilla.org/network/dns-service;1", "nsIDNSService"],
   WindowsUIUtils: ["@mozilla.org/windows-ui-utils;1", "nsIWindowsUIUtils"],
   BrowserHandler: ["@mozilla.org/browser/clh;1", "nsIBrowserHandler"],
 });
@@ -438,7 +440,7 @@ XPCOMUtils.defineLazyGetter(this, "PopupNotifications", () => {
       { shouldSuppress }
     );
   } catch (ex) {
-    Cu.reportError(ex);
+    console.error(ex);
     return null;
   }
 });
@@ -1850,7 +1852,7 @@ var gBrowserInit = {
         try {
           gBrowser.swapBrowsersAndCloseOther(gBrowser.selectedTab, tabToAdopt);
         } catch (e) {
-          Cu.reportError(e);
+          console.error(e);
         }
 
         // Clear the reference to the tab once its adoption has been completed.
@@ -1896,8 +1898,8 @@ var gBrowserInit = {
   },
 
   _delayedStartup() {
-    let { TelemetryTimestamps } = ChromeUtils.import(
-      "resource://gre/modules/TelemetryTimestamps.jsm"
+    let { TelemetryTimestamps } = ChromeUtils.importESModule(
+      "resource://gre/modules/TelemetryTimestamps.sys.mjs"
     );
     TelemetryTimestamps.add("delayedStartupStarted");
 
@@ -1969,7 +1971,7 @@ var gBrowserInit = {
     BookmarkingUI.init();
     BrowserSearch.delayedStartupInit();
     gProtectionsHandler.init();
-    HomePage.delayedStartup().catch(Cu.reportError);
+    HomePage.delayedStartup().catch(console.error);
 
     let safeMode = document.getElementById("helpSafeMode");
     if (Services.appinfo.inSafeMode) {
@@ -2291,6 +2293,7 @@ var gBrowserInit = {
         let fromExternal = undefined;
         let globalHistoryOptions = undefined;
         let triggeringRemoteType = undefined;
+        let forceAllowDataURI = false;
         if (window.arguments[1]) {
           if (!(window.arguments[1] instanceof Ci.nsIPropertyBag2)) {
             throw new Error(
@@ -2324,6 +2327,11 @@ var gBrowserInit = {
               "triggeringRemoteType"
             );
           }
+          if (extraOptions.hasKey("forceAllowDataURI")) {
+            forceAllowDataURI = extraOptions.getPropertyAsBool(
+              "forceAllowDataURI"
+            );
+          }
         }
 
         try {
@@ -2342,13 +2350,14 @@ var gBrowserInit = {
             allowInheritPrincipal: window.arguments[9] !== false,
             csp: window.arguments[10],
             forceAboutBlankViewerInCurrent: !!window.arguments[6],
+            forceAllowDataURI,
             hasValidUserGestureActivation,
             fromExternal,
             globalHistoryOptions,
             triggeringRemoteType,
           });
         } catch (e) {
-          Cu.reportError(e);
+          console.error(e);
         }
 
         window.focus();
@@ -2372,7 +2381,7 @@ var gBrowserInit = {
    * The functions scheduled here will fire from idle callbacks
    * once every window has finished being restored by session
    * restore, and after the equivalent only-once tasks
-   * have run (from _scheduleStartupIdleTasks in BrowserGlue.jsm).
+   * have run (from _scheduleStartupIdleTasks in BrowserGlue.sys.mjs).
    */
   _schedulePerWindowIdleTasks() {
     // Bail out if the window has been closed in the meantime.
@@ -2436,7 +2445,7 @@ var gBrowserInit = {
           }
           Services.telemetry.setEventRecordingEnabled("downloads", true);
         } catch (ex) {
-          Cu.reportError(ex);
+          console.error(ex);
         }
       },
       { timeout: 10000 }
@@ -3147,7 +3156,7 @@ function loadURI(
       allowInheritPrincipal,
     });
   } catch (e) {
-    Cu.reportError(e);
+    console.error(e);
   }
 }
 
@@ -3259,7 +3268,7 @@ async function BrowserViewSourceOfDocument(args) {
   // that fails.  Either way, the view source module will manage the tab's
   // location, so use "about:blank" here to avoid unnecessary redundant
   // requests.
-  let tab = tabBrowser.loadOneTab("about:blank", {
+  let tab = tabBrowser.addTab("about:blank", {
     relatedToCurrent: true,
     inBackground: inNewWindow,
     skipAnimation: inNewWindow,
@@ -3728,7 +3737,7 @@ function openHomeDialog(aURL) {
   );
 
   if (pressedVal == 0) {
-    HomePage.set(aURL).catch(Cu.reportError);
+    HomePage.set(aURL).catch(console.error);
   }
 }
 
@@ -4416,13 +4425,18 @@ const BrowserSearch = {
     this._updateURLBarPlaceholderFromDefaultEngine(
       PrivateBrowsingUtils.isWindowPrivate(window),
       false
-    ).catch(Cu.reportError);
+    ).catch(console.error);
   },
 };
 
 XPCOMUtils.defineConstant(this, "BrowserSearch", BrowserSearch);
 
 function CreateContainerTabMenu(event) {
+  // Do not open context menus within menus.
+  // Note that triggerNode is null if we're opened by long press.
+  if (event.target.triggerNode?.closest("menupopup")) {
+    return false;
+  }
   createUserContextMenu(event, {
     useAccessKeys: false,
     showDefaultTab: true,
@@ -5483,10 +5497,7 @@ var XULBrowserWindow = {
     SaveToPocket.onLocationChange(window);
 
     let originalURI;
-    if (
-      aRequest instanceof Ci.nsIChannel &&
-      !isBlankPageURL(aRequest.originalURI.spec)
-    ) {
+    if (aRequest instanceof Ci.nsIChannel) {
       originalURI = aRequest.originalURI;
     }
 
@@ -6199,7 +6210,7 @@ nsBrowserAccess.prototype = {
       "browser.tabs.loadDivertedInBackground"
     );
 
-    let tab = win.gBrowser.loadOneTab(aURI ? aURI.spec : "about:blank", {
+    let tab = win.gBrowser.addTab(aURI ? aURI.spec : "about:blank", {
       triggeringPrincipal: aTriggeringPrincipal,
       referrerInfo: aReferrerInfo,
       userContextId: aUserContextId,
@@ -6242,7 +6253,7 @@ nsBrowserAccess.prototype = {
 
   openURI(aURI, aOpenWindowInfo, aWhere, aFlags, aTriggeringPrincipal, aCsp) {
     if (!aURI) {
-      Cu.reportError("openURI should only be called with a valid URI");
+      console.error("openURI should only be called with a valid URI");
       throw Components.Exception("", Cr.NS_ERROR_FAILURE);
     }
     return this.getContentWindowOrOpenURI(
@@ -6269,7 +6280,7 @@ nsBrowserAccess.prototype = {
     var isExternal = !!(aFlags & Ci.nsIBrowserDOMWindow.OPEN_EXTERNAL);
 
     if (aOpenWindowInfo && isExternal) {
-      Cu.reportError(
+      console.error(
         "nsBrowserAccess.openURI did not expect aOpenWindowInfo to be " +
           "passed if the context is OPEN_EXTERNAL."
       );
@@ -6359,7 +6370,7 @@ nsBrowserAccess.prototype = {
           // context for a newly opened window is ready.
           browsingContext = null;
         } catch (ex) {
-          Cu.reportError(ex);
+          console.error(ex);
         }
         break;
       case Ci.nsIBrowserDOMWindow.OPEN_NEWTAB: {
@@ -7271,7 +7282,7 @@ function middleMousePaste(event) {
     } catch (ex) {
       // Things may go wrong when adding url to session history,
       // but don't let that interfere with the loading of the url.
-      Cu.reportError(ex);
+      console.error(ex);
     }
 
     if (
@@ -8014,9 +8025,19 @@ var WebAuthnPromptHelper = {
     }
   },
 
-  register(mgr, { origin, tid }) {
+  register(mgr, { origin, tid, is_ctap2, device_selected }) {
     let mainAction = this.buildCancelAction(mgr, tid);
-    this.show(tid, "register", "webauthn.registerPrompt2", origin, mainAction);
+    let message;
+    if (is_ctap2) {
+      if (device_selected) {
+        message = "webauthn.registerTouchDevice";
+      } else {
+        message = "webauthn.CTAP2registerPrompt";
+      }
+    } else {
+      message = "webauthn.registerPrompt2";
+    }
+    this.show(tid, "register", message, origin, mainAction);
   },
 
   registerDirect(mgr, { origin, tid }) {
@@ -8045,9 +8066,19 @@ var WebAuthnPromptHelper = {
     );
   },
 
-  sign(mgr, { origin, tid }) {
+  sign(mgr, { origin, tid, is_ctap2, device_selected }) {
     let mainAction = this.buildCancelAction(mgr, tid);
-    this.show(tid, "sign", "webauthn.signPrompt2", origin, mainAction);
+    let message;
+    if (is_ctap2) {
+      if (device_selected) {
+        message = "webauthn.signTouchDevice";
+      } else {
+        message = "webauthn.CTAP2signPrompt";
+      }
+    } else {
+      message = "webauthn.signPrompt2";
+    }
+    this.show(tid, "sign", message, origin, mainAction);
   },
 
   show_info(mgr, origin, tid, id, stringId) {
@@ -8956,7 +8987,7 @@ var MousePosTracker = {
       try {
         this._callListener(listener);
       } catch (e) {
-        Cu.reportError(e);
+        console.error(e);
       }
     });
   },
@@ -9155,7 +9186,7 @@ var PanicButtonNotifier = {
       let anchor = widget.anchor.icon;
       popup.openPopup(anchor, popup.getAttribute("position"));
     } catch (ex) {
-      Cu.reportError(ex);
+      console.error(ex);
     }
   },
   close() {
@@ -9778,7 +9809,7 @@ var gDialogBox = {
     try {
       await this._open(uri, args);
     } catch (ex) {
-      Cu.reportError(ex);
+      console.error(ex);
     } finally {
       let dialog = document.getElementById("window-modal-dialog");
       if (dialog.open) {
@@ -9958,6 +9989,7 @@ var ConfirmationHint = {
   show(anchor, messageId, options = {}) {
     this._reset();
 
+    MozXULElement.insertFTLIfNeeded("browser/branding/brandings.ftl");
     MozXULElement.insertFTLIfNeeded("browser/confirmationHints.ftl");
     document.l10n.setAttributes(this._message, messageId);
 

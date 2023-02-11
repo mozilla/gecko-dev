@@ -3,7 +3,7 @@
 When called as a constructor, the `Debugger` object creates a new
 `Debugger` instance.
 
-### `new Debugger([global, ...])`
+## `new Debugger([global, ...])`
 Create a debugger object, and apply its [`addDebuggee`][add] method to
 each of the given <i>global</i> objects to add them as the initial
 debuggees.
@@ -166,10 +166,10 @@ call, it must be an object.
 
 SpiderMonkey only calls `onNativeCall` hooks when execution is inside a
 debugger evaluation associated with the debugger that has the `onNativeCall`
-hook.  Such evaluation methods include `Debugger.Object.executeInGlobal`,
-`Debugger.Frame.eval`, and associated methods.
+hook.  Such evaluation methods include `Debugger.Object.apply`, `Debugger.Object.call`,
+`Debugger.Object.executeInGlobal`, `Debugger.Frame.eval`, and associated methods.
 
-Separately, any Debugger hooks triggered during calls to
+Separately, any Debugger hooks triggered during calls to  `Debugger.Object.apply`, `Debugger.Object.call`,
 `Debugger.Object.executeInGlobal`, `Debugger.Frame.eval`, and associated methods
 will only be triggered on Debugger objects owned by the Debugger performing
 the evaluation.

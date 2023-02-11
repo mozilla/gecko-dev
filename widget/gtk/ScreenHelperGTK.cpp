@@ -473,11 +473,6 @@ RefPtr<nsIScreen> ScreenGetterWayland::GetScreenForWindow(nsWindow* aWindow) {
                         "We're missing screen?");
   return mScreenList[monitor];
 }
-
-static bool IsGNOMECompositor() {
-  const char* currentDesktop = getenv("XDG_CURRENT_DESKTOP");
-  return currentDesktop && strstr(currentDesktop, "GNOME") != nullptr;
-}
 #endif
 
 RefPtr<nsIScreen> ScreenHelperGTK::GetScreenForWindow(nsWindow* aWindow) {
@@ -495,7 +490,7 @@ ScreenHelperGTK::ScreenHelperGTK() {
   // to track screen size changes (which are wrongly reported by mutter)
   // and causes issues on Sway (Bug 1730476).
   // https://gitlab.gnome.org/GNOME/gtk/-/merge_requests/3941
-  if (GdkIsWaylandDisplay() && IsGNOMECompositor()) {
+  if (GdkIsWaylandDisplay() && IsGnomeDesktopEnvironment()) {
     gScreenGetter = MakeUnique<ScreenGetterWayland>();
   }
 #endif

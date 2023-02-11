@@ -1,13 +1,10 @@
 #!/usr/bin/env python
 
-from __future__ import absolute_import
-
 import os
 import tempfile
 import zipfile
 
 import mozfile
-
 
 here = os.path.dirname(os.path.abspath(__file__))
 

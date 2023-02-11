@@ -34,9 +34,10 @@ ChromeUtils.defineModuleGetter(
   "resource://gre/modules/NetUtil.jsm"
 );
 
-const { getString, showFilePicker } = ChromeUtils.import(
-  "resource://devtools/client/styleeditor/StyleEditorUtil.jsm"
-);
+import {
+  getString,
+  showFilePicker,
+} from "resource://devtools/client/styleeditor/StyleEditorUtil.sys.mjs";
 
 const LOAD_ERROR = "error-load";
 const SAVE_ERROR = "error-save";
@@ -282,7 +283,7 @@ StyleSheetEditor.prototype = {
 
     let longStr = null;
     if (this.styleSheet.isOriginalSource) {
-      // If the stylesheet is OriginalSource, we should get the texts from SourceMapService.
+      // If the stylesheet is OriginalSource, we should get the texts from SourceMapLoader.
       // So, for now, we use OriginalSource.getText() as it is.
       longStr = await this.styleSheet.getText();
     } else {

@@ -187,6 +187,7 @@ bool Client::IsValidType(Type aType) {
     case Client::IDB:
     case Client::DOMCACHE:
     case Client::SDB:
+    case Client::FILESYSTEM:
       return true;
 
     case Client::LS:
@@ -208,6 +209,15 @@ bool Client::TypeToText(Type aType, nsAString& aText, const fallible_t&) {
   }
   aText = text;
   return true;
+}
+
+// static
+nsAutoString Client::TypeToString(Type aType) {
+  nsAutoString res;
+  if (!TypeTo_impl(aType, res)) {
+    BadType();
+  }
+  return res;
 }
 
 // static

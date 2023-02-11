@@ -82,7 +82,7 @@ void RemoteEstimatorProxy::MaybeCullOldPackets(int64_t sequence_number,
 void RemoteEstimatorProxy::IncomingPacket(int64_t arrival_time_ms,
                                           size_t payload_size,
                                           const RTPHeader& header) {
-  if (arrival_time_ms < 0 || arrival_time_ms > kMaxTimeMs) {
+  if (arrival_time_ms < 0 || arrival_time_ms >= kMaxTimeMs) {
     RTC_LOG(LS_WARNING) << "Arrival time out of bounds: " << arrival_time_ms;
     return;
   }
@@ -176,8 +176,8 @@ void RemoteEstimatorProxy::OnBitrateChanged(int bitrate_bps) {
       kTwccReportSize / send_config_.max_interval.Get();
 
   // Let TWCC reports occupy 5% of total bandwidth.
-  DataRate twcc_bitrate = DataRate::BitsPerSec(
-      static_cast<double>(send_config_.bandwidth_fraction) * bitrate_bps);
+  DataRate twcc_bitrate =
+      DataRate::BitsPerSec(send_config_.bandwidth_fraction * bitrate_bps);
 
   // Check upper send_interval bound by checking bitrate to avoid overflow when
   // dividing by small bitrate, in particular avoid dividing by zero bitrate.
@@ -292,7 +292,7 @@ RemoteEstimatorProxy::MaybeBuildFeedbackPacket(
 
   for (int64_t seq = start_seq; seq < end_seq; ++seq) {
     Timestamp arrival_time = packet_arrival_times_.get(seq);
-    if (arrival_time == Timestamp::Zero()) {
+    if (arrival_time < Timestamp::Zero()) {
       // Packet not received.
       continue;
     }

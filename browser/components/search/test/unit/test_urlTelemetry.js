@@ -9,12 +9,12 @@ ChromeUtils.defineESModuleGetters(this, {
   BrowserSearchTelemetry: "resource:///modules/BrowserSearchTelemetry.sys.mjs",
   SearchSERPTelemetry: "resource:///modules/SearchSERPTelemetry.sys.mjs",
   SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
+  TelemetryTestUtils: "resource://testing-common/TelemetryTestUtils.sys.mjs",
 });
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   NetUtil: "resource://gre/modules/NetUtil.jsm",
   sinon: "resource://testing-common/Sinon.jsm",
-  TelemetryTestUtils: "resource://testing-common/TelemetryTestUtils.jsm",
 });
 
 const TESTS = [
@@ -199,6 +199,22 @@ const TESTS = [
     trackingUrl:
       "https://www.baidu.com/s?ie=utf-8&f=8&rsv_bp=1&rsv_idx=1&ch=&bar=&wd=test&rn=&oq&rsv_pq=RSV_PQ_VALUE&rsv_t=RSV_T_VALUE&rqlang=cn",
     expectedSearchCountEntry: "baidu:organic:none",
+  },
+  {
+    title: "Ecosia search access point",
+    trackingUrl: "https://www.ecosia.org/search?tt=mzl&q=foo",
+    expectedSearchCountEntry: "ecosia:tagged:mzl",
+    expectedAdKey: "ecosia:tagged",
+    adUrls: ["https://www.bing.com/aclick?ld=foo"],
+    nonAdUrls: [],
+  },
+  {
+    title: "Ecosia organic",
+    trackingUrl: "https://www.ecosia.org/search?method=index&q=foo",
+    expectedSearchCountEntry: "ecosia:organic:none",
+    expectedAdKey: "ecosia:organic",
+    adUrls: ["https://www.bing.com/aclick?ld=foo"],
+    nonAdUrls: [],
   },
 ];
 

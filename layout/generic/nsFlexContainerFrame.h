@@ -137,6 +137,7 @@ class nsFlexContainerFrame final : public nsContainerFrame,
   class CachedBAxisMeasurement;
   class CachedFlexItemData;
   struct SharedFlexData;
+  struct PerFragmentFlexData;
   class FlexItemIterator;
 
   // nsIFrame overrides
@@ -383,27 +384,26 @@ class nsFlexContainerFrame final : public nsContainerFrame,
 #endif  // DEBUG
 
   /**
-   * Returns a new FlexItem for the given child frame, directly constructed at
-   * the end of aLine. Guaranteed to return non-null.
+   * Construct a new FlexItem for the given child frame, directly at the end of
+   * aLine.
    *
    * Before returning, this method also processes the FlexItem to resolve its
    * flex basis (including e.g. auto-height) as well as to resolve
    * "min-height:auto", via ResolveAutoFlexBasisAndMinSize(). (Basically, the
-   * returned FlexItem will be ready to participate in the "Resolve the
+   * constructed FlexItem will be ready to participate in the "Resolve the
    * Flexible Lengths" step of the Flex Layout Algorithm.)
    * https://drafts.csswg.org/css-flexbox-1/#algo-flex
    *
    * Note that this method **does not** update aLine's main-size bookkeeping to
    * account for the newly-constructed flex item. The caller is responsible for
-   * determining whether this line is a good fit for the new item. If so,
-   * updating aLine's bookkeeping (via FlexLine::AddLastItemToMainSizeTotals),
-   * or moving the new item to a new line otherwise.
+   * determining whether this line is a good fit for the new item. If so, the
+   * caller should update aLine's bookkeeping (via
+   * FlexLine::AddLastItemToMainSizeTotals), or move the new item to a new line.
    */
-  FlexItem* GenerateFlexItemForChild(
-      FlexLine& aLine, nsIFrame* aChildFrame,
-      const ReflowInput& aParentReflowInput,
-      const FlexboxAxisTracker& aAxisTracker,
-      const nscoord aTentativeContentBoxCrossSize);
+  void GenerateFlexItemForChild(FlexLine& aLine, nsIFrame* aChildFrame,
+                                const ReflowInput& aParentReflowInput,
+                                const FlexboxAxisTracker& aAxisTracker,
+                                const nscoord aTentativeContentBoxCrossSize);
 
   /**
    * This method looks up cached block-axis measurements for a flex item, or
@@ -570,6 +570,11 @@ class nsFlexContainerFrame final : public nsContainerFrame,
    *             nscoord_MIN if the ascent hasn't been established yet. If the
    *             latter, this will be updated with an ascent derived from the
    *             first flex item (if there are any flex items).
+   * @param aFragmentData See the comment for PerFragmentFlexData.
+   *                      Note: aFragmentData is an "in/out" parameter. It is
+   *                      initialized by the data stored in our prev-in-flow's
+   *                      PerFragmentFlexData::Prop(); its fields will then be
+   *                      updated and become our PerFragmentFlexData.
    * @return nscoord the maximum block-end edge of children of this fragment in
    *                 flex container's coordinate space.
    * @return bool true if any child being reflowed is incomplete; false
@@ -579,8 +584,8 @@ class nsFlexContainerFrame final : public nsContainerFrame,
       const ReflowInput& aReflowInput, const nsSize& aContainerSize,
       const mozilla::LogicalSize& aAvailableSizeForItems,
       const mozilla::LogicalMargin& aBorderPadding,
-      const nscoord aSumOfPrevInFlowsChildrenBlockSize,
-      const FlexboxAxisTracker& aAxisTracker, FlexLayoutResult& aFlr);
+      const FlexboxAxisTracker& aAxisTracker, FlexLayoutResult& aFlr,
+      PerFragmentFlexData& aFragmentData);
 
   /**
    * Moves the given flex item's frame to the given LogicalPosition (modulo any

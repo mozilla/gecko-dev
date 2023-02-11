@@ -225,11 +225,11 @@ static void SuspectUsingNurseryPurpleBuffer(
   ++gNurseryPurpleBufferEntryCount;
 }
 
-//#define COLLECT_TIME_DEBUG
+// #define COLLECT_TIME_DEBUG
 
 // Enable assertions that are useful for diagnosing errors in graph
 // construction.
-//#define DEBUG_CC_GRAPH
+// #define DEBUG_CC_GRAPH
 
 #define DEFAULT_SHUTDOWN_COLLECTIONS 5
 
@@ -2400,9 +2400,6 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(JSPurpleBuffer)
   NS_TRACE_SEGMENTED_ARRAY(mValues, JS::Value)
   NS_TRACE_SEGMENTED_ARRAY(mObjects, JSObject*)
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
-
-NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(JSPurpleBuffer, AddRef)
-NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(JSPurpleBuffer, Release)
 
 class SnowWhiteKiller : public TraceCallbacks {
   struct SnowWhiteObject {

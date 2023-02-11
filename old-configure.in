@@ -26,23 +26,6 @@ HOST_CFLAGS="${HOST_CFLAGS=}"
 HOST_CXXFLAGS="${HOST_CXXFLAGS=}"
 HOST_LDFLAGS="${HOST_LDFLAGS=}"
 
-dnl ========================================================
-dnl = Preserve certain environment flags passed to configure
-dnl = We want sub projects to receive the same flags
-dnl = untainted by this configure script
-dnl ========================================================
-_SUBDIR_CC="$CC"
-_SUBDIR_CXX="$CXX"
-_SUBDIR_CFLAGS="$CFLAGS"
-_SUBDIR_CPPFLAGS="$CPPFLAGS"
-_SUBDIR_CXXFLAGS="$CXXFLAGS"
-_SUBDIR_LDFLAGS="$LDFLAGS"
-_SUBDIR_HOST_CC="$HOST_CC"
-_SUBDIR_HOST_CFLAGS="$HOST_CFLAGS"
-_SUBDIR_HOST_CXXFLAGS="$HOST_CXXFLAGS"
-_SUBDIR_HOST_LDFLAGS="$HOST_LDFLAGS"
-_SUBDIR_CONFIG_ARGS="$ac_configure_args"
-
 dnl Set the minimum version of toolkit libs used by mozilla
 dnl ========================================================
 W32API_VERSION=3.14
@@ -270,14 +253,18 @@ if test "$GNU_CC"; then
                   AC_MSG_RESULT([no])
                   LDFLAGS=$_SAVE_LDFLAGS)
 
+    # While sha1 is deterministic, it is slower.
     if test -z "$DEVELOPER_OPTIONS" -o "$OS_TARGET" = "Android"; then
-        AC_MSG_CHECKING([for --build-id=sha1 option to ld])
-        _SAVE_LDFLAGS=$LDFLAGS
-        LDFLAGS="$LDFLAGS -Wl,--build-id=sha1"
-        AC_TRY_LINK(,,AC_MSG_RESULT([yes]),
-                      AC_MSG_RESULT([no])
-                      LDFLAGS=$_SAVE_LDFLAGS)
+        build_id=sha1
+    else
+        build_id=uuid
     fi
+    AC_MSG_CHECKING([for --build-id=$build_id option to ld])
+    _SAVE_LDFLAGS=$LDFLAGS
+    LDFLAGS="$LDFLAGS -Wl,--build-id=$build_id"
+    AC_TRY_LINK(,,AC_MSG_RESULT([yes]),
+                  AC_MSG_RESULT([no])
+                  LDFLAGS=$_SAVE_LDFLAGS)
 
     AC_MSG_CHECKING([for --ignore-unresolved-symbol option to ld])
     HAVE_LINKER_SUPPORT_IGNORE_UNRESOLVED=
@@ -1012,7 +999,6 @@ if test -z "$MOZ_DISTRIBUTION_ID"; then
    MOZ_DISTRIBUTION_ID="org.mozilla"
 fi
 
-AC_DEFINE_UNQUOTED(MOZ_DISTRIBUTION_ID,"$MOZ_DISTRIBUTION_ID")
 AC_SUBST(MOZ_DISTRIBUTION_ID)
 
 dnl ========================================================
@@ -1285,15 +1271,6 @@ fi
 AC_SUBST(MOZ_SOURCE_REPO)
 AC_SUBST(MOZ_SOURCE_CHANGESET)
 AC_SUBST(MOZ_INCLUDE_SOURCE_INFO)
-
-dnl If we have any service that uploads data (and requires data submission
-dnl policy alert), set MOZ_DATA_REPORTING.
-dnl We need SUBST for build system and DEFINE for xul preprocessor.
-if test -n "$MOZ_TELEMETRY_REPORTING" || test -n "$MOZ_SERVICES_HEALTHREPORT" || test -n "$MOZ_CRASHREPORTER"  || test -n "$MOZ_NORMANDY"; then
-  MOZ_DATA_REPORTING=1
-  AC_DEFINE(MOZ_DATA_REPORTING)
-  AC_SUBST(MOZ_DATA_REPORTING)
-fi
 
 dnl win32 options
 AC_SUBST(WIN32_REDIST_DIR)

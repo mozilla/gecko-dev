@@ -32,25 +32,24 @@ Required tools for Linux:
     pax
     gzip
     tar
-    xar (http://code.google.com/p/xar/)
     xpwn's dmg (https://github.com/planetbeing/xpwn)
 
 Created on Apr 11, 2012
 
 @author: mrmiller
 """
-from __future__ import absolute_import
-
 import argparse
 import concurrent.futures
 import errno
 import logging
 import os
 import shutil
+import stat
 import subprocess
 import tempfile
 import traceback
 
+from macpkg import Pbzx, uncpio, unxar
 from scrapesymbols.gathersymbols import process_paths
 
 
@@ -61,7 +60,9 @@ def expand_pkg(pkg_path, out_path):
     @param pkg_path: a path to an installer package (.pkg)
     @param out_path: a path to hold the package contents
     """
-    subprocess.check_call(["xar", "-x", "-C", out_path, "-f", pkg_path])
+    for name, content in unxar(open(pkg_path, "rb")):
+        with open(os.path.join(out_path, name), "wb") as fh:
+            shutil.copyfileobj(content, fh)
 
 
 def expand_dmg(dmg_path, out_path):
@@ -179,21 +180,15 @@ def extract_payload(payload_path, output_path):
             return True
         elif header == b"pb":
             logging.info("Extracting pbzx payload")
-            extract = "extract_pbzx.py"
 
-            payload_dir = os.path.dirname(payload_path)
-            # First, extract the PBZX into cpio.
-            subprocess.check_call([extract, payload_path], cwd=payload_dir)
-            # Next, feed the extracted PBZX into pax.
-            pax_proc = subprocess.Popen(
-                ["pax", "-r", "-k", "-s", ":^/::"],
-                stdin=subprocess.PIPE,
-                cwd=output_path,
-            )
-            with open(payload_path + ".cpio", "rb") as f:
-                shutil.copyfileobj(f, pax_proc.stdin)
-            pax_proc.stdin.close()
-            pax_proc.wait()
+            for path, mode, content in uncpio(Pbzx(open(payload_path, "rb"))):
+                if not path or not stat.S_ISREG(mode):
+                    continue
+                out = os.path.join(output_path, path.decode())
+                os.makedirs(os.path.dirname(out), exist_ok=True)
+                with open(out, "wb") as fh:
+                    shutil.copyfileobj(content, fh)
+
             return True
         else:
             # Unsupported format
@@ -202,7 +197,7 @@ def extract_payload(payload_path, output_path):
             )
             return False
 
-    except subprocess.CalledProcessError:
+    except Exception:
         return False
 
 

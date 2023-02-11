@@ -4,18 +4,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import
-
-import mozhttpd
 import os
 import re
 
-from six.moves.urllib.request import urlopen
-from six import ensure_str
-
-import pytest
-
+import mozhttpd
 import mozunit
+import pytest
+from six import ensure_str
+from six.moves.urllib.request import urlopen
 
 
 @pytest.fixture(name="docroot")

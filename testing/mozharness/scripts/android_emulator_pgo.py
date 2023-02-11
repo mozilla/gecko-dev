@@ -5,15 +5,14 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 # ***** END LICENSE BLOCK *****
 
-from __future__ import absolute_import
 import copy
-import json
-import time
 import glob
+import json
 import os
-import sys
 import posixpath
 import subprocess
+import sys
+import time
 
 # load modules from parent dir
 sys.path.insert(1, os.path.dirname(sys.path[0]))
@@ -150,11 +149,11 @@ class AndroidProfileRun(TestingMixin, BaseScript, MozbaseMixin, AndroidMixin):
         """
         Generate the PGO profile data
         """
+        from marionette_driver.marionette import Marionette
+        from mozdevice import ADBDeviceFactory, ADBTimeoutError
         from mozhttpd import MozHttpd
         from mozprofile import Preferences
-        from mozdevice import ADBDeviceFactory, ADBTimeoutError
         from six import string_types
-        from marionette_driver.marionette import Marionette
 
         app = self.query_package_name()
 

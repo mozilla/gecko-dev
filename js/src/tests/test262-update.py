@@ -5,8 +5,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import print_function
-
 import contextlib
 import io
 import os
@@ -33,6 +31,9 @@ UNSUPPORTED_FEATURES = set(
         "regexp-v-flag",
         "decorators",
         "regexp-duplicate-named-groups",
+        "String.prototype.isWellFormed",  # Bug 1803523
+        "String.prototype.toWellFormed",  # Bug 1803523
+        "symbols-as-weakmap-keys",  # Bug 1710433
     ]
 )
 FEATURE_CHECK_NEEDED = {
@@ -42,6 +43,7 @@ FEATURE_CHECK_NEEDED = {
     "WeakRef": "!this.hasOwnProperty('WeakRef')",
     "array-grouping": "!Array.prototype.group",
     "change-array-by-copy": "!Array.prototype.with",
+    "Array.fromAsync": "!Array.fromAsync",
 }
 RELEASE_OR_BETA = set(
     [
@@ -53,6 +55,7 @@ SHELL_OPTIONS = {
     "ShadowRealm": "--enable-shadow-realms",
     "array-grouping": "--enable-array-grouping",
     "change-array-by-copy": "--enable-change-array-by-copy",
+    "Array.fromAsync": "--enable-array-from-async",
 }
 
 

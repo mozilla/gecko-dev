@@ -1224,6 +1224,105 @@ browser.ui.interaction:
     record_in_processes:
       - 'main'
 
+cookie.banners:
+  normal_window_service_mode:
+    bug_numbers:
+      - 1790781
+      - 1804259
+    description: >
+      The pref value of the cookie banner service mode for normal windows.
+    expires: never
+    kind: boolean
+    keyed: true
+    notification_emails:
+      - tihuang@mozilla.com
+      - pbz@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - 'main'
+  private_window_service_mode:
+    bug_numbers:
+      - 1790781
+      - 1804259
+    description: >
+      The pref value of the cookie banner service mode for private windows.
+    expires: never
+    kind: boolean
+    keyed: true
+    notification_emails:
+      - tihuang@mozilla.com
+      - pbz@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - 'main'
+  rule_lookup_by_load:
+    bug_numbers:
+      - 1797073
+      - 1804259
+    description: >
+      Counts the number of hit/miss of cookie banner rule lookups for every
+      load. We collect three types of counters, including counters for overall
+      rule lookup, counters for cookie rule lookup and counters for click rule
+      lookup. We also divide the counter by top-level loads and iframe loads.
+    expires: '115'
+    kind: uint
+    keyed: true
+    notification_emails:
+      - tihuang@mozilla.com
+      - pbz@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - 'main'
+  rule_lookup_by_domain:
+    bug_numbers:
+      - 1797073
+      - 1804259
+    description: >
+      Counts the number of hit/miss of cookie banner rule lookups for domain.
+      We collect three types of counters, including counters for overall
+      rule lookup, counters for cookie rule lookup and counters for click rule
+      lookup. We also divide the counter by top-level loads and iframe loads.
+      For each domain, we will only collect once.
+    expires: '115'
+    kind: uint
+    keyed: true
+    notification_emails:
+      - tihuang@mozilla.com
+      - pbz@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - 'main'
+
+cookie.banners.click:
+  result:
+    bug_numbers:
+      - 1797078
+      - 1804259
+    description: >
+      Given a matching cookie banner click rule, how often do we handle or fail
+      to handle cookie banners, labelled by reason. The 'success' and 'fail'
+      counters count the total numbers independently of the reason counters.
+      Counters are incremented after the content window has been destroyed.
+    expires: '115'
+    keyed: true
+    kind: uint
+    notification_emails:
+      - pbz@mozilla.com
+      - tihuang@mozilla.com
+    products:
+      - 'firefox'
+    record_in_processes:
+      - 'content'
+    release_channel_collection: opt-out
+
 gecko:
   version:
     bug_numbers:
@@ -3217,6 +3316,22 @@ dom.event:
     record_in_processes:
       - 'content'
 
+dom.midi:
+  has_devices:
+    bug_numbers:
+      - 1797019
+    description: >
+      Records if the user machine has connected MIDI devices.
+    expires: "120"
+    kind: boolean
+    notification_emails:
+      - bholley@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - main
+
 navigator.storage:
   estimate_count:
     bug_numbers:
@@ -3811,6 +3926,23 @@ gfx.feature:
     release_channel_collection: opt-out
 
 gfx:
+  skipped_composites:
+    bug_numbers:
+      - 1797975
+    description: >
+      Number of skipped composites, happening when rendering is too slow to keep up with content.
+    keyed: false
+    kind: uint
+    expires: "never"
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
+    products:
+      - 'firefox'
+      - 'fennec'
+    record_in_processes:
+      - 'main'
+      - 'gpu'
   compositor:
     bug_numbers:
       - 1594145
@@ -3914,8 +4046,7 @@ formautofill:
     kind: boolean
     notification_emails:
       - autofill@lists.mozilla.org
-      - jcheng@mozilla.com
-      - chsiang@mozilla.com
+      - passwords-dev@mozilla.org
     release_channel_collection: opt-out
     products:
       - 'firefox'
@@ -3924,54 +4055,50 @@ formautofill:
       - 'main'
 
 formautofill.addresses:
-  fill_type_manual:
+  detected_sections_count:
     bug_numbers:
-      - 990200
-    description: Count at submission time whether the submitted form was filled manually.
-    expires: never
-    kind: uint
-    notification_emails:
-      - autofill@lists.mozilla.org
-      - jcheng@mozilla.com
-      - chsiang@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-      - 'fennec'
-    record_in_processes:
-      - 'main'
-  fill_type_autofill:
-    bug_numbers:
-      - 990200
-    description: Count at submission time whether the submitted form was autofilled.
-    expires: never
-    kind: uint
-    notification_emails:
-      - autofill@lists.mozilla.org
-      - jcheng@mozilla.com
-      - chsiang@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-      - 'fennec'
-    record_in_processes:
-      - 'main'
-  fill_type_autofill_update:
-    bug_numbers:
-      - 990200
+      - 1801039
     description: >
-      Count at submission time whether the submitted form was autofilled, but
-      the data in form is changed and can not be merged to orginal address profile.
+      Count at detection time number of address form sections.
+      A single form can contain more than one address form section.
     expires: never
     kind: uint
     notification_emails:
       - autofill@lists.mozilla.org
-      - jcheng@mozilla.com
-      - chsiang@mozilla.com
+      - passwords-dev@mozilla.org
     release_channel_collection: opt-out
     products:
       - 'firefox'
-      - 'fennec'
+    record_in_processes:
+      - 'content'
+  submitted_sections_count:
+    bug_numbers:
+      - 1656344
+    description: >
+      Count at submission time number of credit card form sections submitted.
+    expires: never
+    kind: uint
+    notification_emails:
+      - autofill@lists.mozilla.org
+      - passwords-dev@mozilla.org
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - 'content'
+  autofill_profiles_count:
+    bug_numbers:
+      - 1801039
+    description: >
+      Count at store time how many address autofill profiles user has.
+    expires: never
+    kind: uint
+    notification_emails:
+      - autofill@lists.mozilla.org
+      - passwords-dev@mozilla.org
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
     record_in_processes:
       - 'main'
 
@@ -3985,8 +4112,7 @@ formautofill.creditCards:
     kind: uint
     notification_emails:
       - autofill@lists.mozilla.org
-      - jmathies@mozilla.com
-      - chsiang@mozilla.com
+      - passwords-dev@mozilla.org
     release_channel_collection: opt-out
     products:
       - 'firefox'
@@ -4002,8 +4128,7 @@ formautofill.creditCards:
     kind: uint
     notification_emails:
       - autofill@lists.mozilla.org
-      - jmathies@mozilla.com
-      - chsiang@mozilla.com
+      - passwords-dev@mozilla.org
     release_channel_collection: opt-out
     products:
       - 'firefox'
@@ -7442,6 +7567,52 @@ urlbar.picked.searchmode:
     record_in_processes:
       - main
 
+urlbar.zeroprefix:
+  abandonment:
+    bug_numbers:
+      - 1806765
+    description: >
+      Counts how many times the zero-prefix urlbar results panel was abandoned.
+    expires: never
+    kind: uint
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - main
+  engagement:
+    bug_numbers:
+      - 1806765
+    description: >
+      Counts how many times a result was picked in the zero-prefix urlbar
+      results panel.
+    expires: never
+    kind: uint
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - main
+  exposure:
+    bug_numbers:
+      - 1806765
+    description: >
+      Counts how many times the zero-prefix urlbar results panel was shown to
+      the user.
+    expires: never
+    kind: uint
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - main
+
 quickaction:
   picked:
     bug_numbers:
@@ -7604,6 +7775,23 @@ contextual.services.quicksuggest:
       - 'firefox'
     record_in_processes:
       - main
+  impression_weather:
+    bug_numbers:
+      - 1804536
+    description: >
+      A keyed uint recording how many times the user has viewed Firefox Suggest
+      (a.k.a. Quick Suggest) weather result in the urlbar. The key is the
+      1-based index of each result.
+    expires: never
+    kind: uint
+    keyed: true
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - main
   click_dynamic_wikipedia:
     bug_numbers:
       - 1800993
@@ -7680,6 +7868,24 @@ contextual.services.quicksuggest:
       A keyed uint recording how many times the user has clicked on sponsored
       Firefox Suggest best match (a.k.a. top pick) results in the urlbar (not
       including the help button). The key is the 1-based index of each result.
+    expires: never
+    kind: uint
+    keyed: true
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - main
+  click_weather:
+    bug_numbers:
+      - 1804536
+    description: >
+      A keyed uint recording how many times the user has clicked on Firefox
+      Suggests (a.k.a. Quick Suggest) weather results in the urlbar (not
+      including the help and dismiss buttons). The key is the 1-based index of
+      each result.
     expires: never
     kind: uint
     keyed: true
@@ -7778,6 +7984,23 @@ contextual.services.quicksuggest:
       - 'firefox'
     record_in_processes:
       - main
+  help_weather:
+    bug_numbers:
+      - 1804536
+    description: >
+      A keyed uint recording how many times the user has clicked on the help
+      button in Firefox Suggests (a.k.a. Quick Suggest) weather results in the
+      urlbar. The key is the 1-based index of each result.
+    expires: never
+    kind: uint
+    keyed: true
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - main
   block_dynamic_wikipedia:
     bug_numbers:
       - 1800993
@@ -7853,6 +8076,40 @@ contextual.services.quicksuggest:
       A keyed uint recording how many times the user has blocked/dismissed
       sponsored Firefox Suggest best match (a.k.a. top pick) results in the
       urlbar. The key is the 1-based index of each result.
+    expires: never
+    kind: uint
+    keyed: true
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - main
+  block_weather:
+    bug_numbers:
+      - 1804536
+    description: >
+      A keyed uint recording how many times the user has blocked/dismissed
+      Firefox Suggest weather results in the urlbar. The key is the 1-based
+      index of each result.
+    expires: never
+    kind: uint
+    keyed: true
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - main
+  exposure_weather:
+    bug_numbers:
+      - 1806765
+    description: >
+      A keyed uint recording how many times the user has been exposed to a
+      Firefox Suggest weather result in the urlbar. The key is the 1-based index
+      of each result.
     expires: never
     kind: uint
     keyed: true

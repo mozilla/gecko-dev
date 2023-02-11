@@ -103,6 +103,15 @@ impl ComputedValues {
         ).to_outer(None)
     }
 
+    /// Converts the computed values to an Arc<> from a reference.
+    pub fn to_arc(&self) -> Arc<Self> {
+        // SAFETY: We're guaranteed to be allocated as an Arc<> since the
+        // functions above are the only ones that create ComputedValues
+        // instances in Gecko (and that must be the case since ComputedValues'
+        // member is private).
+        unsafe { Arc::from_raw_addrefed(self) }
+    }
+
     #[inline]
     pub fn is_pseudo_style(&self) -> bool {
         self.0.mPseudoType != PseudoStyleType::NotPseudo
@@ -208,8 +217,8 @@ impl ComputedValuesInner {
                 &self,
                 pseudo_ty,
             );
-            // We're simulating move semantics by having C++ do a memcpy and then forgetting
-            // it on this end.
+            // We're simulating move semantics by having C++ do a memcpy and
+            // then forgetting it on this end.
             forget(self);
             UniqueArc::assume_init(arc).shareable()
         }
@@ -678,8 +687,7 @@ fn static_assert() {
     }
 
     pub fn copy_border_${side.ident}_style_from(&mut self, other: &Self) {
-        self.gecko.mBorderStyle[${side.index}] = other.gecko.mBorderStyle[${side.index}];
-        self.gecko.mComputedBorder.${side.ident} = self.gecko.mBorder.${side.ident};
+        self.set_border_${side.ident}_style(other.gecko.mBorderStyle[${side.index}]);
     }
 
     pub fn reset_border_${side.ident}_style(&mut self, other: &Self) {
@@ -809,9 +817,7 @@ fn static_assert() {
     }
 
     pub fn copy_outline_style_from(&mut self, other: &Self) {
-        // FIXME(emilio): Why doesn't this need to reset mActualOutlineWidth?
-        // Looks fishy.
-        self.gecko.mOutlineStyle = other.gecko.mOutlineStyle;
+        self.set_outline_style(other.gecko.mOutlineStyle);
     }
 
     pub fn reset_outline_style(&mut self, other: &Self) {
@@ -857,6 +863,8 @@ fn static_assert() {
         self.gecko.mScriptUnconstrainedSize = other.gecko.mScriptUnconstrainedSize;
 
         self.gecko.mSize = other.gecko.mScriptUnconstrainedSize;
+        // NOTE: Intentionally not copying from mFont.size. The cascade process
+        // recomputes the used size as needed.
         self.gecko.mFont.size = other.gecko.mSize;
         self.gecko.mFontSizeKeyword = other.gecko.mFontSizeKeyword;
 
@@ -870,12 +878,14 @@ fn static_assert() {
     }
 
     pub fn set_font_size(&mut self, v: FontSize) {
-        let size = v.size;
-        self.gecko.mScriptUnconstrainedSize = size;
+        let computed_size = v.computed_size;
+        self.gecko.mScriptUnconstrainedSize = computed_size;
 
         // These two may be changed from Cascade::fixup_font_stuff.
-        self.gecko.mSize = size;
-        self.gecko.mFont.size = size;
+        self.gecko.mSize = computed_size;
+        // NOTE: Intentionally not copying from used_size. The cascade process
+        // recomputes the used size as needed.
+        self.gecko.mFont.size = computed_size;
 
         self.gecko.mFontSizeKeyword = v.keyword_info.kw;
         self.gecko.mFontSizeFactor = v.keyword_info.factor;
@@ -886,7 +896,8 @@ fn static_assert() {
         use crate::values::specified::font::KeywordInfo;
 
         FontSize {
-            size: self.gecko.mSize,
+            computed_size: self.gecko.mSize,
+            used_size: self.gecko.mFont.size,
             keyword_info: KeywordInfo {
                 kw: self.gecko.mFontSizeKeyword,
                 factor: self.gecko.mFontSizeFactor,
@@ -1714,9 +1725,33 @@ mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-
         }
     }
 
-    <% impl_non_negative_length("column_rule_width", "mColumnRuleWidth",
+    pub fn set_column_rule_style(&mut self, v: longhands::column_rule_style::computed_value::T) {
+        self.gecko.mColumnRuleStyle = v;
+        // NB: This is needed to correctly handling the initial value of
+        // column-rule-width when colun-rule-style changes, see the
+        // update_border_${side.ident} comment for more details.
+        self.gecko.mActualColumnRuleWidth = self.gecko.mColumnRuleWidth;
+    }
+
+    pub fn copy_column_rule_style_from(&mut self, other: &Self) {
+        self.set_column_rule_style(other.gecko.mColumnRuleStyle);
+    }
+
+    pub fn reset_column_rule_style(&mut self, other: &Self) {
+        self.copy_column_rule_style_from(other)
+    }
+
+    pub fn clone_column_rule_style(&self) -> longhands::column_rule_style::computed_value::T {
+        self.gecko.mColumnRuleStyle.clone()
+    }
+
+    <% impl_non_negative_length("column_rule_width", "mActualColumnRuleWidth",
+                                inherit_from="mColumnRuleWidth",
                                 round_to_pixels=True) %>
-    ${impl_simple('column_rule_style', 'mColumnRuleStyle')}
+
+    pub fn column_rule_has_nonzero_width(&self) -> bool {
+        self.gecko.mActualColumnRuleWidth != 0
+    }
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Counters">
@@ -1997,6 +2032,7 @@ pub fn assert_initial_values_match(data: &PerDocumentStyleData) {
                 "border-bottom-width",
                 "border-left-width",
                 "border-right-width",
+                "column-rule-width",
                 "font-family",
                 "font-size",
                 "outline-width",

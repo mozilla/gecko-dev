@@ -38,17 +38,19 @@ XPCOMUtils.defineLazyModuleGetters(this, {
 const { sinon } = ChromeUtils.import("resource://testing-common/Sinon.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "QuickSuggestTestUtils", () => {
-  const { QuickSuggestTestUtils: Utils } = ChromeUtils.importESModule(
+  const { QuickSuggestTestUtils: module } = ChromeUtils.importESModule(
     "resource://testing-common/QuickSuggestTestUtils.sys.mjs"
   );
-  return new Utils(this);
+  module.init(this);
+  return module;
 });
 
 XPCOMUtils.defineLazyGetter(this, "MerinoTestUtils", () => {
-  const { MerinoTestUtils: Utils } = ChromeUtils.importESModule(
+  const { MerinoTestUtils: module } = ChromeUtils.importESModule(
     "resource://testing-common/MerinoTestUtils.sys.mjs"
   );
-  return new Utils(this);
+  module.init(this);
+  return module;
 });
 
 SearchTestUtils.init(this);
@@ -506,7 +508,7 @@ function makeOmniboxResult(
 ) {
   let result = new UrlbarResult(
     UrlbarUtils.RESULT_TYPE.OMNIBOX,
-    UrlbarUtils.RESULT_SOURCE.OTHER_NETWORK,
+    UrlbarUtils.RESULT_SOURCE.ADDON,
     ...UrlbarResult.payloadAndSimpleHighlights(queryContext.tokens, {
       title: [description, UrlbarUtils.HIGHLIGHT.TYPED],
       content: [content, UrlbarUtils.HIGHLIGHT.TYPED],

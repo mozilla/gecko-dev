@@ -9,34 +9,14 @@ Services.scriptloader.loadSubScript(
   this
 );
 
-// source-map has to be loaded via a Browser Loader in order to be able to instantiate
-// a web worker and have access to Worker symbol in globals
-const { BrowserLoader } = ChromeUtils.import(
-  "resource://devtools/shared/loader/browser-loader.js"
-);
-const { require: browserRequire } = BrowserLoader({
-  baseURI: "resource://devtools/",
-  window,
-});
-delete window.getBrowserLoaderForWindow;
-
 const {
-  startSourceMapWorker,
-  getOriginalURLs,
-  getOriginalLocation,
-  getGeneratedLocation,
-  getGeneratedRangesForOriginal,
-  clearSourceMaps,
-} = browserRequire(
-  "resource://devtools/client/shared/source-map-loader/index.js"
-);
+  SourceMapLoader,
+} = require("resource://devtools/client/shared/source-map-loader/index.js");
 
-startSourceMapWorker(
-  "resource://devtools/client/shared/source-map-loader/worker.js"
-);
+const gSourceMapLoader = new SourceMapLoader();
 
 function fetchFixtureSourceMap(name) {
-  clearSourceMaps();
+  gSourceMapLoader.clearSourceMaps();
 
   const source = {
     id: `${name}.js`,
@@ -44,5 +24,5 @@ function fetchFixtureSourceMap(name) {
     sourceMapBaseURL: `${URL_ROOT_SSL}fixtures/${name}.js`,
   };
 
-  return getOriginalURLs(source);
+  return gSourceMapLoader.getOriginalURLs(source);
 }

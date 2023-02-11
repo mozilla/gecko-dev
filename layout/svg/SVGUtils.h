@@ -477,7 +477,8 @@ class SVGUtils final {
   }
 
   static nscolor GetFallbackOrPaintColor(
-      const ComputedStyle&, StyleSVGPaint nsStyleSVG::*aFillOrStroke);
+      const ComputedStyle&, StyleSVGPaint nsStyleSVG::*aFillOrStroke,
+      nscolor aDefaultContextFallbackColor);
 
   static void MakeFillPatternFor(nsIFrame* aFrame, gfxContext* aContext,
                                  GeneralPattern* aOutPattern,

@@ -4,23 +4,21 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 # ***** END LICENSE BLOCK *****
-from __future__ import absolute_import
-import sys
-import os
 import glob
+import os
 import re
 import subprocess
+import sys
 
 # load modules from parent dir
 sys.path.insert(1, os.path.dirname(sys.path[0]))
 
 # import the guts
 import mozharness
-from mozharness.base.vcs.vcsbase import VCSScript
-from mozharness.base.log import ERROR, DEBUG, FATAL
+from mozharness.base.log import DEBUG, ERROR, FATAL
 from mozharness.base.transfer import TransferMixin
+from mozharness.base.vcs.vcsbase import VCSScript
 from mozharness.mozilla.tooltool import TooltoolMixin
-
 
 external_tools_path = os.path.join(
     os.path.abspath(os.path.dirname(os.path.dirname(mozharness.__file__))),
@@ -245,7 +243,12 @@ class OpenH264Build(TransferMixin, VCSScript, TooltoolMixin):
         return "%s/%s" % (self.config["upload_path_base"], self.config["revision"])
 
     def run_make(self, target, capture_output=False):
-        cmd = ["make", target] + self.query_make_params()
+        make = (
+            f"{os.environ['MOZ_FETCHES_DIR']}/mozmake/mozmake"
+            if sys.platform == "win32"
+            else "make"
+        )
+        cmd = [make, target] + self.query_make_params()
         dirs = self.query_abs_dirs()
         repo_dir = os.path.join(dirs["abs_work_dir"], "openh264")
         env = None

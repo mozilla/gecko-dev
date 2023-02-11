@@ -28,12 +28,14 @@
 #include "threading/ExclusiveData.h"
 #include "vm/Runtime.h"
 #include "vm/StringType.h"
+#include "wasm/WasmCodegenConstants.h"
 #include "wasm/WasmJS.h"
 
 using namespace js;
 using namespace js::jit;
 using namespace js::wasm;
 
+using mozilla::CheckedUint32;
 using mozilla::IsPowerOfTwo;
 
 // [SMDOC] Immediate type signature encoding
@@ -332,6 +334,92 @@ size_t TypeDef::sizeOfExcludingThis(MallocSizeOf mallocSizeOf) const {
   return 0;
 }
 
+/* static */
+size_t SuperTypeVector::offsetOfTypeDefInVector(uint32_t typeDefDepth) {
+  return offsetof(SuperTypeVector, types) + sizeof(void*) * typeDefDepth;
+}
+
+/* static */
+size_t SuperTypeVector::lengthForTypeDef(const TypeDef& typeDef) {
+  return std::max(uint32_t(typeDef.subTypingDepth()) + 1,
+                  MinSuperTypeVectorLength);
+}
+
+/* static */
+size_t SuperTypeVector::byteSizeForTypeDef(const TypeDef& typeDef) {
+  static_assert(
+      sizeof(SuperTypeVector) + sizeof(void*) * (MaxSubTypingDepth + 1) <=
+          UINT16_MAX,
+      "cannot overflow");
+  return sizeof(SuperTypeVector) + (sizeof(void*) * lengthForTypeDef(typeDef));
+}
+
+/* static */
+const SuperTypeVector* SuperTypeVector::createMultipleForRecGroup(
+    RecGroup* recGroup) {
+  // Pre-size the amount of space needed for all the super type vectors in this
+  // recursion group.
+  CheckedUint32 totalBytes = 0;
+  for (uint32_t typeIndex = 0; typeIndex < recGroup->numTypes(); typeIndex++) {
+    totalBytes +=
+        SuperTypeVector::byteSizeForTypeDef(recGroup->type(typeIndex));
+  }
+  if (!totalBytes.isValid()) {
+    return nullptr;
+  }
+
+  // Allocate the batch, and retain reference to the first one.
+  SuperTypeVector* firstVector =
+      (SuperTypeVector*)js_malloc(totalBytes.value());
+  if (!firstVector) {
+    return nullptr;
+  }
+
+  // Initialize the vectors, one by one
+  SuperTypeVector* currentVector = firstVector;
+  for (uint32_t typeIndex = 0; typeIndex < recGroup->numTypes(); typeIndex++) {
+    TypeDef& typeDef = recGroup->type(typeIndex);
+
+    // Compute the size again to know where the next vector can be found.
+    size_t vectorByteSize = SuperTypeVector::byteSizeForTypeDef(typeDef);
+
+    // Link the corresponding typeDef to this vector.
+    typeDef.setSuperTypeVector(currentVector);
+
+    // Every vector stores all ancestor types and itself.
+    currentVector->length = SuperTypeVector::lengthForTypeDef(typeDef);
+
+    // Initialize the entries in the vector
+    const TypeDef* currentTypeDef = &typeDef;
+    for (uint32_t index = 0; index < currentVector->length; index++) {
+      uint32_t reverseIndex = currentVector->length - index - 1;
+
+      // If this entry is required just to hit the minimum size, then
+      // initialize it to null.
+      if (reverseIndex > typeDef.subTypingDepth()) {
+        currentVector->types[reverseIndex] = nullptr;
+        continue;
+      }
+
+      // Otherwise we should always be iterating at the same depth as our
+      // currentTypeDef.
+      MOZ_ASSERT(reverseIndex == currentTypeDef->subTypingDepth());
+
+      currentVector->types[reverseIndex] = currentTypeDef;
+      currentTypeDef = currentTypeDef->superTypeDef();
+    }
+
+    // There should be no more super types left over
+    MOZ_ASSERT(currentTypeDef == nullptr);
+
+    // Advance to the next super type vector
+    currentVector =
+        (SuperTypeVector*)(((const char*)currentVector) + vectorByteSize);
+  }
+
+  return firstVector;
+}
+
 struct RecGroupHashPolicy {
   using Lookup = const SharedRecGroup&;
 
@@ -348,11 +436,6 @@ class TypeIdSet {
   Set set_;
 
  public:
-  ~TypeIdSet() {
-    // We should clean out all dead entries deterministically before shutdown.
-    MOZ_ASSERT_IF(!JSRuntime::hasLiveRuntimes(), set_.empty());
-  }
-
   // Attempt to insert a recursion group into the set, returning an existing
   // recursion group if there was one.
   SharedRecGroup insert(SharedRecGroup recGroup) {
@@ -368,6 +451,20 @@ class TypeIdSet {
       return nullptr;
     }
     return recGroup;
+  }
+
+  void purge() {
+    // TODO: this is not guaranteed to remove all types that are not referenced
+    // from outside the canonical set, as removing a type may make a previous
+    // type we've visited now only have one ref and be eligible to be freed.
+    //
+    // Solving this either involves iterating to a fixed point, or else a much
+    // more invasive change to the lifetime management of recursion groups.
+    for (auto iter = set_.modIter(); !iter.done(); iter.next()) {
+      if (iter.get()->hasOneRef()) {
+        iter.remove();
+      }
+    }
   }
 
   // Release the provided recursion group reference and remove it from the
@@ -388,6 +485,11 @@ class TypeIdSet {
 };
 
 ExclusiveData<TypeIdSet> typeIdSet(mutexid::WasmTypeIdSet);
+
+void wasm::PurgeCanonicalTypes() {
+  ExclusiveData<TypeIdSet>::Guard locked = typeIdSet.lock();
+  locked->purge();
+}
 
 SharedRecGroup TypeContext::canonicalizeGroup(SharedRecGroup recGroup) {
   ExclusiveData<TypeIdSet>::Guard locked = typeIdSet.lock();

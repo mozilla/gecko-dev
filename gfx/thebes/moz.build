@@ -70,6 +70,7 @@ EXPORTS.mozilla.gfx += [
     "D3D11Checks.h",
     "DeviceManagerDx.h",
     "DisplayConfigWindows.h",
+    "PrintPromise.h",
     "PrintTarget.h",
     "PrintTargetThebes.h",
     "ThebesRLBox.h",
@@ -292,10 +293,6 @@ if CONFIG["MOZ_WAYLAND"]:
 LOCAL_INCLUDES += CONFIG["SKIA_INCLUDES"]
 
 DEFINES["GRAPHITE2_STATIC"] = True
-
-if CONFIG["CC_TYPE"] in ("clang", "clang-cl"):
-    # Suppress warnings from Skia header files.
-    SOURCES["gfxPlatform.cpp"].flags += ["-Wno-implicit-fallthrough"]
 
 CXXFLAGS += ["-Werror=switch"]
 

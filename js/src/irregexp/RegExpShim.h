@@ -445,6 +445,8 @@ inline constexpr bool IsDecimalDigit(base::uc32 c) {
   return c >= '0' && c <= '9';
 }
 
+inline constexpr int AsciiAlphaToLower(base::uc32 c) { return c | 0x20; }
+
 inline bool is_uint24(int64_t val) { return (val >> 24) == 0; }
 inline bool is_int24(int64_t val) {
   int64_t limit = int64_t(1) << 23;
@@ -1037,6 +1039,10 @@ inline bool IsMultiline(RegExpFlags flags) { return flags.multiline(); }
 inline bool IsDotAll(RegExpFlags flags) { return flags.dotAll(); }
 inline bool IsSticky(RegExpFlags flags) { return flags.sticky(); }
 
+// TODO: Support /v flag (bug 1713657)
+inline bool IsUnicodeSets(RegExpFlags flags) { return false; }
+inline bool IsEitherUnicode(RegExpFlags flags) { return flags.unicode(); }
+
 class Histogram {
  public:
   inline void AddSample(int sample) {}
@@ -1252,60 +1258,7 @@ class Label {
   friend class SMRegExpMacroAssembler;
 };
 
-//**************************************************
-// Constant Flags
-//**************************************************
-
-// V8 uses this for differential fuzzing to handle stack overflows.
-// We address the same problem in StackLimitCheck::HasOverflowed.
-const bool FLAG_correctness_fuzzer_suppressions = false;
-
-// Instead of using a flag for this, we provide an implementation of
-// CanReadUnaligned in SMRegExpMacroAssembler.
-const bool FLAG_enable_regexp_unaligned_accesses = false;
-
-// This is used to guard a prototype implementation of sequence properties.
-// See: https://github.com/tc39/proposal-regexp-unicode-sequence-properties
-// TODO: Expose this behind a pref once it is past stage 2?
-const bool FLAG_harmony_regexp_sequence = false;
-
-// This is only used in a helper function in regex.h that we never call.
-const bool FLAG_regexp_interpret_all = false;
-
-// This is used to guard a prototype implementation of mode modifiers,
-// which can modify the regexp flags on the fly inside the pattern.
-// As far as I can tell, there isn't even a TC39 proposal for this.
-const bool FLAG_regexp_mode_modifiers = false;
-
-// This is used to guard an old prototype implementation of possessive
-// quantifiers, which never got past the point of adding parser support.
-const bool FLAG_regexp_possessive_quantifier = false;
-
-// These affect the default level of optimization. We can still turn
-// optimization off on a case-by-case basis in CompilePattern - for
-// example, if a regexp is too long - so we might as well turn these
-// flags on unconditionally.
-const bool FLAG_regexp_optimization = true;
-#if MOZ_BIG_ENDIAN()
-// peephole optimization not supported on big endian
-const bool FLAG_regexp_peephole_optimization = false;
-#else
-const bool FLAG_regexp_peephole_optimization = true;
-#endif
-
-// This is used to control whether regexps tier up from interpreted to
-// compiled. We control this with --no-native-regexp and
-// --regexp-warmup-threshold.
-const bool FLAG_regexp_tier_up = true;
-
-//**************************************************
-// Debugging Flags
-//**************************************************
-
-#define FLAG_trace_regexp_bytecodes js::jit::JitOptions.traceRegExpInterpreter
-#define FLAG_trace_regexp_parser js::jit::JitOptions.traceRegExpParser
-#define FLAG_trace_regexp_peephole_optimization \
-  js::jit::JitOptions.traceRegExpPeephole
+#define v8_flags js::jit::JitOptions
 
 #define V8_USE_COMPUTED_GOTO 1
 #define COMPILING_IRREGEXP_FOR_EXTERNAL_EMBEDDER

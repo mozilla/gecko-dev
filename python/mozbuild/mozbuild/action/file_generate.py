@@ -6,20 +6,19 @@
 # the arguments that can be used to generate the output file, call the
 # script's |main| method with appropriate arguments.
 
-from __future__ import absolute_import, print_function
-
 import argparse
 import importlib.util
 import os
-import six
 import sys
 import traceback
 
-from mozbuild.pythonutil import iter_modules_in_path
-from mozbuild.makeutil import Makefile
-from mozbuild.util import FileAvoidWrite
 import buildconfig
+import six
+
 from mozbuild.action.util import log_build_task
+from mozbuild.makeutil import Makefile
+from mozbuild.pythonutil import iter_modules_in_path
+from mozbuild.util import FileAvoidWrite
 
 
 def main(argv):

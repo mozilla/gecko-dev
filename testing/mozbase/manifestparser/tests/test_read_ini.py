@@ -10,15 +10,12 @@ is the default:
 http://docs.python.org/2/library/configparser.html
 """
 
-from __future__ import absolute_import
-
 from textwrap import dedent
 
 import mozunit
 import pytest
-from six import StringIO
-
 from manifestparser import read_ini
+from six import StringIO
 
 
 @pytest.fixture(scope="module")

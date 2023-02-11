@@ -28,7 +28,7 @@ jobs:
             symbol: V-swr
             kind: build
             tier: 1
-        worker-type: b-linux
+        worker-type: t-linux-kvm
         worker:
             docker-image: {in-tree: valgrind-build}
             max-run-time: 72000
@@ -50,7 +50,6 @@ jobs:
         use-sccache: true
         fetches:
             toolchain:
-                - linux64-binutils
                 - linux64-clang
                 - linux64-rust
                 - linux64-cbindgen

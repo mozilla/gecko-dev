@@ -3,8 +3,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import
-
 import errno
 import json
 import os
@@ -12,16 +10,12 @@ import posixpath
 import shutil
 import sys
 import tempfile
-import zipfile
 import uuid
+import zipfile
 
 import mozinfo
-from mozharness.base.script import (
-    PreScriptAction,
-    PostScriptAction,
-)
+from mozharness.base.script import PostScriptAction, PreScriptAction
 from mozharness.mozilla.testing.per_test_base import SingleTestMixin
-
 
 code_coverage_config_options = [
     [
@@ -163,7 +157,7 @@ class CodeCoverageMixin(SingleTestMixin):
         if not self.code_coverage_enabled and not self.java_code_coverage_enabled:
             return
 
-        self.grcov_dir = os.environ["MOZ_FETCHES_DIR"]
+        self.grcov_dir = os.path.join(os.environ["MOZ_FETCHES_DIR"], "grcov")
         if not os.path.isfile(os.path.join(self.grcov_dir, self.grcov_bin)):
             raise Exception(
                 "File not found: {}".format(

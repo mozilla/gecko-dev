@@ -79,15 +79,12 @@ HRESULT MFMediaSource::RuntimeClassInitialize(
 
 IFACEMETHODIMP MFMediaSource::GetCharacteristics(DWORD* aCharacteristics) {
   // This could be run on both mf thread pool and manager thread.
-  MOZ_ASSERT(!mTaskQueue->IsCurrentThreadIn());
   {
     MutexAutoLock lock(mMutex);
     if (mState == State::Shutdowned) {
       return MF_E_SHUTDOWN;
     }
   }
-
-  LOG("GetCharacteristics");
   // https://docs.microsoft.com/en-us/windows/win32/api/mfidl/ne-mfidl-mfmediasource_characteristics
   *aCharacteristics = MFMEDIASOURCE_CAN_SEEK | MFMEDIASOURCE_CAN_PAUSE;
   return S_OK;
@@ -276,7 +273,7 @@ IFACEMETHODIMP MFMediaSource::Pause() {
 }
 
 IFACEMETHODIMP MFMediaSource::Shutdown() {
-  AssertOnManagerThread();
+  // Could be called on either manager thread or MF thread pool.
   MutexAutoLock lock(mMutex);
   if (mState == State::Shutdowned) {
     return MF_E_SHUTDOWN;
@@ -286,6 +283,15 @@ IFACEMETHODIMP MFMediaSource::Shutdown() {
   // After this method is called, all IMFMediaEventQueue methods return
   // MF_E_SHUTDOWN.
   RETURN_IF_FAILED(mMediaEventQueue->Shutdown());
+  mState = State::Shutdowned;
+  LOG("Shutdowned media source");
+  return S_OK;
+}
+
+void MFMediaSource::ShutdownTaskQueue() {
+  AssertOnManagerThread();
+  LOG("ShutdownTaskQueue");
+  MutexAutoLock lock(mMutex);
   if (mAudioStream) {
     mAudioStream->Shutdown();
     mAudioStream = nullptr;
@@ -296,30 +302,24 @@ IFACEMETHODIMP MFMediaSource::Shutdown() {
     mVideoStream = nullptr;
     mVideoStreamEndedListener.DisconnectIfExists();
   }
-
-  mState = State::Shutdowned;
   Unused << mTaskQueue->BeginShutdown();
-  LOG("Shutdowned media source");
-  return S_OK;
+  mTaskQueue = nullptr;
 }
 
 IFACEMETHODIMP MFMediaSource::GetEvent(DWORD aFlags, IMFMediaEvent** aEvent) {
   MOZ_ASSERT(mMediaEventQueue);
-  LOG("GetEvent");
   return mMediaEventQueue->GetEvent(aFlags, aEvent);
 }
 
 IFACEMETHODIMP MFMediaSource::BeginGetEvent(IMFAsyncCallback* aCallback,
                                             IUnknown* aState) {
   MOZ_ASSERT(mMediaEventQueue);
-  LOG("BeginGetEvent");
   return mMediaEventQueue->BeginGetEvent(aCallback, aState);
 }
 
 IFACEMETHODIMP MFMediaSource::EndGetEvent(IMFAsyncResult* aResult,
                                           IMFMediaEvent** aEvent) {
   MOZ_ASSERT(mMediaEventQueue);
-  LOG("EndGetEvent");
   return mMediaEventQueue->EndGetEvent(aResult, aEvent);
 }
 
@@ -399,7 +399,6 @@ void MFMediaSource::SetDCompSurfaceHandle(HANDLE aDCompSurfaceHandle) {
 
 IFACEMETHODIMP MFMediaSource::GetService(REFGUID aGuidService, REFIID aRiid,
                                          LPVOID* aResult) {
-  AssertOnMFThreadPool();
   if (!IsEqualGUID(aGuidService, MF_RATE_CONTROL_SERVICE)) {
     return MF_E_UNSUPPORTED_SERVICE;
   }
@@ -532,11 +531,9 @@ void MFMediaSource::AssertOnManagerThread() const {
 
 void MFMediaSource::AssertOnMFThreadPool() const {
   // We can't really assert the thread id from thread pool, because it would
-  // change any time. So we just assert this is not the task queue and the
-  // manager thread, and use the explicit function name to indicate what thread
-  // we should run on.
-  MOZ_ASSERT(!mTaskQueue->IsCurrentThreadIn() &&
-             !mManagerThread->IsOnCurrentThread());
+  // change any time. So we just assert this is not the manager thread, and use
+  // the explicit function name to indicate what thread we should run on.
+  MOZ_ASSERT(!mManagerThread->IsOnCurrentThread());
 }
 
 #undef LOG

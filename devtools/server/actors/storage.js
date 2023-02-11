@@ -389,7 +389,11 @@ StorageActors.defaults = function(typeName, observationTopics) {
      *         - sortOn {string} : The values should be sorted on this property.
      *         - index {string} : In case of indexed db, the IDBIndex to be used
      *                 for fetching the values.
-     *
+     *         - sessionString {string} : Client-side value of storage-expires-session
+     *                         l10n string. Since this function can be called from both
+     *                         the client and the server, and given that client and
+     *                         server might have different locales, we can't compute
+     *                         the localized string directly from here.
      * @return {object} An object containing following properties:
      *          - offset - The actual offset of the returned array. This might
      *                     be different from the requested offset if that was
@@ -477,7 +481,11 @@ StorageActors.defaults = function(typeName, observationTopics) {
       } else {
         // We need to use natural sort before slicing.
         const sorted = toReturn.data.sort((a, b) => {
-          return naturalSortCaseInsensitive(a[sortOn], b[sortOn]);
+          return naturalSortCaseInsensitive(
+            a[sortOn],
+            b[sortOn],
+            options.sessionString
+          );
         });
         let sliced;
         if (this.typeName === "indexedDB") {
@@ -2020,7 +2028,7 @@ if (Services.prefs.getBoolPref(EXTENSION_STORAGE_ENABLED_PREF, false)) {
         }
 
         let { name, value } = item;
-        let isValueEditable = extensionStorageHelpers.isEditable(value);
+        const isValueEditable = extensionStorageHelpers.isEditable(value);
 
         // `JSON.stringify()` throws for `BigInt`, adds extra quotes to strings and `Date` strings,
         // and doesn't modify `undefined`.
@@ -2041,16 +2049,6 @@ if (Services.prefs.getBoolPref(EXTENSION_STORAGE_ENABLED_PREF, false)) {
             ) {
               value = JSON.parse(value);
             }
-        }
-
-        // FIXME: Bug 1318029 - Due to a bug that is thrown whenever a
-        // LongStringActor string reaches DevToolsServer.LONG_STRING_LENGTH we need
-        // to trim the value. When the bug is fixed we should stop trimming the
-        // string here.
-        const maxLength = DevToolsServer.LONG_STRING_LENGTH - 1;
-        if (value.length > maxLength) {
-          value = value.substr(0, maxLength);
-          isValueEditable = false;
         }
 
         return {
@@ -2695,16 +2693,7 @@ StorageActors.createActor(
         };
       }
 
-      let value = JSON.stringify(item.value);
-
-      // FIXME: Bug 1318029 - Due to a bug that is thrown whenever a
-      // LongStringActor string reaches DevToolsServer.LONG_STRING_LENGTH we need
-      // to trim the value. When the bug is fixed we should stop trimming the
-      // string here.
-      const maxLength = DevToolsServer.LONG_STRING_LENGTH - 1;
-      if (value.length > maxLength) {
-        value = value.substr(0, maxLength);
-      }
+      const value = JSON.stringify(item.value);
 
       // Indexed db entry
       return {

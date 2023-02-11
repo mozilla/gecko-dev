@@ -5,11 +5,12 @@
 
 from copy import deepcopy
 
-from gecko_taskgraph.transforms.test import test_description_schema
 from taskgraph.transforms.base import TransformSequence
 from taskgraph.util.schema import Schema, optionally_keyed_by, resolve_keyed_by
 from taskgraph.util.treeherder import join_symbol, split_symbol
 from voluptuous import Extra, Optional, Required
+
+from gecko_taskgraph.transforms.test import test_description_schema
 
 transforms = TransformSequence()
 task_transforms = TransformSequence()
@@ -277,6 +278,8 @@ def add_extra_options(config, tests):
             extra_options.append("--device-name=a51")
         elif test_platform.startswith("android-hw-p2"):
             extra_options.append("--device-name=p2_aarch64")
+        elif test_platform.startswith("android-hw-p5"):
+            extra_options.append("--device-name=p5_aarch64")
 
         if test["raptor"].pop("run-visual-metrics", False):
             extra_options.append("--browsertime-video")

@@ -434,19 +434,30 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         properties::adjust_border_width(self.style);
     }
 
-    /// The initial value of outline-width may be changed at computed value time.
-    fn adjust_for_outline(&mut self) {
-        if self
-            .style
-            .get_outline()
-            .clone_outline_style()
-            .none_or_hidden() &&
-            self.style.get_outline().outline_has_nonzero_width()
-        {
-            self.style
-                .mutate_outline()
-                .set_outline_width(crate::Zero::zero());
+    /// column-rule-style: none causes a computed column-rule-width of zero
+    /// at computed value time.
+    fn adjust_for_column_rule_width(&mut self) {
+        let column_style = self.style.get_column();
+        if !column_style.clone_column_rule_style().none_or_hidden() {
+            return;
         }
+        if !column_style.column_rule_has_nonzero_width() {
+            return;
+        }
+        self.style.mutate_column().set_column_rule_width(crate::Zero::zero());
+    }
+
+    /// outline-style: none causes a computed outline-width of zero at computed
+    /// value time.
+    fn adjust_for_outline_width(&mut self) {
+        let outline = self.style.get_outline();
+        if !outline.clone_outline_style().none_or_hidden() {
+            return;
+        }
+        if !outline.outline_has_nonzero_width() {
+            return;
+        }
+        self.style.mutate_outline().set_outline_width(crate::Zero::zero());
     }
 
     /// CSS overflow-x and overflow-y require some fixup as well in some cases.
@@ -952,7 +963,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             self.adjust_for_alignment(layout_parent_style);
         }
         self.adjust_for_border_width();
-        self.adjust_for_outline();
+        self.adjust_for_column_rule_width();
+        self.adjust_for_outline_width();
         self.adjust_for_writing_mode(layout_parent_style);
         #[cfg(feature = "gecko")]
         {

@@ -17,9 +17,8 @@ const { AppConstants } = ChromeUtils.importESModule(
   "resource://gre/modules/AppConstants.sys.mjs"
 );
 
-import * as search from "../workers/search";
-import * as prettyPrint from "../workers/pretty-print";
-import { ParserDispatcher } from "../workers/parser";
+import { SearchDispatcher } from "../workers/search";
+import { PrettyPrintDispatcher } from "../workers/pretty-print";
 
 import configureStore from "../actions/utils/create-store";
 import reducers from "../reducers";
@@ -29,7 +28,7 @@ import { asyncStore, prefs } from "./prefs";
 import { persistTabs } from "../utils/tabs";
 const { sanitizeBreakpoints } = require("devtools/client/shared/thread-utils");
 
-let parser;
+let gWorkers;
 
 export function bootstrapStore(client, workers, panel, initialState) {
   const debugJsModules = AppConstants.DEBUG_JS_MODULES == "1";
@@ -53,20 +52,18 @@ export function bootstrapStore(client, workers, panel, initialState) {
 }
 
 export function bootstrapWorkers(panelWorkers) {
-  const workerPath = "resource://devtools/client/debugger/dist";
-
-  prettyPrint.start(`${workerPath}/pretty-print-worker.js`);
-  parser = new ParserDispatcher();
-
-  parser.start(`${workerPath}/parser-worker.js`);
-  search.start(`${workerPath}/search-worker.js`);
-  return { ...panelWorkers, prettyPrint, parser, search };
+  // The panel worker will typically be the source map and parser workers.
+  // Both will be managed by the toolbox.
+  gWorkers = {
+    prettyPrintWorker: new PrettyPrintDispatcher(),
+    searchWorker: new SearchDispatcher(),
+  };
+  return { ...panelWorkers, ...gWorkers };
 }
 
 export function teardownWorkers() {
-  prettyPrint.stop();
-  parser.stop();
-  search.stop();
+  gWorkers.prettyPrintWorker.stop();
+  gWorkers.searchWorker.stop();
 }
 
 /**

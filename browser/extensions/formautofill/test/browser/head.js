@@ -24,6 +24,14 @@ const PRIVACY_PREF_URL = "about:preferences#privacy";
 const HTTP_TEST_PATH = "/browser/browser/extensions/formautofill/test/browser/";
 const BASE_URL = "http://mochi.test:8888" + HTTP_TEST_PATH;
 const FORM_URL = BASE_URL + "autocomplete_basic.html";
+const ADDRESS_FORM_URL =
+  "https://example.org" +
+  HTTP_TEST_PATH +
+  "address/autocomplete_address_basic.html";
+const ADDRESS_FORM_WITHOUT_AUTOCOMPLETE_URL =
+  "https://example.org" +
+  HTTP_TEST_PATH +
+  "address/without_autocomplete_address_basic.html";
 const CREDITCARD_FORM_URL =
   "https://example.org" +
   HTTP_TEST_PATH +
@@ -43,7 +51,6 @@ const CREDITCARD_FORM_WITHOUT_AUTOCOMPLETE_URL =
 const EMPTY_URL = "https://example.org" + HTTP_TEST_PATH + "empty.html";
 
 const FTU_PREF = "extensions.formautofill.firstTimeUse";
-const CREDITCARDS_USED_STATUS_PREF = "extensions.formautofill.creditCards.used";
 const ENABLED_AUTOFILL_ADDRESSES_PREF =
   "extensions.formautofill.addresses.enabled";
 const ENABLED_AUTOFILL_ADDRESSES_CAPTURE_PREF =
@@ -78,11 +85,13 @@ const TEST_ADDRESS_1 = {
 };
 
 const TEST_ADDRESS_2 = {
+  "given-name": "Anonymouse",
   "street-address": "Some Address",
   country: "US",
 };
 
 const TEST_ADDRESS_3 = {
+  "given-name": "John",
   "street-address": "Other Address",
   "postal-code": "12345",
 };
@@ -96,6 +105,8 @@ const TEST_ADDRESS_4 = {
   email: "timbl@w3.org",
 };
 
+// TODO: Number of field less than AUTOFILL_FIELDS_THRESHOLD
+//       need to confirm whether this is intentional
 const TEST_ADDRESS_5 = {
   tel: "+16172535702",
 };
@@ -148,7 +159,6 @@ const TEST_CREDIT_CARD_1 = {
   "cc-number": "4111111111111111",
   "cc-exp-month": 4,
   "cc-exp-year": new Date().getFullYear(),
-  "cc-type": "visa",
 };
 
 const TEST_CREDIT_CARD_2 = {
@@ -156,25 +166,21 @@ const TEST_CREDIT_CARD_2 = {
   "cc-number": "4929001587121045",
   "cc-exp-month": 12,
   "cc-exp-year": new Date().getFullYear() + 10,
-  "cc-type": "visa",
 };
 
 const TEST_CREDIT_CARD_3 = {
   "cc-number": "5103059495477870",
   "cc-exp-month": 1,
   "cc-exp-year": 2000,
-  "cc-type": "mastercard",
 };
 
 const TEST_CREDIT_CARD_4 = {
   "cc-number": "5105105105105100",
-  "cc-type": "mastercard",
 };
 
 const TEST_CREDIT_CARD_5 = {
   "cc-name": "Chris P. Bacon",
   "cc-number": "4012888888881881",
-  "cc-type": "visa",
 };
 
 const MAIN_BUTTON = "button";

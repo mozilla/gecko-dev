@@ -90,6 +90,10 @@ function setScrubberPosition(position) {
   Player.setScrubberPosition(position);
 }
 
+function setTimestamp(timeString) {
+  Player.setTimestamp(timeString);
+}
+
 /**
  * The Player object handles initializing the player, holds state, and handles
  * events for updating state.
@@ -246,6 +250,8 @@ let Player = {
       seekForwardButton.previousElementSibling.hidden = false;
 
       this.scrubber.hidden = false;
+      this.timestamp.hidden = false;
+      this.timestamp.nextElementSibling.hidden = false;
 
       const controlsBottomGradient = document.getElementById(
         "controls-bottom-gradient"
@@ -460,12 +466,12 @@ let Player = {
     if (!this.scrubbing) {
       return;
     }
-    this.scrubbing = false;
     let scrubberPosition = this.getScrubberPositionFromEvent(event);
     this.setVideoTime(scrubberPosition);
     if (this.wasPlaying) {
       this.actor.sendAsyncMessage("PictureInPicture:Play");
     }
+    this.scrubbing = false;
   },
 
   getScrubberPositionFromEvent(event) {
@@ -473,14 +479,20 @@ let Player = {
   },
 
   setVideoTime(scrubberPosition) {
+    let wasPlaying = this.scrubbing ? this.wasPlaying : this.isPlaying;
     this.setScrubberPosition(scrubberPosition);
     this.actor.sendAsyncMessage("PictureInPicture:SetVideoTime", {
       scrubberPosition,
+      wasPlaying,
     });
   },
 
   setScrubberPosition(value) {
     this.scrubber.value = value;
+  },
+
+  setTimestamp(timestamp) {
+    this.timestamp.textContent = timestamp;
   },
 
   closePipWindow(closeData) {
@@ -962,6 +974,11 @@ let Player = {
   get scrubber() {
     delete this.scrubber;
     return (this.scrubber = document.getElementById("scrubber"));
+  },
+
+  get timestamp() {
+    delete this.timestamp;
+    return (this.timestamp = document.getElementById("timestamp"));
   },
 
   get controlsBottom() {

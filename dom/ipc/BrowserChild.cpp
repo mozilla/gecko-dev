@@ -481,13 +481,6 @@ nsresult BrowserChild::Init(mozIDOMWindowProxy* aParent,
   nsCOMPtr<EventTarget> chromeHandler = window->GetChromeEventHandler();
   docShell->SetChromeEventHandler(chromeHandler);
 
-  if (window->GetCurrentInnerWindow()) {
-    window->SetKeyboardIndicators(ShowFocusRings());
-  } else {
-    // Skip ShouldShowFocusRing check if no inner window is available
-    window->SetInitialKeyboardIndicators(ShowFocusRings());
-  }
-
   // Window scrollbar flags only affect top level remote frames, not fission
   // frames.
   if (mIsTopLevel) {
@@ -548,7 +541,6 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(BrowserChild)
   NS_INTERFACE_MAP_ENTRY(nsIWebBrowserChrome)
-  NS_INTERFACE_MAP_ENTRY(nsIEmbeddingSiteWindow)
   NS_INTERFACE_MAP_ENTRY(nsIWebBrowserChromeFocus)
   NS_INTERFACE_MAP_ENTRY(nsIInterfaceRequestor)
   NS_INTERFACE_MAP_ENTRY(nsIWindowProvider)
@@ -575,32 +567,6 @@ BrowserChild::SetChromeFlags(uint32_t aChromeFlags) {
   NS_WARNING("trying to SetChromeFlags from content process?");
 
   return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
-BrowserChild::RemoteSizeShellTo(int32_t aWidth, int32_t aHeight,
-                                int32_t aShellItemWidth,
-                                int32_t aShellItemHeight) {
-  nsCOMPtr<nsIDocShell> ourDocShell = do_GetInterface(WebNavigation());
-  nsCOMPtr<nsIBaseWindow> docShellAsWin(do_QueryInterface(ourDocShell));
-  NS_ENSURE_STATE(docShellAsWin);
-
-  int32_t width, height;
-  docShellAsWin->GetSize(&width, &height);
-
-  uint32_t flags = 0;
-  if (width == aWidth) {
-    flags |= nsIEmbeddingSiteWindow::DIM_FLAGS_IGNORE_CX;
-  }
-
-  if (height == aHeight) {
-    flags |= nsIEmbeddingSiteWindow::DIM_FLAGS_IGNORE_CY;
-  }
-
-  bool sent = SendSizeShellTo(flags, aWidth, aHeight, aShellItemWidth,
-                              aShellItemHeight);
-
-  return sent ? NS_OK : NS_ERROR_FAILURE;
 }
 
 NS_IMETHODIMP
@@ -656,47 +622,32 @@ BrowserChild::SetLinkStatus(const nsAString& aStatusText) {
 }
 
 NS_IMETHODIMP
-BrowserChild::SetDimensions(uint32_t aFlags, int32_t aX, int32_t aY,
-                            int32_t aCx, int32_t aCy) {
+BrowserChild::SetDimensions(DimensionRequest&& aRequest) {
   // The parent is in charge of the dimension changes. If JS code wants to
   // change the dimensions (moveTo, screenX, etc.) we send a message to the
   // parent about the new requested dimension, the parent does the resize/move
   // then send a message to the child to update itself. For APIs like screenX
-  // this function is called with the current value for the non-changed values.
-  // In a series of calls like window.screenX = 10; window.screenY = 10; for
-  // the second call, since screenX is not yet updated we might accidentally
-  // reset back screenX to it's old value. To avoid this if a parameter did not
-  // change we want the parent to ignore its value.
-  int32_t x, y, cx, cy;
-  GetDimensions(aFlags, &x, &y, &cx, &cy);
-
-  if (x == aX) {
-    aFlags |= nsIEmbeddingSiteWindow::DIM_FLAGS_IGNORE_X;
-  }
-
-  if (y == aY) {
-    aFlags |= nsIEmbeddingSiteWindow::DIM_FLAGS_IGNORE_Y;
-  }
-
-  if (cx == aCx) {
-    aFlags |= nsIEmbeddingSiteWindow::DIM_FLAGS_IGNORE_CX;
-  }
-
-  if (cy == aCy) {
-    aFlags |= nsIEmbeddingSiteWindow::DIM_FLAGS_IGNORE_CY;
-  }
+  // this function is called with only the changed values.  In a series of calls
+  // like window.screenX = 10; window.screenY = 10; for the second call, since
+  // screenX is not yet updated we might accidentally reset back screenX to it's
+  // old value. To avoid this, if a parameter did not change, we want the parent
+  // to handle the unchanged values.
 
   double scale = mPuppetWidget ? mPuppetWidget->GetDefaultScale().scale : 1.0;
-
-  Unused << SendSetDimensions(aFlags, aX, aY, aCx, aCy, scale);
-
+  SendSetDimensions(aRequest, scale);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-BrowserChild::GetDimensions(uint32_t aFlags, int32_t* aX, int32_t* aY,
-                            int32_t* aCx, int32_t* aCy) {
+BrowserChild::GetDimensions(DimensionKind aDimensionKind, int32_t* aX,
+                            int32_t* aY, int32_t* aCx, int32_t* aCy) {
   ScreenIntRect rect = GetOuterRect();
+  if (aDimensionKind == DimensionKind::Inner) {
+    if (aX || aY) {
+      return NS_ERROR_NOT_IMPLEMENTED;
+    }
+    rect.SizeTo(GetInnerSize());
+  }
   if (aX) {
     *aX = rect.x;
   }
@@ -709,41 +660,7 @@ BrowserChild::GetDimensions(uint32_t aFlags, int32_t* aX, int32_t* aY,
   if (aCy) {
     *aCy = rect.height;
   }
-
   return NS_OK;
-}
-
-NS_IMETHODIMP
-BrowserChild::GetVisibility(bool* aVisibility) {
-  *aVisibility = true;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-BrowserChild::SetVisibility(bool aVisibility) {
-  // should the platform support this? Bug 666365
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-BrowserChild::GetTitle(nsAString& aTitle) {
-  NS_WARNING("BrowserChild::GetTitle not supported in BrowserChild");
-
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
-BrowserChild::SetTitle(const nsAString& aTitle) {
-  // JavaScript sends the "DOMTitleChanged" event to the parent
-  // via the message manager.
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-BrowserChild::GetSiteWindow(void** aSiteWindow) {
-  NS_WARNING("BrowserChild::GetSiteWindow not supported in BrowserChild");
-
-  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
@@ -1532,14 +1449,6 @@ mozilla::ipc::IPCResult BrowserChild::RecvDeactivate(uint64_t aActionId) {
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult BrowserChild::RecvSetKeyboardIndicators(
-    const UIStateChangeType& aShowFocusRings) {
-  nsCOMPtr<nsPIDOMWindowOuter> window = do_GetInterface(WebNavigation());
-  NS_ENSURE_TRUE(window, IPC_OK());
-  window->SetKeyboardIndicators(aShowFocusRings);
-  return IPC_OK();
-}
-
 mozilla::ipc::IPCResult BrowserChild::RecvStopIMEStateManagement() {
   IMEStateManager::StopIMEStateManagement();
   return IPC_OK();
@@ -2272,8 +2181,8 @@ bool BrowserChild::DeallocPDocAccessibleChild(
 }
 #endif
 
-PColorPickerChild* BrowserChild::AllocPColorPickerChild(const nsAString&,
-                                                        const nsAString&) {
+PColorPickerChild* BrowserChild::AllocPColorPickerChild(
+    const nsAString&, const nsAString&, const nsTArray<nsString>&) {
   MOZ_CRASH("unused");
   return nullptr;
 }
@@ -2854,6 +2763,11 @@ void BrowserChild::InitAPZState() {
   // multiple inheritance.
   PAPZCTreeManagerChild* baseProtocol =
       cbc->SendPAPZCTreeManagerConstructor(mLayersId);
+  if (!baseProtocol) {
+    MOZ_ASSERT(false,
+               "Allocating a TreeManager should not fail with APZ enabled");
+    return;
+  }
   APZCTreeManagerChild* derivedProtocol =
       static_cast<APZCTreeManagerChild*>(baseProtocol);
 
@@ -3273,7 +3187,7 @@ mozilla::ipc::IPCResult BrowserChild::RecvSafeAreaInsetsChanged(
     // aSafeAreaInsets is for current screen. But we have to calculate
     // safe insets for content window.
     int32_t x, y, cx, cy;
-    GetDimensions(0, &x, &y, &cx, &cy);
+    GetDimensions(DimensionKind::Outer, &x, &y, &cx, &cy);
     nsCOMPtr<nsIScreen> screen;
     screenMgr->ScreenForRect(x, y, cx, cy, getter_AddRefs(screen));
 

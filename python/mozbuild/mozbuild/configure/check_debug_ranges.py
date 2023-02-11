@@ -6,11 +6,9 @@
 # to a given compilation unit. This is used as a helper to find a bug in some
 # versions of GNU ld.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
+import re
 import subprocess
 import sys
-import re
 
 
 def get_range_for(compilation_unit, debug_info):

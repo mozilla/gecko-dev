@@ -2,17 +2,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function
-
 import os
 import unittest
+
+import mozpack.path as mozpath
 from mozunit import main
 
 import mozbuild.backend.configenvironment as ConfigStatus
-
 from mozbuild.util import ReadOnlyDict
-
-import mozpack.path as mozpath
 
 
 class ConfigEnvironment(ConfigStatus.ConfigEnvironment):

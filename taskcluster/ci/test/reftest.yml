@@ -119,6 +119,7 @@ jsreftest:
             linux1804-64-qr/opt: 4
             linux1804-64-qr/debug: 5
             linux1804-64/debug: 5
+            .*-tsan-qr/opt: 8
             macosx.*-64-ccov.*/.*: 5
             macosx.*-64(-shippable)?/opt: 2
             default: 3
@@ -238,7 +239,7 @@ reftest-qr:
         by-variant:
             webrender-sw+no-fission:
                 by-test-platform:
-                    android-hw-p2-8-0-android-aarch64-qr/debug: built-projects
+                    android-hw-p5-13-0-android-aarch64-qr/debug: built-projects
                     default: []
             no-fission: built-projects
     max-run-time: 2400

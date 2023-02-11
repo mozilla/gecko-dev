@@ -1425,13 +1425,14 @@ static NativeObject* DefineConstructorAndPrototype(
 }
 
 NativeObject* js::InitClass(JSContext* cx, HandleObject obj,
-                            HandleObject protoProto_, const JSClass* clasp,
-                            Native constructor, unsigned nargs,
-                            const JSPropertySpec* ps, const JSFunctionSpec* fs,
+                            const JSClass* protoClass, HandleObject protoProto_,
+                            const char* name, Native constructor,
+                            unsigned nargs, const JSPropertySpec* ps,
+                            const JSFunctionSpec* fs,
                             const JSPropertySpec* static_ps,
                             const JSFunctionSpec* static_fs,
                             NativeObject** ctorp) {
-  Rooted<JSAtom*> atom(cx, Atomize(cx, clasp->name, strlen(clasp->name)));
+  Rooted<JSAtom*> atom(cx, Atomize(cx, name, strlen(name)));
   if (!atom) {
     return nullptr;
   }
@@ -1441,14 +1442,18 @@ NativeObject* js::InitClass(JSContext* cx, HandleObject obj,
    * object we are about to create (in DefineConstructorAndPrototype), which
    * in turn will inherit from protoProto.
    *
-   * If protoProto is null, default to Object.prototype.
+   * If protoProto is nullptr, default to Object.prototype.
+   * If protoClass is nullptr, default to PlainObject.
    */
   RootedObject protoProto(cx, protoProto_);
   if (!protoProto) {
     protoProto = &cx->global()->getObjectPrototype();
   }
+  if (!protoClass) {
+    protoClass = &PlainObject::class_;
+  }
 
-  return DefineConstructorAndPrototype(cx, obj, atom, protoProto, clasp,
+  return DefineConstructorAndPrototype(cx, obj, atom, protoProto, protoClass,
                                        constructor, nargs, ps, fs, static_ps,
                                        static_fs, ctorp);
 }
@@ -2685,7 +2690,8 @@ void GetObjectSlotNameFunctor::operator()(JS::TracingContext* tcx, char* buf,
 
   Maybe<PropertyKey> key;
   if (obj->is<NativeObject>()) {
-    for (ShapePropertyIter<NoGC> iter(obj->shape()); !iter.done(); iter++) {
+    NativeShape* shape = obj->as<NativeObject>().shape();
+    for (ShapePropertyIter<NoGC> iter(shape); !iter.done(); iter++) {
       if (iter->hasSlot() && iter->slot() == slot) {
         key.emplace(iter->key());
         break;
@@ -3288,12 +3294,9 @@ js::gc::AllocKind JSObject::allocKindForTenure(
   // WasmStructObjects have a variable-length tail which contains the first
   // few data fields, so make sure we copy it all over to the new object.
   if (is<WasmStructObject>()) {
-    // Figure out the size of this object, from the prototype's RttValue.
-    // The objects we are traversing here are all tenured, so we don't need
-    // to check forwarding pointers.
-    RttValue& descr = as<WasmStructObject>().rttValue();
-    MOZ_ASSERT(!IsInsideNursery(&descr));
-    return WasmStructObject::allocKindForRttValue(&descr);
+    // Figure out the size of this object, from the object's TypeDef.
+    const wasm::TypeDef* typeDef = &as<WasmStructObject>().typeDef();
+    return WasmStructObject::allocKindForTypeDef(typeDef);
   }
 
   if (is<WasmArrayObject>()) {
@@ -3412,8 +3415,8 @@ const char16_t JS::ubi::Concrete<JSObject>::concreteTypeName[] = u"JSObject";
 void JSObject::traceChildren(JSTracer* trc) {
   TraceCellHeaderEdge(trc, this, "shape");
 
-  const JSClass* clasp = getClass();
-  if (clasp->isNativeObject()) {
+  Shape* objShape = shape();
+  if (objShape->isNative()) {
     NativeObject* nobj = &as<NativeObject>();
 
     {
@@ -3437,6 +3440,7 @@ void JSObject::traceChildren(JSTracer* trc) {
 
   // Call the trace hook at the end so that during a moving GC the trace hook
   // will see updated fields and slots.
+  const JSClass* clasp = objShape->getObjectClass();
   if (clasp->hasTrace()) {
     clasp->doTrace(trc, this);
   }
@@ -3580,11 +3584,12 @@ void JSObject::debugCheckNewObject(Shape* shape, js::gc::AllocKind allocKind,
   const JSClass* clasp = shape->getObjectClass();
 
   if (!ClassCanHaveFixedData(clasp)) {
+    NativeShape* nshape = &shape->asNative();
     if (clasp == &ArrayObject::class_) {
       // Arrays can store the ObjectElements header inline.
-      MOZ_ASSERT(shape->numFixedSlots() == 0);
+      MOZ_ASSERT(nshape->numFixedSlots() == 0);
     } else {
-      MOZ_ASSERT(gc::GetGCKindSlots(allocKind) == shape->numFixedSlots());
+      MOZ_ASSERT(gc::GetGCKindSlots(allocKind) == nshape->numFixedSlots());
     }
   }
 
@@ -3620,7 +3625,6 @@ void JSObject::debugCheckNewObject(Shape* shape, js::gc::AllocKind allocKind,
   // included in numFixedSlots.
   if (!clasp->isNativeObject()) {
     MOZ_ASSERT_IF(!clasp->isProxyObject(), JSCLASS_RESERVED_SLOTS(clasp) == 0);
-    MOZ_ASSERT_IF(shape, shape->numFixedSlots() == 0);
   }
 }
 #endif

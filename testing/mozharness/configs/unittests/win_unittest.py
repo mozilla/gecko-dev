@@ -2,7 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import
 import os
 import platform
 import sys
@@ -132,6 +131,7 @@ config = {
                 "--log-raw=%(raw_log_file)s",
                 "--log-errorsummary=%(error_summary_file)s",
                 "--utility-path=tests/bin",
+                "--manifest=tests/xpcshell/tests/xpcshell.ini",
             ],
             "run_filename": "runxpcshelltests.py",
             "testsdir": "xpcshell",
@@ -171,6 +171,7 @@ config = {
             "--chunk-by-runtime",
         ],
         "mochitest-browser-a11y": ["--flavor=browser", "--subsuite=a11y"],
+        "mochitest-browser-media": ["--flavor=browser", "--subsuite=media-bc"],
         "mochitest-a11y": ["--flavor=a11y", "--disable-e10s"],
         "mochitest-remote": ["--flavor=browser", "--subsuite=remote"],
     },
@@ -205,7 +206,14 @@ config = {
         "xpcshell": {
             "options": [
                 "--xpcshell=%(abs_app_dir)s/" + XPCSHELL_NAME,
-                "--manifest=tests/xpcshell/tests/xpcshell.ini",
+            ],
+            "tests": [],
+        },
+        "xpcshell-msix": {
+            "options": [
+                "--app-binary=%(binary_path)s",
+                "--app-path=%(install_dir)s",
+                "--xre-path=%(install_dir)s",
             ],
             "tests": [],
         },

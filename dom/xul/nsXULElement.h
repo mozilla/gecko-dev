@@ -229,7 +229,8 @@ class nsXULPrototypeScript : public nsXULPrototypeNode {
   nsresult DeserializeOutOfLine(nsIObjectInputStream* aInput,
                                 nsXULPrototypeDocument* aProtoDoc);
 
-  nsresult Compile(const char16_t* aText, size_t aTextLength,
+  template <typename Unit>
+  nsresult Compile(const Unit* aText, size_t aTextLength,
                    JS::SourceOwnership aOwnership, nsIURI* aURI,
                    uint32_t aLineNo, mozilla::dom::Document* aDocument,
                    nsIOffThreadScriptReceiver* aOffThreadReceiver = nullptr);
@@ -339,6 +340,11 @@ class nsXULElement : public nsStyledElement {
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsXULElement, nsStyledElement)
 
+  // This doesn't work on XUL elements! You probably want
+  // GetXULBoolAttr(nsGkAtoms::disabled) or so.
+  // TODO(emilio): Maybe we should unify HTML and XUL here.
+  bool IsDisabled() const = delete;
+
   // nsINode
   void GetEventTargetParent(mozilla::EventChainPreVisitor& aVisitor) override;
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
@@ -387,20 +393,27 @@ class nsXULElement : public nsStyledElement {
   bool GetXULBoolAttr(nsAtom* aName) const {
     return AttrValueIs(kNameSpaceID_None, aName, u"true"_ns, eCaseMatters);
   }
-  void SetXULBoolAttr(nsAtom* aName, bool aValue) {
+  void SetXULBoolAttr(nsAtom* aName, bool aValue,
+                      mozilla::ErrorResult& aError) {
     if (aValue) {
-      SetAttr(kNameSpaceID_None, aName, u"true"_ns, true);
+      SetAttr(aName, u"true"_ns, aError);
     } else {
-      UnsetAttr(kNameSpaceID_None, aName, true);
+      UnsetAttr(aName, aError);
     }
   }
 
   // WebIDL API
+  bool Autofocus() const { return BoolAttrIsTrue(nsGkAtoms::autofocus); }
+  void SetAutofocus(bool aAutofocus, ErrorResult& aRv) {
+    SetXULBoolAttr(nsGkAtoms::autofocus, aAutofocus, aRv);
+  }
   bool Hidden() const { return BoolAttrIsTrue(nsGkAtoms::hidden); }
-  void SetHidden(bool aHidden) { SetXULBoolAttr(nsGkAtoms::hidden, aHidden); }
+  void SetHidden(bool aHidden) {
+    SetXULBoolAttr(nsGkAtoms::hidden, aHidden, mozilla::IgnoreErrors());
+  }
   bool Collapsed() const { return BoolAttrIsTrue(nsGkAtoms::collapsed); }
   void SetCollapsed(bool aCollapsed) {
-    SetXULBoolAttr(nsGkAtoms::collapsed, aCollapsed);
+    SetXULBoolAttr(nsGkAtoms::collapsed, aCollapsed, mozilla::IgnoreErrors());
   }
   void GetObserves(DOMString& aValue) const {
     GetXULAttr(nsGkAtoms::observes, aValue);

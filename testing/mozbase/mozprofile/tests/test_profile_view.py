@@ -4,14 +4,12 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import
-
-import mozprofile
 import os
 import sys
-import pytest
 
+import mozprofile
 import mozunit
+import pytest
 from six import text_type
 
 here = os.path.dirname(os.path.abspath(__file__))

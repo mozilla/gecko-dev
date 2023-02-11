@@ -9,25 +9,23 @@ const { GeckoViewUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/GeckoViewUtils.sys.mjs"
 );
 
-const { XPCOMUtils } = ChromeUtils.importESModule(
-  "resource://gre/modules/XPCOMUtils.sys.mjs"
-);
-
 const lazy = {};
 
-XPCOMUtils.defineLazyModuleGetters(lazy, {
-  GeckoViewPrompter: "resource://gre/modules/GeckoViewPrompter.jsm",
+ChromeUtils.defineESModuleGetters(lazy, {
+  GeckoViewPrompter: "resource://gre/modules/GeckoViewPrompter.sys.mjs",
 });
 
 const { debug, warn } = GeckoViewUtils.initLogging("ColorPickerDelegate");
 
 class ColorPickerDelegate {
-  init(aParent, aTitle, aInitialColor) {
+  // TODO(bug 1805397): Implement default colors
+  init(aParent, aTitle, aInitialColor, aDefaultColors) {
     this._prompt = new lazy.GeckoViewPrompter(aParent);
     this._msg = {
       type: "color",
       title: aTitle,
       value: aInitialColor,
+      predefinedValues: aDefaultColors,
     };
   }
 

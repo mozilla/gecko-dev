@@ -1,10 +1,9 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
-from __future__ import absolute_import
-
 import json
 import re
+
 import six
 from mozlog import get_proxy_logger
 
@@ -20,10 +19,10 @@ MAX_FORWARDED_REQUESTS = 3
 
 if six.PY2:
     # Import for Python 2
-    from urllib2 import urlopen, Request
+    from urllib2 import Request, urlopen
 else:
     # Import for Python 3
-    from urllib.request import urlopen, Request
+    from urllib.request import Request, urlopen
 
     # Symbolication is broken when using type 'str' in python 2.7, so we use 'basestring'.
     # But for python 3.0 compatibility, 'basestring' isn't defined, but the 'str' type works.

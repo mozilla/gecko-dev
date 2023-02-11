@@ -122,6 +122,7 @@ export var UrlbarUtils = {
     OTHER_LOCAL: 5,
     OTHER_NETWORK: 6,
     ACTIONS: 7,
+    ADDON: 8,
   },
 
   // This defines icon locations that are commonly used in the UI.
@@ -217,24 +218,28 @@ export var UrlbarUtils = {
         restrict: lazy.UrlbarTokenizer.RESTRICT.BOOKMARK,
         icon: "chrome://browser/skin/bookmark.svg",
         pref: "shortcuts.bookmarks",
+        telemetryLabel: "bookmarks",
       },
       {
         source: UrlbarUtils.RESULT_SOURCE.TABS,
         restrict: lazy.UrlbarTokenizer.RESTRICT.OPENPAGE,
         icon: "chrome://browser/skin/tab.svg",
         pref: "shortcuts.tabs",
+        telemetryLabel: "tabs",
       },
       {
         source: UrlbarUtils.RESULT_SOURCE.HISTORY,
         restrict: lazy.UrlbarTokenizer.RESTRICT.HISTORY,
         icon: "chrome://browser/skin/history.svg",
         pref: "shortcuts.history",
+        telemetryLabel: "history",
       },
       {
         source: UrlbarUtils.RESULT_SOURCE.ACTIONS,
         restrict: lazy.UrlbarTokenizer.RESTRICT.ACTION,
         icon: "chrome://browser/skin/quickactions.svg",
         pref: "shortcuts.quickactions",
+        telemetryLabel: "actions",
       },
     ];
   },
@@ -1221,6 +1226,8 @@ export var UrlbarUtils = {
           return "tabtosearch";
         } else if (result.providerName == "quickactions") {
           return "quickaction";
+        } else if (result.providerName == "UrlbarProviderQuickSuggest") {
+          return "quicksuggest";
         }
         return "dynamic";
     }
@@ -1359,6 +1366,8 @@ export var UrlbarUtils = {
         switch (result.payload.type) {
           case lazy.UrlbarProviderSearchTips.TIP_TYPE.ONBOARD:
             return "tip_onboard";
+          case lazy.UrlbarProviderSearchTips.TIP_TYPE.PERSIST:
+            return "tip_persist";
           case lazy.UrlbarProviderSearchTips.TIP_TYPE.REDIRECT:
             return "tip_redirect";
           default:
@@ -1643,11 +1652,11 @@ UrlbarUtils.RESULT_PAYLOAD_SCHEMA = {
       content: {
         type: "string",
       },
-      deletable: {
-        type: "boolean",
-      },
       icon: {
         type: "string",
+      },
+      isBlockable: {
+        type: "boolean",
       },
       keyword: {
         type: "string",

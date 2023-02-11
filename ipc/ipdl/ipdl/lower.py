@@ -1786,6 +1786,10 @@ class _GenerateProtocolCode(ipdl.ast.Visitor):
 
 # --------------------------------------------------
 
+cppPriorityList = list(
+    map(lambda src: src.upper() + "_PRIORITY", ipdl.ast.priorityList)
+)
+
 
 def _generateMessageConstructor(md, segmentSize, protocol, forReply=False):
     if forReply:
@@ -1798,8 +1802,10 @@ def _generateMessageConstructor(md, segmentSize, protocol, forReply=False):
         replyEnum = "NOT_REPLY"
 
     nested = md.decl.type.nested
-    prio = md.decl.type.prio
+    prioEnum = cppPriorityList[md.decl.type.prio]
+
     compress = md.decl.type.compress
+    lazySend = md.decl.type.lazySend
 
     routingId = ExprVar("routingId")
 
@@ -1819,6 +1825,11 @@ def _generateMessageConstructor(md, segmentSize, protocol, forReply=False):
         assert compress.value is None
         compression = "COMPRESSION_ENABLED"
 
+    if lazySend:
+        lazySendEnum = "LAZY_SEND"
+    else:
+        lazySendEnum = "EAGER_SEND"
+
     if nested == ipdl.ast.NOT_NESTED:
         nestedEnum = "NOT_NESTED"
     elif nested == ipdl.ast.INSIDE_SYNC_NESTED:
@@ -1826,17 +1837,6 @@ def _generateMessageConstructor(md, segmentSize, protocol, forReply=False):
     else:
         assert nested == ipdl.ast.INSIDE_CPOW_NESTED
         nestedEnum = "NESTED_INSIDE_CPOW"
-
-    if prio == ipdl.ast.NORMAL_PRIORITY:
-        prioEnum = "NORMAL_PRIORITY"
-    elif prio == ipdl.ast.INPUT_PRIORITY:
-        prioEnum = "INPUT_PRIORITY"
-    elif prio == ipdl.ast.VSYNC_PRIORITY:
-        prioEnum = "VSYNC_PRIORITY"
-    elif prio == ipdl.ast.MEDIUMHIGH_PRIORITY:
-        prioEnum = "MEDIUMHIGH_PRIORITY"
-    else:
-        prioEnum = "CONTROL_PRIORITY"
 
     if md.decl.type.isSync():
         syncEnum = "SYNC"
@@ -1867,6 +1867,7 @@ def _generateMessageConstructor(md, segmentSize, protocol, forReply=False):
             messageEnum(nestedEnum),
             messageEnum(prioEnum),
             messageEnum(compression),
+            messageEnum(lazySendEnum),
             messageEnum(ctorEnum),
             messageEnum(syncEnum),
             messageEnum(replyEnum),

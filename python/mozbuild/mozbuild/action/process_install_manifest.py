@@ -2,26 +2,18 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import argparse
 import os
 import sys
 import time
 
-from mozpack.copier import (
-    FileCopier,
-    FileRegistry,
-)
+from mozpack.copier import FileCopier, FileRegistry
 from mozpack.errors import errors
-from mozpack.files import (
-    BaseFile,
-    FileFinder,
-)
+from mozpack.files import BaseFile, FileFinder
 from mozpack.manifests import InstallManifest
-from mozbuild.util import DefinesAction
-from mozbuild.action.util import log_build_task
 
+from mozbuild.action.util import log_build_task
+from mozbuild.util import DefinesAction
 
 COMPLETE = (
     "Elapsed: {elapsed:.2f}s; From {dest}: Kept {existing} existing; "

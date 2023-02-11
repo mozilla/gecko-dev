@@ -2,19 +2,15 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import
-
 import argparse
 import io
 import os
-from six.moves import configparser
 import sys
 import zipfile
 
 import mozlog
-
 from mozversion import errors
-
+from six.moves import configparser
 
 INI_DATA_MAPPING = (("application", "App"), ("platform", "Build"))
 

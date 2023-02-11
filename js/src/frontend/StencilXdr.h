@@ -121,6 +121,14 @@ class StencilXDR {
                                       ParserAtomSpan& parserAtomData);
 
   template <XDRMode mode>
+  static XDRResult codeModuleRequest(XDRState<mode>* xdr,
+                                     StencilModuleRequest& stencil);
+
+  template <XDRMode mode>
+  static XDRResult codeModuleRequestVector(
+      XDRState<mode>* xdr, StencilModuleMetadata::RequestVector& vector);
+
+  template <XDRMode mode>
   static XDRResult codeModuleEntry(XDRState<mode>* xdr,
                                    StencilModuleEntry& stencil);
 
@@ -169,9 +177,9 @@ class XDRStencilDecoder : public XDRState<XDR_DECODE> {
   using Base = XDRState<XDR_DECODE>;
 
  public:
-  XDRStencilDecoder(JSContext* cx, ErrorContext* ec,
+  XDRStencilDecoder(JSContext* cx, FrontendContext* fc,
                     const JS::TranscodeRange& range)
-      : Base(cx, ec, range) {
+      : Base(cx, fc, range) {
     MOZ_ASSERT(JS::IsTranscodingBytecodeAligned(range.begin().get()));
   }
 
@@ -191,9 +199,9 @@ class XDRStencilEncoder : public XDRState<XDR_ENCODE> {
   using Base = XDRState<XDR_ENCODE>;
 
  public:
-  XDRStencilEncoder(JSContext* cx, ErrorContext* ec,
+  XDRStencilEncoder(JSContext* cx, FrontendContext* fc,
                     JS::TranscodeBuffer& buffer)
-      : Base(cx, ec, buffer, buffer.length()) {
+      : Base(cx, fc, buffer, buffer.length()) {
     // NOTE: If buffer is empty, buffer.begin() doesn't point valid buffer.
     MOZ_ASSERT_IF(!buffer.empty(),
                   JS::IsTranscodingBytecodeAligned(buffer.begin()));

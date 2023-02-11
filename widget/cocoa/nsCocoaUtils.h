@@ -28,6 +28,19 @@
 - (CGFloat)backingScaleFactor;
 @end
 
+// Pasteborad types
+extern NSString* const kPublicUrlPboardType;
+extern NSString* const kPublicUrlNamePboardType;
+extern NSString* const kUrlsWithTitlesPboardType;
+extern NSString* const kMozWildcardPboardType;
+extern NSString* const kMozCustomTypesPboardType;
+extern NSString* const kMozFileUrlsPboardType;
+
+@interface UTIHelper : NSObject
++ (NSString*)stringFromPboardType:(NSString*)aType;
+@end
+
+class nsITransferable;
 class nsIWidget;
 
 namespace mozilla {
@@ -457,9 +470,21 @@ class nsCocoaUtils {
   static void InvalidateHiDPIState();
 
   static mozilla::PanGestureInput CreatePanGestureEvent(
-      NSEvent* aNativeEvent, uint32_t aTime, mozilla::TimeStamp aTimeStamp,
+      NSEvent* aNativeEvent, mozilla::TimeStamp aTimeStamp,
       const mozilla::ScreenPoint& aPanStartPoint, const mozilla::ScreenPoint& aPreciseDelta,
       const mozilla::gfx::IntPoint& aLineOrPageDelta, mozilla::Modifiers aModifiers);
+
+  /**
+   * Return true if aAvailableType is a vaild NSPasteboard type.
+   */
+  static bool IsValidPasteboardType(NSString* aAvailableType, bool aAllowFileURL);
+
+  /**
+   * Set data for specific type from NSPasteboardItem to Transferable.
+   */
+  static void SetTransferDataForTypeFromPasteboardItem(nsITransferable* aTransferable,
+                                                       const nsCString& aFlavor,
+                                                       NSPasteboardItem* aItem);
 
  private:
   /**
@@ -495,6 +520,23 @@ class nsCocoaUtils {
    * to a request video or audio capture permission.
    */
   static void ResolveMediaCapturePromises(bool aGranted, PromiseArray& aPromiseList);
+
+  /**
+   * Get string data for a specific type from NSPasteboardItem.
+   */
+  static NSString* GetStringForTypeFromPasteboardItem(NSPasteboardItem* aItem,
+                                                      const NSString* aType,
+                                                      bool aAllowFileURL = false);
+
+  /**
+   * Get the file path from NSPasteboardItem.
+   */
+  static NSString* GetFilePathFromPasteboardItem(NSPasteboardItem* aItem);
+
+  /**
+   * Get the title for URL from NSPasteboardItem.
+   */
+  static NSString* GetTitleForURLFromPasteboardItem(NSPasteboardItem* item);
 
   /**
    * Array of promises waiting to be resolved due to a video capture request.

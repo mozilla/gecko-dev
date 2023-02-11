@@ -17,6 +17,7 @@
 #include "mozilla/dom/Promise-inl.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/StorageManager.h"
+#include "mozilla/dom/StructuredCloneHolder.h"
 #include "mozilla/dom/quota/QuotaCommon.h"
 #include "mozilla/ipc/PBackgroundSharedTypes.h"
 #include "nsJSPrincipals.h"
@@ -44,13 +45,8 @@ bool ConstructHandleMetadata(JSContext* aCx, nsIGlobalObject* aGlobal,
     return false;
   }
 
-  JS::Rooted<JSString*> tmpVal(aCx);
-  if (!JS_ReadString(aReader, &tmpVal)) {
-    return false;
-  }
-
   Name name;
-  if (!AssignJSString(aCx, name, tmpVal)) {
+  if (!StructuredCloneHolder::ReadString(aReader, name)) {
     return false;
   }
 
@@ -213,6 +209,8 @@ already_AddRefed<Promise> FileSystemHandle::Move(const fs::EntryId& aParentId,
 already_AddRefed<FileSystemHandle> FileSystemHandle::ReadStructuredClone(
     JSContext* aCx, nsIGlobalObject* aGlobal,
     JSStructuredCloneReader* aReader) {
+  LOG_VERBOSE(("Reading File/DirectoryHandle"));
+
   uint32_t kind = static_cast<uint32_t>(FileSystemHandleKind::EndGuard_);
 
   if (!JS_ReadBytes(aReader, reinterpret_cast<void*>(&kind),
@@ -237,6 +235,9 @@ already_AddRefed<FileSystemHandle> FileSystemHandle::ReadStructuredClone(
 
 bool FileSystemHandle::WriteStructuredClone(
     JSContext* aCx, JSStructuredCloneWriter* aWriter) const {
+  LOG_VERBOSE(("Writing File/DirectoryHandle"));
+  MOZ_ASSERT(mMetadata.entryId().Length() == 32);
+
   auto kind = static_cast<uint32_t>(Kind());
   if (NS_WARN_IF(!JS_WriteBytes(aWriter, static_cast<void*>(&kind),
                                 sizeof(uint32_t)))) {
@@ -249,13 +250,7 @@ bool FileSystemHandle::WriteStructuredClone(
     return false;
   }
 
-  JS::Rooted<JS::Value> nameValue(aCx);
-  if (NS_WARN_IF(!xpc::StringToJsval(aCx, mMetadata.entryName(), &nameValue))) {
-    return false;
-  }
-  JS::Rooted<JSString*> name(aCx, nameValue.toString());
-
-  if (!JS_WriteString(aWriter, name)) {
+  if (!StructuredCloneHolder::WriteString(aWriter, mMetadata.entryName())) {
     return false;
   }
 
@@ -270,30 +265,27 @@ bool FileSystemHandle::WriteStructuredClone(
 already_AddRefed<FileSystemFileHandle> FileSystemHandle::ConstructFileHandle(
     JSContext* aCx, nsIGlobalObject* aGlobal,
     JSStructuredCloneReader* aReader) {
-  using namespace mozilla::dom::fs;
+  LOG(("Reading FileHandle"));
 
-  FileSystemEntryMetadata metadata;
+  fs::FileSystemEntryMetadata metadata;
   if (!ConstructHandleMetadata(aCx, aGlobal, aReader, /* aDirectory */ false,
                                metadata)) {
     return nullptr;
   }
 
-  // We used to create a FileSystemManager which is not connected to the chain
-  // of Navigator->StorageManager->FileSystemManager. That isn't possible
-  // anymore because FileSystemManager must always be properly shutdown before
-  // it's destroyed.
-#if 0
-  // XXX Get the manager from Navigator!
+  RefPtr<StorageManager> storageManager = aGlobal->GetStorageManager();
+  if (!storageManager) {
+    return nullptr;
+  }
+
   // Note that the actor may not exist or may not be connected yet.
-  auto fileSystemManager = MakeRefPtr<FileSystemManager>(aGlobal, nullptr);
+  RefPtr<FileSystemManager> fileSystemManager =
+      storageManager->GetFileSystemManager();
 
   RefPtr<FileSystemFileHandle> fsHandle =
       new FileSystemFileHandle(aGlobal, fileSystemManager, metadata);
 
   return fsHandle.forget();
-#else
-  return nullptr;
-#endif
 }
 
 // static
@@ -301,30 +293,27 @@ already_AddRefed<FileSystemDirectoryHandle>
 FileSystemHandle::ConstructDirectoryHandle(JSContext* aCx,
                                            nsIGlobalObject* aGlobal,
                                            JSStructuredCloneReader* aReader) {
-  using namespace mozilla::dom::fs;
+  LOG(("Reading DirectoryHandle"));
 
-  FileSystemEntryMetadata metadata;
+  fs::FileSystemEntryMetadata metadata;
   if (!ConstructHandleMetadata(aCx, aGlobal, aReader, /* aDirectory */ true,
                                metadata)) {
     return nullptr;
   }
 
-  // We used to create a FileSystemManager which is not connected to the chain
-  // of Navigator->StorageManager->FileSystemManager. That isn't possible
-  // anymore because FileSystemManager must always be properly shutdown before
-  // it's destroyed.
-#if 0
-  // XXX Get the manager from Navigator!
+  RefPtr<StorageManager> storageManager = aGlobal->GetStorageManager();
+  if (!storageManager) {
+    return nullptr;
+  }
+
   // Note that the actor may not exist or may not be connected yet.
-  auto fileSystemManager = MakeRefPtr<FileSystemManager>(aGlobal, nullptr);
+  RefPtr<FileSystemManager> fileSystemManager =
+      storageManager->GetFileSystemManager();
 
   RefPtr<FileSystemDirectoryHandle> fsHandle =
       new FileSystemDirectoryHandle(aGlobal, fileSystemManager, metadata);
 
   return fsHandle.forget();
-#else
-  return nullptr;
-#endif
 }
 
 }  // namespace mozilla::dom

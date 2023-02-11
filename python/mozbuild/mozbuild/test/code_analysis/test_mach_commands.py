@@ -1,15 +1,15 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
-from __future__ import absolute_import, unicode_literals, print_function
 import os
 import unittest
 from unittest import mock
 
-from mozunit import main
-from mach.registrar import Registrar
-from mozbuild.base import MozbuildObject
 import mozpack.path as mozpath
+from mach.registrar import Registrar
+from mozunit import main
+
+from mozbuild.base import MozbuildObject
 
 
 class TestStaticAnalysis(unittest.TestCase):

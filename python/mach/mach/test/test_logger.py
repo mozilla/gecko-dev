@@ -2,15 +2,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, unicode_literals
-
 import logging
 import time
 import unittest
 
-from mach.logging import StructuredHumanFormatter
-
 from mozunit import main
+
+from mach.logging import StructuredHumanFormatter
 
 
 class DummyLogger(logging.Logger):

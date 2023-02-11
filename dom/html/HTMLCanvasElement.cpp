@@ -351,9 +351,6 @@ class RequestedFrameRefreshObserver : public nsARefreshObserver {
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(HTMLCanvasPrintState, mCanvas, mContext,
                                       mCallback)
 
-NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(HTMLCanvasPrintState, AddRef)
-NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(HTMLCanvasPrintState, Release)
-
 HTMLCanvasPrintState::HTMLCanvasPrintState(
     HTMLCanvasElement* aCanvas, nsICanvasRenderingContextInternal* aContext,
     nsITimerCallback* aCallback)
@@ -1361,13 +1358,6 @@ webgpu::CanvasContext* HTMLCanvasElement::GetWebGPUContext() {
   }
 
   return static_cast<webgpu::CanvasContext*>(GetCurrentContext());
-}
-
-CompositableHandle HTMLCanvasElement::GetCompositableHandle() const {
-  if (mOffscreenDisplay) {
-    return mOffscreenDisplay->GetCompositableHandle();
-  }
-  return CompositableHandle();
 }
 
 }  // namespace mozilla::dom

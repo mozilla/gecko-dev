@@ -4,12 +4,10 @@
 
 # This modules provides functionality for dealing with code completion.
 
-from __future__ import absolute_import, print_function
+from mach.decorators import Command, CommandArgument
 
-from mach.decorators import CommandArgument, Command
-
-from mozbuild.shellutil import split as shell_split, quote as shell_quote
-
+from mozbuild.shellutil import quote as shell_quote
+from mozbuild.shellutil import split as shell_split
 
 # Instropection commands.
 
@@ -23,8 +21,8 @@ from mozbuild.shellutil import split as shell_split, quote as shell_quote
     "what", default=None, help="Source file to display compilation flags for"
 )
 def compileflags(command_context, what):
-    from mozbuild.util import resolve_target_to_make
     from mozbuild.compilation import util
+    from mozbuild.util import resolve_target_to_make
 
     if not util.check_top_objdir(command_context.topobjdir):
         return 1

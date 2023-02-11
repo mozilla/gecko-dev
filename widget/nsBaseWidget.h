@@ -164,9 +164,7 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
   NS_DECL_THREADSAFE_ISUPPORTS
 
   // nsIWidget interface
-  void CaptureMouse(bool aCapture) override {}
-  void CaptureRollupEvents(nsIRollupListener* aListener,
-                           bool aDoCapture) override {}
+  void CaptureRollupEvents(bool aDoCapture) override {}
   nsIWidgetListener* GetWidgetListener() const override;
   void SetWidgetListener(nsIWidgetListener* alistener) override;
   void Destroy() override;
@@ -274,11 +272,6 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
   void SetDrawsInTitlebar(bool aState) override {}
   bool ShowsResizeIndicator(LayoutDeviceIntRect* aResizerRect) override;
   void FreeNativeData(void* data, uint32_t aDataType) override {}
-  [[nodiscard]] nsresult BeginResizeDrag(mozilla::WidgetGUIEvent* aEvent,
-                                         int32_t aHorizontal,
-                                         int32_t aVertical) override {
-    return NS_ERROR_NOT_IMPLEMENTED;
-  }
   nsresult ActivateNativeMenuItemAt(const nsAString& indexString) override {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
@@ -360,7 +353,6 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
   // Should be called by derived implementations to notify on system color and
   // theme changes.
   void NotifyThemeChanged(mozilla::widget::ThemeChangeKind);
-  void NotifyUIStateChanged(UIStateChangeType aShowFocusRings);
 
 #ifdef ACCESSIBILITY
   // Get the accessible for the window.
@@ -638,10 +630,10 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
    * a new MultiTouchInput object that is ready to be dispatched.
    */
   mozilla::MultiTouchInput UpdateSynthesizedTouchState(
-      mozilla::MultiTouchInput* aState, uint32_t aTime,
-      mozilla::TimeStamp aTimeStamp, uint32_t aPointerId,
-      TouchPointerState aPointerState, LayoutDeviceIntPoint aPoint,
-      double aPointerPressure, uint32_t aPointerOrientation);
+      mozilla::MultiTouchInput* aState, mozilla::TimeStamp aTimeStamp,
+      uint32_t aPointerId, TouchPointerState aPointerState,
+      LayoutDeviceIntPoint aPoint, double aPointerPressure,
+      uint32_t aPointerOrientation);
 
   /**
    * Dispatch the given MultiTouchInput through APZ to Gecko (if APZ is enabled)
@@ -734,8 +726,6 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
   // scrolling. It is reset to false once a new gesture starts (as indicated by
   // a PANGESTURE_(MAY)START event).
   bool mCurrentPanGestureBelongsToSwipe;
-
-  static nsIRollupListener* gRollupListener;
 
   struct InitialZoomConstraints {
     InitialZoomConstraints(const uint32_t& aPresShellID,

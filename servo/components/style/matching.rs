@@ -919,7 +919,7 @@ pub trait MatchMethods: TElement {
                 if is_root {
                     let device = context.shared.stylist.device();
                     debug_assert!(self.owner_doc_matches_for_testing(device));
-                    device.set_root_font_size(new_font_size.size().into());
+                    device.set_root_font_size(new_font_size.computed_size().into());
                     if device.used_root_font_size() {
                         // If the root font-size changed since last time, and something
                         // in the document did use rem units, ensure we recascade the
@@ -975,6 +975,13 @@ pub trait MatchMethods: TElement {
         {
             // Stopped being a size container. Re-evaluate container queries and units on all our descendants.
             // Changes into and between different size containment is handled in `UpdateContainerQueryStyles`.
+            restyle_requirement = ChildRestyleRequirement::MustMatchDescendants;
+        } else if old_container_type.is_size_container_type() &&
+            !old_primary_style.is_display_contents() &&
+            new_primary_style.is_display_contents()
+        {
+            // Also re-evaluate when a container gets 'display: contents', since size queries will now evaluate to unknown.
+            // Other displays like 'inline' will keep generating a box, so they are handled in `UpdateContainerQueryStyles`.
             restyle_requirement = ChildRestyleRequirement::MustMatchDescendants;
         }
 

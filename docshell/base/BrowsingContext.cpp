@@ -64,6 +64,7 @@
 #include "mozilla/StaticPrefs_page_load.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/URLQueryStringStripper.h"
+#include "mozilla/EventStateManager.h"
 #include "nsIURIFixup.h"
 #include "nsIXULRuntime.h"
 
@@ -1211,12 +1212,16 @@ BrowsingContext* BrowsingContext::FindWithName(
     const nsAString& aName, bool aUseEntryGlobalForAccessCheck) {
   RefPtr<BrowsingContext> requestingContext = this;
   if (aUseEntryGlobalForAccessCheck) {
-    if (nsCOMPtr<nsIDocShell> caller = do_GetInterface(GetEntryGlobal())) {
-      if (caller->GetBrowsingContext()) {
+    if (nsGlobalWindowInner* caller = nsContentUtils::EntryInnerWindow()) {
+      if (caller->GetBrowsingContextGroup() == Group()) {
         requestingContext = caller->GetBrowsingContext();
+      } else {
+        MOZ_RELEASE_ASSERT(caller->GetPrincipal()->IsSystemPrincipal(),
+                           "caller must be either same-group or system");
       }
     }
   }
+  MOZ_ASSERT(requestingContext, "must have a requestingContext");
 
   BrowsingContext* found = nullptr;
   if (aName.IsEmpty()) {
@@ -2501,8 +2506,6 @@ void BrowsingContext::PostMessageMoz(JSContext* aCx,
   }
 
   JS::CloneDataPolicy clonePolicy;
-  clonePolicy.allowErrorStackFrames();
-
   if (callerInnerWindow && callerInnerWindow->IsSharedMemoryAllowed()) {
     clonePolicy.allowSharedMemoryObjects();
   }
@@ -2990,6 +2993,9 @@ void BrowsingContext::DidSet(FieldIndex<IDX_IsInBFCache>) {
       nsCOMPtr<nsIDocShell> shell = aContext->GetDocShell();
       if (shell) {
         nsDocShell::Cast(shell)->ThawFreezeNonRecursive(false);
+        if (nsPresContext* pc = shell->GetPresContext()) {
+          pc->EventStateManager()->ResetHoverState();
+        }
       }
       aContext->mIsInBFCache = true;
       Document* doc = aContext->GetDocument();
@@ -2998,6 +3004,13 @@ void BrowsingContext::DidSet(FieldIndex<IDX_IsInBFCache>) {
         doc->NotifyActivityChanged();
       }
     });
+
+    if (XRE_IsParentProcess()) {
+      if (mCurrentWindowContext &&
+          mCurrentWindowContext->Canonical()->Fullscreen()) {
+        mCurrentWindowContext->Canonical()->ExitTopChromeDocumentFullscreen();
+      }
+    }
   }
 }
 

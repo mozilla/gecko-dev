@@ -7,7 +7,6 @@
 #include "TRRQuery.h"
 // Put DNSLogging.h at the end to avoid LOG being overwritten by other headers.
 #include "DNSLogging.h"
-#include "TRRSkippedReason.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/Telemetry.h"
 #include "TRRService.h"
@@ -30,8 +29,8 @@ using namespace mozilla;
 using namespace mozilla::net;
 
 nsHostKey::nsHostKey(const nsACString& aHost, const nsACString& aTrrServer,
-                     uint16_t aType, uint16_t aFlags, uint16_t aAf, bool aPb,
-                     const nsACString& aOriginsuffix)
+                     uint16_t aType, nsIDNSService::DNSFlags aFlags,
+                     uint16_t aAf, bool aPb, const nsACString& aOriginsuffix)
     : host(aHost),
       mTrrServer(aTrrServer),
       type(aType),
@@ -117,10 +116,11 @@ void nsHostRecord::CopyExpirationTimesAndFlagsFrom(
   mValidEnd = aFromHostRecord->mValidEnd;
   mGraceStart = aFromHostRecord->mGraceStart;
   mDoomed = aFromHostRecord->mDoomed;
+  mTtl = uint32_t(aFromHostRecord->mTtl);
 }
 
 bool nsHostRecord::HasUsableResult(const mozilla::TimeStamp& now,
-                                   uint16_t queryFlags) const {
+                                   nsIDNSService::DNSFlags queryFlags) const {
   if (mDoomed) {
     return false;
   }
@@ -222,8 +222,8 @@ size_t AddrHostRecord::SizeOfIncludingThis(MallocSizeOf mallocSizeOf) const {
   return n;
 }
 
-bool AddrHostRecord::HasUsableResultInternal(const mozilla::TimeStamp& now,
-                                             uint16_t queryFlags) const {
+bool AddrHostRecord::HasUsableResultInternal(
+    const mozilla::TimeStamp& now, nsIDNSService::DNSFlags queryFlags) const {
   // don't use cached negative results for high priority queries.
   if (negative && IsHighPriority(queryFlags)) {
     return false;
@@ -412,7 +412,8 @@ void AddrHostRecord::ResolveComplete() {
   }
 }
 
-AddrHostRecord::DnsPriority AddrHostRecord::GetPriority(uint16_t aFlags) {
+AddrHostRecord::DnsPriority AddrHostRecord::GetPriority(
+    nsIDNSService::DNSFlags aFlags) {
   if (IsHighPriority(aFlags)) {
     return AddrHostRecord::DNS_PRIORITY_HIGH;
   }
@@ -441,8 +442,8 @@ TypeHostRecord::TypeHostRecord(const nsHostKey& key)
 
 TypeHostRecord::~TypeHostRecord() { mCallbacks.clear(); }
 
-bool TypeHostRecord::HasUsableResultInternal(const mozilla::TimeStamp& now,
-                                             uint16_t queryFlags) const {
+bool TypeHostRecord::HasUsableResultInternal(
+    const mozilla::TimeStamp& now, nsIDNSService::DNSFlags queryFlags) const {
   if (CheckExpiration(now) == EXP_EXPIRED) {
     return false;
   }

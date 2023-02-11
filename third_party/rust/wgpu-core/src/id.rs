@@ -93,6 +93,13 @@ impl<T> From<SerialId> for Id<T> {
 }
 
 impl<T> Id<T> {
+    /// # Safety
+    ///
+    /// The raw id must be valid for the type.
+    pub unsafe fn from_raw(raw: NonZeroId) -> Self {
+        Self(raw, PhantomData)
+    }
+
     #[allow(dead_code)]
     pub(crate) fn dummy(index: u32) -> Valid<Self> {
         Valid(Id::zip(index, 1, Backend::Empty))
@@ -165,12 +172,18 @@ pub(crate) struct Valid<I>(pub I);
 /// need to construct `Id` values directly, or access their components, like the
 /// WGPU recording player, may use this trait to do so.
 pub trait TypedId: Copy {
+    fn as_raw(&self) -> NonZeroId;
     fn zip(index: Index, epoch: Epoch, backend: Backend) -> Self;
     fn unzip(self) -> (Index, Epoch, Backend);
+    fn into_raw(self) -> NonZeroId;
 }
 
 #[allow(trivial_numeric_casts)]
 impl<T> TypedId for Id<T> {
+    fn as_raw(&self) -> NonZeroId {
+        self.0
+    }
+
     fn zip(index: Index, epoch: Epoch, backend: Backend) -> Self {
         assert_eq!(0, epoch >> EPOCH_BITS);
         assert_eq!(0, (index as IdType) >> INDEX_BITS);
@@ -186,6 +199,10 @@ impl<T> TypedId for Id<T> {
             (((self.0.get() >> INDEX_BITS) as ZippedIndex) & (EPOCH_MASK as ZippedIndex)) as Index,
             self.backend(),
         )
+    }
+
+    fn into_raw(self) -> NonZeroId {
+        self.0
     }
 }
 

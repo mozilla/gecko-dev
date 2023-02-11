@@ -14,6 +14,7 @@ remote.jar:
 
   # shared modules (all protocols)
   content/shared/AppInfo.sys.mjs (shared/AppInfo.sys.mjs)
+  content/shared/Capture.sys.mjs (shared/Capture.sys.mjs)
   content/shared/Format.sys.mjs (shared/Format.sys.mjs)
   content/shared/Log.sys.mjs (shared/Log.sys.mjs)
   content/shared/MobileTabBrowser.sys.mjs (shared/MobileTabBrowser.sys.mjs)
@@ -30,6 +31,8 @@ remote.jar:
   content/shared/listeners/ConsoleAPIListener.sys.mjs (shared/listeners/ConsoleAPIListener.sys.mjs)
   content/shared/listeners/ConsoleListener.sys.mjs (shared/listeners/ConsoleListener.sys.mjs)
   content/shared/listeners/LoadListener.sys.mjs (shared/listeners/LoadListener.sys.mjs)
+  content/shared/listeners/NetworkEventRecord.sys.mjs (shared/listeners/NetworkEventRecord.sys.mjs)
+  content/shared/listeners/NetworkListener.sys.mjs (shared/listeners/NetworkListener.sys.mjs)
 
   # shared modules (messagehandler architecture)
   content/shared/messagehandler/Errors.sys.mjs (shared/messagehandler/Errors.sys.mjs)
@@ -54,7 +57,10 @@ remote.jar:
   content/shared/webdriver/Capabilities.sys.mjs (shared/webdriver/Capabilities.sys.mjs)
   content/shared/webdriver/Errors.sys.mjs (shared/webdriver/Errors.sys.mjs)
   content/shared/webdriver/KeyData.sys.mjs (shared/webdriver/KeyData.sys.mjs)
+  content/shared/webdriver/NodeCache.sys.mjs (shared/webdriver/NodeCache.sys.mjs)
   content/shared/webdriver/Session.sys.mjs (shared/webdriver/Session.sys.mjs)
+  content/shared/webdriver/process-actors/WebDriverProcessDataChild.sys.mjs (shared/webdriver/process-actors/WebDriverProcessDataChild.sys.mjs)
+  content/shared/webdriver/process-actors/WebDriverProcessDataParent.sys.mjs (shared/webdriver/process-actors/WebDriverProcessDataParent.sys.mjs)
 
   # imports from external folders
   content/external/EventUtils.js (../testing/mochitest/tests/SimpleTest/EventUtils.js)

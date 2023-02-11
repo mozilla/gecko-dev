@@ -1187,10 +1187,13 @@ static ItemActivity IsItemProbablyActive(
         // costly enough that it's worth the risk of having more layers. As we
         // move more blob items into wr dislplay items it will become less of a
         // concern.
-        int32_t largeish = 512;
+        const int32_t largeish = 512;
 
-        if (aHasActivePrecedingSibling || bounds.width > largeish ||
-            bounds.height > largeish) {
+        float width = bounds.width * aSc.GetInheritedScale().xScale;
+        float height = bounds.height * aSc.GetInheritedScale().yScale;
+
+        if (aHasActivePrecedingSibling || width > largeish ||
+            height > largeish) {
           return ItemActivity::Should;
         }
 
@@ -2260,24 +2263,6 @@ bool WebRenderCommandBuilder::PushImageProvider(
                      key.value());
 
   return true;
-}
-
-void WebRenderCommandBuilder::PushInProcessImage(
-    nsDisplayItem* aItem, const CompositableHandle& aHandle,
-    mozilla::wr::DisplayListBuilder& aBuilder,
-    mozilla::wr::IpcResourceUpdateQueue& aResources,
-    const StackingContextHelper& aSc,
-    const LayoutDeviceRect& aAsyncImageBounds) {
-  RefPtr<WebRenderInProcessImageData> imageData =
-      CreateOrRecycleWebRenderUserData<WebRenderInProcessImageData>(aItem);
-  MOZ_ASSERT(imageData);
-
-  auto rendering = wr::ToImageRendering(aItem->Frame()->UsedImageRendering());
-  LayoutDeviceRect scBounds(LayoutDevicePoint(0, 0), aAsyncImageBounds.Size());
-  imageData->CreateWebRenderCommands(aBuilder, aHandle, aSc, aAsyncImageBounds,
-                                     scBounds, VideoInfo::Rotation::kDegree_0,
-                                     rendering, wr::MixBlendMode::Normal,
-                                     !aItem->BackfaceIsHidden());
 }
 
 static void PaintItemByDrawTarget(nsDisplayItem* aItem, gfx::DrawTarget* aDT,

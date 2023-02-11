@@ -2,14 +2,12 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import argparse
-import sys
 import os
+import sys
 
-from mozpack.files import FileFinder
 import mozpack.path as mozpath
+from mozpack.files import FileFinder
 
 
 def make_archive(archive_name, base, exclude, include):
@@ -44,6 +42,7 @@ def make_archive(archive_name, base, exclude, include):
                 fill_archive(add_file)
         elif archive_basename.endswith(".tar.zst"):
             import tarfile
+
             import zstandard
 
             ctx = zstandard.ZstdCompressor(threads=-1)

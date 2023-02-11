@@ -1,15 +1,12 @@
 #!/usr/bin/env python
 # coding=UTF-8
 
-from __future__ import absolute_import
-
 import os
 import shutil
 import tempfile
 import unittest
 
 import mozunit
-
 from mozfile import tree
 
 

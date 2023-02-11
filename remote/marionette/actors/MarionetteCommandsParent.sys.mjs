@@ -7,26 +7,18 @@ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  capture: "chrome://remote/content/marionette/capture.sys.mjs",
-  element: "chrome://remote/content/marionette/element.sys.mjs",
+  capture: "chrome://remote/content/shared/Capture.sys.mjs",
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
-  evaluate: "chrome://remote/content/marionette/evaluate.sys.mjs",
   Log: "chrome://remote/content/shared/Log.sys.mjs",
 });
 
 XPCOMUtils.defineLazyGetter(lazy, "logger", () =>
   lazy.Log.get(lazy.Log.TYPES.MARIONETTE)
 );
-XPCOMUtils.defineLazyGetter(lazy, "elementIdCache", () => {
-  return new lazy.element.ReferenceStore();
-});
 
 export class MarionetteCommandsParent extends JSWindowActorParent {
   actorCreated() {
     this._resolveDialogOpened = null;
-
-    this.topWindow = this.browsingContext.top.embedderElement?.ownerGlobal;
-    this.topWindow?.addEventListener("TabClose", _onTabClose);
   }
 
   dialogOpenedPromise() {
@@ -36,11 +28,9 @@ export class MarionetteCommandsParent extends JSWindowActorParent {
   }
 
   async sendQuery(name, data) {
-    const serializedData = lazy.evaluate.toJSON(data, lazy.elementIdCache);
-
     // return early if a dialog is opened
     const result = await Promise.race([
-      super.sendQuery(name, serializedData),
+      super.sendQuery(name, data),
       this.dialogOpenedPromise(),
     ]).finally(() => {
       this._resolveDialogOpened = null;
@@ -49,15 +39,8 @@ export class MarionetteCommandsParent extends JSWindowActorParent {
     if ("error" in result) {
       throw lazy.error.WebDriverError.fromJSON(result.error);
     } else {
-      return lazy.evaluate.fromJSON({
-        obj: result.data,
-        seenEls: lazy.elementIdCache,
-      });
+      return result.data;
     }
-  }
-
-  didDestroy() {
-    this.topWindow?.removeEventListener("TabClose", _onTabClose);
   }
 
   notifyDialogOpened() {
@@ -77,7 +60,7 @@ export class MarionetteCommandsParent extends JSWindowActorParent {
   clickElement(webEl, capabilities) {
     return this.sendQuery("MarionetteCommandsParent:clickElement", {
       elem: webEl,
-      capabilities,
+      capabilities: capabilities.toJSON(),
     });
   }
 
@@ -163,28 +146,28 @@ export class MarionetteCommandsParent extends JSWindowActorParent {
 
   async isElementDisplayed(webEl, capabilities) {
     return this.sendQuery("MarionetteCommandsParent:isElementDisplayed", {
-      capabilities,
+      capabilities: capabilities.toJSON(),
       elem: webEl,
     });
   }
 
   async isElementEnabled(webEl, capabilities) {
     return this.sendQuery("MarionetteCommandsParent:isElementEnabled", {
-      capabilities,
+      capabilities: capabilities.toJSON(),
       elem: webEl,
     });
   }
 
   async isElementSelected(webEl, capabilities) {
     return this.sendQuery("MarionetteCommandsParent:isElementSelected", {
-      capabilities,
+      capabilities: capabilities.toJSON(),
       elem: webEl,
     });
   }
 
   async sendKeysToElement(webEl, text, capabilities) {
     return this.sendQuery("MarionetteCommandsParent:sendKeysToElement", {
-      capabilities,
+      capabilities: capabilities.toJSON(),
       elem: webEl,
       text,
     });
@@ -193,7 +176,7 @@ export class MarionetteCommandsParent extends JSWindowActorParent {
   async performActions(actions, capabilities) {
     return this.sendQuery("MarionetteCommandsParent:performActions", {
       actions,
-      capabilities,
+      capabilities: capabilities.toJSON(),
     });
   }
 
@@ -203,7 +186,7 @@ export class MarionetteCommandsParent extends JSWindowActorParent {
 
   async singleTap(webEl, x, y, capabilities) {
     return this.sendQuery("MarionetteCommandsParent:singleTap", {
-      capabilities,
+      capabilities: capabilities.toJSON(),
       elem: webEl,
       x,
       y,
@@ -266,17 +249,6 @@ export class MarionetteCommandsParent extends JSWindowActorParent {
         throw new TypeError(`Invalid capture format: ${format}`);
     }
   }
-}
-
-/**
- * Clear all the entries from the element id cache.
- */
-export function clearElementIdCache() {
-  lazy.elementIdCache.clear();
-}
-
-function _onTabClose(event) {
-  lazy.elementIdCache.clear(event.target.linkedBrowser.browsingContext);
 }
 
 /**

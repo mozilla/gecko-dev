@@ -30,6 +30,26 @@
     let unknownCred = {type: "public-key", id: base64ToBytes("AAA=")};
     let validCred = null;
 
+    add_task(test_setup_valid_credential);
+    add_task(test_without_credential);
+    add_task(test_with_credential);
+    add_task(test_unexpected_option);
+    add_task(test_unexpected_option_with_credential);
+    add_task(test_unexpected_transport);
+    add_task(test_invalid_credential);
+    add_task(test_unknown_credential);
+    add_task(test_too_many_credentials);
+    add_task(test_unexpected_option_invalid_credential);
+    add_task(test_empty_credential_list);
+    add_task(() => {
+      // Enable USB tokens.
+      return SpecialPowers.pushPrefEnv({"set": [
+        ["security.webauth.webauthn_enable_softtoken", false],
+        ["security.webauth.webauthn_enable_usbtoken", true],
+      ]});
+    });
+    add_task(test_usb_empty_credential_list);
+
     function requestGetAssertion(params) {
       return navigator.credentials.get(params);
     }
@@ -62,17 +82,8 @@
       is(aResult.code, DOMException.ABORT_ERR, "Expecting an AbortError");
     }
 
-    add_task(() => {
-      return SpecialPowers.pushPrefEnv({"set": [
-        ["security.webauth.webauthn", true],
-        ["security.webauth.webauthn_enable_softtoken", true],
-        ["security.webauth.webauthn_enable_usbtoken", false],
-        ["security.webauth.webauthn_enable_android_fido2", false],
-      ]});
-    });
-
     // Set up a valid credential
-    add_task(async () => {
+    async function test_setup_valid_credential() {
       let publicKey = {
         rp: {id: document.domain, name: "none", icon: "none"},
         user: {id: new Uint8Array(), name: "none", icon: "none", displayName: "none"},
@@ -82,12 +93,12 @@
 
       return navigator.credentials.create({publicKey})
       .then(res => validCred = {type: "public-key", id: res.rawId} );
-    });
+    }
 
     // Test basic good call, but without giving a credential so expect failures
     // this is OK by the standard, but not supported by U2F-backed authenticators
     // like the soft token in use here.
-    add_task(async () => {
+    async function test_without_credential() {
       let publicKey = {
         challenge: gAssertionChallenge
       };
@@ -95,10 +106,10 @@
       await requestGetAssertion({publicKey})
         .then(arrivingHereIsBad)
         .catch(expectInvalidStateError);
-    });
+    }
 
     // Test with a valid credential
-    add_task(async () => {
+    async function test_with_credential() {
       let publicKey = {
         challenge: gAssertionChallenge,
         allowCredentials: [validCred]
@@ -107,12 +118,12 @@
       await requestGetAssertion({publicKey})
         .then(arrivingHereIsGood)
         .catch(arrivingHereIsBad);
-    });
+    }
 
     // Test with an unexpected option. That won't stop anything, and we'll
     // fail with InvalidState just as if we had no valid credentials -- which
     // we don't.
-    add_task(async () => {
+    async function test_unexpected_option() {
       let publicKey = {
         challenge: gAssertionChallenge,
         unknownValue: "hi"
@@ -121,10 +132,10 @@
       await requestGetAssertion({publicKey})
         .then(arrivingHereIsBad)
         .catch(expectInvalidStateError);
-    });
+    }
 
     // Test with an unexpected option but a valid credential
-    add_task(async () => {
+    async function test_unexpected_option_with_credential() {
       let publicKey = {
         challenge: gAssertionChallenge,
         unknownValue: "hi",
@@ -134,10 +145,10 @@
       await requestGetAssertion({publicKey})
         .then(arrivingHereIsGood)
         .catch(arrivingHereIsBad);
-    });
+    }
 
     // Test with an unexpected transport on a valid credential
-    add_task(async () => {
+    async function test_unexpected_transport() {
       let cred = validCred;
       cred.transports = ["unknown", "usb"];
 
@@ -150,10 +161,10 @@
       await requestGetAssertion({publicKey})
         .then(arrivingHereIsGood)
         .catch(arrivingHereIsBad);
-    });
+    }
 
     // Test with an invalid credential
-    add_task(async () => {
+    async function test_invalid_credential() {
       let publicKey = {
         challenge: gAssertionChallenge,
         allowCredentials: [invalidCred]
@@ -162,10 +173,10 @@
       await requestGetAssertion({publicKey})
         .then(arrivingHereIsBad)
         .catch(expectTypeError);
-    });
+    }
 
     // Test with an unknown credential
-    add_task(async () => {
+    async function test_unknown_credential() {
       let publicKey = {
         challenge: gAssertionChallenge,
         allowCredentials: [unknownCred]
@@ -174,10 +185,10 @@
       await requestGetAssertion({publicKey})
         .then(arrivingHereIsBad)
         .catch(expectInvalidStateError);
-    });
+    }
 
     // Test with too many credentials
-    add_task(async () => {
+    async function test_too_many_credentials() {
       let tooManyCredentials = Array(21).fill(validCred);
       let publicKey = {
         challenge: gAssertionChallenge,
@@ -187,10 +198,10 @@
       await requestGetAssertion({publicKey})
         .then(arrivingHereIsBad)
         .catch(expectSecurityError);
-    });
+    }
 
     // Test with an unexpected option and an invalid credential
-    add_task(async () => {
+    async function test_unexpected_option_invalid_credential() {
       let publicKey = {
         challenge: gAssertionChallenge,
         unknownValue: "hi",
@@ -200,12 +211,12 @@
       await requestGetAssertion({publicKey})
         .then(arrivingHereIsBad)
         .catch(expectTypeError);
-    });
+    }
 
     // Test with an empty credential list
     // This will return InvalidStateError since the softotken consents, but
     // there are no valid credentials.
-    add_task(async () => {
+    async function test_empty_credential_list() {
       let publicKey = {
         challenge: gAssertionChallenge,
         allowCredentials: []
@@ -214,19 +225,10 @@
       await requestGetAssertion({publicKey})
         .then(arrivingHereIsBad)
         .catch(expectInvalidStateError);
-    });
-
-    add_task(() => {
-      // Enable USB tokens.
-      return SpecialPowers.pushPrefEnv({"set": [
-        ["security.webauth.webauthn", true],
-        ["security.webauth.webauthn_enable_softtoken", false],
-        ["security.webauth.webauthn_enable_usbtoken", true]
-      ]});
-    });
+    }
 
     // Test with an empty credential list
-    add_task(async () => {
+    async function test_usb_empty_credential_list() {
       let publicKey = {
         challenge: gAssertionChallenge,
         allowCredentials: []
@@ -244,7 +246,7 @@
       // succeed upon resolution, when the error code is checked.
       ctrl.abort();
       await request;
-    });
+    }
   </script>
 
 </body>

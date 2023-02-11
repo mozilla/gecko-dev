@@ -35,9 +35,6 @@ namespace JS::loader {
 
 NS_IMPL_CYCLE_COLLECTION(ScriptFetchOptions, mTriggeringPrincipal, mElement)
 
-NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(ScriptFetchOptions, AddRef)
-NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(ScriptFetchOptions, Release)
-
 ScriptFetchOptions::ScriptFetchOptions(
     mozilla::CORSMode aCORSMode, mozilla::dom::ReferrerPolicy aReferrerPolicy,
     nsIPrincipal* aTriggeringPrincipal, mozilla::dom::Element* aElement)
@@ -53,6 +50,7 @@ ScriptFetchOptions::~ScriptFetchOptions() = default;
 //////////////////////////////////////////////////////////////
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(ScriptLoadRequest)
+  NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(ScriptLoadRequest)
@@ -114,12 +112,6 @@ void ScriptLoadRequest::Cancel() {
   mState = State::Canceled;
   if (HasScriptLoadContext()) {
     GetScriptLoadContext()->MaybeCancelOffThreadScript();
-  }
-  if (HasWorkerLoadContext()) {
-    // The back reference needs to be cleared for workers, as there is no CC.
-    // However, we don't want to remove our pointer to the worker load
-    // context as it is used to determine load failure information.
-    GetWorkerLoadContext()->mRequest = nullptr;
   }
 }
 

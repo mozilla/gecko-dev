@@ -20,6 +20,12 @@
   <script class="testbody" type="text/javascript">
     "use strict";
 
+    add_task(() => {
+      return SpecialPowers.pushPrefEnv({"set": [
+        ["security.webauth.webauthn_testing_allow_direct_attestation", true],
+      ]});
+    });
+
     function getAttestationCertFromAttestationBuffer(aAttestationBuffer) {
       return webAuthnDecodeCBORAttestation(aAttestationBuffer)
       .then((aAttestationObj) => {
@@ -56,17 +62,6 @@
       ok(aResult.toString().startsWith("TypeError"), "Expecting a TypeError, got " + aResult);
     }
 
-    add_task(() => {
-      // Enable the softtoken.
-      return SpecialPowers.pushPrefEnv({"set": [
-        ["security.webauth.webauthn", true],
-        ["security.webauth.webauthn_enable_softtoken", true],
-        ["security.webauth.webauthn_enable_usbtoken", false],
-        ["security.webauth.webauthn_enable_android_fido2", false],
-        ["security.webauth.webauthn_testing_allow_direct_attestation", true],
-      ]});
-    });
-
     // Start a new MakeCredential() request.
     function requestMakeCredential(attestation) {
       let publicKey = {
@@ -82,7 +77,7 @@
     }
 
     // Test success cases for make credential.
-    add_task(async () => {
+    add_task(async function test_make_credential_success () {
       // No selection criteria should be equal to none, which means anonymized
       await requestMakeCredential()
         .then(verifyAnonymizedCertificate)
@@ -119,7 +114,7 @@
     });
 
     // Test failure cases for make credential.
-    add_task(async () => {
+    add_task(async function test_make_credential_failures() {
       // Request a platform authenticator.
       await requestMakeCredential("unknown")
         .then(arrivingHereIsBad)

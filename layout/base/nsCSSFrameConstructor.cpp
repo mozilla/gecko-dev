@@ -202,7 +202,6 @@ static FrameCtorDebugFlags gFlags[] = {
 #  define NUM_DEBUG_FLAGS (sizeof(gFlags) / sizeof(gFlags[0]))
 #endif
 
-#include "nsMenuFrame.h"
 #include "nsTreeColFrame.h"
 
 //------------------------------------------------------------------
@@ -3284,6 +3283,7 @@ nsIFrame* nsCSSFrameConstructor::ConstructBlockRubyFrame(
   nsContainerFrame* newFrame = blockFrame;
   nsContainerFrame* geometricParent =
       aState.GetGeometricParent(*aStyleDisplay, aParentFrame);
+  AutoFrameConstructionPageName pageNameTracker(aState, blockFrame);
   if ((aItem.mFCData->mBits & FCDATA_MAY_NEED_SCROLLFRAME) &&
       aStyleDisplay->IsScrollableOverflow()) {
     nsContainerFrame* scrollframe = nullptr;
@@ -4151,15 +4151,10 @@ nsCSSFrameConstructor::FindXULTagData(const Element& aElement,
       SIMPLE_XUL_CREATE(image, NS_NewImageBoxFrame),
       SIMPLE_XUL_CREATE(treechildren, NS_NewTreeBodyFrame),
       SIMPLE_XUL_CREATE(treecol, NS_NewTreeColFrame),
-      SIMPLE_TAG_CHAIN(button, nsCSSFrameConstructor::FindXULButtonData),
-      SIMPLE_TAG_CHAIN(toolbarbutton, nsCSSFrameConstructor::FindXULButtonData),
       SIMPLE_TAG_CHAIN(label,
                        nsCSSFrameConstructor::FindXULLabelOrDescriptionData),
       SIMPLE_TAG_CHAIN(description,
                        nsCSSFrameConstructor::FindXULLabelOrDescriptionData),
-      SIMPLE_XUL_CREATE(menu, NS_NewMenuFrame),
-      SIMPLE_XUL_CREATE(menulist, NS_NewMenuFrame),
-      SIMPLE_XUL_CREATE(menuitem, NS_NewMenuItemFrame),
 #ifdef XP_MACOSX
       SIMPLE_TAG_CHAIN(menubar, nsCSSFrameConstructor::FindXULMenubarData),
 #else
@@ -4178,19 +4173,6 @@ nsCSSFrameConstructor::FindXULTagData(const Element& aElement,
   };
 
   return FindDataByTag(aElement, aStyle, sXULTagData, ArrayLength(sXULTagData));
-}
-
-/* static */
-const nsCSSFrameConstructor::FrameConstructionData*
-nsCSSFrameConstructor::FindXULButtonData(const Element& aElement,
-                                         ComputedStyle&) {
-  static constexpr FrameConstructionData sXULMenuData =
-      SIMPLE_XUL_FCDATA(NS_NewMenuFrame);
-  if (aElement.AttrValueIs(kNameSpaceID_None, nsGkAtoms::type, nsGkAtoms::menu,
-                           eCaseMatters)) {
-    return &sXULMenuData;
-  }
-  return nullptr;
 }
 
 /* static */
@@ -4518,11 +4500,8 @@ nsCSSFrameConstructor::FindDisplayData(const nsStyleDisplay& aDisplay,
       }
 
       // If we're emulating -moz-box with flexbox, then treat it as non-XUL and
-      // fall through (except for scrollcorners which have to be XUL becuase
-      // their parent reflows them with BoxReflow() which means they have to get
-      // actual-XUL frames).
-      if (aMozBoxLayout == StyleMozBoxLayout::Legacy ||
-          aElement.IsXULElement(nsGkAtoms::scrollcorner)) {
+      // fall through.
+      if (aMozBoxLayout == StyleMozBoxLayout::Legacy) {
         static constexpr FrameConstructionData data =
             SCROLLABLE_ABSPOS_CONTAINER_XUL_FCDATA(
                 ToCreationFunc(NS_NewBoxFrame));
@@ -5440,9 +5419,7 @@ void nsCSSFrameConstructor::AddFrameConstructionItemsInternal(
     return;
   }
 
-  const bool isPopup =
-      (data->mBits & FCDATA_IS_POPUP) && (!aParentFrame ||  // Parent is inline
-                                          !aParentFrame->IsMenuFrame());
+  const bool isPopup = data->mBits & FCDATA_IS_POPUP;
 
   const uint32_t bits = data->mBits;
 
@@ -5934,17 +5911,13 @@ void nsCSSFrameConstructor::AppendFramesToParent(
 bool nsCSSFrameConstructor::IsValidSibling(nsIFrame* aSibling,
                                            nsIContent* aContent,
                                            Maybe<StyleDisplay>& aDisplay) {
-  nsIFrame* parentFrame = aSibling->GetParent();
-  LayoutFrameType parentType = parentFrame->Type();
-
   StyleDisplay siblingDisplay = aSibling->GetDisplay();
   if (StyleDisplay::TableColumnGroup == siblingDisplay ||
       StyleDisplay::TableColumn == siblingDisplay ||
       StyleDisplay::TableCaption == siblingDisplay ||
       StyleDisplay::TableHeaderGroup == siblingDisplay ||
       StyleDisplay::TableRowGroup == siblingDisplay ||
-      StyleDisplay::TableFooterGroup == siblingDisplay ||
-      LayoutFrameType::Menu == parentType) {
+      StyleDisplay::TableFooterGroup == siblingDisplay) {
     // if we haven't already, resolve a style to find the display type of
     // aContent.
     if (aDisplay.isNothing()) {
@@ -6015,7 +5988,7 @@ nsIFrame* nsCSSFrameConstructor::FindSiblingInternal(
     auto* marker = nsLayoutUtils::GetMarkerFrame(aContent);
     const bool isInsideMarker =
         marker && marker->GetInFlowParent()->StyleList()->mListStylePosition ==
-                      NS_STYLE_LIST_STYLE_POSITION_INSIDE;
+                      StyleListStylePosition::Inside;
     return isInsideMarker ? marker : nullptr;
   };
 
@@ -7217,6 +7190,21 @@ void nsCSSFrameConstructor::ContentRangeInserted(nsIContent* aStartChild,
 
   nsFrameConstructorSaveState floatSaveState;
   state.MaybePushFloatContainingBlock(insertion.mParentFrame, floatSaveState);
+
+  if (state.mPresContext->IsPaginated() &&
+      StaticPrefs::layout_css_named_pages_enabled()) {
+    // Because this function can be called outside frame construction, we need
+    // to set state.mAutoPageNameValue based on what the parent frame's auto
+    // value is.
+    // Calling this from outside the frame constructor can violate many of the
+    // expectations in AutoFrameConstructionPageName, and unlike during frame
+    // construction we already have an auto value from parentFrame, so we do
+    // not use AutoFrameConstructionPageName here.
+    state.mAutoPageNameValue = insertion.mParentFrame->GetAutoPageValue();
+#ifdef DEBUG
+    insertion.mParentFrame->mWasVisitedByAutoFrameConstructionPageName = true;
+#endif
+  }
 
   // If the container is a table and a caption will be appended, it needs to be
   // put in the table wrapper frame's additional child list.
@@ -9792,7 +9780,7 @@ void nsCSSFrameConstructor::ProcessChildren(
           (listItem = do_QueryFrame(aFrame)) &&
           !styleParentFrame->IsFieldSetFrame()) {
         isOutsideMarker = computedStyle->StyleList()->mListStylePosition ==
-                          NS_STYLE_LIST_STYLE_POSITION_OUTSIDE;
+                          StyleListStylePosition::Outside;
         ItemFlags extraFlags;
         if (isOutsideMarker) {
           extraFlags += ItemFlag::IsForOutsideMarker;

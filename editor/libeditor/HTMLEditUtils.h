@@ -184,7 +184,13 @@ class HTMLEditUtils final {
    * IsDisplayOutsideInline() returns true if display-outside value is
    * "inside".  This does NOT flush the layout.
    */
-  static bool IsDisplayOutsideInline(const Element& aElement);
+  [[nodiscard]] static bool IsDisplayOutsideInline(const Element& aElement);
+
+  /**
+   * IsDisplayInsideFlowRoot() returns true if display-inline value of aElement
+   * is "flow-root".  This does NOT flush the layout.
+   */
+  [[nodiscard]] static bool IsDisplayInsideFlowRoot(const Element& aElement);
 
   /**
    * IsRemovableInlineStyleElement() returns true if aElement is an inline
@@ -603,17 +609,6 @@ class HTMLEditUtils final {
     }
     return IsContentInclusiveDescendantOfLink(*commonAncestorNode->AsContent(),
                                               aFoundLinkElement);
-  }
-
-  /**
-   * Whether aElement has at least one attribute except _moz_dirty attribute or
-   * has no attribute or only has _moz_dirty attribute.
-   */
-  static bool ElementHasAttributesExceptMozDirty(const Element& aElement) {
-    uint32_t attrCount = aElement.GetAttrCount();
-    return attrCount > 1 ||
-           (attrCount == 1u &&
-            !aElement.GetAttrNameAt(0)->Equals(nsGkAtoms::mozdirty));
   }
 
   /**
@@ -1235,6 +1230,15 @@ class HTMLEditUtils final {
     // Else return the node itself
     return previousContent;
   }
+
+  /**
+   * Returns a content node whose inline styles should be preserved after
+   * deleting content in a range.  Typically, you should set aPoint to start
+   * boundary of the range to delete.
+   */
+  template <typename EditorDOMPointType>
+  static nsIContent* GetContentToPreserveInlineStyles(
+      const EditorDOMPointType& aPoint, const Element& aEditingHost);
 
   /**
    * Get previous/next editable point from start or end of aContent.
@@ -2090,8 +2094,72 @@ class HTMLEditUtils final {
    * Check whether aElement has attributes except the name aAttribute and
    * "_moz_*" attributes.
    */
-  [[nodiscard]] static bool ElementHasAttributeExcept(const Element& aElement,
-                                                      const nsAtom& aAttribute);
+  [[nodiscard]] static bool ElementHasAttribute(const Element& aElement) {
+    return ElementHasAttributeExcept(aElement, *nsGkAtoms::_empty,
+                                     *nsGkAtoms::empty, *nsGkAtoms::_empty);
+  }
+  [[nodiscard]] static bool ElementHasAttributeExcept(
+      const Element& aElement, const nsAtom& aAttribute) {
+    return ElementHasAttributeExcept(aElement, aAttribute, *nsGkAtoms::_empty,
+                                     *nsGkAtoms::empty);
+  }
+  [[nodiscard]] static bool ElementHasAttributeExcept(
+      const Element& aElement, const nsAtom& aAttribute1,
+      const nsAtom& aAttribute2) {
+    return ElementHasAttributeExcept(aElement, aAttribute1, aAttribute2,
+                                     *nsGkAtoms::empty);
+  }
+  [[nodiscard]] static bool ElementHasAttributeExcept(
+      const Element& aElement, const nsAtom& aAttribute1,
+      const nsAtom& aAttribute2, const nsAtom& aAttribute3);
+
+  /**
+   * Returns EditorDOMPoint which points deepest editable start/end point of
+   * aNode.  If a node is a container node and first/last child is editable,
+   * returns the child's start or last point recursively.
+   */
+  template <typename EditorDOMPointType>
+  [[nodiscard]] static EditorDOMPointType GetDeepestEditableStartPointOf(
+      const nsIContent& aContent) {
+    if (NS_WARN_IF(!EditorUtils::IsEditableContent(
+            aContent, EditorBase::EditorType::HTML))) {
+      return EditorDOMPointType();
+    }
+    EditorDOMPointType result(&aContent, 0u);
+    while (true) {
+      nsIContent* firstChild = result.GetContainer()->GetFirstChild();
+      if (!firstChild ||
+          (!firstChild->IsText() &&
+           !HTMLEditUtils::IsContainerNode(*firstChild)) ||
+          !EditorUtils::IsEditableContent(*firstChild,
+                                          EditorBase::EditorType::HTML)) {
+        break;
+      }
+      result.Set(firstChild, 0u);
+    }
+    return result;
+  }
+  template <typename EditorDOMPointType>
+  [[nodiscard]] static EditorDOMPointType GetDeepestEditableEndPointOf(
+      const nsIContent& aContent) {
+    if (NS_WARN_IF(!EditorUtils::IsEditableContent(
+            aContent, EditorBase::EditorType::HTML))) {
+      return EditorDOMPointType();
+    }
+    auto result = EditorDOMPointType::AtEndOf(aContent);
+    while (true) {
+      nsIContent* lastChild = result.GetContainer()->GetLastChild();
+      if (!lastChild ||
+          (!lastChild->IsText() &&
+           !HTMLEditUtils::IsContainerNode(*lastChild)) ||
+          !EditorUtils::IsEditableContent(*lastChild,
+                                          EditorBase::EditorType::HTML)) {
+        break;
+      }
+      result = EditorDOMPointType::AtEndOf(*lastChild);
+    }
+    return result;
+  }
 
  private:
   static bool CanNodeContain(nsHTMLTag aParentTagId, nsHTMLTag aChildTagId);

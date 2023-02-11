@@ -34,10 +34,13 @@ const SUPPORTED_ADDON_TYPES = [
 
 const lazy = {};
 
+ChromeUtils.defineESModuleGetters(lazy, {
+  ClientID: "resource://gre/modules/ClientID.sys.mjs",
+});
+
 XPCOMUtils.defineLazyModuleGetters(lazy, {
   AddonManager: "resource://gre/modules/AddonManager.jsm",
   AMTelemetry: "resource://gre/modules/AddonManager.jsm",
-  ClientID: "resource://gre/modules/ClientID.jsm",
 });
 
 XPCOMUtils.defineLazyPreferenceGetter(
@@ -402,7 +405,7 @@ const AbuseReporter = {
    *          A method that closes the report dialog (used by the caller
    *          to close the dialog when the user chooses to close the window
    *          that started the abuse report flow).
-   * @prop    {Promise<AbuseReport|undefined} promiseReport
+   * @prop    {Promise<AbuseReport|undefined>} promiseReport
    *          A promise resolved to an AbuseReport instance if the report should
    *          be submitted, or undefined if the user has cancelled the report.
    *          Rejects if it fails to create an AbuseReport instance or to open

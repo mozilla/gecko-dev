@@ -14,11 +14,9 @@ ChromeUtils.defineModuleGetter(
   "resource:///modules/AboutNewTab.jsm"
 );
 
-ChromeUtils.defineModuleGetter(
-  lazy,
-  "AboutHomeStartupCache",
-  "resource:///modules/BrowserGlue.jsm"
-);
+ChromeUtils.defineESModuleGetters(lazy, {
+  AboutHomeStartupCache: "resource:///modules/BrowserGlue.sys.mjs",
+});
 
 const { RemotePages } = ChromeUtils.import(
   "resource://gre/modules/remotepagemanager/RemotePageManagerParent.jsm"
@@ -28,7 +26,9 @@ const {
   actionCreators: ac,
   actionTypes: at,
   actionUtils: au,
-} = ChromeUtils.import("resource://activity-stream/common/Actions.jsm");
+} = ChromeUtils.importESModule(
+  "resource://activity-stream/common/Actions.sys.mjs"
+);
 
 const ABOUT_NEW_TAB_URL = "about:newtab";
 const ABOUT_HOME_URL = "about:home";
@@ -49,7 +49,7 @@ class ActivityStreamMessageChannel {
    * ActivityStreamMessageChannel - This module connects a Redux store to a RemotePageManager in Firefox.
    *                  Call .createChannel to start the connection, and .destroyChannel to destroy it.
    *                  You should use the BroadcastToContent, AlsoToOneContent, and AlsoToMain action creators
-   *                  in common/Actions.jsm to help you create actions that will be automatically routed
+   *                  in common/Actions.sys.mjs to help you create actions that will be automatically routed
    *                  to the correct location.
    *
    * @param  {object} options

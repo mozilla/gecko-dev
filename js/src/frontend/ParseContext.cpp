@@ -70,7 +70,7 @@ bool DeclarationKindIsParameter(DeclarationKind kind) {
          kind == DeclarationKind::FormalParameter;
 }
 
-bool UsedNameTracker::noteUse(ErrorContext* ec, TaggedParserAtomIndex name,
+bool UsedNameTracker::noteUse(FrontendContext* fc, TaggedParserAtomIndex name,
                               NameVisibility visibility, uint32_t scriptId,
                               uint32_t scopeId,
                               mozilla::Maybe<TokenPos> tokenPosition) {
@@ -90,7 +90,7 @@ bool UsedNameTracker::noteUse(ErrorContext* ec, TaggedParserAtomIndex name,
       hasPrivateNames_ = true;
     }
 
-    UsedNameInfo info(ec, visibility, tokenPosition);
+    UsedNameInfo info(fc, visibility, tokenPosition);
 
     if (!info.noteUsedInScope(scriptId, scopeId)) {
       return false;
@@ -138,13 +138,13 @@ bool UsedNameTracker::getUnboundPrivateNames(
 }
 
 bool UsedNameTracker::hasUnboundPrivateNames(
-    ErrorContext* ec, mozilla::Maybe<UnboundPrivateName>& maybeUnboundName) {
+    FrontendContext* fc, mozilla::Maybe<UnboundPrivateName>& maybeUnboundName) {
   // We never saw any private names, so can just return early
   if (!hasPrivateNames_) {
     return true;
   }
 
-  Vector<UnboundPrivateName, 8> unboundPrivateNames(ec);
+  Vector<UnboundPrivateName, 8> unboundPrivateNames(fc);
   if (!getUnboundPrivateNames(unboundPrivateNames)) {
     return false;
   }
@@ -180,15 +180,14 @@ void UsedNameTracker::rewind(RewindToken token) {
 }
 
 void ParseContext::Scope::dump(ParseContext* pc, ParserBase* parser) {
-  JSContext* cx = pc->sc()->cx_;
-
   fprintf(stdout, "ParseScope %p", this);
 
   fprintf(stdout, "\n  decls:\n");
   for (DeclaredNameMap::Range r = declared_->all(); !r.empty(); r.popFront()) {
     auto index = r.front().key();
-    UniqueChars bytes = parser->parserAtoms().toPrintableString(cx, index);
+    UniqueChars bytes = parser->parserAtoms().toPrintableString(index);
     if (!bytes) {
+      ReportOutOfMemory(pc->sc()->fc_);
       return;
     }
     DeclaredNameInfo& info = r.front().value().wrapped;
@@ -202,7 +201,7 @@ void ParseContext::Scope::dump(ParseContext* pc, ParserBase* parser) {
 bool ParseContext::Scope::addPossibleAnnexBFunctionBox(ParseContext* pc,
                                                        FunctionBox* funbox) {
   if (!possibleAnnexBFunctionBoxes_) {
-    if (!possibleAnnexBFunctionBoxes_.acquire(pc->sc()->ec_)) {
+    if (!possibleAnnexBFunctionBoxes_.acquire(pc->sc()->fc_)) {
       return false;
     }
   }
@@ -308,7 +307,7 @@ void ParseContext::Scope::removeCatchParameters(ParseContext* pc,
   }
 }
 
-ParseContext::ParseContext(JSContext* cx, ParseContext*& parent,
+ParseContext::ParseContext(FrontendContext* fc, ParseContext*& parent,
                            SharedContext* sc, ErrorReporter& errorReporter,
                            CompilationState& compilationState,
                            Directives* newDirectives, bool isFull)
@@ -318,9 +317,9 @@ ParseContext::ParseContext(JSContext* cx, ParseContext*& parent,
       innermostStatement_(nullptr),
       innermostScope_(nullptr),
       varScope_(nullptr),
-      positionalFormalParameterNames_(cx->frontendCollectionPool()),
-      closedOverBindingsForLazy_(cx->frontendCollectionPool()),
-      innerFunctionIndexesForLazy(sc->ec_),
+      positionalFormalParameterNames_(fc->nameCollectionPool()),
+      closedOverBindingsForLazy_(fc->nameCollectionPool()),
+      innerFunctionIndexesForLazy(sc->fc_),
       newDirectives(newDirectives),
       lastYieldOffset(NoYieldOffset),
       lastAwaitOffset(NoAwaitOffset),
@@ -328,9 +327,9 @@ ParseContext::ParseContext(JSContext* cx, ParseContext*& parent,
       superScopeNeedsHomeObject_(false) {
   if (isFunctionBox()) {
     if (functionBox()->isNamedLambda()) {
-      namedLambdaScope_.emplace(cx, parent, compilationState.usedNames);
+      namedLambdaScope_.emplace(fc, parent, compilationState.usedNames);
     }
-    functionScope_.emplace(cx, parent, compilationState.usedNames);
+    functionScope_.emplace(fc, parent, compilationState.usedNames);
   }
 }
 
@@ -340,7 +339,7 @@ bool ParseContext::init() {
     return false;
   }
 
-  ErrorContext* ec = sc()->ec_;
+  FrontendContext* fc = sc()->fc_;
 
   if (isFunctionBox()) {
     // Named lambdas always need a binding for their own name. If this
@@ -365,12 +364,12 @@ bool ParseContext::init() {
       return false;
     }
 
-    if (!positionalFormalParameterNames_.acquire(ec)) {
+    if (!positionalFormalParameterNames_.acquire(fc)) {
       return false;
     }
   }
 
-  if (!closedOverBindingsForLazy_.acquire(ec)) {
+  if (!closedOverBindingsForLazy_.acquire(fc)) {
     return false;
   }
 

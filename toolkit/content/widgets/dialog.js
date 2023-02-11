@@ -12,6 +12,17 @@
   );
 
   class MozDialog extends MozXULElement {
+    constructor() {
+      super();
+
+      /**
+       * Gets populated by elements that are passed to document.l10n.setAttributes
+       * to localize the dialog buttons. Needed to properly size the dialog after
+       * the asynchronous translation.
+       */
+      this._l10nButtons = [];
+    }
+
     static get observedAttributes() {
       return super.observedAttributes.concat("subdialog");
     }
@@ -95,13 +106,6 @@
       );
       this.initializeAttributeInheritance();
 
-      /**
-       * Gets populated by elements that are passed to document.l10n.setAttributes
-       * to localize the dialog buttons. Needed to properly size the dialog after
-       * the asynchronous translation.
-       */
-      this._l10nButtons = [];
-
       this._configureButtons(this.buttons);
 
       window.moveToAlertPosition = this.moveToAlertPosition;
@@ -143,6 +147,17 @@
           event.preventDefault();
         }
       });
+
+      if (this._l10nButtons.length) {
+        document.blockUnblockOnload(true);
+        this._translationReady = document.l10n.ready.then(async () => {
+          try {
+            await document.l10n.translateElements(this._l10nButtons);
+          } finally {
+            document.blockUnblockOnload(false);
+          }
+        });
+      }
 
       // Call postLoadInit for things that we need to initialize after onload.
       if (document.readyState == "complete") {
@@ -332,11 +347,27 @@
 
     async _postLoadInit() {
       this._setInitialFocusIfNeeded();
-      if (this._l10nButtons.length) {
-        await document.l10n.translateElements(this._l10nButtons);
+      if (this._translationReady) {
+        await this._translationReady;
       }
-      this._sizeToPreferredSize();
-      await this._snapCursorToDefaultButtonIfNeeded();
+
+      let finalStep = () => {
+        this._sizeToPreferredSize();
+        this._snapCursorToDefaultButtonIfNeeded();
+      };
+      // As a hack to ensure Windows sizes the window correctly,
+      // _sizeToPreferredSize() needs to happen after
+      // AppWindow::OnChromeLoaded. That one is called right after the load
+      // event dispatch but within the same task. Using direct dispatch let's
+      // all this code run before the next task (which might be a task to
+      // paint the window).
+      // But, MacOS doesn't like resizing after window/dialog becoming visible.
+      // Linux seems to be able to handle both cases.
+      if (Services.appinfo.OS == "Darwin") {
+        finalStep();
+      } else {
+        Services.tm.dispatchDirectTaskToCurrentThread(finalStep);
+      }
     }
 
     // This snaps the cursor to the default button rect on windows, when

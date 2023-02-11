@@ -2,13 +2,12 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import unittest
 
 import mozfile
-from mozbuild.vendor.moz_yaml import MozYamlVerifyError, load_moz_yaml
 from mozunit import main
+
+from mozbuild.vendor.moz_yaml import MozYamlVerifyError, load_moz_yaml
 
 
 class TestManifest(unittest.TestCase):

@@ -2,20 +2,16 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import
-
 import os
 from functools import partial
 
 import mozunit
 import pytest
-from manifestparser import TestManifest
-from moztest.selftest.output import get_mozharness_status, filter_action
 from conftest import setup_args
-
-from mozharness.base.log import INFO, WARNING, ERROR
-from mozharness.mozilla.automation import TBPL_SUCCESS, TBPL_WARNING, TBPL_FAILURE
-
+from manifestparser import TestManifest
+from mozharness.base.log import ERROR, INFO, WARNING
+from mozharness.mozilla.automation import TBPL_FAILURE, TBPL_SUCCESS, TBPL_WARNING
+from moztest.selftest.output import filter_action, get_mozharness_status
 
 here = os.path.abspath(os.path.dirname(__file__))
 get_mozharness_status = partial(get_mozharness_status, "mochitest")

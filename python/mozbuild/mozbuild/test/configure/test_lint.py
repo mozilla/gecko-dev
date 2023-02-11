@@ -2,8 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import contextlib
 import os
 import sys
@@ -11,15 +9,11 @@ import textwrap
 import traceback
 import unittest
 
-from mozunit import (
-    main,
-    MockedOpen,
-)
+import mozpack.path as mozpath
+from mozunit import MockedOpen, main
 
 from mozbuild.configure import ConfigureError
 from mozbuild.configure.lint import LintSandbox
-
-import mozpack.path as mozpath
 
 test_data_path = mozpath.abspath(mozpath.dirname(__file__))
 test_data_path = mozpath.join(test_data_path, "data")

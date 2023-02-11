@@ -8,13 +8,11 @@
 # an unified `compile_commands.json` but we generate a per file basis `command` in
 # `objdir/clangd/compile_commands.json`
 
-from __future__ import absolute_import, print_function
-
 import os
 
-from mozbuild.compilation.database import CompileDBBackend
-
 import mozpack.path as mozpath
+
+from mozbuild.compilation.database import CompileDBBackend
 
 
 def find_vscode_cmd():

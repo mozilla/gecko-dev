@@ -819,6 +819,14 @@ static bool DefineConstructor(JSContext* cx, JS::Handle<JSObject*> global,
   return DefineConstructor(cx, global, nameKey, constructor);
 }
 
+static bool DefineToStringTag(JSContext* cx, JS::Handle<JSObject*> obj,
+                              JS::Handle<JSString*> class_name) {
+  JS::Rooted<jsid> toStringTagId(
+      cx, JS::GetWellKnownSymbolKey(cx, JS::SymbolCode::toStringTag));
+  return JS_DefinePropertyById(cx, obj, toStringTagId, class_name,
+                               JSPROP_READONLY);
+}
+
 // name must be an atom (or JS::PropertyKey::NonIntAtom will assert).
 static JSObject* CreateInterfaceObject(
     JSContext* cx, JS::Handle<JSObject*> global,
@@ -905,6 +913,10 @@ static JSObject* CreateInterfaceObject(
     }
   }
 
+  if (isNamespace && !DefineToStringTag(cx, constructor, name)) {
+    return nullptr;
+  }
+
   if (proto && !JS_LinkConstructorAndPrototype(cx, constructor, proto)) {
     return nullptr;
   }
@@ -986,10 +998,7 @@ static JSObject* CreateInterfacePrototypeObject(
     }
   }
 
-  JS::Rooted<jsid> toStringTagId(
-      cx, JS::GetWellKnownSymbolKey(cx, JS::SymbolCode::toStringTag));
-  if (!JS_DefinePropertyById(cx, ourProto, toStringTagId, name,
-                             JSPROP_READONLY)) {
+  if (!DefineToStringTag(cx, ourProto, name)) {
     return nullptr;
   }
 
@@ -1623,7 +1632,7 @@ static bool XrayResolveProperty(
   switch (propertyInfo.type) {
     case eStaticMethod:
     case eStaticAttribute:
-      if (type != eInterface) {
+      if (type != eInterface && type != eNamespace) {
         return true;
       }
       break;
@@ -1805,6 +1814,18 @@ static bool ResolvePrototypeOrConstructor(
         return true;
       }
     }
+  } else if (type == eNamespace) {
+    if (id.isWellKnownSymbol(JS::SymbolCode::toStringTag)) {
+      JS::Rooted<JSString*> nameStr(
+          cx, JS_AtomizeString(cx, JS::GetClass(obj)->name));
+      if (!nameStr) {
+        return false;
+      }
+
+      desc.set(Some(JS::PropertyDescriptor::Data(
+          JS::StringValue(nameStr), {JS::PropertyAttribute::Configurable})));
+      return true;
+    }
   } else {
     MOZ_ASSERT(IsInterfacePrototype(type));
 
@@ -1945,7 +1966,7 @@ bool XrayOwnPropertyKeys(JSContext* cx, JS::Handle<JSObject*> wrapper,
     }
   } else {
     MOZ_ASSERT(type != eGlobalInterfacePrototype);
-    if (type == eInterface) {
+    if (type == eInterface || type == eNamespace) {
       ADD_KEYS_IF_DEFINED(StaticMethod);
       ADD_KEYS_IF_DEFINED(StaticAttribute);
     } else {
@@ -4074,33 +4095,6 @@ static const char* kDeprecatedOperations[] = {
     nullptr};
 #undef DEPRECATED_OPERATION
 
-class GetLocalizedStringRunnable final : public WorkerMainThreadRunnable {
- public:
-  GetLocalizedStringRunnable(WorkerPrivate* aWorkerPrivate,
-                             const nsAutoCString& aKey,
-                             nsAutoString& aLocalizedString)
-      : WorkerMainThreadRunnable(aWorkerPrivate,
-                                 "GetLocalizedStringRunnable"_ns),
-        mKey(aKey),
-        mLocalizedString(aLocalizedString) {
-    MOZ_ASSERT(aWorkerPrivate);
-    aWorkerPrivate->AssertIsOnWorkerThread();
-  }
-
-  bool MainThreadRun() override {
-    AssertIsOnMainThread();
-
-    nsresult rv = nsContentUtils::GetLocalizedString(
-        nsContentUtils::eDOM_PROPERTIES, mKey.get(), mLocalizedString);
-    Unused << NS_WARN_IF(NS_FAILED(rv));
-    return true;
-  }
-
- private:
-  const nsAutoCString& mKey;
-  nsAutoString& mLocalizedString;
-};
-
 void ReportDeprecation(nsIGlobalObject* aGlobal, nsIURI* aURI,
                        DeprecatedOperations aOperation,
                        const nsAString& aFileName,
@@ -4125,33 +4119,10 @@ void ReportDeprecation(nsIGlobalObject* aGlobal, nsIURI* aURI,
   key.AppendASCII("Warning");
 
   nsAutoString msg;
-  if (NS_IsMainThread()) {
-    rv = nsContentUtils::GetLocalizedString(nsContentUtils::eDOM_PROPERTIES,
-                                            key.get(), msg);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return;
-    }
-  } else {
-    // nsIStringBundle is thread-safe but its creation is not, and in particular
-    // nsContentUtils doesn't create and store nsIStringBundle objects in a
-    // thread-safe way. Better to call GetLocalizedString() on the main thread.
-    WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
-    if (!workerPrivate) {
-      return;
-    }
-
-    RefPtr<GetLocalizedStringRunnable> runnable =
-        new GetLocalizedStringRunnable(workerPrivate, key, msg);
-
-    IgnoredErrorResult ignoredRv;
-    runnable->Dispatch(Canceling, ignoredRv);
-    if (NS_WARN_IF(ignoredRv.Failed())) {
-      return;
-    }
-
-    if (msg.IsEmpty()) {
-      return;
-    }
+  rv = nsContentUtils::GetLocalizedString(nsContentUtils::eDOM_PROPERTIES,
+                                          key.get(), msg);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return;
   }
 
   RefPtr<DeprecationReportBody> body =

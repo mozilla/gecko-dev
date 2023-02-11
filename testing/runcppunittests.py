@@ -4,8 +4,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, with_statement
-
 import os
 import sys
 from optparse import OptionParser
@@ -145,21 +143,25 @@ class CPPUnitTests(object):
             else:
                 env[pathvar] = libpath
 
+        symbolizer_path = None
         if mozinfo.info["asan"]:
-            # Use llvm-symbolizer for ASan if available/required
-            if "ASAN_SYMBOLIZER_PATH" in env and os.path.isfile(
-                env["ASAN_SYMBOLIZER_PATH"]
-            ):
-                llvmsym = env["ASAN_SYMBOLIZER_PATH"]
+            symbolizer_path = "ASAN_SYMBOLIZER_PATH"
+        elif mozinfo.info["tsan"]:
+            symbolizer_path = "TSAN_SYMBOLIZER_PATH"
+
+        if symbolizer_path is not None:
+            # Use llvm-symbolizer for ASan/TSan if available/required
+            if symbolizer_path in env and os.path.isfile(env[symbolizer_path]):
+                llvmsym = env[symbolizer_path]
             else:
                 llvmsym = os.path.join(
                     self.xre_path, "llvm-symbolizer" + mozinfo.info["bin_suffix"]
                 )
             if os.path.isfile(llvmsym):
-                env["ASAN_SYMBOLIZER_PATH"] = llvmsym
-                self.log.info("ASan using symbolizer at %s" % llvmsym)
+                env[symbolizer_path] = llvmsym
+                self.log.info("Using LLVM symbolizer at %s" % llvmsym)
             else:
-                self.log.info("Failed to find ASan symbolizer at %s" % llvmsym)
+                self.log.info("Failed to find LLVM symbolizer at %s" % llvmsym)
 
         return env
 

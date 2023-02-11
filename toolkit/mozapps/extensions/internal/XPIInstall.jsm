@@ -51,6 +51,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 XPCOMUtils.defineLazyModuleGetters(lazy, {
   AddonRepository: "resource://gre/modules/addons/AddonRepository.jsm",
   AddonSettings: "resource://gre/modules/addons/AddonSettings.jsm",
+  BuiltInThemesHelpers: "resource://gre/modules/addons/XPIDatabase.jsm",
   ExtensionData: "resource://gre/modules/Extension.jsm",
   NetUtil: "resource://gre/modules/NetUtil.jsm",
   ProductAddonChecker: "resource://gre/modules/addons/ProductAddonChecker.jsm",
@@ -1860,6 +1861,18 @@ class AddonInstall {
             this.addon.type
           );
         }
+
+        // Clear the colorways builtins migrated to a non-builtin themes
+        // form the list of the retained themes.
+        if (
+          this.existingAddon?.isBuiltinColorwayTheme &&
+          !this.addon.isBuiltin &&
+          lazy.BuiltInThemesHelpers.isColorwayMigrationEnabled
+        ) {
+          lazy.BuiltInThemesHelpers.unretainMigratedColorwayTheme(
+            this.addon.id
+          );
+        }
       };
 
       this._startupPromise = (async () => {
@@ -2690,7 +2703,22 @@ function createUpdate(aCallback, aAddon, aUpdate, isUserRequested) {
       install = new LocalAddonInstall(aAddon.location, url, opts);
       await install.init();
     } else {
-      install = new DownloadAddonInstall(aAddon.location, url, opts);
+      let loc = aAddon.location;
+      if (
+        aAddon.isBuiltinColorwayTheme &&
+        lazy.BuiltInThemesHelpers.isColorwayMigrationEnabled
+      ) {
+        // Builtin colorways theme needs to be updated by installing the version
+        // got from AMO into the profile location and not using the location
+        // where the builtin addon is currently installed.
+        logger.info(
+          `Overriding location to APP_PROFILE on builtin colorway theme update for "${aAddon.id}"`
+        );
+        loc = lazy.XPIInternal.XPIStates.getLocation(
+          lazy.XPIInternal.KEY_APP_PROFILE
+        );
+      }
+      install = new DownloadAddonInstall(loc, url, opts);
     }
 
     aCallback(install);
@@ -4706,7 +4734,14 @@ var XPIInstall = {
         aAddon.location.removeAddon(aAddon.id);
         AddonManagerPrivate.callAddonListeners("onUninstalled", wrapper);
 
-        if (existing) {
+        // Migrate back to the existing addon, unless it was a builtin colorway theme.
+        if (
+          existing &&
+          !(
+            existing.isBuiltinColorwayTheme &&
+            lazy.BuiltInThemesHelpers.isColorwayMigrationEnabled
+          )
+        ) {
           lazy.XPIDatabase.makeAddonVisible(existing);
           AddonManagerPrivate.callAddonListeners(
             "onInstalling",
@@ -4720,7 +4755,14 @@ var XPIInstall = {
         }
       };
 
-      if (existing) {
+      // Migrate back to the existing addon, unless it was a builtin colorway theme.
+      if (
+        existing &&
+        !(
+          existing.isBuiltinColorwayTheme &&
+          lazy.BuiltInThemesHelpers.isColorwayMigrationEnabled
+        )
+      ) {
         await bootstrap.update(existing, !existing.disabled, uninstall);
 
         AddonManagerPrivate.callAddonListeners("onInstalled", existing.wrapper);

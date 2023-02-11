@@ -220,39 +220,6 @@ nsresult XRE_GetFileFromPath(const char* aPath, nsIFile** aResult);
 nsresult XRE_GetBinaryPath(nsIFile** aResult);
 
 /**
- * Lock a profile directory using platform-specific semantics.
- *
- * @param aDirectory  The profile directory to lock.
- * @param aLockObject An opaque lock object. The directory will remain locked
- *                    as long as the XPCOM reference is held.
- */
-nsresult XRE_LockProfileDirectory(nsIFile* aDirectory,
-                                  nsISupports** aLockObject);
-
-/**
- * Initialize libXUL for embedding purposes.
- *
- * @param aLibXULDirectory   The directory in which the libXUL shared library
- *                           was found.
- * @param aAppDirectory      The directory in which the application components
- *                           and resources can be found. This will map to
- *                           the NS_OS_CURRENT_PROCESS_DIR directory service
- *                           key.
- * @param aAppDirProvider    A directory provider for the application. This
- *                           provider will be aggregated by a libxul provider
- *                           which will provide the base required GRE keys.
- *
- * @note This function must be called from the "main" thread.
- *
- * @note At the present time, this function may only be called once in
- * a given process. Use XRE_TermEmbedding to clean up and free
- * resources allocated by XRE_InitEmbedding.
- */
-
-nsresult XRE_InitEmbedding2(nsIFile* aLibXULDirectory, nsIFile* aAppDirectory,
-                            nsIDirectoryServiceProvider* aAppDirProvider);
-
-/**
  * Register XPCOM components found in an array of files/directories.
  * This method may be called at any time before or after XRE_main or
  * XRE_InitEmbedding.
@@ -297,39 +264,6 @@ nsresult XRE_AddManifestLocation(NSLocationType aType, nsIFile* aLocation);
  * which are only allowed to register skin packages.
  */
 nsresult XRE_AddJarManifestLocation(NSLocationType aType, nsIFile* aLocation);
-
-/**
- * Fire notifications to inform the toolkit about a new profile. This
- * method should be called after XRE_InitEmbedding if the embedder
- * wishes to run with a profile. Normally the embedder should call
- * XRE_LockProfileDirectory to lock the directory before calling this
- * method.
- *
- * @note There are two possibilities for selecting a profile:
- *
- * 1) Select the profile before calling XRE_InitEmbedding. The aAppDirProvider
- *    object passed to XRE_InitEmbedding should provide the
- *    NS_APP_USER_PROFILE_50_DIR key, and may also provide the following keys:
- *    - NS_APP_USER_PROFILE_LOCAL_50_DIR
- *    - NS_APP_PROFILE_DIR_STARTUP
- *    - NS_APP_PROFILE_LOCAL_DIR_STARTUP
- *    In this scenario XRE_NotifyProfile should be called immediately after
- *    XRE_InitEmbedding. Component registration information will be stored in
- *    the profile and JS components may be stored in the fastload cache.
- *
- * 2) Select a profile some time after calling XRE_InitEmbedding. In this case
- *    the embedder must install a directory service provider which provides
- *    NS_APP_USER_PROFILE_50_DIR and optionally
- *    NS_APP_USER_PROFILE_LOCAL_50_DIR. Component registration information
- *    will be stored in the application directory and JS components will not
- *    fastload.
- */
-void XRE_NotifyProfile();
-
-/**
- * Terminate embedding started with XRE_InitEmbedding or XRE_InitEmbedding2
- */
-void XRE_TermEmbedding();
 
 /**
  * Parse an INI file (application.ini or override.ini) into an existing
@@ -400,10 +334,6 @@ bool XRE_IsSocketProcess();
 bool XRE_UseNativeEventProcessing();
 
 typedef void (*MainFunction)(void* aData);
-
-nsresult XRE_InitParentProcess(int aArgc, char* aArgv[],
-                               MainFunction aMainFunction,
-                               void* aMainFunctionExtraData);
 
 int XRE_RunIPDLTest(int aArgc, char* aArgv[]);
 

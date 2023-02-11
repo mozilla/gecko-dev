@@ -248,7 +248,6 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
 
   // nsIGlobalObject
   bool ShouldResistFingerprinting() const final;
-  uint32_t GetPrincipalHashValue() const final;
   mozilla::OriginTrials Trials() const final;
   mozilla::dom::FontFaceSet* Fonts() final;
 
@@ -1210,8 +1209,6 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   static void NotifyDOMWindowThawed(nsGlobalWindowInner* aWindow);
 
   virtual void UpdateParentTarget() override;
-
-  void InitializeShowFocusRings();
 
   // Clear the document-dependent slots on our JS wrapper.  Inner windows only.
   void ClearDocumentDependentSlots(JSContext* aCx);

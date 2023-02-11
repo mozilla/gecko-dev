@@ -76,29 +76,14 @@ const { XPCOMUtils } = ChromeUtils.importESModule(
 );
 // This global is overridden by xpcshell tests, and therefore cannot be
 // a const.
-var { AsyncShutdown } = ChromeUtils.import(
-  "resource://gre/modules/AsyncShutdown.jsm"
+var { AsyncShutdown } = ChromeUtils.importESModule(
+  "resource://gre/modules/AsyncShutdown.sys.mjs"
 );
 const { PromiseUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/PromiseUtils.sys.mjs"
 );
 
 const lazy = {};
-
-XPCOMUtils.defineLazyModuleGetters(lazy, {
-  AddonRepository: "resource://gre/modules/addons/AddonRepository.jsm",
-  AbuseReporter: "resource://gre/modules/AbuseReporter.jsm",
-  Extension: "resource://gre/modules/Extension.jsm",
-  RemoteSettings: "resource://services-settings/remote-settings.js",
-  TelemetryTimestamps: "resource://gre/modules/TelemetryTimestamps.jsm",
-});
-
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
-  "WEBEXT_POSTDOWNLOAD_THIRD_PARTY",
-  PREF_EM_POSTDOWNLOAD_THIRD_PARTY,
-  false
-);
 
 ChromeUtils.defineESModuleGetters(lazy, {
   isGatedPermissionType:
@@ -107,7 +92,22 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "resource://gre/modules/addons/siteperms-addon-utils.sys.mjs",
   isPrincipalInSitePermissionsBlocklist:
     "resource://gre/modules/addons/siteperms-addon-utils.sys.mjs",
+  TelemetryTimestamps: "resource://gre/modules/TelemetryTimestamps.sys.mjs",
 });
+
+XPCOMUtils.defineLazyModuleGetters(lazy, {
+  AddonRepository: "resource://gre/modules/addons/AddonRepository.jsm",
+  AbuseReporter: "resource://gre/modules/AbuseReporter.jsm",
+  Extension: "resource://gre/modules/Extension.jsm",
+  RemoteSettings: "resource://services-settings/remote-settings.js",
+});
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "WEBEXT_POSTDOWNLOAD_THIRD_PARTY",
+  PREF_EM_POSTDOWNLOAD_THIRD_PARTY,
+  false
+);
 
 // Initialize the WebExtension process script service as early as possible,
 // since it needs to be able to track things like new frameLoader globals that
@@ -1303,6 +1303,11 @@ var AddonManagerInternal = {
             })
           );
         }
+        Services.obs.notifyObservers(
+          null,
+          "addons-background-updates-found",
+          updates.length
+        );
         await Promise.all(updates);
       }
 

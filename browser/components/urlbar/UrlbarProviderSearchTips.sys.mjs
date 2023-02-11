@@ -18,6 +18,7 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   AppMenuNotifications: "resource://gre/modules/AppMenuNotifications.sys.mjs",
+  DefaultBrowserCheck: "resource:///modules/BrowserGlue.sys.mjs",
   ProfileAge: "resource://gre/modules/ProfileAge.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarProviderTopSites: "resource:///modules/UrlbarProviderTopSites.sys.mjs",
@@ -27,7 +28,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 XPCOMUtils.defineLazyModuleGetters(lazy, {
-  DefaultBrowserCheck: "resource:///modules/BrowserGlue.jsm",
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.jsm",
 });
 
@@ -480,6 +480,21 @@ class ProviderSearchTips extends UrlbarProvider {
       if (
         (!ignoreShowLimits && (await isBrowserShowingNotification())) ||
         this._maybeShowTipForUrlInstance != instance
+      ) {
+        return;
+      }
+
+      // Don't show a tip if a request is in progress, and the URI associated
+      // with the request differs from the URI that triggered the search tip.
+      // One contraint with this approach is related to Bug 1797748: SERPs
+      // that use the History API to navigate between views will call
+      // onLocationChange without a request, and thus, no originalUri is
+      // available to check against, so the search tip and search terms may
+      // show on search pages outside of the default SERP.
+      let { documentRequest } = window.gBrowser.selectedBrowser.webProgress;
+      if (
+        documentRequest instanceof Ci.nsIChannel &&
+        documentRequest.originalURI?.spec != originalUri?.spec
       ) {
         return;
       }

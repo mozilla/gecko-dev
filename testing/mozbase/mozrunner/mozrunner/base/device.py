@@ -2,21 +2,19 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function
-
 import codecs
 import datetime
 import re
 import signal
-import six
 import sys
 import tempfile
 import time
 
 import mozfile
+import six
 
-from .runner import BaseRunner
 from ..devices import BaseEmulator
+from .runner import BaseRunner
 
 
 class DeviceRunner(BaseRunner):

@@ -23,9 +23,6 @@ members = [
 # Excluded crates may be built as dependencies, but won't be considered members
 # of the workspace and their dev-dependencies won't be included.
 exclude = [
-  # Excluded because it's for a toolchain task
-  "build/liblowercase",
-
   # Exclude third-party code vendored into mozilla-central.
   "servo",
   "third_party/rust",
@@ -95,6 +92,9 @@ mozbuild = { path = "build/rust/mozbuild" }
 # Patch cfg-if 0.1 to 1.0
 cfg-if = { path = "build/rust/cfg-if" }
 
+# Patch darling 0.13 to 0.14
+darling = { path = "build/rust/darling" }
+
 # Patch redox_users to an empty crate
 redox_users = { path = "build/rust/redox_users" }
 
@@ -103,9 +103,6 @@ memmap2 = { path = "build/rust/memmap2" }
 
 # Patch getrandom 0.7 to 0.8
 rand = { path = "build/rust/rand" }
-
-# Patch tokio-util 0.6 to 0.7
-tokio-util = { path = "build/rust/tokio-util" }
 
 # Patch env_logger 0.8 to 0.9
 env_logger = { path = "build/rust/env_logger" }
@@ -120,14 +117,17 @@ tinyvec = { path = "build/rust/tinyvec" }
 # Patch wasi 0.10 to 0.11
 wasi = { path = "build/rust/wasi" }
 
-# Patch goblin 0.1 to 0.5
-goblin = { path = "build/rust/goblin" }
-
-# Patch hashbrown 0.11 to 0.12
-hashbrown = { path = "build/rust/hashbrown" }
-
 # Patch bindgen 0.59 to 0.63
 bindgen = { path = "build/rust/bindgen" }
+
+# Patch memoffset 0.6 to 0.7
+memoffset = { path = "build/rust/memoffset" }
+
+# Patch nom 6 to 7
+nom = { path = "build/rust/nom" }
+
+# Patch nix 0.24 to 0.25
+nix = { path = "build/rust/nix" }
 
 # Patch autocfg to hide rustc output. Workaround for https://github.com/cuviper/autocfg/issues/30
 autocfg = { path = "third_party/rust/autocfg" }
@@ -135,7 +135,6 @@ autocfg = { path = "third_party/rust/autocfg" }
 # The following overrides point to dummy projects, as a temporary measure until this is resolved:
 # https://github.com/rust-lang/cargo/issues/6179
 js-sys = { path = "build/rust/dummy-web/js-sys" }
-slotmap = { path = "build/rust/dummy-web/slotmap" }
 wasm-bindgen = { path = "build/rust/dummy-web/wasm-bindgen" }
 web-sys = { path = "build/rust/dummy-web/web-sys" }
 
@@ -157,16 +156,18 @@ coremidi = { git = "https://github.com/chris-zen/coremidi.git", rev="fc68464b544
 fog = { path = "toolkit/components/glean/api" }
 libudev-sys = { path = "dom/webauthn/libudev-sys" }
 packed_simd = { package = "packed_simd_2", git = "https://github.com/hsivonen/packed_simd", rev="412f9a0aa556611de021bde89dee8fefe6e0fbbd" }
-midir = { git = "https://github.com/mozilla/midir.git", rev = "e1b4dcb767f9e69afe95a860374aaa9635d81e3d" }
-minidump_writer_linux = { git = "https://github.com/rust-minidump/minidump-writer.git", rev = "75ada456c92a429704691a85e1cb42fef8cafc0d" }
+midir = { git = "https://github.com/mozilla/midir.git", rev = "519e651241e867af3391db08f9ae6400bc023e18" }
+minidump-writer = { git = "https://github.com/rust-minidump/minidump-writer.git", rev = "7d76616d27b9dc87fe3a94639b8b4f947d52a6aa" }
+# warp 0.3.3 + https://github.com/seanmonstar/warp/pull/1007
+warp = { git = "https://github.com/glandium/warp", rev = "4af45fae95bc98b0eba1ef0db17e1dac471bb23d" }
 
 # application-services overrides to make updating them all simpler.
-interrupt-support = { git = "https://github.com/mozilla/application-services", rev = "d7dbd32fa379ad46820476222f4d2aeaed2d7175" }
-sql-support = { git = "https://github.com/mozilla/application-services", rev = "d7dbd32fa379ad46820476222f4d2aeaed2d7175" }
-sync15 = { git = "https://github.com/mozilla/application-services", rev = "d7dbd32fa379ad46820476222f4d2aeaed2d7175" }
-tabs = { git = "https://github.com/mozilla/application-services", rev = "d7dbd32fa379ad46820476222f4d2aeaed2d7175" }
-viaduct = { git = "https://github.com/mozilla/application-services", rev = "d7dbd32fa379ad46820476222f4d2aeaed2d7175" }
-webext-storage = { git = "https://github.com/mozilla/application-services", rev = "d7dbd32fa379ad46820476222f4d2aeaed2d7175" }
+interrupt-support = { git = "https://github.com/mozilla/application-services", rev = "51b984ecb21ba00694c3eee33364123a064a7cbb" }
+sql-support = { git = "https://github.com/mozilla/application-services", rev = "51b984ecb21ba00694c3eee33364123a064a7cbb" }
+sync15 = { git = "https://github.com/mozilla/application-services", rev = "51b984ecb21ba00694c3eee33364123a064a7cbb" }
+tabs = { git = "https://github.com/mozilla/application-services", rev = "51b984ecb21ba00694c3eee33364123a064a7cbb" }
+viaduct = { git = "https://github.com/mozilla/application-services", rev = "51b984ecb21ba00694c3eee33364123a064a7cbb" }
+webext-storage = { git = "https://github.com/mozilla/application-services", rev = "51b984ecb21ba00694c3eee33364123a064a7cbb" }
 
 # Patch mio 0.6 to use winapi 0.3 and miow 0.3, getting rid of winapi 0.2.
 # There is not going to be new version of mio 0.6, mio now being >= 0.7.11.
@@ -178,7 +179,6 @@ path = "third_party/rust/mio-0.6.23"
 # okay, but it means that their dependencies on UniFFI crates will normally
 # also be the git versions.  Patch them to use the published versions to avoid
 # duplicate crates.
-
 [patch."https://github.com/mozilla/uniffi-rs.git"]
 uniffi = "=0.21.1"
 #uniffi_bindgen = "=0.21.1"
@@ -186,6 +186,17 @@ uniffi_build = "=0.21.1"
 uniffi_macros = "=0.21.1"
 weedle2 = "=4.0.0"
 
-# Patched to use uniffi_version = 0.21.0 for checksums.
+# Patched to use uniffi_version = 0.21.0 for checksums and with
+# https://github.com/mozilla/uniffi-rs/pull/1405
 [patch.crates-io.uniffi_bindgen]
 path = "third_party/rust/uniffi_bindgen"
+
+# Patched to use uuid 1.0 until the upgrade to glean 52 (bug 1805427)
+# (patch from https://github.com/mozilla/glean/pull/2296)
+[patch.crates-io.glean]
+path = "third_party/rust/glean"
+[patch.crates-io.glean-core]
+path = "third_party/rust/glean-core"
+# Likewise, with patch from https://github.com/mozilla/rkv/pull/232
+[patch.crates-io.rkv]
+path = "third_party/rust/rkv"

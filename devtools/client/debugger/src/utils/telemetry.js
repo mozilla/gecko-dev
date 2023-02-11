@@ -42,33 +42,25 @@
  * );
  */
 
-const Telemetry = require("devtools/client/shared/telemetry");
-
 import { isNode } from "./environment";
 
-const telemetry = new Telemetry();
+let telemetry;
+
+if (isNode()) {
+  const Telemetry = require("devtools/client/shared/telemetry");
+  telemetry = new Telemetry();
+}
+
+export function setToolboxTelemetry(toolboxTelemetry) {
+  telemetry = toolboxTelemetry;
+}
 
 /**
  * @memberof utils/telemetry
  * @static
  */
 export function recordEvent(eventName, fields = {}) {
-  let sessionId = -1;
-
-  if (typeof window !== "object") {
-    return;
-  }
-
-  if (window.parent.frameElement) {
-    sessionId = window.parent.frameElement.getAttribute("session_id");
-  }
-
-  /* eslint-disable camelcase */
-  telemetry.recordEvent(eventName, "debugger", null, {
-    session_id: sessionId,
-    ...fields,
-  });
-  /* eslint-enable camelcase */
+  telemetry.recordEvent(eventName, "debugger", null, fields);
 
   if (isNode()) {
     const { events } = window.dbg._telemetry;

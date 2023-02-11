@@ -2,17 +2,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, unicode_literals
-import six
 import json
 import os
 import sys
 from argparse import Namespace
 from functools import partial
 
-from mach.decorators import (
-    Command,
-)
+import six
+from mach.decorators import Command
 
 here = os.path.abspath(os.path.dirname(__file__))
 parser = None
@@ -72,11 +69,14 @@ def run_test(context, is_junit, **kwargs):
         "mochitest-devtools-chrome": "devtools",
         "mochitest-browser-a11y": "a11y",
         "mochitest-remote": "remote",
+        "mochitest-browser-media": "media-bc",
     }
     args.subsuite = subsuites.get(suite)
     if args.subsuite == "devtools":
         args.flavor = "browser"
     if args.subsuite == "a11y":
+        args.flavor = "browser"
+    if args.subsuite == "media-bc":
         args.flavor = "browser"
 
     if not args.test_paths:

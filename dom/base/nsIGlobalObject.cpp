@@ -70,10 +70,6 @@ nsIGlobalObject::~nsIGlobalObject() {
 }
 
 nsIPrincipal* nsIGlobalObject::PrincipalOrNull() const {
-  if (!NS_IsMainThread()) {
-    return nullptr;
-  }
-
   JSObject* global = GetGlobalJSObjectPreserveColor();
   if (NS_WARN_IF(!global)) return nullptr;
 
@@ -398,15 +394,8 @@ mozilla::Result<bool, nsresult> nsIGlobalObject::HasEqualStorageKey(
   return mozilla::ipc::StorageKeysEqual(storageKey, aStorageKey);
 }
 
-bool nsIGlobalObject::IsSystemPrincipal() const {
-  MOZ_ASSERT(NS_IsMainThread(),
-             "Cannot ask nsIGlobalObject IsSystemPrincipal off-main-thread");
-
-  return PrincipalOrNull()->IsSystemPrincipal();
-}
-
 RTPCallerType nsIGlobalObject::GetRTPCallerType() const {
-  if (IsSystemPrincipal()) {
+  if (PrincipalOrNull()->IsSystemPrincipal()) {
     return RTPCallerType::SystemPrincipal;
   }
 

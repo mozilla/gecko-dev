@@ -2,18 +2,15 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function
-
 import bisect
 import gzip
 import json
 import math
-import requests
-
-from datetime import datetime, timedelta
 from collections import Counter
+from datetime import datetime, timedelta
 
 import mozpack.path as mozpath
+import requests
 
 PUSHLOG_CHUNK_SIZE = 500
 

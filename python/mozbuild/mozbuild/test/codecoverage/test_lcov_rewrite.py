@@ -2,19 +2,17 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function
-
-from io import StringIO
-import os
-import unittest
-import shutil
 import json
+import os
+import shutil
+import unittest
+from io import StringIO
 from tempfile import NamedTemporaryFile
 
-from mozbuild.codecoverage import chrome_map
-from mozbuild.codecoverage import lcov_rewriter
 import buildconfig
 import mozunit
+
+from mozbuild.codecoverage import chrome_map, lcov_rewriter
 
 here = os.path.dirname(__file__)
 

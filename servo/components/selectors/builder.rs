@@ -17,7 +17,7 @@
 //! is non-trivial. This module encapsulates those details and presents an
 //! easy-to-use API for the parser.
 
-use crate::parser::{Combinator, Component, SelectorImpl};
+use crate::parser::{Combinator, Component, Selector, SelectorImpl};
 use crate::sink::Push;
 use servo_arc::{Arc, HeaderWithLength, ThinArc};
 use smallvec::{self, SmallVec};
@@ -310,21 +310,22 @@ where
             Component::AttributeInNoNamespace { .. } |
             Component::AttributeInNoNamespaceExists { .. } |
             Component::AttributeOther(..) |
-            Component::FirstChild |
-            Component::LastChild |
-            Component::OnlyChild |
             Component::Root |
             Component::Empty |
             Component::Scope |
-            Component::NthChild(..) |
-            Component::NthLastChild(..) |
-            Component::NthOfType(..) |
-            Component::NthLastOfType(..) |
-            Component::FirstOfType |
-            Component::LastOfType |
-            Component::OnlyOfType |
+            Component::Nth(..) |
             Component::NonTSPseudoClass(..) => {
                 specificity.class_like_selectors += 1;
+            },
+            Component::NthOf(ref nth_of_data) => {
+                // https://drafts.csswg.org/selectors/#specificity-rules:
+                //
+                //     The specificity of the :nth-last-child() pseudo-class,
+                //     like the :nth-child() pseudo-class, combines the
+                //     specificity of a regular pseudo-class with that of its
+                //     selector argument S.
+                specificity.class_like_selectors += 1;
+                *specificity += max_selector_list_specificity(nth_of_data.selectors());
             },
             Component::Negation(ref list) | Component::Is(ref list) | Component::Has(ref list) => {
                 // https://drafts.csswg.org/selectors/#specificity-rules:
@@ -332,11 +333,7 @@ where
                 //     The specificity of an :is(), :not(), or :has() pseudo-class
                 //     is replaced by the specificity of the most specific complex
                 //     selector in its selector list argument.
-                let mut max = 0;
-                for selector in &**list {
-                    max = std::cmp::max(selector.specificity(), max);
-                }
-                *specificity += Specificity::from(max);
+                *specificity += max_selector_list_specificity(list);
             },
             Component::Where(..) |
             Component::ExplicitUniversalType |
@@ -347,6 +344,16 @@ where
                 // Does not affect specificity
             },
         }
+    }
+
+    /// Finds the maximum specificity of elements in the list and returns it.
+    fn max_selector_list_specificity<Impl: SelectorImpl>(list: &[Selector<Impl>]) -> Specificity {
+        let max = list
+            .iter()
+            .map(|selector| selector.specificity())
+            .max()
+            .unwrap_or(0);
+        Specificity::from(max)
     }
 
     let mut specificity = Default::default();

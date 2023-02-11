@@ -8,7 +8,7 @@
 
 "use strict";
 
-var EXPORTED_SYMBOLS = ["FormAutofillHandler"];
+var EXPORTED_SYMBOLS = ["FormAutofillHandler", "FormAutofillCreditCardSection"];
 
 const { AppConstants } = ChromeUtils.importESModule(
   "resource://gre/modules/AppConstants.sys.mjs"
@@ -32,7 +32,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 XPCOMUtils.defineLazyModuleGetters(lazy, {
-  CreditCardTelemetry: "resource://autofill/FormAutofillTelemetryUtils.jsm",
+  AutofillTelemetry: "resource://autofill/AutofillTelemetry.jsm",
   FormAutofillHeuristics: "resource://autofill/FormAutofillHeuristics.jsm",
 });
 
@@ -87,6 +87,16 @@ class FormAutofillSection {
       allFieldNames: null,
       matchingSelectOption: null,
     };
+
+    // Identifier used to correlate events relating to the same form
+    this.flowId = Services.uuid.generateUUID().toString();
+    lazy.log.debug(
+      "Creating new credit card section with flowId =",
+      this.flowId
+    );
+
+    lazy.AutofillTelemetry.recordDetectedSectionCount(this);
+    lazy.AutofillTelemetry.recordFormInteractionEvent("detected", this);
   }
 
   /*
@@ -407,6 +417,11 @@ class FormAutofillSection {
       }
     }
     focusedInput.focus({ preventScroll: true });
+
+    lazy.AutofillTelemetry.recordFormInteractionEvent("filled", this, {
+      profile,
+    });
+
     return true;
   }
 
@@ -620,11 +635,14 @@ class FormAutofillSection {
       guid: this.filledRecordGUID,
       record: {},
       untouchedFields: [],
+      section: this,
     };
     if (this.flowId) {
       data.flowId = this.flowId;
     }
     let condensedDetails = this.fieldDetails;
+
+    // TODO: This is credit card specific code...
     this._condenseMultipleCCNumberFields(condensedDetails);
 
     condensedDetails.forEach(detail => {
@@ -683,12 +701,13 @@ class FormAutofillSection {
 
         this._changeFieldState(targetFieldDetail, FIELD_STATES.NORMAL);
 
-        if (isCreditCardField) {
-          lazy.CreditCardTelemetry.recordFilledModified(
-            this.flowId,
-            targetFieldDetail.fieldName
-          );
-        }
+        lazy.AutofillTelemetry.recordFormInteractionEvent(
+          "filled_modified",
+          this,
+          {
+            fieldName: targetFieldDetail.fieldName,
+          }
+        );
 
         let isAutofilled = false;
         let dimFieldDetails = [];
@@ -984,18 +1003,9 @@ class FormAutofillCreditCardSection extends FormAutofillSection {
 
     this.handler = handler;
 
-    // Identifier used to correlate events relating to the same form
-    this.flowId = Services.uuid.generateUUID().toString();
-    lazy.log.debug(
-      "Creating new credit card section with flowId =",
-      this.flowId
-    );
-
     if (!this.isValidSection()) {
       return;
     }
-
-    lazy.CreditCardTelemetry.recordFormDetected(this.flowId, fieldDetails);
 
     // Check whether the section is in an <iframe>; and, if so,
     // watch for the <iframe> to pagehide.
@@ -1394,11 +1404,6 @@ class FormAutofillCreditCardSection extends FormAutofillSection {
       return false;
     }
 
-    lazy.CreditCardTelemetry.recordFormFilled(
-      this.flowId,
-      this.fieldDetails,
-      profile
-    );
     return true;
   }
 
@@ -1453,11 +1458,6 @@ class FormAutofillHandler {
      * A WindowUtils reference of which Window the form belongs
      */
     this.winUtils = this.window.windowUtils;
-
-    /**
-     * Time in milliseconds since epoch when a user started filling in the form.
-     */
-    this.timeStartedFillingMS = null;
 
     /**
      * This function is used if the form handler (or one of its sections)
@@ -1592,14 +1592,6 @@ class FormAutofillHandler {
       allValidDetails.push(...section.fieldDetails);
     }
 
-    for (let detail of allValidDetails) {
-      let input = detail.elementWeakRef.get();
-      if (!input) {
-        continue;
-      }
-      input.addEventListener("input", this, { mozSystemGroup: true });
-    }
-
     this.fieldDetails = allValidDetails;
     return allValidDetails;
   }
@@ -1648,25 +1640,6 @@ class FormAutofillHandler {
       this.form.rootElement.addEventListener("reset", onChangeHandler, {
         mozSystemGroup: true,
       });
-    }
-  }
-
-  handleEvent(event) {
-    switch (event.type) {
-      case "input":
-        if (!event.isTrusted) {
-          return;
-        }
-
-        for (let detail of this.fieldDetails) {
-          let input = detail.elementWeakRef.get();
-          if (!input) {
-            continue;
-          }
-          input.removeEventListener("input", this, { mozSystemGroup: true });
-        }
-        this.timeStartedFillingMS = Date.now();
-        break;
     }
   }
 

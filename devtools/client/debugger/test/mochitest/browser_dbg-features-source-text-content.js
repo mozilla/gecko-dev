@@ -119,85 +119,184 @@ httpServer.registerPathHandler("/iframe.html", (request, response) => {
 add_task(async function testSourceTextContent() {
   const dbg = await initDebuggerWithAbsoluteURL("about:blank");
 
-  // Load the document *once* the debugger is opened
-  // in order to avoid having any source being GC-ed.
-  await navigateToAbsoluteURL(
-    dbg,
-    BASE_URL + "index.html",
+  const waitForSources = [
     "index.html",
     "normal-script.js",
     "slow-loading-script.js",
-    "same-url.js"
-  );
+    "same-url.js",
+  ];
 
-  await selectSource(dbg, "normal-script.js");
+  // With fission and EFT disabled, the structure of the source tree changes
+  // as there is no iframe thread and all the iframe sources are loaded under the
+  // Main thread, so nodes will be in different positions in the tree.
+  const noFissionNoEFT = !isFissionEnabled() && !isEveryFrameTargetEnabled();
+
+  if (noFissionNoEFT) {
+    waitForSources.push("iframe.html", "named-eval.js");
+  }
+
+  // Load the document *once* the debugger is opened
+  // in order to avoid having any source being GC-ed.
+  await navigateToAbsoluteURL(dbg, BASE_URL + "index.html", ...waitForSources);
+
+  await selectSourceFromSourceTree(
+    dbg,
+    "normal-script.js",
+    noFissionNoEFT ? 6 : 5,
+    "Select `normal-script.js`"
+  );
   is(getCM(dbg).getValue(), `console.log("normal script")`);
 
-  await selectSource(dbg, "slow-loading-script.js");
+  await selectSourceFromSourceTree(
+    dbg,
+    "slow-loading-script.js",
+    noFissionNoEFT ? 8 : 7,
+    "Select `slow-loading-script.js`"
+  );
   is(getCM(dbg).getValue(), `console.log("slow loading script")`);
 
-  await selectSource(dbg, "index.html");
+  await selectSourceFromSourceTree(
+    dbg,
+    "index.html",
+    noFissionNoEFT ? 4 : 3,
+    "Select `index.html`"
+  );
   is(getCM(dbg).getValue(), INDEX_PAGE_CONTENT);
 
-  await selectSource(dbg, "named-eval.js");
+  await selectSourceFromSourceTree(
+    dbg,
+    "named-eval.js",
+    noFissionNoEFT ? 5 : 4,
+    "Select `named-eval.js`"
+  );
   is(getCM(dbg).getValue(), NAMED_EVAL_CONTENT);
 
-  const mainThreadSameUrlSource = findSourceInThread(
+  await selectSourceFromSourceTree(
     dbg,
     "same-url.js",
-    "Main Thread"
+    noFissionNoEFT ? 7 : 6,
+    "Select `same-url.js` in the Main Thread"
   );
-  await selectSource(dbg, mainThreadSameUrlSource);
+
   is(
     getCM(dbg).getValue(),
     `console.log("same url #1")`,
     "We get an arbitrary content for same-url, the first loaded one"
   );
+
+  const sameUrlSource = findSource(dbg, "same-url.js");
+  const sourceActors = dbg.selectors.getSourceActorsForSource(sameUrlSource.id);
+
   if (isFissionEnabled() || isEveryFrameTargetEnabled()) {
+    const mainThread = dbg.selectors
+      .getAllThreads()
+      .find(thread => thread.name == "Main Thread");
+
     is(
-      dbg.selectors.getSourceActorsForSource(mainThreadSameUrlSource.id).length,
+      sourceActors.filter(actor => actor.thread == mainThread.actor).length,
       3,
       "same-url.js is loaded 3 times in the main thread"
     );
 
-    const iframeSameUrlSource = findSourceInThread(
+    info(`Close the same-url.js from Main Thread`);
+    await closeTab(dbg, "same-url.js");
+
+    info("Click on the iframe tree node to show sources in the iframe");
+    await clickElement(dbg, "sourceDirectoryLabel", 8);
+    await waitForSourcesInSourceTree(
+      dbg,
+      [
+        "index.html",
+        "named-eval.js",
+        "normal-script.js",
+        "slow-loading-script.js",
+        "same-url.js",
+        "iframe.html",
+        "same-url.js",
+      ],
+      {
+        noExpand: true,
+      }
+    );
+
+    await selectSourceFromSourceTree(
       dbg,
       "same-url.js",
-      BASE_URL + "iframe.html"
+      11,
+      "Select `same-url.js` in the iframe"
     );
-    await selectSource(dbg, iframeSameUrlSource);
+
     is(
       getCM(dbg).getValue(),
       `console.log("same url #3")`,
       "We get the expected content for same-url.js in the iframe"
     );
+
+    const iframeThread = dbg.selectors
+      .getAllThreads()
+      .find(thread => thread.name == `${BASE_URL}iframe.html`);
     is(
-      dbg.selectors.getSourceActorsForSource(iframeSameUrlSource.id).length,
+      sourceActors.filter(actor => actor.thread == iframeThread.actor).length,
       1,
       "same-url.js is loaded one time in the iframe thread"
     );
   } else {
     // There is no iframe thread when fission is off
+    const mainThread = dbg.selectors
+      .getAllThreads()
+      .find(thread => thread.name == "Main Thread");
+
     is(
-      dbg.selectors.getSourceActorsForSource(mainThreadSameUrlSource.id).length,
+      sourceActors.filter(actor => actor.thread == mainThread.actor).length,
       4,
       "same-url.js is loaded 4 times in the main thread without fission"
     );
   }
 
-  const workerSameUrlSource = findSourceInThread(
+  info(`Close the same-url.js from the iframe`);
+  await closeTab(dbg, "same-url.js");
+
+  info("Click on the worker tree node to show sources in the worker");
+
+  await clickElement(dbg, "sourceDirectoryLabel", noFissionNoEFT ? 9 : 12);
+
+  const workerSources = [
+    "index.html",
+    "named-eval.js",
+    "normal-script.js",
+    "slow-loading-script.js",
+    "same-url.js",
+    "iframe.html",
+    "same-url.js",
+  ];
+
+  if (!noFissionNoEFT) {
+    workerSources.push("same-url.js");
+  }
+
+  await waitForSourcesInSourceTree(dbg, workerSources, {
+    noExpand: true,
+  });
+
+  await selectSourceFromSourceTree(
     dbg,
     "same-url.js",
-    BASE_URL + "same-url.js"
+    noFissionNoEFT ? 11 : 14,
+    "Select `same-url.js` in the worker"
   );
-  await selectSource(dbg, workerSameUrlSource);
+
   is(
     getCM(dbg).getValue(),
     `console.log("same url #4")`,
     "We get the expected content for same-url.js worker"
   );
+
+  const workerThread = dbg.selectors
+    .getAllThreads()
+    .find(thread => thread.name == `${BASE_URL}same-url.js`);
+
   is(
-    dbg.selectors.getSourceActorsForSource(workerSameUrlSource.id).length,
+    sourceActors.filter(actor => actor.thread == workerThread.actor).length,
     1,
     "same-url.js is loaded one time in the worker thread"
   );
@@ -321,15 +420,17 @@ add_task(async function testGarbageCollectedSourceTextContent() {
  * - it first loads fine so that it shows up
  * - initDebuggerWithAbsoluteURL will first load the document before the debugger
  * - so the debugger will have to fetch the html page content via a network request
- * - the test page will return a 404 error code on the second load attempt
+ * - the test page will return a connection reset error on the second load attempt
  */
 let loadCount = 0;
 httpServer.registerPathHandler(
-  "/200-then-404-page.html",
+  "/200-then-connection-reset.html",
   (request, response) => {
     loadCount++;
     if (loadCount > 1) {
-      response.setStatusLine(request.httpVersion, 404, "Not found");
+      response.seizePower();
+      response.bodyOutPutStream.close();
+      response.finish();
       return;
     }
     response.setStatusLine(request.httpVersion, 200, "OK");
@@ -341,17 +442,17 @@ add_task(async function testFailingHtmlSource() {
 
   // initDebuggerWithAbsoluteURL will first load the document once before the debugger,
   // then the debugger will have to fetch the html page content via a network request
-  // therefore the test page will return a 404 error code on the second load attempt
+  // therefore the test page will encounter a connection reset error on the second load attempt
   const dbg = await initDebuggerWithAbsoluteURL(
-    BASE_URL + "200-then-404-page.html",
-    "200-then-404-page.html"
+    BASE_URL + "200-then-connection-reset.html",
+    "200-then-connection-reset.html"
   );
 
   // We can't select the HTML page as its source content isn't fetched
   // (waitForSelectedSource doesn't resolve)
   // Note that it is important to load the page *before* opening the page
   // so that the thread actor has to request the page content and will fail
-  const source = findSource(dbg, "200-then-404-page.html");
+  const source = findSource(dbg, "200-then-connection-reset.html");
   await dbg.actions.selectLocation(
     getContext(dbg),
     { sourceId: source.id },
@@ -430,3 +531,18 @@ add_task(async function testLoadingHtmlSource() {
   // whereas we only see the inline source text content.
   is(getCM(dbg).getValue(), `console.log("slow-loading-page:first-load");`);
 });
+
+async function selectSourceFromSourceTree(
+  dbg,
+  fileName,
+  sourcePosition,
+  message
+) {
+  info(message);
+  await clickElement(dbg, "sourceNode", sourcePosition);
+  await waitForSelectedSource(dbg, fileName);
+  await waitFor(
+    () => getCM(dbg).getValue() !== `Loading…`,
+    "Wait for source to completely load"
+  );
+}

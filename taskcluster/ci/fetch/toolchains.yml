@@ -174,14 +174,6 @@ wix-3.14.0:
         sha256: 923892298f37514622c58cbbd9c2cadf2822d9bb53df8ee83aaeb05280777611
         size: 34664320
 
-grcov-osx-x86_64:
-    description: grcov binary release
-    fetch:
-        type: static-url
-        url: https://github.com/mozilla/grcov/releases/download/v0.7.1/grcov-osx-x86_64.tar.bz2
-        sha256: c7c323e0647b1309b412874000d677e8f5b898401ec57761c57a9c396c433823
-        size: 2476735
-
 zlib-1.2.13:
     description: zlib 1.2.13 source code
     fetch:
@@ -386,13 +378,13 @@ clang-trunk:
 # We build stable rust from source so the resulting compiler acts as a nightly
 # rust compiler, allowing to use unstable features like -Zbuild-std and
 # sanitizers.
-rust-1.65.0:
-    description: Rust 1.65.0 source code
+rust-1.66.0:
+    description: Rust 1.66.0 source code
     fetch:
         type: git
         include-dot-git: true
         repo: https://github.com/rust-lang/rust/
-        revision: d939e5a3e5eb34dd1e828b9ad244ee6e6a0a989b
+        revision: 69f9c33d71c871fc16ac445211281c6e7a340943
 
 wasi-sdk:
     description: wasi-sdk-16 source code
@@ -412,12 +404,12 @@ ninja:
         add-prefix: ninja/bin/
 
 cmake:
-    description: cmake 3.15.1
+    description: cmake 3.25.1
     fetch:
         type: static-url
-        url: https://github.com/Kitware/CMake/releases/download/v3.15.1/cmake-3.15.1-win64-x64.zip
-        sha256: 82a0edfed4cb0b45b25d2f99e621d3ed4014f66191d8f3c7eadf1d9ccf9c461b
-        size: 32214192
+        url: https://github.com/Kitware/CMake/releases/download/v3.25.1/cmake-3.25.1-windows-x86_64.zip
+        sha256: d93958d87cc9b91983489f0b37a268b03a3c891894d11f5437fa2a5ce94aab24
+        size: 41460154
         artifact-name: cmake.tar.zst
         strip-components: 1
         add-prefix: cmake/
@@ -494,9 +486,9 @@ nodejs-16-linux64:
     description: nodejs 16 for x64 linux
     fetch:
         type: static-url
-        url: https://nodejs.org/dist/v16.17.1/node-v16.17.1-linux-x64.tar.xz
-        sha256: 06ba2eb34aa385967f5f58c87a44753f83212f6cccea892b33f80a2e7fda8384
-        size: 22423816
+        url: https://nodejs.org/dist/v16.19.0/node-v16.19.0-linux-x64.tar.xz
+        sha256: c88b52497ab38a3ddf526e5b46a41270320409109c3f74171b241132984fd08f
+        size: 22492000
         artifact-name: nodejs.tar.zst
         strip-components: 1
         add-prefix: node/
@@ -516,9 +508,9 @@ nodejs-16-macosx64:
     description: nodejs 16 for x64 macOS
     fetch:
         type: static-url
-        url: https://nodejs.org/dist/v16.17.1/node-v16.17.1-darwin-x64.tar.xz
-        sha256: 8e7089956fa01cf7d0045945c0863d282dc6818fb0476237c1396497e29a4254
-        size: 20887472
+        url: https://nodejs.org/dist/v16.19.0/node-v16.19.0-darwin-x64.tar.xz
+        sha256: 601d1d632b9815dbb647f5cd440a95fa651110b5b4bcaf07ed3aa7886525716b
+        size: 20975524
         artifact-name: nodejs.tar.zst
         strip-components: 1
         add-prefix: node/
@@ -527,9 +519,9 @@ nodejs-16-macosx64-arm64:
     description: nodejs 16 for arm64 macOS
     fetch:
         type: static-url
-        url: https://nodejs.org/dist/v16.17.1/node-v16.17.1-darwin-arm64.tar.xz
-        sha256: 09a45f60bfb9dfbea4f69044dc733ef983945acd92ca89ccccac267f3d71bd44
-        size: 19291192
+        url: https://nodejs.org/dist/v16.19.0/node-v16.19.0-darwin-arm64.tar.xz
+        sha256: 7313c9db5f5140ece847a97f366032a10bddb6d87fa28a361ada918addcd5c73
+        size: 19363804
         artifact-name: nodejs.tar.zst
         strip-components: 1
         add-prefix: node/
@@ -549,9 +541,9 @@ nodejs-16-win32:
     description: nodejs 16 for x86 Windows
     fetch:
         type: static-url
-        url: https://nodejs.org/dist/v16.17.1/node-v16.17.1-win-x86.zip
-        sha256: 189b5e8b23226403e7b07a46614de19b444d369e694901e3668e2f549799cbcd
-        size: 25312816
+        url: https://nodejs.org/dist/v16.19.0/node-v16.19.0-win-x86.zip
+        sha256: 17e2bf8ed00b3d15321743104104c8b6ef55677dfc18ee2ed44de64fbf2c4def
+        size: 25424808
         artifact-name: nodejs.tar.zst
         strip-components: 1
         add-prefix: node/
@@ -571,9 +563,9 @@ nodejs-16-win64:
     description: nodejs 16 for x64 Windows
     fetch:
         type: static-url
-        url: https://nodejs.org/dist/v16.17.1/node-v16.17.1-win-x64.zip
-        sha256: ed290151efb417262b9808a70738d4ab79e9d53653a6a9f4b8dd97912e279dce
-        size: 26956744
+        url: https://nodejs.org/dist/v16.19.0/node-v16.19.0-win-x64.zip
+        sha256: 534ca7a24e999c81cec847a498cc43d47e2bb158f6edf639e5297f2718350e96
+        size: 27072850
         artifact-name: nodejs.tar.zst
         strip-components: 1
         add-prefix: node/

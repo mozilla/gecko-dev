@@ -64,6 +64,31 @@ cfr-doorhanger-extension-total-users =
      *[other] { $total } users
   }
 
+## Cookie Banner Handling Onboarding
+
+# Simplified version of the headline if the original text doesn't work
+# in your language: `See fewer cookie requests`.
+cfr-cookie-banner-handling-header = Cookie banners begone!
+cfr-cookie-banner-handling-body = Allow { -brand-short-name } to automatically reject all cookie banner requests, when possible. Otherwise, all cookies will be accepted to dismiss even more banners.
+cfr-cookie-banner-accept-button = Dismiss Requests
+  .accesskey = D
+cfr-cookie-banner-reject-button = Not Now
+  .accesskey = N
+
+cfr-cookie-banner-handling-header-variant-1 = See fewer cookie pop-ups
+cfr-cookie-banner-handling-body-variant-1 = Let { -brand-short-name } automatically answer cookie pop-ups for you so you can get back to distraction-free browsing. { -brand-short-name } will reject all requests if possible, or accept all if not.
+cfr-cookie-banner-accept-button-variant-1 = Dismiss Pop-ups
+  .accesskey = D
+cfr-cookie-banner-reject-button-variant-1 = No thanks
+  .accesskey = N
+
+cfr-cookie-banner-handling-header-variant-2 = Cookie Banner Reduction
+cfr-cookie-banner-handling-body-variant-2 = Allow { -brand-short-name } to decline a site’s cookie consent request if possible or accept cookie access when not possible?
+cfr-cookie-banner-accept-button-variant-2 = Allow
+  .accesskey = A
+cfr-cookie-banner-reject-button-variant-2 = Not now
+  .accesskey = N
+
 ## Firefox Accounts Message
 
 cfr-doorhanger-bookmark-fxa-header = Sync your bookmarks everywhere.
@@ -220,3 +245,9 @@ colorways-cfr-header-28days = Independent Voices colorways expire January 16
 colorways-cfr-header-14days = Independent Voices colorways expire in two weeks
 colorways-cfr-header-7days =  Independent Voices colorways expire this week
 colorways-cfr-header-today = Independent Voices colorways expire today
+
+## These strings are used in the Fox doodle Pin/set default spotlights
+
+july-jam-headline = We’ve got you covered
+july-jam-body = Every month, { -brand-short-name } blocks an average of 3,000+ trackers per user, giving you safe, speedy access to the good internet.
+july-jam-set-default-primary = Open my links with { -brand-short-name }

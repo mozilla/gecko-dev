@@ -31,6 +31,7 @@ XPIDL_MODULE = "loginmgr"
 
 EXTRA_JS_MODULES += [
     "crypto-SDR.js",
+    "FirefoxRelay.jsm",
     "InsecurePasswordUtils.jsm",
     "LoginAutoComplete.jsm",
     "LoginFormFactory.jsm",
@@ -45,7 +46,6 @@ EXTRA_JS_MODULES += [
     "LoginRecipes.jsm",
     "LoginRelatedRealms.jsm",
     "NewPasswordModel.jsm",
-    "OSCrypto.jsm",
     "PasswordGenerator.jsm",
     "PasswordRulesManager.jsm",
     "PasswordRulesParser.jsm",

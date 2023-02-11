@@ -3,12 +3,9 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 # originally from talos_process.py
-from __future__ import absolute_import
-
 import json
 
 from logger.logger import RaptorLogger
-
 
 LOG = RaptorLogger(component="raptor-output-handler")
 

@@ -34,7 +34,7 @@ class ToastNotificationHandler final
                            bool aClickable, bool aRequireInteraction,
                            const nsTArray<RefPtr<nsIAlertAction>>& aActions,
                            bool aIsSystemPrincipal, const nsAString& aLaunchUrl,
-                           bool aInPrivateBrowsing)
+                           bool aInPrivateBrowsing, bool aIsSilent)
       : mBackend(backend),
         mAumid(aumid),
         mHasImage(false),
@@ -50,13 +50,15 @@ class ToastNotificationHandler final
         mActions(aActions.Clone()),
         mIsSystemPrincipal(aIsSystemPrincipal),
         mLaunchUrl(aLaunchUrl),
+        mIsSilent(aIsSilent),
         mSentFinished(!aAlertListener) {}
 
   nsresult InitAlertAsync(nsIAlertNotification* aAlert);
 
   void OnWriteBitmapFinished(nsresult rv);
 
-  void HideIfPrivate();
+  void HideAlert();
+  bool IsPrivate();
 
   void UnregisterHandler();
 
@@ -116,11 +118,11 @@ class ToastNotificationHandler final
   nsTArray<RefPtr<nsIAlertAction>> mActions;
   bool mIsSystemPrincipal;
   nsString mLaunchUrl;
+  bool mIsSilent;
   bool mSentFinished;
 
   nsresult TryShowAlert();
   bool ShowAlert();
-  void HideAlert();
   nsresult AsyncSaveImage(imgIRequest* aRequest);
   nsresult OnWriteBitmapSuccess();
   void SendFinished();
@@ -140,7 +142,7 @@ class ToastNotificationHandler final
       const ComPtr<IToastNotification> toast, const nsAString& key,
       nsAString& value);
   static ComPtr<IToastNotification> FindNotificationByTag(
-      const nsAString& aWindowsTag, const nsAString& nsAumid);
+      const nsAString& aWindowsTag, const nsAString& aAumid);
 };
 
 }  // namespace widget

@@ -24,10 +24,7 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   EventDispatcher: "resource://gre/modules/Messaging.sys.mjs",
-});
-
-XPCOMUtils.defineLazyModuleGetters(lazy, {
-  GeckoViewPrompter: "resource://gre/modules/GeckoViewPrompter.jsm",
+  GeckoViewPrompter: "resource://gre/modules/GeckoViewPrompter.sys.mjs",
 });
 
 XPCOMUtils.defineLazyGetter(lazy, "LoginInfo", () =>
@@ -314,6 +311,9 @@ class SelectOption {
 const UsedField = { PASSWORD: 1 };
 
 const GeckoViewAutocomplete = {
+  /** current opened prompt */
+  _prompt: null,
+
   /**
    * Delegates login entry fetching for the given domain to the attached
    * LoginStorage GeckoView delegate.
@@ -477,6 +477,7 @@ const GeckoViewAutocomplete = {
           resolve(option);
         }
       );
+      this._prompt = prompt;
     });
   },
 
@@ -517,6 +518,7 @@ const GeckoViewAutocomplete = {
           resolve(option);
         }
       );
+      this._prompt = prompt;
     });
   },
 
@@ -557,6 +559,7 @@ const GeckoViewAutocomplete = {
           resolve(option);
         }
       );
+      this._prompt = prompt;
     });
   },
 
@@ -686,6 +689,9 @@ const GeckoViewAutocomplete = {
       );
     }
 
+    // prompt is closed now.
+    this._prompt = null;
+
     --this._numActiveSelections;
 
     debug`delegateSelection selected option: ${selectedOption}`;
@@ -731,6 +737,12 @@ const GeckoViewAutocomplete = {
     }
 
     debug`delegateSelection - form filled`;
+  },
+
+  delegateDismiss() {
+    debug`delegateDismiss`;
+
+    this._prompt?.dismiss();
   },
 };
 

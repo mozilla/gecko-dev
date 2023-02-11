@@ -65,7 +65,7 @@ namespace js {
 class AutoAssertNoContentJS;
 class Debugger;
 class EnterDebuggeeNoExecute;
-class ErrorContext;
+class FrontendContext;
 class StaticStrings;
 
 }  // namespace js
@@ -83,7 +83,7 @@ namespace js {
 
 extern MOZ_COLD void ReportOutOfMemory(JSContext* cx);
 extern MOZ_COLD void ReportAllocationOverflow(JSContext* maybecx);
-extern MOZ_COLD void ReportAllocationOverflow(ErrorContext* ec);
+extern MOZ_COLD void ReportAllocationOverflow(FrontendContext* fc);
 extern MOZ_COLD void ReportOversizedAllocation(JSContext* cx,
                                                const unsigned errorNumber);
 
@@ -1050,10 +1050,10 @@ struct JSRuntime {
   // module import and can accessed by off-thread parsing.
   mozilla::Atomic<JS::ModuleDynamicImportHook> moduleDynamicImportHook;
 
-  // A hook that implements the abstract operation
-  // HostGetSupportedImportAssertions.
+  // The supported module import assertions.
   // https://tc39.es/proposal-import-assertions/#sec-hostgetsupportedimportassertions
-  mozilla::Atomic<JS::SupportedAssertionsHook> supportedAssertionsHook;
+  js::MainThreadOrParseData<JS::ImportAssertionVector>
+      supportedImportAssertions;
 
   // Hooks called when script private references are created and destroyed.
   js::MainThreadData<JS::ScriptPrivateReferenceHook> scriptPrivateAddRefHook;

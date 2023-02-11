@@ -350,6 +350,13 @@ pref("browser.overlink-delay", 80);
 
 pref("browser.theme.colorway-closet", true);
 
+// Whether expired built-in colorways themes that are active or retained
+// should be allowed to check for updates and be updated to an AMO hosted
+// theme with the same id (as part of preparing to remove from mozilla-central
+// all the expired built-in colorways themes, after existing users have been
+// migrated to colorways themes hosted on AMO).
+pref("browser.theme.colorway-migration", false);
+
 // Whether using `ctrl` when hitting return/enter in the URL bar
 // (or clicking 'go') should prefix 'www.' and suffix
 // browser.fixup.alternate.suffix to the URL bar value prior to
@@ -512,7 +519,7 @@ pref("browser.urlbar.sponsoredTopSites", false);
 
 // Global toggle for whether the show search terms feature
 // can be used at all, and enabled/disabled by the user.
-#ifdef NIGHTLY_BUILD
+#if defined(EARLY_BETA_OR_EARLIER)
 pref("browser.urlbar.showSearchTerms.featureGate", true);
 #else
 pref("browser.urlbar.showSearchTerms.featureGate", false);
@@ -1657,6 +1664,8 @@ pref("browser.aboutwelcome.screens", "");
 pref("browser.aboutwelcome.skipFocus", true);
 // Used to enable template for MR 2022 Onboarding
 pref("browser.aboutwelcome.templateMR", true);
+// Used to enable window modal onboarding
+pref("browser.aboutwelcome.showModal", false);
 
 // The pref that controls if the What's New panel is enabled.
 pref("browser.messaging-system.whatsNewPanel.enabled", true);
@@ -1848,13 +1857,6 @@ pref("media.gmp-provider.enabled", true);
 // Enable Dynamic First-Party Isolation by default.
 pref("network.cookie.cookieBehavior", 5 /* BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN */);
 
-// Whether to show the section in preferences which allows users to opt-in to
-// Total Cookie Protection (dFPI) in standard mode.
-pref("privacy.restrict3rdpartystorage.rollout.preferences.TCPToggleInStandard", false);
-
-// Target URL for the learn more link of the TCP in standard mode rollout section.
-pref("privacy.restrict3rdpartystorage.rollout.preferences.learnMoreURLSuffix", "total-cookie-protection");
-
 // Target URL for the learn more link of the TCP in standard mode section.
 pref("privacy.restrict3rdpartystorage.preferences.learnMoreURLSuffix", "total-cookie-protection");
 
@@ -1897,9 +1899,12 @@ pref("browser.contentblocking.reject-and-isolate-cookies.preferences.ui.enabled"
 //   Social Tracking Protection:
 //     "stp": social tracking protection enabled
 //     "-stp": social tracking protection disabled
-//   Level 2 Tracking list:
+//   Level 2 Tracking list in normal windows:
 //     "lvl2": Level 2 tracking list enabled
 //     "-lvl2": Level 2 tracking list disabled
+//   Level 2 Tracking list in private windows:
+//     "lvl2PBM": Level 2 tracking list enabled
+//     "-lvl2PBM": Level 2 tracking list disabled
 //   Restrict relaxing default referrer policy:
 //     "rp": Restrict relaxing default referrer policy enabled
 //     "-rp": Restrict relaxing default referrer policy disabled
@@ -1930,7 +1935,7 @@ pref("browser.contentblocking.reject-and-isolate-cookies.preferences.ui.enabled"
 //     "cookieBehaviorPBM4": cookie behaviour BEHAVIOR_REJECT_TRACKER
 //     "cookieBehaviorPBM5": cookie behaviour BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN
 // One value from each section must be included in the browser.contentblocking.features.strict pref.
-pref("browser.contentblocking.features.strict", "tp,tpPrivate,cookieBehavior5,cookieBehaviorPBM5,cm,fp,stp,lvl2,rp,rpTop,ocsp,qps,qpsPBM");
+pref("browser.contentblocking.features.strict", "tp,tpPrivate,cookieBehavior5,cookieBehaviorPBM5,cm,fp,stp,lvl2,lvl2PBM,rp,rpTop,ocsp,qps,qpsPBM");
 
 // Hide the "Change Block List" link for trackers/tracking content in the custom
 // Content Blocking/ETP panel. By default, it will not be visible. There is also
@@ -2148,10 +2153,10 @@ pref("browser.migrate.chromium-edge-beta.enabled", true);
 pref("browser.migrate.edge.enabled", true);
 pref("browser.migrate.firefox.enabled", true);
 pref("browser.migrate.ie.enabled", true);
+pref("browser.migrate.opera.enabled", true);
+pref("browser.migrate.opera-gx.enabled", true);
 pref("browser.migrate.safari.enabled", true);
-pref("browser.migrate.opera.enabled", false);
-pref("browser.migrate.vivaldi.enabled", false);
-pref("browser.migrate.opera-gx.enabled", false);
+pref("browser.migrate.vivaldi.enabled", true);
 
 pref("browser.migrate.content-modal.enabled", false);
 
@@ -2178,8 +2183,17 @@ pref("signon.management.page.fileImport.enabled", false);
 
 #ifdef NIGHTLY_BUILD
 pref("signon.management.page.os-auth.enabled", true);
+
+// "not available"  - feature is not available (will be removed after QA).
+// "available"      - user can see feature offer.
+// "offered"        - we have offered feature to user and they have not yet made a decision.
+// "enabled"        - user opted in to the feature.
+// "disabled"       - user opted out of the feature.
+// will be enabled after QA round
+pref("signon.firefoxRelay.feature", "not available");
 #else
 pref("signon.management.page.os-auth.enabled", false);
+pref("signon.firefoxRelay.feature", "not available");
 #endif
 pref("signon.management.page.breach-alerts.enabled", true);
 pref("signon.management.page.vulnerable-passwords.enabled", true);
@@ -2344,10 +2358,6 @@ pref("devtools.toolbox.tabsOrder", "");
 // so that you can debug the Firefox window, while keeping the devtools
 // always visible
 pref("devtools.toolbox.alwaysOnTop", true);
-
-// The fission pref for enabling the "Multiprocess Browser Toolbox", which will
-// make it possible to debug anything in Firefox (See Bug 1570639 for more information).
-pref("devtools.browsertoolbox.fission", true);
 
 // When the Multiprocess Browser Toolbox is enabled, you can configure the scope of it:
 // - "everything" will enable debugging absolutely everything in the browser
@@ -2616,9 +2626,6 @@ pref("devtools.webconsole.input.editorOnboarding", true);
 // Enable message grouping in the console, true by default
 pref("devtools.webconsole.groupWarningMessages", true);
 
-// Saved state of the Display content messages checkbox in the browser console.
-pref("devtools.browserconsole.contentMessages", false);
-
 // Enable network monitoring the browser toolbox console/browser console.
 pref("devtools.browserconsole.enableNetworkMonitoring", false);
 
@@ -2741,27 +2748,10 @@ pref("svg.context-properties.content.allowed-domains", "profile.accounts.firefox
   pref("extensions.translations.disabled", true);
 #endif
 
-// A set of scores for rating the relevancy of snapshots. The suffixes after the
-// last decimal are prefixed by `_score` and reference the functions called in
-// SnapshotScorer.
-pref("browser.places.snapshots.score.Visit", 1);
-pref("browser.places.snapshots.score.CurrentSession", 1);
-pref("browser.places.snapshots.score.IsUserPersisted", 1);
-pref("browser.places.snapshots.score.IsUserRemoved", -10);
-
-// A set of weights for the snapshot recommendation sources. The suffixes after
-// the last decimal map to the keys of `Snapshots.recommendationSources`.
-pref("browser.places.snapshots.source.CommonReferrer", 3);
-pref("browser.places.snapshots.source.Overlapping", 3);
-pref("browser.places.snapshots.source.TimeOfDay", 3);
-
-// Other preferences affecting snapshots scoring.
-pref("browser.places.snapshots.relevancy.timeOfDayIntervalSeconds", 3600);
-
-// Expiration days for snapshots.
-pref("browser.places.snapshots.expiration.days", 210);
-// For user managed snapshots we use more than a year, to support yearly tasks.
-pref("browser.places.snapshots.expiration.userManaged.days", 420);
+// Turn on interaction measurements in Nightly only
+#ifdef NIGHTLY_BUILD
+  pref("browser.places.interactions.enabled", true);
+#endif
 
 // If the user has seen the Firefox View feature tour this value reflects
 // the id of the last screen they saw and whether they completed the tour

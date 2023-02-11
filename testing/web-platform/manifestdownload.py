@@ -2,14 +2,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import
-
 import os
-from datetime import datetime, timedelta
 import tarfile
+from datetime import datetime, timedelta
+
+import mozversioncontrol
 import requests
 import six
-import mozversioncontrol
 
 try:
     from cStringIO import StringIO as BytesIO

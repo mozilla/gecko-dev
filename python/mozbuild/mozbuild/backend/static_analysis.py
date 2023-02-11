@@ -7,13 +7,11 @@
 # tracks folders that can be built in the non-unified environment and generates
 # the coresponding build commands for the files.
 
-from __future__ import absolute_import, print_function
-
 import os
 
-from mozbuild.compilation.database import CompileDBBackend
-
 import mozpack.path as mozpath
+
+from mozbuild.compilation.database import CompileDBBackend
 
 
 class StaticAnalysisBackend(CompileDBBackend):

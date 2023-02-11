@@ -1,8 +1,6 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
-from __future__ import absolute_import, print_function
-
 import argparse
 import os
 import platform
@@ -340,6 +338,12 @@ def create_parser(mach_interface=False):
             dest="obj_path",
             default=None,
             help="Browser-build obj_path (received when running in production)",
+        )
+        add_arg(
+            "--mozbuild-path",
+            dest="mozbuild_path",
+            default=None,
+            help="This contains the path to mozbuild.",
         )
     add_arg(
         "--noinstall",

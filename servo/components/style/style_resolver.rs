@@ -349,6 +349,7 @@ where
             pseudo,
             inputs,
             &self.context.shared.guards,
+            pseudo.and(parent_style),
             parent_style,
             parent_style,
             layout_parent_style,
@@ -420,7 +421,7 @@ where
         layout_parent_style: Option<&ComputedValues>,
     ) -> Option<ResolvedStyle> {
         let MatchingResults { rule_node, mut flags } = self.match_pseudo(
-            originating_element_style.style(),
+            &originating_element_style.style.0,
             pseudo,
             VisitedHandlingMode::AllLinksUnvisited,
         )?;
@@ -428,7 +429,7 @@ where
         let mut visited_rules = None;
         if originating_element_style.style().visited_style().is_some() {
             visited_rules = self.match_pseudo(
-                originating_element_style.style(),
+                &originating_element_style.style.0,
                 pseudo,
                 VisitedHandlingMode::RelevantLinkVisited,
             ).map(|results| {
@@ -534,7 +535,7 @@ where
         let bloom_filter = self.context.thread_local.bloom_filter.filter();
         let nth_index_cache = &mut self.context.thread_local.nth_index_cache;
 
-        let mut matching_context = MatchingContext::new_for_visited(
+        let mut matching_context = MatchingContext::<'_, E::Impl>::new_for_visited(
             MatchingMode::ForStatelessPseudoElement,
             Some(bloom_filter),
             Some(nth_index_cache),
@@ -542,6 +543,8 @@ where
             self.context.shared.quirks_mode(),
             NeedsSelectorFlags::Yes,
         );
+        matching_context.extra_data.originating_element_style =
+            Some(originating_element_style);
 
         // NB: We handle animation rules for ::before and ::after when
         // traversing them.

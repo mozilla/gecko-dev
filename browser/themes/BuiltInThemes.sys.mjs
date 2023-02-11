@@ -162,6 +162,22 @@ class _BuiltInThemes {
   }
 
   /**
+   * @param {string} id
+   *   The theme's id.
+   * @return {boolean}
+   *   True if the theme with id `id` is from the currently active theme.
+   */
+  isActiveTheme(id) {
+    return (
+      id ===
+      Services.prefs.getStringPref(
+        kActiveThemePref,
+        "default-theme@mozilla.org"
+      )
+    );
+  }
+
+  /**
    * Uninstalls themes after they expire. If the expired theme is active, then
    * it is not uninstalled. Instead, it is saved so that the user can use it
    * indefinitely.
@@ -188,7 +204,7 @@ class _BuiltInThemes {
             await addon.uninstall();
           }
         } catch (e) {
-          Cu.reportError(`Failed to uninstall expired theme ${id}`);
+          console.error(`Failed to uninstall expired theme ${id}`);
         }
       }
     }
@@ -206,6 +222,26 @@ class _BuiltInThemes {
       Services.prefs.setStringPref(
         kRetainedThemesPref,
         JSON.stringify(lazy.retainedThemes)
+      );
+    }
+  }
+
+  /**
+   * Removes from the retained expired theme list colorways themes that have been
+   * migrated from the one installed in the built-in XPIProvider location
+   * to an AMO hosted xpi installed in the user profile XPIProvider location.
+   * @param {string} id
+   *   The ID of the theme to remove from the retained themes list.
+   */
+
+  unretainMigratedColorwayTheme(id) {
+    if (lazy.retainedThemes.includes(id)) {
+      const retainedThemes = lazy.retainedThemes.filter(
+        retainedThemeId => retainedThemeId !== id
+      );
+      Services.prefs.setStringPref(
+        kRetainedThemesPref,
+        JSON.stringify(retainedThemes)
       );
     }
   }

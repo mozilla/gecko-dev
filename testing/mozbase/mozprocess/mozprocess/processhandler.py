@@ -9,8 +9,6 @@
 # New code should try to use the standard subprocess module, and only use
 # mozprocess if absolutely necessary.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import codecs
 import errno
 import io
@@ -19,16 +17,16 @@ import signal
 import subprocess
 import sys
 import threading
+import time
 import traceback
 from datetime import datetime
 
 import six
-import time
 
 if six.PY2:
-    from Queue import Queue, Empty  # Python 2
+    from Queue import Empty, Queue  # Python 2
 else:
-    from queue import Queue, Empty  # Python 3
+    from queue import Empty, Queue  # Python 3
 
 __all__ = [
     "ProcessHandlerMixin",
@@ -48,15 +46,16 @@ isWin = os.name == "nt"
 isPosix = os.name == "posix"  # includes MacOS X
 
 if isWin:
-    from ctypes import sizeof, addressof, c_ulong, byref, WinError, c_longlong
+    from ctypes import WinError, addressof, byref, c_longlong, c_ulong, sizeof
+
     from . import winprocess
     from .qijo import (
-        JobObjectAssociateCompletionPortInformation,
+        IO_COUNTERS,
         JOBOBJECT_ASSOCIATE_COMPLETION_PORT,
-        JobObjectExtendedLimitInformation,
         JOBOBJECT_BASIC_LIMIT_INFORMATION,
         JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
-        IO_COUNTERS,
+        JobObjectAssociateCompletionPortInformation,
+        JobObjectExtendedLimitInformation,
     )
 
 

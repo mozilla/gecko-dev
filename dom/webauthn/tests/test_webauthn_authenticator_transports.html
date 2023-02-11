@@ -34,16 +34,6 @@
     // operation so we can use it to get assertions later.
     let gCredential;
 
-    add_task(() => {
-      // Enable the softtoken.
-      return SpecialPowers.pushPrefEnv({"set": [
-        ["security.webauth.webauthn", true],
-        ["security.webauth.webauthn_enable_softtoken", true],
-        ["security.webauth.webauthn_enable_usbtoken", false],
-        ["security.webauth.webauthn_enable_android_fido2", false],
-      ]});
-    });
-
     // Start a new MakeCredential() request.
     function requestMakeCredential(excludeCredentials) {
       let publicKey = {
@@ -71,7 +61,7 @@
     }
 
     // Test make credential behavior.
-    add_task(async () => {
+    add_task(async function test_make_credential() {
       // Make a credential.
       await requestMakeCredential([])
          // Save the credential for later.
@@ -118,7 +108,7 @@
     });
 
     // Test get assertion behavior.
-    add_task(async () => {
+    add_task(async function test_get_assertion() {
       // Request an assertion for gCredential.
       await requestGetAssertion([{
         type: "public-key",

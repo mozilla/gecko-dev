@@ -1,19 +1,17 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
-from __future__ import absolute_import
-
 import pprint
 import signal
-import six
+import subprocess
 import sys
 import time
 import traceback
-import subprocess
 from threading import Event
 
 import mozcrash
 import psutil
+import six
 from mozlog import get_proxy_logger
 from mozprocess import ProcessHandler
 from talos.utils import TalosError

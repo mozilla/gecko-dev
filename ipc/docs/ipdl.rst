@@ -471,7 +471,7 @@ after these descriptors are sent/received (only) in the direction specified.
 
 .. note::
     As a mnemonic to remember which direction they indicate, remember to put
-    the word "to" in front of them.  So, for example, ``parent:`` preceeds
+    the word "to" in front of them.  So, for example, ``parent:`` precedes
     ``__delete__``, meaning ``__delete__`` is sent from the child **to** the
     parent, and ``both:`` states that ``AnotherMsg`` can be sent **to** either
     endpoint.
@@ -491,6 +491,9 @@ IPDL messages support the following annotations:
                          while a sync message waits for a response.
 ``[Nested=inside_cpow]`` Indicates that the message can sometimes be handled
                          while a sync message waits for a response.
+``[LazySend]``           Messages with this annotation will be queued up to be
+                         sent together either immediately before a non-LazySend
+                         message, or from a direct task.
 ======================== ======================================================
 
 ``[Compress]`` provides crude protection against spamming with a flood of
@@ -511,6 +514,14 @@ vouch for their safety.  They are discussed in `Actors and Messages in C++`_.
 The ``Nested`` annotations are deeply related to the message's blocking policy
 that follows it and which was briefly discussed in `Defining Actors`_.  See
 `Nested messages`_ for details.
+
+``[LazySend]`` indicates the message doesn't need to be sent immediately, and
+can be sent later, from a direct task. Worker threads which do not support
+direct task dispatch will ignore this attribute. Messages with this annotation
+will still be delivered in-order with other messages, meaning that if a normal
+message is sent, any queued ``[LazySend]`` messages will be sent first. The
+attribute allows the transport layer to combine messages to be sent together,
+potentially reducing thread wake-ups for I/O and receiving threads.
 
 The following is a complete list of the available blocking policies.  It
 resembles the list in `Defining Actors`_:
@@ -696,6 +707,9 @@ for use in IPDL files:
                               message handler.  ``Foo`` is one of: ``normal``,
                               ``input``, ``vsync``, ``mediumhigh``, or
                               ``control``.
+``[LazySend]``                Messages with this annotation will be queued up to
+                              be sent together immediately before a non-LazySend
+                              message, or from a direct task.
 ``[ChildImpl="RemoteFoo"]``   Indicates that the child side implementation of
                               the actor is a class named ``RemoteFoo``, and the
                               definition is included by one of the
@@ -842,7 +856,7 @@ them, determined using the type of the object as supplied.  ``WriteBytes`` and
 ``ReadBytesInto`` work on raw, contiguous bytes as expected.  ``MessageWriter``
 and ``MessageReader`` are IPDL internal objects which hold the incoming/outgoing
 message as a stream of bytes and the current spot in the stream.  It is *very*
-rare for client code to need to create or manipulate these obejcts. Their
+rare for client code to need to create or manipulate these objects. Their
 advanced use is beyond the scope of this document.
 
 .. important::
@@ -1262,7 +1276,7 @@ than to leave them in limbo until the destructor is run.
 Consider actors to be like normal reference-counted objects, but where IPDL
 holds a reference while the connection will or does exist.  One common
 architecture has IPDL holding the `only` reference to an actor.  This is common
-with actors created by sending construtor messages but the idea is available to
+with actors created by sending constructor messages but the idea is available to
 any actor.  That only reference is then released when the ``__delete__``
 message is sent or received.
 
@@ -1543,7 +1557,7 @@ On the other hand, some things we can and should control for:
 * Messages incur inherent performance overhead for a number of reasons: IPDL
   internal thread latency (e.g. the I/O thread), parameter (de-)serialization,
   etc.  While not usually dramatic, this cost can add up.  What's more, each
-  message generates a fair amound of C++ code.  For these reasons, it is wise
+  message generates a fair amount of C++ code.  For these reasons, it is wise
   to reduce the number of messages being sent as far as is reasonable.  This
   can be as simple as consolidating two asynchronous messages that are always
   in succession.  Or it can be more complex, like consolidating two
@@ -1748,5 +1762,5 @@ comma-separated list of **top-level** protocols to log (e.g.
 in tracking down a bug.
 
 .. important::
-    The preceeding ``P`` and the ``Parent`` or ``Child`` suffix are required
+    The preceding ``P`` and the ``Parent`` or ``Child`` suffix are required
     when listing individual protocols in ``MOZ_IPC_MESSAGE_LOG``.

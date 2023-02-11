@@ -3792,6 +3792,19 @@ class MacroAssembler : public MacroAssemblerSpecific {
                                            wasm::SymbolicAddress builtin,
                                            wasm::FailureMode failureMode);
 
+  // Perform a subtype check that `subTypeDef` is a subtype of `superTypeDef`
+  // branching to label depending on `onSuccess`. This method is a
+  // specialization of the general `wasm::TypeDef::isSubTypeOf` method for the
+  // case where the `superTypeDef` is statically known, which is the case for
+  // all wasm instructions.
+  //
+  // `scratch` is required iff the `subTypeDepth` is >=
+  // wasm::MinSuperTypeVectorLength. `subTypeDef` is clobbered by this method.
+  // `superTypeDef` is preserved.
+  void branchWasmTypeDefIsSubtype(Register subTypeDef, Register superTypeDef,
+                                  Register scratch, uint32_t subTypeDepth,
+                                  Label* label, bool onSuccess);
+
   // Compute ptr += (indexTemp32 << shift) where shift can be any value < 32.
   // May destroy indexTemp32.  The value of indexTemp32 must be positive, and it
   // is implementation-defined what happens if bits are lost or the value
@@ -5067,20 +5080,35 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void setIsDefinitelyTypedArrayConstructor(Register obj, Register output);
 
   void loadMegamorphicCache(Register dest);
+  void loadStringToAtomCacheLastLookups(Register dest);
 
   void loadAtomOrSymbolAndHash(ValueOperand value, Register outId,
                                Register outHash, Label* cacheMiss);
 
+  void emitExtractValueFromMegamorphicCacheEntry(
+      Register obj, Register entry, Register scratch1, Register scratch2,
+      ValueOperand output, Label* cacheHit, Label* cacheMiss);
+
+  void emitMegamorphicCacheLookupByValueCommon(ValueOperand id, Register obj,
+                                               Register scratch1,
+                                               Register scratch2,
+                                               Register outEntryPtr,
+                                               Label* cacheMiss);
+
   void emitMegamorphicCacheLookup(PropertyKey id, Register obj,
                                   Register scratch1, Register scratch2,
                                   Register scratch3, ValueOperand output,
-                                  Label* fail, Label* cacheHit);
+                                  Label* cacheHit);
+
+  void emitMegamorphicCacheLookupByValue(ValueOperand id, Register obj,
+                                         Register scratch1, Register scratch2,
+                                         Register scratch3, ValueOperand output,
+                                         Label* cacheHit);
 
   void emitMegamorphicCacheLookupExists(ValueOperand id, Register obj,
                                         Register scratch1, Register scratch2,
                                         Register scratch3, Register output,
-                                        Label* fail, Label* cacheHit,
-                                        bool hasOwn);
+                                        Label* cacheHit, bool hasOwn);
 
   void loadDOMExpandoValueGuardGeneration(
       Register obj, ValueOperand output,

@@ -55,6 +55,7 @@
 #include "mozilla/dom/Nullable.h"
 #include "mozilla/dom/TreeOrderedArray.h"
 #include "mozilla/dom/ViewportMetaData.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "nsAtom.h"
 #include "nsCOMArray.h"
 #include "nsCOMPtr.h"
@@ -340,12 +341,6 @@ class DOMStyleSheetSetList;
 class ResizeObserver;
 class ResizeObserverController;
 class PostMessageEvent;
-struct PageLoadEventTelemetryData {
-  TimeDuration mPageLoadTime;
-  TimeDuration mTotalJSExecutionTime;
-  TimeDuration mResponseStartTime;
-  TimeDuration mFirstContentfulPaintTime;
-};
 
 #define DEPRECATED_OPERATION(_op) e##_op,
 enum class DeprecatedOperations : uint16_t {
@@ -2024,6 +2019,11 @@ class Document : public nsINode,
    */
   static bool HandlePendingFullscreenRequests(Document* aDocument);
 
+  /**
+   * Clear pending fullscreen in aDocument.
+   */
+  static void ClearPendingFullscreenRequests(Document* aDocument);
+
   // ScreenOrientation related APIs
 
   void ClearOrientationPendingPromise();
@@ -2776,15 +2776,15 @@ class Document : public nsINode,
   // will never be nullptr.
   PendingAnimationTracker* GetOrCreatePendingAnimationTracker();
 
-  // Gets the tracker for scroll-linked animations that are waiting to start.
-  // Returns nullptr if there is no scroll-linked animation tracker for this
-  // document which will be the case if there have never been any scroll-linked
+  // Gets the tracker for scroll-driven animations that are waiting to start.
+  // Returns nullptr if there is no scroll-driven animation tracker for this
+  // document which will be the case if there have never been any scroll-driven
   // animations in the document.
   ScrollTimelineAnimationTracker* GetScrollTimelineAnimationTracker() {
     return mScrollTimelineAnimationTracker;
   }
 
-  // Gets the tracker for scroll-linked animations that are waiting to start and
+  // Gets the tracker for scroll-driven animations that are waiting to start and
   // creates it if it doesn't already exist. As a result, the return value
   // will never be nullptr.
   ScrollTimelineAnimationTracker* GetOrCreateScrollTimelineAnimationTracker();
@@ -3564,7 +3564,7 @@ class Document : public nsINode,
 
   Promise* GetDocumentReadyForIdle(ErrorResult& aRv);
 
-  void BlockUnblockOnloadForPDFJS(bool aBlock) {
+  void BlockUnblockOnloadForSystemOrPDFJS(bool aBlock) {
     if (aBlock) {
       BlockOnload();
     } else {
@@ -5185,7 +5185,7 @@ class Document : public nsINode,
   // nullptr until GetOrCreatePendingAnimationTracker is called.
   RefPtr<PendingAnimationTracker> mPendingAnimationTracker;
 
-  // Tracker for scroll-linked animations that are waiting to start.
+  // Tracker for scroll-driven animations that are waiting to start.
   // nullptr until GetOrCreateScrollTimelineAnimationTracker is called.
   RefPtr<ScrollTimelineAnimationTracker> mScrollTimelineAnimationTracker;
 
@@ -5336,15 +5336,15 @@ class Document : public nsINode,
 
   // Record page load telemetry
   void RecordPageLoadEventTelemetry(
-      PageLoadEventTelemetryData aEventTelemetryData);
+      glean::perf::PageLoadExtra& aEventTelemetryData);
 
   // Accumulate JS telemetry collected
   void AccumulateJSTelemetry(
-      PageLoadEventTelemetryData& aEventTelemetryDataOut);
+      glean::perf::PageLoadExtra& aEventTelemetryDataOut);
 
   // Accumulate page load metrics
   void AccumulatePageLoadTelemetry(
-      PageLoadEventTelemetryData& aEventTelemetryDataOut);
+      glean::perf::PageLoadExtra& aEventTelemetryDataOut);
 
   // The OOP counterpart to nsDocLoader::mChildrenInOnload.
   // Not holding strong refs here since we don't actually use the BBCs.

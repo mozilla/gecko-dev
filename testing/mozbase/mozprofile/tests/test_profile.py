@@ -4,23 +4,20 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, division
-
 import os
 
 import mozunit
 import pytest
-
-from mozprofile.prefs import Preferences
 from mozprofile import (
     BaseProfile,
-    Profile,
     ChromeProfile,
     ChromiumProfile,
     FirefoxProfile,
+    Profile,
     ThunderbirdProfile,
     create_profile,
 )
+from mozprofile.prefs import Preferences
 
 here = os.path.abspath(os.path.dirname(__file__))
 

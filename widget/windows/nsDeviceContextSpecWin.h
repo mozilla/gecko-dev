@@ -13,6 +13,7 @@
 #include <windows.h>
 #include "mozilla/Attributes.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/gfx/PrintPromise.h"
 
 class nsIFile;
 class nsIWidget;
@@ -29,7 +30,7 @@ class nsDeviceContextSpecWin : public nsIDeviceContextSpec {
                            int32_t aStartPage, int32_t aEndPage) override {
     return NS_OK;
   }
-  NS_IMETHOD EndDocument() override { return NS_OK; }
+  RefPtr<mozilla::gfx::PrintEndDocumentPromise> EndDocument() override;
   NS_IMETHOD BeginPage() override { return NS_OK; }
   NS_IMETHOD EndPage() override { return NS_OK; }
 

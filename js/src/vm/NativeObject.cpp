@@ -1338,12 +1338,12 @@ static MOZ_ALWAYS_INLINE bool AddDataProperty(JSContext* cx,
 bool js::AddSlotAndCallAddPropHook(JSContext* cx, Handle<NativeObject*> obj,
                                    HandleValue v, Handle<Shape*> newShape) {
   MOZ_ASSERT(obj->getClass()->getAddProperty());
-  MOZ_ASSERT(newShape->lastProperty().isDataProperty());
+  MOZ_ASSERT(newShape->asShared().lastProperty().isDataProperty());
 
-  RootedId id(cx, newShape->lastProperty().key());
+  RootedId id(cx, newShape->asShared().lastProperty().key());
   MOZ_ASSERT(!id.isInt());
 
-  uint32_t slot = newShape->lastProperty().slot();
+  uint32_t slot = newShape->asShared().lastProperty().slot();
   if (!obj->setShapeAndAddNewSlot(cx, &newShape->asShared(), slot)) {
     return false;
   }
@@ -1985,11 +1985,6 @@ bool js::NativeGetOwnPropertyDescriptor(
 
 static bool GetCustomDataProperty(JSContext* cx, HandleObject obj, HandleId id,
                                   MutableHandleValue vp) {
-  AutoCheckRecursionLimit recursion(cx);
-  if (!recursion.check(cx)) {
-    return false;
-  }
-
   cx->check(obj, id, vp);
 
   const JSClass* clasp = obj->getClass();
@@ -2281,11 +2276,6 @@ bool js::GetNameBoundInEnvironment(JSContext* cx, HandleObject envArg,
 
 static bool SetCustomDataProperty(JSContext* cx, HandleObject obj, HandleId id,
                                   HandleValue v, ObjectOpResult& result) {
-  AutoCheckRecursionLimit recursion(cx);
-  if (!recursion.check(cx)) {
-    return false;
-  }
-
   cx->check(obj, id, v);
 
   const JSClass* clasp = obj->getClass();
@@ -2737,7 +2727,7 @@ bool js::CopyDataPropertiesNative(JSContext* cx, Handle<PlainObject*> target,
   // Collect all enumerable data properties.
   Rooted<PropertyInfoWithKeyVector> props(cx, PropertyInfoWithKeyVector(cx));
 
-  Rooted<Shape*> fromShape(cx, from->shape());
+  Rooted<NativeShape*> fromShape(cx, from->shape());
   for (ShapePropertyIter<NoGC> iter(fromShape); !iter.done(); iter++) {
     jsid id = iter->key();
     MOZ_ASSERT(!id.isInt());

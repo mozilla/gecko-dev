@@ -47,12 +47,8 @@ const SESSION_TYPES = {
  * - all processes: parent and content,
  * - all privileges: privileged/chrome and content/web,
  * - all components/targets: HTML documents, processes, workers, add-ons,...
- *
- * @param {Object} config
- *        An object with optional configuration. Only supports "isBrowserToolboxFission" attribute
- *        which provides the value of the devtools.browsertoolbox.fission preference on the client.
  */
-function createBrowserSessionContext(config) {
+function createBrowserSessionContext() {
   const type = SESSION_TYPES.ALL;
 
   return {
@@ -60,12 +56,8 @@ function createBrowserSessionContext(config) {
     // For now, the top level target (ParentProcessTargetActor) is created via ProcessDescriptor.getTarget
     // and is never replaced by any other, nor is it created by the WatcherActor.
     isServerTargetSwitchingEnabled: false,
-    supportedTargets: getWatcherSupportedTargets(type, {
-      isBrowserToolboxFission: config.isBrowserToolboxFission,
-    }),
-    supportedResources: getWatcherSupportedResources(type, {
-      isBrowserToolboxFission: config.isBrowserToolboxFission,
-    }),
+    supportedTargets: getWatcherSupportedTargets(type),
+    supportedResources: getWatcherSupportedResources(type),
   };
 }
 
@@ -163,12 +155,7 @@ function createWorkerSessionContext() {
  * @param {String} type
  * @returns {Object}
  */
-function getWatcherSupportedTargets(type, { isBrowserToolboxFission } = {}) {
-  // We're completely bypassing the watcher for the non-multiprocess Browser Toolbox.
-  if (type == SESSION_TYPES.ALL && !isBrowserToolboxFission) {
-    return {};
-  }
-
+function getWatcherSupportedTargets(type) {
   return {
     [Targets.TYPES.FRAME]: true,
     [Targets.TYPES.PROCESS]: true,
@@ -184,12 +171,7 @@ function getWatcherSupportedTargets(type, { isBrowserToolboxFission } = {}) {
  * @param {String} type
  * @returns {Object}
  */
-function getWatcherSupportedResources(type, { isBrowserToolboxFission } = {}) {
-  // We're completely bypassing the watcher for the non-multiprocess Browser Toolbox.
-  if (type == SESSION_TYPES.ALL && !isBrowserToolboxFission) {
-    return {};
-  }
-
+function getWatcherSupportedResources(type) {
   // All resources types are supported for tab debugging and web extensions.
   // Some watcher classes are still disabled for the Multiprocess Browser Toolbox (type=SESSION_TYPES.ALL).
   // And they may also be disabled for workers once we start supporting them by the watcher.
@@ -202,7 +184,7 @@ function getWatcherSupportedResources(type, { isBrowserToolboxFission } = {}) {
     [Resources.TYPES.CONSOLE_MESSAGE]: true,
     [Resources.TYPES.CSS_CHANGE]: isTabOrWebExtensionToolbox,
     [Resources.TYPES.CSS_MESSAGE]: true,
-    [Resources.TYPES.DOCUMENT_EVENT]: isTabOrWebExtensionToolbox,
+    [Resources.TYPES.DOCUMENT_EVENT]: true,
     [Resources.TYPES.CACHE_STORAGE]: isTabOrWebExtensionToolbox,
     [Resources.TYPES.COOKIE]: isTabOrWebExtensionToolbox,
     [Resources.TYPES.ERROR_MESSAGE]: true,
@@ -215,9 +197,10 @@ function getWatcherSupportedResources(type, { isBrowserToolboxFission } = {}) {
     [Resources.TYPES.REFLOW]: true,
     [Resources.TYPES.STYLESHEET]: true,
     [Resources.TYPES.SOURCE]: true,
-    [Resources.TYPES.THREAD_STATE]: isTabOrWebExtensionToolbox,
+    [Resources.TYPES.THREAD_STATE]: true,
     [Resources.TYPES.SERVER_SENT_EVENT]: isTabOrWebExtensionToolbox,
     [Resources.TYPES.WEBSOCKET]: isTabOrWebExtensionToolbox,
+    [Resources.TYPES.LAST_PRIVATE_CONTEXT_EXIT]: true,
   };
 }
 

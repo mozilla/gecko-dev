@@ -2,6 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import functools
 import os
 import shutil
 import subprocess
@@ -25,12 +26,36 @@ def relativize(path, base=None):
     return os.path.relpath(path, base)
 
 
+@functools.lru_cache(maxsize=None)
+def files_in(path):
+    return {p.lower(): os.path.join(path, p) for p in os.listdir(path)}
+
+
 def search_path(paths, path):
     for p in paths:
         f = os.path.join(p, path)
         if os.path.isfile(f):
             return f
+        # try an case-insensitive match
+        maybe_match = files_in(p).get(path.lower())
+        if maybe_match:
+            return maybe_match
     raise RuntimeError(f"Cannot find {path}")
+
+
+# Filter-out -std= flag from the preprocessor command, as we're not preprocessing
+# C or C++, and the command would fail with the flag.
+def filter_preprocessor(cmd):
+    prev = None
+    for arg in cmd:
+        if arg == "-Xclang":
+            prev = arg
+            continue
+        if not arg.startswith("-std="):
+            if prev:
+                yield prev
+            yield arg
+        prev = None
 
 
 # Preprocess all the direct and indirect inputs of midl, and put all the
@@ -50,11 +75,11 @@ def preprocess(base, input, flags):
     parser.add_argument("-acf")
     args, remainder = parser.parse_known_args(flags)
     preprocessor = (
-        [buildconfig.substs["_CXX"]]
+        list(filter_preprocessor(buildconfig.substs["CXXCPP"]))
         # Ideally we'd use the real midl version, but querying it adds a
         # significant overhead to configure. In practice, the version number
         # doesn't make a difference at the moment.
-        + ["-E", "-D__midl=801"]
+        + ["-D__midl=801"]
         + [f"-D{d}" for d in args.D or ()]
         + [f"-I{i}" for i in args.I or ()]
     )
@@ -75,8 +100,15 @@ def preprocess(base, input, flags):
         input = search_path(includes, input)
         # If there is a .acf file corresponding to the .idl we're processing,
         # we also want to preprocess that file because midl might look for it too.
-        if input.endswith(".idl") and os.path.exists(input[:-4] + ".acf"):
-            queue.append(input[:-4] + ".acf")
+        if input.lower().endswith(".idl"):
+            try:
+                acf = search_path(
+                    [os.path.dirname(input)], os.path.basename(input)[:-4] + ".acf"
+                )
+                if acf:
+                    queue.append(acf)
+            except RuntimeError:
+                pass
         command = preprocessor + [input]
         preprocessed = os.path.join(base, os.path.basename(input))
         subprocess.run(command, stdout=open(preprocessed, "wb"), check=True)

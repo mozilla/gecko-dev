@@ -2,8 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import
-
 import json
 import os
 import random
@@ -13,28 +11,23 @@ import sys
 import time
 import traceback
 import unittest
-
 from argparse import ArgumentParser
 from collections import defaultdict
 from copy import deepcopy
-
-import six
 
 import mozinfo
 import moznetwork
 import mozprofile
 import mozversion
-
+import six
 from manifestparser import TestManifest
 from manifestparser.filters import tags
 from marionette_driver.marionette import Marionette
 from moztest.adapters.unit import StructuredTestResult, StructuredTestRunner
 from moztest.results import TestResult, TestResultCollection, relevant_line
-
-from six import reraise, MAXSIZE
+from six import MAXSIZE, reraise
 
 from . import serve
-
 
 here = os.path.abspath(os.path.dirname(__file__))
 

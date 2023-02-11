@@ -84,6 +84,44 @@ IdentityCredential::DiscoverFromExternalSource(
   RefPtr<IdentityCredential::GetIdentityCredentialPromise::Private> result =
       new IdentityCredential::GetIdentityCredentialPromise::Private(__func__);
 
+  if (StaticPrefs::
+          dom_security_credentialmanagement_identity_reject_delay_enabled()) {
+    // This is used to give the promise the appropriate lifetime so it is not
+    // freed before the callback below is called. This reference is taken as an
+    // argument to that callback.
+    RefPtr<IdentityCredential::GetIdentityCredentialPromise::Private>
+        forCallbackResult = result;
+
+    RefPtr<nsITimer> timeout;
+    nsresult rv = NS_NewTimerWithFuncCallback(
+        getter_AddRefs(timeout),
+        [](nsITimer* aTimer, void* aClosure) -> void {
+          auto* promise = static_cast<
+              IdentityCredential::GetIdentityCredentialPromise::Private*>(
+              aClosure);
+          if (!promise->IsResolved()) {
+            promise->Reject(NS_ERROR_DOM_NETWORK_ERR, __func__);
+          }
+          // This releases the promise we forgot when we returned from
+          // this function and the timer we forgot after we built this
+          // callback.
+          NS_RELEASE(promise);
+          NS_RELEASE(aTimer);
+        },
+        do_AddRef(forCallbackResult).take(),
+        StaticPrefs::
+            dom_security_credentialmanagement_identity_reject_delay_duration_ms(),
+        nsITimer::TYPE_ONE_SHOT, "IdentityCredentialTimeoutCallback");
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      result->Reject(NS_ERROR_FAILURE, __func__);
+      return result.forget();
+    }
+
+    // Do not clean this timer when we return form this function. This will be
+    // done at the end of the callback above.
+    Unused << timeout.forget();
+  }
+
   // Kick the request off to the main process and translate the result to the
   // expected type when we get a result.
   MOZ_ASSERT(aOptions.mIdentity.WasPassed());
@@ -101,13 +139,20 @@ IdentityCredential::DiscoverFromExternalSource(
             if (aResult.isSome()) {
               credential->CopyValuesFrom(aResult.value());
               result->Resolve(credential, __func__);
-            } else {
+            } else if (
+                !StaticPrefs::
+                    dom_security_credentialmanagement_identity_reject_delay_enabled()) {
               result->Reject(NS_ERROR_DOM_UNKNOWN_ERR, __func__);
             }
           },
           [result](const WindowGlobalChild::
                        DiscoverIdentityCredentialFromExternalSourcePromise::
-                           RejectValueType& aResult) { return; });
+                           RejectValueType& aResult) {
+            if (!StaticPrefs::
+                    dom_security_credentialmanagement_identity_reject_delay_enabled()) {
+              result->Reject(NS_ERROR_DOM_UNKNOWN_ERR, __func__);
+            }
+          });
   return result.forget();
 }
 
@@ -390,20 +435,32 @@ IdentityCredential::FetchAccountList(
     const IdentityInternalManifest& aManifest) {
   MOZ_ASSERT(XRE_IsParentProcess());
   // Build the URL
-  nsCString configLocation =
-      NS_ConvertUTF16toUTF8(aManifest.mAccounts_endpoint);
+  nsCOMPtr<nsIURI> baseURI;
+  nsCString baseURIString = NS_ConvertUTF16toUTF8(aProvider.mConfigURL);
+  nsresult rv = NS_NewURI(getter_AddRefs(baseURI), baseURIString);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return IdentityCredential::GetAccountListPromise::CreateAndReject(rv,
+                                                                      __func__);
+  }
+  nsCOMPtr<nsIURI> idpURI;
+  nsCString accountSpec = NS_ConvertUTF16toUTF8(aManifest.mAccounts_endpoint);
+  rv = NS_NewURI(getter_AddRefs(idpURI), accountSpec.get(), baseURI);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return IdentityCredential::GetAccountListPromise::CreateAndReject(rv,
+                                                                      __func__);
+  }
+  nsCString configLocation;
+  rv = idpURI->GetSpec(configLocation);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return IdentityCredential::GetAccountListPromise::CreateAndReject(rv,
+                                                                      __func__);
+  }
 
   // Build the principal to use for this connection
   // This is an expanded principal! It has the cookies of the IDP because it
   // subsumes the constituent principals. It also has no serializable origin,
   // so it won't send an Origin header even though this is a CORS mode
   // request. It accomplishes this without being a SystemPrincipal too.
-  nsCOMPtr<nsIURI> idpURI;
-  nsresult rv = NS_NewURI(getter_AddRefs(idpURI), configLocation);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return IdentityCredential::GetAccountListPromise::CreateAndReject(rv,
-                                                                      __func__);
-  }
   nsCOMPtr<nsIPrincipal> idpPrincipal = BasePrincipal::CreateContentPrincipal(
       idpURI, aPrincipal->OriginAttributesRef());
   nsCOMPtr<nsIPrincipal> nullPrincipal =
@@ -467,7 +524,23 @@ RefPtr<IdentityCredential::GetTokenPromise> IdentityCredential::FetchToken(
     const IdentityAccount& aAccount) {
   MOZ_ASSERT(XRE_IsParentProcess());
   // Build the URL
-  nsCString tokenLocation = NS_ConvertUTF16toUTF8(aManifest.mId_token_endpoint);
+  nsCOMPtr<nsIURI> baseURI;
+  nsCString baseURIString = NS_ConvertUTF16toUTF8(aProvider.mConfigURL);
+  nsresult rv = NS_NewURI(getter_AddRefs(baseURI), baseURIString);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return IdentityCredential::GetTokenPromise::CreateAndReject(rv, __func__);
+  }
+  nsCOMPtr<nsIURI> idpURI;
+  nsCString tokenSpec = NS_ConvertUTF16toUTF8(aManifest.mId_token_endpoint);
+  rv = NS_NewURI(getter_AddRefs(idpURI), tokenSpec.get(), baseURI);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return IdentityCredential::GetTokenPromise::CreateAndReject(rv, __func__);
+  }
+  nsCString tokenLocation;
+  rv = idpURI->GetSpec(tokenLocation);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return IdentityCredential::GetTokenPromise::CreateAndReject(rv, __func__);
+  }
 
   // Create the global
   nsIXPConnect* xpc = nsContentUtils::XPConnect();
@@ -477,7 +550,7 @@ RefPtr<IdentityCredential::GetTokenPromise> IdentityCredential::FetchToken(
   jsapi.Init();
   JSContext* cx = jsapi.cx();
   JS::Rooted<JSObject*> sandbox(cx);
-  nsresult rv = xpc->CreateSandbox(cx, aPrincipal, sandbox.address());
+  rv = xpc->CreateSandbox(cx, aPrincipal, sandbox.address());
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return IdentityCredential::GetTokenPromise::CreateAndReject(rv, __func__);
   }
@@ -545,12 +618,32 @@ RefPtr<IdentityCredential::GetTokenPromise> IdentityCredential::FetchToken(
 // static
 RefPtr<IdentityCredential::GetMetadataPromise>
 IdentityCredential::FetchMetadata(nsIPrincipal* aPrincipal,
+                                  const IdentityProvider& aProvider,
                                   const IdentityInternalManifest& aManifest) {
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(aPrincipal);
   // Build the URL
-  nsCString configLocation =
+  nsCOMPtr<nsIURI> baseURI;
+  nsCString baseURIString = NS_ConvertUTF16toUTF8(aProvider.mConfigURL);
+  nsresult rv = NS_NewURI(getter_AddRefs(baseURI), baseURIString);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return IdentityCredential::GetMetadataPromise::CreateAndReject(rv,
+                                                                   __func__);
+  }
+  nsCOMPtr<nsIURI> idpURI;
+  nsCString metadataSpec =
       NS_ConvertUTF16toUTF8(aManifest.mClient_metadata_endpoint);
+  rv = NS_NewURI(getter_AddRefs(idpURI), metadataSpec.get(), baseURI);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return IdentityCredential::GetMetadataPromise::CreateAndReject(rv,
+                                                                   __func__);
+  }
+  nsCString configLocation;
+  rv = idpURI->GetSpec(configLocation);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return IdentityCredential::GetMetadataPromise::CreateAndReject(rv,
+                                                                   __func__);
+  }
 
   // Create the global
   nsIXPConnect* xpc = nsContentUtils::XPConnect();
@@ -560,7 +653,7 @@ IdentityCredential::FetchMetadata(nsIPrincipal* aPrincipal,
   jsapi.Init();
   JSContext* cx = jsapi.cx();
   JS::Rooted<JSObject*> sandbox(cx);
-  nsresult rv = xpc->CreateSandbox(cx, aPrincipal, sandbox.address());
+  rv = xpc->CreateSandbox(cx, aPrincipal, sandbox.address());
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return IdentityCredential::GetMetadataPromise::CreateAndReject(rv,
                                                                    __func__);
@@ -720,8 +813,7 @@ IdentityCredential::PromptUserWithPolicy(
   }
 
   // Check the storage bit
-  nsCString configLocation =
-      NS_ConvertUTF16toUTF8(aManifest.mAccounts_endpoint);
+  nsCString configLocation = NS_ConvertUTF16toUTF8(aProvider.mConfigURL);
   nsCOMPtr<nsIURI> idpURI;
   error = NS_NewURI(getter_AddRefs(idpURI), configLocation);
   if (NS_WARN_IF(NS_FAILED(error))) {
@@ -751,7 +843,7 @@ IdentityCredential::PromptUserWithPolicy(
   // otherwise, fetch ->Then display ->Then return ->Catch reject
   RefPtr<BrowsingContext> browsingContext(aBrowsingContext);
   nsCOMPtr<nsIPrincipal> argumentPrincipal(aPrincipal);
-  return FetchMetadata(aPrincipal, aManifest)
+  return FetchMetadata(aPrincipal, aProvider, aManifest)
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
           [aAccount, aProvider, argumentPrincipal, browsingContext,

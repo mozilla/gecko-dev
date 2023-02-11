@@ -1,12 +1,9 @@
 #!/usr/bin/env python
 
-from __future__ import absolute_import
-
 import os
 
 import mozunit
 import pytest
-
 from conftest import fspath
 
 

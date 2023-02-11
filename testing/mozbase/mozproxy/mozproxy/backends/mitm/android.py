@@ -2,8 +2,6 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
-from __future__ import absolute_import
-
 import glob
 import os
 import subprocess
@@ -12,7 +10,7 @@ from subprocess import PIPE
 
 import mozinfo
 from mozproxy.backends.mitm.mitm import Mitmproxy
-from mozproxy.utils import download_file_from_url, tooltool_download, LOG
+from mozproxy.utils import LOG, download_file_from_url, tooltool_download
 
 # path for mitmproxy certificate, generated auto after mitmdump is started
 # on local machine it is 'HOME', however it is different on production machines

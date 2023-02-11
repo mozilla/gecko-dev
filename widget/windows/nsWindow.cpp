@@ -1683,10 +1683,6 @@ void nsWindow::Show(bool bState) {
     // that we've taken over the window from the skeleton UI, and we should
     // no longer treat resizes / moves specially.
     mIsShowingPreXULSkeletonUI = false;
-    // Initialize the UI state - this would normally happen below, but since
-    // we're actually already showing, we won't hit it in the normal way.
-    ::SendMessageW(mWnd, WM_CHANGEUISTATE,
-                   MAKEWPARAM(UIS_SET, UISF_HIDEFOCUS | UISF_HIDEACCEL), 0);
 #if defined(ACCESSIBILITY)
     // If our HWND has focus and the a11y engine hasn't started yet, fire a
     // focus win event. Windows already did this when the skeleton UI appeared,
@@ -1815,13 +1811,6 @@ void nsWindow::Show(bool bState) {
           ::SetWindowPos(mWnd, HWND_TOP, 0, 0, 0, 0, flags);
         }
       }
-
-      if (!wasVisible && (mWindowType == eWindowType_toplevel ||
-                          mWindowType == eWindowType_dialog)) {
-        // When a toplevel window or dialog is shown, initialize the UI state
-        ::SendMessageW(mWnd, WM_CHANGEUISTATE,
-                       MAKEWPARAM(UIS_SET, UISF_HIDEFOCUS | UISF_HIDEACCEL), 0);
-      }
     } else {
       // Clear contents to avoid ghosting of old content if we display
       // this window again.
@@ -1937,8 +1926,7 @@ void nsWindow::SetInputRegion(const InputRegion& aInputRegion) {
 
 /**************************************************************
  *
- * SECTION: nsIWidget::Move, nsIWidget::Resize,
- * nsIWidget::Size, nsIWidget::BeginResizeDrag
+ * SECTION: nsIWidget::Move, nsIWidget::Resize, nsIWidget::Size
  *
  * Repositioning and sizing a window.
  *
@@ -2247,61 +2235,6 @@ mozilla::Maybe<bool> nsWindow::IsResizingNativeWidget() {
     return Some(true);
   }
   return Some(false);
-}
-
-nsresult nsWindow::BeginResizeDrag(WidgetGUIEvent* aEvent, int32_t aHorizontal,
-                                   int32_t aVertical) {
-  NS_ENSURE_ARG_POINTER(aEvent);
-
-  if (aEvent->mClass != eMouseEventClass) {
-    // you can only begin a resize drag with a mouse event
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  if (aEvent->AsMouseEvent()->mButton != MouseButton::ePrimary) {
-    // you can only begin a resize drag with the left mouse button
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  // work out what sizemode we're talking about
-  WPARAM syscommand;
-  if (aVertical < 0) {
-    if (aHorizontal < 0) {
-      syscommand = SC_SIZE | WMSZ_TOPLEFT;
-    } else if (aHorizontal == 0) {
-      syscommand = SC_SIZE | WMSZ_TOP;
-    } else {
-      syscommand = SC_SIZE | WMSZ_TOPRIGHT;
-    }
-  } else if (aVertical == 0) {
-    if (aHorizontal < 0) {
-      syscommand = SC_SIZE | WMSZ_LEFT;
-    } else if (aHorizontal == 0) {
-      return NS_ERROR_INVALID_ARG;
-    } else {
-      syscommand = SC_SIZE | WMSZ_RIGHT;
-    }
-  } else {
-    if (aHorizontal < 0) {
-      syscommand = SC_SIZE | WMSZ_BOTTOMLEFT;
-    } else if (aHorizontal == 0) {
-      syscommand = SC_SIZE | WMSZ_BOTTOM;
-    } else {
-      syscommand = SC_SIZE | WMSZ_BOTTOMRIGHT;
-    }
-  }
-
-  // resizing doesn't work if the mouse is already captured
-  CaptureMouse(false);
-
-  // find the top-level window
-  HWND toplevelWnd = WinUtils::GetTopLevelHWND(mWnd, true);
-
-  // tell Windows to start the resize
-  ::PostMessage(toplevelWnd, WM_SYSCOMMAND, syscommand,
-                POINTTOPOINTS(aEvent->mRefPoint));
-
-  return NS_OK;
 }
 
 /**************************************************************
@@ -3570,7 +3503,7 @@ static LRESULT CALLBACK FullscreenTransitionWindowProc(HWND hWnd, UINT uMsg,
 }
 
 struct FullscreenTransitionInitData {
-  nsIntRect mBounds;
+  LayoutDeviceIntRect mBounds;
   HANDLE mSemaphore;
   HANDLE mThread;
   HWND mWnd;
@@ -3669,14 +3602,11 @@ bool nsWindow::PrepareForFullscreenTransition(nsISupports** aData) {
 
   FullscreenTransitionInitData initData;
   nsCOMPtr<nsIScreen> screen = GetWidgetScreen();
-  int32_t x, y, width, height;
-  screen->GetRectDisplayPix(&x, &y, &width, &height);
+  const DesktopIntRect rect = screen->GetRectDisplayPix();
   MOZ_ASSERT(BoundsUseDesktopPixels(),
              "Should only be called on top-level window");
-  double scale = GetDesktopToDeviceScale().scale;  // XXX or GetDefaultScale() ?
-  initData.mBounds.SetRect(NSToIntRound(x * scale), NSToIntRound(y * scale),
-                           NSToIntRound(width * scale),
-                           NSToIntRound(height * scale));
+  initData.mBounds =
+      LayoutDeviceIntRect::Round(rect * GetDesktopToDeviceScale());
 
   // Create a semaphore for synchronizing the window handle which will
   // be created by the transition thread and used by the main thread for
@@ -3729,15 +3659,22 @@ void nsWindow::OnFullscreenWillChange(bool aFullScreen) {
   }
 }
 
-void nsWindow::OnFullscreenChanged(bool aFullScreen) {
+void nsWindow::OnFullscreenChanged(nsSizeMode aOldSizeMode, bool aFullScreen) {
   // If we are going fullscreen, the window size continues to change
   // and the window will be reflow again then.
   UpdateNonClientMargins(/* Reflow */ !aFullScreen);
 
-  // Will call hide chrome, reposition window. Note this will
-  // also cache dimensions for restoration, so it should only
-  // be called once per fullscreen request.
-  nsBaseWidget::InfallibleMakeFullScreen(aFullScreen);
+  // Hide chrome and reposition window. Note this will also cache dimensions for
+  // restoration, so it should only be called once per fullscreen request.
+  //
+  // Don't do this when minimized, since our bounds make no sense then, nor when
+  // coming back from that state.
+  const bool toOrFromMinimized =
+      mFrameState->GetSizeMode() == nsSizeMode_Minimized ||
+      aOldSizeMode == nsSizeMode_Minimized;
+  if (!toOrFromMinimized) {
+    InfallibleMakeFullScreen(aFullScreen);
+  }
 
   if (mIsVisible && !aFullScreen &&
       mFrameState->GetSizeMode() == nsSizeMode_Normal) {
@@ -4025,16 +3962,13 @@ void nsWindow::CaptureMouse(bool aCapture) {
  *
  **************************************************************/
 
-void nsWindow::CaptureRollupEvents(nsIRollupListener* aListener,
-                                   bool aDoCapture) {
+void nsWindow::CaptureRollupEvents(bool aDoCapture) {
   if (aDoCapture) {
-    gRollupListener = aListener;
     if (!sMsgFilterHook && !sCallProcHook && !sCallMouseHook) {
       RegisterSpecialDropdownHooks();
     }
     sProcessHook = true;
   } else {
-    gRollupListener = nullptr;
     sProcessHook = false;
     UnregisterSpecialDropdownHooks();
   }
@@ -4325,7 +4259,7 @@ void nsWindow::InitEvent(WidgetGUIEvent& event, LayoutDeviceIntPoint* aPoint) {
 
 WidgetEventTime nsWindow::CurrentMessageWidgetEventTime() const {
   LONG messageTime = ::GetMessageTime();
-  return WidgetEventTime(messageTime, GetMessageTimeStamp(messageTime));
+  return WidgetEventTime(GetMessageTimeStamp(messageTime));
 }
 
 /**************************************************************
@@ -5342,10 +5276,10 @@ bool nsWindow::ProcessMessageInternal(UINT msg, WPARAM& wParam, LPARAM& lParam,
 
     case WM_SETTINGCHANGE: {
       if (wParam == SPI_SETCLIENTAREAANIMATION ||
-          // CaretBlinkTime is cached in nsLookAndFeel
-          wParam == SPI_SETKEYBOARDDELAY) {
-        // This only affects reduced motion settings and and carent blink time,
-        // so no need to invalidate style / layout.
+          wParam == SPI_SETKEYBOARDCUES || wParam == SPI_SETKEYBOARDDELAY) {
+        // These need to update LookAndFeel cached values.
+        // They affect reduced motion settings / caret blink count / and
+        // keyboard cues, so no need to invalidate style / layout.
         NotifyThemeChanged(widget::ThemeChangeKind::MediaQueriesOnly);
         break;
       }
@@ -6341,29 +6275,6 @@ bool nsWindow::ProcessMessageInternal(UINT msg, WPARAM& wParam, LPARAM& lParam,
       break;
     }
 
-    case WM_UPDATEUISTATE: {
-      // If the UI state has changed, fire an event so the UI updates the
-      // keyboard cues based on the system setting and how the window was
-      // opened. For example, a dialog opened via a keyboard press on a button
-      // should enable cues, whereas the same dialog opened via a mouse click of
-      // the button should not.
-      if (mWindowType == eWindowType_toplevel ||
-          mWindowType == eWindowType_dialog) {
-        int32_t action = LOWORD(wParam);
-        if (action == UIS_SET || action == UIS_CLEAR) {
-          int32_t flags = HIWORD(wParam);
-          UIStateChangeType showFocusRings = UIStateChangeType_NoChange;
-          if (flags & UISF_HIDEFOCUS) {
-            showFocusRings = (action == UIS_SET) ? UIStateChangeType_Clear
-                                                 : UIStateChangeType_Set;
-          }
-          NotifyUIStateChanged(showFocusRings);
-        }
-      }
-
-      break;
-    }
-
     /* Gesture support events */
     case WM_TABLET_QUERYSYSTEMGESTURESTATUS:
       // According to MS samples, this must be handled to enable
@@ -6955,7 +6866,9 @@ static void MaybeLogPosChanged(HWND aWnd, WINDOWPOS* wp) {
  **************************************************************/
 
 void nsWindow::OnWindowPosChanged(WINDOWPOS* wp) {
-  if (wp == nullptr) return;
+  if (!wp) {
+    return;
+  }
 
   MaybeLogPosChanged(mWnd, wp);
 
@@ -7087,7 +7000,7 @@ void nsWindow::OnWindowPosChanged(WINDOWPOS* wp) {
   }
 }
 
-void nsWindow::OnWindowPosChanging(LPWINDOWPOS& info) {
+void nsWindow::OnWindowPosChanging(WINDOWPOS* info) {
   // Update non-client margins if the frame size is changing, and let the
   // browser know we are changing size modes, so alternative css can kick in.
   // If we're going into fullscreen mode, ignore this, since it'll reset
@@ -7113,13 +7026,11 @@ void nsWindow::OnWindowPosChanging(LPWINDOWPOS& info) {
                                getter_AddRefs(screen));
 
       if (screen) {
-        int32_t x, y, width, height;
-        screen->GetRect(&x, &y, &width, &height);
-
-        info->x = x;
-        info->y = y;
-        info->cx = width;
-        info->cy = height;
+        auto rect = screen->GetRect();
+        info->x = rect.x;
+        info->y = rect.y;
+        info->cx = rect.width;
+        info->cy = rect.height;
       }
     }
   }
@@ -7291,8 +7202,8 @@ Maybe<PanGestureInput> nsWindow::ConvertTouchToPanGesture(
   // We need to negate the displacement because for a touch event, moving the
   // fingers down results in scrolling up, but for a touchpad gesture, we want
   // moving the fingers down to result in scrolling down.
-  PanGestureInput result(eventType, aTouchInput.mTime, aTouchInput.mTimeStamp,
-                         focusPoint, -displacement, aTouchInput.modifiers);
+  PanGestureInput result(eventType, aTouchInput.mTimeStamp, focusPoint,
+                         -displacement, aTouchInput.modifiers);
   result.mSimulateMomentum = true;
 
   return Some(result);
@@ -7335,8 +7246,7 @@ bool nsWindow::OnTouch(WPARAM wParam, LPARAM lParam) {
         if (touchInput.mTimeStamp.IsNull()) {
           // Initialize a touch event to send.
           touchInput.mType = MultiTouchInput::MULTITOUCH_MOVE;
-          touchInput.mTime = ::GetMessageTime();
-          touchInput.mTimeStamp = GetMessageTimeStamp(touchInput.mTime);
+          touchInput.mTimeStamp = GetMessageTimeStamp(::GetMessageTime());
           ModifierKeyState modifierKeyState;
           touchInput.modifiers = modifierKeyState.GetModifiers();
         }
@@ -7354,8 +7264,7 @@ bool nsWindow::OnTouch(WPARAM wParam, LPARAM lParam) {
         if (touchEndInput.mTimeStamp.IsNull()) {
           // Initialize a touch event to send.
           touchEndInput.mType = MultiTouchInput::MULTITOUCH_END;
-          touchEndInput.mTime = ::GetMessageTime();
-          touchEndInput.mTimeStamp = GetMessageTimeStamp(touchEndInput.mTime);
+          touchEndInput.mTimeStamp = GetMessageTimeStamp(::GetMessageTime());
           ModifierKeyState modifierKeyState;
           touchEndInput.modifiers = modifierKeyState.GetModifiers();
         }
@@ -7429,8 +7338,7 @@ bool nsWindow::OnGesture(WPARAM wParam, LPARAM lParam) {
     modifierKeyState.InitInputEvent(wheelEvent);
 
     wheelEvent.mButton = 0;
-    wheelEvent.mTime = ::GetMessageTime();
-    wheelEvent.mTimeStamp = GetMessageTimeStamp(wheelEvent.mTime);
+    wheelEvent.mTimeStamp = GetMessageTimeStamp(::GetMessageTime());
     wheelEvent.mInputSource = MouseEvent_Binding::MOZ_SOURCE_TOUCH;
 
     bool endFeedback = true;
@@ -7464,8 +7372,7 @@ bool nsWindow::OnGesture(WPARAM wParam, LPARAM lParam) {
   ModifierKeyState modifierKeyState;
   modifierKeyState.InitInputEvent(event);
   event.mButton = 0;
-  event.mTime = ::GetMessageTime();
-  event.mTimeStamp = GetMessageTimeStamp(event.mTime);
+  event.mTimeStamp = GetMessageTimeStamp(::GetMessageTime());
   event.mInputSource = MouseEvent_Binding::MOZ_SOURCE_TOUCH;
 
   nsEventStatus status;
@@ -7543,7 +7450,7 @@ void nsWindow::OnDestroy() {
   }
   if (this == rollupWidget) {
     if (rollupListener) rollupListener->Rollup(0, false, nullptr, nullptr);
-    CaptureRollupEvents(nullptr, false);
+    CaptureRollupEvents(false);
   }
 
   IMEHandler::OnDestroyWindow(this);
@@ -8804,9 +8711,7 @@ bool nsWindow::DispatchTouchEventFromWMPointer(
 
   MultiTouchInput touchInput;
   touchInput.mType = touchType;
-  touchInput.mTime = ::GetMessageTime();
-  touchInput.mTimeStamp =
-      GetMessageTimeStamp(static_cast<long>(touchInput.mTime));
+  touchInput.mTimeStamp = GetMessageTimeStamp(::GetMessageTime());
   touchInput.mTouches.AppendElement(touchData);
   touchInput.mButton = aButton;
   touchInput.mButtons = aPointerInfo.mButtons;
@@ -8926,7 +8831,11 @@ bool nsWindow::OnPointerEvents(UINT msg, WPARAM aWParam, LPARAM aLParam) {
                         : MouseButtonsFlag::eNoButtons;
   WinPointerInfo pointerInfo(pointerId, penInfo.tiltX, penInfo.tiltY, pressure,
                              buttons);
-  pointerInfo.twist = penInfo.rotation;
+  // Per
+  // https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-pointer_pen_info,
+  // the rotation is normalized in a range of 0 to 359.
+  MOZ_ASSERT(penInfo.rotation <= 359);
+  pointerInfo.twist = (int32_t)penInfo.rotation;
 
   // Fire touch events but not when the barrel button is pressed.
   if (button != MouseButton::eSecondary &&
@@ -9129,7 +9038,7 @@ nsresult nsWindow::SynthesizeNativeTouchPoint(
     WidgetEventTime time = CurrentMessageWidgetEventTime();
     LayoutDeviceIntPoint pointInWindow = aPoint - WidgetToScreenOffset();
     MultiTouchInput inputToDispatch = UpdateSynthesizedTouchState(
-        mSynthesizedTouchInput.get(), time.mTime, time.mTimeStamp, aPointerId,
+        mSynthesizedTouchInput.get(), time.mTimeStamp, aPointerId,
         aPointerState, pointInWindow, aPointerPressure, aPointerOrientation);
     DispatchTouchInput(inputToDispatch);
     return NS_OK;
@@ -9366,7 +9275,8 @@ nsSizeMode nsWindow::FrameState::GetSizeMode() const { return mSizeMode; }
 void nsWindow::FrameState::CheckInvariant() const {
   MOZ_ASSERT(mSizeMode >= 0 && mSizeMode < nsSizeMode_Invalid);
   MOZ_ASSERT(mLastSizeMode >= 0 && mLastSizeMode < nsSizeMode_Invalid);
-  MOZ_ASSERT(mOldSizeMode >= 0 && mOldSizeMode < nsSizeMode_Invalid);
+  MOZ_ASSERT(mPreFullscreenSizeMode >= 0 &&
+             mPreFullscreenSizeMode < nsSizeMode_Invalid);
   MOZ_ASSERT(mWindow);
 
   // We should never observe fullscreen sizemode unless fullscreen is enabled
@@ -9375,7 +9285,7 @@ void nsWindow::FrameState::CheckInvariant() const {
 
   // Something went wrong if we somehow saved fullscreen mode when we are
   // changing into fullscreen mode
-  MOZ_ASSERT(mOldSizeMode != nsSizeMode_Fullscreen);
+  MOZ_ASSERT(mPreFullscreenSizeMode != nsSizeMode_Fullscreen);
 }
 
 void nsWindow::FrameState::ConsumePreXULSkeletonState(bool aWasMaximized) {
@@ -9402,24 +9312,21 @@ void nsWindow::FrameState::EnsureSizeMode(nsSizeMode aMode) {
 }
 
 void nsWindow::FrameState::EnsureFullscreenMode(bool aFullScreen) {
-  if (mFullscreenMode == aFullScreen) {
-    if (aFullScreen) {
-      // NOTE(emilio): When minimizing a fullscreen window we remain with
-      // mFullscreenMode = true, but mSizeMode = nsSizeMode_Minimized. Make
-      // sure we actually end up with a fullscreen sizemode when restoring a
-      // window from that state.
-      SetSizeModeInternal(nsSizeMode_Fullscreen);
-    }
-    return;
+  const bool changed = aFullScreen != mFullscreenMode;
+  if (changed && aFullScreen) {
+    // Save the size mode from before fullscreen.
+    mPreFullscreenSizeMode = mSizeMode;
   }
-
-  mWindow->OnFullscreenWillChange(aFullScreen);
   mFullscreenMode = aFullScreen;
-  if (aFullScreen) {
-    mOldSizeMode = mSizeMode;
+  if (changed || aFullScreen) {
+    // NOTE(emilio): When minimizing a fullscreen window we remain with
+    // mFullscreenMode = true, but mSizeMode = nsSizeMode_Minimized. We need to
+    // make sure to call SetSizeModeInternal even if mFullscreenMode didn't
+    // change, to ensure we actually end up with a fullscreen sizemode when
+    // restoring a window from that state.
+    SetSizeModeInternal(aFullScreen ? nsSizeMode_Fullscreen
+                                    : mPreFullscreenSizeMode);
   }
-  SetSizeModeInternal(aFullScreen ? nsSizeMode_Fullscreen : mOldSizeMode);
-  mWindow->OnFullscreenChanged(aFullScreen);
 }
 
 void nsWindow::FrameState::OnFrameChanging() {
@@ -9471,7 +9378,16 @@ void nsWindow::FrameState::SetSizeModeInternal(nsSizeMode aMode) {
     return;
   }
 
-  mLastSizeMode = mSizeMode;
+  const bool fullscreenChange =
+      mSizeMode == nsSizeMode_Fullscreen || aMode == nsSizeMode_Fullscreen;
+  const bool fullscreen = aMode == nsSizeMode_Fullscreen;
+
+  if (fullscreenChange) {
+    mWindow->OnFullscreenWillChange(fullscreen);
+  }
+
+  const auto oldSizeMode = mSizeMode;
+  mLastSizeMode = oldSizeMode;
   mSizeMode = aMode;
 
   if (mWindow->mIsVisible) {
@@ -9482,6 +9398,10 @@ void nsWindow::FrameState::SetSizeModeInternal(nsSizeMode aMode) {
   if (mWindow->mIsVisible &&
       (aMode == nsSizeMode_Maximized || aMode == nsSizeMode_Fullscreen)) {
     mWindow->DispatchFocusToTopLevelWindow(true);
+  }
+
+  if (fullscreenChange) {
+    mWindow->OnFullscreenChanged(oldSizeMode, fullscreen);
   }
 }
 

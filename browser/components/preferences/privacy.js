@@ -42,10 +42,6 @@ const PREF_PASSWORD_GENERATION_AVAILABLE = "signon.generation.available";
 const { BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN } = Ci.nsICookieService;
 
 const PASSWORD_MANAGER_PREF_ID = "services.passwordSavingEnabled";
-const PREF_PASSWORD_MANAGER_ENABLED = "signon.rememberSignons";
-
-const PREF_DFPI_ENABLED_BY_DEFAULT =
-  "privacy.restrict3rdpartystorage.rollout.enabledByDefault";
 
 XPCOMUtils.defineLazyGetter(this, "AlertsServiceDND", function() {
   try {
@@ -87,17 +83,6 @@ Preferences.addAll([
 
   // Tracker list
   { id: "urlclassifier.trackingTable", type: "string" },
-
-  // TCP rollout
-  {
-    id: "privacy.restrict3rdpartystorage.rollout.enabledByDefault",
-    type: "bool",
-  },
-  {
-    id:
-      "privacy.restrict3rdpartystorage.rollout.preferences.TCPToggleInStandard",
-    type: "bool",
-  },
 
   // Button prefs
   { id: "pref.privacy.disable_button.cookie_exceptions", type: "bool" },
@@ -156,6 +141,7 @@ Preferences.addAll([
   { id: "signon.generation.enabled", type: "bool" },
   { id: "signon.autofillForms", type: "bool" },
   { id: "signon.management.page.breach-alerts.enabled", type: "bool" },
+  { id: "signon.firefoxRelay.feature", type: "string" },
 
   // Buttons
   { id: "pref.privacy.disable_button.view_passwords", type: "bool" },
@@ -207,6 +193,10 @@ Preferences.addAll([
   // Quick Actions
   { id: "browser.urlbar.quickactions.showPrefs", type: "bool" },
   { id: "browser.urlbar.suggest.quickactions", type: "bool" },
+
+  // Cookie Banner Handling
+  { id: "cookiebanners.ui.desktop.enabled", type: "bool" },
+  { id: "cookiebanners.service.mode", type: "int" },
 ]);
 
 // Study opt out
@@ -307,55 +297,13 @@ function initTCPStandardSection() {
   let cookieBehaviorPref = Preferences.get("network.cookie.cookieBehavior");
   let updateTCPSectionVisibilityState = () => {
     document.getElementById("etpStandardTCPBox").hidden =
-      // Hide this section if we show the rollout section already.
-      !document.getElementById("etpStandardTCPRolloutBox").hidden ||
       cookieBehaviorPref.value !=
-        Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN;
+      Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN;
   };
 
   cookieBehaviorPref.on("change", updateTCPSectionVisibilityState);
 
   updateTCPSectionVisibilityState();
-}
-
-function initTCPRolloutSection() {
-  document
-    .getElementById("tcp-rollout-learn-more-link")
-    .setAttribute(
-      "href",
-      Services.urlFormatter.formatURLPref("app.support.baseURL") +
-        Services.prefs.getStringPref(
-          "privacy.restrict3rdpartystorage.rollout.preferences.learnMoreURLSuffix"
-        )
-    );
-
-  let dfpiPref = Preferences.get(PREF_DFPI_ENABLED_BY_DEFAULT);
-  let updateTCPRolloutSectionVisibilityState = () => {
-    // For phase 2 we always hide the TCP preferences section. TCP will be
-    // enabled by default in "standard" ETP mode.
-    if (NimbusFeatures.tcpByDefault.getVariable("enabled")) {
-      document.getElementById("etpStandardTCPRolloutBox").hidden = true;
-      return;
-    }
-
-    let onboardingEnabled =
-      NimbusFeatures.tcpPreferences.getVariable("enabled") ||
-      (dfpiPref.value && dfpiPref.hasUserValue);
-    document.getElementById(
-      "etpStandardTCPRolloutBox"
-    ).hidden = !onboardingEnabled;
-  };
-
-  NimbusFeatures.tcpPreferences.onUpdate(
-    updateTCPRolloutSectionVisibilityState
-  );
-  NimbusFeatures.tcpByDefault.onUpdate(updateTCPRolloutSectionVisibilityState);
-  window.addEventListener("unload", () => {
-    NimbusFeatures.tcpPreferences.off(updateTCPRolloutSectionVisibilityState);
-    NimbusFeatures.tcpByDefault.off(updateTCPRolloutSectionVisibilityState);
-  });
-
-  updateTCPRolloutSectionVisibilityState();
 }
 
 var gPrivacyPane = {
@@ -691,6 +639,7 @@ var gPrivacyPane = {
     this._pane = document.getElementById("panePrivacy");
 
     this._initPasswordGenerationUI();
+    this._initRelayIntegrationUI();
     this._initMasterPasswordUI();
 
     this.initListenersForExtensionControllingPasswordManager();
@@ -808,6 +757,8 @@ var gPrivacyPane = {
       Services.urlFormatter.formatURLPref("app.support.baseURL") +
       "storage-permissions";
     document.getElementById("siteDataLearnMoreLink").setAttribute("href", url);
+
+    this.initCookieBannerHandling();
 
     let notificationInfoURL =
       Services.urlFormatter.formatURLPref("app.support.baseURL") + "push";
@@ -999,7 +950,6 @@ var gPrivacyPane = {
 
     setUpContentBlockingWarnings();
 
-    initTCPRolloutSection();
     initTCPStandardSection();
   },
 
@@ -1043,22 +993,6 @@ var gPrivacyPane = {
             rulesArray.push("cookieBehavior4");
             break;
           case BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN:
-            // If the default cookie behavior is updated by the TCP rollout
-            // pref, don't update the UI for dFPI. That means for dFPI enabled
-            // and disabled the bulleted list in the "standard" category
-            // description will be the same. This is a compromise to avoid
-            // layout shifting when toggling the checkbox. The layout can
-            // otherwise shift, because dFPI on / off changes the bulleted list
-            // in the ETP category description.
-            if (
-              Services.prefs.getBoolPref(
-                "privacy.restrict3rdpartystorage.rollout.enabledByDefault",
-                false
-              )
-            ) {
-              rulesArray.push("cookieBehavior4");
-              break;
-            }
             rulesArray.push(
               gIsFirstPartyIsolated ? "cookieBehavior4" : "cookieBehavior5"
             );
@@ -2054,6 +1988,92 @@ var gPrivacyPane = {
     );
   },
 
+  /**
+   * Initializes the cookie banner handling subgroup on the privacy pane.
+   *
+   * This UI is shown if the "cookiebanners.ui.desktop.enabled" pref is true.
+   *
+   * The cookie banner handling checkbox tracks the state of the integer-valued
+   * "cookiebanners.service.mode" pref: unchecked if the value is either
+   * nsICookieBannerService.MODE_DISABLED, meaning the feature is turned off, or
+   * nsICookieBannerService.MODE_DETECT_ONLY, which is used to allow us to
+   * advertise the feature to the user via an onboarding doorhanger.
+   *
+   * If the user checks the checkbox, the pref value is set to
+   * nsICookieBannerService.MODE_REJECT_OR_ACCEPT.
+   *
+   * If the user unchecks the checkbox, the mode pref value is set to
+   * nsICookieBannerService.MODE_DISABLED.
+   *
+   * Advanced users can choose other int-valued modes via about:config.
+   */
+  initCookieBannerHandling() {
+    this._initCookieBannerHandlingLearnMore();
+
+    setSyncFromPrefListener("handleCookieBanners", () =>
+      this.readCookieBannerMode()
+    );
+    setSyncToPrefListener("handleCookieBanners", () =>
+      this.writeCookieBannerMode()
+    );
+
+    let preference = Preferences.get("cookiebanners.ui.desktop.enabled");
+    preference.on("change", () => this.updateCookieBannerHandlingVisibility());
+
+    this.updateCookieBannerHandlingVisibility();
+  },
+
+  _initCookieBannerHandlingLearnMore() {
+    let url =
+      Services.urlFormatter.formatURLPref("app.support.baseURL") +
+      "cookie-banner-reduction";
+    let learnMore = document.getElementById("cookieBannerHandlingLearnMore");
+    learnMore.setAttribute("href", url);
+  },
+
+  /**
+   * Reads the cookiebanners.service.mode preference value and updates
+   * the cookie banner handling checkbox accordingly.
+   */
+  readCookieBannerMode() {
+    let mode = Preferences.get("cookiebanners.service.mode").value;
+    let disabledModes = [
+      Ci.nsICookieBannerService.MODE_DISABLED,
+      Ci.nsICookieBannerService.MODE_DETECT_ONLY,
+    ];
+    let isEnabled = !disabledModes.includes(mode);
+    return isEnabled;
+  },
+
+  /**
+   * Translates user clicks on the cookie banner handling checkbox to the
+   * corresponding integer-valued cookie banner mode preference.
+   */
+  writeCookieBannerMode() {
+    let checkbox = document.getElementById("handleCookieBanners");
+    let mode = checkbox.checked
+      ? Ci.nsICookieBannerService.MODE_REJECT_OR_ACCEPT
+      : Ci.nsICookieBannerService.MODE_DISABLED;
+    return mode;
+  },
+
+  /**
+   * Shows or hides the cookie banner handling section based on the value of
+   * the "cookiebanners.ui.desktop.enabled" pref.
+   */
+  updateCookieBannerHandlingVisibility() {
+    let groupbox = document.getElementById("cookieBannerHandlingGroup");
+    let isEnabled = Preferences.get("cookiebanners.ui.desktop.enabled").value;
+
+    // Because the top-level pane showing code unsets the hidden attribute, we
+    // manually hide the section when cookie banner handling is preffed off.
+    if (isEnabled) {
+      groupbox.removeAttribute("style");
+    } else {
+      groupbox.setAttribute("style", "display: none !important");
+    }
+  },
+
   // ADDRESS BAR
 
   /**
@@ -2485,6 +2505,42 @@ var gPrivacyPane = {
     document.getElementById("generatePasswordsBox").hidden = !prefValue;
   },
 
+  toggleRelayIntegration() {
+    const checkbox = document.getElementById("relayIntegration");
+
+    if (checkbox.checked) {
+      FirefoxRelay.markAsEnabled();
+    } else {
+      FirefoxRelay.markAsDisabled();
+    }
+  },
+
+  _updateRelayIntegrationUI() {
+    document.getElementById(
+      "relayIntegrationBox"
+    ).hidden = !FirefoxRelay.isAvailable;
+    document.getElementById("relayIntegration").checked =
+      FirefoxRelay.isEnabled;
+  },
+
+  _initRelayIntegrationUI() {
+    document
+      .getElementById("relayIntegrationLearnMoreLink")
+      .setAttribute("href", FirefoxRelay.learnMoreUrl);
+
+    setEventListener(
+      "relayIntegration",
+      "command",
+      gPrivacyPane.toggleRelayIntegration.bind(gPrivacyPane)
+    );
+    Preferences.get("signon.firefoxRelay.feature").on(
+      "change",
+      gPrivacyPane._updateRelayIntegrationUI.bind(gPrivacyPane)
+    );
+
+    this._updateRelayIntegrationUI();
+  },
+
   /**
    * Shows the sites where the user has saved passwords and the associated login
    * information.
@@ -2506,6 +2562,7 @@ var gPrivacyPane = {
     document.getElementById("passwordExceptions").disabled = !prefValue;
     document.getElementById("generatePasswords").disabled = !prefValue;
     document.getElementById("passwordAutofillCheckbox").disabled = !prefValue;
+    document.getElementById("relayIntegration").disabled = !prefValue;
 
     // don't override pref value in UI
     return undefined;

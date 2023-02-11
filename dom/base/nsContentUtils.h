@@ -2081,7 +2081,8 @@ class nsContentUtils {
    * Hide any XUL popups associated with aDocument, including any documents
    * displayed in child frames. Does nothing if aDocument is null.
    */
-  static void HidePopupsInDocument(Document* aDocument);
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY static void HidePopupsInDocument(
+      Document* aDocument);
 
   /**
    * Retrieve the current drag session, or null if no drag is currently occuring
@@ -2530,9 +2531,9 @@ class nsContentUtils {
   static bool IsPDFJS(nsIPrincipal* aPrincipal);
   /**
    * Same, but from WebIDL bindings. Checks whether the subject principal is for
-   * the internal PDF viewer.
+   * the internal PDF viewer or system JS.
    */
-  static bool IsPDFJS(JSContext*, JSObject*);
+  static bool IsSystemOrPDFJS(JSContext*, JSObject*);
 
   /**
    * Checks if internal SWF player is enabled.
@@ -2671,22 +2672,6 @@ class nsContentUtils {
 
   static void SplitMimeType(const nsAString& aValue, nsString& aType,
                             nsString& aParams);
-
-  /**
-   * Function checks if the user is idle.
-   *
-   * @param aRequestedIdleTimeInMS    The idle observer's requested idle time.
-   * @param aUserIsIdle               boolean indicating if the user
-   *                                  is currently idle or not.
-   * @return NS_OK                    NS_OK returned if the requested idle
-   *                                  service and the current idle time were
-   *                                  successfully obtained.
-   *                                  NS_ERROR_FAILURE returned if the the
-   *                                  requested idle service or the current
-   *                                  idle were not obtained.
-   */
-  static nsresult IsUserIdle(uint32_t aRequestedIdleTimeInMS,
-                             bool* aUserIsIdle);
 
   /**
    * Takes a selection, and a text control element (<input> or <textarea>), and
@@ -2857,14 +2842,6 @@ class nsContentUtils {
       const std::function<mozilla::CallState(mozilla::dom::BrowserParent*)>&
           aCallback);
 
-  /*
-   * Call nsPIDOMWindow::SetKeyboardIndicators all all remote children. This is
-   * in here rather than nsGlobalWindow because BrowserParent indirectly
-   * includes Windows headers which aren't allowed there.
-   */
-  static void SetKeyboardIndicatorsOnRemoteChildren(
-      nsPIDOMWindowOuter* aWindow, UIStateChangeType aShowFocusRings);
-
   /**
    * Given an IPCDataTransferImageContainer construct an imgIContainer for the
    * image encoded by the transfer item.
@@ -2894,7 +2871,7 @@ class nsContentUtils {
 
   static nsresult IPCTransferableItemToVariant(
       const mozilla::dom::IPCDataTransferItem& aDataTransferItem,
-      nsIWritableVariant* aVariant, mozilla::ipc::IProtocol* aActor);
+      nsIWritableVariant* aVariant);
 
   static void TransferablesToIPCTransferables(
       nsIArray* aTransferables, nsTArray<mozilla::dom::IPCDataTransfer>& aIPC,
@@ -3299,7 +3276,21 @@ class nsContentUtils {
   static bool HighPriorityEventPendingForTopLevelDocumentBeforeContentfulPaint(
       Document* aDocument);
 
-  static nsGlobalWindowInner* CallerInnerWindow();
+  /**
+   * Get the inner window corresponding to the incumbent global, including
+   * mapping extension content script globals to the attached window.
+   *
+   * Returns null if the incumbent global doesn't correspond to an inner window.
+   */
+  static nsGlobalWindowInner* IncumbentInnerWindow();
+
+  /**
+   * Get the inner window corresponding to the entry global, including mapping
+   * extension content script globals to the attached window.
+   *
+   * Returns null if the entry global doesn't correspond to an inner window.
+   */
+  static nsGlobalWindowInner* EntryInnerWindow();
 
   /*
    * Return safe area insets of window that defines as
@@ -3357,6 +3348,19 @@ class nsContentUtils {
    * documents.
    */
   static uint32_t ResolveObjectType(uint32_t aType);
+
+  /**
+   * Create and load the string bundle for the 'aFile'.
+   * This API is used to preload the string bundle on the main thread so later
+   * other thread could access it.
+   */
+  static nsresult EnsureAndLoadStringBundle(PropertiesFile aFile);
+
+  /**
+   * The method asks nsIAppShell to prioritize Gecko's internal tasks over
+   * the OS level tasks for a short period of time.
+   */
+  static void RequestGeckoTaskBurst();
 
  private:
   static bool InitializeEventTable();
@@ -3426,7 +3430,6 @@ class nsContentUtils {
   static nsTArray<RefPtr<nsAtom>>* sUserDefinedEvents;
 
   static nsIStringBundleService* sStringBundleService;
-  static nsIStringBundle* sStringBundles[PropertiesFile_COUNT];
   class nsContentUtilsReporter;
 
   static nsIContentPolicy* sContentPolicyService;

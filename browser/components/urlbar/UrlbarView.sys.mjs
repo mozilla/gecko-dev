@@ -9,6 +9,8 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   L10nCache: "resource:///modules/UrlbarUtils.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
+  UrlbarProviderQuickSuggest:
+    "resource:///modules/UrlbarProviderQuickSuggest.sys.mjs",
   UrlbarProviderTopSites: "resource:///modules/UrlbarProviderTopSites.sys.mjs",
   UrlbarProvidersManager: "resource:///modules/UrlbarProvidersManager.sys.mjs",
   UrlbarSearchOneOffs: "resource:///modules/UrlbarSearchOneOffs.sys.mjs",
@@ -30,6 +32,16 @@ XPCOMUtils.defineLazyServiceGetter(
 
 // Query selector for selectable elements in tip and dynamic results.
 const SELECTABLE_ELEMENT_SELECTOR = "[role=button], [selectable=true]";
+
+const ZERO_PREFIX_HISTOGRAM_DWELL_TIME = "FX_URLBAR_ZERO_PREFIX_DWELL_TIME_MS";
+const ZERO_PREFIX_SCALAR_ABANDONMENT = "urlbar.zeroprefix.abandonment";
+const ZERO_PREFIX_SCALAR_ENGAGEMENT = "urlbar.zeroprefix.engagement";
+const ZERO_PREFIX_SCALAR_EXPOSURE = "urlbar.zeroprefix.exposure";
+
+const RESULT_MENU_COMMANDS = {
+  BLOCK: "block",
+  LEARN_MORE: "learn-more",
+};
 
 const getBoundsWithoutFlushing = element =>
   element.ownerGlobal.windowUtils.getBoundsWithoutFlushing(element);
@@ -61,7 +73,8 @@ export class UrlbarView {
 
     this.#mainContainer = this.panel.querySelector(".urlbarView-body-inner");
     this.#rows = this.panel.querySelector(".urlbarView-results");
-    this.#resultMenu = this.panel.querySelector(".urlbarView-result-menu");
+    this.resultMenu = this.panel.querySelector(".urlbarView-result-menu");
+    this.#resultMenuCommands = new WeakMap();
 
     this.#rows.addEventListener("mousedown", this);
 
@@ -70,7 +83,8 @@ export class UrlbarView {
     this.#rows.addEventListener("overflow", this);
     this.#rows.addEventListener("underflow", this);
 
-    this.#resultMenu.addEventListener("command", this);
+    this.resultMenu.addEventListener("command", this);
+    this.resultMenu.addEventListener("popupshowing", this);
 
     // `noresults` is used to style the one-offs without their usual top border
     // when no results are present.
@@ -403,6 +417,7 @@ export class UrlbarView {
     this.#rows.textContent = "";
     this.panel.setAttribute("noresults", "true");
     this.clearSelection();
+    this.visibleResults = [];
   }
 
   /**
@@ -454,6 +469,15 @@ export class UrlbarView {
     this.window.removeEventListener("blur", this);
 
     this.controller.notify(this.controller.NOTIFICATIONS.VIEW_CLOSE);
+
+    if (this.#isShowingZeroPrefix) {
+      if (elementPicked) {
+        Services.telemetry.scalarAdd(ZERO_PREFIX_SCALAR_ENGAGEMENT, 1);
+      } else {
+        Services.telemetry.scalarAdd(ZERO_PREFIX_SCALAR_ABANDONMENT, 1);
+      }
+      this.#setIsShowingZeroPrefix(false);
+    }
   }
 
   /**
@@ -578,14 +602,22 @@ export class UrlbarView {
       return;
     }
 
-    // If the query finished and it returned some results, remove stale rows.
+    // At this point the query finished successfully. If it returned some
+    // results, remove stale rows. Otherwise remove all rows.
     if (this.#queryUpdatedResults) {
       this.#removeStaleRows();
-      return;
+    } else {
+      this.clear();
     }
 
-    // The query didn't return any results.  Clear the view.
-    this.clear();
+    // Now that the view has finished updating for this query, call
+    // `#setIsShowingZeroPrefix()`.
+    this.#setIsShowingZeroPrefix(!queryContext.searchString);
+
+    // If the query returned results, we're done.
+    if (this.#queryUpdatedResults) {
+      return;
+    }
 
     // If search mode isn't active, close the view.
     if (!this.input.searchMode) {
@@ -744,13 +776,12 @@ export class UrlbarView {
 
   openResultMenu(result, anchor) {
     this.#resultMenuResult = result;
-    this.#resultMenu.openPopup(anchor, "bottomright topright");
+    this.resultMenu.openPopup(anchor, "bottomright topright");
     anchor.toggleAttribute("open", true);
-    this.#resultMenu.addEventListener(
+    this.resultMenu.addEventListener(
       "popuphidden",
       () => {
         anchor.toggleAttribute("open", false);
-        this.#resultMenuResult = null;
       },
       { once: true }
     );
@@ -868,6 +899,7 @@ export class UrlbarView {
   #announceTabToSearchOnSelection;
   #l10nCache;
   #mainContainer;
+  #mousedownSelectedElement;
   #openPanelInstance;
   #oneOffSearchButtons;
   #previousTabToSearchEngine;
@@ -875,10 +907,11 @@ export class UrlbarView {
   #queryUpdatedResults;
   #queryWasCancelled;
   #removeStaleRowsTimer;
-  #resultMenu;
   #resultMenuResult;
+  #resultMenuCommands;
   #rows;
   #selectedElement;
+  #zeroPrefixStopwatchInstance = null;
 
   #createElement(name) {
     return this.document.createElementNS("http://www.w3.org/1999/xhtml", name);
@@ -1266,20 +1299,21 @@ export class UrlbarView {
       item._buttons.get("tip").textContent = result.payload.buttonText;
     }
 
-    if (result.payload.isBlockable) {
-      this.#addRowButton(item, {
-        name: "block",
-        l10n: result.payload.blockL10n,
-      });
-    }
-    if (result.payload.helpUrl) {
-      this.#addRowButton(item, {
-        name: "help",
-        url: result.payload.helpUrl,
-        l10n: result.payload.helpL10n,
-      });
-    }
-    if (lazy.UrlbarPrefs.get("resultMenu")) {
+    if (!lazy.UrlbarPrefs.get("resultMenu")) {
+      if (result.payload.isBlockable) {
+        this.#addRowButton(item, {
+          name: "block",
+          l10n: result.payload.blockL10n,
+        });
+      }
+      if (result.payload.helpUrl) {
+        this.#addRowButton(item, {
+          name: "help",
+          url: result.payload.helpUrl,
+          l10n: result.payload.helpL10n,
+        });
+      }
+    } else if (this.#getResultMenuCommands(result)) {
       this.#addRowButton(item, {
         name: "menu",
         l10n: { id: "urlbar-result-menu-button" },
@@ -1344,8 +1378,10 @@ export class UrlbarView {
       // always need updating.
       provider.getViewTemplate ||
       oldResult.isBestMatch != result.isBestMatch ||
-      !!result.payload.helpUrl != item._buttons.has("help") ||
-      !!result.payload.isBlockable != item._buttons.has("block") ||
+      (!lazy.UrlbarPrefs.get("resultMenu") &&
+        (!!result.payload.helpUrl != item._buttons.has("help") ||
+          !!result.payload.isBlockable != item._buttons.has("block"))) ||
+      !!this.#getResultMenuCommands(result) != item._buttons.has("menu") ||
       !lazy.ObjectUtils.deepEqual(
         oldResult.payload.buttons,
         result.payload.buttons
@@ -1827,39 +1863,47 @@ export class UrlbarView {
    *   returns an l10n object for the label's l10n string: `{ id, args }`
    */
   #rowLabel(row, currentLabel) {
-    // Labels aren't shown for top sites, i.e., when the search string is empty.
-    if (
-      lazy.UrlbarPrefs.get("groupLabels.enabled") &&
-      this.#queryContext?.searchString &&
-      !row.result.heuristic
-    ) {
-      if (row.result.isBestMatch) {
+    if (!lazy.UrlbarPrefs.get("groupLabels.enabled") || row.result.heuristic) {
+      return null;
+    }
+
+    if (!this.#queryContext?.searchString) {
+      if (row.result.payload.isWeather) {
+        // Add top pick label for weather suggestion
         return { id: "urlbar-group-best-match" };
       }
-      switch (row.result.type) {
-        case lazy.UrlbarUtils.RESULT_TYPE.KEYWORD:
-        case lazy.UrlbarUtils.RESULT_TYPE.REMOTE_TAB:
-        case lazy.UrlbarUtils.RESULT_TYPE.TAB_SWITCH:
-        case lazy.UrlbarUtils.RESULT_TYPE.URL:
-          return { id: "urlbar-group-firefox-suggest" };
-        case lazy.UrlbarUtils.RESULT_TYPE.SEARCH:
-          // Show "{ $engine } suggestions" if it's not the first label.
-          if (currentLabel && row.result.payload.suggestion) {
-            let engineName =
-              row.result.payload.engine || Services.search.defaultEngine.name;
-            return {
-              id: "urlbar-group-search-suggestions",
-              args: { engine: engineName },
-            };
-          }
-          break;
-        case lazy.UrlbarUtils.RESULT_TYPE.DYNAMIC:
-          if (row.result.providerName == "quickactions") {
-            return { id: "urlbar-group-quickactions" };
-          }
-          break;
-      }
+
+      return null;
     }
+
+    if (row.result.isBestMatch) {
+      return { id: "urlbar-group-best-match" };
+    }
+
+    switch (row.result.type) {
+      case lazy.UrlbarUtils.RESULT_TYPE.KEYWORD:
+      case lazy.UrlbarUtils.RESULT_TYPE.REMOTE_TAB:
+      case lazy.UrlbarUtils.RESULT_TYPE.TAB_SWITCH:
+      case lazy.UrlbarUtils.RESULT_TYPE.URL:
+        return { id: "urlbar-group-firefox-suggest" };
+      case lazy.UrlbarUtils.RESULT_TYPE.SEARCH:
+        // Show "{ $engine } suggestions" if it's not the first label.
+        if (currentLabel && row.result.payload.suggestion) {
+          let engineName =
+            row.result.payload.engine || Services.search.defaultEngine.name;
+          return {
+            id: "urlbar-group-search-suggestions",
+            args: { engine: engineName },
+          };
+        }
+        break;
+      case lazy.UrlbarUtils.RESULT_TYPE.DYNAMIC:
+        if (row.result.providerName == "quickactions") {
+          return { id: "urlbar-group-quickactions" };
+        }
+        break;
+    }
+
     return null;
   }
 
@@ -2420,6 +2464,97 @@ export class UrlbarView {
     element.removeAttribute("data-l10n-id");
   }
 
+  get #isShowingZeroPrefix() {
+    return !!this.#zeroPrefixStopwatchInstance;
+  }
+
+  #setIsShowingZeroPrefix(isShowing) {
+    if (!!isShowing == !!this.#zeroPrefixStopwatchInstance) {
+      return;
+    }
+
+    if (!isShowing) {
+      TelemetryStopwatch.finish(
+        ZERO_PREFIX_HISTOGRAM_DWELL_TIME,
+        this.#zeroPrefixStopwatchInstance
+      );
+      this.#zeroPrefixStopwatchInstance = null;
+      return;
+    }
+
+    this.#zeroPrefixStopwatchInstance = {};
+    TelemetryStopwatch.start(
+      ZERO_PREFIX_HISTOGRAM_DWELL_TIME,
+      this.#zeroPrefixStopwatchInstance
+    );
+
+    Services.telemetry.scalarAdd(ZERO_PREFIX_SCALAR_EXPOSURE, 1);
+
+    // Some quick suggest telemetry needs to be recorded when the zero-prefix
+    // view is shown. Ideally this logic would be general to all providers.
+    // Relying on `visibleResults` here means we assume `onQueryFinished()` has
+    // been called by this point and `visibleResults` accurately reflects the
+    // visible rows at the end of the zero-prefix query.
+    let quickSuggestResults = this.visibleResults.filter(
+      r => r.providerName == lazy.UrlbarProviderQuickSuggest.name
+    );
+    if (quickSuggestResults.length) {
+      lazy.UrlbarProviderQuickSuggest.onResultsShown(
+        this.#queryContext,
+        quickSuggestResults
+      );
+    }
+  }
+
+  /**
+   * @param {UrlbarResult} result
+   *   The result to get menu commands for.
+   * @returns {Map}
+   *   Map of menu commands available for the result, null if there are none.
+   */
+  #getResultMenuCommands(result) {
+    if (!lazy.UrlbarPrefs.get("resultMenu")) {
+      return null;
+    }
+    if (this.#resultMenuCommands.has(result)) {
+      return this.#resultMenuCommands.get(result);
+    }
+    let commands = new Map();
+    if (result.source == lazy.UrlbarUtils.RESULT_SOURCE.HISTORY) {
+      commands.set(RESULT_MENU_COMMANDS.BLOCK, {
+        l10n: { id: "urlbar-result-menu-remove-from-history" },
+      });
+    }
+    if (result.payload.isBlockable) {
+      commands.set(RESULT_MENU_COMMANDS.BLOCK, {
+        l10n: result.payload.blockL10n,
+      });
+    }
+    if (result.payload.helpUrl) {
+      commands.set(RESULT_MENU_COMMANDS.LEARN_MORE, {
+        l10n: result.payload.helpL10n,
+      });
+    }
+    let rv = commands.size ? commands : null;
+    this.#resultMenuCommands.set(result, rv);
+    return rv;
+  }
+
+  #populateResultMenu() {
+    this.resultMenu.textContent = "";
+    for (const [command, data] of this.#getResultMenuCommands(
+      this.#resultMenuResult
+    )) {
+      let menuitem = this.document.createElementNS(
+        "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul",
+        "menuitem"
+      );
+      menuitem.dataset.command = command;
+      this.#setElementL10n(menuitem, data.l10n);
+      this.resultMenu.appendChild(menuitem);
+    }
+  }
+
   // Event handlers below.
 
   on_SelectedOneOffButtonChanged() {
@@ -2593,13 +2728,38 @@ export class UrlbarView {
     }
 
     this.window.top.addEventListener("mouseup", this);
-    this.#selectElement(element, { updateInput: false });
 
-    this.controller.speculativeConnect(
-      this.selectedResult,
-      this.#queryContext,
-      "mousedown"
-    );
+    // Select the element and open a speculative connection unless it's a
+    // button. Buttons are special in the two ways listed below. Some buttons
+    // may be exceptions to these two criteria, but to provide a consistent UX
+    // and avoid complexity, we apply this logic to all of them.
+    //
+    // (1) Some buttons do not close the view when clicked, like the block and
+    // menu buttons. Clicking these buttons should not have any side effects in
+    // the view or input beyond their primary purpose. For example, the block
+    // button should remove the row but it should not change the input value or
+    // page proxy state, and ideally it shouldn't change the input's selection
+    // or caret either. It probably also shouldn't change the view's selection
+    // (if the removed row isn't selected), but that may be more debatable.
+    //
+    // It may be possible to select buttons on mousedown and then clear the
+    // selection on mouseup as usual while meeting these requirements. However,
+    // it's not simple because clearing the selection has surprising side
+    // effects in the input like the ones mentioned above.
+    //
+    // (2) Most buttons don't have URLs, so there's nothing to speculatively
+    // connect to. If a button does have a URL, it's typically different from
+    // the primary URL of its related result, so it's not critical to open a
+    // speculative connection anyway.
+    if (!element.classList.contains("urlbarView-button")) {
+      this.#mousedownSelectedElement = element;
+      this.#selectElement(element, { updateInput: false });
+      this.controller.speculativeConnect(
+        this.selectedResult,
+        this.#queryContext,
+        "mousedown"
+      );
+    }
   }
 
   on_mouseup(event) {
@@ -2620,9 +2780,21 @@ export class UrlbarView {
       this.input.pickElement(element, event);
     }
 
-    // Unselect the selected element here because pickElement() may use the
-    // selected element.
-    this.#selectElement(null);
+    // If the element that was selected on mousedown is still in the view, clear
+    // the selection. Do it after calling `pickElement()` above since code that
+    // reacts to picks may assume the selected element is the picked element.
+    //
+    // If the element is no longer in the view, then it must be because its row
+    // was removed in response to the pick. If the element was not a button, we
+    // selected it on mousedown and then `onQueryResultRemoved()` selected the
+    // next row; we shouldn't unselect it here. If the element was a button,
+    // then we didn't select anything on mousedown; clearing the selection seems
+    // like it would be harmless, but it has side effects in the input we want
+    // to avoid (see `on_mousedown()`).
+    if (this.#mousedownSelectedElement?.isConnected) {
+      this.#selectElement(null);
+    }
+    this.#mousedownSelectedElement = null;
   }
 
   on_overflow(event) {
@@ -2652,14 +2824,24 @@ export class UrlbarView {
   }
 
   on_command(event) {
-    if (event.currentTarget == this.#resultMenu) {
+    if (event.currentTarget == this.resultMenu) {
       let result = this.#resultMenuResult;
+      this.#resultMenuResult = null;
       let menuitem = event.target;
       switch (menuitem.dataset.command) {
-        case "test":
-          console.log(result);
+        case RESULT_MENU_COMMANDS.BLOCK:
+          this.controller.handleDeleteEntry(null, result);
+          break;
+        case RESULT_MENU_COMMANDS.LEARN_MORE:
+          this.window.openTrustedLinkIn(result.payload.helpUrl, "tab");
           break;
       }
+    }
+  }
+
+  on_popupshowing(event) {
+    if (event.currentTarget == this.resultMenu) {
+      this.#populateResultMenu();
     }
   }
 }

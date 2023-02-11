@@ -8,36 +8,38 @@
 run talos tests in a virtualenv
 """
 
-from __future__ import absolute_import
-import six
+import copy
 import io
+import json
 import multiprocessing
 import os
-import sys
 import pprint
-import copy
 import re
 import shutil
 import subprocess
-import json
+import sys
 
 import mozharness
+import six
 from mozharness.base.config import parse_config_file
 from mozharness.base.errors import PythonErrorList
-from mozharness.base.log import OutputParser, DEBUG, ERROR, CRITICAL
-from mozharness.base.log import INFO, WARNING
+from mozharness.base.log import CRITICAL, DEBUG, ERROR, INFO, WARNING, OutputParser
 from mozharness.base.python import Python3Virtualenv
-from mozharness.mozilla.testing.testbase import TestingMixin, testing_config_options
 from mozharness.base.vcs.vcsbase import MercurialScript
-from mozharness.mozilla.testing.errors import TinderBoxPrintRe
-from mozharness.mozilla.automation import TBPL_SUCCESS, TBPL_WORST_LEVEL_TUPLE
-from mozharness.mozilla.automation import TBPL_RETRY, TBPL_FAILURE, TBPL_WARNING
-from mozharness.mozilla.tooltool import TooltoolMixin
+from mozharness.mozilla.automation import (
+    TBPL_FAILURE,
+    TBPL_RETRY,
+    TBPL_SUCCESS,
+    TBPL_WARNING,
+    TBPL_WORST_LEVEL_TUPLE,
+)
 from mozharness.mozilla.testing.codecoverage import (
     CodeCoverageMixin,
     code_coverage_config_options,
 )
-
+from mozharness.mozilla.testing.errors import TinderBoxPrintRe
+from mozharness.mozilla.testing.testbase import TestingMixin, testing_config_options
+from mozharness.mozilla.tooltool import TooltoolMixin
 
 scripts_path = os.path.abspath(os.path.dirname(os.path.dirname(mozharness.__file__)))
 external_tools_path = os.path.join(scripts_path, "external_tools")
@@ -695,8 +697,13 @@ class Talos(
     # clobber defined in BaseScript
 
     def download_and_extract(self, extract_dirs=None, suite_categories=None):
+        # Use in-tree wptserve for Python 3.10 compatibility
+        extract_dirs = [
+            "tools/wptserve/*",
+            "tools/wpt_third_party/pywebsocket3/*",
+        ]
         return super(Talos, self).download_and_extract(
-            suite_categories=["common", "talos"]
+            extract_dirs=extract_dirs, suite_categories=["common", "talos"]
         )
 
     def create_virtualenv(self, **kwargs):
@@ -729,17 +736,22 @@ class Talos(
 
         # virtualenv doesn't already exist so create it
         # install mozbase first, so we use in-tree versions
+        # Additionally, decide where to pull talos requirements from.
         if not self.run_local:
             mozbase_requirements = os.path.join(
                 self.query_abs_dirs()["abs_test_install_dir"],
                 "config",
                 "mozbase_requirements.txt",
             )
+            talos_requirements = os.path.join(self.talos_path, "requirements.txt")
         else:
             mozbase_requirements = os.path.join(
                 os.path.dirname(self.talos_path),
                 "config",
                 "mozbase_source_requirements.txt",
+            )
+            talos_requirements = os.path.join(
+                self.talos_path, "source_requirements.txt"
             )
         self.register_virtualenv_module(
             requirements=[mozbase_requirements],
@@ -749,9 +761,7 @@ class Talos(
         super(Talos, self).create_virtualenv()
         # talos in harness requires what else is
         # listed in talos requirements.txt file.
-        self.install_module(
-            requirements=[os.path.join(self.talos_path, "requirements.txt")]
-        )
+        self.install_module(requirements=[talos_requirements])
 
     def _validate_treeherder_data(self, parser):
         # late import is required, because install is done in create_virtualenv

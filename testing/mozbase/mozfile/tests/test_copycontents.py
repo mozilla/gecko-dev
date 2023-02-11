@@ -1,15 +1,11 @@
 #!/usr/bin/env python
 
-from __future__ import absolute_import
-
 import os
 import shutil
 import unittest
 
-import mozunit
-
 import mozfile
-
+import mozunit
 import stubs
 
 

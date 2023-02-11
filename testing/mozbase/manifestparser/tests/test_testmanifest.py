@@ -1,15 +1,12 @@
 #!/usr/bin/env python
 
-from __future__ import absolute_import
-
 import os
 import shutil
 import tempfile
 import unittest
 
 import mozunit
-
-from manifestparser import TestManifest, ParseError
+from manifestparser import ParseError, TestManifest
 from manifestparser.filters import subsuite
 
 here = os.path.dirname(os.path.abspath(__file__))

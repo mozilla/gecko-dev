@@ -223,11 +223,6 @@ var whitelist = [
     file: "chrome://browser/locale/taskbar.properties",
     platforms: ["linux", "macosx"],
   },
-  // Bug 1619090 to clean up platform-specific crypto
-  {
-    file: "resource://gre/modules/OSCrypto.jsm",
-    platforms: ["linux", "macosx"],
-  },
   // Bug 1344267
   { file: "chrome://remote/content/marionette/test_dialog.properties" },
   { file: "chrome://remote/content/marionette/test_dialog.xhtml" },
@@ -290,13 +285,15 @@ var whitelist = [
   // find the references)
   { file: "chrome://browser/content/screenshots/copied-notification.svg" },
 
-  { file: "resource://app/modules/SnapshotSelector.sys.mjs" },
-
   // toolkit/xre/MacRunFromDmgUtils.mm
   { file: "resource://gre/localization/en-US/toolkit/global/run-from-dmg.ftl" },
 
   // References to esm generated from jsm programmatically
   { file: "resource://gre/modules/LangPackMatcher.sys.mjs" },
+
+  // FIXME: Bug 1770447 - The moz-support-link component isn't in use yet.
+  // This entry will be removed as part of Bug 1804695 or Bug 1804695.
+  { file: "chrome://global/content/elements/moz-support-link.mjs" },
 ];
 
 if (AppConstants.NIGHTLY_BUILD && AppConstants.platform != "win") {

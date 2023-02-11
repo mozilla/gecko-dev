@@ -4,8 +4,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import os
 import signal
 import unittest
@@ -14,17 +12,16 @@ from textwrap import dedent
 
 import mozunit
 import pytest
-from six import StringIO, ensure_text, unichr
-
-from mozlog.structuredlog import StructuredLogger
 from mozlog.formatters import (
+    GroupingFormatter,
+    HTMLFormatter,
     MachFormatter,
     TbplFormatter,
-    HTMLFormatter,
     XUnitFormatter,
-    GroupingFormatter,
 )
 from mozlog.handlers import StreamHandler
+from mozlog.structuredlog import StructuredLogger
+from six import StringIO, ensure_text, unichr
 
 FORMATS = {
     # A list of tuples consisting of (name, options, expected string).

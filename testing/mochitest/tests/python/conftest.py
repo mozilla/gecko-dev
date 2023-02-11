@@ -2,15 +2,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
-import six
 import json
 import os
 from argparse import Namespace
 
-import pytest
-
 import mozinfo
+import pytest
+import six
 from manifestparser import TestManifest, expression
 from moztest.selftest.fixtures import binary_fixture, setup_test_harness  # noqa
 

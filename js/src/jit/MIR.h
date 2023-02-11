@@ -2289,7 +2289,7 @@ class WrappedFunction : public TempObject {
   JSFunction* rawNativeJSFunction() const { return nativeFun_; }
 };
 
-enum class DOMObjectKind : uint8_t { Proxy, Native, Unknown };
+enum class DOMObjectKind : uint8_t { Proxy, Native };
 
 class MCall : public MVariadicInstruction, public CallPolicy::Data {
  private:
@@ -2332,7 +2332,7 @@ class MCall : public MVariadicInstruction, public CallPolicy::Data {
   static MCall* New(TempAllocator& alloc, WrappedFunction* target,
                     size_t maxArgc, size_t numActualArgs, bool construct,
                     bool ignoresReturnValue, bool isDOMCall,
-                    DOMObjectKind objectKind);
+                    mozilla::Maybe<DOMObjectKind> objectKind);
 
   void initCallee(MDefinition* func) { initOperand(CalleeOperandIndex, func); }
 
@@ -2423,7 +2423,7 @@ class MCallDOMNative : public MCall {
   friend MCall* MCall::New(TempAllocator& alloc, WrappedFunction* target,
                            size_t maxArgc, size_t numActualArgs, bool construct,
                            bool ignoresReturnValue, bool isDOMCall,
-                           DOMObjectKind objectKind);
+                           mozilla::Maybe<DOMObjectKind> objectKind);
 
   const JSJitInfo* getJitInfo() const;
 
@@ -9175,11 +9175,19 @@ class MObjectStaticProto : public MUnaryInstruction,
   }
 };
 
-class MConstantProto
-    : public MBinaryInstruction,
-      public MixPolicy<ObjectPolicy<0>, ObjectPolicy<1>>::Data {
+class MConstantProto : public MUnaryInstruction,
+                       public SingleObjectPolicy::Data {
+  // NOTE: we're not going to actually use the underlying receiver object for
+  // anything. This is just here for giving extra information to MGuardShape
+  // to MGuardShape::mightAlias. Accordingly, we don't take it as an operand,
+  // but instead just keep a pointer to it. This means we need to ensure it's
+  // not discarded before we try to access it. If this is discarded, we
+  // basically just become an MConstant for the object's proto, which is fine.
+  MDefinition* receiverObject_;
+
   explicit MConstantProto(MDefinition* protoObject, MDefinition* receiverObject)
-      : MBinaryInstruction(classOpcode, protoObject, receiverObject) {
+      : MUnaryInstruction(classOpcode, protoObject),
+        receiverObject_(receiverObject) {
     MOZ_ASSERT(protoObject->isConstant());
     setResultType(MIRType::Object);
     setMovable();
@@ -9190,17 +9198,27 @@ class MConstantProto
  public:
   INSTRUCTION_HEADER(ConstantProto)
   TRIVIAL_NEW_WRAPPERS
-  NAMED_OPERANDS((0, protoObject), (1, receiverObject))
+  NAMED_OPERANDS((0, protoObject))
 
   HashNumber valueHash() const override;
 
   bool congruentTo(const MDefinition* ins) const override {
-    return ins->isConstantProto() && ins->getOperand(0) == getOperand(0) &&
-           getOperand(1)->skipObjectGuards() ==
-               ins->getOperand(1)->skipObjectGuards();
+    if (this == ins) {
+      return true;
+    }
+    const MDefinition* receiverObject = getReceiverObject();
+    return congruentIfOperandsEqual(ins) && receiverObject &&
+           receiverObject == ins->toConstantProto()->getReceiverObject();
   }
 
   AliasSet getAliasSet() const override { return AliasSet::None(); }
+
+  const MDefinition* getReceiverObject() const {
+    if (receiverObject_->isDiscarded()) {
+      return nullptr;
+    }
+    return receiverObject_->skipObjectGuards();
+  }
 };
 
 // Flips the input's sign bit, independently of the rest of the number's
@@ -10948,6 +10966,15 @@ enum class MWideningOp : uint8_t { None, FromU16, FromS16, FromU8, FromS8 };
 // operation is a simple truncate.
 enum class MNarrowingOp : uint8_t { None, To16, To8 };
 
+// Provide information about potential trap at the instruction machine code,
+// e.g. null pointer dereference.
+struct TrapSiteInfo {
+  wasm::BytecodeOffset offset;
+  explicit TrapSiteInfo(wasm::BytecodeOffset offset_) : offset(offset_) {}
+};
+
+typedef mozilla::Maybe<TrapSiteInfo> MaybeTrapSiteInfo;
+
 // Load an object field stored at a fixed offset from a base pointer.  This
 // field may be any value type, including references.  No barriers are
 // performed.
@@ -10955,13 +10982,16 @@ class MWasmLoadField : public MUnaryInstruction, public NoTypePolicy::Data {
   uint32_t offset_;
   MWideningOp wideningOp_;
   AliasSet aliases_;
+  MaybeTrapSiteInfo maybeTrap_;
 
   MWasmLoadField(MDefinition* obj, uint32_t offset, MIRType type,
-                 MWideningOp wideningOp, AliasSet aliases)
+                 MWideningOp wideningOp, AliasSet aliases,
+                 MaybeTrapSiteInfo maybeTrap = mozilla::Nothing())
       : MUnaryInstruction(classOpcode, obj),
         offset_(offset),
         wideningOp_(wideningOp),
-        aliases_(aliases) {
+        aliases_(aliases),
+        maybeTrap_(maybeTrap) {
     // "if you want to widen the value when it is loaded, the destination type
     // must be Int32".
     MOZ_ASSERT_IF(wideningOp != MWideningOp::None, type == MIRType::Int32);
@@ -10974,6 +11004,9 @@ class MWasmLoadField : public MUnaryInstruction, public NoTypePolicy::Data {
             AliasSet::Load(AliasSet::WasmArrayDataPointer).flags() ||
         aliases.flags() == AliasSet::Load(AliasSet::Any).flags());
     setResultType(type);
+    if (maybeTrap_) {
+      setGuard();
+    }
   }
 
  public:
@@ -10983,6 +11016,7 @@ class MWasmLoadField : public MUnaryInstruction, public NoTypePolicy::Data {
 
   uint32_t offset() const { return offset_; }
   MWideningOp wideningOp() const { return wideningOp_; }
+  MaybeTrapSiteInfo maybeTrap() const { return maybeTrap_; }
   AliasSet getAliasSet() const override { return aliases_; }
   bool congruentTo(const MDefinition* ins) const override {
     // In the limited case where this insn is used to read
@@ -11016,13 +11050,16 @@ class MWasmLoadFieldKA : public MBinaryInstruction, public NoTypePolicy::Data {
   uint32_t offset_;
   MWideningOp wideningOp_;
   AliasSet aliases_;
+  MaybeTrapSiteInfo maybeTrap_;
 
   MWasmLoadFieldKA(MDefinition* ka, MDefinition* obj, uint32_t offset,
-                   MIRType type, MWideningOp wideningOp, AliasSet aliases)
+                   MIRType type, MWideningOp wideningOp, AliasSet aliases,
+                   MaybeTrapSiteInfo maybeTrap = mozilla::Nothing())
       : MBinaryInstruction(classOpcode, ka, obj),
         offset_(offset),
         wideningOp_(wideningOp),
-        aliases_(aliases) {
+        aliases_(aliases),
+        maybeTrap_(maybeTrap) {
     MOZ_ASSERT_IF(wideningOp != MWideningOp::None, type == MIRType::Int32);
     MOZ_ASSERT(
         aliases.flags() ==
@@ -11033,6 +11070,9 @@ class MWasmLoadFieldKA : public MBinaryInstruction, public NoTypePolicy::Data {
             AliasSet::Load(AliasSet::WasmArrayDataArea).flags() ||
         aliases.flags() == AliasSet::Load(AliasSet::Any).flags());
     setResultType(type);
+    if (maybeTrap_) {
+      setGuard();
+    }
   }
 
  public:
@@ -11042,6 +11082,7 @@ class MWasmLoadFieldKA : public MBinaryInstruction, public NoTypePolicy::Data {
 
   uint32_t offset() const { return offset_; }
   MWideningOp wideningOp() const { return wideningOp_; }
+  MaybeTrapSiteInfo maybeTrap() const { return maybeTrap_; }
 
   AliasSet getAliasSet() const override { return aliases_; }
 };
@@ -11057,14 +11098,17 @@ class MWasmStoreFieldKA : public MTernaryInstruction,
   uint32_t offset_;
   MNarrowingOp narrowingOp_;
   AliasSet aliases_;
+  MaybeTrapSiteInfo maybeTrap_;
 
   MWasmStoreFieldKA(MDefinition* ka, MDefinition* obj, uint32_t offset,
                     MDefinition* value, MNarrowingOp narrowingOp,
-                    AliasSet aliases)
+                    AliasSet aliases,
+                    MaybeTrapSiteInfo maybeTrap = mozilla::Nothing())
       : MTernaryInstruction(classOpcode, ka, obj, value),
         offset_(offset),
         narrowingOp_(narrowingOp),
-        aliases_(aliases) {
+        aliases_(aliases),
+        maybeTrap_(maybeTrap) {
     MOZ_ASSERT(value->type() != MIRType::RefOrNull);
     // "if you want to narrow the value when it is stored, the source type
     // must be Int32".
@@ -11078,6 +11122,9 @@ class MWasmStoreFieldKA : public MTernaryInstruction,
         aliases.flags() ==
             AliasSet::Store(AliasSet::WasmArrayDataArea).flags() ||
         aliases.flags() == AliasSet::Store(AliasSet::Any).flags());
+    if (maybeTrap_) {
+      setGuard();
+    }
   }
 
  public:
@@ -11087,6 +11134,7 @@ class MWasmStoreFieldKA : public MTernaryInstruction,
 
   uint32_t offset() const { return offset_; }
   MNarrowingOp narrowingOp() const { return narrowingOp_; }
+  MaybeTrapSiteInfo maybeTrap() const { return maybeTrap_; }
 
   AliasSet getAliasSet() const override { return aliases_; }
 };
@@ -11128,6 +11176,38 @@ class MWasmStoreFieldRefKA : public MAryInstruction<4>,
   NAMED_OPERANDS((0, instance), (1, ka), (2, valueAddr), (3, value))
 
   AliasSet getAliasSet() const override { return aliases_; }
+};
+
+// Tests if the WasmGcObject, `object`, is a subtype of `superTypeDef`. The
+// actual super type definition must be known at compile time, so that the
+// subtyping depth of super type depth can be used.
+class MWasmGcObjectIsSubtypeOf : public MBinaryInstruction,
+                                 public NoTypePolicy::Data {
+  uint32_t subTypingDepth_;
+  MWasmGcObjectIsSubtypeOf(MDefinition* object, MDefinition* superTypeDef,
+                           uint32_t subTypingDepth)
+      : MBinaryInstruction(classOpcode, object, superTypeDef),
+        subTypingDepth_(subTypingDepth) {
+    setResultType(MIRType::Int32);
+    setMovable();
+  }
+
+ public:
+  INSTRUCTION_HEADER(WasmGcObjectIsSubtypeOf)
+  TRIVIAL_NEW_WRAPPERS
+  NAMED_OPERANDS((0, object), (1, superTypeDef))
+
+  uint32_t subTypingDepth() const { return subTypingDepth_; }
+
+  bool congruentTo(const MDefinition* ins) const override {
+    return congruentIfOperandsEqual(ins) &&
+           ins->toWasmGcObjectIsSubtypeOf()->subTypingDepth() ==
+               subTypingDepth();
+  }
+
+  HashNumber valueHash() const override {
+    return addU32ToHash(MBinaryInstruction::valueHash(), subTypingDepth());
+  }
 };
 
 #ifdef FUZZING_JS_FUZZILLI

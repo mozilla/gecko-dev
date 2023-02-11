@@ -12,8 +12,6 @@
 # so please be careful and get review from a Testing :: Marionette peer
 # before you make any changes to this file.
 
-from __future__ import absolute_import
-
 import codecs
 import json
 import os
@@ -74,6 +72,8 @@ class GeckoInstance(object):
         "dom.navigation.locationChangeRateLimit.count": 0,
         # DOM Push
         "dom.push.connection.enabled": False,
+        # Screen Orientation API
+        "dom.screenorientation.allow-lock": True,
         # Disable dialog abuse if alerts are triggered too quickly
         "dom.successive_dialog_time_limit": 0,
         # Only load extensions from the application and user profile
@@ -144,7 +144,7 @@ class GeckoInstance(object):
         # Tests don't wait for the notification button security delay
         "security.notification_enable_delay": 0,
         # Ensure blocklist updates don't hit the network
-        "services.settings.server": "http://%(server)s/dummy/blocklist/",
+        "services.settings.server": "data:,#remote-settings-dummy/v1",
         # Disable password capture, so that tests that include forms aren"t
         # influenced by the presence of the persistent doorhanger notification
         "signon.rememberSignons": False,

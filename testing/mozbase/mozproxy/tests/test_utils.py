@@ -1,11 +1,9 @@
 #!/usr/bin/env python
-from __future__ import absolute_import, print_function
-
 import os
 import shutil
 from unittest import mock
-import mozunit
 
+import mozunit
 from mozproxy.utils import download_file_from_url
 from support import tempdir
 

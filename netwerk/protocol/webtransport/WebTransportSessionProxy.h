@@ -6,6 +6,7 @@
 #ifndef mozilla_net_WebTransportProxy_h
 #define mozilla_net_WebTransportProxy_h
 
+#include <functional>
 #include "nsIChannelEventSink.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIRedirectResultListener.h"
@@ -157,14 +158,24 @@ class WebTransportSessionProxy final : public nsIWebTransport,
   void ChangeState(WebTransportSessionProxyState newState);
   void CreateStreamInternal(WebTransportStreamCallbackWrapper* aCallback,
                             bool aBidi);
+  void SendDatagramInternal(const RefPtr<Http3WebTransportSession>& aSession,
+                            nsTArray<uint8_t>&& aData, uint64_t aTrackingId);
+  void NotifyDatagramReceived(nsTArray<uint8_t>&& aData);
+  void GetMaxDatagramSizeInternal(
+      const RefPtr<Http3WebTransportSession>& aSession);
+  void OnMaxDatagramSizeInternal(uint64_t aSize);
+  void OnOutgoingDatagramOutComeInternal(
+      uint64_t aId, WebTransportSessionEventListener::DatagramOutcome aOutCome);
 
   nsCOMPtr<nsIChannel> mChannel;
   nsCOMPtr<nsIChannel> mRedirectChannel;
-  nsCOMPtr<WebTransportSessionEventListener> mListener;
-  RefPtr<Http3WebTransportSession> mWebTransportSession;
+  nsCOMPtr<WebTransportSessionEventListener> mListener MOZ_GUARDED_BY(mMutex);
+  RefPtr<Http3WebTransportSession> mWebTransportSession MOZ_GUARDED_BY(mMutex);
   uint64_t mSessionId MOZ_GUARDED_BY(mMutex) = UINT64_MAX;
   uint32_t mCloseStatus MOZ_GUARDED_BY(mMutex) = 0;
   nsCString mReason MOZ_GUARDED_BY(mMutex);
+  // This is used to store events happened before OnSessionReady.
+  nsTArray<std::function<void()>> mPendingEvents MOZ_GUARDED_BY(mMutex);
 };
 
 }  // namespace mozilla::net

@@ -377,6 +377,30 @@ void DocAccessible::QueueCacheUpdate(LocalAccessible* aAcc,
   Controller()->ScheduleProcessing();
 }
 
+void DocAccessible::QueueCacheUpdateForDependentRelations(
+    LocalAccessible* aAcc) {
+  if (!mIPCDoc || !StaticPrefs::accessibility_cache_enabled_AtStartup() ||
+      !aAcc || !aAcc->Elm() || !aAcc->IsInDocument() || aAcc->IsDefunct()) {
+    return;
+  }
+  nsAutoString ID;
+  aAcc->DOMNodeID(ID);
+  if (AttrRelProviders* list = GetRelProviders(aAcc->Elm(), ID)) {
+    // We call this function when we've noticed an ID change, or when an acc
+    // is getting bound to its document. We need to ensure any existing accs
+    // that depend on this acc's ID have their rel cache entries updated.
+    for (const auto& provider : *list) {
+      LocalAccessible* relatedAcc = GetAccessible(provider->mContent);
+      if (!relatedAcc || relatedAcc->IsDefunct() ||
+          !relatedAcc->IsInDocument() ||
+          mInsertedAccessibles.Contains(relatedAcc)) {
+        continue;
+      }
+      QueueCacheUpdate(relatedAcc, CacheDomain::Relations);
+    }
+  }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // LocalAccessible
 
@@ -628,24 +652,32 @@ void DocAccessible::ScrollTimerCallback(nsITimer* aTimer, void* aClosure) {
 }
 
 void DocAccessible::HandleScroll(nsINode* aTarget) {
+  nsINode* target = aTarget;
+  LocalAccessible* targetAcc = GetAccessible(target);
+  if (!targetAcc && target->IsInNativeAnonymousSubtree()) {
+    // The scroll event for textareas comes from a native anonymous div. We need
+    // the closest non-anonymous ancestor to get the right Accessible.
+    target = target->GetClosestNativeAnonymousSubtreeRootParent();
+    targetAcc = GetAccessible(target);
+  }
   // Regardless of our scroll timer, we need to send a cache update
   // to ensure the next Bounds() query accurately reflects our position
   // after scrolling.
-  if (LocalAccessible* scrollTarget = GetAccessible(aTarget)) {
-    QueueCacheUpdate(scrollTarget, CacheDomain::ScrollPosition);
+  if (targetAcc) {
+    QueueCacheUpdate(targetAcc, CacheDomain::ScrollPosition);
   }
 
   const uint32_t kScrollEventInterval = 100;
   // If we haven't dispatched a scrolling event for a target in at least
   // kScrollEventInterval milliseconds, dispatch one now.
-  mLastScrollingDispatch.WithEntryHandle(aTarget, [&](auto&& lastDispatch) {
+  mLastScrollingDispatch.WithEntryHandle(target, [&](auto&& lastDispatch) {
     const TimeStamp now = TimeStamp::Now();
 
     if (!lastDispatch ||
         (now - lastDispatch.Data()).ToMilliseconds() >= kScrollEventInterval) {
       // We can't fire events on a document whose tree isn't constructed yet.
       if (HasLoadState(eTreeConstructed)) {
-        DispatchScrollingEvent(aTarget, nsIAccessibleEvent::EVENT_SCROLLING);
+        DispatchScrollingEvent(target, nsIAccessibleEvent::EVENT_SCROLLING);
       }
       lastDispatch.InsertOrUpdate(now);
     }
@@ -829,6 +861,7 @@ void DocAccessible::AttributeChanged(dom::Element* aElement,
     RelocateARIAOwnedIfNeeded(elm);
     ARIAActiveDescendantIDMaybeMoved(accessible);
     accessible->SendCache(CacheDomain::DOMNodeID, CacheUpdateType::Update);
+    QueueCacheUpdateForDependentRelations(accessible);
   }
 
   // The activedescendant universal property redirects accessible focus events
@@ -1166,6 +1199,8 @@ void DocAccessible::BindToDocument(LocalAccessible* aAccessible,
   if (mIPCDoc) {
     mInsertedAccessibles.EnsureInserted(aAccessible);
   }
+
+  QueueCacheUpdateForDependentRelations(aAccessible);
 }
 
 void DocAccessible::UnbindFromDocument(LocalAccessible* aAccessible) {
@@ -1349,12 +1384,16 @@ bool DocAccessible::PruneOrInsertSubtree(nsIContent* aRoot) {
 
     // If the accessible is a table, or table part, its layout table
     // status may have changed. We need to invalidate the associated
-    // table cache, which listens for the following event.
+    // mac table cache, which listens for the following event. We don't
+    // use this cache when the core cache is enabled, so to minimise event
+    // traffic only fire this event when that cache is off.
     if (acc->IsTable() || acc->IsTableRow() || acc->IsTableCell()) {
       LocalAccessible* table = nsAccUtils::TableFor(acc);
       if (table && table->IsTable()) {
-        FireDelayedEvent(nsIAccessibleEvent::EVENT_TABLE_STYLING_CHANGED,
-                         table);
+        if (!StaticPrefs::accessibility_cache_enabled_AtStartup()) {
+          FireDelayedEvent(nsIAccessibleEvent::EVENT_TABLE_STYLING_CHANGED,
+                           table);
+        }
         QueueCacheUpdate(table, CacheDomain::Table);
       }
     }
@@ -2121,6 +2160,7 @@ void DocAccessible::FireEventsOnInsertion(LocalAccessible* aContainer) {
 }
 
 void DocAccessible::ContentRemoved(LocalAccessible* aChild) {
+  MOZ_DIAGNOSTIC_ASSERT(aChild != this, "Should never be called for the doc");
   LocalAccessible* parent = aChild->LocalParent();
   MOZ_DIAGNOSTIC_ASSERT(parent, "Unattached accessible from tree");
 

@@ -2,18 +2,17 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function
-
 import errno
 import glob
 import os
 import shutil
 import subprocess
 from xml.sax.saxutils import quoteattr
-from .common import CommonBackend
+
+from mozbuild.base import ExecutionSummary
 
 from ..frontend.data import ComputedFlags
-from mozbuild.base import ExecutionSummary
+from .common import CommonBackend
 
 # TODO Have ./mach eclipse generate the workspace and index it:
 # /Users/bgirard/mozilla/eclipse/eclipse/eclipse/eclipse -application org.eclipse.cdt.managedbuilder.core.headlessbuild -data $PWD/workspace -importAll $PWD/eclipse

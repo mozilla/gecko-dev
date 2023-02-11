@@ -58,7 +58,7 @@ const tests = [
     {
         timeZone: "Asia/Bangkok",
         locale: "th-th-u-nu-thai", options: longFormatOptions,
-        result: "๖ ธันวาคม ๒๕๕๕ ๑๙:๐๐:๐๐",
+        result: "๖ ธันวาคม ๒๕๕๕ เวลา ๑๙:๐๐:๐๐",
     },
     {
         timeZone: "Asia/Tokyo",

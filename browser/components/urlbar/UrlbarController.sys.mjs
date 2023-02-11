@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+const { XPCOMUtils } = ChromeUtils.import(
+  "resource://gre/modules/XPCOMUtils.jsm"
+);
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 
 const lazy = {};
@@ -90,6 +93,10 @@ export class UrlbarController {
     this.engagementEvent = new TelemetryEvent(
       this,
       options.eventTelemetryCategory
+    );
+
+    XPCOMUtils.defineLazyGetter(this, "logger", () =>
+      lazy.UrlbarUtils.getLogger({ prefix: "Controller" })
     );
   }
 
@@ -950,6 +957,7 @@ class TelemetryEvent {
         searchWords,
         provider: details.provider,
         searchSource: details.searchSource,
+        searchMode: details.searchMode,
         selectedElement: details.element,
         selIndex: details.selIndex,
         selType: details.selType,
@@ -1033,15 +1041,12 @@ class TelemetryEvent {
       reason,
       searchWords,
       searchSource,
+      searchMode,
       selectedElement,
       selIndex,
       selType,
     }
   ) {
-    if (!lazy.UrlbarPrefs.get("searchEngagementTelemetry.enabled")) {
-      return;
-    }
-
     const browserWindow = this._controller.browserWindow;
     let sap = "urlbar";
     if (searchSource === "urlbar-handoff") {
@@ -1054,22 +1059,17 @@ class TelemetryEvent {
       sap = "urlbar_addonpage";
     }
 
-    const searchWordsSet = new Set(searchWords);
-    let interaction =
-      this._controller.input.searchMode?.entry === "topsites_newtab"
-        ? "topsite_search"
-        : startEventInfo.interactionType;
-    if (interaction === "typed") {
-      if (searchSource === "urlbar-persisted") {
-        interaction = "persisted_search_terms";
-      } else if (
-        this._isRefined(searchWordsSet, this._previousSearchWordsSet)
-      ) {
-        interaction = "refined";
-      }
-    }
-    this._previousSearchWordsSet = searchWordsSet;
+    searchMode = searchMode ?? this._controller.input.searchMode;
 
+    // Distinguish user typed search strings from persisted search terms.
+    const interaction = this.#getInteractionType(
+      method,
+      startEventInfo,
+      searchSource,
+      searchWords,
+      searchMode
+    );
+    const search_mode = this.#getSearchMode(searchMode);
     const currentResults = queryContext?.results ?? [];
     const numResults = currentResults.length;
     const groups = currentResults
@@ -1079,11 +1079,13 @@ class TelemetryEvent {
       .map(r => lazy.UrlbarUtils.searchEngagementTelemetryType(r))
       .join(",");
 
+    let eventInfo;
     if (method === "engagement") {
       const selectedResult = currentResults[selIndex];
-      Glean.urlbar.engagement.record({
+      eventInfo = {
         sap,
         interaction,
+        search_mode,
         n_chars: numChars,
         n_words: numWords,
         n_results: numResults,
@@ -1099,31 +1101,103 @@ class TelemetryEvent {
           selType === "help" || selType === "dismiss" ? selType : action,
         groups,
         results,
-      });
+      };
     } else if (method === "abandonment") {
-      Glean.urlbar.abandonment.record({
+      eventInfo = {
         sap,
         interaction,
+        search_mode,
         n_chars: numChars,
         n_words: numWords,
         n_results: numResults,
         groups,
         results,
-      });
+      };
     } else if (method === "impression") {
-      Glean.urlbar.impression.record({
+      eventInfo = {
         reason,
         sap,
         interaction,
+        search_mode,
         n_chars: numChars,
         n_words: numWords,
         n_results: numResults,
         groups,
         results,
-      });
+      };
     } else {
       Cu.reportError(`Unknown telemetry event method: ${method}`);
+      return;
     }
+
+    this._controller.logger.info(
+      `${method} event: ${JSON.stringify(eventInfo)}`
+    );
+
+    if (lazy.UrlbarPrefs.get("searchEngagementTelemetryEnabled")) {
+      Glean.urlbar[method].record(eventInfo);
+    }
+  }
+
+  #getInteractionType(
+    method,
+    startEventInfo,
+    searchSource,
+    searchWords,
+    searchMode
+  ) {
+    if (searchMode?.entry === "topsites_newtab") {
+      return "topsite_search";
+    }
+
+    let interaction = startEventInfo.interactionType;
+    if (
+      (interaction === "returned" || interaction === "restarted") &&
+      this._isRefined(new Set(searchWords), this.#previousSearchWordsSet)
+    ) {
+      interaction = "refined";
+    }
+
+    if (searchSource === "urlbar-persisted") {
+      switch (interaction) {
+        case "returned": {
+          interaction = "persisted_search_terms";
+          break;
+        }
+        case "restarted":
+        case "refined": {
+          interaction = `persisted_search_terms_${interaction}`;
+          break;
+        }
+      }
+    }
+
+    if (
+      (method === "engagement" &&
+        lazy.UrlbarPrefs.isPersistedSearchTermsEnabled()) ||
+      method === "abandonment"
+    ) {
+      this.#previousSearchWordsSet = new Set(searchWords);
+    } else if (method === "engagement") {
+      this.#previousSearchWordsSet = null;
+    }
+
+    return interaction;
+  }
+
+  #getSearchMode(searchMode) {
+    if (!searchMode) {
+      return "";
+    }
+
+    if (searchMode.engineName) {
+      return "search_engine";
+    }
+
+    const source = lazy.UrlbarUtils.LOCAL_SEARCH_MODES.find(
+      m => m.source == searchMode.source
+    )?.telemetryLabel;
+    return source ?? "unknown";
   }
 
   _parseSearchString(searchString) {
@@ -1192,7 +1266,6 @@ class TelemetryEvent {
    */
   discard() {
     this.clearPauseImpressionTimer();
-    this._previousSearchWordsSet = null;
     if (this._startEventInfo) {
       this._startEventInfo = null;
       this._discarded = true;
@@ -1224,4 +1297,13 @@ class TelemetryEvent {
     // Now handle the result.
     return lazy.UrlbarUtils.telemetryTypeFromResult(row.result);
   }
+
+  /**
+   * Reset the internal state. This function is used for only when testing.
+   */
+  reset() {
+    this.#previousSearchWordsSet = null;
+  }
+
+  #previousSearchWordsSet = null;
 }

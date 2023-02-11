@@ -42,7 +42,7 @@ The ``listeners`` argument is an array which specifies listeners you want to sta
 
 .. code-block:: javascript
 
-  ["PageError", "ConsoleAPI", "NetworkActivity", "FileActivity"]
+  ["PageError", "ConsoleAPI", "FileActivity"]
 
 
 .. note::
@@ -91,7 +91,6 @@ The new ``startListeners`` packet:
     "listeners": [
       "PageError",
       "ConsoleAPI",
-      "NetworkActivity",
       "FileActivity"
     ]
   }
@@ -104,7 +103,6 @@ The reply is:
     "startedListeners": [
       "PageError",
       "ConsoleAPI",
-      "NetworkActivity",
       "FileActivity"
     ],
     "from": "conn0.console9"
@@ -176,64 +174,6 @@ The ``getCachedMessages`` packet allows one to retrieve the cached messages from
 
 Each message in the array is of the same type as when we send typical page errors and console API calls. These will be explained in the following sections of this document.
 
-
-Actor preferences
------------------
-
-To allow the Web Console to configure logging options while it is running, we have added the ``setPreferences`` packet:
-
-.. code-block:: json
-
-  {
-    "to": "conn0.console9",
-    "type": "setPreferences",
-    "preferences": {
-      "NetworkMonitor.saveRequestAndResponseBodies": false
-    }
-  }
-
-
-Reply:
-
-.. code-block:: json
-
-  {
-    "updated": [
-      "NetworkMonitor.saveRequestAndResponseBodies"
-    ],
-    "from": "conn0.console10"
-  }
-
-For convenience you can use ``webConsoleClient.setPreferences(prefs, onResponse)``. The ``prefs`` argument is an object like ``{ prefName: prefValue, ... }``.
-
-In Firefox 25 we added the ``getPreferences`` request packet:
-
-.. code-block:: json
-
-  {
-    "to": "conn0.console34",
-    "type": "getPreferences",
-    "preferences": [
-      "NetworkMonitor.saveRequestAndResponseBodies"
-    ]
-  }
-
-
-Reply packet:
-
-.. code-block:: json
-
-  {
-    "preferences": {
-      "NetworkMonitor.saveRequestAndResponseBodies": false
-    },
-    "from": "conn0.console34"
-  }
-
-
-You can also use the ``webConsoleClient.getPreferences(prefs, onResponse)``. The ``prefs`` argument is an array of preferences you want to get their values for, by name.
-
-
 Private browsing
 ----------------
 
@@ -251,50 +191,6 @@ This notification is sent only when your client is attached to the global consol
 
 .. note::
   This notification has been introduced in Firefox 24.
-
-
-Send HTTP requests
-------------------
-
-Starting with Firefox 25 you can send an HTTP request using the console actor:
-
-.. code-block:: javascript
-
-  {
-    "to": "conn0.console9",
-    "type": "sendHTTPRequest",
-    "request": {
-      "url": "http://localhost",
-      "method": "GET",
-      "headers": [
-        {
-          name: "Header-name",
-          value: "header value",
-        },
-        // ...
-      ],
-    },
-  }
-
-
-The response packet is a network event actor grip:
-
-.. code-block:: json
-
-  {
-    "to": "conn0.console9",
-    "eventActor": {
-      "actor": "conn0.netEvent14",
-      "startedDateTime": "2013-08-26T19:50:03.699Z",
-      "url": "http://localhost",
-      "method": "GET"
-      "isXHR": true,
-      "private": false
-    }
-  }
-
-
-You can also use the ``webConsoleClient.sendHTTPRequest(request, onResponse)`` method. The ``request`` argument is the same as the ``request`` object in the above example request packet.
 
 Page errors
 ***********
@@ -760,7 +656,6 @@ Protocol changes by Firefox version:
 - Firefox 24: new ``isXHR`` flag for the ``networkEvent`` notification, `bug <https://bugzilla.mozilla.org/show_bug.cgi?id=859046>`_.
 - Firefox 24: removed the ``message`` property from the ``pageError`` packet notification, `bug <https://bugzilla.mozilla.org/show_bug.cgi?id=877773>`_. The ``lineText`` and ``errorMessage`` properties can be long string actors now.
 - Firefox 25: added the ``url`` option to the ``evaluateJS`` request packet.
-- Firefox 25: added the ``getPreferences`` and ``sendHTTPRequest`` request packets to the console actor, `bug <https://bugzilla.mozilla.org/show_bug.cgi?id=886067>`_ and `bug <https://bugzilla.mozilla.org/show_bug.cgi?id=731311>`_.
 
 
 Conclusions

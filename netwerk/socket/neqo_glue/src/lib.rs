@@ -97,6 +97,7 @@ impl NeqoHttp3Conn {
         version_negotiation: bool,
         webtransport: bool,
         qlog_dir: &nsACString,
+        webtransport_datagram_size: u32,
     ) -> Result<RefPtr<NeqoHttp3Conn>, nsresult> {
         // Nss init.
         init();
@@ -119,9 +120,9 @@ impl NeqoHttp3Conn {
         };
 
         let version_list = if version_negotiation {
-             Version::all()
+            Version::all()
         } else {
-             vec![quic_version]
+            vec![quic_version]
         };
         #[allow(unused_mut)]
         let mut params = ConnectionParameters::default()
@@ -134,6 +135,10 @@ impl NeqoHttp3Conn {
         #[cfg(feature = "fuzzing")]
         if static_prefs::pref!("fuzzing.necko.http3") {
             params = params.idle_timeout(Duration::from_millis(10));
+        }
+
+        if webtransport_datagram_size > 0 {
+            params = params.datagram_size(webtransport_datagram_size.into());
         }
 
         let http3_settings = Http3Parameters::default()
@@ -235,6 +240,7 @@ pub extern "C" fn neqo_http3conn_new(
     version_negotiation: bool,
     webtransport: bool,
     qlog_dir: &nsACString,
+    webtransport_datagram_size: u32,
     result: &mut *const NeqoHttp3Conn,
 ) -> nsresult {
     *result = ptr::null_mut();
@@ -251,6 +257,7 @@ pub extern "C" fn neqo_http3conn_new(
         version_negotiation,
         webtransport,
         qlog_dir,
+        webtransport_datagram_size,
     ) {
         Ok(http3_conn) => {
             http3_conn.forget(result);
@@ -607,7 +614,10 @@ pub extern "C" fn neqo_http3conn_reset_stream(
     stream_id: u64,
     error: u64,
 ) -> nsresult {
-    match conn.conn.stream_reset_send(StreamId::from(stream_id), error) {
+    match conn
+        .conn
+        .stream_reset_send(StreamId::from(stream_id), error)
+    {
         Ok(()) => NS_OK,
         Err(_) => NS_ERROR_INVALID_ARG,
     }
@@ -619,7 +629,10 @@ pub extern "C" fn neqo_http3conn_stream_stop_sending(
     stream_id: u64,
     error: u64,
 ) -> nsresult {
-    match conn.conn.stream_stop_sending(StreamId::from(stream_id), error) {
+    match conn
+        .conn
+        .stream_stop_sending(StreamId::from(stream_id), error)
+    {
         Ok(()) => NS_OK,
         Err(_) => NS_ERROR_INVALID_ARG,
     }
@@ -696,6 +709,9 @@ pub enum WebTransportEventExternal {
         stream_type: WebTransportStreamType,
         session_id: u64,
     },
+    Datagram {
+        session_id: u64,
+    },
 }
 
 impl WebTransportEventExternal {
@@ -728,6 +744,15 @@ impl WebTransportEventExternal {
                 stream_type: stream_id.stream_type().into(),
                 session_id: session_id.as_u64(),
             },
+            WebTransportEvent::Datagram {
+                session_id,
+                datagram,
+            } => {
+                data.extend_from_slice(datagram.as_ref());
+                WebTransportEventExternal::Datagram {
+                    session_id: session_id.as_u64(),
+                }
+            }
         }
     }
 }
@@ -1251,6 +1276,46 @@ pub extern "C" fn neqo_http3conn_webtransport_create_stream(
             NS_OK
         }
         Err(Http3Error::StreamLimitError) => NS_BASE_STREAM_WOULD_BLOCK,
+        Err(_) => NS_ERROR_UNEXPECTED,
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn neqo_http3conn_webtransport_send_datagram(
+    conn: &mut NeqoHttp3Conn,
+    session_id: u64,
+    data: &mut ThinVec<u8>,
+    tracking_id: u64,
+) -> nsresult {
+    let id = if tracking_id == 0 {
+        None
+    } else {
+        Some(tracking_id)
+    };
+    match conn
+        .conn
+        .webtransport_send_datagram(StreamId::from(session_id), data, id)
+    {
+        Ok(()) => NS_OK,
+        Err(Http3Error::TransportError(TransportError::TooMuchData)) => NS_ERROR_NOT_AVAILABLE,
+        Err(_) => NS_ERROR_UNEXPECTED,
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn neqo_http3conn_webtransport_max_datagram_size(
+    conn: &mut NeqoHttp3Conn,
+    session_id: u64,
+    result: &mut u64,
+) -> nsresult {
+    match conn
+        .conn
+        .webtransport_max_datagram_size(StreamId::from(session_id))
+    {
+        Ok(size) => {
+            *result = size;
+            NS_OK
+        }
         Err(_) => NS_ERROR_UNEXPECTED,
     }
 }

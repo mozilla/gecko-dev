@@ -2,23 +2,20 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, unicode_literals
-
 from pathlib import Path
 from unittest import mock
-
-import pytest
 from unittest.mock import Mock, patch
 
-from mach.requirements import MachEnvRequirements
-from mach.site import CommandSiteManager, SitePackagesSource, MozSiteMetadata
+import pytest
+from mozbuild.base import MachCommandBase
 from mozunit import main
 
-import mach.registrar
 import mach.decorators
+import mach.registrar
 from mach.base import MachError
-from mach.decorators import CommandArgument, Command, SubCommand
-from mozbuild.base import MachCommandBase
+from mach.decorators import Command, CommandArgument, SubCommand
+from mach.requirements import MachEnvRequirements
+from mach.site import CommandSiteManager, MozSiteMetadata, SitePackagesSource
 
 
 @pytest.fixture

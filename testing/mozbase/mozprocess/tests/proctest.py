@@ -1,11 +1,8 @@
-from __future__ import absolute_import
-
 import os
 import sys
 import unittest
 
 from mozprocess import ProcessHandler
-
 
 here = os.path.dirname(os.path.abspath(__file__))
 

@@ -67,10 +67,14 @@ var bookmarksObserver = {
   QueryInterface: ChromeUtils.generateQI(["nsINavBookmarkObserver"]),
 };
 
-// Get bookmarks menu folder id.
-var root = bs.bookmarksMenuFolder;
+var root;
 // Index at which items should begin.
 var bmStartIndex = 0;
+
+add_task(async function setup() {
+  // Get bookmarks menu folder id.
+  root = await PlacesUtils.promiseItemId(PlacesUtils.bookmarks.menuGuid);
+});
 
 add_task(async function test_bookmarks() {
   bs.addObserver(bookmarksObserver);
@@ -80,27 +84,7 @@ add_task(async function test_bookmarks() {
   );
 
   // test special folders
-  Assert.ok(bs.placesRoot > 0);
-  Assert.ok(bs.bookmarksMenuFolder > 0);
   Assert.ok(bs.tagsFolder > 0);
-  Assert.ok(bs.toolbarFolder > 0);
-
-  // test getFolderIdForItem() with bogus item id will throw
-  try {
-    bs.getFolderIdForItem(0);
-    do_throw("getFolderIdForItem accepted bad input");
-  } catch (ex) {}
-
-  // test getFolderIdForItem() with bogus item id will throw
-  try {
-    bs.getFolderIdForItem(-1);
-    do_throw("getFolderIdForItem accepted bad input");
-  } catch (ex) {}
-
-  // test root parentage
-  Assert.equal(bs.getFolderIdForItem(bs.bookmarksMenuFolder), bs.placesRoot);
-  Assert.equal(bs.getFolderIdForItem(bs.tagsFolder), bs.placesRoot);
-  Assert.equal(bs.getFolderIdForItem(bs.toolbarFolder), bs.placesRoot);
 
   // create a folder to hold all the tests
   // this makes the tests more tolerant of changes to default_places.html
@@ -178,10 +162,6 @@ add_task(async function test_bookmarks() {
     bs.getItemTitle(-3);
     do_throw("getItemTitle accepted bad input");
   } catch (ex) {}
-
-  // get the folder that the bookmark is in
-  let folderId = bs.getFolderIdForItem(newId);
-  Assert.equal(folderId, testRoot);
 
   // create a folder at a specific index
   let workFolder = bs.createFolder(testRoot, "Work", 0);

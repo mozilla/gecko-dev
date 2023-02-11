@@ -4,22 +4,19 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import logging
 import os
 import shutil
 import subprocess
 import tempfile
 from contextlib import contextmanager
-
 from pathlib import Path
 
 from appdirs import user_config_dir
-import taskcluster
-
-from mach.base import FailedCommandError
 from gecko_taskgraph import GECKO
+from mach.base import FailedCommandError
+
+import taskcluster
 
 logger = logging.getLogger(__name__)
 

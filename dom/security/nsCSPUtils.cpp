@@ -210,10 +210,9 @@ void CSP_LogMessage(const nsAString& aMessage, const nsAString& aSourceName,
   // information contained within 'aSourceLine' can be really useful for devs.
   // E.g. 'aSourceLine' might be: 'onclick attribute on DIV element'.
   // In such cases we append 'aSourceLine' directly to the error message.
-  if (!aSourceLine.IsEmpty()) {
-    cspMsg.AppendLiteral(u" Source: ");
+  if (!aSourceLine.IsEmpty() && aLineNumber == 0) {
+    cspMsg.AppendLiteral(u"\nSource: ");
     cspMsg.Append(aSourceLine);
-    cspMsg.AppendLiteral(u".");
   }
 
   // Since we are leveraging csp errors as the category names which
@@ -580,11 +579,7 @@ void nsCSPSchemeSrc::toString(nsAString& outStr) const {
 
 /* ===== nsCSPHostSrc ======================== */
 
-nsCSPHostSrc::nsCSPHostSrc(const nsAString& aHost)
-    : mHost(aHost),
-      mGeneratedFromSelfKeyword(false),
-      mIsUniqueOrigin(false),
-      mWithinFrameAncstorsDir(false) {
+nsCSPHostSrc::nsCSPHostSrc(const nsAString& aHost) : mHost(aHost) {
   ToLowerCase(mHost);
 }
 
@@ -821,11 +816,13 @@ void nsCSPHostSrc::toString(nsAString& outStr) const {
     return;
   }
 
-  // append scheme
-  outStr.Append(mScheme);
+  // append scheme if it wasn't generated from the mSelfURI
+  if (!mGeneratedScheme) {
+    outStr.Append(mScheme);
+    outStr.AppendLiteral("://");
+  }
 
   // append host
-  outStr.AppendLiteral("://");
   outStr.Append(mHost);
 
   // append port

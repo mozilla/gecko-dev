@@ -4618,10 +4618,14 @@ struct Internals {
     static MarkerSchema MarkerTypeDisplay() {
       using MS = MarkerSchema;
       MS schema{MS::Location::MarkerChart, MS::Location::MarkerTable};
-      schema.AddKeyLabelFormat("prefName", "Name", MS::Format::String);
+      schema.AddKeyLabelFormatSearchable("prefName", "Name", MS::Format::String,
+                                         MS::Searchable::Searchable);
       schema.AddKeyLabelFormat("prefKind", "Kind", MS::Format::String);
       schema.AddKeyLabelFormat("prefType", "Type", MS::Format::String);
       schema.AddKeyLabelFormat("prefValue", "Value", MS::Format::String);
+      schema.SetTableLabel(
+          "{marker.data.prefName}: {marker.data.prefValue} "
+          "({marker.data.prefType})");
       return schema;
     }
 

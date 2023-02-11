@@ -7,8 +7,6 @@ Constants for SCHEDULES configuration in moz.build files and for
 skip-unless-schedules optimizations in task-graph generation.
 """
 
-from __future__ import absolute_import, unicode_literals, print_function
-
 # TODO: ideally these lists could be specified in moz.build itself
 
 # Inclusive components are those which are scheduled when certain files are
@@ -65,6 +63,7 @@ EXCLUSIVE_COMPONENTS = [
     "crashtest",
     "mochitest-a11y",
     "mochitest-browser-a11y",
+    "mochitest-browser-media",
     "mochitest-browser-chrome",
     "mochitest-chrome",
     "mochitest-plain",

@@ -52,16 +52,22 @@
 //! - [S-expressions], the textual representation of code and data used by the
 //!   Lisp language family.
 //! - [D-Bus]'s binary wire format.
-//! - [FlexBuffers], the schemaless cousin of Google's FlatBuffers zero-copy serialization format.
+//! - [FlexBuffers], the schemaless cousin of Google's FlatBuffers zero-copy
+//!   serialization format.
+//! - [Bencode], a simple binary format used in the BitTorrent protocol.
+//! - [Token streams], for processing Rust procedural macro input.
+//!   *(deserialization only)*
 //! - [DynamoDB Items], the format used by [rusoto_dynamodb] to transfer data to
 //!   and from DynamoDB.
+//! - [Hjson], a syntax extension to JSON designed around human reading and
+//!   editing. *(deserialization only)*
 //!
 //! [JSON]: https://github.com/serde-rs/json
 //! [Postcard]: https://github.com/jamesmunns/postcard
 //! [CBOR]: https://github.com/enarx/ciborium
 //! [YAML]: https://github.com/dtolnay/serde-yaml
 //! [MessagePack]: https://github.com/3Hren/msgpack-rust
-//! [TOML]: https://github.com/alexcrichton/toml-rs
+//! [TOML]: https://docs.rs/toml
 //! [Pickle]: https://github.com/birkenfeld/serde-pickle
 //! [RON]: https://github.com/ron-rs/ron
 //! [BSON]: https://github.com/mongodb/bson-rust
@@ -75,20 +81,23 @@
 //! [S-expressions]: https://github.com/rotty/lexpr-rs
 //! [D-Bus]: https://docs.rs/zvariant
 //! [FlexBuffers]: https://github.com/google/flatbuffers/tree/master/rust/flexbuffers
+//! [Bencode]: https://github.com/P3KI/bendy
+//! [Token streams]: https://github.com/oxidecomputer/serde_tokenstream
 //! [DynamoDB Items]: https://docs.rs/serde_dynamo
 //! [rusoto_dynamodb]: https://docs.rs/rusoto_dynamodb
+//! [Hjson]: https://github.com/Canop/deser-hjson
 
 ////////////////////////////////////////////////////////////////////////////////
 
 // Serde types in rustdoc of other crates get linked to here.
-#![doc(html_root_url = "https://docs.rs/serde/1.0.144")]
+#![doc(html_root_url = "https://docs.rs/serde/1.0.152")]
 // Support using Serde without the standard library!
 #![cfg_attr(not(feature = "std"), no_std)]
 // Unstable functionality only if the user asks for it. For tracking and
 // discussion of these features please refer to this issue:
 //
 //    https://github.com/serde-rs/serde/issues/812
-#![cfg_attr(feature = "unstable", feature(never_type))]
+#![cfg_attr(feature = "unstable", feature(error_in_core, never_type))]
 #![allow(unknown_lints, bare_trait_objects, deprecated)]
 #![cfg_attr(feature = "cargo-clippy", allow(renamed_and_removed_lints))]
 // Ignored clippy and clippy_pedantic lints
@@ -118,7 +127,6 @@
         derive_partial_eq_without_eq,
         enum_glob_use,
         explicit_auto_deref,
-        let_underscore_drop,
         map_err_ignore,
         new_without_default,
         result_unit_err,
@@ -237,16 +245,42 @@ mod lib {
     #[cfg(not(no_range_inclusive))]
     pub use self::core::ops::RangeInclusive;
 
-    #[cfg(all(feature = "std", not(no_std_atomic)))]
+    #[cfg(all(feature = "std", no_target_has_atomic, not(no_std_atomic)))]
     pub use std::sync::atomic::{
         AtomicBool, AtomicI16, AtomicI32, AtomicI8, AtomicIsize, AtomicU16, AtomicU32, AtomicU8,
         AtomicUsize, Ordering,
     };
-    #[cfg(all(feature = "std", not(no_std_atomic64)))]
+    #[cfg(all(feature = "std", no_target_has_atomic, not(no_std_atomic64)))]
     pub use std::sync::atomic::{AtomicI64, AtomicU64};
+
+    #[cfg(all(feature = "std", not(no_target_has_atomic)))]
+    pub use std::sync::atomic::Ordering;
+    #[cfg(all(feature = "std", not(no_target_has_atomic), target_has_atomic = "8"))]
+    pub use std::sync::atomic::{AtomicBool, AtomicI8, AtomicU8};
+    #[cfg(all(feature = "std", not(no_target_has_atomic), target_has_atomic = "16"))]
+    pub use std::sync::atomic::{AtomicI16, AtomicU16};
+    #[cfg(all(feature = "std", not(no_target_has_atomic), target_has_atomic = "32"))]
+    pub use std::sync::atomic::{AtomicI32, AtomicU32};
+    #[cfg(all(feature = "std", not(no_target_has_atomic), target_has_atomic = "64"))]
+    pub use std::sync::atomic::{AtomicI64, AtomicU64};
+    #[cfg(all(feature = "std", not(no_target_has_atomic), target_has_atomic = "ptr"))]
+    pub use std::sync::atomic::{AtomicIsize, AtomicUsize};
 
     #[cfg(any(feature = "std", not(no_core_duration)))]
     pub use self::core::time::Duration;
+}
+
+// None of this crate's error handling needs the `From::from` error conversion
+// performed implicitly by the `?` operator or the standard library's `try!`
+// macro. This simplified macro gives a 5.5% improvement in compile time
+// compared to standard `try!`, and 9% improvement compared to `?`.
+macro_rules! try {
+    ($expr:expr) => {
+        match $expr {
+            Ok(val) => val,
+            Err(err) => return Err(err),
+        }
+    };
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -278,7 +312,7 @@ use self::__private as private;
 #[path = "de/seed.rs"]
 mod seed;
 
-#[cfg(not(feature = "std"))]
+#[cfg(not(any(feature = "std", feature = "unstable")))]
 mod std_error;
 
 // Re-export #[derive(Serialize, Deserialize)].

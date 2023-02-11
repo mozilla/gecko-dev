@@ -3,14 +3,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, division, print_function
-
-import six
-import os
-import sys
+import glob
 import json
 import math
-import glob
+import os
+import sys
+
+import six
 
 AWSY_PATH = os.path.dirname(os.path.realpath(__file__))
 if AWSY_PATH not in sys.path:

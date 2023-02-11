@@ -11,7 +11,12 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 
+#include <cerrno>
+#include <cinttypes>
 #include <cstdio>
+#include <cstdlib>
+#include <fstream>
+#include <string>
 
 #include <linux/perf_event.h>
 
@@ -64,6 +69,71 @@ constexpr RaplDomain kSupportedRaplDomains[] = {
         "Consumption of the builtin-psys domain",
     }};
 
+static std::string GetSysfsFileID(RaplEventType aEventType) {
+  switch (aEventType) {
+    case RaplEventType::RAPL_ENERGY_CORES:
+      return "cores";
+    case RaplEventType::RAPL_ENERGY_PKG:
+      return "pkg";
+    case RaplEventType::RAPL_ENERGY_DRAM:
+      return "ram";
+    case RaplEventType::RAPL_ENERGY_GPU:
+      return "gpu";
+    case RaplEventType::RAPL_ENERGY_PSYS:
+      return "psys";
+  }
+
+  return "";
+}
+
+static double GetRaplPerfEventScale(RaplEventType aEventType) {
+  const std::string sysfsFileName =
+      "/sys/bus/event_source/devices/power/events/energy-" +
+      GetSysfsFileID(aEventType) + ".scale";
+  std::ifstream sysfsFile(sysfsFileName);
+
+  if (!sysfsFile) {
+    return PERF_EVENT_SCALE_NANOJOULES;
+  }
+
+  double scale;
+
+  if (sysfsFile >> scale) {
+    RAPL_LOG("Read scale from %s: %.22e", sysfsFileName.c_str(), scale);
+    return scale * 1e9;
+  }
+
+  return PERF_EVENT_SCALE_NANOJOULES;
+}
+
+static uint64_t GetRaplPerfEventConfig(RaplEventType aEventType) {
+  const std::string sysfsFileName =
+      "/sys/bus/event_source/devices/power/events/energy-" +
+      GetSysfsFileID(aEventType);
+  std::ifstream sysfsFile(sysfsFileName);
+
+  if (!sysfsFile) {
+    return static_cast<uint64_t>(aEventType);
+  }
+
+  char buffer[7] = {};
+  const std::string key = "event=";
+
+  if (!sysfsFile.get(buffer, static_cast<std::streamsize>(key.length()) + 1) ||
+      key != buffer) {
+    return static_cast<uint64_t>(aEventType);
+  }
+
+  uint64_t config;
+
+  if (sysfsFile >> std::hex >> config) {
+    RAPL_LOG("Read config from %s: 0x%" PRIx64, sysfsFileName.c_str(), config);
+    return config;
+  }
+
+  return static_cast<uint64_t>(aEventType);
+}
+
 class RaplProfilerCount final : public BaseProfilerCount {
  public:
   explicit RaplProfilerCount(int aPerfEventType,
@@ -80,10 +150,15 @@ class RaplProfilerCount final : public BaseProfilerCount {
     memset(&attr, 0, sizeof(attr));
     attr.type = aPerfEventType;
     attr.size = sizeof(struct perf_event_attr);
-    attr.config = static_cast<uint64_t>(aPerfEventConfig);
+    attr.config = GetRaplPerfEventConfig(aPerfEventConfig);
     attr.sample_period = 0;
     attr.sample_type = PERF_SAMPLE_IDENTIFIER;
     attr.inherit = 1;
+
+    RAPL_LOG("Config for event %s: 0x%llx", mLabel, attr.config);
+
+    mEventScale = GetRaplPerfEventScale(aPerfEventConfig);
+    RAPL_LOG("Scale for event %s: %.22e", mLabel, mEventScale);
 
     long fd = syscall(__NR_perf_event_open, &attr, -1, 0, -1, 0);
     if (fd < 0) {
@@ -123,8 +198,8 @@ class RaplProfilerCount final : public BaseProfilerCount {
     //
     //  - Convert the returned value to nanojoules
     //  - Convert nanojoules to picowatthour
-    double nanojoules = static_cast<double>(raplEventResult.value()) *
-                        PERF_EVENT_SCALE_NANOJOULES;
+    double nanojoules =
+        static_cast<double>(raplEventResult.value()) * mEventScale;
     double picowatthours = nanojoules / SCALE_NANOJOULES_TO_PICOWATTHOUR;
     RAPL_LOG("Sample %s { count: %lu, last-result: %lu } = %lfJ", mLabel,
              raplEventResult.value(), mLastResult, nanojoules * 1e-9);
@@ -159,6 +234,7 @@ class RaplProfilerCount final : public BaseProfilerCount {
 
   uint64_t mLastResult;
   int mPerfEventFd;
+  double mEventScale;
 };
 
 static int GetRaplPerfEventType() {

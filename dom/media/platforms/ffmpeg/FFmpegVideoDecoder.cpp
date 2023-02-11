@@ -50,10 +50,16 @@
 #  define AV_PIX_FMT_VAAPI_VLD AV_PIX_FMT_VAAPI
 #endif
 #include "mozilla/PodOperations.h"
+#include "mozilla/StaticPrefs_gfx.h"
 #include "mozilla/StaticPrefs_media.h"
 #include "mozilla/TaskQueue.h"
 #include "nsThreadUtils.h"
 #include "prsystem.h"
+
+#ifdef XP_WIN
+#  include "mozilla/gfx/DeviceManagerDx.h"
+#  include "mozilla/gfx/gfxVars.h"
+#endif
 
 // Forward declare from va.h
 #ifdef MOZ_WAYLAND_USE_VAAPI
@@ -628,6 +634,17 @@ int FFmpegVideoDecoder<LIBAV_VER>::GetVideoBuffer(
     return AVERROR(EINVAL);
   }
 
+#  if XP_WIN
+  // Disable direct decode to shmem when video overlay could be used with the
+  // video frame
+  if (VideoData::UseUseNV12ForSoftwareDecodedVideoIfPossible(mImageAllocator) &&
+      aCodecContext->width % 2 == 0 && aCodecContext->height % 2 == 0 &&
+      aCodecContext->pix_fmt == AV_PIX_FMT_YUV420P &&
+      aCodecContext->color_range != AVCOL_RANGE_JPEG) {
+    return AVERROR(EINVAL);
+  }
+#  endif
+
   if (!IsColorFormatSupportedForUsingCustomizedBuffer(aCodecContext->pix_fmt)) {
     FFMPEG_LOG("Not support color format %d", aCodecContext->pix_fmt);
     return AVERROR(EINVAL);
@@ -835,13 +852,6 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::DoDecode(
   packet.flags = aSample->mKeyframe ? AV_PKT_FLAG_KEY : 0;
   packet.pos = aSample->mOffset;
 
-  mCodecContext->skip_frame = mFrameDrop;
-#if MOZ_LOGGING
-  if (mFrameDrop == AVDISCARD_NONREF) {
-    FFMPEG_LOG("Frame skip AVDISCARD_NONREF");
-  }
-#endif
-
   mTrackingId.apply([&](const auto& aId) {
     MediaInfoFlag flag = MediaInfoFlag::None;
     flag |= (aSample->mKeyframe ? MediaInfoFlag::KeyFrame
@@ -926,18 +936,6 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::DoDecode(
       return MediaResult(
           NS_ERROR_DOM_MEDIA_DECODE_ERR,
           RESULT_DETAIL("avcodec_receive_frame error: %s", errStr));
-    }
-
-    if (mFrameDrop == AVDISCARD_NONREF) {
-      FFMPEG_LOG("Requested pts %" PRId64 " decoded frame pts %" PRId64,
-                 packet.pts, GetFramePts(mFrame) + mFrame->pkt_duration);
-      // Switch back to default frame skip policy if we hit correct
-      // decode times. 5 ms treshold is taken from mpv project which
-      // use similar approach after seek (feed_packet() at f_decoder_wrapper.c).
-      if (packet.pts - 5000 <= GetFramePts(mFrame) + mFrame->pkt_duration) {
-        FFMPEG_LOG("Set frame drop to AVDISCARD_DEFAULT.");
-        mFrameDrop = AVDISCARD_DEFAULT;
-      }
     }
 
     UpdateDecodeTimes(decodeStart);
@@ -1351,10 +1349,6 @@ FFmpegVideoDecoder<LIBAV_VER>::ProcessFlush() {
   mPtsContext.Reset();
   mDurationMap.Clear();
   mPerformanceRecorder.Record(std::numeric_limits<int64_t>::max());
-  // Discard non-ref frames on HW accelerated backend to avoid decode artifacts.
-  if (IsHardwareAccelerated()) {
-    mFrameDrop = AVDISCARD_NONREF;
-  }
   return FFmpegDataDecoder::ProcessFlush();
 }
 

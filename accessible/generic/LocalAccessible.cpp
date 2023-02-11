@@ -601,39 +601,25 @@ LocalAccessible* LocalAccessible::LocalChildAtPoint(
 
 nsIFrame* LocalAccessible::FindNearestAccessibleAncestorFrame() {
   nsIFrame* frame = GetFrame();
-  nsIFrame* boundingFrame = nullptr;
-
-  if (IsDoc() &&
-      nsCoreUtils::IsTopLevelContentDocInProcess(AsDoc()->DocumentNode())) {
-    // Tab documents and OOP iframe docs won't have ancestor accessibles
-    // with frames. Instead, bound by their presshell's root frame.
-    boundingFrame = nsLayoutUtils::GetContainingBlockForClientRect(frame);
+  if (IsDoc()) {
+    // We bound documents by their own frame, which is their PresShell's root
+    // frame. We cache the document offset elsewhere in BundleFieldsForCache
+    // using the nsGkAtoms::crossorigin attribute.
+    MOZ_ASSERT(frame, "DocAccessibles should always have a frame");
+    return frame;
   }
 
   // Iterate through accessible's ancestors to find one with a frame.
   LocalAccessible* ancestor = mParent;
-  while (ancestor && !boundingFrame) {
-    if (ancestor->IsDoc()) {
-      // If we find a doc accessible, use its presshell's root frame
-      // (since doc accessibles themselves don't have frames).
-      boundingFrame = nsLayoutUtils::GetContainingBlockForClientRect(frame);
-      break;
+  while (ancestor) {
+    if (nsIFrame* boundingFrame = ancestor->GetFrame()) {
+      return boundingFrame;
     }
-
-    if ((boundingFrame = ancestor->GetFrame())) {
-      // Otherwise, if the ancestor has a frame, use that
-      break;
-    }
-
     ancestor = ancestor->LocalParent();
   }
 
-  if (!boundingFrame) {
-    MOZ_ASSERT_UNREACHABLE("No ancestor with frame?");
-    boundingFrame = nsLayoutUtils::GetContainingBlockForClientRect(frame);
-  }
-
-  return boundingFrame;
+  MOZ_ASSERT_UNREACHABLE("No ancestor with frame?");
+  return nsLayoutUtils::GetContainingBlockForClientRect(frame);
 }
 
 nsRect LocalAccessible::ParentRelativeBounds() {
@@ -1144,9 +1130,14 @@ already_AddRefed<AccAttributes> LocalAccessible::NativeAttributes() {
     }
   }
 
-  // Don't calculate CSS-based object attributes when no frame (i.e.
-  // the accessible is unattached from the tree).
-  if (!mContent->GetPrimaryFrame()) return attributes.forget();
+  // Don't calculate CSS-based object attributes when:
+  // 1. There is no frame (e.g. the accessible is unattached from the tree).
+  // 2. This is an image map area. CSS is irrelevant here. Furthermore, we won't
+  // be able to get the computed style if the map is unslotted in a shadow host.
+  if (!mContent->GetPrimaryFrame() ||
+      mContent->IsHTMLElement(nsGkAtoms::area)) {
+    return attributes.forget();
+  }
 
   // CSS style based object attributes.
   nsAutoString value;
@@ -1447,6 +1438,12 @@ void LocalAccessible::DOMAttributeChanged(int32_t aNameSpaceID,
     // If an anchor's name changed, it's possible a LINKS_TO relation
     // also changed. Push a cache update for Relations.
     mDoc->QueueCacheUpdate(this, CacheDomain::Relations);
+  }
+
+  if (aAttribute == nsGkAtoms::slot &&
+      !mContent->GetFlattenedTreeParentNode() && this != mDoc) {
+    // This is inside a shadow host but is no longer slotted.
+    mDoc->ContentRemoved(this);
   }
 }
 
@@ -3204,11 +3201,10 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
           continue;
         }
 
-        LocalAccessible* acc = doc->GetAccessibleOrContainer(content);
-        // The document is sometimes placed too early in the list, which would
-        // cause us to return the document instead of the correct descendant.
-        // We skip the document here and handle it as a fallback when hit
-        // testing.
+        LocalAccessible* acc = doc->GetAccessible(content);
+        // The document should always be present at the end of the list, so
+        // including it is unnecessary and wasteful. We skip the document here
+        // and handle it as a fallback when hit testing.
         if (!acc || acc == mDoc) {
           continue;
         }
@@ -3296,14 +3292,17 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
     if (OuterDocAccessible* doc = AsOuterDoc()) {
       if (nsIFrame* docFrame = doc->GetFrame()) {
         const nsMargin& newOffset = docFrame->GetUsedBorderAndPadding();
-        Maybe<nsMargin> currOffset = doc->GetCrossProcOffset();
+        Maybe<nsMargin> currOffset = doc->GetCrossDocOffset();
         if (!currOffset || *currOffset != newOffset) {
           // OOP iframe docs can't compute their position within their
           // cross-proc parent, so we have to manually cache that offset
-          // on the parent (outer doc) itself. We do that here.
-          // Similar to bounds, we maintain a local cache and a remote cache
-          // to avoid sending redundant updates.
-          doc->SetCrossProcOffset(newOffset);
+          // on the parent (outer doc) itself. For simplicity and consistency,
+          // we do this here for both OOP and in-process iframes. For in-process
+          // iframes, this also avoids the need to push a cache update for the
+          // embedded document when the iframe changes its padding, gets
+          // re-created, etc. Similar to bounds, we maintain a local cache and a
+          // remote cache to avoid sending redundant updates.
+          doc->SetCrossDocOffset(newOffset);
           nsTArray<int32_t> offsetArray(2);
           offsetArray.AppendElement(newOffset.Side(eSideLeft));  // X offset
           offsetArray.AppendElement(newOffset.Side(eSideTop));   // Y offset
@@ -3400,9 +3399,27 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
         nsTArray<int32_t> charData;
 
         if (nsTextFrame* currTextFrame = do_QueryFrame(frame)) {
+          nsTextFrame* prevTextFrame = currTextFrame;
           nsRect frameRect = currTextFrame->GetRect();
+          nsIFrame* nearestAccAncestorFrame =
+              LocalParent() ? LocalParent()->GetFrame() : nullptr;
           while (currTextFrame) {
             nsRect contRect = currTextFrame->GetRect();
+            if (prevTextFrame->GetParent() != currTextFrame->GetParent() &&
+                nearestAccAncestorFrame) {
+              // Continuations can span multiple frame tree subtrees,
+              // particularly when multiline text is nested within both block
+              // and inline elements. In addition to using the position of this
+              // continuation to offset our char rects, we'll need to offset
+              // this continuation from the continuations that occurred before
+              // it. We don't know how many there are or what subtrees they're
+              // in, so we use a transform here. This also ensures our offset is
+              // accurate even if the intervening inline elements are not
+              // present in the a11y tree.
+              contRect = frameRect;
+              nsLayoutUtils::TransformRect(currTextFrame,
+                                           nearestAccAncestorFrame, contRect);
+            }
             nsTArray<nsRect> charBounds;
             currTextFrame->GetCharacterRectsInRange(
                 currTextFrame->GetContentOffset(),
@@ -3423,6 +3440,7 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
               charData.AppendElement(charRect.width);
               charData.AppendElement(charRect.height);
             }
+            prevTextFrame = currTextFrame;
             currTextFrame = currTextFrame->GetNextContinuation();
           }
         }
@@ -3434,6 +3452,7 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
   }
 
   if (aCacheDomain & CacheDomain::TransformMatrix) {
+    bool transformed = false;
     if (frame && frame->IsTransformed()) {
       // We need to find a frame to make our transform relative to.
       // It's important this frame have a corresponding accessible,
@@ -3443,14 +3462,22 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
       // This matrix is only valid when applied to CSSPixel points/rects
       // in the coordinate space of `frame`. It also includes the translation
       // to the parent space.
-      gfx::Matrix4x4 mtx = nsLayoutUtils::GetTransformToAncestor(
-                               RelativeTo{frame}, RelativeTo{boundingFrame},
-                               nsIFrame::IN_CSS_UNITS)
-                               .GetMatrix();
-
-      UniquePtr<gfx::Matrix4x4> ptr = MakeUnique<gfx::Matrix4x4>(mtx);
-      fields->SetAttribute(nsGkAtoms::transform, std::move(ptr));
-    } else if (aUpdateType == CacheUpdateType::Update) {
+      gfx::Matrix4x4Flagged mtx = nsLayoutUtils::GetTransformToAncestor(
+          RelativeTo{frame}, RelativeTo{boundingFrame}, nsIFrame::IN_CSS_UNITS);
+      // We might get back the identity matrix. This can happen if there is no
+      // actual transform. For example, if an element has
+      // will-change: transform, nsIFrame::IsTransformed will return true, but
+      // this doesn't necessarily mean there is a transform right now.
+      // Applying the identity matrix is effectively a no-op, so there's no
+      // point caching it.
+      transformed = !mtx.IsIdentity();
+      if (transformed) {
+        UniquePtr<gfx::Matrix4x4> ptr =
+            MakeUnique<gfx::Matrix4x4>(mtx.GetMatrix());
+        fields->SetAttribute(nsGkAtoms::transform, std::move(ptr));
+      }
+    }
+    if (!transformed && aUpdateType == CacheUpdateType::Update) {
       // Otherwise, if we're bundling a transform update but this
       // frame isn't transformed (or doesn't exist), we need
       // to send a DeleteEntry() to remove any
@@ -3805,6 +3832,22 @@ void LocalAccessible::MaybeQueueCacheUpdateForStyleChanges() {
       mDoc->QueueCacheUpdate(this, CacheDomain::TransformMatrix);
     }
 
+    if (newStyle->StyleDisplay()->IsPositionedStyle()) {
+      // We normally rely on reflow to know when bounds might have changed.
+      // However, changing the CSS left, top, etc. properties doesn't always
+      // cause reflow.
+      for (auto prop : {eCSSProperty_left, eCSSProperty_right, eCSSProperty_top,
+                        eCSSProperty_bottom}) {
+        nsAutoCString oldVal, newVal;
+        mOldComputedStyle->GetComputedPropertyValue(prop, oldVal);
+        newStyle->GetComputedPropertyValue(prop, newVal);
+        if (oldVal != newVal) {
+          mDoc->QueueCacheUpdate(this, CacheDomain::Bounds);
+          break;
+        }
+      }
+    }
+
     mOldComputedStyle = newStyle;
     if (newHasValidTransformStyle) {
       mStateFlags |= eOldFrameHasValidTransformStyle;
@@ -3821,6 +3864,12 @@ nsAtom* LocalAccessible::TagName() const {
 
 already_AddRefed<nsAtom> LocalAccessible::DisplayStyle() const {
   if (dom::Element* elm = Elm()) {
+    if (elm->IsHTMLElement(nsGkAtoms::area)) {
+      // This is an image map area. CSS is irrelevant here. Furthermore, we
+      // won't be able to get the computed style if the map is unslotted in a
+      // shadow host.
+      return nullptr;
+    }
     StyleInfo info(elm);
     return info.Display();
   }

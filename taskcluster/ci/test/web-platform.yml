@@ -39,12 +39,6 @@ web-platform-tests:
     tier:
         by-test-platform:
             android-em-7.0-x86_64-qr/debug-isolated-process: 3
-            android-em-7.*:
-                by-variant:
-                    webrender-sw: 3
-                    no-fission: default
-                    webrender-sw+no-fission: default
-                    default: 3
             default: default
     chunks:
         by-test-platform:
@@ -95,9 +89,6 @@ web-platform-tests:
                     default: []
             default:
                 by-test-platform:
-                    android-em-7.0-x86_64-qr/debug-isolated-process: ['mozilla-central']
-                    android-em-7.0-x86_64-qr/debug: ['mozilla-central']
-                    android-em-7.0-x86_64-shippable-qr: ['mozilla-central']
                     android.*: []
                     default: built-projects
     mozharness:
@@ -231,6 +222,7 @@ web-platform-tests-wdspec:
     chunks:
         by-test-platform:
             .*-ccov.*/.*: 4
+            .*-tsan.*/.*: 8
             default: 3
     mozharness:
         extra-options:
@@ -258,6 +250,7 @@ web-platform-tests-wdspec:
             headless:
                 by-test-platform:
                     android.*: []
+                    .*-tsan.*: []
                     default: built-projects
             no-fission:
                 by-test-platform:

@@ -7,6 +7,7 @@
 #include "APZCTreeManagerTester.h"
 #include "APZTestCommon.h"
 #include "InputUtils.h"
+#include "mozilla/EventForwards.h"
 #include "mozilla/layers/LayersTypes.h"
 #include <tuple>
 
@@ -63,10 +64,11 @@ class APZEventResultTester : public APZCTreeManagerTester {
     APZHandledResult delayedAnswer{APZHandledPlace::Invalid, SideBits::eNone,
                                    ScrollDirections()};
     manager->AddInputBlockCallback(
-        result.mInputBlockId, [&](uint64_t id, const APZHandledResult& answer) {
-          EXPECT_EQ(id, result.mInputBlockId);
-          delayedAnswer = answer;
-        });
+        result.mInputBlockId,
+        {result.GetStatus(), [&](uint64_t id, const APZHandledResult& answer) {
+           EXPECT_EQ(id, result.mInputBlockId);
+           delayedAnswer = answer;
+         }});
     manager->SetAllowedTouchBehavior(result.mInputBlockId,
                                      {AllowedTouchBehavior::VERTICAL_PAN});
     manager->SetTargetAPZC(result.mInputBlockId, {result.mTargetGuid});
@@ -392,10 +394,11 @@ TEST_F(APZEventResultTesterMock, HandledByRootApzcFlag) {
   APZHandledResult delayedAnswer{APZHandledPlace::Invalid, SideBits::eNone,
                                  ScrollDirections()};
   manager->AddInputBlockCallback(
-      result.mInputBlockId, [&](uint64_t id, const APZHandledResult& answer) {
-        EXPECT_EQ(id, result.mInputBlockId);
-        delayedAnswer = answer;
-      });
+      result.mInputBlockId,
+      {result.GetStatus(), [&](uint64_t id, const APZHandledResult& answer) {
+         EXPECT_EQ(id, result.mInputBlockId);
+         delayedAnswer = answer;
+       }});
 
   // Send APZ the relevant notifications to allow it to process the
   // input block.
@@ -419,10 +422,11 @@ TEST_F(APZEventResultTesterMock, HandledByRootApzcFlag) {
   TouchUp(manager, ScreenIntPoint(50, 75), mcc->Time());
   EXPECT_EQ(result.GetHandledResult(), Nothing());
   manager->AddInputBlockCallback(
-      result.mInputBlockId, [&](uint64_t id, const APZHandledResult& answer) {
-        EXPECT_EQ(id, result.mInputBlockId);
-        delayedAnswer = answer;
-      });
+      result.mInputBlockId,
+      {result.GetStatus(), [&](uint64_t id, const APZHandledResult& answer) {
+         EXPECT_EQ(id, result.mInputBlockId);
+         delayedAnswer = answer;
+       }});
   manager->SetAllowedTouchBehavior(result.mInputBlockId,
                                    {AllowedTouchBehavior::VERTICAL_PAN});
   manager->SetTargetAPZC(result.mInputBlockId, {result.mTargetGuid});
@@ -446,10 +450,11 @@ TEST_F(APZEventResultTesterMock, HandledByRootApzcFlag) {
   TouchUp(manager, ScreenIntPoint(50, 75), mcc->Time());
   EXPECT_EQ(result.GetHandledResult(), Nothing());
   manager->AddInputBlockCallback(
-      result.mInputBlockId, [&](uint64_t id, const APZHandledResult& answer) {
-        EXPECT_EQ(id, result.mInputBlockId);
-        delayedAnswer = answer;
-      });
+      result.mInputBlockId,
+      {result.GetStatus(), [&](uint64_t id, const APZHandledResult& answer) {
+         EXPECT_EQ(id, result.mInputBlockId);
+         delayedAnswer = answer;
+       }});
   manager->SetAllowedTouchBehavior(result.mInputBlockId,
                                    {AllowedTouchBehavior::VERTICAL_PAN});
   manager->SetTargetAPZC(result.mInputBlockId, {result.mTargetGuid});
@@ -458,4 +463,14 @@ TEST_F(APZEventResultTesterMock, HandledByRootApzcFlag) {
   EXPECT_EQ(delayedAnswer,
             (APZHandledResult{APZHandledPlace::Unhandled, SideBits::eNone,
                               ScrollDirections()}));
+
+  // Repeat the tap on the bottom half, with no event handler.
+  // Make sure we get an eager answer of `Unhandled`.
+  QueueMockHitResult(ScrollableLayerGuid::START_SCROLL_ID);
+  result = TouchDown(manager, ScreenIntPoint(50, 75), mcc->Time());
+  TouchUp(manager, ScreenIntPoint(50, 75), mcc->Time());
+  EXPECT_EQ(result.GetStatus(), nsEventStatus_eIgnore);
+  EXPECT_EQ(result.GetHandledResult(),
+            Some(APZHandledResult{APZHandledPlace::Unhandled, SideBits::eNone,
+                                  EitherScrollDirection}));
 }

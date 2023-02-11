@@ -2,16 +2,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
-from collections import defaultdict
 import json
 import os
 import sys
-
-from mach.decorators import CommandArgument, Command, SubCommand
+from collections import defaultdict
 
 import mozpack.path as mozpath
+from mach.decorators import Command, CommandArgument, SubCommand
 
 TOPSRCDIR = os.path.abspath(os.path.join(__file__, "../../../../../"))
 
@@ -40,14 +37,13 @@ class InvalidPathException(Exception):
     help="Print symbol names only.",
 )
 def reference(command_context, symbol, name_only=False):
+    import mozbuild.frontend.context as m
     from mozbuild.sphinx import (
         format_module,
         function_reference,
         special_reference,
         variable_reference,
     )
-
-    import mozbuild.frontend.context as m
 
     if name_only:
         for s in sorted(m.VARIABLES.keys()):
@@ -331,7 +327,7 @@ def file_info_schedules(command_context, paths):
     Given a requested set of files (which can be specified using
     wildcards), print the total set of scheduled components.
     """
-    from mozbuild.frontend.reader import EmptyConfig, BuildReader
+    from mozbuild.frontend.reader import BuildReader, EmptyConfig
 
     config = EmptyConfig(TOPSRCDIR)
     reader = BuildReader(config)

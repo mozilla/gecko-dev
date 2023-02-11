@@ -2,23 +2,18 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import os
 import unittest
-
 from collections import defaultdict
 from shutil import rmtree
 from tempfile import mkdtemp
 
+import mozpack.path as mozpath
 from mach.logging import LoggingManager
 
 from mozbuild.backend.configenvironment import ConfigEnvironment
 from mozbuild.frontend.emitter import TreeMetadataEmitter
 from mozbuild.frontend.reader import BuildReader
-
-import mozpack.path as mozpath
-
 
 log_manager = LoggingManager()
 log_manager.add_terminal_logging()

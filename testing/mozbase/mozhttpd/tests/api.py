@@ -4,12 +4,12 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import
-
 import collections
 import json
 import os
 
+import mozhttpd
+import mozunit
 import pytest
 from six import ensure_binary, ensure_str
 from six.moves.urllib.error import HTTPError
@@ -21,9 +21,6 @@ from six.moves.urllib.request import (
     install_opener,
     urlopen,
 )
-
-import mozunit
-import mozhttpd
 
 
 def httpd_url(httpd, path, querystr=None):

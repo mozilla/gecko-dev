@@ -9,17 +9,14 @@ import {
 
 const EventEmitter = require("resource://devtools/shared/event-emitter.js");
 
-const {
+import {
   getString,
   text,
   showFilePicker,
   optionsPopupMenu,
-} = ChromeUtils.import(
-  "resource://devtools/client/styleeditor/StyleEditorUtil.jsm"
-);
-const { StyleSheetEditor } = ChromeUtils.import(
-  "resource://devtools/client/styleeditor/StyleSheetEditor.jsm"
-);
+} from "resource://devtools/client/styleeditor/StyleEditorUtil.sys.mjs";
+import { StyleSheetEditor } from "resource://devtools/client/styleeditor/StyleSheetEditor.sys.mjs";
+
 const { PluralForm } = require("resource://devtools/shared/plural-form.js");
 const { PrefObserver } = require("resource://devtools/client/shared/prefs.js");
 
@@ -555,10 +552,10 @@ export class StyleEditorUI extends EventEmitter {
       const promise = (async () => {
         let editor = await this.#addStyleSheetEditor(resource);
 
-        const sourceMapService = this.#toolbox.sourceMapService;
+        const sourceMapLoader = this.#toolbox.sourceMapLoader;
 
         if (
-          !sourceMapService ||
+          !sourceMapLoader ||
           !Services.prefs.getBoolPref(PREF_ORIG_SOURCES)
         ) {
           return editor;
@@ -571,7 +568,7 @@ export class StyleEditorUI extends EventEmitter {
           sourceMapURL,
           sourceMapBaseURL,
         } = resource;
-        const sources = await sourceMapService.getOriginalURLs({
+        const sources = await sourceMapLoader.getOriginalURLs({
           id,
           url: href || nodeHref,
           sourceMapBaseURL,
@@ -588,7 +585,7 @@ export class StyleEditorUI extends EventEmitter {
             const original = new lazy.OriginalSource(
               originalURL,
               originalId,
-              sourceMapService
+              sourceMapLoader
             );
 
             // set so the first sheet will be selected, even if it's a source
@@ -669,13 +666,7 @@ export class StyleEditorUI extends EventEmitter {
 
     // onAtRulesChanged fires at-rules-changed, so call the function after
     // registering the listener in order to ensure to get at-rules-changed event.
-    let { atRules, mediaRules } = resource;
-    // @backward-compat { version 108 } "mediaRules" is only passed on older servers,
-    //                  the whole if block can be removed when 108 hits release.
-    if (mediaRules) {
-      atRules = mediaRules.map(rule => ({ ...rule, type: "media" }));
-    }
-    editor.onAtRulesChanged(atRules);
+    editor.onAtRulesChanged(resource.atRules);
 
     this.editors.push(editor);
 
@@ -1586,18 +1577,9 @@ export class StyleEditorUI extends EventEmitter {
             }
             break;
           }
-          // @backward-compat { version 108 } "media-rules-changed" is only passed on older
-          //                  servers and can be removed when 108 hits release.
           case "at-rules-changed":
-          case "matches-change":
-          case "media-rules-changed": {
-            let { atRules, mediaRules } = resource;
-            // @backward-compat { version 108 } "mediaRules" is only passed on older servers,
-            //                  the whole if block can be removed when 108 hits release.
-            if (mediaRules) {
-              atRules = mediaRules.map(rule => ({ ...rule, type: "media" }));
-            }
-            editor.onAtRulesChanged(atRules);
+          case "matches-change": {
+            editor.onAtRulesChanged(resource.atRules);
             break;
           }
         }

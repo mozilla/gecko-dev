@@ -7,6 +7,7 @@
 #include "mozilla/net/OpaqueResponseUtils.h"
 
 #include "mozilla/dom/Document.h"
+#include "mozilla/StaticPrefs_browser.h"
 #include "ErrorList.h"
 #include "nsContentUtils.h"
 #include "nsHttpResponseHead.h"
@@ -237,12 +238,23 @@ NS_IMETHODIMP
 OpaqueResponseBlocker::OnStartRequest(nsIRequest* aRequest) {
   LOGORB();
 
-  Unused << EnsureOpaqueResponseIsAllowedAfterSniff(aRequest);
+  if (mState == State::Sniffing) {
+    Unused << EnsureOpaqueResponseIsAllowedAfterSniff(aRequest);
+  }
 
-  MOZ_ASSERT(mState != State::Sniffing);
+  // mState will remain State::Sniffing if we need to wait
+  // for JS validator to make a decision.
+  //
+  // When the state is Sniffing, we can't call mNext->OnStartRequest
+  // because fetch requests need the cancellation to be done
+  // before its FetchDriver::OnStartRequest is called, otherwise it'll
+  // resolve the promise regardless the decision of JS validator.
+  if (mState != State::Sniffing) {
+    nsresult rv = mNext->OnStartRequest(aRequest);
+    return NS_SUCCEEDED(mStatus) ? rv : mStatus;
+  }
 
-  nsresult rv = mNext->OnStartRequest(aRequest);
-  return NS_SUCCEEDED(mStatus) ? rv : mStatus;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -256,6 +268,13 @@ OpaqueResponseBlocker::OnStopRequest(nsIRequest* aRequest,
     statusForStop = mStatus;
   }
 
+  if (mState == State::Sniffing) {
+    MOZ_ASSERT(mJSValidator);
+    mPendingOnStopRequestStatus = Some(aStatusCode);
+    mJSValidator->OnStopRequest(aStatusCode);
+    return NS_OK;
+  }
+
   return mNext->OnStopRequest(aRequest, statusForStop);
 }
 
@@ -265,7 +284,6 @@ OpaqueResponseBlocker::OnDataAvailable(nsIRequest* aRequest,
                                        uint64_t aOffset, uint32_t aCount) {
   LOGORB();
 
-  MOZ_ASSERT(mState == State::Allowed || mState == State::Blocked);
   if (mState == State::Allowed) {
     return mNext->OnDataAvailable(aRequest, aInputStream, aOffset, aCount);
   }
@@ -273,6 +291,23 @@ OpaqueResponseBlocker::OnDataAvailable(nsIRequest* aRequest,
   if (mState == State::Blocked) {
     return NS_ERROR_FAILURE;
   }
+
+  MOZ_ASSERT(mState == State::Sniffing);
+
+  nsCString data;
+  if (!data.SetLength(aCount, fallible)) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  uint32_t read;
+  nsresult rv = aInputStream->Read(data.BeginWriting(), aCount, &read);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  MOZ_ASSERT(mJSValidator);
+
+  mJSValidator->OnDataAvailable(data);
 
   return NS_OK;
 }
@@ -282,7 +317,11 @@ nsresult OpaqueResponseBlocker::EnsureOpaqueResponseIsAllowedAfterSniff(
   nsCOMPtr<HttpBaseChannel> httpBaseChannel = do_QueryInterface(aRequest);
   MOZ_ASSERT(httpBaseChannel);
 
-  if (mState != State::Sniffing) {
+  // The `AfterSniff` check shouldn't be run when
+  // 1. We have made a decision already
+  // 2. The JS validator is running, so we should wait
+  // for its result.
+  if (mState != State::Sniffing || mJSValidator) {
     return NS_OK;
   }
 
@@ -317,7 +356,8 @@ nsresult OpaqueResponseBlocker::EnsureOpaqueResponseIsAllowedAfterSniff(
       break;
   }
 
-  return ValidateJavaScript(httpBaseChannel);
+  MOZ_ASSERT(mState == State::Sniffing);
+  return ValidateJavaScript(httpBaseChannel, uri, loadInfo);
 }
 
 // The specification for ORB is currently being written:
@@ -327,8 +367,18 @@ nsresult OpaqueResponseBlocker::EnsureOpaqueResponseIsAllowedAfterSniff(
 // * `nsHttpChannel::DisableIsOpaqueResponseAllowedAfterSniffCheck`
 // * `HttpBaseChannel::OpaqueResponseSafelistCheckAfterSniff`
 // * `OpaqueResponseBlocker::ValidateJavaScript`
-nsresult OpaqueResponseBlocker::ValidateJavaScript(HttpBaseChannel* aChannel) {
+nsresult OpaqueResponseBlocker::ValidateJavaScript(HttpBaseChannel* aChannel,
+                                                   nsIURI* aURI,
+                                                   nsILoadInfo* aLoadInfo) {
   MOZ_DIAGNOSTIC_ASSERT(aChannel);
+  MOZ_ASSERT(aURI && aLoadInfo);
+
+  if (!StaticPrefs::browser_opaqueResponseBlocking_javascriptValidator()) {
+    LOGORB("Allowed: JS Validator is disabled");
+    AllowResponse();
+    return NS_OK;
+  }
+
   int64_t contentLength;
   nsresult rv = aChannel->GetContentLength(&contentLength);
   if (NS_FAILED(rv)) {
@@ -337,13 +387,31 @@ nsresult OpaqueResponseBlocker::ValidateJavaScript(HttpBaseChannel* aChannel) {
     return rv;
   }
 
-  // XXX(farre): this intentionally allowing responses, because we don't know
-  // how to block the correct ones until bug 1532644 is completed.
-  LOGORB("Allowed (After Sniff): passes all checks");
-  AllowResponse();
-
+  LOGORB("Send %s to the validator", aURI->GetSpecOrDefault().get());
   // https://whatpr.org/fetch/1442.html#orb-algorithm, step 15
-  // XXX(farre): Start JavaScript validation.
+  mJSValidator = dom::JSValidatorParent::Create();
+  mJSValidator->IsOpaqueResponseAllowed(
+      [self = RefPtr{this}, channel = nsCOMPtr{aChannel}, uri = nsCOMPtr{aURI},
+       loadInfo = nsCOMPtr{aLoadInfo}](bool aAllowed,
+                                       Maybe<ipc::Shmem> aSharedData) {
+        MOZ_LOG(gORBLog, LogLevel::Debug,
+                ("JSValidator resolved for %s with %s",
+                 uri->GetSpecOrDefault().get(),
+                 aSharedData.isSome() ? "true" : "false"));
+        if (aAllowed) {
+          self->AllowResponse();
+        } else {
+          self->BlockResponse(channel, NS_ERROR_FAILURE);
+          LogORBError(loadInfo, uri);
+        }
+        self->ResolveAndProcessData(channel, aAllowed, aSharedData);
+        if (aSharedData.isSome()) {
+          self->mJSValidator->DeallocShmem(aSharedData.ref());
+        }
+
+        Unused << dom::PJSValidatorParent::Send__delete__(self->mJSValidator);
+        self->mJSValidator = nullptr;
+      });
 
   return NS_OK;
 }
@@ -354,17 +422,63 @@ bool OpaqueResponseBlocker::IsSniffing() const {
 
 void OpaqueResponseBlocker::AllowResponse() {
   LOGORB("Sniffer is done, allow response, this=%p", this);
+  MOZ_ASSERT(mState == State::Sniffing);
   mState = State::Allowed;
 }
 
 void OpaqueResponseBlocker::BlockResponse(HttpBaseChannel* aChannel,
                                           nsresult aReason) {
   LOGORB("Sniffer is done, block response, this=%p", this);
+  MOZ_ASSERT(mState == State::Sniffing);
   mState = State::Blocked;
   mStatus = aReason;
   aChannel->SetChannelBlockedByOpaqueResponse();
   aChannel->CancelWithReason(mStatus,
                              "OpaqueResponseBlocker::BlockResponse"_ns);
+}
+
+void OpaqueResponseBlocker::ResolveAndProcessData(
+    HttpBaseChannel* aChannel, bool aAllowed, Maybe<ipc::Shmem>& aSharedData) {
+  nsresult rv = OnStartRequest(aChannel);
+
+  if (!aAllowed || NS_FAILED(rv)) {
+    MOZ_ASSERT_IF(!aAllowed, mState == State::Blocked);
+    MaybeRunOnStopRequest(aChannel);
+    return;
+  }
+
+  MOZ_ASSERT(mState == State::Allowed);
+
+  if (aSharedData.isNothing()) {
+    MaybeRunOnStopRequest(aChannel);
+    return;
+  }
+
+  const ipc::Shmem& mem = aSharedData.ref();
+  nsCOMPtr<nsIInputStream> input;
+  rv = NS_NewByteInputStream(getter_AddRefs(input),
+                             Span(mem.get<char>(), mem.Size<char>()),
+                             NS_ASSIGNMENT_DEPEND);
+
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    BlockResponse(aChannel, rv);
+    MaybeRunOnStopRequest(aChannel);
+    return;
+  }
+
+  // When this line reaches, the state is either State::Allowed or
+  // State::Blocked. The OnDataAvailable call will either call
+  // the next listener or reject the request.
+  OnDataAvailable(aChannel, input, 0, mem.Size<char>());
+
+  MaybeRunOnStopRequest(aChannel);
+}
+
+void OpaqueResponseBlocker::MaybeRunOnStopRequest(HttpBaseChannel* aChannel) {
+  MOZ_ASSERT(mState != State::Sniffing);
+  if (mPendingOnStopRequestStatus.isSome()) {
+    OnStopRequest(aChannel, mPendingOnStopRequestStatus.value());
+  }
 }
 
 NS_IMPL_ISUPPORTS(OpaqueResponseBlocker, nsIStreamListener, nsIRequestObserver)

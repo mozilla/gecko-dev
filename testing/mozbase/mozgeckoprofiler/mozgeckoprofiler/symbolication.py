@@ -1,19 +1,19 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
-from __future__ import absolute_import, division
-
 import hashlib
+import http.client
 import os
 import platform
 import subprocess
-import six
 import zipfile
 from distutils import spawn
+
+import six
 from mozlog import get_proxy_logger
 
-from .symFileManager import SymFileManager
 from .symbolicationRequest import SymbolicationRequest
+from .symFileManager import SymFileManager
 
 LOG = get_proxy_logger("profiler")
 
@@ -170,7 +170,7 @@ class ProfileSymbolicator:
             with zipfile.ZipFile(sio(io.read())) as zf:
                 self.integrate_symbol_zip(zf)
             self._create_file_if_not_exists(self._marker_file(symbol_zip_url))
-        except IOError:
+        except (IOError, http.client.IncompleteRead):
             LOG.info("Symbol zip request failed.")
 
     def integrate_symbol_zip_from_file(self, filename):

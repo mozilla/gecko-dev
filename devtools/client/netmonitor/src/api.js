@@ -20,9 +20,6 @@ const {
 } = require("resource://devtools/client/netmonitor/src/constants.js");
 const Actions = require("resource://devtools/client/netmonitor/src/actions/index.js");
 
-// Telemetry
-const Telemetry = require("resource://devtools/client/shared/telemetry.js");
-
 const {
   getDisplayedRequestById,
   getSortedRequests,
@@ -41,18 +38,11 @@ function NetMonitorAPI() {
   // Connector to the backend.
   this.connector = new Connector();
 
-  // Telemetry
-  this.telemetry = new Telemetry();
-
-  // Configure store/state object.
-  this.store = configureStore(this.connector, this.telemetry);
-
   // List of listeners for `devtools.network.onRequestFinished` WebExt API
   this._requestFinishedListeners = new Set();
 
   // Bind event handlers
   this.onPayloadReady = this.onPayloadReady.bind(this);
-  this.actions = bindActionCreators(Actions, this.store.dispatch);
 }
 
 NetMonitorAPI.prototype = {
@@ -63,6 +53,14 @@ NetMonitorAPI.prototype = {
     }
 
     this.toolbox = toolbox;
+
+    // Configure store/state object.
+    this.store = configureStore(
+      this.connector,
+      this.toolbox.commands,
+      this.toolbox.telemetry
+    );
+    this.actions = bindActionCreators(Actions, this.store.dispatch);
 
     // Register listener for new requests (utilized by WebExtension API).
     this.on(EVENTS.PAYLOAD_READY, this.onPayloadReady);
@@ -211,7 +209,7 @@ NetMonitorAPI.prototype = {
     this.store.dispatch(Actions.batchFlush());
     // Send custom request with same url, headers and body as the request
     // with the given requestId.
-    this.store.dispatch(Actions.sendCustomRequest(this.connector, requestId));
+    this.store.dispatch(Actions.sendCustomRequest(requestId));
   },
 };
 

@@ -4,9 +4,10 @@
 
 import subprocess
 
+from mozfile import which
+
 from mozboot.base import BaseBootstrapper
 from mozboot.linux_common import LinuxBootstrapper
-from mozfile import which
 
 
 class CentOSFedoraBootstrapper(LinuxBootstrapper, BaseBootstrapper):
@@ -21,7 +22,7 @@ class CentOSFedoraBootstrapper(LinuxBootstrapper, BaseBootstrapper):
         if self.version >= 33 and "perl" in packages:
             packages.append("perl-FindBin")
         # watchman is not available on centos/rocky
-        if self.distro in ("centos", "rocky"):
+        if self.distro in ("centos", "rocky", "oracle"):
             packages = [p for p in packages if p != "watchman"]
         self.dnf_install(*packages)
 

@@ -1,16 +1,13 @@
 #!/usr/bin/env python
 
-from __future__ import absolute_import
-
 import os
-import time
-import unittest
-import proctest
 import signal
 import sys
+import time
+import unittest
 
 import mozunit
-
+import proctest
 from mozprocess import processhandler
 
 here = os.path.dirname(os.path.abspath(__file__))

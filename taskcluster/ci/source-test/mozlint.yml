@@ -285,6 +285,21 @@ py-pylint:
             # moz.configure files are also Python files
             # However, pylint has some hard time dealing with it
 
+py-isort:
+    description: isort run over the gecko codebase
+    treeherder:
+        symbol: py(isort)
+    run:
+        mach: lint -v -l isort -f treeherder -f json:/builds/worker/mozlint.json *
+    when:
+        files-changed:
+            - '**/*.py'
+            - '**/.flake8'
+            - '**/.isort.cfg'
+            - 'tools/lint/isort.yml'
+            # moz.configure files are also Python files.
+            - '**/*.configure'
+
 test-manifest:
     description: lint test manifests
     treeherder:
@@ -450,12 +465,16 @@ file-whitespace:
             - '**/*.cpp'
             - '**/*.css'
             - '**/*.dtd'
+            - '**/*.idl'
             - '**/*.ftl'
             - '**/*.h'
             - '**/*.html'
+            - '**/*.md'
             - '**/*.properties'
             - '**/*.py'
             - '**/*.rs'
+            - '**/*.rst'
+            - '**/*.webidl'
             - '**/*.xhtml'
             - 'tools/lint/file-whitespace.yml'
 
@@ -472,21 +491,35 @@ file-perm:
         mach: lint -v -l file-perm -f treeherder -f json:/builds/worker/mozlint.json *
     when:
         files-changed:
+            - '**/*.build'
             - '**/*.c'
             - '**/*.cc'
             - '**/*.cpp'
+            - '**/*.flac'
             - '**/*.h'
             - '**/*.html'
+            - '**/*.idl'
             - '**/*.js'
             - '**/*.jsm'
             - '**/*.jsx'
             - '**/*.m'
+            - '**/*.m4s'
+            - '**/*.md'
             - '**/*.mjs'
             - '**/*.mm'
+            - '**/*.mozbuild'
+            - '**/*.mp4'
+            - '**/*.png'
             - '**/*.rs'
+            - '**/*.rst'
+            - '**/*.svg'
+            - '**/*.ttf'
+            - '**/*.wasm'
+            - '**/*.webidl'
             - '**/*.xhtml'
             - '**/*.xml'
             - '**/*.xul'
+            - '**/*.yml'
             - 'tools/lint/file-perm.yml'
 
 

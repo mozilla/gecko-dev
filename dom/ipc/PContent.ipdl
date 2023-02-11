@@ -73,7 +73,9 @@ include "mozilla/dom/CSPMessageUtils.h";
 include "mozilla/dom/DocShellMessageUtils.h";
 include "mozilla/dom/FeaturePolicyUtils.h";
 include "mozilla/dom/MediaSessionIPCUtils.h";
+include "mozilla/dom/PageLoadEventUtils.h";
 include "mozilla/dom/ReferrerInfoUtils.h";
+include "mozilla/glean/GleanMetrics.h";
 include "mozilla/ipc/ByteBufUtils.h";
 include "mozilla/ipc/TransportSecurityInfoUtils.h";
 include "mozilla/ipc/URIUtils.h";
@@ -118,6 +120,7 @@ using mozilla::Telemetry::ChildEventData from "mozilla/TelemetryComms.h";
 #endif  // defined(XP_WIN)
 
 using mozilla::Telemetry::DiscardedData from "mozilla/TelemetryComms.h";
+using mozilla::glean::perf::PageLoadExtra from "mozilla/glean/GleanMetrics.h";
 [MoveOnly] using mozilla::CrossProcessMutexHandle from "mozilla/ipc/CrossProcessMutex.h";
 using mozilla::dom::MaybeDiscardedBrowsingContext from "mozilla/dom/BrowsingContext.h";
 using mozilla::dom::BrowsingContextTransaction from "mozilla/dom/BrowsingContext.h";
@@ -1136,7 +1139,7 @@ parent:
 
     async ShowAlert(nsIAlertNotification alert);
 
-    async CloseAlert(nsString name);
+    async CloseAlert(nsString name, bool contextClosed);
 
     async DisableNotifications(nsIPrincipal principal);
 
@@ -1572,14 +1575,6 @@ parent:
       nsIReferrerInfo aReferrerInfo,
       OriginAttributes aOriginAttributes);
 
-    /**
-     * Tells the parent to ungrab the pointer on the default display.
-     *
-     * This is for GTK platforms where we have to ensure the pointer ungrab happens in the
-     * chrome process as that's the process that receives the pointer event.
-     */
-    sync UngrabPointer(uint32_t time);
-
     sync RemovePermission(nsIPrincipal principal, nsCString permissionType) returns (nsresult rv);
 
     /**
@@ -1614,6 +1609,11 @@ parent:
                                                 nsID? aAgentClusterId);
 
      async UnstoreAndBroadcastBlobURLUnregistration(nsCString url, nsIPrincipal principal);
+
+    /**
+     * Messages for communicating child Glean data to the parent process
+     */
+    async RecordPageLoadEvent(PageLoadExtra event);
 
     /**
      * Messages for communicating child Telemetry to the parent process
@@ -1834,7 +1834,7 @@ parent:
     // Called when a nsDocShellLoadState which was received over IPC is
     // destroyed in the content process to clean up pending state left behind
     // tracking the load state in the parent process.
-    async CleanupPendingLoadState(uint64_t aLoadIdentifier);
+    [LazySend] async CleanupPendingLoadState(uint64_t aLoadIdentifier);
 
 both:
     async ScriptError(nsString message, nsString sourceName, nsString sourceLine,
@@ -1881,7 +1881,7 @@ both:
      * new BrowsingContext has a parent window, it must be owned by the
      * embedding process, otherwise it must be owned by the opener, if set.
      */
-    async CreateBrowsingContext(uint64_t aGroupId, BrowsingContextInitializer aInit);
+    [LazySend] async CreateBrowsingContext(uint64_t aGroupId, BrowsingContextInitializer aInit);
 
     /**
      * If aDoDiscard is true, discards the passed-in BrowsingContext. If the
@@ -1911,7 +1911,7 @@ both:
     async FinalizeFocusOuter(MaybeDiscardedBrowsingContext aContext, bool aCanFocus,
                              CallerType aCallerType);
 parent:
-    async InsertNewFocusActionId(uint64_t aActionId);
+    [LazySend] async InsertNewFocusActionId(uint64_t aActionId);
     async BlurToParent(MaybeDiscardedBrowsingContext aFocusedBrowsingContext,
                       MaybeDiscardedBrowsingContext aBrowsingContextToClear,
                       MaybeDiscardedBrowsingContext aAncestorBrowsingContextToFocus,
@@ -1946,7 +1946,7 @@ both:
 child:
     // NOTE: These methods are only needed on the child, as the parent
     // WindowContext is managed using the PWindowGlobal actor's lifecycle.
-    async CreateWindowContext(WindowContextInitializer aInit);
+    [LazySend] async CreateWindowContext(WindowContextInitializer aInit);
     async DiscardWindowContext(uint64_t aContextId) returns (bool unused);
 
 parent:

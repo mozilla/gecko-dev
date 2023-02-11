@@ -2,8 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, division
-
 import base64
 import datetime
 import json
@@ -12,19 +10,16 @@ import socket
 import sys
 import time
 import traceback
-
 from contextlib import contextmanager
 
 import six
 from six import reraise
 
-from . import errors
-from . import transport
+from . import errors, transport
 from .decorators import do_process_check
 from .geckoinstance import GeckoInstance
 from .keys import Keys
 from .timeout import Timeouts
-
 
 FRAME_KEY = "frame-075b-4da1-b6ba-e579c2d3230a"
 WEB_ELEMENT_KEY = "element-6066-11e4-a52e-4f735466cecf"
@@ -1619,6 +1614,8 @@ class Marionette(object):
                 wrapped[arg] = self._to_json(args[arg])
         elif type(args) == HTMLElement:
             wrapped = {WEB_ELEMENT_KEY: args.id}
+        elif type(args) == ShadowRoot:
+            wrapped = {WEB_SHADOW_ROOT_KEY: args.id}
         elif (
             isinstance(args, bool)
             or isinstance(args, six.string_types)

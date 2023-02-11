@@ -2,19 +2,16 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import json
 import os
-import six
 
-from mozbuild.compilation.database import CompileDBBackend
+import six
+from mozunit import main
+
 from mozbuild.backend.clangd import ClangdBackend
 from mozbuild.backend.static_analysis import StaticAnalysisBackend
-
+from mozbuild.compilation.database import CompileDBBackend
 from mozbuild.test.backend.common import BackendTester
-
-from mozunit import main
 
 
 class TestCompileDBBackends(BackendTester):

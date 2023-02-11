@@ -116,22 +116,24 @@ class NeckoParent : public PNeckoParent {
   already_AddRefed<PDNSRequestParent> AllocPDNSRequestParent(
       const nsACString& aHost, const nsACString& aTrrServer,
       const int32_t& aPort, const uint16_t& aType,
-      const OriginAttributes& aOriginAttributes, const uint32_t& aFlags);
+      const OriginAttributes& aOriginAttributes,
+      const nsIDNSService::DNSFlags& aFlags);
   virtual mozilla::ipc::IPCResult RecvPDNSRequestConstructor(
       PDNSRequestParent* actor, const nsACString& aHost,
       const nsACString& trrServer, const int32_t& aPort, const uint16_t& type,
       const OriginAttributes& aOriginAttributes,
-      const uint32_t& flags) override;
+      const nsIDNSService::DNSFlags& flags) override;
   mozilla::ipc::IPCResult RecvSpeculativeConnect(nsIURI* aURI,
                                                  nsIPrincipal* aPrincipal,
                                                  const bool& aAnonymous);
   mozilla::ipc::IPCResult RecvHTMLDNSPrefetch(
       const nsAString& hostname, const bool& isHttps,
-      const OriginAttributes& aOriginAttributes, const uint32_t& flags);
+      const OriginAttributes& aOriginAttributes,
+      const nsIDNSService::DNSFlags& flags);
   mozilla::ipc::IPCResult RecvCancelHTMLDNSPrefetch(
       const nsAString& hostname, const bool& isHttps,
-      const OriginAttributes& aOriginAttributes, const uint32_t& flags,
-      const nsresult& reason);
+      const OriginAttributes& aOriginAttributes,
+      const nsIDNSService::DNSFlags& flags, const nsresult& reason);
   PWebSocketEventListenerParent* AllocPWebSocketEventListenerParent(
       const uint64_t& aInnerWindowID);
   bool DeallocPWebSocketEventListenerParent(PWebSocketEventListenerParent*);
@@ -200,18 +202,6 @@ class NeckoParent : public PNeckoParent {
   mozilla::ipc::IPCResult RecvGetPageIconStream(
       nsIURI* aURI, const Maybe<LoadInfoArgs>& aLoadInfoArgs,
       GetPageIconStreamResolver&& aResolve);
-
-  PClassifierDummyChannelParent* AllocPClassifierDummyChannelParent(
-      nsIURI* aURI, nsIURI* aTopWindowURI, const nsresult& aTopWindowURIResult,
-      const Maybe<LoadInfoArgs>& aLoadInfo);
-
-  bool DeallocPClassifierDummyChannelParent(
-      PClassifierDummyChannelParent* aActor);
-
-  virtual mozilla::ipc::IPCResult RecvPClassifierDummyChannelConstructor(
-      PClassifierDummyChannelParent* aActor, nsIURI* aURI,
-      nsIURI* aTopWindowURI, const nsresult& aTopWindowURIResult,
-      const Maybe<LoadInfoArgs>& aLoadInfo) override;
 
   mozilla::ipc::IPCResult RecvInitSocketProcessBridge(
       InitSocketProcessBridgeResolver&& aResolver);

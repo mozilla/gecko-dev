@@ -7,18 +7,10 @@ const { AppConstants } = ChromeUtils.importESModule(
 );
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
+  TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.sys.mjs",
   UpdateUtils: "resource://gre/modules/UpdateUtils.sys.mjs",
+  sendStandalonePing: "resource://gre/modules/TelemetrySend.sys.mjs",
 });
-ChromeUtils.defineModuleGetter(
-  lazy,
-  "TelemetryEnvironment",
-  "resource://gre/modules/TelemetryEnvironment.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  lazy,
-  "sendStandalonePing",
-  "resource://gre/modules/TelemetrySend.jsm"
-);
 
 const PREF_BRANCH = "browser.ping-centre.";
 
@@ -134,7 +126,7 @@ class PingCentre {
 
     return PingCentre._sendStandalonePing(endpoint, payload).catch(event => {
       Glean.pingCentre.sendFailures.add(1);
-      Cu.reportError(
+      console.error(
         `Structured Ingestion ping failure with error: ${event.type}`
       );
     });
@@ -149,7 +141,7 @@ class PingCentre {
         this._onFhrPrefChange
       );
     } catch (e) {
-      Cu.reportError(e);
+      console.error(e);
     }
   }
 }

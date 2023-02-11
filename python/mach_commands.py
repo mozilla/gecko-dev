@@ -2,23 +2,20 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import argparse
 import logging
 import os
-import tempfile
 import subprocess
+import tempfile
+from concurrent.futures import ThreadPoolExecutor, as_completed, thread
 from multiprocessing import cpu_count
 
-from concurrent.futures import ThreadPoolExecutor, as_completed, thread
-from tqdm import tqdm
-
 import mozinfo
-from mozfile import which
-from mach.decorators import CommandArgument, Command
+from mach.decorators import Command, CommandArgument
 from manifestparser import TestManifest
 from manifestparser import filters as mpf
+from mozfile import which
+from tqdm import tqdm
 
 
 @Command("python", category="devenv", description="Run Python.")

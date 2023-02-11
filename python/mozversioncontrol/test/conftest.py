@@ -2,16 +2,12 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import
-
-import shutil
 import os
+import shutil
 import subprocess
-
 from pathlib import Path
 
 import pytest
-
 
 SETUP = {
     "hg": [

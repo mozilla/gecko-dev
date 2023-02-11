@@ -6,16 +6,15 @@
 
 # control server for raptor performance framework
 # communicates with the raptor browser webextension
-from __future__ import absolute_import
-
 import datetime
 import json
 import os
 import shutil
-import six
 import socket
 import threading
 import time
+
+import six
 
 try:
     from http import server  # py3

@@ -2,20 +2,18 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import os
 import textwrap
 import unittest
+
 import mozpack.path as mozpath
-
-from six import StringIO
-
 from buildconfig import topsrcdir
 from common import ConfigureTestSandbox
-from mozbuild.util import exec_
 from mozunit import main
+from six import StringIO
 from test_toolchain_helpers import FakeCompiler
+
+from mozbuild.util import exec_
 
 
 class BaseCompileChecks(unittest.TestCase):

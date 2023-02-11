@@ -6,8 +6,6 @@
 
 const { throttle } = require("resource://devtools/shared/throttle.js");
 
-const BROWSERTOOLBOX_FISSION_ENABLED = "devtools.browsertoolbox.fission";
-
 let gLastResourceId = 0;
 
 function cacheKey(resourceType, resourceId) {
@@ -937,16 +935,6 @@ class ResourceCommand {
    * @return {Boolean} True, if the server supports this type.
    */
   hasResourceCommandSupport(resourceType) {
-    // If we're in the browser console or browser toolbox and the browser
-    // toolbox fission pref is disabled, we don't want to use watchers
-    // (even if traits on the server are enabled).
-    if (
-      this.targetCommand.descriptorFront.isBrowserProcessDescriptor &&
-      !Services.prefs.getBoolPref(BROWSERTOOLBOX_FISSION_ENABLED, false)
-    ) {
-      return false;
-    }
-
     return this.watcherFront?.traits?.resources?.[resourceType];
   }
 
@@ -1063,6 +1051,20 @@ class ResourceCommand {
     if (this._hasResourceCommandSupportForTarget(resourceType, targetFront)) {
       // This resource / target pair should already be handled by the watcher,
       // no need to start legacy listeners.
+      return;
+    }
+
+    // All workers target types are still not supported by the watcher
+    // so that we have to spawn legacy listener for all their resources.
+    // But some resources are irrelevant to workers, like network events.
+    // And we removed the related legacy listener as they are no longer used.
+    if (
+      targetFront.targetType.endsWith("worker") &&
+      [
+        ResourceCommand.TYPES.NETWORK_EVENT,
+        ResourceCommand.TYPES.NETWORK_EVENT_STACKTRACE,
+      ].includes(resourceType)
+    ) {
       return;
     }
 
@@ -1200,8 +1202,6 @@ ResourceCommand.TYPES = ResourceCommand.prototype.TYPES = {
   CSS_MESSAGE: "css-message",
   ERROR_MESSAGE: "error-message",
   PLATFORM_MESSAGE: "platform-message",
-  // Legacy listener only. Can be removed in Bug 1625937.
-  CLONED_CONTENT_PROCESS_MESSAGE: "cloned-content-process-message",
   DOCUMENT_EVENT: "document-event",
   ROOT_NODE: "root-node",
   STYLESHEET: "stylesheet",
@@ -1218,6 +1218,7 @@ ResourceCommand.TYPES = ResourceCommand.prototype.TYPES = {
   SOURCE: "source",
   THREAD_STATE: "thread-state",
   SERVER_SENT_EVENT: "server-sent-event",
+  LAST_PRIVATE_CONTEXT_EXIT: "last-private-context-exit",
 };
 ResourceCommand.ALL_TYPES = ResourceCommand.prototype.ALL_TYPES = Object.values(
   ResourceCommand.TYPES
@@ -1273,11 +1274,6 @@ loader.lazyRequireGetter(
 );
 loader.lazyRequireGetter(
   LegacyListeners,
-  ResourceCommand.TYPES.CLONED_CONTENT_PROCESS_MESSAGE,
-  "resource://devtools/shared/commands/resource/legacy-listeners/cloned-content-process-messages.js"
-);
-loader.lazyRequireGetter(
-  LegacyListeners,
   ResourceCommand.TYPES.ROOT_NODE,
   "resource://devtools/shared/commands/resource/legacy-listeners/root-node.js"
 );
@@ -1285,11 +1281,6 @@ loader.lazyRequireGetter(
   LegacyListeners,
   ResourceCommand.TYPES.STYLESHEET,
   "resource://devtools/shared/commands/resource/legacy-listeners/stylesheet.js"
-);
-loader.lazyRequireGetter(
-  LegacyListeners,
-  ResourceCommand.TYPES.NETWORK_EVENT,
-  "resource://devtools/shared/commands/resource/legacy-listeners/network-events.js"
 );
 loader.lazyRequireGetter(
   LegacyListeners,
@@ -1328,11 +1319,6 @@ loader.lazyRequireGetter(
 );
 loader.lazyRequireGetter(
   LegacyListeners,
-  ResourceCommand.TYPES.NETWORK_EVENT_STACKTRACE,
-  "resource://devtools/shared/commands/resource/legacy-listeners/network-event-stacktraces.js"
-);
-loader.lazyRequireGetter(
-  LegacyListeners,
   ResourceCommand.TYPES.SOURCE,
   "resource://devtools/shared/commands/resource/legacy-listeners/source.js"
 );
@@ -1351,26 +1337,22 @@ loader.lazyRequireGetter(
   ResourceCommand.TYPES.REFLOW,
   "resource://devtools/shared/commands/resource/legacy-listeners/reflow.js"
 );
+// @backward-compat { version 110 } Once Firefox 110 is release, we can:
+// - remove this entry
+// - remove the legacy listener file and the moz.build entry
+// - remove the `lastPrivateContextExited` event from the webconsole spec
+loader.lazyRequireGetter(
+  LegacyListeners,
+  ResourceCommand.TYPES.LAST_PRIVATE_CONTEXT_EXIT,
+  "resource://devtools/shared/commands/resource/legacy-listeners/last-private-context-exit.js"
+);
 
 // Optional transformers for each type of resource.
 // Each module added here should be a function that will receive the resource, the target, …
 // and perform some transformation on the resource before it will be emitted.
 // This is a good place to handle backward compatibility and manual resource marshalling.
-const ResourceTransformers = {
-  // @backward-compat { version 108 } "atRules" is not passed on older servers, so we need
-  //                  to compute it from "mediaRules".
-  //                  The ResourceCommand.TYPES.STYLESHEET transformer can be removed once 108 hits release.
-  //                  ⚠️ Do not remove the ResourceTransformers object, even if empty.
-  [ResourceCommand.TYPES.STYLESHEET]: ({ resource }) => {
-    if (resource.mediaRules) {
-      resource.atRules = resource.mediaRules.map(rule => ({
-        ...rule,
-        type: "media",
-      }));
-    }
-    return resource;
-  },
-};
+const ResourceTransformers = {};
+
 loader.lazyRequireGetter(
   ResourceTransformers,
   ResourceCommand.TYPES.CONSOLE_MESSAGE,

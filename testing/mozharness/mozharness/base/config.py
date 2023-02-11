@@ -24,8 +24,6 @@ TODO:
   these settings are set.
 """
 
-from __future__ import absolute_import, print_function
-
 import os
 import socket
 import sys
@@ -38,8 +36,8 @@ from mozharness.base.log import CRITICAL, DEBUG, ERROR, FATAL, INFO, WARNING
 try:
     from urllib2 import URLError, urlopen
 except ImportError:
-    from urllib.request import urlopen
     from urllib.error import URLError
+    from urllib.request import urlopen
 
 
 try:

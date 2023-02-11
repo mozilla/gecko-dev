@@ -1,3 +1,5 @@
+# Not direct dependency - only needed to fix a constraint problem
+MarkupSafe==2.0.1
 appdirs==1.4.4
 attrs==19.2.0
 blessed==1.19.1
@@ -42,6 +44,7 @@ slugid==2.0.0
 taskcluster==44.2.2
 taskcluster-taskgraph==3.5.1
 taskcluster-urls==13.0.1
+toml==0.10.2
 tqdm==4.62.3
 urllib3==1.26
 voluptuous==0.12.1

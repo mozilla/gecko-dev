@@ -2,8 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import json
 import os
 import shutil
@@ -11,26 +9,21 @@ import sys
 import tempfile
 import unittest
 
-from six import StringIO
-from mozfile.mozfile import NamedTemporaryFile
-
-from mozunit import main
-
+import mozpack.path as mozpath
+from buildconfig import topobjdir, topsrcdir
 from mach.logging import LoggingManager
+from mozfile.mozfile import NamedTemporaryFile
+from mozunit import main
+from six import StringIO
 
+from mozbuild.backend.configenvironment import ConfigEnvironment
 from mozbuild.base import (
     BadEnvironmentException,
     MachCommandBase,
     MozbuildObject,
     PathArgument,
 )
-
-from mozbuild.backend.configenvironment import ConfigEnvironment
-from buildconfig import topsrcdir, topobjdir
-import mozpack.path as mozpath
-
 from mozbuild.test.common import prepare_tmp_topsrcdir
-
 
 curdir = os.path.dirname(__file__)
 log_manager = LoggingManager()

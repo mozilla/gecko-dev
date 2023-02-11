@@ -7,6 +7,10 @@ url = "https://raw.githubusercontent.com/bytecodealliance/wasmtime/main/supply-c
 [imports.embark]
 url = "https://raw.githubusercontent.com/EmbarkStudios/rust-ecosystem/main/audits.toml"
 
+[policy.alsa]
+audit-as-crates-io = true
+notes = "This is a third-party crate, with an extra patch."
+
 [policy.async-task]
 audit-as-crates-io = true
 notes = "This is the upstream code plus an extra fix that hasn't been released yet, see bug 1746533."
@@ -54,6 +58,14 @@ dependency-criteria = { tokio-reactor = [], tokio-threadpool = [] }
 [policy.gkrust_shared]
 notes = "The dependencies on tokio-reactor and tokio-threadpools are just a hack to pin the version used by audioipc-{client,server}. Suppress vetting on those for the same reasons behind the policy entries."
 
+[policy.glean]
+audit-as-crates-io = true
+notes = "Temporarily patched in-tree"
+
+[policy.glean-core]
+audit-as-crates-io = true
+notes = "Temporarily patched in-tree"
+
 [policy.gluesmith]
 criteria = "safe-to-run"
 notes = "Used for fuzzing."
@@ -79,6 +91,10 @@ audit-as-crates-io = true
 notes = "wgpu-hal pins this crate."
 
 [policy.midir]
+audit-as-crates-io = true
+notes = "This is a pinned version of the upstream code, presumably to get a fix that hadn't been released yet. We should consider switching to the latest official release."
+
+[policy.minidump-writer]
 audit-as-crates-io = true
 notes = "This is a pinned version of the upstream code, presumably to get a fix that hadn't been released yet. We should consider switching to the latest official release."
 
@@ -130,6 +146,10 @@ notes = "This is a first-party crate which is entirely unrelated to the crates.i
 audit-as-crates-io = true
 notes = "This is a first-party crate which is also published to crates.io, but we should publish audits for it for the benefit of the ecosystem."
 
+[policy.rkv]
+audit-as-crates-io = true
+notes = "Temporarily patched in-tree"
+
 [policy.rure]
 audit-as-crates-io = true
 notes = "Identical to upstream, but with cdylib and staticlib targets disabled to avoid unnecessary build artifacts and linker errors."
@@ -161,6 +181,10 @@ notes = "This is a first-party crate, normally vendored, but currently patched i
 [policy.viaduct]
 audit-as-crates-io = false
 notes = "This is a first-party crate, maintained by the appservices team, which is entirely unrelated to the crates.io package of the same name."
+
+[policy.warp]
+audit-as-crates-io = true
+notes = "This is a third-party crate, with an extra patch."
 
 [policy.webdriver]
 audit-as-crates-io = false
@@ -259,16 +283,8 @@ criteria = "safe-to-deploy"
 version = "1.3.2"
 criteria = "safe-to-deploy"
 
-[[exemptions.bitflags_serde_shim]]
-version = "0.2.2"
-criteria = "safe-to-deploy"
-
 [[exemptions.bitreader]]
 version = "0.3.6"
-criteria = "safe-to-deploy"
-
-[[exemptions.bitvec]]
-version = "0.19.6"
 criteria = "safe-to-deploy"
 
 [[exemptions.block]]
@@ -305,10 +321,6 @@ criteria = "safe-to-deploy"
 
 [[exemptions.cexpr]]
 version = "0.6.0"
-criteria = "safe-to-deploy"
-
-[[exemptions.cfg_aliases]]
-version = "0.1.1"
 criteria = "safe-to-deploy"
 
 [[exemptions.chrono]]
@@ -535,10 +547,6 @@ criteria = "safe-to-deploy"
 version = "0.1.1"
 criteria = "safe-to-deploy"
 
-[[exemptions.form_urlencoded]]
-version = "1.0.1"
-criteria = "safe-to-run"
-
 [[exemptions.freetype]]
 version = "0.7.0"
 criteria = "safe-to-deploy"
@@ -554,10 +562,6 @@ criteria = "safe-to-run"
 [[exemptions.fuchsia-zircon-sys]]
 version = "0.3.3"
 criteria = "safe-to-run"
-
-[[exemptions.funty]]
-version = "1.1.0"
-criteria = "safe-to-deploy"
 
 [[exemptions.futures]]
 version = "0.3.21"
@@ -613,10 +617,6 @@ criteria = "safe-to-deploy"
 
 [[exemptions.glob]]
 version = "0.3.0"
-criteria = "safe-to-deploy"
-
-[[exemptions.glow]]
-version = "0.11.2"
 criteria = "safe-to-deploy"
 
 [[exemptions.glsl]]
@@ -760,16 +760,14 @@ version = "0.2.2"
 criteria = "safe-to-deploy"
 
 [[exemptions.libloading]]
-version = "0.5.2"
-criteria = "safe-to-deploy"
-
-[[exemptions.libloading]]
 version = "0.7.3"
 criteria = "safe-to-deploy"
 
 [[exemptions.libsqlite3-sys]]
-version = "0.24.2"
+version = "0.25.2"
 criteria = "safe-to-deploy"
+suggest = false
+notes = "The in-gecko feature that we enable makes only pre-built bindings used, and none of the embedded C code is built. The build script was audited and is not doing anything besides exposing those bindings"
 
 [[exemptions.libudev]]
 version = "0.2.0"
@@ -813,10 +811,6 @@ criteria = "safe-to-deploy"
 
 [[exemptions.memmap2]]
 version = "0.5.4"
-criteria = "safe-to-deploy"
-
-[[exemptions.memoffset]]
-version = "0.5.6"
 criteria = "safe-to-deploy"
 
 [[exemptions.memoffset]]
@@ -884,10 +878,6 @@ version = "0.15.0"
 criteria = "safe-to-deploy"
 
 [[exemptions.nom]]
-version = "6.1.2"
-criteria = "safe-to-deploy"
-
-[[exemptions.nom]]
 version = "7.1.1"
 criteria = "safe-to-deploy"
 
@@ -898,10 +888,6 @@ criteria = "safe-to-deploy"
 [[exemptions.num_cpus]]
 version = "1.13.1"
 criteria = "safe-to-deploy"
-
-[[exemptions.num_threads]]
-version = "0.1.6"
-criteria = "safe-to-run"
 
 [[exemptions.objc]]
 version = "0.2.7"
@@ -953,10 +939,6 @@ criteria = "safe-to-deploy"
 
 [[exemptions.peeking_take_while]]
 version = "0.1.2"
-criteria = "safe-to-deploy"
-
-[[exemptions.percent-encoding]]
-version = "2.1.0"
 criteria = "safe-to-deploy"
 
 [[exemptions.phf]]
@@ -1187,7 +1169,7 @@ criteria = "safe-to-run"
 version = "0.9.2"
 criteria = "safe-to-deploy"
 
-[[exemptions.sha-1]]
+[[exemptions.sha1]]
 version = "0.10.0"
 criteria = "safe-to-run"
 
@@ -1237,10 +1219,6 @@ criteria = "safe-to-deploy"
 
 [[exemptions.syn]]
 version = "1.0.96"
-criteria = "safe-to-deploy"
-
-[[exemptions.tap]]
-version = "1.0.1"
 criteria = "safe-to-deploy"
 
 [[exemptions.tempfile]]
@@ -1407,16 +1385,8 @@ criteria = "safe-to-deploy"
 version = "0.4.0"
 criteria = "safe-to-deploy"
 
-[[exemptions.winreg]]
-version = "0.5.1"
-criteria = "safe-to-run"
-
 [[exemptions.wio]]
 version = "0.2.2"
-criteria = "safe-to-deploy"
-
-[[exemptions.wyz]]
-version = "0.2.0"
 criteria = "safe-to-deploy"
 
 [[exemptions.xml-rs]]

@@ -10,9 +10,11 @@
 #include "mozilla/Maybe.h"
 #include "nsStringFwd.h"
 #include "nsTHashMap.h"
+#include "nsTHashSet.h"
 
 #include "nsICookieBannerService.h"
 #include "nsIObserver.h"
+#include "nsIAsyncShutdown.h"
 
 namespace mozilla {
 
@@ -20,11 +22,11 @@ namespace mozilla {
 // the content pref to store the per-domain preference for cookie banner
 // handling. To support the synchronous access, the service caches the
 // preferences in the memory.
-class CookieBannerDomainPrefService final : public nsIContentPrefCallback2,
+class CookieBannerDomainPrefService final : public nsIAsyncShutdownBlocker,
                                             public nsIObserver {
  public:
   NS_DECL_ISUPPORTS
-  NS_DECL_NSICONTENTPREFCALLBACK2
+  NS_DECL_NSIASYNCSHUTDOWNBLOCKER
   NS_DECL_NSIOBSERVER
 
   static already_AddRefed<CookieBannerDomainPrefService> GetOrCreate();
@@ -36,7 +38,8 @@ class CookieBannerDomainPrefService final : public nsIContentPrefCallback2,
   // Set the preference for the given domain.
   [[nodiscard]] nsresult SetPref(const nsACString& aDomain,
                                  nsICookieBannerService::Modes aMode,
-                                 bool aIsPrivate);
+                                 bool aIsPrivate,
+                                 bool aPersistInPrivateBrowsing);
 
   // Remove the preference for the given domain.
   [[nodiscard]] nsresult RemovePref(const nsACString& aDomain, bool aIsPrivate);
@@ -50,7 +53,10 @@ class CookieBannerDomainPrefService final : public nsIContentPrefCallback2,
   ~CookieBannerDomainPrefService() = default;
 
   CookieBannerDomainPrefService()
-      : mIsInitialized(false), mIsContentPrefLoaded(false) {}
+      : mIsInitialized(false),
+        mIsContentPrefLoaded(false),
+        mIsPrivateContentPrefLoaded(false),
+        mIsShuttingDown(false) {}
 
   // Indicates whether the service is initialized.
   bool mIsInitialized;
@@ -58,15 +64,87 @@ class CookieBannerDomainPrefService final : public nsIContentPrefCallback2,
   // Indicates whether the first reading of content pref completed.
   bool mIsContentPrefLoaded;
 
+  // Indicates whether the first reading of content pref for the private
+  // browsing completed.
+  bool mIsPrivateContentPrefLoaded;
+
+  // Indicates whether we are shutting down.
+  bool mIsShuttingDown;
+
+  // A class to represent the domain pref. It's consist of the service mode and
+  // a boolean to indicated if the domain pref persists in the disk.
+  class DomainPrefData final : public nsISupports {
+   public:
+    NS_DECL_ISUPPORTS
+
+    explicit DomainPrefData(nsICookieBannerService::Modes aMode,
+                            bool aIsPersistent)
+        : mMode(aMode), mIsPersistent(aIsPersistent) {}
+
+   private:
+    ~DomainPrefData() = default;
+
+    friend class CookieBannerDomainPrefService;
+
+    nsICookieBannerService::Modes mMode;
+    bool mIsPersistent;
+  };
+
   // Map of the per site preference keyed by domain.
-  nsTHashMap<nsCStringHashKey, nsICookieBannerService::Modes> mPrefs;
+  nsTHashMap<nsCStringHashKey, RefPtr<DomainPrefData>> mPrefs;
 
   // Map of the per site preference for private windows keyed by domain.
-  nsTHashMap<nsCStringHashKey, nsICookieBannerService::Modes> mPrefsPrivate;
+  nsTHashMap<nsCStringHashKey, RefPtr<DomainPrefData>> mPrefsPrivate;
 
   // A helper function that will wait until the initialization of the content
   // pref completed.
-  void EnsureInitCompleted();
+  void EnsureInitCompleted(bool aIsPrivate);
+
+  nsresult AddShutdownBlocker();
+  nsresult RemoveShutdownBlocker();
+
+  nsresult RemoveContentPrefForDomain(const nsACString& aDomain,
+                                      bool aIsPrivate);
+
+  class BaseContentPrefCallback : public nsIContentPrefCallback2 {
+   public:
+    NS_DECL_ISUPPORTS
+
+    NS_IMETHOD HandleResult(nsIContentPref*) override = 0;
+    NS_IMETHOD HandleCompletion(uint16_t) override = 0;
+    NS_IMETHOD HandleError(nsresult) override = 0;
+
+    explicit BaseContentPrefCallback(CookieBannerDomainPrefService* aService)
+        : mService(aService) {}
+
+   protected:
+    virtual ~BaseContentPrefCallback() = default;
+    RefPtr<CookieBannerDomainPrefService> mService;
+  };
+
+  class InitialLoadContentPrefCallback final : public BaseContentPrefCallback {
+   public:
+    NS_DECL_NSICONTENTPREFCALLBACK2
+
+    explicit InitialLoadContentPrefCallback(
+        CookieBannerDomainPrefService* aService, bool aIsPrivate)
+        : BaseContentPrefCallback(aService), mIsPrivate(aIsPrivate) {}
+
+   private:
+    bool mIsPrivate;
+  };
+
+  class WriteContentPrefCallback final : public BaseContentPrefCallback {
+   public:
+    NS_DECL_NSICONTENTPREFCALLBACK2
+
+    explicit WriteContentPrefCallback(CookieBannerDomainPrefService* aService)
+        : BaseContentPrefCallback(aService) {}
+  };
+
+  // A counter to track if there is any writing is happening. We will use this
+  // to decide if we can remove the shutdown blocker.
+  uint32_t mWritingCount = 0;
 
   void Shutdown();
 };

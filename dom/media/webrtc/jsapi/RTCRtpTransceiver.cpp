@@ -219,7 +219,7 @@ void RTCRtpTransceiver::Init(const RTCRtpTransceiverInit& aInit,
 
   mSender = new RTCRtpSender(mWindow, mPc, mTransportHandler,
                              mCallWrapper->mCallThread, mStsThread, mConduit,
-                             mSendTrack, this);
+                             mSendTrack, aInit.mSendEncodings, this);
 
   if (mConduit) {
     InitConduitControl();
@@ -236,7 +236,6 @@ void RTCRtpTransceiver::Init(const RTCRtpTransceiverInit& aInit,
             self.get(), &RTCRtpTransceiver::UpdateDtlsTransportState);
       }));
 
-  // TODO(bug 1401592): apply aInit.mSendEncodings to mSender
   mSender->SetStreams(aInit.mStreams);
   mDirection = aInit.mDirection;
 }
@@ -396,7 +395,7 @@ nsresult RTCRtpTransceiver::UpdateConduit() {
   }
 
   mReceiver->UpdateConduit();
-  mSender->UpdateConduit();
+  mSender->MaybeUpdateConduit();
 
   return NS_OK;
 }
@@ -835,7 +834,6 @@ void RTCRtpTransceiver::NegotiatedDetailsToVideoCodecConfigs(
         if (jsepEncoding.HasFormat(video.mDefaultPt)) {
           VideoCodecConfig::Encoding encoding;
           encoding.rid = jsepEncoding.mRid;
-          encoding.constraints = jsepEncoding.mConstraints;
           config->mEncodings.push_back(encoding);
         }
       }

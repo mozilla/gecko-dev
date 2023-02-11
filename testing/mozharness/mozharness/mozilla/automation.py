@@ -7,8 +7,6 @@
 """Code to integration with automation.
 """
 
-from __future__ import absolute_import
-
 try:
     import simplejson as json
 
@@ -16,7 +14,7 @@ try:
 except ImportError:
     import json
 
-from mozharness.base.log import INFO, WARNING, ERROR
+from mozharness.base.log import ERROR, INFO, WARNING
 
 TBPL_SUCCESS = "SUCCESS"
 TBPL_WARNING = "WARNING"

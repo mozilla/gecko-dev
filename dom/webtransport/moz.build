@@ -6,4 +6,8 @@
 
 DIRS += [
     "api",
+    "child",
+    "parent",
+    "shared",
+    "test",
 ]

@@ -32,7 +32,7 @@ XPCOMUtils.defineLazyModuleGetters(lazy, {
   AddressResult: "resource://autofill/ProfileAutoCompleteResult.jsm",
   ComponentUtils: "resource://gre/modules/ComponentUtils.jsm",
   CreditCardResult: "resource://autofill/ProfileAutoCompleteResult.jsm",
-  CreditCardTelemetry: "resource://autofill/FormAutofillTelemetryUtils.jsm",
+  AutofillTelemetry: "resource://autofill/AutofillTelemetry.jsm",
   FormAutofill: "resource://autofill/FormAutofill.jsm",
   FormAutofillHandler: "resource://autofill/FormAutofillHandler.jsm",
   FormAutofillUtils: "resource://autofill/FormAutofillUtils.jsm",
@@ -169,12 +169,9 @@ AutofillProfileAutoCompleteSearch.prototype = {
     let allFieldNames = activeSection.allFieldNames;
     let filledRecordGUID = activeSection.filledRecordGUID;
 
-    let creditCardsEnabledAndVisible =
-      lazy.FormAutofill.isAutofillCreditCardsEnabled &&
-      !lazy.FormAutofill.isAutofillCreditCardsHideUI;
     let searchPermitted = isAddressField
       ? lazy.FormAutofill.isAutofillAddressesEnabled
-      : creditCardsEnabledAndVisible;
+      : lazy.FormAutofill.isAutofillCreditCardsEnabled;
     let AutocompleteResult = isAddressField
       ? lazy.AddressResult
       : lazy.CreditCardResult;
@@ -502,14 +499,10 @@ var FormAutofillContent = {
    *
    * @param {object} profile Submitted form's address/creditcard guid and record.
    * @param {object} domWin Current content window.
-   * @param {int} timeStartedFillingMS Time of form filling started.
    */
-  _onFormSubmit(profile, domWin, timeStartedFillingMS) {
+  _onFormSubmit(profile, domWin) {
     let actor = getActorFromWindow(domWin);
-    actor.sendAsyncMessage("FormAutofill:OnFormSubmit", {
-      profile,
-      timeStartedFillingMS,
-    });
+    actor.sendAsyncMessage("FormAutofill:OnFormSubmit", profile);
   },
 
   /**
@@ -552,12 +545,28 @@ var FormAutofillContent = {
       return;
     }
 
-    lazy.CreditCardTelemetry.recordFormSubmitted(
-      records,
-      handler.form.elements
-    );
+    [records.address, records.creditCard].forEach((rs, idx) => {
+      lazy.AutofillTelemetry.recordSubmittedSectionCount(
+        idx == 0
+          ? lazy.AutofillTelemetry.ADDRESS
+          : lazy.AutofillTelemetry.CREDIT_CARD,
+        rs?.length
+      );
 
-    this._onFormSubmit(records, domWin, handler.timeStartedFillingMS);
+      rs?.forEach(r => {
+        lazy.AutofillTelemetry.recordFormInteractionEvent(
+          "submitted",
+          r.section,
+          {
+            record: r,
+            form: handler.form,
+          }
+        );
+        delete r.section;
+      });
+    });
+
+    this._onFormSubmit(records, domWin);
   },
 
   handleEvent(evt) {
@@ -765,9 +774,10 @@ var FormAutofillContent = {
 
     let fieldName = FormAutofillContent.activeFieldDetail?.fieldName;
     if (lazy.FormAutofillUtils.isCreditCardField(fieldName)) {
-      lazy.CreditCardTelemetry.recordFormCleared(
-        this.activeSection?.flowId,
-        fieldName
+      lazy.AutofillTelemetry.recordFormInteractionEvent(
+        "cleared",
+        this.activeSection,
+        { fieldName }
       );
     }
   },
@@ -843,12 +853,11 @@ var FormAutofillContent = {
     );
 
     let fieldName = FormAutofillContent.activeFieldDetail?.fieldName;
-    if (lazy.FormAutofillUtils.isCreditCardField(fieldName)) {
-      lazy.CreditCardTelemetry.recordPopupShown(
-        this.activeSection?.flowId,
-        fieldName
-      );
-    }
+    lazy.AutofillTelemetry.recordFormInteractionEvent(
+      "popup_shown",
+      this.activeSection,
+      { fieldName }
+    );
   },
 
   _markAsAutofillField(field) {

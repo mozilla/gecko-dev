@@ -1,15 +1,10 @@
 #!/usr/bin/env python
 
-from __future__ import absolute_import
-
 import os
 
 import mozunit
-
-from mozprocess import processhandler
-
 import proctest
-
+from mozprocess import processhandler
 
 here = os.path.dirname(os.path.abspath(__file__))
 

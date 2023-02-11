@@ -6,7 +6,6 @@
 
 const EventEmitter = require("resource://devtools/shared/event-emitter.js");
 
-const BROWSERTOOLBOX_FISSION_ENABLED = "devtools.browsertoolbox.fission";
 const BROWSERTOOLBOX_SCOPE_PREF = "devtools.browsertoolbox.scope";
 // Possible values of the previous pref:
 const BROWSERTOOLBOX_SCOPE_EVERYTHING = "everything";
@@ -42,14 +41,17 @@ class TargetCommand extends EventEmitter {
    *
    * @param {DescriptorFront} descriptorFront
    *        The context to inspector identified by this descriptor.
+   * @param {WatcherFront} watcherFront
+   *        If available, a reference to the related Watcher Front.
    * @param {Object} commands
    *        The commands object with all interfaces defined from devtools/shared/commands/
    */
-  constructor({ descriptorFront, commands }) {
+  constructor({ descriptorFront, watcherFront, commands }) {
     super();
 
     this.commands = commands;
     this.descriptorFront = descriptorFront;
+    this.watcherFront = watcherFront;
     this.rootFront = descriptorFront.client.mainRoot;
 
     this.store = createStore(reducer);
@@ -100,6 +102,11 @@ class TargetCommand extends EventEmitter {
     this._onTargetAvailable = this._onTargetAvailable.bind(this);
     this._onTargetDestroyed = this._onTargetDestroyed.bind(this);
     this._onTargetSelected = this._onTargetSelected.bind(this);
+    // Bug 1675763: Watcher actor is not available in all situations yet.
+    if (this.watcherFront) {
+      this.watcherFront.on("target-available", this._onTargetAvailable);
+      this.watcherFront.on("target-destroyed", this._onTargetDestroyed);
+    }
 
     this.legacyImplementation = {};
 
@@ -134,12 +141,6 @@ class TargetCommand extends EventEmitter {
    * When disabled we will only watch for FRAME and WORKER and restrict ourself to parent process resources.
    */
   _updateBrowserToolboxScope() {
-    const fissionBrowserToolboxEnabled = Services.prefs.getBoolPref(
-      BROWSERTOOLBOX_FISSION_ENABLED
-    );
-    if (!fissionBrowserToolboxEnabled) {
-      return;
-    }
     const browserToolboxScope = Services.prefs.getCharPref(
       BROWSERTOOLBOX_SCOPE_PREF
     );
@@ -429,16 +430,6 @@ class TargetCommand extends EventEmitter {
    *          optional targetTypeOrTrait
    */
   hasTargetWatcherSupport(targetTypeOrTrait) {
-    // If we're in the browser console or browser toolbox and the browser
-    // toolbox fission pref is disabled, we don't want to use watchers
-    // (even if traits on the server are enabled).
-    if (
-      this.descriptorFront.isBrowserProcessDescriptor &&
-      !Services.prefs.getBoolPref(BROWSERTOOLBOX_FISSION_ENABLED, false)
-    ) {
-      return false;
-    }
-
     if (targetTypeOrTrait) {
       // Target types are also exposed as traits, where resource types are
       // exposed under traits.resources (cf hasResourceWatcherSupport
@@ -472,18 +463,6 @@ class TargetCommand extends EventEmitter {
       !this._gotFirstTopLevelTarget
     ) {
       await this._createFirstTarget();
-    }
-
-    // Cache the Watcher once for all, the first time we call `startListening()`.
-    // This `watcherFront` attribute may be then used in any function in TargetCommand or ResourceCommand after this.
-    if (!this.watcherFront) {
-      // Bug 1675763: Watcher actor is not available in all situations yet.
-      const supportsWatcher = this.descriptorFront.traits?.watcher;
-      if (supportsWatcher) {
-        this.watcherFront = await this.descriptorFront.getWatcher();
-        this.watcherFront.on("target-available", this._onTargetAvailable);
-        this.watcherFront.on("target-destroyed", this._onTargetDestroyed);
-      }
     }
 
     // If no pref are set to true, nor is listenForWorkers set to true,
@@ -569,16 +548,10 @@ class TargetCommand extends EventEmitter {
     ) {
       types = [TargetCommand.TYPES.FRAME];
     } else if (this.descriptorFront.isBrowserProcessDescriptor) {
-      const fissionBrowserToolboxEnabled = Services.prefs.getBoolPref(
-        BROWSERTOOLBOX_FISSION_ENABLED
-      );
       const browserToolboxScope = Services.prefs.getCharPref(
         BROWSERTOOLBOX_SCOPE_PREF
       );
-      if (
-        fissionBrowserToolboxEnabled &&
-        browserToolboxScope == BROWSERTOOLBOX_SCOPE_EVERYTHING
-      ) {
+      if (browserToolboxScope == BROWSERTOOLBOX_SCOPE_EVERYTHING) {
         types = TargetCommand.ALL_TYPES;
       }
     }
@@ -967,9 +940,12 @@ class TargetCommand extends EventEmitter {
     for (const target of targets) {
       // For still-attaching worker targets, the thread or console front may not yet be available,
       // whereas TargetMixin.getFront will throw if the actorID isn't available in targetForm.
+      // Also ignore destroyed targets. For some reason the previous methods fetching targets
+      // can sometime return destroyed targets.
       if (
         (frontType == "thread" && !target.targetForm.threadActor) ||
-        (frontType == "console" && !target.targetForm.consoleActor)
+        (frontType == "console" && !target.targetForm.consoleActor) ||
+        target.isDestroyed()
       ) {
         continue;
       }

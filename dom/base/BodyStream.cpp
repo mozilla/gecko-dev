@@ -279,13 +279,6 @@ void BodyStream::WriteIntoReadRequestBuffer(JSContext* aCx,
   // All good.
 }
 
-// UnderlyingSource.cancel callback, implemented for BodyStream.
-already_AddRefed<Promise> BodyStream::CancelCallback(
-    JSContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
-    ErrorResult& aRv) {
-  return Promise::CreateResolvedWithUndefined(mGlobal, aRv);
-}
-
 void BodyStream::CloseInputAndReleaseObjects() {
   mMutex.AssertOnWritingThread();
 
@@ -370,6 +363,10 @@ void BodyStream::ErrorPropagation(JSContext* aCx,
   ReleaseObjects(aProofOfLock);
 }
 
+// https://fetch.spec.whatwg.org/#concept-bodyinit-extract
+// Step 12.1: Whenever one or more bytes are available and stream is not
+// errored, enqueue a Uint8Array wrapping an ArrayBuffer containing the
+// available bytes into stream.
 void BodyStream::EnqueueChunkWithSizeIntoStream(JSContext* aCx,
                                                 ReadableStream* aStream,
                                                 uint64_t aAvailableData,
@@ -400,19 +397,15 @@ void BodyStream::EnqueueChunkWithSizeIntoStream(JSContext* aCx,
     }
 
     // If we don't read every byte we've allocated in the Uint8Array
-    // we risk enqueing a chunk that is padded with trailing zeros,
+    // we risk enqueuing a chunk that is padded with trailing zeros,
     // corrupting future processing of the chunks:
     MOZ_DIAGNOSTIC_ASSERT((ableToRead - bytesWritten) == 0);
   }
 
   MOZ_ASSERT(aStream->Controller()->IsByte());
-  RefPtr<ReadableByteStreamController> byteStreamController =
-      aStream->Controller()->AsByte();
-
-  ReadableByteStreamControllerEnqueue(aCx, byteStreamController, chunk, aRv);
-  if (aRv.Failed()) {
-    return;
-  }
+  JS::Rooted<JS::Value> chunkValue(aCx);
+  chunkValue.setObject(*chunk);
+  aStream->EnqueueNative(aCx, chunkValue, aRv);
 }
 
 // thread-safety doesn't handle emplace well
@@ -549,7 +542,7 @@ void BodyStream::CloseAndReleaseObjects(
 
   if (aStream->State() == ReadableStream::ReaderState::Readable) {
     IgnoredErrorResult rv;
-    ReadableStreamClose(aCx, aStream, rv);
+    aStream->CloseNative(aCx, rv);
     NS_WARNING_ASSERTION(!rv.Failed(), "Failed to Close Stream");
   }
 }
@@ -596,11 +589,6 @@ void BodyStream::ReleaseObjects(const MutexSingleWriterAutoLock& aProofOfLock) {
     if (obs) {
       obs->RemoveObserver(this, DOM_WINDOW_DESTROYED_TOPIC);
     }
-  }
-
-  ReadableStream* stream = mStreamHolder->GetReadableStreamBody();
-  if (stream) {
-    stream->ReleaseObjectsFromBodyStream();
   }
 
   mWorkerRef = nullptr;

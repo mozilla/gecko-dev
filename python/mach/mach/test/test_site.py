@@ -2,18 +2,16 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, unicode_literals
-
 import os
 from unittest import mock
 
 import pytest as pytest
-
 from buildconfig import topsrcdir
 from mozunit import main
+
 from mach.site import (
-    SitePackagesSource,
     PIP_NETWORK_INSTALL_RESTRICTED_VIRTUALENVS,
+    SitePackagesSource,
     resolve_requirements,
 )
 

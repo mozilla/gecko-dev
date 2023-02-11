@@ -32,12 +32,12 @@ dictionary RTCRtpEncodingParameters {
   unsigned long            ssrc;
   RTCRtxParameters         rtx;
   RTCFecParameters         fec;
-  boolean                  active;
-  RTCPriorityType          priority;
+  boolean                  active = true;
+  // From https://www.w3.org/TR/webrtc-priority/
+  RTCPriorityType          priority = "low";
   unsigned long            maxBitrate;
-  RTCDegradationPreference degradationPreference = "balanced";
   DOMString                rid;
-  float                    scaleResolutionDownBy = 1.0;
+  double                   scaleResolutionDownBy;
   // From https://w3c.github.io/webrtc-extensions/#rtcrtpencodingparameters-dictionary
   double                   maxFramerate;
 };
@@ -62,8 +62,15 @@ dictionary RTCRtpCodecParameters {
 };
 
 dictionary RTCRtpParameters {
-  sequence<RTCRtpEncodingParameters>        encodings;
+  // We do not support these, but every wpt test involving parameters insists
+  // that these be present, regardless of whether the test-case has anything to
+  // do with these in particular (see validateRtpParameters).
   sequence<RTCRtpHeaderExtensionParameters> headerExtensions;
   RTCRtcpParameters                         rtcp;
   sequence<RTCRtpCodecParameters>           codecs;
+};
+
+dictionary RTCRtpSendParameters : RTCRtpParameters {
+  DOMString transactionId;
+  required sequence<RTCRtpEncodingParameters> encodings;
 };

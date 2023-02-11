@@ -15,57 +15,67 @@ function openContextMenu(aMessage, aBrowser, aActor) {
   let data = aMessage.data;
   let browser = aBrowser;
   let actor = aActor;
-  let spellInfo = data.spellInfo;
+  let wgp = actor.manager;
+
+  if (!wgp.isCurrentGlobal) {
+    // Don't display context menus for unloaded documents
+    return;
+  }
+
+  // NOTE: We don't use `wgp.documentURI` here as we want to use the failed
+  // channel URI in the case we have loaded an error page.
+  let documentURIObject = wgp.browsingContext.currentURI;
+
   let frameReferrerInfo = data.frameReferrerInfo;
-  let linkReferrerInfo = data.linkReferrerInfo;
-  let principal = data.principal;
-  let storagePrincipal = data.storagePrincipal;
-
-  let documentURIObject = makeURI(
-    data.docLocation,
-    data.charSet,
-    makeURI(data.baseURI)
-  );
-
   if (frameReferrerInfo) {
     frameReferrerInfo = E10SUtils.deserializeReferrerInfo(frameReferrerInfo);
   }
 
+  let linkReferrerInfo = data.linkReferrerInfo;
   if (linkReferrerInfo) {
     linkReferrerInfo = E10SUtils.deserializeReferrerInfo(linkReferrerInfo);
   }
+
+  let frameID = nsContextMenu.WebNavigationFrames.getFrameId(
+    wgp.browsingContext
+  );
 
   nsContextMenu.contentData = {
     context: data.context,
     browser,
     actor,
     editFlags: data.editFlags,
-    spellInfo,
-    principal,
-    storagePrincipal,
+    spellInfo: data.spellInfo,
+    principal: wgp.documentPrincipal,
+    storagePrincipal: wgp.documentStoragePrincipal,
     documentURIObject,
-    docLocation: data.docLocation,
+    docLocation: documentURIObject.spec,
     charSet: data.charSet,
     referrerInfo: E10SUtils.deserializeReferrerInfo(data.referrerInfo),
     frameReferrerInfo,
     linkReferrerInfo,
     contentType: data.contentType,
     contentDisposition: data.contentDisposition,
-    frameID: data.frameID,
-    frameOuterWindowID: data.frameID,
-    frameBrowsingContext: BrowsingContext.get(data.frameBrowsingContextID),
+    frameID,
+    frameOuterWindowID: frameID,
+    frameBrowsingContext: wgp.browsingContext,
     selectionInfo: data.selectionInfo,
     disableSetDesktopBackground: data.disableSetDesktopBackground,
     loginFillInfo: data.loginFillInfo,
-    userContextId: data.userContextId,
+    userContextId: wgp.browsingContext.originAttributes.userContextId,
     webExtContextData: data.webExtContextData,
-    cookieJarSettings: E10SUtils.deserializeCookieJarSettings(
-      data.cookieJarSettings
-    ),
+    cookieJarSettings: wgp.cookieJarSettings,
   };
 
   let popup = browser.ownerDocument.getElementById("contentAreaContextMenu");
   let context = nsContextMenu.contentData.context;
+
+  // Fill in some values in the context from the WindowGlobalParent actor.
+  context.principal = wgp.documentPrincipal;
+  context.storagePrincipal = wgp.documentStoragePrincipal;
+  context.frameID = frameID;
+  context.frameOuterWindowID = wgp.outerWindowId;
+  context.frameBrowsingContextID = wgp.browsingContext.id;
 
   // We don't have access to the original event here, as that happened in
   // another process. Therefore we synthesize a new MouseEvent to propagate the
@@ -1519,13 +1529,13 @@ class nsContextMenu {
       // We might also not have a tabBrowser reference (if this isn't in a
       // a tabbrowser scope) or might have a fake/stub tabbrowser reference
       // (in the sidebar). Deal with those cases:
-      if (!tabBrowser || !tabBrowser.loadOneTab || !window.toolbar.visible) {
+      if (!tabBrowser || !tabBrowser.addTab || !window.toolbar.visible) {
         // This returns only non-popup browser windows by default.
         let browserWindow = BrowserWindowTracker.getTopWindow();
         tabBrowser = browserWindow.gBrowser;
       }
       let relatedToCurrent = gBrowser && gBrowser.selectedBrowser == browser;
-      let tab = tabBrowser.loadOneTab("about:blank", {
+      let tab = tabBrowser.addTab("about:blank", {
         relatedToCurrent,
         inBackground: inNewWindow,
         skipAnimation: inNewWindow,
@@ -1625,7 +1635,7 @@ class nsContextMenu {
           referrerInfo,
           triggeringPrincipal: systemPrincipal,
         });
-      }, Cu.reportError);
+      }, console.error);
     } else {
       urlSecurityCheck(
         this.mediaURL,
@@ -2024,7 +2034,7 @@ class nsContextMenu {
           isPrivate,
           document.nodePrincipal /* system, because blob: */
         );
-      }, Cu.reportError);
+      }, console.error);
     } else if (this.onImage) {
       urlSecurityCheck(this.mediaURL, this.principal);
       internalSave(
@@ -2277,14 +2287,14 @@ class nsContextMenu {
   }
 
   bookmarkThisPage() {
-    window.top.PlacesCommandHook.bookmarkPage().catch(Cu.reportError);
+    window.top.PlacesCommandHook.bookmarkPage().catch(console.error);
   }
 
   bookmarkLink() {
     window.top.PlacesCommandHook.bookmarkLink(
       this.linkURL,
       this.linkTextStr
-    ).catch(Cu.reportError);
+    ).catch(console.error);
   }
 
   addBookmarkForFrame() {
@@ -2292,7 +2302,7 @@ class nsContextMenu {
 
     this.actor.getFrameTitle(this.targetIdentifier).then(title => {
       window.top.PlacesCommandHook.bookmarkLink(uri.spec, title).catch(
-        Cu.reportError
+        console.error
       );
     });
   }
@@ -2471,6 +2481,7 @@ ChromeUtils.defineESModuleGetters(nsContextMenu, {
 
 XPCOMUtils.defineLazyModuleGetters(nsContextMenu, {
   LoginManagerContextMenu: "resource://gre/modules/LoginManagerContextMenu.jsm",
+  WebNavigationFrames: "resource://gre/modules/WebNavigationFrames.jsm",
 });
 
 XPCOMUtils.defineLazyPreferenceGetter(

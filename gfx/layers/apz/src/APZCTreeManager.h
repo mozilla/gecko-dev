@@ -56,6 +56,7 @@ struct OverscrollHandoffState;
 class FocusTarget;
 struct FlingHandoffState;
 class InputQueue;
+struct InputBlockCallbackInfo;
 class GeckoContentController;
 class HitTestingTreeNode;
 class SampleTime;
@@ -108,6 +109,16 @@ class APZCTreeManager : public IAPZCTreeManager, public APZInputBridge {
   typedef mozilla::layers::AllowedTouchBehavior AllowedTouchBehavior;
   typedef mozilla::layers::AsyncDragMetrics AsyncDragMetrics;
   using HitTestResult = IAPZHitTester::HitTestResult;
+
+  /**
+   * A result from APZCTreeManager::FindHandoffParent.
+   */
+  struct TargetApzcForNodeResult {
+    // The APZC to handoff overscroll to.
+    AsyncPanZoomController* mApzc;
+    // Targeting a document's root APZC from content fixed to the document.
+    bool mIsFixed;
+  };
 
   // Helper struct to hold some state while we build the hit-testing tree. The
   // sole purpose of this struct is to shorten the argument list to
@@ -434,7 +445,7 @@ class APZCTreeManager : public IAPZCTreeManager, public APZInputBridge {
    * ignored until the existing callback is triggered.
    */
   void AddInputBlockCallback(uint64_t aInputBlockId,
-                             InputBlockCallback&& aCallback);
+                             InputBlockCallbackInfo&& aCallbackInfo);
 
   // Methods to help process WidgetInputEvents (or manage conversion to/from
   // InputData)
@@ -603,8 +614,8 @@ class APZCTreeManager : public IAPZCTreeManager, public APZInputBridge {
   HitTestingTreeNode* FindTargetNode(HitTestingTreeNode* aNode,
                                      const ScrollableLayerGuid& aGuid,
                                      GuidComparator aComparator);
-  AsyncPanZoomController* GetTargetApzcForNode(const HitTestingTreeNode* aNode);
-  AsyncPanZoomController* FindHandoffParent(
+  TargetApzcForNodeResult GetTargetApzcForNode(const HitTestingTreeNode* aNode);
+  TargetApzcForNodeResult FindHandoffParent(
       const AsyncPanZoomController* aApzc);
   HitTestingTreeNode* FindRootNodeForLayersId(LayersId aLayersId) const;
   AsyncPanZoomController* FindRootContentApzcForLayersId(

@@ -34,10 +34,18 @@ function promiseDownloadRemoved(list) {
 }
 
 add_task(async function test() {
+  // Let's clean up all the data to start clean.
+  await new Promise(resolve => {
+    Services.clearData.deleteData(Ci.nsIClearDataService.CLEAR_ALL, resolve);
+  });
   await setupDownloads();
   await setupFormHistory();
   await setupHistory();
   await onHistoryReady();
+  // Clear everything in case of any leftovers.
+  await new Promise(resolve => {
+    Services.clearData.deleteData(Ci.nsIClearDataService.CLEAR_ALL, resolve);
+  });
 });
 
 async function countEntries(name, message, check) {
@@ -719,7 +727,13 @@ async function onHistoryReady() {
 
   // Clear Today
   Services.prefs.setIntPref(Sanitizer.PREF_TIMESPAN, 4);
-  await Sanitizer.sanitize(null, { ignoreTimespan: false });
+  let progress = await Sanitizer.sanitize(null, { ignoreTimespan: false });
+  Assert.deepEqual(progress, {
+    history: "cleared",
+    formdata: "cleared",
+    downloads: "cleared",
+    step: "total-principals:0",
+  });
 
   await formHistoryPromise;
   await downloadPromise;

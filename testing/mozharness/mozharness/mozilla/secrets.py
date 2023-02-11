@@ -7,11 +7,11 @@
 """Support for fetching secrets from the secrets API
 """
 
-from __future__ import absolute_import
+import json
 import os
+
 import six
 from six.moves import urllib
-import json
 
 
 class SecretsMixin(object):

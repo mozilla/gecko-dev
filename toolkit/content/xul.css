@@ -225,6 +225,14 @@ html|label.toolbarbutton-badge:empty {
 .toolbarbutton-text,
 .toolbarbutton-badge-stack,
 .toolbarbutton-menu-dropmarker,
+.menubar-left,
+.menubar-text,
+.menu-text,
+.menu-iconic-text,
+.menu-iconic-highlightable-text,
+.menu-iconic-left,
+.menu-right,
+.menu-accel-container,
 .button-box {
   /* Preserves legacy behavior */
   pointer-events: none;
@@ -350,13 +358,6 @@ tooltip {
   contain: paint;
   z-index: 2147483647;
   text-shadow: none;
-}
-
-:is(toolbarbutton[type="menu"], button[type="menu"], menulist, menu) > :is(menupopup, panel) {
-  /* TODO: These could be regular abspos frames (just not in the top layer),
-   * once nsMenuFrame is ported to modern flex layout. */
-  position: static;
-  -moz-top-layer: none;
 }
 
 tooltip {
@@ -580,6 +581,11 @@ stack > *|*:not(:-moz-native-anonymous) {
 
 tabbox {
   -moz-box-orient: vertical;
+  min-height: 0;
+}
+
+tabpanels {
+  min-height: 0;
 }
 
 tabs {
@@ -683,8 +689,10 @@ scrollbox {
   overflow: hidden;
 }
 
-scrollbox[smoothscroll=true] {
-  scroll-behavior: smooth;
+@media (prefers-reduced-motion: no-preference) {
+  scrollbox[smoothscroll=true] {
+    scroll-behavior: smooth;
+  }
 }
 
 /********** stringbundle **********/

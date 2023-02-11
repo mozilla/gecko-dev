@@ -34,13 +34,24 @@ async function testTextRange(accDoc, browser, id, start, end) {
         // ignore whitespace, but not embedded elements
         let isEmbeddedElement = false;
         if (element.length == undefined) {
-          if (!element.firstChild) {
-            continue;
-          } else {
+          let potentialTextContainer = element;
+          while (
+            potentialTextContainer &&
+            potentialTextContainer.length == undefined
+          ) {
+            potentialTextContainer = element.firstChild;
+          }
+          if (potentialTextContainer && potentialTextContainer.length) {
+            // If we can reach some text from this container, use that as part
+            // of our range. This is important when testing with intervening inline
+            // elements. ie. <pre><code>ab%0acd
+            element = potentialTextContainer;
+          } else if (element.firstChild) {
             isEmbeddedElement = true;
+          } else {
+            continue;
           }
         }
-
         if (element.length + traversed < _start) {
           // If our start index is not within this
           // node, keep looking.
@@ -429,4 +440,110 @@ addAccessibleTask(
     testTextBounds(p, 0, 2, [0, 0, 0, 0], COORDTYPE_SCREEN_RELATIVE);
   },
   { chrome: true, topLevel: !isWinNoCache }
+);
+
+/**
+ * Test character bounds in an intervening inline element with non-br line breaks
+ */
+addAccessibleTask(
+  `
+  <style>
+    @font-face {
+      font-family: Ahem;
+      src: url(${CURRENT_CONTENT_DIR}e10s/fonts/Ahem.sjs);
+    }
+    pre {
+      font: 20px/20px Ahem;
+    }
+  </style>
+  <pre id="t"><code>XX
+XXX
+XX
+X</pre>`,
+  async function(browser, docAcc) {
+    await testChar(docAcc, browser, "t", 0);
+    await testChar(docAcc, browser, "t", 3);
+    await testChar(docAcc, browser, "t", 7);
+    await testChar(docAcc, browser, "t", 10);
+  },
+  {
+    chrome: true,
+    topLevel: !isWinNoCache,
+    iframe: !isWinNoCache,
+  }
+);
+
+// XXX: There's a fuzziness here of about 8 pixels, implying we aren't taking into
+// account some kind of margin or padding. See bug 1809695.
+// /**
+//  * Test character bounds in an intervening inline element with margins
+//  * and with non-br line breaks
+//  */
+// addAccessibleTask(
+//   `
+//   <style>
+//     @font-face {
+//       font-family: Ahem;
+//       src: url(${CURRENT_CONTENT_DIR}e10s/fonts/Ahem.sjs);
+//     }
+//   </style>
+//   <div>hello<pre id="t" style="margin-left:100px;margin-top:30px;background-color:blue;">XX
+// XXX
+// XX
+// X</pre></div>`,
+//   async function(browser, docAcc) {
+//     await testChar(docAcc, browser, "t", 0);
+//     await testChar(docAcc, browser, "t", 3);
+//     await testChar(docAcc, browser, "t", 7);
+//     await testChar(docAcc, browser, "t", 10);
+//   },
+//   {
+//     chrome: true,
+//     topLevel: !isWinNoCache,
+//     iframe: !isWinNoCache,
+//   }
+// );
+
+/**
+ * Test text bounds in a textarea after scrolling.
+ */
+addAccessibleTask(
+  `
+<textarea id="textarea" rows="1">a
+b
+c</textarea>
+  `,
+  async function(browser, docAcc) {
+    // We can't use testChar because Range.getBoundingClientRect isn't supported
+    // inside textareas.
+    const textarea = findAccessibleChildByID(docAcc, "textarea");
+    textarea.QueryInterface(nsIAccessibleText);
+    const oldY = {};
+    textarea.getCharacterExtents(
+      4,
+      {},
+      oldY,
+      {},
+      {},
+      COORDTYPE_SCREEN_RELATIVE
+    );
+    info("Moving textarea caret to c");
+    await invokeContentTask(browser, [], () => {
+      const textareaDom = content.document.getElementById("textarea");
+      textareaDom.focus();
+      textareaDom.selectionStart = 4;
+    });
+    await waitForContentPaint(browser);
+    const newY = {};
+    textarea.getCharacterExtents(
+      4,
+      {},
+      newY,
+      {},
+      {},
+      COORDTYPE_SCREEN_RELATIVE
+    );
+    ok(newY.value < oldY.value, "y coordinate smaller after scrolling down");
+  },
+  { chrome: true, topLevel: !isWinNoCache, iframe: !isWinNoCache }
 );

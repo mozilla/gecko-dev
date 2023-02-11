@@ -5,16 +5,29 @@
 
 #include "WidgetUtilsGtk.h"
 
+#include "MainThreadUtils.h"
 #include "mozilla/StaticPrefs_widget.h"
 #include "mozilla/UniquePtr.h"
 #include "nsReadableUtils.h"
+#include "nsString.h"
+#include "nsStringFwd.h"
 #include "nsWindow.h"
 #include "nsIGfxInfo.h"
 #include "mozilla/Components.h"
+#include "nsGtkKeyUtils.h"
+#include "nsGtkUtils.h"
 
 #include <gtk/gtk.h>
 #include <dlfcn.h>
 #include <glib.h>
+
+#ifdef MOZ_LOGGING
+#  include "mozilla/Logging.h"
+extern mozilla::LazyLogModule gWidgetLog;
+#  define LOGW(...) MOZ_LOG(gWidgetLog, mozilla::LogLevel::Debug, (__VA_ARGS__))
+#else
+#  define LOGW(...)
+#endif /* MOZ_LOGGING */
 
 namespace mozilla::widget {
 
@@ -191,6 +204,243 @@ nsTArray<nsCString> ParseTextURIList(const nsACString& aData) {
 
   g_strfreev(uris);
   return result;
+}
+
+#ifdef MOZ_WAYLAND
+static gboolean token_failed(gpointer aData);
+
+class XDGTokenRequest {
+ public:
+  void SetTokenID(const char* aTokenID) {
+    mTransferPromise->Resolve(aTokenID, __func__);
+  }
+  void Cancel() {
+    mTransferPromise->Reject(false, __func__);
+    mActivationTimeoutID = 0;
+  }
+
+  XDGTokenRequest(xdg_activation_token_v1* aXdgToken,
+                  RefPtr<FocusRequestPromise::Private> aTransferPromise)
+      : mXdgToken(aXdgToken), mTransferPromise(std::move(aTransferPromise)) {
+    mActivationTimeoutID =
+        g_timeout_add(sActivationTimeout, token_failed, this);
+  }
+  ~XDGTokenRequest() {
+    MozClearPointer(mXdgToken, xdg_activation_token_v1_destroy);
+    if (mActivationTimeoutID) {
+      g_source_remove(mActivationTimeoutID);
+    }
+  }
+
+ private:
+  xdg_activation_token_v1* mXdgToken;
+  RefPtr<FocusRequestPromise::Private> mTransferPromise;
+  guint mActivationTimeoutID;
+  // Reject FocusRequestPromise if we don't get XDG token in 0.5 sec.
+  static constexpr int sActivationTimeout = 500;
+};
+
+// Failed to get token in time
+static gboolean token_failed(gpointer data) {
+  UniquePtr<XDGTokenRequest> request(static_cast<XDGTokenRequest*>(data));
+  request->Cancel();
+  return false;
+}
+
+// We've got activation token from Wayland compositor so it's time to use it.
+static void token_done(gpointer data, struct xdg_activation_token_v1* provider,
+                       const char* tokenID) {
+  UniquePtr<XDGTokenRequest> request(static_cast<XDGTokenRequest*>(data));
+  request->SetTokenID(tokenID);
+}
+
+static const struct xdg_activation_token_v1_listener token_listener = {
+    token_done,
+};
+#endif
+
+RefPtr<FocusRequestPromise> RequestWaylandFocusPromise() {
+#ifdef MOZ_WAYLAND
+  if (!GdkIsWaylandDisplay() || !nsWindow::GetFocusedWindow() ||
+      nsWindow::GetFocusedWindow()->IsDestroyed()) {
+    return nullptr;
+  }
+
+  RefPtr<nsWindow> sourceWindow = nsWindow::GetFocusedWindow();
+  if (!sourceWindow) {
+    return nullptr;
+  }
+
+  RefPtr<nsWaylandDisplay> display = WaylandDisplayGet();
+  xdg_activation_v1* xdg_activation = display->GetXdgActivation();
+  if (!xdg_activation) {
+    return nullptr;
+  }
+
+  wl_surface* focusSurface;
+  uint32_t focusSerial;
+  KeymapWrapper::GetFocusInfo(&focusSurface, &focusSerial);
+  if (!focusSurface) {
+    return nullptr;
+  }
+
+  GdkWindow* gdkWindow = gtk_widget_get_window(sourceWindow->GetGtkWidget());
+  if (!gdkWindow) {
+    return nullptr;
+  }
+  wl_surface* surface = gdk_wayland_window_get_wl_surface(gdkWindow);
+  if (focusSurface != surface) {
+    return nullptr;
+  }
+
+  RefPtr<FocusRequestPromise::Private> transferPromise =
+      new FocusRequestPromise::Private(__func__);
+
+  xdg_activation_token_v1* aXdgToken =
+      xdg_activation_v1_get_activation_token(xdg_activation);
+  xdg_activation_token_v1_add_listener(
+      aXdgToken, &token_listener,
+      new XDGTokenRequest(aXdgToken, transferPromise));
+  xdg_activation_token_v1_set_serial(aXdgToken, focusSerial,
+                                     KeymapWrapper::GetSeat());
+  xdg_activation_token_v1_set_surface(aXdgToken, focusSurface);
+  xdg_activation_token_v1_commit(aXdgToken);
+
+  return transferPromise.forget();
+#else  // !defined(MOZ_WAYLAND)
+  return nullptr;
+#endif
+}
+
+// https://specifications.freedesktop.org/wm-spec/1.3/ar01s05.html
+static nsCString GetWindowManagerName() {
+  if (!GdkIsX11Display()) {
+    return {};
+  }
+
+#ifdef MOZ_X11
+  Display* xdisplay = gdk_x11_get_default_xdisplay();
+  Window root_win =
+      GDK_WINDOW_XID(gdk_screen_get_root_window(gdk_screen_get_default()));
+
+  int actual_format_return;
+  Atom actual_type_return;
+  unsigned long nitems_return;
+  unsigned long bytes_after_return;
+  unsigned char* prop_return = nullptr;
+  auto releaseXProperty = MakeScopeExit([&] {
+    if (prop_return) {
+      XFree(prop_return);
+    }
+  });
+
+  Atom property = XInternAtom(xdisplay, "_NET_SUPPORTING_WM_CHECK", true);
+  Atom req_type = XInternAtom(xdisplay, "WINDOW", true);
+  if (!property || !req_type) {
+    return {};
+  }
+  int result =
+      XGetWindowProperty(xdisplay, root_win, property,
+                         0L,                  // offset
+                         sizeof(Window) / 4,  // length
+                         false,               // delete
+                         req_type, &actual_type_return, &actual_format_return,
+                         &nitems_return, &bytes_after_return, &prop_return);
+
+  if (result != Success || bytes_after_return != 0 || nitems_return != 1) {
+    return {};
+  }
+
+  Window wmWindow = reinterpret_cast<Window*>(prop_return)[0];
+  if (!wmWindow) {
+    return {};
+  }
+
+  XFree(prop_return);
+  prop_return = nullptr;
+
+  property = XInternAtom(xdisplay, "_NET_WM_NAME", true);
+  req_type = XInternAtom(xdisplay, "UTF8_STRING", true);
+  if (!property || !req_type) {
+    return {};
+  }
+  result =
+      XGetWindowProperty(xdisplay, wmWindow, property,
+                         0L,         // offset
+                         INT32_MAX,  // length
+                         false,      // delete
+                         req_type, &actual_type_return, &actual_format_return,
+                         &nitems_return, &bytes_after_return, &prop_return);
+  if (result != Success || bytes_after_return != 0) {
+    return {};
+  }
+
+  return nsCString(reinterpret_cast<const char*>(prop_return));
+#else
+  return {};
+#endif
+}
+
+// Getting a reliable identifier is quite tricky. We try to use the standard
+// XDG_CURRENT_DESKTOP environment first, _NET_WM_NAME later, and a set of
+// legacy / non-standard environment variables otherwise.
+//
+// Documentation for some of those can be found in:
+//
+// https://wiki.archlinux.org/title/Environment_variables#Examples
+// https://wiki.archlinux.org/title/Xdg-utils#Environment_variables
+const nsCString& GetDesktopEnvironmentIdentifier() {
+  MOZ_ASSERT(NS_IsMainThread());
+  static const nsDependentCString sIdentifier = [] {
+    nsCString ident = [] {
+      if (const char* currentDesktop = getenv("XDG_CURRENT_DESKTOP")) {
+        return nsCString(currentDesktop);
+      }
+      if (auto wm = GetWindowManagerName(); !wm.IsEmpty()) {
+        return wm;
+      }
+      if (const char* sessionDesktop = getenv("XDG_SESSION_DESKTOP")) {
+        // This is not really standardized in freedesktop.org, but it is
+        // documented here, and should be set in systemd systems.
+        // https://www.freedesktop.org/software/systemd/man/pam_systemd.html#%24XDG_SESSION_DESKTOP
+        return nsCString(sessionDesktop);
+      }
+      // We try first the DE-specific variables, then SESSION_DESKTOP, to match
+      // the documented order in:
+      // https://wiki.archlinux.org/title/Xdg-utils#Environment_variables
+      if (getenv("GNOME_DESKTOP_SESSION_ID")) {
+        return nsCString("gnome"_ns);
+      }
+      if (getenv("KDE_FULL_SESSION")) {
+        return nsCString("kde"_ns);
+      }
+      if (getenv("MATE_DESKTOP_SESSION_ID")) {
+        return nsCString("mate"_ns);
+      }
+      if (getenv("LXQT_SESSION_CONFIG")) {
+        return nsCString("lxqt"_ns);
+      }
+      if (const char* desktopSession = getenv("DESKTOP_SESSION")) {
+        // Try the legacy DESKTOP_SESSION as a last resort.
+        return nsCString(desktopSession);
+      }
+      return nsCString();
+    }();
+    ToLowerCase(ident);
+    // Intentionally put into a ToNewCString copy, rather than just making a
+    // static nsCString to avoid leakchecking errors, since we really want to
+    // leak this string.
+    return nsDependentCString(ToNewCString(ident), ident.Length());
+  }();
+  return sIdentifier;
+}
+
+bool IsGnomeDesktopEnvironment() {
+  return FindInReadable("gnome"_ns, GetDesktopEnvironmentIdentifier());
+}
+
+bool IsKdeDesktopEnvironment() {
+  return GetDesktopEnvironmentIdentifier().EqualsLiteral("kde");
 }
 
 }  // namespace mozilla::widget

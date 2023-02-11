@@ -41,8 +41,8 @@ const known_scripts = {
     "resource://gre/modules/Readerable.jsm",
 
     // Telemetry
-    "resource://gre/modules/TelemetryControllerBase.jsm", // bug 1470339
-    "resource://gre/modules/TelemetryControllerContent.jsm", // bug 1470339
+    "resource://gre/modules/TelemetryControllerBase.sys.mjs", // bug 1470339
+    "resource://gre/modules/TelemetryControllerContent.sys.mjs", // bug 1470339
 
     // Extensions
     "resource://gre/modules/ExtensionProcessScript.jsm",
@@ -64,11 +64,16 @@ if (!gFissionBrowser) {
   );
 }
 
+if (AppConstants.NIGHTLY_BUILD) {
+  // Browser front-end.
+  known_scripts.modules.add("resource:///actors/InteractionsChild.sys.mjs");
+}
+
 // Items on this list *might* load when creating the process, as opposed to
 // items in the main list, which we expect will always load.
 const intermittently_loaded_scripts = {
   modules: new Set([
-    "resource://gre/modules/nsAsyncShutdown.jsm",
+    "resource://gre/modules/nsAsyncShutdown.sys.mjs",
     "resource://gre/modules/sessionstore/Utils.sys.mjs",
 
     // Session store.

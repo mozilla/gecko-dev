@@ -2,17 +2,16 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import os
 import shutil
 import subprocess
 import tempfile
-
-from buildconfig import topsrcdir
 from unittest.mock import Mock
-from mozbuild.vendor.vendor_python import VendorPython
+
 import mozunit
+from buildconfig import topsrcdir
+
+from mozbuild.vendor.vendor_python import VendorPython
 
 
 def test_up_to_date_vendor():

@@ -18,11 +18,8 @@
     let status = "";
 
     add_task(() => {
-      // Enable USB tokens.
       return SpecialPowers.pushPrefEnv({"set": [
-        ["security.webauth.webauthn", true],
         ["security.webauth.webauthn_enable_softtoken", false],
-        ["security.webauth.webauthn_enable_android_fido2", false],
         ["security.webauth.webauthn_enable_usbtoken", true],
       ]});
     });
@@ -71,7 +68,7 @@
     }
 
     // Test that .create() and .get() requests override any pending requests.
-    add_task(async () => {
+    add_task(async function test_override_pending_requests() {
       // Request a new credential.
       await requestMakeCredential("aborted1");
 

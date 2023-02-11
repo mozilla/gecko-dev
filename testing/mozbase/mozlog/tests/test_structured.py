@@ -1,27 +1,17 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
-
 import argparse
 import json
 import optparse
 import os
 import sys
 import unittest
-from six import StringIO
-
-import mozunit
 
 import mozfile
-from mozlog import (
-    commandline,
-    reader,
-    structuredlog,
-    stdadapter,
-    handlers,
-    formatters,
-)
+import mozunit
 import six
+from mozlog import commandline, formatters, handlers, reader, stdadapter, structuredlog
+from six import StringIO
 
 
 class TestHandler(object):

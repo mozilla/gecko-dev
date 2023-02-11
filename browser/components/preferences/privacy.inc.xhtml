@@ -115,20 +115,6 @@
                   <label id="tcp-learn-more-link" class="learnMore" data-l10n-id="content-blocking-etp-standard-tcp-rollout-learn-more" is="text-link"/>
                 </description>
               </vbox>
-              <vbox id="etpStandardTCPRolloutBox" class="content-blocking-warning info-box-container">
-                <hbox>
-                  <checkbox id="etpStandardTCPRollout"
-                            class="content-blocking-warning-title"
-                            data-l10n-id="content-blocking-etp-standard-tcp-rollout-checkbox"
-                            preference="privacy.restrict3rdpartystorage.rollout.enabledByDefault"
-                            flex="1" />
-
-                </hbox>
-                <description class="indent">
-                  <html:span class="tail-with-learn-more" data-l10n-id="content-blocking-etp-standard-tcp-rollout-description"></html:span>
-                  <label id="tcp-rollout-learn-more-link" class="learnMore" data-l10n-id="content-blocking-etp-standard-tcp-rollout-learn-more" is="text-link"/>
-                </description>
-              </vbox>
               <html:div class="content-blocking-warning info-box-container reload-tabs" hidden="true">
                 <html:div class="content-blocking-reload-desc-container">
                   <html:div class="info-icon-container">
@@ -397,6 +383,25 @@
   </hbox>
 </groupbox>
 
+<!-- Cookie Banner Handling -->
+<groupbox id="cookieBannerHandlingGroup" data-category="panePrivacy" data-subcategory="cookiebanner" hidden="true">
+  <label><html:h2 data-l10n-id="cookie-banner-handling-header" /></label>
+  <vbox flex="1">
+    <hbox>
+      <description>
+        <html:span id="cookieBannerReductionExplanation" class="tail-with-learn-more" data-l10n-id="cookie-banner-reject-accept" ></html:span>
+        <label id="cookieBannerHandlingLearnMore" class="learnMore" is="text-link" data-l10n-id="cookie-banner-learn-more"></label>
+      </description>
+    </hbox>
+    <hbox>
+      <checkbox id="handleCookieBanners"
+                preference="cookiebanners.service.mode"
+                data-l10n-id="forms-handle-cookie-banners"
+                flex="1" />
+    </hbox>
+  </vbox>
+</groupbox>
+
 <!-- Passwords -->
 <groupbox id="passwordsGroup" orient="vertical" data-category="panePrivacy" data-subcategory="logins" hidden="true">
   <label><html:h2 data-l10n-id="pane-privacy-logins-and-passwords-header" data-l10n-attrs="searchkeywords"/></label>
@@ -454,6 +459,14 @@
                 search-l10n-ids="forms-saved-logins.label"
                 preference="pref.privacy.disable_button.view_passwords"/>
       </vbox>
+    </hbox>
+    <hbox class="indent" id="relayIntegrationBox" flex="1" align="center">
+      <checkbox id="relayIntegration"
+                class="tail-with-learn-more"
+                data-l10n-id="relay-integration"
+                search-l10n-ids="relay-integration.label" />
+      <label id="relayIntegrationLearnMoreLink" class="learnMore" is="text-link"
+             data-l10n-id="relay-integration-learn-more-link"/>
     </hbox>
     <hbox class="indent" id="breachAlertsBox" flex="1" align="center">
       <checkbox id="breachAlerts"

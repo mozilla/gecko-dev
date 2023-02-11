@@ -380,16 +380,12 @@ class SnapshotIterator {
   IonScript* ionScript_;
   RInstructionResults* instructionResults_;
 
-  enum ReadMethod {
+  enum class ReadMethod : bool {
     // Read the normal value.
-    RM_Normal = 1 << 0,
+    Normal,
 
     // Read the default value, or the normal value if there is no default.
-    RM_AlwaysDefault = 1 << 1,
-
-    // Try to read the normal value if it is readable, otherwise default to
-    // the Default value.
-    RM_NormalOrDefault = RM_Normal | RM_AlwaysDefault,
+    AlwaysDefault,
   };
 
  private:
@@ -413,9 +409,10 @@ class SnapshotIterator {
   bool hasInstructionResults() const { return instructionResults_; }
   Value fromInstructionResult(uint32_t index) const;
 
-  Value allocationValue(const RValueAllocation& a, ReadMethod rm = RM_Normal);
+  Value allocationValue(const RValueAllocation& a,
+                        ReadMethod rm = ReadMethod::Normal);
   [[nodiscard]] bool allocationReadable(const RValueAllocation& a,
-                                        ReadMethod rm = RM_Normal);
+                                        ReadMethod rm = ReadMethod::Normal);
   void writeAllocationValuePayload(const RValueAllocation& a, const Value& v);
   void warnUnreadableAllocation();
 
@@ -425,10 +422,7 @@ class SnapshotIterator {
     MOZ_ASSERT(moreAllocations());
     return snapshot_.readAllocation();
   }
-  Value skip() {
-    snapshot_.skipAllocation();
-    return UndefinedValue();
-  }
+  void skip() { snapshot_.skipAllocation(); }
 
   const RResumePoint* resumePoint() const;
   const RInstruction* instruction() const { return recover_.instruction(); }
@@ -516,7 +510,7 @@ class SnapshotIterator {
     }
 
     *alloc = a;
-    return allocationValue(a, RM_AlwaysDefault);
+    return allocationValue(a, ReadMethod::AlwaysDefault);
   }
 
   Value maybeRead(const RValueAllocation& a, MaybeReadFallback& fallback);

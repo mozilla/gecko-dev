@@ -301,17 +301,14 @@ JSString* js::ObjectToSource(JSContext* cx, HandleObject obj) {
 
   JSStringBuilder buf(cx);
   if (outermost && !buf.append('(')) {
-    buf.failure();
     return nullptr;
   }
   if (!buf.append('{')) {
-    buf.failure();
     return nullptr;
   }
 
   RootedIdVector idv(cx);
   if (!GetPropertyKeys(cx, obj, JSITER_OWNONLY | JSITER_SYMBOLS, &idv)) {
-    buf.failure();
     return nullptr;
   }
 
@@ -489,7 +486,6 @@ JSString* js::ObjectToSource(JSContext* cx, HandleObject obj) {
   for (size_t i = 0; i < idv.length(); ++i) {
     id = idv[i];
     if (!GetOwnPropertyDescriptor(cx, obj, id, &desc)) {
-      buf.failure();
       return nullptr;
     }
 
@@ -501,14 +497,12 @@ JSString* js::ObjectToSource(JSContext* cx, HandleObject obj) {
       if (desc->hasGetter() && desc->getter()) {
         val.setObject(*desc->getter());
         if (!AddProperty(id, val, PropertyKind::Getter)) {
-          buf.failure();
           return nullptr;
         }
       }
       if (desc->hasSetter() && desc->setter()) {
         val.setObject(*desc->setter());
         if (!AddProperty(id, val, PropertyKind::Setter)) {
-          buf.failure();
           return nullptr;
         }
       }
@@ -520,34 +514,24 @@ JSString* js::ObjectToSource(JSContext* cx, HandleObject obj) {
     JSFunction* fun = nullptr;
     if (IsFunctionObject(val, &fun) && fun->isMethod()) {
       if (!AddProperty(id, val, PropertyKind::Method)) {
-        buf.failure();
         return nullptr;
       }
       continue;
     }
 
     if (!AddProperty(id, val, PropertyKind::Normal)) {
-      buf.failure();
       return nullptr;
     }
   }
 
   if (!buf.append('}')) {
-    buf.failure();
     return nullptr;
   }
   if (outermost && !buf.append(')')) {
-    buf.failure();
     return nullptr;
   }
 
-  auto* result = buf.finishString();
-  if (!result) {
-    buf.failure();
-    return nullptr;
-  }
-  buf.ok();
-  return result;
+  return buf.finishString();
 }
 
 static JSString* GetBuiltinTagSlow(JSContext* cx, HandleObject obj) {
@@ -596,9 +580,8 @@ static JSString* GetBuiltinTagSlow(JSContext* cx, HandleObject obj) {
 }
 
 static MOZ_ALWAYS_INLINE JSString* GetBuiltinTagFast(JSObject* obj,
-                                                     const JSClass* clasp,
                                                      JSContext* cx) {
-  MOZ_ASSERT(clasp == obj->getClass());
+  const JSClass* clasp = obj->getClass();
   MOZ_ASSERT(!clasp->isProxyObject());
 
   // Optimize the non-proxy case to bypass GetBuiltinClass.
@@ -727,8 +710,7 @@ bool js::obj_toString(JSContext* cx, unsigned argc, Value* vp) {
 
   // When |obj| is a non-proxy object, compute |builtinTag| only when needed.
   RootedString builtinTag(cx);
-  const JSClass* clasp = obj->getClass();
-  if (MOZ_UNLIKELY(clasp->isProxyObject())) {
+  if (MOZ_UNLIKELY(obj->is<ProxyObject>())) {
     builtinTag = GetBuiltinTagSlow(cx, obj);
     if (!builtinTag) {
       return false;
@@ -745,7 +727,7 @@ bool js::obj_toString(JSContext* cx, unsigned argc, Value* vp) {
   // Step 16.
   if (!tag.isString()) {
     if (!builtinTag) {
-      builtinTag = GetBuiltinTagFast(obj, clasp, cx);
+      builtinTag = GetBuiltinTagFast(obj, cx);
 #ifdef DEBUG
       // Assert this fast path is correct and matches BuiltinTagSlow.
       JSString* builtinTagSlow = GetBuiltinTagSlow(cx, obj);
@@ -761,8 +743,7 @@ bool js::obj_toString(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 17.
-  AutoReportFrontendContext ec(cx);
-  StringBuffer sb(cx, &ec);
+  StringBuffer sb(cx);
   if (!sb.append("[object ") || !sb.append(tag.toString()) || !sb.append(']')) {
     return false;
   }
@@ -783,7 +764,7 @@ JSString* js::ObjectClassToString(JSContext* cx, JSObject* obj) {
                                         cx->wellKnownSymbols().toStringTag)) {
     return nullptr;
   }
-  return GetBuiltinTagFast(obj, obj->getClass(), cx);
+  return GetBuiltinTagFast(obj, cx);
 }
 
 static bool obj_setPrototypeOf(JSContext* cx, unsigned argc, Value* vp) {
@@ -1025,7 +1006,7 @@ static bool TryAssignNative(JSContext* cx, HandleObject to, HandleObject from,
 
   Rooted<PropertyInfoWithKeyVector> props(cx, PropertyInfoWithKeyVector(cx));
 
-  Rooted<Shape*> fromShape(cx, fromNative->shape());
+  Rooted<NativeShape*> fromShape(cx, fromNative->shape());
   for (ShapePropertyIter<NoGC> iter(fromShape); !iter.done(); iter++) {
     // Symbol properties need to be assigned last. For now fall back to the
     // slow path if we see a symbol property.
@@ -1715,7 +1696,7 @@ static bool TryEnumerableOwnPropertiesNative(JSContext* cx, HandleObject obj,
     Rooted<PropertyInfoWithKeyVector> props(cx, PropertyInfoWithKeyVector(cx));
 
     // Collect all non-symbol properties.
-    Rooted<Shape*> objShape(cx, nobj->shape());
+    Rooted<NativeShape*> objShape(cx, nobj->shape());
     for (ShapePropertyIter<NoGC> iter(objShape); !iter.done(); iter++) {
       if (iter->key().isSymbol()) {
         continue;

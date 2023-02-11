@@ -174,6 +174,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "MultiStageAboutWelcome": () => (/* binding */ MultiStageAboutWelcome),
 /* harmony export */   "SecondaryCTA": () => (/* binding */ SecondaryCTA),
 /* harmony export */   "StepsIndicator": () => (/* binding */ StepsIndicator),
+/* harmony export */   "ProgressBar": () => (/* binding */ ProgressBar),
 /* harmony export */   "WelcomeScreen": () => (/* binding */ WelcomeScreen)
 /* harmony export */ });
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(1);
@@ -182,7 +183,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _lib_aboutwelcome_utils__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(3);
 /* harmony import */ var _MultiStageProtonScreen__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(6);
 /* harmony import */ var _LanguageSwitcher__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(11);
-/* harmony import */ var _asrouter_templates_FirstRun_addUtmParams__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(15);
+/* harmony import */ var _asrouter_templates_FirstRun_addUtmParams__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(16);
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -199,6 +200,7 @@ const MultiStageAboutWelcome = props => {
     screens
   } = props;
   const [index, setScreenIndex] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(props.startScreen);
+  const [previousOrder, setPreviousOrder] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(props.startScreen - 1);
   (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
     const screenInitials = screens.map(({
       id
@@ -216,26 +218,11 @@ const MultiStageAboutWelcome = props => {
 
     if (props.updateHistory && index > window.history.state) {
       window.history.pushState(index, "");
-    }
+    } // Remember the previous screen index so we can animate the transition
+
+
+    setPreviousOrder(index);
   }, [index]);
-  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
-    if (props.updateHistory) {
-      // Switch to the screen tracked in state (null for initial state)
-      // or last screen index if a user navigates by pressing back
-      // button from about:home
-      const handler = ({
-        state
-      }) => setScreenIndex(Math.min(state, screens.length - 1)); // Handle page load, e.g., going back to about:welcome from about:home
-
-
-      handler(window.history); // Watch for browser back/forward button navigation events
-
-      window.addEventListener("popstate", handler);
-      return () => window.removeEventListener("popstate", handler);
-    }
-
-    return false;
-  }, []);
   const [flowParams, setFlowParams] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
   const {
     metricsFlowUri
@@ -273,8 +260,44 @@ const MultiStageAboutWelcome = props => {
         window.AWFinish();
       }
     }, props.transitions ? TRANSITION_OUT_TIME : 0);
-  }; // Update top sites with default sites by region when region is available
+  };
 
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    if (props.updateHistory) {
+      // Switch to the screen tracked in state (null for initial state)
+      // or last screen index if a user navigates by pressing back
+      // button from about:home
+      const handler = ({
+        state
+      }) => {
+        if (transition === "out") {
+          return;
+        }
+
+        setTransition(props.transitions ? "out" : "");
+        setTimeout(() => {
+          setTransition(props.transitions ? "in" : "");
+          setScreenIndex(Math.min(state, screens.length - 1));
+        }, props.transitions ? TRANSITION_OUT_TIME : 0);
+      }; // Handle page load, e.g., going back to about:welcome from about:home
+
+
+      const {
+        state
+      } = window.history;
+
+      if (state) {
+        setScreenIndex(Math.min(state, screens.length - 1));
+        setPreviousOrder(Math.min(state, screens.length - 1));
+      } // Watch for browser back/forward button navigation events
+
+
+      window.addEventListener("popstate", handler);
+      return () => window.removeEventListener("popstate", handler);
+    }
+
+    return false;
+  }, []); // Update top sites with default sites by region when region is available
 
   const [region, setRegion] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
   (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
@@ -354,6 +377,7 @@ const MultiStageAboutWelcome = props => {
       isLastCenteredScreen: isLastCenteredScreen,
       stepOrder: stepOrder,
       order: order,
+      previousOrder: previousOrder,
       content: screen.content,
       navigate: handleTransition,
       topSites: topSites,
@@ -402,6 +426,26 @@ const StepsIndicator = props => {
   }
 
   return steps;
+};
+const ProgressBar = ({
+  step,
+  previousStep,
+  totalNumberOfScreens
+}) => {
+  const [progress, setProgress] = react__WEBPACK_IMPORTED_MODULE_0___default().useState(previousStep / totalNumberOfScreens);
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    // We don't need to hook any dependencies because any time the step changes,
+    // the screen's entire DOM tree will be re-rendered.
+    setProgress(step / totalNumberOfScreens);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "indicator",
+    role: "presentation",
+    style: {
+      "--progress-bar-progress": `${progress * 100}%`
+    }
+  });
 };
 class WelcomeScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureComponent) {
   constructor(props) {
@@ -524,6 +568,7 @@ class WelcomeScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCo
       id: this.props.id,
       order: this.props.order,
       stepOrder: this.props.stepOrder,
+      previousOrder: this.props.previousOrder,
       activeTheme: this.props.activeTheme,
       activeMultiSelect: this.props.activeMultiSelect,
       setActiveMultiSelect: this.props.setActiveMultiSelect,
@@ -606,7 +651,7 @@ const Localized = ({
     ...(children === null || children === void 0 ? void 0 : children.props)
   }; // Support nested Localized by starting with their children.
 
-  const textNodes = props.children; // Pick desired fluent or raw/plain text to render.
+  const textNodes = Array.isArray(props.children) ? props.children : [props.children]; // Pick desired fluent or raw/plain text to render.
 
   if (text.string_id) {
     // Set the key so React knows not to reuse when switching to plain text.
@@ -660,9 +705,11 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _CTAParagraph__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(12);
 /* harmony import */ var _HeroImage__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(13);
 /* harmony import */ var _OnboardingVideo__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(14);
+/* harmony import */ var _AdditionalCTA__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(15);
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 
 
 
@@ -707,6 +754,7 @@ const MultiStageProtonScreen = props => {
     isFirstCenteredScreen: props.isFirstCenteredScreen,
     isLastCenteredScreen: props.isLastCenteredScreen,
     stepOrder: props.stepOrder,
+    previousOrder: props.previousOrder,
     autoAdvance: props.autoAdvance,
     isRtamo: props.isRtamo,
     addonName: props.addonName,
@@ -727,12 +775,12 @@ const ProtonScreenActionButtons = props => {
   const defaultValue = (_content$checkbox = content.checkbox) === null || _content$checkbox === void 0 ? void 0 : _content$checkbox.defaultValue;
   const [isChecked, setIsChecked] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(defaultValue || false);
 
-  if (!content.primary_button && !content.secondary_button) {
+  if (!content.primary_button && !content.secondary_button && !content.additional_button) {
     return null;
   }
 
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    className: `action-buttons ${content.dual_action_buttons ? "dual-action-buttons" : ""}`
+    className: `action-buttons ${content.additional_button ? "additional-cta-container" : ""}`
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
     text: (_content$primary_butt = content.primary_button) === null || _content$primary_butt === void 0 ? void 0 : _content$primary_butt.label
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
@@ -747,7 +795,10 @@ const ProtonScreenActionButtons = props => {
     "data-l10n-args": addonName ? JSON.stringify({
       "addon-name": addonName
     }) : ""
-  })), content.checkbox ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+  })), content.additional_button ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_AdditionalCTA__WEBPACK_IMPORTED_MODULE_11__.AdditionalCTA, {
+    content: content,
+    handleAction: props.handleAction
+  }) : null, content.checkbox ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     className: "checkbox-container"
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
     type: "checkbox",
@@ -862,6 +913,36 @@ class ProtonScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCom
     });
   }
 
+  renderStepsIndicator() {
+    const currentStep = (this.props.order ?? 0) + 1;
+    const previousStep = (this.props.previousOrder ?? -1) + 1;
+    const {
+      content,
+      totalNumberOfScreens: total
+    } = this.props;
+    return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      id: "steps",
+      className: `steps${content.progress_bar ? " progress-bar" : ""}`,
+      "data-l10n-id": "onboarding-welcome-steps-indicator-label",
+      "data-l10n-args": JSON.stringify({
+        current: currentStep,
+        total: total ?? 0
+      }),
+      "data-l10n-attrs": "aria-label",
+      role: "progressbar",
+      "aria-valuenow": currentStep,
+      "aria-valuemin": 1,
+      "aria-valuemax": total
+    }, content.progress_bar ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MultiStageAboutWelcome__WEBPACK_IMPORTED_MODULE_6__.ProgressBar, {
+      step: currentStep,
+      previousStep: previousStep,
+      totalNumberOfScreens: total
+    }) : /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MultiStageAboutWelcome__WEBPACK_IMPORTED_MODULE_6__.StepsIndicator, {
+      order: this.props.stepOrder,
+      totalNumberOfScreens: total
+    }));
+  }
+
   renderSecondarySection(content) {
     return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
       className: "section-secondary",
@@ -891,7 +972,7 @@ class ProtonScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCom
   }
 
   render() {
-    var _this$props$appAndSys;
+    var _this$props$appAndSys, _this$props$messageId;
 
     const {
       autoAdvance,
@@ -899,8 +980,7 @@ class ProtonScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCom
       isRtamo,
       isTheme,
       isFirstCenteredScreen,
-      isLastCenteredScreen,
-      totalNumberOfScreens: total
+      isLastCenteredScreen
     } = this.props;
     const includeNoodles = content.has_noodles; // The default screen position is "center"
 
@@ -910,7 +990,6 @@ class ProtonScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCom
     // by checking if screen order is even or odd.
 
     const screenClassName = isCenterPosition ? this.getScreenClassName(isFirstCenteredScreen, isLastCenteredScreen, includeNoodles, content === null || content === void 0 ? void 0 : content.video_container) : "";
-    const currentStep = (this.props.order ?? 0) + 1;
     return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("main", {
       className: `screen ${this.props.id || ""} ${screenClassName} ${textColorClass}`,
       role: "alertdialog",
@@ -952,7 +1031,8 @@ class ProtonScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCom
       "data-l10n-args": JSON.stringify({
         "addon-name": this.props.addonName,
         ...((_this$props$appAndSys = this.props.appAndSystemLocaleInfo) === null || _this$props$appAndSys === void 0 ? void 0 : _this$props$appAndSys.displayNames)
-      })
+      }),
+      "aria-flowto": (_this$props$messageId = this.props.messageId) !== null && _this$props$messageId !== void 0 && _this$props$messageId.includes("FEATURE_TOUR") ? "steps" : ""
     })), content.cta_paragraph ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_CTAParagraph__WEBPACK_IMPORTED_MODULE_8__.CTAParagraph, {
       content: content.cta_paragraph,
       handleAction: this.props.handleAction
@@ -963,22 +1043,7 @@ class ProtonScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCom
       content: content,
       addonName: this.props.addonName,
       handleAction: this.props.handleAction
-    })), hideStepsIndicator ? null : /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-      className: `steps ${content.progress_bar ? "progress-bar" : ""}`,
-      "data-l10n-id": "onboarding-welcome-steps-indicator2",
-      "data-l10n-args": JSON.stringify({
-        current: currentStep,
-        total: total ?? 0
-      }),
-      "data-l10n-attrs": "aria-valuetext",
-      role: "meter",
-      "aria-valuenow": currentStep,
-      "aria-valuemin": 1,
-      "aria-valuemax": total
-    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MultiStageAboutWelcome__WEBPACK_IMPORTED_MODULE_6__.StepsIndicator, {
-      order: this.props.stepOrder,
-      totalNumberOfScreens: total
-    })))));
+    })), hideStepsIndicator ? null : this.renderStepsIndicator())));
   }
 
 }
@@ -1719,6 +1784,48 @@ const OnboardingVideo = props => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "AdditionalCTA": () => (/* binding */ AdditionalCTA)
+/* harmony export */ });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(1);
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _MSLocalized__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(5);
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+const AdditionalCTA = ({
+  content,
+  handleAction
+}) => {
+  var _content$additional_b, _content$additional_b4, _content$additional_b5;
+
+  let buttonStyle = "";
+
+  if (!((_content$additional_b = content.additional_button) !== null && _content$additional_b !== void 0 && _content$additional_b.style)) {
+    buttonStyle = "primary";
+  } else {
+    var _content$additional_b2, _content$additional_b3;
+
+    buttonStyle = ((_content$additional_b2 = content.additional_button) === null || _content$additional_b2 === void 0 ? void 0 : _content$additional_b2.style) === "link" ? "cta-link" : (_content$additional_b3 = content.additional_button) === null || _content$additional_b3 === void 0 ? void 0 : _content$additional_b3.style;
+  }
+
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
+    text: (_content$additional_b4 = content.additional_button) === null || _content$additional_b4 === void 0 ? void 0 : _content$additional_b4.label
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    className: `${buttonStyle} additional-cta`,
+    onClick: handleAction,
+    value: "additional_button",
+    disabled: ((_content$additional_b5 = content.additional_button) === null || _content$additional_b5 === void 0 ? void 0 : _content$additional_b5.disabled) === true
+  }));
+};
+
+/***/ }),
+/* 16 */
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   "BASE_PARAMS": () => (/* binding */ BASE_PARAMS),
 /* harmony export */   "addUtmParams": () => (/* binding */ addUtmParams)
 /* harmony export */ });
@@ -1756,7 +1863,7 @@ function addUtmParams(url, utmTerm) {
 }
 
 /***/ }),
-/* 16 */
+/* 17 */
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
@@ -1767,7 +1874,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var _lib_aboutwelcome_utils__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(3);
 /* harmony import */ var _MultiStageProtonScreen__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(6);
-/* harmony import */ var _asrouter_templates_FirstRun_addUtmParams__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(15);
+/* harmony import */ var _asrouter_templates_FirstRun_addUtmParams__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(16);
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -1962,7 +2069,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react_dom__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(react_dom__WEBPACK_IMPORTED_MODULE_1__);
 /* harmony import */ var _lib_aboutwelcome_utils__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(3);
 /* harmony import */ var _components_MultiStageAboutWelcome__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(4);
-/* harmony import */ var _components_ReturnToAMO__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(16);
+/* harmony import */ var _components_ReturnToAMO__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(17);
 function _extends() { _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends.apply(this, arguments); }
 
 /* This Source Code Form is subject to the terms of the Mozilla Public

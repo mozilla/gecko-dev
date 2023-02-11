@@ -24,7 +24,7 @@ fuzzy-if(!useDrawSnapshot,14-14,44-95) == 1524353.html 1524353-ref.html
 == bug1523410-translate-scale-snap.html bug1523410-translate-scale-snap-ref.html
 == 1523080.html 1523080-ref.html
 == 1616444-same-color-different-paths.html 1616444-same-color-different-paths-ref.html
-skip-if(!asyncPan||Android) fuzzy-if(winWidget,54-112,2707-3430) fuzzy-if(cocoaWidget,24-24,1190-1200) pref(apz.allow_zooming,true) == picture-caching-on-async-zoom.html picture-caching-on-async-zoom.html?ref
+skip-if(!asyncPan||Android) fuzzy-if(winWidget,54-94,2713-3419) fuzzy-if(cocoaWidget,24-24,1190-1200) pref(apz.allow_zooming,true) == picture-caching-on-async-zoom.html picture-caching-on-async-zoom.html?ref
 pref(apz.allow_zooming,true) fails-if(useDrawSnapshot) == 1662062-1-no-blurry.html 1662062-1-ref.html
 # Bug 1715676: nsBulletFrame has been removed and the new rendering does not use PushRoundedRect that this test is for:
 # == 1681610.html 1681610-ref.html
@@ -39,3 +39,5 @@ pref(layout.css.backdrop-filter.enabled,true) == 1765862.html 1765862-ref.html
 != 1792527-1.html 1792527-1-ref.html
 == 1972885.html 1972885-ref.html
 == 1801588-1.html 1801588-1-ref.html
+skip-if(!cocoaWidget) != 1806140.html 1806140-notref.html
+== 1812341.html 1812341-ref.html

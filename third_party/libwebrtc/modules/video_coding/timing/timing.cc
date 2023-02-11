@@ -157,7 +157,9 @@ void VCMTiming::UpdateCurrentDelay(Timestamp render_time,
   TimeDelta target_delay = TargetDelayInternal();
   TimeDelta delayed =
       (actual_decode_time - render_time) + RequiredDecodeTime() + render_delay_;
-  if (delayed < TimeDelta::Zero()) {
+
+  // Only consider `delayed` as negative by more than a few microseconds.
+  if (delayed.ms() < 0) {
     return;
   }
   if (current_delay_ + delayed <= target_delay) {
@@ -230,8 +232,7 @@ TimeDelta VCMTiming::MaxWaitingTime(Timestamp render_time,
       return TimeDelta::Zero();
     }
     Timestamp earliest_next_decode_start_time =
-        last_decode_scheduled_ +
-        static_cast<const webrtc::TimeDelta>(zero_playout_delay_min_pacing_);
+        last_decode_scheduled_ + zero_playout_delay_min_pacing_;
     TimeDelta max_wait_time = now >= earliest_next_decode_start_time
                                   ? TimeDelta::Zero()
                                   : earliest_next_decode_start_time - now;

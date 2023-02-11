@@ -29,6 +29,7 @@ categories:
         - services
         - uriloader
         - widget/cocoa
+        - widget/windows
         - accessible
         - code-quality
         - writing-rust-code
@@ -45,6 +46,7 @@ categories:
         - tools/moztreedocs
     testing_doc:
         - testing/automated-testing
+        - testing/tests-for-new-config
         - testing/intermittent
         - testing/testing-policy
         - testing/ci-configs
@@ -63,6 +65,8 @@ categories:
         - testing/perfdocs
         - tools/code-coverage
         - testing-rust-code
+    release_doc:
+        - update-infrastructure
     l10n_doc:
         - intl
         - l10n
@@ -105,4 +109,4 @@ redirects:
     xpcom/xpcom: xpcom
 
 fatal warnings:
-    - "WARNING: '([^']*)' reference target not found:"
+    - "WARNING: '([^']*)' reference target not found:((?!.rst).)*$"

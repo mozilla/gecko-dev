@@ -95,24 +95,9 @@ interface nsINavBookmarkObserver : nsISupports
 interface nsINavBookmarksService : nsISupports
 {
   /**
-   * The item ID of the Places root.
-   */
-  readonly attribute long long placesRoot;
-
-  /**
-   * The item ID of the bookmarks menu folder.
-   */
-  readonly attribute long long bookmarksMenuFolder;
-
-  /**
    * The item ID of the top-level folder that contain the tag "folders".
    */
   readonly attribute long long tagsFolder;
-
-  /**
-   * The item ID of the personal toolbar folder.
-   */
-  readonly attribute long long toolbarFolder;
 
   /**
    * The total number of Sync changes (inserts, updates, deletes, merges, and
@@ -299,11 +284,6 @@ interface nsINavBookmarksService : nsISupports
   void setItemLastModified(in long long aItemId,
                            in PRTime aLastModified,
                            [optional] in unsigned short aSource);
-
-  /**
-   * Get the parent folder's id for an item.
-   */
-  long long getFolderIdForItem(in long long aItemId);
 
   /**
    * Adds a bookmark observer. If ownsWeak is false, the bookmark service will

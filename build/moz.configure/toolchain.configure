@@ -372,8 +372,12 @@ def get_compiler_info(compiler, language):
                 version = Version("11.1.0")
             elif version < "13.0.1":
                 version = Version("12.0.0")
+            elif version < "14.0":
+                version = Version("13.0.0")
+            elif version < "15.0":
+                version = Version("14.0.0")
             else:
-                version = Version("12.0.0.or.more")
+                version = Version("14.0.0.or.more")
 
     return namespace(
         type=type,
@@ -534,52 +538,81 @@ option(
 )
 
 
-@depends("--with-visual-studio-version", when=host_is_windows)
-def vs_major_version(value):
-    if value:
-        return {"2017": 15}[value[0]]
+@depends_if("--with-visual-studio-version", when=host_is_windows)
+def vs_version(value):
+    return value[0]
+
+
+@depends(target, host)
+def is_windows(target, host):
+    return host.kernel == "WINNT" or target.kernel == "WINNT"
+
+
+# Calling this a sysroot is a little weird, but it's the terminology clang went
+# with with its -winsysroot flag.
+option(
+    env="WINSYSROOT",
+    nargs=1,
+    when=is_windows,
+    help='Path to a Windows "sysroot" (directory containing MSVC, SDKs)',
+)
+
+
+@depends_if("WINSYSROOT", when=is_windows)
+def winsysroot(winsysroot):
+    return winsysroot[0]
 
 
 option(
     env="VC_PATH",
     nargs=1,
-    when=host_is_windows,
+    when=is_windows,
     help="Path to the Microsoft Visual C/C++ compiler",
 )
 
 
 @depends(
     host,
-    vs_major_version,
+    vs_version,
     build_environment,
     "VC_PATH",
-    "--with-visual-studio-version",
-    when=host_is_windows,
+    winsysroot,
+    when=is_windows,
 )
+@imports("os")
 @imports(_from="operator", _import="itemgetter")
-def vc_compiler_paths_for_version(
-    host, vs_major_version, env, vc_path, vs_release_name
-):
-    if vc_path and vs_release_name:
-        die("VC_PATH and --with-visual-studio-version cannot be used together.")
+def vc_compiler_paths_for_version(host, vs_version, env, vc_path, winsysroot):
+    if (vc_path or winsysroot) and vs_version:
+        var = "VC_PATH" if vc_path else "WINSYSROOT"
+        die(f"{var} and --with-visual-studio-version cannot be used together.")
+    if winsysroot:
+        if vc_path:
+            die("WINSYSROOT and VC_PATH cannot be set together.")
+        base_vc_path = os.path.join(winsysroot, "VC", "Tools", "MSVC")
+        versions = os.listdir(base_vc_path)
+        vc_path = [os.path.join(base_vc_path, str(max(Version(v) for v in versions)))]
     if vc_path:
         # Use an arbitrary version, it doesn't matter.
         all_versions = [(Version("15"), vc_path[0])]
+    elif host.kernel != "WINNT":
+        # Don't try to do anything when VC_PATH is not set on cross-compiles.
+        return
     else:
         all_versions = sorted(get_vc_paths(env.topsrcdir), key=itemgetter(0))
     if not all_versions:
         return
-    if vs_major_version:
+    if vs_version:
+        vs_major_version = {"2017": 15}[vs_version]
         versions = [d for (v, d) in all_versions if v.major == vs_major_version]
         if not versions:
-            die("Visual Studio %s could not be found!" % vs_release_name)
+            die("Visual Studio %s could not be found!" % vs_version)
         path = versions[0]
     else:
         # Choose the newest version.
         path = all_versions[-1][1]
     host_dir = {
-        "x86_64": "HostX64",
-        "x86": "HostX86",
+        "x86_64": "Hostx64",
+        "x86": "Hostx86",
     }.get(host.cpu)
     if host_dir:
         path = os.path.join(path, "bin", host_dir)
@@ -591,7 +624,7 @@ def vc_compiler_paths_for_version(
         }
 
 
-@depends(target, vc_compiler_paths_for_version, when=host_is_windows)
+@depends(target, vc_compiler_paths_for_version, when=is_windows)
 def vc_compiler_path(target, paths):
     vc_target = {
         "x86": "x86",
@@ -1152,6 +1185,8 @@ def compiler(
         sysroot,
         macos_target,
         multiarch_dir,
+        winsysroot,
+        host,
     )
     @checking("whether %s can be used" % what, lambda x: bool(x))
     @imports(_from="mozbuild.shellutil", _import="quote")
@@ -1164,6 +1199,8 @@ def compiler(
         sysroot,
         macos_target,
         multiarch_dir,
+        winsysroot,
+        host,
     ):
         wrapper = list(compiler_wrapper or ())
         flags = []
@@ -1280,6 +1317,23 @@ def compiler(
                     "Only clang-cl 8.0 or newer is supported (found version %s)"
                     % info.version
                 )
+            if winsysroot and host.os != "WINNT":
+                overlay = os.path.join(winsysroot, "overlay.yaml")
+                if os.path.exists(overlay):
+                    overlay_flags = ["-Xclang", "-ivfsoverlay", "-Xclang", overlay]
+                    if info.version >= "16.0" or (
+                        # clang-cl 15 normally doesn't support the root-relative
+                        # overlay we use, but the bootstrapped clang-cl 15 is patched
+                        # to support it, so check we're using a patched version.
+                        info.version >= "15.0"
+                        and try_preprocess(
+                            wrapper + [compiler] + flags + overlay_flags,
+                            language,
+                            "",
+                            onerror=lambda: False,
+                        )
+                    ):
+                        flags.extend(overlay_flags)
 
         # If you want to bump the version check here ensure the version
         # is known for Xcode in get_compiler_info.
@@ -1492,10 +1546,17 @@ set_config("CXX_IS_ICECREAM", cxx_is_icecream)
 #   lld is not used by default on Linux and Android because it introduces layout changes
 #   that prevent elfhack from working. See e.g.
 #   https://bugzilla.mozilla.org/show_bug.cgi?id=1563654#c2.
-@depends(target)
-def is_linker_option_enabled(target):
-    if target.kernel not in ("WINNT", "SunOS"):
-        return True
+@template
+def is_not_winnt_or_sunos(host_or_target):
+    @depends(host_or_target)
+    def is_not_winnt_or_sunos(host_or_target):
+        if host_or_target.kernel not in ("WINNT", "SunOS"):
+            return True
+
+    return is_not_winnt_or_sunos
+
+
+is_linker_option_enabled = is_not_winnt_or_sunos(target)
 
 
 @deprecated_option("--enable-gold", env="MOZ_FORCE_GOLD", when=is_linker_option_enabled)
@@ -1556,7 +1617,7 @@ def select_linker_tmpl(host_or_target):
             developer_options,
             dependable(None),
             host,
-            when=is_linker_option_enabled,
+            when=is_not_winnt_or_sunos(host_or_target),
         )
         host_or_target_str = "host"
 
@@ -1658,7 +1719,10 @@ def select_linker_tmpl(host_or_target):
             result = try_linker("lld")
         elif (
             linker is None
-            and developer_options
+            and (
+                developer_options
+                or (host_or_target_str == "host" and c_compiler.type == "clang")
+            )
             and (result is None or result.KIND in ("bfd", "gold"))
         ):
             # try and use lld if available.
@@ -2067,13 +2131,6 @@ set_config("PREPROCESS_OPTION", preprocess_option)
 
 # We only want to include windows.configure when we are compiling on
 # Windows, or for Windows.
-
-
-@depends(target, host)
-def is_windows(target, host):
-    return host.kernel == "WINNT" or target.kernel == "WINNT"
-
-
 include("windows.configure", when=is_windows)
 
 

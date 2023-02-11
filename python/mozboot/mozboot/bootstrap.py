@@ -25,6 +25,10 @@ from mach.util import (
     to_optional_str,
     win_to_msys_path,
 )
+from mozbuild.base import MozbuildObject
+from mozfile import which
+from packaging.version import Version
+
 from mozboot.archlinux import ArchlinuxBootstrapper
 from mozboot.base import MODERN_RUST_VERSION
 from mozboot.centosfedora import CentOSFedoraBootstrapper
@@ -39,9 +43,6 @@ from mozboot.osx import OSXBootstrapper, OSXBootstrapperLight
 from mozboot.solus import SolusBootstrapper
 from mozboot.void import VoidBootstrapper
 from mozboot.windows import WindowsBootstrapper
-from mozbuild.base import MozbuildObject
-from mozfile import which
-from packaging.version import Version
 
 APPLICATION_CHOICE = """
 Note on Artifact Mode:
@@ -124,6 +125,13 @@ DEBIAN_DISTROS = (
     "tuxedo",
 )
 
+FEDORA_DISTROS = (
+    "centos",
+    "fedora",
+    "rocky",
+    "oracle",
+)
+
 ADD_GIT_CINNABAR_PATH = """
 To add git-cinnabar to the PATH, edit your shell initialization script, which
 may be called {prefix}/.bash_profile or {prefix}/.profile, and add the following
@@ -182,7 +190,7 @@ class Bootstrapper(object):
                 full_distribution_name=False
             )
 
-            if dist_id in ("centos", "fedora", "rocky"):
+            if dist_id in FEDORA_DISTROS:
                 cls = CentOSFedoraBootstrapper
                 args["distro"] = dist_id
             elif dist_id in DEBIAN_DISTROS:

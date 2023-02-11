@@ -277,7 +277,7 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "CSSConditionRule", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "CSSContainerRule", insecureContext: true, nightly: true },
+  { name: "CSSContainerRule", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "CSSCounterStyleRule", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -417,11 +417,19 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "FileSystemDirectoryEntry", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "FileSystemDirectoryHandle", nightly: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "FileSystemDirectoryReader", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "FileSystemEntry", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "FileSystemFileEntry", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "FileSystemFileHandle", nightly: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "FileSystemHandle", nightly: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "FileSystemWritableFileStream", nightly: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "FocusEvent", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -1516,7 +1524,7 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "onabort", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "onabsolutedeviceorientation", insecureContext: true },
+  { name: "ondeviceorientationabsolute", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "onafterprint", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -1550,7 +1558,11 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "oncontextmenu", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "oncopy", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "oncuechange", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "oncut", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "ondblclick", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -1647,6 +1659,8 @@ let interfaceNamesInGlobalScope = [
   { name: "onpagehide", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "onpageshow", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "onpaste", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "onpause", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!

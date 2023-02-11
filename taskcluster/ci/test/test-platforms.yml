@@ -37,11 +37,6 @@ linux1804-32-shippable-qr/opt:
         - linux32-tests
         - linux32-gtest
 
-linux1804-64-tsan-qr/opt:
-    build-platform: linux64-tsan/opt
-    test-sets:
-        - linux-tsan-tests
-
 linux1804-64-qr/opt:
     build-platform: linux64/opt
     test-sets:
@@ -79,6 +74,13 @@ linux1804-64-qr/debug:
 
 linux1804-64-asan-qr/opt:
     build-platform: linux64-asan/opt
+    test-sets:
+        - linux1804-tests
+        - mochitest-webgpu
+        - web-platform-tests
+
+linux1804-64-tsan-qr/opt:
+    build-platform: linux64-tsan/opt
     test-sets:
         - linux1804-tests
         - mochitest-webgpu
@@ -212,7 +214,10 @@ windows10-64-2004-qr/debug:
 
 windows10-64-2004-qr/opt:
     build-platform: win64/opt
-    build-signing-label: build-signing-win64/opt
+    build-signing-label:
+        by-variant:
+            msix: repackage-signing-msix-win64/opt
+            default: build-signing-win64/opt
     test-sets:
         - awsy
         - desktop-screenshot-capture
@@ -377,32 +382,42 @@ android-hw-p2-8-0-arm7-qr/opt:
     build-platform: android-arm/opt
     test-sets:
         - android-hw-browsertime
-        - android-hw-arm7-pgo-unittests
 
 android-hw-p2-8-0-arm7-shippable-qr/opt:
     build-platform: android-arm-shippable/opt
     test-sets:
         - android-hw-browsertime
+
+# android-hw-p5-13-0 Google Pixel 5 Android 13.0
+
+android-hw-p5-13-0-arm7-qr/opt:
+    build-platform: android-arm/opt
+    test-sets:
         - android-hw-arm7-pgo-unittests
 
-android-hw-p2-8-0-arm7-qr/debug:
+android-hw-p5-13-0-arm7-shippable-qr/opt:
+    build-platform: android-arm-shippable/opt
+    test-sets:
+        - android-hw-arm7-pgo-unittests
+
+android-hw-p5-13-0-arm7-qr/debug:
     build-platform: android-arm/debug
     test-sets:
         - android-hw-arm7-debug-unittests
 
-android-hw-p2-8-0-android-aarch64-qr/debug:
+android-hw-p5-13-0-android-aarch64-qr/debug:
     build-platform: android-aarch64/debug
     test-sets:
         - android-hw-aarch64
         - android-hw-aarch64-debug-unittests
 
-android-hw-p2-8-0-android-aarch64-qr/opt:
+android-hw-p5-13-0-android-aarch64-qr/opt:
     build-platform: android-aarch64/opt
     test-sets:
         - android-hw-aarch64
         - android-hw-aarch64-opt-unittests
 
-android-hw-p2-8-0-android-aarch64-shippable-qr/opt:
+android-hw-p5-13-0-android-aarch64-shippable-qr/opt:
     build-platform: android-aarch64-shippable/opt
     test-sets:
         - android-hw-aarch64

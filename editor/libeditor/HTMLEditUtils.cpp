@@ -88,6 +88,11 @@ template EditorRawDOMPoint HTMLEditUtils::GetNextEditablePoint(
     InvisibleWhiteSpaces aInvisibleWhiteSpaces,
     TableBoundary aHowToTreatTableBoundary);
 
+template nsIContent* HTMLEditUtils::GetContentToPreserveInlineStyles(
+    const EditorDOMPoint& aPoint, const Element& aEditingHost);
+template nsIContent* HTMLEditUtils::GetContentToPreserveInlineStyles(
+    const EditorRawDOMPoint& aPoint, const Element& aEditingHost);
+
 template EditorDOMPoint HTMLEditUtils::GetBetterInsertionPointFor(
     const nsIContent& aContentToInsert, const EditorDOMPoint& aPointToInsert,
     const Element& aEditingHost);
@@ -211,6 +216,16 @@ bool HTMLEditUtils::IsDisplayOutsideInline(const Element& aElement) {
   }
   return elementStyle->StyleDisplay()->DisplayOutside() ==
          StyleDisplayOutside::Inline;
+}
+
+bool HTMLEditUtils::IsDisplayInsideFlowRoot(const Element& aElement) {
+  RefPtr<const ComputedStyle> elementStyle =
+      nsComputedDOMStyle::GetComputedStyleNoFlush(&aElement);
+  if (!elementStyle) {
+    return false;
+  }
+  return elementStyle->StyleDisplay()->DisplayInside() ==
+         StyleDisplayInside::FlowRoot;
 }
 
 bool HTMLEditUtils::IsRemovableInlineStyleElement(Element& aElement) {
@@ -1920,6 +1935,42 @@ EditAction HTMLEditUtils::GetEditActionForAlignment(
   return EditAction::eSetAlignment;
 }
 
+// static
+template <typename EditorDOMPointType>
+nsIContent* HTMLEditUtils::GetContentToPreserveInlineStyles(
+    const EditorDOMPointType& aPoint, const Element& aEditingHost) {
+  MOZ_ASSERT(aPoint.IsSetAndValid());
+  if (MOZ_UNLIKELY(!aPoint.IsInContentNode())) {
+    return nullptr;
+  }
+  // If it points middle of a text node, use it.  Otherwise, scan next visible
+  // thing and use the style of following text node if there is.
+  if (aPoint.IsInTextNode() && !aPoint.IsEndOfContainer()) {
+    return aPoint.template ContainerAs<nsIContent>();
+  }
+  for (auto point = aPoint.template To<EditorRawDOMPoint>(); point.IsSet();) {
+    WSScanResult nextVisibleThing =
+        WSRunScanner::ScanNextVisibleNodeOrBlockBoundary(&aEditingHost, point);
+    if (nextVisibleThing.InVisibleOrCollapsibleCharacters()) {
+      return nextVisibleThing.TextPtr();
+    }
+    // Ignore empty inline container elements because it's not visible for
+    // users so that using the style will appear suddenly from point of
+    // view of users.
+    if (nextVisibleThing.ReachedSpecialContent() &&
+        nextVisibleThing.IsContentEditable() &&
+        nextVisibleThing.GetContent()->IsElement() &&
+        !nextVisibleThing.GetContent()->HasChildNodes() &&
+        HTMLEditUtils::IsContainerNode(*nextVisibleThing.ElementPtr())) {
+      point.SetAfter(nextVisibleThing.ElementPtr());
+      continue;
+    }
+    // Otherwise, we should use style of the container of the start point.
+    break;
+  }
+  return aPoint.template ContainerAs<nsIContent>();
+}
+
 template <typename EditorDOMPointType, typename EditorDOMPointTypeInput>
 EditorDOMPointType HTMLEditUtils::GetBetterInsertionPointFor(
     const nsIContent& aContentToInsert,
@@ -2149,7 +2200,9 @@ size_t HTMLEditUtils::CollectEmptyInlineContainerDescendants(
 
 // static
 bool HTMLEditUtils::ElementHasAttributeExcept(const Element& aElement,
-                                              const nsAtom& aAttribute) {
+                                              const nsAtom& aAttribute1,
+                                              const nsAtom& aAttribute2,
+                                              const nsAtom& aAttribute3) {
   // FYI: This was moved from
   // https://searchfox.org/mozilla-central/rev/0b1543e85d13c30a13c57e959ce9815a3f0fa1d3/editor/libeditor/HTMLStyleEditor.cpp#1626
   for (auto i : IntegerRange<uint32_t>(aElement.GetAttrCount())) {
@@ -2158,8 +2211,21 @@ bool HTMLEditUtils::ElementHasAttributeExcept(const Element& aElement,
       return true;
     }
 
-    if (name->LocalName() == &aAttribute) {
+    if (name->LocalName() == &aAttribute1 ||
+        name->LocalName() == &aAttribute2 ||
+        name->LocalName() == &aAttribute3) {
       continue;  // Ignore the given attribute
+    }
+
+    // Ignore empty style, class and id attributes because those attributes are
+    // not meaningful with empty value.
+    if (name->LocalName() == nsGkAtoms::style ||
+        name->LocalName() == nsGkAtoms::_class ||
+        name->LocalName() == nsGkAtoms::id) {
+      if (aElement.HasNonEmptyAttr(name->LocalName())) {
+        return true;
+      }
+      continue;
     }
 
     // Ignore special _moz attributes

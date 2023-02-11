@@ -2,9 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function
-
 import unittest
+from collections import OrderedDict
 
 from mozunit import main
 
@@ -12,13 +11,11 @@ from mozbuild.util import (
     KeyedDefaultDict,
     List,
     OrderedDefaultDict,
-    ReadOnlyNamespace,
     ReadOnlyDefaultDict,
     ReadOnlyDict,
     ReadOnlyKeyedDefaultDict,
+    ReadOnlyNamespace,
 )
-
-from collections import OrderedDict
 
 
 class TestReadOnlyNamespace(unittest.TestCase):

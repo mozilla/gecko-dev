@@ -296,11 +296,11 @@ export var ChromeMigrationUtils = {
         "Chrome Beta": ["google-chrome-beta"],
         "Chrome Dev": ["google-chrome-unstable"],
         Chromium: ["chromium"],
-        "Opera GX": ["Opera-GX"],
+        // Opera GX is not available on Linux.
         // Canary is not available on Linux.
         // Edge is not available on Linux.
-        Opera: ["Opera"],
-        Vivaldi: ["Vivaldi"],
+        Opera: ["opera"],
+        Vivaldi: ["vivaldi"],
       },
     };
     let subfolders = SUB_DIRECTORIES[AppConstants.platform][chromeProjectName];
@@ -432,7 +432,7 @@ export var ChromeMigrationUtils = {
         }
 
         // Check each profile for logins.
-        const dataPath = await migrator.wrappedJSObject._getChromeUserDataPathIfExists();
+        const dataPath = await migrator._getChromeUserDataPathIfExists();
         for (const profile of await migrator.getSourceProfiles()) {
           const path = PathUtils.join(dataPath, profile.id, "Login Data");
           // Skip if login data is missing.

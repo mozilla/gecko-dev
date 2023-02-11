@@ -193,67 +193,6 @@ const webconsoleSpecPrototype = {
     clearMessagesCacheAsync: {
       request: {},
     },
-
-    /**
-     * Get Web Console-related preferences on the server.
-     *
-     * @Arg array preferences
-     *        An array with the preferences you want to retrieve.
-     */
-    getPreferences: {
-      request: {
-        preferences: Arg(0, "array:string"),
-      },
-      response: RetVal("json"),
-    },
-    /**
-     * Set Web Console-related preferences on the server.
-     *
-     * @Arg object preferences
-     *        An object with the preferences you want to change.
-     */
-    setPreferences: {
-      request: {
-        preferences: Arg(0, "json"),
-      },
-      response: RetVal("json"),
-    },
-    /**
-     * Send a HTTP request with the given data.
-     *
-     * @Arg object data
-     *        The details of the HTTP request.
-     */
-    sendHTTPRequest: {
-      request: {
-        request: Arg(0, "json"),
-      },
-      response: RetVal("json"),
-    },
-
-    blockRequest: {
-      request: {
-        filter: Arg(0, "json"),
-      },
-    },
-
-    unblockRequest: {
-      request: {
-        filter: Arg(0, "json"),
-      },
-    },
-
-    setBlockedUrls: {
-      request: {
-        url: Arg(0, "json"),
-      },
-    },
-    getBlockedUrls: {
-      request: {},
-      response: {
-        blockedUrls: RetVal("array:string"),
-      },
-    },
   },
 };
 

@@ -2,8 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import argparse
 import errno
 import itertools
@@ -20,7 +18,6 @@ import tempfile
 import time
 from pathlib import Path
 
-import mozbuild.settings  # noqa need @SettingsProvider hook to execute
 import mozpack.path as mozpath
 from mach.decorators import (
     Command,
@@ -29,6 +26,8 @@ from mach.decorators import (
     SettingsProvider,
     SubCommand,
 )
+
+import mozbuild.settings  # noqa need @SettingsProvider hook to execute
 from mozbuild.base import BinaryNotFoundException, BuildEnvironmentNotFoundException
 from mozbuild.base import MachCommandConditions as conditions
 from mozbuild.base import MozbuildObject
@@ -215,6 +214,8 @@ def cargo(
             append_env["USE_CARGO_JSON_MESSAGE_FORMAT"] = "1"
         if no_errors:
             append_env["CARGO_NO_ERR"] = "1"
+        if cargo_command == "audit":
+            append_env["CARGO_NO_AUTO_ARG"] = "1"
 
         ret = command_context._run_make(
             srcdir=False,

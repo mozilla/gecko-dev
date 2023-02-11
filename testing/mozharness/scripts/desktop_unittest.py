@@ -10,17 +10,15 @@
 author: Jordan Lund
 """
 
-from __future__ import absolute_import
+import copy
+import glob
+import imp
 import json
 import multiprocessing
 import os
 import re
-import sys
-import copy
 import shutil
-import glob
-import imp
-
+import sys
 from datetime import datetime, timedelta
 
 # load modules from parent dir
@@ -34,13 +32,13 @@ from mozharness.base.vcs.vcsbase import MercurialScript
 from mozharness.mozilla.automation import TBPL_EXCEPTION, TBPL_RETRY
 from mozharness.mozilla.mozbase import MozbaseMixin
 from mozharness.mozilla.structuredlog import StructuredOutputParser
-from mozharness.mozilla.testing.errors import HarnessErrorList
-from mozharness.mozilla.testing.unittest import DesktopUnittestOutputParser
 from mozharness.mozilla.testing.codecoverage import (
     CodeCoverageMixin,
     code_coverage_config_options,
 )
+from mozharness.mozilla.testing.errors import HarnessErrorList
 from mozharness.mozilla.testing.testbase import TestingMixin, testing_config_options
+from mozharness.mozilla.testing.unittest import DesktopUnittestOutputParser
 
 SUITE_CATEGORIES = [
     "gtest",
@@ -342,6 +340,7 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
                 "install",
                 "stage-files",
                 "run-tests",
+                "uninstall",
             ],
             require_config_file=require_config_file,
             config={"require_test_zip": True},
@@ -500,8 +499,8 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
             )
         ]
 
-        if self._query_specified_suites("mochitest") is not None:
-            # mochitest is the only thing that needs this
+        if self._query_specified_suites("mochitest", "mochitest-media") is not None:
+            # mochitest-media is the only thing that needs this
             requirements_files.append(
                 os.path.join(
                     dirs["abs_mochitest_dir"],
@@ -525,6 +524,12 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
         if self.symbols_url:
             return self.symbols_url
 
+        # Use simple text substitution to determine the symbols_url from the
+        # installer_url. This will not always work: For signed builds, the
+        # installer_url is likely an artifact in a signing task, which may not
+        # have a symbols artifact. It might be better to use the test target
+        # preferentially, like query_prefixed_build_dir_url() does (for future
+        # consideration, if this code proves troublesome).
         symbols_url = None
         self.info("finding symbols_url based upon self.installer_url")
         if self.installer_url:
@@ -713,7 +718,7 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
                 " '--binary-path' flag"
             )
 
-    def _query_specified_suites(self, category):
+    def _query_specified_suites(self, category, sub_category=None):
         """Checks if the provided suite does indeed exist.
 
         If at least one suite was given and if it does exist, return the suite
@@ -740,7 +745,14 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
         suite = specified_suites[0]
         if suite not in all_suites:
             self.fatal("""Selected suite does not exist!""")
-        return {suite: all_suites[suite]}
+
+        # allow for fine grain suite selection
+        ret_val = all_suites[suite]
+        if sub_category in all_suites:
+            if all_suites[sub_category] != ret_val:
+                return None
+
+        return {suite: ret_val}
 
     def _query_try_flavor(self, category, suite):
         flavors = {
@@ -748,6 +760,7 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
                 ("plain.*", "mochitest"),
                 ("browser-chrome.*", "browser-chrome"),
                 ("mochitest-browser-a11y.*", "browser-a11y"),
+                ("mochitest-browser-media.*", "browser-media"),
                 ("mochitest-devtools-chrome.*", "devtools-chrome"),
                 ("chrome", "chrome"),
             ],
@@ -911,6 +924,12 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
             )
 
     def _stage_xpcshell(self, suites):
+        if "WindowsApps" in self.binary_path:
+            self.log(
+                "Skipping stage xpcshell for MSIX tests because we cannot copy files into the installation directory."
+            )
+            return
+
         self._stage_files(self.config["xpcshell_name"])
         # http3server isn't built for Windows tests or Linux asan/tsan
         # builds. Only stage if the `http3server_name` config is set and if
@@ -949,6 +968,7 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
         # Kill a process tree (including grandchildren) with signal.SIGTERM
         try:
             import signal
+
             import psutil
 
             if pid == os.getpid():
@@ -1094,6 +1114,8 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
                     # Mac specific, but points to abs_app_dir on other
                     # platforms.
                     "abs_res_dir": abs_res_dir,
+                    "binary_path": self.binary_path,
+                    "install_dir": self.install_dir,
                 }
                 options_list = []
                 env = {"TEST_SUITE": suite}
@@ -1276,6 +1298,16 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
         else:
             self.debug("There were no suites to run for %s" % suite_category)
         return True
+
+    def uninstall(self):
+        # Technically, we might miss this step if earlier steps fail badly.
+        # If that becomes a big issue we should consider moving this to
+        # something that is more likely to execute, such as
+        # postflight_run_cmd_suites
+        if "WindowsApps" in self.binary_path:
+            self.uninstall_app(self.binary_path)
+        else:
+            self.log("Skipping uninstall for non-MSIX test")
 
 
 # main {{{1

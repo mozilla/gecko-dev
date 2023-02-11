@@ -2,8 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import os
 import sys
 import textwrap
@@ -11,6 +9,9 @@ import unittest
 
 import mozpack.path as mozpath
 import six
+from mozunit import MockedOpen, main
+from six import StringIO
+
 from mozbuild.configure import ConfigureError, ConfigureSandbox
 from mozbuild.configure.options import (
     InvalidOptionError,
@@ -18,8 +19,6 @@ from mozbuild.configure.options import (
     PositiveOptionValue,
 )
 from mozbuild.util import ReadOnlyNamespace, exec_, memoized_property
-from mozunit import MockedOpen, main
-from six import StringIO
 
 test_data_path = mozpath.abspath(mozpath.dirname(__file__))
 test_data_path = mozpath.join(test_data_path, "data")

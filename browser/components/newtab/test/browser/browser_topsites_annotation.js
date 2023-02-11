@@ -17,11 +17,11 @@ const { XPCOMUtils } = ChromeUtils.import(
 
 ChromeUtils.defineESModuleGetters(this, {
   NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
+  TelemetryTestUtils: "resource://testing-common/TelemetryTestUtils.sys.mjs",
 });
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   PlacesTestUtils: "resource://testing-common/PlacesTestUtils.jsm",
-  TelemetryTestUtils: "resource://testing-common/TelemetryTestUtils.jsm",
   UrlbarTestUtils: "resource://testing-common/UrlbarTestUtils.jsm",
 });
 
@@ -185,8 +185,7 @@ async function openAndTest({
     const openLinkMenuItem = contextMenu.querySelector(
       "#context-openlinkintab"
     );
-    openLinkMenuItem.click();
-    contextMenu.hidePopup();
+    contextMenu.activateItem(openLinkMenuItem);
 
     const tab = await onLoad;
     await onLocationChanged;
@@ -203,8 +202,7 @@ async function openAndTest({
     await onPopup;
     const contextMenu = document.getElementById("contentAreaContextMenu");
     const openLinkMenuItem = contextMenu.querySelector("#context-openlink");
-    openLinkMenuItem.click();
-    contextMenu.hidePopup();
+    contextMenu.activateItem(openLinkMenuItem);
 
     const win = await onLoad;
     await BrowserTestUtils.closeWindow(win);

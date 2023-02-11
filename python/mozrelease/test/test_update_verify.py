@@ -3,17 +3,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function
-
 import os
-from tempfile import mkstemp
 import unittest
 from pathlib import Path
-
-from mozrelease.update_verify import UpdateVerifyConfig, UpdateVerifyError
+from tempfile import mkstemp
 
 import mozunit
 
+from mozrelease.update_verify import UpdateVerifyConfig, UpdateVerifyError
 
 DATA_PATH = Path(__file__).with_name("data")
 

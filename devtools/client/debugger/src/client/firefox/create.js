@@ -157,14 +157,7 @@ export function makeSourceId(sourceResource) {
   //   For now, the debugger arbitrarily picks the first source actor's text content and never
   //   updates it. (See bug 1751063)
   if (sourceResource.url) {
-    // Simplify the top level target source ID's. But we could probably be using the same pattern
-    // and always include the thread actor ID.
-    if (sourceResource.targetFront.isTopLevel) {
-      return `source-${sourceResource.url}`;
-    }
-    const threadActorID = sourceResource.targetFront.getCachedFront("thread")
-      .actorID;
-    return `source-${threadActorID}-${sourceResource.url}`;
+    return `source-url-${sourceResource.url}`;
   }
 
   // Otherwise, we are processing a source without URL.
@@ -173,7 +166,7 @@ export function makeSourceId(sourceResource) {
   // The main way to interact with them is to use a debugger statement from them,
   // or have other panels ask the debugger to open them (like DOM event handlers from the inspector).
   // We can register transient breakpoints against them (i.e. they will only apply to the current source actor instance)
-  return `source-${sourceResource.actor}`;
+  return `source-actor-${sourceResource.actor}`;
 }
 
 /**
@@ -190,7 +183,6 @@ export function createGeneratedSource(sourceResource) {
   return createSourceObject({
     id: makeSourceId(sourceResource),
     url: sourceResource.url,
-    thread: sourceResource.targetFront.getCachedFront("thread").actorID,
     extensionName: sourceResource.extensionName,
     isWasm: !!features.wasm && sourceResource.introductionType === "wasm",
     isExtension:
@@ -208,7 +200,6 @@ export function createGeneratedSource(sourceResource) {
 function createSourceObject({
   id,
   url,
-  thread = null,
   extensionName = null,
   isWasm = false,
   isExtension = false,
@@ -229,9 +220,6 @@ function createSourceObject({
     // The URL object is augmented of a "group" attribute and some other standard attributes
     // are modified from their typical value. See getDisplayURL implementation.
     displayURL: getDisplayURL(url, extensionName),
-
-    // The thread actor id of the thread/target which this source belongs to
-    thread,
 
     // Only set for generated sources that are WebExtension sources.
     // This is especially useful to display the extension name for content scripts
@@ -269,14 +257,11 @@ function createSourceObject({
  *        The ID of the source, computed by source map codebase.
  * @param {String} url
  *        The URL of the original source file.
- * @param {String} thread
- *        The thread actor id of the thread the related generated source belongs to
  */
-export function createSourceMapOriginalSource(id, url, thread) {
+export function createSourceMapOriginalSource(id, url) {
   return createSourceObject({
     id,
     url,
-    thread,
     isOriginal: true,
   });
 }
@@ -293,14 +278,11 @@ export function createSourceMapOriginalSource(id, url, thread) {
  * @param {String} url
  *        The URL of the pretty-printed source file.
  *        This URL doesn't work. It is the URL of the non-pretty-printed file with ":formated" suffix.
- * @param {String} thread
- *        The thread actor id of the thread the related generated source belongs to
  */
-export function createPrettyPrintOriginalSource(id, url, thread) {
+export function createPrettyPrintOriginalSource(id, url) {
   return createSourceObject({
     id,
     url,
-    thread,
     isOriginal: true,
     isPrettyPrinted: true,
   });

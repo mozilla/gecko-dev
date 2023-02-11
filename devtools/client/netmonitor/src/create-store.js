@@ -59,7 +59,7 @@ const {
 /**
  * Configure state and middleware for the Network monitor tool.
  */
-function configureStore(connector, telemetry) {
+function configureStore(connector, commands, telemetry) {
   // Prepare initial state.
   const initialState = {
     filters: new Filters({
@@ -80,8 +80,8 @@ function configureStore(connector, telemetry) {
 
   // Prepare middleware.
   const middleware = applyMiddleware(
-    requestBlocking(connector),
-    thunk({ connector }),
+    requestBlocking(commands),
+    thunk({ connector, commands }),
     prefs,
     batching,
     throttling(connector),

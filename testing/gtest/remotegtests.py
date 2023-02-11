@@ -4,15 +4,12 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, with_statement
-
 import argparse
 import datetime
 import glob
 import os
 import posixpath
 import shutil
-import six
 import sys
 import tempfile
 import time
@@ -22,6 +19,7 @@ import mozcrash
 import mozdevice
 import mozinfo
 import mozlog
+import six
 
 LOGGER_NAME = "gtest"
 log = mozlog.unstructured.getLogger(LOGGER_NAME)

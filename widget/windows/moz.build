@@ -36,6 +36,7 @@ EXPORTS += [
 
 EXPORTS.mozilla += [
     "ShellHeaderOnlyUtils.h",
+    "ToastNotificationHeaderOnlyUtils.h",
     "UrlmonHeaderOnlyUtils.h",
     "WindowsConsole.h",
     "WindowsEventLog.h",
@@ -199,5 +200,7 @@ if CONFIG["CC_TYPE"] == "clang-cl":
         "ToastNotification.cpp",
         "ToastNotificationHandler.cpp",
     ]
+
+SPHINX_TREES["/widget/windows"] = "docs"
 
 REQUIRES_UNIFIED_BUILD = True

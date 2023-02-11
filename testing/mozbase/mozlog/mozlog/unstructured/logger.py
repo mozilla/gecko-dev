@@ -3,24 +3,15 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import
-
-from logging import getLogger as getSysLogger
-from logging import *
+import json
 
 # Some of the build slave environments don't see the following when doing
 # 'from logging import *'
 # see https://bugzilla.mozilla.org/show_bug.cgi?id=700415#c35
-from logging import (
-    getLoggerClass,
-    addLevelName,
-    setLoggerClass,
-    shutdown,
-    debug,
-    info,
-    basicConfig,
-)
-import json
+from logging import *
+from logging import addLevelName, basicConfig, debug
+from logging import getLogger as getSysLogger
+from logging import getLoggerClass, info, setLoggerClass, shutdown
 
 _default_level = INFO
 _LoggerClass = getLoggerClass()

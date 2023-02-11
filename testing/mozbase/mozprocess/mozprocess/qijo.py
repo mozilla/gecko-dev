@@ -2,19 +2,17 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import
-
 from ctypes import (
-    c_void_p,
     POINTER,
-    sizeof,
-    Structure,
-    windll,
-    WinError,
     WINFUNCTYPE,
+    Structure,
+    WinError,
     addressof,
     c_size_t,
     c_ulong,
+    c_void_p,
+    sizeof,
+    windll,
 )
 from ctypes.wintypes import BOOL, BYTE, DWORD, HANDLE, LARGE_INTEGER
 

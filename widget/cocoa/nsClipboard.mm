@@ -5,8 +5,8 @@
 
 #include <algorithm>
 
+#include "mozilla/gfx/2D.h"
 #include "mozilla/Logging.h"
-
 #include "mozilla/Unused.h"
 
 #include "gfxPlatform.h"
@@ -18,44 +18,17 @@
 #include "nsPrimitiveHelpers.h"
 #include "nsIFile.h"
 #include "nsStringStream.h"
-#include "nsDragService.h"
 #include "nsEscape.h"
 #include "nsPrintfCString.h"
 #include "nsObjCExceptions.h"
 #include "imgIContainer.h"
 #include "nsCocoaUtils.h"
 
+using mozilla::LogLevel;
 using mozilla::gfx::DataSourceSurface;
 using mozilla::gfx::SourceSurface;
-using mozilla::LogLevel;
 
 mozilla::StaticRefPtr<nsITransferable> nsClipboard::sSelectionCache;
-
-@implementation UTIHelper
-
-+ (NSString*)stringFromPboardType:(NSString*)aType {
-  if ([aType isEqualToString:kMozWildcardPboardType] ||
-      [aType isEqualToString:kMozCustomTypesPboardType] ||
-      [aType isEqualToString:kPublicUrlPboardType] ||
-      [aType isEqualToString:kPublicUrlNamePboardType] ||
-      [aType isEqualToString:kMozFileUrlsPboardType] ||
-      [aType isEqualToString:(NSString*)kPasteboardTypeFileURLPromise] ||
-      [aType isEqualToString:(NSString*)kPasteboardTypeFilePromiseContent] ||
-      [aType isEqualToString:(NSString*)kUTTypeFileURL] ||
-      [aType isEqualToString:NSStringPboardType] ||
-      [aType isEqualToString:NSPasteboardTypeString] ||
-      [aType isEqualToString:NSPasteboardTypeHTML] || [aType isEqualToString:NSPasteboardTypeRTF] ||
-      [aType isEqualToString:NSPasteboardTypeTIFF] || [aType isEqualToString:NSPasteboardTypePNG]) {
-    return [NSString stringWithString:aType];
-  }
-  NSString* dynamicType = (NSString*)UTTypeCreatePreferredIdentifierForTag(
-      kUTTagClassNSPboardType, (CFStringRef)aType, kUTTypeData);
-  NSString* result = [NSString stringWithString:dynamicType];
-  [dynamicType release];
-  return result;
-}
-
-@end  // UTIHelper
 
 nsClipboard::nsClipboard() : nsBaseClipboard(), mCachedClipboard(-1), mChangeCount(0) {}
 
@@ -201,6 +174,20 @@ nsresult nsClipboard::TransferableFromPasteboard(nsITransferable* aTransferable,
       aTransferable->SetTransferData(flavorStr.get(), genericDataWrapper);
       free(clipboardDataPtr);
       break;
+    } else if (flavorStr.EqualsLiteral(kFileMime)) {
+      NSArray* items = [cocoaPasteboard pasteboardItems];
+      if (!items || [items count] <= 0) {
+        continue;
+      }
+
+      // XXX we don't support multiple clipboard item on DOM and XPCOM interface
+      // for now, so we only get the data from the first pasteboard item.
+      NSPasteboardItem* item = [items objectAtIndex:0];
+      if (!item) {
+        continue;
+      }
+
+      nsCocoaUtils::SetTransferDataForTypeFromPasteboardItem(aTransferable, flavorStr, item);
     } else if (flavorStr.EqualsLiteral(kCustomTypesMime)) {
       NSString* type = [cocoaPasteboard
           availableTypeFromArray:
@@ -436,6 +423,23 @@ nsClipboard::HasDataMatchingFlavors(const nsTArray<nsCString>& aFlavorList, int3
         CLIPBOARD_LOG("    has %s\n", mimeType.get());
         *outResult = true;
         break;
+      }
+    } else if (mimeType.EqualsLiteral(kFileMime)) {
+      NSArray* items = [generalPBoard pasteboardItems];
+      if (items && [items count] > 0) {
+        // XXX we only check the first pasteboard item as we only get data from
+        // first item in TransferableFromPasteboard for now.
+        if (NSPasteboardItem* item = [items objectAtIndex:0]) {
+          if (NSString *availableType = [item
+                  availableTypeFromArray:
+                      [NSArray arrayWithObjects:[UTIHelper
+                                                    stringFromPboardType:(NSString*)kUTTypeFileURL],
+                                                nil]]) {
+            CLIPBOARD_LOG("    has %s\n", mimeType.get());
+            *outResult = true;
+            break;
+          }
+        }
       }
     }
   }

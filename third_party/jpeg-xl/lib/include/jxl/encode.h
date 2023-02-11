@@ -431,6 +431,11 @@ JXL_EXPORT JxlEncoderError JxlEncoderGetError(JxlEncoder* enc);
  * When the return value is not JXL_ENC_ERROR or JXL_ENC_SUCCESS, the encoding
  * requires more JxlEncoderProcessOutput calls to continue.
  *
+ * The caller must guarantee that *avail_out >= 32 when calling
+ * JxlEncoderProcessOutput; otherwise, JXL_ENC_NEED_MORE_OUTPUT will be
+ * returned. It is guaranteed that, if *avail_out >= 32, at least one byte of
+ * output will be written.
+ *
  * This encodes the frames and/or boxes added so far. If the last frame or last
  * box has been added, @ref JxlEncoderCloseInput, @ref JxlEncoderCloseFrames
  * and/or @ref JxlEncoderCloseBoxes must be called before the next
@@ -1172,6 +1177,16 @@ JXL_EXPORT void JxlColorEncodingSetToSRGB(JxlColorEncoding* color_encoding,
  */
 JXL_EXPORT void JxlColorEncodingSetToLinearSRGB(
     JxlColorEncoding* color_encoding, JXL_BOOL is_gray);
+
+/**
+ * Enables usage of expert options.
+ *
+ * At the moment, the only expert option is setting an effort value of 10,
+ * which gives the best compression for pixel-lossless modes but is very slow.
+ *
+ * @param enc encoder object.
+ */
+JXL_EXPORT void JxlEncoderAllowExpertOptions(JxlEncoder* enc);
 
 #if defined(__cplusplus) || defined(c_plusplus)
 }

@@ -2,8 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function
-
 import glob
 import os
 import platform
@@ -11,7 +9,6 @@ import posixpath
 import re
 import shutil
 import signal
-import six
 import subprocess
 import sys
 import telnetlib
@@ -19,7 +16,8 @@ import time
 from distutils.spawn import find_executable
 from enum import Enum
 
-from mozdevice import ADBHost, ADBDeviceFactory
+import six
+from mozdevice import ADBDeviceFactory, ADBHost
 from six.moves import input, urllib
 
 MOZBUILD_PATH = os.environ.get(

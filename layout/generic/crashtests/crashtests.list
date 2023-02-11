@@ -398,7 +398,7 @@ load 551635-1.html
 load 553504-1.xhtml
 load 564368-1.xhtml
 load 564968.xhtml
-asserts(5) load 569193-1.html # absurd sizes
+asserts(5-9) load 569193-1.html # absurd sizes
 load 570160.html
 load 570289-1.html
 load 571618-1.svg
@@ -735,7 +735,7 @@ load 1542441.html
 load 1543140-1.html
 load 1544060-1.html
 load 1544060-2.html
-pref(layout.css.grid-template-subgrid-value.enabled,true) load 1553824.html
+load 1553824.html
 asserts(26-42) load 1554824.html # extreme sizes, column-width: 0em
 load 1555142.html
 load 1560349.html
@@ -759,6 +759,7 @@ load 1586470.html
 load 1588955-very-large-frameset.html
 load 1590569.html
 load 1596310.html
+load 1601819-1.html
 skip load 1608851-1.html # bug 1639947
 load 1608851-2.html
 load 1613210.html
@@ -814,3 +815,4 @@ load 1734015.html
 load 1776079.html
 asserts(0-2) load 1791606.html
 load 1799749.html
+pref(layout.css.content-visibility.enabled,true) asserts(1-4) load 1807958.html # asserts from integer overflow & bogus sizes

@@ -2,13 +2,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function
-
 import os
-import tempfile
 import shutil
+import tempfile
 import zipfile
+
 import mozpack.path as mozpath
+
 from mozbuild.action.exe_7z_archive import archive_exe
 from mozbuild.util import ensureParentDir
 

@@ -2,12 +2,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import
-
 import argparse
 import array
 import re
-import six
 import socket
 import struct
 import subprocess
@@ -15,6 +12,7 @@ import sys
 
 import mozinfo
 import mozlog
+import six
 
 if mozinfo.isLinux:
     import fcntl

@@ -340,29 +340,15 @@ enum class StyleFlexWrap : uint8_t {
   WrapReverse,
 };
 
-// See nsStylePosition
-// NOTE: This is the initial value of the integer-valued 'order' property
-// (rather than an internal numerical representation of some keyword).
-#define NS_STYLE_ORDER_INITIAL 0
-
-#define NS_STYLE_MASONRY_PLACEMENT_PACK (1 << 0)
-#define NS_STYLE_MASONRY_ORDER_DEFINITE_FIRST (1 << 1)
-#define NS_STYLE_MASONRY_AUTO_FLOW_INITIAL_VALUE \
-  (NS_STYLE_MASONRY_PLACEMENT_PACK | NS_STYLE_MASONRY_ORDER_DEFINITE_FIRST)
-
-// 'subgrid' keyword in grid-template-{columns,rows}
-#define NS_STYLE_GRID_TEMPLATE_SUBGRID 0
-
 // CSS Grid <track-breadth> keywords
-// Should not overlap with NS_STYLE_GRID_TEMPLATE_SUBGRID
 enum class StyleGridTrackBreadth : uint8_t {
   MaxContent = 1,
   MinContent = 2,
 };
 
 // defaults per MathML spec
-#define NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER 0.71f
-#define NS_MATHML_DEFAULT_SCRIPT_MIN_SIZE_PT 8
+static constexpr float kMathMLDefaultScriptSizeMultiplier{0.71f};
+static constexpr float kMathMLDefaultScriptMinSizePt{8.f};
 
 // See nsStyleFont
 enum class StyleMathVariant : uint8_t {
@@ -441,8 +427,7 @@ enum class ListStyle : uint8_t {
 };
 
 // See nsStyleList
-#define NS_STYLE_LIST_STYLE_POSITION_INSIDE 0
-#define NS_STYLE_LIST_STYLE_POSITION_OUTSIDE 1
+enum class StyleListStylePosition : uint8_t { Inside, Outside };
 
 // See nsStyleVisibility
 enum class StylePointerEvents : uint8_t {
@@ -473,14 +458,15 @@ enum class StyleObjectFit : uint8_t {
 };
 
 // See nsStyleText
-#define NS_STYLE_TEXT_DECORATION_STYLE_NONE \
-  0  // not in CSS spec, mapped to -moz-none
-#define NS_STYLE_TEXT_DECORATION_STYLE_DOTTED 1
-#define NS_STYLE_TEXT_DECORATION_STYLE_DASHED 2
-#define NS_STYLE_TEXT_DECORATION_STYLE_SOLID 3
-#define NS_STYLE_TEXT_DECORATION_STYLE_DOUBLE 4
-#define NS_STYLE_TEXT_DECORATION_STYLE_WAVY 5
-#define NS_STYLE_TEXT_DECORATION_STYLE_MAX NS_STYLE_TEXT_DECORATION_STYLE_WAVY
+enum class StyleTextDecorationStyle : uint8_t {
+  None,  // not in CSS spec, mapped to -moz-none
+  Dotted,
+  Dashed,
+  Solid,
+  Double,
+  Wavy,
+  Sentinel = Wavy
+};
 
 // See nsStyleDisplay
 enum class StyleTopLayer : uint8_t {
@@ -494,9 +480,6 @@ enum class StyleVisibility : uint8_t {
   Visible,
   Collapse,
 };
-
-// See nsStyleText
-#define NS_STYLE_TABSIZE_INITIAL 8
 
 // See nsStyleText
 enum class StyleWhiteSpace : uint8_t {

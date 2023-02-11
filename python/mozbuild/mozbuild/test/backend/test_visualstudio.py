@@ -2,16 +2,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
-from xml.dom.minidom import parse
 import os
 import unittest
+from xml.dom.minidom import parse
+
+from mozunit import main
 
 from mozbuild.backend.visualstudio import VisualStudioBackend
 from mozbuild.test.backend.common import BackendTester
-
-from mozunit import main
 
 
 class TestVisualStudioBackend(BackendTester):

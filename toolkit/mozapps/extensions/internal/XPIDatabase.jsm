@@ -14,7 +14,12 @@
 
 /* eslint "valid-jsdoc": [2, {requireReturn: false, requireReturnDescription: false, prefer: {return: "returns"}}] */
 
-var EXPORTED_SYMBOLS = ["AddonInternal", "XPIDatabase", "XPIDatabaseReconcile"];
+var EXPORTED_SYMBOLS = [
+  "AddonInternal",
+  "BuiltInThemesHelpers",
+  "XPIDatabase",
+  "XPIDatabaseReconcile",
+];
 
 const { XPCOMUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/XPCOMUtils.sys.mjs"
@@ -64,6 +69,45 @@ XPCOMUtils.defineLazyGetter(lazy, "BuiltInThemes", () => {
   }
   return undefined;
 });
+
+// A set of helpers to account from a single place that in some builds
+// (e.g. GeckoView and Thunderbird) the BuiltInThemes module may either
+// not be bundled at all or not be exposing the same methods provided
+// by the module as defined in Firefox Desktop.
+const BuiltInThemesHelpers = {
+  getLocalizedColorwayGroupName(addonId) {
+    return lazy.BuiltInThemes?.getLocalizedColorwayGroupName?.(addonId);
+  },
+
+  getLocalizedColorwayDescription(addonId) {
+    return lazy.BuiltInThemes?.getLocalizedColorwayGroupDescription?.(addonId);
+  },
+
+  isActiveTheme(addonId) {
+    return lazy.BuiltInThemes?.isActiveTheme?.(addonId);
+  },
+
+  isRetainedExpiredTheme(addonId) {
+    return lazy.BuiltInThemes?.isRetainedExpiredTheme?.(addonId);
+  },
+
+  themeIsExpired(addonId) {
+    return lazy.BuiltInThemes?.themeIsExpired?.(addonId);
+  },
+
+  // Helper function called form XPInstall.jsm to remove from the retained themes
+  // list the built-in colorways theme that have been migrated to a non built-in.
+  unretainMigratedColorwayTheme(addonId) {
+    lazy.BuiltInThemes?.unretainMigratedColorwayTheme?.(addonId);
+  },
+};
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  BuiltInThemesHelpers,
+  "isColorwayMigrationEnabled",
+  "browser.theme.colorway-migration",
+  false
+);
 
 const { nsIBlocklistService } = Ci;
 
@@ -353,6 +397,14 @@ class AddonInternal {
 
   get resolvedRootURI() {
     return lazy.XPIInternal.maybeResolveURI(Services.io.newURI(this.rootURI));
+  }
+
+  get isBuiltinColorwayTheme() {
+    return (
+      this.type === "theme" &&
+      this.location.isBuiltin &&
+      this.id.endsWith("-colorway@mozilla.org")
+    );
   }
 
   /**
@@ -826,6 +878,20 @@ class AddonInternal {
       let isSystem = this.location.isSystem || this.location.isBuiltin;
       // Add-ons that are installed by a file link cannot be upgraded.
       if (!isSystem && !this.location.isLinkedAddon(this.id)) {
+        permissions |= lazy.AddonManager.PERM_CAN_UPGRADE;
+      }
+      // Allow active and retained colorways builtin themes to be updated to the same theme hosted on AMO
+      // (the PERM_CAN_UPGRADE permission will ensure we will be asking AMO for an update,
+      // then the AMO addon xpi will be installed in the profile location, overridden in
+      // the `createUpdate` defined in `XPIInstall.jsm` and called from `UpdateChecker`
+      // `onUpdateCheckComplete` method).
+      if (
+        this.isBuiltinColorwayTheme &&
+        BuiltInThemesHelpers.isColorwayMigrationEnabled &&
+        BuiltInThemesHelpers.themeIsExpired(this.id) &&
+        (BuiltInThemesHelpers.isActiveTheme(this.id) ||
+          BuiltInThemesHelpers.isRetainedExpiredTheme(this.id))
+      ) {
         permissions |= lazy.AddonManager.PERM_CAN_UPGRADE;
       }
     }
@@ -1463,6 +1529,7 @@ function defineAddonWrapperProperty(name, getter) {
   "sitePermissions",
   "siteOrigin",
   "isCorrectlySigned",
+  "isBuiltinColorwayTheme",
 ].forEach(function(aProp) {
   defineAddonWrapperProperty(aProp, function() {
     let addon = addonFor(this);
@@ -1556,7 +1623,7 @@ const updatedAddonFluentIds = new Map([
         // FIXME: Depending on BuiltInThemes here is sort of a hack. Bug 1733466
         // would provide a more generalized way of doing this.
         if (aProp == "description") {
-          return lazy.BuiltInThemes?.getLocalizedColorwayDescription(addon.id);
+          return BuiltInThemesHelpers.getLocalizedColorwayDescription(addon.id);
         }
         // Colorway collections are usually divided into and presented as
         // "groups". A group either contains closely related colorways, e.g.
@@ -1568,7 +1635,7 @@ const updatedAddonFluentIds = new Map([
         // {colorwayGroupName}-colorway@mozilla.org). L10n for colorway group
         // names is optional and falls back on the unlocalized name from the
         // theme's manifest. The intensity part, if present, must be localized.
-        let localizedColorwayGroupName = lazy.BuiltInThemes?.getLocalizedColorwayGroupName(
+        let localizedColorwayGroupName = BuiltInThemesHelpers.getLocalizedColorwayGroupName(
           addon.id
         );
         let [colorwayGroupName, intensity] = addonIdPrefix.split("-", 2);

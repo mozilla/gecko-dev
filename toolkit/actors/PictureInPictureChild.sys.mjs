@@ -165,6 +165,11 @@ export class PictureInPictureLauncherChild extends JSWindowActorChild {
     let scrubberPosition =
       video.currentTime === 0 ? 0 : video.currentTime / video.duration;
 
+    let timestamp = PictureInPictureChild.videoWrapper.formatTimestamp(
+      video.currentTime,
+      video.duration
+    );
+
     // All other requests to toggle PiP should open a new PiP
     // window
     const videoRef = lazy.ContentDOMReference.get(video);
@@ -177,6 +182,7 @@ export class PictureInPictureLauncherChild extends JSWindowActorChild {
       ccEnabled: lazy.DISPLAY_TEXT_TRACKS_PREF,
       webVTTSubtitles: !!video.textTracks?.length,
       scrubberPosition,
+      timestamp,
     });
   }
 
@@ -375,6 +381,16 @@ export class PictureInPictureToggleChild extends JSWindowActorChild {
     }
 
     switch (event.type) {
+      case "touchstart": {
+        // Even if this is a touch event, there may be subsequent click events.
+        // Suppress those events after selecting the toggle to prevent playback changes
+        // when opening the Picture-in-Picture window.
+        if (this.docState.isClickingToggle) {
+          event.stopImmediatePropagation();
+          event.preventDefault();
+        }
+        break;
+      }
       case "change": {
         const { changedKeys } = event;
         if (changedKeys.includes("PictureInPicture:SiteOverrides")) {
@@ -570,6 +586,9 @@ export class PictureInPictureToggleChild extends JSWindowActorChild {
     this.contentWindow.windowRoot.addEventListener("mouseout", this, {
       capture: true,
     });
+    this.contentWindow.windowRoot.addEventListener("touchstart", this, {
+      capture: true,
+    });
   }
 
   removeMouseButtonListeners() {
@@ -595,6 +614,9 @@ export class PictureInPictureToggleChild extends JSWindowActorChild {
       capture: true,
     });
     this.contentWindow.windowRoot.removeEventListener("mouseout", this, {
+      capture: true,
+    });
+    this.contentWindow.windowRoot.removeEventListener("touchstart", this, {
       capture: true,
     });
   }
@@ -839,7 +861,13 @@ export class PictureInPictureToggleChild extends JSWindowActorChild {
         (!state.clickedElement ||
           state.clickedElement.get() != event.originalTarget);
 
-      if (isMouseUpOnOtherElement || event.type == "click") {
+      if (
+        isMouseUpOnOtherElement ||
+        event.type == "click" ||
+        // pointerup event still triggers after a touchstart event. We just need to detect
+        // the pointer type and determine if we got to this part of the code through a touch event.
+        event.pointerType == "touch"
+      ) {
         // The click is complete, so now we reset the state so that
         // we stop suppressing these events.
         state.isClickingToggle = false;
@@ -1689,13 +1717,18 @@ export class PictureInPictureChild extends JSWindowActorChild {
         this.updateWebVTTTextTracksDisplay(cues);
         break;
       }
-      case "timeupdate": {
+      case "timeupdate":
+      case "durationchange": {
         let currentTime = event.target.currentTime;
         let duration = event.target.duration;
         let scrubberPosition = currentTime === 0 ? 0 : currentTime / duration;
-        this.sendAsyncMessage("PictureInPicture:SetScrubberPosition", {
-          scrubberPosition,
-        });
+        this.sendAsyncMessage(
+          "PictureInPicture:SetTimestampAndScrubberPosition",
+          {
+            scrubberPosition,
+            timestamp: this.videoWrapper.formatTimestamp(currentTime, duration),
+          }
+        );
         break;
       }
     }
@@ -1815,8 +1848,8 @@ export class PictureInPictureChild extends JSWindowActorChild {
         break;
       }
       case "PictureInPicture:SetVideoTime": {
-        const { scrubberPosition } = message.data;
-        this.setVideoTime(scrubberPosition);
+        const { scrubberPosition, wasPlaying } = message.data;
+        this.setVideoTime(scrubberPosition, wasPlaying);
         break;
       }
     }
@@ -1826,11 +1859,11 @@ export class PictureInPictureChild extends JSWindowActorChild {
    * Set the current time of the video based of the position of the scrubber
    * @param {Number} scrubberPosition A number between 0 and 1 representing the position of the scrubber
    */
-  setVideoTime(scrubberPosition) {
+  setVideoTime(scrubberPosition, wasPlaying) {
     const video = this.getWeakVideo();
     let duration = this.videoWrapper.getDuration(video);
     let currentTime = scrubberPosition * duration;
-    this.videoWrapper.setCurrentTime(video, currentTime);
+    this.videoWrapper.setCurrentTime(video, currentTime, wasPlaying);
   }
 
   /**
@@ -2608,16 +2641,51 @@ class PictureInPictureChildVideoWrapper {
    *  The originating video source element
    * @param {Number} position
    *  The current playback time of the video
+   * @param {Boolean} wasPlaying
+   *  True if the video was playing before seeking else false
    */
-  setCurrentTime(video, position) {
+  setCurrentTime(video, position, wasPlaying) {
     return this.#callWrapperMethod({
       name: "setCurrentTime",
-      args: [video, position],
+      args: [video, position, wasPlaying],
       fallback: () => {
         video.currentTime = position;
       },
       validateRetVal: retVal => retVal == null,
     });
+  }
+
+  /**
+   * Return hours, minutes, and seconds from seconds
+   * @param {Number} aSeconds
+   *  The time in seconds
+   * @returns {String} Timestamp string
+   **/
+  timeFromSeconds(aSeconds) {
+    aSeconds = isNaN(aSeconds) ? 0 : Math.round(aSeconds);
+    let seconds = Math.floor(aSeconds % 60),
+      minutes = Math.floor((aSeconds / 60) % 60),
+      hours = Math.floor(aSeconds / 3600);
+    seconds = seconds < 10 ? "0" + seconds : seconds;
+    minutes = hours > 0 && minutes < 10 ? "0" + minutes : minutes;
+    return aSeconds < 3600
+      ? `${minutes}:${seconds}`
+      : `${hours}:${minutes}:${seconds}`;
+  }
+
+  /**
+   * Format a timestamp from current time and total duration,
+   * output as a string in the form '0:00 / 0:00'
+   * @param {Number} aCurrentTime
+   *  The current time in seconds
+   * @param {Number} aDuration
+   *  The total duration in seconds
+   * @returns {String} Formatted timestamp
+   **/
+  formatTimestamp(aCurrentTime, aDuration) {
+    return `${this.timeFromSeconds(aCurrentTime)} / ${this.timeFromSeconds(
+      aDuration
+    )}`;
   }
 
   /**

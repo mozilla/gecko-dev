@@ -113,6 +113,8 @@ interface BrowsingContext {
 
   readonly attribute boolean isInBFCache;
 
+  readonly attribute boolean isDiscarded;
+
   /**
    * The sandbox flags on the browsing context. These reflect the value of the
    * sandbox attribute of the associated IFRAME or CSP-protectable content, if
@@ -328,6 +330,10 @@ interface CanonicalBrowsingContext : BrowsingContext {
   readonly attribute URI? currentURI;
 
   undefined clearRestoreState();
+
+  // Force this browsing context, which must correspond to an app window, to
+  // be active regardless of the window being minimized or fully occluded.
+  [SetterThrows] attribute boolean forceAppWindowActive;
 
   /**
    * This allows chrome to override the default choice of whether touch events

@@ -5,8 +5,6 @@
 # This file contains code for managing the Python import scope for Mach. This
 # generally involves populating a Python virtualenv.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import ast
 import enum
 import functools
@@ -692,19 +690,27 @@ class CommandSiteManager:
         def _delete_ignored_egg_info_dirs():
             from pathlib import Path
 
-            from mozversioncontrol import get_repository_from_env
+            from mozversioncontrol import (
+                MissingConfigureInfo,
+                MissingVCSInfo,
+                get_repository_from_env,
+            )
 
-            with get_repository_from_env() as repo:
-                ignored_file_finder = repo.get_ignored_files_finder().find(
-                    "**/*.egg-info"
-                )
+            try:
+                with get_repository_from_env() as repo:
+                    ignored_file_finder = repo.get_ignored_files_finder().find(
+                        "**/*.egg-info"
+                    )
 
-                unique_egg_info_dirs = {
-                    Path(found[0]).parent for found in ignored_file_finder
-                }
+                    unique_egg_info_dirs = {
+                        Path(found[0]).parent for found in ignored_file_finder
+                    }
 
-                for egg_info_dir in unique_egg_info_dirs:
-                    shutil.rmtree(egg_info_dir)
+                    for egg_info_dir in unique_egg_info_dirs:
+                        shutil.rmtree(egg_info_dir)
+
+            except (MissingVCSInfo, MissingConfigureInfo):
+                pass
 
         _delete_ignored_egg_info_dirs()
 

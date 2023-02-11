@@ -41,28 +41,13 @@ using ImportAssertionVector =
     js::Vector<ImportAssertion, 1, js::SystemAllocPolicy>;
 
 /**
- * The HostGetSupportedImportAssertions hook.
+ * Set the supported assertions for the runtime to the given vector.
  *
  * See:
  * https://tc39.es/proposal-import-assertions/#sec-hostgetsupportedimportassertions
- *
- * Get the list of supported import assertions.
  */
-using SupportedAssertionsHook = bool (*)(JSContext* cx,
-                                         ImportAssertionVector& values);
-
-/**
- * Get the HostGetSupportedImportAssertions hook for the runtime.
- */
-extern JS_PUBLIC_API SupportedAssertionsHook
-GetSupportedAssertionsHook(JSRuntime* rt);
-
-/**
- * Set the HostGetSupportedImportAssertions hook for the runtime to the given
- * function.
- */
-extern JS_PUBLIC_API void SetSupportedAssertionsHook(
-    JSRuntime* rt, SupportedAssertionsHook func);
+extern JS_PUBLIC_API void SetSupportedImportAssertions(
+    JSRuntime* rt, const ImportAssertionVector& assertions);
 
 /**
  * The HostResolveImportedModule hook.
@@ -202,6 +187,13 @@ extern JS_PUBLIC_API JSObject* CompileModule(
  */
 extern JS_PUBLIC_API void SetModulePrivate(JSObject* module,
                                            const Value& value);
+/**
+ * Clear the private value associated with a source text module record.
+ *
+ * This is used during unlinking and can be called on a gray module, skipping
+ * the usual checks.
+ */
+extern JS_PUBLIC_API void ClearModulePrivate(JSObject* module);
 
 /**
  * Get the private value associated with a source text module record.

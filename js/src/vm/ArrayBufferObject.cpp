@@ -126,12 +126,10 @@ static Atomic<int32_t, mozilla::ReleaseAcquire> allocatedSinceLastTrigger(0);
 
 int32_t js::LiveMappedBufferCount() { return liveBufferCount; }
 
-bool js::ArrayBufferObject::supportLargeBuffers = true;
-
 [[nodiscard]] static bool CheckArrayBufferTooLarge(JSContext* cx,
                                                    uint64_t nbytes) {
   // Refuse to allocate too large buffers.
-  if (MOZ_UNLIKELY(nbytes > ArrayBufferObject::maxBufferByteLength())) {
+  if (MOZ_UNLIKELY(nbytes > ArrayBufferObject::MaxByteLength)) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_BAD_ARRAY_LENGTH);
     return false;
@@ -993,7 +991,7 @@ inline size_t ArrayBufferObject::associatedBytes() const {
 }
 
 void ArrayBufferObject::setByteLength(size_t length) {
-  MOZ_ASSERT(length <= maxBufferByteLength());
+  MOZ_ASSERT(length <= ArrayBufferObject::MaxByteLength);
   setFixedSlot(BYTE_LENGTH_SLOT, PrivateValue(length));
 }
 
@@ -1095,7 +1093,7 @@ bool ArrayBufferObject::wasmGrowToPagesInPlace(
     return false;
   }
   MOZ_ASSERT(newPages <= wasm::MaxMemoryPages(t) &&
-             newPages.byteLength() <= ArrayBufferObject::maxBufferByteLength());
+             newPages.byteLength() <= ArrayBufferObject::MaxByteLength);
 
   // We have checked against the clamped maximum and so we know we can convert
   // to byte lengths now.
@@ -1150,7 +1148,7 @@ bool ArrayBufferObject::wasmMovingGrowToPages(
     return false;
   }
   MOZ_ASSERT(newPages <= wasm::MaxMemoryPages(t) &&
-             newPages.byteLength() < ArrayBufferObject::maxBufferByteLength());
+             newPages.byteLength() < ArrayBufferObject::MaxByteLength);
 
   // We have checked against the clamped maximum and so we know we can convert
   // to byte lengths now.
@@ -1325,7 +1323,7 @@ template <ArrayBufferObject::FillContents FillType>
 ArrayBufferObject::createBufferAndData(
     JSContext* cx, size_t nbytes, AutoSetNewObjectMetadata&,
     JS::Handle<JSObject*> proto /* = nullptr */) {
-  MOZ_ASSERT(nbytes <= ArrayBufferObject::maxBufferByteLength(),
+  MOZ_ASSERT(nbytes <= ArrayBufferObject::MaxByteLength,
              "caller must validate the byte count it passes");
 
   // Try fitting the data inline with the object by repurposing fixed-slot
@@ -1954,10 +1952,6 @@ JS_PUBLIC_API void* JS::StealArrayBufferContents(JSContext* cx,
 
   AutoRealm ar(cx, unwrappedBuffer);
   return ArrayBufferObject::stealMallocedContents(cx, unwrappedBuffer);
-}
-
-JS_PUBLIC_API void JS::SetLargeArrayBuffersEnabled(bool enable) {
-  ArrayBufferObject::supportLargeBuffers = enable;
 }
 
 JS_PUBLIC_API JSObject* JS::NewMappedArrayBufferWithContents(JSContext* cx,

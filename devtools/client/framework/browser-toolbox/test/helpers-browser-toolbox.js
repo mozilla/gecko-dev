@@ -26,9 +26,6 @@ const {
  *   Destroy the browser toolbox and make sure it exits cleanly.
  *
  * @param {Object}:
- *        - {Boolean} enableBrowserToolboxFission: pass true to enable the OBT.
- *        - {Boolean} enableContentMessages: pass true to log content messages
- *          in the Console.
  *        - {Function} existingProcessClose: if truth-y, connect to an existing
  *          browser toolbox process rather than launching a new one and
  *          connecting to it.  The given function is expected to return an
@@ -36,11 +33,7 @@ const {
  *          awaited in the returned `destroy()` function.  `exitCode` is
  *          asserted to be 0 (success).
  */
-async function initBrowserToolboxTask({
-  enableBrowserToolboxFission,
-  enableContentMessages,
-  existingProcessClose,
-} = {}) {
+async function initBrowserToolboxTask({ existingProcessClose } = {}) {
   if (AppConstants.ASAN) {
     ok(
       false,
@@ -52,10 +45,6 @@ async function initBrowserToolboxTask({
   await pushPref("devtools.debugger.remote-enabled", true);
   await pushPref("devtools.browsertoolbox.enable-test-server", true);
   await pushPref("devtools.debugger.prompt-connection", false);
-
-  if (enableBrowserToolboxFission) {
-    await pushPref("devtools.browsertoolbox.fission", true);
-  }
 
   // This rejection seems to affect all tests using the browser toolbox.
   ChromeUtils.importESModule(
@@ -79,10 +68,6 @@ async function initBrowserToolboxTask({
     );
   } else {
     ok(true, "Connecting to existing browser toolbox");
-    ok(
-      !enableBrowserToolboxFission,
-      "Not trying to control preferences in existing browser toolbox"
-    );
   }
 
   // The port of the DevToolsServer installed in the toolbox process is fixed.
@@ -110,14 +95,6 @@ async function initBrowserToolboxTask({
   const consoleFront = await target.getFront("console");
 
   ok(true, "Connected");
-
-  if (enableContentMessages) {
-    const preferenceFront = await client.mainRoot.getFront("preference");
-    await preferenceFront.setBoolPref(
-      "devtools.browserconsole.contentMessages",
-      true
-    );
-  }
 
   await importFunctions({
     info: msg => dump(msg + "\n"),

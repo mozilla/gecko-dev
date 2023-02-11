@@ -43,16 +43,14 @@ struct GenericAtom {
   // to bytecode emitter, which lookup names in the scope chain to replace names
   // by variable locations.
   struct EmitterName {
-    JSContext* cx;
-    ErrorContext* ec;
+    FrontendContext* fc;
     ParserAtomsTable& parserAtoms;
     CompilationAtomCache& atomCache;
     TaggedParserAtomIndex index;
 
-    EmitterName(JSContext* cx, ErrorContext* ec, ParserAtomsTable& parserAtoms,
+    EmitterName(FrontendContext* fc, ParserAtomsTable& parserAtoms,
                 CompilationAtomCache& atomCache, TaggedParserAtomIndex index)
-        : cx(cx),
-          ec(ec),
+        : fc(fc),
           parserAtoms(parserAtoms),
           atomCache(atomCache),
           index(index) {}
@@ -77,7 +75,7 @@ struct GenericAtom {
 
   // Constructor for atoms managed by an ExtensibleCompilationState, while
   // compiling a script.
-  GenericAtom(JSContext* cx, ErrorContext* ec, ParserAtomsTable& parserAtoms,
+  GenericAtom(FrontendContext* fc, ParserAtomsTable& parserAtoms,
               CompilationAtomCache& atomCache, TaggedParserAtomIndex index);
 
   // Constructors for atoms managed by a CompilationStencil or a

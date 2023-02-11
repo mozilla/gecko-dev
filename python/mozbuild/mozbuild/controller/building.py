@@ -2,8 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import errno
 import getpass
 import io
@@ -571,19 +569,20 @@ class BuildMonitor(MozbuildObject):
                 "Swap in/out (MB): {sin}/{sout}",
             )
 
-    def ccache_stats(self):
+    def ccache_stats(self, ccache=None):
         ccache_stats = None
 
-        ccache = mozfile.which("ccache")
+        if ccache is None:
+            ccache = mozfile.which("ccache")
         if ccache:
-            # With CCache v4.4+ statistics might require --verbose
-            is_version_4_4_or_newer = CCacheStats.check_version_4_4_or_newer(ccache)
+            # With CCache v3.7+ we can use --print-stats
+            has_machine_format = CCacheStats.check_version_3_7_or_newer(ccache)
             try:
                 output = subprocess.check_output(
-                    [ccache, "-s" if not is_version_4_4_or_newer else "-sv"],
+                    [ccache, "--print-stats" if has_machine_format else "-s"],
                     universal_newlines=True,
                 )
-                ccache_stats = CCacheStats(output, is_version_4_4_or_newer)
+                ccache_stats = CCacheStats(output, has_machine_format)
             except ValueError as e:
                 self.log(logging.WARNING, "ccache", {"msg": str(e)}, "{msg}")
         return ccache_stats
@@ -844,8 +843,7 @@ class CCacheStats(object):
     STATS_KEYS = [
         # (key, description)
         # Refer to stats.c in ccache project for all the descriptions.
-        ("stats_zeroed", "stats zero time"),  # Old name prior to ccache 3.4
-        ("stats_zeroed", "stats zeroed"),
+        ("stats_zeroed", ("stats zeroed", "stats zero time")),
         ("stats_updated", "stats updated"),
         ("cache_hit_direct", "cache hit (direct)"),
         ("cache_hit_preprocessed", "cache hit (preprocessed)"),
@@ -879,78 +877,46 @@ class CCacheStats(object):
         ("cache_max_size", "max cache size"),
     ]
 
-    DIRECTORY_DESCRIPTION = "cache directory"
-    PRIMARY_CONFIG_DESCRIPTION = "primary config"
-    SECONDARY_CONFIG_DESCRIPTION = "secondary config"
+    SKIP_LINES = (
+        "cache directory",
+        "primary config",
+        "secondary config",
+    )
 
-    STATS_KEYS_4_4 = [
-        ("stats_updated", "Summary/Stats updated"),
-        (
-            "cache_hit_rate",
-            "Summary/Hits",
-            lambda x: next(iter(re.findall(r"\((.*) %\)", x)), "0.00 %"),
-        ),
-        (
-            "cache_hit_direct",
-            "Summary/Hits/Direct",
-            lambda x: next(iter(re.findall(r"(\d+)\s+/\s+\d+\s+\(", x)), "0"),
-        ),
-        (
-            "cache_hit_preprocessed",
-            "Summary/Hits/Preprocessed",
-            lambda x: next(iter(re.findall(r"(\d+)\s+/\s+\d+\s+\(", x)), "0"),
-        ),
-        ("cache_miss", "Summary/Misses"),
-        ("error", "Summary/Errors"),
-        ("linking", "Uncacheable/Called for linking"),
-        ("preprocessing", "Uncacheable/Called for preprocessing"),
-        ("failed", "Uncacheable/Compilation failed"),
-        ("preprocessor_error", "Uncacheable/Preprocessing failed"),
-        ("cache_file_missing", "Errors/Missing cache file"),
-        ("internal_error", "Errors/Internal error"),
-        ("autoconf", "Uncacheable/Autoconf compile/link"),
-        ("no_input", "Uncacheable/No input file"),
-        ("unsupported_code_directive", "Uncacheable/Unsupported code directive"),
-        ("unsupported_compiler_options", "Uncacheable/Unsupported compiler option"),
-        ("could_not_use_precompiled", "Uncacheable/Could not use precompiled header"),
-        ("compiler_stdout", "Uncacheable/Compiler produced stdout"),
-        ("unsupported_language", "Uncacheable/Unsupported source language"),
-        ("bad_args", "Uncacheable/Bad compiler arguments"),
-        ("num_cleanups", "Primary storage/Cleanups"),
-        ("cache_files", "Primary storage/Files"),
-        # Cache size is reported in GB, see
-        # https://github.com/ccache/ccache/commit/8892814e8a790d615e44262c0005513d6d49f9e1#diff-30ec2bbfafe4c3842c8e35179ef0d3253a66dcc054812e50049d0ca3b10e317fR274
-        (
-            "cache_size",
-            "Primary storage/Cache size (GB)",
-            lambda x: str(
-                float(next(iter(re.findall(r"(.*)\s+/\s+.*\s+\(", x)), "0"))
-                * CCacheStats.GiB
-            ),
-            True,  # Allow to continue evaluation for the next value
-        ),
-        (
-            "cache_max_size",
-            "Primary storage/Cache size (GB)",
-            lambda x: str(
-                float(next(iter(re.findall(r".*\s+/\s+(.*)\s+\(", x)), "0"))
-                * CCacheStats.GiB
-            ),
-        ),
-    ]
-
-    SKIP_KEYS_4_4 = [
-        "Summary/Uncacheable",
-        "Summary/Misses/Direct",
-        "Summary/Misses/Preprocessed",
-        "Primary storage/Hits",
-        "Primary storage/Misses",
-        "Errors/Could not find compiler",
-    ]
-
-    DIRECTORY_DESCRIPTION_4_4 = "Summary/Cache directory"
-    PRIMARY_CONFIG_DESCRIPTION_4_4 = "Summary/Primary config"
-    SECONDARY_CONFIG_DESCRIPTION_4_4 = "Summary/Secondary config"
+    STATS_KEYS_3_7_PLUS = {
+        "stats_zeroed_timestamp": "stats_zeroed",
+        "stats_updated_timestamp": "stats_updated",
+        "direct_cache_hit": "cache_hit_direct",
+        "preprocessed_cache_hit": "cache_hit_preprocessed",
+        # "cache_hit_rate" is not provided
+        "cache_miss": "cache_miss",
+        "called_for_link": "link",
+        "called_for_preprocessing": "preprocessing",
+        "multiple_source_files": "multiple",
+        "compiler_produced_stdout": "stdout",
+        "compiler_produced_no_output": "no_output",
+        "compiler_produced_empty_output": "empty_output",
+        "compile_failed": "failed",
+        "internal_error": "error",
+        "preprocessor_error": "preprocessor_error",
+        "could_not_use_precompiled_header": "cant_use_pch",
+        "could_not_find_compiler": "compiler_missing",
+        "missing_cache_file": "cache_file_missing",
+        "bad_compiler_arguments": "bad_args",
+        "unsupported_source_language": "unsupported_lang",
+        "compiler_check_failed": "compiler_check_failed",
+        "autoconf_test": "autoconf",
+        "unsupported_code_directive": "unsupported_code_directive",
+        "unsupported_compiler_option": "unsupported_compiler_option",
+        "output_to_stdout": "out_stdout",
+        "output_to_a_non_file": "out_device",
+        "no_input_file": "no_input",
+        "error_hashing_extra_file": "bad_extra_file",
+        "cleanups_performed": "num_cleanups",
+        "files_in_cache": "cache_files",
+        "cache_size_kibibyte": "cache_size",
+        # "cache_max_size" is obsolete and not printed anymore
+    }
 
     ABSOLUTE_KEYS = {"cache_files", "cache_size", "cache_max_size"}
     FORMAT_KEYS = {"cache_size", "cache_max_size"}
@@ -959,72 +925,31 @@ class CCacheStats(object):
     MiB = 1024 ** 2
     KiB = 1024
 
-    def __init__(self, output=None, is_version_4_4_or_newer=False):
+    def __init__(self, output=None, has_machine_format=False):
         """Construct an instance from the output of ccache -s."""
         self._values = {}
-        self.cache_dir = ""
-        self.primary_config = ""
-        self.secondary_config = ""
 
         if not output:
             return
 
-        if is_version_4_4_or_newer:
-            self._parse_human_format_4_4_plus(output)
+        if has_machine_format:
+            self._parse_machine_format(output)
         else:
             self._parse_human_format(output)
 
-    def _parse_human_format_4_4_plus(self, content):
-        head = ""
-        subhead = ""
+    def _parse_machine_format(self, output):
+        for line in output.splitlines():
+            line = line.strip()
+            key, _, value = line.partition("\t")
+            stat_key = self.STATS_KEYS_3_7_PLUS.get(key)
+            if stat_key:
+                value = int(value)
+                if key.endswith("_kibibyte"):
+                    value *= 1024
+                self._values[stat_key] = value
 
-        for line in content.splitlines():
-            name = ""
-            if not line:
-                continue
-            if line.startswith("  "):
-                if not line.startswith("    "):
-                    subhead = line.strip().split(":")[0]
-                name = line.strip().split(":")[0]
-                raw_value = ":".join(line.split(":")[1:]).strip()
-                if raw_value:
-                    key = head
-                    if subhead != name:
-                        key += "/{}".format(subhead)
-                    key += "/{}".format(name)
-                    self._parse_line_4_4_plus(key, raw_value)
-            else:
-                head = line.strip(":")
-                subhead = ""
-
-    def _parse_line_4_4_plus(self, key, value):
-        if key.startswith(self.DIRECTORY_DESCRIPTION_4_4):
-            self.cache_dir = value
-        elif key.startswith(self.PRIMARY_CONFIG_DESCRIPTION_4_4):
-            self.primary_config = value
-        elif key.startswith(self.SECONDARY_CONFIG_DESCRIPTION_4_4):
-            self.secondary_config = value
-        else:
-            for seq in self.STATS_KEYS_4_4:
-                stat_key = seq[0]
-                stat_description = seq[1]
-                raw_value = value
-                if len(seq) > 2:
-                    raw_value = seq[2](value)
-                if stat_key not in self._values and key == stat_description:
-                    self._values[stat_key] = self._parse_value(raw_value)
-
-                    # We dont want to break when we need to extract two infos
-                    # from the same line
-                    if len(seq) < 4:
-                        break
-            else:
-                if key not in self.SKIP_KEYS_4_4:
-                    raise ValueError(
-                        "Failed to parse ccache stats output: '{}' '{}'".format(
-                            key, value
-                        )
-                    )
+        (direct, preprocessed, miss) = self.hit_rates()
+        self._values["cache_hit_rate"] = (direct + preprocessed) * 100
 
     def _parse_human_format(self, output):
         for line in output.splitlines():
@@ -1034,28 +959,21 @@ class CCacheStats(object):
 
     def _parse_line(self, line):
         line = six.ensure_text(line)
-        if line.startswith(self.DIRECTORY_DESCRIPTION):
-            self.cache_dir = self._strip_prefix(line, self.DIRECTORY_DESCRIPTION)
-        elif line.startswith(self.PRIMARY_CONFIG_DESCRIPTION):
-            self.primary_config = self._strip_prefix(
-                line, self.PRIMARY_CONFIG_DESCRIPTION
-            )
-        elif line.startswith(self.SECONDARY_CONFIG_DESCRIPTION):
-            self.secondary_config = self._strip_prefix(
-                self._strip_prefix(line, self.SECONDARY_CONFIG_DESCRIPTION),
-                "(readonly)",
-            )
+        for stat_key, stat_description in self.STATS_KEYS:
+            if line.startswith(stat_description):
+                raw_value = self._strip_prefix(line, stat_description)
+                self._values[stat_key] = self._parse_value(raw_value)
+                break
         else:
-            for stat_key, stat_description in self.STATS_KEYS:
-                if line.startswith(stat_description):
-                    raw_value = self._strip_prefix(line, stat_description)
-                    self._values[stat_key] = self._parse_value(raw_value)
-                    break
-            else:
+            if not line.startswith(self.SKIP_LINES):
                 raise ValueError("Failed to parse ccache stats output: %s" % line)
 
     @staticmethod
     def _strip_prefix(line, prefix):
+        if isinstance(prefix, tuple):
+            for p in prefix:
+                line = CCacheStats._strip_prefix(line, p)
+            return line
         return line[len(prefix) :].strip() if line.startswith(prefix) else line
 
     @staticmethod
@@ -1115,7 +1033,6 @@ class CCacheStats(object):
 
     def __sub__(self, other):
         result = CCacheStats()
-        result.cache_dir = self.cache_dir
 
         for k, prefix in self.STATS_KEYS:
             if k not in self._values and k not in other._values:
@@ -1135,11 +1052,6 @@ class CCacheStats(object):
         LEFT_ALIGN = 34
         lines = []
 
-        if self.cache_dir:
-            lines.append(
-                "%s%s" % (self.DIRECTORY_DESCRIPTION.ljust(LEFT_ALIGN), self.cache_dir)
-            )
-
         for stat_key, stat_description in self.STATS_KEYS:
             if stat_key not in self._values:
                 continue
@@ -1150,6 +1062,9 @@ class CCacheStats(object):
                 value = "%15s" % self._format_value(value)
             else:
                 value = "%8u" % value
+
+            if isinstance(stat_description, tuple):
+                stat_description = stat_description[0]
 
             lines.append("%s%s" % (stat_description.ljust(LEFT_ALIGN), value))
 
@@ -1176,14 +1091,14 @@ class CCacheStats(object):
             return "%.1f Kbytes" % (float(v) / CCacheStats.KiB)
 
     @staticmethod
-    def check_version_4_4_or_newer(ccache):
+    def check_version_3_7_or_newer(ccache):
         output_version = subprocess.check_output(
             [ccache, "--version"], universal_newlines=True
         )
-        return CCacheStats._is_version_4_4_or_newer(output_version)
+        return CCacheStats._is_version_3_7_or_newer(output_version)
 
     @staticmethod
-    def _is_version_4_4_or_newer(output):
+    def _is_version_3_7_or_newer(output):
         if "ccache version" not in output:
             return False
 
@@ -1197,7 +1112,7 @@ class CCacheStats(object):
                 minor = int(version.group(2))
                 break
 
-        return ((major << 8) + minor) >= ((4 << 8) + 4)
+        return ((major << 8) + minor) >= ((3 << 8) + 7)
 
 
 class BuildDriver(MozbuildObject):
@@ -1231,7 +1146,6 @@ class BuildDriver(MozbuildObject):
         warnings_path = self._get_state_filename("warnings.json")
         monitor = self._spawn(BuildMonitor)
         monitor.init(warnings_path)
-        ccache_start = monitor.ccache_stats()
         footer = BuildProgressFooter(self.log_manager.terminal, monitor)
 
         # Disable indexing in objdir because it is not necessary and can slow
@@ -1304,6 +1218,12 @@ class BuildDriver(MozbuildObject):
                     return config_rc
 
                 config = self.reload_config_environment()
+
+            if config.substs.get("MOZ_USING_CCACHE"):
+                ccache = config.substs.get("CCACHE")
+                ccache_start = monitor.ccache_stats(ccache)
+            else:
+                ccache_start = None
 
             # Collect glean metrics
             substs = config.substs
@@ -1568,7 +1488,10 @@ class BuildDriver(MozbuildObject):
         if high_finder:
             print(FINDER_SLOW_MESSAGE % finder_percent)
 
-        ccache_end = monitor.ccache_stats()
+        if config.substs.get("MOZ_USING_CCACHE"):
+            ccache_end = monitor.ccache_stats(ccache)
+        else:
+            ccache_end = None
 
         ccache_diff = None
         if ccache_start and ccache_end:

@@ -14,7 +14,6 @@ exclude =
     moz.configure,
     netwerk/dns/prepare_tlds.py,
     netwerk/protocol/http/make_incoming_tables.py,
-    python/devtools/migrate-l10n/migrate/main.py,
     python/l10n/fluent_migrations,
     security/manager/ssl/tests/unit,
     servo/components/style,
@@ -47,6 +46,9 @@ exclude =
     toolkit/moz.configure,
     toolkit/nss.configure,
 
+    # mako files are not really python files
+    *.mako.py,
+
     # These paths are intentionally excluded (not necessarily for good reason).
     build/moz.configure/*.configure,
     build/pymake/,
@@ -74,23 +76,20 @@ exclude =
     tools/crashreporter/*.configure,
     .ycm_extra_conf.py,
 
-    # This file uses py3.7 only syntax, so can't currently be checked by flake8 in-tree
-    tools/crashreporter/system-symbols/win/symsrv-fetch.py
-
 # See:
 #   - http://flake8.pycqa.org/en/latest/user/error-codes.html
 #   - http://pep8.readthedocs.io/en/latest/intro.html#configuration
 ignore =
     # These should be triaged and either fixed or moved to the list below.
-    W504, W605, W606,
+    W605, W606,
     # These are intentionally disabled (not necessarily for good reason).
     #   F723: syntax error in type comment
     #       text contains quotes which breaks our custom JSON formatter
-    F723, E121, E123, E126, E129, E133, E226, E241, E242, E402, E704, E741, W503,
+    F723, E704, E741,
 
-    # black will generate code that breaks these. they're not PEP8 compliant though;
-    # see https://github.com/psf/black/blob/master/docs/compatible_configs.md#flake8
-    W503, E203
+    # black is already in charge of formatting, no need to start a formatter
+    # battle here
+    E1, W1, E2, W2, E3, W3, E4, W4, E5, W5
 
 per-file-ignores =
     # These paths are intentionally excluded.

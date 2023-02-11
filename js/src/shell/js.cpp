@@ -82,6 +82,7 @@
 #ifdef JS_ENABLE_SMOOSH
 #  include "frontend/Frontend2.h"
 #endif
+#include "frontend/FrontendContext.h"  // AutoReportFrontendContext
 #include "frontend/ModuleSharedContext.h"
 #include "frontend/Parser.h"
 #include "frontend/ScopeBindingCache.h"  // js::frontend::ScopeBindingCache
@@ -176,7 +177,6 @@
 #include "util/WindowsWrapper.h"
 #include "vm/ArgumentsObject.h"
 #include "vm/Compression.h"
-#include "vm/ErrorContext.h"  // AutoReportFrontendContext
 #include "vm/ErrorObject.h"
 #include "vm/ErrorReporting.h"
 #include "vm/HelperThreads.h"
@@ -2432,8 +2432,8 @@ static bool Evaluate(JSContext* cx, unsigned argc, Value* vp) {
       return false;
     }
 
-    AutoReportFrontendContext ec(cx);
-    if (!SetSourceOptions(cx, &ec, script->scriptSource(), displayURL,
+    AutoReportFrontendContext fc(cx);
+    if (!SetSourceOptions(cx, &fc, script->scriptSource(), displayURL,
                           sourceMapURL)) {
       return false;
     }
@@ -4899,9 +4899,9 @@ static bool ParseModule(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  AutoReportFrontendContext ec(cx);
+  AutoReportFrontendContext fc(cx);
   RootedObject module(
-      cx, frontend::CompileModule(cx, &ec, cx->stackLimitForCurrentPrincipal(),
+      cx, frontend::CompileModule(cx, &fc, cx->stackLimitForCurrentPrincipal(),
                                   options, srcBuf));
   if (!module) {
     return false;
@@ -5028,10 +5028,10 @@ static bool InstantiateModuleStencil(JSContext* cx, uint32_t argc, Value* vp) {
   }
 
   /* Prepare the CompilationStencil for decoding. */
-  AutoReportFrontendContext ec(cx);
+  AutoReportFrontendContext fc(cx);
   Rooted<frontend::CompilationInput> input(cx,
                                            frontend::CompilationInput(options));
-  if (!input.get().initForModule(cx, &ec)) {
+  if (!input.get().initForModule(cx, &fc)) {
     return false;
   }
 
@@ -5087,10 +5087,10 @@ static bool InstantiateModuleStencilXDR(JSContext* cx, uint32_t argc,
   }
 
   /* Prepare the CompilationStencil for decoding. */
-  AutoReportFrontendContext ec(cx);
+  AutoReportFrontendContext fc(cx);
   Rooted<frontend::CompilationInput> input(cx,
                                            frontend::CompilationInput(options));
-  if (!input.get().initForModule(cx, &ec)) {
+  if (!input.get().initForModule(cx, &fc)) {
     return false;
   }
   frontend::CompilationStencil stencil(nullptr);
@@ -5098,18 +5098,18 @@ static bool InstantiateModuleStencilXDR(JSContext* cx, uint32_t argc,
   /* Deserialize the stencil from XDR. */
   JS::TranscodeRange xdrRange(xdrObj->buffer(), xdrObj->bufferLength());
   bool succeeded = false;
-  if (!stencil.deserializeStencils(cx, &ec, input.get(), xdrRange,
+  if (!stencil.deserializeStencils(cx, &fc, input.get(), xdrRange,
                                    &succeeded)) {
     return false;
   }
   if (!succeeded) {
-    ec.clearAutoReport();
+    fc.clearAutoReport();
     JS_ReportErrorASCII(cx, "Decoding failure");
     return false;
   }
 
   if (!stencil.isModule()) {
-    ec.clearAutoReport();
+    fc.clearAutoReport();
     JS_ReportErrorASCII(cx,
                         "instantiateModuleStencilXDR: Module stencil expected");
     return false;
@@ -5358,9 +5358,9 @@ static bool DumpAST(JSContext* cx, const JS::ReadOnlyCompileOptions& options,
                     js::frontend::ParseGoal goal) {
   using namespace js::frontend;
 
-  AutoReportFrontendContext ec(cx);
+  AutoReportFrontendContext fc(cx);
   Parser<FullParseHandler, Unit> parser(
-      cx, &ec, cx->stackLimitForCurrentPrincipal(), options, units, length,
+      cx, &fc, cx->stackLimitForCurrentPrincipal(), options, units, length,
       /* foldConstants = */ false, compilationState,
       /* syntaxParser = */ nullptr);
   if (!parser.checkOptions()) {
@@ -5370,7 +5370,7 @@ static bool DumpAST(JSContext* cx, const JS::ReadOnlyCompileOptions& options,
   // Emplace the top-level stencil.
   MOZ_ASSERT(compilationState.scriptData.length() ==
              CompilationStencil::TopLevelIndex);
-  if (!compilationState.appendScriptStencilAndData(&ec)) {
+  if (!compilationState.appendScriptStencilAndData(&fc)) {
     return false;
   }
 
@@ -5378,10 +5378,10 @@ static bool DumpAST(JSContext* cx, const JS::ReadOnlyCompileOptions& options,
   if (goal == frontend::ParseGoal::Script) {
     pn = parser.parse();
   } else {
-    ModuleBuilder builder(cx, &ec, &parser);
+    ModuleBuilder builder(cx, &fc, &parser);
 
     SourceExtent extent = SourceExtent::makeGlobalExtent(length);
-    ModuleSharedContext modulesc(cx, &ec, options, builder, extent);
+    ModuleSharedContext modulesc(cx, &fc, options, builder, extent);
     pn = parser.moduleBody(&modulesc);
   }
 
@@ -5410,16 +5410,16 @@ template <typename Unit>
     return false;
   }
 
-  AutoReportFrontendContext ec(cx);
+  AutoReportFrontendContext fc(cx);
   js::frontend::NoScopeBindingCache scopeCache;
   UniquePtr<frontend::ExtensibleCompilationStencil> stencil;
   if (goal == frontend::ParseGoal::Script) {
     stencil = frontend::CompileGlobalScriptToExtensibleStencil(
-        cx, &ec, cx->stackLimitForCurrentPrincipal(), input.get(), &scopeCache,
+        cx, &fc, cx->stackLimitForCurrentPrincipal(), input.get(), &scopeCache,
         srcBuf, ScopeKind::Global);
   } else {
     stencil = frontend::ParseModuleToExtensibleStencil(
-        cx, &ec, cx->stackLimitForCurrentPrincipal(), input.get(), &scopeCache,
+        cx, &fc, cx->stackLimitForCurrentPrincipal(), input.get(), &scopeCache,
         srcBuf);
   }
 
@@ -5583,17 +5583,17 @@ static bool FrontendTest(JSContext* cx, unsigned argc, Value* vp,
             return false;
           }
 
-          AutoReportFrontendContext ec(cx);
+          AutoReportFrontendContext fc(cx);
           Rooted<frontend::CompilationInput> input(
               cx, frontend::CompilationInput(options));
           UniquePtr<frontend::ExtensibleCompilationStencil> stencil;
           if (!Smoosh::tryCompileGlobalScriptToExtensibleStencil(
-                  cx, &ec, cx->stackLimitForCurrentPrincipal(), input.get(),
+                  cx, &fc, cx->stackLimitForCurrentPrincipal(), input.get(),
                   srcBuf, stencil)) {
             return false;
           }
           if (!stencil) {
-            ec.clearAutoReport();
+            fc.clearAutoReport();
             JS_ReportErrorASCII(cx, "SmooshMonkey failed to parse");
             return false;
           }
@@ -5636,23 +5636,23 @@ static bool FrontendTest(JSContext* cx, unsigned argc, Value* vp,
     return true;
   }
 
-  AutoReportFrontendContext ec(cx);
+  AutoReportFrontendContext fc(cx);
   Rooted<frontend::CompilationInput> input(cx,
                                            frontend::CompilationInput(options));
   if (goal == frontend::ParseGoal::Script) {
-    if (!input.get().initForGlobal(cx, &ec)) {
+    if (!input.get().initForGlobal(cx, &fc)) {
       return false;
     }
   } else {
-    if (!input.get().initForModule(cx, &ec)) {
+    if (!input.get().initForModule(cx, &fc)) {
       return false;
     }
   }
 
   LifoAllocScope allocScope(&cx->tempLifoAlloc());
   frontend::NoScopeBindingCache scopeCache;
-  frontend::CompilationState compilationState(cx, &ec, allocScope, input.get());
-  if (!compilationState.init(cx, &ec, &scopeCache)) {
+  frontend::CompilationState compilationState(cx, &fc, allocScope, input.get());
+  if (!compilationState.init(cx, &fc, &scopeCache)) {
     return false;
   }
 
@@ -5719,22 +5719,22 @@ static bool SyntaxParse(JSContext* cx, unsigned argc, Value* vp) {
   const char16_t* chars = stableChars.twoByteRange().begin().get();
   size_t length = scriptContents->length();
 
-  AutoReportFrontendContext ec(cx);
+  AutoReportFrontendContext fc(cx);
   Rooted<frontend::CompilationInput> input(cx,
                                            frontend::CompilationInput(options));
-  if (!input.get().initForGlobal(cx, &ec)) {
+  if (!input.get().initForGlobal(cx, &fc)) {
     return false;
   }
 
   LifoAllocScope allocScope(&cx->tempLifoAlloc());
   frontend::NoScopeBindingCache scopeCache;
-  frontend::CompilationState compilationState(cx, &ec, allocScope, input.get());
-  if (!compilationState.init(cx, &ec, &scopeCache)) {
+  frontend::CompilationState compilationState(cx, &fc, allocScope, input.get());
+  if (!compilationState.init(cx, &fc, &scopeCache)) {
     return false;
   }
 
   Parser<frontend::SyntaxParseHandler, char16_t> parser(
-      cx, &ec, cx->stackLimitForCurrentPrincipal(), options, chars, length,
+      cx, &fc, cx->stackLimitForCurrentPrincipal(), options, chars, length,
       /* foldConstants = */ false, compilationState,
       /* syntaxParser = */ nullptr);
   if (!parser.checkOptions()) {
@@ -5742,14 +5742,14 @@ static bool SyntaxParse(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   bool succeeded = parser.parse();
-  if (ec.hadErrors()) {
+  if (fc.hadErrors()) {
     return false;
   }
 
   if (!succeeded && !parser.hadAbortedSyntaxParse()) {
     // If no exception is posted, either there was an OOM or a language
     // feature unhandled by the syntax parser was encountered.
-    MOZ_ASSERT(ec.hadOutOfMemory());
+    MOZ_ASSERT(fc.hadOutOfMemory());
     return false;
   }
 
@@ -10354,8 +10354,9 @@ static JSObject* NewGlobalObject(JSContext* cx, JS::RealmOptions& options,
     SetDOMCallbacks(cx, &DOMcallbacks);
 
     RootedObject domProto(
-        cx, JS_InitClass(cx, glob, nullptr, &dom_class, dom_constructor, 0,
-                         dom_props, dom_methods, nullptr, nullptr));
+        cx, JS_InitClass(cx, glob, &dom_class, nullptr, "FakeDOMObject",
+                         dom_constructor, 0, dom_props, dom_methods, nullptr,
+                         nullptr));
     if (!domProto) {
       return nullptr;
     }
@@ -10936,16 +10937,16 @@ static bool SetContextOptions(JSContext* cx, const OptionParser& op) {
   }
 
   if (op.getBoolOption("trace-regexp-parser")) {
-    jit::JitOptions.traceRegExpParser = true;
+    jit::JitOptions.trace_regexp_parser = true;
   }
   if (op.getBoolOption("trace-regexp-assembler")) {
-    jit::JitOptions.traceRegExpAssembler = true;
+    jit::JitOptions.trace_regexp_assembler = true;
   }
   if (op.getBoolOption("trace-regexp-interpreter")) {
-    jit::JitOptions.traceRegExpInterpreter = true;
+    jit::JitOptions.trace_regexp_bytecodes = true;
   }
   if (op.getBoolOption("trace-regexp-peephole")) {
-    jit::JitOptions.traceRegExpPeephole = true;
+    jit::JitOptions.trace_regexp_peephole_optimization = true;
   }
 
   if (op.getBoolOption("less-debug-code")) {
@@ -10998,10 +10999,6 @@ static bool SetContextOptions(JSContext* cx, const OptionParser& op) {
     } else {
       return OptionFailure("shared-memory", str);
     }
-  }
-
-  if (op.getBoolOption("no-large-arraybuffers")) {
-    JS::SetLargeArrayBuffersEnabled(false);
   }
 
   if (op.getBoolOption("disable-bailout-loop-check")) {
@@ -11691,9 +11688,6 @@ int main(int argc, char** argv) {
                         "(no-op) Enable class static blocks") ||
       !op.addBoolOption('\0', "enable-import-assertions",
                         "Enable import assertions") ||
-      !op.addBoolOption('\0', "no-large-arraybuffers",
-                        "Disallow creating ArrayBuffers larger than 2 GB on "
-                        "64-bit platforms") ||
       !op.addStringOption('\0', "shared-memory", "on/off",
                           "SharedArrayBuffer and Atomics "
 #if SHARED_MEMORY_DEFAULT

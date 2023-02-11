@@ -654,6 +654,10 @@ function getWarningGroupLabel(firstMessage) {
     return l10n.getStr("webconsole.group.cookieSameSiteLaxByDefaultDisabled2");
   }
 
+  if (isCSPMessage(firstMessage)) {
+    return l10n.getStr("webconsole.group.csp");
+  }
+
   return "";
 }
 
@@ -709,6 +713,13 @@ function replaceURL(text, replacementText = "") {
  * @returns {String|null} null if the message can't be part of a warningGroup.
  */
 function getWarningGroupType(message) {
+  // We got report that this can be called with `undefined` (See Bug 1801462 and Bug 1810109).
+  // Until we manage to reproduce and find why this happens, guard on message so at least
+  // we don't crash the console.
+  if (!message) {
+    return null;
+  }
+
   if (
     message.level !== MESSAGE_LEVEL.WARN &&
     // CookieSameSite messages are not warnings but infos
@@ -731,6 +742,10 @@ function getWarningGroupType(message) {
 
   if (isCookieSameSiteMessage(message)) {
     return MESSAGE_TYPE.COOKIE_SAMESITE_GROUP;
+  }
+
+  if (isCSPMessage(message)) {
+    return MESSAGE_TYPE.CSP_GROUP;
   }
 
   return null;
@@ -811,6 +826,16 @@ function isTrackingProtectionMessage(message) {
 function isCookieSameSiteMessage(message) {
   const { category } = message;
   return category == "cookieSameSite";
+}
+
+/**
+ * Returns true if the message is a Content Security Policy (CSP) message.
+ * @param {ConsoleMessage} message
+ * @returns {Boolean}
+ */
+function isCSPMessage(message) {
+  const { category } = message;
+  return typeof category == "string" && category.startsWith("CSP_");
 }
 
 function getDescriptorValue(descriptor) {

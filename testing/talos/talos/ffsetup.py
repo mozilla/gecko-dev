@@ -5,8 +5,6 @@
 """
 Set up a browser environment before running a test.
 """
-from __future__ import absolute_import, print_function
-
 import json
 import os
 import shutil
@@ -15,13 +13,12 @@ import tempfile
 import mozfile
 import mozinfo
 import mozrunner
+import six
 from mozlog import get_proxy_logger
 from mozprofile.profile import Profile
-from talos import utils
+from talos import heavy, utils
 from talos.gecko_profile import GeckoProfile
 from talos.utils import TalosError, run_in_debug_mode
-from talos import heavy
-import six
 
 here = os.path.abspath(os.path.dirname(__file__))
 

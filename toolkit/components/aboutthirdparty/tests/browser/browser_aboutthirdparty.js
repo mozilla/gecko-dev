@@ -19,7 +19,24 @@ function getDetailRow(aContainer, aLabel) {
   return aContainer.querySelector(`[data-l10n-id=${aLabel}]`).parentElement;
 }
 
-function verifyClipboardData(aModuleArray) {
+function verifyClipboardData(aModuleJson) {
+  Assert.ok(
+    aModuleJson.hasOwnProperty("blocked"),
+    "Clipboard data should have blocked property."
+  );
+  const blocked = aModuleJson.blocked.filter(
+    x => x.name == kUserBlockedModuleName
+  );
+  Assert.equal(
+    blocked.length,
+    1,
+    "Blocked array should contain the blocked module one time."
+  );
+  Assert.ok(
+    aModuleJson.hasOwnProperty("modules"),
+    "Clipboard data should have modules property"
+  );
+  let aModuleArray = aModuleJson.modules;
   const filtered = aModuleArray.filter(x => x.name == kExtensionModuleName);
   Assert.equal(filtered.length, 1, "No duplicate data for the module.");
 
@@ -61,6 +78,47 @@ function verifyClipboardData(aModuleArray) {
   }
 }
 
+function verifyModuleSorting(compareFunc) {
+  const uninteresting = {
+    typeFlags: 0,
+    isCrasher: false,
+    loadingOnMain: 0,
+  };
+  const crasherNotBlocked = { ...uninteresting, isCrasher: true };
+  const crasherBlocked = {
+    ...uninteresting,
+    isCrasher: true,
+    typeFlags: Ci.nsIAboutThirdParty.ModuleType_BlockedByUserAtLaunch,
+  };
+  const justBlocked = {
+    ...uninteresting,
+    typeFlags: Ci.nsIAboutThirdParty.ModuleType_BlockedByUserAtLaunch,
+  };
+  const uninterestingButSlow = {
+    ...uninteresting,
+    loadingOnMain: 10,
+  };
+  let modules = [
+    uninteresting,
+    uninterestingButSlow,
+    crasherNotBlocked,
+    justBlocked,
+    crasherBlocked,
+  ];
+  modules.sort(compareFunc);
+  Assert.equal(
+    JSON.stringify([
+      crasherBlocked,
+      justBlocked,
+      crasherNotBlocked,
+      uninterestingButSlow,
+      uninteresting,
+    ]),
+    JSON.stringify(modules),
+    "Modules sort in expected order"
+  );
+}
+
 add_task(async () => {
   registerCleanupFunction(() => {
     unregisterAll();
@@ -85,7 +143,7 @@ add_task(async () => {
         { childList: true },
         () => mainDiv.childElementCount > 0
       );
-      Assert.ok(content.fetchDataDone, "onLoad() is complated.");
+      Assert.ok(content.fetchDataDone, "onLoad() is completed.");
     }
 
     const reload = content.document.getElementById("button-reload");
@@ -102,10 +160,66 @@ add_task(async () => {
       content.document.getElementById("no-data").hidden,
       "The no-data message is hidden."
     );
+    const blockedCards = getCardsByName(
+      content.document,
+      kUserBlockedModuleName
+    );
+    Assert.equal(
+      blockedCards.length,
+      1,
+      "Only one card matching the blocked module exists."
+    );
+    const blockedCard = blockedCards[0];
+    Assert.equal(
+      blockedCard.querySelectorAll(".button-block.module-blocked").length,
+      1,
+      "The blocked module has a button indicating it is blocked"
+    );
+    let blockedBlockButton = blockedCard.querySelector(
+      ".button-block.module-blocked"
+    );
+    Assert.equal(
+      blockedBlockButton.getAttribute("data-l10n-id"),
+      "third-party-button-to-unblock",
+      "Button to block the module has correct title"
+    );
+    blockedBlockButton.click();
+    await BrowserTestUtils.promiseAlertDialogOpen("cancel");
+    Assert.ok(
+      !blockedBlockButton.classList.contains("module-blocked"),
+      "After clicking to unblock a module, button should not have module-blocked class."
+    );
+    Assert.equal(
+      blockedBlockButton.getAttribute("data-l10n-id"),
+      "third-party-button-to-block",
+      "After clicking to unblock a module, button should have correct title."
+    );
+    // Restore this to blocked for later tests
+    blockedBlockButton.click();
+    await BrowserTestUtils.promiseAlertDialogOpen("cancel");
+    Assert.ok(
+      blockedBlockButton.classList.contains("module-blocked"),
+      "After clicking to block a module, button should have module-blocked class."
+    );
+    Assert.equal(
+      blockedBlockButton.getAttribute("data-l10n-id"),
+      "third-party-button-to-unblock",
+      "After clicking to block a module, button should have correct title."
+    );
 
     const cards = getCardsByName(content.document, kExtensionModuleName);
     Assert.equal(cards.length, 1, "Only one card matching the module exists.");
     const card = cards[0];
+
+    const blockButton = card.querySelector(".button-block");
+    Assert.ok(
+      !blockButton.classList.contains("blocklist-disabled"),
+      "Button to block the module does not indicate the blocklist is disabled."
+    );
+    Assert.ok(
+      !blockButton.classList.contains("module-blocked"),
+      "Button to block the module does not indicate the module is blocked."
+    );
 
     Assert.ok(
       card.querySelector(".image-warning").hidden,
@@ -195,7 +309,9 @@ add_task(async () => {
     );
 
     const copiedJSON = JSON.parse(await navigator.clipboard.readText());
-    Assert.ok(copiedJSON instanceof Array, "Data is an array.");
+    Assert.ok(copiedJSON instanceof Object, "Data is an object.");
     verifyClipboardData(copiedJSON);
+
+    verifyModuleSorting(content.moduleCompareForDisplay);
   });
 });

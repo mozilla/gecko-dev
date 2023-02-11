@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/TextUtils.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_security.h"
@@ -39,7 +40,8 @@ static const uint32_t kHashSourceValidFnsLen = 3;
 /* ===== nsCSPParser ==================== */
 
 nsCSPParser::nsCSPParser(policyTokens& aTokens, nsIURI* aSelfURI,
-                         nsCSPContext* aCSPContext, bool aDeliveredViaMetaTag)
+                         nsCSPContext* aCSPContext, bool aDeliveredViaMetaTag,
+                         bool aSuppressLogMessages)
     : mCurChar(nullptr),
       mEndChar(nullptr),
       mHasHashOrNonce(false),
@@ -56,7 +58,8 @@ nsCSPParser::nsCSPParser(policyTokens& aTokens, nsIURI* aSelfURI,
       mSelfURI(aSelfURI),
       mPolicy(nullptr),
       mCSPContext(aCSPContext),
-      mDeliveredViaMetaTag(aDeliveredViaMetaTag) {
+      mDeliveredViaMetaTag(aDeliveredViaMetaTag),
+      mSuppressLogMessages(aSuppressLogMessages) {
   CSPPARSERLOG(("nsCSPParser::nsCSPParser"));
 }
 
@@ -160,6 +163,11 @@ void nsCSPParser::logWarningErrorToConsole(uint32_t aSeverityFlag,
                                            const char* aProperty,
                                            const nsTArray<nsString>& aParams) {
   CSPPARSERLOG(("nsCSPParser::logWarningErrorToConsole: %s", aProperty));
+
+  if (mSuppressLogMessages) {
+    return;
+  }
+
   // send console messages off to the context and let the context
   // deal with it (potentially messages need to be queued up)
   mCSPContext->logToConsole(aProperty, aParams,
@@ -660,8 +668,7 @@ nsCSPBaseSrc* nsCSPParser::sourceExpression() {
     // a nsCSPSchemeSrc, but rather a nsCSPHostSrc, which
     // needs to know the scheme to enforce; remember the
     // scheme and delete cspScheme;
-    cspScheme->toString(parsedScheme);
-    parsedScheme.Trim(":", false, true);
+    cspScheme->getScheme(parsedScheme);
     delete cspScheme;
 
     // If mCurToken provides not only a scheme, but also a host, we have to
@@ -681,6 +688,7 @@ nsCSPBaseSrc* nsCSPParser::sourceExpression() {
 
   // If mCurToken does not provide a scheme (scheme-less source), we apply the
   // scheme from selfURI
+  bool generatedScheme = false;
   if (parsedScheme.IsEmpty()) {
     // Resetting internal helpers, because we might already have parsed some of
     // the host when trying to parse a scheme.
@@ -688,6 +696,7 @@ nsCSPBaseSrc* nsCSPParser::sourceExpression() {
     nsAutoCString selfScheme;
     mSelfURI->GetScheme(selfScheme);
     parsedScheme.AssignASCII(selfScheme.get());
+    generatedScheme = true;
   }
 
   // At this point we are expecting a host to be parsed.
@@ -695,6 +704,7 @@ nsCSPBaseSrc* nsCSPParser::sourceExpression() {
   if (nsCSPHostSrc* cspHost = hostSource()) {
     // Do not forget to set the parsed scheme.
     cspHost->setScheme(parsedScheme);
+    cspHost->setGeneratedScheme(generatedScheme);
     cspHost->setWithinFrameAncestorsDir(mParsingFrameAncestorsDir);
     return cspHost;
   }
@@ -972,8 +982,8 @@ void nsCSPParser::directive() {
                 NS_ConvertUTF16toUTF8(mCurValue).get()));
 
   // Make sure that the directive-srcs-array contains at least
-  // one directive and one src.
-  if (mCurDir.Length() < 1) {
+  // one directive.
+  if (mCurDir.Length() == 0) {
     AutoTArray<nsString, 1> params = {u"directive missing"_ns};
     logWarningErrorToConsole(nsIScriptError::warningFlag,
                              "failedToParseUnrecognizedSource", params);
@@ -1139,6 +1149,24 @@ nsCSPPolicy* nsCSPParser::policy() {
 
   mPolicy = new nsCSPPolicy();
   for (uint32_t i = 0; i < mTokens.Length(); i++) {
+    // https://w3c.github.io/webappsec-csp/#parse-serialized-policy
+    // Step 2.2. ..., or if token is not an ASCII string, continue.
+    //
+    // Note: In the spec the token isn't split by whitespace yet.
+    bool isAscii = true;
+    for (const auto& token : mTokens[i]) {
+      if (!IsAscii(token)) {
+        AutoTArray<nsString, 1> params = {mTokens[i][0], token};
+        logWarningErrorToConsole(nsIScriptError::warningFlag,
+                                 "ignoringNonAsciiToken", params);
+        isAscii = false;
+        break;
+      }
+    }
+    if (!isAscii) {
+      continue;
+    }
+
     // All input is already tokenized; set one tokenized array in the form of
     // [ name, src, src, ... ]
     // to mCurDir and call directive which processes the current directive.
@@ -1200,7 +1228,8 @@ nsCSPPolicy* nsCSPParser::policy() {
 
 nsCSPPolicy* nsCSPParser::parseContentSecurityPolicy(
     const nsAString& aPolicyString, nsIURI* aSelfURI, bool aReportOnly,
-    nsCSPContext* aCSPContext, bool aDeliveredViaMetaTag) {
+    nsCSPContext* aCSPContext, bool aDeliveredViaMetaTag,
+    bool aSuppressLogMessages) {
   if (CSPPARSERLOGENABLED()) {
     CSPPARSERLOG(("nsCSPParser::parseContentSecurityPolicy, policy: %s",
                   NS_ConvertUTF16toUTF8(aPolicyString).get()));
@@ -1223,7 +1252,8 @@ nsCSPPolicy* nsCSPParser::parseContentSecurityPolicy(
   nsTArray<CopyableTArray<nsString> > tokens;
   PolicyTokenizer::tokenizePolicy(aPolicyString, tokens);
 
-  nsCSPParser parser(tokens, aSelfURI, aCSPContext, aDeliveredViaMetaTag);
+  nsCSPParser parser(tokens, aSelfURI, aCSPContext, aDeliveredViaMetaTag,
+                     aSuppressLogMessages);
 
   // Start the parser to generate a new CSPPolicy using the generated tokens.
   nsCSPPolicy* policy = parser.policy();

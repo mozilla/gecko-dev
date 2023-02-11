@@ -63,7 +63,7 @@ char16_t* StringBuffer::stealChars() {
 bool StringBuffer::inflateChars() {
   MOZ_ASSERT(isLatin1());
 
-  TwoByteCharBuffer twoByte(StringBufferAllocPolicy{ec_, arenaId_});
+  TwoByteCharBuffer twoByte(latin1Chars().allocPolicy());
 
   /*
    * Note: we don't use Vector::capacity() because it always returns a
@@ -118,12 +118,14 @@ JSLinearString* StringBuffer::finishStringInternal(JSContext* cx) {
 }
 
 JSLinearString* JSStringBuilder::finishString() {
+  MOZ_ASSERT(maybeCx_);
+
   size_t len = length();
   if (len == 0) {
-    return cx_->names().empty;
+    return maybeCx_->names().empty;
   }
 
-  if (MOZ_UNLIKELY(!JSString::validateLength(cx_, len))) {
+  if (MOZ_UNLIKELY(!JSString::validateLength(maybeCx_, len))) {
     return nullptr;
   }
 
@@ -132,41 +134,43 @@ JSLinearString* JSStringBuilder::finishString() {
   static_assert(JSFatInlineString::MAX_LENGTH_LATIN1 <
                 Latin1CharBuffer::InlineLength);
 
-  return isLatin1() ? finishStringInternal<Latin1Char>(cx_)
-                    : finishStringInternal<char16_t>(cx_);
+  return isLatin1() ? finishStringInternal<Latin1Char>(maybeCx_)
+                    : finishStringInternal<char16_t>(maybeCx_);
 }
 
 JSAtom* StringBuffer::finishAtom() {
+  MOZ_ASSERT(maybeCx_);
+
   size_t len = length();
   if (len == 0) {
-    return cx_->names().empty;
+    return maybeCx_->names().empty;
   }
 
   if (isLatin1()) {
-    JSAtom* atom = AtomizeChars(cx_, latin1Chars().begin(), len);
+    JSAtom* atom = AtomizeChars(maybeCx_, latin1Chars().begin(), len);
     latin1Chars().clear();
     return atom;
   }
 
-  JSAtom* atom = AtomizeChars(cx_, twoByteChars().begin(), len);
+  JSAtom* atom = AtomizeChars(maybeCx_, twoByteChars().begin(), len);
   twoByteChars().clear();
   return atom;
 }
 
 frontend::TaggedParserAtomIndex StringBuffer::finishParserAtom(
-    frontend::ParserAtomsTable& parserAtoms, ErrorContext* ec) {
+    frontend::ParserAtomsTable& parserAtoms, FrontendContext* fc) {
   size_t len = length();
   if (len == 0) {
     return frontend::TaggedParserAtomIndex::WellKnown::empty();
   }
 
   if (isLatin1()) {
-    auto result = parserAtoms.internLatin1(ec, latin1Chars().begin(), len);
+    auto result = parserAtoms.internLatin1(fc, latin1Chars().begin(), len);
     latin1Chars().clear();
     return result;
   }
 
-  auto result = parserAtoms.internChar16(ec, twoByteChars().begin(), len);
+  auto result = parserAtoms.internChar16(fc, twoByteChars().begin(), len);
   twoByteChars().clear();
   return result;
 }

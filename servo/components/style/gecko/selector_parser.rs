@@ -8,6 +8,7 @@ use crate::computed_value_flags::ComputedValueFlags;
 use crate::gecko_bindings::structs::RawServoSelectorList;
 use crate::gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use crate::invalidation::element::document_state::InvalidationMatchingData;
+use crate::properties::ComputedValues;
 use crate::selector_parser::{Direction, HorizontalDirection, SelectorParser};
 use crate::str::starts_with_ignore_ascii_case;
 use crate::string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
@@ -233,18 +234,22 @@ pub struct SelectorImpl;
 
 /// A set of extra data to carry along with the matching context, either for
 /// selector-matching or invalidation.
-#[derive(Debug, Default)]
-pub struct ExtraMatchingData {
+#[derive(Default)]
+pub struct ExtraMatchingData<'a> {
     /// The invalidation data to invalidate doc-state pseudo-classes correctly.
     pub invalidation_data: InvalidationMatchingData,
 
     /// The invalidation bits from matching container queries. These are here
     /// just for convenience mostly.
     pub cascade_input_flags: ComputedValueFlags,
+
+    /// The style of the originating element in order to evaluate @container
+    /// size queries affecting pseudo-elements.
+    pub originating_element_style: Option<&'a ComputedValues>,
 }
 
 impl ::selectors::SelectorImpl for SelectorImpl {
-    type ExtraMatchingData = ExtraMatchingData;
+    type ExtraMatchingData<'a> = ExtraMatchingData<'a>;
     type AttrValue = AtomString;
     type Identifier = AtomIdent;
     type LocalName = AtomIdent;
@@ -311,6 +316,11 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     #[inline]
     fn parse_host(&self) -> bool {
         true
+    }
+
+    #[inline]
+    fn parse_nth_child_of(&self) -> bool {
+        static_prefs::pref!("layout.css.nth-child-of.enabled")
     }
 
     #[inline]

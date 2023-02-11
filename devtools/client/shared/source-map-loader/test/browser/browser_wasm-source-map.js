@@ -6,12 +6,12 @@
 // Test source mappings WASM sources.
 // This test is quite general and test various functions.
 
-const { WasmRemap } = browserRequire(
-  "resource://devtools/client/shared/source-map-loader/utils/wasmRemap.js"
-);
-const { SourceMapConsumer } = browserRequire(
-  "resource://devtools/client/shared/vendor/source-map/source-map.js"
-);
+const {
+  WasmRemap,
+} = require("resource://devtools/client/shared/source-map-loader/utils/wasmRemap.js");
+const {
+  SourceMapConsumer,
+} = require("resource://devtools/client/shared/vendor/source-map/source-map.js");
 
 SourceMapConsumer.initialize({
   "lib/mappings.wasm":
@@ -109,7 +109,7 @@ add_task(async function readAndTransposeWasmMap() {
     isWasm: true,
   };
 
-  const urls = await getOriginalURLs(source);
+  const urls = await gSourceMapLoader.getOriginalURLs(source);
   Assert.deepEqual(urls, [
     {
       id: "wasm.js/originalSource-63954a1c231200652c0d99c6a69cd178",
@@ -117,7 +117,7 @@ add_task(async function readAndTransposeWasmMap() {
     },
   ]);
 
-  const { line, column } = await getOriginalLocation({
+  const { line, column } = await gSourceMapLoader.getOriginalLocation({
     sourceId: source.id,
     line: 5,
   });

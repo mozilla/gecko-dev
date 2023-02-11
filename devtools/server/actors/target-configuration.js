@@ -85,6 +85,15 @@ const TargetConfigurationActor = ActorClassWithSpec(targetConfigurationSpec, {
       "browsing-context-attached"
     );
 
+    // When we perform a bfcache navigation, the current browsing context gets
+    // replaced with a browsing which was previously stored in bfcache and we
+    // should update our reference accordingly.
+    this._onBfCacheNavigation = this._onBfCacheNavigation.bind(this);
+    this.watcherActor.on(
+      "bf-cache-navigation-pageshow",
+      this._onBfCacheNavigation
+    );
+
     this._browsingContext = this.watcherActor.browserElement?.browsingContext;
   },
 
@@ -142,6 +151,20 @@ const TargetConfigurationActor = ActorClassWithSpec(targetConfigurationSpec, {
 
     const rdmEnabledInPreviousBrowsingContext = this._browsingContext.inRDMPane;
 
+    // Before replacing the target browsing context, restore the configuration
+    // on the previous one if they share the same browser.
+    if (
+      this._browsingContext &&
+      this._browsingContext.browserId === browsingContext.browserId &&
+      !this._browsingContext.isDiscarded
+    ) {
+      // For now this should always be true as long as we already had a browsing
+      // context set, but the same logic should be used when supporting EFT on
+      // toolboxes with several top level browsing contexts: when a new browsing
+      // context attaches, only reset the browsing context with the same browserId
+      this._restoreParentProcessConfiguration();
+    }
+
     // We need to store the browsing context as this.watcherActor.browserElement.browsingContext
     // can still refer to the previous browsing context at this point.
     this._browsingContext = browsingContext;
@@ -152,6 +175,12 @@ const TargetConfigurationActor = ActorClassWithSpec(targetConfigurationSpec, {
       this._browsingContext.inRDMPane = true;
     }
     this._updateParentProcessConfiguration(this._getConfiguration());
+  },
+
+  _onBfCacheNavigation({ windowGlobal } = {}) {
+    if (windowGlobal) {
+      this._onBrowsingContextAttached(windowGlobal.browsingContext);
+    }
   },
 
   _getConfiguration() {
@@ -429,6 +458,10 @@ const TargetConfigurationActor = ActorClassWithSpec(targetConfigurationSpec, {
     Services.obs.removeObserver(
       this._onBrowsingContextAttached,
       "browsing-context-attached"
+    );
+    this.watcherActor.off(
+      "bf-cache-navigation-pageshow",
+      this._onBfCacheNavigation
     );
     this._restoreParentProcessConfiguration();
     Actor.prototype.destroy.call(this);

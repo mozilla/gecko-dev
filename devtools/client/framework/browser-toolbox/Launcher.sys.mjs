@@ -310,10 +310,6 @@ export class BrowserToolboxLauncher extends EventEmitter {
       BROWSER_TOOLBOX_WINDOW_URL,
     ];
 
-    const isBrowserToolboxFission = Services.prefs.getBoolPref(
-      "devtools.browsertoolbox.fission",
-      false
-    );
     const isInputContextEnabled = Services.prefs.getBoolPref(
       "devtools.webconsole.input.context",
       false
@@ -327,9 +323,6 @@ export class BrowserToolboxLauncher extends EventEmitter {
       // And prevent profiling any subsequent toolbox
       MOZ_BROWSER_TOOLBOX_PROFILER_STARTUP: "0",
 
-      // Will be read by the Browser Toolbox Firefox instance to update the
-      // devtools.browsertoolbox.fission pref on the Browser Toolbox profile.
-      MOZ_BROWSER_TOOLBOX_FISSION_PREF: isBrowserToolboxFission ? "1" : "0",
       MOZ_BROWSER_TOOLBOX_FORCE_MULTIPROCESS: forceMultiprocess ? "1" : "0",
       // Similar, but for the WebConsole input context dropdown.
       MOZ_BROWSER_TOOLBOX_INPUT_CONTEXT: isInputContextEnabled ? "1" : "0",
@@ -374,9 +367,7 @@ export class BrowserToolboxLauncher extends EventEmitter {
       proc => {
         this.#dbgProcess = proc;
 
-        // jsbrowserdebugger is not connected with a toolbox so we pass -1 as the
-        // toolbox session id.
-        this.#telemetry.toolOpened("jsbrowserdebugger", -1, this);
+        this.#telemetry.toolOpened("jsbrowserdebugger", this);
 
         dumpn("Chrome toolbox is now running...");
         this.emit("run", this, proc, this.#dbgProfilePath);
@@ -443,9 +434,7 @@ export class BrowserToolboxLauncher extends EventEmitter {
     this.#dbgProcess.stdout.close();
     await this.#dbgProcess.kill();
 
-    // jsbrowserdebugger is not connected with a toolbox so we pass -1 as the
-    // toolbox session id.
-    this.#telemetry.toolClosed("jsbrowserdebugger", -1, this);
+    this.#telemetry.toolClosed("jsbrowserdebugger", this);
 
     dumpn("Chrome toolbox is now closed...");
     processes.delete(this);

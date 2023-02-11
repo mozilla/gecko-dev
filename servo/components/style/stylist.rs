@@ -894,8 +894,9 @@ impl Stylist {
             },
             pseudo,
             guards,
+            /* originating_element_style */ None,
             parent,
-            None,
+            /* element */ None,
         )
     }
 
@@ -965,7 +966,8 @@ impl Stylist {
         element: E,
         pseudo: &PseudoElement,
         rule_inclusion: RuleInclusion,
-        parent_style: &ComputedValues,
+        originating_element_style: &ComputedValues,
+        parent_style: &Arc<ComputedValues>,
         is_probe: bool,
         matching_fn: Option<&dyn Fn(&PseudoElement) -> bool>,
     ) -> Option<Arc<ComputedValues>>
@@ -975,6 +977,7 @@ impl Stylist {
         let cascade_inputs = self.lazy_pseudo_rules(
             guards,
             element,
+            originating_element_style,
             parent_style,
             pseudo,
             is_probe,
@@ -986,6 +989,7 @@ impl Stylist {
             cascade_inputs,
             pseudo,
             guards,
+            Some(originating_element_style),
             Some(parent_style),
             Some(element),
         ))
@@ -1000,6 +1004,7 @@ impl Stylist {
         inputs: CascadeInputs,
         pseudo: &PseudoElement,
         guards: &StylesheetGuards,
+        originating_element_style: Option<&ComputedValues>,
         parent_style: Option<&ComputedValues>,
         element: Option<E>,
     ) -> Arc<ComputedValues>
@@ -1023,6 +1028,7 @@ impl Stylist {
             Some(pseudo),
             inputs,
             guards,
+            originating_element_style,
             parent_style,
             parent_style,
             parent_style,
@@ -1049,6 +1055,7 @@ impl Stylist {
         pseudo: Option<&PseudoElement>,
         inputs: CascadeInputs,
         guards: &StylesheetGuards,
+        originating_element_style: Option<&ComputedValues>,
         parent_style: Option<&ComputedValues>,
         parent_style_ignoring_first_line: Option<&ComputedValues>,
         layout_parent_style: Option<&ComputedValues>,
@@ -1084,6 +1091,7 @@ impl Stylist {
             pseudo,
             inputs.rules.as_ref().unwrap_or(self.rule_tree.root()),
             guards,
+            originating_element_style,
             parent_style,
             parent_style_ignoring_first_line,
             layout_parent_style,
@@ -1104,7 +1112,8 @@ impl Stylist {
         &self,
         guards: &StylesheetGuards,
         element: E,
-        parent_style: &ComputedValues,
+        originating_element_style: &ComputedValues,
+        parent_style: &Arc<ComputedValues>,
         pseudo: &PseudoElement,
         is_probe: bool,
         rule_inclusion: RuleInclusion,
@@ -1124,7 +1133,7 @@ impl Stylist {
         };
 
         let mut declarations = ApplicableDeclarationList::new();
-        let mut matching_context = MatchingContext::new(
+        let mut matching_context = MatchingContext::<'_, E::Impl>::new(
             MatchingMode::ForStatelessPseudoElement,
             None,
             None,
@@ -1133,6 +1142,8 @@ impl Stylist {
         );
 
         matching_context.pseudo_element_matching_fn = matching_fn;
+        matching_context.extra_data.originating_element_style =
+            Some(originating_element_style);
 
         self.push_applicable_declarations(
             element,
@@ -1154,7 +1165,7 @@ impl Stylist {
         let mut visited_rules = None;
         if parent_style.visited_style().is_some() {
             let mut declarations = ApplicableDeclarationList::new();
-            let mut matching_context = MatchingContext::new_for_visited(
+            let mut matching_context = MatchingContext::<'_, E::Impl>::new_for_visited(
                 MatchingMode::ForStatelessPseudoElement,
                 None,
                 None,
@@ -1163,6 +1174,8 @@ impl Stylist {
                 needs_selector_flags,
             );
             matching_context.pseudo_element_matching_fn = matching_fn;
+            matching_context.extra_data.originating_element_style =
+                Some(originating_element_style);
 
             self.push_applicable_declarations(
                 element,
@@ -1497,6 +1510,7 @@ impl Stylist {
                     ),
                 )
             }),
+            /* originating_element_style */ None,
             Some(parent_style),
             Some(parent_style),
             Some(parent_style),
@@ -1899,16 +1913,8 @@ fn component_needs_revalidation(
         Component::AttributeInNoNamespace { .. } |
         Component::AttributeOther(_) |
         Component::Empty |
-        Component::FirstChild |
-        Component::LastChild |
-        Component::OnlyChild |
-        Component::NthChild(..) |
-        Component::NthLastChild(..) |
-        Component::NthOfType(..) |
-        Component::NthLastOfType(..) |
-        Component::FirstOfType |
-        Component::LastOfType |
-        Component::OnlyOfType => true,
+        Component::Nth(_) |
+        Component::NthOf(_) => true,
         Component::NonTSPseudoClass(ref p) => p.needs_cache_revalidation(),
         _ => false,
     }
@@ -2375,7 +2381,14 @@ impl CascadeData {
                 None => return true,
                 Some(ref c) => c,
             };
-            let matches = condition.matches(stylist.device(), element, &mut context.extra_data.cascade_input_flags).to_bool(/* unknown = */ false);
+            let matches = condition
+                .matches(
+                    stylist.device(),
+                    element,
+                    context.extra_data.originating_element_style,
+                    &mut context.extra_data.cascade_input_flags,
+                )
+                .to_bool(/* unknown = */ false);
             if !matches {
                 return false;
             }

@@ -4,6 +4,10 @@
 const browserContainersGroupDisabled = !SpecialPowers.getBoolPref(
   "privacy.userContext.ui.enabled"
 );
+const updatePrefContainers = ["updatesCategory", "updateApp"];
+const updateContainersGroupDisabled =
+  AppConstants.platform === "win" &&
+  Services.sysinfo.getProperty("hasWinPackageId");
 
 function test() {
   waitForExplicitFinish();
@@ -29,6 +33,24 @@ function checkElements(expectedPane) {
         element,
         "Disabled browserContainersGroup should be hidden"
       );
+      continue;
+    }
+
+    // Cookie Banner Handling is currently disabled by default (bug 1800679)
+    if (element.id == "cookieBannerHandlingGroup") {
+      is_element_hidden(
+        element,
+        "Disabled cookieBannerHandlingGroup should be hidden"
+      );
+      continue;
+    }
+
+    // Update prefs are hidden when running an MSIX build
+    if (
+      updatePrefContainers.includes(element.id) &&
+      updateContainersGroupDisabled
+    ) {
+      is_element_hidden(element, "Disabled " + element + " should be hidden");
       continue;
     }
 

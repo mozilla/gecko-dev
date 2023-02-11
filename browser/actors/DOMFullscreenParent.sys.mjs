@@ -76,6 +76,12 @@ export class DOMFullscreenParent extends JSWindowActorParent {
         // or enter fullscreen, run cleanup steps anyway.
         this._cleanupFullscreenStateAndResumeChromeUI(browser.ownerGlobal);
       }
+
+      if (this != this.requestOrigin) {
+        // The current fullscreen requester should handle the fullsceen event
+        // if any.
+        this.removeListeners(browser.ownerGlobal);
+      }
       return;
     }
 
@@ -126,6 +132,7 @@ export class DOMFullscreenParent extends JSWindowActorParent {
     let window = browser.ownerGlobal;
     switch (aMessage.name) {
       case "DOMFullscreen:Request": {
+        this.manager.fullscreen = true;
         this.waitingForChildExitFullscreen = false;
         this.requestOrigin = this;
         this.addListeners(window);
@@ -143,6 +150,7 @@ export class DOMFullscreenParent extends JSWindowActorParent {
         break;
       }
       case "DOMFullscreen:Entered": {
+        this.manager.fullscreen = true;
         this.nextMsgRecipient = null;
         this.waitingForChildEnterFullscreen = false;
         window.FullScreen.enterDomFullscreen(browser, this);
@@ -150,11 +158,13 @@ export class DOMFullscreenParent extends JSWindowActorParent {
         break;
       }
       case "DOMFullscreen:Exit": {
+        this.manager.fullscreen = false;
         this.waitingForChildEnterFullscreen = false;
         window.windowUtils.remoteFrameFullscreenReverted();
         break;
       }
       case "DOMFullscreen:Exited": {
+        this.manager.fullscreen = false;
         this.waitingForChildExitFullscreen = false;
         this.cleanupDomFullscreen(window);
         this.updateFullscreenWindowReference(window);
@@ -172,6 +182,17 @@ export class DOMFullscreenParent extends JSWindowActorParent {
 
   handleEvent(aEvent) {
     let window = aEvent.currentTarget.ownerGlobal;
+    // We can not get the corresponding browsing context from actor if the actor
+    // has already destroyed, so use event target to get browsing context
+    // instead.
+    let requestOrigin = window.browsingContext.fullscreenRequestOrigin?.get();
+    if (this != requestOrigin) {
+      // The current fullscreen requester should handle the fullsceen event,
+      // ignore them if we are not the current requester.
+      this.removeListeners(window);
+      return;
+    }
+
     switch (aEvent.type) {
       case "MozDOMFullscreen:Entered": {
         // The event target is the element which requested the DOM
@@ -250,7 +271,9 @@ export class DOMFullscreenParent extends JSWindowActorParent {
    * enter or exit request comes from.
    */
   get requestOrigin() {
-    let requestOrigin = this.browsingContext.top.fullscreenRequestOrigin;
+    let topBC = this.browsingContext.top;
+    let chromeBC = topBC.embedderElement.ownerGlobal.browsingContext;
+    let requestOrigin = chromeBC.fullscreenRequestOrigin;
     return requestOrigin && requestOrigin.get();
   }
 
@@ -260,12 +283,12 @@ export class DOMFullscreenParent extends JSWindowActorParent {
    * browsing context.
    */
   set requestOrigin(aActor) {
+    let topBC = this.browsingContext.top;
+    let chromeBC = topBC.embedderElement.ownerGlobal.browsingContext;
     if (aActor) {
-      this.browsingContext.top.fullscreenRequestOrigin = Cu.getWeakReference(
-        aActor
-      );
+      chromeBC.fullscreenRequestOrigin = Cu.getWeakReference(aActor);
     } else {
-      delete this.browsingContext.top.fullscreenRequestOrigin;
+      delete chromeBC.fullscreenRequestOrigin;
     }
   }
 

@@ -2980,7 +2980,7 @@ pub extern "C" fn Servo_ContainerRule_QueryContainerFor(
 ) -> *const RawGeckoElement {
     read_locked_arc(rule, |rule: &ContainerRule| {
         rule.condition
-            .find_container(GeckoElement(element))
+            .find_container(GeckoElement(element), None)
             .map_or(ptr::null(), |result| result.element.0)
     })
 }
@@ -4131,6 +4131,7 @@ fn get_pseudo_style(
                             inputs,
                             pseudo,
                             &guards,
+                            Some(styles.primary()),
                             Some(inherited_styles),
                             Some(element),
                         )
@@ -4179,6 +4180,7 @@ fn get_pseudo_style(
                 element,
                 &pseudo,
                 rule_inclusion,
+                styles.primary(),
                 base,
                 is_probe,
                 matching_func,
@@ -5941,6 +5943,10 @@ pub extern "C" fn Servo_ReparentStyle(
             pseudo.as_ref(),
             inputs,
             &StylesheetGuards::same(&guard),
+            match element.is_some() && pseudo.is_some() {
+                true => Some(parent_style),
+                false => None,
+            },
             Some(parent_style),
             Some(parent_style_ignoring_first_line),
             Some(layout_parent_style),
@@ -6053,7 +6059,8 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(
         .map(|d| d.styles.primary())
         .map(|x| &**x);
 
-    let container_size_query = ContainerSizeQuery::for_element(element);
+    let container_size_query =
+        ContainerSizeQuery::for_element(element, pseudo.as_ref().and(parent_style));
     let mut conditions = Default::default();
     let mut context = create_context_for_animation(
         &data,
@@ -6178,7 +6185,7 @@ pub extern "C" fn Servo_GetAnimationValues(
         .map(|d| d.styles.primary())
         .map(|x| &**x);
 
-    let container_size_query = ContainerSizeQuery::for_element(element);
+    let container_size_query = ContainerSizeQuery::for_element(element, None);
     let mut conditions = Default::default();
     let mut context = create_context_for_animation(
         &data,
@@ -6231,7 +6238,7 @@ pub extern "C" fn Servo_AnimationValue_Compute(
         .map(|d| d.styles.primary())
         .map(|x| &**x);
 
-    let container_size_query = ContainerSizeQuery::for_element(element);
+    let container_size_query = ContainerSizeQuery::for_element(element, None);
     let mut conditions = Default::default();
     let mut context = create_context_for_animation(
         &data,

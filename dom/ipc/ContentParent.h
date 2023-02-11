@@ -338,8 +338,6 @@ class ContentParent final : public PContentParent,
 
   mozilla::ipc::IPCResult RecvCreateGMPService();
 
-  mozilla::ipc::IPCResult RecvUngrabPointer(const uint32_t& aTime);
-
   mozilla::ipc::IPCResult RecvRemovePermission(
       nsIPrincipal* aPrincipal, const nsACString& aPermissionType,
       nsresult* aRv);
@@ -1039,7 +1037,8 @@ class ContentParent final : public PContentParent,
 
   mozilla::ipc::IPCResult RecvShowAlert(nsIAlertNotification* aAlert);
 
-  mozilla::ipc::IPCResult RecvCloseAlert(const nsAString& aName);
+  mozilla::ipc::IPCResult RecvCloseAlert(const nsAString& aName,
+                                         bool aContextClosed);
 
   mozilla::ipc::IPCResult RecvDisableNotifications(nsIPrincipal* aPrincipal);
 
@@ -1238,6 +1237,8 @@ class ContentParent final : public PContentParent,
       nsTArray<ChildEventData>&& events);
   mozilla::ipc::IPCResult RecvRecordDiscardedData(
       const DiscardedData& aDiscardedData);
+  mozilla::ipc::IPCResult RecvRecordPageLoadEvent(
+      const mozilla::glean::perf::PageLoadExtra& aPageLoadEventExtra);
   mozilla::ipc::IPCResult RecvRecordOrigin(const uint32_t& aMetricId,
                                            const nsACString& aOrigin);
   mozilla::ipc::IPCResult RecvReportContentBlockingLog(
@@ -1655,8 +1656,10 @@ class ContentParent final : public PContentParent,
   UniquePtr<mozilla::ipc::SharedPreferenceSerializer> mPrefSerializer;
 
   static uint32_t sMaxContentProcesses;
+  static uint32_t sPageLoadEventCounter;
   static Maybe<TimeStamp> sLastContentProcessLaunch;
 
+  bool mIsSignaledImpendingShutdown = false;
   bool mIsNotifiedShutdownSuccess = false;
 };
 

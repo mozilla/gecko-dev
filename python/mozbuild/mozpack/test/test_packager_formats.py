@@ -2,39 +2,26 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
-import mozunit
 import unittest
-from mozpack.packager.formats import (
-    FlatFormatter,
-    JarFormatter,
-    OmniJarFormatter,
+from itertools import chain
+
+import mozpack.path as mozpath
+import mozunit
+import six
+from mozpack.chrome.manifest import (
+    ManifestBinaryComponent,
+    ManifestComponent,
+    ManifestContent,
+    ManifestLocale,
+    ManifestResource,
+    ManifestSkin,
 )
 from mozpack.copier import FileRegistry
-from mozpack.files import (
-    GeneratedFile,
-    ManifestFile,
-)
-from mozpack.chrome.manifest import (
-    ManifestContent,
-    ManifestComponent,
-    ManifestResource,
-    ManifestBinaryComponent,
-    ManifestSkin,
-    ManifestLocale,
-)
 from mozpack.errors import ErrorMessage
-from mozpack.test.test_files import (
-    foo_xpt,
-    foo2_xpt,
-    bar_xpt,
-)
-import mozpack.path as mozpath
-import six
-from itertools import chain
+from mozpack.files import GeneratedFile, ManifestFile
+from mozpack.packager.formats import FlatFormatter, JarFormatter, OmniJarFormatter
+from mozpack.test.test_files import bar_xpt, foo2_xpt, foo_xpt
 from test_errors import TestErrors
-
 
 CONTENTS = {
     "bases": {

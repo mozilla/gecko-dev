@@ -25,14 +25,11 @@ Services.scriptloader.loadSubScript(
 );
 
 add_task(async function() {
-  await pushPref("devtools.browsertoolbox.fission", true);
   // Needed for the invokeInTab() function below
   await pushPref("security.allow_parent_unrestricted_js_loads", true);
 
   await addTab(TEST_URI);
-  const ToolboxTask = await initBrowserToolboxTask({
-    enableContentMessages: true,
-  });
+  const ToolboxTask = await initBrowserToolboxTask();
   await ToolboxTask.importFunctions({
     findMessagesVirtualized,
     findMessageVirtualizedByType,

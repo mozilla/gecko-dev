@@ -23,7 +23,6 @@ include protocol PSimpleChannel;
 include protocol PTransportProvider;
 include protocol PStunAddrsRequest;
 include protocol PFileChannel;
-include protocol PClassifierDummyChannel;
 include protocol PWebrtcTCPSocket;
 include protocol PSocketProcessBridge;
 include protocol PDocumentChannel;
@@ -37,6 +36,7 @@ include "mozilla/dom/PermissionMessageUtils.h";
 using mozilla::dom::MaybeDiscardedBrowsingContext from "mozilla/dom/BrowsingContext.h";
 using class IPC::SerializedLoadContext from "SerializedLoadContext.h";
 using mozilla::dom::TabId from "mozilla/dom/ipc/IdType.h";
+using nsIDNSService::DNSFlags from "nsIDNSService.h";
 [RefCounted] using class nsIInputStream from "mozilla/ipc/IPCStreamUtils.h";
 [RefCounted] using class nsIURI from "mozilla/ipc/URIUtils.h";
 [RefCounted] using class nsIPrincipal from "nsIPrincipal.h";
@@ -66,7 +66,6 @@ namespace net {
   manages PTransportProvider;
   manages PAltDataOutputStream;
   manages PStunAddrsRequest;
-  manages PClassifierDummyChannel;
   manages PWebrtcTCPSocket;
   manages PDocumentChannel;
 
@@ -85,7 +84,7 @@ parent:
 
   async PDNSRequest(nsCString hostName, nsCString trrServer, int32_t port,
                     uint16_t type, OriginAttributes originAttributes,
-                    uint32_t flags);
+                    DNSFlags flags);
 
   async PDocumentChannel(MaybeDiscardedBrowsingContext browsingContext,
                          DocumentChannelCreationArgs args);
@@ -102,10 +101,10 @@ parent:
 
   async SpeculativeConnect(nsIURI uri, nsIPrincipal principal, bool anonymous);
   async HTMLDNSPrefetch(nsString hostname, bool isHttps,
-                        OriginAttributes originAttributes, uint32_t flags);
+                        OriginAttributes originAttributes, DNSFlags flags);
   async CancelHTMLDNSPrefetch(nsString hostname, bool isHttps,
                               OriginAttributes originAttributes,
-                              uint32_t flags, nsresult reason);
+                              DNSFlags flags, nsresult reason);
 
   /**
    * channelId is used to establish a connection between redirect channels in
@@ -117,10 +116,6 @@ parent:
 #endif
   async PSimpleChannel(uint32_t channelId);
   async PFileChannel(uint32_t channelId);
-
-  async PClassifierDummyChannel(nsIURI uri, nsIURI aTopWindowURI,
-                                nsresult aTopWindowURIResult,
-                                LoadInfoArgs? loadInfo);
 
   async RequestContextLoadBegin(uint64_t rcid);
   async RequestContextAfterDOMContentLoaded(uint64_t rcid);

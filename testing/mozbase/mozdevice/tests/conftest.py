@@ -1,11 +1,9 @@
-from __future__ import absolute_import, print_function
-
 import sys
 from random import randint, seed
+from unittest.mock import patch
 
 import mozdevice
 import pytest
-from unittest.mock import patch
 from six import StringIO
 
 # set up required module-level variables/objects

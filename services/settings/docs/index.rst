@@ -222,10 +222,13 @@ To package an attachment for consumers of the `download()` method:
 .. note::
 
    ``<attachment id>`` is used to derive the file names of the packaged attachment dump, and as the
-   key for the (optional) cache where attachment updates from the network are saved. If the cache
-   is enabled, the attachment identifier is expected to be fixed across client application updates.
+   key for the cache where attachment updates from the network are saved.
+   The attachment identifier is expected to be fixed across client application updates.
    If that expectation cannot be met, the ``attachmentId`` option of the ``download`` method of the
    attachment downloader should be used to override the attachment ID with a custom (stable) value.
+   In order to keep track of the cached attachment, and prevent it from being pruned automatically,
+   the attachment identifier will have to be explicitly listed in the ``keepAttachmentsIds = [<attachment id>]``
+   option of the RemoteSettings client constructor.
 
 .. note::
 
@@ -320,7 +323,7 @@ The polling for changes process sends two notifications that observers can regis
 
 * ``remote-settings:changes-poll-start``: Polling for changes is starting. triggered either by the scheduled timer or a push broadcast.
 * ``remote-settings:changes-poll-end``: Polling for changes has ended
-* ``remote-settings:sync-error``: A synchronization error occured. Notification subject provides information about the error and affected
+* ``remote-settings:sync-error``: A synchronization error occurred. Notification subject provides information about the error and affected
   collection in the ``wrappedJSObject`` attribute.
 * ``remote-settings:broken-sync-error``: Synchronization seems to be consistently failing. Profile is at risk.
 

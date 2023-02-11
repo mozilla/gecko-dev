@@ -2,8 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import io
 import logging
 import os
@@ -14,6 +12,9 @@ from operator import itemgetter
 
 import mozpack.path as mozpath
 import six
+from mozpack.manifests import InstallManifest
+from six import StringIO
+
 from mozbuild import frontend
 from mozbuild.frontend.context import (
     AbsolutePath,
@@ -23,8 +24,6 @@ from mozbuild.frontend.context import (
     SourcePath,
 )
 from mozbuild.shellutil import quote as shell_quote
-from mozpack.manifests import InstallManifest
-from six import StringIO
 
 from ..frontend.data import (
     BaseLibrary,

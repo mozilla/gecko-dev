@@ -22,19 +22,19 @@ const { ShellService } = ChromeUtils.import(
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  BuiltInThemes: "resource:///modules/BuiltInThemes.sys.mjs",
   ProfileAge: "resource://gre/modules/ProfileAge.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
-  BuiltInThemes: "resource:///modules/BuiltInThemes.sys.mjs",
+  TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.sys.mjs",
+  TelemetrySession: "resource://gre/modules/TelemetrySession.sys.mjs",
 });
 
 XPCOMUtils.defineLazyModuleGetters(lazy, {
   ASRouterPreferences: "resource://activity-stream/lib/ASRouterPreferences.jsm",
   AddonManager: "resource://gre/modules/AddonManager.jsm",
   ClientEnvironment: "resource://normandy/lib/ClientEnvironment.jsm",
-  TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.jsm",
   AttributionCode: "resource:///modules/AttributionCode.jsm",
   TargetingContext: "resource://messaging-system/targeting/Targeting.jsm",
-  TelemetrySession: "resource://gre/modules/TelemetrySession.jsm",
   HomePage: "resource:///modules/HomePage.jsm",
   AboutNewTab: "resource:///modules/AboutNewTab.jsm",
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.jsm",
@@ -450,6 +450,20 @@ const TargetingGetters = {
   get isFxAEnabled() {
     return lazy.isFxAEnabled;
   },
+  get isFxASignedIn() {
+    return new Promise(resolve => {
+      if (!lazy.isFxAEnabled) {
+        resolve(false);
+      }
+      if (Services.prefs.getStringPref(FXA_USERNAME_PREF, "")) {
+        resolve(true);
+      }
+      lazy.fxAccounts
+        .getSignedInUser()
+        .then(data => resolve(!!data))
+        .catch(e => resolve(false));
+    });
+  },
   get sync() {
     return {
       desktopDevices: lazy.clientsDevicesDesktop,
@@ -826,10 +840,13 @@ const ASRouterTargeting = {
    */
   async getEnvironmentSnapshot(target = ASRouterTargeting.Environment) {
     // One promise for each named property.  Label promises with property name.
-    let promises = Object.keys(target).map(async name => [
-      name,
-      await target[name],
-    ]);
+    let promises = Object.keys(target).map(async name => {
+      // Each promise needs to check if we're shutting down when it is evaluated.
+      if (Services.startup.shuttingDown) {
+        throw new Error("shutting down, so not querying targeting environment");
+      }
+      return [name, await target[name]];
+    });
 
     // Ignore properties that are rejected.
     let results = await Promise.allSettled(promises);

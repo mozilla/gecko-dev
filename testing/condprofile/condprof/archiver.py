@@ -3,14 +3,13 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 """Helper to create tarballs.
 """
-from __future__ import absolute_import
-import tarfile
-import os
-import glob
 import copy
+import glob
+import os
+import tarfile
 
-from condprof.util import TASK_CLUSTER
 from condprof import progress
+from condprof.util import TASK_CLUSTER
 
 
 def _tarinfo2mem(tar, tarinfo):

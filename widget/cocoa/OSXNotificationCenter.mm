@@ -263,7 +263,9 @@ OSXNotificationCenter::ShowAlertWithIconData(nsIAlertNotification* aAlert,
   NS_ENSURE_SUCCESS(rv, rv);
   notification.informativeText = nsCocoaUtils::ToNSString(text);
 
-  notification.soundName = NSUserNotificationDefaultSoundName;
+  bool isSilent;
+  aAlert->GetSilent(&isSilent);
+  notification.soundName = isSilent ? nil : NSUserNotificationDefaultSoundName;
   notification.hasActionButton = NO;
 
   // If this is not an application/extension alert, show additional actions dealing with
@@ -363,7 +365,7 @@ OSXNotificationCenter::ShowAlertWithIconData(nsIAlertNotification* aAlert,
 }
 
 NS_IMETHODIMP
-OSXNotificationCenter::CloseAlert(const nsAString& aAlertName) {
+OSXNotificationCenter::CloseAlert(const nsAString& aAlertName, bool aContextClosed) {
   NS_OBJC_BEGIN_TRY_BLOCK_RETURN;
 
   NSString* alertName = nsCocoaUtils::ToNSString(aAlertName);

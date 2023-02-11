@@ -24,7 +24,6 @@
 #include "mozilla/layers/AnimationHelper.h"
 #include "mozilla/layers/APZSampler.h"
 #include "mozilla/layers/APZUpdater.h"
-#include "mozilla/layers/CompositableInProcessManager.h"
 #include "mozilla/layers/Compositor.h"
 #include "mozilla/layers/CompositorBridgeParent.h"
 #include "mozilla/layers/CompositorAnimationStorage.h"
@@ -1771,9 +1770,6 @@ void WebRenderBridgeParent::AddPipelineIdForCompositable(
       host = imageBridge->FindCompositable(aHandle);
       break;
     }
-    case CompositableHandleOwner::InProcessManager:
-      host = CompositableInProcessManager::Find(aHandle, OtherPid());
-      break;
   }
 
   if (!host) {
@@ -2251,6 +2247,9 @@ void WebRenderBridgeParent::CompositeToTarget(VsyncId aId,
     PROFILER_MARKER_TEXT("SkippedComposite", GRAPHICS,
                          MarkerInnerWindowId(innerWindowId),
                          "Too many pending frames");
+
+    Telemetry::ScalarAdd(Telemetry::ScalarID::GFX_SKIPPED_COMPOSITES, 1);
+
     return;
   }
 

@@ -11,10 +11,6 @@ const TEST_URI =
   "http://example.com/browser/devtools/client/webconsole/" +
   "test/browser/test-console.html?" +
   Date.now();
-const TEST_FILE =
-  "chrome://mochitests/content/browser/devtools/client/" +
-  "webconsole/test/browser/" +
-  "test-cu-reporterror.js";
 
 const TEST_XHR_ERROR_URI = `http://example.com/404.html?${Date.now()}`;
 
@@ -25,21 +21,11 @@ const TEST_IMAGE =
 add_task(async function() {
   // Needed for the execute() call in `testMessages`.
   await pushPref("security.allow_parent_unrestricted_js_loads", true);
-  await pushPref("devtools.browserconsole.contentMessages", true);
   await pushPref("devtools.browserconsole.enableNetworkMonitoring", true);
+  await pushPref("devtools.browsertoolbox.scope", "everything");
+
   const tab = await addTab(TEST_URI);
 
-  info(
-    "Check browser console messages with devtools.browsertoolbox.fission set to false"
-  );
-  await pushPref("devtools.browsertoolbox.fission", false);
-  await testMessages();
-
-  info(
-    "Check browser console messages with devtools.browsertoolbox.fission set to true"
-  );
-  await pushPref("devtools.browsertoolbox.scope", "everything");
-  await pushPref("devtools.browsertoolbox.fission", true);
   await testMessages();
 
   info("Close tab");
@@ -105,10 +91,6 @@ async function testMessages() {
     URL.createObjectURL(blob)
   );
 
-  // Check Cu.reportError stack.
-  // Use another js script to not depend on the test file line numbers.
-  Services.scriptloader.loadSubScript(TEST_FILE, hud.iframeWindow);
-
   const sandbox = new Cu.Sandbox(null, {
     wantComponents: false,
     wantGlobalProperties: ["URL", "URLSearchParams"],
@@ -117,12 +99,14 @@ async function testMessages() {
     `new Error("error from nuked globals");`,
     sandbox
   );
-  Cu.reportError(error);
+  console.error(error);
   Cu.nukeSandbox(sandbox);
 
   // Check privileged error message from a content process
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], () => {
-    Cu.reportError("privileged content process error message");
+    (async function() {
+      throw new Error("privileged content process error message");
+    })();
   });
 
   // Add a message from a content window.
@@ -207,11 +191,6 @@ async function testMessages() {
     "message from chrome window",
     ".console-api"
   );
-  await checkUniqueMessageExists(
-    hud,
-    "error thrown from test-cu-reporterror.js via Cu.reportError()",
-    ".error"
-  );
   await checkUniqueMessageExists(hud, "error from nuked globals", ".error");
   await checkUniqueMessageExists(
     hud,
@@ -261,14 +240,11 @@ async function testMessages() {
     "Expected color but found ‘rainbow’",
     ".warn"
   );
-  // CSS messages are only available in Browser Console when the pref is enabled
-  if (SpecialPowers.getBoolPref("devtools.browsertoolbox.fission", false)) {
-    await checkUniqueMessageExists(
-      hud,
-      "Expected color but found ‘bled’",
-      ".warn"
-    );
-  }
+  await checkUniqueMessageExists(
+    hud,
+    "Expected color but found ‘bled’",
+    ".warn"
+  );
 
   await resetFilters(hud);
 

@@ -2,6 +2,12 @@
 /* vim: set sts=2 sw=2 et tw=80: */
 "use strict";
 
+add_setup(async () => {
+  await SpecialPowers.pushPrefEnv({
+    set: [["extensions.openPopupWithoutUserGesture.enabled", true]],
+  });
+});
+
 add_task(async function testIncognitoViews() {
   // Make sure the mouse isn't hovering over the browserAction widget.
   EventUtils.synthesizeMouseAtCenter(
@@ -14,6 +20,7 @@ add_task(async function testIncognitoViews() {
     incognitoOverride: "spanning",
     manifest: {
       permissions: ["tabs"],
+      description: Services.env.get("MOZ_HEADLESS") ? "headless" : "",
       browser_action: {
         default_popup: "popup.html",
         default_area: "navbar",
@@ -22,67 +29,145 @@ add_task(async function testIncognitoViews() {
 
     background: async function() {
       window.isBackgroundPage = true;
+      const headless = browser.runtime.getManifest().description === "headless";
 
-      let resolveMessage;
-      browser.runtime.onMessage.addListener(msg => {
-        if (resolveMessage && msg.message == "popup-details") {
-          resolveMessage(msg);
+      class ConnectedPopup {
+        #msgPromise;
+        #disconnectPromise;
+
+        static promiseNewPopup() {
+          return new Promise(resolvePort => {
+            browser.runtime.onConnect.addListener(function onConnect(port) {
+              browser.runtime.onConnect.removeListener(onConnect);
+              browser.test.assertEq("from-popup", port.name, "Port from popup");
+              resolvePort(new ConnectedPopup(port));
+            });
+          });
         }
-      });
 
-      let awaitPopup = windowId => {
-        return new Promise(resolve => {
-          resolveMessage = resolve;
-        }).then(msg => {
-          browser.test.assertEq(
-            windowId,
-            msg.windowId,
-            "Got popup message from correct window"
-          );
+        constructor(port) {
+          this.port = port;
+          this.#msgPromise = new Promise(resolveMessage => {
+            // popup.js sends one message with the popup's metadata.
+            port.onMessage.addListener(resolveMessage);
+          });
+          this.#disconnectPromise = new Promise(resolveDisconnect => {
+            port.onDisconnect.addListener(resolveDisconnect);
+          });
+        }
+
+        async getPromisedMessage() {
+          browser.test.log("Waiting for popup to send information");
+          let msg = await this.#msgPromise;
+          browser.test.assertEq("popup-details", msg.message, "Got port msg");
           return msg;
+        }
+
+        async promisePopupClosed(desc) {
+          browser.test.log(`Waiting for popup to be closed (${desc})`);
+          // There is currently no great way for extension to detect a closed
+          // popup. Extensions can observe the port.onDisconnect event for now.
+          await this.#disconnectPromise;
+          browser.test.log(`Popup was closed (${desc})`);
+        }
+
+        async closePopup(desc) {
+          browser.test.log(`Closing popup (${desc})`);
+          this.port.postMessage("close_popup");
+          return this.promisePopupClosed(desc);
+        }
+      }
+
+      let testPopupForWindow = async window => {
+        let popupConnectionPromise = ConnectedPopup.promiseNewPopup();
+
+        await browser.browserAction.openPopup({
+          windowId: window.id,
         });
-      };
 
-      let testWindow = async window => {
-        browser.test.sendMessage("click-browserAction");
-
-        let msg = await awaitPopup(window.id);
+        let connectedPopup = await popupConnectionPromise;
+        let msg = await connectedPopup.getPromisedMessage();
+        browser.test.assertEq(
+          window.id,
+          msg.windowId,
+          "Got popup message from correct window"
+        );
         browser.test.assertEq(
           window.incognito,
           msg.incognito,
           "Correct incognito status in browserAction popup"
         );
+
+        return connectedPopup;
       };
 
-      const URL = "https://example.com/incognito";
-      let windowReady = new Promise(resolve => {
-        browser.tabs.onUpdated.addListener(function listener(
-          tabId,
-          changed,
-          tab
-        ) {
-          if (changed.status == "complete" && tab.url == URL) {
-            browser.tabs.onUpdated.removeListener(listener);
-            resolve();
-          }
+      async function createPrivateWindow() {
+        const URL = "https://example.com/?dummy-incognito-window";
+        let windowReady = new Promise(resolve => {
+          browser.tabs.onUpdated.addListener(function l(tabId, changed, tab) {
+            if (changed.status == "complete" && tab.url == URL) {
+              browser.tabs.onUpdated.removeListener(l);
+              resolve();
+            }
+          });
         });
-      });
+        let window = await browser.windows.create({
+          incognito: true,
+          url: URL,
+        });
+        await windowReady;
+        return window;
+      }
+
+      function getNonPrivateViewCount() {
+        // The background context is in non-private browsing mode, so getViews()
+        // only returns the views that are not in private browsing mode.
+        return browser.extension.getViews({ type: "popup" }).length;
+      }
 
       try {
+        let nonPrivatePopup;
         {
           let window = await browser.windows.getCurrent();
 
-          await testWindow(window);
+          nonPrivatePopup = await testPopupForWindow(window);
+
+          browser.test.assertEq(1, getNonPrivateViewCount(), "popup is open");
+          // ^ The popup will close when a new window is opened below.
+          if (headless) {
+            // ... except when --headless is used. For some reason, the popup
+            // does not close when another window is opened. Close manually.
+            await nonPrivatePopup.closePopup("Work-around for --headless bug");
+          }
         }
 
         {
-          let window = await browser.windows.create({
-            incognito: true,
-            url: URL,
-          });
-          await windowReady;
+          let window = await createPrivateWindow();
 
-          await testWindow(window);
+          let privatePopup = await testPopupForWindow(window);
+
+          await nonPrivatePopup.promisePopupClosed("First popup closed by now");
+
+          browser.test.assertEq(
+            0,
+            getNonPrivateViewCount(),
+            "First popup should have been closed when a new window was opened"
+          );
+
+          // TODO bug 1809000: On debug builds, a memory leak is reported when
+          // the popup is closed as part of closing a window. As a work-around,
+          // we explicitly close the popup here.
+          // TODO: Remove when bug 1809000 and bug 1811459 are fixed.
+          await privatePopup.closePopup("Work-around for bug 1809000");
+
+          await browser.windows.remove(window.id);
+          // ^ This also closes the popup panel associated with the window. If
+          // it somehow does not close properly, errors may be reported, e.g.
+          // leakcheck failures in debug mode (like bug 1800100).
+
+          // This check is not strictly necessary, but we're doing this to
+          // confirm that the private popup has indeed been closed.
+          await privatePopup.promisePopupClosed("Window closed = popup gone");
         }
 
         browser.test.notifyPass("incognito-views");
@@ -157,7 +242,12 @@ add_task(async function testIncognitoViews() {
         }
 
         let win = await browser.windows.getCurrent();
-        browser.runtime.sendMessage({
+        let port = browser.runtime.connect({ name: "from-popup" });
+        port.onMessage.addListener(msg => {
+          browser.test.assertEq("close_popup", msg, "Close popup msg");
+          window.close();
+        });
+        port.postMessage({
           message: "popup-details",
           windowId: win.id,
           incognito: browser.extension.inIncognitoContext,
@@ -166,20 +256,7 @@ add_task(async function testIncognitoViews() {
     },
   });
 
-  let win;
-  let promiseBrowserActionOpened;
-  extension.onMessage("click-browserAction", () => {
-    win = Services.wm.getMostRecentWindow("navigator:browser");
-    promiseBrowserActionOpened = openBrowserActionPanel(extension, win, true);
-  });
-
   await extension.startup();
   await extension.awaitFinish("incognito-views");
-  // Prevent intermittent failures of this test in optimized builds due to a race between
-  // opening/closing the browserAction and closing the related window at the end
-  // of the test (e.g. Bug 1707305).
-  await promiseBrowserActionOpened;
-  await closeBrowserAction(extension, win);
   await extension.unload();
-  await BrowserTestUtils.closeWindow(win);
 });
