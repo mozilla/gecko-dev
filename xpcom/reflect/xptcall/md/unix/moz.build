@@ -33,6 +33,7 @@ if CONFIG["OS_ARCH"] in (
     "Bitrig",
     "DragonFly",
     "FreeBSD",
+    "Haiku",
     "NetBSD",
     "OpenBSD",
     "SunOS",
