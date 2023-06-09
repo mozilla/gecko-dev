@@ -100,8 +100,6 @@ class BackgroundParentImpl : public PBackgroundParent {
   bool DeallocPBackgroundLSSimpleRequestParent(
       PBackgroundLSSimpleRequestParent* aActor) override;
 
-  mozilla::ipc::IPCResult RecvLSClearPrivateBrowsing() override;
-
   PBackgroundLocalStorageCacheParent* AllocPBackgroundLocalStorageCacheParent(
       const PrincipalInfo& aPrincipalInfo, const nsACString& aOriginKey,
       const uint32_t& aPrivateBrowsingId) override;
@@ -138,7 +136,8 @@ class BackgroundParentImpl : public PBackgroundParent {
       CreateFileSystemManagerParentResolver&& aResolver) override;
 
   mozilla::ipc::IPCResult RecvCreateWebTransportParent(
-      const nsAString& aURL, nsIPrincipal* aPrincipal, const bool& aDedicated,
+      const nsAString& aURL, nsIPrincipal* aPrincipal,
+      const mozilla::Maybe<IPCClientInfo>& aClientInfo, const bool& aDedicated,
       const bool& aRequireUnreliable, const uint32_t& aCongestionControl,
       // Sequence<WebTransportHash>* aServerCertHashes,
       Endpoint<PWebTransportParent>&& aParentEndpoint,
@@ -166,11 +165,6 @@ class BackgroundParentImpl : public PBackgroundParent {
 
   bool DeallocPFileCreatorParent(PFileCreatorParent* aActor) override;
 
-  mozilla::dom::PRemoteWorkerParent* AllocPRemoteWorkerParent(
-      const RemoteWorkerData& aData) override;
-
-  bool DeallocPRemoteWorkerParent(PRemoteWorkerParent* aActor) override;
-
   mozilla::dom::PRemoteWorkerControllerParent*
   AllocPRemoteWorkerControllerParent(
       const mozilla::dom::RemoteWorkerData& aRemoteWorkerData) override;
@@ -182,13 +176,10 @@ class BackgroundParentImpl : public PBackgroundParent {
   bool DeallocPRemoteWorkerControllerParent(
       mozilla::dom::PRemoteWorkerControllerParent* aActor) override;
 
-  mozilla::dom::PRemoteWorkerServiceParent* AllocPRemoteWorkerServiceParent()
+  already_AddRefed<PRemoteWorkerServiceParent> AllocPRemoteWorkerServiceParent()
       override;
 
   mozilla::ipc::IPCResult RecvPRemoteWorkerServiceConstructor(
-      PRemoteWorkerServiceParent* aActor) override;
-
-  bool DeallocPRemoteWorkerServiceParent(
       PRemoteWorkerServiceParent* aActor) override;
 
   mozilla::dom::PSharedWorkerParent* AllocPSharedWorkerParent(
@@ -415,6 +406,8 @@ class BackgroundParentImpl : public PBackgroundParent {
 
   already_AddRefed<PLockManagerParent> AllocPLockManagerParent(
       const ContentPrincipalInfo& aPrincipalInfo, const nsID& aClientId) final;
+
+  already_AddRefed<PFetchParent> AllocPFetchParent() override;
 };
 
 }  // namespace mozilla::ipc

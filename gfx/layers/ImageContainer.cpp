@@ -236,6 +236,12 @@ Maybe<SurfaceDescriptor> Image::GetDescFromTexClient(
   return Some(ret);
 }
 
+already_AddRefed<ImageContainerListener>
+ImageContainer::GetImageContainerListener() const {
+  MOZ_ASSERT(InImageBridgeChildThread());
+  return do_AddRef(mNotifyCompositeListener);
+}
+
 RefPtr<PlanarYCbCrImage> ImageContainer::CreatePlanarYCbCrImage() {
   RecursiveMutexAutoLock lock(mRecursiveMutex);
   EnsureImageClient();
@@ -326,18 +332,22 @@ void ImageContainer::SetCurrentImages(const nsTArray<NonOwningImage>& aImages) {
 }
 
 void ImageContainer::ClearAllImages() {
+  mRecursiveMutex.Lock();
   if (mImageClient) {
+    RefPtr<ImageClient> imageClient = mImageClient;
+    mRecursiveMutex.Unlock();
+
     // Let ImageClient release all TextureClients. This doesn't return
     // until ImageBridge has called ClearCurrentImageFromImageBridge.
     if (RefPtr<ImageBridgeChild> imageBridge =
             ImageBridgeChild::GetSingleton()) {
-      imageBridge->FlushAllImages(mImageClient, this);
+      imageBridge->FlushAllImages(imageClient, this);
     }
     return;
   }
 
-  RecursiveMutexAutoLock lock(mRecursiveMutex);
   SetCurrentImageInternal(nsTArray<NonOwningImage>());
+  mRecursiveMutex.Unlock();
 }
 
 void ImageContainer::ClearCachedResources() {
@@ -361,7 +371,7 @@ void ImageContainer::SetCurrentImageInTransaction(Image* aImage) {
 void ImageContainer::SetCurrentImagesInTransaction(
     const nsTArray<NonOwningImage>& aImages) {
   NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
-  NS_ASSERTION(!mImageClient,
+  NS_ASSERTION(!HasImageClient(),
                "Should use async image transfer with ImageBridge.");
 
   SetCurrentImageInternal(aImages);
@@ -372,8 +382,8 @@ bool ImageContainer::IsAsync() const { return mIsAsync; }
 CompositableHandle ImageContainer::GetAsyncContainerHandle() {
   NS_ASSERTION(IsAsync(),
                "Shared image ID is only relevant to async ImageContainers");
-  NS_ASSERTION(mAsyncContainerHandle, "Should have a shared image ID");
   RecursiveMutexAutoLock mon(mRecursiveMutex);
+  NS_ASSERTION(mAsyncContainerHandle, "Should have a shared image ID");
   EnsureImageClient();
   return mAsyncContainerHandle;
 }
@@ -434,8 +444,10 @@ void ImageContainer::NotifyDropped(uint32_t aDropped) {
 void ImageContainer::EnsureRecycleAllocatorForRDD(
     KnowsCompositor* aKnowsCompositor) {
   MOZ_ASSERT(!mIsAsync);
-  MOZ_ASSERT(!mImageClient);
   MOZ_ASSERT(XRE_IsRDDProcess());
+
+  RecursiveMutexAutoLock lock(mRecursiveMutex);
+  MOZ_ASSERT(!mImageClient);
 
   if (mRecycleAllocator &&
       aKnowsCompositor == mRecycleAllocator->GetKnowsCompositor()) {
@@ -454,8 +466,9 @@ void ImageContainer::EnsureRecycleAllocatorForRDD(
 }
 
 #ifdef XP_WIN
-RefPtr<D3D11RecycleAllocator> ImageContainer::GetD3D11RecycleAllocator(
-    KnowsCompositor* aKnowsCompositor, gfx::SurfaceFormat aPreferredFormat) {
+already_AddRefed<D3D11RecycleAllocator>
+ImageContainer::GetD3D11RecycleAllocator(KnowsCompositor* aKnowsCompositor,
+                                         gfx::SurfaceFormat aPreferredFormat) {
   MOZ_ASSERT(aKnowsCompositor);
 
   if (!aKnowsCompositor->SupportsD3D11()) {
@@ -467,42 +480,55 @@ RefPtr<D3D11RecycleAllocator> ImageContainer::GetD3D11RecycleAllocator(
     return nullptr;
   }
 
+  RecursiveMutexAutoLock lock(mRecursiveMutex);
   if (mD3D11RecycleAllocator && mD3D11RecycleAllocator->mDevice == device &&
       mD3D11RecycleAllocator->GetKnowsCompositor() == aKnowsCompositor) {
-    return mD3D11RecycleAllocator;
+    return do_AddRef(mD3D11RecycleAllocator);
   }
 
   mD3D11RecycleAllocator =
       new D3D11RecycleAllocator(aKnowsCompositor, device, aPreferredFormat);
-  return mD3D11RecycleAllocator;
-}
 
-D3D11YCbCrRecycleAllocator* ImageContainer::GetD3D11YCbCrRecycleAllocator(
-    KnowsCompositor* aKnowsCompositor) {
-  if (mD3D11YCbCrRecycleAllocator &&
-      aKnowsCompositor == mD3D11YCbCrRecycleAllocator->GetKnowsCompositor()) {
-    return mD3D11YCbCrRecycleAllocator;
+  if (device != DeviceManagerDx::Get()->GetCompositorDevice()) {
+    RefPtr<SyncObjectClient> syncObject =
+        SyncObjectClient::CreateSyncObjectClient(
+            aKnowsCompositor->GetTextureFactoryIdentifier().mSyncHandle,
+            device);
+    mD3D11RecycleAllocator->SetSyncObject(syncObject);
   }
 
+  return do_AddRef(mD3D11RecycleAllocator);
+}
+
+already_AddRefed<D3D11YCbCrRecycleAllocator>
+ImageContainer::GetD3D11YCbCrRecycleAllocator(
+    KnowsCompositor* aKnowsCompositor) {
   if (!aKnowsCompositor->SupportsD3D11() ||
       !gfx::DeviceManagerDx::Get()->GetImageDevice()) {
     return nullptr;
   }
 
+  RecursiveMutexAutoLock lock(mRecursiveMutex);
+  if (mD3D11YCbCrRecycleAllocator &&
+      aKnowsCompositor == mD3D11YCbCrRecycleAllocator->GetKnowsCompositor()) {
+    return do_AddRef(mD3D11YCbCrRecycleAllocator);
+  }
+
   mD3D11YCbCrRecycleAllocator =
       new D3D11YCbCrRecycleAllocator(aKnowsCompositor);
-  return mD3D11YCbCrRecycleAllocator;
+  return do_AddRef(mD3D11YCbCrRecycleAllocator);
 }
 #endif
 
 #ifdef XP_MACOSX
-MacIOSurfaceRecycleAllocator*
+already_AddRefed<MacIOSurfaceRecycleAllocator>
 ImageContainer::GetMacIOSurfaceRecycleAllocator() {
+  RecursiveMutexAutoLock lock(mRecursiveMutex);
   if (!mMacIOSurfaceRecycleAllocator) {
     mMacIOSurfaceRecycleAllocator = new MacIOSurfaceRecycleAllocator();
   }
 
-  return mMacIOSurfaceRecycleAllocator;
+  return do_AddRef(mMacIOSurfaceRecycleAllocator);
 }
 #endif
 

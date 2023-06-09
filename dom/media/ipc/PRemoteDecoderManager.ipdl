@@ -6,6 +6,10 @@
 #ifdef MOZ_WMF_MEDIA_ENGINE
   include protocol PMFMediaEngine;
 #endif
+#ifdef MOZ_WMF_CDM
+  include protocol PMFCDM;
+#endif
+
 include protocol PTexture;
 include protocol PRemoteDecoder;
 include LayersSurfaces;
@@ -34,17 +38,23 @@ union RemoteDecoderInfoIPDL
   VideoDecoderInfoIPDL;
 };
 
-[ManualDealloc, NeedsOtherPid]
+[NeedsOtherPid]
 sync protocol PRemoteDecoderManager
 {
   manages PRemoteDecoder;
 #ifdef MOZ_WMF_MEDIA_ENGINE
   manages PMFMediaEngine;
 #endif
+#ifdef MOZ_WMF_CDM
+  manages PMFCDM;
+#endif
 
 parent:
 #ifdef MOZ_WMF_MEDIA_ENGINE
   async PMFMediaEngine();
+#endif
+#ifdef MOZ_WMF_CDM
+  async PMFCDM(nsString keySystem);
 #endif
   async PRemoteDecoder(RemoteDecoderInfoIPDL info,
                        OptionSet options,

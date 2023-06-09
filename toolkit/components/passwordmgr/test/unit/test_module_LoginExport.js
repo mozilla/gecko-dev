@@ -8,10 +8,12 @@
 
 "use strict";
 
-let { LoginExport } = ChromeUtils.import(
-  "resource://gre/modules/LoginExport.jsm"
+let { LoginExport } = ChromeUtils.importESModule(
+  "resource://gre/modules/LoginExport.sys.mjs"
 );
-let { sinon } = ChromeUtils.import("resource://testing-common/Sinon.jsm");
+let { sinon } = ChromeUtils.importESModule(
+  "resource://testing-common/Sinon.sys.mjs"
+);
 
 /**
  * Saves the logins to a temporary CSV file, reads the lines and returns the CSV lines.

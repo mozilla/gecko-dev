@@ -55,6 +55,10 @@ class nsListControlFrame final : public nsHTMLScrollFrame,
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS(nsListControlFrame)
 
+  Maybe<nscoord> GetNaturalBaselineBOffset(
+      mozilla::WritingMode aWM,
+      BaselineSharingGroup aBaselineGroup) const override;
+
   // nsIFrame
   nsresult HandleEvent(nsPresContext* aPresContext,
                        mozilla::WidgetGUIEvent* aEvent,
@@ -71,7 +75,6 @@ class nsListControlFrame final : public nsHTMLScrollFrame,
   void Init(nsIContent* aContent, nsContainerFrame* aParent,
             nsIFrame* aPrevInFlow) final;
 
-  MOZ_CAN_RUN_SCRIPT_BOUNDARY
   void DidReflow(nsPresContext* aPresContext,
                  const ReflowInput* aReflowInput) final;
   void DestroyFrom(nsIFrame* aDestructRoot,
@@ -250,12 +253,14 @@ class nsListControlFrame final : public nsHTMLScrollFrame,
 
   MOZ_CAN_RUN_SCRIPT void ScrollToIndex(int32_t anIndex);
 
+ public:
   /**
    * Resets the select back to it's original default values;
    * those values as determined by the original HTML
    */
   MOZ_CAN_RUN_SCRIPT void ResetList(bool aAllowScrolling);
 
+ protected:
   explicit nsListControlFrame(ComputedStyle* aStyle,
                               nsPresContext* aPresContext);
   virtual ~nsListControlFrame();

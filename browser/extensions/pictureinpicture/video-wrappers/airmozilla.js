@@ -5,6 +5,31 @@
 "use strict";
 
 class PictureInPictureVideoWrapper {
+  play(video) {
+    let playPauseButton = document.querySelector(
+      "#transportControls #playButton"
+    );
+    if (video.paused) {
+      playPauseButton?.click();
+    }
+  }
+
+  pause(video) {
+    let playPauseButton = document.querySelector(
+      "#transportControls #playButton"
+    );
+    if (!video.paused) {
+      playPauseButton?.click();
+    }
+  }
+
+  setMuted(video, shouldMute) {
+    let muteButton = document.querySelector("#transportControls #muteButton");
+    if (video.muted !== shouldMute && muteButton) {
+      muteButton.click();
+    }
+  }
+
   setCaptionContainerObserver(video, updateCaptionsFunction) {
     let container = document.querySelector("#absoluteControls");
 

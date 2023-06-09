@@ -34,7 +34,6 @@
 #include "vm/Activation.h"  // js::Activation
 #include "vm/MallocProvider.h"
 #include "vm/Runtime.h"
-#include "vm/SharedStencil.h"  // js::SharedImmutableScriptDataTable
 #include "wasm/WasmContext.h"
 
 struct JS_PUBLIC_API JSContext;
@@ -53,10 +52,6 @@ class JitActivation;
 class JitContext;
 class DebugModeOSRVolatileJitFrameIter;
 }  // namespace jit
-
-namespace gc {
-class AutoSuppressNurseryCellAlloc;
-}  // namespace gc
 
 /* Detects cycles when traversing an object graph. */
 class MOZ_RAII AutoCycleDetector {
@@ -170,8 +165,6 @@ struct JS_PUBLIC_API JSContext : public JS::RootingContext,
  private:
   js::UnprotectedData<JSRuntime*> runtime_;
   js::WriteOnceData<js::ContextKind> kind_;
-
-  friend class js::gc::AutoSuppressNurseryCellAlloc;
 
   js::ContextData<JS::ContextOptions> options_;
 
@@ -363,12 +356,6 @@ struct JS_PUBLIC_API JSContext : public JS::RootingContext,
   js::AtomsTable& atoms() { return runtime_->atoms(); }
 
   js::SymbolRegistry& symbolRegistry() { return runtime_->symbolRegistry(); }
-
-  // Methods to access runtime data that must be protected by locks.
-  js::SharedImmutableScriptDataTable& scriptDataTable(
-      js::AutoLockScriptData& lock) {
-    return runtime_->scriptDataTable(lock);
-  }
 
   // Methods to access other runtime data that checks locking internally.
   js::gc::AtomMarkingRuntime& atomMarking() { return runtime_->gc.atomMarking; }
@@ -582,6 +569,18 @@ struct JS_PUBLIC_API JSContext : public JS::RootingContext,
   void verifyIsSafeToGC() {
     MOZ_DIAGNOSTIC_ASSERT(!inUnsafeRegion,
                           "[AutoAssertNoGC] possible GC in GC-unsafe region");
+  }
+
+  bool isInUnsafeRegion() const { return bool(inUnsafeRegion); }
+
+  // For JIT use.
+  void resetInUnsafeRegion() {
+    MOZ_ASSERT(inUnsafeRegion >= 0);
+    inUnsafeRegion = 0;
+  }
+
+  static constexpr size_t offsetOfInUnsafeRegion() {
+    return offsetof(JSContext, inUnsafeRegion);
   }
 
   /* Whether sampling should be enabled or not. */
@@ -862,6 +861,14 @@ struct JS_PUBLIC_API JSContext : public JS::RootingContext,
   // caller and read in the callee's prologue.
   js::ContextData<js::jit::ICScript*> inlinedICScript_;
 
+  // The following two fields are a pair of associated scripts. If they are
+  // non-null, the child has been inlined into the parent, and we have bailed
+  // out due to a MonomorphicInlinedStubFolding bailout. If it wasn't
+  // trial-inlined, we need to track for the parent if we attach a new case to
+  // the corresponding folded stub which belongs to the child.
+  js::ContextData<JSScript*> lastStubFoldingBailoutChild_;
+  js::ContextData<JSScript*> lastStubFoldingBailoutParent_;
+
  public:
   void* addressOfInterruptBits() { return &interruptBits_; }
   void* addressOfJitStackLimit() {
@@ -1077,35 +1084,6 @@ class AutoAssertNoPendingException {
  public:
   explicit AutoAssertNoPendingException(JSContext* cxArg) {}
 #endif
-};
-
-class MOZ_RAII AutoLockScriptData {
-  JSRuntime* runtime;
-
- public:
-  explicit AutoLockScriptData(JSRuntime* rt) {
-    MOZ_ASSERT(CurrentThreadCanAccessRuntime(rt) ||
-               CurrentThreadIsParseThread());
-    runtime = rt;
-    if (runtime->hasParseTasks()) {
-      runtime->scriptDataLock.lock();
-    } else {
-      MOZ_ASSERT(!runtime->activeThreadHasScriptDataAccess);
-#ifdef DEBUG
-      runtime->activeThreadHasScriptDataAccess = true;
-#endif
-    }
-  }
-  ~AutoLockScriptData() {
-    if (runtime->hasParseTasks()) {
-      runtime->scriptDataLock.unlock();
-    } else {
-      MOZ_ASSERT(runtime->activeThreadHasScriptDataAccess);
-#ifdef DEBUG
-      runtime->activeThreadHasScriptDataAccess = false;
-#endif
-    }
-  }
 };
 
 class MOZ_RAII AutoNoteDebuggerEvaluationWithOnNativeCallHook {

@@ -66,7 +66,10 @@ pub fn is_main_thread() -> bool {
     unsafe { NS_IsMainThread() }
 }
 
-pub fn create_thread(name: &str) -> Result<RefPtr<nsIThread>, nsresult> {
+// There's no OS requirement that thread names be static, but dynamic thread
+// names tend to conceal more than they reveal when processing large numbers of
+// crash reports.
+pub fn create_thread(name: &'static str) -> Result<RefPtr<nsIThread>, nsresult> {
     getter_addrefs(|p| unsafe {
         NS_NewNamedThreadWithDefaultStackSize(&*nsCString::from(name), p, ptr::null())
     })
@@ -132,8 +135,6 @@ pub unsafe fn dispatch_background_task_runnable(
 }
 
 /// Options to control how task runnables are dispatched.
-///
-/// NOTE: The `DISPATCH_SYNC` flag is intentionally not supported by this type.
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
 pub struct DispatchOptions(u32);
 

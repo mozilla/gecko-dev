@@ -15,10 +15,13 @@
 #include "nsExceptionHandler.h"
 #include "nsIEventTarget.h"
 #include "nsITimer.h"
+#include "nsString.h"
+#include "nsThreadSyncDispatch.h"
 #include "nsTimerImpl.h"
 #include "prsystem.h"
 
 #include "nsThreadManager.h"
+#include "nsThreadPool.h"
 #include "TaskController.h"
 
 #ifdef XP_WIN
@@ -198,7 +201,8 @@ nsresult NS_GetMainThread(nsIThread** aResult) {
 nsresult NS_DispatchToCurrentThread(already_AddRefed<nsIRunnable>&& aEvent) {
   nsresult rv;
   nsCOMPtr<nsIRunnable> event(aEvent);
-  nsIEventTarget* thread = GetCurrentEventTarget();
+  // XXX: Consider using GetCurrentSerialEventTarget() to support TaskQueues.
+  nsISerialEventTarget* thread = NS_GetCurrentThread();
   if (!thread) {
     return NS_ERROR_UNEXPECTED;
   }
@@ -251,7 +255,9 @@ nsresult NS_DispatchToMainThread(nsIRunnable* aEvent, uint32_t aDispatchFlags) {
 nsresult NS_DelayedDispatchToCurrentThread(
     already_AddRefed<nsIRunnable>&& aEvent, uint32_t aDelayMs) {
   nsCOMPtr<nsIRunnable> event(aEvent);
-  nsIEventTarget* thread = GetCurrentEventTarget();
+
+  // XXX: Consider using GetCurrentSerialEventTarget() to support TaskQueues.
+  nsISerialEventTarget* thread = NS_GetCurrentThread();
   if (!thread) {
     return NS_ERROR_UNEXPECTED;
   }
@@ -543,33 +549,23 @@ nsAutoLowPriorityIO::~nsAutoLowPriorityIO() {
 
 namespace mozilla {
 
-nsIEventTarget* GetCurrentEventTarget() {
-  nsCOMPtr<nsIThread> thread;
-  nsresult rv = NS_GetCurrentThread(getter_AddRefs(thread));
-  if (NS_FAILED(rv)) {
-    return nullptr;
-  }
-
-  return thread->EventTarget();
-}
-
-nsIEventTarget* GetMainThreadEventTarget() {
-  return GetMainThreadSerialEventTarget();
-}
-
 nsISerialEventTarget* GetCurrentSerialEventTarget() {
   if (nsISerialEventTarget* current =
           SerialEventTargetGuard::GetCurrentSerialEventTarget()) {
     return current;
   }
 
+  MOZ_DIAGNOSTIC_ASSERT(!nsThreadPool::GetCurrentThreadPool(),
+                        "Call to GetCurrentSerialEventTarget() from thread "
+                        "pool without an active TaskQueue");
+
   nsCOMPtr<nsIThread> thread;
   nsresult rv = NS_GetCurrentThread(getter_AddRefs(thread));
   if (NS_FAILED(rv)) {
     return nullptr;
   }
 
-  return thread->SerialEventTarget();
+  return thread;
 }
 
 nsISerialEventTarget* GetMainThreadSerialEventTarget() {
@@ -745,3 +741,28 @@ nsresult NS_CreateBackgroundTaskQueue(const char* aName,
 }
 
 }  // extern "C"
+
+nsresult NS_DispatchAndSpinEventLoopUntilComplete(
+    const nsACString& aVeryGoodReasonToDoThis, nsIEventTarget* aEventTarget,
+    already_AddRefed<nsIRunnable> aEvent) {
+  // NOTE: Get the current thread specifically, as `SpinEventLoopUntil` can
+  // only spin that event target's loop. The reply will specify
+  // NS_DISPATCH_IGNORE_BLOCK_DISPATCH to ensure the reply is received even if
+  // the caller is a threadpool thread.
+  nsCOMPtr<nsIThread> current = NS_GetCurrentThread();
+  if (NS_WARN_IF(!current)) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  RefPtr<nsThreadSyncDispatch> wrapper =
+      new nsThreadSyncDispatch(current.forget(), std::move(aEvent));
+  nsresult rv = aEventTarget->Dispatch(do_AddRef(wrapper));
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    // FIXME: Consider avoiding leaking the `nsThreadSyncDispatch` as well by
+    // using a fallible version of `Dispatch` once that is added.
+    return rv;
+  }
+
+  wrapper->SpinEventLoopUntilComplete(aVeryGoodReasonToDoThis);
+  return NS_OK;
+}

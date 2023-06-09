@@ -26,13 +26,13 @@ class nsBaseFilePicker : public nsIFilePicker {
   virtual ~nsBaseFilePicker();
 
   NS_IMETHOD Init(mozIDOMWindowProxy* aParent, const nsAString& aTitle,
-                  int16_t aMode) override;
+                  nsIFilePicker::Mode aMode) override;
 
   NS_IMETHOD Open(nsIFilePickerShownCallback* aCallback) override;
   NS_IMETHOD AppendFilters(int32_t filterMask) override;
   NS_IMETHOD AppendRawFilter(const nsAString& aFilter) override;
-  NS_IMETHOD GetCapture(int16_t* aCapture) override;
-  NS_IMETHOD SetCapture(int16_t aCapture) override;
+  NS_IMETHOD GetCapture(nsIFilePicker::CaptureTarget* aCapture) override;
+  NS_IMETHOD SetCapture(nsIFilePicker::CaptureTarget aCapture) override;
   NS_IMETHOD GetFilterIndex(int32_t* aFilterIndex) override;
   NS_IMETHOD SetFilterIndex(int32_t aFilterIndex) override;
   NS_IMETHOD GetFiles(nsISimpleEnumerator** aFiles) override;
@@ -43,7 +43,7 @@ class nsBaseFilePicker : public nsIFilePicker {
       const nsAString& aDisplayDirectory) override;
   NS_IMETHOD GetAddToRecentDocs(bool* aFlag) override;
   NS_IMETHOD SetAddToRecentDocs(bool aFlag) override;
-  NS_IMETHOD GetMode(int16_t* aMode) override;
+  NS_IMETHOD GetMode(nsIFilePicker::Mode* aMode) override;
   NS_IMETHOD SetOkButtonLabel(const nsAString& aLabel) override;
   NS_IMETHOD GetOkButtonLabel(nsAString& aLabel) override;
 
@@ -53,14 +53,14 @@ class nsBaseFilePicker : public nsIFilePicker {
 
  protected:
   virtual void InitNative(nsIWidget* aParent, const nsAString& aTitle) = 0;
-  virtual nsresult Show(int16_t* _retval) = 0;
+  virtual nsresult Show(nsIFilePicker::ResultCode* _retval) = 0;
 
   bool mAddToRecentDocs;
   nsCOMPtr<nsIFile> mDisplayDirectory;
   nsString mDisplaySpecialDirectory;
 
   nsCOMPtr<nsPIDOMWindowOuter> mParent;
-  int16_t mMode;
+  nsIFilePicker::Mode mMode;
   nsString mOkButtonLabel;
   nsTArray<nsString> mRawFilters;
 };

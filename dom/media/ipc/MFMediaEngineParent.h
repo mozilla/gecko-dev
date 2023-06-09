@@ -19,17 +19,19 @@
 
 namespace mozilla {
 
+class MFCDMProxy;
+class MFContentProtectionManager;
 class MFMediaEngineExtension;
 class MFMediaEngineStreamWrapper;
 class MFMediaSource;
 class RemoteDecoderManagerParent;
 
 /**
- * MFMediaEngineParent is a wrapper class for a MediaEngine in the RDD process.
- * It's responsible to create the media engine and its related classes, such as
- * a custom media source, media engine extension, media engine notify...e.t.c
- * It communicates with MFMediaEngineChild in the content process to receive
- * commands and direct them to the media engine.
+ * MFMediaEngineParent is a wrapper class for a MediaEngine in the MF-CDM
+ * process. It's responsible to create the media engine and its related classes,
+ * such as a custom media source, media engine extension, media engine
+ * notify...e.t.c It communicates with MFMediaEngineChild in the content process
+ * to receive commands and direct them to the media engine.
  * https://docs.microsoft.com/en-us/windows/win32/api/mfmediaengine/nn-mfmediaengine-imfmediaengine
  */
 class MFMediaEngineParent final : public PMFMediaEngineParent {
@@ -54,6 +56,7 @@ class MFMediaEngineParent final : public PMFMediaEngineParent {
   mozilla::ipc::IPCResult RecvPlay();
   mozilla::ipc::IPCResult RecvPause();
   mozilla::ipc::IPCResult RecvSeek(double aTargetTimeInSecond);
+  mozilla::ipc::IPCResult RecvSetCDMProxyId(uint64_t aProxyId);
   mozilla::ipc::IPCResult RecvSetVolume(double aVolume);
   mozilla::ipc::IPCResult RecvSetPlaybackRate(double aPlaybackRate);
   mozilla::ipc::IPCResult RecvSetLooping(bool aLooping);
@@ -83,6 +86,8 @@ class MFMediaEngineParent final : public PMFMediaEngineParent {
 
   void UpdateStatisticsData();
 
+  void SetMediaSourceOnEngine();
+
   // This generates unique id for each MFMediaEngineParent instance, and it
   // would be increased monotonically.
   static inline uint64_t sMediaEngineIdx = 0;
@@ -102,6 +107,9 @@ class MFMediaEngineParent final : public PMFMediaEngineParent {
   Microsoft::WRL::ComPtr<MFMediaEngineNotify> mMediaEngineNotify;
   Microsoft::WRL::ComPtr<MFMediaEngineExtension> mMediaEngineExtension;
   Microsoft::WRL::ComPtr<MFMediaSource> mMediaSource;
+#ifdef MOZ_WMF_CDM
+  Microsoft::WRL::ComPtr<MFContentProtectionManager> mContentProtectionManager;
+#endif
 
   MediaEventListener mMediaEngineEventListener;
   MediaEventListener mRequestSampleListener;

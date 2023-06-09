@@ -78,6 +78,7 @@ function logEvent({ threadActor, frame, level, expression, bindings }) {
     columnNumber: column,
     arguments: value,
     level,
+    timeStamp: ChromeUtils.dateNow(),
     chromeContext:
       targetActor.actorID &&
       /conn\d+\.parentProcessTarget\d+/.test(targetActor.actorID),
@@ -93,7 +94,7 @@ function logEvent({ threadActor, frame, level, expression, bindings }) {
     TYPES.CONSOLE_MESSAGE
   );
   if (consoleMessageWatcher) {
-    consoleMessageWatcher.onLogPoint(message);
+    consoleMessageWatcher.emitMessages([message]);
   } else {
     // Bug 1642296: Once we enable ConsoleMessage resource on the server, we should remove onConsoleAPICall
     // from the WebConsoleActor, and only support the ConsoleMessageWatcher codepath.

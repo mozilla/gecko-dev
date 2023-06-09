@@ -49,6 +49,7 @@
 #include "nsIMutableArray.h"
 #include "gfxContext.h"
 #include "gfxPlatform.h"
+#include "nscore.h"
 #include <algorithm>
 
 using namespace mozilla;
@@ -147,6 +148,29 @@ nsBaseDragService::SetSourceWindowContext(WindowContext* aSourceWindowContext) {
   // This should only be called in a child process.
   MOZ_ASSERT(!XRE_IsParentProcess());
   mSourceWindowContext = aSourceWindowContext;
+  return NS_OK;
+}
+
+//
+// GetSourceTopWindowContext
+//
+// Returns the top-level window context where the drag was initiated. This will
+// be nullptr if the drag began outside of our application.
+//
+NS_IMETHODIMP
+nsBaseDragService::GetSourceTopWindowContext(
+    WindowContext** aSourceTopWindowContext) {
+  *aSourceTopWindowContext = mSourceTopWindowContext.get();
+  NS_IF_ADDREF(*aSourceTopWindowContext);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsBaseDragService::SetSourceTopWindowContext(
+    WindowContext* aSourceTopWindowContext) {
+  // This should only be called in a child process.
+  MOZ_ASSERT(!XRE_IsParentProcess());
+  mSourceTopWindowContext = aSourceTopWindowContext;
   return NS_OK;
 }
 
@@ -298,7 +322,7 @@ nsBaseDragService::InvokeDragSession(
   mIsDraggingTextInTextControl =
       mSourceNode->IsInNativeAnonymousSubtree() &&
       TextControlElement::FromNodeOrNull(
-          mSourceNode->GetClosestNativeAnonymousSubtreeRootParent());
+          mSourceNode->GetClosestNativeAnonymousSubtreeRootParentOrHost());
   mContentPolicyType = aContentPolicyType;
   mEndDragPoint = LayoutDeviceIntPoint(0, 0);
 
@@ -393,6 +417,8 @@ nsBaseDragService::InvokeDragSessionWithImage(
   mDragStartData = nullptr;
   mSourceWindowContext =
       aDOMNode ? aDOMNode->OwnerDoc()->GetWindowContext() : nullptr;
+  mSourceTopWindowContext =
+      mSourceWindowContext ? mSourceWindowContext->TopWindowContext() : nullptr;
 
   mScreenPosition = aDragEvent->ScreenPoint(CallerType::System);
   mInputSource = aDragEvent->MozInputSource();
@@ -441,6 +467,7 @@ nsBaseDragService::InvokeDragSessionWithRemoteImage(
   mDragStartData = aDragStartData;
   mImageOffset = CSSIntPoint(0, 0);
   mSourceWindowContext = mDragStartData->GetSourceWindowContext();
+  mSourceTopWindowContext = mDragStartData->GetSourceTopWindowContext();
 
   mScreenPosition = aDragEvent->ScreenPoint(CallerType::System);
   mInputSource = aDragEvent->MozInputSource();
@@ -482,6 +509,8 @@ nsBaseDragService::InvokeDragSessionWithSelection(
   // endpoints of the selection
   nsCOMPtr<nsINode> node = aSelection->GetFocusNode();
   mSourceWindowContext = node ? node->OwnerDoc()->GetWindowContext() : nullptr;
+  mSourceTopWindowContext =
+      mSourceWindowContext ? mSourceWindowContext->TopWindowContext() : nullptr;
 
   return InvokeDragSession(node, aPrincipal, aCsp, aCookieJarSettings,
                            aTransferableArray, aActionType,
@@ -567,7 +596,7 @@ nsBaseDragService::EndDragSession(bool aDoneDrag, uint32_t aKeyModifiers) {
   if (mDragPopup) {
     nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
     if (pm) {
-      pm->HidePopup(mDragPopup, false, true, false, false);
+      pm->HidePopup(mDragPopup, {HidePopupOption::DeselectMenu});
     }
   }
 
@@ -825,7 +854,7 @@ nsresult nsBaseDragService::DrawDrag(nsINode* aDOMNode,
 
     nsIFrame* frame = content->GetPrimaryFrame();
     if (frame && frame->IsMenuPopupFrame()) {
-      mDragPopup = content;
+      mDragPopup = content->AsElement();
     }
   }
 
@@ -912,11 +941,10 @@ nsresult nsBaseDragService::DrawDragForImage(
             destSize, SurfaceFormat::B8G8R8A8);
     if (!dt || !dt->IsValid()) return NS_ERROR_FAILURE;
 
-    RefPtr<gfxContext> ctx = gfxContext::CreateOrNull(dt);
-    if (!ctx) return NS_ERROR_FAILURE;
+    gfxContext ctx(dt);
 
     ImgDrawResult res = imgContainer->Draw(
-        ctx, destSize, ImageRegion::Create(destSize),
+        &ctx, destSize, ImageRegion::Create(destSize),
         imgIContainer::FRAME_CURRENT, SamplingFilter::GOOD, SVGImageContext(),
         imgIContainer::FLAG_SYNC_DECODE, 1.0);
     if (res == ImgDrawResult::BAD_IMAGE || res == ImgDrawResult::BAD_ARGS ||
@@ -991,4 +1019,17 @@ bool nsBaseDragService::RemoveAllChildProcesses() {
   }
   mChildProcesses.Clear();
   return true;
+}
+
+NS_IMETHODIMP
+nsBaseDragService::MaybeEditorDeletedSourceNode(Element* aEditingHost) {
+  // If builtin editor of Blink and WebKit deletes the source node,they retarget
+  // the source node to the editing host.
+  // https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/renderer/core/page/drag_controller.cc;l=724;drc=d9ba13b8cd8ac0faed7afc3d1f7e4b67ebac2a0b
+  // That allows editor apps listens to "dragend" event in editing host or its
+  // ancestors.  Therefore, we should follow them for compatibility.
+  if (mSourceNode && !mSourceNode->IsInComposedDoc()) {
+    mSourceNode = aEditingHost;
+  }
+  return NS_OK;
 }

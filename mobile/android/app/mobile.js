@@ -155,8 +155,11 @@ pref("xpinstall.whitelist.add", "https://addons.mozilla.org");
 pref("extensions.langpacks.signatures.required", true);
 pref("xpinstall.signatures.required", true);
 
-// Use blocklist v2 until blocklist v3 is enabled on Android - bug 1639050
-pref("extensions.blocklist.useMLBF", false);
+#ifndef NIGHTLY_BUILD
+// Use blocklist v2 until blocklist v3 is enabled on Android - bug 1824863
+    pref("extensions.blocklist.useMLBF", false);
+#endif
+
 
 // Whether MV3 restrictions for actions popup urls should be extended to MV2 extensions
 // (only allowing same extension urls to be used as action popup urls).
@@ -219,7 +222,6 @@ pref("accessibility.browsewithcaret_shortcut.enabled", false);
 pref("findbar.matchdiacritics", 0);
 
 // SSL error page behaviour
-pref("browser.ssl_override_behavior", 2);
 pref("browser.xul.error_pages.expert_bad_cert", false);
 
 // disable updating
@@ -239,31 +241,6 @@ pref("browser.casting.enabled", true);
 pref("chrome.override_package.global", "browser");
 pref("chrome.override_package.mozapps", "browser");
 pref("chrome.override_package.passwordmgr", "browser");
-
-// disable color management
-pref("gfx.color_management.mode", 0);
-
-// 0=fixed margin, 1=velocity bias, 2=dynamic resolution, 3=no margins, 4=prediction bias
-pref("gfx.displayport.strategy", 1);
-
-// all of the following displayport strategy prefs will be divided by 1000
-// to obtain some multiplier which is then used in the strategy.
-// fixed margin strategy options
-pref("gfx.displayport.strategy_fm.multiplier", -1); // displayport dimension multiplier
-pref("gfx.displayport.strategy_fm.danger_x", -1); // danger zone on x-axis when multiplied by viewport width
-pref("gfx.displayport.strategy_fm.danger_y", -1); // danger zone on y-axis when multiplied by viewport height
-
-// velocity bias strategy options
-pref("gfx.displayport.strategy_vb.multiplier", -1); // displayport dimension multiplier
-pref("gfx.displayport.strategy_vb.threshold", -1); // velocity threshold in inches/frame
-pref("gfx.displayport.strategy_vb.reverse_buffer", -1); // fraction of buffer to keep in reverse direction from scroll
-pref("gfx.displayport.strategy_vb.danger_x_base", -1); // danger zone on x-axis when multiplied by viewport width
-pref("gfx.displayport.strategy_vb.danger_y_base", -1); // danger zone on y-axis when multiplied by viewport height
-pref("gfx.displayport.strategy_vb.danger_x_incr", -1); // additional danger zone on x-axis when multiplied by viewport width and velocity
-pref("gfx.displayport.strategy_vb.danger_y_incr", -1); // additional danger zone on y-axis when multiplied by viewport height and velocity
-
-// prediction bias strategy options
-pref("gfx.displayport.strategy_pb.threshold", -1); // velocity threshold in inches/frame
 
 // don't allow JS to move and resize existing windows
 pref("dom.disable_window_move_resize", true);
@@ -448,40 +425,6 @@ pref("media.realtime_decoder.enabled", true);
 
 pref("full-screen-api.enabled", true);
 
-// This fraction in 1000ths of velocity remains after every animation frame when the velocity is low.
-pref("ui.scrolling.friction_slow", -1);
-// This fraction in 1000ths of velocity remains after every animation frame when the velocity is high.
-pref("ui.scrolling.friction_fast", -1);
-// The maximum velocity change factor between events, per ms, in 1000ths.
-// Direction changes are excluded.
-pref("ui.scrolling.max_event_acceleration", -1);
-// The rate of deceleration when the surface has overscrolled, in 1000ths.
-pref("ui.scrolling.overscroll_decel_rate", -1);
-// The fraction of the surface which can be overscrolled before it must snap back, in 1000ths.
-pref("ui.scrolling.overscroll_snap_limit", -1);
-// The minimum amount of space that must be present for an axis to be considered scrollable,
-// in 1/1000ths of pixels.
-pref("ui.scrolling.min_scrollable_distance", -1);
-// The axis lock mode for panning behaviour - set between standard, free and sticky
-pref("ui.scrolling.axis_lock_mode", "standard");
-// Determine the dead zone for gamepad joysticks. Higher values result in larger dead zones; use a negative value to
-// auto-detect based on reported hardware values
-pref("ui.scrolling.gamepad_dead_zone", 115);
-
-// Prefs for fling acceleration
-pref("ui.scrolling.fling_accel_interval", -1);
-pref("ui.scrolling.fling_accel_base_multiplier", -1);
-pref("ui.scrolling.fling_accel_supplemental_multiplier", -1);
-
-// Prefs for fling curving
-pref("ui.scrolling.fling_curve_function_x1", -1);
-pref("ui.scrolling.fling_curve_function_y1", -1);
-pref("ui.scrolling.fling_curve_function_x2", -1);
-pref("ui.scrolling.fling_curve_function_y2", -1);
-pref("ui.scrolling.fling_curve_threshold_velocity", -1);
-pref("ui.scrolling.fling_curve_max_velocity", -1);
-pref("ui.scrolling.fling_curve_newton_iterations", -1);
-
 // Enable accessibility mode if platform accessibility is enabled.
 pref("accessibility.accessfu.activate", 2);
 pref("accessibility.accessfu.quicknav_modes", "Link,Heading,FormElement,Landmark,ListItem");
@@ -524,9 +467,6 @@ pref("gfx.canvas.azure.backends", "skia");
 
 // When true, phone number linkification is enabled.
 pref("browser.ui.linkify.phone", false);
-
-// Enables/disables Spatial Navigation
-pref("snav.enabled", true);
 
 // The mode of home provider syncing.
 // 0: Sync always
@@ -608,6 +548,3 @@ pref("extensions.systemAddon.update.enabled", true);
 // E10s stuff. We don't support 'privileged' process types.
 pref("browser.tabs.remote.separatePrivilegedContentProcess", false);
 pref("browser.tabs.remote.enforceRemoteTypeRestrictions", false);
-
-// Allow Web Authentication
-pref("security.webauth.webauthn_enable_android_fido2", true);

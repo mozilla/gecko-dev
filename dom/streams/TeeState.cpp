@@ -14,6 +14,8 @@
 
 namespace mozilla::dom {
 
+using namespace streams_abstract;
+
 NS_IMPL_CYCLE_COLLECTION_WITH_JS_MEMBERS(TeeState,
                                          (mStream, mReader, mBranch1, mBranch2,
                                           mCancelPromise),
@@ -47,10 +49,7 @@ already_AddRefed<TeeState> TeeState::Create(ReadableStream* aStream,
   teeState->SetReader(reader);
 
   RefPtr<Promise> promise =
-      Promise::Create(teeState->GetStream()->GetParentObject(), aRv);
-  if (aRv.Failed()) {
-    return nullptr;
-  }
+      Promise::CreateInfallible(teeState->GetStream()->GetParentObject());
   teeState->SetCancelPromise(promise);
 
   return teeState.forget();

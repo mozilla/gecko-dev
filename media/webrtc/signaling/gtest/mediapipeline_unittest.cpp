@@ -11,13 +11,14 @@
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
 #include "api/scoped_refptr.h"
 #include "AudioSegment.h"
-#include "ConcreteConduitControl.h"
+#include "Canonicals.h"
 #include "modules/audio_device/include/fake_audio_device.h"
 #include "modules/audio_mixer/audio_mixer_impl.h"
 #include "modules/audio_processing/include/audio_processing.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/SpinEventLoopUntil.h"
+#include "MediaConduitInterface.h"
 #include "MediaPipeline.h"
 #include "MediaPipelineFilter.h"
 #include "MediaTrackGraph.h"
@@ -43,7 +44,7 @@ class MainAsCurrent : public TaskQueueWrapper<DeletionPolicy::NonBlocking> {
  public:
   MainAsCurrent()
       : TaskQueueWrapper(
-            TaskQueue::Create(do_AddRef(GetMainThreadEventTarget()),
+            TaskQueue::Create(do_AddRef(GetMainThreadSerialEventTarget()),
                               "MainAsCurrentTaskQueue"),
             "MainAsCurrent"_ns),
         mSetter(this) {
@@ -134,9 +135,8 @@ class FakeAudioTrack : public ProcessedMediaTrack {
 
 template <typename Function>
 void RunOnSts(Function&& aFunction) {
-  MOZ_ALWAYS_SUCCEEDS(test_utils->sts_target()->Dispatch(
-      NS_NewRunnableFunction(__func__, [&] { aFunction(); }),
-      nsISerialEventTarget::DISPATCH_SYNC));
+  MOZ_ALWAYS_SUCCEEDS(test_utils->SyncDispatchToSTS(
+      NS_NewRunnableFunction(__func__, [&] { aFunction(); })));
 }
 
 class LoopbackTransport : public MediaTransportHandler {
@@ -244,7 +244,7 @@ class LoopbackTransport : public MediaTransportHandler {
 class TestAgent {
  public:
   explicit TestAgent(const RefPtr<SharedWebrtcState>& aSharedState)
-      : conduit_control_(aSharedState->mCallWorkerThread),
+      : control_(aSharedState->mCallWorkerThread),
         audio_config_(109, "opus", 48000, 2, false),
         call_(WebrtcCallWrapper::Create(mozilla::dom::RTCStatsTimestampMaker(),
                                         nullptr, aSharedState)),
@@ -253,7 +253,7 @@ class TestAgent {
         audio_pipeline_(),
         transport_(new LoopbackTransport) {
     Unused << WaitFor(InvokeAsync(call_->mCallThread, __func__, [&] {
-      audio_conduit_->InitControl(&conduit_control_);
+      audio_conduit_->InitControl(&control_);
       return GenericPromise::CreateAndResolve(true, "TestAgent()");
     }));
   }
@@ -282,15 +282,10 @@ class TestAgent {
   void Stop() {
     MOZ_MTLOG(ML_DEBUG, "Stopping");
 
-    if (audio_pipeline_) {
-      audio_pipeline_->Stop();
-    }
-    if (audio_conduit_) {
-      conduit_control_.Update([](auto& aControl) {
-        aControl.mTransmitting = false;
-        aControl.mReceiving = false;
-      });
-    }
+    control_.Update([](auto& aControl) {
+      aControl.mTransmitting = false;
+      aControl.mReceiving = false;
+    });
   }
 
   void Shutdown_s() { transport_->Shutdown(); }
@@ -310,9 +305,7 @@ class TestAgent {
       audio_track_ = nullptr;
     }
 
-    test_utils->sts_target()->Dispatch(
-        WrapRunnable(this, &TestAgent::Shutdown_s),
-        nsISerialEventTarget::DISPATCH_SYNC);
+    test_utils->SyncDispatchToSTS(WrapRunnable(this, &TestAgent::Shutdown_s));
   }
 
   uint32_t GetRemoteSSRC() {
@@ -338,7 +331,7 @@ class TestAgent {
   }
 
  protected:
-  ConcreteConduitControl conduit_control_;
+  ConcreteControl control_;
   AudioCodecConfig audio_config_;
   RefPtr<WebrtcCallWrapper> call_;
   RefPtr<AudioSessionConduit> audio_conduit_;
@@ -354,7 +347,7 @@ class TestAgentSend : public TestAgent {
  public:
   explicit TestAgentSend(const RefPtr<SharedWebrtcState>& aSharedState)
       : TestAgent(aSharedState) {
-    conduit_control_.Update([&](auto& aControl) {
+    control_.Update([&](auto& aControl) {
       aControl.mAudioSendCodec = Some(audio_config_);
     });
     audio_track_ = new FakeAudioTrack();
@@ -363,18 +356,18 @@ class TestAgentSend : public TestAgent {
   virtual void CreatePipeline(const std::string& aTransportId) {
     std::string test_pc;
 
-    RefPtr<MediaPipelineTransmit> audio_pipeline = new MediaPipelineTransmit(
+    auto audio_pipeline = MakeRefPtr<MediaPipelineTransmit>(
         test_pc, transport_, AbstractThread::MainThread(),
         test_utils->sts_target(), false, audio_conduit_);
+    Unused << WaitFor(InvokeAsync(call_->mCallThread, __func__, [&] {
+      audio_pipeline->InitControl(&control_);
+      return GenericPromise::CreateAndResolve(true, __func__);
+    }));
 
     audio_pipeline->SetSendTrackOverride(audio_track_);
-    audio_pipeline->Start();
-    conduit_control_.Update(
-        [](auto& aControl) { aControl.mTransmitting = true; });
-
+    control_.Update([](auto& aControl) { aControl.mTransmitting = true; });
+    audio_pipeline->UpdateTransport_m(aTransportId, nullptr);
     audio_pipeline_ = audio_pipeline;
-
-    audio_pipeline_->UpdateTransport_m(aTransportId, nullptr);
   }
 };
 
@@ -382,7 +375,7 @@ class TestAgentReceive : public TestAgent {
  public:
   explicit TestAgentReceive(const RefPtr<SharedWebrtcState>& aSharedState)
       : TestAgent(aSharedState) {
-    conduit_control_.Update([&](auto& aControl) {
+    control_.Update([&](auto& aControl) {
       std::vector<AudioCodecConfig> codecs;
       codecs.push_back(audio_config_);
       aControl.mAudioRecvCodecs = codecs;
@@ -392,16 +385,19 @@ class TestAgentReceive : public TestAgent {
   virtual void CreatePipeline(const std::string& aTransportId) {
     std::string test_pc;
 
-    audio_pipeline_ = new MediaPipelineReceiveAudio(
+    auto audio_pipeline = MakeRefPtr<MediaPipelineReceiveAudio>(
         test_pc, transport_, AbstractThread::MainThread(),
         test_utils->sts_target(),
         static_cast<AudioSessionConduit*>(audio_conduit_.get()), nullptr,
-        PRINCIPAL_HANDLE_NONE);
+        TrackingId(), PRINCIPAL_HANDLE_NONE, PrincipalPrivacy::NonPrivate);
+    Unused << WaitFor(InvokeAsync(call_->mCallThread, __func__, [&] {
+      audio_pipeline->InitControl(&control_);
+      return GenericPromise::CreateAndResolve(true, __func__);
+    }));
 
-    audio_pipeline_->Start();
-    conduit_control_.Update([](auto& aControl) { aControl.mReceiving = true; });
-
-    audio_pipeline_->UpdateTransport_m(aTransportId, std::move(bundle_filter_));
+    control_.Update([](auto& aControl) { aControl.mReceiving = true; });
+    audio_pipeline->UpdateTransport_m(aTransportId, std::move(bundle_filter_));
+    audio_pipeline_ = audio_pipeline;
   }
 
   void SetBundleFilter(UniquePtr<MediaPipelineFilter>&& filter) {
@@ -462,9 +458,8 @@ class MediaPipelineTest : public ::testing::Test {
 
   // Setup transport.
   void InitTransports() {
-    test_utils->sts_target()->Dispatch(
-        WrapRunnableNM(&TestAgent::Connect, &p2_, &p1_),
-        nsISerialEventTarget::DISPATCH_SYNC);
+    test_utils->SyncDispatchToSTS(
+        WrapRunnableNM(&TestAgent::Connect, &p2_, &p1_));
   }
 
   // Verify RTP and RTCP

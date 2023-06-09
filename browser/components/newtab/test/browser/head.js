@@ -14,19 +14,19 @@ ChromeUtils.defineModuleGetter(
   "resource://activity-stream/lib/ASRouterTargeting.jsm"
 );
 // eslint-disable-next-line no-unused-vars
-const { FxAccounts } = ChromeUtils.import(
-  "resource://gre/modules/FxAccounts.jsm"
+const { FxAccounts } = ChromeUtils.importESModule(
+  "resource://gre/modules/FxAccounts.sys.mjs"
 );
 // We import sinon here to make it available across all mochitest test files
 // eslint-disable-next-line no-unused-vars
-const { sinon } = ChromeUtils.import("resource://testing-common/Sinon.jsm");
+const { sinon } = ChromeUtils.importESModule(
+  "resource://testing-common/Sinon.sys.mjs"
+);
 // Set the content pref to make it available across tests
 const ABOUT_WELCOME_OVERRIDE_CONTENT_PREF = "browser.aboutwelcome.screens";
 // Test differently for windows 7 as theme screens are removed.
 // eslint-disable-next-line no-unused-vars
 const win7Content = AppConstants.isPlatformAndVersionAtMost("win", "6.1");
-// Pref to enable/disable the MR new user onboarding layout.
-const MR_TEMPLATE_PREF = "browser.aboutwelcome.templateMR";
 
 function popPrefs() {
   return SpecialPowers.popPrefEnv();
@@ -188,7 +188,6 @@ async function setAboutWelcomePref(value) {
 
 // eslint-disable-next-line no-unused-vars
 async function openMRAboutWelcome() {
-  await pushPrefs([MR_TEMPLATE_PREF, true]);
   await setAboutWelcomePref(true); // NB: Calls pushPrefs
   let tab = await BrowserTestUtils.openNewForegroundTab(
     gBrowser,
@@ -201,7 +200,6 @@ async function openMRAboutWelcome() {
     cleanup: async () => {
       BrowserTestUtils.removeTab(tab);
       await popPrefs(); // for setAboutWelcomePref()
-      await popPrefs(); // for pushPrefs()
     },
   };
 }
@@ -236,7 +234,7 @@ async function waitForPreloaded(browser) {
 // eslint-disable-next-line no-unused-vars
 async function waitForUrlLoad(url) {
   let browser = gBrowser.selectedBrowser;
-  BrowserTestUtils.loadURI(browser, url);
+  BrowserTestUtils.loadURIString(browser, url);
   await BrowserTestUtils.browserLoaded(browser, false, url);
 }
 
@@ -391,34 +389,4 @@ function test_newtab(testInfo, browserURL = "about:newtab") {
   // Copy the name of the content task to identify the test
   Object.defineProperty(testTask, "name", { value: contentTask.name });
   add_task(testTask);
-}
-
-/**
- * The firefox view code and the utility funcitons here are cribbed from (mostly)
- * browser/components/firefoxview/test/browser/head.js
- *
- * https://bugzilla.mozilla.org/show_bug.cgi?id=1784979 has been filed to move
- * these to some place publically accessible, after which we will be able to
- * a bunch of code from this file.
- */
-// eslint-disable-next-line no-unused-vars
-async function assertFirefoxViewTabSelected(w) {
-  ok(w.FirefoxViewHandler.tab, "Firefox View tab exists");
-  ok(w.FirefoxViewHandler.tab?.hidden, "Firefox View tab is hidden");
-  is(
-    w.gBrowser.visibleTabs.indexOf(w.FirefoxViewHandler.tab),
-    -1,
-    "Firefox View tab is not in the list of visible tabs"
-  );
-  ok(w.FirefoxViewHandler.tab.selected, "Firefox View tab is selected");
-  await BrowserTestUtils.browserLoaded(w.FirefoxViewHandler.tab.linkedBrowser);
-}
-
-// eslint-disable-next-line no-unused-vars
-function closeFirefoxViewTab(w = window) {
-  w.gBrowser.removeTab(w.FirefoxViewHandler.tab);
-  ok(
-    !w.FirefoxViewHandler.tab,
-    "Reference to Firefox View tab got removed when closing the tab"
-  );
 }

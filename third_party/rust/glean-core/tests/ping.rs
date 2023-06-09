@@ -5,6 +5,8 @@
 mod common;
 use crate::common::*;
 
+use std::collections::HashMap;
+
 use glean_core::metrics::*;
 use glean_core::CommonMetricData;
 use glean_core::Lifetime;
@@ -32,7 +34,7 @@ fn write_ping_to_disk() {
 
 #[test]
 fn disabling_upload_clears_pending_pings() {
-    let (mut glean, _) = new_glean(None);
+    let (mut glean, _t) = new_glean(None);
 
     let ping = PingType::new("metrics", true, false, vec![]);
     glean.register_ping_type(&ping);
@@ -75,7 +77,7 @@ fn disabling_upload_clears_pending_pings() {
 
 #[test]
 fn deletion_request_only_when_toggled_from_on_to_off() {
-    let (mut glean, _) = new_glean(None);
+    let (mut glean, _t) = new_glean(None);
 
     // Disabling upload generates a deletion ping
     glean.set_upload_enabled(false);
@@ -101,7 +103,7 @@ fn deletion_request_only_when_toggled_from_on_to_off() {
 
 #[test]
 fn empty_pings_with_flag_are_sent() {
-    let (mut glean, _) = new_glean(None);
+    let (mut glean, _t) = new_glean(None);
 
     let ping1 = PingType::new("custom-ping1", true, true, vec![]);
     glean.register_ping_type(&ping1);
@@ -210,4 +212,38 @@ fn test_pings_submitted_metric() {
             .get("baseline")
             .get_value(&glean, Some("baseline"))
     );
+}
+
+#[test]
+fn events_ping_with_metric_but_no_events_is_not_sent() {
+    let (mut glean, _t) = new_glean(None);
+
+    let events_ping = PingType::new("events", true, true, vec![]);
+    glean.register_ping_type(&events_ping);
+    let counter = CounterMetric::new(CommonMetricData {
+        name: "counter".into(),
+        category: "local".into(),
+        send_in_pings: vec!["events".into()],
+        ..Default::default()
+    });
+    counter.add_sync(&glean, 1);
+
+    // Sending this should fail.
+    assert!(!events_ping.submit_sync(&glean, None));
+    assert!(get_queued_pings(glean.get_data_path()).is_err());
+
+    let event = EventMetric::new(
+        CommonMetricData {
+            name: "name".into(),
+            category: "category".into(),
+            send_in_pings: vec!["events".into()],
+            ..Default::default()
+        },
+        vec![],
+    );
+    event.record_sync(&glean, 0, HashMap::new());
+
+    // Sending this should now succeed.
+    assert!(events_ping.submit_sync(&glean, None));
+    assert_eq!(1, get_queued_pings(glean.get_data_path()).unwrap().len());
 }

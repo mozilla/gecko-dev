@@ -951,7 +951,6 @@ imgRequestProxy::GetMultipart(bool* aMultipart) {
   }
 
   *aMultipart = GetOwner()->GetMultipart();
-
   return NS_OK;
 }
 
@@ -962,7 +961,17 @@ imgRequestProxy::GetCORSMode(int32_t* aCorsMode) {
   }
 
   *aCorsMode = GetOwner()->GetCORSMode();
+  return NS_OK;
+}
 
+NS_IMETHODIMP
+imgRequestProxy::GetReferrerInfo(nsIReferrerInfo** aReferrerInfo) {
+  if (!GetOwner()) {
+    return NS_ERROR_FAILURE;
+  }
+
+  nsCOMPtr<nsIReferrerInfo> referrerInfo = GetOwner()->GetReferrerInfo();
+  referrerInfo.forget(aReferrerInfo);
   return NS_OK;
 }
 
@@ -1151,8 +1160,9 @@ already_AddRefed<imgRequestProxy> imgRequestProxy::GetStaticRequest(
   bool hadCrossOriginRedirects = true;
   GetHadCrossOriginRedirects(&hadCrossOriginRedirects);
   nsCOMPtr<nsIPrincipal> triggeringPrincipal = GetTriggeringPrincipal();
-  RefPtr<imgRequestProxy> req = new imgRequestProxyStatic(
-      frozenImage, currentPrincipal, triggeringPrincipal, hadCrossOriginRedirects);
+  RefPtr<imgRequestProxy> req =
+      new imgRequestProxyStatic(frozenImage, currentPrincipal,
+                                triggeringPrincipal, hadCrossOriginRedirects);
   req->Init(nullptr, nullptr, aLoadingDocument, mURI, nullptr);
 
   return req.forget();

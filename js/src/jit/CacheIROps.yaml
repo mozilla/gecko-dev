@@ -281,6 +281,14 @@
     obj: ObjId
     clasp: RawPointerField
 
+- name: GuardGlobalGeneration
+  shared: true
+  transpile: true
+  cost_estimate: 1
+  args:
+    expected: RawInt32Field
+    generationAddr: RawPointerField
+
 - name: HasClassResult
   shared: false
   transpile: true
@@ -447,6 +455,14 @@
     obj: ObjId
     expected: ObjectField
 
+- name: GuardObjectIdentity
+  shared: true
+  transpile: true
+  cost_estimate: 1
+  args:
+    obj1: ObjId
+    obj2: ObjId
+
 - name: GuardSpecificFunction
   shared: false
   transpile: true
@@ -529,16 +545,6 @@
   args:
     boolean: BooleanId
     result: NumberId
-
-- name: GuardAndGetIterator
-  shared: true
-  transpile: false
-  cost_estimate: 4
-  args:
-    obj: ObjId
-    iter: ObjectField
-    enumeratorsAddr: RawPointerField
-    result: ObjId
 
 - name: GuardHasGetterSetter
   shared: true
@@ -1113,15 +1119,6 @@
   cost_estimate: 2
   args:
     obj: ObjId
-
-- name: FinishBoundFunctionInitResult
-  shared: true
-  transpile: true
-  cost_estimate: 5
-  args:
-    bound: ObjId
-    target: ObjId
-    argCount: Int32Id
 
 - name: NewArrayIteratorResult
   shared: true
@@ -1715,6 +1712,17 @@
     flags: CallFlagsImm
     argcFixed: UInt32Imm
 
+- name: CallBoundScriptedFunction
+  shared: false
+  transpile: true
+  cost_estimate: 3
+  args:
+    callee: ObjId
+    target: ObjId
+    argc: Int32Id
+    flags: CallFlagsImm
+    numBoundArgs: UInt32Imm
+
 - name: CallWasmFunction
   shared: false
   transpile: true
@@ -1768,7 +1776,7 @@
 
 - name: CallClassHook
   shared: false
-  transpile: false
+  transpile: true
   cost_estimate: 4
   custom_writer: true
   args:
@@ -1799,6 +1807,24 @@
   custom_writer: true
   args:
     thisShape: ShapeField
+
+- name: BindFunctionResult
+  shared: false
+  transpile: true
+  cost_estimate: 5
+  args:
+    target: ObjId
+    argc: UInt32Imm
+    templateObject: ObjectField
+
+- name: SpecializedBindFunctionResult
+  shared: false
+  transpile: true
+  cost_estimate: 4
+  args:
+    target: ObjId
+    argc: UInt32Imm
+    templateObject: ObjectField
 
 - name: LoadFixedSlotResult
   shared: false
@@ -1971,6 +1997,29 @@
   shared: true
   transpile: true
   cost_estimate: 2
+  args:
+    obj: ObjId
+
+- name: LoadBoundFunctionNumArgs
+  shared: true
+  transpile: true
+  cost_estimate: 1
+  args:
+    obj: ObjId
+    result: Int32Id
+
+- name: LoadBoundFunctionTarget
+  shared: true
+  transpile: true
+  cost_estimate: 1
+  args:
+    obj: ObjId
+    result: ObjId
+
+- name: GuardBoundFunctionIsConstructor
+  shared: true
+  transpile: true
+  cost_estimate: 1
   args:
     obj: ObjId
 
@@ -3005,6 +3054,15 @@
   args:
     val: ValId
     mustBeRecovered: BoolImm
+
+- name: AssertPropertyLookup
+  shared: true
+  transpile: true
+  cost_estimate: 4
+  args:
+    obj: ObjId
+    id: PropertyNameField
+    slot: RawInt32Field
 
 #ifdef FUZZING_JS_FUZZILLI
 - name: FuzzilliHashResult

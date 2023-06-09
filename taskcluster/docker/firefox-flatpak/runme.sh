@@ -139,7 +139,13 @@ install -D -m755 launch-script.sh "${appdir}/bin/firefox"
 
 # We need to set GTK_PATH to load cups printing backend which is missing in
 # freedesktop sdk.
+#
+# We use features=devel to enable ptrace, which we need for the crash
+# reporter.  The application is still confined in a pid namespace, so
+# that won't let us escape the flatpak sandbox.  See bug 1653852.
+
 flatpak build-finish build                                      \
+        --allow=devel                                           \
         --share=ipc                                             \
         --share=network                                         \
         --env=GTK_PATH=/app/lib/gtkmodules                      \
@@ -151,6 +157,7 @@ flatpak build-finish build                                      \
         --require-version=0.11.1                                \
         --persist=.mozilla                                      \
         --filesystem=xdg-download:rw                            \
+        --filesystem=/run/.heim_org.h5l.kcm-socket              \
         --device=all                                            \
         --talk-name=org.freedesktop.FileManager1                \
         --system-talk-name=org.freedesktop.NetworkManager       \

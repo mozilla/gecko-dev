@@ -27,10 +27,6 @@ from . import tags
 from . import util
 
 
-from yamllint.config import YamlLintConfig  # type: ignore
-from yamllint import linter  # type: ignore
-
-
 LintGenerator = Generator[str, None, None]
 
 
@@ -238,7 +234,6 @@ def check_misspelled_pings(
 def check_tags_required(
     metric_or_ping: Union[metrics.Metric, pings.Ping], parser_config: Dict[str, Any]
 ) -> LintGenerator:
-
     if parser_config.get("require_tags", False) and not len(
         metric_or_ping.metadata.get("tags", [])
     ):
@@ -248,7 +243,6 @@ def check_tags_required(
 def check_user_lifetime_expiration(
     metric: metrics.Metric, parser_config: Dict[str, Any]
 ) -> LintGenerator:
-
     if metric.lifetime == metrics.Lifetime.user and metric.expires != "never":
         yield (
             "Metrics with 'user' lifetime cannot have an expiration date. "
@@ -271,6 +265,21 @@ def check_expired_metric(
 ) -> LintGenerator:
     if metric.is_expired():
         yield ("Metric has expired. Please consider removing it.")
+
+
+def check_old_event_api(
+    metric: metrics.Metric, parser_config: Dict[str, Any]
+) -> LintGenerator:
+    # Glean v52.0.0 removed the old events API.
+    # The metrics-2-0-0 schema still supports it.
+    # We want to warn about it.
+    # This can go when we introduce 3-0-0
+
+    if not isinstance(metric, metrics.Event):
+        return
+
+    if not all("type" in x for x in metric.extra_keys.values()):
+        yield ("The old event API is gone. Extra keys require a type.")
 
 
 def check_redundant_ping(
@@ -318,6 +327,7 @@ METRIC_CHECKS: Dict[
     "EXPIRATION_DATE_TOO_FAR": (check_expired_date, CheckType.warning),
     "USER_LIFETIME_EXPIRATION": (check_user_lifetime_expiration, CheckType.warning),
     "EXPIRED": (check_expired_metric, CheckType.warning),
+    "OLD_EVENT_API": (check_old_event_api, CheckType.warning),
 }
 
 
@@ -374,9 +384,9 @@ def _lint_pings(
 ) -> List[GlinterNit]:
     nits: List[GlinterNit] = []
 
-    for (ping_name, ping) in sorted(list(category.items())):
+    for ping_name, ping in sorted(list(category.items())):
         assert isinstance(ping, pings.Ping)
-        for (check_name, (check_func, check_type)) in PING_CHECKS.items():
+        for check_name, (check_func, check_type) in PING_CHECKS.items():
             new_nits = list(check_func(ping, parser_config))
             if len(new_nits):
                 if check_name not in ping.no_lint:
@@ -417,7 +427,7 @@ def lint_metrics(
 
     nits: List[GlinterNit] = []
     valid_tag_names = [tag for tag in objs.get("tags", [])]
-    for (category_name, category) in sorted(list(objs.items())):
+    for category_name, category in sorted(list(objs.items())):
         if category_name == "pings":
             nits.extend(_lint_pings(category, parser_config, valid_tag_names))
             continue
@@ -433,7 +443,7 @@ def lint_metrics(
             if isinstance(metric, metrics.Metric)
         )
 
-        for (cat_check_name, (cat_check_func, check_type)) in CATEGORY_CHECKS.items():
+        for cat_check_name, (cat_check_func, check_type) in CATEGORY_CHECKS.items():
             if any(
                 cat_check_name in metric.no_lint for metric in category_metrics.values()
             ):
@@ -443,8 +453,8 @@ def lint_metrics(
                 for msg in cat_check_func(category_name, category_metrics.values())
             )
 
-        for (_metric_name, metric) in sorted(list(category_metrics.items())):
-            for (check_name, (check_func, check_type)) in METRIC_CHECKS.items():
+        for _metric_name, metric in sorted(list(category_metrics.items())):
+            for check_name, (check_func, check_type) in METRIC_CHECKS.items():
                 new_nits = list(check_func(metric, parser_config))
                 if len(new_nits):
                     if check_name not in metric.no_lint:
@@ -488,42 +498,10 @@ def lint_metrics(
 def lint_yaml_files(
     input_filepaths: Iterable[Path],
     file=sys.stderr,
-    parser_config: Dict[str, Any] = None,
+    parser_config: Optional[Dict[str, Any]] = None,
 ) -> List:
-    """
-    Performs glinter YAML lint on a set of files.
-
-    :param input_filepaths: List of input files to lint.
-    :param file: The stream to write errors to.
-    :returns: List of nits.
-    """
-
-    if parser_config is None:
-        parser_config = {}
-
-    # Generic type since the actual type comes from yamllint, which we don't
-    # control.
-    nits: List = []
-    for path in input_filepaths:
-        if not path.is_file() and parser_config.get("allow_missing_files", False):
-            continue
-
-        # yamllint needs both the file content and the path.
-        file_content = None
-        with path.open("r", encoding="utf-8") as fd:
-            file_content = fd.read()
-
-        problems = linter.run(file_content, YamlLintConfig("extends: default"), path)
-        nits.extend((path, p) for p in problems)
-
-    if len(nits):
-        print("Sorry, Glean found some glinter nits:", file=file)
-        for (path, p) in nits:
-            print(f"{path} ({p.line}:{p.column}) - {p.message}", file=file)
-        print("", file=file)
-        print("Please fix the above nits to continue.", file=file)
-
-    return [x[1] for x in nits]
+    """Always empty."""
+    return []
 
 
 def glinter(
@@ -544,9 +522,6 @@ def glinter(
         parser_config = {}
 
     errors = 0
-
-    nits = lint_yaml_files(input_filepaths, file=file, parser_config=parser_config)
-    errors += len(nits)
 
     objs = parser.parse_objects(input_filepaths, parser_config)
     errors += util.report_validation_errors(objs)

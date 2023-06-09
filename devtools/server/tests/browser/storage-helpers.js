@@ -24,7 +24,7 @@ async function openTabAndSetupStorage(url) {
     set: [[LEGACY_ACTORS_PREF, true]],
   });
 
-  const content = await addTab(url);
+  await addTab(url);
 
   // Setup the async storages in main window and for all its iframes
   const browsingContexts = gBrowser.selectedBrowser.browsingContext.getAllBrowsingContextsInSubtree();
@@ -40,8 +40,7 @@ async function openTabAndSetupStorage(url) {
   const commands = await CommandsFactory.forTab(gBrowser.selectedTab);
   await commands.targetCommand.startListening();
   const target = commands.targetCommand.targetFront;
-  const front = await target.getFront("storage");
-  return { commands, target, front };
+  return { commands, target };
 }
 
 async function clearStorage() {

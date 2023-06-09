@@ -8,7 +8,7 @@ import {
   hasSource,
   hasSourceActor,
   getSourceActor,
-  getSourcesMap,
+  getSourceCount,
 } from "../../selectors";
 import { features } from "../../utils/prefs";
 import { isUrlExtension } from "../../utils/source";
@@ -41,10 +41,10 @@ export async function createFrame(thread, frame, index = 0) {
   );
 
   const location = createLocation({
-    sourceId: sourceActor.source,
+    source: sourceActor.sourceObject,
+    sourceActor,
     line: frame.where.line,
     column: frame.where.column,
-    sourceActorId: sourceActor.actor,
   });
 
   return {
@@ -75,7 +75,7 @@ async function waitForSourceActorToBeRegisteredInStore(sourceActorId) {
       let currentSize = null;
       function check() {
         const previousSize = currentSize;
-        currentSize = store.getState().sourceActors.size;
+        currentSize = store.getState().sourceActors.mutableSourceActors.size;
         // For perf reason, avoid any extra computation if sources did not change
         if (previousSize == currentSize) {
           return;
@@ -106,7 +106,7 @@ export async function waitForSourceToBeRegisteredInStore(sourceId) {
     let currentSize = null;
     function check() {
       const previousSize = currentSize;
-      currentSize = getSourcesMap(store.getState()).size;
+      currentSize = getSourceCount(store.getState());
       // For perf reason, avoid any extra computation if sources did not change
       if (previousSize == currentSize) {
         return;
@@ -314,6 +314,9 @@ export function createSourceActor(sourceResource, sourceObject) {
     sourceMapURL: sourceResource.sourceMapURL,
     url: sourceResource.url,
     introductionType: sourceResource.introductionType,
+    sourceStartLine: sourceResource.sourceStartLine,
+    sourceStartColumn: sourceResource.sourceStartColumn,
+    sourceLength: sourceResource.sourceLength,
   };
 }
 

@@ -150,52 +150,49 @@ size_t PathOps::NumberOfOps() const {
 
 void PathBuilderRecording::MoveTo(const Point& aPoint) {
   mPathOps.MoveTo(aPoint);
-  mPathBuilder->MoveTo(aPoint);
+  mBeginPoint = aPoint;
+  mCurrentPoint = aPoint;
 }
 
 void PathBuilderRecording::LineTo(const Point& aPoint) {
   mPathOps.LineTo(aPoint);
-  mPathBuilder->LineTo(aPoint);
+  mCurrentPoint = aPoint;
 }
 
 void PathBuilderRecording::BezierTo(const Point& aCP1, const Point& aCP2,
                                     const Point& aCP3) {
   mPathOps.BezierTo(aCP1, aCP2, aCP3);
-  mPathBuilder->BezierTo(aCP1, aCP2, aCP3);
+  mCurrentPoint = aCP3;
 }
 
 void PathBuilderRecording::QuadraticBezierTo(const Point& aCP1,
                                              const Point& aCP2) {
   mPathOps.QuadraticBezierTo(aCP1, aCP2);
-  mPathBuilder->QuadraticBezierTo(aCP1, aCP2);
+  mCurrentPoint = aCP2;
 }
 
 void PathBuilderRecording::Close() {
   mPathOps.Close();
-  mPathBuilder->Close();
+  mCurrentPoint = mBeginPoint;
 }
 
 void PathBuilderRecording::Arc(const Point& aOrigin, float aRadius,
                                float aStartAngle, float aEndAngle,
                                bool aAntiClockwise) {
   mPathOps.Arc(aOrigin, aRadius, aStartAngle, aEndAngle, aAntiClockwise);
-  mPathBuilder->Arc(aOrigin, aRadius, aStartAngle, aEndAngle, aAntiClockwise);
+
+  mCurrentPoint = aOrigin + Point(cosf(aEndAngle), sinf(aEndAngle)) * aRadius;
 }
 
 already_AddRefed<Path> PathBuilderRecording::Finish() {
-  // We rely on mPathBuilder to track begin and current point, but that stops
-  // when we call Finish, so we need to store them first.
-  Point beginPoint = BeginPoint();
-  Point currentPoint = CurrentPoint();
-  RefPtr<Path> path = mPathBuilder->Finish();
-  return MakeAndAddRef<PathRecording>(path, std::move(mPathOps), mFillRule,
-                                      currentPoint, beginPoint);
+  return MakeAndAddRef<PathRecording>(mBackendType, std::move(mPathOps),
+                                      mFillRule, mBeginPoint, mCurrentPoint);
 }
 
-PathRecording::PathRecording(Path* aPath, PathOps&& aOps, FillRule aFillRule,
-                             const Point& aCurrentPoint,
+PathRecording::PathRecording(BackendType aBackend, PathOps&& aOps,
+                             FillRule aFillRule, const Point& aCurrentPoint,
                              const Point& aBeginPoint)
-    : mPath(aPath),
+    : mBackendType(aBackend),
       mPathOps(std::move(aOps)),
       mFillRule(aFillRule),
       mCurrentPoint(aCurrentPoint),
@@ -208,11 +205,27 @@ PathRecording::~PathRecording() {
   }
 }
 
+void PathRecording::EnsurePath() const {
+  if (mPath) {
+    return;
+  }
+  if (RefPtr<PathBuilder> pathBuilder =
+          Factory::CreatePathBuilder(mBackendType, mFillRule)) {
+    if (!mPathOps.StreamToSink(*pathBuilder)) {
+      MOZ_ASSERT(false, "Failed to stream PathOps to PathBuilder");
+    } else {
+      mPath = pathBuilder->Finish();
+      MOZ_ASSERT(!!mPath, "Failed finishing Path from PathBuilder");
+    }
+  } else {
+    MOZ_ASSERT(false, "Failed to create PathBuilder for PathRecording");
+  }
+}
+
 already_AddRefed<PathBuilder> PathRecording::CopyToBuilder(
     FillRule aFillRule) const {
-  RefPtr<PathBuilder> pathBuilder = mPath->CopyToBuilder(aFillRule);
   RefPtr<PathBuilderRecording> recording =
-      new PathBuilderRecording(pathBuilder, mPathOps, aFillRule);
+      new PathBuilderRecording(mBackendType, PathOps(mPathOps), aFillRule);
   recording->SetCurrentPoint(mCurrentPoint);
   recording->SetBeginPoint(mBeginPoint);
   return recording.forget();
@@ -220,14 +233,10 @@ already_AddRefed<PathBuilder> PathRecording::CopyToBuilder(
 
 already_AddRefed<PathBuilder> PathRecording::TransformedCopyToBuilder(
     const Matrix& aTransform, FillRule aFillRule) const {
-  RefPtr<PathBuilder> pathBuilder =
-      mPath->TransformedCopyToBuilder(aTransform, aFillRule);
   RefPtr<PathBuilderRecording> recording = new PathBuilderRecording(
-      pathBuilder, mPathOps.TransformedCopy(aTransform), aFillRule);
-
+      mBackendType, mPathOps.TransformedCopy(aTransform), aFillRule);
   recording->SetCurrentPoint(aTransform.TransformPoint(mCurrentPoint));
   recording->SetBeginPoint(aTransform.TransformPoint(mBeginPoint));
-
   return recording.forget();
 }
 

@@ -36,12 +36,13 @@ class nsFieldSetFrame final : public nsContainerFrame {
                       const ReflowInput& aReflowInput,
                       nsReflowStatus& aStatus) override;
 
-  nscoord GetLogicalBaseline(mozilla::WritingMode aWM) const override;
-  bool GetVerticalAlignBaseline(mozilla::WritingMode aWM,
-                                nscoord* aBaseline) const override;
-  bool GetNaturalBaselineBOffset(mozilla::WritingMode aWM,
-                                 BaselineSharingGroup aBaselineGroup,
-                                 nscoord* aBaseline) const override;
+  nscoord SynthesizeFallbackBaseline(
+      mozilla::WritingMode aWM,
+      BaselineSharingGroup aBaselineGroup) const override;
+  BaselineSharingGroup GetDefaultBaselineSharingGroup() const override;
+  Maybe<nscoord> GetNaturalBaselineBOffset(
+      mozilla::WritingMode aWM,
+      BaselineSharingGroup aBaselineGroup) const override;
 
   virtual void BuildDisplayList(nsDisplayListBuilder* aBuilder,
                                 const nsDisplayListSet& aLists) override;

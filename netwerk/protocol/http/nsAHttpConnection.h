@@ -11,6 +11,7 @@
 #include "nsAHttpTransaction.h"
 #include "Http3WebTransportSession.h"
 #include "HttpTrafficAnalyzer.h"
+#include "nsIRequest.h"
 
 class nsIAsyncInputStream;
 class nsIAsyncOutputStream;
@@ -159,7 +160,7 @@ class nsAHttpConnection : public nsISupports {
   virtual HttpVersion Version() = 0;
 
   // A notification of the current active tab id change.
-  virtual void TopBrowsingContextIdChanged(uint64_t id) = 0;
+  virtual void CurrentBrowserIdChanged(uint64_t id) = 0;
 
   // categories set by nsHttpTransaction to identify how this connection is
   // being used.
@@ -168,6 +169,8 @@ class nsAHttpConnection : public nsISupports {
   virtual nsresult GetSelfAddr(NetAddr* addr) = 0;
   virtual nsresult GetPeerAddr(NetAddr* addr) = 0;
   virtual bool ResolvedByTRR() = 0;
+  virtual nsIRequest::TRRMode EffectiveTRRMode() = 0;
+  virtual nsITRRSkipReason::value TRRSkipReason() = 0;
   virtual bool GetEchConfigUsed() = 0;
   virtual PRIntervalTime LastWriteTime() = 0;
 };
@@ -190,7 +193,7 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsAHttpConnection, NS_AHTTPCONNECTION_IID)
   [[nodiscard]] nsresult PushBack(const char*, uint32_t) override;           \
   already_AddRefed<HttpConnectionBase> TakeHttpConnection() override;        \
   already_AddRefed<HttpConnectionBase> HttpConnection() override;            \
-  void TopBrowsingContextIdChanged(uint64_t id) override;                    \
+  void CurrentBrowserIdChanged(uint64_t id) override;                        \
   /*                                                                         \
      Thes methods below have automatic definitions that just forward the     \
      function to a lower level connection object                             \
@@ -262,6 +265,14 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsAHttpConnection, NS_AHTTPCONNECTION_IID)
   }                                                                          \
   bool ResolvedByTRR() override {                                            \
     return (!(fwdObject)) ? false : (fwdObject)->ResolvedByTRR();            \
+  }                                                                          \
+  nsIRequest::TRRMode EffectiveTRRMode() override {                          \
+    return (!(fwdObject)) ? nsIRequest::TRR_DEFAULT_MODE                     \
+                          : (fwdObject)->EffectiveTRRMode();                 \
+  }                                                                          \
+  nsITRRSkipReason::value TRRSkipReason() override {                         \
+    return (!(fwdObject)) ? nsITRRSkipReason::TRR_UNSET                      \
+                          : (fwdObject)->TRRSkipReason();                    \
   }                                                                          \
   bool GetEchConfigUsed() override {                                         \
     return (!(fwdObject)) ? false : (fwdObject)->GetEchConfigUsed();         \

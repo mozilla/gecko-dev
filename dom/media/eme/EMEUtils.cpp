@@ -65,15 +65,47 @@ bool IsWidevineKeySystem(const nsAString& aKeySystem) {
   return aKeySystem.EqualsLiteral(kWidevineKeySystemName);
 }
 
-nsString KeySystemToGMPName(const nsAString& aKeySystem) {
+#ifdef MOZ_WMF_CDM
+bool IsPlayReadyKeySystem(const nsAString& aKeySystem) {
+  return aKeySystem.EqualsLiteral(kPlayReadyKeySystemName) ||
+         aKeySystem.EqualsLiteral(kPlayReadyKeySystemHardware);
+}
+#endif
+
+nsString KeySystemToProxyName(const nsAString& aKeySystem) {
   if (IsClearkeyKeySystem(aKeySystem)) {
     return u"gmp-clearkey"_ns;
   }
   if (IsWidevineKeySystem(aKeySystem)) {
     return u"gmp-widevinecdm"_ns;
   }
-  MOZ_ASSERT(false, "We should only call this for known GMPs");
+#ifdef MOZ_WMF_CDM
+  if (IsPlayReadyKeySystem(aKeySystem)) {
+    return u"mfcdm-playready"_ns;
+  }
+#endif
+  MOZ_ASSERT_UNREACHABLE("Not supported key system!");
   return u""_ns;
 }
+
+#define ENUM_TO_STR(enumVal) \
+  case enumVal:              \
+    return #enumVal
+
+const char* ToMediaKeyStatusStr(dom::MediaKeyStatus aStatus) {
+  switch (aStatus) {
+    ENUM_TO_STR(dom::MediaKeyStatus::Usable);
+    ENUM_TO_STR(dom::MediaKeyStatus::Expired);
+    ENUM_TO_STR(dom::MediaKeyStatus::Released);
+    ENUM_TO_STR(dom::MediaKeyStatus::Output_restricted);
+    ENUM_TO_STR(dom::MediaKeyStatus::Output_downscaled);
+    ENUM_TO_STR(dom::MediaKeyStatus::Status_pending);
+    ENUM_TO_STR(dom::MediaKeyStatus::Internal_error);
+    default:
+      return "Undefined MediaKeyStatus!";
+  }
+}
+
+#undef ENUM_TO_STR
 
 }  // namespace mozilla

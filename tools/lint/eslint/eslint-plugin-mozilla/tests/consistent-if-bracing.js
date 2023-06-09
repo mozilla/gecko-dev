@@ -10,7 +10,7 @@
 var rule = require("../lib/rules/consistent-if-bracing");
 var RuleTester = require("eslint").RuleTester;
 
-const ruleTester = new RuleTester({ parserOptions: { ecmaVersion: 8 } });
+const ruleTester = new RuleTester({ parserOptions: { ecmaVersion: "latest" } });
 
 // ------------------------------------------------------------------------------
 // Tests
@@ -32,7 +32,6 @@ ruleTester.run("consistent-if-bracing", rule, {
     invalidCode("if (true) 1; else {0}"),
     invalidCode("if (true) {1} else if (true) 2; else {0}"),
     invalidCode("if (true) 1; else if (true) {2} else {0}"),
-    invalidCode("if (true) {1} else if (true) 2; else {0}"),
     invalidCode("if (true) {1} else if (true) {2} else 0"),
     invalidCode("if (true) {1} else if (true) {2} else if (true) 3; else {0}"),
     invalidCode("if (true) {if (true) 1; else {0}} else {0}"),

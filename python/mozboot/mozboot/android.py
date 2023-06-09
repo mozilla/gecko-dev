@@ -20,11 +20,11 @@ from tqdm import tqdm
 # variable.
 from mozboot.bootstrap import MOZCONFIG_SUGGESTION_TEMPLATE
 
-NDK_VERSION = "r21d"
-CMDLINE_TOOLS_VERSION_STRING = "7.0"
-CMDLINE_TOOLS_VERSION = "8512546"
+NDK_VERSION = "r23c"
+CMDLINE_TOOLS_VERSION_STRING = "9.0"
+CMDLINE_TOOLS_VERSION = "9477386"
 
-BUNDLETOOL_VERSION = "1.11.0"
+BUNDLETOOL_VERSION = "1.14.1"
 
 # We expect the emulator AVD definitions to be platform agnostic
 LINUX_X86_64_ANDROID_AVD = "linux64-android-avd-x86_64-repack"
@@ -42,8 +42,8 @@ AVD_MANIFEST_ARM = Path(__file__).resolve().parent / "android-avds/arm.json"
 AVD_MANIFEST_ARM64 = Path(__file__).resolve().parent / "android-avds/arm64.json"
 
 JAVA_VERSION_MAJOR = "17"
-JAVA_VERSION_MINOR = "0.5"
-JAVA_VERSION_PATCH = "8"
+JAVA_VERSION_MINOR = "0.7"
+JAVA_VERSION_PATCH = "7"
 
 ANDROID_NDK_EXISTS = """
 Looks like you have the correct version of the Android NDK installed at:
@@ -676,19 +676,14 @@ def generate_mozconfig(os_name, artifact_mode=False):
 
 def android_ndk_url(os_name, ver=NDK_VERSION):
     # Produce a URL like
-    # 'https://dl.google.com/android/repository/android-ndk-$VER-linux-x86_64.zip
+    # 'https://dl.google.com/android/repository/android-ndk-$VER-linux.zip
     base_url = "https://dl.google.com/android/repository/android-ndk"
 
     if os_name == "macosx":
         # |mach bootstrap| uses 'macosx', but Google uses 'darwin'.
         os_name = "darwin"
 
-    if sys.maxsize > 2 ** 32:
-        arch = "x86_64"
-    else:
-        arch = "x86"
-
-    return "%s-%s-%s-%s.zip" % (base_url, ver, os_name, arch)
+    return "%s-%s-%s.zip" % (base_url, ver, os_name)
 
 
 def main(argv):
@@ -829,7 +824,7 @@ def ensure_java(os_name, os_arch):
 
     if not java_path.exists():
         # e.g. https://github.com/adoptium/temurin17-binaries/releases/
-        #      download/jdk-17.0.5%2B8/OpenJDK17U-jdk_x64_linux_hotspot_17.0.5_8.tar.gz
+        #      download/jdk-17.0.7%2B7/OpenJDK17U-jre_x64_linux_hotspot_17.0.7_7.tar.gz
         java_url = (
             "https://github.com/adoptium/temurin{major}-binaries/releases/"
             "download/jdk-{major}.{minor}%2B{patch}/"
@@ -847,7 +842,7 @@ def ensure_java(os_name, os_arch):
 
 
 def java_bin_path(os_name, toolchain_path: Path):
-    # Like jdk-17.0.5+8
+    # Like jdk-17.0.7+7
     jdk_folder = "jdk-{major}.{minor}+{patch}".format(
         major=JAVA_VERSION_MAJOR, minor=JAVA_VERSION_MINOR, patch=JAVA_VERSION_PATCH
     )

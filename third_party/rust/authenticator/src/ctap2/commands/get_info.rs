@@ -5,20 +5,14 @@ use crate::transport::errors::HIDError;
 use crate::u2ftypes::U2FDevice;
 use serde::{
     de::{Error as SError, IgnoredAny, MapAccess, Visitor},
-    Deserialize, Deserializer,
+    Deserialize, Deserializer, Serialize,
 };
 use serde_cbor::{de::from_slice, Value};
 use std::collections::BTreeMap;
 use std::fmt;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct GetInfo {}
-
-impl Default for GetInfo {
-    fn default() -> GetInfo {
-        GetInfo {}
-    }
-}
 
 impl RequestCtap2 for GetInfo {
     type Output = AuthenticatorInfo;
@@ -68,17 +62,17 @@ fn true_val() -> bool {
     true
 }
 
-#[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
-pub(crate) struct AuthenticatorOptions {
+#[derive(Debug, Deserialize, Clone, Eq, PartialEq, Serialize)]
+pub struct AuthenticatorOptions {
     /// Indicates that the device is attached to the client and therefore can’t
     /// be removed and used on another client.
     #[serde(rename = "plat", default)]
-    pub(crate) platform_device: bool,
+    pub platform_device: bool,
     /// Indicates that the device is capable of storing keys on the device
     /// itself and therefore can satisfy the authenticatorGetAssertion request
     /// with allowList parameter not specified or empty.
     #[serde(rename = "rk", default)]
-    pub(crate) resident_key: bool,
+    pub resident_key: bool,
 
     /// Client PIN:
     ///  If present and set to true, it indicates that the device is capable of
@@ -89,11 +83,11 @@ pub(crate) struct AuthenticatorOptions {
     ///   PIN from the client.
     /// Client PIN is one of the ways to do user verification.
     #[serde(rename = "clientPin")]
-    pub(crate) client_pin: Option<bool>,
+    pub client_pin: Option<bool>,
 
     /// Indicates that the device is capable of testing user presence.
     #[serde(rename = "up", default = "true_val")]
-    pub(crate) user_presence: bool,
+    pub user_presence: bool,
 
     /// Indicates that the device is capable of verifying the user within
     /// itself. For example, devices with UI, biometrics fall into this
@@ -113,7 +107,174 @@ pub(crate) struct AuthenticatorOptions {
     // TODO(MS): My Token (key-ID FIDO2) does return Some(false) here, even though
     //           it has no built-in verification method. Not to be trusted...
     #[serde(rename = "uv")]
-    pub(crate) user_verification: Option<bool>,
+    pub user_verification: Option<bool>,
+
+    // ----------------------------------------------------
+    // CTAP 2.1 options
+    // ----------------------------------------------------
+    /// If pinUvAuthToken is:
+    /// present and set to true
+    ///  if the clientPin option id is present and set to true, then the
+    ///  authenticator supports authenticatorClientPIN's getPinUvAuthTokenUsingPinWithPermissions
+    ///  subcommand. If the uv option id is present and set to true, then
+    ///  the authenticator supports authenticatorClientPIN's getPinUvAuthTokenUsingUvWithPermissions
+    ///  subcommand.
+    /// present and set to false, or absent.
+    ///  the authenticator does not support authenticatorClientPIN's
+    ///  getPinUvAuthTokenUsingPinWithPermissions and getPinUvAuthTokenUsingUvWithPermissions
+    ///  subcommands.
+    #[serde(rename = "pinUvAuthToken")]
+    pub pin_uv_auth_token: Option<bool>,
+
+    /// If this noMcGaPermissionsWithClientPin is:
+    /// present and set to true
+    ///  A pinUvAuthToken obtained via getPinUvAuthTokenUsingPinWithPermissions
+    ///  (or getPinToken) cannot be used for authenticatorMakeCredential or
+    ///  authenticatorGetAssertion commands, because it will lack the necessary
+    ///  mc and ga permissions. In this situation, platforms SHOULD NOT attempt
+    ///  to use getPinUvAuthTokenUsingPinWithPermissions if using
+    ///  getPinUvAuthTokenUsingUvWithPermissions fails.
+    /// present and set to false, or absent.
+    ///  A pinUvAuthToken obtained via getPinUvAuthTokenUsingPinWithPermissions
+    ///  (or getPinToken) can be used for authenticatorMakeCredential or
+    ///  authenticatorGetAssertion commands.
+    /// Note: noMcGaPermissionsWithClientPin MUST only be present if the
+    ///       clientPin option ID is present.
+    #[serde(rename = "noMcGaPermissionsWithClientPin")]
+    pub no_mc_ga_permissions_with_client_pin: Option<bool>,
+
+    /// If largeBlobs is:
+    /// present and set to true
+    ///  the authenticator supports the authenticatorLargeBlobs command.
+    /// present and set to false, or absent.
+    ///  The authenticatorLargeBlobs command is NOT supported.
+    #[serde(rename = "largeBlobs")]
+    pub large_blobs: Option<bool>,
+
+    /// Enterprise Attestation feature support:
+    /// If ep is:
+    /// Present and set to true
+    ///  The authenticator is enterprise attestation capable, and enterprise
+    ///  attestation is enabled.
+    /// Present and set to false
+    ///  The authenticator is enterprise attestation capable, and enterprise
+    ///  attestation is disabled.
+    /// Absent
+    ///  The Enterprise Attestation feature is NOT supported.
+    #[serde(rename = "ep")]
+    pub ep: Option<bool>,
+
+    /// If bioEnroll is:
+    /// present and set to true
+    ///  the authenticator supports the authenticatorBioEnrollment commands,
+    ///  and has at least one bio enrollment presently provisioned.
+    /// present and set to false
+    ///  the authenticator supports the authenticatorBioEnrollment commands,
+    ///  and does not yet have any bio enrollments provisioned.
+    /// absent
+    ///  the authenticatorBioEnrollment commands are NOT supported.
+    #[serde(rename = "bioEnroll")]
+    pub bio_enroll: Option<bool>,
+
+    /// "FIDO_2_1_PRE" Prototype Credential management support:
+    /// If userVerificationMgmtPreview is:
+    /// present and set to true
+    ///  the authenticator supports the Prototype authenticatorBioEnrollment (0x41)
+    ///  commands, and has at least one bio enrollment presently provisioned.
+    /// present and set to false
+    ///  the authenticator supports the Prototype authenticatorBioEnrollment (0x41)
+    ///  commands, and does not yet have any bio enrollments provisioned.
+    /// absent
+    ///  the Prototype authenticatorBioEnrollment (0x41) commands are not supported.
+    #[serde(rename = "userVerificationMgmtPreview")]
+    pub user_verification_mgmt_preview: Option<bool>,
+
+    /// getPinUvAuthTokenUsingUvWithPermissions support for requesting the be permission:
+    /// This option ID MUST only be present if bioEnroll is also present.
+    /// If uvBioEnroll is:
+    /// present and set to true
+    ///  requesting the be permission when invoking getPinUvAuthTokenUsingUvWithPermissions
+    ///  is supported.
+    /// present and set to false, or absent.
+    ///  requesting the be permission when invoking getPinUvAuthTokenUsingUvWithPermissions
+    ///  is NOT supported.
+    #[serde(rename = "uvBioEnroll")]
+    pub uv_bio_enroll: Option<bool>,
+
+    /// authenticatorConfig command support:
+    /// If authnrCfg is:
+    /// present and set to true
+    ///  the authenticatorConfig command is supported.
+    /// present and set to false, or absent.
+    ///  the authenticatorConfig command is NOT supported.
+    #[serde(rename = "authnrCfg")]
+    pub authnr_cfg: Option<bool>,
+
+    /// getPinUvAuthTokenUsingUvWithPermissions support for requesting the acfg permission:
+    /// This option ID MUST only be present if authnrCfg is also present.
+    /// If uvAcfg is:
+    /// present and set to true
+    ///  requesting the acfg permission when invoking getPinUvAuthTokenUsingUvWithPermissions
+    ///  is supported.
+    /// present and set to false, or absent.
+    ///  requesting the acfg permission when invoking getPinUvAuthTokenUsingUvWithPermissions
+    ///  is NOT supported.
+    #[serde(rename = "uvAcfg")]
+    pub uv_acfg: Option<bool>,
+
+    /// Credential management support:
+    /// If credMgmt is:
+    /// present and set to true
+    ///  the authenticatorCredentialManagement command is supported.
+    /// present and set to false, or absent.
+    ///  the authenticatorCredentialManagement command is NOT supported.
+    #[serde(rename = "credMgmt")]
+    pub cred_mgmt: Option<bool>,
+
+    /// "FIDO_2_1_PRE" Prototype Credential management support:
+    /// If credentialMgmtPreview is:
+    /// present and set to true
+    ///  the Prototype authenticatorCredentialManagement (0x41) command is supported.
+    /// present and set to false, or absent.
+    ///  the Prototype authenticatorCredentialManagement (0x41) command is NOT supported.
+    #[serde(rename = "credentialMgmtPreview")]
+    pub credential_mgmt_preview: Option<bool>,
+
+    /// Support for the Set Minimum PIN Length feature.
+    /// If setMinPINLength is:
+    /// present and set to true
+    ///  the setMinPINLength subcommand is supported.
+    /// present and set to false, or absent.
+    ///  the setMinPINLength subcommand is NOT supported.
+    /// Note: setMinPINLength MUST only be present if the clientPin option ID is present.
+    #[serde(rename = "setMinPINLength")]
+    pub set_min_pin_length: Option<bool>,
+
+    /// Support for making non-discoverable credentials without requiring User Verification.
+    /// If makeCredUvNotRqd is:
+    /// present and set to true
+    ///  the authenticator allows creation of non-discoverable credentials without
+    ///  requiring any form of user verification, if the platform requests this behaviour.
+    /// present and set to false, or absent.
+    ///  the authenticator requires some form of user verification for creating
+    ///  non-discoverable credentials, regardless of the parameters the platform supplies
+    ///  for the authenticatorMakeCredential command.
+    /// Authenticators SHOULD include this option with the value true.
+    #[serde(rename = "makeCredUvNotRqd")]
+    pub make_cred_uv_not_rqd: Option<bool>,
+
+    /// Support for the Always Require User Verification feature:
+    /// If alwaysUv is
+    /// present and set to true
+    ///  the authenticator supports the Always Require User Verification feature and it is enabled.
+    /// present and set to false
+    ///  the authenticator supports the Always Require User Verification feature but it is disabled.
+    /// absent
+    ///  the authenticator does not support the Always Require User Verification feature.
+    /// Note: If the alwaysUv option ID is present and true the authenticator MUST set the value
+    ///       of makeCredUvNotRqd to false.
+    #[serde(rename = "alwaysUv")]
+    pub always_uv: Option<bool>,
 }
 
 impl Default for AuthenticatorOptions {
@@ -124,39 +285,77 @@ impl Default for AuthenticatorOptions {
             client_pin: None,
             user_presence: true,
             user_verification: None,
+            pin_uv_auth_token: None,
+            no_mc_ga_permissions_with_client_pin: None,
+            large_blobs: None,
+            ep: None,
+            bio_enroll: None,
+            user_verification_mgmt_preview: None,
+            uv_bio_enroll: None,
+            authnr_cfg: None,
+            uv_acfg: None,
+            cred_mgmt: None,
+            credential_mgmt_preview: None,
+            set_min_pin_length: None,
+            make_cred_uv_not_rqd: None,
+            always_uv: None,
         }
     }
 }
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[allow(non_camel_case_types)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum AuthenticatorVersion {
+    U2F_V2,
+    FIDO_2_0,
+    FIDO_2_1_PRE,
+    FIDO_2_1,
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize)]
 pub struct AuthenticatorInfo {
-    pub(crate) versions: Vec<String>,
-    pub(crate) extensions: Vec<String>,
-    pub(crate) aaguid: AAGuid,
-    pub(crate) options: AuthenticatorOptions,
-    pub(crate) max_msg_size: Option<usize>,
-    pub(crate) pin_protocols: Vec<u64>,
+    pub versions: Vec<AuthenticatorVersion>,
+    pub extensions: Vec<String>,
+    pub aaguid: AAGuid,
+    pub options: AuthenticatorOptions,
+    pub max_msg_size: Option<usize>,
+    pub pin_protocols: Vec<u64>,
     // CTAP 2.1
-    pub(crate) max_credential_count_in_list: Option<usize>,
-    pub(crate) max_credential_id_length: Option<usize>,
-    pub(crate) transports: Option<Vec<String>>,
-    pub(crate) algorithms: Option<Vec<PublicKeyCredentialParameters>>,
-    pub(crate) max_ser_large_blob_array: Option<u64>,
-    pub(crate) force_pin_change: Option<bool>,
-    pub(crate) min_pin_length: Option<u64>,
-    pub(crate) firmware_version: Option<u64>,
-    pub(crate) max_cred_blob_length: Option<u64>,
-    pub(crate) max_rpids_for_set_min_pin_length: Option<u64>,
-    pub(crate) preferred_platform_uv_attempts: Option<u64>,
-    pub(crate) uv_modality: Option<u64>,
-    pub(crate) certifications: Option<BTreeMap<String, u64>>,
-    pub(crate) remaining_discoverable_credentials: Option<u64>,
-    pub(crate) vendor_prototype_config_commands: Option<Vec<u64>>,
+    pub max_credential_count_in_list: Option<usize>,
+    pub max_credential_id_length: Option<usize>,
+    pub transports: Option<Vec<String>>,
+    pub algorithms: Option<Vec<PublicKeyCredentialParameters>>,
+    pub max_ser_large_blob_array: Option<u64>,
+    pub force_pin_change: Option<bool>,
+    pub min_pin_length: Option<u64>,
+    pub firmware_version: Option<u64>,
+    pub max_cred_blob_length: Option<u64>,
+    pub max_rpids_for_set_min_pin_length: Option<u64>,
+    pub preferred_platform_uv_attempts: Option<u64>,
+    pub uv_modality: Option<u64>,
+    pub certifications: Option<BTreeMap<String, u64>>,
+    pub remaining_discoverable_credentials: Option<u64>,
+    pub vendor_prototype_config_commands: Option<Vec<u64>>,
 }
 
 impl AuthenticatorInfo {
     pub fn supports_hmac_secret(&self) -> bool {
         self.extensions.contains(&"hmac-secret".to_string())
+    }
+
+    pub fn max_supported_version(&self) -> AuthenticatorVersion {
+        let versions = vec![
+            AuthenticatorVersion::FIDO_2_1,
+            AuthenticatorVersion::FIDO_2_1_PRE,
+            AuthenticatorVersion::FIDO_2_0,
+            AuthenticatorVersion::U2F_V2,
+        ];
+        for ver in versions {
+            if self.versions.contains(&ver) {
+                return ver;
+            }
+        }
+        AuthenticatorVersion::U2F_V2
     }
 }
 
@@ -533,7 +732,7 @@ pub mod tests {
             from_slice(&AUTHENTICATOR_INFO_PAYLOAD).unwrap();
 
         let expected = AuthenticatorInfo {
-            versions: vec!["U2F_V2".to_string(), "FIDO_2_0".to_string()],
+            versions: vec![AuthenticatorVersion::U2F_V2, AuthenticatorVersion::FIDO_2_0],
             extensions: vec!["uvm".to_string(), "hmac-secret".to_string()],
             aaguid: AAGuid(AAGUID_RAW),
             options: AuthenticatorOptions {
@@ -542,6 +741,7 @@ pub mod tests {
                 client_pin: Some(false),
                 user_presence: true,
                 user_verification: None,
+                ..Default::default()
             },
             max_msg_size: Some(1200),
             pin_protocols: vec![1],
@@ -586,10 +786,10 @@ pub mod tests {
 
         let expected = AuthenticatorInfo {
             versions: vec![
-                "U2F_V2".to_string(),
-                "FIDO_2_0".to_string(),
-                "FIDO_2_1_PRE".to_string(),
-                "FIDO_2_1".to_string(),
+                AuthenticatorVersion::U2F_V2,
+                AuthenticatorVersion::FIDO_2_0,
+                AuthenticatorVersion::FIDO_2_1_PRE,
+                AuthenticatorVersion::FIDO_2_1,
             ],
             extensions: vec![
                 "credProtect".to_string(),
@@ -608,6 +808,20 @@ pub mod tests {
                 client_pin: Some(true),
                 user_presence: true,
                 user_verification: Some(true),
+                pin_uv_auth_token: Some(true),
+                no_mc_ga_permissions_with_client_pin: None,
+                large_blobs: Some(true),
+                ep: None,
+                bio_enroll: Some(true),
+                user_verification_mgmt_preview: Some(true),
+                uv_bio_enroll: None,
+                authnr_cfg: Some(true),
+                uv_acfg: None,
+                cred_mgmt: Some(true),
+                credential_mgmt_preview: Some(true),
+                set_min_pin_length: Some(true),
+                make_cred_uv_not_rqd: Some(false),
+                always_uv: Some(true),
             },
             max_msg_size: Some(1200),
             pin_protocols: vec![2, 1],
@@ -656,7 +870,7 @@ pub mod tests {
         // init_resp packet
         let mut msg = CID_BROADCAST.to_vec();
         msg.extend(vec![
-            0x06, /*HIDCmd::Init without TYPE_INIT*/
+            0x06, /* HIDCmd::Init without TYPE_INIT */
             0x00, 0x11,
         ]); // cmd + bcnt
         msg.extend_from_slice(&nonce);
@@ -699,7 +913,7 @@ pub mod tests {
             .get_authenticator_info()
             .expect("Didn't get any authenticator_info");
         let expected = AuthenticatorInfo {
-            versions: vec!["U2F_V2".to_string(), "FIDO_2_0".to_string()],
+            versions: vec![AuthenticatorVersion::U2F_V2, AuthenticatorVersion::FIDO_2_0],
             extensions: vec!["uvm".to_string(), "hmac-secret".to_string()],
             aaguid: AAGuid(AAGUID_RAW),
             options: AuthenticatorOptions {
@@ -708,6 +922,7 @@ pub mod tests {
                 client_pin: Some(false),
                 user_presence: true,
                 user_verification: None,
+                ..Default::default()
             },
             max_msg_size: Some(1200),
             pin_protocols: vec![1],
@@ -729,5 +944,43 @@ pub mod tests {
         };
 
         assert_eq!(result, &expected);
+    }
+
+    #[test]
+    fn test_authenticator_info_max_version() {
+        let fido2_0 = AuthenticatorInfo {
+            versions: vec![AuthenticatorVersion::U2F_V2, AuthenticatorVersion::FIDO_2_0],
+            ..Default::default()
+        };
+        assert_eq!(
+            fido2_0.max_supported_version(),
+            AuthenticatorVersion::FIDO_2_0
+        );
+
+        let fido2_1_pre = AuthenticatorInfo {
+            versions: vec![
+                AuthenticatorVersion::FIDO_2_1_PRE,
+                AuthenticatorVersion::U2F_V2,
+            ],
+            ..Default::default()
+        };
+        assert_eq!(
+            fido2_1_pre.max_supported_version(),
+            AuthenticatorVersion::FIDO_2_1_PRE
+        );
+
+        let fido2_1 = AuthenticatorInfo {
+            versions: vec![
+                AuthenticatorVersion::FIDO_2_1_PRE,
+                AuthenticatorVersion::FIDO_2_1,
+                AuthenticatorVersion::U2F_V2,
+                AuthenticatorVersion::FIDO_2_0,
+            ],
+            ..Default::default()
+        };
+        assert_eq!(
+            fido2_1.max_supported_version(),
+            AuthenticatorVersion::FIDO_2_1
+        );
     }
 }

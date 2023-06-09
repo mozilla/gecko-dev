@@ -12,6 +12,7 @@
 #include "nsTHashSet.h"
 #include "nsIObserver.h"
 #include "nsIWebProgressListener.h"
+#include "nsWeakReference.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/StaticPtr.h"
 
@@ -56,7 +57,7 @@ class nsCookieBannerService final : public nsIObserver,
   // or cookie rule under its browsing context tree. We use the browsing context
   // id as the key. And the value is a tuple with two booleans that indicate
   // the existence of click rule and cookie rule respectively.
-  nsTHashMap<uint64_t, Tuple<bool, bool>> mReloadTelemetryData;
+  nsTHashMap<uint64_t, std::tuple<bool, bool>> mReloadTelemetryData;
 
   // Pref change callback which initializes and shuts down the service. This is
   // also called on startup.
@@ -83,8 +84,8 @@ class nsCookieBannerService final : public nsIObserver,
       nsTArray<RefPtr<nsICookieRule>>& aCookies);
 
   nsresult HasRuleForBrowsingContextInternal(
-      mozilla::dom::BrowsingContext* aBrowsingContext, bool& aHasClickRule,
-      bool& aHasCookieRule);
+      mozilla::dom::BrowsingContext* aBrowsingContext, bool aIgnoreDomainPref,
+      bool& aHasClickRule, bool& aHasCookieRule);
 
   nsresult GetRuleForDomain(const nsACString& aDomain, bool aIsTopLevel,
                             nsICookieBannerRule** aRule,
@@ -118,7 +119,7 @@ class nsCookieBannerService final : public nsIObserver,
                          bool aReportTelemetry = false);
 
   nsresult GetServiceModeForBrowsingContext(
-      dom::BrowsingContext* aBrowsingContext,
+      dom::BrowsingContext* aBrowsingContext, bool aIgnoreDomainPref,
       nsICookieBannerService::Modes* aMode);
 
   nsresult RegisterWebProgressListener(nsISupports* aSubject);

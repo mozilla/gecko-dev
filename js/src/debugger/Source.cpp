@@ -163,6 +163,7 @@ struct MOZ_STACK_CLASS DebuggerSource::CallData {
   bool getBinary();
   bool getURL();
   bool getStartLine();
+  bool getStartColumn();
   bool getId();
   bool getDisplayURL();
   bool getElementProperty();
@@ -212,7 +213,16 @@ class DebuggerSourceGetTextMatcher {
       return NewStringCopyZ<CanGC>(cx_, "[no source]");
     }
 
-    if (ss->isFunctionBody()) {
+    // In case of DOM event handler like <div onclick="foo()" the JS code is
+    // wrapped into
+    //   function onclick() {foo()}
+    // We want to only return `foo()` here.
+    // But only for event handlers, for `new Function("foo()")`, we want to
+    // return:
+    //   function anonymous() {foo()}
+    if (ss->hasIntroductionType() &&
+        strcmp(ss->introductionType(), "eventHandler") == 0 &&
+        ss->isFunctionBody()) {
       return ss->functionBodyString(cx_);
     }
 
@@ -331,6 +341,24 @@ bool DebuggerSource::CallData::getStartLine() {
   DebuggerSourceGetStartLineMatcher matcher;
   uint32_t line = referent.match(matcher);
   args.rval().setNumber(line);
+  return true;
+}
+
+class DebuggerSourceGetStartColumnMatcher {
+ public:
+  using ReturnType = uint32_t;
+
+  ReturnType match(Handle<ScriptSourceObject*> sourceObject) {
+    ScriptSource* ss = sourceObject->source();
+    return ss->startColumn();
+  }
+  ReturnType match(Handle<WasmInstanceObject*> instanceObj) { return 0; }
+};
+
+bool DebuggerSource::CallData::getStartColumn() {
+  DebuggerSourceGetStartColumnMatcher matcher;
+  uint32_t column = referent.match(matcher);
+  args.rval().setNumber(column);
   return true;
 }
 
@@ -591,6 +619,7 @@ static JSScript* ReparseSource(JSContext* cx, Handle<ScriptSourceObject*> sso) {
   JS::CompileOptions options(cx);
   options.setHideScriptFromDebugger(true);
   options.setFileAndLine(ss->filename(), ss->startLine());
+  options.setColumn(ss->startColumn());
 
   UncompressedSourceCache::AutoHoldEntry holder;
 
@@ -645,6 +674,7 @@ const JSPropertySpec DebuggerSource::properties_[] = {
     JS_DEBUG_PSG("binary", getBinary),
     JS_DEBUG_PSG("url", getURL),
     JS_DEBUG_PSG("startLine", getStartLine),
+    JS_DEBUG_PSG("startColumn", getStartColumn),
     JS_DEBUG_PSG("id", getId),
     JS_DEBUG_PSG("displayURL", getDisplayURL),
     JS_DEBUG_PSG("introductionScript", getIntroductionScript),

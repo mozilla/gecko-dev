@@ -19,7 +19,6 @@
 #include "api/video/recordable_encoded_frame.h"
 #include "pc/video_track.h"
 #include "rtc_base/checks.h"
-#include "rtc_base/location.h"
 #include "rtc_base/logging.h"
 
 namespace webrtc {
@@ -117,7 +116,7 @@ void VideoRtpReceiver::RestartMediaChannel(absl::optional<uint32_t> ssrc) {
   RTC_DCHECK_RUN_ON(&signaling_thread_checker_);
   MediaSourceInterface::SourceState state = source_->state();
   // TODO(tommi): Can we restart the media channel without blocking?
-  worker_thread_->Invoke<void>(RTC_FROM_HERE, [&] {
+  worker_thread_->BlockingCall([&] {
     RTC_DCHECK_RUN_ON(worker_thread_);
     RestartMediaChannel_w(std::move(ssrc), state);
   });
@@ -252,7 +251,8 @@ void VideoRtpReceiver::SetJitterBufferMinimumDelay(
     media_channel_->SetBaseMinimumPlayoutDelayMs(*ssrc_, delay_.GetMs());
 }
 
-void VideoRtpReceiver::SetMediaChannel(cricket::MediaChannel* media_channel) {
+void VideoRtpReceiver::SetMediaChannel(
+    cricket::MediaReceiveChannelInterface* media_channel) {
   RTC_DCHECK_RUN_ON(worker_thread_);
   RTC_DCHECK(media_channel == nullptr ||
              media_channel->media_type() == media_type());
@@ -260,7 +260,8 @@ void VideoRtpReceiver::SetMediaChannel(cricket::MediaChannel* media_channel) {
   SetMediaChannel_w(media_channel);
 }
 
-void VideoRtpReceiver::SetMediaChannel_w(cricket::MediaChannel* media_channel) {
+void VideoRtpReceiver::SetMediaChannel_w(
+    cricket::MediaReceiveChannelInterface* media_channel) {
   RTC_DCHECK_RUN_ON(worker_thread_);
   if (media_channel == media_channel_)
     return;
@@ -275,12 +276,16 @@ void VideoRtpReceiver::SetMediaChannel_w(cricket::MediaChannel* media_channel) {
     SetEncodedSinkEnabled(false);
   }
 
-  media_channel_ = static_cast<cricket::VideoMediaChannel*>(media_channel);
+  if (media_channel) {
+    media_channel_ = media_channel->AsVideoReceiveChannel();
+  } else {
+    media_channel_ = nullptr;
+  }
 
   if (media_channel_) {
     if (saved_generate_keyframe_) {
       // TODO(bugs.webrtc.org/8694): Stop using 0 to mean unsignalled SSRC
-      media_channel_->GenerateKeyFrame(ssrc_.value_or(0));
+      media_channel_->RequestRecvKeyFrame(ssrc_.value_or(0));
       saved_generate_keyframe_ = false;
     }
     if (encoded_sink_enabled) {
@@ -311,12 +316,13 @@ std::vector<RtpSource> VideoRtpReceiver::GetSources() const {
   return media_channel_->GetSources(*ssrc_);
 }
 
-void VideoRtpReceiver::SetupMediaChannel(absl::optional<uint32_t> ssrc,
-                                         cricket::MediaChannel* media_channel) {
+void VideoRtpReceiver::SetupMediaChannel(
+    absl::optional<uint32_t> ssrc,
+    cricket::MediaReceiveChannelInterface* media_channel) {
   RTC_DCHECK_RUN_ON(&signaling_thread_checker_);
   RTC_DCHECK(media_channel);
   MediaSourceInterface::SourceState state = source_->state();
-  worker_thread_->Invoke<void>(RTC_FROM_HERE, [&] {
+  worker_thread_->BlockingCall([&] {
     RTC_DCHECK_RUN_ON(worker_thread_);
     SetMediaChannel_w(media_channel);
     RestartMediaChannel_w(std::move(ssrc), state);
@@ -332,7 +338,7 @@ void VideoRtpReceiver::OnGenerateKeyFrame() {
     return;
   }
   // TODO(bugs.webrtc.org/8694): Stop using 0 to mean unsignalled SSRC
-  media_channel_->GenerateKeyFrame(ssrc_.value_or(0));
+  media_channel_->RequestRecvKeyFrame(ssrc_.value_or(0));
   // We need to remember to request generation of a new key frame if the media
   // channel changes, because there's no feedback whether the keyframe
   // generation has completed on the channel.

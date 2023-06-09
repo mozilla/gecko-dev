@@ -3,9 +3,9 @@
 
 "use strict";
 
-XPCOMUtils.defineLazyModuleGetters(this, {
-  AppUpdater: "resource://gre/modules/AppUpdater.jsm",
-  sinon: "resource://testing-common/Sinon.jsm",
+ChromeUtils.defineESModuleGetters(this, {
+  AppUpdater: "resource://gre/modules/AppUpdater.sys.mjs",
+  sinon: "resource://testing-common/Sinon.sys.mjs",
 });
 
 add_setup(function setup_internalErrorTest() {

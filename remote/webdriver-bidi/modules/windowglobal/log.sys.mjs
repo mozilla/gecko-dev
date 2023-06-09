@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { Module } from "chrome://remote/content/shared/messagehandler/Module.sys.mjs";
+import { WindowGlobalBiDiModule } from "chrome://remote/content/webdriver-bidi/modules/WindowGlobalBiDiModule.sys.mjs";
 
 const lazy = {};
 
@@ -14,9 +14,11 @@ ChromeUtils.defineESModuleGetters(lazy, {
   isChromeFrame: "chrome://remote/content/shared/Stack.sys.mjs",
   OwnershipModel: "chrome://remote/content/webdriver-bidi/RemoteValue.sys.mjs",
   serialize: "chrome://remote/content/webdriver-bidi/RemoteValue.sys.mjs",
+  setDefaultSerializationOptions:
+    "chrome://remote/content/webdriver-bidi/RemoteValue.sys.mjs",
 });
 
-class LogModule extends Module {
+class LogModule extends WindowGlobalBiDiModule {
   #consoleAPIListener;
   #consoleMessageListener;
   #subscribedEvents;
@@ -49,9 +51,9 @@ class LogModule extends Module {
     this.#subscribedEvents = null;
   }
 
-  #buildSource() {
+  #buildSource(realm) {
     return {
-      realm: this.messageHandler.window.windowGlobalChild?.innerWindowId.toString(),
+      realm: realm.id,
       context: this.messageHandler.context,
     };
   }
@@ -66,7 +68,7 @@ class LogModule extends Module {
    * @param {Array<StackFrame>=} stackTrace
    *     Stack frames to process.
    *
-   * @returns {Object=} Object, containing the list of frames as `callFrames`.
+   * @returns {object=} Object, containing the list of frames as `callFrames`.
    */
   #buildStackTrace(stackTrace) {
     if (stackTrace == undefined) {
@@ -135,18 +137,30 @@ class LogModule extends Module {
     text += args.map(String).join(" ");
 
     // Serialize each arg as remote value.
+    const defaultRealm = this.messageHandler.getRealm();
+    const nodeCache = this.nodeCache;
     const serializedArgs = [];
     for (const arg of args) {
-      // Note that we can pass a `null` realm for now since realms are only
+      // Note that we can pass a default realm for now since realms are only
       // involved when creating object references, which will not happen with
-      // OwnershipModel.None. This will be revisited in Bug 1731589.
+      // OwnershipModel.None. This will be revisited in Bug 1742589.
       serializedArgs.push(
-        lazy.serialize(arg, 1, lazy.OwnershipModel.None, new Map(), null)
+        lazy.serialize(
+          Cu.waiveXrays(arg),
+          lazy.setDefaultSerializationOptions(),
+          lazy.OwnershipModel.None,
+          new Map(),
+          defaultRealm,
+          {
+            nodeCache,
+          }
+        )
       );
     }
 
     // Set source to an object which contains realm and browsing context.
-    const source = this.#buildSource();
+    // TODO: Bug 1742589. Use an actual realm from which the event came from.
+    const source = this.#buildSource(defaultRealm);
 
     // Set stack trace only for certain methods.
     let stackTrace;
@@ -179,12 +193,14 @@ class LogModule extends Module {
 
   #onJavaScriptError = (eventName, data = {}) => {
     const { level, message, stacktrace, timeStamp } = data;
+    const defaultRealm = this.messageHandler.getRealm();
 
     // Build the JavascriptLogEntry
     const entry = {
       type: "javascript",
       level,
-      source: this.#buildSource(),
+      // TODO: Bug 1742589. Use an actual realm from which the event came from.
+      source: this.#buildSource(defaultRealm),
       text: message,
       timestamp: timeStamp || Date.now(),
       stackTrace: this.#buildStackTrace(stacktrace),

@@ -35,6 +35,7 @@ EXPORTS.mozilla += [
 
 EXPORTS.mozilla.dom += [
     "MediaIPCUtils.h",
+    "MFCDMSerializers.h",
 ]
 
 SOURCES += [
@@ -72,6 +73,24 @@ if CONFIG["MOZ_WMF_MEDIA_ENGINE"]:
     ]
     LOCAL_INCLUDES += [
         "../platforms/wmf",
+    ]
+
+if CONFIG["MOZ_WMF_CDM"]:
+    IPDL_SOURCES += [
+        "PMFCDM.ipdl",
+    ]
+    EXPORTS.mozilla += [
+        "MFCDMChild.h",
+        "MFCDMParent.h",
+    ]
+    UNIFIED_SOURCES += [
+        "MFCDMChild.cpp",
+    ]
+    SOURCES += [
+        "MFCDMParent.cpp",
+    ]
+    LOCAL_INCLUDES += [
+        "../eme/mediafoundation",
     ]
 
 # so we can include nsMacUtilsImpl.h in RDDParent.cpp for sandboxing

@@ -18,7 +18,7 @@ Running Locally
 
 **Prerequisites**
 
-- A local mozilla repository clone with a `successful Firefox build <https://developer.mozilla.org/en-US/docs/Mozilla/Developer_guide/Build_Instructions>`_ completed
+- A local mozilla repository clone with a `successful Firefox build </setup>`_ completed
 
 Running on Firefox Desktop
 --------------------------
@@ -127,7 +127,7 @@ Or for Raptor-Browsertime (use ``chrome`` for desktop, and ``chrome-m`` for mobi
 More Examples
 -------------
 
-`Browsertime docs <https://github.com/mozilla/browsertime/tree/master/docs/examples>`_
+`Browsertime docs <https://github.com/sitespeedio/browsertime/tree/main/docs/examples>`_
 
 Passing Additional Arguments to Browsertime
 -------------------------------------------
@@ -183,6 +183,14 @@ To upgrade the browsertime version used in-tree you can run, then commit the cha
 Here is a sample URL that we can update to: https://github.com/sitespeedio/browsertime/tarball/89771a1d6be54114db190427dbc281582cba3d47
 
 To test the upgrade, run a raptor test locally (with and without visual-metrics ``--browsertime-visualmetrics`` if possible) and test it on try with at least one test on desktop and mobile.
+
+Updating Benchmark Tests
+------------------------
+To upgrade any of our benchmark tests, you will need to change the revision used in the test manifest. There are three fields that you have available to use there: ``repository_revision`` to denote the revision, ``repository_branch`` to denote the branch name, and ``repository`` to provide the link of the Github repo that contains the benchmark.
+
+For instance, with Speedometer 3 (sp3), we can update the revision `by changing the repository_revision field found here <https://searchfox.org/mozilla-central/rev/aa3ccd258b64abfd4c5ce56c1f512bc7f65b844c/testing/raptor/raptor/tests/benchmarks/speedometer-desktop.ini#29>`_. If the change isn't found on the default branch (master/main branch), then you will need to add an entry for ``repository_branch`` to specify this.
+
+If the path to the test file changes (the file that is invoked to run the test), then the ``test_url`` will need to be changed.
 
 Finding the Geckodriver Being Used
 ----------------------------------

@@ -482,7 +482,7 @@ var BookmarkPropertiesPanel = {
 
       if (this._charSet) {
         PlacesUIUtils.setCharsetForPage(this._uri, this._charSet, window).catch(
-          Cu.reportError
+          console.error
         );
       }
 
@@ -508,6 +508,7 @@ var BookmarkPropertiesPanel = {
       ? undefined
       : await PlacesUtils.promiseItemId(parentGuid);
     return Object.freeze({
+      index,
       itemId,
       bookmarkGuid: itemGuid,
       title: this._title,
@@ -521,6 +522,7 @@ var BookmarkPropertiesPanel = {
         bookmarkGuid: parentGuid,
         type: Ci.nsINavHistoryResultNode.RESULT_TYPE_FOLDER,
       },
+      children: info.children,
     });
   },
 };

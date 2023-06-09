@@ -42,7 +42,8 @@ already_AddRefed<Worker> Worker::Constructor(const GlobalObject& aGlobal,
 
   RefPtr<WorkerPrivate> workerPrivate = WorkerPrivate::Constructor(
       cx, aScriptURL, false /* aIsChromeWorker */, WorkerKindDedicated,
-      aOptions.mName, VoidCString(), nullptr /*aLoadInfo */, aRv);
+      aOptions.mCredentials, aOptions.mType, aOptions.mName, VoidCString(),
+      nullptr /*aLoadInfo */, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
   }
@@ -85,6 +86,8 @@ void Worker::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
   if (!mWorkerPrivate || mWorkerPrivate->ParentStatusProtected() > Running) {
     return;
   }
+  RefPtr<WorkerPrivate> workerPrivate = mWorkerPrivate;
+  Unused << workerPrivate;
 
   JS::Rooted<JS::Value> transferable(aCx, JS::UndefinedValue());
 
@@ -94,9 +97,14 @@ void Worker::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
     return;
   }
 
-  NS_ConvertUTF16toUTF8 nameOrScriptURL(mWorkerPrivate->WorkerName().IsEmpty()
-                                            ? mWorkerPrivate->ScriptURL()
-                                            : mWorkerPrivate->WorkerName());
+  NS_ConvertUTF16toUTF8 nameOrScriptURL(
+      mWorkerPrivate->WorkerName().IsEmpty()
+          ? Substring(
+                mWorkerPrivate->ScriptURL(), 0,
+                std::min(size_t(1024), mWorkerPrivate->ScriptURL().Length()))
+          : Substring(
+                mWorkerPrivate->WorkerName(), 0,
+                std::min(size_t(1024), mWorkerPrivate->WorkerName().Length())));
   AUTO_PROFILER_MARKER_TEXT("Worker.postMessage", DOM, {}, nameOrScriptURL);
   uint32_t flags = uint32_t(js::ProfilingStackFrame::Flags::RELEVANT_FOR_JS);
   if (mWorkerPrivate->IsChromeWorker()) {
@@ -138,6 +146,10 @@ void Worker::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
   }
 
   runnable->Write(aCx, aMessage, transferable, clonePolicy, aRv);
+
+  if (!mWorkerPrivate || mWorkerPrivate->ParentStatusProtected() > Running) {
+    return;
+  }
 
   if (isTimelineRecording) {
     end = MakeUnique<WorkerTimelineMarker>(

@@ -4,14 +4,8 @@
 
 "use strict";
 
-const {
-  storageTypePool,
-} = require("resource://devtools/server/actors/storage.js");
 const EventEmitter = require("resource://devtools/shared/event-emitter.js");
-const {
-  getAllBrowsingContextsForContext,
-  isWindowGlobalPartOfContext,
-} = ChromeUtils.importESModule(
+const { isWindowGlobalPartOfContext } = ChromeUtils.importESModule(
   "resource://devtools/server/actors/watcher/browsing-context-helpers.sys.mjs"
 );
 
@@ -38,7 +32,8 @@ function getFilteredStorageEvents(updates, storageType) {
 }
 
 class ParentProcessStorage {
-  constructor(storageKey, storageType) {
+  constructor(ActorConstructor, storageKey, storageType) {
+    this.ActorConstructor = ActorConstructor;
     this.storageKey = storageKey;
     this.storageType = storageType;
 
@@ -86,6 +81,13 @@ class ParentProcessStorage {
         addonInnerWindowId,
       } = watcherActor.sessionContext;
       await this._spawnActor(addonBrowsingContextID, addonInnerWindowId);
+    } else if (watcherActor.sessionContext.type == "all") {
+      const parentProcessTargetActor = this.watcherActor.getTargetActorInParentProcess();
+      const {
+        browsingContextID,
+        innerWindowId,
+      } = parentProcessTargetActor.form();
+      await this._spawnActor(browsingContextID, innerWindowId);
     } else {
       throw new Error(
         "Unsupported session context type=" + watcherActor.sessionContext.type
@@ -126,22 +128,18 @@ class ParentProcessStorage {
   }
 
   async _spawnActor(browsingContextID, innerWindowId) {
-    const ActorConstructor = storageTypePool.get(this.storageKey);
-
     const storageActor = new StorageActorMock(this.watcherActor);
     this.storageActor = storageActor;
-    this.actor = new ActorConstructor(storageActor);
+    this.actor = new this.ActorConstructor(storageActor);
 
     // Some storage types require to prelist their stores
-    if (typeof this.actor.preListStores === "function") {
-      try {
-        await this.actor.preListStores();
-      } catch (e) {
-        // It can happen that the actor gets destroyed while preListStores is being
-        // executed.
-        if (this.actor) {
-          throw e;
-        }
+    try {
+      await this.actor.populateStoresForHosts();
+    } catch (e) {
+      // It can happen that the actor gets destroyed while populateStoresForHosts is being
+      // executed.
+      if (this.actor) {
+        throw e;
       }
     }
 
@@ -345,9 +343,10 @@ class StorageActorMock extends EventEmitter {
 
   get windows() {
     return (
-      getAllBrowsingContextsForContext(this.watcherActor.sessionContext, {
-        acceptSameProcessIframes: true,
-      })
+      this.watcherActor
+        .getAllBrowsingContexts({
+          acceptSameProcessIframes: true,
+        })
         .map(x => {
           const uri = x.currentWindowGlobal.documentURI;
           return { location: uri };
@@ -378,13 +377,12 @@ class StorageActorMock extends EventEmitter {
   }
 
   getWindowFromHost(host) {
-    const hostBrowsingContext = getAllBrowsingContextsForContext(
-      this.watcherActor.sessionContext,
-      { acceptSameProcessIframes: true }
-    ).find(x => {
-      const hostName = this.getHostName(x.currentWindowGlobal.documentURI);
-      return hostName === host;
-    });
+    const hostBrowsingContext = this.watcherActor
+      .getAllBrowsingContexts({ acceptSameProcessIframes: true })
+      .find(x => {
+        const hostName = this.getHostName(x.currentWindowGlobal.documentURI);
+        return hostName === host;
+      });
     // In case of WebExtension or BrowserToolbox, we may pass privileged hosts
     // which don't relate to any particular window.
     // Like "indexeddb+++fx-devtools" or "chrome".
@@ -400,7 +398,10 @@ class StorageActorMock extends EventEmitter {
   }
 
   get parentActor() {
-    return { isRootActor: this.watcherActor.sessionContext.type == "all" };
+    return {
+      isRootActor: this.watcherActor.sessionContext.type == "all",
+      addonId: this.watcherActor.sessionContext.addonId,
+    };
   }
 
   /**

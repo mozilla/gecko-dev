@@ -15,7 +15,7 @@ using namespace mozilla;
 NS_IMPL_ISUPPORTS(nsClipboard, nsIClipboard)
 
 /* The Android clipboard only supports text and doesn't support mime types
- * so we assume all clipboard data is text/unicode for now. Documentation
+ * so we assume all clipboard data is text/plain for now. Documentation
  * indicates that support for other data types is planned for future
  * releases.
  */
@@ -38,10 +38,10 @@ nsClipboard::SetData(nsITransferable* aTransferable, nsIClipboardOwner* anOwner,
   nsAutoString text;
 
   for (auto& flavorStr : flavors) {
-    if (flavorStr.EqualsLiteral(kUnicodeMime)) {
+    if (flavorStr.EqualsLiteral(kTextMime)) {
       nsCOMPtr<nsISupports> item;
       nsresult rv =
-          aTransferable->GetTransferData(kUnicodeMime, getter_AddRefs(item));
+          aTransferable->GetTransferData(kTextMime, getter_AddRefs(item));
       if (NS_WARN_IF(NS_FAILED(rv))) {
         continue;
       }
@@ -89,7 +89,7 @@ nsClipboard::GetData(nsITransferable* aTransferable, int32_t aWhichClipboard) {
   aTransferable->FlavorsTransferableCanImport(flavors);
 
   for (auto& flavorStr : flavors) {
-    if (flavorStr.EqualsLiteral(kUnicodeMime) ||
+    if (flavorStr.EqualsLiteral(kTextMime) ||
         flavorStr.EqualsLiteral(kHTMLMime)) {
       auto text = java::Clipboard::GetData(
           java::GeckoAppShell::GetApplicationContext(), flavorStr);
@@ -176,13 +176,8 @@ RefPtr<DataFlavorsPromise> nsClipboard::AsyncHasDataMatchingFlavors(
 }
 
 NS_IMETHODIMP
-nsClipboard::SupportsSelectionClipboard(bool* aIsSupported) {
-  *aIsSupported = false;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsClipboard::SupportsFindClipboard(bool* _retval) {
-  *_retval = false;
+nsClipboard::IsClipboardTypeSupported(int32_t aWhichClipboard, bool* _retval) {
+  NS_ENSURE_ARG_POINTER(_retval);
+  *_retval = kGlobalClipboard == aWhichClipboard;
   return NS_OK;
 }

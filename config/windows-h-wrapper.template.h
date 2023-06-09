@@ -19,25 +19,27 @@
 
 // Check if the header should be disabled
 #if defined(MOZ_DISABLE_WINDOWS_WRAPPER)
-#define MOZ_WINDOWS_WRAPPER_DISABLED_REASON "explicitly disabled"
+#  define MOZ_WINDOWS_WRAPPER_DISABLED_REASON "explicitly disabled"
 
 #elif !defined(__cplusplus)
-#define MOZ_WINDOWS_WRAPPER_DISABLED_REASON "non-C++ source file"
+#  define MOZ_WINDOWS_WRAPPER_DISABLED_REASON "non-C++ source file"
 
 #else
 // We're allowed to wrap in the current context. Define `MOZ_WRAPPED_WINDOWS_H`
 // to note that fact, and perform the wrapping.
-#define MOZ_WRAPPED_WINDOWS_H
+#  define MOZ_WRAPPED_WINDOWS_H
 extern "C++" {
 
+// clang-format off
 ${decls}
+// clang-format on
 
-} // extern "C++"
+}  // extern "C++"
 
-#undef GetCurrentTime // Use GetTickCount() instead.
+#  undef GetCurrentTime // Use GetTickCount() instead.
 
-#endif // enabled
+#endif  // enabled
 
 #pragma GCC diagnostic pop
 
-#endif // !defined(mozilla_windows_h)
+#endif  // !defined(mozilla_windows_h)

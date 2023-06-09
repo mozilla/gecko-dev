@@ -4,57 +4,91 @@
 
 "use strict";
 
-const {
-  TYPES: { NETWORK_EVENT },
-} = require("resource://devtools/server/actors/resources/index.js");
-
-const protocol = require("resource://devtools/shared/protocol.js");
+const { Actor } = require("resource://devtools/shared/protocol.js");
 const {
   networkEventSpec,
 } = require("resource://devtools/shared/specs/network-event.js");
+
+const {
+  TYPES: { NETWORK_EVENT },
+} = require("resource://devtools/server/actors/resources/index.js");
 const {
   LongStringActor,
 } = require("resource://devtools/server/actors/string.js");
+
+const lazy = {};
+
+ChromeUtils.defineESModuleGetters(lazy, {
+  NetworkUtils:
+    "resource://devtools/shared/network-observer/NetworkUtils.sys.mjs",
+});
+
+const CONTENT_TYPE_REGEXP = /^content-type/i;
 
 /**
  * Creates an actor for a network event.
  *
  * @constructor
- * @param DevToolsServerConnection conn
+ * @param {DevToolsServerConnection} conn
  *        The connection into which this Actor will be added.
- * @param object sessionContext
+ * @param {Object} sessionContext
  *        The Session Context to help know what is debugged.
  *        See devtools/server/actors/watcher/session-context.js
- * @param object options
+ * @param {Object} options
  *        Dictionary object with the following attributes:
  *        - onNetworkEventUpdate: optional function
- *          Listener for updates for the network event
+ *          Callback for updates for the network event
+ *        - onNetworkEventDestroy: optional function
+ *          Callback for the destruction of the network event
+ * @param {Object} networkEventOptions
+ *        Object describing the network event or the configuration of the
+ *        network observer, and which cannot be easily inferred from the raw
+ *        channel.
+ *        - blockingExtension: optional string
+ *          id of the blocking webextension if any
+ *        - blockedReason: optional number or string
+ *        - discardRequestBody: boolean
+ *        - discardResponseBody: boolean
+ *        - fromCache: boolean
+ *        - fromServiceWorker: boolean
+ *        - rawHeaders: string
+ *        - timestamp: number
+ * @param {nsIChannel} channel
+ *        The channel related to this network event
  */
-const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
-  initialize(
+class NetworkEventActor extends Actor {
+  constructor(
     conn,
     sessionContext,
     { onNetworkEventUpdate, onNetworkEventDestroy },
-    networkEvent
+    networkEventOptions,
+    channel
   ) {
+    super(conn, networkEventSpec);
+
     this._sessionContext = sessionContext;
-    this._conn = conn;
     this._onNetworkEventUpdate = onNetworkEventUpdate;
     this._onNetworkEventDestroy = onNetworkEventDestroy;
 
-    this.asResource = this.asResource.bind(this);
+    // Store the channelId which will act as resource id.
+    this._channelId = channel.channelId;
 
-    // Necessary to get the events to work
-    protocol.Actor.prototype.initialize.call(this, this._conn);
+    // innerWindowId and isNavigationRequest are used to check if the actor
+    // should be destroyed when a window is destroyed. See network-events.js.
+    this._innerWindowId = lazy.NetworkUtils.getChannelInnerWindowId(channel);
+    this._isNavigationRequest = lazy.NetworkUtils.isNavigationRequest(channel);
+
+    // Retrieve cookies and headers from the channel
+    const {
+      cookies,
+      headers,
+    } = lazy.NetworkUtils.fetchRequestHeadersAndCookies(channel);
 
     this._request = {
-      method: networkEvent.method || null,
-      url: networkEvent.url || null,
-      httpVersion: networkEvent.httpVersion || null,
-      headers: [],
-      cookies: [],
-      headersSize: networkEvent.headersSize || null,
+      cookies,
+      headers,
       postData: {},
+      rawHeaders: networkEventOptions.rawHeaders,
     };
 
     this._response = {
@@ -65,55 +99,42 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
 
     this._timings = {};
     this._serverTimings = [];
-    // Stack trace info isn't sent automatically. The client
-    // needs to request it explicitly using getStackTrace
-    // packet. NetmonitorActor may pass just a boolean instead of the stack
-    // when the actor is in parent process and stack is in the content process.
-    this._stackTrace = false;
 
-    this._discardRequestBody = !!networkEvent.discardRequestBody;
-    this._discardResponseBody = !!networkEvent.discardResponseBody;
+    this._discardRequestBody = !!networkEventOptions.discardRequestBody;
+    this._discardResponseBody = !!networkEventOptions.discardResponseBody;
 
-    this._startedDateTime = networkEvent.startedDateTime;
-    this._isXHR = networkEvent.isXHR;
-
-    this._cause = networkEvent.cause;
-    // Lets remove the last frame here as
-    // it is passed from the the server by the NETWORK_EVENT_STACKTRACE
-    // resource type. This done here for backward compatibility.
-    if (this._cause.lastFrame) {
-      delete this._cause.lastFrame;
-    }
-
-    this._fromCache = networkEvent.fromCache;
-    this._fromServiceWorker = networkEvent.fromServiceWorker;
-    this._isThirdPartyTrackingResource =
-      networkEvent.isThirdPartyTrackingResource;
-    this._referrerPolicy = networkEvent.referrerPolicy;
-    this._priority = networkEvent.priority;
-    this._channelId = networkEvent.channelId;
-    this._isFromSystemPrincipal = networkEvent.isFromSystemPrincipal;
-    this._browsingContextID = networkEvent.browsingContextID;
-    this.innerWindowId = networkEvent.innerWindowId;
-    this._serial = networkEvent.serial;
-    this._blockedReason = networkEvent.blockedReason;
-    this._blockingExtension = networkEvent.blockingExtension;
-
-    this._truncated = false;
-    this._private = networkEvent.private;
-    this.isNavigationRequest = networkEvent.isNavigationRequest;
-  },
+    this._resource = this._createResource(networkEventOptions, channel);
+  }
 
   /**
-   * Returns a grip for this actor.
+   * Return the network event actor as a resource, and add the actorID which is
+   * not available in the constructor yet.
    */
   asResource() {
+    return {
+      actor: this.actorID,
+      ...this._resource,
+    };
+  }
+
+  /**
+   * Create the resource corresponding to this actor.
+   */
+  _createResource(networkEventOptions, channel) {
+    channel = channel.QueryInterface(Ci.nsIHttpChannel);
+    const wsChannel = lazy.NetworkUtils.getWebSocketChannel(channel);
+
+    // Use the WebSocket channel URL for websockets.
+    const url = wsChannel ? wsChannel.URI.spec : channel.URI.spec;
+
+    let browsingContextID = lazy.NetworkUtils.getChannelBrowsingContextID(
+      channel
+    );
+
     // Ensure that we have a browsing context ID for all requests.
     // Only privileged requests debugged via the Browser Toolbox (sessionContext.type == "all") can be unrelated to any browsing context.
-    if (!this._browsingContextID && this._sessionContext.type != "all") {
-      throw new Error(
-        `Got a request ${this._request.url} without a browsingContextID set`
-      );
+    if (!browsingContextID && this._sessionContext.type != "all") {
+      throw new Error(`Got a request ${url} without a browsingContextID set`);
     }
 
     // The browsingContextID is used by the ResourceCommand on the client
@@ -122,41 +143,71 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
     // For now in the browser and web extension toolboxes, requests
     // do not relate to any specific WindowGlobalTargetActor
     // as we are still using a unique target (ParentProcessTargetActor) for everything.
-    const browsingContextID =
-      this._browsingContextID && this._sessionContext.type == "browser-element"
-        ? this._browsingContextID
-        : -1;
+    if (
+      this._sessionContext.type == "all" ||
+      this._sessionContext.type == "webextension"
+    ) {
+      browsingContextID = -1;
+    }
 
-    return {
+    const cause = lazy.NetworkUtils.getCauseDetails(channel);
+    // Both xhr and fetch are flagged as XHR in DevTools.
+    const isXHR = cause.type == "xhr" || cause.type == "fetch";
+
+    // For websocket requests the serial is used instead of the channel id.
+    const stacktraceResourceId =
+      cause.type == "websocket" ? wsChannel.serial : channel.channelId;
+
+    // If a timestamp was provided, it is a high resolution timestamp
+    // corresponding to ACTIVITY_SUBTYPE_REQUEST_HEADER. Fallback to Date.now().
+    const timeStamp = networkEventOptions.timestamp
+      ? networkEventOptions.timestamp / 1000
+      : Date.now();
+
+    let blockedReason = networkEventOptions.blockedReason;
+
+    // Check if blockedReason was set to a falsy value, meaning the blocked did
+    // not give an explicit blocked reason.
+    if (
+      blockedReason === 0 ||
+      blockedReason === false ||
+      blockedReason === null ||
+      blockedReason === ""
+    ) {
+      blockedReason = "unknown";
+    }
+
+    const resource = {
+      resourceId: channel.channelId,
       resourceType: NETWORK_EVENT,
+      blockedReason,
+      blockingExtension: networkEventOptions.blockingExtension,
       browsingContextID,
-      innerWindowId: this.innerWindowId,
-      resourceId: this._channelId,
-      actor: this.actorID,
-      startedDateTime: this._startedDateTime,
-      timeStamp: Date.parse(this._startedDateTime),
-      url: this._request.url,
-      method: this._request.method,
-      isXHR: this._isXHR,
-      cause: this._cause,
-      timings: {},
-      fromCache: this._fromCache,
-      fromServiceWorker: this._fromServiceWorker,
-      private: this._private,
-      isThirdPartyTrackingResource: this._isThirdPartyTrackingResource,
-      referrerPolicy: this._referrerPolicy,
-      priority: this._priority,
-      blockedReason: this._blockedReason,
-      blockingExtension: this._blockingExtension,
-      // For websocket requests the serial is used instead of the channel id.
-      stacktraceResourceId:
-        this._cause.type == "websocket" ? this._serial : this._channelId,
-      isNavigationRequest: this.isNavigationRequest,
-      // This is used specifically in the browser toolbox console to distiguish priviledeged
+      cause,
+      // This is used specifically in the browser toolbox console to distinguish privileged
       // resources from the parent process from those from the contet
-      chromeContext: this._isFromSystemPrincipal,
+      chromeContext: lazy.NetworkUtils.isChannelFromSystemPrincipal(channel),
+      fromCache: networkEventOptions.fromCache,
+      fromServiceWorker: networkEventOptions.fromServiceWorker,
+      innerWindowId: this._innerWindowId,
+      isNavigationRequest: this._isNavigationRequest,
+      isThirdPartyTrackingResource: lazy.NetworkUtils.isThirdPartyTrackingResource(
+        channel
+      ),
+      isXHR,
+      method: channel.requestMethod,
+      priority: lazy.NetworkUtils.getChannelPriority(channel),
+      private: lazy.NetworkUtils.isChannelPrivate(channel),
+      referrerPolicy: lazy.NetworkUtils.getReferrerPolicy(channel),
+      stacktraceResourceId,
+      startedDateTime: new Date(timeStamp).toISOString(),
+      timeStamp,
+      timings: {},
+      url,
     };
-  },
+
+    return resource;
+  }
 
   /**
    * Releases this actor from the pool.
@@ -165,14 +216,26 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
     if (!this._channelId) {
       return;
     }
-    this._onNetworkEventDestroy(this._channelId);
+
+    if (this._onNetworkEventDestroy) {
+      this._onNetworkEventDestroy(this._channelId);
+    }
+
     this._channelId = null;
-    protocol.Actor.prototype.destroy.call(this, conn);
-  },
+    super.destroy(conn);
+  }
 
   release() {
     // Per spec, destroy is automatically going to be called after this request
-  },
+  }
+
+  getInnerWindowId() {
+    return this._innerWindowId;
+  }
+
+  isNavigationRequest() {
+    return this._isNavigationRequest;
+  }
 
   /**
    * The "getRequestHeaders" packet type handler.
@@ -181,12 +244,22 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
    *         The response packet - network request headers.
    */
   getRequestHeaders() {
+    let rawHeaders;
+    let headersSize = 0;
+    if (this._request.rawHeaders) {
+      headersSize = this._request.rawHeaders.length;
+      rawHeaders = this._createLongStringActor(this._request.rawHeaders);
+    }
+
     return {
-      headers: this._request.headers,
-      headersSize: this._request.headersSize,
-      rawHeaders: this._request.rawHeaders,
+      headers: this._request.headers.map(header => ({
+        name: header.name,
+        value: this._createLongStringActor(header.value),
+      })),
+      headersSize,
+      rawHeaders,
     };
-  },
+  }
 
   /**
    * The "getRequestCookies" packet type handler.
@@ -196,9 +269,12 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
    */
   getRequestCookies() {
     return {
-      cookies: this._request.cookies,
+      cookies: this._request.cookies.map(cookie => ({
+        name: cookie.name,
+        value: this._createLongStringActor(cookie.value),
+      })),
     };
-  },
+  }
 
   /**
    * The "getRequestPostData" packet type handler.
@@ -207,11 +283,20 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
    *         The response packet - network POST data.
    */
   getRequestPostData() {
+    let postDataText;
+    if (this._request.postData.text) {
+      // Create a long string actor for the postData text if needed.
+      postDataText = this._createLongStringActor(this._request.postData.text);
+    }
+
     return {
-      postData: this._request.postData,
+      postData: {
+        size: this._request.postData.size,
+        text: postDataText,
+      },
       postDataDiscarded: this._discardRequestBody,
     };
-  },
+  }
 
   /**
    * The "getSecurityInfo" packet type handler.
@@ -223,7 +308,7 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
     return {
       securityInfo: this._securityInfo,
     };
-  },
+  }
 
   /**
    * The "getResponseHeaders" packet type handler.
@@ -232,12 +317,22 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
    *         The response packet - network response headers.
    */
   getResponseHeaders() {
+    let rawHeaders;
+    let headersSize = 0;
+    if (this._response.rawHeaders) {
+      headersSize = this._response.rawHeaders.length;
+      rawHeaders = this._createLongStringActor(this._response.rawHeaders);
+    }
+
     return {
-      headers: this._response.headers,
-      headersSize: this._response.headersSize,
-      rawHeaders: this._response.rawHeaders,
+      headers: this._response.headers.map(header => ({
+        name: header.name,
+        value: this._createLongStringActor(header.value),
+      })),
+      headersSize,
+      rawHeaders,
     };
-  },
+  }
 
   /**
    * The "getResponseCache" packet type handler.
@@ -249,7 +344,7 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
     return {
       cache: this._response.responseCache,
     };
-  },
+  }
 
   /**
    * The "getResponseCookies" packet type handler.
@@ -258,10 +353,33 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
    *         The response packet - network response cookies.
    */
   getResponseCookies() {
+    // As opposed to request cookies, response cookies can come with additional
+    // properties.
+    const cookieOptionalProperties = [
+      "domain",
+      "expires",
+      "httpOnly",
+      "path",
+      "samesite",
+      "secure",
+    ];
+
     return {
-      cookies: this._response.cookies,
+      cookies: this._response.cookies.map(cookie => {
+        const cookieResponse = {
+          name: cookie.name,
+          value: this._createLongStringActor(cookie.value),
+        };
+
+        for (const prop of cookieOptionalProperties) {
+          if (prop in cookie) {
+            cookieResponse[prop] = cookie[prop];
+          }
+        }
+        return cookieResponse;
+      }),
     };
-  },
+  }
 
   /**
    * The "getResponseContent" packet type handler.
@@ -274,7 +392,7 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
       content: this._response.content,
       contentDiscarded: this._discardResponseBody,
     };
-  },
+  }
 
   /**
    * The "getEventTimings" packet type handler.
@@ -289,61 +407,11 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
       offsets: this._offsets,
       serverTimings: this._serverTimings,
     };
-  },
+  }
 
   /** ****************************************************************
    * Listeners for new network event data coming from NetworkMonitor.
    ******************************************************************/
-
-  /**
-   * Add network request headers.
-   *
-   * @param array headers
-   *        The request headers array.
-   * @param string rawHeaders
-   *        The raw headers source.
-   */
-  addRequestHeaders(headers, rawHeaders) {
-    // Ignore calls when this actor is already destroyed
-    if (this.isDestroyed()) {
-      return;
-    }
-
-    this._request.headers = headers;
-    this._prepareHeaders(headers);
-
-    if (rawHeaders) {
-      rawHeaders = new LongStringActor(this._conn, rawHeaders);
-      // bug 1462561 - Use "json" type and manually manage/marshall actors to woraround
-      // protocol.js performance issue
-      this.manage(rawHeaders);
-      rawHeaders = rawHeaders.form();
-    }
-    this._request.rawHeaders = rawHeaders;
-
-    this._onEventUpdate("requestHeaders", {
-      headers: headers.length,
-      headersSize: this._request.headersSize,
-    });
-  },
-
-  /**
-   * Add network request cookies.
-   *
-   * @param array cookies
-   *        The request cookies array.
-   */
-  addRequestCookies(cookies) {
-    // Ignore calls when this actor is already destroyed
-    if (this.isDestroyed()) {
-      return;
-    }
-
-    this._request.cookies = cookies;
-    this._prepareHeaders(cookies);
-
-    this._onEventUpdate("requestCookies", { cookies: cookies.length });
-  },
 
   /**
    * Add network request POST data.
@@ -358,45 +426,75 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
     }
 
     this._request.postData = postData;
-    postData.text = new LongStringActor(this._conn, postData.text);
-    // bug 1462561 - Use "json" type and manually manage/marshall actors to woraround
-    // protocol.js performance issue
-    this.manage(postData.text);
-    postData.text = postData.text.form();
-
     this._onEventUpdate("requestPostData", {});
-  },
+  }
 
   /**
    * Add the initial network response information.
    *
-   * @param object info
-   *        The response information.
-   * @param string rawHeaders
-   *        The raw headers source.
+   * @param {object} options
+   * @param {nsIChannel} options.channel
+   * @param {boolean} options.fromCache
+   * @param {string} options.rawHeaders
    */
-  addResponseStart(info, rawHeaders) {
+  addResponseStart({ channel, fromCache, rawHeaders = "" }) {
     // Ignore calls when this actor is already destroyed
     if (this.isDestroyed()) {
       return;
     }
 
-    rawHeaders = new LongStringActor(this._conn, rawHeaders);
-    // bug 1462561 - Use "json" type and manually manage/marshall actors to woraround
-    // protocol.js performance issue
-    this.manage(rawHeaders);
-    this._response.rawHeaders = rawHeaders.form();
+    fromCache = fromCache || lazy.NetworkUtils.isFromCache(channel);
 
-    this._response.httpVersion = info.httpVersion;
-    this._response.status = info.status;
-    this._response.statusText = info.statusText;
-    this._response.headersSize = info.headersSize;
-    this._response.waitingTime = info.waitingTime;
-    // Consider as not discarded if info.discardResponseBody is undefined
-    this._discardResponseBody = !!info.discardResponseBody;
+    // Read response headers and cookies.
+    let responseHeaders = [];
+    let responseCookies = [];
+    if (!this._blockedReason) {
+      const {
+        cookies,
+        headers,
+      } = lazy.NetworkUtils.fetchResponseHeadersAndCookies(channel);
+      responseCookies = cookies;
+      responseHeaders = headers;
+    }
 
-    this._onEventUpdate("responseStart", { ...info });
-  },
+    // Handle response headers
+    this._response.rawHeaders = rawHeaders;
+    this._response.headers = responseHeaders;
+    this._response.cookies = responseCookies;
+
+    // Handle the rest of the response start metadata.
+    this._response.headersSize = rawHeaders ? rawHeaders.length : 0;
+
+    // Discard the response body for known response statuses.
+    if (lazy.NetworkUtils.isRedirectedChannel(channel)) {
+      this._discardResponseBody = true;
+    }
+
+    // Mime type needs to be sent on response start for identifying an sse channel.
+    const contentTypeHeader = responseHeaders.find(header =>
+      CONTENT_TYPE_REGEXP.test(header.name)
+    );
+
+    let mimeType = "";
+    if (contentTypeHeader) {
+      mimeType = contentTypeHeader.value;
+    }
+
+    const timedChannel = channel.QueryInterface(Ci.nsITimedChannel);
+    const waitingTime = Math.round(
+      (timedChannel.responseStartTime - timedChannel.requestStartTime) / 1000
+    );
+
+    this._onEventUpdate("responseStart", {
+      httpVersion: lazy.NetworkUtils.getHttpVersion(channel),
+      mimeType,
+      remoteAddress: fromCache ? "" : channel.remoteAddress,
+      remotePort: fromCache ? "" : channel.remotePort,
+      status: channel.responseStatus + "",
+      statusText: channel.responseStatusText,
+      waitingTime,
+    });
+  }
 
   /**
    * Add connection security information.
@@ -416,46 +514,7 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
       state: info.state,
       isRacing,
     });
-  },
-
-  /**
-   * Add network response headers.
-   *
-   * @param array headers
-   *        The response headers array.
-   */
-  addResponseHeaders(headers) {
-    // Ignore calls when this actor is already destroyed
-    if (this.isDestroyed()) {
-      return;
-    }
-
-    this._response.headers = headers;
-    this._prepareHeaders(headers);
-
-    this._onEventUpdate("responseHeaders", {
-      headers: headers.length,
-      headersSize: this._response.headersSize,
-    });
-  },
-
-  /**
-   * Add network response cookies.
-   *
-   * @param array cookies
-   *        The response cookies array.
-   */
-  addResponseCookies(cookies) {
-    // Ignore calls when this actor is already destroyed
-    if (this.isDestroyed()) {
-      return;
-    }
-
-    this._response.cookies = cookies;
-    this._prepareHeaders(cookies);
-
-    this._onEventUpdate("responseCookies", { cookies: cookies.length });
-  },
+  }
 
   /**
    * Add network response content.
@@ -465,22 +524,19 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
    * @param object
    *        - boolean discardedResponseBody
    *          Tells if the response content was recorded or not.
-   *        - boolean truncated
-   *          Tells if the some of the response content is missing.
    */
   addResponseContent(
     content,
-    { discardResponseBody, truncated, blockedReason, blockingExtension }
+    { discardResponseBody, blockedReason, blockingExtension }
   ) {
     // Ignore calls when this actor is already destroyed
     if (this.isDestroyed()) {
       return;
     }
 
-    this._truncated = truncated;
     this._response.content = content;
-    content.text = new LongStringActor(this._conn, content.text);
-    // bug 1462561 - Use "json" type and manually manage/marshall actors to woraround
+    content.text = new LongStringActor(this.conn, content.text);
+    // bug 1462561 - Use "json" type and manually manage/marshall actors to workaround
     // protocol.js performance issue
     this.manage(content.text);
     content.text = content.text.form();
@@ -492,7 +548,7 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
       blockedReason,
       blockingExtension,
     });
-  },
+  }
 
   addResponseCache(content) {
     // Ignore calls when this actor is already destroyed
@@ -501,7 +557,7 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
     }
     this._response.responseCache = content.responseCache;
     this._onEventUpdate("responseCache", {});
-  },
+  }
 
   /**
    * Add network event timing information.
@@ -529,7 +585,7 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
     }
 
     this._onEventUpdate("eventTimings", { totalTime: total });
-  },
+  }
 
   /**
    * Store server timing information. They will be merged together
@@ -544,24 +600,20 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
     if (serverTimings) {
       this._serverTimings = serverTimings;
     }
-  },
+  }
 
-  /**
-   * Prepare the headers array to be sent to the client by using the
-   * LongStringActor for the header values, when needed.
-   *
-   * @private
-   * @param array aHeaders
-   */
-  _prepareHeaders(headers) {
-    for (const header of headers) {
-      header.value = new LongStringActor(this._conn, header.value);
-      // bug 1462561 - Use "json" type and manually manage/marshall actors to woraround
-      // protocol.js performance issue
-      this.manage(header.value);
-      header.value = header.value.form();
+  _createLongStringActor(string) {
+    if (string?.actorID) {
+      return string;
     }
-  },
+
+    const longStringActor = new LongStringActor(this.conn, string);
+    // bug 1462561 - Use "json" type and manually manage/marshall actors to workaround
+    // protocol.js performance issue
+    this.manage(longStringActor);
+    return longStringActor.form();
+  }
+
   /**
    * Sends the updated event data to the client
    *
@@ -571,12 +623,14 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
    *        The properties that have changed for the event
    */
   _onEventUpdate(updateType, data) {
-    this._onNetworkEventUpdate({
-      resourceId: this._channelId,
-      updateType,
-      ...data,
-    });
-  },
-});
+    if (this._onNetworkEventUpdate) {
+      this._onNetworkEventUpdate({
+        resourceId: this._channelId,
+        updateType,
+        ...data,
+      });
+    }
+  }
+}
 
 exports.NetworkEventActor = NetworkEventActor;

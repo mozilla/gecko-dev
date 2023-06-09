@@ -7,8 +7,8 @@
  * Tests for waiting for beforeunload before replacing a session.
  */
 
-const { PromptTestUtils } = ChromeUtils.import(
-  "resource://testing-common/PromptTestUtils.jsm"
+const { PromptTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/PromptTestUtils.sys.mjs"
 );
 
 // The first two urls are intentionally different domains to force pages
@@ -46,7 +46,7 @@ add_setup(async function() {
   // Run tests in a new window to avoid affecting the main test window.
   win = await BrowserTestUtils.openNewBrowserWindow();
 
-  BrowserTestUtils.loadURI(win.gBrowser.selectedBrowser, TEST_URL);
+  BrowserTestUtils.loadURIString(win.gBrowser.selectedBrowser, TEST_URL);
   await BrowserTestUtils.browserLoaded(
     win.gBrowser.selectedBrowser,
     false,

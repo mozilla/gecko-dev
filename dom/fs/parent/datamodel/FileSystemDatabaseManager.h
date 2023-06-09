@@ -23,7 +23,15 @@ namespace mozilla {
 template <typename V, typename E>
 class Result;
 
-namespace dom::fs {
+namespace dom {
+
+namespace quota {
+
+struct OriginMetadata;
+
+}  // namespace quota
+
+namespace fs {
 
 class FileSystemChildMetadata;
 class FileSystemEntryMetadata;
@@ -35,6 +43,14 @@ namespace data {
 class FileSystemDatabaseManager {
  public:
   /**
+   * @brief Updates stored usage data for all tracked files.
+   *
+   * @return nsresult error code
+   */
+  static nsresult RescanUsages(const ResultConnection& aConnection,
+                               const quota::OriginMetadata& aOriginMetadata);
+
+  /**
    * @brief Obtains the current total usage for origin and connection.
    *
    * @return Result<quota::UsageInfo, QMResult> On success,
@@ -45,7 +61,8 @@ class FileSystemDatabaseManager {
    * If the disk is inaccessible, various IO related errors may be returned.
    */
   static Result<quota::UsageInfo, QMResult> GetUsage(
-      const ResultConnection& aConnection, const Origin& aOrigin);
+      const ResultConnection& aConnection,
+      const quota::OriginMetadata& aOriginMetadata);
 
   /**
    * @brief Refreshes the stored file size.
@@ -68,15 +85,18 @@ class FileSystemDatabaseManager {
    * @brief Returns file identifier, optionally creating it if it doesn't exist
    *
    * @param aHandle Current directory and filename
+   * @param aType Content type which is ignored if the file already exists
+   * @param aCreate true if file is to be created when it does not already exist
    * @return Result<bool, QMResult> File identifier or error
    */
   virtual Result<EntryId, QMResult> GetOrCreateFile(
-      const FileSystemChildMetadata& aHandle, bool aCreate) = 0;
+      const FileSystemChildMetadata& aHandle, const ContentType& aType,
+      bool aCreate) = 0;
 
   /**
    * @brief Returns the properties of a file corresponding to a file handle
    */
-  virtual nsresult GetFile(const EntryId& aEntryId, nsString& aType,
+  virtual nsresult GetFile(const EntryId& aEntryId, ContentType& aType,
                            TimeStamp& lastModifiedMilliSeconds, Path& aPath,
                            nsCOMPtr<nsIFile>& aFile) const = 0;
 
@@ -141,11 +161,22 @@ class FileSystemDatabaseManager {
    */
   virtual void Close() = 0;
 
+  /**
+   * @brief Start tracking file's usage.
+   */
+  virtual nsresult BeginUsageTracking(const EntryId& aEntryId) = 0;
+
+  /**
+   * @brief Stop tracking file's usage.
+   */
+  virtual nsresult EndUsageTracking(const EntryId& aEntryId) = 0;
+
   virtual ~FileSystemDatabaseManager() = default;
 };
 
 }  // namespace data
-}  // namespace dom::fs
+}  // namespace fs
+}  // namespace dom
 }  // namespace mozilla
 
 #endif  // DOM_FS_PARENT_DATAMODEL_FILESYSTEMDATABASEMANAGER_H_

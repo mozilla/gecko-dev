@@ -8,10 +8,13 @@
 #define mozilla_dom_workers_scriptloader_h__
 
 #include "js/loader/ScriptLoadRequest.h"
+#include "js/loader/ModuleLoadRequest.h"
 #include "js/loader/ModuleLoaderBase.h"
+#include "mozilla/dom/WorkerBinding.h"
 #include "mozilla/dom/WorkerCommon.h"
 #include "mozilla/dom/WorkerLoadContext.h"
 #include "mozilla/dom/WorkerRef.h"
+#include "mozilla/dom/workerinternals/WorkerModuleLoader.h"
 #include "mozilla/Maybe.h"
 #include "nsIContentPolicy.h"
 #include "nsStringFwd.h"
@@ -141,6 +144,7 @@ class WorkerScriptLoader : public JS::loader::ScriptLoaderInterface,
   friend class CacheLoadHandler;
   friend class CacheCreator;
   friend class NetworkLoadHandler;
+  friend class WorkerModuleLoader;
 
   RefPtr<ThreadSafeWorkerRef> mWorkerRef;
   UniquePtr<SerializedStackHolder> mOriginStack;
@@ -153,6 +157,11 @@ class WorkerScriptLoader : public JS::loader::ScriptLoaderInterface,
   ErrorResult& mRv;
   bool mExecutionAborted = false;
   bool mMutedErrorFlag = false;
+
+  // Count of loading module requests. mLoadingRequests doesn't keep track of
+  // child module requests.
+  // This member should be accessed on worker thread.
+  uint32_t mLoadingModuleRequestCount;
 
   // Worker cancellation related Mutex
   //
@@ -184,9 +193,11 @@ class WorkerScriptLoader : public JS::loader::ScriptLoaderInterface,
                      nsISerialEventTarget* aSyncLoopTarget,
                      WorkerScriptType aWorkerScriptType, ErrorResult& aRv);
 
-  void CreateScriptRequests(const nsTArray<nsString>& aScriptURLs,
+  bool CreateScriptRequests(const nsTArray<nsString>& aScriptURLs,
                             const mozilla::Encoding* aDocumentEncoding,
                             bool aIsMainScript);
+
+  ScriptLoadRequest* GetMainScript();
 
   already_AddRefed<ScriptLoadRequest> CreateScriptLoadRequest(
       const nsString& aScriptURL, const mozilla::Encoding* aDocumentEncoding,
@@ -196,10 +207,16 @@ class WorkerScriptLoader : public JS::loader::ScriptLoaderInterface,
 
   bool DispatchLoadScripts();
 
+  void TryShutdown();
+
+  WorkerScriptType GetWorkerScriptType() { return mWorkerScriptType; }
+
  protected:
   nsIURI* GetBaseURI() const override;
 
   nsIURI* GetInitialBaseURI();
+
+  nsIGlobalObject* GetGlobal();
 
   void MaybeMoveToLoadedList(ScriptLoadRequest* aRequest);
 
@@ -232,11 +249,13 @@ class WorkerScriptLoader : public JS::loader::ScriptLoaderInterface,
     return NS_OK;
   }
 
-  void TryShutdown();
+  void InitModuleLoader();
 
   nsTArray<RefPtr<ThreadSafeRequestHandle>> GetLoadingList();
 
-  nsIGlobalObject* GetGlobal();
+  bool IsDynamicImport(ScriptLoadRequest* aRequest);
+
+  nsContentPolicyType GetContentPolicyType(ScriptLoadRequest* aRequest);
 
   bool EvaluateScript(JSContext* aCx, ScriptLoadRequest* aRequest);
 
@@ -255,6 +274,10 @@ class WorkerScriptLoader : public JS::loader::ScriptLoaderInterface,
   }
 
   void LogExceptionToConsole(JSContext* aCx, WorkerPrivate* aWorkerPrivate);
+
+  bool AllModuleRequestsLoaded() const;
+  void IncreaseLoadingModuleRequestCount();
+  void DecreaseLoadingModuleRequestCount();
 };
 
 /* ScriptLoaderRunnable
@@ -318,15 +341,17 @@ class ScriptLoaderRunnable final : public nsIRunnable, public nsINamed {
 
 nsresult ChannelFromScriptURLMainThread(
     nsIPrincipal* aPrincipal, Document* aParentDoc, nsILoadGroup* aLoadGroup,
-    nsIURI* aScriptURL, const Maybe<ClientInfo>& aClientInfo,
+    nsIURI* aScriptURL, const WorkerType& aWorkerType,
+    const RequestCredentials& aCredentials,
+    const Maybe<ClientInfo>& aClientInfo,
     nsContentPolicyType aContentPolicyType,
     nsICookieJarSettings* aCookieJarSettings, nsIReferrerInfo* aReferrerInfo,
     nsIChannel** aChannel);
 
-nsresult ChannelFromScriptURLWorkerThread(JSContext* aCx,
-                                          WorkerPrivate* aParent,
-                                          const nsAString& aScriptURL,
-                                          WorkerLoadInfo& aLoadInfo);
+nsresult ChannelFromScriptURLWorkerThread(
+    JSContext* aCx, WorkerPrivate* aParent, const nsAString& aScriptURL,
+    const WorkerType& aWorkerType, const RequestCredentials& aCredentials,
+    WorkerLoadInfo& aLoadInfo);
 
 void ReportLoadError(ErrorResult& aRv, nsresult aLoadResult,
                      const nsAString& aScriptURL);

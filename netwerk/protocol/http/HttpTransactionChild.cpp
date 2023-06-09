@@ -68,9 +68,9 @@ nsresult HttpTransactionChild::InitInternal(
     uint32_t caps, const HttpConnectionInfoCloneArgs& infoArgs,
     nsHttpRequestHead* requestHead, nsIInputStream* requestBody,
     uint64_t requestContentLength, bool requestBodyHasHeaders,
-    uint64_t topLevelOuterContentWindowId, uint8_t httpTrafficCategory,
-    uint64_t requestContextID, ClassOfService classOfService,
-    uint32_t initialRwin, bool responseTimeoutEnabled, uint64_t channelId,
+    uint64_t browserId, uint8_t httpTrafficCategory, uint64_t requestContextID,
+    ClassOfService classOfService, uint32_t initialRwin,
+    bool responseTimeoutEnabled, uint64_t channelId,
     bool aHasTransactionObserver,
     const Maybe<H2PushedStreamArg>& aPushedStreamArg) {
   LOG(("HttpTransactionChild::InitInternal [this=%p caps=%x]\n", this, caps));
@@ -109,19 +109,19 @@ nsresult HttpTransactionChild::InitInternal(
   uint32_t pushedStreamId = 0;
   if (aPushedStreamArg) {
     HttpTransactionChild* transChild = static_cast<HttpTransactionChild*>(
-        aPushedStreamArg.ref().transWithPushedStreamChild());
+        aPushedStreamArg.ref().transWithPushedStream().AsChild().get());
     transWithPushedStream = transChild->GetHttpTransaction();
     pushedStreamId = aPushedStreamArg.ref().pushedStreamId();
   }
 
   nsresult rv = mTransaction->Init(
       caps, cinfo, requestHead, requestBody, requestContentLength,
-      requestBodyHasHeaders, GetCurrentEventTarget(),
+      requestBodyHasHeaders, GetCurrentSerialEventTarget(),
       nullptr,  // TODO: security callback, fix in bug 1512479.
-      this, topLevelOuterContentWindowId,
-      static_cast<HttpTrafficCategory>(httpTrafficCategory), rc, classOfService,
-      initialRwin, responseTimeoutEnabled, channelId, std::move(observer),
-      std::move(pushCallback), transWithPushedStream, pushedStreamId);
+      this, browserId, static_cast<HttpTrafficCategory>(httpTrafficCategory),
+      rc, classOfService, initialRwin, responseTimeoutEnabled, channelId,
+      std::move(observer), std::move(pushCallback), transWithPushedStream,
+      pushedStreamId);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     mTransaction = nullptr;
     return rv;
@@ -470,12 +470,25 @@ HttpTransactionChild::OnStartRequest(nsIRequest* aRequest) {
   int32_t proxyConnectResponseCode =
       mTransaction->GetProxyConnectResponseCode();
 
+  nsIRequest::TRRMode mode = nsIRequest::TRR_DEFAULT_MODE;
+  TRRSkippedReason reason = nsITRRSkipReason::TRR_UNSET;
+  {
+    NetAddr selfAddr;
+    NetAddr peerAddr;
+    bool isTrr = false;
+    bool echConfigUsed = false;
+    if (mTransaction) {
+      mTransaction->GetNetworkAddresses(selfAddr, peerAddr, isTrr, mode, reason,
+                                        echConfigUsed);
+    }
+  }
+
   Unused << SendOnStartRequest(
       status, optionalHead, securityInfo, mTransaction->ProxyConnectFailed(),
       ToTimingStructArgs(mTransaction->Timings()), proxyConnectResponseCode,
       dataForSniffer, optionalAltSvcUsed, !!mDataBridgeParent,
       mTransaction->TakeRestartedState(), mTransaction->HTTPSSVCReceivedStage(),
-      mTransaction->GetSupportsHTTP3());
+      mTransaction->GetSupportsHTTP3(), mode, reason);
   return NS_OK;
 }
 
@@ -582,8 +595,10 @@ HttpTransactionChild::OnTransportStatus(nsITransport* aTransport,
     NetAddr peerAddr;
     bool isTrr = false;
     bool echConfigUsed = false;
+    nsIRequest::TRRMode mode = nsIRequest::TRR_DEFAULT_MODE;
+    TRRSkippedReason reason = nsITRRSkipReason::TRR_UNSET;
     if (mTransaction) {
-      mTransaction->GetNetworkAddresses(selfAddr, peerAddr, isTrr,
+      mTransaction->GetNetworkAddresses(selfAddr, peerAddr, isTrr, mode, reason,
                                         echConfigUsed);
     } else {
       nsCOMPtr<nsISocketTransport> socketTransport =
@@ -592,10 +607,12 @@ HttpTransactionChild::OnTransportStatus(nsITransport* aTransport,
         socketTransport->GetSelfAddr(&selfAddr);
         socketTransport->GetPeerAddr(&peerAddr);
         socketTransport->ResolvedByTRR(&isTrr);
+        socketTransport->GetEffectiveTRRMode(&mode);
+        socketTransport->GetTrrSkipReason(&reason);
         socketTransport->GetEchConfigUsed(&echConfigUsed);
       }
     }
-    arg.emplace(selfAddr, peerAddr, isTrr, echConfigUsed);
+    arg.emplace(selfAddr, peerAddr, isTrr, mode, reason, echConfigUsed);
   }
 
   Unused << SendOnTransportStatus(aStatus, aProgress, aProgressMax, arg);

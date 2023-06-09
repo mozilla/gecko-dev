@@ -96,8 +96,18 @@ class Animation : public DOMEventTargetHelper,
   virtual void SetEffect(AnimationEffect* aEffect);
   void SetEffectNoUpdate(AnimationEffect* aEffect);
 
+  // FIXME: Bug 1676794. This is a tentative solution before we implement
+  // ScrollTimeline interface. If the timeline is scroll/view timeline, we
+  // return null. Once we implement ScrollTimeline interface, we can drop this.
+  already_AddRefed<AnimationTimeline> GetTimelineFromJS() const {
+    return mTimeline && mTimeline->IsScrollTimeline() ? nullptr
+                                                      : do_AddRef(mTimeline);
+  }
+  void SetTimelineFromJS(AnimationTimeline* aTimeline) {
+    SetTimeline(aTimeline);
+  }
+
   AnimationTimeline* GetTimeline() const { return mTimeline; }
-  // Animation.timeline setter is supported only on Nightly.
   void SetTimeline(AnimationTimeline* aTimeline);
   void SetTimelineNoUpdate(AnimationTimeline* aTimeline);
 
@@ -471,9 +481,15 @@ class Animation : public DOMEventTargetHelper,
       const Nullable<TimeDuration>& aCurrentTime,
       const TimeDuration& aEffectStartTime, const double aPlaybackRate);
   ProgressTimelinePosition AtProgressTimelineBoundary() const {
+    Nullable<TimeDuration> currentTime = GetUnconstrainedCurrentTime();
     return AtProgressTimelineBoundary(
         mTimeline ? mTimeline->TimelineDuration() : nullptr,
-        GetCurrentTimeAsDuration(),
+        // Set unlimited current time based on the first matching condition:
+        // 1. start time is resolved:
+        //    (timeline time - start time) × playback rate
+        // 2. Otherwise:
+        //    animation’s current time
+        !currentTime.IsNull() ? currentTime : GetCurrentTimeAsDuration(),
         mStartTime.IsNull() ? TimeDuration() : mStartTime.Value(),
         mPlaybackRate);
   }
@@ -482,6 +498,8 @@ class Animation : public DOMEventTargetHelper,
   bool IsHiddenByContentVisibility() const {
     return mHiddenByContentVisibility;
   }
+
+  DocGroup* GetDocGroup();
 
  protected:
   void SilentlySetCurrentTime(const TimeDuration& aNewCurrentTime);

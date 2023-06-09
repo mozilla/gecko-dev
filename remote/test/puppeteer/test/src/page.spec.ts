@@ -13,17 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import expect from 'expect';
 import fs from 'fs';
 import {ServerResponse} from 'http';
 import path from 'path';
+
+import expect from 'expect';
+import {KnownDevices, TimeoutError} from 'puppeteer';
+import {Metrics, Page} from 'puppeteer-core/internal/api/Page.js';
+import {CDPSession} from 'puppeteer-core/internal/common/Connection.js';
+import {ConsoleMessage} from 'puppeteer-core/internal/common/ConsoleMessage.js';
+import {CDPPage} from 'puppeteer-core/internal/common/Page.js';
 import sinon from 'sinon';
-import {CDPSession} from '../../lib/cjs/puppeteer/common/Connection.js';
-import {ConsoleMessage} from '../../lib/cjs/puppeteer/common/ConsoleMessage.js';
-import {Metrics, Page} from '../../lib/cjs/puppeteer/common/Page.js';
+
 import {
   getTestState,
-  itFailsFirefox,
   setupTestBrowserHooks,
   setupTestPageAndContextHooks,
 } from './mocha-utils.js';
@@ -183,13 +186,17 @@ describe('Page', function () {
 
   describe('Page.Events.error', function () {
     it('should throw when page crashes', async () => {
-      const {page} = getTestState();
+      const {page, isChrome} = getTestState();
 
       let error!: Error;
       page.on('error', err => {
         return (error = err);
       });
-      page.goto('chrome://crash').catch(() => {});
+      if (isChrome) {
+        page.goto('chrome://crash').catch(() => {});
+      } else {
+        page.goto('about:crashcontent').catch(() => {});
+      }
       await waitEvent(page, 'error');
       expect(error.message).toBe('Page crashed!');
     });
@@ -390,12 +397,7 @@ describe('Page', function () {
       expect(await getPermission(page, 'geolocation')).toBe('prompt');
     });
     it('should trigger permission onchange', async () => {
-      const {page, server, context, isHeadless} = getTestState();
-
-      // TODO: re-enable this test in headful once crbug.com/1324480 rolls out.
-      if (!isHeadless) {
-        return;
-      }
+      const {page, server, context} = getTestState();
 
       await page.goto(server.EMPTY_PAGE);
       await page.evaluate(() => {
@@ -546,39 +548,69 @@ describe('Page', function () {
     it('should work', async () => {
       const {page} = getTestState();
 
-      // Instantiate an object
-      await page.evaluate(() => {
-        return ((globalThis as any).set = new Set(['hello', 'world']));
+      // Create a custom class
+      const classHandle = await page.evaluateHandle(() => {
+        return class CustomClass {};
       });
-      const prototypeHandle = await page.evaluateHandle(() => {
-        return Set.prototype;
-      });
-      const objectsHandle = await page.queryObjects(prototypeHandle);
-      const count = await page.evaluate(objects => {
-        return objects.length;
-      }, objectsHandle);
-      expect(count).toBe(1);
-      const values = await page.evaluate(objects => {
-        return Array.from(objects[0]!.values());
-      }, objectsHandle);
-      expect(values).toEqual(['hello', 'world']);
-    });
-    it('should work for non-blank page', async () => {
-      const {page, server} = getTestState();
 
-      // Instantiate an object
-      await page.goto(server.EMPTY_PAGE);
-      await page.evaluate(() => {
-        return ((globalThis as any).set = new Set(['hello', 'world']));
-      });
-      const prototypeHandle = await page.evaluateHandle(() => {
-        return Set.prototype;
-      });
+      // Create an instance.
+      await page.evaluate(CustomClass => {
+        // @ts-expect-error: Different context.
+        self.customClass = new CustomClass();
+      }, classHandle);
+
+      // Validate only one has been added.
+      const prototypeHandle = await page.evaluateHandle(CustomClass => {
+        return CustomClass.prototype;
+      }, classHandle);
       const objectsHandle = await page.queryObjects(prototypeHandle);
-      const count = await page.evaluate(objects => {
-        return objects.length;
-      }, objectsHandle);
-      expect(count).toBe(1);
+      await expect(
+        page.evaluate(objects => {
+          return objects.length;
+        }, objectsHandle)
+      ).resolves.toBe(1);
+
+      // Check that instances.
+      await expect(
+        page.evaluate(objects => {
+          // @ts-expect-error: Different context.
+          return objects[0] === self.customClass;
+        }, objectsHandle)
+      ).resolves.toBeTruthy();
+    });
+    it('should work for non-trivial page', async () => {
+      const {page, server} = getTestState();
+      await page.goto(server.EMPTY_PAGE);
+
+      // Create a custom class
+      const classHandle = await page.evaluateHandle(() => {
+        return class CustomClass {};
+      });
+
+      // Create an instance.
+      await page.evaluate(CustomClass => {
+        // @ts-expect-error: Different context.
+        self.customClass = new CustomClass();
+      }, classHandle);
+
+      // Validate only one has been added.
+      const prototypeHandle = await page.evaluateHandle(CustomClass => {
+        return CustomClass.prototype;
+      }, classHandle);
+      const objectsHandle = await page.queryObjects(prototypeHandle);
+      await expect(
+        page.evaluate(objects => {
+          return objects.length;
+        }, objectsHandle)
+      ).resolves.toBe(1);
+
+      // Check that instances.
+      await expect(
+        page.evaluate(objects => {
+          // @ts-expect-error: Different context.
+          return objects[0] === self.customClass;
+        }, objectsHandle)
+      ).resolves.toBeTruthy();
     });
     it('should fail for disposed handles', async () => {
       const {page} = getTestState();
@@ -636,7 +668,39 @@ describe('Page', function () {
       expect(await message.args()[1]!.jsonValue()).toEqual(5);
       expect(await message.args()[2]!.jsonValue()).toEqual({foo: 'bar'});
     });
-    it('should work for different console API calls', async () => {
+    it('should work for different console API calls with logging functions', async () => {
+      const {page} = getTestState();
+
+      const messages: any[] = [];
+      page.on('console', msg => {
+        return messages.push(msg);
+      });
+      // All console events will be reported before `page.evaluate` is finished.
+      await page.evaluate(() => {
+        console.trace('calling console.trace');
+        console.dir('calling console.dir');
+        console.warn('calling console.warn');
+        console.error('calling console.error');
+        console.log(Promise.resolve('should not wait until resolved!'));
+      });
+      expect(
+        messages.map(msg => {
+          return msg.type();
+        })
+      ).toEqual(['trace', 'dir', 'warning', 'error', 'log']);
+      expect(
+        messages.map(msg => {
+          return msg.text();
+        })
+      ).toEqual([
+        'calling console.trace',
+        'calling console.dir',
+        'calling console.warn',
+        'calling console.error',
+        'JSHandle@promise',
+      ]);
+    });
+    it('should work for different console API calls with timing functions', async () => {
       const {page} = getTestState();
 
       const messages: any[] = [];
@@ -648,29 +712,13 @@ describe('Page', function () {
         // A pair of time/timeEnd generates only one Console API call.
         console.time('calling console.time');
         console.timeEnd('calling console.time');
-        console.trace('calling console.trace');
-        console.dir('calling console.dir');
-        console.warn('calling console.warn');
-        console.error('calling console.error');
-        console.log(Promise.resolve('should not wait until resolved!'));
       });
       expect(
         messages.map(msg => {
           return msg.type();
         })
-      ).toEqual(['timeEnd', 'trace', 'dir', 'warning', 'error', 'log']);
+      ).toEqual(['timeEnd']);
       expect(messages[0]!.text()).toContain('calling console.time');
-      expect(
-        messages.slice(1).map(msg => {
-          return msg.text();
-        })
-      ).toEqual([
-        'calling console.trace',
-        'calling console.dir',
-        'calling console.warn',
-        'calling console.error',
-        'JSHandle@promise',
-      ]);
     });
     it('should not fail for window object', async () => {
       const {page} = getTestState();
@@ -877,8 +925,24 @@ describe('Page', function () {
       ]);
       expect(request.url()).toBe(server.PREFIX + '/digits/2.png');
     });
+    it('should work with async predicate', async () => {
+      const {page, server} = getTestState();
+
+      await page.goto(server.EMPTY_PAGE);
+      const [request] = await Promise.all([
+        page.waitForRequest(async request => {
+          return request.url() === server.PREFIX + '/digits/2.png';
+        }),
+        page.evaluate(() => {
+          fetch('/digits/1.png');
+          fetch('/digits/2.png');
+          fetch('/digits/3.png');
+        }),
+      ]);
+      expect(request.url()).toBe(server.PREFIX + '/digits/2.png');
+    });
     it('should respect timeout', async () => {
-      const {page, puppeteer} = getTestState();
+      const {page} = getTestState();
 
       let error!: Error;
       await page
@@ -891,10 +955,10 @@ describe('Page', function () {
         .catch(error_ => {
           return (error = error_);
         });
-      expect(error).toBeInstanceOf(puppeteer.errors.TimeoutError);
+      expect(error).toBeInstanceOf(TimeoutError);
     });
     it('should respect default timeout', async () => {
-      const {page, puppeteer} = getTestState();
+      const {page} = getTestState();
 
       let error!: Error;
       page.setDefaultTimeout(1);
@@ -905,7 +969,7 @@ describe('Page', function () {
         .catch(error_ => {
           return (error = error_);
         });
-      expect(error).toBeInstanceOf(puppeteer.errors.TimeoutError);
+      expect(error).toBeInstanceOf(TimeoutError);
     });
     it('should work with no timeout', async () => {
       const {page, server} = getTestState();
@@ -941,7 +1005,7 @@ describe('Page', function () {
       expect(response.url()).toBe(server.PREFIX + '/digits/2.png');
     });
     it('should respect timeout', async () => {
-      const {page, puppeteer} = getTestState();
+      const {page} = getTestState();
 
       let error!: Error;
       await page
@@ -954,10 +1018,10 @@ describe('Page', function () {
         .catch(error_ => {
           return (error = error_);
         });
-      expect(error).toBeInstanceOf(puppeteer.errors.TimeoutError);
+      expect(error).toBeInstanceOf(TimeoutError);
     });
     it('should respect default timeout', async () => {
-      const {page, puppeteer} = getTestState();
+      const {page} = getTestState();
 
       let error!: Error;
       page.setDefaultTimeout(1);
@@ -968,7 +1032,7 @@ describe('Page', function () {
         .catch(error_ => {
           return (error = error_);
         });
-      expect(error).toBeInstanceOf(puppeteer.errors.TimeoutError);
+      expect(error).toBeInstanceOf(TimeoutError);
     });
     it('should work with predicate', async () => {
       const {page, server} = getTestState();
@@ -1055,12 +1119,12 @@ describe('Page', function () {
       expect(t1 - t2).toBeGreaterThanOrEqual(400);
     });
     it('should respect timeout', async () => {
-      const {page, puppeteer} = getTestState();
+      const {page} = getTestState();
       let error!: Error;
       await page.waitForNetworkIdle({timeout: 1}).catch(error_ => {
         return (error = error_);
       });
-      expect(error).toBeInstanceOf(puppeteer.errors.TimeoutError);
+      expect(error).toBeInstanceOf(TimeoutError);
     });
     it('should respect idleTime', async () => {
       const {page, server} = getTestState();
@@ -1310,7 +1374,7 @@ describe('Page', function () {
       expect(request.headers['user-agent']).toBe('foobar');
     });
     it('should emulate device user-agent', async () => {
-      const {page, server, puppeteer} = getTestState();
+      const {page, server} = getTestState();
 
       await page.goto(server.PREFIX + '/mobile.html');
       expect(
@@ -1318,7 +1382,7 @@ describe('Page', function () {
           return navigator.userAgent;
         })
       ).not.toContain('iPhone');
-      await page.setUserAgent(puppeteer.devices['iPhone 6']!.userAgent);
+      await page.setUserAgent(KnownDevices['iPhone 6'].userAgent);
       expect(
         await page.evaluate(() => {
           return navigator.userAgent;
@@ -1394,7 +1458,7 @@ describe('Page', function () {
       expect(result).toBe(`${doctype}${expectedOutput}`);
     });
     it('should respect timeout', async () => {
-      const {page, server, puppeteer} = getTestState();
+      const {page, server} = getTestState();
 
       const imgPath = '/img.png';
       // stall for image
@@ -1407,10 +1471,10 @@ describe('Page', function () {
         .catch(error_ => {
           return (error = error_);
         });
-      expect(error).toBeInstanceOf(puppeteer.errors.TimeoutError);
+      expect(error).toBeInstanceOf(TimeoutError);
     });
     it('should respect default navigation timeout', async () => {
-      const {page, server, puppeteer} = getTestState();
+      const {page, server} = getTestState();
 
       page.setDefaultNavigationTimeout(1);
       const imgPath = '/img.png';
@@ -1422,7 +1486,7 @@ describe('Page', function () {
         .catch(error_ => {
           return (error = error_);
         });
-      expect(error).toBeInstanceOf(puppeteer.errors.TimeoutError);
+      expect(error).toBeInstanceOf(TimeoutError);
     });
     it('should await resources to load', async () => {
       const {page, server} = getTestState();
@@ -1651,7 +1715,7 @@ describe('Page', function () {
       await page.addScriptTag({url: '/es6/es6import.js', type: 'module'});
       expect(
         await page.evaluate(() => {
-          return (globalThis as any).__es6injected;
+          return (window as unknown as {__es6injected: number}).__es6injected;
         })
       ).toBe(42);
     });
@@ -1664,10 +1728,12 @@ describe('Page', function () {
         path: path.join(__dirname, '../assets/es6/es6pathimport.js'),
         type: 'module',
       });
-      await page.waitForFunction('window.__es6injected');
+      await page.waitForFunction(() => {
+        return (window as unknown as {__es6injected: number}).__es6injected;
+      });
       expect(
         await page.evaluate(() => {
-          return (globalThis as any).__es6injected;
+          return (window as unknown as {__es6injected: number}).__es6injected;
         })
       ).toBe(42);
     });
@@ -1680,10 +1746,12 @@ describe('Page', function () {
         content: `import num from '/es6/es6module.js';window.__es6injected = num;`,
         type: 'module',
       });
-      await page.waitForFunction('window.__es6injected');
+      await page.waitForFunction(() => {
+        return (window as unknown as {__es6injected: number}).__es6injected;
+      });
       expect(
         await page.evaluate(() => {
-          return (globalThis as any).__es6injected;
+          return (window as unknown as {__es6injected: number}).__es6injected;
         })
       ).toBe(42);
     });
@@ -1758,7 +1826,7 @@ describe('Page', function () {
     });
 
     // @see https://github.com/puppeteer/puppeteer/issues/4840
-    xit('should throw when added with content to the CSP page', async () => {
+    it('should throw when added with content to the CSP page', async () => {
       const {page, server} = getTestState();
 
       await page.goto(server.PREFIX + '/csp.html');
@@ -1854,7 +1922,7 @@ describe('Page', function () {
         path: path.join(__dirname, '../assets/injectedstyle.css'),
       });
       const styleHandle = (await page.$('style'))!;
-      const styleContent = await page.evaluate(style => {
+      const styleContent = await page.evaluate((style: HTMLStyleElement) => {
         return style.innerHTML;
       }, styleHandle);
       expect(styleContent).toContain(path.join('assets', 'injectedstyle.css'));
@@ -2002,11 +2070,8 @@ describe('Page', function () {
       expect(size).toBeGreaterThan(0);
     });
 
-    // This test should be skipped in mozilla-central (Firefox).
-    // It intermittently makes the whole test suite fail.
-    // See https://bugzilla.mozilla.org/show_bug.cgi?id=1748255
-    itFailsFirefox('should respect timeout', async () => {
-      const {isHeadless, page, server, puppeteer} = getTestState();
+    it('should respect timeout', async () => {
+      const {isHeadless, page, server} = getTestState();
       if (!isHeadless) {
         return;
       }
@@ -2017,7 +2082,7 @@ describe('Page', function () {
       await page.pdf({timeout: 1}).catch(_error => {
         return (error = _error);
       });
-      expect(error).toBeInstanceOf(puppeteer.errors.TimeoutError);
+      expect(error).toBeInstanceOf(TimeoutError);
     });
   });
 
@@ -2236,7 +2301,7 @@ describe('Page', function () {
   });
 
   describe('Page.Events.Close', function () {
-    itFailsFirefox('should work with window.close', async () => {
+    it('should work with window.close', async () => {
       const {page, context} = getTestState();
 
       const newPagePromise = new Promise<Page>(fulfill => {
@@ -2287,7 +2352,7 @@ describe('Page', function () {
   describe('Page.client', function () {
     it('should return the client instance', async () => {
       const {page} = getTestState();
-      expect(page._client()).toBeInstanceOf(CDPSession);
+      expect((page as CDPPage)._client()).toBeInstanceOf(CDPSession);
     });
   });
 });

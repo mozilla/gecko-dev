@@ -61,8 +61,8 @@
   MACRO(4, "fileioall", FileIOAll,                                         \
         "Add file I/O from all threads, implies fileio")                   \
                                                                            \
-  MACRO(5, "noiostacks", NoIOStacks,                                       \
-        "File I/O markers do not capture stacks, to reduce overhead")      \
+  MACRO(5, "nomarkerstacks", NoMarkerStacks,                               \
+        "Markers do not capture stacks, to reduce overhead")               \
                                                                            \
   MACRO(6, "screenshots", Screenshots,                                     \
         "Take a snapshot of the window on every composition")              \
@@ -80,41 +80,38 @@
         "Disable all stack sampling: Cancels \"js\", \"stackwalk\" and "   \
         "labels")                                                          \
                                                                            \
-  MACRO(11, "preferencereads", PreferenceReads,                            \
-        "Track when preferences are read")                                 \
-                                                                           \
-  MACRO(12, "nativeallocations", NativeAllocations,                        \
+  MACRO(11, "nativeallocations", NativeAllocations,                        \
         "Collect the stacks from a smaller subset of all native "          \
         "allocations, biasing towards collecting larger allocations")      \
                                                                            \
-  MACRO(13, "ipcmessages", IPCMessages,                                    \
+  MACRO(12, "ipcmessages", IPCMessages,                                    \
         "Have the IPC layer track cross-process messages")                 \
                                                                            \
-  MACRO(14, "audiocallbacktracing", AudioCallbackTracing,                  \
+  MACRO(13, "audiocallbacktracing", AudioCallbackTracing,                  \
         "Audio callback tracing")                                          \
                                                                            \
-  MACRO(15, "cpu", CPUUtilization, "CPU utilization")                      \
+  MACRO(14, "cpu", CPUUtilization, "CPU utilization")                      \
                                                                            \
-  MACRO(16, "notimerresolutionchange", NoTimerResolutionChange,            \
+  MACRO(15, "notimerresolutionchange", NoTimerResolutionChange,            \
         "Do not adjust the timer resolution for sampling, so that other "  \
         "Firefox timers do not get affected")                              \
                                                                            \
-  MACRO(17, "cpuallthreads", CPUAllThreads,                                \
+  MACRO(16, "cpuallthreads", CPUAllThreads,                                \
         "Sample the CPU utilization of all registered threads")            \
                                                                            \
-  MACRO(18, "samplingallthreads", SamplingAllThreads,                      \
+  MACRO(17, "samplingallthreads", SamplingAllThreads,                      \
         "Sample the stacks of all registered threads")                     \
                                                                            \
-  MACRO(19, "markersallthreads", MarkersAllThreads,                        \
+  MACRO(18, "markersallthreads", MarkersAllThreads,                        \
         "Record markers from all registered threads")                      \
                                                                            \
-  MACRO(20, "unregisteredthreads", UnregisteredThreads,                    \
+  MACRO(19, "unregisteredthreads", UnregisteredThreads,                    \
         "Discover and profile unregistered threads -- beware: expensive!") \
                                                                            \
-  MACRO(21, "processcpu", ProcessCPU,                                      \
+  MACRO(20, "processcpu", ProcessCPU,                                      \
         "Sample the CPU utilization of each process")                      \
                                                                            \
-  MACRO(22, "power", Power, POWER_HELP)
+  MACRO(21, "power", Power, POWER_HELP)
 // *** Synchronize with lists in BaseProfilerState.h and geckoProfiler.json ***
 
 struct ProfilerFeature {
@@ -269,6 +266,11 @@ class RacyFeatures {
     return (af & Active) && (af & aFeature);
   }
 
+  [[nodiscard]] static bool IsActiveWithoutFeature(uint32_t aFeature) {
+    uint32_t af = sActiveAndFeatures;  // copy it first
+    return (af & Active) && !(af & aFeature);
+  }
+
   // True if profiler is active, and not fully paused.
   // Note that periodic sampling *could* be paused!
   // This implementation must be kept in sync with
@@ -369,6 +371,11 @@ profiler_features_if_active_and_unpaused() {
 // can become immediately out-of-date, much like the return value of
 // profiler_is_active().
 [[nodiscard]] bool profiler_feature_active(uint32_t aFeature);
+
+// Check if the profiler is active without a feature (specified via the
+// ProfilerFeature type). Note: the return value can become immediately
+// out-of-date, much like the return value of profiler_is_active().
+[[nodiscard]] bool profiler_active_without_feature(uint32_t aFeature);
 
 // Returns true if any of the profiler mutexes are currently locked *on the
 // current thread*. This may be used by re-entrant code that may call profiler

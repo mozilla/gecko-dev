@@ -93,8 +93,8 @@ async function getDummyTempDatabase(name, extraOptions = {}) {
 }
 
 add_task(async function test_setup() {
-  const { initTestLogging } = ChromeUtils.import(
-    "resource://testing-common/services/common/logging.js"
+  const { initTestLogging } = ChromeUtils.importESModule(
+    "resource://testing-common/services/common/logging.sys.mjs"
   );
   initTestLogging("Trace");
 });
@@ -1380,4 +1380,20 @@ add_task(async function test_interrupt() {
     /Connection is not open/,
     "Sqlite.interrupt() should throw on a closed connection"
   );
+});
+
+add_task(async function test_pageSize() {
+  // Testing the possibility to set the page size on database creation.
+  await Assert.rejects(
+    getDummyDatabase("pagesize", { pageSize: 1234 }),
+    /Invalid pageSize/,
+    "Check invalid pageSize value"
+  );
+  let c = await getDummyDatabase("pagesize", { pageSize: 8192 });
+  Assert.equal(
+    (await c.execute("PRAGMA page_size"))[0].getResultByIndex(0),
+    8192,
+    "Check page size was set"
+  );
+  await c.close();
 });

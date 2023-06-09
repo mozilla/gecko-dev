@@ -16,6 +16,7 @@
 #include "nsContentUtils.h"
 #include "nsHashKeys.h"
 #include "nsISupports.h"
+#include "nsRFPService.h"
 #include "nsStringFwd.h"
 #include "nsTArray.h"
 #include "nsTHashtable.h"
@@ -50,6 +51,7 @@ class ServiceWorker;
 class ServiceWorkerRegistration;
 class ServiceWorkerRegistrationDescriptor;
 class StorageManager;
+enum class CallerType : uint32_t;
 }  // namespace dom
 namespace ipc {
 class PrincipalInfo;
@@ -60,21 +62,12 @@ namespace JS::loader {
 class ModuleLoaderBase;
 }  // namespace JS::loader
 
-// Reduce Timer Precision (RTP) Caller Type
-// This lives here because anything dealing with RTPCallerType determines it
-// through this object.
-enum class RTPCallerType : uint8_t {
-  Normal = 0,
-  SystemPrincipal = (1 << 0),
-  ResistFingerprinting = (1 << 1),
-  CrossOriginIsolated = (1 << 2)
-};
-
 /**
  * See <https://developer.mozilla.org/en-US/docs/Glossary/Global_object>.
  */
 class nsIGlobalObject : public nsISupports,
                         public mozilla::dom::DispatcherTrait {
+ private:
   nsTArray<nsCString> mHostObjectURIs;
 
   // Raw pointers to bound DETH objects.  These are added by
@@ -90,6 +83,8 @@ class nsIGlobalObject : public nsISupports,
   nsIGlobalObject();
 
  public:
+  using RTPCallerType = mozilla::RTPCallerType;
+  using RFPTarget = mozilla::RFPTarget;
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_IGLOBALOBJECT_IID)
 
   /**
@@ -254,7 +249,12 @@ class nsIGlobalObject : public nsISupports,
    * Check whether we should avoid leaking distinguishing information to JS/CSS.
    * https://w3c.github.io/fingerprinting-guidance/
    */
-  virtual bool ShouldResistFingerprinting() const = 0;
+  virtual bool ShouldResistFingerprinting(
+      RFPTarget aTarget = RFPTarget::Unknown) const = 0;
+
+  // CallerType::System callers never have to resist fingerprinting.
+  bool ShouldResistFingerprinting(mozilla::dom::CallerType aCallerType,
+                                  RFPTarget aTarget = RFPTarget::Unknown) const;
 
   RTPCallerType GetRTPCallerType() const;
 
@@ -266,7 +266,7 @@ class nsIGlobalObject : public nsISupports,
     return nullptr;
   }
 
-  virtual mozilla::dom::FontFaceSet* Fonts() { return nullptr; }
+  virtual mozilla::dom::FontFaceSet* GetFonts() { return nullptr; }
 
   virtual mozilla::Result<mozilla::ipc::PrincipalInfo, nsresult>
   GetStorageKey();

@@ -234,7 +234,7 @@ var AssociatedToNode = class {
             // Any exception in the blocker will cancel the operation.
             blockers.add(
               promise.catch(ex => {
-                Cu.reportError(ex);
+                console.error(ex);
                 return true;
               })
             );
@@ -253,7 +253,7 @@ var AssociatedToNode = class {
           ]);
           cancel = cancel || results.some(result => result === false);
         } catch (ex) {
-          Cu.reportError(
+          console.error(
             new Error(`One of the blockers for ${eventName} timed out.`)
           );
           return true;
@@ -392,7 +392,6 @@ var PanelMultiView = class extends AssociatedToNode {
   constructor(node) {
     super(node);
     this._openPopupPromise = Promise.resolve(false);
-    this._openPopupCancelCallback = () => {};
   }
 
   connect() {
@@ -508,6 +507,11 @@ var PanelMultiView = class extends AssociatedToNode {
         canCancel = false;
         this.dispatchCustomEvent("popuphidden");
       }
+      if (cancelCallback == this._openPopupCancelCallback) {
+        // If still current, let go of the cancel callback since it will capture
+        // the entire scope and tie it to the main window.
+        delete this._openPopupCancelCallback;
+      }
     });
 
     // Create a promise that is resolved with the result of the last call to
@@ -529,6 +533,11 @@ var PanelMultiView = class extends AssociatedToNode {
       // our handler of the "popuphidden" event because this has a lower chance
       // of locking indefinitely if events aren't raised in the expected order.
       if (wasShown && ["open", "showing"].includes(this._panel.state)) {
+        if (cancelCallback == this._openPopupCancelCallback) {
+          // If still current, let go of the cancel callback since it will
+          // capture the entire scope and tie it to the main window.
+          delete this._openPopupCancelCallback;
+        }
         return true;
       }
       try {
@@ -554,6 +563,11 @@ var PanelMultiView = class extends AssociatedToNode {
       try {
         canCancel = false;
         this._panel.openPopup(anchor, options, ...args);
+        if (cancelCallback == this._openPopupCancelCallback) {
+          // If still current, let go of the cancel callback since it will
+          // capture the entire scope and tie it to the main window.
+          delete this._openPopupCancelCallback;
+        }
         // Set an attribute on the popup to let consumers style popup elements -
         // for example, the anchor arrow is styled to match the color of the header
         // in the Protections Panel main view.
@@ -617,7 +631,7 @@ var PanelMultiView = class extends AssociatedToNode {
     if (["open", "showing"].includes(this._panel.state)) {
       this._panel.hidePopup(animate);
     } else {
-      this._openPopupCancelCallback();
+      this._openPopupCancelCallback?.();
     }
 
     // We close all the views synchronously, so that they are ready to be opened
@@ -631,7 +645,8 @@ var PanelMultiView = class extends AssociatedToNode {
    * sure they will not be removed together with the <panelmultiview> element.
    */
   _moveOutKids() {
-    let viewCacheId = this.node.getAttribute("viewCacheId");
+    // this.node may have been set to null by a call to disconnect().
+    let viewCacheId = this.node?.getAttribute("viewCacheId");
     if (!viewCacheId) {
       return;
     }
@@ -656,7 +671,7 @@ var PanelMultiView = class extends AssociatedToNode {
    *        subview when a "title" attribute is not specified.
    */
   showSubView(viewIdOrNode, anchor) {
-    this._showSubView(viewIdOrNode, anchor).catch(Cu.reportError);
+    this._showSubView(viewIdOrNode, anchor).catch(console.error);
   }
   async _showSubView(viewIdOrNode, anchor) {
     let viewNode =
@@ -664,19 +679,19 @@ var PanelMultiView = class extends AssociatedToNode {
         ? PanelMultiView.getViewNode(this.document, viewIdOrNode)
         : viewIdOrNode;
     if (!viewNode) {
-      Cu.reportError(new Error(`Subview ${viewIdOrNode} doesn't exist.`));
+      console.error(new Error(`Subview ${viewIdOrNode} doesn't exist.`));
       return;
     }
 
     if (!this.openViews.length) {
-      Cu.reportError(new Error(`Cannot show a subview in a closed panel.`));
+      console.error(new Error(`Cannot show a subview in a closed panel.`));
       return;
     }
 
     let prevPanelView = this.openViews[this.openViews.length - 1];
     let nextPanelView = PanelView.forNode(viewNode);
     if (this.openViews.includes(nextPanelView)) {
-      Cu.reportError(new Error(`Subview ${viewNode.id} is already open.`));
+      console.error(new Error(`Subview ${viewNode.id} is already open.`));
       return;
     }
 
@@ -753,7 +768,7 @@ var PanelMultiView = class extends AssociatedToNode {
    * Navigates backwards by sliding out the most recent subview.
    */
   goBack() {
-    this._goBack().catch(Cu.reportError);
+    this._goBack().catch(console.error);
   }
   async _goBack() {
     if (this.openViews.length < 2) {
@@ -1057,43 +1072,51 @@ var PanelMultiView = class extends AssociatedToNode {
       this._panel.removeAttribute("mainviewshowing");
     }
 
-    this._viewStack.style.transform =
-      "translateX(" + (moveToLeft ? "" : "-") + deltaX + "px)";
+    // Avoid transforming element if the user has prefers-reduced-motion set
+    if (
+      this.window.matchMedia("(prefers-reduced-motion: no-preference)").matches
+    ) {
+      this._viewStack.style.transform =
+        "translateX(" + (moveToLeft ? "" : "-") + deltaX + "px)";
 
-    await new Promise(resolve => {
-      details.resolve = resolve;
-      this._viewContainer.addEventListener(
-        "transitionend",
-        (details.listener = ev => {
-          // It's quite common that `height` on the view container doesn't need
-          // to transition, so we make sure to do all the work on the transform
-          // transition-end, because that is guaranteed to happen.
-          if (ev.target != this._viewStack || ev.propertyName != "transform") {
-            return;
-          }
-          this._viewContainer.removeEventListener(
-            "transitionend",
-            details.listener
-          );
-          delete details.listener;
-          resolve();
-        })
-      );
-      this._viewContainer.addEventListener(
-        "transitioncancel",
-        (details.cancelListener = ev => {
-          if (ev.target != this._viewStack) {
-            return;
-          }
-          this._viewContainer.removeEventListener(
-            "transitioncancel",
-            details.cancelListener
-          );
-          delete details.cancelListener;
-          resolve();
-        })
-      );
-    });
+      await new Promise(resolve => {
+        details.resolve = resolve;
+        this._viewContainer.addEventListener(
+          "transitionend",
+          (details.listener = ev => {
+            // It's quite common that `height` on the view container doesn't need
+            // to transition, so we make sure to do all the work on the transform
+            // transition-end, because that is guaranteed to happen.
+            if (
+              ev.target != this._viewStack ||
+              ev.propertyName != "transform"
+            ) {
+              return;
+            }
+            this._viewContainer.removeEventListener(
+              "transitionend",
+              details.listener
+            );
+            delete details.listener;
+            resolve();
+          })
+        );
+        this._viewContainer.addEventListener(
+          "transitioncancel",
+          (details.cancelListener = ev => {
+            if (ev.target != this._viewStack) {
+              return;
+            }
+            this._viewContainer.removeEventListener(
+              "transitioncancel",
+              details.cancelListener
+            );
+            delete details.cancelListener;
+            resolve();
+          })
+        );
+      });
+    }
 
     // Bail out if the panel was closed during the transition.
     if (!nextPanelView.isOpenIn(this)) {
@@ -1105,7 +1128,11 @@ var PanelMultiView = class extends AssociatedToNode {
     nextPanelView.node.style.removeProperty("width");
     deepestNode.style.removeProperty("outline");
     this._cleanupTransitionPhase();
-
+    // Ensure the newly-visible view has been through a layout flush before we
+    // attempt to focus anything in it.
+    // See https://firefox-source-docs.mozilla.org/performance/bestpractices.html#detecting-and-avoiding-synchronous-reflow
+    // for more information.
+    await this.window.promiseDocumentFlushed(() => {});
     nextPanelView.focusSelectedElement();
   }
 
@@ -1376,10 +1403,23 @@ var PanelView = class extends AssociatedToNode {
     // If the header already exists, update or remove it as requested.
     let header = this.node.querySelector(".panel-header");
     if (header) {
+      let headerInfoButton = header.querySelector(".panel-info-button");
+      let headerBackButton = header.querySelector(".subviewbutton-back");
+      if (headerBackButton && this.node.getAttribute("mainview")) {
+        // A back button should not appear in a mainview.
+        // This codepath can be reached if a user enters a panelview in
+        // the overflow panel, and then unpins it back to the toolbar.
+        headerBackButton.remove();
+      }
       if (!this.node.getAttribute("mainview")) {
         if (value) {
-          // The back button has a label in it - we want to select
-          // the span that's a child of the header.
+          if (headerInfoButton && !headerBackButton) {
+            // If we're not in a mainview and an info button is present,
+            // that means the panel header is a custom one and a back
+            // button should be added, if not already present.
+            header.prepend(this.createHeaderBackButton());
+          }
+          // Set the header title based on the value given.
           header.querySelector(".panel-header > h1 > span").textContent = value;
           ensureHeaderSeparator(header);
         } else {
@@ -1405,6 +1445,22 @@ var PanelView = class extends AssociatedToNode {
     header = this.document.createXULElement("box");
     header.classList.add("panel-header");
 
+    let backButton = this.createHeaderBackButton();
+    let h1 = this.document.createElement("h1");
+    let span = this.document.createElement("span");
+    span.textContent = value;
+    h1.appendChild(span);
+
+    header.append(backButton, h1);
+    this.node.prepend(header);
+
+    ensureHeaderSeparator(header);
+  }
+
+  /**
+   * Creates and returns a panel header back toolbarbutton.
+   */
+  createHeaderBackButton() {
     let backButton = this.document.createXULElement("toolbarbutton");
     backButton.className =
       "subviewbutton subviewbutton-iconic subviewbutton-back";
@@ -1419,16 +1475,7 @@ var PanelView = class extends AssociatedToNode {
       this.node.panelMultiView.goBack();
       backButton.blur();
     });
-
-    let h1 = this.document.createElement("h1");
-    let span = this.document.createElement("span");
-    span.textContent = value;
-    h1.appendChild(span);
-
-    header.append(backButton, h1);
-    this.node.prepend(header);
-
-    ensureHeaderSeparator(header);
+    return backButton;
   }
 
   /**
@@ -1496,10 +1543,12 @@ var PanelView = class extends AssociatedToNode {
       if (arrowKey && isNavigableWithTabOnly) {
         return NodeFilter.FILTER_REJECT;
       }
+      let localName = node.localName.toLowerCase();
       if (
-        node.tagName == "button" ||
-        node.tagName == "toolbarbutton" ||
-        node.tagName == "checkbox" ||
+        localName == "button" ||
+        localName == "toolbarbutton" ||
+        localName == "checkbox" ||
+        localName == "a" ||
         node.classList.contains("text-link") ||
         (!arrowKey && isNavigableWithTabOnly)
       ) {
@@ -1507,8 +1556,8 @@ var PanelView = class extends AssociatedToNode {
         // Don't do this for browser and iframe elements because this breaks
         // tabbing behavior. They're already focusable anyway.
         if (
-          node.tagName != "browser" &&
-          node.tagName != "iframe" &&
+          localName != "browser" &&
+          localName != "iframe" &&
           !node.hasAttribute("tabindex")
         ) {
           node.setAttribute("tabindex", "-1");

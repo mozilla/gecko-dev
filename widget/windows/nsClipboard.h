@@ -66,6 +66,8 @@ class nsClipboard : public nsBaseClipboard, public nsIObserver {
   // of Gecko.
   static UINT GetFormat(const char* aMimeStr, bool aMapHTMLMime = true);
 
+  static UINT GetClipboardFileDescriptorFormatA();
+  static UINT GetClipboardFileDescriptorFormatW();
   static UINT GetHtmlClipboardFormat();
   static UINT GetCustomClipboardFormat();
 
@@ -90,6 +92,10 @@ class nsClipboard : public nsBaseClipboard, public nsIObserver {
                                uint32_t* outDataLen);
 
   static void ResolveShortcut(nsIFile* inFileName, nsACString& outURL);
+  static nsresult GetTempFilePath(const nsAString& aFileName,
+                                  nsAString& aFilePath);
+  static nsresult SaveStorageOrStream(IDataObject* aDataObject, UINT aIndex,
+                                      const nsAString& aFileName);
 
   nsIWidget* mWindow;
 };

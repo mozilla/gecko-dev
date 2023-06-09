@@ -7,6 +7,7 @@
 #include "gc/Zone-inl.h"
 #include "js/shadow/Zone.h"  // JS::shadow::Zone
 
+#include "mozilla/Sprintf.h"
 #include "mozilla/TimeStamp.h"
 
 #include <type_traits>
@@ -158,11 +159,11 @@ JS::Zone::Zone(JSRuntime* rt, Kind kind)
       arenas(this),
       data(nullptr),
       tenuredBigInts(0),
-      nurseryAllocatedStrings(0),
       markedStrings(0),
       finalizedStrings(0),
-      allocNurseryStrings(true),
-      allocNurseryBigInts(true),
+      allocNurseryObjects_(true),
+      allocNurseryStrings_(true),
+      allocNurseryBigInts_(true),
       suppressAllocationMetadataBuilder(false),
       pretenuring(this),
       compartments_(),
@@ -184,6 +185,7 @@ JS::Zone::Zone(JSRuntime* rt, Kind kind)
   MOZ_ASSERT_IF(isAtomsZone(), rt->gc.zones().empty());
 
   updateGCStartThresholds(rt->gc);
+  updateNurseryAllocFlags(rt->gc.nursery());
 }
 
 Zone::~Zone() {
@@ -384,11 +386,14 @@ void Zone::checkStringWrappersAfterMovingGC() {
 #endif
 
 void Zone::discardJitCode(JS::GCContext* gcx, const DiscardOptions& options) {
-  if (!jitZone()) {
-    return;
+  if (!isPreservingCode()) {
+    forceDiscardJitCode(gcx, options);
   }
+}
 
-  if (isPreservingCode()) {
+void Zone::forceDiscardJitCode(JS::GCContext* gcx,
+                               const DiscardOptions& options) {
+  if (!jitZone()) {
     return;
   }
 
@@ -489,6 +494,27 @@ void Zone::discardJitCode(JS::GCContext* gcx, const DiscardOptions& options) {
     jitZone()->optimizedStubSpace()->freeAllAfterMinorGC(this);
     jitZone()->purgeIonCacheIRStubInfo();
   }
+
+  // Generate a profile marker
+  if (gcx->runtime()->geckoProfiler().enabled()) {
+    char discardingJitScript = options.discardJitScripts ? 'Y' : 'N';
+    char discardingBaseline = options.discardBaselineCode ? 'Y' : 'N';
+    char discardingIon = 'Y';
+
+    char discardingRegExp = 'Y';
+    char discardingNurserySites = options.resetNurseryAllocSites ? 'Y' : 'N';
+    char discardingPretenuredSites =
+        options.resetPretenuredAllocSites ? 'Y' : 'N';
+
+    char buf[100];
+    SprintfLiteral(buf,
+                   "JitScript:%c Baseline:%c Ion:%c "
+                   "RegExp:%c NurserySites:%c PretenuredSites:%c",
+                   discardingJitScript, discardingBaseline, discardingIon,
+                   discardingRegExp, discardingNurserySites,
+                   discardingPretenuredSites);
+    gcx->runtime()->geckoProfiler().markEvent("DiscardJit", buf);
+  }
 }
 
 void JS::Zone::resetAllocSitesAndInvalidate(bool resetNurserySites,
@@ -546,8 +572,6 @@ void JS::Zone::checkUniqueIdTableAfterMovingGC() {
   }
 }
 #endif
-
-uint64_t Zone::gcNumber() { return runtimeFromMainThread()->gc.gcNumber(); }
 
 js::jit::JitZone* Zone::createJitZone(JSContext* cx) {
   MOZ_ASSERT(!jitZone_);

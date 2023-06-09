@@ -518,10 +518,8 @@ class nsWSAdmissionManager {
 
   int32_t IndexOf(nsCString& aAddress, nsCString& aOriginSuffix) {
     for (uint32_t i = 0; i < mQueue.Length(); i++) {
-      bool isPartitioned =
-          (StaticPrefs::privacy_partition_network_state() ||
-           StaticPrefs::privacy_firstparty_isolate()) &&
-          StaticPrefs::privacy_partition_network_state_ws_connection_queue();
+      bool isPartitioned = StaticPrefs::privacy_partition_network_state() ||
+                           StaticPrefs::privacy_firstparty_isolate();
       if (aAddress == (mQueue[i])->mAddress &&
           (!isPartitioned || aOriginSuffix == (mQueue[i])->mOriginSuffix)) {
         return i;
@@ -2853,7 +2851,7 @@ nsresult WebSocketChannel::DoAdmissionDNS() {
   if (mPort == -1) mPort = (mEncrypted ? kDefaultWSSPort : kDefaultWSPort);
   nsCOMPtr<nsIDNSService> dns = do_GetService(NS_DNSSERVICE_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
-  nsCOMPtr<nsIEventTarget> main = GetMainThreadEventTarget();
+  nsCOMPtr<nsIEventTarget> main = GetMainThreadSerialEventTarget();
   nsCOMPtr<nsICancelable> cancelable;
   rv = dns->AsyncResolveNative(hostName, nsIDNSService::RESOLVE_TYPE_DEFAULT,
                                nsIDNSService::RESOLVE_DEFAULT_FLAGS, nullptr,
@@ -3405,7 +3403,7 @@ WebSocketChannel::AsyncOpenNative(nsIURI* aURI, const nsACString& aOrigin,
   {
     auto lock = mTargetThread.Lock();
     if (!lock.ref()) {
-      lock.ref() = GetMainThreadEventTarget();
+      lock.ref() = GetMainThreadSerialEventTarget();
     }
   }
 

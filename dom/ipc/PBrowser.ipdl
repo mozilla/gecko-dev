@@ -32,6 +32,7 @@ include "mozilla/AntiTrackingIPCUtils.h";
 include "mozilla/dom/BindingIPCUtils.h";
 include "mozilla/dom/CSPMessageUtils.h";
 include "mozilla/dom/DocShellMessageUtils.h";
+include "mozilla/dom/FilePickerMessageUtils.h";
 include "mozilla/dom/PermissionMessageUtils.h";
 include "mozilla/dom/ReferrerInfoUtils.h";
 include "mozilla/dom/TabMessageUtils.h";
@@ -49,13 +50,13 @@ using mozilla::LayoutDevicePoint from "Units.h";
 using mozilla::ScreenIntCoord from "Units.h";
 using mozilla::ScreenIntMargin from "Units.h";
 using mozilla::ScreenIntPoint from "Units.h";
-using ScreenRect from "Units.h";
+using mozilla::ScreenRect from "Units.h";
 using struct mozilla::layers::ScrollableLayerGuid from "mozilla/layers/ScrollableLayerGuid.h";
 using struct mozilla::layers::ZoomConstraints from "mozilla/layers/ZoomConstraints.h";
 using mozilla::layers::LayersId from "mozilla/layers/LayersTypes.h";
 using mozilla::layers::LayersObserverEpoch from "mozilla/layers/LayersTypes.h";
 using mozilla::layers::GeckoContentController_TapType from "mozilla/layers/GeckoContentControllerTypes.h";
-using ScrollableLayerGuid::ViewID from "mozilla/layers/ScrollableLayerGuid.h";
+using mozilla::layers::ScrollableLayerGuid::ViewID from "mozilla/layers/ScrollableLayerGuid.h";
 using struct mozilla::void_t from "mozilla/ipc/IPCCore.h";
 using mozilla::WindowsHandle from "mozilla/ipc/IPCTypes.h";
 using class mozilla::WidgetCompositionEvent from "ipc/nsGUIEventIPC.h";
@@ -101,13 +102,14 @@ using mozilla::ScrollFlags from "mozilla/PresShellForwards.h";
 using struct InputFormData from "mozilla/dom/SessionStoreMessageUtils.h";
 using struct CollectedInputDataValue from "mozilla/dom/SessionStoreMessageUtils.h";
 using mozilla::ContentBlockingNotifier::StorageAccessPermissionGrantedReason from "mozilla/ContentBlockingNotifier.h";
-using CallerType from "mozilla/dom/BindingDeclarations.h";
+using mozilla::dom::CallerType from "mozilla/dom/BindingDeclarations.h";
 using mozilla::dom::EmbedderElementEventType from "mozilla/dom/TabMessageTypes.h";
 using mozilla::IntrinsicSize from "nsIFrame.h";
 using mozilla::AspectRatio from "mozilla/AspectRatio.h";
 using mozilla::NativeKeyBindingsType from "mozilla/NativeKeyBindingsType.h";
 using mozilla::StyleImageRendering from "mozilla/ServoStyleConsts.h";
 [MoveOnly] using class mozilla::ipc::BigBuffer from "mozilla/ipc/BigBuffer.h";
+using nsIFilePicker::Mode from "nsIFilePicker.h";
 
 namespace mozilla {
 namespace dom {
@@ -120,8 +122,8 @@ struct WebProgressData
 
 struct RequestData
 {
-  nsIURI requestURI;
-  nsIURI originalRequestURI;
+  nullable nsIURI requestURI;
+  nullable nsIURI originalRequestURI;
   nsCString matchedList;
 };
 
@@ -134,7 +136,7 @@ struct WebProgressStateChangeData
   // this struct is |nsIWebProgress.STATE_STOP|.
   nsString contentType;
   nsString charset;
-  nsIURI documentURI;
+  nullable nsIURI documentURI;
 };
 
 struct WebProgressLocationChangeData
@@ -145,11 +147,11 @@ struct WebProgressLocationChangeData
   nsString contentType;
   nsString title;
   nsString charset;
-  nsIURI documentURI;
-  nsIPrincipal contentPrincipal;
-  nsIPrincipal contentPartitionedPrincipal;
-  nsIContentSecurityPolicy csp;
-  nsIReferrerInfo referrerInfo;
+  nullable nsIURI documentURI;
+  nullable nsIPrincipal contentPrincipal;
+  nullable nsIPrincipal contentPartitionedPrincipal;
+  nullable nsIContentSecurityPolicy csp;
+  nullable nsIReferrerInfo referrerInfo;
   uint64_t? requestContextID;
 };
 
@@ -169,6 +171,10 @@ struct PrintPreviewResultInfo
   // If present, indicates if the page should be printed landscape when true or
   // portrait when false;
   bool? printLandscape;
+  // The at-page specified page width or null when no width is provided.
+  float? pageWidth;
+  // The at-page specified page height or null when no height is provided.
+  float? pageHeight;
 };
 
 /**
@@ -424,7 +430,7 @@ parent:
      */
     async PColorPicker(nsString title, nsString initialColor, nsString[] defaultColors);
 
-    async PFilePicker(nsString aTitle, int16_t aMode);
+    async PFilePicker(nsString aTitle, Mode aMode);
 
     /**
      * Tells the containing widget whether the given input block results in a
@@ -525,8 +531,8 @@ parent:
 
     async AccessKeyNotHandled(WidgetKeyboardEvent event);
 
-    async RegisterProtocolHandler(nsString scheme, nsIURI handlerURI, nsString title,
-                                  nsIURI documentURI);
+    async RegisterProtocolHandler(nsString scheme, nullable nsIURI handlerURI, nsString title,
+                                  nullable nsIURI documentURI);
 
     async OnStateChange(WebProgressData aWebProgressData,
                         RequestData aRequestData, uint32_t aStateFlags,
@@ -534,7 +540,7 @@ parent:
                         WebProgressStateChangeData? aStateChangeData);
 
     async OnLocationChange(WebProgressData aWebProgressData,
-                           RequestData aRequestData, nsIURI aLocation,
+                           RequestData aRequestData, nullable nsIURI aLocation,
                            uint32_t aFlags, bool aCanGoBack,
                            bool aCanGoForward,
                            WebProgressLocationChangeData? aLocationChangeData);
@@ -626,9 +632,11 @@ parent:
                             BigBuffer? visualData,
                             uint32_t stride, SurfaceFormat format,
                             LayoutDeviceIntRect dragRect,
-                            nsIPrincipal principal, nsIContentSecurityPolicy csp,
+                            nullable nsIPrincipal principal,
+                            nullable nsIContentSecurityPolicy csp,
                             CookieJarSettingsArgs cookieJarSettings,
-                            MaybeDiscardedWindowContext sourceWindowContext);
+                            MaybeDiscardedWindowContext sourceWindowContext,
+                            MaybeDiscardedWindowContext sourceTopWindowContext);
 
     // After a compositor reset, it is necessary to reconnect each layers ID to
     // the compositor of the widget that will render those layers. Note that
@@ -688,8 +696,8 @@ child:
 
     async LoadURL(nsDocShellLoadState loadState, ParentShowInfo info);
 
-    async CreateAboutBlankContentViewer(nsIPrincipal principal,
-                                        nsIPrincipal partitionedPrincipal);
+    async CreateAboutBlankContentViewer(nullable nsIPrincipal principal,
+                                        nullable nsIPrincipal partitionedPrincipal);
 
     async ResumeLoad(uint64_t pendingSwitchID, ParentShowInfo info);
 
@@ -837,8 +845,8 @@ child:
      * don't need support RealDragEvent with input priority.
      */
     async RealDragEvent(WidgetDragEvent aEvent, uint32_t aDragAction,
-                        uint32_t aDropEffect, nsIPrincipal aPrincipal,
-                        nsIContentSecurityPolicy csp);
+                        uint32_t aDropEffect, nullable nsIPrincipal aPrincipal,
+                        nullable nsIContentSecurityPolicy csp);
 
     [Priority=input] async CompositionEvent(WidgetCompositionEvent event);
     async NormalPriorityCompositionEvent(WidgetCompositionEvent event);
@@ -858,7 +866,7 @@ child:
      */
     async PasteTransferable(IPCDataTransfer aDataTransfer,
                             bool aIsPrivateData,
-                            nsIPrincipal aRequestingPrincipal,
+                            nullable nsIPrincipal aRequestingPrincipal,
                             nsContentPolicyType aContentPolicyType);
 
     async LoadRemoteScript(nsString aURL, bool aRunInGlobalScope);
@@ -996,10 +1004,10 @@ parent:
     async IsWindowSupportingWebVR(uint64_t aOuterWindowID) returns(bool isSupported);
 
     /** Records a history visit. */
-    async VisitURI(nsIURI aURI, nsIURI aLastVisitedURI, uint32_t aFlags, uint64_t aBrowserId);
+    async VisitURI(nullable nsIURI aURI, nullable nsIURI aLastVisitedURI, uint32_t aFlags, uint64_t aBrowserId);
 
     /** Fetches the visited status for an array of URIs (Android-only). */
-    async QueryVisitedState(nsIURI[] aURIs);
+    async QueryVisitedState(nullable nsIURI[] aURIs);
 
     /** Create a session store for a browser child. */
     async PSessionStore();

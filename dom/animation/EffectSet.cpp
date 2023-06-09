@@ -12,21 +12,9 @@
 #include "nsCycleCollectionNoteChild.h"  // For CycleCollectionNoteChild
 #include "nsPresContext.h"
 #include "nsLayoutUtils.h"
+#include "ElementAnimationData.h"
 
 namespace mozilla {
-
-/* static */
-void EffectSet::PropertyDtor(void* aObject, nsAtom* aPropertyName,
-                             void* aPropertyValue, void* aData) {
-  EffectSet* effectSet = static_cast<EffectSet*>(aPropertyValue);
-
-#ifdef DEBUG
-  MOZ_ASSERT(!effectSet->mCalledPropertyDtor, "Should not call dtor twice");
-  effectSet->mCalledPropertyDtor = true;
-#endif
-
-  delete effectSet;
-}
 
 void EffectSet::Traverse(nsCycleCollectionTraversalCallback& aCallback) {
   for (const auto& key : mEffects) {
@@ -36,45 +24,23 @@ void EffectSet::Traverse(nsCycleCollectionTraversalCallback& aCallback) {
 }
 
 /* static */
-EffectSet* EffectSet::GetEffectSet(const dom::Element* aElement,
-                                   PseudoStyleType aPseudoType) {
-  if (!aElement->MayHaveAnimations()) {
-    return nullptr;
+EffectSet* EffectSet::Get(const dom::Element* aElement,
+                          PseudoStyleType aPseudoType) {
+  if (auto* data = aElement->GetAnimationData()) {
+    return data->GetEffectSetFor(aPseudoType);
   }
-
-  nsAtom* propName = GetEffectSetPropertyAtom(aPseudoType);
-  return static_cast<EffectSet*>(aElement->GetProperty(propName));
+  return nullptr;
 }
 
 /* static */
-EffectSet* EffectSet::GetOrCreateEffectSet(dom::Element* aElement,
-                                           PseudoStyleType aPseudoType) {
-  EffectSet* effectSet = GetEffectSet(aElement, aPseudoType);
-  if (effectSet) {
-    return effectSet;
-  }
-
-  nsAtom* propName = GetEffectSetPropertyAtom(aPseudoType);
-  effectSet = new EffectSet();
-
-  nsresult rv = aElement->SetProperty(propName, effectSet,
-                                      &EffectSet::PropertyDtor, true);
-  if (NS_FAILED(rv)) {
-    NS_WARNING("SetProperty failed");
-    // The set must be destroyed via PropertyDtor, otherwise
-    // mCalledPropertyDtor assertion is triggered in destructor.
-    EffectSet::PropertyDtor(aElement, propName, effectSet, nullptr);
-    return nullptr;
-  }
-
-  aElement->SetMayHaveAnimations();
-
-  return effectSet;
+EffectSet* EffectSet::GetOrCreate(dom::Element* aElement,
+                                  PseudoStyleType aPseudoType) {
+  return &aElement->EnsureAnimationData().EnsureEffectSetFor(aPseudoType);
 }
 
 /* static */
-EffectSet* EffectSet::GetEffectSetForFrame(
-    const nsIFrame* aFrame, const nsCSSPropertyIDSet& aProperties) {
+EffectSet* EffectSet::GetForFrame(const nsIFrame* aFrame,
+                                  const nsCSSPropertyIDSet& aProperties) {
   MOZ_ASSERT(aFrame);
 
   // Transform animations are run on the primary frame (but stored on the
@@ -102,18 +68,18 @@ EffectSet* EffectSet::GetEffectSetForFrame(
     return nullptr;
   }
 
-  return GetEffectSet(target->mElement, target->mPseudoType);
+  return Get(target->mElement, target->mPseudoType);
 }
 
 /* static */
-EffectSet* EffectSet::GetEffectSetForFrame(const nsIFrame* aFrame,
-                                           DisplayItemType aDisplayItemType) {
-  return EffectSet::GetEffectSetForFrame(
+EffectSet* EffectSet::GetForFrame(const nsIFrame* aFrame,
+                                  DisplayItemType aDisplayItemType) {
+  return EffectSet::GetForFrame(
       aFrame, LayerAnimationInfo::GetCSSPropertiesFor(aDisplayItemType));
 }
 
 /* static */
-EffectSet* EffectSet::GetEffectSetForStyleFrame(const nsIFrame* aStyleFrame) {
+EffectSet* EffectSet::GetForStyleFrame(const nsIFrame* aStyleFrame) {
   Maybe<NonOwningAnimationTarget> target =
       EffectCompositor::GetAnimationElementAndPseudoForFrame(aStyleFrame);
 
@@ -121,74 +87,30 @@ EffectSet* EffectSet::GetEffectSetForStyleFrame(const nsIFrame* aStyleFrame) {
     return nullptr;
   }
 
-  return GetEffectSet(target->mElement, target->mPseudoType);
+  return Get(target->mElement, target->mPseudoType);
 }
 
 /* static */
-EffectSet* EffectSet::GetEffectSetForEffect(
-    const dom::KeyframeEffect* aEffect) {
+EffectSet* EffectSet::GetForEffect(const dom::KeyframeEffect* aEffect) {
   NonOwningAnimationTarget target = aEffect->GetAnimationTarget();
   if (!target) {
     return nullptr;
   }
 
-  return EffectSet::GetEffectSet(target.mElement, target.mPseudoType);
+  return EffectSet::Get(target.mElement, target.mPseudoType);
 }
 
 /* static */
 void EffectSet::DestroyEffectSet(dom::Element* aElement,
                                  PseudoStyleType aPseudoType) {
-  nsAtom* propName = GetEffectSetPropertyAtom(aPseudoType);
-  EffectSet* effectSet =
-      static_cast<EffectSet*>(aElement->GetProperty(propName));
-  if (!effectSet) {
-    return;
+  if (auto* data = aElement->GetAnimationData()) {
+    data->ClearEffectSetFor(aPseudoType);
   }
-
-  MOZ_ASSERT(!effectSet->IsBeingEnumerated(),
-             "Should not destroy an effect set while it is being enumerated");
-  effectSet = nullptr;
-
-  aElement->RemoveProperty(propName);
 }
 
 void EffectSet::UpdateAnimationGeneration(nsPresContext* aPresContext) {
   mAnimationGeneration =
       aPresContext->RestyleManager()->GetAnimationGeneration();
-}
-
-/* static */
-nsAtom** EffectSet::GetEffectSetPropertyAtoms() {
-  static nsAtom* effectSetPropertyAtoms[] = {
-      nsGkAtoms::animationEffectsProperty,
-      nsGkAtoms::animationEffectsForBeforeProperty,
-      nsGkAtoms::animationEffectsForAfterProperty,
-      nsGkAtoms::animationEffectsForMarkerProperty, nullptr};
-
-  return effectSetPropertyAtoms;
-}
-
-/* static */
-nsAtom* EffectSet::GetEffectSetPropertyAtom(PseudoStyleType aPseudoType) {
-  switch (aPseudoType) {
-    case PseudoStyleType::NotPseudo:
-      return nsGkAtoms::animationEffectsProperty;
-
-    case PseudoStyleType::before:
-      return nsGkAtoms::animationEffectsForBeforeProperty;
-
-    case PseudoStyleType::after:
-      return nsGkAtoms::animationEffectsForAfterProperty;
-
-    case PseudoStyleType::marker:
-      return nsGkAtoms::animationEffectsForMarkerProperty;
-
-    default:
-      MOZ_ASSERT_UNREACHABLE(
-          "Should not try to get animation effects for "
-          "a pseudo other that :before, :after or ::marker");
-      return nullptr;
-  }
 }
 
 void EffectSet::AddEffect(dom::KeyframeEffect& aEffect) {

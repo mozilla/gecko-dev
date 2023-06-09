@@ -12,6 +12,7 @@ import android.os.ParcelFileDescriptor
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
+import org.hamcrest.Matchers.equalTo
 import org.junit.After
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -20,10 +21,10 @@ import org.junit.Test
 import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 import org.mozilla.geckoview.Autofill
+import org.mozilla.geckoview.GeckoViewPrintDocumentAdapter
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.NullDelegate
 import java.io.File
 import java.io.InputStream
-import java.util.* // ktlint-disable no-wildcard-imports
 import kotlin.math.roundToInt
 
 @RunWith(AndroidJUnit4::class)
@@ -122,6 +123,36 @@ class PdfCreationTest : BaseSessionTest() {
                         bluePixel == Color.BLUE
                     )
                 assertTrue("The PDF generated RGB colors.", doPixelsMatch)
+            }
+        }
+    }
+
+    @NullDelegate(Autofill.Delegate::class)
+    @Test
+    fun makeTempPdfFileTest() {
+        activityRule.scenario.onActivity { activity ->
+            mainSession.loadTestPath(COLOR_ORANGE_BACKGROUND_HTML_PATH)
+            mainSession.waitForPageStop()
+            val pdfInputStream = mainSession.saveAsPdf()
+            sessionRule.waitForResult(pdfInputStream).let { stream ->
+                val file = GeckoViewPrintDocumentAdapter.makeTempPdfFile(stream, activity)!!
+                assertTrue("PDF File exists.", file.exists())
+                assertTrue("PDF File is not empty.", file.length() > 0L)
+                file.delete()
+            }
+        }
+    }
+
+    @NullDelegate(Autofill.Delegate::class)
+    @Test
+    fun saveAPdfDocument() {
+        activityRule.scenario.onActivity {
+            mainSession.loadTestPath(HELLO_PDF_WORLD_PDF_PATH)
+            mainSession.waitForPageStop()
+            val pdfInputStream = mainSession.saveAsPdf()
+            val originalBytes = getTestBytes(HELLO_PDF_WORLD_PDF_PATH)
+            sessionRule.waitForResult(pdfInputStream).let {
+                assertThat("The PDF File must the same as the original one.", it!!.readBytes(), equalTo(originalBytes))
             }
         }
     }

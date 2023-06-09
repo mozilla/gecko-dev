@@ -605,10 +605,10 @@ void SandboxBrokerPolicyFactory::InitContentPolicy() {
     }
   }
 
-  if (mozilla::IsDevelopmentBuild()) {
-    // If this is a developer build the resources are symlinks to outside the
-    // binary dir. Therefore in non-release builds we allow reads from the whole
-    // repository. MOZ_DEVELOPER_REPO_DIR is set by mach run.
+  if (!mozilla::IsPackagedBuild()) {
+    // If this is not a packaged build the resources are likely symlinks to
+    // outside the binary dir. Therefore in non-release builds we allow reads
+    // from the whole repository. MOZ_DEVELOPER_REPO_DIR is set by mach run.
     const char* developer_repo_dir = PR_GetEnv("MOZ_DEVELOPER_REPO_DIR");
     if (developer_repo_dir) {
       policy->AddDir(rdonly, developer_repo_dir);
@@ -654,6 +654,7 @@ void SandboxBrokerPolicyFactory::InitContentPolicy() {
   AddDynamicPathList(policy, "security.sandbox.content.read_path_whitelist",
                      rdonly);
 
+#if defined(MOZ_CONTENT_TEMP_DIR)
   // Add write permissions on the content process specific temporary dir.
   nsCOMPtr<nsIFile> tmpDir;
   rv = NS_GetSpecialDirectory(NS_APP_CONTENT_PROCESS_TEMP_DIR,
@@ -665,6 +666,7 @@ void SandboxBrokerPolicyFactory::InitContentPolicy() {
       policy->AddDir(rdwrcr, tmpPath.get());
     }
   }
+#endif
 
   // userContent.css and the extensions dir sit in the profile, which is
   // normally blocked.
@@ -818,6 +820,7 @@ SandboxBrokerPolicyFactory::GetRDDPolicy(int aPid) {
 
   AddSharedMemoryPaths(policy.get(), aPid);
 
+  policy->AddPath(rdonly, "/dev/urandom");
   // FIXME (bug 1662321): we should fix nsSystemInfo so that every
   // child process doesn't need to re-read these files to get the info
   // the parent process already has.
@@ -855,10 +858,10 @@ SandboxBrokerPolicyFactory::GetRDDPolicy(int aPid) {
     }
   }
 
-  if (mozilla::IsDevelopmentBuild()) {
-    // If this is a developer build the resources are symlinks to outside the
-    // binary dir. Therefore in non-release builds we allow reads from the whole
-    // repository. MOZ_DEVELOPER_REPO_DIR is set by mach run.
+  if (!mozilla::IsPackagedBuild()) {
+    // If this is not a packaged build the resources are likely symlinks to
+    // outside the binary dir. Therefore in non-release builds we allow reads
+    // from the whole repository. MOZ_DEVELOPER_REPO_DIR is set by mach run.
     const char* developer_repo_dir = PR_GetEnv("MOZ_DEVELOPER_REPO_DIR");
     if (developer_repo_dir) {
       policy->AddDir(rdonly, developer_repo_dir);

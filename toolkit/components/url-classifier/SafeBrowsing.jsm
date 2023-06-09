@@ -260,9 +260,15 @@ const FEATURES = [
       "urlclassifier.features.emailtracking.allowlistTables",
     ],
     enabled() {
-      return Services.prefs.getBoolPref(
-        "privacy.trackingprotection.emailtracking.enabled",
-        false
+      return (
+        Services.prefs.getBoolPref(
+          "privacy.trackingprotection.emailtracking.enabled",
+          false
+        ) ||
+        Services.prefs.getBoolPref(
+          "privacy.trackingprotection.emailtracking.pbmode.enabled",
+          false
+        )
       );
     },
     update() {
@@ -385,7 +391,7 @@ var SafeBrowsing = {
       default:
         let err =
           "SafeBrowsing getReportURL() called with unknown kind: " + kind;
-        Cu.reportError(err);
+        console.error(err);
         throw err;
     }
 

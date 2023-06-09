@@ -49,7 +49,6 @@ class SVGUseElement final : public SVGUseElementBase,
  public:
   NS_IMPL_FROMNODE_WITH_TAG(SVGUseElement, kNameSpaceID_SVG, use)
 
-  bool IsNodeOfType(uint32_t aFlags) const override;
   nsresult BindToTree(BindContext&, nsINode& aParent) override;
   void UnbindFromTree(bool aNullParent = true) override;
 
@@ -96,9 +95,9 @@ class SVGUseElement final : public SVGUseElementBase,
   // This is needed because SMIL doesn't go through AfterSetAttr unfortunately.
   void ProcessAttributeChange(int32_t aNamespaceID, nsAtom* aAttribute);
 
-  nsresult AfterSetAttr(int32_t aNamespaceID, nsAtom* aAttribute,
-                        const nsAttrValue* aValue, const nsAttrValue* aOldValue,
-                        nsIPrincipal* aSubjectPrincipal, bool aNotify) final;
+  void AfterSetAttr(int32_t aNamespaceID, nsAtom* aAttribute,
+                    const nsAttrValue* aValue, const nsAttrValue* aOldValue,
+                    nsIPrincipal* aSubjectPrincipal, bool aNotify) final;
 
  protected:
   // Information from walking our ancestors and a given target.
@@ -114,8 +113,12 @@ class SVGUseElement final : public SVGUseElementBase,
     // We're a cyclic reference to either an ancestor or another shadow tree. We
     // shouldn't render this <use> element.
     CyclicReference,
+    // We're too deep in our clone chain, we shouldn't be rendered.
+    TooDeep,
   };
   ScanResult ScanAncestors(const Element& aTarget) const;
+  ScanResult ScanAncestorsInternal(const Element& aTarget,
+                                   uint32_t& aCount) const;
 
   /**
    * Helper that provides a reference to the element with the ID that is

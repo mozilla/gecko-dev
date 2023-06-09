@@ -6,12 +6,8 @@ Library("dllservicestest")
 
 UNIFIED_SOURCES += [
     "TestDLLBlocklist.cpp",
+    "TestUntrustedModules.cpp",
 ]
-
-if CONFIG["CPU_ARCH"] != "x86":
-    UNIFIED_SOURCES += [
-        "TestUntrustedModules.cpp",
-    ]
 
 LOCAL_INCLUDES += [
     "/toolkit/components/telemetry/other",
@@ -19,10 +15,18 @@ LOCAL_INCLUDES += [
 ]
 
 TEST_DIRS += [
+    "rust",
     "TestDllBlocklist_AllowByVersion",
+    "TestDllBlocklist_GMPluginProcessOnly",
+    "TestDllBlocklist_GPUProcessOnly",
     "TestDllBlocklist_MatchByName",
     "TestDllBlocklist_MatchByVersion",
+    "TestDllBlocklist_MultipleEntries_DifferentProcesses",
+    "TestDllBlocklist_MultipleEntries_SameProcessBackward",
+    "TestDllBlocklist_MultipleEntries_SameProcessForward",
     "TestDllBlocklist_NoOpEntryPoint",
+    "TestDllBlocklist_SingleNotification1",
+    "TestDllBlocklist_SingleNotification2",
     "TestDllBlocklist_SocketProcessOnly",
     "TestDllBlocklist_UserBlocked",
     "TestDllBlocklist_UtilityProcessOnly",

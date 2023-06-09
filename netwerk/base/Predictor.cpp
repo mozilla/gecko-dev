@@ -73,8 +73,6 @@ static const uint32_t ONE_WEEK = 7U * ONE_DAY;
 static const uint32_t ONE_MONTH = 30U * ONE_DAY;
 static const uint32_t ONE_YEAR = 365U * ONE_DAY;
 
-static const uint32_t STARTUP_WINDOW = 5U * 60U;  // 5min
-
 // Version of metadata entries we expect
 static const uint32_t METADATA_VERSION = 1;
 
@@ -305,6 +303,12 @@ Predictor::GetIsFromPredictor(bool* isFromPredictor) {
 NS_IMETHODIMP
 Predictor::GetAllow1918(bool* allow1918) {
   *allow1918 = false;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+Predictor::GetIgnoreUserCertCheck(bool* ignore) {
+  *ignore = false;
   return NS_OK;
 }
 

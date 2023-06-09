@@ -410,7 +410,7 @@ void DataChannelConnection::DestroyOnSTS(struct socket* aMasterSocket,
 
   disconnect_all();
   mTransportHandler = nullptr;
-  GetMainThreadEventTarget()->Dispatch(NS_NewRunnableFunction(
+  GetMainThreadSerialEventTarget()->Dispatch(NS_NewRunnableFunction(
       "DataChannelConnection::Destroy",
       [id = mId]() { DataChannelRegistry::Deregister(id); }));
 }
@@ -865,9 +865,21 @@ void DataChannelConnection::CompleteConnect() {
       if (r < 0) {
         DC_ERROR(("usrsctp_getsockopt failed: %d", r));
       } else {
-        // draft-ietf-rtcweb-data-channel-13 section 5: max initial MTU IPV4
-        // 1200, IPV6 1280
-        paddrparams.spp_pathmtu = 1200;  // safe for either
+        // This field is misnamed. |spp_pathmtu| represents the maximum
+        // _payload_ size in libusrsctp. So:
+        // 1280 (a reasonable IPV6 MTU according to RFC 8831)
+        //  -12 (sctp header)
+        //  -24 (GCM sipher)
+        //  -13 (DTLS record header)
+        //   -8 (UDP header)
+        //   -4 (TURN ChannelData)
+        //  -40 (IPV6 header)
+        // = 1179
+        // We could further restrict this, because RFC 8831 suggests a starting
+        // IPV4 path MTU of 1200, which would lead to a value of 1115.
+        // I suspect that in practice the path MTU for IPV4 is substantially
+        // larger than 1200.
+        paddrparams.spp_pathmtu = 1179;
         paddrparams.spp_flags &= ~SPP_PMTUD_ENABLE;
         paddrparams.spp_flags |= SPP_PMTUD_DISABLE;
         opt_len = (socklen_t)sizeof(struct sctp_paddrparams);
@@ -3272,11 +3284,17 @@ void DataChannel::AnnounceOpen() {
         auto state = GetReadyState();
         // Special-case; spec says to put brand-new remote-created DataChannel
         // in "open", but queue the firing of the "open" event.
-        if (state != CLOSING && state != CLOSED && mListener) {
+        if (state != CLOSING && state != CLOSED) {
+          if (!mEverOpened && mConnection && mConnection->mListener) {
+            mEverOpened = true;
+            mConnection->mListener->NotifyDataChannelOpen(this);
+          }
           SetReadyState(OPEN);
           DC_DEBUG(("%s: sending ON_CHANNEL_OPEN for %s/%s: %u", __FUNCTION__,
                     mLabel.get(), mProtocol.get(), mStream));
-          mListener->OnChannelConnected(mContext);
+          if (mListener) {
+            mListener->OnChannelConnected(mContext);
+          }
         }
       }));
 }
@@ -3286,6 +3304,9 @@ void DataChannel::AnnounceClosed() {
       "DataChannel::AnnounceClosed", [this, self = RefPtr<DataChannel>(this)] {
         if (GetReadyState() == CLOSED) {
           return;
+        }
+        if (mEverOpened && mConnection && mConnection->mListener) {
+          mConnection->mListener->NotifyDataChannelClosed(this);
         }
         SetReadyState(CLOSED);
         mBufferedData.Clear();

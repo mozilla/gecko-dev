@@ -50,8 +50,8 @@ web-platform-tests:
             linux.*/debug: 16
             macosx.*/debug: 18
             windows.*32.*/opt: 12
-            windows.*/debug: 14
-            windows10-64-2004-ccov.*/opt: 14
+            windows.*/debug: 16
+            windows.*-ccov.*/opt: 14
             default: 10
     max-run-time:
         by-test-platform:
@@ -69,14 +69,14 @@ web-platform-tests:
         by-variant:
             webrender-sw:
                 by-test-platform:
-                    (linux1804|windows10)-32.*/.*: []
+                    .*-32.*/.*: []
                     linux.*64-qr/debug: built-projects
-                    windows10-64-2004-qr/debug: built-projects
+                    windows.*-qr/debug: built-projects
                     android-em-7.0-x86_64-qr/debug: []
                     default: []
             webrender-sw+no-fission:
                 by-test-platform:
-                    (linux1804|windows10)-32.*/.*: []
+                    .*-32.*/.*: []
                     android-em-7.0-x86_64-qr/debug: built-projects
                     linux.*64-qr/debug: built-projects
                     default: []
@@ -97,6 +97,12 @@ web-platform-tests:
             - --test-type=testharness
             - --skip-implementation-status=backlog
             - --skip-implementation-status=not-implementing
+            # Because we have a separate job for them, don't run the (core)
+            # webgpu/* tests in the main WPT runs. (but still run tests in dirs
+            # other than webgpu/* that are tagged webgpu, e.g. canvas tests)
+            - --exclude=webgpu
+            # Remove after webgpu tests move back to upstream WPT repo:
+            - --exclude=_mozilla/webgpu
 
 web-platform-tests-backlog:
     description: "Web platform test (backlog) run"
@@ -137,7 +143,7 @@ web-platform-tests-reftest:
     treeherder-symbol: W(Wr)
     virtualization:
         by-test-platform:
-            windows10-64-2004.*-qr/.*: virtual-with-gpu
+            windows.*-64.*-qr/.*: virtual-with-gpu
             default: virtual
     chunks:
         by-test-platform:
@@ -157,9 +163,9 @@ web-platform-tests-reftest:
         by-variant:
             webrender-sw:
                 by-test-platform:
-                    (linux1804|windows10)-32.*/.*: []
+                    .*-32.*/.*: []
                     linux.*64-qr/debug: built-projects
-                    windows10-64-2004-qr/debug: built-projects
+                    windows.*-qr/debug: built-projects
                     default: []
             webrender-sw+no-fission:
                 by-test-platform:
@@ -187,6 +193,27 @@ web-platform-tests-reftest:
             - --test-type=reftest
             - --skip-implementation-status=backlog
             - --skip-implementation-status=not-implementing
+
+web-platform-tests-webgpu:
+    description: "Web platform WebGPU test run"
+    suite: web-platform-tests
+    treeherder-symbol: W(webgpu)
+    virtualization: virtual
+    tier: default
+    chunks: 2
+    max-run-time: 7200
+    variants: []  # We don't need sw or nofis testing.
+    run-on-projects:
+        by-test-platform:
+            android.*: []
+            macos.*: []
+            default: built-projects
+    mozharness:
+        chunked: true
+        extra-options:
+            - --test-type=testharness
+            - --default-exclude
+            - --tag=webgpu
 
 web-platform-tests-reftest-backlog:
     description: "Web platform reftest (backlog) run"
@@ -226,7 +253,12 @@ web-platform-tests-wdspec:
             default: 3
     mozharness:
         extra-options:
-            - --test-type=wdspec
+            by-test-platform:
+                android-em-7.*:
+                    - --test-type=wdspec
+                    - --setpref=gfx.canvas.accelerated=false
+                default:
+                    - --test-type=wdspec
     variants:
         - no-fission
         - webrender-sw+no-fission
@@ -243,14 +275,13 @@ web-platform-tests-wdspec:
             webrender-sw:
                 by-test-platform:
                     android-em-7.0-x86_64-qr/debug: []
-                    (linux1804|windows10)-32.*/.*: []
+                    .*-32.*/.*: []
                     linux.*64-qr/debug: built-projects
-                    windows10-64-2004-qr/debug: built-projects
+                    windows.*-qr/debug: built-projects
                     default: []
             headless:
                 by-test-platform:
                     android.*: []
-                    .*-tsan.*: []
                     default: built-projects
             no-fission:
                 by-test-platform:
@@ -315,10 +346,10 @@ web-platform-tests-crashtest:
             webrender-sw:
                 by-test-platform:
                     android-em-7.0-x86_64-qr/debug: built-projects
-                    (linux1804|windows10)-32.*/.*: []
+                    .*-32.*/.*: []
                     linux.*64-qr/debug: built-projects
                     macosx101.*64-qr/debug: built-projects
-                    windows10-64-2004-qr/debug: built-projects
+                    windows.*-qr/debug: built-projects
                     default: []
             webrender-sw+no-fission:
                 by-test-platform:
@@ -356,9 +387,9 @@ web-platform-tests-print-reftest:
             webrender-sw:
                 by-test-platform:
                     android.*: []
-                    (linux1804|windows10)-32.*/.*: []
+                    .*-32.*/.*: []
                     linux.*64-qr/debug: built-projects
-                    windows10-64-2004-qr/debug: built-projects
+                    windows.*-qr/debug: built-projects
                     default: []
             webrender-sw+no-fission:
                 by-test-platform:

@@ -126,7 +126,12 @@ class PeerConnectionCtx {
                          PeerConnectionImpl* aPeerConnection);
   PeerConnectionImpl* GetPeerConnection(const std::string& aKey) const;
   template <typename Function>
-  void ForEachPeerConnection(Function&& aFunction) const;
+  void ForEachPeerConnection(Function&& aFunction) const {
+    MOZ_ASSERT(NS_IsMainThread());
+    for (const auto& pair : mPeerConnections) {
+      aFunction(pair.second);
+    }
+  }
 
   void ClearClosedStats();
 
@@ -141,9 +146,11 @@ class PeerConnectionCtx {
   // This is a singleton, so don't copy construct it, etc.
   PeerConnectionCtx(const PeerConnectionCtx& other) = delete;
   void operator=(const PeerConnectionCtx& other) = delete;
-  virtual ~PeerConnectionCtx();
+  virtual ~PeerConnectionCtx() = default;
 
   nsresult Initialize();
+  nsresult StartTelemetryTimer();
+  void StopTelemetryTimer();
   nsresult Cleanup();
 
   void initGMP();

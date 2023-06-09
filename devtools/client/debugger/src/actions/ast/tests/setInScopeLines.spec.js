@@ -13,6 +13,7 @@ import {
   makeSource,
   waitForState,
 } from "../../../utils/test-head";
+import { createLocation } from "../../../utils/location";
 
 const { getInScopeLines } = selectors;
 
@@ -41,13 +42,23 @@ describe("getInScopeLine", () => {
     const frame = makeMockFrame("scopes-4", source);
     client.getFrames = async () => [frame];
 
-    await dispatch(actions.newGeneratedSource(makeSource("scopes.js")));
+    const baseSource = await dispatch(
+      actions.newGeneratedSource(makeSource("scopes.js"))
+    );
+    const sourceActor = selectors.getFirstSourceActorForGeneratedSource(
+      getState(),
+      baseSource.id
+    );
 
     await dispatch(
-      actions.selectLocation(selectors.getContext(getState()), {
-        sourceId: "scopes.js",
-        line: 5,
-      })
+      actions.selectLocation(
+        selectors.getContext(getState()),
+        createLocation({
+          source: baseSource,
+          sourceActor,
+          line: 5,
+        })
+      )
     );
 
     await dispatch(

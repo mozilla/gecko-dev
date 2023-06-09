@@ -34,8 +34,8 @@ struct BasePoint {
   constexpr BasePoint() : x(0), y(0) {}
   constexpr BasePoint(Coord aX, Coord aY) : x(aX), y(aY) {}
 
-  MOZ_ALWAYS_INLINE T X() const { return x; }
-  MOZ_ALWAYS_INLINE T Y() const { return y; }
+  MOZ_ALWAYS_INLINE Coord X() const { return x; }
+  MOZ_ALWAYS_INLINE Coord Y() const { return y; }
 
   void MoveTo(T aX, T aY) {
     x = aX;
@@ -99,7 +99,7 @@ struct BasePoint {
   bool IsFinite() const {
     using FloatType =
         std::conditional_t<std::is_same_v<T, float>, float, double>;
-    return (mozilla::IsFinite(FloatType(x)) && mozilla::IsFinite(FloatType(y)));
+    return (std::isfinite(FloatType(x)) && std::isfinite(FloatType(y)));
     return true;
   }
 

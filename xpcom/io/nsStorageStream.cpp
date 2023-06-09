@@ -63,13 +63,14 @@ nsStorageStream::Init(uint32_t aSegmentSize, uint32_t aMaxSize) {
   mSegmentedBuffer = new nsSegmentedBuffer();
   mSegmentSize = aSegmentSize;
   mSegmentSizeLog2 = mozilla::FloorLog2(aSegmentSize);
+  mMaxLogicalLength = aMaxSize;
 
   // Segment size must be a power of two
   if (mSegmentSize != ((uint32_t)1 << mSegmentSizeLog2)) {
     return NS_ERROR_INVALID_ARG;
   }
 
-  return mSegmentedBuffer->Init(aSegmentSize, aMaxSize);
+  return mSegmentedBuffer->Init(aSegmentSize);
 }
 
 NS_IMETHODIMP
@@ -145,6 +146,15 @@ NS_IMETHODIMP
 nsStorageStream::Flush() { return NS_OK; }
 
 NS_IMETHODIMP
+nsStorageStream::StreamStatus() {
+  MutexAutoLock lock(mMutex);
+  if (!mSegmentedBuffer) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 nsStorageStream::Write(const char* aBuffer, uint32_t aCount,
                        uint32_t* aNumWritten) {
   if (NS_WARN_IF(!aNumWritten) || NS_WARN_IF(!aBuffer)) {
@@ -156,11 +166,17 @@ nsStorageStream::Write(const char* aBuffer, uint32_t aCount,
     return NS_ERROR_NOT_INITIALIZED;
   }
 
+  if (NS_WARN_IF(mLogicalLength >= mMaxLogicalLength)) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
   LOG(("nsStorageStream [%p] Write mWriteCursor=%p mSegmentEnd=%p aCount=%d\n",
        this, mWriteCursor, mSegmentEnd, aCount));
 
   uint32_t remaining = aCount;
   const char* readCursor = aBuffer;
+
+  remaining = std::min(remaining, mMaxLogicalLength - mLogicalLength);
 
   auto onExit = mozilla::MakeScopeExit([&] {
     mMutex.AssertCurrentThreadOwns();
@@ -420,6 +436,9 @@ nsStorageInputStream::Available(uint64_t* aAvailable) {
   *aAvailable = mStorageStream->mLogicalLength - mLogicalCursor;
   return NS_OK;
 }
+
+NS_IMETHODIMP
+nsStorageInputStream::StreamStatus() { return mStatus; }
 
 NS_IMETHODIMP
 nsStorageInputStream::Read(char* aBuffer, uint32_t aCount, uint32_t* aNumRead) {

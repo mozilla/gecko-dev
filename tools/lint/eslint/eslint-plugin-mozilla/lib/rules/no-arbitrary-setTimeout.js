@@ -17,6 +17,11 @@ module.exports = {
       url:
         "https://firefox-source-docs.mozilla.org/code-quality/lint/linters/eslint-plugin-mozilla/no-arbitrary-setTimeout.html",
     },
+    messages: {
+      listenForEvents:
+        "listen for events instead of setTimeout() with arbitrary delay",
+    },
+    schema: [],
     type: "problem",
   },
 
@@ -50,11 +55,10 @@ module.exports = {
 
         let timeout = node.arguments[1];
         if (timeout.type !== "Literal" || timeout.value > 0) {
-          context.report(
+          context.report({
             node,
-            "listen for events instead of setTimeout() " +
-              "with arbitrary delay"
-          );
+            messageId: "listenForEvents",
+          });
         }
       },
     };

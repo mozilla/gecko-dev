@@ -13,6 +13,9 @@ add_task(async function() {
   await pushPref("devtools.custom-formatters", true);
   await pushPref("devtools.custom-formatters.enabled", true);
 
+  // enable "can't access property "y", x is undefined" error message
+  await pushPref("javascript.options.property_error_message_fix", true);
+
   const hud = await openNewTabAndConsole(TEST_URI);
 
   // Reload the browser to ensure the custom formatters are picked up
@@ -22,16 +25,16 @@ add_task(async function() {
   await testHeaderNotReturningJsonMl(hud);
   await testHeaderNotReturningElementType(hud);
   await testHeaderThrowing(hud);
-  await testHeaderHavingSideEffects(hud);
   await testHasBodyNotAFunction(hud);
   await testHasBodyThrowing(hud);
-  await testHasBodyHavingSideEffects(hud);
   await testBodyNotAFunction(hud);
   await testBodyReturningNull(hud);
   await testBodyNotReturningJsonMl(hud);
   await testBodyNotReturningElementType(hud);
   await testBodyThrowing(hud);
-  await testBodyHavingSideEffects(hud);
+  await testIncorrectObjectTag(hud);
+  await testInvalidTagname(hud);
+  await testNoPrivilegedAccess(hud);
   await testErrorsLoggedOnce(hud);
 });
 
@@ -64,31 +67,17 @@ async function testHeaderThrowing(hud) {
   });
 }
 
-async function testHeaderHavingSideEffects(hud) {
-  info(`Test for "header" function having side effects`);
-  await testCustomFormatting(hud, {
-    messageText: `Custom formatter failed: devtoolsFormatters[4].header was not run because it has side effects`,
-  });
-}
-
 async function testHasBodyNotAFunction(hud) {
   info(`Test for "hasBody" not being a function`);
   await testCustomFormatting(hud, {
-    messageText: `Custom formatter failed: devtoolsFormatters[5].hasBody should be a function, got number`,
+    messageText: `Custom formatter failed: devtoolsFormatters[4].hasBody should be a function, got number`,
   });
 }
 
 async function testHasBodyThrowing(hud) {
   info(`Test for "hasBody" function throwing`);
   await testCustomFormatting(hud, {
-    messageText: `Custom formatter failed: devtoolsFormatters[6].hasBody threw: ERROR`,
-  });
-}
-
-async function testHasBodyHavingSideEffects(hud) {
-  info(`Test for "hasBody" function having side effects`);
-  await testCustomFormatting(hud, {
-    messageText: `Custom formatter failed: devtoolsFormatters[7].hasBody was not run because it has side effects`,
+    messageText: `Custom formatter failed: devtoolsFormatters[5].hasBody threw: ERROR`,
   });
 }
 
@@ -96,7 +85,7 @@ async function testBodyNotAFunction(hud) {
   info(`Test for "body" not being a function`);
   await testCustomFormatting(hud, {
     messageText: "body not a function",
-    bodyText: `Custom formatter failed: devtoolsFormatters[8].body should be a function, got number`,
+    bodyText: `Custom formatter failed: devtoolsFormatters[6].body should be a function, got number`,
   });
 }
 
@@ -104,7 +93,7 @@ async function testBodyReturningNull(hud) {
   info(`Test for "body" returning null`);
   await testCustomFormatting(hud, {
     messageText: "body returns null",
-    bodyText: `Custom formatter failed: devtoolsFormatters[9].body should return an array, got null`,
+    bodyText: `Custom formatter failed: devtoolsFormatters[7].body should return an array, got null`,
   });
 }
 
@@ -112,7 +101,7 @@ async function testBodyNotReturningJsonMl(hud) {
   info(`Test for "body" not returning JsonML`);
   await testCustomFormatting(hud, {
     messageText: "body doesn't return JsonML",
-    bodyText: `Custom formatter failed: devtoolsFormatters[10].body should return an array, got number`,
+    bodyText: `Custom formatter failed: devtoolsFormatters[8].body should return an array, got number`,
   });
 }
 
@@ -120,7 +109,7 @@ async function testBodyNotReturningElementType(hud) {
   info(`Test for "body" function returning array without element type`);
   await testCustomFormatting(hud, {
     messageText: "body array misses element type",
-    bodyText: `Custom formatter failed: devtoolsFormatters[11].body returned an empty array`,
+    bodyText: `Custom formatter failed: devtoolsFormatters[9].body returned an empty array`,
   });
 }
 
@@ -128,15 +117,7 @@ async function testBodyThrowing(hud) {
   info(`Test for "body" function throwing`);
   await testCustomFormatting(hud, {
     messageText: "body throws",
-    bodyText: `Custom formatter failed: devtoolsFormatters[12].body threw: ERROR`,
-  });
-}
-
-async function testBodyHavingSideEffects(hud) {
-  info(`Test for "body" function having side effects`);
-  await testCustomFormatting(hud, {
-    messageText: "body has side effects",
-    bodyText: `Custom formatter failed: devtoolsFormatters[13].body was not run because it has side effects`,
+    bodyText: `Custom formatter failed: devtoolsFormatters[10].body threw: ERROR`,
   });
 }
 
@@ -148,6 +129,37 @@ async function testErrorsLoggedOnce(hud) {
   });
 }
 
+async function testIncorrectObjectTag(hud) {
+  info(`Test for "object" tag without attribute`);
+  await testCustomFormatting(hud, {
+    messageText: `Custom formatter failed: devtoolsFormatters[11] couldn't be run: "object" tag should have attributes`,
+  });
+
+  info(`Test for "object" tag without "object" attribute`);
+  await testCustomFormatting(hud, {
+    messageText: `Custom formatter failed: devtoolsFormatters[12] couldn't be run: attribute of "object" tag should have an "object" property`,
+  });
+
+  info(`Test for infinite "object" tag`);
+  await testCustomFormatting(hud, {
+    messageText: `Custom formatter failed: Too deep hierarchy of inlined custom previews`,
+  });
+}
+
+async function testInvalidTagname(hud) {
+  info(`Test invalid tagname in the returned JsonML`);
+  await testCustomFormatting(hud, {
+    messageText: `Custom formatter failed: devtoolsFormatters[14] couldn't be run: tagName should be a string, got number`,
+  });
+}
+
+async function testNoPrivilegedAccess(hud) {
+  info(`Test for denied access to windowUtils from hook`);
+  await testCustomFormatting(hud, {
+    messageText: `Custom formatter failed: devtoolsFormatters[17].header threw: can't access property "garbageCollect", window.windowUtils is undefined`,
+  });
+}
+
 async function testCustomFormatting(hud, { messageText, source, bodyText }) {
   const headerNode = bodyText
     ? await waitFor(() => {
@@ -156,6 +168,8 @@ async function testCustomFormatting(hud, { messageText, source, bodyText }) {
     : await waitFor(() => {
         return findErrorMessage(hud, messageText);
       });
+
+  ok(true, `Got expected message: ${messageText}`);
 
   if (source) {
     const sourceLink = headerNode.querySelector(".message-location");

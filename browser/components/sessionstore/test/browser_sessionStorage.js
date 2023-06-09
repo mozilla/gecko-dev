@@ -120,7 +120,7 @@ add_task(async function session_storage() {
   );
 
   // Check that loading a new URL discards data.
-  BrowserTestUtils.loadURI(browser2, "http://mochi.test:8888/");
+  BrowserTestUtils.loadURIString(browser2, "http://mochi.test:8888/");
   await promiseBrowserLoaded(browser2);
   await TabStateFlusher.flush(browser2);
 
@@ -262,9 +262,7 @@ add_task(async function respect_privacy_level() {
   // Remove all closed tabs before continuing with the next test.
   // As Date.now() isn't monotonic we might sometimes check
   // the wrong closedTabData entry.
-  while (ss.getClosedTabCount(window) > 0) {
-    ss.forgetClosedTab(window, 0);
-  }
+  forgetClosedTabs(window);
 
   // Restore the default privacy level and close the duplicated tab.
   Services.prefs.clearUserPref("browser.sessionstore.privacy_level");

@@ -170,12 +170,14 @@ class Bootstrapper(object):
         no_interactive=False,
         hg_configure=False,
         no_system_changes=False,
+        exclude=[],
         mach_context=None,
     ):
         self.instance = None
         self.choice = choice
         self.hg_configure = hg_configure
         self.no_system_changes = no_system_changes
+        self.exclude = exclude
         self.mach_context = mach_context
         cls = None
         args = {
@@ -257,11 +259,11 @@ class Bootstrapper(object):
         # Also install the clang static-analysis package by default
         # The best place to install our packages is in the state directory
         # we have.  We should have created one above in non-interactive mode.
-        self.instance.auto_bootstrap(application)
+        self.instance.auto_bootstrap(application, self.exclude)
         self.instance.install_toolchain_artifact("fix-stacks")
         self.instance.install_toolchain_artifact("minidump-stackwalk")
         if not self.instance.artifact_mode:
-            self.instance.ensure_clang_static_analysis_package()
+            self.instance.install_toolchain_artifact("clang-tools/clang-tidy")
             self.instance.ensure_sccache_packages()
         # Like 'ensure_browser_packages' or 'ensure_mobile_android_packages'
         getattr(self.instance, "ensure_%s_packages" % application)()
@@ -672,13 +674,20 @@ def update_git_tools(git: Optional[Path], root_state_dir: Path):
     if not exists or cinnabar_exe.stat().st_size == 0:
         from urllib.request import urlopen
 
+        import certifi
+
         if not cinnabar_dir.exists():
             cinnabar_dir.mkdir()
 
         cinnabar_url = "https://github.com/glandium/git-cinnabar/"
         download_py = cinnabar_dir / "download.py"
         with open(download_py, "wb") as fh:
-            shutil.copyfileobj(urlopen(f"{cinnabar_url}/raw/master/download.py"), fh)
+            shutil.copyfileobj(
+                urlopen(
+                    f"{cinnabar_url}/raw/master/download.py", cafile=certifi.where()
+                ),
+                fh,
+            )
 
         try:
             subprocess.check_call(

@@ -56,8 +56,8 @@ bool ExtendBufferMapping(void* dataStart, size_t mappedSize,
 // the mapping, and `mappedSize` the size of that mapping.
 void UnmapBufferMemory(wasm::IndexType t, void* dataStart, size_t mappedSize);
 
-// Return the number of currently live mapped buffers.
-int32_t LiveMappedBufferCount();
+// Return the number of bytes currently reserved for WebAssembly memory
+uint64_t WasmReservedBytes();
 
 // The inheritance hierarchy for the various classes relating to typed arrays
 // is as follows.
@@ -464,6 +464,8 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared {
       wasm::IndexType t, wasm::Pages newPages,
       Handle<ArrayBufferObject*> oldBuf,
       MutableHandle<ArrayBufferObject*> newBuf, JSContext* cx);
+  static void wasmDiscard(Handle<ArrayBufferObject*> buf, uint64_t byteOffset,
+                          uint64_t byteLength);
 
   static void finalize(JS::GCContext* gcx, JSObject* obj);
 
@@ -615,6 +617,11 @@ class WasmArrayRawBuffer {
         dataPtr - sizeof(WasmArrayRawBuffer));
   }
 
+  static WasmArrayRawBuffer* fromDataPtr(uint8_t* dataPtr) {
+    return reinterpret_cast<WasmArrayRawBuffer*>(dataPtr -
+                                                 sizeof(WasmArrayRawBuffer));
+  }
+
   wasm::IndexType indexType() const { return indexType_; }
 
   uint8_t* basePointer() { return dataPointer() - gc::SystemPageSize(); }
@@ -638,6 +645,11 @@ class WasmArrayRawBuffer {
   // Try and grow the mapped region of memory. Does not change current size.
   // Does not move memory if no space to grow.
   void tryGrowMaxPagesInPlace(wasm::Pages deltaMaxPages);
+
+  // Discard a region of memory, zeroing the pages and releasing physical memory
+  // back to the operating system. byteOffset and byteLen must be wasm page
+  // aligned and in bounds. A discard of zero bytes will have no effect.
+  void discard(size_t byteOffset, size_t byteLen);
 };
 
 }  // namespace js

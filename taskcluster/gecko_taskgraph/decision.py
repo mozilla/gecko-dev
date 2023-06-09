@@ -64,8 +64,12 @@ PER_PROJECT_PARAMETERS = {
     "cedar": {
         "target_tasks_method": "default",
     },
+    "holly": {
+        "enable_always_target": True,
+        "target_tasks_method": "holly_tasks",
+    },
     "oak": {
-        "target_tasks_method": "nightly_desktop",
+        "target_tasks_method": "default",
         "release_type": "nightly-oak",
     },
     "graphics": {
@@ -541,10 +545,10 @@ def read_artifact(filename):
     path = os.path.join(ARTIFACTS_DIR, filename)
     if filename.endswith(".yml"):
         return load_yaml(path, filename)
-    elif filename.endswith(".json"):
+    if filename.endswith(".json"):
         with open(path) as f:
             return json.load(f)
-    elif filename.endswith(".json.gz"):
+    if filename.endswith(".json.gz"):
         import gzip
 
         with gzip.open(path, "rb") as f:

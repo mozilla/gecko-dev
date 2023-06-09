@@ -380,6 +380,10 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
     loadValue(addr, scratch);
     push(scratch);
   }
+  void pushValue(const BaseIndex& addr, Register scratch) {
+    loadValue(addr, ValueOperand(scratch));
+    pushValue(ValueOperand(scratch));
+  }
   template <typename T>
   void storeUnboxedPayload(ValueOperand value, T address, size_t nbytes,
                            JSValueType type) {
@@ -594,14 +598,10 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
         B(&done, Assembler::Zero);  // If conversion was exact, go to end.
 
         // The conversion was inexact, but the caller intends to allow -0.
-        vixl::UseScratchRegisterScope temps(this);
-        const ARMFPRegister scratch64 = temps.AcquireD();
-        MOZ_ASSERT(!scratch64.Is(fsrc64));
 
         // Compare fsrc64 to 0.
         // If fsrc64 == 0 and FJCVTZS conversion was inexact, then fsrc64 is -0.
-        Fmov(scratch64, xzr);
-        Fcmp(scratch64, fsrc64);
+        Fcmp(fsrc64, 0.0);
         B(fail, Assembler::NotEqual);  // Pass through -0; fail otherwise.
 
         bind(&done);
@@ -651,7 +651,7 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
       Cbnz(dest32, fail);
       bind(&nonzero);
     }
-    And(dest64, dest64, Operand(0xffffffff));
+    Uxtw(dest64, dest64);
   }
 
   void convertDoubleToPtr(FloatRegister src, Register dest, Label* fail,
@@ -678,106 +678,6 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
       Cbnz(dest64, fail);
       bind(&nonzero);
     }
-  }
-
-  void floor(FloatRegister input, Register output, Label* bail) {
-    Label handleZero;
-    // Label handleNeg;
-    Label fin;
-    ARMFPRegister iDbl(input, 64);
-    ARMRegister o64(output, 64);
-    ARMRegister o32(output, 32);
-    Fcmp(iDbl, 0.0);
-    B(Assembler::Equal, &handleZero);
-    // B(Assembler::Signed, &handleNeg);
-    // NaN is always a bail condition, just bail directly.
-    B(Assembler::Overflow, bail);
-    Fcvtms(o64, iDbl);
-    Cmp(o64, Operand(o64, vixl::SXTW));
-    B(NotEqual, bail);
-    Mov(o32, o32);
-    B(&fin);
-
-    bind(&handleZero);
-    // Move the top word of the double into the output reg, if it is non-zero,
-    // then the original value was -0.0.
-    Fmov(o64, iDbl);
-    Cbnz(o64, bail);
-    bind(&fin);
-  }
-
-  void floorf(FloatRegister input, Register output, Label* bail) {
-    Label handleZero;
-    // Label handleNeg;
-    Label fin;
-    ARMFPRegister iFlt(input, 32);
-    ARMRegister o64(output, 64);
-    ARMRegister o32(output, 32);
-    Fcmp(iFlt, 0.0);
-    B(Assembler::Equal, &handleZero);
-    // B(Assembler::Signed, &handleNeg);
-    // NaN is always a bail condition, just bail directly.
-    B(Assembler::Overflow, bail);
-    Fcvtms(o64, iFlt);
-    Cmp(o64, Operand(o64, vixl::SXTW));
-    B(NotEqual, bail);
-    Mov(o32, o32);
-    B(&fin);
-
-    bind(&handleZero);
-    // Move the top word of the double into the output reg, if it is non-zero,
-    // then the original value was -0.0.
-    Fmov(o32, iFlt);
-    Cbnz(o32, bail);
-    bind(&fin);
-  }
-
-  void ceil(FloatRegister input, Register output, Label* bail) {
-    Label handleZero;
-    Label fin;
-    ARMFPRegister iDbl(input, 64);
-    ARMRegister o64(output, 64);
-    ARMRegister o32(output, 32);
-    Fcmp(iDbl, 0.0);
-    B(Assembler::Overflow, bail);
-    Fcvtps(o64, iDbl);
-    Cmp(o64, Operand(o64, vixl::SXTW));
-    B(NotEqual, bail);
-    Cbz(o64, &handleZero);
-    Mov(o32, o32);
-    B(&fin);
-
-    bind(&handleZero);
-    vixl::UseScratchRegisterScope temps(this);
-    const ARMRegister scratch = temps.AcquireX();
-    Fmov(scratch, iDbl);
-    Cbnz(scratch, bail);
-    bind(&fin);
-  }
-
-  void ceilf(FloatRegister input, Register output, Label* bail) {
-    Label handleZero;
-    Label fin;
-    ARMFPRegister iFlt(input, 32);
-    ARMRegister o64(output, 64);
-    ARMRegister o32(output, 32);
-    Fcmp(iFlt, 0.0);
-
-    // NaN is always a bail condition, just bail directly.
-    B(Assembler::Overflow, bail);
-    Fcvtps(o64, iFlt);
-    Cmp(o64, Operand(o64, vixl::SXTW));
-    B(NotEqual, bail);
-    Cbz(o64, &handleZero);
-    Mov(o32, o32);
-    B(&fin);
-
-    bind(&handleZero);
-    // Move the top word of the double into the output reg, if it is non-zero,
-    // then the original value was -0.0.
-    Fmov(o32, iFlt);
-    Cbnz(o32, bail);
-    bind(&fin);
   }
 
   void jump(Label* label) { B(label); }
@@ -1015,16 +915,6 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
   }
   void store32(Register r, const BaseIndex& address) {
     doBaseIndex(ARMRegister(r, 32), address, vixl::STR_w);
-  }
-
-  void store32_NoSecondScratch(Imm32 imm, const Address& address) {
-    vixl::UseScratchRegisterScope temps(this);
-    temps.Exclude(ARMRegister(ScratchReg2, 32));  // Disallow ScratchReg2.
-    const ARMRegister scratch32 = temps.AcquireW();
-
-    MOZ_ASSERT(scratch32.asUnsized() != address.base);
-    Mov(scratch32, uint64_t(imm.value));
-    Str(scratch32, toMemOperand(address));
   }
 
   template <typename S, typename T>
@@ -1386,6 +1276,10 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
   void subs64(Register src, Register dest) {
     Subs(ARMRegister(dest, 64), ARMRegister(dest, 64),
          Operand(ARMRegister(src, 64)));
+  }
+
+  void negs32(Register reg) {
+    Negs(ARMRegister(reg, 32), Operand(ARMRegister(reg, 32)));
   }
 
   void ret() {
@@ -2063,10 +1957,6 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
     }
   }
 
-  void loadInstructionPointerAfterCall(Register dest) {
-    MOZ_CRASH("loadInstructionPointerAfterCall");
-  }
-
   // Emit a B that can be toggled to a CMP. See ToggleToJmp(), ToggleToCmp().
   CodeOffset toggledJump(Label* label) {
     BufferOffset offset = b(label, Always);
@@ -2122,8 +2012,6 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
 
   void profilerEnterFrame(Register framePtr, Register scratch);
   void profilerExitFrame();
-  Address ToPayload(Address value) { return value; }
-  Address ToType(Address value) { return value; }
 
   void wasmLoadImpl(const wasm::MemoryAccessDesc& access, Register memoryBase,
                     Register ptr, AnyRegister outany, Register64 out64);
@@ -2229,12 +2117,6 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
     vixl::MacroAssembler::Ret(vixl::lr);
   }
 
-  void clampCheck(Register r, Label* handleNotAnInt) {
-    MOZ_CRASH("clampCheck");
-  }
-
-  void stackCheck(ImmWord limitAddr, Label* label) { MOZ_CRASH("stackCheck"); }
-
   void incrementInt32Value(const Address& addr) {
     vixl::UseScratchRegisterScope temps(this);
     const ARMRegister scratch32 = temps.AcquireW();
@@ -2260,17 +2142,6 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
 #ifdef JS_SIMULATOR_ARM64
     svc(vixl::kCheckStackPointer);
 #endif
-  }
-
-  // Overwrites the payload bits of a dest register containing a Value.
-  void movePayload(Register src, Register dest) {
-    // Bfxil cannot be used with the zero register as a source.
-    if (src == rzr) {
-      And(ARMRegister(dest, 64), ARMRegister(dest, 64),
-          Operand(JS::detail::ValueTagMask));
-    } else {
-      Bfxil(ARMRegister(dest, 64), ARMRegister(src, 64), 0, JSVAL_TAG_SHIFT);
-    }
   }
 
  protected:

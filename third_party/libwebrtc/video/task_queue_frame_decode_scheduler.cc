@@ -14,6 +14,7 @@
 #include <utility>
 
 #include "api/sequence_checker.h"
+#include "api/task_queue/task_queue_base.h"
 #include "rtc_base/checks.h"
 
 namespace webrtc {
@@ -36,7 +37,8 @@ void TaskQueueFrameDecodeScheduler::ScheduleFrame(
     uint32_t rtp,
     FrameDecodeTiming::FrameSchedule schedule,
     FrameReleaseCallback cb) {
-  RTC_DCHECK(!stopped_) << "Can not schedule frames after stopped.";
+  // Mozilla modification, until https://bugs.webrtc.org/14944 is fixed
+  //RTC_DCHECK(!stopped_) << "Can not schedule frames after stopped.";
   RTC_DCHECK(!scheduled_rtp_.has_value())
       << "Can not schedule two frames for release at the same time.";
   RTC_DCHECK(cb);
@@ -46,14 +48,14 @@ void TaskQueueFrameDecodeScheduler::ScheduleFrame(
       TimeDelta::Zero(), schedule.latest_decode_time - clock_->CurrentTime());
   bookkeeping_queue_->PostDelayedHighPrecisionTask(
       SafeTask(task_safety_.flag(),
-               [this, rtp, schedule, cb = std::move(cb)] {
+               [this, rtp, schedule, cb = std::move(cb)]() mutable {
                  RTC_DCHECK_RUN_ON(bookkeeping_queue_);
-                 // If the next frame rtp  has changed since this task was
-                 // this scheduled  release should be skipped.
+                 // If the next frame rtp has changed since this task was
+                 // this scheduled release should be skipped.
                  if (scheduled_rtp_ != rtp)
                    return;
                  scheduled_rtp_ = absl::nullopt;
-                 cb(rtp, schedule.render_time);
+                 std::move(cb)(rtp, schedule.render_time);
                }),
       wait);
 }

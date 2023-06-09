@@ -243,7 +243,7 @@ const BackgroundPageThumbs = {
       triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
     };
     wlBrowser.loadURI(
-      "chrome://global/content/backgroundPageThumbs.xhtml",
+      Services.io.newURI("chrome://global/content/backgroundPageThumbs.xhtml"),
       loadURIOptions
     );
     this._windowlessContainer = wlBrowser;
@@ -395,9 +395,7 @@ const BackgroundPageThumbs = {
         return;
       }
 
-      Cu.reportError(
-        "BackgroundThumbnails remote process crashed - recovering"
-      );
+      console.error("BackgroundThumbnails remote process crashed - recovering");
       this._destroyBrowser();
       let curCapture = this._captureQueue.length ? this._captureQueue[0] : null;
       // we could retry the pending capture, but it's possible the crash
@@ -446,7 +444,10 @@ const BackgroundPageThumbs = {
       triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
       loadFlags: Ci.nsIWebNavigation.LOAD_FLAGS_STOP_CONTENT,
     };
-    this._thumbBrowser.loadURI("about:blank", loadURIOptions);
+    this._thumbBrowser.loadURI(
+      Services.io.newURI("about:blank"),
+      loadURIOptions
+    );
   },
 
   /**
@@ -730,7 +731,7 @@ Capture.prototype = {
         try {
           callback.call(options, this.url, reason, info);
         } catch (err) {
-          Cu.reportError(err);
+          console.error(err);
         }
       }
 

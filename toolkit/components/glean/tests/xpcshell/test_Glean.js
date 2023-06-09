@@ -196,21 +196,17 @@ add_task(async function test_fog_custom_distribution_works() {
   );
 });
 
-add_task(
-  /* TODO(bug 1737520): Enable custom ping support on Android */
-  { skip_if: () => AppConstants.platform == "android" },
-  function test_fog_custom_pings() {
-    Assert.ok("onePingOnly" in GleanPings);
-    let submitted = false;
-    Glean.testOnly.onePingOneBool.set(false);
-    GleanPings.onePingOnly.testBeforeNextSubmit(reason => {
-      submitted = true;
-      Assert.equal(false, Glean.testOnly.onePingOneBool.testGetValue());
-    });
-    GleanPings.onePingOnly.submit();
-    Assert.ok(submitted, "Ping was submitted, callback was called.");
-  }
-);
+add_task(function test_fog_custom_pings() {
+  Assert.ok("onePingOnly" in GleanPings);
+  let submitted = false;
+  Glean.testOnly.onePingOneBool.set(false);
+  GleanPings.onePingOnly.testBeforeNextSubmit(reason => {
+    submitted = true;
+    Assert.equal(false, Glean.testOnly.onePingOneBool.testGetValue());
+  });
+  GleanPings.onePingOnly.submit();
+  Assert.ok(submitted, "Ping was submitted, callback was called.");
+});
 
 add_task(async function test_fog_timing_distribution_works() {
   let t1 = Glean.testOnly.whatTimeIsIt.start();
@@ -268,18 +264,19 @@ add_task(async function test_fog_labels_conform() {
     Glean.testOnly.mabelsLabelMaker["dot.separated"].testGetValue()
   );
   Glean.testOnly.mabelsLabelMaker.camelCase.set("wednesday");
+  Assert.equal(
+    "wednesday",
+    Glean.testOnly.mabelsLabelMaker.camelCase.testGetValue()
+  );
+  const veryLong = "1".repeat(72);
+  Glean.testOnly.mabelsLabelMaker[veryLong].set("seventy-two");
   Assert.throws(
-    () => Glean.testOnly.mabelsLabelMaker.camelCase.testGetValue(),
+    () => Glean.testOnly.mabelsLabelMaker[veryLong].testGetValue(),
     /NS_ERROR_LOSS_OF_SIGNIFICANT_DATA/,
     "Should throw because of an invalid label."
   );
-  Assert.throws(
-    () => Glean.testOnly.mabelsLabelMaker.__other__.testGetValue(),
-    /NS_ERROR_LOSS_OF_SIGNIFICANT_DATA/,
-    "Should throw because of an invalid label."
-  );
-  // This test _should_ throw because we are calling data after an invalid label
-  // has been set.
+  // This test should _now_ throw because we are calling data after an invalid
+  // label has been set.
   Assert.throws(
     () => Glean.testOnly.mabelsLabelMaker["dot.separated"].testGetValue(),
     /NS_ERROR_LOSS_OF_SIGNIFICANT_DATA/,
@@ -308,7 +305,7 @@ add_task(async function test_fog_labeled_boolean_works() {
     undefined,
     Glean.testOnly.mabelsLikeBalloons.__other__.testGetValue()
   );
-  Glean.testOnly.mabelsLikeBalloons.InvalidLabel.set(true);
+  Glean.testOnly.mabelsLikeBalloons["1".repeat(72)].set(true);
   Assert.throws(
     () => Glean.testOnly.mabelsLikeBalloons.__other__.testGetValue(),
     /NS_ERROR_LOSS_OF_SIGNIFICANT_DATA/,
@@ -337,7 +334,7 @@ add_task(async function test_fog_labeled_counter_works() {
     undefined,
     Glean.testOnly.mabelsKitchenCounters.__other__.testGetValue()
   );
-  Glean.testOnly.mabelsKitchenCounters.InvalidLabel.add(1);
+  Glean.testOnly.mabelsKitchenCounters["1".repeat(72)].add(1);
   Assert.throws(
     () => Glean.testOnly.mabelsKitchenCounters.__other__.testGetValue(),
     /NS_ERROR_LOSS_OF_SIGNIFICANT_DATA/,
@@ -366,7 +363,7 @@ add_task(async function test_fog_labeled_string_works() {
     undefined,
     Glean.testOnly.mabelsBalloonStrings.__other__.testGetValue()
   );
-  Glean.testOnly.mabelsBalloonStrings.InvalidLabel.set("valid");
+  Glean.testOnly.mabelsBalloonStrings["1".repeat(72)].set("valid");
   Assert.throws(
     () => Glean.testOnly.mabelsBalloonStrings.__other__.testGetValue(),
     /NS_ERROR_LOSS_OF_SIGNIFICANT_DATA/

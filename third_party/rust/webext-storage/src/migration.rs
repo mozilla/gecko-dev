@@ -153,7 +153,7 @@ pub fn migrate(tx: &Transaction<'_>, filename: &Path) -> Result<MigrationInfo> {
 
 fn read_rows(filename: &Path) -> (Vec<LegacyRow>, MigrationInfo) {
     let flags = OpenFlags::SQLITE_OPEN_NO_MUTEX | OpenFlags::SQLITE_OPEN_READ_ONLY;
-    let src_conn = match Connection::open_with_flags(&filename, flags) {
+    let src_conn = match Connection::open_with_flags(filename, flags) {
         Ok(conn) => conn,
         Err(e) => {
             log::warn!("Failed to open the source DB: {}", e);
@@ -343,7 +343,7 @@ mod tests {
     {
         let tmpdir = tempdir().unwrap();
         let path = tmpdir.path().join("source.db");
-        init_source_db(&path, f);
+        init_source_db(path, f);
 
         // now migrate
         let mut db = new_mem_db();

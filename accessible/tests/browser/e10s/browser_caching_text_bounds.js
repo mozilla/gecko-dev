@@ -3,9 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 "use strict";
+requestLongerTimeout(3);
 
 /* import-globals-from ../../mochitest/layout.js */
 loadScripts({ name: "layout.js", dir: MOCHITESTS_DIR });
+
+// Note that testTextNode, testChar and testTextRange currently don't handle
+// white space in the code that doesn't get rendered on screen. To work around
+// this, ensure that containers you want to test are all on a single line in the
+// test snippet.
 
 async function testTextNode(accDoc, browser, id) {
   await testTextRange(accDoc, browser, id, 0, -1);
@@ -97,15 +103,23 @@ async function testTextRange(accDoc, browser, id, start, end) {
   );
   let hyperTextNode = findAccessibleChildByID(accDoc, id);
 
-  // test against parent-relative coords, because getBoundingClientRect
-  // is relative to the document, not the screen. this won't work on nested
-  // elements (ie. any hypertext whose parent is not the doc).
+  // Add in the doc's screen coords because getBoundingClientRect
+  // is relative to the document, not the screen. This assumes the doc's
+  // screen coords are correct. We use getBoundsInCSSPixels to avoid factoring
+  // in the DPR ourselves.
+  let x = {};
+  let y = {};
+  let w = {};
+  let h = {};
+  accDoc.getBoundsInCSSPixels(x, y, w, h);
+  r[0] += x.value;
+  r[1] += y.value;
   if (end != -1 && end - start == 1) {
     // If we're only testing a character, use this function because it calls
     // CharBounds() directly instead of TextBounds().
-    testTextPos(hyperTextNode, start, [r[0], r[1]], COORDTYPE_PARENT_RELATIVE);
+    testTextPos(hyperTextNode, start, [r[0], r[1]], COORDTYPE_SCREEN_RELATIVE);
   } else {
-    testTextBounds(hyperTextNode, start, end, r, COORDTYPE_PARENT_RELATIVE);
+    testTextBounds(hyperTextNode, start, end, r, COORDTYPE_SCREEN_RELATIVE);
   }
 }
 
@@ -473,36 +487,34 @@ X</pre>`,
   }
 );
 
-// XXX: There's a fuzziness here of about 8 pixels, implying we aren't taking into
-// account some kind of margin or padding. See bug 1809695.
-// /**
-//  * Test character bounds in an intervening inline element with margins
-//  * and with non-br line breaks
-//  */
-// addAccessibleTask(
-//   `
-//   <style>
-//     @font-face {
-//       font-family: Ahem;
-//       src: url(${CURRENT_CONTENT_DIR}e10s/fonts/Ahem.sjs);
-//     }
-//   </style>
-//   <div>hello<pre id="t" style="margin-left:100px;margin-top:30px;background-color:blue;">XX
-// XXX
-// XX
-// X</pre></div>`,
-//   async function(browser, docAcc) {
-//     await testChar(docAcc, browser, "t", 0);
-//     await testChar(docAcc, browser, "t", 3);
-//     await testChar(docAcc, browser, "t", 7);
-//     await testChar(docAcc, browser, "t", 10);
-//   },
-//   {
-//     chrome: true,
-//     topLevel: !isWinNoCache,
-//     iframe: !isWinNoCache,
-//   }
-// );
+/**
+ * Test character bounds in an intervening inline element with margins
+ * and with non-br line breaks
+ */
+addAccessibleTask(
+  `
+  <style>
+    @font-face {
+      font-family: Ahem;
+      src: url(${CURRENT_CONTENT_DIR}e10s/fonts/Ahem.sjs);
+    }
+  </style>
+  <div>hello<pre id="t" style="margin-left:100px;margin-top:30px;background-color:blue;">XX
+XXX
+XX
+X</pre></div>`,
+  async function(browser, docAcc) {
+    await testChar(docAcc, browser, "t", 0);
+    await testChar(docAcc, browser, "t", 3);
+    await testChar(docAcc, browser, "t", 7);
+    await testChar(docAcc, browser, "t", 10);
+  },
+  {
+    chrome: true,
+    topLevel: !isWinNoCache,
+    iframe: !isWinNoCache,
+  }
+);
 
 /**
  * Test text bounds in a textarea after scrolling.
@@ -546,4 +558,149 @@ c</textarea>
     ok(newY.value < oldY.value, "y coordinate smaller after scrolling down");
   },
   { chrome: true, topLevel: !isWinNoCache, iframe: !isWinNoCache }
+);
+
+/**
+ * Test magic offsets with GetCharacter/RangeExtents.
+ */
+addAccessibleTask(
+  `<input id="input" value="abc">`,
+  async function(browser, docAcc) {
+    const input = findAccessibleChildByID(docAcc, "input", [nsIAccessibleText]);
+    info("Setting caret and focusing input");
+    let caretMoved = waitForEvent(EVENT_TEXT_CARET_MOVED, input);
+    await invokeContentTask(browser, [], () => {
+      const inputDom = content.document.getElementById("input");
+      inputDom.selectionStart = inputDom.selectionEnd = 1;
+      inputDom.focus();
+    });
+    await caretMoved;
+    is(input.caretOffset, 1, "input caretOffset is 1");
+    let expectedX = {};
+    let expectedY = {};
+    let expectedW = {};
+    let expectedH = {};
+    let magicX = {};
+    let magicY = {};
+    let magicW = {};
+    let magicH = {};
+    input.getCharacterExtents(
+      1,
+      expectedX,
+      expectedY,
+      expectedW,
+      expectedH,
+      COORDTYPE_SCREEN_RELATIVE
+    );
+    input.getCharacterExtents(
+      nsIAccessibleText.TEXT_OFFSET_CARET,
+      magicX,
+      magicY,
+      magicW,
+      magicH,
+      COORDTYPE_SCREEN_RELATIVE
+    );
+    Assert.deepEqual(
+      [magicX.value, magicY.value, magicW.value, magicH.value],
+      [expectedX.value, expectedY.value, expectedW.value, expectedH.value],
+      "GetCharacterExtents correct with TEXT_OFFSET_CARET"
+    );
+    input.getRangeExtents(
+      1,
+      3,
+      expectedX,
+      expectedY,
+      expectedW,
+      expectedH,
+      COORDTYPE_SCREEN_RELATIVE
+    );
+    input.getRangeExtents(
+      nsIAccessibleText.TEXT_OFFSET_CARET,
+      nsIAccessibleText.TEXT_OFFSET_END_OF_TEXT,
+      magicX,
+      magicY,
+      magicW,
+      magicH,
+      COORDTYPE_SCREEN_RELATIVE
+    );
+    Assert.deepEqual(
+      [magicX.value, magicY.value, magicW.value, magicH.value],
+      [expectedX.value, expectedY.value, expectedW.value, expectedH.value],
+      "GetRangeExtents correct with TEXT_OFFSET_CARET/END_OF_TEXT"
+    );
+  },
+  { chrome: true, topLevel: !isWinNoCache, remoteIframe: !isWinNoCache }
+);
+
+/**
+ * Test wrapped text and pre-formatted text beginning with an empty line.
+ */
+addAccessibleTask(
+  `
+<style>
+  #wrappedText {
+    width: 3ch;
+    font-family: monospace;
+  }
+</style>
+<p id="wrappedText"><a href="https://example.com/">a</a>b cd</p>
+<p id="emptyFirstLine" style="white-space: pre-line;">
+foo</p>
+  `,
+  async function(browser, docAcc) {
+    await testChar(docAcc, browser, "wrappedText", 0);
+    await testChar(docAcc, browser, "wrappedText", 1);
+    await testChar(docAcc, browser, "wrappedText", 2);
+    await testChar(docAcc, browser, "wrappedText", 3);
+    await testChar(docAcc, browser, "wrappedText", 4);
+
+    // We can't use testChar for emptyFirstLine because it doesn't handle white
+    // space properly. Instead, verify that the first character is at the top
+    // left of the text leaf.
+    const emptyFirstLine = findAccessibleChildByID(docAcc, "emptyFirstLine", [
+      nsIAccessibleText,
+    ]);
+    const emptyFirstLineLeaf = emptyFirstLine.firstChild;
+    const leafX = {};
+    const leafY = {};
+    emptyFirstLineLeaf.getBounds(leafX, leafY, {}, {});
+    testTextPos(
+      emptyFirstLine,
+      0,
+      [leafX.value, leafY.value],
+      COORDTYPE_SCREEN_RELATIVE
+    );
+  },
+  { chrome: true, topLevel: !isWinNoCache, remoteIframe: !isWinNoCache }
+);
+
+/**
+ * Test character bounds in an intervening inline element with non-br line breaks
+ */
+addAccessibleTask(
+  `
+  <style>
+    @font-face {
+      font-family: Ahem;
+      src: url(${CURRENT_CONTENT_DIR}e10s/fonts/Ahem.sjs);
+    }
+    pre {
+      font: 20px/20px Ahem;
+    }
+  </style>
+  <pre><code id="t" role="group">XX
+XXX
+XX
+X</pre>`,
+  async function(browser, docAcc) {
+    await testChar(docAcc, browser, "t", 0);
+    await testChar(docAcc, browser, "t", 3);
+    await testChar(docAcc, browser, "t", 7);
+    await testChar(docAcc, browser, "t", 10);
+  },
+  {
+    chrome: true,
+    topLevel: !isWinNoCache,
+    iframe: !isWinNoCache,
+  }
 );

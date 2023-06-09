@@ -385,7 +385,7 @@ function promiseStartLegacyDownload(aSourceUrl, aOptions) {
         persist.progressListener = transfer;
 
         // Start the actual download process.
-        persist.savePrivacyAwareURI(
+        persist.saveURI(
           sourceURI,
           Services.scriptSecurityManager.getSystemPrincipal(),
           0,
@@ -903,7 +903,7 @@ function registerInterruptibleHandler(aPath, aFirstPartFn, aSecondPartFn) {
         aResponse.finish();
         info("Interruptible request finished.");
       })
-      .catch(Cu.reportError);
+      .catch(console.error);
   });
 }
 
@@ -943,12 +943,15 @@ function checkEqualReferrerInfos(aActualInfo, aExpectedInfo) {
  * Waits for the download annotations to be set for the given page, required
  * because the addDownload method will add these to the database asynchronously.
  */
-function waitForAnnotation(sourceUriSpec, annotationName) {
+function waitForAnnotation(sourceUriSpec, annotationName, optionalValue) {
   return TestUtils.waitForCondition(async () => {
     let pageInfo = await PlacesUtils.history.fetch(sourceUriSpec, {
       includeAnnotations: true,
     });
-    return pageInfo && pageInfo.annotations.has(annotationName);
+    if (optionalValue) {
+      return pageInfo?.annotations.get(annotationName) == optionalValue;
+    }
+    return pageInfo?.annotations.has(annotationName);
   }, `Should have found annotation ${annotationName} for ${sourceUriSpec}`);
 }
 
@@ -1160,7 +1163,7 @@ add_setup(function test_common_initialize() {
         aResponse.finish();
         info("Aborting response with network reset.");
       })
-      .then(null, Cu.reportError);
+      .then(null, console.error);
   });
 
   // During unit tests, most of the functions that require profile access or

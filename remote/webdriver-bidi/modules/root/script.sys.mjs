@@ -12,29 +12,162 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "chrome://remote/content/shared/messagehandler/MessageHandler.sys.mjs",
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   OwnershipModel: "chrome://remote/content/webdriver-bidi/RemoteValue.sys.mjs",
-  RealmType: "chrome://remote/content/webdriver-bidi/Realm.sys.mjs",
+  RealmType: "chrome://remote/content/shared/Realm.sys.mjs",
+  setDefaultAndAssertSerializationOptions:
+    "chrome://remote/content/webdriver-bidi/RemoteValue.sys.mjs",
   TabManager: "chrome://remote/content/shared/TabManager.sys.mjs",
   WindowGlobalMessageHandler:
     "chrome://remote/content/shared/messagehandler/WindowGlobalMessageHandler.sys.mjs",
 });
 
+function getUUID() {
+  return Services.uuid
+    .generateUUID()
+    .toString()
+    .slice(1, -1);
+}
+
 /**
  * @typedef {string} ScriptEvaluateResultType
- **/
+ */
 
 /**
  * Enum of possible evaluation result types.
  *
  * @readonly
  * @enum {ScriptEvaluateResultType}
- **/
+ */
 const ScriptEvaluateResultType = {
   Exception: "exception",
   Success: "success",
 };
 
 class ScriptModule extends Module {
-  destroy() {}
+  #preloadScriptMap;
+
+  constructor(messageHandler) {
+    super(messageHandler);
+
+    // Map in which the keys are UUIDs, and the values are structs
+    // with an item named expression, which is a string,
+    // and an item named sandbox which is a string or null.
+    this.#preloadScriptMap = new Map();
+  }
+
+  destroy() {
+    this.#preloadScriptMap = null;
+  }
+
+  /**
+   * Used as return value for script.addPreloadScript command.
+   *
+   * @typedef AddPreloadScriptResult
+   *
+   * @property {string} script
+   *    The unique id associated with added preload script.
+   */
+
+  /**
+   * @typedef ChannelProperties
+   *
+   * @property {string} channel
+   *     The channel id.
+   * @property {SerializationOptions=} serializationOptions
+   *     An object which holds the information of how the result of evaluation
+   *     in case of ECMAScript objects should be serialized.
+   * @property {OwnershipModel=} ownership
+   *     The ownership model to use for the results of this evaluation. Defaults
+   *     to `OwnershipModel.None`.
+   */
+
+  /**
+   * Represents a channel used to send custom messages from preload script
+   * to clients.
+   *
+   * @typedef ChannelValue
+   *
+   * @property {'channel'} type
+   * @property {ChannelProperties} value
+   */
+
+  /**
+   * Adds a preload script, which runs on creation of a new Window,
+   * before any author-defined script have run.
+   *
+   * @param {object=} options
+   * @param {Array<ChannelValue>=} options.arguments
+   *     The arguments to pass to the function call.
+   * @param {string} options.functionDeclaration
+   *     The expression to evaluate.
+   * @param {string=} options.sandbox
+   *     The name of the sandbox. If the value is null or empty
+   *     string, the default realm will be used.
+   *
+   * @returns {AddPreloadScriptResult}
+   *
+   * @throws {InvalidArgumentError}
+   *     If any of the arguments does not have the expected type.
+   */
+  async addPreloadScript(options = {}) {
+    const {
+      arguments: commandArguments = [],
+      functionDeclaration,
+      sandbox = null,
+    } = options;
+
+    lazy.assert.string(
+      functionDeclaration,
+      `Expected "functionDeclaration" to be a string, got ${functionDeclaration}`
+    );
+
+    if (sandbox != null) {
+      lazy.assert.string(
+        sandbox,
+        `Expected "sandbox" to be a string, got ${sandbox}`
+      );
+    }
+
+    lazy.assert.array(
+      commandArguments,
+      `Expected "arguments" to be an array, got ${commandArguments}`
+    );
+    lazy.assert.that(
+      commandArguments =>
+        commandArguments.every(({ type, value }) => {
+          if (type === "channel") {
+            this.#assertChannelArgument(value);
+            return true;
+          }
+          return false;
+        }),
+      `One of the arguments has an unsupported type, only type "channel" is supported`
+    )(commandArguments);
+
+    const script = getUUID();
+    const preloadScript = {
+      arguments: commandArguments,
+      functionDeclaration,
+      sandbox,
+    };
+
+    this.#preloadScriptMap.set(script, preloadScript);
+
+    await this.messageHandler.addSessionDataItem({
+      category: "preload-script",
+      moduleName: "script",
+      values: [
+        {
+          ...preloadScript,
+          script,
+        },
+      ],
+      contextDescriptor: {
+        type: lazy.ContextDescriptorType.All,
+      },
+    });
+
+    return { script };
+  }
 
   /**
    * Used to represent a frame of a JavaScript stack trace.
@@ -100,21 +233,24 @@ class ScriptModule extends Module {
    * Calls a provided function with given arguments and scope in the provided
    * target, which is either a realm or a browsing context.
    *
-   * @param {Object=} options
-   * @param {Array<RemoteValue>=} arguments
+   * @param {object=} options
+   * @param {Array<RemoteValue>=} options.arguments
    *     The arguments to pass to the function call.
-   * @param {boolean} awaitPromise
+   * @param {boolean} options.awaitPromise
    *     Determines if the command should wait for the return value of the
    *     expression to resolve, if this return value is a Promise.
-   * @param {string} functionDeclaration
+   * @param {string} options.functionDeclaration
    *     The expression to evaluate.
-   * @param {OwnershipModel=} resultOwnership
+   * @param {OwnershipModel=} options.resultOwnership
    *     The ownership model to use for the results of this evaluation. Defaults
    *     to `OwnershipModel.None`.
-   * @param {Object} target
+   * @param {SerializationOptions=} options.serializationOptions
+   *     An object which holds the information of how the result of evaluation
+   *     in case of ECMAScript objects should be serialized.
+   * @param {object} options.target
    *     The target for the evaluation, which either matches the definition for
    *     a RealmTarget or for ContextTarget.
-   * @param {RemoteValue=} this
+   * @param {RemoteValue=} options.this
    *     The value of the this keyword for the function call.
    *
    * @returns {ScriptEvaluateResult}
@@ -130,6 +266,7 @@ class ScriptModule extends Module {
       awaitPromise,
       functionDeclaration,
       resultOwnership = lazy.OwnershipModel.None,
+      serializationOptions,
       target = {},
       this: thisParameter = null,
     } = options;
@@ -151,10 +288,18 @@ class ScriptModule extends Module {
         commandArguments,
         `Expected "arguments" to be an array, got ${commandArguments}`
       );
+      commandArguments.forEach(({ type, value }) => {
+        if (type === "channel") {
+          this.#assertChannelArgument(value);
+        }
+      });
     }
 
     const { contextId, realmId, sandbox } = this.#assertTarget(target);
     const context = await this.#getContextFromTarget({ contextId, realmId });
+    const serializationOptionsWithDefaults = lazy.setDefaultAndAssertSerializationOptions(
+      serializationOptions
+    );
     const evaluationResult = await this.messageHandler.forwardCommand({
       moduleName: "script",
       commandName: "callFunctionDeclaration",
@@ -169,6 +314,7 @@ class ScriptModule extends Module {
         realmId,
         resultOwnership,
         sandbox,
+        serializationOptions: serializationOptionsWithDefaults,
         thisParameter,
       },
     });
@@ -181,10 +327,10 @@ class ScriptModule extends Module {
    * guarantee the handled object will be garbage collected, as there can be
    * other handles or strong ECMAScript references.
    *
-   * @param {Object=} options
-   * @param {Array<string>} handles
+   * @param {object=} options
+   * @param {Array<string>} options.handles
    *     Array of handle ids to disown.
-   * @param {Object} target
+   * @param {object} options.target
    *     The target owning the handles, which either matches the definition for
    *     a RealmTarget or for ContextTarget.
    */
@@ -223,16 +369,19 @@ class ScriptModule extends Module {
    * Evaluate a provided expression in the provided target, which is either a
    * realm or a browsing context.
    *
-   * @param {Object=} options
-   * @param {boolean} awaitPromise
+   * @param {object=} options
+   * @param {boolean} options.awaitPromise
    *     Determines if the command should wait for the return value of the
    *     expression to resolve, if this return value is a Promise.
-   * @param {string} expression
+   * @param {string} options.expression
    *     The expression to evaluate.
-   * @param {OwnershipModel=} resultOwnership
+   * @param {OwnershipModel=} options.resultOwnership
    *     The ownership model to use for the results of this evaluation. Defaults
    *     to `OwnershipModel.None`.
-   * @param {Object} target
+   * @param {SerializationOptions=} options.serializationOptions
+   *     An object which holds the information of how the result of evaluation
+   *     in case of ECMAScript objects should be serialized.
+   * @param {object} options.target
    *     The target for the evaluation, which either matches the definition for
    *     a RealmTarget or for ContextTarget.
    *
@@ -248,6 +397,7 @@ class ScriptModule extends Module {
       awaitPromise,
       expression: source,
       resultOwnership = lazy.OwnershipModel.None,
+      serializationOptions,
       target = {},
     } = options;
 
@@ -265,6 +415,9 @@ class ScriptModule extends Module {
 
     const { contextId, realmId, sandbox } = this.#assertTarget(target);
     const context = await this.#getContextFromTarget({ contextId, realmId });
+    const serializationOptionsWithDefaults = lazy.setDefaultAndAssertSerializationOptions(
+      serializationOptions
+    );
     const evaluationResult = await this.messageHandler.forwardCommand({
       moduleName: "script",
       commandName: "evaluateExpression",
@@ -278,6 +431,7 @@ class ScriptModule extends Module {
         realmId,
         resultOwnership,
         sandbox,
+        serializationOptions: serializationOptionsWithDefaults,
       },
     });
 
@@ -308,11 +462,13 @@ class ScriptModule extends Module {
    *     The window realm type.
    */
 
+  /* eslint-disable jsdoc/valid-types */
   /**
    * An object that holds information about a window realm.
    *
    * @typedef {BaseRealmInfo & WindowRealmInfoProperties} WindowRealmInfo
    */
+  /* eslint-enable jsdoc/valid-types */
 
   /**
    * An object that holds information about a realm.
@@ -334,12 +490,12 @@ class ScriptModule extends Module {
    * of a specific type, or to the realms associated with
    * a specified browsing context.
    *
-   * @param {Object=} options
-   * @param {string=} context
+   * @param {object=} options
+   * @param {string=} options.context
    *     The id of the browsing context to filter
    *     only realms associated with it. If not provided, return realms
    *     associated with all browsing contexts.
-   * @param {RealmType=} type
+   * @param {RealmType=} options.type
    *     Type of realm to filter.
    *     If not provided, return realms of all types.
    *
@@ -383,6 +539,73 @@ class ScriptModule extends Module {
     }
 
     return { realms: await this.#getRealmInfos(destination) };
+  }
+
+  /**
+   * Removes a preload script.
+   *
+   * @param {object=} options
+   * @param {string} options.script
+   *     The unique id associated with a preload script.
+   *
+   * @throws {InvalidArgumentError}
+   *     If any of the arguments does not have the expected type.
+   * @throws {NoSuchScriptError}
+   *     If the script cannot be found.
+   */
+  async removePreloadScript(options = {}) {
+    const { script } = options;
+
+    lazy.assert.string(
+      script,
+      `Expected "script" to be a string, got ${script}`
+    );
+
+    if (!this.#preloadScriptMap.has(script)) {
+      throw new lazy.error.NoSuchScriptError(
+        `Preload script with id ${script} not found`
+      );
+    }
+
+    const preloadScript = this.#preloadScriptMap.get(script);
+
+    await this.messageHandler.removeSessionDataItem({
+      category: "preload-script",
+      moduleName: "script",
+      values: [
+        {
+          ...preloadScript,
+          script,
+        },
+      ],
+      contextDescriptor: {
+        type: lazy.ContextDescriptorType.All,
+      },
+    });
+
+    this.#preloadScriptMap.delete(script);
+  }
+
+  #assertChannelArgument(value) {
+    lazy.assert.object(value);
+    const {
+      channel,
+      ownership = lazy.OwnershipModel.None,
+      serializationOptions,
+    } = value;
+    lazy.assert.string(channel);
+    lazy.setDefaultAndAssertSerializationOptions(serializationOptions);
+    lazy.assert.that(
+      ownership =>
+        [lazy.OwnershipModel.None, lazy.OwnershipModel.Root].includes(
+          ownership
+        ),
+      `Expected "ownership" to be one of ${Object.values(
+        lazy.OwnershipModel
+      )}, got ${ownership}`
+    )(ownership);
+
+    return true;
   }
 
   #assertResultOwnership(resultOwnership) {
@@ -525,7 +748,7 @@ class ScriptModule extends Module {
   }
 
   static get supportedEvents() {
-    return [];
+    return ["script.message"];
   }
 }
 

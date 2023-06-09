@@ -175,6 +175,31 @@
       }
     },
 
+    "Containers": {
+      "type": "object",
+      "properties": {
+        "Default": {
+          "type": ["array", "JSON"],
+          "items": {
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "icon": {
+                "type": "string",
+                "enum": ["fingerprint", "briefcase", "dollar", "cart", "vacation", "gift", "food", "fruit", "pet", "tree", "chill", "circle", "fence"]
+              },
+              "color": {
+                "type": "string",
+                "enum": ["blue", "turquoise", "green", "yellow", "orange", "red", "pink", "purple", "toolbar"]
+              }
+            },
+            "type": "object"
+          }
+        }
+      }
+    },
+
     "Cookies": {
       "type": "object",
       "properties": {
@@ -448,6 +473,9 @@
         "Fingerprinting": {
           "type": "boolean"
         },
+        "EmailTracking": {
+          "type": "boolean"
+        },
         "Exceptions": {
           "type": "array",
           "strict": false,
@@ -563,6 +591,10 @@
             },
             "updates_disabled": {
               "type": "boolean"
+            },
+            "default_area": {
+              "type": "string",
+              "enum": ["navbar", "menupanel"]
             }
           }
         }
@@ -1246,6 +1278,20 @@
       "type": "object",
       "patternProperties": {
         "^.*$": { "type": "string" }
+      },
+      "properties": {
+        "Add": {
+          "type": "object",
+          "patternProperties": {
+            "^.*$": { "type": "string" }
+          }
+        },
+        "Delete": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
       }
     },
 
@@ -1315,7 +1361,7 @@
     },
 
     "WebsiteFilter": {
-      "type": "object",
+      "type": ["object", "JSON"],
       "properties": {
         "Block": {
           "type": "array",

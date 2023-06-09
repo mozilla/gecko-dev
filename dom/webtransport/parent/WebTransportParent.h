@@ -8,12 +8,15 @@
 #define DOM_WEBTRANSPORT_PARENT_WEBTRANSPORTPARENT_H_
 
 #include "ErrorList.h"
+#include "mozilla/dom/ClientIPCTypes.h"
 #include "mozilla/dom/FlippedOnce.h"
 #include "mozilla/dom/PWebTransportParent.h"
 #include "mozilla/ipc/Endpoint.h"
+#include "mozilla/ipc/PBackgroundSharedTypes.h"
 #include "nsISupports.h"
 #include "nsIPrincipal.h"
 #include "nsIWebTransport.h"
+#include "nsTHashMap.h"
 
 namespace mozilla::dom {
 
@@ -21,35 +24,71 @@ enum class WebTransportReliabilityMode : uint8_t;
 
 class WebTransportParent : public PWebTransportParent,
                            public WebTransportSessionEventListener {
+  using IPCResult = mozilla::ipc::IPCResult;
+
  public:
   WebTransportParent() = default;
 
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_WEBTRANSPORTSESSIONEVENTLISTENER
 
-  void Create(
-      const nsAString& aURL, nsIPrincipal* aPrincipal, const bool& aDedicated,
-      const bool& aRequireUnreliable, const uint32_t& aCongestionControl,
-      // Sequence<WebTransportHash>* aServerCertHashes,
-      Endpoint<PWebTransportParent>&& aParentEndpoint,
-      std::function<void(Tuple<const nsresult&, const uint8_t&>)>&& aResolver);
+  void Create(const nsAString& aURL, nsIPrincipal* aPrincipal,
+              const mozilla::Maybe<IPCClientInfo>& aClientInfo,
+              const bool& aDedicated, const bool& aRequireUnreliable,
+              const uint32_t& aCongestionControl,
+              // Sequence<WebTransportHash>* aServerCertHashes,
+              Endpoint<PWebTransportParent>&& aParentEndpoint,
+              std::function<void(std::tuple<const nsresult&, const uint8_t&>)>&&
+                  aResolver);
 
-  mozilla::ipc::IPCResult RecvClose(const uint32_t& aCode,
-                                    const nsACString& aReason);
+  IPCResult RecvClose(const uint32_t& aCode, const nsACString& aReason);
+
+  IPCResult RecvCreateUnidirectionalStream(
+      Maybe<int64_t> aSendOrder,
+      CreateUnidirectionalStreamResolver&& aResolver);
+  IPCResult RecvCreateBidirectionalStream(
+      Maybe<int64_t> aSendOrder, CreateBidirectionalStreamResolver&& aResolver);
+
+  ::mozilla::ipc::IPCResult RecvOutgoingDatagram(
+      nsTArray<uint8_t>&& aData, const TimeStamp& aExpirationTime,
+      OutgoingDatagramResolver&& aResolver);
 
   void ActorDestroy(ActorDestroyReason aWhy) override;
 
-  bool IsClosed() const { return mClosed; }
+  class OnResetOrStopSendingCallback final {
+   public:
+    explicit OnResetOrStopSendingCallback(
+        std::function<void(nsresult)>&& aCallback)
+        : mCallback(std::move(aCallback)) {}
+    ~OnResetOrStopSendingCallback() = default;
+
+    void OnResetOrStopSending(nsresult aError) { mCallback(aError); }
+
+   private:
+    std::function<void(nsresult)> mCallback;
+  };
 
  protected:
   virtual ~WebTransportParent();
 
  private:
-  using ResolveType = Tuple<const nsresult&, const uint8_t&>;
-  std::function<void(ResolveType)> mResolver;
-  FlippedOnce<false> mClosed;
+  void NotifyRemoteClosed(uint32_t aErrorCode, const nsACString& aReason);
+
+  using ResolveType = std::tuple<const nsresult&, const uint8_t&>;
+  nsCOMPtr<nsISerialEventTarget> mSocketThread;
+  Atomic<bool> mSessionReady{false};
+
+  mozilla::Mutex mMutex{"WebTransportParent::mMutex"};
+  std::function<void(ResolveType)> mResolver MOZ_GUARDED_BY(mMutex);
+  // This is needed because mResolver is resolved on the background thread and
+  // OnSessionClosed is called on the socket thread.
+  std::function<void()> mExecuteAfterResolverCallback MOZ_GUARDED_BY(mMutex);
+  OutgoingDatagramResolver mOutgoingDatagramResolver;
+  FlippedOnce<false> mClosed MOZ_GUARDED_BY(mMutex);
+
   nsCOMPtr<nsIWebTransport> mWebTransport;
   nsCOMPtr<nsIEventTarget> mOwningEventTarget;
+  nsTHashMap<nsUint64HashKey, OnResetOrStopSendingCallback> mStreamCallbackMap;
 };
 
 }  // namespace mozilla::dom

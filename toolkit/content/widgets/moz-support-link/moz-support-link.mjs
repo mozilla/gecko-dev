@@ -4,10 +4,20 @@
 
 MozXULElement.insertFTLIfNeeded("browser/components/mozSupportLink.ftl");
 
+/**
+ * An extension of the anchor element that helps create links to Mozilla's
+ * support documentation. This should be used for SUMO links only - other "Learn
+ * more" links can use the regular anchor element.
+ *
+ * @tagname moz-support-link
+ * @attribute {string} support-page - Short-hand string from SUMO to the specific support page.
+ * @attribute {string} utm-content - UTM parameter for a URL, if it is an AMO URL.
+ * @attribute {string} data-l10n-id - Fluent ID used to generate the text content.
+ */
 export default class MozSupportLink extends HTMLAnchorElement {
   static SUPPORT_URL = "https://www.mozilla.org/";
   static get observedAttributes() {
-    return ["support-page", "utm-content", "data-l10n-id"];
+    return ["support-page", "utm-content"];
   }
 
   /**
@@ -19,6 +29,7 @@ export default class MozSupportLink extends HTMLAnchorElement {
    */
   #register() {
     if (!window.IS_STORYBOOK) {
+      // eslint-disable-next-line no-shadow
       let { XPCOMUtils } = window.XPCOMUtils
         ? window
         : ChromeUtils.importESModule(
@@ -39,14 +50,32 @@ export default class MozSupportLink extends HTMLAnchorElement {
     this.#register();
     this.#setHref();
     this.setAttribute("target", "_blank");
+    this.addEventListener("click", this);
     if (!this.getAttribute("data-l10n-id")) {
       document.l10n.setAttributes(this, "moz-support-link-text");
-      document.l10n.translateFragment(this);
+    }
+    document.l10n.translateFragment(this);
+  }
+
+  disconnectedCallback() {
+    this.removeEventListener("click", this);
+  }
+
+  handleEvent(e) {
+    if (e.type == "click") {
+      if (window.openTrustedLinkIn) {
+        let where = whereToOpenLink(e, false, true);
+        if (where == "current") {
+          where = "tab";
+        }
+        e.preventDefault();
+        openTrustedLinkIn(this.href, where);
+      }
     }
   }
 
-  attributeChangedCallback(name, oldVal, newVal) {
-    if (name === "support-page" || name === "utm-content") {
+  attributeChangedCallback(attrName, oldVal, newVal) {
+    if (attrName === "support-page" || attrName === "utm-content") {
       this.#setHref();
     }
   }

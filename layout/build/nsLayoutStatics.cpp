@@ -34,7 +34,6 @@
 #include "nsRegion.h"
 #include "nsRepeatService.h"
 #include "nsFloatManager.h"
-#include "nsSprocketLayout.h"
 #include "nsTextControlFrame.h"
 #include "txMozillaXSLTProcessor.h"
 #include "nsTreeSanitizer.h"
@@ -107,6 +106,7 @@
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/WebIDLGlobalNameHash.h"
 #include "mozilla/dom/U2FTokenManager.h"
+#include "mozilla/dom/WebAuthnController.h"
 #ifdef OS_WIN
 #  include "mozilla/dom/WinWebAuthnManager.h"
 #endif
@@ -263,6 +263,7 @@ nsresult nsLayoutStatics::Initialize() {
   mozilla::RemoteLazyInputStreamStorage::Initialize();
 
   mozilla::dom::U2FTokenManager::Initialize();
+  mozilla::dom::WebAuthnController::Initialize();
 
 #ifdef OS_WIN
   mozilla::dom::WinWebAuthnManager::Initialize();
@@ -345,7 +346,6 @@ void nsLayoutStatics::Shutdown() {
 
   nsXULContentUtils::Finish();
   nsXULPrototypeCache::ReleaseGlobals();
-  nsSprocketLayout::Shutdown();
 
   SVGElementFactory::Shutdown();
   nsMathMLOperators::ReleaseTable();

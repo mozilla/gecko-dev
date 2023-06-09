@@ -21,11 +21,13 @@ const TYPES = {
   SOURCE: "source",
   STYLESHEET: "stylesheet",
   THREAD_STATE: "thread-state",
+  TRACING_STATE: "tracing-state",
   WEBSOCKET: "websocket",
 
   // storage types
   CACHE_STORAGE: "Cache",
   COOKIE: "cookies",
+  EXTENSION_STORAGE: "extension-storage",
   INDEXED_DB: "indexed-db",
   LOCAL_STORAGE: "local-storage",
   SESSION_STORAGE: "session-storage",
@@ -97,6 +99,9 @@ const FrameTargetResources = augmentResourceDictionary({
   [TYPES.THREAD_STATE]: {
     path: "devtools/server/actors/resources/thread-states",
   },
+  [TYPES.TRACING_STATE]: {
+    path: "devtools/server/actors/resources/tracing-state",
+  },
   [TYPES.SERVER_SENT_EVENT]: {
     path: "devtools/server/actors/resources/server-sent-events",
   },
@@ -125,6 +130,9 @@ const ProcessTargetResources = augmentResourceDictionary({
   [TYPES.THREAD_STATE]: {
     path: "devtools/server/actors/resources/thread-states",
   },
+  [TYPES.TRACING_STATE]: {
+    path: "devtools/server/actors/resources/tracing-state",
+  },
 });
 
 // Worker target resources are spawned via a Worker Target Actor.
@@ -146,6 +154,9 @@ const WorkerTargetResources = augmentResourceDictionary({
   [TYPES.THREAD_STATE]: {
     path: "devtools/server/actors/resources/thread-states",
   },
+  [TYPES.TRACING_STATE]: {
+    path: "devtools/server/actors/resources/tracing-state",
+  },
 });
 
 // Parent process resources are spawned via the Watcher Actor.
@@ -159,6 +170,9 @@ const ParentProcessResources = augmentResourceDictionary({
   },
   [TYPES.COOKIE]: {
     path: "devtools/server/actors/resources/storage-cookie",
+  },
+  [TYPES.EXTENSION_STORAGE]: {
+    path: "devtools/server/actors/resources/storage-extension",
   },
   [TYPES.INDEXED_DB]: {
     path: "devtools/server/actors/resources/storage-indexed-db",

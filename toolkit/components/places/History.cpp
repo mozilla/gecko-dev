@@ -26,6 +26,7 @@
 #include "mozilla/dom/Link.h"
 #include "nsDocShellCID.h"
 #include "mozilla/Components.h"
+#include "nsAppDirectoryServiceDefs.h"
 #include "nsThreadUtils.h"
 #include "nsNetUtil.h"
 #include "nsIWidget.h"
@@ -55,10 +56,8 @@
 
 using namespace mozilla::dom;
 using namespace mozilla::ipc;
-using mozilla::Unused;
 
-namespace mozilla {
-namespace places {
+namespace mozilla::places {
 
 ////////////////////////////////////////////////////////////////////////////////
 //// Global Defines
@@ -329,9 +328,8 @@ void GetStringFromJSObject(JSContext* aCtx, JS::Handle<JSObject*> aObject,
   if (!rc) {
     _string.SetIsVoid(true);
     return;
-  } else {
-    GetJSValueAsString(aCtx, val, _string);
   }
+  GetJSValueAsString(aCtx, val, _string);
 }
 
 /**
@@ -950,7 +948,7 @@ class InsertVisitedURIs final : public Runnable {
       NS_ENSURE_SUCCESS(rv, rv);
 
       if (shouldChunkNotifications) {
-        int32_t numRemaining = mPlaces.Length() - (i + 1);
+        int32_t numRemaining = (int32_t)(mPlaces.Length() - (i + 1));
         notificationChunk.AppendElement(place);
         if (notificationChunk.Length() == NOTIFY_VISITS_CHUNK_SIZE ||
             numRemaining == 0) {
@@ -1141,7 +1139,7 @@ class InsertVisitedURIs final : public Runnable {
     MOZ_ASSERT(transitionType >= nsINavHistoryService::TRANSITION_LINK &&
                    transitionType <= nsINavHistoryService::TRANSITION_RELOAD,
                "Invalid transition type!");
-    rv = stmt->BindInt32ByName("visit_type"_ns, transitionType);
+    rv = stmt->BindInt32ByName("visit_type"_ns, (int32_t)transitionType);
     NS_ENSURE_SUCCESS(rv, rv);
     rv = stmt->BindInt32ByName("source"_ns, _place.source);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -2285,6 +2283,12 @@ History::IsURIVisited(nsIURI* aURI, mozIVisitedStatusCallback* aCallback) {
   return VisitedQuery::Start(aURI, aCallback);
 }
 
+NS_IMETHODIMP
+History::ClearCache() {
+  mRecentlyVisitedURIs.Clear();
+  return NS_OK;
+}
+
 void History::StartPendingVisitedQueries(PendingVisitedQueries&& aQueries) {
   if (XRE_IsContentProcess()) {
     auto* cpc = dom::ContentChild::GetSingleton();
@@ -2345,5 +2349,4 @@ History::Observe(nsISupports* aSubject, const char* aTopic,
 NS_IMPL_ISUPPORTS(History, IHistory, mozIAsyncHistory, nsIObserver,
                   nsIMemoryReporter)
 
-}  // namespace places
-}  // namespace mozilla
+}  // namespace mozilla::places

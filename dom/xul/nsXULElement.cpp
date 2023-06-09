@@ -14,6 +14,7 @@
 #include "XULButtonElement.h"
 #include "XULFrameElement.h"
 #include "XULMenuElement.h"
+#include "XULMenuBarElement.h"
 #include "XULPopupElement.h"
 #include "XULResizerElement.h"
 #include "XULTextElement.h"
@@ -69,7 +70,6 @@
 #include "mozilla/fallible.h"
 #include "nsAtom.h"
 #include "nsAttrValueInlines.h"
-#include "nsAttrValueOrString.h"
 #include "nsCaseTreatment.h"
 #include "nsChangeHint.h"
 #include "nsCOMPtr.h"
@@ -185,7 +185,7 @@ nsXULElement* nsXULElement::Construct(
 
   if (nodeInfo->Equals(nsGkAtoms::menubar)) {
     auto* nim = nodeInfo->NodeInfoManager();
-    return new (nim) XULMenuParentElement(nodeInfo.forget());
+    return new (nim) XULMenuBarElement(nodeInfo.forget());
   }
 
   if (nodeInfo->Equals(nsGkAtoms::menu) ||
@@ -639,22 +639,17 @@ nsresult nsXULElement::BindToTree(BindContext& aContext, nsINode& aParent) {
 
 #ifdef DEBUG
   if (!doc.AllowXULXBL() && !doc.IsUnstyledDocument()) {
-    // To save CPU cycles and memory, non-XUL documents only load the user
-    // agent style sheet rules for a minimal set of XUL elements such as
-    // 'scrollbar' that may be created implicitly for their content (those
-    // rules being in minimal-xul.css).
+    // To save CPU cycles and memory, we don't load xul.css for other elements
+    // except scrollbars.
     //
     // This assertion makes sure no other XUL element is used in a non-XUL
     // document.
     nsAtom* tag = NodeInfo()->NameAtom();
-    MOZ_ASSERT(
-        // scrollbar parts
-        tag == nsGkAtoms::scrollbar || tag == nsGkAtoms::scrollbarbutton ||
-            tag == nsGkAtoms::scrollcorner || tag == nsGkAtoms::slider ||
-            tag == nsGkAtoms::thumb ||
-            // other
-            tag == nsGkAtoms::resizer || tag == nsGkAtoms::label,
-        "Unexpected XUL element in non-XUL doc");
+    MOZ_ASSERT(tag == nsGkAtoms::scrollbar ||
+                   tag == nsGkAtoms::scrollbarbutton ||
+                   tag == nsGkAtoms::scrollcorner || tag == nsGkAtoms::slider ||
+                   tag == nsGkAtoms::thumb || tag == nsGkAtoms::resizer,
+               "Unexpected XUL element in non-XUL doc");
   }
 #endif
 
@@ -775,58 +770,46 @@ bool nsXULElement::SupportsAccessKey() const {
                             nsGkAtoms::radio);
 }
 
-nsresult nsXULElement::BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
-                                     const nsAttrValueOrString* aValue,
-                                     bool aNotify) {
-  if (aNamespaceID == kNameSpaceID_None &&
-      (aName == nsGkAtoms::accesskey || aName == nsGkAtoms::control ||
-       aName == nsGkAtoms::value)) {
-    RegUnRegAccessKey(false);
-  } else if (aNamespaceID == kNameSpaceID_None &&
-             (aName == nsGkAtoms::command || aName == nsGkAtoms::observes) &&
-             IsInUncomposedDoc()) {
-    //         XXX sXBL/XBL2 issue! Owner or current document?
-    // XXX Why does this not also remove broadcast listeners if the
-    // "element" attribute was changed on an <observer>?
-    nsAutoString oldValue;
-    GetAttr(kNameSpaceID_None, nsGkAtoms::observes, oldValue);
-    if (oldValue.IsEmpty()) {
-      GetAttr(kNameSpaceID_None, nsGkAtoms::command, oldValue);
-    }
-
-    Document* doc = GetUncomposedDoc();
-    if (!oldValue.IsEmpty() && doc->HasXULBroadcastManager()) {
-      RefPtr<XULBroadcastManager> broadcastManager =
-          doc->GetXULBroadcastManager();
-      broadcastManager->RemoveListener(this);
-    }
-  } else if (aNamespaceID == kNameSpaceID_None && aValue &&
-             mNodeInfo->Equals(nsGkAtoms::window) &&
-             aName == nsGkAtoms::chromemargin) {
-    nsAttrValue attrValue;
-    // Make sure the margin format is valid first
-    if (!attrValue.ParseIntMarginValue(aValue->String())) {
-      return NS_ERROR_INVALID_ARG;
-    }
-  } else if (aNamespaceID == kNameSpaceID_None &&
-             aName == nsGkAtoms::usercontextid) {
-    nsAutoString oldValue;
-    bool hasAttribute =
-        GetAttr(kNameSpaceID_None, nsGkAtoms::usercontextid, oldValue);
-    if (hasAttribute && (!aValue || !aValue->String().Equals(oldValue))) {
-      MOZ_ASSERT(false, "Changing usercontextid is not allowed.");
-      return NS_ERROR_INVALID_ARG;
+void nsXULElement::BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
+                                 const nsAttrValue* aValue, bool aNotify) {
+  if (aNamespaceID == kNameSpaceID_None) {
+    if (aName == nsGkAtoms::accesskey || aName == nsGkAtoms::control ||
+        aName == nsGkAtoms::value) {
+      RegUnRegAccessKey(false);
+    } else if ((aName == nsGkAtoms::command || aName == nsGkAtoms::observes) &&
+               IsInUncomposedDoc()) {
+      //         XXX sXBL/XBL2 issue! Owner or current document?
+      // XXX Why does this not also remove broadcast listeners if the
+      // "element" attribute was changed on an <observer>?
+      nsAutoString oldValue;
+      GetAttr(kNameSpaceID_None, nsGkAtoms::observes, oldValue);
+      if (oldValue.IsEmpty()) {
+        GetAttr(kNameSpaceID_None, nsGkAtoms::command, oldValue);
+      }
+      Document* doc = GetUncomposedDoc();
+      if (!oldValue.IsEmpty() && doc->HasXULBroadcastManager()) {
+        RefPtr<XULBroadcastManager> broadcastManager =
+            doc->GetXULBroadcastManager();
+        broadcastManager->RemoveListener(this);
+      }
+#ifdef DEBUG
+    } else if (aName == nsGkAtoms::usercontextid) {
+      const nsAttrValue* oldValue = GetParsedAttr(aName);
+      if (oldValue && (!aValue || !aValue->Equals(*oldValue))) {
+        MOZ_ASSERT(false,
+                   "Changing usercontextid doesn't really work properly.");
+      }
+#endif
     }
   }
 
   return nsStyledElement::BeforeSetAttr(aNamespaceID, aName, aValue, aNotify);
 }
 
-nsresult nsXULElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
-                                    const nsAttrValue* aValue,
-                                    const nsAttrValue* aOldValue,
-                                    nsIPrincipal* aSubjectPrincipal,
-                                    bool aNotify) {
+void nsXULElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
+                                const nsAttrValue* aValue,
+                                const nsAttrValue* aOldValue,
+                                nsIPrincipal* aSubjectPrincipal, bool aNotify) {
   if (aNamespaceID == kNameSpaceID_None) {
     if (aValue) {
       AddListenerForAttributeIfNeeded(aName);
@@ -1090,8 +1073,6 @@ void nsXULElement::DoCommand() {
     nsContentUtils::DispatchXULCommand(self, true);
   }
 }
-
-bool nsXULElement::IsNodeOfType(uint32_t aFlags) const { return false; }
 
 nsresult nsXULElement::AddPopupListener(nsAtom* aName) {
   // Add a popup listener to the element

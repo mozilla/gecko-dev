@@ -22,21 +22,30 @@ pub const CK_TRUE_BYTES: &[u8] = &CK_TRUE.to_ne_bytes();
 #[derive(PartialEq, Eq)]
 pub struct Root {
     pub label: &'static str,
-    pub der_name: &'static [u8],
-    pub der_serial: &'static [u8],
+    pub der_name: (u8, u8),
+    pub der_serial: (u8, u8),
     pub der_cert: &'static [u8],
     pub mozilla_ca_policy: Option<&'static [u8]>,
     pub server_distrust_after: Option<&'static [u8]>,
     pub email_distrust_after: Option<&'static [u8]>,
-    pub sha1: &'static [u8],
-    pub md5: &'static [u8],
+    pub sha1: [u8; 20],
+    pub md5: [u8; 16],
     pub trust_server: &'static [u8],
     pub trust_email: &'static [u8],
 }
 
+impl Root {
+    pub fn der_name(&self) -> &'static [u8] {
+        &self.der_cert[self.der_name.0 as usize..][..self.der_name.1 as usize]
+    }
+    pub fn der_serial(&self) -> &'static [u8] {
+        &self.der_cert[self.der_serial.0 as usize..][..self.der_serial.1 as usize]
+    }
+}
+
 impl PartialOrd for Root {
     fn partial_cmp(&self, other: &Root) -> Option<std::cmp::Ordering> {
-        self.der_name.partial_cmp(other.der_name)
+        self.der_name().partial_cmp(other.der_name())
     }
 }
 

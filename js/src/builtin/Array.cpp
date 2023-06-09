@@ -4117,9 +4117,9 @@ static bool SearchElementDense(JSContext* cx, HandleValue val, Iter iterator,
     double dval = val.toNumber();
     // For |includes|, two NaN values are considered equal, so we use a
     // different implementation for NaN.
-    if (Kind == SearchKind::Includes && mozilla::IsNaN(dval)) {
+    if (Kind == SearchKind::Includes && std::isnan(dval)) {
       auto cmp = [](JSContext*, const Value& element, bool* equal) {
-        *equal = (element.isDouble() && mozilla::IsNaN(element.toDouble()));
+        *equal = (element.isDouble() && std::isnan(element.toDouble()));
         return true;
       };
       return iterator(cx, cmp, rval);
@@ -4541,6 +4541,307 @@ bool js::array_includes(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
+// ES2024 draft 23.1.3.2.1 IsConcatSpreadable
+static bool IsConcatSpreadable(JSContext* cx, HandleValue v, bool* spreadable) {
+  // Step 1.
+  if (!v.isObject()) {
+    *spreadable = false;
+    return true;
+  }
+
+  // Step 2.
+  JS::Symbol* sym = cx->wellKnownSymbols().isConcatSpreadable;
+  JSObject* holder;
+  if (MOZ_UNLIKELY(
+          MaybeHasInterestingSymbolProperty(cx, &v.toObject(), sym, &holder))) {
+    RootedValue res(cx);
+    RootedObject obj(cx, holder);
+    Rooted<PropertyKey> key(cx, PropertyKey::Symbol(sym));
+    if (!GetProperty(cx, obj, v, key, &res)) {
+      return false;
+    }
+    // Step 3.
+    if (!res.isUndefined()) {
+      *spreadable = ToBoolean(res);
+      return true;
+    }
+  }
+
+  // Step 4.
+  if (MOZ_LIKELY(v.toObject().is<ArrayObject>())) {
+    *spreadable = true;
+    return true;
+  }
+  RootedObject obj(cx, &v.toObject());
+  bool isArray;
+  if (!JS::IsArray(cx, obj, &isArray)) {
+    return false;
+  }
+  *spreadable = isArray;
+  return true;
+}
+
+// Returns true if the object may have an @@isConcatSpreadable property.
+static bool MaybeHasIsConcatSpreadable(JSContext* cx, JSObject* obj) {
+  JS::Symbol* sym = cx->wellKnownSymbols().isConcatSpreadable;
+  JSObject* holder;
+  return MaybeHasInterestingSymbolProperty(cx, obj, sym, &holder);
+}
+
+static bool TryOptimizePackedArrayConcat(JSContext* cx, CallArgs& args,
+                                         Handle<JSObject*> obj,
+                                         bool* optimized) {
+  // Fast path for the following cases:
+  //
+  // (1) packedArray.concat(): copy the array's elements.
+  // (2) packedArray.concat(packedArray): concatenate two packed arrays.
+  // (3) packedArray.concat(value): copy and append a single non-array value.
+  //
+  // These cases account for almost all calls to Array.prototype.concat in
+  // Speedometer 3.
+
+  *optimized = false;
+
+  if (args.length() > 1) {
+    return true;
+  }
+
+  // The `this` object must be a packed array without @@isConcatSpreadable.
+  // @@isConcatSpreadable is uncommon and requires a property lookup and more
+  // complicated code, so we let the slow path handle it.
+  if (!IsPackedArray(obj)) {
+    return true;
+  }
+  if (MaybeHasIsConcatSpreadable(cx, obj)) {
+    return true;
+  }
+
+  Handle<ArrayObject*> thisArr = obj.as<ArrayObject>();
+  uint32_t thisLen = thisArr->length();
+
+  if (args.length() == 0) {
+    // Case (1). Copy the packed array.
+    ArrayObject* arr = NewDenseFullyAllocatedArray(cx, thisLen);
+    if (!arr) {
+      return false;
+    }
+    arr->initDenseElements(thisArr->getDenseElements(), thisLen);
+    args.rval().setObject(*arr);
+    *optimized = true;
+    return true;
+  }
+
+  MOZ_ASSERT(args.length() == 1);
+
+  // If the argument is an object, it must not have an @@isConcatSpreadable
+  // property.
+  if (args[0].isObject() &&
+      MaybeHasIsConcatSpreadable(cx, &args[0].toObject())) {
+    return true;
+  }
+
+  MOZ_ASSERT_IF(args[0].isObject(), args[0].toObject().is<NativeObject>());
+
+  // Case (3). Copy and append a single value if the argument is not an array.
+  if (!args[0].isObject() || !args[0].toObject().is<ArrayObject>()) {
+    ArrayObject* arr = NewDenseFullyAllocatedArray(cx, thisLen + 1);
+    if (!arr) {
+      return false;
+    }
+    arr->initDenseElements(thisArr->getDenseElements(), thisLen);
+
+    arr->ensureDenseInitializedLength(thisLen, 1);
+    arr->initDenseElement(thisLen, args[0]);
+
+    args.rval().setObject(*arr);
+    *optimized = true;
+    return true;
+  }
+
+  // Case (2). Concatenate two packed arrays.
+  if (!IsPackedArray(&args[0].toObject())) {
+    return true;
+  }
+
+  uint32_t argLen = args[0].toObject().as<ArrayObject>().length();
+
+  // Compute the array length. This can't overflow because both arrays are
+  // packed.
+  static_assert(NativeObject::MAX_DENSE_ELEMENTS_COUNT < INT32_MAX);
+  MOZ_ASSERT(thisLen <= NativeObject::MAX_DENSE_ELEMENTS_COUNT);
+  MOZ_ASSERT(argLen <= NativeObject::MAX_DENSE_ELEMENTS_COUNT);
+  uint32_t totalLen = thisLen + argLen;
+
+  ArrayObject* arr = NewDenseFullyAllocatedArray(cx, totalLen);
+  if (!arr) {
+    return false;
+  }
+  arr->initDenseElements(thisArr->getDenseElements(), thisLen);
+
+  ArrayObject* argArr = &args[0].toObject().as<ArrayObject>();
+  arr->ensureDenseInitializedLength(thisLen, argLen);
+  arr->initDenseElementRange(thisLen, argArr, argLen);
+
+  args.rval().setObject(*arr);
+  *optimized = true;
+  return true;
+}
+
+static bool array_concat(JSContext* cx, unsigned argc, Value* vp) {
+  AutoJSMethodProfilerEntry pseudoFrame(cx, "Array.prototype", "concat");
+  CallArgs args = CallArgsFromVp(argc, vp);
+
+  // Step 1.
+  RootedObject obj(cx, ToObject(cx, args.thisv()));
+  if (!obj) {
+    return false;
+  }
+
+  bool isArraySpecies = IsArraySpecies(cx, obj);
+
+  // Fast path for the most common cases.
+  if (isArraySpecies) {
+    bool optimized;
+    if (!TryOptimizePackedArrayConcat(cx, args, obj, &optimized)) {
+      return false;
+    }
+    if (optimized) {
+      return true;
+    }
+  }
+
+  // Step 2.
+  RootedObject arr(cx);
+  if (isArraySpecies) {
+    arr = NewDenseEmptyArray(cx);
+    if (!arr) {
+      return false;
+    }
+  } else {
+    if (!ArraySpeciesCreate(cx, obj, 0, &arr)) {
+      return false;
+    }
+  }
+
+  // Step 3.
+  uint64_t n = 0;
+
+  // Step 4 (handled implicitly with nextArg and CallArgs).
+  uint32_t nextArg = 0;
+
+  // Step 5.
+  RootedValue v(cx, ObjectValue(*obj));
+  while (true) {
+    // Step 5.a.
+    bool spreadable;
+    if (!IsConcatSpreadable(cx, v, &spreadable)) {
+      return false;
+    }
+    // Step 5.b.
+    if (spreadable) {
+      // Step 5.b.i.
+      obj = &v.toObject();
+      uint64_t len;
+      if (!GetLengthPropertyInlined(cx, obj, &len)) {
+        return false;
+      }
+
+      // Step 5.b.ii.
+      if (n + len > uint64_t(DOUBLE_INTEGRAL_PRECISION_LIMIT) - 1) {
+        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                  JSMSG_TOO_LONG_ARRAY);
+        return false;
+      }
+
+      // Step 5.b.iii.
+      uint64_t k = 0;
+
+      // Step 5.b.iv.
+
+      // Try a fast path for copying dense elements directly.
+      bool optimized = false;
+      if (len > 0 && isArraySpecies &&
+          CanOptimizeForDenseStorage<ArrayAccess::Read>(obj, len) &&
+          n + len <= NativeObject::MAX_DENSE_ELEMENTS_COUNT) {
+        NativeObject* nobj = &obj->as<NativeObject>();
+        ArrayObject* resArr = &arr->as<ArrayObject>();
+        uint32_t count =
+            std::min(uint32_t(len), nobj->getDenseInitializedLength());
+
+        DenseElementResult res = resArr->ensureDenseElements(cx, n, count);
+        if (res == DenseElementResult::Failure) {
+          return false;
+        }
+        if (res == DenseElementResult::Success) {
+          resArr->initDenseElementRange(n, nobj, count);
+          n += len;
+          optimized = true;
+        } else {
+          MOZ_ASSERT(res == DenseElementResult::Incomplete);
+        }
+      }
+
+      if (!optimized) {
+        // Step 5.b.iv.
+        while (k < len) {
+          if (!CheckForInterrupt(cx)) {
+            return false;
+          }
+
+          // Step 5.b.iv.2.
+          bool hole;
+          if (!HasAndGetElement(cx, obj, k, &hole, &v)) {
+            return false;
+          }
+          if (!hole) {
+            // Step 5.b.iv.3.
+            if (!DefineArrayElement(cx, arr, n, v)) {
+              return false;
+            }
+          }
+
+          // Step 5.b.iv.4.
+          n++;
+
+          // Step 5.b.iv.5.
+          k++;
+        }
+      }
+    } else {
+      // Step 5.c.ii.
+      if (n >= uint64_t(DOUBLE_INTEGRAL_PRECISION_LIMIT) - 1) {
+        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                  JSMSG_TOO_LONG_ARRAY);
+        return false;
+      }
+
+      // Step 5.c.iii.
+      if (!DefineArrayElement(cx, arr, n, v)) {
+        return false;
+      }
+
+      // Step 5.c.iv.
+      n++;
+    }
+
+    // Move on to the next argument.
+    if (nextArg == args.length()) {
+      break;
+    }
+    v = args[nextArg];
+    nextArg++;
+  }
+
+  // Step 6.
+  if (!SetLengthProperty(cx, arr, n)) {
+    return false;
+  }
+
+  // Step 7.
+  args.rval().setObject(*arr);
+  return true;
+}
+
 static const JSFunctionSpec array_methods[] = {
     JS_FN(js_toSource_str, array_toSource, 0, 0),
     JS_SELF_HOSTED_FN(js_toString_str, "ArrayToString", 0, 0),
@@ -4557,7 +4858,7 @@ static const JSFunctionSpec array_methods[] = {
     JS_FNINFO("splice", array_splice, &array_splice_info, 2, 0),
 
     /* Pythonic sequence methods. */
-    JS_SELF_HOSTED_FN("concat", "ArrayConcat", 1, 0),
+    JS_FN("concat", array_concat, 1, 0),
     JS_INLINABLE_FN("slice", array_slice, 2, 0, ArraySlice),
 
     JS_FN("lastIndexOf", array_lastIndexOf, 1, 0),
@@ -5171,19 +5472,25 @@ bool js::ArraySpeciesLookup::tryOptimizeArray(JSContext* cx,
     return false;
   }
 
-  // Ensure |array| doesn't define any own properties besides its
-  // non-deletable "length" property. This serves as a quick check to make
-  // sure |array| doesn't define an own "constructor" property which may
-  // shadow Array.prototype.constructor.
-  ShapePropertyIter<NoGC> iter(array->shape());
-  MOZ_ASSERT(!iter.done(), "Array must have at least one property");
-  DebugOnly<PropertyKey> key = iter->key();
-  iter++;
-  if (!iter.done()) {
+  // Ensure the array does not define an own "constructor" property which may
+  // shadow `Array.prototype.constructor`.
+
+  // Most arrays don't define any additional own properties beside their
+  // "length" property. If "length" is the last property, it must be the only
+  // property, because it's non-configurable.
+  MOZ_ASSERT(array->shape()->propMapLength() > 0);
+  PropertyKey lengthKey = NameToId(cx->names().length);
+  if (MOZ_LIKELY(array->getLastProperty().key() == lengthKey)) {
+    MOZ_ASSERT(array->shape()->propMapLength() == 1, "Expected one property");
+    return true;
+  }
+
+  // Fail if the array has an own "constructor" property.
+  uint32_t index;
+  if (array->shape()->lookup(cx, NameToId(cx->names().constructor), &index)) {
     return false;
   }
 
-  MOZ_ASSERT(key.inspect().isAtom(cx->names().length));
   return true;
 }
 

@@ -8,26 +8,12 @@
 
 const CACHED_STYLESHEETS = new WeakMap();
 
-ChromeUtils.defineModuleGetter(
-  this,
-  "FormAutofill",
-  "resource://autofill/FormAutofill.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  this,
-  "FormAutofillStatus",
-  "resource://autofill/FormAutofillParent.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  this,
-  "FormAutofillParent",
-  "resource://autofill/FormAutofillParent.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  this,
-  "AutoCompleteParent",
-  "resource://gre/actors/AutoCompleteParent.jsm"
-);
+ChromeUtils.defineESModuleGetters(this, {
+  FormAutofill: "resource://autofill/FormAutofill.sys.mjs",
+  FormAutofillParent: "resource://autofill/FormAutofillParent.sys.mjs",
+  FormAutofillStatus: "resource://autofill/FormAutofillParent.sys.mjs",
+  AutoCompleteParent: "resource://gre/actors/AutoCompleteParent.sys.mjs",
+});
 
 XPCOMUtils.defineLazyServiceGetter(
   this,
@@ -187,10 +173,10 @@ this.formautofill = class extends ExtensionAPI {
 
     ChromeUtils.registerWindowActor("FormAutofill", {
       parent: {
-        moduleURI: "resource://autofill/FormAutofillParent.jsm",
+        esModuleURI: "resource://autofill/FormAutofillParent.sys.mjs",
       },
       child: {
-        moduleURI: "resource://autofill/FormAutofillChild.jsm",
+        esModuleURI: "resource://autofill/FormAutofillChild.sys.mjs",
         events: {
           focusin: {},
           DOMFormBeforeSubmit: {},

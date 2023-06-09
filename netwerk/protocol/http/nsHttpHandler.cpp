@@ -26,6 +26,7 @@
 #include "nsPrintfCString.h"
 #include "nsCOMPtr.h"
 #include "nsNetCID.h"
+#include "mozilla/AppShutdown.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/Components.h"
 #include "mozilla/Printf.h"
@@ -325,6 +326,14 @@ nsresult nsHttpHandler::Init() {
   LOG(("nsHttpHandler::Init\n"));
   MOZ_ASSERT(NS_IsMainThread());
 
+  // We should not create nsHttpHandler during shutdown, but we have some
+  // xpcshell tests doing this.
+  if (MOZ_UNLIKELY(AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdown) &&
+                   !PR_GetEnv("XPCSHELL_TEST_PROFILE_DIR"))) {
+    MOZ_DIAGNOSTIC_ASSERT(false, "Try to init HttpHandler after shutdown");
+    return NS_ERROR_ILLEGAL_DURING_SHUTDOWN;
+  }
+
   rv = nsHttp::CreateAtomTable();
   if (NS_FAILED(rv)) return rv;
 
@@ -481,8 +490,7 @@ nsresult nsHttpHandler::Init() {
     obsService->AddObserver(this, "network:socket-process-crashed", true);
 
     if (!IsNeckoChild()) {
-      obsService->AddObserver(this, "net:current-top-browsing-context-id",
-                              true);
+      obsService->AddObserver(this, "net:current-browser-id", true);
     }
 
     // disabled as its a nop right now
@@ -1380,8 +1388,8 @@ void nsHttpHandler::PrefsChanged(const char* pref) {
         1));
   }
 
-  // The amount of seconds to wait for a http2 ping response before
-  // closing the session.
+  // If http2.send-buffer-size is non-zero, the size to set the TCP
+  //  sendbuffer to once the stream has surpassed this number of bytes uploaded
   if (PREF_CHANGED(HTTP_PREF("http2.send-buffer-size"))) {
     mSpdySendBufferSize = (uint32_t)clamped(
         StaticPrefs::network_http_http2_send_buffer_size(), 1500, 0x7fffffff);
@@ -2157,7 +2165,7 @@ nsHttpHandler::Observe(nsISupports* subject, const char* topic,
              static_cast<uint32_t>(rv)));
       }
     }
-  } else if (!strcmp(topic, "net:current-top-browsing-context-id")) {
+  } else if (!strcmp(topic, "net:current-browser-id")) {
     // The window id will be updated by HttpConnectionMgrParent.
     if (XRE_IsParentProcess()) {
       nsCOMPtr<nsISupportsPRUint64> wrapper = do_QueryInterface(subject);
@@ -2167,12 +2175,11 @@ nsHttpHandler::Observe(nsISupports* subject, const char* topic,
       wrapper->GetData(&id);
       MOZ_ASSERT(id);
 
-      static uint64_t sCurrentBrowsingContextId = 0;
-      if (sCurrentBrowsingContextId != id) {
-        sCurrentBrowsingContextId = id;
+      static uint64_t sCurrentBrowserId = 0;
+      if (sCurrentBrowserId != id) {
+        sCurrentBrowserId = id;
         if (mConnMgr) {
-          mConnMgr->UpdateCurrentTopBrowsingContextId(
-              sCurrentBrowsingContextId);
+          mConnMgr->UpdateCurrentBrowserId(sCurrentBrowserId);
         }
       }
     }
@@ -2324,8 +2331,17 @@ nsresult nsHttpHandler::SpeculativeConnectInternal(
     return NS_ERROR_UNEXPECTED;
   }
 
+  nsCOMPtr<nsISpeculativeConnectionOverrider> overrider =
+      do_GetInterface(aCallbacks);
+  bool ignoreUserCertCheck =
+      overrider ? overrider->GetIgnoreUserCertCheck() : false;
+
   // Construct connection info object
-  if (aURI->SchemeIs("https") && !mSpeculativeConnectEnabled) {
+  if (aURI->SchemeIs("https") && !mSpeculativeConnectEnabled &&
+      !ignoreUserCertCheck) {
+    glean::networking::speculative_connect_outcome
+        .Get("aborted_https_not_enabled"_ns)
+        .Add(1);
     return NS_ERROR_UNEXPECTED;
   }
 

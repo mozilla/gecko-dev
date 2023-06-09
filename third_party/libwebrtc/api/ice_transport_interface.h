@@ -24,6 +24,7 @@ namespace cricket {
 class IceTransportInternal;
 class PortAllocator;
 class IceControllerFactoryInterface;
+class ActiveIceControllerFactoryInterface;
 }  // namespace cricket
 
 namespace webrtc {
@@ -84,6 +85,34 @@ struct IceTransportInit final {
     return ice_controller_factory_;
   }
 
+  // An active ICE controller actively manages the connection used by an ICE
+  // transport, in contrast with a legacy ICE controller that only picks the
+  // best connection to use or ping, and lets the transport decide when and
+  // whether to switch.
+  //
+  // Which ICE controller is used is determined based on the field trial
+  // "WebRTC-UseActiveIceController" as follows:
+  //
+  //   1. If the field trial is not enabled
+  //      a. The legacy ICE controller factory is used if one is supplied.
+  //      b. If not, a default ICE controller (BasicIceController) is
+  //      constructed and used.
+  //
+  //   2. If the field trial is enabled
+  //      a. If an active ICE controller factory is supplied, it is used and
+  //      the legacy ICE controller factory is not used.
+  //      b. If not, a default active ICE controller is used, wrapping over the
+  //      supplied or the default legacy ICE controller.
+  void set_active_ice_controller_factory(
+      cricket::ActiveIceControllerFactoryInterface*
+          active_ice_controller_factory) {
+    active_ice_controller_factory_ = active_ice_controller_factory;
+  }
+  cricket::ActiveIceControllerFactoryInterface*
+  active_ice_controller_factory() {
+    return active_ice_controller_factory_;
+  }
+
   const FieldTrialsView* field_trials() { return field_trials_; }
   void set_field_trials(const FieldTrialsView* field_trials) {
     field_trials_ = field_trials;
@@ -96,6 +125,8 @@ struct IceTransportInit final {
   AsyncResolverFactory* async_resolver_factory_ = nullptr;
   RtcEventLog* event_log_ = nullptr;
   cricket::IceControllerFactoryInterface* ice_controller_factory_ = nullptr;
+  cricket::ActiveIceControllerFactoryInterface* active_ice_controller_factory_ =
+      nullptr;
   const FieldTrialsView* field_trials_ = nullptr;
   // TODO(https://crbug.com/webrtc/12657): Redesign to have const members.
 };

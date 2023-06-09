@@ -56,11 +56,9 @@ XPCOMUtils.defineLazyPreferenceGetter(
   false
 );
 
-ChromeUtils.defineModuleGetter(
-  this,
-  "PromptUtils",
-  "resource://gre/modules/SharedPromptUtils.jsm"
-);
+ChromeUtils.defineESModuleGetters(this, {
+  PromptUtils: "resource://gre/modules/PromptUtils.sys.mjs",
+});
 
 var PrintUtils = {
   SAVE_TO_PDF_PRINTER: "Mozilla Save to PDF",
@@ -80,7 +78,7 @@ var PrintUtils = {
       // Need the await for the try to trigger...
       return await sourceActor.sendQuery("PrintingSelection:HasSelection", {});
     } catch (e) {
-      Cu.reportError(e);
+      console.error(e);
     }
     return false;
   },
@@ -205,7 +203,7 @@ var PrintUtils = {
       args
     );
     closedPromise.catch(e => {
-      Cu.reportError(e);
+      console.error(e);
     });
 
     let settingsBrowser = dialog._frame;
@@ -459,7 +457,7 @@ var PrintUtils = {
     return "FAILURE";
   },
 
-  _displayPrintingError(nsresult, isPrinting) {
+  _displayPrintingError(nsresult, isPrinting, browser) {
     // The nsresults from a printing error are mapped to strings that have
     // similar names to the errors themselves. For example, for error
     // NS_ERROR_GFX_PRINTER_NO_PRINTER_AVAILABLE, the name of the string
@@ -492,7 +490,12 @@ var PrintUtils = {
         : "printpreview_error_dialog_title"
     );
 
-    Services.prompt.alert(window, title, msg);
+    Services.prompt.asyncAlert(
+      browser.browsingContext,
+      Services.prompt.MODAL_TYPE_TAB,
+      title,
+      msg
+    );
 
     Services.telemetry.keyedScalarAdd(
       "printing.error",
@@ -551,7 +554,7 @@ var PrintUtils = {
         );
       }
     } catch (e) {
-      Cu.reportError("PrintUtils.getPrintSettings failed: " + e + "\n");
+      console.error("PrintUtils.getPrintSettings failed: ", e, "\n");
     }
     return printSettings;
   },

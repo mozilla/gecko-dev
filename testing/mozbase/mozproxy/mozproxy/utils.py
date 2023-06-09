@@ -26,6 +26,7 @@ except ImportError:
 
 from mozlog import get_proxy_logger
 from mozprocess import ProcessHandler
+
 from mozproxy import mozbase_dir, mozharness_dir
 
 LOG = get_proxy_logger(component="mozproxy")
@@ -96,7 +97,7 @@ def tooltool_download(manifest, run_local, raptor_dir):
     tooltool_path = None
 
     for path in TOOLTOOL_PATHS:
-        if os.path.exists(os.path.dirname(path)):
+        if os.path.exists(path):
             tooltool_path = path
             break
     if tooltool_path is None:

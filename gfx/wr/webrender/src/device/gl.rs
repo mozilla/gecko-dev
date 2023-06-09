@@ -1728,12 +1728,17 @@ impl Device {
         // from a non-zero offset within a PBO to fail. See bug 1603783.
         let supports_nonzero_pbo_offsets = !is_macos;
 
-        // On Mali-Gxx and Txxx there is a driver bug when rendering partial updates to
-        // offscreen render targets, so we must ensure we render to the entire target.
-        // See bug 1663355.
-        let is_mali_g = renderer_name.starts_with("Mali-G");
-        let is_mali_t = renderer_name.starts_with("Mali-T");
-        let supports_render_target_partial_update = !is_mali_g && !is_mali_t;
+        // We have encountered several issues when only partially updating render targets on a
+        // variety of Mali GPUs. As a precaution avoid doing so on all Midgard and Bifrost GPUs.
+        // Valhall (eg Mali-Gx7 onwards) appears to be unnaffected. See bug 1691955, bug 1558374,
+        // and bug 1663355.
+        let supports_render_target_partial_update = !(renderer_name.starts_with("Mali-T")
+            || renderer_name == "Mali-G31"
+            || renderer_name == "Mali-G51"
+            || renderer_name == "Mali-G71"
+            || renderer_name == "Mali-G52"
+            || renderer_name == "Mali-G72"
+            || renderer_name == "Mali-G76");
 
         let supports_shader_storage_object = match gl.get_type() {
             // see https://www.g-truc.net/post-0734.html
@@ -1777,7 +1782,7 @@ impl Device {
         if is_software_webrender {
             // No benefit to batching texture uploads with swgl.
             requires_batched_texture_uploads = Some(false);
-        } else if is_mali_g {
+        } else if renderer_name.starts_with("Mali-G") {
             // On Mali-Gxx the driver really struggles with many small texture uploads,
             // and handles fewer, larger uploads better.
             requires_batched_texture_uploads = Some(true);
@@ -1786,18 +1791,19 @@ impl Device {
         // On Mali-Txxx devices we have observed crashes during draw calls when rendering
         // to an alpha target immediately after using glClear to clear regions of it.
         // Using a shader to clear the regions avoids the crash. See bug 1638593.
-        let supports_alpha_target_clears = !is_mali_t;
+        let supports_alpha_target_clears = !renderer_name.starts_with("Mali-T");
 
         // On Adreno 4xx devices with older drivers we have seen render tasks to alpha targets have
         // no effect unless the target is fully cleared prior to rendering. See bug 1714227.
         let is_adreno_4xx = renderer_name.starts_with("Adreno (TM) 4");
         let requires_alpha_target_full_clear = is_adreno_4xx;
 
-        // Testing on Intel and nVidia GPUs showed large performance wins applying a scissor rect
-        // when clearing render targets. Assume this is the best default. On Mali, however, it is
-        // much more efficient to clear the entire render target (due to allowing it to skip reading
-        // the previous contents in to tile memory). This may be true for other GPUs too.
-        let prefers_clear_scissor = !renderer_name.starts_with("Mali");
+        // Testing on Intel and nVidia GPUs, as well as software webrender, showed large performance
+        // wins applying a scissor rect when clearing render targets. Assume this is the best
+        // default. On mobile GPUs, however, it can be much more efficient to clear the entire
+        // render target. For now, enable the scissor everywhere except Android hardware
+        // webrender. We can tweak this further if needs be.
+        let prefers_clear_scissor = !cfg!(target_os = "android") || is_software_webrender;
 
         let mut supports_render_target_invalidate = true;
 
@@ -1809,10 +1815,13 @@ impl Device {
             supports_render_target_invalidate = false;
         }
 
-        // On Mali-G78 devices with a driver version v1.r36p0 we have seen that invalidating render
-        // targets can result in image corruption, perhaps due to subsequent reuses of the render
-        // target not correctly reinitializing them to a valid state. See bug 1787520.
-        if renderer_name.starts_with("Mali-G78") || renderer_name.starts_with("Mali-G710") {
+        // On Mali Valhall devices with a driver version v1.r36p0 we have seen that invalidating
+        // render targets can result in image corruption, perhaps due to subsequent reuses of the
+        // render target not correctly reinitializing them to a valid state. See bug 1787520.
+        if renderer_name.starts_with("Mali-G77")
+            || renderer_name.starts_with("Mali-G78")
+            || renderer_name.starts_with("Mali-G710")
+        {
             match parse_mali_version(&version_string) {
                 Some(version) if version >= (1, 36, 0) => supports_render_target_invalidate = false,
                 _ => {}

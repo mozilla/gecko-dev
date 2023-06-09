@@ -3,14 +3,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// These denote which keyboard controls to show for a qualified video element.
+// These denote which keyboard controls to disable for a qualified video element.
 export const KEYBOARD_CONTROLS = {
-  NONE: 0,
+  ALL: 0,
   PLAY_PAUSE: 1 << 0,
   MUTE_UNMUTE: 1 << 1,
   VOLUME: 1 << 2,
   SEEK: 1 << 3,
   CLOSE: 1 << 4,
+  LIVE_SEEK: 1 << 5,
 };
 
 // These are the possible toggle positions along the right side of
@@ -20,8 +21,9 @@ export const TOGGLE_POLICIES = {
   HIDDEN: 2,
   TOP: 3,
   ONE_QUARTER: 4,
-  THREE_QUARTERS: 5,
-  BOTTOM: 6,
+  MIDDLE: 5,
+  THREE_QUARTERS: 6,
+  BOTTOM: 7,
 };
 
 // These strings are used in the videocontrols.css stylesheet as
@@ -32,6 +34,7 @@ export const TOGGLE_POLICY_STRINGS = {
   [TOGGLE_POLICIES.HIDDEN]: "hidden",
   [TOGGLE_POLICIES.TOP]: "top",
   [TOGGLE_POLICIES.ONE_QUARTER]: "one-quarter",
+  [TOGGLE_POLICIES.MIDDLE]: "middle",
   [TOGGLE_POLICIES.THREE_QUARTERS]: "three-quarters",
   [TOGGLE_POLICIES.BOTTOM]: "bottom",
 };

@@ -19,6 +19,7 @@ module.exports = {
       url:
         "https://firefox-source-docs.mozilla.org/code-quality/lint/linters/eslint-plugin-mozilla/reject-scriptableunicodeconverter.html",
     },
+    schema: [],
     type: "problem",
   },
 
@@ -29,10 +30,11 @@ module.exports = {
           isIdentifier(node.object, "Ci") &&
           isIdentifier(node.property, "nsIScriptableUnicodeConverter")
         ) {
-          context.report(
+          context.report({
             node,
-            "Ci.nsIScriptableUnicodeConverter is deprecated. You should use TextEncoder or TextDecoder instead."
-          );
+            message:
+              "Ci.nsIScriptableUnicodeConverter is deprecated. You should use TextEncoder or TextDecoder instead.",
+          });
         }
       },
     };

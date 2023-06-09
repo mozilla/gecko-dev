@@ -14,15 +14,17 @@
  * limitations under the License.
  */
 
-import utils from './utils.js';
 import os from 'os';
+
 import expect from 'expect';
+import {KeyInput} from 'puppeteer-core/internal/common/USKeyboardLayout.js';
+
 import {
   getTestState,
   setupTestBrowserHooks,
   setupTestPageAndContextHooks,
 } from './mocha-utils.js';
-import {KeyInput} from '../../lib/cjs/puppeteer/common/USKeyboardLayout.js';
+import utils from './utils.js';
 
 describe('Keyboard', function () {
   setupTestBrowserHooks();
@@ -90,6 +92,36 @@ describe('Keyboard', function () {
       })
     ).toBe('Hello World!');
   });
+  // @see https://github.com/puppeteer/puppeteer/issues/1313
+  it('should trigger commands of keyboard shortcuts', async () => {
+    const {page, server} = getTestState();
+    const cmdKey = os.platform() !== 'darwin' ? 'Meta' : 'Control';
+
+    await page.goto(server.PREFIX + '/input/textarea.html');
+    await page.type('textarea', 'hello');
+
+    await page.keyboard.down(cmdKey);
+    await page.keyboard.press('a', {commands: ['SelectAll']});
+    await page.keyboard.up(cmdKey);
+
+    await page.keyboard.down(cmdKey);
+    await page.keyboard.down('c', {commands: ['Copy']});
+    await page.keyboard.up('c');
+    await page.keyboard.up(cmdKey);
+
+    await page.keyboard.down(cmdKey);
+    await page.keyboard.press('v', {commands: ['Paste']});
+    await page.keyboard.up(cmdKey);
+    await page.keyboard.down(cmdKey);
+    await page.keyboard.press('v', {commands: ['Paste']});
+    await page.keyboard.up(cmdKey);
+
+    expect(
+      await page.evaluate(() => {
+        return document.querySelector('textarea')!.value;
+      })
+    ).toBe('hellohello');
+  });
   it('should send a character with ElementHandle.press', async () => {
     const {page, server} = getTestState();
 
@@ -119,21 +151,18 @@ describe('Keyboard', function () {
       })
     ).toBe('a');
   });
-  it(
-    'ElementHandle.press should support |text| option',
-    async () => {
-      const {page, server} = getTestState();
+  it('ElementHandle.press should support |text| option', async () => {
+    const {page, server} = getTestState();
 
-      await page.goto(server.PREFIX + '/input/textarea.html');
-      const textarea = (await page.$('textarea'))!;
-      await textarea.press('a', {text: 'ё'});
-      expect(
-        await page.evaluate(() => {
-          return document.querySelector('textarea')!.value;
-        })
-      ).toBe('ё');
-    }
-  );
+    await page.goto(server.PREFIX + '/input/textarea.html');
+    const textarea = (await page.$('textarea'))!;
+    await textarea.press('a', {text: 'ё'});
+    expect(
+      await page.evaluate(() => {
+        return document.querySelector('textarea')!.value;
+      })
+    ).toBe('ё');
+  });
   it('should send a character with sendCharacter', async () => {
     const {page, server} = getTestState();
 

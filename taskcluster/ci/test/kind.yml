@@ -9,6 +9,7 @@ kind-dependencies:
     - build-signing
     - repackage-signing-shippable-l10n-msix
     - repackage-signing-msix
+    - repackage-signing
     - repackage
     - fetch
     - toolchain
@@ -36,8 +37,6 @@ jobs-from:
     - marionette.yml
     - misc.yml
     - mochitest.yml
-    - raptor.yml
-    - raptor-chrome.yml
     - reftest.yml
     - talos.yml
     - web-platform.yml
@@ -58,11 +57,7 @@ job-defaults:
         requires-signed-builds:
             by-test-platform:
                 macosx1100.*: true
-                windows10-64-2004-shippable-qr/opt:
-                    by-variant:
-                        msix: true
-                        default: false
-                windows10-64-2004-qr/opt:
+                windows1.*:
                     by-variant:
                         msix: true
                         default: false

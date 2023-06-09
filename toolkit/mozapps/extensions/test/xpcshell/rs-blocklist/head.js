@@ -1,8 +1,8 @@
 // Appease eslint.
 /* import-globals-from ../head_addons.js */
 
-const { ComponentUtils } = ChromeUtils.import(
-  "resource://gre/modules/ComponentUtils.jsm"
+const { ComponentUtils } = ChromeUtils.importESModule(
+  "resource://gre/modules/ComponentUtils.sys.mjs"
 );
 
 const MLBF_RECORD = {
@@ -46,9 +46,11 @@ function getExtensionBlocklistMLBF() {
   const {
     BlocklistPrivate: { ExtensionBlocklistMLBF },
   } = ChromeUtils.import("resource://gre/modules/Blocklist.jsm");
-  Assert.ok(
-    Services.prefs.getBoolPref("extensions.blocklist.useMLBF", false),
-    "blocklist.useMLBF should be true"
-  );
+  if (Blocklist.allowDeprecatedBlocklistV2) {
+    Assert.ok(
+      Services.prefs.getBoolPref("extensions.blocklist.useMLBF", false),
+      "blocklist.useMLBF should be true"
+    );
+  }
   return ExtensionBlocklistMLBF;
 }

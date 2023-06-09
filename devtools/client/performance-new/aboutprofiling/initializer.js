@@ -43,7 +43,7 @@
  * JSM module, that can be shared with the DevTools keyboard shortcut manager.
  */
 const { presets } = ChromeUtils.import(
-  "resource://devtools/client/performance-new/popup/background.jsm.js"
+  "resource://devtools/client/performance-new/shared/background.jsm.js"
 );
 
 const ReactDOM = require("resource://devtools/client/shared/vendor/react-dom.js");
@@ -56,13 +56,13 @@ const Provider = React.createFactory(
   require("resource://devtools/client/shared/vendor/react-redux.js").Provider
 );
 const ProfilerPreferenceObserver = React.createFactory(
-  require("resource://devtools/client/performance-new/components/ProfilerPreferenceObserver.js")
+  require("resource://devtools/client/performance-new/components/shared/ProfilerPreferenceObserver.js")
 );
 const LocalizationProvider = React.createFactory(
   FluentReact.LocalizationProvider
 );
 const AboutProfiling = React.createFactory(
-  require("resource://devtools/client/performance-new/components/AboutProfiling.js")
+  require("resource://devtools/client/performance-new/components/aboutprofiling/AboutProfiling.js")
 );
 const createStore = require("resource://devtools/client/shared/redux/create-store.js");
 const reducers = require("resource://devtools/client/performance-new/store/reducers.js");
@@ -92,7 +92,7 @@ async function gInit(
       // For -brand-shorter-name used in some profiler preset descriptions.
       "branding/brand.ftl",
       // Needed for the onboarding UI
-      "browser/branding/brandings.ftl",
+      "toolkit/branding/brandings.ftl",
     ],
     {
       setAttributesOnDocument: true,

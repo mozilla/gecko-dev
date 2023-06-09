@@ -2,11 +2,15 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use std::io::Read;
 use std::sync::{Arc, Barrier, Mutex};
 use std::thread::{self, ThreadId};
 
+use flate2::read::GzDecoder;
+use serde_json::Value as JsonValue;
+
 use crate::private::PingType;
-use crate::private::{BooleanMetric, CounterMetric, EventMetric, StringMetric};
+use crate::private::{BooleanMetric, CounterMetric, EventMetric, StringMetric, TextMetric};
 
 use super::*;
 use crate::common_test::{lock_test, new_glean, GLOBAL_APPLICATION_ID};
@@ -48,6 +52,8 @@ fn send_a_ping() {
         server_endpoint: Some("invalid-test-host".into()),
         uploader: Some(Box::new(FakeUploader { sender: s })),
         use_core_mps: false,
+        trim_data_to_registered_pings: false,
+        log_level: None,
     };
 
     let _t = new_glean(Some(cfg), true);
@@ -109,8 +115,10 @@ fn test_experiments_recording() {
 #[test]
 fn test_experiments_recording_before_glean_inits() {
     let _lock = lock_test();
+    let dir = tempfile::tempdir().unwrap();
+    let tmpname = dir.path().to_path_buf();
 
-    destroy_glean(true);
+    destroy_glean(true, &tmpname);
 
     set_experiment_active(
         "experiment_set_preinit".to_string(),
@@ -124,9 +132,6 @@ fn test_experiments_recording_before_glean_inits() {
     );
     set_experiment_inactive("experiment_preinit_disabled".to_string());
 
-    let dir = tempfile::tempdir().unwrap();
-    let tmpname = dir.path().to_path_buf();
-
     test_reset_glean(
         Configuration {
             data_path: tmpname,
@@ -137,6 +142,8 @@ fn test_experiments_recording_before_glean_inits() {
             server_endpoint: Some("invalid-test-host".into()),
             uploader: None,
             use_core_mps: false,
+            trim_data_to_registered_pings: false,
+            log_level: None,
         },
         ClientInfoMetrics::unknown(),
         false,
@@ -196,6 +203,8 @@ fn sending_of_foreground_background_pings() {
         server_endpoint: Some("invalid-test-host".into()),
         uploader: Some(Box::new(FakeUploader { sender: s })),
         use_core_mps: false,
+        trim_data_to_registered_pings: false,
+        log_level: None,
     };
 
     let _t = new_glean(Some(cfg), true);
@@ -277,6 +286,8 @@ fn sending_of_startup_baseline_ping() {
             server_endpoint: Some("invalid-test-host".into()),
             uploader: Some(Box::new(FakeUploader { sender: s })),
             use_core_mps: false,
+            trim_data_to_registered_pings: false,
+            log_level: None,
         },
         ClientInfoMetrics::unknown(),
         false,
@@ -335,6 +346,8 @@ fn no_dirty_baseline_on_clean_shutdowns() {
             server_endpoint: Some("invalid-test-host".into()),
             uploader: Some(Box::new(FakeUploader { sender: s })),
             use_core_mps: false,
+            trim_data_to_registered_pings: false,
+            log_level: None,
         },
         ClientInfoMetrics::unknown(),
         false,
@@ -364,6 +377,8 @@ fn initialize_must_not_crash_if_data_dir_is_messed_up() {
         server_endpoint: Some("invalid-test-host".into()),
         uploader: None,
         use_core_mps: false,
+        trim_data_to_registered_pings: false,
+        log_level: None,
     };
 
     test_reset_glean(cfg, ClientInfoMetrics::unknown(), false);
@@ -375,8 +390,10 @@ fn initialize_must_not_crash_if_data_dir_is_messed_up() {
 #[test]
 fn queued_recorded_metrics_correctly_record_during_init() {
     let _lock = lock_test();
+    let dir = tempfile::tempdir().unwrap();
+    let tmpname = dir.path().to_path_buf();
 
-    destroy_glean(true);
+    destroy_glean(true, &tmpname);
 
     let metric = CounterMetric::new(CommonMetricData {
         name: "counter_metric".into(),
@@ -398,7 +415,19 @@ fn queued_recorded_metrics_correctly_record_during_init() {
 
     // Calling `new_glean` here will cause Glean to be initialized and should cause the queued
     // tasks recording metrics to execute
-    let _t = new_glean(None, false);
+    let cfg = Configuration {
+        data_path: tmpname,
+        application_id: GLOBAL_APPLICATION_ID.into(),
+        upload_enabled: true,
+        max_events: None,
+        delay_ping_lifetime_io: false,
+        server_endpoint: Some("invalid-test-host".into()),
+        uploader: None,
+        use_core_mps: false,
+        trim_data_to_registered_pings: false,
+        log_level: None,
+    };
+    let _t = new_glean(Some(cfg), false);
 
     // Verify that the callback was executed by testing for the correct value
     assert!(metric.test_get_value(None).is_some(), "Value must exist");
@@ -422,6 +451,8 @@ fn initializing_twice_is_a_noop() {
             server_endpoint: Some("invalid-test-host".into()),
             uploader: None,
             use_core_mps: false,
+            trim_data_to_registered_pings: false,
+            log_level: None,
         },
         ClientInfoMetrics::unknown(),
         true,
@@ -441,6 +472,8 @@ fn initializing_twice_is_a_noop() {
             server_endpoint: Some("invalid-test-host".into()),
             uploader: None,
             use_core_mps: false,
+            trim_data_to_registered_pings: false,
+            log_level: None,
         },
         ClientInfoMetrics::unknown(),
     );
@@ -453,9 +486,51 @@ fn initializing_twice_is_a_noop() {
 }
 
 #[test]
-#[ignore] // TODO: To be done in bug 1673668.
 fn dont_handle_events_when_uninitialized() {
-    todo!()
+    let _lock = lock_test();
+    let dir = tempfile::tempdir().unwrap();
+    let tmpname = dir.path().to_path_buf();
+
+    test_reset_glean(
+        Configuration {
+            data_path: tmpname.clone(),
+            application_id: GLOBAL_APPLICATION_ID.into(),
+            upload_enabled: true,
+            max_events: None,
+            delay_ping_lifetime_io: false,
+            server_endpoint: Some("invalid-test-host".into()),
+            uploader: None,
+            use_core_mps: false,
+            trim_data_to_registered_pings: false,
+            log_level: None,
+        },
+        ClientInfoMetrics::unknown(),
+        true,
+    );
+
+    // Ensure there's at least one event recorded,
+    // otherwise the ping is not sent.
+    let click: EventMetric<traits::NoExtraKeys> = private::EventMetric::new(CommonMetricData {
+        name: "click".into(),
+        category: "ui".into(),
+        send_in_pings: vec!["events".into()],
+        lifetime: Lifetime::Ping,
+        disabled: false,
+        ..Default::default()
+    });
+    click.record(None);
+    // Wait for the dispatcher.
+    assert_ne!(None, click.test_get_value(None));
+
+    // Now destroy Glean. We test submission when not initialized.
+    destroy_glean(false, &tmpname);
+
+    // We reach into `glean_core` to test this,
+    // only there we can synchronously submit and get a return value.
+    assert!(!glean_core::glean_submit_ping_by_name_sync(
+        "events".to_string(),
+        None
+    ));
 }
 
 // TODO: Should probably move into glean-core.
@@ -491,6 +566,8 @@ fn the_app_channel_must_be_correctly_set_if_requested() {
             server_endpoint: Some("invalid-test-host".into()),
             uploader: None,
             use_core_mps: false,
+            trim_data_to_registered_pings: false,
+            log_level: None,
         },
         client_info,
         true,
@@ -512,6 +589,8 @@ fn the_app_channel_must_be_correctly_set_if_requested() {
             server_endpoint: Some("invalid-test-host".into()),
             uploader: None,
             use_core_mps: false,
+            trim_data_to_registered_pings: false,
+            log_level: None,
         },
         client_info,
         true,
@@ -520,9 +599,90 @@ fn the_app_channel_must_be_correctly_set_if_requested() {
 }
 
 #[test]
-#[ignore] // TODO: To be done in bug 1673672.
 fn ping_collection_must_happen_after_concurrently_scheduled_metrics_recordings() {
-    todo!()
+    // Given the following block of code:
+    //
+    // Metric.A.set("SomeTestValue")
+    // Glean.submitPings(listOf("custom-ping-1"))
+    //
+    // This test ensures that "custom-ping-1" contains "metric.a" with a value of "SomeTestValue"
+    // when the ping is collected.
+
+    let _lock = lock_test();
+
+    let (s, r) = crossbeam_channel::bounded(1);
+
+    // Define a fake uploader that reports back the submission URL
+    // using a crossbeam channel.
+    #[derive(Debug)]
+    pub struct FakeUploader {
+        sender: crossbeam_channel::Sender<(String, JsonValue)>,
+    }
+    impl net::PingUploader for FakeUploader {
+        fn upload(
+            &self,
+            url: String,
+            body: Vec<u8>,
+            _headers: Vec<(String, String)>,
+        ) -> net::UploadResult {
+            // Decode the gzipped body.
+            let mut gzip_decoder = GzDecoder::new(&body[..]);
+            let mut s = String::with_capacity(body.len());
+
+            let data = gzip_decoder
+                .read_to_string(&mut s)
+                .ok()
+                .map(|_| &s[..])
+                .or_else(|| std::str::from_utf8(&body).ok())
+                .and_then(|payload| serde_json::from_str(payload).ok())
+                .unwrap();
+            self.sender.send((url, data)).unwrap();
+            net::UploadResult::http_status(200)
+        }
+    }
+
+    let dir = tempfile::tempdir().unwrap();
+    let tmpname = dir.path().to_path_buf();
+    test_reset_glean(
+        Configuration {
+            data_path: tmpname,
+            application_id: GLOBAL_APPLICATION_ID.into(),
+            upload_enabled: true,
+            max_events: None,
+            delay_ping_lifetime_io: false,
+            server_endpoint: Some("invalid-test-host".into()),
+            uploader: Some(Box::new(FakeUploader { sender: s })),
+            use_core_mps: false,
+            trim_data_to_registered_pings: false,
+            log_level: None,
+        },
+        ClientInfoMetrics::unknown(),
+        true,
+    );
+
+    let ping_name = "custom_ping_1";
+    let ping = private::PingType::new(ping_name, true, false, vec![]);
+    let metric = private::StringMetric::new(CommonMetricData {
+        name: "string_metric".into(),
+        category: "telemetry".into(),
+        send_in_pings: vec![ping_name.into()],
+        lifetime: Lifetime::Ping,
+        disabled: false,
+        ..Default::default()
+    });
+
+    let test_value = "SomeTestValue";
+    metric.set(test_value.to_string());
+    ping.submit(None);
+
+    // Wait for the ping to arrive.
+    let (url, body) = r.recv().unwrap();
+    assert!(url.contains(ping_name));
+
+    assert_eq!(
+        test_value,
+        body["metrics"]["string"]["telemetry.string_metric"]
+    );
 }
 
 #[test]
@@ -575,6 +735,8 @@ fn core_metrics_should_be_cleared_and_restored_when_disabling_and_enabling_uploa
             server_endpoint: Some("invalid-test-host".into()),
             uploader: None,
             use_core_mps: false,
+            trim_data_to_registered_pings: false,
+            log_level: None,
         },
         ClientInfoMetrics::unknown(),
         true,
@@ -636,6 +798,8 @@ fn sending_deletion_ping_if_disabled_outside_of_run() {
         server_endpoint: Some("invalid-test-host".into()),
         uploader: None,
         use_core_mps: false,
+        trim_data_to_registered_pings: false,
+        log_level: None,
     };
 
     let _t = new_glean(Some(cfg), true);
@@ -652,6 +816,8 @@ fn sending_deletion_ping_if_disabled_outside_of_run() {
             server_endpoint: Some("invalid-test-host".into()),
             uploader: Some(Box::new(FakeUploader { sender: s })),
             use_core_mps: false,
+            trim_data_to_registered_pings: false,
+            log_level: None,
         },
         ClientInfoMetrics::unknown(),
         false,
@@ -699,6 +865,8 @@ fn no_sending_of_deletion_ping_if_unchanged_outside_of_run() {
         server_endpoint: Some("invalid-test-host".into()),
         uploader: None,
         use_core_mps: false,
+        trim_data_to_registered_pings: false,
+        log_level: None,
     };
 
     let _t = new_glean(Some(cfg), true);
@@ -715,6 +883,8 @@ fn no_sending_of_deletion_ping_if_unchanged_outside_of_run() {
             server_endpoint: Some("invalid-test-host".into()),
             uploader: Some(Box::new(FakeUploader { sender: s })),
             use_core_mps: false,
+            trim_data_to_registered_pings: false,
+            log_level: None,
         },
         ClientInfoMetrics::unknown(),
         false,
@@ -724,22 +894,110 @@ fn no_sending_of_deletion_ping_if_unchanged_outside_of_run() {
 }
 
 #[test]
-#[ignore] // TODO: To be done in bug 1672956.
 fn test_sending_of_startup_baseline_ping_with_application_lifetime_metric() {
-    todo!()
-}
+    let _lock = lock_test();
 
-#[test]
-#[ignore] // TODO: To be done in bug 1672956.
-fn test_dirty_flag_is_reset_to_false() {
-    todo!()
+    let (s, r) = crossbeam_channel::bounded(1);
+
+    // Define a fake uploader that reports back the submission URL
+    // using a crossbeam channel.
+    #[derive(Debug)]
+    pub struct FakeUploader {
+        sender: crossbeam_channel::Sender<(String, JsonValue)>,
+    }
+    impl net::PingUploader for FakeUploader {
+        fn upload(
+            &self,
+            url: String,
+            body: Vec<u8>,
+            _headers: Vec<(String, String)>,
+        ) -> net::UploadResult {
+            // Decode the gzipped body.
+            let mut gzip_decoder = GzDecoder::new(&body[..]);
+            let mut s = String::with_capacity(body.len());
+
+            let data = gzip_decoder
+                .read_to_string(&mut s)
+                .ok()
+                .map(|_| &s[..])
+                .or_else(|| std::str::from_utf8(&body).ok())
+                .and_then(|payload| serde_json::from_str(payload).ok())
+                .unwrap();
+            self.sender.send((url, data)).unwrap();
+            net::UploadResult::http_status(200)
+        }
+    }
+
+    let dir = tempfile::tempdir().unwrap();
+    let tmpname = dir.path().to_path_buf();
+    test_reset_glean(
+        Configuration {
+            data_path: tmpname.clone(),
+            application_id: GLOBAL_APPLICATION_ID.into(),
+            upload_enabled: true,
+            max_events: None,
+            delay_ping_lifetime_io: false,
+            server_endpoint: Some("invalid-test-host".into()),
+            uploader: None,
+            use_core_mps: false,
+            trim_data_to_registered_pings: false,
+            log_level: None,
+        },
+        ClientInfoMetrics::unknown(),
+        true,
+    );
+
+    // Reaching into the core.
+    glean_core::glean_set_dirty_flag(true);
+
+    let metric = private::StringMetric::new(CommonMetricData {
+        name: "app_lifetime".into(),
+        category: "telemetry".into(),
+        send_in_pings: vec!["baseline".into()],
+        lifetime: Lifetime::Application,
+        disabled: false,
+        ..Default::default()
+    });
+    let test_value = "HELLOOOOO!";
+    metric.set(test_value.into());
+    assert_eq!(test_value, metric.test_get_value(None).unwrap());
+
+    // Restart glean and don't clear the stores.
+    test_reset_glean(
+        Configuration {
+            data_path: tmpname,
+            application_id: GLOBAL_APPLICATION_ID.into(),
+            upload_enabled: true,
+            max_events: None,
+            delay_ping_lifetime_io: false,
+            server_endpoint: Some("invalid-test-host".into()),
+            uploader: Some(Box::new(FakeUploader { sender: s })),
+            use_core_mps: false,
+            trim_data_to_registered_pings: false,
+            log_level: None,
+        },
+        ClientInfoMetrics::unknown(),
+        false,
+    );
+
+    let (url, body) = r.recv().unwrap();
+    assert!(url.contains("/baseline/"));
+
+    // We set the dirty bit above.
+    assert_eq!("dirty_startup", body["ping_info"]["reason"]);
+    assert_eq!(
+        test_value,
+        body["metrics"]["string"]["telemetry.app_lifetime"]
+    );
 }
 
 #[test]
 fn setting_debug_view_tag_before_initialization_should_not_crash() {
     let _lock = lock_test();
+    let dir = tempfile::tempdir().unwrap();
+    let tmpname = dir.path().to_path_buf();
 
-    destroy_glean(true);
+    destroy_glean(true, &tmpname);
 
     // Define a fake uploader that reports back the submission headers
     // using a crossbeam channel.
@@ -765,9 +1023,6 @@ fn setting_debug_view_tag_before_initialization_should_not_crash() {
     set_debug_view_tag("valid-tag");
 
     // Create a custom configuration to use a fake uploader.
-    let dir = tempfile::tempdir().unwrap();
-    let tmpname = dir.path().to_path_buf();
-
     let cfg = Configuration {
         data_path: tmpname,
         application_id: GLOBAL_APPLICATION_ID.into(),
@@ -777,6 +1032,8 @@ fn setting_debug_view_tag_before_initialization_should_not_crash() {
         server_endpoint: Some("invalid-test-host".into()),
         uploader: Some(Box::new(FakeUploader { sender: s })),
         use_core_mps: false,
+        trim_data_to_registered_pings: false,
+        log_level: None,
     };
 
     let _t = new_glean(Some(cfg), true);
@@ -795,8 +1052,10 @@ fn setting_debug_view_tag_before_initialization_should_not_crash() {
 #[test]
 fn setting_source_tags_before_initialization_should_not_crash() {
     let _lock = lock_test();
+    let dir = tempfile::tempdir().unwrap();
+    let tmpname = dir.path().to_path_buf();
 
-    destroy_glean(true);
+    destroy_glean(true, &tmpname);
     //assert!(!was_initialize_called());
 
     // Define a fake uploader that reports back the submission headers
@@ -823,9 +1082,6 @@ fn setting_source_tags_before_initialization_should_not_crash() {
     set_source_tags(vec!["valid-tag1".to_string(), "valid-tag2".to_string()]);
 
     // Create a custom configuration to use a fake uploader.
-    let dir = tempfile::tempdir().unwrap();
-    let tmpname = dir.path().to_path_buf();
-
     let cfg = Configuration {
         data_path: tmpname,
         application_id: GLOBAL_APPLICATION_ID.into(),
@@ -835,6 +1091,8 @@ fn setting_source_tags_before_initialization_should_not_crash() {
         server_endpoint: Some("invalid-test-host".into()),
         uploader: Some(Box::new(FakeUploader { sender: s })),
         use_core_mps: false,
+        trim_data_to_registered_pings: false,
+        log_level: None,
     };
 
     let _t = new_glean(Some(cfg), true);
@@ -857,9 +1115,6 @@ fn setting_source_tags_before_initialization_should_not_crash() {
 #[test]
 fn setting_source_tags_after_initialization_should_not_crash() {
     let _lock = lock_test();
-
-    destroy_glean(true);
-    //assert!(!was_initialize_called());
 
     // Define a fake uploader that reports back the submission headers
     // using a crossbeam channel.
@@ -894,6 +1149,8 @@ fn setting_source_tags_after_initialization_should_not_crash() {
         server_endpoint: Some("invalid-test-host".into()),
         uploader: Some(Box::new(FakeUploader { sender: s })),
         use_core_mps: false,
+        trim_data_to_registered_pings: false,
+        log_level: None,
     };
 
     let _t = new_glean(Some(cfg), true);
@@ -964,6 +1221,8 @@ fn flipping_upload_enabled_respects_order_of_events() {
         server_endpoint: Some("invalid-test-host".into()),
         uploader: Some(Box::new(FakeUploader { sender: s })),
         use_core_mps: false,
+        trim_data_to_registered_pings: false,
+        log_level: None,
     };
 
     // We create a ping and a metric before we initialize Glean
@@ -994,9 +1253,6 @@ fn flipping_upload_enabled_respects_order_of_events() {
 #[test]
 fn registering_pings_before_init_must_work() {
     let _lock = lock_test();
-
-    destroy_glean(true);
-    //assert!(!was_initialize_called());
 
     // Define a fake uploader that reports back the submission headers
     // using a crossbeam channel.
@@ -1034,6 +1290,8 @@ fn registering_pings_before_init_must_work() {
         server_endpoint: Some("invalid-test-host".into()),
         uploader: Some(Box::new(FakeUploader { sender: s })),
         use_core_mps: false,
+        trim_data_to_registered_pings: false,
+        log_level: None,
     };
 
     let _t = new_glean(Some(cfg), true);
@@ -1083,6 +1341,8 @@ fn test_a_ping_before_submission() {
         server_endpoint: Some("invalid-test-host".into()),
         uploader: Some(Box::new(FakeUploader { sender: s })),
         use_core_mps: false,
+        trim_data_to_registered_pings: false,
+        log_level: None,
     };
 
     let _t = new_glean(Some(cfg), true);
@@ -1136,6 +1396,31 @@ fn test_boolean_get_num_errors() {
 }
 
 #[test]
+fn test_text_can_hold_long_string() {
+    let _lock = lock_test();
+
+    let _t = new_glean(None, false);
+
+    let metric = TextMetric::new(CommonMetricData {
+        name: "text_metric".into(),
+        category: "test".into(),
+        send_in_pings: vec!["custom1".into()],
+        lifetime: Lifetime::Application,
+        disabled: false,
+        dynamic_label: Some(str::to_string("text")),
+    });
+
+    // 216 characters, which would overflow StringMetric
+    metric.set("I've seen things you people wouldn't believe. Attack ships on fire off the shoulder of Orion. I watched C-beams glitter in the dark near the Tannhäuser Gate. All those moments will be lost in time, like tears in rain".into());
+
+    let result = metric.test_get_num_recorded_errors(ErrorType::InvalidValue);
+    assert_eq!(result, 0);
+
+    let result = metric.test_get_num_recorded_errors(ErrorType::InvalidOverflow);
+    assert_eq!(result, 0);
+}
+
+#[test]
 fn signaling_done() {
     let _lock = lock_test();
 
@@ -1185,6 +1470,8 @@ fn signaling_done() {
             counter: Arc::clone(&call_count),
         })),
         use_core_mps: false,
+        trim_data_to_registered_pings: false,
+        log_level: None,
     };
 
     let _t = new_glean(Some(cfg), true);

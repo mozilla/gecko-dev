@@ -3,12 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /**
- * A minimal set of rules for the XUL elements that may be implicitly created
- * as part of HTML/SVG documents (e.g. scrollbars) can be found over in
- * minimal-xul.css.  Rules for everything else related to XUL can be found in
- * this file.  Make sure you choose the correct style sheet when adding new
- * rules.  (This split of the XUL rules is to minimize memory use and improve
- * performance in HTML/SVG documents.)
+ * Rules for everything related to XUL except scrollbars can be found in this
+ * file.
  *
  * This file should also not contain any app specific styling.  Defaults for
  * widgets of a particular application should be in that application's style
@@ -19,12 +15,29 @@
 @namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"); /* set default namespace to XUL */
 @namespace html url("http://www.w3.org/1999/xhtml"); /* namespace for HTML elements */
 
+* {
+  -moz-user-focus: ignore;
+  display: flex;
+  box-sizing: border-box;
+}
+
+/* hide the content and destroy the frame */
+[hidden="true"] {
+  display: none;
+}
+
+/* hide the content, but don't destroy the frames */
+[collapsed="true"] {
+  visibility: collapse;
+}
+
 /* TODO: investigate unifying these two root selectors
  * https://bugzilla.mozilla.org/show_bug.cgi?id=1592344
  */
 *|*:root {
   --animation-easing-function: cubic-bezier(.07, .95, 0, 1);
-  -moz-box-flex: 1;
+  flex: 1;
+  -moz-box-collapse: legacy;
 }
 
 :root {
@@ -32,6 +45,7 @@
   -moz-control-character-visibility: visible;
   width: 100%;
   height: 100%;
+  user-select: none;
 }
 
 :root:-moz-locale-dir(rtl) {
@@ -115,13 +129,13 @@ tab:focus {
 
 window {
   overflow: clip;
-  -moz-box-orient: vertical;
+  flex-direction: column;
 }
 
 /******** box *******/
 
 vbox {
-  -moz-box-orient: vertical;
+  flex-direction: column;
 }
 
 /********** label **********/
@@ -141,26 +155,19 @@ label html|span.accesskey {
 
 description:where([value]) {
   /* Preserves legacy behavior, maybe could be removed */
-  display: -moz-box;
+  display: flex;
 }
 
 label:where([value]) {
   /* Preserves legacy behavior, maybe could be removed */
-  display: -moz-inline-box;
+  display: inline-flex;
 }
 
-label[value],
-description[value] {
+:is(label, description)[value] {
   white-space: nowrap;
 }
 
-label[value][crop],
-description[value][crop] {
-  min-width: 0;
-}
-
-label[value]::before,
-description[value]::before {
+:is(label, description)[value]::before {
   /* This displays the value attribute, along with the underlined
    * accesskey if needed */
   content: -moz-label-content;
@@ -168,26 +175,32 @@ description[value]::before {
 }
 
 label[value=""]::before {
-  content: "\200B"; /* zwsp */
+  content: "\200b" !important; /* zwsp */
 }
 
-label[value][crop]::before,
-description[value][crop]::before {
+:is(label, description)[value][crop] {
+  min-width: 0;
+}
+
+:is(label, description)[value][crop]::before {
   min-width: 0;
   max-width: 100%;
-  /* This implements crop=end/right */
+  /* This implements crop=end */
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 /* Invert the direction to clip at the start rather than end */
-label[value]:is([crop="left"], [crop="start"])::before,
-description[value]:is([crop="left"], [crop="start"])::before {
+:is(label, description)[value][crop="start"]::before {
   direction: rtl;
+  /* Mark text as ltr to preserve punctuation/numeric order */
+  content: "\200e" -moz-label-content;
 }
-label[value]:is([crop="left"], [crop="start"]):-moz-locale-dir(rtl)::before,
-description[value]:is([crop="left"], [crop="start"]):-moz-locale-dir(rtl)::before {
+
+:is(label, description)[value][crop="start"]:-moz-locale-dir(rtl)::before {
   direction: ltr;
+  /* Mark text as rtl to preserve punctuation/numeric order */
+  content: "\200f" -moz-label-content;
 }
 
 .checkbox-label-box,
@@ -198,8 +211,8 @@ description[value]:is([crop="left"], [crop="start"]):-moz-locale-dir(rtl)::befor
 /********** toolbarbutton **********/
 
 toolbarbutton {
-  -moz-box-align: center;
-  -moz-box-pack: center;
+  align-items: center;
+  justify-content: center;
 }
 
 toolbarbutton.tabbable {
@@ -225,6 +238,8 @@ html|label.toolbarbutton-badge:empty {
 .toolbarbutton-text,
 .toolbarbutton-badge-stack,
 .toolbarbutton-menu-dropmarker,
+.treecol-text,
+.treecol-sortdirection,
 .menubar-left,
 .menubar-text,
 .menu-text,
@@ -253,12 +268,6 @@ iframe {
   display: inline;
 }
 
-@media (-moz-box-flexbox-emulation) {
-  *|*:root {
-    -moz-box-layout: flex;
-  }
-}
-
 /* Allow the browser to shrink below its intrinsic size, to match legacy
  * behavior */
 browser {
@@ -271,7 +280,7 @@ browser {
 
 /*********** popup notification ************/
 popupnotification {
-  -moz-box-orient: vertical;
+  flex-direction: column;
 }
 
 .popup-notification-menubutton:not([label]) {
@@ -281,13 +290,13 @@ popupnotification {
 /********** radio **********/
 
 radiogroup {
-  -moz-box-orient: vertical;
+  flex-direction: column;
 }
 
 /******** groupbox *********/
 
 groupbox {
-  -moz-box-orient: vertical;
+  flex-direction: column;
 }
 
 /******** draggable elements *********/
@@ -318,7 +327,7 @@ titlebar {
 /******* toolbar *******/
 
 toolbox {
-  -moz-box-orient: vertical;
+  flex-direction: column;
 }
 
 @media (-moz-platform: macos) {
@@ -329,7 +338,7 @@ toolbox {
 }
 
 toolbarspring {
-  -moz-box-flex: 1000;
+  flex: 1000 1000;
 }
 
 /********* menu ***********/
@@ -339,14 +348,14 @@ menubar > menu:empty {
 }
 
 .menu-text {
-  -moz-box-flex: 1;
+  flex: 1;
 }
 
 /********* menupopup, panel, & tooltip ***********/
 
 menupopup,
 panel {
-  -moz-box-orient: vertical;
+  flex-direction: column;
 }
 
 menupopup,
@@ -354,6 +363,8 @@ panel,
 tooltip {
   position: fixed;
   -moz-top-layer: top;
+  width: fit-content;
+  height: fit-content;
   /* Popups can't have overflow */
   contain: paint;
   z-index: 2147483647;
@@ -365,7 +376,6 @@ tooltip {
   -moz-default-appearance: tooltip;
   -moz-font-smoothing-background-color: -moz-mac-tooltip;
 
-  -moz-box-orient: vertical;
   white-space: pre-wrap;
 
   background-color: InfoBackground;
@@ -500,17 +510,16 @@ panel[type="arrow"][animating] {
 /******** tree ******/
 
 treecolpicker {
-  -moz-box-ordinal-group: 2147483646;
+  order: 2147483646;
 }
 
 treechildren {
-  display: -moz-box;
-  user-select: none;
-  -moz-box-flex: 1;
+  display: flex;
+  flex: 1;
 }
 
 tree {
-  -moz-box-orient: vertical;
+  flex-direction: column;
 }
 
 tree[hidecolumnpicker="true"] treecolpicker {
@@ -519,11 +528,14 @@ tree[hidecolumnpicker="true"] treecolpicker {
 
 treecol {
   min-width: 16px;
+  /* This preserves the behavior of -moz-box-ordinal-group. To change this we'd
+   * need to migrate the persisted ordinal values etc. */
+  order: 1;
 }
 
 treecol[hidden="true"] {
   visibility: collapse;
-  display: -moz-box;
+  display: flex;
 }
 
 /* ::::: lines connecting cells ::::: */
@@ -580,7 +592,7 @@ stack > *|*:not(:-moz-native-anonymous) {
 /********** tabbox *********/
 
 tabbox {
-  -moz-box-orient: vertical;
+  flex-direction: column;
   min-height: 0;
 }
 
@@ -589,12 +601,12 @@ tabpanels {
 }
 
 tabs {
-  -moz-box-orient: horizontal;
+  flex-direction: row;
 }
 
 tab {
-  -moz-box-align: center;
-  -moz-box-pack: center;
+  align-items: center;
+  justify-content: center;
 }
 
 /********** tooltip *********/
@@ -608,16 +620,16 @@ tooltip[titletip="true"] {
  ********** to an insertion point parent that holds the real kids **************/
 
 .box-inherit {
-  -moz-box-orient: inherit;
-  -moz-box-pack: inherit;
-  -moz-box-align: inherit;
-  -moz-box-direction: inherit;
+  align-items: inherit;
+  justify-content: inherit;
+  flex-grow: inherit;
+  flex-shrink: inherit;
+  flex-direction: inherit;
 }
 
 /********** textbox **********/
 
 search-textbox {
-  user-select: text;
   text-shadow: none;
 }
 
@@ -631,12 +643,12 @@ search-textbox {
 .autocomplete-richlistbox {
   -moz-user-focus: ignore;
   overflow-x: hidden !important;
-  -moz-box-flex: 1;
+  flex: 1;
 }
 
 .autocomplete-richlistitem {
-  -moz-box-orient: vertical;
-  -moz-box-align: center;
+  flex-direction: column;
+  align-items: center;
   overflow: clip;
 }
 
@@ -665,13 +677,15 @@ menulist[popuponly] {
 /********** splitter **********/
 
 .tree-splitter {
-  width: 0;
-  max-width: 0;
+  margin-inline: -4px;
+  width: 8px;
+  max-width: 8px;
+  min-width: 8px;
   appearance: none !important;
-  min-width: 0 !important;
-  min-height: 0 !important;
   border: none !important;
-  -moz-box-ordinal-group: 2147483646;
+  background: none !important;
+  order: 2147483646;
+  z-index: 2147483646;
 }
 
 /******** scrollbar ********/
@@ -705,17 +719,18 @@ stringbundleset {
 /********** dialog **********/
 
 dialog {
-  -moz-box-flex: 1;
-  -moz-box-orient: vertical;
+  flex: 1;
+  flex-direction: column;
 }
 
 /********** wizard **********/
 
 wizard {
-  -moz-box-flex: 1;
-  -moz-box-orient: vertical;
-  width: 40em;
-  height: 30em;
+  flex: 1;
+  flex-direction: column;
+  contain: inline-size;
+  min-width: 40em;
+  min-height: 30em;
 }
 
 wizard > wizardpage {
@@ -728,17 +743,21 @@ wizard > wizardpage:not(.selected) {
 }
 
 wizardpage {
-  -moz-box-orient: vertical;
+  flex-direction: column;
   overflow: auto;
 }
 
 /********** Rich Listbox ********/
 
 richlistbox {
-  -moz-box-orient: vertical;
+  flex-direction: column;
   overflow: auto;
   min-width: 0;
   min-height: 0;
+}
+
+richlistitem {
+  flex-shrink: 0;
 }
 
 /*********** findbar ************/
@@ -749,7 +768,7 @@ findbar {
 
 /* Some elements that in HTML blocks should be inline-level by default */
 button, image {
-  display: -moz-inline-box;
+  display: inline-flex;
 }
 
 .menu-iconic-highlightable-text:not([highlightable="true"]),
@@ -757,18 +776,18 @@ button, image {
   display: none;
 }
 
-[orient="vertical"] { -moz-box-orient: vertical !important; }
-[orient="horizontal"] { -moz-box-orient: horizontal !important; }
+[orient="vertical"] { flex-direction: column !important; }
+[orient="horizontal"] { flex-direction: row !important; }
 
-[align="start"] { -moz-box-align: start !important; }
-[align="center"] { -moz-box-align: center !important; }
-[align="end"] { -moz-box-align: end !important; }
-[align="baseline"] { -moz-box-align: baseline !important; }
-[align="stretch"] { -moz-box-align: stretch !important; }
+[align="start"] { align-items: flex-start !important; }
+[align="center"] { align-items: center !important; }
+[align="end"] { align-items: flex-end !important; }
+[align="baseline"] { align-items: baseline !important; }
+[align="stretch"] { align-items: stretch !important; }
 
-[pack="start"] { -moz-box-pack: start !important; }
-[pack="center"] { -moz-box-pack: center !important; }
-[pack="end"] { -moz-box-pack: end !important; }
+[pack="start"] { justify-content: start !important; }
+[pack="center"] { justify-content: center !important; }
+[pack="end"] { justify-content: flex-end !important; }
 
-[flex="0"] { -moz-box-flex: 0 !important; }
-[flex="1"] { -moz-box-flex: 1 !important; }
+[flex="0"] { flex: none !important; }
+[flex="1"] { flex: 1 !important; }

@@ -7,13 +7,17 @@ import { MIN_RICH_FAVICON_SIZE } from "content-src/components/TopSites/TopSitesC
 import {
   TOP_SITES_DEFAULT_ROWS,
   TOP_SITES_MAX_SITES_PER_ROW,
-} from "common/Reducers.jsm";
+} from "common/Reducers.sys.mjs";
 import {
   TopSite,
   TopSiteLink,
-  TopSiteList,
+  _TopSiteList as TopSiteList,
   TopSitePlaceholder,
 } from "content-src/components/TopSites/TopSite";
+import {
+  INTERSECTION_RATIO,
+  TopSiteImpressionWrapper,
+} from "content-src/components/TopSites/TopSiteImpressionWrapper";
 import { A11yLinkButton } from "content-src/components/A11yLinkButton/A11yLinkButton";
 import { LinkMenu } from "content-src/components/LinkMenu/LinkMenu";
 import React from "react";
@@ -634,6 +638,21 @@ describe("<TopSite>", () => {
     link = { url: "https://foo.com", screenshot: "foo.jpg", hostname: "foo" };
   });
 
+  // Build IntersectionObserver class with the arg `entries` for the intersect callback.
+  function buildIntersectionObserver(entries) {
+    return class {
+      constructor(callback) {
+        this.callback = callback;
+      }
+
+      observe() {
+        this.callback(entries);
+      }
+
+      unobserve() {}
+    };
+  }
+
   it("should render a TopSite", () => {
     const wrapper = shallow(<TopSite link={link} />);
     assert.ok(wrapper.exists());
@@ -705,6 +724,85 @@ describe("<TopSite>", () => {
       "DeleteUrl",
     ]);
   });
+  it("should record impressions for visible organic Top Sites", () => {
+    const dispatch = sinon.stub();
+    const wrapper = shallow(
+      <TopSite
+        link={link}
+        index={3}
+        dispatch={dispatch}
+        IntersectionObserver={buildIntersectionObserver([
+          {
+            isIntersecting: true,
+            intersectionRatio: INTERSECTION_RATIO,
+          },
+        ])}
+        document={{
+          visibilityState: "visible",
+          addEventListener: sinon.stub(),
+          removeEventListener: sinon.stub(),
+        }}
+      />
+    );
+    const linkWrapper = wrapper.find(TopSiteLink).dive();
+    assert.ok(linkWrapper.exists());
+    const impressionWrapper = linkWrapper.find(TopSiteImpressionWrapper).dive();
+    assert.ok(impressionWrapper.exists());
+
+    assert.calledOnce(dispatch);
+
+    let [action] = dispatch.firstCall.args;
+    assert.equal(action.type, at.TOP_SITES_ORGANIC_IMPRESSION_STATS);
+
+    assert.propertyVal(action.data, "type", "impression");
+    assert.propertyVal(action.data, "source", "newtab");
+    assert.propertyVal(action.data, "position", 3);
+  });
+  it("should record impressions for visible sponsored Top Sites", () => {
+    const dispatch = sinon.stub();
+    const wrapper = shallow(
+      <TopSite
+        link={Object.assign({}, link, {
+          sponsored_position: 2,
+          sponsored_tile_id: 12345,
+          sponsored_impression_url: "http://impression.example.com/",
+        })}
+        index={3}
+        dispatch={dispatch}
+        IntersectionObserver={buildIntersectionObserver([
+          {
+            isIntersecting: true,
+            intersectionRatio: INTERSECTION_RATIO,
+          },
+        ])}
+        document={{
+          visibilityState: "visible",
+          addEventListener: sinon.stub(),
+          removeEventListener: sinon.stub(),
+        }}
+      />
+    );
+    const linkWrapper = wrapper.find(TopSiteLink).dive();
+    assert.ok(linkWrapper.exists());
+    const impressionWrapper = linkWrapper.find(TopSiteImpressionWrapper).dive();
+    assert.ok(impressionWrapper.exists());
+
+    assert.calledOnce(dispatch);
+
+    let [action] = dispatch.firstCall.args;
+    assert.equal(action.type, at.TOP_SITES_SPONSORED_IMPRESSION_STATS);
+
+    assert.propertyVal(action.data, "type", "impression");
+    assert.propertyVal(action.data, "tile_id", 12345);
+    assert.propertyVal(action.data, "source", "newtab");
+    assert.propertyVal(action.data, "position", 3);
+    assert.propertyVal(
+      action.data,
+      "reporting_url",
+      "http://impression.example.com/"
+    );
+    assert.propertyVal(action.data, "advertiser", "foo");
+  });
 
   describe("#onLinkClick", () => {
     it("should call dispatch when the link is clicked", () => {
@@ -715,7 +813,23 @@ describe("<TopSite>", () => {
 
       wrapper.find(TopSiteLink).simulate("click", { preventDefault() {} });
 
-      assert.calledTwice(dispatch);
+      let [action] = dispatch.firstCall.args;
+      assert.isUserEventAction(action);
+
+      assert.propertyVal(action.data, "event", "CLICK");
+      assert.propertyVal(action.data, "source", "TOP_SITES");
+      assert.propertyVal(action.data, "action_position", 3);
+
+      [action] = dispatch.secondCall.args;
+      assert.propertyVal(action, "type", at.OPEN_LINK);
+
+      // Organic Top Site click event.
+      [action] = dispatch.thirdCall.args;
+      assert.equal(action.type, at.TOP_SITES_ORGANIC_IMPRESSION_STATS);
+
+      assert.propertyVal(action.data, "type", "click");
+      assert.propertyVal(action.data, "source", "newtab");
+      assert.propertyVal(action.data, "position", 3);
     });
     it("should dispatch a UserEventAction with the right data", () => {
       const dispatch = sinon.stub();
@@ -807,12 +921,12 @@ describe("<TopSite>", () => {
 
       // Topsite SPOC click event.
       [action] = dispatch.getCall(3).args;
-      assert.equal(action.type, at.TOP_SITES_IMPRESSION_STATS);
+      assert.equal(action.type, at.TOP_SITES_SPONSORED_IMPRESSION_STATS);
 
       assert.propertyVal(action.data, "type", "click");
       assert.propertyVal(action.data, "tile_id", 1);
       assert.propertyVal(action.data, "source", "newtab");
-      assert.propertyVal(action.data, "position", 2);
+      assert.propertyVal(action.data, "position", 1);
       assert.propertyVal(action.data, "advertiser", "test advertiser");
     });
     it("should dispatch OPEN_LINK with the right data", () => {
@@ -1329,14 +1443,16 @@ describe("<TopSiteForm>", () => {
 });
 
 describe("<TopSiteList>", () => {
+  const APP = { isForStartupCache: false };
+
   it("should render a TopSiteList element", () => {
-    const wrapper = shallow(<TopSiteList {...DEFAULT_PROPS} />);
+    const wrapper = shallow(<TopSiteList {...DEFAULT_PROPS} App={{ APP }} />);
     assert.ok(wrapper.exists());
   });
   it("should render a TopSite for each link with the right url", () => {
     const rows = [{ url: "https://foo.com" }, { url: "https://bar.com" }];
     const wrapper = shallow(
-      <TopSiteList {...DEFAULT_PROPS} TopSites={{ rows }} />
+      <TopSiteList {...DEFAULT_PROPS} TopSites={{ rows }} App={{ APP }} />
     );
     const links = wrapper.find(TopSite);
     assert.lengthOf(links, 2);
@@ -1358,6 +1474,7 @@ describe("<TopSiteList>", () => {
         {...DEFAULT_PROPS}
         TopSites={{ rows }}
         TopSitesRows={TOP_SITES_DEFAULT_ROWS}
+        App={{ APP }}
       />
     );
     const links = wrapper.find(TopSite);
@@ -1369,7 +1486,35 @@ describe("<TopSiteList>", () => {
   it("should fill with placeholders if TopSites rows is less than TopSitesRows", () => {
     const rows = [{ url: "https://foo.com" }, { url: "https://bar.com" }];
     const wrapper = shallow(
-      <TopSiteList {...DEFAULT_PROPS} TopSites={{ rows }} TopSitesRows={1} />
+      <TopSiteList
+        {...DEFAULT_PROPS}
+        TopSites={{ rows }}
+        TopSitesRows={1}
+        App={{ APP }}
+      />
+    );
+    assert.lengthOf(wrapper.find(TopSite), 2, "topSites");
+    assert.lengthOf(
+      wrapper.find(TopSitePlaceholder),
+      TOP_SITES_MAX_SITES_PER_ROW - 2,
+      "placeholders"
+    );
+  });
+  it("should fill sponsored top sites with placeholders while rendering for startup cache", () => {
+    const rows = [
+      { url: "https://sponsored01.com", sponsored_position: 1 },
+      { url: "https://sponsored02.com", sponsored_position: 2 },
+      { url: "https://sponsored03.com", type: "SPOC" },
+      { url: "https://foo.com" },
+      { url: "https://bar.com" },
+    ];
+    const wrapper = shallow(
+      <TopSiteList
+        {...DEFAULT_PROPS}
+        TopSites={{ rows }}
+        TopSitesRows={1}
+        App={{ isForStartupCache: true }}
+      />
     );
     assert.lengthOf(wrapper.find(TopSite), 2, "topSites");
     assert.lengthOf(
@@ -1382,7 +1527,12 @@ describe("<TopSiteList>", () => {
     const rows = [{ url: "https://foo.com" }];
     rows[3] = { url: "https://bar.com" };
     const wrapper = shallow(
-      <TopSiteList {...DEFAULT_PROPS} TopSites={{ rows }} TopSitesRows={1} />
+      <TopSiteList
+        {...DEFAULT_PROPS}
+        TopSites={{ rows }}
+        TopSitesRows={1}
+        App={{ APP }}
+      />
     );
     assert.lengthOf(wrapper.find(TopSite), 2, "topSites");
     assert.lengthOf(
@@ -1392,7 +1542,7 @@ describe("<TopSiteList>", () => {
     );
   });
   it("should update state onDragStart and clear it onDragEnd", () => {
-    const wrapper = shallow(<TopSiteList {...DEFAULT_PROPS} />);
+    const wrapper = shallow(<TopSiteList {...DEFAULT_PROPS} App={{ APP }} />);
     const instance = wrapper.instance();
     const index = 7;
     const link = { url: "https://foo.com" };
@@ -1409,7 +1559,7 @@ describe("<TopSiteList>", () => {
     const site2 = { url: "https://bar.com" };
     const rows = [site1, site2];
     const wrapper = shallow(
-      <TopSiteList {...DEFAULT_PROPS} TopSites={{ rows }} />
+      <TopSiteList {...DEFAULT_PROPS} TopSites={{ rows }} App={{ APP }} />
     );
     const instance = wrapper.instance();
     instance.setState({
@@ -1424,7 +1574,7 @@ describe("<TopSiteList>", () => {
   it("should dispatch events on drop", () => {
     const dispatch = sinon.spy();
     const wrapper = shallow(
-      <TopSiteList {...DEFAULT_PROPS} dispatch={dispatch} />
+      <TopSiteList {...DEFAULT_PROPS} dispatch={dispatch} App={{ APP }} />
     );
     const instance = wrapper.instance();
     const index = 7;
@@ -1454,7 +1604,7 @@ describe("<TopSiteList>", () => {
     });
   });
   it("should make a topSitesPreview onDragEnter", () => {
-    const wrapper = shallow(<TopSiteList {...DEFAULT_PROPS} />);
+    const wrapper = shallow(<TopSiteList {...DEFAULT_PROPS} App={{ APP }} />);
     const instance = wrapper.instance();
     const site = { url: "https://foo.com" };
     instance.setState({
@@ -1476,7 +1626,12 @@ describe("<TopSiteList>", () => {
     const site3 = { url: "https://baz.com" };
     const rows = [site1, site2, site3];
     let wrapper = shallow(
-      <TopSiteList {...DEFAULT_PROPS} TopSites={{ rows }} TopSitesRows={1} />
+      <TopSiteList
+        {...DEFAULT_PROPS}
+        TopSites={{ rows }}
+        TopSitesRows={1}
+        App={{ APP }}
+      />
     );
     let instance = wrapper.instance();
     instance.setState({
@@ -1650,7 +1805,12 @@ describe("<TopSiteList>", () => {
       rows.push({ url: `https://foo${i}.com` });
     }
     const wrapper = mount(
-      <TopSiteList {...DEFAULT_PROPS} TopSites={{ rows }} TopSitesRows={1} />
+      <TopSiteList
+        {...DEFAULT_PROPS}
+        TopSites={{ rows }}
+        TopSitesRows={1}
+        App={{ APP }}
+      />
     );
     assert.lengthOf(wrapper.find("li.hide-for-narrow"), 2);
   });

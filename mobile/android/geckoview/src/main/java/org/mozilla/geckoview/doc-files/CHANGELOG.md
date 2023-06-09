@@ -13,6 +13,70 @@ exclude: true
 
 ⚠️  breaking change and deprecation notices
 
+## v114
+- Add [`SessionPdfFileSaver.createResponse`][114.1] to response of saving PDF.
+- Added [`requestExternalApp`][114.2] and [`skipConfirmation`][114.3] with builder fields on a WebResponse to request that a downloaded file be opened in an external application or to skip a confirmation, respectively.
+- ⚠️ Removed deprecated [`CookieBannerMode.COOKIE_BANNER_MODE_DETECT_ONLY`][111.1]
+- Add [`onPrintWithStatus`][114.4] to retrieve additional printing status information.
+- Changed [`SessionPdfFileSaver.createResponse`][114.5] to response of saving PDF to accept two additional
+  arguments: `skipConfirmation` and `requestExternalApp`.
+
+[114.1]: {{javadoc_uri}}/SessionPdfFileSaver.html#createResponse(byte[], String, String)
+[114.2]: {{javadoc_uri}}/WebResponse.html#requestExternalApp
+[114.3]: {{javadoc_uri}}/WebResponse.html#skipConfirmation
+[114.4]: {{javadoc_uri}}/GeckoSession.PrintDelegate.html#onPrintWithStatus
+[114.5]: {{javadoc_uri}}/SessionPdfFileSaver.html#createResponse(byte[], String, String, boolean, boolean)
+
+## v113
+- Add `DisplayMdoe` annotation to [`displayMode`][113.1], [`getDisplayMode`][113.2] and [`setDisplayMode`][113.3].
+  ([bug 1820567]({{bugzilla}}1820567))
+- Add `UserAgentMode` annotation to [`userAgentMode`][113.4], [`getUserAgentMode`][113.5] and [`setUserAgentMode`][113.6].
+  ([bug 1820567]({{bugzilla}}1820567))
+- Add `ViewportMode` annotation to [`viewportMode`][113.7], [`getViewportMode`][113.8] and [`setViewportMode`][113.9].
+  ([bug 1820567]({{bugzilla}}1820567))
+- Add [`WebExtensionController.AddonManagerDelegate`][113.10] ([bug 1822763]({{bugzilla}}1822763), [bug 1826739]({{bugzilla}}1826739))
+
+[113.1]: {{javadoc_uri}}/GeckoSessionSettings.Builder.html#displayMode(int)
+[113.2]: {{javadoc_uri}}/GeckoSessionSettings.html#getDisplayMode()
+[113.3]: {{javadoc_uri}}/GeckoSessionSettings.html#setDisplayMode(int)
+[113.4]: {{javadoc_uri}}/GeckoSessionSettings.Builder.html#userAgentMode(int)
+[113.5]: {{javadoc_uri}}/GeckoSessionSettings.html#getUserAgentMode()
+[113.6]: {{javadoc_uri}}/GeckoSessionSettings.html#setUserAgentMode(int)
+[113.7]: {{javadoc_uri}}/GeckoSessionSettings.Builder.html#userViewportMode(int)
+[113.8]: {{javadoc_uri}}/GeckoSessionSettings.html#getViewportMode()
+[113.9]: {{javadoc_uri}}/GeckoSessionSettings.html#setViewportMode(int)
+[113.10]: {{javadoc_uri}}/WebExtensionController.AddonManagerDelegate.html
+
+## v112
+- Added `GeckoSession.LOAD_FLAGS_BYPASS_LOAD_URI_DELEGATE`, see ([bug 1809269]({{bugzilla}}1809269)).
+- Added [`GeckoSession.hasCookieBannerRuleForBrowsingContextTree`][112.1] to expose Gecko API nsICookieBannerService::hasRuleForBrowsingContextTree see ([bug 1806740]({{bugzilla}}1806740))
+- Removed deprecated [`Autofill.Node.getDimensions`][110.6]
+  ([bug 1815830]({{bugzilla}}1815830))
+
+[112.1]: {{javadoc_uri}}/GeckoSession.html#hasCookieBannerRuleForBrowsingContextTree()
+
+## v111
+
+- Removed deprecated [`SelectionActionDelegate.Selection.clientRect`][111.10], [`BasicSelectionActionDelegate.mTempMatrix`][111.11] and  [`BasicSelectionActionDelegate.mTempRect`][111.12], ([bug 1801615]({{bugzilla}}1801615))
+- Added [`GeckoSession.ContentDelegate.cookieBannerHandlingDetectOnlyMode`][111.2] see ([bug 1810742]({{bugzilla}}1810742))
+- ⚠️ Deprecated [`CookieBannerMode.COOKIE_BANNER_MODE_DETECT_ONLY`][111.1]
+- Added [`GeckoView.ActivityContextDelegate`][111.3], `setActivityContextDelegate`, and `getActivityContextDelegate` to `GeckoView`
+- Added [`GeckoSession.PrintDelegate`][111.4], a [`PrintDocumentAdapter`][111.5], getters and setters for the `PrintDelegate`, and [`printPageContent`] to print [`session content`][111.6]
+- Added [`GeckoSession.PdfSaveResult`][111.7], a [`SessionPdfFileSaver`][111.8] and [`isPdfJs`][111.9], see ([bug 1810761]({{bugzilla}}1810761))
+
+[111.1]: {{javadoc_uri}}/ContentBlocking.CookieBannerMode.html#COOKIE_BANNER_MODE_DETECT_ONLY
+[111.2]: {{javadoc_uri}}/ContentBlocking.Settings.Builder.html#cookieBannerHandlingDetectOnlyMode(boolean)
+[111.3]: {{javadoc_uri}}/GeckoView.ActivityContextDelegate.html
+[111.4]: {{javadoc_uri}}/GeckoSession.PrintDelegate.html
+[111.5]: {{javadoc_uri}}/GeckoViewPrintDocumentAdapter.html
+[111.6]: {{javadoc_uri}}/GeckoSession.html#printPageContent--
+[111.7]: {{javadoc_uri}}/GeckoSession.PdfSaveResult.html
+[111.8]: {{javadoc_uri}}/SessionPdfFileSaver.html
+[111.9]: {{javadoc_uri}}/GeckoSession.html#isPdfJs--
+[111.10]: {{javadoc_uri}}/GeckoSession.SelectionActionDelegate.Selection.html#clientRect
+[111.11]: {{javadoc_uri}}/BasicSelectionActionDelegate.html#mTempMatrix
+[111.12]: {{javadoc_uri}}/BasicSelectionActionDelegate.html#mTempRect
+
 ## v110
 - Added [`GeckoSession.ContentDelegate.onCookieBannerDetected`][110.1] and [`GeckoSession.ContentDelegate.onCookieBannerHandled`][110.2]
 - Added [`CookieBannerMode.COOKIE_BANNER_MODE_DETECT_ONLY`][110.3], for detecting cookie banners but not handle them, see ([bug 1797581]({{bugzilla}}1806188))
@@ -1296,4 +1360,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: a08a53cd6a57e5b698d1b74d82a7be789926754c
+[api-version]: 1350b0e1b018e9a22853f486a819716b9b0ed05c

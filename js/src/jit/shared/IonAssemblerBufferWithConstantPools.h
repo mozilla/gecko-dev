@@ -790,8 +790,8 @@ struct AssemblerBufferWithConstantPools
  public:
   // Get the next buffer offset where an instruction would be inserted.
   // This may flush the current constant pool before returning nextOffset().
-  BufferOffset nextInstrOffset() {
-    if (!hasSpaceForInsts(/* numInsts= */ 1, /* numPoolEntries= */ 0)) {
+  BufferOffset nextInstrOffset(int numInsts = 1) {
+    if (!hasSpaceForInsts(numInsts, /* numPoolEntries= */ 0)) {
       JitSpew(JitSpew_Pools,
               "nextInstrOffset @ %d caused a constant pool spill",
               this->nextOffset().getOffset());
@@ -877,7 +877,7 @@ struct AssemblerBufferWithConstantPools
 
 #if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_ARM64) ||     \
     defined(JS_CODEGEN_MIPS32) || defined(JS_CODEGEN_MIPS64) || \
-    defined(JS_CODEGEN_LOONG64)
+    defined(JS_CODEGEN_LOONG64) || defined(JS_CODEGEN_RISCV64)
     return this->putU32Aligned(value);
 #else
     return this->AssemblerBuffer<SliceSize, Inst>::putInt(value);

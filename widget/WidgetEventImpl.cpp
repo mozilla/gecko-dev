@@ -28,6 +28,8 @@
 #include "nsPrintfCString.h"
 
 #if defined(XP_WIN)
+#  include "windef.h"
+#  include "winnetwk.h"
 #  include "npapi.h"
 #  include "WinUtils.h"
 #endif  // #if defined (XP_WIN)
@@ -498,10 +500,6 @@ bool WidgetEvent::IsAllowedToDispatchInSystemGroup() const {
 }
 
 bool WidgetEvent::IsBlockedForFingerprintingResistance() const {
-  if (!nsContentUtils::ShouldResistFingerprinting()) {
-    return false;
-  }
-
   switch (mClass) {
     case eKeyboardEventClass: {
       const WidgetKeyboardEvent* keyboardEvent = AsKeyboardEvent();
@@ -615,7 +613,7 @@ Modifier WidgetInputEvent::GetModifier(const nsAString& aDOMKeyName) {
 Modifier WidgetInputEvent::AccelModifier() {
   static Modifier sAccelModifier = MODIFIER_NONE;
   if (sAccelModifier == MODIFIER_NONE) {
-    switch (Preferences::GetInt("ui.key.accelKey", 0)) {
+    switch (StaticPrefs::ui_key_accelKey()) {
       case dom::KeyboardEvent_Binding::DOM_VK_META:
         sAccelModifier = MODIFIER_META;
         break;

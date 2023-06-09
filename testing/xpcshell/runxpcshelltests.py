@@ -29,6 +29,7 @@ from threading import Event, Thread, Timer, current_thread
 
 import mozdebug
 import six
+from mozserve import Http3Server
 
 try:
     import psutil
@@ -49,9 +50,21 @@ except ImportError:
     build = None
 
 HARNESS_TIMEOUT = 5 * 60
+TBPL_RETRY = 4  # defined in mozharness
 
 # benchmarking on tbpl revealed that this works best for now
+# TODO: This has been evaluated/set many years ago and we might want to
+# benchmark this again.
+# These days with e10s/fission the number of real processes/threads running
+# can be significantly higher, with both consequences on runtime and memory
+# consumption. So be aware that NUM_THREADS is just saying how many tests will
+# be started maximum in parallel and that depending on the tests there is
+# only a weak correlation to the effective number of processes or threads.
+# Be also aware that we can override this value with the threadCount option
+# on the command line to tweak it for a concrete CPU/memory combination.
 NUM_THREADS = int(cpu_count() * 4)
+if sys.platform == "win32":
+    NUM_THREADS = NUM_THREADS / 2
 
 EXPECTED_LOG_ACTIONS = set(
     [
@@ -209,6 +222,7 @@ class XPCShellTestThread(Thread):
         self.command = None
         self.harness_timeout = kwargs.get("harness_timeout")
         self.timedout = False
+        self.infra = False
 
         # event from main thread to signal work done
         self.event = kwargs.get("event")
@@ -217,6 +231,10 @@ class XPCShellTestThread(Thread):
     def run(self):
         try:
             self.run_test()
+        except PermissionError as e:
+            self.infra = True
+            self.exception = e
+            self.traceback = traceback.format_exc()
         except Exception as e:
             self.exception = e
             self.traceback = traceback.format_exc()
@@ -789,6 +807,10 @@ class XPCShellTestThread(Thread):
             self.env["PYTHON"] = sys.executable
             self.env["BREAKPAD_SYMBOLS_PATH"] = self.symbolsPath
 
+        if self.test_object.get("snap") == "true":
+            self.env["SNAP_NAME"] = "firefox"
+            self.env["SNAP_INSTANCE_NAME"] = "firefox"
+
         if self.test_object.get("subprocess") == "true":
             self.env["PYTHON"] = sys.executable
 
@@ -955,7 +977,7 @@ class XPCShellTests(object):
         self.log = log
         self.harness_timeout = HARNESS_TIMEOUT
         self.nodeProc = {}
-        self.http3ServerProc = {}
+        self.http3Server = None
         self.conditioned_profile_dir = None
 
     def getTestManifest(self, manifest):
@@ -1394,8 +1416,7 @@ class XPCShellTests(object):
         binSuffix = ""
         if sys.platform == "win32":
             binSuffix = ".exe"
-
-        http3ServerPath = self.http3server
+        http3ServerPath = self.http3ServerPath
         if not http3ServerPath:
             http3ServerPath = os.path.join(
                 SCRIPT_DIR, "http3server", "http3server" + binSuffix
@@ -1404,88 +1425,25 @@ class XPCShellTests(object):
                 http3ServerPath = os.path.join(
                     build.topobjdir, "dist", "bin", "http3server" + binSuffix
                 )
-
-        if not os.path.exists(http3ServerPath):
-            self.log.warning(
-                "Http3 server not found at "
-                + http3ServerPath
-                + ". Tests requiring http/3 will fail."
-            )
-            return
-
-        # OK, we found our server, let's try to get it running
-        self.log.info("Found %s" % (http3ServerPath))
-        try:
-            dbPath = os.path.join(SCRIPT_DIR, "http3server", "http3serverDB")
-            if build:
-                dbPath = os.path.join(
-                    build.topsrcdir, "netwerk", "test", "http3serverDB"
-                )
-            self.log.info("Using %s" % (dbPath))
-            # We pipe stdin to the server because it will exit when its stdin
-            # reaches EOF
-            with popenCleanupHack():
-                process = Popen(
-                    [http3ServerPath, dbPath],
-                    stdin=PIPE,
-                    stdout=PIPE,
-                    stderr=PIPE,
-                    env=self.env,
-                    cwd=os.getcwd(),
-                    universal_newlines=True,
-                )
-            self.http3ServerProc["http3Server"] = process
-
-            # Check to make sure the server starts properly by waiting for it to
-            # tell us it's started
-            msg = process.stdout.readline()
-            if "server listening" in msg:
-                searchObj = re.search(
-                    r"HTTP3 server listening on ports ([0-9]+), ([0-9]+), ([0-9]+) and ([0-9]+)."
-                    " EchConfig is @([\x00-\x7F]+)@",
-                    msg,
-                    0,
-                )
-                if searchObj:
-                    self.env["MOZHTTP3_PORT"] = searchObj.group(1)
-                    self.env["MOZHTTP3_PORT_FAILED"] = searchObj.group(2)
-                    self.env["MOZHTTP3_PORT_ECH"] = searchObj.group(3)
-                    self.env["MOZHTTP3_PORT_NO_RESPONSE"] = searchObj.group(4)
-                    self.env["MOZHTTP3_ECH"] = searchObj.group(5)
-        except OSError as e:
-            # This occurs if the subprocess couldn't be started
-            self.log.error("Could not run the http3 server: %s" % (str(e)))
+        dbPath = os.path.join(SCRIPT_DIR, "http3server", "http3serverDB")
+        if build:
+            dbPath = os.path.join(build.topsrcdir, "netwerk", "test", "http3serverDB")
+        options = {}
+        options["http3ServerPath"] = http3ServerPath
+        options["profilePath"] = dbPath
+        options["isMochitest"] = False
+        options["isWin"] = sys.platform == "win32"
+        self.http3Server = Http3Server(options, self.env, self.log)
+        self.http3Server.start()
+        for key, value in self.http3Server.ports().items():
+            self.env[key] = value
+        self.env["MOZHTTP3_ECH"] = self.http3Server.echConfig()
 
     def shutdownHttp3Server(self):
-        """
-        Shutdown our http3Server process, if it exists
-        """
-        for name, proc in six.iteritems(self.http3ServerProc):
-            self.log.info("%s server shutting down ..." % name)
-            if proc.poll() is not None:
-                self.log.info("Http3 server %s already dead %s" % (name, proc.poll()))
-            else:
-                proc.terminate()
-                retries = 0
-                while proc.poll() is None:
-                    time.sleep(0.1)
-                    retries += 1
-                    if retries > 40:
-                        self.log.info("Killing proc")
-                        proc.kill()
-                        break
-
-            def dumpOutput(fd, label):
-                firstTime = True
-                for msg in fd:
-                    if firstTime:
-                        firstTime = False
-                        self.log.info("Process %s" % label)
-                    self.log.info(msg)
-
-            dumpOutput(proc.stdout, "stdout")
-            dumpOutput(proc.stderr, "stderr")
-        self.http3ServerProc = {}
+        if self.http3Server is None:
+            return
+        self.http3Server.stop()
+        self.http3Server = None
 
     def buildXpcsRunArgs(self):
         """
@@ -1528,6 +1486,9 @@ class XPCShellTests(object):
         self.mozInfo = fixedInfo
 
         self.mozInfo["fission"] = prefs.get("fission.autostart", True)
+        self.mozInfo["sessionHistoryInParent"] = self.mozInfo[
+            "fission"
+        ] or not prefs.get("fission.disableSessionHistoryInParent", False)
 
         self.mozInfo["serviceworker_e10s"] = True
 
@@ -1722,7 +1683,7 @@ class XPCShellTests(object):
 
         self.app_binary = options.get("app_binary")
         self.xpcshell = options.get("xpcshell")
-        self.http3server = options.get("http3server")
+        self.http3ServerPath = options.get("http3server")
         self.xrePath = options.get("xrePath")
         self.utility_path = options.get("utility_path")
         self.appPath = options.get("appPath")
@@ -1794,14 +1755,14 @@ class XPCShellTests(object):
                 return False
 
         if (
-            "tsan" in self.mozInfo
-            and self.mozInfo["tsan"]
-            and not options.get("threadCount")
-        ):
-            # TSan requires significantly more memory, so reduce the amount of parallel
-            # tests we run to avoid OOMs and timeouts.
+            ("tsan" in self.mozInfo and self.mozInfo["tsan"])
+            or ("asan" in self.mozInfo and self.mozInfo["asan"])
+        ) and not options.get("threadCount"):
+            # TSan/ASan require significantly more memory, so reduce the amount of parallel
+            # tests we run to avoid OOMs and timeouts. We always keep a minimum of 2 for
+            # non-sequential execution.
             # pylint --py3k W1619
-            self.threadCount = self.threadCount / 2
+            self.threadCount = max(self.threadCount / 2, 2)
 
         self.stack_fixer_function = None
         if self.utility_path and os.path.exists(self.utility_path):
@@ -2055,6 +2016,7 @@ class XPCShellTests(object):
         # tests in the queue at most threadCount at a time
         running_tests = set()
         keep_going = True
+        infra_abort = False
         exceptions = []
         tracebacks = []
         self.try_again_list = []
@@ -2114,11 +2076,15 @@ class XPCShellTests(object):
                         # we won't add any more tests, will just wait for
                         # the currently running ones to finish
                         keep_going = False
+                    infra_abort = infra_abort and test.infra
                     keep_going = keep_going and test.keep_going
                     self.addTestResults(test)
 
             # make room for new tests to run
             running_tests.difference_update(done_tests)
+
+        if infra_abort:
+            return TBPL_RETRY  # terminate early
 
         if keep_going:
             # run the other tests sequentially
@@ -2240,7 +2206,11 @@ def main():
         log.error("Error: You must specify a test filename in interactive mode!")
         sys.exit(1)
 
-    if not xpcsh.runTests(options):
+    result = xpcsh.runTests(options)
+    if result == TBPL_RETRY:
+        sys.exit(4)
+
+    if not result:
         sys.exit(1)
 
 

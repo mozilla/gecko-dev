@@ -43,6 +43,8 @@ class RenderTextureHostWrapper final : public RenderTextureHostSWGL {
   RenderDXGITextureHost* AsRenderDXGITextureHost() override;
   RenderDXGIYCbCrTextureHost* AsRenderDXGIYCbCrTextureHost() override;
   RenderDcompSurfaceTextureHost* AsRenderDcompSurfaceTextureHost() override;
+  RenderAndroidHardwareBufferTextureHost*
+  AsRenderAndroidHardwareBufferTextureHost() override;
   RenderAndroidSurfaceTextureHost* AsRenderAndroidSurfaceTextureHost() override;
   RenderTextureHostSWGL* AsRenderTextureHostSWGL() override;
   bool IsWrappingAsyncRemoteTexture() override;
@@ -59,6 +61,11 @@ class RenderTextureHostWrapper final : public RenderTextureHostSWGL {
   // This is just a wrapper, so doesn't need to report the
   // size of the wrapped object (which reports itself).
   size_t Bytes() override { return 0; }
+
+ protected:
+  // RenderTextureHost
+  std::pair<gfx::Point, gfx::Point> GetUvCoords(
+      gfx::IntSize aTextureSize) const override;
 
  private:
   ~RenderTextureHostWrapper() override;

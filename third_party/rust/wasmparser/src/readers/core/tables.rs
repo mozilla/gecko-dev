@@ -13,81 +13,75 @@
  * limitations under the License.
  */
 
-use crate::{
-    BinaryReader, Result, SectionIteratorLimited, SectionReader, SectionWithLimitedItems, TableType,
-};
-use std::ops::Range;
+use crate::{BinaryReader, ConstExpr, FromReader, Result, SectionLimited, TableType};
 
 /// A reader for the table section of a WebAssembly module.
-#[derive(Clone)]
-pub struct TableSectionReader<'a> {
-    reader: BinaryReader<'a>,
-    count: u32,
+pub type TableSectionReader<'a> = SectionLimited<'a, Table<'a>>;
+
+/// Type information about a table defined in the table section of a WebAssembly
+/// module.
+#[derive(Debug)]
+pub struct Table<'a> {
+    /// The type of this table, including its element type and its limits.
+    pub ty: TableType,
+    /// The initialization expression for the table.
+    pub init: TableInit<'a>,
 }
 
-impl<'a> TableSectionReader<'a> {
-    /// Constructs a new `TableSectionReader` for the given data and offset.
-    pub fn new(data: &'a [u8], offset: usize) -> Result<TableSectionReader<'a>> {
-        let mut reader = BinaryReader::new_with_offset(data, offset);
-        let count = reader.read_var_u32()?;
-        Ok(TableSectionReader { reader, count })
-    }
-
-    /// Gets the original position of the section reader.
-    pub fn original_position(&self) -> usize {
-        self.reader.original_position()
-    }
-
-    /// Gets the count of items in the section.
-    pub fn get_count(&self) -> u32 {
-        self.count
-    }
-
-    /// Reads content of the table section.
-    ///
-    /// # Examples
-    /// ```
-    /// use wasmparser::TableSectionReader;
-    ///
-    /// # let data: &[u8] = &[0x01, 0x70, 0x01, 0x01, 0x01];
-    /// let mut table_reader = TableSectionReader::new(data, 0).unwrap();
-    /// for _ in 0..table_reader.get_count() {
-    ///     let table = table_reader.read().expect("table");
-    ///     println!("Table: {:?}", table);
-    /// }
-    /// ```
-    pub fn read(&mut self) -> Result<TableType> {
-        self.reader.read_table_type()
-    }
+/// Different modes of initializing a table.
+#[derive(Debug)]
+pub enum TableInit<'a> {
+    /// The table is initialized to all null elements.
+    RefNull,
+    /// Each element in the table is initialized with the specified constant
+    /// expression.
+    Expr(ConstExpr<'a>),
 }
 
-impl<'a> SectionReader for TableSectionReader<'a> {
-    type Item = TableType;
-    fn read(&mut self) -> Result<Self::Item> {
-        TableSectionReader::read(self)
-    }
-    fn eof(&self) -> bool {
-        self.reader.eof()
-    }
-    fn original_position(&self) -> usize {
-        TableSectionReader::original_position(self)
-    }
-    fn range(&self) -> Range<usize> {
-        self.reader.range()
+impl<'a> FromReader<'a> for Table<'a> {
+    fn from_reader(reader: &mut BinaryReader<'a>) -> Result<Self> {
+        let has_init_expr = if reader.peek()? == 0x40 {
+            reader.read_u8()?;
+            true
+        } else {
+            false
+        };
+
+        if has_init_expr {
+            if reader.read_u8()? != 0x00 {
+                bail!(reader.original_position() - 1, "invalid table encoding");
+            }
+        }
+
+        let ty = reader.read::<TableType>()?;
+        let init = if has_init_expr {
+            TableInit::Expr(reader.read()?)
+        } else {
+            TableInit::RefNull
+        };
+        Ok(Table { ty, init })
     }
 }
 
-impl<'a> SectionWithLimitedItems for TableSectionReader<'a> {
-    fn get_count(&self) -> u32 {
-        TableSectionReader::get_count(self)
-    }
-}
-
-impl<'a> IntoIterator for TableSectionReader<'a> {
-    type Item = Result<TableType>;
-    type IntoIter = SectionIteratorLimited<TableSectionReader<'a>>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        SectionIteratorLimited::new(self)
+impl<'a> FromReader<'a> for TableType {
+    fn from_reader(reader: &mut BinaryReader<'a>) -> Result<Self> {
+        let element_type = reader.read()?;
+        let has_max = match reader.read_u8()? {
+            0x00 => false,
+            0x01 => true,
+            _ => {
+                bail!(
+                    reader.original_position() - 1,
+                    "invalid table resizable limits flags",
+                )
+            }
+        };
+        let initial = reader.read()?;
+        let maximum = if has_max { Some(reader.read()?) } else { None };
+        Ok(TableType {
+            element_type,
+            initial,
+            maximum,
+        })
     }
 }

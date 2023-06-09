@@ -62,6 +62,10 @@ add_task(async function invalid_input_throws() {
     () => PlacesUtils.bookmarks.insert({ dateAdded: Date.now() }),
     /Invalid value for property 'dateAdded'/
   );
+  Assert.throws(
+    () => PlacesUtils.bookmarks.insert({ dateAdded: new Date(NaN) }),
+    /Invalid value for property 'dateAdded'/
+  );
 
   Assert.throws(
     () => PlacesUtils.bookmarks.insert({ lastModified: -10 }),
@@ -75,9 +79,12 @@ add_task(async function invalid_input_throws() {
     () => PlacesUtils.bookmarks.insert({ lastModified: Date.now() }),
     /Invalid value for property 'lastModified'/
   );
-  let time = new Date();
+  Assert.throws(
+    () => PlacesUtils.bookmarks.insert({ lastModified: new Date(NaN) }),
+    /Invalid value for property 'lastModified'/
+  );
 
-  let past = new Date(time - 86400000);
+  let past = new Date(Date.now() - 86400000);
   Assert.throws(
     () => PlacesUtils.bookmarks.insert({ lastModified: past }),
     /Invalid value for property 'lastModified'/
@@ -179,7 +186,9 @@ add_task(async function invalid_properties_for_bookmark_type() {
 });
 
 add_task(async function test_insert_into_root_throws() {
-  const { sinon } = ChromeUtils.import("resource://testing-common/Sinon.jsm");
+  const { sinon } = ChromeUtils.importESModule(
+    "resource://testing-common/Sinon.sys.mjs"
+  );
   const sandbox = sinon.createSandbox();
   sandbox.stub(PlacesUtils, "isInAutomation").get(() => false);
   registerCleanupFunction(() => sandbox.restore());
@@ -386,8 +395,14 @@ add_task(async function create_bookmark_frecency() {
   });
   checkBookmarkObject(bm);
 
-  await PlacesTestUtils.promiseAsyncUpdates();
-  Assert.greater(frecencyForUrl(bm.url), 0, "Check frecency has been updated");
+  await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
+  Assert.greater(
+    await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
+      url: bm.url,
+    }),
+    0,
+    "Check frecency has been updated"
+  );
 });
 
 add_task(async function create_bookmark_without_type() {

@@ -91,8 +91,9 @@ SCHEMAS = [
             ),
         },
         bundle_common=True,
-        # These are generated via extract-test-corpus.js
         test_corpus={
+            "ReachExperiments": Path("corpus", "ReachExperiments.messages.json"),
+            # These are generated via extract-test-corpus.js
             "CFRMessageProvider": Path("corpus", "CFRMessageProvider.messages.json"),
             "OnboardingMessageProvider": Path(
                 "corpus", "OnboardingMessageProvider.messages.json"
@@ -309,6 +310,60 @@ def bundle_schema(schema_def: SchemaDefinition):
     # Enforce that one of the templates must match (so that one of the if
     # branches will match).
     defs["Message"]["properties"]["template"]["enum"] = all_templates
+    defs["TemplatedMessage"] = {
+        "description": "An FxMS message of one of a variety of types.",
+        "type": "object",
+        "allOf": [
+            # Ensure each message has all the fields defined in the base
+            # Message type.
+            #
+            # This is slightly redundant because each message should
+            # already inherit from this message type, but it is easier
+            # to add this requirement here than to verify that each
+            # message's schema is properly inheriting.
+            {"$ref": f"{schema_def.schema_id}#/$defs/Message"},
+            # For each message type, create a subschema that says if the
+            # template field matches a value for a message type defined
+            # in MESSAGE_TYPES, then the message must also match the
+            # schema for that message type.
+            #
+            # This is done using `allOf: [{ if, then }]` instead of `oneOf: []`
+            # because it provides better error messages. Using `if-then`
+            # will only show validation errors for the sub-schema that
+            # matches template, whereas using `oneOf` will show
+            # validation errors for *all* sub-schemas, which makes
+            # debugging messages much harder.
+            *(
+                {
+                    "if": {
+                        "type": "object",
+                        "properties": {
+                            "template": {
+                                "type": "string",
+                                "enum": templates[message_type],
+                            },
+                        },
+                        "required": ["template"],
+                    },
+                    "then": {"$ref": f"{schema_def.schema_id}#/$defs/{message_type}"},
+                }
+                for message_type in schema_def.message_types
+            ),
+        ],
+    }
+    defs["MultiMessage"] = {
+        "description": "An object containing an array of messages.",
+        "type": "object",
+        "properties": {
+            "template": {"type": "string", "const": "multi"},
+            "messages": {
+                "type": "array",
+                "description": "An array of messages.",
+                "items": {"$ref": f"{schema_def.schema_id}#/$defs/TemplatedMessage"},
+            },
+        },
+        "required": ["template", "messages"],
+    }
 
     # Generate the combined schema.
     return {
@@ -316,57 +371,13 @@ def bundle_schema(schema_def: SchemaDefinition):
         "$id": schema_def.schema_id,
         "title": "Messaging Experiment",
         "description": "A Firefox Messaging System message.",
-        # A message must be one of
-        # - an empty message (i.e., a completely empty object), which is the
-        #   equivalent of an experiment branch not providing a message; or
-        # - An object that contains a template field
+        # A message must be one of:
+        # - An object that contains id, template, and content fields
+        # - An object that contains none of the above fields (empty message)
+        # - An array of messages like the above
         "oneOf": [
-            {
-                "description": "An empty FxMS message.",
-                "type": "object",
-                "additionalProperties": False,
-            },
-            {
-                "allOf": [
-                    # Ensure each message has all the fields defined in the base
-                    # Message type.
-                    #
-                    # This is slightly redundant because each message should
-                    # already inherit from this message type, but it is easier
-                    # to add this requirement here than to verify that each
-                    # message's schema is properly inheriting.
-                    {"$ref": f"{schema_def.schema_id}#/$defs/Message"},
-                    # For each message type, create a subschema that says if the
-                    # template field matches a value for a message type defined
-                    # in MESSAGE_TYPES, then the message must also match the
-                    # schema for that message type.
-                    #
-                    # This is done using `allOf: [{ if, then }]` instead of `oneOf: []`
-                    # because it provides better error messages. Using `if-then`
-                    # will only show validation errors for the sub-schema that
-                    # matches template, whereas using `oneOf` will show
-                    # validation errors for *all* sub-schemas, which makes
-                    # debugging messages much harder.
-                    *(
-                        {
-                            "if": {
-                                "type": "object",
-                                "properties": {
-                                    "template": {
-                                        "type": "string",
-                                        "enum": templates[message_type],
-                                    },
-                                },
-                                "required": ["template"],
-                            },
-                            "then": {
-                                "$ref": f"{schema_def.schema_id}#/$defs/{message_type}"
-                            },
-                        }
-                        for message_type in schema_def.message_types
-                    ),
-                ],
-            },
+            {"$ref": f"{schema_def.schema_id}#/$defs/TemplatedMessage"},
+            {"$ref": f"{schema_def.schema_id}#/$defs/MultiMessage"},
         ],
         "$defs": defs,
     }
@@ -408,15 +419,15 @@ def validate_corpus(schema_def: SchemaDefinition, schema: Dict[str, Any]):
             if not provider_path.parent.exists():
                 new_exc = Exception(
                     f"Could not find {provider_path}: Did you run "
-                    "`mach xpcshell extract-test-corpus` ?"
+                    "`mach xpcshell extract-test-corpus.js` ?"
                 )
                 raise new_exc from e
 
             raise e
 
-        for message in messages:
-            template = message["template"]
-            msg_id = message["id"]
+        for i, message in enumerate(messages):
+            template = message.get("template", "(no template)")
+            msg_id = message.get("id", f"index {i}")
 
             print(
                 f"      Validating {msg_id} {template} message with {schema_def.schema_path}..."

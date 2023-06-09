@@ -42,6 +42,7 @@ import argparse
 import re
 import subprocess
 import sys
+from collections import defaultdict
 
 import buildconfig
 
@@ -77,11 +78,10 @@ def main():
     args = parser.parse_args()
 
     # Run |nm|.  Options:
-    # -u: show only undefined symbols
     # -C: demangle symbol names
     # -A: show an object filename for each undefined symbol
     nm = buildconfig.substs.get("NM") or "nm"
-    cmd = [nm, "-u", "-C", "-A", args.file]
+    cmd = [nm, "-C", "-A", args.file]
     lines = subprocess.check_output(
         cmd, universal_newlines=True, stderr=subprocess.PIPE
     ).split("\n")
@@ -89,44 +89,84 @@ def main():
     # alloc_fns contains all the vanilla allocation/free functions that we look
     # for. Regexp chars are escaped appropriately.
 
-    alloc_fns = [
+    operator_news = [
         # Matches |operator new(unsigned T)|, where |T| is |int| or |long|.
-        r"operator new\(unsigned",
+        r"operator new(unsigned",
         # Matches |operator new[](unsigned T)|, where |T| is |int| or |long|.
-        r"operator new\[\]\(unsigned",
-        r"memalign",
-        # These three aren't available on all Linux configurations.
-        # r'posix_memalign',
-        # r'aligned_alloc',
-        # r'valloc',
+        r"operator new[](unsigned",
     ]
+
+    # operator new may end up inlined and replaced with moz_xmalloc.
+    inlined_operator_news = [
+        r"moz_xmalloc",
+    ]
+
+    alloc_fns = (
+        operator_news
+        + inlined_operator_news
+        + [
+            r"memalign",
+            # These three aren't available on all Linux configurations.
+            # r'posix_memalign',
+            # r'aligned_alloc',
+            # r'valloc',
+        ]
+    )
 
     if args.aggressive:
         alloc_fns += [r"malloc", r"calloc", r"realloc", r"free", r"strdup"]
 
     # This is like alloc_fns, but regexp chars are not escaped.
-    alloc_fns_unescaped = [fn.replace("\\", "") for fn in alloc_fns]
+    alloc_fns_escaped = [re.escape(fn) for fn in alloc_fns]
 
     # This regexp matches the relevant lines in the output of |nm|, which look
     # like the following.
     #
-    #   js/src/libjs_static.a:Utility.o:              U malloc
+    #   js/src/libjs_static.a:Utility.o:                  U malloc
+    #   js/src/libjs_static.a:Utility.o: 00000000000007e0 T js::SetSourceOptions(...)
     #
-    alloc_fns_re = r"([^:/ ]+):\s+U (" + r"|".join(alloc_fns) + r")"
+    # It may also, in LTO builds, look like
+    #   js/src/libjs_static.a:Utility.o: ---------------- T js::SetSourceOptions(...)
+    #
+    nm_line_re = re.compile(r"([^:/ ]+):\s*(?:[0-9a-fA-F]*|-*)\s+([TUw]) (.*)")
+    alloc_fns_re = re.compile(r"|".join(alloc_fns_escaped))
 
-    # This tracks which allocation/free functions have been seen in
-    # util/Utility.cpp.
-    util_Utility_cpp = set([])
+    # This tracks which allocation/free functions have been seen.
+    functions = defaultdict(set)
+    files = defaultdict(int)
+
+    # Files to ignore allocation/free functions from.
+    ignored_files = [
+        # Ignore implicit call to operator new in std::condition_variable_any.
+        #
+        # From intl/icu/source/common/umutex.h:
+        # On Linux, the default constructor of std::condition_variable_any
+        # produces an in-line reference to global operator new(), [...].
+        "umutex.o",
+        # Ignore allocations from decimal conversion functions inside mozglue.
+        "Decimal.o",
+        # Ignore use of std::string in regexp AST debug output.
+        "regexp-ast.o",
+    ]
+    all_ignored_files = set((f, 1) for f in ignored_files)
 
     # Would it be helpful to emit detailed line number information after a failure?
     emit_line_info = False
 
+    prev_filename = None
     for line in lines:
-        m = re.search(alloc_fns_re, line)
+        m = nm_line_re.search(line)
         if m is None:
             continue
 
-        filename = m.group(1)
+        filename, symtype, fn = m.groups()
+        if prev_filename != filename:
+            # When the same filename appears multiple times, separated by other
+            # file names, this denotes a different file. Thankfully, we can more
+            # or less safely assume that dir1/Foo.o and dir2/Foo.o are not going
+            # to be next to each other.
+            files[filename] += 1
+            prev_filename = filename
 
         # The stdc++compat library has an implicit call to operator new in
         # thread::_M_start_thread.
@@ -147,30 +187,29 @@ def main():
         if "ProfilingStack" in filename:
             continue
 
-        # Ignore implicit call to operator new in std::condition_variable_any.
-        #
-        # From intl/icu/source/common/umutex.h:
-        # On Linux, the default constructor of std::condition_variable_any
-        # produces an in-line reference to global operator new(), [...].
-        if filename == "umutex.o":
-            continue
-
-        # Ignore allocations from decimal conversion functions inside mozglue.
-        if filename == "Decimal.o":
-            continue
-
-        # Ignore allocations from the m-c intl/components implementations.
-        if "intl_components" in filename:
-            continue
-
-        # Ignore use of std::string in regexp AST debug output.
-        if filename == "regexp-ast.o":
-            continue
-
-        fn = m.group(2)
-        if filename == "Utility.o":
-            util_Utility_cpp.add(fn)
+        if symtype == "T":
+            # We can't match intl/components files by file name because in
+            # non-unified builds they overlap with files in js/src.
+            # So we check symbols they define, and consider files with symbols
+            # in the mozilla::intl namespace to be those.
+            if fn.startswith("mozilla::intl::"):
+                all_ignored_files.add((filename, files[filename]))
         else:
+            m = alloc_fns_re.match(fn)
+            if m:
+                functions[(filename, files[filename])].add(m.group(0))
+
+    util_Utility_cpp = functions.pop(("Utility.o", 1))
+    if ("Utility.o", 2) in functions:
+        fail("There should be only one Utility.o file")
+
+    for f, n in all_ignored_files:
+        functions.pop((f, n), None)
+        if f in ignored_files and (f, 2) in functions:
+            fail(f"There should be only one {f} file")
+
+    for (filename, n) in sorted(functions):
+        for fn in functions[(filename, n)]:
             # An allocation is present in a non-special file.  Fail!
             fail("'" + fn + "' present in " + filename)
             # Try to give more precise information about the offending code.
@@ -178,9 +217,24 @@ def main():
 
     # Check that all functions we expect are used in util/Utility.cpp.  (This
     # will fail if the function-detection code breaks at any point.)
-    for fn in alloc_fns_unescaped:
+    # operator new and its inlined equivalent are mutually exclusive.
+    has_operator_news = any(fn in operator_news for fn in util_Utility_cpp)
+    has_inlined_operator_news = any(
+        fn in inlined_operator_news for fn in util_Utility_cpp
+    )
+    if has_operator_news and has_inlined_operator_news:
+        fail(
+            "Both operator new and moz_xmalloc aren't expected in util/Utility.cpp at the same time"
+        )
+
+    for fn in alloc_fns:
         if fn not in util_Utility_cpp:
-            fail("'" + fn + "' isn't used as expected in util/Utility.cpp")
+            if (
+                (fn in operator_news and not has_inlined_operator_news)
+                or (fn in inlined_operator_news and not has_operator_news)
+                or (fn not in operator_news and fn not in inlined_operator_news)
+            ):
+                fail("'" + fn + "' isn't used as expected in util/Utility.cpp")
         else:
             util_Utility_cpp.remove(fn)
 
@@ -216,7 +270,9 @@ def main():
         #
         #       U malloc util/Utility.cpp:117
         #
-        alloc_lines_re = r"U ((" + r"|".join(alloc_fns) + r").*)\s+(\S+:\d+)$"
+        alloc_lines_re = (
+            r"[Uw] ((" + r"|".join(alloc_fns_escaped) + r").*)\s+(\S+:\d+)$"
+        )
 
         for line in lines:
             m = re.search(alloc_lines_re, line)

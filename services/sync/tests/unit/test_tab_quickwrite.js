@@ -1,12 +1,16 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-ChromeUtils.import("resource://services-sync/engines/tabs.js");
-const { Service } = ChromeUtils.import("resource://services-sync/service.js");
-
-const { TabProvider } = ChromeUtils.import(
-  "resource://services-sync/engines/tabs.js"
+ChromeUtils.importESModule("resource://services-sync/engines/tabs.sys.mjs");
+const { Service } = ChromeUtils.importESModule(
+  "resource://services-sync/service.sys.mjs"
 );
+
+const { TabProvider } = ChromeUtils.importESModule(
+  "resource://services-sync/engines/tabs.sys.mjs"
+);
+
+const FAR_FUTURE = 4102405200000; // 2100/01/01
 
 add_task(async function setup() {
   // Since these are xpcshell tests, we'll need to mock ui features
@@ -52,6 +56,9 @@ add_task(async function test_tab_quickwrite_works() {
   let { server, collection, engine } = await prepareServer();
   Assert.equal(collection.count(), 0, "starting with 0 tab records");
   Assert.ok(await engine.quickWrite());
+  // Validate we didn't bork lastSync
+  let lastSync = await engine.getLastSync();
+  Assert.ok(lastSync < FAR_FUTURE);
   Assert.equal(collection.count(), 1, "tab record was written");
 
   await promiseStopServer(server);
@@ -73,6 +80,9 @@ add_task(async function test_tab_bad_status() {
 
   Services.prefs.clearUserPref("services.sync.username");
   await quickWrite();
+  // Validate we didn't bork lastSync
+  let lastSync = await engine.getLastSync();
+  Assert.ok(lastSync < FAR_FUTURE);
   Service.status.resetSync();
   engine.lock = lock;
   await promiseStopServer(server);

@@ -285,3 +285,17 @@
   subcategories:
     - name: PROFILER
       label: Other
+
+- name: TIMER
+  label: Timer
+  color: grey
+  subcategories:
+    - name: TIMER
+      label: Other
+
+- name: REMOTE_PROTOCOL
+  label: Remote-Protocol
+  color: grey
+  subcategories:
+    - name: REMOTE_PROTOCOL
+      label: Other

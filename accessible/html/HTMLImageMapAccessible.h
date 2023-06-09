@@ -25,12 +25,6 @@ class HTMLImageMapAccessible final : public ImageAccessible {
   // LocalAccessible
   virtual a11y::role NativeRole() const override;
 
-  // HyperLinkAccessible
-  virtual uint32_t AnchorCount() override;
-  virtual LocalAccessible* AnchorAt(uint32_t aAnchorIndex) override;
-  virtual already_AddRefed<nsIURI> AnchorURIAt(
-      uint32_t aAnchorIndex) const override;
-
   /**
    * Update area children of the image map.
    */

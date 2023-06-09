@@ -8,10 +8,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   E10SUtils: "resource://gre/modules/E10SUtils.sys.mjs",
 });
 
-function debug(msg) {
-  Services.console.logStringMessage("SessionHistory: " + msg);
-}
-
 /**
  * The external API exported by this module.
  */
@@ -33,6 +29,12 @@ export var SessionHistory = Object.freeze({
       documentHasChildNodes,
       history,
       aFromIdx
+    );
+  },
+
+  collectNonWebControlledBlankLoadingSession(browsingContext) {
+    return SessionHistoryInternal.collectNonWebControlledBlankLoadingSession(
+      browsingContext
     );
   },
 
@@ -149,6 +151,28 @@ var SessionHistoryInternal = {
     data.fromIdx = aFromIdx;
 
     return data;
+  },
+
+  collectNonWebControlledBlankLoadingSession(browsingContext) {
+    if (
+      browsingContext.sessionHistory?.count === 0 &&
+      browsingContext.nonWebControlledBlankURI &&
+      browsingContext.mostRecentLoadingSessionHistoryEntry
+    ) {
+      return {
+        entries: [
+          this.serializeEntry(
+            browsingContext.mostRecentLoadingSessionHistoryEntry
+          ),
+        ],
+        // Set 1 to the index, as the array of session entries is 1-based.
+        index: 1,
+        fromIdx: -1,
+        requestedIndex: browsingContext.sessionHistory.requestedIndex + 1,
+      };
+    }
+
+    return null;
   },
 
   /**
@@ -537,7 +561,7 @@ var SessionHistoryInternal = {
         // and this ensures we always have a principal returned from this function.
         // We must always have a triggering principal for a load to work.
         // A null principal won't always work however is safe to use.
-        debug(
+        console.warn(
           "Couldn't deserialize the triggeringPrincipal, falling back to NullPrincipal"
         );
         return Services.scriptSecurityManager.createNullPrincipal({});

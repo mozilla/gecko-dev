@@ -11,7 +11,9 @@
 "use strict";
 
 let tabs = [];
-let supportsPrimary = Services.clipboard.supportsSelectionClipboard();
+let supportsPrimary = Services.clipboard.isClipboardTypeSupported(
+  Services.clipboard.kSelectionClipboard
+);
 const NON_EMPTY_URL = "data:text/html,Hello";
 const TEXT_FOR_PRIMARY = "Text for PRIMARY selection";
 
@@ -58,7 +60,7 @@ add_task(async function() {
   }
 
   let primaryAsText = SpecialPowers.getClipboardData(
-    "text/unicode",
+    "text/plain",
     SpecialPowers.Ci.nsIClipboard.kSelectionClipboard
   );
   Assert.equal(primaryAsText, TEXT_FOR_PRIMARY);

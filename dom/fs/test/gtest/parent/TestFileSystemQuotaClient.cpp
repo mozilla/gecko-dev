@@ -35,8 +35,11 @@
 namespace mozilla::dom::fs::test {
 
 quota::OriginMetadata GetTestQuotaOriginMetadata() {
-  return quota::OriginMetadata{""_ns, "quotaexample.com"_ns,
+  return quota::OriginMetadata{""_ns,
+                               "quotaexample.com"_ns,
                                "http://quotaexample.com"_ns,
+                               "http://quotaexample.com"_ns,
+                               /* aIsPrivate */ false,
                                quota::PERSISTENCE_TYPE_DEFAULT};
 }
 
@@ -50,34 +53,7 @@ class TestFileSystemQuotaClient
   void SetUp() override { ASSERT_NO_FATAL_FAILURE(InitializeFixture()); }
 
   void TearDown() override {
-    PerformOnIOThread([]() {
-      // We use QM_TRY here to avoid failures if this cleanup is unnecessary
-      const auto& originMeta = GetTestQuotaOriginMetadata();
-
-      QM_TRY_INSPECT(const nsCOMPtr<nsIFile>& dbFile,
-                     data::GetDatabaseFile(originMeta.mOrigin), QM_VOID);
-      ASSERT_TRUE(dbFile);
-
-      bool exists = false;
-      QM_TRY(MOZ_TO_RESULT(dbFile->Exists(&exists)), QM_VOID);
-      QM_TRY(OkIf(exists), QM_VOID);
-
-      int64_t dbSize = 0;
-      QM_TRY(MOZ_TO_RESULT(dbFile->GetFileSize(&dbSize)), QM_VOID);
-
-      quota::QuotaManager* qm = quota::QuotaManager::Get();
-      QM_TRY(OkIf(qm), QM_VOID);
-      qm->DecreaseUsageForClient(
-          quota::ClientMetadata{originMeta, quota::Client::FILESYSTEM}, dbSize);
-
-      QM_WARNONLY_TRY(MOZ_TO_RESULT(dbFile->Remove(/* recursive */ false)));
-
-      exists = true;
-      QM_TRY(MOZ_TO_RESULT(dbFile->Exists(&exists)), QM_VOID);
-      ASSERT_FALSE(exists);
-    });
-
-    ASSERT_NO_FATAL_FAILURE(
+    EXPECT_NO_FATAL_FAILURE(
         ClearStoragesForOrigin(GetTestQuotaOriginMetadata()));
     ASSERT_NO_FATAL_FAILURE(ShutdownFixture());
   }
@@ -87,29 +63,27 @@ class TestFileSystemQuotaClient
       quota::QuotaManager* quotaManager = quota::QuotaManager::Get();
       ASSERT_TRUE(quotaManager);
 
-      quotaManager->IOThread()->Dispatch(
-          NS_NewRunnableFunction(
-              "TestFileSystemQuotaClient",
-              []() {
-                quota::QuotaManager* qm = quota::QuotaManager::Get();
-                ASSERT_TRUE(qm);
+      NS_DispatchAndSpinEventLoopUntilComplete(
+          "TestFileSystemQuotaClient"_ns, quotaManager->IOThread(),
+          NS_NewRunnableFunction("TestFileSystemQuotaClient", []() {
+            quota::QuotaManager* qm = quota::QuotaManager::Get();
+            ASSERT_TRUE(qm);
 
-                ASSERT_NSEQ(NS_OK, qm->EnsureStorageIsInitialized());
+            ASSERT_NSEQ(NS_OK, qm->EnsureStorageIsInitialized());
 
-                ASSERT_NSEQ(NS_OK, qm->EnsureTemporaryStorageIsInitialized());
+            ASSERT_NSEQ(NS_OK, qm->EnsureTemporaryStorageIsInitialized());
 
-                const quota::OriginMetadata& testOriginMeta =
-                    GetTestQuotaOriginMetadata();
+            const quota::OriginMetadata& testOriginMeta =
+                GetTestQuotaOriginMetadata();
 
-                auto dirInfoRes = qm->EnsureTemporaryOriginIsInitialized(
-                    quota::PERSISTENCE_TYPE_DEFAULT, testOriginMeta);
-                if (dirInfoRes.isErr()) {
-                  ASSERT_NSEQ(NS_OK, dirInfoRes.unwrapErr());
-                }
+            auto dirInfoRes = qm->EnsureTemporaryOriginIsInitialized(
+                quota::PERSISTENCE_TYPE_DEFAULT, testOriginMeta);
+            if (dirInfoRes.isErr()) {
+              ASSERT_NSEQ(NS_OK, dirInfoRes.unwrapErr());
+            }
 
-                qm->EnsureQuotaForOrigin(testOriginMeta);
-              }),
-          NS_DISPATCH_SYNC);
+            qm->EnsureQuotaForOrigin(testOriginMeta);
+          }));
     };
 
     PerformOnBackgroundThread(std::move(backgroundTask));
@@ -141,20 +115,21 @@ class TestFileSystemQuotaClient
       const FileSystemChildMetadata& aFileSlot, EntryId& aFileId) {
     // The file should not exist yet
     Result<EntryId, QMResult> existingTestFile =
-        aDatabaseManager->GetOrCreateFile(aFileSlot, /* create */ false);
+        aDatabaseManager->GetOrCreateFile(aFileSlot, sContentType,
+                                          /* create */ false);
     ASSERT_TRUE(existingTestFile.isErr());
     ASSERT_NSEQ(NS_ERROR_DOM_NOT_FOUND_ERR,
                 ToNSResult(existingTestFile.unwrapErr()));
 
     // Create a new file
     TEST_TRY_UNWRAP(aFileId, aDatabaseManager->GetOrCreateFile(
-                                 aFileSlot, /* create */ true));
+                                 aFileSlot, sContentType, /* create */ true));
   }
 
   static void WriteDataToFile(
       data::FileSystemDatabaseManager* const aDatabaseManager,
       const EntryId& aFileId, const nsCString& aData) {
-    nsString type;
+    ContentType type;
     TimeStamp lastModMilliS = 0;
     Path path;
     nsCOMPtr<nsIFile> fileObj;
@@ -227,7 +202,11 @@ class TestFileSystemQuotaClient
     const auto actual = dbUsage.value();
     ASSERT_GT(actual, expected);
   }
+
+  static ContentType sContentType;
 };
+
+ContentType TestFileSystemQuotaClient::sContentType;
 
 TEST_F(TestFileSystemQuotaClient, CheckUsageBeforeAnyFilesOnDisk) {
   auto backgroundTask = []() {
@@ -383,8 +362,7 @@ TEST_F(TestFileSystemQuotaClient, WritesToFilesShouldIncreaseUsage) {
   PerformOnBackgroundThread(std::move(backgroundTask));
 }
 
-TEST_F(TestFileSystemQuotaClient,
-       DISABLED_TrackedFilesOnInitOriginShouldCauseRescan) {
+TEST_F(TestFileSystemQuotaClient, TrackedFilesOnInitOriginShouldCauseRescan) {
   auto backgroundTask = []() {
     mozilla::Atomic<bool> isCanceled{false};
     EntryId* testFileId = new EntryId();
@@ -450,7 +428,7 @@ TEST_F(TestFileSystemQuotaClient,
                       rdm->MutableDatabaseManagerPtr());
 
     // This should force a rescan
-    ASSERT_TRUE(rdm->LockExclusive(*testFileId));
+    ASSERT_NSEQ(NS_OK, rdm->LockExclusive(*testFileId));
     PerformOnIOThread(std::move(writingToFile), std::move(quotaClient),
                       rdm->MutableDatabaseManagerPtr());
   };

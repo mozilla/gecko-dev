@@ -9,9 +9,9 @@
 ${helpers.predefined_type(
     "color",
     "ColorPropertyValue",
-    "::cssparser::RGBA::new(0, 0, 0, 255)",
+    "crate::color::AbsoluteColor::black()",
     engines="gecko servo-2013 servo-2020",
-    animation_value_type="AnimatedRGBA",
+    animation_value_type="AbsoluteColor",
     ignored_when_colors_disabled="True",
     spec="https://drafts.csswg.org/css-color/#color",
 )}
@@ -386,4 +386,24 @@ ${helpers.predefined_type(
     has_effect_on_gecko_scrollbars=False,
     animation_value_type="discrete",
     spec="https://www.w3.org/TR/css-text-4/#hyphenate-character",
+)}
+
+${helpers.predefined_type(
+    "forced-color-adjust",
+    "ForcedColorAdjust",
+    "computed::ForcedColorAdjust::Auto",
+    engines="gecko",
+    gecko_pref="layout.css.forced-color-adjust.enabled",
+    has_effect_on_gecko_scrollbars=False,
+    animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-color-adjust-1/#forced-color-adjust-prop",
+)}
+
+${helpers.single_keyword(
+    "-webkit-text-security",
+    "none circle disc square",
+    engines="gecko",
+    gecko_enum_prefix="StyleTextSecurity",
+    animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-text/#MISSING",
 )}

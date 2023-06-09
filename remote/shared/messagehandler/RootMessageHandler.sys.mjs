@@ -7,8 +7,8 @@ import { MessageHandler } from "chrome://remote/content/shared/messagehandler/Me
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  FrameTransport:
-    "chrome://remote/content/shared/messagehandler/transports/FrameTransport.sys.mjs",
+  RootTransport:
+    "chrome://remote/content/shared/messagehandler/transports/RootTransport.sys.mjs",
   SessionData:
     "chrome://remote/content/shared/messagehandler/sessiondata/SessionData.sys.mjs",
   SessionDataMethod:
@@ -23,13 +23,13 @@ ChromeUtils.defineESModuleGetters(lazy, {
  * layers (at the moment WindowGlobalMessageHandlers in content processes).
  */
 export class RootMessageHandler extends MessageHandler {
-  #frameTransport;
+  #rootTransport;
   #sessionData;
 
   /**
    * Returns the RootMessageHandler module path.
    *
-   * @return {String}
+   * @returns {string}
    */
   static get modulePath() {
     return "root";
@@ -38,7 +38,7 @@ export class RootMessageHandler extends MessageHandler {
   /**
    * Returns the RootMessageHandler type.
    *
-   * @return {String}
+   * @returns {string}
    */
   static get type() {
     return "ROOT";
@@ -55,13 +55,13 @@ export class RootMessageHandler extends MessageHandler {
   /**
    * Create a new RootMessageHandler instance.
    *
-   * @param {String} sessionId
+   * @param {string} sessionId
    *     ID of the session the handler is used for.
    */
   constructor(sessionId) {
     super(sessionId, null);
 
-    this.#frameTransport = new lazy.FrameTransport(this);
+    this.#rootTransport = new lazy.RootTransport(this);
     this.#sessionData = new lazy.SessionData(this);
   }
 
@@ -82,7 +82,7 @@ export class RootMessageHandler extends MessageHandler {
    * RootMessageHandler and propagates the information via a command to existing
    * MessageHandlers.
    */
-  addSessionData(sessionData = {}) {
+  addSessionDataItem(sessionData = {}) {
     sessionData.method = lazy.SessionDataMethod.Add;
     return this.updateSessionData([sessionData]);
   }
@@ -90,10 +90,10 @@ export class RootMessageHandler extends MessageHandler {
   /**
    * Emit a public protocol event. This event will be sent over to the client.
    *
-   * @param {String} name
+   * @param {string} name
    *     Name of the event. Protocol level events should be of the
    *     form [module name].[event name].
-   * @param {Object} data
+   * @param {object} data
    *     The event's data.
    */
   emitProtocolEvent(name, data) {
@@ -106,17 +106,17 @@ export class RootMessageHandler extends MessageHandler {
 
   /**
    * Forward the provided command to WINDOW_GLOBAL MessageHandlers via the
-   * FrameTransport.
+   * RootTransport.
    *
    * @param {Command} command
    *     The command to forward. See type definition in MessageHandler.js
-   * @return {Promise}
+   * @returns {Promise}
    *     Returns a promise that resolves with the result of the command.
    */
   forwardCommand(command) {
     switch (command.destination.type) {
       case lazy.WindowGlobalMessageHandler.type:
-        return this.#frameTransport.forwardCommand(command);
+        return this.#rootTransport.forwardCommand(command);
       default:
         throw new Error(
           `Cannot forward command to "${command.destination.type}" from "${this.constructor.type}".`
@@ -136,7 +136,7 @@ export class RootMessageHandler extends MessageHandler {
    * RootMessageHandler and propagates the information via a command to existing
    * MessageHandlers.
    */
-  removeSessionData(sessionData = {}) {
+  removeSessionDataItem(sessionData = {}) {
     sessionData.method = lazy.SessionDataMethod.Remove;
     return this.updateSessionData([sessionData]);
   }

@@ -149,7 +149,6 @@ if(JPEGXL_ENABLE_TOOLS)
   include(jxl_extras.cmake)
 endif()
 include(jxl_threads.cmake)
-# We only build JPEGLI on linux for now.
 find_package(JPEG)
 if (JPEG_FOUND AND JPEGXL_ENABLE_JPEGLI)
   include(jpegli.cmake)
@@ -167,14 +166,14 @@ install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/jxl
 include(jxl_profiler.cmake)
 
 if(BUILD_TESTING)
-# Unittests
-cmake_policy(SET CMP0057 NEW)  # https://gitlab.kitware.com/cmake/cmake/issues/18198
-include(GoogleTest)
+  cmake_policy(SET CMP0057 NEW)  # https://gitlab.kitware.com/cmake/cmake/issues/18198
+  include(GoogleTest)
+endif()
 
 # Tests for the jxl library.
 include(jxl_tests.cmake)
 
-# Google benchmark for the jxl library
-include(jxl_benchmark.cmake)
-
-endif()  # BUILD_TESTING
+if(BUILD_TESTING)
+  # Google benchmark for the jxl library
+  include(jxl_benchmark.cmake)
+endif()

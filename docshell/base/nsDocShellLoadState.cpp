@@ -11,6 +11,7 @@
 #include "nsIURIFixup.h"
 #include "nsIWebNavigation.h"
 #include "nsIChannel.h"
+#include "nsIURLQueryStringStripper.h"
 #include "nsNetUtil.h"
 #include "nsQueryObject.h"
 #include "ReferrerInfo.h"
@@ -24,7 +25,6 @@
 #include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/StaticPrefs_fission.h"
 #include "mozilla/Telemetry.h"
-#include "mozilla/URLQueryStringStripper.h"
 
 #include "mozilla/OriginAttributes.h"
 #include "mozilla/NullPrincipal.h"
@@ -297,7 +297,6 @@ nsresult nsDocShellLoadState::CreateFromLoadURIOptions(
       "Unexpected flags");
 
   nsCOMPtr<nsIURI> uri;
-  nsCOMPtr<nsIInputStream> postData(aLoadURIOptions.mPostData);
   nsresult rv = NS_OK;
 
   NS_ConvertUTF16toUTF8 uriString(aURI);
@@ -326,7 +325,7 @@ nsresult nsDocShellLoadState::CreateFromLoadURIOptions(
   }
 
   nsAutoString searchProvider, keyword;
-  bool didFixup = false;
+  RefPtr<nsIInputStream> fixupStream;
   if (fixup) {
     uint32_t fixupFlags =
         WebNavigationFlagsToFixupFlags(uri, uriString, loadFlags);
@@ -341,7 +340,6 @@ nsresult nsDocShellLoadState::CreateFromLoadURIOptions(
       fixupFlags |= nsIURIFixup::FIXUP_FLAG_PRIVATE_CONTEXT;
     }
 
-    RefPtr<nsIInputStream> fixupStream;
     if (!XRE_IsContentProcess()) {
       nsCOMPtr<nsIURIFixupInfo> fixupInfo;
       sURIFixup->GetFixupURIInfo(uriString, fixupFlags,
@@ -353,8 +351,11 @@ nsresult nsDocShellLoadState::CreateFromLoadURIOptions(
         fixupInfo->SetConsumer(aBrowsingContext);
         fixupInfo->GetKeywordProviderName(searchProvider);
         fixupInfo->GetKeywordAsSent(keyword);
+        // GetFixupURIInfo only returns a post data stream if it succeeded
+        // and changed the URI, in which case we should override the
+        // passed-in post data by passing this as an override arg to
+        // our internal method.
         fixupInfo->GetPostData(getter_AddRefs(fixupStream));
-        didFixup = true;
 
         if (fixupInfo &&
             loadFlags & nsIWebNavigation::LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP) {
@@ -364,14 +365,8 @@ nsresult nsDocShellLoadState::CreateFromLoadURIOptions(
                                   PromiseFlatString(aURI).get());
           }
         }
+        nsDocShell::MaybeNotifyKeywordSearchLoading(searchProvider, keyword);
       }
-    }
-
-    if (fixupStream) {
-      // GetFixupURIInfo only returns a post data stream if it succeeded
-      // and changed the URI, in which case we should override the
-      // passed-in post data.
-      postData = fixupStream;
     }
   }
 
@@ -384,6 +379,32 @@ nsresult nsDocShellLoadState::CreateFromLoadURIOptions(
     return NS_ERROR_FAILURE;
   }
 
+  RefPtr<nsDocShellLoadState> loadState;
+  rv = CreateFromLoadURIOptions(
+      aBrowsingContext, uri, aLoadURIOptions, loadFlags,
+      fixupStream ? fixupStream : aLoadURIOptions.mPostData,
+      getter_AddRefs(loadState));
+  NS_ENSURE_SUCCESS(rv, rv);
+  loadState->SetOriginalURIString(uriString);
+  loadState.forget(aResult);
+  return NS_OK;
+}
+
+nsresult nsDocShellLoadState::CreateFromLoadURIOptions(
+    BrowsingContext* aBrowsingContext, nsIURI* aURI,
+    const LoadURIOptions& aLoadURIOptions, nsDocShellLoadState** aResult) {
+  return CreateFromLoadURIOptions(aBrowsingContext, aURI, aLoadURIOptions,
+                                  aLoadURIOptions.mLoadFlags,
+                                  aLoadURIOptions.mPostData, aResult);
+}
+
+nsresult nsDocShellLoadState::CreateFromLoadURIOptions(
+    BrowsingContext* aBrowsingContext, nsIURI* aURI,
+    const LoadURIOptions& aLoadURIOptions, uint32_t aLoadFlagsOverride,
+    nsIInputStream* aPostDataOverride, nsDocShellLoadState** aResult) {
+  nsresult rv = NS_OK;
+  uint32_t loadFlags = aLoadFlagsOverride;
+  RefPtr<nsIInputStream> postData = aPostDataOverride;
   uint64_t available;
   if (postData) {
     rv = postData->Available(&available);
@@ -410,7 +431,7 @@ nsresult nsDocShellLoadState::CreateFromLoadURIOptions(
   uint32_t extraFlags = (loadFlags & EXTRA_LOAD_FLAGS);
   loadFlags &= ~EXTRA_LOAD_FLAGS;
 
-  RefPtr<nsDocShellLoadState> loadState = new nsDocShellLoadState(uri);
+  RefPtr<nsDocShellLoadState> loadState = new nsDocShellLoadState(aURI);
   loadState->SetReferrerInfo(aLoadURIOptions.mReferrerInfo);
 
   loadState->SetLoadType(MAKE_LOAD_TYPE(LOAD_NORMAL, loadFlags));
@@ -426,13 +447,8 @@ nsresult nsDocShellLoadState::CreateFromLoadURIOptions(
   loadState->SetTriggeringPrincipal(aLoadURIOptions.mTriggeringPrincipal);
   loadState->SetCsp(aLoadURIOptions.mCsp);
   loadState->SetForceAllowDataURI(forceAllowDataURI);
-  loadState->SetOriginalURIString(uriString);
   if (aLoadURIOptions.mCancelContentJSEpoch) {
     loadState->SetCancelContentJSEpoch(aLoadURIOptions.mCancelContentJSEpoch);
-  }
-
-  if (didFixup) {
-    nsDocShell::MaybeNotifyKeywordSearchLoading(searchProvider, keyword);
   }
 
   if (aLoadURIOptions.mTriggeringRemoteType.WasPassed()) {
@@ -691,8 +707,16 @@ void nsDocShellLoadState::MaybeStripTrackerQueryStrings(
       Telemetry::LABELS_QUERY_STRIPPING_COUNT::Navigation);
 
   nsCOMPtr<nsIURI> strippedURI;
-  uint32_t numStripped = URLQueryStringStripper::Strip(
-      URI(), aContext->UsePrivateBrowsing(), strippedURI);
+
+  nsresult rv;
+  nsCOMPtr<nsIURLQueryStringStripper> queryStripper =
+      components::URLQueryStringStripper::Service(&rv);
+  NS_ENSURE_SUCCESS_VOID(rv);
+
+  uint32_t numStripped;
+
+  queryStripper->Strip(URI(), aContext->UsePrivateBrowsing(),
+                       getter_AddRefs(strippedURI), &numStripped);
   if (numStripped) {
     if (!mUnstrippedURI) {
       mUnstrippedURI = URI();
@@ -709,8 +733,9 @@ void nsDocShellLoadState::MaybeStripTrackerQueryStrings(
   // string could be different.
   if (mUnstrippedURI) {
     nsCOMPtr<nsIURI> uri;
-    Unused << URLQueryStringStripper::Strip(
-        mUnstrippedURI, aContext->UsePrivateBrowsing(), uri);
+    Unused << queryStripper->Strip(mUnstrippedURI,
+                                   aContext->UsePrivateBrowsing(),
+                                   getter_AddRefs(uri), &numStripped);
     bool equals = false;
     Unused << URI()->Equals(uri, &equals);
     MOZ_ASSERT(equals);

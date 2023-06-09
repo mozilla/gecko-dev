@@ -53,6 +53,7 @@ describe("ASRouter", () => {
   let FakeToolbarPanelHub;
   let FakeMomentsPageHub;
   let ASRouterTargeting;
+  let screenImpressions;
 
   function setMessageProviderPref(value) {
     sandbox.stub(ASRouterPreferences, "providers").get(() => value);
@@ -74,6 +75,9 @@ describe("ASRouter", () => {
     getStub
       .withArgs("previousSessionEnd")
       .returns(Promise.resolve(previousSessionEnd));
+    getStub
+      .withArgs("screenImpressions")
+      .returns(Promise.resolve(screenImpressions));
     initParams = {
       storage: {
         get: getStub,
@@ -103,6 +107,7 @@ describe("ASRouter", () => {
     messageImpressions = {};
     groupImpressions = {};
     previousSessionEnd = 100;
+    screenImpressions = {};
     sandbox = sinon.createSandbox();
     ASRouterTargeting = {
       isMatch: sandbox.stub(),
@@ -244,6 +249,7 @@ describe("ASRouter", () => {
       ASRouterTargeting,
       ASRouterTriggerListeners,
       QueryCache,
+      gBrowser: { selectedBrowser: {} },
       gURLBar: {},
       isSeparateAboutWelcome: true,
       AttributionCode: fakeAttributionCode,
@@ -400,6 +406,14 @@ describe("ASRouter", () => {
       await initASRouter(Router);
 
       assert.deepEqual(Router.state.messageImpressions, messageImpressions);
+    });
+    it("should set state.screenImpressions to the screenImpressions object in persistent storage", async () => {
+      screenImpressions = { test: 123 };
+
+      Router = new _ASRouter();
+      await initASRouter(Router);
+
+      assert.deepEqual(Router.state.screenImpressions, screenImpressions);
     });
     it("should clear impressions for groups that are not active", async () => {
       groupImpressions = { foo: [0, 1, 2] };
@@ -937,6 +951,69 @@ describe("ASRouter", () => {
         Router._triggerHandler,
         ["www.example.com"],
         undefined
+      );
+    });
+    it("should parse the message's messagesLoaded trigger and immediately fire trigger", async () => {
+      setMessageProviderPref([
+        {
+          id: "foo",
+          type: "local",
+          enabled: true,
+          messages: [
+            {
+              id: "bar3",
+              template: "simple_template",
+              trigger: { id: "messagesLoaded" },
+              content: { title: "Bar3", body: "Bar123" },
+            },
+          ],
+        },
+      ]);
+      Router = new _ASRouter(Object.freeze(FAKE_LOCAL_PROVIDERS));
+      sandbox.spy(Router, "sendTriggerMessage");
+      await initASRouter(Router);
+      assert.calledOnce(Router.sendTriggerMessage);
+      assert.calledWith(
+        Router.sendTriggerMessage,
+        sandbox.match({ id: "messagesLoaded" }),
+        true
+      );
+    });
+    it("should gracefully handle messages loading before a window or browser exists", async () => {
+      sandbox.stub(global, "gBrowser").value(undefined);
+      sandbox
+        .stub(global.Services.wm, "getMostRecentBrowserWindow")
+        .returns(undefined);
+      setMessageProviderPref([
+        {
+          id: "foo",
+          type: "local",
+          enabled: true,
+          messages: [
+            "whatsnew_panel_message",
+            "cfr_doorhanger",
+            "toolbar_badge",
+            "update_action",
+            "infobar",
+            "spotlight",
+            "toast_notification",
+          ].map((template, i) => {
+            return {
+              id: `foo${i}`,
+              template,
+              trigger: { id: "messagesLoaded" },
+              content: { title: `Foo${i}`, body: "Bar123" },
+            };
+          }),
+        },
+      ]);
+      Router = new _ASRouter(Object.freeze(FAKE_LOCAL_PROVIDERS));
+      sandbox.spy(Router, "sendTriggerMessage");
+      await initASRouter(Router);
+      assert.calledWith(
+        Router.sendTriggerMessage,
+        sandbox.match({ id: "messagesLoaded" }),
+        true
       );
     });
     it("should gracefully handle RemoteSettings blowing up and dispatch undesired event", async () => {
@@ -1546,13 +1623,14 @@ describe("ASRouter", () => {
         browser: {},
       });
 
-      assert.calledOnce(startTelemetryStopwatch);
+      // Called once for the messagesLoaded trigger and once for the above call.
+      assert.calledTwice(startTelemetryStopwatch);
       assert.calledWithExactly(
         startTelemetryStopwatch,
         "MS_MESSAGE_REQUEST_TIME_MS",
         { tabId }
       );
-      assert.calledOnce(finishTelemetryStopwatch);
+      assert.calledTwice(finishTelemetryStopwatch);
       assert.calledWithExactly(
         finishTelemetryStopwatch,
         "MS_MESSAGE_REQUEST_TIME_MS",
@@ -1838,13 +1916,13 @@ describe("ASRouter", () => {
         id: "firstRun",
       });
 
-      assert.calledOnce(startTelemetryStopwatch);
+      assert.calledTwice(startTelemetryStopwatch);
       assert.calledWithExactly(
         startTelemetryStopwatch,
         "MS_MESSAGE_REQUEST_TIME_MS",
         { tabId }
       );
-      assert.calledOnce(finishTelemetryStopwatch);
+      assert.calledTwice(finishTelemetryStopwatch);
       assert.calledWithExactly(
         finishTelemetryStopwatch,
         "MS_MESSAGE_REQUEST_TIME_MS",

@@ -3,18 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 :root {
-  --font-size-default: 1.1rem;
-  --spinner-width: 3rem;
-  --spinner-margin-top-bottom: 0.4rem;
-  --spinner-item-height: 2.4rem;
-  --spinner-item-margin-bottom: 0.1rem;
-  --spinner-button-height: 1.2rem;
-  --colon-width: 2rem;
-  --day-period-spacing-width: 1rem;
-  --calendar-width: 23.1rem;
-  --date-picker-item-height: 2.5rem;
-  --date-picker-item-width: 3.3rem;
-
   --border-radius: 0.3rem;
 
   --border: 0.1rem solid FieldText;
@@ -34,6 +22,20 @@
 
   --disabled-opacity: 0.2;
 
+  /* TODO: these need to be in sync (ish) with DateTimePickerPanel.sys.mjs */
+  font-size: 10px;
+  --font-size-default: 1.1rem;
+  --spinner-width: 3rem;
+  --spinner-margin-top-bottom: 0.4rem;
+  --spinner-item-height: 2.4rem;
+  --spinner-item-margin-bottom: 0.1rem;
+  --spinner-button-height: 1.2rem;
+  --colon-width: 2rem;
+  --day-period-spacing-width: 1rem;
+  --calendar-width: 23rem;
+  --date-picker-item-height: 2.5rem;
+  --date-picker-item-width: 3.3rem;
+
   /* We need to hide the scroll bar but maintain its scrolling
      capability, so using |overflow: hidden| is not an option. */
   scrollbar-width: none;
@@ -49,9 +51,6 @@
   }
 }
 
-html {
-  font-size: 10px;
-}
 
 body {
   margin: 0;
@@ -67,9 +66,13 @@ button {
   border: none;
 }
 
+#date-picker {
+  /* 3px are enough for outlines not to overflow our viewport. */
+  padding: 3px;
+}
+
 .month-year-nav {
   display: flex;
-  width: var(--calendar-width);
   height: 2.4rem;
   margin-bottom: 0.8rem;
   justify-content: space-evenly;
@@ -78,6 +81,7 @@ button {
 .month-year-nav > button {
   width: 3rem;
   height: var(--date-picker-item-height);
+  margin: 0.1rem;
   -moz-context-properties: fill, fill-opacity;
   fill: FieldText;
   fill-opacity: .5;
@@ -119,7 +123,8 @@ button.month-year {
   border: var(--border);
   color: inherit;
   border-radius: 0.3rem;
-  padding-block: 0.2rem;
+  padding-top: 0.2rem;
+  padding-bottom: 0.3rem;
   padding-inline: 1.2rem 2.6rem;
 }
 
@@ -151,10 +156,7 @@ button.month-year.active::after {
   position: absolute;
   z-index: 5;
   padding-top: 3.2rem;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  width: var(--calendar-width);
+  inset: 0;
   background-color: window;
   color: windowtext;
   opacity: 1;
@@ -163,7 +165,7 @@ button.month-year.active::after {
 
 .month-year-view > .spinner-container {
   width: 5.5rem;
-  margin: 0 0.5rem;
+  margin: 2rem 0.5rem;
 }
 
 .order-month-year > #spinner-month,
@@ -199,7 +201,6 @@ button.month-year.active::after {
 
 .days-view {
   min-height: 15rem;
-  overflow: hidden;
   position: relative;
 }
 
@@ -217,6 +218,7 @@ button.month-year.active::after {
   position: relative;
   justify-content: center;
   width: var(--date-picker-item-width);
+  margin-inline: 0.1rem;
 }
 
 .days-view > tr > td:focus-visible {
@@ -256,6 +258,23 @@ button.month-year.active::after {
   inset: 5%;
   z-index: -10;
   border-radius: var(--border-radius);
+}
+
+#clear-button {
+  height: var(--date-picker-item-height);
+  background-color: var(--fill-color);
+  color: inherit;
+  font-size: 1.3rem;
+  margin-top: 0.8rem;
+  border: var(--border);
+  border-radius: var(--border-radius);
+  padding-inline: 1.2rem;
+}
+
+#clear-button:hover {
+  background-color: var(--selected-font-color);
+  color: var(--selected-fill-color);
+  border-color: var(--selected-fill-color);
 }
 
 #time-picker,

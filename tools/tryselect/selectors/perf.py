@@ -3,12 +3,14 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import copy
-import enum
 import itertools
+import json
 import os
-import re
-import sys
+import pathlib
+import shutil
+import subprocess
 from contextlib import redirect_stdout
+from datetime import datetime, timedelta
 
 from mozbuild.base import MozbuildObject
 from mozversioncontrol import get_repository_object
@@ -22,22 +24,38 @@ from ..util.fzf import (
     setup_tasks_for_fzf,
 )
 from .compare import CompareParser
+from .perfselector.classification import (
+    Apps,
+    ClassificationProvider,
+    Platforms,
+    Suites,
+    Variants,
+)
+from .perfselector.utils import LogProcessor
 
 here = os.path.abspath(os.path.dirname(__file__))
 build = MozbuildObject.from_environment(cwd=here)
+cache_file = pathlib.Path(build.statedir, "try_perf_revision_cache.json")
 
 PERFHERDER_BASE_URL = (
     "https://treeherder.mozilla.org/perfherder/"
     "compare?originalProject=try&originalRevision=%s&newProject=try&newRevision=%s"
 )
+TREEHERDER_TRY_BASE_URL = "https://treeherder.mozilla.org/jobs?repo=try&revision=%s"
 
 # Prevent users from running more than 300 tests at once. It's possible, but
 # it's more likely that a query is broken and is selecting far too much.
 MAX_PERF_TASKS = 300
-REVISION_MATCHER = re.compile(r"remote:.*/try/rev/([\w]*)[ \t]*$")
 
 # Name of the base category with no variants applied to it
 BASE_CATEGORY_NAME = "base"
+
+# Add environment variable for firefox-android integration.
+# This will let us find the APK to upload automatically. However,
+# the following option will need to be supplied:
+#       --browsertime-upload-apk firefox-android
+# OR    --mozperftest-upload-apk firefox-android
+MOZ_FIREFOX_ANDROID_APK_OUTPUT = os.getenv("MOZ_FIREFOX_ANDROID_APK_OUTPUT", None)
 
 
 class InvalidCategoryException(Exception):
@@ -49,115 +67,16 @@ class InvalidCategoryException(Exception):
     pass
 
 
-class LogProcessor:
-    def __init__(self):
-        self.buf = ""
-        self.stdout = sys.__stdout__
-        self._revision = None
+class APKNotFound(Exception):
+    """Raised when a user-supplied path to an APK is invalid."""
 
-    @property
-    def revision(self):
-        return self._revision
-
-    def write(self, buf):
-        while buf:
-            try:
-                newline_index = buf.index("\n")
-            except ValueError:
-                # No newline, wait for next call
-                self.buf += buf
-                break
-
-            # Get data up to next newline and combine with previously buffered data
-            data = self.buf + buf[: newline_index + 1]
-            buf = buf[newline_index + 1 :]
-
-            # Reset buffer then output line
-            self.buf = ""
-            if data.strip() == "":
-                continue
-            self.stdout.write(data.strip("\n") + "\n")
-
-            # Check if a temporary commit wa created
-            match = REVISION_MATCHER.match(data)
-            if match:
-                # Last line found is the revision we want
-                self._revision = match.group(1)
+    pass
 
 
-class ClassificationEnum(enum.Enum):
-    """This class provides the ability to use Enums as array indices."""
+class InvalidRegressionDetectorQuery(Exception):
+    """Thrown when the detector query produces anything other than 1 task."""
 
-    @property
-    def value(self):
-        return self._value_["value"]
-
-    def __index__(self):
-        return self._value_["index"]
-
-    def __int__(self):
-        return self._value_["index"]
-
-
-class Platforms(ClassificationEnum):
-    ANDROID_A51 = {"value": "android-a51", "index": 0}
-    ANDROID = {"value": "android", "index": 1}
-    WINDOWS = {"value": "windows", "index": 2}
-    LINUX = {"value": "linux", "index": 3}
-    MACOSX = {"value": "macosx", "index": 4}
-    DESKTOP = {"value": "desktop", "index": 5}
-
-
-class Apps(ClassificationEnum):
-    FIREFOX = {"value": "firefox", "index": 0}
-    CHROME = {"value": "chrome", "index": 1}
-    CHROMIUM = {"value": "chromium", "index": 2}
-    GECKOVIEW = {"value": "geckoview", "index": 3}
-    FENIX = {"value": "fenix", "index": 4}
-    CHROME_M = {"value": "chrome-m", "index": 5}
-    SAFARI = {"value": "safari", "index": 6}
-
-
-class Suites(ClassificationEnum):
-    RAPTOR = {"value": "raptor", "index": 0}
-    TALOS = {"value": "talos", "index": 1}
-    AWSY = {"value": "awsy", "index": 2}
-
-
-class Variants(ClassificationEnum):
-    NO_FISSION = {"value": "no-fission", "index": 0}
-    BYTECODE_CACHED = {"value": "bytecode-cached", "index": 1}
-    LIVE_SITES = {"value": "live-sites", "index": 2}
-    PROFILING = {"value": "profiling", "index": 3}
-    SWR = {"value": "swr", "index": 4}
-
-
-"""
-The following methods and constants are used for restricting
-certain platforms and applications such as chrome, safari, and
-android tests. These all require a flag such as --android to
-enable (see build_category_matrix for more info).
-"""
-
-
-def check_for_android(android=False, **kwargs):
-    return android
-
-
-def check_for_chrome(chrome=False, **kwargs):
-    return chrome
-
-
-def check_for_safari(safari=False, **kwargs):
-    return safari
-
-
-def check_for_live_sites(live_sites=False, **kwargs):
-    return live_sites
-
-
-def check_for_profile(profile=False, **kwargs):
-    return profile
+    pass
 
 
 class PerfParser(CompareParser):
@@ -173,252 +92,12 @@ class PerfParser(CompareParser):
         "rebuild",
     ]
 
-    platforms = {
-        Platforms.ANDROID_A51.value: {
-            "query": "'android 'a51 'shippable 'aarch64",
-            "restriction": check_for_android,
-            "platform": Platforms.ANDROID.value,
-        },
-        Platforms.ANDROID.value: {
-            # The android, and android-a51 queries are expected to be the same,
-            # we don't want to run the tests on other mobile platforms.
-            "query": "'android 'a51 'shippable 'aarch64",
-            "restriction": check_for_android,
-            "platform": Platforms.ANDROID.value,
-        },
-        Platforms.WINDOWS.value: {
-            "query": "!-32 'windows 'shippable",
-            "platform": Platforms.DESKTOP.value,
-        },
-        Platforms.LINUX.value: {
-            "query": "!clang 'linux 'shippable",
-            "platform": Platforms.DESKTOP.value,
-        },
-        Platforms.MACOSX.value: {
-            "query": "'osx 'shippable",
-            "platform": Platforms.DESKTOP.value,
-        },
-        Platforms.DESKTOP.value: {
-            "query": "!android 'shippable !-32 !clang",
-            "platform": Platforms.DESKTOP.value,
-        },
-    }
-
-    apps = {
-        Apps.FIREFOX.value: {
-            "query": "!chrom !geckoview !fenix !safari",
-            "platforms": [Platforms.DESKTOP.value],
-        },
-        Apps.CHROME.value: {
-            "query": "'chrome",
-            "negation": "!chrom",
-            "restriction": check_for_chrome,
-            "platforms": [Platforms.DESKTOP.value],
-        },
-        Apps.CHROMIUM.value: {
-            "query": "'chromium",
-            "negation": "!chrom",
-            "restriction": check_for_chrome,
-            "platforms": [Platforms.DESKTOP.value],
-        },
-        Apps.GECKOVIEW.value: {
-            "query": "'geckoview",
-            "platforms": [Platforms.ANDROID.value],
-        },
-        Apps.FENIX.value: {
-            "query": "'fenix",
-            "platforms": [Platforms.ANDROID.value],
-        },
-        Apps.CHROME_M.value: {
-            "query": "'chrome-m",
-            "negation": "!chrom",
-            "restriction": check_for_chrome,
-            "platforms": [Platforms.ANDROID.value],
-        },
-        Apps.SAFARI.value: {
-            "query": "'safari",
-            "negation": "!safari",
-            "restriction": check_for_safari,
-            "platforms": [Platforms.MACOSX.value],
-        },
-    }
-
-    variants = {
-        Variants.NO_FISSION.value: {
-            "query": "'nofis",
-            "negation": "!nofis",
-            "platforms": [Platforms.ANDROID.value],
-            "apps": [Apps.FENIX.value, Apps.GECKOVIEW.value],
-        },
-        Variants.BYTECODE_CACHED.value: {
-            "query": "'bytecode",
-            "negation": "!bytecode",
-            "platforms": [Platforms.DESKTOP.value],
-            "apps": [Apps.FIREFOX.value],
-        },
-        Variants.LIVE_SITES.value: {
-            "query": "'live",
-            "negation": "!live",
-            "restriction": check_for_live_sites,
-            "platforms": [Platforms.DESKTOP.value, Platforms.ANDROID.value],
-            "apps": list(apps.keys()),
-        },
-        Variants.PROFILING.value: {
-            "query": "'profil",
-            "negation": "!profil",
-            "restriction": check_for_profile,
-            "platforms": [Platforms.DESKTOP.value, Platforms.ANDROID.value],
-            "apps": [Apps.FIREFOX.value, Apps.GECKOVIEW.value, Apps.FENIX.value],
-        },
-        Variants.SWR.value: {
-            "query": "'swr",
-            "negation": "!swr",
-            "platforms": [Platforms.DESKTOP.value],
-            "apps": [Apps.FIREFOX.value],
-        },
-    }
-
-    suites = {
-        Suites.RAPTOR.value: {
-            "apps": list(apps.keys()),
-            "platforms": list(platforms.keys()),
-            "variants": [
-                Variants.NO_FISSION.value,
-                Variants.LIVE_SITES.value,
-                Variants.PROFILING.value,
-                Variants.BYTECODE_CACHED.value,
-            ],
-        },
-        Suites.TALOS.value: {
-            "apps": [Apps.FIREFOX.value],
-            "platforms": [Platforms.DESKTOP.value],
-            "variants": [
-                Variants.PROFILING.value,
-                Variants.SWR.value,
-            ],
-        },
-        Suites.AWSY.value: {
-            "apps": [Apps.FIREFOX.value],
-            "platforms": [Platforms.DESKTOP.value],
-            "variants": [],
-        },
-    }
-
-    """
-    Here you can find the base categories that are defined for the perf
-    selector. The following fields are available:
-        * query: Set the queries to use for each suite you need.
-        * suites: The suites that are needed for this category.
-        * tasks: A hard-coded list of tasks to select.
-        * platforms: The platforms that it can run on.
-        * app-restrictions: A list of apps that the category can run.
-        * variant-restrictions: A list of variants available for each suite.
-
-    Note that setting the App/Variant-Restriction fields should be used to
-    restrict the available apps and variants, not expand them.
-    """
-    categories = {
-        "Pageload": {
-            "query": {
-                Suites.RAPTOR.value: ["'browsertime 'tp6"],
-            },
-            "suites": [Suites.RAPTOR.value],
-            "tasks": [],
-        },
-        "Pageload (essential)": {
-            "query": {
-                Suites.RAPTOR.value: ["'browsertime 'tp6 'essential"],
-            },
-            "variant-restrictions": {Suites.RAPTOR.value: [Variants.NO_FISSION.value]},
-            "suites": [Suites.RAPTOR.value],
-            "app-restrictions": {
-                Suites.RAPTOR.value: [
-                    Apps.FIREFOX.value,
-                    Apps.CHROME.value,
-                    Apps.CHROMIUM.value,
-                    Apps.FENIX.value,
-                    Apps.GECKOVIEW.value,
-                ],
-            },
-            "tasks": [],
-        },
-        "Responsiveness": {
-            "query": {
-                Suites.RAPTOR.value: ["'browsertime 'responsive"],
-            },
-            "suites": [Suites.RAPTOR.value],
-            "variant-restrictions": {Suites.RAPTOR.value: []},
-            "app-restrictions": {
-                Suites.RAPTOR.value: [
-                    Apps.FIREFOX.value,
-                    Apps.CHROME.value,
-                    Apps.CHROMIUM.value,
-                    Apps.FENIX.value,
-                    Apps.GECKOVIEW.value,
-                ],
-            },
-            "tasks": [],
-        },
-        "Benchmarks": {
-            "query": {
-                Suites.RAPTOR.value: ["'browsertime 'benchmark"],
-            },
-            "suites": [Suites.RAPTOR.value],
-            "variant-restrictions": {Suites.RAPTOR.value: []},
-            "tasks": [],
-        },
-        "DAMP (Devtools)": {
-            "query": {
-                Suites.TALOS.value: ["'talos 'damp"],
-            },
-            "suites": [Suites.TALOS.value],
-            "tasks": [],
-        },
-        "Talos PerfTests": {
-            "query": {
-                Suites.TALOS.value: ["'talos"],
-            },
-            "suites": [Suites.TALOS.value],
-            "tasks": [],
-        },
-        "Resource Usage": {
-            "query": {
-                Suites.TALOS.value: ["'talos 'xperf | 'tp5"],
-                Suites.RAPTOR.value: ["'power 'osx"],
-                Suites.AWSY.value: ["'awsy"],
-            },
-            "suites": [Suites.TALOS.value, Suites.RAPTOR.value, Suites.AWSY.value],
-            "platform-restrictions": [Platforms.DESKTOP.value],
-            "variant-restrictions": {
-                Suites.RAPTOR.value: [],
-                Suites.TALOS.value: [],
-            },
-            "app-restrictions": {
-                Suites.RAPTOR.value: [Apps.FIREFOX.value],
-                Suites.TALOS.value: [Apps.FIREFOX.value],
-            },
-            "tasks": [],
-        },
-        "Graphics, & Media Playback": {
-            "query": {
-                # XXX This might not be an exhaustive list for talos atm
-                Suites.TALOS.value: ["'talos 'svgr | 'bcv | 'webgl"],
-                Suites.RAPTOR.value: ["'browsertime 'youtube-playback"],
-            },
-            "suites": [Suites.TALOS.value, Suites.RAPTOR.value],
-            "variant-restrictions": {Suites.RAPTOR.value: [Variants.NO_FISSION.value]},
-            "app-restrictions": {
-                Suites.RAPTOR.value: [
-                    Apps.FIREFOX.value,
-                    Apps.CHROME.value,
-                    Apps.CHROMIUM.value,
-                    Apps.FENIX.value,
-                    Apps.GECKOVIEW.value,
-                ],
-            },
-            "tasks": [],
-        },
-    }
+    provider = ClassificationProvider()
+    platforms = provider.platforms
+    apps = provider.apps
+    variants = provider.variants
+    suites = provider.suites
+    categories = provider.categories
 
     arguments = [
         [
@@ -481,6 +160,51 @@ class PerfParser(CompareParser):
             },
         ],
         [
+            ["-q", "--query"],
+            {
+                "type": str,
+                "default": None,
+                "help": "Query to run in either the perf-category selector, "
+                "or the fuzzy selector if --show-all is provided.",
+            },
+        ],
+        [
+            ["--browsertime-upload-apk"],
+            {
+                "type": str,
+                "default": None,
+                "help": "Path to an APK to upload. Note that this "
+                "will replace the APK installed in all Android Performance "
+                "tests. If the Activity, Binary Path, or Intents required "
+                "change at all relative to the existing GeckoView, and Fenix "
+                "tasks, then you will need to make fixes in the associated "
+                "taskcluster files (e.g. taskcluster/ci/test/browsertime-mobile.yml). "
+                "Alternatively, set MOZ_FIREFOX_ANDROID_APK_OUTPUT to a path to "
+                "an APK, and then run the command with --browsertime-upload-apk "
+                "firefox-android. This option will only copy the APK for browsertime, see "
+                "--mozperftest-upload-apk to upload APKs for startup tests.",
+            },
+        ],
+        [
+            ["--mozperftest-upload-apk"],
+            {
+                "type": str,
+                "default": None,
+                "help": "See --browsertime-upload-apk. This option does the same "
+                "thing except it's for mozperftest tests such as the startup ones. "
+                "Note that those tests only exist through --show-all, as they "
+                "aren't contained in any existing categories. ",
+            },
+        ],
+        [
+            ["--detect-changes"],
+            {
+                "action": "store_true",
+                "default": False,
+                "help": "Adds a task that detects performance changes using MWU.",
+            },
+        ],
+        [
             ["--variants"],
             {
                 "nargs": "*",
@@ -520,6 +244,18 @@ class PerfParser(CompareParser):
                 "metavar": "",
             },
         ],
+        [
+            ["--extra-args"],
+            {
+                "nargs": "*",
+                "type": str,
+                "default": [],
+                "dest": "extra_args",
+                "help": "Set the extra args "
+                "(e.x, --extra-args verbose post-startup-delay=1)",
+                "metavar": "",
+            },
+        ],
     ]
 
     def get_tasks(base_cmd, queries, query_arg=None, candidate_tasks=None):
@@ -531,13 +267,13 @@ class PerfParser(CompareParser):
         queries.append(query_str)
         return set(tasks)
 
-    def get_perf_tasks(base_cmd, all_tg_tasks, perf_categories):
+    def get_perf_tasks(base_cmd, all_tg_tasks, perf_categories, query=None):
         # Convert the categories to tasks
         selected_tasks = set()
         queries = []
 
         selected_categories = PerfParser.get_tasks(
-            base_cmd, queries, None, perf_categories
+            base_cmd, queries, query, perf_categories
         )
 
         for category, category_info in perf_categories.items():
@@ -589,14 +325,6 @@ class PerfParser(CompareParser):
             else:
                 # Add the new tasks to the currently selected ones
                 selected_tasks |= category_tasks
-
-        if len(selected_tasks) > MAX_PERF_TASKS:
-            print(
-                "That's a lot of tests selected (%s)!\n"
-                "These tests won't be triggered. If this was unexpected, "
-                "please file a bug in Testing :: Performance." % MAX_PERF_TASKS
-            )
-            return [], [], []
 
         return selected_tasks, selected_categories, queries
 
@@ -1118,6 +846,67 @@ class PerfParser(CompareParser):
 
         return categories
 
+    def check_cached_revision(base_commit=None):
+        """
+        If the base_commit parameter does not exist, remove expired cache data.
+        Cache data format:
+        {
+                base_commit[str]: {
+                        "base_revision_treeherder": "2b04563b5",
+                        "date": "2023-03-12"
+                }
+        }
+
+        :param base_commit: The base commit to search
+        :return: The base_revision_treeherder if found, else None
+        """
+        today = datetime.now()
+        expired_date = (today - timedelta(weeks=2)).strftime("%Y-%m-%d")
+        today = today.strftime("%Y-%m-%d")
+
+        if not cache_file.is_file():
+            return
+
+        with cache_file.open("r") as f:
+            cache_data = json.load(f)
+        # Remove expired cache data
+        if base_commit is None:
+            for cached_base_commit in list(cache_data):
+                if cache_data[cached_base_commit]["date"] < expired_date:
+                    cache_data.pop(cached_base_commit)
+            with cache_file.open("w") as f:
+                json.dump(cache_data, f, indent=4)
+
+        cached_base_commit = cache_data.get(base_commit, None)
+        if cached_base_commit:
+            return cached_base_commit["base_revision_treeherder"]
+
+    def save_revision_treeherder(base_commit, base_revision_treeherder):
+        """
+        Save the base revision of treeherder to the cache.
+        See "check_cached_revision" for more information about the data structure.
+
+        :param base_commit: The base commit to save
+        :param base_revision_treeherder: The base revision of treeherder to save
+        :return: None
+        """
+        today = datetime.now().strftime("%Y-%m-%d")
+        new_revision = {
+            "base_revision_treeherder": base_revision_treeherder,
+            "date": today,
+        }
+        cache_data = {}
+
+        if cache_file.is_file():
+            with cache_file.open("r") as f:
+                cache_data = json.load(f)
+                cache_data[base_commit] = new_revision
+        else:
+            cache_data[base_commit] = new_revision
+
+        with cache_file.open(mode="w") as f:
+            json.dump(cache_data, f, indent=4)
+
     def perf_push_to_try(
         selected_tasks, selected_categories, queries, try_config, dry_run, single_run
     ):
@@ -1148,23 +937,12 @@ class PerfParser(CompareParser):
             # a processor that we can use to catch the revision
             # while providing real-time output
             log_processor = LogProcessor()
-            with redirect_stdout(log_processor):
-                push_to_try(
-                    "perf",
-                    "{msg}".format(msg=msg),
-                    # XXX Figure out if changing `fuzzy` to `perf` will break something
-                    try_task_config=generate_try_task_config(
-                        "fuzzy", selected_tasks, try_config
-                    ),
-                    stage_changes=False,
-                    dry_run=dry_run,
-                    closed_tree=False,
-                    allow_log_capture=True,
-                )
 
-            new_revision_treeherder = log_processor.revision
-
-            if not (dry_run or single_run):
+            # Push the base revision first. This lets the new revision appear
+            # first in the Treeherder view, and it also lets us enhance the new
+            # revision with information about the base run.
+            base_revision_treeherder = PerfParser.check_cached_revision(compare_commit)
+            if not (dry_run or single_run or base_revision_treeherder):
                 vcs.update(compare_commit)
                 updated = True
 
@@ -1185,11 +963,51 @@ class PerfParser(CompareParser):
                     )
 
                 base_revision_treeherder = log_processor.revision
+                PerfParser.save_revision_treeherder(
+                    compare_commit, base_revision_treeherder
+                )
+
+                # Reset updated since we no longer need to worry
+                # about failing while we're on a base commit
+                updated = False
+                try_config.setdefault("env", {})[
+                    "PERF_BASE_REVISION"
+                ] = base_revision_treeherder
+                vcs.update(current_revision_ref)
+
+            with redirect_stdout(log_processor):
+                push_to_try(
+                    "perf",
+                    "{msg}".format(msg=msg),
+                    # XXX Figure out if changing `fuzzy` to `perf` will break something
+                    try_task_config=generate_try_task_config(
+                        "fuzzy", selected_tasks, try_config
+                    ),
+                    stage_changes=False,
+                    dry_run=dry_run,
+                    closed_tree=False,
+                    allow_log_capture=True,
+                )
+
+            new_revision_treeherder = log_processor.revision
+
         finally:
             if updated:
                 vcs.update(current_revision_ref)
 
         return base_revision_treeherder, new_revision_treeherder
+
+    def inject_change_detector(base_cmd, all_tasks, selected_tasks):
+        query = "'perftest 'mwu 'detect"
+        mwu_task = PerfParser.get_tasks(base_cmd, [], query, all_tasks)
+
+        if len(mwu_task) > 1 or len(mwu_task) == 0:
+            raise InvalidRegressionDetectorQuery(
+                f"Expected 1 task from change detector "
+                f"query, but found {len(mwu_task)}"
+            )
+
+        selected_tasks |= set(mwu_task)
 
     def run(
         update=False,
@@ -1198,6 +1016,9 @@ class PerfParser(CompareParser):
         try_config=None,
         dry_run=False,
         single_run=False,
+        query=None,
+        detect_changes=False,
+        rebuild=1,
         **kwargs,
     ):
         # Setup fzf
@@ -1222,14 +1043,31 @@ class PerfParser(CompareParser):
             # Expand the categories first
             categories = PerfParser.get_categories(**kwargs)
             selected_tasks, selected_categories, queries = PerfParser.get_perf_tasks(
-                base_cmd, all_tasks, categories
+                base_cmd, all_tasks, categories, query=query
             )
         else:
-            selected_tasks = PerfParser.get_tasks(base_cmd, queries, None, all_tasks)
+            selected_tasks = PerfParser.get_tasks(base_cmd, queries, query, all_tasks)
 
         if len(selected_tasks) == 0:
             print("No tasks selected")
             return None
+
+        if (len(selected_tasks) * rebuild) > MAX_PERF_TASKS:
+            print(
+                "That's a lot of tests selected (%s)!\n"
+                "These tests won't be triggered. If this was unexpected, "
+                "please file a bug in Testing :: Performance." % MAX_PERF_TASKS
+            )
+            return None
+
+        if detect_changes:
+            PerfParser.inject_change_detector(base_cmd, all_tasks, selected_tasks)
+
+        if try_config is None:
+            try_config = {}
+        if kwargs.get("extra_args", []):
+            args = " ".join(kwargs["extra_args"])
+            try_config.setdefault("env", {})["PERF_FLAGS"] = args
 
         return PerfParser.perf_push_to_try(
             selected_tasks,
@@ -1274,14 +1112,95 @@ class PerfParser(CompareParser):
 
         return True
 
+    def setup_apk_upload(framework, apk_upload_path):
+        """Setup the APK for uploading to test on try.
+
+        There are two ways of performing the upload:
+            (1) Passing a path to an APK with:
+                --browsertime-upload-apk <PATH/FILE.APK>
+                --mozperftest-upload-apk <PATH/FILE.APK>
+            (2) Setting MOZ_FIREFOX_ANDROID_APK_OUTPUT to a path that will
+                always point to an APK (<PATH/FILE.APK>) that we can upload.
+
+        The file is always copied to testing/raptor/raptor/user_upload.apk to
+        integrate with minimal changes for simpler cases when using raptor-browsertime.
+
+        For mozperftest, the APK is always uploaded here for the same reasons:
+        python/mozperftest/mozperftest/user_upload.apk
+        """
+        frameworks_to_locations = {
+            "browsertime": pathlib.Path(
+                build.topsrcdir, "testing", "raptor", "raptor", "user_upload.apk"
+            ),
+            "mozperftest": pathlib.Path(
+                build.topsrcdir,
+                "python",
+                "mozperftest",
+                "mozperftest",
+                "user_upload.apk",
+            ),
+        }
+
+        print("Setting up custom APK upload")
+        if apk_upload_path in ("firefox-android"):
+            apk_upload_path = MOZ_FIREFOX_ANDROID_APK_OUTPUT
+            if apk_upload_path is None:
+                raise APKNotFound(
+                    "MOZ_FIREFOX_ANDROID_APK_OUTPUT is not defined. It should "
+                    "point to an APK to upload."
+                )
+            apk_upload_path = pathlib.Path(apk_upload_path)
+            if not apk_upload_path.exists() or apk_upload_path.is_dir():
+                raise APKNotFound(
+                    "MOZ_FIREFOX_ANDROID_APK_OUTPUT needs to point to an APK."
+                )
+        else:
+            apk_upload_path = pathlib.Path(apk_upload_path)
+            if not apk_upload_path.exists():
+                raise APKNotFound(f"Path does not exist: {str(apk_upload_path)}")
+
+        print("\nCopying file in-tree for upload...")
+        shutil.copyfile(
+            str(apk_upload_path),
+            frameworks_to_locations[framework],
+        )
+
+        hg_cmd = ["hg", "add", str(frameworks_to_locations[framework])]
+        print(
+            f"\nRunning the following hg command (RAM warnings are expected):\n"
+            f" {hg_cmd}"
+        )
+        subprocess.check_output(hg_cmd)
+        print(
+            "\nAPK is setup for uploading. Please commit the changes, "
+            "and re-run this command. \nEnsure you supply the --android, "
+            "and select the correct tasks (fenix, geckoview) or use "
+            "--show-all for mozperftest task selection.\n"
+        )
+
 
 def run(**kwargs):
+    if (
+        kwargs.get("browsertime_upload_apk") is not None
+        or kwargs.get("mozperftest_upload_apk") is not None
+    ):
+        framework = "browsertime"
+        upload_apk = kwargs.get("browsertime_upload_apk")
+        if upload_apk is None:
+            framework = "mozperftest"
+            upload_apk = kwargs.get("mozperftest_upload_apk")
+
+        PerfParser.setup_apk_upload(framework, upload_apk)
+        return
+
     # Make sure the categories are following
     # the rules we've setup
     PerfParser.run_category_checks()
+    PerfParser.check_cached_revision()
 
     revisions = PerfParser.run(
         profile=kwargs.get("try_config", {}).get("gecko-profile", False),
+        rebuild=kwargs.get("try_config", {}).get("rebuild", 1),
         **kwargs,
     )
 
@@ -1291,11 +1210,18 @@ def run(**kwargs):
     # Provide link to perfherder for comparisons now
     if not kwargs.get("single_run", False):
         perfcompare_url = PERFHERDER_BASE_URL % revisions
+        original_try_url = TREEHERDER_TRY_BASE_URL % revisions[0]
+        local_change_try_url = TREEHERDER_TRY_BASE_URL % revisions[1]
         print(
             "\n!!!NOTE!!!\n You'll be able to find a performance comparison here "
             "once the tests are complete (ensure you select the right "
             "framework): %s\n" % perfcompare_url
         )
+        print("\n*******************************************************")
+        print("*          2 commits/try-runs are created...          *")
+        print("*******************************************************")
+        print(f"Base revision's try run: {original_try_url}")
+        print(f"Local revision's try run: {local_change_try_url}\n")
     print(
         "If you need any help, you can find us in the #perf-help Matrix channel:\n"
         "https://matrix.to/#/#perf-help:mozilla.org\n"

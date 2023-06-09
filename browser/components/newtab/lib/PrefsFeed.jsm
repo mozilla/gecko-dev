@@ -6,9 +6,6 @@
 const { actionCreators: ac, actionTypes: at } = ChromeUtils.importESModule(
   "resource://activity-stream/common/Actions.sys.mjs"
 );
-const { XPCOMUtils } = ChromeUtils.importESModule(
-  "resource://gre/modules/XPCOMUtils.sys.mjs"
-);
 const { Prefs } = ChromeUtils.import(
   "resource://activity-stream/lib/ActivityStreamPrefs.jsm"
 );
@@ -19,12 +16,9 @@ const { AppConstants } = ChromeUtils.importESModule(
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
-});
-
-XPCOMUtils.defineLazyModuleGetters(lazy, {
-  NimbusFeatures: "resource://nimbus/ExperimentAPI.jsm",
 });
 
 class PrefsFeed {
@@ -38,8 +32,16 @@ class PrefsFeed {
   onPrefChanged(name, value) {
     const prefItem = this._prefMap.get(name);
     if (prefItem) {
+      let action = "BroadcastToContent";
+      if (prefItem.skipBroadcast) {
+        action = "OnlyToMain";
+        if (prefItem.alsoToPreloaded) {
+          action = "AlsoToPreloaded";
+        }
+      }
+
       this.store.dispatch(
-        ac[prefItem.skipBroadcast ? "OnlyToMain" : "BroadcastToContent"]({
+        ac[action]({
           type: at.PREF_CHANGED,
           data: { name, value },
         })
@@ -89,15 +91,21 @@ class PrefsFeed {
    */
   onPocketExperimentUpdated(event, reason) {
     const value = lazy.NimbusFeatures.pocketNewtab.getAllVariables() || {};
-    this.store.dispatch(
-      ac.BroadcastToContent({
-        type: at.PREF_CHANGED,
-        data: {
-          name: "pocketConfig",
-          value,
-        },
-      })
-    );
+    // Loaded experiments are set up inside init()
+    if (
+      reason !== "feature-experiment-loaded" &&
+      reason !== "feature-rollout-loaded"
+    ) {
+      this.store.dispatch(
+        ac.BroadcastToContent({
+          type: at.PREF_CHANGED,
+          data: {
+            name: "pocketConfig",
+            value,
+          },
+        })
+      );
+    }
   }
 
   init() {
@@ -220,8 +228,8 @@ class PrefsFeed {
 
   removeListeners() {
     this._prefs.ignoreBranch(this);
-    lazy.NimbusFeatures.newtab.off(this.onExperimentUpdated);
-    lazy.NimbusFeatures.pocketNewtab.off(this.onPocketExperimentUpdated);
+    lazy.NimbusFeatures.newtab.offUpdate(this.onExperimentUpdated);
+    lazy.NimbusFeatures.pocketNewtab.offUpdate(this.onPocketExperimentUpdated);
     if (this.geo === "") {
       Services.obs.removeObserver(this, lazy.Region.REGION_TOPIC);
     }

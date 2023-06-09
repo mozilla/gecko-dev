@@ -8,10 +8,11 @@
 #include "mozilla/Telemetry.h"
 #include "nsContentUtils.h"
 #include "nsIAsyncVerifyRedirectCallback.h"
-#include "nsIChannel.h"
+#include "nsIHttpChannel.h"
 #include "nsILoadGroup.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIRedirectResultListener.h"
+#include "nsNetUtil.h"
 
 // Change this if we want to cancel and remove the associated preload on removal
 // of all <link rel=preload> tags from the tree.
@@ -156,7 +157,8 @@ void PreloaderBase::NotifyOpen(const PreloadHashKey& aKey, nsIChannel* aChannel,
   mChannel->SetNotificationCallbacks(sink);
 }
 
-void PreloaderBase::NotifyUsage(LoadBackground aLoadBackground) {
+void PreloaderBase::NotifyUsage(dom::Document* aDocument,
+                                LoadBackground aLoadBackground) {
   if (!mIsUsed && mChannel && aLoadBackground == LoadBackground::Drop) {
     nsLoadFlags loadFlags;
     mChannel->GetLoadFlags(&loadFlags);
@@ -185,6 +187,9 @@ void PreloaderBase::NotifyUsage(LoadBackground aLoadBackground) {
   mIsUsed = true;
   ReportUsageTelemetry();
   CancelUsageTimer();
+  if (mIsEarlyHintsPreload) {
+    aDocument->Preloads().SetEarlyHintUsed();
+  }
 }
 
 void PreloaderBase::RemoveSelf(dom::Document* aDocument) {
@@ -251,12 +256,6 @@ void PreloaderBase::NotifyStop(nsresult aStatus) {
   }
 
   mChannel = nullptr;
-}
-
-void PreloaderBase::NotifyValidating() { mOnStopStatus.reset(); }
-
-void PreloaderBase::NotifyValidated(nsresult aStatus) {
-  NotifyStop(nullptr, aStatus);
 }
 
 void PreloaderBase::AddLinkPreloadNode(nsINode* aNode) {

@@ -18,9 +18,10 @@ use crate::stylesheets::CssRuleType;
 use crate::values::computed::font::FamilyName;
 use crate::values::serialize_atom_identifier;
 use crate::Atom;
-use cssparser::{AtRuleParser, BasicParseErrorKind, CowRcStr};
-use cssparser::{DeclarationListParser, DeclarationParser, Parser};
-use cssparser::{ParserState, QualifiedRuleParser, RuleListParser, SourceLocation, Token};
+use cssparser::{
+    AtRuleParser, BasicParseErrorKind, CowRcStr, DeclarationListParser, DeclarationParser, Parser,
+    ParserState, QualifiedRuleParser, RuleListParser, SourceLocation, Token,
+};
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 
@@ -46,7 +47,7 @@ impl<T: ToCss> ToCss for FFVDeclaration<T> {
         serialize_atom_identifier(&self.name, dest)?;
         dest.write_str(": ")?;
         self.value.to_css(dest)?;
-        dest.write_str(";")
+        dest.write_char(';')
     }
 }
 
@@ -193,6 +194,12 @@ impl<'a, 'b, 'i, T> AtRuleParser<'i> for FFVDeclarationsParser<'a, 'b, T> {
     type Error = StyleParseErrorKind<'i>;
 }
 
+impl<'a, 'b, 'i, T> QualifiedRuleParser<'i> for FFVDeclarationsParser<'a, 'b, T> {
+    type Prelude = ();
+    type QualifiedRule = ();
+    type Error = StyleParseErrorKind<'i>;
+}
+
 impl<'a, 'b, 'i, T> DeclarationParser<'i> for FFVDeclarationsParser<'a, 'b, T>
 where
     T: Parse,
@@ -335,7 +342,7 @@ macro_rules! font_feature_values_blocks {
                 self.family_names.to_css(&mut CssWriter::new(dest))?;
                 dest.write_str(" {\n")?;
                 self.value_to_css(&mut CssWriter::new(dest))?;
-                dest.write_str("}")
+                dest.write_char('}')
             }
         }
 

@@ -29,6 +29,10 @@
 #  include "MFMediaEngineChild.h"
 #endif
 
+#ifdef MOZ_WMF_CDM
+#  include "MFCDMChild.h"
+#endif
+
 namespace mozilla {
 
 #define LOG(msg, ...) \
@@ -87,9 +91,11 @@ StaticRefPtr<ShutdownObserver> sObserver;
 /* static */
 void RemoteDecoderManagerChild::Init() {
   MOZ_ASSERT(NS_IsMainThread());
+  LOG("RemoteDecoderManagerChild Init");
 
   auto remoteDecoderManagerThread = sRemoteDecoderManagerChildThread.Lock();
   if (!*remoteDecoderManagerThread) {
+    LOG("RemoteDecoderManagerChild's thread is created");
     // We can't use a MediaThreadType::SUPERVISOR as the RemoteDecoderModule
     // runs on it and dispatch synchronous tasks to the manager thread, should
     // more than 4 concurrent videos being instantiated at the same time, we
@@ -133,6 +139,7 @@ void RemoteDecoderManagerChild::InitForGPUProcess(
 /* static */
 void RemoteDecoderManagerChild::Shutdown() {
   MOZ_ASSERT(NS_IsMainThread());
+  LOG("RemoteDecoderManagerChild Shutdown");
 
   if (sObserver) {
     nsContentUtils::UnregisterShutdownObserver(sObserver);
@@ -143,6 +150,7 @@ void RemoteDecoderManagerChild::Shutdown() {
   {
     auto remoteDecoderManagerThread = sRemoteDecoderManagerChildThread.Lock();
     childThread = remoteDecoderManagerThread->forget();
+    LOG("RemoteDecoderManagerChild's thread is released");
   }
   if (childThread) {
     MOZ_ALWAYS_SUCCEEDS(childThread->Dispatch(NS_NewRunnableFunction(
@@ -417,10 +425,14 @@ RemoteDecoderManagerChild::Construct(RefPtr<RemoteDecoderChild>&& aChild,
           [aLocation](const mozilla::ipc::ResponseRejectReason& aReason) {
             // The parent has died.
             nsresult err =
-                ((aLocation == RemoteDecodeIn::GpuProcess) ||
-                 (aLocation == RemoteDecodeIn::RddProcess))
-                    ? NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_RDD_OR_GPU_ERR
-                    : NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_UTILITY_ERR;
+                NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_UTILITY_ERR;
+            if (aLocation == RemoteDecodeIn::GpuProcess ||
+                aLocation == RemoteDecodeIn::RddProcess) {
+              err = NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_RDD_OR_GPU_ERR;
+            } else if (aLocation ==
+                       RemoteDecodeIn::UtilityProcess_MFMediaEngineCDM) {
+              err = NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_MF_CDM_ERR;
+            }
             return PlatformDecoderModule::CreateDecoderPromise::CreateAndReject(
                 err, __func__);
           });
@@ -484,13 +496,13 @@ RemoteDecoderManagerChild::LaunchRDDProcessIfNeeded() {
                 return GenericNonExclusivePromise::CreateAndReject(
                     NS_ERROR_FAILURE, __func__);
               }
-              nsresult rv = Get<0>(aResult.ResolveValue());
+              nsresult rv = std::get<0>(aResult.ResolveValue());
               if (NS_FAILED(rv)) {
                 return GenericNonExclusivePromise::CreateAndReject(rv,
                                                                    __func__);
               }
               OpenRemoteDecoderManagerChildForProcess(
-                  Get<1>(std::move(aResult.ResolveValue())),
+                  std::get<1>(std::move(aResult.ResolveValue())),
                   RemoteDecodeIn::RddProcess);
               return GenericNonExclusivePromise::CreateAndResolve(true,
                                                                   __func__);
@@ -578,13 +590,14 @@ RemoteDecoderManagerChild::LaunchUtilityProcessIfNeeded(
                        return GenericNonExclusivePromise::CreateAndReject(
                            NS_ERROR_FAILURE, __func__);
                      }
-                     nsresult rv = Get<0>(aResult.ResolveValue());
+                     nsresult rv = std::get<0>(aResult.ResolveValue());
                      if (NS_FAILED(rv)) {
                        return GenericNonExclusivePromise::CreateAndReject(
                            rv, __func__);
                      }
                      OpenRemoteDecoderManagerChildForProcess(
-                         Get<1>(std::move(aResult.ResolveValue())), aLocation);
+                         std::get<1>(std::move(aResult.ResolveValue())),
+                         aLocation);
                      return GenericNonExclusivePromise::CreateAndResolve(
                          true, __func__);
                    });
@@ -688,6 +701,20 @@ bool RemoteDecoderManagerChild::DeallocPMFMediaEngineChild(
   return true;
 }
 
+PMFCDMChild* RemoteDecoderManagerChild::AllocPMFCDMChild(const nsAString&) {
+  MOZ_ASSERT_UNREACHABLE(
+      "RemoteDecoderManagerChild cannot create PMFContentDecryptionModuleChild "
+      "classes");
+  return nullptr;
+}
+
+bool RemoteDecoderManagerChild::DeallocPMFCDMChild(PMFCDMChild* actor) {
+#ifdef MOZ_WMF_CDM
+  static_cast<MFCDMChild*>(actor)->IPDLActorDestroyed();
+#endif
+  return true;
+}
+
 RemoteDecoderManagerChild::RemoteDecoderManagerChild(RemoteDecodeIn aLocation)
     : mLocation(aLocation) {
   MOZ_ASSERT(mLocation == RemoteDecodeIn::GpuProcess ||
@@ -741,14 +768,9 @@ void RemoteDecoderManagerChild::OpenRemoteDecoderManagerChildForProcess(
         new RemoteDecoderManagerChild(aLocation);
     if (aEndpoint.Bind(manager)) {
       remoteDecoderManagerChild = manager;
-      manager->InitIPDL();
     }
   }
 }
-
-void RemoteDecoderManagerChild::InitIPDL() { mIPDLSelfRef = this; }
-
-void RemoteDecoderManagerChild::ActorDealloc() { mIPDLSelfRef = nullptr; }
 
 bool RemoteDecoderManagerChild::DeallocShmem(mozilla::ipc::Shmem& aShmem) {
   nsCOMPtr<nsISerialEventTarget> managerThread = GetManagerThread();
@@ -786,9 +808,9 @@ void DeleteSurfaceDescriptorUserData(void* aClosure) {
 
 already_AddRefed<SourceSurface> RemoteDecoderManagerChild::Readback(
     const SurfaceDescriptorGPUVideo& aSD) {
-  // We can't use NS_DISPATCH_SYNC here since that can spin the event
-  // loop while it waits. This function can be called from JS and we
-  // don't want that to happen.
+  // We can't use NS_DispatchAndSpinEventLoopUntilComplete here since that will
+  // spin the event loop while it waits. This function can be called from JS and
+  // we don't want that to happen.
   nsCOMPtr<nsISerialEventTarget> managerThread = GetManagerThread();
   if (!managerThread) {
     return nullptr;

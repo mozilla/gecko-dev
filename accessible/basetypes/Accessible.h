@@ -13,8 +13,11 @@
 #include "Units.h"
 
 class nsAtom;
+class nsStaticAtom;
 
 struct nsRoleMapEntry;
+
+class nsIURI;
 
 namespace mozilla {
 namespace a11y {
@@ -264,6 +267,7 @@ class Accessible {
   virtual double MinValue() const = 0;
   virtual double MaxValue() const = 0;
   virtual double Step() const = 0;
+  virtual bool SetCurValue(double aValue) = 0;
 
   /**
    * Return boundaries in screen coordinates in device pixels.
@@ -346,6 +350,18 @@ class Accessible {
    */
   virtual Relation RelationByType(RelationType aType) const = 0;
 
+  /**
+   * Get the language associated with the accessible.
+   */
+  virtual void Language(nsAString& aLocale) = 0;
+
+  /**
+   * Get the role of this Accessible as an ARIA role token. This might have been
+   * set explicitly (e.g. role="button") or it might be implicit in native
+   * markup (e.g. <button> returns "button").
+   */
+  nsStaticAtom* ComputedARIARole() const;
+
   // Methods that interact with content.
 
   virtual void TakeFocus() const = 0;
@@ -362,9 +378,14 @@ class Accessible {
   virtual nsAtom* TagName() const = 0;
 
   /**
+   * Return input `type` attribute
+   */
+  virtual already_AddRefed<nsAtom> InputType() const = 0;
+
+  /**
    * Return a landmark role if applied.
    */
-  virtual nsAtom* LandmarkRole() const;
+  virtual nsStaticAtom* LandmarkRole() const;
 
   /**
    * Return the id of the dom node this accessible represents.
@@ -553,7 +574,29 @@ class Accessible {
 
   bool IsDateTimeField() const { return mType == eHTMLDateTimeFieldType; }
 
+  virtual bool IsSearchbox() const;
+
   virtual bool HasNumericValue() const = 0;
+
+  /**
+   * Return true if the link is valid (e. g. points to a valid URL).
+   */
+  bool IsLinkValid();
+
+  /**
+   * Return the number of anchors within the link.
+   */
+  uint32_t AnchorCount();
+
+  /**
+   * Returns an anchor URI at the given index.
+   */
+  virtual already_AddRefed<nsIURI> AnchorURIAt(uint32_t aAnchorIndex) const;
+
+  /**
+   * Returns an anchor accessible at the given index.
+   */
+  Accessible* AnchorAt(uint32_t aAnchorIndex) const;
 
   // Remote/Local types
 

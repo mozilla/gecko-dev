@@ -84,11 +84,9 @@ function cancelDeferredTasks() {
 document.addEventListener(
   "DOMContentLoaded",
   e => {
-    window._initialized = PrintEventHandler.init().catch(e =>
-      Cu.reportError(e)
-    );
+    window._initialized = PrintEventHandler.init().catch(e => console.error(e));
     ourBrowser.setAttribute("flex", "0");
-    ourBrowser.setAttribute("selectmenuconstrained", "false");
+    ourBrowser.setAttribute("constrainpopups", "false");
     ourBrowser.classList.add("printSettingsBrowser");
     ourBrowser.closest(".dialogBox")?.classList.add("printDialogBox");
   },
@@ -427,7 +425,7 @@ var PrintEventHandler = {
       let bc = this.printPreviewEl.currentBrowsingContext;
       await this._doPrint(bc, settings);
     } catch (e) {
-      Cu.reportError(e);
+      console.error(e);
     }
 
     if (settings.printerName == PrintUtils.SAVE_TO_PDF_PRINTER) {
@@ -845,7 +843,7 @@ var PrintEventHandler = {
         .add(elapsed);
     }
 
-    let totalPageCount, sheetCount, isEmpty, orientation;
+    let totalPageCount, sheetCount, isEmpty, orientation, pageWidth, pageHeight;
     try {
       // This resolves with a PrintPreviewSuccessInfo dictionary.
       let { sourceVersion } = this.viewSettings;
@@ -856,13 +854,15 @@ var PrintEventHandler = {
         sheetCount,
         isEmpty,
         orientation,
+        pageWidth,
+        pageHeight,
       } = await this.printPreviewEl.printPreview(settings, {
         sourceVersion,
         sourceURI,
       }));
     } catch (e) {
       this.reportPrintingError("PRINT_PREVIEW");
-      Cu.reportError(e);
+      console.error(e);
       throw e;
     }
 
@@ -876,6 +876,35 @@ var PrintEventHandler = {
           ? kIPrintSettings.kLandscapeOrientation
           : kIPrintSettings.kPortraitOrientation;
       document.dispatchEvent(new CustomEvent("hide-orientation"));
+    }
+
+    // If the page size is set, check whether we should use it as our paper size.
+    let isUsingPageRuleSizeAsPaperSize =
+      settings.usePageRuleSizeAsPaperSize &&
+      pageWidth !== null &&
+      pageHeight !== null;
+    if (isUsingPageRuleSizeAsPaperSize) {
+      // We canonically represent paper sizes using the width/height of a portrait-oriented sheet,
+      // with landscape-orientation applied as a supplemental rotation.
+      // If the page-size is landscape oriented, we flip the pageWidth / pageHeight here
+      // in order to pass a canonical representation into the paper-size settings.
+      if (orientation == "landscape") {
+        [pageHeight, pageWidth] = [pageWidth, pageHeight];
+      }
+
+      let matchedPaper = PrintSettingsViewProxy.getBestPaperMatch(
+        pageWidth,
+        pageHeight,
+        settings.kPaperSizeInches
+      );
+      if (matchedPaper) {
+        settings.paperId = matchedPaper.id;
+      }
+
+      settings.paperWidth = pageWidth;
+      settings.paperHeight = pageHeight;
+      settings.paperSizeUnit = settings.kPaperSizeInches;
+      document.dispatchEvent(new CustomEvent("hide-paper-size"));
     }
 
     this.previewIsEmpty = isEmpty;
@@ -1215,6 +1244,10 @@ var PrintSettingsViewProxy = {
         Ci.nsIPrintSettings.kOutputFormatPDF;
       printerInfo.defaultSettings.outputDestination =
         Ci.nsIPrintSettings.kOutputDestinationFile;
+      printerInfo.defaultSettings.usePageRuleSizeAsPaperSize = Services.prefs.getBoolPref(
+        "print.save_as_pdf.use_page_rule_size_as_paper_size.enabled",
+        false
+      );
       printerInfo.paperList = this.fallbackPaperList;
     }
     printerInfo.settings = printerInfo.defaultSettings.clone();
@@ -1614,16 +1647,7 @@ class PrintUIForm extends PrintUIControlMixin(HTMLFormElement) {
     this.addEventListener("revalidate", this);
 
     this._printerDestination = this.querySelector("#destination");
-
     this.printButton = this.querySelector("#print-button");
-    if (AppConstants.platform != "win") {
-      // Move the Print button to the end if this isn't Windows.
-      this.printButton.parentElement.append(this.printButton);
-    }
-    this.querySelector("#pages-per-sheet").hidden = !Services.prefs.getBoolPref(
-      "print.pages_per_sheet.enabled",
-      false
-    );
   }
 
   removeNonPdfSettings() {
@@ -1785,8 +1809,8 @@ customElements.define("setting-select", PrintSettingSelect, {
 class PrintSettingNumber extends PrintUIControlMixin(HTMLInputElement) {
   initialize() {
     super.initialize();
-    this.addEventListener("keypress", e => this.handleKeypress(e));
-    this.addEventListener("paste", e => this.handlePaste(e));
+    this.addEventListener("beforeinput", e => this.preventWhitespaceEntry(e));
+    this.addEventListener("paste", e => this.pasteWithoutWhitespace(e));
   }
 
   connectedCallback() {
@@ -1801,36 +1825,25 @@ class PrintSettingNumber extends PrintUIControlMixin(HTMLInputElement) {
     }
   }
 
-  handleKeypress(e) {
-    let char = String.fromCharCode(e.charCode);
-    let acceptedChar = e.target.step.includes(".")
-      ? char.match(/^[0-9.]$/)
-      : char.match(/^[0-9]$/);
-    if (!acceptedChar && !char.match("\x00") && !e.ctrlKey && !e.metaKey) {
+  preventWhitespaceEntry(e) {
+    if (e.data && !e.data.trim().length) {
       e.preventDefault();
     }
   }
 
-  handlePaste(e) {
+  pasteWithoutWhitespace(e) {
+    // Prevent original value from being pasted
+    e.preventDefault();
+
+    // Manually update input's value with sanitized clipboard data
     let paste = (e.clipboardData || window.clipboardData)
       .getData("text")
       .trim();
-    let acceptedChars = e.target.step.includes(".")
-      ? paste.match(/^[0-9.]*$/)
-      : paste.match(/^[0-9]*$/);
-    if (!acceptedChars) {
-      e.preventDefault();
-    }
+    this.value = paste;
   }
 
   handleEvent(e) {
     switch (e.type) {
-      case "paste":
-        this.handlePaste();
-        break;
-      case "keypress":
-        this.handleKeypress();
-        break;
       case "input":
         if (this.settingName && this.checkValidity()) {
           this.dispatchSettingsChange({
@@ -1939,6 +1952,8 @@ class PaperSizePicker extends PrintSettingSelect {
   initialize() {
     super.initialize();
     this._printerName = null;
+    this._section = this.closest(".section-block");
+    document.addEventListener("hide-paper-size", this);
   }
 
   update(settings) {
@@ -1947,6 +1962,19 @@ class PaperSizePicker extends PrintSettingSelect {
       this.setOptions(settings.paperSizes);
     }
     this.value = settings.paperId;
+
+    // Unhide the paper-size picker, if we've stopped using the page size as paper-size.
+    if (this._section.hidden && !settings.usePageRuleSizeAsPaperSize) {
+      this._section.hidden = false;
+    }
+  }
+
+  handleEvent(e) {
+    super.handleEvent(e);
+    const { type } = e;
+    if (type == "hide-paper-size") {
+      this._section.hidden = true;
+    }
   }
 }
 customElements.define("paper-size-select", PaperSizePicker, {

@@ -19,6 +19,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   Log: "chrome://remote/content/shared/Log.sys.mjs",
   pprint: "chrome://remote/content/shared/Format.sys.mjs",
+  print: "chrome://remote/content/shared/PDF.sys.mjs",
   ProgressListener: "chrome://remote/content/shared/Navigate.sys.mjs",
   TabManager: "chrome://remote/content/shared/TabManager.sys.mjs",
   waitForInitialNavigationCompleted:
@@ -33,15 +34,15 @@ XPCOMUtils.defineLazyGetter(lazy, "logger", () =>
 );
 
 /**
- * @typedef {Object} CreateType
- **/
+ * @typedef {object} CreateType
+ */
 
 /**
  * Enum of types supported by the browsingContext.create command.
  *
  * @readonly
  * @enum {CreateType}
- **/
+ */
 const CreateType = {
   tab: "tab",
   window: "window",
@@ -49,7 +50,7 @@ const CreateType = {
 
 /**
  * @typedef {string} WaitCondition
- **/
+ */
 
 /**
  * Wait conditions supported by WebDriver BiDi for navigation.
@@ -93,8 +94,8 @@ class BrowsingContextModule extends Module {
   /**
    * Capture a base64-encoded screenshot of the provided browsing context.
    *
-   * @param {Object=} options
-   * @param {string} context
+   * @param {object=} options
+   * @param {string} options.context
    *     Id of the browsing context to screenshot.
    *
    * @throws {NoSuchFrameError}
@@ -136,8 +137,8 @@ class BrowsingContextModule extends Module {
   /**
    * Close the provided browsing context.
    *
-   * @param {Object=} options
-   * @param {string} context
+   * @param {object=} options
+   * @param {string} options.context
    *     Id of the browsing context to close.
    *
    * @throws {NoSuchFrameError}
@@ -181,7 +182,7 @@ class BrowsingContextModule extends Module {
   /**
    * Create a new browsing context using the provided type "tab" or "window".
    *
-   * @param {Object=} options
+   * @param {object=} options
    * @param {string=} options.referenceContext
    *     Id of the top-level browsing context to use as reference.
    *     If options.type is "tab", the new tab will open in the same window as
@@ -290,11 +291,11 @@ class BrowsingContextModule extends Module {
    * Returns a tree of all browsing contexts that are descendents of the
    * given context, or all top-level contexts when no root is provided.
    *
-   * @param {Object=} options
-   * @param {number=} maxDepth
+   * @param {object=} options
+   * @param {number=} options.maxDepth
    *     Depth of the browsing context tree to traverse. If not specified
    *     the whole tree is returned.
-   * @param {string=} root
+   * @param {string=} options.root
    *     Id of the root browsing context.
    *
    * @returns {BrowsingContextGetTreeResult}
@@ -340,21 +341,21 @@ class BrowsingContextModule extends Module {
    *
    * @typedef BrowsingContextNavigateResult
    *
-   * @property {String} navigation
+   * @property {string} navigation
    *     Unique id for this navigation.
-   * @property {String} url
+   * @property {string} url
    *     The requested or reached URL.
    */
 
   /**
    * Navigate the given context to the provided url, with the provided wait condition.
    *
-   * @param {Object=} options
-   * @param {string} context
+   * @param {object=} options
+   * @param {string} options.context
    *     Id of the browsing context to navigate.
-   * @param {string} url
+   * @param {string} options.url
    *     Url for the navigation.
-   * @param {WaitCondition=} wait
+   * @param {WaitCondition=} options.wait
    *     Wait condition for the navigation, one of "none", "interactive", "complete".
    *
    * @returns {BrowsingContextNavigateResult}
@@ -413,6 +414,152 @@ class BrowsingContextModule extends Module {
   }
 
   /**
+   * An object that holds the information about margins
+   * for Webdriver BiDi browsingContext.print command.
+   *
+   * @typedef BrowsingContextPrintMarginParameters
+   *
+   * @property {number=} bottom
+   *     Bottom margin in cm. Defaults to 1cm (~0.4 inches).
+   * @property {number=} left
+   *     Left margin in cm. Defaults to 1cm (~0.4 inches).
+   * @property {number=} right
+   *     Right margin in cm. Defaults to 1cm (~0.4 inches).
+   * @property {number=} top
+   *     Top margin in cm. Defaults to 1cm (~0.4 inches).
+   */
+
+  /**
+   * An object that holds the information about paper size
+   * for Webdriver BiDi browsingContext.print command.
+   *
+   * @typedef BrowsingContextPrintPageParameters
+   *
+   * @property {number=} height
+   *     Paper height in cm. Defaults to US letter height (27.94cm / 11 inches).
+   * @property {number=} width
+   *     Paper width in cm. Defaults to US letter width (21.59cm / 8.5 inches).
+   */
+
+  /**
+   * Used as return value for Webdriver BiDi browsingContext.print command.
+   *
+   * @typedef BrowsingContextPrintResult
+   *
+   * @property {string} data
+   *     Base64 encoded PDF representing printed document.
+   */
+
+  /**
+   * Creates a paginated PDF representation of a document
+   * of the provided browsing context, and returns it
+   * as a Base64-encoded string.
+   *
+   * @param {object=} options
+   * @param {string} options.context
+   *     Id of the browsing context.
+   * @param {boolean=} options.background
+   *     Whether or not to print background colors and images.
+   *     Defaults to false, which prints without background graphics.
+   * @param {BrowsingContextPrintMarginParameters=} options.margin
+   *     Paper margins.
+   * @param {('landscape'|'portrait')=} options.orientation
+   *     Paper orientation. Defaults to 'portrait'.
+   * @param {BrowsingContextPrintPageParameters=} options.page
+   *     Paper size.
+   * @param {Array<number|string>=} options.pageRanges
+   *     Paper ranges to print, e.g., ['1-5', 8, '11-13'].
+   *     Defaults to the empty array, which means print all pages.
+   * @param {number=} options.scale
+   *     Scale of the webpage rendering. Defaults to 1.0.
+   * @param {boolean=} options.shrinkToFit
+   *     Whether or not to override page size as defined by CSS.
+   *     Defaults to true, in which case the content will be scaled
+   *     to fit the paper size.
+   *
+   * @returns {BrowsingContextPrintResult}
+   *
+   * @throws {InvalidArgumentError}
+   *     Raised if an argument is of an invalid type or value.
+   * @throws {NoSuchFrameError}
+   *     If the browsing context cannot be found.
+   */
+  async print(options = {}) {
+    const {
+      context: contextId,
+      background,
+      margin,
+      orientation,
+      page,
+      pageRanges,
+      scale,
+      shrinkToFit,
+    } = options;
+
+    lazy.assert.string(
+      contextId,
+      `Expected "context" to be a string, got ${contextId}`
+    );
+    const context = this.#getBrowsingContext(contextId);
+
+    const settings = lazy.print.addDefaultSettings({
+      background,
+      margin,
+      orientation,
+      page,
+      pageRanges,
+      scale,
+      shrinkToFit,
+    });
+
+    for (const prop of ["top", "bottom", "left", "right"]) {
+      lazy.assert.positiveNumber(
+        settings.margin[prop],
+        lazy.pprint`margin.${prop} is not a positive number`
+      );
+    }
+    for (const prop of ["width", "height"]) {
+      lazy.assert.positiveNumber(
+        settings.page[prop],
+        lazy.pprint`page.${prop} is not a positive number`
+      );
+    }
+    lazy.assert.positiveNumber(
+      settings.scale,
+      `scale ${settings.scale} is not a positive number`
+    );
+    lazy.assert.that(
+      scale =>
+        scale >= lazy.print.minScaleValue && scale <= lazy.print.maxScaleValue,
+      `scale ${settings.scale} is outside the range ${lazy.print.minScaleValue}-${lazy.print.maxScaleValue}`
+    )(settings.scale);
+    lazy.assert.boolean(settings.shrinkToFit);
+    lazy.assert.that(
+      orientation => lazy.print.defaults.orientationValue.includes(orientation),
+      `orientation ${
+        settings.orientation
+      } doesn't match allowed values "${lazy.print.defaults.orientationValue.join(
+        "/"
+      )}"`
+    )(settings.orientation);
+    lazy.assert.boolean(
+      settings.background,
+      `background ${settings.background} is not boolean`
+    );
+    lazy.assert.array(settings.pageRanges);
+
+    const printSettings = await lazy.print.getPrintSettings(settings);
+    const binaryString = await lazy.print.printToBinaryString(
+      context,
+      printSettings
+    );
+
+    return {
+      data: btoa(binaryString),
+    };
+  }
+
+  /**
    * Start and await a navigation on the provided BrowsingContext. Returns a
    * promise which resolves when the navigation is done according to the provided
    * navigation strategy.
@@ -421,7 +568,7 @@ class BrowsingContextModule extends Module {
    *     The WebProgress instance to observe for this navigation.
    * @param {nsIURI} targetURI
    *     The URI to navigate to.
-   * @param {Object} options
+   * @param {object} options
    * @param {WaitCondition} options.wait
    *     The WaitCondition to use to wait for the navigation.
    */
@@ -481,7 +628,7 @@ class BrowsingContextModule extends Module {
       }
     });
 
-    context.loadURI(targetURI.spec, {
+    context.loadURI(targetURI, {
       loadFlags: Ci.nsIWebNavigation.LOAD_FLAGS_IS_LINK,
       triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
       hasValidUserGestureActivation: true,
@@ -508,7 +655,7 @@ class BrowsingContextModule extends Module {
   /**
    * Retrieves a browsing context based on its id.
    *
-   * @param {Number} contextId
+   * @param {number} contextId
    *     Id of the browsing context.
    * @returns {BrowsingContext=}
    *     The browsing context or null if <var>contextId</var> is null.
@@ -537,11 +684,11 @@ class BrowsingContextModule extends Module {
    *
    * @param {BrowsingContext} context
    *     The browsing context to get the information from.
-   * @param {Object=} options
-   * @param {boolean=} isRoot
+   * @param {object=} options
+   * @param {boolean=} options.isRoot
    *     Flag that indicates if this browsing context is the root of all the
    *     browsing contexts to be returned. Defaults to true.
-   * @param {number=} maxDepth
+   * @param {number=} options.maxDepth
    *     Depth of the browsing context tree to traverse. If not specified
    *     the whole tree is returned.
    * @returns {BrowsingContextInfo}

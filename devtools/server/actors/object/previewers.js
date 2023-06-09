@@ -35,6 +35,7 @@ const ERROR_CLASSNAMES = new Set([
   "DebuggeeWouldRun",
   "LinkError",
   "RuntimeError",
+  "Exception", // This related to Components.Exception()
 ]);
 const ARRAY_LIKE_CLASSNAMES = new Set([
   "DOMStringList",
@@ -1085,6 +1086,7 @@ previewers.Object = [
       filename: hooks.createValueGrip(rawObj.filename),
       lineNumber: hooks.createValueGrip(rawObj.lineNumber),
       columnNumber: hooks.createValueGrip(rawObj.columnNumber),
+      stack: hooks.createValueGrip(rawObj.stack),
     };
 
     return true;

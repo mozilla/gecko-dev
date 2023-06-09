@@ -3,6 +3,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 include protocol PFileSystemAccessHandle;
+include protocol PFileSystemAccessHandleControl;
 include protocol PFileSystemWritableFileStream;
 
 include IPCBlob;
@@ -131,7 +132,8 @@ struct FileSystemGetAccessHandleRequest
 struct FileSystemAccessHandleProperties
 {
   RandomAccessStreamParams streamParams;
-  PFileSystemAccessHandle accessHandle;
+  ManagedEndpoint<PFileSystemAccessHandleChild> accessHandleChildEndpoint;
+  Endpoint<PFileSystemAccessHandleControlChild> accessHandleControlChildEndpoint;
 };
 
 union FileSystemGetAccessHandleResponse
@@ -151,7 +153,7 @@ struct FileSystemGetWritableRequest
 
 struct FileSystemWritableFileStreamProperties
 {
-  FileDescriptor fileDescriptor;
+  RandomAccessStreamParams streamParams;
   PFileSystemWritableFileStream writableFileStream;
 };
 
@@ -241,12 +243,6 @@ union FileSystemMoveEntryResponse
 {
   nsresult;
   void_t;
-};
-
-struct FileSystemQuotaRequest
-{
-  FileSystemChildMetadata handle;
-  uint64_t quotaNeeded;
 };
 
 }  // namespace fs
@@ -404,16 +400,7 @@ async protocol PFileSystemManager
   async RenameEntry(FileSystemRenameEntryRequest request)
       returns(FileSystemMoveEntryResponse response);
 
-  /**
-   * Request for quota needed to finish a write, beyond the amount preallocated
-   * at creation of the AccessHandle. While officially async, this is used in a
-   * sync manner from write() by spinning an event loop.
-   */
-  async NeedQuota(FileSystemQuotaRequest aRequest)
-      returns (uint64_t aQuotaGranted);
-
  child:
-  async PFileSystemAccessHandle();
   async PFileSystemWritableFileStream();
 
   async CloseAll()

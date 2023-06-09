@@ -3,8 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 @namespace html "http://www.w3.org/1999/xhtml";
 
-:root { -moz-box-layout: flex }
-
 #aboutDialog {
   /* Set an explicit line-height to avoid discrepancies in 'auto' spacing
      across screens with different device DPI, which may cause font metrics
@@ -13,7 +11,7 @@
 }
 
 #aboutDialogContainer {
-  -moz-box-flex: 1;
+  flex: 1;
 }
 
 #rightBox {
@@ -83,27 +81,15 @@
    * the dialog, so set the width to a reasonable size, but let it flex to take
    * all available space. */
   width: 430px;
-  -moz-box-flex: 1;
+  flex: 1 auto;
 }
 
 .update-throbber {
   width: 16px;
   min-height: 16px;
   margin-inline-end: 3px;
-}
-
-html|img.update-throbber {
   vertical-align: middle;
-}
-
-image.update-throbber {
-  list-style-image: url("chrome://global/skin/icons/loading.png");
-}
-
-@media (min-resolution: 1.1dppx) {
-  .update-throbber {
-    list-style-image: url("chrome://global/skin/icons/loading@2x.png");
-  }
+  content: image-set(url("chrome://global/skin/icons/loading.png"), url("chrome://global/skin/icons/loading@2x.png") 2x);
 }
 
 description > .text-link {

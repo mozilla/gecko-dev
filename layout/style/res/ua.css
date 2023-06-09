@@ -193,7 +193,6 @@
   mask: inherit;
   opacity: inherit;
   text-decoration: inherit;
-  -moz-box-ordinal-group: inherit;
   overflow-clip-box: inherit;
   unicode-bidi: inherit;
   user-select: inherit;
@@ -303,6 +302,7 @@
    * in print preview. */
   display: block;
   background: linear-gradient(#606060, #8a8a8a) fixed;
+  print-color-adjust: exact;
   /* We always fill the available space in both directions */
   height: 100%;
   width: 100%;
@@ -313,6 +313,7 @@
    * appear in print preview. */
   display: block;
   background: white;
+  print-color-adjust: exact;
   box-shadow: 5px 5px 8px #202020;
   box-decoration-break: clone;
   /* TODO: Remove margin if viewport is small or something? */

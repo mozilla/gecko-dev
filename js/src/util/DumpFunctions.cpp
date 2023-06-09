@@ -272,8 +272,7 @@ static bool FormatFrame(JSContext* cx, const FrameIter& iter, Sprinter& sp,
 
   Rooted<Value> thisVal(cx);
   if (iter.hasUsableAbstractFramePtr() && iter.isFunctionFrame() && fun &&
-      !fun->isArrow() && !fun->isDerivedClassConstructor() &&
-      !(fun->isBoundFunction() && iter.isConstructing())) {
+      !fun->isArrow() && !fun->isDerivedClassConstructor()) {
     if (!GetFunctionThis(cx, iter.abstractFramePtr(), &thisVal)) {
       return false;
     }
@@ -636,4 +635,23 @@ void js::DumpHeap(JSContext* cx, FILE* fp,
                          DumpHeapVisitArena, DumpHeapVisitCell);
 
   fflush(dtrc.output);
+}
+
+void DumpFmtV(FILE* fp, const char* fmt, va_list args) {
+  js::Fprinter out(fp);
+  out.vprintf(fmt, args);
+}
+
+void js::DumpFmt(FILE* fp, const char* fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  DumpFmtV(fp, fmt, args);
+  va_end(args);
+}
+
+void js::DumpFmt(const char* fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  DumpFmtV(stderr, fmt, args);
+  va_end(args);
 }

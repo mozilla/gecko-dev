@@ -30,6 +30,8 @@ function log(msg) {
 // Used as unique id for pending sanitizations.
 var gPendingSanitizationSerial = 0;
 
+var gPrincipalsCollector = null;
+
 export var Sanitizer = {
   /**
    * Whether we should sanitize on shutdown.
@@ -272,6 +274,8 @@ export var Sanitizer = {
    */
   async sanitize(itemsToClear = null, options = {}) {
     let progress = options.progress;
+    // initialise the principals collector
+    gPrincipalsCollector = new lazy.PrincipalsCollector();
     if (!progress) {
       progress = options.progress = {};
     }
@@ -345,6 +349,13 @@ export var Sanitizer = {
 
   // This method is meant to be used by tests.
   async runSanitizeOnShutdown() {
+    // The collector needs to be reset for each test, as the collection only happens
+    // once and does not update after that.
+    // Pretend that it has never been initialized to mimic the actual browser behavior
+    // by setting it to null.
+    // The actually initialization will happen either via sanitize() or directly in
+    // sanitizeOnShutdown.
+    gPrincipalsCollector = null;
     return sanitizeOnShutdown({
       isShutdown: true,
       clearHonoringExceptions: true,
@@ -363,18 +374,19 @@ export var Sanitizer = {
         await clearData(range, Ci.nsIClearDataService.CLEAR_ALL_CACHES);
         TelemetryStopwatch.finish("FX_SANITIZE_CACHE", refObj);
       },
-      shouldClearPerPrincipal: () => {
-        return false;
-      },
     },
 
     cookies: {
-      async clear(range, { progress, principalsForShutdownClearing }) {
+      async clear(range, { progress }, clearHonoringExceptions) {
         let refObj = {};
         TelemetryStopwatch.start("FX_SANITIZE_COOKIES_2", refObj);
         // This is true if called by sanitizeOnShutdown.
         // On shutdown we clear by principal to be able to honor the users exceptions
-        if (principalsForShutdownClearing) {
+        if (clearHonoringExceptions) {
+          progress.step = "getAllPrincipals";
+          let principalsForShutdownClearing = await gPrincipalsCollector.getAllPrincipals(
+            progress
+          );
           await maybeSanitizeSessionPrincipals(
             progress,
             principalsForShutdownClearing,
@@ -387,19 +399,17 @@ export var Sanitizer = {
         await clearData(range, Ci.nsIClearDataService.CLEAR_MEDIA_DEVICES);
         TelemetryStopwatch.finish("FX_SANITIZE_COOKIES_2", refObj);
       },
-      // This category should be cleared per principal only on Shutdown,
-      // therefore the return value always needs to mirror the value of clearHonoringexceptions
-      shouldClearPerPrincipal: clearHonoringExceptions => {
-        return clearHonoringExceptions;
-      },
     },
 
     offlineApps: {
-      async clear(range, { progress, principalsForShutdownClearing }) {
+      async clear(range, { progress }, clearHonoringExceptions) {
         // This is true if called by sanitizeOnShutdown.
         // On shutdown we clear by principal to be able to honor the users exceptions
-        if (principalsForShutdownClearing) {
-          // Cleaning per principal to be able to consider the users exceptions
+        if (clearHonoringExceptions) {
+          progress.step = "getAllPrincipals";
+          let principalsForShutdownClearing = await gPrincipalsCollector.getAllPrincipals(
+            progress
+          );
           await maybeSanitizeSessionPrincipals(
             progress,
             principalsForShutdownClearing,
@@ -410,21 +420,17 @@ export var Sanitizer = {
           await clearData(range, Ci.nsIClearDataService.CLEAR_DOM_STORAGES);
         }
       },
-      shouldClearPerPrincipal: clearHonoringExceptions => {
-        return clearHonoringExceptions;
-      },
     },
 
     history: {
-      async clear(range, { progress, principalsForShutdownClearing }) {
+      async clear(range, { progress }) {
         // TODO: This check is needed for the case that this method is invoked directly and not via the sanitizer.sanitize API.
         // This can be removed once bug 1803799 has landed.
-        if (!principalsForShutdownClearing) {
-          let principalsCollector = new lazy.PrincipalsCollector();
-          principalsForShutdownClearing = await principalsCollector.getAllPrincipals(
-            progress
-          );
+        if (!gPrincipalsCollector) {
+          gPrincipalsCollector = new lazy.PrincipalsCollector();
         }
+        progress.step = "getAllPrincipals";
+        let principals = await gPrincipalsCollector.getAllPrincipals(progress);
         let refObj = {};
         TelemetryStopwatch.start("FX_SANITIZE_HISTORY", refObj);
         progress.step = "clearing browsing history";
@@ -444,16 +450,12 @@ export var Sanitizer = {
         progress.step = "clearing user interaction";
         await new Promise(resolve => {
           Services.clearData.deleteUserInteractionForClearingHistory(
-            principalsForShutdownClearing,
+            principals,
             range ? range[0] : 0,
             resolve
           );
         });
         TelemetryStopwatch.finish("FX_SANITIZE_HISTORY", refObj);
-      },
-      // We always clear per principal regardless of shutdown or not, so we always return true here
-      shouldClearPerPrincipal: () => {
-        return true;
       },
     },
 
@@ -514,9 +516,6 @@ export var Sanitizer = {
           throw seenException;
         }
       },
-      shouldClearPerPrincipal: () => {
-        return false;
-      },
     },
 
     downloads: {
@@ -525,9 +524,6 @@ export var Sanitizer = {
         TelemetryStopwatch.start("FX_SANITIZE_DOWNLOADS", refObj);
         await clearData(range, Ci.nsIClearDataService.CLEAR_DOWNLOADS);
         TelemetryStopwatch.finish("FX_SANITIZE_DOWNLOADS", refObj);
-      },
-      shouldClearPerPrincipal: () => {
-        return false;
       },
     },
 
@@ -541,9 +537,6 @@ export var Sanitizer = {
             Ci.nsIClearDataService.CLEAR_AUTH_CACHE
         );
         TelemetryStopwatch.finish("FX_SANITIZE_SESSIONS", refObj);
-      },
-      shouldClearPerPrincipal: () => {
-        return false;
       },
     },
 
@@ -561,9 +554,6 @@ export var Sanitizer = {
             Ci.nsIClearDataService.CLEAR_CREDENTIAL_MANAGER_STATE
         );
         TelemetryStopwatch.finish("FX_SANITIZE_SITESETTINGS", refObj);
-      },
-      shouldClearPerPrincipal: () => {
-        return false;
       },
     },
 
@@ -710,16 +700,10 @@ export var Sanitizer = {
         newWindow.focus();
         await promiseReady;
       },
-      shouldClearPerPrincipal: () => {
-        return false;
-      },
     },
 
     pluginData: {
       async clear(range) {},
-      shouldClearPerPrincipal: () => {
-        return false;
-      },
     },
   },
 };
@@ -788,21 +772,6 @@ async function sanitizeInternal(items, aItemsToClear, options) {
     console.error("Error sanitizing " + name, ex);
   };
 
-  // When clearing on shutdown we clear by principal for certain cleaning categories, to consider the users exceptions
-  // Whenever we clear the category 'history', we need principals for the call deleteUserInteractionForClearingHistory to the clear data service
-  // Let's check if one of the cleaners needs principals
-  if (
-    itemsToClear
-      .map(name => items[name])
-      .some(item =>
-        item.shouldClearPerPrincipal(progress.clearHonoringExceptions)
-      )
-  ) {
-    let principalsCollector = new lazy.PrincipalsCollector();
-    options.principalsForShutdownClearing = await principalsCollector.getAllPrincipals(
-      progress
-    );
-  }
   // Array of objects in form { name, promise }.
   // `name` is the item's name and `promise` may be a promise, if the
   // sanitization is asynchronous, or the function return value, otherwise.
@@ -817,7 +786,8 @@ async function sanitizeInternal(items, aItemsToClear, options) {
         promise: item
           .clear(
             range,
-            Object.assign(options, { progress: progress[name + "Progress"] })
+            Object.assign(options, { progress: progress[name + "Progress"] }),
+            progress.clearHonoringExceptions
           )
           .then(
             () => {
@@ -908,11 +878,11 @@ async function sanitizeOnShutdown(progress) {
   if (!Sanitizer.shouldSanitizeOnShutdown) {
     // In case the user has not activated sanitizeOnShutdown but has explicitely set exceptions
     // to always clear particular origins, we clear those here
-    let principalsCollector = new lazy.PrincipalsCollector();
 
     progress.advancement = "session-permission";
 
     let exceptions = 0;
+    let selectedPrincipals = [];
     // Let's see if we have to forget some particular site.
     for (let permission of Services.perms.all) {
       if (
@@ -935,20 +905,22 @@ async function sanitizeOnShutdown(progress) {
 
       // We use just the URI here, because permissions ignore OriginAttributes.
       // The principalsCollector is lazy, this is computed only once
-      let principals = await principalsCollector.getAllPrincipals(progress);
-      let selectedPrincipals = extractMatchingPrincipals(
-        principals,
-        permission.principal.host
-      );
-      await maybeSanitizeSessionPrincipals(
-        progress,
-        selectedPrincipals,
-        Ci.nsIClearDataService.CLEAR_ALL_CACHES |
-          Ci.nsIClearDataService.CLEAR_COOKIES |
-          Ci.nsIClearDataService.CLEAR_DOM_STORAGES |
-          Ci.nsIClearDataService.CLEAR_EME
+      if (!gPrincipalsCollector) {
+        gPrincipalsCollector = new lazy.PrincipalsCollector();
+      }
+      let principals = await gPrincipalsCollector.getAllPrincipals(progress);
+      selectedPrincipals.push(
+        ...extractMatchingPrincipals(principals, permission.principal.host)
       );
     }
+    await maybeSanitizeSessionPrincipals(
+      progress,
+      selectedPrincipals,
+      Ci.nsIClearDataService.CLEAR_ALL_CACHES |
+        Ci.nsIClearDataService.CLEAR_COOKIES |
+        Ci.nsIClearDataService.CLEAR_DOM_STORAGES |
+        Ci.nsIClearDataService.CLEAR_EME
+    );
     progress.sanitizationPrefs.session_permission_exceptions = exceptions;
   }
   progress.advancement = "done";
@@ -991,10 +963,12 @@ async function maybeSanitizeSessionPrincipals(progress, principals, flags) {
   });
 
   progress.step = "promises:" + promises.length;
-  await Promise.all(promises);
-  await new Promise(resolve =>
-    Services.clearData.cleanupAfterDeletionAtShutdown(flags, resolve)
-  );
+  if (promises.length) {
+    await Promise.all(promises);
+    await new Promise(resolve =>
+      Services.clearData.cleanupAfterDeletionAtShutdown(flags, resolve)
+    );
+  }
   progress.step = "promises resolved";
 }
 

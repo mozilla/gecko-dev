@@ -1,7 +1,3 @@
-const { E10SUtils } = ChromeUtils.importESModule(
-  "resource://gre/modules/E10SUtils.sys.mjs"
-);
-
 const HISTORY = [
   { url: httpURL("dummy_page.html") },
   { url: fileURL("dummy_page.html") },
@@ -24,7 +20,7 @@ async function runTest() {
     let count = 0;
     let index = -1;
     for (let { url } of HISTORY) {
-      BrowserTestUtils.loadURI(aBrowser, url);
+      BrowserTestUtils.loadURIString(aBrowser, url);
 
       await BrowserTestUtils.browserLoaded(aBrowser, false, loaded => {
         return (

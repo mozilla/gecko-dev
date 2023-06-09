@@ -128,7 +128,12 @@
       <popupnotificationcontent id="addon-install-blocked-content" orient="vertical">
         <description id="addon-install-blocked-message" class="popup-notification-description"></description>
         <hbox>
-          <label id="addon-install-blocked-info" class="popup-notification-learnmore-link" is="text-link"/>
+          <html:a 
+              is="moz-support-link"
+              id="addon-install-blocked-info"
+              class="popup-notification-learnmore-link"
+              data-l10n-id="popup-notification-xpinstall-prompt-learn-more"
+            />
         </hbox>
       </popupnotificationcontent>
     </popupnotification>
@@ -152,18 +157,19 @@
         </stack>
       </popupnotificationheader>
       <popupnotificationcontent>
+      <hbox>
         <description id="cfr-notification-author"></description>
+        <hbox id="cfr-notification-footer-addon-info">
+            <hbox id="cfr-notification-footer-filled-stars"/>
+            <hbox id="cfr-notification-footer-empty-stars"/>
+            <label id="cfr-notification-footer-users"/>
+          </hbox>
+      </hbox>
       </popupnotificationcontent>
       <popupnotificationfooter id="cfr-notification-footer" orient="vertical">
         <vbox id="cfr-notification-footer-text-and-addon-info">
           <description id="cfr-notification-footer-text"/>
-          <hbox id="cfr-notification-footer-addon-info">
-            <hbox id="cfr-notification-footer-filled-stars"/>
-            <hbox id="cfr-notification-footer-empty-stars"/>
-            <label id="cfr-notification-footer-users"/>
-            <spacer id="cfr-notification-footer-spacer" hidden="true"/>
-            <label id="cfr-notification-footer-learn-more-link" is="text-link"/>
-          </hbox>
+          <label id="cfr-notification-footer-learn-more-link" is="text-link"/>
         </vbox>
       </popupnotificationfooter>
     </popupnotification>
@@ -172,26 +178,32 @@
       <popupnotificationcontent id="identity-credential-provider" orient="vertical">
         <html:div id="identity-credential-provider-selector-container">
         </html:div>
-        <description class="popup-notification-description" id="credential-provider-explanation" data-l10n-id="identity-credential-description-provider-explanation"/>
         <html:template id="template-credential-provider-list-item">
-          <toolbarbutton class="credential-provider-list-item subviewbutton-nav subviewbutton" align="center" wrap="true">
-            <label flex="1" class="credential-provider-list-item-label"></label>
-          </toolbarbutton>
+          <html:label class="identity-credential-list-item" align="center">
+            <html:input type="radio" name="credential-provider" class="identity-credential-list-item-radio"></html:input>
+            <html:img class="identity-credential-list-item-icon" src="chrome://global/skin/icons/defaultFavicon.svg"></html:img>
+            <span class="identity-credential-list-item-label"></span>
+          </html:label>
         </html:template>
       </popupnotificationcontent>
       <popupnotificationcontent id="identity-credential-policy" orient="vertical">
-        <description id="identity-credential-policy-explanation"/>
-        <label class="text-link" is="text-link" data-l10n-id="identity-credential-privacy-policy" id="identity-credential-privacy-policy"></label>
-        <label class="text-link" is="text-link" data-l10n-id="identity-credential-terms-of-service" id="identity-credential-terms-of-service"></label>
+        <description id="identity-credential-policy-explanation" data-l10n-id="identity-credential-policy-description"  data-l10n-args='{"host":"", "provider":""}'>
+          <label class="text-link" is="text-link" data-l10n-name="privacy-url" id="identity-credential-privacy-policy"></label>
+          <label class="text-link" is="text-link" data-l10n-name="tos-url" id="identity-credential-terms-of-service"></label>
+        </description>
       </popupnotificationcontent>
       <popupnotificationcontent id="identity-credential-account" orient="vertical" hidden="true">
         <html:div id="identity-credential-account-selector-container">
         </html:div>
-        <description class="popup-notification-description" id="credential-account-explanation"/>
         <html:template id="template-credential-account-list-item">
-          <toolbarbutton class="credential-account-list-item subviewbutton-nav subviewbutton" align="center" wrap="true">
-            <label flex="1" class="credential-account-list-item-label"></label>
-          </toolbarbutton>
+           <html:label class="identity-credential-list-item" align="center">
+            <html:input type="radio" name="credential-account" class="identity-credential-list-item-radio"></html:input>
+            <html:img class="identity-credential-list-item-icon" src="chrome://browser/skin/fxa/avatar.svg"></html:img>
+            <div class="identity-credential-list-item-label-stack">
+              <div class="identity-credential-list-item-label-name"></div>
+              <div class="identity-credential-list-item-label-email"></div>
+            </div>
+          </html:label>
         </html:template>
       </popupnotificationcontent>
     </popupnotification>

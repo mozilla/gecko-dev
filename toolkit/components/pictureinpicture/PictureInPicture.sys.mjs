@@ -6,6 +6,8 @@ import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
+import { ShortcutUtils } from "resource://gre/modules/ShortcutUtils.sys.mjs";
+
 const lazy = {};
 XPCOMUtils.defineLazyServiceGetters(lazy, {
   WindowsUIUtils: ["@mozilla.org/windows-ui-utils;1", "nsIWindowsUIUtils"],
@@ -18,21 +20,40 @@ ChromeUtils.defineESModuleGetters(lazy, {
 import { Rect, Point } from "resource://gre/modules/Geometry.sys.mjs";
 
 const PLAYER_URI = "chrome://global/content/pictureinpicture/player.xhtml";
-var PLAYER_FEATURES =
-  "chrome,titlebar=yes,alwaysontop,lockaspectratio,resizable";
-/* Don't use dialog on Gtk as it adds extra border and titlebar to PIP window */
-if (!AppConstants.MOZ_WIDGET_GTK) {
-  PLAYER_FEATURES += ",dialog";
-}
+// Currently, we need titlebar="yes" on macOS in order for the player window
+// to be resizable. See bug 1824171.
+const TITLEBAR = AppConstants.platform == "macosx" ? "yes" : "no";
+const PLAYER_FEATURES = `chrome,alwaysontop,lockaspectratio,resizable,dialog,titlebar=${TITLEBAR}`;
+
 const WINDOW_TYPE = "Toolkit:PictureInPicture";
-const PIP_ENABLED_PREF = "media.videocontrols.picture-in-picture.enabled";
 const TOGGLE_ENABLED_PREF =
   "media.videocontrols.picture-in-picture.video-toggle.enabled";
+const TOGGLE_FIRST_SEEN_PREF =
+  "media.videocontrols.picture-in-picture.video-toggle.first-seen-secs";
+const TOGGLE_HAS_USED_PREF =
+  "media.videocontrols.picture-in-picture.video-toggle.has-used";
 const TOGGLE_POSITION_PREF =
   "media.videocontrols.picture-in-picture.video-toggle.position";
 const TOGGLE_POSITION_RIGHT = "right";
 const TOGGLE_POSITION_LEFT = "left";
 const RESIZE_MARGIN_PX = 16;
+const BACKGROUND_DURATION_HISTOGRAM_ID =
+  "FX_PICTURE_IN_PICTURE_BACKGROUND_TAB_PLAYING_DURATION";
+const FOREGROUND_DURATION_HISTOGRAM_ID =
+  "FX_PICTURE_IN_PICTURE_FOREGROUND_TAB_PLAYING_DURATION";
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "PIP_ENABLED",
+  "media.videocontrols.picture-in-picture.enabled",
+  false
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "PIP_URLBAR_BUTTON",
+  "media.videocontrols.picture-in-picture.urlbar-button.enabled",
+  false
+);
 
 /**
  * Tracks the number of currently open player windows for Telemetry tracking
@@ -65,6 +86,22 @@ export class PictureInPictureToggleParent extends JSWindowActorParent {
       case "PictureInPicture:OpenToggleContextMenu": {
         let win = browser.ownerGlobal;
         PictureInPicture.openToggleContextMenu(win, aMessage.data);
+        break;
+      }
+      case "PictureInPicture:UpdateEligiblePipVideoCount": {
+        let { count } = aMessage.data;
+        PictureInPicture.updateEligiblePipVideoCount(browsingContext, count);
+        PictureInPicture.updateUrlbarToggle(browser);
+        break;
+      }
+      case "PictureInPicture:SetFirstSeen": {
+        let { dateSeconds } = aMessage.data;
+        PictureInPicture.setFirstSeen(dateSeconds);
+        break;
+      }
+      case "PictureInPicture:SetHasUsed": {
+        let { hasUsed } = aMessage.data;
+        PictureInPicture.setHasUsed(hasUsed);
         break;
       }
     }
@@ -119,17 +156,17 @@ export class PictureInPictureParent extends JSWindowActorParent {
         }
         break;
       }
-      case "PictureInPicture:ShowSubtitlesButton": {
+      case "PictureInPicture:EnableSubtitlesButton": {
         let player = PictureInPicture.getWeakPipPlayer(this);
         if (player) {
-          player.showSubtitlesButton();
+          player.enableSubtitlesButton();
         }
         break;
       }
-      case "PictureInPicture:HideSubtitlesButton": {
+      case "PictureInPicture:DisableSubtitlesButton": {
         let player = PictureInPicture.getWeakPipPlayer(this);
         if (player) {
-          player.hideSubtitlesButton();
+          player.disableSubtitlesButton();
         }
         break;
       }
@@ -158,6 +195,12 @@ export var PictureInPicture = {
   // Maps a browser to the number of PiP windows it has
   browserWeakMap: new WeakMap(),
 
+  // Maps an AppWindow to the number of PiP windows it has
+  originatingWinWeakMap: new WeakMap(),
+
+  // Maps a WindowGlobal to count of eligible PiP videos
+  weakGlobalToEligiblePipCount: new WeakMap(),
+
   /**
    * Returns the player window if one exists and if it hasn't yet been closed.
    *
@@ -179,6 +222,11 @@ export var PictureInPicture = {
     switch (event.type) {
       case "TabSwapPictureInPicture": {
         this.onPipSwappedBrowsers(event);
+        break;
+      }
+      case "TabSelect": {
+        this.updatePlayingDurationHistograms();
+        break;
       }
     }
   },
@@ -192,6 +240,35 @@ export var PictureInPicture = {
       ? this.browserWeakMap.get(browser)
       : 0;
     this.browserWeakMap.set(browser, count + 1);
+
+    // If a browser is being added to the browserWeakMap, that means its
+    // probably a good time to make sure the playing duration histograms
+    // are up-to-date, as it means that we've either opened a new PiP
+    // player window, or moved the originating tab to another window.
+    this.updatePlayingDurationHistograms();
+  },
+
+  /**
+   * Increase the count of PiP windows for a given AppWindow.
+   *
+   * @param {Browser} browser
+   *   The content browser that the originating video lives in and from which
+   *   we'll read its parent window to increase PiP window count in originatingWinWeakMap.
+   */
+  addOriginatingWinToWeakMap(browser) {
+    let parentWin = browser.ownerGlobal;
+    let count = this.originatingWinWeakMap.get(parentWin);
+    if (!count || count == 0) {
+      this.setOriginatingWindowActive(parentWin.browsingContext, true);
+      this.originatingWinWeakMap.set(parentWin, 1);
+
+      let gBrowser = browser.getTabBrowser();
+      if (gBrowser) {
+        gBrowser.tabContainer.addEventListener("TabSelect", this);
+      }
+    } else {
+      this.originatingWinWeakMap.set(parentWin, count + 1);
+    }
   },
 
   /**
@@ -212,6 +289,35 @@ export var PictureInPicture = {
     }
   },
 
+  /**
+   * Decrease the count of PiP windows for a given AppWindow.
+   * If the count becomes 0, we will remove the AppWindow from the WeakMap.
+   *
+   * @param {Browser} browser
+   *   The content browser that the originating video lives in and from which
+   *   we'll read its parent window to decrease PiP window count in originatingWinWeakMap.
+   */
+  removeOriginatingWinFromWeakMap(browser) {
+    let parentWin = browser?.ownerGlobal;
+
+    if (!parentWin) {
+      return;
+    }
+
+    let count = this.originatingWinWeakMap.get(parentWin);
+    if (!count || count <= 1) {
+      this.originatingWinWeakMap.delete(parentWin, 0);
+      this.setOriginatingWindowActive(parentWin.browsingContext, false);
+
+      let gBrowser = browser.getTabBrowser();
+      if (gBrowser) {
+        gBrowser.tabContainer.removeEventListener("TabSelect", this);
+      }
+    } else {
+      this.originatingWinWeakMap.set(parentWin, count - 1);
+    }
+  },
+
   onPipSwappedBrowsers(event) {
     let otherTab = event.detail;
     if (otherTab) {
@@ -219,10 +325,49 @@ export var PictureInPicture = {
         if (this.weakWinToBrowser.get(win) === event.target.linkedBrowser) {
           this.weakWinToBrowser.set(win, otherTab.linkedBrowser);
           this.removePiPBrowserFromWeakMap(event.target.linkedBrowser);
+          this.removeOriginatingWinFromWeakMap(event.target.linkedBrowser);
           this.addPiPBrowserToWeakMap(otherTab.linkedBrowser);
+          this.addOriginatingWinToWeakMap(otherTab.linkedBrowser);
         }
       }
       otherTab.addEventListener("TabSwapPictureInPicture", this);
+    }
+  },
+
+  updatePlayingDurationHistograms() {
+    // A tab switch occurred in a browser window with one more tabs that have
+    // PiP player windows associated with them.
+    for (let win of Services.wm.getEnumerator(WINDOW_TYPE)) {
+      let browser = this.weakWinToBrowser.get(win);
+      let gBrowser = browser.getTabBrowser();
+      if (gBrowser?.selectedBrowser == browser) {
+        // If there are any background stopwatches running for this window, finish
+        // them and switch to foreground.
+        if (TelemetryStopwatch.running(BACKGROUND_DURATION_HISTOGRAM_ID, win)) {
+          TelemetryStopwatch.finish(BACKGROUND_DURATION_HISTOGRAM_ID, win);
+        }
+        if (
+          !TelemetryStopwatch.running(FOREGROUND_DURATION_HISTOGRAM_ID, win)
+        ) {
+          TelemetryStopwatch.start(FOREGROUND_DURATION_HISTOGRAM_ID, win, {
+            inSeconds: true,
+          });
+        }
+      } else {
+        // If there are any foreground stopwatches running for this window, finish
+        // them and switch to background.
+        if (TelemetryStopwatch.running(FOREGROUND_DURATION_HISTOGRAM_ID, win)) {
+          TelemetryStopwatch.finish(FOREGROUND_DURATION_HISTOGRAM_ID, win);
+        }
+
+        if (
+          !TelemetryStopwatch.running(BACKGROUND_DURATION_HISTOGRAM_ID, win)
+        ) {
+          TelemetryStopwatch.start(BACKGROUND_DURATION_HISTOGRAM_ID, win, {
+            inSeconds: true,
+          });
+        }
+      }
     }
   },
 
@@ -233,7 +378,7 @@ export var PictureInPicture = {
    * @param {Event} event
    */
   onCommand(event) {
-    if (!Services.prefs.getBoolPref(PIP_ENABLED_PREF, false)) {
+    if (!lazy.PIP_ENABLED) {
       return;
     }
 
@@ -259,6 +404,157 @@ export var PictureInPicture = {
 
     gBrowser.selectedTab = tab;
     await this.closeSinglePipWindow({ reason: "unpip", actorRef: pipActor });
+  },
+
+  /**
+   * Updates the count of eligible PiP videos for a respective WindowGlobal.
+   * @param {BrowsingContext} browsingContext The BrowsingContext with eligible videos
+   * @param {Number} count The number of eligible videos for the respective WindowGlobal
+   */
+  updateEligiblePipVideoCount(browsingContext, count) {
+    let windowGlobal = browsingContext.currentWindowGlobal;
+
+    if (windowGlobal) {
+      this.weakGlobalToEligiblePipCount.set(windowGlobal, count);
+    }
+  },
+
+  /**
+   * A generator function that yeilds a WindowGlobal and it's respective PiP count.
+   * @param {Browser} browser The selected browser
+   */
+  *windowGlobalPipCountGenerator(browser) {
+    let contextsToVisit = [browser.browsingContext];
+    while (contextsToVisit.length) {
+      let currentBC = contextsToVisit.pop();
+      let windowGlobal = currentBC.currentWindowGlobal;
+
+      if (!windowGlobal) {
+        continue;
+      }
+
+      let pipCountForGlobal =
+        this.weakGlobalToEligiblePipCount.get(windowGlobal) || 0;
+
+      contextsToVisit.push(...currentBC.children);
+
+      yield { windowGlobal, count: pipCountForGlobal };
+    }
+  },
+
+  /**
+   * Gets the total eligible video count for a given browser.
+   * @param {Browser} browser The selected browser
+   * @returns Total count of eligible PiP videos for the selected broser
+   */
+  getEligiblePipVideoCount(browser) {
+    let totalPipCount = 0;
+
+    for (let { count } of this.windowGlobalPipCountGenerator(browser)) {
+      totalPipCount += count;
+    }
+
+    return totalPipCount;
+  },
+
+  /**
+   * This function updates the hover text on the urlbar PiP button when we enter or exit PiP
+   * @param {Document} document The window document
+   * @param {Element} pipToggle The urlbar PiP button
+   * @param {String} dataL10nId The data l10n id of the string we want to show
+   */
+  updateUrlbarHoverText(document, pipToggle, dataL10nId) {
+    let shortcut = document.getElementById("key_togglePictureInPicture");
+
+    document.l10n.setAttributes(pipToggle, dataL10nId, {
+      shortcut: ShortcutUtils.prettifyShortcut(shortcut),
+    });
+  },
+
+  /**
+   * Toggles the visibility of the PiP urlbar button. If the total video count
+   * is 1, then we will show the button. Otherwise the button is hidden.
+   * @param {Browser} browser The selected browser
+   */
+  updateUrlbarToggle(browser) {
+    if (!lazy.PIP_ENABLED || !lazy.PIP_URLBAR_BUTTON) {
+      return;
+    }
+
+    let win = browser.ownerGlobal;
+    if (win.closed || win.gBrowser?.selectedBrowser !== browser) {
+      return;
+    }
+
+    let totalPipCount = this.getEligiblePipVideoCount(browser);
+
+    let pipToggle = win.document.getElementById("picture-in-picture-button");
+    pipToggle.hidden = !(totalPipCount === 1);
+
+    let browserHasPip = !!this.browserWeakMap.get(browser);
+    if (browserHasPip) {
+      this.setUrlbarPipIconActive(browser.ownerGlobal);
+    } else {
+      this.setUrlbarPipIconInactive(browser.ownerGlobal);
+    }
+  },
+
+  /**
+   * Finds the correct WindowGlobal to open the eligible PiP video.
+   * @param {Event} event Event from clicking the PiP urlbar button
+   */
+  toggleUrlbar(event) {
+    if (event.button !== 0) {
+      return;
+    }
+
+    let win = event.target.ownerGlobal;
+    let browser = win.gBrowser.selectedBrowser;
+
+    for (let { windowGlobal, count } of this.windowGlobalPipCountGenerator(
+      browser
+    )) {
+      if (count === 1) {
+        let actor = windowGlobal.getActor("PictureInPictureToggle");
+        actor.sendAsyncMessage("PictureInPicture:UrlbarToggle");
+        return;
+      }
+    }
+  },
+
+  /**
+   * Sets the PiP urlbar to an active state. This changes the icon in the
+   * urlbar button to the unpip icon.
+   * @param {Window} win The current Window
+   */
+  setUrlbarPipIconActive(win) {
+    let pipToggle = win.document.getElementById("picture-in-picture-button");
+    pipToggle.toggleAttribute("pipactive", true);
+
+    this.updateUrlbarHoverText(
+      win.document,
+      pipToggle,
+      "picture-in-picture-urlbar-button-close"
+    );
+  },
+
+  /**
+   * Sets the PiP urlbar to an inactive state. This changes the icon in the
+   * urlbar button to the open pip icon.
+   * @param {Window} win The current window
+   */
+  setUrlbarPipIconInactive(win) {
+    if (!win) {
+      return;
+    }
+    let pipToggle = win.document.getElementById("picture-in-picture-button");
+    pipToggle.toggleAttribute("pipactive", false);
+
+    this.updateUrlbarHoverText(
+      win.document,
+      pipToggle,
+      "picture-in-picture-urlbar-button-open"
+    );
   },
 
   /**
@@ -328,13 +624,11 @@ export var PictureInPicture = {
     }
     this.removePiPBrowserFromWeakMap(this.weakWinToBrowser.get(win));
 
-    let args = { reason };
     Services.telemetry.recordEvent(
       "pictureinpicture",
       "closed_method",
-      "method",
-      null,
-      args
+      reason,
+      null
     );
     await this.closePipWindow(win);
   },
@@ -379,6 +673,8 @@ export var PictureInPicture = {
     let tab = parentWin.gBrowser.getTabForBrowser(browser);
     tab.setAttribute("pictureinpicture", true);
 
+    this.setUrlbarPipIconActive(parentWin);
+
     tab.addEventListener("TabSwapPictureInPicture", this);
 
     let pipId = gNextWindowID.toString();
@@ -387,14 +683,12 @@ export var PictureInPicture = {
 
     this.weakWinToBrowser.set(win, browser);
     this.addPiPBrowserToWeakMap(browser);
+    this.addOriginatingWinToWeakMap(browser);
 
     win.setScrubberPosition(videoData.scrubberPosition);
     win.setTimestamp(videoData.timestamp);
 
-    Services.prefs.setBoolPref(
-      "media.videocontrols.picture-in-picture.video-toggle.has-used",
-      true
-    );
+    Services.prefs.setBoolPref(TOGGLE_HAS_USED_PREF, true);
 
     let args = {
       width: win.innerWidth.toString(),
@@ -415,6 +709,23 @@ export var PictureInPicture = {
   },
 
   /**
+   * Calls the browsingContext's `forceAppWindowActive` flag to determine if the
+   * the top level chrome browsingContext should be forcefully set as active or not.
+   * When the originating window's browsing context is set to active, captions on the
+   * PiP window are properly updated. Forcing active while a PiP window is open ensures
+   * that captions are still updated when the originating window is occluded.
+   *
+   * @param {BrowsingContext} browsingContext
+   *   The browsing context of the originating window
+   * @param {boolean} isActive
+   *   True to force originating window as active, or false to not enforce it
+   * @see CanonicalBrowsingContext
+   */
+  setOriginatingWindowActive(browsingContext, isActive) {
+    browsingContext.forceAppWindowActive = isActive;
+  },
+
+  /**
    * unload event has been called in player.js, cleanup our preserved
    * browser object.
    *
@@ -426,10 +737,22 @@ export var PictureInPicture = {
       window
     );
 
+    if (TelemetryStopwatch.running(BACKGROUND_DURATION_HISTOGRAM_ID, window)) {
+      TelemetryStopwatch.finish(BACKGROUND_DURATION_HISTOGRAM_ID, window);
+    } else if (
+      TelemetryStopwatch.running(FOREGROUND_DURATION_HISTOGRAM_ID, window)
+    ) {
+      TelemetryStopwatch.finish(FOREGROUND_DURATION_HISTOGRAM_ID, window);
+    }
+
+    let browser = this.weakWinToBrowser.get(window);
+    this.removeOriginatingWinFromWeakMap(browser);
+
     gCurrentPlayerCount -= 1;
     // Saves the location of the Picture in Picture window
     this.savePosition(window);
     this.clearPipTabIcon(window);
+    this.setUrlbarPipIconInactive(browser?.ownerGlobal);
   },
 
   /**
@@ -559,15 +882,22 @@ export var PictureInPicture = {
       requestingWin.devicePixelRatio / requestingWin.desktopToDeviceScale;
 
     let top, left, width, height;
-    if (isPlayer) {
+    if (!isPlayer) {
+      // requestingWin is a content window, load last PiP's dimensions
+      ({ top, left, width, height } = this.loadPosition());
+    } else if (requestingWin.windowState === requestingWin.STATE_FULLSCREEN) {
+      // `requestingWin` is a PiP window and in fullscreen. We stored the size
+      // and position before entering fullscreen and we will use that to
+      // calculate the new position
+      ({ top, left, width, height } = requestingWin.getDeferredResize());
+      left *= requestingCssToDesktopScale;
+      top *= requestingCssToDesktopScale;
+    } else {
       // requestingWin is a PiP player, conserve its dimensions in this case
       left = requestingWin.screenX * requestingCssToDesktopScale;
       top = requestingWin.screenY * requestingCssToDesktopScale;
       width = requestingWin.outerWidth;
       height = requestingWin.outerHeight;
-    } else {
-      // requestingWin is a content window, load last PiP's dimensions
-      ({ top, left, width, height } = this.loadPosition());
     }
 
     // Check that previous location and size were loaded.
@@ -901,9 +1231,7 @@ export var PictureInPicture = {
       return;
     }
 
-    let { top, left, width, height } = this.fitToScreen(win, videoData);
-    win.resizeTo(width, height);
-    win.moveTo(left, top);
+    win.resizeToVideo(this.fitToScreen(win, videoData));
   },
 
   /**
@@ -969,6 +1297,11 @@ export var PictureInPicture = {
 
   hideToggle() {
     Services.prefs.setBoolPref(TOGGLE_ENABLED_PREF, false);
+    Services.telemetry.recordEvent(
+      "pictureinpicture.settings",
+      "disable",
+      "player"
+    );
   },
 
   /**
@@ -1138,5 +1471,17 @@ export var PictureInPicture = {
     );
 
     return { top, left, width, height };
+  },
+
+  setFirstSeen(dateSeconds) {
+    if (!dateSeconds) {
+      return;
+    }
+
+    Services.prefs.setIntPref(TOGGLE_FIRST_SEEN_PREF, dateSeconds);
+  },
+
+  setHasUsed(hasUsed) {
+    Services.prefs.setBoolPref(TOGGLE_HAS_USED_PREF, !!hasUsed);
   },
 };

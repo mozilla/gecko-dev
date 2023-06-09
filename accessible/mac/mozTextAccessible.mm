@@ -98,13 +98,8 @@ inline NSString* ToNSString(id aValue) {
   MOZ_ASSERT(mGeckoAccessible);
 
   int32_t lineNumber = -1;
-  if (mGeckoAccessible->IsLocal()) {
-    if (HyperTextAccessible* textAcc =
-            mGeckoAccessible->AsLocal()->AsHyperText()) {
-      lineNumber = textAcc->CaretLineNumber() - 1;
-    }
-  } else {
-    lineNumber = mGeckoAccessible->AsRemote()->CaretLineNumber() - 1;
+  if (HyperTextAccessibleBase* textAcc = mGeckoAccessible->AsHyperTextBase()) {
+    lineNumber = textAcc->CaretLineNumber() - 1;
   }
 
   return (lineNumber >= 0) ? [NSNumber numberWithInt:lineNumber] : nil;
@@ -125,12 +120,8 @@ inline NSString* ToNSString(id aValue) {
     return NSAccessibilitySecureTextFieldSubrole;
   }
 
-  if (mRole == roles::ENTRY) {
-    LocalAccessible* acc = mGeckoAccessible->AsLocal();
-    RemoteAccessible* proxy = mGeckoAccessible->AsRemote();
-    if ((acc && acc->IsSearchbox()) || (proxy && proxy->IsSearchbox())) {
-      return @"AXSearchField";
-    }
+  if (mRole == roles::ENTRY && mGeckoAccessible->IsSearchbox()) {
+    return @"AXSearchField";
   }
 
   return nil;
@@ -156,7 +147,7 @@ inline NSString* ToNSString(id aValue) {
   }
 
   GeckoTextMarkerRange fromStartToSelection(
-      GeckoTextMarker(mGeckoAccessible, 0), selection.mStart);
+      GeckoTextMarker(mGeckoAccessible, 0), selection.Start());
 
   return [NSValue valueWithRange:NSMakeRange(fromStartToSelection.Length(),
                                              selection.Length())];
@@ -236,16 +227,9 @@ inline NSString* ToNSString(id aValue) {
     return;
   }
 
-  if (mGeckoAccessible->IsLocal()) {
-    if (HyperTextAccessible* textAcc =
-            mGeckoAccessible->AsLocal()->AsHyperText()) {
-      textAcc->ScrollSubstringTo(range.location, range.location + range.length,
-                                 nsIAccessibleScrollType::SCROLL_TYPE_TOP_EDGE);
-    }
-  } else {
-    mGeckoAccessible->AsRemote()->ScrollSubstringTo(
-        range.location, range.location + range.length,
-        nsIAccessibleScrollType::SCROLL_TYPE_TOP_EDGE);
+  if (HyperTextAccessibleBase* textAcc = mGeckoAccessible->AsHyperTextBase()) {
+    textAcc->ScrollSubstringTo(range.location, range.location + range.length,
+                               nsIAccessibleScrollType::SCROLL_TYPE_TOP_EDGE);
   }
 }
 
@@ -407,38 +391,43 @@ inline NSString* ToNSString(id aValue) {
   return [self moxValue] == nil || [super moxIgnoreWithParent:parent];
 }
 
+static GeckoTextMarkerRange TextMarkerSubrange(Accessible* aAccessible,
+                                               NSValue* aRange) {
+  GeckoTextMarkerRange textMarkerRange(aAccessible);
+  GeckoTextMarker start = textMarkerRange.Start();
+  GeckoTextMarker end = textMarkerRange.End();
+
+  NSRange r = [aRange rangeValue];
+  start.Offset() += r.location;
+  end.Offset() = start.Offset() + r.length;
+
+  textMarkerRange = GeckoTextMarkerRange(start, end);
+  // Crop range to accessible
+  textMarkerRange.Crop(aAccessible);
+
+  return textMarkerRange;
+}
+
 - (NSString*)moxStringForRange:(NSValue*)range {
   MOZ_ASSERT(mGeckoAccessible);
-
-  NSRange r = [range rangeValue];
-  GeckoTextMarkerRange textMarkerRange(mGeckoAccessible);
-  textMarkerRange.mStart.mOffset += r.location;
-  textMarkerRange.mEnd.mOffset =
-      textMarkerRange.mStart.mOffset + r.location + r.length;
+  GeckoTextMarkerRange textMarkerRange =
+      TextMarkerSubrange(mGeckoAccessible, range);
 
   return textMarkerRange.Text();
 }
 
 - (NSAttributedString*)moxAttributedStringForRange:(NSValue*)range {
   MOZ_ASSERT(mGeckoAccessible);
-
-  NSRange r = [range rangeValue];
-  GeckoTextMarkerRange textMarkerRange(mGeckoAccessible);
-  textMarkerRange.mStart.mOffset += r.location;
-  textMarkerRange.mEnd.mOffset =
-      textMarkerRange.mStart.mOffset + r.location + r.length;
+  GeckoTextMarkerRange textMarkerRange =
+      TextMarkerSubrange(mGeckoAccessible, range);
 
   return textMarkerRange.AttributedText();
 }
 
 - (NSValue*)moxBoundsForRange:(NSValue*)range {
   MOZ_ASSERT(mGeckoAccessible);
-
-  NSRange r = [range rangeValue];
-  GeckoTextMarkerRange textMarkerRange(mGeckoAccessible);
-
-  textMarkerRange.mStart.mOffset += r.location;
-  textMarkerRange.mEnd.mOffset = textMarkerRange.mStart.mOffset + r.length;
+  GeckoTextMarkerRange textMarkerRange =
+      TextMarkerSubrange(mGeckoAccessible, range);
 
   return textMarkerRange.Bounds();
 }

@@ -4,13 +4,11 @@
 
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 
-import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
-
 const lazy = {};
 
-XPCOMUtils.defineLazyModuleGetters(lazy, {
-  Normandy: "resource://normandy/Normandy.jsm",
-  TaskScheduler: "resource://gre/modules/TaskScheduler.jsm",
+ChromeUtils.defineESModuleGetters(lazy, {
+  Normandy: "resource://normandy/Normandy.sys.mjs",
+  TaskScheduler: "resource://gre/modules/TaskScheduler.sys.mjs",
 });
 
 const PREF_TIMEOUT = "first-startup.timeout";
@@ -42,7 +40,7 @@ export var FirstStartup = {
   init() {
     this._state = this.IN_PROGRESS;
     const timeout = Services.prefs.getIntPref(PREF_TIMEOUT, 30000); // default to 30 seconds
-    let startingTime = Date.now();
+    let startingTime = Cu.now();
     let initialized = false;
 
     let promises = [];
@@ -61,7 +59,7 @@ export var FirstStartup = {
 
       this.elapsed = 0;
       Services.tm.spinEventLoopUntil("FirstStartup.sys.mjs:init", () => {
-        this.elapsed = Date.now() - startingTime;
+        this.elapsed = Math.round(Cu.now() - startingTime);
         if (this.elapsed >= timeout) {
           this._state = this.TIMED_OUT;
           return true;
@@ -74,6 +72,10 @@ export var FirstStartup = {
     } else {
       this._state = this.UNSUPPORTED;
     }
+
+    Glean.firstStartup.statusCode.set(this._state);
+    Glean.firstStartup.elapsed.set(this.elapsed);
+    GleanPings.firstStartup.submit();
   },
 
   get state() {

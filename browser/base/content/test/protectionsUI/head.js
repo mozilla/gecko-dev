@@ -16,11 +16,10 @@ XPCOMUtils.defineLazyGetter(this, "TRACK_DB_PATH", function() {
   return PathUtils.join(PathUtils.profileDir, "protections.sqlite");
 });
 
-ChromeUtils.defineModuleGetter(
-  this,
-  "ContentBlockingAllowList",
-  "resource://gre/modules/ContentBlockingAllowList.jsm"
-);
+ChromeUtils.defineESModuleGetters(this, {
+  ContentBlockingAllowList:
+    "resource://gre/modules/ContentBlockingAllowList.sys.mjs",
+});
 
 var { UrlClassifierTestUtils } = ChromeUtils.import(
   "resource://testing-common/UrlClassifierTestUtils.jsm"
@@ -173,7 +172,7 @@ function promiseTabLoadEvent(tab, url) {
   let loaded = BrowserTestUtils.browserLoaded(tab.linkedBrowser, false, handle);
 
   if (url) {
-    BrowserTestUtils.loadURI(tab.linkedBrowser, url);
+    BrowserTestUtils.loadURIString(tab.linkedBrowser, url);
   }
 
   return loaded;

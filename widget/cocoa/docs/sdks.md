@@ -7,8 +7,8 @@ Apple distributes SDKs as part of the Xcode app bundle. Each Xcode version comes
 the SDK for the most recent released version of macOS at the time of the Xcode release.
 The SDK is located at `/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk`.
 
-Compiling Firefox for macOS requires a macOS SDK. The build system uses the SDK from Xcode.app by
-default, and you can select a different SDK using the `mozconfig` option `--with-macos-sdk`:
+Compiling Firefox for macOS requires a macOS SDK. The build system bootstraps an adequate SDK by
+default, but you can select a different SDK using the `mozconfig` option `--with-macos-sdk`:
 
 ```text
 ac_add_options --with-macos-sdk=/Users/username/SDKs/MacOSX11.3.sdk
@@ -167,7 +167,7 @@ being used. Here's [an example](https://searchfox.org/mozilla-central/rev/9ad88f
 
 We can also use this macro to supply missing API definitions in such a way that
 they don't conflict with the definitions from the SDK.
-This is described in the "Using macOS APIs" document, under [Using new APIs with old SDKs](./macos-apis.html#using-new-apis-with-old-sdks).
+This is described in the "Using macOS APIs" document, under [Using new APIs with old SDKs](./macos-apis.md#using-new-apis-with-old-sdks).
 
 ## Overriding SDK-dependent runtime behavior
 

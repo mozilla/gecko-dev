@@ -250,10 +250,10 @@ class BasePopup {
               }
               // Wait the reflow before asking the popup panel to grab the focus, otherwise
               // `nsFocusManager::SetFocus` may ignore out request because the panel view
-              // visibility is still set to `nsViewVisibility_kHide` (waiting the document
+              // visibility is still set to `ViewVisibility::Hide` (waiting the document
               // to be fully flushed makes us sure that when the popup panel grabs the focus
               // nsMenuPopupFrame::LayoutPopup has already been colled and set the frame
-              // visibility to `nsViewVisibility_kShow`).
+              // visibility to `ViewVisibility::Show`).
               this.browser.ownerGlobal.promiseDocumentFlushed(() => {
                 if (this.destroyed) {
                   return;
@@ -319,7 +319,7 @@ class BasePopup {
     browser.setAttribute("tooltip", "aHTMLTooltip");
     browser.setAttribute("contextmenu", "contentAreaContextMenu");
     browser.setAttribute("autocompletepopup", "PopupAutoComplete");
-    browser.setAttribute("selectmenuconstrained", "false");
+    browser.setAttribute("constrainpopups", "false");
 
     // Ensure the browser will initially load in the same group as other
     // browsers from the same extension.
@@ -416,7 +416,7 @@ class BasePopup {
 
     return readyPromise.then(() => {
       initBrowser();
-      browser.loadURI(popupURL, {
+      browser.fixupAndLoadURIString(popupURL, {
         triggeringPrincipal: this.extension.principal,
       });
     });

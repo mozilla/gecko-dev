@@ -8,17 +8,19 @@
  * only expire orphan entries, unless -1 is passed as limit.
  */
 
-var gNow = getExpirablePRTime(60);
+const EXPIRE_DAYS = 90;
+var gExpirableTime = getExpirablePRTime(EXPIRE_DAYS);
+var gNonExpirableTime = getExpirablePRTime(EXPIRE_DAYS - 2);
 
 add_task(async function test_expire_orphans() {
   // Add visits to 2 pages and force a orphan expiration. Visits should survive.
   await PlacesTestUtils.addVisits({
     uri: uri("http://page1.mozilla.org/"),
-    visitDate: gNow++,
+    visitDate: gExpirableTime++,
   });
   await PlacesTestUtils.addVisits({
     uri: uri("http://page2.mozilla.org/"),
-    visitDate: gNow++,
+    visitDate: gExpirableTime++,
   });
   // Create a orphan place.
   let bm = await PlacesUtils.bookmarks.insert({
@@ -44,11 +46,11 @@ add_task(async function test_expire_orphans_optionalarg() {
   // Add visits to 2 pages and force a orphan expiration. Visits should survive.
   await PlacesTestUtils.addVisits({
     uri: uri("http://page1.mozilla.org/"),
-    visitDate: gNow++,
+    visitDate: gExpirableTime++,
   });
   await PlacesTestUtils.addVisits({
     uri: uri("http://page2.mozilla.org/"),
-    visitDate: gNow++,
+    visitDate: gExpirableTime++,
   });
   // Create a orphan place.
   let bm = await PlacesUtils.bookmarks.insert({
@@ -75,12 +77,12 @@ add_task(async function test_expire_limited() {
     {
       // Should be expired cause it's the oldest visit
       uri: "http://old.mozilla.org/",
-      visitDate: gNow++,
+      visitDate: gExpirableTime++,
     },
     {
       // Should not be expired cause we limit 1
       uri: "http://new.mozilla.org/",
-      visitDate: gNow++,
+      visitDate: gExpirableTime++,
     },
   ]);
 
@@ -96,30 +98,38 @@ add_task(async function test_expire_limited() {
   await PlacesUtils.history.clear();
 });
 
-add_task(async function test_expire_limited_longurl() {
+add_task(async function test_expire_visitcount_longurl() {
   let longurl = "http://long.mozilla.org/" + "a".repeat(232);
+  let longurl2 = "http://long2.mozilla.org/" + "a".repeat(232);
   await PlacesTestUtils.addVisits([
     {
       // Should be expired cause it's the oldest visit
       uri: "http://old.mozilla.org/",
-      visitDate: gNow++,
+      visitDate: gExpirableTime++,
     },
     {
-      // Should be expired cause it's a long url older than 60 days.
+      // Should not be expired cause it has 2 visits.
       uri: longurl,
-      visitDate: gNow++,
+      visitDate: gExpirableTime++,
     },
     {
-      // Should not be expired cause younger than 60 days.
       uri: longurl,
-      visitDate: getExpirablePRTime(58),
+      visitDate: gNonExpirableTime,
+    },
+    {
+      // Should be expired cause it has 1 old visit.
+      uri: longurl2,
+      visitDate: gExpirableTime++,
     },
   ]);
 
   await promiseForceExpirationStep(1);
 
   // Check that some visits survived.
-  Assert.equal(visits_in_database(longurl), 1);
+  Assert.equal(visits_in_database(longurl), 2);
+  // Check visit has been removed.
+  Assert.equal(visits_in_database(longurl2), 0);
+
   // Other visits should have been expired.
   Assert.ok(!page_in_database("http://old.mozilla.org/"));
 
@@ -132,18 +142,18 @@ add_task(async function test_expire_limited_exoticurl() {
     {
       // Should be expired cause it's the oldest visit
       uri: "http://old.mozilla.org/",
-      visitDate: gNow++,
+      visitDate: gExpirableTime++,
     },
     {
-      // Should be expired cause it's a long url older than 60 days.
-      uri: "http://download.mozilla.org",
-      visitDate: gNow++,
-      transition: 7,
-    },
-    {
-      // Should not be expired cause younger than 60 days.
+      // Should not be expired cause younger than EXPIRE_DAYS.
       uri: "http://nonexpirable-download.mozilla.org",
-      visitDate: getExpirablePRTime(58),
+      visitDate: gNonExpirableTime,
+      transition: PlacesUtils.history.TRANSITIONS.DOWNLOAD,
+    },
+    {
+      // Should be expired cause it's a long url older than EXPIRE_DAYS.
+      uri: "http://download.mozilla.org",
+      visitDate: gExpirableTime++,
       transition: 7,
     },
   ]);
@@ -166,26 +176,76 @@ add_task(async function test_expire_limited_exoticurl() {
   await PlacesUtils.history.clear();
 });
 
+add_task(async function test_expire_exotic_hidden() {
+  let visits = [
+    {
+      // Should be expired cause it's the oldest visit
+      uri: "http://old.mozilla.org/",
+      visitDate: gExpirableTime++,
+      expectedCount: 0,
+    },
+    {
+      // Expirable typed hidden url.
+      uri: "https://typedhidden.mozilla.org/",
+      visitDate: gExpirableTime++,
+      transition: PlacesUtils.history.TRANSITIONS.FRAMED_LINK,
+      expectedCount: 2,
+    },
+    {
+      // Mark as typed.
+      uri: "https://typedhidden.mozilla.org/",
+      visitDate: gExpirableTime++,
+      transition: PlacesUtils.history.TRANSITIONS.TYPED,
+      expectedCount: 2,
+    },
+    {
+      // Expirable non-typed hidden url.
+      uri: "https://hidden.mozilla.org/",
+      visitDate: gExpirableTime++,
+      transition: PlacesUtils.history.TRANSITIONS.FRAMED_LINK,
+      expectedCount: 0,
+    },
+  ];
+  await PlacesTestUtils.addVisits(visits);
+  for (let visit of visits) {
+    Assert.greater(visits_in_database(visit.uri), 0);
+  }
+
+  await promiseForceExpirationStep(1);
+
+  for (let visit of visits) {
+    Assert.equal(
+      visits_in_database(visit.uri),
+      visit.expectedCount,
+      `${visit.uri} should${
+        visit.expectedCount == 0 ? " " : " not "
+      }have been expired`
+    );
+  }
+  // Clean up.
+  await PlacesUtils.history.clear();
+});
+
 add_task(async function test_expire_unlimited() {
   let longurl = "http://long.mozilla.org/" + "a".repeat(232);
   await PlacesTestUtils.addVisits([
     {
       uri: "http://old.mozilla.org/",
-      visitDate: gNow++,
+      visitDate: gExpirableTime++,
     },
     {
       uri: "http://new.mozilla.org/",
-      visitDate: gNow++,
+      visitDate: gExpirableTime++,
     },
     // Add expirable visits.
     {
       uri: "http://download.mozilla.org/",
-      visitDate: gNow++,
+      visitDate: gExpirableTime++,
       transition: PlacesUtils.history.TRANSITION_DOWNLOAD,
     },
     {
       uri: longurl,
-      visitDate: gNow++,
+      visitDate: gExpirableTime++,
     },
 
     // Add non-expirable visits
@@ -229,49 +289,42 @@ add_task(async function test_expire_icons() {
 
   const entries = [
     {
-      desc: "Expired because it redirects",
-      page: "http://source.old.org/",
-      icon: "http://source.old.org/test_icon.png",
-      iconExpired: true,
-      redirect: "http://dest.old.org/",
-      removed: true,
-    },
-    {
       desc: "Not expired because recent",
-      page: "http://source.new.org/",
-      icon: "http://source.new.org/test_icon.png",
+      page: "https://recent.notexpired.org/",
+      icon: "https://recent.notexpired.org/test_icon.png",
+      root: "https://recent.notexpired.org/favicon.ico",
       iconExpired: false,
-      redirect: "http://dest.new.org/",
       removed: false,
     },
     {
-      desc: "Not expired because does not match, even if old",
-      page: "http://stay.moz.org/",
-      icon: "http://stay.moz.org/test_icon.png",
-      iconExpired: true,
+      desc: "Not expired because recent, no root",
+      page: "https://recentnoroot.notexpired.org/",
+      icon: "https://recentnoroot.notexpired.org/test_icon.png",
+      iconExpired: false,
       removed: false,
     },
     {
-      desc: "Not expired because does not have a root icon, even if old",
-      page: "http://noroot.ref.org/#test",
-      icon: "http://noroot.ref.org/test_icon.png",
-      iconExpired: true,
-      removed: false,
-    },
-    {
-      desc: "Expired because has a root icon",
-      page: "http://root.ref.org/#test",
-      icon: "http://root.ref.org/test_icon.png",
-      root: "http://root.ref.org/favicon.ico",
+      desc: "Expired because old with root",
+      page: "https://oldroot.expired.org/",
+      icon: "https://oldroot.expired.org/test_icon.png",
+      root: "https://oldroot.expired.org/favicon.ico",
       iconExpired: true,
       removed: true,
     },
     {
-      desc: "Not expired because recent",
-      page: "http://new.ref.org/#test",
-      icon: "http://new.ref.org/test_icon.png",
-      iconExpired: false,
-      root: "http://new.ref.org/favicon.ico",
+      desc: "Not expired because bookmarked, even if old with root",
+      page: "https://oldrootbm.notexpired.org/",
+      icon: "https://oldrootbm.notexpired.org/test_icon.png",
+      root: "https://oldrootbm.notexpired.org/favicon.ico",
+      bookmarked: true,
+      iconExpired: true,
+      removed: false,
+    },
+    {
+      desc: "Not Expired because old but has no root",
+      page: "https://old.notexpired.org/",
+      icon: "https://old.notexpired.org/test_icon.png",
+      iconExpired: true,
       removed: false,
     },
     {
@@ -292,15 +345,14 @@ add_task(async function test_expire_icons() {
   ];
 
   for (let entry of entries) {
-    if (entry.redirect) {
+    if (!entry.skipHistory) {
       await PlacesTestUtils.addVisits(entry.page);
-      await PlacesTestUtils.addVisits({
-        uri: entry.redirect,
-        transition: TRANSITION_REDIRECT_PERMANENT,
-        referrer: entry.page,
+    }
+    if (entry.bookmarked) {
+      await PlacesUtils.bookmarks.insert({
+        url: entry.page,
+        parentGuid: PlacesUtils.bookmarks.unfiledGuid,
       });
-    } else if (!entry.skipHistory) {
-      await PlacesTestUtils.addVisits(entry.page);
     }
 
     if (entry.icon) {
@@ -336,11 +388,13 @@ add_task(async function test_expire_icons() {
       );
       await PlacesTestUtils.addFavicons(new Map([[entry.page, entry.root]]));
     }
+
     if (entry.iconExpired) {
       // Set an expired time on the icon.
       await PlacesUtils.withConnectionWrapper("expireFavicon", async db => {
         await db.execute(
-          `UPDATE moz_icons SET expire_ms = 1 WHERE icon_url = :url`,
+          `UPDATE moz_icons_to_pages SET expire_ms = 1
+           WHERE icon_id = (SELECT id FROM moz_icons WHERE icon_url = :url)`,
           { url: entry.icon }
         );
         if (entry.root) {
@@ -351,16 +405,19 @@ add_task(async function test_expire_icons() {
         }
       });
     }
+    if (entry.icon) {
+      Assert.equal(
+        await getFaviconUrlForPage(entry.page),
+        entry.icon,
+        "Sanity check the initial icon value"
+      );
+    }
   }
 
   info("Run expiration");
   await promiseForceExpirationStep(-1);
 
   info("Check expiration");
-  // Remove the root icons before checking the associated icons have been expired.
-  await PlacesUtils.withConnectionWrapper("test_debug_expiration.js", db =>
-    db.execute(`DELETE FROM moz_icons WHERE root = 1`)
-  );
   for (let entry of entries) {
     Assert.ok(page_in_database(entry.page));
 
@@ -368,6 +425,15 @@ add_task(async function test_expire_icons() {
       Assert.equal(
         await getFaviconUrlForPage(entry.page),
         entry.icon,
+        entry.desc
+      );
+      continue;
+    }
+
+    if (entry.root) {
+      Assert.equal(
+        await getFaviconUrlForPage(entry.page),
+        entry.root,
         entry.desc
       );
       continue;
@@ -395,11 +461,9 @@ add_task(async function test_expire_icons() {
   await PlacesUtils.history.clear();
 });
 
-function run_test() {
+add_setup(async function() {
   // Set interval to a large value so we don't expire on it.
   setInterval(3600); // 1h
   // Set maxPages to a low value, so it's easy to go over it.
   setMaxPages(1);
-
-  run_next_test();
-}
+});

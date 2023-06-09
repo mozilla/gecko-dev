@@ -67,6 +67,13 @@ namespace ApplicationServices {
 #  include "mozilla/WindowsProcessMitigations.h"
 #endif
 
+#ifdef XP_LINUX
+// Defined in <linux/watch_queue.h> which was added in 5.8
+#  ifndef O_NOTIFICATION_PIPE
+#    define O_NOTIFICATION_PIPE O_EXCL
+#  endif
+#endif
+
 constexpr bool kIsDebug =
 #ifdef DEBUG
     true;
@@ -469,6 +476,25 @@ void RunTestsContent(SandboxTestingChild* child) {
     return statfs("/usr/share", &sf);
   });
 
+  child->ErrnoTest("pipe2"_ns, true, [] {
+    int fds[2];
+    int rv = pipe2(fds, O_CLOEXEC);
+    int savedErrno = errno;
+    if (rv == 0) {
+      close(fds[0]);
+      close(fds[1]);
+    }
+    errno = savedErrno;
+    return rv;
+  });
+
+  child->ErrnoValueTest("chroot"_ns, ENOSYS, [] { return chroot("/"); });
+
+  child->ErrnoValueTest("pipe2_notif"_ns, ENOSYS, [] {
+    int fds[2];
+    return pipe2(fds, O_NOTIFICATION_PIPE);
+  });
+
 #    ifdef MOZ_X11
   // Check that X11 access is blocked (bug 1129492).
   // This will fail if security.sandbox.content.headless is turned off.
@@ -819,6 +845,26 @@ void RunTestsUtilityAudioDecoder(SandboxTestingChild* child,
 #  endif  // XP_WIN
   child->ReportNoTests();
 #endif    // XP_UNIX
+}
+
+void RunTestsGPU(SandboxTestingChild* child) {
+  MOZ_ASSERT(child, "No SandboxTestingChild*?");
+
+  RunGenericTests(child);
+
+#if defined(XP_WIN)
+
+  FileTest("R/W access to shader-cache dir"_ns, NS_APP_USER_PROFILE_50_DIR,
+           u"shader-cache\\"_ns, FILE_GENERIC_READ | FILE_GENERIC_WRITE, true,
+           child);
+
+  FileTest("R/W access to shader-cache files"_ns, NS_APP_USER_PROFILE_50_DIR,
+           u"shader-cache\\sandboxTest.txt"_ns,
+           FILE_GENERIC_READ | FILE_GENERIC_WRITE, true, child);
+
+#else   // defined(XP_WIN)
+  child->ReportNoTests();
+#endif  // defined(XP_WIN)
 }
 
 }  // namespace mozilla

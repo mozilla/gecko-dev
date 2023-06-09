@@ -17,6 +17,7 @@
 #include "mozilla/WritingModes.h"
 #include "mozilla/widget/HeadlessWidgetTypes.h"
 #include "mozilla/widget/PlatformWidgetTypes.h"
+#include "mozilla/widget/Screen.h"
 #include "nsIScreen.h"
 #include "HeadlessKeyBindings.h"
 
@@ -69,6 +70,7 @@ HeadlessWidget::HeadlessWidget()
     : mEnabled(true),
       mVisible(false),
       mDestroyed(false),
+      mAlwaysOnTop(false),
       mTopLevel(nullptr),
       mCompositorWidget(nullptr),
       mSizeMode(nsSizeMode_Normal),
@@ -117,13 +119,15 @@ void HeadlessWidget::Destroy() {
 nsresult HeadlessWidget::Create(nsIWidget* aParent,
                                 nsNativeWidget aNativeParent,
                                 const LayoutDeviceIntRect& aRect,
-                                nsWidgetInitData* aInitData) {
+                                widget::InitData* aInitData) {
   MOZ_ASSERT(!aNativeParent, "No native parents for headless widgets.");
 
   BaseCreate(nullptr, aInitData);
 
   mBounds = aRect;
   mRestoreBounds = aRect;
+
+  mAlwaysOnTop = aInitData && aInitData->mAlwaysOnTop;
 
   if (aParent) {
     mTopLevel = aParent->GetTopLevelWidget();
@@ -135,7 +139,7 @@ nsresult HeadlessWidget::Create(nsIWidget* aParent,
 }
 
 already_AddRefed<nsIWidget> HeadlessWidget::CreateChild(
-    const LayoutDeviceIntRect& aRect, nsWidgetInitData* aInitData,
+    const LayoutDeviceIntRect& aRect, widget::InitData* aInitData,
     bool aForceUseIWidgetParent) {
   nsCOMPtr<nsIWidget> widget = nsIWidget::CreateHeadlessWidget();
   if (!widget) {
@@ -156,8 +160,9 @@ void HeadlessWidget::GetCompositorWidgetInitData(
 nsIWidget* HeadlessWidget::GetTopLevelWidget() { return mTopLevel; }
 
 void HeadlessWidget::RaiseWindow() {
-  MOZ_ASSERT(mTopLevel == this || mWindowType == eWindowType_dialog ||
-                 mWindowType == eWindowType_sheet,
+  MOZ_ASSERT(mWindowType == WindowType::TopLevel ||
+                 mWindowType == WindowType::Dialog ||
+                 mWindowType == WindowType::Sheet,
              "Raising a non-toplevel window.");
 
   // Do nothing if this is the currently active window.
@@ -195,8 +200,11 @@ void HeadlessWidget::Show(bool aState) {
   LOG(("HeadlessWidget::Show [%p] state %d\n", (void*)this, aState));
 
   // Top-level window and dialogs are activated/raised when shown.
-  if (aState && (mTopLevel == this || mWindowType == eWindowType_dialog ||
-                 mWindowType == eWindowType_sheet)) {
+  // NB: alwaysontop windows are generally used for peripheral indicators,
+  //     so we don't focus them by default.
+  if (aState && !mAlwaysOnTop &&
+      (mWindowType == WindowType::TopLevel ||
+       mWindowType == WindowType::Dialog || mWindowType == WindowType::Sheet)) {
     RaiseWindow();
   }
 
@@ -231,8 +239,8 @@ void HeadlessWidget::Move(double aX, double aY) {
   int32_t x = NSToIntRound(aX * scale);
   int32_t y = NSToIntRound(aY * scale);
 
-  if (mWindowType == eWindowType_toplevel ||
-      mWindowType == eWindowType_dialog) {
+  if (mWindowType == WindowType::TopLevel ||
+      mWindowType == WindowType::Dialog) {
     SetSizeMode(nsSizeMode_Normal);
   }
 
@@ -243,7 +251,7 @@ void HeadlessWidget::MoveInternal(int32_t aX, int32_t aY) {
   // Since a popup window's x/y coordinates are in relation to
   // the parent, the parent might have moved so we always move a
   // popup window.
-  if (mBounds.IsEqualXY(aX, aY) && mWindowType != eWindowType_popup) {
+  if (mBounds.IsEqualXY(aX, aY) && mWindowType != WindowType::Popup) {
     return;
   }
 
@@ -382,7 +390,6 @@ nsresult HeadlessWidget::MakeFullScreen(bool aFullScreen) {
   // resize events.
   if (mWidgetListener) {
     mWidgetListener->SizeModeChanged(mSizeMode);
-    mWidgetListener->FullscreenChanged(aFullScreen);
   }
 
   // Real widget backends don't seem to follow a common approach for

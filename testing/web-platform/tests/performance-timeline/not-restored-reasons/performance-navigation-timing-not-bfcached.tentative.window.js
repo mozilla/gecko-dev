@@ -6,6 +6,7 @@
 // META: script=/html/browsers/browsing-the-web/back-forward-cache/resources/rc-helper.js
 // META: script=/html/browsers/browsing-the-web/remote-context-helper/resources/remote-context-helper.js
 // META: script=/websockets/constants.sub.js
+// META: timeout=long
 
 'use strict';
 
@@ -23,14 +24,14 @@ promise_test(async t => {
   });
 
   // Check the BFCache result and the reported reasons.
-  await assertBFCache(rc1, /*shouldRestoreFromBFCache=*/ false);
+  await assertBFCacheEligibility(rc1, /*shouldRestoreFromBFCache=*/ false);
   await assertNotRestoredReasonsEquals(
       rc1,
       /*blocked=*/ true,
       /*url=*/ rc1_url,
-      /*src=*/ '',
-      /*id=*/ '',
-      /*name=*/ '',
+      /*src=*/ null,
+      /*id=*/ null,
+      /*name=*/ null,
       /*reasons=*/['WebSocket'],
       /*children=*/[]);
 });

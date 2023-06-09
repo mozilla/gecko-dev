@@ -9,6 +9,7 @@
 #include "gc/GC.h"
 #include "js/AllocPolicy.h"         // js::ReportOutOfMemory
 #include "js/friend/StackLimits.h"  // js::ReportOverRecursed
+#include "js/Modules.h"
 #include "util/DifferentialTesting.h"
 #include "vm/JSContext.h"
 
@@ -29,6 +30,16 @@ FrontendContext::~FrontendContext() {
     MOZ_ASSERT(nameCollectionPool_);
     js_delete(nameCollectionPool_);
   }
+}
+
+bool FrontendContext::setSupportedImportAssertions(
+    const JS::ImportAssertionVector& supportedImportAssertions) {
+  MOZ_ASSERT(supportedImportAssertions_.empty());
+  if (!supportedImportAssertions_.appendAll(supportedImportAssertions)) {
+    ReportOutOfMemory();
+    return false;
+  }
+  return true;
 }
 
 bool FrontendContext::allocateOwnedPool() {
@@ -78,9 +89,9 @@ void FrontendContext::recoverFromOutOfMemory() {
 
 const JSErrorFormatString* FrontendContext::gcSafeCallback(
     JSErrorCallback callback, void* userRef, const unsigned errorNumber) {
+  mozilla::Maybe<gc::AutoSuppressGC> suppressGC;
   if (maybeCx_) {
-    gc::AutoSuppressGC suppressGC(maybeCx_);
-    return callback(userRef, errorNumber);
+    suppressGC.emplace(maybeCx_);
   }
 
   return callback(userRef, errorNumber);
@@ -125,6 +136,7 @@ void FrontendContext::setCurrentJSContext(JSContext* cx) {
 
   maybeCx_ = cx;
   nameCollectionPool_ = &cx->frontendCollectionPool();
+  scriptDataTableHolder_ = &cx->runtime()->scriptDataTableHolder();
 }
 
 void FrontendContext::convertToRuntimeError(
@@ -189,3 +201,18 @@ JS_PUBLIC_API bool js::CheckWasiRecursionLimit(FrontendContext* fc) {
   return fc->checkWasiRecursionLimit();
 }
 #endif  // __wasi__
+
+FrontendContext* js::NewFrontendContext() {
+  UniquePtr<FrontendContext> fc = MakeUnique<FrontendContext>();
+  if (!fc) {
+    return nullptr;
+  }
+
+  if (!fc->allocateOwnedPool()) {
+    return nullptr;
+  }
+
+  return fc.release();
+}
+
+void js::DestroyFrontendContext(FrontendContext* fc) { js_delete_poison(fc); }

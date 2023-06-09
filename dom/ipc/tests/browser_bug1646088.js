@@ -1,7 +1,3 @@
-const { PromiseUtils } = ChromeUtils.importESModule(
-  "resource://gre/modules/PromiseUtils.sys.mjs"
-);
-
 let dir = getChromeDir(getResolvedURI(gTestPath));
 dir.append("file_dummy.html");
 const uriString = Services.io.newFileURI(dir).spec;
@@ -30,7 +26,7 @@ add_task(async function() {
     // always happens during navigation as required by this test.
     info("Beginning process switch into file URI process");
     let browserLoaded = BrowserTestUtils.browserLoaded(browser);
-    BrowserTestUtils.loadURI(browser, uriString);
+    BrowserTestUtils.loadURIString(browser, uriString);
     await prepareToChangeCalled.promise;
 
     // The tab we opened is now midway through process switching. Open another

@@ -177,14 +177,18 @@ class nsTableFrame : public nsContainerFrame {
 
   static bool PageBreakAfter(nsIFrame* aSourceFrame, nsIFrame* aNextFrame);
 
-  // Register a positioned table part with its nsTableFrame. These objects will
-  // be visited by FixupPositionedTableParts after reflow is complete. (See that
-  // function for more explanation.) Should be called during frame construction.
-  static void RegisterPositionedTablePart(nsIFrame* aFrame);
+  // Register or deregister a positioned table part with its nsTableFrame.
+  // These objects will be visited by FixupPositionedTableParts after reflow is
+  // complete. (See that function for more explanation.) Should be called
+  // during frame construction or style recalculation.
+  //
+  // @return true if the frame is a registered positioned table part.
+  static void PositionedTablePartMaybeChanged(
+      nsIFrame*, mozilla::ComputedStyle* aOldStyle);
 
-  // Unregister a positioned table part with its nsTableFrame.
-  static void UnregisterPositionedTablePart(nsIFrame* aFrame,
-                                            nsIFrame* aDestructRoot);
+  // Unregister a positioned table part with its nsTableFrame, if needed.
+  static void MaybeUnregisterPositionedTablePart(nsIFrame* aFrame,
+                                                 nsIFrame* aDestructRoot);
 
   /*
    * Notification that rowspan or colspan has changed for content inside a
@@ -431,11 +435,12 @@ class nsTableFrame : public nsContainerFrame {
   nscoord GetRowSpacing();
 
  public:
-  virtual nscoord GetLogicalBaseline(
-      mozilla::WritingMode aWritingMode) const override;
-  bool GetNaturalBaselineBOffset(mozilla::WritingMode aWM,
-                                 BaselineSharingGroup aBaselineGroup,
-                                 nscoord* aBaseline) const override;
+  nscoord SynthesizeFallbackBaseline(
+      mozilla::WritingMode aWM,
+      BaselineSharingGroup aBaselineGroup) const override;
+  Maybe<nscoord> GetNaturalBaselineBOffset(
+      mozilla::WritingMode aWM,
+      BaselineSharingGroup aBaselineGroup) const override;
 
   /** return the row span of a cell, taking into account row span magic at the
    * bottom of a table. The row span equals the number of rows spanned by aCell

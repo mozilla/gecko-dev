@@ -12,7 +12,7 @@ add_task(async function() {
   var fileName;
 
   let loadPromise = BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
-  BrowserTestUtils.loadURI(
+  BrowserTestUtils.loadURIString(
     gBrowser,
     "http://mochi.test:8888/browser/browser/base/content/test/general/web_video.html"
   );
@@ -84,7 +84,6 @@ add_task(async function() {
   await transferCompletePromise;
 });
 
-/* import-globals-from ../../../../../toolkit/content/tests/browser/common/mockTransfer.js */
 Services.scriptloader.loadSubScript(
   "chrome://mochitests/content/browser/toolkit/content/tests/browser/common/mockTransfer.js",
   this

@@ -40,6 +40,8 @@ class MTest;
 
 [[nodiscard]] bool SplitCriticalEdges(MIRGraph& graph);
 
+[[nodiscard]] bool OptimizeIteratorIndices(MIRGenerator* mir, MIRGraph& graph);
+
 bool IsUint32Type(const MDefinition* def);
 
 enum Observability { ConservativeObservability, AggressiveObservability };
@@ -91,6 +93,8 @@ void AssertExtendedGraphCoherency(MIRGraph& graph,
 [[nodiscard]] bool EliminateRedundantChecks(MIRGraph& graph);
 
 [[nodiscard]] bool EliminateRedundantShapeGuards(MIRGraph& graph);
+
+[[nodiscard]] bool EliminateRedundantGCBarriers(MIRGraph& graph);
 
 [[nodiscard]] bool AddKeepAliveInstructions(MIRGraph& graph);
 

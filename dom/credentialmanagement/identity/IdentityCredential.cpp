@@ -22,6 +22,7 @@
 #include "nsIXPConnect.h"
 #include "nsNetUtil.h"
 #include "nsStringStream.h"
+#include "nsTArray.h"
 #include "nsURLHelper.h"
 
 namespace mozilla::dom {
@@ -81,79 +82,34 @@ IdentityCredential::DiscoverFromExternalSource(
         NS_ERROR_FAILURE, __func__);
   }
 
-  RefPtr<IdentityCredential::GetIdentityCredentialPromise::Private> result =
-      new IdentityCredential::GetIdentityCredentialPromise::Private(__func__);
-
-  if (StaticPrefs::
-          dom_security_credentialmanagement_identity_reject_delay_enabled()) {
-    // This is used to give the promise the appropriate lifetime so it is not
-    // freed before the callback below is called. This reference is taken as an
-    // argument to that callback.
-    RefPtr<IdentityCredential::GetIdentityCredentialPromise::Private>
-        forCallbackResult = result;
-
-    RefPtr<nsITimer> timeout;
-    nsresult rv = NS_NewTimerWithFuncCallback(
-        getter_AddRefs(timeout),
-        [](nsITimer* aTimer, void* aClosure) -> void {
-          auto* promise = static_cast<
-              IdentityCredential::GetIdentityCredentialPromise::Private*>(
-              aClosure);
-          if (!promise->IsResolved()) {
-            promise->Reject(NS_ERROR_DOM_NETWORK_ERR, __func__);
-          }
-          // This releases the promise we forgot when we returned from
-          // this function and the timer we forgot after we built this
-          // callback.
-          NS_RELEASE(promise);
-          NS_RELEASE(aTimer);
-        },
-        do_AddRef(forCallbackResult).take(),
-        StaticPrefs::
-            dom_security_credentialmanagement_identity_reject_delay_duration_ms(),
-        nsITimer::TYPE_ONE_SHOT, "IdentityCredentialTimeoutCallback");
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      result->Reject(NS_ERROR_FAILURE, __func__);
-      return result.forget();
-    }
-
-    // Do not clean this timer when we return form this function. This will be
-    // done at the end of the callback above.
-    Unused << timeout.forget();
-  }
-
   // Kick the request off to the main process and translate the result to the
   // expected type when we get a result.
   MOZ_ASSERT(aOptions.mIdentity.WasPassed());
   RefPtr<WindowGlobalChild> wgc = aParent->GetWindowGlobalChild();
   MOZ_ASSERT(wgc);
   RefPtr<IdentityCredential> credential = new IdentityCredential(aParent);
-  wgc->SendDiscoverIdentityCredentialFromExternalSource(
-         aOptions.mIdentity.Value())
+  return wgc
+      ->SendDiscoverIdentityCredentialFromExternalSource(
+          aOptions.mIdentity.Value())
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
-          [result,
-           credential](const WindowGlobalChild::
+          [credential](const WindowGlobalChild::
                            DiscoverIdentityCredentialFromExternalSourcePromise::
                                ResolveValueType& aResult) {
             if (aResult.isSome()) {
               credential->CopyValuesFrom(aResult.value());
-              result->Resolve(credential, __func__);
-            } else if (
-                !StaticPrefs::
-                    dom_security_credentialmanagement_identity_reject_delay_enabled()) {
-              result->Reject(NS_ERROR_DOM_UNKNOWN_ERR, __func__);
+              return IdentityCredential::GetIdentityCredentialPromise::
+                  CreateAndResolve(credential, __func__);
             }
+            return IdentityCredential::GetIdentityCredentialPromise::
+                CreateAndReject(NS_ERROR_DOM_UNKNOWN_ERR, __func__);
           },
-          [result](const WindowGlobalChild::
-                       DiscoverIdentityCredentialFromExternalSourcePromise::
-                           RejectValueType& aResult) {
-            if (!StaticPrefs::
-                    dom_security_credentialmanagement_identity_reject_delay_enabled()) {
-              result->Reject(NS_ERROR_DOM_UNKNOWN_ERR, __func__);
-            }
+          [](const WindowGlobalChild::
+                 DiscoverIdentityCredentialFromExternalSourcePromise::
+                     RejectValueType& aResult) {
+            return IdentityCredential::GetIdentityCredentialPromise::
+                CreateAndReject(NS_ERROR_DOM_UNKNOWN_ERR, __func__);
           });
-  return result.forget();
 }
 
 // static
@@ -172,29 +128,123 @@ IdentityCredential::DiscoverFromExternalSourceInMainProcess(
         NS_ERROR_DOM_NOT_ALLOWED_ERR, __func__);
   }
 
+  RefPtr<IdentityCredential::GetIPCIdentityCredentialPromise::Private> result =
+      new IdentityCredential::GetIPCIdentityCredentialPromise::Private(
+          __func__);
+
   nsCOMPtr<nsIPrincipal> principal(aPrincipal);
   RefPtr<CanonicalBrowsingContext> browsingContext(aBrowsingContext);
 
-  // Have the user choose a provider.
-  return PromptUserToSelectProvider(aBrowsingContext,
-                                    aOptions.mProviders.Value())
+  RefPtr<nsITimer> timeout;
+  if (StaticPrefs::
+          dom_security_credentialmanagement_identity_reject_delay_enabled()) {
+    nsresult rv = NS_NewTimerWithCallback(
+        getter_AddRefs(timeout),
+        [=](auto) {
+          if (!result->IsResolved()) {
+            result->Reject(NS_ERROR_DOM_NETWORK_ERR, __func__);
+          }
+          IdentityCredential::CloseUserInterface(browsingContext);
+        },
+        StaticPrefs::
+            dom_security_credentialmanagement_identity_reject_delay_duration_ms(),
+        nsITimer::TYPE_ONE_SHOT, "IdentityCredentialTimeoutCallback");
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      result->Reject(NS_ERROR_FAILURE, __func__);
+      return result.forget();
+    }
+  }
+
+  // Construct an array of requests to fetch manifests for every provider.
+  // We need this to show their branding information
+  nsTArray<RefPtr<GetManifestPromise>> manifestPromises;
+  for (const IdentityProviderConfig& provider : aOptions.mProviders.Value()) {
+    RefPtr<GetManifestPromise> manifest =
+        IdentityCredential::CheckRootManifest(aPrincipal, provider)
+            ->Then(
+                GetCurrentSerialEventTarget(), __func__,
+                [provider, principal](bool valid) {
+                  if (valid) {
+                    return IdentityCredential::FetchInternalManifest(principal,
+                                                                     provider);
+                  }
+                  return IdentityCredential::GetManifestPromise::
+                      CreateAndReject(NS_ERROR_FAILURE, __func__);
+                },
+                [](nsresult error) {
+                  return IdentityCredential::GetManifestPromise::
+                      CreateAndReject(error, __func__);
+                });
+    manifestPromises.AppendElement(manifest);
+  }
+
+  // We use AllSettled here so that failures will be included- we use default
+  // values there.
+  GetManifestPromise::AllSettled(GetCurrentSerialEventTarget(),
+                                 manifestPromises)
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
-          [principal, browsingContext](const IdentityProvider& provider) {
+          [browsingContext, aOptions](
+              const GetManifestPromise::AllSettledPromiseType::ResolveValueType&
+                  aResults) {
+            // Convert the
+            // GetManifestPromise::AllSettledPromiseType::ResolveValueType to a
+            // Sequence<MozPromise>
+            CopyableTArray<MozPromise<IdentityProviderAPIConfig, nsresult,
+                                      true>::ResolveOrRejectValue>
+                results = aResults;
+            const Sequence<MozPromise<IdentityProviderAPIConfig, nsresult,
+                                      true>::ResolveOrRejectValue>
+                resultsSequence(std::move(results));
+            // The user picks from the providers
+            return PromptUserToSelectProvider(
+                browsingContext, aOptions.mProviders.Value(), resultsSequence);
+          },
+          [](bool error) {
+            return IdentityCredential::
+                GetIdentityProviderConfigWithManifestPromise::CreateAndReject(
+                    NS_ERROR_FAILURE, __func__);
+          })
+      ->Then(
+          GetCurrentSerialEventTarget(), __func__,
+          [principal, browsingContext](
+              const IdentityProviderConfigWithManifest& providerAndManifest) {
+            IdentityProviderAPIConfig manifest;
+            IdentityProviderConfig provider;
+            std::tie(provider, manifest) = providerAndManifest;
             return IdentityCredential::CreateCredential(
-                principal, browsingContext, provider);
+                principal, browsingContext, provider, manifest);
           },
           [](nsresult error) {
             return IdentityCredential::GetIPCIdentityCredentialPromise::
                 CreateAndReject(error, __func__);
+          })
+      ->Then(
+          GetCurrentSerialEventTarget(), __func__,
+          [result, timeout = std::move(timeout)](
+              const IdentityCredential::GetIPCIdentityCredentialPromise::
+                  ResolveOrRejectValue&& value) {
+            // Resolve the result
+            result->ResolveOrReject(value, __func__);
+
+            // Cancel the timer (if it is still pending) and
+            // release the hold on the variables leaked into the timer.
+            if (timeout &&
+                StaticPrefs::
+                    dom_security_credentialmanagement_identity_reject_delay_enabled()) {
+              timeout->Cancel();
+            }
           });
+
+  return result;
 }
 
 // static
 RefPtr<IdentityCredential::GetIPCIdentityCredentialPromise>
-IdentityCredential::CreateCredential(nsIPrincipal* aPrincipal,
-                                     BrowsingContext* aBrowsingContext,
-                                     const IdentityProvider& aProvider) {
+IdentityCredential::CreateCredential(
+    nsIPrincipal* aPrincipal, BrowsingContext* aBrowsingContext,
+    const IdentityProviderConfig& aProvider,
+    const IdentityProviderAPIConfig& aManifest) {
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(aPrincipal);
   MOZ_ASSERT(aBrowsingContext);
@@ -202,47 +252,23 @@ IdentityCredential::CreateCredential(nsIPrincipal* aPrincipal,
   nsCOMPtr<nsIPrincipal> argumentPrincipal = aPrincipal;
   RefPtr<BrowsingContext> browsingContext(aBrowsingContext);
 
-  return IdentityCredential::CheckRootManifest(aPrincipal, aProvider)
-      ->Then(
-          GetCurrentSerialEventTarget(), __func__,
-          [aProvider, argumentPrincipal](bool valid) {
-            if (valid) {
-              return IdentityCredential::FetchInternalManifest(
-                  argumentPrincipal, aProvider);
-            }
-            return IdentityCredential::GetManifestPromise::CreateAndReject(
-                NS_ERROR_FAILURE, __func__);
-          },
-          [](nsresult error) {
-            return IdentityCredential::GetManifestPromise::CreateAndReject(
-                error, __func__);
-          })
-      ->Then(
-          GetCurrentSerialEventTarget(), __func__,
-          [argumentPrincipal,
-           aProvider](const IdentityInternalManifest& manifest) {
-            return IdentityCredential::FetchAccountList(argumentPrincipal,
-                                                        aProvider, manifest);
-          },
-          [](nsresult error) {
-            return IdentityCredential::GetAccountListPromise::CreateAndReject(
-                error, __func__);
-          })
+  return IdentityCredential::FetchAccountList(argumentPrincipal, aProvider,
+                                              aManifest)
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
           [argumentPrincipal, browsingContext, aProvider](
-              const Tuple<IdentityInternalManifest, IdentityAccountList>&
-                  promiseResult) {
-            IdentityInternalManifest currentManifest;
-            IdentityAccountList accountList;
-            Tie(currentManifest, accountList) = promiseResult;
+              const std::tuple<IdentityProviderAPIConfig,
+                               IdentityProviderAccountList>& promiseResult) {
+            IdentityProviderAPIConfig currentManifest;
+            IdentityProviderAccountList accountList;
+            std::tie(currentManifest, accountList) = promiseResult;
             if (!accountList.mAccounts.WasPassed() ||
                 accountList.mAccounts.Value().Length() == 0) {
               return IdentityCredential::GetAccountPromise::CreateAndReject(
                   NS_ERROR_FAILURE, __func__);
             }
             return PromptUserToSelectAccount(browsingContext, accountList,
-                                             currentManifest);
+                                             aProvider, currentManifest);
           },
           [](nsresult error) {
             return IdentityCredential::GetAccountPromise::CreateAndReject(
@@ -250,12 +276,12 @@ IdentityCredential::CreateCredential(nsIPrincipal* aPrincipal,
           })
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
-          [argumentPrincipal, browsingContext,
-           aProvider](const Tuple<IdentityInternalManifest, IdentityAccount>&
-                          promiseResult) {
-            IdentityInternalManifest currentManifest;
-            IdentityAccount account;
-            Tie(currentManifest, account) = promiseResult;
+          [argumentPrincipal, browsingContext, aProvider](
+              const std::tuple<IdentityProviderAPIConfig,
+                               IdentityProviderAccount>& promiseResult) {
+            IdentityProviderAPIConfig currentManifest;
+            IdentityProviderAccount account;
+            std::tie(currentManifest, account) = promiseResult;
             return IdentityCredential::PromptUserWithPolicy(
                 browsingContext, argumentPrincipal, account, currentManifest,
                 aProvider);
@@ -266,12 +292,12 @@ IdentityCredential::CreateCredential(nsIPrincipal* aPrincipal,
           })
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
-          [argumentPrincipal,
-           aProvider](const Tuple<IdentityInternalManifest, IdentityAccount>&
-                          promiseResult) {
-            IdentityInternalManifest currentManifest;
-            IdentityAccount account;
-            Tie(currentManifest, account) = promiseResult;
+          [argumentPrincipal, aProvider](
+              const std::tuple<IdentityProviderAPIConfig,
+                               IdentityProviderAccount>& promiseResult) {
+            IdentityProviderAPIConfig currentManifest;
+            IdentityProviderAccount account;
+            std::tie(currentManifest, account) = promiseResult;
             return IdentityCredential::FetchToken(argumentPrincipal, aProvider,
                                                   currentManifest, account);
           },
@@ -282,10 +308,11 @@ IdentityCredential::CreateCredential(nsIPrincipal* aPrincipal,
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
           [aProvider](
-              const Tuple<IdentityToken, IdentityAccount>& promiseResult) {
-            IdentityToken token;
-            IdentityAccount account;
-            Tie(token, account) = promiseResult;
+              const std::tuple<IdentityProviderToken, IdentityProviderAccount>&
+                  promiseResult) {
+            IdentityProviderToken token;
+            IdentityProviderAccount account;
+            std::tie(token, account) = promiseResult;
             IPCIdentityCredential credential;
             credential.token() = token.mToken;
             credential.id() = account.mId;
@@ -303,10 +330,17 @@ IdentityCredential::CreateCredential(nsIPrincipal* aPrincipal,
 // static
 RefPtr<IdentityCredential::ValidationPromise>
 IdentityCredential::CheckRootManifest(nsIPrincipal* aPrincipal,
-                                      const IdentityProvider& aProvider) {
+                                      const IdentityProviderConfig& aProvider) {
   MOZ_ASSERT(XRE_IsParentProcess());
+
+  if (StaticPrefs::
+          dom_security_credentialmanagement_identity_test_ignore_well_known()) {
+    return IdentityCredential::ValidationPromise::CreateAndResolve(true,
+                                                                   __func__);
+  }
+
   // Build the URL
-  nsString configLocation = aProvider.mConfigURL;
+  nsCString configLocation = aProvider.mConfigURL;
   nsCOMPtr<nsIURI> configURI;
   nsresult rv = NS_NewURI(getter_AddRefs(configURI), configLocation);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -360,9 +394,9 @@ IdentityCredential::CheckRootManifest(nsIPrincipal* aPrincipal,
   RefPtr<Request> request =
       new Request(global, std::move(internalRequest), nullptr);
 
-  return FetchJSONStructure<IdentityRootManifest>(request)->Then(
+  return FetchJSONStructure<IdentityProviderWellKnown>(request)->Then(
       GetCurrentSerialEventTarget(), __func__,
-      [aProvider](const IdentityRootManifest& manifest) {
+      [aProvider](const IdentityProviderWellKnown& manifest) {
         // Make sure there is only one provider URL
         if (manifest.mProvider_urls.Length() != 1) {
           return IdentityCredential::ValidationPromise::CreateAndResolve(
@@ -383,11 +417,11 @@ IdentityCredential::CheckRootManifest(nsIPrincipal* aPrincipal,
 
 // static
 RefPtr<IdentityCredential::GetManifestPromise>
-IdentityCredential::FetchInternalManifest(nsIPrincipal* aPrincipal,
-                                          const IdentityProvider& aProvider) {
+IdentityCredential::FetchInternalManifest(
+    nsIPrincipal* aPrincipal, const IdentityProviderConfig& aProvider) {
   MOZ_ASSERT(XRE_IsParentProcess());
   // Build the URL
-  nsCString configLocation = NS_ConvertUTF16toUTF8(aProvider.mConfigURL);
+  nsCString configLocation = aProvider.mConfigURL;
 
   // Create the global
   RefPtr<NullPrincipal> nullPrincipal =
@@ -425,26 +459,25 @@ IdentityCredential::FetchInternalManifest(nsIPrincipal* aPrincipal,
       nsContentPolicyType::TYPE_WEB_IDENTITY);
   RefPtr<Request> request =
       new Request(global, std::move(internalRequest), nullptr);
-  return FetchJSONStructure<IdentityInternalManifest>(request);
+  return FetchJSONStructure<IdentityProviderAPIConfig>(request);
 }
 
 // static
 RefPtr<IdentityCredential::GetAccountListPromise>
 IdentityCredential::FetchAccountList(
-    nsIPrincipal* aPrincipal, const IdentityProvider& aProvider,
-    const IdentityInternalManifest& aManifest) {
+    nsIPrincipal* aPrincipal, const IdentityProviderConfig& aProvider,
+    const IdentityProviderAPIConfig& aManifest) {
   MOZ_ASSERT(XRE_IsParentProcess());
   // Build the URL
   nsCOMPtr<nsIURI> baseURI;
-  nsCString baseURIString = NS_ConvertUTF16toUTF8(aProvider.mConfigURL);
-  nsresult rv = NS_NewURI(getter_AddRefs(baseURI), baseURIString);
+  nsresult rv = NS_NewURI(getter_AddRefs(baseURI), aProvider.mConfigURL);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return IdentityCredential::GetAccountListPromise::CreateAndReject(rv,
                                                                       __func__);
   }
   nsCOMPtr<nsIURI> idpURI;
-  nsCString accountSpec = NS_ConvertUTF16toUTF8(aManifest.mAccounts_endpoint);
-  rv = NS_NewURI(getter_AddRefs(idpURI), accountSpec.get(), baseURI);
+  rv = NS_NewURI(getter_AddRefs(idpURI), aManifest.mAccounts_endpoint, nullptr,
+                 baseURI);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return IdentityCredential::GetAccountListPromise::CreateAndReject(rv,
                                                                       __func__);
@@ -505,11 +538,11 @@ IdentityCredential::FetchAccountList(
   RefPtr<Request> request =
       new Request(global, std::move(internalRequest), nullptr);
 
-  return FetchJSONStructure<IdentityAccountList>(request)->Then(
+  return FetchJSONStructure<IdentityProviderAccountList>(request)->Then(
       GetCurrentSerialEventTarget(), __func__,
-      [aManifest](const IdentityAccountList& accountList) {
+      [aManifest](const IdentityProviderAccountList& accountList) {
         return IdentityCredential::GetAccountListPromise::CreateAndResolve(
-            MakeTuple(aManifest, accountList), __func__);
+            std::make_tuple(aManifest, accountList), __func__);
       },
       [](nsresult error) {
         return IdentityCredential::GetAccountListPromise::CreateAndReject(
@@ -519,19 +552,19 @@ IdentityCredential::FetchAccountList(
 
 // static
 RefPtr<IdentityCredential::GetTokenPromise> IdentityCredential::FetchToken(
-    nsIPrincipal* aPrincipal, const IdentityProvider& aProvider,
-    const IdentityInternalManifest& aManifest,
-    const IdentityAccount& aAccount) {
+    nsIPrincipal* aPrincipal, const IdentityProviderConfig& aProvider,
+    const IdentityProviderAPIConfig& aManifest,
+    const IdentityProviderAccount& aAccount) {
   MOZ_ASSERT(XRE_IsParentProcess());
   // Build the URL
   nsCOMPtr<nsIURI> baseURI;
-  nsCString baseURIString = NS_ConvertUTF16toUTF8(aProvider.mConfigURL);
+  nsCString baseURIString = aProvider.mConfigURL;
   nsresult rv = NS_NewURI(getter_AddRefs(baseURI), baseURIString);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return IdentityCredential::GetTokenPromise::CreateAndReject(rv, __func__);
   }
   nsCOMPtr<nsIURI> idpURI;
-  nsCString tokenSpec = NS_ConvertUTF16toUTF8(aManifest.mId_token_endpoint);
+  nsCString tokenSpec = aManifest.mId_assertion_endpoint;
   rv = NS_NewURI(getter_AddRefs(idpURI), tokenSpec.get(), baseURI);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return IdentityCredential::GetTokenPromise::CreateAndReject(rv, __func__);
@@ -603,11 +636,11 @@ RefPtr<IdentityCredential::GetTokenPromise> IdentityCredential::FetchToken(
       nsContentPolicyType::TYPE_WEB_IDENTITY);
   RefPtr<Request> request =
       new Request(global, std::move(internalRequest), nullptr);
-  return FetchJSONStructure<IdentityToken>(request)->Then(
+  return FetchJSONStructure<IdentityProviderToken>(request)->Then(
       GetCurrentSerialEventTarget(), __func__,
-      [aAccount](const IdentityToken& token) {
+      [aAccount](const IdentityProviderToken& token) {
         return IdentityCredential::GetTokenPromise::CreateAndResolve(
-            MakeTuple(token, aAccount), __func__);
+            std::make_tuple(token, aAccount), __func__);
       },
       [](nsresult error) {
         return IdentityCredential::GetTokenPromise::CreateAndReject(error,
@@ -618,21 +651,20 @@ RefPtr<IdentityCredential::GetTokenPromise> IdentityCredential::FetchToken(
 // static
 RefPtr<IdentityCredential::GetMetadataPromise>
 IdentityCredential::FetchMetadata(nsIPrincipal* aPrincipal,
-                                  const IdentityProvider& aProvider,
-                                  const IdentityInternalManifest& aManifest) {
+                                  const IdentityProviderConfig& aProvider,
+                                  const IdentityProviderAPIConfig& aManifest) {
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(aPrincipal);
   // Build the URL
   nsCOMPtr<nsIURI> baseURI;
-  nsCString baseURIString = NS_ConvertUTF16toUTF8(aProvider.mConfigURL);
+  nsCString baseURIString = aProvider.mConfigURL;
   nsresult rv = NS_NewURI(getter_AddRefs(baseURI), baseURIString);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return IdentityCredential::GetMetadataPromise::CreateAndReject(rv,
                                                                    __func__);
   }
   nsCOMPtr<nsIURI> idpURI;
-  nsCString metadataSpec =
-      NS_ConvertUTF16toUTF8(aManifest.mClient_metadata_endpoint);
+  nsCString metadataSpec = aManifest.mClient_metadata_endpoint;
   rv = NS_NewURI(getter_AddRefs(idpURI), metadataSpec.get(), baseURI);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return IdentityCredential::GetMetadataPromise::CreateAndReject(rv,
@@ -679,18 +711,20 @@ IdentityCredential::FetchMetadata(nsIPrincipal* aPrincipal,
       nsContentPolicyType::TYPE_WEB_IDENTITY);
   RefPtr<Request> request =
       new Request(global, std::move(internalRequest), nullptr);
-  return FetchJSONStructure<IdentityClientMetadata>(request);
+  return FetchJSONStructure<IdentityProviderClientMetadata>(request);
 }
 
 // static
-RefPtr<IdentityCredential::GetIdentityProviderPromise>
+RefPtr<IdentityCredential::GetIdentityProviderConfigWithManifestPromise>
 IdentityCredential::PromptUserToSelectProvider(
     BrowsingContext* aBrowsingContext,
-    const Sequence<IdentityProvider>& aProviders) {
+    const Sequence<IdentityProviderConfig>& aProviders,
+    const Sequence<GetManifestPromise::ResolveOrRejectValue>& aManifests) {
   MOZ_ASSERT(aBrowsingContext);
-  RefPtr<IdentityCredential::GetIdentityProviderPromise::Private>
-      resultPromise =
-          new IdentityCredential::GetIdentityProviderPromise::Private(__func__);
+  RefPtr<
+      IdentityCredential::GetIdentityProviderConfigWithManifestPromise::Private>
+      resultPromise = new IdentityCredential::
+          GetIdentityProviderConfigWithManifestPromise::Private(__func__);
 
   if (NS_WARN_IF(!aBrowsingContext)) {
     resultPromise->Reject(NS_ERROR_FAILURE, __func__);
@@ -719,19 +753,54 @@ IdentityCredential::PromptUserToSelectProvider(
     return resultPromise;
   }
 
+  // Convert each settled MozPromise into a Nullable<ResolveValue>
+  Sequence<Nullable<IdentityProviderAPIConfig>> manifests;
+  for (GetManifestPromise::ResolveOrRejectValue manifest : aManifests) {
+    if (manifest.IsResolve()) {
+      if (NS_WARN_IF(
+              !manifests.AppendElement(manifest.ResolveValue(), fallible))) {
+        resultPromise->Reject(NS_ERROR_FAILURE, __func__);
+        return resultPromise;
+      }
+    } else {
+      if (NS_WARN_IF(!manifests.AppendElement(
+              Nullable<IdentityProviderAPIConfig>(), fallible))) {
+        resultPromise->Reject(NS_ERROR_FAILURE, __func__);
+        return resultPromise;
+      }
+    }
+  }
+  JS::Rooted<JS::Value> manifestsJS(jsapi.cx());
+  success = ToJSValue(jsapi.cx(), manifests, &manifestsJS);
+  if (NS_WARN_IF(!success)) {
+    resultPromise->Reject(NS_ERROR_FAILURE, __func__);
+    return resultPromise;
+  }
+
   RefPtr<Promise> showPromptPromise;
   icPromptService->ShowProviderPrompt(aBrowsingContext, providersJS,
+                                      manifestsJS,
                                       getter_AddRefs(showPromptPromise));
 
   RefPtr<DomPromiseListener> listener = new DomPromiseListener(
-      [resultPromise](JSContext* aCx, JS::Handle<JS::Value> aValue) {
-        IdentityProvider result;
-        bool success = result.Init(aCx, aValue);
-        if (!success) {
+      [aProviders, aManifests, resultPromise](JSContext* aCx,
+                                              JS::Handle<JS::Value> aValue) {
+        int32_t result = aValue.toInt32();
+        if (result < 0 || (uint32_t)result > aProviders.Length() ||
+            (uint32_t)result > aManifests.Length()) {
           resultPromise->Reject(NS_ERROR_FAILURE, __func__);
           return;
         }
-        resultPromise->Resolve(result, __func__);
+        const IdentityProviderConfig& resolvedProvider =
+            aProviders.ElementAt(result);
+        if (!aManifests.ElementAt(result).IsResolve()) {
+          resultPromise->Reject(NS_ERROR_FAILURE, __func__);
+          return;
+        }
+        const IdentityProviderAPIConfig& resolvedManifest =
+            aManifests.ElementAt(result).ResolveValue();
+        resultPromise->Resolve(
+            std::make_tuple(resolvedProvider, resolvedManifest), __func__);
       },
       [resultPromise](nsresult aRv) { resultPromise->Reject(aRv, __func__); });
   showPromptPromise->AppendNativeHandler(listener);
@@ -742,8 +811,10 @@ IdentityCredential::PromptUserToSelectProvider(
 // static
 RefPtr<IdentityCredential::GetAccountPromise>
 IdentityCredential::PromptUserToSelectAccount(
-    BrowsingContext* aBrowsingContext, const IdentityAccountList& aAccounts,
-    const IdentityInternalManifest& aManifest) {
+    BrowsingContext* aBrowsingContext,
+    const IdentityProviderAccountList& aAccounts,
+    const IdentityProviderConfig& aProvider,
+    const IdentityProviderAPIConfig& aManifest) {
   MOZ_ASSERT(aBrowsingContext);
   RefPtr<IdentityCredential::GetAccountPromise::Private> resultPromise =
       new IdentityCredential::GetAccountPromise::Private(__func__);
@@ -775,19 +846,37 @@ IdentityCredential::PromptUserToSelectAccount(
     return resultPromise;
   }
 
+  JS::Rooted<JS::Value> providerJS(jsapi.cx());
+  success = ToJSValue(jsapi.cx(), aProvider, &providerJS);
+  if (NS_WARN_IF(!success)) {
+    resultPromise->Reject(NS_ERROR_FAILURE, __func__);
+    return resultPromise;
+  }
+
+  JS::Rooted<JS::Value> manifestJS(jsapi.cx());
+  success = ToJSValue(jsapi.cx(), aManifest, &manifestJS);
+  if (NS_WARN_IF(!success)) {
+    resultPromise->Reject(NS_ERROR_FAILURE, __func__);
+    return resultPromise;
+  }
+
   RefPtr<Promise> showPromptPromise;
   icPromptService->ShowAccountListPrompt(aBrowsingContext, accountsJS,
+                                         providerJS, manifestJS,
                                          getter_AddRefs(showPromptPromise));
 
   RefPtr<DomPromiseListener> listener = new DomPromiseListener(
-      [resultPromise, aManifest](JSContext* aCx, JS::Handle<JS::Value> aValue) {
-        IdentityAccount result;
-        bool success = result.Init(aCx, aValue);
-        if (!success) {
+      [aAccounts, resultPromise, aManifest](JSContext* aCx,
+                                            JS::Handle<JS::Value> aValue) {
+        int32_t result = aValue.toInt32();
+        if (!aAccounts.mAccounts.WasPassed() || result < 0 ||
+            (uint32_t)result > aAccounts.mAccounts.Value().Length()) {
           resultPromise->Reject(NS_ERROR_FAILURE, __func__);
           return;
         }
-        resultPromise->Resolve(MakeTuple(aManifest, result), __func__);
+        const IdentityProviderAccount& resolved =
+            aAccounts.mAccounts.Value().ElementAt(result);
+        resultPromise->Resolve(std::make_tuple(aManifest, resolved), __func__);
       },
       [resultPromise](nsresult aRv) { resultPromise->Reject(aRv, __func__); });
   showPromptPromise->AppendNativeHandler(listener);
@@ -799,8 +888,9 @@ IdentityCredential::PromptUserToSelectAccount(
 RefPtr<IdentityCredential::GetAccountPromise>
 IdentityCredential::PromptUserWithPolicy(
     BrowsingContext* aBrowsingContext, nsIPrincipal* aPrincipal,
-    const IdentityAccount& aAccount, const IdentityInternalManifest& aManifest,
-    const IdentityProvider& aProvider) {
+    const IdentityProviderAccount& aAccount,
+    const IdentityProviderAPIConfig& aManifest,
+    const IdentityProviderConfig& aProvider) {
   MOZ_ASSERT(aBrowsingContext);
   MOZ_ASSERT(aPrincipal);
 
@@ -813,7 +903,7 @@ IdentityCredential::PromptUserWithPolicy(
   }
 
   // Check the storage bit
-  nsCString configLocation = NS_ConvertUTF16toUTF8(aProvider.mConfigURL);
+  nsCString configLocation = aProvider.mConfigURL;
   nsCOMPtr<nsIURI> idpURI;
   error = NS_NewURI(getter_AddRefs(idpURI), configLocation);
   if (NS_WARN_IF(NS_FAILED(error))) {
@@ -837,7 +927,7 @@ IdentityCredential::PromptUserWithPolicy(
     icStorageService->SetState(aPrincipal, idpPrincipal,
                                NS_ConvertUTF16toUTF8(aAccount.mId), true, true);
     return IdentityCredential::GetAccountPromise::CreateAndResolve(
-        MakeTuple(aManifest, aAccount), __func__);
+        std::make_tuple(aManifest, aAccount), __func__);
   }
 
   // otherwise, fetch ->Then display ->Then return ->Catch reject
@@ -846,9 +936,9 @@ IdentityCredential::PromptUserWithPolicy(
   return FetchMetadata(aPrincipal, aProvider, aManifest)
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
-          [aAccount, aProvider, argumentPrincipal, browsingContext,
+          [aAccount, aManifest, aProvider, argumentPrincipal, browsingContext,
            icStorageService,
-           idpPrincipal](const IdentityClientMetadata& metadata)
+           idpPrincipal](const IdentityProviderClientMetadata& metadata)
               -> RefPtr<GenericPromise> {
             nsresult error;
             nsCOMPtr<nsIIdentityCredentialPromptService> icPromptService =
@@ -877,10 +967,16 @@ IdentityCredential::PromptUserWithPolicy(
               return GenericPromise::CreateAndReject(NS_ERROR_FAILURE,
                                                      __func__);
             }
+            JS::Rooted<JS::Value> manifestJS(jsapi.cx());
+            success = ToJSValue(jsapi.cx(), aManifest, &manifestJS);
+            if (NS_WARN_IF(!success)) {
+              return GenericPromise::CreateAndReject(NS_ERROR_FAILURE,
+                                                     __func__);
+            }
 
             RefPtr<Promise> showPromptPromise;
             icPromptService->ShowPolicyPrompt(
-                browsingContext, providerJS, metadataJS,
+                browsingContext, providerJS, manifestJS, metadataJS,
                 getter_AddRefs(showPromptPromise));
 
             RefPtr<GenericPromise::Private> resultPromise =
@@ -913,7 +1009,7 @@ IdentityCredential::PromptUserWithPolicy(
           [aManifest, aAccount](bool success) {
             if (success) {
               return IdentityCredential::GetAccountPromise::CreateAndResolve(
-                  MakeTuple(aManifest, aAccount), __func__);
+                  std::make_tuple(aManifest, aAccount), __func__);
             }
             return IdentityCredential::GetAccountPromise::CreateAndReject(
                 NS_ERROR_FAILURE, __func__);

@@ -7,6 +7,7 @@ import PropTypes from "prop-types";
 import { connect } from "../utils/connect";
 import fuzzyAldrin from "fuzzaldrin-plus";
 import { basename } from "../utils/path";
+import { createLocation } from "../utils/location";
 
 const { throttle } = require("devtools/shared/throttle");
 
@@ -27,6 +28,7 @@ import {
 } from "../selectors";
 import { memoizeLast } from "../utils/memoizeLast";
 import { scrollList } from "../utils/result-list";
+import { searchKeys } from "../constants";
 import {
   formatSymbols,
   parseLineColumn,
@@ -71,6 +73,7 @@ export class QuickOpenModal extends Component {
       blackBoxRanges: PropTypes.object.isRequired,
       enabled: PropTypes.bool.isRequired,
       highlightLineRange: PropTypes.func.isRequired,
+      clearHighlightLineRange: PropTypes.func.isRequired,
       query: PropTypes.string.isRequired,
       searchType: PropTypes.oneOf([
         "functions",
@@ -90,6 +93,7 @@ export class QuickOpenModal extends Component {
       symbolsLoading: PropTypes.bool.isRequired,
       tabUrls: PropTypes.array.isRequired,
       toggleShortcutsModal: PropTypes.func.isRequired,
+      projectDirectoryRoot: PropTypes.string,
     };
   }
 
@@ -259,7 +263,7 @@ export class QuickOpenModal extends Component {
 
     if (this.isGotoSourceQuery()) {
       const location = parseLineColumn(this.props.query);
-      this.gotoLocation({ ...location, sourceId: item.id });
+      this.gotoLocation({ ...location, source: item.source });
       return;
     }
 
@@ -271,11 +275,15 @@ export class QuickOpenModal extends Component {
       return;
     }
 
-    this.gotoLocation({ sourceId: item.id, line: 0 });
+    this.gotoLocation({ source: item.source, line: 0 });
   };
 
   onSelectResultItem = item => {
-    const { selectedSource, highlightLineRange } = this.props;
+    const {
+      selectedSource,
+      highlightLineRange,
+      clearHighlightLineRange,
+    } = this.props;
     if (
       selectedSource == null ||
       !this.isSymbolSearch() ||
@@ -284,12 +292,15 @@ export class QuickOpenModal extends Component {
       return;
     }
 
-    highlightLineRange({
-      ...(item.location != null
-        ? { start: item.location.start.line, end: item.location.end.line }
-        : {}),
-      sourceId: selectedSource.id,
-    });
+    if (item.location) {
+      highlightLineRange({
+        start: item.location.start.line,
+        end: item.location.end.line,
+        sourceId: selectedSource.id,
+      });
+    } else {
+      clearHighlightLineRange();
+    }
   };
 
   traverseResults = e => {
@@ -310,13 +321,14 @@ export class QuickOpenModal extends Component {
     const { cx, selectSpecificLocation, selectedSource } = this.props;
 
     if (location != null) {
-      const selectedSourceId = selectedSource ? selectedSource.id : "";
-      const sourceId = location.sourceId ? location.sourceId : selectedSourceId;
-      selectSpecificLocation(cx, {
-        sourceId,
-        line: location.line,
-        column: location.column,
-      });
+      selectSpecificLocation(
+        cx,
+        createLocation({
+          source: location.source || selectedSource,
+          line: location.line,
+          column: location.column,
+        })
+      );
       this.closeModal();
     }
   };
@@ -462,6 +474,9 @@ export class QuickOpenModal extends Component {
           handleClose={this.closeModal}
           expanded={expanded}
           showClose={false}
+          searchKey={searchKeys.QUICKOPEN_SEARCH}
+          showExcludePatterns={false}
+          showSearchModifiers={false}
           selectedItemId={
             expanded && items[selectedIndex] ? items[selectedIndex].id : ""
           }
@@ -486,11 +501,11 @@ export class QuickOpenModal extends Component {
 /* istanbul ignore next: ignoring testing of redux connection stuff */
 function mapStateToProps(state) {
   const selectedSource = getSelectedSource(state);
+  const location = getSelectedLocation(state);
   const displayedSources = getDisplayedSourcesList(state);
   const tabs = getTabs(state);
   const tabUrls = [...new Set(tabs.map(tab => tab.url))];
-  const symbols = getSymbols(state, selectedSource);
-  const location = getSelectedLocation(state);
+  const symbols = getSymbols(state, location);
 
   return {
     cx: getContext(state),
@@ -510,10 +525,10 @@ function mapStateToProps(state) {
   };
 }
 
-/* istanbul ignore next: ignoring testing of redux connection stuff */
 export default connect(mapStateToProps, {
   selectSpecificLocation: actions.selectSpecificLocation,
   setQuickOpenQuery: actions.setQuickOpenQuery,
   highlightLineRange: actions.highlightLineRange,
+  clearHighlightLineRange: actions.clearHighlightLineRange,
   closeQuickOpen: actions.closeQuickOpen,
 })(QuickOpenModal);

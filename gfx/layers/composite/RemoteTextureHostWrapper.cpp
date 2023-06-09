@@ -183,12 +183,7 @@ TextureHostType RemoteTextureHostWrapper::GetTextureHostType() {
   return mRemoteTextureForDisplayList->GetTextureHostType();
 }
 
-bool RemoteTextureHostWrapper::CheckIsReadyForRendering() {
-  if (!mRemoteTextureForDisplayList) {
-    // mRemoteTextureForDisplayList might be updated.
-    RemoteTextureMap::Get()->GetRemoteTextureForDisplayList(this);
-    MOZ_ASSERT(mRemoteTextureForDisplayList);
-  }
+bool RemoteTextureHostWrapper::IsReadyForRendering() {
   return !!mRemoteTextureForDisplayList;
 }
 
@@ -225,6 +220,21 @@ bool RemoteTextureHostWrapper::IsWrappingSurfaceTextureHost() {
     return false;
   }
   return mRemoteTextureForDisplayList->IsWrappingSurfaceTextureHost();
+}
+
+bool RemoteTextureHostWrapper::NeedsDeferredDeletion() const {
+  if (!mRemoteTextureForDisplayList) {
+    return true;
+  }
+  return mRemoteTextureForDisplayList->NeedsDeferredDeletion();
+}
+
+AndroidHardwareBuffer* RemoteTextureHostWrapper::GetAndroidHardwareBuffer()
+    const {
+  if (!mRemoteTextureForDisplayList) {
+    return nullptr;
+  }
+  return mRemoteTextureForDisplayList->GetAndroidHardwareBuffer();
 }
 
 }  // namespace mozilla::layers

@@ -39,7 +39,7 @@ bool RemoteAccessible::GetCOMInterface(void** aOutAccessible) const {
   // methods here in RemoteAccessible, causing infinite recursion.
   MOZ_ASSERT(!StaticPrefs::accessibility_cache_enabled_AtStartup());
   if (!mCOMProxy && mSafeToRecurse) {
-    RemoteAccessible* thisPtr = const_cast<RemoteAccessible*>(this);
+    WeakPtr<RemoteAccessible> thisPtr = const_cast<RemoteAccessible*>(this);
     // See if we can lazily obtain a COM proxy
     MsaaAccessible* msaa = MsaaAccessible::GetFrom(thisPtr);
     bool isDefunct = false;
@@ -49,7 +49,12 @@ bool RemoteAccessible::GetCOMInterface(void** aOutAccessible) const {
     VARIANT realId = {{{VT_I4}}};
     realId.ulVal = msaa->GetExistingID();
     MOZ_DIAGNOSTIC_ASSERT(realId.ulVal != CHILDID_SELF);
-    thisPtr->mCOMProxy = msaa->GetIAccessibleFor(realId, &isDefunct);
+    RefPtr<IAccessible> proxy = msaa->GetIAccessibleFor(realId, &isDefunct);
+    if (!thisPtr) {
+      *aOutAccessible = nullptr;
+      return false;
+    }
+    thisPtr->mCOMProxy = proxy;
   }
 
   RefPtr<IAccessible> addRefed = mCOMProxy;
@@ -280,11 +285,9 @@ nsIntRect RemoteAccessible::BoundsInCSSPixels() const {
   return rect;
 }
 
-void RemoteAccessible::Language(nsString& aLocale) {
+void RemoteAccessible::Language(nsAString& aLocale) {
   if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
-    // Not yet supported by the cache.
-    aLocale.Truncate();
-    return;
+    return RemoteAccessibleBase<RemoteAccessible>::Language(aLocale);
   }
   aLocale.Truncate();
 
@@ -467,24 +470,6 @@ double RemoteAccessible::CurValue() const {
   }
 
   return currentValue.dblVal;
-}
-
-bool RemoteAccessible::SetCurValue(double aValue) {
-  if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
-    // Not yet supported by the cache.
-    return false;
-  }
-  RefPtr<IAccessibleValue> acc = QueryInterface<IAccessibleValue>(this);
-  if (!acc) {
-    return false;
-  }
-
-  VARIANT currentValue;
-  VariantInit(&currentValue);
-  currentValue.vt = VT_R8;
-  currentValue.dblVal = aValue;
-  HRESULT hr = acc->setCurrentValue(currentValue);
-  return SUCCEEDED(hr);
 }
 
 double RemoteAccessible::MinValue() const {
@@ -678,25 +663,10 @@ void RemoteAccessible::TextAtOffset(int32_t aOffset,
   *aEndOffset = end;
 }
 
-bool RemoteAccessible::AddToSelection(int32_t aStartOffset,
-                                      int32_t aEndOffset) {
-  if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
-    // Not yet supported by the cache.
-    return false;
-  }
-  RefPtr<IAccessibleText> acc = QueryInterface<IAccessibleText>(this);
-  if (!acc) {
-    return false;
-  }
-
-  return SUCCEEDED(acc->addSelection(static_cast<long>(aStartOffset),
-                                     static_cast<long>(aEndOffset)));
-}
-
 bool RemoteAccessible::RemoveFromSelection(int32_t aSelectionNum) {
   if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
-    // Not yet supported by the cache.
-    return false;
+    return RemoteAccessibleBase<RemoteAccessible>::RemoveFromSelection(
+        aSelectionNum);
   }
   RefPtr<IAccessibleText> acc = QueryInterface<IAccessibleText>(this);
   if (!acc) {
@@ -745,9 +715,12 @@ void RemoteAccessible::ScrollSubstringTo(int32_t aStartOffset,
                                          int32_t aEndOffset,
                                          uint32_t aScrollType) {
   if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
-    // Not yet supported by the cache.
+    MOZ_ASSERT(IsHyperText(), "is not hypertext?");
+    RemoteAccessibleBase<RemoteAccessible>::ScrollSubstringTo(
+        aStartOffset, aEndOffset, aScrollType);
     return;
   }
+
   RefPtr<IAccessibleText> acc = QueryInterface<IAccessibleText>(this);
   if (!acc) {
     return;
@@ -788,66 +761,6 @@ void RemoteAccessible::ScrollSubstringToPoint(int32_t aStartOffset,
   acc->scrollSubstringToPoint(static_cast<long>(aStartOffset),
                               static_cast<long>(aEndOffset), coordType,
                               static_cast<long>(aX), static_cast<long>(aY));
-}
-
-bool RemoteAccessible::IsLinkValid() {
-  if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
-    // Not yet supported by the cache.
-    return false;
-  }
-  RefPtr<IAccessibleHyperlink> acc = QueryInterface<IAccessibleHyperlink>(this);
-  if (!acc) {
-    return false;
-  }
-
-  boolean valid;
-  if (FAILED(acc->get_valid(&valid))) {
-    return false;
-  }
-
-  return valid;
-}
-
-uint32_t RemoteAccessible::AnchorCount(bool* aOk) {
-  *aOk = false;
-  if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
-    // Not yet supported by the cache.
-    return 0;
-  }
-  RefPtr<IGeckoCustom> custom = QueryInterface<IGeckoCustom>(this);
-  if (!custom) {
-    return 0;
-  }
-
-  long count;
-  if (FAILED(custom->get_anchorCount(&count))) {
-    return 0;
-  }
-
-  *aOk = true;
-  return count;
-}
-
-RemoteAccessible* RemoteAccessible::AnchorAt(uint32_t aIdx) {
-  if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
-    // Not yet supported by the cache.
-    return nullptr;
-  }
-  RefPtr<IAccessibleHyperlink> link =
-      QueryInterface<IAccessibleHyperlink>(this);
-  if (!link) {
-    return nullptr;
-  }
-
-  VARIANT anchor;
-  if (FAILED(link->get_anchor(aIdx, &anchor))) {
-    return nullptr;
-  }
-
-  MOZ_ASSERT(anchor.vt == VT_UNKNOWN);
-  RemoteAccessible* proxyAnchor = GetProxyFor(Document(), anchor.punkVal);
-  anchor.punkVal->Release();
-  return proxyAnchor;
 }
 
 void RemoteAccessible::DOMNodeID(nsString& aID) const {
@@ -937,6 +850,17 @@ GroupPos RemoteAccessible::GroupPosition() {
 
   // This is only supported when cache is enabled.
   return GroupPos();
+}
+
+bool RemoteAccessible::SetSelectionBoundsAt(int32_t aSelectionNum,
+                                            int32_t aStartOffset,
+                                            int32_t aEndOffset) {
+  if (!StaticPrefs::accessibility_cache_enabled_AtStartup()) {
+    return false;
+  }
+
+  return RemoteAccessibleBase<RemoteAccessible>::SetSelectionBoundsAt(
+      aSelectionNum, aStartOffset, aEndOffset);
 }
 
 }  // namespace a11y

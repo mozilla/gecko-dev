@@ -76,6 +76,7 @@ let setupPerformanceAPISpoofAndDisableTest = async function(
     [
       {
         list: PERFORMANCE_TIMINGS,
+        resistFingerprinting,
         precision: expectedPrecision,
         isRoundedFunc: isTimeValueRounded.toString(),
         workerCall,
@@ -95,7 +96,7 @@ let setupPerformanceAPISpoofAndDisableTest = async function(
   await BrowserTestUtils.closeWindow(win);
 };
 
-let isTimeValueRounded = (x, expectedPrecision) => {
+let isTimeValueRounded = (x, expectedPrecision, console) => {
   const nearestExpected = Math.round(x / expectedPrecision) * expectedPrecision;
   // First we do the perfectly normal check that should work just fine
   if (x === nearestExpected) {
@@ -110,6 +111,20 @@ let isTimeValueRounded = (x, expectedPrecision) => {
   // To be clear, this error is introduced in our re-calculation of 'rounded'
   // above in JavaScript.
   const error = Math.abs(x - nearestExpected);
+
+  if (console) {
+    console.log(
+      "Additional Debugging Info: Expected Precision: " +
+        expectedPrecision +
+        " Measured Value: " +
+        x +
+        " Nearest Expected Vaue: " +
+        nearestExpected +
+        " Error: " +
+        error
+    );
+  }
+
   if (Math.abs(error) < 0.0005) {
     return true;
   }
@@ -129,52 +144,89 @@ let isTimeValueRounded = (x, expectedPrecision) => {
     }
   }
 
-  ok(
-    false,
-    "Looming Test Failure, Additional Debugging Info: Expected Precision: " +
-      expectedPrecision +
-      " Measured Value: " +
-      x +
-      " Nearest Expected Vaue: " +
-      nearestExpected +
-      " Error: " +
-      error
-  );
-
   return false;
 };
 
 let setupAndRunCrossOriginIsolatedTest = async function(
-  resistFingerprinting,
-  reduceTimerPrecision,
-  crossOriginIsolated,
+  options,
   expectedPrecision,
   runTests,
   workerCall
 ) {
-  await SpecialPowers.pushPrefEnv({
-    set: [
-      ["privacy.resistFingerprinting", resistFingerprinting],
-      ["privacy.reduceTimerPrecision", reduceTimerPrecision],
-      [
-        "privacy.resistFingerprinting.reduceTimerPrecision.microseconds",
-        expectedPrecision * 1000,
-      ],
-      ["browser.tabs.remote.useCrossOriginOpenerPolicy", crossOriginIsolated],
-      ["browser.tabs.remote.useCrossOriginEmbedderPolicy", crossOriginIsolated],
+  let prefsToSet = [
+    [
+      "privacy.resistFingerprinting.reduceTimerPrecision.microseconds",
+      expectedPrecision * 1000,
     ],
-  });
+  ];
 
-  let win = await BrowserTestUtils.openNewBrowserWindow();
+  if (options.resistFingerprinting !== undefined) {
+    prefsToSet = prefsToSet.concat([
+      ["privacy.resistFingerprinting", options.resistFingerprinting],
+    ]);
+  } else {
+    options.resistFingerprinting = false;
+  }
+
+  if (options.resistFingerprintingPBMOnly !== undefined) {
+    prefsToSet = prefsToSet.concat([
+      [
+        "privacy.resistFingerprinting.pbmode",
+        options.resistFingerprintingPBMOnly,
+      ],
+    ]);
+  } else {
+    options.resistFingerprintingPBMOnly = false;
+  }
+
+  if (options.reduceTimerPrecision !== undefined) {
+    prefsToSet = prefsToSet.concat([
+      ["privacy.reduceTimerPrecision", options.reduceTimerPrecision],
+    ]);
+  } else {
+    options.reduceTimerPrecision = false;
+  }
+
+  if (options.crossOriginIsolated !== undefined) {
+    prefsToSet = prefsToSet.concat([
+      [
+        "browser.tabs.remote.useCrossOriginOpenerPolicy",
+        options.crossOriginIsolated,
+      ],
+      [
+        "browser.tabs.remote.useCrossOriginEmbedderPolicy",
+        options.crossOriginIsolated,
+      ],
+    ]);
+  } else {
+    options.crossOriginIsolated = false;
+  }
+
+  if (options.openPrivateWindow === undefined) {
+    options.openPrivateWindow = false;
+  }
+  if (options.shouldBeRounded === undefined) {
+    options.shouldBeRounded = true;
+  }
+
+  console.log(prefsToSet);
+  await SpecialPowers.pushPrefEnv({ set: prefsToSet });
+
+  let win = await BrowserTestUtils.openNewBrowserWindow({
+    private: options.openPrivateWindow,
+  });
   let tab = await BrowserTestUtils.openNewForegroundTab(
     win.gBrowser,
     `https://example.com/browser/browser/components/resistfingerprinting` +
-      `/test/browser/coop_header.sjs?crossOriginIsolated=${crossOriginIsolated}`
+      `/test/browser/coop_header.sjs?crossOriginIsolated=${options.crossOriginIsolated}`
   );
 
   // No matter what we set the precision to, if we're in ResistFingerprinting
   // mode we use the larger of the precision pref and the RFP time-atom constant
-  if (resistFingerprinting) {
+  if (
+    options.resistFingerprinting ||
+    (options.resistFingerprintingPBMOnly && options.openPrivateWindow)
+  ) {
     const RFP_TIME_ATOM_MS = 16.667;
     expectedPrecision = Math.max(RFP_TIME_ATOM_MS, expectedPrecision);
   }
@@ -185,14 +237,13 @@ let setupAndRunCrossOriginIsolatedTest = async function(
         precision: expectedPrecision,
         isRoundedFunc: isTimeValueRounded.toString(),
         workerCall,
-        resistFingerprinting,
-        reduceTimerPrecision,
+        options,
       },
     ],
     runTests
   );
 
-  if (crossOriginIsolated) {
+  if (options.crossOriginIsolated) {
     let remoteType = tab.linkedBrowser.remoteType;
     ok(
       remoteType.startsWith(E10SUtils.WEB_REMOTE_COOP_COEP_TYPE_PREFIX),
@@ -201,6 +252,7 @@ let setupAndRunCrossOriginIsolatedTest = async function(
   }
 
   await BrowserTestUtils.closeWindow(win);
+  await SpecialPowers.popPrefEnv();
 };
 
 // This function calculates the maximum available window dimensions and returns
@@ -700,7 +752,6 @@ async function testA(
   await SpecialPowers.pushPrefEnv({
     set: [
       ["privacy.resistFingerprinting", true],
-      ["privacy.resistFingerprinting.testGranularityMask", 4],
       [
         "privacy.resistFingerprinting.exemptedDomains",
         "example.com, example.org, example.net",
@@ -738,7 +789,6 @@ async function testB(
   await SpecialPowers.pushPrefEnv({
     set: [
       ["privacy.resistFingerprinting", true],
-      ["privacy.resistFingerprinting.testGranularityMask", 4],
       [
         "privacy.resistFingerprinting.exemptedDomains",
         "example.com, example.org",
@@ -776,7 +826,6 @@ async function testC(
   await SpecialPowers.pushPrefEnv({
     set: [
       ["privacy.resistFingerprinting", true],
-      ["privacy.resistFingerprinting.testGranularityMask", 4],
       [
         "privacy.resistFingerprinting.exemptedDomains",
         "example.com, example.net",
@@ -814,7 +863,6 @@ async function testD(
   await SpecialPowers.pushPrefEnv({
     set: [
       ["privacy.resistFingerprinting", true],
-      ["privacy.resistFingerprinting.testGranularityMask", 4],
       ["privacy.resistFingerprinting.exemptedDomains", "example.com"],
     ].concat(extraPrefs || []),
   });
@@ -849,7 +897,6 @@ async function testE(
   await SpecialPowers.pushPrefEnv({
     set: [
       ["privacy.resistFingerprinting", true],
-      ["privacy.resistFingerprinting.testGranularityMask", 4],
       ["privacy.resistFingerprinting.exemptedDomains", "example.net"],
     ].concat(extraPrefs || []),
   });
@@ -884,7 +931,6 @@ async function testF(
   await SpecialPowers.pushPrefEnv({
     set: [
       ["privacy.resistFingerprinting", true],
-      ["privacy.resistFingerprinting.testGranularityMask", 4],
       ["privacy.resistFingerprinting.exemptedDomains", ""],
     ].concat(extraPrefs || []),
   });
@@ -919,7 +965,6 @@ async function testG(
   await SpecialPowers.pushPrefEnv({
     set: [
       ["privacy.resistFingerprinting", true],
-      ["privacy.resistFingerprinting.testGranularityMask", 4],
       [
         "privacy.resistFingerprinting.exemptedDomains",
         "example.org, example.net",
@@ -957,7 +1002,6 @@ async function testH(
   await SpecialPowers.pushPrefEnv({
     set: [
       ["privacy.resistFingerprinting", true],
-      ["privacy.resistFingerprinting.testGranularityMask", 4],
       ["privacy.resistFingerprinting.exemptedDomains", "example.org"],
     ].concat(extraPrefs || []),
   });

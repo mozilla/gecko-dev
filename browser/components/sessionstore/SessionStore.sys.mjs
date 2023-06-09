@@ -251,6 +251,10 @@ XPCOMUtils.defineLazyModuleGetters(lazy, {
   TabCrashHandler: "resource:///modules/ContentCrashHandlers.jsm",
 });
 
+XPCOMUtils.defineLazyGetter(lazy, "blankURI", () => {
+  return Services.io.newURI("about:blank");
+});
+
 /**
  * |true| if we are in debug mode, |false| otherwise.
  * Debug mode is controlled by preference browser.sessionstore.debug
@@ -455,13 +459,15 @@ export var SessionStore = {
     aBrowser,
     aBrowsingContext,
     aPermanentKey,
-    aData
+    aData,
+    aForStorage
   ) {
     return SessionStoreInternal.updateSessionStoreFromTablistener(
       aBrowser,
       aBrowsingContext,
       aPermanentKey,
-      aData
+      aData,
+      aForStorage
     );
   },
 
@@ -1353,7 +1359,8 @@ var SessionStoreInternal = {
     browser,
     browsingContext,
     permanentKey,
-    update
+    update,
+    forStorage = false
   ) {
     permanentKey = browser?.permanentKey ?? permanentKey;
     if (!permanentKey) {
@@ -1376,10 +1383,18 @@ var SessionStoreInternal = {
       );
 
       if (listener) {
-        let historychange = listener.collect(permanentKey, browsingContext, {
-          collectFull: !!update.sHistoryNeeded,
-          writeToCache: false,
-        });
+        let historychange =
+          // If it is not the scheduled update (tab closed, window closed etc),
+          // try to store the loading non-web-controlled page opened in _blank
+          // first.
+          (forStorage &&
+            lazy.SessionHistory.collectNonWebControlledBlankLoadingSession(
+              browsingContext
+            )) ||
+          listener.collect(permanentKey, browsingContext, {
+            collectFull: !!update.sHistoryNeeded,
+            writeToCache: false,
+          });
 
         if (historychange) {
           update.data.historychange = historychange;
@@ -2197,8 +2212,9 @@ var SessionStoreInternal = {
               try {
                 Services.obs.removeObserver(observer, topic);
               } catch (ex) {
-                Cu.reportError(
-                  "SessionStore: exception whilst flushing all windows: " + ex
+                console.error(
+                  "SessionStore: exception whilst flushing all windows: ",
+                  ex
                 );
               }
             };
@@ -3163,6 +3179,11 @@ var SessionStoreInternal = {
       this._resetTabRestoringState(aTab);
     }
 
+    this._ensureNoNullsInTabDataList(
+      window.gBrowser.tabs,
+      this._windows[window.__SSi].tabs,
+      aTab._tPos
+    );
     this.restoreTab(aTab, tabState);
 
     // Notify of changes to closed objects.
@@ -3883,7 +3904,7 @@ var SessionStoreInternal = {
     aTab.removeAttribute("crashed");
     gBrowser.tabContainer.updateTabIndicatorAttr(aTab);
 
-    browser.loadURI("about:blank", {
+    browser.loadURI(lazy.blankURI, {
       triggeringPrincipal: Services.scriptSecurityManager.createNullPrincipal({
         userContextId: aTab.userContextId,
       }),
@@ -4359,7 +4380,7 @@ var SessionStoreInternal = {
       this._restore_on_demand;
 
     if (winData.tabs.length) {
-      var tabs = tabbrowser.addMultipleTabs(
+      var tabs = tabbrowser.createTabsForSessionRestore(
         restoreTabsLazily,
         selectTab,
         winData.tabs
@@ -4476,7 +4497,7 @@ var SessionStoreInternal = {
         return true;
       } catch (error) {
         // Can't setup speculative connection for this url.
-        Cu.reportError(error);
+        console.error(error);
         return false;
       }
     }
@@ -4644,8 +4665,17 @@ var SessionStoreInternal = {
       tabsDataArray.splice(numTabsInWindow - numTabsToRestore);
     }
 
-    // Let the tab data array have the right number of slots.
-    tabsDataArray.length = numTabsInWindow;
+    // Remove items from aTabData if there is no corresponding tab:
+    if (numTabsInWindow < tabsDataArray.length) {
+      tabsDataArray.length = numTabsInWindow;
+    }
+
+    // Ensure the tab data array has items for each of the tabs
+    this._ensureNoNullsInTabDataList(
+      tabbrowser.tabs,
+      tabsDataArray,
+      numTabsInWindow - 1
+    );
 
     if (aSelectTab > 0 && aSelectTab <= aTabs.length) {
       // Update the window state in case we shut down without being notified.
@@ -4666,12 +4696,40 @@ var SessionStoreInternal = {
     }
   },
 
+  // In case we didn't collect/receive data for any tabs yet we'll have to
+  // fill the array with at least empty tabData objects until |_tPos| or
+  // we'll end up with |null| entries.
+  _ensureNoNullsInTabDataList(tabElements, tabDataList, changedTabPos) {
+    let initialDataListLength = tabDataList.length;
+    if (changedTabPos < initialDataListLength) {
+      return;
+    }
+    // Add items to the end.
+    while (tabDataList.length < changedTabPos) {
+      let existingTabEl = tabElements[tabDataList.length];
+      tabDataList.push({
+        entries: [],
+        lastAccessed: existingTabEl.lastAccessed,
+      });
+    }
+    // Ensure the pre-existing items are non-null.
+    for (let i = 0; i < initialDataListLength; i++) {
+      if (!tabDataList[i]) {
+        let existingTabEl = tabElements[i];
+        tabDataList[i] = {
+          entries: [],
+          lastAccessed: existingTabEl.lastAccessed,
+        };
+      }
+    }
+  },
+
   // Restores the given tab state for a given tab.
   restoreTab(tab, tabData, options = {}) {
     let browser = tab.linkedBrowser;
 
     if (TAB_STATE_FOR_BROWSER.has(browser)) {
-      Cu.reportError("Must reset tab before calling restoreTab.");
+      console.error("Must reset tab before calling restoreTab.");
       return;
     }
 
@@ -4693,18 +4751,11 @@ var SessionStoreInternal = {
     // we collect their data for the first time when saving state.
     DirtyWindows.add(window);
 
-    // In case we didn't collect/receive data for any tabs yet we'll have to
-    // fill the array with at least empty tabData objects until |_tPos| or
-    // we'll end up with |null| entries.
-    for (let otherTab of Array.prototype.slice.call(
-      tabbrowser.tabs,
-      0,
-      tab._tPos
-    )) {
-      let emptyState = { entries: [], lastAccessed: otherTab.lastAccessed };
-      this._windows[window.__SSi].tabs.push(emptyState);
+    if (!tab.hasOwnProperty("_tPos")) {
+      throw new Error(
+        "Shouldn't be trying to restore a tab that has no position"
+      );
     }
-
     // Update the tab state in case we shut down without being notified.
     this._windows[window.__SSi].tabs[tab._tPos] = tabData;
 
@@ -5968,7 +6019,7 @@ var SessionStoreInternal = {
     let previousState = TAB_STATE_FOR_BROWSER.get(browser);
 
     if (!previousState) {
-      Cu.reportError("Given tab is not restoring.");
+      console.error("Given tab is not restoring.");
       return;
     }
 
@@ -5998,7 +6049,7 @@ var SessionStoreInternal = {
     let browser = tab.linkedBrowser;
 
     if (!TAB_STATE_FOR_BROWSER.has(browser)) {
-      Cu.reportError("Given tab is not restoring.");
+      console.error("Given tab is not restoring.");
       return;
     }
 
@@ -6341,24 +6392,32 @@ var SessionStoreInternal = {
    * If neither is possible, just load an empty document.
    */
   _restoreTabEntry(browser, tabData) {
-    let url = "about:blank";
-    let loadFlags = Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_HISTORY;
-
-    if (tabData.userTypedValue && tabData.userTypedClear) {
-      url = tabData.userTypedValue;
-      loadFlags = Ci.nsIWebNavigation.LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP;
-    } else if (tabData.entries.length) {
+    let haveUserTypedValue = tabData.userTypedValue && tabData.userTypedClear;
+    // First take care of the common case where we load the history entry.
+    if (!haveUserTypedValue && tabData.entries.length) {
       return SessionStoreUtils.initializeRestore(
         browser.browsingContext,
         this.buildRestoreData(tabData.formdata, tabData.scroll)
       );
     }
+    // Here, we need to load user data or about:blank instead.
+    // As it's user-typed (or blank), it gets system triggering principal:
+    let triggeringPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
+    // Bypass all the fixup goop for about:blank:
+    if (!haveUserTypedValue) {
+      let blankPromise = this._waitForStateStop(browser, "about:blank");
+      browser.browsingContext.loadURI(lazy.blankURI, {
+        triggeringPrincipal,
+        loadFlags: Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_HISTORY,
+      });
+      return blankPromise;
+    }
 
-    let loadPromise = this._waitForStateStop(browser, url);
-
-    browser.browsingContext.loadURI(url, {
-      loadFlags,
-      triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
+    // We have a user typed value, load that with fixup:
+    let loadPromise = this._waitForStateStop(browser, tabData.userTypedValue);
+    browser.browsingContext.fixupAndLoadURIString(tabData.userTypedValue, {
+      loadFlags: Ci.nsIWebNavigation.LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP,
+      triggeringPrincipal,
     });
 
     return loadPromise;

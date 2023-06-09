@@ -6,6 +6,9 @@
 const { AppConstants } = ChromeUtils.importESModule(
   "resource://gre/modules/AppConstants.sys.mjs"
 );
+const { AttributionIOUtils } = ChromeUtils.importESModule(
+  "resource:///modules/AttributionCode.sys.mjs"
+);
 const { BrowserUsageTelemetry } = ChromeUtils.import(
   "resource:///modules/BrowserUsageTelemetry.jsm"
 );
@@ -69,8 +72,33 @@ async function runReport(
     expectExtra
       ? [{ object: installType, value: null, extra: expectExtra }]
       : [],
-    { category: "installation", method: "first_seen" }
+    { category: "installation", method: "first_seen" },
+    { clear: false }
   );
+  // Provenance Data is currently only supported on Windows.
+  if (AppConstants.platform == "win") {
+    let provenanceExtra = {
+      data_exists: "true",
+      file_system: "NTFS",
+      ads_exists: "true",
+      security_zone: "3",
+      refer_url_exist: "true",
+      refer_url_moz: "true",
+      host_url_exist: "true",
+      host_url_moz: "true",
+    };
+    TelemetryTestUtils.assertEvents(
+      expectExtra
+        ? [{ object: installType, value: null, extra: provenanceExtra }]
+        : [],
+      { category: "installation", method: "first_seen_prov_ext" }
+    );
+  } else {
+    TelemetryTestUtils.assertEvents(
+      expectExtra ? [{ object: installType, value: null, extra: {} }] : [],
+      { category: "installation", method: "first_seen_prov_ext" }
+    );
+  }
 
   // Check timestamp
   if (typeof expectTS == "string") {
@@ -78,7 +106,61 @@ async function runReport(
   }
 }
 
-add_task(async function testInstallationTelemetry() {
+add_setup(function setup() {
+  let origReadUTF8 = AttributionIOUtils.readUTF8;
+  registerCleanupFunction(() => {
+    AttributionIOUtils.readUTF8 = origReadUTF8;
+  });
+  AttributionIOUtils.readUTF8 = async path => {
+    return `
+[Mozilla]
+fileSystem=NTFS
+zoneIdFileSize=194
+zoneIdBufferLargeEnough=true
+zoneIdTruncated=false
+
+[MozillaZoneIdentifierStartSentinel]
+[ZoneTransfer]
+ZoneId=3
+ReferrerUrl=https://mozilla.org/
+HostUrl=https://download-installer.cdn.mozilla.net/pub/firefox/nightly/latest-mozilla-central-l10n/Firefox%20Installer.en-US.exe
+`;
+  };
+});
+
+let condition = {
+  skip_if: () =>
+    AppConstants.platform !== "win" ||
+    !Services.sysinfo.getProperty("hasWinPackageId"),
+};
+add_task(condition, async function testInstallationTelemetryMSIX() {
+  // Unfortunately, we have no way to inject different installation ping data
+  // into the system in a way that doesn't just completely override the code
+  // under test - so other than a basic test of the happy path, there's
+  // nothing we can do here.
+  let msixExtra = {
+    version: AppConstants.MOZ_APP_VERSION,
+    build_id: AppConstants.MOZ_BULIDID,
+    admin_user: "false",
+    from_msi: "false",
+    silent: "false",
+    default_path: "true",
+    install_existed: "false",
+    other_inst: "false",
+    other_msix_inst: "false",
+    profdir_existed: "false",
+  };
+
+  await runReport("fake", "msix", {
+    expectExtra: msixExtra,
+  });
+});
+condition = {
+  skip_if: () =>
+    AppConstants.platform === "win" &&
+    Services.sysinfo.getProperty("hasWinPackageId"),
+};
+add_task(condition, async function testInstallationTelemetry() {
   let dataFilePath = await IOUtils.createUniqueFile(
     Services.dirsvc.get("TmpD", Ci.nsIFile).path,
     "installation-telemetry-test-data" + Math.random() + ".json"
@@ -199,7 +281,4 @@ add_task(async function testInstallationTelemetry() {
   // Missing file, should return with no exception
   await IOUtils.remove(dataFilePath);
   await runReport(dataFile, "stub", { setTS: "3", expectTS: "3" });
-
-  // bug 1750581 tracks testing this when we're able to run tests in
-  // an MSIX package environment
 });

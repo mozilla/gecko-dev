@@ -68,10 +68,6 @@ SVGViewportElement::PreserveAspectRatio() {
   return mPreserveAspectRatio.ToDOMAnimatedPreserveAspectRatio(this);
 }
 
-bool SVGViewportElement::IsNodeOfType(uint32_t aFlags) const {
-  return !(aFlags & ~eUSE_TARGET);
-}
-
 //----------------------------------------------------------------------
 // nsIContent methods
 
@@ -91,20 +87,7 @@ SVGViewportElement::IsAttributeMapped(const nsAtom* name) const {
     return true;
   }
 
-  static const MappedAttributeEntry* const map[] = {sColorMap,
-                                                    sFEFloodMap,
-                                                    sFillStrokeMap,
-                                                    sFiltersMap,
-                                                    sFontSpecificationMap,
-                                                    sGradientStopMap,
-                                                    sGraphicsMap,
-                                                    sLightingEffectsMap,
-                                                    sMarkersMap,
-                                                    sTextContentElementsMap,
-                                                    sViewportsMap};
-
-  return FindAttributeDependence(name, map) ||
-         SVGGraphicsElement::IsAttributeMapped(name);
+  return SVGGraphicsElement::IsAttributeMapped(name);
 }
 
 //----------------------------------------------------------------------
@@ -140,7 +123,7 @@ void SVGViewportElement::UpdateHasChildrenOnlyTransform() {
 
 void SVGViewportElement::ChildrenOnlyTransformChanged(uint32_t aFlags) {
   // Avoid wasteful calls:
-  MOZ_ASSERT(!(GetPrimaryFrame()->GetStateBits() & NS_FRAME_IS_NONDISPLAY),
+  MOZ_ASSERT(!GetPrimaryFrame()->HasAnyStateBits(NS_FRAME_IS_NONDISPLAY),
              "Non-display SVG frames don't maintain overflow rects");
 
   nsChangeHint changeHint;
@@ -181,15 +164,15 @@ gfx::Matrix SVGViewportElement::GetViewBoxTransform() const {
     viewportHeight = mViewportHeight;
   }
 
-  if (!IsFinite(viewportWidth) || viewportWidth <= 0.0f ||
-      !IsFinite(viewportHeight) || viewportHeight <= 0.0f) {
+  if (!std::isfinite(viewportWidth) || viewportWidth <= 0.0f ||
+      !std::isfinite(viewportHeight) || viewportHeight <= 0.0f) {
     return gfx::Matrix(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);  // singular
   }
 
   SVGViewBox viewBox = GetViewBoxWithSynthesis(viewportWidth, viewportHeight);
 
-  if (!IsFinite(viewBox.width) || viewBox.width <= 0.0f ||
-      !IsFinite(viewBox.height) || viewBox.height <= 0.0f) {
+  if (!std::isfinite(viewBox.width) || viewBox.width <= 0.0f ||
+      !std::isfinite(viewBox.height) || viewBox.height <= 0.0f) {
     return gfx::Matrix(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);  // singular
   }
 

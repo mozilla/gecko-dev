@@ -464,10 +464,6 @@ class JSString : public js::gc::CellWithLengthAndFlags {
 
   inline JSLinearString* ensureLinear(JSContext* cx);
 
-  static bool ensureLinear(JSContext* cx, JSString* str) {
-    return str->ensureLinear(cx) != nullptr;
-  }
-
   /* Type query and debug-checked casts */
 
   MOZ_ALWAYS_INLINE
@@ -613,7 +609,7 @@ class JSString : public js::gc::CellWithLengthAndFlags {
    *
    * Returns mozilla::Nothing on OOM.
    */
-  mozilla::Maybe<mozilla::Tuple<size_t, size_t>> encodeUTF8Partial(
+  mozilla::Maybe<std::tuple<size_t, size_t>> encodeUTF8Partial(
       const JS::AutoRequireNoGC& nogc, mozilla::Span<char> buffer) const;
 
  private:
@@ -846,6 +842,11 @@ class JSLinearString : public JSString {
   static inline JSLinearString* newValidLength(
       JSContext* cx, js::UniquePtr<CharT[], JS::FreePolicy> chars,
       size_t length, js::gc::InitialHeap heap);
+
+  // Convert a plain linear string to an extensible string. For testing. The
+  // caller must ensure that it is a plain or extensible string already, and
+  // that `capacity` is adequate.
+  JSExtensibleString& makeExtensible(size_t capacity);
 
   template <typename CharT>
   MOZ_ALWAYS_INLINE const CharT* nonInlineChars(
@@ -1319,6 +1320,55 @@ static_assert(
     sizeof(FatInlineAtom) == sizeof(JSFatInlineString) + sizeof(uint64_t),
     "FatInlineAtom must have size of a fat inline string + HashNumber, "
     "aligned to gc::CellAlignBytes");
+
+// When an algorithm does not need a string represented as a single linear
+// array of characters, this range utility may be used to traverse the string a
+// sequence of linear arrays of characters. This avoids flattening ropes.
+template <size_t Size = 16>
+class StringSegmentRange {
+  // If malloc() shows up in any profiles from this vector, we can add a new
+  // StackAllocPolicy which stashes a reusable freed-at-gc buffer in the cx.
+  using StackVector = JS::GCVector<JSString*, Size>;
+  Rooted<StackVector> stack;
+  Rooted<JSLinearString*> cur;
+
+  bool settle(JSString* str) {
+    while (str->isRope()) {
+      JSRope& rope = str->asRope();
+      if (!stack.append(rope.rightChild())) {
+        return false;
+      }
+      str = rope.leftChild();
+    }
+    cur = &str->asLinear();
+    return true;
+  }
+
+ public:
+  explicit StringSegmentRange(JSContext* cx)
+      : stack(cx, StackVector(cx)), cur(cx) {}
+
+  [[nodiscard]] bool init(JSString* str) {
+    MOZ_ASSERT(stack.empty());
+    return settle(str);
+  }
+
+  bool empty() const { return cur == nullptr; }
+
+  JSLinearString* front() const {
+    MOZ_ASSERT(!cur->isRope());
+    return cur;
+  }
+
+  [[nodiscard]] bool popFront() {
+    MOZ_ASSERT(!empty());
+    if (stack.empty()) {
+      cur = nullptr;
+      return true;
+    }
+    return settle(stack.popCopy());
+  }
+};
 
 }  // namespace js
 

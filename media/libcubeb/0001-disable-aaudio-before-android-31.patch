@@ -1,0 +1,41 @@
+diff --git a/src/cubeb_aaudio.cpp b/src/cubeb_aaudio.cpp
+--- a/src/cubeb_aaudio.cpp
++++ b/src/cubeb_aaudio.cpp
+@@ -6,16 +6,17 @@
+  */
+ #include "cubeb-internal.h"
+ #include "cubeb/cubeb.h"
+ #include "cubeb_android.h"
+ #include "cubeb_log.h"
+ #include "cubeb_resampler.h"
+ #include "cubeb_triple_buffer.h"
+ #include <aaudio/AAudio.h>
++#include <android/api-level.h>
+ #include <atomic>
+ #include <cassert>
+ #include <chrono>
+ #include <condition_variable>
+ #include <cstdint>
+ #include <cstring>
+ #include <dlfcn.h>
+ #include <inttypes.h>
+@@ -1600,16 +1601,19 @@ const static struct cubeb_ops aaudio_ops
+     /*.stream_get_current_device =*/NULL,
+     /*.stream_device_destroy =*/NULL,
+     /*.stream_register_device_changed_callback =*/NULL,
+     /*.register_device_collection_changed =*/NULL};
+ 
+ extern "C" /*static*/ int
+ aaudio_init(cubeb ** context, char const * /* context_name */)
+ {
++  if (android_get_device_api_level() <= 30) {
++    return CUBEB_ERROR;
++  }
+   // load api
+   void * libaaudio = NULL;
+ #ifndef DISABLE_LIBAAUDIO_DLOPEN
+   libaaudio = dlopen("libaaudio.so", RTLD_NOW);
+   if (!libaaudio) {
+     return CUBEB_ERROR;
+   }
+ 

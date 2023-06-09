@@ -11,6 +11,7 @@
 onboarding-welcome-header = Welcome to { -brand-short-name }
 onboarding-start-browsing-button-label = Start Browsing
 onboarding-not-now-button-label = Not now
+mr1-onboarding-get-started-primary-button-label = Get started
 
 ## Custom Return To AMO onboarding strings
 
@@ -39,80 +40,16 @@ mr1-return-to-amo-add-extension-label = Add { $addon-name }
 onboarding-welcome-steps-indicator-label =
   .aria-label = Progress: step { $current } of { $total }
 
-# "Hero Text" displayed on left side of welcome screen.
-# The "Fire" in "Fire starts here" plays on the "Fire" in "Firefox".
-# It also signals the passion users bring to Firefox, how they use
-# Firefox to pursue those passions, as well as the boldness in their
-# choice to use Firefox over a larger competitor browser.
-# An alternative title for localization is: "It starts here".
-# This text can be formatted to span multiple lines as needed.
-mr1-welcome-screen-hero-text =
-  Fire starts
-  here
-
-# Caption for background image in about:welcome. "Soraya Osorio" is the name
-# of the person and shouldn't be translated.
-# In case your language needs to adapt the nouns to a gender, Soraya is a female name (she/her).
-# You can see the picture in about:welcome in Nightly 90.
-mr1-onboarding-welcome-image-caption = Soraya Osorio — Furniture designer, Firefox fan
-
 # This button will open system settings to turn on prefers-reduced-motion
 mr1-onboarding-reduce-motion-button-label = Turn off animations
 
-## Title and primary button strings differ between platforms as they
-## match the OS' application context menu item action where Windows uses "pin"
-## and "taskbar" while macOS "keep" and "Dock" (proper noun).
-
-# Title used on welcome page when Firefox is not pinned
-mr1-onboarding-pin-header = { PLATFORM() ->
-    [macos] Keep { -brand-short-name } in your Dock for easy access
-   *[other] Pin { -brand-short-name } to your taskbar for easy access
-}
-# Primary button string used on welcome page when Firefox is not pinned.
-mr1-onboarding-pin-primary-button-label = { PLATFORM() ->
-    [macos] Keep in Dock
-   *[other] Pin to taskbar
-}
-
-## Multistage MR1 onboarding strings (about:welcome pages)
-
-# This string will be used on welcome page primary button label
-# when Firefox is both pinned and default
-mr1-onboarding-get-started-primary-button-label = Get started
-
-mr1-onboarding-welcome-header = Welcome to { -brand-short-name }
-mr1-onboarding-set-default-pin-primary-button-label =
-  Make { -brand-short-name } my primary browser
-    .title = Sets { -brand-short-name } as default browser and pins to taskbar
-
-# This string will be used on welcome page primary button label
-# when Firefox is not default but already pinned
-mr1-onboarding-set-default-only-primary-button-label =
-  Make { -brand-short-name } my default browser
-mr1-onboarding-set-default-secondary-button-label = Not now
+# String for the Firefox Accounts button
 mr1-onboarding-sign-in-button-label = Sign in
-
-## Title, subtitle and primary button string used on set default onboarding screen
-## when Firefox is not default browser
-
-mr1-onboarding-default-header =
-    Make { -brand-short-name } your default
-mr1-onboarding-default-subtitle = Put speed, safety, and privacy on autopilot.
-mr1-onboarding-default-primary-button-label = Make default browser
-
-## Multistage MR1 onboarding strings (about:welcome pages)
-
-mr1-onboarding-import-header = Bring it all with you
-mr1-onboarding-import-subtitle = Import your passwords, <br/>bookmarks, and more.
 
 # The primary import button label will depend on whether we can detect which browser was used to download Firefox.
 # Variables:
 #   $previous (Str) - Previous browser name, such as Edge, Chrome
 mr1-onboarding-import-primary-button-label-attribution = Import from { $previous }
-
-# This string will be used in cases where we can't detect the previous browser name.
-mr1-onboarding-import-primary-button-label-no-attribution = Import from previous browser
-mr1-onboarding-import-secondary-button-label = Not now
 
 mr1-onboarding-theme-header = Make it your own
 mr1-onboarding-theme-subtitle = Personalize { -brand-short-name } with a theme.
@@ -242,6 +179,15 @@ fx100-upgrade-thank-you-body = It’s our 100th release of { -brand-short-name }
 fx100-upgrade-thanks-keep-body = It’s our 100th release! Thanks for being a part of our community. Keep { -brand-short-name } one click away for the next 100.
 
 mr2022-onboarding-secondary-skip-button-label = Skip this step
+
+## MR2022 New User Easy Setup screen strings
+
+# Primary button string used on new user onboarding first screen showing multiple actions such as Set Default, Import from previous browser.
+mr2022-onboarding-easy-setup-primary-button-label = Save and continue
+# Set Default action checkbox label used on new user onboarding first screen
+mr2022-onboarding-easy-setup-set-default-checkbox-label = Set { -brand-short-name } as default browser
+# Import action checkbox label used on new user onboarding first screen
+mr2022-onboarding-easy-setup-import-checkbox-label = Import from previous browser
 
 ## MR2022 New User Pin Firefox screen strings
 
@@ -400,3 +346,11 @@ mr2022-onboarding-gratitude-image-alt =
   .aria-label = View of a sunset through a window with a fox and a house plant on a windowsill
 mr2022-onboarding-colorways-image-alt =
   .aria-label = A hand spray paints a colorful collage of a green eye, orange shoe, red basketball, purple headphones, blue heart, and yellow crown
+
+## Device migration onboarding
+
+onboarding-device-migration-image-alt =
+  .aria-label = A fox on the screen of a laptop computer waving. The laptop has a mouse plugged into it.
+onboarding-device-migration-title = Welcome back!
+onboarding-device-migration-subtitle = Sign in to your { -fxaccount-brand-name(capitalization: "sentence") } to bring your bookmarks, passwords, and history with you on your new device.
+onboarding-device-migration-primary-button-label = Sign in

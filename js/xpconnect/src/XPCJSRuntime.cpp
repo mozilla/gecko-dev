@@ -77,16 +77,21 @@
 #include "nsAboutProtocolUtils.h"
 
 #include "NodeUbiReporting.h"
+#include "ExpandedPrincipal.h"
 #include "nsIInputStream.h"
 #include "nsJSPrincipals.h"
+#include "nsJSEnvironment.h"
+#include "XPCInlines.h"
 
 #ifdef XP_WIN
 #  include <windows.h>
 #endif
 
 using namespace mozilla;
+using namespace mozilla::dom;
 using namespace xpc;
 using namespace JS;
+using namespace js;
 using mozilla::dom::PerThreadAtomCache;
 
 /***************************************************************************/
@@ -2974,6 +2979,11 @@ bool XPCJSRuntime::DescribeCustomObjects(JSObject* obj, const JSClass* clasp,
   }
 
   XPCWrappedNativeProto* p = XPCWrappedNativeProto::Get(obj);
+  // Nothing here can GC. The analysis would otherwise think that ~nsCOMPtr
+  // could GC, but that's only possible if nsIXPCScriptable::GetJSClass()
+  // somehow released a reference to the nsIXPCScriptable, which isn't going to
+  // happen.
+  JS::AutoSuppressGCAnalysis nogc;
   nsCOMPtr<nsIXPCScriptable> scr = p->GetScriptable();
   if (!scr) {
     return false;

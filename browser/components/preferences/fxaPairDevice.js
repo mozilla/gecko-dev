@@ -5,18 +5,18 @@
 const { XPCOMUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/XPCOMUtils.sys.mjs"
 );
-const { FxAccounts } = ChromeUtils.import(
-  "resource://gre/modules/FxAccounts.jsm"
+const { FxAccounts } = ChromeUtils.importESModule(
+  "resource://gre/modules/FxAccounts.sys.mjs"
 );
-const { Weave } = ChromeUtils.import("resource://services-sync/main.js");
+const { Weave } = ChromeUtils.importESModule(
+  "resource://services-sync/main.sys.mjs"
+);
 
 ChromeUtils.defineESModuleGetters(this, {
   EventEmitter: "resource://gre/modules/EventEmitter.sys.mjs",
+  FxAccountsPairingFlow: "resource://gre/modules/FxAccountsPairing.sys.mjs",
 });
 
-XPCOMUtils.defineLazyModuleGetters(this, {
-  FxAccountsPairingFlow: "resource://gre/modules/FxAccountsPairing.jsm",
-});
 const { require } = ChromeUtils.importESModule(
   "resource://devtools/shared/loader/Loader.sys.mjs"
 );
@@ -44,7 +44,7 @@ var gFxaPairDeviceDialog = {
     // When the modal closes we want to remove any query params
     // To prevent refreshes/restores from reopening the dialog
     const browser = window.docShell.chromeEventHandler;
-    browser.loadURI("about:preferences#sync", {
+    browser.loadURI(Services.io.newURI("about:preferences#sync"), {
       triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
     });
 
@@ -119,7 +119,7 @@ var gFxaPairDeviceDialog = {
 
   _switchToUrl(url) {
     const browser = window.docShell.chromeEventHandler;
-    browser.loadURI(url, {
+    browser.fixupAndLoadURIString(url, {
       triggeringPrincipal: Services.scriptSecurityManager.createNullPrincipal(
         {}
       ),

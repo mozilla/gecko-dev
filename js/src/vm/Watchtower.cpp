@@ -17,6 +17,7 @@
 #include "vm/Compartment-inl.h"
 #include "vm/JSObject-inl.h"
 #include "vm/Realm-inl.h"
+#include "vm/Shape-inl.h"
 
 using namespace js;
 
@@ -96,6 +97,7 @@ static void InvalidateMegamorphicCache(JSContext* cx,
   MOZ_ASSERT(obj->isUsedAsPrototype());
 
   cx->caches().megamorphicCache.bumpGeneration();
+  cx->caches().megamorphicSetPropCache.bumpGeneration();
 }
 
 // static
@@ -167,17 +169,25 @@ static bool ReshapeForProtoMutation(JSContext* cx, HandleObject obj) {
   return true;
 }
 
+static bool WatchProtoChangeImpl(JSContext* cx, HandleObject obj) {
+  if (!obj->isUsedAsPrototype()) {
+    return true;
+  }
+  if (!ReshapeForProtoMutation(cx, obj)) {
+    return false;
+  }
+  if (obj->is<NativeObject>()) {
+    InvalidateMegamorphicCache(cx, obj.as<NativeObject>());
+  }
+  return true;
+}
+
 // static
 bool Watchtower::watchProtoChangeSlow(JSContext* cx, HandleObject obj) {
   MOZ_ASSERT(watchesProtoChange(obj));
 
-  if (obj->isUsedAsPrototype()) {
-    if (!ReshapeForProtoMutation(cx, obj)) {
-      return false;
-    }
-    if (obj->is<NativeObject>()) {
-      InvalidateMegamorphicCache(cx, obj.as<NativeObject>());
-    }
+  if (!WatchProtoChangeImpl(cx, obj)) {
+    return false;
   }
 
   if (MOZ_UNLIKELY(obj->useWatchtowerTestingLog())) {
@@ -200,6 +210,10 @@ bool Watchtower::watchPropertyRemoveSlow(JSContext* cx,
     InvalidateMegamorphicCache(cx, obj);
   }
 
+  if (obj->isGenerationCountedGlobal()) {
+    obj->as<GlobalObject>().bumpGenerationCount();
+  }
+
   if (MOZ_UNLIKELY(obj->useWatchtowerTestingLog())) {
     RootedValue val(cx, IdToValue(id));
     if (!AddToWatchtowerLog(cx, "remove-prop", obj, val)) {
@@ -212,12 +226,27 @@ bool Watchtower::watchPropertyRemoveSlow(JSContext* cx,
 
 // static
 bool Watchtower::watchPropertyChangeSlow(JSContext* cx,
-                                         Handle<NativeObject*> obj,
-                                         HandleId id) {
+                                         Handle<NativeObject*> obj, HandleId id,
+                                         PropertyFlags flags) {
   MOZ_ASSERT(watchesPropertyChange(obj));
 
   if (obj->isUsedAsPrototype() && !id.isInt()) {
     InvalidateMegamorphicCache(cx, obj);
+  }
+
+  if (obj->isGenerationCountedGlobal()) {
+    // The global generation counter only cares whether a property
+    // changes from data property to accessor or vice-versa. Changing
+    // the flags on a property doesn't matter.
+    uint32_t propIndex;
+    Rooted<PropMap*> map(cx, obj->shape()->lookup(cx, id, &propIndex));
+    MOZ_ASSERT(map);
+    PropertyInfo prop = map->getPropertyInfo(propIndex);
+    bool wasAccessor = prop.isAccessorProperty();
+    bool isAccessor = flags.isAccessorProperty();
+    if (wasAccessor != isAccessor) {
+      obj->as<GlobalObject>().bumpGenerationCount();
+    }
   }
 
   if (MOZ_UNLIKELY(obj->useWatchtowerTestingLog())) {
@@ -246,17 +275,22 @@ bool Watchtower::watchFreezeOrSealSlow(JSContext* cx,
 }
 
 // static
-void Watchtower::watchObjectSwapSlow(JSContext* cx, HandleObject a,
+bool Watchtower::watchObjectSwapSlow(JSContext* cx, HandleObject a,
                                      HandleObject b) {
   MOZ_ASSERT(watchesObjectSwap(a, b));
 
-  if (a->isUsedAsPrototype() && a->is<NativeObject>()) {
-    InvalidateMegamorphicCache(cx, a.as<NativeObject>());
+  // If we're swapping an object that's used as prototype, we're mutating the
+  // proto chains of other objects. Treat this as a proto change to ensure we
+  // invalidate shape teleporting and megamorphic caches.
+  if (!WatchProtoChangeImpl(cx, a)) {
+    return false;
   }
-  if (b->isUsedAsPrototype() && b->is<NativeObject>()) {
-    InvalidateMegamorphicCache(cx, b.as<NativeObject>());
+  if (!WatchProtoChangeImpl(cx, b)) {
+    return false;
   }
 
   // Note: we don't invoke the testing callback for swap because the objects may
   // not be safe to expose to JS at this point. See bug 1754699.
+
+  return true;
 }

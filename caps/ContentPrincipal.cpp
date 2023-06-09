@@ -42,8 +42,7 @@
 
 using namespace mozilla;
 
-NS_IMPL_CLASSINFO(ContentPrincipal, nullptr, nsIClassInfo::MAIN_THREAD_ONLY,
-                  NS_PRINCIPAL_CID)
+NS_IMPL_CLASSINFO(ContentPrincipal, nullptr, 0, NS_PRINCIPAL_CID)
 NS_IMPL_QUERY_INTERFACE_CI(ContentPrincipal, nsIPrincipal)
 NS_IMPL_CI_INTERFACE_GETTER(ContentPrincipal, nsIPrincipal)
 
@@ -624,7 +623,7 @@ nsresult ContentPrincipal::PopulateJSONObject(Json::Value& aObject) {
   //        Key          ----------------------
   //                                |
   //                              Value
-  aObject[std::to_string(eURI)] = principalURI.get();
+  SetJSONValue<eURI>(aObject, principalURI);
 
   if (GetHasExplicitDomain()) {
     nsAutoCString domainStr;
@@ -633,13 +632,13 @@ nsresult ContentPrincipal::PopulateJSONObject(Json::Value& aObject) {
       rv = mDomain->GetSpec(domainStr);
       NS_ENSURE_SUCCESS(rv, rv);
     }
-    aObject[std::to_string(eDomain)] = domainStr.get();
+    SetJSONValue<eDomain>(aObject, domainStr);
   }
 
   nsAutoCString suffix;
   OriginAttributesRef().CreateSuffix(suffix);
   if (suffix.Length() > 0) {
-    aObject[std::to_string(eSuffix)] = suffix.get();
+    SetJSONValue<eSuffix>(aObject, suffix);
   }
 
   return NS_OK;

@@ -8,11 +8,11 @@ import textwrap
 import unittest
 
 from buildconfig import topsrcdir
-from common import ConfigureTestSandbox, ensure_exe_extension, fake_short_path
 from mozpack import path as mozpath
 from mozunit import MockedOpen, main
 from six import StringIO
 
+from common import ConfigureTestSandbox, ensure_exe_extension, fake_short_path
 from mozbuild.configure import ConfigureError, ConfigureSandbox
 from mozbuild.shellutil import quote as shell_quote
 from mozbuild.util import exec_
@@ -593,7 +593,7 @@ class TestChecksConfigure(unittest.TestCase):
         javac = mozpath.abspath("/usr/bin/javac")
         paths = {java: None, javac: None}
         expected_error_message = (
-            "ERROR: Could not locate Java at /mozbuild/jdk/jdk-17.0.5+8/bin, "
+            "ERROR: Could not locate Java at /mozbuild/jdk/jdk-17.0.7+7/bin, "
             "please run ./mach bootstrap --no-system-changes\n"
         )
 

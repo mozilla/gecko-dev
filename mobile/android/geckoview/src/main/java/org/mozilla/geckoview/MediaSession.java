@@ -310,7 +310,7 @@ public class MediaSession {
     }
 
     /* package */ static @NonNull ElementMetadata fromBundle(final GeckoBundle bundle) {
-      // Sync with MediaUtils.jsm.
+      // Sync with MediaUtils.sys.mjs.
       return new ElementMetadata(
           bundle.getString("src"),
           bundle.getDouble("duration", 0.0),
@@ -629,10 +629,18 @@ public class MediaSession {
       } else if (FEATURES_EVENT.equals(event)) {
         final long features = Feature.fromBundle(message.getBundle("features"));
         delegate.onFeatures(mSession, mMediaSession, features);
-      } else if (FULLSCREEN_EVENT.equals(event) && mMediaSession.isActive()) {
+      } else if (FULLSCREEN_EVENT.equals(event)) {
         final boolean enabled = message.getBoolean("enabled");
         final ElementMetadata meta = ElementMetadata.fromBundle(message.getBundle("metadata"));
+        if (!mMediaSession.isActive()) {
+          if (DEBUG) {
+            Log.d(LOGTAG, "Media session is not active yet");
+          }
+          callback.sendSuccess(false);
+          return;
+        }
         delegate.onFullscreen(mSession, mMediaSession, enabled, meta);
+        callback.sendSuccess(true);
       }
     }
   }

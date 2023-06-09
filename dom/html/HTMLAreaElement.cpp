@@ -58,8 +58,7 @@ void HTMLAreaElement::GetLinkTarget(nsAString& aTarget) {
 
 nsDOMTokenList* HTMLAreaElement::RelList() {
   if (!mRelList) {
-    mRelList = new nsDOMTokenList(this, nsGkAtoms::rel,
-                                  HTMLAnchorElement::sSupportedRelValues);
+    mRelList = new nsDOMTokenList(this, nsGkAtoms::rel, sSupportedRelValues);
   }
   return mRelList;
 }
@@ -83,11 +82,11 @@ void HTMLAreaElement::UnbindFromTree(bool aNullParent) {
   nsGenericHTMLElement::UnbindFromTree(aNullParent);
 }
 
-nsresult HTMLAreaElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
-                                       const nsAttrValue* aValue,
-                                       const nsAttrValue* aOldValue,
-                                       nsIPrincipal* aSubjectPrincipal,
-                                       bool aNotify) {
+void HTMLAreaElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
+                                   const nsAttrValue* aValue,
+                                   const nsAttrValue* aOldValue,
+                                   nsIPrincipal* aSubjectPrincipal,
+                                   bool aNotify) {
   if (aNamespaceID == kNameSpaceID_None) {
     // This must happen after the attribute is set. We will need the updated
     // attribute value because notifying the document that content states have

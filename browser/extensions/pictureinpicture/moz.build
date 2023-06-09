@@ -30,8 +30,10 @@ FINAL_TARGET_FILES.features["pictureinpicture@mozilla.org"]["lib"] += [
 FINAL_TARGET_FILES.features["pictureinpicture@mozilla.org"]["video-wrappers"] += [
     "video-wrappers/airmozilla.js",
     "video-wrappers/bbc.js",
+    "video-wrappers/cbc.js",
     "video-wrappers/dailymotion.js",
     "video-wrappers/disneyplus.js",
+    "video-wrappers/edx.js",
     "video-wrappers/hbomax.js",
     "video-wrappers/hotstar.js",
     "video-wrappers/hulu.js",
@@ -39,10 +41,13 @@ FINAL_TARGET_FILES.features["pictureinpicture@mozilla.org"]["video-wrappers"] +=
     "video-wrappers/netflix.js",
     "video-wrappers/piped.js",
     "video-wrappers/primeVideo.js",
+    "video-wrappers/radiocanada.js",
     "video-wrappers/tubi.js",
+    "video-wrappers/twitch.js",
     "video-wrappers/videojsWrapper.js",
     "video-wrappers/voot.js",
     "video-wrappers/washingtonpost.js",
+    "video-wrappers/yahoo.js",
     "video-wrappers/youtube.js",
 ]
 

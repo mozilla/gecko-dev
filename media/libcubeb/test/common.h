@@ -28,7 +28,7 @@ ARRAY_LENGTH(T(&)[N])
   return N;
 }
 
-void delay(unsigned int ms)
+inline void delay(unsigned int ms)
 {
 #if defined(_WIN32)
   Sleep(ms);
@@ -48,7 +48,34 @@ typedef struct {
   uint32_t const layout;
 } layout_info;
 
-int has_available_input_device(cubeb * ctx)
+struct backend_caps {
+  const char* id;
+  const int input_capabilities;
+};
+
+
+// This static table allows knowing if a backend has audio input capabilities.
+// We don't rely on opening a stream and checking if it works, because this
+// would make the test skip the tests that make use of audio input, if a
+// particular backend has a bug that causes a failure during audio input stream
+// creation 
+static backend_caps backend_capabilities[] = {
+  {"sun", 1},
+  {"wasapi", 1},
+  {"kai", 1},
+  {"audiounit", 1},
+  {"audiotrack", 0},
+  {"opensl", 1},
+  {"aaudio", 1},
+  {"jack", 1},
+  {"pulse", 1},
+  {"sndio", 1},
+  {"oss", 1},
+  {"winmm", 0},
+  {"alsa", 1},
+};
+
+inline int can_run_audio_input_test(cubeb * ctx)
 {
   cubeb_device_collection devices;
   int input_device_available = 0;
@@ -77,10 +104,19 @@ int has_available_input_device(cubeb * ctx)
   }
 
   cubeb_device_collection_destroy(ctx, &devices);
-  return !!input_device_available;
+
+  int backend_has_input_capabilities;
+  const char * backend_id = cubeb_get_backend_id(ctx);
+  for (uint32_t i = 0; i < sizeof(backend_capabilities) / sizeof(backend_caps); i++) {
+    if (strcmp(backend_capabilities[i].id, backend_id) == 0) {
+      backend_has_input_capabilities = backend_capabilities[i].input_capabilities;
+    }
+  }
+
+  return !!input_device_available && !!backend_has_input_capabilities;
 }
 
-void print_log(const char * msg, ...)
+inline void print_log(const char * msg, ...)
 {
   va_list args;
   va_start(args, msg);
@@ -91,7 +127,7 @@ void print_log(const char * msg, ...)
 /** Initialize cubeb with backend override.
  *  Create call cubeb_init passing value for CUBEB_BACKEND env var as
  *  override. */
-int common_init(cubeb ** ctx, char const * ctx_name)
+inline int common_init(cubeb ** ctx, char const * ctx_name)
 {
 #ifdef ENABLE_NORMAL_LOG
   if (cubeb_set_log_callback(CUBEB_LOG_NORMAL, print_log) != CUBEB_OK) {

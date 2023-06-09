@@ -24,8 +24,8 @@ class nsIURI;
 class nsIDocShell;
 class nsIChannel;
 class nsIReferrerInfo;
-class OriginAttibutes;
 namespace mozilla {
+class OriginAttributes;
 template <typename, class>
 class UniquePtr;
 namespace dom {
@@ -59,6 +59,10 @@ class nsDocShellLoadState final {
 
   static nsresult CreateFromLoadURIOptions(
       BrowsingContext* aBrowsingContext, const nsAString& aURI,
+      const mozilla::dom::LoadURIOptions& aLoadURIOptions,
+      nsDocShellLoadState** aResult);
+  static nsresult CreateFromLoadURIOptions(
+      BrowsingContext* aBrowsingContext, nsIURI* aURI,
       const mozilla::dom::LoadURIOptions& aLoadURIOptions,
       nsDocShellLoadState** aResult);
 
@@ -357,7 +361,12 @@ class nsDocShellLoadState final {
   // nullptr if it succeeds.
   const char* ValidateWithOriginalState(nsDocShellLoadState* aOriginalState);
 
- protected:
+  static nsresult CreateFromLoadURIOptions(
+      BrowsingContext* aBrowsingContext, nsIURI* aURI,
+      const mozilla::dom::LoadURIOptions& aLoadURIOptions,
+      uint32_t aLoadFlagsOverride, nsIInputStream* aPostDataOverride,
+      nsDocShellLoadState** aResult);
+
   // This is the referrer for the load.
   nsCOMPtr<nsIReferrerInfo> mReferrerInfo;
 

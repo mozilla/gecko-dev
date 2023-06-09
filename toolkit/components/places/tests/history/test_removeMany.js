@@ -47,7 +47,9 @@ add_task(async function test_remove_many() {
     pages.push(page);
 
     await PlacesTestUtils.addVisits(page);
-    page.guid = do_get_guid_for_uri(uri);
+    page.guid = await PlacesTestUtils.getDatabaseValue("moz_places", "guid", {
+      url: uri,
+    });
     if (hasBookmark) {
       await PlacesUtils.bookmarks.insert({
         parentGuid: PlacesUtils.bookmarks.unfiledGuid,
@@ -143,8 +145,8 @@ add_task(async function test_remove_many() {
     Assert.equal(page.guid, origin.guid, "onResult has the right guid");
     Assert.equal(page.title, origin.title, "onResult has the right title");
   });
-
   Assert.ok(removed, "Something was removed");
+  await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
 
   PlacesObservers.removeListener(
     [
@@ -183,7 +185,7 @@ add_task(async function test_remove_many() {
   Assert.equal(
     onPageRankingChanged,
     pages.some(p => p.pageRemovedFromStore || p.pageRemovedAllVisits),
-    "page-rank-changed was fired if page-removed was fired"
+    "page-rank-changed was fired"
   );
 
   Assert.notEqual(

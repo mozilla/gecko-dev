@@ -15,6 +15,7 @@
 #include "mozilla/MemoryReporting.h"
 #include "nsCSSPropertyIDSet.h"
 #include "mozilla/EffectSet.h"
+#include "mozilla/ElementAnimationData.h"
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/ServoBindings.h"
 #include "mozilla/StyleAnimationValue.h"
@@ -64,8 +65,7 @@ bool nsTransitionManager::UpdateTransitions(dom::Element* aElement,
     return false;
   }
 
-  CSSTransitionCollection* collection =
-      CSSTransitionCollection::GetAnimationCollection(aElement, aPseudoType);
+  auto* collection = CSSTransitionCollection::Get(aElement, aPseudoType);
   return DoUpdateTransitions(*aNewStyle.StyleUIReset(), aElement, aPseudoType,
                              collection, aOldStyle, aNewStyle);
 }
@@ -74,7 +74,7 @@ bool nsTransitionManager::DoUpdateTransitions(
     const nsStyleUIReset& aStyle, dom::Element* aElement,
     PseudoStyleType aPseudoType, CSSTransitionCollection*& aElementTransitions,
     const ComputedStyle& aOldStyle, const ComputedStyle& aNewStyle) {
-  MOZ_ASSERT(!aElementTransitions || aElementTransitions->mElement == aElement,
+  MOZ_ASSERT(!aElementTransitions || &aElementTransitions->mElement == aElement,
              "Element mismatch");
 
   // Per http://lists.w3.org/Archives/Public/www-style/2009Aug/0109.html
@@ -86,7 +86,7 @@ bool nsTransitionManager::DoUpdateTransitions(
   for (uint32_t i = aStyle.mTransitionPropertyCount; i--;) {
     // We're not going to look at any further transitions, so we can just avoid
     // looking at this if we know it will not start any transitions.
-    if (i == 0 && aStyle.GetTransitionCombinedDuration(i) <= 0.0f) {
+    if (i == 0 && aStyle.GetTransitionCombinedDuration(i).seconds <= 0.0f) {
       continue;
     }
 
@@ -189,7 +189,7 @@ bool nsTransitionManager::DoUpdateTransitions(
           currentValue != anim->ToValue()) {
         // stop the transition
         if (anim->HasCurrentEffect()) {
-          EffectSet* effectSet = EffectSet::GetEffectSet(aElement, aPseudoType);
+          EffectSet* effectSet = EffectSet::Get(aElement, aPseudoType);
           if (effectSet) {
             effectSet->UpdateAnimationGeneration(mPresContext);
           }
@@ -291,7 +291,7 @@ bool nsTransitionManager::ConsiderInitiatingTransition(
   // IsShorthand itself will assert if aProperty is not a property.
   MOZ_ASSERT(!nsCSSProps::IsShorthand(aProperty), "property out of range");
   NS_ASSERTION(
-      !aElementTransitions || aElementTransitions->mElement == aElement,
+      !aElementTransitions || &aElementTransitions->mElement == aElement,
       "Element mismatch");
 
   aProperty = nsCSSProps::Physicalize(aProperty, aNewStyle);
@@ -310,10 +310,11 @@ bool nsTransitionManager::ConsiderInitiatingTransition(
     return false;
   }
 
-  float delay = aStyle.GetTransitionDelay(transitionIdx);
+  float delay = aStyle.GetTransitionDelay(transitionIdx).ToMilliseconds();
 
   // The spec says a negative duration is treated as zero.
-  float duration = std::max(aStyle.GetTransitionDuration(transitionIdx), 0.0f);
+  float duration = std::max(
+      aStyle.GetTransitionDuration(transitionIdx).ToMilliseconds(), 0.0f);
 
   // If the combined duration of this transition is 0 or less don't start a
   // transition.
@@ -381,7 +382,7 @@ bool nsTransitionManager::ConsiderInitiatingTransition(
       animations[currentIndex]->CancelFromStyle(PostRestyleMode::IfNeeded);
       oldTransition = nullptr;  // Clear pointer so it doesn't dangle
       animations.RemoveElementAt(currentIndex);
-      EffectSet* effectSet = EffectSet::GetEffectSet(aElement, aPseudoType);
+      EffectSet* effectSet = EffectSet::Get(aElement, aPseudoType);
       if (effectSet) {
         effectSet->UpdateAnimationGeneration(mPresContext);
       }
@@ -474,17 +475,10 @@ bool nsTransitionManager::ConsiderInitiatingTransition(
   animation->PlayFromStyle();
 
   if (!aElementTransitions) {
-    bool createdCollection = false;
     aElementTransitions =
-        CSSTransitionCollection::GetOrCreateAnimationCollection(
-            aElement, aPseudoType, &createdCollection);
-    if (!aElementTransitions) {
-      MOZ_ASSERT(!createdCollection, "outparam should agree with return value");
-      NS_WARNING("allocating collection failed");
-      return false;
-    }
-
-    if (createdCollection) {
+        &aElement->EnsureAnimationData().EnsureTransitionCollection(
+            *aElement, aPseudoType);
+    if (!aElementTransitions->isInList()) {
       AddElementCollection(aElementTransitions);
     }
   }
@@ -520,8 +514,7 @@ bool nsTransitionManager::ConsiderInitiatingTransition(
     animations.AppendElement(animation);
   }
 
-  EffectSet* effectSet = EffectSet::GetEffectSet(aElement, aPseudoType);
-  if (effectSet) {
+  if (auto* effectSet = EffectSet::Get(aElement, aPseudoType)) {
     effectSet->UpdateAnimationGeneration(mPresContext);
   }
 

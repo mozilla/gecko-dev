@@ -156,7 +156,8 @@ class WebRtcVoiceMediaChannel final : public VoiceMediaChannel,
   webrtc::RtpParameters GetRtpSendParameters(uint32_t ssrc) const override;
   webrtc::RTCError SetRtpSendParameters(
       uint32_t ssrc,
-      const webrtc::RtpParameters& parameters) override;
+      const webrtc::RtpParameters& parameters,
+      webrtc::SetParametersCallback callback) override;
   webrtc::RtpParameters GetRtpReceiveParameters(uint32_t ssrc) const override;
   webrtc::RtpParameters GetDefaultRtpReceiveParameters() const override;
 
@@ -321,6 +322,8 @@ class WebRtcVoiceMediaChannel final : public VoiceMediaChannel,
   // Unsignaled streams have an option to have a frame decryptor set on them.
   rtc::scoped_refptr<webrtc::FrameDecryptorInterface>
       unsignaled_frame_decryptor_;
+  rtc::scoped_refptr<webrtc::FrameTransformerInterface>
+      unsignaled_frame_transformer_;
 };
 }  // namespace cricket
 

@@ -138,7 +138,6 @@ class nsAttrValue {
     eImage,
     eAtomArray,
     eDoubleValue,
-    eIntMarginValue,
     // eShadowParts is refcounted in the misc container, as we do copy attribute
     // values quite a bit (for example to process style invalidation), and the
     // underlying value could get expensive to copy.
@@ -165,7 +164,6 @@ class nsAttrValue {
   explicit nsAttrValue(nsAtom* aValue);
   nsAttrValue(already_AddRefed<mozilla::DeclarationBlock> aValue,
               const nsAString* aSerialized);
-  explicit nsAttrValue(const nsIntMargin& aValue);
   ~nsAttrValue();
 
   inline const nsAttrValue& operator=(const nsAttrValue& aOther);
@@ -192,7 +190,6 @@ class nsAttrValue {
   void SetTo(already_AddRefed<mozilla::DeclarationBlock> aValue,
              const nsAString* aSerialized);
   void SetTo(nsIURI* aValue, const nsAString* aSerialized);
-  void SetTo(const nsIntMargin& aValue);
   void SetTo(const mozilla::SVGAnimatedIntegerPair& aValue,
              const nsAString* aSerialized);
   void SetTo(const mozilla::SVGAnimatedLength& aValue,
@@ -249,7 +246,6 @@ class nsAttrValue {
   inline mozilla::DeclarationBlock* GetCSSDeclarationValue() const;
   inline nsIURI* GetURLValue() const;
   inline double GetDoubleValue() const;
-  bool GetIntMarginValue(nsIntMargin& aMargin) const;
   inline const mozilla::ShadowParts& GetShadowPartsValue() const;
 
   /**
@@ -474,15 +470,6 @@ class nsAttrValue {
   bool ParseDoubleValue(const nsAString& aString);
 
   /**
-   * Parse a margin string of format 'top, right, bottom, left' into
-   * an nsIntMargin.
-   *
-   * @param aString the string to parse
-   * @return whether the value could be parsed
-   */
-  bool ParseIntMarginValue(const nsAString& aString);
-
-  /**
    * Parse a string into a CSS style rule.
    *
    * @param aString the style attribute value to be parsed.
@@ -496,6 +483,9 @@ class nsAttrValue {
                            nsStyledElement* aElement);
 
   size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
+
+  nsAtom* GetStoredAtom() const;
+  nsStringBuffer* GetStoredStringBuffer() const;
 
  private:
   // These have to be the same as in ValueType
@@ -557,7 +547,6 @@ class nsAttrValue {
   static void DeallocMiscContainer(MiscContainer* aCont);
 
   static nsTArray<const EnumTable*>* sEnumTableArray;
-  static MiscContainer* sMiscContainerCache;
 
   /**
    * Helper for ParseHTMLDimension and ParseNonzeroHTMLDimension.

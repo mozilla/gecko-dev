@@ -1,11 +1,8 @@
 "use strict";
 
-var LabelUtils;
-add_task(async function() {
-  ({ LabelUtils } = ChromeUtils.import(
-    "resource://autofill/FormAutofillUtils.jsm"
-  ));
-});
+var { LabelUtils } = ChromeUtils.importESModule(
+  "resource://gre/modules/shared/LabelUtils.sys.mjs"
+);
 
 const TESTCASES = [
   {

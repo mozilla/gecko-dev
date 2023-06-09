@@ -24,6 +24,7 @@
 #include "mozilla/AutoMemMap.h"
 #include "mozilla/Compression.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/Monitor.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/Result.h"
 #include "mozilla/UniquePtr.h"
@@ -181,11 +182,13 @@ class StartupCache : public nsIMemoryReporter {
 
   // This measures all the heap memory used by the StartupCache, i.e. it
   // excludes the mapping.
-  size_t HeapSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
+  size_t HeapSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const
+      MOZ_REQUIRES(mTableLock);
 
-  bool ShouldCompactCache();
+  bool ShouldCompactCache() MOZ_REQUIRES(mTableLock);
   nsresult ResetStartupWriteTimerCheckingReadCount();
-  nsresult ResetStartupWriteTimer();
+  nsresult ResetStartupWriteTimerAndLock();
+  nsresult ResetStartupWriteTimer() MOZ_REQUIRES(mTableLock);
   bool StartupWriteComplete();
 
  private:
@@ -205,35 +208,41 @@ class StartupCache : public nsIMemoryReporter {
   Result<Ok, nsresult> OpenCache();
 
   // Writes the cache to disk
-  Result<Ok, nsresult> WriteToDisk();
+  Result<Ok, nsresult> WriteToDisk() MOZ_REQUIRES(mTableLock);
 
-  void WaitOnPrefetchThread();
-  void StartPrefetchMemoryThread();
+  void WaitOnPrefetch();
+  void StartPrefetchMemory();
 
   static nsresult InitSingleton();
   static void WriteTimeout(nsITimer* aTimer, void* aClosure);
   void MaybeWriteOffMainThread();
-  static void ThreadedPrefetch(void* aClosure);
+  void ThreadedPrefetch();
 
-  HashMap<nsCString, StartupCacheEntry> mTable;
+  Monitor mPrefetchComplete{"StartupCachePrefetch"};
+  bool mPrefetchInProgress MOZ_GUARDED_BY(mPrefetchComplete){false};
+
+  // This is normally accessed on MainThread, but WriteToDisk() can
+  // access it on other threads
+  HashMap<nsCString, StartupCacheEntry> mTable MOZ_GUARDED_BY(mTableLock);
   // This owns references to the contents of tables which have been invalidated.
   // In theory it grows forever if the cache is continually filled and then
   // invalidated, but this should not happen in practice. Deleting old tables
   // could create dangling pointers. RefPtrs could be introduced, but it would
   // be a large amount of error-prone work to change.
-  nsTArray<decltype(mTable)> mOldTables;
+  nsTArray<decltype(mTable)> mOldTables MOZ_GUARDED_BY(mTableLock);
   size_t mAllowedInvalidationsCount;
   nsCOMPtr<nsIFile> mFile;
-  loader::AutoMemMap mCacheData;
-  Mutex mTableLock MOZ_UNANNOTATED;
+  loader::AutoMemMap mCacheData MOZ_GUARDED_BY(mTableLock);
+  Mutex mTableLock;
 
   nsCOMPtr<nsIObserverService> mObserverService;
   RefPtr<StartupCacheListener> mListener;
   nsCOMPtr<nsITimer> mTimer;
 
-  Atomic<bool> mDirty;
-  Atomic<bool> mWrittenOnce;
-  bool mCurTableReferenced;
+  bool mDirty MOZ_GUARDED_BY(mTableLock);
+  bool mWrittenOnce MOZ_GUARDED_BY(mTableLock);
+  bool mCurTableReferenced MOZ_GUARDED_BY(mTableLock);
+
   uint32_t mRequestedCount;
   size_t mCacheEntriesBaseOffset;
 
@@ -241,7 +250,7 @@ class StartupCache : public nsIMemoryReporter {
   static bool gShutdownInitiated;
   static bool gIgnoreDiskCache;
   static bool gFoundDiskCacheOnInit;
-  PRThread* mPrefetchThread;
+
   UniquePtr<Compression::LZ4FrameDecompressionContext> mDecompressionContext;
 #ifdef DEBUG
   nsTHashSet<nsCOMPtr<nsISupports>> mWriteObjectMap;

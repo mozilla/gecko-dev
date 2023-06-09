@@ -107,11 +107,17 @@ module.exports = {
             message:
               "TO_PROPERTY_KEY macro must be called with a simple identifier",
           },
+          {
+            selector: "Identifier[name='arguments']",
+            message:
+              "'arguments' is disallowed, use ArgumentsLength(), GetArgument(n), or rest-parameters",
+          },
         ],
       },
 
       globals: {
         // The bytecode compiler special-cases these identifiers.
+        ArgumentsLength: "readonly",
         allowContentIter: "readonly",
         allowContentIterWith: "readonly",
         callContentFunction: "readonly",
@@ -119,6 +125,7 @@ module.exports = {
         constructContentFunction: "readonly",
         DefineDataProperty: "readonly",
         forceInterpreter: "readonly",
+        GetArgument: "readonly",
         GetBuiltinConstructor: "readonly",
         GetBuiltinPrototype: "readonly",
         GetBuiltinSymbol: "readonly",
@@ -129,6 +136,7 @@ module.exports = {
         SetIsInlinableLargeFunction: "readonly",
         ToNumeric: "readonly",
         ToString: "readonly",
+        IsNullOrUndefined: "readonly",
 
         // We've disabled all built-in environments, which also removed
         // `undefined` from the list of globals. Put it back because it's

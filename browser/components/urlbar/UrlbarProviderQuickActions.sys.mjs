@@ -19,7 +19,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 const ENABLED_PREF = "quickactions.enabled";
 const SUGGEST_PREF = "suggest.quickactions";
 const MATCH_IN_PHRASE_PREF = "quickactions.matchInPhrase";
-const SHOW_IN_ZERO_PREFIX_PREF = "quickactions.showInZeroPrefix";
+const MIN_SEARCH_PREF = "quickactions.minimumSearchString";
 const DYNAMIC_TYPE_NAME = "quickactions";
 
 // When the urlbar is first focused and no search term has been
@@ -100,8 +100,7 @@ class ProviderQuickActions extends UrlbarProvider {
 
     if (
       !queryContext.searchMode &&
-      !lazy.UrlbarPrefs.get(SHOW_IN_ZERO_PREFIX_PREF) &&
-      !input
+      input.length < lazy.UrlbarPrefs.get(MIN_SEARCH_PREF)
     ) {
       return;
     }
@@ -128,6 +127,16 @@ class ProviderQuickActions extends UrlbarProvider {
       return;
     }
 
+    // If all actions are inactive, don't show anything.
+    if (
+      results.every(key => {
+        const action = this.#actions.get(key);
+        return action.isActive && !action.isActive();
+      })
+    ) {
+      return;
+    }
+
     // If we are in the Actions searchMode then we want to show all the actions
     // but not when we are in the normal url mode on first focus.
     if (
@@ -149,6 +158,7 @@ class ProviderQuickActions extends UrlbarProvider {
     );
     result.suggestedIndex = SUGGESTED_INDEX;
     addCallback(this, result);
+    this.#resultFromLastQuery = result;
   }
 
   getViewTemplate(result) {
@@ -213,7 +223,7 @@ class ProviderQuickActions extends UrlbarProvider {
     return viewUpdate;
   }
 
-  pickResult(result, itemPicked) {
+  #pickResult(result, itemPicked) {
     let { key, inputLength } = itemPicked.dataset;
     // We clamp the input length to limit the number of keys to
     // the number of actions * 10.
@@ -227,6 +237,55 @@ class ProviderQuickActions extends UrlbarProvider {
     if (options.focusContent) {
       itemPicked.ownerGlobal.gBrowser.selectedBrowser.focus();
     }
+  }
+
+  /**
+   * Called when the user starts and ends an engagement with the urlbar.  For
+   * details on parameters, see UrlbarProvider.onEngagement().
+   *
+   * @param {boolean} isPrivate
+   *   True if the engagement is in a private context.
+   * @param {string} state
+   *   The state of the engagement, one of: start, engagement, abandonment,
+   *   discard
+   * @param {UrlbarQueryContext} queryContext
+   *   The engagement's query context.  This is *not* guaranteed to be defined
+   *   when `state` is "start".  It will always be defined for "engagement" and
+   *   "abandonment".
+   * @param {object} details
+   *   This is defined only when `state` is "engagement" or "abandonment", and
+   *   it describes the search string and picked result.
+   */
+  onEngagement(isPrivate, state, queryContext, details) {
+    // Ignore engagements on other results that didn't end the session.
+    if (details.result?.providerName != this.name && details.isSessionOngoing) {
+      return;
+    }
+
+    if (state == "engagement" && queryContext) {
+      // Get the result that's visible in the view. `details.result` is the
+      // engaged result, if any; if it's from this provider, then that's the
+      // visible result. Otherwise fall back to #getVisibleResultFromLastQuery.
+      let { result } = details;
+      if (result?.providerName != this.name) {
+        result = this.#getVisibleResultFromLastQuery(queryContext.view);
+      }
+
+      result?.payload.results.forEach(({ key }) => {
+        Services.telemetry.keyedScalarAdd(
+          `quickaction.impression`,
+          `${key}-${queryContext.trimmedSearchString.length}`,
+          1
+        );
+      });
+    }
+
+    // Handle picks.
+    if (details.result?.providerName == this.name) {
+      this.#pickResult(details.result, details.element);
+    }
+
+    this.#resultFromLastQuery = null;
   }
 
   /**
@@ -278,6 +337,9 @@ class ProviderQuickActions extends UrlbarProvider {
   // The actions that have been added.
   #actions = new Map();
 
+  // The result we added during the most recent query.
+  #resultFromLastQuery = null;
+
   #loopOverPrefixes(commands, fun) {
     for (const command of commands) {
       // Loop over all the prefixes of the word, ie
@@ -289,6 +351,21 @@ class ProviderQuickActions extends UrlbarProvider {
         fun(prefix);
       }
     }
+  }
+
+  #getVisibleResultFromLastQuery(view) {
+    let result = this.#resultFromLastQuery;
+
+    if (
+      result?.rowIndex >= 0 &&
+      view?.visibleResults?.[result.rowIndex] == result
+    ) {
+      // The result was visible.
+      return result;
+    }
+
+    // Find a visible result.
+    return view?.visibleResults?.find(r => r.providerName == this.name);
   }
 }
 

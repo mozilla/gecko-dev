@@ -12,6 +12,7 @@ var { XPCOMUtils } = ChromeUtils.importESModule(
 ChromeUtils.defineESModuleGetters(this, {
   BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
   Deprecated: "resource://gre/modules/Deprecated.sys.mjs",
+  DownloadLastDir: "resource://gre/modules/DownloadLastDir.sys.mjs",
   DownloadPaths: "resource://gre/modules/DownloadPaths.sys.mjs",
   Downloads: "resource://gre/modules/Downloads.sys.mjs",
   FileUtils: "resource://gre/modules/FileUtils.sys.mjs",
@@ -19,7 +20,6 @@ ChromeUtils.defineESModuleGetters(this, {
 });
 
 XPCOMUtils.defineLazyModuleGetters(this, {
-  DownloadLastDir: "resource://gre/modules/DownloadLastDir.jsm",
   NetUtil: "resource://gre/modules/NetUtil.jsm",
 });
 
@@ -342,7 +342,7 @@ function internalSave(
 
         continueSave();
       })
-      .catch(Cu.reportError);
+      .catch(console.error);
   }
 
   function continueSave() {
@@ -406,7 +406,7 @@ function internalSave(
  * @param persistArgs.sourceURI
  *        The nsIURI of the document being saved
  * @param persistArgs.sourceCacheKey [optional]
- *        If set will be passed to savePrivacyAwareURI
+ *        If set will be passed to saveURI
  * @param persistArgs.sourceDocument [optional]
  *        The document to be saved, or null if not saving a complete document
  * @param persistArgs.sourceReferrerInfo
@@ -424,7 +424,7 @@ function internalSave(
  *        content is accepted, enforce sniffing restrictions, etc.
  * @param persistArgs.cookieJarSettings [optional]
  *        The nsICookieJarSettings that will be used for the saving channel, or
- *        null that savePrivacyAwareURI will create one based on the current
+ *        null that saveURI will create one based on the current
  *        state of the prefs/permissions
  * @param persistArgs.targetContentType
  *        Required and used only when persistArgs.sourceDocument is present,
@@ -506,7 +506,7 @@ function internalPersist(persistArgs) {
       kWrapColumn
     );
   } else {
-    persist.savePrivacyAwareURI(
+    persist.saveURI(
       persistArgs.sourceURI,
       persistArgs.sourcePrincipal,
       persistArgs.sourceCacheKey,
@@ -674,20 +674,10 @@ function promiseTargetFile(
 
     // We must prompt for the file name explicitly.
     // If we must prompt because we were asked to...
-    let file = await new Promise(resolve => {
-      if (useDownloadDir) {
-        // Keep async behavior in both branches
-        Services.tm.dispatchToMainThread(function() {
-          resolve(null);
-        });
-      } else {
-        downloadLastDir.getFileAsync(aRelatedURI, function getFileAsyncCB(
-          aFile
-        ) {
-          resolve(aFile);
-        });
-      }
-    });
+    let file = null;
+    if (!useDownloadDir) {
+      file = await downloadLastDir.getFileAsync(aRelatedURI);
+    }
     if (file && (await IOUtils.exists(file.path))) {
       dir = file;
       dirExists = true;
@@ -835,7 +825,7 @@ function DownloadURL(aURL, aFileName, aInitiatingDocument) {
     // Add the download to the list, allowing it to be managed.
     let list = await Downloads.getList(Downloads.ALL);
     list.add(download);
-  })().catch(Cu.reportError);
+  })().catch(console.error);
 }
 
 // We have no DOM, and can only save the URL as is.
@@ -1099,14 +1089,18 @@ function getDefaultFileName(
 
 // This is only used after the user has entered a filename.
 function validateFileName(aFileName) {
-  let processed = DownloadPaths.sanitize(aFileName) || "_";
+  let processed =
+    DownloadPaths.sanitize(aFileName, {
+      compressWhitespaces: false,
+      allowInvalidFilenames: true,
+    }) || "_";
   if (AppConstants.platform == "android") {
     // If a large part of the filename has been sanitized, then we
     // will use a default filename instead
     if (processed.replace(/_/g, "").length <= processed.length / 2) {
       // We purposefully do not use a localized default filename,
       // which we could have done using
-      // ContentAreaUtils.stringBundle.GetStringFromName("DefaultSaveFileName")
+      // ContentAreaUtils.stringBundle.GetStringFromName("UntitledSaveFileName")
       // since it may contain invalid characters.
       var original = processed;
       processed = "download";

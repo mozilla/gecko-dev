@@ -14,34 +14,11 @@
 
 using namespace mozilla;
 
-NS_IMPL_CLASSINFO(ExpandedPrincipal, nullptr, nsIClassInfo::MAIN_THREAD_ONLY,
-                  NS_EXPANDEDPRINCIPAL_CID)
+NS_IMPL_CLASSINFO(ExpandedPrincipal, nullptr, 0, NS_EXPANDEDPRINCIPAL_CID)
 NS_IMPL_QUERY_INTERFACE_CI(ExpandedPrincipal, nsIPrincipal,
                            nsIExpandedPrincipal)
 NS_IMPL_CI_INTERFACE_GETTER(ExpandedPrincipal, nsIPrincipal,
                             nsIExpandedPrincipal)
-
-struct OriginComparator {
-  bool LessThan(nsIPrincipal* a, nsIPrincipal* b) const {
-    nsAutoCString originA;
-    DebugOnly<nsresult> rv = a->GetOrigin(originA);
-    MOZ_ASSERT(NS_SUCCEEDED(rv));
-    nsAutoCString originB;
-    rv = b->GetOrigin(originB);
-    MOZ_ASSERT(NS_SUCCEEDED(rv));
-    return originA < originB;
-  }
-
-  bool Equals(nsIPrincipal* a, nsIPrincipal* b) const {
-    nsAutoCString originA;
-    DebugOnly<nsresult> rv = a->GetOrigin(originA);
-    MOZ_ASSERT(NS_SUCCEEDED(rv));
-    nsAutoCString originB;
-    rv = b->GetOrigin(originB);
-    MOZ_ASSERT(NS_SUCCEEDED(rv));
-    return a == b;
-  }
-};
 
 ExpandedPrincipal::ExpandedPrincipal(
     nsTArray<nsCOMPtr<nsIPrincipal>>&& aPrincipals,
@@ -54,12 +31,9 @@ ExpandedPrincipal::~ExpandedPrincipal() = default;
 already_AddRefed<ExpandedPrincipal> ExpandedPrincipal::Create(
     const nsTArray<nsCOMPtr<nsIPrincipal>>& aAllowList,
     const OriginAttributes& aAttrs) {
-  // We force the principals to be sorted by origin so that ExpandedPrincipal
-  // origins can have a canonical form.
   nsTArray<nsCOMPtr<nsIPrincipal>> principals;
-  OriginComparator c;
   for (size_t i = 0; i < aAllowList.Length(); ++i) {
-    principals.InsertElementSorted(aAllowList[i], c);
+    principals.AppendElement(aAllowList[i]);
   }
 
   nsAutoCString origin;
@@ -249,7 +223,6 @@ ExpandedPrincipal::Deserializer::Read(nsIObjectInputStream* aStream) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  OriginComparator c;
   for (uint32_t i = 0; i < count; ++i) {
     nsCOMPtr<nsISupports> read;
     rv = aStream->ReadObject(true, getter_AddRefs(read));
@@ -262,9 +235,7 @@ ExpandedPrincipal::Deserializer::Read(nsIObjectInputStream* aStream) {
       return NS_ERROR_UNEXPECTED;
     }
 
-    // Play it safe and InsertElementSorted, in case the sort order
-    // changed for some bizarre reason.
-    principals.InsertElementSorted(std::move(principal), c);
+    principals.AppendElement(std::move(principal));
   }
 
   mPrincipal = ExpandedPrincipal::Create(principals, OriginAttributes());
@@ -292,28 +263,21 @@ nsresult ExpandedPrincipal::GetSiteIdentifier(SiteIdentifier& aSite) {
 }
 
 nsresult ExpandedPrincipal::PopulateJSONObject(Json::Value& aObject) {
-  nsAutoCString principalList;
-  // First item through we have a blank separator and append the next result
-  nsAutoCString sep;
-  for (auto& principal : mPrincipals) {
-    nsAutoCString JSON;
-    BasePrincipal::Cast(principal)->ToJSON(JSON);
-    // This is blank for the first run through so the last in the list doesn't
-    // add a separator
-    principalList.Append(sep);
-    sep = ',';
-    // Values currently only copes with strings so encode into base64 to allow a
-    // CSV safely.
-    nsresult rv;
-    rv = Base64EncodeAppend(JSON, principalList);
+  Json::Value& principalList =
+      aObject[Json::StaticString(JSONEnumKeyString<eSpecs>())] =
+          Json::arrayValue;
+  for (const auto& principal : mPrincipals) {
+    Json::Value object = Json::objectValue;
+    nsresult rv = BasePrincipal::Cast(principal)->ToJSON(object);
     NS_ENSURE_SUCCESS(rv, rv);
+
+    principalList.append(std::move(object));
   }
-  aObject[std::to_string(eSpecs)] = principalList.get();
 
   nsAutoCString suffix;
   OriginAttributesRef().CreateSuffix(suffix);
   if (suffix.Length() > 0) {
-    aObject[std::to_string(eSuffix)] = suffix.get();
+    SetJSONValue<eSuffix>(aObject, suffix);
   }
 
   return NS_OK;
@@ -326,6 +290,7 @@ already_AddRefed<BasePrincipal> ExpandedPrincipal::FromProperties(
   OriginAttributes attrs;
   // The odd structure here is to make the code to not compile
   // if all the switch enum cases haven't been codified
+
   for (const auto& field : aFields) {
     switch (field.key) {
       case ExpandedPrincipal::eSpecs:
@@ -358,6 +323,54 @@ already_AddRefed<BasePrincipal> ExpandedPrincipal::FromProperties(
 
   if (allowList.Length() == 0) {
     return nullptr;
+  }
+
+  RefPtr<ExpandedPrincipal> expandedPrincipal =
+      ExpandedPrincipal::Create(allowList, attrs);
+
+  return expandedPrincipal.forget();
+}
+
+/* static */
+already_AddRefed<BasePrincipal> ExpandedPrincipal::FromProperties(
+    const Json::Value& aJSON) {
+  MOZ_ASSERT(aJSON.size() <= eMax + 1, "Must have at most, all the properties");
+  const std::string specs = std::to_string(eSpecs);
+  const std::string suffix = std::to_string(eSuffix);
+  MOZ_ASSERT(aJSON.isMember(specs), "The eSpecs member is required");
+  MOZ_ASSERT(aJSON.size() == 1 || aJSON.isMember(suffix),
+             "eSuffix is optional");
+
+  const auto* specsValue =
+      aJSON.find(specs.c_str(), specs.c_str() + specs.length());
+  if (!specsValue) {
+    MOZ_ASSERT(false, "Expanded principals require specs in serialized JSON");
+    return nullptr;
+  }
+
+  nsTArray<nsCOMPtr<nsIPrincipal>> allowList;
+  for (const auto& principalJSON : *specsValue) {
+    if (nsCOMPtr<nsIPrincipal> principal =
+            BasePrincipal::FromJSON(principalJSON)) {
+      allowList.AppendElement(principal);
+    }
+  }
+
+  if (allowList.Length() == 0) {
+    return nullptr;
+  }
+
+  OriginAttributes attrs;
+  if (aJSON.isMember(suffix)) {
+    const auto& value = aJSON[suffix];
+    if (!value.isString()) {
+      return nullptr;
+    }
+
+    bool ok = attrs.PopulateFromSuffix(nsDependentCString(value.asCString()));
+    if (!ok) {
+      return nullptr;
+    }
   }
 
   RefPtr<ExpandedPrincipal> expandedPrincipal =

@@ -595,7 +595,7 @@ VideoReceiveStreamInterface::Stats ReceiveStatisticsProxy::GetStats() const {
   RTC_DCHECK_RUN_ON(&main_thread_);
 
   // Like VideoReceiveStreamInterface::GetStats, called on the worker thread
-  // from StatsCollector::ExtractMediaInfo via worker_thread()->Invoke().
+  // from StatsCollector::ExtractMediaInfo via worker_thread()->BlockingCall().
   // WebRtcVideoChannel::GetStats(), GetVideoReceiverInfo.
 
   // Get current frame rates here, as only updating them on new frames prevents
@@ -648,13 +648,16 @@ void ReceiveStatisticsProxy::OnIncomingPayloadType(int payload_type) {
   }));
 }
 
-void ReceiveStatisticsProxy::OnDecoderImplementationName(
-    const char* implementation_name) {
+void ReceiveStatisticsProxy::OnDecoderInfo(
+    const VideoDecoder::DecoderInfo& decoder_info) {
   RTC_DCHECK_RUN_ON(&decode_queue_);
   worker_thread_->PostTask(SafeTask(
-      task_safety_.flag(), [name = std::string(implementation_name), this]() {
+      task_safety_.flag(),
+      [this, name = decoder_info.implementation_name,
+       is_hardware_accelerated = decoder_info.is_hardware_accelerated]() {
         RTC_DCHECK_RUN_ON(&main_thread_);
         stats_.decoder_implementation_name = name;
+        stats_.power_efficient_decoder = is_hardware_accelerated;
       }));
 }
 

@@ -425,7 +425,6 @@ fuzzy(0-1,0-1) == 315920-20.svg 315920-20-ref.svg
 == chrome://reftest/content/bugs/321402-5.xhtml chrome://reftest/content/bugs/321402-5-ref.xhtml
 == chrome://reftest/content/bugs/321402-6.xhtml chrome://reftest/content/bugs/321402-6-ref.xhtml
 == 321738-1.html 321738-1-ref.html
-== chrome://reftest/content/bugs/322436-1.html chrome://reftest/content/bugs/322436-1-ref.html
 == 322461-1.xml 322461-1-ref.html
 == 323656-1.html 323656-1-ref.html
 == 323656-2.html 323656-2-ref.html
@@ -436,7 +435,7 @@ fuzzy(0-1,0-1) == 315920-20.svg 315920-20-ref.svg
 fuzzy-if(Android,0-2,0-140) == 325292-1.html 325292-1-ref.html
 == 325486-1.html 325486-1-ref.html
 == 328111-1.html 328111-1-ref.html
-random == 328829-1.xhtml 328829-1-ref.xhtml # bug 369046 (intermittent)
+== 328829-1.xhtml 328829-1-ref.xhtml
 == 328829-2.xhtml 328829-2-ref.xhtml
 == 329359-1.html 329359-1-ref.html
 == 331809-1.html 331809-1-ref.html # bug 580499 is blacked out
@@ -934,7 +933,6 @@ fails == 411585-3.html 411585-3-ref.html # bug 426909
 == 412607-1b.html 412607-1-ref.html
 == 412679-1.html 412679-1-ref.html
 fuzzy(0-1,0-17) == 412679-2.html 412679-2-ref.html
-== chrome://reftest/content/bugs/413027-1.html chrome://reftest/content/bugs/413027-1-ref.html
 fails == 413027-2.html 413027-2-ref.html
 fails == 413027-3.html 413027-3-ref.html
 == 413286-1a.html 413286-1-ref.html
@@ -1166,9 +1164,9 @@ fuzzy(0-4,0-361) == 449519-1.html 449519-1-ref.html
 == 455280-1.xhtml 455280-1-ref.xhtml
 fails-if(Android) == 455826-1.html 455826-1-ref.html
 == chrome://reftest/content/bugs/456147.xhtml 456147-ref.html
-fuzzy(24-60,107-570) fuzzy-if(Android&&/^aarch64-gcc3/.test(xulRuntime.XPCOMABI),0-54,0-618) == 456219-1a.html 456219-1-ref.html # bug 1128229
-fuzzy(24-60,107-1251) == 456219-1b.html 456219-1-ref.html # bug 1128229
-fuzzy(24-60,107-497) fuzzy-if(geckoview&&device,53-60,426-4421) == 456219-1c.html 456219-1-ref.html # bug 1128229
+fuzzy(24-110,110-800) == 456219-1a.html 456219-1-ref.html # bug 1128229
+fuzzy(24-110,107-1251) == 456219-1b.html 456219-1-ref.html # bug 1128229
+fuzzy(24-110,107-2940) == 456219-1c.html 456219-1-ref.html # bug 1128229
 fuzzy(0-10,0-8) == 456219-2.html 456219-2-ref.html
 == 456330-1.gif 456330-1-ref.png
 == 456484-1.html 456484-1-ref.html
@@ -1203,7 +1201,7 @@ fuzzy(0-1,0-34360) == 461512-1.html 461512-1-ref.html
 == 462844-3.html 462844-ref.html
 == 462844-4.html 462844-ref.html
 == 463204-1.html 463204-1-ref.html
-fuzzy-if(!useDrawSnapshot,16-16,3345-4100) == chrome://reftest/content/bugs/463217-1.xhtml chrome://reftest/content/bugs/463217-1-ref.xhtml
+== chrome://reftest/content/bugs/463217-1.xhtml chrome://reftest/content/bugs/463217-1-ref.xhtml
 == 463952-1.html 463952-1-ref.html
 == 464811-1.html 464811-1-ref.html
 == 465574-1.html 465574-1-ref.html # bug 421436
@@ -1364,7 +1362,6 @@ fuzzy-if(Android,0-5,0-2800) == 506481-1.html 506481-1-ref.html
 == 507762-2.html 507762-2-ref.html
 == 507762-3.html 507762-1-ref.html
 == 507762-4.html 507762-2-ref.html
-== chrome://reftest/content/bugs/508816-2.html chrome://reftest/content/bugs/508816-2-ref.html
 == 508919-1.xhtml 508919-1-ref.xhtml
 == 509155-1.xhtml 509155-1-ref.xhtml
 fuzzy(0-1,0-1200) == 512410.html 512410-ref.html
@@ -1403,7 +1400,6 @@ fuzzy(0-5,0-50) == 526463-1.html 526463-1-ref.html
 == 528038-2.html 528038-2-ref.html
 == 528096-1.html 528096-1-ref.html
 == 530686-1.html 530686-1-ref.html
-== chrome://reftest/content/bugs/531098-1.html chrome://reftest/content/bugs/531098-1-ref.html
 fuzzy-if(Android,0-2,0-48) fuzzy-if(cocoaWidget&&swgl,0-1,0-3) == 531200-1.html 531200-1-ref.html
 == 531371-1.html 531371-1-ref.html
 == 534526-1a.html 534526-1-ref.html
@@ -1602,13 +1598,13 @@ random-if(winWidget) == 632781-verybig.html 632781-ref.html
 == 632781-normalsize.html 632781-ref.html
 fuzzy-if(!isDebugBuild&&gtkWidget&&/^Linux\x20i686/.test(http.oscpu),0-102,0-140) == 633344-1.html 633344-1-ref.html # bug 1103623, Linux32 from GCC update
 fuzzy(0-1,0-500) == 634232-1.html 634232-1-ref.html
-fuzzy(0-3,0-120000) == 635302-1.html 635302-1-ref.html
+skip-if(Android&&emulator) fuzzy(0-3,0-120000) == 635302-1.html 635302-1-ref.html
 fuzzy(0-1,0-68) fuzzy-if(gtkWidget,0-1,0-70) fuzzy-if(!Android,0-2,0-300) == 635373-1.html 635373-1-ref.html
 random-if(d2d) fuzzy-if(winWidget&&!d2d,0-20,0-118) fuzzy-if(!Android,0-2,0-550) == 635373-2.html 635373-2-ref.html
 random-if(d2d) fuzzy-if(winWidget&&!d2d,0-20,0-116) fuzzy-if(!Android,0-2,0-650) == 635373-3.html 635373-3-ref.html
 == 635639-1.html 635639-1-ref.html
 == 635639-2.html 635639-2-ref.html
-random == 637597-1.html 637597-1-ref.html # bug 637597 was never really fixed!
+== 637597-1.html 637597-1-ref.html
 fuzzy(0-1,0-19) == 637852-1.html 637852-1-ref.html
 fuzzy(0-3,0-19) == 637852-2.html 637852-2-ref.html
 fuzzy-if(Android,0-8,0-500) == 637852-3.html 637852-3-ref.html
@@ -1629,7 +1625,7 @@ HTTP == 652991-3.html 652991-3-ref.html
 HTTP == 652991-4.html 652991-4-ref.html
 fuzzy(0-1,0-5) == 653930-1.html 653930-1-ref.html
 == 654057-1.html 654057-1-ref.html
-fuzzy(0-1,0-65536) == 654950-1.html 654950-1-ref.html # Quartz alpha blending doesn't match GL alpha blending
+skip-if(Android&&emulator) fuzzy(0-1,0-65536) == 654950-1.html 654950-1-ref.html # Quartz alpha blending doesn't match GL alpha blending
 == 655549-1.html 655549-1-ref.html
 == 655836-1.html 655836-1-ref.html
 != 656875.html about:blank
@@ -1641,7 +1637,7 @@ skip-if(Android) fuzzy(0-1,0-68000) == chrome://reftest/content/bugs/664127-1.xh
 == 667079-1.html 667079-1-ref.html
 skip-if(Android) == chrome://reftest/content/bugs/668319-1.xhtml about:blank
 != chrome://reftest/content/bugs/669015-1.xhtml chrome://reftest/content/bugs/669015-1-notref.xhtml
-skip-if(azureSkiaGL) == 670442-1.html 670442-1-ref.html
+skip-if(azureSkiaGL) fuzzy-if(Android&&device,0-55,0-3742) == 670442-1.html 670442-1-ref.html
 == 670467-1.html 670467-1-ref.html
 == 670467-2.html 670467-2-ref.html
 == 690164-1.html 690164-1-ref.html
@@ -1663,7 +1659,7 @@ fuzzy(0-1,0-3) needs-focus == 712130-2.html 712130-2-ref.html
 == 714519-1-q.html 714519-1-ref.html
 == 714519-2-as.html 714519-2-ref.html
 == 714519-2-q.html 714519-2-ref.html
-fuzzy(0-1,0-21) fuzzy-if(d2d,0-77,0-173) fuzzy-if(cocoaWidget,0-1,0-170) fuzzy-if(useDrawSnapshot,1-1,163-163) == 718521.html 718521-ref.html # bug 773482
+skip-if(Android&&emulator) fuzzy(0-1,0-21) fuzzy-if(d2d,0-77,0-173) fuzzy-if(cocoaWidget,0-1,0-170) fuzzy-if(useDrawSnapshot,1-1,163-163) == 718521.html 718521-ref.html # bug 773482
 == 720987.html 720987-ref.html
 == 722888-1.html 722888-1-ref.html
 fuzzy(0-2,0-40000) == 722923-1.html 722923-1-ref.html
@@ -1764,7 +1760,7 @@ fuzzy(0-1,0-5) == 956513-1.svg 956513-1-ref.svg
 fuzzy(0-1,0-80) == 961887-1.html 961887-1-ref.html
 == 961887-2.html 961887-2-ref.html
 == 961887-3.html 961887-3-ref.html
-fuzzy-if(appleSilicon,0-1,0-2) pref(layout.css.overflow-clip-box.enabled,true) pref(layout.forms.reveal-password-button.enabled,false) == 966992-1.html 966992-1-ref.html
+fuzzy(0-1,0-2) pref(layout.css.overflow-clip-box.enabled,true) pref(layout.forms.reveal-password-button.enabled,false) == 966992-1.html 966992-1-ref.html
 == 966510-1.html 966510-1-ref.html
 == 966510-2.html 966510-2-ref.html
 fuzzy(0-1,0-123) == 978911-1.svg 978911-1-ref.svg
@@ -1792,7 +1788,7 @@ pref(layout.css.overflow-clip-box.enabled,true) fuzzy(0-2,0-845) == 992447.html 
 == 1021564-4.html 1021564-ref.html
 pref(browser.display.use_document_fonts,0) == 1022481-1.html 1022481-1-ref.html
 fuzzy(0-1,0-126000) == 1022612-1.html 1022612-1-ref.html
-== 1024473-1.html 1024473-1-ref.html
+skip-if(Android&&emulator) == 1024473-1.html 1024473-1-ref.html
 fuzzy(0-1,0-24000) == 1025914-1.html 1025914-1-ref.html
 pref(layout.css.moz-document.content.enabled,true) == 1035091.html 1035091-ref.html
 pref(layout.css.moz-document.content.enabled,false) == 1035091-2.html 1035091-ref.html
@@ -2022,8 +2018,8 @@ fuzzy(0-255,0-4054) == 1415987-1.html 1415987-1-ref.html # this is a large fuzz,
 skip-if(winWidget&&isCoverageBuild) == 1424177.html 1424177-ref.html
 == 1424680.html 1424680-ref.html
 == 1424798-1.html 1424798-ref.html
-== 1425243-1.html 1425243-1-ref.html
-fuzzy-if(Android,0-66,0-574) fuzzy-if(d2d,0-89,0-777) fuzzy-if(!Android&&!d2d,0-1,0-31412) fuzzy-if(winWidget,1-1,31240-31412) == 1425243-2.html 1425243-2-ref.html
+fuzzy-if(swgl,0-1,0-31430) == 1425243-1.html 1425243-1-ref.html
+fuzzy-if(Android,0-66,0-574) fuzzy-if(d2d,0-89,0-777) fuzzy-if(!Android&&!d2d,0-1,0-31430) fuzzy-if(winWidget,1-1,31240-31430) == 1425243-2.html 1425243-2-ref.html
 == 1430869.html 1430869-ref.html
 == 1432541.html 1432541-ref.html
 == 1446470.html 1035091-ref.html
@@ -2123,6 +2119,8 @@ skip-if(Android) test-pref(ui.textScaleFactor,150) test-pref(browser.display.os-
 skip-if(Android) test-pref(ui.textScaleFactor,50) test-pref(browser.display.os-zoom-behavior,1) != 1773633.html 1773633.html
 pref(widget.disable-dark-scrollbar,false) == 1777135.html 1777135-ref.html
 test-pref(widget.non-native-theme.use-theme-accent,false) == 1778834.html 1778834-ref.html
+# do not adjust the fuzz without looking, this test was written as fuzzy on purpose (because that was the only way to make a test work)
+fuzzy(16-47,26939-44425) == 1780191-1.svg 1780191-1-ref.svg
 pref(layout.css.prefers-color-scheme.content-override,0) == 1787127.html 1787127-ref.html
 pref(layout.css.prefers-color-scheme.content-override,1) == 1787127.html 1787127-ref.html
 pref(layout.css.prefers-color-scheme.content-override,2) == 1787127.html 1787127-ref.html
@@ -2132,3 +2130,9 @@ skip-if(!/^Windows\x20NT\x2010\.0/.test(http.oscpu)) != 1798297-1.html 1798297-1
 == 1799425-1.html 1799425-1-ref.html
 == 1800437-1.html 1800437-1-ref.html
 == 1803999-1.html 1803999-1-ref.html
+== 1814628-1.html 1814628-1-ref.html
+== 1814047.html 1814047-ref.html
+== 1818412-1.html 1818412-1-ref.html
+== 1827009-1.html 1827009-1-ref.html
+pref(layout.testing.overlay-scrollbars.always-visible,true) pref(ui.useOverlayScrollbars,1) == 1827337-1.html 1827337-1-ref.html
+pref(layout.testing.overlay-scrollbars.always-visible,true) pref(ui.useOverlayScrollbars,1) fuzzy-if(winWidget,0-21,0-134) fuzzy-if(cocoaWidget,0-2,0-12) == 1828879-1.html 1828879-1-ref.html

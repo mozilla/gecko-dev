@@ -194,7 +194,7 @@ def paramlistAsNative(m, empty="void", return_param=True):
         while (
             paramIter >= 0
             and m.params[paramIter].optional
-            and m.params[paramIter].paramtype == "out"
+            and "out" in m.params[paramIter].paramtype
         ):
             t = m.params[paramIter].type
             # Strings can't be optional, so this shouldn't happen, but let's make sure:
@@ -251,9 +251,7 @@ header = """/*
 """
 
 include = """
-#ifndef __gen_%(basename)s_h__
 #include "%(basename)s.h"
-#endif
 """
 
 jsvalue_include = """

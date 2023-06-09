@@ -11,6 +11,12 @@ ChromeUtils.defineESModuleGetters(lazy, {
   SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
 });
 
+ChromeUtils.defineModuleGetter(
+  lazy,
+  "FormHistory",
+  "resource://gre/modules/FormHistory.jsm"
+);
+
 const DEFAULT_FORM_HISTORY_PARAM = "searchbar-history";
 const HTTP_OK = 200;
 const BROWSER_SUGGEST_PREF = "browser.search.suggest.enabled";
@@ -57,11 +63,14 @@ class SearchSuggestionEntry {
    * @param {string} [options.tail]
    *   Represents the suggested part of a tail suggestion. For example, Google
    *   might return "toronto" as the tail for the query "what time is it in t".
+   * @param {boolean} [options.trending]
+   *   Whether this is a trending suggestion.
    */
-  constructor(value, { matchPrefix, tail } = {}) {
+  constructor(value, { matchPrefix, tail, trending } = {}) {
     this.#value = value;
     this.#matchPrefix = matchPrefix;
     this.#tail = tail;
+    this.#trending = trending;
   }
 
   get value() {
@@ -74,6 +83,10 @@ class SearchSuggestionEntry {
 
   get tail() {
     return this.#tail;
+  }
+
+  get trending() {
+    return this.#trending;
   }
 
   get tailOffsetIndex() {
@@ -111,6 +124,7 @@ class SearchSuggestionEntry {
   #value;
   #matchPrefix;
   #tail;
+  #trending;
 }
 
 // Maps each engine name to a unique firstPartyDomain, so that requests to
@@ -133,6 +147,16 @@ var gFirstPartyDomains = new Map();
  */
 export class SearchSuggestionController {
   /**
+   * Constructor
+   *
+   * @param {string} [formHistoryParam]
+   *   The form history type to use with this controller.
+   */
+  constructor(formHistoryParam = DEFAULT_FORM_HISTORY_PARAM) {
+    this.formHistoryParam = formHistoryParam;
+  }
+
+  /**
    * The maximum length of a value to be stored in search history.
    *
    *  @type {number}
@@ -150,10 +174,15 @@ export class SearchSuggestionController {
    * Determines whether the given engine offers search suggestions.
    *
    * @param {nsISearchEngine} engine - The search engine
+   * @param {boolean} fetchTrending - Whether we should fetch trending suggestions.
    * @returns {boolean} True if the engine offers suggestions and false otherwise.
    */
-  static engineOffersSuggestions(engine) {
-    return engine.supportsResponseType(lazy.SearchUtils.URL_TYPE.SUGGEST_JSON);
+  static engineOffersSuggestions(engine, fetchTrending) {
+    return engine.supportsResponseType(
+      fetchTrending
+        ? lazy.SearchUtils.URL_TYPE.TRENDING_JSON
+        : lazy.SearchUtils.URL_TYPE.SUGGEST_JSON
+    );
   }
 
   /**
@@ -219,6 +248,7 @@ export class SearchSuggestionController {
    *   suggestions to the ones registered under the given engine.
    * @param {boolean} dedupeRemoteAndLocal - whether to remove remote
    *   suggestions that dupe local suggestions
+   * @param {boolean} fetchTrending - Whether we should fetch trending suggestions.
    *
    * @returns {Promise<FetchResult>}
    */
@@ -228,7 +258,8 @@ export class SearchSuggestionController {
     engine,
     userContextId = 0,
     restrictToEngine = false,
-    dedupeRemoteAndLocal = true
+    dedupeRemoteAndLocal = true,
+    fetchTrending = false
   ) {
     // There is no smart filtering from previous results here (as there is when
     // looking through history/form data) because the result set returned by the
@@ -262,6 +293,7 @@ export class SearchSuggestionController {
       dedupeRemoteAndLocal,
       engine,
       engineId: engine?.identifier || "other",
+      fetchTrending,
       privateMode,
       request: null,
       restrictToEngine,
@@ -272,17 +304,17 @@ export class SearchSuggestionController {
     });
 
     // Fetch local results from Form History, if requested.
-    if (this.maxLocalResults) {
+    if (this.maxLocalResults && !fetchTrending) {
       context.awaitingLocalResults = true;
       promises.push(this.#fetchFormHistory(context));
     }
     // Fetch remote results from Search Service, if requested.
     if (
-      searchTerm &&
+      (searchTerm || fetchTrending) &&
       this.suggestionsEnabled &&
       (!privateMode || this.suggestionsInPrivateBrowsingEnabled) &&
       this.maxRemoteResults &&
-      SearchSuggestionController.engineOffersSuggestions(engine)
+      SearchSuggestionController.engineOffersSuggestions(engine, fetchTrending)
     ) {
       promises.push(this.#fetchRemote(context));
     }
@@ -317,61 +349,26 @@ export class SearchSuggestionController {
   }
 
   #context;
-  #formHistoryResult;
 
-  #fetchFormHistory(context) {
-    return new Promise(resolve => {
-      let acSearchObserver = {
-        // Implements nsIAutoCompleteSearch
-        onSearchResult: (search, result) => {
-          context.awaitingLocalResults = false;
-          this.#formHistoryResult = result;
+  async #fetchFormHistory(context) {
+    // We don't cache these results as we assume that the in-memory SQL cache is
+    // good enough in performance.
+    let params = {
+      fieldname: this.formHistoryParam,
+    };
 
-          switch (result.searchResult) {
-            case Ci.nsIAutoCompleteResult.RESULT_SUCCESS:
-            case Ci.nsIAutoCompleteResult.RESULT_NOMATCH:
-              if (result.searchString !== context.searchString) {
-                resolve(
-                  "Unexpected response, searchString does not match form history response"
-                );
-                return;
-              }
-              let fhEntries = [];
-              for (let i = 0; i < result.matchCount; ++i) {
-                fhEntries.push(result.getValueAt(i));
-              }
-              resolve({
-                result: fhEntries,
-                formHistoryResult: result,
-              });
-              break;
-            case Ci.nsIAutoCompleteResult.RESULT_FAILURE:
-            case Ci.nsIAutoCompleteResult.RESULT_IGNORED:
-              resolve("Form History returned RESULT_FAILURE or RESULT_IGNORED");
-              break;
-          }
-        },
-      };
+    if (context.restrictToEngine) {
+      params.source = context.engine.name;
+    }
 
-      let formHistory = Cc[
-        "@mozilla.org/autocomplete/search;1?name=form-history"
-      ].createInstance(Ci.nsIAutoCompleteSearch);
-      let params = this.formHistoryParam || DEFAULT_FORM_HISTORY_PARAM;
-      let options = null;
-      if (context.restrictToEngine) {
-        options = Cc["@mozilla.org/hash-property-bag;1"].createInstance(
-          Ci.nsIWritablePropertyBag2
-        );
-        options.setPropertyAsAUTF8String("source", context.engine.name);
-      }
-      formHistory.startSearch(
-        context.searchString,
-        params,
-        this.#formHistoryResult,
-        acSearchObserver,
-        options
-      );
-    });
+    let results = await lazy.FormHistory.getAutoCompleteResults(
+      context.searchString,
+      params
+    );
+
+    context.awaitingLocalResults = false;
+
+    return { localResults: results };
   }
 
   /**
@@ -454,7 +451,9 @@ export class SearchSuggestionController {
     let request = (context.request = new XMLHttpRequest());
     let submission = context.engine.getSubmission(
       context.searchString,
-      lazy.SearchUtils.URL_TYPE.SUGGEST_JSON
+      context.searchString
+        ? lazy.SearchUtils.URL_TYPE.SUGGEST_JSON
+        : lazy.SearchUtils.URL_TYPE.TRENDING_JSON
     );
     let method = submission.postData ? "POST" : "GET";
     request.open(method, submission.uri.spec, true);
@@ -575,7 +574,7 @@ export class SearchSuggestionController {
     try {
       if (
         !Array.isArray(serverResults) ||
-        !serverResults[0] ||
+        serverResults[0] == undefined ||
         (context.searchString.localeCompare(serverResults[0], undefined, {
           sensitivity: "base",
         }) &&
@@ -627,24 +626,20 @@ export class SearchSuggestionController {
       term: context.searchString,
       remote: [],
       local: [],
-      formHistoryResult: null,
     };
 
     for (let resultData of suggestResults) {
-      if (typeof result === "string") {
+      if (typeof resultData === "string") {
         // Failure message
         console.error(
           "SearchSuggestionController found an unexpected string value: " +
             resultData
         );
-      } else if (resultData.formHistoryResult) {
-        // Local results have a formHistoryResult property.
-        results.formHistoryResult = resultData.formHistoryResult;
-        if (resultData.result) {
-          results.local = resultData.result.map(
-            s => new SearchSuggestionEntry(s)
-          );
-        }
+      } else if (resultData.localResults) {
+        results.formHistoryResults = resultData.localResults;
+        results.local = resultData.localResults.map(
+          s => new SearchSuggestionEntry(s.text)
+        );
       } else if (resultData.result) {
         // Remote result
         let richSuggestionData = this.#getRichSuggestionData(resultData.result);
@@ -653,7 +648,8 @@ export class SearchSuggestionController {
           results.remote.push(
             this.#newSearchSuggestionEntry(
               fullTextSuggestions[i],
-              richSuggestionData?.[i]
+              richSuggestionData?.[i],
+              context.fetchTrending
             )
           );
         }
@@ -732,18 +728,21 @@ export class SearchSuggestionController {
    * @param {object} richSuggestionData
    *   Rich suggestion data returned by the engine. In Google's case, this is
    *   the corresponding entry at "google:suggestdetail".
+   * @param {boolean} trending
+   *   Whether the suggestion is a trending suggestion.
    * @returns {SearchSuggestionEntry}
    */
-  #newSearchSuggestionEntry(suggestion, richSuggestionData) {
-    if (richSuggestionData) {
+  #newSearchSuggestionEntry(suggestion, richSuggestionData, trending) {
+    if (!trending && richSuggestionData) {
       // We have valid rich suggestions.
       return new SearchSuggestionEntry(suggestion, {
         matchPrefix: richSuggestionData?.mp,
         tail: richSuggestionData?.t,
+        trending,
       });
     }
     // Return a regular suggestion.
-    return new SearchSuggestionEntry(suggestion);
+    return new SearchSuggestionEntry(suggestion, { trending });
   }
 }
 

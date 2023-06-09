@@ -13,6 +13,7 @@
 #include "mozilla/CORSMode.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/nsCSPContext.h"
+#include "mozilla/dom/nsMixedContentBlocker.h"
 #include "mozilla/dom/ReferrerInfo.h"
 #include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/ipc/BackgroundUtils.h"
@@ -76,7 +77,7 @@ static uint64_t gEarlyHintPreloaderId{0};
 // OngoingEarlyHints
 //=============================================================================
 
-void OngoingEarlyHints::CancelAllOngoingPreloads(const nsACString& aReason) {
+void OngoingEarlyHints::CancelAll(const nsACString& aReason) {
   for (auto& preloader : mPreloaders) {
     preloader->CancelChannel(NS_ERROR_ABORT, aReason, /* aDeleteEntry */ true);
   }
@@ -209,7 +210,8 @@ void EarlyHintPreloader::MaybeCreateAndInsertPreload(
   ASDestination destination = static_cast<ASDestination>(as.GetEnumValue());
   CollectResourcesTypeTelemetry(destination);
 
-  if (!StaticPrefs::network_early_hints_enabled()) {
+  if (!StaticPrefs::network_early_hints_enabled() ||
+      !StaticPrefs::network_preload()) {
     return;
   }
 
@@ -231,7 +233,7 @@ void EarlyHintPreloader::MaybeCreateAndInsertPreload(
   }
 
   // only preload secure context urls
-  if (!uri->SchemeIs("https")) {
+  if (!nsMixedContentBlocker::IsPotentiallyTrustworthyOrigin(uri)) {
     return;
   }
 
@@ -479,14 +481,17 @@ nsresult EarlyHintPreloader::CancelChannel(nsresult aStatus,
   return NS_OK;
 }
 
-void EarlyHintPreloader::OnParentReady(nsIParentChannel* aParent,
-                                       uint64_t aChannelId) {
+void EarlyHintPreloader::OnParentReady(nsIParentChannel* aParent) {
   AssertIsOnMainThread();
   MOZ_ASSERT(aParent);
   LOG(("EarlyHintPreloader::OnParentReady [this=%p]\n", this));
 
+  nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
+  if (obs) {
+    obs->NotifyObservers(mChannel, "earlyhints-connectback", nullptr);
+  }
+
   mParent = aParent;
-  mChannelId = aChannelId;
 
   if (mTimer) {
     mTimer->Cancel();
@@ -512,16 +517,11 @@ void EarlyHintPreloader::SetParentChannel() {
 // https://searchfox.org/mozilla-central/rev/b4150d1c6fae0c51c522df2d2c939cf5ad331d4c/netwerk/ipc/DocumentLoadListener.cpp#1311
 void EarlyHintPreloader::InvokeStreamListenerFunctions() {
   AssertIsOnMainThread();
+  RefPtr<EarlyHintPreloader> self(this);
 
   LOG((
       "EarlyHintPreloader::InvokeStreamListenerFunctions [this=%p parent=%p]\n",
       this, mParent.get()));
-
-  if (nsCOMPtr<nsIIdentChannel> channel = do_QueryInterface(mChannel)) {
-    MOZ_ASSERT(mChannelId);
-    DebugOnly<nsresult> rv = channel->SetChannelId(mChannelId);
-    MOZ_ASSERT(NS_SUCCEEDED(rv));
-  }
 
   // If we failed to suspend the channel, then we might have received
   // some messages while the redirected was being handled.

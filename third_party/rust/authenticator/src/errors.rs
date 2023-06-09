@@ -13,8 +13,12 @@ use std::sync::mpsc;
 
 #[derive(Debug)]
 pub enum UnsupportedOption {
-    MaxPinLength,
+    EmptyAllowList,
     HmacSecret,
+    MaxPinLength,
+    PubCredParams,
+    ResidentKey,
+    UserVerification,
 }
 
 #[derive(Debug)]
@@ -33,21 +37,7 @@ pub enum AuthenticatorError {
     CryptoError,
     PinError(PinError),
     UnsupportedOption(UnsupportedOption),
-}
-
-impl AuthenticatorError {
-    pub fn as_u2f_errorcode(&self) -> u8 {
-        match *self {
-            AuthenticatorError::U2FToken(ref err) => *err as u8,
-            // TODO: This is somewhat ugly, as we hardcode the error code here, instead of using the
-            // const defined in `u2fhid-capi.h`, which we should.
-            AuthenticatorError::PinError(PinError::PinRequired) => 6u8,
-            AuthenticatorError::PinError(PinError::InvalidPin(_)) => 7u8,
-            AuthenticatorError::PinError(PinError::PinAuthBlocked) => 8u8,
-            AuthenticatorError::PinError(PinError::PinBlocked) => 9u8,
-            _ => U2FTokenError::Unknown as u8,
-        }
-    }
+    CancelledByUser,
 }
 
 impl std::error::Error for AuthenticatorError {}
@@ -64,23 +54,24 @@ impl fmt::Display for AuthenticatorError {
                 "no transports were configured in the authenticator service"
             ),
             AuthenticatorError::Platform => write!(f, "unknown platform error"),
-            AuthenticatorError::InternalError(ref err) => write!(f, "internal error: {}", err),
+            AuthenticatorError::InternalError(ref err) => write!(f, "internal error: {err}"),
             AuthenticatorError::U2FToken(ref err) => {
-                write!(f, "A u2f token error occurred {:?}", err)
+                write!(f, "A u2f token error occurred {err:?}")
             }
-            AuthenticatorError::Custom(ref err) => write!(f, "A custom error occurred {:?}", err),
-            AuthenticatorError::VersionMismatch(manager, version) => write!(
-                f,
-                "{} expected arguments of version CTAP{}",
-                manager, version
-            ),
-            AuthenticatorError::HIDError(ref e) => write!(f, "Device error: {}", e),
+            AuthenticatorError::Custom(ref err) => write!(f, "A custom error occurred {err:?}"),
+            AuthenticatorError::VersionMismatch(manager, version) => {
+                write!(f, "{manager} expected arguments of version CTAP{version}")
+            }
+            AuthenticatorError::HIDError(ref e) => write!(f, "Device error: {e}"),
             AuthenticatorError::CryptoError => {
                 write!(f, "The cryptography implementation encountered an error")
             }
-            AuthenticatorError::PinError(ref e) => write!(f, "PIN Error: {}", e),
+            AuthenticatorError::PinError(ref e) => write!(f, "PIN Error: {e}"),
             AuthenticatorError::UnsupportedOption(ref e) => {
-                write!(f, "Unsupported option: {:?}", e)
+                write!(f, "Unsupported option: {e:?}")
+            }
+            AuthenticatorError::CancelledByUser => {
+                write!(f, "Cancelled by user.")
             }
         }
     }

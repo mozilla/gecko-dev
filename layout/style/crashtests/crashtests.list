@@ -168,7 +168,7 @@ load 1290994-4.html
 load 1314531.html
 load 1315889-1.html
 load 1315894-1.html
-load 1319072-1.html
+pref(widget.windows.window_occlusion_tracking.enabled,false) load 1319072-1.html # Bug 1819154
 HTTP load 1320423-1.html
 load 1321357-1.html
 load 1328535-1.html
@@ -320,3 +320,4 @@ pref(layout.css.constructable-stylesheets.enabled,true) load 1616407.html
 load 1639533.html
 pref(layout.accessiblecaret.enabled,true) load 1640040.html
 load 1806189-1.html
+pref(layout.css.scroll-driven-animations.enabled,true) load 1821416.html

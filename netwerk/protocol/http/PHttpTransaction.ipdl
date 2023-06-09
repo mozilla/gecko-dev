@@ -16,10 +16,12 @@ include "mozilla/net/NeckoMessageUtils.h";
 include "mozilla/net/ClassOfService.h";
 
 using class mozilla::net::nsHttpRequestHead from "nsHttpRequestHead.h";
-using class nsHttpHeaderArray from "nsHttpHeaderArray.h";
+using class mozilla::net::nsHttpHeaderArray from "nsHttpHeaderArray.h";
 using mozilla::net::NetAddr from "mozilla/net/DNS.h";
 using mozilla::net::ClassOfService from "mozilla/net/ClassOfService.h";
 [RefCounted] using class nsITransportSecurityInfo from "nsITransportSecurityInfo.h";
+using mozilla::net::TRRSkippedReason from "nsITRRSkipReason.h";
+using nsIRequest::TRRMode from "nsIRequest.h";
 
 namespace mozilla {
 namespace net {
@@ -33,6 +35,8 @@ struct NetworkAddressArg {
   NetAddr selfAddr;
   NetAddr peerAddr;
   bool resolvedByTRR;
+  TRRMode mode;
+  TRRSkippedReason trrSkipReason;
   bool echConfigUsed;
 };
 
@@ -41,18 +45,20 @@ protocol PHttpTransaction
   manager PSocketProcess;
 
 parent:
-  async OnStartRequest(nsresult                   status,
-                       nsHttpResponseHead?        responseHead,
-                       nsITransportSecurityInfo   securityInfo,
-                       bool                       proxyConnectFailed,
-                       TimingStructArgs           timings,
-                       int32_t                    proxyConnectResponseCode,
-                       uint8_t[]                  dataForSniffer,
-                       nsCString?                 altSvcUsed,
-                       bool                       dataToChildProcess,
-                       bool                       restarted,
-                       uint32_t                   HTTPSSVCReceivedStage,
-                       bool                       supportsHttp3);
+  async OnStartRequest(nsresult                            status,
+                       nsHttpResponseHead?                 responseHead,
+                       nullable nsITransportSecurityInfo   securityInfo,
+                       bool                                proxyConnectFailed,
+                       TimingStructArgs                    timings,
+                       int32_t                             proxyConnectResponseCode,
+                       uint8_t[]                           dataForSniffer,
+                       nsCString?                          altSvcUsed,
+                       bool                                dataToChildProcess,
+                       bool                                restarted,
+                       uint32_t                            HTTPSSVCReceivedStage,
+                       bool                                supportsHttp3,
+                       TRRMode trrMode,
+                       TRRSkippedReason trrSkipReason);
   async OnTransportStatus(nsresult status,
                           int64_t progress,
                           int64_t progressMax,

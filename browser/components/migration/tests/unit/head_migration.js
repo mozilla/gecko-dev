@@ -3,8 +3,8 @@
 var { MigrationUtils } = ChromeUtils.importESModule(
   "resource:///modules/MigrationUtils.sys.mjs"
 );
-var { LoginHelper } = ChromeUtils.import(
-  "resource://gre/modules/LoginHelper.jsm"
+var { LoginHelper } = ChromeUtils.importESModule(
+  "resource://gre/modules/LoginHelper.sys.mjs"
 );
 var { NetUtil } = ChromeUtils.import("resource://gre/modules/NetUtil.jsm");
 var { PlacesUtils } = ChromeUtils.importESModule(
@@ -24,6 +24,9 @@ var { TestUtils } = ChromeUtils.importESModule(
 );
 var { PlacesTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/PlacesTestUtils.sys.mjs"
+);
+const { AppConstants } = ChromeUtils.importESModule(
+  "resource://gre/modules/AppConstants.sys.mjs"
 );
 
 ChromeUtils.defineESModuleGetters(this, {
@@ -86,6 +89,34 @@ async function promiseMigration(
 
   return Promise.all(promises);
 }
+/**
+ * Function that returns a favicon url for a given page url
+ *
+ * @param {string} uri
+ * The Bookmark URI
+ * @returns {string} faviconURI
+ * The Favicon URI
+ */
+async function getFaviconForPageURI(uri) {
+  let faviconURI = await new Promise(resolve => {
+    PlacesUtils.favicons.getFaviconDataForPage(uri, favURI => {
+      resolve(favURI);
+    });
+  });
+  return faviconURI;
+}
+
+/**
+ * Takes an array of page URIs and checks that the favicon was imported for each page URI
+ *
+ * @param {Array} pageURIs An array of page URIs
+ */
+async function assertFavicons(pageURIs) {
+  for (let uri of pageURIs) {
+    let faviconURI = await getFaviconForPageURI(uri);
+    Assert.ok(faviconURI, `Got favicon for ${uri.spec}`);
+  }
+}
 
 /**
  * Replaces a directory service entry with a given nsIFile.
@@ -121,4 +152,40 @@ function registerFakePath(key, file) {
       dirsvc.set(key, originalFile);
     }
   });
+}
+
+function getRootPath() {
+  let dirKey;
+  if (AppConstants.platform == "win") {
+    dirKey = "LocalAppData";
+  } else if (AppConstants.platform == "macosx") {
+    dirKey = "ULibDir";
+  } else {
+    dirKey = "Home";
+  }
+  return Services.dirsvc.get(dirKey, Ci.nsIFile).path;
+}
+
+/**
+ * Returns a PRTime value for the current date minus daysAgo number
+ * of days.
+ *
+ * @param {number} daysAgo
+ *   How many days in the past from now the returned date should be.
+ * @returns {number}
+ */
+function PRTimeDaysAgo(daysAgo) {
+  return PlacesUtils.toPRTime(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
+}
+
+/**
+ * Returns a Date value for the current date minus daysAgo number
+ * of days.
+ *
+ * @param {number} daysAgo
+ *   How many days in the past from now the returned date should be.
+ * @returns {Date}
+ */
+function dateDaysAgo(daysAgo) {
+  return new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
 }

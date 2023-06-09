@@ -109,8 +109,12 @@ add_task(async function testSimpleSourcesWithManualClickExpand() {
 
   info("Test the copy to clipboard context menu");
   const mathMinTreeNode = findSourceNodeWithText(dbg, "math.min.js");
-  await triggerCopySourceContextMenu(dbg, mathMinTreeNode);
-  const clipboardData = SpecialPowers.getClipboardData("text/unicode");
+  await triggerSourceTreeContextMenu(
+    dbg,
+    mathMinTreeNode,
+    "#node-menu-copy-source"
+  );
+  const clipboardData = SpecialPowers.getClipboardData("text/plain");
   is(
     clipboardData,
     EXAMPLE_URL + "math.min.js",
@@ -127,7 +131,11 @@ add_task(async function testSimpleSourcesWithManualClickExpand() {
   MockFilePicker.setFiles([nsiFile]);
   const path = nsiFile.path;
 
-  await triggerDownloadFileContextMenu(dbg, mathMinTreeNode);
+  await triggerSourceTreeContextMenu(
+    dbg,
+    mathMinTreeNode,
+    "#node-menu-download-file"
+  );
 
   info("Wait for the downloaded file to be fully saved to disk");
   await BrowserTestUtils.waitForCondition(() => IOUtils.exists(path));
@@ -356,10 +364,10 @@ add_task(async function testSourceTreeOnTheIntegrationTestPage() {
   info("Verify blackbox source icon");
   await selectSource(dbg, "script.js");
   await clickElement(dbg, "blackbox");
-  await waitForDispatch(dbg.store, "BLACKBOX");
+  await waitForDispatch(dbg.store, "BLACKBOX_WHOLE_SOURCES");
   assertSourceIcon(dbg, "script.js", "blackBox");
   await clickElement(dbg, "blackbox");
-  await waitForDispatch(dbg.store, "BLACKBOX");
+  await waitForDispatch(dbg.store, "UNBLACKBOX_WHOLE_SOURCES");
   assertSourceIcon(dbg, "script.js", "javascript");
 
   info("Assert the content of the named eval");
@@ -468,6 +476,50 @@ add_task(async function testSourceTreeWithWebExtensionContentScript() {
   await extension.unload();
 });
 
+add_task(async function testSourceTreeWithEncodedPaths() {
+  const httpServer = createTestHTTPServer();
+  httpServer.registerContentType("html", "text/html");
+  httpServer.registerContentType("js", "application/javascript");
+
+  httpServer.registerPathHandler("/index.html", function(request, response) {
+    response.setStatusLine(request.httpVersion, 200, "OK");
+    response.write(`<!DOCTYPE html>
+    <html>
+      <head>
+      <script src="/my folder/my file.js"></script>
+      </head>
+      <body>
+      <h1>Encoded scripts paths</h1>
+      </body>
+    `);
+  });
+  httpServer.registerPathHandler(encodeURI("/my folder/my file.js"), function(
+    request,
+    response
+  ) {
+    response.setStatusLine(request.httpVersion, 200, "OK");
+    response.setHeader("Content-Type", "application/javascript", false);
+    response.write(`const x = 42`);
+  });
+  const port = httpServer.identity.primaryPort;
+
+  const dbg = await initDebuggerWithAbsoluteURL(
+    `http://localhost:${port}/index.html`,
+    "my file.js"
+  );
+
+  await waitForSourcesInSourceTree(dbg, ["my file.js"]);
+  ok(true, "source name is decoded in the tree");
+  is(
+    // We don't have any specific class on the folder item, so let's target the folder
+    // icon next sibling, which is the directory label.
+    findElementWithSelector(dbg, ".sources-panel .node .folder + .label")
+      .innerText,
+    "my folder",
+    "folder name is decoded in the tree"
+  );
+});
+
 /**
  * Assert the location displayed in the breakpoint list, in the right sidebar.
  *
@@ -481,26 +533,4 @@ function assertBreakpointHeading(dbg, label, index) {
   const breakpointHeading = findAllElements(dbg, "breakpointHeadings")[index]
     .innerText;
   is(breakpointHeading, label, `Breakpoint heading is ${label}`);
-}
-
-async function triggerCopySourceContextMenu(dbg, treeNode) {
-  const onContextMenu = waitForContextMenu(dbg);
-  rightClickEl(dbg, treeNode);
-  const menupopup = await onContextMenu;
-  const onHidden = new Promise(resolve => {
-    menupopup.addEventListener("popuphidden", resolve, { once: true });
-  });
-  selectContextMenuItem(dbg, "#node-menu-copy-source");
-  await onHidden;
-}
-
-async function triggerDownloadFileContextMenu(dbg, treeNode) {
-  const onContextMenu = waitForContextMenu(dbg);
-  rightClickEl(dbg, treeNode);
-  const menupopup = await onContextMenu;
-  const onHidden = new Promise(resolve => {
-    menupopup.addEventListener("popuphidden", resolve, { once: true });
-  });
-  selectContextMenuItem(dbg, "#node-menu-download-file");
-  await onHidden;
 }

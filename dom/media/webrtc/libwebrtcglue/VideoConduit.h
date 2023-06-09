@@ -150,6 +150,7 @@ class WebrtcVideoConduit
   MediaConduitErrorCode Init();
 
   Ssrcs GetLocalSSRCs() const override;
+  Maybe<Ssrc> GetAssociatedLocalRtxSSRC(Ssrc aSsrc) const override;
   Maybe<Ssrc> GetRemoteSSRC() const override;
 
   // Call thread.
@@ -195,14 +196,8 @@ class WebrtcVideoConduit
   void OnRtcpBye() override;
   void OnRtcpTimeout() override;
 
-  void SetTransportActive(bool aActive) override {
-    mTransportActive = aActive;
-    if (!aActive) {
-      mReceiverRtpEventListener.DisconnectIfExists();
-      mReceiverRtcpEventListener.DisconnectIfExists();
-      mSenderRtcpEventListener.DisconnectIfExists();
-    }
-  }
+  void SetTransportActive(bool aActive) override;
+
   MediaEventSourceExc<MediaPacket>& SenderRtpSendEvent() override {
     return mSenderRtpSendEvent;
   }
@@ -214,33 +209,18 @@ class WebrtcVideoConduit
   }
   void ConnectReceiverRtpEvent(
       MediaEventSourceExc<MediaPacket, webrtc::RTPHeader>& aEvent) override {
-    // Hold a strong-ref to `this` for safety, since we'll be disconnecting
-    // off-target.
-    mReceiverRtpEventListener = aEvent.Connect(
-        mCallThread, [this, self = RefPtr<WebrtcVideoConduit>(this)](
-                         MediaPacket aPacket, webrtc::RTPHeader aHeader) {
-          OnRtpReceived(std::move(aPacket), std::move(aHeader));
-        });
+    mReceiverRtpEventListener =
+        aEvent.Connect(mCallThread, this, &WebrtcVideoConduit::OnRtpReceived);
   }
   void ConnectReceiverRtcpEvent(
       MediaEventSourceExc<MediaPacket>& aEvent) override {
-    // Hold a strong-ref to `this` for safety, since we'll be disconnecting
-    // off-target.
-    mReceiverRtcpEventListener = aEvent.Connect(
-        mCallThread,
-        [this, self = RefPtr<WebrtcVideoConduit>(this)](MediaPacket aPacket) {
-          OnRtcpReceived(std::move(aPacket));
-        });
+    mReceiverRtcpEventListener =
+        aEvent.Connect(mCallThread, this, &WebrtcVideoConduit::OnRtcpReceived);
   }
   void ConnectSenderRtcpEvent(
       MediaEventSourceExc<MediaPacket>& aEvent) override {
-    // Hold a strong-ref to `this` for safety, since we'll be disconnecting
-    // off-target.
-    mSenderRtcpEventListener = aEvent.Connect(
-        mCallThread,
-        [this, self = RefPtr<WebrtcVideoConduit>(this)](MediaPacket aPacket) {
-          OnRtcpReceived(std::move(aPacket));
-        });
+    mSenderRtcpEventListener =
+        aEvent.Connect(mCallThread, this, &WebrtcVideoConduit::OnRtcpReceived);
   }
 
   std::vector<webrtc::RtpSource> GetUpstreamRtpSources() const override;
@@ -267,6 +247,7 @@ class WebrtcVideoConduit
   MediaEventSource<void>& RtcpTimeoutEvent() override {
     return mRtcpTimeoutEvent;
   }
+  MediaEventSource<void>& RtpPacketEvent() override { return mRtpPacketEvent; }
 
   bool RequiresNewSendStream(const VideoCodecConfig& newConfig) const;
 
@@ -491,6 +472,7 @@ class WebrtcVideoConduit
   Atomic<bool> mTransportActive = Atomic<bool>(false);
   MediaEventProducer<void> mRtcpByeEvent;
   MediaEventProducer<void> mRtcpTimeoutEvent;
+  MediaEventProducer<void> mRtpPacketEvent;
   MediaEventProducerExc<MediaPacket> mSenderRtpSendEvent;
   MediaEventProducerExc<MediaPacket> mSenderRtcpSendEvent;
   MediaEventProducerExc<MediaPacket> mReceiverRtcpSendEvent;

@@ -57,10 +57,10 @@ excluded_from_imports_prefix = list(
             # Vendored or auto-generated files.
             "browser/components/pocket/content/panels/js/vendor.bundle.js",
             "devtools/client/debugger/dist/parser-worker.js",
-            "devtools/client/debugger/packages/devtools-source-map/src/tests/fixtures/bundle.js",
             "devtools/client/debugger/test/mochitest/examples/react/build/main.js",
             "devtools/client/debugger/test/mochitest/examples/sourcemapped/polyfill-bundle.js",
             "devtools/client/inspector/markup/test/shadowdom_open_debugger.min.js",
+            "devtools/client/shared/source-map-loader/test/browser/fixtures/bundle.js",
             "layout/style/test/property_database.js",
             "services/fxaccounts/FxAccountsPairingChannel.js",
             "testing/talos/talos/tests/devtools/addon/content/pages/custom/debugger/static/js/main.js",  # noqa E501
@@ -95,6 +95,7 @@ excluded_from_imports_prefix = list(
             "js/xpconnect/tests/chrome/test_bug732665_meta.js",
             "js/xpconnect/tests/mochitest/class_static_worker.js",
             "js/xpconnect/tests/unit/bug451678_subscript.js",
+            "js/xpconnect/tests/unit/error_other.sys.mjs",
             "js/xpconnect/tests/unit/es6module_parse_error.js",
             "js/xpconnect/tests/unit/recursive_importA.jsm",
             "js/xpconnect/tests/unit/recursive_importB.jsm",
@@ -109,7 +110,7 @@ excluded_from_imports_prefix = list(
             "remote/shared/messagehandler/test/browser/resources/modules/root/invalid.sys.mjs",
             "testing/talos/talos/startup_test/sessionrestore/profile-manywindows/sessionstore.js",
             "testing/talos/talos/startup_test/sessionrestore/profile/sessionstore.js",
-            "toolkit/components/reader/Readerable.jsm",
+            "toolkit/components/reader/Readerable.sys.mjs",
             "toolkit/components/workerloader/tests/moduleF-syntax-error.js",
             "tools/lint/test/",
             "tools/update-packaging/test/",
@@ -119,7 +120,7 @@ excluded_from_imports_prefix = list(
             # Files has macro.
             "browser/app/profile/firefox.js",
             "browser/branding/official/pref/firefox-branding.js",
-            "browser/components/enterprisepolicies/schemas/schema.jsm",
+            "browser/components/enterprisepolicies/schemas/schema.sys.mjs",
             "browser/locales/en-US/firefox-l10n.js",
             "mobile/android/app/geckoview-prefs.js",
             "mobile/android/app/mobile.js",
@@ -183,6 +184,9 @@ class HgUtils(VCSUtils):
     def find_jsms(self, path):
         jsms = []
 
+        # NOTE: `set:glob:` syntax does not accept backslash on windows.
+        path = path_sep_from_native(path)
+
         cmd = ["hg", "files", f'set:glob:"{path}/**/*.jsm"']
         for line in self.run(cmd):
             jsm = pathlib.Path(line)
@@ -205,6 +209,9 @@ class HgUtils(VCSUtils):
 
     def find_all_jss(self, path):
         jss = []
+
+        # NOTE: `set:glob:` syntax does not accept backslash on windows.
+        path = path_sep_from_native(path)
 
         cmd = [
             "hg",

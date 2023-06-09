@@ -21,9 +21,11 @@ newtab.search:
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1766887
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786670
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1766887
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786670#c3
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105#c11
     data_sensitivity:
       - interaction
     notification_emails:
@@ -31,7 +33,8 @@ newtab.search:
       - chutten@mozilla.com
       - mmccorquodale@mozilla.com
       - najiang@mozilla.com
-    expires: 113
+      - lina@mozilla.com
+    expires: never
     extra_keys:
       newtab_visit_id: &newtab_visit_id
         description: >
@@ -68,9 +71,11 @@ newtab.search.ad:
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1766887
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786670
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1766887
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786670#c3
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105#c11
     data_sensitivity:
       - interaction
     notification_emails:
@@ -78,7 +83,8 @@ newtab.search.ad:
       - chutten@mozilla.com
       - mmccorquodale@mozilla.com
       - najiang@mozilla.com
-    expires: 113
+      - lina@mozilla.com
+    expires: never
     extra_keys:
       newtab_visit_id: *newtab_visit_id
       search_access_point: *search_access_point
@@ -102,9 +108,11 @@ newtab.search.ad:
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1766887
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786670
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1766887
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786670#c3
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105#c11
     data_sensitivity:
       - interaction
     notification_emails:
@@ -112,7 +120,8 @@ newtab.search.ad:
       - chutten@mozilla.com
       - mmccorquodale@mozilla.com
       - najiang@mozilla.com
-    expires: 113
+      - lina@mozilla.com
+    expires: never
     extra_keys:
       newtab_visit_id: *newtab_visit_id
       search_access_point: *search_access_point
@@ -121,3 +130,159 @@ newtab.search.ad:
       telemetry_id: *telemetry_id
     send_in_pings:
       - newtab
+
+serp:
+  impression:
+    type: event
+    description: >
+      Recorded when a search engine results page (SERP) is shown to a user.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1813162
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1824543
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1816736
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1813162
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1824543
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    extra_keys:
+      impression_id: &impression_id
+        description: >
+          A uuid to link SERP events to user's engagement events.
+        type: string
+      provider:
+        description: >
+          The name of the provider.
+        type: string
+      tagged:
+        description: >
+          Whether the search is tagged (true) or organic (false).
+        type: boolean
+      partner_code:
+        description: >
+          Any partner_code parsing in the URL or an empty string if not
+          available.
+        type: string
+      source:
+        description: >
+          How the user arrived at the SERP.
+          Possible values are:
+          `urlbar`, `urlbar_handoff`, `urlbar_searchmode`, `urlbar_persisted`,
+          `searchbar`, `contextmenu`, `webextension`, `system`, `reload`,
+          `tabhistory`, `unknown`, `follow_on_from_refine_on_incontent_search`.
+          This will be `unknown` if we cannot determine the source.
+        type: string
+      shopping_tab_displayed:
+        description:
+          Indicates if the shopping tab is displayed.
+        type: boolean
+      is_shopping_page:
+        description:
+          Indicates if the page is a shopping page.
+        type: boolean
+
+  engagement:
+    type: event
+    description: >
+      Recorded user actions on a SERP.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1814773
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1816730
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1816735
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1814773
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1816730
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    extra_keys:
+      impression_id: *impression_id
+      action:
+        description: >
+          The action taken on the page.
+          Possible values are `clicked`, `expanded`, and `submitted`.
+        type: string
+      target:
+        description: >
+          The target component used to trigger the action.
+          Possible values are `ad_carousel`, `ad_link`, `ad_sitelink`,
+          `ad_sidebar`, `shopping_tab`, `non_ads_link`, or
+          `incontent_searchbox`.
+        type: string
+
+  ad_impression:
+    type: event
+    description: >
+      Recorded when a user loads a SERP and ads are detected.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1816728
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1816729
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1816728
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    extra_keys:
+      impression_id: *impression_id
+      component:
+        description: >
+          Type of components on a SERP. Possible values are:
+          `ad_carousel`,
+          `ad_link`,
+          `ad_sidebar`,
+          `ad_sitelink`,
+          `refined_search_buttons`
+          `shopping_tab`,
+          Defaults to `ad_link`.
+        type: string
+      ads_loaded:
+        description: >
+          Number of ads loaded for this component. They may or
+          may not be visible on the page.
+        type: quantity
+      ads_visible:
+        description: >
+          Number of ads visible for this component. An ad can be
+          considered visible if was within the browser window
+          by the time the impression was recorded.
+        type: quantity
+      ads_hidden:
+        description: >
+          Number of ads hidden for this component. These are ads that
+          are loaded in the DOM but hidden via CSS and/or Javascript.
+        type: quantity
+
+  abandonment:
+    type: event
+    description: >
+      Recorded when there is no engagement with the SERP before the tab is
+      closed, the window is closed, the app is closed, or the tab is navigated
+      away from.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1814776
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1814776
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    extra_keys:
+      impression_id: *impression_id
+      reason:
+        description: >
+          Why the SERP is deemed abandoned.
+          Possible values are:
+          `tab_close`, `window_close`, `navigation`
+        type: string

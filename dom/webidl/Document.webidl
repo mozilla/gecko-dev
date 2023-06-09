@@ -441,7 +441,7 @@ partial interface Document {
   attribute boolean styleSheetChangeEventsEnabled;
 
   [ChromeOnly]
-  attribute boolean shadowRootAttachedEventEnabled;
+  attribute boolean devToolsAnonymousAndShadowEventsEnabled;
 
   [ChromeOnly] readonly attribute DOMString contentLanguage;
 
@@ -528,7 +528,7 @@ partial interface Document {
    * Removes the element inserted into the CanvasFrame given an AnonymousContent
    * instance.
    */
-  [ChromeOnly, Throws]
+  [ChromeOnly]
   undefined removeAnonymousContent(AnonymousContent aContent);
 };
 
@@ -557,18 +557,6 @@ partial interface Document {
 partial interface Document {
   [Func="Document::CallerCanAccessPrivilegeSSA", NewObject]
   Promise<undefined> requestStorageAccessForOrigin(DOMString thirdPartyOrigin, optional boolean requireUserInteraction = true);
-};
-
-enum DocumentAutoplayPolicy {
-  "allowed",       // autoplay is currently allowed
-  "allowed-muted", // muted video autoplay is currently allowed
-  "disallowed"     // autoplay is not current allowed
-};
-
-// https://github.com/WICG/autoplay/issues/1
-partial interface Document {
-  [Pref="dom.media.autoplay.autoplay-policy-api"]
-  readonly attribute DocumentAutoplayPolicy autoplayPolicy;
 };
 
 // Extension to give chrome JS the ability to determine whether
@@ -613,6 +601,7 @@ partial interface Document {
 
 partial interface Document {
   [Func="Document::DocumentSupportsL10n"] readonly attribute DocumentL10n? l10n;
+  [Func="Document::DocumentSupportsL10n"] readonly attribute boolean hasPendingL10nMutations;
 };
 
 Document includes XPathEvaluatorMixin;
@@ -621,7 +610,7 @@ Document includes TouchEventHandlers;
 Document includes ParentNode;
 Document includes OnErrorEventHandlerForNodes;
 Document includes GeometryUtils;
-Document includes  FontFaceSource;
+Document includes FontFaceSource;
 Document includes DocumentOrShadowRoot;
 
 // https://w3c.github.io/webappsec-feature-policy/#idl-index

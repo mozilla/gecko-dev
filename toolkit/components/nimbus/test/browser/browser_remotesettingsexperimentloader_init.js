@@ -3,14 +3,14 @@
 
 "use strict";
 
-const { ExperimentFakes } = ChromeUtils.import(
-  "resource://testing-common/NimbusTestUtils.jsm"
+const { ExperimentFakes } = ChromeUtils.importESModule(
+  "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
-const { ExperimentManager } = ChromeUtils.import(
-  "resource://nimbus/lib/ExperimentManager.jsm"
+const { ExperimentManager } = ChromeUtils.importESModule(
+  "resource://nimbus/lib/ExperimentManager.sys.mjs"
 );
-const { ExperimentAPI } = ChromeUtils.import(
-  "resource://nimbus/ExperimentAPI.jsm"
+const { ExperimentAPI } = ChromeUtils.importESModule(
+  "resource://nimbus/ExperimentAPI.sys.mjs"
 );
 
 function getRecipe(slug) {
@@ -35,21 +35,25 @@ add_task(async function test_double_feature_enrollment() {
   );
   await ExperimentAPI.ready();
 
-  Assert.ok(ExperimentManager.store.getAllActive().length === 0, "Clean state");
+  Assert.ok(
+    ExperimentManager.store.getAllActiveExperiments().length === 0,
+    "Clean state"
+  );
 
   let recipe1 = getRecipe("foo" + Math.random());
   let recipe2 = getRecipe("foo" + Math.random());
 
-  let enrollPromise1 = ExperimentFakes.waitForExperimentUpdate(ExperimentAPI, {
-    slug: recipe1.slug,
-  });
+  let enrollPromise1 = ExperimentFakes.waitForExperimentUpdate(
+    ExperimentAPI,
+    recipe1.slug
+  );
 
   ExperimentManager.enroll(recipe1, "test_double_feature_enrollment");
   await enrollPromise1;
   ExperimentManager.enroll(recipe2, "test_double_feature_enrollment");
 
   Assert.equal(
-    ExperimentManager.store.getAllActive().length,
+    ExperimentManager.store.getAllActiveExperiments().length,
     1,
     "1 active experiment"
   );

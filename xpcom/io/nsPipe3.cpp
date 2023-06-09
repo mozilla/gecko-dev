@@ -574,7 +574,7 @@ nsPipe::nsPipe(uint32_t aSegmentSize, uint32_t aSegmentCount)
   // the size to expand when cloned streams are read at different
   // rates.  We enforce a limit on how much data can be buffered
   // ahead of the fastest reader in GetWriteSegment().
-  MOZ_ALWAYS_SUCCEEDS(mBuffer.Init(aSegmentSize, UINT32_MAX));
+  MOZ_ALWAYS_SUCCEEDS(mBuffer.Init(aSegmentSize));
 }
 
 nsPipe::~nsPipe() = default;
@@ -1317,6 +1317,12 @@ nsPipeInputStream::Available(uint64_t* aResult) {
 }
 
 NS_IMETHODIMP
+nsPipeInputStream::StreamStatus() {
+  ReentrantMonitorAutoEnter mon(mPipe->mReentrantMonitor);
+  return mReadState.mAvailable ? NS_OK : Status(mon);
+}
+
+NS_IMETHODIMP
 nsPipeInputStream::ReadSegments(nsWriteSegmentFun aWriter, void* aClosure,
                                 uint32_t aCount, uint32_t* aReadCount) {
   LOG(("III ReadSegments [this=%p count=%u]\n", this, aCount));
@@ -1719,9 +1725,15 @@ nsPipeOutputStream::Write(const char* aFromBuf, uint32_t aBufLen,
 }
 
 NS_IMETHODIMP
-nsPipeOutputStream::Flush(void) {
+nsPipeOutputStream::Flush() {
   // nothing to do
   return NS_OK;
+}
+
+NS_IMETHODIMP
+nsPipeOutputStream::StreamStatus() {
+  ReentrantMonitorAutoEnter mon(mPipe->mReentrantMonitor);
+  return mPipe->mStatus;
 }
 
 NS_IMETHODIMP

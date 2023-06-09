@@ -15,6 +15,7 @@
 #include "mozilla/ToString.h"
 #include "nsCSSRendering.h"
 #include "nsDisplayList.h"
+#include "nsIFrameInlines.h"
 #include "nsLayoutUtils.h"
 
 using namespace mozilla;
@@ -73,12 +74,15 @@ bool nsDisplayColumnRule::CreateWebRenderCommands(
     const StackingContextHelper& aSc,
     mozilla::layers::RenderRootStateManager* aManager,
     nsDisplayListBuilder* aDisplayListBuilder) {
-  RefPtr<gfxContext> screenRefCtx = gfxContext::CreateOrNull(
-      gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget().get());
+  RefPtr dt = gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget();
+  if (!dt || !dt->IsValid()) {
+    return false;
+  }
+  gfxContext screenRefCtx(dt);
 
   bool dummy;
   static_cast<nsColumnSetFrame*>(mFrame)->CreateBorderRenderers(
-      mBorderRenderers, screenRefCtx, GetBounds(aDisplayListBuilder, &dummy),
+      mBorderRenderers, &screenRefCtx, GetBounds(aDisplayListBuilder, &dummy),
       ToReferenceFrame());
 
   if (mBorderRenderers.IsEmpty()) {
@@ -627,7 +631,32 @@ nsColumnSetFrame::ColumnBalanceData nsColumnSetFrame::ReflowColumns(
       LogicalSize kidCBSize(wm, availSize.ISize(wm), computedBSize);
       ReflowInput kidReflowInput(PresContext(), aReflowInput, child, availSize,
                                  Some(kidCBSize));
-      kidReflowInput.mFlags.mIsTopOfPage = !aConfig.mIsBalancing;
+      kidReflowInput.mFlags.mIsTopOfPage = [&]() {
+        const bool isNestedMulticolOrPaginated =
+            aReflowInput.mParentReflowInput->mFrame->HasAnyStateBits(
+                NS_FRAME_HAS_MULTI_COLUMN_ANCESTOR) ||
+            PresContext()->IsPaginated();
+        if (isNestedMulticolOrPaginated) {
+          if (aConfig.mForceAuto) {
+            // If we are forced to fill columns sequentially, force fit the
+            // content whether we are at top of page or not.
+            return true;
+          }
+          if (aReflowInput.mFlags.mIsTopOfPage) {
+            // If this is the last balancing reflow, we want to force fit
+            // content to avoid infinite loops.
+            return !aConfig.mIsBalancing || aConfig.mIsLastBalancingReflow;
+          }
+          // If we are a not at the top of page, we shouldn't force fit content.
+          // This is because our ColumnSetWrapperFrame can be pushed to the next
+          // column or page and reflowed again with a potentially larger
+          // available block-size.
+          return false;
+        }
+        // We are a top-level multicol in non-paginated context. Force fit the
+        // content only if we are not balancing columns.
+        return !aConfig.mIsBalancing;
+      }();
       kidReflowInput.mFlags.mTableIsSplittable = false;
       kidReflowInput.mFlags.mIsColumnBalancing = aConfig.mIsBalancing;
       kidReflowInput.mBreakType = ReflowInput::BreakType::Column;
@@ -637,9 +666,11 @@ nsColumnSetFrame::ColumnBalanceData nsColumnSetFrame::ReflowColumns(
       kidReflowInput.mFlags.mMustReflowPlaceholders = !changingBSize;
 
       COLUMN_SET_LOG(
-          "%s: Reflowing child #%d %p: availSize=(%d,%d), kidCBSize=(%d,%d)",
+          "%s: Reflowing child #%d %p: availSize=(%d,%d), kidCBSize=(%d,%d), "
+          "child's mIsTopOfPage=%d",
           __func__, colData.mColCount, child, availSize.ISize(wm),
-          availSize.BSize(wm), kidCBSize.ISize(wm), kidCBSize.BSize(wm));
+          availSize.BSize(wm), kidCBSize.ISize(wm), kidCBSize.BSize(wm),
+          kidReflowInput.mFlags.mIsTopOfPage);
 
       // Note if the column's next in flow is not being changed by this
       // incremental reflow. This may allow the current column to avoid trying
@@ -1146,6 +1177,8 @@ void nsColumnSetFrame::FindBestBalanceBSize(const ReflowInput& aReflowInput,
     // allowed to have arbitrary block-size here, even though we were
     // balancing. Otherwise we'd have to split, and it's not clear what we'd
     // do with that.
+    COLUMN_SET_LOG("%s: Last attempt to call ReflowColumns", __func__);
+    aConfig.mIsLastBalancingReflow = true;
     const bool forceUnboundedLastColumn =
         aReflowInput.mParentReflowInput->AvailableBSize() ==
         NS_UNCONSTRAINEDSIZE;
@@ -1183,6 +1216,11 @@ void nsColumnSetFrame::Reflow(nsPresContext* aPresContext,
       "child list!");
 
   //------------ Handle Incremental Reflow -----------------
+
+  COLUMN_SET_LOG("%s: Begin Reflow: this=%p, is nested multicol=%d", __func__,
+                 this,
+                 aReflowInput.mParentReflowInput->mFrame->HasAnyStateBits(
+                     NS_FRAME_HAS_MULTI_COLUMN_ANCESTOR));
 
   // If inline size is unconstrained, set aForceAuto to true to allow
   // the columns to expand in the inline direction. (This typically
@@ -1225,6 +1263,8 @@ void nsColumnSetFrame::Reflow(nsPresContext* aPresContext,
   MOZ_ASSERT(!HasAbsolutelyPositionedChildren(),
              "ColumnSetWrapperFrame should be the abs.pos container!");
   FinishAndStoreOverflow(&aDesiredSize, aReflowInput.mStyleDisplay);
+
+  COLUMN_SET_LOG("%s: End Reflow: this=%p", __func__, this);
 }
 
 void nsColumnSetFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
@@ -1255,6 +1295,32 @@ void nsColumnSetFrame::AppendDirectlyOwnedAnonBoxes(
   MOZ_ASSERT(column->Style()->GetPseudoType() == PseudoStyleType::columnContent,
              "What sort of child is this?");
   aResult.AppendElement(OwnedAnonBox(column));
+}
+
+Maybe<nscoord> nsColumnSetFrame::GetNaturalBaselineBOffset(
+    WritingMode aWM, BaselineSharingGroup aBaselineGroup) const {
+  Maybe<nscoord> result;
+  for (const auto* kid : mFrames) {
+    auto kidBaseline = kid->GetNaturalBaselineBOffset(aWM, aBaselineGroup);
+    if (!kidBaseline) {
+      continue;
+    }
+    // The kid frame may not necessarily be aligned with the columnset frame.
+    LogicalRect kidRect{aWM, kid->GetLogicalNormalPosition(aWM, GetSize()),
+                        kid->GetLogicalSize(aWM)};
+    if (aBaselineGroup == BaselineSharingGroup::First) {
+      *kidBaseline += kidRect.BStart(aWM);
+    } else {
+      *kidBaseline += (GetLogicalSize().BSize(aWM) - kidRect.BEnd(aWM));
+    }
+    // Take the smallest of the baselines (i.e. Closest to border-block-start
+    // for `BaselineSharingGroup::First`, border-block-end for
+    // `BaselineSharingGroup::Last`)
+    if (!result || *kidBaseline < *result) {
+      result = kidBaseline;
+    }
+  }
+  return result;
 }
 
 #ifdef DEBUG

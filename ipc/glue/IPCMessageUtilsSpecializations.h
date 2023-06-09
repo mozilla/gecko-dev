@@ -29,7 +29,7 @@
 #ifdef XP_WIN
 #  include "mozilla/TimeStamp_windows.h"
 #endif
-#include "mozilla/Tuple.h"
+
 #include "mozilla/UniquePtr.h"
 #include "mozilla/Unused.h"
 #include "mozilla/Vector.h"
@@ -103,7 +103,7 @@ struct ParamTraits<nsTSubstring<T>> {
       return true;
     }
 
-    return ReadSequenceParam(aReader, [&](uint32_t aLength) -> T* {
+    return ReadSequenceParam<T>(aReader, [&](uint32_t aLength) -> T* {
       T* data = nullptr;
       aResult->GetMutableData(&data, aLength);
       return data;
@@ -169,8 +169,13 @@ struct ParamTraits<nsTArray<E>> {
   }
 
   static bool Read(MessageReader* aReader, paramType* aResult) {
-    return ReadSequenceParam(aReader, [&](uint32_t aLength) -> E* {
-      return aResult->AppendElements(aLength);
+    return ReadSequenceParam<E>(aReader, [&](uint32_t aLength) {
+      if constexpr (std::is_trivially_default_constructible_v<E>) {
+        return aResult->AppendElements(aLength);
+      } else {
+        aResult->SetCapacity(aLength);
+        return mozilla::Some(MakeBackInserter(*aResult));
+      }
     });
   }
 };
@@ -191,10 +196,42 @@ struct ParamTraits<FallibleTArray<E>> {
   }
 
   static bool Read(MessageReader* aReader, paramType* aResult) {
-    return ReadSequenceParam(aReader, [&](uint32_t aLength) -> E* {
-      return aResult->AppendElements(aLength, mozilla::fallible);
+    return ReadSequenceParam<E>(aReader, [&](uint32_t aLength) {
+      if constexpr (std::is_trivially_default_constructible_v<E>) {
+        return aResult->AppendElements(aLength, mozilla::fallible);
+      } else {
+        if (!aResult->SetCapacity(aLength, mozilla::fallible)) {
+          return mozilla::Maybe<BackInserter>{};
+        }
+        return mozilla::Some(BackInserter{.mArray = aResult});
+      }
     });
   }
+
+ private:
+  struct BackInserter {
+    using iterator_category = std::output_iterator_tag;
+    using value_type = void;
+    using difference_type = void;
+    using pointer = void;
+    using reference = void;
+
+    struct Proxy {
+      paramType& mArray;
+
+      template <typename U>
+      void operator=(U&& aValue) {
+        // This won't fail because we've reserved capacity earlier.
+        MOZ_ALWAYS_TRUE(mArray.AppendElement(aValue, mozilla::fallible));
+      }
+    };
+    Proxy operator*() { return Proxy{.mArray = *mArray}; }
+
+    BackInserter& operator++() { return *this; }
+    BackInserter& operator++(int) { return *this; }
+
+    paramType* mArray = nullptr;
+  };
 };
 
 template <typename E, size_t N>
@@ -222,7 +259,7 @@ struct ParamTraits<mozilla::Vector<E, N, AP>> {
   }
 
   static bool Read(MessageReader* aReader, paramType* aResult) {
-    return ReadSequenceParam(aReader, [&](uint32_t aLength) -> E* {
+    return ReadSequenceParam<E>(aReader, [&](uint32_t aLength) -> E* {
       if (!aResult->resize(aLength)) {
         // So that OOM failure shows up as OOM crash instead of IPC FatalError.
         NS_ABORT_OOM(aLength * sizeof(E));
@@ -244,9 +281,14 @@ struct ParamTraits<std::vector<E>> {
   }
 
   static bool Read(MessageReader* aReader, paramType* aResult) {
-    return ReadSequenceParam(aReader, [&](uint32_t aLength) -> E* {
-      aResult->resize(aLength);
-      return aResult->data();
+    return ReadSequenceParam<E>(aReader, [&](uint32_t aLength) {
+      if constexpr (std::is_trivially_default_constructible_v<E>) {
+        aResult->resize(aLength);
+        return aResult->data();
+      } else {
+        aResult->reserve(aLength);
+        return mozilla::Some(std::back_inserter(*aResult));
+      }
     });
   }
 };
@@ -328,9 +370,9 @@ struct ParamTraits<nsID> {
 
 template <>
 struct ParamTraits<nsContentPolicyType>
-    : public ContiguousEnumSerializerInclusive<
-          nsContentPolicyType, nsIContentPolicy::TYPE_INVALID,
-          nsIContentPolicy::TYPE_WEB_IDENTITY> {};
+    : public ContiguousEnumSerializer<nsContentPolicyType,
+                                      nsIContentPolicy::TYPE_INVALID,
+                                      nsIContentPolicy::TYPE_END> {};
 
 template <>
 struct ParamTraits<mozilla::TimeDuration> {
@@ -416,11 +458,11 @@ struct ParamTraits<mozilla::Maybe<T>> {
       return false;
     }
     if (isSome) {
-      T tmp;
-      if (!ReadParam(reader, &tmp)) {
+      mozilla::Maybe<T> tmp = ReadParam<T>(reader).TakeMaybe();
+      if (!tmp) {
         return false;
       }
-      *result = mozilla::Some(std::move(tmp));
+      *result = std::move(tmp);
     } else {
       *result = mozilla::Nothing();
     }
@@ -668,8 +710,8 @@ struct ParamTraits<mozilla::UniquePtr<T>> {
 };
 
 template <typename... Ts>
-struct ParamTraits<mozilla::Tuple<Ts...>> {
-  typedef mozilla::Tuple<Ts...> paramType;
+struct ParamTraits<std::tuple<Ts...>> {
+  typedef std::tuple<Ts...> paramType;
 
   template <typename U>
   static void Write(IPC::MessageWriter* aWriter, U&& aParam) {
@@ -677,31 +719,30 @@ struct ParamTraits<mozilla::Tuple<Ts...>> {
                   std::index_sequence_for<Ts...>{});
   }
 
-  static bool Read(IPC::MessageReader* aReader,
-                   mozilla::Tuple<Ts...>* aResult) {
+  static bool Read(IPC::MessageReader* aReader, std::tuple<Ts...>* aResult) {
     return ReadInternal(aReader, *aResult, std::index_sequence_for<Ts...>{});
   }
 
  private:
   template <size_t... Is>
   static void WriteInternal(IPC::MessageWriter* aWriter,
-                            const mozilla::Tuple<Ts...>& aParam,
+                            const std::tuple<Ts...>& aParam,
                             std::index_sequence<Is...>) {
-    WriteParams(aWriter, mozilla::Get<Is>(aParam)...);
+    WriteParams(aWriter, std::get<Is>(aParam)...);
   }
 
   template <size_t... Is>
   static void WriteInternal(IPC::MessageWriter* aWriter,
-                            mozilla::Tuple<Ts...>&& aParam,
+                            std::tuple<Ts...>&& aParam,
                             std::index_sequence<Is...>) {
-    WriteParams(aWriter, std::move(mozilla::Get<Is>(aParam))...);
+    WriteParams(aWriter, std::move(std::get<Is>(aParam))...);
   }
 
   template <size_t... Is>
   static bool ReadInternal(IPC::MessageReader* aReader,
-                           mozilla::Tuple<Ts...>& aResult,
+                           std::tuple<Ts...>& aResult,
                            std::index_sequence<Is...>) {
-    return ReadParams(aReader, mozilla::Get<Is>(aResult)...);
+    return ReadParams(aReader, std::get<Is>(aResult)...);
   }
 };
 

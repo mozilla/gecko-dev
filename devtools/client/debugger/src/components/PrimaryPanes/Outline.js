@@ -7,14 +7,15 @@ import PropTypes from "prop-types";
 import { showMenu } from "../../context-menu/menu";
 import { connect } from "../../utils/connect";
 import { score as fuzzaldrinScore } from "fuzzaldrin-plus";
-const classnames = require("classnames");
 
 import { containsPosition, positionAfter } from "../../utils/ast";
 import { copyToTheClipboard } from "../../utils/clipboard";
 import { findFunctionText } from "../../utils/function";
+import { createLocation } from "../../utils/location";
 
 import actions from "../../actions";
 import {
+  getSelectedLocation,
   getSelectedSource,
   getSelectedSourceTextContent,
   getSymbols,
@@ -25,6 +26,8 @@ import {
 import OutlineFilter from "./OutlineFilter";
 import "./Outline.css";
 import PreviewFunction from "../shared/PreviewFunction";
+
+const classnames = require("devtools/client/shared/classnames.js");
 
 // Set higher to make the fuzzaldrin filter more specific
 const FUZZALDRIN_FILTER_THRESHOLD = 15000;
@@ -130,11 +133,14 @@ export class Outline extends Component {
       return;
     }
 
-    selectLocation(cx, {
-      sourceId: selectedSource.id,
-      line: selectedItem.location.start.line,
-      column: selectedItem.location.start.column,
-    });
+    selectLocation(
+      cx,
+      createLocation({
+        source: selectedSource,
+        line: selectedItem.location.start.line,
+        column: selectedItem.location.start.column,
+      })
+    );
 
     this.setState({ focusedItem: selectedItem });
   }
@@ -337,7 +343,7 @@ export class Outline extends Component {
 
 const mapStateToProps = state => {
   const selectedSource = getSelectedSource(state);
-  const symbols = selectedSource ? getSymbols(state, selectedSource) : null;
+  const symbols = getSymbols(state, getSelectedLocation(state));
 
   return {
     cx: getContext(state),

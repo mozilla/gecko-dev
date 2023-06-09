@@ -11,11 +11,11 @@
 #include "media/engine/internal_decoder_factory.h"
 
 #include "absl/strings/match.h"
+#include "api/video_codecs/av1_profile.h"
 #include "api/video_codecs/sdp_video_format.h"
 #include "api/video_codecs/video_codec.h"
 #include "media/base/codec.h"
 #include "media/base/media_constants.h"
-#include "modules/video_coding/codecs/av1/libaom_av1_decoder.h"
 #include "modules/video_coding/codecs/h264/include/h264.h"
 #include "modules/video_coding/codecs/vp8/include/vp8.h"
 #include "modules/video_coding/codecs/vp9/include/vp9.h"
@@ -50,10 +50,14 @@ std::vector<SdpVideoFormat> InternalDecoderFactory::GetSupportedFormats()
   for (const SdpVideoFormat& h264_format : SupportedH264DecoderCodecs())
     formats.push_back(h264_format);
 
-  //if (kIsLibaomAv1DecoderSupported ||
-  //    (kDav1dIsIncluded && !field_trial::IsDisabled(kDav1dFieldTrial))) {
-  //  formats.push_back(SdpVideoFormat(cricket::kAv1CodecName));
-  //}
+#if !defined(WEBRTC_MOZILLA_BUILD)
+  if (kDav1dIsIncluded && !field_trial::IsDisabled(kDav1dFieldTrial)) {
+    formats.push_back(SdpVideoFormat(cricket::kAv1CodecName));
+    formats.push_back(SdpVideoFormat(
+        cricket::kAv1CodecName,
+        {{kAV1FmtpProfile, AV1ProfileToString(AV1Profile::kProfile1).data()}}));
+  }
+#endif
 
   return formats;
 }
@@ -95,11 +99,6 @@ std::unique_ptr<VideoDecoder> InternalDecoderFactory::CreateVideoDecoder(
       kDav1dIsIncluded && !field_trial::IsDisabled(kDav1dFieldTrial)) {
     return CreateDav1dDecoder();
   }
-
-  //if (absl::EqualsIgnoreCase(format.name, cricket::kAv1CodecName) &&
-  //    kIsLibaomAv1DecoderSupported) {
-  //  return CreateLibaomAv1Decoder();
-  //}
 
   RTC_DCHECK_NOTREACHED();
   return nullptr;

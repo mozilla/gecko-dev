@@ -1,7 +1,7 @@
 use super::{BackendResult, Error, Version, Writer};
 use crate::{
     AddressSpace, Binding, Bytes, Expression, Handle, ImageClass, ImageDimension, Interpolation,
-    MathFunction, Sampling, ScalarKind, ShaderStage, StorageFormat, Type, TypeInner,
+    Sampling, ScalarKind, ShaderStage, StorageFormat, Type, TypeInner,
 };
 use std::fmt::Write;
 
@@ -34,14 +34,12 @@ bitflags::bitflags! {
         /// Arrays with a dynamic length.
         const DYNAMIC_ARRAY_SIZE = 1 << 16;
         const MULTI_VIEW = 1 << 17;
-        /// Fused multiply-add.
-        const FMA = 1 << 18;
         /// Texture samples query
-        const TEXTURE_SAMPLES = 1 << 19;
+        const TEXTURE_SAMPLES = 1 << 18;
         /// Texture levels query
-        const TEXTURE_LEVELS = 1 << 20;
+        const TEXTURE_LEVELS = 1 << 19;
         /// Image size query
-        const IMAGE_SIZE = 1 << 21;
+        const IMAGE_SIZE = 1 << 20;
     }
 }
 
@@ -101,9 +99,8 @@ impl FeaturesManager {
         check_feature!(CONSERVATIVE_DEPTH, 130, 300);
         check_feature!(NOPERSPECTIVE_QUALIFIER, 130);
         check_feature!(SAMPLE_QUALIFIER, 400, 320);
-        // gl_ClipDistance is supported by core versions > 1.3 and aren't supported by an es versions without extensions
-        check_feature!(CLIP_DISTANCE, 130, 300);
-        check_feature!(CULL_DISTANCE, 450, 300);
+        check_feature!(CLIP_DISTANCE, 130, 300 /* with extension */);
+        check_feature!(CULL_DISTANCE, 450, 300 /* with extension */);
         check_feature!(SAMPLE_VARIABLES, 400, 300);
         check_feature!(DYNAMIC_ARRAY_SIZE, 430, 310);
         match version {
@@ -199,9 +196,8 @@ impl FeaturesManager {
         if (self.0.contains(Features::CLIP_DISTANCE) || self.0.contains(Features::CULL_DISTANCE))
             && version.is_es()
         {
-            // TODO: handle gl_ClipDistance and gl_CullDistance usage in better way
             // https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_clip_cull_distance.txt
-            // writeln!(out, "#extension GL_EXT_clip_cull_distance : require")?;
+            writeln!(out, "#extension GL_EXT_clip_cull_distance : require")?;
         }
 
         if self.0.contains(Features::SAMPLE_VARIABLES) && version.is_es() {
@@ -222,11 +218,6 @@ impl FeaturesManager {
                 // https://github.com/KhronosGroup/GLSL/blob/master/extensions/ext/GL_EXT_multiview.txt
                 writeln!(out, "#extension GL_EXT_multiview : require")?;
             }
-        }
-
-        if self.0.contains(Features::FMA) && version >= Version::new_gles(310) {
-            // https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_gpu_shader5.txt
-            writeln!(out, "#extension GL_EXT_gpu_shader5 : require")?;
         }
 
         if self.0.contains(Features::TEXTURE_SAMPLES) {
@@ -425,10 +416,6 @@ impl<'a, W> Writer<'a, W> {
         {
             for (_, expr) in expressions.iter() {
                 match *expr {
-                // Check for fused multiply add use
-                Expression::Math { fun, .. } if fun == MathFunction::Fma => {
-                    features.request(Features::FMA)
-                }
                 // Check for queries that neeed aditonal features
                 Expression::ImageQuery {
                     image,

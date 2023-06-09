@@ -12,9 +12,12 @@
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsITaggingService.h"
 #include "nsNetUtil.h"
+#include "nsIProtocolHandler.h"
+#include "nsIObserverService.h"
 #include "nsUnicharUtils.h"
 #include "nsPrintfCString.h"
 #include "nsQueryObject.h"
+#include "mozIStorageValueArray.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/ProfilerLabels.h"
 #include "mozilla/storage.h"
@@ -35,6 +38,7 @@ const int32_t nsNavBookmarks::kGetChildrenIndex_Type = 20;
 const int32_t nsNavBookmarks::kGetChildrenIndex_PlaceID = 21;
 const int32_t nsNavBookmarks::kGetChildrenIndex_SyncStatus = 22;
 
+using namespace mozilla::dom;
 using namespace mozilla::places;
 
 extern "C" {
@@ -401,13 +405,6 @@ nsNavBookmarks::InsertBookmark(int64_t aFolder, nsIURI* aURI, int32_t aIndex,
                           aNewBookmarkId, guid);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // If not a tag, recalculate frecency for this entry, since it changed.
-  int64_t tagsRootId = mDB->GetTagsFolderId();
-  if (grandParentId != tagsRootId) {
-    rv = history->UpdateFrecency(placeId);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
   rv = transaction.Commit();
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -418,6 +415,7 @@ nsNavBookmarks::InsertBookmark(int64_t aFolder, nsIURI* aURI, int32_t aIndex,
   Sequence<OwningNonNull<PlacesEvent>> notifications;
   nsAutoCString utf8spec;
   aURI->GetSpec(utf8spec);
+  int64_t tagsRootId = mDB->GetTagsFolderId();
 
   RefPtr<PlacesBookmarkAddition> bookmark = new PlacesBookmarkAddition();
   bookmark->mItemType = TYPE_BOOKMARK;
@@ -430,7 +428,7 @@ nsNavBookmarks::InsertBookmark(int64_t aFolder, nsIURI* aURI, int32_t aIndex,
   bookmark->mGuid.Assign(guid);
   bookmark->mParentGuid.Assign(folderGuid);
   bookmark->mSource = aSource;
-  bookmark->mIsTagging = grandParentId == mDB->GetTagsFolderId();
+  bookmark->mIsTagging = grandParentId == tagsRootId;
   bool success = !!notifications.AppendElement(bookmark.forget(), fallible);
   MOZ_RELEASE_ASSERT(success);
 
@@ -538,13 +536,6 @@ nsNavBookmarks::RemoveItem(int64_t aItemId, uint16_t aSource) {
 
   nsCOMPtr<nsIURI> uri;
   if (bookmark.type == TYPE_BOOKMARK) {
-    // If not a tag, recalculate frecency for this entry, since it changed.
-    if (bookmark.grandParentId != tagsRootId) {
-      nsNavHistory* history = nsNavHistory::GetHistoryService();
-      NS_ENSURE_TRUE(history, NS_ERROR_OUT_OF_MEMORY);
-      rv = history->UpdateFrecency(bookmark.placeId);
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
     // A broken url should not interrupt the removal process.
     (void)NS_NewURI(getter_AddRefs(uri), bookmark.url);
     // We cannot assert since some automated tests are checking this path.
@@ -866,13 +857,6 @@ nsresult nsNavBookmarks::RemoveFolderChildren(int64_t aFolderId,
 
     nsCOMPtr<nsIURI> uri;
     if (child.type == TYPE_BOOKMARK) {
-      // If not a tag, recalculate frecency for this entry, since it changed.
-      if (child.grandParentId != tagsRootId) {
-        nsNavHistory* history = nsNavHistory::GetHistoryService();
-        NS_ENSURE_TRUE(history, NS_ERROR_OUT_OF_MEMORY);
-        rv = history->UpdateFrecency(child.placeId);
-        NS_ENSURE_SUCCESS(rv, rv);
-      }
       // A broken url should not interrupt the removal process.
       (void)NS_NewURI(getter_AddRefs(uri), child.url);
       // We cannot assert since some automated tests are checking this path.
@@ -1715,60 +1699,6 @@ nsresult nsNavBookmarks::GetBookmarksForURI(
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsNavBookmarks::AddObserver(nsINavBookmarkObserver* aObserver, bool aOwnsWeak) {
-  NS_ENSURE_ARG(aObserver);
-
-  if (NS_WARN_IF(!mCanNotify)) return NS_ERROR_UNEXPECTED;
-
-  return mObservers.AppendWeakElementUnlessExists(aObserver, aOwnsWeak);
-}
-
-NS_IMETHODIMP
-nsNavBookmarks::RemoveObserver(nsINavBookmarkObserver* aObserver) {
-  return mObservers.RemoveWeakElement(aObserver);
-}
-
-NS_IMETHODIMP
-nsNavBookmarks::GetObservers(
-    nsTArray<RefPtr<nsINavBookmarkObserver>>& aObservers) {
-  aObservers.Clear();
-
-  if (!mCanNotify) return NS_OK;
-
-  for (uint32_t i = 0; i < mObservers.Length(); ++i) {
-    nsCOMPtr<nsINavBookmarkObserver> observer =
-        mObservers.ElementAt(i).GetValue();
-    // Skip nullified weak observers.
-    if (observer) {
-      aObservers.AppendElement(observer.forget());
-    }
-  }
-
-  return NS_OK;
-}
-
-void nsNavBookmarks::NotifyItemChanged(const ItemChangeData& aData) {
-  // A guid must always be defined.
-  MOZ_ASSERT(!aData.bookmark.guid.IsEmpty());
-  // No more supported.
-  MOZ_ASSERT(!aData.isAnnotation, "Don't notify item annotation changes");
-  PRTime lastModified = aData.bookmark.lastModified;
-  if (aData.updateLastModified) {
-    lastModified = RoundedPRNow();
-    MOZ_ALWAYS_SUCCEEDS(SetItemDateInternal(
-        LAST_MODIFIED, DetermineSyncChangeDelta(aData.source),
-        aData.bookmark.id, lastModified));
-  }
-
-  NOTIFY_BOOKMARKS_OBSERVERS(
-      mCanNotify, mObservers,
-      OnItemChanged(aData.bookmark.id, aData.property, aData.isAnnotation,
-                    aData.newValue, lastModified, aData.bookmark.type,
-                    aData.bookmark.parentId, aData.bookmark.guid,
-                    aData.bookmark.parentGuid, aData.oldValue, aData.source));
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 //// nsIObserver
 
@@ -1781,7 +1711,6 @@ nsNavBookmarks::Observe(nsISupports* aSubject, const char* aTopic,
     // Don't even try to notify observers from this point on, the category
     // cache would init services that could try to use our APIs.
     mCanNotify = false;
-    mObservers.Clear();
   }
 
   return NS_OK;

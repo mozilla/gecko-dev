@@ -38,7 +38,7 @@ class Exceptions extends Component {
             exception={exc}
             doc={doc}
             key={`${exc.sourceActorId}:${exc.lineNumber}`}
-            selectedSourceId={selectedSource.id}
+            selectedSource={selectedSource}
           />
         ))}
       </>
@@ -46,7 +46,14 @@ class Exceptions extends Component {
   }
 }
 
-export default connect(state => ({
-  exceptions: getSelectedSourceExceptions(state),
-  selectedSource: getSelectedSource(state),
-}))(Exceptions);
+export default connect(state => {
+  const selectedSource = getSelectedSource(state);
+  // Avoid calling getSelectedSourceExceptions when there is no source selected.
+  if (!selectedSource) {
+    return { exceptions: [] };
+  }
+  return {
+    exceptions: getSelectedSourceExceptions(state),
+    selectedSource,
+  };
+})(Exceptions);

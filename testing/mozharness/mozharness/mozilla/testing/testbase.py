@@ -11,6 +11,9 @@ import os
 import platform
 import ssl
 
+from six.moves import urllib
+from six.moves.urllib.parse import ParseResult, urlparse
+
 from mozharness.base.errors import BaseErrorList
 from mozharness.base.log import FATAL, WARNING
 from mozharness.base.python import (
@@ -28,8 +31,6 @@ from mozharness.mozilla.testing.verify_tools import (
     verify_config_options,
 )
 from mozharness.mozilla.tooltool import TooltoolMixin
-from six.moves import urllib
-from six.moves.urllib.parse import ParseResult, urlparse
 
 INSTALLER_SUFFIXES = (
     ".apk",  # Android
@@ -615,12 +616,6 @@ Did you run with --create-virtualenv? Is mozinstall in virtualenv_modules?"""
         cmd = [self.query_python_path("mozinstall")]
         if app:
             cmd.extend(["--app", app])
-        # Remove the below when we no longer need to support mozinstall 0.3
-        self.info("Detecting whether we're running mozinstall >=1.0...")
-        output = self.get_output_from_command(cmd + ["-h"])
-        if "--source" in output:
-            cmd.append("--source")
-        # End remove
         dirs = self.query_abs_dirs()
         if not target_dir:
             target_dir = dirs.get(

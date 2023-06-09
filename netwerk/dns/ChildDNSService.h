@@ -37,6 +37,8 @@ class ChildDNSService final : public DNSServiceBase, public nsPIDNSService {
 
   void SetTRRDomain(const nsACString& aTRRDomain);
   void GetTRRDomainKey(nsACString& aTRRDomain);
+  void SetTRRModeInChild(nsIDNSService::ResolverMode mode,
+                         nsIDNSService::ResolverMode modeFromPref);
 
  private:
   virtual ~ChildDNSService() = default;
@@ -68,6 +70,9 @@ class ChildDNSService final : public DNSServiceBase, public nsPIDNSService {
   RefPtr<TRRServiceParent> mTRRServiceParent;
 
   nsCString mTRRDomain;
+  // Only set in the content process.
+  nsIDNSService::ResolverMode mTRRMode =
+      nsIDNSService::ResolverMode::MODE_NATIVEONLY;
 };
 
 }  // namespace net

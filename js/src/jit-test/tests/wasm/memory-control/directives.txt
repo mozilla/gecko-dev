@@ -1,0 +1,1 @@
+|jit-test| include:wasm.js; test-also=--wasm-compiler=optimizing --wasm-memory-control; test-also=--wasm-compiler=baseline --wasm-memory-control; test-also=--wasm-compiler=optimizing --no-wasm-memory64 --wasm-memory-control; test-also=--wasm-compiler=baseline --no-wasm-memory64 --wasm-memory-control

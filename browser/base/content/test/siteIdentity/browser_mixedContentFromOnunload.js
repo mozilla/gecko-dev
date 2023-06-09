@@ -10,6 +10,7 @@
 // We use different domains for each test and for navigation within each test
 const HTTP_TEST_ROOT_1 = getRootDirectory(gTestPath).replace(
   "chrome://mochitests/content",
+  // eslint-disable-next-line @microsoft/sdl/no-insecure-url
   "http://example.com"
 );
 const HTTPS_TEST_ROOT_1 = getRootDirectory(gTestPath).replace(
@@ -18,6 +19,7 @@ const HTTPS_TEST_ROOT_1 = getRootDirectory(gTestPath).replace(
 );
 const HTTP_TEST_ROOT_2 = getRootDirectory(gTestPath).replace(
   "chrome://mochitests/content",
+  // eslint-disable-next-line @microsoft/sdl/no-insecure-url
   "http://example.net"
 );
 const HTTPS_TEST_ROOT_2 = getRootDirectory(gTestPath).replace(
@@ -38,7 +40,7 @@ add_task(async function() {
     // Navigation from an http page to a https page with no mixed content
     // The http page loads an http image on unload
     url = HTTPS_TEST_ROOT_1 + "file_mixedContentFromOnunload_test1.html";
-    BrowserTestUtils.loadURI(browser, url);
+    BrowserTestUtils.loadURIString(browser, url);
     await BrowserTestUtils.browserLoaded(browser);
     // check security state.  Since current url is https and doesn't have any
     // mixed content resources, we expect it to be secure.
@@ -51,10 +53,10 @@ add_task(async function() {
     // Navigation from an http page to a https page that has mixed display content
     // The https page loads an http image on unload
     url = HTTP_TEST_ROOT_2 + "file_mixedContentFromOnunload.html";
-    BrowserTestUtils.loadURI(browser, url);
+    BrowserTestUtils.loadURIString(browser, url);
     await BrowserTestUtils.browserLoaded(browser);
     url = HTTPS_TEST_ROOT_2 + "file_mixedContentFromOnunload_test2.html";
-    BrowserTestUtils.loadURI(browser, url);
+    BrowserTestUtils.loadURIString(browser, url);
     await BrowserTestUtils.browserLoaded(browser);
     isSecurityState(browser, "broken");
     await assertMixedContentBlockingState(browser, {

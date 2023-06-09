@@ -136,7 +136,6 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
   /////////////////////////////////////////////////////////////////
   // X86/X64-common interface.
   /////////////////////////////////////////////////////////////////
-  Address ToPayload(Address value) { return value; }
 
   void storeValue(ValueOperand val, Operand dest) {
     movq(val.valueReg(), dest);
@@ -217,6 +216,10 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
     push(scratch);
   }
   void pushValue(const Address& addr) { push(Operand(addr)); }
+
+  void pushValue(const BaseIndex& addr, Register scratch) {
+    push(Operand(addr));
+  }
 
   void boxValue(JSValueType type, Register src, Register dest);
 
@@ -1171,10 +1174,6 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
       default:
         MOZ_CRASH("Bad payload width");
     }
-  }
-
-  void loadInstructionPointerAfterCall(Register dest) {
-    loadPtr(Address(StackPointer, 0x0), dest);
   }
 
   // Checks whether a double is representable as a 64-bit integer. If so, the

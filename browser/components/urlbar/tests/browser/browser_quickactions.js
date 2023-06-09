@@ -11,11 +11,12 @@ requestLongerTimeout(3);
 
 ChromeUtils.defineESModuleGetters(this, {
   AppConstants: "resource://gre/modules/AppConstants.sys.mjs",
+  UpdateService: "resource://gre/modules/UpdateService.sys.mjs",
+
   UrlbarProviderQuickActions:
     "resource:///modules/UrlbarProviderQuickActions.sys.mjs",
 });
 XPCOMUtils.defineLazyModuleGetters(this, {
-  UpdateService: "resource://gre/modules/UpdateService.jsm",
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.jsm",
 });
 
@@ -150,9 +151,6 @@ add_task(async function enter_search_mode_oneoff_by_key() {
 });
 
 add_task(async function enter_search_mode_key() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.urlbar.quickactions.showInZeroPrefix", false]],
-  });
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
     value: "> ",
@@ -166,49 +164,30 @@ add_task(async function enter_search_mode_key() {
     true,
     "Actions are shown in search mode"
   );
-  await SpecialPowers.popPrefEnv();
   await UrlbarTestUtils.exitSearchMode(window);
   await UrlbarTestUtils.promisePopupClose(window);
   EventUtils.synthesizeKey("KEY_Escape");
 });
 
 add_task(async function test_disabled() {
-  testActionCalled = 0;
   UrlbarProviderQuickActions.addAction("disabledaction", {
     commands: ["disabledaction"],
     isActive: () => false,
     label: "quickactions-restart",
-    onPick: () => testActionCalled++,
   });
 
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
     value: "disabled",
   });
-  Assert.equal(
-    UrlbarTestUtils.getResultCount(window),
-    2,
-    "The action is displayed"
-  );
 
-  EventUtils.synthesizeKey("KEY_ArrowDown");
-  Assert.ok(
-    !UrlbarTestUtils.getSelectedElement(window),
-    "There is no selected element."
-  );
-
-  let disabledButton = window.document.querySelector(
-    ".urlbarView-row[dynamicType=quickactions]"
-  );
-  EventUtils.synthesizeMouseAtCenter(disabledButton, {});
   Assert.equal(
-    testActionCalled,
-    0,
-    "onPick for disabled action was not called"
+    await hasQuickActions(window),
+    false,
+    "Result for quick actions is hidden"
   );
 
   await UrlbarTestUtils.promisePopupClose(window);
-  EventUtils.synthesizeKey("KEY_Escape");
   UrlbarProviderQuickActions.removeAction("disabledaction");
 });
 
@@ -224,7 +203,7 @@ add_task(async function test_screenshot_enabled_or_disabled() {
     false,
     "about:blank"
   );
-  BrowserTestUtils.loadURI(gBrowser.selectedBrowser, "about:blank");
+  BrowserTestUtils.loadURIString(gBrowser.selectedBrowser, "about:blank");
   await onLoaded;
 
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
@@ -256,21 +235,12 @@ add_task(async function test_screenshot_enabled_or_disabled() {
     value: "screenshot",
   });
   Assert.equal(
-    UrlbarTestUtils.getResultCount(window),
-    2,
-    "The action is displayed"
-  );
-  screenshotButton = window.document.querySelector(
-    ".urlbarView-row[dynamicType=quickactions] .urlbarView-quickaction-row"
-  );
-  Assert.equal(
-    screenshotButton.getAttribute("disabled"),
-    "disabled",
-    "Screenshot button is disabled on about pages"
+    await hasQuickActions(window),
+    false,
+    "Result for quick actions is hidden"
   );
 
   await UrlbarTestUtils.promisePopupClose(window);
-  EventUtils.synthesizeKey("KEY_Escape");
 });
 
 add_task(async function match_in_phrase() {
@@ -308,7 +278,7 @@ add_task(async function test_screenshot() {
     set: [["screenshots.browser.component.enabled", true]],
   });
 
-  BrowserTestUtils.loadURI(gBrowser.selectedBrowser, DUMMY_PAGE);
+  BrowserTestUtils.loadURIString(gBrowser.selectedBrowser, DUMMY_PAGE);
   await BrowserTestUtils.browserLoaded(
     gBrowser.selectedBrowser,
     false,
@@ -334,7 +304,9 @@ add_task(async function test_screenshot() {
   EventUtils.synthesizeKey("KEY_Enter", {}, window);
   await TestUtils.waitForCondition(
     isScreenshotInitialized,
-    "Screenshot component is active"
+    "Screenshot component is active",
+    200,
+    100
   );
 
   info("Press Escape to exit screenshot mode");
@@ -425,6 +397,7 @@ add_task(async function test_quickactions_disabled() {
     window,
     value: "screenshot",
   });
+
   Assert.ok(
     !window.document.querySelector(
       ".urlbarView-row[dynamicType=quickactions] .urlbarView-quickaction-row"
@@ -478,7 +451,10 @@ let COMMANDS_TESTS = [
         false,
         "http://example.com/"
       );
-      BrowserTestUtils.loadURI(gBrowser.selectedBrowser, "http://example.com/");
+      BrowserTestUtils.loadURIString(
+        gBrowser.selectedBrowser,
+        "http://example.com/"
+      );
       await onLoad;
     },
     uri: "about:addons",
@@ -493,7 +469,10 @@ let COMMANDS_TESTS = [
         false,
         "http://example.com/"
       );
-      BrowserTestUtils.loadURI(gBrowser.selectedBrowser, "http://example.com/");
+      BrowserTestUtils.loadURIString(
+        gBrowser.selectedBrowser,
+        "http://example.com/"
+      );
       await onLoad;
     },
     uri: "about:addons",
@@ -508,7 +487,10 @@ let COMMANDS_TESTS = [
         false,
         "http://example.com/"
       );
-      BrowserTestUtils.loadURI(gBrowser.selectedBrowser, "http://example.com/");
+      BrowserTestUtils.loadURIString(
+        gBrowser.selectedBrowser,
+        "http://example.com/"
+      );
       await onLoad;
     },
     uri: "about:addons",
@@ -523,7 +505,10 @@ let COMMANDS_TESTS = [
         false,
         "http://example.com/"
       );
-      BrowserTestUtils.loadURI(gBrowser.selectedBrowser, "http://example.com/");
+      BrowserTestUtils.loadURIString(
+        gBrowser.selectedBrowser,
+        "http://example.com/"
+      );
       await onLoad;
     },
     uri: "about:addons",
@@ -600,7 +585,10 @@ add_task(async function test_viewsource() {
   );
 
   info("Check the button status of when the page is web content");
-  BrowserTestUtils.loadURI(gBrowser.selectedBrowser, "http://example.com");
+  BrowserTestUtils.loadURIString(
+    gBrowser.selectedBrowser,
+    "http://example.com"
+  );
   await BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
@@ -626,10 +614,11 @@ add_task(async function test_viewsource() {
     window,
     value: "viewsource",
   });
-  await assertActionButtonStatus(
-    "viewsource",
+
+  Assert.equal(
+    await hasQuickActions(window),
     false,
-    "Should be disabled since the page is view-source content"
+    "Result for quick actions is hidden"
   );
 
   // Clean up.
@@ -677,7 +666,11 @@ async function doUpdateActionTest(isActiveExpected, description) {
     value: "update",
   });
 
-  await assertActionButtonStatus("update", isActiveExpected, description);
+  if (isActiveExpected) {
+    await assertActionButtonStatus("update", isActiveExpected, description);
+  } else {
+    Assert.equal(await hasQuickActions(window), false, description);
+  }
 }
 
 add_task(async function test_update() {
@@ -721,10 +714,17 @@ async function hasQuickActions(win) {
 }
 
 add_task(async function test_show_in_zero_prefix() {
-  for (const showInZeroPrefix of [false, true]) {
-    info(`Test when quickactions.showInZeroPrefix pref is ${showInZeroPrefix}`);
+  for (const minimumSearchString of [0, 3]) {
+    info(
+      `Test when quickactions.minimumSearchString pref is ${minimumSearchString}`
+    );
     await SpecialPowers.pushPrefEnv({
-      set: [["browser.urlbar.quickactions.showInZeroPrefix", showInZeroPrefix]],
+      set: [
+        [
+          "browser.urlbar.quickactions.minimumSearchString",
+          minimumSearchString,
+        ],
+      ],
     });
     await UrlbarTestUtils.promiseAutocompleteResultPopup({
       window,
@@ -733,7 +733,7 @@ add_task(async function test_show_in_zero_prefix() {
 
     Assert.equal(
       await hasQuickActions(window),
-      showInZeroPrefix,
+      !minimumSearchString,
       "Result for quick actions is as expected"
     );
     await SpecialPowers.popPrefEnv();

@@ -8,7 +8,6 @@
 
 #include "APZUtils.h"
 #include "AsyncPanZoomController.h"  // for AsyncPanZoomController
-#include "ScrollAnimationPhysics.h"  // for kScrollSeriesTimeoutMs
 
 #include "mozilla/MouseEvents.h"
 #include "mozilla/StaticPrefs_apz.h"
@@ -103,6 +102,28 @@ bool InputBlockState::SetConfirmedTargetApzc(
 
 void InputBlockState::UpdateTargetApzc(
     const RefPtr<AsyncPanZoomController>& aTargetApzc) {
+  if (mTargetApzc == aTargetApzc) {
+    MOZ_ASSERT_UNREACHABLE(
+        "The new target APZC should be different from the old one");
+    return;
+  }
+
+  if (mTargetApzc) {
+    // Restore overscroll state on the previous target APZC and ancestor APZCs
+    // in the scroll handoff chain other than the new one.
+    mTargetApzc->SnapBackIfOverscrolled();
+
+    uint32_t i = mOverscrollHandoffChain->IndexOf(mTargetApzc) + 1;
+    for (; i < mOverscrollHandoffChain->Length(); i++) {
+      AsyncPanZoomController* apzc = mOverscrollHandoffChain->GetApzcAtIndex(i);
+      if (apzc != aTargetApzc) {
+        MOZ_ASSERT(!apzc->IsOverscrolled() ||
+                   apzc->IsOverscrollAnimationRunning());
+        apzc->SnapBackIfOverscrolled();
+      }
+    }
+  }
+
   // note that aTargetApzc MAY be null here.
   mTargetApzc = aTargetApzc;
   mTransformToApzc = aTargetApzc ? aTargetApzc->GetTransformToThis()
@@ -241,7 +262,7 @@ bool DragBlockState::HasReceivedMouseUp() { return mReceivedMouseUp; }
 
 void DragBlockState::MarkMouseUpReceived() { mReceivedMouseUp = true; }
 
-void DragBlockState::SetInitialThumbPos(CSSCoord aThumbPos) {
+void DragBlockState::SetInitialThumbPos(OuterCSSCoord aThumbPos) {
   mInitialThumbPos = aThumbPos;
 }
 
@@ -336,7 +357,7 @@ void WheelBlockState::Update(ScrollWheelInput& aEvent) {
   // This makes GetScrollWheelDelta() consistent.
   if (!mLastEventTime.IsNull() &&
       (aEvent.mTimeStamp - mLastEventTime).ToMilliseconds() >
-          kScrollSeriesTimeoutMs) {
+          StaticPrefs::mousewheel_scroll_series_timeout()) {
     mScrollSeriesCounter = 0;
   }
   aEvent.mScrollSeriesNumber = ++mScrollSeriesCounter;
@@ -713,7 +734,7 @@ bool TouchBlockState::TouchActionAllowsPinchZoom() const {
 
 bool TouchBlockState::TouchActionAllowsDoubleTapZoom() const {
   for (auto& behavior : mAllowedTouchBehaviors) {
-    if (!(behavior & AllowedTouchBehavior::DOUBLE_TAP_ZOOM)) {
+    if (!(behavior & AllowedTouchBehavior::ANIMATING_ZOOM)) {
       return false;
     }
   }

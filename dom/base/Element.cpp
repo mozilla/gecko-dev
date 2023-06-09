@@ -32,6 +32,7 @@
 #include "mozilla/DeclarationBlock.h"
 #include "mozilla/EffectCompositor.h"
 #include "mozilla/EffectSet.h"
+#include "mozilla/ElementAnimationData.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/EventListenerManager.h"
@@ -75,6 +76,7 @@
 #include "mozilla/dom/DocumentTimeline.h"
 #include "mozilla/dom/ElementBinding.h"
 #include "mozilla/dom/Flex.h"
+#include "mozilla/dom/FragmentOrElement.h"
 #include "mozilla/dom/FromParser.h"
 #include "mozilla/dom/Grid.h"
 #include "mozilla/dom/HTMLDivElement.h"
@@ -1273,10 +1275,10 @@ already_AddRefed<ShadowRoot> Element::AttachShadowWithoutNameChecks(
     SlotAssignmentMode aSlotAssignment) {
   nsAutoScriptBlocker scriptBlocker;
 
+  auto* nim = mNodeInfo->NodeInfoManager();
   RefPtr<mozilla::dom::NodeInfo> nodeInfo =
-      mNodeInfo->NodeInfoManager()->GetNodeInfo(
-          nsGkAtoms::documentFragmentNodeName, nullptr, kNameSpaceID_None,
-          DOCUMENT_FRAGMENT_NODE);
+      nim->GetNodeInfo(nsGkAtoms::documentFragmentNodeName, nullptr,
+                       kNameSpaceID_None, DOCUMENT_FRAGMENT_NODE);
 
   // If there are no children, the flat tree is not changing due to the presence
   // of the shadow root, so we don't need to invalidate style / layout.
@@ -1294,7 +1296,6 @@ already_AddRefed<ShadowRoot> Element::AttachShadowWithoutNameChecks(
    *    context object's node document, host is context object,
    *    and mode is init's mode.
    */
-  auto* nim = nodeInfo->NodeInfoManager();
   RefPtr<ShadowRoot> shadowRoot = new (nim) ShadowRoot(
       this, aMode, aDelegatesFocus, aSlotAssignment, nodeInfo.forget());
 
@@ -1318,7 +1319,8 @@ already_AddRefed<ShadowRoot> Element::AttachShadowWithoutNameChecks(
   SetShadowRoot(shadowRoot);
 
   // Dispatch a "shadowrootattached" event for devtools if needed.
-  if (MOZ_UNLIKELY(nim->GetDocument()->ShadowRootAttachedEventEnabled())) {
+  if (MOZ_UNLIKELY(
+          nim->GetDocument()->DevToolsAnonymousAndShadowEventsEnabled())) {
     AsyncEventDispatcher* dispatcher = new AsyncEventDispatcher(
         this, u"shadowrootattached"_ns, CanBubble::eYes,
         ChromeOnlyDispatch::eYes, Composed::eYes);
@@ -1701,6 +1703,67 @@ already_AddRefed<nsIHTMLCollection> Element::GetElementsByClassName(
   return nsContentUtils::GetElementsByClassName(this, aClassNames);
 }
 
+Element* Element::GetAttrAssociatedElement(nsAtom* aAttr) const {
+  const nsExtendedDOMSlots* slots = GetExistingExtendedDOMSlots();
+  if (slots) {
+    nsWeakPtr weakAttrEl = slots->mExplicitlySetAttrElements.Get(aAttr);
+    if (nsCOMPtr<Element> attrEl = do_QueryReferent(weakAttrEl)) {
+      // If reflectedTarget's explicitly set attr-element |attrEl| is
+      // a descendant of any of element's shadow-including ancestors, then
+      // return |atrEl|.
+      nsINode* root = SubtreeRoot();
+      nsINode* attrSubtreeRoot = attrEl->SubtreeRoot();
+      do {
+        if (root == attrSubtreeRoot) {
+          return attrEl;
+        }
+        auto* shadow = ShadowRoot::FromNode(root);
+        if (!shadow || !shadow->GetHost()) {
+          break;
+        }
+        root = shadow->GetHost()->SubtreeRoot();
+      } while (true);
+      return nullptr;
+    }
+  }
+
+  const nsAttrValue* value = GetParsedAttr(aAttr);
+  if (!value) {
+    return nullptr;
+  }
+
+  MOZ_ASSERT(value->Type() == nsAttrValue::eAtom,
+             "Attribute used for attr associated element must be parsed");
+
+  nsAtom* valueAtom = value->GetAtomValue();
+  if (auto* docOrShadowRoot = GetContainingDocumentOrShadowRoot()) {
+    return docOrShadowRoot->GetElementById(valueAtom);
+  }
+
+  nsINode* root = SubtreeRoot();
+  for (auto* node = root; node; node = node->GetNextNode(root)) {
+    if (node->HasID() && node->AsContent()->GetID() == valueAtom) {
+      return node->AsElement();
+    }
+  }
+  return nullptr;
+}
+
+void Element::ExplicitlySetAttrElement(nsAtom* aAttr, Element* aElement) {
+  if (aElement) {
+    nsExtendedDOMSlots* slots = ExtendedDOMSlots();
+    slots->mExplicitlySetAttrElements.InsertOrUpdate(
+        aAttr, do_GetWeakReference(aElement));
+    SetAttr(aAttr, EmptyString(), IgnoreErrors());
+    return;
+  }
+
+  if (auto* slots = GetExistingExtendedDOMSlots()) {
+    slots->mExplicitlySetAttrElements.Remove(aAttr);
+    UnsetAttr(aAttr, IgnoreErrors());
+  }
+}
+
 void Element::GetElementsWithGrid(nsTArray<RefPtr<Element>>& aElements) {
   nsINode* cur = this;
   while (cur) {
@@ -1751,15 +1814,15 @@ nsresult Element::BindToTree(BindContext& aContext, nsINode& aParent) {
   if (aParent.IsInNativeAnonymousSubtree()) {
     SetFlags(NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE);
   }
-  if (aParent.HasFlag(NODE_HAS_BEEN_IN_UA_WIDGET)) {
-    SetFlags(NODE_HAS_BEEN_IN_UA_WIDGET);
-  }
   if (IsRootOfNativeAnonymousSubtree()) {
     aParent.SetMayHaveAnonymousChildren();
+  } else if (aParent.HasFlag(NODE_HAS_BEEN_IN_UA_WIDGET)) {
+    SetFlags(NODE_HAS_BEEN_IN_UA_WIDGET);
   }
   if (aParent.HasFlag(ELEMENT_IS_DATALIST_OR_HAS_DATALIST_ANCESTOR)) {
     SetFlags(ELEMENT_IS_DATALIST_OR_HAS_DATALIST_ANCESTOR);
   }
+  aParent.SetFlags(NODE_MAY_HAVE_ELEMENT_CHILDREN);
 
   // Now set the parent.
   mParent = &aParent;
@@ -1836,9 +1899,6 @@ nsresult Element::BindToTree(BindContext& aContext, nsINode& aParent) {
   }
 
   MutationObservers::NotifyParentChainChanged(this);
-  if (!hadParent && IsRootOfNativeAnonymousSubtree()) {
-    MutationObservers::NotifyNativeAnonymousChildListChange(this, false);
-  }
 
   // Ensure we only run this once, in the case we move the ShadowRoot around.
   if (aContext.SubtreeRootChanges()) {
@@ -1857,24 +1917,6 @@ nsresult Element::BindToTree(BindContext& aContext, nsINode& aParent) {
     // If MayHaveStyle() is true, we must be an nsStyledElement.
     static_cast<nsStyledElement*>(this)->ReparseStyleAttribute(
         /* aForceInDataDoc = */ false);
-  }
-
-  // FIXME(emilio): Why is this needed? The element shouldn't even be styled in
-  // the first place, we should style it properly eventually.
-  //
-  // Also, if this _is_ needed, then it's wrong and should use GetComposedDoc()
-  // to account for Shadow DOM.
-  if (aParent.IsInUncomposedDoc() && MayHaveAnimations()) {
-    PseudoStyleType pseudoType = GetPseudoElementType();
-    if ((pseudoType == PseudoStyleType::NotPseudo ||
-         AnimationUtils::IsSupportedPseudoForAnimations(pseudoType)) &&
-        EffectSet::GetEffectSet(this, pseudoType)) {
-      if (nsPresContext* presContext = aContext.OwnerDoc().GetPresContext()) {
-        presContext->EffectCompositor()->RequestRestyle(
-            this, pseudoType, EffectCompositor::RestyleType::Standard,
-            EffectCompositor::CascadeLevel::Animations);
-      }
-    }
   }
 
   // XXXbz script execution during binding can trigger some of these
@@ -1945,11 +1987,8 @@ void Element::UnbindFromTree(bool aNullParent) {
     Document::ExitFullscreenInDocTree(OwnerDoc());
   }
 
-  if (HasServoData()) {
-    MOZ_ASSERT(document);
-    MOZ_ASSERT(IsInNativeAnonymousSubtree());
-  }
-
+  MOZ_ASSERT_IF(HasServoData(), document);
+  MOZ_ASSERT_IF(HasServoData(), IsInNativeAnonymousSubtree());
   if (document) {
     ClearServoData(document);
   }
@@ -1963,31 +2002,13 @@ void Element::UnbindFromTree(bool aNullParent) {
   // PendingAnimationTracker on the document and remove their animations,
   // and so they can find their pres context for dispatching cancel events.
   //
-  // FIXME (Bug 522599): Need a test for this.
-  if (MayHaveAnimations()) {
-    RemoveProperty(nsGkAtoms::transitionsOfBeforeProperty);
-    RemoveProperty(nsGkAtoms::transitionsOfAfterProperty);
-    RemoveProperty(nsGkAtoms::transitionsOfMarkerProperty);
-    RemoveProperty(nsGkAtoms::transitionsProperty);
-    RemoveProperty(nsGkAtoms::animationsOfBeforeProperty);
-    RemoveProperty(nsGkAtoms::animationsOfAfterProperty);
-    RemoveProperty(nsGkAtoms::animationsOfMarkerProperty);
-    RemoveProperty(nsGkAtoms::animationsProperty);
-    if (document) {
-      if (nsPresContext* presContext = document->GetPresContext()) {
-        // We have to clear all pending restyle requests for the animations on
-        // this element to avoid unnecessary restyles when we re-attached this
-        // element.
-        presContext->EffectCompositor()->ClearRestyleRequestsFor(this);
-      }
-    }
+  // FIXME(bug 522599): Need a test for this.
+  // FIXME(emilio): Why not clearing the effect set as well?
+  if (auto* data = GetAnimationData()) {
+    data->ClearAllAnimationCollections();
   }
 
   if (aNullParent) {
-    if (IsRootOfNativeAnonymousSubtree()) {
-      MutationObservers::NotifyNativeAnonymousChildListChange(this, true);
-    }
-
     if (GetParent()) {
       RefPtr<nsINode> p;
       p.swap(mParent);
@@ -2211,20 +2232,17 @@ bool Element::ShouldBlur(nsIContent* aContent) {
     return false;
   }
 
-  if (contentToBlur == aContent) return true;
+  if (contentToBlur == aContent) {
+    return true;
+  }
 
   ShadowRoot* root = aContent->GetShadowRoot();
   if (root && root->DelegatesFocus() &&
       contentToBlur->IsShadowIncludingInclusiveDescendantOf(root)) {
     return true;
   }
-  // if focus on this element would get redirected, then check the redirected
-  // content as well when blurring.
-  return (contentToBlur &&
-          nsFocusManager::GetRedirectedFocus(aContent) == contentToBlur);
+  return false;
 }
-
-bool Element::IsNodeOfType(uint32_t aFlags) const { return false; }
 
 /* static */
 nsresult Element::DispatchEvent(nsPresContext* aPresContext,
@@ -2451,13 +2469,17 @@ nsresult Element::SetAttr(int32_t aNamespaceID, nsAtom* aName, nsAtom* aPrefix,
 
   uint8_t modType;
   bool hasListeners;
-  nsAttrValueOrString value(aValue);
   nsAttrValue oldValue;
   bool oldValueSet;
 
-  if (OnlyNotifySameValueSet(aNamespaceID, aName, aPrefix, value, aNotify,
-                             oldValue, &modType, &hasListeners, &oldValueSet)) {
-    return OnAttrSetButNotChanged(aNamespaceID, aName, value, aNotify);
+  {
+    const nsAttrValueOrString value(aValue);
+    if (OnlyNotifySameValueSet(aNamespaceID, aName, aPrefix, value, aNotify,
+                               oldValue, &modType, &hasListeners,
+                               &oldValueSet)) {
+      OnAttrSetButNotChanged(aNamespaceID, aName, value, aNotify);
+      return NS_OK;
+    }
   }
 
   // Hold a script blocker while calling ParseAttribute since that can call
@@ -2470,16 +2492,15 @@ nsresult Element::SetAttr(int32_t aNamespaceID, nsAtom* aName, nsAtom* aPrefix,
                                                  modType);
   }
 
-  nsresult rv = BeforeSetAttr(aNamespaceID, aName, &value, aNotify);
-  NS_ENSURE_SUCCESS(rv, rv);
-
   nsAttrValue attrValue;
   if (!ParseAttribute(aNamespaceID, aName, aValue, aSubjectPrincipal,
                       attrValue)) {
     attrValue.SetTo(aValue);
   }
 
-  PreIdMaybeChange(aNamespaceID, aName, &value);
+  BeforeSetAttr(aNamespaceID, aName, &attrValue, aNotify);
+
+  PreIdMaybeChange(aNamespaceID, aName, &attrValue);
 
   return SetAttrAndNotify(aNamespaceID, aName, aPrefix,
                           oldValueSet ? &oldValue : nullptr, attrValue,
@@ -2498,13 +2519,17 @@ nsresult Element::SetParsedAttr(int32_t aNamespaceID, nsAtom* aName,
 
   uint8_t modType;
   bool hasListeners;
-  nsAttrValueOrString value(aParsedValue);
   nsAttrValue oldValue;
   bool oldValueSet;
 
-  if (OnlyNotifySameValueSet(aNamespaceID, aName, aPrefix, value, aNotify,
-                             oldValue, &modType, &hasListeners, &oldValueSet)) {
-    return OnAttrSetButNotChanged(aNamespaceID, aName, value, aNotify);
+  {
+    const nsAttrValueOrString value(aParsedValue);
+    if (OnlyNotifySameValueSet(aNamespaceID, aName, aPrefix, value, aNotify,
+                               oldValue, &modType, &hasListeners,
+                               &oldValueSet)) {
+      OnAttrSetButNotChanged(aNamespaceID, aName, value, aNotify);
+      return NS_OK;
+    }
   }
 
   Document* document = GetComposedDoc();
@@ -2515,10 +2540,9 @@ nsresult Element::SetParsedAttr(int32_t aNamespaceID, nsAtom* aName,
                                                  modType);
   }
 
-  nsresult rv = BeforeSetAttr(aNamespaceID, aName, &value, aNotify);
-  NS_ENSURE_SUCCESS(rv, rv);
+  BeforeSetAttr(aNamespaceID, aName, &aParsedValue, aNotify);
 
-  PreIdMaybeChange(aNamespaceID, aName, &value);
+  PreIdMaybeChange(aNamespaceID, aName, &aParsedValue);
 
   return SetAttrAndNotify(aNamespaceID, aName, aPrefix,
                           oldValueSet ? &oldValue : nullptr, aParsedValue,
@@ -2625,9 +2649,8 @@ nsresult Element::SetAttrAndNotify(
   }
 
   if (aCallAfterSetAttr) {
-    rv = AfterSetAttr(aNamespaceID, aName, &valueForAfterSetAttr, oldValue,
-                      aSubjectPrincipal, aNotify);
-    NS_ENSURE_SUCCESS(rv, rv);
+    AfterSetAttr(aNamespaceID, aName, &valueForAfterSetAttr, oldValue,
+                 aSubjectPrincipal, aNotify);
 
     if (aNamespaceID == kNameSpaceID_None && aName == nsGkAtoms::dir) {
       OnSetDirAttr(this, &valueForAfterSetAttr, hadValidDir, hadDirAuto,
@@ -2713,9 +2736,8 @@ bool Element::SetAndSwapMappedAttribute(nsAtom* aName, nsAttrValue& aValue,
   return false;
 }
 
-nsresult Element::BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
-                                const nsAttrValueOrString* aValue,
-                                bool aNotify) {
+void Element::BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
+                            const nsAttrValue* aValue, bool aNotify) {
   if (aNamespaceID == kNameSpaceID_None) {
     if (aName == nsGkAtoms::_class && aValue) {
       // Note: This flag is asymmetrical. It is never unset and isn't exact.
@@ -2729,15 +2751,13 @@ nsresult Element::BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
       SetMayHaveClass();
     }
   }
-
-  return NS_OK;
 }
 
-nsresult Element::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
-                               const nsAttrValue* aValue,
-                               const nsAttrValue* aOldValue,
-                               nsIPrincipal* aMaybeScriptedPrincipal,
-                               bool aNotify) {
+void Element::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
+                           const nsAttrValue* aValue,
+                           const nsAttrValue* aOldValue,
+                           nsIPrincipal* aMaybeScriptedPrincipal,
+                           bool aNotify) {
   if (aNamespaceID == kNameSpaceID_None) {
     if (aName == nsGkAtoms::part) {
       bool isPart = !!aValue;
@@ -2758,11 +2778,10 @@ nsresult Element::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
       }
     }
   }
-  return NS_OK;
 }
 
 void Element::PreIdMaybeChange(int32_t aNamespaceID, nsAtom* aName,
-                               const nsAttrValueOrString* aValue) {
+                               const nsAttrValue* aValue) {
   if (aNamespaceID != kNameSpaceID_None || aName != nsGkAtoms::id) {
     return;
   }
@@ -2785,9 +2804,9 @@ void Element::PostIdMaybeChange(int32_t aNamespaceID, nsAtom* aName,
   }
 }
 
-nsresult Element::OnAttrSetButNotChanged(int32_t aNamespaceID, nsAtom* aName,
-                                         const nsAttrValueOrString& aValue,
-                                         bool aNotify) {
+void Element::OnAttrSetButNotChanged(int32_t aNamespaceID, nsAtom* aName,
+                                     const nsAttrValueOrString& aValue,
+                                     bool aNotify) {
   const CustomElementData* data = GetCustomElementData();
   if (data && data->mState == CustomElementData::State::eCustom) {
     CustomElementDefinition* definition = data->GetCustomElementDefinition();
@@ -2808,8 +2827,6 @@ nsresult Element::OnAttrSetButNotChanged(int32_t aNamespaceID, nsAtom* aName,
           ElementCallbackType::eAttributeChanged, this, args, definition);
     }
   }
-
-  return NS_OK;
 }
 
 EventListenerManager* Element::GetEventListenerManagerForAttr(nsAtom* aAttrName,
@@ -2848,8 +2865,7 @@ nsresult Element::UnsetAttr(int32_t aNameSpaceID, nsAtom* aName, bool aNotify) {
         this, aNameSpaceID, aName, MutationEvent_Binding::REMOVAL);
   }
 
-  nsresult rv = BeforeSetAttr(aNameSpaceID, aName, nullptr, aNotify);
-  NS_ENSURE_SUCCESS(rv, rv);
+  BeforeSetAttr(aNameSpaceID, aName, nullptr, aNotify);
 
   bool hasMutationListeners =
       aNotify && nsContentUtils::HasMutationListeners(
@@ -2884,7 +2900,7 @@ nsresult Element::UnsetAttr(int32_t aNameSpaceID, nsAtom* aName, bool aNotify) {
   }
 
   nsAttrValue oldValue;
-  rv = mAttrs.RemoveAttrAt(index, oldValue);
+  nsresult rv = mAttrs.RemoveAttrAt(index, oldValue);
   NS_ENSURE_SUCCESS(rv, rv);
 
   PostIdMaybeChange(aNameSpaceID, aName, nullptr);
@@ -2910,8 +2926,7 @@ nsresult Element::UnsetAttr(int32_t aNameSpaceID, nsAtom* aName, bool aNotify) {
     }
   }
 
-  rv = AfterSetAttr(aNameSpaceID, aName, nullptr, &oldValue, nullptr, aNotify);
-  NS_ENSURE_SUCCESS(rv, rv);
+  AfterSetAttr(aNameSpaceID, aName, nullptr, &oldValue, nullptr, aNotify);
 
   UpdateState(aNotify);
 
@@ -3533,7 +3548,7 @@ already_AddRefed<Promise> Element::RequestFullscreen(CallerType aCallerType,
   if (const char* error = GetFullscreenError(aCallerType, OwnerDoc())) {
     request->Reject(error);
   } else {
-    OwnerDoc()->AsyncRequestFullscreen(std::move(request));
+    OwnerDoc()->RequestFullscreen(std::move(request));
   }
   return promise.forget();
 }
@@ -3564,7 +3579,16 @@ void Element::GetGridFragments(nsTArray<RefPtr<Grid>>& aResult) {
   // If we get a nsGridContainerFrame from the prior call,
   // all the next-in-flow frames will also be nsGridContainerFrames.
   while (frame) {
-    aResult.AppendElement(new Grid(this, frame));
+    // Get the existing Grid object, if it exists. This object is
+    // guaranteed to be up-to-date because GetGridFrameWithComputedInfo
+    // will delete an existing one when regenerating grid info.
+    Grid* gridFragment = frame->GetGridFragmentInfo();
+    if (!gridFragment) {
+      // Grid constructor will add itself as a property to frame, and
+      // its unlink method will remove itself if the frame still exists.
+      gridFragment = new Grid(this, frame);
+    }
+    aResult.AppendElement(gridFragment);
     frame = static_cast<nsGridContainerFrame*>(frame->GetNextInFlow());
   }
 }
@@ -3745,7 +3769,7 @@ void Element::GetAnimationsUnsorted(Element* aElement,
              "Unsupported pseudo type");
   MOZ_ASSERT(aElement, "Null element");
 
-  EffectSet* effects = EffectSet::GetEffectSet(aElement, aPseudoType);
+  EffectSet* effects = EffectSet::Get(aElement, aPseudoType);
   if (!effects) {
     return;
   }
@@ -3755,13 +3779,6 @@ void Element::GetAnimationsUnsorted(Element* aElement,
                "Only effects associated with an animation should be "
                "added to an element's effect set");
     Animation* animation = effect->GetAnimation();
-
-    // FIXME: Bug 1676795: Don't expose scroll-driven animations because we are
-    // not ready.
-    if (animation->GetTimeline() &&
-        animation->GetTimeline()->IsScrollTimeline()) {
-      continue;
-    }
 
     MOZ_ASSERT(animation->IsRelevant(),
                "Only relevant animations should be added to an element's "
@@ -3780,10 +3797,8 @@ void Element::CloneAnimationsFrom(const Element& aOther) {
         PseudoStyleType::after, PseudoStyleType::marker}) {
     // If the element has an effect set for this pseudo type (or not pseudo)
     // then copy the effects and animation properties.
-    if (EffectSet* const effects =
-            EffectSet::GetEffectSet(&aOther, pseudoType)) {
-      EffectSet* const clonedEffects =
-          EffectSet::GetOrCreateEffectSet(this, pseudoType);
+    if (auto* const effects = EffectSet::Get(&aOther, pseudoType)) {
+      auto* const clonedEffects = EffectSet::GetOrCreate(this, pseudoType);
       for (KeyframeEffect* const effect : *effects) {
         auto* animation = effect->GetAnimation();
         if (animation->AsCSSTransition()) {
@@ -4228,6 +4243,90 @@ void Element::ClearServoData(Document* aDoc) {
   // may also make an element invalid to be used as a restyle root.
   if (aDoc->GetServoRestyleRoot() == this) {
     aDoc->ClearServoRestyleRoot();
+  }
+}
+
+bool Element::HasPopoverInvoker() const {
+  auto* popoverData = GetPopoverData();
+  return popoverData && popoverData->HasPopoverInvoker();
+}
+
+void Element::SetHasPopoverInvoker(bool aHasInvoker) {
+  if (aHasInvoker) {
+    EnsurePopoverData().SetHasPopoverInvoker(true);
+  } else if (auto* popoverData = GetPopoverData()) {
+    popoverData->SetHasPopoverInvoker(false);
+  }
+}
+
+bool Element::IsAutoPopover() const {
+  const auto* htmlElement = nsGenericHTMLElement::FromNode(this);
+  return htmlElement && htmlElement->GetPopoverState() == PopoverState::Auto;
+}
+
+bool Element::IsPopoverOpen() const {
+  const auto* htmlElement = nsGenericHTMLElement::FromNode(this);
+  return htmlElement && htmlElement->PopoverOpen();
+}
+
+Element* Element::GetTopmostPopoverAncestor() const {
+  const Element* newPopover = this;
+
+  nsTHashMap<nsPtrHashKey<const Element>, size_t> popoverPositions;
+  size_t index = 0;
+  for (Element* popover : OwnerDoc()->AutoPopoverList()) {
+    popoverPositions.LookupOrInsert(popover, index++);
+  }
+  popoverPositions.LookupOrInsert(newPopover, index);
+
+  Element* topmostPopoverAncestor = nullptr;
+
+  auto checkAncestor = [&](const Element* candidate) {
+    if (!candidate) {
+      return;
+    }
+    Element* candidateAncestor = candidate->GetNearestInclusiveOpenPopover();
+    if (!candidateAncestor) {
+      return;
+    }
+    size_t candidatePosition;
+    if (popoverPositions.Get(candidateAncestor, &candidatePosition)) {
+      size_t topmostPosition;
+      if (!topmostPopoverAncestor ||
+          (popoverPositions.Get(topmostPopoverAncestor, &topmostPosition) &&
+           topmostPosition < candidatePosition)) {
+        topmostPopoverAncestor = candidateAncestor;
+      }
+    }
+  };
+
+  checkAncestor(newPopover->GetFlattenedTreeParentElement());
+
+  // TODO: To handle the button invokers
+  // https://github.com/whatwg/html/issues/9160
+
+  return topmostPopoverAncestor;
+}
+
+ElementAnimationData& Element::CreateAnimationData() {
+  MOZ_ASSERT(!GetAnimationData());
+  SetMayHaveAnimations();
+  auto* slots = ExtendedDOMSlots();
+  slots->mAnimations = MakeUnique<ElementAnimationData>();
+  return *slots->mAnimations;
+}
+
+PopoverData& Element::CreatePopoverData() {
+  MOZ_ASSERT(!GetPopoverData());
+  auto* slots = ExtendedDOMSlots();
+  slots->mPopoverData = MakeUnique<PopoverData>();
+  return *slots->mPopoverData;
+}
+
+void Element::ClearPopoverData() {
+  nsExtendedDOMSlots* slots = GetExistingExtendedDOMSlots();
+  if (slots) {
+    slots->mPopoverData = nullptr;
   }
 }
 
@@ -4818,7 +4917,10 @@ void Element::SetHTML(const nsAString& aInnerHTML,
         aError.ThrowInvalidStateError("Missing owner global.");
         return;
       }
-      sanitizer = new Sanitizer(global, {});
+      sanitizer = Sanitizer::New(global, {}, aError);
+      if (aError.Failed()) {
+        return;
+      }
     } else {
       sanitizer = &aOptions.mSanitizer.Value();
     }
@@ -4837,6 +4939,13 @@ void Element::SetHTML(const nsAString& aInnerHTML,
     nsContentUtils::FireMutationEventsForDirectParsing(doc, target,
                                                        oldChildCount);
   }
+}
+
+bool Element::Translate() const {
+  if (const auto* parent = Element::FromNodeOrNull(mParent)) {
+    return parent->Translate();
+  }
+  return true;
 }
 
 }  // namespace mozilla::dom

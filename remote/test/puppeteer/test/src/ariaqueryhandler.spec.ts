@@ -14,19 +14,20 @@
  * limitations under the License.
  */
 
+import assert from 'assert';
+
 import expect from 'expect';
+import {TimeoutError} from 'puppeteer';
+import type {ElementHandle} from 'puppeteer-core/internal/api/ElementHandle.js';
+
 import {
   getTestState,
   setupTestBrowserHooks,
   setupTestPageAndContextHooks,
-  describeChromeOnly,
 } from './mocha-utils.js';
-
-import {ElementHandle} from '../../lib/cjs/puppeteer/common/ElementHandle.js';
 import utils from './utils.js';
-import assert from 'assert';
 
-describeChromeOnly('AriaQueryHandler', () => {
+describe('AriaQueryHandler', () => {
   setupTestBrowserHooks();
   setupTestPageAndContextHooks();
 
@@ -229,7 +230,7 @@ describeChromeOnly('AriaQueryHandler', () => {
       await page.waitForSelector('aria/[role="button"]');
     });
 
-    it('should work for ElementHandler.waitForSelector', async () => {
+    it('should work for ElementHandle.waitForSelector', async () => {
       const {page, server} = getTestState();
       await page.goto(server.EMPTY_PAGE);
       await page.evaluate(() => {
@@ -447,7 +448,7 @@ describeChromeOnly('AriaQueryHandler', () => {
 
       let divHidden = false;
       await page.setContent(
-        `<div role='button' style='display: block;'></div>`
+        `<div role='button' style='display: block;'>text</div>`
       );
       const waitForSelector = page
         .waitForSelector('aria/[role="button"]', {hidden: true})
@@ -469,7 +470,9 @@ describeChromeOnly('AriaQueryHandler', () => {
       const {page} = getTestState();
 
       let divHidden = false;
-      await page.setContent(`<div role='main' style='display: block;'></div>`);
+      await page.setContent(
+        `<div role='main' style='display: block;'>text</div>`
+      );
       const waitForSelector = page
         .waitForSelector('aria/[role="main"]', {hidden: true})
         .then(() => {
@@ -489,7 +492,7 @@ describeChromeOnly('AriaQueryHandler', () => {
     it('hidden should wait for removal', async () => {
       const {page} = getTestState();
 
-      await page.setContent(`<div role='main'></div>`);
+      await page.setContent(`<div role='main'>text</div>`);
       let divRemoved = false;
       const waitForSelector = page
         .waitForSelector('aria/[role="main"]', {hidden: true})
@@ -515,35 +518,33 @@ describeChromeOnly('AriaQueryHandler', () => {
     });
 
     it('should respect timeout', async () => {
-      const {page, puppeteer} = getTestState();
+      const {page} = getTestState();
 
-      let error!: Error;
-      await page
-        .waitForSelector('aria/[role="button"]', {timeout: 10})
-        .catch(error_ => {
-          return (error = error_);
+      const error = await page
+        .waitForSelector('aria/[role="button"]', {
+          timeout: 10,
+        })
+        .catch(error => {
+          return error;
         });
-      expect(error).toBeTruthy();
       expect(error.message).toContain(
-        'waiting for selector `[role="button"]` failed: timeout'
+        'Waiting for selector `[role="button"]` failed: Waiting failed: 10ms exceeded'
       );
-      expect(error).toBeInstanceOf(puppeteer.errors.TimeoutError);
+      expect(error).toBeInstanceOf(TimeoutError);
     });
 
     it('should have an error message specifically for awaiting an element to be hidden', async () => {
       const {page} = getTestState();
 
-      await page.setContent(`<div role='main'></div>`);
-      let error!: Error;
-      await page
-        .waitForSelector('aria/[role="main"]', {hidden: true, timeout: 10})
-        .catch(error_ => {
-          return (error = error_);
-        });
-      expect(error).toBeTruthy();
-      expect(error.message).toContain(
-        'waiting for selector `[role="main"]` to be hidden failed: timeout'
-      );
+      await page.setContent(`<div role='main'>text</div>`);
+      const promise = page.waitForSelector('aria/[role="main"]', {
+        hidden: true,
+        timeout: 10,
+      });
+      await expect(promise).rejects.toMatchObject({
+        message:
+          'Waiting for selector `[role="main"]` failed: Waiting failed: 10ms exceeded',
+      });
     });
 
     it('should respond to node attribute mutation', async () => {
@@ -582,7 +583,9 @@ describeChromeOnly('AriaQueryHandler', () => {
       await page.waitForSelector('aria/zombo', {timeout: 10}).catch(error_ => {
         return (error = error_);
       });
-      expect(error!.stack).toContain('waiting for selector `zombo` failed');
+      expect(error!.stack).toContain(
+        'Waiting for selector `zombo` failed: Waiting failed: 10ms exceeded'
+      );
     });
   });
 

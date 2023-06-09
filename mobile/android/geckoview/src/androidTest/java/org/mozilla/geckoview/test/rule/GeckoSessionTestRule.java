@@ -79,6 +79,7 @@ import org.mozilla.geckoview.GeckoSession.HistoryDelegate;
 import org.mozilla.geckoview.GeckoSession.MediaDelegate;
 import org.mozilla.geckoview.GeckoSession.NavigationDelegate;
 import org.mozilla.geckoview.GeckoSession.PermissionDelegate;
+import org.mozilla.geckoview.GeckoSession.PrintDelegate;
 import org.mozilla.geckoview.GeckoSession.ProgressDelegate;
 import org.mozilla.geckoview.GeckoSession.PromptDelegate;
 import org.mozilla.geckoview.GeckoSession.ScrollDelegate;
@@ -138,6 +139,7 @@ public class GeckoSessionTestRule implements TestRule {
 
   public void addDisplay(final GeckoSession session, final int x, final int y) {
     final GeckoDisplay display = session.acquireDisplay();
+    session.setActive(true);
 
     final SurfaceTexture displayTexture = new SurfaceTexture(0);
     displayTexture.setDefaultBufferSize(x, y);
@@ -162,6 +164,7 @@ public class GeckoSessionTestRule implements TestRule {
     displaySurface.release();
     final SurfaceTexture displayTexture = mDisplayTextures.remove(session);
     displayTexture.release();
+    session.setActive(false);
   }
 
   /**
@@ -768,6 +771,7 @@ public class GeckoSessionTestRule implements TestRule {
     DEFAULT_DELEGATES.add(MediaSession.Delegate.class);
     DEFAULT_DELEGATES.add(NavigationDelegate.class);
     DEFAULT_DELEGATES.add(PermissionDelegate.class);
+    DEFAULT_DELEGATES.add(PrintDelegate.class);
     DEFAULT_DELEGATES.add(ProgressDelegate.class);
     DEFAULT_DELEGATES.add(PromptDelegate.class);
     DEFAULT_DELEGATES.add(ScrollDelegate.class);
@@ -799,6 +803,7 @@ public class GeckoSessionTestRule implements TestRule {
           MediaSession.Delegate,
           NavigationDelegate,
           PermissionDelegate,
+          PrintDelegate,
           ProgressDelegate,
           PromptDelegate,
           ScrollDelegate,
@@ -1312,6 +1317,7 @@ public class GeckoSessionTestRule implements TestRule {
           };
 
       session.open(getRuntime());
+      session.setActive(true);
 
       UiThreadUtils.waitForCondition(
           () -> mCallRecordHandler == null, env.getDefaultTimeoutMillis());
@@ -2451,6 +2457,14 @@ public class GeckoSessionTestRule implements TestRule {
   public boolean getActive(final @NonNull GeckoSession session) {
     final Boolean isActive = (Boolean) webExtensionApiCall(session, "GetActive", null);
     return isActive;
+  }
+
+  public void triggerCookieBannerDetected(final @NonNull GeckoSession session) {
+    webExtensionApiCall(session, "TriggerCookieBannerDetected", null);
+  }
+
+  public void triggerCookieBannerHandled(final @NonNull GeckoSession session) {
+    webExtensionApiCall(session, "TriggerCookieBannerHandled", null);
   }
 
   private Object waitForMessage(final WebExtension.Port port, final String id) {

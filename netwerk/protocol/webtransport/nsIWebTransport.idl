@@ -14,6 +14,9 @@ interface nsIWebTransportSendStream;
 interface nsIWebTransportReceiveStream;
 
 %{C++
+namespace mozilla::dom {
+class ClientInfo;
+}
 namespace mozilla::net {
 class Http3WebTransportSession;
 class Http3WebTransportStream;
@@ -23,6 +26,7 @@ class Http3WebTransportStream;
 [ptr] native Http3WebTransportSessionPtr(mozilla::net::Http3WebTransportSession);
 [ptr] native Http3WebTransportStreamPtr(mozilla::net::Http3WebTransportStream);
 native Datagram(nsTArray<uint8_t>&&);
+[ref] native const_MaybeClientInfoRef(const mozilla::Maybe<mozilla::dom::ClientInfo>);
 
 [builtinclass, scriptable, uuid(c20d6e77-8cb1-4838-a88d-fff826080aa3)]
 interface nsIWebTransport : nsISupports {
@@ -36,6 +40,13 @@ interface nsIWebTransport : nsISupports {
                     in nsIPrincipal aLoadingPrincipal,
                     in unsigned long aSecurityFlags,
                     in WebTransportSessionEventListener aListener);
+
+  void asyncConnectWithClient(in nsIURI aURI,
+                    in nsIPrincipal aLoadingPrincipal,
+                    in unsigned long aSecurityFlags,
+                    in WebTransportSessionEventListener aListener,
+                    in const_MaybeClientInfoRef aClientInfo);
+
   // Asynchronously get states.
   void getStats();
 
@@ -50,6 +61,11 @@ interface nsIWebTransport : nsISupports {
   void sendDatagram(in Array<uint8_t> aData, in uint64_t aTrackingId);
 
   void getMaxDatagramSize();
+
+  // This can be only called after onSessionReady().
+  // After this point, we can retarget the underlying WebTransportSessionProxy
+  // object off main thread.
+  [noscript] void retargetTo(in nsIEventTarget aTarget);
 };
 
 // Events related to a WebTransport session.
@@ -71,6 +87,9 @@ interface WebTransportSessionEventListener : nsISupports {
   // This is used internally to pass the reference of Http3WebTransportStream
   // object to WebTransportSessionProxy.
   void onIncomingStreamAvailableInternal(in Http3WebTransportStreamPtr aStream);
+
+  void onStopSending(in uint64_t aStreamId, in nsresult aError);
+  void onResetReceived(in uint64_t aStreamId, in nsresult aError);
 
   // When a new datagram has been received.
   void onDatagramReceived(in Array<uint8_t> aData);

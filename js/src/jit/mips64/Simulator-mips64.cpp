@@ -1995,6 +1995,8 @@ typedef int32_t (*Prototype_Int32_GeneralInt64Int32Int64General)(
     int64_t, int64_t, int32_t, int64_t, int64_t);
 typedef int32_t (*Prototype_Int32_GeneralInt64Int64Int64)(int64_t, int64_t,
                                                           int64_t, int64_t);
+typedef int32_t (*Prototype_Int32_GeneralInt64Int64General)(int64_t, int64_t,
+                                                            int64_t, int64_t);
 typedef int32_t (*Prototype_Int32_GeneralInt64Int64Int64General)(
     int64_t, int64_t, int64_t, int64_t, int64_t);
 typedef int64_t (*Prototype_General_GeneralInt32)(int64_t, int32_t);
@@ -2006,6 +2008,8 @@ typedef int64_t (*Prototype_General_GeneralInt32Int32GeneralInt32)(
     int64_t, int32_t, int32_t, int64_t, int32_t);
 typedef int32_t (*Prototype_Int32_GeneralGeneralInt32GeneralInt32Int32Int32)(
     int64_t, int64_t, int32_t, int64_t, int32_t, int32_t, int32_t);
+typedef int32_t (*Prototype_Int32_GeneralGeneralInt32General)(int64_t, int64_t,
+                                                              int32_t, int64_t);
 typedef int64_t (*Prototype_Int64_General)(int64_t);
 typedef int64_t (*Prototype_Int64_GeneralInt64)(int64_t, int64_t);
 
@@ -2408,6 +2412,13 @@ void Simulator::softwareInterrupt(SimInstruction* instr) {
         setRegister(v0, I64(ret));
         break;
       }
+      case js::jit::Args_Int32_GeneralInt64Int64General: {
+        int32_t ret =
+            reinterpret_cast<Prototype_Int32_GeneralInt64Int64General>(
+                nativeFn)(arg0, arg1, arg2, arg3);
+        setRegister(v0, I64(ret));
+        break;
+      }
       case js::jit::Args_Int32_GeneralInt64Int64Int64General: {
         int32_t ret =
             reinterpret_cast<Prototype_Int32_GeneralInt64Int64Int64General>(
@@ -2446,6 +2457,13 @@ void Simulator::softwareInterrupt(SimInstruction* instr) {
             Prototype_Int32_GeneralGeneralInt32GeneralInt32Int32Int32>(
             nativeFn)(arg0, arg1, I32(arg2), arg3, I32(arg4), I32(arg5),
                       I32(arg6));
+        setRegister(v0, I64(ret));
+        break;
+      }
+      case js::jit::Args_Int32_GeneralGeneralInt32General: {
+        int32_t ret =
+            reinterpret_cast<Prototype_Int32_GeneralGeneralInt32General>(
+                nativeFn)(arg0, arg1, I32(arg2), arg3);
         setRegister(v0, I64(ret));
         break;
       }
@@ -3200,32 +3218,31 @@ void Simulator::decodeTypeRegister(SimInstruction* instr) {
               setFpuRegisterFloat(fd_reg, sqrtf(fs_value));
               break;
             case ff_c_un_fmt:
-              setFCSRBit(fcsr_cc,
-                         mozilla::IsNaN(fs_value) || mozilla::IsNaN(ft_value));
+              setFCSRBit(fcsr_cc, std::isnan(fs_value) || std::isnan(ft_value));
               break;
             case ff_c_eq_fmt:
               setFCSRBit(fcsr_cc, (fs_value == ft_value));
               break;
             case ff_c_ueq_fmt:
               setFCSRBit(fcsr_cc,
-                         (fs_value == ft_value) || (mozilla::IsNaN(fs_value) ||
-                                                    mozilla::IsNaN(ft_value)));
+                         (fs_value == ft_value) ||
+                             (std::isnan(fs_value) || std::isnan(ft_value)));
               break;
             case ff_c_olt_fmt:
               setFCSRBit(fcsr_cc, (fs_value < ft_value));
               break;
             case ff_c_ult_fmt:
               setFCSRBit(fcsr_cc,
-                         (fs_value < ft_value) || (mozilla::IsNaN(fs_value) ||
-                                                   mozilla::IsNaN(ft_value)));
+                         (fs_value < ft_value) ||
+                             (std::isnan(fs_value) || std::isnan(ft_value)));
               break;
             case ff_c_ole_fmt:
               setFCSRBit(fcsr_cc, (fs_value <= ft_value));
               break;
             case ff_c_ule_fmt:
               setFCSRBit(fcsr_cc,
-                         (fs_value <= ft_value) || (mozilla::IsNaN(fs_value) ||
-                                                    mozilla::IsNaN(ft_value)));
+                         (fs_value <= ft_value) ||
+                             (std::isnan(fs_value) || std::isnan(ft_value)));
               break;
             case ff_cvt_d_fmt:
               f = getFpuRegisterFloat(fs_reg);
@@ -3377,32 +3394,31 @@ void Simulator::decodeTypeRegister(SimInstruction* instr) {
               setFpuRegisterDouble(fd_reg, sqrt(ds_value));
               break;
             case ff_c_un_fmt:
-              setFCSRBit(fcsr_cc,
-                         mozilla::IsNaN(ds_value) || mozilla::IsNaN(dt_value));
+              setFCSRBit(fcsr_cc, std::isnan(ds_value) || std::isnan(dt_value));
               break;
             case ff_c_eq_fmt:
               setFCSRBit(fcsr_cc, (ds_value == dt_value));
               break;
             case ff_c_ueq_fmt:
               setFCSRBit(fcsr_cc,
-                         (ds_value == dt_value) || (mozilla::IsNaN(ds_value) ||
-                                                    mozilla::IsNaN(dt_value)));
+                         (ds_value == dt_value) ||
+                             (std::isnan(ds_value) || std::isnan(dt_value)));
               break;
             case ff_c_olt_fmt:
               setFCSRBit(fcsr_cc, (ds_value < dt_value));
               break;
             case ff_c_ult_fmt:
               setFCSRBit(fcsr_cc,
-                         (ds_value < dt_value) || (mozilla::IsNaN(ds_value) ||
-                                                   mozilla::IsNaN(dt_value)));
+                         (ds_value < dt_value) ||
+                             (std::isnan(ds_value) || std::isnan(dt_value)));
               break;
             case ff_c_ole_fmt:
               setFCSRBit(fcsr_cc, (ds_value <= dt_value));
               break;
             case ff_c_ule_fmt:
               setFCSRBit(fcsr_cc,
-                         (ds_value <= dt_value) || (mozilla::IsNaN(ds_value) ||
-                                                    mozilla::IsNaN(dt_value)));
+                         (ds_value <= dt_value) ||
+                             (std::isnan(ds_value) || std::isnan(dt_value)));
               break;
             case ff_cvt_w_fmt:  // Convert double to word.
               // Rounding modes are not yet supported.

@@ -24,10 +24,6 @@ NS_IMPL_NS_NEW_HTML_ELEMENT(Anchor)
 
 namespace mozilla::dom {
 
-// static
-const DOMTokenListSupportedToken HTMLAnchorElement::sSupportedRelValues[] = {
-    "noreferrer", "noopener", nullptr};
-
 HTMLAnchorElement::~HTMLAnchorElement() {
   SupportsDNSPrefetch::Destroyed(*this);
 }
@@ -190,24 +186,20 @@ already_AddRefed<nsIURI> HTMLAnchorElement::GetHrefURI() const {
   return GetHrefURIForAnchors();
 }
 
-nsresult HTMLAnchorElement::BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
-                                          const nsAttrValueOrString* aValue,
-                                          bool aNotify) {
-  if (aNamespaceID == kNameSpaceID_None) {
-    if (aName == nsGkAtoms::href) {
-      CancelDNSPrefetch(*this);
-    }
+void HTMLAnchorElement::BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
+                                      const nsAttrValue* aValue, bool aNotify) {
+  if (aNamespaceID == kNameSpaceID_None && aName == nsGkAtoms::href) {
+    CancelDNSPrefetch(*this);
   }
-
   return nsGenericHTMLElement::BeforeSetAttr(aNamespaceID, aName, aValue,
                                              aNotify);
 }
 
-nsresult HTMLAnchorElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
-                                         const nsAttrValue* aValue,
-                                         const nsAttrValue* aOldValue,
-                                         nsIPrincipal* aSubjectPrincipal,
-                                         bool aNotify) {
+void HTMLAnchorElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
+                                     const nsAttrValue* aValue,
+                                     const nsAttrValue* aOldValue,
+                                     nsIPrincipal* aSubjectPrincipal,
+                                     bool aNotify) {
   if (aNamespaceID == kNameSpaceID_None) {
     if (aName == nsGkAtoms::href) {
       Link::ResetLinkState(aNotify, !!aValue);

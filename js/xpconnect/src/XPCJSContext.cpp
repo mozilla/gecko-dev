@@ -84,6 +84,7 @@
 #endif
 
 using namespace mozilla;
+using namespace mozilla::dom;
 using namespace xpc;
 using namespace JS;
 
@@ -783,6 +784,7 @@ static mozilla::Atomic<bool> sArrayGroupingEnabled(false);
 #ifdef ENABLE_CHANGE_ARRAY_BY_COPY
 static mozilla::Atomic<bool> sChangeArrayByCopyEnabled(false);
 #endif
+static mozilla::Atomic<bool> sArrayFromAsyncEnabled(false);
 #ifdef ENABLE_NEW_SET_METHODS
 static mozilla::Atomic<bool> sEnableNewSetMethods(false);
 #endif
@@ -815,6 +817,7 @@ void xpc::SetPrefableRealmOptions(JS::RealmOptions& options) {
 #ifdef ENABLE_CHANGE_ARRAY_BY_COPY
       .setChangeArrayByCopyEnabled(sChangeArrayByCopyEnabled)
 #endif
+      .setArrayFromAsyncEnabled(sArrayFromAsyncEnabled)
 #ifdef ENABLE_NEW_SET_METHODS
       .setNewSetMethodsEnabled(sEnableNewSetMethods)
 #endif
@@ -892,6 +895,7 @@ static void LoadStartupJSPrefs(XPCJSContext* xpccx) {
         cx, JSJITCOMPILER_JIT_TRUSTEDPRINCIPALS_ENABLE, false);
     JS_SetGlobalJitCompilerOption(cx, JSJITCOMPILER_NATIVE_REGEXP_ENABLE,
                                   false);
+    JS_SetGlobalJitCompilerOption(cx, JSJITCOMPILER_JIT_HINTS_ENABLE, false);
     sSelfHostedUseSharedMemory = false;
   } else {
     JS_SetGlobalJitCompilerOption(
@@ -906,6 +910,13 @@ static void LoadStartupJSPrefs(XPCJSContext* xpccx) {
     JS_SetGlobalJitCompilerOption(
         cx, JSJITCOMPILER_NATIVE_REGEXP_ENABLE,
         StaticPrefs::javascript_options_native_regexp_DoNotUseDirectly());
+    // Only enable the jit hints cache for the content process to avoid
+    // any possible jank or delays on the parent process.
+    JS_SetGlobalJitCompilerOption(
+        cx, JSJITCOMPILER_JIT_HINTS_ENABLE,
+        XRE_IsContentProcess()
+            ? StaticPrefs::javascript_options_jithints_DoNotUseDirectly()
+            : false);
     sSelfHostedUseSharedMemory = StaticPrefs::
         javascript_options_self_hosted_use_shared_memory_DoNotUseDirectly();
   }
@@ -938,7 +949,8 @@ static void LoadStartupJSPrefs(XPCJSContext* xpccx) {
       StaticPrefs::javascript_options_jit_full_debug_checks_DoNotUseDirectly());
 #endif
 
-#if !defined(JS_CODEGEN_MIPS32) && !defined(JS_CODEGEN_MIPS64)
+#if !defined(JS_CODEGEN_MIPS32) && !defined(JS_CODEGEN_MIPS64) && \
+    !defined(JS_CODEGEN_RISCV64)
   JS_SetGlobalJitCompilerOption(
       cx, JSJITCOMPILER_SPECTRE_INDEX_MASKING,
       StaticPrefs::javascript_options_spectre_index_masking_DoNotUseDirectly());
@@ -1003,7 +1015,8 @@ static void ReloadPrefsCallback(const char* pref, void* aXpccx) {
   sChangeArrayByCopyEnabled = Preferences::GetBool(
       JS_OPTIONS_DOT_STR "experimental.enable_change_array_by_copy");
 #endif
-
+  sArrayFromAsyncEnabled = Preferences::GetBool(
+      JS_OPTIONS_DOT_STR "experimental.enable_array_from_async");
 #ifdef ENABLE_NEW_SET_METHODS
   sEnableNewSetMethods =
       Preferences::GetBool(JS_OPTIONS_DOT_STR "experimental.new_set_methods");
@@ -1029,8 +1042,7 @@ static void ReloadPrefsCallback(const char* pref, void* aXpccx) {
           JS_OPTIONS_DOT_STR "dump_stack_on_debuggee_would_run"));
 
   JS::SetUseFdlibmForSinCosTan(
-      Preferences::GetBool(JS_OPTIONS_DOT_STR "use_fdlibm_for_sin_cos_tan") ||
-      Preferences::GetBool("privacy.resistFingerprinting"));
+      Preferences::GetBool(JS_OPTIONS_DOT_STR "use_fdlibm_for_sin_cos_tan"));
 
   nsCOMPtr<nsIXULRuntime> xr = do_GetService("@mozilla.org/xre/runtime;1");
   if (xr) {

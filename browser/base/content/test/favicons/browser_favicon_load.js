@@ -6,6 +6,7 @@
 
 const CC = Components.Constructor;
 
+// eslint-disable-next-line @microsoft/sdl/no-insecure-url
 const TEST_SITE = "http://example.net";
 const TEST_THIRD_PARTY_SITE = "http://mochi.test:8888";
 
@@ -93,10 +94,8 @@ FaviconObserver.prototype = {
 };
 
 function waitOnFaviconLoaded(aFaviconURL) {
-  return PlacesTestUtils.waitForNotification(
-    "favicon-changed",
-    events => events.some(e => e.faviconUrl == aFaviconURL),
-    "places"
+  return PlacesTestUtils.waitForNotification("favicon-changed", events =>
+    events.some(e => e.faviconUrl == aFaviconURL)
   );
 }
 

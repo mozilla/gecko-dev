@@ -15,7 +15,9 @@
 
 #include "api/frame_transformer_interface.h"
 #include "api/scoped_refptr.h"
+#include "api/sequence_checker.h"
 #include "api/task_queue/task_queue_base.h"
+#include "api/task_queue/task_queue_factory.h"
 #include "api/video/video_layers_allocation.h"
 #include "rtc_base/synchronization/mutex.h"
 
@@ -32,7 +34,7 @@ class RTPSenderVideoFrameTransformerDelegate : public TransformedFrameCallback {
       RTPSenderVideo* sender,
       rtc::scoped_refptr<FrameTransformerInterface> frame_transformer,
       uint32_t ssrc,
-      TaskQueueBase* send_transport_queue);
+      TaskQueueFactory* send_transport_queue);
 
   void Init();
 
@@ -50,7 +52,8 @@ class RTPSenderVideoFrameTransformerDelegate : public TransformedFrameCallback {
       std::unique_ptr<TransformableFrameInterface> frame) override;
 
   // Delegates the call to RTPSendVideo::SendVideo on the `encoder_queue_`.
-  void SendVideo(std::unique_ptr<TransformableFrameInterface> frame) const;
+  void SendVideo(std::unique_ptr<TransformableFrameInterface> frame) const
+      RTC_RUN_ON(transformation_queue_);
 
   // Delegates the call to RTPSendVideo::SetVideoStructureAfterTransformation
   // under `sender_lock_`.
@@ -71,13 +74,20 @@ class RTPSenderVideoFrameTransformerDelegate : public TransformedFrameCallback {
   ~RTPSenderVideoFrameTransformerDelegate() override = default;
 
  private:
+  void EnsureEncoderQueueCreated();
+
   mutable Mutex sender_lock_;
   RTPSenderVideo* sender_ RTC_GUARDED_BY(sender_lock_);
   rtc::scoped_refptr<FrameTransformerInterface> frame_transformer_;
   const uint32_t ssrc_;
-  TaskQueueBase* encoder_queue_ = nullptr;
-  TaskQueueBase* send_transport_queue_;
+  // Used when the encoded frames arrives without a current task queue. This can
+  // happen if a hardware encoder was used.
+  std::unique_ptr<TaskQueueBase, TaskQueueDeleter> transformation_queue_;
 };
+
+// Method to support cloning a Sender frame from another frame
+std::unique_ptr<TransformableVideoFrameInterface> CloneSenderVideoFrame(
+    TransformableVideoFrameInterface* original);
 
 }  // namespace webrtc
 

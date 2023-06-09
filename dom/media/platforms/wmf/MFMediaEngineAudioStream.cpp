@@ -4,7 +4,12 @@
 
 #include "MFMediaEngineAudioStream.h"
 
+#include <mferror.h>
+#include <mfapi.h>
+
 #include "MFMediaEngineUtils.h"
+#include "WMFUtils.h"
+#include "mozilla/StaticPrefs_media.h"
 
 namespace mozilla {
 
@@ -48,9 +53,16 @@ HRESULT MFMediaEngineAudioStream::CreateMediaType(const TrackInfo& aInfo,
   RETURN_IF_FAILED(mediaType->SetUINT32(MF_MT_AUDIO_BITS_PER_SAMPLE, bitDepth));
   if (subType == MFAudioFormat_AAC) {
     if (mAACUserData.IsEmpty()) {
-      MOZ_ASSERT(info.mCodecSpecificConfig.is<AacCodecSpecificData>());
-      const auto& blob = info.mCodecSpecificConfig.as<AacCodecSpecificData>()
-                             .mDecoderConfigDescriptorBinaryBlob;
+      MOZ_ASSERT(info.mCodecSpecificConfig.is<AacCodecSpecificData>() ||
+                 info.mCodecSpecificConfig.is<AudioCodecSpecificBinaryBlob>());
+      RefPtr<MediaByteBuffer> blob;
+      if (info.mCodecSpecificConfig.is<AacCodecSpecificData>()) {
+        blob = info.mCodecSpecificConfig.as<AacCodecSpecificData>()
+                   .mDecoderConfigDescriptorBinaryBlob;
+      } else {
+        blob = info.mCodecSpecificConfig.as<AudioCodecSpecificBinaryBlob>()
+                   .mBinaryBlob;
+      }
       AACAudioSpecificConfigToUserData(info.mExtendedProfile, blob->Elements(),
                                        blob->Length(), mAACUserData);
       LOGV("Generated AAC user data");
@@ -61,8 +73,9 @@ HRESULT MFMediaEngineAudioStream::CreateMediaType(const TrackInfo& aInfo,
         MF_MT_USER_DATA, mAACUserData.Elements(), mAACUserData.Length()));
   }
   LOGV("Created audio type, subtype=%s, channel=%" PRIu32 ", rate=%" PRIu32
-       ", bitDepth=%" PRIu64,
-       GUIDToStr(subType), info.mChannels, info.mRate, bitDepth);
+       ", bitDepth=%" PRIu64 ", encrypted=%d",
+       GUIDToStr(subType), info.mChannels, info.mRate, bitDepth,
+       mAudioInfo.mCrypto.IsEncrypted());
 
   *aMediaType = mediaType.Detach();
   return S_OK;
@@ -88,6 +101,26 @@ already_AddRefed<MediaData> MFMediaEngineAudioStream::OutputDataInternal() {
       new AudioData(input->mOffset, input->mTime, AlignedAudioBuffer{},
                     mAudioInfo.mChannels, mAudioInfo.mRate);
   return output.forget();
+}
+
+nsCString MFMediaEngineAudioStream::GetCodecName() const {
+  WMFStreamType type = GetStreamTypeFromMimeType(mAudioInfo.mMimeType);
+  switch (type) {
+    case WMFStreamType::MP3:
+      return "mp3"_ns;
+    case WMFStreamType::AAC:
+      return "aac"_ns;
+    case WMFStreamType::OPUS:
+      return "opus"_ns;
+    case WMFStreamType::VORBIS:
+      return "vorbis"_ns;
+    default:
+      return "unknown"_ns;
+  }
+}
+
+bool MFMediaEngineAudioStream::IsEncrypted() const {
+  return mAudioInfo.mCrypto.IsEncrypted();
 }
 
 #undef LOGV

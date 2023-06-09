@@ -22,6 +22,7 @@ namespace layers {
 class APZInputBridgeParent;
 class AsyncPanZoomController;
 class InputBlockState;
+class TouchBlockState;
 struct ScrollableLayerGuid;
 struct TargetConfirmationFlags;
 struct PointerEventsConsumableFlags;
@@ -102,6 +103,14 @@ struct APZEventResult {
   // depending on |aTarget|.
   void SetStatusAsConsumeDoDefault(
       const RefPtr<AsyncPanZoomController>& aTarget);
+
+  // Set mStatus to nsEventStatus_eConsumeDoDefault, unlike above
+  // SetStatusAsConsumeDoDefault(const RefPtr<AsyncPanZoomController>&) this
+  // function doesn't mutate mHandledResult.
+  void SetStatusAsConsumeDoDefault() {
+    mStatus = nsEventStatus_eConsumeDoDefault;
+  }
+
   // Set mStatus to nsEventStatus_eConsumeDoDefault and set mHandledResult
   // depending on |aBlock|'s target APZC.
   void SetStatusAsConsumeDoDefault(const InputBlockState& aBlock);
@@ -111,6 +120,12 @@ struct APZEventResult {
                               TargetConfirmationFlags aFlags,
                               PointerEventsConsumableFlags aConsumableFlags,
                               const AsyncPanZoomController* aTarget);
+
+  // Set mStatus and mHandledResult during in a stat of fast fling.
+  void SetStatusForFastFling(const TouchBlockState& aBlock,
+                             TargetConfirmationFlags aFlags,
+                             PointerEventsConsumableFlags aConsumableFlags,
+                             const AsyncPanZoomController* aTarget);
 
   // DO NOT USE THIS UpdateStatus DIRECTLY. THIS FUNCTION IS ONLY FOR
   // SERIALIZATION / DESERIALIZATION OF THIS STRUCT IN IPC.
@@ -132,6 +147,11 @@ struct APZEventResult {
   }
 
  private:
+  void UpdateHandledResult(const InputBlockState& aBlock,
+                           PointerEventsConsumableFlags aConsumableFlags,
+                           const AsyncPanZoomController* aTarget,
+                           bool aDispatchToContent);
+
   /**
    * A status flag indicated how APZ handled the event.
    * The interpretation of each value is as follows:

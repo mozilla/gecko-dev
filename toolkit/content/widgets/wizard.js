@@ -66,7 +66,7 @@
         <html:link rel="stylesheet" href="chrome://global/skin/button.css"/>
         <html:link rel="stylesheet" href="chrome://global/skin/wizard.css"/>
         <hbox class="wizard-header"></hbox>
-        <html:slot name="wizardpage" class="wizard-page-box" style="display: grid; -moz-box-flex: 1;"/>
+        <html:slot name="wizardpage" class="wizard-page-box" style="display: grid; flex: 1;"/>
         <html:slot/>
         <wizard-buttons class="wizard-buttons"></wizard-buttons>
     `)
@@ -112,6 +112,7 @@
         document.l10n.connectRoot(this.shadowRoot);
       }
       document.documentElement.setAttribute("role", "dialog");
+      document.documentElement.classList.add("wizard-window");
       this._maybeStartWizard();
 
       window.addEventListener("close", event => {
@@ -395,7 +396,7 @@
       this._maybeStartWizard();
     }
 
-    _maybeStartWizard(aIsConnected) {
+    _maybeStartWizard() {
       if (
         !this._hasStarted &&
         this.isConnected &&
@@ -414,9 +415,8 @@
         ".wizard-header-label"
       );
       // First deal with fluent. Ideally, we'd stop supporting anything else,
-      // but right now the migration wizard still uses non-fluent l10n
-      // (fixing is bug 1518234), as do some comm-central consumers
-      // (bug 1627049). Removing the DTD support is bug 1627051.
+      // but some comm-central consumers still use DTDs. (bug 1627049).
+      // Removing the DTD support is bug 1627051.
       if (this.currentPage.hasAttribute("data-header-label-id")) {
         let id = this.currentPage.getAttribute("data-header-label-id");
         document.l10n.setAttributes(labelElement, id);

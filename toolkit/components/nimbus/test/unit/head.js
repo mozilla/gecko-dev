@@ -1,11 +1,55 @@
 "use strict";
 // Globals
 
-const { sinon } = ChromeUtils.import("resource://testing-common/Sinon.jsm");
+const { sinon } = ChromeUtils.importESModule(
+  "resource://testing-common/Sinon.sys.mjs"
+);
 const { XPCOMUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/XPCOMUtils.sys.mjs"
 );
-XPCOMUtils.defineLazyModuleGetters(this, {
-  ExperimentFakes: "resource://testing-common/NimbusTestUtils.jsm",
-  ExperimentTestUtils: "resource://testing-common/NimbusTestUtils.jsm",
+ChromeUtils.defineModuleGetter(
+  this,
+  "ObjectUtils",
+  "resource://gre/modules/ObjectUtils.jsm"
+);
+ChromeUtils.defineESModuleGetters(this, {
+  ExperimentFakes: "resource://testing-common/NimbusTestUtils.sys.mjs",
+  ExperimentTestUtils: "resource://testing-common/NimbusTestUtils.sys.mjs",
 });
+
+// Sinon does not support Set or Map in spy.calledWith()
+function onFinalizeCalled(spyOrCallArgs, ...expectedArgs) {
+  function mapToObject(map) {
+    return Object.assign(
+      {},
+      ...Array.from(map.entries()).map(([k, v]) => ({ [k]: v }))
+    );
+  }
+
+  function toPlainObjects(args) {
+    return [
+      args[0],
+      {
+        ...args[1],
+        invalidBranches: mapToObject(args[1].invalidBranches),
+        invalidFeatures: mapToObject(args[1].invalidFeatures),
+        missingLocale: Array.from(args[1].missingLocale),
+        missingL10nIds: mapToObject(args[1].missingL10nIds),
+      },
+    ];
+  }
+
+  const plainExpected = toPlainObjects(expectedArgs);
+
+  if (Array.isArray(spyOrCallArgs)) {
+    return ObjectUtils.deepEqual(toPlainObjects(spyOrCallArgs), plainExpected);
+  }
+
+  for (const args of spyOrCallArgs.args) {
+    if (ObjectUtils.deepEqual(toPlainObjects(args), plainExpected)) {
+      return true;
+    }
+  }
+
+  return false;
+}

@@ -25,7 +25,12 @@ class WeakMapBase;
 
 static const size_t MARK_STACK_BASE_CAPACITY = 4096;
 
-enum class SlotsOrElementsKind { Elements, FixedSlots, DynamicSlots };
+enum class SlotsOrElementsKind {
+  Unused = 0,  // Must match SlotsOrElementsRangeTag
+  Elements,
+  FixedSlots,
+  DynamicSlots
+};
 
 namespace gc {
 
@@ -89,7 +94,7 @@ class MarkStack {
    * the context of push or pop operation.
    */
   enum Tag {
-    SlotsOrElementsRangeTag,
+    SlotsOrElementsRangeTag = 0,  // Must match SlotsOrElementsKind::Unused.
     ObjectTag,
     JitCodeTag,
     ScriptTag,
@@ -113,6 +118,7 @@ class MarkStack {
     TaggedPtr() = default;
     TaggedPtr(Tag tag, Cell* ptr);
     Tag tag() const;
+    uintptr_t tagUnchecked() const;
     template <typename T>
     T* as() const;
 
@@ -186,8 +192,8 @@ class MarkStack {
 
   [[nodiscard]] bool ensureSpace(size_t count);
 
-  bool hasStealableWork() const;
-  void stealWorkFrom(MarkStack& other);
+  bool canDonateWork() const;
+  static void moveWork(MarkStack& dst, MarkStack& src);
 
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
@@ -208,6 +214,7 @@ class MarkStack {
 
   size_t basePositionForCurrentColor() const;
   size_t wordCountForCurrentColor() const;
+  bool indexIsEntryBase(size_t index) const;
 
   void assertGrayPositionValid() const;
 
@@ -232,6 +239,12 @@ class MarkStack {
   mutable size_t iteratorCount_ = 0;
 #endif
 };
+
+static_assert(unsigned(SlotsOrElementsKind::Unused) ==
+                  unsigned(MarkStack::SlotsOrElementsRangeTag),
+              "To split the mark stack we depend on being able to tell the "
+              "difference between SlotsOrElementsRange::startAndKind_ and a "
+              "tagged SlotsOrElementsRange");
 
 // Bitmask of options to parameterize MarkingTracerT.
 namespace MarkingOptions {
@@ -275,7 +288,7 @@ enum ShouldReportMarkTime : bool {
 
 } /* namespace gc */
 
-class GCMarker {
+class alignas(TypicalCacheLineSize) GCMarker {
   enum MarkingState : uint8_t {
     // Have not yet started marking.
     NotActive,
@@ -323,6 +336,7 @@ class GCMarker {
   bool isDrained() const { return stack.isEmpty(); }
 
   bool hasEntries(gc::MarkColor color) const { return stack.hasEntries(color); }
+  bool canDonateWork() const { return stack.canDonateWork(); }
 
   void start();
   void stop();
@@ -359,12 +373,14 @@ class GCMarker {
   bool shouldCheckCompartments() { return strictCompartmentChecking; }
 #endif
 
-  void markCurrentColorInParallel(SliceBudget& budget);
+  bool markCurrentColorInParallel(SliceBudget& budget);
 
   template <uint32_t markingOptions, gc::MarkColor>
   bool markOneColor(SliceBudget& budget);
+  template <gc::MarkColor>
+  bool markOneColorInParallel(SliceBudget& budget);
 
-  void stealWorkFrom(GCMarker* other);
+  static void moveWork(GCMarker* dst, GCMarker* src);
 
   size_t sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
@@ -403,7 +419,7 @@ class GCMarker {
   void setMarkingStateAndTracer(MarkingState prev, MarkingState next);
 
   template <uint32_t markingOptions>
-  void processMarkStackTop(SliceBudget& budget);
+  bool processMarkStackTop(SliceBudget& budget);
   friend class gc::GCRuntime;
 
   // Helper methods that coerce their second argument to the base pointer
@@ -509,16 +525,16 @@ class GCMarker {
   /* The stack of remaining marking work . */
   gc::MarkStack stack;
 
-  /* Whether we successfully added all edges to the implicit edges table. */
-  MainThreadOrGCTaskData<bool> haveAllImplicitEdges;
-
-  /* Track the state of marking. */
-  MainThreadOrGCTaskData<MarkingState> state;
-
   MainThreadOrGCTaskData<gc::ParallelMarker*> parallelMarker_;
 
   Vector<JS::GCCellPtr, 0, SystemAllocPolicy> unmarkGrayStack;
   friend class gc::UnmarkGrayTracer;
+
+  /* Track the state of marking. */
+  MainThreadOrGCTaskData<MarkingState> state;
+
+  /* Whether we successfully added all edges to the implicit edges table. */
+  MainThreadOrGCTaskData<bool> haveAllImplicitEdges;
 
  public:
   /*

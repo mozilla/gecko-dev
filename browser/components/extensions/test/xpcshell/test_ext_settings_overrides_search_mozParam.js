@@ -9,10 +9,12 @@ const { AddonTestUtils } = ChromeUtils.import(
 const { SearchTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/SearchTestUtils.sys.mjs"
 );
-const { NimbusFeatures } = ChromeUtils.import(
-  "resource://nimbus/ExperimentAPI.jsm"
+const { NimbusFeatures } = ChromeUtils.importESModule(
+  "resource://nimbus/ExperimentAPI.sys.mjs"
 );
-const { sinon } = ChromeUtils.import("resource://testing-common/Sinon.jsm");
+const { sinon } = ChromeUtils.importESModule(
+  "resource://testing-common/Sinon.sys.mjs"
+);
 
 AddonTestUtils.init(this);
 AddonTestUtils.overrideCertDB();

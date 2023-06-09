@@ -29,6 +29,9 @@ class nsThreadPool final : public mozilla::Runnable, public nsIThreadPool {
 
   nsThreadPool();
 
+  static void InitTLS();
+  static nsThreadPool* GetCurrentThreadPool();
+
  private:
   ~nsThreadPool();
 
@@ -44,6 +47,7 @@ class nsThreadPool final : public mozilla::Runnable, public nsIThreadPool {
   uint32_t mIdleThreadLimit MOZ_GUARDED_BY(mMutex);
   uint32_t mIdleThreadTimeout MOZ_GUARDED_BY(mMutex);
   uint32_t mIdleCount MOZ_GUARDED_BY(mMutex);
+  nsIThread::QoSPriority mQoSPriority MOZ_GUARDED_BY(mMutex);
   uint32_t mStackSize MOZ_GUARDED_BY(mMutex);
   nsCOMPtr<nsIThreadPoolListener> mListener MOZ_GUARDED_BY(mMutex);
   mozilla::Atomic<bool, mozilla::Relaxed> mShutdown;

@@ -1,5 +1,7 @@
 "use strict";
 
+requestLongerTimeout(2);
+
 const MAX_CONCURRENT_TABS = "browser.engagement.max_concurrent_tab_count";
 const TAB_EVENT_COUNT = "browser.engagement.tab_open_event_count";
 const MAX_CONCURRENT_WINDOWS = "browser.engagement.max_concurrent_window_count";
@@ -22,9 +24,14 @@ ChromeUtils.defineModuleGetter(
   "resource:///modules/BrowserUsageTelemetry.jsm"
 );
 
-const { SessionStore } = ChromeUtils.importESModule(
-  "resource:///modules/sessionstore/SessionStore.sys.mjs"
+const { ObjectUtils } = ChromeUtils.import(
+  "resource://gre/modules/ObjectUtils.jsm"
 );
+
+BrowserUsageTelemetry._onTabsOpenedTask._timeoutMs = 0;
+registerCleanupFunction(() => {
+  BrowserUsageTelemetry._onTabsOpenedTask._timeoutMs = undefined;
+});
 
 // Reset internal URI counter in case URIs were opened by other tests.
 Services.obs.notifyObservers(null, TELEMETRY_SUBSESSION_TOPIC);
@@ -180,6 +187,7 @@ add_task(async function test_tabsAndWindows() {
 
   // Add a new window and then some tabs in it. An empty new windows counts as a tab.
   let win = await BrowserTestUtils.openNewBrowserWindow();
+  await BrowserTestUtils.firstBrowserLoaded(win);
   openedTabs.push(
     await BrowserTestUtils.openNewForegroundTab(win.gBrowser, "about:blank")
   );
@@ -237,6 +245,7 @@ add_task(async function test_subsessionSplit() {
 
   // Add a new window (that will have 4 tabs).
   let win = await BrowserTestUtils.openNewBrowserWindow();
+  await BrowserTestUtils.firstBrowserLoaded(win);
   let openedTabs = [];
   openedTabs.push(
     await BrowserTestUtils.openNewForegroundTab(win.gBrowser, "about:blank")
@@ -338,8 +347,12 @@ add_task(async function test_tabsHistogram() {
   );
   openedTabs.push(tab);
   BrowserUsageTelemetry._lastRecordTabCount = 0;
-  BrowserTestUtils.loadURI(tab.linkedBrowser, "http://example.com/");
-  await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
+  BrowserTestUtils.loadURIString(tab.linkedBrowser, "http://example.com/");
+  await BrowserTestUtils.browserLoaded(
+    tab.linkedBrowser,
+    false,
+    "http://example.com/"
+  );
   checkTabCountHistogram(
     tabCountHist.snapshot(),
     { 1: 0, 2: 1, 3: 2, 4: 0 },
@@ -360,6 +373,7 @@ add_task(async function test_tabsHistogram() {
   // Add a new window and then some tabs in it. A new window starts with one tab.
   BrowserUsageTelemetry._lastRecordTabCount = 0;
   let win = await BrowserTestUtils.openNewBrowserWindow();
+  await BrowserTestUtils.firstBrowserLoaded(win);
   checkTabCountHistogram(
     tabCountHist.snapshot(),
     { 1: 0, 2: 1, 3: 2, 4: 1, 5: 1, 6: 0 },
@@ -414,8 +428,12 @@ add_task(async function test_tabsHistogram() {
     Date.now() - MINIMUM_TAB_COUNT_INTERVAL_MS / 2;
   {
     let oldLastRecordTabCount = BrowserUsageTelemetry._lastRecordTabCount;
-    BrowserTestUtils.loadURI(tab.linkedBrowser, "http://example.com/");
-    await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
+    BrowserTestUtils.loadURIString(tab.linkedBrowser, "http://example.com/");
+    await BrowserTestUtils.browserLoaded(
+      tab.linkedBrowser,
+      false,
+      "http://example.com/"
+    );
     checkTabCountHistogram(
       tabCountHist.snapshot(),
       { 1: 0, 2: 1, 3: 2, 4: 1, 5: 1, 7: 1, 8: 0 },
@@ -432,8 +450,12 @@ add_task(async function test_tabsHistogram() {
     Date.now() - (MINIMUM_TAB_COUNT_INTERVAL_MS + 1000);
   {
     let oldLastRecordTabCount = BrowserUsageTelemetry._lastRecordTabCount;
-    BrowserTestUtils.loadURI(tab.linkedBrowser, "http://example.com/");
-    await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
+    BrowserTestUtils.loadURIString(tab.linkedBrowser, "http://example.com/");
+    await BrowserTestUtils.browserLoaded(
+      tab.linkedBrowser,
+      false,
+      "http://example.com/"
+    );
     checkTabCountHistogram(
       tabCountHist.snapshot(),
       { 1: 0, 2: 1, 3: 2, 4: 1, 5: 1, 7: 2, 8: 0 },
@@ -487,16 +509,8 @@ add_task(async function test_loadedTabsHistogram() {
   ];
 
   // There are two tabs open: the mochi.test tab and the foreground tab.
-  checkTabCountHistogram(
-    tabCount.snapshot(),
-    { 1: 0, 2: 1, 3: 0 },
-    "TAB_COUNT - new tab"
-  );
-  checkTabCountHistogram(
-    loadedTabCount.snapshot(),
-    { 1: 0, 2: 1, 3: 0 },
-    "TAB_COUNT - new tab"
-  );
+  const snapshot = loadedTabCount.snapshot();
+  checkTabCountHistogram(snapshot, { 1: 0, 2: 1, 3: 0 }, "TAB_COUNT - new tab");
 
   // Open a pending tab, as if by session restore.
   resetTimestamps();
@@ -504,6 +518,10 @@ add_task(async function test_loadedTabsHistogram() {
     createLazyBrowser: true,
   });
   tabs.push(lazyTab);
+
+  await BrowserTestUtils.waitForCondition(
+    () => !ObjectUtils.deepEqual(snapshot, tabCount.snapshot())
+  );
 
   checkTabCountHistogram(
     tabCount.snapshot(),
@@ -538,7 +556,10 @@ add_task(async function test_loadedTabsHistogram() {
   resetTimestamps();
 
   await Promise.all([
-    BrowserTestUtils.loadURI(lazyTab.linkedBrowser, "http://example.com/"),
+    BrowserTestUtils.loadURIString(
+      lazyTab.linkedBrowser,
+      "http://example.com/"
+    ),
     BrowserTestUtils.browserLoaded(
       lazyTab.linkedBrowser,
       false,
@@ -560,6 +581,7 @@ add_task(async function test_loadedTabsHistogram() {
 
   resetTimestamps();
   let win = await BrowserTestUtils.openNewBrowserWindow();
+  await BrowserTestUtils.firstBrowserLoaded(win);
 
   // The new window will have a new tab.
   checkTabCountHistogram(

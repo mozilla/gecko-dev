@@ -1,5 +1,5 @@
-/* -*- js-indent-level: 4; tab-width: 4; indent-tabs-mode: nil -*- */
-/* vim:set ts=4 sw=4 sts=4 et: */
+/* -*- js-indent-level: 2; tab-width: 2; indent-tabs-mode: nil -*- */
+/* vim:set ts=2 sw=2 sts=2 et: */
 
 // Generally gTestPath should be set by the harness.
 /* global gTestPath */
@@ -25,6 +25,26 @@ let isSameOrigin = function(w) {
   return true;
 };
 let isXOrigin = !isSameOrigin(window);
+
+// Note: duplicated in browser-test.js . See also bug 1820150.
+function isErrorOrException(err) {
+  // It'd be nice if we had either `Error.isError(err)` or `Error.isInstance(err)`
+  // but we don't, so do it ourselves:
+  if (!err) {
+    return false;
+  }
+  if (err instanceof Ci.nsIException) {
+    return true;
+  }
+  try {
+    let glob = SpecialPowers.Cu.getGlobalForObject(err);
+    return err instanceof glob.Error;
+  } catch {
+    // getGlobalForObject can be upset if it doesn't get passed an object.
+    // Just do a standard instanceof check using this global and cross fingers:
+  }
+  return err instanceof Error;
+}
 
 // In normal test runs, the window that has a TestRunner in its parent is
 // the primary window.  In single test runs, if there is no parent and there
@@ -1063,7 +1083,7 @@ const kTextHtmlSuffixClipboardDataWindows =
  * Polls the clipboard waiting for the expected value. A known value different than
  * the expected value is put on the clipboard first (and also polled for) so we
  * can be sure the value we get isn't just the expected value because it was already
- * on the clipboard. This only uses the global clipboard and only for text/unicode
+ * on the clipboard. This only uses the global clipboard and only for text/plain
  * values.
  *
  * @param {String|Function} aExpectedStringOrValidatorFn
@@ -1087,7 +1107,7 @@ const kTextHtmlSuffixClipboardDataWindows =
  * @param {Function} aFailureFn
  *        A function called if the expected value isn't found on the clipboard
  *        within 5s. It can also be called if the known value can't be found.
- * @param {String} [aFlavor="text/unicode"]
+ * @param {String} [aFlavor="text/plain"]
  *        The flavor to look for.
  * @param {Number} [aTimeout=5000]
  *        The timeout (in milliseconds) to wait for a clipboard change.
@@ -1131,7 +1151,7 @@ SimpleTest.promiseClipboardChange = async function(
   aExpectFailure,
   aDontInitializeClipboardIfExpectFailure
 ) {
-  let requestedFlavor = aFlavor || "text/unicode";
+  let requestedFlavor = aFlavor || "text/plain";
 
   // The known value we put on the clipboard before running aSetupFn
   let initialVal = "waitForClipboard-known-value-" + Math.random();
@@ -1223,7 +1243,7 @@ SimpleTest.promiseClipboardChange = async function(
       function(aData) {
         return aData == preExpectedVal;
       },
-      "text/unicode",
+      "text/plain",
       false
     );
 
@@ -2129,7 +2149,10 @@ var add_task = (function() {
           } catch (ex) {
             try {
               let serializedEx;
-              if (ex instanceof Error) {
+              if (
+                typeof ex == "string" ||
+                (typeof ex == "object" && isErrorOrException(ex))
+              ) {
                 serializedEx = `${ex}`;
               } else {
                 serializedEx = JSON.stringify(ex);

@@ -291,6 +291,13 @@ DeferredTask.prototype = {
   _finalized: false,
 
   /**
+   * Whether the DeferredTask has been finalized, and it cannot be armed anymore.
+   */
+  get isFinalized() {
+    return this._finalized;
+  },
+
+  /**
    * Timer callback used to run the delayed task.
    */
   _timerCallback() {
@@ -327,7 +334,7 @@ DeferredTask.prototype = {
         // Indicate that the execution of the task has finished.  This happens
         // synchronously with the previous state changes in the function.
         this._runningPromise = null;
-      })().catch(Cu.reportError)
+      })().catch(console.error)
     );
   },
 
@@ -339,7 +346,7 @@ DeferredTask.prototype = {
     try {
       await this._taskFn();
     } catch (ex) {
-      Cu.reportError(ex);
+      console.error(ex);
     } finally {
       ChromeUtils.addProfilerMarker(
         "DeferredTask",

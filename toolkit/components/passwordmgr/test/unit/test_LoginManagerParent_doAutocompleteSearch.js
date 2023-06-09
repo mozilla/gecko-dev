@@ -4,9 +4,11 @@
 
 "use strict";
 
-const { sinon } = ChromeUtils.import("resource://testing-common/Sinon.jsm");
-const { LoginManagerParent } = ChromeUtils.import(
-  "resource://gre/modules/LoginManagerParent.jsm"
+const { sinon } = ChromeUtils.importESModule(
+  "resource://testing-common/Sinon.sys.mjs"
+);
+const { LoginManagerParent } = ChromeUtils.importESModule(
+  "resource://gre/modules/LoginManagerParent.sys.mjs"
 );
 
 // new-password to the happy path

@@ -9,11 +9,13 @@
 #include "nsCharSeparatedTokenizer.h"
 #include "nsContentUtils.h"
 #include "nsHttpHandler.h"
+#include "nsHttpChannel.h"
 #include "nsHostResolver.h"
 #include "nsIHttpChannel.h"
 #include "nsIHttpChannelInternal.h"
 #include "nsIIOService.h"
 #include "nsIInputStream.h"
+#include "nsIObliviousHttp.h"
 #include "nsISupports.h"
 #include "nsISupportsUtils.h"
 #include "nsITimedChannel.h"
@@ -25,6 +27,7 @@
 #include "nsThreadUtils.h"
 #include "nsURLHelper.h"
 #include "ODoH.h"
+#include "ObliviousHttpChannel.h"
 #include "TRR.h"
 #include "TRRService.h"
 #include "TRRServiceChannel.h"
@@ -261,7 +264,27 @@ nsresult TRR::SendHTTPRequest() {
   }
 
   nsCOMPtr<nsIChannel> channel;
-  rv = DNSUtils::CreateChannelHelper(dnsURI, getter_AddRefs(channel));
+  bool useOHTTP = StaticPrefs::network_trr_use_ohttp();
+  if (useOHTTP) {
+    nsCOMPtr<nsIObliviousHttpService> ohttpService(
+        do_GetService("@mozilla.org/network/oblivious-http-service;1"));
+    if (!ohttpService) {
+      return NS_ERROR_FAILURE;
+    }
+    nsCOMPtr<nsIURI> relayURI;
+    nsTArray<uint8_t> encodedConfig;
+    rv = ohttpService->GetTRRSettings(getter_AddRefs(relayURI), encodedConfig);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+    if (!relayURI) {
+      return NS_ERROR_FAILURE;
+    }
+    rv = ohttpService->NewChannel(relayURI, dnsURI, encodedConfig,
+                                  getter_AddRefs(channel));
+  } else {
+    rv = DNSUtils::CreateChannelHelper(dnsURI, getter_AddRefs(channel));
+  }
   if (NS_FAILED(rv) || !channel) {
     LOG(("TRR:SendHTTPRequest: NewChannel failed!\n"));
     return rv;
@@ -928,7 +951,7 @@ void TRR::ReportStatus(nsresult aStatusCode) {
   // it as failed; otherwise it can cause the confirmation to fail.
   if (UseDefaultServer() && aStatusCode != NS_ERROR_ABORT) {
     // Bad content is still considered "okay" if the HTTP response is okay
-    TRRService::Get()->RecordTRRStatus(aStatusCode);
+    TRRService::Get()->RecordTRRStatus(this);
   }
 }
 
@@ -977,7 +1000,7 @@ TRR::OnStopRequest(nsIRequest* aRequest, nsresult aStatusCode) {
     }
   }
 
-  ReportStatus(aStatusCode);
+  auto scopeExit = MakeScopeExit([&] { ReportStatus(aStatusCode); });
 
   nsresult rv = NS_OK;
   // if status was "fine", parse the response and pass on the answer
@@ -1040,8 +1063,19 @@ TRR::OnDataAvailable(nsIRequest* aRequest, nsIInputStream* aInputStream,
 }
 
 void TRR::Cancel(nsresult aStatus) {
-  RefPtr<TRRServiceChannel> trrServiceChannel = do_QueryObject(mChannel);
-  if (trrServiceChannel && !XRE_IsSocketProcess()) {
+  bool isTRRServiceChannel = false;
+  nsCOMPtr<nsIHttpChannelInternal> httpChannelInternal(
+      do_QueryInterface(mChannel));
+  if (httpChannelInternal) {
+    nsresult rv =
+        httpChannelInternal->GetIsTRRServiceChannel(&isTRRServiceChannel);
+    if (NS_FAILED(rv)) {
+      isTRRServiceChannel = false;
+    }
+  }
+  // nsHttpChannel can be only canceled on the main thread.
+  RefPtr<nsHttpChannel> httpChannel = do_QueryObject(mChannel);
+  if (isTRRServiceChannel && !XRE_IsSocketProcess() && !httpChannel) {
     if (TRRService::Get()) {
       nsCOMPtr<nsIThread> thread = TRRService::Get()->TRRThread();
       if (thread && !thread->IsOnCurrentThread()) {

@@ -42,10 +42,6 @@
 #  include "mozilla/gfx/DeviceManagerDx.h"
 #endif
 
-#ifdef MOZ_WIDGET_ANDROID
-#  include "mozilla/layers/AndroidHardwareBuffer.h"
-#endif
-
 namespace mozilla {
 namespace ipc {
 class Shmem;
@@ -112,17 +108,9 @@ void ImageBridgeChild::UseTextures(
 
     bool readLocked = t.mTextureClient->OnForwardedToHost();
 
-    auto fenceFd = t.mTextureClient->GetInternalData()->GetAcquireFence();
-    if (fenceFd.IsValid()) {
-      mTxn->AddNoSwapEdit(CompositableOperation(
-          aCompositable->GetIPCHandle(),
-          OpDeliverAcquireFence(nullptr, t.mTextureClient->GetIPDLActor(),
-                                fenceFd)));
-    }
-
-    textures.AppendElement(
-        TimedTexture(nullptr, t.mTextureClient->GetIPDLActor(), t.mTimeStamp,
-                     t.mPictureRect, t.mFrameID, t.mProducerID, readLocked));
+    textures.AppendElement(TimedTexture(
+        WrapNotNull(t.mTextureClient->GetIPDLActor()), t.mTimeStamp,
+        t.mPictureRect, t.mFrameID, t.mProducerID, readLocked));
 
     // Wait end of usage on host side if TextureFlags::RECYCLE is set
     HoldUntilCompositableRefReleasedIfNecessary(t.mTextureClient);
@@ -162,15 +150,6 @@ void ImageBridgeChild::HoldUntilCompositableRefReleasedIfNecessary(
   if (!aClient) {
     return;
   }
-
-#ifdef MOZ_WIDGET_ANDROID
-  auto bufferId = aClient->GetInternalData()->GetBufferId();
-  if (bufferId.isSome()) {
-    MOZ_ASSERT(aClient->GetFlags() & TextureFlags::WAIT_HOST_USAGE_END);
-    AndroidHardwareBufferManager::Get()->HoldUntilNotifyNotUsed(
-        bufferId.ref(), GetFwdTransactionId(), /* aUsesImageBridge */ true);
-  }
-#endif
 
   // Wait ReleaseCompositableRef only when TextureFlags::RECYCLE or
   // TextureFlags::WAIT_HOST_USAGE_END is set on ImageBridge.
@@ -254,8 +233,6 @@ void ImageBridgeChild::ActorDestroy(ActorDestroyReason aWhy) {
     mImageContainerListeners.clear();
   }
 }
-
-void ImageBridgeChild::ActorDealloc() { this->Release(); }
 
 void ImageBridgeChild::CreateImageClientSync(SynchronousTask* aTask,
                                              RefPtr<ImageClient>* result,
@@ -506,17 +483,11 @@ void ImageBridgeChild::Bind(Endpoint<PImageBridgeChild>&& aEndpoint) {
     return;
   }
 
-  // This reference is dropped in DeallocPImageBridgeChild.
-  this->AddRef();
-
   mCanSend = true;
 }
 
 void ImageBridgeChild::BindSameProcess(RefPtr<ImageBridgeParent> aParent) {
   Open(aParent, aParent->GetThread(), mozilla::ipc::ChildSide);
-
-  // This reference is dropped in DeallocPImageBridgeChild.
-  this->AddRef();
 
   mCanSend = true;
 }
@@ -813,21 +784,6 @@ mozilla::ipc::IPCResult ImageBridgeChild::RecvParentAsyncMessages(
         NotifyNotUsed(op.TextureId(), op.fwdTransactionId());
         break;
       }
-      case AsyncParentMessageData::TOpDeliverReleaseFence: {
-#ifdef MOZ_WIDGET_ANDROID
-        const OpDeliverReleaseFence& op = message.get_OpDeliverReleaseFence();
-        ipc::FileDescriptor fenceFd;
-        if (op.fenceFd().isSome()) {
-          fenceFd = *op.fenceFd();
-        }
-        AndroidHardwareBufferManager::Get()->NotifyNotUsed(
-            std::move(fenceFd), op.bufferId(), op.fwdTransactionId(),
-            op.usesImageBridge());
-#else
-        MOZ_ASSERT_UNREACHABLE("unexpected to be called");
-#endif
-        break;
-      }
       default:
         NS_ERROR("unknown AsyncParentMessageData type");
         return IPC_FAIL_NO_REASON(this);
@@ -889,7 +845,7 @@ static bool IBCAddOpDestroy(CompositableTransaction* aTxn,
 }
 
 bool ImageBridgeChild::DestroyInTransaction(PTextureChild* aTexture) {
-  return IBCAddOpDestroy(mTxn, OpDestroy(aTexture));
+  return IBCAddOpDestroy(mTxn, OpDestroy(WrapNotNull(aTexture)));
 }
 
 bool ImageBridgeChild::DestroyInTransaction(const CompositableHandle& aHandle) {
@@ -909,7 +865,7 @@ void ImageBridgeChild::RemoveTextureFromCompositable(
 
   mTxn->AddNoSwapEdit(CompositableOperation(
       aCompositable->GetIPCHandle(),
-      OpRemoveTexture(nullptr, aTexture->GetIPDLActor())));
+      OpRemoveTexture(WrapNotNull(aTexture->GetIPDLActor()))));
 }
 
 bool ImageBridgeChild::IsSameProcess() const {

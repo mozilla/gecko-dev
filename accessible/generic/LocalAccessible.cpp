@@ -40,6 +40,7 @@
 #include "HTMLSelectAccessible.h"
 #include "ImageAccessible.h"
 
+#include "nsComputedDOMStyle.h"
 #include "nsIDOMXULButtonElement.h"
 #include "nsIDOMXULSelectCntrlEl.h"
 #include "nsIDOMXULSelectCntrlItemEl.h"
@@ -53,6 +54,7 @@
 #include "nsIContent.h"
 #include "nsIFormControl.h"
 
+#include "nsDisplayList.h"
 #include "nsLayoutUtils.h"
 #include "nsPresContext.h"
 #include "nsIFrame.h"
@@ -68,7 +70,6 @@
 #include "nsReadableUtils.h"
 #include "prdtoa.h"
 #include "nsAtom.h"
-#include "nsIURI.h"
 #include "nsArrayUtils.h"
 #include "nsWhitespaceTokenizer.h"
 #include "nsAttrName.h"
@@ -322,7 +323,7 @@ uint64_t LocalAccessible::VisibilityState() const {
   nsIFrame* curFrame = frame;
   do {
     nsView* view = curFrame->GetView();
-    if (view && view->GetVisibility() == nsViewVisibility_kHide) {
+    if (view && view->GetVisibility() == ViewVisibility::Hide) {
       return states::INVISIBLE;
     }
 
@@ -370,7 +371,7 @@ uint64_t LocalAccessible::VisibilityState() const {
   // marked invisible.
   // XXX Can we just remove this check? Why do we need to mark empty
   // text invisible?
-  if (frame->IsTextFrame() && !(frame->GetStateBits() & NS_FRAME_OUT_OF_FLOW) &&
+  if (frame->IsTextFrame() && !frame->HasAnyStateBits(NS_FRAME_OUT_OF_FLOW) &&
       frame->GetRect().IsEmpty()) {
     nsIFrame::RenderedText text = frame->GetRenderedText(
         0, UINT32_MAX, nsIFrame::TextOffsetType::OffsetsInContentText,
@@ -406,22 +407,8 @@ uint64_t LocalAccessible::NativeState() const {
   state |= VisibilityState();
 
   nsIFrame* frame = GetFrame();
-  if (frame) {
-    if (frame->GetStateBits() & NS_FRAME_OUT_OF_FLOW) state |= states::FLOATING;
-
-    // XXX we should look at layout for non XUL box frames, but need to decide
-    // how that interacts with ARIA.
-    if (HasOwnContent() && mContent->IsXULElement() && frame->IsXULBoxFrame()) {
-      const nsStyleXUL* xulStyle = frame->StyleXUL();
-      if (xulStyle && frame->IsXULBoxFrame()) {
-        // In XUL all boxes are either vertical or horizontal
-        if (xulStyle->mBoxOrient == StyleBoxOrient::Vertical) {
-          state |= states::VERTICAL;
-        } else {
-          state |= states::HORIZONTAL;
-        }
-      }
-    }
+  if (frame && frame->HasAnyStateBits(NS_FRAME_OUT_OF_FLOW)) {
+    state |= states::FLOATING;
   }
 
   // Check if a XUL element has the popup attribute (an attached popup menu).
@@ -446,7 +433,23 @@ uint64_t LocalAccessible::NativeInteractiveState() const {
   if (NativelyUnavailable()) return states::UNAVAILABLE;
 
   nsIFrame* frame = GetFrame();
-  if (frame && frame->IsFocusable()) return states::FOCUSABLE;
+  // If we're caching this remote document in the parent process, we
+  // need to cache focusability irrespective of visibility. Otherwise,
+  // if this document is invisible when it first loads, we'll cache that
+  // all descendants are unfocusable and this won't get updated when the
+  // document becomes visible. Even if we did get notified when the
+  // document becomes visible, it would be wasteful to walk the entire
+  // tree to figure out what is now focusable and push cache updates.
+  // Although ignoring visibility means IsFocusable will return true for
+  // visibility: hidden, etc., this isn't a problem because we don't include
+  // those hidden elements in the a11y tree anyway.
+  const bool ignoreVisibility =
+      mDoc->IPCDoc() && StaticPrefs::accessibility_cache_enabled_AtStartup();
+  if (frame && frame->IsFocusable(
+                   /* aWithMouse */ false,
+                   /* aCheckVisibility */ !ignoreVisibility)) {
+    return states::FOCUSABLE;
+  }
 
   return 0;
 }
@@ -601,6 +604,11 @@ LocalAccessible* LocalAccessible::LocalChildAtPoint(
 
 nsIFrame* LocalAccessible::FindNearestAccessibleAncestorFrame() {
   nsIFrame* frame = GetFrame();
+  if (frame->StyleDisplay()->mPosition == StylePositionProperty::Fixed &&
+      nsLayoutUtils::IsReallyFixedPos(frame)) {
+    return mDoc->PresShellPtr()->GetRootFrame();
+  }
+
   if (IsDoc()) {
     // We bound documents by their own frame, which is their PresShell's root
     // frame. We cache the document offset elsewhere in BundleFieldsForCache
@@ -636,7 +644,40 @@ nsRect LocalAccessible::ParentRelativeBounds() {
       // example) employ things like 0x0 buttons with visual overflow. Without
       // this, such frames aren't navigable by screen readers.
       result = frame->InkOverflowRectRelativeToSelf();
-      nsLayoutUtils::TransformRect(frame, boundingFrame, result);
+      result.MoveBy(frame->GetOffsetTo(boundingFrame));
+    }
+
+    if (boundingFrame->GetRect().IsEmpty()) {
+      // boundingFrame might be the first in an ib-split-sibling chain. If its
+      // rect is empty, GetAllInFlowRectsUnion might exclude its origin. For
+      // example, if boundingFrame is empty with an origin of (0, -840) but
+      // has a non-empty ib-split-sibling with (0, 0), the union rect will
+      // originate at (0, 0). This means the bounds returned for our parent
+      // Accessible might be offset from boundingFrame's rect. Since result is
+      // currently relative to boundingFrame's rect, we might need to adjust it
+      // to make it parent relative.
+      nsRect boundingUnion =
+          nsLayoutUtils::GetAllInFlowRectsUnion(boundingFrame, boundingFrame);
+      if (!boundingUnion.IsEmpty()) {
+        result.MoveBy(-boundingUnion.TopLeft());
+      } else {
+        // Since GetAllInFlowRectsUnion returned an empty rect on our parent
+        // Accessible, we would have used the ink overflow rect. However,
+        // GetAllInFlowRectsUnion calculates relative to the bounding frame's
+        // main rect, not its ink overflow rect. We need to adjust for the ink
+        // overflow offset to make our result parent relative.
+        nsRect boundingOverflow =
+            boundingFrame->InkOverflowRectRelativeToSelf();
+        result.MoveBy(-boundingOverflow.TopLeft());
+      }
+    }
+
+    if (frame->StyleDisplay()->mPosition == StylePositionProperty::Fixed &&
+        nsLayoutUtils::IsReallyFixedPos(frame)) {
+      // If we're dealing with a fixed position frame, we've already made it
+      // relative to the document which should have gotten rid of its scroll
+      // offset.
+      return result;
     }
 
     if (nsIScrollableFrame* sf =
@@ -645,9 +686,9 @@ nsRect LocalAccessible::ParentRelativeBounds() {
                 : boundingFrame->GetScrollTargetFrame()) {
       // If boundingFrame has a scroll position, result is currently relative
       // to that. Instead, we want result to remain the same regardless of
-      // scrolling. We then subtract the scroll position later when calculating
-      // absolute bounds. We do this because we don't want to push cache
-      // updates for the bounds of all descendants every time we scroll.
+      // scrolling. We then subtract the scroll position later when
+      // calculating absolute bounds. We do this because we don't want to push
+      // cache updates for the bounds of all descendants every time we scroll.
       nsPoint scrollPos = sf->GetScrollPosition().ApplyResolution(
           mDoc->PresShellPtr()->GetResolution());
       result.MoveBy(scrollPos.x, scrollPos.y);
@@ -1134,25 +1175,28 @@ already_AddRefed<AccAttributes> LocalAccessible::NativeAttributes() {
   // 1. There is no frame (e.g. the accessible is unattached from the tree).
   // 2. This is an image map area. CSS is irrelevant here. Furthermore, we won't
   // be able to get the computed style if the map is unslotted in a shadow host.
-  if (!mContent->GetPrimaryFrame() ||
-      mContent->IsHTMLElement(nsGkAtoms::area)) {
+  nsIFrame* f = mContent->GetPrimaryFrame();
+  if (!f || mContent->IsHTMLElement(nsGkAtoms::area)) {
     return attributes.forget();
   }
 
-  // CSS style based object attributes.
-  nsAutoString value;
-  StyleInfo styleInfo(mContent->AsElement());
+  const ComputedStyle& style = *f->Style();
+  auto Atomize = [&](nsCSSPropertyID aId) -> RefPtr<nsAtom> {
+    nsAutoCString value;
+    style.GetComputedPropertyValue(aId, value);
+    return NS_Atomize(value);
+  };
 
   // Expose 'display' attribute.
-  RefPtr<nsAtom> displayValue = styleInfo.Display();
-  attributes->SetAttribute(nsGkAtoms::display, displayValue);
+  attributes->SetAttribute(nsGkAtoms::display, Atomize(eCSSProperty_display));
 
   // Expose 'text-align' attribute.
-  RefPtr<nsAtom> textAlignValue = styleInfo.TextAlign();
-  attributes->SetAttribute(nsGkAtoms::textAlign, textAlignValue);
+  attributes->SetAttribute(nsGkAtoms::textAlign,
+                           Atomize(eCSSProperty_text_align));
 
   // Expose 'text-indent' attribute.
-  mozilla::LengthPercentage textIndent = styleInfo.TextIndent();
+  // XXX how does whatever reads this whether this was a percentage or a length?
+  const LengthPercentage& textIndent = f->StyleText()->mTextIndent;
   if (textIndent.ConvertsToLength()) {
     attributes->SetAttribute(nsGkAtoms::textIndent,
                              textIndent.ToLengthInCSSPixels());
@@ -1160,17 +1204,29 @@ already_AddRefed<AccAttributes> LocalAccessible::NativeAttributes() {
     attributes->SetAttribute(nsGkAtoms::textIndent, textIndent.ToPercentage());
   }
 
+  auto GetMargin = [&](mozilla::Side aSide) -> CSSCoord {
+    // This is here only to guarantee that we do the same as getComputedStyle
+    // does, so that we don't hit precision errors in tests.
+    auto& margin = f->StyleMargin()->mMargin.Get(aSide);
+    if (margin.ConvertsToLength()) {
+      return margin.AsLengthPercentage().ToLengthInCSSPixels();
+    }
+
+    nscoord coordVal = f->GetUsedMargin().Side(aSide);
+    return CSSPixel::FromAppUnits(coordVal);
+  };
+
   // Expose 'margin-left' attribute.
-  attributes->SetAttribute(nsGkAtoms::marginLeft, styleInfo.MarginLeft());
+  attributes->SetAttribute(nsGkAtoms::marginLeft, GetMargin(eSideLeft));
 
   // Expose 'margin-right' attribute.
-  attributes->SetAttribute(nsGkAtoms::marginRight, styleInfo.MarginRight());
+  attributes->SetAttribute(nsGkAtoms::marginRight, GetMargin(eSideRight));
 
   // Expose 'margin-top' attribute.
-  attributes->SetAttribute(nsGkAtoms::marginTop, styleInfo.MarginTop());
+  attributes->SetAttribute(nsGkAtoms::marginTop, GetMargin(eSideTop));
 
   // Expose 'margin-bottom' attribute.
-  attributes->SetAttribute(nsGkAtoms::marginBottom, styleInfo.MarginBottom());
+  attributes->SetAttribute(nsGkAtoms::marginBottom, GetMargin(eSideBottom));
 
   // Expose data-at-shortcutkeys attribute for web applications and virtual
   // cursors. Currently mostly used by JAWS.
@@ -1234,6 +1290,11 @@ void LocalAccessible::DOMAttributeChanged(int32_t aNameSpaceID,
         }
       }
     }
+  }
+
+  if (aAttribute == nsGkAtoms::_class) {
+    mDoc->QueueCacheUpdate(this, CacheDomain::DOMNodeIDAndClass);
+    return;
   }
 
   // When a details object has its open attribute changed
@@ -1358,7 +1419,7 @@ void LocalAccessible::DOMAttributeChanged(int32_t aNameSpaceID,
     SendCache(CacheDomain::Actions, CacheUpdateType::Update);
   }
 
-  if (aAttribute == nsGkAtoms::href) {
+  if (aAttribute == nsGkAtoms::href || aAttribute == nsGkAtoms::src) {
     mDoc->QueueCacheUpdate(this, CacheDomain::Value);
   }
 
@@ -1602,7 +1663,7 @@ void LocalAccessible::Value(nsString& aValue) const {
                                  nsGkAtoms::aria_valuetext, aValue)) {
       if (!NativeHasNumericValue()) {
         double checkValue = CurValue();
-        if (!IsNaN(checkValue)) {
+        if (!std::isnan(checkValue)) {
           aValue.AppendFloat(checkValue);
         }
       }
@@ -1644,7 +1705,7 @@ void LocalAccessible::Value(nsString& aValue) const {
 
 double LocalAccessible::MaxValue() const {
   double checkValue = AttrNumericValue(nsGkAtoms::aria_valuemax);
-  if (IsNaN(checkValue) && !NativeHasNumericValue()) {
+  if (std::isnan(checkValue) && !NativeHasNumericValue()) {
     // aria-valuemax isn't present and this element doesn't natively provide a
     // maximum value. Use the ARIA default.
     const nsRoleMapEntry* roleMap = ARIARoleMap();
@@ -1658,7 +1719,7 @@ double LocalAccessible::MaxValue() const {
 
 double LocalAccessible::MinValue() const {
   double checkValue = AttrNumericValue(nsGkAtoms::aria_valuemin);
-  if (IsNaN(checkValue) && !NativeHasNumericValue()) {
+  if (std::isnan(checkValue) && !NativeHasNumericValue()) {
     // aria-valuemin isn't present and this element doesn't natively provide a
     // minimum value. Use the ARIA default.
     const nsRoleMapEntry* roleMap = ARIARoleMap();
@@ -1676,7 +1737,7 @@ double LocalAccessible::Step() const {
 
 double LocalAccessible::CurValue() const {
   double checkValue = AttrNumericValue(nsGkAtoms::aria_valuenow);
-  if (IsNaN(checkValue) && !NativeHasNumericValue()) {
+  if (std::isnan(checkValue) && !NativeHasNumericValue()) {
     // aria-valuenow isn't present and this element doesn't natively provide a
     // current value. Use the ARIA default.
     const nsRoleMapEntry* roleMap = ARIARoleMap();
@@ -1698,10 +1759,10 @@ bool LocalAccessible::SetCurValue(double aValue) {
   if (State() & kValueCannotChange) return false;
 
   double checkValue = MinValue();
-  if (!IsNaN(checkValue) && aValue < checkValue) return false;
+  if (!std::isnan(checkValue) && aValue < checkValue) return false;
 
   checkValue = MaxValue();
-  if (!IsNaN(checkValue) && aValue > checkValue) return false;
+  if (!std::isnan(checkValue) && aValue > checkValue) return false;
 
   nsAutoString strValue;
   strValue.AppendFloat(aValue);
@@ -2719,22 +2780,6 @@ bool LocalAccessible::IsLink() const {
   return mParent && mParent->IsHyperText() && !IsText();
 }
 
-uint32_t LocalAccessible::AnchorCount() {
-  MOZ_ASSERT(IsLink(), "AnchorCount is called on not hyper link!");
-  return 1;
-}
-
-LocalAccessible* LocalAccessible::AnchorAt(uint32_t aAnchorIndex) {
-  MOZ_ASSERT(IsLink(), "GetAnchor is called on not hyper link!");
-  return aAnchorIndex == 0 ? this : nullptr;
-}
-
-already_AddRefed<nsIURI> LocalAccessible::AnchorURIAt(
-    uint32_t aAnchorIndex) const {
-  MOZ_ASSERT(IsLink(), "AnchorURIAt is called on not hyper link!");
-  return nullptr;
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 // SelectAccessible
 
@@ -3088,7 +3133,7 @@ void LocalAccessible::SendCache(uint64_t aCacheDomain,
   }
   nsTArray<CacheData> data;
   data.AppendElement(CacheData(ID(), fields));
-  ipcDoc->SendCache(aUpdateType, data, false);
+  ipcDoc->SendCache(aUpdateType, data);
 
   if (profiler_thread_is_being_profiled_for_markers()) {
     nsAutoCString updateTypeStr;
@@ -3163,6 +3208,24 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
         fields->SetAttribute(nsGkAtoms::aria_valuetext, DeleteEntry());
       }
     }
+
+    if (IsImage()) {
+      // Cache the src of images. This is used by some clients to help remediate
+      // inaccessible images. If the image has a name, it's accessible, so this
+      // isn't necessary.
+      MOZ_ASSERT(mContent, "Image must have mContent");
+      nsAutoString name;
+      Name(name);
+      if (name.IsEmpty()) {
+        nsString src;
+        mContent->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::src, src);
+        if (!src.IsEmpty()) {
+          fields->SetAttribute(nsGkAtoms::src, std::move(src));
+        } else if (aUpdateType == CacheUpdateType::Update) {
+          fields->SetAttribute(nsGkAtoms::src, DeleteEntry());
+        }
+      }
+    }
   }
 
   if (aCacheDomain & CacheDomain::Viewport && IsDoc()) {
@@ -3188,7 +3251,7 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
             nsLayoutUtils::FrameForPointOption::IgnoreCrossDoc}});
 
       nsTHashSet<LocalAccessible*> inViewAccs;
-      nsTArray<uint64_t> viewportCache;
+      nsTArray<uint64_t> viewportCache(frames.Length());
       // Layout considers table rows fully occluded by their containing cells.
       // This means they don't have their own display list items, and they won't
       // show up in the list returned from GetFramesForArea. To prevent table
@@ -3396,56 +3459,44 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
       }
 
       if (frame && frame->IsTextFrame()) {
-        nsTArray<int32_t> charData;
-
         if (nsTextFrame* currTextFrame = do_QueryFrame(frame)) {
-          nsTextFrame* prevTextFrame = currTextFrame;
-          nsRect frameRect = currTextFrame->GetRect();
-          nsIFrame* nearestAccAncestorFrame =
-              LocalParent() ? LocalParent()->GetFrame() : nullptr;
+          nsTArray<int32_t> charData(nsAccUtils::TextLength(this) *
+                                     kNumbersInRect);
+          // Continuation offsets are calculated relative to the primary frame.
+          // However, the acc's bounds are calculated using
+          // GetAllInFlowRectsUnion. For wrapped text which starts part way
+          // through a line, this might mean the top left of the acc is
+          // different to the top left of the primary frame. This also happens
+          // when the primary frame is empty (e.g. a blank line at the start of
+          // pre-formatted text), since the union rect will exclude the origin
+          // in that case. Calculate the offset from the acc's rect to the
+          // primary frame's rect.
+          nsRect accOffset =
+              nsLayoutUtils::GetAllInFlowRectsUnion(frame, frame);
           while (currTextFrame) {
-            nsRect contRect = currTextFrame->GetRect();
-            if (prevTextFrame->GetParent() != currTextFrame->GetParent() &&
-                nearestAccAncestorFrame) {
-              // Continuations can span multiple frame tree subtrees,
-              // particularly when multiline text is nested within both block
-              // and inline elements. In addition to using the position of this
-              // continuation to offset our char rects, we'll need to offset
-              // this continuation from the continuations that occurred before
-              // it. We don't know how many there are or what subtrees they're
-              // in, so we use a transform here. This also ensures our offset is
-              // accurate even if the intervening inline elements are not
-              // present in the a11y tree.
-              contRect = frameRect;
-              nsLayoutUtils::TransformRect(currTextFrame,
-                                           nearestAccAncestorFrame, contRect);
-            }
-            nsTArray<nsRect> charBounds;
+            nsPoint contOffset = currTextFrame->GetOffsetTo(frame);
+            contOffset -= accOffset.TopLeft();
+            int32_t length = currTextFrame->GetContentLength();
+            nsTArray<nsRect> charBounds(length);
             currTextFrame->GetCharacterRectsInRange(
-                currTextFrame->GetContentOffset(),
-                currTextFrame->GetContentEnd(), charBounds);
-            for (const nsRect& charRect : charBounds) {
+                currTextFrame->GetContentOffset(), length, charBounds);
+            for (nsRect& charRect : charBounds) {
               // We expect each char rect to be relative to the text leaf
               // acc this text lives in. Unfortunately, GetCharacterRectsInRange
               // returns rects relative to their continuation. Add the
               // continuation's relative position here to make our final
-              // rect relative to the text leaf acc. Continuation rects include
-              // the padding of their parent text frame, so we compute the
-              // relative offset here instead of using `contRect`'s coordinates
-              // outright.
-              int computedX = charRect.x + (contRect.x - frameRect.x);
-              int computedY = charRect.y + (contRect.y - frameRect.y);
-              charData.AppendElement(computedX);
-              charData.AppendElement(computedY);
+              // rect relative to the text leaf acc.
+              charRect.MoveBy(contOffset);
+              charData.AppendElement(charRect.x);
+              charData.AppendElement(charRect.y);
               charData.AppendElement(charRect.width);
               charData.AppendElement(charRect.height);
             }
-            prevTextFrame = currTextFrame;
             currTextFrame = currTextFrame->GetNextContinuation();
           }
-        }
-        if (charData.Length()) {
-          fields->SetAttribute(nsGkAtoms::characterData, std::move(charData));
+          if (charData.Length()) {
+            fields->SetAttribute(nsGkAtoms::characterData, std::move(charData));
+          }
         }
       }
     }
@@ -3454,16 +3505,12 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
   if (aCacheDomain & CacheDomain::TransformMatrix) {
     bool transformed = false;
     if (frame && frame->IsTransformed()) {
-      // We need to find a frame to make our transform relative to.
-      // It's important this frame have a corresponding accessible,
-      // because this transform is applied while walking the accessibility
-      // tree (in the parent process), not the frame tree.
-      nsIFrame* boundingFrame = FindNearestAccessibleAncestorFrame();
       // This matrix is only valid when applied to CSSPixel points/rects
-      // in the coordinate space of `frame`. It also includes the translation
-      // to the parent space.
-      gfx::Matrix4x4Flagged mtx = nsLayoutUtils::GetTransformToAncestor(
-          RelativeTo{frame}, RelativeTo{boundingFrame}, nsIFrame::IN_CSS_UNITS);
+      // in the coordinate space of `frame`.
+      gfx::Matrix4x4 mtx = nsDisplayTransform::GetResultingTransformMatrix(
+          frame, nsPoint(0, 0), AppUnitsPerCSSPixel(),
+          nsDisplayTransform::INCLUDE_PERSPECTIVE |
+              nsDisplayTransform::OFFSET_BY_ORIGIN);
       // We might get back the identity matrix. This can happen if there is no
       // actual transform. For example, if an element has
       // will-change: transform, nsIFrame::IsTransformed will return true, but
@@ -3472,8 +3519,7 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
       // point caching it.
       transformed = !mtx.IsIdentity();
       if (transformed) {
-        UniquePtr<gfx::Matrix4x4> ptr =
-            MakeUnique<gfx::Matrix4x4>(mtx.GetMatrix());
+        UniquePtr<gfx::Matrix4x4> ptr = MakeUnique<gfx::Matrix4x4>(mtx);
         fields->SetAttribute(nsGkAtoms::transform, std::move(ptr));
       }
     }
@@ -3499,12 +3545,21 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
     }
   }
 
-  if (aCacheDomain & CacheDomain::DOMNodeID && mContent) {
+  if (aCacheDomain & CacheDomain::DOMNodeIDAndClass && mContent) {
     nsAtom* id = mContent->GetID();
     if (id) {
       fields->SetAttribute(nsGkAtoms::id, id);
     } else if (aUpdateType == CacheUpdateType::Update) {
       fields->SetAttribute(nsGkAtoms::id, DeleteEntry());
+    }
+    if (auto* el = dom::Element::FromNodeOrNull(mContent)) {
+      nsAutoString className;
+      el->GetClassName(className);
+      if (!className.IsEmpty()) {
+        fields->SetAttribute(nsGkAtoms::_class, std::move(className));
+      } else if (aUpdateType == CacheUpdateType::Update) {
+        fields->SetAttribute(nsGkAtoms::_class, DeleteEntry());
+      }
     }
   }
 
@@ -3580,6 +3635,14 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
       fields->SetAttribute(nsGkAtoms::opacity, opacity);
     } else if (aUpdateType == CacheUpdateType::Update) {
       fields->SetAttribute(nsGkAtoms::opacity, DeleteEntry());
+    }
+
+    if (frame &&
+        frame->StyleDisplay()->mPosition == StylePositionProperty::Fixed &&
+        nsLayoutUtils::IsReallyFixedPos(frame)) {
+      fields->SetAttribute(nsGkAtoms::position, nsGkAtoms::fixed);
+    } else if (aUpdateType != CacheUpdateType::Initial) {
+      fields->SetAttribute(nsGkAtoms::position, DeleteEntry());
     }
   }
 
@@ -3801,6 +3864,19 @@ void LocalAccessible::MaybeQueueCacheUpdateForStyleChanges() {
       mDoc->QueueCacheUpdate(this, CacheDomain::Style);
     }
 
+    nsAutoCString oldPosition, newPosition;
+    mOldComputedStyle->GetComputedPropertyValue(eCSSProperty_position,
+                                                oldPosition);
+    newStyle->GetComputedPropertyValue(eCSSProperty_position, newPosition);
+
+    if (oldPosition != newPosition) {
+      RefPtr<nsAtom> oldAtom = NS_Atomize(oldPosition);
+      RefPtr<nsAtom> newAtom = NS_Atomize(newPosition);
+      if (oldAtom == nsGkAtoms::fixed || newAtom == nsGkAtoms::fixed) {
+        mDoc->QueueCacheUpdate(this, CacheDomain::Style);
+      }
+    }
+
     bool newHasValidTransformStyle =
         newStyle->StyleDisplay()->HasTransform(frame);
     bool oldHasValidTransformStyle =
@@ -3832,22 +3908,6 @@ void LocalAccessible::MaybeQueueCacheUpdateForStyleChanges() {
       mDoc->QueueCacheUpdate(this, CacheDomain::TransformMatrix);
     }
 
-    if (newStyle->StyleDisplay()->IsPositionedStyle()) {
-      // We normally rely on reflow to know when bounds might have changed.
-      // However, changing the CSS left, top, etc. properties doesn't always
-      // cause reflow.
-      for (auto prop : {eCSSProperty_left, eCSSProperty_right, eCSSProperty_top,
-                        eCSSProperty_bottom}) {
-        nsAutoCString oldVal, newVal;
-        mOldComputedStyle->GetComputedPropertyValue(prop, oldVal);
-        newStyle->GetComputedPropertyValue(prop, newVal);
-        if (oldVal != newVal) {
-          mDoc->QueueCacheUpdate(this, CacheDomain::Bounds);
-          break;
-        }
-      }
-    }
-
     mOldComputedStyle = newStyle;
     if (newHasValidTransformStyle) {
       mStateFlags |= eOldFrameHasValidTransformStyle;
@@ -3862,18 +3922,38 @@ nsAtom* LocalAccessible::TagName() const {
                                            : nullptr;
 }
 
-already_AddRefed<nsAtom> LocalAccessible::DisplayStyle() const {
-  if (dom::Element* elm = Elm()) {
-    if (elm->IsHTMLElement(nsGkAtoms::area)) {
-      // This is an image map area. CSS is irrelevant here. Furthermore, we
-      // won't be able to get the computed style if the map is unslotted in a
-      // shadow host.
-      return nullptr;
-    }
-    StyleInfo info(elm);
-    return info.Display();
+already_AddRefed<nsAtom> LocalAccessible::InputType() const {
+  if (!IsTextField() && !IsDateTimeField()) {
+    return nullptr;
   }
+
+  dom::Element* el = mContent->AsElement();
+  if (const nsAttrValue* attr = el->GetParsedAttr(nsGkAtoms::type)) {
+    RefPtr<nsAtom> inputType = attr->GetAsAtom();
+    return inputType.forget();
+  }
+
   return nullptr;
+}
+
+already_AddRefed<nsAtom> LocalAccessible::DisplayStyle() const {
+  dom::Element* elm = Elm();
+  if (!elm) {
+    return nullptr;
+  }
+  if (elm->IsHTMLElement(nsGkAtoms::area)) {
+    // This is an image map area. CSS is irrelevant here.
+    return nullptr;
+  }
+  RefPtr<const ComputedStyle> style =
+      nsComputedDOMStyle::GetComputedStyleNoFlush(elm);
+  if (!style) {
+    // The element is not styled, maybe not in the flat tree?
+    return nullptr;
+  }
+  nsAutoCString value;
+  style->GetComputedPropertyValue(eCSSProperty_display, value);
+  return NS_Atomize(value);
 }
 
 float LocalAccessible::Opacity() const {

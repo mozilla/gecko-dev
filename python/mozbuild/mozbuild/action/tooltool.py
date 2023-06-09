@@ -34,6 +34,8 @@ import os
 import pprint
 import re
 import shutil
+import ssl
+import stat
 import sys
 import tarfile
 import tempfile
@@ -46,7 +48,10 @@ from io import BytesIO, open
 from random import random
 from subprocess import PIPE, Popen
 
-__version__ = "1"
+if os.name == "nt":
+    import certifi
+
+__version__ = "1.4.0"
 
 # Allowed request header characters:
 # !#$%&'()*+,-./:;<=>?@[]^_`{|}~ and space, a-z, A-Z, 0-9, \, "
@@ -382,7 +387,7 @@ def calculate_mac(
     normalized = normalize_string(
         mac_type, timestamp, nonce, method, name, host, port, content_hash
     )
-    log.debug(u"normalized resource for mac calc: {norm}".format(norm=normalized))
+    log.debug("normalized resource for mac calc: {norm}".format(norm=normalized))
     digestmod = getattr(hashlib, algorithm)
 
     if not isinstance(normalized, six_binary_type):
@@ -431,12 +436,12 @@ def make_taskcluster_header(credentials, req):
         content_hash,
     )
 
-    header = u'Hawk mac="{}"'.format(prepare_header_val(mac))
+    header = 'Hawk mac="{}"'.format(prepare_header_val(mac))
 
     if content_hash:  # pragma: no cover
-        header = u'{}, hash="{}"'.format(header, prepare_header_val(content_hash))
+        header = '{}, hash="{}"'.format(header, prepare_header_val(content_hash))
 
-    header = u'{header}, id="{id}", ts="{ts}", nonce="{nonce}"'.format(
+    header = '{header}, id="{id}", ts="{ts}", nonce="{nonce}"'.format(
         header=header,
         id=prepare_header_val(credentials["clientId"]),
         ts=prepare_header_val(timestamp),
@@ -808,9 +813,8 @@ def validate_manifest(manifest_file):
     for f in manifest.file_records:
         if not f.present():
             absent_files.append(f)
-        else:
-            if not f.validate():
-                invalid_files.append(f)
+        elif not f.validate():
+            invalid_files.append(f)
     if len(invalid_files + absent_files) == 0:
         return True
     else:
@@ -880,12 +884,19 @@ def touch(f):
         log.warn("impossible to update utime of file %s" % f)
 
 
+def _urlopen(req):
+    ssl_context = None
+    if os.name == "nt":
+        ssl_context = ssl.create_default_context(cafile=certifi.where())
+    return urllib2.urlopen(req, context=ssl_context)
+
+
 @contextmanager
 @retriable(sleeptime=2)
 def request(url, auth_file=None):
     req = Request(url)
     _authorize(req, auth_file)
-    with closing(urllib2.urlopen(req)) as f:
+    with closing(_urlopen(req)) as f:
         log.debug("opened %s for reading" % url)
         yield f
 
@@ -955,6 +966,33 @@ def clean_path(dirname):
 CHECKSUM_SUFFIX = ".checksum"
 
 
+def validate_tar_member(member, path):
+    def _is_within_directory(directory, target):
+        real_directory = os.path.realpath(directory)
+        real_target = os.path.realpath(target)
+        prefix = os.path.commonprefix([real_directory, real_target])
+        return prefix == real_directory
+
+    member_path = os.path.join(path, member.name)
+    if not _is_within_directory(path, member_path):
+        raise Exception("Attempted path traversal in tar file: " + member.name)
+    if member.issym():
+        link_path = os.path.join(os.path.dirname(member_path), member.linkname)
+        if not _is_within_directory(path, link_path):
+            raise Exception("Attempted link path traversal in tar file: " + member.name)
+    if member.mode & (stat.S_ISUID | stat.S_ISGID):
+        raise Exception("Attempted setuid or setgid in tar file: " + member.name)
+
+
+def safe_extract(tar, path=".", *, numeric_owner=False):
+    def _files(tar, path):
+        for member in tar:
+            validate_tar_member(member, path)
+            yield member
+
+    tar.extractall(path, members=_files(tar, path), numeric_owner=numeric_owner)
+
+
 def unpack_file(filename):
     """Untar `filename`, assuming it is uncompressed or compressed with bzip2,
     xz, gzip, zst, or unzip a zip file. The file is assumed to contain a single
@@ -965,9 +1003,8 @@ def unpack_file(filename):
         base_file, tar_ext = os.path.splitext(tar_file)
         clean_path(base_file)
         log.info('untarring "%s"' % filename)
-        tar = tarfile.open(filename)
-        tar.extractall()
-        tar.close()
+        with tarfile.open(filename) as tar:
+            safe_extract(tar)
     elif os.path.isfile(filename) and filename.endswith(".tar.xz"):
         base_file = filename.replace(".tar.xz", "")
         clean_path(base_file)
@@ -980,9 +1017,8 @@ def unpack_file(filename):
         fileobj = BytesIO()
         fileobj.write(stdout)
         fileobj.seek(0)
-        tar = tarfile.open(fileobj=fileobj, mode="r|")
-        tar.extractall()
-        tar.close()
+        with tarfile.open(fileobj=fileobj, mode="r|") as tar:
+            safe_extract(tar)
     elif os.path.isfile(filename) and filename.endswith(".tar.zst"):
         import zstandard
 
@@ -991,9 +1027,8 @@ def unpack_file(filename):
         log.info('untarring "%s"' % filename)
         dctx = zstandard.ZstdDecompressor()
         with dctx.stream_reader(open(filename, "rb")) as fileobj:
-            tar = tarfile.open(fileobj=fileobj, mode="r|")
-            tar.extractall()
-            tar.close()
+            with tarfile.open(fileobj=fileobj, mode="r|") as tar:
+                safe_extract(tar)
     elif os.path.isfile(filename) and zipfile.is_zipfile(filename):
         base_file = filename.replace(".zip", "")
         clean_path(base_file)
@@ -1234,25 +1269,34 @@ def _log_api_error(e):
 
 
 def _authorize(req, auth_file):
-    if not auth_file:
-        return
-
     is_taskcluster_auth = False
-    with open(auth_file) as f:
-        auth_file_content = f.read().strip()
+
+    if not auth_file:
         try:
-            auth_file_content = json.loads(auth_file_content)
+            taskcluster_env_keys = {
+                "clientId": "TASKCLUSTER_CLIENT_ID",
+                "accessToken": "TASKCLUSTER_ACCESS_TOKEN",
+            }
+            auth_content = {k: os.environ[v] for k, v in taskcluster_env_keys.items()}
             is_taskcluster_auth = True
-        except Exception:
-            pass
+        except KeyError:
+            return
+    else:
+        with open(auth_file) as f:
+            auth_content = f.read().strip()
+            try:
+                auth_content = json.loads(auth_content)
+                is_taskcluster_auth = True
+            except Exception:
+                pass
 
     if is_taskcluster_auth:
-        taskcluster_header = make_taskcluster_header(auth_file_content, req)
+        taskcluster_header = make_taskcluster_header(auth_content, req)
         log.debug("Using taskcluster credentials in %s" % auth_file)
         req.add_unredirected_header("Authorization", taskcluster_header)
     else:
         log.debug("Using Bearer token in %s" % auth_file)
-        req.add_unredirected_header("Authorization", "Bearer %s" % auth_file_content)
+        req.add_unredirected_header("Authorization", "Bearer %s" % auth_content)
 
 
 def _send_batch(base_url, auth_file, batch, region):
@@ -1265,7 +1309,7 @@ def _send_batch(base_url, auth_file, batch, region):
     req = Request(url, data, {"Content-Type": "application/json"})
     _authorize(req, auth_file)
     try:
-        resp = urllib2.urlopen(req)
+        resp = _urlopen(req)
     except (URLError, HTTPError) as e:
         _log_api_error(e)
         return None
@@ -1313,7 +1357,7 @@ def _notify_upload_complete(base_url, auth_file, file):
     req = Request(urljoin(base_url, "upload/complete/%(algorithm)s/%(digest)s" % file))
     _authorize(req, auth_file)
     try:
-        urllib2.urlopen(req)
+        _urlopen(req)
     except HTTPError as e:
         if e.code != 409:
             _log_api_error(e)
@@ -1415,7 +1459,7 @@ def send_operation_on_file(data, base_urls, digest, auth_file):
     _authorize(req, auth_file)
 
     try:
-        urllib2.urlopen(req)
+        _urlopen(req)
     except (URLError, HTTPError) as e:
         _log_api_error(e)
         return False
@@ -1429,7 +1473,7 @@ def change_visibility(base_urls, digest, visibility, auth_file):
             "visibility": visibility,
         }
     ]
-    return send_operation_on_file(data, base_urls, digest, visibility, auth_file)
+    return send_operation_on_file(data, base_urls, digest, auth_file)
 
 
 def delete_instances(base_urls, digest, auth_file):

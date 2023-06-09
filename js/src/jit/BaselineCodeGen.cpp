@@ -23,6 +23,7 @@
 #include "jit/Linker.h"
 #include "jit/PerfSpewer.h"
 #include "jit/SharedICHelpers.h"
+#include "jit/TemplateObject.h"
 #include "jit/TrialInlining.h"
 #include "jit/VMFunctions.h"
 #include "js/friend/ErrorMessages.h"  // JSMSG_*
@@ -41,9 +42,11 @@
 
 #include "debugger/DebugAPI-inl.h"
 #include "jit/BaselineFrameInfo-inl.h"
+#include "jit/JitHints-inl.h"
 #include "jit/JitScript-inl.h"
 #include "jit/MacroAssembler-inl.h"
 #include "jit/SharedICHelpers-inl.h"
+#include "jit/TemplateObject-inl.h"
 #include "jit/VMFunctionList-inl.h"
 #include "vm/Interpreter-inl.h"
 #include "vm/JSScript-inl.h"
@@ -196,9 +199,9 @@ bool BaselineInterpreterHandler::addDebugInstrumentationOffset(
 MethodStatus BaselineCompiler::compile() {
   AutoCreatedBy acb(masm, "BaselineCompiler::compile");
 
-  JSScript* script = handler.script();
+  Rooted<JSScript*> script(cx, handler.script());
   JitSpew(JitSpew_BaselineScripts, "Baseline compiling script %s:%u:%u (%p)",
-          script->filename(), script->lineno(), script->column(), script);
+          script->filename(), script->lineno(), script->column(), script.get());
 
   JitSpew(JitSpew_Codegen, "# Emitting baseline code for script %s:%u:%u",
           script->filename(), script->lineno(), script->column());
@@ -218,11 +221,22 @@ MethodStatus BaselineCompiler::compile() {
     }
   }
 
+  if (!JitOptions.disableJitHints &&
+      cx->runtime()->jitRuntime()->hasJitHintsMap()) {
+    JitHintsMap* jitHints = cx->runtime()->jitRuntime()->getJitHintsMap();
+    jitHints->setEagerBaselineHint(script);
+  }
+
   // Suppress GC during compilation.
   gc::AutoSuppressGC suppressGC(cx);
 
+  if (!script->jitScript()->ensureHasCachedBaselineJitData(cx, script)) {
+    return Method_Error;
+  }
+
   MOZ_ASSERT(!script->hasBaselineScript());
 
+  perfSpewer_.recordOffset(masm, "Prologue");
   if (!emitPrologue()) {
     return Method_Error;
   }
@@ -232,10 +246,12 @@ MethodStatus BaselineCompiler::compile() {
     return status;
   }
 
+  perfSpewer_.recordOffset(masm, "Epilogue");
   if (!emitEpilogue()) {
     return Method_Error;
   }
 
+  perfSpewer_.recordOffset(masm, "OOLPostBarrierSlot");
   if (!emitOutOfLinePostBarrierSlot()) {
     return Method_Error;
   }
@@ -516,10 +532,12 @@ bool BaselineCodeGen<Handler>::emitOutOfLinePostBarrierSlot() {
   masm.push(ra);
 #elif defined(JS_CODEGEN_LOONG64)
   masm.push(ra);
+#elif defined(JS_CODEGEN_RISCV64)
+  masm.push(ra);
 #endif
   masm.pushValue(R0);
 
-  using Fn = void (*)(JSRuntime * rt, js::gc::Cell * cell);
+  using Fn = void (*)(JSRuntime* rt, js::gc::Cell* cell);
   masm.setupUnalignedABICall(scratch);
   masm.movePtr(ImmPtr(cx->runtime()), scratch);
   masm.passABIArg(scratch);
@@ -793,7 +811,7 @@ bool BaselineCodeGen<Handler>::emitStackCheck() {
 }
 
 static void EmitCallFrameIsDebuggeeCheck(MacroAssembler& masm) {
-  using Fn = void (*)(BaselineFrame * frame);
+  using Fn = void (*)(BaselineFrame* frame);
   masm.setupUnalignedABICall(R0.scratchReg());
   masm.loadBaselineFramePtr(FramePointer, R0.scratchReg());
   masm.passABIArg(R0.scratchReg());
@@ -1215,39 +1233,131 @@ void BaselineInterpreterCodeGen::emitInitFrameFields(Register nonFunctionEnv) {
   }
 }
 
-template <>
-template <typename F>
-bool BaselineCompilerCodeGen::initEnvironmentChainHelper(
-    const F& initFunctionEnv) {
-  if (handler.function()) {
-    return initFunctionEnv();
-  }
-  return true;
+// Assert we don't need a post write barrier to write sourceObj to a slot of
+// destObj. See comments in WarpBuilder::buildNamedLambdaEnv.
+static void AssertCanElidePostWriteBarrier(MacroAssembler& masm,
+                                           Register destObj, Register sourceObj,
+                                           Register temp) {
+#ifdef DEBUG
+  Label ok;
+  masm.branchPtrInNurseryChunk(Assembler::Equal, destObj, temp, &ok);
+  masm.branchPtrInNurseryChunk(Assembler::NotEqual, sourceObj, temp, &ok);
+  masm.assumeUnreachable("Unexpected missing post write barrier in Baseline");
+  masm.bind(&ok);
+#endif
 }
 
 template <>
-template <typename F>
-bool BaselineInterpreterCodeGen::initEnvironmentChainHelper(
-    const F& initFunctionEnv) {
-  // For function scripts use the code emitted by initFunctionEnv. For other
-  // scripts this is a no-op.
+bool BaselineCompilerCodeGen::initEnvironmentChain() {
+  if (!handler.function()) {
+    return true;
+  }
+  if (!handler.script()->needsFunctionEnvironmentObjects()) {
+    return true;
+  }
 
-  Label done;
-  masm.branchTestPtr(Assembler::NonZero, frame.addressOfCalleeToken(),
-                     Imm32(CalleeTokenScriptBit), &done);
-  {
-    if (!initFunctionEnv()) {
-      return false;
+  // Allocate a NamedLambdaObject and/or a CallObject. If the function needs
+  // both, the NamedLambdaObject must enclose the CallObject. If one of the
+  // allocations fails, we perform the whole operation in C++.
+
+  JSObject* templateEnv = handler.script()->jitScript()->templateEnvironment();
+  MOZ_ASSERT(templateEnv);
+
+  CallObject* callObjectTemplate = nullptr;
+  if (handler.function()->needsCallObject()) {
+    callObjectTemplate = &templateEnv->as<CallObject>();
+  }
+
+  NamedLambdaObject* namedLambdaTemplate = nullptr;
+  if (handler.function()->needsNamedLambdaEnvironment()) {
+    if (callObjectTemplate) {
+      templateEnv = templateEnv->enclosingEnvironment();
     }
+    namedLambdaTemplate = &templateEnv->as<NamedLambdaObject>();
+  }
+
+  MOZ_ASSERT(namedLambdaTemplate || callObjectTemplate);
+
+  AllocatableGeneralRegisterSet regs(GeneralRegisterSet::All());
+  Register newEnv = regs.takeAny();
+  Register enclosingEnv = regs.takeAny();
+  Register callee = regs.takeAny();
+  Register temp = regs.takeAny();
+
+  Label fail;
+  masm.loadPtr(frame.addressOfEnvironmentChain(), enclosingEnv);
+  masm.loadFunctionFromCalleeToken(frame.addressOfCalleeToken(), callee);
+
+  // Allocate a NamedLambdaObject if needed.
+  if (namedLambdaTemplate) {
+    TemplateObject templateObject(namedLambdaTemplate);
+    masm.createGCObject(newEnv, temp, templateObject, gc::DefaultHeap, &fail);
+
+    // Store enclosing environment.
+    Address enclosingSlot(newEnv,
+                          NamedLambdaObject::offsetOfEnclosingEnvironment());
+    masm.storeValue(JSVAL_TYPE_OBJECT, enclosingEnv, enclosingSlot);
+    AssertCanElidePostWriteBarrier(masm, newEnv, enclosingEnv, temp);
+
+    // Store callee.
+    Address lambdaSlot(newEnv, NamedLambdaObject::offsetOfLambdaSlot());
+    masm.storeValue(JSVAL_TYPE_OBJECT, callee, lambdaSlot);
+    AssertCanElidePostWriteBarrier(masm, newEnv, callee, temp);
+
+    if (callObjectTemplate) {
+      masm.movePtr(newEnv, enclosingEnv);
+    }
+  }
+
+  // Allocate a CallObject if needed.
+  if (callObjectTemplate) {
+    TemplateObject templateObject(callObjectTemplate);
+    masm.createGCObject(newEnv, temp, templateObject, gc::DefaultHeap, &fail);
+
+    // Store enclosing environment.
+    Address enclosingSlot(newEnv, CallObject::offsetOfEnclosingEnvironment());
+    masm.storeValue(JSVAL_TYPE_OBJECT, enclosingEnv, enclosingSlot);
+    AssertCanElidePostWriteBarrier(masm, newEnv, enclosingEnv, temp);
+
+    // Store callee.
+    Address calleeSlot(newEnv, CallObject::offsetOfCallee());
+    masm.storeValue(JSVAL_TYPE_OBJECT, callee, calleeSlot);
+    AssertCanElidePostWriteBarrier(masm, newEnv, callee, temp);
+  }
+
+  // Update the frame's environment chain and mark it initialized.
+  Label done;
+  masm.storePtr(newEnv, frame.addressOfEnvironmentChain());
+  masm.or32(Imm32(BaselineFrame::HAS_INITIAL_ENV), frame.addressOfFlags());
+  masm.jump(&done);
+
+  masm.bind(&fail);
+
+  prepareVMCall();
+
+  masm.loadBaselineFramePtr(FramePointer, temp);
+  pushArg(temp);
+
+  const CallVMPhase phase = CallVMPhase::BeforePushingLocals;
+
+  using Fn = bool (*)(JSContext*, BaselineFrame*);
+  if (!callVMNonOp<Fn, jit::InitFunctionEnvironmentObjects>(phase)) {
+    return false;
   }
 
   masm.bind(&done);
   return true;
 }
 
-template <typename Handler>
-bool BaselineCodeGen<Handler>::initEnvironmentChain() {
-  auto initFunctionEnv = [this]() {
+template <>
+bool BaselineInterpreterCodeGen::initEnvironmentChain() {
+  // For function scripts, call InitFunctionEnvironmentObjects if needed. For
+  // non-function scripts this is a no-op.
+
+  Label done;
+  masm.branchTestPtr(Assembler::NonZero, frame.addressOfCalleeToken(),
+                     Imm32(CalleeTokenScriptBit), &done);
+  {
     auto initEnv = [this]() {
       // Call into the VM to create the proper environment objects.
       prepareVMCall();
@@ -1260,12 +1370,15 @@ bool BaselineCodeGen<Handler>::initEnvironmentChain() {
       using Fn = bool (*)(JSContext*, BaselineFrame*);
       return callVMNonOp<Fn, jit::InitFunctionEnvironmentObjects>(phase);
     };
-    return emitTestScriptFlag(
-        JSScript::ImmutableFlags::NeedsFunctionEnvironmentObjects, true,
-        initEnv, R2.scratchReg());
-  };
+    if (!emitTestScriptFlag(
+            JSScript::ImmutableFlags::NeedsFunctionEnvironmentObjects, true,
+            initEnv, R2.scratchReg())) {
+      return false;
+    }
+  }
 
-  return initEnvironmentChainHelper(initFunctionEnv);
+  masm.bind(&done);
+  return true;
 }
 
 template <typename Handler>
@@ -2639,8 +2752,6 @@ bool BaselineCodeGen<Handler>::emit_Ne() {
 
 template <typename Handler>
 bool BaselineCodeGen<Handler>::emitCompare() {
-  // CODEGEN
-
   // Keep top JSStack value in R0 and R1.
   frame.popRegsAndSync(2);
 
@@ -3046,7 +3157,7 @@ bool BaselineCodeGen<Handler>::emitDelElem(bool strict) {
 
   masm.boxNonDouble(JSVAL_TYPE_BOOLEAN, ReturnReg, R1);
   frame.popn(2);
-  frame.push(R1);
+  frame.push(R1, JSVAL_TYPE_BOOLEAN);
   return true;
 }
 
@@ -3068,7 +3179,7 @@ bool BaselineCodeGen<Handler>::emit_In() {
     return false;
   }
 
-  frame.push(R0);
+  frame.push(R0, JSVAL_TYPE_BOOLEAN);
   return true;
 }
 
@@ -3080,7 +3191,7 @@ bool BaselineCodeGen<Handler>::emit_HasOwn() {
     return false;
   }
 
-  frame.push(R0);
+  frame.push(R0, JSVAL_TYPE_BOOLEAN);
   return true;
 }
 
@@ -3095,7 +3206,7 @@ bool BaselineCodeGen<Handler>::emit_CheckPrivateField() {
     return false;
   }
 
-  frame.push(R0);
+  frame.push(R0, JSVAL_TYPE_BOOLEAN);
   return true;
 }
 
@@ -3359,7 +3470,7 @@ bool BaselineCodeGen<Handler>::emitDelProp(bool strict) {
 
   masm.boxNonDouble(JSVAL_TYPE_BOOLEAN, ReturnReg, R1);
   frame.pop();
-  frame.push(R1);
+  frame.push(R1, JSVAL_TYPE_BOOLEAN);
   return true;
 }
 
@@ -3490,7 +3601,7 @@ bool BaselineCodeGen<Handler>::emitGetAliasedDebugVar(ValueOperand dest) {
   pushArg(env);
 
   using Fn =
-      bool (*)(JSContext*, JSObject * env, jsbytecode*, MutableHandleValue);
+      bool (*)(JSContext*, JSObject* env, jsbytecode*, MutableHandleValue);
   return callVM<Fn, LoadAliasedDebugVar>();
 }
 
@@ -4062,6 +4173,71 @@ bool BaselineCodeGen<Handler>::emit_SetArg() {
 }
 
 template <>
+bool BaselineInterpreterCodeGen::emit_GetFrameArg() {
+  frame.syncStack(0);
+
+  Register argReg = R1.scratchReg();
+  LoadUint16Operand(masm, argReg);
+
+  BaseValueIndex addr(FramePointer, argReg,
+                      JitFrameLayout::offsetOfActualArgs());
+  masm.loadValue(addr, R0);
+  frame.push(R0);
+  return true;
+}
+
+template <>
+bool BaselineCompilerCodeGen::emit_GetFrameArg() {
+  uint32_t arg = GET_ARGNO(handler.pc());
+  frame.pushArg(arg);
+  return true;
+}
+
+template <typename Handler>
+bool BaselineCodeGen<Handler>::emit_ArgumentsLength() {
+  frame.syncStack(0);
+
+  masm.loadNumActualArgs(FramePointer, R0.scratchReg());
+  masm.tagValue(JSVAL_TYPE_INT32, R0.scratchReg(), R0);
+
+  frame.push(R0);
+  return true;
+}
+
+template <typename Handler>
+bool BaselineCodeGen<Handler>::emit_GetActualArg() {
+  frame.popRegsAndSync(1);
+
+#ifdef DEBUG
+  {
+    Label ok;
+    masm.branchTestInt32(Assembler::Equal, R0, &ok);
+    masm.assumeUnreachable("GetActualArg unexpected type");
+    masm.bind(&ok);
+  }
+#endif
+
+  Register index = R0.scratchReg();
+  masm.unboxInt32(R0, index);
+
+#ifdef DEBUG
+  {
+    Label ok;
+    masm.loadNumActualArgs(FramePointer, R1.scratchReg());
+    masm.branch32(Assembler::Above, R1.scratchReg(), index, &ok);
+    masm.assumeUnreachable("GetActualArg invalid index");
+    masm.bind(&ok);
+  }
+#endif
+
+  BaseValueIndex addr(FramePointer, index,
+                      JitFrameLayout::offsetOfActualArgs());
+  masm.loadValue(addr, R0);
+  frame.push(R0);
+  return true;
+}
+
+template <>
 void BaselineCompilerCodeGen::loadNumFormalArguments(Register dest) {
   masm.move32(Imm32(handler.function()->nargs()), dest);
 }
@@ -4366,7 +4542,7 @@ bool BaselineCodeGen<Handler>::emit_Instanceof() {
     return false;
   }
 
-  frame.push(R0);
+  frame.push(R0, JSVAL_TYPE_BOOLEAN);
   return true;
 }
 
@@ -4856,7 +5032,7 @@ bool BaselineCodeGen<Handler>::emit_CanSkipAwait() {
   }
 
   masm.tagValue(JSVAL_TYPE_BOOLEAN, ReturnReg, R0);
-  frame.push(R0);
+  frame.push(R0, JSVAL_TYPE_BOOLEAN);
   return true;
 }
 
@@ -6335,7 +6511,7 @@ MethodStatus BaselineCompiler::emitBody() {
       return Method_Error;
     }
 
-    perfSpewer_.recordInstruction(masm, op);
+    perfSpewer_.recordInstruction(cx, masm, handler.pc(), frame);
 
 #define EMIT_OP(OP, ...)                                       \
   case JSOp::OP: {                                             \
@@ -6461,6 +6637,7 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
 #define EMIT_OP(OP, ...)                          \
   {                                               \
     AutoCreatedBy acb(masm, "op=" #OP);           \
+    perfSpewer_.recordOffset(masm, JSOp::OP);     \
     masm.bind(&opLabels[uint8_t(JSOp::OP)]);      \
     handler.setCurrentOp(JSOp::OP);               \
     if (!this->emit_##OP()) {                     \
@@ -6541,7 +6718,7 @@ void BaselineInterpreterGenerator::emitOutOfLineCodeCoverageInstrumentation() {
 
   saveInterpreterPCReg();
 
-  using Fn1 = void (*)(BaselineFrame * frame);
+  using Fn1 = void (*)(BaselineFrame* frame);
   masm.setupUnalignedABICall(R0.scratchReg());
   masm.loadBaselineFramePtr(FramePointer, R0.scratchReg());
   masm.passABIArg(R0.scratchReg());
@@ -6557,7 +6734,7 @@ void BaselineInterpreterGenerator::emitOutOfLineCodeCoverageInstrumentation() {
 
   saveInterpreterPCReg();
 
-  using Fn2 = void (*)(BaselineFrame * frame, jsbytecode * pc);
+  using Fn2 = void (*)(BaselineFrame* frame, jsbytecode* pc);
   masm.setupUnalignedABICall(R0.scratchReg());
   masm.loadBaselineFramePtr(FramePointer, R0.scratchReg());
   masm.passABIArg(R0.scratchReg());
@@ -6572,22 +6749,27 @@ void BaselineInterpreterGenerator::emitOutOfLineCodeCoverageInstrumentation() {
 bool BaselineInterpreterGenerator::generate(BaselineInterpreter& interpreter) {
   AutoCreatedBy acb(masm, "BaselineInterpreterGenerator::generate");
 
+  perfSpewer_.recordOffset(masm, "Prologue");
   if (!emitPrologue()) {
     return false;
   }
 
+  perfSpewer_.recordOffset(masm, "InterpreterLoop");
   if (!emitInterpreterLoop()) {
     return false;
   }
 
+  perfSpewer_.recordOffset(masm, "Epilogue");
   if (!emitEpilogue()) {
     return false;
   }
 
+  perfSpewer_.recordOffset(masm, "OOLPostBarrierSlot");
   if (!emitOutOfLinePostBarrierSlot()) {
     return false;
   }
 
+  perfSpewer_.recordOffset(masm, "OOLCodeCoverageInstrumentation");
   emitOutOfLineCodeCoverageInstrumentation();
 
   {
@@ -6628,7 +6810,7 @@ bool BaselineInterpreterGenerator::generate(BaselineInterpreter& interpreter) {
                                            tableLoc);
     }
 
-    CollectPerfSpewerJitCodeProfile(code, "BaselineInterpreter");
+    perfSpewer_.saveProfile(code);
 
 #ifdef MOZ_VTUNE
     vtune::MarkStub(code, "BaselineInterpreter");

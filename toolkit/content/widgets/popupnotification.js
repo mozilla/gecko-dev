@@ -48,7 +48,7 @@
       // inherited attributes, its data-l10n-id needs to be unset or
       // DOM Localization will overwrite the values.
       if (name === "buttonlabel" || name === "buttonaccesskey") {
-        document.l10n.setAttributes(this.button, "");
+        this.button?.removeAttribute("data-l10n-id");
       }
 
       super.attributeChangedCallback(name, oldValue, newValue);
@@ -75,7 +75,7 @@
       <hbox class="popup-notification-header-container"></hbox>
       <hbox align="start" class="popup-notification-body-container">
         <image class="popup-notification-icon"/>
-        <vbox flex="1" pack="start" class="popup-notification-body">
+        <vbox pack="start" class="popup-notification-body">
           <hbox align="start">
             <vbox flex="1">
               <label class="popup-notification-origin header" crop="center"></label>

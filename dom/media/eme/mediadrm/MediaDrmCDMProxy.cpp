@@ -169,14 +169,13 @@ void MediaDrmCDMProxy::Shutdown() {
   mOwnerThread->Dispatch(task, NS_DISPATCH_NORMAL);
   mOwnerThread->Shutdown();
   mOwnerThread = nullptr;
+  mKeys.Clear();
 }
 
 void MediaDrmCDMProxy::Terminated() {
   // TODO: Implement Terminated.
   // Should find a way to handle the case when remote side MediaDrm crashed.
 }
-
-const nsCString& MediaDrmCDMProxy::GetNodeId() const { return mNodeId; }
 
 void MediaDrmCDMProxy::OnSetSessionId(uint32_t aCreateSessionToken,
                                       const nsAString& aSessionId) {
@@ -322,10 +321,6 @@ void MediaDrmCDMProxy::ResolvePromiseWithResult(PromiseId aId,
   mMainThread->Dispatch(task.forget(), NS_DISPATCH_NORMAL);
 }
 
-const nsString& MediaDrmCDMProxy::KeySystem() const { return mKeySystem; }
-
-DataMutex<CDMCaps>& MediaDrmCDMProxy::Capabilites() { return mCapabilites; }
-
 void MediaDrmCDMProxy::OnKeyStatusesChange(const nsAString& aSessionId) {
   MOZ_ASSERT(NS_IsMainThread());
   if (mKeys.IsNull()) {
@@ -381,8 +376,9 @@ void MediaDrmCDMProxy::md_Init(uint32_t aPromiseId) {
   MOZ_ASSERT(IsOnOwnerThread());
   MOZ_ASSERT(mCDM);
 
-  mCallback.reset(new MediaDrmCDMCallbackProxy(this));
-  mCDM->Init(mCallback.get());
+  UniquePtr<MediaDrmCDMCallbackProxy> callback(
+      new MediaDrmCDMCallbackProxy(this));
+  mCDM->Init(std::move(callback));
   nsCOMPtr<nsIRunnable> task(
       NewRunnableMethod<uint32_t>("MediaDrmCDMProxy::OnCDMCreated", this,
                                   &MediaDrmCDMProxy::OnCDMCreated, aPromiseId));

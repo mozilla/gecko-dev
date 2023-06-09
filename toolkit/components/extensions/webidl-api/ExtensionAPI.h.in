@@ -20,9 +20,7 @@
 
 class nsIGlobalObject;
 
-namespace mozilla {
-
-namespace extensions {
+namespace mozilla::extensions {
 
 class ExtensionEventManager;
 
@@ -57,7 +55,7 @@ class {{ webidl_name }} final : public nsISupports,
   // void GetPROP_NAME(JSContext* aCx, JS::MutableHandle<JS::Value> aRetval);
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS({{ webidl_name }})
+  NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS({{ webidl_name }})
 
  private:
   ~{{ webidl_name }}() = default;
@@ -68,7 +66,6 @@ class {{ webidl_name }} final : public nsISupports,
   // RefPtr<ExtensionEventManager> mOnEVENTNAMEEventMgr;
 };
 
-}  // namespace extensions
-}  // namespace mozilla
+}  // namespace mozilla::extensions
 
 #endif  // mozilla_extensions_{{ webidl_name }}_h

@@ -90,6 +90,10 @@ class ExternalEngineStateMachine final
 
   const char* GetStateStr() const;
 
+  RefPtr<SetCDMPromise> SetCDMProxy(CDMProxy* aProxy) override;
+
+  bool IsExternalStateMachine() const override { return true; }
+
  private:
   ~ExternalEngineStateMachine() = default;
 
@@ -105,6 +109,7 @@ class ExternalEngineStateMachine final
       RunningEngine,
       SeekingData,
       ShutdownEngine,
+      RecoverEngine,
     };
     struct InitEngine {
       InitEngine() = default;
@@ -159,6 +164,9 @@ class ExternalEngineStateMachine final
     struct ShutdownEngine {
       RefPtr<ShutdownPromise> mShutdown;
     };
+    // This state is used to recover the media engine after the MF CDM process
+    // crashes.
+    struct RecoverEngine : public InitEngine {};
 
     StateObject() : mData(InitEngine()), mName(State::InitEngine){};
     explicit StateObject(ReadingMetadata&& aArg)
@@ -169,15 +177,24 @@ class ExternalEngineStateMachine final
         : mData(std::move(aArg)), mName(State::SeekingData){};
     explicit StateObject(ShutdownEngine&& aArg)
         : mData(std::move(aArg)), mName(State::ShutdownEngine){};
+    explicit StateObject(RecoverEngine&& aArg)
+        : mData(std::move(aArg)), mName(State::RecoverEngine){};
 
     bool IsInitEngine() const { return mData.is<InitEngine>(); }
     bool IsReadingMetadata() const { return mData.is<ReadingMetadata>(); }
     bool IsRunningEngine() const { return mData.is<RunningEngine>(); }
     bool IsSeekingData() const { return mData.is<SeekingData>(); }
     bool IsShutdownEngine() const { return mData.is<ShutdownEngine>(); }
+    bool IsRecoverEngine() const { return mData.is<RecoverEngine>(); }
 
     InitEngine* AsInitEngine() {
-      return IsInitEngine() ? &mData.as<InitEngine>() : nullptr;
+      if (IsInitEngine()) {
+        return &mData.as<InitEngine>();
+      }
+      if (IsRecoverEngine()) {
+        return &mData.as<RecoverEngine>();
+      }
+      return nullptr;
     }
     ReadingMetadata* AsReadingMetadata() {
       return IsReadingMetadata() ? &mData.as<ReadingMetadata>() : nullptr;
@@ -190,7 +207,7 @@ class ExternalEngineStateMachine final
     }
 
     Variant<InitEngine, ReadingMetadata, RunningEngine, SeekingData,
-            ShutdownEngine>
+            ShutdownEngine, RecoverEngine>
         mData;
     State mName;
   } mState;
@@ -213,6 +230,7 @@ class ExternalEngineStateMachine final
   void SetCanPlayThrough(bool aCanPlayThrough) override {}
   void SetFragmentEndTime(const media::TimeUnit& aFragmentEndTime) override {}
 
+  void InitEngine();
   void OnEngineInitSuccess();
   void OnEngineInitFailure();
 
@@ -262,12 +280,18 @@ class ExternalEngineStateMachine final
 
   void UpdateSecondaryVideoContainer() override;
 
+  void RecoverFromCDMProcessCrashIfNeeded();
+
   UniquePtr<ExternalPlaybackEngine> mEngine;
 
   bool mHasEnoughAudio = false;
   bool mHasEnoughVideo = false;
   bool mSentPlaybackEndedEvent = false;
   bool mHasReceivedFirstDecodedVideoFrame = false;
+
+  // Only used if setting CDM happens before the engine finishes initialization.
+  MozPromiseHolder<SetCDMPromise> mSetCDMProxyPromise;
+  MozPromiseRequestHolder<SetCDMPromise> mSetCDMProxyRequest;
 };
 
 class ExternalPlaybackEngine {
@@ -294,6 +318,7 @@ class ExternalPlaybackEngine {
   virtual media::TimeUnit GetCurrentPosition() = 0;
   virtual void NotifyEndOfStream(TrackInfo::TrackType aType) = 0;
   virtual void SetMediaInfo(const MediaInfo& aInfo) = 0;
+  virtual bool SetCDMProxy(CDMProxy* aProxy) = 0;
 
   ExternalEngineStateMachine* const MOZ_NON_OWNING_REF mOwner;
 };

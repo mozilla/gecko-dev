@@ -768,15 +768,15 @@ nsViewSourceChannel::SetTopLevelContentWindowId(uint64_t aWindowId) {
 }
 
 NS_IMETHODIMP
-nsViewSourceChannel::GetTopBrowsingContextId(uint64_t* aId) {
+nsViewSourceChannel::GetBrowserId(uint64_t* aId) {
   return !mHttpChannel ? NS_ERROR_NULL_POINTER
-                       : mHttpChannel->GetTopBrowsingContextId(aId);
+                       : mHttpChannel->GetBrowserId(aId);
 }
 
 NS_IMETHODIMP
-nsViewSourceChannel::SetTopBrowsingContextId(uint64_t aId) {
+nsViewSourceChannel::SetBrowserId(uint64_t aId) {
   return !mHttpChannel ? NS_ERROR_NULL_POINTER
-                       : mHttpChannel->SetTopBrowsingContextId(aId);
+                       : mHttpChannel->SetBrowserId(aId);
 }
 
 NS_IMETHODIMP
@@ -1018,6 +1018,33 @@ nsViewSourceChannel::SetIsMainDocumentChannel(bool aValue) {
                        : mHttpChannel->SetIsMainDocumentChannel(aValue);
 }
 
+NS_IMETHODIMP nsViewSourceChannel::SetClassicScriptHintCharset(
+    const nsAString& aClassicScriptHintCharset) {
+  return !mHttpChannel ? NS_ERROR_NULL_POINTER
+                       : mHttpChannel->SetClassicScriptHintCharset(
+                             aClassicScriptHintCharset);
+}
+
+NS_IMETHODIMP nsViewSourceChannel::GetClassicScriptHintCharset(
+    nsAString& aClassicScriptHintCharset) {
+  return !mHttpChannel ? NS_ERROR_NULL_POINTER
+                       : mHttpChannel->GetClassicScriptHintCharset(
+                             aClassicScriptHintCharset);
+}
+
+NS_IMETHODIMP nsViewSourceChannel::SetDocumentCharacterSet(
+    const nsAString& aDocumentCharacterSet) {
+  return !mHttpChannel
+             ? NS_ERROR_NULL_POINTER
+             : mHttpChannel->SetDocumentCharacterSet(aDocumentCharacterSet);
+}
+
+NS_IMETHODIMP nsViewSourceChannel::GetDocumentCharacterSet(
+    nsAString& aDocumentCharacterSet) {
+  return !mHttpChannel
+             ? NS_ERROR_NULL_POINTER
+             : mHttpChannel->GetDocumentCharacterSet(aDocumentCharacterSet);
+}
 // Have to manually forward SetCorsPreflightParameters since it's [notxpcom]
 void nsViewSourceChannel::SetCorsPreflightParameters(
     const nsTArray<nsCString>& aUnsafeHeaders,

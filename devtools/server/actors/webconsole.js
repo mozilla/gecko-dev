@@ -6,10 +6,7 @@
 
 "use strict";
 
-const {
-  ActorClassWithSpec,
-  Actor,
-} = require("resource://devtools/shared/protocol.js");
+const { Actor } = require("resource://devtools/shared/protocol.js");
 const {
   webconsoleSpec,
 } = require("resource://devtools/shared/specs/webconsole.js");
@@ -141,10 +138,10 @@ function isObject(value) {
  * @param object [parentActor]
  *        Optional, the parent actor.
  */
-const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
-  initialize(connection, parentActor) {
-    Actor.prototype.initialize.call(this, connection);
-    this.conn = connection;
+class WebConsoleActor extends Actor {
+  constructor(connection, parentActor) {
+    super(connection, webconsoleSpec);
+
     this.parentActor = parentActor;
 
     this.dbg = this.parentActor.dbg;
@@ -168,27 +165,21 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
       "changed-toplevel-document",
       this._onChangedToplevelDocument
     );
-    this._onObserverNotification = this._onObserverNotification.bind(this);
-    if (this.parentActor.isRootActor) {
-      Services.obs.addObserver(
-        this._onObserverNotification,
-        "last-pb-context-exited"
-      );
-    }
-  },
+  }
+
   /**
    * Debugger instance.
    *
    * @see jsdebugger.sys.mjs
    */
-  dbg: null,
+  dbg = null;
 
   /**
    * This is used by the ObjectActor to keep track of the depth of grip() calls.
    * @private
    * @type number
    */
-  _gripDepth: null,
+  _gripDepth = null;
 
   /**
    * Holds a set of all currently registered listeners.
@@ -196,13 +187,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
    * @private
    * @type Set
    */
-  _listeners: null,
-
-  /**
-   * The devtools server connection instance.
-   * @type object
-   */
-  conn: null,
+  _listeners = null;
 
   /**
    * The global we work with (this can be a Window, a Worker global or even a Sandbox
@@ -215,7 +200,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
       return this._getWindowForBrowserConsole();
     }
     return this.parentActor.window || this.parentActor.workerGlobal;
-  },
+  }
 
   /**
    * Get a window to use for the browser console.
@@ -252,7 +237,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
     }
 
     return window;
-  },
+  }
 
   /**
    * Store a newly found window on the actor to be used in the future.
@@ -271,7 +256,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
     } else {
       this._lastChromeWindow = null;
     }
-  },
+  }
 
   /**
    * Whether we've been using a window before.
@@ -279,7 +264,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
    * @private
    * @type boolean
    */
-  _hadChromeWindow: false,
+  _hadChromeWindow = false;
 
   /**
    * A weak reference to the last chrome window we used to work with.
@@ -287,13 +272,13 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
    * @private
    * @type nsIWeakReference
    */
-  _lastChromeWindow: null,
+  _lastChromeWindow = null;
 
   // The evalGlobal is used at the scope for JS evaluation.
-  _evalGlobal: null,
+  _evalGlobal = null;
   get evalGlobal() {
     return this._evalGlobal || this.global;
-  },
+  }
 
   set evalGlobal(global) {
     this._evalGlobal = global;
@@ -302,7 +287,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
       EventEmitter.on(this.parentActor, "will-navigate", this._onWillNavigate);
       this._progressListenerActive = true;
     }
-  },
+  }
 
   /**
    * Flag used to track if we are listening for events from the progress
@@ -312,49 +297,49 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
    * @private
    * @type boolean
    */
-  _progressListenerActive: false,
+  _progressListenerActive = false;
 
   /**
    * The ConsoleServiceListener instance.
    * @type object
    */
-  consoleServiceListener: null,
+  consoleServiceListener = null;
 
   /**
    * The ConsoleAPIListener instance.
    */
-  consoleAPIListener: null,
+  consoleAPIListener = null;
 
   /**
    * The ConsoleFileActivityListener instance.
    */
-  consoleFileActivityListener: null,
+  consoleFileActivityListener = null;
 
   /**
    * The ConsoleReflowListener instance.
    */
-  consoleReflowListener: null,
+  consoleReflowListener = null;
 
   /**
    * The Web Console Commands names cache.
    * @private
    * @type array
    */
-  _webConsoleCommandsCache: null,
+  _webConsoleCommandsCache = null;
 
   grip() {
     return { actor: this.actorID };
-  },
+  }
 
-  _findProtoChain: ThreadActor.prototype._findProtoChain,
-  _removeFromProtoChain: ThreadActor.prototype._removeFromProtoChain,
+  _findProtoChain = ThreadActor.prototype._findProtoChain;
+  _removeFromProtoChain = ThreadActor.prototype._removeFromProtoChain;
 
   /**
    * Destroy the current WebConsoleActor instance.
    */
   destroy() {
     this.stopListeners();
-    Actor.prototype.destroy.call(this);
+    super.destroy();
 
     EventEmitter.off(
       this.parentActor,
@@ -362,19 +347,11 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
       this._onChangedToplevelDocument
     );
 
-    if (this.parentActor.isRootActor) {
-      Services.obs.removeObserver(
-        this._onObserverNotification,
-        "last-pb-context-exited"
-      );
-    }
-
     this._webConsoleCommandsCache = null;
     this._lastConsoleInputEvaluation = null;
     this._evalGlobal = null;
     this.dbg = null;
-    this.conn = null;
-  },
+  }
 
   /**
    * Create and return an environment actor that corresponds to the provided
@@ -401,7 +378,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
     environment.actor = actor;
 
     return actor;
-  },
+  }
 
   /**
    * Create a grip for the given value.
@@ -411,7 +388,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
    */
   createValueGrip(value) {
     return createValueGrip(value, this, this.objectGrip);
-  },
+  }
 
   /**
    * Make a debuggee value for the given value.
@@ -437,7 +414,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
     }
     const dbgGlobal = this.dbg.makeGlobalObjectReference(this.global);
     return dbgGlobal.makeDebuggeeValue(value);
-  },
+  }
 
   /**
    * Create a grip for the given object.
@@ -464,7 +441,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
     );
     pool.manage(actor);
     return actor.form();
-  },
+  }
 
   /**
    * Create a grip for the given string.
@@ -480,7 +457,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
     const actor = new LongStringActor(this.conn, string);
     pool.manage(actor);
     return actor.form();
-  },
+  }
 
   /**
    * Create a long string grip if needed for the given string.
@@ -497,7 +474,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
       return this.longStringGrip(string, this);
     }
     return string;
-  },
+  }
 
   /**
    * Returns the latest web console input evaluation.
@@ -507,7 +484,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
    */
   getLastConsoleInputEvaluation() {
     return this._lastConsoleInputEvaluation;
-  },
+  }
 
   /**
    * Preprocess a debugger object (e.g. return the `boundTargetFunction`
@@ -524,7 +501,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
     }
 
     return dbgObj;
-  },
+  }
 
   /**
    * This helper is used by the WebExtensionInspectedWindowActor to
@@ -541,7 +518,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
       objectActor: this.createValueGrip(dbgObj),
       inspectFromAnnotation,
     });
-  },
+  }
 
   // Request handlers for known packet types.
 
@@ -668,7 +645,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
     return {
       startedListeners,
     };
-  },
+  }
 
   /**
    * Handler for the "stopListeners" request.
@@ -736,7 +713,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
     stoppedListeners.forEach(this._listeners.delete, this._listeners);
 
     return { stoppedListeners };
-  },
+  }
 
   /**
    * Handler for the "getCachedMessages" request. This method sends the cached
@@ -840,7 +817,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
     return {
       messages,
     };
-  },
+  }
 
   /**
    * Handler for the "evaluateJSAsync" request. This method evaluates a given
@@ -895,7 +872,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
       }
     });
     return { resultID };
-  },
+  }
 
   /**
    * In order to have asynchronous commands (e.g. screenshot, top-level await, …) ,
@@ -949,7 +926,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
     }
 
     return response;
-  },
+  }
 
   /**
    * Handler for the "evaluateJS" request. This method evaluates the given
@@ -1007,7 +984,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
         }
       });
     });
-  },
+  }
 
   // eslint-disable-next-line complexity
   prepareEvaluationResult(evalInfo, input, eager, mapped) {
@@ -1193,7 +1170,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
       helperResult,
       notes: errorNotes,
     };
-  },
+  }
 
   /**
    * The Autocomplete request handler.
@@ -1336,7 +1313,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
       matchProp,
       isElementAccess: isElementAccess === true,
     };
-  },
+  }
 
   /**
    * The "clearMessagesCacheAsync" request handler.
@@ -1372,7 +1349,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
         Services.console.resetWindow(id)
       );
     }
-  },
+  }
 
   // End of request handlers.
 
@@ -1434,7 +1411,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
       Object.defineProperty(helpers.sandbox, name, desc);
     }
     return helpers;
-  },
+  }
 
   _getWebConsoleCommandsCache() {
     if (!this._webConsoleCommandsCache) {
@@ -1447,7 +1424,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
       );
     }
     return this._webConsoleCommandsCache;
-  },
+  }
 
   // Event handlers for various listeners.
 
@@ -1469,14 +1446,14 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
         timeStamp: message.microSecondTimeStamp / 1000,
       });
     }
-  },
+  }
 
   getActorIdForInternalSourceId(id) {
     const actor = this.parentActor.sourcesManager.getSourceActorByInternalSourceId(
       id
     );
     return actor ? actor.actorID : null;
-  },
+  }
 
   /**
    * Prepare a SavedFrame stack to be sent to the client.
@@ -1507,7 +1484,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
       s = s.parent || s.asyncParent;
     }
     return stack;
-  },
+  }
 
   /**
    * Prepare an nsIScriptError to be sent to the client.
@@ -1597,7 +1574,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
     }
 
     return result;
-  },
+  }
 
   /**
    * Handler for window.console API calls received from the ConsoleAPIListener.
@@ -1614,7 +1591,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
       message: this.prepareConsoleMessageForRemote(message),
       ...extraProperties,
     });
-  },
+  }
 
   /**
    * Handler for the DocumentEventsListener.
@@ -1637,7 +1614,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
       time,
       hasNativeConsoleAPI,
     });
-  },
+  }
 
   /**
    * Handler for file activity. This method sends the file request information
@@ -1651,7 +1628,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
     this.emit("fileActivity", {
       uri: fileURI,
     });
-  },
+  }
 
   // End of event handlers for various listeners.
 
@@ -1732,7 +1709,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
     }
 
     return result;
-  },
+  }
 
   /**
    * Return the properties needed to display the appropriate table for a given
@@ -1803,23 +1780,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
     });
 
     return ownProperties;
-  },
-
-  /**
-   * Notification observer for the "last-pb-context-exited" topic.
-   *
-   * @private
-   * @param object subject
-   *        Notification subject - in this case it is the inner window ID that
-   *        was destroyed.
-   * @param string topic
-   *        Notification topic.
-   */
-  _onObserverNotification(subject, topic) {
-    if (topic === "last-pb-context-exited") {
-      this.emit("lastPrivateContextExited");
-    }
-  },
+  }
 
   /**
    * The "will-navigate" progress listener. This is used to clear the current
@@ -1831,7 +1792,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
       EventEmitter.off(this.parentActor, "will-navigate", this._onWillNavigate);
       this._progressListenerActive = false;
     }
-  },
+  }
 
   /**
    * This listener is called when we switch to another frame,
@@ -1851,7 +1812,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
 
     // Also reset the cached top level chrome window being targeted
     this._lastChromeWindow = null;
-  },
-});
+  }
+}
 
 exports.WebConsoleActor = WebConsoleActor;

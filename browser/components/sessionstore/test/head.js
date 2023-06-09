@@ -2,9 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const { E10SUtils } = ChromeUtils.importESModule(
-  "resource://gre/modules/E10SUtils.sys.mjs"
-);
 const triggeringPrincipal_base64 = E10SUtils.SERIALIZED_SYSTEMPRINCIPAL;
 
 const TAB_STATE_NEEDS_RESTORE = 1;
@@ -470,6 +467,13 @@ function forgetClosedWindows() {
   }
 }
 
+// Forget all closed tabs for a window
+function forgetClosedTabs(win) {
+  while (ss.getClosedTabCount(win) > 0) {
+    ss.forgetClosedTab(win, 0);
+  }
+}
+
 /**
  * When opening a new window it is not sufficient to wait for its load event.
  * We need to use whenDelayedStartupFinshed() here as the browser window's
@@ -752,4 +756,27 @@ async function openAndCloseTab(window, url) {
   await promiseBrowserLoaded(tab.linkedBrowser, true, url);
   await TabStateFlusher.flush(tab.linkedBrowser);
   await promiseRemoveTabAndSessionState(tab);
+}
+
+/**
+ * This is regrettable, but when `promiseBrowserState` resolves, we're still
+ * midway through loading the tabs. To avoid race conditions in URLs for tabs
+ * being available, wait for all the loads to finish:
+ */
+function promiseSessionStoreLoads(numberOfLoads) {
+  let loadsSeen = 0;
+  return new Promise(resolve => {
+    Services.obs.addObserver(function obs(browser) {
+      loadsSeen++;
+      if (loadsSeen == numberOfLoads) {
+        resolve();
+      }
+      // The typeof check is here to avoid one test messing with everything else by
+      // keeping the observer indefinitely.
+      if (typeof info == "undefined" || loadsSeen >= numberOfLoads) {
+        Services.obs.removeObserver(obs, "sessionstore-debug-tab-restored");
+      }
+      info("Saw load for " + browser.currentURI.spec);
+    }, "sessionstore-debug-tab-restored");
+  });
 }

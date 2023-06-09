@@ -9,9 +9,7 @@ use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 
 use std::{
     borrow::{Borrow, Cow},
-    iter, mem,
-    num::NonZeroU32,
-    ptr,
+    iter, mem, ptr,
     time::Instant,
 };
 
@@ -96,6 +94,8 @@ impl<A: hal::Api> Example<A> {
             } else {
                 hal::InstanceFlags::empty()
             },
+            // Can't rely on having DXC available, so use FXC instead
+            dx12_shader_compiler: wgt::Dx12Compiler::Fxc,
         };
         let instance = unsafe { A::Instance::init(&instance_desc)? };
         let mut surface = unsafe {
@@ -137,6 +137,7 @@ impl<A: hal::Api> Example<A> {
                 depth_or_array_layers: 1,
             },
             usage: hal::TextureUses::COLOR_TARGET,
+            view_formats: vec![],
         };
         unsafe {
             surface.configure(&device, &surface_config).unwrap();
@@ -148,7 +149,7 @@ impl<A: hal::Api> Example<A> {
                 .join("halmark")
                 .join("shader.wgsl");
             let source = std::fs::read_to_string(shader_file).unwrap();
-            let module = naga::front::wgsl::Parser::new().parse(&source).unwrap();
+            let module = naga::front::wgsl::Frontend::new().parse(&source).unwrap();
             let info = naga::valid::Validator::new(
                 naga::valid::ValidationFlags::all(),
                 naga::valid::Capabilities::empty(),
@@ -297,6 +298,7 @@ impl<A: hal::Api> Example<A> {
             format: wgt::TextureFormat::Rgba8UnormSrgb,
             usage: hal::TextureUses::COPY_DST | hal::TextureUses::RESOURCE,
             memory_flags: hal::MemoryFlags::empty(),
+            view_formats: vec![],
         };
         let texture = unsafe { device.create_texture(&texture_desc).unwrap() };
 
@@ -324,7 +326,7 @@ impl<A: hal::Api> Example<A> {
             let copy = hal::BufferTextureCopy {
                 buffer_layout: wgt::ImageDataLayout {
                     offset: 0,
-                    bytes_per_row: NonZeroU32::new(4),
+                    bytes_per_row: Some(4),
                     rows_per_image: None,
                 },
                 texture_base: hal::TextureCopyBase {
@@ -353,9 +355,9 @@ impl<A: hal::Api> Example<A> {
             mag_filter: wgt::FilterMode::Linear,
             min_filter: wgt::FilterMode::Nearest,
             mipmap_filter: wgt::FilterMode::Nearest,
-            lod_clamp: None,
+            lod_clamp: 0.0..32.0,
             compare: None,
-            anisotropy_clamp: None,
+            anisotropy_clamp: 1,
             border_color: None,
         };
         let sampler = unsafe { device.create_sampler(&sampler_desc).unwrap() };
@@ -393,7 +395,7 @@ impl<A: hal::Api> Example<A> {
             buffer
         };
 
-        let local_alignment = hal::auxil::align_to(
+        let local_alignment = wgt::math::align_to(
             mem::size_of::<Locals>() as u32,
             capabilities.limits.min_uniform_buffer_offset_alignment,
         );

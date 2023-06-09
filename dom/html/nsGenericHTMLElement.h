@@ -17,6 +17,8 @@
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/DOMRect.h"
 #include "mozilla/dom/ValidityState.h"
+#include "mozilla/dom/PopoverData.h"
+#include "mozilla/dom/ToggleEvent.h"
 
 class nsDOMTokenList;
 class nsIFormControlFrame;
@@ -75,9 +77,20 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
     GetHTMLAttr(nsGkAtoms::lang, aLang);
   }
   void SetLang(const nsAString& aLang) { SetHTMLAttr(nsGkAtoms::lang, aLang); }
+  bool Translate() const override;
+  void SetTranslate(bool aTranslate, mozilla::ErrorResult& aError) {
+    SetHTMLAttr(nsGkAtoms::translate, aTranslate ? u"yes"_ns : u"no"_ns,
+                aError);
+  }
   void GetDir(nsAString& aDir) { GetHTMLEnumAttr(nsGkAtoms::dir, aDir); }
   void SetDir(const nsAString& aDir, mozilla::ErrorResult& aError) {
     SetHTMLAttr(nsGkAtoms::dir, aDir, aError);
+  }
+  void GetPopover(nsString& aPopover) {
+    GetHTMLEnumAttr(nsGkAtoms::popover, aPopover);
+  }
+  void SetPopover(const nsAString& aPopover, mozilla::ErrorResult& aError) {
+    SetHTMLAttr(nsGkAtoms::popover, aPopover, aError);
   }
   bool Hidden() const { return GetBoolAttr(nsGkAtoms::hidden); }
   void SetHidden(bool aHidden, mozilla::ErrorResult& aError) {
@@ -137,6 +150,33 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
     }
     return false;
   }
+
+  mozilla::dom::PopoverState GetPopoverState() const;
+  void PopoverPseudoStateUpdate(bool aOpen, bool aNotify);
+  bool PopoverOpen() const;
+  bool CheckPopoverValidity(mozilla::dom::PopoverVisibilityState aExpectedState,
+                            Document* aExpectedDocument, ErrorResult& aRv);
+  /** Returns true if the event has been cancelled. */
+  MOZ_CAN_RUN_SCRIPT bool FireToggleEvent(
+      mozilla::dom::PopoverVisibilityState aOldState,
+      mozilla::dom::PopoverVisibilityState aNewState, const nsAString& aType);
+  MOZ_CAN_RUN_SCRIPT void QueuePopoverEventTask(
+      mozilla::dom::PopoverVisibilityState aOldState);
+  MOZ_CAN_RUN_SCRIPT void RunPopoverToggleEventTask(
+      mozilla::dom::PopoverToggleEventTask* aTask,
+      mozilla::dom::PopoverVisibilityState aOldState);
+  MOZ_CAN_RUN_SCRIPT void ShowPopover(ErrorResult& aRv);
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY void HidePopoverWithoutRunningScript();
+  MOZ_CAN_RUN_SCRIPT void HidePopoverInternal(bool aFocusPreviousElement,
+                                              bool aFireEvents,
+                                              ErrorResult& aRv);
+  MOZ_CAN_RUN_SCRIPT void HidePopover(ErrorResult& aRv);
+  MOZ_CAN_RUN_SCRIPT void TogglePopover(bool force, ErrorResult& aRv);
+  MOZ_CAN_RUN_SCRIPT void FocusPopover();
+  void ForgetPreviouslyFocusedElementAfterHidingPopover();
+  MOZ_CAN_RUN_SCRIPT void FocusPreviousElementAfterHidingPopover();
+
+  MOZ_CAN_RUN_SCRIPT void FocusCandidate(Element&, bool aClearUpFocus);
 
   void SetNonce(const nsAString& aNonce) {
     SetProperty(nsGkAtoms::nonce, new nsString(aNonce),
@@ -198,7 +238,7 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
    * @param aName the attribute
    * @return whether the name is an event handler name
    */
-  virtual bool IsEventAttributeNameInternal(nsAtom* aName) override;
+  bool IsEventAttributeNameInternal(nsAtom* aName) override;
 
 #define EVENT(name_, id_, type_, struct_) /* nothing; handled by nsINode */
 // The using nsINode::Get/SetOn* are to avoid warnings about shadowing the XPCOM
@@ -283,11 +323,10 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
 
  public:
   // Implementation for nsIContent
-  virtual nsresult BindToTree(BindContext&, nsINode& aParent) override;
-  virtual void UnbindFromTree(bool aNullParent = true) override;
+  nsresult BindToTree(BindContext&, nsINode& aParent) override;
+  void UnbindFromTree(bool aNullParent = true) override;
 
-  virtual bool IsFocusableInternal(int32_t* aTabIndex,
-                                   bool aWithMouse) override {
+  bool IsFocusableInternal(int32_t* aTabIndex, bool aWithMouse) override {
     bool isFocusable = false;
     IsHTMLFocusable(aWithMouse, &isFocusable, aTabIndex);
     return isFocusable;
@@ -299,7 +338,7 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
   virtual bool IsHTMLFocusable(bool aWithMouse, bool* aIsFocusable,
                                int32_t* aTabIndex);
   MOZ_CAN_RUN_SCRIPT
-  virtual mozilla::Result<bool, nsresult> PerformAccesskey(
+  mozilla::Result<bool, nsresult> PerformAccesskey(
       bool aKeyCausesActivation, bool aIsTrustedEvent) override;
 
   /**
@@ -316,9 +355,9 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
   // HTML element methods
   void Compact() { mAttrs.Compact(); }
 
-  virtual void UpdateEditableState(bool aNotify) override;
+  void UpdateEditableState(bool aNotify) override;
 
-  virtual mozilla::dom::ElementState IntrinsicState() const override;
+  mozilla::dom::ElementState IntrinsicState() const override;
 
   // Helper for setting our editable flag and notifying
   void DoSetEditableFlag(bool aEditable, bool aNotify) {
@@ -326,17 +365,16 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
     UpdateState(aNotify);
   }
 
-  virtual bool ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
-                              const nsAString& aValue,
-                              nsIPrincipal* aMaybeScriptedPrincipal,
-                              nsAttrValue& aResult) override;
+  bool ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
+                      const nsAString& aValue,
+                      nsIPrincipal* aMaybeScriptedPrincipal,
+                      nsAttrValue& aResult) override;
 
   bool ParseBackgroundAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
                                 const nsAString& aValue, nsAttrValue& aResult);
 
   NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* aAttribute) const override;
-  virtual nsMapRuleToAttributesFunc GetAttributeMappingFunction()
-      const override;
+  nsMapRuleToAttributesFunc GetAttributeMappingFunction() const override;
 
   /**
    * Get the base target for any links within this piece
@@ -660,7 +698,7 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
     return HasAttr(kNameSpaceID_None, nsGkAtoms::hidden);
   }
 
-  virtual bool IsLabelable() const override;
+  bool IsLabelable() const override;
 
   static bool MatchLabelsElement(Element* aElement, int32_t aNamespaceID,
                                  nsAtom* aAtom, void* aData);
@@ -712,17 +750,16 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
   }
 
  protected:
-  virtual nsresult BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
-                                 const nsAttrValueOrString* aValue,
-                                 bool aNotify) override;
+  void BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
+                     const nsAttrValue* aValue, bool aNotify) override;
   // TODO: Convert AfterSetAttr to MOZ_CAN_RUN_SCRIPT and get rid of
   // kungFuDeathGrip in it.
-  MOZ_CAN_RUN_SCRIPT_BOUNDARY virtual nsresult AfterSetAttr(
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY void AfterSetAttr(
       int32_t aNamespaceID, nsAtom* aName, const nsAttrValue* aValue,
       const nsAttrValue* aOldValue, nsIPrincipal* aMaybeScriptedPrincipal,
       bool aNotify) override;
 
-  virtual mozilla::EventListenerManager* GetEventListenerManagerForAttr(
+  mozilla::EventListenerManager* GetEventListenerManagerForAttr(
       nsAtom* aAttrName, bool* aDefer) override;
 
   /**
@@ -987,8 +1024,8 @@ class nsGenericHTMLFormElement : public nsGenericHTMLElement {
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
 
   // nsIContent
-  virtual nsresult BindToTree(BindContext&, nsINode& aParent) override;
-  virtual void UnbindFromTree(bool aNullParent = true) override;
+  nsresult BindToTree(BindContext&, nsINode& aParent) override;
+  void UnbindFromTree(bool aNullParent = true) override;
 
   /**
    * This callback is called by a fieldest on all its elements whenever its
@@ -1017,15 +1054,13 @@ class nsGenericHTMLFormElement : public nsGenericHTMLElement {
  protected:
   virtual ~nsGenericHTMLFormElement() = default;
 
-  virtual nsresult BeforeSetAttr(int32_t aNameSpaceID, nsAtom* aName,
-                                 const nsAttrValueOrString* aValue,
-                                 bool aNotify) override;
+  void BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
+                     const nsAttrValue* aValue, bool aNotify) override;
 
-  virtual nsresult AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
-                                const nsAttrValue* aValue,
-                                const nsAttrValue* aOldValue,
-                                nsIPrincipal* aMaybeScriptedPrincipal,
-                                bool aNotify) override;
+  void AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                    const nsAttrValue* aValue, const nsAttrValue* aOldValue,
+                    nsIPrincipal* aMaybeScriptedPrincipal,
+                    bool aNotify) override;
 
   virtual void BeforeSetForm(bool aBindToTree) {}
 
@@ -1120,44 +1155,40 @@ class nsGenericHTMLFormControlElement : public nsGenericHTMLFormElement,
   NS_DECL_ISUPPORTS_INHERITED
 
   NS_IMPL_FROMNODE_HELPER(nsGenericHTMLFormControlElement,
-                          IsNodeOfType(nsINode::eHTML_FORM_CONTROL))
+                          IsHTMLFormControlElement())
 
   // nsINode
   nsINode* GetScopeChainParent() const override;
-  virtual bool IsNodeOfType(uint32_t aFlags) const override;
+  bool IsHTMLFormControlElement() const final { return true; }
 
   // nsIContent
-  virtual void SaveSubtreeState() override;
-  virtual IMEState GetDesiredIMEState() override;
-  virtual nsresult BindToTree(BindContext&, nsINode& aParent) override;
-  virtual void UnbindFromTree(bool aNullParent = true) override;
+  void SaveSubtreeState() override;
+  IMEState GetDesiredIMEState() override;
+  void UnbindFromTree(bool aNullParent = true) override;
 
   // nsGenericHTMLElement
   // autocapitalize attribute support
-  virtual void GetAutocapitalize(nsAString& aValue) const override;
-  virtual bool IsHTMLFocusable(bool aWithMouse, bool* aIsFocusable,
-                               int32_t* aTabIndex) override;
+  void GetAutocapitalize(nsAString& aValue) const override;
+  bool IsHTMLFocusable(bool aWithMouse, bool* aIsFocusable,
+                       int32_t* aTabIndex) override;
 
   // EventTarget
   void GetEventTargetParent(mozilla::EventChainPreVisitor& aVisitor) override;
-  virtual nsresult PreHandleEvent(
-      mozilla::EventChainVisitor& aVisitor) override;
+  nsresult PreHandleEvent(mozilla::EventChainVisitor& aVisitor) override;
 
   // nsIFormControl
-  virtual mozilla::dom::HTMLFieldSetElement* GetFieldSet() override;
-  virtual mozilla::dom::HTMLFormElement* GetForm() const override {
-    return mForm;
-  }
-  virtual void SetForm(mozilla::dom::HTMLFormElement* aForm) override;
-  virtual void ClearForm(bool aRemoveFromForm, bool aUnbindOrDelete) override;
-  virtual bool AllowDrop() override { return true; }
+  mozilla::dom::HTMLFieldSetElement* GetFieldSet() override;
+  mozilla::dom::HTMLFormElement* GetForm() const override { return mForm; }
+  void SetForm(mozilla::dom::HTMLFormElement* aForm) override;
+  void ClearForm(bool aRemoveFromForm, bool aUnbindOrDelete) override;
+  bool AllowDrop() override { return true; }
 
  protected:
   virtual ~nsGenericHTMLFormControlElement();
 
   // Element
-  virtual mozilla::dom::ElementState IntrinsicState() const override;
-  virtual bool IsLabelable() const override;
+  mozilla::dom::ElementState IntrinsicState() const override;
+  bool IsLabelable() const override;
 
   // nsGenericHTMLFormElement
   bool CanBeDisabled() const override;
@@ -1191,12 +1222,43 @@ class nsGenericHTMLFormControlElement : public nsGenericHTMLFormElement,
   mozilla::dom::HTMLFieldSetElement* mFieldSet;
 };
 
+enum class PopoverTargetAction : uint8_t {
+  Toggle,
+  Show,
+  Hide,
+};
+
 class nsGenericHTMLFormControlElementWithState
     : public nsGenericHTMLFormControlElement {
  public:
   nsGenericHTMLFormControlElementWithState(
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo,
       mozilla::dom::FromParser aFromParser, FormControlType);
+
+  bool IsGenericHTMLFormControlElementWithState() const final { return true; }
+  NS_IMPL_FROMNODE_HELPER(nsGenericHTMLFormControlElementWithState,
+                          IsGenericHTMLFormControlElementWithState())
+
+  // Element
+  bool ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
+                      const nsAString& aValue,
+                      nsIPrincipal* aMaybeScriptedPrincipal,
+                      nsAttrValue& aResult) override;
+
+  // PopoverInvokerElement
+  mozilla::dom::Element* GetPopoverTargetElement() const;
+  void SetPopoverTargetElement(mozilla::dom::Element*);
+  void GetPopoverTargetAction(nsAString& aValue) const {
+    GetHTMLEnumAttr(nsGkAtoms::popovertargetaction, aValue);
+  }
+  void SetPopoverTargetAction(const nsAString& aValue) {
+    SetHTMLAttr(nsGkAtoms::popovertargetaction, aValue);
+  }
+
+  /**
+   * https://html.spec.whatwg.org/#popover-target-attribute-activation-behavior
+   */
+  MOZ_CAN_RUN_SCRIPT void HandlePopoverTargetAction();
 
   /**
    * Get the presentation state for a piece of content, or create it if it does
@@ -1217,7 +1279,7 @@ class nsGenericHTMLFormControlElementWithState
    * Called when we have been cloned and adopted, and the information of the
    * node has been changed.
    */
-  virtual void NodeInfoChanged(Document* aOldDoc) override;
+  void NodeInfoChanged(Document* aOldDoc) override;
 
   void GetFormAction(nsString& aValue);
 

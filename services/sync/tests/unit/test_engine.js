@@ -4,10 +4,12 @@
 const { PromiseUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/PromiseUtils.sys.mjs"
 );
-const { Observers } = ChromeUtils.import(
-  "resource://services-common/observers.js"
+const { Observers } = ChromeUtils.importESModule(
+  "resource://services-common/observers.sys.mjs"
 );
-const { Service } = ChromeUtils.import("resource://services-sync/service.js");
+const { Service } = ChromeUtils.importESModule(
+  "resource://services-sync/service.sys.mjs"
+);
 
 function SteamStore(engine) {
   Store.call(this, "Steam", engine);

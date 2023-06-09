@@ -118,8 +118,8 @@ CallObject* CallObject::createWithShape(JSContext* cx,
  */
 CallObject* CallObject::create(JSContext* cx, HandleScript script,
                                HandleObject enclosing, gc::InitialHeap heap) {
-  Rooted<FunctionScope*> scope(cx, &script->bodyScope()->as<FunctionScope>());
-  Rooted<SharedShape*> shape(cx, scope->environmentShape());
+  Rooted<SharedShape*> shape(
+      cx, script->bodyScope()->as<FunctionScope>().environmentShape());
   MOZ_ASSERT(shape->getObjectClass() == &class_);
 
   // The JITs assume the result is nursery allocated unless we collected the
@@ -132,18 +132,6 @@ CallObject* CallObject::create(JSContext* cx, HandleScript script,
 
   if (enclosing) {
     callObj->initEnclosingEnvironment(enclosing);
-  }
-
-  if (scope->hasParameterExprs()) {
-    // If there are parameter expressions, all parameters are lexical and
-    // have TDZ.
-    for (BindingIter bi(script->bodyScope()); bi; bi++) {
-      BindingLocation loc = bi.location();
-      if (loc.kind() == BindingLocation::Kind::Environment &&
-          BindingKindIsLexical(bi.kind())) {
-        callObj->initSlot(loc.slot(), MagicValue(JS_UNINITIALIZED_LEXICAL));
-      }
-    }
   }
 
   return callObj;
@@ -169,20 +157,6 @@ CallObject* CallObject::create(JSContext* cx, AbstractFramePtr frame) {
   }
 
   callobj->initFixedSlot(CALLEE_SLOT, ObjectValue(*callee));
-
-  if (!frame.script()->bodyScope()->as<FunctionScope>().hasParameterExprs()) {
-    // If there are no defaults, copy the aliased arguments into the call
-    // object manually. If there are defaults, bytecode is generated to do
-    // the copying.
-
-    for (PositionalFormalParameterIter fi(frame.script()); fi; fi++) {
-      if (!fi.closedOver()) {
-        continue;
-      }
-      callobj->setAliasedBinding(
-          fi, frame.unaliasedFormal(fi.argumentSlot(), DONT_CHECK_ALIASING));
-    }
-  }
 
   return callobj;
 }
@@ -3324,8 +3298,7 @@ bool js::CreateObjectsForEnvironmentChain(JSContext* cx,
 #ifdef DEBUG
   for (size_t i = 0; i < chain.length(); ++i) {
     cx->check(chain[i]);
-    MOZ_ASSERT(!chain[i]->is<GlobalObject>() &&
-               !chain[i]->is<NonSyntacticVariablesObject>());
+    MOZ_ASSERT(!chain[i]->isUnqualifiedVarObj());
   }
 #endif
 
@@ -3517,6 +3490,7 @@ bool js::CheckLexicalNameConflict(
   const char* redeclKind = nullptr;
   RootedId id(cx, NameToId(name));
   mozilla::Maybe<PropertyInfo> prop;
+  bool shadowsExistingProperty = false;
   if (varObj->is<GlobalObject>() &&
       varObj->as<GlobalObject>().isInVarNames(name)) {
     // ES 15.1.11 step 5.a
@@ -3530,6 +3504,8 @@ bool js::CheckLexicalNameConflict(
     // without going through a resolve hook.
     if (!prop->configurable()) {
       redeclKind = "non-configurable global property";
+    } else {
+      shadowsExistingProperty = true;
     }
   } else {
     // ES 15.1.11 step 5.c-d
@@ -3537,14 +3513,23 @@ bool js::CheckLexicalNameConflict(
     if (!GetOwnPropertyDescriptor(cx, varObj, id, &desc)) {
       return false;
     }
-    if (desc.isSome() && !desc->configurable()) {
-      redeclKind = "non-configurable global property";
+    if (desc.isSome()) {
+      if (!desc->configurable()) {
+        redeclKind = "non-configurable global property";
+      } else {
+        shadowsExistingProperty = true;
+      }
     }
   }
 
   if (redeclKind) {
     ReportRuntimeRedeclaration(cx, name, redeclKind);
     return false;
+  }
+  if (shadowsExistingProperty && varObj->is<GlobalObject>()) {
+    // Shadowing a configurable global property with a new lexical is one
+    // of the rare ways to invalidate a GetGName stub.
+    varObj->as<GlobalObject>().bumpGenerationCount();
   }
 
   return true;
@@ -3982,7 +3967,7 @@ bool js::GlobalOrEvalDeclInstantiation(JSContext* cx, HandleObject envChain,
 
 bool js::InitFunctionEnvironmentObjects(JSContext* cx, AbstractFramePtr frame) {
   MOZ_ASSERT(frame.isFunctionFrame());
-  MOZ_ASSERT(frame.callee()->needsSomeEnvironmentObject());
+  MOZ_ASSERT(frame.callee()->needsFunctionEnvironmentObjects());
 
   RootedFunction callee(cx, frame.callee());
 

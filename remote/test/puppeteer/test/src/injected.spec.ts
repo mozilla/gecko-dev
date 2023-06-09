@@ -15,26 +15,51 @@
  */
 
 import expect from 'expect';
-import '../../lib/cjs/puppeteer/generated/injected.js';
-import {PUPPETEER_WORLD} from '../../lib/cjs/puppeteer/common/IsolatedWorld.js';
+import {PUPPETEER_WORLD} from 'puppeteer-core/internal/common/IsolatedWorlds.js';
+import {LazyArg} from 'puppeteer-core/internal/common/LazyArg.js';
+
 import {
   getTestState,
   setupTestBrowserHooks,
   setupTestPageAndContextHooks,
 } from './mocha-utils.js';
 
-describe('InjectedUtil tests', function () {
+describe('PuppeteerUtil tests', function () {
   setupTestBrowserHooks();
   setupTestPageAndContextHooks();
 
   it('should work', async () => {
     const {page} = getTestState();
 
-    const handle = await page
-      .mainFrame()
-      .worlds[PUPPETEER_WORLD].evaluate(() => {
-        return typeof InjectedUtil === 'object';
-      });
-    expect(handle).toBeTruthy();
+    const world = page.mainFrame().worlds[PUPPETEER_WORLD];
+    const value = await world.evaluate(
+      PuppeteerUtil => {
+        return typeof PuppeteerUtil === 'object';
+      },
+      LazyArg.create(context => {
+        return context.puppeteerUtil;
+      })
+    );
+    expect(value).toBeTruthy();
+  });
+
+  describe('createFunction tests', function () {
+    it('should work', async () => {
+      const {page} = getTestState();
+
+      const world = page.mainFrame().worlds[PUPPETEER_WORLD];
+      const value = await world.evaluate(
+        ({createFunction}, fnString) => {
+          return createFunction(fnString)(4);
+        },
+        LazyArg.create(context => {
+          return context.puppeteerUtil;
+        }),
+        (() => {
+          return 4;
+        }).toString()
+      );
+      expect(value).toBe(4);
+    });
   });
 });

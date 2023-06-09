@@ -447,12 +447,6 @@ class LJSCallInstructionHelper
       : LCallInstructionHelper<Defs, Operands, Temps>(opcode) {}
 
  public:
-  uint32_t paddedNumStackArgs() const {
-    if (JitStackValueAlignment > 1) {
-      return AlignBytes(mir()->numStackArgs(), JitStackValueAlignment);
-    }
-    return mir()->numStackArgs();
-  }
   MCall* mir() const { return this->mir_->toCall(); }
 
   bool hasSingleTarget() const { return getSingleTarget() != nullptr; }
@@ -515,6 +509,35 @@ class LCallNative : public LJSCallInstructionHelper<BOX_PIECES, 0, 4> {
     // Temporary registers.
     setTemp(3, tmpreg);
   }
+
+  const LDefinition* getArgContextReg() { return getTemp(0); }
+  const LDefinition* getArgUintNReg() { return getTemp(1); }
+  const LDefinition* getArgVpReg() { return getTemp(2); }
+  const LDefinition* getTempReg() { return getTemp(3); }
+};
+
+class LCallClassHook : public LCallInstructionHelper<BOX_PIECES, 1, 4> {
+ public:
+  LIR_HEADER(CallClassHook)
+
+  LCallClassHook(const LAllocation& callee, const LDefinition& argContext,
+                 const LDefinition& argUintN, const LDefinition& argVp,
+                 const LDefinition& tmpreg)
+      : LCallInstructionHelper(classOpcode) {
+    setOperand(0, callee);
+
+    // Registers used for callWithABI().
+    setTemp(0, argContext);
+    setTemp(1, argUintN);
+    setTemp(2, argVp);
+
+    // Temporary registers.
+    setTemp(3, tmpreg);
+  }
+
+  MCallClassHook* mir() const { return mir_->toCallClassHook(); }
+
+  const LAllocation* getCallee() { return this->getOperand(0); }
 
   const LDefinition* getArgContextReg() { return getTemp(0); }
   const LDefinition* getArgUintNReg() { return getTemp(1); }
@@ -1916,7 +1939,7 @@ class LBigIntBitNot : public LUnaryMath<2> {
 // This instruction requires a temporary float register.
 class LValueToInt32 : public LInstructionHelper<1, BOX_PIECES, 2> {
  public:
-  enum Mode { NORMAL, TRUNCATE, TRUNCATE_NOWRAP };
+  enum Mode { NORMAL, TRUNCATE };
 
  private:
   Mode mode_;
@@ -1933,9 +1956,13 @@ class LValueToInt32 : public LInstructionHelper<1, BOX_PIECES, 2> {
   }
 
   const char* extraName() const {
-    return mode() == NORMAL     ? "Normal"
-           : mode() == TRUNCATE ? "Truncate"
-                                : "TruncateNoWrap";
+    switch (mode()) {
+      case NORMAL:
+        return "Normal";
+      case TRUNCATE:
+        return "Truncate";
+    }
+    MOZ_CRASH("Invalid mode");
   }
 
   static const size_t Input = 0;
@@ -1950,10 +1977,6 @@ class LValueToInt32 : public LInstructionHelper<1, BOX_PIECES, 2> {
   MTruncateToInt32* mirTruncate() const {
     MOZ_ASSERT(mode_ == TRUNCATE);
     return mir_->toTruncateToInt32();
-  }
-  MToIntegerInt32* mirTruncateNoWrap() const {
-    MOZ_ASSERT(mode_ == TRUNCATE_NOWRAP);
-    return mir_->toToIntegerInt32();
   }
   MInstruction* mir() const { return mir_->toInstruction(); }
 };
@@ -2783,6 +2806,33 @@ class LAtomicTypedArrayElementBinopForEffect64
   }
 };
 
+class LIteratorHasIndicesAndBranch : public LControlInstructionHelper<2, 2, 2> {
+ public:
+  LIR_HEADER(IteratorHasIndicesAndBranch)
+
+  LIteratorHasIndicesAndBranch(MBasicBlock* ifTrue, MBasicBlock* ifFalse,
+                               const LAllocation& object,
+                               const LAllocation& iterator,
+                               const LDefinition& temp,
+                               const LDefinition& temp2)
+      : LControlInstructionHelper(classOpcode) {
+    setSuccessor(0, ifTrue);
+    setSuccessor(1, ifFalse);
+    setOperand(0, object);
+    setOperand(1, iterator);
+    setTemp(0, temp);
+    setTemp(1, temp2);
+  }
+
+  const LAllocation* object() { return getOperand(0); }
+  const LAllocation* iterator() { return getOperand(1); }
+  const LDefinition* temp() { return getTemp(0); }
+  const LDefinition* temp2() { return getTemp(1); }
+
+  MBasicBlock* ifTrue() const { return getSuccessor(0); }
+  MBasicBlock* ifFalse() const { return getSuccessor(1); }
+};
+
 class LIsNoIterAndBranch : public LControlInstructionHelper<2, BOX_PIECES, 0> {
  public:
   LIR_HEADER(IsNoIterAndBranch)
@@ -3265,7 +3315,7 @@ class LWasmDerivedPointer : public LInstructionHelper<1, 1, 0> {
     setOperand(0, base);
   }
   const LAllocation* base() { return getOperand(0); }
-  size_t offset() { return mirRaw()->toWasmDerivedPointer()->offset(); }
+  uint32_t offset() { return mirRaw()->toWasmDerivedPointer()->offset(); }
 };
 
 class LWasmDerivedIndexPointer : public LInstructionHelper<1, 2, 0> {
@@ -3701,36 +3751,41 @@ class LIonToWasmCallI64 : public LIonToWasmCallBase<INT64_PIECES> {
 class LWasmGcObjectIsSubtypeOfAndBranch
     : public LControlInstructionHelper<2, 2, 2> {
   uint32_t subTypingDepth_;
+  bool succeedOnNull_;
 
  public:
   LIR_HEADER(WasmGcObjectIsSubtypeOfAndBranch)
 
   static constexpr uint32_t Object = 0;
-  static constexpr uint32_t SuperTypeDef = 1;
+  static constexpr uint32_t SuperSuperTypeVector = 1;
 
   LWasmGcObjectIsSubtypeOfAndBranch(MBasicBlock* ifTrue, MBasicBlock* ifFalse,
                                     const LAllocation& object,
-                                    const LAllocation& superTypeDef,
-                                    uint32_t subTypingDepth,
+                                    const LAllocation& superSuperTypeVector,
+                                    uint32_t subTypingDepth, bool succeedOnNull,
                                     const LDefinition& temp0,
                                     const LDefinition& temp1)
       : LControlInstructionHelper(classOpcode),
-        subTypingDepth_(subTypingDepth) {
+        subTypingDepth_(subTypingDepth),
+        succeedOnNull_(succeedOnNull) {
     setSuccessor(0, ifTrue);
     setSuccessor(1, ifFalse);
     setOperand(Object, object);
-    setOperand(SuperTypeDef, superTypeDef);
+    setOperand(SuperSuperTypeVector, superSuperTypeVector);
     setTemp(0, temp0);
     setTemp(1, temp1);
   }
 
   uint32_t subTypingDepth() const { return subTypingDepth_; }
+  bool succeedOnNull() const { return succeedOnNull_; }
 
   MBasicBlock* ifTrue() const { return getSuccessor(0); }
   MBasicBlock* ifFalse() const { return getSuccessor(1); }
 
   const LAllocation* object() { return getOperand(Object); }
-  const LAllocation* superTypeDef() { return getOperand(SuperTypeDef); }
+  const LAllocation* superSuperTypeVector() {
+    return getOperand(SuperSuperTypeVector);
+  }
   const LDefinition* temp0() { return getTemp(0); }
   const LDefinition* temp1() { return getTemp(1); }
 };

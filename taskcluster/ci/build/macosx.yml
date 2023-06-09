@@ -53,23 +53,23 @@ macosx64/debug:
             - macosx64-sdk
             - sysroot-wasm32-wasi
 
-macosx64-hybrid/plain:
+macosx64-non-unified/plain:
     description: "MacOS X x64 Hybrid Cross-compile"
     index:
-        job-name: macosx64-hybrid
+        job-name: macosx64-non-unified
     treeherder:
         platform: osx-cross/plain
-        symbol: Bp-hybrid
+        symbol: Bp-nu
         tier: 1
     worker:
         max-run-time: 5400
         env:
-            PERFHERDER_EXTRA_OPTIONS: hybrid
+            PERFHERDER_EXTRA_OPTIONS: non-unified
     run:
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_mac_64_cross_builds.py
-        mozconfig-variant: hybrid
+        mozconfig-variant: non-unified
         extra-config:
             disable_package_metrics: true
     use-sccache: true
@@ -550,6 +550,39 @@ macosx64-add-on-devel/opt:
             - linux64-cctools-port
             - linux64-clang
             - linux64-sccache
+            - macosx64-sdk
+            - sysroot-wasm32-wasi
+
+macosx64-nightlyasrelease/opt:
+    description: "MacOS X Nightly-As-Release"
+    worker-type: b-linux-gcp
+    use-pgo: macosx64-shippable/opt
+    attributes:
+        enable-full-crashsymbols: true
+        skip-verify-test-packaging: true
+        upload-generated-sources: true
+    index:
+        job-name: macosx64-nightlyasrelease-opt
+    treeherder:
+        platform: osx-nightlyasrelease/opt
+        symbol: Bpgo(Bnar)
+        tier: 1
+    run-on-projects: [trunk-only]
+    worker:
+        max-run-time: 7200
+        env:
+            MOZ_AUTOMATION_PACKAGE_TESTS: "1"
+            PERFHERDER_EXTRA_OPTIONS: nightly-as-release
+    run:
+        config:
+            - builds/releng_base_firefox.py
+            - builds/releng_base_mac_64_cross_builds.py
+            - taskcluster_nightly.py
+        mozconfig-variant: nightly-as-release
+    fetches:
+        toolchain:
+            - linux64-cctools-port
+            - linux64-clang
             - macosx64-sdk
             - sysroot-wasm32-wasi
 

@@ -27,10 +27,7 @@ holding the result.
 */
 
 use crate::{arena::Handle, proc::index, valid::ModuleInfo};
-use std::{
-    fmt::{Error as FmtError, Write},
-    ops,
-};
+use std::fmt::{Error as FmtError, Write};
 
 mod keywords;
 pub mod sampler;
@@ -69,7 +66,7 @@ pub type BindingMap = std::collections::BTreeMap<crate::ResourceBinding, BindTar
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 #[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
 #[cfg_attr(any(feature = "serialize", feature = "deserialize"), serde(default))]
-pub struct PerStageResources {
+pub struct EntryPointResources {
     pub resources: BindingMap,
 
     pub push_constant_buffer: Option<Slot>,
@@ -80,26 +77,7 @@ pub struct PerStageResources {
     pub sizes_buffer: Option<Slot>,
 }
 
-#[derive(Clone, Debug, Default, Hash, Eq, PartialEq)]
-#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
-#[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
-#[cfg_attr(any(feature = "serialize", feature = "deserialize"), serde(default))]
-pub struct PerStageMap {
-    pub vs: PerStageResources,
-    pub fs: PerStageResources,
-    pub cs: PerStageResources,
-}
-
-impl ops::Index<crate::ShaderStage> for PerStageMap {
-    type Output = PerStageResources;
-    fn index(&self, stage: crate::ShaderStage) -> &PerStageResources {
-        match stage {
-            crate::ShaderStage::Vertex => &self.vs,
-            crate::ShaderStage::Fragment => &self.fs,
-            crate::ShaderStage::Compute => &self.cs,
-        }
-    }
-}
+pub type EntryPointResourceMap = std::collections::BTreeMap<String, EntryPointResources>;
 
 enum ResolvedBinding {
     BuiltIn(crate::BuiltIn),
@@ -156,8 +134,10 @@ pub enum Error {
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 #[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
 pub enum EntryPointError {
+    #[error("global '{0}' doesn't have a binding")]
+    MissingBinding(String),
     #[error("mapping of {0:?} is missing")]
-    MissingBinding(crate::ResourceBinding),
+    MissingBindTarget(crate::ResourceBinding),
     #[error("mapping for push constants is missing")]
     MissingPushConstants,
     #[error("mapping for sizes buffer is missing")]
@@ -196,8 +176,8 @@ enum LocationMode {
 pub struct Options {
     /// (Major, Minor) target version of the Metal Shading Language.
     pub lang_version: (u8, u8),
-    /// Map of per-stage resources to slots.
-    pub per_stage_map: PerStageMap,
+    /// Map of entry-point resources, indexed by entry point function name, to slots.
+    pub per_entry_point_map: EntryPointResourceMap,
     /// Samplers to be inlined into the code.
     pub inline_samplers: Vec<sampler::InlineSampler>,
     /// Make it possible to link different stages via SPIRV-Cross.
@@ -207,17 +187,20 @@ pub struct Options {
     /// Bounds checking policies.
     #[cfg_attr(feature = "deserialize", serde(default))]
     pub bounds_check_policies: index::BoundsCheckPolicies,
+    /// Should workgroup variables be zero initialized (by polyfilling)?
+    pub zero_initialize_workgroup_memory: bool,
 }
 
 impl Default for Options {
     fn default() -> Self {
         Options {
             lang_version: (2, 0),
-            per_stage_map: PerStageMap::default(),
+            per_entry_point_map: EntryPointResourceMap::default(),
             inline_samplers: Vec::new(),
             spirv_cross_compatibility: false,
             fake_missing_bindings: true,
             bounds_check_policies: index::BoundsCheckPolicies::default(),
+            zero_initialize_workgroup_memory: true,
         }
     }
 }
@@ -291,38 +274,47 @@ impl Options {
         }
     }
 
+    fn get_entry_point_resources(&self, ep: &crate::EntryPoint) -> Option<&EntryPointResources> {
+        self.per_entry_point_map.get(&ep.name)
+    }
+
+    fn get_resource_binding_target(
+        &self,
+        ep: &crate::EntryPoint,
+        res_binding: &crate::ResourceBinding,
+    ) -> Option<&BindTarget> {
+        self.get_entry_point_resources(ep)
+            .and_then(|res| res.resources.get(res_binding))
+    }
+
     fn resolve_resource_binding(
         &self,
-        stage: crate::ShaderStage,
+        ep: &crate::EntryPoint,
         res_binding: &crate::ResourceBinding,
     ) -> Result<ResolvedBinding, EntryPointError> {
-        match self.per_stage_map[stage].resources.get(res_binding) {
+        let target = self.get_resource_binding_target(ep, res_binding);
+        match target {
             Some(target) => Ok(ResolvedBinding::Resource(target.clone())),
             None if self.fake_missing_bindings => Ok(ResolvedBinding::User {
                 prefix: "fake",
                 index: 0,
                 interpolation: None,
             }),
-            None => Err(EntryPointError::MissingBinding(res_binding.clone())),
+            None => Err(EntryPointError::MissingBindTarget(res_binding.clone())),
         }
     }
 
-    const fn resolve_push_constants(
+    fn resolve_push_constants(
         &self,
-        stage: crate::ShaderStage,
+        ep: &crate::EntryPoint,
     ) -> Result<ResolvedBinding, EntryPointError> {
-        let slot = match stage {
-            crate::ShaderStage::Vertex => self.per_stage_map.vs.push_constant_buffer,
-            crate::ShaderStage::Fragment => self.per_stage_map.fs.push_constant_buffer,
-            crate::ShaderStage::Compute => self.per_stage_map.cs.push_constant_buffer,
-        };
+        let slot = self
+            .get_entry_point_resources(ep)
+            .and_then(|res| res.push_constant_buffer);
         match slot {
             Some(slot) => Ok(ResolvedBinding::Resource(BindTarget {
                 buffer: Some(slot),
-                texture: None,
-                sampler: None,
-                binding_array_size: None,
-                mutable: false,
+                ..Default::default()
             })),
             None if self.fake_missing_bindings => Ok(ResolvedBinding::User {
                 prefix: "fake",
@@ -335,16 +327,15 @@ impl Options {
 
     fn resolve_sizes_buffer(
         &self,
-        stage: crate::ShaderStage,
+        ep: &crate::EntryPoint,
     ) -> Result<ResolvedBinding, EntryPointError> {
-        let slot = self.per_stage_map[stage].sizes_buffer;
+        let slot = self
+            .get_entry_point_resources(ep)
+            .and_then(|res| res.sizes_buffer);
         match slot {
             Some(slot) => Ok(ResolvedBinding::Resource(BindTarget {
                 buffer: Some(slot),
-                texture: None,
-                sampler: None,
-                binding_array_size: None,
-                mutable: false,
+                ..Default::default()
             })),
             None if self.fake_missing_bindings => Ok(ResolvedBinding::User {
                 prefix: "fake",
@@ -391,6 +382,7 @@ impl ResolvedBinding {
                     Bi::VertexIndex => "vertex_id",
                     // fragment
                     Bi::FragDepth => "depth(any)",
+                    Bi::PointCoord => "point_coord",
                     Bi::FrontFacing => "front_facing",
                     Bi::PrimitiveIndex => "primitive_id",
                     Bi::SampleIndex => "sample_id",
@@ -406,16 +398,16 @@ impl ResolvedBinding {
                         return Err(Error::UnsupportedBuiltIn(built_in))
                     }
                 };
-                write!(out, "{}", name)?;
+                write!(out, "{name}")?;
             }
-            Self::Attribute(index) => write!(out, "attribute({})", index)?,
-            Self::Color(index) => write!(out, "color({})", index)?,
+            Self::Attribute(index) => write!(out, "attribute({index})")?,
+            Self::Color(index) => write!(out, "color({index})")?,
             Self::User {
                 prefix,
                 index,
                 interpolation,
             } => {
-                write!(out, "user({}{})", prefix, index)?;
+                write!(out, "user({prefix}{index})")?;
                 if let Some(interpolation) = interpolation {
                     write!(out, ", ")?;
                     interpolation.try_fmt(out)?;
@@ -423,11 +415,11 @@ impl ResolvedBinding {
             }
             Self::Resource(ref target) => {
                 if let Some(id) = target.buffer {
-                    write!(out, "buffer({})", id)?;
+                    write!(out, "buffer({id})")?;
                 } else if let Some(id) = target.texture {
-                    write!(out, "texture({})", id)?;
+                    write!(out, "texture({id})")?;
                 } else if let Some(BindSamplerTarget::Resource(id)) = target.sampler {
-                    write!(out, "sampler({})", id)?;
+                    write!(out, "sampler({id})")?;
                 } else {
                     return Err(Error::UnimplementedBindTarget(target.clone()));
                 }

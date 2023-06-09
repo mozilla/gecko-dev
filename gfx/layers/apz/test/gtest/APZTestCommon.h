@@ -98,7 +98,7 @@ class ScopedGfxSetting {
 
 static inline constexpr auto kDefaultTouchBehavior =
     AllowedTouchBehavior::VERTICAL_PAN | AllowedTouchBehavior::HORIZONTAL_PAN |
-    AllowedTouchBehavior::PINCH_ZOOM | AllowedTouchBehavior::DOUBLE_TAP_ZOOM;
+    AllowedTouchBehavior::PINCH_ZOOM | AllowedTouchBehavior::ANIMATING_ZOOM;
 
 #define FRESH_PREF_VAR_PASTE(id, line) id##line
 #define FRESH_PREF_VAR_EXPAND(id, line) FRESH_PREF_VAR_PASTE(id, line)
@@ -140,8 +140,9 @@ class MockContentController : public GeckoContentController {
   void DispatchToRepaintThread(already_AddRefed<Runnable> aTask) {
     NS_DispatchToMainThread(std::move(aTask));
   }
-  MOCK_METHOD3(NotifyAPZStateChange, void(const ScrollableLayerGuid& aGuid,
-                                          APZStateChange aChange, int aArg));
+  MOCK_METHOD4(NotifyAPZStateChange,
+               void(const ScrollableLayerGuid& aGuid, APZStateChange aChange,
+                    int aArg, Maybe<uint64_t> aInputBlockId));
   MOCK_METHOD0(NotifyFlushComplete, void());
   MOCK_METHOD3(NotifyAsyncScrollbarDragInitiated,
                void(uint64_t, const ScrollableLayerGuid::ViewID&,

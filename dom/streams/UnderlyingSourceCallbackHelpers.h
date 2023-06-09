@@ -10,6 +10,8 @@
 #include "mozilla/HoldDropJSObjects.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/UnderlyingSourceBinding.h"
+#include "mozilla/WeakPtr.h"
+#include "nsIAsyncInputStream.h"
 #include "nsISupports.h"
 #include "nsISupportsImpl.h"
 
@@ -22,10 +24,14 @@
  * WebIDL as if they were methods. So we have to preserve the underlying object
  * to use as the This value on invocation.
  */
+enum class nsresult : uint32_t;
+
 namespace mozilla::dom {
 
+class StrongWorkerRef;
 class BodyStreamHolder;
 class ReadableStreamController;
+class ReadableStream;
 
 class UnderlyingSourceAlgorithmsBase : public nsISupports {
  public:
@@ -118,6 +124,140 @@ class UnderlyingSourceAlgorithms final : public UnderlyingSourceAlgorithmsBase {
   MOZ_KNOWN_LIVE RefPtr<UnderlyingSourceStartCallback> mStartCallback;
   MOZ_KNOWN_LIVE RefPtr<UnderlyingSourcePullCallback> mPullCallback;
   MOZ_KNOWN_LIVE RefPtr<UnderlyingSourceCancelCallback> mCancelCallback;
+};
+
+// https://streams.spec.whatwg.org/#readablestream-set-up
+// https://streams.spec.whatwg.org/#readablestream-set-up-with-byte-reading-support
+// Wrappers defined by the "Set up" methods in the spec. This helps you just
+// return nullptr when an error occurred as this wrapper converts it to a
+// rejected promise.
+// Note that StartCallback is only for JS consumers to access
+// the controller, and thus is no-op here since native consumers can call
+// `EnqueueNative()` etc. without direct controller access.
+class UnderlyingSourceAlgorithmsWrapper
+    : public UnderlyingSourceAlgorithmsBase {
+  void StartCallback(JSContext*, ReadableStreamController&,
+                     JS::MutableHandle<JS::Value> aRetVal, ErrorResult&) final;
+
+  MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> PullCallback(
+      JSContext* aCx, ReadableStreamController& aController,
+      ErrorResult& aRv) final;
+
+  MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> CancelCallback(
+      JSContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
+      ErrorResult& aRv) final;
+
+  MOZ_CAN_RUN_SCRIPT virtual already_AddRefed<Promise> PullCallbackImpl(
+      JSContext* aCx, ReadableStreamController& aController, ErrorResult& aRv) {
+    // pullAlgorithm is optional, return null by default
+    return nullptr;
+  }
+
+  virtual already_AddRefed<Promise> CancelCallbackImpl(
+      JSContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
+      ErrorResult& aRv) {
+    // cancelAlgorithm is optional, return null by default
+    return nullptr;
+  }
+};
+
+class InputToReadableStreamAlgorithms;
+
+// This class exists to isolate InputToReadableStreamAlgorithms from the
+// nsIAsyncInputStream.  If we call AsyncWait(this,...), it holds a
+// reference to 'this' which can't be cc'd, and we can leak the stream,
+// causing a Worker to assert with globalScopeAlive.  By isolating
+// ourselves from the inputstream, we can safely be CC'd if needed and
+// will inform the inputstream to shut down.
+class InputStreamHolder final : public nsIInputStreamCallback {
+ public:
+  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_DECL_NSIINPUTSTREAMCALLBACK
+
+  InputStreamHolder(JSContext* aCx, InputToReadableStreamAlgorithms* aCallback,
+                    nsIAsyncInputStream* aInput);
+
+  // Used by Worker shutdown
+  void Shutdown();
+
+  // These just proxy the calls to the nsIAsyncInputStream
+  nsresult AsyncWait(uint32_t aFlags, uint32_t aRequestedCount,
+                     nsIEventTarget* aEventTarget);
+  nsresult Available(uint64_t* aSize) { return mInput->Available(aSize); }
+  nsresult Read(char* aBuffer, uint32_t aLength, uint32_t* aWritten) {
+    return mInput->Read(aBuffer, aLength, aWritten);
+  }
+  nsresult CloseWithStatus(nsresult aStatus) {
+    return mInput->CloseWithStatus(aStatus);
+  }
+
+ private:
+  ~InputStreamHolder();
+
+  // WeakPtr to avoid cycles
+  WeakPtr<InputToReadableStreamAlgorithms> mCallback;
+  // To ensure the worker sticks around
+  RefPtr<StrongWorkerRef> mAsyncWaitWorkerRef;
+  RefPtr<StrongWorkerRef> mWorkerRef;
+  nsCOMPtr<nsIAsyncInputStream> mInput;
+};
+
+class InputToReadableStreamAlgorithms final
+    : public UnderlyingSourceAlgorithmsWrapper,
+      public nsIInputStreamCallback,
+      public SupportsWeakPtr {
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_NSIINPUTSTREAMCALLBACK
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(InputToReadableStreamAlgorithms,
+                                           UnderlyingSourceAlgorithmsWrapper)
+
+  InputToReadableStreamAlgorithms(JSContext* aCx, nsIAsyncInputStream* aInput,
+                                  ReadableStream* aStream)
+      : mOwningEventTarget(GetCurrentSerialEventTarget()),
+        mInput(new InputStreamHolder(aCx, this, aInput)),
+        mStream(aStream) {}
+
+  // Streams algorithms
+
+  already_AddRefed<Promise> PullCallbackImpl(
+      JSContext* aCx, ReadableStreamController& aController,
+      ErrorResult& aRv) override;
+
+  void ReleaseObjects() override;
+
+ private:
+  ~InputToReadableStreamAlgorithms() {
+    if (mInput) {
+      mInput->Shutdown();
+    }
+  }
+
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY void CloseAndReleaseObjects(
+      JSContext* aCx, ReadableStream* aStream);
+
+  void WriteIntoReadRequestBuffer(JSContext* aCx, ReadableStream* aStream,
+                                  JS::Handle<JSObject*> aBuffer,
+                                  uint32_t aLength, uint32_t* aByteWritten);
+
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY void EnqueueChunkWithSizeIntoStream(
+      JSContext* aCx, ReadableStream* aStream, uint64_t aAvailableData,
+      ErrorResult& aRv);
+  void ErrorPropagation(JSContext* aCx, ReadableStream* aStream,
+                        nsresult aError);
+
+  // Common methods
+
+  bool IsClosed() { return !mInput; }
+
+  nsCOMPtr<nsIEventTarget> mOwningEventTarget;
+
+  // This promise is created by PullCallback and resolved when
+  // OnInputStreamReady succeeds. No need to try hard to settle it though, see
+  // also ReleaseObjects() for the reason.
+  RefPtr<Promise> mPullPromise;
+
+  RefPtr<InputStreamHolder> mInput;
+  RefPtr<ReadableStream> mStream;
 };
 
 }  // namespace mozilla::dom

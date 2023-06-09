@@ -610,6 +610,7 @@ bool JitRuntime::generateVMWrapper(JSContext* cx, MacroAssembler& masm,
   //
   // Push the frame pointer to finish the exit frame, then link it up.
   masm.Push(FramePointer);
+  masm.moveStackPtrTo(FramePointer);
   masm.loadJSContext(reg_cx);
   masm.enterExitFrame(reg_cx, regs.getAny(), &f);
 
@@ -680,7 +681,7 @@ bool JitRuntime::generateVMWrapper(JSContext* cx, MacroAssembler& masm,
 
       case VMFunctionData::WordByRef:
         masm.passABIArg(
-            MoveOperand(argsBase, argDisp, MoveOperand::EFFECTIVE_ADDRESS),
+            MoveOperand(argsBase, argDisp, MoveOperand::Kind::EffectiveAddress),
             MoveOp::GENERAL);
         argDisp += sizeof(void*);
         break;
@@ -767,7 +768,8 @@ bool JitRuntime::generateVMWrapper(JSContext* cx, MacroAssembler& masm,
   }
 
   // Pop ExitFooterFrame and the frame pointer.
-  masm.leaveExitFrame(sizeof(void*));
+  masm.leaveExitFrame(0);
+  masm.pop(FramePointer);
 
   // Return. Subtract sizeof(void*) for the frame pointer.
   masm.retn(Imm32(sizeof(ExitFrameLayout) - sizeof(void*) +

@@ -22,7 +22,7 @@ const { CustomizableUI } = ChromeUtils.import(
 
 XPCOMUtils.defineLazyGetter(this, "ProfilerPopupBackground", function() {
   return ChromeUtils.import(
-    "resource://devtools/client/performance-new/popup/background.jsm.js"
+    "resource://devtools/client/performance-new/shared/background.jsm.js"
   );
 });
 
@@ -49,7 +49,8 @@ function moduleEnvVarPresent() {
  *   logging preset, so that all logging statements are recorded in the profile
  *   as markers.
  *
- * [1]: The keys of https://searchfox.org/mozilla-central/rev/88f285c5163f73abd209d4f73cfa476660351982/devtools/client/performance-new/popup/background.jsm.js#119
+ * [1]: The keys of the `presets` object defined in
+ * https://searchfox.org/mozilla-central/source/devtools/client/performance-new/shared/background.jsm.js
  */
 const gLoggingPresets = {
   networking: {
@@ -63,7 +64,7 @@ const gLoggingPresets = {
   },
   "media-playback": {
     modules:
-      "cubeb:5,PlatformDecoderModule:5,AudioSink:5,AudioSinkWrapper:5,MediaDecoderStateMachine:4,MediaDecoder:4",
+      "HTMLMediaElement:4,HTMLMediaElementEvents:4,cubeb:5,PlatformDecoderModule:5,AudioSink:5,AudioSinkWrapper:5,MediaDecoderStateMachine:4,MediaDecoder:4",
     l10nIds: {
       label: "about-logging-preset-media-playback-label",
       description: "about-logging-preset-media-playback-description",
@@ -315,11 +316,15 @@ function init() {
   populatePresets();
   parseURL();
 
-  let setLogButton = $("#set-log-file-button");
-  setLogButton.addEventListener("click", setLogFile);
+  $("#log-file-configuration").addEventListener("submit", e => {
+    e.preventDefault();
+    setLogFile();
+  });
 
-  let setModulesButton = $("#set-log-modules-button");
-  setModulesButton.addEventListener("click", setLogModules);
+  $("#log-modules-form").addEventListener("submit", e => {
+    e.preventDefault();
+    setLogModules();
+  });
 
   let toggleLoggingButton = $("#toggle-logging-button");
   toggleLoggingButton.addEventListener("click", startStopLogging);
@@ -372,7 +377,8 @@ function init() {
   // If we can't set the file and the modules at runtime,
   // the start and stop buttons wouldn't really do anything.
   if (
-    (setLogButton.disabled || setModulesButton.disabled) &&
+    ($("#set-log-file-button").disabled ||
+      $("#set-log-modules-button").disabled) &&
     moduleEnvVarPresent()
   ) {
     $("#buttons-disabled").hidden = false;

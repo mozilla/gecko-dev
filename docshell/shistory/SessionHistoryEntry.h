@@ -15,6 +15,7 @@
 #include "nsSHEntryShared.h"
 #include "nsStructuredCloneContainer.h"
 #include "nsTHashMap.h"
+#include "nsWeakReference.h"
 
 class nsDocShellLoadState;
 class nsIChannel;
@@ -157,6 +158,8 @@ class SessionHistoryInfo {
   uint32_t LoadType() { return mLoadType; }
 
   void SetSaveLayoutStateFlag(bool aSaveLayoutStateFlag);
+
+  bool GetPersist() const { return mPersist; }
 
  private:
   friend class SessionHistoryEntry;
@@ -357,7 +360,7 @@ class HistoryEntryCounterForBrowsingContext {
     }                                                \
   }
 
-class SessionHistoryEntry : public nsISHEntry {
+class SessionHistoryEntry : public nsISHEntry, public nsSupportsWeakReference {
  public:
   SessionHistoryEntry(nsDocShellLoadState* aLoadState, nsIChannel* aChannel);
   SessionHistoryEntry();
@@ -367,6 +370,16 @@ class SessionHistoryEntry : public nsISHEntry {
   NS_DECL_ISUPPORTS
   NS_DECL_NSISHENTRY
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_SESSIONHISTORYENTRY_IID)
+
+  bool IsInSessionHistory() {
+    SessionHistoryEntry* entry = this;
+    while (nsCOMPtr<SessionHistoryEntry> parent =
+               do_QueryReferent(entry->mParent)) {
+      entry = parent;
+    }
+    return entry->SharedInfo()->mSHistory &&
+           entry->SharedInfo()->mSHistory->IsAlive();
+  }
 
   void ReplaceWith(const SessionHistoryEntry& aSource);
 
@@ -408,11 +421,18 @@ class SessionHistoryEntry : public nsISHEntry {
 
   void SetWireframe(const Maybe<Wireframe>& aWireframe);
 
+  struct LoadingEntry {
+    // A pointer to the entry being loaded. Will be cleared by the
+    // SessionHistoryEntry destructor, at latest.
+    SessionHistoryEntry* mEntry;
+    // Snapshot of the entry's SessionHistoryInfo when the load started, to be
+    // used for validation purposes only.
+    UniquePtr<SessionHistoryInfo> mInfoSnapshotForValidation;
+  };
+
   // Get an entry based on LoadingSessionHistoryInfo's mLoadId. Parent process
   // only.
-  static SessionHistoryEntry* GetByLoadId(uint64_t aLoadId);
-  static const SessionHistoryInfo* GetInfoSnapshotForValidationByLoadId(
-      uint64_t aLoadId);
+  static LoadingEntry* GetByLoadId(uint64_t aLoadId);
   static void SetByLoadId(uint64_t aLoadId, SessionHistoryEntry* aEntry);
   static void RemoveLoadId(uint64_t aLoadId);
 
@@ -423,7 +443,7 @@ class SessionHistoryEntry : public nsISHEntry {
   virtual ~SessionHistoryEntry();
 
   UniquePtr<SessionHistoryInfo> mInfo;
-  nsISHEntry* mParent = nullptr;
+  nsWeakPtr mParent;
   uint32_t mID;
   nsTArray<RefPtr<SessionHistoryEntry>> mChildren;
   Maybe<Wireframe> mWireframe;
@@ -431,15 +451,6 @@ class SessionHistoryEntry : public nsISHEntry {
   bool mForInitialLoad = false;
 
   HistoryEntryCounterForBrowsingContext mBCHistoryLength;
-
-  struct LoadingEntry {
-    // A pointer to the entry being loaded. Will be cleared by the
-    // SessionHistoryEntry destructor, at latest.
-    SessionHistoryEntry* mEntry;
-    // Snapshot of the entry's SessionHistoryInfo when the load started, to be
-    // used for validation purposes only.
-    UniquePtr<SessionHistoryInfo> mInfoSnapshotForValidation;
-  };
 
   static nsTHashMap<nsUint64HashKey, LoadingEntry>* sLoadIdToEntry;
 };
@@ -491,5 +502,9 @@ struct IPDLParamTraits<mozilla::dom::Wireframe> {
 }  // namespace ipc
 
 }  // namespace mozilla
+
+inline nsISupports* ToSupports(mozilla::dom::SessionHistoryEntry* aEntry) {
+  return static_cast<nsISHEntry*>(aEntry);
+}
 
 #endif /* mozilla_dom_SessionHistoryEntry_h */

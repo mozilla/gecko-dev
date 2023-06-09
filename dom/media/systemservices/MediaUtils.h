@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set sw=2 ts=8 et ft=cpp : */
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -174,7 +174,7 @@ class ShutdownBlocker : public nsIAsyncShutdownBlocker {
 
   NS_IMETHOD GetState(nsIPropertyBag**) override { return NS_OK; }
 
-  NS_DECL_ISUPPORTS
+  NS_DECL_THREADSAFE_ISUPPORTS
  protected:
   virtual ~ShutdownBlocker() = default;
 
@@ -189,21 +189,27 @@ class ShutdownBlocker : public nsIAsyncShutdownBlocker {
  */
 class ShutdownBlockingTicket {
  public:
+  using ShutdownMozPromise = MozPromise<bool, bool, false>;
+
   /**
    * Construct with an arbitrary name, __FILE__ and __LINE__.
    * Note that __FILE__ needs to be made wide, typically through
    * NS_LITERAL_STRING_FROM_CSTRING(__FILE__).
+   * Returns nullptr if we are too far in the shutdown sequence to add a
+   * blocker. Any thread.
    */
-  static UniquePtr<ShutdownBlockingTicket> Create(nsString aName,
-                                                  nsString aFileName,
+  static UniquePtr<ShutdownBlockingTicket> Create(const nsAString& aName,
+                                                  const nsAString& aFileName,
                                                   int32_t aLineNr);
 
   virtual ~ShutdownBlockingTicket() = default;
 
   /**
-   * MediaEvent that gets notified once upon xpcom-will-shutdown.
+   * MozPromise that gets resolved upon xpcom-will-shutdown.
+   * Should the ticket get destroyed before the MozPromise has been resolved,
+   * the MozPromise will get rejected.
    */
-  virtual MediaEventSource<void>& ShutdownEvent() = 0;
+  virtual ShutdownMozPromise* ShutdownPromise() = 0;
 };
 
 /**

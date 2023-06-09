@@ -304,7 +304,7 @@ static const size_t kPageSize =
 //
 // These page kinds are interleaved; each allocation page has a guard page on
 // either side.
-static const size_t kNumAllocPages = 64;
+static const size_t kNumAllocPages = kPageSize == 4096 ? 4096 : 1024;
 static const size_t kNumAllPages = kNumAllocPages * 2 + 1;
 
 // The total size of the allocation pages and guard pages.
@@ -327,7 +327,7 @@ static const Time kMaxTime = ~(Time(0));
 // The average delay before doing any page allocations at the start of a
 // process. Note that roughly 1 million allocations occur in the main process
 // while starting the browser. The delay range is 1..kAvgFirstAllocDelay*2.
-static const Delay kAvgFirstAllocDelay = 512 * 1024;
+static const Delay kAvgFirstAllocDelay = 64 * 1024;
 
 // The average delay until the next attempted page allocation, once we get past
 // the first delay. The delay range is 1..kAvgAllocDelay*2.
@@ -656,6 +656,12 @@ class GMut {
                                 (kPageSize - 1));
     }
 
+    // The internal fragmentation for this allocation.
+    size_t FragmentationBytes() const {
+      MOZ_ASSERT(kPageSize >= UsableSize());
+      return mState == AllocPageState::InUse ? kPageSize - UsableSize() : 0;
+    }
+
     // The allocation stack.
     // - NeverAllocated: Nothing.
     // - InUse | Freed: Some.
@@ -678,12 +684,7 @@ class GMut {
   // The mutex that protects the other members.
   static Mutex sMutex MOZ_UNANNOTATED;
 
-  GMut()
-      : mRNG(RandomSeed<0>(), RandomSeed<1>()),
-        mAllocPages(),
-        mNumPageAllocs(0),
-        mPageAllocHits(0),
-        mPageAllocMisses(0) {
+  GMut() : mRNG(RandomSeed<0>(), RandomSeed<1>()), mAllocPages() {
     sMutex.Init();
   }
 
@@ -697,6 +698,12 @@ class GMut {
   bool IsPageAllocatable(GMutLock, uintptr_t aIndex, Time aNow) {
     const AllocPageInfo& page = mAllocPages[aIndex];
     return page.mState != AllocPageState::InUse && aNow >= page.mReuseTime;
+  }
+
+  // Get the address of the allocation page referred to via an index. Used
+  // when checking pointers against page boundaries.
+  uint8_t* AllocPageBaseAddr(GMutLock, uintptr_t aIndex) {
+    return mAllocPages[aIndex].mBaseAddr;
   }
 
   Maybe<arena_id_t> PageArena(GMutLock aLock, uintptr_t aIndex) {
@@ -713,6 +720,15 @@ class GMut {
     return page.UsableSize();
   }
 
+  // The total fragmentation in PHC
+  size_t FragmentationBytes() const {
+    size_t sum = 0;
+    for (const auto& page : mAllocPages) {
+      sum += page.FragmentationBytes();
+    }
+    return sum;
+  }
+
   void SetPageInUse(GMutLock aLock, uintptr_t aIndex,
                     const Maybe<arena_id_t>& aArenaId, uint8_t* aBaseAddr,
                     const StackTrace& aAllocStack) {
@@ -725,10 +741,11 @@ class GMut {
     page.mAllocStack = Some(aAllocStack);
     page.mFreeStack = Nothing();
     page.mReuseTime = kMaxTime;
-
-    mNumPageAllocs++;
-    MOZ_RELEASE_ASSERT(mNumPageAllocs <= kNumAllocPages);
   }
+
+#if PHC_LOGGING
+  Time GetFreeTime(uintptr_t aIndex) const { return mFreeTime[aIndex]; }
+#endif
 
   void ResizePageInUse(GMutLock aLock, uintptr_t aIndex,
                        const Maybe<arena_id_t>& aArenaId, uint8_t* aNewBaseAddr,
@@ -771,10 +788,11 @@ class GMut {
     // page.mAllocStack is left unchanged, for reporting on UAF.
 
     page.mFreeStack = Some(aFreeStack);
-    page.mReuseTime = GAtomic::Now() + aReuseDelay;
-
-    MOZ_RELEASE_ASSERT(mNumPageAllocs > 0);
-    mNumPageAllocs--;
+    Time now = GAtomic::Now();
+#if PHC_LOGGING
+    mFreeTime[aIndex] = now;
+#endif
+    page.mReuseTime = now + aReuseDelay;
   }
 
   static void CrashOnGuardPage(void* aPtr) {
@@ -886,10 +904,30 @@ class GMut {
   static void postfork_child() { sMutex.Init(); }
 #endif
 
+#if PHC_LOGGING
   void IncPageAllocHits(GMutLock) { mPageAllocHits++; }
   void IncPageAllocMisses(GMutLock) { mPageAllocMisses++; }
+#else
+  void IncPageAllocHits(GMutLock) {}
+  void IncPageAllocMisses(GMutLock) {}
+#endif
 
-  size_t NumPageAllocs(GMutLock) { return mNumPageAllocs; }
+#if PHC_LOGGING
+  struct PageStats {
+    size_t mNumAlloced = 0;
+    size_t mNumFreed = 0;
+  };
+
+  PageStats GetPageStats(GMutLock) {
+    PageStats stats;
+
+    for (const auto& page : mAllocPages) {
+      stats.mNumAlloced += page.mState == AllocPageState::InUse ? 1 : 0;
+      stats.mNumFreed += page.mState == AllocPageState::Freed ? 1 : 0;
+    }
+
+    return stats;
+  }
 
   size_t PageAllocHits(GMutLock) { return mPageAllocHits; }
   size_t PageAllocAttempts(GMutLock) {
@@ -900,6 +938,7 @@ class GMut {
   size_t PageAllocHitRate(GMutLock) {
     return mPageAllocHits * 100 / (mPageAllocHits + mPageAllocMisses);
   }
+#endif
 
  private:
   template <int N>
@@ -951,15 +990,15 @@ class GMut {
   non_crypto::XorShift128PlusRNG mRNG;
 
   AllocPageInfo mAllocPages[kNumAllocPages];
-
-  // How many page allocs are currently in use (the max is kNumAllocPages).
-  size_t mNumPageAllocs;
+#if PHC_LOGGING
+  Time mFreeTime[kNumAllocPages];
 
   // How many allocations that could have been page allocs actually were? As
   // constrained kNumAllocPages. If the hit ratio isn't close to 100% it's
   // likely that the global constants are poorly chosen.
-  size_t mPageAllocHits;
-  size_t mPageAllocMisses;
+  size_t mPageAllocHits = 0;
+  size_t mPageAllocMisses = 0;
+#endif
 };
 
 Mutex GMut::sMutex;
@@ -1049,6 +1088,9 @@ static void* MaybePageAlloc(const Maybe<arena_id_t>& aArenaId, size_t aReqSize,
       continue;
     }
 
+#if PHC_LOGGING
+    Time lifetime = 0;
+#endif
     pagePtr = gConst->AllocPagePtr(i);
     MOZ_ASSERT(pagePtr);
     bool ok =
@@ -1057,47 +1099,61 @@ static void* MaybePageAlloc(const Maybe<arena_id_t>& aArenaId, size_t aReqSize,
 #else
         mprotect(pagePtr, kPageSize, PROT_READ | PROT_WRITE) == 0;
 #endif
+
+    if (!ok) {
+      pagePtr = nullptr;
+      continue;
+    }
+
     size_t usableSize = sMallocTable.malloc_good_size(aReqSize);
-    if (ok) {
-      MOZ_ASSERT(usableSize > 0);
+    MOZ_ASSERT(usableSize > 0);
 
-      // Put the allocation as close to the end of the page as possible,
-      // allowing for alignment requirements.
-      ptr = pagePtr + kPageSize - usableSize;
-      if (aAlignment != 1) {
-        ptr = reinterpret_cast<uint8_t*>(
-            (reinterpret_cast<uintptr_t>(ptr) & ~(aAlignment - 1)));
-      }
+    // Put the allocation as close to the end of the page as possible,
+    // allowing for alignment requirements.
+    ptr = pagePtr + kPageSize - usableSize;
+    if (aAlignment != 1) {
+      ptr = reinterpret_cast<uint8_t*>(
+          (reinterpret_cast<uintptr_t>(ptr) & ~(aAlignment - 1)));
+    }
 
-      gMut->SetPageInUse(lock, i, aArenaId, ptr, allocStack);
-
-      if (aZero) {
-        memset(ptr, 0, usableSize);
-      } else {
-#ifdef DEBUG
-        memset(ptr, kAllocJunk, usableSize);
+#if PHC_LOGGING
+    Time then = gMut->GetFreeTime(i);
+    lifetime = then != 0 ? now - then : 0;
 #endif
-      }
+
+    gMut->SetPageInUse(lock, i, aArenaId, ptr, allocStack);
+
+    if (aZero) {
+      memset(ptr, 0, usableSize);
+    } else {
+#ifdef DEBUG
+      memset(ptr, kAllocJunk, usableSize);
+#endif
     }
 
     gMut->IncPageAllocHits(lock);
+#if PHC_LOGGING
+    GMut::PageStats stats = gMut->GetPageStats(lock);
+#endif
     LOG("PageAlloc(%zu, %zu) -> %p[%zu]/%p (%zu) (z%zu), sAllocDelay <- %zu, "
-        "fullness %zu/%zu, hits %zu/%zu (%zu%%)\n",
+        "fullness %zu/%zu/%zu, hits %zu/%zu (%zu%%), lifetime %zu\n",
         aReqSize, aAlignment, pagePtr, i, ptr, usableSize, size_t(aZero),
-        size_t(newAllocDelay), gMut->NumPageAllocs(lock), kNumAllocPages,
-        gMut->PageAllocHits(lock), gMut->PageAllocAttempts(lock),
-        gMut->PageAllocHitRate(lock));
+        size_t(newAllocDelay), stats.mNumAlloced, stats.mNumFreed,
+        kNumAllocPages, gMut->PageAllocHits(lock),
+        gMut->PageAllocAttempts(lock), gMut->PageAllocHitRate(lock), lifetime);
     break;
   }
 
   if (!pagePtr) {
     // No pages are available, or VirtualAlloc/mprotect failed.
     gMut->IncPageAllocMisses(lock);
-    LOG("No PageAlloc(%zu, %zu), sAllocDelay <- %zu, fullness %zu/%zu, hits "
-        "%zu/%zu "
-        "(%zu%%)\n",
-        aReqSize, aAlignment, size_t(newAllocDelay), gMut->NumPageAllocs(lock),
-        kNumAllocPages, gMut->PageAllocHits(lock),
+#if PHC_LOGGING
+    GMut::PageStats stats = gMut->GetPageStats(lock);
+#endif
+    LOG("No PageAlloc(%zu, %zu), sAllocDelay <- %zu, fullness %zu/%zu/%zu, "
+        "hits %zu/%zu (%zu%%)\n",
+        aReqSize, aAlignment, size_t(newAllocDelay), stats.mNumAlloced,
+        stats.mNumFreed, kNumAllocPages, gMut->PageAllocHits(lock),
         gMut->PageAllocAttempts(lock), gMut->PageAllocHitRate(lock));
   }
 
@@ -1111,14 +1167,15 @@ static void FreePage(GMutLock aLock, uintptr_t aIndex,
                      const Maybe<arena_id_t>& aArenaId,
                      const StackTrace& aFreeStack, Delay aReuseDelay) {
   void* pagePtr = gConst->AllocPagePtr(aIndex);
+
 #ifdef XP_WIN
   if (!VirtualFree(pagePtr, kPageSize, MEM_DECOMMIT)) {
-    return;
+    MOZ_CRASH("VirtualFree failed");
   }
 #else
   if (mmap(pagePtr, kPageSize, PROT_NONE, MAP_FIXED | MAP_PRIVATE | MAP_ANON,
            -1, 0) == MAP_FAILED) {
-    return;
+    MOZ_CRASH("mmap failed");
   }
 #endif
 
@@ -1326,9 +1383,12 @@ MOZ_ALWAYS_INLINE static void PageFree(const Maybe<arena_id_t>& aArenaId,
   Delay reuseDelay = ReuseDelay(lock);
   FreePage(lock, index, aArenaId, freeStack, reuseDelay);
 
-  LOG("PageFree(%p[%zu]), %zu delay, reuse at ~%zu, fullness %zu/%zu\n", aPtr,
-      index, size_t(reuseDelay), size_t(GAtomic::Now()) + reuseDelay,
-      gMut->NumPageAllocs(lock), kNumAllocPages);
+#if PHC_LOGGING
+  GMut::PageStats stats = gMut->GetPageStats(lock);
+#endif
+  LOG("PageFree(%p[%zu]), %zu delay, reuse at ~%zu, fullness %zu/%zu/%zu\n",
+      aPtr, index, size_t(reuseDelay), size_t(GAtomic::Now()) + reuseDelay,
+      stats.mNumAlloced, stats.mNumFreed, kNumAllocPages);
 }
 
 static void replace_free(void* aPtr) { return PageFree(Nothing(), aPtr); }
@@ -1367,15 +1427,25 @@ static size_t replace_malloc_usable_size(usable_ptr_t aPtr) {
     GMut::CrashOnGuardPage(const_cast<void*>(aPtr));
   }
 
-  // At this point we know we have an allocation page.
+  // At this point we know aPtr lands within an allocation page, due to the
+  // math done in the PtrKind constructor. But if aPtr points to memory
+  // before the base address of the allocation, we return 0.
   uintptr_t index = pk.AllocPageIndex();
 
   MutexAutoLock lock(GMut::sMutex);
 
-  // Check for malloc_usable_size() of a freed block.
-  gMut->EnsureValidAndInUse(lock, const_cast<void*>(aPtr), index);
+  void* pageBaseAddr = gMut->AllocPageBaseAddr(lock, index);
+
+  if (MOZ_UNLIKELY(aPtr < pageBaseAddr)) {
+    return 0;
+  }
 
   return gMut->PageUsableSize(lock, index);
+}
+
+static size_t metadata_size() {
+  return sMallocTable.malloc_usable_size(gConst) +
+         sMallocTable.malloc_usable_size(gMut);
 }
 
 void replace_jemalloc_stats(jemalloc_stats_t* aStats,
@@ -1399,17 +1469,20 @@ void replace_jemalloc_stats(jemalloc_stats_t* aStats,
   }
   aStats->allocated += allocated;
 
-  // Waste is the gap between `allocated` and `mapped`.
-  size_t waste = mapped - allocated;
-  aStats->waste += waste;
+  // guards is the gap between `allocated` and `mapped`. In some ways this
+  // almost fits into aStats->wasted since it feels like wasted memory. However
+  // wasted should only include committed memory and these guard pages are
+  // uncommitted. Therefore we don't include it anywhere.
+  // size_t guards = mapped - allocated;
 
   // aStats.page_cache and aStats.bin_unused are left unchanged because PHC
   // doesn't have anything corresponding to those.
 
-  // gConst and gMut are normal heap allocations, so they're measured by
+  // The metadata is stored in normal heap allocations, so they're measured by
   // mozjemalloc as `allocated`. Move them into `bookkeeping`.
-  size_t bookkeeping = sMallocTable.malloc_usable_size(gConst) +
-                       sMallocTable.malloc_usable_size(gMut);
+  // They're also reported under explicit/heap-overhead/phc/fragmentation in
+  // about:memory.
+  size_t bookkeeping = metadata_size();
   aStats->allocated -= bookkeeping;
   aStats->bookkeeping += bookkeeping;
 }
@@ -1452,6 +1525,11 @@ arena_id_t replace_moz_create_arena_with_params(arena_params_t* aParams) {
 void replace_moz_dispose_arena(arena_id_t aArenaId) {
   // No need to do anything special here.
   return sMallocTable.moz_dispose_arena(aArenaId);
+}
+
+void replace_moz_set_max_dirty_page_modifier(int32_t aModifier) {
+  // No need to do anything special here.
+  return sMallocTable.moz_set_max_dirty_page_modifier(aModifier);
 }
 
 void* replace_moz_arena_malloc(arena_id_t aArenaId, size_t aReqSize) {
@@ -1535,6 +1613,17 @@ class PHCBridge : public ReplaceMallocBridge {
     bool enabled = !GTls::IsDisabledOnCurrentThread();
     LOG("IsPHCEnabledOnCurrentThread: %zu\n", size_t(enabled));
     return enabled;
+  }
+
+  virtual void PHCMemoryUsage(
+      mozilla::phc::MemoryUsage& aMemoryUsage) override {
+    aMemoryUsage.mMetadataBytes = metadata_size();
+    if (gMut) {
+      MutexAutoLock lock(GMut::sMutex);
+      aMemoryUsage.mFragmentationBytes = gMut->FragmentationBytes();
+    } else {
+      aMemoryUsage.mFragmentationBytes = 0;
+    }
   }
 };
 

@@ -100,13 +100,8 @@ const TRUNCATE_NODE_CLASSNAME = "propertyvalue-long-text";
  *        - supportsTypes - A function that returns a boolean when asked if a css
  *          property name supports a given css type.  The function is
  *          executed like supportsType("color", "timing-function")
- *        - supportsCssColor4ColorFunction - A function for checking
- *          the supporting of css-color-4 color function.
  */
-function OutputParser(
-  document,
-  { supportsType, supportsCssColor4ColorFunction }
-) {
+function OutputParser(document, { supportsType }) {
   this.parsed = [];
   this.doc = document;
   this.supportsType = supportsType;
@@ -114,8 +109,6 @@ function OutputParser(
   this.angleSwatches = new WeakMap();
   this._onColorSwatchMouseDown = this._onColorSwatchMouseDown.bind(this);
   this._onAngleSwatchMouseDown = this._onAngleSwatchMouseDown.bind(this);
-
-  this.cssColor4 = supportsCssColor4ColorFunction();
 }
 
 OutputParser.prototype = {
@@ -136,6 +129,7 @@ OutputParser.prototype = {
     options = this._mergeOptions(options);
 
     options.expectCubicBezier = this.supportsType(name, "timing-function");
+    options.expectLinearEasing = this.supportsType(name, "timing-function");
     options.expectDisplay = name === "display";
     options.expectFilter =
       name === "filter" ||
@@ -145,7 +139,7 @@ OutputParser.prototype = {
     options.supportsColor =
       this.supportsType(name, "color") ||
       this.supportsType(name, "gradient") ||
-      (name.startsWith("--") && colorUtils.isValidCSSColor(value));
+      (name.startsWith("--") && InspectorUtils.isValidCSSColor(value));
 
     // The filter property is special in that we want to show the
     // swatch even if the value is invalid, because this way the user
@@ -419,11 +413,7 @@ OutputParser.prototype = {
               tokenStream,
               options
             );
-            if (
-              value &&
-              colorOK() &&
-              colorUtils.isValidCSSColor(value, this.cssColor4)
-            ) {
+            if (value && colorOK() && InspectorUtils.isValidCSSColor(value)) {
               this._appendColor(value, {
                 ...options,
                 variableContainer: variableNode,
@@ -464,8 +454,13 @@ OutputParser.prototype = {
               if (options.expectCubicBezier && token.text === "cubic-bezier") {
                 this._appendCubicBezier(functionText, options);
               } else if (
+                options.expectLinearEasing &&
+                token.text === "linear"
+              ) {
+                this._appendLinear(functionText, options);
+              } else if (
                 colorOK() &&
-                colorUtils.isValidCSSColor(functionText, this.cssColor4)
+                InspectorUtils.isValidCSSColor(functionText)
               ) {
                 this._appendColor(functionText, {
                   ...options,
@@ -490,14 +485,13 @@ OutputParser.prototype = {
             BEZIER_KEYWORDS.includes(token.text)
           ) {
             this._appendCubicBezier(token.text, options);
+          } else if (options.expectLinearEasing && token.text == "linear") {
+            this._appendLinear(token.text, options);
           } else if (this._isDisplayFlex(text, token, options)) {
             this._appendHighlighterToggle(token.text, options.flexClass);
           } else if (this._isDisplayGrid(text, token, options)) {
             this._appendHighlighterToggle(token.text, options.gridClass);
-          } else if (
-            colorOK() &&
-            colorUtils.isValidCSSColor(token.text, this.cssColor4)
-          ) {
+          } else if (colorOK() && InspectorUtils.isValidCSSColor(token.text)) {
             this._appendColor(token.text, {
               ...options,
               colorFunction: colorFunctions.at(-1)?.functionName,
@@ -519,10 +513,7 @@ OutputParser.prototype = {
         case "id":
         case "hash": {
           const original = text.substring(token.startOffset, token.endOffset);
-          if (
-            colorOK() &&
-            colorUtils.isValidCSSColor(original, this.cssColor4)
-          ) {
+          if (colorOK() && InspectorUtils.isValidCSSColor(original)) {
             if (spaceNeeded) {
               // Insert a space to prevent token pasting when a #xxx
               // color is changed to something like rgb(...).
@@ -715,6 +706,33 @@ OutputParser.prototype = {
         class: options.bezierClass,
       },
       bezier
+    );
+
+    container.appendChild(value);
+    this.parsed.push(container);
+  },
+
+  _appendLinear(text, options) {
+    const container = this._createNode("span", {
+      "data-linear": text,
+    });
+
+    if (options.linearEasingSwatchClass) {
+      const swatch = this._createNode("span", {
+        class: options.linearEasingSwatchClass,
+        tabindex: "0",
+        role: "button",
+        "data-linear": text,
+      });
+      container.appendChild(swatch);
+    }
+
+    const value = this._createNode(
+      "span",
+      {
+        class: options.linearEasingClass,
+      },
+      text
     );
 
     container.appendChild(value);
@@ -1518,7 +1536,7 @@ OutputParser.prototype = {
    *         _mergeOptions().
    */
   _appendColor(color, options = {}) {
-    const colorObj = new colorUtils.CssColor(color, this.cssColor4);
+    const colorObj = new colorUtils.CssColor(color);
 
     if (this._isValidColor(colorObj)) {
       const container = this._createNode("span", {

@@ -22,8 +22,8 @@ class TimeIntervals;
 // CopyChooser specialization for nsTArray
 template <>
 struct nsTArray_RelocationStrategy<mozilla::media::TimeIntervals> {
-  typedef nsTArray_RelocateUsingMoveConstructor<mozilla::media::TimeIntervals>
-      Type;
+  using Type =
+      nsTArray_RelocateUsingMoveConstructor<mozilla::media::TimeIntervals>;
 };
 
 namespace mozilla {
@@ -40,13 +40,13 @@ namespace media {
 static const int64_t NSECS_PER_S = 1000000000;
 
 #ifndef PROCESS_DECODE_LOG
-#  define PROCESS_DECODE_LOG(sample)                                         \
-    MOZ_LOG(                                                                 \
-        sPDMLog, mozilla::LogLevel::Verbose,                                 \
-        ("ProcessDecode: mDuration=%" PRIu64 "µs ; mTime=%" PRIu64           \
-         "µs ; mTimecode=%" PRIu64 "µs",                                     \
-         sample->mDuration.ToMicroseconds(), sample->mTime.ToMicroseconds(), \
-         sample->mTimecode.ToMicroseconds()))
+#  define PROCESS_DECODE_LOG(sample)                                   \
+    MOZ_LOG(sPDMLog, mozilla::LogLevel::Verbose,                       \
+            ("ProcessDecode: mDuration=%" PRIu64 "µs ; mTime=%" PRIu64 \
+             "µs ; mTimecode=%" PRIu64 "µs",                           \
+             (sample)->mDuration.ToMicroseconds(),                     \
+             (sample)->mTime.ToMicroseconds(),                         \
+             (sample)->mTimecode.ToMicroseconds()))
 #endif  // PROCESS_DECODE_LOG
 
 // TimeUnit at present uses a CheckedInt64 as storage.
@@ -54,9 +54,9 @@ static const int64_t NSECS_PER_S = 1000000000;
 class TimeUnit final {
  public:
   static TimeUnit FromSeconds(double aValue) {
-    MOZ_ASSERT(!IsNaN(aValue));
+    MOZ_ASSERT(!std::isnan(aValue));
 
-    if (mozilla::IsInfinite<double>(aValue)) {
+    if (std::isinf(aValue)) {
       return aValue > 0 ? FromInfinity() : FromNegativeInfinity();
     }
     // Due to internal double representation, this
@@ -66,11 +66,11 @@ class TimeUnit final {
         (aValue <= 0 ? aValue - halfUsec : aValue + halfUsec) * USECS_PER_S;
     if (val >= double(INT64_MAX)) {
       return FromMicroseconds(INT64_MAX);
-    } else if (val <= double(INT64_MIN)) {
-      return FromMicroseconds(INT64_MIN);
-    } else {
-      return FromMicroseconds(int64_t(val));
     }
+    if (val <= double(INT64_MIN)) {
+      return FromMicroseconds(INT64_MIN);
+    }
+    return FromMicroseconds(int64_t(val));
   }
 
   static constexpr TimeUnit FromMicroseconds(int64_t aValue) {
@@ -154,7 +154,7 @@ class TimeUnit final {
       // +/-Inf, or NaN. So do the calculation in floating point for
       // simplicity.
       double result = ToSeconds() + aOther.ToSeconds();
-      return IsNaN(result) ? TimeUnit::Invalid() : FromSeconds(result);
+      return std::isnan(result) ? TimeUnit::Invalid() : FromSeconds(result);
     }
     return TimeUnit(mValue + aOther.mValue);
   }
@@ -165,7 +165,7 @@ class TimeUnit final {
       // +/-Inf, or NaN. So do the calculation in floating point for
       // simplicity.
       double result = ToSeconds() - aOther.ToSeconds();
-      return IsNaN(result) ? TimeUnit::Invalid() : FromSeconds(result);
+      return std::isnan(result) ? TimeUnit::Invalid() : FromSeconds(result);
     }
     MOZ_ASSERT(!IsInfinite() && !aOther.IsInfinite());
     return TimeUnit(mValue - aOther.mValue);

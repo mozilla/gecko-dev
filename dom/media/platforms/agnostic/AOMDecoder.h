@@ -18,9 +18,11 @@ namespace mozilla {
 
 DDLoggedTypeDeclNameAndBase(AOMDecoder, MediaDataDecoder);
 
-class AOMDecoder : public MediaDataDecoder,
-                   public DecoderDoctorLifeLogger<AOMDecoder> {
+class AOMDecoder final : public MediaDataDecoder,
+                         public DecoderDoctorLifeLogger<AOMDecoder> {
  public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(AOMDecoder, final);
+
   explicit AOMDecoder(const CreateDecoderParams& aParams);
 
   RefPtr<InitPromise> Init() override;
@@ -31,6 +33,7 @@ class AOMDecoder : public MediaDataDecoder,
   nsCString GetDescriptionName() const override {
     return "av1 libaom video decoder"_ns;
   }
+  nsCString GetCodecName() const override { return "av1"_ns; }
 
   // Return true if aMimeType is a one of the strings used
   // by our demuxers to identify AV1 streams.

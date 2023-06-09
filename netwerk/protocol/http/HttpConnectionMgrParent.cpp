@@ -131,11 +131,10 @@ void HttpConnectionMgrParent::PrintDiagnostics() {
   // socket process.
 }
 
-nsresult HttpConnectionMgrParent::UpdateCurrentTopBrowsingContextId(
-    uint64_t aId) {
+nsresult HttpConnectionMgrParent::UpdateCurrentBrowserId(uint64_t aId) {
   RefPtr<HttpConnectionMgrParent> self = this;
   auto task = [self, aId]() {
-    Unused << self->SendUpdateCurrentTopBrowsingContextId(aId);
+    Unused << self->SendUpdateCurrentBrowserId(aId);
   };
   gIOService->CallOrWaitForSocketProcess(std::move(task));
   return NS_OK;
@@ -149,7 +148,8 @@ nsresult HttpConnectionMgrParent::AddTransaction(HttpTransactionShell* aTrans,
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  Unused << SendAddTransaction(aTrans->AsHttpTransactionParent(), aPriority);
+  Unused << SendAddTransaction(WrapNotNull(aTrans->AsHttpTransactionParent()),
+                               aPriority);
   return NS_OK;
 }
 
@@ -163,8 +163,8 @@ nsresult HttpConnectionMgrParent::AddTransactionWithStickyConn(
   }
 
   Unused << SendAddTransactionWithStickyConn(
-      aTrans->AsHttpTransactionParent(), aPriority,
-      aTransWithStickyConn->AsHttpTransactionParent());
+      WrapNotNull(aTrans->AsHttpTransactionParent()), aPriority,
+      WrapNotNull(aTransWithStickyConn->AsHttpTransactionParent()));
   return NS_OK;
 }
 
@@ -176,8 +176,8 @@ nsresult HttpConnectionMgrParent::RescheduleTransaction(
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  Unused << SendRescheduleTransaction(aTrans->AsHttpTransactionParent(),
-                                      aPriority);
+  Unused << SendRescheduleTransaction(
+      WrapNotNull(aTrans->AsHttpTransactionParent()), aPriority);
   return NS_OK;
 }
 
@@ -190,7 +190,7 @@ void HttpConnectionMgrParent::UpdateClassOfServiceOnTransaction(
   }
 
   Unused << SendUpdateClassOfServiceOnTransaction(
-      aTrans->AsHttpTransactionParent(), aClassOfService);
+      WrapNotNull(aTrans->AsHttpTransactionParent()), aClassOfService);
 }
 
 nsresult HttpConnectionMgrParent::CancelTransaction(
@@ -201,7 +201,8 @@ nsresult HttpConnectionMgrParent::CancelTransaction(
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  Unused << SendCancelTransaction(aTrans->AsHttpTransactionParent(), aReason);
+  Unused << SendCancelTransaction(
+      WrapNotNull(aTrans->AsHttpTransactionParent()), aReason);
   return NS_OK;
 }
 
@@ -240,6 +241,7 @@ nsresult HttpConnectionMgrParent::SpeculativeConnect(
     overriderArgs->ignoreIdle() = overrider->GetIgnoreIdle();
     overriderArgs->isFromPredictor() = overrider->GetIsFromPredictor();
     overriderArgs->allow1918() = overrider->GetAllow1918();
+    overriderArgs->ignoreUserCertCheck() = overrider->GetIgnoreUserCertCheck();
   }
 
   HttpConnectionInfoCloneArgs connInfo;
@@ -249,9 +251,9 @@ nsresult HttpConnectionMgrParent::SpeculativeConnect(
   auto task = [self, connInfo{std::move(connInfo)},
                overriderArgs{std::move(overriderArgs)}, aCaps,
                trans{std::move(trans)}, aFetchHTTPSRR]() {
-    Maybe<AltSvcTransactionParent*> maybeTrans;
+    Maybe<NotNull<AltSvcTransactionParent*>> maybeTrans;
     if (trans) {
-      maybeTrans.emplace(trans.get());
+      maybeTrans.emplace(WrapNotNull(trans.get()));
     }
     Unused << self->SendSpeculativeConnect(connInfo, overriderArgs, aCaps,
                                            maybeTrans, aFetchHTTPSRR);
@@ -302,7 +304,8 @@ nsresult HttpConnectionMgrParent::CompleteUpgrade(
   // We need to link the id and the upgrade listener here, so
   // WebSocketConnectionParent can connect to the listener correctly later.
   uint32_t id = AddHttpUpgradeListenerToMap(aUpgradeListener);
-  Unused << SendStartWebSocketConnection(aTrans->AsHttpTransactionParent(), id);
+  Unused << SendStartWebSocketConnection(
+      WrapNotNull(aTrans->AsHttpTransactionParent()), id);
   return NS_OK;
 }
 

@@ -13,12 +13,9 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   Bookmarks: "resource://gre/modules/Bookmarks.sys.mjs",
   History: "resource://gre/modules/History.sys.mjs",
+  Log: "resource://gre/modules/Log.sys.mjs",
   PlacesSyncUtils: "resource://gre/modules/PlacesSyncUtils.sys.mjs",
   Sqlite: "resource://gre/modules/Sqlite.sys.mjs",
-});
-
-XPCOMUtils.defineLazyModuleGetters(lazy, {
-  NetUtil: "resource://gre/modules/NetUtil.jsm",
 });
 
 XPCOMUtils.defineLazyGetter(lazy, "MOZ_ACTION_REGEX", () => {
@@ -51,24 +48,6 @@ function asQuery(aNode) {
 }
 
 /**
- * Sends a bookmarks notification through the given observers.
- *
- * @param observers
- *        array of nsINavBookmarkObserver objects.
- * @param notification
- *        the notification name.
- * @param args
- *        array of arguments to pass to the notification.
- */
-function notify(observers, notification, args) {
-  for (let observer of observers) {
-    try {
-      observer[notification](...args);
-    } catch (ex) {}
-  }
-}
-
-/**
  * Sends a keyword change notification.
  *
  * @param url
@@ -88,21 +67,23 @@ async function notifyKeywordChange(url, keyword, source) {
     bookmark.id = ids.get(bookmark.guid);
     bookmark.parentId = ids.get(bookmark.parentGuid);
   }
-  let observers = PlacesUtils.bookmarks.getObservers();
-  for (let bookmark of bookmarks) {
-    notify(observers, "onItemChanged", [
-      bookmark.id,
-      "keyword",
-      false,
-      keyword,
-      bookmark.lastModified * 1000,
-      bookmark.type,
-      bookmark.parentId,
-      bookmark.guid,
-      bookmark.parentGuid,
-      "",
-      source,
-    ]);
+
+  const notifications = bookmarks.map(
+    bookmark =>
+      new PlacesBookmarkKeyword({
+        id: bookmark.id,
+        itemType: bookmark.type,
+        url,
+        guid: bookmark.guid,
+        parentGuid: bookmark.parentGuid,
+        keyword,
+        lastModified: bookmark.lastModified,
+        source,
+        isTagging: false,
+      })
+  );
+  if (notifications.length) {
+    PlacesObservers.notifyListeners(notifications);
   }
 }
 
@@ -204,8 +185,10 @@ const BOOKMARK_VALIDATORS = Object.freeze({
   index: simpleValidateFunc(
     v => Number.isInteger(v) && v >= PlacesUtils.bookmarks.DEFAULT_INDEX
   ),
-  dateAdded: simpleValidateFunc(v => v.constructor.name == "Date"),
-  lastModified: simpleValidateFunc(v => v.constructor.name == "Date"),
+  dateAdded: simpleValidateFunc(v => v.constructor.name == "Date" && !isNaN(v)),
+  lastModified: simpleValidateFunc(
+    v => v.constructor.name == "Date" && !isNaN(v)
+  ),
   type: simpleValidateFunc(
     v =>
       Number.isInteger(v) &&
@@ -235,7 +218,7 @@ const BOOKMARK_VALIDATORS = Object.freeze({
       return new URL(v);
     }
     if (v instanceof Ci.nsIURI) {
-      return new URL(v.spec);
+      return URL.fromURI(v);
     }
     return v;
   },
@@ -433,7 +416,7 @@ export var PlacesUtils = {
   // Place entries formatted as HTML anchors
   TYPE_HTML: "text/html",
   // Place entries as raw URL text
-  TYPE_UNICODE: "text/unicode",
+  TYPE_PLAINTEXT: "text/plain",
   // Used to track the action that populated the clipboard.
   TYPE_X_MOZ_PLACE_ACTION: "text/x-moz-place-action",
 
@@ -529,9 +512,13 @@ export var PlacesUtils = {
    * @return nsIURI for the given URL.
    */
   toURI(url) {
-    url = URL.isInstance(url) ? url.href : url;
-
-    return lazy.NetUtil.newURI(url);
+    if (url instanceof Ci.nsIURI) {
+      return url;
+    }
+    if (URL.isInstance(url)) {
+      return url.URI;
+    }
+    return Services.io.newURI(url);
   },
 
   /**
@@ -542,7 +529,10 @@ export var PlacesUtils = {
    * @return microseconds from the epoch.
    */
   toPRTime(date) {
-    if (typeof date != "number" && date.constructor.name != "Date") {
+    if (
+      (typeof date != "number" && date.constructor.name != "Date") ||
+      isNaN(date)
+    ) {
       throw new Error("Invalid value passed to toPRTime");
     }
     return date * 1000;
@@ -556,7 +546,7 @@ export var PlacesUtils = {
    * @return a Date object.
    */
   toDate(time) {
-    if (typeof time != "number") {
+    if (typeof time != "number" || isNaN(time)) {
       throw new Error("Invalid value passed to toDate");
     }
     return new Date(parseInt(time / 1000));
@@ -1101,7 +1091,7 @@ export var PlacesUtils = {
       }
     }
 
-    // Otherwise, we wrap as TYPE_UNICODE.
+    // Otherwise, we wrap as TYPE_PLAINTEXT.
     return gatherDataFromNode(aNode, gatherDataText);
   },
 
@@ -1157,11 +1147,11 @@ export var PlacesUtils = {
         }
         break;
       }
-      case this.TYPE_UNICODE: {
+      case this.TYPE_PLAINTEXT: {
         let parts = blob.split("\n");
         for (let i = 0; i < parts.length; i++) {
           let uriString = parts[i];
-          // text/uri-list is converted to TYPE_UNICODE but it could contain
+          // text/uri-list is converted to TYPE_PLAINTEXT but it could contain
           // comments line prepended by #, we should skip them, as well as
           // empty uris.
           if (uriString.substr(0, 1) == "\x23" || uriString == "") {
@@ -1223,7 +1213,7 @@ export var PlacesUtils = {
       return key;
     }
     if (key instanceof Ci.nsIURI) {
-      return new URL(key.spec);
+      return URL.fromURI(key);
     }
     throw new TypeError("Invalid url or guid: " + key);
   },
@@ -1709,7 +1699,7 @@ export var PlacesUtils = {
           item.type = PlacesUtils.TYPE_X_MOZ_PLACE;
           // If this throws due to an invalid url, the item will be skipped.
           try {
-            item.uri = lazy.NetUtil.newURI(aRow.getResultByName("url")).spec;
+            item.uri = new URL(aRow.getResultByName("url")).href;
           } catch (ex) {
             let error = new Error("Invalid bookmark URL");
             error.becauseInvalidURL = true;
@@ -1956,7 +1946,9 @@ export var PlacesUtils = {
     // The IGNORE conflict can trigger on `guid`.
     await db.executeCached(
       `INSERT OR IGNORE INTO moz_places (url, url_hash, rev_host, hidden, frecency, guid)
-      VALUES (:url, hash(:url), :rev_host, 0, :frecency,
+      VALUES (:url, hash(:url), :rev_host,
+              (CASE WHEN :url BETWEEN 'place:' AND 'place:' || X'FFFF' THEN 1 ELSE 0 END),
+              :frecency,
               IFNULL((SELECT guid FROM moz_places WHERE url_hash = hash(:url) AND url = :url),
                       GENERATE_GUID()))
       `,
@@ -1985,7 +1977,9 @@ export var PlacesUtils = {
   async maybeInsertManyPlaces(db, urls) {
     await db.executeCached(
       `INSERT OR IGNORE INTO moz_places (url, url_hash, rev_host, hidden, frecency, guid) VALUES
-     (:url, hash(:url), :rev_host, 0, :frecency,
+     (:url, hash(:url), :rev_host,
+     (CASE WHEN :url BETWEEN 'place:' AND 'place:' || X'FFFF' THEN 1 ELSE 0 END),
+     :frecency,
      IFNULL((SELECT guid FROM moz_places WHERE url_hash = hash(:url) AND url = :url), :maybeguid))`,
       urls.map(url => ({
         url: url.href,
@@ -2005,6 +1999,34 @@ export var PlacesUtils = {
     return (
       Cu.isInAutomation || Services.env.exists("XPCSHELL_TEST_PROFILE_DIR")
     );
+  },
+
+  /**
+   * Creates a logger.
+   * Logging level can be controlled through places.loglevel.
+   *
+   * @param {string} [prefix] Prefix to use for the logged messages, "::" will
+   *                 be appended automatically to the prefix.
+   * @returns {object} The logger.
+   */
+  getLogger({ prefix = "" } = {}) {
+    if (!this._logger) {
+      this._logger = lazy.Log.repository.getLogger("places");
+      this._logger.manageLevelFromPref("places.loglevel");
+      this._logger.addAppender(
+        new lazy.Log.ConsoleAppender(new lazy.Log.BasicFormatter())
+      );
+    }
+    if (prefix) {
+      // This is not an early return because it is necessary to invoke getLogger
+      // at least once before getLoggerWithMessagePrefix; it replaces a
+      // method of the original logger, rather than using an actual Proxy.
+      return lazy.Log.repository.getLoggerWithMessagePrefix(
+        "places",
+        prefix + " :: "
+      );
+    }
+    return this._logger;
   },
 };
 
@@ -2027,6 +2049,15 @@ XPCOMUtils.defineLazyGetter(PlacesUtils, "history", function() {
           return property.bind(object);
         }
         return property;
+      },
+      set(target, name, val) {
+        // Forward to the XPCOM object, otherwise don't allow to set properties.
+        if (name in target) {
+          target[name] = val;
+          return true;
+        }
+        // This will throw in strict mode.
+        return false;
       },
     })
   );
@@ -2114,7 +2145,7 @@ function setupDbForShutdown(conn, name) {
         conn.close();
         reject(ex);
       }
-    }).catch(Cu.reportError);
+    }).catch(console.error);
 
     // Make sure that Sqlite.sys.mjs doesn't close until we are done
     // with the high-level connection.
@@ -2139,7 +2170,7 @@ XPCOMUtils.defineLazyGetter(lazy, "gAsyncDBConnPromised", () =>
       setupDbForShutdown(conn, "PlacesUtils read-only connection");
       return conn;
     })
-    .catch(Cu.reportError)
+    .catch(console.error)
 );
 
 XPCOMUtils.defineLazyGetter(lazy, "gAsyncDBWrapperPromised", () =>
@@ -2150,7 +2181,7 @@ XPCOMUtils.defineLazyGetter(lazy, "gAsyncDBWrapperPromised", () =>
       setupDbForShutdown(conn, "PlacesUtils wrapped connection");
       return conn;
     })
-    .catch(Cu.reportError)
+    .catch(console.error)
 );
 
 var gAsyncDBLargeCacheConnDeferred = PromiseUtils.defer();
@@ -2187,7 +2218,7 @@ XPCOMUtils.defineLazyGetter(lazy, "gAsyncDBLargeCacheConnPromised", () =>
       gAsyncDBLargeCacheConnDeferred.resolve(conn);
       return conn;
     })
-    .catch(Cu.reportError)
+    .catch(console.error)
 );
 
 /**
@@ -2340,14 +2371,14 @@ PlacesUtils.metadata = {
   },
 
   canonicalizeKey(key) {
-    if (typeof key != "string" || !/^[a-zA-Z0-9\/]+$/.test(key)) {
+    if (typeof key != "string" || !/^[a-zA-Z0-9\/_]+$/.test(key)) {
       throw new TypeError("Invalid metadata key: " + key);
     }
     return key.toLowerCase();
   },
 
   _base64Encode(str) {
-    return ChromeUtils.base64URLEncode(new TextEncoder("utf-8").encode(str), {
+    return ChromeUtils.base64URLEncode(new TextEncoder().encode(str), {
       pad: true,
     });
   },

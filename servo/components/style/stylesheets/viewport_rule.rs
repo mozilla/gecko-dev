@@ -24,8 +24,10 @@ use crate::values::generics::NonNegative;
 use crate::values::specified::{self, NoCalcLength};
 use crate::values::specified::{NonNegativeLengthPercentageOrAuto, ViewportPercentageLength};
 use app_units::Au;
-use cssparser::CowRcStr;
-use cssparser::{parse_important, AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
+use cssparser::{
+    parse_important, AtRuleParser, CowRcStr, DeclarationListParser, DeclarationParser, Parser,
+    QualifiedRuleParser,
+};
 use euclid::Size2D;
 use selectors::parser::SelectorParseErrorKind;
 use std::borrow::Cow;
@@ -116,7 +118,7 @@ macro_rules! declare_viewport_descriptor_inner {
                         },
                     )*
                 }
-                dest.write_str(";")
+                dest.write_char(';')
             }
         }
     };
@@ -242,6 +244,12 @@ fn parse_shorthand<'i, 't>(
 impl<'a, 'b, 'i> AtRuleParser<'i> for ViewportRuleParser<'a, 'b> {
     type Prelude = ();
     type AtRule = Vec<ViewportDescriptorDeclaration>;
+    type Error = StyleParseErrorKind<'i>;
+}
+
+impl<'a, 'b, 'i> QualifiedRuleParser<'i> for ViewportRuleParser<'a, 'b> {
+    type Prelude = ();
+    type QualifiedRule = Vec<ViewportDescriptorDeclaration>;
     type Error = StyleParseErrorKind<'i>;
 }
 
@@ -512,7 +520,7 @@ impl ToCssWithGuard for ViewportRule {
         let mut iter = self.declarations.iter();
         iter.next().unwrap().to_css(&mut CssWriter::new(dest))?;
         for declaration in iter {
-            dest.write_str(" ")?;
+            dest.write_char(' ')?;
             declaration.to_css(&mut CssWriter::new(dest))?;
         }
         dest.write_str(" }")

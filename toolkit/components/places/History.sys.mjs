@@ -68,8 +68,6 @@
 
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
-import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
-
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
@@ -84,41 +82,15 @@ XPCOMUtils.defineLazyServiceGetter(
 );
 
 /**
- * Whenever we update or remove numerous pages, it is preferable
- * to yield time to the main thread every so often to avoid janking.
+ * Whenever we update numerous pages, it is preferable to yield time to the main
+ * thread every so often to avoid janking.
  * These constants determine the maximal number of notifications we
  * may emit before we yield.
  */
-const NOTIFICATION_CHUNK_SIZE = 300;
 const ONRESULT_CHUNK_SIZE = 300;
 
 // This constant determines the maximum number of remove pages before we cycle.
 const REMOVE_PAGES_CHUNKLEN = 300;
-
-/**
- * Sends a bookmarks notification through the given observers.
- *
- * @param observers
- *        array of nsINavBookmarkObserver objects.
- * @param notification
- *        the notification name.
- * @param args
- *        array of arguments to pass to the notification.
- */
-function notify(observers, notification, args = []) {
-  for (let observer of observers) {
-    try {
-      observer[notification](...args);
-    } catch (ex) {
-      if (
-        ex.result != Cr.NS_ERROR_XPC_JSOBJECT_HAS_NO_FUNCTION_NAMED &&
-        (AppConstants.DEBUG || Cu.isInAutomation)
-      ) {
-        console.error(ex);
-      }
-    }
-  }
-}
 
 export var History = Object.freeze({
   ANNOTATION_EXPIRE_NEVER: 4,
@@ -689,8 +661,13 @@ export var History = Object.freeze({
    * Throw if an object is not a Date object.
    */
   ensureDate(arg) {
-    if (!arg || typeof arg != "object" || arg.constructor.name != "Date") {
-      throw new TypeError("Expected a Date, got " + arg);
+    if (
+      !arg ||
+      typeof arg != "object" ||
+      arg.constructor.name != "Date" ||
+      isNaN(arg)
+    ) {
+      throw new TypeError("Expected a valid Date, got " + arg);
     }
   },
 
@@ -861,40 +838,6 @@ function convertForUpdatePlaces(pageInfo) {
   return info;
 }
 
-/**
- * Invalidate and recompute the frecency of a list of pages,
- * informing frecency observers.
- *
- * @param {OpenConnection} db an Sqlite connection
- * @param {Array} idList The `moz_places` identifiers to invalidate.
- * @returns {Promise} resolved when done
- */
-var invalidateFrecencies = async function(db, idList) {
-  if (!idList.length) {
-    return;
-  }
-  for (let chunk of lazy.PlacesUtils.chunkArray(idList, db.variableLimit)) {
-    await db.execute(
-      `UPDATE moz_places
-       SET frecency = CALCULATE_FRECENCY(id)
-       WHERE id in (${lazy.PlacesUtils.sqlBindPlaceholders(chunk)})`,
-      chunk
-    );
-    await db.execute(
-      `UPDATE moz_places
-       SET hidden = 0
-       WHERE id in (${lazy.PlacesUtils.sqlBindPlaceholders(chunk)})
-       AND frecency <> 0`,
-      chunk
-    );
-  }
-
-  PlacesObservers.notifyListeners([new PlacesRanking()]);
-
-  // Trigger frecency updates for all affected origins.
-  await db.execute(`DELETE FROM moz_updateoriginsupdate_temp`);
-};
-
 // Inner implementation of History.clear().
 var clear = async function(db) {
   await db.executeTransaction(async function() {
@@ -923,10 +866,7 @@ var clear = async function(db) {
     await db.execute("DELETE FROM moz_historyvisits");
   });
 
-  PlacesObservers.notifyListeners([
-    new PlacesHistoryCleared(),
-    new PlacesRanking(),
-  ]);
+  PlacesObservers.notifyListeners([new PlacesHistoryCleared()]);
 
   // Trigger frecency updates for all affected origins.
   await db.execute(`DELETE FROM moz_updateoriginsupdate_temp`);
@@ -954,11 +894,6 @@ var clear = async function(db) {
  * @return (Promise)
  */
 var cleanupPages = async function(db, pages) {
-  await invalidateFrecencies(
-    db,
-    pages.filter(p => p.hasForeign || p.hasVisits).map(p => p.id)
-  );
-
   let pagesToRemove = pages.filter(p => !p.hasForeign && !p.hasVisits);
   if (!pagesToRemove.length) {
     return;
@@ -1052,14 +987,12 @@ function removeOrphanIcons(db) {
  */
 var notifyCleanup = async function(db, pages, transitionType = 0) {
   const notifications = [];
-  let notifiedCount = 0;
-  let bookmarkObservers = lazy.PlacesUtils.bookmarks.getObservers();
 
   for (let page of pages) {
     const isRemovedFromStore = !page.hasVisits && !page.hasForeign;
     notifications.push(
       new PlacesVisitRemoved({
-        url: Services.io.newURI(page.url.href).spec,
+        url: page.url.href,
         pageGuid: page.guid,
         reason: PlacesVisitRemoved.REASON_DELETED,
         transitionType,
@@ -1067,41 +1000,6 @@ var notifyCleanup = async function(db, pages, transitionType = 0) {
         isPartialVisistsRemoval: !isRemovedFromStore && page.hasVisits > 0,
       })
     );
-
-    if (page.hasForeign && !page.hasVisits) {
-      lazy.PlacesUtils.bookmarks
-        .fetch({ url: page.url }, async bookmark => {
-          let itemId = await lazy.PlacesUtils.promiseItemId(bookmark.guid);
-          let parentId = await lazy.PlacesUtils.promiseItemId(
-            bookmark.parentGuid
-          );
-          notify(
-            bookmarkObservers,
-            "onItemChanged",
-            [
-              itemId,
-              "cleartime",
-              false,
-              "",
-              0,
-              lazy.PlacesUtils.bookmarks.TYPE_BOOKMARK,
-              parentId,
-              bookmark.guid,
-              bookmark.parentGuid,
-              "",
-              lazy.PlacesUtils.bookmarks.SOURCES.DEFAULT,
-            ],
-            { concurrent: true }
-          );
-
-          if (++notifiedCount % NOTIFICATION_CHUNK_SIZE == 0) {
-            // Every few notifications, yield time back to the main
-            // thread to avoid jank.
-            await Promise.resolve();
-          }
-        })
-        .catch(Cu.reportError);
-    }
   }
 
   PlacesObservers.notifyListeners(notifications);
@@ -1645,13 +1543,13 @@ function mergeUpdateInfoIntoPageInfo(updateInfo, pageInfo = {}) {
   pageInfo.guid = updateInfo.guid;
   pageInfo.title = updateInfo.title;
   if (!pageInfo.url) {
-    pageInfo.url = new URL(updateInfo.uri.spec);
+    pageInfo.url = URL.fromURI(updateInfo.uri);
     pageInfo.title = updateInfo.title;
     pageInfo.visits = updateInfo.visits.map(visit => {
       return {
         date: lazy.PlacesUtils.toDate(visit.visitDate),
         transition: visit.transitionType,
-        referrer: visit.referrerURI ? new URL(visit.referrerURI.spec) : null,
+        referrer: visit.referrerURI ? URL.fromURI(visit.referrerURI) : null,
       };
     });
   }

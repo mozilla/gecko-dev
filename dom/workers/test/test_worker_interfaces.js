@@ -148,11 +148,17 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "CloseEvent", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "CompressionStream", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "CountQueuingStrategy", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "Crypto", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "CryptoKey" },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "CustomEvent", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "DecompressionStream", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "DedicatedWorkerGlobalScope", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -194,15 +200,15 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "FileReaderSync", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "FileSystemDirectoryHandle", nightly: true },
+  { name: "FileSystemDirectoryHandle" },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "FileSystemFileHandle", nightly: true },
+  { name: "FileSystemFileHandle" },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "FileSystemHandle", nightly: true },
+  { name: "FileSystemHandle" },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "FileSystemSyncAccessHandle", nightly: true },
+  { name: "FileSystemSyncAccessHandle" },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "FileSystemWritableFileStream", nightly: true },
+  { name: "FileSystemWritableFileStream" },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "FontFace", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -373,6 +379,18 @@ let interfaceNamesInGlobalScope = [
   { name: "WebGLVertexArrayObject", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "WebSocket", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "WebTransport", insecureContext: false },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "WebTransportBidirectionalStream", insecureContext: false },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "WebTransportDatagramDuplexStream", insecureContext: false },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "WebTransportError", insecureContext: false },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "WebTransportReceiveStream", insecureContext: false },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "WebTransportSendStream", insecureContext: false },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "Worker", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!

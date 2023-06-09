@@ -1,7 +1,5 @@
 "use strict";
 
-const { OS } = ChromeUtils.import("resource://gre/modules/osfile.jsm");
-
 const HOSTS = new Set(["example.com", "example.org", "example.net"]);
 
 const server = createHttpServer({ hosts: HOSTS });
@@ -70,8 +68,8 @@ server.registerPathHandler("/lorem.html.gz", async (request, response) => {
   );
   response.setHeader("Content-Encoding", "gzip", false);
 
-  let data = await OS.File.read(do_get_file("data/lorem.html.gz").path);
-  response.write(String.fromCharCode(...new Uint8Array(data)));
+  let data = await IOUtils.read(do_get_file("data/lorem.html.gz").path);
+  response.write(String.fromCharCode(...data));
 
   response.finish();
 });
@@ -375,9 +373,7 @@ add_task(async function test_filter_302() {
 
           filter.ondata = event => {
             const script = "forceError();";
-            filter.write(
-              new Uint8Array(new TextEncoder("utf-8").encode(script))
-            );
+            filter.write(new Uint8Array(new TextEncoder().encode(script)));
             filter.close();
             browser.test.sendMessage("filter-ondata");
           };

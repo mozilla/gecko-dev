@@ -53,9 +53,8 @@ class CommonAnimationManager {
   void StopAnimationsForElement(dom::Element* aElement,
                                 PseudoStyleType aPseudoType) {
     MOZ_ASSERT(aElement);
-    AnimationCollection<AnimationType>* collection =
-        AnimationCollection<AnimationType>::GetAnimationCollection(aElement,
-                                                                   aPseudoType);
+    auto* collection =
+        AnimationCollection<AnimationType>::Get(aElement, aPseudoType);
     if (!collection) {
       return;
     }
@@ -171,7 +170,7 @@ inline TimingParams TimingParamsFromCSSParams(float aDuration, float aDelay,
                                               float aIterationCount,
                                               dom::PlaybackDirection aDirection,
                                               dom::FillMode aFillMode) {
-  MOZ_ASSERT(aIterationCount >= 0.0 && !IsNaN(aIterationCount),
+  MOZ_ASSERT(aIterationCount >= 0.0 && !std::isnan(aIterationCount),
              "aIterations should be nonnegative & finite, as ensured by "
              "CSSParser");
 

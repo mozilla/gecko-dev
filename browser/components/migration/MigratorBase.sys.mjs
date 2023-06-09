@@ -12,6 +12,7 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   BookmarkHTMLUtils: "resource://gre/modules/BookmarkHTMLUtils.sys.mjs",
+  FirefoxProfileMigrator: "resource:///modules/FirefoxProfileMigrator.sys.mjs",
   MigrationUtils: "resource:///modules/MigrationUtils.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   PromiseUtils: "resource://gre/modules/PromiseUtils.sys.mjs",
@@ -51,10 +52,31 @@ export class MigratorBase {
    * migrator, for example "firefox", "chrome", "opera-gx". This key is what
    * is used as an identifier when calling MigrationUtils.getMigrator.
    *
-   * @type {boolean}
+   * @type {string}
    */
   static get key() {
-    throw new Error("MigratorBase must be overridden.");
+    throw new Error("MigratorBase.key must be overridden.");
+  }
+
+  /**
+   * This must be overridden to return a Fluent string ID mapping to the display
+   * name for this migrator. These strings should be defined in migrationWizard.ftl.
+   *
+   * @type {string}
+   */
+  static get displayNameL10nID() {
+    throw new Error("MigratorBase.displayNameL10nID must be overridden.");
+  }
+
+  /**
+   * This method should get overridden to return an icon url of the browser
+   * to be imported from. By default, this will just use the default Favicon
+   * image.
+   *
+   * @type {string}
+   */
+  static get brandImage() {
+    return "chrome://global/skin/icons/defaultFavicon.svg";
   }
 
   /**
@@ -176,6 +198,40 @@ export class MigratorBase {
   }
 
   /**
+   * Subclasses should implement this if special checks need to be made to determine
+   * if certain permissions need to be requested before data can be imported.
+   * The returned Promise resolves to true if the required permissions have
+   * been granted and a migration could proceed.
+   *
+   * @returns {Promise<boolean>}
+   */
+  async hasPermissions() {
+    return Promise.resolve(true);
+  }
+
+  /**
+   * Subclasses should implement this if special permissions need to be
+   * requested from the user or the operating system in order to perform
+   * a migration with this MigratorBase. This will be called only if
+   * hasPermissions resolves to false.
+   *
+   * The returned Promise will resolve to true if permissions were successfully
+   * obtained, and false otherwise. Implementors should ensure that if a call
+   * to getPermissions resolves to true, that the MigratorBase will be able to
+   * get read access to all of the resources it needs to do a migration.
+   *
+   * @param {DOMWindow} win
+   *   The top-level DOM window hosting the UI that is requesting the permission.
+   *   This can be used to, for example, anchor a file picker window to the
+   *   same window that is hosting the migration UI.
+   * @returns {Promise<boolean>}
+   */
+  // eslint-disable-next-line no-unused-vars
+  async getPermissions(win) {
+    return Promise.resolve(true);
+  }
+
+  /**
    * This method returns a number that is the bitwise OR of all resource
    * types that are available in aProfile. See MigrationUtils.resourceTypes
    * for each resource type.
@@ -207,8 +263,12 @@ export class MigratorBase {
    *   True if this migration is occurring during startup.
    * @param {object|string} aProfile
    *   The other browser profile that is being migrated from.
+   * @param {Function|null} aProgressCallback
+   *   An optional callback that will be fired once a resourceType has finished
+   *   migrating. The callback will be passed the numeric representation of the
+   *   resource type.
    */
-  async migrate(aItems, aStartup, aProfile) {
+  async migrate(aItems, aStartup, aProfile, aProgressCallback = () => {}) {
     let resources = await this.#getMaybeCachedResources(aProfile);
     if (!resources.length) {
       throw new Error("migrate called for a non-existent source");
@@ -275,7 +335,7 @@ export class MigratorBase {
               .getKeyedHistogramById(histogramId)
               .add(browserKey, accumulatedDelay);
           } catch (ex) {
-            Cu.reportError(histogramId + ": " + ex);
+            console.error(histogramId, ": ", ex);
           }
         }
       }
@@ -295,8 +355,39 @@ export class MigratorBase {
               lazy.MigrationUtils._importQuantities[resourceType]
             );
         } catch (ex) {
-          Cu.reportError(histogramId + ": " + ex);
+          console.error(histogramId, ": ", ex);
         }
+      }
+    };
+
+    let collectMigrationTelemetry = resourceType => {
+      // We don't want to collect this if the migration is occurring due to a
+      // profile refresh.
+      if (this.constructor.key == lazy.FirefoxProfileMigrator.key) {
+        return;
+      }
+
+      let prefKey = null;
+      switch (resourceType) {
+        case lazy.MigrationUtils.resourceTypes.BOOKMARKS: {
+          prefKey = "browser.migrate.interactions.bookmarks";
+          break;
+        }
+        case lazy.MigrationUtils.resourceTypes.HISTORY: {
+          prefKey = "browser.migrate.interactions.history";
+          break;
+        }
+        case lazy.MigrationUtils.resourceTypes.PASSWORDS: {
+          prefKey = "browser.migrate.interactions.passwords";
+          break;
+        }
+        default: {
+          return;
+        }
+      }
+
+      if (prefKey) {
+        Services.prefs.setBoolPref(prefKey, true);
       }
     };
 
@@ -347,6 +438,10 @@ export class MigratorBase {
                   : "Migration:ItemError",
                 migrationType
               );
+              collectMigrationTelemetry(migrationType);
+
+              aProgressCallback(migrationType);
+
               resourcesGroupedByItems.delete(migrationType);
 
               if (stopwatchHistogramId) {
@@ -363,6 +458,7 @@ export class MigratorBase {
 
               if (resourcesGroupedByItems.size == 0) {
                 collectQuantityTelemetry();
+
                 notify("Migration:Ended");
               }
             }
@@ -374,7 +470,7 @@ export class MigratorBase {
           try {
             res.migrate(resourceDone);
           } catch (ex) {
-            Cu.reportError(ex);
+            console.error(ex);
             resourceDone(false);
           }
 
@@ -394,7 +490,7 @@ export class MigratorBase {
       // Note: We do not need to do so for the Firefox migrator
       // (=startupOnlyMigrator), as it just copies over the places database
       // from another profile.
-      (async function() {
+      await (async function() {
         // Tell nsBrowserGlue we're importing default bookmarks.
         let browserGlue = Cc["@mozilla.org/browser/browserglue;1"].getService(
           Ci.nsIObserver
@@ -408,7 +504,7 @@ export class MigratorBase {
             replace: true,
             source: lazy.PlacesUtils.bookmarks.SOURCES.RESTORE_ON_STARTUP,
           }
-        ).catch(Cu.reportError);
+        ).catch(console.error);
 
         // We'll tell nsBrowserGlue we've imported bookmarks, but before that
         // we need to make sure we're going to know when it's finished
@@ -428,11 +524,11 @@ export class MigratorBase {
         });
         browserGlue.observe(null, TOPIC_DID_IMPORT_BOOKMARKS, "");
         await placesInitedPromise;
-        doMigrate();
+        await doMigrate();
       })();
       return;
     }
-    doMigrate();
+    await doMigrate();
   }
 
   /**
@@ -463,7 +559,7 @@ export class MigratorBase {
         exists = !!profiles.length;
       }
     } catch (ex) {
-      Cu.reportError(ex);
+      console.error(ex);
     }
     return exists;
   }

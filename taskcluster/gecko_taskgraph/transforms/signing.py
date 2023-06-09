@@ -16,7 +16,10 @@ from gecko_taskgraph.util.attributes import (
     copy_attributes_from_dependent_job,
     release_level,
 )
-from gecko_taskgraph.util.scriptworker import get_signing_cert_scope_per_platform
+from gecko_taskgraph.util.scriptworker import (
+    add_scope_prefix,
+    get_signing_cert_scope_per_platform,
+)
 
 transforms = TransformSequence()
 
@@ -204,7 +207,14 @@ def make_task_description(config, jobs):
         if dep_job.kind in task["dependencies"]:
             task["if-dependencies"] = [dep_job.kind]
 
-        if "macosx" in build_platform:
+        # build-mac-{signing,notarization} uses signingscript instead of iscript
+        if "macosx" in build_platform and config.kind.endswith("-mac-notarization"):
+            task["worker"]["mac-behavior"] = "apple_notarization"
+            task["scopes"] = [
+                add_scope_prefix(config, "signing:cert:release-apple-notarization")
+            ]
+        elif "macosx" in build_platform:
+            # iscript overrides
             shippable = "false"
             if "shippable" in attributes and attributes["shippable"]:
                 shippable = "true"
@@ -223,9 +233,8 @@ def make_task_description(config, jobs):
                     mac_behavior = "mac_notarize_part_3"
                 else:
                     raise Exception(f"Unknown kind {config.kind} for mac_behavior!")
-            else:
-                if "part-1" in config.kind:
-                    continue
+            elif "part-1" in config.kind:
+                continue
             task["worker"]["mac-behavior"] = mac_behavior
             worker_type_alias_map = {
                 "linux-depsigning": "mac-depsigning",
@@ -241,6 +250,10 @@ def make_task_description(config, jobs):
             for attr in ("entitlements-url", "requirements-plist-url"):
                 if job.get(attr):
                     task["worker"][attr] = job[attr]
+
+            # Override behavior for signingscript mac-signing kind
+            if config.kind.endswith("-mac-signing"):
+                task["worker"]["mac-behavior"] = "mac_sign_and_pkg"
 
         task["worker-type"] = worker_type_alias
         if treeherder:

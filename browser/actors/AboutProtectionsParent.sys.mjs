@@ -8,6 +8,8 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
+  LoginBreaches: "resource:///modules/LoginBreaches.sys.mjs",
+  LoginHelper: "resource://gre/modules/LoginHelper.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
 });
@@ -16,13 +18,11 @@ XPCOMUtils.defineLazyModuleGetters(lazy, {
   FXA_PWDMGR_HOST: "resource://gre/modules/FxAccountsCommon.js",
   FXA_PWDMGR_REALM: "resource://gre/modules/FxAccountsCommon.js",
   AddonManager: "resource://gre/modules/AddonManager.jsm",
-  LoginBreaches: "resource:///modules/LoginBreaches.jsm",
-  LoginHelper: "resource://gre/modules/LoginHelper.jsm",
 });
 
 XPCOMUtils.defineLazyGetter(lazy, "fxAccounts", () => {
-  return ChromeUtils.import(
-    "resource://gre/modules/FxAccounts.jsm"
+  return ChromeUtils.importESModule(
+    "resource://gre/modules/FxAccounts.sys.mjs"
   ).getFxAccountsSingleton();
 });
 

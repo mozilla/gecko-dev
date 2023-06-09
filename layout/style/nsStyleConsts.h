@@ -85,12 +85,6 @@ enum class StyleDisplay : uint16_t {
                               StyleDisplayInside::RubyText),
   RubyTextContainer = StyleDisplayFrom(StyleDisplayOutside::InternalRuby,
                                        StyleDisplayInside::RubyTextContainer),
-
-  /// XUL boxes.
-  MozBox =
-      StyleDisplayFrom(StyleDisplayOutside::Block, StyleDisplayInside::MozBox),
-  MozInlineBox =
-      StyleDisplayFrom(StyleDisplayOutside::Inline, StyleDisplayInside::MozBox),
 };
 // The order of the StyleDisplay values isn't meaningful.
 bool operator<(const StyleDisplay&, const StyleDisplay&) = delete;
@@ -468,6 +462,14 @@ enum class StyleTextDecorationStyle : uint8_t {
   Sentinel = Wavy
 };
 
+// See nsStyleText
+enum class StyleTextSecurity : uint8_t {
+  None,
+  Circle,
+  Disc,
+  Square,
+};
+
 // See nsStyleDisplay
 enum class StyleTopLayer : uint8_t {
   None,
@@ -513,10 +515,11 @@ enum class StyleTextOrientation : uint8_t {
   Sideways,
 };
 
-// Whether to emulate -moz-box with flex. See nsStyleVisibility
-enum class StyleMozBoxLayout : uint8_t {
-  Legacy,
+// Whether flexbox visibility: collapse items use legacy -moz-box behavior or
+// not.
+enum class StyleMozBoxCollapse : uint8_t {
   Flex,
+  Legacy,
 };
 
 // See nsStyleText

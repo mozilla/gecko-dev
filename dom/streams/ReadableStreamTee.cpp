@@ -26,6 +26,8 @@
 
 namespace mozilla::dom {
 
+using namespace streams_abstract;
+
 NS_IMPL_CYCLE_COLLECTION_INHERITED(ReadableStreamDefaultTeeSourceAlgorithms,
                                    UnderlyingSourceAlgorithmsBase, mTeeState)
 NS_IMPL_ADDREF_INHERITED(ReadableStreamDefaultTeeSourceAlgorithms,
@@ -957,6 +959,7 @@ void ForwardReaderError(TeeState* aTeeState,
       RefPtr(aTeeState), RefPtr(aThisReader));
 }
 
+namespace streams_abstract {
 // https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamtee
 void ReadableByteStreamTee(JSContext* aCx, ReadableStream* aStream,
                            nsTArray<RefPtr<ReadableStream>>& aResult,
@@ -982,7 +985,7 @@ void ReadableByteStreamTee(JSContext* aCx, ReadableStream* aStream,
   auto branch1Algorithms =
       MakeRefPtr<ByteStreamTeeSourceAlgorithms>(teeState, TeeBranch::Branch1);
   teeState->SetBranch1(
-      CreateReadableByteStream(aCx, global, branch1Algorithms, aRv));
+      ReadableStream::CreateByteAbstract(aCx, global, branch1Algorithms, aRv));
   if (aRv.Failed()) {
     return;
   }
@@ -991,7 +994,7 @@ void ReadableByteStreamTee(JSContext* aCx, ReadableStream* aStream,
   auto branch2Algorithms =
       MakeRefPtr<ByteStreamTeeSourceAlgorithms>(teeState, TeeBranch::Branch2);
   teeState->SetBranch2(
-      CreateReadableByteStream(aCx, global, branch2Algorithms, aRv));
+      ReadableStream::CreateByteAbstract(aCx, global, branch2Algorithms, aRv));
   if (aRv.Failed()) {
     return;
   }
@@ -1003,4 +1006,6 @@ void ReadableByteStreamTee(JSContext* aCx, ReadableStream* aStream,
   aResult.AppendElement(teeState->Branch1());
   aResult.AppendElement(teeState->Branch2());
 }
+}  // namespace streams_abstract
+
 }  // namespace mozilla::dom

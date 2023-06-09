@@ -1,7 +1,7 @@
 "use strict";
 
-const { ExperimentFakes } = ChromeUtils.import(
-  "resource://testing-common/NimbusTestUtils.jsm"
+const { ExperimentFakes } = ChromeUtils.importESModule(
+  "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
 
 const { AboutWelcomeTelemetry } = ChromeUtils.import(
@@ -236,7 +236,7 @@ add_task(async function test_aboutwelcome_with_title_styles() {
  */
 add_task(async function test_aboutwelcome_with_background() {
   const BACKGROUND_URL =
-    "chrome://activity-stream/content/data/content/assets/proton-bkg.avif";
+    "chrome://activity-stream/content/data/content/assets/confetti.svg";
   const TEST_BACKGROUND_CONTENT = makeTestContent("TEST_BACKGROUND_STEP", {
     background: `url(${BACKGROUND_URL}) no-repeat center/cover`,
   });
@@ -257,28 +257,24 @@ add_task(async function test_aboutwelcome_with_background() {
  * Test rendering a screen with a dismiss button
  */
 add_task(async function test_aboutwelcome_dismiss_button() {
-  const TEST_DISMISS_CONTENT = makeTestContent("TEST_DISMISS_STEP", {
-    dismiss_button: {
-      action: {
-        navigate: true,
-      },
-    },
-  });
-
-  const TEST_DISMISS_JSON = JSON.stringify([TEST_DISMISS_CONTENT]);
-  let browser = await openAboutWelcome(TEST_DISMISS_JSON);
-  let aboutWelcomeActor = await getAboutWelcomeParent(browser);
-  let sandbox = sinon.createSandbox();
-
-  // Spy AboutWelcomeParent Content Message Handler
-  sandbox.spy(aboutWelcomeActor, "onContentMessage");
-
-  registerCleanupFunction(() => sandbox.restore());
+  let browser = await openAboutWelcome(
+    JSON.stringify(
+      // Use 2 screens to test that the message is dismissed, not navigated
+      [1, 2].map(i =>
+        makeTestContent(`TEST_DISMISS_STEP_${i}`, {
+          dismiss_button: { action: { dismiss: true } },
+        })
+      )
+    )
+  );
 
   // Click dismiss button
   await onButtonClick(browser, "button.dismiss-button");
-  const { callCount } = aboutWelcomeActor.onContentMessage;
-  ok(callCount >= 1, `${callCount} spy was called`);
+
+  // Wait for about:home to load
+  await BrowserTestUtils.browserLoaded(browser, false, "about:home");
+  is(browser.currentURI.spec, "about:home", "about:home loaded");
+
   browser.closeBrowser();
 });
 
@@ -319,7 +315,7 @@ add_task(async function test_aboutwelcome_split_position() {
     // Expected styles:
     {
       // Override default text-link styles
-      "background-color": "rgba(207, 207, 216, 0.33)",
+      "background-color": "rgba(21, 20, 26, 0.07)",
       color: "rgb(21, 20, 26)",
     }
   );
@@ -330,7 +326,7 @@ add_task(async function test_aboutwelcome_split_position() {
  * Test rendering a screen with a URL value and default color for backdrop
  */
 add_task(async function test_aboutwelcome_with_url_backdrop() {
-  const TEST_BACKDROP_URL = `url("chrome://activity-stream/content/data/content/assets/proton-bkg.avif")`;
+  const TEST_BACKDROP_URL = `url("chrome://activity-stream/content/data/content/assets/confetti.svg")`;
   const TEST_BACKDROP_VALUE = `#212121 ${TEST_BACKDROP_URL} center/cover no-repeat fixed`;
   const TEST_URL_BACKDROP_CONTENT = makeTestContent("TEST_URL_BACKDROP_STEP");
 
@@ -618,7 +614,6 @@ add_task(async function test_aboutwelcome_start_screen_configured() {
 
   let sandbox = sinon.createSandbox();
   let spy = sandbox.spy(AboutWelcomeTelemetry.prototype, "sendTelemetry");
-  registerCleanupFunction(() => sandbox.restore());
 
   let browser = await openAboutWelcome(JSON.stringify(screens));
 
@@ -633,6 +628,13 @@ add_task(async function test_aboutwelcome_start_screen_configured() {
   ok(
     secondScreenShown,
     `Starts on second screen when configured with startScreen index equal to ${startScreen}`
+  );
+  // Wait for screen elements to render before checking impression pings
+  await test_screen_content(
+    browser,
+    "renders second screen elements",
+    // Expected selectors:
+    [`main.screen`, "div.secondary-cta"]
   );
 
   let expectedTelemetry = sinon.match({
@@ -660,4 +662,5 @@ add_task(async function test_aboutwelcome_start_screen_configured() {
 
   await doExperimentCleanup();
   browser.closeBrowser();
+  sandbox.restore();
 });

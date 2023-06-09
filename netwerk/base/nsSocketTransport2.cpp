@@ -354,6 +354,14 @@ nsSocketInputStream::Available(uint64_t* avail) {
 }
 
 NS_IMETHODIMP
+nsSocketInputStream::StreamStatus() {
+  SOCKET_LOG(("nsSocketInputStream::StreamStatus [this=%p]\n", this));
+
+  MutexAutoLock lock(mTransport->mLock);
+  return mCondition;
+}
+
+NS_IMETHODIMP
 nsSocketInputStream::Read(char* buf, uint32_t count, uint32_t* countRead) {
   SOCKET_LOG(("nsSocketInputStream::Read [this=%p count=%u]\n", this, count));
 
@@ -536,6 +544,12 @@ NS_IMETHODIMP
 nsSocketOutputStream::Flush() { return NS_OK; }
 
 NS_IMETHODIMP
+nsSocketOutputStream::StreamStatus() {
+  MutexAutoLock lock(mTransport->mLock);
+  return mCondition;
+}
+
+NS_IMETHODIMP
 nsSocketOutputStream::Write(const char* buf, uint32_t count,
                             uint32_t* countWritten) {
   SOCKET_LOG(("nsSocketOutputStream::Write [this=%p count=%u]\n", this, count));
@@ -682,6 +696,7 @@ nsSocketTransport::nsSocketTransport()
 }
 
 nsSocketTransport::~nsSocketTransport() {
+  MOZ_RELEASE_ASSERT(!mAttached);
   SOCKET_LOG(("destroying nsSocketTransport @%p\n", this));
 }
 
@@ -700,6 +715,9 @@ nsresult nsSocketTransport::Init(const nsTArray<nsCString>& types,
   if (dnsRecord) {
     mExternalDNSResolution = true;
     mDNSRecord = do_QueryInterface(dnsRecord);
+    mDNSRecord->IsTRR(&mResolvedByTRR);
+    mDNSRecord->GetEffectiveTRRMode(&mEffectiveTRRMode);
+    mDNSRecord->GetTrrSkipReason(&mTRRSkipReason);
   }
 
   // init socket type info
@@ -1684,6 +1702,8 @@ bool nsSocketTransport::RecoverFromError() {
   if (mState == STATE_CONNECTING && mDNSRecord) {
     nsresult rv = mDNSRecord->GetNextAddr(SocketPort(), &mNetAddr);
     mDNSRecord->IsTRR(&mResolvedByTRR);
+    mDNSRecord->GetEffectiveTRRMode(&mEffectiveTRRMode);
+    mDNSRecord->GetTrrSkipReason(&mTRRSkipReason);
     if (NS_SUCCEEDED(rv)) {
       SOCKET_LOG(("  trying again with next ip address\n"));
       tryAgain = true;
@@ -1988,6 +2008,8 @@ void nsSocketTransport::OnSocketEvent(uint32_t type, nsresult status,
       if (mDNSRecord) {
         mDNSRecord->GetNextAddr(SocketPort(), &mNetAddr);
         mDNSRecord->IsTRR(&mResolvedByTRR);
+        mDNSRecord->GetEffectiveTRRMode(&mEffectiveTRRMode);
+        mDNSRecord->GetTrrSkipReason(&mTRRSkipReason);
       }
       // status contains DNS lookup status
       if (NS_FAILED(status)) {
@@ -2405,7 +2427,7 @@ NS_IMETHODIMP
 nsSocketTransport::SetSecurityCallbacks(nsIInterfaceRequestor* callbacks) {
   nsCOMPtr<nsIInterfaceRequestor> threadsafeCallbacks;
   NS_NewNotificationCallbacksAggregation(callbacks, nullptr,
-                                         GetCurrentEventTarget(),
+                                         GetCurrentSerialEventTarget(),
                                          getter_AddRefs(threadsafeCallbacks));
   MutexAutoLock lock(mLock);
   mCallbacks = threadsafeCallbacks;
@@ -2715,6 +2737,12 @@ nsSocketTransport::OnLookupComplete(nsICancelable* request, nsIDNSRecord* rec,
   if (NS_SUCCEEDED(status)) {
     mDNSRecord = do_QueryInterface(rec);
     MOZ_ASSERT(mDNSRecord);
+  }
+
+  if (nsCOMPtr<nsIDNSAddrRecord> addrRecord = do_QueryInterface(rec)) {
+    addrRecord->IsTRR(&mResolvedByTRR);
+    addrRecord->GetEffectiveTRRMode(&mEffectiveTRRMode);
+    addrRecord->GetTrrSkipReason(&mTRRSkipReason);
   }
 
   // flag host lookup complete for the benefit of the ResolveHost method.
@@ -3310,6 +3338,18 @@ nsSocketTransport::SetEchConfig(const nsACString& aEchConfig) {
 NS_IMETHODIMP
 nsSocketTransport::ResolvedByTRR(bool* aResolvedByTRR) {
   *aResolvedByTRR = mResolvedByTRR;
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsSocketTransport::GetEffectiveTRRMode(
+    nsIRequest::TRRMode* aEffectiveTRRMode) {
+  *aEffectiveTRRMode = mEffectiveTRRMode;
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsSocketTransport::GetTrrSkipReason(
+    nsITRRSkipReason::value* aSkipReason) {
+  *aSkipReason = mTRRSkipReason;
   return NS_OK;
 }
 

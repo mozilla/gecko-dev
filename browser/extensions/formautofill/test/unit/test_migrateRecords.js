@@ -6,18 +6,18 @@
 
 let FormAutofillStorage;
 add_setup(async () => {
-  ({ FormAutofillStorage } = ChromeUtils.import(
-    "resource://autofill/FormAutofillStorage.jsm"
+  ({ FormAutofillStorage } = ChromeUtils.importESModule(
+    "resource://autofill/FormAutofillStorage.sys.mjs"
   ));
 });
 
 const TEST_STORE_FILE_NAME = "test-profile.json";
 
-const { ADDRESS_SCHEMA_VERSION } = ChromeUtils.import(
-  "resource://autofill/FormAutofillStorageBase.jsm"
+const { ADDRESS_SCHEMA_VERSION } = ChromeUtils.importESModule(
+  "resource://autofill/FormAutofillStorageBase.sys.mjs"
 );
-const { CREDIT_CARD_SCHEMA_VERSION } = ChromeUtils.import(
-  "resource://autofill/FormAutofillStorageBase.jsm"
+const { CREDIT_CARD_SCHEMA_VERSION } = ChromeUtils.importESModule(
+  "resource://autofill/FormAutofillStorageBase.sys.mjs"
 );
 
 const ADDRESS_TESTCASES = [
@@ -77,12 +77,14 @@ const ADDRESS_TESTCASES = [
       guid: "test-guid",
       "given-name": "Timothy",
       name: "John",
+      "unknown-1": "an unknown field from another client",
     },
     expectedResult: {
       guid: "test-guid",
       version: ADDRESS_SCHEMA_VERSION,
       "given-name": "Timothy",
       name: "Timothy",
+      "unknown-1": "an unknown field from another client",
     },
   },
   {
@@ -93,12 +95,14 @@ const ADDRESS_TESTCASES = [
       version: "ABCDE",
       "given-name": "Timothy",
       name: "John",
+      "unknown-1": "an unknown field from another client",
     },
     expectedResult: {
       guid: "test-guid",
       version: ADDRESS_SCHEMA_VERSION,
       "given-name": "Timothy",
       name: "Timothy",
+      "unknown-1": "an unknown field from another client",
     },
   },
   {
@@ -193,12 +197,14 @@ const CREDIT_CARD_TESTCASES = [
       guid: "test-guid",
       "cc-name": "Timothy",
       "cc-given-name": "John",
+      "unknown-1": "an unknown field from another client",
     },
     expectedResult: {
       guid: "test-guid",
       version: CREDIT_CARD_SCHEMA_VERSION,
       "cc-name": "Timothy",
       "cc-given-name": "Timothy",
+      "unknown-1": "an unknown field from another client",
     },
   },
   {
@@ -209,12 +215,14 @@ const CREDIT_CARD_TESTCASES = [
       version: "ABCDE",
       "cc-name": "Timothy",
       "cc-given-name": "John",
+      "unknown-1": "an unknown field from another client",
     },
     expectedResult: {
       guid: "test-guid",
       version: CREDIT_CARD_SCHEMA_VERSION,
       "cc-name": "Timothy",
       "cc-given-name": "Timothy",
+      "unknown-1": "an unknown field from another client",
     },
   },
   {

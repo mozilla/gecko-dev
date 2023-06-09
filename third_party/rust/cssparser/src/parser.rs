@@ -5,6 +5,7 @@
 use crate::cow_rc_str::CowRcStr;
 use crate::tokenizer::{SourceLocation, SourcePosition, Token, Tokenizer};
 use smallvec::SmallVec;
+use std::fmt;
 use std::ops::BitOr;
 use std::ops::Range;
 
@@ -51,6 +52,24 @@ pub enum BasicParseErrorKind<'i> {
     AtRuleBodyInvalid,
     /// A qualified rule was encountered that was invalid.
     QualifiedRuleInvalid,
+}
+
+impl<'i> fmt::Display for BasicParseErrorKind<'i> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            BasicParseErrorKind::UnexpectedToken(token) => {
+                write!(f, "unexpected token: {:?}", token)
+            }
+            BasicParseErrorKind::EndOfInput => write!(f, "unexpected end of input"),
+            BasicParseErrorKind::AtRuleInvalid(rule) => {
+                write!(f, "invalid @ rule encountered: '@{}'", rule)
+            }
+            BasicParseErrorKind::AtRuleBodyInvalid => write!(f, "invalid @ rule body encountered"),
+            BasicParseErrorKind::QualifiedRuleInvalid => {
+                write!(f, "invalid qualified rule encountered")
+            }
+        }
+    }
 }
 
 /// The fundamental parsing errors that can be triggered by built-in parsing routines.
@@ -123,6 +142,15 @@ impl<'i, T> ParseErrorKind<'i, T> {
     }
 }
 
+impl<'i, E: fmt::Display> fmt::Display for ParseErrorKind<'i, E> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ParseErrorKind::Basic(ref basic) => basic.fmt(f),
+            ParseErrorKind::Custom(ref custom) => custom.fmt(f),
+        }
+    }
+}
+
 /// Extensible parse errors that can be encountered by client parsing implementations.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ParseError<'i, E> {
@@ -137,7 +165,7 @@ impl<'i, T> ParseError<'i, T> {
     pub fn basic(self) -> BasicParseError<'i> {
         match self.kind {
             ParseErrorKind::Basic(kind) => BasicParseError {
-                kind: kind,
+                kind,
                 location: self.location,
             },
             ParseErrorKind::Custom(_) => panic!("Not a basic parse error"),
@@ -155,6 +183,14 @@ impl<'i, T> ParseError<'i, T> {
         }
     }
 }
+
+impl<'i, E: fmt::Display> fmt::Display for ParseError<'i, E> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.kind.fmt(f)
+    }
+}
+
+impl<'i, E: fmt::Display + fmt::Debug> std::error::Error for ParseError<'i, E> {}
 
 /// The owned input for a parser.
 pub struct ParserInput<'i> {
@@ -396,7 +432,7 @@ impl<'i: 't, 't> Parser<'i, 't> {
     #[inline]
     pub fn new_basic_error(&self, kind: BasicParseErrorKind<'i>) -> BasicParseError<'i> {
         BasicParseError {
-            kind: kind,
+            kind,
             location: self.current_source_location(),
         }
     }
@@ -639,17 +675,49 @@ impl<'i: 't, 't> Parser<'i, 't> {
     /// Parse a list of comma-separated values, all with the same syntax.
     ///
     /// The given closure is called repeatedly with a "delimited" parser
-    /// (see the `Parser::parse_until_before` method)
-    /// so that it can over consume the input past a comma at this block/function nesting level.
+    /// (see the `Parser::parse_until_before` method) so that it can over
+    /// consume the input past a comma at this block/function nesting level.
     ///
     /// Successful results are accumulated in a vector.
     ///
     /// This method returns `Err(())` the first time that a closure call does,
-    /// or if a closure call leaves some input before the next comma or the end of the input.
+    /// or if a closure call leaves some input before the next comma or the end
+    /// of the input.
     #[inline]
     pub fn parse_comma_separated<F, T, E>(
         &mut self,
+        parse_one: F,
+    ) -> Result<Vec<T>, ParseError<'i, E>>
+    where
+        F: for<'tt> FnMut(&mut Parser<'i, 'tt>) -> Result<T, ParseError<'i, E>>,
+    {
+        self.parse_comma_separated_internal(parse_one, /* ignore_errors = */ false)
+    }
+
+    /// Like `parse_comma_separated`, but ignores errors on unknown components,
+    /// rather than erroring out in the whole list.
+    ///
+    /// Caller must deal with the fact that the resulting list might be empty,
+    /// if there's no valid component on the list.
+    #[inline]
+    pub fn parse_comma_separated_ignoring_errors<F, T, E: 'i>(
+        &mut self,
+        parse_one: F,
+    ) -> Vec<T>
+    where
+        F: for<'tt> FnMut(&mut Parser<'i, 'tt>) -> Result<T, ParseError<'i, E>>,
+    {
+        match self.parse_comma_separated_internal(parse_one, /* ignore_errors = */ true) {
+            Ok(values) => values,
+            Err(..) => unreachable!(),
+        }
+    }
+
+    #[inline]
+    fn parse_comma_separated_internal<F, T, E>(
+        &mut self,
         mut parse_one: F,
+        ignore_errors: bool,
     ) -> Result<Vec<T>, ParseError<'i, E>>
     where
         F: for<'tt> FnMut(&mut Parser<'i, 'tt>) -> Result<T, ParseError<'i, E>>,
@@ -661,7 +729,11 @@ impl<'i: 't, 't> Parser<'i, 't> {
         let mut values = Vec::with_capacity(1);
         loop {
             self.skip_whitespace(); // Unnecessary for correctness, but may help try() in parse_one rewind less.
-            values.push(self.parse_until_before(Delimiter::Comma, &mut parse_one)?);
+            match self.parse_until_before(Delimiter::Comma, &mut parse_one) {
+                Ok(v) => values.push(v),
+                Err(e) if !ignore_errors => return Err(e),
+                Err(_) => {},
+            }
             match self.next() {
                 Err(_) => return Ok(values),
                 Ok(&Token::Comma) => continue,

@@ -134,6 +134,21 @@ android {
                 manifest.srcFile "${topobjdir}/mobile/android/geckoview/src/main/AndroidManifest_overlay.xml"
             }
         }
+
+        withGeckoBinaries {
+            assets {
+                // This should contain only `omni.ja`.
+                srcDir "${topobjdir}/dist/geckoview/assets"
+            }
+
+            jniLibs {
+                if (!mozconfig.substs.MOZ_ANDROID_FAT_AAR_ARCHITECTURES) {
+                    srcDir "${topobjdir}/dist/geckoview/lib"
+                } else {
+                    srcDir "${topobjdir}/dist/fat-aar/output/jni"
+                }
+            }
+        }
     }
 }
 
@@ -207,7 +222,7 @@ dependencies {
     implementation "androidx.annotation:annotation:1.3.0"
     implementation "androidx.legacy:legacy-support-v4:1.0.0"
 
-    implementation "com.google.android.gms:play-services-fido:18.1.0"
+    implementation "com.google.android.gms:play-services-fido:20.0.1"
     implementation "org.yaml:snakeyaml:1.24:android"
 
     implementation "androidx.lifecycle:lifecycle-extensions:2.2.0"

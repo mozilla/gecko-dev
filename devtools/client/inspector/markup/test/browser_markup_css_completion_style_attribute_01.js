@@ -16,8 +16,8 @@ loadHelperScript("helper_style_attr_test_runner.js");
 
 const TEST_URL = URL_ROOT + "doc_markup_edit.html";
 
-const D_PROPERTY_ENABLED = SpecialPowers.getBoolPref(
-  "layout.css.d-property.enabled"
+const COLOR_MIX_ENABLED = SpecialPowers.getBoolPref(
+  "layout.css.color-mix.enabled"
 );
 
 // test data format :
@@ -39,9 +39,9 @@ const TEST_DATA = [
   ["d", 'style="display', 8, 14, true],
   ["VK_TAB", 'style="display', 14, 14, true],
   ["VK_TAB", 'style="dominant-baseline', 24, 24, true],
-  D_PROPERTY_ENABLED ? ["VK_TAB", 'style="d', 8, 8, true] : [],
+  ["VK_TAB", 'style="d', 8, 8, true],
   ["VK_TAB", 'style="direction', 16, 16, true],
-  [D_PROPERTY_ENABLED ? "click_2" : "click_1", 'style="display', 14, 14, false],
+  ["click_2", 'style="display', 14, 14, false],
   [":", 'style="display:block', 15, 20, true],
   ["n", 'style="display:none', 16, 19, false],
   ["VK_BACK_SPACE", 'style="display:n', 16, 16, false],
@@ -60,31 +60,67 @@ const TEST_DATA = [
   ["c", 'style="display:  inherit; color c ', 33, 33, false],
   ["VK_BACK_SPACE", 'style="display:  inherit; color  ', 32, 32, false],
   [":", 'style="display:  inherit; color :aliceblue ', 33, 42, true],
-  ["c", 'style="display:  inherit; color :cadetblue ', 34, 42, true],
-  ["VK_DOWN", 'style="display:  inherit; color :chartreuse ', 34, 43, true],
-  ["VK_RIGHT", 'style="display:  inherit; color :chartreuse ', 43, 43, false],
-  [" ", 'style="display:  inherit; color :chartreuse aliceblue ', 44, 53, true],
-  [
-    "!",
-    'style="display:  inherit; color :chartreuse !important; ',
-    45,
-    55,
-    false,
-  ],
-  [
-    "VK_RIGHT",
-    'style="display:  inherit; color :chartreuse !important; ',
-    55,
-    55,
-    false,
-  ],
-  [
-    "VK_RETURN",
-    'style="display:  inherit; color :chartreuse !important;"',
-    -1,
-    -1,
-    false,
-  ],
+  ["c", 'style="display:  inherit; color :color ', 34, 38, true],
+  COLOR_MIX_ENABLED
+    ? ["VK_DOWN", 'style="display:  inherit; color :color-mix ', 34, 42, true]
+    : ["VK_DOWN", 'style="display:  inherit; color :coral ', 34, 38, true],
+  COLOR_MIX_ENABLED
+    ? ["VK_RIGHT", 'style="display:  inherit; color :color-mix ', 42, 42, false]
+    : ["VK_RIGHT", 'style="display:  inherit; color :coral ', 38, 38, false],
+  COLOR_MIX_ENABLED
+    ? [
+        " ",
+        'style="display:  inherit; color :color-mix aliceblue ',
+        43,
+        52,
+        true,
+      ]
+    : [" ", 'style="display:  inherit; color :coral aliceblue ', 39, 48, true],
+  COLOR_MIX_ENABLED
+    ? [
+        "!",
+        'style="display:  inherit; color :color-mix !important; ',
+        44,
+        54,
+        false,
+      ]
+    : [
+        "!",
+        'style="display:  inherit; color :coral !important; ',
+        40,
+        50,
+        false,
+      ],
+  COLOR_MIX_ENABLED
+    ? [
+        "VK_RIGHT",
+        'style="display:  inherit; color :color-mix !important; ',
+        54,
+        54,
+        false,
+      ]
+    : [
+        "VK_RIGHT",
+        'style="display:  inherit; color :coral !important; ',
+        50,
+        50,
+        false,
+      ],
+  COLOR_MIX_ENABLED
+    ? [
+        "VK_RETURN",
+        'style="display:  inherit; color :color-mix !important;"',
+        -1,
+        -1,
+        false,
+      ]
+    : [
+        "VK_RETURN",
+        'style="display:  inherit; color :coral !important;"',
+        -1,
+        -1,
+        false,
+      ],
 ];
 
 add_task(async function() {

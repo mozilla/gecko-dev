@@ -64,11 +64,10 @@ nscoord nsDateTimeControlFrame::GetPrefISize(gfxContext* aRenderingContext) {
   return result;
 }
 
-bool nsDateTimeControlFrame::GetNaturalBaselineBOffset(
-    mozilla::WritingMode aWM, BaselineSharingGroup aBaselineGroup,
-    nscoord* aBaseline) const {
+Maybe<nscoord> nsDateTimeControlFrame::GetNaturalBaselineBOffset(
+    WritingMode aWM, BaselineSharingGroup aBaselineGroup) const {
   return nsTextControlFrame::GetSingleLineTextControlBaseline(
-      this, mFirstBaseline, aWM, aBaselineGroup, aBaseline);
+      this, mFirstBaseline, aWM, aBaselineGroup);
 }
 
 void nsDateTimeControlFrame::Reflow(nsPresContext* aPresContext,
@@ -187,7 +186,6 @@ void nsDateTimeControlFrame::Reflow(nsPresContext* aPresContext,
 
   LogicalSize logicalDesiredSize(myWM, borderBoxISize, borderBoxBSize);
   aDesiredSize.SetSize(myWM, logicalDesiredSize);
-
   aDesiredSize.SetOverflowAreasToDesiredBounds();
 
   if (inputAreaFrame) {

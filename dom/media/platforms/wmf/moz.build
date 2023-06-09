@@ -9,6 +9,7 @@ EXPORTS += [
     "MFTDecoder.h",
     "WMF.h",
     "WMFAudioMFTManager.h",
+    "WMFDataEncoderUtils.h",
     "WMFDecoderModule.h",
     "WMFEncoderModule.h",
     "WMFMediaDataDecoder.h",
@@ -36,6 +37,21 @@ if CONFIG["MOZ_WMF_MEDIA_ENGINE"]:
         "MFMediaSource.cpp",
     ]
 
+if CONFIG["MOZ_WMF_CDM"]:
+    EXPORTS += [
+        "MFCDMExtra.h",
+        "MFCDMProxy.h",
+        "MFCDMSession.h",
+        "MFContentProtectionManager.h",
+        "MFPMPHostWrapper.h",
+    ]
+    UNIFIED_SOURCES += [
+        "MFCDMProxy.cpp",
+        "MFCDMSession.cpp",
+        "MFContentProtectionManager.cpp",
+        "MFPMPHostWrapper.cpp",
+    ]
+
 UNIFIED_SOURCES += [
     "DXVA2Manager.cpp",
     "MFTDecoder.cpp",
@@ -44,7 +60,6 @@ UNIFIED_SOURCES += [
     "WMFDecoderModule.cpp",
     "WMFEncoderModule.cpp",
     "WMFMediaDataDecoder.cpp",
-    "WMFMediaDataEncoder.cpp",
     "WMFVideoMFTManager.cpp",
 ]
 
@@ -68,5 +83,3 @@ FINAL_LIBRARY = "xul"
 
 # Add libFuzzer configuration directives
 include("/tools/fuzzing/libfuzzer-config.mozbuild")
-
-REQUIRES_UNIFIED_BUILD = True

@@ -9,7 +9,6 @@
 
 requestLongerTimeout(4);
 
-/* import-globals-from ../../../framework/browser-toolbox/test/helpers-browser-toolbox.js */
 Services.scriptloader.loadSubScript(
   "chrome://mochitests/content/browser/devtools/client/framework/browser-toolbox/test/helpers-browser-toolbox.js",
   this
@@ -34,6 +33,7 @@ add_task(async function() {
     findElement,
     getSelector,
     findElementWithSelector,
+    createLocation,
   });
   // ToolboxTask.spawn pass input arguments by stringify them via string concatenation.
   // This mean we have to stringify the input object, but don't have to parse it from the task.

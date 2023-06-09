@@ -4,8 +4,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#define MOZ_USE_LAUNCHER_ERROR
-
 #include "nsWindowsDllInterceptor.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Attributes.h"
@@ -16,6 +14,7 @@
 #include "mozilla/ScopeExit.h"
 #include "mozilla/Types.h"
 #include "mozilla/WindowsDllBlocklist.h"
+#include "mozilla/WindowsStackCookie.h"
 #include "mozilla/WinHeaderOnlyUtils.h"
 
 #include "DllBlocklistInit.h"
@@ -31,8 +30,7 @@ namespace mozilla {
 // Also, AArch64 has not been tested with this.
 LauncherVoidResultWithLineInfo InitializeDllBlocklistOOP(
     const wchar_t* aFullImagePath, HANDLE aChildProcess,
-    const IMAGE_THUNK_DATA*, const bool aIsUtilityProcess,
-    const bool aIsSocketProcess) {
+    const IMAGE_THUNK_DATA*, const GeckoProcessType aProcessType) {
   return mozilla::Ok();
 }
 
@@ -47,10 +45,17 @@ LauncherVoidResultWithLineInfo InitializeDllBlocklistOOPFromLauncher(
 
 static LauncherVoidResultWithLineInfo InitializeDllBlocklistOOPInternal(
     const wchar_t* aFullImagePath, nt::CrossExecTransferManager& aTransferMgr,
-    const IMAGE_THUNK_DATA* aCachedNtdllThunk, const bool aIsUtilityProcess,
-    const bool aIsSocketProcess) {
+    const IMAGE_THUNK_DATA* aCachedNtdllThunk,
+    const GeckoProcessType aProcessType) {
   CrossProcessDllInterceptor intcpt(aTransferMgr.RemoteProcess());
   intcpt.Init(L"ntdll.dll");
+
+#  if defined(DEBUG) && defined(_M_X64) && !defined(__MINGW64__)
+  // This debug check preserves compatibility with third-parties (see bug
+  // 1733532).
+  MOZ_ASSERT(!HasStackCookieCheck(
+      reinterpret_cast<uintptr_t>(&freestanding::patched_NtMapViewOfSection)));
+#  endif  // #if defined(DEBUG) && defined(_M_X64) && !defined(__MINGW64__)
 
   bool ok = freestanding::stub_NtMapViewOfSection.SetDetour(
       aTransferMgr, intcpt, "NtMapViewOfSection",
@@ -143,12 +148,7 @@ static LauncherVoidResultWithLineInfo InitializeDllBlocklistOOPInternal(
     newFlags |= eDllBlocklistInitFlagIsChildProcess;
   }
 
-  if (aIsUtilityProcess) {
-    newFlags |= eDllBlocklistInitFlagIsUtilityProcess;
-  }
-  if (aIsSocketProcess) {
-    newFlags |= eDllBlocklistInitFlagIsSocketProcess;
-  }
+  SetDllBlocklistProcessTypeFlags(newFlags, aProcessType);
 
   LauncherVoidResult writeResult =
       aTransferMgr.Transfer(&gBlocklistInitFlags, &newFlags, sizeof(newFlags));
@@ -161,8 +161,8 @@ static LauncherVoidResultWithLineInfo InitializeDllBlocklistOOPInternal(
 
 LauncherVoidResultWithLineInfo InitializeDllBlocklistOOP(
     const wchar_t* aFullImagePath, HANDLE aChildProcess,
-    const IMAGE_THUNK_DATA* aCachedNtdllThunk, const bool aIsUtilityProcess,
-    const bool aIsSocketProcess) {
+    const IMAGE_THUNK_DATA* aCachedNtdllThunk,
+    const GeckoProcessType aProcessType) {
   nt::CrossExecTransferManager transferMgr(aChildProcess);
   if (!transferMgr) {
     return LAUNCHER_ERROR_FROM_WIN32(ERROR_BAD_EXE_FORMAT);
@@ -185,8 +185,7 @@ LauncherVoidResultWithLineInfo InitializeDllBlocklistOOP(
   }
 
   return InitializeDllBlocklistOOPInternal(aFullImagePath, transferMgr,
-                                           aCachedNtdllThunk, aIsUtilityProcess,
-                                           aIsSocketProcess);
+                                           aCachedNtdllThunk, aProcessType);
 }
 
 LauncherVoidResultWithLineInfo InitializeDllBlocklistOOPFromLauncher(
@@ -230,7 +229,7 @@ LauncherVoidResultWithLineInfo InitializeDllBlocklistOOPFromLauncher(
     freestanding::gSharedSection.Reset(nullptr);
   });
   return InitializeDllBlocklistOOPInternal(aFullImagePath, transferMgr, nullptr,
-                                           false, false);
+                                           GeckoProcessType_Default);
 }
 
 #endif  // defined(MOZ_ASAN) || defined(_M_ARM64)

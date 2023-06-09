@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-stylesheet href="chrome://global/skin" type="text/css"?>
 <?xml-stylesheet href="chrome://mochikit/content/tests/SimpleTest/test.css" type="text/css"?>
-<?xml-stylesheet href="data:text/css, hbox { border: 1px solid red; } vbox { border: 1px solid green }" type="text/css"?>
+<?xml-stylesheet href="data:text/css, * { flex-shrink: 0 } hbox { border: 1px solid red; } vbox { border: 1px solid green }" type="text/css"?>
 <!--
 XUL <splitter> collapsing tests
 -->
@@ -96,8 +96,6 @@ XUL <splitter> collapsing tests
     async function runAllTests() {
       await runTests(false, "ltr-splitter");
       await runTests(true, "rtl-splitter");
-      await runTests(false, "ltr-flex-splitter");
-      await runTests(true, "rtl-flex-splitter");
       SimpleTest.finish();
     }
 
@@ -105,27 +103,15 @@ XUL <splitter> collapsing tests
    ]]></script>
 
   <hbox style="display: none; width: 200px; height: 300px; direction: ltr;">
-    <vbox style="height: 300px;" flex="1"/>
-    <splitter id="ltr-splitter" width="5"/>
-    <vbox style="height: 300px;" flex="1"/>
+  <vbox style="height: 300px; flex: 1 auto"/>
+    <splitter id="ltr-splitter" style="width: 5px"/>
+    <vbox style="height: 300px; flex: 1 auto;"/>
   </hbox>
 
   <hbox style="display: none; width: 200px; height: 300px; direction: rtl;">
-    <vbox style="height: 300px;" flex="1"/>
-    <splitter id="rtl-splitter" width="5"/>
-    <vbox style="height: 300px;" flex="1"/>
-  </hbox>
-
-  <hbox style="display: none; width: 200px; height: 300px; direction: ltr; -moz-box-layout: flex">
-    <vbox style="height: 300px;" flex="1"/>
-    <splitter id="ltr-flex-splitter" width="5"/>
-    <vbox style="height: 300px;" flex="1"/>
-  </hbox>
-
-  <hbox style="display: none; width: 200px; height: 300px; direction: rtl; -moz-box-layout: flex">
-    <vbox style="height: 300px;" flex="1"/>
-    <splitter id="rtl-flex-splitter" width="5"/>
-    <vbox style="height: 300px;" flex="1"/>
+    <vbox style="height: 300px; flex: 1 auto" />
+    <splitter id="rtl-splitter" style="width: 5px"/>
+    <vbox style="height: 300px; flex: 1 auto" />
   </hbox>
 
 </window>

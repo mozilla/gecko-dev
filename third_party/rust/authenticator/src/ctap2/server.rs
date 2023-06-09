@@ -16,8 +16,8 @@ pub struct RpIdHash(pub [u8; 32]);
 
 impl fmt::Debug for RpIdHash {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let value = base64::encode_config(&self.0, base64::URL_SAFE_NO_PAD);
-        write!(f, "RpIdHash({})", value)
+        let value = base64::encode_config(self.0, base64::URL_SAFE_NO_PAD);
+        write!(f, "RpIdHash({value})")
     }
 }
 
@@ -70,7 +70,7 @@ impl RelyingPartyWrapper {
                 hasher.update(&d.id);
 
                 let mut output = [0u8; 32];
-                output.copy_from_slice(&hasher.finalize().as_slice());
+                output.copy_from_slice(hasher.finalize().as_slice());
 
                 RpIdHash(output)
             }
@@ -151,7 +151,7 @@ impl<'de> Deserialize<'de> for PublicKeyCredentialParameters {
 
                             let v: &str = map.next_value()?;
                             if v != "public-key" {
-                                return Err(SerdeError::custom(format!("invalid value: {}", v)));
+                                return Err(SerdeError::custom(format!("invalid value: {v}")));
                             }
                             found_type = true;
                         }
@@ -165,7 +165,7 @@ impl<'de> Deserialize<'de> for PublicKeyCredentialParameters {
                     return Err(SerdeError::missing_field("type"));
                 }
 
-                let alg = alg.ok_or(SerdeError::missing_field("alg"))?;
+                let alg = alg.ok_or_else(|| SerdeError::missing_field("alg"))?;
 
                 Ok(PublicKeyCredentialParameters { alg })
             }
@@ -217,8 +217,8 @@ impl Serialize for PublicKeyCredentialDescriptor {
         //           so we'll leave it out for the moment
         let mut map = serializer.serialize_map(Some(2))?;
         // let mut map = serializer.serialize_map(Some(3))?;
-        map.serialize_entry("type", "public-key")?;
         map.serialize_entry("id", &ByteBuf::from(self.id.clone()))?;
+        map.serialize_entry("type", "public-key")?;
         // map.serialize_entry("transports", &self.transports)?;
         map.end()
     }
@@ -266,7 +266,7 @@ impl<'de> Deserialize<'de> for PublicKeyCredentialDescriptor {
                             }
                             let v: &str = map.next_value()?;
                             if v != "public-key" {
-                                return Err(SerdeError::custom(format!("invalid value: {}", v)));
+                                return Err(SerdeError::custom(format!("invalid value: {v}")));
                             }
                             found_type = true;
                         }
@@ -280,8 +280,8 @@ impl<'de> Deserialize<'de> for PublicKeyCredentialDescriptor {
                     return Err(SerdeError::missing_field("type"));
                 }
 
-                let id = id.ok_or(SerdeError::missing_field("id"))?;
-                let transports = transports.unwrap_or(Vec::new());
+                let id = id.ok_or_else(|| SerdeError::missing_field("id"))?;
+                let transports = transports.unwrap_or_default();
 
                 Ok(PublicKeyCredentialDescriptor { id, transports })
             }
@@ -298,6 +298,20 @@ impl From<&KeyHandle> for PublicKeyCredentialDescriptor {
             transports: kh.transports.into(),
         }
     }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum ResidentKeyRequirement {
+    Discouraged,
+    Preferred,
+    Required,
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum UserVerificationRequirement {
+    Discouraged,
+    Preferred,
+    Required,
 }
 
 #[cfg(test)]
@@ -342,7 +356,7 @@ mod test {
         };
 
         let payload = ser::to_vec(&user).unwrap();
-        println!("payload = {:?}", payload);
+        println!("payload = {payload:?}");
         assert_eq!(
             payload,
             vec![
@@ -394,7 +408,7 @@ mod test {
         };
 
         let payload = ser::to_vec(&user).unwrap();
-        println!("payload = {:?}", payload);
+        println!("payload = {payload:?}");
         assert_eq!(
             payload,
             vec![
@@ -431,7 +445,7 @@ mod test {
         ];
 
         let payload = ser::to_vec(&keys);
-        println!("payload = {:?}", payload);
+        println!("payload = {payload:?}");
         let payload = payload.unwrap();
         assert_eq!(
             payload,
@@ -471,7 +485,7 @@ mod test {
         };
 
         let payload = ser::to_vec(&key);
-        println!("payload = {:?}", payload);
+        println!("payload = {payload:?}");
         let payload = payload.unwrap();
 
         assert_eq!(
@@ -479,11 +493,6 @@ mod test {
             vec![
                 // 0xa3, // map(3)
                 0xa2, // map(2)
-                0x64, // text(4)
-                0x74, 0x79, 0x70, 0x65, // "type"
-                0x6a, // text(10)
-                0x70, 0x75, 0x62, 0x6C, 0x69, 0x63, // "public-key"
-                0x2D, 0x6B, 0x65, 0x79, // ...
                 0x62, // text(2)
                 0x69, 0x64, // "id"
                 0x58, 0x20, // bytes(32)
@@ -492,8 +501,13 @@ mod test {
                 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, // ...
                 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, // ...
                 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, // ...
-                0x1e,
-                0x1f, // ...
+                0x1e, 0x1f, // ...
+                0x64, // text(4)
+                0x74, 0x79, 0x70, 0x65, // "type"
+                0x6a, // text(10)
+                0x70, 0x75, 0x62, 0x6C, 0x69, 0x63, // "public-key"
+                0x2D, 0x6B, 0x65,
+                0x79, // ...
 
                       // Deactivated for now
                       //0x6a, // text(10)

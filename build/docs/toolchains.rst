@@ -128,12 +128,20 @@ attempt was made to work around it, but `more work is needed`_.
 .. _tools we require: https://searchfox.org/mozilla-central/rev/168c45a7acc44e9904cfd4eebcb9eb080e05699c/taskcluster/scripts/misc/repack_rust.py#398
 .. _more work is needed: https://github.com/rust-lang/rust/issues/79249
 
+Python
+------
+
+Python is built from source by ``taskcluster/scripts/misc/build-cpython.sh`` on
+Linux and OSX. We use the upstream installer on Windows, through
+``taskcluster/scripts/misc/pack-cpython.sh``. In order to ensure consistency, we
+use the same version for both approaches. Note however that the Windows installer is
+not packaged for all patch versions, so there might be a slight delta there.
 
 Windows
 =======
 
-The ``build/vs/generate_yaml.py`` and ``build/vs/pack_vs.py`` scripts are
-used to manage and build Windows toolchain archives containing Visual
+The ``build/vs/generate_yaml.py`` and ``taskcluster/scripts/misc/get_vs.py``
+scripts are used to manage and get Windows toolchains containing Visual
 Studio executables, SDKs, etc.
 
 The ``build/vs/generate_yaml.py`` script is used to generate one of the
@@ -142,10 +150,11 @@ used to generate the file is stored in the header of the YAML file itself.
 Each YAML file records the necessary downloads from Microsoft servers to
 install the required Visual Studio components given on the command line.
 
-The ``build/vs/pack_vs.py`` script takes a YAML file as input and generates
-the corresponding toolchain artifact.
+The ``taskcluster/scripts/misc/get_vs.py`` script takes a YAML file as
+input and fills a directory with the corresponding Visual Studio components.
 
-Both scripts should be run via ``mach python``.
+Both scripts should be run via ``mach python --virtualenv build``. The
+latter is automatically invoked by the bootstrapping mechanism.
 
 
 Firefox for Android with Gradle

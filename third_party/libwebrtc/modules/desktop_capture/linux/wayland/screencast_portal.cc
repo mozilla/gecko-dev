@@ -13,8 +13,8 @@
 #include <gio/gunixfdlist.h>
 #include <glib-object.h>
 
-#include "modules/desktop_capture/linux/wayland/scoped_glib.h"
-#include "modules/desktop_capture/linux/wayland/xdg_desktop_portal_utils.h"
+#include "modules/portal/scoped_glib.h"
+#include "modules/portal/xdg_desktop_portal_utils.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 
@@ -33,42 +33,58 @@ using xdg_portal::RequestResponseFromPortalResponse;
 
 }  // namespace
 
-ScreenCastPortal::ScreenCastPortal(
-    ScreenCastPortal::CaptureSourceType source_type,
-    PortalNotifier* notifier)
-    : ScreenCastPortal(source_type,
+// static
+ScreenCastPortal::CaptureSourceType ScreenCastPortal::ToCaptureSourceType(
+    CaptureType type) {
+  switch (type) {
+    case CaptureType::kScreen:
+      return ScreenCastPortal::CaptureSourceType::kScreen;
+    case CaptureType::kWindow:
+      return ScreenCastPortal::CaptureSourceType::kWindow;
+    case CaptureType::kAnyScreenContent:
+      return ScreenCastPortal::CaptureSourceType::kAnyScreenContent;
+  }
+}
+
+ScreenCastPortal::ScreenCastPortal(CaptureType type, PortalNotifier* notifier)
+    : ScreenCastPortal(type,
                        notifier,
                        OnProxyRequested,
                        OnSourcesRequestResponseSignal,
                        this) {}
 
 ScreenCastPortal::ScreenCastPortal(
-    CaptureSourceType source_type,
+    CaptureType type,
     PortalNotifier* notifier,
     ProxyRequestResponseHandler proxy_request_response_handler,
     SourcesRequestResponseSignalHandler sources_request_response_signal_handler,
-    gpointer user_data)
+    gpointer user_data,
+    bool prefer_cursor_embedded)
     : notifier_(notifier),
-      capture_source_type_(source_type),
+      capture_source_type_(ToCaptureSourceType(type)),
+      cursor_mode_(prefer_cursor_embedded ? CursorMode::kEmbedded
+                                          : CursorMode::kMetadata),
       proxy_request_response_handler_(proxy_request_response_handler),
       sources_request_response_signal_handler_(
           sources_request_response_signal_handler),
       user_data_(user_data) {}
 
 ScreenCastPortal::~ScreenCastPortal() {
-  Cleanup();
+  Stop();
 }
 
-void ScreenCastPortal::Cleanup() {
+void ScreenCastPortal::Stop() {
   UnsubscribeSignalHandlers();
   TearDownSession(std::move(session_handle_), proxy_, cancellable_,
                   connection_);
   session_handle_ = "";
   cancellable_ = nullptr;
   proxy_ = nullptr;
+  restore_token_ = "";
 
   if (pw_fd_ != -1) {
     close(pw_fd_);
+    pw_fd_ = -1;
   }
 }
 
@@ -121,7 +137,7 @@ xdg_portal::SessionDetails ScreenCastPortal::GetSessionDetails() {
 void ScreenCastPortal::OnPortalDone(RequestResponse result) {
   notifier_->OnScreenCastRequestResult(result, pw_stream_node_id_, pw_fd_);
   if (result != RequestResponse::kSuccess) {
-    Cleanup();
+    Stop();
   }
 }
 

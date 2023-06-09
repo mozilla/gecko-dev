@@ -30,6 +30,7 @@ aboutdialog-update-checking-failed = Failed to check for updates.
 update-otherInstanceHandlingUpdates = { -brand-short-name } is being updated by another instance
 
 update-manual = Updates available at <label data-l10n-name="manual-link"/>
+aboutdialog-update-manual = Updates available at <a data-l10n-name="manual-link"/>
 
 update-unsupported = You can not perform further updates on this system. <label data-l10n-name="unsupported-link">Learn more</label>
 
@@ -37,7 +38,9 @@ update-restarting = Restarting…
 
 update-internal-error = Unable to check for updates due to internal error. Updates available at <label data-l10n-name="manual-link"/>
 
-channel-description = You are currently on the <label data-l10n-name="current-channel"></label> update channel.
+# Variables:
+#   $channel (String): description of the update channel (e.g. "release", "beta", "nightly" etc.)
+aboutdialog-channel-description = You are currently on the <label data-l10n-name="current-channel">{ $channel }</label> update channel.
 
 warningDesc-version = { -brand-short-name } is experimental and may be unstable.
 

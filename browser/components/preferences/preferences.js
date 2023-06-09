@@ -38,10 +38,16 @@ var { PrivateBrowsingUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/PrivateBrowsingUtils.sys.mjs"
 );
 
-var { Weave } = ChromeUtils.import("resource://services-sync/main.js");
+var { Weave } = ChromeUtils.importESModule(
+  "resource://services-sync/main.sys.mjs"
+);
 
-var { FxAccounts, getFxAccountsSingleton } = ChromeUtils.import(
-  "resource://gre/modules/FxAccounts.jsm"
+var { FirefoxRelayTelemetry } = ChromeUtils.importESModule(
+  "resource://gre/modules/FirefoxRelayTelemetry.mjs"
+);
+
+var { FxAccounts, getFxAccountsSingleton } = ChromeUtils.importESModule(
+  "resource://gre/modules/FxAccounts.sys.mjs"
 );
 var fxAccounts = getFxAccountsSingleton();
 
@@ -62,15 +68,32 @@ XPCOMUtils.defineLazyServiceGetters(this, {
   gMIMEService: ["@mozilla.org/mime;1", "nsIMIMEService"],
 });
 
+if (Cc["@mozilla.org/gio-service;1"]) {
+  XPCOMUtils.defineLazyServiceGetter(
+    this,
+    "gGIOService",
+    "@mozilla.org/gio-service;1",
+    "nsIGIOService"
+  );
+} else {
+  this.gGIOService = null;
+}
+
 ChromeUtils.defineESModuleGetters(this, {
   BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
   ContextualIdentityService:
     "resource://gre/modules/ContextualIdentityService.sys.mjs",
+  DownloadUtils: "resource://gre/modules/DownloadUtils.sys.mjs",
+  FeatureGate: "resource://featuregates/FeatureGate.sys.mjs",
   FileUtils: "resource://gre/modules/FileUtils.sys.mjs",
+  FirefoxRelay: "resource://gre/modules/FirefoxRelay.sys.mjs",
+  LoginHelper: "resource://gre/modules/LoginHelper.sys.mjs",
+  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   OSKeyStore: "resource://gre/modules/OSKeyStore.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
   ShortcutUtils: "resource://gre/modules/ShortcutUtils.sys.mjs",
+  UIState: "resource://services-sync/UIState.sys.mjs",
   UpdateUtils: "resource://gre/modules/UpdateUtils.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarProviderQuickActions:
@@ -79,21 +102,14 @@ ChromeUtils.defineESModuleGetters(this, {
 });
 
 XPCOMUtils.defineLazyModuleGetters(this, {
-  AMTelemetry: "resource://gre/modules/AddonManager.jsm",
-  DownloadUtils: "resource://gre/modules/DownloadUtils.jsm",
   ExtensionPreferencesManager:
     "resource://gre/modules/ExtensionPreferencesManager.jsm",
   ExtensionSettingsStore: "resource://gre/modules/ExtensionSettingsStore.jsm",
-  FeatureGate: "resource://featuregates/FeatureGate.jsm",
-  FirefoxRelay: "resource://gre/modules/FirefoxRelay.jsm",
   HomePage: "resource:///modules/HomePage.jsm",
   LangPackMatcher: "resource://gre/modules/LangPackMatcher.jsm",
-  LoginHelper: "resource://gre/modules/LoginHelper.jsm",
-  NimbusFeatures: "resource://nimbus/ExperimentAPI.jsm",
   SelectionChangedMenulist: "resource:///modules/SelectionChangedMenulist.jsm",
   SiteDataManager: "resource:///modules/SiteDataManager.jsm",
   TransientPrefs: "resource:///modules/TransientPrefs.jsm",
-  UIState: "resource://services-sync/UIState.jsm",
 });
 
 XPCOMUtils.defineLazyGetter(this, "gSubDialog", function() {
@@ -137,7 +153,7 @@ XPCOMUtils.defineLazyGetter(this, "gSubDialog", function() {
 
 var gLastCategory = { category: undefined, subcategory: undefined };
 const gXULDOMParser = new DOMParser();
-
+var gCategoryModules = new Map();
 var gCategoryInits = new Map();
 function init_category_if_required(category) {
   let categoryInfo = gCategoryInits.get(category);
@@ -153,6 +169,7 @@ function init_category_if_required(category) {
 }
 
 function register_module(categoryName, categoryObject) {
+  gCategoryModules.set(categoryName, categoryObject);
   gCategoryInits.set(categoryName, {
     inited: false,
     async init() {
@@ -264,10 +281,6 @@ function init_all() {
       }
       let mainWindow = window.browsingContext.topChromeWindow;
       mainWindow.BrowserOpenAddonsMgr();
-      AMTelemetry.recordLinkEvent({
-        object: "aboutPreferences",
-        value: "about:addons",
-      });
     });
 
     document.dispatchEvent(
@@ -401,7 +414,14 @@ async function gotoPref(
     document.querySelector(".main-content").scrollTop = 0;
   }
 
-  spotlight(subcategory, category);
+  // Check to see if the category module wants to do any special
+  // handling of the subcategory - for example, opening a SubDialog.
+  //
+  // If not, just do a normal spotlight on the subcategory.
+  let categoryModule = gCategoryModules.get(category);
+  if (!categoryModule.handleSubcategory?.(subcategory)) {
+    spotlight(subcategory, category);
+  }
 
   // Record which category is shown
   Services.telemetry.recordEvent(

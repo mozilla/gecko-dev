@@ -244,6 +244,7 @@ EXPORTS.js += [
 # We expose them as-is, buyer beware.
 EXPORTS.js.experimental += [
     "../public/experimental/CodeCoverage.h",
+    "../public/experimental/CompileScript.h",
     "../public/experimental/CTypes.h",
     "../public/experimental/Intl.h",
     "../public/experimental/JitInfo.h",
@@ -347,6 +348,7 @@ UNIFIED_SOURCES += [
     "vm/AsyncFunction.cpp",
     "vm/AsyncIteration.cpp",
     "vm/BigIntType.cpp",
+    "vm/BoundFunctionObject.cpp",
     "vm/BuildId.cpp",
     "vm/BuiltinObjectKind.cpp",
     "vm/BytecodeLocation.cpp",
@@ -411,6 +413,7 @@ UNIFIED_SOURCES += [
     "vm/ShapeZone.cpp",
     "vm/SharedArrayObject.cpp",
     "vm/SharedImmutableStringsCache.cpp",
+    "vm/SharedScriptDataTableHolder.cpp",
     "vm/SourceHook.cpp",
     "vm/Stack.cpp",
     "vm/StaticStrings.cpp",
@@ -557,7 +560,7 @@ if CONFIG["CC_TYPE"] == "clang":
 # Bug 1722102 - This should never be enabled in Release without explicit
 # security and SpiderMonkey review.
 # See https://bugzilla.mozilla.org/show_bug.cgi?id=1722102#c16
-if CONFIG["NIGHTLY_BUILD"] and CONFIG["INTEL_ARCHITECTURE"]:
+if CONFIG["ENABLE_WASM_MOZ_INTGEMM"]:
     DIRS += ["intgemm"]
 
 if CONFIG["JS_JITSPEW"]:
@@ -580,7 +583,6 @@ selfhosted_inputs = [
     "builtin/BigInt.js",
     "builtin/Date.js",
     "builtin/Error.js",
-    "builtin/Function.js",
     "builtin/Generator.js",
     "builtin/Iterator.js",
     "builtin/Map.js",

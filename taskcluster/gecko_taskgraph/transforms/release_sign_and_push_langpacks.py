@@ -25,7 +25,6 @@ langpack_sign_push_description_schema = schema.extend(
         Required("description"): str,
         Required("worker-type"): optionally_keyed_by("release-level", str),
         Required("worker"): {
-            Required("implementation"): "push-addons",
             Required("channel"): optionally_keyed_by(
                 "project", "platform", Any("listed", "unlisted")
             ),
@@ -152,6 +151,7 @@ def make_task_worker(config, jobs):
             job, expected_kinds=("build", "shippable-l10n")
         )
 
+        job["worker"]["implementation"] = "push-addons"
         job["worker"]["upstream-artifacts"] = generate_upstream_artifacts(
             upstream_task_ref, job["attributes"]["chunk_locales"]
         )

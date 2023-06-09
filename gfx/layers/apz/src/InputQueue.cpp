@@ -177,15 +177,15 @@ APZEventResult InputQueue::ReceiveTouchInput(
   // XXX calling ArePointerEventsConsumable on |target| may be wrong here if
   // the target isn't confirmed and the real target turns out to be something
   // else. For now assume this is rare enough that it's not an issue.
+  PointerEventsConsumableFlags consumableFlags;
+  if (target) {
+    consumableFlags = target->ArePointerEventsConsumable(block, aEvent);
+  }
   if (block->IsDuringFastFling()) {
     INPQ_LOG("dropping event due to block %p being in fast motion\n",
              block.get());
-    result.SetStatusAsConsumeNoDefault();
+    result.SetStatusForFastFling(*block, aFlags, consumableFlags, target);
   } else {  // handling depends on ArePointerEventsConsumable()
-    PointerEventsConsumableFlags consumableFlags;
-    if (target) {
-      consumableFlags = target->ArePointerEventsConsumable(block, aEvent);
-    }
     bool consumable = consumableFlags.IsConsumable();
     if (block->UpdateSlopState(aEvent, consumable)) {
       INPQ_LOG("dropping event due to block %p being in %sslop\n", block.get(),
@@ -426,7 +426,14 @@ APZEventResult InputQueue::ReceivePanGestureInput(
   }
 
   PanGestureInput event = aEvent;
-  result.SetStatusAsConsumeDoDefault(aTarget);
+
+  // Below `SetStatusAsConsumeDoDefault()` preserves `mHandledResult` of
+  // `result` which was set in the ctor of APZEventResult at the top of this
+  // function based on `aFlag` so that the `mHandledResult` value is reliable to
+  // tell whether the event will be handled by the root content APZC at least
+  // for swipe-navigation stuff. E.g. if a pan-start event scrolled the root
+  // scroll container, we don't need to anything for swipe-navigation.
+  result.SetStatusAsConsumeDoDefault();
 
   if (!block || block->WasInterrupted()) {
     if (event.mType == PanGestureInput::PANGESTURE_MOMENTUMSTART ||
@@ -454,12 +461,16 @@ APZEventResult InputQueue::ReceivePanGestureInput(
     mActivePanGestureBlock = block;
 
     CancelAnimationsForNewBlock(block);
-    MaybeRequestContentResponse(aTarget, block);
+    const bool waitingForContentResponse =
+        MaybeRequestContentResponse(aTarget, block);
 
     if (event.AllowsSwipe() && !CanScrollTargetHorizontally(event, block)) {
       // We will ask the browser whether this pan event is going to be used for
       // swipe or not, so we need to wait the response.
       block->SetNeedsToWaitForBrowserGestureResponse(true);
+      if (!waitingForContentResponse) {
+        ScheduleMainThreadTimeout(aTarget, block);
+      }
       if (aFlags.mTargetConfirmed) {
         // This event may trigger a swipe gesture, depending on what our caller
         // wants to do it. We need to suspend handling of this block until we

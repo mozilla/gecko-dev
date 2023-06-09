@@ -180,20 +180,17 @@ async function test_closed(path) {
 }
 
 add_task(async function test_closed_0ms() {
-  test_closed("/closeafter0ms");
+  await test_closed("/closeafter0ms");
 });
 
 add_task(async function test_closed_100ms() {
-  test_closed("/closeafter100ms");
+  await test_closed("/closeafter100ms");
 });
 
 add_task(async function test_wt_stream_create() {
   let webTransport = NetUtil.newWebTransport().QueryInterface(
     Ci.nsIWebTransport
   );
-
-  let error = await streamCreatePromise(webTransport, true);
-  Assert.equal(error, Ci.nsIWebTransport.INVALID_STATE_ERROR);
 
   await new Promise(resolve => {
     let listener = new WebTransportListener().QueryInterface(
@@ -235,10 +232,10 @@ add_task(async function test_wt_stream_send_and_stats() {
   });
 
   let stream = await streamCreatePromise(webTransport, false);
-  stream.QueryInterface(Ci.nsIAsyncOutputStream);
+  let outputStream = stream.outputStream;
 
-  let data = "123456";
-  stream.write(data, data.length);
+  let data = "1234567890ABC";
+  outputStream.write(data, data.length);
 
   // We need some time to send the packet out.
   // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
@@ -266,7 +263,7 @@ add_task(async function test_wt_receive_stream_and_stats() {
     listener.streamAvailable = resolve;
   });
   webTransport.asyncConnect(
-    NetUtil.newURI(`https://${host}/create_unidi_stream`),
+    NetUtil.newURI(`https://${host}/create_unidi_stream_and_hello`),
     Services.scriptSecurityManager.getSystemPrincipal(),
     Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
     listener
@@ -280,12 +277,12 @@ add_task(async function test_wt_receive_stream_and_stats() {
       Ci.nsIInputStreamCallback
     );
     handler.finish = resolve;
-    stream.QueryInterface(Ci.nsIAsyncInputStream);
-    stream.asyncWait(handler, 0, 0, Services.tm.currentThread);
+    let inputStream = stream.inputStream;
+    inputStream.asyncWait(handler, 0, 0, Services.tm.currentThread);
   });
 
   info("data: " + data);
-  Assert.equal(data, "0123456789");
+  Assert.equal(data, "qwerty");
 
   let stats = await receiveStreamStatsPromise(stream);
   Assert.equal(stats.bytesReceived, data.length);
@@ -315,18 +312,18 @@ add_task(async function test_wt_outgoing_bidi_stream() {
   });
 
   let stream = await streamCreatePromise(webTransport, true);
-  stream.QueryInterface(Ci.nsIAsyncOutputStream);
+  let outputStream = stream.outputStream;
 
   let data = "1234567";
-  stream.write(data, data.length);
+  outputStream.write(data, data.length);
 
   let received = await new Promise(resolve => {
     let handler = new inputStreamReader().QueryInterface(
       Ci.nsIInputStreamCallback
     );
     handler.finish = resolve;
-    stream.QueryInterface(Ci.nsIAsyncInputStream);
-    stream.asyncWaitForRead(handler, 0, 0, Services.tm.currentThread);
+    let inputStream = stream.inputStream;
+    inputStream.asyncWait(handler, 0, 0, Services.tm.currentThread);
   });
 
   info("received: " + received);
@@ -366,18 +363,18 @@ add_task(async function test_wt_incoming_bidi_stream() {
   await pReady;
   let stream = await pStreamReady;
 
-  stream.QueryInterface(Ci.nsIAsyncOutputStream);
+  let outputStream = stream.outputStream;
 
   let data = "12345678";
-  stream.write(data, data.length);
+  outputStream.write(data, data.length);
 
   let received = await new Promise(resolve => {
     let handler = new inputStreamReader().QueryInterface(
       Ci.nsIInputStreamCallback
     );
     handler.finish = resolve;
-    stream.QueryInterface(Ci.nsIAsyncInputStream);
-    stream.asyncWaitForRead(handler, 0, 0, Services.tm.currentThread);
+    let inputStream = stream.inputStream;
+    inputStream.asyncWait(handler, 0, 0, Services.tm.currentThread);
   });
 
   info("received: " + received);

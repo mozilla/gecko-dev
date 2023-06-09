@@ -14,6 +14,7 @@
 #include "mozilla/DeclarationBlock.h"
 #include "mozilla/mozalloc.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/ServoCSSParser.h"
 #include "mozilla/StaticPrefs_editor.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/Element.h"
@@ -205,6 +206,11 @@ const CSSEditUtils::CSSEquivTable fontColorEquivTable[] = {
 
 const CSSEditUtils::CSSEquivTable fontFaceEquivTable[] = {
     {CSSEditUtils::eCSSEditableProperty_font_family, true, false,
+     ProcessSameValue, nullptr, nullptr, nullptr},
+    CSS_EQUIV_TABLE_NONE};
+
+const CSSEditUtils::CSSEquivTable fontSizeEquivTable[] = {
+    {CSSEditUtils::eCSSEditableProperty_font_size, true, false,
      ProcessSameValue, nullptr, nullptr, nullptr},
     CSS_EQUIV_TABLE_NONE};
 
@@ -633,17 +639,6 @@ void CSSEditUtils::GetDefaultBackgroundColor(nsAString& aColor) {
   }
 }
 
-// Get the default length unit used for CSS Indent/Outdent
-
-// static
-void CSSEditUtils::GetDefaultLengthUnit(nsAString& aLengthUnit) {
-  // XXX Why don't you validate the pref value?
-  if (MOZ_UNLIKELY(NS_FAILED(Preferences::GetString(
-          "editor.css.default_length_unit", aLengthUnit)))) {
-    aLengthUnit.AssignLiteral("px");
-  }
-}
-
 // static
 void CSSEditUtils::ParseLength(const nsAString& aString, float* aValue,
                                nsAtom** aUnit) {
@@ -812,13 +807,17 @@ void CSSEditUtils::GetCSSDeclarations(
     if (!attributeOrStyle) {
       return nullptr;
     }
-    if (nsGkAtoms::font == htmlProperty &&
-        attributeOrStyle == nsGkAtoms::color) {
-      return fontColorEquivTable;
-    }
-    if (nsGkAtoms::font == htmlProperty &&
-        attributeOrStyle == nsGkAtoms::face) {
-      return fontFaceEquivTable;
+    if (nsGkAtoms::font == htmlProperty) {
+      if (attributeOrStyle == nsGkAtoms::color) {
+        return fontColorEquivTable;
+      }
+      if (attributeOrStyle == nsGkAtoms::face) {
+        return fontFaceEquivTable;
+      }
+      if (attributeOrStyle == nsGkAtoms::size) {
+        return fontSizeEquivTable;
+      }
+      MOZ_ASSERT(attributeOrStyle == nsGkAtoms::bgcolor);
     }
     if (attributeOrStyle == nsGkAtoms::bgcolor) {
       return bgcolorEquivTable;
@@ -877,7 +876,7 @@ Result<size_t, nsresult> CSSEditUtils::SetCSSEquivalentToStyle(
     WithTransaction aWithTransaction, HTMLEditor& aHTMLEditor,
     nsStyledElement& aStyledElement, const EditorElementStyle& aStyleToSet,
     const nsAString* aValue) {
-  MOZ_DIAGNOSTIC_ASSERT(aStyleToSet.IsCSSEditable(aStyledElement));
+  MOZ_DIAGNOSTIC_ASSERT(aStyleToSet.IsCSSSettable(aStyledElement));
 
   // we can apply the styles only if the node is an element and if we have
   // an equivalence for the requested HTML style in this implementation
@@ -905,7 +904,7 @@ nsresult CSSEditUtils::RemoveCSSEquivalentToStyle(
     WithTransaction aWithTransaction, HTMLEditor& aHTMLEditor,
     nsStyledElement& aStyledElement, const EditorElementStyle& aStyleToRemove,
     const nsAString* aValue) {
-  MOZ_DIAGNOSTIC_ASSERT(aStyleToRemove.IsCSSEditable(aStyledElement));
+  MOZ_DIAGNOSTIC_ASSERT(aStyleToRemove.IsCSSRemovable(aStyledElement));
 
   // we can apply the styles only if the node is an element and if we have
   // an equivalence for the requested HTML style in this implementation
@@ -941,7 +940,8 @@ nsresult CSSEditUtils::GetCSSEquivalentTo(Element& aElement,
                                           StyleType aStyleType) {
   MOZ_ASSERT_IF(aStyle.IsInlineStyle(),
                 !aStyle.AsInlineStyle().IsStyleToClearAllInlineStyles());
-  MOZ_DIAGNOSTIC_ASSERT(aStyle.IsCSSEditable(aElement));
+  MOZ_DIAGNOSTIC_ASSERT(aStyle.IsCSSSettable(aElement) ||
+                        aStyle.IsCSSRemovable(aElement));
 
   aOutValue.Truncate();
   AutoTArray<CSSDeclaration, 4> cssDeclarations;
@@ -1072,48 +1072,8 @@ Result<bool, nsresult> CSSEditUtils::IsCSSEquivalentTo(
     } else if ((nsGkAtoms::font == aStyle.mHTMLProperty &&
                 aStyle.mAttribute == nsGkAtoms::color) ||
                aStyle.mAttribute == nsGkAtoms::bgcolor) {
-      if (htmlValueString.IsEmpty()) {
-        isSet = true;
-      } else {
-        nscolor rgba;
-        nsAutoString subStr;
-        htmlValueString.Right(subStr, htmlValueString.Length() - 1);
-        if (NS_ColorNameToRGB(htmlValueString, &rgba) ||
-            NS_HexToRGBA(subStr, nsHexColorType::NoAlpha, &rgba)) {
-          nsAutoString htmlColor, tmpStr;
-
-          if (NS_GET_A(rgba) != 255) {
-            // This should only be hit by the "transparent" keyword, which
-            // currently serializes to "transparent" (not "rgba(0, 0, 0, 0)").
-            MOZ_ASSERT(NS_GET_R(rgba) == 0 && NS_GET_G(rgba) == 0 &&
-                       NS_GET_B(rgba) == 0 && NS_GET_A(rgba) == 0);
-            htmlColor.AppendLiteral(u"transparent");
-          } else {
-            htmlColor.AppendLiteral(u"rgb(");
-
-            constexpr auto comma = u", "_ns;
-
-            tmpStr.AppendInt(NS_GET_R(rgba), 10);
-            htmlColor.Append(tmpStr + comma);
-
-            tmpStr.Truncate();
-            tmpStr.AppendInt(NS_GET_G(rgba), 10);
-            htmlColor.Append(tmpStr + comma);
-
-            tmpStr.Truncate();
-            tmpStr.AppendInt(NS_GET_B(rgba), 10);
-            htmlColor.Append(tmpStr);
-
-            htmlColor.AppendLiteral(u")");
-          }
-
-          isSet =
-              htmlColor.Equals(aInOutValue, nsCaseInsensitiveStringComparator);
-        } else {
-          isSet = htmlValueString.Equals(aInOutValue,
-                                         nsCaseInsensitiveStringComparator);
-        }
-      }
+      isSet = htmlValueString.IsEmpty() ||
+              HTMLEditUtils::IsSameCSSColorValue(htmlValueString, aInOutValue);
     } else if (nsGkAtoms::tt == aStyle.mHTMLProperty) {
       isSet = StringBeginsWith(aInOutValue, u"monospace"_ns);
     } else if (nsGkAtoms::font == aStyle.mHTMLProperty &&
@@ -1130,6 +1090,27 @@ Result<bool, nsresult> CSSEditUtils::IsCSSEquivalentTo(
         isSet = true;
       }
       return isSet;
+    } else if (aStyle.IsStyleOfFontSize()) {
+      if (htmlValueString.IsEmpty()) {
+        return true;
+      }
+      switch (nsContentUtils::ParseLegacyFontSize(htmlValueString)) {
+        case 1:
+          return aInOutValue.EqualsLiteral("x-small");
+        case 2:
+          return aInOutValue.EqualsLiteral("small");
+        case 3:
+          return aInOutValue.EqualsLiteral("medium");
+        case 4:
+          return aInOutValue.EqualsLiteral("large");
+        case 5:
+          return aInOutValue.EqualsLiteral("x-large");
+        case 6:
+          return aInOutValue.EqualsLiteral("xx-large");
+        case 7:
+          return aInOutValue.EqualsLiteral("xxx-large");
+      }
+      return false;
     } else if (aStyle.mAttribute == nsGkAtoms::align) {
       isSet = true;
     } else {
@@ -1297,7 +1278,14 @@ bool CSSEditUtils::DoStyledElementsHaveSameStyle(
     NS_WARNING_ASSERTION(
         NS_SUCCEEDED(rvIgnored),
         "nsICSSDeclaration::GetPropertyValue() failed, but ignored");
-    if (!firstValue.Equals(otherValue)) {
+    // FIXME: We need to handle all properties whose values are color.
+    // However, it's too expensive if we keep using string property names.
+    if (propertyNameString.EqualsLiteral("color") ||
+        propertyNameString.EqualsLiteral("background-color")) {
+      if (!HTMLEditUtils::IsSameCSSColorValue(firstValue, otherValue)) {
+        return false;
+      }
+    } else if (!firstValue.Equals(otherValue)) {
       return false;
     }
   }
@@ -1314,7 +1302,14 @@ bool CSSEditUtils::DoStyledElementsHaveSameStyle(
     NS_WARNING_ASSERTION(
         NS_SUCCEEDED(rvIgnored),
         "nsICSSDeclaration::GetPropertyValue() failed, but ignored");
-    if (!firstValue.Equals(otherValue)) {
+    // FIXME: We need to handle all properties whose values are color.
+    // However, it's too expensive if we keep using string property names.
+    if (propertyNameString.EqualsLiteral("color") ||
+        propertyNameString.EqualsLiteral("background-color")) {
+      if (!HTMLEditUtils::IsSameCSSColorValue(firstValue, otherValue)) {
+        return false;
+      }
+    } else if (!firstValue.Equals(otherValue)) {
       return false;
     }
   }

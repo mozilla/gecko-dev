@@ -19,7 +19,7 @@ use std::{ops, ptr};
 use std::fmt::{self, Write};
 use std::mem;
 
-use cssparser::{Parser, RGBA, TokenSerializationType};
+use cssparser::{Parser, TokenSerializationType};
 use cssparser::ParserInput;
 #[cfg(feature = "servo")] use euclid::SideOffsets2D;
 use crate::context::QuirksMode;
@@ -134,10 +134,10 @@ pub mod shorthands {
         width.to_css(dest)?;
         // FIXME(emilio): Should we really serialize the border style if it's
         // `solid`?
-        dest.write_str(" ")?;
+        dest.write_char(' ')?;
         style.to_css(dest)?;
         if *color != Color::CurrentColor {
-            dest.write_str(" ")?;
+            dest.write_char(' ')?;
             color.to_css(dest)?;
         }
         Ok(())
@@ -916,9 +916,7 @@ CASCADE_GROUPS = {
     # Cascade::fixup_font_stuff.
     "fonts_and_color": [
         # Needed to properly compute the zoomed font-size.
-        # FIXME(emilio): This could probably just be a cascade flag
-        # like IN_SVG_SUBTREE or such, and we could nuke this property.
-        "-x-text-zoom",
+        "-x-text-scale",
         # Needed to do font-size computation in a language-dependent way.
         "-x-lang",
         # Needed for ruby to respect language-dependent min-font-size
@@ -936,6 +934,7 @@ CASCADE_GROUPS = {
         "font-family",
         # color-scheme affects how system colors resolve.
         "color-scheme",
+        "forced-color-adjust",
     ],
 }
 def in_late_group(p):
@@ -1190,7 +1189,7 @@ impl CSSWideKeyword {
             "inherit" => CSSWideKeyword::Inherit,
             "unset" => CSSWideKeyword::Unset,
             "revert" => CSSWideKeyword::Revert,
-            "revert-layer" if static_prefs::pref!("layout.css.cascade-layers.enabled") => CSSWideKeyword::RevertLayer,
+            "revert-layer" => CSSWideKeyword::RevertLayer,
             _ => return Err(()),
         })
     }
@@ -2952,6 +2951,18 @@ pub mod style_structs {
                 })
             }
 
+            /// Returns whether there is any named progress timeline specified with
+            /// scroll-timeline-name other than `none`.
+            pub fn specifies_scroll_timelines(&self) -> bool {
+                self.scroll_timeline_name_iter().any(|name| !name.is_none())
+            }
+
+            /// Returns whether there is any named progress timeline specified with
+            /// view-timeline-name other than `none`.
+            pub fn specifies_view_timelines(&self) -> bool {
+                self.view_timeline_name_iter().any(|name| !name.is_none())
+            }
+
             /// Returns true if animation properties are equal between styles, but without
             /// considering keyframe data and animation-timeline.
             #[cfg(feature = "servo")]
@@ -3126,24 +3137,18 @@ impl ComputedValues {
     }
 % endfor
 
-    /// Writes the value of the given longhand as a string in `dest`.
-    ///
-    /// Note that the value will usually be the computed value, except for
-    /// colors, where it's resolved.
+    /// Writes the (resolved or computed) value of the given longhand as a string in `dest`.
     ///
     /// TODO(emilio): We should move all the special resolution from
     /// nsComputedDOMStyle to ToResolvedValue instead.
-    pub fn get_resolved_value(
+    pub fn computed_or_resolved_value(
         &self,
         property_id: LonghandId,
+        context: Option<<&resolved::Context>,
         dest: &mut CssStringWriter,
     ) -> fmt::Result {
         use crate::values::resolved::ToResolvedValue;
-
         let mut dest = CssWriter::new(dest);
-        let context = resolved::Context {
-            style: self,
-        };
         match property_id {
             % for specified_type, props in groupby(data.longhands, key=lambda x: x.specified_type()):
             <% props = list(props) %>
@@ -3154,34 +3159,39 @@ impl ComputedValues {
                     % endfor
                     _ => unsafe { debug_unreachable!() },
                 };
-                value.to_resolved_value(&context).to_css(&mut dest)
+                if let Some(c) = context {
+                    value.to_resolved_value(c).to_css(&mut dest)
+                } else {
+                    value.to_css(&mut dest)
+                }
             }
             % endfor
         }
     }
 
     /// Returns the given longhand's resolved value as a property declaration.
-    pub fn resolved_declaration(&self, property_id: LonghandId) -> PropertyDeclaration {
+    pub fn computed_or_resolved_declaration(
+        &self,
+        property_id: LonghandId,
+        context: Option<<&resolved::Context>,
+    ) -> PropertyDeclaration {
         use crate::values::resolved::ToResolvedValue;
         use crate::values::computed::ToComputedValue;
-
-        let context = resolved::Context {
-            style: self,
-        };
-
         match property_id {
             % for specified_type, props in groupby(data.longhands, key=lambda x: x.specified_type()):
             <% props = list(props) %>
             ${" |\n".join("LonghandId::{}".format(p.camel_case) for p in props)} => {
-                let value = match property_id {
+                let mut computed_value = match property_id {
                     % for prop in props:
                     LonghandId::${prop.camel_case} => self.clone_${prop.ident}(),
                     % endfor
                     _ => unsafe { debug_unreachable!() },
                 };
-                let resolved = value.to_resolved_value(&context);
-                let computed = ToResolvedValue::from_resolved_value(resolved);
-                let specified = ToComputedValue::from_computed_value(&computed);
+                if let Some(c) = context {
+                    let resolved = computed_value.to_resolved_value(c);
+                    computed_value = ToResolvedValue::from_resolved_value(resolved);
+                }
+                let specified = ToComputedValue::from_computed_value(&computed_value);
                 % if props[0].boxed:
                 let specified = Box::new(specified);
                 % endif
@@ -3214,8 +3224,9 @@ impl ComputedValues {
     /// let top_color =
     ///   style.resolve_color(style.get_border().clone_border_top_color());
     #[inline]
-    pub fn resolve_color(&self, color: computed::Color) -> RGBA {
-        color.into_rgba(self.get_inherited_text().clone_color())
+    pub fn resolve_color(&self, color: computed::Color) -> crate::color::AbsoluteColor {
+        let current_color = self.get_inherited_text().clone_color();
+        color.resolve_into_absolute(&current_color)
     }
 
     /// Returns which longhand properties have different values in the two

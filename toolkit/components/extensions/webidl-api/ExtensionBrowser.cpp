@@ -5,13 +5,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "ExtensionBrowser.h"
+#include "ExtensionAPIRequestForwarder.h"
 
 #include "mozilla/dom/ExtensionBrowserBinding.h"
 #include "mozilla/dom/ExtensionPortBinding.h"  // ExtensionPortDescriptor
 #include "mozilla/dom/WorkerScope.h"           // GetWorkerPrivateFromContext
 #include "mozilla/extensions/ExtensionAlarms.h"
+#include "mozilla/extensions/ExtensionBrowserSettings.h"
+#include "mozilla/extensions/ExtensionDns.h"
 #include "mozilla/extensions/ExtensionMockAPI.h"
 #include "mozilla/extensions/ExtensionPort.h"
+#include "mozilla/extensions/ExtensionProxy.h"
 #include "mozilla/extensions/ExtensionRuntime.h"
 #include "mozilla/extensions/ExtensionScripting.h"
 #include "mozilla/extensions/ExtensionTest.h"
@@ -32,7 +36,10 @@ NS_INTERFACE_MAP_END
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(ExtensionBrowser)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mGlobal)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mExtensionAlarms)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mExtensionBrowserSettings)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mExtensionDns)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mExtensionMockAPI)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mExtensionProxy)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mExtensionRuntime)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mExtensionScripting)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mExtensionTest)
@@ -44,8 +51,11 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(ExtensionBrowser)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mGlobal)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mExtensionAlarms)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mExtensionBrowserSettings)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mExtensionDns)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mExtensionMockAPI)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mExtensionRuntime)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mExtensionProxy)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mExtensionScripting)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mExtensionTest)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
@@ -197,12 +207,36 @@ ExtensionAlarms* ExtensionBrowser::GetExtensionAlarms() {
   return mExtensionAlarms;
 }
 
+ExtensionBrowserSettings* ExtensionBrowser::GetExtensionBrowserSettings() {
+  if (!mExtensionBrowserSettings) {
+    mExtensionBrowserSettings = new ExtensionBrowserSettings(mGlobal, this);
+  }
+
+  return mExtensionBrowserSettings;
+}
+
+ExtensionDns* ExtensionBrowser::GetExtensionDns() {
+  if (!mExtensionDns) {
+    mExtensionDns = new ExtensionDns(mGlobal, this);
+  }
+
+  return mExtensionDns;
+}
+
 ExtensionMockAPI* ExtensionBrowser::GetExtensionMockAPI() {
   if (!mExtensionMockAPI) {
     mExtensionMockAPI = new ExtensionMockAPI(mGlobal, this);
   }
 
   return mExtensionMockAPI;
+}
+
+ExtensionProxy* ExtensionBrowser::GetExtensionProxy() {
+  if (!mExtensionProxy) {
+    mExtensionProxy = new ExtensionProxy(mGlobal, this);
+  }
+
+  return mExtensionProxy;
 }
 
 ExtensionRuntime* ExtensionBrowser::GetExtensionRuntime() {

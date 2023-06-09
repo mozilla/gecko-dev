@@ -27,10 +27,12 @@ add_task(async function changeuri_unvisited_bookmark() {
     url: TEST_URL1,
   });
 
-  await PlacesTestUtils.promiseAsyncUpdates();
+  await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
 
   Assert.notEqual(
-    frecencyForUrl(TEST_URL1),
+    await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
+      url: TEST_URL1,
+    }),
     0,
     "Bookmarked => frecency of URI should be != 0"
   );
@@ -40,10 +42,12 @@ add_task(async function changeuri_unvisited_bookmark() {
     url: TEST_URL2,
   });
 
-  await PlacesTestUtils.promiseAsyncUpdates();
+  await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
 
   Assert.equal(
-    frecencyForUrl(TEST_URL1),
+    await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
+      url: TEST_URL1,
+    }),
     0,
     "Unvisited URI no longer bookmarked => frecency should = 0"
   );
@@ -63,27 +67,31 @@ add_task(async function changeuri_visited_bookmark() {
     url: TEST_URL1,
   });
 
-  await PlacesTestUtils.promiseAsyncUpdates();
+  await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
 
   Assert.notEqual(
-    frecencyForUrl(TEST_URL1),
+    await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
+      url: TEST_URL1,
+    }),
     0,
     "Bookmarked => frecency of URI should be != 0"
   );
 
   await PlacesTestUtils.addVisits(TEST_URL1);
 
-  await PlacesTestUtils.promiseAsyncUpdates();
+  await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
 
   await PlacesUtils.bookmarks.update({
     guid: bookmark.guid,
     url: TEST_URL2,
   });
 
-  await PlacesTestUtils.promiseAsyncUpdates();
+  await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
 
   Assert.notEqual(
-    frecencyForUrl(TEST_URL1),
+    await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
+      url: TEST_URL1,
+    }),
     0,
     "*Visited* URI no longer bookmarked => frecency should != 0"
   );
@@ -110,10 +118,12 @@ add_task(async function changeuri_bookmark_still_bookmarked() {
     url: TEST_URL1,
   });
 
-  await PlacesTestUtils.promiseAsyncUpdates();
+  await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
 
   Assert.notEqual(
-    frecencyForUrl(TEST_URL1),
+    await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
+      url: TEST_URL1,
+    }),
     0,
     "Bookmarked => frecency of URI should be != 0"
   );
@@ -123,10 +133,15 @@ add_task(async function changeuri_bookmark_still_bookmarked() {
     url: TEST_URL2,
   });
 
-  await PlacesTestUtils.promiseAsyncUpdates();
+  await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
 
   info("URI still bookmarked => frecency should != 0");
-  Assert.notEqual(frecencyForUrl(TEST_URL2), 0);
+  Assert.notEqual(
+    await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
+      url: TEST_URL2,
+    }),
+    0
+  );
 
   await PlacesUtils.bookmarks.eraseEverything();
   await PlacesUtils.history.clear();

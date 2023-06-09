@@ -146,11 +146,6 @@ fzf_header_shortcuts = [
 ]
 
 
-def run_cmd(cmd, cwd=None):
-    is_win = platform.system() == "Windows"
-    return subprocess.call(cmd, cwd=cwd, shell=True if is_win else False)
-
-
 def get_fzf_platform():
     if platform.machine() in ["i386", "i686"]:
         print(FZF_NOT_SUPPORTED_X86 % platform.machine())
@@ -335,6 +330,11 @@ def run_fzf(cmd, tasks):
     env.update(
         {"PYTHONPATH": os.pathsep.join([p for p in sys.path if "requests" in p])}
     )
+    # Make sure fzf uses Windows' shell rather than MozillaBuild bash or
+    # whatever our caller uses, since it doesn't quote the arguments properly
+    # and thus windows paths like: C:\moz\foo end up as C:mozfoo...
+    if platform.system() == "Windows":
+        env["SHELL"] = env["COMSPEC"]
     proc = subprocess.Popen(
         cmd,
         stdout=subprocess.PIPE,

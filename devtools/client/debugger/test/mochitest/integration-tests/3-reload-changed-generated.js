@@ -76,7 +76,7 @@ addIntegrationTask(async function testReloadingChangedGeneratedSource(
     "SET_BREAKPOINT"
   );
   testServer.switchToNextVersion();
-  await reload(
+  const onReloaded = reload(
     dbg,
     "bundle-with-another-original.js",
     "original-with-no-update.js"
@@ -98,8 +98,8 @@ addIntegrationTask(async function testReloadingChangedGeneratedSource(
     await assertNoBreakpoint(dbg, 5);
     assertTextContentOnLine(dbg, 5, "funcC();");
 
-    await selectSource(dbg, "bundle-with-another-original.js");
-
+    info("Switch to generated source and assert that the location is correct");
+    await dbg.actions.jumpToMappedSelectedLocation(getContext(dbg));
     assertPausedAtSourceAndLine(
       dbg,
       findSource(dbg, "bundle-with-another-original.js").id,
@@ -108,6 +108,8 @@ addIntegrationTask(async function testReloadingChangedGeneratedSource(
     await assertNoBreakpoint(dbg, 82);
     assertTextContentOnLine(dbg, 82, "funcC();");
 
+    info("Switch back to original location before resuming");
+    await dbg.actions.jumpToMappedSelectedLocation(getContext(dbg));
     await resume(dbg);
     await waitForPaused(dbg);
 
@@ -120,6 +122,7 @@ addIntegrationTask(async function testReloadingChangedGeneratedSource(
       6
     );
   } else {
+    await onReloaded;
     // Assert that it does not pause in commpressed files
     assertNotPaused(dbg);
   }
@@ -167,5 +170,10 @@ addIntegrationTask(async function testReloadingChangedGeneratedSource(
     is(breakpoint.generatedLocation.line, 103);
   }
 
+  if (!isCompressed) {
+    await resume(dbg);
+    info("Wait for reload to complete after resume");
+    await onReloaded;
+  }
   await closeTab(dbg, "bundle-with-another-original.js");
 });

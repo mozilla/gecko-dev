@@ -38,8 +38,7 @@
               data-l10n-id="always-check-default"/>
     <stack id="setDefaultPane">
       <hbox id="isNotDefaultPane" align="center" class="indent">
-        <image class="face-sad"/>
-        <label id="isNotDefaultLabel" flex="1" data-l10n-id="is-not-default"/>
+        <label class="face-sad" id="isNotDefaultLabel" flex="1" data-l10n-id="is-not-default"/>
         <button id="setDefaultButton"
                 is="highlightable-button"
                 class="accessory-button"
@@ -47,13 +46,25 @@
                 preference="pref.general.disable_button.default_browser"/>
       </hbox>
       <hbox id="isDefaultPane" align="center" class="indent">
-        <image class="face-smile"/>
-        <label id="isDefaultLabel" flex="1" data-l10n-id="is-default"/>
+        <label class="face-smile" id="isDefaultLabel" flex="1" data-l10n-id="is-default"/>
       </hbox>
     </stack>
   </vbox>
 #endif
 
+</groupbox>
+
+<!-- Data migration -->
+<groupbox id="dataMigrationGroup" data-category="paneGeneral" hidden="true">
+  <label><html:h2 data-l10n-id="preferences-data-migration-header"/></label>
+
+  <hbox id="dataMigration" flex="1">
+    <description flex="1" control="data-migration" data-l10n-id="preferences-data-migration-description"/>
+    <button id="data-migration"
+            is="highlightable-button"
+            class="accessory-button"
+            data-l10n-id="preferences-data-migration-button"/>
+  </hbox>
 </groupbox>
 
 <!-- Tab preferences -->
@@ -101,7 +112,11 @@
                   class="tail-with-learn-more"
                   data-l10n-id="browser-containers-enabled"
                   preference="privacy.userContext.enabled"/>
-        <label id="browserContainersLearnMore" is="text-link" class="learnMore" data-l10n-id="browser-containers-learn-more"/>
+        <html:a
+          is="moz-support-link"
+          support-page="containers"
+          data-l10n-id="browser-containers-learn-more"
+        />
         <spacer flex="1"/>
         <button id="browserContainersSettings"
                 is="highlightable-button"
@@ -129,7 +144,7 @@
     <description data-l10n-id="preferences-web-appearance-description"/>
     <html:div id="web-appearance-override-warning" class="info-box-container">
       <html:div class="info-icon-container">
-        <image class="info-icon"></image>
+        <html:img class="info-icon"/>
       </html:div>
       <description data-l10n-id="preferences-web-appearance-override-warning">
         <html:a class="text-link" data-l10n-name="colors-link" id="web-appearance-manage-colors-link" href="#"/>
@@ -198,7 +213,7 @@
   <hbox id="fontSettings">
     <hbox align="center" flex="1">
       <label control="defaultFont" data-l10n-id="default-font"/>
-      <menulist id="defaultFont" flex="1" delayprefsave="true"/>
+      <menulist id="defaultFont" delayprefsave="true"/>
       <label id="defaultFontSizeLabel" control="defaultFontSize" data-l10n-id="default-font-size"></label>
       <menulist id="defaultFontSize" delayprefsave="true">
         <menupopup>
@@ -314,7 +329,7 @@
     </hbox>
   </vbox>
   <hbox id="confirmBrowserLanguage" class="message-bar" align="center" hidden="true">
-    <image class="message-bar-icon"/>
+    <html:img class="message-bar-icon"/>
     <vbox class="message-bar-content-container" align="stretch" flex="1"/>
   </hbox>
 
@@ -340,6 +355,7 @@
             data-l10n-args='{"localeName": "und"}'
             preference="intl.regional_prefs.use_os_locales"/>
 
+  <!-- TODO (Bug 1817084) This older implementation will be removed soon -->
   <hbox id="translationBox" hidden="true">
     <hbox align="center" flex="1">
       <checkbox id="translate" preference="browser.translation.detectLanguage"
@@ -369,6 +385,25 @@
   <checkbox id="checkSpelling"
           data-l10n-id="check-user-spelling"
           preference="layout.spellcheckDefault"/>
+
+  <!-- Translations -->
+  <vbox id="translationsGroup" hidden="true" data-subcategory="translations">
+    <label><html:h2 data-l10n-id="translations-manage-header"/></label>
+    <description data-l10n-id="translations-manage-description"/>
+    <vbox>
+      <html:div id="translations-manage-install-list" hidden="true">
+        <hbox class="translations-manage-language">
+          <label data-l10n-id="translations-manage-all-language"></label>
+          <button id="translations-manage-install-all"
+                  data-l10n-id="translations-manage-download-button"></button>
+          <button id="translations-manage-delete-all"
+                  data-l10n-id="translations-manage-delete-button"></button>
+        </hbox>
+        <!-- The downloadable languages will be listed here. -->
+      </html:div>
+      <description id="translations-manage-error" hidden="true"></description>
+    </vbox>
+  </vbox>
 </groupbox>
 
 <!-- Files and Applications -->
@@ -412,10 +447,10 @@
   <listheader id="handlersViewHeader">
     <treecol id="typeColumn" data-l10n-id="applications-type-column" value="type"
              persist="sortDirection"
-             flex="1" sortDirection="ascending"/>
+             style="flex: 1 50%" sortDirection="ascending"/>
     <treecol id="actionColumn" data-l10n-id="applications-action-column" value="action"
              persist="sortDirection"
-             flex="1"/>
+             style="flex: 1 50%"/>
   </listheader>
   <richlistbox id="handlersView"
                preference="pref.downloads.disable_button.edit_actions"/>
@@ -439,7 +474,10 @@
   <hbox align="center">
     <checkbox id="playDRMContent" preference="media.eme.enabled"
               class="tail-with-learn-more" data-l10n-id="play-drm-content" />
-    <label id="playDRMContentLink" class="learnMore" data-l10n-id="play-drm-content-learn-more" is="text-link"/>
+    <html:a is="moz-support-link"
+      data-l10n-id="play-drm-content-learn-more"
+      support-page="drm-content"
+    />
   </hbox>
 </groupbox>
 
@@ -464,7 +502,6 @@
       <description id="distributionId" class="text-blurb" hidden="true"/>
     </vbox>
 #ifdef MOZ_UPDATER
-    <spacer flex="1"/>
     <button id="showUpdateHistory"
             is="highlightable-button"
             class="accessory-button"
@@ -498,66 +535,56 @@
                 data-l10n-id="update-updateButton"/>
       </hbox>
       <hbox id="checkingForUpdates" align="start">
-        <image class="update-throbber"/>
-        <label data-l10n-id="update-checkingForUpdates"></label>
-        <spacer flex="1"/>
+        <html:img class="update-throbber"/>
+        <label data-l10n-id="update-checkingForUpdates"/>
         <button data-l10n-id="update-checkForUpdatesButton"
                 is="highlightable-button"
                 disabled="true"/>
       </hbox>
       <hbox id="downloading" align="start" data-l10n-id="update-downloading">
-        <html:img class="update-throbber" src="chrome://global/skin/icons/loading.png" data-l10n-name="icon"/>
+        <html:img class="update-throbber" data-l10n-name="icon"/>
         <label id="downloadStatus" data-l10n-name="download-status"/>
       </hbox>
       <hbox id="applying" align="start">
-        <image class="update-throbber"/>
-        <label data-l10n-id="update-applying"></label>
+        <html:img class="update-throbber"/>
+        <label data-l10n-id="update-applying"/>
       </hbox>
       <hbox id="downloadFailed" align="start">
         <label data-l10n-id="update-failed-main">
           <html:a id="failedLink" target="_blank" class="learnMore text-link" data-l10n-name="failed-link-main"></html:a>
         </label>
-        <spacer flex="1"/>
         <button id="checkForUpdatesButton2"
                 data-l10n-id="update-checkForUpdatesButton"
                 is="highlightable-button"/>
       </hbox>
       <hbox id="policyDisabled" align="start">
-        <label data-l10n-id="update-adminDisabled"></label>
-        <spacer flex="1"/>
+        <label data-l10n-id="update-adminDisabled"/>
         <button data-l10n-id="update-checkForUpdatesButton"
                 is="highlightable-button"
                 disabled="true"/>
       </hbox>
       <hbox id="noUpdatesFound" align="start">
-        <image class="face-smile"/>
-        <label data-l10n-id="update-noUpdatesFound"></label>
-        <spacer flex="1"/>
+        <label class="face-smile" data-l10n-id="update-noUpdatesFound"/>
         <button id="checkForUpdatesButton3"
                 data-l10n-id="update-checkForUpdatesButton"
                 is="highlightable-button"/>
       </hbox>
       <hbox id="checkingFailed" align="start">
-        <image class="face-sad"/>
-        <label data-l10n-id="aboutdialog-update-checking-failed"></label>
-        <spacer flex="1"/>
+        <label class="face-sad" data-l10n-id="aboutdialog-update-checking-failed"/>
         <button id="checkForUpdatesButton4"
                 data-l10n-id="update-checkForUpdatesButton"
                 is="highlightable-button"/>
       </hbox>
       <hbox id="otherInstanceHandlingUpdates" align="start">
-        <label data-l10n-id="update-otherInstanceHandlingUpdates"></label>
-        <spacer flex="1"/>
+        <label data-l10n-id="update-otherInstanceHandlingUpdates"/>
         <button data-l10n-id="update-checkForUpdatesButton"
                 is="highlightable-button"
                 disabled="true"/>
       </hbox>
       <hbox id="manualUpdate" align="start">
-        <image class="face-sad"/>
-        <description flex="1" data-l10n-id="update-manual">
-          <label class="manualLink" data-l10n-name="manual-link" is="text-link"/>
+        <description class="face-sad" data-l10n-id="aboutdialog-update-manual">
+          <html:a class="manualLink" data-l10n-name="manual-link" target="_blank"/>
         </description>
-        <spacer flex="1"/>
         <button data-l10n-id="update-checkForUpdatesButton"
                 is="highlightable-button"
                 disabled="true"/>
@@ -566,24 +593,21 @@
         <description flex="1" data-l10n-id="update-unsupported">
           <label id="unsupportedLink" class="learnMore" data-l10n-name="unsupported-link" is="text-link"></label>
         </description>
-        <spacer flex="1"/>
         <button data-l10n-id="update-checkForUpdatesButton"
                 is="highlightable-button"
                 disabled="true"/>
       </hbox>
       <hbox id="restarting" align="start">
-        <image class="update-throbber"/><label data-l10n-id="update-restarting"></label>
-        <spacer flex="1"/>
+        <html:img class="update-throbber"/>
+        <label data-l10n-id="update-restarting"/>
         <button data-l10n-id="update-updateButton"
                 is="highlightable-button"
                 disabled="true"/>
       </hbox>
       <hbox id="internalError" align="start">
-        <image class="face-sad"/>
-        <description flex="1" data-l10n-id="update-internal-error">
+        <description class="face-sad" flex="1" data-l10n-id="update-internal-error">
           <label class="manualLink" data-l10n-name="manual-link" is="text-link"/>
         </description>
-        <spacer flex="1"/>
         <button data-l10n-id="update-checkForUpdatesButton"
                 is="highlightable-button"
                 disabled="true"/>
@@ -611,7 +635,7 @@
     </radiogroup>
     <hbox id="updateSettingCrossUserWarningDesc" hidden="true">
       <hbox class="info-icon-container">
-        <image class="info-icon"></image>
+        <html:img class="info-icon"/>
       </hbox>
       <description id="updateSettingCrossUserWarning"
                    flex="1"
@@ -648,7 +672,10 @@
               class="tail-with-learn-more"
               data-l10n-id="performance-use-recommended-settings-checkbox"
               preference="browser.preferences.defaultPerformanceSettings.enabled"/>
-    <label id="performanceSettingsLearnMore" class="learnMore" data-l10n-id="performance-settings-learn-more" is="text-link"/>
+    <html:a is="moz-support-link"
+      data-l10n-id="performance-settings-learn-more"
+      support-page="performance"
+      />
   </hbox>
   <description class="indent tip-caption" data-l10n-id="performance-use-recommended-settings-desc"/>
 
@@ -717,28 +744,40 @@
             class="tail-with-learn-more"
             data-l10n-id="browsing-picture-in-picture-toggle-enabled"
             preference="media.videocontrols.picture-in-picture.video-toggle.enabled"/>
-    <label id="pictureInPictureLearnMore" class="learnMore" data-l10n-id="browsing-picture-in-picture-learn-more" is="text-link"/>
+    <html:a is="moz-support-link"
+          data-l10n-id="browsing-picture-in-picture-learn-more"
+          support-page="picture-in-picture"
+    />
   </hbox>
   <hbox id="mediaControlBox" align="center" hidden="true">
     <checkbox id="mediaControlToggleEnabled"
             class="tail-with-learn-more"
             data-l10n-id="browsing-media-control"
             preference="media.hardwaremediakeys.enabled"/>
-    <label id="mediaControlLearnMore" class="learnMore" data-l10n-id="browsing-media-control-learn-more" is="text-link"/>
+    <html:a is="moz-support-link"
+          data-l10n-id="browsing-media-control-learn-more"
+          support-page="media-keyboard-control"
+    />
   </hbox>
   <hbox align="center" data-subcategory="cfraddons">
     <checkbox id="cfrRecommendations"
             class="tail-with-learn-more"
             data-l10n-id="browsing-cfr-recommendations"
             preference="browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons"/>
-    <label id="cfrLearnMore" class="learnMore" data-l10n-id="browsing-cfr-recommendations-learn-more" is="text-link"/>
+    <html:a is="moz-support-link"
+          data-l10n-id="browsing-cfr-recommendations-learn-more"
+          support-page="extensionrecommendations"
+    />
   </hbox>
   <hbox align="center" data-subcategory="cfrfeatures">
     <checkbox id="cfrRecommendations-features"
             class="tail-with-learn-more"
             data-l10n-id="browsing-cfr-features"
             preference="browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features"/>
-    <label id="cfrFeaturesLearnMore" class="learnMore" data-l10n-id="browsing-cfr-recommendations-learn-more" is="text-link"/>
+    <html:a is="moz-support-link"
+          data-l10n-id="browsing-cfr-recommendations-learn-more"
+          support-page="extensionrecommendations"
+    />
   </hbox>
 </groupbox>
 
@@ -757,14 +796,16 @@
       data-subcategory="netsettings">
     <description flex="1" control="connectionSettings">
       <html:span id="connectionSettingsDescription"/>
-      <label id="connectionSettingsLearnMore" class="learnMore" is="text-link" data-l10n-id="network-proxy-connection-learn-more"/>
+      <html:a is="moz-support-link"
+            data-l10n-id="network-proxy-connection-learn-more"
+            support-page="prefs-connection-settings"
+      />
     </description>
     <separator orient="vertical"/>
     <button id="connectionSettings"
             is="highlightable-button"
             class="accessory-button"
             data-l10n-id="network-proxy-connection-settings"
-            searchkeywords="doh trr"
             search-l10n-ids="
               connection-window2.title,
               connection-proxy-option-no.label,
@@ -784,8 +825,6 @@
               connection-proxy-reload.label,
               connection-proxy-autologin.label,
               connection-proxy-socks-remote-dns.label,
-              connection-dns-over-https.label,
-              connection-dns-over-https-url-custom.label,
           " />
   </hbox>
 </groupbox>

@@ -8,6 +8,7 @@
 
 #include "sandboxBroker.h"
 
+#include <aclapi.h>
 #include <shlobj.h>
 #include <string>
 
@@ -20,6 +21,7 @@
 #include "mozilla/Omnijar.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/SandboxSettings.h"
+#include "mozilla/SHA1.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/StaticPrefs_security.h"
 #include "mozilla/StaticPrefs_widget.h"
@@ -28,6 +30,7 @@
 #include "mozilla/WinDllServices.h"
 #include "mozilla/WindowsVersion.h"
 #include "mozilla/WinHeaderOnlyUtils.h"
+#include "mozilla/ipc/LaunchError.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsCOMPtr.h"
 #include "nsDirectoryServiceDefs.h"
@@ -36,14 +39,18 @@
 #include "nsIXULRuntime.h"
 #include "nsServiceManagerUtils.h"
 #include "nsString.h"
+#include "nsTArray.h"
 #include "nsTHashtable.h"
+#include "sandbox/win/src/app_container_profile.h"
 #include "sandbox/win/src/sandbox.h"
 #include "sandbox/win/src/security_level.h"
 #include "WinUtils.h"
 
 namespace mozilla {
 
-sandbox::BrokerServices* SandboxBroker::sBrokerService = nullptr;
+constexpr wchar_t kLpacFirefoxInstallFiles[] = L"lpacFirefoxInstallFiles";
+
+sandbox::BrokerServices* sBrokerService = nullptr;
 
 // This is set to true in Initialize when our exe file name has a drive type of
 // DRIVE_REMOTE, so that we can tailor the sandbox policy as some settings break
@@ -54,8 +61,6 @@ bool SandboxBroker::sRunningFromNetworkDrive = false;
 // Cached special directories used for adding policy rules.
 static UniquePtr<nsString> sBinDir;
 static UniquePtr<nsString> sProfileDir;
-static UniquePtr<nsString> sContentTempDir;
-static UniquePtr<nsString> sRoamingAppDataDir;
 static UniquePtr<nsString> sLocalAppDataDir;
 #ifdef ENABLE_SYSTEM_EXTENSION_DIRS
 static UniquePtr<nsString> sUserExtensionsDir;
@@ -65,6 +70,7 @@ static LazyLogModule sSandboxBrokerLog("SandboxBroker");
 
 #define LOG_E(...) MOZ_LOG(sSandboxBrokerLog, LogLevel::Error, (__VA_ARGS__))
 #define LOG_W(...) MOZ_LOG(sSandboxBrokerLog, LogLevel::Warning, (__VA_ARGS__))
+#define LOG_D(...) MOZ_LOG(sSandboxBrokerLog, LogLevel::Debug, (__VA_ARGS__))
 
 // Used to store whether we have accumulated an error combination for this
 // session.
@@ -83,6 +89,8 @@ static sandbox::ResultCode AddWin32kLockdownPolicy(
   }
 
   sandbox::MitigationFlags flags = aPolicy->GetProcessMitigations();
+  MOZ_ASSERT(flags,
+             "Mitigations should be set before AddWin32kLockdownPolicy.");
   MOZ_ASSERT(!(flags & sandbox::MITIGATION_WIN32K_DISABLE),
              "Check not enabling twice.  Should not happen.");
 
@@ -159,9 +167,6 @@ void SandboxBroker::GeckoDependentInitialize() {
 
     CacheDirAndAutoClear(dirSvc, NS_GRE_DIR, &sBinDir);
     CacheDirAndAutoClear(dirSvc, NS_APP_USER_PROFILE_50_DIR, &sProfileDir);
-    CacheDirAndAutoClear(dirSvc, NS_APP_CONTENT_PROCESS_TEMP_DIR,
-                         &sContentTempDir);
-    CacheDirAndAutoClear(dirSvc, NS_WIN_APPDATA_DIR, &sRoamingAppDataDir);
     CacheDirAndAutoClear(dirSvc, NS_WIN_LOCAL_APPDATA_DIR, &sLocalAppDataDir);
 #ifdef ENABLE_SYSTEM_EXTENSION_DIRS
     CacheDirAndAutoClear(dirSvc, XRE_USER_SYS_EXTENSION_DIR,
@@ -255,14 +260,17 @@ static void AddDeveloperRepoDirToPolicy(sandbox::TargetPolicy* aPolicy) {
 
 #undef WSTRING
 
-bool SandboxBroker::LaunchApp(const wchar_t* aPath, const wchar_t* aArguments,
-                              base::EnvironmentMap& aEnvironment,
-                              GeckoProcessType aProcessType,
-                              const bool aEnableLogging,
-                              const IMAGE_THUNK_DATA* aCachedNtdllThunk,
-                              void** aProcessHandle) {
-  if (!sBrokerService || !mPolicy) {
-    return false;
+Result<Ok, mozilla::ipc::LaunchError> SandboxBroker::LaunchApp(
+    const wchar_t* aPath, const wchar_t* aArguments,
+    base::EnvironmentMap& aEnvironment, GeckoProcessType aProcessType,
+    const bool aEnableLogging, const IMAGE_THUNK_DATA* aCachedNtdllThunk,
+    void** aProcessHandle) {
+  if (!sBrokerService) {
+    return Err(mozilla::ipc::LaunchError("SB::LA::sBrokerService"));
+  }
+
+  if (!mPolicy) {
+    return Err(mozilla::ipc::LaunchError("SB::LA::mPolicy"));
   }
 
   // Set stdout and stderr, to allow inheritance for logging.
@@ -292,7 +300,7 @@ bool SandboxBroker::LaunchApp(const wchar_t* aPath, const wchar_t* aArguments,
   // Enable the child process to write log files when setup
   AddMozLogRulesToPolicy(mPolicy, aEnvironment);
 
-  if (mozilla::IsDevelopmentBuild()) {
+  if (!mozilla::IsPackagedBuild()) {
     AddDeveloperRepoDirToPolicy(mPolicy);
   }
 
@@ -327,7 +335,7 @@ bool SandboxBroker::LaunchApp(const wchar_t* aPath, const wchar_t* aArguments,
         "last_warning=%d",
         result, last_error, last_warning);
 
-    return false;
+    return Err(mozilla::ipc::LaunchError("SB::LA::SpawnTarget", last_error));
   } else if (sandbox::SBOX_ALL_OK != last_warning) {
     // If there was a warning (but the result was still ok), log it and proceed.
     LOG_W("Warning on SpawnTarget with last_error=%lu, last_warning=%d",
@@ -344,13 +352,10 @@ bool SandboxBroker::LaunchApp(const wchar_t* aPath, const wchar_t* aArguments,
 
   if (!isThunderbird &&
       XRE_GetChildProcBinPathType(aProcessType) == BinPathType::Self) {
-    bool isUtilityProcess = aProcessType == GeckoProcessType_Utility;
-    bool isSocketProcess = aProcessType == GeckoProcessType_Socket;
     RefPtr<DllServices> dllSvc(DllServices::Get());
     LauncherVoidResultWithLineInfo blocklistInitOk =
         dllSvc->InitDllBlocklistOOP(aPath, targetInfo.hProcess,
-                                    aCachedNtdllThunk, isUtilityProcess,
-                                    isSocketProcess);
+                                    aCachedNtdllThunk, aProcessType);
     if (blocklistInitOk.isErr()) {
       dllSvc->HandleLauncherError(blocklistInitOk.unwrapErr(),
                                   XRE_GeckoProcessTypeToString(aProcessType));
@@ -361,7 +366,9 @@ bool SandboxBroker::LaunchApp(const wchar_t* aPath, const wchar_t* aArguments,
       TerminateProcess(targetInfo.hProcess, 1);
       CloseHandle(targetInfo.hThread);
       CloseHandle(targetInfo.hProcess);
-      return false;
+      return Err(mozilla::ipc::LaunchError(
+          "InitDllBlocklistOOP",
+          blocklistInitOk.unwrapErr().mError.AsHResult()));
     }
   } else {
     // Load the child executable as a datafile so that we can examine its
@@ -384,7 +391,9 @@ bool SandboxBroker::LaunchApp(const wchar_t* aPath, const wchar_t* aArguments,
           TerminateProcess(targetInfo.hProcess, 1);
           CloseHandle(targetInfo.hThread);
           CloseHandle(targetInfo.hProcess);
-          return false;
+          return Err(mozilla::ipc::LaunchError(
+              "RestoreImportDirectory",
+              importsRestored.unwrapErr().mError.AsHResult()));
         }
       }
     }
@@ -398,7 +407,7 @@ bool SandboxBroker::LaunchApp(const wchar_t* aPath, const wchar_t* aArguments,
   // Return the process handle to the caller
   *aProcessHandle = targetInfo.hProcess;
 
-  return true;
+  return Ok();
 }
 
 static void AddCachedDirRule(sandbox::TargetPolicy* aPolicy,
@@ -433,7 +442,7 @@ static void AddCachedDirRule(sandbox::TargetPolicy* aPolicy,
 static const Maybe<Vector<const wchar_t*>>& GetPrespawnCigExceptionModules() {
   // We enable pre-spawn CIG only in Nightly for now
   // because it caused a compat issue (bug 1682304 and 1704373).
-#if defined(NIGHTLY)
+#if defined(NIGHTLY_BUILD)
   // The shared section contains a list of dependent modules as a
   // null-delimited string.  We convert it to a string vector and
   // cache it to avoid converting the same data every time.
@@ -473,12 +482,13 @@ static const Maybe<Vector<const wchar_t*>>& GetPrespawnCigExceptionModules() {
 #endif
 }
 
-static sandbox::ResultCode InitSignedPolicyRulesToBypassCig(
-    sandbox::TargetPolicy* aPolicy,
-    const Vector<const wchar_t*>& aExceptionModules) {
+static sandbox::ResultCode AllowProxyLoadFromBinDir(
+    sandbox::TargetPolicy* aPolicy) {
+  // Allow modules in the directory containing the executable such as
+  // mozglue.dll, nss3.dll, etc.
   static UniquePtr<nsString> sInstallDir;
   if (!sInstallDir) {
-    // Since this function is called before sBinDir is initialized,
+    // Since this function can be called before sBinDir is initialized,
     // we cache the install path by ourselves.
     UniquePtr<wchar_t[]> appDirStr;
     if (GetInstallDirectory(appDirStr)) {
@@ -502,21 +512,53 @@ static sandbox::ResultCode InitSignedPolicyRulesToBypassCig(
       return sandbox::SBOX_ERROR_GENERIC;
     }
   }
+  return aPolicy->AddRule(sandbox::TargetPolicy::SUBSYS_SIGNED_BINARY,
+                          sandbox::TargetPolicy::SIGNED_ALLOW_LOAD,
+                          sInstallDir->get());
+}
 
-  // Allow modules in the directory containing the executable such as
-  // mozglue.dll, nss3.dll, etc.
-  auto result = aPolicy->AddRule(sandbox::TargetPolicy::SUBSYS_SIGNED_BINARY,
-                                 sandbox::TargetPolicy::SIGNED_ALLOW_LOAD,
-                                 sInstallDir->get());
+static sandbox::ResultCode AddCigToPolicy(
+    sandbox::TargetPolicy* aPolicy, bool aAlwaysProxyBinDirLoading = false) {
+  const Maybe<Vector<const wchar_t*>>& exceptionModules =
+      GetPrespawnCigExceptionModules();
+  if (exceptionModules.isNothing()) {
+    sandbox::MitigationFlags delayedMitigations =
+        aPolicy->GetDelayedProcessMitigations();
+    MOZ_ASSERT(delayedMitigations,
+               "Delayed mitigations should be set before AddCigToPolicy.");
+    MOZ_ASSERT(!(delayedMitigations & sandbox::MITIGATION_FORCE_MS_SIGNED_BINS),
+               "AddCigToPolicy should not be called twice.");
+
+    delayedMitigations |= sandbox::MITIGATION_FORCE_MS_SIGNED_BINS;
+    sandbox::ResultCode result =
+        aPolicy->SetDelayedProcessMitigations(delayedMitigations);
+    if (result != sandbox::SBOX_ALL_OK) {
+      return result;
+    }
+
+    if (aAlwaysProxyBinDirLoading) {
+      result = AllowProxyLoadFromBinDir(aPolicy);
+    }
+    return result;
+  }
+
+  sandbox::MitigationFlags mitigations = aPolicy->GetProcessMitigations();
+  MOZ_ASSERT(mitigations, "Mitigations should be set before AddCigToPolicy.");
+  MOZ_ASSERT(!(mitigations & sandbox::MITIGATION_FORCE_MS_SIGNED_BINS),
+             "AddCigToPolicy should not be called twice.");
+
+  mitigations |= sandbox::MITIGATION_FORCE_MS_SIGNED_BINS;
+  sandbox::ResultCode result = aPolicy->SetProcessMitigations(mitigations);
   if (result != sandbox::SBOX_ALL_OK) {
     return result;
   }
 
-  if (aExceptionModules.empty()) {
-    return sandbox::SBOX_ALL_OK;
+  result = AllowProxyLoadFromBinDir(aPolicy);
+  if (result != sandbox::SBOX_ALL_OK) {
+    return result;
   }
 
-  for (const wchar_t* path : aExceptionModules) {
+  for (const wchar_t* path : exceptionModules.ref()) {
     result = aPolicy->AddRule(sandbox::TargetPolicy::SUBSYS_SIGNED_BINARY,
                               sandbox::TargetPolicy::SIGNED_ALLOW_LOAD, path);
     if (result != sandbox::SBOX_ALL_OK) {
@@ -610,6 +652,188 @@ static sandbox::ResultCode SetJobLevel(sandbox::TargetPolicy* aPolicy,
   }
 
   return aPolicy->SetJobLevel(sandbox::JOB_NONE, 0);
+}
+
+static void HexEncode(const Span<const uint8_t>& aBytes, nsACString& aEncoded) {
+  static const char kHexChars[] = "0123456789abcdef";
+
+  // Each input byte creates two output hex characters.
+  char* encodedPtr;
+  aEncoded.GetMutableData(&encodedPtr, aBytes.size() * 2);
+
+  for (auto byte : aBytes) {
+    *(encodedPtr++) = kHexChars[byte >> 4];
+    *(encodedPtr++) = kHexChars[byte & 0xf];
+  }
+}
+
+// This is left as a void because we might fail to set the permission for some
+// reason and yet the LPAC permission is already granted. So returning success
+// or failure isn't really that useful.
+static void EnsureLpacPermsissionsOnBinDir() {
+  BYTE sidBytes[SECURITY_MAX_SID_SIZE];
+  PSID lpacFirefoxInstallFilesSid = static_cast<PSID>(sidBytes);
+  if (!sBrokerService->DeriveCapabilitySidFromName(kLpacFirefoxInstallFiles,
+                                                   lpacFirefoxInstallFilesSid,
+                                                   sizeof(sidBytes))) {
+    LOG_E("Failed to derive Firefox install files capability SID.");
+    return;
+  }
+
+  HANDLE hBinDir =
+      ::CreateFileW(sBinDir->get(), WRITE_DAC | READ_CONTROL, 0, NULL,
+                    OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+  if (hBinDir == INVALID_HANDLE_VALUE) {
+    LOG_W("Unable to get binary directory handle.");
+    return;
+  }
+
+  UniquePtr<HANDLE, CloseHandleDeleter> autoHandleCloser(hBinDir);
+  PACL pBinDirAcl = nullptr;
+  PSECURITY_DESCRIPTOR pSD = nullptr;
+  DWORD result =
+      ::GetSecurityInfo(hBinDir, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION,
+                        nullptr, nullptr, &pBinDirAcl, nullptr, &pSD);
+  if (result != ERROR_SUCCESS) {
+    LOG_E("Failed to get DACL for binary directory.");
+    return;
+  }
+
+  UniquePtr<VOID, LocalFreeDeleter> autoFreeSecDesc(pSD);
+  if (!pBinDirAcl) {
+    LOG_E("DACL for binary directory was null.");
+    return;
+  }
+
+  for (DWORD i = 0; i < pBinDirAcl->AceCount; ++i) {
+    VOID* pAce = nullptr;
+    if (!::GetAce(pBinDirAcl, i, &pAce) ||
+        static_cast<PACE_HEADER>(pAce)->AceType != ACCESS_ALLOWED_ACE_TYPE) {
+      continue;
+    }
+
+    auto* pAllowedAce = static_cast<ACCESS_ALLOWED_ACE*>(pAce);
+    if ((pAllowedAce->Mask & (GENERIC_READ | GENERIC_EXECUTE)) !=
+        (GENERIC_READ | GENERIC_EXECUTE)) {
+      continue;
+    }
+
+    PSID aceSID = reinterpret_cast<PSID>(&(pAllowedAce->SidStart));
+    if (::EqualSid(aceSID, lpacFirefoxInstallFilesSid)) {
+      LOG_D("Firefox install files permission found on binary directory.");
+      return;
+    }
+  }
+
+  EXPLICIT_ACCESS_W newAccess = {0};
+  newAccess.grfAccessMode = GRANT_ACCESS;
+  newAccess.grfAccessPermissions = GENERIC_READ | GENERIC_EXECUTE;
+  newAccess.grfInheritance = SUB_CONTAINERS_AND_OBJECTS_INHERIT;
+  ::BuildTrusteeWithSidW(&newAccess.Trustee, lpacFirefoxInstallFilesSid);
+  PACL newDacl = nullptr;
+  if (ERROR_SUCCESS !=
+      ::SetEntriesInAclW(1, &newAccess, pBinDirAcl, &newDacl)) {
+    LOG_E("Failed to create new DACL with Firefox install files SID.");
+    return;
+  }
+
+  UniquePtr<ACL, LocalFreeDeleter> autoFreeAcl(newDacl);
+  if (ERROR_SUCCESS != ::SetSecurityInfo(hBinDir, SE_FILE_OBJECT,
+                                         DACL_SECURITY_INFORMATION, nullptr,
+                                         nullptr, newDacl, nullptr)) {
+    LOG_E("Failed to set new DACL on binary directory.");
+  }
+
+  LOG_D("Firefox install files permission granted on binary directory.");
+}
+
+static bool IsLowPrivilegedAppContainerSupported() {
+  // Chromium doesn't support adding an LPAC before this version due to
+  // incompatibility with some process mitigations.
+  return IsWin10Sep2018UpdateOrLater();
+}
+
+// AddAndConfigureAppContainerProfile deliberately fails if it is called on an
+// unsupported version. This is because for some process types the LPAC is
+// required to provide a sufficiently strong sandbox. Processes where the use of
+// an LPAC is an optional extra should use IsLowPrivilegedAppContainerSupported
+// to check support first.
+static sandbox::ResultCode AddAndConfigureAppContainerProfile(
+    sandbox::TargetPolicy* aPolicy, const nsAString& aPackagePrefix,
+    const nsTArray<sandbox::WellKnownCapabilities>& aWellKnownCapabilites,
+    const nsTArray<const wchar_t*>& aNamedCapabilites) {
+  // CreateAppContainerProfile requires that the profile name is at most 64
+  // characters but 50 on WCOS systems. The size of sha1 is a constant 40,
+  // so validate that the base names are sufficiently short that the total
+  // length is valid on all systems.
+  MOZ_ASSERT(aPackagePrefix.Length() <= 10U,
+             "AppContainer Package prefix too long.");
+
+  if (!IsLowPrivilegedAppContainerSupported()) {
+    return sandbox::SBOX_ERROR_UNSUPPORTED;
+  }
+
+  static nsAutoString uniquePackageStr = []() {
+    // userenv.dll may not have been loaded and some of the chromium sandbox
+    // AppContainer code assumes that it is. Done here to load once.
+    ::LoadLibraryW(L"userenv.dll");
+
+    // Done during the package string initialization so we only do it once.
+    EnsureLpacPermsissionsOnBinDir();
+
+    // This mirrors Edge's use of the exe path for the SHA1 hash to give a
+    // machine unique name per install.
+    nsAutoString ret;
+    char exePathBuf[MAX_PATH];
+    DWORD pathSize = ::GetModuleFileNameA(nullptr, exePathBuf, MAX_PATH);
+    if (!pathSize) {
+      return ret;
+    }
+
+    SHA1Sum sha1Sum;
+    SHA1Sum::Hash sha1Hash;
+    sha1Sum.update(exePathBuf, pathSize);
+    sha1Sum.finish(sha1Hash);
+
+    nsAutoCString hexEncoded;
+    HexEncode(sha1Hash, hexEncoded);
+    ret = NS_ConvertUTF8toUTF16(hexEncoded);
+    return ret;
+  }();
+
+  if (uniquePackageStr.IsEmpty()) {
+    return sandbox::SBOX_ERROR_CREATE_APPCONTAINER_PROFILE;
+  }
+
+  // The bool parameter is called create_profile, but in fact it tries to create
+  // and then opens if it already exists. So always passing true is fine.
+  bool createOrOpenProfile = true;
+  nsAutoString packageName = aPackagePrefix + uniquePackageStr;
+  sandbox::ResultCode result =
+      aPolicy->AddAppContainerProfile(packageName.get(), createOrOpenProfile);
+  if (result != sandbox::SBOX_ALL_OK) {
+    return result;
+  }
+
+  // This looks odd, but unfortunately holding a scoped_refptr and
+  // dereferencing has DCHECKs that cause a linking problem.
+  sandbox::AppContainerProfile* profile =
+      aPolicy->GetAppContainerProfile().get();
+  profile->SetEnableLowPrivilegeAppContainer(true);
+
+  for (auto wkCap : aWellKnownCapabilites) {
+    if (!profile->AddCapability(wkCap)) {
+      return sandbox::SBOX_ERROR_CREATE_APPCONTAINER_PROFILE_CAPABILITY;
+    }
+  }
+
+  for (auto namedCap : aNamedCapabilites) {
+    if (!profile->AddCapability(namedCap)) {
+      return sandbox::SBOX_ERROR_CREATE_APPCONTAINER_PROFILE_CAPABILITY;
+    }
+  }
+
+  return sandbox::SBOX_ALL_OK;
 }
 
 void SandboxBroker::SetSecurityLevelForContentProcess(int32_t aSandboxLevel,
@@ -765,13 +989,6 @@ void SandboxBroker::SetSecurityLevelForContentProcess(int32_t aSandboxLevel,
   MOZ_RELEASE_ASSERT(sandbox::SBOX_ALL_OK == result,
                      "Invalid flags for SetDelayedProcessMitigations.");
 
-  // Add rule to allow read / write access to content temp dir. If for some
-  // reason the addition of the content temp failed, this will give write access
-  // to the normal TEMP dir. However such failures should be pretty rare and
-  // without this printing will not currently work.
-  AddCachedDirRule(mPolicy, sandbox::TargetPolicy::FILES_ALLOW_ANY,
-                   sContentTempDir, u"\\*"_ns);
-
   // We still have edge cases where the child at low integrity can't read some
   // files, so add a rule to allow read access to everything when required.
   if (aSandboxLevel == 1 || aIsFileProcess) {
@@ -909,8 +1126,7 @@ void SandboxBroker::SetSecurityLevelForContentProcess(int32_t aSandboxLevel,
   }
 }
 
-void SandboxBroker::SetSecurityLevelForGPUProcess(
-    int32_t aSandboxLevel, const nsCOMPtr<nsIFile>& aProfileDir) {
+void SandboxBroker::SetSecurityLevelForGPUProcess(int32_t aSandboxLevel) {
   MOZ_RELEASE_ASSERT(mPolicy, "mPolicy must be set before this call.");
 
   sandbox::JobLevel jobLevel;
@@ -1003,14 +1219,14 @@ void SandboxBroker::SetSecurityLevelForGPUProcess(
       sandbox::SBOX_ALL_OK == result,
       "With these static arguments AddRule should never fail, what happened?");
 
-  // TEMPORARY WORKAROUND - We don't want to back out the GPU sandbox, so we're
-  // going to give access to the entire filesystem until we can figure out a
-  // reliable way to only give access to the Shader Cache
-  result = mPolicy->AddRule(sandbox::TargetPolicy::SUBSYS_FILES,
-                            sandbox::TargetPolicy::FILES_ALLOW_ANY, L"*");
-  MOZ_RELEASE_ASSERT(
-      sandbox::SBOX_ALL_OK == result,
-      "With these static arguments AddRule should never fail, what happened?");
+  // The GPU process needs to write to a shader cache for performance reasons
+  if (sProfileDir) {
+    AddCachedDirRule(mPolicy, sandbox::TargetPolicy::FILES_ALLOW_DIR_ANY,
+                     sProfileDir, u"\\shader-cache"_ns);
+
+    AddCachedDirRule(mPolicy, sandbox::TargetPolicy::FILES_ALLOW_ANY,
+                     sProfileDir, u"\\shader-cache\\*"_ns);
+  }
 
   // The process needs to be able to duplicate shared memory handles,
   // which are Section handles, to the broker process and other child processes.
@@ -1075,25 +1291,12 @@ bool SandboxBroker::SetSecurityLevelForRDDProcess() {
       sandbox::MITIGATION_DEP_NO_ATL_THUNK | sandbox::MITIGATION_DEP |
       sandbox::MITIGATION_IMAGE_LOAD_PREFER_SYS32;
 
-  const Maybe<Vector<const wchar_t*>>& exceptionModules =
-      GetPrespawnCigExceptionModules();
-  if (exceptionModules.isSome()) {
-    mitigations |= sandbox::MITIGATION_FORCE_MS_SIGNED_BINS;
-  }
-
   if (StaticPrefs::security_sandbox_rdd_shadow_stack_enabled()) {
     mitigations |= sandbox::MITIGATION_CET_COMPAT_MODE;
   }
 
   result = mPolicy->SetProcessMitigations(mitigations);
   SANDBOX_ENSURE_SUCCESS(result, "Invalid flags for SetProcessMitigations.");
-
-  if (exceptionModules.isSome()) {
-    // This needs to be called after MITIGATION_FORCE_MS_SIGNED_BINS is set
-    // because of DCHECK in PolicyBase::AddRuleInternal.
-    result = InitSignedPolicyRulesToBypassCig(mPolicy, exceptionModules.ref());
-    SANDBOX_ENSURE_SUCCESS(result, "Failed to initialize signed policy rules.");
-  }
 
   mitigations = sandbox::MITIGATION_STRICT_HANDLE_CHECKS |
                 sandbox::MITIGATION_DLL_SEARCH_ORDER;
@@ -1103,13 +1306,12 @@ bool SandboxBroker::SetSecurityLevelForRDDProcess() {
     mitigations |= DynamicCodeFlagForSystemMediaLibraries();
   }
 
-  if (exceptionModules.isNothing()) {
-    mitigations |= sandbox::MITIGATION_FORCE_MS_SIGNED_BINS;
-  }
-
   result = mPolicy->SetDelayedProcessMitigations(mitigations);
   SANDBOX_ENSURE_SUCCESS(result,
                          "Invalid flags for SetDelayedProcessMitigations.");
+
+  result = AddCigToPolicy(mPolicy);
+  SANDBOX_ENSURE_SUCCESS(result, "Failed to initialize signed policy rules.");
 
   // Add the policy for the client side of a pipe. It is just a file
   // in the \pipe\ namespace. We restrict it to pipes that start with
@@ -1193,25 +1395,12 @@ bool SandboxBroker::SetSecurityLevelForSocketProcess() {
       sandbox::MITIGATION_DEP_NO_ATL_THUNK | sandbox::MITIGATION_DEP |
       sandbox::MITIGATION_IMAGE_LOAD_PREFER_SYS32;
 
-  const Maybe<Vector<const wchar_t*>>& exceptionModules =
-      GetPrespawnCigExceptionModules();
-  if (exceptionModules.isSome()) {
-    mitigations |= sandbox::MITIGATION_FORCE_MS_SIGNED_BINS;
-  }
-
   if (StaticPrefs::security_sandbox_socket_shadow_stack_enabled()) {
     mitigations |= sandbox::MITIGATION_CET_COMPAT_MODE;
   }
 
   result = mPolicy->SetProcessMitigations(mitigations);
   SANDBOX_ENSURE_SUCCESS(result, "Invalid flags for SetProcessMitigations.");
-
-  if (exceptionModules.isSome()) {
-    // This needs to be called after MITIGATION_FORCE_MS_SIGNED_BINS is set
-    // because of DCHECK in PolicyBase::AddRuleInternal.
-    result = InitSignedPolicyRulesToBypassCig(mPolicy, exceptionModules.ref());
-    SANDBOX_ENSURE_SUCCESS(result, "Failed to initialize signed policy rules.");
-  }
 
   if (StaticPrefs::security_sandbox_socket_win32k_disable()) {
     result = AddWin32kLockdownPolicy(mPolicy, false);
@@ -1222,13 +1411,12 @@ bool SandboxBroker::SetSecurityLevelForSocketProcess() {
                 sandbox::MITIGATION_DLL_SEARCH_ORDER |
                 sandbox::MITIGATION_DYNAMIC_CODE_DISABLE;
 
-  if (exceptionModules.isNothing()) {
-    mitigations |= sandbox::MITIGATION_FORCE_MS_SIGNED_BINS;
-  }
-
   result = mPolicy->SetDelayedProcessMitigations(mitigations);
   SANDBOX_ENSURE_SUCCESS(result,
                          "Invalid flags for SetDelayedProcessMitigations.");
+
+  result = AddCigToPolicy(mPolicy);
+  SANDBOX_ENSURE_SUCCESS(result, "Failed to initialize signed policy rules.");
 
   // Add the policy for the client side of a pipe. It is just a file
   // in the \pipe\ namespace. We restrict it to pipes that start with
@@ -1261,174 +1449,289 @@ bool SandboxBroker::SetSecurityLevelForSocketProcess() {
   return true;
 }
 
-bool SandboxBroker::SetSecurityLevelForUtilityProcess(
-    mozilla::ipc::SandboxingKind aSandbox) {
-  if (!mPolicy) {
-    return false;
-  }
+// A strict base sandbox for utility sandboxes to adapt.
+struct UtilitySandboxProps {
+  sandbox::JobLevel mJobLevel = sandbox::JOB_LOCKDOWN;
 
-  auto jobLevel = sandbox::JOB_LOCKDOWN;
-#ifdef MOZ_WMF_MEDIA_ENGINE
-  if (aSandbox == mozilla::ipc::SandboxingKind::MF_MEDIA_ENGINE_CDM) {
-    jobLevel = sandbox::JOB_INTERACTIVE;
-  }
-#endif
-  auto result = SetJobLevel(mPolicy, jobLevel, 0 /* ui_exceptions */);
-  SANDBOX_ENSURE_SUCCESS(
-      result,
-      "SetJobLevel should never fail with these arguments, what happened?");
+  sandbox::TokenLevel mInitialTokenLevel = sandbox::USER_RESTRICTED_SAME_ACCESS;
+  sandbox::TokenLevel mDelayedTokenLevel = sandbox::USER_LOCKDOWN;
 
-  auto lockdownLevel = sandbox::USER_LOCKDOWN;
-  if (aSandbox == mozilla::ipc::SandboxingKind::UTILITY_AUDIO_DECODING_WMF) {
-    lockdownLevel = sandbox::USER_LIMITED;
-  }
-#ifdef MOZ_WMF_MEDIA_ENGINE
-  if (aSandbox == mozilla::ipc::SandboxingKind::MF_MEDIA_ENGINE_CDM) {
-    lockdownLevel = sandbox::USER_RESTRICTED_NON_ADMIN;
-  }
-#endif
-  result = mPolicy->SetTokenLevel(sandbox::USER_RESTRICTED_SAME_ACCESS,
-                                  lockdownLevel);
-  SANDBOX_ENSURE_SUCCESS(
-      result,
-      "SetTokenLevel should never fail with these arguments, what happened?");
+  sandbox::IntegrityLevel mInitialIntegrityLevel =  // before lockdown
+      sandbox::INTEGRITY_LEVEL_LOW;
+  sandbox::IntegrityLevel mDelayedIntegrityLevel =  // after lockdown
+      sandbox::INTEGRITY_LEVEL_UNTRUSTED;
 
-  bool useAlternateWindowStation = true;
-#ifdef MOZ_WMF_MEDIA_ENGINE
-  if (aSandbox == mozilla::ipc::SandboxingKind::MF_MEDIA_ENGINE_CDM) {
-    useAlternateWindowStation = false;
-  }
-#endif
-  result = mPolicy->SetAlternateDesktop(useAlternateWindowStation);
-  if (NS_WARN_IF(result != sandbox::SBOX_ALL_OK)) {
-    LOG_W("SetAlternateDesktop failed, result: %i, last error: %lx", result,
-          ::GetLastError());
-  }
+  bool mUseAlternateWindowStation = true;
+  bool mUseAlternateDesktop = true;
+  bool mUseWin32kLockdown = true;
+  bool mUseCig = true;
 
-  result = mPolicy->SetIntegrityLevel(sandbox::INTEGRITY_LEVEL_LOW);
-  SANDBOX_ENSURE_SUCCESS(result,
-                         "SetIntegrityLevel should never fail with these "
-                         "arguments, what happened?");
-
-  auto integrityLevel = sandbox::INTEGRITY_LEVEL_UNTRUSTED;
-#ifdef MOZ_WMF_MEDIA_ENGINE
-  if (aSandbox == mozilla::ipc::SandboxingKind::MF_MEDIA_ENGINE_CDM) {
-    integrityLevel = sandbox::INTEGRITY_LEVEL_LOW;
-  }
-#endif
-  result = mPolicy->SetDelayedIntegrityLevel(integrityLevel);
-  SANDBOX_ENSURE_SUCCESS(result,
-                         "SetDelayedIntegrityLevel should never fail with "
-                         "these arguments, what happened?");
-
-  mPolicy->SetLockdownDefaultDacl();
-  mPolicy->AddRestrictingRandomSid();
-
-  sandbox::MitigationFlags mitigations =
+  sandbox::MitigationFlags mInitialMitigations =
       sandbox::MITIGATION_BOTTOM_UP_ASLR | sandbox::MITIGATION_HEAP_TERMINATE |
       sandbox::MITIGATION_SEHOP | sandbox::MITIGATION_EXTENSION_POINT_DISABLE |
       sandbox::MITIGATION_DEP_NO_ATL_THUNK | sandbox::MITIGATION_DEP |
       sandbox::MITIGATION_IMAGE_LOAD_PREFER_SYS32 |
       sandbox::MITIGATION_CET_COMPAT_MODE;
 
-  const Maybe<Vector<const wchar_t*>>& exceptionModules =
-      GetPrespawnCigExceptionModules();
-  if (exceptionModules.isSome()) {
-    mitigations |= sandbox::MITIGATION_FORCE_MS_SIGNED_BINS;
+  sandbox::MitigationFlags mDelayedMitigations =
+      sandbox::MITIGATION_STRICT_HANDLE_CHECKS |
+      sandbox::MITIGATION_DLL_SEARCH_ORDER |
+      sandbox::MITIGATION_DYNAMIC_CODE_DISABLE;
+
+  // Low Privileged Application Container settings;
+  nsString mPackagePrefix;
+  nsTArray<sandbox::WellKnownCapabilities> mWellKnownCapabilites;
+  nsTArray<const wchar_t*> mNamedCapabilites;
+};
+
+struct GenericUtilitySandboxProps : public UtilitySandboxProps {};
+
+struct UtilityAudioDecodingWmfSandboxProps : public UtilitySandboxProps {
+  UtilityAudioDecodingWmfSandboxProps() {
+    mDelayedTokenLevel = sandbox::USER_LIMITED;
+    mDelayedMitigations = sandbox::MITIGATION_STRICT_HANDLE_CHECKS |
+                          sandbox::MITIGATION_DLL_SEARCH_ORDER;
+#ifdef MOZ_WMF
+    if (StaticPrefs::security_sandbox_utility_wmf_acg_enabled()) {
+      mDelayedMitigations |= DynamicCodeFlagForSystemMediaLibraries();
+    }
+#else
+    mDelayedMitigations |= sandbox::MITIGATION_DYNAMIC_CODE_DISABLE;
+#endif  // MOZ_WMF
+  }
+};
+
+#ifdef MOZ_WMF_MEDIA_ENGINE
+struct UtilityMfMediaEngineCdmSandboxProps : public UtilitySandboxProps {
+  UtilityMfMediaEngineCdmSandboxProps() {
+    mJobLevel = sandbox::JOB_INTERACTIVE;
+    mDelayedTokenLevel = sandbox::USER_RESTRICTED_NON_ADMIN;
+    mUseAlternateDesktop = false;
+    mUseAlternateWindowStation = false;
+    // If we are using an LPAC then we can't set an integrity level and the
+    // process will default to low integrity anyway.
+    if (StaticPrefs::security_sandbox_utility_wmf_cdm_lpac_enabled()) {
+      mInitialIntegrityLevel = sandbox::INTEGRITY_LEVEL_LAST;
+      mDelayedIntegrityLevel = sandbox::INTEGRITY_LEVEL_LAST;
+
+      mPackagePrefix = u"fx.sb.cdm"_ns;
+      mWellKnownCapabilites = {
+          sandbox::WellKnownCapabilities::kPrivateNetworkClientServer,
+          sandbox::WellKnownCapabilities::kInternetClient,
+      };
+      mNamedCapabilites = {
+          L"lpacCom",
+          L"lpacIdentityServices",
+          L"lpacMedia",
+          L"lpacPnPNotifications",
+          L"lpacServicesManagement",
+          L"lpacSessionManagement",
+          L"lpacAppExperience",
+          L"lpacInstrumentation",
+          L"lpacCryptoServices",
+          L"lpacEnterprisePolicyChangeNotifications",
+          L"mediaFoundationCdmFiles",
+          L"lpacMediaFoundationCdmData",
+          L"registryRead",
+          kLpacFirefoxInstallFiles,
+      };
+    } else {
+      mDelayedIntegrityLevel = sandbox::INTEGRITY_LEVEL_LOW;
+    }
+    mUseWin32kLockdown = false;
+    mDelayedMitigations = sandbox::MITIGATION_STRICT_HANDLE_CHECKS |
+                          sandbox::MITIGATION_DLL_SEARCH_ORDER;
+  }
+};
+#endif
+
+struct WindowsUtilitySandboxProps : public UtilitySandboxProps {
+  WindowsUtilitySandboxProps() {
+    mJobLevel = sandbox::JOB_INTERACTIVE;
+    mDelayedTokenLevel = sandbox::USER_RESTRICTED_SAME_ACCESS;
+    mUseAlternateWindowStation = false;
+    mInitialIntegrityLevel = sandbox::INTEGRITY_LEVEL_MEDIUM;
+    mDelayedIntegrityLevel = sandbox::INTEGRITY_LEVEL_MEDIUM;
+    mUseWin32kLockdown = false;
+    mUseCig = false;
+    mDelayedMitigations = sandbox::MITIGATION_STRICT_HANDLE_CHECKS |
+                          sandbox::MITIGATION_DLL_SEARCH_ORDER;
+  }
+};
+
+static const char* WellKnownCapabilityNames[] = {
+    "InternetClient",
+    "InternetClientServer",
+    "PrivateNetworkClientServer",
+    "PicturesLibrary",
+    "VideosLibrary",
+    "MusicLibrary",
+    "DocumentsLibrary",
+    "EnterpriseAuthentication",
+    "SharedUserCertificates",
+    "RemovableStorage",
+    "Appointments",
+    "Contacts",
+};
+
+void LogUtilitySandboxProps(const UtilitySandboxProps& us) {
+  if (!static_cast<LogModule*>(sSandboxBrokerLog)->ShouldLog(LogLevel::Debug)) {
+    return;
   }
 
-  result = mPolicy->SetProcessMitigations(mitigations);
+  nsAutoCString logMsg;
+  logMsg.AppendPrintf("Building sandbox for utility process:\n");
+  logMsg.AppendPrintf("\tJob Level: %d\n", static_cast<int>(us.mJobLevel));
+  logMsg.AppendPrintf("\tInitial Token Level: %d\n",
+                      static_cast<int>(us.mInitialTokenLevel));
+  logMsg.AppendPrintf("\tDelayed Token Level: %d\n",
+                      static_cast<int>(us.mDelayedTokenLevel));
+  logMsg.AppendPrintf("\tInitial Integrity Level: %d\n",
+                      static_cast<int>(us.mInitialIntegrityLevel));
+  logMsg.AppendPrintf("\tDelayed Integrity Level: %d\n",
+                      static_cast<int>(us.mDelayedIntegrityLevel));
+  logMsg.AppendPrintf("\tUse Alternate Window Station: %s\n",
+                      us.mUseAlternateWindowStation ? "yes" : "no");
+  logMsg.AppendPrintf("\tUse Alternate Desktop: %s\n",
+                      us.mUseAlternateDesktop ? "yes" : "no");
+  logMsg.AppendPrintf("\tUse Win32k Lockdown: %s\n",
+                      us.mUseWin32kLockdown ? "yes" : "no");
+  logMsg.AppendPrintf("\tUse CIG: %s\n", us.mUseCig ? "yes" : "no");
+  logMsg.AppendPrintf("\tInitial mitigations: %016llx\n",
+                      static_cast<uint64_t>(us.mInitialMitigations));
+  logMsg.AppendPrintf("\tDelayed mitigations: %016llx\n",
+                      static_cast<uint64_t>(us.mDelayedMitigations));
+  if (us.mPackagePrefix.IsEmpty()) {
+    logMsg.AppendPrintf("\tNo Low Privileged Application Container\n");
+  } else {
+    logMsg.AppendPrintf("\tLow Privileged Application Container Settings:\n");
+    logMsg.AppendPrintf("\t\tPackage Name Prefix: %S\n",
+                        static_cast<wchar_t*>(us.mPackagePrefix.get()));
+    logMsg.AppendPrintf("\t\tWell Known Capabilities:\n");
+    for (auto wkCap : us.mWellKnownCapabilites) {
+      logMsg.AppendPrintf("\t\t\t%s\n", WellKnownCapabilityNames[wkCap]);
+    }
+    logMsg.AppendPrintf("\t\tNamed Capabilities:\n");
+    for (auto namedCap : us.mNamedCapabilites) {
+      logMsg.AppendPrintf("\t\t\t%S\n", namedCap);
+    }
+  }
+
+  LOG_D("%s", logMsg.get());
+}
+
+bool BuildUtilitySandbox(sandbox::TargetPolicy* policy,
+                         const UtilitySandboxProps& us) {
+  LogUtilitySandboxProps(us);
+
+  auto result = SetJobLevel(policy, us.mJobLevel, 0 /* ui_exceptions */);
+  SANDBOX_ENSURE_SUCCESS(
+      result,
+      "SetJobLevel should never fail with these arguments, what happened?");
+
+  result = policy->SetTokenLevel(us.mInitialTokenLevel, us.mDelayedTokenLevel);
+  SANDBOX_ENSURE_SUCCESS(
+      result,
+      "SetTokenLevel should never fail with these arguments, what happened?");
+
+  if (us.mInitialIntegrityLevel != sandbox::INTEGRITY_LEVEL_LAST) {
+    result = policy->SetIntegrityLevel(us.mInitialIntegrityLevel);
+    SANDBOX_ENSURE_SUCCESS(result,
+                           "SetIntegrityLevel should never fail with these "
+                           "arguments, what happened?");
+  }
+
+  if (us.mDelayedIntegrityLevel != sandbox::INTEGRITY_LEVEL_LAST) {
+    result = policy->SetDelayedIntegrityLevel(us.mDelayedIntegrityLevel);
+    SANDBOX_ENSURE_SUCCESS(result,
+                           "SetIntegrityLevel should never fail with these "
+                           "arguments, what happened?");
+  }
+
+  if (us.mUseAlternateDesktop) {
+    result = policy->SetAlternateDesktop(us.mUseAlternateWindowStation);
+    if (NS_WARN_IF(result != sandbox::SBOX_ALL_OK)) {
+      LOG_W("SetAlternateDesktop failed, result: %i, last error: %lx", result,
+            ::GetLastError());
+    }
+  }
+
+  policy->SetLockdownDefaultDacl();
+  policy->AddRestrictingRandomSid();
+
+  result = policy->SetProcessMitigations(us.mInitialMitigations);
   SANDBOX_ENSURE_SUCCESS(result, "Invalid flags for SetProcessMitigations.");
 
-  if (exceptionModules.isSome()) {
-    // This needs to be called after MITIGATION_FORCE_MS_SIGNED_BINS is set
-    // because of DCHECK in PolicyBase::AddRuleInternal.
-    result = InitSignedPolicyRulesToBypassCig(mPolicy, exceptionModules.ref());
-    SANDBOX_ENSURE_SUCCESS(result, "Failed to initialize signed policy rules.");
-  }
-
-  // Win32k lockdown might not work on earlier versions
-  // Bug 1719212, 1769992
-  if (IsWin10FallCreatorsUpdateOrLater()
-#ifdef MOZ_WMF_MEDIA_ENGINE
-      && aSandbox != mozilla::ipc::SandboxingKind::MF_MEDIA_ENGINE_CDM
-#endif
-  ) {
-    result = AddWin32kLockdownPolicy(mPolicy, false);
-    SANDBOX_ENSURE_SUCCESS(result, "Failed to add the win32k lockdown policy");
-  }
-
-  mitigations = sandbox::MITIGATION_STRICT_HANDLE_CHECKS |
-                sandbox::MITIGATION_DLL_SEARCH_ORDER;
-
-  switch (aSandbox) {
-#ifdef MOZ_WMF
-    // The audio decoder process depends on MsAudDecMFT.dll.
-    case mozilla::ipc::SandboxingKind::UTILITY_AUDIO_DECODING_WMF:
-      if (StaticPrefs::security_sandbox_utility_wmf_acg_enabled()) {
-        mitigations |= DynamicCodeFlagForSystemMediaLibraries();
-      }
-      break;
-#endif  // MOZ_WMF
-
-#ifdef MOZ_WMF_MEDIA_ENGINE
-    // No ACG on CDM utility processes.
-    case mozilla::ipc::SandboxingKind::MF_MEDIA_ENGINE_CDM:
-      break;
-#endif  // MOZ_WMF_MEDIA_ENGINE
-
-    default:
-      mitigations |= sandbox::MITIGATION_DYNAMIC_CODE_DISABLE;
-  }
-
-  if (exceptionModules.isNothing()) {
-    mitigations |= sandbox::MITIGATION_FORCE_MS_SIGNED_BINS;
-  }
-
-  result = mPolicy->SetDelayedProcessMitigations(mitigations);
+  result = policy->SetDelayedProcessMitigations(us.mDelayedMitigations);
   SANDBOX_ENSURE_SUCCESS(result,
                          "Invalid flags for SetDelayedProcessMitigations.");
 
-  // Running audio decoder somehow fails on MSIX packages unless we do that
-  if (mozilla::HasPackageIdentity() && exceptionModules.isNothing()) {
-    const Vector<const wchar_t*> emptyVector;
-    result = InitSignedPolicyRulesToBypassCig(mPolicy, emptyVector);
+  // Win32k lockdown might not work on earlier versions
+  // Bug 1719212, 1769992
+  if (us.mUseWin32kLockdown && IsWin10FallCreatorsUpdateOrLater()) {
+    result = AddWin32kLockdownPolicy(policy, false);
+    SANDBOX_ENSURE_SUCCESS(result, "Failed to add the win32k lockdown policy");
+  }
+
+  if (us.mUseCig) {
+    bool alwaysProxyBinDirLoading = mozilla::HasPackageIdentity();
+    result = AddCigToPolicy(policy, alwaysProxyBinDirLoading);
     SANDBOX_ENSURE_SUCCESS(result, "Failed to initialize signed policy rules.");
   }
 
+  if (!us.mPackagePrefix.IsEmpty()) {
+    MOZ_ASSERT(us.mInitialIntegrityLevel == sandbox::INTEGRITY_LEVEL_LAST,
+               "Initial integrity level cannot be specified if using an LPAC.");
+
+    result = AddAndConfigureAppContainerProfile(policy, us.mPackagePrefix,
+                                                us.mWellKnownCapabilites,
+                                                us.mNamedCapabilites);
+    SANDBOX_ENSURE_SUCCESS(result, "Failed to configure AppContainer profile.");
+  }
   // Add the policy for the client side of a pipe. It is just a file
   // in the \pipe\ namespace. We restrict it to pipes that start with
   // "chrome." so the sandboxed process cannot connect to system services.
-  result = mPolicy->AddRule(sandbox::TargetPolicy::SUBSYS_FILES,
-                            sandbox::TargetPolicy::FILES_ALLOW_ANY,
-                            L"\\??\\pipe\\chrome.*");
+  result = policy->AddRule(sandbox::TargetPolicy::SUBSYS_FILES,
+                           sandbox::TargetPolicy::FILES_ALLOW_ANY,
+                           L"\\??\\pipe\\chrome.*");
   SANDBOX_ENSURE_SUCCESS(
       result,
       "With these static arguments AddRule should never fail, what happened?");
 
   // Add the policy for the client side of the crash server pipe.
-  result = mPolicy->AddRule(sandbox::TargetPolicy::SUBSYS_FILES,
-                            sandbox::TargetPolicy::FILES_ALLOW_ANY,
-                            L"\\??\\pipe\\gecko-crash-server-pipe.*");
+  result = policy->AddRule(sandbox::TargetPolicy::SUBSYS_FILES,
+                           sandbox::TargetPolicy::FILES_ALLOW_ANY,
+                           L"\\??\\pipe\\gecko-crash-server-pipe.*");
   SANDBOX_ENSURE_SUCCESS(
       result,
       "With these static arguments AddRule should never fail, what happened?");
 
-  switch (aSandbox) {
-    case mozilla::ipc::SandboxingKind::GENERIC_UTILITY:
-    case mozilla::ipc::SandboxingKind::UTILITY_AUDIO_DECODING_WMF:
-#if MOZ_WMF_MEDIA_ENGINE
-    case mozilla::ipc::SandboxingKind::MF_MEDIA_ENGINE_CDM:
-#endif
-      // Nothing specific to perform yet?
-      break;
+  return true;
+}
 
-    default:
-      MOZ_ASSERT(false, "Invalid SandboxingKind");
-      break;
+bool SandboxBroker::SetSecurityLevelForUtilityProcess(
+    mozilla::ipc::SandboxingKind aSandbox) {
+  if (!mPolicy) {
+    return false;
   }
 
-  return true;
+  switch (aSandbox) {
+    case mozilla::ipc::SandboxingKind::GENERIC_UTILITY:
+      return BuildUtilitySandbox(mPolicy, GenericUtilitySandboxProps());
+    case mozilla::ipc::SandboxingKind::UTILITY_AUDIO_DECODING_WMF:
+      return BuildUtilitySandbox(mPolicy,
+                                 UtilityAudioDecodingWmfSandboxProps());
+#ifdef MOZ_WMF_MEDIA_ENGINE
+    case mozilla::ipc::SandboxingKind::MF_MEDIA_ENGINE_CDM:
+      return BuildUtilitySandbox(mPolicy,
+                                 UtilityMfMediaEngineCdmSandboxProps());
+#endif
+    case mozilla::ipc::SandboxingKind::WINDOWS_UTILS:
+      return BuildUtilitySandbox(mPolicy, WindowsUtilitySandboxProps());
+    default:
+      MOZ_ASSERT_UNREACHABLE("Unknown sandboxing value");
+      return false;
+  }
 }
 
 bool SandboxBroker::SetSecurityLevelForGMPlugin(SandboxLevel aLevel,
@@ -1701,24 +2004,6 @@ SandboxBroker::~SandboxBroker() {
     mPolicy->Release();
     mPolicy = nullptr;
   }
-}
-
-#ifdef _ARM64_
-// We can't include remoteSandboxBroker.h here directly, as it includes
-// IPDL headers, which include a different copy of the chromium base
-// libraries, which leads to conflicts.
-extern AbstractSandboxBroker* CreateRemoteSandboxBroker();
-#endif
-
-// static
-AbstractSandboxBroker* AbstractSandboxBroker::Create(
-    GeckoProcessType aProcessType) {
-#ifdef _ARM64_
-  if (aProcessType == GeckoProcessType_GMPlugin) {
-    return CreateRemoteSandboxBroker();
-  }
-#endif
-  return new SandboxBroker();
 }
 
 }  // namespace mozilla

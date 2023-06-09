@@ -39,22 +39,24 @@ export class WebSocketConnection {
   }
 
   _log(direction, data) {
-    function replacer(key, value) {
-      if (typeof value === "string") {
-        return lazy.truncate`${value}`;
+    if (lazy.Log.isDebugLevelOrMore) {
+      function replacer(key, value) {
+        if (typeof value === "string") {
+          return lazy.truncate`${value}`;
+        }
+        return value;
       }
-      return value;
+
+      const payload = JSON.stringify(
+        data,
+        replacer,
+        lazy.Log.verbose ? "\t" : null
+      );
+
+      lazy.logger.debug(
+        `${this.constructor.name} ${this.id} ${direction} ${payload}`
+      );
     }
-
-    const payload = JSON.stringify(
-      data,
-      replacer,
-      lazy.Log.verbose ? "\t" : null
-    );
-
-    lazy.logger.trace(
-      `${this.constructor.name} ${this.id} ${direction} ${payload}`
-    );
   }
 
   /**
@@ -74,7 +76,7 @@ export class WebSocketConnection {
    *
    * Needs to be implemented in the sub class.
    *
-   * @param Session session
+   * @param {Session} session
    *     The session to register.
    */
   registerSession(session) {
@@ -84,7 +86,7 @@ export class WebSocketConnection {
   /**
    * Send the JSON-serializable object to the client.
    *
-   * @param {Object} data
+   * @param {object} data
    *     The object to be sent.
    */
   send(data) {
@@ -140,7 +142,7 @@ export class WebSocketConnection {
    *
    * Needs to be implemented in the sub class.
    *
-   * @param {Object} packet
+   * @param {object} packet
    *     JSON-serializable object sent by the client.
    */
   async onPacket(packet) {

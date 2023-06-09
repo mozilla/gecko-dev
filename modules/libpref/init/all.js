@@ -37,19 +37,6 @@ pref("security.remember_cert_checkbox_default_setting", true);
 // x_11_x: COSE is required, PKCS#7 disabled (fail when present)
 pref("security.signed_app_signatures.policy", 2);
 
-// Only one of ["enable_softtoken", "enable_usbtoken",
-// "webauthn_enable_android_fido2"] should be true at a time, as the
-// softtoken will override the other two. Note android's pref is set in
-// mobile.js / geckoview-prefs.js
-pref("security.webauth.webauthn_enable_softtoken", false);
-
-#ifdef MOZ_WIDGET_ANDROID
-  // the Rust usbtoken support does not function on Android
-  pref("security.webauth.webauthn_enable_usbtoken", false);
-#else
-  pref("security.webauth.webauthn_enable_usbtoken", true);
-#endif
-
 pref("security.xfocsp.errorReporting.enabled", true);
 pref("security.xfocsp.errorReporting.automatic", false);
 
@@ -184,15 +171,6 @@ pref("dom.text-recognition.enabled", true);
 // of content viewers to cache based on the amount of available memory.
 pref("browser.sessionhistory.max_total_viewers", -1);
 
-pref("browser.display.force_inline_alttext", false); // true = force ALT text for missing images to be layed out inline
-// 0 = no external leading,
-// 1 = use external leading only when font provides,
-// 2 = add extra leading both internal leading and external leading are zero
-pref("browser.display.normal_lineheight_calc_control", 2);
-// enable showing image placeholders while image is loading or when image is broken
-pref("browser.display.show_image_placeholders", true);
-// if browser.display.show_image_placeholders is true then this controls whether the loading image placeholder and border is shown or not
-pref("browser.display.show_loading_image_placeholder", false);
 // min font device pixel size at which to turn on high quality
 pref("browser.display.auto_quality_min_font_size", 20);
 
@@ -205,8 +183,6 @@ pref("browser.helperApps.neverAsk.saveToDisk", "");
 pref("browser.helperApps.neverAsk.openFile", "");
 pref("browser.helperApps.deleteTempFileOnExit", false);
 
-// xxxbsmedberg: where should prefs for the toolkit go?
-pref("browser.chrome.toolbar_tips",         true);
 // max image size for which it is placed in the tab icon for tabbrowser.
 // if 0, no images are used for tab icons for image documents.
 pref("browser.chrome.image_icons.max_size", 1024);
@@ -291,7 +267,7 @@ pref("media.videocontrols.picture-in-picture.video-toggle.position", "right");
 pref("media.videocontrols.picture-in-picture.video-toggle.has-used", false);
 pref("media.videocontrols.picture-in-picture.display-text-tracks.toggle.enabled", true);
 pref("media.videocontrols.picture-in-picture.display-text-tracks.size", "medium");
-pref("media.videocontrols.picture-in-picture.improved-video-controls.enabled", false);
+pref("media.videocontrols.picture-in-picture.improved-video-controls.enabled", true);
 pref("media.videocontrols.keyboard-tab-to-all-controls", true);
 
 #ifdef MOZ_WEBRTC
@@ -376,6 +352,7 @@ pref("media.videocontrols.keyboard-tab-to-all-controls", true);
   pref("media.peerconnection.ice.obfuscate_host_addresses.blocklist", "");
   pref("media.peerconnection.ice.proxy_only_if_behind_proxy", false);
   pref("media.peerconnection.ice.proxy_only", false);
+  pref("media.peerconnection.ice.proxy_only_if_pbmode", false);
   pref("media.peerconnection.turn.disable", false);
 
   // 770 = DTLS 1.0, 771 = DTLS 1.2, 772 = DTLS 1.3
@@ -455,8 +432,6 @@ pref("formhelper.autozoom.force-disable.test-only", false);
   //          broken).
   pref("gfx.hidpi.enabled", 2);
 #endif
-
-pref("gfx.color_management.display_profile", "");
 
 pref("gfx.downloadable_fonts.enabled", true);
 pref("gfx.downloadable_fonts.fallback_delay", 3000);
@@ -934,6 +909,10 @@ pref("privacy.popups.disable_from_plugins", 3);
 // domains exempted from RFP.
 pref("privacy.resistFingerprinting.exemptedDomains", "*.example.invalid");
 
+// If privacy.fingerprintingProtection is enabled, this pref can be used to add
+// or remove features from its effects
+pref("privacy.fingerprintingProtection.overrides", "");
+
 // Fix cookie blocking breakage by providing ephemeral Paritioned LocalStorage
 // for a list of hosts when detected as trackers.
 // (See nsICookieService::BEHAVIOR_REJECT_TRACKER cookie behavior)
@@ -1030,6 +1009,7 @@ pref("javascript.options.mem.gc_incremental_slice_ms", 5);
 pref("javascript.options.mem.gc_compacting", true);
 
 // JSGC_PARALLEL_MARKING_ENABLED
+// This only applies to the main runtime and does not affect workers.
 pref("javascript.options.mem.gc_parallel_marking", false);
 
 // JSGC_HIGH_FREQUENCY_TIME_LIMIT
@@ -1123,6 +1103,8 @@ pref("network.protocol-handler.external.ie.http", false);
 pref("network.protocol-handler.external.iehistory", false);
 pref("network.protocol-handler.external.ierss", false);
 pref("network.protocol-handler.external.mk", false);
+pref("network.protocol-handler.external.ms-cxh", false);
+pref("network.protocol-handler.external.ms-cxh-full", false);
 pref("network.protocol-handler.external.ms-help", false);
 pref("network.protocol-handler.external.ms-msdt", false);
 pref("network.protocol-handler.external.res", false);
@@ -1955,9 +1937,6 @@ pref("extensions.eventPages.enabled", true);
 pref("extensions.manifestV2.actionsPopupURLRestricted", false);
 // Whether "manifest_version: 3" extensions should be allowed to install successfully.
 pref("extensions.manifestV3.enabled", true);
-// Whether to enable the unified extensions feature. Note that this pref is
-// enabled for Firefox Desktop in `browser/app/profile/firefox.js`.
-pref("extensions.unifiedExtensions.enabled", false);
 // Whether to enable the updated openPopup API.
 #ifdef NIGHTLY_BUILD
   pref("extensions.openPopupWithoutUserGesture.enabled", true);
@@ -1967,11 +1946,13 @@ pref("extensions.unifiedExtensions.enabled", false);
 // Install origins restriction.
 pref("extensions.install_origins.enabled", false);
 
-// Modifier key prefs: default to Windows settings,
-// menu access key = alt, accelerator key = control.
-// Use 17 for Ctrl, 18 for Alt, 224 for Meta, 91 for Win, 0 for none. Mac settings in macprefs.js
-pref("ui.key.accelKey", 17);
-pref("ui.key.menuAccessKey", 18);
+// browser_style deprecation - bug 1827910.
+// TODO bug 1830711: set to false (after bug 1830710).
+// TODO bug 1830712: remove pref.
+pref("extensions.browser_style_mv3.supported", true);
+// TODO bug 1830710: set to false.
+// TODO bug 1830712: remove pref.
+pref("extensions.browser_style_mv3.same_as_mv2", true);
 
 // Middle-mouse handling
 pref("middlemouse.paste", false);
@@ -2806,11 +2787,6 @@ pref("font.size.monospace.x-math", 13);
   pref("font.weight-override.HelveticaNeue-LightItalic", 300);
   pref("font.weight-override.HelveticaNeue-MediumItalic", 500); // Harmonize MediumItalic with Medium
 
-  // Override the Windows settings: no menu key, meta accelerator key. ctrl for general access key in HTML/XUL
-  // Use 17 for Ctrl, 18 for Option, 224 for Cmd, 0 for none
-  pref("ui.key.menuAccessKey", 0);
-  pref("ui.key.accelKey", 224);
-
   // See bug 404131, topmost <panel> element wins to Dashboard on MacOSX.
   pref("ui.panel.default_level_parent", false);
 
@@ -3221,7 +3197,14 @@ pref("signon.includeOtherSubdomainsInLookup",     true);
 pref("signon.masterPasswordReprompt.timeout_ms", 900000); // 15 Minutes
 pref("signon.showAutoCompleteFooter",             false);
 pref("signon.firefoxRelay.base_url", "https://relay.firefox.com/api/v1/");
-pref("signon.firefoxRelay.learn_more_url", "https://relay.firefox.com/");
+pref("signon.firefoxRelay.learn_more_url", "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/firefox-relay-integration");
+pref("signon.firefoxRelay.manage_url", "https://relay.firefox.com");
+pref("signon.signupDetection.confidenceThreshold",     "0.75");
+#ifdef NIGHTLY_BUILD
+  pref("signon.signupDetection.enabled", true);
+#else
+  pref("signon.signupDetection.enabled", false);
+#endif
 
 // Satchel (Form Manager) prefs
 pref("browser.formfill.debug",            false);
@@ -3495,9 +3478,6 @@ pref("network.connectivity-service.DNSv6.domain", "example.org");
 pref("network.connectivity-service.IPv4.url", "http://detectportal.firefox.com/success.txt?ipv4");
 pref("network.connectivity-service.IPv6.url", "http://detectportal.firefox.com/success.txt?ipv6");
 
-// DNS Trusted Recursive Resolver
-// 0 - default off, 1 - reserved/off, 2 - TRR first, 3 - TRR only, 4 - reserved/off, 5 off by choice
-pref("network.trr.mode", 0);
 pref("network.trr.uri", "");
 // credentials to pass to DOH end-point
 pref("network.trr.credentials", "");
@@ -3508,6 +3488,8 @@ pref("network.trr.confirmationNS", "example.com");
 // Comma separated list of domains that we should not use TRR for
 pref("network.trr.excluded-domains", "");
 pref("network.trr.builtin-excluded-domains", "localhost,local");
+// Whether the checkbox to display a fallback warning error page is visible in about:preferences#privacy
+pref("network.trr_ui.show_fallback_warning_option", false);
 
 pref("captivedetect.canonicalURL", "http://detectportal.firefox.com/canonical.html");
 pref("captivedetect.canonicalContent", "<meta http-equiv=\"refresh\" content=\"0;url=https://support.mozilla.org/kb/captive-portal\"/>");
@@ -3643,9 +3625,6 @@ pref("browser.safebrowsing.provider.mozilla.lists.content", "moz-full");
 
 // The table and global pref for blocking plugin content
 pref("urlclassifier.blockedTable", "moztest-block-simple,mozplugin-block-digest256");
-
-// Turn off Spatial navigation by default.
-pref("snav.enabled", false);
 
 // Wakelock is disabled by default.
 pref("dom.wakelock.enabled", false);
@@ -3805,6 +3784,30 @@ pref("browser.storageManager.pressureNotification.usageThresholdGB", 5);
 
 pref("browser.sanitizer.loglevel", "Warn");
 
+// Enable Firefox translations based on Bergamot[1]. This project is in-development and
+// an effort to integrate the Firefox Translations[2] project direcly into Gecko.
+// See Bug 971044.
+//
+// [1]: https://browser.mt/
+// [2]: https://github.com/mozilla/firefox-translations
+pref("browser.translations.enable", false);
+// Set to "All" to see all logs, which are useful for debugging. Set to "Info" to see
+// the application logic logs, and not all of the translated messages, which can be
+// slow and overwhelming.
+pref("browser.translations.logLevel", "Error");
+// By default the translations engine on about:translations uses text for translation,
+// and the full page translations uses HTML. Set this pref to true to use the HTML
+// translation behavior on about:translations. Requires a page refresh.
+pref("browser.translations.useHTML", false);
+// Normally there is a UI to ask the user to translate a page, this pref makes it
+// so that the page automatically performs a translation if one is detected as being
+// required.
+pref("browser.translations.autoTranslate", false);
+// Simulate the behavior of using a device that does not support the translations engine.
+// Requires restart.
+pref("browser.translations.simulateUnsupportedEngine", false);
+
+
 // When a user cancels this number of authentication dialogs coming from
 // a single web page in a row, all following authentication dialogs will
 // be blocked (automatically canceled) for that page. The counter resets
@@ -3851,11 +3854,7 @@ pref("toolkit.aboutProcesses.showAllSubframes", false);
   pref("toolkit.aboutProcesses.showThreads", false);
 #endif
 // If `true`, about:processes will offer to profile processes.
-#ifdef NIGHTLY_BUILD
-  pref("toolkit.aboutProcesses.showProfilerIcons", true);
-#else
-  pref("toolkit.aboutProcesses.showProfilerIcons", false);
-#endif
+pref("toolkit.aboutProcesses.showProfilerIcons", true);
 // Time in seconds between when the profiler is started and when the
 // profile is captured.
 pref("toolkit.aboutProcesses.profileDuration", 5);
@@ -4140,6 +4139,8 @@ pref("extensions.formautofill.available", "detect");
 pref("extensions.formautofill.addresses.supported", "detect");
 pref("extensions.formautofill.addresses.enabled", true);
 pref("extensions.formautofill.addresses.capture.enabled", false);
+// This preference should be removed entirely once address capture v2 developing is finished
+pref("extensions.formautofill.addresses.capture.v2.enabled", false);
 pref("extensions.formautofill.addresses.ignoreAutocompleteOff", true);
 // Supported countries need to follow ISO 3166-1 to align with "browser.search.region"
 pref("extensions.formautofill.addresses.supportedCountries", "US,CA");
@@ -4165,8 +4166,6 @@ pref("extensions.formautofill.creditCards.heuristics.fathom.highConfidenceThresh
 pref("extensions.formautofill.creditCards.heuristics.fathom.testConfidence", "0");
 
 pref("extensions.formautofill.firstTimeUse", true);
-pref("extensions.formautofill.heuristics.enabled", true);
-pref("extensions.formautofill.section.enabled", true);
 pref("extensions.formautofill.loglevel", "Warn");
 
 pref("toolkit.osKeyStore.loglevel", "Warn");
@@ -4190,4 +4189,7 @@ pref("cookiebanners.listService.testSkipRemoteSettings", false);
 
 // The domains we will block from installing SitePermsAddons. Comma-separated
 // full domains: any subdomains of the domains listed will also be allowed.
-pref("dom.sitepermsaddon-provider.separatedBlocklistedDomains", "shopee.co.th,alipay.com,miravia.es");
+pref("dom.sitepermsaddon-provider.separatedBlocklistedDomains", "shopee.co.th,shopee.tw,shopee.co.id,shopee.com.my,shopee.vn,shopee.ph,shopee.sg,shopee.com.br,shopee.com,shopee.cn,shopee.io,shopee.pl,shopee.com.mx,shopee.com.co,shopee.cl,shopee.kr,shopee.es,shopee.in,alipay.com,miravia.es");
+
+// Log level for logger in URLQueryStrippingListService
+pref("privacy.query_stripping.listService.logLevel", "Error");

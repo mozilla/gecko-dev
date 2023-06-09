@@ -1021,10 +1021,7 @@ class ResourceCommand {
    * being fetched from these targets.
    */
   _shouldRunLegacyListenerEvenWithWatcherSupport(resourceType) {
-    return (
-      resourceType == ResourceCommand.TYPES.SOURCE ||
-      resourceType == ResourceCommand.TYPES.THREAD_STATE
-    );
+    return WORKER_RESOURCE_TYPES.includes(resourceType);
   }
 
   async _forwardExistingResources(resourceTypes, onAvailable) {
@@ -1060,10 +1057,7 @@ class ResourceCommand {
     // And we removed the related legacy listener as they are no longer used.
     if (
       targetFront.targetType.endsWith("worker") &&
-      [
-        ResourceCommand.TYPES.NETWORK_EVENT,
-        ResourceCommand.TYPES.NETWORK_EVENT_STACKTRACE,
-      ].includes(resourceType)
+      !WORKER_RESOURCE_TYPES.includes(resourceType)
     ) {
       return;
     }
@@ -1217,6 +1211,7 @@ ResourceCommand.TYPES = ResourceCommand.prototype.TYPES = {
   REFLOW: "reflow",
   SOURCE: "source",
   THREAD_STATE: "thread-state",
+  TRACING_STATE: "tracing-state",
   SERVER_SENT_EVENT: "server-sent-event",
   LAST_PRIVATE_CONTEXT_EXIT: "last-private-context-exit",
 };
@@ -1224,6 +1219,16 @@ ResourceCommand.ALL_TYPES = ResourceCommand.prototype.ALL_TYPES = Object.values(
   ResourceCommand.TYPES
 );
 module.exports = ResourceCommand;
+
+// This is the list of resource types supported by workers.
+// We need such list to know when forcing to run the legacy listeners
+// and when to avoid try to spawn some unsupported ones for workers.
+const WORKER_RESOURCE_TYPES = [
+  ResourceCommand.TYPES.CONSOLE_MESSAGE,
+  ResourceCommand.TYPES.ERROR_MESSAGE,
+  ResourceCommand.TYPES.SOURCE,
+  ResourceCommand.TYPES.THREAD_STATE,
+];
 
 // Backward compat code for each type of resource.
 // Each section added here should eventually be removed once the equivalent server
@@ -1277,46 +1282,7 @@ loader.lazyRequireGetter(
   ResourceCommand.TYPES.ROOT_NODE,
   "resource://devtools/shared/commands/resource/legacy-listeners/root-node.js"
 );
-loader.lazyRequireGetter(
-  LegacyListeners,
-  ResourceCommand.TYPES.STYLESHEET,
-  "resource://devtools/shared/commands/resource/legacy-listeners/stylesheet.js"
-);
-loader.lazyRequireGetter(
-  LegacyListeners,
-  ResourceCommand.TYPES.WEBSOCKET,
-  "resource://devtools/shared/commands/resource/legacy-listeners/websocket.js"
-);
-loader.lazyRequireGetter(
-  LegacyListeners,
-  ResourceCommand.TYPES.COOKIE,
-  "resource://devtools/shared/commands/resource/legacy-listeners/cookie.js"
-);
-loader.lazyRequireGetter(
-  LegacyListeners,
-  ResourceCommand.TYPES.CACHE_STORAGE,
-  "resource://devtools/shared/commands/resource/legacy-listeners/cache-storage.js"
-);
-loader.lazyRequireGetter(
-  LegacyListeners,
-  ResourceCommand.TYPES.LOCAL_STORAGE,
-  "resource://devtools/shared/commands/resource/legacy-listeners/local-storage.js"
-);
-loader.lazyRequireGetter(
-  LegacyListeners,
-  ResourceCommand.TYPES.SESSION_STORAGE,
-  "resource://devtools/shared/commands/resource/legacy-listeners/session-storage.js"
-);
-loader.lazyRequireGetter(
-  LegacyListeners,
-  ResourceCommand.TYPES.EXTENSION_STORAGE,
-  "resource://devtools/shared/commands/resource/legacy-listeners/extension-storage.js"
-);
-loader.lazyRequireGetter(
-  LegacyListeners,
-  ResourceCommand.TYPES.INDEXED_DB,
-  "resource://devtools/shared/commands/resource/legacy-listeners/indexed-db.js"
-);
+
 loader.lazyRequireGetter(
   LegacyListeners,
   ResourceCommand.TYPES.SOURCE,
@@ -1327,24 +1293,11 @@ loader.lazyRequireGetter(
   ResourceCommand.TYPES.THREAD_STATE,
   "resource://devtools/shared/commands/resource/legacy-listeners/thread-states.js"
 );
-loader.lazyRequireGetter(
-  LegacyListeners,
-  ResourceCommand.TYPES.SERVER_SENT_EVENT,
-  "resource://devtools/shared/commands/resource/legacy-listeners/server-sent-events.js"
-);
+
 loader.lazyRequireGetter(
   LegacyListeners,
   ResourceCommand.TYPES.REFLOW,
   "resource://devtools/shared/commands/resource/legacy-listeners/reflow.js"
-);
-// @backward-compat { version 110 } Once Firefox 110 is release, we can:
-// - remove this entry
-// - remove the legacy listener file and the moz.build entry
-// - remove the `lastPrivateContextExited` event from the webconsole spec
-loader.lazyRequireGetter(
-  LegacyListeners,
-  ResourceCommand.TYPES.LAST_PRIVATE_CONTEXT_EXIT,
-  "resource://devtools/shared/commands/resource/legacy-listeners/last-private-context-exit.js"
 );
 
 // Optional transformers for each type of resource.
@@ -1372,6 +1325,11 @@ loader.lazyRequireGetter(
   ResourceTransformers,
   ResourceCommand.TYPES.COOKIE,
   "resource://devtools/shared/commands/resource/transformers/storage-cookie.js"
+);
+loader.lazyRequireGetter(
+  ResourceTransformers,
+  ResourceCommand.TYPES.EXTENSION_STORAGE,
+  "resource://devtools/shared/commands/resource/transformers/storage-extension.js"
 );
 loader.lazyRequireGetter(
   ResourceTransformers,

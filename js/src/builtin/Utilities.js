@@ -64,7 +64,7 @@ function GetMethod(V, P) {
   var func = V[P];
 
   // Step 3.
-  if (func === undefined || func === null) {
+  if (IsNullOrUndefined(func)) {
     return undefined;
   }
 
@@ -108,7 +108,7 @@ function SpeciesConstructor(obj, defaultConstructor) {
   var s = ctor[GetBuiltinSymbol("species")];
 
   // Step 6.
-  if (s === undefined || s === null) {
+  if (IsNullOrUndefined(s)) {
     return defaultConstructor;
   }
 
@@ -124,27 +124,27 @@ function SpeciesConstructor(obj, defaultConstructor) {
   );
 }
 
-function GetTypeError(msg) {
+function GetTypeError(...args) {
   try {
-    FUN_APPLY(ThrowTypeError, undefined, arguments);
+    FUN_APPLY(ThrowTypeError, undefined, args);
   } catch (e) {
     return e;
   }
   assert(false, "the catch block should've returned from this function.");
 }
 
-function GetAggregateError(msg) {
+function GetAggregateError(...args) {
   try {
-    FUN_APPLY(ThrowAggregateError, undefined, arguments);
+    FUN_APPLY(ThrowAggregateError, undefined, args);
   } catch (e) {
     return e;
   }
   assert(false, "the catch block should've returned from this function.");
 }
 
-function GetInternalError(msg) {
+function GetInternalError(...args) {
   try {
-    FUN_APPLY(ThrowInternalError, undefined, arguments);
+    FUN_APPLY(ThrowInternalError, undefined, args);
   } catch (e) {
     return e;
   }
@@ -164,7 +164,7 @@ function CopyDataProperties(target, source, excludedItems) {
   assert(IsObject(excludedItems), "excludedItems is an object");
 
   // Steps 3 and 7.
-  if (source === undefined || source === null) {
+  if (IsNullOrUndefined(source)) {
     return;
   }
 
@@ -205,7 +205,7 @@ function CopyDataPropertiesUnfiltered(target, source) {
   // Step 2 (Not applicable).
 
   // Steps 3 and 7.
-  if (source === undefined || source === null) {
+  if (IsNullOrUndefined(source)) {
     return;
   }
 

@@ -8,12 +8,14 @@
 #include <shlwapi.h>
 #include <objbase.h>
 #include <string.h>
+#include <iostream>
 
 #include "nsAutoRef.h"
 #include "nsWindowsHelpers.h"
 #include "mozilla/WinHeaderOnlyUtils.h"
 
 #include "common.h"
+#include "Policy.h"
 #include "DefaultBrowser.h"
 #include "DefaultPDF.h"
 #include "EventLog.h"
@@ -408,6 +410,14 @@ int wmain(int argc, wchar_t** argv) {
     // `argv` is itself null-terminated, so we can safely pass the tail of the
     // array here.
     return SetDefaultBrowserUserChoice(argv[2], &argv[3]);
+  } else if (!wcscmp(argv[1], L"set-default-extension-handlers-user-choice")) {
+    if (argc < 3 || !argv[2]) {
+      return E_INVALIDARG;
+    }
+
+    // `argv` is itself null-terminated, so we can safely pass the tail of the
+    // array here.
+    return SetDefaultExtensionHandlersUserChoice(argv[2], &argv[3]);
   } else {
     return E_INVALIDARG;
   }

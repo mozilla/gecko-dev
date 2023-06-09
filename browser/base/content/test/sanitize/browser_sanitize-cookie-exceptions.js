@@ -1,14 +1,11 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-const { Sanitizer } = ChromeUtils.importESModule(
-  "resource:///modules/Sanitizer.sys.mjs"
-);
 const { SiteDataTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/SiteDataTestUtils.sys.mjs"
 );
-const { PermissionTestUtils } = ChromeUtils.import(
-  "resource://testing-common/PermissionTestUtils.jsm"
+const { PermissionTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/PermissionTestUtils.sys.mjs"
 );
 
 const oneHour = 3600000000;
@@ -188,5 +185,90 @@ add_task(async function sanitizeWithExceptionsOnStartup() {
   ok(
     !SiteDataTestUtils.hasCookies(originDENY),
     "We should not have cookies for " + originDENY
+  );
+});
+
+add_task(async function sanitizeWithSessionExceptionsOnShutdown() {
+  info(
+    "Test that cookies that are marked as allowed on session is cleared when sanitizeOnShutdown is false"
+  );
+
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.sanitizer.loglevel", "All"],
+      ["privacy.sanitize.sanitizeOnShutdown", false],
+    ],
+  });
+
+  // Clean up before start
+  await new Promise(resolve => {
+    Services.clearData.deleteData(Ci.nsIClearDataService.CLEAR_ALL, resolve);
+  });
+
+  let originAllowSession = "https://mozilla.org";
+  PermissionTestUtils.add(
+    originAllowSession,
+    "cookie",
+    Ci.nsICookiePermission.ACCESS_SESSION
+  );
+
+  SiteDataTestUtils.addToCookies({ origin: originAllowSession });
+  ok(
+    SiteDataTestUtils.hasCookies(originAllowSession),
+    "We have cookies for " + originAllowSession
+  );
+
+  await Sanitizer.runSanitizeOnShutdown();
+
+  ok(
+    !SiteDataTestUtils.hasCookies(originAllowSession),
+    "We should not have cookies for " + originAllowSession
+  );
+});
+
+add_task(async function sanitizeWithManySessionExceptionsOnShutdown() {
+  info(
+    "Test that lots of allowed on session exceptions are cleared when sanitizeOnShutdown is false"
+  );
+
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["privacy.sanitize.sanitizeOnShutdown", false],
+      ["dom.quotaManager.backgroundTask.enabled", true],
+    ],
+  });
+
+  // Clean up before start
+  await new Promise(resolve => {
+    Services.clearData.deleteData(Ci.nsIClearDataService.CLEAR_ALL, resolve);
+  });
+
+  info("Setting cookies");
+
+  const origins = new Array(300)
+    .fill(0)
+    .map((v, i) => `https://mozilla${i}.org`);
+
+  for (const origin of origins) {
+    PermissionTestUtils.add(
+      origin,
+      "cookie",
+      Ci.nsICookiePermission.ACCESS_SESSION
+    );
+    SiteDataTestUtils.addToCookies({ origin });
+  }
+
+  ok(
+    origins.every(origin => SiteDataTestUtils.hasCookies(origin)),
+    "All origins have cookies"
+  );
+
+  info("Running sanitization");
+
+  await Sanitizer.runSanitizeOnShutdown();
+
+  ok(
+    origins.every(origin => !SiteDataTestUtils.hasCookies(origin)),
+    "All origins lost cookies"
   );
 });

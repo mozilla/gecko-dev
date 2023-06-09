@@ -10,6 +10,7 @@ import { ASRouterUtils } from "../../asrouter/asrouter-utils";
 import { connect } from "react-redux";
 import React from "react";
 import { SimpleHashRouter } from "./SimpleHashRouter";
+import { CopyButton } from "./CopyButton";
 
 const Row = props => (
   <tr className="message-item" {...props}>
@@ -262,7 +263,7 @@ export class DiscoveryStreamAdmin extends React.PureComponent {
         <h4>Feed url: {url}</h4>
         <table>
           <tbody>
-            {feed.recommendations.map(story => this.renderStoryData(story))}
+            {feed.recommendations?.map(story => this.renderStoryData(story))}
           </tbody>
         </table>
       </React.Fragment>
@@ -850,6 +851,11 @@ export class ASRouterAdminInner extends React.PureComponent {
       : 0;
     const isCollapsed = this.state.collapsedMessages.includes(msg.id);
     const isModified = this.state.modifiedMessages.includes(msg.id);
+    const aboutMessagePreviewSupported = [
+      "infobar",
+      "spotlight",
+      "cfr_doorhanger",
+    ].includes(msg.template);
 
     let itemClassName = "message-item";
     if (isBlocked) {
@@ -905,6 +911,17 @@ export class ASRouterAdminInner extends React.PureComponent {
               Modify
             </button>
           )}
+          {aboutMessagePreviewSupported ? (
+            <CopyButton
+              transformer={text =>
+                `about:messagepreview?json=${encodeURIComponent(btoa(text))}`
+              }
+              label="Share"
+              copiedLabel="Copied!"
+              inputSelector={`#${msg.id}-textarea`}
+              className={"button share"}
+            />
+          ) : null}
           <br />({impressions} impressions)
         </td>
         <td className="message-summary">
@@ -1077,7 +1094,9 @@ export class ASRouterAdminInner extends React.PureComponent {
           <span className="icon icon-small-spacer icon-info" />{" "}
           <span>
             To modify a message, change the JSON and click 'Modify' to see your
-            changes. Click 'Reset' to restore the JSON to the original.
+            changes. Click 'Reset' to restore the JSON to the original. Click
+            'Share' to copy a link to the clipboard that can be used to preview
+            the message by opening the link in Nightly/local builds.
           </span>
         </p>
         <table>
@@ -1136,8 +1155,7 @@ export class ASRouterAdminInner extends React.PureComponent {
         >
           Unblock All Snippets
         </button>
-        {/* eslint-disable-next-line prettier/prettier */}
-        Show messages from {/* eslint-disable-next-line jsx-a11y/no-onchange */}
+        Show messages from{" "}
         <select
           value={this.state.messageFilter}
           onChange={this.onChangeMessageFilter}

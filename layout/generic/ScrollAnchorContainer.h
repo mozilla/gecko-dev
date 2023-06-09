@@ -9,17 +9,14 @@
 
 #include "nsPoint.h"
 #include "mozilla/Saturate.h"
+#include "mozilla/TimeStamp.h"
 
 class nsFrameList;
+class nsHTMLScrollFrame;
 class nsIFrame;
 class nsIScrollableFrame;
 
-namespace mozilla {
-class ScrollFrameHelper;
-}  // namespace mozilla
-
-namespace mozilla {
-namespace layout {
+namespace mozilla::layout {
 
 /**
  * A scroll anchor container finds a descendent element of a scrollable frame
@@ -30,7 +27,7 @@ namespace layout {
  */
 class ScrollAnchorContainer final {
  public:
-  explicit ScrollAnchorContainer(ScrollFrameHelper* aScrollFrame);
+  explicit ScrollAnchorContainer(nsHTMLScrollFrame* aScrollFrame);
   ~ScrollAnchorContainer();
 
   /**
@@ -45,11 +42,8 @@ class ScrollAnchorContainer final {
    */
   nsIFrame* AnchorNode() const { return mAnchorNode; }
 
-  /**
-   * Returns the frame that owns this scroll anchor container. This is always
-   * non-null.
-   */
-  nsIFrame* Frame() const;
+  // The owner of this scroll anchor container.
+  nsHTMLScrollFrame* Frame() const;
 
   /**
    * Returns the frame that owns this scroll anchor container as a scrollable
@@ -139,28 +133,34 @@ class ScrollAnchorContainer final {
   // anchoring on this scroller altogether based on various prefs.
   void AdjustmentMade(nscoord aAdjustment);
 
-  // The owner of this scroll anchor container
-  ScrollFrameHelper* mScrollFrame;
-
   // The anchor node that we will scroll to keep in the same relative position
   // after reflows. This may be null if we were not able to select a valid
   // scroll anchor
-  nsIFrame* mAnchorNode;
+  nsIFrame* mAnchorNode = nullptr;
 
   // The last offset of the scroll anchor node's scrollable overflow rect start
   // edge relative to the scroll-port start edge, in the block axis of the
   // scroll frame. This is used for calculating the distance to scroll to keep
   // the anchor node in the same relative position
-  nscoord mLastAnchorOffset;
+  nscoord mLastAnchorOffset = 0;
 
-  // The number of consecutive scroll anchoring adjustments that have happened
-  // without a user scroll.
-  SaturateUint32 mConsecutiveScrollAnchoringAdjustments{0};
+  struct DisablingHeuristic {
+    // The number of consecutive scroll anchoring adjustments that have happened
+    // without a user scroll.
+    SaturateUint32 mConsecutiveScrollAnchoringAdjustments{0};
 
-  // The total length that has been adjusted by all the consecutive adjustments
-  // referenced above. Note that this is a sum, so that oscillating adjustments
-  // average towards zero.
-  nscoord mConsecutiveScrollAnchoringAdjustmentLength{0};
+    // The total length that has been adjusted by all the consecutive
+    // adjustments referenced above. Note that this is a sum, so that
+    // oscillating adjustments average towards zero.
+    nscoord mConsecutiveScrollAnchoringAdjustmentLength{0};
+
+    // The time we started checking for adjustments.
+    TimeStamp mTimeStamp;
+
+    // Returns whether anchoring should get disabled.
+    bool AdjustmentMade(const ScrollAnchorContainer&, nscoord aAdjustment);
+    void Reset();
+  } mHeuristic;
 
   // True if we've been disabled by the heuristic controlled by
   // layout.css.scroll-anchoring.max-consecutive-adjustments and
@@ -178,7 +178,6 @@ class ScrollAnchorContainer final {
   bool mSuppressAnchorAdjustment : 1;
 };
 
-}  // namespace layout
-}  // namespace mozilla
+}  // namespace mozilla::layout
 
 #endif  // mozilla_layout_ScrollAnchorContainer_h_

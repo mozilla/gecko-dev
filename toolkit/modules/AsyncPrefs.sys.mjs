@@ -55,6 +55,8 @@ const kAllowedPrefs = new Set([
 
   "security.tls.version.enable-deprecated",
   "security.xfocsp.errorReporting.automatic",
+
+  "network.trr.display_fallback_warning",
 ]);
 
 const kPrefTypeMap = new Map([
@@ -146,7 +148,7 @@ export class AsyncPrefsParent extends JSProcessActorParent {
     try {
       Services.prefs[methodToUse](pref, value);
     } catch (ex) {
-      Cu.reportError(ex);
+      console.error(ex);
       return Promise.reject(ex.message);
     }
 
@@ -162,7 +164,7 @@ export class AsyncPrefsParent extends JSProcessActorParent {
     try {
       Services.prefs.clearUserPref(pref);
     } catch (ex) {
-      Cu.reportError(ex);
+      console.error(ex);
       return Promise.reject(ex.message);
     }
 

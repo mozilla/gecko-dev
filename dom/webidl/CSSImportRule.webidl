@@ -15,13 +15,7 @@ interface CSSImportRule : CSSRule {
   // be since stylesheet can be null, and in Stylo, media is derived from
   // the stylesheet.  See <https://bugzilla.mozilla.org/show_bug.cgi?id=1326509>.
   [SameObject, PutForwards=mediaText] readonly attribute MediaList? media;
-  // Per spec, the .styleSheet is never null, but in our implementation it can
-  // be.  See <https://bugzilla.mozilla.org/show_bug.cgi?id=1326509>.
   [SameObject, BinaryName="styleSheetForBindings"] readonly attribute CSSStyleSheet? styleSheet;
-};
-
-// https://drafts.csswg.org/css-cascade-5/#extensions-to-cssimportrule-interface
-partial interface CSSImportRule {
-  [Pref="layout.css.cascade-layers.enabled"]
   readonly attribute UTF8String? layerName;
+  readonly attribute UTF8String? supportsText;
 };

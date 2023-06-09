@@ -238,9 +238,13 @@ def _flatTypeName(ipdltype):
     # be constructed; e.g., Foo[][] is disallowed.  needs to be kept in
     # sync with grammar.
     if ipdltype.isIPDL() and ipdltype.isArray():
-        return "ArrayOf" + ipdltype.basetype.name()
+        return "ArrayOf" + _flatTypeName(ipdltype.basetype)
     if ipdltype.isIPDL() and ipdltype.isMaybe():
-        return "Maybe" + ipdltype.basetype.name()
+        return "Maybe" + _flatTypeName(ipdltype.basetype)
+    # NotNull types just assume the underlying variant name to avoid unnecessary
+    # noise, as a NotNull<T> and T should never exist in the same union.
+    if ipdltype.isIPDL() and ipdltype.isNotNull():
+        return _flatTypeName(ipdltype.basetype)
     return ipdltype.name()
 
 
@@ -269,7 +273,7 @@ def _alreadyaddrefed(T):
 
 
 def _tuple(types, const=False, ref=False):
-    return Type("Tuple", T=types, const=const, ref=ref)
+    return Type("std::tuple", T=types, const=const, ref=ref)
 
 
 def _promise(resolvetype, rejecttype, tail, resolver=False):
@@ -291,8 +295,8 @@ def _makePromise(returns, side, resolver=False):
 
 def _resolveType(returns, side):
     if len(returns) > 1:
-        return _tuple([d.inType(side) for d in returns])
-    return returns[0].inType(side)
+        return _tuple([d.inType(side, "send") for d in returns])
+    return returns[0].inType(side, "send")
 
 
 def _makeResolver(returns, side):
@@ -303,9 +307,37 @@ def _cxxArrayType(basetype, const=False, ref=False):
     return Type("nsTArray", T=basetype, const=const, ref=ref, hasimplicitcopyctor=False)
 
 
+def _cxxSpanType(basetype, const=False, ref=False):
+    basetype = deepcopy(basetype)
+    basetype.rightconst = True
+    return Type(
+        "mozilla::Span", T=basetype, const=const, ref=ref, hasimplicitcopyctor=True
+    )
+
+
 def _cxxMaybeType(basetype, const=False, ref=False):
     return Type(
         "mozilla::Maybe",
+        T=basetype,
+        const=const,
+        ref=ref,
+        hasimplicitcopyctor=basetype.hasimplicitcopyctor,
+    )
+
+
+def _cxxReadResultType(basetype, const=False, ref=False):
+    return Type(
+        "IPC::ReadResult",
+        T=basetype,
+        const=const,
+        ref=ref,
+        hasimplicitcopyctor=basetype.hasimplicitcopyctor,
+    )
+
+
+def _cxxNotNullType(basetype, const=False, ref=False):
+    return Type(
+        "mozilla::NotNull",
         T=basetype,
         const=const,
         ref=ref,
@@ -448,6 +480,10 @@ def errfnUnreachable(msg):
     return [_logicError(msg)]
 
 
+def readResultError():
+    return ExprCode("{}")
+
+
 class _DestroyReason:
     @staticmethod
     def Type():
@@ -492,7 +528,18 @@ class _ConvertToCxxType(TypeVisitor):
             cxxtype = _refptr(cxxtype)
         return cxxtype
 
+    def visitBuiltinCType(self, b):
+        return Type(self.typename(b))
+
     def visitActorType(self, a):
+        if self.side is None:
+            return Type(
+                "::mozilla::ipc::SideVariant",
+                T=[
+                    _cxxBareType(a, "parent", self.fq),
+                    _cxxBareType(a, "child", self.fq),
+                ],
+            )
         return Type(_actorName(self.typename(a.protocol), self.side), ptr=True)
 
     def visitStructType(self, s):
@@ -527,6 +574,10 @@ class _ConvertToCxxType(TypeVisitor):
     def visitUniquePtrType(self, s):
         return Type(self.typename(s))
 
+    def visitNotNullType(self, n):
+        basecxxtype = n.basetype.accept(self)
+        return _cxxNotNullType(basecxxtype)
+
     def visitProtocolType(self, p):
         assert 0
 
@@ -554,6 +605,12 @@ def _cxxConstRefType(ipdltype, side):
     if ipdltype.isIPDL() and ipdltype.isShmem():
         t.ref = True
         return t
+    if ipdltype.isIPDL() and ipdltype.isNotNull():
+        # If the inner type chooses to use a raw pointer, wrap that instead.
+        inner = _cxxConstRefType(ipdltype.basetype, side)
+        if inner.ptr:
+            t = _cxxNotNullType(inner)
+            return t
     if ipdltype.isIPDL() and ipdltype.hasBaseType():
         # Keep same constness as inner type.
         inner = _cxxConstRefType(ipdltype.basetype, side)
@@ -627,13 +684,13 @@ def _cxxTypeNeedsMoveForData(ipdltype, context="root", visited=None):
 
     visited.add(ipdltype)
 
-    if ipdltype.isUniquePtr():
-        return True
-
     if ipdltype.isCxx():
         return ipdltype.isDataMoveOnly()
 
     if ipdltype.isIPDL():
+        if ipdltype.isUniquePtr():
+            return True
+
         # When nested within a maybe or array, arrays are no longer copyable.
         if context == "wrapper" and ipdltype.isArray():
             return True
@@ -667,7 +724,7 @@ def _cxxForceMoveRefType(ipdltype, side):
 
 def _cxxPtrToType(ipdltype, side):
     t = _cxxBareType(ipdltype, side)
-    if ipdltype.isIPDL() and ipdltype.isActor():
+    if ipdltype.isIPDL() and ipdltype.isActor() and side is not None:
         t.ptr = False
         t.ptrptr = True
         return t
@@ -677,7 +734,7 @@ def _cxxPtrToType(ipdltype, side):
 
 def _cxxConstPtrToType(ipdltype, side):
     t = _cxxBareType(ipdltype, side)
-    if ipdltype.isIPDL() and ipdltype.isActor():
+    if ipdltype.isIPDL() and ipdltype.isActor() and side is not None:
         t.ptr = False
         t.ptrconstptr = True
         return t
@@ -686,10 +743,16 @@ def _cxxConstPtrToType(ipdltype, side):
     return t
 
 
-def _cxxInType(ipdltype, side):
+def _cxxInType(ipdltype, side, direction):
     t = _cxxBareType(ipdltype, side)
     if ipdltype.isIPDL() and ipdltype.isActor():
         return t
+    if ipdltype.isIPDL() and ipdltype.isNotNull():
+        # If the inner type chooses to use a raw pointer, wrap that instead.
+        inner = _cxxInType(ipdltype.basetype, side, direction)
+        if inner.ptr:
+            t = _cxxNotNullType(inner)
+            return t
     if _cxxTypeNeedsMoveForSend(ipdltype):
         t.rvalref = True
         return t
@@ -703,7 +766,12 @@ def _cxxInType(ipdltype, side):
             t = Type("nsACString")
         if ipdltype.name() == "nsString":
             t = Type("nsAString")
-        # TODO: Maybe use Span<> rather than nsTArray<> for array types?
+    # Use Span<T const> rather than nsTArray<T> for array types which aren't
+    # `_cxxTypeNeedsMoveForSend`. This is only done for the "send" side, and not
+    # for recv signatures.
+    if direction == "send" and ipdltype.isIPDL() and ipdltype.isArray():
+        inner = _cxxBareType(ipdltype.basetype, side)
+        return _cxxSpanType(inner)
 
     t.const = True
     t.ref = True
@@ -756,9 +824,9 @@ class _HybridDecl:
     def constPtrToType(self, side):
         return _cxxConstPtrToType(self.ipdltype, side)
 
-    def inType(self, side):
+    def inType(self, side, direction):
         """Return this decl's C++ Type with sending inparam semantics."""
-        return _cxxInType(self.ipdltype, side)
+        return _cxxInType(self.ipdltype, side, direction)
 
     def outType(self, side):
         """Return this decl's C++ Type with outparam semantics."""
@@ -785,34 +853,24 @@ class HasFQName:
 
 
 class _CompoundTypeComponent(_HybridDecl):
-    def __init__(self, ipdltype, name, side, ct):
-        _HybridDecl.__init__(self, ipdltype, name)
-        self.side = side
-        self.special = _hasVisibleActor(ipdltype)
-
-    # @override the following methods to pass |self.side| instead of
-    # forcing the caller to remember which side we're declared to
-    # represent.
+    # @override the following methods to make the side argument optional.
     def bareType(self, side=None, fq=False):
-        return _HybridDecl.bareType(self, self.side, fq=fq)
+        return _HybridDecl.bareType(self, side, fq=fq)
 
     def refType(self, side=None):
-        return _HybridDecl.refType(self, self.side)
+        return _HybridDecl.refType(self, side)
 
     def constRefType(self, side=None):
-        return _HybridDecl.constRefType(self, self.side)
+        return _HybridDecl.constRefType(self, side)
 
     def ptrToType(self, side=None):
-        return _HybridDecl.ptrToType(self, self.side)
+        return _HybridDecl.ptrToType(self, side)
 
     def constPtrToType(self, side=None):
-        return _HybridDecl.constPtrToType(self, self.side)
-
-    def inType(self, side=None):
-        return _HybridDecl.inType(self, self.side)
+        return _HybridDecl.constPtrToType(self, side)
 
     def forceMoveType(self, side=None):
-        return _HybridDecl.forceMoveType(self, self.side)
+        return _HybridDecl.forceMoveType(self, side)
 
 
 class StructDecl(ipdl.ast.StructDecl, HasFQName):
@@ -833,14 +891,10 @@ class StructDecl(ipdl.ast.StructDecl, HasFQName):
 
 
 class _StructField(_CompoundTypeComponent):
-    def __init__(self, ipdltype, name, sd, side=None):
+    def __init__(self, ipdltype, name, sd):
         self.basename = name
-        fname = name
-        special = _hasVisibleActor(ipdltype)
-        if special:
-            fname += side.title()
 
-        _CompoundTypeComponent.__init__(self, ipdltype, fname, side, sd)
+        _CompoundTypeComponent.__init__(self, ipdltype, name)
 
     def getMethod(self, thisexpr=None, sel="."):
         meth = self.var()
@@ -885,19 +939,11 @@ class _UnionMember(_CompoundTypeComponent):
     """Not in the AFL sense, but rather a member (e.g. |int;|) of an
     IPDL union type."""
 
-    def __init__(self, ipdltype, ud, side=None, other=None):
+    def __init__(self, ipdltype, ud):
         flatname = _flatTypeName(ipdltype)
-        special = _hasVisibleActor(ipdltype)
-        if special:
-            flatname += side.title()
 
-        _CompoundTypeComponent.__init__(self, ipdltype, "V" + flatname, side, ud)
+        _CompoundTypeComponent.__init__(self, ipdltype, "V" + flatname)
         self.flattypename = flatname
-        if special:
-            if other is not None:
-                self.other = other
-            else:
-                self.other = _UnionMember(ipdltype, ud, _otherSide(side), self)
 
         # To create a finite object with a mutually recursive type, a union must
         # be present somewhere in the recursive loop. Because of that we only
@@ -943,8 +989,6 @@ class _UnionMember(_CompoundTypeComponent):
 
         if expr is None:
             args = None
-        elif self.ipdltype.isIPDL() and self.ipdltype.isActor():
-            args = [ExprCast(expr, self.bareType(), const=True)]
         elif (
             self.ipdltype.isIPDL()
             and self.ipdltype.isArray()
@@ -955,12 +999,10 @@ class _UnionMember(_CompoundTypeComponent):
             args = [expr]
 
         if self.recursive:
-            return ExprAssn(
-                self.callGetPtr(), ExprNew(self.bareType(self.side), args=args)
-            )
+            return ExprAssn(self.callGetPtr(), ExprNew(self.bareType(), args=args))
         else:
             return ExprNew(
-                self.bareType(self.side),
+                self.bareType(),
                 args=args,
                 newargs=[ExprVar("mozilla::KnownNotNull"), self.callGetPtr()],
             )
@@ -1115,7 +1157,7 @@ class MessageDecl(ipdl.ast.MessageDecl):
                 return Decl(Type("Tainted", T=d.bareType(side)), d.name)
 
             if sems == "in":
-                t = d.inType(side)
+                t = d.inType(side, direction)
                 # If this is the `recv` side, and we're not using "move"
                 # semantics, that means we're an alloc method, and cannot accept
                 # values by rvalue reference. Downgrade to an lvalue reference.
@@ -1131,7 +1173,7 @@ class MessageDecl(ipdl.ast.MessageDecl):
                     t = d.bareType(side)
                     t.rvalref = True
                     return Decl(t, d.name)
-                return Decl(d.inType(side), d.name)
+                return Decl(d.inType(side, direction), d.name)
             elif sems == "out":
                 return Decl(d.outType(side), d.name)
             else:
@@ -1187,9 +1229,13 @@ class MessageDecl(ipdl.ast.MessageDecl):
             # We don't std::move() RefPtr<T> types because current Recv*()
             # implementors take these parameters as T*, and
             # std::move(RefPtr<T>) doesn't coerce to T*.
+            # We also don't move NotNull, as it has no move constructor.
             cxxargs.extend(
                 [
-                    p.var() if p.ipdltype.isRefcounted() else ExprMove(p.var())
+                    p.var()
+                    if p.ipdltype.isRefcounted()
+                    or (p.ipdltype.isIPDL() and p.ipdltype.isNotNull())
+                    else ExprMove(p.var())
                     for p in self.params
                 ]
             )
@@ -1356,14 +1402,14 @@ class TranslationUnit(ipdl.ast.TranslationUnit):
 # -----------------------------------------------------------------------------
 
 pod_types = {
-    "int8_t": 1,
-    "uint8_t": 1,
-    "int16_t": 2,
-    "uint16_t": 2,
-    "int32_t": 4,
-    "uint32_t": 4,
-    "int64_t": 8,
-    "uint64_t": 8,
+    "::int8_t": 1,
+    "::uint8_t": 1,
+    "::int16_t": 2,
+    "::uint16_t": 2,
+    "::int32_t": 4,
+    "::uint32_t": 4,
+    "::int64_t": 8,
+    "::uint64_t": 8,
     "float": 4,
     "double": 8,
 }
@@ -1374,10 +1420,10 @@ pod_size_sentinel = max_pod_size * 2
 
 
 def pod_size(ipdltype):
-    if not isinstance(ipdltype, ipdl.type.ImportedCxxType):
+    if not ipdltype.isCxx():
         return pod_size_sentinel
 
-    return pod_types.get(ipdltype.name(), pod_size_sentinel)
+    return pod_types.get(ipdltype.fullname(), pod_size_sentinel)
 
 
 class _DecorateWithCxxStuff(ipdl.ast.Visitor):
@@ -1410,18 +1456,7 @@ class _DecorateWithCxxStuff(ipdl.ast.Visitor):
 
     def visitStructDecl(self, sd):
         if not isinstance(sd, StructDecl):
-            sd.decl.special = False
-            newfields = []
-            for f in sd.fields:
-                ftype = f.decl.type
-                if _hasVisibleActor(ftype):
-                    sd.decl.special = True
-                    # if ftype has a visible actor, we need both
-                    # |ActorParent| and |ActorChild| fields
-                    newfields.append(_StructField(ftype, f.name, sd, side="parent"))
-                    newfields.append(_StructField(ftype, f.name, sd, side="child"))
-                else:
-                    newfields.append(_StructField(ftype, f.name, sd))
+            newfields = [_StructField(f.decl.type, f.name, sd) for f in sd.fields]
 
             # Compute a permutation of the fields for in-memory storage such
             # that the memory layout of the structure will be well-packed.
@@ -1439,18 +1474,7 @@ class _DecorateWithCxxStuff(ipdl.ast.Visitor):
             StructDecl.upgrade(sd)
 
     def visitUnionDecl(self, ud):
-        ud.decl.special = False
-        newcomponents = []
-        for ctype in ud.decl.type.components:
-            if _hasVisibleActor(ctype):
-                ud.decl.special = True
-                # if ctype has a visible actor, we need both
-                # |ActorParent| and |ActorChild| union members
-                newcomponents.append(_UnionMember(ctype, ud, side="parent"))
-                newcomponents.append(_UnionMember(ctype, ud, side="child"))
-            else:
-                newcomponents.append(_UnionMember(ctype, ud))
-        ud.components = newcomponents
+        ud.components = [_UnionMember(ctype, ud) for ctype in ud.decl.type.components]
         UnionDecl.upgrade(ud)
 
     def visitDecl(self, decl):
@@ -1512,7 +1536,7 @@ class _GenerateProtocolCode(ipdl.ast.Visitor):
         # classes for this protocol.
         typesToIncludes = {}
         for using in tu.using:
-            typestr = str(using.type.spec)
+            typestr = str(using.type)
             if typestr not in typesToIncludes:
                 typesToIncludes[typestr] = using.header
             else:
@@ -1520,17 +1544,16 @@ class _GenerateProtocolCode(ipdl.ast.Visitor):
 
         aggregateTypeIncludes = set()
         for su in tu.structsAndUnions:
-            typedeps = _ComputeTypeDeps(su.decl.type, True)
+            typedeps = _ComputeTypeDeps(su.decl.type, typesToIncludes)
             if isinstance(su, ipdl.ast.StructDecl):
+                aggregateTypeIncludes.add("mozilla/ipc/IPDLStructMember.h")
                 for f in su.fields:
                     f.ipdltype.accept(typedeps)
             elif isinstance(su, ipdl.ast.UnionDecl):
                 for c in su.components:
                     c.ipdltype.accept(typedeps)
 
-            for typename in [t.fromtype.name for t in typedeps.usingTypedefs]:
-                if typename in typesToIncludes:
-                    aggregateTypeIncludes.add(typesToIncludes[typename])
+            aggregateTypeIncludes.update(typedeps.includeHeaders)
 
         if len(aggregateTypeIncludes) != 0:
             hf.addthing(Whitespace.NL)
@@ -1796,14 +1819,14 @@ def _generateMessageConstructor(md, segmentSize, protocol, forReply=False):
         clsname = md.replyCtorFunc()
         msgid = md.replyId()
         replyEnum = "REPLY"
+        prioEnum = cppPriorityList[md.decl.type.replyPrio]
     else:
         clsname = md.msgCtorFunc()
         msgid = md.msgId()
         replyEnum = "NOT_REPLY"
+        prioEnum = cppPriorityList[md.decl.type.prio]
 
     nested = md.decl.type.nested
-    prioEnum = cppPriorityList[md.decl.type.prio]
-
     compress = md.decl.type.compress
     lazySend = md.decl.type.lazySend
 
@@ -1966,17 +1989,6 @@ class _ParamTraits:
         assert sentinelKey
         block = Block()
 
-        # Assert we aren't serializing a null non-nullable actor
-        if (
-            ipdltype
-            and ipdltype.isIPDL()
-            and ipdltype.isActor()
-            and not ipdltype.nullable
-        ):
-            block.addstmt(
-                _abortIfFalse(var, "NULL actor value passed to non-nullable param")
-            )
-
         block.addstmts(
             [
                 StmtExpr(cls.write(var, writervar, ipdltype)),
@@ -1990,7 +2002,7 @@ class _ParamTraits:
         return " | ".join(f.basename for f in fields)
 
     @classmethod
-    def checkedBulkWrite(cls, size, fields):
+    def checkedBulkWrite(cls, var, size, fields):
         block = Block()
         first = fields[0]
 
@@ -2001,7 +2013,7 @@ class _ParamTraits:
                         ExprSelect(cls.writervar, "->", "WriteBytes"),
                         args=[
                             ExprAddrOf(
-                                ExprCall(first.getMethod(thisexpr=cls.var, sel="."))
+                                ExprCall(first.getMethod(thisexpr=var, sel="."))
                             ),
                             ExprLiteral.Int(size * len(fields)),
                         ],
@@ -2014,26 +2026,28 @@ class _ParamTraits:
         return block
 
     @classmethod
-    def checkedBulkRead(cls, size, fields):
+    def checkedBulkRead(cls, var, size, fields):
         block = Block()
         first = fields[0]
 
         readbytes = ExprCall(
             ExprSelect(cls.readervar, "->", "ReadBytesInto"),
             args=[
-                ExprAddrOf(ExprCall(first.getMethod(thisexpr=cls.var, sel="->"))),
+                ExprAddrOf(ExprCall(first.getMethod(thisexpr=var, sel="->"))),
                 ExprLiteral.Int(size * len(fields)),
             ],
         )
         ifbad = StmtIf(ExprNot(readbytes))
         errmsg = "Error bulk reading fields from %s" % first.ipdltype.name()
-        ifbad.addifstmts([cls.fatalError(cls.readervar, errmsg), StmtReturn.FALSE])
+        ifbad.addifstmts(
+            [cls.fatalError(cls.readervar, errmsg), StmtReturn(readResultError())]
+        )
         block.addstmt(ifbad)
         block.addstmts(
             cls.readSentinel(
                 cls.readervar,
                 cls.bulkSentinelKey(fields),
-                errfnSentinel()(errmsg),
+                errfnSentinel(readResultError())(errmsg),
             )
         )
 
@@ -2043,6 +2057,7 @@ class _ParamTraits:
     def checkedRead(
         cls,
         ipdltype,
+        cxxtype,
         var,
         readervar,
         errfn,
@@ -2050,27 +2065,28 @@ class _ParamTraits:
         sentinelKey,
         errfnSentinel,
     ):
+        assert isinstance(var, ExprVar)
+
+        if not isinstance(paramtype, list):
+            paramtype = ["Error deserializing " + paramtype]
+
         block = Block()
 
         # Read the data
-        ifbad = StmtIf(
-            ExprNot(ExprCall(ExprVar("IPC::ReadParam"), args=[readervar, var]))
+        block.addcode(
+            """
+            auto ${maybevar} = IPC::ReadParam<${ty}>(${reader});
+            if (!${maybevar}) {
+                $*{errfn}
+            }
+            auto& ${var} = *${maybevar};
+            """,
+            maybevar=ExprVar("maybe__" + var.name),
+            ty=cxxtype,
+            reader=readervar,
+            errfn=errfn(*paramtype),
+            var=var,
         )
-        if not isinstance(paramtype, list):
-            paramtype = ["Error deserializing " + paramtype]
-        ifbad.addifstmts(errfn(*paramtype))
-        block.addstmt(ifbad)
-
-        # Check if we got a null non-nullable actor
-        if (
-            ipdltype
-            and ipdltype.isIPDL()
-            and ipdltype.isActor()
-            and not ipdltype.nullable
-        ):
-            ifnull = StmtIf(ExprNot(ExprDeref(var)))
-            ifnull.addifstmts(errfn(*paramtype))
-            block.addstmt(ifnull)
 
         block.addstmts(
             cls.readSentinel(readervar, sentinelKey, errfnSentinel(*paramtype))
@@ -2080,18 +2096,19 @@ class _ParamTraits:
 
     # Helper wrapper for checkedRead for use within _ParamTraits
     @classmethod
-    def _checkedRead(cls, ipdltype, var, sentinelKey, what):
+    def _checkedRead(cls, ipdltype, cxxtype, var, sentinelKey, what):
         def errfn(msg):
-            return [cls.fatalError(cls.readervar, msg), StmtReturn.FALSE]
+            return [cls.fatalError(cls.readervar, msg), StmtReturn(readResultError())]
 
         return cls.checkedRead(
             ipdltype,
+            cxxtype,
             var,
             cls.readervar,
             errfn=errfn,
             paramtype=what,
             sentinelKey=sentinelKey,
-            errfnSentinel=errfnSentinel(),
+            errfnSentinel=errfnSentinel(readResultError()),
         )
 
     @classmethod
@@ -2126,16 +2143,14 @@ class _ParamTraits:
         writemthd.addstmts(write)
         pt.addstmt(writemthd)
 
-        # static bool Read(const Message*, PickleIterator*, T*);
-        outtype = Type("paramType", ptr=True)
+        # static ReadResult<T> Read(MessageReader*);
         readmthd = MethodDefn(
             MethodDecl(
                 "Read",
                 params=[
                     Decl(Type("IPC::MessageReader", ptr=True), cls.readervar.name),
-                    Decl(outtype, cls.var.name),
                 ],
-                ret=Type.BOOL,
+                ret=Type("IPC::ReadResult<paramType>"),
                 methodspec=MethodSpec.STATIC,
             )
         )
@@ -2193,20 +2208,16 @@ class _ParamTraits:
             MOZ_RELEASE_ASSERT(
                 ${readervar}->GetActor(),
                 "Cannot deserialize managed actors without an actor");
-
-            mozilla::Maybe<mozilla::ipc::IProtocol*> actor =
-                ${readervar}->GetActor()->ReadActor(${readervar}, true, ${actortype}, ${protocolid});
-            if (actor.isNothing()) {
-                return false;
+            mozilla::Maybe<mozilla::ipc::IProtocol*> actor = ${readervar}->GetActor()
+              ->ReadActor(${readervar}, true, ${actortype}, ${protocolid});
+            if (actor.isSome()) {
+                return static_cast<${cxxtype}>(actor.ref());
             }
-
-            *${var} = static_cast<${cxxtype}>(actor.value());
-            return true;
+            return {};
             """,
             readervar=cls.readervar,
             actortype=ExprLiteral.String(actortype.name()),
             protocolid=_protocolId(actortype),
-            var=cls.var,
             cxxtype=cxxtype,
         )
 
@@ -2218,51 +2229,28 @@ class _ParamTraits:
         # NOTE: Not using _cxxBareType here as we don't have a side
         cxxtype = Type(structtype.fullname())
 
-        def get(sel, f):
-            return ExprCall(f.getMethod(thisexpr=cls.var, sel=sel))
-
         write = []
         read = []
 
-        # If any field is special, make sure we have an actor
+        # First serialize/deserialize all non-pod data in IPDL order. These need
+        # to be read/written first because they'll be used to invoke the IPDL
+        # struct's constructor.
+        ctorargs = []
         for f in sd.fields_ipdl_order():
-            if not f.special:
-                continue
-
-            noactorerror = (
-                "'%s' (%s) member of '%s' must be sent over an IPDL actor"
-                % (f.getMethod().name, f.ipdltype.name(), structtype.name())
-            )
-            write.append(
-                _abortIfFalse(
-                    ExprCode("${writervar}->GetActor()", writervar=cls.writervar),
-                    noactorerror,
-                )
-            )
-            read.append(
-                _abortIfFalse(
-                    ExprCode("${readervar}->GetActor()", readervar=cls.readervar),
-                    noactorerror,
-                )
-            )
-            break
-
-        for (size, fields) in itertools.groupby(
-            sd.fields_member_order(), lambda f: pod_size(f.ipdltype)
-        ):
-            fields = list(fields)
-
-            if size == pod_size_sentinel:
-                for f in fields:
-                    writefield = cls.checkedWrite(
+            if pod_size(f.ipdltype) == pod_size_sentinel:
+                write.append(
+                    cls.checkedWrite(
                         f.ipdltype,
-                        get(".", f),
+                        ExprCall(f.getMethod(thisexpr=cls.var, sel=".")),
                         cls.writervar,
                         sentinelKey=f.basename,
                     )
-                    readfield = cls._checkedRead(
+                )
+                read.append(
+                    cls._checkedRead(
                         f.ipdltype,
-                        ExprAddrOf(get("->", f)),
+                        f.bareType(fq=True),
+                        f.argVar(),
                         f.basename,
                         "'"
                         + f.getMethod().name
@@ -2274,25 +2262,36 @@ class _ParamTraits:
                         + structtype.name()
                         + "'",
                     )
-
-                    # Wrap the read/write in a side check if the field is special.
-                    if f.special:
-                        writefield = cls.ifsideis(cls.writervar, f.side, writefield)
-                        readfield = cls.ifsideis(cls.readervar, f.side, readfield)
-
-                    write.append(writefield)
-                    read.append(readfield)
+                )
+                if _cxxTypeCanMove(f.ipdltype):
+                    ctorargs.append(ExprMove(f.argVar()))
+                else:
+                    ctorargs.append(f.argVar())
             else:
-                for f in fields:
-                    assert not f.special
+                # We're going to bulk-read in this value later, so we'll just
+                # zero-initialize it for now.
+                ctorargs.append(ExprCode("${type}{0}", type=f.bareType(fq=True)))
 
-                writefield = cls.checkedBulkWrite(size, fields)
-                readfield = cls.checkedBulkRead(size, fields)
+        resultvar = ExprVar("result__")
+        read.append(
+            StmtDecl(
+                Decl(_cxxReadResultType(Type("paramType")), resultvar.name),
+                initargs=[ExprVar("std::in_place")] + ctorargs,
+            )
+        )
 
-                write.append(writefield)
-                read.append(readfield)
+        # After non-pod data, bulk read/write pod data in member order. This has
+        # to be done after the result has been constructed, so that we have
+        # somewhere to read into.
+        for (size, fields) in itertools.groupby(
+            sd.fields_member_order(), lambda f: pod_size(f.ipdltype)
+        ):
+            if size != pod_size_sentinel:
+                fields = list(fields)
+                write.append(cls.checkedBulkWrite(cls.var, size, fields))
+                read.append(cls.checkedBulkRead(resultvar, size, fields))
 
-        read.append(StmtReturn.TRUE)
+        read.append(StmtReturn(resultvar))
 
         return cls.generateDecl(
             cxxtype, write, read, needsmove=_cxxTypeNeedsMoveForSend(structtype)
@@ -2324,10 +2323,10 @@ class _ParamTraits:
 
         readswitch = StmtSwitch(typevar)
         read = prelude + [
-            StmtDecl(Decl(Type.INT, typevar.name), init=ExprLiteral.ZERO),
             cls._checkedRead(
                 None,
-                ExprAddrOf(typevar),
+                Type.INT,
+                typevar,
                 uniontype.name(),
                 "type of union " + uniontype.name(),
             ),
@@ -2336,15 +2335,8 @@ class _ParamTraits:
         ]
 
         for c in ud.components:
-            ct = c.ipdltype
             caselabel = CaseLabel(alias + "::" + c.enum())
             origenum = c.enum()
-
-            if c.special:
-                noactorerror = (
-                    "variant '%s' of '%s' must be sent over an IPDL actor"
-                    % (origenum, uniontype.name())
-                )
 
             writecase = StmtBlock()
             wstmt = cls.checkedWrite(
@@ -2353,71 +2345,21 @@ class _ParamTraits:
                 cls.writervar,
                 sentinelKey=c.enum(),
             )
-            if c.special:
-                writecase.addstmts(
-                    [
-                        _abortIfFalse(
-                            ExprCode(
-                                "${writervar}->GetActor()", writervar=cls.writervar
-                            ),
-                            noactorerror,
-                        ),
-                        # Report an error if the type is special and the side is wrong
-                        cls.ifsideis(
-                            cls.writervar,
-                            c.side,
-                            wstmt,
-                            els=cls.fatalError(cls.writervar, "wrong side!"),
-                        ),
-                        StmtReturn(),
-                    ]
-                )
-            else:
-                writecase.addstmts([wstmt, StmtReturn()])
+            writecase.addstmts([wstmt, StmtReturn()])
             writeswitch.addcase(caselabel, writecase)
 
             readcase = StmtBlock()
-            if c.special:
-                # The type comes across flipped from what the actor will be on
-                # this side; i.e. child->parent messages will have PFooChild
-                # when received on the parent side. Report an error if the sides
-                # match, and handle c.other instead.
-                readcase.addstmts(
-                    [
-                        _abortIfFalse(
-                            ExprCode(
-                                "${readervar}->GetActor()", readervar=cls.readervar
-                            ),
-                            noactorerror,
-                        ),
-                        cls.ifsideis(
-                            cls.readervar,
-                            c.side,
-                            StmtBlock(
-                                [
-                                    cls.fatalError(cls.readervar, "wrong side!"),
-                                    StmtReturn.FALSE,
-                                ]
-                            ),
-                        ),
-                    ]
-                )
-                c = c.other
             tmpvar = ExprVar("tmp")
-            ct = c.bareType(fq=True)
             readcase.addstmts(
                 [
-                    StmtDecl(Decl(ct, tmpvar.name), init=c.defaultValue(fq=True)),
-                    StmtExpr(ExprAssn(ExprDeref(cls.var), ExprMove(tmpvar))),
                     cls._checkedRead(
                         c.ipdltype,
-                        ExprAddrOf(
-                            ExprCall(ExprSelect(cls.var, "->", c.getTypeName()))
-                        ),
+                        c.bareType(fq=True),
+                        tmpvar,
                         origenum,
                         "variant " + origenum + " of union " + uniontype.name(),
                     ),
-                    StmtReturn.TRUE,
+                    StmtReturn(ExprMove(tmpvar)),
                 ]
             )
             readswitch.addcase(caselabel, readcase)
@@ -2441,7 +2383,7 @@ class _ParamTraits:
                     cls.fatalError(
                         cls.readervar, "unknown variant of union " + uniontype.name()
                     ),
-                    StmtReturn.FALSE,
+                    StmtReturn(readResultError()),
                 ]
             ),
         )
@@ -2461,17 +2403,21 @@ class _ComputeTypeDeps(TypeVisitor):
     stmt; (iii) IPDL structs or unions which must be fully declared
     before this struct.  Some types generate multiple kinds."""
 
-    def __init__(self, fortype, unqualifiedTypedefs=False):
+    def __init__(self, fortype, typesToIncludes=None):
         ipdl.type.TypeVisitor.__init__(self)
         self.usingTypedefs = []
         self.forwardDeclStmts = []
         self.fullDeclTypes = []
+        self.includeHeaders = set()
         self.fortype = fortype
-        self.unqualifiedTypedefs = unqualifiedTypedefs
+        self.typesToIncludes = typesToIncludes
 
     def maybeTypedef(self, fqname, name, templateargs=[]):
-        if fqname != name or self.unqualifiedTypedefs:
+        assert fqname.startswith("::")
+        if fqname != name:
             self.usingTypedefs.append(Typedef(Type(fqname), name, templateargs))
+        if self.typesToIncludes is not None and fqname in self.typesToIncludes:
+            self.includeHeaders.add(self.typesToIncludes[fqname])
 
     def visitImportedCxxType(self, t):
         if t in self.visited:
@@ -2486,6 +2432,7 @@ class _ComputeTypeDeps(TypeVisitor):
 
         fqname, name = t.fullname(), t.name()
 
+        self.includeHeaders.add("mozilla/ipc/SideVariant.h")
         self.maybeTypedef(_actorName(fqname, "Parent"), _actorName(name, "Parent"))
         self.maybeTypedef(_actorName(fqname, "Child"), _actorName(name, "Child"))
 
@@ -2531,25 +2478,25 @@ class _ComputeTypeDeps(TypeVisitor):
         if s in self.visited:
             return
         self.visited.add(s)
-        self.maybeTypedef("mozilla::ipc::Shmem", "Shmem")
+        self.maybeTypedef("::mozilla::ipc::Shmem", "Shmem")
 
     def visitByteBufType(self, s):
         if s in self.visited:
             return
         self.visited.add(s)
-        self.maybeTypedef("mozilla::ipc::ByteBuf", "ByteBuf")
+        self.maybeTypedef("::mozilla::ipc::ByteBuf", "ByteBuf")
 
     def visitFDType(self, s):
         if s in self.visited:
             return
         self.visited.add(s)
-        self.maybeTypedef("mozilla::ipc::FileDescriptor", "FileDescriptor")
+        self.maybeTypedef("::mozilla::ipc::FileDescriptor", "FileDescriptor")
 
     def visitEndpointType(self, s):
         if s in self.visited:
             return
         self.visited.add(s)
-        self.maybeTypedef("mozilla::ipc::Endpoint", "Endpoint", ["FooSide"])
+        self.maybeTypedef("::mozilla::ipc::Endpoint", "Endpoint", ["FooSide"])
         self.visitActorType(s.actor)
 
     def visitManagedEndpointType(self, s):
@@ -2557,7 +2504,7 @@ class _ComputeTypeDeps(TypeVisitor):
             return
         self.visited.add(s)
         self.maybeTypedef(
-            "mozilla::ipc::ManagedEndpoint", "ManagedEndpoint", ["FooSide"]
+            "::mozilla::ipc::ManagedEndpoint", "ManagedEndpoint", ["FooSide"]
         )
         self.visitActorType(s.actor)
 
@@ -2621,48 +2568,93 @@ def _generateCxxStruct(sd):
 
     constreftype = Type(sd.name, const=True, ref=True)
 
-    def fieldsAsParamList():
-        return [
-            Decl(
-                f.forceMoveType()
-                if _cxxTypeNeedsMoveForData(f.ipdltype)
-                else f.constRefType(),
-                f.argVar().name,
-            )
-            for f in sd.fields_ipdl_order()
-        ]
+    # Struct()
+    # We want the default constructor to be declared if it is available, but
+    # some of our members may not be default-constructible. Silence the
+    # warning which clang generates in that case.
+    #
+    # Members which need value initialization will be handled by wrapping
+    # the member in a template type when declaring them.
+    struct.addcode(
+        """
+        #ifdef __clang__
+        #  pragma clang diagnostic push
+        #  if __has_warning("-Wdefaulted-function-deleted")
+        #    pragma clang diagnostic ignored "-Wdefaulted-function-deleted"
+        #  endif
+        #endif
+        ${name}() = default;
+        #ifdef __clang__
+        #  pragma clang diagnostic pop
+        #endif
+
+        """,
+        name=sd.name,
+    )
 
     # If this is an empty struct (no fields), then the default ctor
-    # and "create-with-fields" ctors are equivalent.  So don't bother
-    # with the default ctor.
+    # and "create-with-fields" ctors are equivalent.
     if len(sd.fields):
         assert len(sd.fields) == len(sd.packed_field_order)
 
-        # Struct()
-        defctor = ConstructorDefn(ConstructorDecl(sd.name, force_inline=True))
+        # Struct(const field1& _f1, ...)
+        valctor = ConstructorDefn(
+            ConstructorDecl(
+                sd.name,
+                params=[
+                    Decl(
+                        f.forceMoveType()
+                        if _cxxTypeNeedsMoveForData(f.ipdltype)
+                        else f.constRefType(),
+                        f.argVar().name,
+                    )
+                    for f in sd.fields_ipdl_order()
+                ],
+                force_inline=True,
+            )
+        )
+        valctor.memberinits = []
+        for f in sd.fields_member_order():
+            arg = f.argVar()
+            if _cxxTypeNeedsMoveForData(f.ipdltype):
+                arg = ExprMove(arg)
+            valctor.memberinits.append(ExprMemberInit(f.memberVar(), args=[arg]))
 
-        # We want to explicitly default-construct every member of the struct.
-        # This will initialize all primitives which wouldn't be initialized
-        # normally to their default values, and will initialize any actor member
-        # pointers to the correct default value of `nullptr`. Other C++ types
-        # with custom constructors must also provide a default constructor.
-        defctor.memberinits = [
-            ExprMemberInit(f.memberVar()) for f in sd.fields_member_order()
-        ]
-        struct.addstmts([defctor, Whitespace.NL])
+        struct.addstmts([valctor, Whitespace.NL])
 
-    # Struct(const field1& _f1, ...)
-    valctor = ConstructorDefn(
-        ConstructorDecl(sd.name, params=fieldsAsParamList(), force_inline=True)
-    )
-    valctor.memberinits = []
-    for f in sd.fields_member_order():
-        arg = f.argVar()
-        if _cxxTypeNeedsMoveForData(f.ipdltype):
-            arg = ExprMove(arg)
-        valctor.memberinits.append(ExprMemberInit(f.memberVar(), args=[arg]))
+        # If a constructor which moves each argument would be different from the
+        # `const T&` version, also generate that constructor.
+        if not all(
+            _cxxTypeNeedsMoveForData(f.ipdltype) or not _cxxTypeCanMove(f.ipdltype)
+            for f in sd.fields_ipdl_order()
+        ):
+            # Struct(field1&& _f1, ...)
+            valmovector = ConstructorDefn(
+                ConstructorDecl(
+                    sd.name,
+                    params=[
+                        Decl(
+                            f.forceMoveType()
+                            if _cxxTypeCanMove(f.ipdltype)
+                            else f.constRefType(),
+                            f.argVar().name,
+                        )
+                        for f in sd.fields_ipdl_order()
+                    ],
+                    force_inline=True,
+                )
+            )
 
-    struct.addstmts([valctor, Whitespace.NL])
+            valmovector.memberinits = []
+            for f in sd.fields_member_order():
+                arg = f.argVar()
+                if _cxxTypeCanMove(f.ipdltype):
+                    arg = ExprMove(arg)
+                valmovector.memberinits.append(
+                    ExprMemberInit(f.memberVar(), args=[arg])
+                )
+
+            struct.addstmts([valmovector, Whitespace.NL])
 
     # The default copy, move, and assignment constructors, and the default
     # destructor, will do the right thing.
@@ -2756,7 +2748,7 @@ def _effectiveMemberType(f):
     # class of CopyableTArray<T>.
     if effective_type.name == "nsTArray":
         effective_type.name = "CopyableTArray"
-    return effective_type
+    return Type("::mozilla::ipc::IPDLStructMember", T=[effective_type])
 
 
 # --------------------------------------------------
@@ -3087,6 +3079,16 @@ def _generateCxxUnion(ud):
     # Union& operator= methods
     rhsvar = ExprVar("aRhs")
     for c in ud.components:
+
+        def opeqBody(rhs):
+            return [
+                # might need to placement-delete old value first
+                maybeDestroy(),
+                StmtExpr(c.callCtor(rhs)),
+                StmtExpr(ExprAssn(mtypevar, c.enumvar())),
+                StmtReturn(ExprDeref(ExprVar.THIS)),
+            ]
+
         if not _cxxTypeNeedsMoveForData(c.ipdltype):
             # Union& operator=(const T&)
             opeq = MethodDefn(
@@ -3096,15 +3098,7 @@ def _generateCxxUnion(ud):
                     ret=refClsType,
                 )
             )
-            opeq.addstmts(
-                [
-                    # might need to placement-delete old value first
-                    maybeDestroy(),
-                    StmtExpr(c.callCtor(rhsvar)),
-                    StmtExpr(ExprAssn(mtypevar, c.enumvar())),
-                    StmtReturn(ExprDeref(ExprVar.THIS)),
-                ]
-            )
+            opeq.addstmts(opeqBody(rhsvar))
             cls.addstmts([opeq, Whitespace.NL])
 
         # Union& operator=(T&&)
@@ -3118,15 +3112,7 @@ def _generateCxxUnion(ud):
                 ret=refClsType,
             )
         )
-        opeq.addstmts(
-            [
-                # might need to placement-delete old value first
-                maybeDestroy(),
-                StmtExpr(c.callCtor(ExprMove(rhsvar))),
-                StmtExpr(ExprAssn(mtypevar, c.enumvar())),
-                StmtReturn(ExprDeref(ExprVar.THIS)),
-            ]
-        )
+        opeq.addstmts(opeqBody(ExprMove(rhsvar)))
         cls.addstmts([opeq, Whitespace.NL])
 
     # Union& operator=(const Union&)
@@ -3551,8 +3537,8 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
         if using.header is None:
             return
 
-        if using.canBeForwardDeclared() and not using.decl.type.isUniquePtr():
-            spec = using.type.spec
+        if using.canBeForwardDeclared():
+            spec = using.type
 
             self.usingDecls.extend(
                 [
@@ -3852,11 +3838,12 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
         self.cls.addstmts([dtor, Whitespace.NL])
 
         if ptype.isRefcounted():
-            self.cls.addcode(
-                """
-                NS_INLINE_DECL_PURE_VIRTUAL_REFCOUNTING
-                """
-            )
+            if not ptype.isToplevel():
+                self.cls.addcode(
+                    """
+                    NS_INLINE_DECL_PURE_VIRTUAL_REFCOUNTING
+                    """
+                )
             self.cls.addstmt(Label.PROTECTED)
             self.cls.addcode(
                 """
@@ -4747,9 +4734,8 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
         return helper
 
     def genAsyncDtor(self, md):
-        actor = md.actorDecl()
-        actorvar = actor.var()
-        method = MethodDefn(self.makeDtorMethodDecl(md))
+        actorvar = ExprVar("actor")
+        method = MethodDefn(self.makeDtorMethodDecl(md, actorvar))
 
         method.addstmt(self.dtorPrologue(actorvar))
 
@@ -4759,7 +4745,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
             stmts
             + sendstmts
             + [Whitespace.NL]
-            + self.dtorEpilogue(md, actor.var())
+            + self.dtorEpilogue(md, actorvar)
             + [StmtReturn(sendok)]
         )
 
@@ -4772,9 +4758,8 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
         return method, (lbl, case)
 
     def genBlockingDtorMethod(self, md):
-        actor = md.actorDecl()
-        actorvar = actor.var()
-        method = MethodDefn(self.makeDtorMethodDecl(md))
+        actorvar = ExprVar("actor")
+        method = MethodDefn(self.makeDtorMethodDecl(md, actorvar))
 
         method.addstmt(self.dtorPrologue(actorvar))
 
@@ -4800,7 +4785,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
         method.addstmt(ifsendok)
 
         method.addstmts(
-            self.dtorEpilogue(md, actor.var()) + [Whitespace.NL, StmtReturn(sendok)]
+            self.dtorEpilogue(md, actorvar) + [Whitespace.NL, StmtReturn(sendok)]
         )
 
         return method
@@ -4849,7 +4834,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
         if len(md.returns) > 1:
             resolvetype = _tuple([d.bareType(self.side) for d in md.returns])
             resolvearg = ExprCall(
-                ExprVar("MakeTuple"), args=[ExprMove(p.var()) for p in md.returns]
+                ExprVar("std::make_tuple"), args=[ExprMove(p.var()) for p in md.returns]
             )
         else:
             resolvetype = md.returns[0].bareType(self.side)
@@ -4917,10 +4902,10 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
 
         return method, movemethod, promisemethod, (lbl, case)
 
-    def genBlockingSendMethod(self, md, fromActor=None):
+    def genBlockingSendMethod(self, md):
         method = MethodDefn(self.makeSendMethodDecl(md))
 
-        msgvar, serstmts = self.makeMessage(md, errfnSend, fromActor)
+        msgvar, serstmts = self.makeMessage(md, errfnSend)
         replyvar = self.replyvar
 
         sendok, sendstmts = self.sendBlocking(md, msgvar, replyvar)
@@ -4989,12 +4974,12 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
                 StmtDecl(Decl(r.bareType(self.side), r.var().name), initargs=[])
                 for r in md.returns
             ]
-            + self.invokeRecvHandler(md, implicit=False)
+            + self.invokeRecvHandler(md)
             + [Whitespace.NL]
             + saveIdStmts
             + self.makeReply(md, errfnRecv, routingId=idvar)
             + [Whitespace.NL]
-            + self.dtorEpilogue(md, md.actorDecl().var())
+            + self.dtorEpilogue(md, ExprVar.THIS)
             + [Whitespace.NL, StmtReturn(_Result.Processed)]
         )
 
@@ -5033,9 +5018,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
         msgvar = self.msgvar
         writervar = ExprVar("writer__")
         routingId = self.protocol.routingId(fromActor)
-        this = ExprVar.THIS
-        if md.decl.type.isDtor():
-            this = md.actorDecl().var()
+        this = fromActor or ExprVar.THIS
 
         stmts = (
             [
@@ -5072,7 +5055,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
         def paramValue(idx):
             assert idx < len(md.returns)
             if len(md.returns) > 1:
-                return ExprCode("mozilla::Get<${idx}>(aParam)", idx=idx)
+                return ExprCode("std::get<${idx}>(aParam)", idx=idx)
             return ExprVar("aParam")
 
         serializeParams = [
@@ -5179,17 +5162,17 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
         if 0 == len(md.params):
             return stmts
 
-        start, decls, reads = 0, [], []
+        start, reads = 0, []
         if isctor:
             # return the raw actor handle so that its ID can be used
             # to construct the "real" actor
             handlevar = self.handlevar
             handletype = Type("ActorHandle")
-            decls = [StmtDecl(Decl(handletype, handlevar.name), initargs=[])]
             reads = [
                 _ParamTraits.checkedRead(
                     None,
-                    ExprAddrOf(handlevar),
+                    handletype,
+                    handlevar,
                     ExprAddrOf(readervar),
                     errfn,
                     "'%s'" % handletype.name,
@@ -5199,27 +5182,17 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
             ]
             start = 1
 
-        decls.extend(
-            [
-                StmtDecl(
-                    Decl(
-                        (
-                            Type("Tainted", T=p.bareType(side))
-                            if md.decl.type.tainted and "NoTaint" not in p.attributes
-                            else p.bareType(side)
-                        ),
-                        p.var().name,
-                    ),
-                    initargs=[],
-                )
-                for p in md.params[start:]
-            ]
-        )
+        def maybeTainted(p, side):
+            if md.decl.type.tainted and "NoTaint" not in p.attributes:
+                return Type("Tainted", T=p.bareType(side))
+            return p.bareType(side)
+
         reads.extend(
             [
                 _ParamTraits.checkedRead(
                     p.ipdltype,
-                    ExprAddrOf(p.var()),
+                    maybeTainted(p, side),
+                    p.var(),
                     ExprAddrOf(readervar),
                     errfn,
                     "'%s'" % p.ipdltype.name(),
@@ -5238,7 +5211,6 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
                         initargs=[msgvar, ExprVar.THIS],
                     )
                 ]
-                + decls
                 + [Whitespace.NL]
                 + reads
                 + [StmtCode("${reader}.EndRead();\n", reader=readervar)]
@@ -5302,17 +5274,17 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
             + desresolve
         )
 
-        start, decls, reads = 0, [], []
+        start, reads = 0, []
         if isctor:
             # return the raw actor handle so that its ID can be used
             # to construct the "real" actor
             handlevar = self.handlevar
             handletype = Type("ActorHandle")
-            decls = [StmtDecl(Decl(handletype, handlevar.name), initargs=[])]
             reads = [
                 _ParamTraits.checkedRead(
                     None,
-                    ExprAddrOf(handlevar),
+                    handletype,
+                    handlevar,
                     ExprAddrOf(readervar),
                     errfn,
                     "'%s'" % handletype.name,
@@ -5323,17 +5295,12 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
             start = 1
 
         stmts = (
-            decls
-            + [
-                StmtDecl(Decl(p.bareType(side), p.var().name), initargs=[])
-                for p in md.returns
-            ]
-            + [Whitespace.NL]
-            + reads
+            reads
             + [
                 _ParamTraits.checkedRead(
                     p.ipdltype,
-                    ExprAddrOf(p.var()),
+                    p.bareType(side),
+                    p.var(),
                     ExprAddrOf(readervar),
                     errfn,
                     "'%s'" % p.ipdltype.name(),
@@ -5347,9 +5314,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
 
         return resolve, reason, prologue, desrej, stmts
 
-    def deserializeReply(
-        self, md, replyexpr, side, errfn, errfnSentinel, actor=None, decls=False
-    ):
+    def deserializeReply(self, md, replyexpr, side, errfn, errfnSentinel, actor=None):
         stmts = [
             Whitespace.NL,
             self.logMessage(md, replyexpr, "Received reply ", actor, receiving=True),
@@ -5357,13 +5322,10 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
         if 0 == len(md.returns):
             return stmts
 
+        def tempvar(r):
+            return ExprVar(r.var().name + "__reply")
+
         readervar = ExprVar("reader__")
-        declstmts = []
-        if decls:
-            declstmts = [
-                StmtDecl(Decl(p.bareType(side), p.var().name), initargs=[])
-                for p in md.returns
-            ]
         stmts.extend(
             [
                 Whitespace.NL,
@@ -5372,18 +5334,24 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
                     initargs=[ExprDeref(self.replyvar), ExprVar.THIS],
                 ),
             ]
-            + declstmts
             + [Whitespace.NL]
             + [
                 _ParamTraits.checkedRead(
                     r.ipdltype,
-                    r.var(),
+                    r.bareType(side),
+                    tempvar(r),
                     ExprAddrOf(readervar),
                     errfn,
                     "'%s'" % r.ipdltype.name(),
                     sentinelKey=r.name,
                     errfnSentinel=errfnSentinel,
                 )
+                for r in md.returns
+            ]
+            # Move-assign the values out of the variables created with
+            # checkedRead into outparams.
+            + [
+                StmtExpr(ExprAssn(ExprDeref(r.var()), ExprMove(tempvar(r))))
                 for r in md.returns
             ]
             + [StmtCode("${reader}.EndRead();", reader=readervar)]
@@ -5537,7 +5505,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
 
         return StmtDecl(Decl(actortype, md.actorDecl().var().name), init=callalloc)
 
-    def invokeRecvHandler(self, md, implicit=True):
+    def invokeRecvHandler(self, md):
         retsems = "in"
         if md.decl.type.isAsync() and md.returns:
             retsems = "resolver"
@@ -5549,7 +5517,6 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
                     paramsems="move",
                     retsems=retsems,
                     retcallsems="out",
-                    implicit=implicit,
                 ),
             ),
         )
@@ -5565,8 +5532,19 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
         )
         return [okdecl, failif]
 
-    def makeDtorMethodDecl(self, md):
+    def makeDtorMethodDecl(self, md, actorvar):
         decl = self.makeSendMethodDecl(md)
+        decl.params.insert(
+            0,
+            Decl(
+                _cxxInType(
+                    ipdl.type.ActorType(md.decl.type.constructedType()),
+                    side=self.side,
+                    direction="send",
+                ),
+                actorvar.name,
+            ),
+        )
         decl.methodspec = MethodSpec.STATIC
         return decl
 

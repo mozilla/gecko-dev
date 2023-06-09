@@ -18,6 +18,7 @@ import { CTAParagraph } from "./CTAParagraph";
 import { HeroImage } from "./HeroImage";
 import { OnboardingVideo } from "./OnboardingVideo";
 import { AdditionalCTA } from "./AdditionalCTA";
+import { EmbeddedMigrationWizard } from "./EmbeddedMigrationWizard";
 
 export const MultiStageProtonScreen = props => {
   const { autoAdvance, handleAction, order } = props;
@@ -46,9 +47,9 @@ export const MultiStageProtonScreen = props => {
       setActiveMultiSelect={props.setActiveMultiSelect}
       totalNumberOfScreens={props.totalNumberOfScreens}
       handleAction={props.handleAction}
-      isFirstCenteredScreen={props.isFirstCenteredScreen}
-      isLastCenteredScreen={props.isLastCenteredScreen}
-      stepOrder={props.stepOrder}
+      isFirstScreen={props.isFirstScreen}
+      isLastScreen={props.isLastScreen}
+      isSingleScreen={props.isSingleScreen}
       previousOrder={props.previousOrder}
       autoAdvance={props.autoAdvance}
       isRtamo={props.isRtamo}
@@ -81,6 +82,7 @@ export const ProtonScreenActionButtons = props => {
       className={`action-buttons ${
         content.additional_button ? "additional-cta-container" : ""
       }`}
+      flow={content.additional_button?.flow}
     >
       <Localized text={content.primary_button?.label}>
         <button
@@ -132,8 +134,8 @@ export class ProtonScreen extends React.PureComponent {
   }
 
   getScreenClassName(
-    isFirstCenteredScreen,
-    isLastCenteredScreen,
+    isFirstScreen,
+    isLastScreen,
     includeNoodles,
     isVideoOnboarding
   ) {
@@ -141,8 +143,8 @@ export class ProtonScreen extends React.PureComponent {
 
     if (isVideoOnboarding) return "with-video";
 
-    return `${isFirstCenteredScreen ? `dialog-initial` : ``} ${
-      isLastCenteredScreen ? `dialog-last` : ``
+    return `${isFirstScreen ? `dialog-initial` : ``} ${
+      isLastScreen ? `dialog-last` : ``
     } ${includeNoodles ? `with-noodles` : ``} ${screenClass}`;
   }
 
@@ -225,6 +227,9 @@ export class ProtonScreen extends React.PureComponent {
             handleAction={this.props.handleAction}
           />
         ) : null}
+        {content.tiles && content.tiles.type === "migration-wizard" ? (
+          <EmbeddedMigrationWizard handleAction={this.props.handleAction} />
+        ) : null}
       </React.Fragment>
     );
   }
@@ -291,7 +296,7 @@ export class ProtonScreen extends React.PureComponent {
           />
         ) : (
           <StepsIndicator
-            order={this.props.stepOrder}
+            order={this.props.order}
             totalNumberOfScreens={total}
           />
         )}
@@ -313,13 +318,9 @@ export class ProtonScreen extends React.PureComponent {
             : {}
         }
       >
-        {content.image_alt_text ? (
-          <div
-            className="sr-only image-alt"
-            role="img"
-            data-l10n-id={content.image_alt_text.string_id}
-          />
-        ) : null}
+        <Localized text={content.image_alt_text}>
+          <div className="sr-only image-alt" role="img" />
+        </Localized>
         {content.hero_image ? (
           <HeroImage url={content.hero_image.url} />
         ) : (
@@ -346,16 +347,15 @@ export class ProtonScreen extends React.PureComponent {
       content,
       isRtamo,
       isTheme,
-      isFirstCenteredScreen,
-      isLastCenteredScreen,
+      isFirstScreen,
+      isLastScreen,
+      isSingleScreen,
     } = this.props;
     const includeNoodles = content.has_noodles;
     // The default screen position is "center"
     const isCenterPosition = content.position === "center" || !content.position;
     const hideStepsIndicator =
-      autoAdvance ||
-      content?.video_container ||
-      (isFirstCenteredScreen && isLastCenteredScreen);
+      autoAdvance || content?.video_container || isSingleScreen;
     const textColorClass = content.text_color
       ? `${content.text_color}-text`
       : "";
@@ -363,17 +363,18 @@ export class ProtonScreen extends React.PureComponent {
     // by checking if screen order is even or odd.
     const screenClassName = isCenterPosition
       ? this.getScreenClassName(
-          isFirstCenteredScreen,
-          isLastCenteredScreen,
+          isFirstScreen,
+          isLastScreen,
           includeNoodles,
           content?.video_container
         )
       : "";
+    const isEmbeddedMigration = content.tiles?.type === "migration-wizard";
 
     return (
       <main
-        className={`screen ${this.props.id ||
-          ""} ${screenClassName} ${textColorClass}`}
+        className={`screen ${this.props.id || ""}
+          ${screenClassName} ${textColorClass}`}
         role="alertdialog"
         pos={content.position || "center"}
         tabIndex="-1"
@@ -383,7 +384,12 @@ export class ProtonScreen extends React.PureComponent {
         }}
       >
         {isCenterPosition ? null : this.renderSecondarySection(content)}
-        <div className="section-main">
+        <div
+          className={`section-main ${
+            isEmbeddedMigration ? "embedded-migration" : ""
+          }`}
+          role="document"
+        >
           {content.secondary_button_top ? (
             <SecondaryCTA
               content={content}
@@ -400,8 +406,6 @@ export class ProtonScreen extends React.PureComponent {
                 : {}
             }
           >
-            {content.dismiss_button ? this.renderDismissButton() : null}
-
             {content.logo ? this.renderLogo(content.logo) : null}
 
             {isRtamo ? (
@@ -417,22 +421,26 @@ export class ProtonScreen extends React.PureComponent {
 
             <div className="main-content-inner">
               <div className={`welcome-text ${content.title_style || ""}`}>
-                <Localized text={content.title}>
-                  <h1 id="mainContentHeader" />
-                </Localized>
-                <Localized text={content.subtitle}>
-                  <h2
-                    data-l10n-args={JSON.stringify({
-                      "addon-name": this.props.addonName,
-                      ...this.props.appAndSystemLocaleInfo?.displayNames,
-                    })}
-                    aria-flowto={
-                      this.props.messageId?.includes("FEATURE_TOUR")
-                        ? "steps"
-                        : ""
-                    }
-                  />
-                </Localized>
+                {content.title ? (
+                  <Localized text={content.title}>
+                    <h1 id="mainContentHeader" />
+                  </Localized>
+                ) : null}
+                {content.subtitle ? (
+                  <Localized text={content.subtitle}>
+                    <h2
+                      data-l10n-args={JSON.stringify({
+                        "addon-name": this.props.addonName,
+                        ...this.props.appAndSystemLocaleInfo?.displayNames,
+                      })}
+                      aria-flowto={
+                        this.props.messageId?.includes("FEATURE_TOUR")
+                          ? "steps"
+                          : ""
+                      }
+                    />
+                  </Localized>
+                ) : null}
                 {content.cta_paragraph ? (
                   <CTAParagraph
                     content={content.cta_paragraph}
@@ -454,8 +462,9 @@ export class ProtonScreen extends React.PureComponent {
                 handleAction={this.props.handleAction}
               />
             </div>
-            {hideStepsIndicator ? null : this.renderStepsIndicator()}
+            {!hideStepsIndicator ? this.renderStepsIndicator() : null}
           </div>
+          {content.dismiss_button ? this.renderDismissButton() : null}
         </div>
       </main>
     );

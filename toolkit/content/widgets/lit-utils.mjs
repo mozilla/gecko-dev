@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { LitElement } from "./vendor/lit.all.mjs";
+import { LitElement } from "chrome://global/content/vendor/lit.all.mjs";
 
 /**
  * Helper for our replacement of @query. Used with `static queries` property.
@@ -86,13 +86,13 @@ export class MozLitElement extends LitElement {
     super();
     let { queries } = this.constructor;
     if (queries) {
-      for (let [name, selector] of Object.entries(queries)) {
+      for (let [selectorName, selector] of Object.entries(queries)) {
         if (selector.all) {
-          Object.defineProperty(this, name, {
+          Object.defineProperty(this, selectorName, {
             get: queryAll(this, selector.all),
           });
         } else {
-          Object.defineProperty(this, name, {
+          Object.defineProperty(this, selectorName, {
             get: query(this, selector),
           });
         }
@@ -102,7 +102,11 @@ export class MozLitElement extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
-    if (!this._l10nRootConnected && document.l10n) {
+    if (
+      this.renderRoot == this.shadowRoot &&
+      !this._l10nRootConnected &&
+      document.l10n
+    ) {
       document.l10n.connectRoot(this.renderRoot);
       this._l10nRootConnected = true;
     }

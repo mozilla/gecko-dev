@@ -5,13 +5,16 @@
 use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 use std::fs;
+use std::io;
 use std::num::NonZeroU64;
 use std::path::Path;
 use std::str;
 use std::sync::RwLock;
 
+use crate::ErrorKind;
+
 use rkv::migrator::Migrator;
-use rkv::StoreOptions;
+use rkv::{MigrateError, StoreError, StoreOptions};
 
 /// Unwrap a `Result`s `Ok` value or do the specified action.
 ///
@@ -49,6 +52,12 @@ pub fn rkv_new(path: &Path) -> std::result::Result<Rkv, rkv::StoreError> {
             // Now try again, we only handle that error once.
             Rkv::new::<rkv::backend::SafeMode>(path)
         }
+        Err(rkv::StoreError::DatabaseCorrupted) => {
+            let safebin = path.join("data.safe.bin");
+            fs::remove_file(safebin).map_err(|_| rkv::StoreError::DatabaseCorrupted)?;
+            // Try again, only allowing the error once.
+            Rkv::new::<rkv::backend::SafeMode>(path)
+        }
         other => other,
     }
 }
@@ -81,8 +90,6 @@ fn delete_lmdb_database(path: &Path) {
 /// without migrating data.
 /// This is a no-op if no LMDB database file exists.
 pub fn migrate(path: &Path, dst_env: &Rkv) {
-    use rkv::{MigrateError, StoreError};
-
     log::debug!("Migrating files in {}", path.display());
 
     // Shortcut if no data to migrate is around.
@@ -143,8 +150,8 @@ pub fn migrate(path: &Path, dst_env: &Rkv) {
     log::debug!("Migration ended. Safe-mode database in {}", path.display());
 }
 
+use crate::common_metric_data::CommonMetricDataInternal;
 use crate::metrics::Metric;
-use crate::CommonMetricData;
 use crate::Glean;
 use crate::Lifetime;
 use crate::Result;
@@ -449,7 +456,7 @@ impl Database {
     }
 
     /// Records a metric in the underlying storage system.
-    pub fn record(&self, glean: &Glean, data: &CommonMetricData, value: &Metric) {
+    pub fn record(&self, glean: &Glean, data: &CommonMetricDataInternal, value: &Metric) {
         // If upload is disabled we don't want to record.
         if !glean.is_upload_enabled() {
             return;
@@ -458,8 +465,13 @@ impl Database {
         let name = data.identifier(glean);
 
         for ping_name in data.storage_names() {
-            if let Err(e) = self.record_per_lifetime(data.lifetime, ping_name, &name, value) {
-                log::error!("Failed to record metric into {}: {:?}", ping_name, e);
+            if let Err(e) = self.record_per_lifetime(data.inner.lifetime, ping_name, &name, value) {
+                log::error!(
+                    "Failed to record metric '{}' into {}: {:?}",
+                    data.base_identifier(),
+                    ping_name,
+                    e
+                );
             }
         }
     }
@@ -508,7 +520,7 @@ impl Database {
 
     /// Records the provided value, with the given lifetime,
     /// after applying a transformation function.
-    pub fn record_with<F>(&self, glean: &Glean, data: &CommonMetricData, mut transform: F)
+    pub fn record_with<F>(&self, glean: &Glean, data: &CommonMetricDataInternal, mut transform: F)
     where
         F: FnMut(Option<Metric>) -> Metric,
     {
@@ -520,9 +532,14 @@ impl Database {
         let name = data.identifier(glean);
         for ping_name in data.storage_names() {
             if let Err(e) =
-                self.record_per_lifetime_with(data.lifetime, ping_name, &name, &mut transform)
+                self.record_per_lifetime_with(data.inner.lifetime, ping_name, &name, &mut transform)
             {
-                log::error!("Failed to record metric into {}: {:?}", ping_name, e);
+                log::error!(
+                    "Failed to record metric '{}' into {}: {:?}",
+                    data.base_identifier(),
+                    ping_name,
+                    e
+                );
             }
         }
     }
@@ -708,7 +725,22 @@ impl Database {
             writer.commit()?;
             Ok(())
         });
+
         if let Err(e) = res {
+            // We try to clear everything.
+            // If there was no data to begin with we encounter a `NotFound` error.
+            // There's no point in logging that.
+            if let ErrorKind::Rkv(StoreError::IoError(ioerr)) = e.kind() {
+                if let io::ErrorKind::NotFound = ioerr.kind() {
+                    log::debug!(
+                        "Could not clear store for lifetime {:?}: {:?}",
+                        lifetime,
+                        ioerr
+                    );
+                    return;
+                }
+            }
+
             log::warn!("Could not clear store for lifetime {:?}: {:?}", lifetime, e);
         }
     }
@@ -767,7 +799,6 @@ impl Database {
 mod test {
     use super::*;
     use crate::tests::new_glean;
-    use crate::CommonMetricData;
     use std::collections::HashMap;
     use std::path::Path;
     use tempfile::tempdir;
@@ -1351,7 +1382,7 @@ mod test {
         // Init the database in a temporary directory.
 
         let test_storage = "test-storage";
-        let test_data = CommonMetricData::new("category", "name", test_storage);
+        let test_data = CommonMetricDataInternal::new("category", "name", test_storage);
         let test_metric_id = test_data.identifier(&glean);
 
         // Attempt to record metric with the record and record_with functions,

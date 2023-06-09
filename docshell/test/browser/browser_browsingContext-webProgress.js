@@ -24,24 +24,24 @@ add_task(async function() {
   const onLocationChanged = waitForNextLocationChange(webProgress);
   const newLocation = "data:text/html;charset=utf-8,first-page";
   let loaded = BrowserTestUtils.browserLoaded(browser);
-  BrowserTestUtils.loadURI(browser, newLocation);
+  BrowserTestUtils.loadURIString(browser, newLocation);
   await loaded;
 
   const firstPageBrowsingContext = browser.browsingContext;
-  const isFissionAndBfcacheInParentEnabled =
-    SpecialPowers.useRemoteSubframes &&
+  const isBfcacheInParentEnabled =
+    SpecialPowers.Services.appinfo.sessionHistoryInParent &&
     SpecialPowers.Services.prefs.getBoolPref("fission.bfcacheInParent");
-  if (isFissionAndBfcacheInParentEnabled) {
+  if (isBfcacheInParentEnabled) {
     isnot(
       aboutBlankBrowsingContext,
       firstPageBrowsingContext,
-      "With fission and bfcache in parent, navigations spawn a new BrowsingContext"
+      "With bfcache in parent, navigations spawn a new BrowsingContext"
     );
   } else {
     is(
       aboutBlankBrowsingContext,
       firstPageBrowsingContext,
-      "Without fission or bfcache in parent, navigations reuse the same BrowsingContext"
+      "Without bfcache in parent, navigations reuse the same BrowsingContext"
     );
   }
 
@@ -109,21 +109,21 @@ add_task(async function() {
   // eslint-disable-next-line @microsoft/sdl/no-insecure-url
   const secondLocation = "http://example.com/document-builder.sjs?html=com";
   loaded = BrowserTestUtils.browserLoaded(browser);
-  BrowserTestUtils.loadURI(browser, secondLocation);
+  BrowserTestUtils.loadURIString(browser, secondLocation);
   await loaded;
 
   const secondPageBrowsingContext = browser.browsingContext;
-  if (isFissionAndBfcacheInParentEnabled) {
+  if (isBfcacheInParentEnabled) {
     isnot(
       firstPageBrowsingContext,
       secondPageBrowsingContext,
-      "With fission and bfcache in parent, navigations spawn a new BrowsingContext"
+      "With bfcache in parent, navigations spawn a new BrowsingContext"
     );
   } else {
     is(
       firstPageBrowsingContext,
       secondPageBrowsingContext,
-      "Without fission or bfcache in parent, navigations reuse the same BrowsingContext"
+      "Without bfcache in parent, navigations reuse the same BrowsingContext"
     );
   }
   {
@@ -212,6 +212,8 @@ function waitForNextLocationChange(webProgress, onlyTopLevel = false) {
         });
       },
     };
+    // Add a strong reference to the progress listener.
+    resolve.wpl = wpl;
     webProgress.addProgressListener(wpl, Ci.nsIWebProgress.NOTIFY_ALL);
   });
 }
@@ -233,6 +235,8 @@ function waitForNextDocumentStart(webProgress) {
         }
       },
     };
+    // Add a strong reference to the progress listener.
+    resolve.wpl = wpl;
     webProgress.addProgressListener(wpl, Ci.nsIWebProgress.NOTIFY_ALL);
   });
 }

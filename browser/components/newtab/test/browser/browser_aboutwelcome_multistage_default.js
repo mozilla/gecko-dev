@@ -1,12 +1,15 @@
 "use strict";
+const { SpecialMessageActions } = ChromeUtils.importESModule(
+  "resource://messaging-system/lib/SpecialMessageActions.sys.mjs"
+);
 
 const DID_SEE_ABOUT_WELCOME_PREF = "trailhead.firstrun.didSeeAboutWelcome";
 
-const TEST_PROTON_CONTENT = [
+const TEST_DEFAULT_CONTENT = [
   {
     id: "AW_STEP1",
     content: {
-      position: "corner",
+      position: "split",
       title: "Step 1",
       primary_button: {
         label: "Next",
@@ -24,7 +27,6 @@ const TEST_PROTON_CONTENT = [
           data: { entrypoint: "test" },
         },
       },
-      has_noodles: true,
       help_text: {
         text: "Here's some sample help text",
       },
@@ -33,6 +35,7 @@ const TEST_PROTON_CONTENT = [
   {
     id: "AW_STEP2",
     content: {
+      position: "center",
       title: "Step 2",
       primary_button: {
         label: "Next",
@@ -80,7 +83,6 @@ const TEST_PROTON_CONTENT = [
           data: { source: "chrome" },
         },
       },
-      has_noodles: true,
     },
   },
   {
@@ -97,17 +99,15 @@ const TEST_PROTON_CONTENT = [
       secondary_button: {
         label: "link",
       },
-      has_noodles: true,
     },
   },
 ];
 
-const TEST_PROTON_JSON = JSON.stringify(TEST_PROTON_CONTENT);
+const TEST_DEFAULT_JSON = JSON.stringify(TEST_DEFAULT_CONTENT);
 
 async function openAboutWelcome() {
-  await pushPrefs([MR_TEMPLATE_PREF, false]);
   await setAboutWelcomePref(true);
-  await setAboutWelcomeMultiStage(TEST_PROTON_JSON);
+  await setAboutWelcomeMultiStage(TEST_DEFAULT_JSON);
 
   let tab = await BrowserTestUtils.openNewForegroundTab(
     gBrowser,
@@ -121,9 +121,9 @@ async function openAboutWelcome() {
 }
 
 /**
- * Test the multistage welcome Proton UI
+ * Test the multistage welcome default UI
  */
-add_task(async function test_multistage_aboutwelcome_proton() {
+add_task(async function test_multistage_aboutwelcome_default() {
   const sandbox = sinon.createSandbox();
   let browser = await openAboutWelcome();
   let aboutWelcomeActor = await getAboutWelcomeParent(browser);
@@ -135,15 +135,16 @@ add_task(async function test_multistage_aboutwelcome_proton() {
 
   await test_screen_content(
     browser,
-    "multistage proton step 1",
+    "multistage step 1",
     // Expected selectors:
     [
       "main.AW_STEP1",
       "div.onboardingContainer",
-      "div.proton[style*='chrome://activity-stream/content/data/content/assets']",
       "div.section-secondary",
       "span.attrib-text",
       "div.secondary-cta.top",
+      "div.steps",
+      "div.indicator.current",
     ],
     // Unexpected selectors:
     [
@@ -151,18 +152,7 @@ add_task(async function test_multistage_aboutwelcome_proton() {
       "main.AW_STEP3",
       "main.dialog-initial",
       "main.dialog-last",
-      "div.indicator.current",
     ]
-  );
-
-  // Ensure step indicator is not displayed
-  await test_element_styles(
-    browser,
-    "div.steps",
-    // Expected styles:
-    {
-      display: "none",
-    }
   );
 
   await onButtonClick(browser, "button.primary");
@@ -179,21 +169,21 @@ add_task(async function test_multistage_aboutwelcome_proton() {
   }
 
   Assert.ok(
-    clickCall.args[1].message_id === "DEFAULT_ABOUTWELCOME_PROTON_0_AW_STEP1",
-    "AboutWelcome proton message id joined with screen id"
+    clickCall.args[1].message_id === "MR_WELCOME_DEFAULT_0_AW_STEP1",
+    "AboutWelcome MR message id joined with screen id"
   );
 
   await test_screen_content(
     browser,
-    "multistage proton step 2",
+    "multistage step 2",
     // Expected selectors:
     [
-      "main.AW_STEP2.dialog-initial",
+      "main.AW_STEP2",
       "div.onboardingContainer",
-      "div.proton[style*='chrome://activity-stream/content/data/content/assets']",
       "div.section-main",
       "div.steps",
       "div.indicator.current",
+      "main.with-noodles",
     ],
     // Unexpected selectors:
     [
@@ -211,12 +201,11 @@ add_task(async function test_multistage_aboutwelcome_proton() {
 
   await test_screen_content(
     browser,
-    "multistage proton step 3",
+    "multistage step 3",
     // Expected selectors:
     [
       "main.AW_STEP3",
       "div.onboardingContainer",
-      "div.proton[style*='chrome://activity-stream/content/data/content/assets']",
       "div.section-main",
       "div.tiles-theme-container",
       "div.steps",
@@ -228,6 +217,7 @@ add_task(async function test_multistage_aboutwelcome_proton() {
       "main.AW_STEP1",
       "div.section-secondary",
       "main.dialog-initial",
+      "main.with-noodles",
       "main.dialog-last",
     ]
   );
@@ -236,7 +226,7 @@ add_task(async function test_multistage_aboutwelcome_proton() {
 
   await test_screen_content(
     browser,
-    "multistage proton step 4",
+    "multistage step 4",
     // Expected selectors:
     [
       "main.AW_STEP4.screen-1",
@@ -293,12 +283,7 @@ add_task(async function test_AWMultistage_Primary_Action() {
   let browser = await openAboutWelcome();
   let aboutWelcomeActor = await getAboutWelcomeParent(browser);
   const sandbox = sinon.createSandbox();
-  // Stub AboutWelcomeParent Content Message Handler
-  sandbox
-    .stub(aboutWelcomeActor, "onContentMessage")
-    .resolves("")
-    .withArgs("AWPage:IMPORTABLE_SITES")
-    .resolves([]);
+  sandbox.spy(aboutWelcomeActor, "onContentMessage");
   registerCleanupFunction(() => {
     sandbox.restore();
   });
@@ -308,7 +293,6 @@ add_task(async function test_AWMultistage_Primary_Action() {
   ok(callCount >= 1, `${callCount} Stub was called`);
 
   let clickCall;
-  let impressionCall;
   let performanceCall;
   for (let i = 0; i < callCount; i++) {
     const call = aboutWelcomeActor.onContentMessage.getCall(i);
@@ -317,51 +301,11 @@ add_task(async function test_AWMultistage_Primary_Action() {
       clickCall = call;
     } else if (
       call.calledWithMatch("", {
-        event_context: { importable: sinon.match.number },
-      })
-    ) {
-      impressionCall = call;
-    } else if (
-      call.calledWithMatch("", {
         event_context: { mountStart: sinon.match.number },
       })
     ) {
       performanceCall = call;
     }
-  }
-
-  // For some builds, we can stub fast enough to catch the impression
-  if (impressionCall) {
-    Assert.equal(
-      impressionCall.args[0],
-      "AWPage:TELEMETRY_EVENT",
-      "send telemetry event"
-    );
-    Assert.equal(
-      impressionCall.args[1].event,
-      "IMPRESSION",
-      "impression event recorded in telemetry"
-    );
-    Assert.equal(
-      impressionCall.args[1].event_context.display,
-      "static",
-      "static sites display recorded in telemetry"
-    );
-    Assert.equal(
-      typeof impressionCall.args[1].event_context.importable,
-      "number",
-      "numeric importable sites recorded in telemetry"
-    );
-    Assert.equal(
-      impressionCall.args[1].message_id,
-      "DEFAULT_ABOUTWELCOME_PROTON_SITES",
-      "SITES MessageId sent in impression event telemetry"
-    );
-    Assert.equal(
-      impressionCall.args[1].event_context.page,
-      "about:welcome",
-      "event context page set to 'about:welcome'"
-    );
   }
 
   // For some builds, we can stub fast enough to catch the performance
@@ -393,7 +337,7 @@ add_task(async function test_AWMultistage_Primary_Action() {
     );
     Assert.equal(
       performanceCall.args[1].message_id,
-      "DEFAULT_ABOUTWELCOME_PROTON",
+      "MR_WELCOME_DEFAULT",
       "MessageId sent in performance event telemetry"
     );
   }
@@ -415,7 +359,7 @@ add_task(async function test_AWMultistage_Primary_Action() {
   );
   Assert.equal(
     clickCall.args[1].message_id,
-    "DEFAULT_ABOUTWELCOME_PROTON_0_AW_STEP1",
+    "MR_WELCOME_DEFAULT_0_AW_STEP1",
     "MessageId sent in click event telemetry"
   );
 });
@@ -426,11 +370,7 @@ add_task(async function test_AWMultistage_Secondary_Open_URL_Action() {
   let aboutWelcomeActor = await getAboutWelcomeParent(browser);
   const sandbox = sinon.createSandbox();
   // Stub AboutWelcomeParent Content Message Handler
-  sandbox
-    .stub(aboutWelcomeActor, "onContentMessage")
-    .resolves("")
-    .withArgs("AWPage:IMPORTABLE_SITES")
-    .resolves([]);
+  sandbox.stub(aboutWelcomeActor, "onContentMessage").resolves(null);
   registerCleanupFunction(() => {
     sandbox.restore();
   });
@@ -499,21 +439,18 @@ add_task(async function test_AWMultistage_Themes() {
   let aboutWelcomeActor = await getAboutWelcomeParent(browser);
 
   const sandbox = sinon.createSandbox();
-  // Stub AboutWelcomeParent Content Message Handler
-  sandbox
-    .stub(aboutWelcomeActor, "onContentMessage")
-    .resolves("")
-    .withArgs("AWPage:IMPORTABLE_SITES")
-    .resolves([]);
+  sandbox.spy(aboutWelcomeActor, "onContentMessage");
+
   registerCleanupFunction(() => {
     sandbox.restore();
   });
   await onButtonClick(browser, "button.primary");
+
   await test_screen_content(
     browser,
     "multistage proton step 2",
     // Expected selectors:
-    ["main.AW_STEP2.dialog-initial"],
+    ["main.AW_STEP2"],
     // Unexpected selectors:
     ["main.AW_STEP1"]
   );
@@ -655,19 +592,16 @@ add_task(async function test_AWMultistage_Import() {
     browser,
     "multistage proton step 2",
     // Expected selectors:
-    ["main.AW_STEP2.dialog-initial"],
+    ["main.AW_STEP2"],
     // Unexpected selectors:
     ["main.AW_STEP1"]
   );
   await onButtonClick(browser, "button.primary");
 
   const sandbox = sinon.createSandbox();
-  // Stub AboutWelcomeParent Content Message Handler
-  sandbox
-    .stub(aboutWelcomeActor, "onContentMessage")
-    .resolves("")
-    .withArgs("AWPage:IMPORTABLE_SITES")
-    .resolves([]);
+  sandbox.stub(SpecialMessageActions, "handleAction");
+  sandbox.spy(aboutWelcomeActor, "onContentMessage");
+
   registerCleanupFunction(() => {
     sandbox.restore();
   });
@@ -742,49 +676,56 @@ add_setup(async function() {
   });
 });
 
-// Test Fxaccounts MetricsFlowURI
-test_newtab(
-  {
-    async before({ pushPrefs }) {
-      await pushPrefs(["browser.aboutwelcome.enabled", true]);
-    },
-    test: async function test_startBrowsing() {
+add_task(async function test_FxA_metricsFlowURI() {
+  let browser = await openAboutWelcome();
+
+  await ContentTask.spawn(browser, {}, async () => {
+    Assert.ok(
       await ContentTaskUtils.waitForCondition(
         () => content.document.querySelector("div.onboardingContainer"),
         "Wait for about:welcome to load"
-      );
-    },
-    after() {
-      Assert.ok(
-        FxAccounts.config.promiseMetricsFlowURI.called,
-        "Stub was called"
-      );
-      Assert.equal(
-        FxAccounts.config.promiseMetricsFlowURI.firstCall.args[0],
-        "aboutwelcome",
-        "Called by AboutWelcomeParent"
-      );
-    },
-  },
-  "about:welcome"
-);
+      ),
+      "about:welcome loaded"
+    );
+  });
+
+  Assert.ok(FxAccounts.config.promiseMetricsFlowURI.called, "Stub was called");
+  Assert.equal(
+    FxAccounts.config.promiseMetricsFlowURI.firstCall.args[0],
+    "aboutwelcome",
+    "Called by AboutWelcomeParent"
+  );
+
+  SpecialPowers.popPrefEnv();
+});
 
 add_task(async function test_send_aboutwelcome_as_page_in_event_telemetry() {
   const sandbox = sinon.createSandbox();
   let browser = await openAboutWelcome();
   let aboutWelcomeActor = await getAboutWelcomeParent(browser);
-  // Stub AboutWelcomeParent Content Message Handler
-  let telemetryStub = sandbox.stub(aboutWelcomeActor, "onContentMessage");
+  sandbox.spy(aboutWelcomeActor, "onContentMessage");
 
   await onButtonClick(browser, "button.primary");
 
+  const { callCount } = aboutWelcomeActor.onContentMessage;
+  ok(callCount >= 1, `${callCount} Stub was called`);
+
+  let eventCall;
+  for (let i = 0; i < callCount; i++) {
+    const call = aboutWelcomeActor.onContentMessage.getCall(i);
+    info(`Call #${i}: ${call.args[0]} ${JSON.stringify(call.args[1])}`);
+    if (call.calledWithMatch("", { event: "CLICK_BUTTON" })) {
+      eventCall = call;
+    }
+  }
+
   Assert.equal(
-    telemetryStub.lastCall.args[1].event,
+    eventCall.args[1].event,
     "CLICK_BUTTON",
     "Event telemetry sent on primary button press"
   );
   Assert.equal(
-    telemetryStub.lastCall.args[1].event_context.page,
+    eventCall.args[1].event_context.page,
     "about:welcome",
     "Event context page set to 'about:welcome' in event telemetry"
   );

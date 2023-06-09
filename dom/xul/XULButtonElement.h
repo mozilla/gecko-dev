@@ -19,6 +19,7 @@ namespace mozilla::dom {
 
 class KeyboardEvent;
 class XULPopupElement;
+class XULMenuBarElement;
 class XULMenuParentElement;
 
 class XULButtonElement : public nsXULElement {
@@ -57,7 +58,7 @@ class XULButtonElement : public nsXULElement {
   void UnbindFromTree(bool aNullParent) override;
 
   MOZ_CAN_RUN_SCRIPT bool HandleKeyPress(KeyboardEvent& keyEvent);
-  MOZ_CAN_RUN_SCRIPT bool OpenedWithKey();
+  bool OpenedWithKey() const;
   // Called to execute our command handler.
   MOZ_CAN_RUN_SCRIPT void ExecuteMenu(WidgetEvent&);
   MOZ_CAN_RUN_SCRIPT void ExecuteMenu(Modifiers, int16_t aButton,
@@ -71,9 +72,9 @@ class XULButtonElement : public nsXULElement {
 
   nsChangeHint GetAttributeChangeHint(const nsAtom* aAttribute,
                                       int32_t aModType) const override;
-  nsresult AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
-                        const nsAttrValue* aValue, const nsAttrValue* aOldValue,
-                        nsIPrincipal* aSubjectPrincipal, bool aNotify) override;
+  void AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
+                    const nsAttrValue* aValue, const nsAttrValue* aOldValue,
+                    nsIPrincipal* aSubjectPrincipal, bool aNotify) override;
 
   NS_IMPL_FROMNODE_HELPER(XULButtonElement,
                           IsAnyOfXULElements(nsGkAtoms::checkbox,
@@ -93,8 +94,8 @@ class XULButtonElement : public nsXULElement {
   bool IsDisabled() const { return GetXULBoolAttr(nsGkAtoms::disabled); }
 
  private:
+  XULMenuBarElement* GetMenuBar() const;
   void Blurred();
-  nsMenuBarFrame* GetMenuBar(FlushType aFlushType);
   enum class MenuType {
     Checkbox,
     Radio,

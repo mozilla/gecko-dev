@@ -277,6 +277,7 @@ class GCRuntime {
     MOZ_ASSERT(JS::shadow::Zone::from(zone)->isAtomsZone());
     return zone;
   }
+  Zone* maybeSharedAtomsZone() { return sharedAtomsZone_; }
 
   [[nodiscard]] bool freezeSharedAtomsZone();
   void restoreSharedAtomsZone();
@@ -375,8 +376,9 @@ class GCRuntime {
   const void* addressOfBigIntNurseryCurrentEnd() {
     return nursery_.refNoCheck().addressOfCurrentBigIntEnd();
   }
-  uint32_t* addressOfNurseryAllocCount() {
-    return stats().addressOfAllocsSinceMinorGCNursery();
+
+  const void* addressOfLastBufferedWholeCell() {
+    return storeBuffer_.refNoCheck().addressOfLastBufferedWholeCell();
   }
 
 #ifdef JS_GC_ZEAL
@@ -408,6 +410,7 @@ class GCRuntime {
   // Internal public interface
   ZoneVector& zones() { return zones_.ref(); }
   gcstats::Statistics& stats() { return stats_.ref(); }
+  const gcstats::Statistics& stats() const { return stats_.ref(); }
   State state() const { return incrementalState; }
   bool isHeapCompacting() const { return state() == State::Compact; }
   bool isForegroundSweeping() const { return state() == State::Sweep; }
@@ -420,6 +423,7 @@ class GCRuntime {
   bool isWaitingOnBackgroundTask() const;
 
   void lockGC() { lock.lock(); }
+  bool tryLockGC() { return lock.tryLock(); }
   void unlockGC() { lock.unlock(); }
 
 #ifdef DEBUG
@@ -434,16 +438,17 @@ class GCRuntime {
   void disallowIncrementalGC() { incrementalAllowed = false; }
 
   void setIncrementalGCEnabled(bool enabled);
+
   bool isIncrementalGCEnabled() const { return incrementalGCEnabled; }
+  bool isPerZoneGCEnabled() const { return perZoneGCEnabled; }
+  bool isCompactingGCEnabled() const;
+  bool isParallelMarkingEnabled() const { return parallelMarkingEnabled; }
+
   bool isIncrementalGCInProgress() const {
     return state() != State::NotActive && !isVerifyPreBarriersEnabled();
   }
 
-  bool isPerZoneGCEnabled() const { return perZoneGCEnabled; }
-
   bool hasForegroundWork() const;
-
-  bool isCompactingGCEnabled() const;
 
   bool isShrinkingGC() const { return gcOptions() == JS::GCOptions::Shrink; }
 
@@ -596,7 +601,6 @@ class GCRuntime {
 
   // Queue memory memory to be freed on a background thread if possible.
   void queueUnusedLifoBlocksForFree(LifoAlloc* lifo);
-  void queueAllLifoBlocksForFree(LifoAlloc* lifo);
   void queueAllLifoBlocksForFreeAfterMinorGC(LifoAlloc* lifo);
   void queueBuffersForFreeAfterMinorGC(Nursery::BufferSet& buffers);
 
@@ -607,22 +611,18 @@ class GCRuntime {
   template <AllowGC allowGC>
   [[nodiscard]] bool checkAllocatorState(JSContext* cx, AllocKind kind);
   template <AllowGC allowGC>
-  JSObject* tryNewNurseryObject(JSContext* cx, size_t thingSize,
-                                size_t nDynamicSlots, const JSClass* clasp,
-                                AllocSite* site);
+  void* tryNewNurseryObject(JSContext* cx, size_t thingSize,
+                            const JSClass* clasp, AllocSite* site);
   template <AllowGC allowGC>
-  static JSObject* tryNewTenuredObject(JSContext* cx, AllocKind kind,
-                                       size_t thingSize, size_t nDynamicSlots);
+  static void* tryNewTenuredThing(JSContext* cx, AllocKind kind,
+                                  size_t thingSize);
   template <AllowGC allowGC>
-  static TenuredCell* tryNewTenuredThing(JSContext* cx, AllocKind kind,
-                                         size_t thingSize);
-  template <AllowGC allowGC>
-  Cell* tryNewNurseryStringCell(JSContext* cx, size_t thingSize,
+  void* tryNewNurseryStringCell(JSContext* cx, size_t thingSize,
                                 AllocKind kind);
   template <AllowGC allowGC>
-  JS::BigInt* tryNewNurseryBigInt(JSContext* cx, size_t thingSize,
-                                  AllocKind kind);
-  static TenuredCell* refillFreeListInGC(Zone* zone, AllocKind thingKind);
+  void* tryNewNurseryBigIntCell(JSContext* cx, size_t thingSize,
+                                AllocKind kind);
+  static void* refillFreeListInGC(Zone* zone, AllocKind thingKind);
 
   // Delayed marking.
   void delayMarkingChildren(gc::Cell* cell, MarkColor color);
@@ -662,6 +662,9 @@ class GCRuntime {
                                   AutoLockGC& lock);
   void resetParameter(JSGCParamKey key, AutoLockGC& lock);
   uint32_t getParameter(JSGCParamKey key, const AutoLockGC& lock);
+  bool setThreadParameter(JSGCParamKey key, uint32_t value, AutoLockGC& lock);
+  void resetThreadParameter(JSGCParamKey key, AutoLockGC& lock);
+  void updateThreadDataStructures(AutoLockGC& lock);
 
   JS::GCOptions gcOptions() const { return maybeGcOptions.ref().ref(); }
 
@@ -681,10 +684,11 @@ class GCRuntime {
 
   // Allocator internals
   [[nodiscard]] bool gcIfNeededAtAllocation(JSContext* cx);
-  template <typename T>
-  static void checkIncrementalZoneState(JSContext* cx, T* t);
-  static TenuredCell* refillFreeList(JSContext* cx, AllocKind thingKind);
+  static void* refillFreeList(JSContext* cx, AllocKind thingKind);
   void attemptLastDitchGC(JSContext* cx);
+#ifdef DEBUG
+  static void checkIncrementalZoneState(JSContext* cx, void* ptr);
+#endif
 
   /*
    * Return the list of chunks that can be released outside the GC lock.
@@ -792,6 +796,7 @@ class GCRuntime {
       SliceBudget& sliceBudget,
       ParallelMarking allowParallelMarking = SingleThreadedMarking,
       ShouldReportMarkTime reportTime = ReportMarkTime);
+  bool canMarkInParallel() const;
 
   bool hasMarkingWork(MarkColor color) const;
 
@@ -942,7 +947,7 @@ class GCRuntime {
 
   void maybeRequestGCAfterBackgroundTask(const AutoLockHelperThreadState& lock);
   void cancelRequestedGCAfterBackgroundTask();
-  void finishCollection();
+  void finishCollection(JS::GCReason reason);
   void maybeStopPretenuring();
   void checkGCStateNotInUse();
   IncrementalProgress joinBackgroundMarkTask();
@@ -1013,6 +1018,7 @@ class GCRuntime {
   MainThreadData<double> helperThreadRatio;
   MainThreadData<size_t> maxHelperThreads;
   MainThreadOrGCTaskData<size_t> helperThreadCount;
+  MainThreadData<size_t> markingThreadCount;
 
   // State used for managing atom mark bitmaps in each zone.
   AtomMarkingRuntime atomMarking;

@@ -25,11 +25,7 @@ assert "cell6" not in hazmap
 assert "<returnvalue>" in hazmap
 assert "this" in hazmap
 
-# All hazards should be in f(), loopy(), safevals(), method(), and refptr_test{1,3,4}()
 assert hazmap["cell2"].function == "Cell* f()"
-haz_functions = set(haz.function for haz in hazards)
-print(haz_functions)
-assert len(haz_functions) == 7
 
 # Check that the correct GC call is reported for each hazard. (cell3 has a
 # hazard from two different GC calls; it doesn't really matter which is
@@ -42,14 +38,16 @@ assert hazmap["cell3"].GCFunction in (
 returnval_hazards = set(
     haz.function for haz in hazards if haz.variable == "<returnvalue>"
 )
-assert returnval_hazards == set(
-    [
-        "Cell* f()",
-        "Cell* refptr_test1()",
-        "Cell* refptr_test3()",
-        "Cell* refptr_test4()",
-    ]
-)
+assert "Cell* f()" in returnval_hazards
+assert "Cell* refptr_test1()" in returnval_hazards
+assert "Cell* refptr_test2()" not in returnval_hazards
+assert "Cell* refptr_test3()" in returnval_hazards
+assert "Cell* refptr_test4()" in returnval_hazards
+assert "Cell* refptr_test5()" not in returnval_hazards
+assert "Cell* refptr_test6()" in returnval_hazards
+assert "Cell* refptr_test7()" in returnval_hazards
+assert "Cell* refptr_test8()" in returnval_hazards
+assert "Cell* refptr_test9()" not in returnval_hazards
 
 assert "container1" in hazmap
 assert "container2" not in hazmap
@@ -89,6 +87,7 @@ assert "unsafe15" in hazmap
 assert "safe16" not in hazmap
 assert "safe17" not in hazmap
 assert "safe18" not in hazmap
+assert "safe19" not in hazmap
 
 # method hazard.
 
@@ -99,3 +98,24 @@ for haz in hazards:
 methhaz = byfunc["int32 Subcell::method()"]
 assert "this" in methhaz
 assert methhaz["this"].type == "Subcell*"
+
+haz_functions = set(haz.function for haz in hazards)
+
+# RefPtr<T> tests.
+
+haz_functions = set(haz.function for haz in hazards)
+assert "Cell* refptr_test1()" in haz_functions
+assert "Cell* refptr_test2()" not in haz_functions
+assert "Cell* refptr_test3()" in haz_functions
+assert "Cell* refptr_test4()" in haz_functions
+assert "Cell* refptr_test5()" not in haz_functions
+assert "Cell* refptr_test6()" in haz_functions
+assert "Cell* refptr_test7()" in haz_functions
+assert "Cell* refptr_test8()" in haz_functions
+assert "Cell* refptr_test9()" not in haz_functions
+assert "Cell* refptr_test10()" in haz_functions
+
+# aggr_init tests.
+
+assert "void aggr_init_safe()" not in haz_functions
+assert "void aggr_init_unsafe()" in haz_functions

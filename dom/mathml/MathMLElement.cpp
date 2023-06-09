@@ -622,8 +622,6 @@ ElementState MathMLElement::IntrinsicState() const {
                                 : ElementState());
 }
 
-bool MathMLElement::IsNodeOfType(uint32_t aFlags) const { return false; }
-
 void MathMLElement::SetIncrementScriptLevel(bool aIncrementScriptLevel,
                                             bool aNotify) {
   if (aIncrementScriptLevel == mIncrementScriptLevel) return;
@@ -699,9 +697,8 @@ bool MathMLElement::IsEventAttributeNameInternal(nsAtom* aName) {
   return nsContentUtils::IsEventAttributeName(aName, EventNameType_HTML);
 }
 
-nsresult MathMLElement::BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
-                                      const nsAttrValueOrString* aValue,
-                                      bool aNotify) {
+void MathMLElement::BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
+                                  const nsAttrValue* aValue, bool aNotify) {
   if (aNamespaceID == kNameSpaceID_None) {
     if (!aValue && IsEventAttributeName(aName)) {
       if (EventListenerManager* manager = GetExistingListenerManager()) {
@@ -713,11 +710,11 @@ nsresult MathMLElement::BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
   return MathMLElementBase::BeforeSetAttr(aNamespaceID, aName, aValue, aNotify);
 }
 
-nsresult MathMLElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
-                                     const nsAttrValue* aValue,
-                                     const nsAttrValue* aOldValue,
-                                     nsIPrincipal* aSubjectPrincipal,
-                                     bool aNotify) {
+void MathMLElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                                 const nsAttrValue* aValue,
+                                 const nsAttrValue* aOldValue,
+                                 nsIPrincipal* aSubjectPrincipal,
+                                 bool aNotify) {
   // It is important that this be done after the attribute is set/unset.
   // We will need the updated attribute value because notifying the document
   // that content states have changed will call IntrinsicState, which will try

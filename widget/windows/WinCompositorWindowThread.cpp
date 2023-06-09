@@ -58,26 +58,40 @@ static LRESULT CALLBACK InputEventRejectingWindowProc(HWND window, UINT msg,
 }
 
 WinCompositorWindowThread::WinCompositorWindowThread(base::Thread* aThread)
-    : mThread(aThread) {}
-
-WinCompositorWindowThread::~WinCompositorWindowThread() { delete mThread; }
+    : mThread(aThread), mMonitor("WinCompositorWindowThread") {}
 
 /* static */
 WinCompositorWindowThread* WinCompositorWindowThread::Get() {
+  if (!sWinCompositorWindowThread ||
+      sWinCompositorWindowThread->mHasAttemptedShutdown) {
+    return nullptr;
+  }
   return sWinCompositorWindowThread;
 }
 
 /* static */
 void WinCompositorWindowThread::Start() {
   MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(!sWinCompositorWindowThread);
-
-  base::Thread* thread = new base::Thread("WinCompositor");
 
   base::Thread::Options options;
   // HWND requests ui thread.
   options.message_loop_type = MessageLoop::TYPE_UI;
 
+  if (sWinCompositorWindowThread) {
+    // Try to reuse the thread, which involves stopping and restarting it.
+    sWinCompositorWindowThread->mThread->Stop();
+    if (sWinCompositorWindowThread->mThread->StartWithOptions(options)) {
+      // Success!
+      sWinCompositorWindowThread->mHasAttemptedShutdown = false;
+      return;
+    }
+    // Restart failed, so null out our sWinCompositorWindowThread and
+    // try again with a new thread. This will cause the old singleton
+    // instance to be deallocated, which will destroy its mThread as well.
+    sWinCompositorWindowThread = nullptr;
+  }
+
+  base::Thread* thread = new base::Thread("WinCompositor");
   if (!thread->StartWithOptions(options)) {
     delete thread;
     return;
@@ -91,28 +105,55 @@ void WinCompositorWindowThread::ShutDown() {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(sWinCompositorWindowThread);
 
-  // Our shutdown task could hang. Since we're shutting down,
-  // that's not a critical problem. We set a reasonable amount
-  // of time to wait for shutdown, and if it succeeds within
-  // that time, we correctly stop our thread. If it times out,
-  // we just leak the memory and proceed.
-  static const PRIntervalTime TIMEOUT = PR_TicksPerSecond() * 2;
-  layers::SynchronousTask task("WinCompositorWindowThread");
-  RefPtr<Runnable> runnable = WrapRunnable(
-      RefPtr<WinCompositorWindowThread>(sWinCompositorWindowThread.get()),
-      &WinCompositorWindowThread::ShutDownTask, &task);
-  sWinCompositorWindowThread->Loop()->PostTask(runnable.forget());
-  nsresult rv = task.Wait(TIMEOUT);
-  if (rv == NS_OK) {
-    sWinCompositorWindowThread->mThread->Stop();
+  sWinCompositorWindowThread->mHasAttemptedShutdown = true;
+
+  // Our thread could hang while we're waiting for it to stop.
+  // Since we're shutting down, that's not a critical problem.
+  // We set a reasonable amount of time to wait for shutdown,
+  // and if it succeeds within that time, we correctly stop
+  // our thread by nulling out the refptr, which will cause it
+  // to be deallocated and join the thread. If it times out,
+  // we do nothing, which means that the thread will not be
+  // joined and sWinCompositorWindowThread memory will leak.
+  CVStatus status;
+  {
+    // It's important to hold the lock before posting the
+    // runnable. This ensures that the runnable can't begin
+    // until we've started our Wait, which prevents us from
+    // Waiting on a monitor that has already been notified.
+    MonitorAutoLock lock(sWinCompositorWindowThread->mMonitor);
+
+    static const TimeDuration TIMEOUT = TimeDuration::FromSeconds(2.0);
+    RefPtr<Runnable> runnable =
+        NewRunnableMethod("WinCompositorWindowThread::ShutDownTask",
+                          sWinCompositorWindowThread.get(),
+                          &WinCompositorWindowThread::ShutDownTask);
+    Loop()->PostTask(runnable.forget());
+
+    // Monitor uses SleepConditionVariableSRW, which can have
+    // spurious wakeups which are reported as timeouts, so we
+    // check timestamps to ensure that we've waited as long we
+    // intended to. If we wake early, we don't bother calculating
+    // a precise amount for the next wait; we just wait the same
+    // amount of time. This means timeout might happen after as
+    // much as 2x the TIMEOUT time.
+    TimeStamp timeStart = TimeStamp::NowLoRes();
+    do {
+      status = sWinCompositorWindowThread->mMonitor.Wait(TIMEOUT);
+    } while ((status == CVStatus::Timeout) &&
+             ((TimeStamp::NowLoRes() - timeStart) < TIMEOUT));
   }
 
-  sWinCompositorWindowThread = nullptr;
+  if (status == CVStatus::NoTimeout) {
+    sWinCompositorWindowThread = nullptr;
+  }
 }
 
-void WinCompositorWindowThread::ShutDownTask(layers::SynchronousTask* aTask) {
-  layers::AutoCompleteTask complete(aTask);
+void WinCompositorWindowThread::ShutDownTask() {
+  MonitorAutoLock lock(mMonitor);
+
   MOZ_ASSERT(IsInCompositorWindowThread());
+  mMonitor.NotifyAll();
 }
 
 /* static */

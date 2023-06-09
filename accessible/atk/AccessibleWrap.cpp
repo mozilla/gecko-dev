@@ -581,8 +581,8 @@ AtkRole getRoleCB(AtkObject* aAtkObj) {
   }
 #endif
 
-#define ROLE(geckoRole, stringRole, atkRole, macRole, macSubrole, msaaRole, \
-             ia2Role, androidClass, nameRule)                               \
+#define ROLE(geckoRole, stringRole, ariaRole, atkRole, macRole, macSubrole, \
+             msaaRole, ia2Role, androidClass, nameRule)                     \
   case roles::geckoRole:                                                    \
     aAtkObj->role = atkRole;                                                \
     break;
@@ -669,11 +669,13 @@ AtkAttributeSet* getAttributesCB(AtkObject* aAtkObj) {
 }
 
 const gchar* GetLocaleCB(AtkObject* aAtkObj) {
-  AccessibleWrap* accWrap = GetAccessibleWrap(aAtkObj);
-  if (!accWrap) return nullptr;
+  Accessible* acc = GetInternalObj(aAtkObj);
+  if (!acc) {
+    return nullptr;
+  }
 
   nsAutoString locale;
-  accWrap->Language(locale);
+  acc->Language(locale);
   return AccessibleWrap::ReturnString(locale);
 }
 

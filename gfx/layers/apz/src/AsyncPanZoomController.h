@@ -35,6 +35,8 @@
 #include "RecentEventsBuffer.h"  // for RecentEventsBuffer
 #include "SampledAPZCState.h"
 
+#include <iosfwd>
+
 namespace mozilla {
 
 namespace ipc {
@@ -146,6 +148,10 @@ struct PointerEventsConsumableFlags {
   bool mAllowedByTouchAction = false;
 
   bool IsConsumable() const { return mHasRoom && mAllowedByTouchAction; }
+  friend bool operator==(const PointerEventsConsumableFlags& aLhs,
+                         const PointerEventsConsumableFlags& aRhs);
+  friend std::ostream& operator<<(std::ostream& aOut,
+                                  const PointerEventsConsumableFlags& aFlags);
 };
 
 /**
@@ -364,7 +370,7 @@ class AsyncPanZoomController {
 
   nsEventStatus HandleDragEvent(const MouseInput& aEvent,
                                 const AsyncDragMetrics& aDragMetrics,
-                                CSSCoord aInitialThumbPos);
+                                OuterCSSCoord aInitialThumbPos);
 
   /**
    * Handler for events which should not be intercepted by the touch listener.
@@ -559,11 +565,11 @@ class AsyncPanZoomController {
 
   /**
    * Convert a point on the scrollbar from this APZC's ParentLayer coordinates
-   * to CSS coordinates relative to the beginning of the scroll track.
+   * to OuterCSS coordinates relative to the beginning of the scroll track.
    * Only the component in the direction of scrolling is returned.
    */
-  CSSCoord ConvertScrollbarPoint(const ParentLayerPoint& aScrollbarPoint,
-                                 const ScrollbarData& aThumbData) const;
+  OuterCSSCoord ConvertScrollbarPoint(const ParentLayerPoint& aScrollbarPoint,
+                                      const ScrollbarData& aThumbData) const;
 
   void NotifyMozMouseScrollEvent(const nsString& aString) const;
 
@@ -1184,12 +1190,11 @@ class AsyncPanZoomController {
       AsyncTransformConsumer aMode) const;
 
   /**
-   * Get the current scroll offset of the scrollable frame corresponding
-   * to this APZC, including the effects of any asynchronous panning, in
-   * CSS pixels.
+   * Get the current visual viewport of the scrollable frame corresponding
+   * to this APZC, including the effects of any asynchronous panning and
+   * zooming, in CSS pixels.
    */
-  CSSPoint GetCurrentAsyncScrollOffsetInCssPixels(
-      AsyncTransformConsumer aMode) const;
+  CSSRect GetCurrentAsyncVisualViewport(AsyncTransformConsumer aMode) const;
 
   /**
    * Return a visual effect that reflects this apzc's
@@ -1430,11 +1435,16 @@ class AsyncPanZoomController {
   PanZoomState SetStateNoContentControllerDispatch(PanZoomState aNewState);
 
   /**
-   * Helper to set the current state. Holds the monitor before actually setting
-   * it and fires content controller events based on state changes. Always set
-   * the state using this call, do not set it directly.
+   * Helper to set the current state. Holds mRecursiveMutex before actually
+   * setting it and fires content controller events based on state changes.
+   * Always set the state using this call, do not set it directly.
    */
   void SetState(PanZoomState aNewState);
+  /**
+   * Helper for getting the current state which acquires mRecursiveMutex
+   * before accessing the field.
+   */
+  PanZoomState GetState() const;
   /**
    * Fire content controller notifications about state changes, assuming no
    * StateChangeNotificationBlocker has been activated.
@@ -1759,6 +1769,11 @@ class AsyncPanZoomController {
   bool IsInOverscrollGutter(const ParentLayerPoint& aHitTestPoint) const;
 
   bool IsOverscrolled() const;
+
+  bool IsOverscrollAnimationRunning() const {
+    RecursiveMutexAutoLock lock(mRecursiveMutex);
+    return mState == OVERSCROLL_ANIMATION;
+  }
 
   // IsPhysicallyOverscrolled() checks whether the APZC is overscrolled
   // by an overscroll effect which applies a transform to the APZC's contents.

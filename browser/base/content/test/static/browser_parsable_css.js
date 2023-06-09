@@ -35,12 +35,12 @@ let whitelist = [
     isFromDevTools: false,
   },
   {
-    sourceName: /\b(xul|minimal-xul|html|mathml|ua|forms|svg|manageDialog|autocomplete-item-shared|formautofill)\.css$/i,
+    sourceName: /\b(scrollbars|xul|html|mathml|ua|forms|svg|manageDialog|autocomplete-item-shared|formautofill)\.css$/i,
     errorMessage: /Unknown property.*-moz-/i,
     isFromDevTools: false,
   },
   {
-    sourceName: /(minimal-xul|xul)\.css$/i,
+    sourceName: /(scrollbars|xul)\.css$/i,
     errorMessage: /Unknown pseudo-class.*-moz-/i,
     isFromDevTools: false,
   },
@@ -65,12 +65,6 @@ let whitelist = [
     errorMessage: /Unknown property ‘text-size-adjust’\. {2}Declaration dropped\./i,
     isFromDevTools: false,
   },
-  // PDF.js uses a property that is currently only supported in chrome.
-  {
-    sourceName: /web\/viewer\.css$/i,
-    errorMessage: /Unknown property ‘forced-color-adjust’\. {2}Declaration dropped\./i,
-    isFromDevTools: false,
-  },
   {
     sourceName: /overlay\.css$/i,
     errorMessage: /Unknown pseudo-class.*moz-native-anonymous/i,
@@ -91,7 +85,7 @@ if (!Services.prefs.getBoolPref("layout.css.color-mix.enabled")) {
 if (!Services.prefs.getBoolPref("layout.css.math-depth.enabled")) {
   // mathml.css UA sheet rule for math-depth.
   whitelist.push({
-    sourceName: /\b(minimal-xul|mathml)\.css$/i,
+    sourceName: /\b(scrollbars|mathml)\.css$/i,
     errorMessage: /Unknown property .*\bmath-depth\b/i,
     isFromDevTools: false,
   });
@@ -122,6 +116,15 @@ if (!Services.prefs.getBoolPref("layout.css.forced-colors.enabled")) {
   });
 }
 
+if (!Services.prefs.getBoolPref("layout.css.forced-color-adjust.enabled")) {
+  // PDF.js uses a property that is currently not enabled.
+  whitelist.push({
+    sourceName: /web\/viewer\.css$/i,
+    errorMessage: /Unknown property ‘forced-color-adjust’\. {2}Declaration dropped\./i,
+    isFromDevTools: false,
+  });
+}
+
 let propNameWhitelist = [
   // These custom properties are retrieved directly from CSSOM
   // in videocontrols.xml to get pre-defined style instead of computed
@@ -140,7 +143,6 @@ let propNameWhitelist = [
   // These variables are used in a shorthand, but the CSS parser deletes the values
   // when expanding the shorthands. See https://github.com/w3c/csswg-drafts/issues/2515
   { propName: "--bezier-diagonal-color", isFromDevTools: true },
-  { propName: "--bezier-grid-color", isFromDevTools: true },
 
   // This variable is used from CSS embedded in JS in adjustableTitle.js
   { propName: "--icon-url", isFromDevTools: false },
@@ -223,7 +225,7 @@ trackResourcePrefix("gre");
 trackResourcePrefix("app");
 
 function getBaseUriForChromeUri(chromeUri) {
-  let chromeFile = chromeUri + "gobbledygooknonexistentfile.reallynothere";
+  let chromeFile = chromeUri + "nonexistentfile.reallynothere";
   let uri = Services.io.newURI(chromeFile);
   let fileUri = gChromeReg.convertChromeURL(uri);
   return fileUri.resolve(".");
@@ -300,12 +302,16 @@ function neverMatches(mediaList) {
     android: ["(-moz-platform: android)"],
   };
   for (let platform in perPlatformMediaQueryMap) {
-    if (platform === AppConstants.platform) {
-      continue;
-    }
-    if (perPlatformMediaQueryMap[platform].includes(mediaList.mediaText)) {
-      // This query only matches on another platform that isn't ours.
-      return true;
+    const inThisPlatform = platform === AppConstants.platform;
+    for (const media of perPlatformMediaQueryMap[platform]) {
+      if (inThisPlatform && mediaList.mediaText == "not " + media) {
+        // This query can't match on this platform.
+        return true;
+      }
+      if (!inThisPlatform && mediaList.mediaText == media) {
+        // This query only matches on another platform that isn't ours.
+        return true;
+      }
     }
   }
   return false;

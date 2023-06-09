@@ -14,6 +14,7 @@ module.exports = {
       url:
         "https://firefox-source-docs.mozilla.org/code-quality/lint/linters/eslint-plugin-mozilla/use-returnValue.html",
     },
+    schema: [],
     type: "problem",
   },
 
@@ -31,10 +32,10 @@ module.exports = {
           return;
         }
 
-        context.report(
+        context.report({
           node,
-          `{Array/String}.${node.expression.callee.property.name} doesn't modify the instance in-place`
-        );
+          message: `{Array/String}.${node.expression.callee.property.name} doesn't modify the instance in-place`,
+        });
       },
     };
   },

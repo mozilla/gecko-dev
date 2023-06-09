@@ -197,7 +197,7 @@ HttpBaseChannel::HttpBaseChannel()
       mEncodedBodySize(0),
       mRequestContextID(0),
       mContentWindowId(0),
-      mTopBrowsingContextId(0),
+      mBrowserId(0),
       mAltDataLength(-1),
       mChannelId(0),
       mReqContentLength(0U),
@@ -392,7 +392,7 @@ nsresult HttpBaseChannel::Init(nsIURI* aURI, uint32_t aCaps,
     mProxyInfo = aProxyInfo;
   }
 
-  mCurrentThread = GetCurrentEventTarget();
+  mCurrentThread = GetCurrentSerialEventTarget();
   return rv;
 }
 
@@ -1683,14 +1683,14 @@ NS_IMETHODIMP HttpBaseChannel::GetTopLevelContentWindowId(uint64_t* aWindowId) {
   return NS_OK;
 }
 
-NS_IMETHODIMP HttpBaseChannel::SetTopBrowsingContextId(uint64_t aId) {
-  mTopBrowsingContextId = aId;
+NS_IMETHODIMP HttpBaseChannel::SetBrowserId(uint64_t aId) {
+  mBrowserId = aId;
   return NS_OK;
 }
 
-NS_IMETHODIMP HttpBaseChannel::GetTopBrowsingContextId(uint64_t* aId) {
-  EnsureTopBrowsingContextId();
-  *aId = mTopBrowsingContextId;
+NS_IMETHODIMP HttpBaseChannel::GetBrowserId(uint64_t* aId) {
+  EnsureBrowserId();
+  *aId = mBrowserId;
   return NS_OK;
 }
 
@@ -2227,13 +2227,21 @@ HttpBaseChannel::SetIsMainDocumentChannel(bool aValue) {
 
 NS_IMETHODIMP
 HttpBaseChannel::GetProtocolVersion(nsACString& aProtocolVersion) {
-  nsAutoCString protocol;
-  if (mSecurityInfo &&
-      NS_SUCCEEDED(mSecurityInfo->GetNegotiatedNPN(protocol)) &&
-      !protocol.IsEmpty()) {
-    // The negotiated protocol was not empty so we can use it.
-    aProtocolVersion = protocol;
-    return NS_OK;
+  // Try to use ALPN if available and if it is not for a proxy, i.e if an
+  // https proxy was not used or if https proxy was used but the connection to
+  // the origin server is also https. In the case, an https proxy was used and
+  // the connection to the origin server was http, mSecurityInfo will be from
+  // the proxy.
+  if (!mConnectionInfo || !mConnectionInfo->UsingHttpsProxy() ||
+      mConnectionInfo->EndToEndSSL()) {
+    nsAutoCString protocol;
+    if (mSecurityInfo &&
+        NS_SUCCEEDED(mSecurityInfo->GetNegotiatedNPN(protocol)) &&
+        !protocol.IsEmpty()) {
+      // The negotiated protocol was not empty so we can use it.
+      aProtocolVersion = protocol;
+      return NS_OK;
+    }
   }
 
   if (mResponseHead) {
@@ -2669,6 +2677,7 @@ nsresult HttpBaseChannel::ComputeCrossOriginOpenerPolicyMismatch() {
 }
 
 nsresult HttpBaseChannel::ProcessCrossOriginSecurityHeaders() {
+  StoreProcessCrossOriginSecurityHeadersCalled(true);
   nsresult rv = ProcessCrossOriginEmbedderPolicyHeader();
   if (NS_FAILED(rv)) {
     return rv;
@@ -2806,6 +2815,7 @@ nsresult EnsureMIMEOfScript(HttpBaseChannel* aChannel, nsIURI* aURI,
           Telemetry::LABELS_SCRIPT_BLOCK_INCORRECT_MIME_3::script_load);
       break;
     case nsIContentPolicy::TYPE_INTERNAL_WORKER:
+    case nsIContentPolicy::TYPE_INTERNAL_WORKER_STATIC_MODULE:
     case nsIContentPolicy::TYPE_INTERNAL_SHARED_WORKER:
       AccumulateCategorical(
           Telemetry::LABELS_SCRIPT_BLOCK_INCORRECT_MIME_3::worker_load);
@@ -2930,7 +2940,8 @@ nsresult EnsureMIMEOfScript(HttpBaseChannel* aChannel, nsIURI* aURI,
 
   // We restrict importScripts() in worker code to JavaScript MIME types.
   nsContentPolicyType internalType = aLoadInfo->InternalContentPolicyType();
-  if (internalType == nsIContentPolicy::TYPE_INTERNAL_WORKER_IMPORT_SCRIPTS) {
+  if (internalType == nsIContentPolicy::TYPE_INTERNAL_WORKER_IMPORT_SCRIPTS ||
+      internalType == nsIContentPolicy::TYPE_INTERNAL_WORKER_STATIC_MODULE) {
     ReportMimeTypeMismatch(aChannel, "BlockImportScriptsWithWrongMimeType",
                            aURI, contentType, Report::Error);
     return NS_ERROR_CORRUPTED_CONTENT;
@@ -3076,6 +3087,19 @@ bool HttpBaseChannel::ShouldBlockOpaqueResponse() const {
     }
   }
 
+  uint32_t httpsOnlyStatus = mLoadInfo->GetHttpsOnlyStatus();
+  if (httpsOnlyStatus & nsILoadInfo::HTTPS_ONLY_BYPASS_ORB) {
+    LOGORB("No block: HTTPS_ONLY_BYPASS_ORB");
+    return false;
+  }
+
+  bool isInDevToolsContext;
+  mLoadInfo->GetIsInDevToolsContext(&isInDevToolsContext);
+  if (isInDevToolsContext) {
+    LOGORB("No block: Request created by devtools");
+    return false;
+  }
+
   return true;
 }
 
@@ -3091,13 +3115,20 @@ HttpBaseChannel::PerformOpaqueResponseSafelistCheckBeforeSniff() {
   MOZ_ASSERT(XRE_IsParentProcess());
 
   if (!mCachedOpaqueResponseBlockingPref) {
-    return OpaqueResponse::Alllow;
+    return OpaqueResponse::Allow;
   }
 
   // https://whatpr.org/fetch/1442.html#http-fetch, step 6.4
   if (!ShouldBlockOpaqueResponse()) {
-    return OpaqueResponse::Alllow;
+    return OpaqueResponse::Allow;
   }
+
+  Telemetry::ScalarAdd(
+      Telemetry::ScalarID::
+          OPAQUE_RESPONSE_BLOCKING_CROSS_ORIGIN_OPAQUE_RESPONSE_COUNT,
+      1);
+
+  PROFILER_MARKER_TEXT("ORB safelist check", NETWORK, {}, "Before sniff"_ns);
 
   // https://whatpr.org/fetch/1442.html#orb-algorithm
   // Step 1
@@ -3115,22 +3146,25 @@ HttpBaseChannel::PerformOpaqueResponseSafelistCheckBeforeSniff() {
                                          nosniff)) {
     case OpaqueResponseBlockedReason::ALLOWED_SAFE_LISTED:
       // Step 3.1
-      return OpaqueResponse::Alllow;
+      return OpaqueResponse::Allow;
     case OpaqueResponseBlockedReason::BLOCKED_BLOCKLISTED_NEVER_SNIFFED:
       // Step 3.2
       LOGORB("Blocked: BLOCKED_BLOCKLISTED_NEVER_SNIFFED");
-      LogORBError(mLoadInfo, mURI);
+      LogORBError(
+          u"mimeType is an opaque-blocklisted-never-sniffed MIME type"_ns);
       return OpaqueResponse::Block;
     case OpaqueResponseBlockedReason::BLOCKED_206_AND_BLOCKLISTED:
       // Step 3.3
       LOGORB("Blocked: BLOCKED_206_AND_BLOCKEDLISTED");
-      LogORBError(mLoadInfo, mURI);
+      LogORBError(
+          u"response's status is 206 and mimeType is an opaque-blocklisted MIME type"_ns);
       return OpaqueResponse::Block;
     case OpaqueResponseBlockedReason::
         BLOCKED_NOSNIFF_AND_EITHER_BLOCKLISTED_OR_TEXTPLAIN:
       // Step 3.4
       LOGORB("Blocked: BLOCKED_NOSNIFF_AND_EITHER_BLOCKLISTED_OR_TEXTPLAIN");
-      LogORBError(mLoadInfo, mURI);
+      LogORBError(
+          u"nosniff is true and mimeType is an opaque-blocklisted MIME type or its essence is 'text/plain'"_ns);
       return OpaqueResponse::Block;
     default:
       break;
@@ -3145,7 +3179,7 @@ HttpBaseChannel::PerformOpaqueResponseSafelistCheckBeforeSniff() {
     bool isMediaInitialRequest;
     mLoadInfo->GetIsMediaInitialRequest(&isMediaInitialRequest);
     if (!isMediaInitialRequest) {
-      return OpaqueResponse::Alllow;
+      return OpaqueResponse::Allow;
     }
   }
 
@@ -3153,7 +3187,7 @@ HttpBaseChannel::PerformOpaqueResponseSafelistCheckBeforeSniff() {
   if (mResponseHead->Status() == 206 &&
       !IsFirstPartialResponse(*mResponseHead)) {
     LOGORB("Blocked: Is not a valid partial response given 0");
-    LogORBError(mLoadInfo, mURI);
+    LogORBError(u"response status is 206 and not first partial response"_ns);
     return OpaqueResponse::Block;
   }
 
@@ -3199,6 +3233,8 @@ HttpBaseChannel::PerformOpaqueResponseSafelistCheckBeforeSniff() {
 // * `OpaqueResponseBlocker::ValidateJavaScript`
 OpaqueResponse HttpBaseChannel::PerformOpaqueResponseSafelistCheckAfterSniff(
     const nsACString& aContentType, bool aNoSniff) {
+  PROFILER_MARKER_TEXT("ORB safelist check", NETWORK, {}, "After sniff"_ns);
+
   // https://whatpr.org/fetch/1442.html#orb-algorithm
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(mCachedOpaqueResponseBlockingPref);
@@ -3208,14 +3244,14 @@ OpaqueResponse HttpBaseChannel::PerformOpaqueResponseSafelistCheckAfterSniff(
   mLoadInfo->GetIsMediaRequest(&isMediaRequest);
   if (isMediaRequest) {
     LOGORB("Blocked: media request");
-    LogORBError(mLoadInfo, mURI);
+    LogORBError(u"after sniff: media request"_ns);
     return OpaqueResponse::Block;
   }
 
   // Step 11
   if (aNoSniff) {
     LOGORB("Blocked: nosniff");
-    LogORBError(mLoadInfo, mURI);
+    LogORBError(u"after sniff: nosniff is true"_ns);
     return OpaqueResponse::Block;
   }
 
@@ -3224,14 +3260,14 @@ OpaqueResponse HttpBaseChannel::PerformOpaqueResponseSafelistCheckAfterSniff(
       (mResponseHead->Status() < 200 || mResponseHead->Status() > 299)) {
     LOGORB("Blocked: status code (%d) is not allowed ",
            mResponseHead->Status());
-    LogORBError(mLoadInfo, mURI);
+    LogORBError(u"after sniff: status code is not in allowed range"_ns);
     return OpaqueResponse::Block;
   }
 
   // Step 13
   if (!mResponseHead || aContentType.IsEmpty()) {
     LOGORB("Allowed: mimeType is failure");
-    return OpaqueResponse::Alllow;
+    return OpaqueResponse::Allow;
   }
 
   // Step 14
@@ -3239,7 +3275,8 @@ OpaqueResponse HttpBaseChannel::PerformOpaqueResponseSafelistCheckAfterSniff(
       StringBeginsWith(aContentType, "video/"_ns) ||
       StringBeginsWith(aContentType, "audio/"_ns)) {
     LOGORB("Blocked: ContentType is image/video/audio");
-    LogORBError(mLoadInfo, mURI);
+    LogORBError(
+        u"after sniff: content-type declares image/video/audio, but sniffing fails"_ns);
     return OpaqueResponse::Block;
   }
 
@@ -3250,15 +3287,31 @@ bool HttpBaseChannel::NeedOpaqueResponseAllowedCheckAfterSniff() const {
   return mORB ? mORB->IsSniffing() : false;
 }
 
-void HttpBaseChannel::BlockOpaqueResponseAfterSniff() {
+void HttpBaseChannel::BlockOpaqueResponseAfterSniff(const nsAString& aReason) {
   MOZ_DIAGNOSTIC_ASSERT(mORB);
-  LogORBError(mLoadInfo, mURI);
+  LogORBError(aReason);
   mORB->BlockResponse(this, NS_ERROR_FAILURE);
 }
 
 void HttpBaseChannel::AllowOpaqueResponseAfterSniff() {
   MOZ_DIAGNOSTIC_ASSERT(mORB);
   mORB->AllowResponse();
+}
+
+void HttpBaseChannel::SetChannelBlockedByOpaqueResponse() {
+  mChannelBlockedByOpaqueResponse = true;
+
+  RefPtr<dom::BrowsingContext> browsingContext =
+      dom::BrowsingContext::GetCurrentTopByBrowserId(mBrowserId);
+  if (!browsingContext) {
+    return;
+  }
+
+  dom::WindowContext* windowContext = browsingContext->GetTopWindowContext();
+  if (windowContext) {
+    windowContext->Canonical()->SetShouldReportHasBlockedOpaqueResponse(
+        mLoadInfo->InternalContentPolicyType());
+  }
 }
 
 NS_IMETHODIMP
@@ -3962,6 +4015,10 @@ bool HttpBaseChannel::ShouldIntercept(nsIURI* aURI) {
   nsCOMPtr<nsINetworkInterceptController> controller;
   GetCallback(controller);
   bool shouldIntercept = false;
+
+  if (!StaticPrefs::dom_serviceWorkers_enabled()) {
+    return false;
+  }
 
   // We should never intercept internal redirects.  The ServiceWorker code
   // can trigger interntal redirects as the result of a FetchEvent.  If
@@ -4775,7 +4832,7 @@ nsresult HttpBaseChannel::SetupReplacementChannel(nsIURI* newURI,
 
   // When on the parent process, the channel can't attempt to get it itself.
   // When on the child process, it would be waste to query it again.
-  rv = httpChannel->SetTopBrowsingContextId(mTopBrowsingContextId);
+  rv = httpChannel->SetBrowserId(mBrowserId);
   MOZ_ASSERT(NS_SUCCEEDED(rv));
 
   // Not setting this flag would break carrying permissions down to the child
@@ -4891,7 +4948,40 @@ nsresult HttpBaseChannel::SetupReplacementChannel(nsIURI* newURI,
     MOZ_ASSERT(NS_SUCCEEDED(rv));
   }
 
+  // we need to strip Authentication headers for cross-origin requests
+  // Ref: https://fetch.spec.whatwg.org/#http-redirect-fetch
+  nsAutoCString authHeader;
+  if (StaticPrefs::network_http_redirect_stripAuthHeader() &&
+      NS_SUCCEEDED(
+          httpChannel->GetRequestHeader("Authorization"_ns, authHeader))) {
+    if (NS_ShouldRemoveAuthHeaderOnRedirect(static_cast<nsIChannel*>(this),
+                                            newChannel, redirectFlags)) {
+      rv = httpChannel->SetRequestHeader("Authorization"_ns, ""_ns, false);
+      MOZ_ASSERT(NS_SUCCEEDED(rv));
+    }
+  }
+
   return NS_OK;
+}
+
+// check whether the new channel is of same origin as the current channel
+bool HttpBaseChannel::IsNewChannelSameOrigin(nsIChannel* aNewChannel) {
+  bool isSameOrigin = false;
+  nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
+
+  if (!ssm) {
+    return false;
+  }
+
+  nsCOMPtr<nsIURI> newURI;
+  NS_GetFinalChannelURI(aNewChannel, getter_AddRefs(newURI));
+
+  nsresult rv = ssm->CheckSameOriginURI(newURI, mURI, false, false);
+  if (NS_SUCCEEDED(rv)) {
+    isSameOrigin = true;
+  }
+
+  return isSameOrigin;
 }
 
 bool HttpBaseChannel::ShouldTaintReplacementChannelOrigin(
@@ -4905,19 +4995,13 @@ bool HttpBaseChannel::ShouldTaintReplacementChannelOrigin(
     return false;
   }
 
-  nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
-  if (!ssm) {
-    return true;
-  }
-
-  nsCOMPtr<nsIURI> newURI;
-  NS_GetFinalChannelURI(aNewChannel, getter_AddRefs(newURI));
-  nsresult rv = ssm->CheckSameOriginURI(newURI, mURI, false, false);
-  if (NS_SUCCEEDED(rv)) {
+  // If new channel is not of same origin we need to taint unless
+  // mURI <-> mOriginalURI/LoadingPrincipal are same origin.
+  if (IsNewChannelSameOrigin(aNewChannel)) {
     return false;
   }
-  // If newURI <-> mURI are not same-origin we need to taint unless
-  // mURI <-> mOriginalURI/LoadingPrincipal are same origin.
+
+  nsresult rv;
 
   if (mLoadInfo->GetLoadingPrincipal()) {
     bool sameOrigin = false;
@@ -4928,6 +5012,11 @@ bool HttpBaseChannel::ShouldTaintReplacementChannelOrigin(
     return !sameOrigin;
   }
   if (!mOriginalURI) {
+    return true;
+  }
+
+  nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
+  if (!ssm) {
     return true;
   }
 
@@ -5554,16 +5643,16 @@ bool HttpBaseChannel::EnsureRequestContext() {
   return static_cast<bool>(mRequestContext);
 }
 
-void HttpBaseChannel::EnsureTopBrowsingContextId() {
-  if (mTopBrowsingContextId) {
+void HttpBaseChannel::EnsureBrowserId() {
+  if (mBrowserId) {
     return;
   }
 
   RefPtr<dom::BrowsingContext> bc;
   MOZ_ALWAYS_SUCCEEDS(mLoadInfo->GetBrowsingContext(getter_AddRefs(bc)));
 
-  if (bc && bc->Top()) {
-    mTopBrowsingContextId = bc->Top()->Id();
+  if (bc) {
+    mBrowserId = bc->GetBrowserId();
   }
 }
 
@@ -5976,6 +6065,31 @@ HttpBaseChannel::GetEarlyHintPreloaderId(uint64_t* aEarlyHintPreloaderId) {
   return NS_OK;
 }
 
+NS_IMETHODIMP
+HttpBaseChannel::SetClassicScriptHintCharset(
+    const nsAString& aClassicScriptHintCharset) {
+  mClassicScriptHintCharset = aClassicScriptHintCharset;
+  return NS_OK;
+}
+
+NS_IMETHODIMP HttpBaseChannel::GetClassicScriptHintCharset(
+    nsAString& aClassicScriptHintCharset) {
+  aClassicScriptHintCharset = mClassicScriptHintCharset;
+  return NS_OK;
+}
+
+NS_IMETHODIMP HttpBaseChannel::SetDocumentCharacterSet(
+    const nsAString& aDocumentCharacterSet) {
+  mDocumentCharacterSet = aDocumentCharacterSet;
+  return NS_OK;
+}
+
+NS_IMETHODIMP HttpBaseChannel::GetDocumentCharacterSet(
+    nsAString& aDocumentCharacterSet) {
+  aDocumentCharacterSet = mDocumentCharacterSet;
+  return NS_OK;
+}
+
 void HttpBaseChannel::SetConnectionInfo(nsHttpConnectionInfo* aCI) {
   mConnectionInfo = aCI ? aCI->Clone() : nullptr;
 }
@@ -5990,5 +6104,44 @@ HttpBaseChannel::GetIsProxyUsed(bool* aIsProxyUsed) {
   *aIsProxyUsed = LoadIsProxyUsed();
   return NS_OK;
 }
+
+void HttpBaseChannel::LogORBError(const nsAString& aReason) {
+  RefPtr<dom::Document> doc;
+  mLoadInfo->GetLoadingDocument(getter_AddRefs(doc));
+
+  nsAutoCString uri;
+  nsresult rv = nsContentUtils::AnonymizeURI(mURI, uri);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return;
+  }
+
+  uint64_t contentWindowId;
+  GetTopLevelContentWindowId(&contentWindowId);
+  if (contentWindowId) {
+    nsContentUtils::ReportToConsoleByWindowID(
+        u"A resource is blocked by OpaqueResponseBlocking, please check browser console for details."_ns,
+        nsIScriptError::warningFlag, "ORB"_ns, contentWindowId, mURI);
+  }
+
+  AutoTArray<nsString, 2> params;
+  params.AppendElement(NS_ConvertUTF8toUTF16(uri));
+  params.AppendElement(aReason);
+  nsContentUtils::ReportToConsole(nsIScriptError::warningFlag, "ORB"_ns, doc,
+                                  nsContentUtils::eNECKO_PROPERTIES,
+                                  "ResourceBlockedORB", params);
+}
+
+NS_IMETHODIMP HttpBaseChannel::SetEarlyHintLinkType(
+    uint32_t aEarlyHintLinkType) {
+  mEarlyHintLinkType = aEarlyHintLinkType;
+  return NS_OK;
+}
+
+NS_IMETHODIMP HttpBaseChannel::GetEarlyHintLinkType(
+    uint32_t* aEarlyHintLinkType) {
+  *aEarlyHintLinkType = mEarlyHintLinkType;
+  return NS_OK;
+}
+
 }  // namespace net
 }  // namespace mozilla

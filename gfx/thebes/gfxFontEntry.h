@@ -6,6 +6,7 @@
 #ifndef GFX_FONTENTRY_H
 #define GFX_FONTENTRY_H
 
+#include <limits>
 #include <math.h>
 #include <new>
 #include <utility>
@@ -181,8 +182,9 @@ class gfxFontEntry {
   bool IsItalic() const { return SlantStyle().Min().IsItalic(); }
   bool IsOblique() const { return SlantStyle().Min().IsOblique(); }
   bool IsUpright() const { return SlantStyle().Min().IsNormal(); }
-  inline bool SupportsItalic();
-  inline bool SupportsBold();  // defined below, because of RangeFlags use
+  inline bool SupportsItalic();  // defined below, because of RangeFlags use
+  inline bool SupportsBold();
+  inline bool MayUseSyntheticSlant();
   bool IgnoreGDEF() const { return mIgnoreGDEF; }
   bool IgnoreGSUB() const { return mIgnoreGSUB; }
 
@@ -452,6 +454,7 @@ class gfxFontEntry {
 
   bool HasBoldVariableWeight();
   bool HasItalicVariation();
+  bool HasSlantVariation();
   bool HasOpticalSize();
 
   void CheckForVariationAxes();
@@ -480,6 +483,14 @@ class gfxFontEntry {
   // Return the tracking (in font units) to be applied for the given size.
   // (This is a floating-point number because of possible interpolation.)
   float TrackingForCSSPx(float aSize) const;
+
+  mozilla::gfx::Rect GetFontExtents(float aFUnitScaleFactor) const {
+    // Flip the y-axis here to match the orientation of Gecko's coordinates.
+    return mozilla::gfx::Rect(float(mXMin) * aFUnitScaleFactor,
+                              float(-mYMax) * aFUnitScaleFactor,
+                              float(mXMax - mXMin) * aFUnitScaleFactor,
+                              float(mYMax - mYMin) * aFUnitScaleFactor);
+  }
 
   nsCString mName;
   nsCString mFamilyName;
@@ -552,7 +563,7 @@ class gfxFontEntry {
   // descriptors, it is treated as the initial value for font-matching (and
   // so that is what we record in the font entry), but when rendering the
   // range is NOT clamped.
-  enum class RangeFlags : uint8_t {
+  enum class RangeFlags : uint16_t {
     eNoFlags = 0,
     eAutoWeight = (1 << 0),
     eAutoStretch = (1 << 1),
@@ -564,16 +575,18 @@ class gfxFontEntry {
     eBoldVariableWeight = (1 << 3),
     // Whether the face has an 'ital' axis.
     eItalicVariation = (1 << 4),
+    // Whether the face has a 'slnt' axis.
+    eSlantVariation = (1 << 5),
 
     // Flags to record if the face uses a non-CSS-compatible scale
     // for weight and/or stretch, in which case we won't map the
     // properties to the variation axes (though they can still be
     // explicitly set using font-variation-settings).
-    eNonCSSWeight = (1 << 5),
-    eNonCSSStretch = (1 << 6),
+    eNonCSSWeight = (1 << 6),
+    eNonCSSStretch = (1 << 7),
 
     // Whether the font has an 'opsz' axis.
-    eOpticalSize = (1 << 7)
+    eOpticalSize = (1 << 8)
   };
   RangeFlags mRangeFlags = RangeFlags::eNoFlags;
 
@@ -717,6 +730,13 @@ class gfxFontEntry {
 
   uint16_t mNumTrakSizes = 0;
 
+  // Font extents in FUnits. (To be set from the 'head' table; default to
+  // "huge" to avoid any clipping if real extents not available.)
+  int16_t mXMin = std::numeric_limits<int16_t>::min();
+  int16_t mYMin = std::numeric_limits<int16_t>::min();
+  int16_t mXMax = std::numeric_limits<int16_t>::max();
+  int16_t mYMax = std::numeric_limits<int16_t>::max();
+
  private:
   /**
    * Font table hashtable, to support GetFontTable for harfbuzz.
@@ -829,6 +849,22 @@ inline bool gfxFontEntry::SupportsBold() {
   return Weight().Max().IsBold() ||
          ((mRangeFlags & RangeFlags::eAutoWeight) == RangeFlags::eAutoWeight &&
           HasBoldVariableWeight());
+}
+
+inline bool gfxFontEntry::MayUseSyntheticSlant() {
+  if (!IsUpright()) {
+    return false;  // The resource is already non-upright.
+  }
+  if (HasSlantVariation()) {
+    if (mRangeFlags & RangeFlags::eAutoSlantStyle) {
+      return false;
+    }
+    if (!SlantStyle().IsSingle()) {
+      return false;  // The resource has a 'slnt' axis, and has not been
+                     // clamped to just its upright setting.
+    }
+  }
+  return true;
 }
 
 // used when iterating over all fonts looking for a match for a given character

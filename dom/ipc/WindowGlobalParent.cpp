@@ -31,6 +31,7 @@
 #include "mozilla/ScopeExit.h"
 #include "mozilla/ServoCSSParser.h"
 #include "mozilla/ServoStyleSet.h"
+#include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/Variant.h"
@@ -1092,6 +1093,13 @@ void WindowGlobalParent::FinishAccumulatingPageUseCounters() {
             (" > reporting [%s]",
              nsContentUtils::TruncatedURLForDisplay(mDocumentURI).get()));
 
+    Maybe<nsCString> urlForLogging;
+    const bool dumpCounters = StaticPrefs::dom_use_counters_dump_page();
+    if (dumpCounters) {
+      urlForLogging.emplace(
+          nsContentUtils::TruncatedURLForDisplay(mDocumentURI));
+    }
+
     Telemetry::Accumulate(Telemetry::TOP_LEVEL_CONTENT_DOCUMENTS_DESTROYED, 1);
 
     for (int32_t c = 0; c < eUseCounter_Count; ++c) {
@@ -1102,8 +1110,10 @@ void WindowGlobalParent::FinishAccumulatingPageUseCounters() {
 
       auto id = static_cast<Telemetry::HistogramID>(
           Telemetry::HistogramFirstUseCounter + uc * 2 + 1);
-      MOZ_LOG(gUseCountersLog, LogLevel::Debug,
-              (" > %s\n", Telemetry::GetHistogramName(id)));
+      if (dumpCounters) {
+        printf_stderr("USE_COUNTER_PAGE: %s - %s\n",
+                      Telemetry::GetHistogramName(id), urlForLogging->get());
+      }
       Telemetry::Accumulate(id, 1);
     }
   } else {
@@ -1364,6 +1374,11 @@ IPCResult WindowGlobalParent::RecvDiscoverIdentityCredentialFromExternalSource(
 }
 
 void WindowGlobalParent::ActorDestroy(ActorDestroyReason aWhy) {
+  if (GetBrowsingContext()->IsTopContent()) {
+    Telemetry::Accumulate(Telemetry::ORB_DID_EVER_BLOCK_RESPONSE,
+                          mShouldReportHasBlockedOpaqueResponse);
+  }
+
   if (mPageUseCountersWindow) {
     mPageUseCountersWindow->FinishAccumulatingPageUseCounters();
     mPageUseCountersWindow = nullptr;
@@ -1443,7 +1458,6 @@ void WindowGlobalParent::ActorDestroy(ActorDestroyReason aWhy) {
 
         if (mDocumentURI && (net::SchemeIsHTTP(mDocumentURI) ||
                              net::SchemeIsHTTPS(mDocumentURI))) {
-          GetContentBlockingLog()->ReportOrigins();
           GetContentBlockingLog()->ReportEmailTrackingLog(DocumentPrincipal());
         }
       }
@@ -1548,6 +1562,21 @@ void WindowGlobalParent::ExitTopChromeDocumentFullscreen() {
       // This only clears the DOM fullscreen, will not exit from browser UI
       // fullscreen mode.
       Document::AsyncExitFullscreen(chromeDoc);
+    }
+  }
+}
+
+void WindowGlobalParent::SetShouldReportHasBlockedOpaqueResponse(
+    nsContentPolicyType aContentPolicy) {
+  // It's always okay to block TYPE_BEACON, TYPE_PING and TYPE_CSP_REPORT in
+  // the parent process because content processes can do nothing to their
+  // responses. Hence excluding them from the telemetry as blocking
+  // them have no webcompat concerns.
+  if (aContentPolicy != nsIContentPolicy::TYPE_BEACON &&
+      aContentPolicy != nsIContentPolicy::TYPE_PING &&
+      aContentPolicy != nsIContentPolicy::TYPE_CSP_REPORT) {
+    if (IsTop()) {
+      mShouldReportHasBlockedOpaqueResponse = true;
     }
   }
 }

@@ -3,15 +3,13 @@
 // and that at the end we're reset to the correct state.
 let enabledOnStartup = false;
 
-ChromeUtils.defineModuleGetter(
-  this,
-  "pktApi",
-  "chrome://pocket/content/pktApi.jsm"
+ChromeUtils.defineESModuleGetters(this, {
+  pktApi: "chrome://pocket/content/pktApi.sys.mjs",
+});
+
+const { sinon } = ChromeUtils.importESModule(
+  "resource://testing-common/Sinon.sys.mjs"
 );
-const { ContentTaskUtils } = ChromeUtils.importESModule(
-  "resource://testing-common/ContentTaskUtils.sys.mjs"
-);
-const { sinon } = ChromeUtils.import("resource://testing-common/Sinon.jsm");
 
 // PocketEnabled/Disabled promises return true if it was already
 // Enabled/Disabled, and false if it need to Enable/Disable.

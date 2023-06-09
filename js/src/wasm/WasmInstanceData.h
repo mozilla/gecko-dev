@@ -23,6 +23,8 @@
 
 #include "NamespaceImports.h"
 
+#include "gc/Allocator.h"
+#include "gc/Pretenuring.h"
 #include "js/Utility.h"
 #include "wasm/WasmInstance.h"
 #include "wasm/WasmTypeDecls.h"
@@ -39,6 +41,36 @@ struct ExportArg {
 };
 
 using ExportFuncPtr = int32_t (*)(ExportArg*, Instance*);
+
+// TypeDefInstanceData describes the runtime information associated with a
+// module's type definition. This is accessed directly from JIT code and the
+// Instance.
+
+struct TypeDefInstanceData {
+  TypeDefInstanceData()
+      : typeDef(nullptr),
+        superTypeVector(nullptr),
+        shape(nullptr),
+        clasp(nullptr),
+        allocKind(gc::AllocKind::LIMIT) {}
+
+  // The canonicalized pointer to this type definition. This is kept alive by
+  // the type context associated with the instance.
+  const wasm::TypeDef* typeDef;
+
+  // The supertype vector for this type definition.  This is also kept alive
+  // by the type context associated with the instance.
+  //
+  const wasm::SuperTypeVector* superTypeVector;
+
+  // The remaining fields are only meaningful for, and used by, structs and
+  // arrays.
+  GCPtr<Shape*> shape;
+  const JSClass* clasp;
+  // The allocation site for GC types. This is used for pre-tenuring.
+  gc::AllocSite allocSite;
+  gc::AllocKind allocKind;
+};
 
 // FuncImportInstanceData describes the region of wasm global memory allocated
 // in the instance's thread-local storage for a function import. This is
@@ -59,8 +91,8 @@ struct FuncImportInstanceData {
 
   // A GC pointer which keeps the callee alive and is used to recover import
   // values for lazy table initialization.
-  GCPtr<JSFunction*> fun;
-  static_assert(sizeof(GCPtr<JSFunction*>) == sizeof(void*), "for JIT access");
+  GCPtr<JSObject*> callable;
+  static_assert(sizeof(GCPtr<JSObject*>) == sizeof(void*), "for JIT access");
 };
 
 // TableInstanceData describes the region of wasm global memory allocated in the
@@ -75,6 +107,12 @@ struct TableInstanceData {
   // For tables of anyref this is null.
   // For tables of functions, this is a pointer to the array of code pointers.
   void* elements;
+};
+
+// TagInstanceData describes the instance state associated with a tag.
+
+struct TagInstanceData {
+  GCPtr<WasmTagObject*> object;
 };
 
 // Table element for TableRepr::Func which carries both the code pointer and

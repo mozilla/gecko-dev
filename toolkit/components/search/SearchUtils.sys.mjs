@@ -146,6 +146,7 @@ export var SearchUtils = {
     SUGGEST_JSON: "application/x-suggestions+json",
     SEARCH: "text/html",
     OPENSEARCH: "application/opensearchdescription+xml",
+    TRENDING_JSON: "application/x-trending+json",
   },
 
   ENGINES_URLS: {
@@ -327,7 +328,7 @@ export var SearchUtils = {
       name +
       disclaimer.replace(/\$appName/g, Services.appinfo.name);
 
-    let data = new TextEncoder("utf-8").encode(salt);
+    let data = new TextEncoder().encode(salt);
     let hasher = Cc["@mozilla.org/security/hash;1"].createInstance(
       Ci.nsICryptoHash
     );

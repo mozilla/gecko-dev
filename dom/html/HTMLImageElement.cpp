@@ -50,6 +50,7 @@
 #include "nsLayoutUtils.h"
 
 using namespace mozilla::net;
+using mozilla::Maybe;
 
 NS_IMPL_NS_NEW_HTML_ELEMENT(Image)
 
@@ -294,17 +295,14 @@ nsMapRuleToAttributesFunc HTMLImageElement::GetAttributeMappingFunction()
   return &MapAttributesIntoRule;
 }
 
-nsresult HTMLImageElement::BeforeSetAttr(int32_t aNameSpaceID, nsAtom* aName,
-                                         const nsAttrValueOrString* aValue,
-                                         bool aNotify) {
+void HTMLImageElement::BeforeSetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                                     const nsAttrValue* aValue, bool aNotify) {
   if (aNameSpaceID == kNameSpaceID_None && mForm &&
       (aName == nsGkAtoms::name || aName == nsGkAtoms::id)) {
     // remove the image from the hashtable as needed
-    nsAutoString tmp;
-    GetAttr(kNameSpaceID_None, aName, tmp);
-
-    if (!tmp.IsEmpty()) {
-      mForm->RemoveImageElementFromTable(this, tmp);
+    if (auto* old = GetParsedAttr(aName); old && !old->IsEmptyString()) {
+      mForm->RemoveImageElementFromTable(
+          this, nsDependentAtomString(old->GetAtomValue()));
     }
   }
 
@@ -312,11 +310,11 @@ nsresult HTMLImageElement::BeforeSetAttr(int32_t aNameSpaceID, nsAtom* aName,
                                              aNotify);
 }
 
-nsresult HTMLImageElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
-                                        const nsAttrValue* aValue,
-                                        const nsAttrValue* aOldValue,
-                                        nsIPrincipal* aMaybeScriptedPrincipal,
-                                        bool aNotify) {
+void HTMLImageElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                                    const nsAttrValue* aValue,
+                                    const nsAttrValue* aOldValue,
+                                    nsIPrincipal* aMaybeScriptedPrincipal,
+                                    bool aNotify) {
   if (aNameSpaceID != kNameSpaceID_None) {
     return nsGenericHTMLElement::AfterSetAttr(aNameSpaceID, aName, aValue,
                                               aOldValue,
@@ -425,9 +423,10 @@ nsresult HTMLImageElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
       aNameSpaceID, aName, aValue, aOldValue, aMaybeScriptedPrincipal, aNotify);
 }
 
-nsresult HTMLImageElement::OnAttrSetButNotChanged(
-    int32_t aNamespaceID, nsAtom* aName, const nsAttrValueOrString& aValue,
-    bool aNotify) {
+void HTMLImageElement::OnAttrSetButNotChanged(int32_t aNamespaceID,
+                                              nsAtom* aName,
+                                              const nsAttrValueOrString& aValue,
+                                              bool aNotify) {
   AfterMaybeChangeAttr(aNamespaceID, aName, aValue, nullptr, nullptr, aNotify);
   return nsGenericHTMLElement::OnAttrSetButNotChanged(aNamespaceID, aName,
                                                       aValue, aNotify);
@@ -810,8 +809,8 @@ void HTMLImageElement::ClearForm(bool aRemoveFromForm) {
 
   if (aRemoveFromForm) {
     nsAutoString nameVal, idVal;
-    GetAttr(kNameSpaceID_None, nsGkAtoms::name, nameVal);
-    GetAttr(kNameSpaceID_None, nsGkAtoms::id, idVal);
+    GetAttr(nsGkAtoms::name, nameVal);
+    GetAttr(nsGkAtoms::id, idVal);
 
     mForm->RemoveImageElement(this);
 

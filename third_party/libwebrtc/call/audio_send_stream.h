@@ -25,6 +25,7 @@
 #include "api/crypto/frame_encryptor_interface.h"
 #include "api/frame_transformer_interface.h"
 #include "api/rtp_parameters.h"
+#include "api/rtp_sender_setparameters_callback.h"
 #include "api/scoped_refptr.h"
 #include "call/audio_sender.h"
 #include "call/rtp_config.h"
@@ -47,6 +48,8 @@ class AudioSendStream : public AudioSender {
     // https://w3c.github.io/webrtc-stats/#dom-rtcoutboundrtpstreamstats-retransmittedbytessent
     uint64_t retransmitted_bytes_sent = 0;
     int32_t packets_sent = 0;
+    // https://w3c.github.io/webrtc-stats/#dom-rtcoutboundrtpstreamstats-totalpacketsenddelay
+    TimeDelta total_packet_send_delay = TimeDelta::Zero();
     // https://w3c.github.io/webrtc-stats/#dom-rtcoutboundrtpstreamstats-retransmittedpacketssent
     uint64_t retransmitted_packets_sent = 0;
     int32_t packets_lost = -1;
@@ -173,7 +176,8 @@ class AudioSendStream : public AudioSender {
   virtual const webrtc::AudioSendStream::Config& GetConfig() const = 0;
 
   // Reconfigure the stream according to the Configuration.
-  virtual void Reconfigure(const Config& config) = 0;
+  virtual void Reconfigure(const Config& config,
+                           SetParametersCallback callback) = 0;
 
   // Starts stream activity.
   // When a stream is active, it can receive, process and deliver packets.

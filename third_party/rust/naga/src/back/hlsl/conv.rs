@@ -40,12 +40,12 @@ impl crate::TypeInner {
         }
     }
 
-    pub(super) fn try_size_hlsl(
+    pub(super) fn size_hlsl(
         &self,
         types: &crate::UniqueArena<crate::Type>,
         constants: &crate::Arena<crate::Constant>,
-    ) -> Result<u32, crate::arena::BadHandle> {
-        Ok(match *self {
+    ) -> u32 {
+        match *self {
             Self::Matrix {
                 columns,
                 rows,
@@ -58,22 +58,20 @@ impl crate::TypeInner {
             Self::Array { base, size, stride } => {
                 let count = match size {
                     crate::ArraySize::Constant(handle) => {
-                        let constant = constants.try_get(handle)?;
-                        constant.to_array_length().unwrap_or(1)
+                        constants[handle].to_array_length().unwrap_or(1)
                     }
                     // A dynamically-sized array has to have at least one element
                     crate::ArraySize::Dynamic => 1,
                 };
-                let last_el_size = types[base].inner.try_size_hlsl(types, constants)?;
+                let last_el_size = types[base].inner.size_hlsl(types, constants);
                 ((count - 1) * stride) + last_el_size
             }
-            _ => self.try_size(constants)?,
-        })
+            _ => self.size(constants),
+        }
     }
 
     /// Used to generate the name of the wrapped type constructor
     pub(super) fn hlsl_type_id<'a>(
-        &self,
         base: crate::Handle<crate::Type>,
         types: &crate::UniqueArena<crate::Type>,
         constants: &crate::Arena<crate::Constant>,
@@ -103,7 +101,7 @@ impl crate::TypeInner {
             } => Cow::Owned(format!(
                 "array{}_{}_",
                 constants[size].to_array_length().unwrap(),
-                self.hlsl_type_id(base, types, constants, names)?
+                Self::hlsl_type_id(base, types, constants, names)?
             )),
             crate::TypeInner::Struct { .. } => {
                 Cow::Borrowed(&names[&crate::proc::NameKey::Type(base)])
@@ -117,14 +115,14 @@ impl crate::StorageFormat {
     pub(super) const fn to_hlsl_str(self) -> &'static str {
         match self {
             Self::R16Float => "float",
-            Self::R8Unorm => "unorm float",
-            Self::R8Snorm => "snorm float",
+            Self::R8Unorm | Self::R16Unorm => "unorm float",
+            Self::R8Snorm | Self::R16Snorm => "snorm float",
             Self::R8Uint | Self::R16Uint => "uint",
             Self::R8Sint | Self::R16Sint => "int",
 
             Self::Rg16Float => "float2",
-            Self::Rg8Unorm => "unorm float2",
-            Self::Rg8Snorm => "snorm float2",
+            Self::Rg8Unorm | Self::Rg16Unorm => "unorm float2",
+            Self::Rg8Snorm | Self::Rg16Snorm => "snorm float2",
 
             Self::Rg8Sint | Self::Rg16Sint => "int2",
             Self::Rg8Uint | Self::Rg16Uint => "uint2",
@@ -132,8 +130,8 @@ impl crate::StorageFormat {
             Self::Rg11b10Float => "float3",
 
             Self::Rgba16Float | Self::R32Float | Self::Rg32Float | Self::Rgba32Float => "float4",
-            Self::Rgba8Unorm | Self::Rgb10a2Unorm => "unorm float4",
-            Self::Rgba8Snorm => "snorm float4",
+            Self::Rgba8Unorm | Self::Rgba16Unorm | Self::Rgb10a2Unorm => "unorm float4",
+            Self::Rgba8Snorm | Self::Rgba16Snorm => "snorm float4",
 
             Self::Rgba8Uint
             | Self::Rgba16Uint
@@ -157,9 +155,6 @@ impl crate::BuiltIn {
             Self::ClipDistance => "SV_ClipDistance",
             Self::CullDistance => "SV_CullDistance",
             Self::InstanceIndex => "SV_InstanceID",
-            // based on this page https://docs.microsoft.com/en-us/windows/uwp/gaming/glsl-to-hlsl-reference#comparing-opengl-es-20-with-direct3d-11
-            // No meaning unless you target Direct3D 9
-            Self::PointSize => "PSIZE",
             Self::VertexIndex => "SV_VertexID",
             // fragment
             Self::FragDepth => "SV_Depth",
@@ -177,10 +172,10 @@ impl crate::BuiltIn {
             // in `Writer::write_expr`.
             Self::NumWorkGroups => "SV_GroupID",
             Self::BaseInstance | Self::BaseVertex | Self::WorkGroupSize => {
-                return Err(Error::Unimplemented(format!("builtin {:?}", self)))
+                return Err(Error::Unimplemented(format!("builtin {self:?}")))
             }
-            Self::ViewIndex => {
-                return Err(Error::Custom(format!("Unsupported builtin {:?}", self)))
+            Self::PointSize | Self::ViewIndex | Self::PointCoord => {
+                return Err(Error::Custom(format!("Unsupported builtin {self:?}")))
             }
         })
     }

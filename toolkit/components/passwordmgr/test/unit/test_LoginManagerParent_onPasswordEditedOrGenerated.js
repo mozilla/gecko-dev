@@ -4,12 +4,14 @@
 
 "use strict";
 
-const { sinon } = ChromeUtils.import("resource://testing-common/Sinon.jsm");
-const { LoginManagerParent } = ChromeUtils.import(
-  "resource://gre/modules/LoginManagerParent.jsm"
+const { sinon } = ChromeUtils.importESModule(
+  "resource://testing-common/Sinon.sys.mjs"
 );
-const { LoginManagerPrompter } = ChromeUtils.import(
-  "resource://gre/modules/LoginManagerPrompter.jsm"
+const { LoginManagerParent } = ChromeUtils.importESModule(
+  "resource://gre/modules/LoginManagerParent.sys.mjs"
+);
+const { LoginManagerPrompter } = ChromeUtils.importESModule(
+  "resource://gre/modules/LoginManagerPrompter.sys.mjs"
 );
 
 const { TestUtils } = ChromeUtils.importESModule(
@@ -103,7 +105,7 @@ async function stubGeneratedPasswordForBrowsingContextId(id) {
     `Checking BrowsingContext.get(${id}) stub`
   );
 
-  let generatedPassword = await LMP.getGeneratedPassword(id);
+  const generatedPassword = await LMP.getGeneratedPassword();
   notEqual(generatedPassword, null, "Check password was returned");
   equal(
     generatedPassword.length,

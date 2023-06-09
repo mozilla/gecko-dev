@@ -7,18 +7,16 @@
 
 "use strict";
 
-XPCOMUtils.defineLazyModuleGetters(this, {
-  CONTEXTUAL_SERVICES_PING_TYPES:
-    "resource:///modules/PartnerLinkAttribution.jsm",
+ChromeUtils.defineESModuleGetters(this, {
+  UrlbarProviderWeather: "resource:///modules/UrlbarProviderWeather.sys.mjs",
 });
-
-const { TELEMETRY_SCALARS } = UrlbarProviderQuickSuggest;
 
 const suggestion_type = "weather";
 const match_type = "firefox-suggest";
-const index = 0;
+const index = 1;
 const position = index + 1;
 
+const { TELEMETRY_SCALARS: WEATHER_SCALARS } = UrlbarProviderWeather;
 const { WEATHER_SUGGESTION: suggestion } = MerinoTestUtils;
 
 add_setup(async function() {
@@ -41,11 +39,12 @@ add_task(async function() {
   await doTelemetryTest({
     index,
     suggestion,
+    providerName: UrlbarProviderWeather.name,
     showSuggestion: async () => {
-      await SimpleTest.promiseFocus(window);
-      await UrlbarTestUtils.promisePopupOpen(window, () =>
-        document.getElementById("Browser:OpenLocation").doCommand()
-      );
+      await UrlbarTestUtils.promiseAutocompleteResultPopup({
+        window,
+        value: MerinoTestUtils.WEATHER_KEYWORD,
+      });
     },
     teardown: async () => {
       // Picking the block button sets this pref to false and disables weather
@@ -60,18 +59,10 @@ add_task(async function() {
         await fetchPromise;
       }
     },
-    // exposure
-    exposure: {
-      scalars: {
-        [TELEMETRY_SCALARS.EXPOSURE_WEATHER]: position,
-      },
-    },
     // impression-only
     impressionOnly: {
       scalars: {
-        [TELEMETRY_SCALARS.EXPOSURE_WEATHER]: position,
-        [TELEMETRY_SCALARS.IMPRESSION_NONSPONSORED]: position,
-        [TELEMETRY_SCALARS.IMPRESSION_WEATHER]: position,
+        [WEATHER_SCALARS.IMPRESSION]: position,
       },
       event: {
         category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
@@ -83,17 +74,13 @@ add_task(async function() {
           position: position.toString(),
         },
       },
-      ping: null,
     },
     selectables: {
       // click
       "urlbarView-row-inner": {
         scalars: {
-          [TELEMETRY_SCALARS.EXPOSURE_WEATHER]: position,
-          [TELEMETRY_SCALARS.IMPRESSION_NONSPONSORED]: position,
-          [TELEMETRY_SCALARS.IMPRESSION_WEATHER]: position,
-          [TELEMETRY_SCALARS.CLICK_NONSPONSORED]: position,
-          [TELEMETRY_SCALARS.CLICK_WEATHER]: position,
+          [WEATHER_SCALARS.IMPRESSION]: position,
+          [WEATHER_SCALARS.CLICK]: position,
         },
         event: {
           category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
@@ -105,16 +92,12 @@ add_task(async function() {
             position: position.toString(),
           },
         },
-        pings: [],
       },
       // block
       "urlbarView-button-block": {
         scalars: {
-          [TELEMETRY_SCALARS.EXPOSURE_WEATHER]: position,
-          [TELEMETRY_SCALARS.IMPRESSION_NONSPONSORED]: position,
-          [TELEMETRY_SCALARS.IMPRESSION_WEATHER]: position,
-          [TELEMETRY_SCALARS.BLOCK_NONSPONSORED]: position,
-          [TELEMETRY_SCALARS.BLOCK_WEATHER]: position,
+          [WEATHER_SCALARS.IMPRESSION]: position,
+          [WEATHER_SCALARS.BLOCK]: position,
         },
         event: {
           category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
@@ -126,16 +109,12 @@ add_task(async function() {
             position: position.toString(),
           },
         },
-        pings: [],
       },
       // help
       "urlbarView-button-help": {
         scalars: {
-          [TELEMETRY_SCALARS.EXPOSURE_WEATHER]: position,
-          [TELEMETRY_SCALARS.IMPRESSION_NONSPONSORED]: position,
-          [TELEMETRY_SCALARS.IMPRESSION_WEATHER]: position,
-          [TELEMETRY_SCALARS.HELP_NONSPONSORED]: position,
-          [TELEMETRY_SCALARS.HELP_WEATHER]: position,
+          [WEATHER_SCALARS.IMPRESSION]: position,
+          [WEATHER_SCALARS.HELP]: position,
         },
         event: {
           category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
@@ -147,7 +126,6 @@ add_task(async function() {
             position: position.toString(),
           },
         },
-        pings: [],
       },
     },
   });

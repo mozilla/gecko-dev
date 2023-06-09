@@ -64,31 +64,6 @@ cfr-doorhanger-extension-total-users =
      *[other] { $total } users
   }
 
-## Cookie Banner Handling Onboarding
-
-# Simplified version of the headline if the original text doesn't work
-# in your language: `See fewer cookie requests`.
-cfr-cookie-banner-handling-header = Cookie banners begone!
-cfr-cookie-banner-handling-body = Allow { -brand-short-name } to automatically reject all cookie banner requests, when possible. Otherwise, all cookies will be accepted to dismiss even more banners.
-cfr-cookie-banner-accept-button = Dismiss Requests
-  .accesskey = D
-cfr-cookie-banner-reject-button = Not Now
-  .accesskey = N
-
-cfr-cookie-banner-handling-header-variant-1 = See fewer cookie pop-ups
-cfr-cookie-banner-handling-body-variant-1 = Let { -brand-short-name } automatically answer cookie pop-ups for you so you can get back to distraction-free browsing. { -brand-short-name } will reject all requests if possible, or accept all if not.
-cfr-cookie-banner-accept-button-variant-1 = Dismiss Pop-ups
-  .accesskey = D
-cfr-cookie-banner-reject-button-variant-1 = No thanks
-  .accesskey = N
-
-cfr-cookie-banner-handling-header-variant-2 = Cookie Banner Reduction
-cfr-cookie-banner-handling-body-variant-2 = Allow { -brand-short-name } to decline a site’s cookie consent request if possible or accept cookie access when not possible?
-cfr-cookie-banner-accept-button-variant-2 = Allow
-  .accesskey = A
-cfr-cookie-banner-reject-button-variant-2 = Not now
-  .accesskey = N
-
 ## Firefox Accounts Message
 
 cfr-doorhanger-bookmark-fxa-header = Sync your bookmarks everywhere.
@@ -139,28 +114,12 @@ cfr-doorhanger-doh-primary-button-2 = Okay
 cfr-doorhanger-doh-secondary-button = Disable
   .accesskey = D
 
-## Fission Experiment Message
-
-cfr-doorhanger-fission-body-approved = Your privacy matters. { -brand-short-name } now isolates, or sandboxes, websites from each other, which makes it harder for hackers to steal passwords, credit card numbers, and other sensitive information.
-cfr-doorhanger-fission-header = Site Isolation
-cfr-doorhanger-fission-primary-button = OK, Got it
-  .accesskey = O
-cfr-doorhanger-fission-secondary-button = Learn more
-  .accesskey = L
-
 ## Full Video Support CFR message
 
 cfr-doorhanger-video-support-body = Videos on this site may not play correctly on this version of { -brand-short-name }. For full video support, update { -brand-short-name } now.
 cfr-doorhanger-video-support-header = Update { -brand-short-name } to play video
 cfr-doorhanger-video-support-primary-button = Update Now
   .accesskey = U
-
-## Spotlight modal shared strings
-
-spotlight-learn-more-collapsed = Learn more
-  .title = Expand to learn more about the feature
-spotlight-learn-more-expanded = Learn more
-  .title = Close
 
 ## VPN promotion dialog for public Wi-Fi users
 ##
@@ -246,8 +205,45 @@ colorways-cfr-header-14days = Independent Voices colorways expire in two weeks
 colorways-cfr-header-7days =  Independent Voices colorways expire this week
 colorways-cfr-header-today = Independent Voices colorways expire today
 
+## Cookie Banner Handling CFR
+
+cfr-cbh-header = Allow { -brand-short-name } to reject cookie banners?
+cfr-cbh-body = { -brand-short-name } can automatically reject many cookie banner requests.
+cfr-cbh-confirm-button = Reject cookie banners
+  .accesskey = R
+cfr-cbh-dismiss-button = Not now
+  .accesskey = N
+
 ## These strings are used in the Fox doodle Pin/set default spotlights
 
 july-jam-headline = We’ve got you covered
 july-jam-body = Every month, { -brand-short-name } blocks an average of 3,000+ trackers per user, giving you safe, speedy access to the good internet.
 july-jam-set-default-primary = Open my links with { -brand-short-name }
+fox-doodle-pin-headline = Welcome back
+
+# “indie” is short for the term “independent”.
+# In this instance, free from outside influence or control.
+fox-doodle-pin-body = Here’s a quick reminder that you can keep your favorite indie browser just one click away.
+fox-doodle-pin-primary = Open my links with { -brand-short-name }
+fox-doodle-pin-secondary = Not now
+
+## These strings are used in the Set Firefox as Default PDF Handler for Existing Users experiment
+
+set-default-pdf-handler-headline = <strong>Your PDFs now open in { -brand-short-name }.</strong> Edit or sign forms directly in your browser. To change, search “PDF” in settings.
+set-default-pdf-handler-primary = Got it
+
+## FxA sync CFR
+
+fxa-sync-cfr-header = New device in your future?
+fxa-sync-cfr-body = Make sure your latest bookmarks, passwords, and tabs come with you any time you open a new { -brand-product-name } browser.
+fxa-sync-cfr-primary = Learn more
+  .accesskey = L
+fxa-sync-cfr-secondary = Remind me later
+  .accesskey = R
+
+## Device Migration FxA Spotlight
+
+device-migration-fxa-spotlight-header = Using an older device?
+device-migration-fxa-spotlight-body = Back up your data to make sure you don’t lose important info like bookmarks and passwords –– especially if you switch to a new device.
+device-migration-fxa-spotlight-primary-button = How to back up my data
+device-migration-fxa-spotlight-link = Remind me later

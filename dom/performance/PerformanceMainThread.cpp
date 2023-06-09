@@ -91,12 +91,10 @@ NS_INTERFACE_MAP_END_INHERITING(Performance)
 PerformanceMainThread::PerformanceMainThread(nsPIDOMWindowInner* aWindow,
                                              nsDOMNavigationTiming* aDOMTiming,
                                              nsITimedChannel* aChannel)
-    : Performance(aWindow),
+    : Performance(aWindow->AsGlobal()),
       mDOMTiming(aDOMTiming),
-      mChannel(aChannel),
-      mCrossOriginIsolated(aWindow->AsGlobal()->CrossOriginIsolated()) {
+      mChannel(aChannel) {
   MOZ_ASSERT(aWindow, "Parent window object should be provided");
-  mRTPCallerType = aWindow->AsGlobal()->GetRTPCallerType();
   if (StaticPrefs::dom_enable_event_timing()) {
     mEventCounts = new class EventCounts(GetParentObject());
   }
@@ -411,8 +409,7 @@ DOMHighResTimeStamp PerformanceMainThread::CreationTime() const {
 void PerformanceMainThread::CreateNavigationTimingEntry() {
   MOZ_ASSERT(!mDocEntry, "mDocEntry should be null.");
 
-  if (!StaticPrefs::dom_enable_performance_navigation_timing() ||
-      StaticPrefs::privacy_resistFingerprinting()) {
+  if (!StaticPrefs::dom_enable_performance_navigation_timing()) {
     return;
   }
 
@@ -452,10 +449,6 @@ void PerformanceMainThread::QueueNavigationTimingEntry() {
   QueueEntry(mDocEntry);
 }
 
-bool PerformanceMainThread::CrossOriginIsolated() const {
-  return mCrossOriginIsolated;
-}
-
 EventCounts* PerformanceMainThread::EventCounts() {
   MOZ_ASSERT(StaticPrefs::dom_enable_event_timing());
   return mEventCounts;
@@ -463,12 +456,6 @@ EventCounts* PerformanceMainThread::EventCounts() {
 
 void PerformanceMainThread::GetEntries(
     nsTArray<RefPtr<PerformanceEntry>>& aRetval) {
-  // We return an empty list when 'privacy.resistFingerprinting' is on.
-  if (nsContentUtils::ShouldResistFingerprinting()) {
-    aRetval.Clear();
-    return;
-  }
-
   aRetval = mResourceEntries.Clone();
   aRetval.AppendElements(mUserEntries);
 
@@ -484,12 +471,6 @@ void PerformanceMainThread::GetEntries(
 
 void PerformanceMainThread::GetEntriesByType(
     const nsAString& aEntryType, nsTArray<RefPtr<PerformanceEntry>>& aRetval) {
-  // We return an empty list when 'privacy.resistFingerprinting' is on.
-  if (nsContentUtils::ShouldResistFingerprinting()) {
-    aRetval.Clear();
-    return;
-  }
-
   RefPtr<nsAtom> type = NS_Atomize(aEntryType);
   if (type == nsGkAtoms::navigation) {
     aRetval.Clear();
@@ -526,12 +507,6 @@ void PerformanceMainThread::GetEntriesByTypeForObserver(
 void PerformanceMainThread::GetEntriesByName(
     const nsAString& aName, const Optional<nsAString>& aEntryType,
     nsTArray<RefPtr<PerformanceEntry>>& aRetval) {
-  // We return an empty list when 'privacy.resistFingerprinting' is on.
-  if (nsContentUtils::ShouldResistFingerprinting()) {
-    aRetval.Clear();
-    return;
-  }
-
   Performance::GetEntriesByName(aName, aEntryType, aRetval);
 
   if (mFCPTiming && mFCPTiming->GetName()->Equals(aName) &&

@@ -510,7 +510,7 @@ class RefTest(object):
 
         # Enable tracing output for detailed failures in case of
         # failing connection attempts, and hangs (bug 1397201)
-        prefs["marionette.log.level"] = "Trace"
+        prefs["remote.log.level"] = "Trace"
 
         # Third, set preferences passed in via the command line.
         for v in options.extraPrefs:
@@ -809,7 +809,7 @@ class RefTest(object):
             "%s | application timed out after %d seconds with no output"
             % (self.lastTestSeen, int(timeout))
         )
-        self.log.error("Force-terminating active process(es).")
+        self.log.warning("Force-terminating active process(es).")
         self.killAndGetStack(
             proc, utilityPath, debuggerInfo, dump_screen=not debuggerInfo
         )

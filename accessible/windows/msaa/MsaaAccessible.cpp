@@ -29,6 +29,11 @@
 #include "sdnAccessible.h"
 #include "sdnTextAccessible.h"
 #include "HyperTextAccessible-inl.h"
+#include "ServiceProvider.h"
+#include "Statistics.h"
+#include "GeckoCustom.h"
+#include "ARIAMap.h"
+#include "mozilla/PresShell.h"
 
 using namespace mozilla;
 using namespace mozilla::a11y;
@@ -53,8 +58,8 @@ MsaaAccessible* MsaaAccessible::Create(Accessible* aAcc) {
   // The order of some of these is important! For example, when isRoot is true,
   // IsDoc will also be true, so we must check IsRoot first. IsTable/Cell and
   // IsHyperText are a similar case.
-  LocalAccessible* localAcc = aAcc->AsLocal();
-  if (localAcc && aAcc->IsRoot()) {
+  if (aAcc->IsRoot()) {
+    MOZ_ASSERT(aAcc->IsLocal());
     return new MsaaRootAccessible(aAcc);
   }
   if (aAcc->IsDoc()) {
@@ -66,14 +71,14 @@ MsaaAccessible* MsaaAccessible::Create(Accessible* aAcc) {
   if (aAcc->IsTableCell()) {
     return new ia2AccessibleTableCell(aAcc);
   }
-  if (localAcc) {
-    // XXX These classes don't support RemoteAccessible yet.
-    if (aAcc->IsApplication()) {
-      return new ia2AccessibleApplication(aAcc);
-    }
-    if (aAcc->IsImage()) {
-      return new ia2AccessibleImage(aAcc);
-    }
+  if (aAcc->IsApplication()) {
+    MOZ_ASSERT(aAcc->IsLocal());
+    return new ia2AccessibleApplication(aAcc);
+  }
+  if (aAcc->IsImage()) {
+    return new ia2AccessibleImage(aAcc);
+  }
+  if (LocalAccessible* localAcc = aAcc->AsLocal()) {
     if (localAcc->GetContent() &&
         localAcc->GetContent()->IsXULElement(nsGkAtoms::menuitem)) {
       return new MsaaXULMenuitemAccessible(aAcc);
@@ -674,10 +679,16 @@ static bool VisitDocAccessibleParentDescendantsAtTopLevelInContentProcess(
     dom::BrowserParent* aBrowser, Callback aCallback) {
   // We can't use BrowserBridgeParent::VisitAllDescendants because it doesn't
   // provide a way to stop the search.
-  const auto& bridges = aBrowser->ManagedPBrowserBridgeParent();
-  return std::all_of(bridges.cbegin(), bridges.cend(), [&](const auto& key) {
-    auto* bridge = static_cast<dom::BrowserBridgeParent*>(key);
-    dom::BrowserParent* childBrowser = bridge->GetBrowserParent();
+  const auto& rawBridges = aBrowser->ManagedPBrowserBridgeParent();
+  nsTArray<RefPtr<dom::BrowserBridgeParent>> bridges(rawBridges.Count());
+  for (const auto bridge : rawBridges) {
+    bridges.AppendElement(static_cast<dom::BrowserBridgeParent*>(bridge));
+  }
+  return std::all_of(bridges.cbegin(), bridges.cend(), [&](const auto& bridge) {
+    RefPtr<dom::BrowserParent> childBrowser = bridge->GetBrowserParent();
+    if (!childBrowser) {
+      return true;
+    }
     DocAccessibleParent* childDocAcc = childBrowser->GetTopLevelDocAccessible();
     if (!childDocAcc || childDocAcc->IsShutdown()) {
       return true;
@@ -1093,10 +1104,10 @@ MsaaAccessible::get_accRole(
 
   uint32_t msaaRole = 0;
 
-#define ROLE(_geckoRole, stringRole, atkRole, macRole, macSubrole, _msaaRole, \
-             ia2Role, androidClass, nameRule)                                 \
-  case roles::_geckoRole:                                                     \
-    msaaRole = _msaaRole;                                                     \
+#define ROLE(_geckoRole, stringRole, ariaRole, atkRole, macRole, macSubrole, \
+             _msaaRole, ia2Role, androidClass, nameRule)                     \
+  case roles::_geckoRole:                                                    \
+    msaaRole = _msaaRole;                                                    \
     break;
 
   switch (geckoRole) {

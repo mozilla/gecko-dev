@@ -32,7 +32,7 @@ interface FrameLoader {
    * frames, a shim is returned that contains private browsing and app
    * information.
    */
-  readonly attribute LoadContext loadContext;
+  readonly attribute LoadContext? loadContext;
 
   /**
    * Get the root BrowsingContext within the frame.
@@ -228,6 +228,16 @@ dictionary PrintPreviewSuccessInfo {
    * Specified orientation of the document, or "unspecified".
    */
   PrintPreviewOrientation orientation = "unspecified";
+
+  /**
+   * Specified page width of the document in inches, or null if no @page size was specified.
+   */
+  float? pageWidth = null;
+
+  /**
+   * Specified page height of the document in inches, or null if no @page size was specified.
+   */
+  float? pageHeight = null;
 };
 
 FrameLoader includes WebBrowserPersistable;

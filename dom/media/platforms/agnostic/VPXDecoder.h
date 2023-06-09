@@ -19,9 +19,11 @@ namespace mozilla {
 
 DDLoggedTypeDeclNameAndBase(VPXDecoder, MediaDataDecoder);
 
-class VPXDecoder : public MediaDataDecoder,
-                   public DecoderDoctorLifeLogger<VPXDecoder> {
+class VPXDecoder final : public MediaDataDecoder,
+                         public DecoderDoctorLifeLogger<VPXDecoder> {
  public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(VPXDecoder, final);
+
   explicit VPXDecoder(const CreateDecoderParams& aParams);
 
   RefPtr<InitPromise> Init() override;
@@ -32,6 +34,7 @@ class VPXDecoder : public MediaDataDecoder,
   nsCString GetDescriptionName() const override {
     return "libvpx video decoder"_ns;
   }
+  nsCString GetCodecName() const override;
 
   enum Codec : uint8_t {
     VP8 = 1 << 0,

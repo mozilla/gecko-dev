@@ -26,10 +26,7 @@ class ScrollTimeline;
 class AnimationTimeline : public nsISupports, public nsWrapperCache {
  public:
   explicit AnimationTimeline(nsIGlobalObject* aWindow,
-                             RTPCallerType aRTPCallerType)
-      : mWindow(aWindow), mRTPCallerType(aRTPCallerType) {
-    MOZ_ASSERT(mWindow);
-  }
+                             RTPCallerType aRTPCallerType);
 
  protected:
   virtual ~AnimationTimeline();
@@ -102,7 +99,7 @@ class AnimationTimeline : public nsISupports, public nsWrapperCache {
 
   virtual void RemoveAnimation(Animation* aAnimation);
   virtual void NotifyAnimationContentVisibilityChanged(Animation* aAnimation,
-                                                       bool visible);
+                                                       bool aIsVisible);
 
   virtual Document* GetDocument() const = 0;
 
@@ -112,6 +109,7 @@ class AnimationTimeline : public nsISupports, public nsWrapperCache {
 
   virtual bool IsScrollTimeline() const { return false; }
   virtual const ScrollTimeline* AsScrollTimeline() const { return nullptr; }
+  virtual bool IsViewTimeline() const { return false; }
 
   // For a monotonic timeline, there is no upper bound on current time, and
   // timeline duration is unresolved. For a non-monotonic (e.g. scroll)
@@ -125,9 +123,10 @@ class AnimationTimeline : public nsISupports, public nsWrapperCache {
 
   // Animations observing this timeline
   //
-  // We store them in (a) a hashset for quick lookup, and (b) an array
+  // We store them in (a) a hashset for quick lookup, and (b) a LinkedList
   // to maintain a fixed sampling order. Animations that are hidden by
   // `content-visibility` are not sampled and will only be in the hashset.
+  // The LinkedList should always be a subset of the hashset.
   //
   // The hashset keeps a strong reference to each animation since
   // dealing with addref/release with LinkedList is difficult.

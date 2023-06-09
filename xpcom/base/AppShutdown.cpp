@@ -26,6 +26,7 @@
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsAppRunner.h"
 #include "nsDirectoryServiceUtils.h"
+#include "nsExceptionHandler.h"
 #include "nsICertStorage.h"
 #include "nsThreadUtils.h"
 
@@ -36,10 +37,6 @@
 #  include "nsTerminator.h"
 #endif
 #include "prenv.h"
-
-#ifdef MOZ_NEW_XULSTORE
-#  include "mozilla/XULStore.h"
-#endif
 
 #ifdef MOZ_BACKGROUNDTASKS
 #  include "mozilla/BackgroundTasks.h"
@@ -197,10 +194,12 @@ wchar_t* CopyPathIntoNewWCString(nsIFile* aFile) {
 }
 #endif
 
-void AppShutdown::Init(AppShutdownMode aMode, int aExitCode) {
+void AppShutdown::Init(AppShutdownMode aMode, int aExitCode,
+                       AppShutdownReason aReason) {
   if (sShutdownMode == AppShutdownMode::Normal) {
     sShutdownMode = aMode;
   }
+  AppShutdown::AnnotateShutdownReason(aReason);
 
   sExitCode = aExitCode;
 
@@ -236,11 +235,6 @@ void AppShutdown::MaybeFastShutdown(ShutdownPhase aPhase) {
     }
 
     nsresult rv;
-#ifdef MOZ_NEW_XULSTORE
-    rv = XULStore::Shutdown();
-    NS_ASSERTION(NS_SUCCEEDED(rv), "XULStore::Shutdown() failed.");
-#endif
-
     nsCOMPtr<nsICertStorage> certStorage =
         do_GetService("@mozilla.org/security/certstorage;1", &rv);
     if (NS_SUCCEEDED(rv)) {
@@ -311,6 +305,36 @@ void AppShutdown::DoImmediateExit(int aExitCode) {
 
 bool AppShutdown::IsRestarting() {
   return sShutdownMode == AppShutdownMode::Restart;
+}
+
+void AppShutdown::AnnotateShutdownReason(AppShutdownReason aReason) {
+  auto key = CrashReporter::Annotation::ShutdownReason;
+  nsCString reasonStr;
+  switch (aReason) {
+    case AppShutdownReason::AppClose:
+      reasonStr = "AppClose"_ns;
+      break;
+    case AppShutdownReason::AppRestart:
+      reasonStr = "AppRestart"_ns;
+      break;
+    case AppShutdownReason::OSForceClose:
+      reasonStr = "OSForceClose"_ns;
+      break;
+    case AppShutdownReason::OSSessionEnd:
+      reasonStr = "OSSessionEnd"_ns;
+      break;
+    case AppShutdownReason::OSShutdown:
+      reasonStr = "OSShutdown"_ns;
+      break;
+    case AppShutdownReason::WinUnexpectedMozQuit:
+      reasonStr = "WinUnexpectedMozQuit"_ns;
+      break;
+    default:
+      MOZ_ASSERT_UNREACHABLE("We should know the given reason for shutdown.");
+      reasonStr = "Unknown"_ns;
+      break;
+  }
+  CrashReporter::AnnotateCrashReport(key, reasonStr);
 }
 
 #ifdef DEBUG

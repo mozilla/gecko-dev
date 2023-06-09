@@ -39,7 +39,6 @@ add_task(async function basic() {
     context,
     autofilled: "example.com/",
     completed: "https://example.com/",
-    hasAutofillTitle: true,
     matches: [
       makeVisitResult(context, {
         uri: "https://example.com/",
@@ -50,9 +49,7 @@ add_task(async function basic() {
       makeSearchResult(context, {
         engineName: testEngine.name,
         engineIconUri: UrlbarUtils.ICON.SEARCH_GLASS,
-        uri: UrlbarUtils.stripPublicSuffixFromHost(
-          testEngine.getResultDomain()
-        ),
+        uri: UrlbarUtils.stripPublicSuffixFromHost(testEngine.searchUrlDomain),
         providesSearchMode: true,
         query: "",
         providerName: "TabToSearch",
@@ -66,7 +63,6 @@ add_task(async function basic() {
     context,
     autofilled: "example.com/",
     completed: "https://example.com/",
-    hasAutofillTitle: true,
     matches: [
       makeVisitResult(context, {
         uri: "https://example.com/",
@@ -98,9 +94,7 @@ add_task(async function noAutofill() {
       makeSearchResult(context, {
         engineName: testEngine.name,
         engineIconUri: UrlbarUtils.ICON.SEARCH_GLASS,
-        uri: UrlbarUtils.stripPublicSuffixFromHost(
-          testEngine.getResultDomain()
-        ),
+        uri: UrlbarUtils.stripPublicSuffixFromHost(testEngine.searchUrlDomain),
         providesSearchMode: true,
         query: "",
         providerName: "TabToSearch",
@@ -118,7 +112,6 @@ add_task(async function autofillDoesNotMatchEngine() {
     context,
     autofilled: "example.test.ca/",
     completed: "https://example.test.ca/",
-    hasAutofillTitle: true,
     matches: [
       makeVisitResult(context, {
         uri: "https://example.test.ca/",
@@ -142,7 +135,6 @@ add_task(async function ignoreWww() {
     context,
     autofilled: "www.example.com/",
     completed: "https://www.example.com/",
-    hasAutofillTitle: true,
     matches: [
       makeVisitResult(context, {
         uri: "https://www.example.com/",
@@ -153,9 +145,7 @@ add_task(async function ignoreWww() {
       makeSearchResult(context, {
         engineName: testEngine.name,
         engineIconUri: UrlbarUtils.ICON.SEARCH_GLASS,
-        uri: UrlbarUtils.stripPublicSuffixFromHost(
-          testEngine.getResultDomain()
-        ),
+        uri: UrlbarUtils.stripPublicSuffixFromHost(testEngine.searchUrlDomain),
         providesSearchMode: true,
         query: "",
         providerName: "TabToSearch",
@@ -179,7 +169,6 @@ add_task(async function ignoreWww() {
     context,
     autofilled: "foo.bar/",
     completed: "https://foo.bar/",
-    hasAutofillTitle: true,
     matches: [
       makeVisitResult(context, {
         uri: "https://foo.bar/",
@@ -191,7 +180,7 @@ add_task(async function ignoreWww() {
         engineName: wwwTestEngine.name,
         engineIconUri: UrlbarUtils.ICON.SEARCH_GLASS,
         uri: UrlbarUtils.stripPublicSuffixFromHost(
-          wwwTestEngine.getResultDomain()
+          wwwTestEngine.searchUrlDomain
         ),
         providesSearchMode: true,
         query: "",
@@ -208,7 +197,6 @@ add_task(async function ignoreWww() {
     context,
     autofilled: "foo.bar/",
     completed: "https://www.foo.bar/",
-    hasAutofillTitle: true,
     matches: [
       makeVisitResult(context, {
         uri: "https://www.foo.bar/",
@@ -220,7 +208,7 @@ add_task(async function ignoreWww() {
         engineName: wwwTestEngine.name,
         engineIconUri: UrlbarUtils.ICON.SEARCH_GLASS,
         uri: UrlbarUtils.stripPublicSuffixFromHost(
-          wwwTestEngine.getResultDomain()
+          wwwTestEngine.searchUrlDomain
         ),
         providesSearchMode: true,
         query: "",
@@ -268,7 +256,6 @@ add_task(async function conflictingEngines() {
     context,
     autofilled: "foo.com/",
     completed: "https://foo.com/",
-    hasAutofillTitle: true,
     matches: [
       makeVisitResult(context, {
         uri: "https://foo.com/",
@@ -280,7 +267,7 @@ add_task(async function conflictingEngines() {
         engineName: fooTestEngine.name,
         engineIconUri: UrlbarUtils.ICON.SEARCH_GLASS,
         uri: UrlbarUtils.stripPublicSuffixFromHost(
-          fooTestEngine.getResultDomain()
+          fooTestEngine.searchUrlDomain
         ),
         providesSearchMode: true,
         query: "",
@@ -301,7 +288,6 @@ add_task(async function conflictingEngines() {
     context,
     autofilled: "foobar.com/",
     completed: "https://foobar.com/",
-    hasAutofillTitle: true,
     matches: [
       makeVisitResult(context, {
         uri: "https://foobar.com/",
@@ -313,7 +299,7 @@ add_task(async function conflictingEngines() {
         engineName: fooBarTestEngine.name,
         engineIconUri: UrlbarUtils.ICON.SEARCH_GLASS,
         uri: UrlbarUtils.stripPublicSuffixFromHost(
-          fooBarTestEngine.getResultDomain()
+          fooBarTestEngine.searchUrlDomain
         ),
         providesSearchMode: true,
         query: "",
@@ -365,7 +351,6 @@ add_task(async function multipleEnginesForHostname() {
     context,
     autofilled: "example.com/",
     completed: "https://example.com/",
-    hasAutofillTitle: true,
     matches: [
       makeVisitResult(context, {
         uri: "https://example.com/",
@@ -376,9 +361,7 @@ add_task(async function multipleEnginesForHostname() {
       makeSearchResult(context, {
         engineName: testEngine.name,
         engineIconUri: UrlbarUtils.ICON.SEARCH_GLASS,
-        uri: UrlbarUtils.stripPublicSuffixFromHost(
-          testEngine.getResultDomain()
-        ),
+        uri: UrlbarUtils.stripPublicSuffixFromHost(testEngine.searchUrlDomain),
         providesSearchMode: true,
         query: "",
         providerName: "TabToSearch",
@@ -403,7 +386,6 @@ add_task(async function test_casing() {
     context,
     autofilled: "eXAmple.com/",
     completed: "https://example.com/",
-    hasAutofillTitle: true,
     matches: [
       makeVisitResult(context, {
         uri: "https://example.com/",
@@ -414,9 +396,7 @@ add_task(async function test_casing() {
       makeSearchResult(context, {
         engineName: testEngine.name,
         engineIconUri: UrlbarUtils.ICON.SEARCH_GLASS,
-        uri: UrlbarUtils.stripPublicSuffixFromHost(
-          testEngine.getResultDomain()
-        ),
+        uri: UrlbarUtils.stripPublicSuffixFromHost(testEngine.searchUrlDomain),
         providesSearchMode: true,
         query: "",
         providerName: "TabToSearch",
@@ -450,7 +430,7 @@ add_task(async function test_publicSuffix() {
       makeSearchResult(context, {
         engineName: engine.name,
         engineIconUri: UrlbarUtils.ICON.SEARCH_GLASS,
-        uri: UrlbarUtils.stripPublicSuffixFromHost(engine.getResultDomain()),
+        uri: UrlbarUtils.stripPublicSuffixFromHost(engine.searchUrlDomain),
         providesSearchMode: true,
         query: "",
         providerName: "TabToSearch",
@@ -484,7 +464,6 @@ add_task(async function test_publicSuffixIsHost() {
     context,
     autofilled: "com.mx/",
     completed: "https://com.mx/",
-    hasAutofillTitle: true,
     matches: [
       makeVisitResult(context, {
         uri: "https://com.mx/",
@@ -516,7 +495,6 @@ add_task(async function test_disabledEngine() {
     context,
     autofilled: "disabled.com/",
     completed: "https://disabled.com/",
-    hasAutofillTitle: true,
     matches: [
       makeVisitResult(context, {
         uri: "https://disabled.com/",
@@ -527,7 +505,7 @@ add_task(async function test_disabledEngine() {
       makeSearchResult(context, {
         engineName: engine.name,
         engineIconUri: UrlbarUtils.ICON.SEARCH_GLASS,
-        uri: UrlbarUtils.stripPublicSuffixFromHost(engine.getResultDomain()),
+        uri: UrlbarUtils.stripPublicSuffixFromHost(engine.searchUrlDomain),
         providesSearchMode: true,
         query: "",
         providerName: "TabToSearch",
@@ -541,7 +519,6 @@ add_task(async function test_disabledEngine() {
     context,
     autofilled: "disabled.com/",
     completed: "https://disabled.com/",
-    hasAutofillTitle: true,
     matches: [
       makeVisitResult(context, {
         uri: "https://disabled.com/",

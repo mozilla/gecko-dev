@@ -151,22 +151,26 @@ TEST(TestAudioTrackGraph, DifferentDeviceIDs)
 
   MediaTrackGraph* g1 = MediaTrackGraphImpl::GetInstance(
       MediaTrackGraph::AUDIO_THREAD_DRIVER, /*Window ID*/ 1,
+      /* aShouldResistFingerprinting */ false,
       MediaTrackGraph::REQUEST_DEFAULT_SAMPLE_RATE,
       /*OutputDeviceID*/ nullptr, GetMainThreadSerialEventTarget());
 
   MediaTrackGraph* g2 = MediaTrackGraphImpl::GetInstance(
       MediaTrackGraph::AUDIO_THREAD_DRIVER, /*Window ID*/ 1,
+      /* aShouldResistFingerprinting */ false,
       MediaTrackGraph::REQUEST_DEFAULT_SAMPLE_RATE,
       /*OutputDeviceID*/ reinterpret_cast<cubeb_devid>(1),
       GetMainThreadSerialEventTarget());
 
   MediaTrackGraph* g1_2 = MediaTrackGraphImpl::GetInstance(
       MediaTrackGraph::AUDIO_THREAD_DRIVER, /*Window ID*/ 1,
+      /* aShouldResistFingerprinting */ false,
       MediaTrackGraph::REQUEST_DEFAULT_SAMPLE_RATE,
       /*OutputDeviceID*/ nullptr, GetMainThreadSerialEventTarget());
 
   MediaTrackGraph* g2_2 = MediaTrackGraphImpl::GetInstance(
       MediaTrackGraph::AUDIO_THREAD_DRIVER, /*Window ID*/ 1,
+      /* aShouldResistFingerprinting */ false,
       MediaTrackGraph::REQUEST_DEFAULT_SAMPLE_RATE,
       /*OutputDeviceID*/ reinterpret_cast<cubeb_devid>(1),
       GetMainThreadSerialEventTarget());
@@ -203,6 +207,7 @@ TEST(TestAudioTrackGraph, SetOutputDeviceID)
   // used in cubeb_stream_init.
   MediaTrackGraph* graph = MediaTrackGraphImpl::GetInstance(
       MediaTrackGraph::AUDIO_THREAD_DRIVER, /*Window ID*/ 1,
+      /* aShouldResistFingerprinting */ false,
       MediaTrackGraph::REQUEST_DEFAULT_SAMPLE_RATE,
       /*OutputDeviceID*/ reinterpret_cast<cubeb_devid>(2),
       GetMainThreadSerialEventTarget());
@@ -230,6 +235,7 @@ TEST(TestAudioTrackGraph, NotifyDeviceStarted)
 
   MediaTrackGraph* graph = MediaTrackGraphImpl::GetInstance(
       MediaTrackGraph::AUDIO_THREAD_DRIVER, /*Window ID*/ 1,
+      /* aShouldResistFingerprinting */ false,
       MediaTrackGraph::REQUEST_DEFAULT_SAMPLE_RATE, nullptr,
       GetMainThreadSerialEventTarget());
 
@@ -261,6 +267,7 @@ TEST(TestAudioTrackGraph, NonNativeInputTrackStartAndStop)
 
   MediaTrackGraph* graph = MediaTrackGraphImpl::GetInstance(
       MediaTrackGraph::SYSTEM_THREAD_DRIVER, /*Window ID*/ 1,
+      /* aShouldResistFingerprinting */ false,
       MediaTrackGraph::REQUEST_DEFAULT_SAMPLE_RATE, nullptr,
       GetMainThreadSerialEventTarget());
 
@@ -440,6 +447,7 @@ TEST(TestAudioTrackGraph, NonNativeInputTrackErrorCallback)
 
   MediaTrackGraph* graph = MediaTrackGraphImpl::GetInstance(
       MediaTrackGraph::SYSTEM_THREAD_DRIVER, /*Window ID*/ 1,
+      /* aShouldResistFingerprinting */ false,
       MediaTrackGraph::REQUEST_DEFAULT_SAMPLE_RATE, nullptr,
       GetMainThreadSerialEventTarget());
 
@@ -563,6 +571,7 @@ TEST(TestAudioTrackGraph, DeviceChangedCallback)
 
   MediaTrackGraphImpl* graphImpl = MediaTrackGraphImpl::GetInstance(
       MediaTrackGraph::SYSTEM_THREAD_DRIVER, /*Window ID*/ 1,
+      /* aShouldResistFingerprinting */ false,
       MediaTrackGraph::REQUEST_DEFAULT_SAMPLE_RATE, nullptr,
       GetMainThreadSerialEventTarget());
 
@@ -679,6 +688,7 @@ TEST(TestAudioTrackGraph, RestartAudioIfMaxChannelCountChanged)
 
   MediaTrackGraphImpl* graphImpl = MediaTrackGraphImpl::GetInstance(
       MediaTrackGraph::SYSTEM_THREAD_DRIVER, /*Window ID*/ 1,
+      /* aShouldResistFingerprinting */ false,
       MediaTrackGraph::REQUEST_DEFAULT_SAMPLE_RATE, nullptr,
       GetMainThreadSerialEventTarget());
 
@@ -970,6 +980,7 @@ TEST(TestAudioTrackGraph, SwitchNativeInputDevice)
 
   MediaTrackGraphImpl* graph = MediaTrackGraphImpl::GetInstance(
       MediaTrackGraph::SYSTEM_THREAD_DRIVER, /*Window ID*/ 1,
+      /* aShouldResistFingerprinting */ false,
       MediaTrackGraph::REQUEST_DEFAULT_SAMPLE_RATE, nullptr,
       GetMainThreadSerialEventTarget());
 
@@ -1140,6 +1151,7 @@ TEST(TestAudioTrackGraph, ErrorCallback)
 
   MediaTrackGraph* graph = MediaTrackGraphImpl::GetInstance(
       MediaTrackGraph::SYSTEM_THREAD_DRIVER, /*Window ID*/ 1,
+      /* aShouldResistFingerprinting */ false,
       MediaTrackGraph::REQUEST_DEFAULT_SAMPLE_RATE, nullptr,
       GetMainThreadSerialEventTarget());
 
@@ -1150,7 +1162,8 @@ TEST(TestAudioTrackGraph, ErrorCallback)
   //
   // We open an input through this track so that there's something triggering
   // EnsureNextIteration on the fallback driver after the callback driver has
-  // gotten the error.
+  // gotten the error, and to check that a replacement cubeb_stream receives
+  // output from the graph.
   RefPtr<AudioProcessingTrack> processingTrack;
   RefPtr<AudioInputProcessing> listener;
   auto started = Invoke([&] {
@@ -1164,6 +1177,7 @@ TEST(TestAudioTrackGraph, ErrorCallback)
     processingTrack->ConnectDeviceInput(deviceId, listener,
                                         PRINCIPAL_HANDLE_NONE);
     EXPECT_EQ(processingTrack->DeviceId().value(), deviceId);
+    processingTrack->AddAudioOutput(reinterpret_cast<void*>(1));
     return graph->NotifyWhenDeviceStarted(processingTrack);
   });
 
@@ -1174,17 +1188,18 @@ TEST(TestAudioTrackGraph, ErrorCallback)
   // Force a cubeb state_callback error and see that we don't crash.
   DispatchFunction([&] { stream->ForceError(); });
 
-  // Wait for both the error to take effect, and the driver to restart.
-  bool errored = false, init = false;
+  // Wait for the error to take effect, and the driver to restart and receive
+  // output.
+  bool errored = false;
   MediaEventListener errorListener = stream->ErrorForcedEvent().Connect(
       AbstractThread::GetCurrent(), [&] { errored = true; });
-  MediaEventListener initListener = cubeb->StreamInitEvent().Connect(
-      AbstractThread::GetCurrent(), [&] { init = true; });
-  SpinEventLoopUntil<ProcessFailureBehavior::IgnoreAndContinue>(
-      "TEST(TestAudioTrackGraph, ErrorCallback)"_ns,
-      [&] { return errored && init; });
+  stream = WaitFor(cubeb->StreamInitEvent());
+  WaitFor(stream->FramesVerifiedEvent());
+  // The error event is notified after CUBEB_STATE_ERROR triggers other
+  // threads to init a new cubeb_stream, so there is a theoretical chance that
+  // `errored` might not be set when `stream` is set.
   errorListener.Disconnect();
-  initListener.Disconnect();
+  EXPECT_TRUE(errored);
 
   // Clean up.
   DispatchFunction([&] {
@@ -1208,6 +1223,7 @@ TEST(TestAudioTrackGraph, AudioProcessingTrack)
   // resolving early after checking the first audio driver only.
   MediaTrackGraph* graph = MediaTrackGraphImpl::GetInstance(
       MediaTrackGraph::SYSTEM_THREAD_DRIVER, /*Window ID*/ 1,
+      /* aShouldResistFingerprinting */ false,
       MediaTrackGraph::REQUEST_DEFAULT_SAMPLE_RATE, nullptr,
       GetMainThreadSerialEventTarget());
 
@@ -1270,7 +1286,7 @@ TEST(TestAudioTrackGraph, AudioProcessingTrack)
   uint64_t preSilenceSamples;
   uint32_t estimatedFreq;
   uint32_t nrDiscontinuities;
-  Tie(preSilenceSamples, estimatedFreq, nrDiscontinuities) =
+  std::tie(preSilenceSamples, estimatedFreq, nrDiscontinuities) =
       WaitFor(stream->OutputVerificationEvent());
 
   EXPECT_EQ(estimatedFreq, inputFrequency);
@@ -1299,7 +1315,8 @@ TEST(TestAudioTrackGraph, ReConnectDeviceInput)
   const TrackRate rate = 48000;
 
   MediaTrackGraph* graph = MediaTrackGraphImpl::GetInstance(
-      MediaTrackGraph::SYSTEM_THREAD_DRIVER, /*Window ID*/ 1, rate, nullptr,
+      MediaTrackGraph::SYSTEM_THREAD_DRIVER, /*Window ID*/ 1,
+      /* aShouldResistFingerprinting */ false, rate, nullptr,
       GetMainThreadSerialEventTarget());
 
   const CubebUtils::AudioDeviceID deviceId = (CubebUtils::AudioDeviceID)1;
@@ -1410,7 +1427,7 @@ TEST(TestAudioTrackGraph, ReConnectDeviceInput)
   uint64_t preSilenceSamples;
   uint32_t estimatedFreq;
   uint32_t nrDiscontinuities;
-  Tie(preSilenceSamples, estimatedFreq, nrDiscontinuities) =
+  std::tie(preSilenceSamples, estimatedFreq, nrDiscontinuities) =
       WaitFor(stream->OutputVerificationEvent());
 
   EXPECT_EQ(estimatedFreq, inputFrequency);
@@ -1455,6 +1472,7 @@ TEST(TestAudioTrackGraph, AudioProcessingTrackDisabling)
 
   MediaTrackGraph* graph = MediaTrackGraphImpl::GetInstance(
       MediaTrackGraph::SYSTEM_THREAD_DRIVER, /*Window ID*/ 1,
+      /* aShouldResistFingerprinting */ false,
       MediaTrackGraph::REQUEST_DEFAULT_SAMPLE_RATE, nullptr,
       GetMainThreadSerialEventTarget());
 
@@ -1531,7 +1549,7 @@ TEST(TestAudioTrackGraph, AudioProcessingTrackDisabling)
   uint64_t preSilenceSamples;
   uint32_t estimatedFreq;
   uint32_t nrDiscontinuities;
-  Tie(preSilenceSamples, estimatedFreq, nrDiscontinuities) =
+  std::tie(preSilenceSamples, estimatedFreq, nrDiscontinuities) =
       WaitFor(stream->OutputVerificationEvent());
 
   auto data = stream->TakeRecordedOutput();
@@ -1565,6 +1583,7 @@ TEST(TestAudioTrackGraph, SetRequestedInputChannelCount)
 
   MediaTrackGraph* graph = MediaTrackGraphImpl::GetInstance(
       MediaTrackGraph::SYSTEM_THREAD_DRIVER, /*Window ID*/ 1,
+      /* aShouldResistFingerprinting */ false,
       MediaTrackGraph::REQUEST_DEFAULT_SAMPLE_RATE, nullptr,
       GetMainThreadSerialEventTarget());
 
@@ -1696,6 +1715,7 @@ TEST(TestAudioTrackGraph, RestartAudioIfProcessingMaxChannelCountChanged)
 
   MediaTrackGraph* graph = MediaTrackGraphImpl::GetInstance(
       MediaTrackGraph::SYSTEM_THREAD_DRIVER, /*Window ID*/ 1,
+      /* aShouldResistFingerprinting */ false,
       MediaTrackGraph::REQUEST_DEFAULT_SAMPLE_RATE, nullptr,
       GetMainThreadSerialEventTarget());
 
@@ -1937,6 +1957,7 @@ TEST(TestAudioTrackGraph, SetInputChannelCountBeforeAudioCallbackDriver)
 
   MediaTrackGraph* graph = MediaTrackGraphImpl::GetInstance(
       MediaTrackGraph::SYSTEM_THREAD_DRIVER, /*Window ID*/ 1,
+      /* aShouldResistFingerprinting */ false,
       MediaTrackGraph::REQUEST_DEFAULT_SAMPLE_RATE, nullptr,
       GetMainThreadSerialEventTarget());
 
@@ -2025,6 +2046,7 @@ TEST(TestAudioTrackGraph, StartAudioDeviceBeforeStartingAudioProcessing)
 
   MediaTrackGraph* graph = MediaTrackGraphImpl::GetInstance(
       MediaTrackGraph::SYSTEM_THREAD_DRIVER, /*Window ID*/ 1,
+      /* aShouldResistFingerprinting */ false,
       MediaTrackGraph::REQUEST_DEFAULT_SAMPLE_RATE, nullptr,
       GetMainThreadSerialEventTarget());
 
@@ -2094,6 +2116,7 @@ TEST(TestAudioTrackGraph, StopAudioProcessingBeforeStoppingAudioDevice)
 
   MediaTrackGraph* graph = MediaTrackGraphImpl::GetInstance(
       MediaTrackGraph::SYSTEM_THREAD_DRIVER, /*Window ID*/ 1,
+      /* aShouldResistFingerprinting */ false,
       MediaTrackGraph::REQUEST_DEFAULT_SAMPLE_RATE, nullptr,
       GetMainThreadSerialEventTarget());
 
@@ -2168,6 +2191,7 @@ TEST(TestAudioTrackGraph, SwitchNativeAudioProcessingTrack)
 
   MediaTrackGraph* graph = MediaTrackGraphImpl::GetInstance(
       MediaTrackGraph::SYSTEM_THREAD_DRIVER, /*Window ID*/ 1,
+      /* aShouldResistFingerprinting */ false,
       MediaTrackGraph::REQUEST_DEFAULT_SAMPLE_RATE, nullptr,
       GetMainThreadSerialEventTarget());
 
@@ -2364,11 +2388,13 @@ void TestCrossGraphPort(uint32_t aInputRate, uint32_t aOutputRate,
   /* Primary graph: Create the graph. */
   MediaTrackGraph* primary = MediaTrackGraphImpl::GetInstance(
       MediaTrackGraph::SYSTEM_THREAD_DRIVER,
-      /*Window ID*/ 1, aInputRate, nullptr, GetMainThreadSerialEventTarget());
+      /*Window ID*/ 1, /* aShouldResistFingerprinting */ false, aInputRate,
+      nullptr, GetMainThreadSerialEventTarget());
 
   /* Partner graph: Create the graph. */
   MediaTrackGraph* partner = MediaTrackGraphImpl::GetInstance(
-      MediaTrackGraph::SYSTEM_THREAD_DRIVER, /*Window ID*/ 1, aOutputRate,
+      MediaTrackGraph::SYSTEM_THREAD_DRIVER, /*Window ID*/ 1,
+      /* aShouldResistFingerprinting */ false, aOutputRate,
       /*OutputDeviceID*/ reinterpret_cast<cubeb_devid>(1),
       GetMainThreadSerialEventTarget());
 
@@ -2463,7 +2489,7 @@ void TestCrossGraphPort(uint32_t aInputRate, uint32_t aOutputRate,
   uint64_t preSilenceSamples;
   float estimatedFreq;
   uint32_t nrDiscontinuities;
-  Tie(preSilenceSamples, estimatedFreq, nrDiscontinuities) =
+  std::tie(preSilenceSamples, estimatedFreq, nrDiscontinuities) =
       WaitFor(partnerStream->OutputVerificationEvent());
 
   EXPECT_NEAR(estimatedFreq, inputFrequency / aDriftFactor, 5);

@@ -9,7 +9,7 @@ import {
 import { Themes } from "content-src/aboutwelcome/components/Themes";
 import React from "react";
 import { shallow, mount } from "enzyme";
-import { DEFAULT_WELCOME_CONTENT } from "aboutwelcome/lib/AboutWelcomeDefaults.jsm";
+import { AboutWelcomeDefaults } from "aboutwelcome/lib/AboutWelcomeDefaults.jsm";
 import { AboutWelcomeUtils } from "content-src/lib/aboutwelcome-utils";
 
 describe("MultiStageAboutWelcome module", () => {
@@ -17,7 +17,7 @@ describe("MultiStageAboutWelcome module", () => {
   let sandbox;
 
   const DEFAULT_PROPS = {
-    screens: DEFAULT_WELCOME_CONTENT.screens,
+    defaultScreens: AboutWelcomeDefaults.getDefaults().screens,
     metricsFlowUri: "http://localhost/",
     message_id: "DEFAULT_ABOUTWELCOME",
     utm_term: "default",
@@ -27,12 +27,8 @@ describe("MultiStageAboutWelcome module", () => {
   beforeEach(async () => {
     globals = new GlobalOverrider();
     globals.set({
-      AWGetDefaultSites: () => Promise.resolve([]),
-      AWGetImportableSites: () => Promise.resolve("{}"),
       AWGetSelectedTheme: () => Promise.resolve("automatic"),
       AWSendEventTelemetry: () => {},
-      AWWaitForRegionChange: () => Promise.resolve(),
-      AWGetRegion: () => Promise.resolve(),
       AWWaitForMigrationClose: () => Promise.resolve(),
       AWSelectTheme: () => Promise.resolve(),
       AWFinish: () => Promise.resolve(),
@@ -50,37 +46,6 @@ describe("MultiStageAboutWelcome module", () => {
       const wrapper = shallow(<MultiStageAboutWelcome {...DEFAULT_PROPS} />);
 
       assert.ok(wrapper.exists());
-    });
-
-    it("should send <MESSAGEID>_SITES impression telemetry ", async () => {
-      const impressionSpy = sandbox.spy(
-        AboutWelcomeUtils,
-        "sendImpressionTelemetry"
-      );
-      globals.set({
-        AWGetImportableSites: () =>
-          Promise.resolve('["site-1","site-2","site-3","site-4","site-5"]'),
-      });
-
-      mount(<MultiStageAboutWelcome {...DEFAULT_PROPS} />);
-      // Delay slightly to make sure we've finished executing any promise
-      await new Promise(resolve => setTimeout(resolve, 0));
-
-      assert.calledTwice(impressionSpy);
-      assert.equal(
-        impressionSpy.firstCall.args[0],
-        `${DEFAULT_PROPS.message_id}_0_${
-          DEFAULT_PROPS.screens[0].id
-        }_${DEFAULT_PROPS.screens
-          .map(({ id }) => id?.split("_")[1]?.[0])
-          .join("")}`
-      );
-      assert.equal(
-        impressionSpy.secondCall.args[0],
-        `${DEFAULT_PROPS.message_id}_SITES`
-      );
-      assert.equal(impressionSpy.secondCall.lastArg.display, "static");
-      assert.equal(impressionSpy.secondCall.lastArg.importable, 5);
     });
 
     it("should pass activeTheme and initialTheme props to WelcomeScreen", async () => {
@@ -101,8 +66,31 @@ describe("MultiStageAboutWelcome module", () => {
     });
 
     it("should handle primary Action", () => {
+      const screens = [
+        {
+          content: {
+            title: "test title",
+            subtitle: "test subtitle",
+            primary_button: {
+              label: "Test button",
+              action: {
+                navigate: true,
+              },
+            },
+          },
+        },
+      ];
+
+      const PRIMARY_ACTION_PROPS = {
+        defaultScreens: screens,
+        metricsFlowUri: "http://localhost/",
+        message_id: "DEFAULT_ABOUTWELCOME",
+        utm_term: "default",
+        startScreen: 0,
+      };
+
       const stub = sinon.stub(AboutWelcomeUtils, "sendActionTelemetry");
-      let wrapper = mount(<MultiStageAboutWelcome {...DEFAULT_PROPS} />);
+      let wrapper = mount(<MultiStageAboutWelcome {...PRIMARY_ACTION_PROPS} />);
       wrapper.update();
 
       let welcomeScreenWrapper = wrapper.find(WelcomeScreen);
@@ -135,7 +123,7 @@ describe("MultiStageAboutWelcome module", () => {
         },
       ];
       const AUTO_ADVANCE_PROPS = {
-        screens,
+        defaultScreens: screens,
         metricsFlowUri: "http://localhost/",
         message_id: "DEFAULT_ABOUTWELCOME",
         utm_term: "default",
@@ -183,7 +171,7 @@ describe("MultiStageAboutWelcome module", () => {
         },
       ];
       const EASY_SETUP_PROPS = {
-        screens,
+        defaultScreens: screens,
         message_id: "DEFAULT_ABOUTWELCOME",
         startScreen: 0,
       };
@@ -212,7 +200,7 @@ describe("MultiStageAboutWelcome module", () => {
 
   describe("WelcomeScreen component", () => {
     describe("get started screen", () => {
-      const screen = DEFAULT_WELCOME_CONTENT.screens.find(
+      const screen = AboutWelcomeDefaults.getDefaults().screens.find(
         s => s.id === "AW_PIN_FIREFOX"
       );
 
@@ -220,7 +208,6 @@ describe("MultiStageAboutWelcome module", () => {
         id: screen.id,
         totalNumberOfScreens: 1,
         content: screen.content,
-        topSites: [],
         messageId: `${DEFAULT_PROPS.message_id}_${screen.id}`,
         UTMTerm: DEFAULT_PROPS.utm_term,
         flowParams: null,
@@ -346,7 +333,6 @@ describe("MultiStageAboutWelcome module", () => {
           },
         },
         navigate: null,
-        topSites: [],
         messageId: `${DEFAULT_PROPS.message_id}_"test-theme-screen"`,
         UTMTerm: DEFAULT_PROPS.utm_term,
         flowParams: null,
@@ -415,7 +401,7 @@ describe("MultiStageAboutWelcome module", () => {
           UTMTerm: "you_tee_emm",
         };
         TEST_ACTION = SCREEN_PROPS.content.primary_button.action;
-        sandbox.stub(AboutWelcomeUtils, "handleUserAction");
+        sandbox.stub(AboutWelcomeUtils, "handleUserAction").resolves();
       });
       it("should handle navigate", () => {
         TEST_ACTION.navigate = true;
@@ -433,6 +419,17 @@ describe("MultiStageAboutWelcome module", () => {
 
         assert.calledWith(SCREEN_PROPS.setActiveTheme, "test");
       });
+      it("should handle dismiss", () => {
+        SCREEN_PROPS.content.dismiss_button = {
+          action: { dismiss: true },
+        };
+        const finishStub = sandbox.stub(global, "AWFinish");
+        const wrapper = mount(<WelcomeScreen {...SCREEN_PROPS} />);
+
+        wrapper.find(".dismiss-button").simulate("click");
+
+        assert.calledOnce(finishStub);
+      });
       it("should handle SHOW_FIREFOX_ACCOUNTS", () => {
         TEST_ACTION.type = "SHOW_FIREFOX_ACCOUNTS";
         const wrapper = mount(<WelcomeScreen {...SCREEN_PROPS} />);
@@ -445,7 +442,7 @@ describe("MultiStageAboutWelcome module", () => {
               utm_campaign: "firstrun",
               utm_medium: "referral",
               utm_source: "activity-stream",
-              utm_term: "aboutwelcome-you_tee_emm-screen",
+              utm_term: "you_tee_emm-screen",
             },
           },
           type: "SHOW_FIREFOX_ACCOUNTS",
@@ -461,7 +458,11 @@ describe("MultiStageAboutWelcome module", () => {
           type: "SHOW_MIGRATION_WIZARD",
         });
       });
-      it("should handle SHOW_MIGRATION_WIZARD INSIDE MULTI_ACTION", () => {
+      it("should handle SHOW_MIGRATION_WIZARD INSIDE MULTI_ACTION", async () => {
+        const migrationCloseStub = sandbox.stub(
+          global,
+          "AWWaitForMigrationClose"
+        );
         const MULTI_ACTION_SCREEN_PROPS = {
           content: {
             title: "test title",
@@ -511,6 +512,312 @@ describe("MultiStageAboutWelcome module", () => {
             ],
           },
         });
+        // handleUserAction returns a Promise, so let's let the microtask queue
+        // flush so that anything waiting for the handleUserAction Promise to
+        // resolve can run.
+        await new Promise(resolve => queueMicrotask(resolve));
+        assert.calledOnce(migrationCloseStub);
+      });
+
+      it("should handle SHOW_MIGRATION_WIZARD INSIDE NESTED MULTI_ACTION", async () => {
+        const migrationCloseStub = sandbox.stub(
+          global,
+          "AWWaitForMigrationClose"
+        );
+        const MULTI_ACTION_SCREEN_PROPS = {
+          content: {
+            title: "test title",
+            subtitle: "test subtitle",
+            primary_button: {
+              action: {
+                type: "MULTI_ACTION",
+                navigate: true,
+                data: {
+                  actions: [
+                    {
+                      type: "PIN_FIREFOX_TO_TASKBAR",
+                    },
+                    {
+                      type: "SET_DEFAULT_BROWSER",
+                    },
+                    {
+                      type: "MULTI_ACTION",
+                      data: {
+                        actions: [
+                          {
+                            type: "SET_PREF",
+                          },
+                          {
+                            type: "SHOW_MIGRATION_WIZARD",
+                            data: {},
+                          },
+                        ],
+                      },
+                    },
+                  ],
+                },
+              },
+              label: "test button",
+            },
+          },
+          navigate: sandbox.stub(),
+        };
+        const wrapper = mount(<WelcomeScreen {...MULTI_ACTION_SCREEN_PROPS} />);
+
+        wrapper.find(".primary").simulate("click");
+        assert.calledWith(AboutWelcomeUtils.handleUserAction, {
+          type: "MULTI_ACTION",
+          navigate: true,
+          data: {
+            actions: [
+              {
+                type: "PIN_FIREFOX_TO_TASKBAR",
+              },
+              {
+                type: "SET_DEFAULT_BROWSER",
+              },
+              {
+                type: "MULTI_ACTION",
+                data: {
+                  actions: [
+                    {
+                      type: "SET_PREF",
+                    },
+                    {
+                      type: "SHOW_MIGRATION_WIZARD",
+                      data: {},
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        });
+        // handleUserAction returns a Promise, so let's let the microtask queue
+        // flush so that anything waiting for the handleUserAction Promise to
+        // resolve can run.
+        await new Promise(resolve => queueMicrotask(resolve));
+        assert.calledOnce(migrationCloseStub);
+      });
+      it("should unset prefs from unchecked checkboxes", () => {
+        const PREF_SCREEN_PROPS = {
+          content: {
+            title: "Checkboxes",
+            tiles: {
+              type: "multiselect",
+              data: [
+                {
+                  id: "checkbox-1",
+                  label: "checkbox 1",
+                  checkedAction: {
+                    type: "SET_PREF",
+                    data: {
+                      pref: {
+                        name: "pref-a",
+                        value: true,
+                      },
+                    },
+                  },
+                  uncheckedAction: {
+                    type: "SET_PREF",
+                    data: {
+                      pref: {
+                        name: "pref-a",
+                      },
+                    },
+                  },
+                },
+                {
+                  id: "checkbox-2",
+                  label: "checkbox 2",
+                  checkedAction: {
+                    type: "MULTI_ACTION",
+                    data: {
+                      actions: [
+                        {
+                          type: "SET_PREF",
+                          data: {
+                            pref: {
+                              name: "pref-b",
+                              value: "pref-b",
+                            },
+                          },
+                        },
+                        {
+                          type: "SET_PREF",
+                          data: {
+                            pref: {
+                              name: "pref-c",
+                              value: 3,
+                            },
+                          },
+                        },
+                      ],
+                    },
+                  },
+                  uncheckedAction: {
+                    type: "SET_PREF",
+                    data: {
+                      pref: { name: "pref-b" },
+                    },
+                  },
+                },
+              ],
+            },
+            primary_button: {
+              label: "Set Prefs",
+              action: {
+                type: "MULTI_ACTION",
+                collectSelect: true,
+                isDynamic: true,
+                navigate: true,
+                data: {
+                  actions: [],
+                },
+              },
+            },
+          },
+          navigate: sandbox.stub(),
+          setActiveMultiSelect: sandbox.stub(),
+        };
+
+        // No checkboxes checked. All prefs will be unset and pref-c will not be
+        // reset.
+        {
+          const wrapper = mount(
+            <WelcomeScreen {...PREF_SCREEN_PROPS} activeMultiSelect={[]} />
+          );
+          wrapper.find(".primary").simulate("click");
+          assert.calledWith(AboutWelcomeUtils.handleUserAction, {
+            type: "MULTI_ACTION",
+            collectSelect: true,
+            isDynamic: true,
+            navigate: true,
+            data: {
+              actions: [
+                { type: "SET_PREF", data: { pref: { name: "pref-a" } } },
+                { type: "SET_PREF", data: { pref: { name: "pref-b" } } },
+              ],
+            },
+          });
+
+          AboutWelcomeUtils.handleUserAction.resetHistory();
+        }
+
+        // The first checkbox is checked. Only pref-a will be set and pref-c
+        // will not be reset.
+        {
+          const wrapper = mount(
+            <WelcomeScreen
+              {...PREF_SCREEN_PROPS}
+              activeMultiSelect={["checkbox-1"]}
+            />
+          );
+          wrapper.find(".primary").simulate("click");
+          assert.calledWith(AboutWelcomeUtils.handleUserAction, {
+            type: "MULTI_ACTION",
+            collectSelect: true,
+            isDynamic: true,
+            navigate: true,
+            data: {
+              actions: [
+                {
+                  type: "SET_PREF",
+                  data: {
+                    pref: {
+                      name: "pref-a",
+                      value: true,
+                    },
+                  },
+                },
+                { type: "SET_PREF", data: { pref: { name: "pref-b" } } },
+              ],
+            },
+          });
+
+          AboutWelcomeUtils.handleUserAction.resetHistory();
+        }
+
+        // The second checkbox is checked. Prefs pref-b and pref-c will be set.
+        {
+          const wrapper = mount(
+            <WelcomeScreen
+              {...PREF_SCREEN_PROPS}
+              activeMultiSelect={["checkbox-2"]}
+            />
+          );
+          wrapper.find(".primary").simulate("click");
+          assert.calledWith(AboutWelcomeUtils.handleUserAction, {
+            type: "MULTI_ACTION",
+            collectSelect: true,
+            isDynamic: true,
+            navigate: true,
+            data: {
+              actions: [
+                { type: "SET_PREF", data: { pref: { name: "pref-a" } } },
+                {
+                  type: "MULTI_ACTION",
+                  data: {
+                    actions: [
+                      {
+                        type: "SET_PREF",
+                        data: { pref: { name: "pref-b", value: "pref-b" } },
+                      },
+                      {
+                        type: "SET_PREF",
+                        data: { pref: { name: "pref-c", value: 3 } },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          });
+
+          AboutWelcomeUtils.handleUserAction.resetHistory();
+        }
+
+        // // Both checkboxes are checked. All prefs will be set.
+        {
+          const wrapper = mount(
+            <WelcomeScreen
+              {...PREF_SCREEN_PROPS}
+              activeMultiSelect={["checkbox-1", "checkbox-2"]}
+            />
+          );
+          wrapper.find(".primary").simulate("click");
+          assert.calledWith(AboutWelcomeUtils.handleUserAction, {
+            type: "MULTI_ACTION",
+            collectSelect: true,
+            isDynamic: true,
+            navigate: true,
+            data: {
+              actions: [
+                {
+                  type: "SET_PREF",
+                  data: { pref: { name: "pref-a", value: true } },
+                },
+                {
+                  type: "MULTI_ACTION",
+                  data: {
+                    actions: [
+                      {
+                        type: "SET_PREF",
+                        data: { pref: { name: "pref-b", value: "pref-b" } },
+                      },
+                      {
+                        type: "SET_PREF",
+                        data: { pref: { name: "pref-c", value: 3 } },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          });
+
+          AboutWelcomeUtils.handleUserAction.resetHistory();
+        }
       });
     });
   });

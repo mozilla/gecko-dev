@@ -20,27 +20,20 @@ const { AddonManager, AddonManagerPrivate } = ChromeUtils.import(
 
 const lazy = {};
 
-ChromeUtils.defineModuleGetter(
-  lazy,
-  "AttributionCode",
-  "resource:///modules/AttributionCode.jsm"
-);
 ChromeUtils.defineESModuleGetters(lazy, {
+  AttributionCode: "resource:///modules/AttributionCode.sys.mjs",
   ProfileAge: "resource://gre/modules/ProfileAge.sys.mjs",
   WindowsRegistry: "resource://gre/modules/WindowsRegistry.sys.mjs",
+  WindowsVersionInfo:
+    "resource://gre/modules/components-utils/WindowsVersionInfo.sys.mjs",
 });
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 XPCOMUtils.defineLazyGetter(lazy, "fxAccounts", () => {
-  return ChromeUtils.import(
-    "resource://gre/modules/FxAccounts.jsm"
+  return ChromeUtils.importESModule(
+    "resource://gre/modules/FxAccounts.sys.mjs"
   ).getFxAccountsSingleton();
 });
-ChromeUtils.defineModuleGetter(
-  lazy,
-  "WindowsVersionInfo",
-  "resource://gre/modules/components-utils/WindowsVersionInfo.jsm"
-);
 
 // The maximum length of a string (e.g. description) in the addons section.
 const MAX_ADDON_STRING_LENGTH = 100;
@@ -233,6 +226,9 @@ const DEFAULT_ENVIRONMENT_PREFS = new Map([
   ["browser.cache.offline.enable", { what: RECORD_PREF_VALUE }],
   ["browser.formfill.enable", { what: RECORD_PREF_VALUE }],
   ["browser.fixup.alternate.enabled", { what: RECORD_DEFAULTPREF_VALUE }],
+  ["browser.migrate.interactions.bookmarks", { what: RECORD_PREF_VALUE }],
+  ["browser.migrate.interactions.history", { what: RECORD_PREF_VALUE }],
+  ["browser.migrate.interactions.passwords", { what: RECORD_PREF_VALUE }],
   ["browser.newtabpage.enabled", { what: RECORD_PREF_VALUE }],
   ["browser.shell.checkDefaultBrowser", { what: RECORD_PREF_VALUE }],
   ["browser.search.region", { what: RECORD_PREF_VALUE }],
@@ -277,15 +273,6 @@ const DEFAULT_ENVIRONMENT_PREFS = new Map([
   ["dom.ipc.plugins.enabled", { what: RECORD_PREF_VALUE }],
   ["dom.ipc.processCount", { what: RECORD_PREF_VALUE }],
   ["dom.max_script_run_time", { what: RECORD_PREF_VALUE }],
-  ["editor.css.default_length_unit", { what: RECORD_PREF_VALUE }],
-  [
-    "editor.hr_element.allow_to_delete_from_following_line",
-    { what: RECORD_PREF_VALUE },
-  ],
-  ["editor.initialize_element_before_connect", { what: RECORD_PREF_VALUE }],
-  ["editor.positioning.offset", { what: RECORD_PREF_VALUE }],
-  ["editor.resizing.preserve_ratio", { what: RECORD_PREF_VALUE }],
-  ["editor.use_div_for_default_newlines", { what: RECORD_PREF_VALUE }],
   ["editor.truncate_user_pastes", { what: RECORD_PREF_VALUE }],
   ["extensions.InstallTrigger.enabled", { what: RECORD_PREF_VALUE }],
   ["extensions.InstallTriggerImpl.enabled", { what: RECORD_PREF_VALUE }],
@@ -332,12 +319,22 @@ const DEFAULT_ENVIRONMENT_PREFS = new Map([
   ["layout.css.devPixelsPerPx", { what: RECORD_PREF_VALUE }],
   ["media.gmp-gmpopenh264.enabled", { what: RECORD_PREF_VALUE }],
   ["media.gmp-gmpopenh264.lastInstallFailed", { what: RECORD_PREF_VALUE }],
+  ["media.gmp-gmpopenh264.lastInstallFailReason", { what: RECORD_PREF_VALUE }],
   ["media.gmp-gmpopenh264.lastInstallStart", { what: RECORD_PREF_VALUE }],
   ["media.gmp-gmpopenh264.lastDownload", { what: RECORD_PREF_VALUE }],
   ["media.gmp-gmpopenh264.lastDownloadFailed", { what: RECORD_PREF_VALUE }],
   ["media.gmp-gmpopenh264.lastDownloadFailReason", { what: RECORD_PREF_VALUE }],
   ["media.gmp-gmpopenh264.lastUpdate", { what: RECORD_PREF_VALUE }],
   ["media.gmp-gmpopenh264.visible", { what: RECORD_PREF_VALUE }],
+  ["media.gmp-widevinecdm.enabled", { what: RECORD_PREF_VALUE }],
+  ["media.gmp-widevinecdm.lastInstallFailed", { what: RECORD_PREF_VALUE }],
+  ["media.gmp-widevinecdm.lastInstallFailReason", { what: RECORD_PREF_VALUE }],
+  ["media.gmp-widevinecdm.lastInstallStart", { what: RECORD_PREF_VALUE }],
+  ["media.gmp-widevinecdm.lastDownload", { what: RECORD_PREF_VALUE }],
+  ["media.gmp-widevinecdm.lastDownloadFailed", { what: RECORD_PREF_VALUE }],
+  ["media.gmp-widevinecdm.lastDownloadFailReason", { what: RECORD_PREF_VALUE }],
+  ["media.gmp-widevinecdm.lastUpdate", { what: RECORD_PREF_VALUE }],
+  ["media.gmp-widevinecdm.visible", { what: RECORD_PREF_VALUE }],
   ["media.gmp-manager.lastCheck", { what: RECORD_PREF_VALUE }],
   ["media.gmp-manager.lastEmptyCheck", { what: RECORD_PREF_VALUE }],
   ["network.http.windows-sso.enabled", { what: RECORD_PREF_VALUE }],
@@ -373,8 +370,6 @@ const DEFAULT_ENVIRONMENT_PREFS = new Map([
   ],
   ["xpinstall.signatures.required", { what: RECORD_PREF_VALUE }],
   ["nimbus.debug", { what: RECORD_PREF_VALUE }],
-  ["nimbus.qa.pref-1", { what: RECORD_DEFAULTPREF_VALUE }],
-  ["nimbus.qa.pref-2", { what: RECORD_DEFAULTPREF_VALUE }],
 ]);
 
 const LOGGER_NAME = "Toolkit.Telemetry";
@@ -1547,8 +1542,8 @@ EnvironmentCache.prototype = {
     }
 
     try {
-      let { ShellService } = ChromeUtils.import(
-        "resource:///modules/ShellService.jsm"
+      let { ShellService } = ChromeUtils.importESModule(
+        "resource:///modules/ShellService.sys.mjs"
       );
       // This uses the same set of flags used by the pref pane.
       return isDefault(ShellService, false, true);
@@ -1682,7 +1677,7 @@ EnvironmentCache.prototype = {
     try {
       await lazy.AttributionCode.getAttrDataAsync();
     } catch (e) {
-      // The AttributionCode.jsm module might not be always available
+      // The AttributionCode.sys.mjs module might not be always available
       // (e.g. tests). Gracefully handle this.
       return;
     }
@@ -1697,7 +1692,7 @@ EnvironmentCache.prototype = {
     try {
       data = lazy.AttributionCode.getCachedAttributionData();
     } catch (e) {
-      // The AttributionCode.jsm module might not be always available
+      // The AttributionCode.sys.mjs module might not be always available
       // (e.g. tests). Gracefully handle this.
     }
 

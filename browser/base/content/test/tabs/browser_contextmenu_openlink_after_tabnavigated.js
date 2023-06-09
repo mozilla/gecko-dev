@@ -1,6 +1,7 @@
 "use strict";
 
 const example_base =
+  // eslint-disable-next-line @microsoft/sdl/no-insecure-url
   "http://example.com/browser/browser/base/content/test/tabs/";
 
 add_task(async function test_contextmenu_openlink_after_tabnavigated() {
@@ -27,11 +28,12 @@ add_task(async function test_contextmenu_openlink_after_tabnavigated() {
   info("Popup Shown");
 
   info("Navigate the tab with the opened context menu");
-  BrowserTestUtils.loadURI(gBrowser.selectedBrowser, "about:blank");
+  BrowserTestUtils.loadURIString(gBrowser.selectedBrowser, "about:blank");
   await BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
 
   let awaitNewTabOpen = BrowserTestUtils.waitForNewTab(
     gBrowser,
+    // eslint-disable-next-line @microsoft/sdl/no-insecure-url
     "http://example.com/",
     true
   );
@@ -48,6 +50,7 @@ add_task(async function test_contextmenu_openlink_after_tabnavigated() {
 
   is(
     newTab.linkedBrowser.currentURI.spec,
+    // eslint-disable-next-line @microsoft/sdl/no-insecure-url
     "http://example.com/",
     "Got the expected URL loaded in the new tab"
   );

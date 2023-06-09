@@ -245,7 +245,6 @@
 #include "mozilla/dom/ImageBitmap.h"
 #include "mozilla/dom/ImageBitmapBinding.h"
 #include "mozilla/dom/ServiceWorkerRegistration.h"
-#include "mozilla/dom/U2F.h"
 #include "mozilla/dom/WebIDLGlobalNameHash.h"
 #include "mozilla/dom/Worklet.h"
 #include "AccessCheck.h"
@@ -1664,13 +1663,15 @@ bool nsGlobalWindowOuter::IsBlackForCC(bool aTracingNeeded) {
 // nsGlobalWindowOuter::nsIScriptGlobalObject
 //*****************************************************************************
 
-bool nsGlobalWindowOuter::ShouldResistFingerprinting() const {
+bool nsGlobalWindowOuter::ShouldResistFingerprinting(
+    RFPTarget aTarget /* = RFPTarget::Unknown */) const {
   if (mDoc) {
-    return mDoc->ShouldResistFingerprinting();
+    return mDoc->ShouldResistFingerprinting(aTarget);
   }
   return nsContentUtils::ShouldResistFingerprinting(
       "If we do not have a document then we do not have any context"
-      "to make an informed RFP choice, so we fall back to the global pref");
+      "to make an informed RFP choice, so we fall back to the global pref",
+      aTarget);
 }
 
 OriginTrials nsGlobalWindowOuter::Trials() const {
@@ -1678,7 +1679,7 @@ OriginTrials nsGlobalWindowOuter::Trials() const {
                       : OriginTrials();
 }
 
-FontFaceSet* nsGlobalWindowOuter::Fonts() {
+FontFaceSet* nsGlobalWindowOuter::GetFonts() {
   if (mDoc) {
     return mDoc->Fonts();
   }
@@ -3576,7 +3577,7 @@ void nsGlobalWindowOuter::SetInnerHeightOuter(double aInnerHeight,
 
 CSSIntSize nsGlobalWindowOuter::GetOuterSize(CallerType aCallerType,
                                              ErrorResult& aError) {
-  if (nsContentUtils::ResistFingerprinting(aCallerType)) {
+  if (nsIGlobalObject::ShouldResistFingerprinting(aCallerType)) {
     CSSSize size;
     aError = GetInnerSize(size);
     return RoundedToInt(size);
@@ -3656,7 +3657,7 @@ void nsGlobalWindowOuter::SetOuterHeightOuter(int32_t aOuterHeight,
 CSSIntPoint nsGlobalWindowOuter::GetScreenXY(CallerType aCallerType,
                                              ErrorResult& aError) {
   // When resisting fingerprinting, always return (0,0)
-  if (nsContentUtils::ResistFingerprinting(aCallerType)) {
+  if (nsIGlobalObject::ShouldResistFingerprinting(aCallerType)) {
     return CSSIntPoint(0, 0);
   }
 
@@ -3749,7 +3750,7 @@ Maybe<CSSIntSize> nsGlobalWindowOuter::GetRDMDeviceSize(
 
 float nsGlobalWindowOuter::GetMozInnerScreenXOuter(CallerType aCallerType) {
   // When resisting fingerprinting, always return 0.
-  if (nsContentUtils::ResistFingerprinting(aCallerType)) {
+  if (nsIGlobalObject::ShouldResistFingerprinting(aCallerType)) {
     return 0.0;
   }
 
@@ -3759,7 +3760,7 @@ float nsGlobalWindowOuter::GetMozInnerScreenXOuter(CallerType aCallerType) {
 
 float nsGlobalWindowOuter::GetMozInnerScreenYOuter(CallerType aCallerType) {
   // Return 0 to prevent fingerprinting.
-  if (nsContentUtils::ResistFingerprinting(aCallerType)) {
+  if (nsIGlobalObject::ShouldResistFingerprinting(aCallerType)) {
     return 0.0;
   }
 
@@ -3966,9 +3967,11 @@ Nullable<WindowProxyHolder> nsGlobalWindowOuter::GetTopOuter() {
 already_AddRefed<BrowsingContext> nsGlobalWindowOuter::GetChildWindow(
     const nsAString& aName) {
   NS_ENSURE_TRUE(mBrowsingContext, nullptr);
+  NS_ENSURE_TRUE(mInnerWindow, nullptr);
+  NS_ENSURE_TRUE(mInnerWindow->GetWindowGlobalChild(), nullptr);
 
-  return do_AddRef(
-      mBrowsingContext->FindChildWithName(aName, *mBrowsingContext));
+  return do_AddRef(mBrowsingContext->FindChildWithName(
+      aName, *mInnerWindow->GetWindowGlobalChild()));
 }
 
 bool nsGlobalWindowOuter::DispatchCustomEvent(
@@ -4036,7 +4039,10 @@ bool nsGlobalWindowOuter::WindowExists(const nsAString& aName,
            aName.LowerCaseEqualsLiteral("_parent");
   }
 
-  return !!mBrowsingContext->FindWithName(aName, aLookForCallerOnJSStack);
+  if (WindowGlobalChild* wgc = mInnerWindow->GetWindowGlobalChild()) {
+    return wgc->FindBrowsingContextWithName(aName, aLookForCallerOnJSStack);
+  }
+  return false;
 }
 
 already_AddRefed<nsIWidget> nsGlobalWindowOuter::GetMainWidget() {
@@ -4757,23 +4763,8 @@ bool nsGlobalWindowOuter::CanMoveResizeWindows(CallerType aCallerType) {
     }
 
     // Ignore the request if we have more than one tab in the window.
-    if (XRE_IsContentProcess()) {
-      nsCOMPtr<nsIDocShell> docShell = GetDocShell();
-      if (docShell) {
-        nsCOMPtr<nsIBrowserChild> child = docShell->GetBrowserChild();
-        bool hasSiblings = true;
-        if (child && NS_SUCCEEDED(child->GetHasSiblings(&hasSiblings)) &&
-            hasSiblings) {
-          return false;
-        }
-      }
-    } else {
-      nsCOMPtr<nsIDocShellTreeOwner> treeOwner = GetTreeOwner();
-      uint32_t itemCount = 0;
-      if (treeOwner && NS_SUCCEEDED(treeOwner->GetTabCount(&itemCount)) &&
-          itemCount > 1) {
-        return false;
-      }
+    if (mBrowsingContext->Top()->HasSiblings()) {
+      return false;
     }
   }
 
@@ -6402,7 +6393,7 @@ class ChildCommandDispatcher : public Runnable {
         mAction(aAction) {}
 
   NS_IMETHOD Run() override {
-    nsTArray<nsCString> enabledCommands, disabledCommands;
+    AutoTArray<nsCString, 70> enabledCommands, disabledCommands;
     mRoot->GetEnabledDisabledCommands(enabledCommands, disabledCommands);
     if (enabledCommands.Length() || disabledCommands.Length()) {
       BrowserChild* bc = static_cast<BrowserChild*>(mBrowserChild.get());
@@ -7370,7 +7361,7 @@ void nsGlobalWindowOuter::InitWasOffline() { mWasOffline = NS_IsOffline(); }
 
 #if defined(_WINDOWS_) && !defined(MOZ_WRAPPED_WINDOWS_H)
 #  pragma message( \
-      "wrapper failure reason: " MOZ_WINDOWS_WRAPPER_DISABLED_REASON)
+          "wrapper failure reason: " MOZ_WINDOWS_WRAPPER_DISABLED_REASON)
 #  error "Never include unwrapped windows.h in this file!"
 #endif
 

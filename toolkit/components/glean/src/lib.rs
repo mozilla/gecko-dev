@@ -17,10 +17,7 @@
 //! [privacy-policy]: https://www.mozilla.org/privacy/
 //! [docs]: https://firefox-source-docs.mozilla.org/toolkit/components/glean/
 
-// No one is currently using the Glean SDK, so let's export it, so we know it gets
-// compiled.
-pub extern crate fog;
-
+use firefox_on_glean::{ipc, metrics, pings};
 use nserror::{nsresult, NS_ERROR_FAILURE, NS_OK};
 use nsstring::{nsACString, nsCString};
 use thin_vec::ThinVec;
@@ -41,7 +38,7 @@ pub extern "C" fn fog_shutdown() {
 
 #[no_mangle]
 pub extern "C" fn fog_register_pings() {
-    fog::pings::register_pings();
+    pings::register_pings(None);
 }
 
 static mut PENDING_BUF: Vec<u8> = Vec::new();
@@ -53,7 +50,7 @@ static mut PENDING_BUF: Vec<u8> = Vec::new();
 /// fog_give_ipc_buf on).
 #[no_mangle]
 pub unsafe extern "C" fn fog_serialize_ipc_buf() -> usize {
-    if let Some(buf) = fog::ipc::take_buf() {
+    if let Some(buf) = ipc::take_buf() {
         PENDING_BUF = buf;
         PENDING_BUF.len()
     } else {
@@ -82,10 +79,10 @@ pub unsafe extern "C" fn fog_give_ipc_buf(buf: *mut u8, buf_len: usize) -> usize
 #[no_mangle]
 pub unsafe extern "C" fn fog_use_ipc_buf(buf: *const u8, buf_len: usize) {
     let slice = std::slice::from_raw_parts(buf, buf_len);
-    let res = fog::ipc::replay_from_buf(slice);
+    let res = ipc::replay_from_buf(slice);
     if res.is_err() {
         log::warn!("Unable to replay ipc buffer. This will result in data loss.");
-        fog::metrics::fog_ipc::replay_failures.add(1);
+        metrics::fog_ipc::replay_failures.add(1);
     }
 }
 
@@ -190,4 +187,24 @@ pub extern "C" fn fog_test_get_experiment_data(
             extra_values.extend(data_values.into_iter().map(|value| value.into()));
         }
     }
+}
+
+/// Sets the remote feature configuration.
+///
+/// See [`glean_core::Glean::set_metrics_disabled_config`].
+#[no_mangle]
+pub extern "C" fn fog_set_metrics_feature_config(config_json: &nsACString) {
+    // Normalize null and empty strings to a stringified empty map
+    if config_json == "null" || config_json.is_empty() {
+        glean::glean_set_metrics_enabled_config("{}".to_owned());
+    }
+    glean::glean_set_metrics_enabled_config(config_json.to_string());
+}
+
+/// Performs Glean tasks when client state changes to inactive
+///
+/// See [`glean_core::Glean::handle_client_inactive`].
+#[no_mangle]
+pub extern "C" fn fog_internal_glean_handle_client_inactive() {
+    glean::handle_client_inactive();
 }

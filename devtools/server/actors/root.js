@@ -8,7 +8,9 @@
 // error packets.
 /* eslint-disable no-throw-literal */
 
-const { Pool } = require("resource://devtools/shared/protocol.js");
+const { Actor, Pool } = require("resource://devtools/shared/protocol.js");
+const { rootSpec } = require("resource://devtools/shared/specs/root.js");
+
 const {
   LazyPool,
   createExtraActors,
@@ -16,8 +18,6 @@ const {
 const {
   DevToolsServer,
 } = require("resource://devtools/server/devtools-server.js");
-const protocol = require("resource://devtools/shared/protocol.js");
-const { rootSpec } = require("resource://devtools/shared/specs/root.js");
 const Resources = require("resource://devtools/server/actors/resources/index.js");
 
 loader.lazyRequireGetter(
@@ -101,9 +101,9 @@ loader.lazyRequireGetter(
  * actually produce any actors until they are reached in the course of
  * iteration: alliterative lazy live lists.
  */
-exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
-  initialize(conn, parameters) {
-    protocol.Actor.prototype.initialize.call(this, conn);
+class RootActor extends Actor {
+  constructor(conn, parameters) {
+    super(conn, rootSpec);
 
     this._parameters = parameters;
     this._onTabListChanged = this.onTabListChanged.bind(this);
@@ -136,8 +136,11 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
             "dom.worker.console.dispatch_events_to_main_thread"
           )
         : true,
+      // @backward-compat { version 113 } Fx 113 added support for uninstalling
+      // add-ons via the Addons actor.
+      supportsAddonsUninstall: true,
     };
-  },
+  }
 
   /**
    * Return a 'hello' packet as specified by the Remote Debugging Protocol.
@@ -150,7 +153,7 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
       testConnectionPrefix: this.conn.prefix,
       traits: this.traits,
     };
-  },
+  }
 
   forwardingCancelled(prefix) {
     return {
@@ -158,7 +161,7 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
       type: "forwardingCancelled",
       prefix,
     };
-  },
+  }
 
   /**
    * Destroys the actor from the browser window.
@@ -166,7 +169,7 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
   destroy() {
     Resources.unwatchAllResources(this);
 
-    protocol.Actor.prototype.destroy.call(this);
+    super.destroy();
 
     /* Tell the live lists we aren't watching any more. */
     if (this._parameters.tabList) {
@@ -211,11 +214,10 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
       this._serviceWorkerRegistrationActorPool.destroy();
     }
     this._extraActors = null;
-    this.conn = null;
     this._tabDescriptorActorPool = null;
     this._globalActorPool = null;
     this._parameters = null;
-  },
+  }
 
   /**
    * Gets the "root" form, which lists all the global actors that affect the entire
@@ -233,7 +235,7 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
     );
 
     return actors;
-  },
+  }
 
   /* The 'listTabs' request and the 'tabListChanged' notification. */
 
@@ -273,7 +275,7 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
     this._tabDescriptorActorPool = newActorPool;
 
     return tabDescriptorActors;
-  },
+  }
 
   /**
    * Return the tab descriptor actor for the tab identified by one of the IDs
@@ -316,13 +318,13 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
     this._tabDescriptorActorPool.manage(descriptorActor);
 
     return descriptorActor;
-  },
+  }
 
   onTabListChanged() {
     this.conn.send({ from: this.actorID, type: "tabListChanged" });
     /* It's a one-shot notification; no need to watch any more. */
     this._parameters.tabList.onListChanged = null;
-  },
+  }
 
   /**
    * This function can receive the following option from devtools client.
@@ -362,12 +364,12 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
     this._addonTargetActorPool = addonTargetActorPool;
 
     return addonTargetActors;
-  },
+  }
 
   onAddonListChanged() {
     this.conn.send({ from: this.actorID, type: "addonListChanged" });
     this._parameters.addonList.onListChanged = null;
-  },
+  }
 
   listWorkers() {
     const workerList = this._parameters.workerList;
@@ -399,12 +401,12 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
         workers: actors,
       };
     });
-  },
+  }
 
   onWorkerListChanged() {
     this.conn.send({ from: this.actorID, type: "workerListChanged" });
     this._parameters.workerList.onListChanged = null;
-  },
+  }
 
   listServiceWorkerRegistrations() {
     const registrationList = this._parameters.serviceWorkerRegistrationList;
@@ -433,7 +435,7 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
         registrations: actors,
       };
     });
-  },
+  }
 
   onServiceWorkerRegistrationListChanged() {
     this.conn.send({
@@ -441,7 +443,7 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
       type: "serviceWorkerRegistrationListChanged",
     });
     this._parameters.serviceWorkerRegistrationList.onListChanged = null;
-  },
+  }
 
   listProcesses() {
     const { processList } = this._parameters;
@@ -471,12 +473,12 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
     }
     this._processDescriptorActorPool = pool;
     return [...this._processDescriptorActorPool.poolChildren()];
-  },
+  }
 
   onProcessListChanged() {
     this.conn.send({ from: this.actorID, type: "processListChanged" });
     this._parameters.processList.onListChanged = null;
-  },
+  }
 
   async getProcess(id) {
     if (!DevToolsServer.allowChromeProcess) {
@@ -506,7 +508,7 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
       this._processDescriptorActorPool.manage(processDescriptor);
     }
     return processDescriptor;
-  },
+  }
 
   _getKnownDescriptor(id, pool) {
     // if there is no pool, then we do not have any descriptors
@@ -519,7 +521,7 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
       }
     }
     return null;
-  },
+  }
 
   /**
    * Remove the extra actor (added by ActorRegistry.addGlobalActor or
@@ -540,7 +542,7 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
       }
       delete this._extraActors[name];
     }
-  },
+  }
 
   /**
    * Start watching for a list of resource types.
@@ -549,7 +551,7 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
    */
   async watchResources(resourceTypes) {
     await Resources.watchResources(this, resourceTypes);
-  },
+  }
 
   /**
    * Stop watching for a list of resource types.
@@ -558,7 +560,7 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
    */
   unwatchResources(resourceTypes) {
     Resources.unwatchResources(this, resourceTypes);
-  },
+  }
 
   /**
    * Clear resources of a list of resource types.
@@ -567,7 +569,7 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
    */
   clearResources(resourceTypes) {
     Resources.clearResources(this, resourceTypes);
-  },
+  }
 
   /**
    * Called by Resource Watchers, when new resources are available, updated or destroyed.
@@ -599,22 +601,7 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
       default:
         throw new Error("Unsupported update type: " + updateType);
     }
-  },
-});
+  }
+}
 
-/**
- * This `echo` request can't be easily specified via protocol.js types
- * as it is a JSON value in the packet itself. Protocol.js only allows
- * arbitrary json object in one property of the packet.
- * In order to bypass protocol.js, declare the request method directly
- * on the prototype/requestTypes, which is populated by ActorClassWithSpec.
- *
- * Note that this request is only used by tests.
- */
-exports.RootActor.prototype.requestTypes.echo = function(request) {
-  /*
-   * Request packets are frozen. Copy request, so that
-   * DevToolsServerConnection.onPacket can attach a 'from' property.
-   */
-  return Cu.cloneInto(request, {});
-};
+exports.RootActor = RootActor;

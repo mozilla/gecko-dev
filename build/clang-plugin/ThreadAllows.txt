@@ -28,6 +28,7 @@ IMAP
 ######
 # Other
 Checker Test  # used only as part of tests for the thread-checker itself
+Testing Thread  # used only as part of tests for toolkit/components/url-classifier/tests/gtest/
 
 ######
 # Unsorted thread names
@@ -54,6 +55,7 @@ DDMediaLogs
 DOMCacheThread
 DataChannel IO
 DataStorage
+DesktopCapture
 FileWatcher IO
 Font Loader
 FontEnumThread
@@ -100,6 +102,7 @@ Timer
 ToastBgThread
 TRR Background
 URL Classifier
+VideoCapture
 VRService
 VsyncIOThread
 Wifi Monitor
@@ -108,3 +111,4 @@ speechd init
 thread
 thread shutdown
 wifi tickler
+WMFCDMThread

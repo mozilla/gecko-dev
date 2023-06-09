@@ -96,7 +96,7 @@ const tests = [
   },
 ];
 
-add_task(async function startup() {
+add_setup(async function startup() {
   await AddonTestUtils.promiseStartupManager();
 });
 

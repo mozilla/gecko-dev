@@ -6,6 +6,7 @@
  * Site Data - Settings dialog
  */
 #sitesList {
+  flex: 1 auto;
   height: 20em;
 }
 
@@ -16,12 +17,12 @@
 
 #sitesList > richlistitem > hbox,
 .item-box > label {
-  -moz-box-flex: 1;
+  flex: 1;
 }
 
 .item-box {
   padding: 5px 8px;
-  -moz-box-align: center;
+  align-items: center;
   width: 50px;
 }
 
@@ -29,7 +30,6 @@
  * Confirmation dialog of removing sites selected
  */
 #SiteDataRemoveSelectedDialog {
-  -moz-box-layout: flex;
   padding: 16px;
   min-width: 50px;
 }

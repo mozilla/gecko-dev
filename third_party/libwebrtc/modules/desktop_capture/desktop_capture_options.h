@@ -17,7 +17,7 @@
 #include "modules/desktop_capture/linux/x11/shared_x_display.h"
 #endif
 
-#if defined(WEBRTC_USE_PIPEWIRE) && !defined(WEBRTC_MOZILLA_BUILD)
+#if defined(WEBRTC_USE_PIPEWIRE)
 #include "modules/desktop_capture/linux/wayland/shared_screencast_stream.h"
 #endif
 
@@ -105,6 +105,17 @@ class RTC_EXPORT DesktopCaptureOptions {
     detect_updated_region_ = detect_updated_region;
   }
 
+  // Indicates that the capturer should try to include the cursor in the frame.
+  // If it is able to do so it will set `DesktopFrame::may_contain_cursor()`.
+  // Not all capturers will support including the cursor. If this value is false
+  // or the cursor otherwise cannot be included in the frame, then cursor
+  // metadata will be sent, though the capturer may choose to always send cursor
+  // metadata.
+  bool prefer_cursor_embedded() const { return prefer_cursor_embedded_; }
+  void set_prefer_cursor_embedded(bool prefer_cursor_embedded) {
+    prefer_cursor_embedded_ = prefer_cursor_embedded;
+  }
+
 #if defined(WEBRTC_WIN)
   // Enumerating windows owned by the current process on Windows has some
   // complications due to |GetWindowText*()| APIs potentially causing a
@@ -181,7 +192,6 @@ class RTC_EXPORT DesktopCaptureOptions {
   bool allow_pipewire() const { return allow_pipewire_; }
   void set_allow_pipewire(bool allow) { allow_pipewire_ = allow; }
 
-#if !defined(WEBRTC_MOZILLA_BUILD)
   const rtc::scoped_refptr<SharedScreenCastStream>& screencast_stream() const {
     return screencast_stream_;
   }
@@ -195,14 +205,20 @@ class RTC_EXPORT DesktopCaptureOptions {
 
   void set_height(uint32_t height) { height_ = height; }
   uint32_t get_height() const { return height_; }
-#endif
+
+  void set_pipewire_use_damage_region(bool use_damage_regions) {
+    pipewire_use_damage_region_ = use_damage_regions;
+  }
+  bool pipewire_use_damage_region() const {
+    return pipewire_use_damage_region_;
+  }
 #endif
 
  private:
 #if defined(WEBRTC_USE_X11)
   rtc::scoped_refptr<SharedXDisplay> x_display_;
 #endif
-#if defined(WEBRTC_USE_PIPEWIRE) && !defined(WEBRTC_MOZILLA_BUILD)
+#if defined(WEBRTC_USE_PIPEWIRE)
   // An instance of shared PipeWire ScreenCast stream we share between
   // BaseCapturerPipeWire and MouseCursorMonitorPipeWire as cursor information
   // is sent together with screen content.
@@ -232,8 +248,10 @@ class RTC_EXPORT DesktopCaptureOptions {
 #endif
   bool disable_effects_ = true;
   bool detect_updated_region_ = false;
+  bool prefer_cursor_embedded_ = false;
 #if defined(WEBRTC_USE_PIPEWIRE)
   bool allow_pipewire_ = false;
+  bool pipewire_use_damage_region_ = true;
   uint32_t width_ = 0;
   uint32_t height_ = 0;
 #endif

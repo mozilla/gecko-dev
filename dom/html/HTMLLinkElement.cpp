@@ -18,6 +18,7 @@
 #include "mozilla/dom/DocumentInlines.h"
 #include "mozilla/dom/HTMLLinkElementBinding.h"
 #include "mozilla/dom/HTMLDNSPrefetch.h"
+#include "mozilla/dom/ReferrerInfo.h"
 #include "mozilla/dom/ScriptLoader.h"
 #include "nsContentUtils.h"
 #include "nsDOMTokenList.h"
@@ -194,9 +195,8 @@ void HTMLLinkElement::CreateAndDispatchEvent(Document* aDoc,
   asyncDispatcher->PostDOMEvent();
 }
 
-nsresult HTMLLinkElement::BeforeSetAttr(int32_t aNameSpaceID, nsAtom* aName,
-                                        const nsAttrValueOrString* aValue,
-                                        bool aNotify) {
+void HTMLLinkElement::BeforeSetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                                    const nsAttrValue* aValue, bool aNotify) {
   if (aNameSpaceID == kNameSpaceID_None &&
       (aName == nsGkAtoms::href || aName == nsGkAtoms::rel)) {
     CancelDNSPrefetch(*this);
@@ -207,11 +207,11 @@ nsresult HTMLLinkElement::BeforeSetAttr(int32_t aNameSpaceID, nsAtom* aName,
                                              aNotify);
 }
 
-nsresult HTMLLinkElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
-                                       const nsAttrValue* aValue,
-                                       const nsAttrValue* aOldValue,
-                                       nsIPrincipal* aSubjectPrincipal,
-                                       bool aNotify) {
+void HTMLLinkElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                                   const nsAttrValue* aValue,
+                                   const nsAttrValue* aOldValue,
+                                   nsIPrincipal* aSubjectPrincipal,
+                                   bool aNotify) {
   if (aNameSpaceID == kNameSpaceID_None && aName == nsGkAtoms::href) {
     mCachedURI = nullptr;
     if (IsInUncomposedDoc()) {

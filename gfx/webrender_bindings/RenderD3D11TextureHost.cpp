@@ -6,19 +6,22 @@
 
 #include "RenderD3D11TextureHost.h"
 
-#include <d3d11.h>
-
 #include "GLContextEGL.h"
 #include "GLLibraryEGL.h"
+#include "RenderThread.h"
+#include "RenderCompositor.h"
+#include "RenderCompositorD3D11SWGL.h"
 #include "ScopedGLHelpers.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/gfx/Logging.h"
+#include "mozilla/layers/TextureD3D11.h"
 
 namespace mozilla {
 namespace wr {
 
 RenderDXGITextureHost::RenderDXGITextureHost(
-    WindowsHandle aHandle, Maybe<uint64_t>& aGpuProcessTextureId,
+    WindowsHandle aHandle,
+    Maybe<layers::GpuProcessTextureId>& aGpuProcessTextureId,
     uint32_t aArrayIndex, gfx::SurfaceFormat aFormat,
     gfx::ColorSpace2 aColorSpace, gfx::ColorRange aColorRange,
     gfx::IntSize aSize)

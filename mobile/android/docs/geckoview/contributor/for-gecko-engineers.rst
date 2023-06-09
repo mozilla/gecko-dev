@@ -16,10 +16,9 @@ Who this guide is for: As the title suggests, the target audience of
 this guide is existing Gecko engineers who need to be able to build and
 (locally) test GeckoView. If you aren’t already familiar with building
 Firefox on a desktop platform, you’ll likely be better served by reading
-`our general introduction <geckoview-quick-start>`_. This guide may
+`our general introduction <geckoview-quick-start.html>`_. This guide may
 also be helpful if you find you’ve written a patch that requires
-changing GeckoView’s public API, see `Landing a
-Patch <#landing-a-patch>`_.
+changing GeckoView’s public API, see `Landing a Patch <#landing-a-patch>`_.
 
 Who this guide is not for: As mentioned above, if you are not already
 familiar with building Firefox for desktop, you’d likely be better
@@ -27,7 +26,7 @@ served by our general bootstrapping guide. If you are looking to
 contribute to front-end development of one of Mozilla’s Android
 browsers, you’re likely better off starting with their codebase and
 returning here only if actual GeckoView changes are needed. See, for
-example, `Fenix’s GitHub <https://github.com/mozilla-mobile/fenix>`_.
+example, `Fenix’s GitHub <https://github.com/mozilla-mobile/firefox-android/tree/main/fenix>`_.
 
 What to do if this guide contains bugs or leads you astray: The quickest
 way to get a response is to ask generally on #gv on Mozilla Slack;

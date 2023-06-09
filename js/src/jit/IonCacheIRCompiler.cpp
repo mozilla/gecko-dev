@@ -556,7 +556,9 @@ JitCode* IonCacheIRCompiler::compile(IonICStub* stub) {
 
   CacheIRReader reader(writer_);
   do {
-    switch (reader.readOp()) {
+    CacheOp op = reader.readOp();
+    perfSpewer_.recordInstruction(masm, op);
+    switch (op) {
 #define DEFINE_OP(op, ...)                 \
   case CacheOp::op:                        \
     if (!emit##op(reader)) return nullptr; \
@@ -1090,7 +1092,7 @@ bool IonCacheIRCompiler::emitProxyGetResult(ObjOperandId objId,
   masm.enterFakeExitFrame(argJSContext, scratch, ExitFrameType::IonOOLProxy);
 
   // Make the call.
-  using Fn = bool (*)(JSContext * cx, HandleObject proxy, HandleId id,
+  using Fn = bool (*)(JSContext* cx, HandleObject proxy, HandleId id,
                       MutableHandleValue vp);
   masm.setupUnalignedABICall(scratch);
   masm.passABIArg(argJSContext);
@@ -1242,7 +1244,7 @@ bool IonCacheIRCompiler::emitAddAndStoreSlotShared(
                          liveVolatileFloatRegs());
     masm.PushRegsInMask(save);
 
-    using Fn = bool (*)(JSContext * cx, NativeObject * obj, uint32_t newCount);
+    using Fn = bool (*)(JSContext* cx, NativeObject* obj, uint32_t newCount);
     masm.setupUnalignedABICall(scratch1);
     masm.loadJSContext(scratch1);
     masm.passABIArg(scratch1);
@@ -1378,7 +1380,7 @@ bool IonCacheIRCompiler::emitLoadStringCharResult(StringOperandId strId,
     volatileRegs.takeUnchecked(output);
     masm.PushRegsInMask(volatileRegs);
 
-    using Fn = JSLinearString* (*)(JSContext * cx, int32_t code);
+    using Fn = JSLinearString* (*)(JSContext* cx, int32_t code);
     masm.setupUnalignedABICall(scratch2);
     masm.loadJSContext(scratch2);
     masm.passABIArg(scratch2);
@@ -1630,7 +1632,7 @@ bool IonCacheIRCompiler::emitCallAddOrUpdateSparseElementHelper(
   masm.Push(id);
   masm.Push(obj);
 
-  using Fn = bool (*)(JSContext * cx, Handle<NativeObject*> obj, int32_t int_id,
+  using Fn = bool (*)(JSContext* cx, Handle<NativeObject*> obj, int32_t int_id,
                       HandleValue v, bool strict);
   callVM<Fn, AddOrUpdateSparseElementHelper>(masm);
   return true;
@@ -1811,6 +1813,11 @@ void IonIC::attachCacheIRStub(JSContext* cx, const CacheIRWriter& writer,
     return;
   }
 
+  // Record the stub code if perf spewer is enabled.
+  CacheKind stubKind = newStub->stubInfo()->kind();
+  compiler.perfSpewer().saveProfile(cx, script(), code,
+                                    CacheKindNames[uint8_t(stubKind)]);
+
   // Add an entry to the profiler's code table, so that the profiler can
   // identify this as Ion code.
   if (ionScript->hasProfilingInstrumentation()) {
@@ -1946,6 +1953,14 @@ bool IonCacheIRCompiler::emitCallScriptedFunction(ObjOperandId calleeId,
   MOZ_CRASH("Call ICs not used in ion");
 }
 
+bool IonCacheIRCompiler::emitCallBoundScriptedFunction(ObjOperandId calleeId,
+                                                       ObjOperandId targetId,
+                                                       Int32OperandId argcId,
+                                                       CallFlags flags,
+                                                       uint32_t numBoundArgs) {
+  MOZ_CRASH("Call ICs not used in ion");
+}
+
 bool IonCacheIRCompiler::emitCallWasmFunction(
     ObjOperandId calleeId, Int32OperandId argcId, CallFlags flags,
     uint32_t argcFixed, uint32_t funcExportOffset, uint32_t instanceOffset) {
@@ -1996,6 +2011,17 @@ bool IonCacheIRCompiler::emitCallInlinedFunction(ObjOperandId calleeId,
                                                  uint32_t icScriptOffset,
                                                  CallFlags flags,
                                                  uint32_t argcFixed) {
+  MOZ_CRASH("Call ICs not used in ion");
+}
+
+bool IonCacheIRCompiler::emitBindFunctionResult(ObjOperandId targetId,
+                                                uint32_t argc,
+                                                uint32_t templateObjectOffset) {
+  MOZ_CRASH("Call ICs not used in ion");
+}
+
+bool IonCacheIRCompiler::emitSpecializedBindFunctionResult(
+    ObjOperandId targetId, uint32_t argc, uint32_t templateObjectOffset) {
   MOZ_CRASH("Call ICs not used in ion");
 }
 

@@ -31,6 +31,12 @@ add_task(async function() {
     mocks.thisFirefoxClient,
     document
   );
+  await testAddonsOnMockedRemoteClient(
+    usbClient,
+    mocks.thisFirefoxClient,
+    document,
+    /* supportsAddonsUninstall */ true
+  );
 
   info("Prepare Network client mock");
   const networkClient = mocks.createNetworkRuntime(NETWORK_RUNTIME_HOST, {
@@ -45,6 +51,12 @@ add_task(async function() {
     mocks.thisFirefoxClient,
     document
   );
+  await testAddonsOnMockedRemoteClient(
+    networkClient,
+    mocks.thisFirefoxClient,
+    document,
+    /* supportsAddonsUninstall */ true
+  );
 
   await removeTab(tab);
 });
@@ -55,7 +67,8 @@ add_task(async function() {
 async function testAddonsOnMockedRemoteClient(
   remoteClient,
   firefoxClient,
-  document
+  document,
+  supportsAddonsUninstall = false
 ) {
   const extensionPane = getDebugTargetPane("Extensions", document);
   info("Check an empty target pane message is displayed");
@@ -73,6 +86,8 @@ async function testAddonsOnMockedRemoteClient(
   };
   remoteClient.listAddons = () => [addon, temporaryAddon];
   remoteClient._eventEmitter.emit("addonListChanged");
+  // We use a mock client (wrapper) so we must set the trait ourselves.
+  remoteClient.traits.supportsAddonsUninstall = supportsAddonsUninstall;
 
   info("Wait until the extension appears");
   await waitUntil(
@@ -97,11 +112,16 @@ async function testAddonsOnMockedRemoteClient(
   const removeButton = temporaryExtensionTarget.querySelector(
     ".qa-temporary-extension-remove-button"
   );
+  if (supportsAddonsUninstall) {
+    ok(removeButton, "Remove button expected for the temporary extension");
+  } else {
+    ok(!removeButton, "No remove button expected for the temporary extension");
+  }
+
   const reloadButton = temporaryExtensionTarget.querySelector(
     ".qa-temporary-extension-reload-button"
   );
-  ok(!removeButton, "No remove button expected for the temporary extension");
-  ok(!reloadButton, "No reload button expected for the temporary extension");
+  ok(reloadButton, "Reload button expected for the temporary extension");
 
   // The goal here is to check that runtimes addons are only updated when the remote
   // runtime is sending addonListChanged events. The reason for this test is because the

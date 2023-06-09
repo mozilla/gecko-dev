@@ -14,6 +14,11 @@ module.exports = {
       url:
         "https://firefox-source-docs.mozilla.org/code-quality/lint/linters/eslint-plugin-mozilla/no-compare-against-boolean-literals.html",
     },
+    messages: {
+      noCompareBoolean:
+        "Don't compare for inexact equality against boolean literals",
+    },
+    schema: [],
     type: "suggestion",
   },
 
@@ -25,10 +30,10 @@ module.exports = {
           (["true", "false"].includes(node.left.raw) ||
             ["true", "false"].includes(node.right.raw))
         ) {
-          context.report(
+          context.report({
             node,
-            "Don't compare for inexact equality against boolean literals"
-          );
+            messageId: "noCompareBoolean",
+          });
         }
       },
     };

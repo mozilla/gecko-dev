@@ -2,12 +2,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 import bisect
+import os
 import re
 from html.parser import HTMLParser
 
 import mozpack.path as mozpath
 import yaml
-from fluent.syntax import parse, visitor
+from fluent.syntax import ast, parse, visitor
 from mozlint import result
 from mozlint.pathutils import expand_exclusions
 
@@ -39,7 +40,9 @@ class Linter(visitor.Visitor):
     https://www.projectfluent.org/python-fluent/fluent.syntax/stable/usage.html
     """
 
-    def __init__(self, path, config, exclusions, contents, offsets_and_lines):
+    def __init__(
+        self, path, config, exclusions, contents, offsets_and_lines, brand_names=[]
+    ):
         super().__init__()
         self.path = path
         self.config = config
@@ -55,7 +58,7 @@ class Linter(visitor.Visitor):
         self.double_quote_re = re.compile(r"\".+\"")
         self.ellipsis_re = re.compile(r"\.\.\.")
 
-        self.brand_names = ["Firefox", "Mozilla", "Thunderbird"]
+        self.brand_names = brand_names
         self.minimum_id_length = 9
 
         self.state = {
@@ -64,6 +67,12 @@ class Linter(visitor.Visitor):
             # Group comments must be followed by a message. Two group comments are not
             # allowed in a row.
             "can_have_group_comment": True,
+            # Comment bound to the current message
+            "comment": "",
+            # The current group comment
+            "group_comment": "",
+            # Variables in the current message
+            "variables": [],
         }
 
         # Set this to true to debug print the root node's json. This is useful for
@@ -108,12 +117,37 @@ class Linter(visitor.Visitor):
 
         super().generic_visit(node)
 
+        # Check if variables are referenced in comments
+        if self.state["variables"]:
+            comments = self.state["comment"] + self.state["group_comment"]
+            missing_references = [
+                v for v in self.state["variables"] if f"${v}" not in comments
+            ]
+            if missing_references:
+                self.add_error(
+                    node,
+                    "VC01",
+                    "Messages including variables should have a comment "
+                    "explaining what will replace the variable. "
+                    "Missing references: "
+                    + ", ".join([f"${m}" for m in missing_references]),
+                )
+
+        # Reset current comment and variable references after reading the
+        # message.
+        self.state["comment"] = ""
+        self.state["variables"] = []
+
     def visit_Term(self, node):
         # There must be at least one message or term between group comments.
         self.state["can_have_group_comment"] = True
         self.last_message_id = None
 
         super().generic_visit(node)
+
+        # Reset current comment and variable references after reading the term.
+        self.state["comment"] = ""
+        self.state["variables"] = []
 
     def visit_MessageReference(self, node):
         # We don't recurse into message references, the identifiers are either
@@ -240,8 +274,25 @@ class Linter(visitor.Visitor):
         for variant in node.variants:
             super().generic_visit(variant.value)
 
+        # Store the variable used for the SelectExpression, excluding functions
+        # like PLATFORM()
+        if (
+            type(node.selector) == ast.VariableReference
+            and node.selector.id.name not in self.state["variables"]
+        ):
+            self.state["variables"].append(node.selector.id.name)
+
+    def visit_Comment(self, node):
+        # This node is a comment with: "#"
+
+        # Store the comment
+        self.state["comment"] = node.content
+
     def visit_GroupComment(self, node):
         # This node is a comment with: "##"
+
+        # Store the group comment
+        self.state["group_comment"] = node.content
 
         if not self.state["can_have_group_comment"]:
             self.add_error(
@@ -249,7 +300,7 @@ class Linter(visitor.Visitor):
                 "GC04",
                 "Group comments (##) must be followed by at least one message "
                 "or term. Make sure that a single group comment with multiple "
-                "pararaphs is not separated by whitespace, as it will be "
+                "paragraphs is not separated by whitespace, as it will be "
                 "interpreted as two different comments.",
             )
             return
@@ -292,9 +343,11 @@ class Linter(visitor.Visitor):
             return
 
     def visit_VariableReference(self, node):
-        # We don't recurse into variable references, the identifiers there are
-        # allowed to be free form.
-        pass
+        # Identifiers are allowed to be free form, but need to store them
+        # for comment checks.
+
+        if node.id.name not in self.state["variables"]:
+            self.state["variables"].append(node.id.name)
 
     def add_error(self, node, rule, msg):
         (col, line) = self.span_to_line_and_col(node.span)
@@ -367,14 +420,50 @@ def get_exclusions(root):
         return exclusions
 
 
+def get_branding_list(root, brand_files):
+    class MessageExtractor(visitor.Visitor):
+        def __init__(self):
+            self.brands = []
+            self.last_message_id = None
+
+        def visit_Term(self, node):
+            self.last_message_id = node.id.name
+            self.generic_visit(node)
+
+        def visit_TextElement(self, node):
+            if self.last_message_id:
+                self.brands += [node.value]
+                self.last_message_id = None
+            self.generic_visit(node)
+
+    extractor = MessageExtractor()
+
+    for brand_path in brand_files:
+        brand_file = mozpath.join(root, brand_path)
+        if os.path.exists(brand_file):
+            with open(brand_file) as f:
+                messages = parse(f.read())
+                extractor.visit(messages)
+
+    return list(set(extractor.brands))
+
+
 def lint(paths, config, fix=None, **lintargs):
-    files = list(expand_exclusions(paths, config, lintargs["root"]))
-    exclusions = get_exclusions(lintargs["root"])
+    root = lintargs["root"]
+    files = list(expand_exclusions(paths, config, root))
+    exclusions = get_exclusions(root)
+    brand_files = config.get("brand-files")
+    brand_names = get_branding_list(root, brand_files)
     results = []
     for path in files:
         contents = open(path, "r", encoding="utf-8").read()
         linter = Linter(
-            path, config, exclusions, contents, get_offsets_and_lines(contents)
+            path,
+            config,
+            exclusions,
+            contents,
+            get_offsets_and_lines(contents),
+            brand_names,
         )
         linter.visit(parse(contents))
         results.extend(linter.results)

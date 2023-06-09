@@ -39,6 +39,8 @@ class RemoteAccessible : public RemoteAccessibleBase<RemoteAccessible> {
 
   virtual uint32_t CharacterCount() const override;
 
+  virtual char16_t CharAt(int32_t aOffset) override;
+
   LayoutDeviceIntRect TextBounds(
       int32_t aStartOffset, int32_t aEndOffset,
       uint32_t aCoordType =
@@ -71,9 +73,13 @@ class RemoteAccessible : public RemoteAccessibleBase<RemoteAccessible> {
   virtual bool SelectAll() override;
   virtual bool UnselectAll() override;
 
-  virtual nsAtom* LandmarkRole() const override;
+  virtual nsStaticAtom* LandmarkRole() const override;
+
+  virtual bool IsSearchbox() const override;
 
   virtual int32_t SelectionCount() override;
+
+  virtual int32_t CaretLineNumber() override;
 
   using RemoteAccessibleBase<RemoteAccessible>::SelectionBoundsAt;
   bool SelectionBoundsAt(int32_t aSelectionNum, nsString& aData,

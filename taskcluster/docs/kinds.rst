@@ -46,6 +46,16 @@ build-notarization-poller
 
 We switched to a 3-part mac notarization workflow in bug 1562412. This is the second task, which polls Apple for notarization status. Because this is run in a separate, special notarization poller pool, we free up the mac notarization pool for actual signing work.
 
+build-mac-signing
+-----------------
+
+Mac signing without notarization
+
+build-mac-notarization
+----------------------
+
+Mac notarization on signinscript (linux) using rcodesign
+
 artifact-build
 --------------
 
@@ -87,6 +97,16 @@ on an appropriate signing format. One signing job is created for each shippable-
 job (usually chunked).
 
 For mac notarization, we download the signed bits that have been notarized by Apple, and we staple the notarization to the app and pkg.
+
+shippable-l10n-mac-signing
+--------------------------
+
+Mac signing without notarization
+
+shippable-l10n-mac-notarization
+-------------------------------
+
+Mac notarization on signinscript (linux) using rcodesign
 
 shippable-l10n-notarization-part-1
 ----------------------------------
@@ -235,6 +255,10 @@ Beetmover-source publishes release source. This is part of release promotion.
 beetmover-geckoview
 -------------------
 Beetmover-geckoview publishes the Android library called "geckoview".
+
+beetmover-apt
+-------------------
+Beetmover-apt publishes Linux .deb packages from the Mozilla archive to our APT repositories.
 
 condprof
 --------
@@ -528,6 +552,10 @@ repackage-deb
 ----------------
 These repackage tasks take signed Firefox Linux binaries and puts them in Debian packages.
 
+repackage-deb-l10n
+------------------
+These repackage tasks take the signed langpacks (.xpi) binaries and puts them in Debian packages.
+
 repackage-signing
 -----------------
 Repackage-signing take the repackaged installers (windows) and signs them.
@@ -742,3 +770,11 @@ monitors this task to watch for regressions in Firefox startup performance.
 are-we-esmified-yet
 ---------------------
 Collects data about the transition to ECMAScript Modules from JSMs.
+
+attribution
+-----------
+Injects attribution information into en-US installers.
+
+attribution-l10n
+----------------
+Injects attribution information into localized installers.

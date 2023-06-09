@@ -11,7 +11,9 @@ const sinon = require("sinon");
 const {
   createFactory,
 } = require("resource://devtools/client/shared/vendor/react.js");
-const Provider = createFactory(require("react-redux").Provider);
+const Provider = createFactory(
+  require("resource://devtools/client/shared/vendor/react-redux.js").Provider
+);
 const {
   formatErrorTextWithCausedBy,
   setupStore,
@@ -403,22 +405,13 @@ describe("PageError component:", () => {
     const message = prepareMessage(packet, { getNextId: () => "1" });
     const wrapper = render(PageError({ message, serviceContainer }));
 
-    // Keep in sync with `urlCropLimit` in PageError.js.
-    const cropLimit = 120;
-    const partLength = cropLimit / 2;
-    const getCroppedUrl = url =>
-      `${url}${"a".repeat(partLength - url.length)}…${"a".repeat(partLength)}`;
-
-    const croppedEvil = getCroppedUrl(evilDomain);
-    const croppedbad = getCroppedUrl(badDomain);
-
     const text = wrapper.find(".message-body").text();
     expect(text).toBe(
-      `Uncaught “${croppedEvil}“ is evil and “${croppedbad}“ is not good either`
+      `Uncaught “${evilURL}“ is evil and “${badURL}“ is not good either`
     );
 
-    // There should be 2 links.
-    const links = wrapper.find(".message-body a");
+    // There should be 2 cropped links.
+    const links = wrapper.find(".message-body a.cropped-url");
     expect(links.length).toBe(2);
 
     expect(links.eq(0).attr("href")).toBe(evilURL);

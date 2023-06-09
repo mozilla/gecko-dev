@@ -1,7 +1,3 @@
-var { XPCOMUtils } = ChromeUtils.importESModule(
-  "resource://gre/modules/XPCOMUtils.sys.mjs"
-);
-
 function openIdentityPopup() {
   gIdentityHandler._initializePopup();
   let mainView = document.getElementById("identity-popup-mainView");
@@ -50,7 +46,7 @@ function promiseTabLoadEvent(tab, url) {
   let loaded = BrowserTestUtils.browserLoaded(tab.linkedBrowser, false, handle);
 
   if (url) {
-    BrowserTestUtils.loadURI(tab.linkedBrowser, url);
+    BrowserTestUtils.loadURIString(tab.linkedBrowser, url);
   }
 
   return loaded;
@@ -414,7 +410,7 @@ async function assertMixedContentBlockingState(tabbrowser, states = {}) {
 
 async function loadBadCertPage(url) {
   let loaded = BrowserTestUtils.waitForErrorPage(gBrowser.selectedBrowser);
-  BrowserTestUtils.loadURI(gBrowser.selectedBrowser, url);
+  BrowserTestUtils.loadURIString(gBrowser.selectedBrowser, url);
   await loaded;
 
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function() {

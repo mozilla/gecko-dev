@@ -9,13 +9,14 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   HiddenFrame: "resource://gre/modules/HiddenFrame.sys.mjs",
+  PerTestCoverageUtils:
+    "resource://testing-common/PerTestCoverageUtils.sys.mjs",
   SpecialPowersSandbox: "resource://specialpowers/SpecialPowersSandbox.sys.mjs",
 });
 
 XPCOMUtils.defineLazyModuleGetters(lazy, {
   ExtensionData: "resource://gre/modules/Extension.jsm",
   ExtensionTestCommon: "resource://testing-common/ExtensionTestCommon.jsm",
-  PerTestCoverageUtils: "resource://testing-common/PerTestCoverageUtils.jsm",
   ServiceWorkerCleanUp: "resource://gre/modules/ServiceWorkerCleanUp.jsm",
 });
 
@@ -29,10 +30,10 @@ const PREF_TYPES = {
   [Ci.nsIPrefBranch.PREF_INVALID]: "INVALID",
   [Ci.nsIPrefBranch.PREF_INT]: "INT",
   [Ci.nsIPrefBranch.PREF_BOOL]: "BOOL",
-  [Ci.nsIPrefBranch.PREF_STRING]: "CHAR",
+  [Ci.nsIPrefBranch.PREF_STRING]: "STRING",
   number: "INT",
   boolean: "BOOL",
-  string: "CHAR",
+  string: "STRING",
 };
 
 // We share a single preference environment stack between all
@@ -81,9 +82,12 @@ async function createWindowlessBrowser({ isPrivate = false } = {}) {
   const system = Services.scriptSecurityManager.getSystemPrincipal();
   chromeShell.createAboutBlankContentViewer(system, system);
   windowlessBrowser.browsingContext.useGlobalHistory = false;
-  chromeShell.loadURI("chrome://extensions/content/dummy.xhtml", {
-    triggeringPrincipal: system,
-  });
+  chromeShell.loadURI(
+    Services.io.newURI("chrome://extensions/content/dummy.xhtml"),
+    {
+      triggeringPrincipal: system,
+    }
+  );
 
   await promiseObserved(
     "chrome-document-global-created",
@@ -171,6 +175,7 @@ export class SpecialPowersParent extends JSWindowActorParent {
       },
     };
 
+    this._basePrefs = null;
     this.init();
 
     this._crashDumpDir = null;
@@ -205,6 +210,8 @@ export class SpecialPowersParent extends JSWindowActorParent {
       },
     };
     swm.addListener(this._serviceWorkerListener);
+
+    this.getBaselinePrefs();
   }
 
   uninit() {
@@ -484,7 +491,7 @@ export class SpecialPowersParent extends JSWindowActorParent {
             type = PREF_TYPES[typeof value];
           }
           if (type === "INVALID") {
-            throw new Error("Unexpected preference type");
+            throw new Error("Unexpected preference type for " + name);
           }
 
           pendingActions.push({ action, type, name, value, iid });
@@ -535,8 +542,20 @@ export class SpecialPowersParent extends JSWindowActorParent {
         return Services.prefs.setCharPref(name, value);
       case "COMPLEX":
         return Services.prefs.setComplexValue(name, iid, value);
+      case "STRING":
+        return Services.prefs.setStringPref(name, value);
     }
-    throw new Error(`Unexpected preference type: ${type}`);
+    switch (typeof value) {
+      case "boolean":
+        return Services.prefs.setBoolPref(name, value);
+      case "number":
+        return Services.prefs.setIntPref(name, value);
+      case "string":
+        return Services.prefs.setStringPref(name, value);
+    }
+    throw new Error(
+      `Unexpected preference type: ${type} for ${name} with value ${value} and type ${typeof value}`
+    );
   }
 
   _getPref(name, type, defaultValue, iid) {
@@ -558,8 +577,106 @@ export class SpecialPowersParent extends JSWindowActorParent {
         return Services.prefs.getCharPref(name);
       case "COMPLEX":
         return Services.prefs.getComplexValue(name, iid);
+      case "STRING":
+        if (defaultValue !== undefined) {
+          return Services.prefs.getStringPref(name, defaultValue);
+        }
+        return Services.prefs.getStringPref(name);
     }
-    throw new Error(`Unexpected preference type: ${type}`);
+    throw new Error(
+      `Unexpected preference type: ${type} for preference ${name}`
+    );
+  }
+
+  getBaselinePrefs() {
+    this._basePrefs = this._getAllPreferences();
+  }
+
+  _comparePrefs(base, target, ignorePrefs, partialMatches) {
+    let failures = [];
+    for (const [key, value] of base) {
+      if (ignorePrefs.includes(key)) {
+        continue;
+      }
+      let partialFind = false;
+      partialMatches.forEach(pm => {
+        if (key.startsWith(pm)) {
+          partialFind = true;
+        }
+      });
+      if (partialFind) {
+        continue;
+      }
+
+      if (value === target.get(key)) {
+        continue;
+      }
+      if (!failures.includes(key)) {
+        failures.push(key);
+      }
+    }
+    return failures;
+  }
+
+  comparePrefsToBaseline(ignorePrefs) {
+    let newPrefs = this._getAllPreferences();
+
+    // find all items in ignorePrefs that end in *, add to partialMatch
+    let partialMatch = [];
+    if (ignorePrefs === undefined) {
+      ignorePrefs = [];
+    }
+    ignorePrefs.forEach(pref => {
+      if (pref.endsWith("*")) {
+        partialMatch.push(pref.split("*")[0]);
+      }
+    });
+
+    // find all new prefs different than old
+    let rv1 = this._comparePrefs(
+      newPrefs,
+      this._basePrefs,
+      ignorePrefs,
+      partialMatch
+    );
+
+    // find all old prefs different than new (in case we delete)
+    let rv2 = this._comparePrefs(
+      this._basePrefs,
+      newPrefs,
+      ignorePrefs,
+      partialMatch
+    );
+
+    let failures = [...new Set([...rv1, ...rv2])];
+
+    // reset failures
+    failures.forEach(f => {
+      if (this._basePrefs.get(f)) {
+        this._setPref(
+          f,
+          PREF_TYPES[Services.prefs.getPrefType(f)],
+          this._basePrefs.get(f)
+        );
+      } else {
+        Services.prefs.clearUserPref(f);
+      }
+    });
+
+    if (ignorePrefs.length > 1) {
+      return failures;
+    }
+    return [];
+  }
+
+  _getAllPreferences() {
+    let names = new Map();
+    for (let prefName of Services.prefs.getChildList("")) {
+      let prefType = PREF_TYPES[Services.prefs.getPrefType(prefName)];
+      let prefValue = this._getPref(prefName, prefType);
+      names.set(prefName, prefValue);
+    }
+    return names;
   }
 
   _toggleMuteAudio(aMuted) {
@@ -820,6 +937,12 @@ export class SpecialPowersParent extends JSWindowActorParent {
         case "EvictAllContentViewers":
           this.browsingContext.top.sessionHistory.evictAllContentViewers();
           return undefined;
+
+        case "getBaselinePrefs":
+          return this.getBaselinePrefs();
+
+        case "comparePrefsToBaseline":
+          return this.comparePrefsToBaseline(aMessage.data);
 
         case "PushPrefEnv":
           return this.pushPrefEnv(aMessage.data);

@@ -12,6 +12,7 @@ $tags:
 
 urlbar:
   abandonment:
+    disabled: true
     type: event
     description: Recorded when the user abandons a search (blurring the urlbar).
     extra_keys:
@@ -72,25 +73,55 @@ urlbar:
           the user. The groups may be repeated, since the list will match 1:1
           the results list, so we can link each result to a group. The possible
           group names are: `heuristic`, `adaptive_history`, `search_history`,
-          `search_suggest`, `top_pick`, `top_site`, `remote_tab`, `addon`,
-          `general`, `suggest`, `about_page` and `suggested_index`. If the group
-          did not fall into any of these, this will be `unknown` and a bug
-          should be filed to investigate it.
+          `search_suggest`, `trending_search`, `top_pick`, `top_site`,
+          `remote_tab`, `addon`, `general`, `suggest`, `about_page` and
+          `suggested_index`. If the group did not fall into any of these, this
+          will be `unknown` and a bug should be filed to investigate it.
         type: string
       results:
         description: >
           Comma separated list of result types in the order they were shown to
-          the user. The possible result types are: `autofill_about`,
-          `autofill_adaptive`, `autofill_origin`, `autofill_url`,
-          `autofill_unknown`, `bookmark`, `history`, `keyword`, `search_engine`,
-          `search_suggest`, `search_history`, `url`, `action`, `tab`,
-          `remote_tab`, `addon`, `tip_onboard`, `tip_persist`, `tip_redirect`,
-          `tip_unknown`, `intervention_clear`, `intervention_refresh`,
-          `intervention_update`, `intervention_unknown`, `tab_to_search`,
-          `top_site`, `calc`, `unit`, `suggest_sponsor` and
-          `suggest_non_sponsor`. If the result type did not fall into any of
-          these, this will be `unknown` and a bug should be filed to investigate
-          it.
+          the user. The `unknown` type should not occur and indicates a bug. The
+          possible types are:
+          `action`,
+          `addon`,
+          `autofill_about`,
+          `autofill_adaptive`,
+          `autofill_origin`,
+          `autofill_unknown`,
+          `autofill_url`,
+          `bookmark`,
+          `calc`,
+          `history`,
+          `intervention_clear`,
+          `intervention_refresh`,
+          `intervention_unknown`,
+          `intervention_update`,
+          `keyword`,
+          `merino_adm_nonsponsored`,
+          `merino_adm_sponsored`,
+          `merino_top_picks`,
+          `merino_wikipedia`,
+          `remote_tab`,
+          `rs_adm_nonsponsored`,
+          `rs_adm_sponsored`,
+          `search_engine`,
+          `search_history`,
+          `search_suggest`,
+          `suggest_non_sponsor`,
+          `suggest_sponsor`,
+          `tab`,
+          `tab_to_search`,
+          `tip_dismissal_acknowledgment`,
+          `tip_onboard`,
+          `tip_persist`,
+          `tip_redirect`,
+          `tip_unknown`,
+          `top_site`,
+          `trending_search`,
+          `unit`,
+          `url`,
+          `weather`
         type: string
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1800414
@@ -104,6 +135,7 @@ urlbar:
       - fx-search-telemetry@mozilla.com
     expires: never
   engagement:
+    disabled: true
     type: event
     description: Recorded when the user executes an action on a result.
     extra_keys:
@@ -160,16 +192,51 @@ urlbar:
         type: quantity
       selected_result:
         description: >
-          The type of the result the user selected. The possible result types
-          are: `autofill_about`, `autofill_adaptive`, `autofill_origin`,
-          `autofill_url`, `autofill_unknown`, `bookmark`, `history`, `keyword`,
-          `search_engine`, `search_suggest`, `search_history`, `url`, `action`,
-          `tab`, `remote_tab`, `addon`, `tip_onboard`, `tip_persist`,
-          `tip_redirect`, `tip_unknown`, `intervention_clear`,
-          `intervention_refresh`, `intervention_update`, `intervention_unknown`,
-          `tab_to_search`, `top_site`, `calc`, `unit`, `suggest_sponsor` and
-          `suggest_non_sponsor`. If the result type did not fall into any of
-          these, this will be `unknown`.
+          The type of the result the user selected. The `unknown` type should
+          not occur and indicates a bug. The possible types are:
+          `action`,
+          `addon`,
+          `autofill_about`,
+          `autofill_adaptive`,
+          `autofill_origin`,
+          `autofill_unknown`,
+          `autofill_url`,
+          `bookmark`,
+          `calc`,
+          `experimental_addon`,
+          `history`,
+          `input_field`,
+          `intervention_clear`,
+          `intervention_refresh`,
+          `intervention_unknown`,
+          `intervention_update`,
+          `keyword`,
+          `merino_adm_nonsponsored`,
+          `merino_adm_sponsored`,
+          `merino_top_picks`,
+          `merino_wikipedia`,
+          `remote_tab`,
+          `rs_adm_nonsponsored`,
+          `rs_adm_sponsored`,
+          `search_engine`,
+          `search_history`,
+          `search_shortcut_button`,
+          `search_suggest`,
+          `site_specific_contextual_search`,
+          `suggest_non_sponsor`,
+          `suggest_sponsor`,
+          `tab`,
+          `tab_to_search`,
+          `tip_dismissal_acknowledgment`,
+          `tip_onboard`,
+          `tip_persist`,
+          `tip_redirect`,
+          `tip_unknown`,
+          `top_site`,
+          `trending_search`,
+          `unit`,
+          `url`,
+          `weather`
         type: string
       selected_result_subtype:
         description: >
@@ -185,17 +252,32 @@ urlbar:
           The name of the `UrlbarProvider` that provided the selected result.
           The possible values are: `AboutPages`, `AliasEngines`, `Autofill`,
           `BookmarkKeywords`, `calculator`, `UrlbarProviderContextualSearch`,
-          `HeuristicFallback`, `InputHistory`, `UrlbarProviderInterventions`,
-          `Omnibox`, `OpenTabs`, `Places`, `PreloadedSites`, `PrivateSearch`,
-          `quickactions`, `UrlbarProviderQuickSuggest`, `RemoteTabs`,
-          `SearchSuggestions`, `UrlbarProviderSearchTips`, `TabToSearch`,
-          `TokenAliasEngines`, `UrlbarProviderTopSites`, `UnitConversion` and
-          `UnifiedComplete`.
+          `HeuristicFallback`, `HistoryUrlHeuristic`, `InputHistory`,
+          `UrlbarProviderInterventions`, `Omnibox`, `OpenTabs`, `Places`,
+          `PreloadedSites`, `PrivateSearch`, `quickactions`,
+          `UrlbarProviderQuickSuggest`, `RemoteTabs`, `SearchSuggestions`,
+          `UrlbarProviderSearchTips`, `TabToSearch`, `TokenAliasEngines`,
+          `UrlbarProviderTopSites`, `UnitConversion` and `UnifiedComplete`.
+          If engagement_type is `drop_go` or `paste_go`, this will be null
+          because no results are shown. And also, if selected_result is
+          `experimental_addon`, it means that the user selected a result
+           from an add-on using the urlbar experimental API. In this case,
+           this will be the provider name specified by the add-on.
         type: string
       engagement_type:
         description: >
           Records how the user selected the result. The possible values are:
-          `click`, `enter`, `drop_go`, `paste_go`, `dismiss`, `help`.
+          `click`,
+          `dismiss`,
+          `drop_go`,
+          `enter`,
+          `go_button`,
+          `help`,
+          `inaccurate_location`,
+          `not_interested`,
+          `not_relevant`,
+          `paste_go`,
+          `show_less_frequently`
         type: string
       groups:
         description: >
@@ -203,25 +285,57 @@ urlbar:
           the user. The groups may be repeated, since the list will match 1:1
           the results list, so we can link each result to a group. The possible
           group names are: `heuristic`, `adaptive_history`, `search_history`,
-          `search_suggest`, `top_pick`, `top_site`, `remote_tab`, `addon`,
-          `general`, `suggest`, `about_page` and `suggested_index`. If the group
-          did not fall into any of these, this will be `unknown` and a bug
-          should be filed to investigate it.
+          `search_suggest`, `trending_search`, `top_pick`, `top_site`,
+          `remote_tab`, `addon`, `general`, `suggest`, `about_page` and
+          `suggested_index`. If the group did not fall into any of these, this
+          will be `unknown` and a bug should be filed to investigate it. If
+          engagement_type is `drop_go` or `paste_go`, this will be empty string
+          because no results are shown.
         type: string
       results:
         description: >
           Comma separated list of result types in the order they were shown to
-          the user. The possible result types are: `autofill_about`,
-          `autofill_adaptive`, `autofill_origin`, `autofill_url`,
-          `autofill_unknown`, `bookmark`, `history`, `keyword`, `search_engine`,
-          `search_suggest`, `search_history`, `url`, `action`, `tab`,
-          `remote_tab`, `addon`, `tip_onboard`, `tip_persist`, `tip_redirect`,
-          `tip_unknown`, `intervention_clear`, `intervention_refresh`,
-          `intervention_update`, `intervention_unknown`, `tab_to_search`,
-          `top_site`, `calc`, `unit`, `suggest_sponsor` and
-          `suggest_non_sponsor`. If the result type did not fall into any of
-          these, this will be `unknown` and a bug should be filed to investigate
-          it.
+          the user. The `unknown` type should not occur and indicates a bug. The
+          possible types are:
+          `action`,
+          `addon`,
+          `autofill_about`,
+          `autofill_adaptive`,
+          `autofill_origin`,
+          `autofill_unknown`,
+          `autofill_url`,
+          `bookmark`,
+          `calc`,
+          `history`,
+          `intervention_clear`,
+          `intervention_refresh`,
+          `intervention_unknown`,
+          `intervention_update`,
+          `keyword`,
+          `merino_adm_nonsponsored`,
+          `merino_adm_sponsored`,
+          `merino_top_picks`,
+          `merino_wikipedia`,
+          `remote_tab`,
+          `rs_adm_nonsponsored`,
+          `rs_adm_sponsored`,
+          `search_engine`,
+          `search_history`,
+          `search_suggest`,
+          `suggest_non_sponsor`,
+          `suggest_sponsor`,
+          `tab`,
+          `tab_to_search`,
+          `tip_dismissal_acknowledgment`,
+          `tip_onboard`,
+          `tip_persist`,
+          `tip_redirect`,
+          `tip_unknown`,
+          `top_site`,
+          `trending_search`,
+          `unit`,
+          `url`,
+          `weather`
         type: string
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1797265
@@ -235,6 +349,7 @@ urlbar:
       - fx-search-telemetry@mozilla.com
     expires: never
   impression:
+    disabled: true
     type: event
     description: Recorded when urlbar results are shown to the user.
     extra_keys:
@@ -298,25 +413,55 @@ urlbar:
           the user. The groups may be repeated, since the list will match 1:1
           the results list, so we can link each result to a group. The possible
           group names are: `heuristic`, `adaptive_history`, `search_history`,
-          `search_suggest`, `top_pick`, `top_site`, `remote_tab`, `addon`,
-          `general`, `suggest`, `about_page` and `suggested_index`. If the group
-          did not fall into any of these, this will be `unknown` and a bug
-          should be filed to investigate it.
+          `search_suggest`, `trending_search`, `top_pick`, `top_site`,
+          `remote_tab`, `addon`, `general`, `suggest`, `about_page` and
+          `suggested_index`. If the group did not fall into any of these, this
+          will be `unknown` and a bug should be filed to investigate it.
         type: string
       results:
         description: >
           Comma separated list of result types in the order they were shown to
-          the user. The possible result types are: `autofill_about`,
-          `autofill_adaptive`, `autofill_origin`, `autofill_url`,
-          `autofill_unknown`, `bookmark`, `history`, `keyword`, `search_engine`,
-          `search_suggest`, `search_history`, `url`, `action`, `tab`,
-          `remote_tab`, `addon`, `tip_onboard`, `tip_persist`, `tip_redirect`,
-          `tip_unknown`, `intervention_clear`, `intervention_refresh`,
-          `intervention_update`, `intervention_unknown`, `tab_to_search`,
-          `top_site`, `calc`, `unit`, `suggest_sponsor` and
-          `suggest_non_sponsor`. If the result type did not fall into any of
-          these, this will be `unknown` and a bug should be filed to investigate
-          it.
+          the user. The `unknown` type should not occur and indicates a bug. The
+          possible types are:
+          `action`,
+          `addon`,
+          `autofill_about`,
+          `autofill_adaptive`,
+          `autofill_origin`,
+          `autofill_unknown`,
+          `autofill_url`,
+          `bookmark`,
+          `calc`,
+          `history`,
+          `intervention_clear`,
+          `intervention_refresh`,
+          `intervention_unknown`,
+          `intervention_update`,
+          `keyword`,
+          `merino_adm_nonsponsored`,
+          `merino_adm_sponsored`,
+          `merino_top_picks`,
+          `merino_wikipedia`,
+          `remote_tab`,
+          `rs_adm_nonsponsored`,
+          `rs_adm_sponsored`,
+          `search_engine`,
+          `search_history`,
+          `search_suggest`,
+          `suggest_non_sponsor`,
+          `suggest_sponsor`,
+          `tab`,
+          `tab_to_search`,
+          `tip_dismissal_acknowledgment`,
+          `tip_onboard`,
+          `tip_persist`,
+          `tip_redirect`,
+          `tip_unknown`,
+          `top_site`,
+          `trending_search`,
+          `unit`,
+          `url`,
+          `weather`
         type: string
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1800579
@@ -329,3 +474,59 @@ urlbar:
     notification_emails:
       - fx-search-telemetry@mozilla.com
     expires: never
+
+  exposure:
+    type: event
+    description: >
+      Recorded when client is exposed to urlbar experiment results.
+    extra_keys:
+      results:
+        description: >
+          Comma separated list of results that were visible to the user.
+        type: string
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1819766
+    data_reviews:
+      - ""
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+
+  pref_max_results:
+    lifetime: application
+    type: quantity
+    unit: integer
+    description: >
+      Maximum results to show in the Address Bar.
+      Corresponds to the value of the `browser.urlbar.maxRichResults` pref.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817196
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817196
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    send_in_pings:
+      - events
+
+  pref_suggest_topsites:
+    lifetime: application
+    type: boolean
+    description: >
+      Whether topsite results are enabled in the urlbar.
+      Corresponds to the value of the `browser.urlbar.suggest.topsites` pref.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817196
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817196
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    send_in_pings:
+      - events

@@ -68,45 +68,34 @@ function _ContextualIdentityService(path) {
 _ContextualIdentityService.prototype = {
   LAST_CONTAINERS_JSON_VERSION,
 
-  _defaultIdentities: [
+  _userIdentities: [
     {
-      userContextId: 1,
-      public: true,
       icon: "fingerprint",
       color: "blue",
       l10nID: "userContextPersonal.label",
       accessKey: "userContextPersonal.accesskey",
-      telemetryId: 1,
     },
     {
-      userContextId: 2,
-      public: true,
       icon: "briefcase",
       color: "orange",
       l10nID: "userContextWork.label",
       accessKey: "userContextWork.accesskey",
-      telemetryId: 2,
     },
     {
-      userContextId: 3,
-      public: true,
       icon: "dollar",
       color: "green",
       l10nID: "userContextBanking.label",
       accessKey: "userContextBanking.accesskey",
-      telemetryId: 3,
     },
     {
-      userContextId: 4,
-      public: true,
       icon: "cart",
       color: "pink",
       l10nID: "userContextShopping.label",
       accessKey: "userContextShopping.accesskey",
-      telemetryId: 4,
     },
+  ],
+  _systemIdentities: [
     {
-      userContextId: 5,
       public: false,
       icon: "",
       color: "",
@@ -127,6 +116,8 @@ _ContextualIdentityService.prototype = {
     },
   ],
 
+  _defaultIdentities: [],
+
   _identities: null,
   _openedIdentities: new Set(),
   _lastUserContextId: 0,
@@ -140,6 +131,34 @@ _ContextualIdentityService.prototype = {
     this._path = path;
 
     Services.prefs.addObserver(CONTEXTUAL_IDENTITY_ENABLED_PREF, this);
+
+    // Initialize default identities based on policy if available
+    this._defaultIdentities = [];
+    let userContextId = 1;
+    let policyIdentities = Services.policies?.getActivePolicies()?.Containers
+      ?.Default;
+    if (policyIdentities) {
+      for (let identity of policyIdentities) {
+        identity.public = true;
+        identity.userContextId = userContextId;
+        userContextId++;
+        this._defaultIdentities.push(identity);
+      }
+    } else {
+      for (let identity of this._userIdentities) {
+        identity.public = true;
+        identity.userContextId = userContextId;
+        userContextId++;
+        this._defaultIdentities.push(identity);
+      }
+    }
+    for (let identity of this._systemIdentities) {
+      if (!("userContextId" in identity)) {
+        identity.userContextId = userContextId;
+        userContextId++;
+      }
+      this._defaultIdentities.push(identity);
+    }
   },
 
   async observe(aSubject, aTopic) {
@@ -205,7 +224,7 @@ _ContextualIdentityService.prototype = {
   loadError(error) {
     if (error != null && error.name != "NotFoundError") {
       // Let's report the error.
-      Cu.reportError(error);
+      console.error(error);
     }
 
     // If synchronous loading happened in the meantime, exit now.
@@ -265,6 +284,12 @@ _ContextualIdentityService.prototype = {
       );
     }
 
+    if (!name.trim()) {
+      throw new Error(
+        "Contextual identity names cannot contain only whitespace."
+      );
+    }
+
     let identity = {
       userContextId,
       public: true,
@@ -289,6 +314,13 @@ _ContextualIdentityService.prototype = {
     let identity = this._identities.find(
       identity => identity.userContextId == userContextId && identity.public
     );
+
+    if (!name.trim()) {
+      throw new Error(
+        "Contextual identity names cannot contain only whitespace."
+      );
+    }
+
     if (identity && name) {
       identity.name = name;
       identity.color = color;
@@ -408,6 +440,12 @@ _ContextualIdentityService.prototype = {
     } catch (error) {
       this.loadError(error);
     }
+  },
+
+  getPublicUserContextIds() {
+    return this._identities
+      .filter(identity => identity.public)
+      .map(identity => identity.userContextId);
   },
 
   getPrivateUserContextIds() {
@@ -547,28 +585,6 @@ _ContextualIdentityService.prototype = {
           callback(tab, tabbrowser);
         }
       }
-    }
-  },
-
-  telemetry(userContextId) {
-    let identity = this.getPublicIdentityFromId(userContextId);
-
-    // Let's ignore unknown identities for now.
-    if (!identity) {
-      return;
-    }
-
-    if (!this._openedIdentities.has(userContextId)) {
-      this._openedIdentities.add(userContextId);
-      Services.telemetry.getHistogramById("UNIQUE_CONTAINERS_OPENED").add(1);
-    }
-
-    Services.telemetry.getHistogramById("TOTAL_CONTAINERS_OPENED").add(1);
-
-    if (identity.telemetryId) {
-      Services.telemetry
-        .getHistogramById("CONTAINER_USED")
-        .add(identity.telemetryId);
     }
   },
 

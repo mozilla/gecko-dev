@@ -73,7 +73,7 @@ with Files("mozilla/tests/placeholder"):
     BUG_COMPONENT = ("Testing", "web-platform-tests")
 
 with Files("mozilla/tests/webdriver/**"):
-    BUG_COMPONENT = ("Testing", "geckodriver")
+    BUG_COMPONENT = ("Remote Protocol", "Marionette")
 
 with Files("mozilla/tests/webdriver/bidi/**"):
     BUG_COMPONENT = ("Remote Protocol", "WebDriver BiDi")
@@ -111,7 +111,7 @@ with Files("tests/IndexedDB/**"):
     BUG_COMPONENT = ("Core", "Storage: IndexedDB")
 
 with Files("tests/WebCryptoAPI/**"):
-    BUG_COMPONENT = ("Core", "DOM: Security")
+    BUG_COMPONENT = ("Core", "DOM: Web Crypto")
 
 with Files("tests/xhr/**"):
     BUG_COMPONENT = ("Core", "DOM: Networking")
@@ -181,7 +181,7 @@ with Files("tests/cors/**"):
     BUG_COMPONENT = ("Core", "DOM: Security")
 
 with Files("tests/credential-management/**"):
-    BUG_COMPONENT = ("Core", "DOM: Security")
+    BUG_COMPONENT = ("Core", "DOM: Credential Management")
 
 with Files("tests/css/**"):
     BUG_COMPONENT = ("Core", "CSS Parsing and Computation")
@@ -477,6 +477,9 @@ with Files("tests/hr-time/**"):
 with Files("tests/html/**"):
     BUG_COMPONENT = ("Core", "DOM: Core & HTML")
 
+with Files("tests/html/canvas/**"):
+    BUG_COMPONENT = ("Core", "Graphics: Canvas2D")
+
 with Files("tests/html-longdesc/**"):
     BUG_COMPONENT = ("Core", "DOM: Core & HTML")
 
@@ -610,9 +613,6 @@ with Files("tests/preload/**"):
 with Files("tests/presentation-api/**"):
     BUG_COMPONENT = ("Core", "DOM: Core & HTML")
 
-with Files("tests/priority-hints/**"):
-    BUG_COMPONENT = ("Core", "DOM: Networking")
-
 with Files("tests/proximity/**"):
     BUG_COMPONENT = ("Core", "DOM: Device Interfaces")
 
@@ -722,7 +722,7 @@ with Files("tests/webauthn/**"):
     BUG_COMPONENT = ("Core", "DOM: Web Authentication")
 
 with Files("tests/webdriver/**"):
-    BUG_COMPONENT = ("Testing", "geckodriver")
+    BUG_COMPONENT = ("Remote Protocol", "Marionette")
 
 with Files("tests/webdriver/tests/bidi/**"):
     BUG_COMPONENT = ("Remote Protocol", "WebDriver BiDi")

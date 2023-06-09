@@ -31,6 +31,16 @@ const assertActionButtonStatus = async (name, expectedEnabled, description) => {
   Assert.equal(!target.hasAttribute("disabled"), expectedEnabled, description);
 };
 
+async function hasQuickActions(win) {
+  for (let i = 0, count = UrlbarTestUtils.getResultCount(win); i < count; i++) {
+    const { result } = await UrlbarTestUtils.getDetailsOfResultAt(win, i);
+    if (result.providerName === "quickactions") {
+      return true;
+    }
+  }
+  return false;
+}
+
 add_task(async function test_inspector() {
   const testData = [
     {
@@ -104,27 +114,30 @@ add_task(async function test_inspector() {
 
     info("Check the button status");
     const onLoad = BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
-    BrowserTestUtils.loadURI(gBrowser.selectedBrowser, page);
+    BrowserTestUtils.loadURIString(gBrowser.selectedBrowser, page);
     await onLoad;
     await UrlbarTestUtils.promiseAutocompleteResultPopup({
       window,
       value: "inspector",
     });
 
-    if (actionVisible) {
+    if (actionVisible && actionEnabled) {
       await assertActionButtonStatus(
         "inspect",
-        actionEnabled,
+        true,
         "The status of action button is correct"
       );
     } else {
-      const target = window.document.querySelector(`[data-key=inspect]`);
-      Assert.ok(!target, "Inspect button should not be displayed");
+      Assert.equal(
+        await hasQuickActions(window),
+        false,
+        "Result for quick actions is not shown since the inspector tool is disabled"
+      );
     }
 
     await SpecialPowers.popPrefEnv();
 
-    if (!actionEnabled) {
+    if (!actionVisible || !actionEnabled) {
       continue;
     }
 
@@ -146,10 +159,10 @@ add_task(async function test_inspector() {
       window,
       value: "inspector",
     });
-    await assertActionButtonStatus(
-      "inspect",
+    Assert.equal(
+      await hasQuickActions(window),
       false,
-      "The action button should be disabled since the inspector is already opening"
+      "Result for quick actions is not shown since the inspector is already opening"
     );
 
     info(

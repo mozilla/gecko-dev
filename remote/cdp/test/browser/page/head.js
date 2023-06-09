@@ -3,19 +3,10 @@
 
 "use strict";
 
-/* import-globals-from ../head.js */
-
 Services.scriptloader.loadSubScript(
   "chrome://mochitests/content/browser/remote/cdp/test/browser/head.js",
   this
 );
-
-const {
-  clearInterval,
-  clearTimeout,
-  setInterval,
-  setTimeout,
-} = ChromeUtils.importESModule("resource://gre/modules/Timer.sys.mjs");
 
 const { PollPromise } = ChromeUtils.importESModule(
   "chrome://remote/content/shared/Sync.sys.mjs"

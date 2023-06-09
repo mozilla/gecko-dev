@@ -18,6 +18,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ChannelMap: "resource://devtools/shared/network-observer/ChannelMap.sys.mjs",
   NetworkHelper:
     "resource://devtools/shared/network-observer/NetworkHelper.sys.mjs",
+  NetworkOverride:
+    "resource://devtools/shared/network-observer/NetworkOverride.sys.mjs",
   NetworkResponseListener:
     "resource://devtools/shared/network-observer/NetworkResponseListener.sys.mjs",
   NetworkThrottleManager:
@@ -41,12 +43,6 @@ function logPlatformEvent(eventName, channel, message = "") {
 
 // The maximum uint32 value.
 const PR_UINT32_MAX = 4294967295;
-
-// HTTP status codes.
-const HTTP_MOVED_PERMANENTLY = 301;
-const HTTP_FOUND = 302;
-const HTTP_SEE_OTHER = 303;
-const HTTP_TEMPORARY_REDIRECT = 307;
 
 const HTTP_TRANSACTION_CODES = {
   0x5001: "REQUEST_HEADER",
@@ -102,6 +98,15 @@ export class NetworkObserver {
    * @type {Map}
    */
   #blockedURLs = new Map();
+
+  /**
+   * Map of URL to local file path in order to redirect URL
+   * to local file overrides.
+   *
+   * This will replace the content of some request with the content of local files.
+   */
+  #overrides = new Map();
+
   /**
    * Used by NetworkHelper.parseSecurityInfo to skip decoding known certificates.
    *
@@ -279,8 +284,7 @@ export class NetworkObserver {
         return;
       }
 
-      const blockedCode = channel.loadInfo.requestBlockingReason;
-      this.#httpResponseExaminer(subject, topic, blockedCode);
+      this.#httpResponseExaminer(subject, topic);
     }
   );
 
@@ -301,55 +305,54 @@ export class NetworkObserver {
 
       logPlatformEvent(topic, channel);
 
-      let id;
-      let reason;
-
-      try {
-        const request = subject.QueryInterface(Ci.nsIHttpChannel);
-        const properties = request.QueryInterface(Ci.nsIPropertyBag);
-        reason = request.loadInfo.requestBlockingReason;
-        id = properties.getProperty("cancelledByExtension");
-
-        // WebExtensionPolicy is not available for workers
-        if (typeof WebExtensionPolicy !== "undefined") {
-          id = WebExtensionPolicy.getByID(id).name;
-        }
-      } catch (err) {
-        // "cancelledByExtension" doesn't have to be available.
-      }
-
       const httpActivity = this.#createOrGetActivityObject(channel);
       const serverTimings = this.#extractServerTimings(channel);
+
       if (httpActivity.owner) {
         // Try extracting server timings. Note that they will be sent to the client
         // in the `_onTransactionClose` method together with network event timings.
         httpActivity.owner.addServerTimings(serverTimings);
-      } else {
+
         // If the owner isn't set we need to create the network event and send
         // it to the client. This happens in case where:
         // - the request has been blocked (e.g. CORS) and "http-on-stop-request" is the first notification.
         // - the NetworkObserver is start *after* the request started and we only receive the http-stop notification,
         //   but that doesn't mean the request is blocked, so check for its status.
-        const { status } = channel;
-        if (status == 0) {
-          // Do not pass any blocked reason, as this request is just fine.
-          // Bug 1489217 - Prevent watching for this request response content,
-          // as this request is already running, this is too late to watch for it.
-          this.#createNetworkEvent(subject, { inProgressRequest: true });
-        } else {
-          if (reason == 0) {
-            // If we get there, we have a non-zero status, but no clear blocking reason
-            // This is most likely a request that failed for some reason, so try to pass this reason
-            reason = ChromeUtils.getXPCOMErrorName(status);
-          }
-          this.#createNetworkEvent(subject, {
-            blockedReason: reason,
-            blockingExtension: id,
-          });
-        }
+      } else if (Components.isSuccessCode(channel.status)) {
+        // Do not pass any blocked reason, as this request is just fine.
+        // Bug 1489217 - Prevent watching for this request response content,
+        // as this request is already running, this is too late to watch for it.
+        this.#createNetworkEvent(subject, { inProgressRequest: true });
+      } else {
+        // Handles any early blockings e.g by Web Extensions or by CORS
+        const {
+          blockingExtension,
+          blockedReason,
+        } = lazy.NetworkUtils.getBlockedReason(channel);
+        this.#createNetworkEvent(subject, { blockedReason, blockingExtension });
       }
     }
   );
+
+  /**
+   * Check if the current channel has its content being overriden
+   * by the content of some local file.
+   */
+  #checkForContentOverride(channel) {
+    const overridePath = this.#overrides.get(channel.URI.spec);
+    if (!overridePath) {
+      return false;
+    }
+
+    dump(" Override " + channel.URI.spec + " to " + overridePath + "\n");
+    try {
+      lazy.NetworkOverride.overrideChannelWithFilePath(channel, overridePath);
+    } catch (e) {
+      dump("Exception while trying to override request content: " + e + "\n");
+    }
+
+    return true;
+  }
 
   /**
    * Observe notifications for the http-on-examine-response topic, coming from
@@ -361,7 +364,7 @@ export class NetworkObserver {
    * @returns void
    */
   #httpResponseExaminer = DevToolsInfaillibleUtils.makeInfallible(
-    (subject, topic, blockedReason) => {
+    (subject, topic) => {
       // The httpResponseExaminer is used to retrieve the uncached response
       // headers.
       if (
@@ -388,54 +391,13 @@ export class NetworkObserver {
         topic,
         subject,
         blockedOrFailed
-          ? "blockedOrFailed:" + blockedReason
+          ? "blockedOrFailed:" + channel.loadInfo.requestBlockingReason
           : channel.responseStatus
       );
 
-      // Read response headers and cookies.
-      const responseHeaders = [];
-      const responseCookies = [];
-      if (!blockedOrFailed) {
-        const setCookieHeaders = [];
-        channel.visitOriginalResponseHeaders({
-          visitHeader(name, value) {
-            const lowerName = name.toLowerCase();
-            if (lowerName == "set-cookie") {
-              setCookieHeaders.push(value);
-            }
-            responseHeaders.push({ name, value });
-          },
-        });
-
-        if (!responseHeaders.length) {
-          // No need to continue.
-          return;
-        }
-
-        setCookieHeaders.forEach(header => {
-          const cookies = lazy.NetworkHelper.parseSetCookieHeader(header);
-          responseCookies.push(...cookies);
-        });
-      }
+      this.#checkForContentOverride(channel);
 
       channel.QueryInterface(Ci.nsIHttpChannelInternal);
-
-      let httpVersion, status, statusText;
-      if (!blockedOrFailed) {
-        const httpVersionMaj = {};
-        const httpVersionMin = {};
-
-        channel.getResponseVersion(httpVersionMaj, httpVersionMin);
-        if (httpVersionMaj.value > 1) {
-          httpVersion = "HTTP/" + httpVersionMaj.value;
-        } else {
-          httpVersion =
-            "HTTP/" + httpVersionMaj.value + "." + httpVersionMin.value;
-        }
-
-        status = channel.responseStatus;
-        statusText = channel.responseStatusText;
-      }
 
       let httpActivity = this.#createOrGetActivityObject(channel);
       if (topic === "http-on-examine-cached-response") {
@@ -456,29 +418,12 @@ export class NetworkObserver {
 
         // We need to send the request body to the frontend for
         // the faked (cached/service worker request) event.
-        this.#onRequestBodySent(httpActivity);
+        this.#prepareRequestBody(httpActivity);
         this.#sendRequestBody(httpActivity);
-
-        httpActivity.owner.addResponseStart(
-          {
-            httpVersion,
-            protocol: this.#getProtocol(httpActivity),
-            fromCache: this.#isFromCache(httpActivity),
-            remoteAddress: "",
-            remotePort: "",
-            status,
-            statusText,
-            bodySize: 0,
-            headersSize: 0,
-            waitingTime: 0,
-          },
-          "",
-          true
-        );
 
         // There also is never any timing events, so we can fire this
         // event with zeroed out values.
-        const timings = this.#setupHarTimings(httpActivity, true);
+        const timings = this.#setupHarTimings(httpActivity);
 
         const serverTimings = this.#extractServerTimings(httpActivity.channel);
         httpActivity.owner.addEventTimings(
@@ -488,12 +433,16 @@ export class NetworkObserver {
           serverTimings
         );
       } else if (topic === "http-on-failed-opening-request") {
+        const { blockedReason } = lazy.NetworkUtils.getBlockedReason(channel);
         this.#createNetworkEvent(channel, { blockedReason });
       }
 
       if (httpActivity.owner) {
-        httpActivity.owner.addResponseHeaders(responseHeaders);
-        httpActivity.owner.addResponseCookies(responseCookies);
+        httpActivity.owner.addResponseStart({
+          channel: httpActivity.channel,
+          fromCache: httpActivity.fromCache || httpActivity.fromServiceWorker,
+          rawHeaders: httpActivity.responseRawHeaders,
+        });
       }
     }
   );
@@ -517,7 +466,7 @@ export class NetworkObserver {
 
       // Read any request body here, before it is throttled.
       const httpActivity = this.#createOrGetActivityObject(channel);
-      this.#onRequestBodySent(httpActivity);
+      this.#prepareRequestBody(httpActivity);
       throttler.manageUpload(channel);
     }
   });
@@ -551,11 +500,12 @@ export class NetworkObserver {
 
     switch (activitySubtype) {
       case gActivityDistributor.ACTIVITY_SUBTYPE_REQUEST_BODY_SENT:
-        this.#onRequestBodySent(httpActivity);
+        this.#prepareRequestBody(httpActivity);
         this.#sendRequestBody(httpActivity);
         break;
       case gActivityDistributor.ACTIVITY_SUBTYPE_RESPONSE_HEADER:
-        this.#onResponseHeader(httpActivity, extraStringData);
+        httpActivity.responseRawHeaders = extraStringData;
+        httpActivity.headersSize = extraStringData.length;
         break;
       case gActivityDistributor.ACTIVITY_SUBTYPE_TRANSACTION_CLOSE:
         this.#onTransactionClose(httpActivity);
@@ -690,7 +640,7 @@ export class NetworkObserver {
     channel,
     {
       timestamp,
-      extraStringData,
+      rawHeaders,
       fromCache,
       fromServiceWorker,
       blockedReason,
@@ -707,42 +657,36 @@ export class NetworkObserver {
       };
     }
 
-    // Check the request URL with ones manually blocked by the user in DevTools.
-    // If it's meant to be blocked, we cancel the request and annotate the event.
     if (blockedReason === undefined && this.#shouldBlockChannel(channel)) {
+      // Check the request URL with ones manually blocked by the user in DevTools.
+      // If it's meant to be blocked, we cancel the request and annotate the event.
       channel.cancel(Cr.NS_BINDING_ABORTED);
       blockedReason = "devtools";
     }
 
-    const event = lazy.NetworkUtils.createNetworkEvent(channel, {
-      timestamp,
-      fromCache,
-      fromServiceWorker,
-      extraStringData,
-      blockedReason,
-      blockingExtension,
-      saveRequestAndResponseBodies: this.#saveRequestAndResponseBodies,
-    });
-
-    httpActivity.isXHR = event.isXHR;
-    httpActivity.private = event.private;
-    httpActivity.fromServiceWorker = fromServiceWorker;
-    httpActivity.owner = this.#onNetworkEvent(event, channel);
+    httpActivity.owner = this.#onNetworkEvent(
+      {
+        timestamp,
+        fromCache,
+        fromServiceWorker,
+        rawHeaders,
+        blockedReason,
+        blockingExtension,
+        discardRequestBody: !this.#saveRequestAndResponseBodies,
+        discardResponseBody: !this.#saveRequestAndResponseBodies,
+      },
+      channel
+    );
+    httpActivity.fromCache = fromCache || fromServiceWorker;
 
     // Bug 1489217 - Avoid watching for response content for blocked or in-progress requests
     // as it can't be observed and would throw if we try.
-    const recordRequestContent = !event.blockedReason && !inProgressRequest;
-    if (recordRequestContent) {
-      this.#setupResponseListener(httpActivity, fromCache);
+    if (blockedReason === undefined && !inProgressRequest) {
+      this.#setupResponseListener(httpActivity, {
+        fromCache,
+        fromServiceWorker,
+      });
     }
-
-    const {
-      cookies,
-      headers,
-    } = lazy.NetworkUtils.fetchRequestHeadersAndCookies(channel);
-
-    httpActivity.owner.addRequestHeaders(headers, extraStringData);
-    httpActivity.owner.addRequestCookies(cookies);
 
     return httpActivity;
   }
@@ -756,17 +700,17 @@ export class NetworkObserver {
    * @private
    * @param nsIHttpChannel channel
    * @param number timestamp
-   * @param string extraStringData
+   * @param string rawHeaders
    * @return void
    */
-  #onRequestHeader(channel, timestamp, extraStringData) {
+  #onRequestHeader(channel, timestamp, rawHeaders) {
     if (this.#ignoreChannelFunction(channel)) {
       return;
     }
 
     this.#createNetworkEvent(channel, {
       timestamp,
-      extraStringData,
+      rawHeaders,
     });
   }
 
@@ -815,11 +759,14 @@ export class NetworkObserver {
       const win = lazy.NetworkHelper.getWindowForRequest(channel);
       const charset = win ? win.document.characterSet : null;
 
+      // Most of the data needed from the channel is only available via the
+      // nsIHttpChannelInternal interface.
+      channel.QueryInterface(Ci.nsIHttpChannelInternal);
+
       httpActivity = {
-        id: gSequenceId(),
         // The nsIChannel for which this activity object was created.
         channel,
-        // See #onRequestBodySent()
+        // See #prepareRequestBody()
         charset,
         // The postData sent by this request.
         sentBody: null,
@@ -835,8 +782,6 @@ export class NetworkObserver {
         discardResponseBody: !this.#saveRequestAndResponseBodies,
         // internal timing information, see observeActivity()
         timings: {},
-        // see #onResponseHeader()
-        responseStatus: null,
         // the activity owner which is notified when changes happen
         owner: null,
       };
@@ -900,6 +845,14 @@ export class NetworkObserver {
     return this.#blockedURLs.keys();
   }
 
+  override(url, path) {
+    this.#overrides.set(url, path);
+  }
+
+  removeOverride(url) {
+    this.#overrides.delete(url);
+  }
+
   /**
    * Setup the network response listener for the given HTTP activity. The
    * NetworkResponseListener is responsible for storing the response body.
@@ -908,7 +861,7 @@ export class NetworkObserver {
    * @param object httpActivity
    *        The HTTP activity object we are tracking.
    */
-  #setupResponseListener(httpActivity, fromCache) {
+  #setupResponseListener(httpActivity, { fromCache, fromServiceWorker }) {
     const channel = httpActivity.channel;
     channel.QueryInterface(Ci.nsITraceableChannel);
 
@@ -932,7 +885,8 @@ export class NetworkObserver {
     // Add listener for the response body.
     const newListener = new lazy.NetworkResponseListener(
       httpActivity,
-      this.#decodedCertificateCache
+      this.#decodedCertificateCache,
+      fromServiceWorker
     );
 
     // Remember the input stream, so it isn't released by GC.
@@ -949,14 +903,14 @@ export class NetworkObserver {
   }
 
   /**
-   * Handler for ACTIVITY_SUBTYPE_REQUEST_BODY_SENT. The request body is logged
-   * here.
+   * Handler for ACTIVITY_SUBTYPE_REQUEST_BODY_SENT. Read and record the request
+   * body here. It will be available in addResponseStart.
    *
    * @private
    * @param object httpActivity
    *        The HTTP activity object we are working with.
    */
-  #onRequestBodySent(httpActivity) {
+  #prepareRequestBody(httpActivity) {
     // Return early if we don't need the request body, or if we've
     // already found it.
     if (httpActivity.discardRequestBody || httpActivity.sentBody !== null) {
@@ -993,78 +947,6 @@ export class NetworkObserver {
   }
 
   /**
-   * Handler for ACTIVITY_SUBTYPE_RESPONSE_HEADER. This method stores
-   * information about the response headers.
-   *
-   * @private
-   * @param object httpActivity
-   *        The HTTP activity object we are working with.
-   * @param string extraStringData
-   *        The uncached response headers.
-   */
-  #onResponseHeader(httpActivity, extraStringData) {
-    // extraStringData contains the uncached response headers. The first line
-    // contains the response status (e.g. HTTP/1.1 200 OK).
-    //
-    // Note: The response header is not saved here. Calling the
-    // channel.visitResponseHeaders() method at this point sometimes causes an
-    // NS_ERROR_NOT_AVAILABLE exception.
-    //
-    // We could parse extraStringData to get the headers and their values, but
-    // that is not trivial to do in an accurate manner. Hence, we save the
-    // response headers in this.#httpResponseExaminer().
-
-    // Extract the protocol (called httpVersion here), response's status and
-    // statusText from the raw headers.
-    const headers = extraStringData.split(/\r\n|\n|\r/);
-    const statusLine = headers.shift();
-    const statusLineArray = statusLine.split(" ");
-    httpActivity.httpVersion = statusLineArray.shift();
-    httpActivity.responseStatus = statusLineArray.shift();
-    httpActivity.responseStatusText = statusLineArray.join(" ");
-    httpActivity.headersSize = extraStringData.length;
-
-    // Discard the response body for known response statuses.
-    switch (parseInt(httpActivity.responseStatus, 10)) {
-      case HTTP_MOVED_PERMANENTLY:
-      case HTTP_FOUND:
-      case HTTP_SEE_OTHER:
-      case HTTP_TEMPORARY_REDIRECT:
-        httpActivity.discardResponseBody = true;
-        break;
-    }
-
-    // Build the response object
-    const response = {};
-    response.discardResponseBody = httpActivity.discardResponseBody;
-    response.httpVersion = httpActivity.httpVersion;
-    response.protocol = this.#getProtocol(httpActivity);
-    response.fromCache = this.#isFromCache(httpActivity);
-    response.remoteAddress = httpActivity.channel.remoteAddress;
-    response.remotePort = httpActivity.channel.remotePort;
-    response.status = httpActivity.responseStatus;
-    response.statusText = httpActivity.responseStatusText;
-    response.bodySize = httpActivity.bodySize;
-    response.headersSize = httpActivity.headersSize;
-    response.transferredSize = httpActivity.bodySize + httpActivity.headersSize;
-    response.waitingTime = this.#convertTimeToMs(
-      this.#getWaitTiming(httpActivity.timings)
-    );
-
-    // Mime type needs to be sent on response start for identifying an sse channel.
-    const contentType = headers.find(header => {
-      const lowerName = header.toLowerCase();
-      return lowerName.startsWith("content-type");
-    });
-
-    if (contentType) {
-      response.mimeType = contentType.slice("Content-Type: ".length);
-    }
-
-    httpActivity.owner.addResponseStart(response, extraStringData);
-  }
-
-  /**
    * Handler for ACTIVITY_SUBTYPE_TRANSACTION_CLOSE. This method updates the HAR
    * timing information on the HTTP activity object and clears the request
    * from the list of known open requests.
@@ -1085,66 +967,6 @@ export class NetworkObserver {
         serverTimings
       );
     }
-  }
-
-  /**
-   * Get the protocol for the provided httpActivity. Either the ALPN negotiated
-   * protocol or as a fallback a protocol computed from the scheme and the
-   * response status.
-   *
-   * TODO: The `protocol` is similar to another response property called
-   * `httpVersion`. `httpVersion` is uppercase and purely computed from the
-   * response status, whereas `protocol` uses nsIHttpChannel.protocolVersion by
-   * default and otherwise falls back on `httpVersion`. Ideally we should merge
-   * the two properties.
-   *
-   * @param {Object} httpActivity
-   *     The httpActivity object for which we need to get the protocol.
-   *
-   * @returns {string}
-   *     The protocol as a string.
-   */
-  #getProtocol(httpActivity) {
-    const { channel, httpVersion } = httpActivity;
-    let protocol = "";
-    try {
-      const httpChannel = channel.QueryInterface(Ci.nsIHttpChannel);
-      // protocolVersion corresponds to ALPN negotiated protocol.
-      protocol = httpChannel.protocolVersion;
-    } catch (e) {
-      // Ignore errors reading protocolVersion.
-    }
-
-    if (["", "unknown"].includes(protocol)) {
-      protocol = channel.URI.scheme;
-      if (
-        typeof httpVersion == "string" &&
-        (protocol === "http" || protocol === "https")
-      ) {
-        protocol = httpVersion.toLowerCase();
-      }
-    }
-
-    return protocol;
-  }
-
-  /**
-   * Check if the channel data for the provided http activity is loaded from the
-   * cache or not.
-   *
-   * @param {Object} httpActivity
-   *     The httpActivity object for which we need to check the cache status.
-   *
-   * @returns {boolean}
-   *     True if the channel data is loaded from the cache, false otherwise.
-   */
-  #isFromCache(httpActivity) {
-    const { channel } = httpActivity;
-    if (channel instanceof Ci.nsICacheInfoChannel) {
-      return channel.isFromCache();
-    }
-
-    return false;
   }
 
   #getBlockedTiming(timings) {
@@ -1298,17 +1120,17 @@ export class NetworkObserver {
    * HAR timing information is constructed based on these lower level
    * data.
    *
-   * @param object httpActivity
-   *        The HTTP activity object we are working with.
-   * @param boolean fromCache
-   *        Indicates that the result was returned from the browser cache
-   * @return object
-   *         This object holds two properties:
-   *         - total - the total time for all of the request and response.
-   *         - timings - the HAR timings object.
+   * @param {Object} httpActivity
+   *     The HTTP activity object we are working with.
+   * @return {Object}
+   *     This object holds three properties:
+   *     - {Object} offsets: the timings computed as offsets from the initial
+   *     request start time.
+   *     - {Object} timings: the HAR timings object
+   *     - {number} total: the total time for all of the request and response
    */
-  #setupHarTimings(httpActivity, fromCache) {
-    if (fromCache) {
+  #setupHarTimings(httpActivity) {
+    if (httpActivity.fromCache) {
       // If it came from the browser cache, we have no timing
       // information and these should all be 0
       return {
@@ -1582,9 +1404,3 @@ export class NetworkObserver {
     this.#isDestroyed = true;
   }
 }
-
-function gSequenceId() {
-  return gSequenceId.n++;
-}
-
-gSequenceId.n = 1;

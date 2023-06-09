@@ -10,7 +10,6 @@ browser.jar:
   skin/classic/browser/contextmenu.css                (../shared/contextmenu.css)
   skin/classic/browser/monitor-base.png
   skin/classic/browser/monitor-border.png
-  skin/classic/browser/pageInfo.css
   skin/classic/browser/pageInfo.png
   skin/classic/browser/webRTC-legacy-indicator.css    (../shared/webRTC-legacy-indicator.css)
   skin/classic/browser/customizableui/panelUI.css (customizableui/panelUI.css)
@@ -24,4 +23,3 @@ browser.jar:
   skin/classic/browser/window-controls/minimize.svg   (../windows/window-controls/minimize.svg)
   skin/classic/browser/window-controls/restore.svg    (../windows/window-controls/restore.svg)
   skin/classic/browser/e10s-64@2x.png                 (../shared/e10s-64@2x.png)
-  skin/classic/browser/history-swipe-arrow.svg        (../shared/swipe-gesture-icons/history-swipe-arrow.svg)

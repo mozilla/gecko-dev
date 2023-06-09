@@ -385,8 +385,7 @@ void js::gc::StoreBuffer::WholeCellBuffer::trace(TenuringTracer& mover) {
 template <typename T>
 void js::gc::StoreBuffer::CellPtrEdge<T>::trace(TenuringTracer& mover) const {
   static_assert(std::is_base_of_v<Cell, T>, "T must be a Cell type");
-  static_assert(!std::is_base_of_v<TenuredCell, T>,
-                "T must not be a tenured Cell type");
+  static_assert(!GCTypeIsTenured<T>(), "T must not be a tenured Cell type");
 
   T* thing = *edge;
   if (!thing) {
@@ -708,8 +707,8 @@ JSString* js::TenuringTracer::moveToTenured(JSString* src) {
   // the atom. Don't do this for dependent strings because they're more
   // complicated. See StringRelocationOverlay and DeduplicationStringHasher
   // comments.
-  if (src->inStringToAtomCache() && src->isDeduplicatable() &&
-      !src->hasBase()) {
+  if (src->isLinear() && src->inStringToAtomCache() &&
+      src->isDeduplicatable() && !src->hasBase()) {
     JSLinearString* linear = &src->asLinear();
     JSAtom* atom = runtime()->caches().stringToAtomCache.lookupInMap(linear);
     MOZ_ASSERT(atom, "Why was the cache purged before minor GC?");

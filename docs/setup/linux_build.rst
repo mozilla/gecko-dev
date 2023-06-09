@@ -36,8 +36,8 @@ Python development files as well to install some pip packages.
 
 You should be able to install Python using your system package manager:
 
--  For Debian-based Linux (such as Ubuntu): ``sudo apt-get install curl python3 python3-dev python3-pip``
--  For Fedora Linux: ``sudo dnf install python3 python3-devel python3-pip``
+-  For Debian-based Linux (such as Ubuntu): ``sudo apt-get install curl python3 python3-pip``
+-  For Fedora Linux: ``sudo dnf install python3 python3-pip``
 
 If you need a version of Python that your package manager doesn't have (e.g.:
 the provided Python 3 is too old, or you want Python 2 but it's not available),
@@ -74,10 +74,10 @@ You can test that Mercurial is installed by running:
     .. code-block:: shell
 
         # If you're using zsh
-        echo "export PATH=\"$(python3 -m site --user-base)/bin:$PATH\"" >> ~/.zshenv
+        echo 'export PATH="'"$(python3 -m site --user-base)"'/bin:$PATH"' >> ~/.zshenv
 
         # If you're using bash
-        echo "export PATH=\"$(python3 -m site --user-base)/bin:$PATH\"" >> ~/.bashrc
+        echo 'export PATH="'"$(python3 -m site --user-base)"'/bin:$PATH"' >> ~/.bashrc
 
         # If you're using a different shell, follow its documentation to see
         # how to configure your PATH. Ensure that `$(python3 -m site --user-base)/bin`

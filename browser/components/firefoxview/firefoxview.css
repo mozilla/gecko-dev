@@ -15,20 +15,6 @@
 
   --details-grid-column: 1;
   --recently-closed-tabs-grid-row: 2;
-  --colorways-grid-column: 2;
-  --colorways-grid-row: 1 / 3;
-
-  --colorways-figure-size: 225px;
-  --colorways-figure-margin: 0 0 1.5em;
-  --colorways-grid-template-areas:
-    "colorways-figure"
-    "colorways-header"
-    "colorways-description"
-    "colorways-button";
-  --colorways-grid-template-columns: auto;
-  --colorways-grid-template-rows: auto auto auto 1fr;
-  --colorways-figure-display: flex;
-  --colorways-header-flex-direction: column;
 
   --info-icon-background-color: #0090ED;
 }
@@ -39,9 +25,6 @@
   font-size: 15px;
   /* override --in-content-page-background from common-shared.css */
   background-color: transparent;
-}
-
-body {
   --fxview-background-color: var(--newtab-background-color, var(--in-content-page-background));
   --fxview-element-background-hover: color-mix(in srgb, var(--fxview-background-color) 90%, currentColor);
   --fxview-element-background-active: color-mix(in srgb, var(--fxview-background-color) 80%, currentColor);
@@ -58,7 +41,9 @@ body {
   --in-content-button-background-hover: var(--fxview-element-background-hover);
   --in-content-button-background-active: var(--fxview-element-background-active);
   --in-content-button-text-color-hover: var(--fxview-text-color-hover);
+}
 
+body {
   display: flex;
   justify-content: center;
   padding-block: var(--header-spacing) var(--footer-spacing);
@@ -69,12 +54,12 @@ body {
   color: var(--newtab-text-primary-color);
 }
 
-body:not([lwt-newtab]) {
+:root:not([lwt-newtab]) {
   --in-content-zap-gradient: linear-gradient(90deg, #9059FF 0%, #FF4AA2 52.08%, #FFBD4F 100%);
 }
 
 @media (prefers-color-scheme: dark) {
-  body {
+  :root {
     --fxview-element-background-hover: color-mix(in srgb, var(--fxview-background-color) 80%, white);
     --fxview-element-background-active: color-mix(in srgb, var(--fxview-background-color) 60%, white);
     --newtab-background-color-secondary: #42414d;
@@ -82,7 +67,7 @@ body:not([lwt-newtab]) {
 }
 
 @media (prefers-contrast) {
-  body {
+  :root {
     --fxview-element-background-hover: ButtonText;
     --fxview-element-background-active: ButtonText;
     --fxview-text-color-hover: ButtonFace;
@@ -130,17 +115,6 @@ body > main > details {
   :root {
     --recently-closed-tabs-grid-row: 3;
     --details-grid-column: 1 / -1;
-    --colorways-grid-column: 1 / -1;
-    --colorways-grid-row: 2;
-
-    --colorways-grid-template-areas:
-      "colorways-header colorways-figure"
-      "colorways-description colorways-figure"
-      "colorways-button colorways-figure";
-    --colorways-grid-template-columns: 1fr var(--colorways-figure-size);
-    --colorways-grid-template-rows: min-content min-content 1fr;
-    --colorways-header-flex-direction: row;
-    --colorways-figure-margin: 0;
   }
 }
 
@@ -149,14 +123,6 @@ body > main > details {
   :root {
     --header-spacing: 16px;
     --footer-spacing: 16px;
-    --colorways-grid-template-areas:
-        "colorways-header"
-        "colorways-description"
-        "colorways-button";
-    --colorways-grid-template-columns: auto;
-    --colorways-grid-template-rows: auto;
-    --colorways-figure-display: none;
-    --colorways-header-flex-direction: column;
   }
 }
 
@@ -186,79 +152,6 @@ body > main > details {
   margin-inline-start: 8px;
   flex: 1 1 auto;
   font-weight: 600;
-}
-
-#colorways:not([hidden]) {
-  display: grid;
-  grid-column: var(--colorways-grid-column);
-  grid-row: var(--colorways-grid-row);
-  grid-template-areas: var(--colorways-grid-template-areas);
-  grid-template-columns: var(--colorways-grid-template-columns);
-  grid-template-rows: var(--colorways-grid-template-rows);
-  justify-items: start;
-  align-items: start;
-  padding-inline: calc(2 * var(--content-area-padding-inline));
-  padding-block: calc(2 * var(--content-area-padding-block));
-}
-
-#colorways > header {
-  grid-area: colorways-header;
-  display: flex;
-  flex-direction: var(--colorways-header-flex-direction);
-  align-items: flex-start;
-  flex-wrap: wrap;
-}
-
-#colorways-collection-description {
-  grid-area: colorways-description;
-}
-
-#colorways-collection-description,
-#colorways-button {
-  margin: 0.4em 0;
-}
-
-#colorways-button {
-  grid-area: colorways-button;
-}
-
-#colorways-collection-title {
-  margin: 0;
-  margin-top: 0.3em;
-  margin-inline-end: 0.5em;
-  padding: 0;
-}
-
-#colorways-collection-expiry-date {
-  display: inline-block;
-  background: var(--card-border-zap-gradient);
-  background-origin: border-box;
-  border: 1px solid transparent;
-  border-radius: 1.5em;
-  margin: 0.8em 0;
-}
-
-#colorways-collection-expiry-date > span {
-  display: inline-block;
-  background: var(--fxview-background-color);
-  border-radius: 1.5em;
-  padding: .3em 1em;
-}
-
-#colorways > figure {
-  display: var(--colorways-figure-display);
-  grid-area: colorways-figure;
-  align-items: center;
-  justify-content: center;
-  width: var(--colorways-figure-size);
-  height: var(--colorways-figure-size);
-  margin: var(--colorways-figure-margin);
-}
-
-#colorways-collection-figure {
-  max-width: var(--colorways-figure-size);
-  max-height: var(--colorways-figure-size);
-  object-fit: scale-down;
 }
 
 [hidden] {
@@ -427,6 +320,9 @@ details[open] > .page-section-header > .twisty {
 .page-section-header > .section-description {
   grid-area: desc;
   margin-block: 4px 8px;
+  font-weight: inherit;
+  font-size: inherit;
+  line-height: inherit;
 }
 
 .card-body {
@@ -634,10 +530,10 @@ details[open] > .page-section-header > .twisty {
   }
 }
 
-.closed-tab-li-main:hover {
-  background-color: var(--fxview-element-background-hover);
-  color: var(--fxview-text-color-hover);
-}
+  .closed-tab-li-main:hover {
+    background-color: var(--fxview-element-background-hover);
+    color: var(--fxview-text-color-hover);
+  }
 
 .closed-tab-li-main:hover .closed-tab-li-title {
   text-decoration-line: underline;
@@ -659,12 +555,14 @@ details[open] > .page-section-header > .twisty {
   padding-inline-start: 10px;
   font-weight: 500;
   grid-column: span 3;
+  color: currentColor !important;
 }
 
 .closed-tab-li-url {
   padding-inline-start: 8px;
   text-decoration-line: underline;
   grid-column: span 2;
+  color: var(--fxview-text-secondary-color) !important;
 }
 
 .closed-tab-li-time {
@@ -794,7 +692,7 @@ details[open] > .page-section-header > .twisty {
   grid-template-areas:
     "favicon title title title"
     "favicon domain domain domain"
-    "favicon device device time"
+    "favicon device device time";
 }
 
 .synced-tab-a:hover {
@@ -1018,6 +916,10 @@ details[open] > .page-section-header > .twisty {
   text-align: center;
   padding: 0.3em 1em;
   font-size: 0.75em;
+}
+
+.synced-tab-li:not(:first-child) .last-active-badge {
+  display: none;
 }
 
 .dot {

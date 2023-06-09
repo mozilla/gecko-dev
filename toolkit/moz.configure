@@ -200,6 +200,10 @@ def audio_backends_default(target):
         return ("sndio",)
     elif target.os == "OSX":
         return ("audiounit",)
+    elif target.os == "NetBSD":
+        return ("sunaudio",)
+    elif target.os == "SunOS":
+        return ("sunaudio",)
     elif target.os == "WINNT":
         return ("wasapi",)
     else:
@@ -218,6 +222,7 @@ option(
         "oss",
         "pulseaudio",
         "sndio",
+        "sunaudio",
         "wasapi",
     ),
     default=audio_backends_default,
@@ -294,6 +299,15 @@ def imply_sndio(values, target):
 
 
 @depends("--enable-audio-backends", target)
+def imply_sunaudio(values, target):
+    if any("sunaudio" in value for value in values) and (
+        target.os != "NetBSD" and target.os != "SunOS"
+    ):
+        die("Cannot enable sunaudio on %s", target.os)
+    return any("sunaudio" in value for value in values) or None
+
+
+@depends("--enable-audio-backends", target)
 def imply_wasapi(values, target):
     if any("wasapi" in value for value in values) and target.os != "WINNT":
         die("Cannot enable WASAPI on %s", target.os)
@@ -315,6 +329,8 @@ set_config("MOZ_OSS", imply_oss, when="--enable-audio-backends")
 imply_option("--enable-pulseaudio", imply_pulseaudio, reason="--enable-audio-backends")
 
 imply_option("--enable-sndio", imply_sndio, reason="--enable-audio-backends")
+
+set_config("MOZ_SUNAUDIO", imply_sunaudio, when="--enable-audio-backends")
 
 set_config("MOZ_WASAPI", imply_wasapi, when="--enable-audio-backends")
 
@@ -629,8 +645,8 @@ set_define("MOZ_APPLEMEDIA", applemedia)
 option("--disable-wmf", help="Disable support for Windows Media Foundation")
 
 
-@depends("--disable-wmf", target)
-def wmf(value, target):
+@depends("--disable-wmf", target, "--help")
+def wmf(value, target, _):
     enabled = bool(value)
     if value.origin == "default":
         # Enable Windows Media Foundation support by default.
@@ -788,13 +804,15 @@ set_define("MOZ_OMX", openmax)
 
 # EME Support
 # ==============================================================
-@depends(target)
-def eme_choices(target):
+@depends(target, wmf)
+def eme_choices(target, wmf):
     if (
         target.kernel in ("WINNT", "Linux")
         and target.os != "Android"
         and target.cpu in ("x86", "x86_64")
     ):
+        if wmf:
+            return ("widevine", "wmfcdm")
         return ("widevine",)
     if target.kernel == "WINNT" and target.cpu == "aarch64":
         return ("widevine",)
@@ -844,6 +862,19 @@ def eme_win32_artifact(modules, target):
 
 
 set_config("MOZ_EME_WIN32_ARTIFACT", eme_win32_artifact)
+
+
+# Media Foundation CDM support
+# ==============================================================
+@depends(eme_modules, when=wmfmediaengine)
+def wmfcdm(modules):
+    if "wmfcdm" in modules:
+        return True
+
+
+set_config("MOZ_WMF_CDM", True, when=wmfcdm)
+set_define("MOZ_WMF_CDM", True, when=wmfcdm)
+
 
 option(
     name="--enable-chrome-format",
@@ -2146,6 +2177,8 @@ with only_when(compile_environment):
 
     @depends(target)
     def libav_fft(target):
+        if target.os == "Android" and target.cpu != "arm":
+            return True
         return target.kernel in ("WINNT", "Darwin") or target.cpu == "x86_64"
 
     set_config("MOZ_LIBAV_FFT", depends(when=libav_fft)(lambda: True))
@@ -3068,6 +3101,8 @@ option(
 set_config("MOZ_SANDBOX", True, when="--enable-sandbox")
 set_define("MOZ_SANDBOX", True, when="--enable-sandbox")
 
+with only_when(depends(target.kernel)(lambda k: k not in ("Darwin", "WINNT"))):
+    set_define("MOZ_CONTENT_TEMP_DIR", True, when="--enable-sandbox")
 
 # Searching of system directories for extensions.
 # ==============================================================
@@ -3279,3 +3314,12 @@ option(
 )
 
 set_config("MOZ_SYSTEM_POLICIES", True, when="--enable-system-policies")
+
+
+# STL wrapping
+# ==============================================================
+set_config("WRAP_STL_INCLUDES", True)
+set_config(
+    "STL_FLAGS",
+    depends(build_environment.dist)(lambda dist: [f"-I{dist}/stl_wrappers"]),
+)

@@ -19,12 +19,10 @@ if CONFIG["MOZ_BITS_DOWNLOAD"]:
     UNIFIED_SOURCES += ["Bits.cpp"]
 
 EXTRA_JS_MODULES += [
-    "Bits.jsm",
+    "Bits.sys.mjs",
 ]
 
 FINAL_LIBRARY = "xul"
 
 with Files("**"):
     BUG_COMPONENT = ("Toolkit", "Application Update")
-
-REQUIRES_UNIFIED_BUILD = True

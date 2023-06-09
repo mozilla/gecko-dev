@@ -21,6 +21,8 @@ class MediaDataDecoderProxy
     : public MediaDataDecoder,
       public DecoderDoctorLifeLogger<MediaDataDecoderProxy> {
  public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaDataDecoderProxy, final);
+
   explicit MediaDataDecoderProxy(
       already_AddRefed<MediaDataDecoder> aProxyDecoder,
       already_AddRefed<nsISerialEventTarget> aProxyThread = nullptr)
@@ -38,9 +40,14 @@ class MediaDataDecoderProxy
   RefPtr<ShutdownPromise> Shutdown() override;
   bool IsHardwareAccelerated(nsACString& aFailureReason) const override;
   nsCString GetDescriptionName() const override;
+  nsCString GetProcessName() const override;
+  nsCString GetCodecName() const override;
   void SetSeekThreshold(const media::TimeUnit& aTime) override;
   bool SupportDecoderRecycling() const override;
   ConversionRequired NeedsConversion() const override;
+
+ protected:
+  ~MediaDataDecoderProxy() = default;
 
  private:
   // Set on construction and clear on the proxy thread if set.

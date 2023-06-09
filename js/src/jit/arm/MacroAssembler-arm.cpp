@@ -3167,6 +3167,12 @@ void MacroAssemblerARMCompat::pushValue(const Address& addr) {
   ma_push(scratch);
 }
 
+void MacroAssemblerARMCompat::pushValue(const BaseIndex& addr,
+                                        Register scratch) {
+  computeEffectiveAddress(addr, scratch);
+  pushValue(Address(scratch, 0));
+}
+
 void MacroAssemblerARMCompat::popValue(ValueOperand val) {
   ma_pop(val.payloadReg());
   ma_pop(val.typeReg());
@@ -3478,6 +3484,7 @@ void MacroAssemblerARMCompat::handleFailureWithHandlerTail(
            scratch);
     ma_ldr(Address(sp, ResumeFromException::offsetOfStackPointer()), sp,
            scratch);
+    ma_mov(Imm32(int32_t(wasm::FailInstanceReg)), InstanceReg);
   }
   as_dtr(IsLoad, 32, PostIndex, pc, DTRAddr(sp, DtrOffImm(4)));
 

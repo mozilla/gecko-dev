@@ -3,6 +3,23 @@
 
 "use strict";
 
+const { TelemetryTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/TelemetryTestUtils.sys.mjs"
+);
+
+const REWIND_EVENTS = [
+  {
+    category: "pictureinpicture",
+    method: "seek",
+    object: "player",
+  },
+  {
+    category: "pictureinpicture",
+    method: "seek",
+    object: "player",
+  },
+];
+
 const TEST_PAGE_LONG = TEST_ROOT + "test-video-selection.html";
 
 const IMPROVED_CONTROLS_ENABLED_PREF =
@@ -254,6 +271,57 @@ add_task(async function testVideoScrubber() {
         currentTime,
         expectedVideoTime,
         "Video current time is 7.96..."
+      );
+
+      let filter = {
+        category: "pictureinpicture",
+        method: "seek",
+        object: "player",
+      };
+      await waitForTelemeryEvents(filter, REWIND_EVENTS.length, "parent");
+
+      TelemetryTestUtils.assertEvents(REWIND_EVENTS, filter, {
+        clear: true,
+        process: "parent",
+      });
+
+      await ensureMessageAndClosePiP(browser, videoID, pipWin, false);
+    }
+  );
+});
+
+/**
+ * Tests the behavior of the scrubber and position/duration indicator for a
+ * video with an invalid/non-finite duration.
+ */
+add_task(async function testInvalidDuration() {
+  await BrowserTestUtils.withNewTab(
+    {
+      url: TEST_PAGE_WITH_NAN_VIDEO_DURATION,
+      gBrowser,
+    },
+    async browser => {
+      const videoID = "nan-duration";
+
+      // This tests skips calling ensureVideosReady, because canplaythrough
+      // will never fire for the NaN duration video.
+
+      await SpecialPowers.pushPrefEnv({
+        set: [[IMPROVED_CONTROLS_ENABLED_PREF, true]],
+      });
+
+      // Open the video in PiP
+      let pipWin = await triggerPictureInPicture(browser, videoID);
+      ok(pipWin, "Got Picture-in-Picture window.");
+
+      // Both the scrubber and the duration should be hidden.
+      let timestampEl = pipWin.document.getElementById("timestamp");
+      ok(timestampEl.hidden, "Timestamp in the PIP window should be hidden.");
+
+      let scrubberEl = pipWin.document.getElementById("scrubber");
+      ok(
+        scrubberEl.hidden,
+        "Scrubber control in the PIP window should be hidden"
       );
     }
   );

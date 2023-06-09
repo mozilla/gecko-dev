@@ -10,33 +10,16 @@
             getUnifiedExtensionsItem,
             openExtensionsPanel,
             openUnifiedExtensionsContextMenu,
-            promiseDisableUnifiedExtensions,
-            promiseEnableUnifiedExtensions
+            promiseSetToolbarVisibility
 */
 
-const promiseEnableUnifiedExtensions = async (options = {}) => {
-  await SpecialPowers.pushPrefEnv({
-    set: [["extensions.unifiedExtensions.enabled", true]],
-  });
-
-  return BrowserTestUtils.openNewBrowserWindow(options);
-};
-
-const promiseDisableUnifiedExtensions = async () => {
-  await SpecialPowers.pushPrefEnv({
-    set: [["extensions.unifiedExtensions.enabled", false]],
-  });
-
-  return BrowserTestUtils.openNewBrowserWindow();
-};
-
-const getListView = win => {
+const getListView = (win = window) => {
   const { panel } = win.gUnifiedExtensions;
   ok(panel, "expected panel to be created");
   return panel.querySelector("#unified-extensions-view");
 };
 
-const openExtensionsPanel = async win => {
+const openExtensionsPanel = async (win = window) => {
   const { button } = win.gUnifiedExtensions;
   ok(button, "expected button");
 
@@ -48,7 +31,7 @@ const openExtensionsPanel = async win => {
   await viewShown;
 };
 
-const closeExtensionsPanel = async win => {
+const closeExtensionsPanel = async (win = window) => {
   const { button } = win.gUnifiedExtensions;
   ok(button, "expected button");
 
@@ -61,7 +44,7 @@ const closeExtensionsPanel = async win => {
   await hidden;
 };
 
-const getUnifiedExtensionsItem = (win, extensionId) => {
+const getUnifiedExtensionsItem = (extensionId, win = window) => {
   const view = getListView(win);
 
   // First try to find a CUI widget, otherwise a custom element when the
@@ -72,8 +55,8 @@ const getUnifiedExtensionsItem = (win, extensionId) => {
   );
 };
 
-const openUnifiedExtensionsContextMenu = async (win, extensionId) => {
-  const item = getUnifiedExtensionsItem(win, extensionId);
+const openUnifiedExtensionsContextMenu = async (extensionId, win = window) => {
+  const item = getUnifiedExtensionsItem(extensionId, win);
   ok(item, `expected item for extensionId=${extensionId}`);
   const button = item.querySelector(".unified-extensions-item-menu-button");
   ok(button, "expected menu button");
@@ -101,7 +84,7 @@ const clickUnifiedExtensionsItem = async (
   // The panel should be closed automatically when we click an extension item.
   await openExtensionsPanel(win);
 
-  const item = getUnifiedExtensionsItem(win, extensionId);
+  const item = getUnifiedExtensionsItem(extensionId, win);
   ok(item, `expected item for ${extensionId}`);
 
   // The action button should be disabled when users aren't supposed to click
@@ -129,7 +112,7 @@ const clickUnifiedExtensionsItem = async (
 
 const createExtensions = (
   arrayOfManifestData,
-  { useAddonManager = true, incognitoOverride } = {}
+  { useAddonManager = true, incognitoOverride, files } = {}
 ) => {
   return arrayOfManifestData.map(manifestData =>
     ExtensionTestUtils.loadExtension({
@@ -139,6 +122,7 @@ const createExtensions = (
       },
       useAddonManager: useAddonManager ? "temporary" : undefined,
       incognitoOverride,
+      files,
     })
   );
 };
@@ -148,7 +132,7 @@ const createExtensions = (
  * the available screen size (unless the window is already maximized).
  */
 const ensureMaximizedWindow = async win => {
-  let resizeDone = Promise.resolve();
+  info("ensuring maximized window...");
 
   // Make sure we wait for window position to have settled
   // to avoid unexpected failures.
@@ -171,12 +155,14 @@ const ensureMaximizedWindow = async win => {
   const heightDiff = Math.max(win.screen.availHeight - win.outerHeight, 0);
 
   if (widthDiff || heightDiff) {
-    resizeDone = BrowserTestUtils.waitForEvent(win, "resize", false);
+    info(
+      `resizing window... widthDiff=${widthDiff} - heightDiff=${heightDiff}`
+    );
     win.windowUtils.ensureDirtyRootFrame();
     win.resizeBy(widthDiff, heightDiff);
+  } else {
+    info(`not resizing window!`);
   }
-
-  await resizeDone;
 
   // Make sure we wait for window size to have settled.
   let lastOuterWidth = win.outerWidth;
@@ -192,4 +178,14 @@ const ensureMaximizedWindow = async win => {
     sameSizeTimes = isSameSize ? sameSizeTimes + 1 : 0;
     return sameSizeTimes === 10;
   }, "Wait for the chrome window size to settle");
+};
+
+const promiseSetToolbarVisibility = (toolbar, visible) => {
+  const visibilityChanged = BrowserTestUtils.waitForMutationCondition(
+    toolbar,
+    { attributeFilter: ["collapsed"] },
+    () => toolbar.collapsed != visible
+  );
+  setToolbarVisibility(toolbar, visible, undefined, false);
+  return visibilityChanged;
 };

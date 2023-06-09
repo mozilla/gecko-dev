@@ -1,6 +1,7 @@
 import {
   EventEmitter,
   FakePrefs,
+  FakensIPrefService,
   GlobalOverrider,
   FakeConsoleAPI,
   FakeLogger,
@@ -125,13 +126,19 @@ const TEST_GLOBAL = {
       prefix: "ASRouter",
     }),
   },
-  BrowserUtils: {
-    sendToDeviceEmailsSupported() {
+  AWScreenUtils: {
+    evaluateTargetingAndRemoveScreens() {
+      return true;
+    },
+    async removeScreens() {
+      return true;
+    },
+    evaluateScreenTargeting() {
       return true;
     },
   },
-  BuiltInThemes: {
-    findActiveColorwayCollection() {
+  BrowserUtils: {
+    sendToDeviceEmailsSupported() {
       return true;
     },
   },
@@ -253,6 +260,12 @@ const TEST_GLOBAL = {
       CRYPTOMINERS_ID: 3,
       FINGERPRINTERS_ID: 4,
       SOCIAL_ID: 5,
+    },
+    nsICookieBannerService: {
+      MODE_DISABLED: 0,
+      MODE_REJECT: 1,
+      MODE_REJECT_OR_ACCEPT: 2,
+      MODE_UNSET: 3,
     },
   },
   Cu: {
@@ -408,37 +421,7 @@ const TEST_GLOBAL = {
       },
     },
     console: { logStringMessage: () => {} },
-    prefs: {
-      addObserver() {},
-      prefHasUserValue() {},
-      removeObserver() {},
-      getPrefType() {},
-      clearUserPref() {},
-      getChildList() {
-        return [];
-      },
-      getStringPref() {},
-      setStringPref() {},
-      getIntPref() {},
-      getBoolPref() {},
-      getCharPref() {},
-      setBoolPref() {},
-      setCharPref() {},
-      setIntPref() {},
-      getBranch() {},
-      PREF_BOOL: "boolean",
-      PREF_INT: "integer",
-      PREF_STRING: "string",
-      getDefaultBranch() {
-        return {
-          setBoolPref() {},
-          setIntPref() {},
-          setStringPref() {},
-          clearUserPref() {},
-        };
-      },
-      prefIsLocked() {},
-    },
+    prefs: new FakensIPrefService(),
     tm: {
       dispatchToMainThread: cb => cb(),
       idleDispatchToMainThread: cb => cb(),
@@ -555,8 +538,6 @@ const TEST_GLOBAL = {
     getExperiment() {},
     getExperimentMetaData() {},
     getRolloutMetaData() {},
-    on: () => {},
-    off: () => {},
   },
   NimbusFeatures: {
     glean: {
@@ -566,13 +547,16 @@ const TEST_GLOBAL = {
       getVariable() {},
       getAllVariables() {},
       onUpdate() {},
-      off() {},
+      offUpdate() {},
     },
     pocketNewtab: {
       getVariable() {},
       getAllVariables() {},
       onUpdate() {},
-      off() {},
+      offUpdate() {},
+    },
+    cookieBannerHandling: {
+      getVariable() {},
     },
   },
   TelemetryEnvironment: {
@@ -630,6 +614,9 @@ const TEST_GLOBAL = {
       homepageCategory: {
         set() {},
       },
+      blockedSponsors: {
+        set() {},
+      },
     },
     newtabSearch: {
       enabled: {
@@ -671,6 +658,9 @@ const TEST_GLOBAL = {
       },
       click: {
         record() {},
+      },
+      rows: {
+        set() {},
       },
     },
   },

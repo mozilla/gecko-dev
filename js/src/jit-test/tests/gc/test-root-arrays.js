@@ -1,0 +1,10 @@
+gczeal(0);
+let objects = [{}, {}, {}];
+blackRoot()[0] = objects[0];
+grayRoot()[0] = objects[1];
+addMarkObservers(objects);
+objects = undefined;
+gc();
+assertEq(getMarks()[0], "black");
+assertEq(getMarks()[1], "gray");
+assertEq(getMarks()[2], "dead");

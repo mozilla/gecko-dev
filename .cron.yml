@@ -92,7 +92,7 @@ jobs:
           - mozilla-central
       when:
           by-project:
-              mozilla-central: [{hour: 10, minute: 0}]
+              mozilla-central: [{hour: 10, minute: 0}, {hour: 22, minute: 0}]
 
     - name: general-perf-testing
       job:
@@ -300,7 +300,7 @@ jobs:
               autoland: [{hour: 6, minute: 45}, {hour: 18, minute: 45}]
               mozilla-central: []
               # 3h15m before launch of `daily-releases`
-              mozilla-beta: [{hour: 18, minute: 45}]
+              mozilla-beta: [{hour: 17, minute: 45}]
               # No default
 
     - name: system-symbols
@@ -328,10 +328,7 @@ jobs:
           type: decision-task
           treeherder-symbol: perftest-auto
           target-tasks-method: perftest-on-autoland
-      run-on-projects:
-          - autoland
-      when:
-          - {hour: 4, minute: 00}
+      when: []
 
     - name: scriptworker-canary
       job:
@@ -367,6 +364,16 @@ jobs:
           type: decision-task
           treeherder-symbol: eslint-build
           target-tasks-method: eslint-build
+      run-on-projects:
+          - mozilla-central
+      when:
+          - {hour: 0, minute: 00}
+
+    - name: sp-perftests
+      job:
+          type: decision-task
+          treeherder-symbol: sp-perftests
+          target-tasks-method: sp-perftests
       run-on-projects:
           - mozilla-central
       when:

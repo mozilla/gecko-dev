@@ -4,8 +4,6 @@
 
 "use strict";
 
-const InspectorUtils = require("InspectorUtils");
-
 const MAX_DATA_URL_LENGTH = 40;
 /**
  * Provide access to the style information in a page.
@@ -61,23 +59,38 @@ exports.STATUS = {
 };
 
 /**
- * Mapping of CSSRule type value to CSSRule type name.
- * @see https://developer.mozilla.org/en-US/docs/Web/API/CSSRule
+ * Mapping of CSS at-Rule className to CSSRule type name.
  */
-exports.CSSRuleTypeName = {
-  1: "", // Regular CSS style rule has no name
-  3: "@import",
-  4: "@media",
-  5: "@font-face",
-  6: "@page",
-  7: "@keyframes",
-  8: "@keyframe",
-  10: "@namespace",
-  11: "@counter-style",
-  12: "@supports",
-  13: "@document",
-  14: "@font-feature-values",
-  15: "@viewport",
+exports.CSSAtRuleClassNameType = {
+  CSSContainerRule: "container",
+  CSSCounterStyleRule: "counter-style",
+  CSSDocumentRule: "document",
+  CSSFontFaceRule: "font-face",
+  CSSFontFeatureValuesRule: "font-feature-values",
+  CSSImportRule: "import",
+  CSSKeyframeRule: "keyframe",
+  CSSKeyframesRule: "keyframes",
+  CSSLayerBlockRule: "layer",
+  CSSMediaRule: "media",
+  CSSNamespaceRule: "namespace",
+  CSSPageRule: "page",
+  CSSSupportsRule: "supports",
+};
+
+/**
+ * Get Rule type as human-readable string (ex: "@media", "@container", …)
+ *
+ * @param {CSSRule} cssRule
+ * @returns {String}
+ */
+exports.getCSSAtRuleTypeName = function(cssRule) {
+  const ruleClassName = ChromeUtils.getClassName(cssRule);
+  const atRuleTypeName = exports.CSSAtRuleClassNameType[ruleClassName];
+  if (atRuleTypeName) {
+    return "@" + atRuleTypeName;
+  }
+
+  return "";
 };
 
 /**
@@ -164,6 +177,25 @@ exports.shortSource = function(sheet) {
 
   if (url.query) {
     return url.query;
+  }
+
+  return sheet.href;
+};
+
+/**
+ * Return the style sheet's source, handling element, inline and constructed stylesheets.
+ *
+ * @param {CSSStyleSheet} sheet the DOM object for the style sheet.
+ */
+exports.longSource = function(sheet) {
+  if (!sheet) {
+    return exports.l10n("rule.sourceInline");
+  }
+
+  if (!sheet.href) {
+    return exports.l10n(
+      sheet.constructed ? "rule.sourceConstructed" : "rule.sourceInline"
+    );
   }
 
   return sheet.href;

@@ -527,7 +527,7 @@ unsafe impl Send for CppNotifier {}
 
 extern "C" {
     fn wr_notifier_wake_up(window_id: WrWindowId, composite_needed: bool);
-    fn wr_notifier_new_frame_ready(window_id: WrWindowId, composite_needed: bool);
+    fn wr_notifier_new_frame_ready(window_id: WrWindowId, composite_needed: bool, publish_id: FramePublishId);
     fn wr_notifier_external_event(window_id: WrWindowId, raw_event: usize);
     fn wr_schedule_render(window_id: WrWindowId, reasons: RenderReasons);
     // NOTE: This moves away from pipeline_info.
@@ -549,9 +549,9 @@ impl RenderNotifier for CppNotifier {
         }
     }
 
-    fn new_frame_ready(&self, _: DocumentId, _scrolled: bool, composite_needed: bool) {
+    fn new_frame_ready(&self, _: DocumentId, _scrolled: bool, composite_needed: bool, publish_id: FramePublishId) {
         unsafe {
-            wr_notifier_new_frame_ready(self.window_id, composite_needed);
+            wr_notifier_new_frame_ready(self.window_id, composite_needed, publish_id);
         }
     }
 
@@ -600,6 +600,11 @@ pub extern "C" fn wr_renderer_set_external_image_handler(
 #[no_mangle]
 pub extern "C" fn wr_renderer_update(renderer: &mut Renderer) {
     renderer.update();
+}
+
+#[no_mangle]
+pub extern "C" fn wr_renderer_set_target_frame_publish_id(renderer: &mut Renderer, publish_id: FramePublishId) {
+    renderer.set_target_frame_publish_id(publish_id);
 }
 
 #[no_mangle]
@@ -1269,6 +1274,7 @@ pub struct WrCompositor(*mut c_void);
 impl Compositor for WrCompositor {
     fn create_surface(
         &mut self,
+        _device: &mut Device,
         id: NativeSurfaceId,
         virtual_offset: DeviceIntPoint,
         tile_size: DeviceIntSize,
@@ -1279,43 +1285,49 @@ impl Compositor for WrCompositor {
         }
     }
 
-    fn create_external_surface(&mut self, id: NativeSurfaceId, is_opaque: bool) {
+    fn create_external_surface(&mut self, _device: &mut Device, id: NativeSurfaceId, is_opaque: bool) {
         unsafe {
             wr_compositor_create_external_surface(self.0, id, is_opaque);
         }
     }
 
-    fn create_backdrop_surface(&mut self, id: NativeSurfaceId, color: ColorF) {
+    fn create_backdrop_surface(&mut self, _device: &mut Device, id: NativeSurfaceId, color: ColorF) {
         unsafe {
             wr_compositor_create_backdrop_surface(self.0, id, color);
         }
     }
 
-    fn destroy_surface(&mut self, id: NativeSurfaceId) {
+    fn destroy_surface(&mut self, _device: &mut Device, id: NativeSurfaceId) {
         unsafe {
             wr_compositor_destroy_surface(self.0, id);
         }
     }
 
-    fn create_tile(&mut self, id: NativeTileId) {
+    fn create_tile(&mut self, _device: &mut Device, id: NativeTileId) {
         unsafe {
             wr_compositor_create_tile(self.0, id.surface_id, id.x, id.y);
         }
     }
 
-    fn destroy_tile(&mut self, id: NativeTileId) {
+    fn destroy_tile(&mut self, _device: &mut Device, id: NativeTileId) {
         unsafe {
             wr_compositor_destroy_tile(self.0, id.surface_id, id.x, id.y);
         }
     }
 
-    fn attach_external_image(&mut self, id: NativeSurfaceId, external_image: ExternalImageId) {
+    fn attach_external_image(&mut self, _device: &mut Device, id: NativeSurfaceId, external_image: ExternalImageId) {
         unsafe {
             wr_compositor_attach_external_image(self.0, id, external_image);
         }
     }
 
-    fn bind(&mut self, id: NativeTileId, dirty_rect: DeviceIntRect, valid_rect: DeviceIntRect) -> NativeSurfaceInfo {
+    fn bind(
+        &mut self,
+        _device: &mut Device,
+        id: NativeTileId,
+        dirty_rect: DeviceIntRect,
+        valid_rect: DeviceIntRect,
+    ) -> NativeSurfaceInfo {
         let mut surface_info = NativeSurfaceInfo {
             origin: DeviceIntPoint::zero(),
             fbo_id: 0,
@@ -1335,13 +1347,13 @@ impl Compositor for WrCompositor {
         surface_info
     }
 
-    fn unbind(&mut self) {
+    fn unbind(&mut self, _device: &mut Device) {
         unsafe {
             wr_compositor_unbind(self.0);
         }
     }
 
-    fn begin_frame(&mut self) {
+    fn begin_frame(&mut self, _device: &mut Device) {
         unsafe {
             wr_compositor_begin_frame(self.0);
         }
@@ -1349,6 +1361,7 @@ impl Compositor for WrCompositor {
 
     fn add_surface(
         &mut self,
+        _device: &mut Device,
         id: NativeSurfaceId,
         transform: CompositorSurfaceTransform,
         clip_rect: DeviceIntRect,
@@ -1361,6 +1374,7 @@ impl Compositor for WrCompositor {
 
     fn start_compositing(
         &mut self,
+        _device: &mut Device,
         clear_color: ColorF,
         dirty_rects: &[DeviceIntRect],
         opaque_rects: &[DeviceIntRect],
@@ -1377,25 +1391,25 @@ impl Compositor for WrCompositor {
         }
     }
 
-    fn end_frame(&mut self) {
+    fn end_frame(&mut self, _device: &mut Device) {
         unsafe {
             wr_compositor_end_frame(self.0);
         }
     }
 
-    fn enable_native_compositor(&mut self, enable: bool) {
+    fn enable_native_compositor(&mut self, _device: &mut Device, enable: bool) {
         unsafe {
             wr_compositor_enable_native_compositor(self.0, enable);
         }
     }
 
-    fn deinit(&mut self) {
+    fn deinit(&mut self, _device: &mut Device) {
         unsafe {
             wr_compositor_deinit(self.0);
         }
     }
 
-    fn get_capabilities(&self) -> CompositorCapabilities {
+    fn get_capabilities(&self, _device: &mut Device) -> CompositorCapabilities {
         unsafe {
             let mut caps: CompositorCapabilities = Default::default();
             wr_compositor_get_capabilities(self.0, &mut caps);
@@ -1403,7 +1417,7 @@ impl Compositor for WrCompositor {
         }
     }
 
-    fn get_window_visibility(&self) -> WindowVisibility {
+    fn get_window_visibility(&self, _device: &mut Device) -> WindowVisibility {
         unsafe {
             let mut visibility: WindowVisibility = Default::default();
             wr_compositor_get_window_visibility(self.0, &mut visibility);
@@ -1428,6 +1442,7 @@ impl MappableCompositor for WrCompositor {
     /// while supporting some form of native layers.
     fn map_tile(
         &mut self,
+        _device: &mut Device,
         id: NativeTileId,
         dirty_rect: DeviceIntRect,
         valid_rect: DeviceIntRect,
@@ -1457,7 +1472,7 @@ impl MappableCompositor for WrCompositor {
 
     /// Unmap a tile that was was previously mapped via map_tile to signal
     /// that SWGL is done rendering to the buffer.
-    fn unmap_tile(&mut self) {
+    fn unmap_tile(&mut self, _device: &mut Device) {
         unsafe {
             wr_compositor_unmap_tile(self.0);
         }
@@ -1465,13 +1480,14 @@ impl MappableCompositor for WrCompositor {
 
     fn lock_composite_surface(
         &mut self,
+        _device: &mut Device,
         ctx: *mut c_void,
         external_image_id: ExternalImageId,
         composite_info: *mut SWGLCompositeSurfaceInfo,
     ) -> bool {
         unsafe { wr_swgl_lock_composite_surface(ctx, external_image_id, composite_info) }
     }
-    fn unlock_composite_surface(&mut self, ctx: *mut c_void, external_image_id: ExternalImageId) {
+    fn unlock_composite_surface(&mut self, _device: &mut Device, ctx: *mut c_void, external_image_id: ExternalImageId) {
         unsafe { wr_swgl_unlock_composite_surface(ctx, external_image_id) }
     }
 }
@@ -1525,6 +1541,7 @@ pub extern "C" fn wr_window_new(
     picture_tile_height: i32,
     reject_software_rasterizer: bool,
     low_quality_pinch_zoom: bool,
+    max_shared_surface_size: i32,
 ) -> bool {
     assert!(unsafe { is_in_render_thread() });
 
@@ -1676,6 +1693,7 @@ pub extern "C" fn wr_window_new(
         texture_cache_config,
         reject_software_rasterizer,
         low_quality_pinch_zoom,
+        max_shared_surface_size,
         ..Default::default()
     };
 
@@ -1877,16 +1895,12 @@ pub extern "C" fn wr_transaction_remove_pipeline(txn: &mut Transaction, pipeline
 pub extern "C" fn wr_transaction_set_display_list(
     txn: &mut Transaction,
     epoch: WrEpoch,
-    background: ColorF,
-    viewport_size: LayoutSize,
     pipeline_id: WrPipelineId,
     dl_descriptor: BuiltDisplayListDescriptor,
     dl_items_data: &mut WrVecU8,
     dl_cache_data: &mut WrVecU8,
     dl_spatial_tree_data: &mut WrVecU8,
 ) {
-    let color = if background.a == 0.0 { None } else { Some(background) };
-
     let payload = DisplayListPayload {
         items_data: dl_items_data.flush_into_vec(),
         cache_data: dl_cache_data.flush_into_vec(),
@@ -1895,7 +1909,7 @@ pub extern "C" fn wr_transaction_set_display_list(
 
     let dl = BuiltDisplayList::from_data(payload, dl_descriptor);
 
-    txn.set_display_list(epoch, color, viewport_size, (pipeline_id, dl));
+    txn.set_display_list(epoch, (pipeline_id, dl));
 }
 
 #[no_mangle]
@@ -2182,7 +2196,7 @@ pub unsafe extern "C" fn wr_transaction_clear_display_list(
     let mut frame_builder = WebRenderFrameBuilder::new(pipeline_id);
     frame_builder.dl_builder.begin();
 
-    txn.set_display_list(epoch, None, LayoutSize::new(0.0, 0.0), frame_builder.dl_builder.end());
+    txn.set_display_list(epoch, frame_builder.dl_builder.end());
 }
 
 #[no_mangle]
@@ -3391,7 +3405,6 @@ pub struct WrBorderImage {
     height: i32,
     fill: bool,
     slice: DeviceIntSideOffsets,
-    outset: LayoutSideOffsets,
     repeat_horizontal: RepeatMode,
     repeat_vertical: RepeatMode,
 }
@@ -3412,7 +3425,6 @@ pub extern "C" fn wr_dp_push_border_image(
         height: params.height,
         slice: params.slice,
         fill: params.fill,
-        outset: params.outset,
         repeat_horizontal: params.repeat_horizontal,
         repeat_vertical: params.repeat_vertical,
     });
@@ -3448,7 +3460,6 @@ pub extern "C" fn wr_dp_push_border_gradient(
     stops: *const GradientStop,
     stops_count: usize,
     extend_mode: ExtendMode,
-    outset: LayoutSideOffsets,
 ) {
     debug_assert!(unsafe { is_in_main_thread() });
 
@@ -3466,7 +3477,6 @@ pub extern "C" fn wr_dp_push_border_gradient(
         height,
         slice,
         fill,
-        outset,
         repeat_horizontal: RepeatMode::Stretch,
         repeat_vertical: RepeatMode::Stretch,
     });
@@ -3500,7 +3510,6 @@ pub extern "C" fn wr_dp_push_border_radial_gradient(
     stops: *const GradientStop,
     stops_count: usize,
     extend_mode: ExtendMode,
-    outset: LayoutSideOffsets,
 ) {
     debug_assert!(unsafe { is_in_main_thread() });
 
@@ -3525,7 +3534,6 @@ pub extern "C" fn wr_dp_push_border_radial_gradient(
         height: rect.height() as i32,
         slice,
         fill,
-        outset,
         repeat_horizontal: RepeatMode::Stretch,
         repeat_vertical: RepeatMode::Stretch,
     });
@@ -3559,7 +3567,6 @@ pub extern "C" fn wr_dp_push_border_conic_gradient(
     stops: *const GradientStop,
     stops_count: usize,
     extend_mode: ExtendMode,
-    outset: LayoutSideOffsets,
 ) {
     debug_assert!(unsafe { is_in_main_thread() });
 
@@ -3584,7 +3591,6 @@ pub extern "C" fn wr_dp_push_border_conic_gradient(
         height: rect.height() as i32,
         slice,
         fill,
-        outset,
         repeat_horizontal: RepeatMode::Stretch,
         repeat_vertical: RepeatMode::Stretch,
     });

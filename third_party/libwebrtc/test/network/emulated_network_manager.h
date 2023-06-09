@@ -58,8 +58,8 @@ class EmulatedNetworkManager : public rtc::NetworkManagerBase,
   std::vector<EmulatedEndpoint*> endpoints() const override {
     return endpoints_container_->GetEndpoints();
   }
-  void GetStats(std::function<void(std::unique_ptr<EmulatedNetworkStats>)>
-                    stats_callback) const override;
+  void GetStats(
+      std::function<void(EmulatedNetworkStats)> stats_callback) const override;
 
  private:
   void UpdateNetworksOnce();

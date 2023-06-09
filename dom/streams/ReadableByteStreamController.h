@@ -95,9 +95,6 @@ class ReadableByteStreamController final : public ReadableStreamController,
   }
   void ClearPendingPullIntos();
 
-  ReadableStream* Stream() const { return mStream; }
-  void SetStream(ReadableStream* aStream) { mStream = aStream; }
-
   double QueueTotalSize() const { return mQueueTotalSize; }
   void SetQueueTotalSize(double aQueueTotalSize) {
     mQueueTotalSize = aQueueTotalSize;
@@ -172,8 +169,6 @@ class ReadableByteStreamController final : public ReadableStreamController,
   // strategy, indicating the point at which the stream will apply backpressure
   // to its underlying byte source
   double mStrategyHWM = 0.0;
-
-  RefPtr<ReadableStream> mStream;
 };
 
 // https://streams.spec.whatwg.org/#readable-byte-stream-queue-entry
@@ -314,6 +309,8 @@ struct PullIntoDescriptor final
   ~PullIntoDescriptor() = default;
 };
 
+namespace streams_abstract {
+
 MOZ_CAN_RUN_SCRIPT void ReadableByteStreamControllerRespond(
     JSContext* aCx, ReadableByteStreamController* aController,
     uint64_t aBytesWritten, ErrorResult& aRv);
@@ -363,6 +360,8 @@ MOZ_CAN_RUN_SCRIPT void SetUpReadableByteStreamControllerFromUnderlyingSource(
     JS::Handle<JSObject*> aUnderlyingSource,
     UnderlyingSource& aUnderlyingSourceDict, double aHighWaterMark,
     ErrorResult& aRv);
+
+}  // namespace streams_abstract
 
 }  // namespace mozilla::dom
 

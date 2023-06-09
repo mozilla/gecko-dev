@@ -494,7 +494,7 @@
     ShellTestEnvironment.prototype.next_default_test_name = function() {
         var suffix = this.name_counter > 0 ? " " + this.name_counter : "";
         this.name_counter++;
-        return "Untitled" + suffix;
+        return get_title() + suffix;
     };
 
     ShellTestEnvironment.prototype.on_new_harness_properties = function() {};
@@ -1426,12 +1426,16 @@
         function assert_wrapper(...args) {
             let status = Test.statuses.TIMEOUT;
             let stack = null;
+            let new_assert_index = null;
             try {
                 if (settings.debug) {
                     console.debug("ASSERT", name, tests.current_test && tests.current_test.name, args);
                 }
                 if (tests.output) {
                     tests.set_assert(name, args);
+                    // Remember the newly pushed assert's index, because `apply`
+                    // below might push new asserts.
+                    new_assert_index = tests.asserts_run.length - 1;
                 }
                 const rv = f.apply(undefined, args);
                 status = Test.statuses.PASS;
@@ -1445,7 +1449,7 @@
                     stack = get_stack();
                 }
                 if (tests.output) {
-                    tests.set_assert_status(status, stack);
+                    tests.set_assert_status(new_assert_index, status, stack);
                 }
             }
         }
@@ -2478,6 +2482,10 @@
         this._user_defined_cleanup_count = 0;
         this._done_callbacks = [];
 
+        if (typeof AbortController === "function") {
+            this._abortController = new AbortController();
+        }
+
         // Tests declared following harness completion are likely an indication
         // of a programming error, but they cannot be reported
         // deterministically.
@@ -2954,6 +2962,10 @@
 
         this.phase = this.phases.CLEANING;
 
+        if (this._abortController) {
+            this._abortController.abort("Test cleanup");
+        }
+
         forEach(this.cleanup_callbacks,
                 function(cleanup_callback) {
                     var result;
@@ -3045,6 +3057,16 @@
                     callback();
                 });
         test._done_callbacks.length = 0;
+    }
+
+    /**
+     * Gives an AbortSignal that will be aborted when the test finishes.
+     */
+    Test.prototype.get_signal = function() {
+        if (!this._abortController) {
+            throw new Error("AbortController is not supported in this browser");
+        }
+        return this._abortController.signal;
     }
 
     /**
@@ -3655,8 +3677,8 @@
         this.asserts_run.push(new AssertRecord(this.current_test, assert_name, args))
     }
 
-    Tests.prototype.set_assert_status = function(status, stack) {
-        let assert_record = this.asserts_run[this.asserts_run.length - 1];
+    Tests.prototype.set_assert_status = function(index, status, stack) {
+        let assert_record = this.asserts_run[index];
         assert_record.status = status;
         assert_record.stack = stack;
     }
@@ -4736,7 +4758,7 @@
         if ('META_TITLE' in global_scope && META_TITLE) {
             return META_TITLE;
         }
-        if ('location' in global_scope) {
+        if ('location' in global_scope && 'pathname' in location) {
             return location.pathname.substring(location.pathname.lastIndexOf('/') + 1, location.pathname.indexOf('.'));
         }
         return "Untitled";

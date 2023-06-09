@@ -44,12 +44,17 @@ function AddOldMenuSideButtons() {
   CustomizableUI.addWidgetToArea(
     "library-button",
     "nav-bar",
-    CustomizableUI.getWidgetIdsInArea("nav-bar").length - 1
+    CustomizableUI.getWidgetIdsInArea("nav-bar").length - 2
   );
   CustomizableUI.addWidgetToArea(
     "sidebar-button",
     "nav-bar",
-    CustomizableUI.getWidgetIdsInArea("nav-bar").length - 1
+    CustomizableUI.getWidgetIdsInArea("nav-bar").length - 2
+  );
+  CustomizableUI.addWidgetToArea(
+    "unified-extensions-button",
+    "nav-bar",
+    CustomizableUI.getWidgetIdsInArea("nav-bar").length - 2
   );
 }
 
@@ -98,11 +103,6 @@ function removeFirefoxViewButton() {
 
 const BOOKMARKS_COUNT = 100;
 
-const hasUnifiedExtensionsButton = Services.prefs.getBoolPref(
-  "extensions.unifiedExtensions.enabled",
-  false
-);
-
 add_setup(async function() {
   await SpecialPowers.pushPrefEnv({
     set: [
@@ -116,6 +116,7 @@ add_setup(async function() {
   // Add bookmarks.
   let bookmarks = new Array(BOOKMARKS_COUNT);
   for (let i = 0; i < BOOKMARKS_COUNT; ++i) {
+    // eslint-disable-next-line @microsoft/sdl/no-insecure-url
     bookmarks[i] = { url: `http://test.places.${i}/` };
   }
   await PlacesUtils.bookmarks.insertTree({
@@ -261,12 +262,10 @@ add_task(async function testArrowsToolbarbuttons() {
     );
     await expectFocusAfterKey("ArrowRight", "library-button");
     await expectFocusAfterKey("ArrowRight", "sidebar-button");
+    await expectFocusAfterKey("ArrowRight", "unified-extensions-button");
     await expectFocusAfterKey("ArrowRight", "fxa-toolbar-menu-button");
-    // These next checks also confirm that the overflow menu button is skipped,
+    // This next check also confirms that the overflow menu button is skipped,
     // since it is currently invisible.
-    if (hasUnifiedExtensionsButton) {
-      await expectFocusAfterKey("ArrowRight", "unified-extensions-button");
-    }
     await expectFocusAfterKey("ArrowRight", "PanelUI-menu-button");
     EventUtils.synthesizeKey("KEY_ArrowRight");
     is(
@@ -274,10 +273,8 @@ add_task(async function testArrowsToolbarbuttons() {
       "PanelUI-menu-button",
       "ArrowRight at end of button group does nothing"
     );
-    if (hasUnifiedExtensionsButton) {
-      await expectFocusAfterKey("ArrowLeft", "unified-extensions-button");
-    }
     await expectFocusAfterKey("ArrowLeft", "fxa-toolbar-menu-button");
+    await expectFocusAfterKey("ArrowLeft", "unified-extensions-button");
     await expectFocusAfterKey("ArrowLeft", "sidebar-button");
     await expectFocusAfterKey("ArrowLeft", "library-button");
   });
@@ -315,7 +312,7 @@ add_task(async function testArrowsDisabledButtons() {
       "ArrowLeft on Reload button when prior buttons disabled does nothing"
     );
 
-    BrowserTestUtils.loadURI(aBrowser, "https://example.com/2");
+    BrowserTestUtils.loadURIString(aBrowser, "https://example.com/2");
     await BrowserTestUtils.browserLoaded(aBrowser);
     await waitUntilReloadEnabled();
     startFromUrlBar();
@@ -342,19 +339,17 @@ add_task(async function testArrowsOverflowButton() {
     await expectFocusAfterKey("Tab", afterUrlBarButton);
     await expectFocusAfterKey("ArrowRight", "library-button");
     await expectFocusAfterKey("ArrowRight", "sidebar-button");
+    await expectFocusAfterKey("ArrowRight", "unified-extensions-button");
     await expectFocusAfterKey("ArrowRight", "fxa-toolbar-menu-button");
     await expectFocusAfterKey("ArrowRight", "nav-bar-overflow-button");
-    if (hasUnifiedExtensionsButton) {
-      await expectFocusAfterKey("ArrowRight", "unified-extensions-button");
-    }
     // Make sure the button is not reachable once it is invisible again.
     await expectFocusAfterKey("ArrowRight", "PanelUI-menu-button");
     resetToolbarWithoutDevEditionButtons();
-    if (hasUnifiedExtensionsButton) {
-      await expectFocusAfterKey("ArrowLeft", "unified-extensions-button");
-    }
     // Flush layout so its invisibility can be detected.
     document.getElementById("nav-bar-overflow-button").clientWidth;
+    // We reset the toolbar above so the unified extensions button is now the
+    // "last" button.
+    await expectFocusAfterKey("ArrowLeft", "unified-extensions-button");
     await expectFocusAfterKey("ArrowLeft", "fxa-toolbar-menu-button");
   });
   RemoveOldMenuSideButtons();

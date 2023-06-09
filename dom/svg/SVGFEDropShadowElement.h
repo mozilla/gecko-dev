@@ -19,7 +19,7 @@ namespace mozilla::dom {
 
 using SVGFEDropShadowElementBase = SVGFE;
 
-class SVGFEDropShadowElement : public SVGFEDropShadowElementBase {
+class SVGFEDropShadowElement final : public SVGFEDropShadowElementBase {
   friend nsresult(::NS_NewSVGFEDropShadowElement(
       nsIContent** aResult,
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo));
@@ -44,8 +44,6 @@ class SVGFEDropShadowElement : public SVGFEDropShadowElementBase {
   void GetSourceImageNames(nsTArray<SVGStringInfo>& aSources) override;
 
   // nsIContent interface
-  NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* aAttribute) const override;
-
   nsresult Clone(dom::NodeInfo*, nsINode** aResult) const override;
 
   // WebIDL

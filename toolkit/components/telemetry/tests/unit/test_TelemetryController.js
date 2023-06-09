@@ -39,17 +39,11 @@ const { TelemetryArchiveTesting } = ChromeUtils.importESModule(
   "resource://testing-common/TelemetryArchiveTesting.sys.mjs"
 );
 
-ChromeUtils.defineModuleGetter(
-  this,
-  "jwcrypto",
-  "resource://services-crypto/jwcrypto.jsm"
-);
-
-ChromeUtils.defineModuleGetter(
-  this,
-  "JsonSchemaValidator",
-  "resource://gre/modules/components-utils/JsonSchemaValidator.jsm"
-);
+ChromeUtils.defineESModuleGetters(this, {
+  JsonSchemaValidator:
+    "resource://gre/modules/components-utils/JsonSchemaValidator.sys.mjs",
+  jwcrypto: "resource://services-crypto/jwcrypto.sys.mjs",
+});
 
 const PING_FORMAT_VERSION = 4;
 const DELETION_REQUEST_PING_TYPE = "deletion-request";
@@ -682,7 +676,7 @@ add_task(async function test_telemetryCleanFHRDatabase() {
 add_task(async function test_sendNewProfile() {
   if (
     gIsAndroid ||
-    (AppConstants.platform == "linux" && OS.Constants.Sys.bits == 32)
+    (AppConstants.platform == "linux" && !Services.appinfo.is64Bit)
   ) {
     // We don't support the pingsender on Android, yet, see bug 1335917.
     // We also don't suppor the pingsender testing on Treeherder for

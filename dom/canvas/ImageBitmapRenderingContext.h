@@ -57,8 +57,8 @@ class ImageBitmapRenderingContext final
   void GetCanvas(
       Nullable<OwningHTMLCanvasElementOrOffscreenCanvas>& retval) const;
 
-  void TransferImageBitmap(ImageBitmap& aImageBitmap);
-  void TransferFromImageBitmap(ImageBitmap* aImageBitmap);
+  void TransferImageBitmap(ImageBitmap& aImageBitmap, ErrorResult& aRv);
+  void TransferFromImageBitmap(ImageBitmap* aImageBitmap, ErrorResult& aRv);
 
   // nsICanvasRenderingContextInternal
   virtual int32_t GetWidth() override { return mWidth; }
@@ -70,7 +70,7 @@ class ImageBitmapRenderingContext final
       nsIDocShell* aDocShell, NotNull<gfx::DrawTarget*> aTarget) override;
 
   virtual mozilla::UniquePtr<uint8_t[]> GetImageBuffer(
-      int32_t* aFormat) override;
+      int32_t* out_format, gfx::IntSize* out_imageSize) override;
   NS_IMETHOD GetInputStream(const char* aMimeType,
                             const nsAString& aEncoderOptions,
                             nsIInputStream** aStream) override;

@@ -63,7 +63,11 @@ function drag(target, fromX, fromY, toX, toY) {
 }
 
 function resetPrimarySelection(val = "") {
-  if (Services.clipboard.supportsSelectionClipboard()) {
+  if (
+    Services.clipboard.isClipboardTypeSupported(
+      Services.clipboard.kSelectionClipboard
+    )
+  ) {
     // Reset the clipboard.
     clipboardHelper.copyStringToClipboard(
       val,
@@ -73,9 +77,13 @@ function resetPrimarySelection(val = "") {
 }
 
 function checkPrimarySelection(expectedVal = "") {
-  if (Services.clipboard.supportsSelectionClipboard()) {
+  if (
+    Services.clipboard.isClipboardTypeSupported(
+      Services.clipboard.kSelectionClipboard
+    )
+  ) {
     let primaryAsText = SpecialPowers.getClipboardData(
-      "text/unicode",
+      "text/plain",
       SpecialPowers.Ci.nsIClipboard.kSelectionClipboard
     );
     Assert.equal(primaryAsText, expectedVal);

@@ -63,6 +63,7 @@
   display: flex;
   overflow: hidden;
   flex-wrap: wrap;
+  margin: 2px;
 }
 
 .ruleview-reveal-panel[hidden] {
@@ -76,7 +77,6 @@
 
 .ruleview-reveal-panel label {
   user-select: none;
-  flex-grow: 1;
   display: flex;
   align-items: center;
 }
@@ -84,6 +84,16 @@
 #pseudo-class-panel,
 #ruleview-class-panel .classes {
   padding: 0 3px;
+}
+
+/* Pseudo Class toggle panel */
+
+#pseudo-class-panel {
+  grid-template-columns: repeat(auto-fit, minmax(100px, max-content));
+}
+
+#pseudo-class-panel:not([hidden]) {
+  display: grid;
 }
 
 /* Class toggle panel */
@@ -104,6 +114,7 @@
 #ruleview-class-panel .classes label {
   flex: 0 0;
   max-width: 50%;
+  min-width: 100px;
 }
 
 #ruleview-class-panel .classes label span {
@@ -224,9 +235,9 @@
   cursor: default;
 }
 
-.ruleview-rule-source:not(.unselectable):hover,
-.ruleview-rule-source:not([unselectable]):hover {
+.ruleview-rule-source:not([unselectable]) {
   text-decoration: underline;
+  text-decoration-skip-ink: none;
 }
 
 .ruleview-header {
@@ -625,6 +636,10 @@
   background-image: url("chrome://devtools/skin/images/angle-swatch.svg");
 }
 
+.ruleview-lineareasingswatch {
+  background-image: url("chrome://devtools/skin/images/linear-easing-swatch.svg");
+}
+
 .ruleview-overridden {
   text-decoration: line-through solid var(--theme-text-color-alt);
 }
@@ -768,7 +783,7 @@ ul.ruleview-rule-ancestor-data {
   fill: var(--theme-icon-checked-color);
   /* Since the icon is quite thin, it can be hard to differentiate it
      from its regular state. Adding some background helps make it pop a bit */
-  background-color: var(--toolbarbutton-hover-background);
+  background-color: var(--dimmed-highlighter-box-content-color);
 }
 
 #ruleview-add-rule-button::before {

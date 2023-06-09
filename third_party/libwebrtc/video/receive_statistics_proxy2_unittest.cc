@@ -46,9 +46,9 @@ class ReceiveStatisticsProxy2Test : public ::testing::Test {
  public:
   ReceiveStatisticsProxy2Test() : time_controller_(Timestamp::Millis(1234)) {
     metrics::Reset();
-    statistics_proxy_.reset(
-        new ReceiveStatisticsProxy(kRemoteSsrc, time_controller_.GetClock(),
-                                   time_controller_.GetMainThread()));
+    statistics_proxy_ = std::make_unique<ReceiveStatisticsProxy>(
+        kRemoteSsrc, time_controller_.GetClock(),
+        time_controller_.GetMainThread());
   }
 
   ~ReceiveStatisticsProxy2Test() override { statistics_proxy_.reset(); }
@@ -190,8 +190,8 @@ TEST_F(ReceiveStatisticsProxy2Test, OnDecodedFrameIncreasesProcessingDelay) {
   // We set receive time fixed and increase the clock by 10ms
   // in the loop which will increase the processing delay by
   // 10/20/30ms respectively.
-  RtpPacketInfos::vector_type packet_infos = {
-      RtpPacketInfo({}, {}, {}, {}, {}, Now())};
+  RtpPacketInfos::vector_type packet_infos = {RtpPacketInfo(
+      /*ssrc=*/{}, /*csrcs=*/{}, /*rtp_timestamp=*/{}, /*receive_time=*/Now())};
   frame.set_packet_infos(RtpPacketInfos(packet_infos));
   for (int i = 1; i <= 3; ++i) {
     time_controller_.AdvanceTime(kProcessingDelay);
@@ -228,8 +228,8 @@ TEST_F(ReceiveStatisticsProxy2Test, OnDecodedFrameIncreasesAssemblyTime) {
 
   // A single-packet frame will not increase total assembly time
   // and frames assembled.
-  RtpPacketInfos::vector_type single_packet_frame = {
-      RtpPacketInfo({}, {}, {}, {}, {}, Now())};
+  RtpPacketInfos::vector_type single_packet_frame = {RtpPacketInfo(
+      /*ssrc=*/{}, /*csrcs=*/{}, /*rtp_timestamp=*/{}, /*receive_time=*/Now())};
   frame.set_packet_infos(RtpPacketInfos(single_packet_frame));
   statistics_proxy_->OnDecodedFrame(frame, absl::nullopt, TimeDelta::Millis(1),
                                     VideoContentType::UNSPECIFIED);
@@ -243,9 +243,12 @@ TEST_F(ReceiveStatisticsProxy2Test, OnDecodedFrameIncreasesAssemblyTime) {
 
   // In an ordered frame the first and last packet matter.
   RtpPacketInfos::vector_type ordered_frame = {
-      RtpPacketInfo({}, {}, {}, {}, {}, Now()),
-      RtpPacketInfo({}, {}, {}, {}, {}, Now() + kAssemblyTime),
-      RtpPacketInfo({}, {}, {}, {}, {}, Now() + 2 * kAssemblyTime),
+      RtpPacketInfo(/*ssrc=*/{}, /*csrcs=*/{}, /*rtp_timestamp=*/{},
+                    /*receive_time=*/Now()),
+      RtpPacketInfo(/*ssrc=*/{}, /*csrcs=*/{}, /*rtp_timestamp=*/{},
+                    /*receive_time=*/Now() + kAssemblyTime),
+      RtpPacketInfo(/*ssrc=*/{}, /*csrcs=*/{}, /*rtp_timestamp=*/{},
+                    /*receive_time=*/Now() + 2 * kAssemblyTime),
   };
   frame.set_packet_infos(RtpPacketInfos(ordered_frame));
   statistics_proxy_->OnDecodedFrame(frame, 1u, TimeDelta::Millis(3),
@@ -264,9 +267,12 @@ TEST_F(ReceiveStatisticsProxy2Test, OnDecodedFrameIncreasesAssemblyTime) {
 
   // "First" and "last" are in receive time, not sequence number.
   RtpPacketInfos::vector_type unordered_frame = {
-      RtpPacketInfo({}, {}, {}, {}, {}, Now() + 2 * kAssemblyTime),
-      RtpPacketInfo({}, {}, {}, {}, {}, Now()),
-      RtpPacketInfo({}, {}, {}, {}, {}, Now() + kAssemblyTime),
+      RtpPacketInfo(/*ssrc=*/{}, /*csrcs=*/{}, /*rtp_timestamp=*/{},
+                    /*receive_time=*/Now() + 2 * kAssemblyTime),
+      RtpPacketInfo(/*ssrc=*/{}, /*csrcs=*/{}, /*rtp_timestamp=*/{},
+                    /*receive_time=*/Now()),
+      RtpPacketInfo(/*ssrc=*/{}, /*csrcs=*/{}, /*rtp_timestamp=*/{},
+                    /*receive_time=*/Now() + kAssemblyTime),
   };
   frame.set_packet_infos(RtpPacketInfos(unordered_frame));
   statistics_proxy_->OnDecodedFrame(frame, 1u, TimeDelta::Millis(3),
@@ -572,12 +578,19 @@ TEST_F(ReceiveStatisticsProxy2Test, GetStatsReportsIncomingPayloadType) {
   EXPECT_EQ(kPayloadType, statistics_proxy_->GetStats().current_payload_type);
 }
 
-TEST_F(ReceiveStatisticsProxy2Test, GetStatsReportsDecoderImplementationName) {
-  const char* kName = "decoderName";
-  statistics_proxy_->OnDecoderImplementationName(kName);
+TEST_F(ReceiveStatisticsProxy2Test, GetStatsReportsDecoderInfo) {
+  auto init_stats = statistics_proxy_->GetStats();
+  EXPECT_EQ(init_stats.decoder_implementation_name, "unknown");
+  EXPECT_EQ(init_stats.power_efficient_decoder, absl::nullopt);
+
+  const VideoDecoder::DecoderInfo decoder_info{
+      .implementation_name = "decoderName", .is_hardware_accelerated = true};
+  statistics_proxy_->OnDecoderInfo(decoder_info);
   time_controller_.AdvanceTime(TimeDelta::Zero());
-  EXPECT_STREQ(
-      kName, statistics_proxy_->GetStats().decoder_implementation_name.c_str());
+  auto stats = statistics_proxy_->GetStats();
+  EXPECT_EQ(decoder_info.implementation_name,
+            stats.decoder_implementation_name);
+  EXPECT_TRUE(stats.power_efficient_decoder);
 }
 
 TEST_F(ReceiveStatisticsProxy2Test, GetStatsReportsOnCompleteFrame) {
@@ -1740,12 +1753,7 @@ TEST_P(ReceiveStatisticsProxy2TestWithContent, DownscalesReported) {
   statistics_proxy_->UpdateHistograms(absl::nullopt, StreamDataCounters(),
                                       nullptr);
   const int kExpectedDownscales = 30;  // 2 per 4 seconds = 30 per minute.
-  if (videocontenttypehelpers::IsScreenshare(content_type_)) {
-    EXPECT_METRIC_EQ(
-        kExpectedDownscales,
-        metrics::MinSample("WebRTC.Video.Screenshare."
-                           "NumberResolutionDownswitchesPerMinute"));
-  } else {
+  if (!videocontenttypehelpers::IsScreenshare(content_type_)) {
     EXPECT_METRIC_EQ(kExpectedDownscales,
                      metrics::MinSample(
                          "WebRTC.Video.NumberResolutionDownswitchesPerMinute"));

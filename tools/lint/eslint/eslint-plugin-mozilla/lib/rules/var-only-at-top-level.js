@@ -17,6 +17,7 @@ module.exports = {
       url:
         "https://firefox-source-docs.mozilla.org/code-quality/lint/linters/eslint-plugin-mozilla/var-only-at-top-level.html",
     },
+    schema: [],
     type: "suggestion",
   },
 
@@ -28,7 +29,10 @@ module.exports = {
             return;
           }
 
-          context.report(node, "Unexpected var, use let or const instead.");
+          context.report({
+            node,
+            message: "Unexpected var, use let or const instead.",
+          });
         }
       },
     };

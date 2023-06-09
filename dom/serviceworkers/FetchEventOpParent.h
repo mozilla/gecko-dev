@@ -9,7 +9,6 @@
 
 #include "nsISupports.h"
 
-#include "mozilla/Tuple.h"
 #include "mozilla/dom/FetchEventOpProxyParent.h"
 #include "mozilla/dom/PFetchEventOpParent.h"
 
@@ -25,7 +24,8 @@ class FetchEventOpParent final : public PFetchEventOpParent {
 
   // Transition from the Pending state to the Started state. Returns the preload
   // response and response end args, if it has already arrived.
-  Tuple<Maybe<ParentToParentInternalResponse>, Maybe<ResponseEndArgs>> OnStart(
+  std::tuple<Maybe<ParentToParentInternalResponse>, Maybe<ResponseEndArgs>>
+  OnStart(
       MovingNotNull<RefPtr<FetchEventOpProxyParent>> aFetchEventOpProxyParent);
 
   // Transition from the Started state to the Finished state.
@@ -39,12 +39,15 @@ class FetchEventOpParent final : public PFetchEventOpParent {
   mozilla::ipc::IPCResult RecvPreloadResponse(
       ParentToParentInternalResponse&& aResponse);
 
+  mozilla::ipc::IPCResult RecvPreloadResponseTiming(ResponseTiming&& aTiming);
+
   mozilla::ipc::IPCResult RecvPreloadResponseEnd(ResponseEndArgs&& aArgs);
 
   void ActorDestroy(ActorDestroyReason) override;
 
   struct Pending {
     Maybe<ParentToParentInternalResponse> mPreloadResponse;
+    Maybe<ResponseTiming> mTiming;
     Maybe<ResponseEndArgs> mEndArgs;
   };
 

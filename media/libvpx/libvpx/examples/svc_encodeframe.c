@@ -279,7 +279,7 @@ vpx_codec_err_t vpx_svc_set_options(SvcContext *svc_ctx, const char *options) {
   if (svc_ctx == NULL || options == NULL || si == NULL) {
     return VPX_CODEC_INVALID_PARAM;
   }
-  strncpy(si->options, options, sizeof(si->options));
+  strncpy(si->options, options, sizeof(si->options) - 1);
   si->options[sizeof(si->options) - 1] = '\0';
   return VPX_CODEC_OK;
 }
@@ -552,11 +552,8 @@ vpx_codec_err_t vpx_svc_encode(SvcContext *svc_ctx, vpx_codec_ctx_t *codec_ctx,
   iter = NULL;
   while ((cx_pkt = vpx_codec_get_cx_data(codec_ctx, &iter))) {
     switch (cx_pkt->kind) {
-      case VPX_CODEC_PSNR_PKT: {
-      }
-        ++si->psnr_pkt_received;
-        break;
-      default: { break; }
+      case VPX_CODEC_PSNR_PKT: ++si->psnr_pkt_received; break;
+      default: break;
     }
   }
 

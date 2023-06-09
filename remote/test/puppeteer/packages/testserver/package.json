@@ -1,0 +1,33 @@
+{
+  "name": "@pptr/testserver",
+  "version": "0.6.0",
+  "description": "testing server",
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "wireit",
+    "clean": "tsc -b --clean && rimraf lib"
+  },
+  "wireit": {
+    "build": {
+      "command": "tsc -b",
+      "clean": "if-file-deleted",
+      "files": [
+        "src/**"
+      ],
+      "output": [
+        "lib/**",
+        "tsconfig.tsbuildinfo"
+      ]
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/puppeteer/puppeteer/tree/main/packages/testserver"
+  },
+  "author": "The Chromium Authors",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "mime": "3.0.0",
+    "ws": "8.11.0"
+  }
+}

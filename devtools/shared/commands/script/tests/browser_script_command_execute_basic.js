@@ -14,6 +14,9 @@ const {
 
 add_task(async () => {
   const tab = await addTab(`data:text/html;charset=utf-8,
+  <!DOCTYPE html>
+  <html dir="ltr" class="class1">
+  <head><title>Testcase</title></head>
   <script>
     window.foobarObject = Object.create(
       null,
@@ -46,7 +49,28 @@ add_task(async () => {
       const aliased = "ALIASED";
       return [0].map(() => aliased)[0];
     }
-  </script>`);
+
+    var testMap = new Map([[1, 1], [2, 2], [3, 3], [4, 4]]);
+    var testSet = new Set([1, 2, 3, 4, 5]);
+    var testProxy = new Proxy({}, { getPrototypeOf: prompt });
+    var testArray = [1,2,3];
+    var testInt8Array = new Int8Array([1, 2, 3]);
+    var testArrayBuffer = testInt8Array.buffer;
+    var testDataView = new DataView(testArrayBuffer, 2);
+
+    var testCanvasContext = document.createElement("canvas").getContext("2d");
+
+    async function testAsync() { return 10; }
+    async function testAsyncAwait() { await 1; return 10; }
+    async function * testAsyncGen() { return 10; }
+    async function * testAsyncGenAwait() { await 1; return 10; }
+
+    function testFunc() {}
+
+    var testLocale = new Intl.Locale("de-latn-de-u-ca-gregory-co-phonebk-hc-h23-kf-true-kn-false-nu-latn");
+  </script>
+  <body id="body1" class="class2"><h1>Body text</h1></body>
+  </html>`);
 
   const commands = await CommandsFactory.forTab(tab);
   await commands.targetCommand.startListening();
@@ -63,6 +87,9 @@ add_task(async () => {
   await doEagerEvalWithSideEffect(commands);
   await doEagerEvalWithSideEffectIterator(commands);
   await doEagerEvalWithSideEffectMonkeyPatched(commands);
+  await doEagerEvalESGetters(commands);
+  await doEagerEvalDOMGetters(commands);
+  await doEagerEvalAsyncFunctions(commands);
 
   await commands.destroy();
 });
@@ -268,9 +295,192 @@ async function doSimpleEagerEval(commands) {
       code: "aliasedTest()",
       result: "ALIASED",
     },
+    {
+      code: "testArray.concat([4,5]).join()",
+      result: "1,2,3,4,5",
+    },
+    {
+      code: "testArray.entries().toString()",
+      result: "[object Array Iterator]",
+    },
+    {
+      code: "testArray.keys().toString()",
+      result: "[object Array Iterator]",
+    },
+    {
+      code: "testArray.values().toString()",
+      result: "[object Array Iterator]",
+    },
+    {
+      code: "testArray.every(x => x < 100)",
+      result: true,
+    },
+    {
+      code: "testArray.some(x => x > 1)",
+      result: true,
+    },
+    {
+      code: "testArray.filter(x => x % 2 == 0).join()",
+      result: "2",
+    },
+    {
+      code: "testArray.find(x => x % 2 == 0)",
+      result: 2,
+    },
+    {
+      code: "testArray.findIndex(x => x % 2 == 0)",
+      result: 1,
+    },
+    {
+      code: "[testArray].flat().join()",
+      result: "1,2,3",
+    },
+    {
+      code: "[testArray].flatMap(x => x).join()",
+      result: "1,2,3",
+    },
+    {
+      code: "testArray.forEach(x => x); testArray.join()",
+      result: "1,2,3",
+    },
+    {
+      code: "testArray.includes(1)",
+      result: true,
+    },
+    {
+      code: "testArray.lastIndexOf(1)",
+      result: 0,
+    },
+    {
+      code: "testArray.map(x => x + 1).join()",
+      result: "2,3,4",
+    },
+    {
+      code: "testArray.reduce((acc,x) => acc + x, 0)",
+      result: 6,
+    },
+    {
+      code: "testArray.reduceRight((acc,x) => acc + x, 0)",
+      result: 6,
+    },
+    {
+      code: "testArray.slice(0,1).join()",
+      result: "1",
+    },
+    {
+      code: "testArray.toReversed().join()",
+      // Change array by copy is only available on Nightly
+      skip: typeof Array.prototype.toReversed !== "function",
+      result: "3,2,1",
+    },
+    {
+      code: "testArray.toSorted().join()",
+      // Change array by copy is only available on Nightly
+      skip: typeof Array.prototype.toSorted !== "function",
+      result: "1,2,3",
+    },
+    {
+      code: "testArray.toSpliced(0,1).join()",
+      // Change array by copy is only available on Nightly
+      skip: typeof Array.prototype.toSpliced !== "function",
+      result: "2,3",
+    },
+    {
+      code: "testArray.with(1, 'b').join()",
+      // Change array by copy is only available on Nightly
+      skip: typeof Array.prototype.with !== "function",
+      result: "1,b,3",
+    },
+
+    {
+      code: "testInt8Array.entries().toString()",
+      result: "[object Array Iterator]",
+    },
+    {
+      code: "testInt8Array.keys().toString()",
+      result: "[object Array Iterator]",
+    },
+    {
+      code: "testInt8Array.values().toString()",
+      result: "[object Array Iterator]",
+    },
+    {
+      code: "testInt8Array.every(x => x < 100)",
+      result: true,
+    },
+    {
+      code: "testInt8Array.some(x => x > 1)",
+      result: true,
+    },
+    {
+      code: "testInt8Array.filter(x => x % 2 == 0).join()",
+      result: "2",
+    },
+    {
+      code: "testInt8Array.find(x => x % 2 == 0)",
+      result: 2,
+    },
+    {
+      code: "testInt8Array.findIndex(x => x % 2 == 0)",
+      result: 1,
+    },
+    {
+      code: "testInt8Array.forEach(x => x); testInt8Array.join()",
+      result: "1,2,3",
+    },
+    {
+      code: "testInt8Array.includes(1)",
+      result: true,
+    },
+    {
+      code: "testInt8Array.lastIndexOf(1)",
+      result: 0,
+    },
+    {
+      code: "testInt8Array.map(x => x + 1).join()",
+      result: "2,3,4",
+    },
+    {
+      code: "testInt8Array.reduce((acc,x) => acc + x, 0)",
+      result: 6,
+    },
+    {
+      code: "testInt8Array.reduceRight((acc,x) => acc + x, 0)",
+      result: 6,
+    },
+    {
+      code: "testInt8Array.slice(0,1).join()",
+      result: "1",
+    },
+    {
+      code: "testInt8Array.toReversed().join()",
+      skip:
+        typeof Reflect.getPrototypeOf(Int8Array).prototype.toReversed !==
+        "function",
+      result: "3,2,1",
+    },
+    {
+      code: "testInt8Array.toSorted().join()",
+      skip:
+        typeof Reflect.getPrototypeOf(Int8Array).prototype.toSorted !==
+        "function",
+      result: "1,2,3",
+    },
+    {
+      code: "testInt8Array.with(1, 0).join()",
+      skip:
+        typeof Reflect.getPrototypeOf(Int8Array).prototype.with !== "function",
+      result: "1,0,3",
+    },
   ];
 
-  for (const { code, result } of testData) {
+  for (const { code, result, skip } of testData) {
+    if (skip) {
+      info(`Skipping evaluation of ${code}`);
+      continue;
+    }
+
+    info(`Evaluating: ${code}`);
     const response = await commands.scriptCommand.execute(code, {
       eager: true,
     });
@@ -410,4 +620,387 @@ async function doEagerEvalWithSideEffectMonkeyPatched(commands) {
     input: code,
     result: "ab",
   });
+}
+
+async function doEagerEvalESGetters(commands) {
+  // [code, expectedResult]
+  const testData = [
+    // ArrayBuffer
+    ["testArrayBuffer.byteLength", 3],
+
+    // DataView
+    ["testDataView.buffer === testArrayBuffer", true],
+    ["testDataView.byteLength", 1],
+    ["testDataView.byteOffset", 2],
+
+    // Error
+    ["typeof new Error().stack", "string"],
+
+    // Function
+    ["typeof testFunc.arguments", "object"],
+    ["typeof testFunc.caller", "object"],
+
+    // Intl.Locale
+    ["testLocale.baseName", "de-Latn-DE"],
+    ["testLocale.calendar", "gregory"],
+    ["testLocale.caseFirst", ""],
+    ["testLocale.collation", "phonebk"],
+    ["testLocale.hourCycle", "h23"],
+    ["testLocale.numeric", false],
+    ["testLocale.numberingSystem", "latn"],
+    ["testLocale.language", "de"],
+    ["testLocale.script", "Latn"],
+    ["testLocale.region", "DE"],
+
+    // Map
+    ["testMap.size", 4],
+
+    // RegExp
+    ["/a/.dotAll", false],
+    ["/a/giy.flags", "giy"],
+    ["/a/g.global", true],
+    ["/a/g.hasIndices", false],
+    ["/a/g.ignoreCase", false],
+    ["/a/g.multiline", false],
+    ["/a/g.source", "a"],
+    ["/a/g.sticky", false],
+    ["/a/g.unicode", false],
+
+    // Set
+    ["testSet.size", 5],
+
+    // Symbol
+    ["Symbol.iterator.description", "Symbol.iterator"],
+
+    // TypedArray
+    ["testInt8Array.buffer === testArrayBuffer", true],
+    ["testInt8Array.byteLength", 3],
+    ["testInt8Array.byteOffset", 0],
+    ["testInt8Array.length", 3],
+    ["testInt8Array[Symbol.toStringTag]", "Int8Array"],
+  ];
+
+  for (const [code, expectedResult] of testData) {
+    const response = await commands.scriptCommand.execute(code, {
+      eager: true,
+    });
+    checkObject(
+      response,
+      {
+        input: code,
+        result: expectedResult,
+      },
+      code
+    );
+
+    ok(!response.exception, "no eval exception");
+    ok(!response.helperResult, "no helper result");
+  }
+
+  // Test RegExp static properties.
+  // Run preparation code here to avoid interference with other tests,
+  // given RegExp static properties are global state.
+  const regexpPreparationCode = `
+/b(c)(d)(e)(f)(g)(h)(i)(j)(k)l/.test("abcdefghijklm")
+`;
+
+  const prepResponse = await commands.scriptCommand.execute(
+    regexpPreparationCode
+  );
+  checkObject(prepResponse, {
+    input: regexpPreparationCode,
+    result: true,
+  });
+
+  ok(!prepResponse.exception, "no eval exception");
+  ok(!prepResponse.helperResult, "no helper result");
+
+  const testDataRegExp = [
+    // RegExp static
+    ["RegExp.input", "abcdefghijklm"],
+    ["RegExp.lastMatch", "bcdefghijkl"],
+    ["RegExp.lastParen", "k"],
+    ["RegExp.leftContext", "a"],
+    ["RegExp.rightContext", "m"],
+    ["RegExp.$1", "c"],
+    ["RegExp.$2", "d"],
+    ["RegExp.$3", "e"],
+    ["RegExp.$4", "f"],
+    ["RegExp.$5", "g"],
+    ["RegExp.$6", "h"],
+    ["RegExp.$7", "i"],
+    ["RegExp.$8", "j"],
+    ["RegExp.$9", "k"],
+    ["RegExp.$_", "abcdefghijklm"], // input
+    ["RegExp['$&']", "bcdefghijkl"], // lastMatch
+    ["RegExp['$+']", "k"], // lastParen
+    ["RegExp['$`']", "a"], // leftContext
+    ["RegExp[`$'`]", "m"], // rightContext
+  ];
+
+  for (const [code, expectedResult] of testDataRegExp) {
+    const response = await commands.scriptCommand.execute(code, {
+      eager: true,
+    });
+    checkObject(
+      response,
+      {
+        input: code,
+        result: expectedResult,
+      },
+      code
+    );
+
+    ok(!response.exception, "no eval exception");
+    ok(!response.helperResult, "no helper result");
+  }
+
+  const testDataWithSideEffect = [
+    // get Object.prototype.__proto__
+    //
+    // This can invoke Proxy getPrototypeOf handler, which can be any native
+    // function, and debugger cannot hook the call.
+    `[].__proto__`,
+    `testProxy.__proto__`,
+  ];
+
+  for (const code of testDataWithSideEffect) {
+    const response = await commands.scriptCommand.execute(code, {
+      eager: true,
+    });
+    checkObject(
+      response,
+      {
+        input: code,
+        result: { type: "undefined" },
+      },
+      code
+    );
+
+    ok(!response.exception, "no eval exception");
+    ok(!response.helperResult, "no helper result");
+  }
+}
+
+async function doEagerEvalDOMGetters(commands) {
+  // [code, expectedResult]
+  const testData = [
+    // DOMTokenList
+    ["document.documentElement.classList.length", 1],
+    ["document.documentElement.classList.value", "class1"],
+
+    // Document
+    ["document.URL.startsWith('data:')", true],
+    ["document.documentURI.startsWith('data:')", true],
+    ["document.compatMode", "CSS1Compat"],
+    ["document.characterSet", "UTF-8"],
+    ["document.charset", "UTF-8"],
+    ["document.inputEncoding", "UTF-8"],
+    ["document.contentType", "text/html"],
+    ["document.doctype.constructor.name", "DocumentType"],
+    ["document.documentElement.constructor.name", "HTMLHtmlElement"],
+    ["document.title", "Testcase"],
+    ["document.dir", "ltr"],
+    ["document.body.constructor.name", "HTMLBodyElement"],
+    ["document.head.constructor.name", "HTMLHeadElement"],
+    ["document.images.constructor.name", "HTMLCollection"],
+    ["document.embeds.constructor.name", "HTMLCollection"],
+    ["document.plugins.constructor.name", "HTMLCollection"],
+    ["document.links.constructor.name", "HTMLCollection"],
+    ["document.forms.constructor.name", "HTMLCollection"],
+    ["document.scripts.constructor.name", "HTMLCollection"],
+    ["document.defaultView === window", true],
+    ["typeof document.currentScript", "object"],
+    ["document.anchors.constructor.name", "HTMLCollection"],
+    ["document.applets.constructor.name", "HTMLCollection"],
+    ["document.all.constructor.name", "HTMLAllCollection"],
+    ["document.styleSheetSets.constructor.name", "DOMStringList"],
+    ["typeof document.featurePolicy", "undefined"],
+    ["typeof document.blockedNodeByClassifierCount", "undefined"],
+    ["typeof document.blockedNodesByClassifier", "undefined"],
+    ["typeof document.permDelegateHandler", "undefined"],
+    ["document.children.constructor.name", "HTMLCollection"],
+    ["document.firstElementChild === document.documentElement", true],
+    ["document.lastElementChild === document.documentElement", true],
+    ["document.childElementCount", 1],
+    ["document.location.href.startsWith('data:')", true],
+
+    // Element
+    ["document.body.namespaceURI", "http://www.w3.org/1999/xhtml"],
+    ["document.body.prefix === null", true],
+    ["document.body.localName", "body"],
+    ["document.body.tagName", "BODY"],
+    ["document.body.id", "body1"],
+    ["document.body.className", "class2"],
+    ["document.body.classList.constructor.name", "DOMTokenList"],
+    ["document.body.part.constructor.name", "DOMTokenList"],
+    ["document.body.attributes.constructor.name", "NamedNodeMap"],
+    ["document.body.innerHTML.includes('Body text')", true],
+    ["document.body.outerHTML.includes('Body text')", true],
+    ["document.body.previousElementSibling !== null", true],
+    ["document.body.nextElementSibling === null", true],
+    ["document.body.children.constructor.name", "HTMLCollection"],
+    ["document.body.firstElementChild !== null", true],
+    ["document.body.lastElementChild !== null", true],
+    ["document.body.childElementCount", 1],
+
+    // Node
+    ["document.body.nodeType === Node.ELEMENT_NODE", true],
+    ["document.body.nodeName", "BODY"],
+    ["document.body.baseURI.startsWith('data:')", true],
+    ["document.body.isConnected", true],
+    ["document.body.ownerDocument === document", true],
+    ["document.body.parentNode === document.documentElement", true],
+    ["document.body.parentElement === document.documentElement", true],
+    ["document.body.childNodes.constructor.name", "NodeList"],
+    ["document.body.firstChild !== null", true],
+    ["document.body.lastChild !== null", true],
+    ["document.body.previousSibling !== null", true],
+    ["document.body.nextSibling === null", true],
+    ["document.body.nodeValue === null", true],
+    ["document.body.textContent.includes('Body text')", true],
+    ["typeof document.body.flattenedTreeParentNode", "undefined"],
+    ["typeof document.body.isNativeAnonymous", "undefined"],
+    ["typeof document.body.containingShadowRoot", "undefined"],
+    ["typeof document.body.accessibleNode", "undefined"],
+
+    // Performance
+    ["performance.timeOrigin > 0", true],
+    ["performance.timing.constructor.name", "PerformanceTiming"],
+    ["performance.navigation.constructor.name", "PerformanceNavigation"],
+    ["performance.eventCounts.constructor.name", "EventCounts"],
+
+    // window
+    ["window.window === window", true],
+    ["window.self === window", true],
+    ["window.document.constructor.name", "HTMLDocument"],
+    ["window.performance.constructor.name", "Performance"],
+    ["typeof window.browsingContext", "undefined"],
+    ["typeof window.windowUtils", "undefined"],
+    ["typeof window.windowGlobalChild", "undefined"],
+    ["window.visualViewport.constructor.name", "VisualViewport"],
+    ["typeof window.caches", "undefined"],
+    ["window.location.href.startsWith('data:')", true],
+  ];
+  if (typeof Scheduler === "function") {
+    // Scheduler is behind a pref.
+    testData.push(["window.scheduler.constructor.name", "Scheduler"]);
+  }
+
+  for (const [code, expectedResult] of testData) {
+    const response = await commands.scriptCommand.execute(code, {
+      eager: true,
+    });
+    checkObject(
+      response,
+      {
+        input: code,
+        result: expectedResult,
+      },
+      code
+    );
+
+    ok(!response.exception, "no eval exception");
+    ok(!response.helperResult, "no helper result");
+  }
+
+  const testDataWithSideEffect = [
+    // NOTE: This is not an exhaustive list.
+    // Document
+    `document.implementation`,
+    `document.domain`,
+    `document.referrer`,
+    `document.cookie`,
+    `document.lastModified`,
+    `document.readyState`,
+    `document.designMode`,
+    `document.onbeforescriptexecute`,
+    `document.onafterscriptexecute`,
+
+    // Element
+    `document.documentElement.scrollTop`,
+    `document.documentElement.scrollLeft`,
+    `document.documentElement.scrollWidth`,
+    `document.documentElement.scrollHeight`,
+
+    // Performance
+    `performance.onresourcetimingbufferfull`,
+
+    // window
+    `window.name`,
+    `window.history`,
+    `window.customElements`,
+    `window.locationbar`,
+    `window.menubar`,
+    `window.status`,
+    `window.closed`,
+
+    // CanvasRenderingContext2D / CanvasCompositing
+    `testCanvasContext.globalAlpha`,
+  ];
+
+  for (const code of testDataWithSideEffect) {
+    const response = await commands.scriptCommand.execute(code, {
+      eager: true,
+    });
+    checkObject(
+      response,
+      {
+        input: code,
+        result: { type: "undefined" },
+      },
+      code
+    );
+
+    ok(!response.exception, "no eval exception");
+    ok(!response.helperResult, "no helper result");
+  }
+}
+
+async function doEagerEvalAsyncFunctions(commands) {
+  // [code, expectedResult]
+  const testData = [["typeof testAsync()", "object"]];
+
+  for (const [code, expectedResult] of testData) {
+    const response = await commands.scriptCommand.execute(code, {
+      eager: true,
+    });
+    checkObject(
+      response,
+      {
+        input: code,
+        result: expectedResult,
+      },
+      code
+    );
+
+    ok(!response.exception, "no eval exception");
+    ok(!response.helperResult, "no helper result");
+  }
+
+  const testDataWithSideEffect = [
+    // await is effectful
+    "testAsyncAwait()",
+
+    // initial yield is effectful
+    "testAsyncGen()",
+    "testAsyncGenAwait()",
+  ];
+
+  for (const code of testDataWithSideEffect) {
+    const response = await commands.scriptCommand.execute(code, {
+      eager: true,
+    });
+    checkObject(
+      response,
+      {
+        input: code,
+        result: { type: "undefined" },
+      },
+      code
+    );
+
+    ok(!response.exception, "no eval exception");
+    ok(!response.helperResult, "no helper result");
+  }
 }

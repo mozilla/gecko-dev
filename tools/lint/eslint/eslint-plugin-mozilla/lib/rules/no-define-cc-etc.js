@@ -16,6 +16,11 @@ module.exports = {
       url:
         "https://firefox-source-docs.mozilla.org/code-quality/lint/linters/eslint-plugin-mozilla/no-define-cc-etc.html",
     },
+    messages: {
+      noSeparateDefinition:
+        "{{name}} is now defined in global scope, a separate definition is no longer necessary.",
+    },
+    schema: [],
     type: "suggestion",
   },
 
@@ -26,10 +31,11 @@ module.exports = {
           node.id.type == "Identifier" &&
           componentsBlacklist.includes(node.id.name)
         ) {
-          context.report(
+          context.report({
             node,
-            `${node.id.name} is now defined in global scope, a separate definition is no longer necessary.`
-          );
+            messageId: "noSeparateDefinition",
+            data: { name: node.id.name },
+          });
         }
 
         if (node.id.type == "ObjectPattern") {
@@ -38,10 +44,11 @@ module.exports = {
               property.type == "Property" &&
               componentsBlacklist.includes(property.value.name)
             ) {
-              context.report(
+              context.report({
                 node,
-                `${property.value.name} is now defined in global scope, a separate definition is no longer necessary.`
-              );
+                messageId: "noSeparateDefinition",
+                data: { name: property.value.name },
+              });
             }
           }
         }

@@ -4,8 +4,6 @@
 "use strict";
 
 /* eslint no-unused-vars: [2, {"vars": "local"}] */
-/* import-globals-from ../../../shared/test/shared-head.js */
-/* import-globals-from ../../../inspector/test/shared-head.js */
 
 Services.scriptloader.loadSubScript(
   "chrome://mochitests/content/browser/devtools/client/shared/test/shared-head.js",
@@ -15,6 +13,16 @@ Services.scriptloader.loadSubScript(
 // Import helpers for the inspector that are also shared with others
 Services.scriptloader.loadSubScript(
   "chrome://mochitests/content/browser/devtools/client/inspector/test/shared-head.js",
+  this
+);
+
+// Load APZ test utils so we properly wait after resize
+Services.scriptloader.loadSubScript(
+  "chrome://mochitests/content/browser/gfx/layers/apz/test/mochitest/apz_test_utils.js",
+  this
+);
+Services.scriptloader.loadSubScript(
+  "chrome://mochikit/content/tests/SimpleTest/paint_listener.js",
   this
 );
 
@@ -93,6 +101,10 @@ registerCleanupFunction(async () => {
   Services.prefs.clearUserPref("devtools.responsive.viewport.width");
   await asyncStorage.removeItem("devtools.responsive.deviceState");
   await removeLocalDevices();
+
+  delete window.waitForAllPaintsFlushed;
+  delete window.waitForAllPaints;
+  delete window.promiseAllPaintsDone;
 });
 
 /**
@@ -287,6 +299,7 @@ var setViewportSize = async function(ui, manager, width, height) {
 var setViewportSizeAndAwaitReflow = async function(ui, manager, width, height) {
   await setViewportSize(ui, manager, width, height);
   await promiseContentReflow(ui);
+  await promiseApzFlushedRepaints();
 };
 
 function getViewportDevicePixelRatio(ui) {

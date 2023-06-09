@@ -84,7 +84,7 @@
 
     .customizationmode-checkbox[disabled]:-moz-lwtheme {
       color: inherit;
-      opacity: 0.4;
+      opacity: var(--toolbarbutton-disabled-opacity);
     }
 
     #customization-reset-button,
@@ -143,7 +143,7 @@
     }
 
     .customizationmode-button[disabled="true"] {
-      opacity: .5;
+      opacity: var(--toolbarbutton-disabled-opacity);
     }
   }
 }
@@ -156,6 +156,10 @@
 #widget-overflow-fixed-list > toolbarpaletteitem:not([notransition])[place="panel"],
 toolbarpaletteitem:not([notransition])[place="toolbar"] {
   transition: border-width var(--drag-drop-transition-duration) ease-in-out;
+}
+
+#widget-overflow-fixed-list > toolbarpaletteitem {
+  flex: none;
 }
 
 toolbarpaletteitem[mousedown] {
@@ -286,15 +290,15 @@ toolbarpaletteitem > #search-container > #searchbar > .searchbar-textbox {
 #wrapper-zoom-controls[place="palette"] > #zoom-controls > #zoom-out-button,
 #wrapper-edit-controls[place="palette"] > #edit-controls > #cut-button,
 #wrapper-profiler-button[place="palette"] > #profiler-button > #profiler-button-button {
-  -moz-box-align: end;
+  align-items: flex-end;
 }
 #wrapper-zoom-controls[place="palette"] > #zoom-controls > #zoom-in-button,
 #wrapper-edit-controls[place="palette"] > #edit-controls > #paste-button,
 #wrapper-profiler-button[place="palette"] > #profiler-button > #profiler-button-dropmarker {
-  -moz-box-align: start;
+  align-items: flex-start;
 }
 #wrapper-edit-controls[place="palette"] > #edit-controls > #copy-button {
-  -moz-box-flex: 0;
+  flex: none;
 }
 
 #customization-uidensity-touch-spacer {
@@ -395,12 +399,15 @@ toolbarpaletteitem > #search-container > #searchbar > .searchbar-textbox {
   margin-bottom: -1px;
 }
 
-/* In customize mode, the overflow button should look both 'disabled' and 'open'.
- * So we make the button fully opaque but fill the icon semi-transparent. */
-#nav-bar[customizing] > .overflow-button > .toolbarbutton-icon {
+/* Special-case the overflow and the hamburger button so they show up disabled
+   in customize mode. */
+:is(#nav-bar-overflow-button, #PanelUI-menu-button)[disabled] {
+  fill-opacity: var(--toolbarbutton-disabled-opacity);
+}
+
+/* The overflow button should look both disabled and open. */
+#nav-bar[customizing] > #nav-bar-overflow-button > .toolbarbutton-icon {
   background-color: var(--toolbarbutton-active-background);
-  opacity: 1;
-  fill-opacity: 0.4;
 }
 
 #customization-panelWrapper > .panel-arrowbox > .panel-arrow[side="top"] {

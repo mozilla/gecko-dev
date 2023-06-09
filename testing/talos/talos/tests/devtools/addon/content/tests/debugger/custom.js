@@ -11,10 +11,12 @@ const {
   testSetup,
   testTeardown,
   PAGES_BASE_URL,
+  waitForDOMElement,
 } = require("../head");
 const {
   createContext,
   findSource,
+  getCM,
   hoverOnToken,
   openDebuggerAndLog,
   pauseDebugger,
@@ -128,9 +130,20 @@ async function testProjectSearch(tab, toolbox) {
 
   dump("Executing project search\n");
   const test = runTest(`custom.jsdebugger.project-search.DAMP`);
+  const firstSearchResultTest = runTest(
+    `custom.jsdebugger.project-search.first-search-result.DAMP`
+  );
+  await dbg.actions.setPrimaryPaneTab("project");
   await dbg.actions.setActiveSearch("project");
-  await dbg.actions.searchSources(cx, "return");
-  await dbg.actions.closeActiveSearch();
+  const complete = dbg.actions.searchSources(cx, "return");
+  // Wait till the first search result match is rendered
+  await waitForDOMElement(
+    dbg.win.document.querySelector(".project-text-search"),
+    ".tree-node .result"
+  );
+  firstSearchResultTest.done();
+  await complete;
+  await dbg.actions.closeProjectSearch(cx);
   test.done();
   await garbageCollect();
 }
@@ -186,7 +199,7 @@ async function testOpeningLargeMinifiedFile(tab, toolbox) {
   dump("Open minified.js (large minified file)\n");
   const test = runTest("custom.jsdebugger.open-large-minified-file.DAMP");
   await selectSource(dbg, file);
-  await waitForText(dbg, file, fileFirstChars);
+  await waitForText(dbg, fileFirstChars);
   test.done();
 
   dbg.actions.closeTabs(dbg.selectors.getContext(dbg.getState()), [file]);
@@ -201,6 +214,11 @@ async function testPrettyPrint(toolbox) {
   dump("Creating context\n");
   const dbg = await createContext(panel);
 
+  // Close all existing tabs to have a clean state
+  const state = dbg.getState();
+  const tabURLs = dbg.selectors.getSourcesForTabs(state).map(t => t.url);
+  await dbg.actions.closeTabs(dbg.selectors.getContext(state), tabURLs);
+
   // Disable source map so we can prettyprint main.js
   await dbg.actions.toggleSourceMapsEnabled(false);
 
@@ -209,16 +227,24 @@ async function testPrettyPrint(toolbox) {
 
   dump("Select minified file\n");
   await selectSource(dbg, fileUrl);
+
+  dump("Wait until CodeMirror highlighting is done\n");
+  const cm = getCM(dbg);
+  // highlightFrontier is not documented but is an internal variable indicating the current
+  // line that was just highlighted. This document has only 2 lines, so wait until both
+  // are highlighted. Since there was an other document opened before, we need to do an
+  // exact check to properly wait.
+  await waitUntil(() => cm.doc.highlightFrontier === 2);
+
   const prettyPrintButton = await waitUntil(() => {
     return dbg.win.document.querySelector(".source-footer .prettyPrint.active");
   });
 
-  const test = runTest("custom.jsdebugger.pretty-print.DAMP");
-
   dump("Click pretty-print button\n");
+  const test = runTest("custom.jsdebugger.pretty-print.DAMP");
   prettyPrintButton.click();
   await waitForSource(dbg, formattedFileUrl);
-  await waitForText(dbg, formattedFileUrl, "!function (n) {\n");
+  await waitForText(dbg, "!function (n) {\n");
   test.done();
 
   await dbg.actions.toggleSourceMapsEnabled(true);

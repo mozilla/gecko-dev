@@ -25,6 +25,8 @@
 #  include "jit/mips64/Lowering-mips64.h"
 #elif defined(JS_CODEGEN_LOONG64)
 #  include "jit/loong64/Lowering-loong64.h"
+#elif defined(JS_CODEGEN_RISCV64)
+#  include "jit/riscv64/Lowering-riscv64.h"
 #elif defined(JS_CODEGEN_WASM32)
 #  include "jit/wasm32/Lowering-wasm32.h"
 #elif defined(JS_CODEGEN_NONE)
@@ -62,9 +64,10 @@ class LIRGenerator final : public LIRGeneratorSpecific {
   void lowerBitOp(JSOp op, MBinaryInstruction* ins);
   void lowerShiftOp(JSOp op, MShiftInstruction* ins);
   LInstructionHelper<1, 1, 0>* allocateAbs(MAbs* ins, LAllocation input);
-  void definePhis();
+  bool definePhis();
 
-  [[nodiscard]] bool lowerCallArguments(MCall* call);
+  template <typename T>
+  [[nodiscard]] bool lowerCallArguments(T* call);
 
   friend class LIRGeneratorShared;
   void visitInstructionDispatch(MInstruction* ins);

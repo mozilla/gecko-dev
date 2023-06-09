@@ -5,6 +5,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 DIRS += [
+    "storage",
     "utils",
 ]
 
@@ -27,11 +28,13 @@ DevToolsModules(
     "sources.js",
     "storage-cache.js",
     "storage-cookie.js",
+    "storage-extension.js",
     "storage-indexed-db.js",
     "storage-local-storage.js",
     "storage-session-storage.js",
     "stylesheets.js",
     "thread-states.js",
+    "tracing-state.js",
     "websockets.js",
 )
 

@@ -31,7 +31,6 @@ XPIDL_MODULE = "xulapp"
 
 EXPORTS += [
     "nsAppRunner.h",
-    "nsIAppStartupNotifier.h",
 ]
 
 EXPORTS.mozilla += [
@@ -138,7 +137,6 @@ UNIFIED_SOURCES += [
     "Bootstrap.cpp",
     "CmdLineAndEnvUtils.cpp",
     "CreateAppData.cpp",
-    "nsAppStartupNotifier.cpp",
     "nsConsoleWriter.cpp",
     "nsNativeAppSupportBase.cpp",
     "nsSigHandlers.cpp",
@@ -154,19 +152,6 @@ SOURCES += [
     "nsEmbedFunctions.cpp",
     "ProfileReset.cpp",
 ]
-
-if CONFIG["MOZ_X11"] or CONFIG["MOZ_WAYLAND"]:
-    UNIFIED_SOURCES += [
-        "glxtest.cpp",
-    ]
-
-if CONFIG["MOZ_WAYLAND"]:
-    LOCAL_INCLUDES += [
-        "/media/mozva",
-    ]
-    USE_LIBS += [
-        "mozva",
-    ]
 
 if CONFIG["MOZ_INSTRUMENT_EVENT_LOOP"]:
     UNIFIED_SOURCES += [
@@ -196,6 +181,7 @@ FINAL_LIBRARY = "xul"
 
 if CONFIG["MOZ_X11"] or CONFIG["MOZ_WAYLAND"]:
     DEFINES["USE_GLX_TEST"] = True
+    DIRS += ["glxtest"]
 
 for var in (
     "MOZ_APP_NAME",
@@ -289,5 +275,3 @@ FINAL_TARGET_PP_FILES += ["platform.ini"]
 
 if CONFIG["ENABLE_TESTS"]:
     DIRS += ["test/gtest"]
-
-REQUIRES_UNIFIED_BUILD = True

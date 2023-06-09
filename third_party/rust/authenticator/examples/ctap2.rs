@@ -4,16 +4,15 @@
 
 use authenticator::{
     authenticatorservice::{
-        AuthenticatorService, CtapVersion, GetAssertionExtensions, GetAssertionOptions,
-        HmacSecretExtension, MakeCredentialsExtensions, MakeCredentialsOptions, RegisterArgsCtap2,
-        SignArgsCtap2,
+        AuthenticatorService, GetAssertionExtensions, HmacSecretExtension,
+        MakeCredentialsExtensions, RegisterArgs, SignArgs,
     },
     ctap2::server::{
-        PublicKeyCredentialDescriptor, PublicKeyCredentialParameters, RelyingParty, Transport, User,
+        PublicKeyCredentialDescriptor, PublicKeyCredentialParameters, RelyingParty,
+        ResidentKeyRequirement, Transport, User, UserVerificationRequirement,
     },
-    errors::PinError,
     statecallback::StateCallback,
-    COSEAlgorithm, Pin, RegisterResult, SignResult, StatusUpdate,
+    COSEAlgorithm, Pin, RegisterResult, SignResult, StatusPinUv, StatusUpdate,
 };
 use getopts::Options;
 use sha2::{Digest, Sha256};
@@ -21,7 +20,7 @@ use std::sync::mpsc::{channel, RecvError};
 use std::{env, thread};
 
 fn print_usage(program: &str, opts: Options) {
-    let brief = format!("Usage: {} [options]", program);
+    let brief = format!("Usage: {program} [options]");
     print!("{}", opts.usage(&brief));
 }
 
@@ -41,6 +40,7 @@ fn main() {
     );
     opts.optflag("s", "hmac_secret", "With hmac-secret");
     opts.optflag("h", "help", "print this help menu");
+    opts.optflag("f", "fallback", "Use CTAP1 fallback implementation");
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => m,
         Err(f) => panic!("{}", f.to_string()),
@@ -50,12 +50,14 @@ fn main() {
         return;
     }
 
-    let mut manager = AuthenticatorService::new(CtapVersion::CTAP2)
-        .expect("The auth service should initialize safely");
+    let mut manager =
+        AuthenticatorService::new().expect("The auth service should initialize safely");
 
     if !matches.opt_present("no-u2f-usb-hid") {
         manager.add_u2f_usb_hid_platform_transports();
     }
+
+    let fallback = matches.opt_present("fallback");
 
     let timeout_ms = match matches.opt_get_default::<u64>("timeout", 25) {
         Ok(timeout_s) => {
@@ -63,7 +65,7 @@ fn main() {
             timeout_s * 1_000
         }
         Err(e) => {
-            println!("{}", e);
+            println!("{e}");
             print_usage(&program, opts);
             return;
         }
@@ -77,59 +79,69 @@ fn main() {
     );
     let mut challenge = Sha256::new();
     challenge.update(challenge_str.as_bytes());
-    let chall_bytes = challenge.finalize().to_vec();
-
-    // TODO(MS): Needs to be added to RegisterArgsCtap2
-    // let flags = RegisterFlags::empty();
+    let chall_bytes: [u8; 32] = challenge.finalize().into();
 
     let (status_tx, status_rx) = channel::<StatusUpdate>();
     thread::spawn(move || loop {
         match status_rx.recv() {
+            Ok(StatusUpdate::InteractiveManagement(..)) => {
+                panic!("STATUS: This can't happen when doing non-interactive usage");
+            }
             Ok(StatusUpdate::DeviceAvailable { dev_info }) => {
-                println!("STATUS: device available: {}", dev_info)
+                println!("STATUS: device available: {dev_info}")
             }
             Ok(StatusUpdate::DeviceUnavailable { dev_info }) => {
-                println!("STATUS: device unavailable: {}", dev_info)
+                println!("STATUS: device unavailable: {dev_info}")
             }
             Ok(StatusUpdate::Success { dev_info }) => {
-                println!("STATUS: success using device: {}", dev_info);
+                println!("STATUS: success using device: {dev_info}");
             }
             Ok(StatusUpdate::SelectDeviceNotice) => {
                 println!("STATUS: Please select a device by touching one of them.");
             }
             Ok(StatusUpdate::DeviceSelected(dev_info)) => {
-                println!("STATUS: Continuing with device: {}", dev_info);
+                println!("STATUS: Continuing with device: {dev_info}");
             }
-            Ok(StatusUpdate::PinError(error, sender)) => match error {
-                PinError::PinRequired => {
-                    let raw_pin = rpassword::prompt_password_stderr("Enter PIN: ")
-                        .expect("Failed to read PIN");
-                    sender.send(Pin::new(&raw_pin)).expect("Failed to send PIN");
-                    continue;
-                }
-                PinError::InvalidPin(attempts) => {
-                    println!(
-                        "Wrong PIN! {}",
-                        attempts.map_or(format!("Try again."), |a| format!(
-                            "You have {} attempts left.",
-                            a
-                        ))
-                    );
-                    let raw_pin = rpassword::prompt_password_stderr("Enter PIN: ")
-                        .expect("Failed to read PIN");
-                    sender.send(Pin::new(&raw_pin)).expect("Failed to send PIN");
-                    continue;
-                }
-                PinError::PinAuthBlocked => {
-                    panic!("Too many failed attempts in one row. Your device has been temporarily blocked. Please unplug it and plug in again.")
-                }
-                PinError::PinBlocked => {
-                    panic!("Too many failed attempts. Your device has been blocked. Reset it.")
-                }
-                e => {
-                    panic!("Unexpected error: {:?}", e)
-                }
-            },
+            Ok(StatusUpdate::PinUvError(StatusPinUv::PinRequired(sender))) => {
+                let raw_pin =
+                    rpassword::prompt_password_stderr("Enter PIN: ").expect("Failed to read PIN");
+                sender.send(Pin::new(&raw_pin)).expect("Failed to send PIN");
+                continue;
+            }
+            Ok(StatusUpdate::PinUvError(StatusPinUv::InvalidPin(sender, attempts))) => {
+                println!(
+                    "Wrong PIN! {}",
+                    attempts.map_or("Try again.".to_string(), |a| format!(
+                        "You have {a} attempts left."
+                    ))
+                );
+                let raw_pin =
+                    rpassword::prompt_password_stderr("Enter PIN: ").expect("Failed to read PIN");
+                sender.send(Pin::new(&raw_pin)).expect("Failed to send PIN");
+                continue;
+            }
+            Ok(StatusUpdate::PinUvError(StatusPinUv::PinAuthBlocked)) => {
+                panic!("Too many failed attempts in one row. Your device has been temporarily blocked. Please unplug it and plug in again.")
+            }
+            Ok(StatusUpdate::PinUvError(StatusPinUv::PinBlocked)) => {
+                panic!("Too many failed attempts. Your device has been blocked. Reset it.")
+            }
+            Ok(StatusUpdate::PinUvError(StatusPinUv::InvalidUv(attempts))) => {
+                println!(
+                    "Wrong UV! {}",
+                    attempts.map_or("Try again.".to_string(), |a| format!(
+                        "You have {a} attempts left."
+                    ))
+                );
+                continue;
+            }
+            Ok(StatusUpdate::PinUvError(StatusPinUv::UvBlocked)) => {
+                println!("Too many failed UV-attempts.");
+                continue;
+            }
+            Ok(StatusUpdate::PinUvError(e)) => {
+                panic!("Unexpected error: {:?}", e)
+            }
             Err(RecvError) => {
                 println!("STATUS: end");
                 return;
@@ -144,15 +156,15 @@ fn main() {
         display_name: None,
     };
     let origin = "https://example.com".to_string();
-    let ctap_args = RegisterArgsCtap2 {
-        challenge: chall_bytes.clone(),
+    let ctap_args = RegisterArgs {
+        client_data_hash: chall_bytes,
         relying_party: RelyingParty {
             id: "example.com".to_string(),
             name: None,
             icon: None,
         },
         origin: origin.clone(),
-        user: user.clone(),
+        user,
         pub_cred_params: vec![
             PublicKeyCredentialParameters {
                 alg: COSEAlgorithm::ES256,
@@ -169,10 +181,8 @@ fn main() {
             ],
             transports: vec![Transport::USB, Transport::NFC],
         }],
-        options: MakeCredentialsOptions {
-            resident_key: None,
-            user_verification: None,
-        },
+        user_verification_req: UserVerificationRequirement::Preferred,
+        resident_key_req: ResidentKeyRequirement::Discouraged,
         extensions: MakeCredentialsExtensions {
             hmac_secret: if matches.opt_present("hmac_secret") {
                 Some(true)
@@ -182,22 +192,17 @@ fn main() {
             ..Default::default()
         },
         pin: None,
+        use_ctap1_fallback: fallback,
     };
 
     let attestation_object;
-    let client_data;
     loop {
         let (register_tx, register_rx) = channel();
         let callback = StateCallback::new(Box::new(move |rv| {
             register_tx.send(rv).unwrap();
         }));
 
-        if let Err(e) = manager.register(
-            timeout_ms,
-            ctap_args.clone().into(),
-            status_tx.clone(),
-            callback,
-        ) {
+        if let Err(e) = manager.register(timeout_ms, ctap_args, status_tx.clone(), callback) {
             panic!("Couldn't register: {:?}", e);
         };
 
@@ -206,10 +211,9 @@ fn main() {
             .expect("Problem receiving, unable to continue");
         match register_result {
             Ok(RegisterResult::CTAP1(_, _)) => panic!("Requested CTAP2, but got CTAP1 results!"),
-            Ok(RegisterResult::CTAP2(a, c)) => {
+            Ok(RegisterResult::CTAP2(a)) => {
                 println!("Ok!");
                 attestation_object = a;
-                client_data = c;
                 break;
             }
             Err(e) => panic!("Registration failed: {:?}", e),
@@ -217,9 +221,8 @@ fn main() {
     }
 
     println!("Register result: {:?}", &attestation_object);
-    println!("Collected client data: {:?}", &client_data);
 
-    println!("");
+    println!();
     println!("*********************************************************************");
     println!("Asking a security key to sign now, with the data from the register...");
     println!("*********************************************************************");
@@ -227,19 +230,20 @@ fn main() {
     let allow_list;
     if let Some(cred_data) = attestation_object.auth_data.credential_data {
         allow_list = vec![PublicKeyCredentialDescriptor {
-            id: cred_data.credential_id.clone(),
+            id: cred_data.credential_id,
             transports: vec![Transport::USB],
         }];
     } else {
         allow_list = Vec::new();
     }
 
-    let ctap_args = SignArgsCtap2 {
-        challenge: chall_bytes,
+    let ctap_args = SignArgs {
+        client_data_hash: chall_bytes,
         origin,
         relying_party_id: "example.com".to_string(),
         allow_list,
-        options: GetAssertionOptions::default(),
+        user_verification_req: UserVerificationRequirement::Preferred,
+        user_presence_req: true,
         extensions: GetAssertionExtensions {
             hmac_secret: if matches.opt_present("hmac_secret") {
                 Some(HmacSecretExtension::new(
@@ -255,6 +259,8 @@ fn main() {
             },
         },
         pin: None,
+        alternate_rp_id: None,
+        use_ctap1_fallback: fallback,
     };
 
     loop {
@@ -264,12 +270,7 @@ fn main() {
             sign_tx.send(rv).unwrap();
         }));
 
-        if let Err(e) = manager.sign(
-            timeout_ms,
-            ctap_args.clone().into(),
-            status_tx.clone(),
-            callback,
-        ) {
+        if let Err(e) = manager.sign(timeout_ms, ctap_args, status_tx, callback) {
             panic!("Couldn't sign: {:?}", e);
         }
 
@@ -279,8 +280,8 @@ fn main() {
 
         match sign_result {
             Ok(SignResult::CTAP1(..)) => panic!("Requested CTAP2, but got CTAP1 sign results!"),
-            Ok(SignResult::CTAP2(assertion_object, _client_data)) => {
-                println!("Assertion Object: {:?}", assertion_object);
+            Ok(SignResult::CTAP2(assertion_object)) => {
+                println!("Assertion Object: {assertion_object:?}");
                 println!("Done.");
                 break;
             }

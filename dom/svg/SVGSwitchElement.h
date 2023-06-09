@@ -31,6 +31,8 @@ class SVGSwitchElement final : public SVGSwitchElementBase {
                      JS::Handle<JSObject*> aGivenProto) override;
 
  public:
+  NS_IMPL_FROMNODE_WITH_TAG(SVGSwitchElement, kNameSpaceID_SVG, svgSwitch)
+
   nsIContent* GetActiveChild() const { return mActiveChild; }
   void MaybeInvalidate();
 
@@ -45,8 +47,6 @@ class SVGSwitchElement final : public SVGSwitchElementBase {
   void RemoveChildNode(nsIContent* aKid, bool aNotify) override;
 
   // nsIContent
-  NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* aAttribute) const override;
-
   nsresult Clone(dom::NodeInfo*, nsINode** aResult) const override;
 
  private:

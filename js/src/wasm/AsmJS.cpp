@@ -90,7 +90,6 @@ using mozilla::Abs;
 using mozilla::AsVariant;
 using mozilla::CeilingLog2;
 using mozilla::HashGeneric;
-using mozilla::IsNaN;
 using mozilla::IsNegativeZero;
 using mozilla::IsPositiveZero;
 using mozilla::IsPowerOfTwo;
@@ -368,6 +367,7 @@ struct js::AsmJSMetadata : Metadata, AsmJSMetadataCacheablePod {
   uint32_t toStringStart;
   uint32_t srcStart;
   bool strict;
+  bool shouldResistFingerprinting = false;
   RefPtr<ScriptSource> source;
 
   uint32_t srcEndBeforeCurly() const { return srcStart + srcLength; }
@@ -1364,7 +1364,6 @@ class MOZ_STACK_CLASS ModuleValidatorShared {
   using ArrayViewVector = Vector<ArrayView>;
 
  protected:
-  JSContext* cx_;
   FrontendContext* fc_;
   JS::NativeStackLimit stackLimit_;
   ParserAtomsTable& parserAtoms_;
@@ -1396,12 +1395,10 @@ class MOZ_STACK_CLASS ModuleValidatorShared {
   bool errorOverRecursed_ = false;
 
  protected:
-  ModuleValidatorShared(JSContext* cx, FrontendContext* fc,
-                        JS::NativeStackLimit stackLimit,
+  ModuleValidatorShared(FrontendContext* fc, JS::NativeStackLimit stackLimit,
                         ParserAtomsTable& parserAtoms,
                         FunctionNode* moduleFunctionNode)
-      : cx_(cx),
-        fc_(fc),
+      : fc_(fc),
         stackLimit_(stackLimit),
         parserAtoms_(parserAtoms),
         moduleFunctionNode_(moduleFunctionNode),
@@ -1916,12 +1913,10 @@ class MOZ_STACK_CLASS ModuleValidator : public ModuleValidatorShared {
   AsmJSParser<Unit>& parser_;
 
  public:
-  ModuleValidator(JSContext* cx, FrontendContext* fc,
-                  JS::NativeStackLimit stackLimit,
+  ModuleValidator(FrontendContext* fc, JS::NativeStackLimit stackLimit,
                   ParserAtomsTable& parserAtoms, AsmJSParser<Unit>& parser,
                   FunctionNode* moduleFunctionNode)
-      : ModuleValidatorShared(cx, fc, stackLimit, parserAtoms,
-                              moduleFunctionNode),
+      : ModuleValidatorShared(fc, stackLimit, parserAtoms, moduleFunctionNode),
         parser_(parser) {}
 
   ~ModuleValidator() {
@@ -1998,6 +1993,8 @@ class MOZ_STACK_CLASS ModuleValidator : public ModuleValidatorShared {
     asmJSMetadata_->srcStart = moduleFunctionNode_->body()->pn_pos.begin;
     asmJSMetadata_->strict = parser_.pc_->sc()->strict() &&
                              !parser_.pc_->sc()->hasExplicitUseStrict();
+    asmJSMetadata_->shouldResistFingerprinting =
+        parser_.options().shouldResistFingerprinting();
     asmJSMetadata_->source = do_AddRef(parser_.ss);
 
     if (!initModuleEnvironment()) {
@@ -2009,6 +2006,10 @@ class MOZ_STACK_CLASS ModuleValidator : public ModuleValidatorShared {
   AsmJSParser<Unit>& parser() const { return parser_; }
 
   auto& tokenStream() const { return parser_.tokenStream; }
+
+  bool shouldResistFingerprinting() const {
+    return asmJSMetadata_->shouldResistFingerprinting;
+  }
 
  public:
   bool addFuncDef(TaggedParserAtomIndex name, uint32_t firstUse, FuncType&& sig,
@@ -2059,6 +2060,7 @@ class MOZ_STACK_CLASS ModuleValidator : public ModuleValidatorShared {
 
     moduleEnv_.asmJSSigToTableIndex[sigIndex] = moduleEnv_.tables.length();
     if (!moduleEnv_.tables.emplaceBack(RefType::func(), mask + 1, Nothing(),
+                                       /* initExpr */ Nothing(),
                                        /*isAsmJS*/ true)) {
       return false;
     }
@@ -2340,7 +2342,7 @@ static NumLit ExtractNumericLiteral(ModuleValidatorShared& m, ParseNode* pn) {
 
   // The syntactic checks above rule out these double values.
   MOZ_ASSERT(!IsNegativeZero(d));
-  MOZ_ASSERT(!IsNaN(d));
+  MOZ_ASSERT(!std::isnan(d));
 
   // Although doubles can only *precisely* represent 53-bit integers, they
   // can *imprecisely* represent integers much bigger than an int64_t.
@@ -4363,17 +4365,29 @@ static bool CheckMathBuiltinCall(FunctionValidator<Unit>& f,
       break;
     case AsmJSMathBuiltin_sin:
       arity = 1;
-      mozf64 = MozOp::F64Sin;
+      if (!f.m().shouldResistFingerprinting()) {
+        mozf64 = MozOp::F64SinNative;
+      } else {
+        mozf64 = MozOp::F64SinFdlibm;
+      }
       f32 = Op::Unreachable;
       break;
     case AsmJSMathBuiltin_cos:
       arity = 1;
-      mozf64 = MozOp::F64Cos;
+      if (!f.m().shouldResistFingerprinting()) {
+        mozf64 = MozOp::F64CosNative;
+      } else {
+        mozf64 = MozOp::F64CosFdlibm;
+      }
       f32 = Op::Unreachable;
       break;
     case AsmJSMathBuiltin_tan:
       arity = 1;
-      mozf64 = MozOp::F64Tan;
+      if (!f.m().shouldResistFingerprinting()) {
+        mozf64 = MozOp::F64TanNative;
+      } else {
+        mozf64 = MozOp::F64TanFdlibm;
+      }
       f32 = Op::Unreachable;
       break;
     case AsmJSMathBuiltin_asin:
@@ -6435,7 +6449,7 @@ static bool CheckModuleEnd(ModuleValidator<Unit>& m) {
 }
 
 template <typename Unit>
-static SharedModule CheckModule(JSContext* cx, FrontendContext* fc,
+static SharedModule CheckModule(FrontendContext* fc,
                                 JS::NativeStackLimit stackLimit,
                                 ParserAtomsTable& parserAtoms,
                                 AsmJSParser<Unit>& parser, ParseNode* stmtList,
@@ -6444,7 +6458,7 @@ static SharedModule CheckModule(JSContext* cx, FrontendContext* fc,
 
   FunctionNode* moduleFunctionNode = parser.pc_->functionBox()->functionNode;
 
-  ModuleValidator<Unit> m(cx, fc, stackLimit, parserAtoms, parser,
+  ModuleValidator<Unit> m(fc, stackLimit, parserAtoms, parser,
                           moduleFunctionNode);
   if (!m.init()) {
     return nullptr;
@@ -6730,6 +6744,7 @@ static InlinableNative ToInlinableNative(AsmJSMathBuiltinFunction func) {
 }
 
 static bool ValidateMathBuiltinFunction(JSContext* cx,
+                                        const AsmJSMetadata& metadata,
                                         const AsmJSGlobal& global,
                                         HandleValue globalVal) {
   RootedValue v(cx);
@@ -6748,6 +6763,12 @@ static bool ValidateMathBuiltinFunction(JSContext* cx,
       fun->jitInfo()->type() != JSJitInfo::InlinableNative ||
       fun->jitInfo()->inlinableNative != native) {
     return LinkFail(cx, "bad Math.* builtin function");
+  }
+  if (fun->realm()->behaviors().shouldResistFingerprinting() !=
+      metadata.shouldResistFingerprinting) {
+    return LinkFail(cx,
+                    "Math.* builtin function and asm.js module have a "
+                    "different resist fingerprinting mode");
   }
 
   return true;
@@ -6772,8 +6793,8 @@ static bool ValidateConstant(JSContext* cx, const AsmJSGlobal& global,
   }
 
   // NaN != NaN
-  if (IsNaN(global.constantValue())) {
-    if (!IsNaN(v.toNumber())) {
+  if (std::isnan(global.constantValue())) {
+    if (!std::isnan(v.toNumber())) {
       return LinkFail(cx, "global constant value needs to be NaN");
     }
   } else {
@@ -6903,7 +6924,7 @@ static bool GetImports(JSContext* cx, const AsmJSMetadata& metadata,
         }
         break;
       case AsmJSGlobal::MathBuiltinFunction:
-        if (!ValidateMathBuiltinFunction(cx, global, globalVal)) {
+        if (!ValidateMathBuiltinFunction(cx, metadata, global, globalVal)) {
           return false;
         }
         break;
@@ -7144,8 +7165,7 @@ static bool EstablishPreconditions(frontend::ParserBase& parser) {
 }
 
 template <typename Unit>
-static bool DoCompileAsmJS(JSContext* cx, FrontendContext* fc,
-                           JS::NativeStackLimit stackLimit,
+static bool DoCompileAsmJS(FrontendContext* fc, JS::NativeStackLimit stackLimit,
                            ParserAtomsTable& parserAtoms,
                            AsmJSParser<Unit>& parser, ParseNode* stmtList,
                            bool* validated) {
@@ -7160,7 +7180,7 @@ static bool DoCompileAsmJS(JSContext* cx, FrontendContext* fc,
   // WasmModuleObject as result.
   unsigned time;
   SharedModule module =
-      CheckModule(cx, fc, stackLimit, parserAtoms, parser, stmtList, &time);
+      CheckModule(fc, stackLimit, parserAtoms, parser, stmtList, &time);
   if (!module) {
     return NoExceptionPending(fc);
   }
@@ -7180,21 +7200,19 @@ static bool DoCompileAsmJS(JSContext* cx, FrontendContext* fc,
   return NoExceptionPending(fc);
 }
 
-bool js::CompileAsmJS(JSContext* cx, FrontendContext* fc,
-                      JS::NativeStackLimit stackLimit,
+bool js::CompileAsmJS(FrontendContext* fc, JS::NativeStackLimit stackLimit,
                       ParserAtomsTable& parserAtoms,
                       AsmJSParser<char16_t>& parser, ParseNode* stmtList,
                       bool* validated) {
-  return DoCompileAsmJS(cx, fc, stackLimit, parserAtoms, parser, stmtList,
+  return DoCompileAsmJS(fc, stackLimit, parserAtoms, parser, stmtList,
                         validated);
 }
 
-bool js::CompileAsmJS(JSContext* cx, FrontendContext* fc,
-                      JS::NativeStackLimit stackLimit,
+bool js::CompileAsmJS(FrontendContext* fc, JS::NativeStackLimit stackLimit,
                       ParserAtomsTable& parserAtoms,
                       AsmJSParser<Utf8Unit>& parser, ParseNode* stmtList,
                       bool* validated) {
-  return DoCompileAsmJS(cx, fc, stackLimit, parserAtoms, parser, stmtList,
+  return DoCompileAsmJS(fc, stackLimit, parserAtoms, parser, stmtList,
                         validated);
 }
 

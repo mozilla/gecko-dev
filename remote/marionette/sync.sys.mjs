@@ -24,7 +24,7 @@ const PROMISE_TIMEOUT = AppConstants.DEBUG ? 4500 : 1500;
 /**
  * Dispatch a function to be executed on the main thread.
  *
- * @param {function} func
+ * @param {Function} func
  *     Function to be executed.
  */
 export function executeSoon(func) {
@@ -67,15 +67,16 @@ export function executeSoon(func) {
  *
  * @param {Condition} func
  *     Function to run off the main thread.
- * @param {number=} [timeout] timeout
+ * @param {object=} options
+ * @param {number=} options.timeout
  *     Desired timeout if wanted.  If 0 or less than the runtime evaluation
  *     time of ``func``, ``func`` is guaranteed to run at least once.
  *     Defaults to using no timeout.
- * @param {number=} [interval=10] interval
+ * @param {number=} options.interval
  *     Duration between each poll of ``func`` in milliseconds.
  *     Defaults to 10 milliseconds.
  *
- * @return {Promise.<*>}
+ * @returns {Promise.<*>}
  *     Yields the value passed to ``func``'s
  *     ``resolve`` or ``reject`` callbacks.
  *
@@ -156,25 +157,25 @@ export function PollPromise(func, { timeout = null, interval = 10 } = {}) {
  *
  * In contrast to a regular Promise, it times out after ``timeout``.
  *
- * @param {Condition} func
+ * @param {Function} fn
  *     Function to run, which will have its ``reject``
  *     callback invoked after the ``timeout`` duration is reached.
  *     It is given two callbacks: ``resolve(value)`` and
  *     ``reject(error)``.
- * @param {Object=} options
- * @param {String} [options.errorMessage]
+ * @param {object=} options
+ * @param {string} options.errorMessage
  *     Message to use for the thrown error.
  * @param {number=} options.timeout
  *     ``condition``'s ``reject`` callback will be called
  *     after this timeout, given in milliseconds.
  *     By default 1500 ms in an optimised build and 4500 ms in
  *     debug builds.
- * @param {Error=} [options.throws=TimeoutError]
+ * @param {Error=} options.throws
  *     When the ``timeout`` is hit, this error class will be
  *     thrown.  If it is null, no error is thrown and the promise is
- *     instead resolved on timeout.
+ *     instead resolved on timeout with a TimeoutError.
  *
- * @return {Promise.<*>}
+ * @returns {Promise.<*>}
  *     Timed promise.
  *
  * @throws {TypeError}
@@ -207,11 +208,12 @@ export function TimedPromise(fn, options = {}) {
     // Reject only if |throws| is given.  Otherwise it is assumed that
     // the user is OK with the promise timing out.
     let bail = () => {
+      const message = `${errorMessage} after ${timeout} ms`;
       if (throws !== null) {
-        let err = new throws(`${errorMessage} after ${timeout} ms`);
+        let err = new throws(message);
         reject(err);
       } else {
-        lazy.logger.warn(`${errorMessage} after ${timeout} ms`, trace);
+        lazy.logger.warn(message, trace);
         resolve();
       }
     };
@@ -242,7 +244,7 @@ export function TimedPromise(fn, options = {}) {
  * @param {number} timeout
  *     Duration to wait before fulfilling promise in milliseconds.
  *
- * @return {Promise}
+ * @returns {Promise}
  *     Promise that fulfills when the `timeout` is elapsed.
  *
  * @throws {TypeError}
@@ -294,7 +296,7 @@ export function Sleep(timeout) {
  *     Use the browser message manager when closing a content browser,
  *     and the window message manager when closing a chrome window.
  *
- * @return {Promise}
+ * @returns {Promise}
  *     A promise that resolves when the message manager has been destroyed.
  */
 export function MessageManagerDestroyedPromise(messageManager) {
@@ -319,7 +321,7 @@ export function MessageManagerDestroyedPromise(messageManager) {
  * @param {ChromeWindow} win
  *     Window to request the animation frame from.
  *
- * @return Promise
+ * @returns {Promise}
  */
 export function IdlePromise(win) {
   const animationFramePromise = new Promise(resolve => {
@@ -409,7 +411,7 @@ export class DebounceCallback {
  *     The message manager that should be used.
  * @param {string} messageName
  *     The message to wait for.
- * @param {Object=} options
+ * @param {object=} options
  *     Extra options.
  * @param {function(Message)=} options.checkFn
  *     Called with the ``Message`` object as argument, should return ``true``
@@ -417,7 +419,7 @@ export class DebounceCallback {
  *     ignored and listening should continue. If not specified, the first
  *     message with the specified name resolves the returned promise.
  *
- * @return {Promise.<Object>}
+ * @returns {Promise.<object>}
  *     Promise which resolves to the data property of the received
  *     ``Message``.
  */
@@ -459,15 +461,15 @@ export function waitForMessage(
  *
  * @param {string} topic
  *     The topic to observe.
- * @param {Object=} options
+ * @param {object=} options
  *     Extra options.
- * @param {function(String,Object)=} options.checkFn
+ * @param {function(string, object)=} options.checkFn
  *     Called with ``subject``, and ``data`` as arguments, should return true
  *     if the notification is the expected one, or false if it should be
  *     ignored and listening should continue. If not specified, the first
  *     notification for the specified topic resolves the returned promise.
  *
- * @return {Promise.<Array<String, Object>>}
+ * @returns {Promise.<Array<string, object>>}
  *     Promise which resolves to an array of ``subject``, and ``data`` from
  *     the observed notification.
  */

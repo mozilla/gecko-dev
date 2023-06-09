@@ -21,6 +21,7 @@
 #include "util/GetPidProvider.h"
 #include "util/Text.h"
 #include "vm/JSONPrinter.h"
+#include "vm/Printer.h"
 #include "vm/Runtime.h"
 #include "vm/Time.h"
 
@@ -762,7 +763,7 @@ Statistics::Statistics(GCRuntime* gc)
       gcDebugFile(nullptr),
       nonincrementalReason_(GCAbortReason::None),
       creationTime_(TimeStamp::Now()),
-      allocsSinceMinorGC({0, 0}),
+      tenuredAllocsSinceMinorGC(0),
       preTotalHeapBytes(0),
       postTotalHeapBytes(0),
       preCollectedHeapBytes(0),
@@ -1006,6 +1007,14 @@ void Statistics::endGC() {
   sendGCTelemetry();
 }
 
+TimeDuration Statistics::sumTotalParallelTime(PhaseKind phaseKind) const {
+  TimeDuration total;
+  for (const SliceData& slice : slices_) {
+    total += slice.totalParallelTimes[phaseKind];
+  }
+  return total;
+}
+
 void Statistics::sendGCTelemetry() {
   JSRuntime* runtime = gc->rt;
   // NOTE: "Compartmental" is term that was deprecated with the
@@ -1014,17 +1023,28 @@ void Statistics::sendGCTelemetry() {
   runtime->metrics().GC_IS_COMPARTMENTAL(!gc->fullGCRequested);
   runtime->metrics().GC_ZONE_COUNT(zoneStats.zoneCount);
   runtime->metrics().GC_ZONES_COLLECTED(zoneStats.collectedZoneCount);
-  TimeDuration prepareTotal = SumPhase(PhaseKind::PREPARE, phaseTimes);
+
+  TimeDuration prepareTotal = phaseTimes[Phase::PREPARE];
   TimeDuration markTotal = SumPhase(PhaseKind::MARK, phaseTimes);
   TimeDuration markRootsTotal = SumPhase(PhaseKind::MARK_ROOTS, phaseTimes);
-  TimeDuration markWeakTotal = phaseTimes[Phase::SWEEP_MARK_WEAK] +
-                               phaseTimes[Phase::SWEEP_MARK_GRAY_WEAK];
-  TimeDuration markGrayTotal = phaseTimes[Phase::SWEEP_MARK_GRAY] +
-                               phaseTimes[Phase::SWEEP_MARK_GRAY_WEAK];
+
+  // Gray and weak marking time is counted under MARK_WEAK and not MARK_GRAY.
+  TimeDuration markWeakTotal = SumPhase(PhaseKind::MARK_WEAK, phaseTimes);
+  TimeDuration markGrayNotWeak =
+      SumPhase(PhaseKind::MARK_GRAY, phaseTimes) +
+      SumPhase(PhaseKind::MARK_INCOMING_GRAY, phaseTimes);
+  TimeDuration markGrayWeak = SumPhase(PhaseKind::MARK_GRAY_WEAK, phaseTimes);
+  TimeDuration markGrayTotal = markGrayNotWeak + markGrayWeak;
+  TimeDuration markNotGrayOrWeak = markTotal - markGrayNotWeak - markWeakTotal;
+  if (markNotGrayOrWeak < TimeDuration::FromMilliseconds(0)) {
+    markNotGrayOrWeak = TimeDuration();
+  }
+
   size_t markCount = getCount(COUNT_CELLS_MARKED);
+
   runtime->metrics().GC_PREPARE_MS(prepareTotal);
-  runtime->metrics().GC_MARK_MS(markTotal);
-  if (markTotal >= TimeDuration::FromMilliseconds(1)) {
+  runtime->metrics().GC_MARK_MS(markNotGrayOrWeak);
+  if (markTotal >= TimeDuration::FromMicroseconds(1)) {
     double markRate = double(markCount) / t(markTotal);
     runtime->metrics().GC_MARK_RATE_2(uint32_t(markRate));
   }
@@ -1094,6 +1114,26 @@ void Statistics::sendGCTelemetry() {
       runtime->metrics().GC_EFFECTIVENESS(uint32_t(effectiveness));
     }
   }
+
+  // Parallel marking stats.
+  if (gc->isParallelMarkingEnabled()) {
+    TimeDuration wallTime = SumPhase(PhaseKind::PARALLEL_MARK, phaseTimes);
+    TimeDuration parallelRunTime =
+        sumTotalParallelTime(PhaseKind::PARALLEL_MARK) -
+        sumTotalParallelTime(PhaseKind::PARALLEL_MARK_WAIT);
+    TimeDuration parallelMarkTime =
+        sumTotalParallelTime(PhaseKind::PARALLEL_MARK_MARK);
+    if (wallTime && parallelMarkTime) {
+      uint32_t threadCount = gc->markers.length();
+      double speedup = parallelMarkTime / wallTime;
+      double utilization = parallelRunTime / (wallTime * threadCount);
+      runtime->metrics().GC_PARALLEL_MARK_SPEEDUP(uint32_t(speedup * 100.0));
+      runtime->metrics().GC_PARALLEL_MARK_UTILIZATION(
+          std::clamp<uint32_t>(utilization * 100.0, 0, 100));
+      runtime->metrics().GC_PARALLEL_MARK_INTERRUPTIONS(
+          getCount(COUNT_PARALLEL_MARK_INTERRUPTIONS));
+    }
+  }
 }
 
 void Statistics::beginNurseryCollection(JS::GCReason reason) {
@@ -1111,7 +1151,7 @@ void Statistics::endNurseryCollection(JS::GCReason reason) {
         context(), JS::GCNurseryProgress::GC_NURSERY_COLLECTION_END, reason);
   }
 
-  allocsSinceMinorGC = {0, 0};
+  tenuredAllocsSinceMinorGC = 0;
 }
 
 Statistics::SliceData::SliceData(const SliceBudget& budget,
@@ -1549,29 +1589,54 @@ void Statistics::maybePrintProfileHeaders() {
   }
 }
 
+// The following macros define GC profile metadata fields that are printed
+// before the timing information defined by FOR_EACH_GC_PROFILE_TIME.
+
+#define FOR_EACH_GC_PROFILE_COMMON_METADATA(_) \
+  _("PID", 7, "%7zu", pid)                     \
+  _("Runtime", 14, "0x%12p", runtime)
+
+#define FOR_EACH_GC_PROFILE_SLICE_METADATA(_)         \
+  _("Timestamp", 10, "%10.6f", timestamp.ToSeconds()) \
+  _("Reason", 20, "%-20.20s", reason)                 \
+  _("States", 6, "%6s", formatGCStates(slice))        \
+  _("FSNR", 4, "%4s", formatGCFlags(slice))           \
+  _("SizeKB", 8, "%8zu", sizeKB)                      \
+  _("Budget", 6, "%6s", formatBudget(slice))
+
+#define FOR_EACH_GC_PROFILE_METADATA(_)  \
+  FOR_EACH_GC_PROFILE_COMMON_METADATA(_) \
+  FOR_EACH_GC_PROFILE_SLICE_METADATA(_)
+
 void Statistics::printProfileHeader() {
   if (!enableProfiling_) {
     return;
   }
 
-  FILE* file = profileFile();
-  fprintf(
-      file,
-      "MajorGC: PID     Runtime        Timestamp  Reason               States "
-      "FSNR   SizeKB budget total  bgwrk  ");
-#define PRINT_PROFILE_HEADER(name, text, phase) fprintf(file, " %-6.6s", text);
-  FOR_EACH_GC_PROFILE_TIME(PRINT_PROFILE_HEADER)
-#undef PRINT_PROFILE_HEADER
-  fprintf(file, "\n");
-}
-
-/* static */
-void Statistics::printProfileTimes(const ProfileDurations& times) {
-  FILE* file = profileFile();
-  for (auto time : times) {
-    fprintf(file, " %6" PRIi64, static_cast<int64_t>(time.ToMilliseconds()));
+  Sprinter sprinter;
+  if (!sprinter.init() || !sprinter.put(MajorGCProfilePrefix)) {
+    return;
   }
-  fprintf(file, "\n");
+
+#define PRINT_METADATA_NAME(name, width, _1, _2)  \
+  if (!sprinter.jsprintf(" %-*s", width, name)) { \
+    return;                                       \
+  }
+  FOR_EACH_GC_PROFILE_METADATA(PRINT_METADATA_NAME)
+#undef PRINT_METADATA_NAME
+
+#define PRINT_PROFILE_NAME(_1, text, _2)     \
+  if (!sprinter.jsprintf(" %-6.6s", text)) { \
+    return;                                  \
+  }
+  FOR_EACH_GC_PROFILE_TIME(PRINT_PROFILE_NAME)
+#undef PRINT_PROFILE_NAME
+
+  if (!sprinter.put("\n")) {
+    return;
+  }
+
+  fputs(sprinter.string(), profileFile());
 }
 
 static TimeDuration SumAllPhaseKinds(const Statistics::PhaseKindTimes& times) {
@@ -1583,47 +1648,125 @@ static TimeDuration SumAllPhaseKinds(const Statistics::PhaseKindTimes& times) {
 }
 
 void Statistics::printSliceProfile() {
-  const SliceData& slice = slices_.back();
-
   maybePrintProfileHeaders();
 
-  TimeDuration ts = slice.end - creationTime();
+  const SliceData& slice = slices_.back();
+  ProfileDurations times = getProfileTimes(slice);
+  updateTotalProfileTimes(times);
 
-  bool shrinking = gcOptions == JS::GCOptions::Shrink;
-  bool reset = slice.resetReason != GCAbortReason::None;
-  bool nonIncremental = nonincrementalReason_ != GCAbortReason::None;
-  bool full = gc->fullGCRequested;
-  size_t sizeKB = gc->heapSize.bytes() / 1024;
-
-  FILE* file = profileFile();
-  fprintf(file,
-          "MajorGC: %7zu %14p %10.6f %-20.20s %1d -> %1d %1s%1s%1s%1s   %6zu",
-          size_t(getpid()), gc->rt, ts.ToSeconds(),
-          ExplainGCReason(slice.reason), int(slice.initialState),
-          int(slice.finalState), full ? "F" : "", shrinking ? "S" : "",
-          nonIncremental ? "N" : "", reset ? "R" : "", sizeKB);
-
-  if (!nonIncremental && !slice.budget.isUnlimited() &&
-      slice.budget.isTimeBudget()) {
-    fprintf(file, " %6" PRIi64, slice.budget.timeBudget());
-  } else {
-    fprintf(file, "       ");
+  Sprinter sprinter;
+  if (!sprinter.init() || !sprinter.put(MajorGCProfilePrefix)) {
+    return;
   }
 
+  size_t pid = getpid();
+  JSRuntime* runtime = gc->rt;
+  TimeDuration timestamp = slice.end - creationTime();
+  const char* reason = ExplainGCReason(slice.reason);
+  size_t sizeKB = gc->heapSize.bytes() / 1024;
+
+#define PRINT_FIELD_VALUE(_1, _2, format, value) \
+  if (!sprinter.jsprintf(" " format, value)) {   \
+    return;                                      \
+  }
+  FOR_EACH_GC_PROFILE_METADATA(PRINT_FIELD_VALUE)
+#undef PRINT_FIELD_VALUE
+
+  if (!printProfileTimes(times, sprinter)) {
+    return;
+  }
+
+  fputs(sprinter.string(), profileFile());
+}
+
+Statistics::ProfileDurations Statistics::getProfileTimes(
+    const SliceData& slice) const {
   ProfileDurations times;
+
   times[ProfileKey::Total] = slice.duration();
-  totalTimes_[ProfileKey::Total] += times[ProfileKey::Total];
-
   times[ProfileKey::Background] = SumAllPhaseKinds(slice.totalParallelTimes);
-  totalTimes_[ProfileKey::Background] += times[ProfileKey::Background];
 
-#define GET_PROFILE_TIME(name, text, phase)                    \
-  times[ProfileKey::name] = SumPhase(phase, slice.phaseTimes); \
-  totalTimes_[ProfileKey::name] += times[ProfileKey::name];
+#define GET_PROFILE_TIME(name, text, phase)                      \
+  if (phase != PhaseKind::NONE) {                                \
+    times[ProfileKey::name] = SumPhase(phase, slice.phaseTimes); \
+  }
   FOR_EACH_GC_PROFILE_TIME(GET_PROFILE_TIME)
 #undef GET_PROFILE_TIME
 
-  printProfileTimes(times);
+  return times;
+}
+
+void Statistics::updateTotalProfileTimes(const ProfileDurations& times) {
+#define UPDATE_PROFILE_TIME(name, _, phase) \
+  totalTimes_[ProfileKey::name] += times[ProfileKey::name];
+  FOR_EACH_GC_PROFILE_TIME(UPDATE_PROFILE_TIME)
+#undef UPDATE_PROFILE_TIME
+}
+
+const char* Statistics::formatGCStates(const SliceData& slice) {
+  DebugOnly<int> r =
+      SprintfLiteral(formatBuffer_, "%1d -> %1d", int(slice.initialState),
+                     int(slice.finalState));
+  MOZ_ASSERT(r > 0 && r < FormatBufferLength);
+  return formatBuffer_;
+}
+
+const char* Statistics::formatGCFlags(const SliceData& slice) {
+  bool fullGC = gc->fullGCRequested;
+  bool shrinkingGC = gcOptions == JS::GCOptions::Shrink;
+  bool nonIncrementalGC = nonincrementalReason_ != GCAbortReason::None;
+  bool wasReset = slice.resetReason != GCAbortReason::None;
+
+  MOZ_ASSERT(FormatBufferLength >= 5);
+  formatBuffer_[0] = fullGC ? 'F' : ' ';
+  formatBuffer_[1] = shrinkingGC ? 'S' : ' ';
+  formatBuffer_[2] = nonIncrementalGC ? 'N' : ' ';
+  formatBuffer_[3] = wasReset ? 'R' : ' ';
+  formatBuffer_[4] = '\0';
+
+  return formatBuffer_;
+}
+
+const char* Statistics::formatBudget(const SliceData& slice) {
+  if (nonincrementalReason_ != GCAbortReason::None ||
+      !slice.budget.isTimeBudget()) {
+    formatBuffer_[0] = '\0';
+    return formatBuffer_;
+  }
+
+  DebugOnly<int> r =
+      SprintfLiteral(formatBuffer_, " %6" PRIi64, slice.budget.timeBudget());
+  MOZ_ASSERT(r > 0 && r < FormatBufferLength);
+  return formatBuffer_;
+}
+
+/* static */
+bool Statistics::printProfileTimes(const ProfileDurations& times,
+                                   Sprinter& sprinter) {
+  for (auto time : times) {
+    int64_t millis = int64_t(time.ToMilliseconds());
+    if (!sprinter.jsprintf(" %6" PRIi64, millis)) {
+      return false;
+    }
+  }
+
+  return sprinter.put("\n");
+}
+
+constexpr size_t SliceMetadataFormatWidth() {
+  size_t fieldCount = 0;
+  size_t totalWidth = 0;
+
+#define UPDATE_COUNT_AND_WIDTH(_1, width, _2, _3) \
+  fieldCount++;                                   \
+  totalWidth += width;
+  FOR_EACH_GC_PROFILE_SLICE_METADATA(UPDATE_COUNT_AND_WIDTH)
+#undef UPDATE_COUNT_AND_WIDTH
+
+  // Add padding between fields.
+  totalWidth += fieldCount - 1;
+
+  return totalWidth;
 }
 
 void Statistics::printTotalProfileTimes() {
@@ -1631,10 +1774,38 @@ void Statistics::printTotalProfileTimes() {
     return;
   }
 
-  FILE* file = profileFile();
-  fprintf(file,
-          "MajorGC: %7zu %14p TOTALS: %7" PRIu64
-          " slices:                                    ",
-          size_t(getpid()), gc->rt, sliceCount_);
-  printProfileTimes(totalTimes_);
+  Sprinter sprinter;
+  if (!sprinter.init() || !sprinter.put(MajorGCProfilePrefix)) {
+    return;
+  }
+
+  size_t pid = getpid();
+  JSRuntime* runtime = gc->rt;
+
+#define PRINT_FIELD_VALUE(_1, _2, format, value) \
+  if (!sprinter.jsprintf(" " format, value)) {   \
+    return;                                      \
+  }
+  FOR_EACH_GC_PROFILE_COMMON_METADATA(PRINT_FIELD_VALUE)
+#undef PRINT_FIELD_VALUE
+
+  // Use whole width of per-slice metadata to print total slices so the profile
+  // totals that follow line up.
+  size_t width = SliceMetadataFormatWidth();
+  if (!sprinter.jsprintf(" %-*s", int(width), formatTotalSlices())) {
+    return;
+  }
+
+  if (!printProfileTimes(totalTimes_, sprinter)) {
+    return;
+  }
+
+  fputs(sprinter.string(), profileFile());
+}
+
+const char* Statistics::formatTotalSlices() {
+  DebugOnly<int> r = SprintfLiteral(
+      formatBuffer_, "TOTALS: %7" PRIu64 " slices:", sliceCount_);
+  MOZ_ASSERT(r > 0 && r < FormatBufferLength);
+  return formatBuffer_;
 }

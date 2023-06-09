@@ -446,10 +446,11 @@ var DownloadsPanel = {
       // If the last element in the list is selected, or the footer is already
       // focused, focus the footer.
       if (
-        richListBox.selectedItem === richListBox.lastElementChild ||
-        document
-          .getElementById("downloadsFooter")
-          .contains(document.activeElement)
+        DownloadsView.canChangeSelectedItem &&
+        (richListBox.selectedItem === richListBox.lastElementChild ||
+          document
+            .getElementById("downloadsFooter")
+            .contains(document.activeElement))
       ) {
         richListBox.selectedIndex = -1;
         DownloadsFooter.focus();
@@ -471,7 +472,7 @@ var DownloadsPanel = {
       Ci.nsITransferable
     );
     trans.init(null);
-    let flavors = ["text/x-moz-url", "text/unicode"];
+    let flavors = ["text/x-moz-url", "text/plain"];
     flavors.forEach(trans.addDataFlavor);
     Services.clipboard.getData(trans, Services.clipboard.kGlobalClipboard);
     // Getting the data or creating the nsIURI might fail
@@ -513,7 +514,11 @@ var DownloadsPanel = {
       return;
     }
 
-    if (document.activeElement && this.panel.contains(document.activeElement)) {
+    if (
+      document.activeElement &&
+      (this.panel.contains(document.activeElement) ||
+        this.panel.shadowRoot.contains(document.activeElement))
+    ) {
       return;
     }
     let focusOptions = {};
@@ -521,7 +526,9 @@ var DownloadsPanel = {
       focusOptions.focusVisible = false;
     }
     if (DownloadsView.richListBox.itemCount > 0) {
-      DownloadsView.richListBox.selectedIndex = 0;
+      if (DownloadsView.canChangeSelectedItem) {
+        DownloadsView.richListBox.selectedIndex = 0;
+      }
       DownloadsView.richListBox.focus(focusOptions);
     } else {
       DownloadsFooter.focus(focusOptions);
@@ -609,7 +616,7 @@ var DownloadsPanel = {
     // do these checks on a background thread, and don't prevent the panel to
     // be displayed while these checks are being performed.
     for (let viewItem of DownloadsView._visibleViewItems.values()) {
-      viewItem.download.refresh().catch(Cu.reportError);
+      viewItem.download.refresh().catch(console.error);
     }
 
     DownloadsCommon.log("Opening downloads panel popup.");
@@ -961,6 +968,15 @@ var DownloadsView = {
   },
 
   /**
+   * Whether it's possible to change the currently selected item.
+   */
+  get canChangeSelectedItem() {
+    // When the context menu or a subview are open, the selected item should
+    // not change.
+    return !this.contextMenuOpen && !this.subViewOpen;
+  },
+
+  /**
    * Mouse listeners to handle selection on hover.
    */
   onDownloadMouseOver(aEvent) {
@@ -978,7 +994,7 @@ var DownloadsView = {
       aEvent.target.closest(".downloadMainArea")
     );
 
-    if (!this.contextMenuOpen && !this.subViewOpen) {
+    if (this.canChangeSelectedItem) {
       this.richListBox.selectedItem = item;
     }
   },
@@ -995,21 +1011,20 @@ var DownloadsView = {
 
     // If the destination element is outside of the richlistitem, clear the
     // selection.
-    if (
-      !this.contextMenuOpen &&
-      !this.subViewOpen &&
-      !item.contains(aEvent.relatedTarget)
-    ) {
+    if (this.canChangeSelectedItem && !item.contains(aEvent.relatedTarget)) {
       this.richListBox.selectedIndex = -1;
     }
   },
 
   onDownloadContextMenu(aEvent) {
-    let element = this.richListBox.selectedItem;
+    let element = aEvent.originalTarget.closest("richlistitem");
     if (!element) {
+      aEvent.preventDefault();
       return;
     }
-
+    // Ensure the selected item is the expected one, so commands and the
+    // context menu are updated appropriately.
+    this.richListBox.selectedItem = element;
     DownloadsViewController.updateCommands();
 
     DownloadsViewUI.updateContextMenuForElement(this.contextMenu, element);
@@ -1152,7 +1167,7 @@ class DownloadsViewItem extends DownloadsViewUI.DownloadElementShell {
 
   downloadsCmd_unblockAndOpen() {
     DownloadsPanel.hidePanel();
-    this.unblockAndOpenDownload().catch(Cu.reportError);
+    this.unblockAndOpenDownload().catch(console.error);
   }
   downloadsCmd_unblockAndSave() {
     DownloadsPanel.hidePanel();
@@ -1216,7 +1231,7 @@ class DownloadsViewItem extends DownloadsViewUI.DownloadElementShell {
     // So the remaining view item needs to be refreshed to hide the "Delete" option.
     // That example only concerns 2 duplicate view items but you can have an arbitrary number, so iterate over all items...
     for (let viewItem of DownloadsView._visibleViewItems.values()) {
-      viewItem.download.refresh().catch(Cu.reportError);
+      viewItem.download.refresh().catch(console.error);
     }
     // Don't use DownloadsPanel.hidePanel for this method because it will remove
     // the view item from the list, which is already sufficient feedback.

@@ -3,6 +3,10 @@
 
 "use strict";
 
+function assertRange(lhs, rhsMin, rhsMax, msg) {
+  Assert.ok(lhs >= rhsMin && lhs <= rhsMax, msg);
+}
+
 add_task(async function test_fullpageScreenshot() {
   await BrowserTestUtils.withNewTab(
     {
@@ -17,17 +21,7 @@ add_task(async function test_fullpageScreenshot() {
       // click toolbar button so panel shows
       helper.triggerUIFromToolbar();
 
-      let panel = gBrowser.selectedBrowser.ownerDocument.querySelector(
-        "#screenshotsPagePanel"
-      );
-      await BrowserTestUtils.waitForMutationCondition(
-        panel,
-        { attributes: true },
-        () => {
-          return BrowserTestUtils.is_visible(panel);
-        }
-      );
-      ok(BrowserTestUtils.is_visible(panel), "Panel buttons are visible");
+      let panel = await helper.waitForPanel();
 
       let screenshotReady = TestUtils.topicObserved(
         "screenshots-preview-ready"
@@ -43,9 +37,7 @@ add_task(async function test_fullpageScreenshot() {
 
       await screenshotReady;
 
-      let copyButton = dialog._frame.contentDocument.querySelector(
-        ".highlight-button-copy"
-      );
+      let copyButton = dialog._frame.contentDocument.getElementById("copy");
       ok(copyButton, "Got the copy button");
 
       let clipboardChanged = helper.waitForRawClipboardChange();
@@ -73,24 +65,24 @@ add_task(async function test_fullpageScreenshot() {
       );
 
       // top left
-      Assert.equal(111, result.color.topLeft[0], "R color value");
-      Assert.equal(111, result.color.topLeft[1], "G color value");
-      Assert.equal(111, result.color.topLeft[2], "B color value");
+      assertRange(result.color.topLeft[0], 110, 111, "R color value");
+      assertRange(result.color.topLeft[1], 110, 111, "G color value");
+      assertRange(result.color.topLeft[2], 110, 111, "B color value");
 
       // top right
-      Assert.equal(55, result.color.topRight[0], "R color value");
-      Assert.equal(155, result.color.topRight[1], "G color value");
-      Assert.equal(155, result.color.topRight[2], "B color value");
+      assertRange(result.color.topRight[0], 55, 56, "R color value");
+      assertRange(result.color.topRight[1], 155, 156, "G color value");
+      assertRange(result.color.topRight[2], 155, 156, "B color value");
 
       // bottom left
-      Assert.equal(105, result.color.bottomLeft[0], "R color value");
-      Assert.equal(55, result.color.bottomLeft[1], "G color value");
-      Assert.equal(105, result.color.bottomLeft[2], "B color value");
+      assertRange(result.color.bottomLeft[0], 105, 106, "R color value");
+      assertRange(result.color.bottomLeft[1], 55, 56, "G color value");
+      assertRange(result.color.bottomLeft[2], 105, 106, "B color value");
 
       // bottom right
-      Assert.equal(52, result.color.bottomRight[0], "R color value");
-      Assert.equal(127, result.color.bottomRight[1], "G color value");
-      Assert.equal(152, result.color.bottomRight[2], "B color value");
+      assertRange(result.color.bottomRight[0], 52, 53, "R color value");
+      assertRange(result.color.bottomRight[1], 127, 128, "G color value");
+      assertRange(result.color.bottomRight[2], 152, 153, "B color value");
     }
   );
 });
@@ -102,28 +94,19 @@ add_task(async function test_fullpageScreenshotScrolled() {
       url: TEST_PAGE,
     },
     async browser => {
+      let helper = new ScreenshotsHelper(browser);
+
       await SpecialPowers.spawn(browser, [], () => {
         content.scrollTo(0, 2008);
       });
-
-      let helper = new ScreenshotsHelper(browser);
       let contentInfo = await helper.getContentDimensions();
       ok(contentInfo, "Got dimensions back from the content");
 
       // click toolbar button so panel shows
       helper.triggerUIFromToolbar();
+      await helper.waitForOverlay();
 
-      let panel = gBrowser.selectedBrowser.ownerDocument.querySelector(
-        "#screenshotsPagePanel"
-      );
-      await BrowserTestUtils.waitForMutationCondition(
-        panel,
-        { attributes: true },
-        () => {
-          return BrowserTestUtils.is_visible(panel);
-        }
-      );
-      ok(BrowserTestUtils.is_visible(panel), "Panel buttons are visible");
+      let panel = await helper.waitForPanel();
 
       let screenshotReady = TestUtils.topicObserved(
         "screenshots-preview-ready"
@@ -139,9 +122,7 @@ add_task(async function test_fullpageScreenshotScrolled() {
 
       await screenshotReady;
 
-      let copyButton = dialog._frame.contentDocument.querySelector(
-        ".highlight-button-copy"
-      );
+      let copyButton = dialog._frame.contentDocument.getElementById("copy");
       ok(copyButton, "Got the copy button");
 
       let clipboardChanged = helper.waitForRawClipboardChange();
@@ -169,24 +150,24 @@ add_task(async function test_fullpageScreenshotScrolled() {
       );
 
       // top left
-      Assert.equal(111, result.color.topLeft[0], "R color value");
-      Assert.equal(111, result.color.topLeft[1], "G color value");
-      Assert.equal(111, result.color.topLeft[2], "B color value");
+      assertRange(result.color.topLeft[0], 110, 111, "R color value");
+      assertRange(result.color.topLeft[1], 110, 111, "G color value");
+      assertRange(result.color.topLeft[2], 110, 111, "B color value");
 
       // top right
-      Assert.equal(55, result.color.topRight[0], "R color value");
-      Assert.equal(155, result.color.topRight[1], "G color value");
-      Assert.equal(155, result.color.topRight[2], "B color value");
+      assertRange(result.color.topRight[0], 55, 56, "R color value");
+      assertRange(result.color.topRight[1], 155, 156, "G color value");
+      assertRange(result.color.topRight[2], 155, 156, "B color value");
 
       // bottom left
-      Assert.equal(105, result.color.bottomLeft[0], "R color value");
-      Assert.equal(55, result.color.bottomLeft[1], "G color value");
-      Assert.equal(105, result.color.bottomLeft[2], "B color value");
+      assertRange(result.color.bottomLeft[0], 105, 106, "R color value");
+      assertRange(result.color.bottomLeft[1], 55, 56, "G color value");
+      assertRange(result.color.bottomLeft[2], 105, 106, "B color value");
 
       // bottom right
-      Assert.equal(52, result.color.bottomRight[0], "R color value");
-      Assert.equal(127, result.color.bottomRight[1], "G color value");
-      Assert.equal(152, result.color.bottomRight[2], "B color value");
+      assertRange(result.color.bottomRight[0], 52, 53, "R color value");
+      assertRange(result.color.bottomRight[1], 127, 128, "G color value");
+      assertRange(result.color.bottomRight[2], 152, 153, "B color value");
     }
   );
 });

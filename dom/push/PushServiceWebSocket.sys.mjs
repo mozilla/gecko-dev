@@ -121,6 +121,9 @@ const STATE_WAITING_FOR_HELLO = 2;
 const STATE_READY = 3;
 
 export var PushServiceWebSocket = {
+  QueryInterface: ChromeUtils.generateQI(["nsINamed", "nsIObserver"]),
+  name: "PushServiceWebSocket",
+
   _mainPushService: null,
   _serverURI: null,
   _currentlyRegistering: new Set(),
@@ -1160,6 +1163,9 @@ export var PushServiceWebSocket = {
 
     // If it is a ping, do not handle the message.
     if (doNotHandle) {
+      if (!this._hasPendingRequests()) {
+        this._requestTimeoutTimer.cancel();
+      }
       return;
     }
 

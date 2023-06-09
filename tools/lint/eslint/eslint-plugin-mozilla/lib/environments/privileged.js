@@ -438,6 +438,7 @@ module.exports = {
     PlacesBookmark: false,
     PlacesBookmarkAddition: false,
     PlacesBookmarkGuid: false,
+    PlacesBookmarkKeyword: false,
     PlacesBookmarkMoved: false,
     PlacesBookmarkRemoved: false,
     PlacesBookmarkTags: false,
@@ -798,8 +799,5 @@ module.exports = {
     XULScrollElement: false,
     XULTextElement: false,
     console: false,
-    mozRTCIceCandidate: false,
-    mozRTCPeerConnection: false,
-    mozRTCSessionDescription: false,
   },
 };

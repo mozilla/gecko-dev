@@ -9,13 +9,15 @@ origin:
   description: "Cross platform audio library"
   url: https://github.com/mozilla/cubeb
   license: ISC
-  release: c96f0d4e7ff8843b96719c15f40f1b8032bccba8 (2023-01-09T16:12:54Z).
-  revision: c96f0d4e7ff8843b96719c15f40f1b8032bccba8
+  release: 1ba923736487443f5c7be09bdb6bb894f9ee9d06 (2023-04-26T12:28:46Z).
+  revision: 1ba923736487443f5c7be09bdb6bb894f9ee9d06
 
 vendoring:
   url: https://github.com/mozilla/cubeb
   source-hosting: github
   vendor-directory: media/libcubeb
+  patches:
+    - 0001-disable-aaudio-before-android-31.patch
   skip-vendoring-steps:
     - update-moz-build
   exclude:

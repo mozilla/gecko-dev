@@ -14,14 +14,11 @@
 #include "mozilla/layers/LayersSurfaces.h"     // for SurfaceDescriptor
 #include "mozilla/layers/LayersTypes.h"        // for MOZ_LAYERS_LOG
 #include "mozilla/layers/TextureHost.h"        // for TextureHost
-#include "mozilla/mozalloc.h"                  // for operator delete
+#include "mozilla/layers/WebRenderImageHost.h"
+#include "mozilla/mozalloc.h"  // for operator delete
 #include "mozilla/Unused.h"
 #include "nsDebug.h"   // for NS_WARNING, NS_ASSERTION
 #include "nsRegion.h"  // for nsIntRegion
-
-#ifdef MOZ_WIDGET_ANDROID
-#  include "mozilla/layers/AndroidHardwareBuffer.h"
-#endif
 
 namespace mozilla {
 namespace layers {
@@ -47,7 +44,8 @@ bool CompositableParentManager::ReceiveCompositableUpdate(
     case CompositableOperationDetail::TOpRemoveTexture: {
       const OpRemoveTexture& op = aDetail.get_OpRemoveTexture();
 
-      RefPtr<TextureHost> tex = TextureHost::AsTextureHost(op.textureParent());
+      RefPtr<TextureHost> tex =
+          TextureHost::AsTextureHost(op.texture().AsParent());
 
       MOZ_ASSERT(tex.get());
       aCompositable->RemoveTextureHost(tex);
@@ -59,7 +57,8 @@ bool CompositableParentManager::ReceiveCompositableUpdate(
       AutoTArray<CompositableHost::TimedTexture, 4> textures;
       for (auto& timedTexture : op.textures()) {
         CompositableHost::TimedTexture* t = textures.AppendElement();
-        t->mTexture = TextureHost::AsTextureHost(timedTexture.textureParent());
+        t->mTexture =
+            TextureHost::AsTextureHost(timedTexture.texture().AsParent());
         MOZ_ASSERT(t->mTexture);
         t->mTimeStamp = timedTexture.timeStamp();
         t->mPictureRect = timedTexture.picture();
@@ -74,7 +73,7 @@ bool CompositableParentManager::ReceiveCompositableUpdate(
 
         for (auto& timedTexture : op.textures()) {
           RefPtr<TextureHost> texture =
-              TextureHost::AsTextureHost(timedTexture.textureParent());
+              TextureHost::AsTextureHost(timedTexture.texture().AsParent());
           if (texture) {
             texture->SetLastFwdTransactionId(mFwdTransactionId);
             // Make sure that each texture was handled by the compositable
@@ -87,9 +86,13 @@ bool CompositableParentManager::ReceiveCompositableUpdate(
     }
     case CompositableOperationDetail::TOpUseRemoteTexture: {
       const OpUseRemoteTexture& op = aDetail.get_OpUseRemoteTexture();
-      aCompositable->UseRemoteTexture(op.textureId(), op.ownerId(),
-                                      GetChildProcessId(), op.size(),
-                                      op.textureFlags());
+      auto* host = aCompositable->AsWebRenderImageHost();
+      MOZ_ASSERT(host);
+
+      host->PushPendingRemoteTexture(op.textureId(), op.ownerId(),
+                                     GetChildProcessId(), op.size(),
+                                     op.textureFlags());
+      host->UseRemoteTexture();
       break;
     }
     case CompositableOperationDetail::TOpEnableRemoteTexturePushCallback: {
@@ -102,16 +105,6 @@ bool CompositableParentManager::ReceiveCompositableUpdate(
           op.ownerId(), GetChildProcessId(), op.size(), op.textureFlags());
       break;
     }
-    case CompositableOperationDetail::TOpDeliverAcquireFence: {
-      const OpDeliverAcquireFence& op = aDetail.get_OpDeliverAcquireFence();
-      RefPtr<TextureHost> tex = TextureHost::AsTextureHost(op.textureParent());
-      MOZ_ASSERT(tex.get());
-      MOZ_ASSERT(tex->AsAndroidHardwareBufferTextureHost());
-
-      auto fenceFd = op.fenceFd();
-      tex->SetAcquireFence(std::move(fenceFd));
-      break;
-    }
     default: {
       MOZ_ASSERT(false, "bad type");
     }
@@ -122,8 +115,8 @@ bool CompositableParentManager::ReceiveCompositableUpdate(
 
 void CompositableParentManager::DestroyActor(const OpDestroy& aOp) {
   switch (aOp.type()) {
-    case OpDestroy::TPTextureParent: {
-      auto actor = aOp.get_PTextureParent();
+    case OpDestroy::TPTexture: {
+      auto actor = aOp.get_PTexture().AsParent();
       TextureHost::ReceivedDestroy(actor);
       break;
     }

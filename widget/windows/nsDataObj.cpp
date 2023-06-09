@@ -15,8 +15,9 @@
 #include "nsClipboard.h"
 #include "nsReadableUtils.h"
 #include "nsICookieJarSettings.h"
-#include "nsITransferable.h"
+#include "nsIHttpChannel.h"
 #include "nsISupportsPrimitives.h"
+#include "nsITransferable.h"
 #include "IEnumFE.h"
 #include "nsPrimitiveHelpers.h"
 #include "nsString.h"
@@ -78,7 +79,8 @@ nsDataObj::CStream::~CStream() {}
 nsresult nsDataObj::CStream::Init(nsIURI* pSourceURI,
                                   nsContentPolicyType aContentPolicyType,
                                   nsIPrincipal* aRequestingPrincipal,
-                                  nsICookieJarSettings* aCookieJarSettings) {
+                                  nsICookieJarSettings* aCookieJarSettings,
+                                  nsIReferrerInfo* aReferrerInfo) {
   // we can not create a channel without a requestingPrincipal
   if (!aRequestingPrincipal) {
     return NS_ERROR_FAILURE;
@@ -91,8 +93,13 @@ nsresult nsDataObj::CStream::Init(nsIURI* pSourceURI,
                      nullptr,  // loadGroup
                      nullptr,  // aCallbacks
                      nsIRequest::LOAD_FROM_CACHE);
-
   NS_ENSURE_SUCCESS(rv, rv);
+
+  if (nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(mChannel)) {
+    rv = httpChannel->SetReferrerInfo(aReferrerInfo);
+    Unused << NS_WARN_IF(NS_FAILED(rv));
+  }
+
   rv = mChannel->AsyncOpen(this);
   NS_ENSURE_SUCCESS(rv, rv);
   return NS_OK;
@@ -125,25 +132,49 @@ nsDataObj::CStream::OnDataAvailable(
     uint64_t aOffset,  // offset within the stream
     uint32_t aCount)   // bytes available on this call
 {
+  // If we've been asked to read zero bytes, call `Read` once, just to ensure
+  // any side-effects take place, and return immediately.
+  if (aCount == 0) {
+    char buffer[1] = {0};
+    uint32_t bytesReadByCall = 0;
+    nsresult rv = aInputStream->Read(buffer, 0, &bytesReadByCall);
+    MOZ_ASSERT(bytesReadByCall == 0);
+    return rv;
+  }
+
   // Extend the write buffer for the incoming data.
-  uint8_t* buffer = mChannelData.AppendElements(aCount, fallible);
+  size_t oldLength = mChannelData.Length();
+  char* buffer =
+      reinterpret_cast<char*>(mChannelData.AppendElements(aCount, fallible));
   if (!buffer) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
-  NS_ASSERTION((mChannelData.Length() == (aOffset + aCount)),
-               "stream length mismatch w/write buffer");
+  MOZ_ASSERT(mChannelData.Length() == (aOffset + aCount),
+             "stream length mismatch w/write buffer");
 
   // Read() may not return aCount on a single call, so loop until we've
   // accumulated all the data OnDataAvailable has promised.
-  nsresult rv;
-  uint32_t odaBytesReadTotal = 0;
-  do {
+  uint32_t bytesRead = 0;
+  while (bytesRead < aCount) {
     uint32_t bytesReadByCall = 0;
-    rv = aInputStream->Read((char*)(buffer + odaBytesReadTotal), aCount,
-                            &bytesReadByCall);
-    odaBytesReadTotal += bytesReadByCall;
-  } while (aCount < odaBytesReadTotal && NS_SUCCEEDED(rv));
-  return rv;
+    nsresult rv = aInputStream->Read(buffer + bytesRead, aCount - bytesRead,
+                                     &bytesReadByCall);
+    bytesRead += bytesReadByCall;
+
+    if (bytesReadByCall == 0) {
+      // A `bytesReadByCall` of zero indicates EOF without failure... but we
+      // were promised `aCount` elements and haven't gotten them. Return a
+      // generic failure.
+      rv = NS_ERROR_FAILURE;
+    }
+
+    if (NS_FAILED(rv)) {
+      // Drop any trailing uninitialized elements before erroring out.
+      mChannelData.RemoveElementsAt(oldLength + bytesRead, aCount - bytesRead);
+      return rv;
+    }
+  }
+  return NS_OK;
 }
 
 NS_IMETHODIMP nsDataObj::CStream::OnStartRequest(nsIRequest* aRequest) {
@@ -326,9 +357,12 @@ HRESULT nsDataObj::CreateStream(IStream** outStream) {
   nsCOMPtr<nsICookieJarSettings> cookieJarSettings =
       mTransferable->GetCookieJarSettings();
 
+  // The referrer is optional.
+  nsCOMPtr<nsIReferrerInfo> referrerInfo = mTransferable->GetReferrerInfo();
+
   nsContentPolicyType contentPolicyType = mTransferable->GetContentPolicyType();
   rv = pStream->Init(sourceURI, contentPolicyType, requestingPrincipal,
-                     cookieJarSettings);
+                     cookieJarSettings, referrerInfo);
   if (NS_FAILED(rv)) {
     pStream->Release();
     return E_FAIL;
@@ -481,7 +515,7 @@ nsDataObj::nsDataObj(nsIURI* uri)
       mTransferable(nullptr),
       mIsAsyncMode(FALSE),
       mIsInOperation(FALSE) {
-  mIOThread = new LazyIdleThread(DEFAULT_THREAD_TIMEOUT_MS, "nsDataObj"_ns,
+  mIOThread = new LazyIdleThread(DEFAULT_THREAD_TIMEOUT_MS, "nsDataObj",
                                  LazyIdleThread::ManualShutdown);
   m_enumFE = new CEnumFormatEtc();
   m_enumFE->AddRef();
@@ -1082,66 +1116,64 @@ nsDataObj ::GetFileContents(FORMATETC& aFE, STGMEDIUM& aSTG) {
 }  // GetFileContents
 
 // Ensure that the supplied name doesn't have invalid characters.
-static void ValidateFilename(nsString& aFilename) {
+static void ValidateFilename(nsString& aFilename, bool isShortcut) {
   nsCOMPtr<nsIMIMEService> mimeService = do_GetService("@mozilla.org/mime;1");
   if (NS_WARN_IF(!mimeService)) {
     aFilename.Truncate();
     return;
   }
 
+  uint32_t flags = nsIMIMEService::VALIDATE_SANITIZE_ONLY;
+  if (isShortcut) {
+    flags |= nsIMIMEService::VALIDATE_ALLOW_INVALID_FILENAMES;
+  }
+
   nsAutoString outFilename;
-  mimeService->ValidateFileNameForSaving(aFilename, EmptyCString(),
-                                         nsIMIMEService::VALIDATE_SANITIZE_ONLY,
+  mimeService->ValidateFileNameForSaving(aFilename, EmptyCString(), flags,
                                          outFilename);
   aFilename = outFilename;
 }
 
 //
-// Given a unicode string, convert it down to a valid local charset filename
-// with the supplied extension. This ensures that we do not cut MBCS characters
-// in the middle.
+// Given a unicode string, convert it to a valid local charset filename
+// and append the .url extension to be used for a shortcut file.
+// This ensures that we do not cut MBCS characters in the middle.
 //
 // It would seem that this is more functionality suited to being in nsIFile.
 //
-static bool CreateFilenameFromTextA(nsString& aText, const char* aExtension,
-                                    char* aFilename, uint32_t aFilenameLen) {
-  ValidateFilename(aText);
-  if (aText.IsEmpty()) return false;
-
-  // repeatably call WideCharToMultiByte as long as the title doesn't fit in the
-  // buffer available to us. Continually reduce the length of the source title
-  // until the MBCS version will fit in the buffer with room for the supplied
-  // extension. Doing it this way ensures that even in MBCS environments there
-  // will be a valid MBCS filename of the correct length.
-  int maxUsableFilenameLen =
-      aFilenameLen - strlen(aExtension) - 1;  // space for ext + null byte
-  int currLen, textLen = (int)std::min<uint32_t>(aText.Length(), aFilenameLen);
-  char defaultChar = '_';
-  do {
-    currLen = WideCharToMultiByte(CP_ACP, WC_COMPOSITECHECK | WC_DEFAULTCHAR,
-                                  aText.get(), textLen--, aFilename,
-                                  maxUsableFilenameLen, &defaultChar, nullptr);
-  } while (currLen == 0 && textLen > 0 &&
-           GetLastError() == ERROR_INSUFFICIENT_BUFFER);
-  if (currLen > 0 && textLen > 0) {
-    strcpy(&aFilename[currLen], aExtension);
-    return true;
-  } else {
-    // empty names aren't permitted
+static bool CreateURLFilenameFromTextA(nsAutoString& aText, char* aFilename) {
+  if (aText.IsEmpty()) {
     return false;
   }
+  aText.AppendLiteral(".url");
+  ValidateFilename(aText, true);
+  if (aText.IsEmpty()) {
+    return false;
+  }
+
+  // ValidateFilename should already be checking the filename length, but do
+  // an extra check to verify for the local code page that the converted text
+  // doesn't go over MAX_PATH and just return false if it does.
+  char defaultChar = '_';
+  int currLen = WideCharToMultiByte(CP_ACP, WC_COMPOSITECHECK | WC_DEFAULTCHAR,
+                                    aText.get(), -1, aFilename, MAX_PATH,
+                                    &defaultChar, nullptr);
+  return currLen != 0;
 }
 
-static bool CreateFilenameFromTextW(nsString& aText, const wchar_t* aExtension,
-                                    wchar_t* aFilename, uint32_t aFilenameLen) {
-  ValidateFilename(aText);
-  if (aText.IsEmpty()) return false;
+// Wide character version of CreateURLFilenameFromTextA
+static bool CreateURLFilenameFromTextW(nsAutoString& aText,
+                                       wchar_t* aFilename) {
+  if (aText.IsEmpty()) {
+    return false;
+  }
+  aText.AppendLiteral(".url");
+  ValidateFilename(aText, true);
+  if (aText.IsEmpty() || aText.Length() >= MAX_PATH) {
+    return false;
+  }
 
-  const int extensionLen = wcslen(aExtension);
-  if (aText.Length() + extensionLen + 1 > aFilenameLen)
-    aText.Truncate(aFilenameLen - extensionLen - 1);
   wcscpy(&aFilename[0], aText.get());
-  wcscpy(&aFilename[aText.Length()], aExtension);
   return true;
 }
 
@@ -1188,12 +1220,11 @@ nsDataObj ::GetFileDescriptorInternetShortcutA(FORMATETC& aFE,
 
   // get a valid filename in the following order: 1) from the page title,
   // 2) localized string for an untitled page, 3) just use "Untitled.url"
-  if (!CreateFilenameFromTextA(title, ".url", fileGroupDescA->fgd[0].cFileName,
-                               MAX_PATH)) {
+  if (!CreateURLFilenameFromTextA(title, fileGroupDescA->fgd[0].cFileName)) {
     nsAutoString untitled;
     if (!GetLocalizedString("noPageTitle", untitled) ||
-        !CreateFilenameFromTextA(untitled, ".url",
-                                 fileGroupDescA->fgd[0].cFileName, MAX_PATH)) {
+        !CreateURLFilenameFromTextA(untitled,
+                                    fileGroupDescA->fgd[0].cFileName)) {
       strcpy(fileGroupDescA->fgd[0].cFileName, "Untitled.url");
     }
   }
@@ -1230,12 +1261,11 @@ nsDataObj ::GetFileDescriptorInternetShortcutW(FORMATETC& aFE,
 
   // get a valid filename in the following order: 1) from the page title,
   // 2) localized string for an untitled page, 3) just use "Untitled.url"
-  if (!CreateFilenameFromTextW(title, L".url", fileGroupDescW->fgd[0].cFileName,
-                               MAX_PATH)) {
+  if (!CreateURLFilenameFromTextW(title, fileGroupDescW->fgd[0].cFileName)) {
     nsAutoString untitled;
     if (!GetLocalizedString("noPageTitle", untitled) ||
-        !CreateFilenameFromTextW(untitled, L".url",
-                                 fileGroupDescW->fgd[0].cFileName, MAX_PATH)) {
+        !CreateURLFilenameFromTextW(untitled,
+                                    fileGroupDescW->fgd[0].cFileName)) {
       wcscpy(fileGroupDescW->fgd[0].cFileName, L"Untitled.url");
     }
   }
@@ -1436,26 +1466,19 @@ HRESULT nsDataObj::GetText(const nsACString& aDataFlavor, FORMATETC& aFE,
                            STGMEDIUM& aSTG) {
   void* data = nullptr;
 
-  // if someone asks for text/plain, look up text/unicode instead in the
-  // transferable.
-  const char* flavorStr;
-  const nsPromiseFlatCString& flat = PromiseFlatCString(aDataFlavor);
-  if (aDataFlavor.EqualsLiteral("text/plain"))
-    flavorStr = kUnicodeMime;
-  else
-    flavorStr = flat.get();
+  const nsPromiseFlatCString& flavorStr = PromiseFlatCString(aDataFlavor);
 
   // NOTE: CreateDataFromPrimitive creates new memory, that needs to be deleted
   nsCOMPtr<nsISupports> genericDataWrapper;
   nsresult rv = mTransferable->GetTransferData(
-      flavorStr, getter_AddRefs(genericDataWrapper));
+      flavorStr.get(), getter_AddRefs(genericDataWrapper));
   if (NS_FAILED(rv) || !genericDataWrapper) {
     return E_FAIL;
   }
 
   uint32_t len;
-  nsPrimitiveHelpers::CreateDataFromPrimitive(nsDependentCString(flavorStr),
-                                              genericDataWrapper, &data, &len);
+  nsPrimitiveHelpers::CreateDataFromPrimitive(
+      nsDependentCString(flavorStr.get()), genericDataWrapper, &data, &len);
   if (!data) return E_FAIL;
 
   HGLOBAL hGlobalMemory = nullptr;
@@ -2159,7 +2182,7 @@ HRESULT nsDataObj::GetDownloadDetails(nsIURI** aSourceURI,
   }
 
   // make the name safe for the filesystem
-  ValidateFilename(srcFileName);
+  ValidateFilename(srcFileName, false);
   if (srcFileName.IsEmpty()) return E_FAIL;
 
   sourceURI.swap(*aSourceURI);

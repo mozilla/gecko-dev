@@ -12,8 +12,8 @@
 // * it does a sanity check to ensure other cert verifier behavior is
 //   unmodified
 
-const { RemoteSecuritySettings } = ChromeUtils.import(
-  "resource://gre/modules/psm/RemoteSecuritySettings.jsm"
+const { RemoteSecuritySettings } = ChromeUtils.importESModule(
+  "resource://gre/modules/psm/RemoteSecuritySettings.sys.mjs"
 );
 
 // First, we need to setup appInfo for the blocklist service to work
@@ -187,7 +187,7 @@ function run_test() {
     // revocations.txt is revoked
     // subject: MCsxKTAnBgNVBAMMIEVFIFJldm9rZWQgQnkgU3ViamVjdCBhbmQgUHViS2V5
     // (CN=EE Revoked By Subject and PubKey)
-    // pubkeyhash: VCIlmPM9NkgFQtrs4Oa5TeFcDu6MWRTKSNdePEhOgD8 (this is the
+    // pubkeyhash: VCIlmPM9NkgFQtrs4Oa5TeFcDu6MWRTKSNdePEhOgD8= (this is the
     // shared RSA SPKI)
     file = "test_onecrl/ee-revoked-by-subject-and-pubkey.pem";
     await verify_cert(file, SEC_ERROR_REVOKED_CERTIFICATE);

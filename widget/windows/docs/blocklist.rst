@@ -110,8 +110,8 @@ Parameters
 +-----------+--------------------------------------------------------------------------------+
 | Parameter | Value                                                                          |
 +===========+================================================================================+
-| Variable  | ALL_PROCESSES \| BROWSER_PROCESS \| CHILD_PROCESSES \|                         |
-|           | SOCKET_PROCESSES \| UTILITY_PROCESSES                                          |
+| Variable  | ALL_PROCESSES \| BROWSER_PROCESS \| CHILD_PROCESSES \| GMPLUGIN_PROCESSES \|   |
+|           | GPU_PROCESSES \| SOCKET_PROCESSES \| UTILITY_PROCESSES                         |
 +-----------+--------------------------------------------------------------------------------+
 | EntryType | DllBlocklistEntry \| A11yBlocklistEntry \| RedirectToNoOpEntryPoint            |
 +-----------+--------------------------------------------------------------------------------+
@@ -135,6 +135,8 @@ Choose one of the following predefined variables.
   CHILD_PROCESSES
 - **BROWSER_PROCESS**: DLLs defined here are blocked in the browser process
 - **CHILD_PROCESSES**: DLLs defined here are blocked in non-browser processes
+- **GMPLUGIN_PROCESSES**: DLLs defined here are blocked in GMPlugin processes
+- **GPU_PROCESSES**: DLLs defined here are blocked in GPU processes
 - **SOCKET_PROCESSES**: DLLs defined here are blocked in socket processes
 - **UTILITY_PROCESSES**: DLLs defined here are blocked in utility processes
 
@@ -207,8 +209,12 @@ As our blocklist works as explained above, there are the cases where we should n
   | Blocking this type of module blocks even a process from launching. You may be able to block this type of module with RedirectToNoOpEntryPoint.
 - | A module is loaded as a `Layered Service Provider <https://docs.microsoft.com/en-us/windows/win32/winsock/categorizing-layered-service-providers-and-applications>`_
   | Blocking this type of module on Windows 8 or newer breaks networking. Blocking a LSP on Windows 7 is ok.
-- | A module is loaded via a `Window hook <https://docs.microsoft.com/en-us/windows/win32/winmsg/hooks>`_
-  | Blocking this type of module causes repetitive attempts to load a module, resulting in slow performance like `Bug 1633718 <https://bugzilla.mozilla.org/show_bug.cgi?id=1633718>`_.
+
+(we used to have to avoid blocking modules loaded via a
+`Window hook <https://docs.microsoft.com/en-us/windows/win32/winmsg/hooks>`_ because blocking this type of
+module would cause repetitive attempts to load a module, resulting in slow performance
+like `Bug 1633718 <https://bugzilla.mozilla.org/show_bug.cgi?id=1633718>`_, but this should be fixed
+as of `Bug 1823412 <https://bugzilla.mozilla.org/show_bug.cgi?id=1823412>`_.)
 
 Third-party-module ping
 -----------------------

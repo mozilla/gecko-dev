@@ -74,6 +74,10 @@ class nsColumnSetFrame final : public nsContainerFrame {
                              gfxContext* aCtx, const nsRect& aDirtyRect,
                              const nsPoint& aPt);
 
+  Maybe<nscoord> GetNaturalBaselineBOffset(
+      mozilla::WritingMode aWM,
+      BaselineSharingGroup aBaselineGroup) const override;
+
  protected:
   nscoord mLastBalanceBSize;
   nsReflowStatus mLastFrameStatus;
@@ -107,6 +111,10 @@ class nsColumnSetFrame final : public nsContainerFrame {
     // A boolean controlling whether or not we are forced to fill columns
     // sequentially.
     bool mForceAuto = false;
+
+    // A boolean indicates whether or not we are in the last attempt to reflow
+    // columns. We set it to true at the end of FindBestBalanceBSize().
+    bool mIsLastBalancingReflow = false;
 
     // The last known column block-size that was 'feasible'. A column bSize is
     // feasible if all child content fits within the specified bSize.

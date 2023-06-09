@@ -8,9 +8,9 @@
 #define nsTextFrame_h__
 
 #include "mozilla/Attributes.h"
-#include "mozilla/gfx/2D.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/dom/Text.h"
+#include "mozilla/gfx/2D.h"
 
 #include "nsIFrame.h"
 #include "nsISelectionController.h"
@@ -366,7 +366,9 @@ class nsTextFrame : public nsIFrame {
 
   bool IsEmpty() final;
   bool IsSelfEmpty() final { return IsEmpty(); }
-  nscoord GetLogicalBaseline(mozilla::WritingMode aWritingMode) const final;
+  Maybe<nscoord> GetNaturalBaselineBOffset(
+      mozilla::WritingMode aWM,
+      BaselineSharingGroup aBaselineGroup) const override;
 
   bool HasSignificantTerminalNewline() const final;
 
@@ -585,6 +587,12 @@ class nsTextFrame : public nsIFrame {
   struct PaintShadowParams;
   struct PaintDecorationLineParams;
 
+  struct SelectionRange {
+    const SelectionDetails* mDetails;
+    gfxTextRun::Range mRange;
+    uint32_t mPriority;
+  };
+
   // Primary frame paint method called from nsDisplayText.  Can also be used
   // to generate paths rather than paint the frame's text by passing a callback
   // object.  The private DrawText() is what applies the text to a graphics
@@ -611,6 +619,12 @@ class nsTextFrame : public nsIFrame {
       const PaintTextSelectionParams& aParams,
       const mozilla::UniquePtr<SelectionDetails>& aDetails,
       SelectionType aSelectionType);
+
+  SelectionTypeMask ResolveSelections(const PaintTextSelectionParams& aParams,
+                                      const SelectionDetails* aDetails,
+                                      nsTArray<SelectionRange>& aResult,
+                                      SelectionType aSelectionType,
+                                      bool* aAnyBackgrounds = nullptr) const;
 
   void DrawEmphasisMarks(gfxContext* aContext, mozilla::WritingMode aWM,
                          const mozilla::gfx::Point& aTextBaselinePt,
@@ -757,6 +771,9 @@ class nsTextFrame : public nsIFrame {
   // (To be used only on the first textframe in the chain.)
   nsTextFrame* FindContinuationForOffset(int32_t aOffset);
 
+  void SetHangableISize(nscoord aISize);
+  nscoord GetHangableISize() const;
+
  protected:
   virtual ~nsTextFrame();
 
@@ -793,6 +810,11 @@ class nsTextFrame : public nsIFrame {
 
   // Whether a cached continuations array is present.
   bool mHasContinuationsProperty = false;
+
+  // Whether a HangableWhitespace property is present. This could have been a
+  // frame state bit, but they are currently full. Because we have a uint8_t
+  // and a bool just above, there's a hole here that we can use.
+  bool mHasHangableWS = false;
 
   /**
    * Return true if the frame is part of a Selection.
@@ -911,6 +933,15 @@ class nsTextFrame : public nsIFrame {
   bool CombineSelectionUnderlineRect(nsPresContext* aPresContext,
                                      nsRect& aRect);
 
+  // This sets *aShadows to the appropriate shadows, if any, for the given
+  // type of selection.
+  // If text-shadow was not specified, *aShadows is left untouched.
+  // Note that the returned shadow(s) will only be valid as long as the
+  // textPaintStyle remains in scope.
+  void GetSelectionTextShadow(
+      SelectionType aSelectionType, nsTextPaintStyle& aTextPaintStyle,
+      mozilla::Span<const mozilla::StyleSimpleShadow>* aShadows);
+
   /**
    * Utility methods to paint selection.
    */
@@ -941,6 +972,7 @@ class nsTextFrame : public nsIFrame {
    * @return            true if the selection affects colors, false otherwise
    */
   static bool GetSelectionTextColors(SelectionType aSelectionType,
+                                     const nsAtom* aHighlightName,
                                      nsTextPaintStyle& aTextPaintStyle,
                                      const TextRangeStyle& aRangeStyle,
                                      nscolor* aForeground,

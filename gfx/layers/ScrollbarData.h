@@ -38,14 +38,16 @@ struct ScrollbarData {
    * This constructor is for Thumb layer type.
    */
   ScrollbarData(ScrollDirection aDirection, float aThumbRatio,
-                CSSCoord aThumbStart, CSSCoord aThumbLength,
-                bool aThumbIsAsyncDraggable, CSSCoord aScrollTrackStart,
-                CSSCoord aScrollTrackLength, uint64_t aTargetViewId)
+                OuterCSSCoord aThumbStart, OuterCSSCoord aThumbLength,
+                OuterCSSCoord aThumbMinLength, bool aThumbIsAsyncDraggable,
+                OuterCSSCoord aScrollTrackStart,
+                OuterCSSCoord aScrollTrackLength, uint64_t aTargetViewId)
       : mDirection(Some(aDirection)),
         mScrollbarLayerType(ScrollbarLayerType::Thumb),
         mThumbRatio(aThumbRatio),
         mThumbStart(aThumbStart),
         mThumbLength(aThumbLength),
+        mThumbMinLength(aThumbMinLength),
         mThumbIsAsyncDraggable(aThumbIsAsyncDraggable),
         mScrollTrackStart(aScrollTrackStart),
         mScrollTrackLength(aScrollTrackLength),
@@ -63,16 +65,14 @@ struct ScrollbarData {
  public:
   ScrollbarData() = default;
 
-  static ScrollbarData CreateForThumb(ScrollDirection aDirection,
-                                      float aThumbRatio, CSSCoord aThumbStart,
-                                      CSSCoord aThumbLength,
-                                      bool aThumbIsAsyncDraggable,
-                                      CSSCoord aScrollTrackStart,
-                                      CSSCoord aScrollTrackLength,
-                                      uint64_t aTargetViewId) {
+  static ScrollbarData CreateForThumb(
+      ScrollDirection aDirection, float aThumbRatio, OuterCSSCoord aThumbStart,
+      OuterCSSCoord aThumbLength, OuterCSSCoord aThumbMinLength,
+      bool aThumbIsAsyncDraggable, OuterCSSCoord aScrollTrackStart,
+      OuterCSSCoord aScrollTrackLength, uint64_t aTargetViewId) {
     return ScrollbarData(aDirection, aThumbRatio, aThumbStart, aThumbLength,
-                         aThumbIsAsyncDraggable, aScrollTrackStart,
-                         aScrollTrackLength, aTargetViewId);
+                         aThumbMinLength, aThumbIsAsyncDraggable,
+                         aScrollTrackStart, aScrollTrackLength, aTargetViewId);
   }
 
   static ScrollbarData CreateForScrollbarContainer(
@@ -99,16 +99,17 @@ struct ScrollbarData {
    */
   float mThumbRatio = 0.0f;
 
-  CSSCoord mThumbStart;
-  CSSCoord mThumbLength;
+  OuterCSSCoord mThumbStart;
+  OuterCSSCoord mThumbLength;
+  OuterCSSCoord mThumbMinLength;
 
   /**
    * Whether the scrollbar thumb can be dragged asynchronously.
    */
   bool mThumbIsAsyncDraggable = false;
 
-  CSSCoord mScrollTrackStart;
-  CSSCoord mScrollTrackLength;
+  OuterCSSCoord mScrollTrackStart;
+  OuterCSSCoord mScrollTrackLength;
   uint64_t mTargetViewId = ScrollableLayerGuid::NULL_SCROLL_ID;
 
   bool operator==(const ScrollbarData& aOther) const {
@@ -117,6 +118,7 @@ struct ScrollbarData {
            mThumbRatio == aOther.mThumbRatio &&
            mThumbStart == aOther.mThumbStart &&
            mThumbLength == aOther.mThumbLength &&
+           mThumbMinLength == aOther.mThumbMinLength &&
            mThumbIsAsyncDraggable == aOther.mThumbIsAsyncDraggable &&
            mScrollTrackStart == aOther.mScrollTrackStart &&
            mScrollTrackLength == aOther.mScrollTrackLength &&

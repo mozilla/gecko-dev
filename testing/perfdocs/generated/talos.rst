@@ -60,7 +60,6 @@ figure out what suites and tests are available to run.
     #  bcv                          (basic_compositor_video)
     #  chromez                      (about_preferences_basic:tresize)
     #  dromaeojs                    (dromaeo_css:kraken)
-    #  flex                         (tart_flex:ts_paint_flex)
     # ...
 
     # Run all of the tests in the "bcv" test suite:
@@ -106,7 +105,6 @@ platform and test suites of your choosing.
     | test-windows10-64/opt-talos-webgl-gli-e10s
     | test-linux64-shippable/opt-talos-tp5o-e10s
     | test-linux64-shippable/opt-talos-svgr-e10s
-    | test-linux64-shippable/opt-talos-flex-e10s
     | test-linux64-shippable/opt-talos-damp-e10s
     > test-windows7-32/opt-talos-webgl-gli-e10s
     | test-linux64-shippable/opt-talos-bcv-e10s
@@ -327,9 +325,9 @@ median values of the raw data from the subtests).
 
 Tests which are imported benchmarks are:
 
--  `ARES6 <#ARES6>`_
+-  `ARES6 <#ares6>`_
 -  `dromaeo <#dromaeo>`_
--  `JetStream <#JetStream>`_
+-  `JetStream <#jetstream>`_
 -  `kraken <#kraken>`_
 -  `motionmark <#motionmark>`_
 -  `stylebench <#stylebench>`_
@@ -374,7 +372,7 @@ Talos Tests
 For the sample commands found below, note that the capitalization used is important. Without the exact spelling, the test won't be found when running locally.
 
 .. dropdown:: ARES6
-   :container: + anchor-id-ARES6
+   :class-container: anchor-id-ARES6
 
    * contact: :jandem and SpiderMonkey Team
    * source: `ARES-6 <https://searchfox.org/mozilla-central/source/third_party/webkit/PerformanceTests/ARES-6>`__
@@ -387,9 +385,11 @@ For the sample commands found below, note that the capitalization used is import
    * tpmanifest: ${talos}/tests/ares6/ares6.manifest
    * tppagecycles: 1
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a ARES6
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-shippable-qr/opt**
@@ -426,7 +426,7 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: JetStream
-   :container: + anchor-id-JetStream
+   :class-container: anchor-id-JetStream
 
    * contact: :jandem and SpiderMonkey Team
    * source: `jetstream.manifest <https://searchfox.org/mozilla-central/source/testing/talos/talos/tests/jetstream/jetstream.manifest>`__ and jetstream.zip from tooltool
@@ -438,16 +438,17 @@ For the sample commands found below, note that the capitalization used is import
         mean <https://searchfox.org/mozilla-central/source/testing/talos/talos/output.py#259>`__
         provided by the benchmark
    * description:
-    This is the
-    `JetStream <http://browserbench.org/JetStream/in-depth.html>`__
-    javascript benchmark taken verbatim and slightly modified to fit into
-    our pageloader extension and talos harness.
+      | This is the `JetStream <http://browserbench.org/JetStream/in-depth.html>`__
+        javascript benchmark taken verbatim and slightly modified to fit into
+        our pageloader extension and talos harness.
    * tpmanifest: ${talos}/tests/jetstream/jetstream.manifest
    * tppagecycles: 1
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a JetStream
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-shippable-qr/opt**
@@ -484,7 +485,7 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: a11yr
-   :container: + anchor-id-a11yr
+   :class-container: anchor-id-a11yr
 
    * contact: :jamie and accessibility team
    * source: `a11y.manifest <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/tests/a11y>`__
@@ -497,12 +498,14 @@ For the sample commands found below, note that the capitalization used is import
       * suite: `geometric mean`_ of the 2 subtest results.
    * reporting: test time in ms (lower is better)
    * description:
-    This test ensures basic a11y tables and permutations do not cause performance regressions.
+      | This test ensures basic a11y tables and permutations do not cause performance regressions.
    * **Example Data**
-   .. code-block:: None
+
+   .. code-block::
 
       0;dhtml.html;1584;1637;1643;1665;1741;1529;1647;1645;1692;1647;1542;1750;1654;1649;1541;1656;1674;1645;1645;1740;1558;1652;1654;1656;1654 |
       1;tablemutation.html;398;385;389;391;387;387;385;387;388;385;384;31746;386;387;384;387;389;387;387;387;388;391;386;387;388 |
+
    * a11y: True
    * alert_threshold: 5.0
    * preferences: {'dom.send_after_paint_to_content': False}
@@ -514,9 +517,11 @@ For the sample commands found below, note that the capitalization used is import
    * tppagecycles: 25
    * unit: ms
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a a11yr
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -678,7 +683,7 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: about_preferences_basic
-   :container: + anchor-id-about_preferences_basic
+   :class-container: anchor-id-about_preferences_basic
 
    * contact: :jaws and :gijs
    * source: `about_preferences_basic.manifest <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/tests/about-preferences/about_preferences_basic.manifest>`__
@@ -690,33 +695,35 @@ For the sample commands found below, note that the capitalization used is import
       * suite: `geometric mean`_ of the the subtest results.
    * reporting: test time in ms (lower is better)
    * description:
-    This test measures the performance of the Firefox about:preferences
-    page. This test is a little different than other pageload tests in that
-    we are loading one page (about:preferences) but also testing the loading
-    of that same page's subcategories/panels (i.e. about:preferences#home).
+      | This test measures the performance of the Firefox about:preferences
+        page. This test is a little different than other pageload tests in that
+        we are loading one page (about:preferences) but also testing the loading
+        of that same page's subcategories/panels (i.e. about:preferences#home).
 
-    When simply changing the page's panel/category, that doesn't cause a new
-    onload event as expected; therefore we had to introduce loading the
-    'about:blank' page in between each page category; that forces the entire
-    page to reload with the specified category panel activated.
+      When simply changing the page's panel/category, that doesn't cause a new
+      onload event as expected; therefore we had to introduce loading the
+      'about:blank' page in between each page category; that forces the entire
+      page to reload with the specified category panel activated.
 
-    For that reason, when new panels/categories are added to the
-    'about:preferences' page, it can be expected that a performance
-    regression may be introduced, even if a subtest hasn't been added for
-    that new page category yet.
+      For that reason, when new panels/categories are added to the
+      'about:preferences' page, it can be expected that a performance
+      regression may be introduced, even if a subtest hasn't been added for
+      that new page category yet.
 
-    This test should only ever have 1 pagecycle consisting of the main
-    about-preferences page and each category separated by an about:blank
-    between. Then repeats are achieved by using 25 cycles (instead of
-    pagecycles).
+      This test should only ever have 1 pagecycle consisting of the main
+      about-preferences page and each category separated by an about:blank
+      between. Then repeats are achieved by using 25 cycles (instead of
+      pagecycles).
    * **Example Data**
-   .. code-block:: None
+
+   .. code-block::
 
       0;preferences;346;141;143;150;136;143;153;140;154;156;143;154;146;147;151;166;140;146;140;144;144;156;154;150;140
       2;preferences#search;164;142;133;141;141;141;142;140;131;146;131;140;131;131;139;142;140;144;146;143;143;142;142;137;143
       3;preferences#privacy;179;159;166;177;173;153;148;154;168;155;164;155;152;157;149;155;156;186;149;156;160;151;158;168;157
       4;preferences#sync;148;156;140;137;159;139;143;145;138;130;145;142;141;133;146;141;147;143;146;146;139;144;142;151;156
       5;preferences#home;141;111;130;131;138;128;133;122;138;138;131;139;139;132;133;141;143;139;138;135;136;128;134;140;135
+
    * fnbpaint: True
    * gecko_profile_entries: 2000000
    * gecko_profile_interval: 1
@@ -727,9 +734,11 @@ For the sample commands found below, note that the capitalization used is import
    * tppagecycles: 1
    * unit: ms
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a about_preferences_basic
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -891,7 +900,7 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: basic_compositor_video
-   :container: + anchor-id-basic_compositor_video
+   :class-container: anchor-id-basic_compositor_video
 
    * contact: :b0bh00d, :jeffm, and gfx
    * source: `video <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/tests/video>`__
@@ -902,7 +911,8 @@ For the sample commands found below, note that the capitalization used is import
       * suite: `geometric mean`_ of the 24 subtest results.
    * **Lower is better**
    * **Example Data**
-   .. code-block:: None
+
+   .. code-block::
 
       ;0;240p.120fps.mp4_scale_fullscreen_startup;11.112;11.071;11.196;11.157;11.195;11.240;11.196;11.155;11.237;11.074;11.154;11.282
       ;1;240p.120fps.mp4_scale_fullscreen_inclip;10.995;11.114;11.052;10.991;10.876;11.115;10.995;10.991;10.997;10.994;10.992;10.993
@@ -928,6 +938,7 @@ For the sample commands found below, note that the capitalization used is import
       ;21;1080p.60fps.mp4_scale_1.1_inclip;6.969;7.222;7.018;6.993;7.045;6.970;6.970;6.807;7.118;6.969;6.997;6.972
       ;22;1080p.60fps.mp4_scale_2_startup;6.963;6.947;6.914;6.929;6.979;7.010;7.010245327102808;6.914;6.961;7.028;7.012;6.914
       ;23;1080p.60fps.mp4_scale_2_inclip;6.757;6.694;6.672;6.669;6.737;6.831;6.716;6.715;6.832;6.670;6.672;6.759
+
    * gecko_profile_entries: 2000000
    * gecko_profile_interval: 1
    * lower_is_better: True
@@ -939,9 +950,11 @@ For the sample commands found below, note that the capitalization used is import
    * tppagecycles: 12
    * unit: ms/frame
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a basic_compositor_video
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -1103,7 +1116,7 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: cpstartup
-   :container: + anchor-id-cpstartup
+   :class-container: anchor-id-cpstartup
 
    * contact: :mconley, Firefox Desktop Front-end team, Gijs, fqueze, and dthayer
    * measuring: Time from opening a new tab (which creates a new content process) to having that new content process be ready to load URLs.
@@ -1113,9 +1126,11 @@ For the sample commands found below, note that the capitalization used is import
    * data: 20 cycles of the entire benchmark
    * **Lower is better**
    * **Example Data**
-   .. code-block:: None
+
+   .. code-block::
 
       0;content-process-startup;877;737;687;688;802;697;794;685;694;688;794;669;699;684;690;849;687;873;694;689
+
    * extensions: ['${talos}/pageloader', '${talos}/tests/cpstartup/extension']
    * gecko_profile_entries: 1000000
    * preferences: {'browser.link.open_newwindow': 3, 'browser.link.open_newwindow.restriction': 2}
@@ -1125,9 +1140,11 @@ For the sample commands found below, note that the capitalization used is import
    * tppagecycles: 20
    * unit: ms
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a cpstartup
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -1289,7 +1306,7 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: cross_origin_pageload
-   :container: + anchor-id-cross_origin_pageload
+   :class-container: anchor-id-cross_origin_pageload
 
    * contact: :sefeng, :jesup, and perf eng team
    * measuring: The time it takes to load a page which has 20 cross origin iframes
@@ -1299,9 +1316,11 @@ For the sample commands found below, note that the capitalization used is import
    * data: 10 cycles of the entire benchmark
    * **Lower is better**
    * **Example Data**
-   .. code-block:: None
+
+   .. code-block::
 
       0;/index.html;194.42;154.12;141.38;145.88;136.92;147.64;152.54;138.02;145.5;143.62
+
    * extensions: ['${talos}/pageloader']
    * preferences: {'dom.ipc.processPrelaunch.fission.number': 30}
    * timeout: 100
@@ -1310,9 +1329,11 @@ For the sample commands found below, note that the capitalization used is import
    * tppagecycles: 10
    * unit: ms
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a cross_origin_pageload
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -1474,7 +1495,7 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: damp
-   :container: + anchor-id-damp
+   :class-container: anchor-id-damp
 
    * contact: :ochameau and devtools team
    * source: `damp <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/tests/devtools>`__
@@ -1487,11 +1508,12 @@ For the sample commands found below, note that the capitalization used is import
       * subtest: `ignore first`_ data point, then take the `median`_ of the remaining 24 data points; `source: test.py <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/test.py#l356>`__
       * suite: No value for the suite, only individual subtests are relevant.
    * description:
-    To run this locally, you'll need to pull down the `tp5 page
-    set <#page-sets>`__ and run it in a local web server. See the `tp5
-    section <#tp5>`__.
+      | To run this locally, you'll need to pull down the `tp5 page
+        set <#page-sets>`__ and run it in a local web server. See the `tp5
+        section <#tp5>`__.
    * **Example Data**
-   .. code-block:: None
+
+   .. code-block::
 
       0;simple.webconsole.open.DAMP;1198.86;354.38;314.44;337.32;344.73;339.05;345.55;358.37;314.89;353.73;324.02;339.45;304.63;335.50;316.69;341.05;353.45;353.73;342.28;344.63;357.62;375.18;326.08;363.10;357.30
       1;simple.webconsole.reload.DAMP;44.60;41.21;25.62;29.85;38.10;42.29;38.25;40.14;26.95;39.24;40.32;34.67;34.64;44.88;32.51;42.09;28.04;43.05;40.62;36.56;42.44;44.11;38.69;29.10;42.00
@@ -1529,6 +1551,7 @@ For the sample commands found below, note that the capitalization used is import
       33;complicated.netmonitor.open.DAMP;469.70;597.87;468.36;823.09;696.39;477.19;487.78;495.92;587.89;471.48;555.02;507.45;883.33;522.15;756.86;713.64;593.82;715.13;477.15;717.85;586.79;556.97;631.43;629.55;581.16
       34;complicated.netmonitor.reload.DAMP;4033.55;3577.36;3655.61;3721.24;3874.29;3977.92;3778.62;3825.60;3984.65;3707.91;3985.24;3565.21;3702.40;3956.70;3627.14;3916.11;3929.11;3934.06;3590.60;3628.39;3618.84;3579.52;3953.04;3781.01;3682.69
       35;complicated.netmonitor.close.DAMP;1042.98;920.21;928.19;940.38;950.25;1043.61;1078.16;1077.38;1132.91;1095.05;1176.31;1256.83;1143.14;1234.61;1248.97;1242.29;1378.63;1312.74;1371.48;1373.15;1544.55;1422.51;1549.48;1616.55;1506.58
+
    * cycles: 5
    * extensions: ['${talos}/pageloader', '${talos}/tests/devtools/addon']
    * gecko_profile_entries: 10000000
@@ -1547,9 +1570,11 @@ For the sample commands found below, note that the capitalization used is import
    * w7_counters: None
    * win_counters: None
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a damp
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -1841,7 +1866,7 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: displaylist_mutate
-   :container: + anchor-id-displaylist_mutate
+   :class-container: anchor-id-displaylist_mutate
 
    * contact: :miko and gfx
    * source: `displaylist_mutate.html <https://searchfox.org/mozilla-central/source/testing/talos/talos/tests/layout/benchmarks/displaylist_mutate.html>`__
@@ -1850,14 +1875,14 @@ For the sample commands found below, note that the capitalization used is import
    * summarization:
       * subtest: `ignore first`_ data point, then take the `median`_ of the remaining 4; `source: test.py <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/test.py#l986>`__
    * description:
-    This measures the amount of time it takes to render a page after
-    changing its display list. The page has a large number of display list
-    items (10,000), and mutates one every frame. The goal of the test is to
-    make displaylist construction a bottleneck, rather than painting or
-    other factors, and thus improvements or regressions to displaylist
-    construction will be visible. The test runs in ASAP mode to maximize
-    framerate, and the result is how quickly the test was able to mutate and
-    re-paint 600 items, one during each frame.
+      | This measures the amount of time it takes to render a page after
+        changing its display list. The page has a large number of display list
+        items (10,000), and mutates one every frame. The goal of the test is to
+        make displaylist construction a bottleneck, rather than painting or
+        other factors, and thus improvements or regressions to displaylist
+        construction will be visible. The test runs in ASAP mode to maximize
+        framerate, and the result is how quickly the test was able to mutate and
+        re-paint 600 items, one during each frame.
    * gecko_profile_entries: 2000000
    * gecko_profile_interval: 2
    * linux_counters: None
@@ -1874,9 +1899,11 @@ For the sample commands found below, note that the capitalization used is import
    * w7_counters: None
    * win_counters: None
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a displaylist_mutate
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -2038,28 +2065,30 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: dromaeo
-   :container: + anchor-id-dromaeo
+   :class-container: anchor-id-dromaeo
 
    * description:
-    Dromaeo suite of tests for JavaScript performance testing. See the
-    `Dromaeo wiki <https://wiki.mozilla.org/Dromaeo>`__ for more
-    information.
+      | Dromaeo suite of tests for JavaScript performance testing. See the
+        `Dromaeo wiki <https://wiki.mozilla.org/Dromaeo>`__ for more
+        information.
 
-    This suite is divided into several sub-suites.
+      This suite is divided into several sub-suites.
 
-    Each sub-suite is divided into tests, and each test is divided into
-    sub-tests. Each sub-test takes some (in theory) fixed piece of work and
-    measures how many times that piece of work can be performed in one
-    second. The score for a test is then the geometric mean of the
-    runs/second numbers for its sub-tests. The score for a sub-suite is the
-    geometric mean of the scores for its tests.
+      Each sub-suite is divided into tests, and each test is divided into
+      sub-tests. Each sub-test takes some (in theory) fixed piece of work and
+      measures how many times that piece of work can be performed in one
+      second. The score for a test is then the geometric mean of the
+      runs/second numbers for its sub-tests. The score for a sub-suite is the
+      geometric mean of the scores for its tests.
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a dromaeo
 
+
 .. dropdown:: dromaeo_css
-   :container: + anchor-id-dromaeo_css
+   :class-container: anchor-id-dromaeo_css
 
    * contact: :emilio, and css/layout team
    * source: `css.manifest <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/tests/dromaeo>`__
@@ -2079,12 +2108,13 @@ For the sample commands found below, note that the capitalization used is import
         filter.py <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/test.py#l527>`__
       * suite: `geometric mean`_ of the 6 subtest results.
    * description:
-    Each page in the manifest is part of the dromaeo css benchmark. Each
-    page measures the performance of searching the DOM for nodes matching
-    various CSS selectors, using different libraries for the selector
-    implementation (jQuery, Dojo, Mootools, ExtJS, Prototype, and Yahoo UI).
+      | Each page in the manifest is part of the dromaeo css benchmark. Each
+        page measures the performance of searching the DOM for nodes matching
+        various CSS selectors, using different libraries for the selector
+        implementation (jQuery, Dojo, Mootools, ExtJS, Prototype, and Yahoo UI).
    * **Example Data**
-   .. code-block:: None
+
+   .. code-block::
 
       0;dojo.html;2209.83;2269.68;2275.47;2278.83;2279.81;4224.43;4344.96;4346.74;4428.69;4459.82;4392.80;4396.38;4412.54;4414.34;4415.62;3909.94;4027.96;4069.08;4099.63;4099.94;4017.70;4018.96;4054.25;4068.74;4081.31;3825.10;3984.20;4053.23;4074.59;4106.63;3893.88;3971.80;4031.15;4046.68;4048.31;3978.24;4010.16;4046.66;4051.68;4056.37;4189.50;4287.98;4390.98;4449.89;4450.20;4536.23;4557.82;4588.40;4662.58;4664.42;4675.51;4693.13;4743.72;4758.12;4764.67;4138.00;4251.60;4346.22;4410.12;4417.23;4677.53;4702.48;4714.62;4802.59;4805.33;4445.07;4539.91;4598.93;4605.45;4618.79;4434.40;4543.09;4618.56;4683.98;4689.51;4485.26;4496.75;4511.23;4600.86;4602.08;4567.52;4608.33;4615.56;4619.31;4622.79;3469.44;3544.11;3605.80;3647.74;3658.56;3101.88;3126.41;3147.73;3159.92;3170.73;3672.28;3686.40;3730.74;3748.89;3753.59;4411.71;4521.50;4633.98;4702.72;4708.76;3626.62;3646.71;3713.07;3713.13;3718.91;3846.17;3846.25;3913.61;3914.63;3916.22;3982.88;4112.98;4132.26;4194.92;4201.54;4472.64;4575.22;4644.74;4645.42;4665.51;4120.13;4142.88;4171.29;4208.43;4211.03;4405.36;4517.89;4537.50;4637.77;4644.28;4548.25;4581.20;4614.54;4658.42;4671.09;4452.78;4460.09;4494.06;4521.30;4522.37;4252.81;4350.72;4364.93;4441.40;4492.78;4251.34;4346.70;4355.00;4358.89;4365.72;4494.64;4511.03;4582.11;4591.79;4592.36;4207.54;4308.94;4309.14;4406.71;4474.46
       1;ext.html;479.65;486.21;489.61;492.94;495.81;24454.14;33580.33;34089.15;34182.83;34186.15;34690.83;35050.30;35051.30;35071.65;35099.82;5758.22;5872.32;6389.62;6525.38;6555.57;8303.96;8532.96;8540.91;8544.00;8571.49;8360.79;8408.79;8432.96;8447.28;8447.83;5817.71;5932.67;8371.83;8389.20;8643.44;7983.80;8073.27;8073.84;8076.48;8078.15;24596.00;32518.84;32787.34;32830.51;32861.00;2220.87;2853.84;3333.53;3345.17;3445.47;24785.75;24971.75;25044.25;25707.61;25799.00;2464.69;2481.89;2527.57;2534.65;2534.92;217793.00;219347.90;219495.00;220059.00;297168.00;40556.19;53062.47;54275.73;54276.00;54440.37;50636.75;50833.49;50983.49;51028.49;51032.74;10746.36;10972.45;11450.37;11692.18;11797.76;8402.58;8415.79;8418.66;8426.75;8428.16;16768.75;16896.00;16925.24;16945.58;17018.15;7047.68;7263.13;7313.16;7337.38;7383.22;713.88;723.72;751.47;861.35;931.00;25454.36;25644.90;25801.87;25992.61;25995.00;819.89;851.23;852.00;886.59;909.89;14325.79;15064.92;15240.39;15431.23;15510.61;452382.00;458194.00;458707.00;459226.00;459601.00;45699.54;46244.54;46270.54;46271.54;46319.00;1073.94;1080.66;1083.35;1085.84;1087.74;26622.33;27807.58;27856.72;28040.58;28217.86;37229.81;37683.81;37710.81;37746.62;37749.81;220386.00;222903.00;240808.00;247394.00;247578.00;25567.00;25568.49;25610.74;25650.74;25710.23;26466.21;28718.71;36175.64;36529.27;36556.00;26676.00;30757.69;31965.84;34521.83;34622.65;32791.18;32884.00;33194.83;33720.16;34192.66;32150.36;32520.02;32851.18;32947.18;33128.01;29472.85;30214.09;30708.54;30999.23;32879.51;23822.88;23978.28;24358.88;24470.88;24515.51
@@ -2092,14 +2122,17 @@ For the sample commands found below, note that the capitalization used is import
       3;mootools.html;1161.69;1333.31;1425.89;1500.37;1557.37;6706.93;7648.46;8020.04;8031.36;8049.64;7861.80;7972.40;7978.12;7993.32;7993.88;1838.83;1862.93;1864.11;1866.28;1866.71;1909.93;1921.83;1928.53;1954.07;1969.98;1808.68;1820.01;1821.30;1825.92;1826.91;1849.07;1904.99;1908.26;1911.24;1912.50;1856.86;1871.78;1873.72;1878.54;1929.57;6506.67;6752.73;7799.22;7830.41;7855.18;4117.18;4262.42;4267.30;4268.27;4269.62;2720.56;2795.36;2840.08;2840.79;2842.62;699.12;703.75;774.36;791.73;798.18;11096.22;11126.39;11132.72;11147.16;11157.44;3934.33;4067.37;4140.94;4149.75;4150.38;9042.82;9077.46;9083.55;9084.41;9086.41;4431.47;4432.84;4437.33;4438.40;4440.44;3935.67;3937.31;3937.43;3940.53;3976.68;3247.17;3307.90;3319.90;3323.32;3330.60;1001.90;1016.87;1021.12;1021.67;1022.05;1016.34;1019.09;1036.62;1056.81;1057.76;7345.56;7348.56;7391.89;7393.85;7406.30;374.27;392.53;394.73;397.28;398.26;5588.58;5653.21;5655.07;5659.15;5660.66;9775.41;9860.51;9938.40;9959.85;9968.45;9733.42;9904.31;9953.05;9960.55;9967.20;6399.26;6580.11;7245.93;7336.96;7386.78;7162.00;7245.49;7249.38;7250.75;7304.63;8458.24;8583.40;8651.57;8717.39;8742.39;8896.42;8904.60;8927.96;8960.73;8961.82;7483.48;7747.77;7763.46;7766.34;7773.07;7784.00;7821.41;7827.18;7849.18;7855.49;7012.16;7141.57;7250.09;7253.13;7335.89;6977.97;7015.51;7042.40;7204.35;7237.20;7160.46;7293.23;7321.27;7321.82;7331.16;6268.69;6324.11;6325.78;6328.56;6342.40;6554.54;6625.30;6646.00;6650.30;6674.90
       4;prototype.html;237.05;251.94;256.61;259.65;263.52;4488.53;4676.88;4745.24;4745.50;4748.81;4648.47;4660.21;4666.58;4671.88;4677.32;3602.84;3611.40;3613.69;3615.69;3619.15;3604.41;3619.44;3623.24;3627.66;3628.11;3526.59;3589.35;3615.93;3616.35;3622.80;3624.69;3626.84;3628.47;3631.22;3632.15;3184.76;3186.11;3187.16;3187.78;3189.35;4353.43;4466.46;4482.57;4616.72;4617.88;4012.18;4034.84;4047.07;4047.82;4055.29;4815.11;4815.21;4816.11;4817.08;4820.40;3300.31;3345.18;3369.55;3420.98;3447.97;5026.99;5033.82;5034.50;5034.95;5038.97;3516.72;3520.79;3520.95;3521.81;3523.47;3565.29;3574.23;3574.37;3575.82;3578.37;4045.19;4053.51;4056.76;4058.76;4059.00;4714.67;4868.66;4869.66;4873.54;4878.29;1278.20;1300.92;1301.13;1301.17;1302.47;868.94;871.16;878.50;883.40;884.85;3874.71;3878.44;3881.61;3882.67;3886.92;4959.83;4968.45;4969.50;4971.38;4972.30;3862.69;3870.15;3871.79;3873.83;3878.07;2690.15;2711.66;2714.42;2715.39;2715.89;4349.04;4349.63;4351.33;4353.59;4355.46;4950.95;5101.08;5107.69;5120.21;5120.39;4336.63;4360.76;4361.96;4362.28;4365.43;4928.75;4939.41;4939.56;4943.95;4966.78;4869.03;4886.24;4888.85;4889.14;4895.76;4362.39;4362.78;4363.96;4365.00;4365.08;3408.00;3470.03;3476.37;3546.65;3547.34;4905.73;4926.21;4926.70;4926.93;4929.43;4682.88;4694.91;4696.30;4697.06;4699.69;4688.86;4691.25;4691.46;4698.37;4699.41;4628.07;4631.31;4633.42;4634.00;4636.00;4699.44;4796.02;4808.83;4809.95;4813.52;4719.10;4720.41;4722.95;4723.03;4723.53
       5;yui.html;569.72;602.22;627.02;647.49;692.84;9978.30;10117.54;10121.70;10129.75;10137.24;9278.68;9291.44;9349.00;9370.53;9375.86;475.79;481.92;606.51;607.42;618.73;617.68;618.89;623.30;626.58;631.85;501.81;649.76;653.22;655.69;656.71;510.62;645.56;657.42;657.88;658.39;475.53;476.77;476.80;476.92;476.96;9895.16;9976.15;9988.25;9989.85;9996.40;9483.15;9545.75;9676.37;9808.51;10360.22;8331.29;8397.87;8538.06;8714.69;8803.78;2748.93;2800.93;2802.59;2857.33;2864.46;33757.16;33804.83;33859.32;33931.00;33991.32;7818.65;7846.92;7892.09;8170.55;8217.75;13691.38;13692.86;13693.25;13698.73;13706.66;5378.70;5517.83;5615.86;5616.16;5624.00;2985.63;3002.97;3003.07;3037.73;3038.87;2459.10;2502.52;2504.91;2507.07;2507.26;396.62;405.78;411.43;412.03;412.56;543.45;550.75;568.50;578.59;592.25;6762.21;6901.72;6984.27;7064.22;7122.29;454.78;519.40;539.29;543.96;566.16;3235.39;3266.13;3453.26;3498.79;3518.54;39079.22;39722.80;41350.59;41422.38;41540.17;34435.14;34606.31;34623.31;34661.00;34672.48;29449.12;29530.11;30507.24;31938.52;31961.52;7449.33;7524.62;7629.73;7712.96;7796.42;22917.43;23319.00;23441.41;23582.88;23583.53;29780.40;30272.55;31761.00;31765.84;31839.36;6112.45;6218.35;6476.68;6603.54;6793.66;10385.79;10471.69;10518.53;10552.74;10644.95;9563.52;9571.33;9617.09;9946.35;9976.80;9406.11;9518.48;9806.46;10102.44;10173.19;9482.43;9550.28;9878.21;9902.90;9951.45;8343.17;8511.00;8606.00;8750.21;8869.29;8234.96;8462.70;8473.49;8499.58;8808.91
+
    * gecko_profile_entries: 10000000
    * gecko_profile_interval: 2
    * tpmanifest: ${talos}/tests/dromaeo/css.manifest
    * unit: score
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a dromaeo_css
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -2226,7 +2259,7 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: dromaeo_dom
-   :container: + anchor-id-dromaeo_dom
+   :class-container: anchor-id-dromaeo_dom
 
    * contact: :peterv and dom team
    * source: `dom.manifest <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/tests/dromaeo>`__
@@ -2234,32 +2267,38 @@ For the sample commands found below, note that the capitalization used is import
    * data: see Dromaeo DOM
    * reporting: speed in test runs per second (higher is better)
    * description:
-    Each page in the manifest is part of the dromaeo dom benchmark. These
-    are the specific areas that Dromaeo DOM covers:
-      * **DOM Attributes**:
-        Measures performance of getting and setting a DOM attribute, both via
-        ``getAttribute`` and via a reflecting DOM property. Also throws in some
-        expando getting/setting for good measure.
-      * **DOM Modification**:
-        Measures performance of various things that modify the DOM tree:
-        creating element and text nodes and inserting them into the DOM.
-      * **DOM Query**:
-        Measures performance of various methods of looking for nodes in the DOM:
-        ``getElementById``, ``getElementsByTagName``, and so forth.
-      * **DOM Traversal**:
-        Measures performance of various accessors (``childNodes``,
-        ``firstChild``, etc) that would be used when doing a walk over the DOM
-        tree.
+      | Each page in the manifest is part of the dromaeo dom benchmark. These
+        are the specific areas that Dromaeo DOM covers:
 
-    Please see `dromaeo_css <#dromaeo_css>`_ for examples of data.
+  * **DOM Attributes**:
+       Measures performance of getting and setting a DOM attribute, both via
+       ``getAttribute`` and via a reflecting DOM property. Also throws in some
+       expando getting/setting for good measure.
+
+   * **DOM Modification**:
+       Measures performance of various things that modify the DOM tree:
+       creating element and text nodes and inserting them into the DOM.
+
+   * **DOM Query**:
+       Measures performance of various methods of looking for nodes in the DOM:
+       ``getElementById``, ``getElementsByTagName``, and so forth.
+
+   * **DOM Traversal**:
+       Measures performance of various accessors (``childNodes``,
+       ``firstChild``, etc) that would be used when doing a walk over the DOM
+       tree.
+
+     Please see `dromaeo_css <#dromaeo_css>`_ for examples of data.
    * gecko_profile_entries: 10000000
    * gecko_profile_interval: 2
    * tpmanifest: ${talos}/tests/dromaeo/dom.manifest
    * unit: score
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a dromaeo_dom
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -2327,29 +2366,32 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: glterrain
-   :container: + anchor-id-glterrain
+   :class-container: anchor-id-glterrain
 
    * contact: :jgilbert and gfx
    * source: `glterrain <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/tests/webgl/benchmarks/terrain>`__
    * type: `Page load`_
    * data: we load the perftest.html page (which generates 4 metrics to track) 25 times, resulting in 4 sets of 25 data points
    * summarization: Measures average frames interval while animating a simple WebGL scene
-      * subtest: `ignore first`_ data point, then take the `median`_ of the remaining 24; `source: test.py <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/test.py#l381>`__
+      * subtest: `ignore first`_ data point, then take the `median`_ of the remaining 24; `source:
+        test.py <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/test.py#l381>`__
       * suite: `geometric mean`_ of the 4 subtest results.
    * description:
-    This tests animates a simple WebGL scene (static textured landscape, one
-    moving light source, rotating viewport) and measure the frames
-    throughput (expressed as average interval) over 100 frames. It runs in
-    ASAP mode (vsync off) and measures the same scene 4 times (for all
-    combination of antialiasing and alpha. It reports the results as 4
-    values) one for each combination. Lower results are better.
+      | This tests animates a simple WebGL scene (static textured landscape, one
+        moving light source, rotating viewport) and measure the frames
+        throughput (expressed as average interval) over 100 frames. It runs in
+        ASAP mode (vsync off) and measures the same scene 4 times (for all
+        combination of antialiasing and alpha. It reports the results as 4
+        values) one for each combination. Lower results are better.
    * **Example Data**
-   .. code-block:: None
+
+   .. code-block::
 
       0;0.WebGL-terrain-alpha-no-AA-no;19.8189;20.57185;20.5069;21.09645;20.40045;20.89025;20.34285;20.8525;20.45845;20.6499;19.94505;20.05285;20.316049;19.46745;19.46135;20.63865;20.4789;19.97015;19.9546;20.40365;20.74385;20.828649;20.78295;20.51685;20.97069
       1;1.WebGL-terrain-alpha-no-AA-yes;23.0464;23.5234;23.34595;23.40609;22.54349;22.0554;22.7933;23.00685;23.023649;22.51255;23.25975;23.65819;22.572249;22.9195;22.44325;22.95015;23.3567;23.02089;22.1459;23.04545;23.09235;23.40855;23.3296;23.18849;23.273249
       2;2.WebGL-terrain-alpha-yes-AA-no;24.01795;23.889449;24.2683;24.34649;23.0562;24.02275;23.54819;24.1874;23.93545;23.53629;23.305149;23.62459;24.01589;24.06405;24.143449;23.998549;24.08205;24.26989;24.0736;24.2346;24.01145;23.7817;23.90785;24.7118;24.2834
       3;3.WebGL-terrain-alpha-yes-AA-yes;25.91375;25.87005;25.64875;25.15615;25.5475;24.497449;24.56385;25.57529;25.54889;26.31559;24.143949;25.09895;24.75049;25.2087;25.52385;25.9017;25.4439;24.3495;25.9269;25.734449;26.4126;25.547449;25.667249;25.679349;25.9565
+
    * gecko_profile_entries: 2000000
    * gecko_profile_interval: 10
    * linux_counters: None
@@ -2366,9 +2408,11 @@ For the sample commands found below, note that the capitalization used is import
    * w7_counters: None
    * win_counters: None
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a glterrain
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -2601,7 +2645,7 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: glvideo
-   :container: + anchor-id-glvideo
+   :class-container: anchor-id-glvideo
 
    * contact: :jgilbert and gfx
    * source: `glvideo <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/tests/webgl/benchmarks/video>`__
@@ -2613,15 +2657,17 @@ For the sample commands found below, note that the capitalization used is import
       * suite: `geometric mean`_ of the 4 subtest results.
    * **Lower is better**
    * **Example Data**
-   .. code-block:: None
+
+   .. code-block::
 
       0;Mean tick time across 100 ticks: ;54.6916;49.0534;51.21645;51.239650000000005;52.44295
+
    * description:
-    This test playbacks a video file and ask WebGL to draw video frames as
-    WebGL textures for 100 ticks. It collects the mean tick time across 100
-    ticks to measure how much time it will spend for a video texture upload
-    to be a WebGL texture (gl.texImage2D). We run it for 5 times and ignore
-    the first found. Lower results are better.
+      | This test playbacks a video file and ask WebGL to draw video frames as
+        WebGL textures for 100 ticks. It collects the mean tick time across 100
+        ticks to measure how much time it will spend for a video texture upload
+        to be a WebGL texture (gl.texImage2D). We run it for 5 times and ignore
+        the first found. Lower results are better.
    * gecko_profile_entries: 2000000
    * gecko_profile_interval: 2
    * linux_counters: None
@@ -2637,9 +2683,11 @@ For the sample commands found below, note that the capitalization used is import
    * w7_counters: None
    * win_counters: None
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a glvideo
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -2872,7 +2920,7 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: kraken
-   :container: + anchor-id-kraken
+   :class-container: anchor-id-kraken
 
    * contact: :sdetar, jandem, and SpiderMonkey Team
    * source: `kraken.manifest <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/tests/kraken>`__
@@ -2886,11 +2934,12 @@ For the sample commands found below, note that the capitalization used is import
         to report a single number.
       * suite: `geometric mean`_ of the 14 subtest results.
    * description:
-    This is the `Kraken <https://wiki.mozilla.org/Kraken>`__ javascript
-    benchmark taken verbatim and slightly modified to fit into our
-    pageloader extension and talos harness.
+      | This is the `Kraken <https://wiki.mozilla.org/Kraken>`__ javascript
+        benchmark taken verbatim and slightly modified to fit into our
+        pageloader extension and talos harness.
    * **Example Data**
-   .. code-block:: None
+
+   .. code-block::
 
       0;ai-astar;100;95;98;102;101;99;97;98;98;102
       1;audio-beat-detection;147;147;191;173;145;139;186;143;183;140
@@ -2906,6 +2955,7 @@ For the sample commands found below, note that the capitalization used is import
       11;stanford-crypto-ccm;130;138;130;127;137;134;134;132;147;129
       12;stanford-crypto-pbkdf2;176;187;183;183;176;174;181;187;175;173
       13;stanford-crypto-sha256-iterative;86;85;83;84;86;85;85;86;83;83
+
    * gecko_profile_entries: 5000000
    * gecko_profile_interval: 1
    * preferences: {'dom.send_after_paint_to_content': False}
@@ -2916,9 +2966,11 @@ For the sample commands found below, note that the capitalization used is import
    * tppagecycles: 1
    * unit: score
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a kraken
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -3045,7 +3097,7 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: motionmark_animometer
-   :container: + anchor-id-motionmark_animometer
+   :class-container: anchor-id-motionmark_animometer
 
    * contact: :b0bh00d, :jeffm, and gfx
    * source: `source <https://searchfox.org/mozilla-central/source/third_party/webkit/PerformanceTests/MotionMark>`__ `manifests <https://searchfox.org/mozilla-central/source/testing/talos/talos/tests/motionmark>`__
@@ -3058,9 +3110,11 @@ For the sample commands found below, note that the capitalization used is import
         animometer, 11 for html suite)
    * tpmanifest: ${talos}/tests/motionmark/animometer.manifest
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a motionmark_animometer
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-shippable-qr/opt**
@@ -3097,14 +3151,16 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: motionmark_htmlsuite
-   :container: + anchor-id-motionmark_htmlsuite
+   :class-container: anchor-id-motionmark_htmlsuite
 
    * contact: :jrmuizel and graphics(gfx) team
    * tpmanifest: ${talos}/tests/motionmark/htmlsuite.manifest
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a motionmark_htmlsuite
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-shippable-qr/opt**
@@ -3141,7 +3197,7 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: motionmark_webgl
-   :container: + anchor-id-motionmark_webgl
+   :class-container: anchor-id-motionmark_webgl
 
    * contact: :jgilbert and gfx
    * source: `source <https://searchfox.org/mozilla-central/source/third_party/webkit/PerformanceTests/MotionMark>`__ `manifest <https://searchfox.org/mozilla-central/source/testing/talos/talos/tests/motionmark/webgl.manifest>`__
@@ -3155,9 +3211,11 @@ For the sample commands found below, note that the capitalization used is import
    * tpmanifest: ${talos}/tests/motionmark/webgl.manifest
    * unit: fps
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a motionmark_webgl
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -3390,7 +3448,7 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: pdfpaint
-   :container: + anchor-id-pdfpaint
+   :class-container: anchor-id-pdfpaint
 
    * contact: :calixte and CI and Quality Tools team
    * source:
@@ -3405,9 +3463,11 @@ For the sample commands found below, note that the capitalization used is import
    * tppagecycles: 20
    * unit: ms
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a pdfpaint
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -3569,7 +3629,7 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: perf_reftest
-   :container: + anchor-id-perf_reftest
+   :class-container: anchor-id-perf_reftest
 
    * contact: :emilio and css/layout team
    * source: `perf-reftest <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/tests/perf-reftest>`__
@@ -3581,35 +3641,36 @@ For the sample commands found below, note that the capitalization used is import
         test.py <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/test.py#l734>`__
       * suite: identical to subtest
    * description:
-    **Important note:** This test now requires an 'opt' build. If the
-    perf-reftest is ran on a non-opt build, it will time out (more
-    specifically on innertext-1.html, and possibly others in the future).
+      | **Important note:** This test now requires an 'opt' build. If the
+        perf-reftest is ran on a non-opt build, it will time out (more
+        specifically on innertext-1.html, and possibly others in the future).
 
-    Style system performance test suite. The perf-reftest suite is a unique
-    talos suite where each subtest loads two different test pages: a 'base'
-    page (i.e. bloom_basic) and a 'reference' page (i.e. bloom_basic_ref),
-    and then compares each of the page load times against eachother to
-    determine the variance.
+      Style system performance test suite. The perf-reftest suite is a unique
+      talos suite where each subtest loads two different test pages: a 'base'
+      page (i.e. bloom_basic) and a 'reference' page (i.e. bloom_basic_ref),
+      and then compares each of the page load times against eachother to
+      determine the variance.
 
-    Talos runs each of the two pages as if they are stand-alone tests, and
-    then calculates and reports the variance; the test output 'replicates'
-    reported from bloom_basic are actually the comparisons between the
-    'base' and 'reference' pages for each page load cycle. The suite
-    contains multiple subtests, each of which contains a base page and a
-    reference page.
+      Talos runs each of the two pages as if they are stand-alone tests, and
+      then calculates and reports the variance; the test output 'replicates'
+      reported from bloom_basic are actually the comparisons between the
+      'base' and 'reference' pages for each page load cycle. The suite
+      contains multiple subtests, each of which contains a base page and a
+      reference page.
 
-    If you wish to see the individual 'base' and 'reference' page results
-    instead of just the reported difference, the 'base_replicates' and
-    'ref_replicates' can be found in the PERFHERDER_DATA log file output,
-    and in the 'local.json' talos output file when running talos locally. In
-    production, both of the page replicates are also archived in the
-    perfherder-data.json file. The perfherder-data.json file is archived
-    after each run in production, and can be found on the Treeherder Job
-    Details tab when the perf-reftest job symbol is selected.
+      If you wish to see the individual 'base' and 'reference' page results
+      instead of just the reported difference, the 'base_replicates' and
+      'ref_replicates' can be found in the PERFHERDER_DATA log file output,
+      and in the 'local.json' talos output file when running talos locally. In
+      production, both of the page replicates are also archived in the
+      perfherder-data.json file. The perfherder-data.json file is archived
+      after each run in production, and can be found on the Treeherder Job
+      Details tab when the perf-reftest job symbol is selected.
 
-    This test suite was ported over from the `style-perf-tests <https://github.com/heycam/style-perf-tests>`__.
+      This test suite was ported over from the `style-perf-tests <https://github.com/heycam/style-perf-tests>`__.
    * **Example Data**
-   .. code-block:: None
+
+   .. code-block::
 
       "replicates": [1.185, 1.69, 1.22, 0.36, 11.26, 3.835, 3.315, 1.355, 3.185, 2.485, 2.2, 1.01, 0.9, 1.22, 1.9,
         0.285, 1.52, 0.31, 2.58, 0.725, 2.31, 2.67, 3.295, 1.57, 0.3], "value": 1.7349999999999999, "unit": "ms",
@@ -3619,6 +3680,7 @@ For the sample commands found below, note that the capitalization used is import
       "ref_replicates": [165.755, 166.85000000000002, 166.85999999999999, 165.4, 178.615, 169.01, 168.64, 166.465,
         167.36, 167.265, 167.75500000000002, 166.895, 167.735, 166.985, 166.275, 166.54000000000002, 165.61, 166.115,
         166.64499999999998, 165.68, 167.64499999999998, 167.12, 168.15, 166.575, 166.335],
+
    * alert_threshold: 5.0
    * base_vs_ref: True
    * gecko_profile_entries: 2000000
@@ -3631,9 +3693,11 @@ For the sample commands found below, note that the capitalization used is import
    * tptimeout: 30000
    * unit: ms
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a perf_reftest
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -3795,7 +3859,7 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: perf_reftest_singletons
-   :container: + anchor-id-perf_reftest_singletons
+   :class-container: anchor-id-perf_reftest_singletons
 
    * contact: :emelio and Layout team
    * source: `perf-reftest-singletons <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/tests/perf-reftest-singletons>`__
@@ -3807,20 +3871,22 @@ For the sample commands found below, note that the capitalization used is import
         test.py <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/test.py#l734>`__
       * suite: identical to subtest
    * description:
-    Individual style system performance tests. The perf-reftest-singletons
-    suite runs the perf-reftest 'base' pages (i.e. bloom_basic) test
-    individually, and reports the values for that single test page alone,
-    NOT the comparison of two different pages. There are multiple subtests
-    in this suite, each just containing the base page on its own.
+      | Individual style system performance tests. The perf-reftest-singletons
+        suite runs the perf-reftest 'base' pages (i.e. bloom_basic) test
+        individually, and reports the values for that single test page alone,
+        NOT the comparison of two different pages. There are multiple subtests
+        in this suite, each just containing the base page on its own.
 
-    This test suite was ported over from the `style-perf-tests <https://github.com/heycam/style-perf-tests>`__.
+      This test suite was ported over from the `style-perf-tests <https://github.com/heycam/style-perf-tests>`__.
    * **Example Data**
-   .. code-block:: None
+
+   .. code-block::
 
       bloombasic.html;88.34000000000003;88.66499999999999;94.815;92.60500000000002;95.30000000000001;
       98.80000000000001;91.975;87.73500000000001;86.925;86.965;93.00500000000001;98.93;87.45000000000002;
       87.14500000000001;92.78500000000001;86.96499999999999;98.32000000000001;97.485;90.67000000000002;
       86.72500000000001;95.665;100.67;101.095;94.32;91.87
+
    * alert_threshold: 5.0
    * gecko_profile_entries: 2000000
    * gecko_profile_interval: 1
@@ -3833,9 +3899,11 @@ For the sample commands found below, note that the capitalization used is import
    * tptimeout: 30000
    * unit: ms
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a perf_reftest_singletons
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -3962,7 +4030,7 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: rasterflood_gradient
-   :container: + anchor-id-rasterflood_gradient
+   :class-container: anchor-id-rasterflood_gradient
 
    * contact: :jrmuizel, :jimm, and gfx
    * source: `rasterflood_gradient.html <https://searchfox.org/mozilla-central/source/testing/talos/talos/tests/gfx/benchmarks/rasterflood_gradient.html>`__
@@ -3972,18 +4040,18 @@ For the sample commands found below, note that the capitalization used is import
       * subtest: `ignore first`_ data point, then take the `median`_ of the remaining 9; `source:
         test.py <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/test.py#l986>`__
    * description:
-    This page animates some complex gradient patterns in a
-    requestAnimationFrame callback. However, it also churns the CPU during
-    each callback, spinning an empty loop for 14ms each frame. The intent is
-    that, if we consider the rasterization costs to be 0, then the animation
-    should run close to 60fps. Otherwise it will lag. Since rasterization
-    costs are not 0, the lower we can get them, the faster the test will
-    run. The test runs in ASAP mode to maximize framerate.
+      | This page animates some complex gradient patterns in a
+        requestAnimationFrame callback. However, it also churns the CPU during
+        each callback, spinning an empty loop for 14ms each frame. The intent is
+        that, if we consider the rasterization costs to be 0, then the animation
+        should run close to 60fps. Otherwise it will lag. Since rasterization
+        costs are not 0, the lower we can get them, the faster the test will
+        run. The test runs in ASAP mode to maximize framerate.
 
-    The test runs for 10 seconds, and the resulting score is how many frames
-    we were able to render during that time. Higher is better. Improvements
-    (or regressions) to general painting performance or gradient rendering
-    will affect this benchmark.
+      The test runs for 10 seconds, and the resulting score is how many frames
+      we were able to render during that time. Higher is better. Improvements
+      (or regressions) to general painting performance or gradient rendering
+      will affect this benchmark.
    * gecko_profile_entries: 2000000
    * gecko_profile_interval: 2
    * linux_counters: None
@@ -4001,9 +4069,11 @@ For the sample commands found below, note that the capitalization used is import
    * w7_counters: None
    * win_counters: None
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a rasterflood_gradient
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -4165,7 +4235,7 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: rasterflood_svg
-   :container: + anchor-id-rasterflood_svg
+   :class-container: anchor-id-rasterflood_svg
 
    * contact: :jrmuizel, :jimm, and gfx
    * source: `rasterflood_svg.html <https://searchfox.org/mozilla-central/source/testing/talos/talos/tests/gfx/benchmarks/rasterflood_svg.html>`__
@@ -4175,17 +4245,17 @@ For the sample commands found below, note that the capitalization used is import
       * subtest: `ignore first`_ data point, then take the `median`_ of the remaining 9; `source:
         test.py <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/test.py#l986>`__
    * description:
-    This page animates some complex SVG patterns in a requestAnimationFrame
-    callback. However, it also churns the CPU during each callback, spinning
-    an empty loop for 14ms each frame. The intent is that, if we consider
-    the rasterization costs to be 0, then the animation should run close to
-    60fps. Otherwise it will lag. Since rasterization costs are not 0, the
-    lower we can get them, the faster the test will run. The test runs in
-    ASAP mode to maximize framerate. The result is how quickly the browser
-    is able to render 600 frames of the animation.
+      | This page animates some complex SVG patterns in a requestAnimationFrame
+        callback. However, it also churns the CPU during each callback, spinning
+        an empty loop for 14ms each frame. The intent is that, if we consider
+        the rasterization costs to be 0, then the animation should run close to
+        60fps. Otherwise it will lag. Since rasterization costs are not 0, the
+        lower we can get them, the faster the test will run. The test runs in
+        ASAP mode to maximize framerate. The result is how quickly the browser
+        is able to render 600 frames of the animation.
 
-    Improvements (or regressions) to general painting performance or SVG are
-    likely to affect this benchmark.
+      Improvements (or regressions) to general painting performance or SVG are
+      likely to affect this benchmark.
    * gecko_profile_entries: 2000000
    * gecko_profile_interval: 2
    * linux_counters: None
@@ -4202,9 +4272,11 @@ For the sample commands found below, note that the capitalization used is import
    * w7_counters: None
    * win_counters: None
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a rasterflood_svg
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -4366,13 +4438,13 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: sessionrestore
-   :container: + anchor-id-sessionrestore
+   :class-container: anchor-id-sessionrestore
 
    * contact: :dale, :dao, :farre, session restore module owners/peers, and DOM team
    * source: `talos/sessionrestore <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/startup_test/sessionrestore>`__
    * bug: `bug 936630 <https://bugzilla.mozilla.org/show_bug.cgi?id=936630>`__,
-    `bug 1331937 <https://bugzilla.mozilla.org/show_bug.cgi?id=1331937>`__,
-    `bug 1531520 <https://bugzilla.mozilla.org/show_bug.cgi?id=1531520>`__
+     `bug 1331937 <https://bugzilla.mozilla.org/show_bug.cgi?id=1331937>`__,
+     `bug 1531520 <https://bugzilla.mozilla.org/show_bug.cgi?id=1531520>`__
    * type: Startup_
    * measuring: time spent reading and restoring the session.
    * reporting: interval in ms (lower is better).
@@ -4382,23 +4454,25 @@ For the sample commands found below, note that the capitalization used is import
         test.py <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/test.py#l305>`__
       * suite: identical to subtest
    * description:
-    Three tests measure the time spent reading and restoring the session
-    from a valid sessionstore.js. Time is counted from the *process start*
-    until the *sessionRestored* event.
+      | Three tests measure the time spent reading and restoring the session
+        from a valid sessionstore.js. Time is counted from the *process start*
+        until the *sessionRestored* event.
 
-    In *sessionrestore*, this is tested with a configuration that requires
-    the session to be restored. In *sessionrestore_no_auto_restore*, this is
-    tested with a configuration that requires the session to not be
-    restored. Both of the above tests use a sessionstore.js file that
-    contains one window and roughly 89 tabs. In
-    *sessionrestore_many_windows*, this is tested with a sessionstore.js
-    that contains 3 windows and 130 tabs. The first window contains 50 tabs,
-    80 remaning tabs are divided equally between the second and the third
-    window.
+      In *sessionrestore*, this is tested with a configuration that requires
+      the session to be restored. In *sessionrestore_no_auto_restore*, this is
+      tested with a configuration that requires the session to not be
+      restored. Both of the above tests use a sessionstore.js file that
+      contains one window and roughly 89 tabs. In
+      *sessionrestore_many_windows*, this is tested with a sessionstore.js
+      that contains 3 windows and 130 tabs. The first window contains 50 tabs,
+      80 remaning tabs are divided equally between the second and the third
+      window.
    * **Example Data**
-   .. code-block:: None
+
+   .. code-block::
 
       [2362.0, 2147.0, 2171.0, 2134.0, 2116.0, 2145.0, 2141.0, 2141.0, 2136.0, 2080.0]
+
    * cycles: 10
    * extensions: ['${talos}/startup_test/sessionrestore/addon']
    * gecko_profile_entries: 10000000
@@ -4411,9 +4485,11 @@ For the sample commands found below, note that the capitalization used is import
    * unit: ms
    * url: about:home
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a sessionrestore
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -4575,14 +4651,16 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: sessionrestore_many_windows
-   :container: + anchor-id-sessionrestore_many_windows
+   :class-container: anchor-id-sessionrestore_many_windows
 
    * See `sessionrestore <#sessionrestore>`_.
    * profile_path: ${talos}/startup_test/sessionrestore/profile-manywindows
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a sessionrestore_many_windows
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -4744,15 +4822,17 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: sessionrestore_no_auto_restore
-   :container: + anchor-id-sessionrestore_no_auto_restore
+   :class-container: anchor-id-sessionrestore_no_auto_restore
 
    * See `sessionrestore <#sessionrestore>`_.
    * preferences: {'browser.startup.page': 1, 'talos.sessionrestore.norestore': True}
    * timeout: 300
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a sessionrestore_no_auto_restore
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -4914,7 +4994,7 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: startup_about_home_paint
-   :container: + anchor-id-startup_about_home_paint
+   :class-container: anchor-id-startup_about_home_paint
 
    * contact: :mconley, Firefox Desktop Front-end team, :gijs, :fqueze, and :dthayer
    * source: `addon <https://hg.mozilla.org/mozilla-central/file/tip/testing/talos/talos/startup_test/startup_about_home_paint/addon/>`__
@@ -4923,9 +5003,11 @@ For the sample commands found below, note that the capitalization used is import
    * data: we load restart the browser 20 times, and collect a timestamp for each run.
    * reporting: test time in ms (lower is better)
    * **Example Data**
-   .. code-block:: None
+
+   .. code-block::
 
       [1503.0, 1497.0, 1523.0, 1536.0, 1511.0, 1485.0, 1594.0, 1580.0, 1531.0, 1471.0, 1502.0, 1520.0, 1488.0, 1533.0, 1531.0, 1502.0, 1486.0, 1489.0, 1487.0, 1475.0]
+
    * cycles: 20
    * extensions: ['${talos}/startup_test/startup_about_home_paint/addon']
    * pine: False
@@ -4934,9 +5016,11 @@ For the sample commands found below, note that the capitalization used is import
    * tpmanifest: ${talos}/startup_test/startup_about_home_paint/startup_about_home_paint.manifest
    * url: None
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a startup_about_home_paint
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -5098,11 +5182,12 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: startup_about_home_paint_cached
-   :container: + anchor-id-startup_about_home_paint_cached
+   :class-container: anchor-id-startup_about_home_paint_cached
 
    * contact: :mconley, Firefox Desktop Front-end team, :gijs, :fqueze, and :dthayer
    * See `startup_about_home_paint <#startup_about_home_paint>`_.
-   * description: Tests loading about:home on startup with the about:home startup cache enabled.
+   * description:
+      | Tests loading about:home on startup with the about:home startup cache enabled.
    * cycles: 20
    * extensions: ['${talos}/startup_test/startup_about_home_paint/addon']
    * pine: False
@@ -5110,9 +5195,11 @@ For the sample commands found below, note that the capitalization used is import
    * tpmanifest: ${talos}/startup_test/startup_about_home_paint/startup_about_home_paint.manifest
    * url: None
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a startup_about_home_paint_cached
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -5274,7 +5361,7 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: startup_about_home_paint_realworld_webextensions
-   :container: + anchor-id-startup_about_home_paint_realworld_webextensions
+   :class-container: anchor-id-startup_about_home_paint_realworld_webextensions
 
    * contact: :mconley, Firefox Desktop Front-end team, :gijs, :fqueze, and :dthayer
    * source: `addon <https://hg.mozilla.org/mozilla-central/file/tip/testing/talos/talos/startup_test/startup_about_home_paint/addon/>`__
@@ -5283,9 +5370,11 @@ For the sample commands found below, note that the capitalization used is import
    * data: we install the 5 real-world WebExtensions, then load and restart the browser 20 times, and collect a timestamp for each run.
    * reporting: test time in ms (lower is better)
    * **Example Data**
-   .. code-block:: None
+
+   .. code-block::
 
       [1503.0, 1497.0, 1523.0, 1536.0, 1511.0, 1485.0, 1594.0, 1580.0, 1531.0, 1471.0, 1502.0, 1520.0, 1488.0, 1533.0, 1531.0, 1502.0, 1486.0, 1489.0, 1487.0, 1475.0]
+
    * cycles: 20
    * extensions: ['${talos}/startup_test/startup_about_home_paint/addon', '${talos}/getinfooffline']
    * pine: False
@@ -5294,9 +5383,11 @@ For the sample commands found below, note that the capitalization used is import
    * url: None
    * webextensions_folder: ${talos}/webextensions
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a startup_about_home_paint_realworld_webextensions
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -5423,7 +5514,7 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: stylebench
-   :container: + anchor-id-stylebench
+   :class-container: anchor-id-stylebench
 
    * contact: :emilio and Layout team
    * source: `stylebench.manifest <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/tests/stylebench/stylebench.manifest>`__
@@ -5432,12 +5523,14 @@ For the sample commands found below, note that the capitalization used is import
    * reporting: runs/minute score
    * tpmanifest: ${talos}/tests/stylebench/stylebench.manifest
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a stylebench
 
+
 .. dropdown:: tabpaint
-   :container: + anchor-id-tabpaint
+   :class-container: anchor-id-tabpaint
 
    * contact: :mconley, Firefox Desktop Front-end team, :gijs, :fqueze, and :dthayer
    * source: `tabpaint <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/tests/tabpaint>`__
@@ -5452,14 +5545,16 @@ For the sample commands found below, note that the capitalization used is import
       * The time it takes to animate the tabs. That's the responsibility
         of the TART test. tabpaint is strictly concerned with the painting of the web content.
    * data: we load the tabpaint trigger page 20 times, each run produces
-    two values (the time it takes to paint content when opened from the
-    parent, and the time it takes to paint content when opened from
-    content), resulting in 2 sets of 20 data points.
+     two values (the time it takes to paint content when opened from the
+     parent, and the time it takes to paint content when opened from
+     content), resulting in 2 sets of 20 data points.
    * **Example Data**
-   .. code-block:: None
+
+   .. code-block::
 
       0;tabpaint-from-parent;105;76;66;64;64;69;65;63;70;68;64;60;65;63;54;61;64;67;61;64
       1;tabpaint-from-content;129;68;72;72;70;78;86;85;82;79;120;92;76;80;74;82;76;89;77;85
+
    * summarization:
       * subtest: `ignore first`_ data point, then take the `median`_ of the remaining 19 data points
       * suite: geometric_mean(subtests)
@@ -5472,9 +5567,11 @@ For the sample commands found below, note that the capitalization used is import
    * tppagecycles: 20
    * unit: ms
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a tabpaint
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -5636,7 +5733,7 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: tabswitch
-   :container: + anchor-id-tabswitch
+   :class-container: anchor-id-tabswitch
 
    * contact: :mconley, Firefox Desktop Front-end team, :gijs, :fqueze, and :dthayer
    * source: `tabswitch <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/tests/tabswitch>`__
@@ -5652,7 +5749,8 @@ For the sample commands found below, note that the capitalization used is import
         test.py <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/test.py#l305>`__
       * suite: `geometric mean`_ of the 50 subtest results.
    * **Example Data**
-   .. code-block:: None
+
+   .. code-block::
 
       0;amazon.com/www.amazon.com/Kindle-Wireless-Reader-Wifi-Graphite/dp/B002Y27P3M/507846.html;66.34;54.15;53.08;55.79;49.12
       1;cgi.ebay.com/cgi.ebay.com/ALL-NEW-KINDLE-3-eBOOK-WIRELESS-READING-DEVICE-W-WIFI-/130496077314@pt=LH_DefaultDomain_0&hash=item1e622c1e02.html;50.85;46.57;39.51;36.71;36.47
@@ -5704,6 +5802,7 @@ For the sample commands found below, note that the capitalization used is import
       47;homeway.com.cn/www.hexun.com/index.html;105.59;117.32;108.95;116.10;70.32
       48;youtube.com/www.youtube.com/music.html;40.53;41.48;59.67;40.81;40.07
       49;people.com.cn/people.com.cn/index.html;96.49;103.64;115.12;66.05;117.84
+
    * extensions: ['${talos}/tests/tabswitch', '${talos}/pageloader']
    * gecko_profile_entries: 5000000
    * preferences: {'addon.test.tabswitch.urlfile': '${talos}/tests/tp5o.html', 'addon.test.tabswitch.webserver': '${webserver}', 'addon.test.tabswitch.maxurls': -1, 'browser.toolbars.bookmarks.visibility': 'never'}
@@ -5713,9 +5812,11 @@ For the sample commands found below, note that the capitalization used is import
    * tppagecycles: 5
    * unit: ms
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a tabswitch
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -5867,7 +5968,7 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: tart
-   :container: + anchor-id-tart
+   :class-container: anchor-id-tart
 
    * contact: :mconley, Firefox Desktop Front-end team, :gijs, :fqueze, and :dthayer
    * source: `tart <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/tests/tart>`__
@@ -5897,7 +5998,8 @@ For the sample commands found below, note that the capitalization used is import
       * all: average frame interval over all recorded intervals.
       * And the run logs also include the explicit intervals from which these 3 values were derived.
    * **Example Data**
-   .. code-block:: None
+
+   .. code-block::
 
       0;simple-open-DPI1.half.TART;2.35;2.42;2.63;2.47;2.71;2.38;2.37;2.41;2.48;2.70;2.44;2.41;2.51;2.43;2.41;2.56;2.76;2.49;2.36;2.40;2.70;2.53;2.35;2.46;2.47
       1;simple-open-DPI1.all.TART;2.80;2.95;3.12;2.92;3.46;2.87;2.92;2.99;2.89;3.24;2.94;2.95;3.25;2.92;3.02;3.00;3.21;3.31;2.84;2.87;3.10;3.13;3.10;2.94;2.95
@@ -5929,6 +6031,7 @@ For the sample commands found below, note that the capitalization used is import
       27;newtab-open-preload-yes.half.TART;3.14;2.96;2.97;8.37;2.98;3.00;2.96;3.05;3.12;3.48;3.07;3.23;3.05;2.88;2.92;3.06;2.90;3.01;3.19;2.90;3.18;3.11;3.04;3.16;3.21
       28;newtab-open-preload-yes.all.TART;5.10;4.60;4.63;8.94;5.01;4.69;4.63;4.67;4.93;5.43;4.78;5.12;4.77;4.65;4.50;4.78;4.75;4.63;4.76;4.45;4.86;4.88;4.69;4.86;4.92
       29;newtab-open-preload-yes.error.TART;35.90;37.24;38.57;40.60;36.04;38.12;38.78;36.73;36.91;36.69;38.12;36.69;37.79;35.80;36.11;38.01;36.59;38.85;37.14;37.30;38.02;38.95;37.64;37.86;36.43
+
    * extensions: ['${talos}/pageloader', '${talos}/tests/tart/addon']
    * gecko_profile_entries: 1000000
    * gecko_profile_interval: 10
@@ -5945,9 +6048,11 @@ For the sample commands found below, note that the capitalization used is import
    * w7_counters: None
    * win_counters: None
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a tart
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -6108,71 +6213,27 @@ For the sample commands found below, note that the capitalization used is import
 
 
 
-.. dropdown:: tart_flex
-   :container: + anchor-id-tart_flex
-
-   * description: This test was created as a part of a goal to switch away from xul flexbox to css flexbox
-   * Contact: No longer being maintained by any team/individual
-   * pine: False
-   * preferences: {'layout.css.moz-box-flexbox-emulation.enabled': True}
-   * Command
-   .. code-block:: None
-
-      ./mach talos-test -a tart_flex
-   * **Test Task**:
-
-   .. list-table:: **test-linux1804-64-qr/opt**
-      :widths: 30 15 15 15 15
-      :header-rows: 1
-
-      * - **Test Name**
-        - mozilla-central
-        - autoland
-        - mozilla-release
-        - mozilla-beta
-      * - **talos-flex**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-
-
-   .. list-table:: **test-linux1804-64-shippable-qr/opt**
-      :widths: 30 15 15 15 15
-      :header-rows: 1
-
-      * - **Test Name**
-        - mozilla-central
-        - autoland
-        - mozilla-release
-        - mozilla-beta
-      * - **talos-flex**
-        - ✅
-        - ❌
-        - ❌
-        - ❌
-
-
-
 .. dropdown:: tp5
-   :container: + anchor-id-tp5
+   :class-container: anchor-id-tp5
 
    * description:
-    Note that the tp5 test no longer exists (only talos-tp5o) though many
-    tests still make use of this pageset. Here, we provide an overview of
-    the tp5 pageset and some information about how data using the tp5
-    pageset might be used in various suites.
+      | Note that the tp5 test no longer exists (only talos-tp5o) though many
+        tests still make use of this pageset. Here, we provide an overview of
+        the tp5 pageset and some information about how data using the tp5
+        pageset might be used in various suites.
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a tp5
 
+
 .. dropdown:: tp5n
-   :container: + anchor-id-tp5n
+   :class-container: anchor-id-tp5n
 
    * contact: fx-perf@mozilla.com
    * description:
-    The tp5 is an updated web page test set to 100 pages from April 8th, 2011. Effort was made for the pages to no longer be splash screens/login pages/home pages but to be pages that better reflect the actual content of the site in question.
+      | The tp5 is an updated web page test set to 100 pages from April 8th, 2011. Effort was made for the pages to no longer be splash screens/login pages/home pages but to be pages that better reflect the actual content of the site in question.
    * cleanup: ${talos}/xtalos/parse_xperf.py -c ${talos}/bcontroller.json
    * cycles: 1
    * linux_counters: []
@@ -6196,12 +6257,14 @@ For the sample commands found below, note that the capitalization used is import
    * xperf_stackwalk: ['FileCreate', 'FileRead', 'FileWrite', 'FileFlush', 'FileClose']
    * xperf_user_providers: ['Mozilla Generic Provider', 'Microsoft-Windows-TCPIP']
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a tp5n
+
    * **Test Task**:
 
-   .. list-table:: **test-windows10-64-2004-qr/opt**
+   .. list-table:: **test-windows11-64-2009-qr/opt**
       :widths: 30 15 15 15 15
       :header-rows: 1
 
@@ -6222,7 +6285,7 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
 
 
-   .. list-table:: **test-windows10-64-2004-shippable-qr/opt**
+   .. list-table:: **test-windows11-64-2009-shippable-qr/opt**
       :widths: 30 15 15 15 15
       :header-rows: 1
 
@@ -6245,7 +6308,7 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: tp5o
-   :container: + anchor-id-tp5o
+   :class-container: anchor-id-tp5o
 
    * contact: :davehunt, and perftest team
    * source: `tp5n.zip <#page-sets>`__
@@ -6257,33 +6320,32 @@ For the sample commands found below, note that the capitalization used is import
         test.py <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/test.py#l449>`__
       * suite: `geometric mean`_ of the 51 subtest results.
    * description:
-    Tests the time it takes Firefox to load the `tp5 web page test
-    set <#page-sets>`__. The web set was culled from the Alexa top 500 April
-    8th, 2011 and consists of 100 pages in tp5n and 51 in tp5o. Some suites
-    use a subset of these, i.e. 48/51 tests to reduce noise
+      | Tests the time it takes Firefox to load the `tp5 web page test
+        set <#page-sets>`__. The web set was culled from the Alexa top 500 April
+        8th, 2011 and consists of 100 pages in tp5n and 51 in tp5o. Some suites
+        use a subset of these, i.e. 48/51 tests to reduce noise
    * check with the
-    owner of the test suite which uses the pageset to check if this
-    difference exists there.
+        owner of the test suite which uses the pageset to check if this
+        difference exists there.
 
-    Here are the broad steps we use to create the test set:
+        Here are the broad steps we use to create the test set:
 
-    #. Take the Alexa top 500 sites list
-    #. Remove all sites with questionable or explicit content
-    #. Remove duplicate site (for ex. many Google search front pages)
-    #. Manually select to keep interesting pages (such as pages in different
-    locales)
-    #. Select a more representative page from any site presenting a simple
-    search/login/etc. page
-    #. Deal with Windows 255 char limit for cached pages
-    #. Limit test set to top 100 pages
+        #. Take the Alexa top 500 sites list
+        #. Remove all sites with questionable or explicit content
+        #. Remove duplicate site (for ex. many Google search front pages)
+        #. Manually select to keep interesting pages (such as pages in different locales)
+        #. Select a more representative page from any site presenting a simple search/login/etc. page
+        #. Deal with Windows 255 char limit for cached pages
+        #. Limit test set to top 100 pages
 
-    Note that the above steps did not eliminate all outside network access
-    so we had to take further action to scrub all the pages so that there
-    are 0 outside network accesses (this is done so that the tp test is as
-    deterministic measurement of our rendering/layout/paint process as
-    possible).
+        Note that the above steps did not eliminate all outside network access
+        so we had to take further action to scrub all the pages so that there
+        are 0 outside network accesses (this is done so that the tp test is as
+        deterministic measurement of our rendering/layout/paint process as
+        possible).
    * **Example Data**
-   .. code-block:: None
+
+   .. code-block::
 
       0;163.com/www.163.com/index.html;1035;512;542;519;505;514;551;513;554;793;487;528;528;498;503;530;527;490;521;535;521;496;498;564;520
       1;56.com/www.56.com/index.html;1081;583;580;577;597;580;623;558;572;592;598;580;564;583;596;600;579;580;566;573;566;581;571;600;586
@@ -6336,6 +6398,7 @@ For the sample commands found below, note that the capitalization used is import
       48;yelp.com/www.yelp.com/biz/alexanders-steakhouse-cupertino.html;752;475;502;472;477;512;489;478;501;472;454;517;487;474;521;467;450;513;491;464;536;507;455;511;481
       49;youku.com/www.youku.com/index.html;844;448;498;441;417;497;478;439;467;436;447;465;438;461;466;446;452;496;457;446;486;449;467;499;442
       50;youtube.com/www.youtube.com/music.html;443;338;253;289;238;296;254;290;242;302;237;290;253;305;253;293;251;311;244;293;255;291;246;316;249
+
    * cycles: 1
    * gecko_profile_entries: 4000000
    * gecko_profile_interval: 2
@@ -6354,9 +6417,11 @@ For the sample commands found below, note that the capitalization used is import
    * w7_counters: ['% Processor Time']
    * win_counters: ['% Processor Time']
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a tp5o
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -6518,7 +6583,7 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: tp5o_scroll
-   :container: + anchor-id-tp5o_scroll
+   :class-container: anchor-id-tp5o_scroll
 
    * contact: :botond, :tnikkel, :hiro, and layout team
    * source: `tp5n.zip <#page-sets>`__
@@ -6530,19 +6595,20 @@ For the sample commands found below, note that the capitalization used is import
         test.py <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/test.py#l470>`__
       * suite: `geometric mean`_ of the 51 subtest results.
    * description:
-    This test is identical to tscrollx, but it scrolls the 50 pages of the
-    tp5o set (rather than 6 synthetic pages which tscrollx scrolls). There
-    are two variants for each test page. The "regular" variant waits 500ms
-    after the page load event fires, then iterates 100 scroll steps of 10px
-    each (or until the bottom of the page is reached
+      | This test is identical to tscrollx, but it scrolls the 50 pages of the
+        tp5o set (rather than 6 synthetic pages which tscrollx scrolls). There
+        are two variants for each test page. The "regular" variant waits 500ms
+        after the page load event fires, then iterates 100 scroll steps of 10px
+        each (or until the bottom of the page is reached
    * whichever comes
-    first), then reports the average frame interval. The "CSSOM" variant is
-    similar, but uses APZ's smooth scrolling mechanism to do compositor
-    scrolling instead of main-thread scrolling. So it just requests the
-    final scroll destination and the compositor handles the scrolling and
-    reports frame intervals.
+        first), then reports the average frame interval. The "CSSOM" variant is
+        similar, but uses APZ's smooth scrolling mechanism to do compositor
+        scrolling instead of main-thread scrolling. So it just requests the
+        final scroll destination and the compositor handles the scrolling and
+        reports frame intervals.
    * **Example Data**
-   .. code-block:: None
+
+   .. code-block::
 
       0;163.com/www.163.com/index.html;9.73;8.61;7.37;8.17;7.58;7.29;6.88;7.45;6.91;6.61;8.47;7.12
       1;56.com/www.56.com/index.html;10.85;10.24;10.75;10.30;10.23;10.10;10.31;10.06;11.10;10.06;9.56;10.30
@@ -6595,6 +6661,7 @@ For the sample commands found below, note that the capitalization used is import
       48;yelp.com/www.yelp.com/biz/alexanders-steakhouse-cupertino.html;8.18;7.45;7.01;8.14;7.12;7.82;8.24;7.13;7.00;6.41;6.85;7.31
       49;youku.com/www.youku.com/index.html;12.21;10.29;10.37;10.34;8.40;9.82;9.23;9.91;9.64;9.91;8.90;10.23
       50;youtube.com/www.youtube.com/music.html;9.90;9.06;9.29;9.17;8.85;8.77;9.83;9.21;9.29;10.09;9.69;8.64
+
    * **Possible regression causes**: Some examples of things that cause regressions in this test are
       * Increased displayport size (which causes a larger display list to be built)
       * Slowdown in the building of display list
@@ -6610,9 +6677,11 @@ For the sample commands found below, note that the capitalization used is import
    * tpscrolltest: True
    * unit: 1/FPS
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a tp5o_scroll
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -6774,15 +6843,17 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: tp5o_webext
-   :container: + anchor-id-tp5o_webext
+   :class-container: anchor-id-tp5o_webext
 
    * contact: :mixedpuppy and webextension team
    * preferences: {'xpinstall.signatures.required': False}
    * webextensions: ${talos}/webextensions/dummy/dummy.xpi
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a tp5o_webext
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -6944,7 +7015,7 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: tresize
-   :container: + anchor-id-tresize
+   :class-container: anchor-id-tresize
 
    * contact: :gcp and platform integration
    * source: `tresize-test.html <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/startup_test/tresize/addon/content/tresize-test.html>`__
@@ -6956,20 +7027,22 @@ For the sample commands found below, note that the capitalization used is import
         test.py <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/test.py#l205>`__
       * suite: same as subtest result
    * description:
-    A purer form of paint measurement than tpaint. This test opens a single
-    window positioned at 10,10 and sized to 300,300, then resizes the window
-    outward \|max\| times measuring the amount of time it takes to repaint
-    each resize. Dumps the resulting dataset and average to stdout or
-    logfile.
+      | A purer form of paint measurement than tpaint. This test opens a single
+        window positioned at 10,10 and sized to 300,300, then resizes the window
+        outward \|max\| times measuring the amount of time it takes to repaint
+        each resize. Dumps the resulting dataset and average to stdout or
+        logfile.
 
-    In `bug
-    1102479 <https://bugzilla.mozilla.org/show_bug.cgi?id=1102479>`__
-    tresize was rewritten to work in e10s mode which involved a full rewrite
-    of the test.
+      In `bug
+      1102479 <https://bugzilla.mozilla.org/show_bug.cgi?id=1102479>`__
+      tresize was rewritten to work in e10s mode which involved a full rewrite
+      of the test.
    * **Example Data**
-   .. code-block:: None
+
+   .. code-block::
 
       [23.2565333333333, 23.763383333333362, 22.58369999999999, 22.802766666666653, 22.304050000000025, 23.010383333333326, 22.865466666666677, 24.233716666666705, 24.110983333333365, 22.21390000000004, 23.910333333333316, 23.409816666666647, 19.873049999999992, 21.103966666666686, 20.389749999999978, 20.777349999999984, 20.326283333333365, 22.341616666666667, 20.29813333333336, 20.769600000000104]
+
    * **Possible regression causes**
       * slowdown in the paint pipeline
       * resizes also trigger a rendering flush so bugs in the flushing code can manifest as regressions
@@ -6984,9 +7057,11 @@ For the sample commands found below, note that the capitalization used is import
    * tppagecycles: 20
    * unit: ms
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a tresize
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -7148,26 +7223,28 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: ts_paint
-   :container: + anchor-id-ts_paint
+   :class-container: anchor-id-ts_paint
 
    * contact: :mconley, Firefox Desktop Front-end team,
    * source: `tspaint_test.html <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/startup_test/tspaint_test.html>`__
    * Perfomatic: "Ts, Paint"
    * type: Startup_
    * data: 20 times we start the browser and time how long it takes to
-    paint the startup test page, resulting in 1 set of 20 data points.
+     paint the startup test page, resulting in 1 set of 20 data points.
    * summarization:
       * subtest: identical to suite
       * suite: `ignore first`_ data point, then take the `median`_ of the remaining 19 data points; `source:
         test.py <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/test.py#l135>`__
    * description:
-    Starts the browser to display tspaint_test.html with the start time in
-    the url, waits for `MozAfterPaint and onLoad <#paint>`__ to fire, then
-    records the end time and calculates the time to startup.
+      | Starts the browser to display tspaint_test.html with the start time in
+        the url, waits for `MozAfterPaint and onLoad <#paint>`__ to fire, then
+        records the end time and calculates the time to startup.
    * **Example Data**
-   .. code-block:: None
+
+   .. code-block::
 
       [1666.0, 1195.0, 1139.0, 1198.0, 1248.0, 1224.0, 1213.0, 1194.0, 1229.0, 1196.0, 1191.0, 1230.0, 1247.0, 1169.0, 1217.0, 1184.0, 1196.0, 1192.0, 1224.0, 1192.0]
+
    * **Possible regression causes**
       * (and/or maybe tpaint?) will regress if a new element is added to the
         browser window (e.g. browser.xul) and it's frame gets created. Fix
@@ -7184,9 +7261,11 @@ For the sample commands found below, note that the capitalization used is import
    * win7_counters: []
    * xperf_counters: []
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a ts_paint
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -7347,73 +7426,31 @@ For the sample commands found below, note that the capitalization used is import
 
 
 
-.. dropdown:: ts_paint_flex
-   :container: + anchor-id-ts_paint_flex
-
-   * description: This test was created as a part of a goal to switch away from xul flexbox to css flexbox
-   * Contact: No longer being maintained by any team/individual
-   * pine: False
-   * preferences: {'layout.css.moz-box-flexbox-emulation.enabled': True}
-   * Command
-   .. code-block:: None
-
-      ./mach talos-test -a ts_paint_flex
-   * **Test Task**:
-
-   .. list-table:: **test-linux1804-64-qr/opt**
-      :widths: 30 15 15 15 15
-      :header-rows: 1
-
-      * - **Test Name**
-        - mozilla-central
-        - autoland
-        - mozilla-release
-        - mozilla-beta
-      * - **talos-flex**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-
-
-   .. list-table:: **test-linux1804-64-shippable-qr/opt**
-      :widths: 30 15 15 15 15
-      :header-rows: 1
-
-      * - **Test Name**
-        - mozilla-central
-        - autoland
-        - mozilla-release
-        - mozilla-beta
-      * - **talos-flex**
-        - ✅
-        - ❌
-        - ❌
-        - ❌
-
-
-
 .. dropdown:: ts_paint_heavy
-   :container: + anchor-id-ts_paint_heavy
+   :class-container: anchor-id-ts_paint_heavy
 
    * `ts_paint <#ts_paint>`_ test run against a heavy user profile.
    * contact: :mconley, Firefox Desktop Front-end team,
    * profile: simple
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a ts_paint_heavy
 
+
 .. dropdown:: ts_paint_webext
-   :container: + anchor-id-ts_paint_webext
+   :class-container: anchor-id-ts_paint_webext
 
    * contact: :mconley, Firefox Desktop Front-end team,
    * preferences: {'xpinstall.signatures.required': False}
    * webextensions: ${talos}/webextensions/dummy/dummy.xpi
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a ts_paint_webext
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -7575,7 +7612,7 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: tscrollx
-   :container: + anchor-id-tscrollx
+   :class-container: anchor-id-tscrollx
 
    * contact: :jrmuizel and gfx
    * source: `scroll.manifest <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/tests/scroll>`__
@@ -7588,17 +7625,18 @@ For the sample commands found below, note that the capitalization used is import
         test.py <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/test.py#l623>`__
       * suite: `geometric mean`_ of the 6 subtest results.
    * description:
-    This test scrolls several pages where each represent a different known
-    "hard" case to scroll (\* needinfo), and measures the average frames
-    interval (1/FPS) on each. The ASAP test (tscrollx) iterates in unlimited
-    frame-rate mode thus reflecting the maximum scroll throughput per page.
-    To turn on ASAP mode, we set these preferences:
+      | This test scrolls several pages where each represent a different known
+        "hard" case to scroll (\* needinfo), and measures the average frames
+        interval (1/FPS) on each. The ASAP test (tscrollx) iterates in unlimited
+        frame-rate mode thus reflecting the maximum scroll throughput per page.
+        To turn on ASAP mode, we set these preferences:
 
-    ``preferences = {'layout.frame_rate': 0, 'docshell.event_starvation_delay_hint': 1}``
+      ``preferences = {'layout.frame_rate': 0, 'docshell.event_starvation_delay_hint': 1}``
 
-    See also `tp5o_scroll <#tp5o_scroll>`_ which has relevant information for this test.
+      See also `tp5o_scroll <#tp5o_scroll>`_ which has relevant information for this test.
    * **Example Data**
-   .. code-block:: None
+
+   .. code-block::
 
       0;tiled.html;5.41;5.57;5.34;5.64;5.53;5.48;5.44;5.49;5.50;5.50;5.49;5.66;5.50;5.37;5.57;5.54;5.46;5.31;5.41;5.57;5.50;5.52;5.71;5.31;5.44
       fixed.html;10.404609053497941;10.47;10.66;10.45;10.73;10.79;10.64;10.64;10.82;10.43;10.92;10.47;10.47;10.64;10.74;10.67;10.40;10.83;10.77;10.54;10.38;10.70;10.44;10.38;10.56
@@ -7606,6 +7644,7 @@ For the sample commands found below, note that the capitalization used is import
       downscale.html;10.676522633744854;10.82;10.79;10.41;10.75;10.91;10.52;10.61;10.50;10.55;10.80;10.17;10.68;10.41;10.42;10.41;10.58;10.28;10.56;10.66;10.68;10.47;10.60;10.61;10.26
       4;iframe.svg;13.82;14.87;14.78;14.35;14.73;14.50;14.15;14.46;14.80;14.48;15.10;14.93;14.77;14.52;14.08;15.01;14.58;14.52;15.23;14.35;14.72;14.28;14.30;14.27;14.96
       5;reader.htm;10.72;10.62;10.23;10.48;10.42;10.64;10.40;10.40;10.14;10.60;10.51;10.36;10.57;10.41;10.52;10.75;10.19;10.72;10.44;9.75;10.49;10.07;10.54;10.46;10.44
+
    * gecko_profile_entries: 1000000
    * gecko_profile_interval: 1
    * pine: False
@@ -7618,9 +7657,11 @@ For the sample commands found below, note that the capitalization used is import
    * tppagecycles: 25
    * unit: ms
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a tscrollx
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -7782,25 +7823,26 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: tsvg_static
-   :container: + anchor-id-tsvg_static
+   :class-container: anchor-id-tsvg_static
 
    * contact: :jwatt, :dholbert
    * source: `svg_static <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/tests/svg_static/>`__
    * type: `Page load`_
    * data: we load the 5 svg pages 25 times, resulting in 5 sets of 25 data points
-   * summarization: An svg-only number that measures SVG rendering
-    performance of some complex (but static) SVG content.
+   * summarization: An svg-only number that measures SVG rendering performance of some complex (but static) SVG content.
       * subtest: `ignore first`_ **5** data points, then take the `median`_ of the remaining 20; `source:
         test.py <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/test.py#l623>`__
       * suite: `geometric mean`_ of the 5 subtest results.
    * **Example Data**
-   .. code-block:: None
+
+   .. code-block::
 
       0;gearflowers.svg;262;184;184;198;197;187;181;186;177;192;196;194;194;186;195;190;237;193;188;182;188;196;191;194;184
       1;composite-scale.svg;69;52;48;49;57;51;52;87;52;49;49;51;58;53;64;57;49;65;67;58;53;59;56;68;50
       2;composite-scale-opacity.svg;72;53;91;54;51;58;60;46;51;57;59;58;66;70;57;61;47;51;76;65;52;65;64;64;63
       3;composite-scale-rotate.svg;70;76;89;62;62;78;57;77;79;82;74;56;61;79;73;64;75;74;81;82;76;58;77;61;62
       4;composite-scale-rotate-opacity.svg;91;60;67;84;62;66;78;69;65;68;62;73;68;63;64;71;79;77;63;80;85;65;82;76;81
+
    * gecko_profile_entries: 10000000
    * gecko_profile_interval: 1
    * timeout: 600
@@ -7811,9 +7853,11 @@ For the sample commands found below, note that the capitalization used is import
    * tppagecycles: 25
    * unit: ms
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a tsvg_static
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -7975,7 +8019,7 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: tsvgm
-   :container: + anchor-id-tsvgm
+   :class-container: anchor-id-tsvgm
 
    * An svg-only number that measures SVG rendering performance for dynamic content only.
    * contact: :jwatt, :dholbert
@@ -7990,12 +8034,14 @@ For the sample commands found below, note that the capitalization used is import
    * tppagecycles: 7
    * unit: ms
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a tsvgm
 
+
 .. dropdown:: tsvgr_opacity
-   :container: + anchor-id-tsvgr_opacity
+   :class-container: anchor-id-tsvgr_opacity
 
    * contact: :jwatt, :dholbert
    * source: `svg_opacity.manifest <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/tests/svg_opacity/svg_opacity.manifest>`__
@@ -8006,23 +8052,25 @@ For the sample commands found below, note that the capitalization used is import
         test.py <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/test.py#l623>`__
       * suite: `geometric mean`_ of the 2 subtest results.
    * description:
-    Renders many semi-transparent, partially overlapping SVG rectangles, and
-    measures time to completion of this rendering.
+      | Renders many semi-transparent, partially overlapping SVG rectangles, and
+        measures time to completion of this rendering.
 
-    Note that this test also tends to reflect changes in network efficiency
-    and navigation bar rendering issues:
+      Note that this test also tends to reflect changes in network efficiency
+      and navigation bar rendering issues.
    * Most of the page load tests measure from before the location is
-    changed, until onload + mozafterpaint, therefore any changes in
-    chrome performance from the location change, or network performance
-    (the pages load from a local web server) would affect page load
-    times. SVG opacity is rather quick by itself, so any such
-    chrome/network/etc performance changes would affect this test more
-    than other page load tests (relatively, in percentages).
+     changed, until onload + mozafterpaint, therefore any changes in
+     chrome performance from the location change, or network performance
+     (the pages load from a local web server) would affect page load
+     times. SVG opacity is rather quick by itself, so any such
+     chrome/network/etc performance changes would affect this test more
+     than other page load tests (relatively, in percentages).
    * **Example Data**
-   .. code-block:: None
+
+   .. code-block::
 
       0;big-optimizable-group-opacity-2500.svg;170;171;205;249;249;244;192;252;192;431;182;250;189;249;151;168;209;194;247;250;193;250;255;247;247
       1;small-group-opacity-2500.svg;585;436;387;441;512;438;440;380;443;391;450;386;459;383;445;388;450;436;485;443;383;438;528;444;441
+
    * gecko_profile_entries: 10000000
    * gecko_profile_interval: 1
    * timeout: 600
@@ -8033,9 +8081,11 @@ For the sample commands found below, note that the capitalization used is import
    * tppagecycles: 25
    * unit: ms
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a tsvgr_opacity
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -8197,7 +8247,7 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: tsvgx
-   :container: + anchor-id-tsvgx
+   :class-container: anchor-id-tsvgx
 
    * contact: :jwatt, :dholbert
    * source: `svgx <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/tests/svgx>`__
@@ -8208,16 +8258,17 @@ For the sample commands found below, note that the capitalization used is import
         test.py <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/test.py#l623>`__
       * suite: `geometric mean`_ of the 7 subtest results.
    * description:
-    An svg-only number that measures SVG rendering performance, with
-    animations or iterations of rendering. This is an ASAP test --i.e. it
-    iterates in unlimited frame-rate mode thus reflecting the maximum
-    rendering throughput of each test. The reported value is the overall
-    duration the sequence/animation took to complete. To turn on ASAP mode,
-    we set these preferences:
+      | An svg-only number that measures SVG rendering performance, with
+        animations or iterations of rendering. This is an ASAP test --i.e. it
+        iterates in unlimited frame-rate mode thus reflecting the maximum
+        rendering throughput of each test. The reported value is the overall
+        duration the sequence/animation took to complete. To turn on ASAP mode,
+        we set these preferences:
 
-    ``preferences = {'layout.frame_rate': 0, 'docshell.event_starvation_delay_hint': 1}``
+      ``preferences = {'layout.frame_rate': 0, 'docshell.event_starvation_delay_hint': 1}``
    * **Example Data**
-   .. code-block:: None
+
+   .. code-block::
 
       0;hixie-001.xml;562;555;508;521;522;520;499;510;492;514;502;504;500;521;510;506;511;505;495;517;520;512;503;504;502
       1;hixie-002.xml;510;613;536;530;536;522;498;505;500;504;498;529;498;509;493;512;501;506;504;499;496;505;508;511;503
@@ -8226,6 +8277,7 @@ For the sample commands found below, note that the capitalization used is import
       4;hixie-005.xml;3096;3086;3003;3809;3213;3323;3143;3313;3192;3203;3225;3048;3069;3101;3189;3251;3172;3122;3266;3183;3159;3076;3014;3237;3100
       5;hixie-006.xml;5586;5668;5565;5666;5668;5728;5886;5534;5484;5607;5678;5577;5745;5753;5532;5585;5506;5516;5648;5778;5894;5994;5794;5852;5810
       6;hixie-007.xml;1823;1743;1739;1743;1744;1787;1802;1788;1782;1766;1787;1750;1748;1788;1766;1779;1767;1794;1758;1768;1781;1773;1765;1798;1805
+
    * **Possible regression causes**
       * Did you change the dimensions of the content area? Even a little? The
         tsvgx test seems to be sensitive to changes like this. See `bug
@@ -8245,9 +8297,11 @@ For the sample commands found below, note that the capitalization used is import
    * tppagecycles: 25
    * unit: ms
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a tsvgx
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -8409,7 +8463,7 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: twinopen
-   :container: + anchor-id-twinopen
+   :class-container: anchor-id-twinopen
 
    * contact: :gcp and platform integration
    * source: `twinopen <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/tests/twinopen>`__
@@ -8420,15 +8474,17 @@ For the sample commands found below, note that the capitalization used is import
         test.py <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/test.py#l190>`__
       * suite: identical to subtest
    * description:
-    Tests the amount of time it takes the open a new window from a currently
-    open browser. This test does not include startup time. Multiple test
-    windows are opened in succession, results reported are the average
-    amount of time required to create and display a window in the running
-    instance of the browser. (Measures ctrl-n performance.)
+      | Tests the amount of time it takes the open a new window from a currently
+        open browser. This test does not include startup time. Multiple test
+        windows are opened in succession, results reported are the average
+        amount of time required to create and display a window in the running
+        instance of the browser. (Measures ctrl-n performance.)
    * **Example Data**
-   .. code-block:: None
+
+   .. code-block::
 
       [209.219, 222.180, 225.299, 225.970, 228.090, 229.450, 230.625, 236.315, 239.804, 242.795, 244.5, 244.770, 250.524, 251.785, 253.074, 255.349, 264.729, 266.014, 269.399, 326.190]
+
    * extensions: ['${talos}/pageloader', '${talos}/tests/twinopen']
    * gecko_profile_entries: 2000000
    * gecko_profile_interval: 1
@@ -8439,9 +8495,11 @@ For the sample commands found below, note that the capitalization used is import
    * tppagecycles: 20
    * unit: ms
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a twinopen
+
    * **Test Task**:
 
    .. list-table:: **test-linux1804-64-qr/opt**
@@ -8603,12 +8661,12 @@ For the sample commands found below, note that the capitalization used is import
 
 
 .. dropdown:: v8_7
-   :container: + anchor-id-v8_7
+   :class-container: anchor-id-v8_7
 
    * description:
-    This is the V8 (version 7) javascript benchmark taken verbatim and slightly modified
-    to fit into our pageloader extension and talos harness. The previous version of this
-    test is V8 version 5 which was run on selective branches and operating systems.
+      | This is the V8 (version 7) javascript benchmark taken verbatim and slightly modified
+        to fit into our pageloader extension and talos harness. The previous version of this
+        test is V8 version 5 which was run on selective branches and operating systems.
    * contact: No longer being maintained by any team/individual
    * gecko_profile_entries: 1000000
    * gecko_profile_interval: 1
@@ -8620,9 +8678,11 @@ For the sample commands found below, note that the capitalization used is import
    * tpmozafterpaint: False
    * unit: score
    * Command
-   .. code-block:: None
+
+   .. code-block::
 
       ./mach talos-test -a v8_7
+
 
 
 

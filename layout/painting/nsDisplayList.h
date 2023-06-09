@@ -265,7 +265,6 @@ enum class nsDisplayListBuilderMode : uint8_t {
   PaintForPrinting,
   EventDelivery,
   FrameVisibility,
-  TransformComputation,
   GenerateGlyph,
 };
 
@@ -583,6 +582,16 @@ class nsDisplayListBuilder {
   }
 
   void Check() { mPool.Check(); }
+
+  /*
+   * Get the paint sequence number of the current paint.
+   */
+  static uint32_t GetPaintSequenceNumber() { return sPaintSequenceNumber; }
+
+  /*
+   * Increment the paint sequence number.
+   */
+  static void IncrementPaintSequenceNumber() { ++sPaintSequenceNumber; }
 
   /**
    * Returns true if merging and flattening of display lists should be
@@ -1772,21 +1781,12 @@ class nsDisplayListBuilder {
     uint32_t mUsage;
   };
 
+  // will-change budget tracker
+  typedef uint32_t DocumentWillChangeBudget;
+
   nsIFrame* const mReferenceFrame;
   nsIFrame* mIgnoreScrollFrame;
 
-  using Arena = nsPresArena<32768, DisplayListArenaObjectId,
-                            size_t(DisplayListArenaObjectId::COUNT)>;
-  Arena mPool;
-
-  AutoTArray<PresShellState, 8> mPresShellStates;
-  AutoTArray<nsIFrame*, 400> mFramesMarkedForDisplay;
-  AutoTArray<nsIFrame*, 40> mFramesMarkedForDisplayIfVisible;
-  AutoTArray<nsIFrame*, 20> mFramesWithOOFData;
-  nsClassHashtable<nsPtrHashKey<nsDisplayItem>,
-                   nsTArray<nsIWidget::ThemeGeometry>>
-      mThemeGeometries;
-  DisplayListClipState mClipState;
   const ActiveScrolledRoot* mCurrentActiveScrolledRoot;
   const ActiveScrolledRoot* mCurrentContainerASR;
   // mCurrentFrame is the frame that we're currently calling (or about to call)
@@ -1794,13 +1794,41 @@ class nsDisplayListBuilder {
   const nsIFrame* mCurrentFrame;
   // The reference frame for mCurrentFrame.
   const nsIFrame* mCurrentReferenceFrame;
-  // The offset from mCurrentFrame to mCurrentReferenceFrame.
-  nsPoint mCurrentOffsetToReferenceFrame;
 
-  Maybe<nsPoint> mAdditionalOffset;
+  // The display item for the Windows window glass background, if any
+  // Set during full display list builds or during display list merging only,
+  // partial display list builds don't touch this.
+  nsDisplayItem* mGlassDisplayItem;
 
-  // will-change budget tracker
-  typedef uint32_t DocumentWillChangeBudget;
+  nsIFrame* mCaretFrame;
+  // A temporary list that we append scroll info items to while building
+  // display items for the contents of frames with SVG effects.
+  // Only non-null when ShouldBuildScrollInfoItemsForHoisting() is true.
+  // This is a pointer and not a real nsDisplayList value because the
+  // nsDisplayList class is defined below this class, so we can't use it here.
+  nsDisplayList* mScrollInfoItemsForHoisting;
+  nsTArray<RefPtr<ActiveScrolledRoot>> mActiveScrolledRoots;
+  DisplayItemClipChain* mFirstClipChainToDestroy;
+  nsTArray<nsDisplayItem*> mTemporaryItems;
+  nsDisplayTableBackgroundSet* mTableBackgroundSet;
+  ViewID mCurrentScrollParentId;
+  ViewID mCurrentScrollbarTarget;
+
+  nsTArray<nsIFrame*> mSVGEffectsFrames;
+  // When we are inside a filter, the current ASR at the time we entered the
+  // filter. Otherwise nullptr.
+  const ActiveScrolledRoot* mFilterASR;
+  nsCString mLinkSpec;  // Destination of link currently being emitted, if any.
+
+  // Optimized versions for non-retained display list.
+  LayoutDeviceIntRegion mWindowDraggingRegion;
+  LayoutDeviceIntRegion mWindowNoDraggingRegion;
+  nsRegion mWindowOpaqueRegion;
+
+  nsClassHashtable<nsPtrHashKey<nsDisplayItem>,
+                   nsTArray<nsIWidget::ThemeGeometry>>
+      mThemeGeometries;
+  DisplayListClipState mClipState;
   nsTHashMap<nsPtrHashKey<const nsPresContext>, DocumentWillChangeBudget>
       mDocumentWillChangeBudgets;
 
@@ -1809,14 +1837,13 @@ class nsDisplayListBuilder {
   nsTHashMap<nsPtrHashKey<const nsIFrame>, FrameWillChangeBudget>
       mFrameWillChangeBudgets;
 
-  uint8_t mBuildingExtraPagesForPageNum;
-
   nsTHashMap<nsPtrHashKey<dom::RemoteBrowser>, dom::EffectsInfo>
       mEffectsUpdates;
 
-  // Relative to mCurrentFrame.
-  nsRect mVisibleRect;
-  nsRect mDirtyRect;
+  nsTHashSet<nsCString> mDestinations;  // Destination names emitted.
+
+  // Stores reusable items collected during display list preprocessing.
+  nsTHashSet<nsDisplayItem*> mReuseableItems;
 
   // Tracked regions used for retained display list.
   WeakFrameRegion mWindowExcludeGlassRegion;
@@ -1826,47 +1853,46 @@ class nsDisplayListBuilder {
   // Window opaque region is calculated during layer building.
   WeakFrameRegion mRetainedWindowOpaqueRegion;
 
-  // Optimized versions for non-retained display list.
-  LayoutDeviceIntRegion mWindowDraggingRegion;
-  LayoutDeviceIntRegion mWindowNoDraggingRegion;
-  nsRegion mWindowOpaqueRegion;
+  std::unordered_set<const DisplayItemClipChain*, DisplayItemClipChainHasher,
+                     DisplayItemClipChainEqualer>
+      mClipDeduplicator;
+  std::unordered_set<nsIScrollableFrame*> mScrollFramesToNotify;
 
-  // The display item for the Windows window glass background, if any
-  // Set during full display list builds or during display list merging only,
-  // partial display list builds don't touch this.
-  nsDisplayItem* mGlassDisplayItem;
+  AutoTArray<nsIFrame*, 20> mFramesWithOOFData;
+  AutoTArray<nsIFrame*, 40> mFramesMarkedForDisplayIfVisible;
+  AutoTArray<PresShellState, 8> mPresShellStates;
+
+  using Arena = nsPresArena<32768, DisplayListArenaObjectId,
+                            size_t(DisplayListArenaObjectId::COUNT)>;
+  Arena mPool;
+
+  AutoTArray<nsIFrame*, 400> mFramesMarkedForDisplay;
+
+  gfx::CompositorHitTestInfo mCompositorHitTestInfo;
+
+  // The offset from mCurrentFrame to mCurrentReferenceFrame.
+  nsPoint mCurrentOffsetToReferenceFrame;
+
+  Maybe<float> mVisibleThreshold;
+
+  Maybe<nsPoint> mAdditionalOffset;
+
+  // Relative to mCurrentFrame.
+  nsRect mVisibleRect;
+  nsRect mDirtyRect;
+  nsRect mCaretRect;
+
+  Preserves3DContext mPreserves3DCtx;
+
+  uint8_t mBuildingExtraPagesForPageNum;
+
   // If we've encountered a glass item yet, only used during partial display
   // list builds.
   bool mHasGlassItemDuringPartial;
 
-  nsIFrame* mCaretFrame;
-  nsRect mCaretRect;
-
-  // A temporary list that we append scroll info items to while building
-  // display items for the contents of frames with SVG effects.
-  // Only non-null when ShouldBuildScrollInfoItemsForHoisting() is true.
-  // This is a pointer and not a real nsDisplayList value because the
-  // nsDisplayList class is defined below this class, so we can't use it here.
-  nsDisplayList* mScrollInfoItemsForHoisting;
-  nsTArray<RefPtr<ActiveScrolledRoot>> mActiveScrolledRoots;
-  std::unordered_set<const DisplayItemClipChain*, DisplayItemClipChainHasher,
-                     DisplayItemClipChainEqualer>
-      mClipDeduplicator;
-  DisplayItemClipChain* mFirstClipChainToDestroy;
-  nsTArray<nsDisplayItem*> mTemporaryItems;
   nsDisplayListBuilderMode mMode;
-  nsDisplayTableBackgroundSet* mTableBackgroundSet;
-  ViewID mCurrentScrollParentId;
-  ViewID mCurrentScrollbarTarget;
-  Maybe<layers::ScrollDirection> mCurrentScrollbarDirection;
-  Preserves3DContext mPreserves3DCtx;
-  nsTArray<nsIFrame*> mSVGEffectsFrames;
-  // When we are inside a filter, the current ASR at the time we entered the
-  // filter. Otherwise nullptr.
-  const ActiveScrolledRoot* mFilterASR;
-  std::unordered_set<nsIScrollableFrame*> mScrollFramesToNotify;
-  nsCString mLinkSpec;  // Destination of link currently being emitted, if any.
-  nsTHashSet<nsCString> mDestinations;  // Destination names emitted.
+  static uint32_t sPaintSequenceNumber;
+
   bool mContainsBlendMode;
   bool mIsBuildingScrollbar;
   bool mCurrentScrollbarWillHaveLayer;
@@ -1912,13 +1938,9 @@ class nsDisplayListBuilder {
   bool mUseOverlayScrollbars;
   bool mAlwaysLayerizeScrollbars;
 
-  Maybe<float> mVisibleThreshold;
-  gfx::CompositorHitTestInfo mCompositorHitTestInfo;
-
   bool mIsReusingStackingContextItems;
 
-  // Stores reusable items collected during display list preprocessing.
-  nsTHashSet<nsDisplayItem*> mReuseableItems;
+  Maybe<layers::ScrollDirection> mCurrentScrollbarDirection;
 };
 
 // All types are defined in nsDisplayItemTypes.h
@@ -5413,7 +5435,6 @@ class nsDisplayOwnLayer : public nsDisplayWrapList {
   enum OwnLayerType {
     OwnLayerForTransformWithRoundedClip,
     OwnLayerForStackingContext,
-    OwnLayerForImageBoxFrame,
     OwnLayerForScrollbar,
     OwnLayerForScrollThumb,
     OwnLayerForSubdoc,
@@ -6726,7 +6747,7 @@ class nsDisplayDestination : public nsPaintedDisplayItem {
   nsPoint mPosition;
 };
 
-class FlattenedDisplayListIterator {
+class MOZ_STACK_CLASS FlattenedDisplayListIterator {
  public:
   FlattenedDisplayListIterator(nsDisplayListBuilder* aBuilder,
                                nsDisplayList* aList)
@@ -6819,7 +6840,8 @@ class FlattenedDisplayListIterator {
   nsDisplayListBuilder* mBuilder;
   nsDisplayList::iterator mStart;
   nsDisplayList::iterator mEnd;
-  nsTArray<std::pair<nsDisplayList::iterator, nsDisplayList::iterator>> mStack;
+  AutoTArray<std::pair<nsDisplayList::iterator, nsDisplayList::iterator>, 3>
+      mStack;
 };
 
 class PaintTelemetry {

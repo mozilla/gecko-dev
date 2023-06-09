@@ -1,15 +1,5 @@
-const { AppConstants } = ChromeUtils.importESModule(
-  "resource://gre/modules/AppConstants.sys.mjs"
-);
-
-var { XPCOMUtils } = ChromeUtils.importESModule(
-  "resource://gre/modules/XPCOMUtils.sys.mjs"
-);
-var { SitePermissions } = ChromeUtils.import(
-  "resource:///modules/SitePermissions.jsm"
-);
-var { PermissionTestUtils } = ChromeUtils.import(
-  "resource://testing-common/PermissionTestUtils.jsm"
+var { PermissionTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/PermissionTestUtils.sys.mjs"
 );
 
 const PREF_PERMISSION_FAKE = "media.navigator.permission.fake";
@@ -398,9 +388,6 @@ function promiseMessage(
 function promisePopupNotificationShown(aName, aAction, aWindow = window) {
   let startTime = performance.now();
   return new Promise(resolve => {
-    // In case the global webrtc indicator has stolen focus (bug 1421724)
-    aWindow.focus();
-
     aWindow.PopupNotifications.panel.addEventListener(
       "popupshown",
       function() {
@@ -450,10 +437,19 @@ const kActionAlways = 1;
 const kActionDeny = 2;
 const kActionNever = 3;
 
-function activateSecondaryAction(aAction) {
+async function activateSecondaryAction(aAction) {
   let notification = PopupNotifications.panel.firstElementChild;
   switch (aAction) {
     case kActionNever:
+      if (notification.notification.secondaryActions.length > 1) {
+        // "Always Block" is the first (and only) item in the menupopup.
+        await Promise.all([
+          BrowserTestUtils.waitForEvent(notification.menupopup, "popupshown"),
+          notification.menubutton.click(),
+        ]);
+        notification.menupopup.querySelector("menuitem").click();
+        return;
+      }
       if (!notification.checkbox.checked) {
         notification.checkbox.click();
       }

@@ -89,19 +89,25 @@ class TextLeafPoint final {
    */
   TextLeafPoint ActualizeCaret(bool aAdjustAtEndOfLine = true) const;
 
+  enum class BoundaryFlags : uint32_t {
+    eDefaultBoundaryFlags = 0,
+    // Return point unchanged if it is at the given boundary type.
+    eIncludeOrigin = 1 << 0,
+    // If current point is in editable, return point within samme editable.
+    eStopInEditable = 1 << 1,
+    // Skip over list items in searches and don't consider them line or
+    // paragraph starts.
+    eIgnoreListItemMarker = 1 << 2,
+  };
+
   /**
    * Find a boundary (word start, line start, etc.) in a specific direction.
    * If no boundary is found, the start/end of the document is returned
    * (depending on the direction).
-   * If aIncludeorigin is true and this is at a boundary, this will be
-   * returned unchanged.
-   * If aStopInEditable is true the boundary returned will be within the
-   * current editable (if this point is in an editable).
    */
-  TextLeafPoint FindBoundary(AccessibleTextBoundary aBoundaryType,
-                             nsDirection aDirection,
-                             bool aIncludeOrigin = false,
-                             bool aStopInEditable = false) const;
+  TextLeafPoint FindBoundary(
+      AccessibleTextBoundary aBoundaryType, nsDirection aDirection,
+      BoundaryFlags aFlags = BoundaryFlags::eDefaultBoundaryFlags) const;
 
   /**
    * These two functions find a line start boundary within the same
@@ -184,12 +190,23 @@ class TextLeafPoint final {
 
   bool IsSpace() const;
 
-  bool IsParagraphStart() const {
-    return mOffset == 0 && FindParagraphSameAcc(eDirPrevious, true);
+  bool IsParagraphStart(bool aIgnoreListItemMarker = false) const {
+    return mOffset == 0 &&
+           FindParagraphSameAcc(eDirPrevious, true, aIgnoreListItemMarker);
   }
+
+  /**
+   * Translate given TextLeafPoint into a DOM point.
+   */
+  MOZ_CAN_RUN_SCRIPT std::pair<nsIContent*, int32_t> ToDOMPoint(
+      bool aIncludeGenerated = true) const;
 
  private:
   bool IsEmptyLastLine() const;
+
+  bool IsDocEdge(nsDirection aDirection) const;
+
+  bool IsLeafAfterListItemMarker() const;
 
   char16_t GetChar() const;
 
@@ -201,15 +218,15 @@ class TextLeafPoint final {
    *is local or remote.
    */
   TextLeafPoint FindLineStartSameAcc(nsDirection aDirection,
-                                     bool aIncludeOrigin) const;
+                                     bool aIncludeOrigin,
+                                     bool aIgnoreListItemMarker = false) const;
 
-  TextLeafPoint FindLineEnd(nsDirection aDirection, bool aIncludeOrigin,
-                            bool aStopInEditable) const;
-  TextLeafPoint FindWordEnd(nsDirection aDirection, bool aIncludeOrigin,
-                            bool aStopInEditable) const;
+  TextLeafPoint FindLineEnd(nsDirection aDirection, BoundaryFlags aFlags) const;
+  TextLeafPoint FindWordEnd(nsDirection aDirection, BoundaryFlags aFlags) const;
 
   TextLeafPoint FindParagraphSameAcc(nsDirection aDirection,
-                                     bool aIncludeOrigin) const;
+                                     bool aIncludeOrigin,
+                                     bool aIgnoreListItemMarker = false) const;
 
   bool IsInSpellingError() const;
 
@@ -220,7 +237,23 @@ class TextLeafPoint final {
    */
   TextLeafPoint FindSpellingErrorSameAcc(nsDirection aDirection,
                                          bool aIncludeOrigin) const;
+
+  // Return the point immediately succeeding or preceding this leaf depending
+  // on given direction.
+  TextLeafPoint NeighborLeafPoint(nsDirection aDirection, bool aIsEditable,
+                                  bool aIgnoreListItemMarker) const;
+
+  /**
+   * This function assumes mAcc is a LocalAccessible.
+   * It iterates the continuations of mAcc's primary frame until it locates
+   * the continuation containing mOffset (a rendered offset). It then uses
+   * GetScreenRectInAppUnits to compute screen coords for the frame, resizing
+   * such that the resulting rect contains only one character.
+   */
+  LayoutDeviceIntRect ComputeBoundsFromFrame() const;
 };
+
+MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(TextLeafPoint::BoundaryFlags)
 
 /**
  * Represents a range of accessible text.
@@ -255,6 +288,16 @@ class TextLeafRange final {
    * works on remote accessibles, and assumes caching is enabled.
    */
   LayoutDeviceIntRect Bounds() const;
+
+  /**
+   * Set range as DOM selection.
+   * aSelectionNum is the selection index to use. If aSelectionNum is
+   * out of bounds for current selection ranges, or is -1, a new selection
+   * range is created.
+   */
+  MOZ_CAN_RUN_SCRIPT bool SetSelection(int32_t aSelectionNum) const;
+
+  MOZ_CAN_RUN_SCRIPT void ScrollIntoView(uint32_t aScrollType) const;
 
  private:
   TextLeafPoint mStart;

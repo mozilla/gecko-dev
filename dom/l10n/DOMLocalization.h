@@ -40,8 +40,9 @@ class DOMLocalization : public intl::Localization {
       const dom::Optional<dom::Sequence<nsCString>>& aLocales,
       ErrorResult& aRv);
 
-  virtual JSObject* WrapObject(JSContext* aCx,
-                               JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapObject(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
+
+  bool HasPendingMutations() const;
 
   /**
    * DOMLocalization API
@@ -49,11 +50,11 @@ class DOMLocalization : public intl::Localization {
    * Methods documentation in DOMLocalization.webidl
    */
 
-  void ConnectRoot(nsINode& aNode, ErrorResult& aRv);
-  void DisconnectRoot(nsINode& aNode, ErrorResult& aRv);
+  void ConnectRoot(nsINode& aNode);
+  void DisconnectRoot(nsINode& aNode);
 
-  void PauseObserving(ErrorResult& aRv);
-  void ResumeObserving(ErrorResult& aRv);
+  void PauseObserving();
+  void ResumeObserving();
 
   void SetAttributes(JSContext* aCx, Element& aElement, const nsAString& aId,
                      const Optional<JS::Handle<JSObject*>>& aArgs,

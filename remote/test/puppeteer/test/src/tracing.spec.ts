@@ -16,12 +16,14 @@
 
 import fs from 'fs';
 import path from 'path';
-import expect from 'expect';
-import {getTestState, describeChromeOnly} from './mocha-utils.js';
-import {Browser} from '../../lib/cjs/puppeteer/common/Browser.js';
-import {Page} from '../../lib/cjs/puppeteer/common/Page.js';
 
-describeChromeOnly('Tracing', function () {
+import expect from 'expect';
+import {Browser} from 'puppeteer-core/internal/api/Browser.js';
+import {Page} from 'puppeteer-core/internal/api/Page.js';
+
+import {getTestState} from './mocha-utils.js';
+
+describe('Tracing', function () {
   let outputFile!: string;
   let browser!: Browser;
   let page!: Page;

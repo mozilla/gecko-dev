@@ -4,7 +4,9 @@
 
 "use strict";
 
-const { DevToolsServer } = require("resource://devtools/server/devtools-server.js");
+const {
+  DevToolsServer,
+} = require("resource://devtools/server/devtools-server.js");
 const DevToolsUtils = require("resource://devtools/shared/DevToolsUtils.js");
 const { assert } = DevToolsUtils;
 
@@ -63,14 +65,20 @@ function getPromiseState(obj) {
 }
 
 /**
- * Returns true if value is an object or function
+ * Returns true if value is an object or function.
  *
  * @param value
  * @returns {boolean}
  */
 
 function isObjectOrFunction(value) {
-  return value && (typeof value == "object" || typeof value == "function");
+  // Handle null, whose typeof is object
+  if (!value) {
+    return false;
+  }
+
+  const type = typeof value;
+  return type == "object" || type == "function";
 }
 
 /**
@@ -423,24 +431,45 @@ function getModifiersForEvent(rawObj) {
  *         Debuggee value for |value|.
  */
 function makeDebuggeeValue(targetActor, value) {
-  if (isObject(value)) {
-    try {
-      const global = Cu.getGlobalForObject(value);
-      const dbgGlobal = targetActor.dbg.makeGlobalObjectReference(global);
-      return dbgGlobal.makeDebuggeeValue(value);
-    } catch (ex) {
-      // The above can throw an exception if value is not an actual object
-      // or 'Object in compartment marked as invisible to Debugger'
+  // Primitive types are debuggee values and Debugger.Object.makeDebuggeeValue
+  // would return them unchanged. So avoid the expense of:
+  // getGlobalForObject+makeGlobalObjectReference+makeDebugeeValue for them.
+  //
+  // It is actually easier to identify non primitive which can only be object or function.
+  if (!isObjectOrFunction(value)) {
+    return value;
+  }
+
+  // `value` may come from various globals.
+  // And Debugger.Object.makeDebuggeeValue only works for objects
+  // related to the same global. So fetch the global first,
+  // in order to instantiate a Debugger.Object for it.
+  //
+  // In the worker thread, we don't have access to Cu,
+  // but at the same time, there is only one global, the worker one.
+  const valueGlobal = isWorker ? targetActor.workerGlobal : Cu.getGlobalForObject(value);
+  let dbgGlobal;
+  try {
+    dbgGlobal = targetActor.dbg.makeGlobalObjectReference(
+      valueGlobal
+    );
+  } catch(e) {
+    // makeGlobalObjectReference will throw if the global is invisible to Debugger,
+    // in this case instantiate a Debugger.Object for the top level global
+    // of the target. Even if value will come from another global, it will "work",
+    // but the Debugger.Object created via dbgGlobal.makeDebuggeeValue will throw
+    // on most methods as the object will also be invisible to Debuggee...
+    if (e.message.includes("object in compartment marked as invisible to Debugger")) {
+      dbgGlobal = targetActor.dbg.makeGlobalObjectReference(
+        targetActor.window 
+      );
+
+    } else {
+      throw e;
     }
   }
-  const dbgGlobal = targetActor.dbg.makeGlobalObjectReference(
-    targetActor.window || targetActor.workerGlobal
-  );
-  return dbgGlobal.makeDebuggeeValue(value);
-}
 
-function isObject(value) {
-  return Object(value) === value;
+  return dbgGlobal.makeDebuggeeValue(value);
 }
 
 /**
@@ -468,14 +497,26 @@ function createStringGrip(targetActor, string) {
  * @param Number depth
  *        Depth of the object compared to the top level object,
  *        when we are inspecting nested attributes.
+ * @param Object [objectActorAttributes]
+ *        An optional object whose properties will be assigned to the ObjectActor if one
+ *        is created.
  * @return object
  */
-function createValueGripForTarget(targetActor, value, depth = 0) {
-  return createValueGrip(
-    value,
-    targetActor,
-    createObjectGrip.bind(null, targetActor, depth)
-  );
+function createValueGripForTarget(
+  targetActor,
+  value,
+  depth = 0,
+  objectActorAttributes = {}
+) {
+  const makeObjectGrip = (objectActorValue, pool) =>
+    createObjectGrip(
+      targetActor,
+      depth,
+      objectActorValue,
+      pool,
+      objectActorAttributes
+    );
+  return createValueGrip(value, targetActor, makeObjectGrip);
 }
 
 /**
@@ -519,14 +560,23 @@ function createEnvironmentActor(environment, targetActor) {
  *        The object you want.
  * @param object pool
  *        A Pool where the new actor instance is added.
+ * @param object [objectActorAttributes]
+ *        An optional object whose properties will be assigned to the ObjectActor being created.
  * @param object
  *        The object grip.
  */
-function createObjectGrip(targetActor, depth, object, pool) {
+function createObjectGrip(
+  targetActor,
+  depth,
+  object,
+  pool,
+  objectActorAttributes = {}
+) {
   let gripDepth = depth;
   const actor = new ObjectActor(
     object,
     {
+      ...objectActorAttributes,
       thread: targetActor.threadActor,
       getGripDepth: () => gripDepth,
       incrementGripDepth: () => gripDepth++,
@@ -537,6 +587,7 @@ function createObjectGrip(targetActor, depth, object, pool) {
     targetActor.conn
   );
   pool.manage(actor);
+
   return actor.form();
 }
 

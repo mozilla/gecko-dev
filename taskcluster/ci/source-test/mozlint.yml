@@ -242,20 +242,6 @@ mscom-init:
             - '**/*.h'
             - 'tools/lint/mscom-init.yml'
 
-py-flake8:
-    description: flake8 run over the gecko codebase
-    treeherder:
-        symbol: py(f8)
-    run:
-        mach: lint -v -l flake8 -f treeherder -f json:/builds/worker/mozlint.json *
-    when:
-        files-changed:
-            - '**/*.py'
-            - '**/.flake8'
-            - 'tools/lint/flake8.yml'
-            # moz.configure files are also Python files.
-            - '**/*.configure'
-
 py-black:
     description: black run over the gecko codebase
     treeherder:
@@ -272,40 +258,28 @@ py-black:
             - 'pyproject.toml'
             - 'tools/lint/black.yml'
 
-py-pylint:
-    description: pylint run over the gecko codebase
+py-ruff:
+    description: Run ruff over the gecko codebase
     treeherder:
-        symbol: py(pylint)
+        symbol: py(ruff)
     run:
-        mach: lint -v -l pylint -f treeherder -f json:/builds/worker/mozlint.json *
+        mach: lint -v -l ruff -f treeherder -f json:/builds/worker/mozlint.json *
     when:
         files-changed:
             - '**/*.py'
-            - 'tools/lint/pylint.yml'
-            # moz.configure files are also Python files
-            # However, pylint has some hard time dealing with it
-
-py-isort:
-    description: isort run over the gecko codebase
-    treeherder:
-        symbol: py(isort)
-    run:
-        mach: lint -v -l isort -f treeherder -f json:/builds/worker/mozlint.json *
-    when:
-        files-changed:
-            - '**/*.py'
-            - '**/.flake8'
-            - '**/.isort.cfg'
-            - 'tools/lint/isort.yml'
-            # moz.configure files are also Python files.
             - '**/*.configure'
+            - '**/.ruff.toml'
+            - 'pyproject.toml'
+            - 'tools/lint/ruff.yml'
+            - 'tools/lint/python/ruff.py'
+            - 'tools/lint/python/ruff_requirements.txt'
 
 test-manifest:
     description: lint test manifests
     treeherder:
         symbol: misc(tm)
     run:
-        mach: lint -v -l test-manifest-disable -l test-manifest-skip-if -f treeherder -f json:/builds/worker/mozlint.json *
+        mach: lint -v -l test-manifest-alpha -l test-manifest-disable -l test-manifest-skip-if -f treeherder -f json:/builds/worker/mozlint.json *
     when:
         files-changed:
             - '**/*.ini'

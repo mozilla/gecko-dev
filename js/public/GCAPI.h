@@ -261,11 +261,10 @@ typedef enum JSGCParamKey {
   JSGC_MIN_EMPTY_CHUNK_COUNT = 21,
 
   /**
-   * We never keep more than this many unused chunks in the free chunk
-   * pool.
+   * We never keep more than this many unused chunks in the free chunk pool.
    *
-   * Pref: javascript.options.mem.gc_min_empty_chunk_count
-   * Default: MinEmptyChunkCount
+   * Pref: javascript.options.mem.gc_max_empty_chunk_count
+   * Default: MaxEmptyChunkCount
    */
   JSGC_MAX_EMPTY_CHUNK_COUNT = 22,
 
@@ -470,6 +469,26 @@ typedef enum JSGCParamKey {
    * incremental limit.
    */
   JSGC_URGENT_THRESHOLD_MB = 48,
+
+  /**
+   * Set the number of threads to use for parallel marking, or zero to use the
+   * default.
+   *
+   * The actual number used is capped to the number of available helper threads.
+   *
+   * This is provided for testing purposes.
+   *
+   * Pref: None.
+   * Default: 0 (no effect).
+   */
+  JSGC_MARKING_THREAD_COUNT = 49,
+
+  /**
+   * The heap size above which to use parallel marking.
+   *
+   * Default: ParallelMarkingThresholdKB
+   */
+  JSGC_PARALLEL_MARKING_THRESHOLD_KB = 50,
 } JSGCParamKey;
 
 /*
@@ -597,7 +616,7 @@ namespace JS {
   D(FULL_CELL_PTR_STR_BUFFER, 28)                                      \
   D(TOO_MUCH_JIT_CODE, 29)                                             \
   D(FULL_CELL_PTR_BIGINT_BUFFER, 30)                                   \
-  D(UNUSED5, 31)                                                       \
+  D(NURSERY_TRAILERS, 31)                                              \
   D(NURSERY_MALLOC_BUFFERS, 32)                                        \
                                                                        \
   /*                                                                   \
@@ -983,13 +1002,14 @@ extern JS_PUBLIC_API bool WasIncrementalGC(JSRuntime* rt);
 
 /*
  * Generational GC:
- *
- * Note: Generational GC is not yet enabled by default. The following class
- *       is non-functional unless SpiderMonkey was configured with
- *       --enable-gcgenerational.
  */
 
-/** Ensure that generational GC is disabled within some scope. */
+/**
+ * Ensure that generational GC is disabled within some scope.
+ *
+ * This evicts the nursery and discards JIT code so it is not a lightweight
+ * operation.
+ */
 class JS_PUBLIC_API AutoDisableGenerationalGC {
   JSContext* cx;
 
@@ -1118,7 +1138,7 @@ class JS_PUBLIC_API AutoCheckCannotGC : public AutoRequireNoGC {
   explicit AutoCheckCannotGC(JSContext* cx = nullptr) {}
   AutoCheckCannotGC(const AutoCheckCannotGC& other) : AutoCheckCannotGC() {}
 #endif
-} JS_HAZ_GC_INVALIDATED;
+} JS_HAZ_GC_INVALIDATED JS_HAZ_GC_REF;
 
 extern JS_PUBLIC_API void SetLowMemoryState(JSContext* cx, bool newState);
 

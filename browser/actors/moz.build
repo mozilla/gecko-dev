@@ -13,22 +13,22 @@ with Files("ContentSearch*.sys.mjs"):
 with Files("AboutReaderParent.jsm"):
     BUG_COMPONENT = ("Toolkit", "Reader Mode")
 
-with Files("LightweightThemeChild.jsm"):
+with Files("LightweightThemeChild.sys.mjs"):
     BUG_COMPONENT = ("WebExtensions", "Themes")
 
 with Files("PageInfoChild.sys.mjs"):
     BUG_COMPONENT = ("Firefox", "Page Info Window")
 
-with Files("PageStyleChild.jsm"):
+with Files("PageStyleChild.sys.mjs"):
     BUG_COMPONENT = ("Firefox", "Menus")
 
-with Files("PluginChild.jsm"):
+with Files("PluginChild.sys.mjs"):
     BUG_COMPONENT = ("Core", "Audio/Video: GMP")
 
 with Files("ScreenshotsComponentChild.sys.mjs"):
     BUG_COMPONENT = ("Firefox", "Screenshots")
 
-with Files("WebRTCChild.jsm"):
+with Files("WebRTCChild.sys.mjs"):
     BUG_COMPONENT = ("Firefox", "Site Permissions")
 
 FINAL_TARGET_FILES.actors += [
@@ -38,8 +38,8 @@ FINAL_TARGET_FILES.actors += [
     "AboutPluginsParent.sys.mjs",
     "AboutPocketChild.sys.mjs",
     "AboutPocketParent.sys.mjs",
-    "AboutPrivateBrowsingChild.jsm",
-    "AboutPrivateBrowsingParent.jsm",
+    "AboutPrivateBrowsingChild.sys.mjs",
+    "AboutPrivateBrowsingParent.sys.mjs",
     "AboutProtectionsChild.sys.mjs",
     "AboutProtectionsParent.sys.mjs",
     "AboutReaderChild.sys.mjs",
@@ -50,7 +50,6 @@ FINAL_TARGET_FILES.actors += [
     "BlockedSiteParent.sys.mjs",
     "BrowserProcessChild.sys.mjs",
     "BrowserTabChild.sys.mjs",
-    "BrowserTabParent.sys.mjs",
     "ClickHandlerChild.sys.mjs",
     "ClickHandlerParent.sys.mjs",
     "ContentSearchChild.sys.mjs",
@@ -65,27 +64,27 @@ FINAL_TARGET_FILES.actors += [
     "EncryptedMediaParent.sys.mjs",
     "FormValidationChild.sys.mjs",
     "FormValidationParent.sys.mjs",
-    "LightweightThemeChild.jsm",
-    "LinkHandlerChild.jsm",
-    "LinkHandlerParent.jsm",
+    "LightweightThemeChild.sys.mjs",
+    "LinkHandlerChild.sys.mjs",
+    "LinkHandlerParent.sys.mjs",
     "PageInfoChild.sys.mjs",
-    "PageStyleChild.jsm",
-    "PageStyleParent.jsm",
-    "PluginChild.jsm",
-    "PluginParent.jsm",
-    "PointerLockChild.jsm",
-    "PointerLockParent.jsm",
-    "PromptParent.jsm",
-    "RefreshBlockerChild.jsm",
-    "RefreshBlockerParent.jsm",
-    "RFPHelperChild.jsm",
-    "RFPHelperParent.jsm",
+    "PageStyleChild.sys.mjs",
+    "PageStyleParent.sys.mjs",
+    "PluginChild.sys.mjs",
+    "PluginParent.sys.mjs",
+    "PointerLockChild.sys.mjs",
+    "PointerLockParent.sys.mjs",
+    "PromptParent.sys.mjs",
+    "RefreshBlockerChild.sys.mjs",
+    "RefreshBlockerParent.sys.mjs",
+    "RFPHelperChild.sys.mjs",
+    "RFPHelperParent.sys.mjs",
     "ScreenshotsComponentChild.sys.mjs",
-    "SearchSERPTelemetryChild.jsm",
-    "SearchSERPTelemetryParent.jsm",
-    "SwitchDocumentDirectionChild.jsm",
-    "WebRTCChild.jsm",
-    "WebRTCParent.jsm",
+    "SearchSERPTelemetryChild.sys.mjs",
+    "SearchSERPTelemetryParent.sys.mjs",
+    "SwitchDocumentDirectionChild.sys.mjs",
+    "WebRTCChild.sys.mjs",
+    "WebRTCParent.sys.mjs",
 ]
 
 BROWSER_CHROME_MANIFESTS += [

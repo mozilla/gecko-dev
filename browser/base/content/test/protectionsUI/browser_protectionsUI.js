@@ -6,13 +6,13 @@
 "use strict";
 
 const TRACKING_PAGE =
+  // eslint-disable-next-line @microsoft/sdl/no-insecure-url
   "http://tracking.example.org/browser/browser/base/content/test/protectionsUI/trackingPage.html";
 
-ChromeUtils.defineModuleGetter(
-  this,
-  "ContentBlockingAllowList",
-  "resource://gre/modules/ContentBlockingAllowList.jsm"
-);
+ChromeUtils.defineESModuleGetters(this, {
+  ContentBlockingAllowList:
+    "resource://gre/modules/ContentBlockingAllowList.sys.mjs",
+});
 
 const { CustomizableUITestUtils } = ChromeUtils.import(
   "resource://testing-common/CustomizableUITestUtils.jsm"
@@ -625,6 +625,7 @@ add_task(async function testSubViewTelemetry() {
   ].map(item => [document.getElementById(item[0]), item[1]]);
 
   for (let [item, telemetryId] of items) {
+    // eslint-disable-next-line @microsoft/sdl/no-insecure-url
     await BrowserTestUtils.withNewTab("http://www.example.com", async () => {
       await openProtectionsPanel();
 

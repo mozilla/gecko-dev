@@ -37,6 +37,7 @@ using mozilla::Maybe;
 class RecGroup;
 class TypeDef;
 class TypeContext;
+enum class TypeDefKind : uint8_t;
 
 // A PackedTypeCode represents any value type.
 union PackedTypeCode {
@@ -290,6 +291,10 @@ union MatchTypeCode {
 
 enum class TableRepr { Ref, Func };
 
+// An enum that describes the different type hierarchies.
+
+enum class RefTypeHierarchy { Func, Extern, Any };
+
 // The RefType carries more information about types t for which t.isRefType()
 // is true.
 
@@ -299,6 +304,9 @@ class RefType {
     Func = uint8_t(TypeCode::FuncRef),
     Extern = uint8_t(TypeCode::ExternRef),
     Any = uint8_t(TypeCode::AnyRef),
+    NoFunc = uint8_t(TypeCode::NullFuncRef),
+    NoExtern = uint8_t(TypeCode::NullExternRef),
+    None = uint8_t(TypeCode::NullAnyRef),
     Eq = uint8_t(TypeCode::EqRef),
     Struct = uint8_t(TypeCode::StructRef),
     Array = uint8_t(TypeCode::ArrayRef),
@@ -308,24 +316,6 @@ class RefType {
  private:
   PackedTypeCode ptc_;
 
-#ifdef DEBUG
-  bool isValid() const {
-    MOZ_ASSERT((ptc_.typeCode() == AbstractTypeRefCode) ==
-               (ptc_.typeDef() != nullptr));
-    switch (ptc_.typeCode()) {
-      case TypeCode::FuncRef:
-      case TypeCode::ExternRef:
-      case TypeCode::AnyRef:
-      case TypeCode::EqRef:
-      case TypeCode::StructRef:
-      case TypeCode::ArrayRef:
-      case AbstractTypeRefCode:
-        return true;
-      default:
-        return false;
-    }
-  }
-#endif
   RefType(Kind kind, bool nullable)
       : ptc_(PackedTypeCode::pack(TypeCode(kind), nullable)) {
     MOZ_ASSERT(isValid());
@@ -357,9 +347,34 @@ class RefType {
   PackedTypeCode* addressOfPacked() { return &ptc_; }
   const PackedTypeCode* addressOfPacked() const { return &ptc_; }
 
+#ifdef DEBUG
+  bool isValid() const {
+    MOZ_ASSERT((ptc_.typeCode() == AbstractTypeRefCode) ==
+               (ptc_.typeDef() != nullptr));
+    switch (ptc_.typeCode()) {
+      case TypeCode::FuncRef:
+      case TypeCode::ExternRef:
+      case TypeCode::AnyRef:
+      case TypeCode::EqRef:
+      case TypeCode::StructRef:
+      case TypeCode::ArrayRef:
+      case TypeCode::NullFuncRef:
+      case TypeCode::NullExternRef:
+      case TypeCode::NullAnyRef:
+      case AbstractTypeRefCode:
+        return true;
+      default:
+        return false;
+    }
+  }
+#endif
+
   static RefType func() { return RefType(Func, true); }
   static RefType extern_() { return RefType(Extern, true); }
   static RefType any() { return RefType(Any, true); }
+  static RefType nofunc() { return RefType(NoFunc, true); }
+  static RefType noextern() { return RefType(NoExtern, true); }
+  static RefType none() { return RefType(None, true); }
   static RefType eq() { return RefType(Eq, true); }
   static RefType struct_() { return RefType(Struct, true); }
   static RefType array() { return RefType(Array, true); }
@@ -367,6 +382,9 @@ class RefType {
   bool isFunc() const { return kind() == RefType::Func; }
   bool isExtern() const { return kind() == RefType::Extern; }
   bool isAny() const { return kind() == RefType::Any; }
+  bool isNoFunc() const { return kind() == RefType::NoFunc; }
+  bool isNoExtern() const { return kind() == RefType::NoExtern; }
+  bool isNone() const { return kind() == RefType::None; }
   bool isEq() const { return kind() == RefType::Eq; }
   bool isStruct() const { return kind() == RefType::Struct; }
   bool isArray() const { return kind() == RefType::Array; }
@@ -378,23 +396,22 @@ class RefType {
     return RefType(ptc_.withIsNullable(nullable));
   }
 
-  TableRepr tableRepr() const {
-    switch (kind()) {
-      case RefType::Func:
-        return TableRepr::Func;
-      case RefType::Extern:
-      case RefType::Any:
-      case RefType::Eq:
-      case RefType::Struct:
-      case RefType::Array:
-      case RefType::TypeRef:
-        return TableRepr::Ref;
-    }
-    MOZ_CRASH("switch is exhaustive");
-  }
-
-  // Defined in WasmTypeDef.h to avoid a cycle while allowing inlining
+  // These methods are defined in WasmTypeDef.h to avoid a cycle while allowing
+  // inlining.
+  inline RefTypeHierarchy hierarchy() const;
+  inline TableRepr tableRepr() const;
+  inline bool isFuncHierarchy() const;
+  inline bool isExternHierarchy() const;
+  inline bool isAnyHierarchy() const;
   static bool isSubTypeOf(RefType subType, RefType superType);
+
+  // Gets the top of the given type's hierarchy, e.g. Any for structs and
+  // arrays, and Func for funcs
+  RefType topType() const;
+
+  // Gets the TypeDefKind associated with this RefType, e.g. TypeDefKind::Struct
+  // for RefType::Struct.
+  TypeDefKind typeDefKind() const;
 
   bool operator==(const RefType& that) const { return ptc_ == that.ptc_; }
   bool operator!=(const RefType& that) const { return ptc_ != that.ptc_; }
@@ -433,6 +450,9 @@ class FieldTypeTraits {
       case TypeCode::EqRef:
       case TypeCode::StructRef:
       case TypeCode::ArrayRef:
+      case TypeCode::NullFuncRef:
+      case TypeCode::NullExternRef:
+      case TypeCode::NullAnyRef:
 #endif
 #ifdef ENABLE_WASM_FUNCTION_REFERENCES
       case AbstractTypeRefCode:
@@ -506,6 +526,9 @@ class ValTypeTraits {
       case TypeCode::EqRef:
       case TypeCode::StructRef:
       case TypeCode::ArrayRef:
+      case TypeCode::NullFuncRef:
+      case TypeCode::NullExternRef:
+      case TypeCode::NullAnyRef:
 #endif
 #ifdef ENABLE_WASM_FUNCTION_REFERENCES
       case AbstractTypeRefCode:
@@ -661,6 +684,12 @@ class PackedType : public T {
 
   bool isAnyRef() const { return tc_.typeCode() == TypeCode::AnyRef; }
 
+  bool isNoFunc() const { return tc_.typeCode() == TypeCode::NullFuncRef; }
+
+  bool isNoExtern() const { return tc_.typeCode() == TypeCode::NullExternRef; }
+
+  bool isNone() const { return tc_.typeCode() == TypeCode::NullAnyRef; }
+
   bool isEqRef() const { return tc_.typeCode() == TypeCode::EqRef; }
 
   bool isStructRef() const { return tc_.typeCode() == TypeCode::StructRef; }
@@ -676,9 +705,8 @@ class PackedType : public T {
 
   // Returns whether the type has a representation in JS.
   bool isExposable() const {
-#if defined(ENABLE_WASM_SIMD) || defined(ENABLE_WASM_GC)
-    return kind() != Kind::V128 && !isAnyRef() && !isStructRef() &&
-           !isArrayRef() && !isTypeRef();
+#if defined(ENABLE_WASM_SIMD)
+    return kind() != Kind::V128;
 #else
     return true;
 #endif
@@ -845,8 +873,7 @@ using ValTypeVector = Vector<ValType, 16, SystemAllocPolicy>;
 // ValType utilities
 
 extern bool ToValType(JSContext* cx, HandleValue v, ValType* out);
-extern bool ToRefType(JSContext* cx, JSLinearString* typeLinearStr,
-                      RefType* out);
+extern bool ToRefType(JSContext* cx, HandleValue v, RefType* out);
 
 extern UniqueChars ToString(RefType type, const TypeContext* types);
 extern UniqueChars ToString(ValType type, const TypeContext* types);

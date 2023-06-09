@@ -168,11 +168,6 @@ GfxInfo::GetWindowProtocol(nsAString& aWindowProtocol) {
 }
 
 NS_IMETHODIMP
-GfxInfo::GetDesktopEnvironment(nsAString& aDesktopEnvironment) {
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
 GfxInfo::GetTestType(nsAString& aTestType) { return NS_ERROR_NOT_IMPLEMENTED; }
 
 void GfxInfo::EnsureInitialized() {
@@ -839,8 +834,6 @@ NS_IMETHODIMP GfxInfo::SpoofOSVersion(uint32_t aVersion) {
   mOSVersion = aVersion;
   return NS_OK;
 }
-
-NS_IMETHODIMP GfxInfo::FireTestProcess() { return NS_OK; }
 
 #endif
 

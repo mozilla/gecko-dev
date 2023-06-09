@@ -5,22 +5,10 @@
 /* eslint-env mozilla/remote-page */
 /* eslint-disable import/no-unassigned-import */
 
-import "chrome://global/content/certviewer/pvutils_bundle.jsm";
-import "chrome://global/content/certviewer/asn1js_bundle.jsm";
-import "chrome://global/content/certviewer/pkijs_bundle.jsm";
-import "chrome://global/content/certviewer/certDecoder.jsm";
-
-const { Integer, fromBER } = globalThis.asn1js.asn1js;
-const { Certificate } = globalThis.pkijs.pkijs;
-const { fromBase64, stringToArrayBuffer } = globalThis.pvutils.pvutils;
-const { parse, pemToDER } = globalThis.certDecoderInitializer(
-  Integer,
-  fromBER,
-  Certificate,
-  fromBase64,
-  stringToArrayBuffer,
-  crypto
-);
+import {
+  parse,
+  pemToDER,
+} from "chrome://global/content/certviewer/certDecoder.mjs";
 
 const formatter = new Intl.DateTimeFormat();
 
@@ -41,7 +29,7 @@ const KNOWN_ERROR_TITLE_IDS = new Set([
   "connectionFailure-title",
   "deniedPortAccess-title",
   "dnsNotFound-title",
-  "dns-not-found-trr-only-title",
+  "dns-not-found-trr-only-title2",
   "fileNotFound-title",
   "fileAccessDenied-title",
   "generic-title",
@@ -168,23 +156,72 @@ function setupAdvancedButton() {
     .addEventListener("click", togglePanelVisibility);
 
   function togglePanelVisibility() {
-    panel.hidden = !panel.hidden;
+    if (panel.hidden) {
+      // Reveal
+      revealAdvancedPanelSlowlyAsync();
 
-    // Toggling the advanced panel must ensure that the debugging
-    // information panel is hidden as well, since it's opened by the
-    // error code link in the advanced panel.
-    toggleCertErrorDebugInfoVisibility(false);
-
-    if (!panel.hidden) {
       // send event to trigger telemetry ping
-      var event = new CustomEvent("AboutNetErrorUIExpanded", { bubbles: true });
-      document.dispatchEvent(event);
+      document.dispatchEvent(
+        new CustomEvent("AboutNetErrorUIExpanded", { bubbles: true })
+      );
+    } else {
+      // Hide
+      panel.hidden = true;
     }
   }
 
   if (getCSSClass() == "expertBadCert") {
-    panel.hidden = false;
+    revealAdvancedPanelSlowlyAsync();
   }
+}
+
+async function revealAdvancedPanelSlowlyAsync() {
+  const badCertAdvancedPanel = document.getElementById("badCertAdvancedPanel");
+  const exceptionDialogButton = document.getElementById(
+    "exceptionDialogButton"
+  );
+
+  // Toggling the advanced panel must ensure that the debugging
+  // information panel is hidden as well, since it's opened by the
+  // error code link in the advanced panel.
+  toggleCertErrorDebugInfoVisibility(false);
+
+  // Reveal, but disabled (and grayed-out) for 3.0s.
+  badCertAdvancedPanel.hidden = false;
+  exceptionDialogButton.disabled = true;
+
+  // -
+
+  if (exceptionDialogButton.resetReveal) {
+    exceptionDialogButton.resetReveal(); // Reset if previous is pending.
+  }
+  let wasReset = false;
+  exceptionDialogButton.resetReveal = () => {
+    wasReset = true;
+  };
+
+  // Wait for 10 frames to ensure that the warning text is rendered
+  // and gets all the way to the screen for the user to read it.
+  // This is only ~0.160s at 60Hz, so it's not too much extra time that we're
+  // taking to ensure that we're caught up with rendering, on top of the
+  // (by default) whole second(s) we're going to wait based on the
+  // security.dialog_enable_delay pref.
+  // The catching-up to rendering is the important part, not the
+  // N-frame-delay here.
+  for (let i = 0; i < 10; i++) {
+    await new Promise(requestAnimationFrame);
+  }
+
+  // Wait another Nms (default: 1000) for the user to be very sure. (Sorry speed readers!)
+  const securityDelayMs = RPMGetIntPref("security.dialog_enable_delay", 1000);
+  await new Promise(go => setTimeout(go, securityDelayMs));
+
+  if (wasReset) {
+    return;
+  }
+
+  // Enable and un-gray-out.
+  exceptionDialogButton.disabled = false;
 }
 
 function disallowCertOverridesIfNeeded() {
@@ -214,6 +251,45 @@ function disallowCertOverridesIfNeeded() {
   }
 }
 
+function recordTRREventTelemetry(
+  warningPageType,
+  trrMode,
+  trrDomain,
+  skipReason
+) {
+  RPMRecordTelemetryEvent(
+    "security.doh.neterror",
+    "load",
+    "dohwarning",
+    warningPageType,
+    {
+      mode: trrMode,
+      provider_key: trrDomain,
+      skip_reason: skipReason,
+    }
+  );
+
+  const netErrorButtonDiv = document.getElementById("netErrorButtonContainer");
+  const buttons = netErrorButtonDiv.querySelectorAll("button");
+  for (let b of buttons) {
+    b.addEventListener("click", function(e) {
+      let target = e.originalTarget;
+      let telemetryId = target.dataset.telemetryId;
+      RPMRecordTelemetryEvent(
+        "security.doh.neterror",
+        "click",
+        telemetryId,
+        warningPageType,
+        {
+          mode: trrMode,
+          provider_key: trrDomain,
+          skip_reason: skipReason,
+        }
+      );
+    });
+  }
+}
+
 function initPage() {
   // We show an offline support page in case of a system-wide error,
   // when a user cannot connect to the internet and access the SUMO website.
@@ -224,8 +300,7 @@ function initPage() {
   // format: "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/supportPageSlug",
   // so we can extract the support page slug.
   let baseURL = RPMGetFormatURLPref("app.support.baseURL");
-  let location = document.location.href;
-  if (location.startsWith(baseURL)) {
+  if (document.location.href.startsWith(baseURL)) {
     let supportPageSlug = document.location.pathname.split("/").pop();
     RPMSendAsyncMessage("DisplayOfflineSupportPage", {
       supportPageSlug,
@@ -238,6 +313,12 @@ function initPage() {
   }
 
   const isTRROnlyFailure = gErrorCode == "dnsNotFound" && RPMIsTRROnlyFailure();
+
+  let isNativeFallbackWarning = false;
+  if (RPMGetBoolPref("network.trr.display_fallback_warning")) {
+    isNativeFallbackWarning =
+      gErrorCode == "dnsNotFound" && RPMIsNativeFallbackFailure();
+  }
 
   const docTitle = document.querySelector("title");
   const bodyTitle = document.querySelector(".title-text");
@@ -390,90 +471,132 @@ function initPage() {
     bodyTitleId = "generic-title";
   }
 
-  if (isTRROnlyFailure && RPMShowTRROnlyFailureError()) {
-    document.body.className = "certerror"; // Shows warning icon
-    pageTitleId = "dns-not-found-trr-only-title";
-    document.l10n.setAttributes(docTitle, pageTitleId, {
-      hostname: HOST_NAME,
-    });
-    bodyTitleId = "dns-not-found-trr-only-title";
-    document.l10n.setAttributes(bodyTitle, bodyTitleId, {
-      hostname: HOST_NAME,
-    });
+  // The TRR errors may present options that direct users to settings only available on Firefox Desktop
+  if (RPMIsFirefox()) {
+    if (isTRROnlyFailure) {
+      document.body.className = "certerror"; // Shows warning icon
+      pageTitleId = "dns-not-found-trr-only-title2";
+      document.l10n.setAttributes(docTitle, pageTitleId);
+      bodyTitleId = "dns-not-found-trr-only-title2";
+      document.l10n.setAttributes(bodyTitle, bodyTitleId);
 
-    shortDesc.textContent = "";
+      shortDesc.textContent = "";
+      let skipReason = RPMGetTRRSkipReason();
 
-    // enable buttons
-    let trrExceptionButton = document.getElementById("trrExceptionButton");
-    trrExceptionButton.addEventListener("click", () => {
-      RPMSendQuery("Browser:AddTRRExcludedDomain", {
-        hostname: HOST_NAME,
-      }).then(msg => {
-        retryThis(this);
+      // enable buttons
+      let trrExceptionButton = document.getElementById("trrExceptionButton");
+      trrExceptionButton.addEventListener("click", () => {
+        RPMSendQuery("Browser:AddTRRExcludedDomain", {
+          hostname: HOST_NAME,
+        }).then(msg => {
+          retryThis(trrExceptionButton);
+        });
       });
-    });
-    trrExceptionButton.hidden = false;
-    let trrSettingsButton = document.getElementById("trrSettingsButton");
-    trrSettingsButton.addEventListener("click", () => {
-      RPMSendAsyncMessage("OpenTRRPreferences");
-    });
-    trrSettingsButton.hidden = false;
-    let message = document.getElementById("trrOnlyMessage");
-    document.l10n.setAttributes(
-      message,
-      "neterror-dns-not-found-trr-only-reason",
-      {
-        hostname: HOST_NAME,
+
+      let isTrrServerError = true;
+      if (RPMIsSiteSpecificTRRError()) {
+        // Only show the exclude button if the failure is specific to this
+        // domain. If the TRR server is inaccessible we don't want to allow
+        // the user to add an exception just for this domain.
+        trrExceptionButton.hidden = false;
+        isTrrServerError = false;
       }
-    );
+      let trrSettingsButton = document.getElementById("trrSettingsButton");
+      trrSettingsButton.addEventListener("click", () => {
+        RPMSendAsyncMessage("OpenTRRPreferences");
+      });
+      trrSettingsButton.hidden = false;
+      let message = document.getElementById("trrOnlyMessage");
+      document.l10n.setAttributes(
+        message,
+        "neterror-dns-not-found-trr-only-reason",
+        {
+          hostname: HOST_NAME,
+        }
+      );
 
-    let skipReason = RPMGetTRRSkipReason();
+      let descriptionTag = "neterror-dns-not-found-trr-unknown-problem";
+      let args = { trrDomain: RPMGetTRRDomain() };
+      if (
+        skipReason == "TRR_FAILED" ||
+        skipReason == "TRR_CHANNEL_DNS_FAIL" ||
+        skipReason == "TRR_UNKNOWN_CHANNEL_FAILURE" ||
+        skipReason == "TRR_NET_REFUSED" ||
+        skipReason == "TRR_NET_INTERRUPT" ||
+        skipReason == "TRR_NET_INADEQ_SEQURITY"
+      ) {
+        descriptionTag = "neterror-dns-not-found-trr-only-could-not-connect";
+      } else if (skipReason == "TRR_TIMEOUT") {
+        descriptionTag = "neterror-dns-not-found-trr-only-timeout";
+      } else if (
+        skipReason == "TRR_IS_OFFLINE" ||
+        skipReason == "TRR_NO_CONNECTIVITY"
+      ) {
+        descriptionTag = "neterror-dns-not-found-trr-offline";
+      } else if (
+        skipReason == "TRR_NO_ANSWERS" ||
+        skipReason == "TRR_NXDOMAIN"
+      ) {
+        descriptionTag = "neterror-dns-not-found-trr-unknown-host2";
+      } else if (
+        skipReason == "TRR_DECODE_FAILED" ||
+        skipReason == "TRR_SERVER_RESPONSE_ERR"
+      ) {
+        descriptionTag = "neterror-dns-not-found-trr-server-problem";
+      }
 
-    let descriptionTag = "neterror-dns-not-found-trr-unknown-problem";
-    let args = { trrDomain: RPMGetTRRDomain() };
-    if (
-      skipReason == "TRR_FAILED" ||
-      skipReason == "TRR_CHANNEL_DNS_FAIL" ||
-      skipReason == "TRR_UNKNOWN_CHANNEL_FAILURE" ||
-      skipReason == "TRR_NET_REFUSED" ||
-      skipReason == "TRR_NET_INTERRUPT" ||
-      skipReason == "TRR_NET_INADEQ_SEQURITY"
-    ) {
-      descriptionTag = "neterror-dns-not-found-trr-only-could-not-connect";
-    } else if (skipReason == "TRR_TIMEOUT") {
-      descriptionTag = "neterror-dns-not-found-trr-only-timeout";
-    } else if (
-      skipReason == "TRR_IS_OFFLINE" ||
-      skipReason == "TRR_NO_CONNECTIVITY"
-    ) {
-      descriptionTag = "neterror-dns-not-found-trr-offline";
-    } else if (skipReason == "TRR_NO_ANSWERS" || skipReason == "TRR_NXDOMAIN") {
-      descriptionTag = "neterror-dns-not-found-trr-unknown-host";
-    } else if (
-      skipReason == "TRR_DECODE_FAILED" ||
-      skipReason == "TRR_SERVER_RESPONSE_ERR"
-    ) {
-      descriptionTag = "neterror-dns-not-found-trr-server-problem";
+      let trrMode = RPMGetIntPref("network.trr.mode").toString();
+      recordTRREventTelemetry(
+        "TRROnlyFailure",
+        trrMode,
+        args.trrDomain,
+        skipReason
+      );
+
+      let description = document.getElementById("trrOnlyDescription");
+      document.l10n.setAttributes(description, descriptionTag, args);
+
+      const trrLearnMoreContainer = document.getElementById(
+        "trrLearnMoreContainer"
+      );
+      trrLearnMoreContainer.hidden = false;
+      let trrOnlyLearnMoreLink = document.getElementById(
+        "trrOnlylearnMoreLink"
+      );
+      if (isTrrServerError) {
+        // Go to DoH settings page
+        trrOnlyLearnMoreLink.href = "about:preferences#privacy-doh";
+        trrOnlyLearnMoreLink.addEventListener("click", event => {
+          event.preventDefault();
+          RPMSendAsyncMessage("OpenTRRPreferences");
+          RPMRecordTelemetryEvent(
+            "security.doh.neterror",
+            "click",
+            "settings_button",
+            "TRROnlyFailure",
+            {
+              mode: trrMode,
+              provider_key: args.trrDomain,
+              skip_reason: skipReason,
+            }
+          );
+        });
+      } else {
+        // This will be replaced at a later point with a link to an offline support page
+        // https://bugzilla.mozilla.org/show_bug.cgi?id=1806257
+        trrOnlyLearnMoreLink.href =
+          RPMGetFormatURLPref("network.trr_ui.skip_reason_learn_more_url") +
+          skipReason.toLowerCase().replaceAll("_", "-");
+      }
+
+      let div = document.getElementById("trrOnlyContainer");
+      div.hidden = false;
+
+      return;
+    } else if (isNativeFallbackWarning) {
+      showNativeFallbackWarning();
+      return;
     }
-
-    let description = document.getElementById("trrOnlyDescription");
-    document.l10n.setAttributes(description, descriptionTag, args);
-
-    const trrLearnMoreContainer = document.getElementById(
-      "trrLearnMoreContainer"
-    );
-    trrLearnMoreContainer.hidden = false;
-    let learnMoreLink = document.getElementById("trrOnlylearnMoreLink");
-    // This will be replaced at a later point with a link to an offline support page
-    // https://bugzilla.mozilla.org/show_bug.cgi?id=1806257
-    learnMoreLink.href =
-      RPMGetFormatURLPref("network.trr_ui.skip_reason_learn_more_url") +
-      skipReason.toLowerCase().replaceAll("_", "-");
-
-    let div = document.getElementById("trrOnlyContainer");
-    div.hidden = false;
-
-    return;
   }
 
   document.l10n.setAttributes(docTitle, pageTitleId);
@@ -490,13 +613,88 @@ function initPage() {
   setNetErrorMessageFromCode();
 }
 
+function showNativeFallbackWarning() {
+  const docTitle = document.querySelector("title");
+  const bodyTitle = document.querySelector(".title-text");
+  const shortDesc = document.getElementById("errorShortDesc");
+
+  let pageTitleId = "neterror-page-title";
+  let bodyTitleId = gErrorCode + "-title";
+
+  document.body.className = "certerror"; // Shows warning icon
+  pageTitleId = "dns-not-found-native-fallback-title2";
+  document.l10n.setAttributes(docTitle, pageTitleId);
+
+  bodyTitleId = "dns-not-found-native-fallback-title2";
+  document.l10n.setAttributes(bodyTitle, bodyTitleId);
+
+  shortDesc.textContent = "";
+  let nativeFallbackIgnoreButton = document.getElementById(
+    "nativeFallbackIgnoreButton"
+  );
+  nativeFallbackIgnoreButton.addEventListener("click", () => {
+    RPMSetBoolPref("network.trr.display_fallback_warning", false);
+    retryThis(nativeFallbackIgnoreButton);
+  });
+
+  let continueThisTimeButton = document.getElementById(
+    "nativeFallbackContinueThisTimeButton"
+  );
+  continueThisTimeButton.addEventListener("click", () => {
+    RPMSetTRRDisabledLoadFlags();
+    document.location.reload();
+  });
+  continueThisTimeButton.hidden = false;
+
+  nativeFallbackIgnoreButton.hidden = false;
+  let message = document.getElementById("nativeFallbackMessage");
+  document.l10n.setAttributes(
+    message,
+    "neterror-dns-not-found-native-fallback-reason",
+    {
+      hostname: HOST_NAME,
+    }
+  );
+  let skipReason = RPMGetTRRSkipReason();
+  let descriptionTag = "neterror-dns-not-found-trr-unknown-problem";
+  let args = { trrDomain: RPMGetTRRDomain() };
+
+  if (skipReason.includes("HEURISTIC_TRIPPED")) {
+    descriptionTag = "neterror-dns-not-found-native-fallback-heuristic";
+  } else if (skipReason == "TRR_NOT_CONFIRMED") {
+    descriptionTag = "neterror-dns-not-found-native-fallback-not-confirmed2";
+  }
+
+  let description = document.getElementById("nativeFallbackDescription");
+  document.l10n.setAttributes(description, descriptionTag, args);
+
+  let learnMoreContainer = document.getElementById(
+    "nativeFallbackLearnMoreContainer"
+  );
+  learnMoreContainer.hidden = false;
+
+  let learnMoreLink = document.getElementById("nativeFallbackLearnMoreLink");
+  learnMoreLink.href =
+    RPMGetFormatURLPref("network.trr_ui.skip_reason_learn_more_url") +
+    skipReason.toLowerCase().replaceAll("_", "-");
+
+  let div = document.getElementById("nativeFallbackContainer");
+  div.hidden = false;
+
+  recordTRREventTelemetry(
+    "NativeFallbackWarning",
+    RPMGetIntPref("network.trr.mode").toString(),
+    args.trrDomain,
+    skipReason
+  );
+}
 /**
- * Builds HTML elements from `parts` and appends them to `parent`.
+ * Builds HTML elements from `parts` and appends them to `parentElement`.
  *
- * @param {HTMLElement} parent
+ * @param {HTMLElement} parentElement
  * @param {Array<["li" | "p" | "span", string, Record<string, string> | undefined]>} parts
  */
-function setNetErrorMessageFromParts(parent, parts) {
+function setNetErrorMessageFromParts(parentElement, parts) {
   let list = null;
 
   for (let [tag, l10nId, l10nArgs] of parts) {
@@ -509,14 +707,14 @@ function setNetErrorMessageFromParts(parent, parts) {
     if (tag === "li") {
       if (!list) {
         list = document.createElement("ul");
-        parent.appendChild(list);
+        parentElement.appendChild(list);
       }
       list.appendChild(elem);
     } else {
       if (list) {
         list = null;
       }
-      parent.appendChild(elem);
+      parentElement.appendChild(elem);
     }
   }
 }
@@ -864,7 +1062,7 @@ function copyPEMToClipboard(e) {
 }
 
 async function getFailedCertificatesAsPEMString() {
-  let location = document.location.href;
+  let locationUrl = document.location.href;
   let failedCertInfo = document.getFailedCertSecurityInfo();
   let errorMessage = failedCertInfo.errorMessage;
   let hasHSTS = failedCertInfo.hasHSTS.toString();
@@ -890,7 +1088,7 @@ async function getFailedCertificatesAsPEMString() {
   }
 
   let details =
-    location +
+    locationUrl +
     "\r\n\r\n" +
     errorMessage +
     "\r\n\r\n" +
@@ -1315,12 +1513,7 @@ function setTechnicalDetailsOnCertError(
             // If we set a link, meaning there's something helpful for
             // the user here, expand the section by default
             if (getCSSClass() != "expertBadCert") {
-              document.getElementById("badCertAdvancedPanel").hidden = false;
-
-              // Toggling the advanced panel must ensure that the debugging
-              // information panel is hidden as well, since it's opened by the
-              // error code link in the advanced panel.
-              toggleCertErrorDebugInfoVisibility(false);
+              revealAdvancedPanelSlowlyAsync();
             }
           } else {
             addLabel("cert-error-domain-mismatch-single-nolink", l10nArgs);
@@ -1343,8 +1536,7 @@ function setTechnicalDetailsOnCertError(
 function setFocus(selector, position = "afterbegin") {
   if (window.top == window) {
     var button = document.querySelector(selector);
-    var parent = button.parentNode;
-    parent.insertAdjacentElement(position, button);
+    button.parentNode.insertAdjacentElement(position, button);
     // It's possible setFocus was called via the DOMContentLoaded event
     // handler and that the button has no frame. Things without a frame cannot
     // be focused. We use a requestAnimationFrame to queue up the focus to occur
@@ -1364,5 +1556,4 @@ for (let button of document.querySelectorAll(".try-again")) {
 initPage();
 
 // Dispatch this event so tests can detect that we finished loading the error page.
-const event = new CustomEvent("AboutNetErrorLoad", { bubbles: true });
-document.dispatchEvent(event);
+document.dispatchEvent(new CustomEvent("AboutNetErrorLoad", { bubbles: true }));

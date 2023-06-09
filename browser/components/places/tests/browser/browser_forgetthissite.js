@@ -5,12 +5,14 @@
 "use strict";
 
 // Tests the "Forget About This Site" button from the libary view
-const { PromptTestUtils } = ChromeUtils.import(
-  "resource://testing-common/PromptTestUtils.jsm"
+const { PromptTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/PromptTestUtils.sys.mjs"
 );
-const { sinon } = ChromeUtils.import("resource://testing-common/Sinon.jsm");
-const { ForgetAboutSite } = ChromeUtils.import(
-  "resource://gre/modules/ForgetAboutSite.jsm"
+const { sinon } = ChromeUtils.importESModule(
+  "resource://testing-common/Sinon.sys.mjs"
+);
+const { ForgetAboutSite } = ChromeUtils.importESModule(
+  "resource://gre/modules/ForgetAboutSite.sys.mjs"
 );
 
 const TEST_URIs = [
@@ -151,9 +153,7 @@ async function testForgetAboutThisSite(
   let pageRemovedEventPromise;
   if (shouldForget) {
     pageRemovedEventPromise = PlacesTestUtils.waitForNotification(
-      "page-removed",
-      null,
-      "places"
+      "page-removed"
     );
   }
 

@@ -10,12 +10,17 @@
 
 #include <cstdint>
 #include <memory>
+#include <string>
 
 #include "api/media_stream_interface.h"
 #include "api/test/create_network_emulation_manager.h"
 #include "api/test/create_peer_connection_quality_test_frame_generator.h"
 #include "api/test/create_peerconnection_quality_test_fixture.h"
+#include "api/test/metrics/global_metrics_logger_and_exporter.h"
 #include "api/test/network_emulation_manager.h"
+#include "api/test/pclf/media_configuration.h"
+#include "api/test/pclf/media_quality_test_params.h"
+#include "api/test/pclf/peer_configurer.h"
 #include "api/test/peerconnection_quality_test_fixture.h"
 #include "call/simulated_network.h"
 #include "system_wrappers/include/field_trial.h"
@@ -37,24 +42,11 @@ namespace {
 
 class PeerConnectionE2EQualityTestSmokeTest : public ::testing::Test {
  public:
-  using PeerConfigurer = PeerConnectionE2EQualityTestFixture::PeerConfigurer;
-  using RunParams = PeerConnectionE2EQualityTestFixture::RunParams;
-  using VideoConfig = PeerConnectionE2EQualityTestFixture::VideoConfig;
-  using VideoCodecConfig =
-      PeerConnectionE2EQualityTestFixture::VideoCodecConfig;
-  using AudioConfig = PeerConnectionE2EQualityTestFixture::AudioConfig;
-  using ScreenShareConfig =
-      PeerConnectionE2EQualityTestFixture::ScreenShareConfig;
-  using ScrollingParams = PeerConnectionE2EQualityTestFixture::ScrollingParams;
-  using VideoSimulcastConfig =
-      PeerConnectionE2EQualityTestFixture::VideoSimulcastConfig;
-  using EchoEmulationConfig =
-      PeerConnectionE2EQualityTestFixture::EchoEmulationConfig;
-
   void SetUp() override {
     network_emulation_ = CreateNetworkEmulationManager();
     auto video_quality_analyzer = std::make_unique<DefaultVideoQualityAnalyzer>(
-        network_emulation_->time_controller()->GetClock());
+        network_emulation_->time_controller()->GetClock(),
+        test::GetGlobalMetricsLogger());
     video_quality_analyzer_ = video_quality_analyzer.get();
     fixture_ = CreatePeerConnectionE2EQualityTestFixture(
         testing::UnitTest::GetInstance()->current_test_info()->name(),
@@ -88,8 +80,11 @@ class PeerConnectionE2EQualityTestSmokeTest : public ::testing::Test {
   }
 
   void AddPeer(EmulatedNetworkManagerInterface* network,
-               rtc::FunctionView<void(PeerConfigurer*)> configurer) {
-    fixture_->AddPeer(network->network_dependencies(), configurer);
+               rtc::FunctionView<void(PeerConfigurer*)> update_configurer) {
+    auto configurer =
+        std::make_unique<PeerConfigurer>(network->network_dependencies());
+    update_configurer(configurer.get());
+    fixture_->AddPeer(std::move(configurer));
   }
 
   void RunAndCheckEachVideoStreamReceivedFrames(const RunParams& run_params) {
@@ -181,9 +176,76 @@ TEST_F(PeerConnectionE2EQualityTestSmokeTest, MAYBE_Smoke) {
           std::map<std::string, std::vector<EmulatedEndpoint*>>(
               {{"alice", network_links.first->endpoints()},
                {"charlie", network_links.second->endpoints()}}),
-          network_emulation()));
+          network_emulation(), test::GetGlobalMetricsLogger()));
   RunParams run_params(TimeDelta::Seconds(2));
   run_params.enable_flex_fec_support = true;
+  RunAndCheckEachVideoStreamReceivedFrames(run_params);
+}
+
+// IOS debug builds can be quite slow, disabling to avoid issues with timeouts.
+#if defined(WEBRTC_IOS) && defined(WEBRTC_ARCH_ARM64) && !defined(NDEBUG)
+#define MAYBE_Smoke DISABLED_Smoke
+#else
+#define MAYBE_SendAndReceivePacketsOnOneThread \
+  SmokeSendAndReceivePacketsOnOneThread
+#endif
+// Only use the network thread for sending and receiving packets.
+// The one and only network thread is used as a worker thread in all
+// PeerConnections. Pacing when sending packets is done on the worker thread.
+// See bugs.webrtc.org/14502.
+TEST_F(PeerConnectionE2EQualityTestSmokeTest,
+       MAYBE_SendAndReceivePacketsOnOneThread) {
+  test::ScopedFieldTrials trials(
+      std::string(field_trial::GetFieldTrialString()) +
+      "WebRTC-SendPacketsOnWorkerThread/Enabled/");
+
+  std::pair<EmulatedNetworkManagerInterface*, EmulatedNetworkManagerInterface*>
+      network_links = CreateNetwork();
+  AddPeer(network_links.first, [](PeerConfigurer* alice) {
+    // Peerconnection use the network thread as the worker thread.
+    alice->SetUseNetworkThreadAsWorkerThread();
+    VideoConfig video(160, 120, 15);
+    video.stream_label = "alice-video";
+    video.sync_group = "alice-media";
+    alice->AddVideoConfig(std::move(video));
+
+    AudioConfig audio;
+    audio.stream_label = "alice-audio";
+    audio.mode = AudioConfig::Mode::kFile;
+    audio.input_file_name =
+        test::ResourcePath("pc_quality_smoke_test_alice_source", "wav");
+    audio.sampling_frequency_in_hz = 48000;
+    audio.sync_group = "alice-media";
+    alice->SetAudioConfig(std::move(audio));
+    alice->SetVideoCodecs(
+        {VideoCodecConfig(cricket::kVp9CodecName, {{"profile-id", "0"}})});
+  });
+  AddPeer(network_links.second, [](PeerConfigurer* charlie) {
+    // Peerconnection use the network thread as the worker thread.
+    charlie->SetUseNetworkThreadAsWorkerThread();
+    charlie->SetName("charlie");
+    VideoConfig video(160, 120, 15);
+    video.stream_label = "charlie-video";
+    video.temporal_layers_count = 2;
+    charlie->AddVideoConfig(std::move(video));
+
+    AudioConfig audio;
+    audio.stream_label = "charlie-audio";
+    audio.mode = AudioConfig::Mode::kFile;
+    audio.input_file_name =
+        test::ResourcePath("pc_quality_smoke_test_bob_source", "wav");
+    charlie->SetAudioConfig(std::move(audio));
+    charlie->SetVideoCodecs(
+        {VideoCodecConfig(cricket::kVp9CodecName, {{"profile-id", "0"}})});
+    charlie->SetVideoEncoderBitrateMultiplier(1.1);
+  });
+  fixture()->AddQualityMetricsReporter(
+      std::make_unique<StatsBasedNetworkQualityMetricsReporter>(
+          std::map<std::string, std::vector<EmulatedEndpoint*>>(
+              {{"alice", network_links.first->endpoints()},
+               {"charlie", network_links.second->endpoints()}}),
+          network_emulation(), test::GetGlobalMetricsLogger()));
+  RunParams run_params(TimeDelta::Seconds(2));
   RunAndCheckEachVideoStreamReceivedFrames(run_params);
 }
 
@@ -233,7 +295,7 @@ TEST_F(PeerConnectionE2EQualityTestSmokeTest, SmokeH264) {
           std::map<std::string, std::vector<EmulatedEndpoint*>>(
               {{"alice", network_links.first->endpoints()},
                {"charlie", network_links.second->endpoints()}}),
-          network_emulation()));
+          network_emulation(), test::GetGlobalMetricsLogger()));
   RunParams run_params(TimeDelta::Seconds(2));
   run_params.enable_flex_fec_support = true;
   RunAndCheckEachVideoStreamReceivedFrames(run_params);
@@ -300,7 +362,7 @@ TEST_F(PeerConnectionE2EQualityTestSmokeTest, MAYBE_ChangeNetworkConditions) {
           std::map<std::string, std::vector<EmulatedEndpoint*>>(
               {{"alice", alice_network->endpoints()},
                {"bob", bob_network->endpoints()}}),
-          network_emulation()));
+          network_emulation(), test::GetGlobalMetricsLogger()));
 
   fixture()->ExecuteAt(TimeDelta::Seconds(1), [alice_node](TimeDelta) {
     BuiltInNetworkBehaviorConfig config;
@@ -328,8 +390,8 @@ TEST_F(PeerConnectionE2EQualityTestSmokeTest, MAYBE_Screenshare) {
     screenshare.content_hint = VideoTrackInterface::ContentHint::kText;
     ScreenShareConfig screen_share_config =
         ScreenShareConfig(TimeDelta::Seconds(2));
-    screen_share_config.scrolling_params = ScrollingParams(
-        TimeDelta::Millis(1800), kDefaultSlidesWidth, kDefaultSlidesHeight);
+    screen_share_config.scrolling_params =
+        ScrollingParams{.duration = TimeDelta::Millis(1800)};
     auto screen_share_frame_generator =
         CreateScreenShareFrameGenerator(screenshare, screen_share_config);
     alice->AddVideoConfig(std::move(screenshare),
@@ -382,7 +444,8 @@ TEST_F(PeerConnectionE2EQualityTestSmokeTest, MAYBE_Simulcast) {
   AddPeer(network_links.first, [](PeerConfigurer* alice) {
     VideoConfig simulcast(1280, 720, 15);
     simulcast.stream_label = "alice-simulcast";
-    simulcast.simulcast_config = VideoSimulcastConfig(2, 0);
+    simulcast.simulcast_config = VideoSimulcastConfig(2);
+    simulcast.emulated_sfu_config = EmulatedSFUConfig(0);
     alice->AddVideoConfig(std::move(simulcast));
 
     AudioConfig audio;
@@ -410,7 +473,8 @@ TEST_F(PeerConnectionE2EQualityTestSmokeTest, MAYBE_Svc) {
     VideoConfig simulcast("alice-svc", 1280, 720, 15);
     // Because we have network with packets loss we can analyze only the
     // highest spatial layer in SVC mode.
-    simulcast.simulcast_config = VideoSimulcastConfig(2, 1);
+    simulcast.simulcast_config = VideoSimulcastConfig(2);
+    simulcast.emulated_sfu_config = EmulatedSFUConfig(1);
     alice->AddVideoConfig(std::move(simulcast));
 
     AudioConfig audio("alice-audio");

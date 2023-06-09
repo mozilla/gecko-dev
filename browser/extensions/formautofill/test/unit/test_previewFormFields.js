@@ -3,14 +3,14 @@ http://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
 
-const { FormAutofillHandler } = ChromeUtils.import(
-  "resource://autofill/FormAutofillHandler.jsm"
+const { FormAutofillHandler } = ChromeUtils.importESModule(
+  "resource://gre/modules/shared/FormAutofillHandler.sys.mjs"
 );
 
 // Bug 1762063 - we need to fix this pattern of having to wrap destructuring calls in parentheses.
 // We can't do a standard destructuring call because FormAutofillUtils is already declared as a var in head.js
-({ FormAutofillUtils } = ChromeUtils.import(
-  "resource://autofill/FormAutofillUtils.jsm"
+({ FormAutofillUtils } = ChromeUtils.importESModule(
+  "resource://gre/modules/shared/FormAutofillUtils.sys.mjs"
 ));
 const { FIELD_STATES } = FormAutofillUtils;
 const PREVIEW = FIELD_STATES.PREVIEW;
@@ -185,7 +185,9 @@ function run_tests(testcases) {
       await handler.activeSection.previewFormFields(adaptedProfile);
 
       for (let field of handler.fieldDetails) {
-        let actual = field.state;
+        let actual = handler.getFilledStateByElement(
+          field.elementWeakRef.get()
+        );
         let expected = testcase.expectedResultState[field.fieldName];
         info(`Checking ${field.fieldName} state`);
         Assert.equal(

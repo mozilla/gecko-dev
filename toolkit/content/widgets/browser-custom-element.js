@@ -21,13 +21,14 @@
     BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
     Finder: "resource://gre/modules/Finder.sys.mjs",
     FinderParent: "resource://gre/modules/FinderParent.sys.mjs",
+    PopupBlocker: "resource://gre/actors/PopupBlockingParent.sys.mjs",
+    SelectParentHelper: "resource://gre/actors/SelectParent.sys.mjs",
+    RemoteWebNavigation: "resource://gre/modules/RemoteWebNavigation.sys.mjs",
   });
 
-  XPCOMUtils.defineLazyModuleGetters(lazy, {
-    PopupBlocker: "resource://gre/actors/PopupBlockingParent.jsm",
-    RemoteWebNavigation: "resource://gre/modules/RemoteWebNavigation.jsm",
-    SelectParentHelper: "resource://gre/actors/SelectParent.jsm",
-  });
+  XPCOMUtils.defineLazyGetter(lazy, "blankURI", () =>
+    Services.io.newURI("about:blank")
+  );
 
   let lazyPrefs = {};
   XPCOMUtils.defineLazyPreferenceGetter(
@@ -104,8 +105,12 @@
       this._inPermitUnload = new WeakSet();
 
       this._originalURI = null;
-      this._showingSearchTerms = false;
-
+      this._searchTerms = "";
+      // When we open a prompt in reaction to a 401, if this 401 comes from
+      // a different base domain, the url of that site will be stored here
+      // and will be used for auth prompt spoofing protections.
+      // See bug 791594 for reference.
+      this._currentAuthPromptURI = null;
       /**
        * These are managed by the tabbrowser:
        */
@@ -234,7 +239,9 @@
 
       this._originalURI = null;
 
-      this._showingSearchTerms = false;
+      this._currentAuthPromptURI = null;
+
+      this._searchTerms = "";
 
       this._documentContentType = null;
 
@@ -343,7 +350,14 @@
       return this.webNavigation.canGoForward;
     }
 
+    // While an auth prompt from a base domain different than the current sites is open, we want to display the url of the cross domain site.
+    // This is to prevent possible auth spoofing scenarios.
+    // The URL of the requesting origin is provided by 'currentAuthPromptURI', this will only be non null while an auth prompt is open.
+    // See bug 791594 for reference.
     get currentURI() {
+      if (this.currentAuthPromptURI) {
+        return this.currentAuthPromptURI;
+      }
       if (this.webNavigation) {
         return this.webNavigation.currentURI;
       }
@@ -388,10 +402,6 @@
 
     get autoCompletePopup() {
       return document.getElementById(this.getAttribute("autocompletepopup"));
-    }
-
-    get dateTimePicker() {
-      return document.getElementById(this.getAttribute("datetimepicker"));
     }
 
     set suspendMediaWhenInactive(val) {
@@ -731,14 +741,21 @@
       return this._originalURI;
     }
 
-    set showingSearchTerms(val) {
-      this._showingSearchTerms = !!val;
+    set searchTerms(val) {
+      this._searchTerms = val;
     }
 
-    get showingSearchTerms() {
-      return this._showingSearchTerms;
+    get searchTerms() {
+      return this._searchTerms;
     }
 
+    set currentAuthPromptURI(aURI) {
+      this._currentAuthPromptURI = aURI;
+    }
+
+    get currentAuthPromptURI() {
+      return this._currentAuthPromptURI;
+    }
     _wrapURIChangeCall(fn) {
       if (!this.isRemoteBrowser) {
         this.isNavigating = true;
@@ -792,38 +809,35 @@
       this.webNavigation.stop(flags);
     }
 
+    _fixLoadParamsToLoadURIOptions(params) {
+      let loadFlags =
+        params.loadFlags || params.flags || Ci.nsIWebNavigation.LOAD_FLAGS_NONE;
+      delete params.flags;
+      params.loadFlags = loadFlags;
+    }
+
     /**
      * throws exception for unknown schemes
      */
-    loadURI(aURI, aParams = {}) {
-      if (!aURI) {
-        aURI = "about:blank";
+    loadURI(uri, params = {}) {
+      if (!uri) {
+        uri = lazy.blankURI;
       }
-      let {
-        referrerInfo,
-        triggeringPrincipal,
-        triggeringRemoteType,
-        postData,
-        headers,
-        csp,
-        remoteTypeOverride,
-      } = aParams;
-      let loadFlags =
-        aParams.loadFlags ||
-        aParams.flags ||
-        Ci.nsIWebNavigation.LOAD_FLAGS_NONE;
-      let loadURIOptions = {
-        triggeringPrincipal,
-        triggeringRemoteType,
-        csp,
-        referrerInfo,
-        loadFlags,
-        postData,
-        headers,
-        remoteTypeOverride,
-      };
+      this._fixLoadParamsToLoadURIOptions(params);
+      this._wrapURIChangeCall(() => this.webNavigation.loadURI(uri, params));
+    }
+
+    /**
+     * throws exception for unknown schemes
+     */
+    fixupAndLoadURIString(uriString, params = {}) {
+      if (!uriString) {
+        this.loadURI(null, params);
+        return;
+      }
+      this._fixLoadParamsToLoadURIOptions(params);
       this._wrapURIChangeCall(() =>
-        this.webNavigation.loadURI(aURI, loadURIOptions)
+        this.webNavigation.fixupAndLoadURIString(uriString, params)
       );
     }
 
@@ -977,6 +991,21 @@
       );
     }
 
+    constrainPopup(popup) {
+      if (this.getAttribute("constrainpopups") != "false") {
+        let constraintRect = this.getBoundingClientRect();
+        constraintRect = new DOMRect(
+          constraintRect.left + window.mozInnerScreenX,
+          constraintRect.top + window.mozInnerScreenY,
+          constraintRect.width,
+          constraintRect.height
+        );
+        popup.setConstraintRect(constraintRect);
+      } else {
+        popup.setConstraintRect(new DOMRect(0, 0, 0, 0));
+      }
+    }
+
     construct() {
       elementsToDestroyOnUnload.add(this);
       this.resetFields();
@@ -1030,12 +1059,12 @@
               this.docShell.browsingContext.useGlobalHistory = true;
             } catch (ex) {
               // This can occur if the Places database is locked
-              Cu.reportError("Error enabling browser global history: " + ex);
+              console.error("Error enabling browser global history: ", ex);
             }
           }
         }
       } catch (e) {
-        Cu.reportError(e);
+        console.error(e);
       }
       try {
         // Ensures the securityUI is initialized.

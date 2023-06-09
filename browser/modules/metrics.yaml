@@ -31,11 +31,12 @@ browser.engagement:
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1545172#c8
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1781578
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1811152#c5
     data_sensitivity:
       - interaction
     notification_emails:
       - loines@mozilla.com
-    expires: 112
+    expires: never
     send_in_pings:
       - baseline
       - metrics
@@ -59,16 +60,39 @@ browser.engagement:
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1535169#c14
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1781578
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1811152#c5
     data_sensitivity:
       - interaction
     notification_emails:
       - loines@mozilla.com
-    expires: 112
+    expires: never
     send_in_pings:
       - baseline
       - metrics
     no_lint:
       - BASELINE_PING
+
+  profile_count:
+    type: quantity
+    unit: profiles
+    description: |
+      Windows only count of the browser profiles on the current system. This
+      counts profiles that have been used across all Windows user accounts on
+      machine since this probe was added. The value persists across installs.
+      A value of 0 is reported if there is an error determining the correct
+      count. Unset on other platforms.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1813195
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1647422#c8
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - pmcmanis@mozilla.com
+      - rtestard@mozilla.com
+    send_in_pings:
+      - metrics
+    expires: never
 
 ping.centre:
   send_failures:
@@ -77,10 +101,55 @@ ping.centre:
       The number of PingCentre send failures.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1800079
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1827767
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1800079
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1827767
     data_sensitivity:
       - technical
     notification_emails:
       - chutten@mozilla.com
-    expires: 115
+    expires: 120
+
+  send_failures_by_namespace:
+    type: labeled_counter
+    description: |
+      The number of PingCentre send failures,
+      broken down by structured ingestion namespace.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1814922
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1827767
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1814922
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1827767
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - chutten@mozilla.com
+    expires: 120
+    labels: &structured_ingestion_namespaces
+      - activity_stream
+      - messaging_system
+      - contextual_services
+    no_lint:
+      - COMMON_PREFIX
+
+  send_successes_by_namespace:
+    type: labeled_counter
+    description: |
+      The number of PingCentre send successes,
+      broken down by structured ingestion namespace.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1814922
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1827767
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1814922
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1827767
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - chutten@mozilla.com
+    expires: 120
+    labels: *structured_ingestion_namespaces
+    no_lint:
+      - COMMON_PREFIX

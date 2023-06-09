@@ -37,7 +37,7 @@ pub struct PingMaker;
 
 fn merge(a: &mut JsonValue, b: &JsonValue) {
     match (a, b) {
-        (&mut JsonValue::Object(ref mut a), &JsonValue::Object(ref b)) => {
+        (&mut JsonValue::Object(ref mut a), JsonValue::Object(b)) => {
             for (k, v) in b {
                 merge(a.entry(k.clone()).or_insert(JsonValue::Null), v);
             }
@@ -61,9 +61,7 @@ impl PingMaker {
     }
 
     /// Gets, and then increments, the sequence number for a given ping.
-    ///
-    /// This is crate-internal exclusively for enabling the migration tests.
-    pub(super) fn get_ping_seq(&self, glean: &Glean, storage_name: &str) -> usize {
+    fn get_ping_seq(&self, glean: &Glean, storage_name: &str) -> usize {
         // Sequence numbers are stored as a counter under a name that includes the storage name
         let seq = CounterMetric::new(CommonMetricData {
             name: format!("{}#sequence", storage_name),
@@ -78,7 +76,7 @@ impl PingMaker {
             glean.storage(),
             INTERNAL_STORAGE,
             &seq.meta().identifier(glean),
-            seq.meta().lifetime,
+            seq.meta().inner.lifetime,
         ) {
             Some(Metric::Counter(i)) => i,
             _ => 0,
@@ -225,11 +223,16 @@ impl PingMaker {
         info!("Collecting {}", ping.name());
 
         let metrics_data = StorageManager.snapshot_as_json(glean.storage(), ping.name(), true);
-        let events_data = glean.event_storage().snapshot_as_json(ping.name(), true);
+        let events_data = glean
+            .event_storage()
+            .snapshot_as_json(glean, ping.name(), true);
 
         let is_empty = metrics_data.is_none() && events_data.is_none();
         if !ping.send_if_empty() && is_empty {
             info!("Storage for {} empty. Bailing out.", ping.name());
+            return None;
+        } else if ping.name() == "events" && events_data.is_none() {
+            info!("No events for 'events' ping. Bailing out.");
             return None;
         } else if is_empty {
             info!(
@@ -355,7 +358,7 @@ impl PingMaker {
     pub fn clear_pending_pings(&self, data_path: &Path) -> Result<()> {
         let pings_dir = self.get_pings_dir(data_path, None)?;
 
-        remove_dir_all::remove_dir_all(&pings_dir)?;
+        std::fs::remove_dir_all(&pings_dir)?;
         create_dir_all(&pings_dir)?;
 
         log::debug!("All pending pings deleted");
@@ -371,7 +374,7 @@ mod test {
 
     #[test]
     fn sequence_numbers_should_be_reset_when_toggling_uploading() {
-        let (mut glean, _) = new_glean(None);
+        let (mut glean, _t) = new_glean(None);
         let ping_maker = PingMaker::new();
 
         assert_eq!(0, ping_maker.get_ping_seq(&glean, "custom"));

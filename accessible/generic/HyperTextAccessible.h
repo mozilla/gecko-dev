@@ -127,12 +127,6 @@ class HyperTextAccessible : public AccessibleWrap,
 
   using HyperTextAccessibleBase::CharAt;
 
-  char16_t CharAt(int32_t aOffset) {
-    nsAutoString charAtOffset;
-    CharAt(aOffset, charAtOffset);
-    return charAtOffset.CharAt(0);
-  }
-
   /**
    * Return true if char at the given offset equals to given char.
    */
@@ -181,13 +175,7 @@ class HyperTextAccessible : public AccessibleWrap,
       uint32_t aCoordType =
           nsIAccessibleCoordinateType::COORDTYPE_SCREEN_RELATIVE) override;
 
-  LayoutDeviceIntRect CharBounds(int32_t aOffset,
-                                 uint32_t aCoordType) override {
-    int32_t endOffset = aOffset == static_cast<int32_t>(CharacterCount())
-                            ? aOffset
-                            : aOffset + 1;
-    return TextBounds(aOffset, endOffset, aCoordType);
-  }
+  LayoutDeviceIntRect CharBounds(int32_t aOffset, uint32_t aCoordType) override;
 
   /**
    * Get/set caret offset, if no caret then -1.
@@ -195,11 +183,7 @@ class HyperTextAccessible : public AccessibleWrap,
   virtual int32_t CaretOffset() const override;
   virtual void SetCaretOffset(int32_t aOffset) override;
 
-  /**
-   * Provide the line number for the caret.
-   * @return 1-based index for the line number with the caret
-   */
-  int32_t CaretLineNumber();
+  virtual int32_t CaretLineNumber() override;
 
   /**
    * Return the caret rect and the widget containing the caret within this
@@ -220,33 +204,8 @@ class HyperTextAccessible : public AccessibleWrap,
   virtual bool SelectionBoundsAt(int32_t aSelectionNum, int32_t* aStartOffset,
                                  int32_t* aEndOffset) override;
 
-  /*
-   * Changes the start and end offset of the specified selection.
-   * @return true if succeeded
-   */
-  // TODO: annotate this with `MOZ_CAN_RUN_SCRIPT` instead.
-  MOZ_CAN_RUN_SCRIPT_BOUNDARY bool SetSelectionBoundsAt(int32_t aSelectionNum,
-                                                        int32_t aStartOffset,
-                                                        int32_t aEndOffset);
-
-  /**
-   * Adds a selection bounded by the specified offsets.
-   * @return true if succeeded
-   */
-  bool AddToSelection(int32_t aStartOffset, int32_t aEndOffset);
-
-  /*
-   * Removes the specified selection.
-   * @return true if succeeded
-   */
-  // TODO: annotate this with `MOZ_CAN_RUN_SCRIPT` instead.
-  MOZ_CAN_RUN_SCRIPT_BOUNDARY bool RemoveFromSelection(int32_t aSelectionNum);
-
-  /**
-   * Scroll the given text range into view.
-   */
-  void ScrollSubstringTo(int32_t aStartOffset, int32_t aEndOffset,
-                         uint32_t aScrollType);
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY virtual bool RemoveFromSelection(
+      int32_t aSelectionNum) override;
 
   /**
    * Scroll the given text range to the given point.

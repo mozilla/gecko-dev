@@ -10,6 +10,7 @@ devtools.jar:
     content/shared/theme-switching.js (shared/theme-switching.js)
     content/shared/widgets/cubic-bezier.css (shared/widgets/cubic-bezier.css)
     content/shared/widgets/filter-widget.css (shared/widgets/filter-widget.css)
+    content/shared/widgets/linear-widget.css (shared/widgets/linear-widget.css)
     content/shared/widgets/spectrum.css (shared/widgets/spectrum.css)
     content/shared/components/SmartTrace.css (shared/components/SmartTrace.css)
     content/shared/components/Tree.css (shared/components/Tree.css)
@@ -26,6 +27,7 @@ devtools.jar:
     content/shared/components/splitter/SplitBox.css (shared/components/splitter/SplitBox.css)
     content/shared/components/List.css (shared/components/List.css)
     content/shared/components/tree/TreeView.css (shared/components/tree/TreeView.css)
+    content/shared/components/SearchModifiers.css (shared/components/SearchModifiers.css)
     content/shared/components/SidebarToggle.css (shared/components/SidebarToggle.css)
     content/shared/components/MdnLink.css (shared/components/MdnLink.css)
     content/shared/components/AppErrorBoundary.css (shared/components/AppErrorBoundary.css)
@@ -97,6 +99,7 @@ devtools.jar:
     skin/images/sort-ascending-arrow.svg (themes/images/sort-ascending-arrow.svg)
     skin/images/sort-descending-arrow.svg (themes/images/sort-descending-arrow.svg)
     skin/images/cubic-bezier-swatch.svg (themes/images/cubic-bezier-swatch.svg)
+    skin/images/linear-easing-swatch.svg (themes/images/linear-easing-swatch.svg)
     skin/fonts.css (themes/fonts.css)
     skin/changes.css (themes/changes.css)
     skin/compatibility.css (themes/compatibility.css)
@@ -246,6 +249,7 @@ devtools.jar:
     content/debugger/images/stepIn.svg (debugger/images/stepIn.svg)
     content/debugger/images/stepOut.svg (debugger/images/stepOut.svg)
     content/debugger/images/tab.svg (debugger/images/tab.svg)
+    content/debugger/images/trace.svg (debugger/images/trace.svg)
     content/debugger/images/webconsole-logpoint.svg (debugger/images/webconsole-logpoint.svg)
     content/debugger/images/whole-word-match.svg (debugger/images/whole-word-match.svg)
     content/debugger/images/window.svg (debugger/images/window.svg)
@@ -283,7 +287,6 @@ devtools.jar:
     content/debugger/src/components/variables.css (debugger/src/components/variables.css)
     content/debugger/src/components/A11yIntention.css (debugger/src/components/A11yIntention.css)
     content/debugger/src/components/App.css (debugger/src/components/App.css)
-    content/debugger/src/components/ProjectSearch.css (debugger/src/components/ProjectSearch.css)
     content/debugger/src/components/QuickOpenModal.css (debugger/src/components/QuickOpenModal.css)
     content/debugger/src/components/ShortcutsModal.css (debugger/src/components/ShortcutsModal.css)
     content/debugger/src/components/WelcomeBox.css (debugger/src/components/WelcomeBox.css)
@@ -315,6 +318,7 @@ devtools.jar:
     content/debugger/src/components/Editor/Tabs.css (debugger/src/components/Editor/Tabs.css)
     content/debugger/src/components/PrimaryPanes/Outline.css (debugger/src/components/PrimaryPanes/Outline.css)
     content/debugger/src/components/PrimaryPanes/OutlineFilter.css (debugger/src/components/PrimaryPanes/OutlineFilter.css)
+    content/debugger/src/components/PrimaryPanes/ProjectSearch.css (debugger/src/components/PrimaryPanes/ProjectSearch.css)
     content/debugger/src/components/PrimaryPanes/Sources.css (debugger/src/components/PrimaryPanes/Sources.css)
     content/debugger/src/components/SecondaryPanes/Breakpoints/Breakpoints.css (debugger/src/components/SecondaryPanes/Breakpoints/Breakpoints.css)
     content/debugger/src/components/SecondaryPanes/CommandBar.css (debugger/src/components/SecondaryPanes/CommandBar.css)
@@ -331,7 +335,7 @@ devtools.jar:
     content/debugger/src/utils/editor/source-editor.css (debugger/src/utils/editor/source-editor.css)
 
     # Perfomance
-    content/performance-new/index.xhtml (performance-new/index.xhtml)
+    content/performance-new/panel/index.xhtml (performance-new/panel/index.xhtml)
 
     # Memory
     content/memory/index.xhtml (memory/index.xhtml)

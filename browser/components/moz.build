@@ -30,7 +30,6 @@ DIRS += [
     "about",
     "aboutlogins",
     "attribution",
-    "colorways",
     "contextualidentity",
     "customizableui",
     "doh",
@@ -60,6 +59,7 @@ DIRS += [
     "tabunloader",
     "textrecognition",
     "translation",
+    "translations",
     "uitour",
     "urlbar",
 ]

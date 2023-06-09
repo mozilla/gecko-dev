@@ -70,9 +70,11 @@ namespace mozilla::ipc {
 using mozilla::dom::UDPSocketChild;
 using mozilla::net::PUDPSocketChild;
 
+using mozilla::dom::PRemoteWorkerChild;
 using mozilla::dom::PServiceWorkerChild;
 using mozilla::dom::PServiceWorkerContainerChild;
 using mozilla::dom::PServiceWorkerRegistrationChild;
+using mozilla::dom::RemoteWorkerChild;
 using mozilla::dom::StorageDBChild;
 using mozilla::dom::cache::PCacheChild;
 using mozilla::dom::cache::PCacheStreamControlChild;
@@ -280,10 +282,9 @@ bool BackgroundChildImpl::DeallocPBackgroundStorageChild(
   return true;
 }
 
-dom::PRemoteWorkerChild* BackgroundChildImpl::AllocPRemoteWorkerChild(
-    const RemoteWorkerData& aData) {
-  RefPtr<dom::RemoteWorkerChild> agent = new dom::RemoteWorkerChild(aData);
-  return agent.forget().take();
+already_AddRefed<PRemoteWorkerChild>
+BackgroundChildImpl::AllocPRemoteWorkerChild(const RemoteWorkerData& aData) {
+  return MakeAndAddRef<RemoteWorkerChild>(aData);
 }
 
 IPCResult BackgroundChildImpl::RecvPRemoteWorkerConstructor(
@@ -291,13 +292,6 @@ IPCResult BackgroundChildImpl::RecvPRemoteWorkerConstructor(
   dom::RemoteWorkerChild* actor = static_cast<dom::RemoteWorkerChild*>(aActor);
   actor->ExecWorker(aData);
   return IPC_OK();
-}
-
-bool BackgroundChildImpl::DeallocPRemoteWorkerChild(
-    dom::PRemoteWorkerChild* aActor) {
-  RefPtr<dom::RemoteWorkerChild> actor =
-      dont_AddRef(static_cast<dom::RemoteWorkerChild*>(aActor));
-  return true;
 }
 
 dom::PRemoteWorkerControllerChild*
@@ -314,20 +308,6 @@ bool BackgroundChildImpl::DeallocPRemoteWorkerControllerChild(
 
   RefPtr<dom::RemoteWorkerControllerChild> actor =
       dont_AddRef(static_cast<dom::RemoteWorkerControllerChild*>(aActor));
-  return true;
-}
-
-dom::PRemoteWorkerServiceChild*
-BackgroundChildImpl::AllocPRemoteWorkerServiceChild() {
-  RefPtr<dom::RemoteWorkerServiceChild> agent =
-      new dom::RemoteWorkerServiceChild();
-  return agent.forget().take();
-}
-
-bool BackgroundChildImpl::DeallocPRemoteWorkerServiceChild(
-    dom::PRemoteWorkerServiceChild* aActor) {
-  RefPtr<dom::RemoteWorkerServiceChild> actor =
-      dont_AddRef(static_cast<dom::RemoteWorkerServiceChild*>(aActor));
   return true;
 }
 
@@ -489,16 +469,6 @@ bool BackgroundChildImpl::DeallocPClientManagerChild(
     mozilla::dom::PClientManagerChild* aActor) {
   return mozilla::dom::DeallocClientManagerChild(aActor);
 }
-
-#ifdef EARLY_BETA_OR_EARLIER
-void BackgroundChildImpl::OnChannelReceivedMessage(const Message& aMsg) {
-  if (aMsg.type() == dom::PVsync::MessageType::Msg_Notify__ID) {
-    // Not really necessary to look at the message payload, it will be
-    // <0.5ms away from TimeStamp::Now()
-    SchedulerGroup::MarkVsyncReceived();
-  }
-}
-#endif
 
 dom::PWebAuthnTransactionChild*
 BackgroundChildImpl::AllocPWebAuthnTransactionChild() {

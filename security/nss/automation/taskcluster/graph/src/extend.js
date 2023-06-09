@@ -20,6 +20,12 @@ const LINUX_INTEROP_IMAGE = {
   path: "automation/taskcluster/docker-interop"
 };
 
+const ACVP_IMAGE = {
+  name: "acvp",
+  path: "automation/taskcluster/docker-acvp"
+};
+
+
 const CLANG_FORMAT_IMAGE = {
   name: "clang-format",
   path: "automation/taskcluster/docker-clang-format"
@@ -872,14 +878,14 @@ async function scheduleFuzzing32() {
 
 async function scheduleWindows(name, base, build_script) {
   base = merge(base, {
-    workerType: "win2012r2",
+    workerType: "b-win2012-azure",
     env: {
       PATH: "c:\\mozilla-build\\bin;c:\\mozilla-build\\python;" +
            "c:\\mozilla-build\\msys\\local\\bin;c:\\mozilla-build\\7zip;" +
            "c:\\mozilla-build\\info-zip;c:\\mozilla-build\\python\\Scripts;" +
            "c:\\mozilla-build\\yasm;c:\\mozilla-build\\msys\\bin;" +
            "c:\\Windows\\system32;c:\\mozilla-build\\upx391w;" +
-           "c:\\mozilla-build\\moztools-x64\\bin;c:\\mozilla-build\\wget",
+           "c:\\mozilla-build\\moztools-x64\\bin;c:\\mozilla-build\\wget;c:\\Program Files\\Mercurial",
       DOMSUF: "localdomain",
       HOST: "localhost",
     },
@@ -1135,6 +1141,18 @@ async function scheduleTools() {
       "bin/checkout.sh && nss/automation/clang-format/run_clang_format.sh"
     ]
   }));
+
+  queue.scheduleTask(merge(base, {
+    symbol: "acvp",
+    name: "acvp",
+    image: ACVP_IMAGE,
+    command: [
+      "/bin/bash",
+      "-c",
+      "bin/checkout.sh && bin/run.sh"
+    ]
+  }));
+
 
   queue.scheduleTask(merge(base, {
     symbol: "scan-build",

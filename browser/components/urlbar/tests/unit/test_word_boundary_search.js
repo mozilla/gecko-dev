@@ -50,6 +50,7 @@ add_task(async function test_escape() {
     title: "title1",
     tags: ["dontmatchme3"],
   });
+  await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
 
   info("Match 'match' at the beginning or after / or on a CamelCase");
   let context = createContext("match", { isPrivate: false });
@@ -200,7 +201,7 @@ add_task(async function test_escape() {
         })
       : makeVisitResult(context, {
           uri: "file:///",
-          title: "file:///",
+          fallbackTitle: "file:///",
           source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
           heuristic: true,
         });

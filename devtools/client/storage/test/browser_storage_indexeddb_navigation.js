@@ -2,24 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* import-globals-from head.js */
-
 "use strict";
 
 requestLongerTimeout(3);
 
-// test without target switching
 add_task(async function() {
-  await testNavigation(true);
-});
-
-// test with target switching enabled
-add_task(async function() {
-  enableTargetSwitching();
-  await testNavigation();
-});
-
-async function testNavigation(shallCleanup = false) {
   const URL1 = URL_ROOT_COM_SSL + "storage-indexeddb-simple.html";
   const URL2 = URL_ROOT_NET_SSL + "storage-indexeddb-simple-alt.html";
 
@@ -75,12 +62,7 @@ async function testNavigation(shallCleanup = false) {
     "Indexed DB",
     "indexedDB item is properly displayed"
   );
-
-  // clean up if needed
-  if (shallCleanup) {
-    await clearStorage();
-  }
-}
+});
 
 async function clearStorage() {
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function() {

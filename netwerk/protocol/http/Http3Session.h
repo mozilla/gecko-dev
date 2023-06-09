@@ -113,6 +113,12 @@ class QuicSocketControl;
     }                                                \
   }
 
+enum class EchExtensionStatus {
+  kNotPresent,  // No ECH Extension was sent
+  kGREASE,      // A GREASE ECH Extension was sent
+  kReal         // A 'real' ECH Extension was sent
+};
+
 class Http3Session final : public nsAHttpTransaction, public nsAHttpConnection {
  public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_HTTP3SESSION_IID)
@@ -201,13 +207,15 @@ class Http3Session final : public nsAHttpTransaction, public nsAHttpConnection {
                                nsresult aResult);
   void StreamHasDataToWrite(Http3StreamBase* aStream);
   void ResetWebTransportStream(Http3WebTransportStream* aStream,
-                               uint8_t aErrorCode);
+                               uint64_t aErrorCode);
   void StreamStopSending(Http3WebTransportStream* aStream, uint8_t aErrorCode);
 
   void SendDatagram(Http3WebTransportSession* aSession,
                     nsTArray<uint8_t>& aData, uint64_t aTrackingId);
 
   uint64_t MaxDatagramSize(uint64_t aSessionId);
+
+  void CloseWebTransportConn();
 
  private:
   ~Http3Session();
@@ -228,7 +236,12 @@ class Http3Session final : public nsAHttpTransaction, public nsAHttpConnection {
 
   void SetupTimer(uint64_t aTimeout);
 
-  void ResetRecvd(uint64_t aStreamId, uint64_t aError);
+  enum ResetType {
+    RESET,
+    STOP_SENDING,
+  };
+  void ResetOrStopSendingRecvd(uint64_t aStreamId, uint64_t aError,
+                               ResetType aType);
 
   void QueueStream(Http3StreamBase* stream);
   void RemoveStreamFromQueues(Http3StreamBase*);
@@ -236,6 +249,8 @@ class Http3Session final : public nsAHttpTransaction, public nsAHttpConnection {
 
   void CallCertVerification(Maybe<nsCString> aEchPublicName);
   void SetSecInfo();
+
+  void EchOutcomeTelemetry();
 
   void StreamReadyToWrite(Http3StreamBase* aStream);
   void MaybeResumeSend();
@@ -254,13 +269,17 @@ class Http3Session final : public nsAHttpTransaction, public nsAHttpConnection {
 
   RefPtr<NeqoHttp3Conn> mHttp3Connection;
   RefPtr<nsAHttpConnection> mConnection;
+  // We need an extra map to store the mapping of WebTransportSession and
+  // WebTransportStreams to handle the case that a stream is already removed
+  // from mStreamIdHash and we still need the WebTransportSession.
+  nsTHashMap<nsUint64HashKey, uint64_t> mWebTransportStreamToSessionMap;
   nsRefPtrHashtable<nsUint64HashKey, Http3StreamBase> mStreamIdHash;
   nsRefPtrHashtable<nsPtrHashKey<nsAHttpTransaction>, Http3StreamBase>
       mStreamTransactionHash;
 
-  nsDeque<Http3StreamBase> mReadyForWrite;
+  nsRefPtrDeque<Http3StreamBase> mReadyForWrite;
   nsTArray<RefPtr<Http3StreamBase>> mSlowConsumersReadyForRead;
-  nsDeque<Http3StreamBase> mQueuedStreams;
+  nsRefPtrDeque<Http3StreamBase> mQueuedStreams;
 
   enum State {
     INITIALIZING,
@@ -283,7 +302,7 @@ class Http3Session final : public nsAHttpTransaction, public nsAHttpConnection {
   // socket.
   nsresult mSocketError{NS_OK};
   bool mBeforeConnectedError{false};
-  uint64_t mCurrentTopBrowsingContextId;
+  uint64_t mCurrentBrowserId;
 
   // True if the mTimer is inited and waiting for firing.
   bool mTimerActive{false};
@@ -328,6 +347,13 @@ class Http3Session final : public nsAHttpTransaction, public nsAHttpConnection {
   int64_t mTotalBytesWritten = 0;  // total data read
   PRIntervalTime mLastWriteTime = 0;
 
+  // Records whether we sent an ECH Extension and whether it was a GREASE Xtn
+  EchExtensionStatus mEchExtensionStatus = EchExtensionStatus::kNotPresent;
+
+  // Records whether the handshake finished successfully and we established a
+  // a connection.
+  bool mHandshakeSucceeded = false;
+
   nsCOMPtr<nsINetAddr> mNetAddr;
 
   enum WebTransportNegotiation { DISABLED, NEGOTIATING, FAILED, SUCCEEDED };
@@ -342,6 +368,8 @@ class Http3Session final : public nsAHttpTransaction, public nsAHttpConnection {
 
   nsTArray<RefPtr<Http3StreamBase>> mWebTransportSessions;
   nsTArray<RefPtr<Http3StreamBase>> mWebTransportStreams;
+
+  bool mHasWebTransportSession = false;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(Http3Session, NS_HTTP3SESSION_IID);

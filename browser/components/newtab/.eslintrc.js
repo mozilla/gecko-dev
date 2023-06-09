@@ -25,7 +25,6 @@ module.exports = {
     "eslint:recommended",
     "plugin:jsx-a11y/recommended", // require("eslint-plugin-jsx-a11y")
     "plugin:mozilla/recommended", // require("eslint-plugin-mozilla") require("eslint-plugin-fetch-options") require("eslint-plugin-html") require("eslint-plugin-no-unsanitized")
-    "plugin:prettier/recommended", // require("eslint-plugin-prettier")
     "prettier", // require("eslint-config-prettier")
   ],
   overrides: [

@@ -101,6 +101,24 @@ DecoderType DecoderFactory::GetDecoderType(const char* aMimeType) {
 }
 
 /* static */
+DecoderFlags DecoderFactory::GetDefaultDecoderFlagsForType(DecoderType aType) {
+  auto flags = DefaultDecoderFlags();
+
+#ifdef MOZ_AV1
+  if (aType == DecoderType::AVIF) {
+    if (StaticPrefs::image_avif_sequence_enabled()) {
+      flags |= DecoderFlags::AVIF_SEQUENCES_ENABLED;
+    }
+    if (StaticPrefs::image_avif_sequence_animate_avif_major_branded_images()) {
+      flags |= DecoderFlags::AVIF_ANIMATE_AVIF_MAJOR;
+    }
+  }
+#endif
+
+  return flags;
+}
+
+/* static */
 already_AddRefed<Decoder> DecoderFactory::GetDecoder(DecoderType aType,
                                                      RasterImage* aImage,
                                                      bool aIsRedecode) {
@@ -217,7 +235,7 @@ nsresult DecoderFactory::CreateAnimationDecoder(
   }
 
   MOZ_ASSERT(aType == DecoderType::GIF || aType == DecoderType::PNG ||
-                 aType == DecoderType::WEBP,
+                 aType == DecoderType::WEBP || aType == DecoderType::AVIF,
              "Calling CreateAnimationDecoder for non-animating DecoderType");
 
   // Create an anonymous decoder. Interaction with the SurfaceCache and the
@@ -272,7 +290,7 @@ already_AddRefed<Decoder> DecoderFactory::CloneAnimationDecoder(
   // rediscover it is animated).
   DecoderType type = aDecoder->GetType();
   MOZ_ASSERT(type == DecoderType::GIF || type == DecoderType::PNG ||
-                 type == DecoderType::WEBP,
+                 type == DecoderType::WEBP || type == DecoderType::AVIF,
              "Calling CloneAnimationDecoder for non-animating DecoderType");
 
   RefPtr<Decoder> decoder = GetDecoder(type, nullptr, /* aIsRedecode = */ true);
@@ -294,7 +312,7 @@ already_AddRefed<Decoder> DecoderFactory::CloneAnimationDecoder(
 
 /* static */
 already_AddRefed<IDecodingTask> DecoderFactory::CreateMetadataDecoder(
-    DecoderType aType, NotNull<RasterImage*> aImage,
+    DecoderType aType, NotNull<RasterImage*> aImage, DecoderFlags aFlags,
     NotNull<SourceBuffer*> aSourceBuffer) {
   if (aType == DecoderType::UNKNOWN) {
     return nullptr;
@@ -306,6 +324,7 @@ already_AddRefed<IDecodingTask> DecoderFactory::CreateMetadataDecoder(
 
   // Initialize the decoder.
   decoder->SetMetadataDecode(true);
+  decoder->SetDecoderFlags(aFlags);
   decoder->SetIterator(aSourceBuffer->Iterator());
 
   if (NS_FAILED(decoder->Init())) {

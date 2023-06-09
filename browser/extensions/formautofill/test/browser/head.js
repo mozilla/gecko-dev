@@ -7,8 +7,8 @@ const { OSKeyStoreTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/OSKeyStoreTestUtils.sys.mjs"
 );
 
-const { FormAutofillParent } = ChromeUtils.import(
-  "resource://autofill/FormAutofillParent.jsm"
+const { FormAutofillParent } = ChromeUtils.importESModule(
+  "resource://autofill/FormAutofillParent.sys.mjs"
 );
 
 const MANAGE_ADDRESSES_DIALOG_URL =
@@ -530,8 +530,8 @@ async function waitForPopupEnabled(browser) {
 function waitPopupStateInChild(bc, messageName) {
   return SpecialPowers.spawn(bc, [messageName], expectedMessage => {
     return new Promise(resolve => {
-      const { AutoCompleteChild } = ChromeUtils.import(
-        "resource://gre/actors/AutoCompleteChild.jsm"
+      const { AutoCompleteChild } = ChromeUtils.importESModule(
+        "resource://gre/actors/AutoCompleteChild.sys.mjs"
       );
 
       let listener = {

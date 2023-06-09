@@ -394,7 +394,9 @@ def show_taskgraph(options):
 
         # Reload taskgraph modules to pick up changes and clear global state.
         for mod in sys.modules.copy():
-            if mod != __name__ and mod.split(".", 1)[0].endswith("taskgraph"):
+            if mod != __name__ and mod.split(".", 1)[0].endswith(
+                ("taskgraph", "mozbuild")
+            ):
                 del sys.modules[mod]
 
         # Ensure gecko_taskgraph is ahead of taskcluster_taskgraph in sys.path.
@@ -699,10 +701,9 @@ def test_action_callback(options):
         with open(filename) as f:
             if filename.endswith(".yml"):
                 return yaml.load_stream(f)
-            elif filename.endswith(".json"):
+            if filename.endswith(".json"):
                 return json.load(f)
-            else:
-                raise Exception(f"unknown filename {filename}")
+            raise Exception(f"unknown filename {filename}")
 
     try:
         task_id = options["task_id"]

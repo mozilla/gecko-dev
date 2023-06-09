@@ -16,9 +16,13 @@ function allProperties(obj) {
   return matchingProperties(obj, /./);
 }
 
+function getter(obj, name) {
+  return Object.getOwnPropertyDescriptor(obj, name).get;
+}
+
 const TypedArray = Reflect.getPrototypeOf(Int8Array);
 
-module.exports = [
+const allowList = [
   Array,
   Array.from,
   Array.isArray,
@@ -158,4 +162,84 @@ module.exports = [
   isFinite,
   isNaN,
   unescape,
+  getter(ArrayBuffer.prototype, "byteLength"),
+  getter(ArrayBuffer, Symbol.species),
+  getter(Array, Symbol.species),
+  getter(DataView.prototype, "buffer"),
+  getter(DataView.prototype, "byteLength"),
+  getter(DataView.prototype, "byteOffset"),
+  getter(Error.prototype, "stack"),
+  getter(Function.prototype, "arguments"),
+  getter(Function.prototype, "caller"),
+  getter(Intl.Locale.prototype, "baseName"),
+  getter(Intl.Locale.prototype, "calendar"),
+  getter(Intl.Locale.prototype, "caseFirst"),
+  getter(Intl.Locale.prototype, "collation"),
+  getter(Intl.Locale.prototype, "hourCycle"),
+  getter(Intl.Locale.prototype, "numeric"),
+  getter(Intl.Locale.prototype, "numberingSystem"),
+  getter(Intl.Locale.prototype, "language"),
+  getter(Intl.Locale.prototype, "script"),
+  getter(Intl.Locale.prototype, "region"),
+  getter(Map.prototype, "size"),
+  getter(Map, Symbol.species),
+  // NOTE: Object.prototype.__proto__ is not safe, because it can internally
+  //       invoke Proxy getPrototypeOf handler.
+  getter(Promise, Symbol.species),
+  getter(RegExp, "input"),
+  getter(RegExp, "lastMatch"),
+  getter(RegExp, "lastParen"),
+  getter(RegExp, "leftContext"),
+  getter(RegExp, "rightContext"),
+  getter(RegExp, "$1"),
+  getter(RegExp, "$2"),
+  getter(RegExp, "$3"),
+  getter(RegExp, "$4"),
+  getter(RegExp, "$5"),
+  getter(RegExp, "$6"),
+  getter(RegExp, "$7"),
+  getter(RegExp, "$8"),
+  getter(RegExp, "$9"),
+  getter(RegExp, "$_"),
+  getter(RegExp, "$&"),
+  getter(RegExp, "$+"),
+  getter(RegExp, "$`"),
+  getter(RegExp, "$'"),
+  getter(RegExp.prototype, "dotAll"),
+  getter(RegExp.prototype, "flags"),
+  getter(RegExp.prototype, "global"),
+  getter(RegExp.prototype, "hasIndices"),
+  getter(RegExp.prototype, "ignoreCase"),
+  getter(RegExp.prototype, "multiline"),
+  getter(RegExp.prototype, "source"),
+  getter(RegExp.prototype, "sticky"),
+  getter(RegExp.prototype, "unicode"),
+  getter(RegExp, Symbol.species),
+  getter(Set.prototype, "size"),
+  getter(Set, Symbol.species),
+  getter(Symbol.prototype, "description"),
+  getter(TypedArray.prototype, "buffer"),
+  getter(TypedArray.prototype, "byteLength"),
+  getter(TypedArray.prototype, "byteOffset"),
+  getter(TypedArray.prototype, "length"),
+  getter(TypedArray.prototype, Symbol.toStringTag),
+  getter(TypedArray, Symbol.species),
 ];
+
+// TODO: Integrate in main list when changes array by copy ships by default
+const changesArrayByCopy = [
+  Array.prototype.toReversed,
+  Array.prototype.toSorted,
+  Array.prototype.toSpliced,
+  Array.prototype.with,
+  TypedArray.prototype.toReversed,
+  TypedArray.prototype.toSorted,
+  TypedArray.prototype.with,
+];
+for (const fn of changesArrayByCopy) {
+  if (typeof fn == "function") {
+    allowList.push(fn);
+  }
+}
+
+module.exports = allowList;

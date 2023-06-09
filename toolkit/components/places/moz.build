@@ -66,7 +66,9 @@ if CONFIG["MOZ_PLACES"]:
         "PlacesBackups.sys.mjs",
         "PlacesDBUtils.sys.mjs",
         "PlacesExpiration.sys.mjs",
+        "PlacesFrecencyRecalculator.sys.mjs",
         "PlacesPreviews.sys.mjs",
+        "PlacesQuery.sys.mjs",
         "PlacesSyncUtils.sys.mjs",
         "PlacesTransactions.sys.mjs",
         "PlacesUtils.sys.mjs",
@@ -84,5 +86,3 @@ include("/ipc/chromium/chromium-config.mozbuild")
 
 with Files("**"):
     BUG_COMPONENT = ("Toolkit", "Places")
-
-REQUIRES_UNIFIED_BUILD = True

@@ -1,17 +1,17 @@
 "use strict";
 
 ChromeUtils.defineESModuleGetters(this, {
+  DoHConfigController: "resource:///modules/DoHConfig.sys.mjs",
+  DoHController: "resource:///modules/DoHController.sys.mjs",
+  DoHTestUtils: "resource://testing-common/DoHTestUtils.sys.mjs",
   Preferences: "resource://gre/modules/Preferences.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
   RegionTestUtils: "resource://testing-common/RegionTestUtils.sys.mjs",
+  RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
 });
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   ASRouter: "resource://activity-stream/lib/ASRouter.jsm",
-  DoHController: "resource:///modules/DoHController.jsm",
-  DoHConfigController: "resource:///modules/DoHConfig.jsm",
-  DoHTestUtils: "resource://testing-common/DoHTestUtils.jsm",
-  RemoteSettings: "resource://services-settings/remote-settings.js",
 });
 
 XPCOMUtils.defineLazyServiceGetter(
@@ -21,8 +21,8 @@ XPCOMUtils.defineLazyServiceGetter(
   "nsINativeDNSResolverOverride"
 );
 
-const { CommonUtils } = ChromeUtils.import(
-  "resource://services-common/utils.js"
+const { CommonUtils } = ChromeUtils.importESModule(
+  "resource://services-common/utils.sys.mjs"
 );
 
 const EXAMPLE_URL = "https://example.com/";
@@ -276,6 +276,7 @@ async function waitForStateTelemetry(expectedStates) {
     return events;
   });
   events = events.filter(e => e[1] == "doh" && e[2] == "state");
+  info(events);
   is(events.length, expectedStates.length, "Found the expected state events.");
   for (let state of expectedStates) {
     let event = events.find(e => e[3] == state);

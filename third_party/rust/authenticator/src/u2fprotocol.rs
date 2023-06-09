@@ -100,7 +100,7 @@ where
         ));
     }
 
-    if key_handle.len() > 256 {
+    if key_handle.len() >= 256 {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
             "Key handle too large",
@@ -175,7 +175,7 @@ fn status_word_to_result<T>(status: [u8; 2], val: T) -> io::Result<T> {
         SW_WRONG_DATA => Err(io::Error::new(InvalidData, "wrong data")),
         SW_WRONG_LENGTH => Err(io::Error::new(InvalidInput, "wrong length")),
         SW_CONDITIONS_NOT_SATISFIED => Err(io_err("conditions not satisfied")),
-        _ => Err(io_err(&format!("failed with status {:?}", status))),
+        _ => Err(io_err(&format!("failed with status {status:?}"))),
     }
 }
 
@@ -282,7 +282,7 @@ pub(crate) mod tests {
         let mut cid = [0u8; 4];
         thread_rng().fill_bytes(&mut cid);
 
-        device.set_cid(cid.clone());
+        device.set_cid(cid);
 
         let info = U2FDeviceInfo {
             vendor_name: Vec::new(),
@@ -297,15 +297,15 @@ pub(crate) mod tests {
 
         // ctap1.0 U2F_VERSION request
         let mut msg = cid.to_vec();
-        msg.extend(&[HIDCmd::Msg.into(), 0x0, 0x7]); // cmd + bcnt
-        msg.extend(&[0x0, 0x3, 0x0, 0x0, 0x0, 0x0, 0x0]);
+        msg.extend([HIDCmd::Msg.into(), 0x0, 0x7]); // cmd + bcnt
+        msg.extend([0x0, 0x3, 0x0, 0x0, 0x0, 0x0, 0x0]);
         device.add_write(&msg, 0);
 
         // fido response
         let mut msg = cid.to_vec();
-        msg.extend(&[HIDCmd::Msg.into(), 0x0, 0x08]); // cmd + bcnt
-        msg.extend(&[0x55, 0x32, 0x46, 0x5f, 0x56, 0x32]); // 'U2F_V2'
-        msg.extend(&SW_NO_ERROR);
+        msg.extend([HIDCmd::Msg.into(), 0x0, 0x08]); // cmd + bcnt
+        msg.extend([0x55, 0x32, 0x46, 0x5f, 0x56, 0x32]); // 'U2F_V2'
+        msg.extend(SW_NO_ERROR);
         device.add_read(&msg, 0);
 
         let res = is_v2_device(&mut device).expect("Failed to get version");

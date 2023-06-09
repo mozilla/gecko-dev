@@ -14,6 +14,7 @@ module.exports = {
       url:
         "https://firefox-source-docs.mozilla.org/code-quality/lint/linters/eslint-plugin-mozilla/use-includes-instead-of-indexOf.html",
     },
+    schema: [],
     type: "suggestion",
   },
 
@@ -39,7 +40,10 @@ module.exports = {
             node.right.type == "Literal" &&
             node.right.value == 0)
         ) {
-          context.report(node, "use .includes instead of .indexOf");
+          context.report({
+            node,
+            message: "use .includes instead of .indexOf",
+          });
         }
       },
     };

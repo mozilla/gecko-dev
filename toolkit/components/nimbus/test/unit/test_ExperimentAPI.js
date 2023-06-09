@@ -1,10 +1,10 @@
 "use strict";
 
-const { ExperimentAPI } = ChromeUtils.import(
-  "resource://nimbus/ExperimentAPI.jsm"
+const { ExperimentAPI } = ChromeUtils.importESModule(
+  "resource://nimbus/ExperimentAPI.sys.mjs"
 );
-const { ExperimentFakes } = ChromeUtils.import(
-  "resource://testing-common/NimbusTestUtils.jsm"
+const { ExperimentFakes } = ChromeUtils.importESModule(
+  "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
 const { TestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/TestUtils.sys.mjs"
@@ -386,8 +386,7 @@ add_task(async function test_getAllBranches_Failure() {
 });
 
 /**
- * #on
- * #off
+ * Store events
  */
 add_task(async function test_addEnrollment_eventEmit_add() {
   const sandbox = sinon.createSandbox();
@@ -405,8 +404,8 @@ add_task(async function test_addEnrollment_eventEmit_add() {
   await store.init();
   await ExperimentAPI.ready();
 
-  ExperimentAPI.on("update", { slug: "foo" }, slugStub);
-  ExperimentAPI.on("update", { featureId: "purple" }, featureStub);
+  store.on("update:foo", slugStub);
+  store.on("featureUpdate:purple", featureStub);
 
   await store.addEnrollment(experiment);
 
@@ -419,9 +418,14 @@ add_task(async function test_addEnrollment_eventEmit_add() {
   Assert.equal(
     featureStub.callCount,
     1,
-    "should call 'update' callback for featureId when an experiment is added"
+    "should call 'featureUpdate' callback for featureId when an experiment is added"
   );
-  Assert.equal(featureStub.firstCall.args[1].slug, experiment.slug);
+  Assert.equal(featureStub.firstCall.args[0], "featureUpdate:purple");
+  Assert.equal(featureStub.firstCall.args[1], "experiment-updated");
+
+  store.off("update:foo", slugStub);
+  store.off("featureUpdate:purple", featureStub);
+  sandbox.restore();
 });
 
 add_task(async function test_updateExperiment_eventEmit_add_and_update() {
@@ -442,20 +446,24 @@ add_task(async function test_updateExperiment_eventEmit_add_and_update() {
 
   await store.addEnrollment(experiment);
 
-  ExperimentAPI.on("update", { slug: "foo" }, slugStub);
-  ExperimentAPI.on("update", { featureId: "purple" }, featureStub);
+  store.on("update:foo", slugStub);
+  store._onFeatureUpdate("purple", featureStub);
 
   store.updateExperiment(experiment.slug, experiment);
 
   await TestUtils.waitForCondition(
-    () => slugStub.callCount == 2,
+    () => featureStub.callCount == 2,
     "Wait for `on` method to notify callback about the `add` event."
   );
   // Called twice, once when attaching the event listener (because there is an
   // existing experiment with that name) and 2nd time for the update event
   Assert.equal(slugStub.firstCall.args[1].slug, experiment.slug);
   Assert.equal(featureStub.callCount, 2, "Called twice for feature");
-  Assert.equal(featureStub.firstCall.args[1].slug, experiment.slug);
+  Assert.equal(featureStub.firstCall.args[0], "featureUpdate:purple");
+  Assert.equal(featureStub.firstCall.args[1], "experiment-updated");
+
+  store.off("update:foo", slugStub);
+  store._offFeatureUpdate("featureUpdate:purple", featureStub);
 });
 
 add_task(async function test_updateExperiment_eventEmit_off() {
@@ -474,18 +482,20 @@ add_task(async function test_updateExperiment_eventEmit_off() {
   await store.init();
   await ExperimentAPI.ready();
 
-  ExperimentAPI.on("update", { slug: "foo" }, slugStub);
-  ExperimentAPI.on("update", { featureId: "purple" }, featureStub);
+  store.on("update:foo", slugStub);
+  store.on("featureUpdate:purple", featureStub);
 
   await store.addEnrollment(experiment);
 
-  ExperimentAPI.off("update:foo", slugStub);
-  ExperimentAPI.off("update:purple", featureStub);
+  store.off("update:foo", slugStub);
+  store.off("featureUpdate:purple", featureStub);
 
   store.updateExperiment(experiment.slug, experiment);
 
   Assert.equal(slugStub.callCount, 1, "Called only once before `off`");
   Assert.equal(featureStub.callCount, 1, "Called only once before `off`");
+
+  sandbox.restore();
 });
 
 add_task(async function test_getActiveBranch() {
@@ -513,7 +523,7 @@ add_task(async function test_getActiveBranch() {
 
 add_task(async function test_getActiveBranch_safe() {
   const sandbox = sinon.createSandbox();
-  sandbox.stub(ExperimentAPI._store, "getAllActive").throws();
+  sandbox.stub(ExperimentAPI._store, "getAllActiveExperiments").throws();
 
   try {
     Assert.equal(
@@ -544,7 +554,7 @@ add_task(async function test_getActiveBranch_storeFailure() {
   // Adding stub later because `addEnrollment` emits update events
   const stub = sandbox.stub(store, "emit");
   // Call getActiveBranch to trigger an activation event
-  sandbox.stub(store, "getAllActive").throws();
+  sandbox.stub(store, "getAllActiveExperiments").throws();
   try {
     ExperimentAPI.getActiveBranch({ featureId: "green" });
   } catch (e) {

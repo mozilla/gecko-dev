@@ -70,6 +70,14 @@
 #  define MOZ_HAVE_NORETURN_PTR __attribute__((noreturn))
 #endif
 
+#if defined(__clang__)
+#  if __has_attribute(no_stack_protector)
+#    define MOZ_HAVE_NO_STACK_PROTECTOR __attribute__((no_stack_protector))
+#  endif
+#elif defined(__GNUC__)
+#  define MOZ_HAVE_NO_STACK_PROTECTOR __attribute__((no_stack_protector))
+#endif
+
 /*
  * When built with clang analyzer (a.k.a scan-build), define MOZ_HAVE_NORETURN
  * to mark some false positives
@@ -204,44 +212,42 @@
 #endif
 
 /*
- * MOZ_ASAN_BLACKLIST is a macro to tell AddressSanitizer (a compile-time
+ * MOZ_ASAN_IGNORE is a macro to tell AddressSanitizer (a compile-time
  * instrumentation shipped with Clang and GCC) to not instrument the annotated
  * function. Furthermore, it will prevent the compiler from inlining the
- * function because inlining currently breaks the blacklisting mechanism of
+ * function because inlining currently breaks the blocklisting mechanism of
  * AddressSanitizer.
  */
 #if defined(__has_feature)
 #  if __has_feature(address_sanitizer)
-#    define MOZ_HAVE_ASAN_BLACKLIST
+#    define MOZ_HAVE_ASAN_IGNORE
 #  endif
 #elif defined(__GNUC__)
 #  if defined(__SANITIZE_ADDRESS__)
-#    define MOZ_HAVE_ASAN_BLACKLIST
+#    define MOZ_HAVE_ASAN_IGNORE
 #  endif
 #endif
 
-#if defined(MOZ_HAVE_ASAN_BLACKLIST)
-#  define MOZ_ASAN_BLACKLIST \
-    MOZ_NEVER_INLINE __attribute__((no_sanitize_address))
+#if defined(MOZ_HAVE_ASAN_IGNORE)
+#  define MOZ_ASAN_IGNORE MOZ_NEVER_INLINE __attribute__((no_sanitize_address))
 #else
-#  define MOZ_ASAN_BLACKLIST /* nothing */
+#  define MOZ_ASAN_IGNORE /* nothing */
 #endif
 
 /*
- * MOZ_TSAN_BLACKLIST is a macro to tell ThreadSanitizer (a compile-time
+ * MOZ_TSAN_IGNORE is a macro to tell ThreadSanitizer (a compile-time
  * instrumentation shipped with Clang) to not instrument the annotated function.
  * Furthermore, it will prevent the compiler from inlining the function because
- * inlining currently breaks the blacklisting mechanism of ThreadSanitizer.
+ * inlining currently breaks the blocklisting mechanism of ThreadSanitizer.
  */
 #if defined(__has_feature)
 #  if __has_feature(thread_sanitizer)
-#    define MOZ_TSAN_BLACKLIST \
-      MOZ_NEVER_INLINE __attribute__((no_sanitize_thread))
+#    define MOZ_TSAN_IGNORE MOZ_NEVER_INLINE __attribute__((no_sanitize_thread))
 #  else
-#    define MOZ_TSAN_BLACKLIST /* nothing */
+#    define MOZ_TSAN_IGNORE /* nothing */
 #  endif
 #else
-#  define MOZ_TSAN_BLACKLIST /* nothing */
+#  define MOZ_TSAN_IGNORE /* nothing */
 #endif
 
 #if defined(__has_attribute)
@@ -379,6 +385,26 @@
 #  define MOZ_MAYBE_UNUSED __pragma(warning(suppress : 4505))
 #else
 #  define MOZ_MAYBE_UNUSED
+#endif
+
+/*
+ * MOZ_NO_STACK_PROTECTOR, specified at the start of a function declaration,
+ * indicates that the given function should *NOT* be instrumented to detect
+ * stack buffer overflows at runtime. (The function definition does not need to
+ * be annotated.)
+ *
+ *   MOZ_NO_STACK_PROTECTOR int foo();
+ *
+ * Detecting stack buffer overflows at runtime is a security feature. This
+ * modifier should thus only be used on functions which are provably exempt of
+ * stack buffer overflows, for example because they do not use stack buffers.
+ *
+ * This modifier does not affect the corresponding function's linking behavior.
+ */
+#if defined(MOZ_HAVE_NO_STACK_PROTECTOR)
+#  define MOZ_NO_STACK_PROTECTOR MOZ_HAVE_NO_STACK_PROTECTOR
+#else
+#  define MOZ_NO_STACK_PROTECTOR /* no support */
 #endif
 
 #ifdef __cplusplus

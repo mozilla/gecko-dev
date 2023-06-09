@@ -6,9 +6,11 @@
 #ifndef DeleteRangeTransaction_h
 #define DeleteRangeTransaction_h
 
+#include "DeleteContentTransactionBase.h"
 #include "EditAggregateTransaction.h"
 
 #include "EditorBase.h"
+#include "EditorDOMPoint.h"
 #include "EditorForwards.h"
 
 #include "mozilla/RefPtr.h"
@@ -53,7 +55,17 @@ class DeleteRangeTransaction final : public EditAggregateTransaction {
   NS_DECL_EDITTRANSACTIONBASE
   NS_DECL_EDITTRANSACTIONBASE_GETASMETHODS_OVERRIDE(DeleteRangeTransaction)
 
+  void AppendChild(DeleteContentTransactionBase& aTransaction);
+
   MOZ_CAN_RUN_SCRIPT NS_IMETHOD RedoTransaction() override;
+
+  /**
+   * Return a good point to put caret after calling DoTransaction().
+   */
+  EditorDOMPoint SuggestPointToPutCaret() const {
+    return mPointToPutCaret.IsSetAndValid() ? mPointToPutCaret
+                                            : EditorDOMPoint();
+  }
 
  protected:
   /**
@@ -135,6 +147,8 @@ class DeleteRangeTransaction final : public EditAggregateTransaction {
   // P1 in the range.  This is only non-null until DoTransaction is called and
   // we convert it into child transactions.
   RefPtr<nsRange> mRangeToDelete;
+
+  EditorDOMPoint mPointToPutCaret;
 };
 
 }  // namespace mozilla

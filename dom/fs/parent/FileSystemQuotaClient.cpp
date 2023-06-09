@@ -53,6 +53,9 @@ class QuotaClient final : public mozilla::dom::quota::Client {
   void OnOriginClearCompleted(quota::PersistenceType aPersistenceType,
                               const nsACString& aOrigin) override;
 
+  void OnRepositoryClearCompleted(
+      quota::PersistenceType aPersistenceType) override;
+
   void ReleaseIOThreadObjects() override;
 
   void AbortOperationsForLocks(
@@ -76,9 +79,10 @@ class QuotaClient final : public mozilla::dom::quota::Client {
   void FinalizeShutdown() override;
 };
 
-Result<ResultConnection, QMResult> GetStorageConnection(const Origin& aOrigin) {
+Result<ResultConnection, QMResult> GetStorageConnection(
+    const quota::OriginMetadata& aOriginMetadata) {
   QM_TRY_INSPECT(const nsCOMPtr<nsIFile>& databaseFile,
-                 data::GetDatabaseFile(aOrigin));
+                 data::GetDatabaseFile(aOriginMetadata));
 
   QM_TRY_INSPECT(
       const auto& storageService,
@@ -110,11 +114,9 @@ Result<quota::UsageInfo, nsresult> QuotaClient::InitOrigin(
     const quota::OriginMetadata& aOriginMetadata, const AtomicBool& aCanceled) {
   quota::AssertIsOnIOThread();
 
-  const Origin& origin = aOriginMetadata.mOrigin;
-
   {
     QM_TRY_INSPECT(const nsCOMPtr<nsIFile>& databaseFile,
-                   data::GetDatabaseFile(origin).mapErr(toNSResult));
+                   data::GetDatabaseFile(aOriginMetadata).mapErr(toNSResult));
 
     bool exists = false;
     QM_TRY(MOZ_TO_RESULT(databaseFile->Exists(&exists)));
@@ -125,9 +127,12 @@ Result<quota::UsageInfo, nsresult> QuotaClient::InitOrigin(
   }
 
   QM_TRY_INSPECT(const ResultConnection& conn,
-                 GetStorageConnection(origin).mapErr(toNSResult));
+                 GetStorageConnection(aOriginMetadata).mapErr(toNSResult));
 
-  return data::FileSystemDatabaseManager::GetUsage(conn, origin)
+  QM_TRY(MOZ_TO_RESULT(
+      data::FileSystemDatabaseManager::RescanUsages(conn, aOriginMetadata)));
+
+  return data::FileSystemDatabaseManager::GetUsage(conn, aOriginMetadata)
       .mapErr(toNSResult);
 }
 
@@ -167,6 +172,11 @@ Result<quota::UsageInfo, nsresult> QuotaClient::GetUsageForOrigin(
 
 void QuotaClient::OnOriginClearCompleted(
     quota::PersistenceType aPersistenceType, const nsACString& aOrigin) {
+  quota::AssertIsOnIOThread();
+}
+
+void QuotaClient::OnRepositoryClearCompleted(
+    quota::PersistenceType aPersistenceType) {
   quota::AssertIsOnIOThread();
 }
 

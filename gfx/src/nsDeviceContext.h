@@ -34,9 +34,17 @@ class nsIScreenManager;
 class nsIWidget;
 struct nsRect;
 
-namespace mozilla::dom {
+namespace mozilla {
+namespace dom {
 enum class ScreenColorGamut : uint8_t;
-}  // namespace mozilla::dom
+}  // namespace dom
+namespace hal {
+enum class ScreenOrientation : uint32_t;
+}  // namespace hal
+namespace widget {
+class Screen;
+}  // namespace widget
+}  // namespace mozilla
 
 class nsDeviceContext final {
  public:
@@ -49,9 +57,8 @@ class nsDeviceContext final {
   /**
    * Initialize the device context from a widget
    * @param aWidget a widget to initialize the device context from
-   * @return error status
    */
-  nsresult Init(nsIWidget* aWidget);
+  void Init(nsIWidget* aWidget);
 
   /**
    * Initialize the device context from a device context spec
@@ -66,7 +73,7 @@ class nsDeviceContext final {
    *
    * @return the new rendering context (guaranteed to be non-null)
    */
-  already_AddRefed<gfxContext> CreateRenderingContext();
+  mozilla::UniquePtr<gfxContext> CreateRenderingContext();
 
   /**
    * Create a reference rendering context and initialize it.  Only call this
@@ -74,7 +81,7 @@ class nsDeviceContext final {
    *
    * @return the new rendering context.
    */
-  already_AddRefed<gfxContext> CreateReferenceRenderingContext();
+  mozilla::UniquePtr<gfxContext> CreateReferenceRenderingContext();
 
   /**
    * Gets the number of app units in one device pixel; this number
@@ -127,6 +134,18 @@ class nsDeviceContext final {
    * Return the color gamut of the device.
    */
   mozilla::dom::ScreenColorGamut GetColorGamut();
+
+  /**
+   * Return the orientation type of the device.
+   * If not screen device, return primary screen's value
+   */
+  mozilla::hal::ScreenOrientation GetScreenOrientationType();
+
+  /**
+   * Return the orientation angle of the device.
+   * If not screen device, return primary screen's value
+   */
+  uint16_t GetScreenOrientationAngle();
 
   /**
    * Get the size of the displayable area of the output device
@@ -251,13 +270,13 @@ class nsDeviceContext final {
    * Implementation shared by CreateRenderingContext and
    * CreateReferenceRenderingContext.
    */
-  already_AddRefed<gfxContext> CreateRenderingContextCommon(
+  mozilla::UniquePtr<gfxContext> CreateRenderingContextCommon(
       bool aWantReferenceContext);
 
   void SetDPI();
   void ComputeClientRectUsingScreen(nsRect* outRect);
   void ComputeFullAreaUsingScreen(nsRect* outRect);
-  void FindScreen(nsIScreen** outScreen);
+  already_AddRefed<mozilla::widget::Screen> FindScreen();
 
   // Return false if the surface is not right
   bool CalcPrintingSize();
@@ -273,13 +292,10 @@ class nsDeviceContext final {
   gfxPoint mPrintingTranslate;
 
   nsCOMPtr<nsIWidget> mWidget;
-  nsCOMPtr<nsIScreenManager> mScreenManager;
   nsCOMPtr<nsIDeviceContextSpec> mDeviceContextSpec;
   RefPtr<PrintTarget> mPrintTarget;
   bool mIsCurrentlyPrintingDoc;
-#ifdef DEBUG
-  bool mIsInitialized;
-#endif
+  bool mIsInitialized = false;
 };
 
 #endif /* _NS_DEVICECONTEXT_H_ */

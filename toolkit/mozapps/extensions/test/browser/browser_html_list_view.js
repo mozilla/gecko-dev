@@ -36,7 +36,6 @@ let mockProvider;
 add_setup(async function() {
   mockProvider = new MockProvider(["extension", "sitepermission"]);
   promptService = mockPromptService();
-  Services.telemetry.clearEvents();
 });
 
 let extensionsCreated = 0;
@@ -113,7 +112,7 @@ add_task(async function testExtensionList() {
 
   // Disable the extension.
   let disableToggle = card.querySelector('[action="toggle-disabled"]');
-  ok(disableToggle.checked, "The disable toggle is checked");
+  ok(disableToggle.pressed, "The disable toggle is pressed");
   is(
     doc.l10n.getAttributes(disableToggle).id,
     "extension-enable-addon-button-label",
@@ -131,8 +130,8 @@ add_task(async function testExtensionList() {
     "The card is now in the disabled section"
   );
 
-  // The disable button is now enable.
-  ok(!disableToggle.checked, "The disable toggle is unchecked");
+  // The disable button is now enabled.
+  ok(!disableToggle.pressed, "The disable toggle is not pressed");
   is(
     doc.l10n.getAttributes(disableToggle).id,
     "extension-enable-addon-button-label",
@@ -295,50 +294,6 @@ add_task(async function testExtensionList() {
     !(await AddonManager.getAddonByID(themeAddon.id)),
     "The theme addon is fully uninstalled"
   );
-
-  assertAboutAddonsTelemetryEvents([
-    ["addonsManager", "view", "aboutAddons", "list", { type: "extension" }],
-    [
-      "addonsManager",
-      "action",
-      "aboutAddons",
-      null,
-      { type: "extension", addonId: id, view: "list", action: "disable" },
-    ],
-    [
-      "addonsManager",
-      "action",
-      "aboutAddons",
-      "cancelled",
-      { type: "extension", addonId: id, view: "list", action: "uninstall" },
-    ],
-    [
-      "addonsManager",
-      "action",
-      "aboutAddons",
-      "accepted",
-      { type: "extension", addonId: id, view: "list", action: "uninstall" },
-    ],
-    [
-      "addonsManager",
-      "action",
-      "aboutAddons",
-      null,
-      { type: "extension", addonId: id, view: "list", action: "undo" },
-    ],
-    [
-      "addonsManager",
-      "action",
-      "aboutAddons",
-      null,
-      {
-        type: "extension",
-        addonId: "test-2@mochi.test",
-        view: "list",
-        action: "undo",
-      },
-    ],
-  ]);
 });
 
 add_task(async function testMouseSupport() {
@@ -1073,13 +1028,6 @@ add_task(async function testEmptyMessage() {
 
     while (disabledSection.firstChild) {
       disabledSection.firstChild.remove();
-    }
-
-    if (test.type == "theme") {
-      // The colorways section won't exist if there's no active collection.
-      // Bug 1774432 is going to make it easier to use a mock collection
-      // which would allow for a more predictable setup here.
-      getSection(doc, "colorways-section")?.remove();
     }
 
     // Message should now be displayed

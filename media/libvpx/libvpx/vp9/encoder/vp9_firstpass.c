@@ -2113,11 +2113,10 @@ static int64_t calculate_total_gf_group_bits(VP9_COMP *cpi,
   }
 
   // Clamp odd edge cases.
-  total_group_bits = (total_group_bits < 0)
-                         ? 0
-                         : (total_group_bits > twopass->kf_group_bits)
-                               ? twopass->kf_group_bits
-                               : total_group_bits;
+  total_group_bits = (total_group_bits < 0) ? 0
+                     : (total_group_bits > twopass->kf_group_bits)
+                         ? twopass->kf_group_bits
+                         : total_group_bits;
 
   // Clip based on user supplied data rate variability limit.
   if (total_group_bits > (int64_t)max_bits * gop_frames)
@@ -3496,7 +3495,6 @@ void vp9_rc_get_second_pass_params(VP9_COMP *cpi) {
   const int show_idx = cm->current_video_frame;
 
   if (cpi->common.current_frame_coding_index == 0) {
-    VP9_COMMON *cm = &cpi->common;
     const vpx_codec_err_t codec_status = vp9_extrc_send_firstpass_stats(
         &cpi->ext_ratectrl, &cpi->twopass.first_pass_info);
     if (codec_status != VPX_CODEC_OK) {

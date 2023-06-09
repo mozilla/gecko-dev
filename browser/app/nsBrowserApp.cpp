@@ -18,6 +18,7 @@
 #elif defined(XP_UNIX)
 #  include <sys/resource.h>
 #  include <unistd.h>
+#  include <fcntl.h>
 #endif
 
 #include <stdio.h>
@@ -257,7 +258,25 @@ static nsresult InitXPCOMGlue(LibLoadingStrategy aLibLoadingStrategy) {
 uint32_t gBlocklistInitFlags = eDllBlocklistInitFlagDefault;
 #endif
 
+#if defined(XP_UNIX)
+static void ReserveDefaultFileDescriptors() {
+  // Reserve the lower positions of the file descriptors to make sure
+  // we don't reuse stdin/stdout/stderr in case they we closed
+  // before launch.
+  // Otherwise code explicitly writing to fd 1 or 2 might accidentally
+  // write to something else, like in bug 1820896 where FD 1 is
+  // reused for the X server display connection.
+  int fd = open("/dev/null", O_RDONLY);
+  for (int i = 0; i < 2; i++) {
+    mozilla::Unused << dup(fd);
+  }
+}
+#endif
+
 int main(int argc, char* argv[], char* envp[]) {
+#if defined(XP_UNIX)
+  ReserveDefaultFileDescriptors();
+#endif
 #if defined(MOZ_ENABLE_FORKSERVER)
   if (strcmp(argv[argc - 1], "forkserver") == 0) {
     nsresult rv = InitXPCOMGlue(LibLoadingStrategy::NoReadAhead);
@@ -308,28 +327,25 @@ int main(int argc, char* argv[], char* envp[]) {
     // process type has been set.
     CrashReporter::RegisterRuntimeExceptionModule();
 
-#  ifdef HAS_DLL_BLOCKLIST
-    uint32_t initFlags =
-        gBlocklistInitFlags | eDllBlocklistInitFlagIsChildProcess;
-    // This is too early in launch to call XRE_IsUtilityProcess(), so roll
-    // our own.
-    if (GetGeckoProcessType() == GeckoProcessType_Utility) {
-      initFlags |= eDllBlocklistInitFlagIsUtilityProcess;
-    } else if (GetGeckoProcessType() == GeckoProcessType_Socket) {
-      initFlags |= eDllBlocklistInitFlagIsSocketProcess;
-    }
-    DllBlocklist_Initialize(initFlags);
-#  endif  // HAS_DLL_BLOCKLIST
 #  if defined(XP_WIN) && defined(MOZ_SANDBOX)
     // We need to set whether our process is supposed to have win32k locked down
-    // from the command line setting before GetInitializedTargetServices and
-    // WindowsDpiInitialization.
+    // from the command line setting before DllBlocklist_Initialize,
+    // GetInitializedTargetServices and WindowsDpiInitialization.
     Maybe<bool> win32kLockedDown =
         mozilla::geckoargs::sWin32kLockedDown.Get(argc, argv);
     if (win32kLockedDown.isSome() && *win32kLockedDown) {
       mozilla::SetWin32kLockedDownInPolicy();
     }
+#  endif
 
+#  ifdef HAS_DLL_BLOCKLIST
+    uint32_t initFlags =
+        gBlocklistInitFlags | eDllBlocklistInitFlagIsChildProcess;
+    SetDllBlocklistProcessTypeFlags(initFlags, GetGeckoProcessType());
+    DllBlocklist_Initialize(initFlags);
+#  endif  // HAS_DLL_BLOCKLIST
+
+#  if defined(XP_WIN) && defined(MOZ_SANDBOX)
     // We need to initialize the sandbox TargetServices before InitXPCOMGlue
     // because we might need the sandbox broker to give access to some files.
     if (IsSandboxedProcess() && !sandboxing::GetInitializedTargetServices()) {

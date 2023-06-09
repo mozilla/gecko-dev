@@ -26,7 +26,9 @@ const { TabListView } = ChromeUtils.import(
 let { getChromeWindow } = ChromeUtils.import(
   "resource:///modules/syncedtabs/util.js"
 );
-const { UIState } = ChromeUtils.import("resource://services-sync/UIState.jsm");
+const { UIState } = ChromeUtils.importESModule(
+  "resource://services-sync/UIState.sys.mjs"
+);
 
 let log = ChromeUtils.importESModule(
   "resource://gre/modules/Log.sys.mjs"
@@ -96,7 +98,7 @@ SyncedTabsDeckComponent.prototype = {
     this.updateDir();
 
     // Go ahead and trigger sync
-    this._SyncedTabs.syncTabs().catch(Cu.reportError);
+    this._SyncedTabs.syncTabs().catch(console.error);
 
     this._deckView = new this._DeckView(this._window, this.tabListComponent, {
       onConnectDeviceClick: event => this.openConnectDevice(event),
@@ -160,7 +162,7 @@ SyncedTabsDeckComponent.prototype = {
       }
       return this.PANELS.SINGLE_DEVICE_INFO;
     } catch (err) {
-      Cu.reportError(err);
+      console.error(err);
       return this.PANELS.NOT_AUTHED_INFO;
     }
   },
@@ -182,7 +184,7 @@ SyncedTabsDeckComponent.prototype = {
     // return promise for tests
     return this.getPanelStatus()
       .then(panelId => this._deckStore.selectPanel(panelId))
-      .catch(Cu.reportError);
+      .catch(console.error);
   },
 
   openSyncPrefs() {

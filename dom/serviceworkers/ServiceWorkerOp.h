@@ -50,6 +50,8 @@ class ServiceWorkerOp : public RemoteWorkerChild::Op {
   bool MaybeStart(RemoteWorkerChild* aOwner,
                   RemoteWorkerChild::State& aState) final;
 
+  void StartOnMainThread(RefPtr<RemoteWorkerChild>& aOwner) final;
+
   void Cancel() final;
 
  protected:
@@ -183,6 +185,8 @@ class FetchEventOp final : public ExtendableEventOp,
   // Holds the callback that resolves mPreloadResponse.
   MozPromiseRequestHolder<FetchEventPreloadResponseAvailablePromise>
       mPreloadResponseAvailablePromiseRequestHolder;
+  MozPromiseRequestHolder<FetchEventPreloadResponseTimingPromise>
+      mPreloadResponseTimingPromiseRequestHolder;
   MozPromiseRequestHolder<FetchEventPreloadResponseEndPromise>
       mPreloadResponseEndPromiseRequestHolder;
 

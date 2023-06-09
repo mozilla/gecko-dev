@@ -163,6 +163,10 @@ info["win10_2004"] = False
 if info["os"] == "win" and version == "10.0.19041":
     info["win10_2004"] = True
 
+info["win10_2009"] = False
+if info["os"] == "win" and version == "10.0.19045":
+    info["win10_2009"] = True
+
 info["win11_2009"] = False
 if info["os"] == "win" and version == "10.0.22621":
     info["win11_2009"] = True
@@ -280,7 +284,7 @@ def find_and_update_from_json(*dirs, **kwargs):
     :param tuple dirs: Directories in which to look for the file.
     :param dict kwargs: optional values:
                         raise_exception: if True, exceptions are raised.
-                                         False by default.
+                        False by default.
     :returns: None: default behavior if mozinfo.json cannot be found.
               json_path: string representation of mozinfo.json path.
     :raises: IOError: if raise_exception is True and file is not found.

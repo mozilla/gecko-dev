@@ -463,12 +463,18 @@ void HttpChannelChild::OnStartRequest(
     Telemetry::AccumulateTimeDelta(
         Telemetry::NETWORK_ASYNC_OPEN_CHILD_TO_TRANSACTION_PENDING_EXP_MS,
         cosString, mAsyncOpenTime, aArgs.timing().transactionPending());
+    PerfStats::RecordMeasurement(
+        PerfStats::Metric::HttpChannelAsyncOpenToTransactionPending,
+        aArgs.timing().transactionPending() - mAsyncOpenTime);
   }
 
   if (!aArgs.timing().responseStart().IsNull()) {
     Telemetry::AccumulateTimeDelta(
         Telemetry::NETWORK_RESPONSE_START_PARENT_TO_CONTENT_EXP_MS, cosString,
         aArgs.timing().responseStart(), TimeStamp::Now());
+    PerfStats::RecordMeasurement(
+        PerfStats::Metric::HttpChannelResponseStartParentToContent,
+        TimeStamp::Now() - aArgs.timing().responseStart());
   }
 
   StoreAllRedirectsSameOrigin(aArgs.allRedirectsSameOrigin());
@@ -918,6 +924,9 @@ void HttpChannelChild::OnStopRequest(
     Telemetry::AccumulateTimeDelta(
         Telemetry::NETWORK_RESPONSE_END_PARENT_TO_CONTENT_MS, cosString,
         aTiming.responseEnd(), TimeStamp::Now());
+    PerfStats::RecordMeasurement(
+        PerfStats::Metric::HttpChannelResponseEndParentToContent,
+        TimeStamp::Now() - aTiming.responseEnd());
   }
 
   mResponseTrailers = MakeUnique<nsHttpHeaderArray>(aResponseTrailers);
@@ -1630,7 +1639,7 @@ HttpChannelChild::ConnectParent(uint32_t registrarId) {
   if (browserChild) {
     MOZ_ASSERT(browserChild->WebNavigation());
     if (BrowsingContext* bc = browserChild->GetBrowsingContext()) {
-      mTopBrowsingContextId = bc->Top()->Id();
+      mBrowserId = bc->BrowserId();
     }
   }
 
@@ -2125,7 +2134,7 @@ already_AddRefed<nsIEventTarget> HttpChannelChild::GetODATarget() {
   }
 
   if (!target) {
-    target = GetMainThreadEventTarget();
+    target = GetMainThreadSerialEventTarget();
   }
   return target.forget();
 }
@@ -2159,7 +2168,7 @@ nsresult HttpChannelChild::ContinueAsyncOpen() {
       }
     }
     if (BrowsingContext* bc = browserChild->GetBrowsingContext()) {
-      mTopBrowsingContextId = bc->Top()->Id();
+      mBrowserId = bc->BrowserId();
     }
   }
   SetTopLevelContentWindowId(contentWindowId);
@@ -2234,11 +2243,11 @@ nsresult HttpChannelChild::ContinueAsyncOpen() {
   openArgs.integrityMetadata() = mIntegrityMetadata;
 
   openArgs.contentWindowId() = contentWindowId;
-  openArgs.topBrowsingContextId() = mTopBrowsingContextId;
+  openArgs.browserId() = mBrowserId;
 
   LOG(("HttpChannelChild::ContinueAsyncOpen this=%p gid=%" PRIu64
-       " top bid=%" PRIx64,
-       this, mChannelId, mTopBrowsingContextId));
+       " browser id=%" PRIx64,
+       this, mChannelId, mBrowserId));
 
   if (browserChild && !browserChild->IPCOpen()) {
     return NS_ERROR_FAILURE;
@@ -2260,6 +2269,17 @@ nsresult HttpChannelChild::ContinueAsyncOpen() {
 
   openArgs.navigationStartTimeStamp() = navigationStartTimeStamp;
   openArgs.earlyHintPreloaderId() = mEarlyHintPreloaderId;
+
+  openArgs.classicScriptHintCharset() = mClassicScriptHintCharset;
+
+  RefPtr<Document> doc;
+  mLoadInfo->GetLoadingDocument(getter_AddRefs(doc));
+
+  if (doc) {
+    nsAutoString documentCharacterSet;
+    doc->GetCharacterSet(documentCharacterSet);
+    openArgs.documentCharacterSet() = documentCharacterSet;
+  }
 
   // This must happen before the constructor message is sent. Otherwise messages
   // from the parent could arrive quickly and be delivered to the wrong event
@@ -2540,7 +2560,7 @@ HttpChannelChild::OpenAlternativeOutputStream(const nsACString& aType,
   stream->AddIPDLReference();
 
   if (!gNeckoChild->SendPAltDataOutputStreamConstructor(
-          stream, nsCString(aType), aPredictedSize, this)) {
+          stream, nsCString(aType), aPredictedSize, WrapNotNull(this))) {
     return NS_ERROR_FAILURE;
   }
 
@@ -2845,7 +2865,7 @@ HttpChannelChild::GetDeliveryTarget(nsIEventTarget** aEventTarget) {
 
   nsCOMPtr<nsIEventTarget> target = mODATarget;
   if (!mODATarget) {
-    target = GetCurrentEventTarget();
+    target = GetCurrentSerialEventTarget();
   }
   target.forget(aEventTarget);
   return NS_OK;
@@ -3138,6 +3158,11 @@ void HttpChannelChild::MaybeConnectToSocketProcess() {
 
 NS_IMETHODIMP
 HttpChannelChild::SetEarlyHintObserver(nsIEarlyHintObserver* aObserver) {
+  return NS_OK;
+}
+
+NS_IMETHODIMP HttpChannelChild::SetWebTransportSessionEventListener(
+    WebTransportSessionEventListener* aListener) {
   return NS_OK;
 }
 

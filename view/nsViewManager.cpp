@@ -116,7 +116,7 @@ nsresult nsViewManager::Init(nsDeviceContext* aContext) {
 }
 
 nsView* nsViewManager::CreateView(const nsRect& aBounds, nsView* aParent,
-                                  nsViewVisibility aVisibilityFlag) {
+                                  ViewVisibility aVisibilityFlag) {
   auto* v = new nsView(this, aVisibilityFlag);
   v->SetParent(aParent);
   v->SetPosition(aBounds.X(), aBounds.Y());
@@ -251,7 +251,7 @@ nsView* nsViewManager::GetDisplayRootFor(nsView* aView) {
     // distinguish this situation. We do this by looking for a widget. Any view
     // with a widget is a display root.
     nsIWidget* widget = displayRoot->GetWidget();
-    if (widget && widget->WindowType() == eWindowType_popup) {
+    if (widget && widget->GetWindowType() == widget::WindowType::Popup) {
       NS_ASSERTION(displayRoot->GetFloating() && displayParent->GetFloating(),
                    "this should only happen with floating views that have "
                    "floating parents");
@@ -344,7 +344,7 @@ void nsViewManager::ProcessPendingUpdatesForView(nsView* aView,
         view->mNeedsWindowPropertiesSync = false;
         if (nsViewManager* vm = view->GetViewManager()) {
           if (PresShell* presShell = vm->GetPresShell()) {
-            presShell->SyncWindowProperties(view);
+            presShell->SyncWindowProperties(/* aSync */ true);
           }
         }
       }
@@ -836,8 +836,7 @@ void nsViewManager::SetViewFloating(nsView* aView, bool aFloating) {
   aView->SetFloating(aFloating);
 }
 
-void nsViewManager::SetViewVisibility(nsView* aView,
-                                      nsViewVisibility aVisible) {
+void nsViewManager::SetViewVisibility(nsView* aView, ViewVisibility aVisible) {
   NS_ASSERTION(aView->GetViewManager() == this, "wrong view manager");
 
   if (aVisible != aView->GetVisibility()) {
@@ -896,16 +895,17 @@ void nsViewManager::DecrementDisableRefreshCount() {
   NS_ASSERTION(mRefreshDisableCount >= 0, "Invalid refresh disable count!");
 }
 
-already_AddRefed<nsIWidget> nsViewManager::GetRootWidget() {
-  nsCOMPtr<nsIWidget> rootWidget;
-  if (mRootView) {
-    if (mRootView->HasWidget()) {
-      rootWidget = mRootView->GetWidget();
-    } else if (mRootView->GetParent()) {
-      rootWidget = mRootView->GetParent()->GetViewManager()->GetRootWidget();
-    }
+nsIWidget* nsViewManager::GetRootWidget() const {
+  if (!mRootView) {
+    return nullptr;
   }
-  return rootWidget.forget();
+  if (mRootView->HasWidget()) {
+    return mRootView->GetWidget();
+  }
+  if (mRootView->GetParent()) {
+    return mRootView->GetParent()->GetViewManager()->GetRootWidget();
+  }
+  return nullptr;
 }
 
 LayoutDeviceIntRect nsViewManager::ViewToWidget(nsView* aView,

@@ -5,14 +5,20 @@
 
 from FrameClass import DYNAMIC_LEAF, LEAF, NOT_LEAF, AbstractFrame, Frame
 
+# See FrameClass.py and GenerateFrameLists.py for implementation details.
+# The following is a list of all the frame classes, followed by the frame type,
+# and whether they are a leaf.
+#
+# The frame type is somewhat arbitrary (could literally be anything) but for
+# new frame class implementations it's probably a good idea to make it a unique
+# string (maybe matching the frame name).
+#
+# See bug 1555477 for some related discussion about the whole Type() set-up.
 FRAME_CLASSES = [
     Frame("BRFrame", "Br", LEAF),
     Frame("nsBCTableCellFrame", "TableCell", NOT_LEAF),
     Frame("nsBackdropFrame", "Backdrop", LEAF),
     Frame("nsBlockFrame", "Block", NOT_LEAF),
-    Frame("nsBox", "None", NOT_LEAF),
-    Frame("nsBoxFrame", "Box", NOT_LEAF),
-    Frame("nsButtonBoxFrame", "Box", NOT_LEAF),
     Frame("nsCanvasFrame", "Canvas", NOT_LEAF),
     Frame("nsCheckboxRadioFrame", "CheckboxRadio", LEAF),
     Frame("nsColorControlFrame", "ColorControl", LEAF),
@@ -24,6 +30,7 @@ FRAME_CLASSES = [
     Frame("nsDateTimeControlFrame", "DateTimeControl", NOT_LEAF),
     Frame("nsFieldSetFrame", "FieldSet", NOT_LEAF),
     Frame("nsFileControlFrame", "Block", LEAF),
+    Frame("FileControlLabelFrame", "Block", NOT_LEAF),
     Frame("nsFirstLetterFrame", "Letter", NOT_LEAF),
     Frame("nsFirstLineFrame", "Line", NOT_LEAF),
     Frame("nsFlexContainerFrame", "FlexContainer", NOT_LEAF),
@@ -36,11 +43,9 @@ FRAME_CLASSES = [
     Frame("nsHTMLFramesetBorderFrame", "None", LEAF),
     Frame("nsHTMLFramesetFrame", "FrameSet", LEAF),
     Frame("nsHTMLScrollFrame", "Scroll", NOT_LEAF),
-    Frame("nsImageBoxFrame", "ImageBox", LEAF),
     Frame("nsImageControlFrame", "ImageControl", LEAF),
     Frame("nsImageFrame", "Image", DYNAMIC_LEAF),
     Frame("nsInlineFrame", "Inline", NOT_LEAF),
-    Frame("nsLeafBoxFrame", "LeafBox", LEAF),
     Frame("nsListControlFrame", "ListControl", NOT_LEAF),
     Frame("nsMathMLFrame", "None", NOT_LEAF),
     Frame("nsMathMLmactionFrame", "None", NOT_LEAF),
@@ -63,7 +68,6 @@ FRAME_CLASSES = [
     Frame("nsMathMLmunderoverFrame", "None", NOT_LEAF),
     Frame("nsMathMLsemanticsFrame", "None", NOT_LEAF),
     Frame("nsMathMLTokenFrame", "None", NOT_LEAF),
-    Frame("nsMenuBarFrame", "Box", NOT_LEAF),
     Frame("nsMenuPopupFrame", "MenuPopup", NOT_LEAF),
     Frame("nsMeterFrame", "Meter", LEAF),
     Frame("nsNumberControlFrame", "TextInput", LEAF),
@@ -78,13 +82,14 @@ FRAME_CLASSES = [
     Frame("nsRubyFrame", "Ruby", NOT_LEAF),
     Frame("nsRubyTextContainerFrame", "RubyTextContainer", NOT_LEAF),
     Frame("nsRubyTextFrame", "RubyText", NOT_LEAF),
-    Frame("nsScrollbarButtonFrame", "Box", NOT_LEAF),
+    Frame("SimpleXULLeafFrame", "SimpleXULLeaf", LEAF),
+    Frame("nsScrollbarButtonFrame", "SimpleXULLeaf", LEAF),
     Frame("nsScrollbarFrame", "Scrollbar", NOT_LEAF),
     Frame("nsSearchControlFrame", "SearchControl", LEAF),
     Frame("nsSelectsAreaFrame", "Block", NOT_LEAF),
     Frame("nsPageSequenceFrame", "PageSequence", NOT_LEAF),
     Frame("nsSliderFrame", "Slider", NOT_LEAF),
-    Frame("nsSplitterFrame", "Box", NOT_LEAF),
+    Frame("nsSplitterFrame", "SimpleXULLeaf", NOT_LEAF),
     Frame("nsSubDocumentFrame", "SubDocument", LEAF),
     Frame("PrintedSheetFrame", "PrintedSheet", NOT_LEAF),
     Frame("SVGAFrame", "SVGA", NOT_LEAF),
@@ -116,6 +121,7 @@ FRAME_CLASSES = [
     # Not a leaf, though it always has a ShadowRoot, so in practice light DOM
     # children never render.
     Frame("SVGUseFrame", "SVGUse", NOT_LEAF),
+    Frame("MiddleCroppingLabelFrame", "MiddleCroppingLabel", LEAF),
     Frame("SVGViewFrame", "SVGView", LEAF),
     Frame("nsTableCellFrame", "TableCell", NOT_LEAF),
     Frame("nsTableColFrame", "TableCol", LEAF),
@@ -124,16 +130,14 @@ FRAME_CLASSES = [
     Frame("nsTableWrapperFrame", "TableWrapper", NOT_LEAF),
     Frame("nsTableRowFrame", "TableRow", NOT_LEAF),
     Frame("nsTableRowGroupFrame", "TableRowGroup", NOT_LEAF),
-    Frame("nsTextBoxFrame", "LeafBox", LEAF),
     Frame("nsTextControlFrame", "TextInput", LEAF),
     Frame("nsTextFrame", "Text", LEAF),
-    Frame("nsTreeBodyFrame", "LeafBox", LEAF),
-    Frame("nsTreeColFrame", "Box", NOT_LEAF),
+    Frame("nsTreeBodyFrame", "SimpleXULLeaf", LEAF),
     Frame("nsVideoFrame", "HTMLVideo", NOT_LEAF),
-    Frame("nsXULScrollFrame", "Scroll", NOT_LEAF),
     Frame("ViewportFrame", "Viewport", NOT_LEAF),
     Frame("WBRFrame", "Wbr", LEAF),
     # Non-concrete classes (for FrameIID use)
+    AbstractFrame("MiddleCroppingBlockFrame"),
     AbstractFrame("nsContainerFrame"),
     AbstractFrame("nsLeafFrame"),
     AbstractFrame("nsMathMLContainerFrame"),

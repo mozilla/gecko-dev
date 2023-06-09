@@ -20,9 +20,11 @@ newtab:
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1766887
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786670
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1766887
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786670#c3
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105#c11
     data_sensitivity:
       - interaction
     notification_emails:
@@ -30,7 +32,8 @@ newtab:
       - chutten@mozilla.com
       - mmccorquodale@mozilla.com
       - najiang@mozilla.com
-    expires: 113
+      - lina@mozilla.com
+    expires: never
     send_in_pings:
       - newtab
     lifetime: application
@@ -46,8 +49,10 @@ newtab:
       Sampled once after newtab init.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786612
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786612
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105#c11
     data_sensitivity:
       - technical
     notification_emails:
@@ -55,7 +60,8 @@ newtab:
       - chutten@mozilla.com
       - mmccorquodale@mozilla.com
       - najiang@mozilla.com
-    expires: 113
+      - lina@mozilla.com
+    expires: never
     send_in_pings:
       - newtab
     lifetime: application
@@ -71,8 +77,10 @@ newtab:
       Sampled once after newtab init.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786612
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786612
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105#c11
     data_sensitivity:
       - technical
     notification_emails:
@@ -80,7 +88,8 @@ newtab:
       - chutten@mozilla.com
       - mmccorquodale@mozilla.com
       - najiang@mozilla.com
-    expires: 113
+      - lina@mozilla.com
+    expires: never
     send_in_pings:
       - newtab
     lifetime: application
@@ -95,9 +104,11 @@ newtab:
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1766887
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786670
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1766887
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786670#c3
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105#c11
     data_sensitivity:
       - interaction
     notification_emails:
@@ -105,7 +116,8 @@ newtab:
       - chutten@mozilla.com
       - mmccorquodale@mozilla.com
       - najiang@mozilla.com
-    expires: 113
+      - lina@mozilla.com
+    expires: never
     extra_keys:
       newtab_visit_id: &newtab_visit_id
         description: >
@@ -137,9 +149,11 @@ newtab:
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1766887
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786670
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1766887
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786670#c3
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105#c11
     data_sensitivity:
       - interaction
     notification_emails:
@@ -147,11 +161,33 @@ newtab:
       - chutten@mozilla.com
       - mmccorquodale@mozilla.com
       - najiang@mozilla.com
-    expires: 113
+      - lina@mozilla.com
+    expires: never
     extra_keys:
       newtab_visit_id: *newtab_visit_id
     send_in_pings:
       - newtab
+  blocked_sponsors:
+    type: string_list
+    description: >
+      The advertiser names that have been dismissed by the user.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1828234
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1828234#c1
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - anicholson@mozilla.com
+      - chutten@mozilla.com
+      - mmccorquodale@mozilla.com
+      - najiang@mozilla.com
+      - lina@mozilla.com
+      - ttran@mozilla.com
+    expires: never
+    send_in_pings:
+      - newtab
+    lifetime: application
 
 newtab.search:
   enabled:
@@ -163,8 +199,10 @@ newtab.search:
       `browser.newtabpage.activity-stream.showSearch` pref.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786612
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786612
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105#c11
     data_sensitivity:
       - technical
     notification_emails:
@@ -172,7 +210,8 @@ newtab.search:
       - chutten@mozilla.com
       - mmccorquodale@mozilla.com
       - najiang@mozilla.com
-    expires: 113
+      - lina@mozilla.com
+    expires: never
     send_in_pings:
       - newtab
 
@@ -187,8 +226,10 @@ topsites:
       `browser.newtabpage.activity-stream.feeds.topsites` pref.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786612
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786612
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105#c11
     data_sensitivity:
       - technical
     notification_emails:
@@ -196,7 +237,8 @@ topsites:
       - chutten@mozilla.com
       - mmccorquodale@mozilla.com
       - najiang@mozilla.com
-    expires: 113
+      - lina@mozilla.com
+    expires: never
     send_in_pings:
       - newtab
 
@@ -211,8 +253,10 @@ topsites:
       Can be `true` even if topsites.enabled is `false`.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786612
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786612
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105#c11
     data_sensitivity:
       - technical
     notification_emails:
@@ -220,7 +264,8 @@ topsites:
       - chutten@mozilla.com
       - mmccorquodale@mozilla.com
       - najiang@mozilla.com
-    expires: 113
+      - lina@mozilla.com
+    expires: never
     send_in_pings:
       - newtab
 
@@ -228,13 +273,18 @@ topsites:
     type: event
     description: >
       Recorded when topsite tiles are loaded.
-      Presently only happens for sponsored tiles.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1766887
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786670
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1820707
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1766887
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786670#c3
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105#c11
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1820707#c3
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1821556#c3
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1824842#c7
     data_sensitivity:
       - interaction
     notification_emails:
@@ -242,12 +292,24 @@ topsites:
       - chutten@mozilla.com
       - mmccorquodale@mozilla.com
       - najiang@mozilla.com
-    expires: 113
+      - lina@mozilla.com
+    expires: never
     extra_keys:
+      advertiser_name: &advertiser_name
+        description: >
+          The name of the advertiser of the tile
+        type: string
+      tile_id: &tile_id
+        description: >
+          The tile id of the advertiser provided by Contile
+        type: string
       newtab_visit_id: *newtab_visit_id
       is_sponsored: &is_sponsored
         description: Whether the topsite tile was sponsored.
         type: boolean
+      position: &topsite_position
+        description: The position (0-index) of the topsite tile.
+        type: quantity
     send_in_pings:
       - newtab
 
@@ -255,15 +317,20 @@ topsites:
     type: event
     description: >
       Recorded when a topsite tile is clicked.
-      Presently only happens for sponsored tiles.
       Only happens on click. Not on middle-click. Not on "Open in new Tab"-like
       options in the context menu.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1766887
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786670
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1820707
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1766887
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786670#c3
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105#c11
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1820707#c3
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1821556#c3
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1824842#c7
     data_sensitivity:
       - interaction
     notification_emails:
@@ -271,10 +338,41 @@ topsites:
       - chutten@mozilla.com
       - mmccorquodale@mozilla.com
       - najiang@mozilla.com
-    expires: 113
+      - lina@mozilla.com
+    expires: never
     extra_keys:
+      advertiser_name: *advertiser_name
+      tile_id: *tile_id
       newtab_visit_id: *newtab_visit_id
       is_sponsored: *is_sponsored
+      position: *topsite_position
+    send_in_pings:
+      - newtab
+
+  rows:
+    lifetime: application
+    type: quantity
+    unit: integer
+    description: >
+      The number of topsite tile rows configured to be shown on the newtab
+      page. Corresponds to the value of the
+      `browser.newtabpage.activity-stream.topSitesRows` pref. This is not the
+      number of rows actually seen by the user: if the browser window is
+      partially off-screen, or isn't wide enough to accommodate eight tiles per
+      row, the actual number of rows may be different.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1821556
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1821556#c3
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - anicholson@mozilla.com
+      - chutten@mozilla.com
+      - mmccorquodale@mozilla.com
+      - najiang@mozilla.com
+      - lina@mozilla.com
+    expires: never
     send_in_pings:
       - newtab
 
@@ -288,8 +386,10 @@ pocket:
       component init and whenever there is a Discovery Stream user event.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786612
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786612
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105#c11
     data_sensitivity:
       - technical
     notification_emails:
@@ -297,7 +397,8 @@ pocket:
       - chutten@mozilla.com
       - mmccorquodale@mozilla.com
       - najiang@mozilla.com
-    expires: 113
+      - lina@mozilla.com
+    expires: never
     send_in_pings:
       - newtab
 
@@ -311,8 +412,10 @@ pocket:
       `browser.newtabpage.activity-stream.feeds.section.topstories` pref.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786612
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786612
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105#c11
     data_sensitivity:
       - technical
     notification_emails:
@@ -320,7 +423,8 @@ pocket:
       - chutten@mozilla.com
       - mmccorquodale@mozilla.com
       - najiang@mozilla.com
-    expires: 113
+      - lina@mozilla.com
+    expires: never
     send_in_pings:
       - newtab
 
@@ -334,8 +438,10 @@ pocket:
       Can be `true` even if pocket.enabled is `false`.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786612
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786612
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105#c11
     data_sensitivity:
       - technical
     notification_emails:
@@ -343,7 +449,8 @@ pocket:
       - chutten@mozilla.com
       - mmccorquodale@mozilla.com
       - najiang@mozilla.com
-    expires: 113
+      - lina@mozilla.com
+    expires: never
     send_in_pings:
       - newtab
 
@@ -353,8 +460,10 @@ pocket:
       Recorded when a pocket tile is visible to the user.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786612
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786612
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105#c11
     data_sensitivity:
       - interaction
     notification_emails:
@@ -362,7 +471,8 @@ pocket:
       - chutten@mozilla.com
       - mmccorquodale@mozilla.com
       - najiang@mozilla.com
-    expires: 113
+      - lina@mozilla.com
+    expires: never
     extra_keys:
       newtab_visit_id: *newtab_visit_id
       is_sponsored: &is_sponsored_pocket
@@ -382,8 +492,10 @@ pocket:
       options in the context menu.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786612
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786612
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105#c11
     data_sensitivity:
       - interaction
     notification_emails:
@@ -391,7 +503,8 @@ pocket:
       - chutten@mozilla.com
       - mmccorquodale@mozilla.com
       - najiang@mozilla.com
-    expires: 113
+      - lina@mozilla.com
+    expires: never
     extra_keys:
       newtab_visit_id: *newtab_visit_id
       is_sponsored: *is_sponsored_pocket
@@ -408,8 +521,10 @@ pocket:
       tile menu.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786612
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786612
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105#c11
     data_sensitivity:
       - interaction
     notification_emails:
@@ -417,7 +532,8 @@ pocket:
       - chutten@mozilla.com
       - mmccorquodale@mozilla.com
       - najiang@mozilla.com
-    expires: 113
+      - lina@mozilla.com
+    expires: never
     extra_keys:
       newtab_visit_id: *newtab_visit_id
       is_sponsored: *is_sponsored_pocket
@@ -433,8 +549,10 @@ pocket:
       options in the context menu.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786612
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786612
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105#c11
     data_sensitivity:
       - interaction
     notification_emails:
@@ -442,7 +560,8 @@ pocket:
       - chutten@mozilla.com
       - mmccorquodale@mozilla.com
       - najiang@mozilla.com
-    expires: 113
+      - lina@mozilla.com
+    expires: never
     extra_keys:
       newtab_visit_id: *newtab_visit_id
       topic:

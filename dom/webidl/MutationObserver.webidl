@@ -30,11 +30,11 @@ interface MutationRecord {
   readonly attribute DOMString? attributeNamespace;
   [Constant]
   readonly attribute DOMString? oldValue;
-  [Constant,Cached,ChromeOnly]
+  [Constant, Cached, ChromeOnly]
   readonly attribute sequence<Animation> addedAnimations;
-  [Constant,Cached,ChromeOnly]
+  [Constant, Cached, ChromeOnly]
   readonly attribute sequence<Animation> changedAnimations;
-  [Constant,Cached,ChromeOnly]
+  [Constant, Cached, ChromeOnly]
   readonly attribute sequence<Animation> removedAnimations;
 };
 
@@ -66,7 +66,7 @@ dictionary MutationObserverInit {
   boolean attributeOldValue;
   boolean characterDataOldValue;
   [ChromeOnly]
-  boolean nativeAnonymousChildList = false;
+  boolean chromeOnlyNodes = false;
   [ChromeOnly]
   boolean animations = false;
   sequence<DOMString> attributeFilter;

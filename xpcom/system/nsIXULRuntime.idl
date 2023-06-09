@@ -26,7 +26,8 @@ bool FissionAutostart();
 // Returns whether or not we are currently enrolled in the fission experiment.
 bool FissionExperimentEnrolled();
 
-// Returns true if fission.sessionHistoryInParent or FissionAutostart() is true.
+// Returns true if FissionAutostart() is true or
+// fission.disableSessionHistoryInParent is false.
 bool SessionHistoryInParent();
 
 // Returns true if SessionHistoryInParent() returns true and
@@ -153,17 +154,6 @@ interface nsIXULRuntime : nsISupports
    * session.
    */
   readonly attribute boolean fissionAutostart;
-
-  /**
-   * The user's enrollment status in the Fission experiment at process startup.
-   * See `ExperimentStatus` for the potential values.
-   *
-   * Only available in the parent process.
-   *
-   * This value is guaranteed to remain constant for the length of a browser
-   * session.
-   */
-  readonly attribute nsIXULRuntime_ExperimentStatus fissionExperimentStatus;
 
   /**
    * The deciding factor which caused Fission to be enabled or disabled in
@@ -354,8 +344,14 @@ interface nsIXULRuntime : nsISupports
   /** Whether the content color-scheme derived from the app theme is dark */
   readonly attribute boolean contentThemeDerivedColorSchemeIsDark;
 
+  /** Whether the user prefers reduced motion */
+  readonly attribute boolean prefersReducedMotion;
+
   /** Whether we should draw over the titlebar */
   readonly attribute boolean drawInTitlebar;
+
+  /** Returns the desktop environment identifier. Only meaningful on GTK */
+  readonly attribute ACString desktopEnvironment;
 
   /**
    * The path of the shortcut used to start the current process, or "" if none.

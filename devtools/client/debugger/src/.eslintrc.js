@@ -3,7 +3,7 @@
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
 module.exports = {
-  plugins: ["react", "mozilla", "@babel", "prettier", "import", "file-header"],
+  plugins: ["react", "mozilla", "@babel", "import", "file-header"],
   globals: {
     atob: true,
     btoa: true,
@@ -20,7 +20,6 @@ module.exports = {
     loader: true,
     Services: true,
     Task: true,
-    XPCNativeWrapper: true,
     XPCOMUtils: true,
     _Iterator: true,
     __dirname: true,
@@ -358,9 +357,6 @@ module.exports = {
     // require assignment operator shorthand where possible or prohibit it
     // entirely
     "operator-assignment": 0,
-
-    // Rules from the prettier plugin
-    "prettier/prettier": "error",
 
     "file-header/file-header": [
       "error",

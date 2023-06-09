@@ -30,29 +30,6 @@ add_setup(async function() {
   });
 });
 
-function assertSearchStringIsInUrlbar(searchString) {
-  Assert.equal(
-    gURLBar.value,
-    searchString,
-    `Search string ${searchString} should be in the url bar`
-  );
-  Assert.equal(
-    gBrowser.userTypedValue,
-    searchString,
-    `${searchString} should be the userTypedValue`
-  );
-  Assert.equal(
-    gURLBar.getAttribute("pageproxystate"),
-    "invalid",
-    "Pageproxystate should be invalid"
-  );
-  Assert.equal(
-    gBrowser.selectedBrowser.showingSearchTerms,
-    true,
-    "showingSearchTerms should be true"
-  );
-}
-
 // If a SERP uses the History API to modify the URI,
 // the search term should still show in the URL bar.
 add_task(async function history_push_state() {
@@ -67,7 +44,7 @@ add_task(async function history_push_state() {
     false,
     expectedSearchUrl
   );
-  BrowserTestUtils.loadURI(tab.linkedBrowser, expectedSearchUrl);
+  BrowserTestUtils.loadURIString(tab.linkedBrowser, expectedSearchUrl);
   await browserLoadedPromise;
 
   let locationChangePromise = BrowserTestUtils.waitForLocationChange(gBrowser);
@@ -109,7 +86,7 @@ add_task(async function url_with_additional_query_params() {
     false,
     expectedSearchUrl
   );
-  BrowserTestUtils.loadURI(tab.linkedBrowser, expectedSearchUrl);
+  BrowserTestUtils.loadURIString(tab.linkedBrowser, expectedSearchUrl);
   await browserLoadedPromise;
 
   Assert.equal(gURLBar.value, expectedSearchUrl, `URL should be in URL bar`);

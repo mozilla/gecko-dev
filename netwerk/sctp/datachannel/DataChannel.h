@@ -64,9 +64,7 @@ class OutgoingMsg {
   ~OutgoingMsg() = default;
   ;
   void Advance(size_t offset);
-  struct sctp_sendv_spa& GetInfo() {
-    return *mInfo;
-  };
+  struct sctp_sendv_spa& GetInfo() { return *mInfo; };
   size_t GetLength() const { return mLength; };
   size_t GetLeft() const { return mLength - mPos; };
   const uint8_t* GetData() { return (const uint8_t*)(mData + mPos); };
@@ -136,6 +134,19 @@ class DataChannelConnection final : public net::NeckoTargetHolder
 
     // Called when a new DataChannel has been opened by the other side.
     virtual void NotifyDataChannel(already_AddRefed<DataChannel> channel) = 0;
+
+    // Called when a DataChannel transitions to state open
+    virtual void NotifyDataChannelOpen(DataChannel* aChannel) = 0;
+
+    // Called when a DataChannel (that was open at some point in the past)
+    // transitions to state closed
+    virtual void NotifyDataChannelClosed(DataChannel* aChannel) = 0;
+
+    // Called when SCTP connects
+    virtual void NotifySctpConnected() = 0;
+
+    // Called when SCTP closes
+    virtual void NotifySctpClosed() = 0;
   };
 
   // Create a new DataChannel Connection
@@ -558,6 +569,8 @@ class DataChannel {
   void WithTrafficCounters(const std::function<void(TrafficCounters&)>&);
 
   RefPtr<DataChannelConnection> mConnection;
+  // mainthread only
+  bool mEverOpened = false;
   nsCString mLabel;
   nsCString mProtocol;
   // This is mainthread only
@@ -659,6 +672,9 @@ class DataChannelOnMessageAvailable : public Runnable {
       case ON_DISCONNECTED:
         // If we've disconnected, make sure we close all the streams - from
         // mainthread!
+        if (mConnection->mListener) {
+          mConnection->mListener->NotifySctpClosed();
+        }
         mConnection->CloseAll();
         break;
       case ON_CHANNEL_CREATED:
@@ -672,7 +688,9 @@ class DataChannelOnMessageAvailable : public Runnable {
         mConnection->mListener->NotifyDataChannel(mChannel.forget());
         break;
       case ON_CONNECTION:
-        // TODO: Notify someday? How? What does the spec say about this?
+        if (mConnection->mListener) {
+          mConnection->mListener->NotifySctpConnected();
+        }
         break;
     }
     return NS_OK;

@@ -31,6 +31,7 @@
 #include "mozilla/TextUtils.h"
 #include "nsAttrValueInlines.h"
 #include "nsCRTGlue.h"
+#include "nsIFilePicker.h"
 #include "nsNetUtil.h"
 #include "nsQueryObject.h"
 
@@ -63,7 +64,6 @@
 #include "nsRangeFrame.h"
 #include "nsError.h"
 #include "nsIEditor.h"
-#include "nsAttrValueOrString.h"
 #include "nsIPromptCollection.h"
 
 #include "mozilla/PresState.h"
@@ -180,10 +180,10 @@ static const nsAttrValue::EnumTable* kInputDefaultType =
     &kInputTypeTable[ArrayLength(kInputTypeTable) - 2];
 
 static const nsAttrValue::EnumTable kCaptureTable[] = {
-    {"user", static_cast<int16_t>(nsIFilePicker::captureUser)},
-    {"environment", static_cast<int16_t>(nsIFilePicker::captureEnv)},
-    {"", static_cast<int16_t>(nsIFilePicker::captureDefault)},
-    {nullptr, static_cast<int16_t>(nsIFilePicker::captureNone)}};
+    {"user", nsIFilePicker::captureUser},
+    {"environment", nsIFilePicker::captureEnv},
+    {"", nsIFilePicker::captureDefault},
+    {nullptr, nsIFilePicker::captureNone}};
 
 static const nsAttrValue::EnumTable* kCaptureDefault = &kCaptureTable[2];
 
@@ -443,7 +443,8 @@ void GetDOMFileOrDirectoryPath(const OwningFileOrDirectory& aData,
 }  // namespace
 
 NS_IMETHODIMP
-HTMLInputElement::nsFilePickerShownCallback::Done(int16_t aResult) {
+HTMLInputElement::nsFilePickerShownCallback::Done(
+    nsIFilePicker::ResultCode aResult) {
   mInput->PickerClosed();
 
   if (aResult == nsIFilePicker::returnCancel) {
@@ -453,12 +454,12 @@ HTMLInputElement::nsFilePickerShownCallback::Done(int16_t aResult) {
         u"cancel"_ns, CanBubble::eYes, Cancelable::eNo);
   }
 
-  int16_t mode;
+  nsIFilePicker::Mode mode;
   mFilePicker->GetMode(&mode);
 
   // Collect new selected filenames
   nsTArray<OwningFileOrDirectory> newFilesOrDirectories;
-  if (mode == static_cast<int16_t>(nsIFilePicker::modeOpenMultiple)) {
+  if (mode == nsIFilePicker::modeOpenMultiple) {
     nsCOMPtr<nsISimpleEnumerator> iter;
     nsresult rv =
         mFilePicker->GetDomFileOrDirectoryEnumerator(getter_AddRefs(iter));
@@ -484,8 +485,8 @@ HTMLInputElement::nsFilePickerShownCallback::Done(int16_t aResult) {
       element->SetAsFile() = domBlob->ToFile();
     }
   } else {
-    MOZ_ASSERT(mode == static_cast<int16_t>(nsIFilePicker::modeOpen) ||
-               mode == static_cast<int16_t>(nsIFilePicker::modeGetFolder));
+    MOZ_ASSERT(mode == nsIFilePicker::modeOpen ||
+               mode == nsIFilePicker::modeGetFolder);
     nsCOMPtr<nsISupports> tmp;
     nsresult rv = mFilePicker->GetDomFileOrDirectory(getter_AddRefs(tmp));
     NS_ENSURE_SUCCESS(rv, rv);
@@ -493,7 +494,7 @@ HTMLInputElement::nsFilePickerShownCallback::Done(int16_t aResult) {
     // Show a prompt to get user confirmation before allowing folder access.
     // This is to prevent sites from tricking the user into uploading files.
     // See Bug 1338637.
-    if (mode == static_cast<int16_t>(nsIFilePicker::modeGetFolder)) {
+    if (mode == nsIFilePicker::modeGetFolder) {
       nsCOMPtr<nsIPromptCollection> prompter =
           do_GetService("@mozilla.org/embedcomp/prompt-collection;1");
       if (!prompter) {
@@ -802,14 +803,14 @@ nsresult HTMLInputElement::InitFilePicker(FilePickerType aType) {
       do_CreateInstance("@mozilla.org/filepicker;1");
   if (!filePicker) return NS_ERROR_FAILURE;
 
-  int16_t mode;
+  nsIFilePicker::Mode mode;
 
   if (aType == FILE_PICKER_DIRECTORY) {
-    mode = static_cast<int16_t>(nsIFilePicker::modeGetFolder);
+    mode = nsIFilePicker::modeGetFolder;
   } else if (HasAttr(kNameSpaceID_None, nsGkAtoms::multiple)) {
-    mode = static_cast<int16_t>(nsIFilePicker::modeOpenMultiple);
+    mode = nsIFilePicker::modeOpenMultiple;
   } else {
-    mode = static_cast<int16_t>(nsIFilePicker::modeOpen);
+    mode = nsIFilePicker::modeOpen;
   }
 
   nsresult rv = filePicker->Init(win, title, mode);
@@ -829,7 +830,8 @@ nsresult HTMLInputElement::InitFilePicker(FilePickerType aType) {
       const nsAttrValue* captureVal =
           GetParsedAttr(nsGkAtoms::capture, kNameSpaceID_None);
       if (captureVal) {
-        filePicker->SetCapture(captureVal->GetEnumValue());
+        filePicker->SetCapture(static_cast<nsIFilePicker::CaptureTarget>(
+            captureVal->GetEnumValue()));
       }
     }
   } else {
@@ -1171,9 +1173,8 @@ nsresult HTMLInputElement::Clone(dom::NodeInfo* aNodeInfo,
   return NS_OK;
 }
 
-nsresult HTMLInputElement::BeforeSetAttr(int32_t aNameSpaceID, nsAtom* aName,
-                                         const nsAttrValueOrString* aValue,
-                                         bool aNotify) {
+void HTMLInputElement::BeforeSetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                                     const nsAttrValue* aValue, bool aNotify) {
   if (aNameSpaceID == kNameSpaceID_None) {
     if (aNotify && aName == nsGkAtoms::disabled) {
       mDisabledChanged = true;
@@ -1206,11 +1207,11 @@ nsresult HTMLInputElement::BeforeSetAttr(int32_t aNameSpaceID, nsAtom* aName,
       aNameSpaceID, aName, aValue, aNotify);
 }
 
-nsresult HTMLInputElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
-                                        const nsAttrValue* aValue,
-                                        const nsAttrValue* aOldValue,
-                                        nsIPrincipal* aSubjectPrincipal,
-                                        bool aNotify) {
+void HTMLInputElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                                    const nsAttrValue* aValue,
+                                    const nsAttrValue* aOldValue,
+                                    nsIPrincipal* aSubjectPrincipal,
+                                    bool aNotify) {
   if (aNameSpaceID == kNameSpaceID_None) {
     if (aName == nsGkAtoms::src) {
       mSrcTriggeringPrincipal = nsContentUtils::GetAttrTriggeringPrincipal(
@@ -1317,8 +1318,7 @@ nsresult HTMLInputElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
       UpdateTypeMismatchValidityState();
     } else if (aName == nsGkAtoms::max) {
       UpdateHasRange();
-      nsresult rv = mInputType->MinMaxStepAttrChanged();
-      NS_ENSURE_SUCCESS(rv, rv);
+      mInputType->MinMaxStepAttrChanged();
       // Validity state must be updated *after* the UpdateValueDueToAttrChange
       // call above or else the following assert will not be valid.
       // We don't assert the state of underflow during creation since
@@ -1329,8 +1329,7 @@ nsresult HTMLInputElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
                  "HTML5 spec does not allow underflow for type=range");
     } else if (aName == nsGkAtoms::min) {
       UpdateHasRange();
-      nsresult rv = mInputType->MinMaxStepAttrChanged();
-      NS_ENSURE_SUCCESS(rv, rv);
+      mInputType->MinMaxStepAttrChanged();
       // See corresponding @max comment
       UpdateRangeUnderflowValidityState();
       UpdateStepMismatchValidityState();
@@ -1338,8 +1337,7 @@ nsresult HTMLInputElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
                      !GetValidityState(VALIDITY_STATE_RANGE_UNDERFLOW),
                  "HTML5 spec does not allow underflow for type=range");
     } else if (aName == nsGkAtoms::step) {
-      nsresult rv = mInputType->MinMaxStepAttrChanged();
-      NS_ENSURE_SUCCESS(rv, rv);
+      mInputType->MinMaxStepAttrChanged();
       // See corresponding @max comment
       UpdateStepMismatchValidityState();
       MOZ_ASSERT(!mDoneCreating || mType != FormControlType::InputRange ||
@@ -1829,7 +1827,7 @@ void HTMLInputElement::SetValueAsDate(JSContext* aCx,
   // At this point we know we're not a file input, so we can just pass "not
   // system" as the caller type, since the caller type only matters in the file
   // input case.
-  if (IsNaN(milliseconds)) {
+  if (std::isnan(milliseconds)) {
     SetValue(u""_ns, CallerType::NonSystem, aRv);
     return;
   }
@@ -1843,7 +1841,7 @@ void HTMLInputElement::SetValueAsDate(JSContext* aCx,
   double year = JS::YearFromTime(milliseconds);
   double month = JS::MonthFromTime(milliseconds);
 
-  if (IsNaN(year) || IsNaN(month)) {
+  if (std::isnan(year) || std::isnan(month)) {
     SetValue(u""_ns, CallerType::NonSystem, aRv);
     return;
   }
@@ -1856,7 +1854,7 @@ void HTMLInputElement::SetValueAsNumber(double aValueAsNumber,
                                         ErrorResult& aRv) {
   // TODO: return TypeError when HTMLInputElement is converted to WebIDL, see
   // bug 825197.
-  if (IsInfinite(aValueAsNumber)) {
+  if (std::isinf(aValueAsNumber)) {
     aRv.Throw(NS_ERROR_INVALID_ARG);
     return;
   }
@@ -3133,8 +3131,10 @@ void HTMLInputElement::GetEventTargetParent(EventChainPreVisitor& aVisitor) {
 
   bool originalCheckedValue = false;
 
-  if (outerActivateEvent) {
+  if (outerActivateEvent &&
+      !aVisitor.mEvent->mFlags.mMultiplePreActionsPrevented) {
     mCheckedIsToggled = false;
+    aVisitor.mEvent->mFlags.mMultiplePreActionsPrevented = true;
 
     switch (mType) {
       case FormControlType::InputCheckbox: {
@@ -3147,6 +3147,10 @@ void HTMLInputElement::GetEventTargetParent(EventChainPreVisitor& aVisitor) {
         originalCheckedValue = Checked();
         DoSetChecked(!originalCheckedValue, true, true);
         mCheckedIsToggled = true;
+
+        if (aVisitor.mEventStatus != nsEventStatus_eConsumeNoDefault) {
+          aVisitor.mEventStatus = nsEventStatus_eConsumeDoDefault;
+        }
       } break;
 
       case FormControlType::InputRadio: {
@@ -3158,13 +3162,16 @@ void HTMLInputElement::GetEventTargetParent(EventChainPreVisitor& aVisitor) {
           DoSetChecked(true, true, true);
           mCheckedIsToggled = true;
         }
+
+        if (aVisitor.mEventStatus != nsEventStatus_eConsumeNoDefault) {
+          aVisitor.mEventStatus = nsEventStatus_eConsumeDoDefault;
+        }
       } break;
 
       case FormControlType::InputSubmit:
       case FormControlType::InputImage:
-        if (mForm && !aVisitor.mEvent->mFlags.mMultiplePreActionsPrevented) {
+        if (mForm) {
           // Make sure other submit elements don't try to trigger submission.
-          aVisitor.mEvent->mFlags.mMultiplePreActionsPrevented = true;
           aVisitor.mItemFlags |= NS_IN_SUBMIT_CLICK;
           aVisitor.mItemData = static_cast<Element*>(mForm);
           // tell the form that we are about to enter a click handler.
@@ -3716,8 +3723,10 @@ nsresult HTMLInputElement::PostHandleEvent(EventChainPostVisitor& aVisitor) {
 #ifdef ACCESSIBILITY
       // Fire an event to notify accessibility
       if (mType == FormControlType::InputCheckbox) {
-        FireEventForAccessibility(this, eFormCheckboxStateChange);
-      } else {
+        if (nsContentUtils::MayHaveFormCheckboxStateChangeListeners()) {
+          FireEventForAccessibility(this, eFormCheckboxStateChange);
+        }
+      } else if (nsContentUtils::MayHaveFormRadioStateChangeListeners()) {
         FireEventForAccessibility(this, eFormRadioStateChange);
         // Fire event for the previous selected radio.
         nsCOMPtr<nsIContent> content = do_QueryInterface(aVisitor.mItemData);
@@ -4069,7 +4078,10 @@ nsresult HTMLInputElement::PostHandleEvent(EventChainPostVisitor& aVisitor) {
           default:
             break;
         }  // switch
-      }    // click or outer activate event
+        if (IsButtonControl()) {
+          HandlePopoverTargetAction();
+        }
+      }  // click or outer activate event
     } else if ((aVisitor.mItemFlags & NS_IN_SUBMIT_CLICK) &&
                (oldType == FormControlType::InputSubmit ||
                 oldType == FormControlType::InputImage)) {
@@ -4402,6 +4414,12 @@ void HTMLInputElement::HandleTypeChange(FormControlType aNewType,
     fm->NeedsFlushBeforeEventHandling(this);
   }
 
+  if (oldType == FormControlType::InputPassword &&
+      State().HasState(ElementState::REVEALED)) {
+    // Modify the state directly to avoid dispatching events.
+    RemoveStates(ElementState::REVEALED);
+  }
+
   if (aNewType == FormControlType::InputFile ||
       oldType == FormControlType::InputFile) {
     if (aNewType == FormControlType::InputFile) {
@@ -4647,6 +4665,15 @@ void HTMLInputElement::SanitizeValue(nsAString& aValue,
           aValue);
     } break;
     case FormControlType::InputNumber: {
+      if (!aValue.IsEmpty() &&
+          (aValue.First() == '+' || aValue.Last() == '.')) {
+        // A value with a leading plus or trailing dot should fail to parse.
+        // However, the localized parser accepts this, and when we convert it
+        // back to a Decimal, it disappears. So, we need to check first.
+        aValue.Truncate();
+        return;
+      }
+
       Decimal value;
       bool ok = mInputType->ConvertStringToNumber(aValue, value);
       if (!ok) {
@@ -5295,8 +5322,8 @@ bool HTMLInputElement::ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
     }
   }
 
-  return nsGenericHTMLElement::ParseAttribute(aNamespaceID, aAttribute, aValue,
-                                              aMaybeScriptedPrincipal, aResult);
+  return TextControlElement::ParseAttribute(aNamespaceID, aAttribute, aValue,
+                                            aMaybeScriptedPrincipal, aResult);
 }
 
 void HTMLInputElement::ImageInputMapAttributesIntoRule(
@@ -5703,10 +5730,14 @@ void HTMLInputElement::ShowPicker(ErrorResult& aRv) {
     return;
   }
 
-  if (IsDateTimeInputType(mType) && IsInComposedDoc()) {
-    DateTimeValue value;
-    GetDateTimeInputBoxValue(value);
-    OpenDateTimePicker(value);
+  if (CreatesDateTimeWidget() && IsInComposedDoc()) {
+    if (RefPtr<Element> dateTimeBoxElement = GetDateTimeBoxElement()) {
+      // Event is dispatched to closed-shadow tree and doesn't bubble.
+      RefPtr<Document> doc = dateTimeBoxElement->OwnerDoc();
+      nsContentUtils::DispatchTrustedEvent(doc, dateTimeBoxElement,
+                                           u"MozDateTimeShowPickerForJS"_ns,
+                                           CanBubble::eNo, Cancelable::eNo);
+    }
   }
 }
 
@@ -6853,6 +6884,20 @@ bool HTMLInputElement::HasCachedSelection() {
 
 void HTMLInputElement::SetRevealPassword(bool aValue) {
   if (NS_WARN_IF(mType != FormControlType::InputPassword)) {
+    return;
+  }
+  if (aValue == State().HasState(ElementState::REVEALED)) {
+    return;
+  }
+  RefPtr doc = OwnerDoc();
+  // We allow chrome code to prevent this. This is important for about:logins,
+  // which may need to run some OS-dependent authentication code before
+  // revealing the saved passwords.
+  bool defaultAction = true;
+  nsContentUtils::DispatchEventOnlyToChrome(
+      doc, ToSupports(this), u"MozWillToggleReveal"_ns, CanBubble::eYes,
+      Cancelable::eYes, &defaultAction);
+  if (NS_WARN_IF(!defaultAction)) {
     return;
   }
   if (aValue) {

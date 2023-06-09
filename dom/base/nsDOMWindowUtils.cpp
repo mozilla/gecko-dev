@@ -19,6 +19,7 @@
 #include "nsFrameManager.h"
 #include "nsRefreshDriver.h"
 #include "nsStyleUtil.h"
+#include "mozilla/Base64.h"
 #include "mozilla/dom/Animation.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/BlobBinding.h"
@@ -37,6 +38,7 @@
 #include "nsIFrame.h"
 #include "mozilla/layers/APZCCallbackHelper.h"
 #include "mozilla/layers/PCompositorBridgeTypes.h"
+#include "mozilla/layers/TouchActionHelper.h"
 #include "mozilla/media/MediaUtils.h"
 #include "nsQueryObject.h"
 #include "CubebDeviceEnumerator.h"
@@ -88,8 +90,6 @@
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/BrowserChild.h"
 #include "mozilla/dom/IDBFactoryBinding.h"
-#include "mozilla/dom/IDBMutableFileBinding.h"
-#include "mozilla/dom/IDBMutableFile.h"
 #include "mozilla/dom/IndexedDatabaseManager.h"
 #include "mozilla/dom/PermissionMessageUtils.h"
 #include "mozilla/dom/Text.h"
@@ -118,6 +118,7 @@
 #include "mozilla/dom/Promise.h"
 #include "mozilla/ServoBindings.h"
 #include "mozilla/StyleSheetInlines.h"
+#include "mozilla/gfx/gfxVars.h"
 #include "mozilla/gfx/GPUProcessManager.h"
 #include "mozilla/dom/TimeoutManager.h"
 #include "mozilla/PreloadedStyleSheet.h"
@@ -131,6 +132,13 @@
 #include "mozilla/dom/BrowsingContextGroup.h"
 #include "mozilla/IMEStateManager.h"
 #include "mozilla/IMEContentObserver.h"
+#include "mozilla/WheelHandlingHelper.h"
+
+#ifdef XP_WIN
+#  include <direct.h>
+#else
+#  include <sys/stat.h>
+#endif
 
 #ifdef XP_WIN
 #  undef GetClassName
@@ -2250,20 +2258,6 @@ nsDOMWindowUtils::GetViewId(Element* aElement, nsViewID* aResult) {
   return NS_ERROR_NOT_AVAILABLE;
 }
 
-NS_IMETHODIMP
-nsDOMWindowUtils::GetFullZoom(float* aFullZoom) {
-  *aFullZoom = 1.0f;
-
-  nsPresContext* presContext = GetPresContext();
-  if (!presContext) {
-    return NS_OK;
-  }
-
-  *aFullZoom = presContext->DeviceContext()->GetFullZoom();
-
-  return NS_OK;
-}
-
 NS_IMETHODIMP nsDOMWindowUtils::DispatchDOMEventViaPresShellForTesting(
     nsINode* aTarget, Event* aEvent, bool* aRetVal) {
   NS_ENSURE_STATE(aEvent);
@@ -2688,7 +2682,10 @@ nsDOMWindowUtils::GetCurrentMaxAudioChannels(uint32_t* aChannels) {
 
 NS_IMETHODIMP
 nsDOMWindowUtils::GetCurrentPreferredSampleRate(uint32_t* aRate) {
-  *aRate = CubebUtils::PreferredSampleRate();
+  nsCOMPtr<Document> doc = GetDocument();
+  *aRate = CubebUtils::PreferredSampleRate(
+      doc ? doc->ShouldResistFingerprinting()
+          : nsContentUtils::ShouldResistFingerprinting("Fallback"));
   return NS_OK;
 }
 
@@ -3096,10 +3093,15 @@ nsDOMWindowUtils::ZoomToFocusedInput() {
     return NS_OK;
   }
 
+  TouchBehaviorFlags tbf =
+      layers::TouchActionHelper::GetAllowedTouchBehaviorForFrame(
+          element->GetPrimaryFrame());
+
   uint32_t flags = layers::DISABLE_ZOOM_OUT;
   if (!Preferences::GetBool("formhelper.autozoom") ||
       Preferences::GetBool("formhelper.autozoom.force-disable.test-only",
-                           /* aFallback = */ false)) {
+                           /* aFallback = */ false) ||
+      !(tbf & AllowedTouchBehavior::ANIMATING_ZOOM)) {
     flags |= layers::PAN_INTO_VIEW_ONLY;
   } else {
     flags |= layers::ONLY_ZOOM_TO_DEFAULT_SCALE;
@@ -3407,12 +3409,6 @@ nsDOMWindowUtils::GetFileId(JS::Handle<JS::Value> aFile, JSContext* aCx,
 
   JS::Rooted<JSObject*> obj(aCx, aFile.toObjectOrNull());
 
-  IDBMutableFile* mutableFile = nullptr;
-  if (NS_SUCCEEDED(UNWRAP_OBJECT(IDBMutableFile, &obj, mutableFile))) {
-    *_retval = mutableFile->GetFileId();
-    return NS_OK;
-  }
-
   Blob* blob = nullptr;
   if (NS_SUCCEEDED(UNWRAP_OBJECT(Blob, &obj, blob))) {
     *_retval = blob->GetFileId();
@@ -3457,15 +3453,18 @@ nsDOMWindowUtils::GetFileReferences(const nsAString& aDatabaseName, int64_t aId,
   nsCOMPtr<nsPIDOMWindowOuter> window = do_QueryReferent(mWindow);
   NS_ENSURE_TRUE(window, NS_ERROR_FAILURE);
 
-  nsCString origin;
-  MOZ_TRY_VAR(origin, quota::QuotaManager::GetOriginFromWindow(window));
+  quota::PrincipalMetadata principalMetadata;
+  MOZ_TRY_VAR(principalMetadata,
+              quota::QuotaManager::GetInfoFromWindow(window));
 
   RefPtr<IndexedDatabaseManager> mgr = IndexedDatabaseManager::Get();
-
   if (mgr) {
     nsresult rv = mgr->BlockAndGetFileReferences(
-        quota::PERSISTENCE_TYPE_DEFAULT, origin, aDatabaseName, aId, aRefCnt,
-        aDBRefCnt, aResult);
+        principalMetadata.mIsPrivate ? quota::PERSISTENCE_TYPE_PRIVATE
+                                     : quota::PERSISTENCE_TYPE_DEFAULT,
+        principalMetadata.mOrigin, aDatabaseName, aId, aRefCnt, aDBRefCnt,
+        aResult);
+
     NS_ENSURE_SUCCESS(rv, rv);
   } else {
     *aRefCnt = *aDBRefCnt = -1;
@@ -3888,7 +3887,7 @@ nsDOMWindowUtils::IsNodeDisabledForEvents(nsINode* aNode, bool* aRetVal) {
   *aRetVal = false;
   nsINode* node = aNode;
   while (node) {
-    if (node->IsNodeOfType(nsINode::eHTML_FORM_CONTROL)) {
+    if (node->IsHTMLFormControlElement()) {
       nsGenericHTMLElement* element = nsGenericHTMLElement::FromNode(node);
       WidgetEvent event(true, eVoidEvent);
       if (element && element->IsDisabledForEvents(&event)) {
@@ -4570,6 +4569,110 @@ nsDOMWindowUtils::StartCompositionRecording(Promise** aOutPromise) {
   return NS_OK;
 }
 
+static bool WriteRecordingToDisk(const FrameRecording& aRecording,
+                                 double aUnixStartMS) {
+  // The directory name contains the unix timestamp for when recording started,
+  // because we want the consumer of these files to be able to compute an
+  // absolute timestamp of each screenshot. That allows them to align
+  // screenshots with timed data from other sources, such as Gecko profiler
+  // information. The time of each screenshot is part of the screenshot's
+  // filename, expressed as milliseconds from the recording start.
+  std::stringstream recordingDirectory;
+  recordingDirectory << gfxVars::LayersWindowRecordingPath()
+                     << "windowrecording-" << int64_t(aUnixStartMS);
+
+#ifdef XP_WIN
+  _mkdir(recordingDirectory.str().c_str());
+#else
+  mkdir(recordingDirectory.str().c_str(), 0777);
+#endif
+
+  auto byteSpan = aRecording.bytes().AsSpan();
+
+  uint32_t i = 1;
+
+  for (const auto& frame : aRecording.frames()) {
+    const uint32_t frameBufferLength = frame.length();
+    if (frameBufferLength > byteSpan.Length()) {
+      return false;
+    }
+
+    const auto frameSpan = byteSpan.To(frameBufferLength);
+    byteSpan = byteSpan.From(frameBufferLength);
+
+    const double frameTimeMS =
+        (frame.timeOffset() - aRecording.startTime()).ToMilliseconds();
+
+    std::stringstream filename;
+    filename << recordingDirectory.str() << "/frame-" << i << "-"
+             << uint32_t(frameTimeMS) << ".png";
+
+    FILE* file = fopen(filename.str().c_str(), "wb");
+    if (!file) {
+      return false;
+    }
+
+    const size_t bytesWritten =
+        fwrite(frameSpan.Elements(), sizeof(uint8_t), frameSpan.Length(), file);
+
+    fclose(file);
+
+    if (bytesWritten < frameSpan.Length()) {
+      return false;
+    }
+
+    ++i;
+  }
+
+  return byteSpan.Length() == 0;
+}
+
+static Maybe<DOMCollectedFrames> ConvertCompositionRecordingFramesToDom(
+    const FrameRecording& aRecording, double aUnixStartMS) {
+  auto byteSpan = aRecording.bytes().AsSpan();
+
+  nsTArray<DOMCollectedFrame> domFrames;
+
+  for (const auto& recordedFrame : aRecording.frames()) {
+    const uint32_t frameBufferLength = recordedFrame.length();
+    if (frameBufferLength > byteSpan.Length()) {
+      return Nothing();
+    }
+
+    const auto frameSpan = byteSpan.To(frameBufferLength);
+    byteSpan = byteSpan.From(frameBufferLength);
+
+    nsCString dataUri;
+
+    dataUri.AppendLiteral("data:image/png;base64,");
+
+    nsresult rv =
+        Base64EncodeAppend(reinterpret_cast<const char*>(frameSpan.Elements()),
+                           frameSpan.Length(), dataUri);
+    if (NS_FAILED(rv)) {
+      return Nothing();
+    }
+
+    DOMCollectedFrame domFrame;
+    domFrame.mTimeOffset =
+        (recordedFrame.timeOffset() - aRecording.startTime()).ToMilliseconds();
+    domFrame.mDataUri = std::move(dataUri);
+
+    domFrames.AppendElement(std::move(domFrame));
+  }
+
+  if (byteSpan.Length() != 0) {
+    return Nothing();
+  }
+
+  DOMCollectedFrames result;
+
+  result.mRecordingStart = aUnixStartMS;
+  result.mFrames = std::move(domFrames);
+
+  return Some(std::move(result));
+}
+
 NS_IMETHODIMP
 nsDOMWindowUtils::StopCompositionRecording(bool aWriteToDisk,
                                            Promise** aOutPromise) {
@@ -4587,85 +4690,61 @@ nsDOMWindowUtils::StopCompositionRecording(bool aWriteToDisk,
     return err.StealNSResult();
   }
 
+  RefPtr<Promise>(promise).forget(aOutPromise);
+
   CompositorBridgeChild* cbc = GetCompositorBridge();
   if (NS_WARN_IF(!cbc)) {
     promise->MaybeReject(NS_ERROR_UNEXPECTED);
-  } else if (aWriteToDisk) {
-    cbc->SendEndRecordingToDisk()->Then(
-        GetCurrentSerialEventTarget(), __func__,
-        [promise](const bool& aSuccess) {
-          if (aSuccess) {
-            promise->MaybeResolveWithUndefined();
-          } else {
-            promise->MaybeRejectWithInvalidStateError(
-                "The composition recorder is not running.");
-          }
-        },
-        [promise](const mozilla::ipc::ResponseRejectReason&) {
-          promise->MaybeRejectWithUnknownError(
-              "Could not stop the composition recorder.");
-        });
-  } else {
-    cbc->SendEndRecordingToMemory()->Then(
-        GetCurrentSerialEventTarget(), __func__,
-        [promise](Maybe<CollectedFramesParams>&& aFrames) {
-          if (!aFrames) {
-            promise->MaybeRejectWithUnknownError(
-                "Could not stop the composition recorder.");
-            return;
-          }
-
-          DOMCollectedFrames domFrames;
-          if (!domFrames.mFrames.SetCapacity(aFrames->frames().Length(),
-                                             fallible)) {
-            promise->MaybeReject(NS_ERROR_OUT_OF_MEMORY);
-            return;
-          }
-
-          domFrames.mRecordingStart = aFrames->recordingStart();
-
-          CheckedInt<size_t> totalSize(0);
-          for (const CollectedFrameParams& frame : aFrames->frames()) {
-            totalSize += frame.length();
-          }
-
-          if (totalSize.isValid() &&
-              totalSize.value() > aFrames->buffer().Size<char>()) {
-            promise->MaybeRejectWithUnknownError(
-                "Could not interpret returned frames.");
-            return;
-          }
-
-          Span<const char> buffer(aFrames->buffer().get<char>(),
-                                  aFrames->buffer().Size<char>());
-
-          for (const CollectedFrameParams& frame : aFrames->frames()) {
-            size_t length = frame.length();
-
-            Span<const char> dataUri = buffer.First(length);
-
-            // We have to do a fallible AppendElement() because WebIDL
-            // dictionaries use FallibleTArray. However, this cannot fail due to
-            // the pre-allocation earlier.
-            DOMCollectedFrame* domFrame =
-                domFrames.mFrames.AppendElement(fallible);
-            MOZ_ASSERT(domFrame);
-
-            domFrame->mTimeOffset = frame.timeOffset();
-            domFrame->mDataUri = nsCString(dataUri);
-
-            buffer = buffer.Subspan(length);
-          }
-
-          promise->MaybeResolve(domFrames);
-        },
-        [promise](const mozilla::ipc::ResponseRejectReason&) {
-          promise->MaybeRejectWithUnknownError(
-              "Could not stop the composition recorder.");
-        });
+    return NS_OK;
   }
 
-  promise.forget(aOutPromise);
+  cbc->SendEndRecording()->Then(
+      GetCurrentSerialEventTarget(), __func__,
+      [promise, aWriteToDisk](Maybe<FrameRecording>&& aRecording) {
+        if (!aRecording) {
+          promise->MaybeRejectWithUnknownError("Failed to get frame recording");
+          return;
+        }
+
+        // We need to know when the recording started in Unix Time.
+        // Unfortunately, the recording start time is an opaque Timestamp that
+        // can only be used to calculate a duration.
+        //
+        // This is not great, but we are going to get Now() twice in close
+        // proximity, one in Unix Time and the other in Timestamp time. Then we
+        // can subtract the length of the recording from the current Unix Time
+        // to get the Unix start time.
+        const TimeStamp timestampNow = TimeStamp::Now();
+        const int64_t unixNowUS = PR_Now();
+
+        const TimeDuration recordingLength =
+            timestampNow - aRecording->startTime();
+        const double unixNowMS = double(unixNowUS) / 1000.0;
+        const double unixStartMS = unixNowMS - recordingLength.ToMilliseconds();
+
+        if (aWriteToDisk) {
+          if (!WriteRecordingToDisk(*aRecording, unixStartMS)) {
+            promise->MaybeRejectWithUnknownError(
+                "Failed to write recording to disk");
+            return;
+          }
+          promise->MaybeResolveWithUndefined();
+        } else {
+          auto maybeDomFrames =
+              ConvertCompositionRecordingFramesToDom(*aRecording, unixStartMS);
+          if (!maybeDomFrames) {
+            promise->MaybeRejectWithUnknownError(
+                "Unable to base64-encode recorded frames");
+            return;
+          }
+          promise->MaybeResolve(*maybeDomFrames);
+        }
+      },
+      [promise](const mozilla::ipc::ResponseRejectReason&) {
+        promise->MaybeRejectWithUnknownError(
+            "IPC failed getting composition recording");
+      });
+
   return NS_OK;
 }
 
@@ -4826,6 +4905,15 @@ nsDOMWindowUtils::GetOrientationLock(uint32_t* aOrientationLock) {
   }
 
   *aOrientationLock = static_cast<uint32_t>(bc->GetOrientationLock());
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDOMWindowUtils::GetWheelScrollTarget(Element** aResult) {
+  *aResult = nullptr;
+  if (nsIFrame* targetFrame = WheelTransaction::GetScrollTargetFrame()) {
+    NS_IF_ADDREF(*aResult = Element::FromNodeOrNull(targetFrame->GetContent()));
+  }
   return NS_OK;
 }
 

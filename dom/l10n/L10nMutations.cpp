@@ -9,6 +9,7 @@
 #include "nsRefreshDriver.h"
 #include "DOMLocalization.h"
 #include "mozilla/intl/Localization.h"
+#include "nsThreadManager.h"
 
 using namespace mozilla;
 using namespace mozilla::intl;
@@ -66,19 +67,15 @@ void L10nMutations::ContentAppended(nsIContent* aChild) {
     return;
   }
 
-  nsINode* node = aChild;
-  if (!IsInRoots(node)) {
+  if (!IsInRoots(aChild)) {
     return;
   }
 
-  ErrorResult rv;
   Sequence<OwningNonNull<Element>> elements;
-  while (node) {
+  for (nsIContent* node = aChild; node; node = node->GetNextSibling()) {
     if (node->IsElement()) {
-      DOMLocalization::GetTranslatables(*node, elements, rv);
+      DOMLocalization::GetTranslatables(*node, elements, IgnoreErrors());
     }
-
-    node = node->GetNextSibling();
   }
 
   for (auto& elem : elements) {
@@ -100,9 +97,8 @@ void L10nMutations::ContentInserted(nsIContent* aChild) {
     return;
   }
 
-  ErrorResult rv;
   Sequence<OwningNonNull<Element>> elements;
-  DOMLocalization::GetTranslatables(*aChild, elements, rv);
+  DOMLocalization::GetTranslatables(*aChild, elements, IgnoreErrors());
 
   for (auto& elem : elements) {
     L10nElementChanged(elem);
@@ -111,37 +107,67 @@ void L10nMutations::ContentInserted(nsIContent* aChild) {
 
 void L10nMutations::ContentRemoved(nsIContent* aChild,
                                    nsIContent* aPreviousSibling) {
-  if (!mObserving) {
+  if (!mObserving || mPendingElements.IsEmpty()) {
     return;
   }
 
-  if (!aChild->IsElement()) {
-    return;
-  }
-  Element* elem = aChild->AsElement();
-
-  if (!IsInRoots(elem)) {
+  Element* elem = Element::FromNode(*aChild);
+  if (!elem || !IsInRoots(elem)) {
     return;
   }
 
-  ErrorResult rv;
   Sequence<OwningNonNull<Element>> elements;
-  DOMLocalization::GetTranslatables(*aChild, elements, rv);
+  DOMLocalization::GetTranslatables(*aChild, elements, IgnoreErrors());
 
   for (auto& elem : elements) {
-    mPendingElements.RemoveElement(elem);
-    mPendingElementsHash.EnsureRemoved(elem);
+    if (mPendingElementsHash.EnsureRemoved(elem)) {
+      mPendingElements.RemoveElement(elem);
+    }
+  }
+
+  if (!HasPendingMutations()) {
+    nsContentUtils::AddScriptRunner(NewRunnableMethod(
+        "MaybeFirePendingTranslationsFinished", this,
+        &L10nMutations::MaybeFirePendingTranslationsFinished));
   }
 }
 
 void L10nMutations::L10nElementChanged(Element* aElement) {
-  if (!mPendingElementsHash.Contains(aElement)) {
+  const bool wasEmpty = mPendingElements.IsEmpty();
+
+  if (mPendingElementsHash.EnsureInserted(aElement)) {
     mPendingElements.AppendElement(aElement);
-    mPendingElementsHash.Insert(aElement);
+  }
+
+  if (!wasEmpty) {
+    return;
   }
 
   if (!mRefreshDriver) {
     StartRefreshObserver();
+  }
+
+  if (!mBlockingLoad) {
+    Document* doc = GetDocument();
+    if (doc && doc->GetReadyStateEnum() != Document::READYSTATE_COMPLETE) {
+      doc->BlockOnload();
+      mBlockingLoad = true;
+    }
+  }
+
+  if (mBlockingLoad && !mPendingBlockingLoadFlush) {
+    // We want to make sure we flush translations and don't block the load
+    // indefinitely (and, in fact, that we do it rather soon, even if the
+    // refresh driver is not ticking yet).
+    //
+    // In some platforms (mainly Wayland) the load of the main document
+    // causes vsync to start running and start ticking the refresh driver,
+    // so we can't rely on the refresh driver ticking yet.
+    RefPtr<nsIRunnable> task =
+        NewRunnableMethod("FlushPendingTranslationsBeforeLoad", this,
+                          &L10nMutations::FlushPendingTranslationsBeforeLoad);
+    nsThreadManager::get().DispatchDirectTaskToCurrentThread(task);
+    mPendingBlockingLoadFlush = true;
   }
 }
 
@@ -163,28 +189,40 @@ class L10nMutationFinalizationHandler final : public PromiseNativeHandler {
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS(L10nMutationFinalizationHandler)
 
-  explicit L10nMutationFinalizationHandler(nsIGlobalObject* aGlobal)
-      : mGlobal(aGlobal) {}
+  explicit L10nMutationFinalizationHandler(L10nMutations* aMutations,
+                                           nsIGlobalObject* aGlobal)
+      : mMutations(aMutations), mGlobal(aGlobal) {}
 
-  void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
-                        ErrorResult& aRv) override {}
+  MOZ_CAN_RUN_SCRIPT void Settled() {
+    if (RefPtr mutations = mMutations) {
+      mutations->PendingPromiseSettled();
+    }
+  }
 
-  void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
-                        ErrorResult& aRv) override {
+  MOZ_CAN_RUN_SCRIPT void ResolvedCallback(JSContext* aCx,
+                                           JS::Handle<JS::Value> aValue,
+                                           ErrorResult& aRv) override {
+    Settled();
+  }
+
+  MOZ_CAN_RUN_SCRIPT void RejectedCallback(JSContext* aCx,
+                                           JS::Handle<JS::Value> aValue,
+                                           ErrorResult& aRv) override {
     nsTArray<nsCString> errors{
         "[dom/l10n] Errors during l10n mutation frame."_ns,
     };
-    IgnoredErrorResult rv;
-    MaybeReportErrorsToGecko(errors, rv, mGlobal);
+    MaybeReportErrorsToGecko(errors, IgnoreErrors(), mGlobal);
+    Settled();
   }
 
  private:
   ~L10nMutationFinalizationHandler() = default;
 
+  RefPtr<L10nMutations> mMutations;
   nsCOMPtr<nsIGlobalObject> mGlobal;
 };
 
-NS_IMPL_CYCLE_COLLECTION(L10nMutationFinalizationHandler, mGlobal)
+NS_IMPL_CYCLE_COLLECTION(L10nMutationFinalizationHandler, mGlobal, mMutations)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(L10nMutationFinalizationHandler)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
@@ -192,6 +230,12 @@ NS_INTERFACE_MAP_END
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(L10nMutationFinalizationHandler)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(L10nMutationFinalizationHandler)
+
+void L10nMutations::FlushPendingTranslationsBeforeLoad() {
+  MOZ_ASSERT(mPendingBlockingLoadFlush);
+  mPendingBlockingLoadFlush = false;
+  FlushPendingTranslations();
+}
 
 void L10nMutations::FlushPendingTranslations() {
   if (!mDOMLocalization) {
@@ -210,12 +254,40 @@ void L10nMutations::FlushPendingTranslations() {
 
   RefPtr<Promise> promise =
       mDOMLocalization->TranslateElements(elements, IgnoreErrors());
-  if (promise) {
-    RefPtr<PromiseNativeHandler> l10nMutationFinalizationHandler =
-        new L10nMutationFinalizationHandler(
-            mDOMLocalization->GetParentObject());
+  if (promise && promise->State() == Promise::PromiseState::Pending) {
+    mPendingPromises++;
+    auto l10nMutationFinalizationHandler =
+        MakeRefPtr<L10nMutationFinalizationHandler>(
+            this, mDOMLocalization->GetParentObject());
     promise->AppendNativeHandler(l10nMutationFinalizationHandler);
   }
+
+  MaybeFirePendingTranslationsFinished();
+}
+
+void L10nMutations::PendingPromiseSettled() {
+  MOZ_DIAGNOSTIC_ASSERT(mPendingPromises);
+  mPendingPromises--;
+  MaybeFirePendingTranslationsFinished();
+}
+
+void L10nMutations::MaybeFirePendingTranslationsFinished() {
+  if (HasPendingMutations()) {
+    return;
+  }
+
+  RefPtr doc = GetDocument();
+  if (NS_WARN_IF(!doc)) {
+    return;
+  }
+
+  if (mBlockingLoad) {
+    mBlockingLoad = false;
+    doc->UnblockOnload(false);
+  }
+  nsContentUtils::DispatchEventOnlyToChrome(
+      doc, ToSupports(doc), u"L10nMutationsFinished"_ns, CanBubble::eNo,
+      Cancelable::eNo, Composed::eNo, nullptr);
 }
 
 void L10nMutations::Disconnect() {
@@ -223,17 +295,23 @@ void L10nMutations::Disconnect() {
   mDOMLocalization = nullptr;
 }
 
+Document* L10nMutations::GetDocument() const {
+  if (!mDOMLocalization) {
+    return nullptr;
+  }
+  auto* innerWindow = mDOMLocalization->GetParentObject()->AsInnerWindow();
+  if (!innerWindow) {
+    return nullptr;
+  }
+  return innerWindow->GetExtantDoc();
+}
+
 void L10nMutations::StartRefreshObserver() {
   if (!mDOMLocalization || mRefreshDriver) {
     return;
   }
-
-  nsPIDOMWindowInner* innerWindow =
-      mDOMLocalization->GetParentObject()->AsInnerWindow();
-  Document* doc = innerWindow ? innerWindow->GetExtantDoc() : nullptr;
-  if (doc) {
-    nsPresContext* ctx = doc->GetPresContext();
-    if (ctx) {
+  if (Document* doc = GetDocument()) {
+    if (nsPresContext* ctx = doc->GetPresContext()) {
       mRefreshDriver = ctx->RefreshDriver();
     }
   }

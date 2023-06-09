@@ -12,6 +12,7 @@
     static get markup() {
       return `
       <html:link rel="stylesheet" href="chrome://browser/content/screenshots/screenshots-buttons.css"/>
+      <html:link rel="stylesheet" href="chrome://global/skin/in-content/common-shared.css"/>
       <html:div id="screenshots-buttons" class="all-buttons-container">
         <html:button class="visible-page" data-l10n-id="screenshots-save-visible-button"></html:button>
         <html:button class="full-page" data-l10n-id="screenshots-save-page-button"></html:button>
@@ -47,6 +48,10 @@
 
     disconnectedCallback() {
       document.l10n.disconnectRoot(this.shadowRoot);
+    }
+
+    focusFirst(focusOptions) {
+      this.shadowRoot.querySelector("button:enabled").focus(focusOptions);
     }
   }
   customElements.define("screenshots-buttons", ScreenshotsButtons, {

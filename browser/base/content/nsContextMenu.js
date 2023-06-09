@@ -61,6 +61,7 @@ function openContextMenu(aMessage, aBrowser, aActor) {
     frameBrowsingContext: wgp.browsingContext,
     selectionInfo: data.selectionInfo,
     disableSetDesktopBackground: data.disableSetDesktopBackground,
+    showRelay: data.showRelay,
     loginFillInfo: data.loginFillInfo,
     userContextId: wgp.browsingContext.originAttributes.userContextId,
     webExtContextData: data.webExtContextData,
@@ -1191,8 +1192,13 @@ class nsContextMenu {
       let popup = document.getElementById("fill-login-popup");
       popup.appendChild(fragment);
     } finally {
+      const documentURI = this.contentData?.documentURIObject;
+      const origin = LoginHelper.getLoginOrigin(documentURI?.spec);
+      const showRelay = origin && this.contentData?.context.showRelay;
+
       this.showItem("fill-login", showUseSavedLogin);
       this.showItem("fill-login-generated-password", showGenerate);
+      this.showItem("use-relay-mask", showRelay);
       this.showItem("manage-saved-logins", showManage);
       this.setItemAttr(
         "fill-login-generated-password",
@@ -1202,7 +1208,9 @@ class nsContextMenu {
       this.setItemAttr(
         "passwordmgr-items-separator",
         "ensureHidden",
-        showUseSavedLogin || showGenerate || showManage ? null : true
+        showUseSavedLogin || showGenerate || showManage || showRelay
+          ? null
+          : true
       );
     }
   }
@@ -1331,6 +1339,12 @@ class nsContextMenu {
     LoginHelper.openPasswordManager(window, {
       entryPoint: "contextmenu",
     });
+  }
+
+  useRelayMask() {
+    const documentURI = this.contentData?.documentURIObject;
+    const origin = LoginHelper.getLoginOrigin(documentURI?.spec);
+    this.actor.useRelayMask(this.targetIdentifier, origin);
   }
 
   useGeneratedPassword() {
@@ -1497,7 +1511,11 @@ class nsContextMenu {
 
   takeScreenshot() {
     if (SCREENSHOT_BROWSER_COMPONENT) {
-      Services.obs.notifyObservers(window, "menuitem-screenshot", true);
+      Services.obs.notifyObservers(
+        window,
+        "menuitem-screenshot",
+        "context_menu"
+      );
     } else {
       Services.obs.notifyObservers(
         null,
@@ -1984,7 +2002,7 @@ class nsContextMenu {
       ? this.contentData.linkReferrerInfo
       : this.contentData.referrerInfo;
 
-    let isContentWindowPrivate = this.ownerDoc.isPrivate;
+    let isPrivate = PrivateBrowsingUtils.isBrowserPrivate(this.browser);
     this.saveHelper(
       this.linkURL,
       this.linkTextStr,
@@ -1995,7 +2013,7 @@ class nsContextMenu {
       this.contentData.cookieJarSettings,
       this.frameOuterWindowID,
       this.linkDownload,
-      isContentWindowPrivate
+      isPrivate
     );
   }
 
@@ -2009,10 +2027,9 @@ class nsContextMenu {
   // Save URL of the clicked upon image, video, or audio.
   saveMedia() {
     let doc = this.ownerDoc;
-    let isContentWindowPrivate = this.ownerDoc.isPrivate;
+    let isPrivate = PrivateBrowsingUtils.isBrowserPrivate(this.browser);
     let referrerInfo = this.contentData.referrerInfo;
     let cookieJarSettings = this.contentData.cookieJarSettings;
-    let isPrivate = PrivateBrowsingUtils.isBrowserPrivate(this.browser);
     if (this.onCanvas) {
       // Bypass cache, since it's a data: URL.
       this._canvasToBlobURL(this.targetIdentifier).then(function(blobURL) {
@@ -2056,6 +2073,14 @@ class nsContextMenu {
         this.principal
       );
     } else if (this.onVideo || this.onAudio) {
+      let defaultFileName = "";
+      if (this.mediaURL.startsWith("data")) {
+        // Use default file name "Untitled" for data URIs
+        defaultFileName = ContentAreaUtils.stringBundle.GetStringFromName(
+          "UntitledSaveFileName"
+        );
+      }
+
       var dialogTitle = this.onVideo ? "SaveVideoTitle" : "SaveAudioTitle";
       this.saveHelper(
         this.mediaURL,
@@ -2066,8 +2091,8 @@ class nsContextMenu {
         referrerInfo,
         cookieJarSettings,
         this.frameOuterWindowID,
-        this.mediaURL.startsWith("data") ? "index" : "", // use default file name "index" for data URIs
-        isContentWindowPrivate
+        defaultFileName,
+        isPrivate
       );
     }
   }
@@ -2477,10 +2502,11 @@ class nsContextMenu {
 
 ChromeUtils.defineESModuleGetters(nsContextMenu, {
   DevToolsShim: "chrome://devtools-startup/content/DevToolsShim.sys.mjs",
+  LoginManagerContextMenu:
+    "resource://gre/modules/LoginManagerContextMenu.sys.mjs",
 });
 
 XPCOMUtils.defineLazyModuleGetters(nsContextMenu, {
-  LoginManagerContextMenu: "resource://gre/modules/LoginManagerContextMenu.jsm",
   WebNavigationFrames: "resource://gre/modules/WebNavigationFrames.jsm",
 });
 

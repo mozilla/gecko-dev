@@ -221,10 +221,10 @@ EditorUtils::CreateTransferableForPlainText(const Document& aDocument) {
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rvIgnored),
                        "nsITransferable::Init() failed, but ignored");
 
-  rvIgnored = transferable->AddDataFlavor(kUnicodeMime);
+  rvIgnored = transferable->AddDataFlavor(kTextMime);
   NS_WARNING_ASSERTION(
       NS_SUCCEEDED(rvIgnored),
-      "nsITransferable::AddDataFlavor(kUnicodeMime) failed, but ignored");
+      "nsITransferable::AddDataFlavor(kTextMime) failed, but ignored");
   rvIgnored = transferable->AddDataFlavor(kMozTextInternal);
   NS_WARNING_ASSERTION(
       NS_SUCCEEDED(rvIgnored),
@@ -413,7 +413,7 @@ nsINode* EditorDOMRangeBase<
  *****************************************************************************/
 
 nsresult CaretPoint::SuggestCaretPointTo(
-    const EditorBase& aEditorBase, const SuggestCaretOptions& aOptions) const {
+    EditorBase& aEditorBase, const SuggestCaretOptions& aOptions) const {
   mHandledCaretPoint = true;
   if (!mCaretPoint.IsSet()) {
     if (aOptions.contains(SuggestCaret::OnlyIfHasSuggestion)) {

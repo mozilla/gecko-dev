@@ -8,6 +8,11 @@ Releases
    :glob:
    :hidden:
 
+   nss_3_89_1.rst
+   nss_3_89.rst
+   nss_3_88_1.rst
+   nss_3_88.rst
+   nss_3_87_1.rst
    nss_3_87.rst
    nss_3_86.rst
    nss_3_85.rst
@@ -16,6 +21,8 @@ Releases
    nss_3_82.rst
    nss_3_81.rst
    nss_3_80.rst
+   nss_3_79_4.rst
+   nss_3_79_3.rst
    nss_3_79_2.rst
    nss_3_79_1.rst
    nss_3_79.rst
@@ -46,24 +53,18 @@ Releases
 
 .. note::
 
-   **NSS 3.87** is the latest version of NSS.
-   Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_87_release_notes`
+   **NSS 3.89.1** is the latest version of NSS.
+   Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_89_1_release_notes`
 
-   **NSS 3.79.2** is the latest ESR version of NSS.
-   Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_79_2_release_notes`
+   **NSS 3.79.4** is the latest ESR version of NSS.
+   Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_79_4_release_notes`
 
 
 .. container::
 
-   Changes in 3.87 included in this release:
+   Changes in 3.89.1 included in this release:
 
-   - Bug 1803226 - NULL password encoding incorrect.
-   - Bug 1804071 - Fix rng stub signature for fuzzing builds.
-   - Bug 1803595 - Updating the compiler parsing for build.
-   - Bug 1749030 - Modification of supported compilers.
-   - Bug 1774654 tstclnt crashes when accessing gnutls server without a user cert in the database.
-   - Bug 1751707 - Add configuration option to enable source-based coverage sanitizer.
-   - Bug 1751705 - Update ECCKiila generated files.
-   - Bug 1730353 - Add support for the LoongArch 64-bit architecture.
-   - Bug 1798823 - add checks for zero-length RSA modulus to avoid memory errors and failed assertions later.
-   - Bug 1798823 - Additional zero-length RSA modulus checks.
+   - Bug 1804505 - Update the technical constraints for KamuSM.
+   - Bug 1822921 - Add BJCA Global Root CA1 and CA2 root certificates.
+
+

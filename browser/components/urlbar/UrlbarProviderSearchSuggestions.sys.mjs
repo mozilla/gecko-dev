@@ -15,10 +15,11 @@ import {
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  FormHistory: "resource://gre/modules/FormHistory.sys.mjs",
   SearchSuggestionController:
     "resource://gre/modules/SearchSuggestionController.sys.mjs",
-
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
+  UrlbarProviderTopSites: "resource:///modules/UrlbarProviderTopSites.sys.mjs",
   UrlbarResult: "resource:///modules/UrlbarResult.sys.mjs",
   UrlbarSearchUtils: "resource:///modules/UrlbarSearchUtils.sys.mjs",
   UrlbarTokenizer: "resource:///modules/UrlbarTokenizer.sys.mjs",
@@ -91,10 +92,11 @@ class ProviderSearchSuggestions extends UrlbarProvider {
     }
 
     // No suggestions for empty search strings, unless we are restricting to
-    // search.
+    // search or showing trending suggestions.
     if (
       !queryContext.trimmedSearchString &&
-      !this._isTokenOrRestrictionPresent(queryContext)
+      !this._isTokenOrRestrictionPresent(queryContext) &&
+      !this.#shouldFetchTrending(queryContext)
     ) {
       return false;
     }
@@ -176,7 +178,11 @@ class ProviderSearchSuggestions extends UrlbarProvider {
       return false;
     }
 
-    // TODO (Bug 1626964): Support zero prefix suggestions.
+    // Allow remote suggestions if trending suggestions are enabled.
+    if (this.#shouldFetchTrending(queryContext)) {
+      return true;
+    }
+
     if (!searchString.trim()) {
       return false;
     }
@@ -199,7 +205,10 @@ class ProviderSearchSuggestions extends UrlbarProvider {
       return false;
     }
 
-    return queryContext.allowRemoteResults(searchString);
+    return queryContext.allowRemoteResults(
+      searchString,
+      lazy.UrlbarPrefs.get("trending.featureGate")
+    );
   }
 
   /**
@@ -291,6 +300,9 @@ class ProviderSearchSuggestions extends UrlbarProvider {
    * @returns {number} The provider's priority for the given query.
    */
   getPriority(queryContext) {
+    if (this.#shouldFetchTrending(queryContext)) {
+      return lazy.UrlbarProviderTopSites.PRIORITY;
+    }
     return 0;
   }
 
@@ -306,13 +318,32 @@ class ProviderSearchSuggestions extends UrlbarProvider {
     }
   }
 
+  onEngagement(isPrivate, state, queryContext, details) {
+    let { result } = details;
+    if (result?.providerName != this.name) {
+      return;
+    }
+
+    if (details.selType == "dismiss" && queryContext.formHistoryName) {
+      lazy.FormHistory.update({
+        op: "remove",
+        fieldname: queryContext.formHistoryName,
+        value: result.payload.suggestion,
+      }).catch(error =>
+        console.error(`Removing form history failed: ${error}`)
+      );
+      queryContext.view.controller.removeResult(result);
+    }
+  }
+
   async _fetchSearchSuggestions(queryContext, engine, searchString, alias) {
     if (!engine) {
       return null;
     }
 
-    this._suggestionsController = new lazy.SearchSuggestionController();
-    this._suggestionsController.formHistoryParam = queryContext.formHistoryName;
+    this._suggestionsController = new lazy.SearchSuggestionController(
+      queryContext.formHistoryName
+    );
 
     // If there's a form history entry that equals the search string, the search
     // suggestions controller will include it, and we'll make a result for it.
@@ -330,13 +361,32 @@ class ProviderSearchSuggestions extends UrlbarProvider {
       ? queryContext.maxResults + 1
       : 0;
 
+    if (allowRemote && this.#shouldFetchTrending(queryContext)) {
+      if (
+        queryContext.searchMode &&
+        lazy.UrlbarPrefs.get("trending.maxResultsSearchMode") != -1
+      ) {
+        this._suggestionsController.maxRemoteResults = lazy.UrlbarPrefs.get(
+          "trending.maxResultsSearchMode"
+        );
+      } else if (
+        !queryContext.searchMode &&
+        lazy.UrlbarPrefs.get("trending.maxResultsNoSearchMode") != -1
+      ) {
+        this._suggestionsController.maxRemoteResults = lazy.UrlbarPrefs.get(
+          "trending.maxResultsNoSearchMode"
+        );
+      }
+    }
+
     this._suggestionsFetchCompletePromise = this._suggestionsController.fetch(
       searchString,
       queryContext.isPrivate,
       engine,
       queryContext.userContextId,
       this._isTokenOrRestrictionPresent(queryContext),
-      false
+      false,
+      this.#shouldFetchTrending(queryContext)
     );
 
     // See `SearchSuggestionsController.fetch` documentation for a description
@@ -423,6 +473,7 @@ class ProviderSearchSuggestions extends UrlbarProvider {
                   alias ? alias : undefined,
                   UrlbarUtils.HIGHLIGHT.TYPED,
                 ],
+                trending: entry.trending,
                 query: [searchString.trim(), UrlbarUtils.HIGHLIGHT.NONE],
                 icon: !entry.value ? engine.iconURI?.spec : undefined,
               }
@@ -495,6 +546,26 @@ class ProviderSearchSuggestions extends UrlbarProvider {
     }
 
     return null;
+  }
+
+  /**
+   * Whether we should show trending suggestions. These are shown when the
+   * user enters a specific engines searchMode when enabled, the
+   * seperate `requireSearchMode` pref controls whether they are visible
+   * when the urlbar is first opened without any search mode.
+   *
+   * @param {UrlbarQueryContext} queryContext
+   *   The query context object.
+   * @returns {boolean}
+   *   Whether we should fetch trending results.
+   */
+  #shouldFetchTrending(queryContext) {
+    return !!(
+      queryContext.searchString == "" &&
+      lazy.UrlbarPrefs.get("trending.featureGate") &&
+      (queryContext.searchMode ||
+        !lazy.UrlbarPrefs.get("trending.requireSearchMode"))
+    );
   }
 }
 

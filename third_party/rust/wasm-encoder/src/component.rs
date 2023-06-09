@@ -5,6 +5,7 @@ mod exports;
 mod imports;
 mod instances;
 mod modules;
+mod names;
 mod start;
 mod types;
 
@@ -15,10 +16,11 @@ pub use self::exports::*;
 pub use self::imports::*;
 pub use self::instances::*;
 pub use self::modules::*;
+pub use self::names::*;
 pub use self::start::*;
 pub use self::types::*;
 
-use crate::{CustomSection, Encode};
+use crate::{CustomSection, Encode, ProducersSection};
 
 // Core sorts extended by the component model
 const CORE_TYPE_SORT: u8 = 0x10;
@@ -40,6 +42,12 @@ const INSTANCE_SORT: u8 = 0x05;
 pub trait ComponentSection: Encode {
     /// Gets the section identifier for this section.
     fn id(&self) -> u8;
+
+    /// Appends this section to the specified destination list of bytes.
+    fn append_to_component(&self, dst: &mut Vec<u8>) {
+        dst.push(self.id());
+        self.encode(dst);
+    }
 }
 
 /// Known section identifiers of WebAssembly components.
@@ -99,13 +107,19 @@ pub struct Component {
 }
 
 impl Component {
+    /// The 8-byte header at the beginning of all components.
+    #[rustfmt::skip]
+    pub const HEADER: [u8; 8] = [
+        // Magic
+        0x00, 0x61, 0x73, 0x6D,
+        // Version
+        0x0c, 0x00, 0x01, 0x00,
+    ];
+
     /// Begin writing a new `Component`.
     pub fn new() -> Self {
         Self {
-            bytes: vec![
-                0x00, 0x61, 0x73, 0x6D, // magic (`\0asm`)
-                0x0a, 0x00, 0x01, 0x00, // version
-            ],
+            bytes: Self::HEADER.to_vec(),
         }
     }
 
@@ -120,6 +134,11 @@ impl Component {
         section.encode(&mut self.bytes);
         self
     }
+
+    /// View the encoded bytes.
+    pub fn as_slice(&self) -> &[u8] {
+        &self.bytes
+    }
 }
 
 impl Default for Component {
@@ -129,6 +148,12 @@ impl Default for Component {
 }
 
 impl ComponentSection for CustomSection<'_> {
+    fn id(&self) -> u8 {
+        ComponentSectionId::CoreCustom.into()
+    }
+}
+
+impl ComponentSection for ProducersSection {
     fn id(&self) -> u8 {
         ComponentSectionId::CoreCustom.into()
     }

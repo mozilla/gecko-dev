@@ -18,12 +18,12 @@
 #include "mozilla/dom/MouseEventBinding.h"
 #include "mozilla/dom/NameSpaceConstants.h"
 #include "mozilla/dom/AncestorIterator.h"
+#include "mozilla/dom/XULMenuBarElement.h"
 #include "nsGkAtoms.h"
 #include "nsITimer.h"
 #include "nsLayoutUtils.h"
 #include "nsCaseTreatment.h"
 #include "nsChangeHint.h"
-#include "nsMenuBarFrame.h"
 #include "nsMenuPopupFrame.h"
 #include "nsPlaceholderFrame.h"
 #include "nsPresContext.h"
@@ -95,9 +95,9 @@ void XULButtonElement::HandleEnterKeyPress(WidgetEvent& aEvent) {
 #ifdef XP_WIN
     if (XULPopupElement* popup = GetContainingPopupElement()) {
       if (nsXULPopupManager* pm = nsXULPopupManager::GetInstance()) {
-        pm->HidePopup(popup, /* aHideChain = */ true,
-                      /* aDeselectMenu = */ true, /* aAsynchronous = */ true,
-                      /* aIsCancel = */ false);
+        pm->HidePopup(
+            popup, {HidePopupOption::HideChain, HidePopupOption::DeselectMenu,
+                    HidePopupOption::Async});
       }
     }
 #endif
@@ -120,10 +120,8 @@ bool XULButtonElement::IsMenuPopupOpen() {
 }
 
 bool XULButtonElement::IsOnMenu() const {
-  if (XULMenuParentElement* menu = GetMenuParent()) {
-    return !menu->IsMenuBar();
-  }
-  return false;
+  auto* popup = XULPopupElement::FromNodeOrNull(GetMenuParent());
+  return popup && popup->IsMenu();
 }
 
 bool XULButtonElement::IsOnMenuList() const {
@@ -211,7 +209,11 @@ void XULButtonElement::CloseMenuPopup(bool aDeselectMenu) {
     return;
   }
   if (auto* popup = GetMenuPopupContent()) {
-    pm->HidePopup(popup, false, aDeselectMenu, true, false);
+    HidePopupOptions options{HidePopupOption::Async};
+    if (aDeselectMenu) {
+      options += HidePopupOption::DeselectMenu;
+    }
+    pm->HidePopup(popup, options);
   }
 }
 
@@ -442,17 +444,18 @@ void XULButtonElement::PostHandleEventForMenus(
             // If we're open we never deselect. PopupClosed will do as needed.
             return false;
           }
-          if (!parent->IsMenuBar()) {
-            // Don't de-select when not in the menubar.
-            // NOTE(emilio): Behavior from before bug 1811466 is equivalent to
-            // returning true here, consider flipping this.
+          if (auto* menubar = XULMenuBarElement::FromNode(*parent)) {
+            // De-select when exiting a menubar item, if the menubar wasn't
+            // activated by keyboard.
+            return !menubar->IsActiveByKeyboard();
+          }
+          if (IsOnMenuList()) {
+            // Don't de-select if on a menu-list. That matches Chromium and our
+            // historical Windows behavior, see bug 1197913.
             return false;
           }
-          // De-select when exiting a menubar item, if the menubar wasn't
-          // activated by keyboard.
-          nsMenuBarFrame* menubar = do_QueryFrame(parent->GetPrimaryFrame());
-          const bool openedByKey = menubar && menubar->IsActiveByKeyboard();
-          return !openedByKey;
+          // De-select elsewhere.
+          return true;
         }();
 
         if (shouldDeactivate) {
@@ -708,13 +711,13 @@ void XULButtonElement::UncheckRadioSiblings() {
   }
 }
 
-nsresult XULButtonElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
-                                        const nsAttrValue* aValue,
-                                        const nsAttrValue* aOldValue,
-                                        nsIPrincipal* aSubjectPrincipal,
-                                        bool aNotify) {
-  MOZ_TRY(nsXULElement::AfterSetAttr(aNamespaceID, aName, aValue, aOldValue,
-                                     aSubjectPrincipal, aNotify));
+void XULButtonElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
+                                    const nsAttrValue* aValue,
+                                    const nsAttrValue* aOldValue,
+                                    nsIPrincipal* aSubjectPrincipal,
+                                    bool aNotify) {
+  nsXULElement::AfterSetAttr(aNamespaceID, aName, aValue, aOldValue,
+                             aSubjectPrincipal, aNotify);
   if (IsAlwaysMenu() && aNamespaceID == kNameSpaceID_None) {
     // We need to uncheck radio siblings when we're a checked radio and switch
     // groups, or become checked.
@@ -733,7 +736,6 @@ nsresult XULButtonElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
       UncheckRadioSiblings();
     }
   }
-  return NS_OK;
 }
 
 auto XULButtonElement::GetMenuType() const -> Maybe<MenuType> {
@@ -754,17 +756,11 @@ auto XULButtonElement::GetMenuType() const -> Maybe<MenuType> {
   }
 }
 
-nsMenuBarFrame* XULButtonElement::GetMenuBar(FlushType aFlushType) {
+XULMenuBarElement* XULButtonElement::GetMenuBar() const {
   if (!IsMenu()) {
     return nullptr;
   }
-  nsIFrame* frame = GetPrimaryFrame(aFlushType);
-  for (; frame; frame = frame->GetParent()) {
-    if (nsMenuBarFrame* menubar = do_QueryFrame(frame)) {
-      return menubar;
-    }
-  }
-  return nullptr;
+  return FirstAncestorOfType<XULMenuBarElement>();
 }
 
 XULMenuParentElement* XULButtonElement::GetMenuParent() const {
@@ -798,8 +794,8 @@ nsMenuPopupFrame* XULButtonElement::GetMenuPopup(FlushType aFlushType) {
   return do_QueryFrame(popup->GetPrimaryFrame(aFlushType));
 }
 
-bool XULButtonElement::OpenedWithKey() {
-  nsMenuBarFrame* menubar = GetMenuBar(FlushType::Frames);
+bool XULButtonElement::OpenedWithKey() const {
+  auto* menubar = GetMenuBar();
   return menubar && menubar->IsActiveByKeyboard();
 }
 

@@ -22,7 +22,10 @@ add_task(async function test() {
   let win = await BrowserTestUtils.openNewBrowserWindow();
   await SimpleTest.promiseFocus(win);
   Assert.greater(win.outerWidth, 700, "window is bigger than 700px");
-  BrowserTestUtils.loadURI(win.gBrowser, "data:text/html,<h1>A Page</h1>");
+  BrowserTestUtils.loadURIString(
+    win.gBrowser,
+    "data:text/html,<h1>A Page</h1>"
+  );
   await BrowserTestUtils.browserLoaded(win.gBrowser.selectedBrowser);
 
   // The pageAction implementation enables the button at the next animation
@@ -85,7 +88,7 @@ add_task(async function bookmark() {
   const url = "data:text/html,<h1>A Page</h1>";
   let win = await BrowserTestUtils.openNewBrowserWindow();
   await SimpleTest.promiseFocus(win);
-  BrowserTestUtils.loadURI(win.gBrowser, url);
+  BrowserTestUtils.loadURIString(win.gBrowser, url);
   await BrowserTestUtils.browserLoaded(win.gBrowser.selectedBrowser);
 
   // The pageAction implementation enables the button at the next animation
@@ -105,7 +108,9 @@ add_task(async function bookmark() {
 
   // The bookmark button should read "Bookmark Current Tab…" and not be starred.
   let bookmarkButton = win.document.getElementById("pageAction-panel-bookmark");
-  Assert.equal(bookmarkButton.label, "Bookmark Current Tab…");
+  await TestUtils.waitForCondition(
+    () => bookmarkButton.label === "Bookmark Current Tab…"
+  );
   Assert.ok(!bookmarkButton.hasAttribute("starred"));
 
   // Click the button.
@@ -123,7 +128,9 @@ add_task(async function bookmark() {
   await promisePageActionPanelOpen(win);
 
   // The bookmark button should now read "Edit This Bookmark…" and be starred.
-  Assert.equal(bookmarkButton.label, "Edit This Bookmark…");
+  await TestUtils.waitForCondition(
+    () => bookmarkButton.label === "Edit This Bookmark…"
+  );
   Assert.ok(bookmarkButton.hasAttribute("starred"));
   Assert.equal(bookmarkButton.getAttribute("starred"), "true");
 
@@ -136,8 +143,7 @@ add_task(async function bookmark() {
 
   let onItemRemovedPromise = PlacesTestUtils.waitForNotification(
     "bookmark-removed",
-    events => events.some(event => event.url == url),
-    "places"
+    events => events.some(event => event.url == url)
   );
 
   // Click the remove-bookmark button in the panel.
@@ -150,7 +156,9 @@ add_task(async function bookmark() {
   await promisePageActionPanelOpen(win);
 
   // The bookmark button should read "Bookmark Current Tab…" and not be starred.
-  Assert.equal(bookmarkButton.label, "Bookmark Current Tab…");
+  await TestUtils.waitForCondition(
+    () => bookmarkButton.label === "Bookmark Current Tab…"
+  );
   Assert.ok(!bookmarkButton.hasAttribute("starred"));
 
   // Done.
@@ -200,6 +208,7 @@ add_task(async function test_disabledPageAction_hidden_in_protonOverflowMenu() {
     },
   });
 
+  // eslint-disable-next-line @microsoft/sdl/no-insecure-url
   await BrowserTestUtils.withNewTab("http://example.com", async browser => {
     const win = browser.ownerGlobal;
     const promisePageActionPanelClosed = async () => {

@@ -79,3 +79,40 @@ addAccessibleTask(
     // x and y.
   }
 );
+
+/**
+ * Test height: 0 with align-items: flex-end. This causes the content to
+ * overflow above the frame's main rect.
+ */
+addAccessibleTask(
+  `
+<aside style="height: 0; display: flex; align-items: flex-end;">
+  <div id="inner0">testing</div>
+</aside>
+<aside style="height: 1; display: flex; align-items: flex-end;">
+  <div id="inner1">testing</div>
+</aside>
+  `,
+  async function(browser, docAcc) {
+    await testBoundsWithContent(docAcc, "inner0", browser);
+    await testBoundsWithContent(docAcc, "inner1", browser);
+  },
+  { chrome: true, topLevel: true, remoteIframe: true }
+);
+
+/**
+ * Test a div (block) inside a span (inline). This causes the span's primary
+ * frame to have an empty rect offset from its visible content.
+ */
+addAccessibleTask(
+  `
+<span id="span" tabindex="-1">
+  <div id="div">Testing</div>
+</span>
+  `,
+  async function(browser, docAcc) {
+    await testBoundsWithContent(docAcc, "span", browser);
+    await testBoundsWithContent(docAcc, "div", browser);
+  },
+  { chrome: true, topLevel: true, remoteIframe: true }
+);

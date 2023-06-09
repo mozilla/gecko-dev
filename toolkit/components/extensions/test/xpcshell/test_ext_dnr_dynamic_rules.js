@@ -5,6 +5,7 @@
 
 ChromeUtils.defineESModuleGetters(this, {
   ExtensionDNR: "resource://gre/modules/ExtensionDNR.sys.mjs",
+  ExtensionDNRLimits: "resource://gre/modules/ExtensionDNRLimits.sys.mjs",
   ExtensionDNRStore: "resource://gre/modules/ExtensionDNRStore.sys.mjs",
   TestUtils: "resource://testing-common/TestUtils.sys.mjs",
 });
@@ -25,10 +26,18 @@ Services.scriptloader.loadSubScript(
 
 const { promiseStartupManager, promiseRestartManager } = AddonTestUtils;
 
+const server = createHttpServer({ hosts: ["example.com"] });
+server.registerPathHandler("/", (req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.write("response from server");
+});
+
 add_setup(async () => {
   Services.prefs.setBoolPref("extensions.manifestV3.enabled", true);
   Services.prefs.setBoolPref("extensions.dnr.enabled", true);
   Services.prefs.setBoolPref("extensions.dnr.feedback", true);
+
+  setupTelemetryForTests();
 
   await promiseStartupManager();
 });
@@ -75,6 +84,7 @@ async function runAsDNRExtension({
   background,
   unloadTestAtEnd = true,
   awaitFinish = false,
+  id = "test-dynamic-rules@test-extension",
 }) {
   const testExtensionParams = {
     background: `(${background})((${makeDnrTestUtils})())`,
@@ -83,7 +93,7 @@ async function runAsDNRExtension({
       manifest_version: 3,
       permissions: ["declarativeNetRequest", "declarativeNetRequestFeedback"],
       browser_specific_settings: {
-        gecko: { id: "test-dynamic-rules@test-extension" },
+        gecko: { id },
       },
     },
   };
@@ -162,8 +172,7 @@ add_task(async function test_dynamic_rules_count_limits() {
         "Expect no session and no dynamic rules"
       );
 
-      // TODO: consider exposing this as an api namespace property.
-      const MAX_NUMBER_OF_DYNAMIC_AND_SESSION_RULES = 5000;
+      const { MAX_NUMBER_OF_DYNAMIC_AND_SESSION_RULES } = dnr;
       const DUMMY_RULE = {
         action: { type: "block" },
         condition: { resourceTypes: ["main_frame"] },
@@ -180,7 +189,7 @@ add_task(async function test_dynamic_rules_count_limits() {
             { ...DUMMY_RULE, id: MAX_NUMBER_OF_DYNAMIC_AND_SESSION_RULES + 1 },
           ],
         }),
-        /updateDynamicRules request is exceeding MAX_NUMBER_OF_DYNAMIC_AND_SESSION_RULES limit \(\d+\)/,
+        `Number of rules in ruleset "_dynamic" exceeds MAX_NUMBER_OF_DYNAMIC_AND_SESSION_RULES.`,
         "Got the expected rejection of exceeding the number of dynamic rules allowed"
       );
 
@@ -229,7 +238,7 @@ add_task(async function test_dynamic_rules_count_limits() {
         updateDynamicRulesTooMany?.status === "rejected"
           ? Promise.reject(updateDynamicRulesTooMany.reason)
           : Promise.resolve(),
-        /updateDynamicRules request is exceeding MAX_NUMBER_OF_DYNAMIC_AND_SESSION_RULES limit \(\d+\)/,
+        `Number of rules in ruleset "_dynamic" exceeds MAX_NUMBER_OF_DYNAMIC_AND_SESSION_RULES.`,
         "Got the expected rejection on the second call exceeding the number of dynamic rules allowed"
       );
 
@@ -257,6 +266,10 @@ add_task(async function test_dynamic_rules_count_limits() {
         "Expect the number of dynamic rules to be still allowed, despite the session rule added"
       );
 
+      // NOTE: In this test we do not exceed the quota of session rules. The
+      // updateSessionRules call here is to verify that the quota of session and
+      // dynamic rules are separate. The limits for session rules are tested
+      // by session_rules_total_rule_limit in test_ext_dnr_session_rules.js.
       browser.test.assertDeepEq(
         updateSessionResult,
         { status: "fulfilled", value: undefined },
@@ -342,7 +355,7 @@ add_task(async function test_stored_dynamic_rules_exceeding_limits() {
     decompress: true,
   });
 
-  const { MAX_NUMBER_OF_DYNAMIC_AND_SESSION_RULES } = ExtensionDNR.limits;
+  const { MAX_NUMBER_OF_DYNAMIC_AND_SESSION_RULES } = ExtensionDNRLimits;
 
   const expectedDynamicRules = [];
   const unexpectedDynamicRules = [];
@@ -376,14 +389,14 @@ add_task(async function test_stored_dynamic_rules_exceeding_limits() {
   });
 
   await callTestMessageHandler(extension, "assertGetDynamicRulesCount", {
-    expectedRulesCount: expectedDynamicRules.length,
+    expectedRulesCount: 0,
   });
 
   AddonTestUtils.checkMessages(messages, {
     expected: [
       {
         message: new RegExp(
-          `Ignoring dynamic rules exceeding rule count limits while loading DNR store data for ${extension.id}`
+          `Ignoring dynamic ruleset in extension "${extension.id}" because: Number of rules in ruleset "_dynamic" exceeds MAX_NUMBER_OF_DYNAMIC_AND_SESSION_RULES`
         ),
       },
     ],
@@ -567,13 +580,34 @@ add_task(async function test_save_and_load_dynamic_rules() {
   info("Verify dynamic rules loaded back as expected on AOM restart");
   dnrStore._data.delete(extUUID);
   dnrStore._dataPromises.delete(extUUID);
+
+  // NOTE: promiseRestartManager will not be enough to make sure the
+  // DNR store data for the test extension is going to be loaded from
+  // the DNR startup cache file.
+  // See test_ext_dnr_startup_cache.js for a test case that more completely
+  // simulates ExtensionDNRStore initialization on browser restart.
   await promiseRestartManager();
+
   await extension.awaitStartup();
   await extension.awaitMessage("bgpage:ready");
 
   await callTestMessageHandler(extension, "assertGetDynamicRules", {
     expectedRules: getSchemaNormalizedRules(extension, rules),
   });
+
+  // Verify the dynamic rules are converted back into Rule class instances
+  // as expected when loaded back from the DNR store file
+  Assert.ok(
+    !!dnrStore._data.get(extUUID).dynamicRuleset.length,
+    "Expected dynamic rules to have been loaded back from the DNR store file"
+  );
+  Assert.deepEqual(
+    dnrStore._data
+      .get(extUUID)
+      .dynamicRuleset.filter(rule => rule.constructor.name !== "Rule"),
+    [],
+    "Expect dynamic rules loaded back from the DNR store file to be converted to Rule class instances"
+  );
 
   Assert.deepEqual(
     dnrStore._data.get(extUUID).dynamicRuleset,
@@ -700,13 +734,20 @@ add_task(async function test_save_and_load_dynamic_rules() {
   });
   await extension.awaitMessage("bgpage:ready");
 
-  await callTestMessageHandler(extension, "assertGetDynamicRules", {
-    expectedRules: getSchemaNormalizedRules(extension, updatedRules),
-  });
-
-  let ruleManager = ExtensionDNR.getRuleManager(
-    extension.extension,
-    /* createIfMissing= */ false
+  // NOTE: To make sure that the test extension rule manager is removed
+  // on the extension shutdown also when the declarativeNetRequest
+  // ExtensionAPI class instance has not been created at all, this part
+  // on the test is purposely not calling any declarativeNetRequest API method
+  // not calling ExtensionDNR.ensureInitialized, instead we wait for the
+  // RuleManager instance to be created and then we disable the
+  // test extension and assert that the RuleManager has been cleared.
+  let ruleManager = await TestUtils.waitForCondition(
+    () =>
+      ExtensionDNR.getRuleManager(
+        extension.extension,
+        /* createIfMissing= */ false
+      ),
+    "Wait for the test extension RuleManager to have neem created"
   );
   Assert.ok(ruleManager, "Rule manager exists before unload");
   Assert.deepEqual(
@@ -725,6 +766,9 @@ add_task(async function test_save_and_load_dynamic_rules() {
 
   await extension.addon.enable();
   await extension.awaitMessage("bgpage:ready");
+  await callTestMessageHandler(extension, "assertGetDynamicRules", {
+    expectedRules: getSchemaNormalizedRules(extension, updatedRules),
+  });
 
   info("Verify dynamic rules updates after corrupted storage");
 
@@ -733,9 +777,16 @@ add_task(async function test_save_and_load_dynamic_rules() {
     asyncWriteStoreFile,
     expectedCorruptFile,
   }) {
-    info(`Tempering DNR store data: ${name}`);
+    info(`Tampering DNR store data: ${name}`);
 
     await extension.addon.disable();
+    Assert.ok(
+      !ExtensionDNR.getRuleManager(
+        extension.extension,
+        /* createIfMissing= */ false
+      ),
+      "Rule manager erased after unload"
+    );
 
     ok(
       !dnrStore._dataPromises.has(extUUID),
@@ -867,4 +918,329 @@ add_task(async function test_tabId_conditions_invalid_in_dynamic_rules() {
       browser.test.notifyPass();
     },
   });
+});
+
+add_task(async function test_dynamic_rules_telemetry() {
+  resetTelemetryData();
+
+  let { extension } = await runAsDNRExtension({
+    unloadTestAtEnd: false,
+    awaitFinish: false,
+    id: "test-dynamic-rules-telemetry@test-extension",
+    background: () => {
+      const dnr = browser.declarativeNetRequest;
+
+      browser.test.onMessage.addListener(async (msg, ...args) => {
+        switch (msg) {
+          case "getDynamicRules": {
+            browser.test.sendMessage(
+              `${msg}:done`,
+              await dnr.getDynamicRules()
+            );
+            break;
+          }
+          case "updateDynamicRules": {
+            const { addRules, removeRuleIds } = args[0];
+            await dnr.updateDynamicRules({
+              addRules,
+              removeRuleIds,
+            });
+            browser.test.sendMessage(
+              `${msg}:done`,
+              await dnr.getDynamicRules()
+            );
+            break;
+          }
+          default: {
+            browser.test.fail(`Unexpected test message: ${msg}`);
+            browser.test.sendMessage(`${msg}:done`);
+            break;
+          }
+        }
+      });
+      browser.test.sendMessage("bgpage:ready");
+    },
+  });
+
+  await extension.awaitMessage("bgpage:ready");
+
+  extension.sendMessage("getDynamicRules");
+  Assert.deepEqual(
+    await extension.awaitMessage("getDynamicRules:done"),
+    [],
+    "Expect no dynamic DNR rules"
+  );
+
+  assertDNRTelemetryMetricsNoSamples(
+    [
+      {
+        metric: "validateRulesTime",
+        mirroredName: "WEBEXT_DNR_VALIDATE_RULES_MS",
+        mirroredType: "histogram",
+      },
+    ],
+    "before test extension have been loaded"
+  );
+
+  const dynamicRules = [
+    getDNRRule({
+      id: 1,
+      action: { type: "block" },
+      condition: {
+        resourceTypes: ["xmlhttprequest"],
+        requestDomains: ["example.com"],
+      },
+    }),
+    getDNRRule({
+      id: 2,
+      action: { type: "block" },
+      condition: {
+        resourceTypes: ["xmlhttprequest"],
+        requestDomains: ["example.org"],
+      },
+    }),
+  ];
+
+  await extension.sendMessage("updateDynamicRules", {
+    addRules: dynamicRules,
+  });
+
+  Assert.deepEqual(
+    await extension.awaitMessage("updateDynamicRules:done"),
+    getSchemaNormalizedRules(extension, dynamicRules),
+    "Expect new dynamic DNR rules to have been added"
+  );
+
+  assertDNRTelemetryMetricsNoSamples(
+    [
+      {
+        metric: "validateRulesTime",
+        mirroredName: "WEBEXT_DNR_VALIDATE_RULES_MS",
+        mirroredType: "histogram",
+      },
+    ],
+    "no additional rule validation expected for dynamic rules pre-validated on a updateDynamicRules API call"
+  );
+
+  extension.sendMessage("updateDynamicRules", {
+    removeRuleIds: [dynamicRules[1].id],
+  });
+
+  Assert.deepEqual(
+    await extension.awaitMessage("updateDynamicRules:done"),
+    getSchemaNormalizedRules(extension, [dynamicRules[0]]),
+    `Expect dynamic DNR rule with id ${dynamicRules[1].id} to have been removed`
+  );
+
+  assertDNRTelemetryMetricsNoSamples(
+    [
+      {
+        metric: "validateRulesTime",
+        mirroredName: "WEBEXT_DNR_VALIDATE_RULES_MS",
+        mirroredType: "histogram",
+      },
+    ],
+    "no additional rule validation expected for dynamic rules removed by a updateDynamicRules API call"
+  );
+
+  info("Disabling test extension");
+  await extension.addon.disable();
+
+  assertDNRTelemetryMetricsNoSamples(
+    [
+      {
+        metric: "validateRulesTime",
+        mirroredName: "WEBEXT_DNR_VALIDATE_RULES_MS",
+        mirroredType: "histogram",
+      },
+    ],
+    "no rule validation hit after disabling the extension"
+  );
+
+  info("Re-enabling test extension");
+  await extension.addon.enable();
+  await extension.awaitMessage("bgpage:ready");
+  info(
+    "Wait for DNR initialization completed for the re-enabled permanently installed extension"
+  );
+  await ExtensionDNR.ensureInitialized(extension.extension);
+
+  assertDNRTelemetryMetricsSamplesCount(
+    [
+      {
+        metric: "validateRulesTime",
+        mirroredName: "WEBEXT_DNR_VALIDATE_RULES_MS",
+        mirroredType: "histogram",
+        expectedSamplesCount: 1,
+      },
+    ],
+    "expected rule validation to be hit on re-loading dynamic rules from DNR store file"
+  );
+  assertDNRTelemetryMetricsNoSamples(
+    [
+      // Expected no startup cache file to be loaded or used on re-enabling a disabled extension.
+      {
+        metric: "startupCacheReadSize",
+        mirroredName: "WEBEXT_DNR_STARTUPCACHE_READ_BYTES",
+        mirroredType: "histogram",
+      },
+      {
+        metric: "startupCacheReadTime",
+        mirroredName: "WEBEXT_DNR_STARTUPCACHE_READ_MS",
+        mirroredType: "histogram",
+      },
+    ],
+    "on loading dnr rules for newly installed extension"
+  );
+
+  info("Verify evaluateRulesCountMax telemetry probe");
+
+  assertDNRTelemetryMetricsNoSamples(
+    [
+      {
+        metric: "evaluateRulesTime",
+        mirroredName: "WEBEXT_DNR_EVALUATE_RULES_MS",
+        mirroredType: "histogram",
+      },
+      {
+        metric: "evaluateRulesCountMax",
+        mirroredName: "extensions.apis.dnr.evaluate_rules_count_max",
+        mirroredType: "scalar",
+      },
+    ],
+    "before any request have been intercepted"
+  );
+
+  Assert.equal(
+    await fetch("http://example.com/").then(res => res.text()),
+    "response from server",
+    "DNR should not block system requests"
+  );
+
+  assertDNRTelemetryMetricsNoSamples(
+    [
+      {
+        metric: "evaluateRulesTime",
+        mirroredName: "WEBEXT_DNR_EVALUATE_RULES_MS",
+        mirroredType: "histogram",
+      },
+      {
+        metric: "evaluateRulesCountMax",
+        mirroredName: "extensions.apis.dnr.evaluate_rules_count_max",
+        mirroredType: "scalar",
+      },
+    ],
+    "after restricted request have been intercepted (but no rules evaluated)"
+  );
+
+  const page = await ExtensionTestUtils.loadContentPage("http://example.com");
+  const callPageFetch = async () => {
+    Assert.equal(
+      await page.spawn([], () => {
+        return this.content.fetch("http://example.com/").then(
+          res => res.text(),
+          err => err.message
+        );
+      }),
+      "NetworkError when attempting to fetch resource.",
+      "DNR should have blocked test request to example.com"
+    );
+  };
+
+  // Expect one sample recorded on evaluating rules for the
+  // top level navigation.
+  let expectedEvaluateRulesTimeSamples = 1;
+  assertDNRTelemetryMetricsSamplesCount(
+    [
+      {
+        metric: "evaluateRulesTime",
+        mirroredName: "WEBEXT_DNR_EVALUATE_RULES_MS",
+        mirroredType: "histogram",
+        expectedSamplesCount: expectedEvaluateRulesTimeSamples,
+      },
+    ],
+    "evaluateRulesTime should be collected after evaluated rulesets"
+  );
+  // Expect same number of rules currently included in the dynamic ruleset.
+  let expectedEvaluateRulesCountMax = 1;
+  assertDNRTelemetryMetricsGetValueEq(
+    [
+      {
+        metric: "evaluateRulesCountMax",
+        mirroredName: "extensions.apis.dnr.evaluate_rules_count_max",
+        mirroredType: "scalar",
+        expectedGetValue: expectedEvaluateRulesCountMax,
+      },
+    ],
+    "evaluateRulesCountMax should be collected after evaluated dynamic rulesets"
+  );
+
+  extension.sendMessage("updateDynamicRules", {
+    addRules: [dynamicRules[1]],
+  });
+
+  Assert.deepEqual(
+    await extension.awaitMessage("updateDynamicRules:done"),
+    getSchemaNormalizedRules(extension, dynamicRules),
+    `Expect second dynamic DNR rules to have been added`
+  );
+
+  await callPageFetch();
+
+  // Expect one new sample reported on evaluating rules for the
+  // first fetch request originated from the test page.
+  expectedEvaluateRulesTimeSamples += 1;
+  assertDNRTelemetryMetricsSamplesCount(
+    [
+      {
+        metric: "evaluateRulesTime",
+        mirroredName: "WEBEXT_DNR_EVALUATE_RULES_MS",
+        mirroredType: "histogram",
+        expectedSamplesCount: expectedEvaluateRulesTimeSamples,
+      },
+    ],
+    "evaluateRulesTime should be collected after evaluated rulesets"
+  );
+
+  // Expect new number of rules currently included in the dynamic ruleset.
+  expectedEvaluateRulesCountMax = dynamicRules.length;
+  assertDNRTelemetryMetricsGetValueEq(
+    [
+      {
+        metric: "evaluateRulesCountMax",
+        mirroredName: "extensions.apis.dnr.evaluate_rules_count_max",
+        mirroredType: "scalar",
+        expectedGetValue: expectedEvaluateRulesCountMax,
+      },
+    ],
+    "evaluateRulesCountMax should be increased after evaluated two dynamic rules"
+  );
+
+  extension.sendMessage("updateDynamicRules", {
+    removeRuleIds: [dynamicRules[1].id],
+  });
+
+  await callPageFetch();
+
+  Assert.deepEqual(
+    await extension.awaitMessage("updateDynamicRules:done"),
+    getSchemaNormalizedRules(extension, [dynamicRules[0]]),
+    `Expect only first dynamic DNR rule to have be available`
+  );
+
+  assertDNRTelemetryMetricsGetValueEq(
+    [
+      {
+        metric: "evaluateRulesCountMax",
+        mirroredName: "extensions.apis.dnr.evaluate_rules_count_max",
+        mirroredType: "scalar",
+        expectedGetValue: expectedEvaluateRulesCountMax,
+      },
+    ],
+    "evaluateRulesCountMax should NOT be decreased after removing one dynamic rules"
+  );
+
+  await page.close();
+
+  await extension.unload();
 });

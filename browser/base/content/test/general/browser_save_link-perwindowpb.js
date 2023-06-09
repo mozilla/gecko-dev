@@ -15,7 +15,7 @@ function triggerSave(aWindow, aCallback) {
   // This page sets a cookie if and only if a cookie does not exist yet
   let testURI =
     "http://mochi.test:8888/browser/browser/base/content/test/general/bug792517-2.html";
-  BrowserTestUtils.loadURI(testBrowser, testURI);
+  BrowserTestUtils.loadURIString(testBrowser, testURI);
   BrowserTestUtils.browserLoaded(testBrowser, false, testURI).then(() => {
     waitForFocus(function() {
       info("register to handle popupshown");
@@ -197,7 +197,6 @@ function test() {
   });
 }
 
-/* import-globals-from ../../../../../toolkit/content/tests/browser/common/mockTransfer.js */
 Services.scriptloader.loadSubScript(
   "chrome://mochitests/content/browser/toolkit/content/tests/browser/common/mockTransfer.js",
   this

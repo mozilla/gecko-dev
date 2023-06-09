@@ -10,6 +10,7 @@
 #include "mozilla/ipc/Endpoint.h"
 #include "mozilla/layers/TextureHost.h"
 #include "mozilla/layers/VideoBridgeUtils.h"
+#include "mozilla/webrender/RenderThread.h"
 
 namespace mozilla {
 namespace layers {
@@ -23,11 +24,11 @@ using VideoBridgeTable =
 
 static StaticDataMutex<VideoBridgeTable> sVideoBridgeFromProcess(
     "VideoBridges");
+static Atomic<bool> sVideoBridgeParentShutDown(false);
 
 VideoBridgeParent::VideoBridgeParent(VideoBridgeSource aSource)
     : mCompositorThreadHolder(CompositorThreadHolder::GetSingleton()),
       mClosed(false) {
-  mSelfRef = this;
   auto videoBridgeFromProcess = sVideoBridgeFromProcess.Lock();
   switch (aSource) {
     case VideoBridgeSource::RddProcess:
@@ -90,12 +91,23 @@ TextureHost* VideoBridgeParent::LookupTexture(uint64_t aSerial) {
 }
 
 void VideoBridgeParent::ActorDestroy(ActorDestroyReason aWhy) {
+  bool shutdown = sVideoBridgeParentShutDown;
+
+  if (!shutdown && aWhy == AbnormalShutdown) {
+    gfxCriticalNote
+        << "VideoBridgeParent receives IPC close with reason=AbnormalShutdown";
+  }
   // Can't alloc/dealloc shmems from now on.
   mClosed = true;
+
+  mCompositorThreadHolder = nullptr;
+  ReleaseCompositorThread();
 }
 
 /* static */
 void VideoBridgeParent::Shutdown() {
+  sVideoBridgeParentShutDown = true;
+
   auto videoBridgeFromProcess = sVideoBridgeFromProcess.Lock();
   for (auto& bridgeParent : *videoBridgeFromProcess) {
     if (bridgeParent) {
@@ -104,14 +116,31 @@ void VideoBridgeParent::Shutdown() {
   }
 }
 
-void VideoBridgeParent::ReleaseCompositorThread() {
-  mCompositorThreadHolder = nullptr;
+/* static */
+void VideoBridgeParent::UnregisterExternalImages() {
+  MOZ_ASSERT(sVideoBridgeParentShutDown);
+
+  auto videoBridgeFromProcess = sVideoBridgeFromProcess.Lock();
+  for (auto& bridgeParent : *videoBridgeFromProcess) {
+    if (bridgeParent) {
+      bridgeParent->DoUnregisterExternalImages();
+    }
+  }
 }
 
-void VideoBridgeParent::ActorDealloc() {
+void VideoBridgeParent::DoUnregisterExternalImages() {
+  const ManagedContainer<PTextureParent>& textures = ManagedPTextureParent();
+  for (const auto& key : textures) {
+    RefPtr<TextureHost> texture = TextureHost::AsTextureHost(key);
+
+    if (texture) {
+      texture->MaybeDestroyRenderTexture();
+    }
+  }
+}
+
+void VideoBridgeParent::ReleaseCompositorThread() {
   mCompositorThreadHolder = nullptr;
-  ReleaseCompositorThread();
-  mSelfRef = nullptr;
 }
 
 PTextureParent* VideoBridgeParent::AllocPTextureParent(
@@ -167,6 +196,28 @@ bool VideoBridgeParent::IsSameProcess() const {
 
 void VideoBridgeParent::NotifyNotUsed(PTextureParent* aTexture,
                                       uint64_t aTransactionId) {}
+
+void VideoBridgeParent::OnChannelError() {
+  bool shutdown = sVideoBridgeParentShutDown;
+  if (!shutdown) {
+    // Destory RenderBufferTextureHosts. Shmems of ShmemTextureHosts are going
+    // to be destroyed
+    std::vector<wr::ExternalImageId> ids;
+    auto& ptextures = ManagedPTextureParent();
+    for (const auto& ptexture : ptextures) {
+      RefPtr<TextureHost> texture = TextureHost::AsTextureHost(ptexture);
+      if (texture && texture->AsShmemTextureHost() &&
+          texture->GetMaybeExternalImageId().isSome()) {
+        ids.emplace_back(texture->GetMaybeExternalImageId().ref());
+      }
+    }
+    if (!ids.empty()) {
+      wr::RenderThread::Get()->DestroyExternalImagesSyncWait(std::move(ids));
+    }
+  }
+
+  PVideoBridgeParent::OnChannelError();
+}
 
 }  // namespace layers
 }  // namespace mozilla

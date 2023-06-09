@@ -1,7 +1,7 @@
-#[cfg(any(feature = "dx11", feature = "dx12"))]
+#[cfg(all(any(feature = "dx11", feature = "dx12"), windows))]
 pub(super) mod dxgi;
 
-#[cfg(feature = "renderdoc")]
+#[cfg(all(not(target_arch = "wasm32"), feature = "renderdoc"))]
 pub(super) mod renderdoc;
 
 pub mod db {
@@ -51,17 +51,6 @@ pub fn map_naga_stage(stage: naga::ShaderStage) -> wgt::ShaderStages {
         naga::ShaderStage::Vertex => wgt::ShaderStages::VERTEX,
         naga::ShaderStage::Fragment => wgt::ShaderStages::FRAGMENT,
         naga::ShaderStage::Compute => wgt::ShaderStages::COMPUTE,
-    }
-}
-
-pub fn align_to(value: u32, alignment: u32) -> u32 {
-    if alignment.is_power_of_two() {
-        (value + alignment - 1) & !(alignment - 1)
-    } else {
-        match value % alignment {
-            0 => value,
-            other => value - other + alignment,
-        }
     }
 }
 

@@ -26,16 +26,14 @@ fn uuid_is_generated_and_stored() {
     let snapshot = glean.snapshot("core", false);
     assert!(
         snapshot.contains(r#""local.uuid": ""#),
-        "Snapshot 1: {}",
-        snapshot
+        "Snapshot 1: {snapshot}"
     );
 
     uuid.generate_and_set_sync(&glean);
     let snapshot = glean.snapshot("core", false);
     assert!(
         snapshot.contains(r#""local.uuid": ""#),
-        "Snapshot 2: {}",
-        snapshot
+        "Snapshot 2: {snapshot}"
     );
 }
 
@@ -74,7 +72,7 @@ fn uuid_serializer_should_correctly_serialize_uuids() {
     // Make a new Glean instance here, which should force reloading of the data from disk
     // so we can ensure it persisted, because it has User lifetime
     {
-        let (glean, _) = new_glean(Some(tempdir));
+        let (glean, _t) = new_glean(Some(tempdir));
         let snapshot = StorageManager
             .snapshot_as_json(glean.storage(), "store1", true)
             .unwrap();

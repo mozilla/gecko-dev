@@ -21,12 +21,13 @@
 // Reads 'size' bytes from 'file' into 'buf' with some fault tolerance.
 // Returns true on success.
 static int file_read(void *buf, size_t size, FILE *file) {
-  const int kMaxRetries = 5;
-  int retry_count = 0;
-  int file_error;
+  const int kMaxTries = 5;
+  int try_count = 0;
+  int file_error = 0;
   size_t len = 0;
-  do {
+  while (!feof(file) && len < size && try_count < kMaxTries) {
     const size_t n = fread((uint8_t *)buf + len, 1, size - len, file);
+    ++try_count;
     len += n;
     file_error = ferror(file);
     if (file_error) {
@@ -39,13 +40,13 @@ static int file_read(void *buf, size_t size, FILE *file) {
         return 0;
       }
     }
-  } while (!feof(file) && len < size && ++retry_count < kMaxRetries);
+  }
 
   if (!feof(file) && len != size) {
     fprintf(stderr,
             "Error reading file: %u of %u bytes read,"
-            " error: %d, retries: %d, %d: %s\n",
-            (uint32_t)len, (uint32_t)size, file_error, retry_count, errno,
+            " error: %d, tries: %d, %d: %s\n",
+            (uint32_t)len, (uint32_t)size, file_error, try_count, errno,
             strerror(errno));
   }
   return len == size;
@@ -1147,6 +1148,7 @@ int y4m_input_fetch_frame(y4m_input *_y4m, FILE *_fin, vpx_image_t *_img) {
   _img->fmt = _y4m->vpx_fmt;
   _img->w = _img->d_w = _y4m->pic_w;
   _img->h = _img->d_h = _y4m->pic_h;
+  _img->bit_depth = _y4m->bit_depth;
   _img->x_chroma_shift = _y4m->dst_c_dec_h >> 1;
   _img->y_chroma_shift = _y4m->dst_c_dec_v >> 1;
   _img->bps = _y4m->bps;

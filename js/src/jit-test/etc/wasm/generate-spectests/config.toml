@@ -27,6 +27,8 @@ excluded_tests = [
   "table.wast",
   # fails after a bottom-type has been added to validation
   "unreached-invalid.wast",
+  # argument is not wasm value
+  "^select.wast",
 ]
 
 [[repos]]
@@ -85,14 +87,14 @@ excluded_tests = [
   "ref_is_null.wast",
   # cannot expose indexed reference type
   "ref_null.wast",
-  # argument is not wasm value
-  "select.wast",
   # parameter subtyping
   "type-equivalence.wast",
   # NYI WasmValType.h:259
   "table-sub.wast",
   # unrelated
   "tokens.wast",
+  # irrelevant
+  "simd_lane.wast",
 ]
 
 [[repos]]
@@ -101,9 +103,12 @@ url = "https://github.com/WebAssembly/relaxed-simd"
 branch = "main"
 parent = "spec"
 directive = "; --wasm-relaxed-simd; skip-if: !wasmRelaxedSimdEnabled()"
-excluded_tests = [
-  # Changed order of operands
-  "relaxed_fma_fms.wast",
-  # Different results
-  "i32x4_relaxed_trunc.wast",
-]
+excluded_tests = []
+
+[[repos]]
+name = "extended-const"
+url = "https://github.com/WebAssembly/extended-const"
+branch = "main"
+parent = "spec"
+directive = "; --wasm-extended-const; skip-if: !wasmExtendedConstEnabled()"
+excluded_tests = []

@@ -10,15 +10,11 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/ISVGSVGFrame.h"
 #include "mozilla/SVGContainerFrame.h"
-#include "mozilla/UniquePtr.h"
-#include "nsRegion.h"
-#include "nsTHashSet.h"
 
 class gfxContext;
 
 namespace mozilla {
 class AutoSVGViewHandler;
-class SVGForeignObjectFrame;
 class SVGFragmentIdentifier;
 class PresShell;
 }  // namespace mozilla
@@ -48,13 +44,6 @@ class SVGOuterSVGFrame final : public SVGDisplayContainerFrame,
  public:
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS(SVGOuterSVGFrame)
-
-#ifdef DEBUG
-  ~SVGOuterSVGFrame() {
-    NS_ASSERTION(!mForeignObjectHash || mForeignObjectHash->Count() == 0,
-                 "foreignObject(s) still registered!");
-  }
-#endif
 
   // nsIFrame:
   nscoord GetMinISize(gfxContext* aRenderingContext) override;
@@ -125,25 +114,12 @@ class SVGOuterSVGFrame final : public SVGDisplayContainerFrame,
 
   // ISVGDisplayableFrame methods:
   void PaintSVG(gfxContext& aContext, const gfxMatrix& aTransform,
-                imgDrawingParams& aImgParams,
-                const nsIntRect* aDirtyRect = nullptr) override;
+                imgDrawingParams& aImgParams) override;
   SVGBBox GetBBoxContribution(const Matrix& aToBBoxUserspace,
                               uint32_t aFlags) override;
 
   // SVGContainerFrame methods:
   gfxMatrix GetCanvasTM() override;
-
-  /* Methods to allow descendant SVGForeignObjectFrame frames to register and
-   * unregister themselves with their nearest SVGOuterSVGFrame ancestor. This
-   * is temporary until display list based invalidation is impleented for SVG.
-   * Maintaining a list of our foreignObject descendants allows us to search
-   * them for areas that need to be invalidated, without having to also search
-   * the SVG frame tree for foreignObjects. This is important so that bug 539356
-   * does not slow down SVG in general (only foreignObjects, until bug 614732 is
-   * fixed).
-   */
-  void RegisterForeignObject(SVGForeignObjectFrame* aFrame);
-  void UnregisterForeignObject(SVGForeignObjectFrame* aFrame);
 
   bool HasChildrenOnlyTransform(Matrix* aTransform) const override {
     // Our anonymous wrapper child must claim our children-only transforms as
@@ -161,52 +137,23 @@ class SVGOuterSVGFrame final : public SVGDisplayContainerFrame,
 
   bool IsCallingReflowSVG() const { return mCallingReflowSVG; }
 
-  void InvalidateSVG(const nsRegion& aRegion) {
-    if (!aRegion.IsEmpty()) {
-      mInvalidRegion.Or(mInvalidRegion, aRegion);
-      InvalidateFrame();
-    }
-  }
-
-  void ClearInvalidRegion() { mInvalidRegion.SetEmpty(); }
-
-  const nsRegion& GetInvalidRegion() {
-    nsRect rect;
-    if (!IsInvalid(rect)) {
-      mInvalidRegion.SetEmpty();
-    }
-    return mInvalidRegion;
-  }
-
-  nsRegion FindInvalidatedForeignObjectFrameChildren(nsIFrame* aFrame);
-
  protected:
-  bool mCallingReflowSVG;
-
   /* Returns true if our content is the document element and our document is
    * being used as an image.
    */
   bool IsRootOfImage();
+  float ComputeFullZoom() const;
 
   void MaybeSendIntrinsicSizeAndRatioToEmbedder();
   void MaybeSendIntrinsicSizeAndRatioToEmbedder(Maybe<IntrinsicSize>,
                                                 Maybe<AspectRatio>);
 
-  // This is temporary until display list based invalidation is implemented for
-  // SVG.
-  // A hash-set containing our SVGForeignObjectFrame descendants. Note we use
-  // a hash-set to avoid the O(N^2) behavior we'd get tearing down an SVG frame
-  // subtree if we were to use a list (see bug 381285 comment 20).
-  UniquePtr<nsTHashSet<SVGForeignObjectFrame*>> mForeignObjectHash;
+  float mFullZoom = 1.0f;
 
-  nsRegion mInvalidRegion;
-
-  float mFullZoom;
-
-  bool mViewportInitialized;
-  bool mIsRootContent;
-  bool mIsInObjectOrEmbed;
-  bool mIsInIframe;
+  bool mCallingReflowSVG = false;
+  bool mIsRootContent = false;
+  bool mIsInObjectOrEmbed = false;
+  bool mIsInIframe = false;
 };
 
 ////////////////////////////////////////////////////////////////////////

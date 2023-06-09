@@ -16,6 +16,8 @@
 #include "nsIURI.h"
 #include "nsIWidget.h"
 #include "nsIFile.h"
+#include "nsIStringBundle.h"
+#include "mozilla/Components.h"
 #include "mozilla/Preferences.h"
 
 #include "nsArrayEnumerator.h"
@@ -48,7 +50,7 @@ nsIFile* nsFilePicker::mPrevDisplayDirectory = nullptr;
 
 void nsFilePicker::Shutdown() { NS_IF_RELEASE(mPrevDisplayDirectory); }
 
-static GtkFileChooserAction GetGtkFileChooserAction(int16_t aMode) {
+static GtkFileChooserAction GetGtkFileChooserAction(nsIFilePicker::Mode aMode) {
   GtkFileChooserAction action;
 
   switch (aMode) {
@@ -331,7 +333,7 @@ nsFilePicker::GetFiles(nsISimpleEnumerator** aFiles) {
   return NS_ERROR_FAILURE;
 }
 
-nsresult nsFilePicker::Show(int16_t* aReturn) {
+nsresult nsFilePicker::Show(nsIFilePicker::ResultCode* aReturn) {
   NS_ENSURE_ARG_POINTER(aReturn);
 
   nsresult rv = Open(nullptr);
@@ -396,6 +398,10 @@ nsFilePicker::Open(nsIFilePickerShownCallback* aCallback) {
     case nsIFilePicker::modeSave:
       gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(file_chooser),
                                         defaultName.get());
+      break;
+
+    default:
+      /* no additional setup needed */
       break;
   }
 
@@ -511,10 +517,54 @@ void nsFilePicker::OnDestroy(GtkWidget* file_chooser, gpointer user_data) {
                                               GTK_RESPONSE_CANCEL);
 }
 
+bool nsFilePicker::WarnForNonReadableFile(void* file_chooser) {
+  nsCOMPtr<nsIFile> file;
+  GetFile(getter_AddRefs(file));
+  if (!file) {
+    return false;
+  }
+
+  bool isReadable = false;
+  file->IsReadable(&isReadable);
+  if (isReadable) {
+    return false;
+  }
+
+  nsCOMPtr<nsIStringBundleService> stringService =
+      mozilla::components::StringBundle::Service();
+  if (!stringService) {
+    return false;
+  }
+
+  nsCOMPtr<nsIStringBundle> filepickerBundle;
+  nsresult rv = stringService->CreateBundle(
+      "chrome://global/locale/filepicker.properties",
+      getter_AddRefs(filepickerBundle));
+  if (NS_FAILED(rv)) {
+    return false;
+  }
+
+  nsAutoString errorMessage;
+  rv = filepickerBundle->GetStringFromName("selectedFileNotReadableError",
+                                           errorMessage);
+  if (NS_FAILED(rv)) {
+    return false;
+  }
+
+  GtkDialogFlags flags = GTK_DIALOG_DESTROY_WITH_PARENT;
+  auto* cancel_dialog = gtk_message_dialog_new(
+      GTK_WINDOW(file_chooser), flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE,
+      "%s", NS_ConvertUTF16toUTF8(errorMessage).get());
+  gtk_dialog_run(GTK_DIALOG(cancel_dialog));
+  gtk_widget_destroy(cancel_dialog);
+
+  return true;
+}
+
 void nsFilePicker::Done(void* file_chooser, gint response) {
   mRunning = false;
 
-  int16_t result;
+  nsIFilePicker::ResultCode result;
   switch (response) {
     case GTK_RESPONSE_OK:
     case GTK_RESPONSE_ACCEPT:
@@ -527,6 +577,10 @@ void nsFilePicker::Done(void* file_chooser, gint response) {
           bool exists = false;
           file->Exists(&exists);
           if (exists) result = nsIFilePicker::returnReplace;
+        }
+      } else if (mMode == nsIFilePicker::modeOpen) {
+        if (WarnForNonReadableFile(file_chooser)) {
+          result = nsIFilePicker::returnCancel;
         }
       }
       break;

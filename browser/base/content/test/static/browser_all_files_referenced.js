@@ -52,7 +52,7 @@ var gExceptionPaths = [
   "resource://gre/modules/services-automation/",
   "resource://services-automation/ServicesAutomation.jsm",
 
-  // Paths from this folder are constructed in NetErrorParent.jsm based on
+  // Paths from this folder are constructed in NetErrorParent.sys.mjs based on
   // the type of cert or net error the user is encountering.
   "chrome://global/content/neterror/supportpages/",
 
@@ -71,6 +71,12 @@ var gExceptionPaths = [
 
   // Localization file added programatically in featureCallout.jsm
   "resource://app/localization/en-US/browser/featureCallout.ftl",
+
+  // Will be removed in bug 1737308
+  "resource://gre/modules/lz4.js",
+  "resource://gre/modules/lz4_internal.js",
+  "resource://gre/modules/osfile.jsm",
+  "resource://gre/modules/osfile/",
 ];
 
 // These are not part of the omni.ja file, so we find them only when running
@@ -123,6 +129,12 @@ var whitelist = [
     platforms: ["linux", "macosx"],
   },
 
+  // This file is referenced by the build system to generate the
+  // Firefox .desktop entry. See bug 1824327 (and perhaps bug 1526672)
+  {
+    file: "resource://app/localization/en-US/browser/linuxDesktopEntry.ftl",
+  },
+
   // toolkit/content/aboutRights-unbranded.xhtml doesn't use aboutRights.css
   { file: "chrome://global/skin/aboutRights.css", skipUnofficial: true },
 
@@ -136,7 +148,7 @@ var whitelist = [
   { file: "chrome://global/content/third_party/d3/d3.js" },
 
   // SpiderMonkey parser API, currently unused in browser/ and toolkit/
-  { file: "resource://gre/modules/reflect.jsm" },
+  { file: "resource://gre/modules/reflect.sys.mjs" },
 
   // extensions/pref/autoconfig/src/nsReadConfig.cpp
   { file: "resource://gre/defaults/autoconfig/prefcalls.js" },
@@ -291,9 +303,20 @@ var whitelist = [
   // References to esm generated from jsm programmatically
   { file: "resource://gre/modules/LangPackMatcher.sys.mjs" },
 
-  // FIXME: Bug 1770447 - The moz-support-link component isn't in use yet.
-  // This entry will be removed as part of Bug 1804695 or Bug 1804695.
-  { file: "chrome://global/content/elements/moz-support-link.mjs" },
+  // Referenced by screenshots extension
+  { file: "chrome://browser/content/screenshots/cancel.svg" },
+  { file: "chrome://browser/content/screenshots/copy.svg" },
+  { file: "chrome://browser/content/screenshots/download.svg" },
+  { file: "chrome://browser/content/screenshots/download-white.svg" },
+
+  // Bug 1824826 - Implement a view of history in Firefox View
+  { file: "resource://gre/modules/PlacesQuery.sys.mjs" },
+
+  // Should be removed in bug 1824826 when moz-tab-list is used in Firefox View
+  { file: "resource://app/localization/en-US/browser/mozTabList.ftl" },
+  { file: "chrome://browser/content/moz-tab-list.css" },
+  { file: "chrome://browser/content/moz-tab-list.mjs" },
+  { file: "chrome://browser/content/moz-tab-row.css" },
 ];
 
 if (AppConstants.NIGHTLY_BUILD && AppConstants.platform != "win") {
@@ -348,16 +371,16 @@ for (let entry of ignorableWhitelist) {
 }
 
 if (!isDevtools) {
-  // services/sync/modules/service.js
+  // services/sync/modules/service.sys.mjs
   for (let module of [
-    "addons.js",
-    "bookmarks.js",
-    "forms.js",
-    "history.js",
-    "passwords.js",
-    "prefs.js",
-    "tabs.js",
-    "extension-storage.js",
+    "addons.sys.mjs",
+    "bookmarks.sys.mjs",
+    "forms.sys.mjs",
+    "history.sys.mjs",
+    "passwords.sys.mjs",
+    "prefs.sys.mjs",
+    "tabs.sys.mjs",
+    "extension-storage.sys.mjs",
   ]) {
     whitelist.add("resource://services-sync/engines/" + module);
   }
@@ -369,7 +392,9 @@ if (!isDevtools) {
 }
 
 if (AppConstants.MOZ_CODE_COVERAGE) {
-  whitelist.add("chrome://remote/content/marionette/PerTestCoverageUtils.jsm");
+  whitelist.add(
+    "chrome://remote/content/marionette/PerTestCoverageUtils.sys.mjs"
+  );
 }
 
 const gInterestingCategories = new Set([
@@ -411,7 +436,7 @@ trackResourcePrefix("gre");
 trackResourcePrefix("app");
 
 function getBaseUriForChromeUri(chromeUri) {
-  let chromeFile = chromeUri + "gobbledygooknonexistentfile.reallynothere";
+  let chromeFile = chromeUri + "nonexistentfile.reallynothere";
   let uri = Services.io.newURI(chromeFile);
   let fileUri = gChromeReg.convertChromeURL(uri);
   return fileUri.resolve(".");

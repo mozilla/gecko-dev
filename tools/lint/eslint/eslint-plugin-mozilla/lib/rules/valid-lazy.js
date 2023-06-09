@@ -27,6 +27,7 @@ const callExpressionDefinitions = [
   /^XPCOMUtils\.defineLazyGetter\(lazy, "(\w+)"/,
   /^Integration\.downloads\.defineESModuleGetter\(lazy, "(\w+)"/,
   /^XPCOMUtils\.defineLazyModuleGetter\(lazy, "(\w+)"/,
+  /^ChromeUtils\.defineLazyGetter\(lazy, "(\w+)"/,
   /^ChromeUtils\.defineModuleGetter\(lazy, "(\w+)"/,
   /^XPCOMUtils\.defineLazyPreferenceGetter\(lazy, "(\w+)"/,
   /^XPCOMUtils\.defineLazyProxy\(lazy, "(\w+)"/,
@@ -61,6 +62,7 @@ module.exports = {
       topLevelAndUnconditional:
         "Lazy property {{name}} is used at top-level unconditionally. It should be non-lazy.",
     },
+    schema: [],
     type: "problem",
   },
 

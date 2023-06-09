@@ -226,9 +226,13 @@ RuleEditor.prototype = {
           if (ancestorData.type == "supports") {
             return `@supports ${ancestorData.conditionText}`;
           }
-          // We shouldn't get here as `type` can only be set to "container", "layer", "media"
-          // or "supports" (see devtools/server/actors/style-rule form()),
-          // but just in case, let's return an empty string.
+
+          if (ancestorData.type == "import") {
+            return `@import ${ancestorData.value}`;
+          }
+
+          // We shouldn't get here as `type` should only match to what can be set in
+          // the StyleRuleActor form, but just in case, let's return an empty string.
           console.warn("Unknown ancestor data type:", ancestorData.type);
           return ``;
         }
@@ -372,7 +376,7 @@ RuleEditor.prototype = {
 
     const { inspector } = this.ruleView;
     if (Tools.styleEditor.isToolSupported(inspector.toolbox)) {
-      inspector.toolbox.viewSourceInStyleEditorByFront(
+      inspector.toolbox.viewSourceInStyleEditorByResource(
         this.rule.sheet,
         this.rule.ruleLine,
         this.rule.ruleColumn
@@ -448,7 +452,7 @@ RuleEditor.prototype = {
         this._unsubscribeSourceMap();
       }
       this._unsubscribeSourceMap = this.sourceMapURLService.subscribeByID(
-        this.rule.sheet.resourceId || this.rule.sheet.actorID,
+        this.rule.sheet.resourceId,
         this.rule.ruleLine,
         this.rule.ruleColumn,
         this._updateLocation

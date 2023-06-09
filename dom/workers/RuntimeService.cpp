@@ -85,6 +85,13 @@
 
 #define WORKERS_SHUTDOWN_TOPIC "web-workers-shutdown"
 
+static mozilla::LazyLogModule gWorkerShutdownDumpLog("WorkerShutdownDump");
+
+#ifdef SHUTDOWN_LOG
+#  undef SHUTDOWN_LOG
+#endif
+#define SHUTDOWN_LOG(msg) MOZ_LOG(gWorkerShutdownDumpLog, LogLevel::Debug, msg);
+
 namespace mozilla {
 
 using namespace ipc;
@@ -362,7 +369,6 @@ void LoadJSGCMemoryOptions(const char* aPrefName, void* /* aClosure */) {
       PREF("gc_min_empty_chunk_count", JSGC_MIN_EMPTY_CHUNK_COUNT),
       PREF("gc_max_empty_chunk_count", JSGC_MAX_EMPTY_CHUNK_COUNT),
       PREF("gc_compacting", JSGC_COMPACTING_ENABLED),
-      PREF("gc_parallel_marking", JSGC_PARALLEL_MARKING_ENABLED),
   };
 #undef PREF
 
@@ -1477,11 +1483,11 @@ void RuntimeService::Shutdown() {
 
 namespace {
 
-class CrashIfHangingRunnable : public WorkerControlRunnable {
+class DumpCrashInfoRunnable : public WorkerControlRunnable {
  public:
-  explicit CrashIfHangingRunnable(WorkerPrivate* aWorkerPrivate)
+  explicit DumpCrashInfoRunnable(WorkerPrivate* aWorkerPrivate)
       : WorkerControlRunnable(aWorkerPrivate, WorkerThreadUnchangedBusyCount),
-        mMonitor("CrashIfHangingRunnable::mMonitor") {}
+        mMonitor("DumpCrashInfoRunnable::mMonitor") {}
 
   bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     MonitorAutoLock lock(mMonitor);
@@ -1544,8 +1550,8 @@ struct ActiveWorkerStats {
   template <uint32_t ActiveWorkerStats::*Category>
   void Update(const nsTArray<WorkerPrivate*>& aWorkers) {
     for (const auto worker : aWorkers) {
-      RefPtr<CrashIfHangingRunnable> runnable =
-          new CrashIfHangingRunnable(worker);
+      RefPtr<DumpCrashInfoRunnable> runnable =
+          new DumpCrashInfoRunnable(worker);
       if (runnable->DispatchAndWait()) {
         ++(this->*Category);
 
@@ -1626,6 +1632,20 @@ void RuntimeService::Cleanup() {
       nsIThread* currentThread = NS_GetCurrentThread();
       NS_ASSERTION(currentThread, "This should never be null!");
 
+      // If the loop below takes too long, we probably have a problematic
+      // worker.  MOZ_LOG some info before the parent process forcibly
+      // terminates us so that in the event we are a content process, the log
+      // output can provide useful context about the workers that did not
+      // cleanly shut down.
+      nsCOMPtr<nsITimer> timer;
+      RefPtr<RuntimeService> self = this;
+      nsresult rv = NS_NewTimerWithCallback(
+          getter_AddRefs(timer),
+          [self](nsITimer*) { self->DumpRunningWorkers(); },
+          TimeDuration::FromSeconds(1), nsITimer::TYPE_ONE_SHOT,
+          "RuntimeService::WorkerShutdownDump");
+      Unused << NS_WARN_IF(NS_FAILED(rv));
+
       // And make sure all their final messages have run and all their threads
       // have joined.
       while (mDomainMap.Count()) {
@@ -1635,6 +1655,10 @@ void RuntimeService::Cleanup() {
           NS_WARNING("Something bad happened!");
           break;
         }
+      }
+
+      if (NS_SUCCEEDED(rv)) {
+        timer->Cancel();
       }
     }
   }
@@ -1962,6 +1986,81 @@ RuntimeService::Observe(nsISupports* aSubject, const char* aTopic,
   return NS_OK;
 }
 
+namespace {
+const char* WorkerKindToString(WorkerKind kind) {
+  switch (kind) {
+    case WorkerKindDedicated:
+      return "dedicated";
+    case WorkerKindShared:
+      return "shared";
+    case WorkerKindService:
+      return "service";
+    default:
+      NS_WARNING("Unknown worker type");
+      return "unknown worker type";
+  }
+}
+
+void LogWorker(WorkerPrivate* worker, const char* category) {
+  AssertIsOnMainThread();
+
+  SHUTDOWN_LOG(("Found %s (%s): %s", category,
+                WorkerKindToString(worker->Kind()),
+                NS_ConvertUTF16toUTF8(worker->ScriptURL()).get()));
+
+  if (worker->Kind() == WorkerKindService) {
+    SHUTDOWN_LOG(("Scope: %s", worker->ServiceWorkerScope().get()));
+  }
+
+  nsCString origin;
+  worker->GetPrincipal()->GetOrigin(origin);
+  SHUTDOWN_LOG(("Principal: %s", origin.get()));
+
+  nsCString loadingOrigin;
+  worker->GetLoadingPrincipal()->GetOrigin(loadingOrigin);
+  SHUTDOWN_LOG(("LoadingPrincipal: %s", loadingOrigin.get()));
+
+  SHUTDOWN_LOG(("BusyCount: %d", worker->BusyCount()));
+
+  RefPtr<DumpCrashInfoRunnable> runnable = new DumpCrashInfoRunnable(worker);
+  if (runnable->DispatchAndWait()) {
+    SHUTDOWN_LOG(("CrashInfo: %s", runnable->MsgData().get()));
+  } else {
+    SHUTDOWN_LOG(("CrashInfo: dispatch failed"));
+  }
+}
+}  // namespace
+
+void RuntimeService::DumpRunningWorkers() {
+  // Temporarily set the LogLevel high enough to be certain the messages are
+  // visible.
+  LogModule* module = gWorkerShutdownDumpLog;
+  LogLevel prevLevel = module->Level();
+
+  const auto cleanup =
+      MakeScopeExit([module, prevLevel] { module->SetLevel(prevLevel); });
+
+  if (prevLevel < LogLevel::Debug) {
+    module->SetLevel(LogLevel::Debug);
+  }
+
+  MutexAutoLock lock(mMutex);
+
+  for (const auto& info : mDomainMap.Values()) {
+    for (WorkerPrivate* worker : info->mActiveWorkers) {
+      LogWorker(worker, "ActiveWorker");
+    }
+
+    for (WorkerPrivate* worker : info->mActiveServiceWorkers) {
+      LogWorker(worker, "ActiveServiceWorker");
+    }
+
+    for (WorkerPrivate* worker : info->mQueuedWorkers) {
+      LogWorker(worker, "QueuedWorker");
+    }
+  }
+}
+
 bool LogViolationDetailsRunnable::MainThreadRun() {
   AssertIsOnMainThread();
 
@@ -2016,6 +2115,12 @@ WorkerThreadPrimaryRunnable::Run() {
       return NS_ERROR_FAILURE;
     }
 
+    nsWeakPtr globalScopeSentinel;
+    nsWeakPtr debuggerScopeSentinel;
+    // Never use the following pointers without checking their corresponding
+    // nsWeakPtr sentinel, defined above and initialized after DoRunLoop ends.
+    WorkerGlobalScopeBase* globalScopeRawPtr = nullptr;
+    WorkerGlobalScopeBase* debuggerScopeRawPtr = nullptr;
     {
       nsCycleCollector_startup();
 
@@ -2047,6 +2152,8 @@ WorkerThreadPrimaryRunnable::Run() {
           MOZ_ASSERT(!JS_IsExceptionPending(cx));
         }
 
+        mWorkerPrivate->ShutdownModuleLoader();
+
         mWorkerPrivate->RunShutdownTasks();
 
         BackgroundChild::CloseForCurrentThread();
@@ -2068,14 +2175,17 @@ WorkerThreadPrimaryRunnable::Run() {
       NS_ProcessPendingEvents(nullptr);
 
       // At this point we expect the scopes to be alive if they were ever
-      // created successfully, keep weak references.
-      nsWeakPtr globalScopeSentinel =
-          do_GetWeakReference(mWorkerPrivate->GlobalScope());
-      nsWeakPtr debuggerScopeSentinel =
-          do_GetWeakReference(mWorkerPrivate->DebuggerGlobalScope());
-      MOZ_ASSERT(!mWorkerPrivate->GlobalScope() || globalScopeSentinel);
-      MOZ_ASSERT(!mWorkerPrivate->DebuggerGlobalScope() ||
-                 debuggerScopeSentinel);
+      // created successfully, keep weak references and set up the sentinels.
+      globalScopeRawPtr = mWorkerPrivate->GlobalScope();
+      if (globalScopeRawPtr) {
+        globalScopeSentinel = do_GetWeakReference(globalScopeRawPtr);
+      }
+      MOZ_ASSERT(!globalScopeRawPtr || globalScopeSentinel);
+      debuggerScopeRawPtr = mWorkerPrivate->DebuggerGlobalScope();
+      if (debuggerScopeRawPtr) {
+        debuggerScopeSentinel = do_GetWeakReference(debuggerScopeRawPtr);
+      }
+      MOZ_ASSERT(!debuggerScopeRawPtr || debuggerScopeSentinel);
 
       // To our best knowledge nobody should need a reference to our globals
       // now (NS_ProcessPendingEvents is the last expected potential usage)
@@ -2084,14 +2194,15 @@ WorkerThreadPrimaryRunnable::Run() {
 
       // Perform a full GC until we collect the main worker global and CC,
       // which should break all cycles that touch JS.
-      bool doGCCC = true;
-      while (doGCCC) {
+      bool repeatGCCC = true;
+      while (repeatGCCC) {
         JS::PrepareForFullGC(cx);
         JS::NonIncrementalGC(cx, JS::GCOptions::Shutdown,
                              JS::GCReason::WORKER_SHUTDOWN);
 
-        // Process any side effects thereof until we reach a stable state.
-        doGCCC = NS_HasPendingEvents(nullptr);
+        // If we CCed something or got new events as a side effect, repeat.
+        repeatGCCC = mWorkerPrivate->isLastCCCollectedAnything() ||
+                     NS_HasPendingEvents(nullptr);
         NS_ProcessPendingEvents(nullptr);
       }
 
@@ -2102,28 +2213,26 @@ WorkerThreadPrimaryRunnable::Run() {
       // If ever the CC shutdown run caused side effects, process them.
       NS_ProcessPendingEvents(nullptr);
 
-      // Check sentinels if we actually removed all global scope references.
-      nsCOMPtr<DOMEventTargetHelper> globalScopeAlive =
-          do_QueryReferent(globalScopeSentinel);
-      MOZ_ASSERT(!globalScopeAlive);
-      nsCOMPtr<DOMEventTargetHelper> debuggerScopeAlive =
-          do_QueryReferent(debuggerScopeSentinel);
-      MOZ_ASSERT(!debuggerScopeAlive);
-
-      // Guard us against further usage of scopes' mWorkerPrivate in non-debug.
-      if (globalScopeAlive) {
-        static_cast<WorkerGlobalScopeBase*>(globalScopeAlive.get())
-            ->NoteWorkerTerminated();
-        globalScopeAlive = nullptr;
-      }
-      if (debuggerScopeAlive) {
-        static_cast<WorkerGlobalScopeBase*>(debuggerScopeAlive.get())
-            ->NoteWorkerTerminated();
-        debuggerScopeAlive = nullptr;
-      }
-
       // Now WorkerJSContext goes out of scope. Do not use any cycle
       // collectable objects nor JS after this point!
+    }
+
+    // Check sentinels if we actually removed all global scope references.
+    // In case use the earlier set-aside raw pointers to not mess with the
+    // ref counting after the cycle collector has gone away.
+    if (globalScopeSentinel) {
+      MOZ_ASSERT(!globalScopeSentinel->IsAlive());
+      if (NS_WARN_IF(globalScopeSentinel->IsAlive())) {
+        globalScopeRawPtr->NoteWorkerTerminated();
+        globalScopeRawPtr = nullptr;
+      }
+    }
+    if (debuggerScopeSentinel) {
+      MOZ_ASSERT(!debuggerScopeSentinel->IsAlive());
+      if (NS_WARN_IF(debuggerScopeSentinel->IsAlive())) {
+        debuggerScopeRawPtr->NoteWorkerTerminated();
+        debuggerScopeRawPtr = nullptr;
+      }
     }
   }
 
@@ -2133,7 +2242,7 @@ WorkerThreadPrimaryRunnable::Run() {
   mWorkerPrivate = nullptr;
 
   // Now recycle this thread.
-  nsCOMPtr<nsIEventTarget> mainTarget = GetMainThreadEventTarget();
+  nsCOMPtr<nsIEventTarget> mainTarget = GetMainThreadSerialEventTarget();
   MOZ_ASSERT(mainTarget);
 
   RefPtr<FinishedRunnable> finishedRunnable =
@@ -2157,6 +2266,16 @@ WorkerThreadPrimaryRunnable::FinishedRunnable::Run() {
 }
 
 }  // namespace workerinternals
+
+// This is mostly for invoking within a debugger.
+void DumpRunningWorkers() {
+  RuntimeService* runtimeService = RuntimeService::GetService();
+  if (runtimeService) {
+    runtimeService->DumpRunningWorkers();
+  } else {
+    NS_WARNING("RuntimeService not found");
+  }
+}
 
 void CancelWorkersForWindow(const nsPIDOMWindowInner& aWindow) {
   AssertIsOnMainThread();

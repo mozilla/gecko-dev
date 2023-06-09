@@ -5,6 +5,7 @@
 
 #include "WebGPUParent.h"
 #include "mozilla/PodOperations.h"
+#include "mozilla/ScopeExit.h"
 #include "mozilla/webgpu/ffi/wgpu.h"
 #include "mozilla/layers/CompositorThread.h"
 #include "mozilla/layers/ImageDataSerializer.h"
@@ -71,10 +72,10 @@ class PresentationData {
   layers::RGBDescriptor mDesc;
   uint32_t mSourcePitch = 0;
   int32_t mNextFrameID = 1;
-  std::vector<RawId> mUnassignedBufferIds;
-  std::vector<RawId> mAvailableBufferIds;
-  std::vector<RawId> mQueuedBufferIds;
-  Mutex mBuffersLock MOZ_UNANNOTATED;
+  std::vector<RawId> mUnassignedBufferIds MOZ_GUARDED_BY(mBuffersLock);
+  std::vector<RawId> mAvailableBufferIds MOZ_GUARDED_BY(mBuffersLock);
+  std::vector<RawId> mQueuedBufferIds MOZ_GUARDED_BY(mBuffersLock);
+  Mutex mBuffersLock;
 
   PresentationData(RawId aDeviceId, RawId aQueueId,
                    const layers::RGBDescriptor& aDesc, uint32_t aSourcePitch,
@@ -272,7 +273,6 @@ ipc::IPCResult WebGPUParent::RecvInstanceRequestAdapter(
         aOptions.mPowerPreference.Value());
   }
   options.force_fallback_adapter = aOptions.mForceFallbackAdapter;
-  // TODO: make available backends configurable by prefs
 
   ErrorBuffer error;
   int8_t index = ffi::wgpu_server_instance_request_adapter(
@@ -378,28 +378,28 @@ struct MapRequest {
   WebGPUParent::BufferMapResolver mResolver;
 };
 
-nsCString MapStatusString(ffi::WGPUBufferMapAsyncStatus status) {
+static const char* MapStatusString(ffi::WGPUBufferMapAsyncStatus status) {
   switch (status) {
     case ffi::WGPUBufferMapAsyncStatus_Success:
-      return nsCString("Success");
+      return "Success";
     case ffi::WGPUBufferMapAsyncStatus_AlreadyMapped:
-      return nsCString("Already mapped");
+      return "Already mapped";
     case ffi::WGPUBufferMapAsyncStatus_MapAlreadyPending:
-      return nsCString("Map is already pending");
+      return "Map is already pending";
     case ffi::WGPUBufferMapAsyncStatus_Aborted:
-      return nsCString("Map aborted");
+      return "Map aborted";
     case ffi::WGPUBufferMapAsyncStatus_ContextLost:
-      return nsCString("Context lost");
+      return "Context lost";
     case ffi::WGPUBufferMapAsyncStatus_Invalid:
-      return nsCString("Invalid buffer");
+      return "Invalid buffer";
     case ffi::WGPUBufferMapAsyncStatus_InvalidRange:
-      return nsCString("Invalid range");
+      return "Invalid range";
     case ffi::WGPUBufferMapAsyncStatus_InvalidAlignment:
-      return nsCString("Invalid alignment");
+      return "Invalid alignment";
     case ffi::WGPUBufferMapAsyncStatus_InvalidUsageFlags:
-      return nsCString("Invalid usage flags");
+      return "Invalid usage flags";
     case ffi::WGPUBufferMapAsyncStatus_Error:
-      return nsCString("Map failed");
+      return "Map failed";
     case ffi::WGPUBufferMapAsyncStatus_Sentinel:  // For -Wswitch
       break;
   }
@@ -423,7 +423,8 @@ static void MapCallback(ffi::WGPUBufferMapAsyncStatus status,
   MOZ_RELEASE_ASSERT(mapData);
 
   if (status != ffi::WGPUBufferMapAsyncStatus_Success) {
-    result = BufferMapError(MapStatusString(status));
+    result = BufferMapError(nsPrintfCString("Mapping WebGPU buffer failed: %s",
+                                            MapStatusString(status)));
   } else {
     auto size = req->mSize;
     auto offset = req->mOffset;
@@ -776,6 +777,11 @@ static void PresentCallback(ffi::WGPUBufferMapAsyncStatus status,
                             uint8_t* userdata) {
   UniquePtr<PresentRequest> req(reinterpret_cast<PresentRequest*>(userdata));
 
+  if (!req->mRemoteTextureOwner->IsRegistered(req->mOwnerId)) {
+    // SwapChain is already Destroyed
+    return;
+  }
+
   PresentationData* data = req->mData.get();
   // get the buffer ID
   RawId bufferId;
@@ -783,8 +789,14 @@ static void PresentCallback(ffi::WGPUBufferMapAsyncStatus status,
     MutexAutoLock lock(data->mBuffersLock);
     bufferId = data->mQueuedBufferIds.back();
     data->mQueuedBufferIds.pop_back();
-    data->mAvailableBufferIds.push_back(bufferId);
   }
+
+  // Ensure we'll make the bufferId available for reuse
+  auto releaseBuffer = MakeScopeExit([data = RefPtr{data}, bufferId] {
+    MutexAutoLock lock(data->mBuffersLock);
+    data->mAvailableBufferIds.push_back(bufferId);
+  });
+
   MOZ_LOG(
       sLogger, LogLevel::Info,
       ("PresentCallback for buffer %" PRIu64 " status=%d\n", bufferId, status));
@@ -923,12 +935,8 @@ ipc::IPCResult WebGPUParent::RecvSwapChainPresent(
   };
   const ffi::WGPUImageDataLayout bufLayout = {
       0,
-      data->mSourcePitch,
-      0,
-  };
-  const ffi::WGPUImageCopyBuffer bufView = {
-      bufferId,
-      bufLayout,
+      &data->mSourcePitch,
+      nullptr,
   };
   const ffi::WGPUExtent3d extent = {
       static_cast<uint32_t>(size.width),
@@ -936,7 +944,8 @@ ipc::IPCResult WebGPUParent::RecvSwapChainPresent(
       1,
   };
   ffi::wgpu_server_encoder_copy_texture_to_buffer(
-      mContext.get(), aCommandEncoderId, &texView, &bufView, &extent);
+      mContext.get(), aCommandEncoderId, &texView, bufferId, &bufLayout,
+      &extent);
   ffi::WGPUCommandBufferDescriptor commandDesc = {};
   {
     ErrorBuffer error;
@@ -1077,7 +1086,8 @@ ipc::IPCResult WebGPUParent::RecvBumpImplicitBindGroupLayout(RawId aPipelineId,
 ipc::IPCResult WebGPUParent::RecvDevicePushErrorScope(RawId aDeviceId) {
   const auto& lookup = mErrorScopeMap.find(aDeviceId);
   if (lookup == mErrorScopeMap.end()) {
-    NS_WARNING("WebGPU error scopes on a destroyed device!");
+    // Content can cause this simply by destroying a device and then
+    // calling `pushErrorScope`.
     return IPC_OK();
   }
 
@@ -1089,14 +1099,16 @@ ipc::IPCResult WebGPUParent::RecvDevicePopErrorScope(
     RawId aDeviceId, DevicePopErrorScopeResolver&& aResolver) {
   const auto& lookup = mErrorScopeMap.find(aDeviceId);
   if (lookup == mErrorScopeMap.end()) {
-    NS_WARNING("WebGPU error scopes on a destroyed device!");
+    // Content can cause this simply by destroying a device and then
+    // calling `popErrorScope`.
     ScopedError error = {true};
     aResolver(Some(error));
     return IPC_OK();
   }
 
   if (lookup->second.mStack.IsEmpty()) {
-    NS_WARNING("WebGPU no error scope to pop!");
+    // Content can cause this simply by calling `popErrorScope` when
+    // there is no error scope pushed.
     ScopedError error = {true};
     aResolver(Some(error));
     return IPC_OK();

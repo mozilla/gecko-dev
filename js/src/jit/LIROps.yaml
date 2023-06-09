@@ -213,6 +213,19 @@
   call_instruction: true
   mir_op: true
 
+- name: BindFunction
+  result_type: WordSized
+  operands:
+    target: WordSized
+  call_instruction: true
+  num_temps: 2
+  mir_op: true
+
+- name: NewBoundFunction
+  result_type: WordSized
+  num_temps: 1
+  mir_op: true
+
 - name: NewObject
   gen_boilerplate: false
 
@@ -284,13 +297,25 @@
 - name: WasmTrap
   mir_op: true
 
-- name: WasmGcObjectIsSubtypeOf
+- name: WasmTrapIfNull
+  operands:
+    object: WordSized
+  mir_op: true
+
+- name: WasmGcObjectIsSubtypeOfConcrete
   mir_op: true
   operands:
     object: WordSized
-    superTypeDef: WordSized
+    superSuperTypeVector: WordSized
   result_type: WordSized
   num_temps: 2
+
+- name: WasmGcObjectIsSubtypeOfAbstract
+  mir_op: true
+  operands:
+    object: WordSized
+  result_type: WordSized
+  num_temps: 1
 
 - name: WasmGcObjectIsSubtypeOfAndBranch
   gen_boilerplate: false
@@ -458,6 +483,15 @@
   num_temps: 1
   mir_op: true
 
+- name: BoundFunctionNumArgs
+  result_type: WordSized
+  operands:
+    object: WordSized
+
+- name: GuardBoundFunctionIsConstructor
+  operands:
+    object: WordSized
+
 # If the Value is an Object, return unbox(Value).
 # Otherwise, return the other Object.
 - name: ReturnFromCtor
@@ -506,6 +540,9 @@
   gen_boilerplate: false
 
 - name: CallDOMNative
+  gen_boilerplate: false
+
+- name: CallClassHook
   gen_boilerplate: false
 
 - name: Bail
@@ -1303,28 +1340,6 @@
     in: WordSized
   mir_op: ToNumberInt32
 
-# Truncates a double to an int32.
-#   Input: floating-point Register
-#   Output: 32-bit integer
-#   Bailout: if the double when converted to an integer exceeds the int32
-#            bounds. No bailout for NaN or negative zero.
-- name: DoubleToIntegerInt32
-  result_type: WordSized
-  operands:
-    in: WordSized
-  mir_op: ToIntegerInt32
-
-# Truncates a float to an int32.
-#   Input: floating-point Register
-#   Output: 32-bit integer
-#   Bailout: if the double when converted to an integer exceeds the int32
-#            bounds. No bailout for NaN or negative zero.
-- name: Float32ToIntegerInt32
-  result_type: WordSized
-  operands:
-    in: WordSized
-  mir_op: ToIntegerInt32
-
 # Convert a double to a truncated int32.
 #   Input: floating-point Register
 #   Output: 32-bit integer
@@ -1582,6 +1597,12 @@
 - name: KeepAliveObject
   operands:
     object: WordSized
+
+- name: DebugEnterGCUnsafeRegion
+  num_temps: 1
+
+- name: DebugLeaveGCUnsafeRegion
+  num_temps: 1
 
 # Load the "slots" member out of a JSObject.
 #   Input: JSObject pointer
@@ -2187,6 +2208,15 @@
     object: WordSized
     index: BoxedValue
     value: BoxedValue
+  # On x86 we do not have enough registers to use 3 temps for this *and* take
+  # five words worth of operands. Since it's 32-bit, though, we get two
+  # registers from pushing `value`, which doesn't get used until the end
+  # anyway. This is somewhat klunky, but oh well.
+#ifdef JS_CODEGEN_X86
+  num_temps: 1
+#else
+  num_temps: 3
+#endif
   call_instruction: true
   mir_op: true
 
@@ -2218,6 +2248,25 @@
     value: BoxedValue
   call_instruction: true
   mir_op: ValueToIterator
+
+- name: IteratorHasIndicesAndBranch
+  gen_boilerplate: false
+
+- name: LoadSlotByIteratorIndex
+  result_type: BoxedValue
+  operands:
+    object: WordSized
+    iterator: WordSized
+
+  num_temps: 2
+
+- name: StoreSlotByIteratorIndex
+  operands:
+    object: WordSized
+    iterator: WordSized
+    value: BoxedValue
+  num_temps: 2
+  mir_op: true
 
 # Patchable jump to stubs generated for a SetProperty cache.
 - name: SetPropertyCache
@@ -2510,6 +2559,10 @@
     object: WordSized
   num_temps: 1
 
+- name: GuardGlobalGeneration
+  mir_op: true
+  num_temps: 1
+
 - name: GuardIsProxy
   operands:
     object: WordSized
@@ -2575,7 +2628,7 @@
   result_type: BoxedValue
   operands:
     object: WordSized
-  num_temps: 3
+  num_temps: 4
   call_instruction: true
   mir_op: true
 
@@ -2589,7 +2642,6 @@
   mir_op: true
 
 - name: MegamorphicStoreSlot
-  result_type: BoxedValue
   operands:
     object: WordSized
     rhs: BoxedValue
@@ -2919,8 +2971,24 @@
 - name: WasmStoreRef
   operands:
     instance: WordSized
-    valueAddr: WordSized
+    valueBase: WordSized
     value: WordSized
+  arguments:
+    offset: uint32_t
+    maybeTrap: MaybeTrapSiteInfo
+    preBarrierKind: WasmPreBarrierKind
+  num_temps: 1
+  mir_op: true
+
+# Generational write barrier used when writing an object to another object.
+- name: WasmPostWriteBarrier
+  operands:
+    instance: WordSized
+    object: WordSized
+    valueBase: WordSized
+    value: WordSized
+  arguments:
+    valueOffset: uint32_t
   num_temps: 1
   mir_op: true
 
@@ -3148,13 +3216,6 @@
   operands:
     value: BoxedValue
   call_instruction: true
-
-- name: FinishBoundFunctionInit
-  operands:
-    bound: WordSized
-    target: WordSized
-    argCount: WordSized
-  num_temps: 2
 
 - name: IsPackedArray
   result_type: WordSized
@@ -3826,6 +3887,35 @@
 #endif
 
 #ifdef JS_CODEGEN_LOONG64
+- name: DivOrModI64
+  gen_boilerplate: false
+
+- name: UDivOrMod
+  gen_boilerplate: false
+
+- name: UDivOrModI64
+  gen_boilerplate: false
+
+- name: ModMaskI
+  gen_boilerplate: false
+
+- name: WasmTruncateToInt64
+  gen_boilerplate: false
+
+- name: Int64ToFloatingPoint
+  gen_boilerplate: false
+
+- name: WasmCompareExchangeI64
+  gen_boilerplate: false
+
+- name: WasmAtomicBinopI64
+  gen_boilerplate: false
+
+- name: WasmAtomicExchangeI64
+  gen_boilerplate: false
+#endif
+
+#ifdef JS_CODEGEN_RISCV64
 - name: DivOrModI64
   gen_boilerplate: false
 

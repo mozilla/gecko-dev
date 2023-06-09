@@ -19,7 +19,6 @@
 #include "api/task_queue/task_queue_base.h"
 #include "api/test/create_frame_generator.h"
 #include "api/video/builtin_video_bitrate_allocator_factory.h"
-#include "api/video_codecs/video_encoder_config.h"
 #include "call/fake_network_pipe.h"
 #include "call/simulated_network.h"
 #include "modules/audio_mixer/audio_mixer_impl.h"
@@ -28,6 +27,7 @@
 #include "rtc_base/task_queue_for_test.h"
 #include "test/fake_encoder.h"
 #include "test/testsupport/file_utils.h"
+#include "video/config/video_encoder_config.h"
 
 namespace webrtc {
 namespace test {
@@ -591,8 +591,11 @@ void CallTest::Start() {
 }
 
 void CallTest::StartVideoStreams() {
-  for (VideoSendStream* video_send_stream : video_send_streams_)
-    video_send_stream->Start();
+  for (size_t i = 0; i < video_send_streams_.size(); ++i) {
+    std::vector<bool> active_rtp_streams(
+        video_send_configs_[i].rtp.ssrcs.size(), true);
+    video_send_streams_[i]->StartPerRtpStream(active_rtp_streams);
+  }
   for (VideoReceiveStreamInterface* video_recv_stream : video_receive_streams_)
     video_recv_stream->Start();
 }

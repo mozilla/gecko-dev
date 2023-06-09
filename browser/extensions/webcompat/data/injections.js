@@ -73,7 +73,10 @@ const AVAILABLE_INJECTIONS = [
     domain: "bankofamerica.com",
     bug: "1472075",
     contentScripts: {
-      matches: ["*://*.bankofamerica.com/*"],
+      matches: [
+        "*://*.bankofamerica.com/*",
+        "*://*.ml.com/*", // #120104
+      ],
       js: [
         {
           file: "injections/js/bug1472075-bankofamerica.com-ua-change.js",
@@ -168,7 +171,10 @@ const AVAILABLE_INJECTIONS = [
     domain: "directv.com.co",
     bug: "1610344",
     contentScripts: {
-      matches: ["https://*.directv.com.co/*"],
+      matches: [
+        "https://*.directv.com.co/*",
+        "https://*.directv.com.ec/*", // bug 1827706
+      ],
       css: [
         {
           file:
@@ -399,36 +405,6 @@ const AVAILABLE_INJECTIONS = [
     },
   },
   {
-    id: "bug1754473",
-    platform: "android",
-    domain: "m.intl.taobao.com",
-    bug: "1754473",
-    contentScripts: {
-      matches: ["*://m.intl.taobao.com/*"],
-      css: [
-        {
-          file:
-            "injections/css/bug1754473-m.intl.taobao.com-number-arrow-buttons-overlapping-fix.css",
-        },
-      ],
-    },
-  },
-  {
-    id: "bug1748455",
-    platform: "android",
-    domain: "reddit.com",
-    bug: "1748455",
-    contentScripts: {
-      matches: ["*://*.reddit.com/*"],
-      css: [
-        {
-          file:
-            "injections/css/bug1748455-reddit.com-gallery-image-width-fix.css",
-        },
-      ],
-    },
-  },
-  {
     id: "bug1739489",
     platform: "desktop",
     domain: "Sites using draft.js",
@@ -439,6 +415,7 @@ const AVAILABLE_INJECTIONS = [
         "*://www.facebook.com/*", // Bug 1739489
         "*://twitter.com/*", // Bug 1776229
         "*://mobile.twitter.com/*", // Bug 1776229
+        "*://*.reddit.com/*", // Bug 1829755
       ],
       js: [
         {
@@ -505,20 +482,6 @@ const AVAILABLE_INJECTIONS = [
     },
   },
   {
-    id: "bug1778239",
-    platform: "all",
-    domain: "m.pji.co.kr",
-    bug: "1778239",
-    contentScripts: {
-      matches: ["*://m.pji.co.kr/*"],
-      js: [
-        {
-          file: "injections/js/bug1778239-m.pji.co.kr-banner-hide.js",
-        },
-      ],
-    },
-  },
-  {
     id: "bug1774005",
     platform: "all",
     domain: "Sites relying on window.InstallTrigger",
@@ -526,12 +489,12 @@ const AVAILABLE_INJECTIONS = [
     contentScripts: {
       matches: [
         "*://*.crunchyroll.com/*", // Bug 1777597
-        "*://*.pixiv.net/*", // Bug 1774006
+        "*://*.ersthelfer.tv/*", // Bug 1817520
         "*://*.webex.com/*", // Bug 1788934
-        "*://business.help.royalmail.com/app/webforms/*", // Bug 1786404
         "*://ifcinema.institutfrancais.com/*", // Bug 1806423
+        "*://islamionline.islamicbank.ps/*", // Bug 1821439
+        "*://*.itv.com/*", // Bug 1830203
         "*://mobilevikings.be/*/registration/*", // Bug 1797400
-        "*://www.northcountrypublicradio.org/contact/subscribe.html*", // Bug 1778382,
         "*://www.schoolnutritionandfitness.com/*", // Bug 1793761
       ],
       js: [
@@ -644,35 +607,6 @@ const AVAILABLE_INJECTIONS = [
     },
   },
   {
-    id: "bug1784195",
-    platform: "android",
-    domain: "nutmeg.morrisons.com",
-    bug: "1784195",
-    contentScripts: {
-      matches: ["*://nutmeg.morrisons.com/*"],
-      css: [
-        {
-          file: "injections/css/bug1784195-nutmeg.morrisons.com-overflow.css",
-        },
-      ],
-    },
-  },
-  {
-    id: "bug1784351",
-    platform: "desktop",
-    domain: "movistar.com.ar",
-    bug: "1784351",
-    contentScripts: {
-      matches: ["*://*.movistar.com.ar/*"],
-      css: [
-        {
-          file:
-            "injections/css/bug1784351-movistar.com.ar-overflow-overlay-fix.css",
-        },
-      ],
-    },
-  },
-  {
     id: "bug1784199",
     platform: "all",
     domain: "Sites based on Entrata Platform",
@@ -680,30 +614,20 @@ const AVAILABLE_INJECTIONS = [
     contentScripts: {
       matches: [
         "*://*.aptsovation.com/*",
+        "*://*.avanabayview.com/*", // #118617
+        "*://*.breakpointeandcoronado.com/*", // #117735
         "*://*.liveatlasathens.com/*", // #111189
         "*://*.liveobserverpark.com/*", // #105244
+        "*://*.midwayurban.com/*", // #116523
         "*://*.nhcalaska.com/*",
         "*://*.prospectportal.com/*", // #115206
         "*://*.securityproperties.com/*",
         "*://*.theloftsorlando.com/*",
+        "*://*.vanallenapartments.com/*", // #120056
       ],
       css: [
         {
           file: "injections/css/bug1784199-entrata-platform-unsupported.css",
-        },
-      ],
-    },
-  },
-  {
-    id: "bug1789164",
-    platform: "all",
-    domain: "zdnet.com",
-    bug: "1789164",
-    contentScripts: {
-      matches: ["*://www.zdnet.com/*"],
-      css: [
-        {
-          file: "injections/css/bug1789164-zdnet.com-cropped-section.css",
         },
       ],
     },
@@ -754,7 +678,7 @@ const AVAILABLE_INJECTIONS = [
   },
   {
     id: "bug1799994",
-    platform: "all",
+    platform: "desktop",
     domain: "www.vivobarefoot.com",
     bug: "1799994",
     contentScripts: {
@@ -769,7 +693,7 @@ const AVAILABLE_INJECTIONS = [
   },
   {
     id: "bug1800000",
-    platform: "all",
+    platform: "desktop",
     domain: "www.honda.co.uk",
     bug: "1800000",
     contentScripts: {
@@ -778,51 +702,6 @@ const AVAILABLE_INJECTIONS = [
         {
           file:
             "injections/css/bug1800000-www.honda.co.uk-choose-dealer-button-fix.css",
-        },
-      ],
-    },
-  },
-  {
-    id: "bug1800127",
-    platform: "all",
-    domain: "www.burgerking.es",
-    bug: "1800127",
-    contentScripts: {
-      matches: ["*://www.burgerking.es/*"],
-      css: [
-        {
-          file:
-            "injections/css/bug1800127-www.burgerking.es-webkit-fill-available-fix.css",
-        },
-      ],
-    },
-  },
-  {
-    id: "bug1800131",
-    platform: "all",
-    domain: "www.almosafer.com",
-    bug: "1800131",
-    contentScripts: {
-      matches: ["*://www.almosafer.com/mweb/flights-home*"],
-      js: [
-        {
-          file:
-            "injections/js/bug1800131-www.almosafer.com-undisable-date-fields.js",
-        },
-      ],
-    },
-  },
-  {
-    id: "bug1800143",
-    platform: "all",
-    domain: "www.nintendo.co.jp",
-    bug: "1800143",
-    contentScripts: {
-      matches: ["*://www.nintendo.co.jp/software/feature/*"],
-      css: [
-        {
-          file:
-            "injections/css/bug1800143-www.nintendo.co.jp-zoomed-in-image-scrolling-fix.css",
         },
       ],
     },
@@ -838,6 +717,319 @@ const AVAILABLE_INJECTIONS = [
         {
           file:
             "injections/js/bug1803976-www.youtube.com-performance-now-precision.js",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1448747",
+    platform: "android",
+    domain: "FastClick breakage",
+    bug: "1448747",
+    contentScripts: {
+      matches: [
+        "*://*.co2meter.com/*", // 10959
+        "*://*.franmar.com/*", // 27273
+        "*://*.themusiclab.org/*", // 49667
+        "*://*.oregonfoodbank.org/*", // 53203
+        "*://*.fourbarrelcoffee.com/*", // 59427
+        "*://bluetokaicoffee.com/*", // 99867
+        "*://bathpublishing.com/*", // 100145
+        "*://dylantalkstone.com/*", // 101356
+        "*://renewd.com.au/*", // 104998
+        "*://gofreeconcepts.de/*", // 105534
+        "*://*.lamudi.co.id/*", // 106767
+        "*://*.thehawksmoor.com/*", // 107549
+        "*://weaversofireland.com/*", // 116816
+        "*://*.iledefrance-mobilites.fr/*", // 117344
+        "*://*.lawnmowerpartsworld.com/*", // 117577
+        "*://*.discountcoffee.co.uk/*", // 118757
+        "*://torguard.net/*", // 120113
+        "*://*.arcsivr.com/*", // 120716
+      ],
+      js: [
+        {
+          file: "injections/js/bug1448747-fastclick-shim.js",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1818818",
+    platform: "android",
+    domain: "FastClick breakage - legacy",
+    bug: "1818818",
+    contentScripts: {
+      matches: [
+        "*://*.chatiw.com/*", // 5544
+        "*://*.marksandspencer.com/*", // 101811
+        "*://*.wellcare.com/*", // 116595
+      ],
+      js: [
+        {
+          file: "injections/js/bug1818818-fastclick-legacy-shim.js",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1819476",
+    platform: "all",
+    domain: "axisbank.com",
+    bug: "1819476",
+    contentScripts: {
+      matches: ["*://*.axisbank.com/*"],
+      js: [
+        {
+          file:
+            "injections/js/bug1819476-axisbank.com-webkitSpeechRecognition-shim.js",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1819450",
+    platform: "android",
+    domain: "cmbchina.com",
+    bug: "1819450",
+    contentScripts: {
+      matches: ["*://www.cmbchina.com/*", "*://cmbchina.com/*"],
+      js: [
+        {
+          file: "injections/js/bug1819450-cmbchina.com-ua-change.js",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1819678",
+    platform: "android",
+    domain: "cnki.net",
+    bug: "1819678",
+    contentScripts: {
+      matches: ["*://*.cnki.net/*"],
+      js: [
+        {
+          file: "injections/js/bug1819678-cnki.net-undisable-search-field.js",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1827678-webc77727",
+    platform: "android",
+    domain: "free4talk.com",
+    bug: "1827678",
+    contentScripts: {
+      matches: ["*://www.free4talk.com/*"],
+      js: [
+        {
+          file: "injections/js/bug1819678-free4talk.com-window-chrome-shim.js",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1827678-85474",
+    platform: "desktop",
+    domain: "elal.com",
+    bug: "1827678",
+    contentScripts: {
+      matches: ["*://*.elal.com/*"],
+      css: [
+        {
+          file: "injections/css/bug1819678-elal.com-unsupported-banner.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1827678-webc119017",
+    platform: "desktop",
+    domain: "nppes.cms.hhs.gov",
+    bug: "1827678",
+    contentScripts: {
+      matches: ["*://nppes.cms.hhs.gov/*"],
+      css: [
+        {
+          file:
+            "injections/css/bug1819678-nppes.cms.hhs.gov-unsupported-banner.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1830776",
+    platform: "all",
+    domain: "blueshieldca.com",
+    bug: "1830776",
+    contentScripts: {
+      matches: ["*://*.blueshieldca.com/*"],
+      js: [
+        {
+          file: "injections/js/bug1830776-blueshieldca.com-unsupported.js",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1829949",
+    platform: "desktop",
+    domain: "tomshardware.com",
+    bug: "1829949",
+    contentScripts: {
+      matches: ["*://*.tomshardware.com/*"],
+      css: [
+        {
+          file:
+            "injections/css/bug1829949-tomshardware.com-scrollbar-width.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1829952",
+    platform: "android",
+    domain: "eventer.co.il",
+    bug: "1829952",
+    contentScripts: {
+      matches: ["*://*.eventer.co.il/*"],
+      css: [
+        {
+          file: "injections/css/bug1829952-eventer.co.il-button-height.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1830747",
+    platform: "android",
+    domain: "my.babbel.com",
+    bug: "1830747",
+    contentScripts: {
+      matches: ["*://my.babbel.com/*"],
+      css: [
+        {
+          file: "injections/css/bug1830747-babbel.com-page-height.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1830752",
+    platform: "all",
+    domain: "afisha.ru",
+    bug: "1830752",
+    contentScripts: {
+      matches: ["*://*.afisha.ru/*"],
+      css: [
+        {
+          file: "injections/css/bug1830752-afisha.ru-slider-pointer-events.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1830761",
+    platform: "all",
+    domain: "91mobiles.com",
+    bug: "1830761",
+    contentScripts: {
+      matches: ["*://*.91mobiles.com/*"],
+      css: [
+        {
+          file: "injections/css/bug1830761-91mobiles.com-content-height.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1830796",
+    platform: "android",
+    domain: "copyleaks.com",
+    bug: "1830796",
+    contentScripts: {
+      matches: ["*://*.copyleaks.com/*"],
+      css: [
+        {
+          file: "injections/css/bug1830796-copyleaks.com-hide-unsupported.css",
+        },
+      ],
+      allFrames: true,
+    },
+  },
+  {
+    id: "bug1830810",
+    platform: "all",
+    domain: "interceramic.com",
+    bug: "1830810",
+    contentScripts: {
+      matches: ["*://interceramic.com/*"],
+      css: [
+        {
+          file:
+            "injections/css/bug1830810-interceramic.com-hide-unsupported.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1830813",
+    platform: "desktop",
+    domain: "onstove.com",
+    bug: "1830813",
+    contentScripts: {
+      matches: ["*://*.onstove.com/*"],
+      css: [
+        {
+          file:
+            "injections/css/bug1830813-page.onstove.com-hide-unsupported.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1831007",
+    platform: "all",
+    domain: "All international Nintendo domains",
+    bug: "1831007",
+    contentScripts: {
+      matches: [
+        "*://*.mojenintendo.cz/*",
+        "*://*.nintendo-europe.com/*",
+        "*://*.nintendo.at/*",
+        "*://*.nintendo.be/*",
+        "*://*.nintendo.ch/*",
+        "*://*.nintendo.co.il/*",
+        "*://*.nintendo.co.jp/*",
+        "*://*.nintendo.co.kr/*",
+        "*://*.nintendo.co.nz/*",
+        "*://*.nintendo.co.uk/*",
+        "*://*.nintendo.co.za/*",
+        "*://*.nintendo.com.au/*",
+        "*://*.nintendo.com.hk/*",
+        "*://*.nintendo.com/*",
+        "*://*.nintendo.de/*",
+        "*://*.nintendo.dk/*",
+        "*://*.nintendo.es/*",
+        "*://*.nintendo.fi/*",
+        "*://*.nintendo.fr/*",
+        "*://*.nintendo.gr/*",
+        "*://*.nintendo.hu/*",
+        "*://*.nintendo.it/*",
+        "*://*.nintendo.nl/*",
+        "*://*.nintendo.no/*",
+        "*://*.nintendo.pt/*",
+        "*://*.nintendo.ru/*",
+        "*://*.nintendo.se/*",
+        "*://*.nintendo.sk/*",
+        "*://*.nintendo.tw/*",
+        "*://*.nintendoswitch.com.cn/*",
+      ],
+      js: [
+        {
+          file:
+            "injections/js/bug1831007-nintendo-window-OnetrustActiveGroups.js",
         },
       ],
     },

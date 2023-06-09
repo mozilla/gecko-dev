@@ -594,8 +594,7 @@ nsXPCWrappedJS* nsXPCWrappedJS::FindInherited(REFNSIID aIID) {
   return nullptr;
 }
 
-nsresult
-nsIXPConnectWrappedJS::GetInterfaceIID(nsIID** iid) {
+nsresult nsIXPConnectWrappedJS::GetInterfaceIID(nsIID** iid) {
   MOZ_ASSERT(iid, "bad param");
 
   *iid = AsXPCWrappedJS()->GetIID().Clone();
@@ -615,7 +614,7 @@ void nsXPCWrappedJS::SystemIsBeingShutDown() {
   // triggering post barriers in shutdown, as this will access the chunk
   // containing mJSObj, which may have been freed at this point. This is safe
   // if we are not currently running an incremental GC.
-  MOZ_ASSERT(!IsIncrementalGCInProgress(xpc_GetSafeJSContext()));
+  MOZ_ASSERT(!JS::IsIncrementalGCInProgress(xpc_GetSafeJSContext()));
   *mJSObj.unsafeGet() = nullptr;
   if (isInList()) {
     remove();
@@ -662,11 +661,8 @@ nsresult nsXPCWrappedJS::DebugDump(int16_t depth) {
                   IsRootWrapper() ? "ROOT" : "non-root", mJSObj.get()));
   const char* name = mInfo->Name();
   XPC_LOG_ALWAYS(("interface name is %s", name));
-  char* iid = mInfo->IID().ToString();
-  XPC_LOG_ALWAYS(("IID number is %s", iid ? iid : "invalid"));
-  if (iid) {
-    free(iid);
-  }
+  auto iid = mInfo->IID().ToString();
+  XPC_LOG_ALWAYS(("IID number is %s", iid.get()));
   XPC_LOG_ALWAYS(("nsXPTInterfaceInfo @ %p", mInfo));
 
   if (!IsRootWrapper()) {

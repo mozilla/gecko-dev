@@ -44,37 +44,21 @@ add_task(async function() {
     .getBoundingClientRect();
   let firstTabRect = gBrowser.selectedTab.getBoundingClientRect();
   let frameExpectations = {
-    filter: rects =>
-      rects.filter(
-        r =>
-          !(
-            // We expect the menu button to get into the active state.
-            (
-              r.y1 >= menuButtonRect.top &&
-              r.y2 <= menuButtonRect.bottom &&
-              r.x1 >= menuButtonRect.left &&
-              r.x2 <= menuButtonRect.right
-            )
-          )
-        // XXX For some reason the menu panel isn't in our screenshots,
-        // but that's where we actually expect many changes.
-      ),
+    filter: rects => {
+      // We expect the menu button to get into the active state.
+      //
+      // XXX For some reason the menu panel isn't in our screenshots, but
+      // that's where we actually expect many changes.
+      return rects.filter(r => !rectInBoundingClientRect(r, menuButtonRect));
+    },
     exceptions: [
       {
         name: "the urlbar placeholder moves up and down by a few pixels",
-        condition: r =>
-          r.x1 >= textBoxRect.left &&
-          r.x2 <= textBoxRect.right &&
-          r.y1 >= textBoxRect.top &&
-          r.y2 <= textBoxRect.bottom,
+        condition: r => rectInBoundingClientRect(r, textBoxRect),
       },
       {
         name: "bug 1547341 - a first tab gets drawn early",
-        condition: r =>
-          r.x1 >= firstTabRect.left &&
-          r.x2 <= firstTabRect.right &&
-          r.y1 >= firstTabRect.top &&
-          r.y2 <= firstTabRect.bottom,
+        condition: r => rectInBoundingClientRect(r, firstTabRect),
       },
     ],
   };

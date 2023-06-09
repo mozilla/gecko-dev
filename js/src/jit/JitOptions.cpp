@@ -96,6 +96,9 @@ DefaultJitOptions::DefaultJitOptions() {
   // Toggle whether branch pruning is globally disabled.
   SET_DEFAULT(disablePruning, false);
 
+  // Toggles whether the iterator indices optimization is globally disabled.
+  SET_DEFAULT(disableIteratorIndices, false);
+
   // Toggles whether instruction reordering is globally disabled.
   SET_DEFAULT(disableInstructionReordering, false);
 
@@ -117,11 +120,23 @@ DefaultJitOptions::DefaultJitOptions() {
   // Toggles whether redundant shape guard elimination is globally disabled.
   SET_DEFAULT(disableRedundantShapeGuards, false);
 
+  // Toggles whether redundant GC barrier elimination is globally disabled.
+  SET_DEFAULT(disableRedundantGCBarriers, false);
+
   // Toggles whether we verify that we don't recompile with the same CacheIR.
   SET_DEFAULT(disableBailoutLoopCheck, false);
 
   // Whether the Baseline Interpreter is enabled.
   SET_DEFAULT(baselineInterpreter, true);
+
+  // Emit baseline interpreter and interpreter entry frames to distinguish which
+  // JSScript is being interpreted by external profilers.
+  // Enabled by default under --enable-perf, otherwise disabled.
+#if defined(JS_ION_PERF)
+  SET_DEFAULT(emitInterpreterEntryTrampoline, true);
+#else
+  SET_DEFAULT(emitInterpreterEntryTrampoline, false);
+#endif
 
   // Whether the Baseline JIT is enabled.
   SET_DEFAULT(baselineJit, true);
@@ -164,6 +179,9 @@ DefaultJitOptions::DefaultJitOptions() {
   // Duplicated in all.js - ensure both match.
   SET_DEFAULT(baselineJitWarmUpThreshold, 100);
 
+  // Disable eager baseline jit hints
+  SET_DEFAULT(disableJitHints, false);
+
   // How many invocations or loop iterations are needed before functions
   // are considered for trial inlining.
   SET_DEFAULT(trialInliningWarmUpThreshold, 500);
@@ -202,7 +220,7 @@ DefaultJitOptions::DefaultJitOptions() {
   SET_DEFAULT(fullDebugChecks, true);
 
   // How many actual arguments are accepted on the C stack.
-  SET_DEFAULT(maxStackArgs, 4096);
+  SET_DEFAULT(maxStackArgs, 20'000);
 
   // How many times we will try to enter a script via OSR before
   // invalidating the script.
@@ -248,7 +266,7 @@ DefaultJitOptions::DefaultJitOptions() {
   }
 
 #if defined(JS_CODEGEN_MIPS32) || defined(JS_CODEGEN_MIPS64) || \
-    defined(JS_CODEGEN_LOONG64)
+    defined(JS_CODEGEN_LOONG64) || defined(JS_CODEGEN_RISCV64)
   SET_DEFAULT(spectreIndexMasking, false);
   SET_DEFAULT(spectreObjectMitigations, false);
   SET_DEFAULT(spectreStringMitigations, false);
@@ -305,6 +323,9 @@ DefaultJitOptions::DefaultJitOptions() {
 
   // Whether the MegamorphicCache is enabled.
   SET_DEFAULT(enableWatchtowerMegamorphic, true);
+
+  SET_DEFAULT(onlyInlineSelfHosted, false);
+  SET_DEFAULT(enableICFramePointers, false);
 
   SET_DEFAULT(enableWasmJitExit, true);
   SET_DEFAULT(enableWasmJitEntry, true);

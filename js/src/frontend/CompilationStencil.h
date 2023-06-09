@@ -361,7 +361,7 @@ struct InputName {
   // The InputName is either from an instantiated name, or from another
   // CompilationStencil. This method interns the current name in the parser atom
   // table of a CompilationState, which has a corresponding CompilationInput.
-  TaggedParserAtomIndex internInto(JSContext* cx, FrontendContext* fc,
+  TaggedParserAtomIndex internInto(FrontendContext* fc,
                                    ParserAtomsTable& parserAtoms,
                                    CompilationAtomCache& atomCache);
 
@@ -486,7 +486,7 @@ struct ScopeContext {
   bool hasFunctionNeedsHomeObjectOnChain = false;
 #endif
 
-  bool init(JSContext* cx, FrontendContext* fc, CompilationInput& input,
+  bool init(FrontendContext* fc, CompilationInput& input,
             ParserAtomsTable& parserAtoms, ScopeBindingCache* scopeCache,
             InheritThis inheritThis, JSObject* enclosingEnv);
 
@@ -518,17 +518,16 @@ struct ScopeContext {
 
   InputScope determineEffectiveScope(InputScope& scope, JSObject* environment);
 
-  bool cachePrivateFieldsForEval(JSContext* cx, FrontendContext* fc,
-                                 CompilationInput& input,
+  bool cachePrivateFieldsForEval(FrontendContext* fc, CompilationInput& input,
                                  JSObject* enclosingEnvironment,
                                  const InputScope& effectiveScope,
                                  ParserAtomsTable& parserAtoms);
 
-  bool cacheEnclosingScopeBindingForEval(JSContext* cx, FrontendContext* fc,
+  bool cacheEnclosingScopeBindingForEval(FrontendContext* fc,
                                          CompilationInput& input,
                                          ParserAtomsTable& parserAtoms);
 
-  bool addToEnclosingLexicalBindingCache(JSContext* cx, FrontendContext* fc,
+  bool addToEnclosingLexicalBindingCache(FrontendContext* fc,
                                          ParserAtomsTable& parserAtoms,
                                          CompilationAtomCache& atomCache,
                                          InputName& name,
@@ -563,6 +562,7 @@ struct CompilationAtomCache {
   bool allocate(FrontendContext* fc, size_t length);
 
   bool empty() const { return atoms_.empty(); }
+  size_t size() const { return atoms_.length(); }
 
   void stealBuffer(AtomCacheVector& atoms);
   void releaseBuffer(AtomCacheVector& atoms);
@@ -614,23 +614,22 @@ struct CompilationInput {
       : options(options) {}
 
  private:
-  bool initScriptSource(JSContext* cx, FrontendContext* fc);
+  bool initScriptSource(FrontendContext* fc);
 
  public:
-  bool initForGlobal(JSContext* cx, FrontendContext* fc) {
+  bool initForGlobal(FrontendContext* fc) {
     target = CompilationTarget::Global;
-    return initScriptSource(cx, fc);
+    return initScriptSource(fc);
   }
 
-  bool initForSelfHostingGlobal(JSContext* cx) {
+  bool initForSelfHostingGlobal(FrontendContext* fc) {
     target = CompilationTarget::SelfHosting;
-    AutoReportFrontendContext fc(cx);
-    return initScriptSource(cx, &fc);
+    return initScriptSource(fc);
   }
 
   bool initForStandaloneFunction(JSContext* cx, FrontendContext* fc) {
     target = CompilationTarget::StandaloneFunction;
-    if (!initScriptSource(cx, fc)) {
+    if (!initScriptSource(fc)) {
       return false;
     }
     enclosingScope = InputScope(&cx->global()->emptyGlobalScope());
@@ -638,22 +637,20 @@ struct CompilationInput {
   }
 
   bool initForStandaloneFunctionInNonSyntacticScope(
-      JSContext* cx, FrontendContext* fc,
-      Handle<Scope*> functionEnclosingScope);
+      FrontendContext* fc, Handle<Scope*> functionEnclosingScope);
 
-  bool initForEval(JSContext* cx, FrontendContext* fc,
-                   Handle<Scope*> evalEnclosingScope) {
+  bool initForEval(FrontendContext* fc, Handle<Scope*> evalEnclosingScope) {
     target = CompilationTarget::Eval;
-    if (!initScriptSource(cx, fc)) {
+    if (!initScriptSource(fc)) {
       return false;
     }
     enclosingScope = InputScope(evalEnclosingScope);
     return true;
   }
 
-  bool initForModule(JSContext* cx, FrontendContext* fc) {
+  bool initForModule(FrontendContext* fc) {
     target = CompilationTarget::Module;
-    if (!initScriptSource(cx, fc)) {
+    if (!initScriptSource(fc)) {
       return false;
     }
     // The `enclosingScope` is the emptyGlobalScope.
@@ -822,7 +819,7 @@ class CompilationSyntaxParseCache {
 
   // Initialize the SynaxParse cache given a LifoAlloc. The JSContext is only
   // used for reporting allocation errors.
-  [[nodiscard]] bool init(JSContext* cx, FrontendContext* fc, LifoAlloc& alloc,
+  [[nodiscard]] bool init(FrontendContext* fc, LifoAlloc& alloc,
                           ParserAtomsTable& parseAtoms,
                           CompilationAtomCache& atomCache,
                           const InputScript& lazy);
@@ -842,26 +839,24 @@ class CompilationSyntaxParseCache {
     return taggedScriptIndex.toFunction();
   }
 
-  [[nodiscard]] bool copyFunctionInfo(JSContext* cx, FrontendContext* fc,
+  [[nodiscard]] bool copyFunctionInfo(FrontendContext* fc,
                                       ParserAtomsTable& parseAtoms,
                                       CompilationAtomCache& atomCache,
                                       const InputScript& lazy);
-  [[nodiscard]] bool copyScriptInfo(JSContext* cx, FrontendContext* fc,
-                                    LifoAlloc& alloc,
+  [[nodiscard]] bool copyScriptInfo(FrontendContext* fc, LifoAlloc& alloc,
                                     ParserAtomsTable& parseAtoms,
                                     CompilationAtomCache& atomCache,
                                     BaseScript* lazy);
-  [[nodiscard]] bool copyScriptInfo(JSContext* cx, FrontendContext* fc,
-                                    LifoAlloc& alloc,
+  [[nodiscard]] bool copyScriptInfo(FrontendContext* fc, LifoAlloc& alloc,
                                     ParserAtomsTable& parseAtoms,
                                     CompilationAtomCache& atomCache,
                                     const ScriptStencilRef& lazy);
-  [[nodiscard]] bool copyClosedOverBindings(JSContext* cx, FrontendContext* fc,
+  [[nodiscard]] bool copyClosedOverBindings(FrontendContext* fc,
                                             LifoAlloc& alloc,
                                             ParserAtomsTable& parseAtoms,
                                             CompilationAtomCache& atomCache,
                                             BaseScript* lazy);
-  [[nodiscard]] bool copyClosedOverBindings(JSContext* cx, FrontendContext* fc,
+  [[nodiscard]] bool copyClosedOverBindings(FrontendContext* fc,
                                             LifoAlloc& alloc,
                                             ParserAtomsTable& parseAtoms,
                                             CompilationAtomCache& atomCache,
@@ -990,8 +985,7 @@ struct SharedDataContainer {
   js::SharedImmutableScriptData* get(ScriptIndex index) const;
 
   // Add data for index-th script and share it with VM.
-  [[nodiscard]] bool addAndShare(JSContext* cx, FrontendContext* fc,
-                                 ScriptIndex index,
+  [[nodiscard]] bool addAndShare(FrontendContext* fc, ScriptIndex index,
                                  js::SharedImmutableScriptData* data);
 
   // Add data for index-th script without sharing it with VM.
@@ -1180,7 +1174,7 @@ struct CompilationStencil {
   [[nodiscard]] bool serializeStencils(JSContext* cx, CompilationInput& input,
                                        JS::TranscodeBuffer& buf,
                                        bool* succeededOut = nullptr) const;
-  [[nodiscard]] bool deserializeStencils(JSContext* cx, FrontendContext* fc,
+  [[nodiscard]] bool deserializeStencils(FrontendContext* fc,
                                          CompilationInput& input,
                                          const JS::TranscodeRange& range,
                                          bool* succeededOut = nullptr);
@@ -1392,8 +1386,7 @@ struct MOZ_RAII CompilationState : public ExtensibleCompilationStencil {
 
   UsedNameTracker usedNames;
 
-  // LifoAlloc scope for `cx->tempLifoAlloc()`, used by Parser for allocating
-  // AST etc.
+  // LifoAlloc scope used by Parser for allocating AST etc.
   //
   // NOTE: This is not used for ExtensibleCompilationStencil.alloc.
   LifoAllocScope& parserAllocScope;
@@ -1410,13 +1403,13 @@ struct MOZ_RAII CompilationState : public ExtensibleCompilationStencil {
 
   // End of fields.
 
-  CompilationState(JSContext* cx, FrontendContext* fc,
-                   LifoAllocScope& parserAllocScope, CompilationInput& input);
+  CompilationState(FrontendContext* fc, LifoAllocScope& parserAllocScope,
+                   CompilationInput& input);
 
-  bool init(JSContext* cx, FrontendContext* fc, ScopeBindingCache* scopeCache,
+  bool init(FrontendContext* fc, ScopeBindingCache* scopeCache,
             InheritThis inheritThis = InheritThis::No,
             JSObject* enclosingEnv = nullptr) {
-    if (!scopeContext.init(cx, fc, input, parserAtoms, scopeCache, inheritThis,
+    if (!scopeContext.init(fc, input, parserAtoms, scopeCache, inheritThis,
                            enclosingEnv)) {
       return false;
     }
@@ -1425,8 +1418,7 @@ struct MOZ_RAII CompilationState : public ExtensibleCompilationStencil {
     if (input.isDelazifying()) {
       InputScript lazy = input.lazyOuterScript();
       auto& atomCache = input.atomCache;
-      if (!previousParseCache.init(cx, fc, alloc, parserAtoms, atomCache,
-                                   lazy)) {
+      if (!previousParseCache.init(fc, alloc, parserAtoms, atomCache, lazy)) {
         return false;
       }
     }
@@ -1460,7 +1452,7 @@ struct MOZ_RAII CompilationState : public ExtensibleCompilationStencil {
 
   // Allocate space for `length` gcthings, and return the address of the
   // first element to `cursor` to initialize on the caller.
-  bool allocateGCThingsUninitialized(JSContext* cx, FrontendContext* fc,
+  bool allocateGCThingsUninitialized(FrontendContext* fc,
                                      ScriptIndex scriptIndex, size_t length,
                                      TaggedScriptThingIndex** cursor);
 

@@ -71,6 +71,8 @@ pub fn get_shader_features(flags: ShaderFeatureFlags) -> ShaderFeatures {
     // Cache shaders
     shaders.insert("cs_blur", vec!["ALPHA_TARGET".to_string(), "COLOR_TARGET".to_string()]);
 
+    shaders.insert("ps_quad_mask", vec![String::new(), "FAST_PATH".to_string()]);
+
     for name in &[
         "cs_line_decoration",
         "cs_fast_linear_gradient",
@@ -220,6 +222,8 @@ pub fn get_shader_features(flags: ShaderFeatureFlags) -> ShaderFeatures {
     shaders.insert("ps_text_run", text_features);
 
     shaders.insert("ps_split_composite", vec![base_prim_features.finish()]);
+
+    shaders.insert("ps_quad_textured", vec![base_prim_features.finish()]);
 
     shaders.insert("ps_clear", vec![base_prim_features.finish()]);
 

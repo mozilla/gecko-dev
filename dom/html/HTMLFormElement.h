@@ -10,6 +10,7 @@
 #include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/UniquePtr.h"
+#include "mozilla/dom/AnchorAreaFormRelValues.h"
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/PopupBlocker.h"
 #include "mozilla/dom/RadioGroupManager.h"
@@ -39,6 +40,7 @@ class FormData;
 
 class HTMLFormElement final : public nsGenericHTMLElement,
                               public nsIRadioGroupContainer,
+                              public AnchorAreaFormRelValues,
                               RadioGroupManager {
   friend class HTMLFormControlsCollection;
 
@@ -69,32 +71,30 @@ class HTMLFormElement final : public nsGenericHTMLElement,
                        HTMLInputElement* aRadio) override;
   void RemoveFromRadioGroup(const nsAString& aName,
                             HTMLInputElement* aRadio) override;
-  virtual uint32_t GetRequiredRadioCount(const nsAString& aName) const override;
-  virtual void RadioRequiredWillChange(const nsAString& aName,
-                                       bool aRequiredAdded) override;
-  virtual bool GetValueMissingState(const nsAString& aName) const override;
-  virtual void SetValueMissingState(const nsAString& aName,
-                                    bool aValue) override;
+  uint32_t GetRequiredRadioCount(const nsAString& aName) const override;
+  void RadioRequiredWillChange(const nsAString& aName,
+                               bool aRequiredAdded) override;
+  bool GetValueMissingState(const nsAString& aName) const override;
+  void SetValueMissingState(const nsAString& aName, bool aValue) override;
 
-  virtual ElementState IntrinsicState() const override;
+  ElementState IntrinsicState() const override;
 
   // EventTarget
-  virtual void AsyncEventRunning(AsyncEventDispatcher* aEvent) override;
+  void AsyncEventRunning(AsyncEventDispatcher* aEvent) override;
 
   // nsIContent
-  virtual bool ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
-                              const nsAString& aValue,
-                              nsIPrincipal* aMaybeScriptedPrincipal,
-                              nsAttrValue& aResult) override;
+  bool ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
+                      const nsAString& aValue,
+                      nsIPrincipal* aMaybeScriptedPrincipal,
+                      nsAttrValue& aResult) override;
   void GetEventTargetParent(EventChainPreVisitor& aVisitor) override;
   void WillHandleEvent(EventChainPostVisitor& aVisitor) override;
-  virtual nsresult PostHandleEvent(EventChainPostVisitor& aVisitor) override;
+  nsresult PostHandleEvent(EventChainPostVisitor& aVisitor) override;
 
-  virtual nsresult BindToTree(BindContext&, nsINode& aParent) override;
-  virtual void UnbindFromTree(bool aNullParent = true) override;
-  virtual nsresult BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
-                                 const nsAttrValueOrString* aValue,
-                                 bool aNotify) override;
+  nsresult BindToTree(BindContext&, nsINode& aParent) override;
+  void UnbindFromTree(bool aNullParent = true) override;
+  void BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
+                     const nsAttrValue* aValue, bool aNotify) override;
 
   /**
    * Forget all information about the current submission (and the fact that we
@@ -102,7 +102,7 @@ class HTMLFormElement final : public nsGenericHTMLElement,
    */
   void ForgetCurrentSubmission();
 
-  virtual nsresult Clone(dom::NodeInfo*, nsINode** aResult) const override;
+  nsresult Clone(dom::NodeInfo*, nsINode** aResult) const override;
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(HTMLFormElement,
                                            nsGenericHTMLElement)
@@ -329,6 +329,12 @@ class HTMLFormElement final : public nsGenericHTMLElement,
     SetHTMLAttr(nsGkAtoms::target, aValue, aRv);
   }
 
+  void GetRel(DOMString& aValue) { GetHTMLAttr(nsGkAtoms::rel, aValue); }
+  void SetRel(const nsAString& aRel, ErrorResult& aError) {
+    SetHTMLAttr(nsGkAtoms::rel, aRel, aError);
+  }
+  nsDOMTokenList* RelList();
+
   // it's only out-of-line because the class definition is not available in the
   // header
   nsIHTMLCollection* Elements();
@@ -387,8 +393,7 @@ class HTMLFormElement final : public nsGenericHTMLElement,
   JS::ExpandoAndGeneration mExpandoAndGeneration;
 
  protected:
-  virtual JSObject* WrapNode(JSContext* aCx,
-                             JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapNode(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
 
   void PostPasswordEvent();
   void PostPossibleUsernameEvent();
@@ -581,6 +586,8 @@ class HTMLFormElement final : public nsGenericHTMLElement,
 
   /** Keep track of what the popup state was when the submit was initiated */
   PopupBlocker::PopupControlState mSubmitPopupState;
+
+  RefPtr<nsDOMTokenList> mRelList;
 
   /**
    * Number of invalid and candidate for constraint validation elements in the

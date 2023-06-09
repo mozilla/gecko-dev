@@ -7,6 +7,8 @@
 
 const FEATURE_PREF = "cookiebanners.ui.desktop.enabled";
 const MODE_PREF = "cookiebanners.service.mode";
+const PBM_MODE_PREF = "cookiebanners.service.mode.privateBrowsing";
+const DETECT_ONLY_PREF = "cookiebanners.service.detectOnly";
 
 const GROUPBOX_ID = "cookieBannerHandlingGroup";
 const CHECKBOX_ID = "handleCookieBanners";
@@ -71,12 +73,13 @@ add_task(async function test_checkbox_unchecked_disabled_mode() {
   await SpecialPowers.popPrefEnv();
 });
 
-// Test the checkbox is unchecked in DETECT_ONLY mode.
+// Test the checkbox is unchecked in detect-only mode.
 add_task(async function test_checkbox_unchecked_detect_only_mode() {
   await SpecialPowers.pushPrefEnv({
     set: [
       [FEATURE_PREF, true],
-      [MODE_PREF, Ci.nsICookieBannerService.MODE_DETECT_ONLY],
+      [MODE_PREF, Ci.nsICookieBannerService.MODE_REJECT],
+      [DETECT_ONLY_PREF, true],
     ],
   });
 
@@ -84,7 +87,7 @@ add_task(async function test_checkbox_unchecked_detect_only_mode() {
     { gBrowser, url: "about:preferences#privacy" },
     async function(browser) {
       let checkbox = browser.contentDocument.getElementById(CHECKBOX_ID);
-      ok(!checkbox.checked, "checkbox is not checked in DETECT_ONLY mode");
+      ok(!checkbox.checked, "checkbox is not checked in detect-only mode");
     }
   );
 
@@ -131,12 +134,15 @@ add_task(async function test_checkbox_checked_reject_mode() {
   await SpecialPowers.popPrefEnv();
 });
 
-// Test that toggling the checkbox toggles the mode pref value as expected.
-add_task(async function test_checkbox_modifies_mode_pref() {
+// Test that toggling the checkbox toggles the mode pref value as expected,
+// and also disables detect only mode, as expected.
+add_task(async function test_checkbox_modifies_prefs() {
   await SpecialPowers.pushPrefEnv({
     set: [
       [FEATURE_PREF, true],
-      [MODE_PREF, Ci.nsICookieBannerService.MODE_REJECT_OR_ACCEPT],
+      [MODE_PREF, Ci.nsICookieBannerService.MODE_UNSET],
+      [PBM_MODE_PREF, Ci.nsICookieBannerService.MODE_UNSET],
+      [DETECT_ONLY_PREF, true],
     ],
   });
 
@@ -149,7 +155,32 @@ add_task(async function test_checkbox_modifies_mode_pref() {
 
       section.scrollIntoView();
 
-      Assert.ok(checkbox.checked, "initially, the checkbox should be checked");
+      Assert.ok(
+        !checkbox.checked,
+        "initially, the checkbox should be unchecked"
+      );
+
+      await BrowserTestUtils.synthesizeMouseAtCenter(
+        checkboxSelector,
+        {},
+        browser
+      );
+      Assert.ok(checkbox.checked, "checkbox should be checked");
+      Assert.equal(
+        Ci.nsICookieBannerService.MODE_REJECT,
+        Services.prefs.getIntPref(MODE_PREF),
+        "cookie banner handling mode should be set to REJECT mode after checking the checkbox"
+      );
+      Assert.equal(
+        Ci.nsICookieBannerService.MODE_REJECT,
+        Services.prefs.getIntPref(PBM_MODE_PREF),
+        "cookie banner handling mode for PBM should be set to REJECT mode after checking the checkbox"
+      );
+      Assert.equal(
+        false,
+        Services.prefs.getBoolPref(DETECT_ONLY_PREF),
+        "cookie banner handling detect-only mode should be disabled after checking the checkbox"
+      );
 
       await BrowserTestUtils.synthesizeMouseAtCenter(
         checkboxSelector,
@@ -162,17 +193,15 @@ add_task(async function test_checkbox_modifies_mode_pref() {
         Services.prefs.getIntPref(MODE_PREF),
         "cookie banner handling mode should be set to DISABLED mode after unchecking the checkbox"
       );
-
-      await BrowserTestUtils.synthesizeMouseAtCenter(
-        checkboxSelector,
-        {},
-        browser
-      );
-      Assert.ok(checkbox.checked, "checkbox should be checked");
       Assert.equal(
-        Ci.nsICookieBannerService.MODE_REJECT_OR_ACCEPT,
-        Services.prefs.getIntPref(MODE_PREF),
-        "cookie banner handling mode should be set to REJECT_OR_ACCEPT mode after checking the checkbox"
+        Ci.nsICookieBannerService.MODE_DISABLED,
+        Services.prefs.getIntPref(PBM_MODE_PREF),
+        "cookie banner handling mode for PBM should be set to DISABLED mode after unchecking the checkbox"
+      );
+      Assert.equal(
+        false,
+        Services.prefs.getBoolPref(DETECT_ONLY_PREF),
+        "cookie banner handling detect-only mode should still be disabled after unchecking the checkbox"
       );
     }
   );

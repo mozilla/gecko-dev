@@ -309,7 +309,6 @@ BrowserChild::BrowserChild(ContentChild* aManager, const TabId& aTabId,
       mHasValidInnerSize(false),
       mDestroyed(false),
       mIsTopLevel(aIsTopLevel),
-      mHasSiblings(false),
       mIsTransparent(false),
       mIPCOpen(false),
       mDidSetRealShowInfo(false),
@@ -319,10 +318,6 @@ BrowserChild::BrowserChild(ContentChild* aManager, const TabId& aTabId,
       mShouldSendWebProgressEventsToParent(false),
       mRenderLayers(true),
       mIsPreservingLayers(false),
-      mPendingDocShellIsActive(false),
-      mPendingDocShellReceivedMessage(false),
-      mPendingRenderLayers(false),
-      mPendingRenderLayersReceivedMessage(false),
       mLayersObserverEpoch{1},
 #if defined(XP_WIN) && defined(ACCESSIBILITY)
       mNativeWindowHandle(0),
@@ -330,8 +325,6 @@ BrowserChild::BrowserChild(ContentChild* aManager, const TabId& aTabId,
 #if defined(ACCESSIBILITY)
       mTopLevelDocAccessibleChild(nullptr),
 #endif
-      mPendingLayersObserverEpoch{0},
-      mPendingDocShellBlockers(0),
       mCancelContentJSEpoch(0) {
   mozilla::HoldJSObjects(this);
 
@@ -721,8 +714,8 @@ BrowserChild::ProvideWindow(nsIOpenWindowInfo* aOpenWindowInfo,
   // code back to our caller.
   ContentChild* cc = ContentChild::GetSingleton();
   return cc->ProvideWindowCommon(
-      this, aOpenWindowInfo, aChromeFlags, aCalledFromJS, aURI, aName,
-      aFeatures, aForceNoOpener, aForceNoReferrer, aIsPopupRequested,
+      WrapNotNull(this), aOpenWindowInfo, aChromeFlags, aCalledFromJS, aURI,
+      aName, aFeatures, aForceNoOpener, aForceNoReferrer, aIsPopupRequested,
       aLoadState, aWindowIsNew, aReturn);
 }
 
@@ -1023,7 +1016,8 @@ nsresult BrowserChild::UpdateRemotePrintSettings(
       // everything.
       ([&]() MOZ_CAN_RUN_SCRIPT_BOUNDARY {
         RefPtr<RemotePrintJobChild> printJob =
-            static_cast<RemotePrintJobChild*>(aPrintData.remotePrintJobChild());
+            static_cast<RemotePrintJobChild*>(
+                aPrintData.remotePrintJob().AsChild());
         cv->SetPrintSettingsForSubdocument(printSettings, printJob);
       }());
     } else if (RefPtr<BrowserBridgeChild> remoteChild =
@@ -1356,7 +1350,8 @@ mozilla::ipc::IPCResult BrowserChild::RecvHandleTap(
   switch (aType) {
     case GeckoContentController::TapType::eSingleTap:
       if (mBrowserChildMessageManager) {
-        mAPZEventState->ProcessSingleTap(point, scale, aModifiers, 1);
+        mAPZEventState->ProcessSingleTap(point, scale, aModifiers, 1,
+                                         aInputBlockId);
       }
       break;
     case GeckoContentController::TapType::eDoubleTap:
@@ -1364,7 +1359,8 @@ mozilla::ipc::IPCResult BrowserChild::RecvHandleTap(
       break;
     case GeckoContentController::TapType::eSecondTap:
       if (mBrowserChildMessageManager) {
-        mAPZEventState->ProcessSingleTap(point, scale, aModifiers, 2);
+        mAPZEventState->ProcessSingleTap(point, scale, aModifiers, 2,
+                                         aInputBlockId);
       }
       break;
     case GeckoContentController::TapType::eLongTap:
@@ -1398,8 +1394,8 @@ mozilla::ipc::IPCResult BrowserChild::RecvNormalPriorityHandleTap(
 bool BrowserChild::NotifyAPZStateChange(
     const ViewID& aViewId,
     const layers::GeckoContentController::APZStateChange& aChange,
-    const int& aArg) {
-  mAPZEventState->ProcessAPZStateChange(aViewId, aChange, aArg);
+    const int& aArg, Maybe<uint64_t> aInputBlockId) {
+  mAPZEventState->ProcessAPZStateChange(aViewId, aChange, aArg, aInputBlockId);
   nsCOMPtr<nsIObserverService> observerService =
       mozilla::services::GetObserverService();
   if (aChange ==
@@ -2181,30 +2177,6 @@ bool BrowserChild::DeallocPDocAccessibleChild(
 }
 #endif
 
-PColorPickerChild* BrowserChild::AllocPColorPickerChild(
-    const nsAString&, const nsAString&, const nsTArray<nsString>&) {
-  MOZ_CRASH("unused");
-  return nullptr;
-}
-
-bool BrowserChild::DeallocPColorPickerChild(PColorPickerChild* aColorPicker) {
-  nsColorPickerProxy* picker = static_cast<nsColorPickerProxy*>(aColorPicker);
-  NS_RELEASE(picker);
-  return true;
-}
-
-PFilePickerChild* BrowserChild::AllocPFilePickerChild(const nsAString&,
-                                                      const int16_t&) {
-  MOZ_CRASH("unused");
-  return nullptr;
-}
-
-bool BrowserChild::DeallocPFilePickerChild(PFilePickerChild* actor) {
-  nsFilePickerProxy* filePicker = static_cast<nsFilePickerProxy*>(actor);
-  NS_RELEASE(filePicker);
-  return true;
-}
-
 RefPtr<VsyncMainChild> BrowserChild::GetVsyncChild() {
   // Initializing mVsyncChild here turns on per-BrowserChild Vsync for a
   // given platform. Note: this only makes sense if nsWindow returns a
@@ -2350,7 +2322,7 @@ mozilla::ipc::IPCResult BrowserChild::RecvPrintPreview(
   auto sendCallbackError = MakeScopeExit([&] {
     if (aCallback) {
       // signal error
-      aCallback(PrintPreviewResultInfo(0, 0, false, false, false, {}));
+      aCallback(PrintPreviewResultInfo(0, 0, false, false, false, {}, {}, {}));
     }
   });
 
@@ -2442,8 +2414,8 @@ mozilla::ipc::IPCResult BrowserChild::RecvPrint(
   printSettingsSvc->DeserializeToPrintSettings(aPrintData, printSettings);
   {
     IgnoredErrorResult rv;
-    RefPtr printJob =
-        static_cast<RemotePrintJobChild*>(aPrintData.remotePrintJobChild());
+    RefPtr printJob = static_cast<RemotePrintJobChild*>(
+        aPrintData.remotePrintJob().AsChild());
     outerWindow->Print(printSettings, printJob,
                        /* aListener = */ nullptr,
                        /* aWindowToCloneInto = */ nullptr,
@@ -2508,13 +2480,6 @@ mozilla::ipc::IPCResult BrowserChild::RecvDestroy() {
 
 mozilla::ipc::IPCResult BrowserChild::RecvRenderLayers(
     const bool& aEnabled, const layers::LayersObserverEpoch& aEpoch) {
-  if (mPendingDocShellBlockers > 0) {
-    mPendingRenderLayersReceivedMessage = true;
-    mPendingRenderLayers = aEnabled;
-    mPendingLayersObserverEpoch = aEpoch;
-    return IPC_OK();
-  }
-
   // Since requests to change the rendering state come in from both the hang
   // monitor channel and the PContent channel, we have an ordering problem. This
   // code ensures that we respect the order in which the requests were made and
@@ -3307,6 +3272,19 @@ void BrowserChild::PaintWhileInterruptingJS(
   RecvRenderLayers(true /* aEnabled */, aEpoch);
 }
 
+void BrowserChild::UnloadLayersWhileInterruptingJS(
+    const layers::LayersObserverEpoch& aEpoch) {
+  if (!IPCOpen() || !mPuppetWidget || !mPuppetWidget->HasWindowRenderer()) {
+    // Don't bother doing anything now. Better to wait until we receive the
+    // message on the PContent channel.
+    return;
+  }
+
+  MOZ_DIAGNOSTIC_ASSERT(nsContentUtils::IsSafeToRunScript());
+  nsAutoScriptBlocker scriptBlocker;
+  RecvRenderLayers(false /* aEnabled */, aEpoch);
+}
+
 nsresult BrowserChild::CanCancelContentJS(
     nsIRemoteTab::NavigationType aNavigationType, int32_t aNavigationIndex,
     nsIURI* aNavigationURI, int32_t aEpoch, bool* aCanCancel) {
@@ -3416,16 +3394,6 @@ nsresult BrowserChild::CanCancelContentJS(
     entry = nextEntry;
   }
 
-  return NS_OK;
-}
-
-nsresult BrowserChild::GetHasSiblings(bool* aHasSiblings) {
-  *aHasSiblings = mHasSiblings;
-  return NS_OK;
-}
-
-nsresult BrowserChild::SetHasSiblings(bool aHasSiblings) {
-  mHasSiblings = aHasSiblings;
   return NS_OK;
 }
 

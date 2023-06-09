@@ -2,14 +2,27 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+:root {
+  min-width: 24em;
+  min-height: 24em;
+}
+
 #mainDeck {
   padding: 10px;
   min-height: 0;
 }
 
+#mediaPreviewBox,
+#imagecontainerbox,
+#thepreviewimage,
+#mainDeck > vbox {
+  min-width: 0;
+  min-height: 0;
+}
+
 #viewGroup > radio > .radio-label-box {
-  -moz-box-orient: vertical;
-  -moz-box-align: center;
+  flex-direction: column;
+  align-items: center;
 }
 
 /* Hide the radio button for the section headers */
@@ -18,9 +31,9 @@
 }
 
 #thepreviewimage {
+  margin: 1em auto;
+  flex: none;
   display: block;
-/* This following entry can be removed when Bug 522850 is fixed. */
-  min-width: 1px;
 }
 
 table {
@@ -63,7 +76,7 @@ td > input,
 
 .table-split-column > label,
 .table-split-column > input {
-  flex-grow: 1;
+  flex: 1 auto;
 }
 
 .table-split-column > button {
@@ -71,6 +84,6 @@ td > input,
 }
 
 #hostText {
-  -moz-box-flex: 1;
+  flex: 1;
   margin-top: 1px; /* same margin as adjacent label */
 }

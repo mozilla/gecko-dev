@@ -251,16 +251,11 @@ class PendingStyles final {
   }
 
   /**
-   * TakePreservedStyle() hands back next property item on the preserving
-   * styles. This should be used only for handling setting new style for
-   * inserted content.
+   * TakeAllPreservedStyles() moves all preserved styles and values to
+   * aOutStylesAndValues.
    */
-  UniquePtr<PendingStyle> TakePreservedStyle() {
-    if (mPreservingStyles.IsEmpty()) {
-      return nullptr;
-    }
-    return mPreservingStyles.PopLastElement();
-  }
+  void TakeAllPreservedStyles(
+      nsTArray<EditorInlineStyleAndValue>& aOutStylesAndValues);
 
   /**
    * TakeRelativeFontSize() hands back relative font value, which is then

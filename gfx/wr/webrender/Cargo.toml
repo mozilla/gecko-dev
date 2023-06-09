@@ -18,7 +18,7 @@ serialize_program = ["serde", "webrender_build/serialize_program"]
 dynamic_freetype = ["glyph_rasterizer/dynamic_freetype"]
 static_freetype = ["glyph_rasterizer/static_freetype"]
 leak_checks = []
-gecko = ["fog", "glyph_rasterizer/gecko"]
+gecko = ["firefox-on-glean", "glyph_rasterizer/gecko"]
 sw_compositor = ["swgl"]
 
 [build-dependencies]
@@ -32,7 +32,7 @@ bitflags = "1.2"
 byteorder = "1.0"
 euclid = { version = "0.22.0", features = ["serde"] }
 fxhash = "0.2.1"
-gleam = "0.13.1"
+gleam = "0.15.0"
 lazy_static = "1"
 log = "0.4"
 malloc_size_of_derive = "0.1"
@@ -52,10 +52,11 @@ svg_fmt = "0.4"
 tracy-rs = "0.1.2"
 derive_more = { version = "0.99", default-features = false, features = ["add_assign"] }
 etagere = "0.2.6"
-glean = "51.8.2"
-fog = { version = "0.1.0", optional = true }
+glean = "52.7.0"
+firefox-on-glean = { version = "0.1.0", optional = true }
 swgl = { path = "../swgl", optional = true }
 topological-sort = "0.1"
+peek-poke = { version = "0.3", path = "../peek-poke" }
 
 [dev-dependencies]
 mozangle = "0.3.3"

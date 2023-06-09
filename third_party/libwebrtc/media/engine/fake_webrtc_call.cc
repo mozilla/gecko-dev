@@ -15,10 +15,12 @@
 #include "absl/algorithm/container.h"
 #include "absl/strings/string_view.h"
 #include "api/call/audio_sink.h"
+#include "media/base/media_channel.h"
 #include "modules/rtp_rtcp/source/rtp_util.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/gunit.h"
 #include "rtc_base/thread.h"
+#include "video/config/encoder_stream_factory.h"
 
 namespace cricket {
 
@@ -30,8 +32,10 @@ FakeAudioSendStream::FakeAudioSendStream(
     : id_(id), config_(config) {}
 
 void FakeAudioSendStream::Reconfigure(
-    const webrtc::AudioSendStream::Config& config) {
+    const webrtc::AudioSendStream::Config& config,
+    webrtc::SetParametersCallback callback) {
   config_ = config;
+  webrtc::InvokeSetParametersCallback(callback, webrtc::RTCError::OK());
 }
 
 const webrtc::AudioSendStream::Config& FakeAudioSendStream::GetConfig() const {
@@ -241,8 +245,24 @@ void FakeVideoSendStream::OnFrame(const webrtc::VideoFrame& frame) {
   if (!last_frame_ || frame.width() != last_frame_->width() ||
       frame.height() != last_frame_->height() ||
       frame.rotation() != last_frame_->rotation()) {
-    video_streams_ = encoder_config_.video_stream_factory->CreateEncoderStreams(
-        frame.width(), frame.height(), encoder_config_);
+    if (encoder_config_.video_stream_factory) {
+      // Note: only tests set their own EncoderStreamFactory...
+      video_streams_ =
+          encoder_config_.video_stream_factory->CreateEncoderStreams(
+              frame.width(), frame.height(), encoder_config_);
+    } else {
+      webrtc::VideoEncoder::EncoderInfo encoder_info;
+      rtc::scoped_refptr<
+          webrtc::VideoEncoderConfig::VideoStreamFactoryInterface>
+          factory = rtc::make_ref_counted<cricket::EncoderStreamFactory>(
+              encoder_config_.video_format.name, encoder_config_.max_qp,
+              encoder_config_.content_type ==
+                  webrtc::VideoEncoderConfig::ContentType::kScreen,
+              encoder_config_.legacy_conference_mode, encoder_info);
+
+      video_streams_ = factory->CreateEncoderStreams(
+          frame.width(), frame.height(), encoder_config_);
+    }
   }
   last_frame_ = frame;
 }
@@ -258,6 +278,12 @@ webrtc::VideoSendStream::Stats FakeVideoSendStream::GetStats() {
 
 void FakeVideoSendStream::ReconfigureVideoEncoder(
     webrtc::VideoEncoderConfig config) {
+  ReconfigureVideoEncoder(std::move(config), nullptr);
+}
+
+void FakeVideoSendStream::ReconfigureVideoEncoder(
+    webrtc::VideoEncoderConfig config,
+    webrtc::SetParametersCallback callback) {
   int width, height;
   if (last_frame_) {
     width = last_frame_->width();
@@ -265,8 +291,22 @@ void FakeVideoSendStream::ReconfigureVideoEncoder(
   } else {
     width = height = 0;
   }
-  video_streams_ =
-      config.video_stream_factory->CreateEncoderStreams(width, height, config);
+  if (config.video_stream_factory) {
+    // Note: only tests set their own EncoderStreamFactory...
+    video_streams_ = config.video_stream_factory->CreateEncoderStreams(
+        width, height, config);
+  } else {
+    webrtc::VideoEncoder::EncoderInfo encoder_info;
+    rtc::scoped_refptr<webrtc::VideoEncoderConfig::VideoStreamFactoryInterface>
+        factory = rtc::make_ref_counted<cricket::EncoderStreamFactory>(
+            config.video_format.name, config.max_qp,
+            config.content_type ==
+                webrtc::VideoEncoderConfig::ContentType::kScreen,
+            config.legacy_conference_mode, encoder_info);
+
+    video_streams_ = factory->CreateEncoderStreams(width, height, config);
+  }
+
   if (config.encoder_specific_settings != nullptr) {
     const unsigned char num_temporal_layers = static_cast<unsigned char>(
         video_streams_.back().num_temporal_layers.value_or(1));
@@ -295,9 +335,10 @@ void FakeVideoSendStream::ReconfigureVideoEncoder(
   codec_settings_set_ = config.encoder_specific_settings != nullptr;
   encoder_config_ = std::move(config);
   ++num_encoder_reconfigurations_;
+  webrtc::InvokeSetParametersCallback(callback, webrtc::RTCError::OK());
 }
 
-void FakeVideoSendStream::UpdateActiveSimulcastLayers(
+void FakeVideoSendStream::StartPerRtpStream(
     const std::vector<bool> active_layers) {
   sending_ = false;
   for (const bool active_layer : active_layers) {

@@ -12,6 +12,9 @@ add_setup(async function() {
   Services.prefs.clearUserPref(LOCATION_PREF);
   await PlacesUtils.bookmarks.eraseEverything();
 
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.bookmarks.editDialog.delayedApply.enabled", false]],
+  });
   win = await BrowserTestUtils.openNewBrowserWindow();
   await BrowserTestUtils.openNewForegroundTab({
     gBrowser: win.gBrowser,
@@ -46,8 +49,7 @@ async function cancelBookmarkCreationInPanel() {
   let guid = win.gEditItemOverlay._paneInfo.itemGuid;
   let promiseRemoved = PlacesTestUtils.waitForNotification(
     "bookmark-removed",
-    events => events.some(e => e.guid == guid),
-    "places"
+    events => events.some(e => e.guid == guid)
   );
   win.document.getElementById("editBookmarkPanelRemoveButton").click();
   await hiddenPromise;
@@ -184,8 +186,7 @@ add_task(async function test_change_location_panel() {
       events.some(
         e =>
           e.guid === itemGuid && e.parentGuid === PlacesUtils.bookmarks.menuGuid
-      ),
-    "places"
+      )
   );
 
   // Wait for the pref to change

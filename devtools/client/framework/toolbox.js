@@ -290,6 +290,9 @@ function Toolbox(commands, selectedTool, hostType, contentWindow, frameId) {
   this._applyServiceWorkersTestingSettings = this._applyServiceWorkersTestingSettings.bind(
     this
   );
+  this._applySimpleHighlightersSettings = this._applySimpleHighlightersSettings.bind(
+    this
+  );
   this._saveSplitConsoleHeight = this._saveSplitConsoleHeight.bind(this);
   this._onFocus = this._onFocus.bind(this);
   this._onBlur = this._onBlur.bind(this);
@@ -935,6 +938,10 @@ Toolbox.prototype = {
         this._applyServiceWorkersTestingSettings
       );
       Services.prefs.addObserver(
+        "devtools.inspector.simple-highlighters-reduced-motion",
+        this._applySimpleHighlightersSettings
+      );
+      Services.prefs.addObserver(
         BROWSERTOOLBOX_SCOPE_PREF,
         this._refreshHostTitle
       );
@@ -954,6 +961,7 @@ Toolbox.prototype = {
       // Forward configuration flags to the DevTools server.
       this._applyCacheSettings();
       this._applyServiceWorkersTestingSettings();
+      this._applySimpleHighlightersSettings();
 
       this._addWindowListeners();
       this._addChromeEventHandlerEvents();
@@ -2201,6 +2209,19 @@ Toolbox.prototype = {
   },
 
   /**
+   * Apply the current simple highlighters setting to this toolbox's tab.
+   */
+  _applySimpleHighlightersSettings() {
+    const useSimpleHighlightersForReducedMotion = Services.prefs.getBoolPref(
+      "devtools.inspector.simple-highlighters-reduced-motion",
+      false
+    );
+    this.commands.targetConfigurationCommand.updateConfiguration({
+      useSimpleHighlightersForReducedMotion,
+    });
+  },
+
+  /**
    * Update the visibility of the buttons.
    */
   updateToolboxButtonsVisibility() {
@@ -2950,10 +2971,14 @@ Toolbox.prototype = {
   /**
    * Opens the split console.
    *
+   * @param {boolean} focusConsoleInput
+   *        By default, the console input will be focused.
+   *        Pass false in order to prevent this.
+   *
    * @returns {Promise} a promise that resolves once the tool has been
    *          loaded and focused.
    */
-  openSplitConsole() {
+  openSplitConsole({ focusConsoleInput = true } = {}) {
     this._splitConsole = true;
     Services.prefs.setBoolPref(SPLITCONSOLE_ENABLED_PREF, true);
     this._refreshConsoleDisplay();
@@ -2971,7 +2996,9 @@ Toolbox.prototype = {
         width: Math.ceil(this.win.outerWidth / 50) * 50,
       });
       this.emit("split-console");
-      this.focusConsoleInput();
+      if (focusConsoleInput) {
+        this.focusConsoleInput();
+      }
     });
   },
 
@@ -3991,6 +4018,10 @@ Toolbox.prototype = {
       this._applyServiceWorkersTestingSettings
     );
     Services.prefs.removeObserver(
+      "devtools.inspector.simple-highlighters-reduced-motion",
+      this._applySimpleHighlightersSettings
+    );
+    Services.prefs.removeObserver(
       BROWSERTOOLBOX_SCOPE_PREF,
       this._refreshHostTitle
     );
@@ -4138,9 +4169,6 @@ Toolbox.prototype = {
             this._removeChromeEventHandlerEvents();
 
             this._store = null;
-
-            // Notify toolbox-host-manager that the host can be destroyed.
-            this.emit("toolbox-unload");
 
             // All Commands need to be destroyed.
             // This is done after other destruction tasks since it may tear down
@@ -4312,8 +4340,8 @@ Toolbox.prototype = {
    * If the stylesheet has a sourcemap, we will attempt to open the original
    * version of the file instead of the generated version.
    */
-  async viewSourceInStyleEditorByFront(stylesheetFront, line, column) {
-    if (!stylesheetFront || typeof stylesheetFront !== "object") {
+  async viewSourceInStyleEditorByResource(stylesheetResource, line, column) {
+    if (!stylesheetResource || typeof stylesheetResource !== "object") {
       console.warn("Failed to open source, no stylesheet given");
       return false;
     }
@@ -4323,14 +4351,14 @@ Toolbox.prototype = {
       );
 
       // This is a fallback in case of programming errors, but in a perfect
-      // world, viewSourceInStyleEditorByFront would always get a line/colum.
+      // world, viewSourceInStyleEditorByResource would always get a line/colum.
       line = 1;
       column = null;
     }
 
     return viewSource.viewSourceInStyleEditor(
       this,
-      stylesheetFront,
+      stylesheetResource,
       line,
       column
     );

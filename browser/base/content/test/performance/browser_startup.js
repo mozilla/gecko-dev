@@ -32,8 +32,8 @@ const startupPhases = {
         "resource:///modules/StartupRecorder.sys.mjs",
         "resource://gre/modules/AppConstants.sys.mjs",
         "resource://gre/modules/ActorManagerParent.sys.mjs",
-        "resource://gre/modules/CustomElementsListener.jsm",
-        "resource://gre/modules/MainProcessSingleton.jsm",
+        "resource://gre/modules/CustomElementsListener.sys.mjs",
+        "resource://gre/modules/MainProcessSingleton.sys.mjs",
         "resource://gre/modules/XPCOMUtils.sys.mjs",
       ]),
     },
@@ -59,7 +59,7 @@ const startupPhases = {
         "resource:///modules/AboutNewTab.jsm",
         "resource:///modules/BrowserUsageTelemetry.jsm",
         "resource:///modules/ContentCrashHandlers.jsm",
-        "resource:///modules/ShellService.jsm",
+        "resource:///modules/ShellService.sys.mjs",
         "resource://gre/modules/NewTabUtils.sys.mjs",
         "resource://gre/modules/PageThumbs.jsm",
         "resource://gre/modules/PlacesUtils.sys.mjs",
@@ -83,8 +83,8 @@ const startupPhases = {
         "resource://gre/modules/BookmarkHTMLUtils.sys.mjs",
         "resource://gre/modules/Bookmarks.sys.mjs",
         "resource://gre/modules/ContextualIdentityService.sys.mjs",
-        "resource://gre/modules/FxAccounts.jsm",
-        "resource://gre/modules/FxAccountsStorage.jsm",
+        "resource://gre/modules/FxAccounts.sys.mjs",
+        "resource://gre/modules/FxAccountsStorage.sys.mjs",
         "resource://gre/modules/PlacesBackups.sys.mjs",
         "resource://gre/modules/PlacesExpiration.sys.mjs",
         "resource://gre/modules/PlacesSyncUtils.sys.mjs",
@@ -101,9 +101,9 @@ const startupPhases = {
     denylist: {
       modules: new Set([
         "resource://gre/modules/AsyncPrefs.sys.mjs",
-        "resource://gre/modules/LoginManagerContextMenu.jsm",
+        "resource://gre/modules/LoginManagerContextMenu.sys.mjs",
         "resource://gre/modules/osfile.jsm",
-        "resource://pdf.js/PdfStreamConverter.jsm",
+        "resource://pdf.js/PdfStreamConverter.sys.mjs",
       ]),
     },
   },
@@ -117,13 +117,13 @@ if (
   ) == "default-theme@mozilla.org"
 ) {
   startupPhases["before profile selection"].allowlist.modules.add(
-    "resource://gre/modules/XULStore.jsm"
+    "resource://gre/modules/XULStore.sys.mjs"
   );
 }
 
 if (AppConstants.MOZ_CRASHREPORTER) {
   startupPhases["before handling user events"].denylist.modules.add(
-    "resource://gre/modules/CrashSubmit.jsm"
+    "resource://gre/modules/CrashSubmit.sys.mjs"
   );
 }
 

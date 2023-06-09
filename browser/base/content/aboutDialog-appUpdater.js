@@ -12,12 +12,9 @@ var { XPCOMUtils } = ChromeUtils.importESModule(
 );
 
 ChromeUtils.defineESModuleGetters(this, {
+  AppUpdater: "resource://gre/modules/AppUpdater.sys.mjs",
+  DownloadUtils: "resource://gre/modules/DownloadUtils.sys.mjs",
   UpdateUtils: "resource://gre/modules/UpdateUtils.sys.mjs",
-});
-
-XPCOMUtils.defineLazyModuleGetters(this, {
-  AppUpdater: "resource://gre/modules/AppUpdater.jsm",
-  DownloadUtils: "resource://gre/modules/DownloadUtils.jsm",
 });
 
 XPCOMUtils.defineLazyServiceGetter(
@@ -225,13 +222,22 @@ appUpdater.prototype = {
           "update.downloadAndInstallButton.accesskey"
         );
       }
-      if (
-        this.options.buttonAutoFocus &&
-        (!document.commandDispatcher.focusedElement || // don't steal the focus
-          document.commandDispatcher.focusedElement.localName == "button")
-      ) {
-        // except from the other buttons
-        button.focus();
+      if (this.options.buttonAutoFocus) {
+        let promise = Promise.resolve();
+        if (document.readyState != "complete") {
+          promise = new Promise(resolve =>
+            window.addEventListener("load", resolve, { once: true })
+          );
+        }
+        promise.then(() => {
+          if (
+            !document.commandDispatcher.focusedElement || // don't steal the focus
+            // except from the other buttons
+            document.commandDispatcher.focusedElement.localName == "button"
+          ) {
+            button.focus();
+          }
+        });
       }
     }
   },

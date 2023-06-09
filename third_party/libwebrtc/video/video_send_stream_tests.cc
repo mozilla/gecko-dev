@@ -16,6 +16,8 @@
 #include "api/sequence_checker.h"
 #include "api/task_queue/default_task_queue_factory.h"
 #include "api/task_queue/task_queue_base.h"
+#include "api/test/metrics/global_metrics_logger_and_exporter.h"
+#include "api/test/metrics/metric.h"
 #include "api/test/simulated_network.h"
 #include "api/video/builtin_video_bitrate_allocator_factory.h"
 #include "api/video/encoded_image.h"
@@ -66,8 +68,8 @@
 #include "test/gtest.h"
 #include "test/null_transport.h"
 #include "test/rtcp_packet_parser.h"
-#include "test/testsupport/perf_test.h"
 #include "test/video_encoder_proxy_factory.h"
+#include "video/config/encoder_stream_factory.h"
 #include "video/send_statistics_proxy.h"
 #include "video/transport_adapter.h"
 #include "video/video_send_stream.h"
@@ -1514,9 +1516,11 @@ TEST_F(VideoSendStreamTest, MinTransmitBitrateRespectsRemb) {
           EXPECT_EQ(1u, stats.substreams.size());
           int total_bitrate_bps =
               stats.substreams.begin()->second.total_bitrate_bps;
-          test::PrintResult(
-              "bitrate_stats_", "min_transmit_bitrate_low_remb", "bitrate_bps",
-              static_cast<size_t>(total_bitrate_bps), "bps", false);
+          test::GetGlobalMetricsLogger()->LogSingleValueMetric(
+              "bitrate_stats_min_transmit_bitrate_low_remb", "bitrate_bps",
+              static_cast<size_t>(total_bitrate_bps) / 1000.0,
+              test::Unit::kKilobitsPerSecond,
+              test::ImprovementDirection::kNeitherIsBetter);
           if (total_bitrate_bps > kHighBitrateBps) {
             rtp_rtcp_->SetRemb(kRembBitrateBps, {ssrc});
             bitrate_capped_ = true;
@@ -2036,7 +2040,7 @@ TEST_F(VideoSendStreamTest,
         }
       }
       EXPECT_TRUE(
-          init_encode_called_.Wait(VideoSendStreamTest::kDefaultTimeout.ms()));
+          init_encode_called_.Wait(VideoSendStreamTest::kDefaultTimeout));
       {
         MutexLock lock(&mutex_);
         EXPECT_EQ(width, last_initialized_frame_width_);
@@ -2122,8 +2126,7 @@ TEST_F(VideoSendStreamTest, CanReconfigureToUseStartBitrateAbovePreviousMax) {
     }
 
     bool WaitForStartBitrate() {
-      return start_bitrate_changed_.Wait(
-          VideoSendStreamTest::kDefaultTimeout.ms());
+      return start_bitrate_changed_.Wait(VideoSendStreamTest::kDefaultTimeout);
     }
 
    private:
@@ -2201,7 +2204,7 @@ class StartStopBitrateObserver : public test::FakeEncoder {
   }
 
   bool WaitForEncoderInit() {
-    return encoder_init_.Wait(VideoSendStreamTest::kDefaultTimeout.ms());
+    return encoder_init_.Wait(VideoSendStreamTest::kDefaultTimeout);
   }
 
   bool WaitBitrateChanged(WaitUntil until) {
@@ -2218,7 +2221,7 @@ class StartStopBitrateObserver : public test::FakeEncoder {
           (until == WaitUntil::kZero && *bitrate_kbps == 0)) {
         return true;
       }
-    } while (bitrate_changed_.Wait(VideoSendStreamTest::kDefaultTimeout.ms()));
+    } while (bitrate_changed_.Wait(VideoSendStreamTest::kDefaultTimeout));
     return false;
   }
 
@@ -2410,8 +2413,7 @@ class VideoCodecConfigObserver : public test::SendTest,
   GetEncoderSpecificSettings() const;
 
   void PerformTest() override {
-    EXPECT_TRUE(
-        init_encode_event_.Wait(VideoSendStreamTest::kDefaultTimeout.ms()));
+    EXPECT_TRUE(init_encode_event_.Wait(VideoSendStreamTest::kDefaultTimeout));
     ASSERT_EQ(1, FakeEncoder::GetNumInitializations())
         << "VideoEncoder not initialized.";
 
@@ -2421,8 +2423,7 @@ class VideoCodecConfigObserver : public test::SendTest,
     SendTask(task_queue_, [&]() {
       stream_->ReconfigureVideoEncoder(std::move(encoder_config_));
     });
-    ASSERT_TRUE(
-        init_encode_event_.Wait(VideoSendStreamTest::kDefaultTimeout.ms()));
+    ASSERT_TRUE(init_encode_event_.Wait(VideoSendStreamTest::kDefaultTimeout));
     EXPECT_EQ(2, FakeEncoder::GetNumInitializations())
         << "ReconfigureVideoEncoder did not reinitialize the encoder with "
            "new encoder settings.";
@@ -2624,11 +2625,11 @@ TEST_F(VideoSendStreamTest, TranslatesTwoLayerScreencastToTargetBitrate) {
 
    private:
     std::vector<VideoStream> CreateEncoderStreams(
-        int width,
-        int height,
+        int frame_width,
+        int frame_height,
         const VideoEncoderConfig& encoder_config) override {
       std::vector<VideoStream> streams =
-          test::CreateVideoStreams(width, height, encoder_config);
+          test::CreateVideoStreams(frame_width, frame_height, encoder_config);
       RTC_CHECK_GT(streams[0].max_bitrate_bps,
                    kScreencastMaxTargetBitrateDeltaKbps);
       streams[0].target_bitrate_bps =
@@ -2693,9 +2694,7 @@ TEST_F(VideoSendStreamTest, ReconfigureBitratesSetsEncoderBitratesCorrectly) {
   // bitrates than expected by this test, due to encoder pushback and subtracted
   // overhead.
   webrtc::test::ScopedKeyValueConfig field_trials(
-      field_trials_,
-      "WebRTC-VideoRateControl/bitrate_adjuster:false/"
-      "WebRTC-SendSideBwe-WithOverhead/Disabled/");
+      field_trials_, "WebRTC-VideoRateControl/bitrate_adjuster:false/");
 
   class EncoderBitrateThresholdObserver : public test::SendTest,
                                           public VideoBitrateAllocatorFactory,
@@ -2721,8 +2720,8 @@ TEST_F(VideoSendStreamTest, ReconfigureBitratesSetsEncoderBitratesCorrectly) {
       EXPECT_LE(codec.startBitrate, codec.maxBitrate);
       if (num_rate_allocator_creations_ == 0) {
         EXPECT_EQ(static_cast<unsigned int>(kMinBitrateKbps), codec.minBitrate);
-        EXPECT_EQ(static_cast<unsigned int>(kStartBitrateKbps),
-                  codec.startBitrate);
+        EXPECT_NEAR(static_cast<unsigned int>(kStartBitrateKbps),
+                    codec.startBitrate, 10);
         EXPECT_EQ(static_cast<unsigned int>(kMaxBitrateKbps), codec.maxBitrate);
       } else if (num_rate_allocator_creations_ == 1) {
         EXPECT_EQ(static_cast<unsigned int>(kLowerMaxBitrateKbps),
@@ -2748,8 +2747,8 @@ TEST_F(VideoSendStreamTest, ReconfigureBitratesSetsEncoderBitratesCorrectly) {
       EXPECT_EQ(0, num_encoder_initializations_);
       EXPECT_EQ(static_cast<unsigned int>(kMinBitrateKbps),
                 codecSettings->minBitrate);
-      EXPECT_EQ(static_cast<unsigned int>(kStartBitrateKbps),
-                codecSettings->startBitrate);
+      EXPECT_NEAR(static_cast<unsigned int>(kStartBitrateKbps),
+                  codecSettings->startBitrate, 10);
       EXPECT_EQ(static_cast<unsigned int>(kMaxBitrateKbps),
                 codecSettings->maxBitrate);
 
@@ -2774,21 +2773,26 @@ TEST_F(VideoSendStreamTest, ReconfigureBitratesSetsEncoderBitratesCorrectly) {
       FakeEncoder::SetRates(parameters);
     }
 
-    void WaitForSetRates(uint32_t expected_bitrate) {
+    void WaitForSetRates(uint32_t expected_bitrate, int abs_error) {
       // Wait for the expected rate to be set. In some cases there can be
       // more than one update pending, in which case we keep waiting
       // until the correct value has been observed.
+      // The target_bitrate_ is reduced by the calculated packet overhead.
       const int64_t start_time = rtc::TimeMillis();
       do {
         MutexLock lock(&mutex_);
-        if (target_bitrate_ == expected_bitrate) {
+
+        int error = target_bitrate_ - expected_bitrate;
+        if ((error < 0 && error >= -abs_error) ||
+            (error >= 0 && error <= abs_error)) {
           return;
         }
       } while (bitrate_changed_event_.Wait(
-          std::max(int64_t{1}, VideoSendStreamTest::kDefaultTimeout.ms() -
-                                   (rtc::TimeMillis() - start_time))));
+          std::max(TimeDelta::Millis(1),
+                   VideoSendStreamTest::kDefaultTimeout -
+                       TimeDelta::Millis(rtc::TimeMillis() - start_time))));
       MutexLock lock(&mutex_);
-      EXPECT_EQ(target_bitrate_, expected_bitrate)
+      EXPECT_NEAR(target_bitrate_, expected_bitrate, abs_error)
           << "Timed out while waiting encoder rate to be set.";
     }
 
@@ -2826,12 +2830,11 @@ TEST_F(VideoSendStreamTest, ReconfigureBitratesSetsEncoderBitratesCorrectly) {
 
     void PerformTest() override {
       ASSERT_TRUE(create_rate_allocator_event_.Wait(
-          VideoSendStreamTest::kDefaultTimeout.ms()))
+          VideoSendStreamTest::kDefaultTimeout))
           << "Timed out while waiting for rate allocator to be created.";
-      ASSERT_TRUE(
-          init_encode_event_.Wait(VideoSendStreamTest::kDefaultTimeout.ms()))
+      ASSERT_TRUE(init_encode_event_.Wait(VideoSendStreamTest::kDefaultTimeout))
           << "Timed out while waiting for encoder to be configured.";
-      WaitForSetRates(kStartBitrateKbps);
+      WaitForSetRates(kStartBitrateKbps, 80);
       BitrateConstraints bitrate_config;
       bitrate_config.start_bitrate_bps = kIncreasedStartBitrateKbps * 1000;
       bitrate_config.max_bitrate_bps = kIncreasedMaxBitrateKbps * 1000;
@@ -2840,17 +2843,17 @@ TEST_F(VideoSendStreamTest, ReconfigureBitratesSetsEncoderBitratesCorrectly) {
             bitrate_config);
       });
       // Encoder rate is capped by EncoderConfig max_bitrate_bps.
-      WaitForSetRates(kMaxBitrateKbps);
+      WaitForSetRates(kMaxBitrateKbps, 10);
       encoder_config_.max_bitrate_bps = kLowerMaxBitrateKbps * 1000;
       SendTask(task_queue_, [&]() {
         send_stream_->ReconfigureVideoEncoder(encoder_config_.Copy());
       });
       ASSERT_TRUE(create_rate_allocator_event_.Wait(
-          VideoSendStreamTest::kDefaultTimeout.ms()));
+          VideoSendStreamTest::kDefaultTimeout));
       EXPECT_EQ(2, num_rate_allocator_creations_)
           << "Rate allocator should have been recreated.";
 
-      WaitForSetRates(kLowerMaxBitrateKbps);
+      WaitForSetRates(kLowerMaxBitrateKbps, 10);
       EXPECT_EQ(1, num_encoder_initializations_);
 
       encoder_config_.max_bitrate_bps = kIncreasedMaxBitrateKbps * 1000;
@@ -2858,13 +2861,13 @@ TEST_F(VideoSendStreamTest, ReconfigureBitratesSetsEncoderBitratesCorrectly) {
         send_stream_->ReconfigureVideoEncoder(encoder_config_.Copy());
       });
       ASSERT_TRUE(create_rate_allocator_event_.Wait(
-          VideoSendStreamTest::kDefaultTimeout.ms()));
+          VideoSendStreamTest::kDefaultTimeout));
       EXPECT_EQ(3, num_rate_allocator_creations_)
           << "Rate allocator should have been recreated.";
 
       // Expected target bitrate is the start bitrate set in the call to
       // call_->GetTransportControllerSend()->SetSdpBitrateParameters.
-      WaitForSetRates(kIncreasedStartBitrateKbps);
+      WaitForSetRates(kIncreasedStartBitrateKbps, 10);
       EXPECT_EQ(1, num_encoder_initializations_);
     }
 
@@ -3038,9 +3041,9 @@ class Vp9HeaderObserver : public test::SendTest {
     EXPECT_EQ(kVp9PayloadType, rtp_packet.PayloadType());
     rtc::ArrayView<const uint8_t> rtp_payload = rtp_packet.payload();
 
-    bool new_packet = packets_sent_ == 0 ||
+    bool new_packet = !last_packet_sequence_number_.has_value() ||
                       IsNewerSequenceNumber(rtp_packet.SequenceNumber(),
-                                            last_packet_sequence_number_);
+                                            *last_packet_sequence_number_);
     if (!rtp_payload.empty() && new_packet) {
       RTPVideoHeader video_header;
       EXPECT_NE(
@@ -3055,7 +3058,6 @@ class Vp9HeaderObserver : public test::SendTest {
       // Verify configuration specific settings.
       InspectHeader(vp9_header);
 
-      ++packets_sent_;
       if (rtp_packet.Marker()) {
         MutexLock lock(&mutex_);
         ++frames_sent_;
@@ -3277,20 +3279,12 @@ class Vp9HeaderObserver : public test::SendTest {
               vp9.num_spatial_layers);
     EXPECT_TRUE(vp9.spatial_layer_resolution_present);  // Y:1
 
-    absl::optional<ScalableVideoController::StreamLayersConfig> info;
-    absl::optional<ScalabilityMode> scalability_mode =
-        ScalabilityModeFromString(params_.scalability_mode);
-    if (scalability_mode) {
-      info = ScalabilityStructureConfig(*scalability_mode);
-    }
-    double default_ratio = 1.0;
-    for (int i = static_cast<int>(vp9.num_spatial_layers) - 1; i >= 0; --i) {
-      double ratio = info ? (static_cast<double>(info->scaling_factor_num[i]) /
-                             info->scaling_factor_den[i])
-                          : default_ratio;
+    ScalableVideoController::StreamLayersConfig config = GetScalabilityConfig();
+    for (int i = config.num_spatial_layers - 1; i >= 0; --i) {
+      double ratio = static_cast<double>(config.scaling_factor_num[i]) /
+                     config.scaling_factor_den[i];
       EXPECT_EQ(expected_width_ * ratio, vp9.width[i]);    // WIDTH
       EXPECT_EQ(expected_height_ * ratio, vp9.height[i]);  // HEIGHT
-      default_ratio /= 2.0;
     }
   }
 
@@ -3300,15 +3294,15 @@ class Vp9HeaderObserver : public test::SendTest {
         absl::get<RTPVideoHeaderVP9>(video.video_type_header);
 
     const bool new_temporal_unit =
-        packets_sent_ == 0 ||
-        IsNewerTimestamp(rtp_packet.Timestamp(), last_packet_timestamp_);
+        !last_packet_timestamp_.has_value() ||
+        IsNewerTimestamp(rtp_packet.Timestamp(), *last_packet_timestamp_);
     const bool new_frame =
         new_temporal_unit || last_vp9_.spatial_idx != vp9_header.spatial_idx;
 
     EXPECT_EQ(new_frame, video.is_first_packet_in_frame);
     if (!new_temporal_unit) {
       EXPECT_FALSE(last_packet_marker_);
-      EXPECT_EQ(last_packet_timestamp_, rtp_packet.Timestamp());
+      EXPECT_EQ(*last_packet_timestamp_, rtp_packet.Timestamp());
       EXPECT_EQ(last_vp9_.picture_id, vp9_header.picture_id);
       EXPECT_EQ(last_vp9_.tl0_pic_idx, vp9_header.tl0_pic_idx);
       VerifySpatialIdxWithinFrame(vp9_header);
@@ -3327,16 +3321,26 @@ class Vp9HeaderObserver : public test::SendTest {
     VerifyTl0Idx(vp9_header);
   }
 
+  ScalableVideoController::StreamLayersConfig GetScalabilityConfig() const {
+    absl::optional<ScalabilityMode> scalability_mode =
+        ScalabilityModeFromString(params_.scalability_mode);
+    EXPECT_TRUE(scalability_mode.has_value());
+    absl::optional<ScalableVideoController::StreamLayersConfig> config =
+        ScalabilityStructureConfig(*scalability_mode);
+    EXPECT_TRUE(config.has_value());
+    EXPECT_EQ(config->num_spatial_layers, params_.num_spatial_layers);
+    return *config;
+  }
+
   test::FunctionVideoEncoderFactory encoder_factory_;
   const Vp9TestParams params_;
   VideoCodecVP9 vp9_settings_;
   webrtc::VideoEncoderConfig encoder_config_;
   bool last_packet_marker_ = false;
-  uint16_t last_packet_sequence_number_ = 0;
-  uint32_t last_packet_timestamp_ = 0;
+  absl::optional<uint16_t> last_packet_sequence_number_;
+  absl::optional<uint32_t> last_packet_timestamp_;
   RTPVideoHeaderVP9 last_vp9_;
   std::map<int, int> last_temporal_idx_by_spatial_idx_;
-  size_t packets_sent_ = 0;
   Mutex mutex_;
   size_t frames_sent_ = 0;
   int expected_width_ = 0;
@@ -3347,8 +3351,8 @@ class Vp9Test : public VideoSendStreamTest,
                 public ::testing::WithParamInterface<ParameterizationType> {
  public:
   Vp9Test()
-      : params_(::testing::get<0>(GetParam())),
-        use_scalability_mode_identifier_(::testing::get<1>(GetParam())) {}
+      : params_(::testing::get<Vp9TestParams>(GetParam())),
+        use_scalability_mode_identifier_(::testing::get<bool>(GetParam())) {}
 
  protected:
   const Vp9TestParams params_;
@@ -3367,23 +3371,21 @@ INSTANTIATE_TEST_SUITE_P(
              {"L2T1_KEY", 2, 1, InterLayerPredMode::kOnKeyPic},
              {"L2T2", 2, 2, InterLayerPredMode::kOn},
              {"L2T2_KEY", 2, 2, InterLayerPredMode::kOnKeyPic},
+             {"L2T3", 2, 3, InterLayerPredMode::kOn},
              {"L2T3_KEY", 2, 3, InterLayerPredMode::kOnKeyPic},
              {"L3T1", 3, 1, InterLayerPredMode::kOn},
+             {"L3T1_KEY", 3, 1, InterLayerPredMode::kOnKeyPic},
+             {"L3T2", 3, 2, InterLayerPredMode::kOn},
+             {"L3T2_KEY", 3, 2, InterLayerPredMode::kOnKeyPic},
              {"L3T3", 3, 3, InterLayerPredMode::kOn},
              {"L3T3_KEY", 3, 3, InterLayerPredMode::kOnKeyPic},
              {"S2T1", 2, 1, InterLayerPredMode::kOff},
+             {"S2T2", 2, 2, InterLayerPredMode::kOff},
+             {"S2T3", 2, 3, InterLayerPredMode::kOff},
+             {"S3T1", 3, 1, InterLayerPredMode::kOff},
+             {"S3T2", 3, 2, InterLayerPredMode::kOff},
              {"S3T3", 3, 3, InterLayerPredMode::kOff}}),
         ::testing::Values(false, true)),  // use_scalability_mode_identifier
-    ParamInfoToStr);
-
-INSTANTIATE_TEST_SUITE_P(
-    ScalabilityModeOff,
-    Vp9Test,
-    ::testing::Combine(
-        ::testing::ValuesIn<Vp9TestParams>(
-            {{"L2T3", 2, 3, InterLayerPredMode::kOn},
-             {"S2T3", 2, 3, InterLayerPredMode::kOff}}),
-        ::testing::Values(false)),  // use_scalability_mode_identifier
     ParamInfoToStr);
 
 INSTANTIATE_TEST_SUITE_P(
@@ -3392,7 +3394,18 @@ INSTANTIATE_TEST_SUITE_P(
     ::testing::Combine(
         ::testing::ValuesIn<Vp9TestParams>(
             {{"L2T1h", 2, 1, InterLayerPredMode::kOn},
-             {"L2T2_KEY_SHIFT", 2, 2, InterLayerPredMode::kOnKeyPic}}),
+             {"L2T2h", 2, 2, InterLayerPredMode::kOn},
+             {"L2T3h", 2, 3, InterLayerPredMode::kOn},
+             {"L2T2_KEY_SHIFT", 2, 2, InterLayerPredMode::kOnKeyPic},
+             {"L3T1h", 3, 1, InterLayerPredMode::kOn},
+             {"L3T2h", 3, 2, InterLayerPredMode::kOn},
+             {"L3T3h", 3, 3, InterLayerPredMode::kOn},
+             {"S2T1h", 2, 1, InterLayerPredMode::kOff},
+             {"S2T2h", 2, 2, InterLayerPredMode::kOff},
+             {"S2T3h", 2, 3, InterLayerPredMode::kOff},
+             {"S3T1h", 3, 1, InterLayerPredMode::kOff},
+             {"S3T2h", 3, 2, InterLayerPredMode::kOff},
+             {"S3T3h", 3, 3, InterLayerPredMode::kOff}}),
         ::testing::Values(true)),  // use_scalability_mode_identifier
     ParamInfoToStr);
 
@@ -3451,6 +3464,17 @@ void VideoSendStreamTest::TestVp9NonFlexMode(
       }
     }
 
+    int GetRequiredDivisibility() const {
+      ScalableVideoController::StreamLayersConfig config =
+          GetScalabilityConfig();
+      int required_divisibility = 1;
+      for (int sl_idx = 0; sl_idx < config.num_spatial_layers; ++sl_idx) {
+        required_divisibility = cricket::LeastCommonMultiple(
+            required_divisibility, config.scaling_factor_den[sl_idx]);
+      }
+      return required_divisibility;
+    }
+
     void ModifyVideoCaptureStartResolution(int* width,
                                            int* height,
                                            int* frame_rate) override {
@@ -3458,6 +3482,10 @@ void VideoSendStreamTest::TestVp9NonFlexMode(
       expected_height_ = kHeight << (params_.num_spatial_layers - 1);
       *width = expected_width_;
       *height = expected_height_;
+      // Top layer may be adjusted to ensure evenly divided layers.
+      int divisibility = GetRequiredDivisibility();
+      expected_width_ -= (expected_width_ % divisibility);
+      expected_height_ -= (expected_height_ % divisibility);
     }
 
     void InspectHeader(const RTPVideoHeaderVP9& vp9) override {
@@ -3675,8 +3703,6 @@ TEST_F(VideoSendStreamTest, EncoderConfigMaxFramerateReportedToSource) {
 // testing that the maximum possible target payload rate is smaller than the
 // maximum bandwidth estimate by the overhead rate.
 TEST_F(VideoSendStreamTest, RemoveOverheadFromBandwidth) {
-  test::ScopedFieldTrials override_field_trials(
-      "WebRTC-SendSideBwe-WithOverhead/Enabled/");
   class RemoveOverheadFromBandwidthTest : public test::EndToEndTest,
                                           public test::FakeEncoder {
    public:
@@ -3736,8 +3762,8 @@ TEST_F(VideoSendStreamTest, RemoveOverheadFromBandwidth) {
       // At a bitrate of 60kbps with a packet size of 1200B video and an
       // overhead of 40B per packet video produces 2240bps overhead.
       // So the encoder BW should be set to 57760bps.
-      EXPECT_TRUE(bitrate_changed_event_.Wait(
-          VideoSendStreamTest::kDefaultTimeout.ms()));
+      EXPECT_TRUE(
+          bitrate_changed_event_.Wait(VideoSendStreamTest::kDefaultTimeout));
       {
         MutexLock lock(&mutex_);
         EXPECT_LE(max_bitrate_bps_, 57760u);
@@ -3952,8 +3978,7 @@ class ContentSwitchTest : public test::SendTest {
 
   void PerformTest() override {
     while (GetStreamState() != StreamState::kAfterSwitchBack) {
-      ASSERT_TRUE(
-          content_switch_event_.Wait(test::CallTest::kDefaultTimeout.ms()));
+      ASSERT_TRUE(content_switch_event_.Wait(test::CallTest::kDefaultTimeout));
       (*stream_resetter_)(send_stream_config_, encoder_config_, this);
     }
 
@@ -4051,6 +4076,7 @@ void VideoSendStreamTest::TestTemporalLayers(
         VideoSendStream::Config* send_config,
         std::vector<VideoReceiveStreamInterface::Config>* receive_configs,
         VideoEncoderConfig* encoder_config) override {
+      webrtc::VideoEncoder::EncoderInfo encoder_info;
       send_config->encoder_settings.encoder_factory = encoder_factory_;
       send_config->rtp.payload_name = payload_name_;
       send_config->rtp.payload_type = test::CallTest::kVideoSendPayloadType;
@@ -4059,7 +4085,7 @@ void VideoSendStreamTest::TestTemporalLayers(
       encoder_config->video_stream_factory =
           rtc::make_ref_counted<cricket::EncoderStreamFactory>(
               payload_name_, /*max_qp=*/56, /*is_screenshare=*/false,
-              /*conference_mode=*/false);
+              /*conference_mode=*/false, encoder_info);
       encoder_config->max_bitrate_bps = kMaxBitrateBps;
       if (absl::EqualsIgnoreCase(payload_name_, "VP9")) {
         encoder_config->encoder_specific_settings = rtc::make_ref_counted<

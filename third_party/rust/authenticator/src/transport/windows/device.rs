@@ -4,8 +4,9 @@
 
 use super::winapi::DeviceCapabilities;
 use crate::consts::{CID_BROADCAST, FIDO_USAGE_PAGE, FIDO_USAGE_U2FHID, MAX_HID_RPT_SIZE};
+use crate::ctap2::commands::get_info::AuthenticatorInfo;
 use crate::transport::hid::HIDDevice;
-use crate::transport::{AuthenticatorInfo, ECDHSecret, FidoDevice, HIDError};
+use crate::transport::{FidoDevice, HIDError, SharedSecret};
 use crate::u2ftypes::{U2FDevice, U2FDeviceInfo};
 use std::fs::{File, OpenOptions};
 use std::hash::{Hash, Hasher};
@@ -18,7 +19,7 @@ pub struct Device {
     file: File,
     cid: [u8; 4],
     dev_info: Option<U2FDeviceInfo>,
-    secret: Option<ECDHSecret>,
+    secret: Option<SharedSecret>,
     authenticator_info: Option<AuthenticatorInfo>,
 }
 
@@ -44,7 +45,7 @@ impl Read for Device {
         let mut input = [0u8; MAX_HID_RPT_SIZE + 1];
         let _ = self.file.read(&mut input)?;
         bytes.clone_from_slice(&input[1..]);
-        Ok(bytes.len() as usize)
+        Ok(bytes.len())
     }
 }
 
@@ -113,7 +114,7 @@ impl HIDDevice for Device {
             info!("new device {:?}", res.path);
             Ok(res)
         } else {
-            Err((HIDError::DeviceNotSupported, res.path.clone()))
+            Err((HIDError::DeviceNotSupported, res.path))
         }
     }
 
@@ -133,11 +134,11 @@ impl HIDDevice for Device {
         }
     }
 
-    fn get_shared_secret(&self) -> Option<&ECDHSecret> {
+    fn get_shared_secret(&self) -> Option<&SharedSecret> {
         self.secret.as_ref()
     }
 
-    fn set_shared_secret(&mut self, secret: ECDHSecret) {
+    fn set_shared_secret(&mut self, secret: SharedSecret) {
         self.secret = Some(secret);
     }
 
@@ -147,24 +148,6 @@ impl HIDDevice for Device {
 
     fn set_authenticator_info(&mut self, authenticator_info: AuthenticatorInfo) {
         self.authenticator_info = Some(authenticator_info);
-    }
-
-    /// This is used for cancellation of blocking read()-requests.
-    /// With this, we can clone the Device, pass it to another thread and call "cancel()" on that.
-    fn clone_device_as_write_only(&self) -> Result<Self, HIDError> {
-        let file = OpenOptions::new()
-            .write(true)
-            .open(&self.path)
-            .map_err(|e| (HIDError::IO(Some(self.path.clone().into()), e)))?;
-
-        Ok(Self {
-            path: self.path.clone(),
-            file,
-            cid: self.cid,
-            dev_info: self.dev_info.clone(),
-            secret: self.secret.clone(),
-            authenticator_info: self.authenticator_info.clone(),
-        })
     }
 }
 

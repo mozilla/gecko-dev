@@ -8,7 +8,6 @@
 #import "mozTableAccessible.h"
 #import "nsCocoaUtils.h"
 #import "MacUtils.h"
-#import "RotorRules.h"
 
 #include "AccIterator.h"
 #include "LocalAccessible.h"
@@ -17,6 +16,7 @@
 #include "mozilla/StaticPrefs_accessibility.h"
 #include "XULTreeAccessible.h"
 #include "Pivot.h"
+#include "nsAccUtils.h"
 #include "Relation.h"
 
 using namespace mozilla;
@@ -508,6 +508,36 @@ enum CachedBool { eCachedBoolMiss, eCachedTrue, eCachedFalse };
 
 @end
 
+/**
+ * This rule matches all accessibles with roles::OUTLINEITEM. If
+ * outlines are nested, it ignores the nested subtree and returns
+ * only items which are descendants of the primary outline.
+ */
+class OutlineRule : public PivotRule {
+ public:
+  uint16_t Match(Accessible* aAcc) override {
+    uint16_t result = nsIAccessibleTraversalRule::FILTER_IGNORE;
+
+    if (nsAccUtils::MustPrune(aAcc)) {
+      result |= nsIAccessibleTraversalRule::FILTER_IGNORE_SUBTREE;
+    }
+
+    if (![GetNativeFromGeckoAccessible(aAcc) isAccessibilityElement]) {
+      return result;
+    }
+
+    if (aAcc->Role() == roles::OUTLINE) {
+      // if the accessible is an outline, we ignore all children
+      result |= nsIAccessibleTraversalRule::FILTER_IGNORE_SUBTREE;
+    } else if (aAcc->Role() == roles::OUTLINEITEM) {
+      // if the accessible is not an outline item, we match here
+      result |= nsIAccessibleTraversalRule::FILTER_MATCH;
+    }
+
+    return result;
+  }
+};
+
 @implementation mozOutlineAccessible
 
 - (BOOL)isLayoutTablePart {
@@ -686,13 +716,6 @@ enum CachedBool { eCachedBoolMiss, eCachedTrue, eCachedFalse };
 
   return nsCocoaUtils::ToNSString(title);
 }
-
-enum CheckedState {
-  kUncheckable = -1,
-  kUnchecked = 0,
-  kChecked = 1,
-  kMixed = 2
-};
 
 - (int)checkedValue {
   uint64_t state = [self

@@ -53,7 +53,9 @@ include protocol PVsync;
 include protocol PRemoteDecoderManager;
 include protocol PWebSocketConnection;
 include protocol PWebTransport;
+include protocol PFetch;
 
+include ClientIPCTypes;
 include DOMTypes;
 include IPCBlob;
 include IPCServiceWorkerDescriptor;
@@ -131,6 +133,7 @@ sync protocol PBackground
   manages PUDPSocket;
   manages PVerifySSLServerCert;
   manages PVsync;
+  manages PFetch;
 
 parent:
   // Only called at startup during mochitests to check the basic infrastructure.
@@ -169,15 +172,6 @@ parent:
    */
   async PBackgroundLSSimpleRequest(LSSimpleRequestParams params);
 
-  /**
-   * Asynchronously propagates the "last-pb-context-exited" observer
-   * notification to LocalStorage NextGen implementation so it can clear
-   * retained private-browsing in-memory Datastores.  Using a (same-process)
-   * IPC message avoids the need for the main-thread nsIObserver to have a
-   * reference to the PBackground thread and directly dispatch a runnable to it.
-   */
-  async LSClearPrivateBrowsing();
-
   async PBackgroundLocalStorageCache(PrincipalInfo principalInfo,
                                      nsCString originKey,
                                      uint32_t privateBrowsingId);
@@ -201,7 +195,8 @@ parent:
    */
   async CreateWebTransportParent(
       nsString aURL,
-      nsIPrincipal aPrincipal,
+      nullable nsIPrincipal aPrincipal,
+      IPCClientInfo?  aClientInfo,
       bool aDedicated,
       bool aRequireUnreliable,
       uint32_t aCongestionControl,
@@ -321,6 +316,8 @@ parent:
   async PLockManager(ContentPrincipalInfo aPrincipalInfo, nsID aClientId);
 
   async PIPCClientCerts();
+
+  async PFetch();
 
 child:
   async PCache();

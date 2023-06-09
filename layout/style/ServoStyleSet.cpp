@@ -26,7 +26,6 @@
 #include "mozilla/css/Loader.h"
 #include "mozilla/dom/AnonymousContent.h"
 #include "mozilla/dom/CSSCounterStyleRule.h"
-#include "mozilla/dom/CSSRuleBinding.h"
 #include "mozilla/dom/CSSFontFaceRule.h"
 #include "mozilla/dom/CSSFontFeatureValuesRule.h"
 #include "mozilla/dom/CSSFontPaletteValuesRule.h"
@@ -41,7 +40,6 @@
 #include "mozilla/dom/CSSNamespaceRule.h"
 #include "mozilla/dom/CSSPageRule.h"
 #include "mozilla/dom/CSSSupportsRule.h"
-#include "mozilla/dom/ChildIterator.h"
 #include "mozilla/dom/FontFaceSet.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/ElementInlines.h"
@@ -499,6 +497,20 @@ already_AddRefed<ComputedStyle> ServoStyleSet::ResolvePseudoElementStyle(
   return style.forget();
 }
 
+already_AddRefed<ComputedStyle> ServoStyleSet::ProbeHighlightPseudoElementStyle(
+    const dom::Element& aOriginatingElement, const nsAtom* aHighlightName,
+    ComputedStyle* aParentStyle) {
+  MOZ_ASSERT(!StylistNeedsUpdate());
+  MOZ_ASSERT(aHighlightName);
+
+  RefPtr<ComputedStyle> style =
+      Servo_ComputedValues_ResolveHighlightPseudoStyle(
+          &aOriginatingElement, aHighlightName, mRawSet.get())
+          .Consume();
+
+  return style ? style.forget() : nullptr;
+}
+
 already_AddRefed<ComputedStyle>
 ServoStyleSet::ResolveInheritingAnonymousBoxStyle(PseudoStyleType aType,
                                                   ComputedStyle* aParentStyle) {
@@ -515,7 +527,7 @@ ServoStyleSet::ResolveInheritingAnonymousBoxStyle(PseudoStyleType aType,
 
   if (!style) {
     style = Servo_ComputedValues_GetForAnonymousBox(aParentStyle, aType,
-                                                    mRawSet.get(), nullptr)
+                                                    mRawSet.get())
                 .Consume();
     MOZ_ASSERT(style);
     if (aParentStyle) {
@@ -527,29 +539,17 @@ ServoStyleSet::ResolveInheritingAnonymousBoxStyle(PseudoStyleType aType,
 }
 
 already_AddRefed<ComputedStyle>
-ServoStyleSet::ResolveNonInheritingAnonymousBoxStyle(PseudoStyleType aType,
-                                                     const nsAtom* aPageName) {
+ServoStyleSet::ResolveNonInheritingAnonymousBoxStyle(PseudoStyleType aType) {
+  MOZ_ASSERT(aType != PseudoStyleType::pageContent,
+             "Use ResolvePageContentStyle for page content");
   MOZ_ASSERT(PseudoStyle::IsNonInheritingAnonBox(aType));
-  MOZ_ASSERT(!aPageName || aType == PseudoStyleType::pageContent,
-             "page name should only be specified for pageContent");
+
   nsCSSAnonBoxes::NonInheriting type =
       nsCSSAnonBoxes::NonInheritingTypeForPseudoType(aType);
-
-  // The empty atom is used to indicate no specified page name, and is not
-  // usable as a page-rule selector. Changing this to null is a slight
-  // optimization to avoid the Servo code from doing an unnecessary hashtable
-  // lookup, and still use the style cache in this case.
-  if (aPageName == nsGkAtoms::_empty) {
-    aPageName = nullptr;
-  }
-  // Only use the cache if we are not doing a lookup for a named page style.
-  RefPtr<ComputedStyle>* cache = nullptr;
-  if (!aPageName) {
-    cache = &mNonInheritingComputedStyles[type];
-    if (*cache) {
-      RefPtr<ComputedStyle> retval = *cache;
-      return retval.forget();
-    }
+  RefPtr<ComputedStyle>& cache = mNonInheritingComputedStyles[type];
+  if (cache) {
+    RefPtr<ComputedStyle> retval = cache;
+    return retval.forget();
   }
 
   UpdateStylistIfNeeded();
@@ -562,13 +562,40 @@ ServoStyleSet::ResolveNonInheritingAnonymousBoxStyle(PseudoStyleType aType,
              "viewport needs fixup to handle blockifying it");
 
   RefPtr<ComputedStyle> computedValues =
-      Servo_ComputedValues_GetForAnonymousBox(nullptr, aType, mRawSet.get(),
-                                              aPageName)
+      Servo_ComputedValues_GetForAnonymousBox(nullptr, aType, mRawSet.get())
           .Consume();
   MOZ_ASSERT(computedValues);
 
-  if (cache) {
-    *cache = computedValues;
+  cache = computedValues;
+  return computedValues.forget();
+}
+
+already_AddRefed<ComputedStyle> ServoStyleSet::ResolvePageContentStyle(
+    const nsAtom* aPageName) {
+  // The empty atom is used to indicate no specified page name, and is not
+  // usable as a page-rule selector. Changing this to null is a slight
+  // optimization to avoid the Servo code from doing an unnecessary hashtable
+  // lookup, and still use the style cache in this case.
+  if (aPageName == nsGkAtoms::_empty) {
+    aPageName = nullptr;
+  }
+  // Only use the cache if we are not doing a lookup for a named page style.
+  RefPtr<ComputedStyle>& cache =
+      mNonInheritingComputedStyles[nsCSSAnonBoxes::NonInheriting::pageContent];
+  if (!aPageName && cache) {
+    RefPtr<ComputedStyle> retval = cache;
+    return retval.forget();
+  }
+
+  UpdateStylistIfNeeded();
+
+  RefPtr<ComputedStyle> computedValues =
+      Servo_ComputedValues_GetForPageContent(mRawSet.get(), aPageName)
+          .Consume();
+  MOZ_ASSERT(computedValues);
+
+  if (!aPageName) {
+    cache = computedValues;
   }
   return computedValues.forget();
 }
@@ -653,26 +680,34 @@ StyleSheet* ServoStyleSet::SheetAt(Origin aOrigin, size_t aIndex) const {
       Servo_StyleSet_GetSheetAt(mRawSet.get(), aOrigin, aIndex));
 }
 
-Maybe<StylePageSizeOrientation> ServoStyleSet::GetDefaultPageSizeOrientation(
-    const nsAtom* aFirstPageName) {
+ServoStyleSet::FirstPageSizeAndOrientation
+ServoStyleSet::GetFirstPageSizeAndOrientation(const nsAtom* aFirstPageName) {
+  FirstPageSizeAndOrientation retval;
   const RefPtr<ComputedStyle> style = ResolvePageContentStyle(aFirstPageName);
   const StylePageSize& pageSize = style->StylePage()->mSize;
-  if (pageSize.IsOrientation()) {
-    return Some(pageSize.AsOrientation());
-  }
+
   if (pageSize.IsSize()) {
-    const CSSCoord w = pageSize.AsSize().width.ToCSSPixels();
-    const CSSCoord h = pageSize.AsSize().height.ToCSSPixels();
-    if (w > h) {
-      return Some(StylePageSizeOrientation::Landscape);
+    const nscoord w = pageSize.AsSize().width.ToAppUnits();
+    const nscoord h = pageSize.AsSize().height.ToAppUnits();
+    // Ignoring sizes that include a zero width or height.
+    // These are also ignored in nsPageFrame::ComputePageSize()
+    // when calculating the scaling for a page size.
+    // In bug 1807985, we might add similar handling for @page margin/size
+    // combinations that produce a zero-sized page-content box.
+    if (w > 0 && h > 0) {
+      retval.size.emplace(w, h);
+      if (w > h) {
+        retval.orientation.emplace(StylePageSizeOrientation::Landscape);
+      } else if (w < h) {
+        retval.orientation.emplace(StylePageSizeOrientation::Portrait);
+      }
     }
-    if (w < h) {
-      return Some(StylePageSizeOrientation::Portrait);
-    }
+  } else if (pageSize.IsOrientation()) {
+    retval.orientation.emplace(pageSize.AsOrientation());
   } else {
     MOZ_ASSERT(pageSize.IsAuto(), "Impossible page size");
   }
-  return Nothing();
+  return retval;
 }
 
 void ServoStyleSet::AppendAllNonDocumentAuthorSheets(
@@ -765,6 +800,12 @@ bool ServoStyleSet::StyleDocument(ServoTraversalFlags aFlags) {
     return false;
   }
 
+  Element* rootElement = mDocument->GetRootElement();
+  if (rootElement && MOZ_UNLIKELY(!rootElement->HasServoData())) {
+    StyleNewSubtree(rootElement);
+    return true;
+  }
+
   PreTraverse(aFlags);
   AutoPrepareTraversal guard(this);
   const SnapshotTable& snapshots = Snapshots();
@@ -772,9 +813,6 @@ bool ServoStyleSet::StyleDocument(ServoTraversalFlags aFlags) {
   // Restyle the document from the root element and each of the document level
   // NAC subtree roots.
   bool postTraversalRequired = false;
-
-  Element* rootElement = mDocument->GetRootElement();
-  MOZ_ASSERT_IF(rootElement, rootElement->HasServoData());
 
   if (ShouldTraverseInParallel()) {
     aFlags |= ServoTraversalFlags::ParallelTraversal;
@@ -1356,10 +1394,34 @@ bool ServoStyleSet::MightHaveAttributeDependency(const Element& aElement,
                                                      aAttribute);
 }
 
+bool ServoStyleSet::MightHaveNthOfIDDependency(const Element& aElement,
+                                               nsAtom* aOldID,
+                                               nsAtom* aNewID) const {
+  return Servo_StyleSet_MightHaveNthOfIDDependency(mRawSet.get(), &aElement,
+                                                   aOldID, aNewID);
+}
+
+bool ServoStyleSet::MightHaveNthOfClassDependency(const Element& aElement) {
+  return Servo_StyleSet_MightHaveNthOfClassDependency(mRawSet.get(), &aElement,
+                                                      &Snapshots());
+}
+
+bool ServoStyleSet::MightHaveNthOfAttributeDependency(
+    const Element& aElement, nsAtom* aAttribute) const {
+  return Servo_StyleSet_MightHaveNthOfAttributeDependency(
+      mRawSet.get(), &aElement, aAttribute);
+}
+
 bool ServoStyleSet::HasStateDependency(const Element& aElement,
                                        dom::ElementState aState) const {
   return Servo_StyleSet_HasStateDependency(mRawSet.get(), &aElement,
                                            aState.GetInternalValue());
+}
+
+bool ServoStyleSet::HasNthOfStateDependency(const Element& aElement,
+                                            dom::ElementState aState) const {
+  return Servo_StyleSet_HasNthOfStateDependency(mRawSet.get(), &aElement,
+                                                aState.GetInternalValue());
 }
 
 bool ServoStyleSet::HasDocumentStateDependency(

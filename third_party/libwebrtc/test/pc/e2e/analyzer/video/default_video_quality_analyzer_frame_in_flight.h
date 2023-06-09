@@ -17,6 +17,7 @@
 #include <vector>
 
 #include "absl/types/optional.h"
+#include "api/numerics/samples_stats_counter.h"
 #include "api/units/data_size.h"
 #include "api/units/timestamp.h"
 #include "api/video/video_frame.h"
@@ -37,13 +38,14 @@ struct ReceiverFrameStats {
   VideoFrameType frame_type = VideoFrameType::kEmptyFrame;
   DataSize encoded_image_size = DataSize::Bytes(0);
 
-  absl::optional<int> rendered_frame_width = absl::nullopt;
-  absl::optional<int> rendered_frame_height = absl::nullopt;
+  absl::optional<int> decoded_frame_width = absl::nullopt;
+  absl::optional<int> decoded_frame_height = absl::nullopt;
 
   // Can be not set if frame was dropped in the network.
   absl::optional<StreamCodecInfo> used_decoder = absl::nullopt;
 
   bool dropped = false;
+  bool decoder_failed = false;
 };
 
 // Represents a frame which was sent by sender and is currently on the way to
@@ -86,6 +88,7 @@ class FrameInFlight {
                       VideoFrameType frame_type,
                       DataSize encoded_image_size,
                       uint32_t target_encode_bitrate,
+                      int qp,
                       StreamCodecInfo used_encoder);
 
   bool HasEncodedTime() const { return encoded_time_.IsFinite(); }
@@ -100,14 +103,14 @@ class FrameInFlight {
 
   void OnFrameDecoded(size_t peer,
                       webrtc::Timestamp time,
-                      StreamCodecInfo used_decoder);
+                      int width,
+                      int height,
+                      const StreamCodecInfo& used_decoder);
+  void OnDecoderError(size_t peer, const StreamCodecInfo& used_decoder);
 
   bool HasDecodeEndTime(size_t peer) const;
 
-  void OnFrameRendered(size_t peer,
-                       webrtc::Timestamp time,
-                       int width,
-                       int height);
+  void OnFrameRendered(size_t peer, webrtc::Timestamp time);
 
   bool HasRenderedTime(size_t peer) const;
 
@@ -139,6 +142,9 @@ class FrameInFlight {
   // object to decide when it should be deleted.
   std::set<size_t> expected_receivers_;
   absl::optional<VideoFrame> frame_;
+  // Store frame id separately because `frame_` can be removed when we have too
+  // much memory consuption.
+  uint16_t frame_id_ = VideoFrame::kNotSetId;
 
   // Frame events timestamp.
   Timestamp captured_time_;
@@ -148,6 +154,7 @@ class FrameInFlight {
   VideoFrameType frame_type_ = VideoFrameType::kEmptyFrame;
   DataSize encoded_image_size_ = DataSize::Bytes(0);
   uint32_t target_encode_bitrate_ = 0;
+  SamplesStatsCounter qp_values_;
   // Can be not set if frame was dropped by encoder.
   absl::optional<StreamCodecInfo> used_encoder_ = absl::nullopt;
   // Map from the receiver peer's index to frame stats for that peer.

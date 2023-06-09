@@ -1,11 +1,15 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-const { TabProvider } = ChromeUtils.import(
-  "resource://services-sync/engines/tabs.js"
+const { TabProvider } = ChromeUtils.importESModule(
+  "resource://services-sync/engines/tabs.sys.mjs"
 );
-const { WBORecord } = ChromeUtils.import("resource://services-sync/record.js");
-const { Service } = ChromeUtils.import("resource://services-sync/service.js");
+const { WBORecord } = ChromeUtils.importESModule(
+  "resource://services-sync/record.sys.mjs"
+);
+const { Service } = ChromeUtils.importESModule(
+  "resource://services-sync/service.sys.mjs"
+);
 
 let engine;
 // We'll need the clients engine for testing as tabs is closely related
@@ -67,7 +71,7 @@ async function makeRemoteClients() {
       getLocalType() {
         return fxAccounts.device.getLocalType();
       },
-      recentDeviceList: [{ id: remoteId }],
+      recentDeviceList: [{ id: remoteId, name: "remote device" }],
       refreshDeviceList() {
         return Promise.resolve(true);
       },
@@ -191,17 +195,31 @@ add_task(async function test_tab_engine_skips_incoming_local_record() {
   Assert.ok(!Service.scheduler.hasIncomingItems);
 });
 
-// A test to ensure we can properly send tabs via provider to rust without errors
-add_task(async function test_set_local_tabs() {
-  TabProvider.getWindowEnumerator = mockGetWindowEnumerator.bind(this, [
-    "http://example1.com",
-    "http://example2.com",
-  ]);
+// Ensure we trim tabs in the case of going past the max payload size allowed
+add_task(async function test_too_many_tabs() {
+  let a_lot_of_tabs = [];
 
-  _("Testing sending tabs to rust works");
-  // Get all tabs from desktop
-  let tabs = await TabProvider.getAllTabs();
-  // Then push it into the rust store
-  await engine._rustStore.setLocalTabs(tabs);
-  Assert.ok("Rust accepted our tab schema");
+  for (let i = 0; i < 4000; ++i) {
+    a_lot_of_tabs.push(
+      `http://example${i}.com/some-super-long-url-chain-to-help-with-bytes`
+    );
+  }
+
+  TabProvider.getWindowEnumerator = mockGetWindowEnumerator.bind(
+    this,
+    a_lot_of_tabs
+  );
+
+  let encoder = Utils.utf8Encoder;
+  // see tryfitItems(..) in util.js
+  const computeSerializedSize = records =>
+    encoder.encode(JSON.stringify(records)).byteLength;
+
+  const maxPayloadSize = Service.getMaxRecordPayloadSize();
+  const maxSerializedSize = (maxPayloadSize / 4) * 3 - 1500;
+  // We are over max payload size
+  Assert.ok(computeSerializedSize(a_lot_of_tabs) > maxSerializedSize);
+  let tabs = await engine.getTabsWithinPayloadSize();
+  // We are now under max payload size
+  Assert.ok(computeSerializedSize(tabs) < maxSerializedSize);
 });

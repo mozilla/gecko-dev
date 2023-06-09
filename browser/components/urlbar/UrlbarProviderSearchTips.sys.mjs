@@ -231,7 +231,7 @@ class ProviderSearchTips extends UrlbarProvider {
         };
         break;
       case TIPS.PERSIST:
-        result.heuristic = true;
+        result.heuristic = false;
         result.payload.titleL10n = {
           id: "urlbar-search-tips-persist",
         };
@@ -253,7 +253,7 @@ class ProviderSearchTips extends UrlbarProvider {
    * @param {UrlbarResult} result
    *   The result that was picked.
    */
-  pickResult(result) {
+  #pickResult(result) {
     let tip = result.payload.type;
     let window = lazy.BrowserWindowTracker.getTopWindow();
     switch (tip) {
@@ -268,6 +268,12 @@ class ProviderSearchTips extends UrlbarProvider {
         window.gURLBar.focus();
         break;
     }
+
+    // The user either clicked the tip's "Okay, Got It" button, or they clicked
+    // in the urlbar while the tip was showing. We treat both as the user's
+    // acknowledgment of the tip, and we don't show tips again in any session.
+    // Set the shown count to the max.
+    lazy.UrlbarPrefs.set(`tipShownCount.${tip}`, MAX_SHOWN_COUNT);
   }
 
   /**
@@ -288,19 +294,16 @@ class ProviderSearchTips extends UrlbarProvider {
    *   it describes the search string and picked result.
    */
   onEngagement(isPrivate, state, queryContext, details) {
-    if (
-      this.showedTipTypeInCurrentEngagement != TIPS.NONE &&
-      state == "engagement"
-    ) {
-      // The user either clicked the tip's "Okay, Got It" button, or they
-      // engaged with the urlbar while the tip was showing. We treat both as the
-      // user's acknowledgment of the tip, and we don't show tips again in any
-      // session. Set the shown count to the max.
-      lazy.UrlbarPrefs.set(
-        `tipShownCount.${this.showedTipTypeInCurrentEngagement}`,
-        MAX_SHOWN_COUNT
-      );
+    // Ignore engagements on other results that didn't end the session.
+    let { result } = details;
+    if (result?.providerName != this.name && details.isSessionOngoing) {
+      return;
     }
+
+    if (result?.providerName == this.name) {
+      this.#pickResult(result);
+    }
+
     this.showedTipTypeInCurrentEngagement = TIPS.NONE;
   }
 
@@ -405,7 +408,7 @@ class ProviderSearchTips extends UrlbarProvider {
     // a specific tip can be shown to the user, and the
     // the url is a default SERP.
     let shouldShowPersistTip =
-      lazy.UrlbarPrefs.get("showSearchTerms.featureGate") &&
+      lazy.UrlbarPrefs.isPersistedSearchTermsEnabled() &&
       (lazy.UrlbarPrefs.get(`tipShownCount.${TIPS.PERSIST}`) <
         MAX_SHOWN_COUNT ||
         ignoreShowLimits) &&
@@ -458,8 +461,7 @@ class ProviderSearchTips extends UrlbarProvider {
       // exception because the query is not erased.
       if (
         window.gURLBar.getAttribute("pageproxystate") == "invalid" &&
-        window.gURLBar.value != "" &&
-        tip != TIPS.PERSIST
+        window.gURLBar.value != ""
       ) {
         return;
       }
@@ -467,11 +469,7 @@ class ProviderSearchTips extends UrlbarProvider {
       // The tab that initiated the tip might not be in the same window
       // as the one that is currently at the top. Only apply this search
       // tip to a tab showing a search term.
-      if (
-        tip == TIPS.PERSIST &&
-        (!window.gBrowser.selectedBrowser.showingSearchTerms ||
-          !window.gBrowser.selectedBrowser.userTypedValue)
-      ) {
+      if (tip == TIPS.PERSIST && !window.gBrowser.selectedBrowser.searchTerms) {
         return;
       }
 
@@ -494,7 +492,8 @@ class ProviderSearchTips extends UrlbarProvider {
       let { documentRequest } = window.gBrowser.selectedBrowser.webProgress;
       if (
         documentRequest instanceof Ci.nsIChannel &&
-        documentRequest.originalURI?.spec != originalUri?.spec
+        documentRequest.originalURI?.spec != originalUri?.spec &&
+        (!isNewtab || originalUri)
       ) {
         return;
       }
@@ -508,9 +507,7 @@ class ProviderSearchTips extends UrlbarProvider {
       this.currentTip = tip;
 
       let value =
-        tip == TIPS.PERSIST
-          ? window.gBrowser.selectedBrowser.userTypedValue
-          : "";
+        tip == TIPS.PERSIST ? window.gBrowser.selectedBrowser.searchTerms : "";
       window.gURLBar.search(value, { focus: tip == TIPS.ONBOARD });
     }, tipDelay);
   }
@@ -537,16 +534,8 @@ async function isBrowserShowingNotification() {
     return true;
   }
 
-  // tracking protection and identity box doorhangers
-  if (
-    [
-      "tracking-protection-icon-container",
-      "identity-icon-box",
-      "identity-permission-box",
-    ].some(
-      id => window.document.getElementById(id).getAttribute("open") == "true"
-    )
-  ) {
+  // PopupNotifications (e.g. Tracking Protection, Identity Box Doorhangers)
+  if (window.PopupNotifications.isPanelOpen) {
     return true;
   }
 

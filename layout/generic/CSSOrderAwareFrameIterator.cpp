@@ -10,9 +10,9 @@
 #include "nsIFrameInlines.h"
 
 static bool CanUse(const nsIFrame* aFrame) {
-  return aFrame->IsFlexOrGridContainer() || aFrame->IsXULBoxFrame() ||
-         (aFrame->GetContent() &&
-          aFrame->GetContent()->IsXULElement(nsGkAtoms::treecols));
+  return aFrame->IsFlexOrGridContainer() ||
+         (aFrame->GetContent() && aFrame->GetContent()->IsAnyOfXULElements(
+                                      nsGkAtoms::treecols, nsGkAtoms::treecol));
 }
 
 namespace mozilla {

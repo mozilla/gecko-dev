@@ -26,7 +26,9 @@ static char* UnicodeToNative(JSContext* cx, const char16_t* source,
   }
 
   char* result = static_cast<char*>(JS_malloc(cx, native.Length() + 1));
-  if (!result) return nullptr;
+  if (!result) {
+    return nullptr;
+  }
 
   memcpy(result, native.get(), native.Length() + 1);
   return result;
@@ -45,42 +47,20 @@ Module::~Module() = default;
 #define XPC_MAP_FLAGS XPC_SCRIPTABLE_WANT_CALL
 #include "xpc_map_end.h"
 
-static bool SealObjectAndPrototype(JSContext* cx, JS::Handle<JSObject*> parent,
-                                   const char* name) {
-  JS::Rooted<JS::Value> prop(cx);
-  if (!JS_GetProperty(cx, parent, name, &prop)) return false;
-
-  if (prop.isUndefined()) {
-    // Pretend we sealed the object.
-    return true;
-  }
-
-  JS::Rooted<JSObject*> obj(cx, prop.toObjectOrNull());
-  if (!JS_GetProperty(cx, obj, "prototype", &prop)) return false;
-
-  JS::Rooted<JSObject*> prototype(cx, prop.toObjectOrNull());
-  return JS_FreezeObject(cx, obj) && JS_FreezeObject(cx, prototype);
-}
-
-static bool InitAndSealCTypesClass(JSContext* cx,
-                                   JS::Handle<JSObject*> global) {
+static bool InitCTypesClassAndSetCallbacks(JSContext* cx,
+                                           JS::Handle<JSObject*> global) {
   // Init the ctypes object.
-  if (!JS::InitCTypesClass(cx, global)) return false;
+  if (!JS::InitCTypesClass(cx, global)) {
+    return false;
+  }
 
   // Set callbacks for charset conversion and such.
   JS::Rooted<JS::Value> ctypes(cx);
-  if (!JS_GetProperty(cx, global, "ctypes", &ctypes)) return false;
+  if (!JS_GetProperty(cx, global, "ctypes", &ctypes)) {
+    return false;
+  }
 
   JS::SetCTypesCallbacks(ctypes.toObjectOrNull(), &sCallbacks);
-
-  // Seal up Object, Function, Array and Error and their prototypes.  (This
-  // single object instance is shared amongst everyone who imports the ctypes
-  // module.)
-  if (!SealObjectAndPrototype(cx, global, "Object") ||
-      !SealObjectAndPrototype(cx, global, "Function") ||
-      !SealObjectAndPrototype(cx, global, "Array") ||
-      !SealObjectAndPrototype(cx, global, "Error"))
-    return false;
 
   return true;
 }
@@ -92,7 +72,7 @@ Module::Call(nsIXPConnectWrappedNative* wrapper, JSContext* cx, JSObject* obj,
   JS::Rooted<JSObject*> targetObj(cx);
   loader->FindTargetObject(cx, &targetObj);
 
-  *_retval = InitAndSealCTypesClass(cx, targetObj);
+  *_retval = InitCTypesClassAndSetCallbacks(cx, targetObj);
   return NS_OK;
 }
 

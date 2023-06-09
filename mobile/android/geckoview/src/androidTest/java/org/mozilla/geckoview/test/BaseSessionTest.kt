@@ -60,6 +60,8 @@ open class BaseSessionTest(noErrorCollector: Boolean = false) {
         const val NEW_SESSION_CHILD_HTML_PATH = "/assets/www/newSession_child.html"
         const val NEW_SESSION_HTML_PATH = "/assets/www/newSession.html"
         const val POPUP_HTML_PATH = "/assets/www/popup.html"
+        const val PRINT_CONTENT_CHANGE = "/assets/www/print_content_change.html"
+        const val PRINT_IFRAME = "/assets/www/print_iframe.html"
         const val PROMPT_HTML_PATH = "/assets/www/prompts.html"
         const val SAVE_STATE_PATH = "/assets/www/saveState.html"
         const val TEST_GIF_PATH = "/assets/www/images/test.gif"
@@ -121,6 +123,9 @@ open class BaseSessionTest(noErrorCollector: Boolean = false) {
         const val BODY_FULLY_COVERED_BY_GREEN_ELEMENT = "/assets/www/red-background-body-fully-covered-by-green-element.html"
         const val COLOR_GRID_HTML_PATH = "/assets/www/color_grid.html"
         const val COLOR_ORANGE_BACKGROUND_HTML_PATH = "/assets/www/color_orange_background.html"
+        const val TRACEMONKEY_PDF_PATH = "/assets/www/tracemonkey.pdf"
+        const val HELLO_PDF_WORLD_PDF_PATH = "/assets/www/helloPDFWorld.pdf"
+        const val NO_META_VIEWPORT_HTML_PATH = "/assets/www/no-meta-viewport.html"
 
         const val TEST_ENDPOINT = GeckoSessionTestRule.TEST_ENDPOINT
         const val TEST_HOST = GeckoSessionTestRule.TEST_HOST
@@ -141,8 +146,11 @@ open class BaseSessionTest(noErrorCollector: Boolean = false) {
 
     fun <T> assertThat(reason: String, v: T, m: Matcher<in T>) = sessionRule.checkThat(reason, v, m)
     fun <T> assertInAutomationThat(reason: String, v: T, m: Matcher<in T>) =
-        if (sessionRule.env.isAutomation) assertThat(reason, v, m)
-        else assumeThat(reason, v, m)
+        if (sessionRule.env.isAutomation) {
+            assertThat(reason, v, m)
+        } else {
+            assumeThat(reason, v, m)
+        }
 
     init {
         if (!noErrorCollector) {
@@ -252,6 +260,12 @@ open class BaseSessionTest(noErrorCollector: Boolean = false) {
 
     fun GeckoSession.setResolutionAndScaleTo(resolution: Float) =
         sessionRule.setResolutionAndScaleTo(this, resolution)
+
+    fun GeckoSession.triggerCookieBannerDetected() =
+        sessionRule.triggerCookieBannerDetected(this)
+
+    fun GeckoSession.triggerCookieBannerHandled() =
+        sessionRule.triggerCookieBannerHandled(this)
 
     var GeckoSession.active: Boolean
         get() = sessionRule.getActive(this)

@@ -7,10 +7,10 @@ regular content cannot -- WebExtensions APIs bridge this gap by exposing
 browser features to extensions in a way preserves safety, reliability,
 and performance.
 The implementation of a WebExtension API runs with
-`chrome privileges <https://developer.mozilla.org/en-US/docs/Security/Firefox_Security_Basics_For_Developers>`_.
+:doc:`chrome privileges </dom/scriptSecurity/index>`.
 Browser internals are accessed using
-`XPCOM <https://developer.mozilla.org/en-US/docs/Mozilla/Tech/XPCOM>`_
-or `ChromeOnly WebIDL features <https://developer.mozilla.org/en-US/docs/Mozilla/WebIDL_bindings#ChromeOnly>`_.
+:ref:`XPCOM`
+or :doc:`ChromeOnly WebIDL features </dom/webIdlBindings/index>`.
 
 The rest of this documentation covers how API implementations interact
 with the implementation of WebExtensions.
@@ -107,7 +107,7 @@ Manifest entries are used for features in which an extension specifies
 some static information that is used when an extension is installed or
 when it starts up (i.e., before it has the chance to run any code to use
 a Javascript API).
-An API may handle a manifest key and implement Javscript functionality,
+An API may handle a manifest key and implement Javascript functionality,
 see the
 `browser action <https://developer.mozilla.org/en-US/Add-ons/WebExtensions/API/browserAction>`_
 API for an example.

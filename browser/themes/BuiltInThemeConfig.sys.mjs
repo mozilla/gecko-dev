@@ -5,6 +5,7 @@
 /**
  * A Map of themes built in to the browser, alongwith a Map of collections those themes belong to. Params for the objects contained
  * within the map:
+ *
  * @param {string} id
  *   The unique identifier for the theme. The map's key.
  * @param {string} version
@@ -241,8 +242,6 @@ export const BuiltInThemeConfig = new Map([
         description: "playmaker-colorway-description",
         groupName: "playmaker-colorway-name",
       },
-      figureUrl:
-        "chrome://browser/content/colorways/assets/independent-voices-playmaker.avif",
     },
   ],
   [
@@ -255,8 +254,6 @@ export const BuiltInThemeConfig = new Map([
         description: "playmaker-colorway-description",
         groupName: "playmaker-colorway-name",
       },
-      figureUrl:
-        "chrome://browser/content/colorways/assets/independent-voices-playmaker.avif",
     },
   ],
   [
@@ -269,8 +266,6 @@ export const BuiltInThemeConfig = new Map([
         description: "playmaker-colorway-description",
         groupName: "playmaker-colorway-name",
       },
-      figureUrl:
-        "chrome://browser/content/colorways/assets/independent-voices-playmaker.avif",
     },
   ],
   [
@@ -283,8 +278,6 @@ export const BuiltInThemeConfig = new Map([
         description: "expressionist-colorway-description",
         groupName: "expressionist-colorway-name",
       },
-      figureUrl:
-        "chrome://browser/content/colorways/assets/independent-voices-expressionist.avif",
     },
   ],
   [
@@ -297,8 +290,6 @@ export const BuiltInThemeConfig = new Map([
         description: "expressionist-colorway-description",
         groupName: "expressionist-colorway-name",
       },
-      figureUrl:
-        "chrome://browser/content/colorways/assets/independent-voices-expressionist.avif",
     },
   ],
   [
@@ -311,8 +302,6 @@ export const BuiltInThemeConfig = new Map([
         description: "expressionist-colorway-description",
         groupName: "expressionist-colorway-name",
       },
-      figureUrl:
-        "chrome://browser/content/colorways/assets/independent-voices-expressionist.avif",
     },
   ],
   [
@@ -325,8 +314,6 @@ export const BuiltInThemeConfig = new Map([
         description: "visionary-colorway-description",
         groupName: "visionary-colorway-name",
       },
-      figureUrl:
-        "chrome://browser/content/colorways/assets/independent-voices-visionary.avif",
     },
   ],
   [
@@ -339,8 +326,6 @@ export const BuiltInThemeConfig = new Map([
         description: "visionary-colorway-description",
         groupName: "visionary-colorway-name",
       },
-      figureUrl:
-        "chrome://browser/content/colorways/assets/independent-voices-visionary.avif",
     },
   ],
   [
@@ -353,8 +338,6 @@ export const BuiltInThemeConfig = new Map([
         description: "visionary-colorway-description",
         groupName: "visionary-colorway-name",
       },
-      figureUrl:
-        "chrome://browser/content/colorways/assets/independent-voices-visionary.avif",
     },
   ],
   [
@@ -367,8 +350,6 @@ export const BuiltInThemeConfig = new Map([
         description: "activist-colorway-description",
         groupName: "activist-colorway-name",
       },
-      figureUrl:
-        "chrome://browser/content/colorways/assets/independent-voices-activist.avif",
     },
   ],
   [
@@ -381,8 +362,6 @@ export const BuiltInThemeConfig = new Map([
         description: "activist-colorway-description",
         groupName: "activist-colorway-name",
       },
-      figureUrl:
-        "chrome://browser/content/colorways/assets/independent-voices-activist.avif",
     },
   ],
   [
@@ -395,8 +374,6 @@ export const BuiltInThemeConfig = new Map([
         description: "activist-colorway-description",
         groupName: "activist-colorway-name",
       },
-      figureUrl:
-        "chrome://browser/content/colorways/assets/independent-voices-activist.avif",
     },
   ],
   [
@@ -409,8 +386,6 @@ export const BuiltInThemeConfig = new Map([
         description: "dreamer-colorway-description",
         groupName: "dreamer-colorway-name",
       },
-      figureUrl:
-        "chrome://browser/content/colorways/assets/independent-voices-dreamer.avif",
     },
   ],
   [
@@ -423,8 +398,6 @@ export const BuiltInThemeConfig = new Map([
         description: "dreamer-colorway-description",
         groupName: "dreamer-colorway-name",
       },
-      figureUrl:
-        "chrome://browser/content/colorways/assets/independent-voices-dreamer.avif",
     },
   ],
   [
@@ -437,8 +410,6 @@ export const BuiltInThemeConfig = new Map([
         description: "dreamer-colorway-description",
         groupName: "dreamer-colorway-name",
       },
-      figureUrl:
-        "chrome://browser/content/colorways/assets/independent-voices-dreamer.avif",
     },
   ],
   [
@@ -451,8 +422,6 @@ export const BuiltInThemeConfig = new Map([
         description: "innovator-colorway-description",
         groupName: "innovator-colorway-name",
       },
-      figureUrl:
-        "chrome://browser/content/colorways/assets/independent-voices-innovator.avif",
     },
   ],
   [
@@ -465,8 +434,6 @@ export const BuiltInThemeConfig = new Map([
         description: "innovator-colorway-description",
         groupName: "innovator-colorway-name",
       },
-      figureUrl:
-        "chrome://browser/content/colorways/assets/independent-voices-innovator.avif",
     },
   ],
   [
@@ -479,8 +446,6 @@ export const BuiltInThemeConfig = new Map([
         description: "innovator-colorway-description",
         groupName: "innovator-colorway-name",
       },
-      figureUrl:
-        "chrome://browser/content/colorways/assets/independent-voices-innovator.avif",
     },
   ],
 ]);
@@ -497,14 +462,6 @@ const ColorwayCollections = [
   {
     id: "independent-voices",
     expiry: "2023-01-17",
-    l10nId: {
-      title: "colorway-collection-independent-voices",
-      description: "colorway-collection-independent-voices-description",
-    },
-    cardImagePath:
-      "chrome://browser/content/colorways/assets/independent-voices-collection-banner.avif",
-    figureUrl:
-      "chrome://browser/content/colorways/assets/independent-voices-collection.avif",
   },
 ];
 
@@ -528,25 +485,6 @@ export function _applyColorwayConfig(collections) {
       });
     }
   }
-  BuiltInThemeConfig.findActiveColorwayCollection = (now = new Date()) => {
-    let collection = null;
-    let start = 0;
-    let end = collectionsSorted.length - 1;
-    while (start <= end) {
-      const mid = Math.floor((start + end) / 2);
-      const c = collectionsSorted[mid];
-      const diff = c.expiry - now;
-      if (diff < 0) {
-        // collection expired, look for newer one
-        start = mid + 1;
-      } else {
-        // collection not expired, check for older one
-        collection = c;
-        end = mid - 1;
-      }
-    }
-    return collection;
-  };
 }
 
 _applyColorwayConfig(ColorwayCollections);

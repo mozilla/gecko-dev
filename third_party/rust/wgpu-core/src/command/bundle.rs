@@ -81,13 +81,13 @@ index format changes.
 use crate::{
     binding_model::{self, buffer_binding_type_alignment},
     command::{
-        BasePass, BindGroupStateChange, DrawError, MapPassErr, PassErrorScope, RenderCommand,
-        RenderCommandError, StateChange,
+        BasePass, BindGroupStateChange, ColorAttachmentError, DrawError, MapPassErr,
+        PassErrorScope, RenderCommand, RenderCommandError, StateChange,
     },
     conv,
     device::{
-        AttachmentData, Device, DeviceError, MissingDownlevelFlags, RenderPassContext,
-        SHADER_STAGE_COUNT,
+        AttachmentData, Device, DeviceError, MissingDownlevelFlags,
+        RenderPassCompatibilityCheckType, RenderPassContext, SHADER_STAGE_COUNT,
     },
     error::{ErrorFormatter, PrettyError},
     hub::{GlobalIdentityHandlerFactory, HalApi, Hub, Resource, Storage, Token},
@@ -179,7 +179,12 @@ impl RenderBundleEncoder {
             context: RenderPassContext {
                 attachments: AttachmentData {
                     colors: if desc.color_formats.len() > hal::MAX_COLOR_ATTACHMENTS {
-                        return Err(CreateRenderBundleError::TooManyColorAttachments);
+                        return Err(CreateRenderBundleError::ColorAttachment(
+                            ColorAttachmentError::TooMany {
+                                given: desc.color_formats.len(),
+                                limit: hal::MAX_COLOR_ATTACHMENTS,
+                            },
+                        ));
                     } else {
                         desc.color_formats.iter().cloned().collect()
                     },
@@ -362,7 +367,7 @@ impl RenderBundleEncoder {
                         .map_pass_err(scope)?;
 
                     self.context
-                        .check_compatible(&pipeline.pass_context)
+                        .check_compatible(&pipeline.pass_context, RenderPassCompatibilityCheckType::RenderPipeline)
                         .map_err(RenderCommandError::IncompatiblePipelineTargets)
                         .map_pass_err(scope)?;
 
@@ -628,7 +633,7 @@ impl RenderBundleEncoder {
                 RenderCommand::PushDebugGroup { color: _, len: _ } => unimplemented!(),
                 RenderCommand::InsertDebugMarker { color: _, len: _ } => unimplemented!(),
                 RenderCommand::PopDebugGroup => unimplemented!(),
-                RenderCommand::WriteTimestamp { .. } // Must check the WRITE_TIMESTAMP_INSIDE_PASSES feature
+                RenderCommand::WriteTimestamp { .. } // Must check the TIMESTAMP_QUERY_INSIDE_PASSES feature
                 | RenderCommand::BeginPipelineStatisticsQuery { .. }
                 | RenderCommand::EndPipelineStatisticsQuery => unimplemented!(),
                 RenderCommand::ExecuteBundle(_)
@@ -690,19 +695,21 @@ impl RenderBundleEncoder {
 
 /// Error type returned from `RenderBundleEncoder::new` if the sample count is invalid.
 #[derive(Clone, Debug, Error)]
+#[non_exhaustive]
 pub enum CreateRenderBundleError {
-    #[error("invalid number of samples {0}")]
+    #[error(transparent)]
+    ColorAttachment(#[from] ColorAttachmentError),
+    #[error("Invalid number of samples {0}")]
     InvalidSampleCount(u32),
-    #[error("number of color attachments exceeds the limit")]
-    TooManyColorAttachments,
 }
 
 /// Error type returned from `RenderBundleEncoder::new` if the sample count is invalid.
 #[derive(Clone, Debug, Error)]
+#[non_exhaustive]
 pub enum ExecutionError {
-    #[error("buffer {0:?} is destroyed")]
+    #[error("Buffer {0:?} is destroyed")]
     DestroyedBuffer(id::BufferId),
-    #[error("using {0} in a render bundle is not implemented")]
+    #[error("Using {0} in a render bundle is not implemented")]
     Unimplemented(&'static str),
 }
 impl PrettyError for ExecutionError {
@@ -1372,7 +1379,7 @@ impl<A: HalApi> State<A> {
 /// Error encountered when finishing recording a render bundle.
 #[derive(Clone, Debug, Error)]
 pub(super) enum RenderBundleErrorInner {
-    #[error("resource is not valid to use with this render bundle because the resource and the bundle come from different devices")]
+    #[error("Resource is not valid to use with this render bundle because the resource and the bundle come from different devices")]
     NotValidToUse,
     #[error(transparent)]
     Device(#[from] DeviceError),

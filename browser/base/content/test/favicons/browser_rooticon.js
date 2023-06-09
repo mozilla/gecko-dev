@@ -1,6 +1,8 @@
 add_task(async () => {
   const testPath =
+    // eslint-disable-next-line @microsoft/sdl/no-insecure-url
     "http://example.com/browser/browser/base/content/test/favicons/blank.html";
+  // eslint-disable-next-line @microsoft/sdl/no-insecure-url
   const expectedIcon = "http://example.com/favicon.ico";
 
   let tab = BrowserTestUtils.addTab(gBrowser, testPath);
@@ -13,7 +15,7 @@ add_task(async () => {
   is(iconURI, expectedIcon, "Got correct initial icon.");
 
   faviconPromise = waitForLinkAvailable(browser);
-  BrowserTestUtils.loadURI(browser, testPath);
+  BrowserTestUtils.loadURIString(browser, testPath);
   await BrowserTestUtils.browserLoaded(browser);
   iconURI = await faviconPromise;
   is(iconURI, expectedIcon, "Got correct icon on second load.");

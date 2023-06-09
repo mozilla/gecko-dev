@@ -33,7 +33,7 @@ import {
   getContext,
 } from "../../selectors";
 
-import classnames from "classnames";
+const classnames = require("devtools/client/shared/classnames.js");
 
 class Tab extends PureComponent {
   static get propTypes() {
@@ -54,6 +54,7 @@ class Tab extends PureComponent {
       tabSources: PropTypes.array.isRequired,
       toggleBlackBox: PropTypes.func.isRequired,
       togglePrettyPrint: PropTypes.func.isRequired,
+      isBlackBoxed: PropTypes.bool.isRequired,
     };
   }
 
@@ -167,10 +168,6 @@ class Tab extends PureComponent {
     showMenu(e, buildMenu(items));
   }
 
-  isProjectSearchEnabled() {
-    return this.props.activeSearch === "project";
-  }
-
   isSourceSearchEnabled() {
     return this.props.activeSearch === "source";
   }
@@ -192,7 +189,6 @@ class Tab extends PureComponent {
     const active =
       selectedLocation &&
       sourceId == selectedLocation.sourceId &&
-      !this.isProjectSearchEnabled() &&
       !this.isSourceSearchEnabled();
     const isPrettyCode = isPretty(source);
 
@@ -204,12 +200,13 @@ class Tab extends PureComponent {
     function handleTabClick(e) {
       e.preventDefault();
       e.stopPropagation();
-      return selectSource(cx, sourceId, sourceActor?.actor);
+      return selectSource(cx, source, sourceActor);
     }
 
     const className = classnames("source-tab", {
       active,
       pretty: isPrettyCode,
+      blackboxed: this.props.isBlackBoxed,
     });
 
     const path = getDisplayPath(source, tabSources);
@@ -231,6 +228,7 @@ class Tab extends PureComponent {
       >
         <SourceIcon
           source={source}
+          forTab={true}
           modifier={icon =>
             ["file", "javascript"].includes(icon) ? null : icon
           }

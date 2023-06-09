@@ -152,7 +152,10 @@ export default class LoginList extends HTMLElement {
 
   render() {
     let visibleLoginGuids = this._applyFilter();
-    this._updateVisibleLoginCount(visibleLoginGuids.size);
+    this.#updateVisibleLoginCount(
+      visibleLoginGuids.size,
+      this._loginGuidsSortedOrder.length
+    );
     this.classList.toggle("empty-search", !visibleLoginGuids.size);
     document.documentElement.classList.toggle(
       "empty-search",
@@ -418,8 +421,6 @@ export default class LoginList extends HTMLElement {
       case "keyup":
       case "keydown": {
         if (event.type == "keydown") {
-          this._handleTabbingToExternalElements(event);
-
           if (
             this.shadowRoot.activeElement &&
             this.shadowRoot.activeElement.closest("ol") &&
@@ -694,42 +695,14 @@ export default class LoginList extends HTMLElement {
     this._list.scrollTop = 0;
   }
 
-  _updateVisibleLoginCount(count) {
-    if (count != document.l10n.getAttributes(this._count).args.count) {
-      document.l10n.setAttributes(this._count, "login-list-count", {
-        count,
-      });
-    }
-  }
-
-  _handleTabbingToExternalElements(event) {
-    if (
-      (this._createLoginButton == this.shadowRoot.activeElement ||
-        (this._list == this.shadowRoot.activeElement &&
-          this._createLoginButton.disabled)) &&
-      event.key == "Tab"
-    ) {
-      // Bug 1562716: Pressing Tab from the create-login-button cycles back to the
-      // login-sort dropdown due to the login-list having `overflow`
-      // CSS property set. Explicitly forward focus here until
-      // this keyboard trap is fixed.
-      if (event.shiftKey) {
-        return;
-      }
-      if (
-        this.classList.contains("no-logins") &&
-        !this.classList.contains("create-login-selected")
-      ) {
-        let loginIntro = document.querySelector("login-intro");
-        event.preventDefault();
-        loginIntro.focus();
-        return;
-      }
-      let loginItem = document.querySelector("login-item");
-      if (loginItem) {
-        event.preventDefault();
-        loginItem.focus();
-      }
+  #updateVisibleLoginCount(count, total) {
+    const args = document.l10n.getAttributes(this._count).args;
+    if (count != args.count || total != args.total) {
+      document.l10n.setAttributes(
+        this._count,
+        count == total ? "login-list-count" : "login-list-filtered-count",
+        { count, total }
+      );
     }
   }
 
@@ -869,6 +842,7 @@ export default class LoginList extends HTMLElement {
       from?.classList.remove("keyboard-selected");
       to.classList.add("keyboard-selected");
       to.scrollIntoView({ block: "nearest" });
+      this.clickSelected();
     }
   }
 

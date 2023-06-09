@@ -46,7 +46,8 @@ WarpScriptSnapshot::WarpScriptSnapshot(JSScript* script,
       environment_(env),
       opSnapshots_(std::move(opSnapshots)),
       moduleObject_(moduleObject),
-      isArrowFunction_(script->isFunction() && script->function()->isArrow()) {}
+      isArrowFunction_(script->isFunction() && script->function()->isArrow()),
+      isMonomorphicInlined_(false) {}
 
 #ifdef JS_JITSPEW
 void WarpSnapshot::dump() const {
@@ -103,7 +104,7 @@ void WarpScriptSnapshot::dump(GenericPrinter& out) const {
 
 static const char* OpSnapshotKindString(WarpOpSnapshot::Kind kind) {
   static const char* const names[] = {
-#  define NAME(x) #  x,
+#  define NAME(x) #x,
       WARP_OP_SNAPSHOT_LIST(NAME)
 #  undef NAME
   };

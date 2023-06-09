@@ -454,6 +454,11 @@ tls13_SetupClientHello(sslSocket *ss, sslClientHelloType chType)
         return SECSuccess;
     }
 
+    rv = tls13_ClientGreaseSetup(ss);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+
     /* Select the first enabled group.
      * TODO(ekr@rtfm.com): be smarter about offering the group
      * that the other side negotiated if we are resuming. */
@@ -1563,6 +1568,9 @@ tls13_NegotiateKeyExchange(sslSocket *ss,
                         missing_extension);
             return SECFailure;
         }
+        /* Since the server insists on DHE to provide forward secracy, for
+         * every other PskKem value but DHE stateless resumption is disabled,
+         * this includes other specified and GREASE values. */
         if (!memchr(ss->xtnData.psk_ke_modes.data, tls13_psk_dh_ke,
                     ss->xtnData.psk_ke_modes.len)) {
             SSL_TRC(3, ("%d: TLS13[%d]: client offered PSK without DH",
@@ -3035,7 +3043,10 @@ tls13_HandleServerHelloPart2(sslSocket *ss, const PRUint8 *savedMsg, PRUint32 sa
         /* We may have offered a PSK. If the server didn't negotiate
          * it, clear this state to re-extract the Early Secret. */
         if (ss->ssl3.hs.currentSecret) {
-            PORT_Assert(ssl3_ExtensionAdvertised(ss, ssl_tls13_pre_shared_key_xtn));
+            /* We might have dropped incompatible PSKs on HRR
+             * (see RFC8466, Section 4.1.4). */
+            PORT_Assert(ss->ssl3.hs.helloRetry ||
+                        ssl3_ExtensionAdvertised(ss, ssl_tls13_pre_shared_key_xtn));
             PK11_FreeSymKey(ss->ssl3.hs.currentSecret);
             ss->ssl3.hs.currentSecret = NULL;
         }
@@ -5063,8 +5074,6 @@ loser:
 static SECStatus
 tls13_FinishHandshake(sslSocket *ss)
 {
-    /* If |!echHpkeCtx|, any advertised ECH was GREASE ECH. */
-    PRBool offeredEch = !ss->sec.isServer && ss->ssl3.hs.echHpkeCtx;
     PORT_Assert(ss->opt.noLocks || ssl_HaveRecvBufLock(ss));
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
     PORT_Assert(ss->ssl3.hs.restartTarget == NULL);
@@ -5080,28 +5089,7 @@ tls13_FinishHandshake(sslSocket *ss)
 
     TLS13_SET_HS_STATE(ss, idle_handshake);
 
-    PORT_Assert(ss->ssl3.hs.echAccepted ||
-                (ss->opt.enableTls13BackendEch &&
-                 ss->xtnData.ech &&
-                 ss->xtnData.ech->receivedInnerXtn) ==
-                    ssl3_ExtensionNegotiated(ss, ssl_tls13_encrypted_client_hello_xtn));
-    if (offeredEch && !ss->ssl3.hs.echAccepted) {
-        SSL3_SendAlert(ss, alert_fatal, ech_required);
-
-        /* "If [one, none] of the retry_configs contains a supported version, the client can
-         * regard ECH as securely [replaced, disabled] by the server." */
-        if (ss->xtnData.ech && ss->xtnData.ech->retryConfigs.len) {
-            PORT_SetError(SSL_ERROR_ECH_RETRY_WITH_ECH);
-            ss->xtnData.ech->retryConfigsValid = PR_TRUE;
-        } else {
-            PORT_SetError(SSL_ERROR_ECH_RETRY_WITHOUT_ECH);
-        }
-        return SECFailure;
-    }
-
-    ssl_FinishHandshake(ss);
-
-    return SECSuccess;
+    return ssl_FinishHandshake(ss);
 }
 
 /* Do the parts of sending the client's second round that require
@@ -5314,6 +5302,7 @@ tls13_SendNewSessionTicket(sslSocket *ss, const PRUint8 *appToken,
     SECStatus rv;
     NewSessionTicket ticket = { 0 };
     PRUint32 max_early_data_size_len = 0;
+    PRUint32 greaseLen = 0;
     PRUint8 ticketNonce[sizeof(ss->ssl3.hs.ticketNonce)];
     sslBuffer ticketNonceBuf = SSL_BUFFER(ticketNonce);
 
@@ -5326,6 +5315,10 @@ tls13_SendNewSessionTicket(sslSocket *ss, const PRUint8 *appToken,
         max_early_data_size_len = 8; /* type + len + value. */
     }
     ticket.ticket_lifetime_hint = ssl_ticket_lifetime;
+
+    if (ss->opt.enableGrease) {
+        greaseLen = 4; /* type + len + 0 (empty) */
+    }
 
     /* The ticket age obfuscator. */
     rv = PK11_GenerateRandom((PRUint8 *)&ticket.ticket_age_add,
@@ -5358,11 +5351,13 @@ tls13_SendNewSessionTicket(sslSocket *ss, const PRUint8 *appToken,
         goto loser;
 
     message_length =
-        4 +                           /* lifetime */
-        4 +                           /* ticket_age_add */
-        1 + sizeof(ticketNonce) +     /* ticket_nonce */
-        2 + max_early_data_size_len + /* max_early_data_size_len */
-        2 +                           /* ticket length */
+        4 +                       /* lifetime */
+        4 +                       /* ticket_age_add */
+        1 + sizeof(ticketNonce) + /* ticket_nonce */
+        2 +                       /* extensions lentgh */
+        max_early_data_size_len + /* max_early_data_size extension length */
+        greaseLen +               /* GREASE extension length */
+        2 +                       /* ticket length */
         ticket_data.len;
 
     rv = ssl3_AppendHandshakeHeader(ss, ssl_hs_new_session_ticket,
@@ -5390,11 +5385,33 @@ tls13_SendNewSessionTicket(sslSocket *ss, const PRUint8 *appToken,
     if (rv != SECSuccess)
         goto loser;
 
-    /* Extensions. */
-    rv = ssl3_AppendHandshakeNumber(ss, max_early_data_size_len, 2);
+    /* Extensions */
+    rv = ssl3_AppendHandshakeNumber(ss, max_early_data_size_len + greaseLen, 2);
     if (rv != SECSuccess)
         goto loser;
 
+    /* GREASE NewSessionTicket:
+     * When sending a NewSessionTicket message in TLS 1.3, a server MAY select
+     * one or more GREASE extension values and advertise them as extensions
+     * with varying length and contents [RFC8701, SEction 4.1]. */
+    if (ss->opt.enableGrease) {
+        PR_ASSERT(ss->version >= SSL_LIBRARY_VERSION_TLS_1_3);
+
+        PRUint16 grease;
+        rv = tls13_RandomGreaseValue(&grease);
+        if (rv != SECSuccess)
+            goto loser;
+        /* Extension type */
+        rv = ssl3_AppendHandshakeNumber(ss, grease, 2);
+        if (rv != SECSuccess)
+            goto loser;
+        /* Extension length */
+        rv = ssl3_AppendHandshakeNumber(ss, 0, 2);
+        if (rv != SECSuccess)
+            goto loser;
+    }
+
+    /* Max early data size extension. */
     if (max_early_data_size_len) {
         rv = ssl3_AppendHandshakeNumber(
             ss, ssl_tls13_early_data_xtn, 2);
@@ -5637,7 +5654,7 @@ static const struct {
                                certificate) },
     { ssl_delegated_credentials_xtn, _M2(client_hello, certificate) },
     { ssl_tls13_cookie_xtn, _M2(client_hello, hello_retry_request) },
-    { ssl_tls13_certificate_authorities_xtn, _M1(certificate_request) },
+    { ssl_tls13_certificate_authorities_xtn, _M2(client_hello, certificate_request) },
     { ssl_tls13_supported_versions_xtn, _M3(client_hello, server_hello,
                                             hello_retry_request) },
     { ssl_record_size_limit_xtn, _M2(client_hello, encrypted_extensions) },
@@ -6435,4 +6452,117 @@ tls13_MaybeTls13(sslSocket *ss)
     }
 
     return PR_FALSE;
+}
+
+/* Setup random client GREASE values according to RFC8701. State must be kept
+ * so an equal ClientHello might be send on HelloRetryRequest. */
+SECStatus
+tls13_ClientGreaseSetup(sslSocket *ss)
+{
+    if (!ss->opt.enableGrease) {
+        return SECSuccess;
+    }
+
+    PORT_Assert(ss->vrange.max >= SSL_LIBRARY_VERSION_TLS_1_3);
+
+    if (ss->ssl3.hs.grease) {
+        return SECFailure;
+    }
+    ss->ssl3.hs.grease = PORT_Alloc(sizeof(tls13ClientGrease));
+    if (!ss->ssl3.hs.grease) {
+        return SECFailure;
+    }
+
+    tls13ClientGrease *grease = ss->ssl3.hs.grease;
+    /* We require eight GREASE values and randoms. */
+    PRUint8 random[8];
+
+    /* Generate random GREASE values. */
+    if (PK11_GenerateRandom(random, sizeof(random)) != SECSuccess) {
+        return SECFailure;
+    }
+    for (size_t i = 0; i < PR_ARRAY_SIZE(grease->idx); i++) {
+        random[i] = ((random[i] & 0xf0) | 0x0a);
+        grease->idx[i] = ((random[i] << 8) | random[i]);
+    }
+    /* Specific PskKeyExchangeMode GREASE value. */
+    grease->pskKem = 0x0b + ((random[8 - 1] >> 5) * 0x1f);
+
+    /* Duplicate extensions are not allowed. */
+    if (grease->idx[grease_extension1] == grease->idx[grease_extension2]) {
+        grease->idx[grease_extension2] ^= 0x1010;
+    }
+
+    return SECSuccess;
+}
+
+/* Destroy client GREASE state. */
+void
+tls13_ClientGreaseDestroy(sslSocket *ss)
+{
+    if (ss->ssl3.hs.grease) {
+        PORT_Free(ss->ssl3.hs.grease);
+        ss->ssl3.hs.grease = NULL;
+    }
+}
+
+/* Generate a random GREASE value according to RFC8701.
+ * This function does not provide valid PskKeyExchangeMode GREASE values! */
+SECStatus
+tls13_RandomGreaseValue(PRUint16 *out)
+{
+    PRUint8 random;
+
+    if (PK11_GenerateRandom(&random, sizeof(random)) != SECSuccess) {
+        return SECFailure;
+    }
+
+    random = ((random & 0xf0) | 0x0a);
+    *out = ((random << 8) | random);
+
+    return SECSuccess;
+}
+
+/* Set TLS 1.3 GREASE Extension random GREASE type. */
+SECStatus
+tls13_MaybeGreaseExtensionType(const sslSocket *ss,
+                               const SSLHandshakeType message,
+                               PRUint16 *exType)
+{
+    if (*exType != ssl_tls13_grease_xtn) {
+        return SECSuccess;
+    }
+
+    PR_ASSERT(ss->opt.enableGrease);
+    PR_ASSERT(message == ssl_hs_client_hello ||
+              message == ssl_hs_certificate_request);
+
+    /* GREASE ClientHello:
+     * A client MAY select one or more GREASE extension values and
+     * advertise them as extensions with varying length and contents
+     * [RFC8701, Section 3.1]. */
+    if (message == ssl_hs_client_hello) {
+        PR_ASSERT(ss->vrange.max >= SSL_LIBRARY_VERSION_TLS_1_3);
+        /* Check if the first GREASE extension was already added. */
+        if (!ssl3_ExtensionAdvertised(ss, ss->ssl3.hs.grease->idx[grease_extension1])) {
+            *exType = ss->ssl3.hs.grease->idx[grease_extension1];
+        } else {
+            *exType = ss->ssl3.hs.grease->idx[grease_extension2];
+        }
+    }
+    /* GREASE CertificateRequest:
+     * When sending a CertificateRequest in TLS 1.3, a server MAY behave as
+     * follows: A server MAY select one or more GREASE extension values and
+     * advertise them as extensions with varying length and contents
+     * [RFC8701, Section 4.1]. */
+    else if (message == ssl_hs_certificate_request) {
+        PR_ASSERT(ss->version >= SSL_LIBRARY_VERSION_TLS_1_3);
+        /* Get random grease extension type. */
+        SECStatus rv = tls13_RandomGreaseValue(exType);
+        if (rv != SECSuccess) {
+            return SECFailure;
+        }
+    }
+
+    return SECSuccess;
 }

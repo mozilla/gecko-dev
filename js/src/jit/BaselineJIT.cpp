@@ -29,6 +29,7 @@
 
 #include "debugger/DebugAPI-inl.h"
 #include "gc/GC-inl.h"
+#include "jit/JitHints-inl.h"
 #include "jit/JitScript-inl.h"
 #include "vm/GeckoProfiler-inl.h"
 #include "vm/JSScript-inl.h"
@@ -58,7 +59,7 @@ static bool CheckFrame(InterpreterFrame* fp) {
     return false;
   }
 
-  if (fp->isFunctionFrame() && fp->numActualArgs() > BASELINE_MAX_ARGS_LENGTH) {
+  if (fp->isFunctionFrame() && TooManyActualArguments(fp->numActualArgs())) {
     // Fall back to the interpreter to avoid running out of stack space.
     JitSpew(JitSpew_BaselineAbort, "Too many arguments (%u)",
             fp->numActualArgs());
@@ -290,9 +291,22 @@ static MethodStatus CanEnterBaselineJIT(JSContext* cx, HandleScript script,
     return Method_Compiled;
   }
 
-  // Check script warm-up counter.
-  if (script->getWarmUpCount() <= JitOptions.baselineJitWarmUpThreshold) {
-    return Method_Skipped;
+  // If a hint is available, skip the warmup count threshold.
+  bool mightHaveEagerBaselineHint = false;
+  if (!JitOptions.disableJitHints && !script->noEagerBaselineHint() &&
+      cx->runtime()->jitRuntime()->hasJitHintsMap()) {
+    JitHintsMap* jitHints = cx->runtime()->jitRuntime()->getJitHintsMap();
+    // If this lookup fails, the NoEagerBaselineHint script flag is set
+    // to true to prevent any further lookups for this script.
+    if (jitHints->mightHaveEagerBaselineHint(script)) {
+      mightHaveEagerBaselineHint = true;
+    }
+  }
+  // Check script warm-up counter if no hint.
+  if (!mightHaveEagerBaselineHint) {
+    if (script->getWarmUpCount() <= JitOptions.baselineJitWarmUpThreshold) {
+      return Method_Skipped;
+    }
   }
 
   // Check this before calling ensureJitRealmExists, so we're less
@@ -335,6 +349,39 @@ bool jit::CanBaselineInterpretScript(JSScript* script) {
   return true;
 }
 
+static bool MaybeCreateBaselineInterpreterEntryScript(JSContext* cx,
+                                                      JSScript* script) {
+  MOZ_ASSERT(script->hasJitScript());
+
+  JitRuntime* jitRuntime = cx->runtime()->jitRuntime();
+  if (script->jitCodeRaw() != jitRuntime->baselineInterpreter().codeRaw()) {
+    // script already has an updated interpreter trampoline.
+#ifdef DEBUG
+    auto p = jitRuntime->getInterpreterEntryMap()->lookup(script);
+    MOZ_ASSERT(p);
+    MOZ_ASSERT(p->value().raw() == script->jitCodeRaw());
+#endif
+    return true;
+  }
+
+  auto p = jitRuntime->getInterpreterEntryMap()->lookupForAdd(script);
+  if (!p) {
+    Rooted<JitCode*> code(
+        cx, jitRuntime->generateEntryTrampolineForScript(cx, script));
+    if (!code) {
+      return false;
+    }
+
+    EntryTrampoline entry(cx, code);
+    if (!jitRuntime->getInterpreterEntryMap()->add(p, script, entry)) {
+      return false;
+    }
+  }
+
+  script->updateJitCodeRaw(cx->runtime());
+  return true;
+}
+
 static MethodStatus CanEnterBaselineInterpreter(JSContext* cx,
                                                 JSScript* script) {
   MOZ_ASSERT(IsBaselineInterpreterEnabled());
@@ -362,6 +409,11 @@ static MethodStatus CanEnterBaselineInterpreter(JSContext* cx,
     return Method_Error;
   }
 
+  if (JitOptions.emitInterpreterEntryTrampoline) {
+    if (!MaybeCreateBaselineInterpreterEntryScript(cx, script)) {
+      return Method_Error;
+    }
+  }
   return Method_Compiled;
 }
 
@@ -384,7 +436,7 @@ template <BaselineTier Tier>
 MethodStatus jit::CanEnterBaselineMethod(JSContext* cx, RunState& state) {
   if (state.isInvoke()) {
     InvokeState& invoke = *state.asInvoke();
-    if (invoke.args().length() > BASELINE_MAX_ARGS_LENGTH) {
+    if (TooManyActualArguments(invoke.args().length())) {
       JitSpew(JitSpew_BaselineAbort, "Too many arguments (%u)",
               invoke.args().length());
       return Method_CantCompile;

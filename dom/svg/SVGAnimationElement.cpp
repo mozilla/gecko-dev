@@ -27,7 +27,6 @@ NS_IMPL_ADDREF_INHERITED(SVGAnimationElement, SVGAnimationElementBase)
 NS_IMPL_RELEASE_INHERITED(SVGAnimationElement, SVGAnimationElementBase)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(SVGAnimationElement)
-  NS_INTERFACE_MAP_ENTRY_CONCRETE(SVGAnimationElement)
   NS_INTERFACE_MAP_ENTRY(mozilla::dom::SVGTests)
 NS_INTERFACE_MAP_END_INHERITING(SVGAnimationElementBase)
 
@@ -90,10 +89,7 @@ SVGElement* SVGAnimationElement::GetTargetElement() {
   FlushAnimations();
 
   // We'll just call the other GetTargetElement method, and QI to the right type
-  nsIContent* target = GetTargetElementContent();
-
-  return (target && target->IsSVGElement()) ? static_cast<SVGElement*>(target)
-                                            : nullptr;
+  return SVGElement::FromNodeOrNull(GetTargetElementContent());
 }
 
 float SVGAnimationElement::GetStartTime(ErrorResult& rv) {
@@ -219,11 +215,11 @@ bool SVGAnimationElement::ParseAttribute(int32_t aNamespaceID,
       aNamespaceID, aAttribute, aValue, aMaybeScriptedPrincipal, aResult);
 }
 
-nsresult SVGAnimationElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
-                                           const nsAttrValue* aValue,
-                                           const nsAttrValue* aOldValue,
-                                           nsIPrincipal* aSubjectPrincipal,
-                                           bool aNotify) {
+void SVGAnimationElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
+                                       const nsAttrValue* aValue,
+                                       const nsAttrValue* aOldValue,
+                                       nsIPrincipal* aSubjectPrincipal,
+                                       bool aNotify) {
   if (!aValue && aNamespaceID == kNameSpaceID_None) {
     // Attribute is being removed.
     if (AnimationFunction().UnsetAttr(aName) ||
@@ -232,8 +228,8 @@ nsresult SVGAnimationElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
     }
   }
 
-  nsresult rv = SVGAnimationElementBase::AfterSetAttr(
-      aNamespaceID, aName, aValue, aOldValue, aSubjectPrincipal, aNotify);
+  SVGAnimationElementBase::AfterSetAttr(aNamespaceID, aName, aValue, aOldValue,
+                                        aSubjectPrincipal, aNotify);
 
   if (SVGTests::IsConditionalProcessingAttribute(aName)) {
     bool isDisabled = !SVGTests::PassesConditionalProcessingTests();
@@ -243,13 +239,13 @@ nsresult SVGAnimationElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
   }
 
   if (!IsInComposedDoc()) {
-    return rv;
+    return;
   }
 
   if (!((aNamespaceID == kNameSpaceID_None ||
          aNamespaceID == kNameSpaceID_XLink) &&
         aName == nsGkAtoms::href)) {
-    return rv;
+    return;
   }
 
   if (!aValue) {
@@ -278,8 +274,6 @@ nsresult SVGAnimationElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
     UpdateHrefTarget(aValue->GetStringValue());
   }  // else: we're not yet in a document -- we'll update the target on
      // next BindToTree call.
-
-  return rv;
 }
 
 //----------------------------------------------------------------------
@@ -360,10 +354,8 @@ void SVGAnimationElement::UpdateHrefTarget(const nsAString& aHrefStr) {
   nsCOMPtr<nsIURI> targetURI;
   nsContentUtils::NewURIWithDocumentCharset(getter_AddRefs(targetURI), aHrefStr,
                                             OwnerDoc(), baseURI);
-  nsCOMPtr<nsIReferrerInfo> referrerInfo =
-      ReferrerInfo::CreateForSVGResources(OwnerDoc());
-
-  mHrefTarget.ResetToURIFragmentID(this, targetURI, referrerInfo);
+  mHrefTarget.ResetToURIFragmentID(
+      this, targetURI, OwnerDoc()->ReferrerInfoForInternalCSSAndSVGResources());
   AnimationTargetChanged();
 }
 

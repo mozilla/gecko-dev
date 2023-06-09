@@ -453,9 +453,12 @@ nsresult nsPACMan::DispatchToPAC(already_AddRefed<nsIRunnable> aEvent,
     }
   }
 
-  return mPACThread->Dispatch(
-      e.forget(),
-      aSync ? nsIEventTarget::DISPATCH_SYNC : nsIEventTarget::DISPATCH_NORMAL);
+  if (aSync) {
+    return NS_DispatchAndSpinEventLoopUntilComplete(
+        "nsPACMan::DispatchToPAC"_ns, mPACThread, e.forget());
+  } else {
+    return mPACThread->Dispatch(e.forget());
+  }
 }
 
 nsresult nsPACMan::AsyncGetProxyForURI(nsIURI* uri, nsPACManCallback* callback,
@@ -554,9 +557,10 @@ nsresult nsPACMan::LoadPACFromURI(const nsACString& aSpec,
   if (!mLoadPending) {
     nsCOMPtr<nsIRunnable> runnable = NewRunnableMethod(
         "nsPACMan::StartLoading", this, &nsPACMan::StartLoading);
-    nsresult rv = NS_IsMainThread()
-                      ? Dispatch(runnable.forget())
-                      : GetCurrentEventTarget()->Dispatch(runnable.forget());
+    nsresult rv =
+        NS_IsMainThread()
+            ? Dispatch(runnable.forget())
+            : GetCurrentSerialEventTarget()->Dispatch(runnable.forget());
     if (NS_FAILED(rv)) return rv;
     mLoadPending = true;
   }

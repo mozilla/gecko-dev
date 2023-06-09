@@ -19,6 +19,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/FontPropertyTypes.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/MruCache.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/RWLock.h"
@@ -328,7 +329,9 @@ class gfxFontCache final
   // cache with the same key, as we may race with other threads to do
   // the insertion -- in that case we will return the original font,
   // and destroy the new one.
-  already_AddRefed<gfxFont> MaybeInsert(RefPtr<gfxFont>&& aFont);
+  already_AddRefed<gfxFont> MaybeInsert(gfxFont* aFont);
+
+  bool MaybeDestroy(gfxFont* aFont);
 
   // Cleans out the hashtable and removes expired fonts waiting for cleanup.
   // Other gfxFont objects may be still in use but they will be pushed
@@ -396,7 +399,7 @@ class gfxFontCache final
       MOZ_REQUIRES(mMutex) override;
   void NotifyHandlerEnd() override;
 
-  void DestroyDiscard(nsTArray<RefPtr<gfxFont>>& aDiscard);
+  void DestroyDiscard(nsTArray<gfxFont*>& aDiscard);
 
   static gfxFontCache* gGlobalCache;
 
@@ -418,17 +421,7 @@ class gfxFontCache final
 
     // When constructing a new entry in the hashtable, we'll leave this
     // blank. The caller of Put() will fill this in.
-    explicit HashEntry(KeyTypePointer aStr) : mFont(nullptr) {}
-
-    HashEntry(const HashEntry&) = delete;
-    HashEntry& operator=(const HashEntry&) = delete;
-
-    HashEntry(HashEntry&& aOther) noexcept : mFont(std::move(aOther.mFont)) {}
-
-    HashEntry& operator=(HashEntry&& aOther) noexcept {
-      mFont = std::move(aOther.mFont);
-      return *this;
-    }
+    explicit HashEntry(KeyTypePointer aStr) {}
 
     bool KeyEquals(const KeyTypePointer aKey) const;
     static KeyTypePointer KeyToPointer(KeyType aKey) { return &aKey; }
@@ -436,14 +429,14 @@ class gfxFontCache final
       return mozilla::HashGeneric(aKey->mStyle->Hash(), aKey->mFontEntry,
                                   aKey->mUnicodeRangeMap);
     }
-    enum { ALLOW_MEMMOVE = false };
+    enum { ALLOW_MEMMOVE = true };
 
-    RefPtr<gfxFont> mFont;
+    gfxFont* MOZ_UNSAFE_REF("tracking for deferred deletion") mFont = nullptr;
   };
 
   nsTHashtable<HashEntry> mFonts MOZ_GUARDED_BY(mMutex);
 
-  nsTArray<RefPtr<gfxFont>> mTrackerDiscard MOZ_GUARDED_BY(mMutex);
+  nsTArray<gfxFont*> mTrackerDiscard MOZ_GUARDED_BY(mMutex);
 
   static void WordCacheExpirationTimerCallback(nsITimer* aTimer, void* aCache);
 
@@ -1427,7 +1420,7 @@ class gfxFont {
   using FontSlantStyle = mozilla::FontSlantStyle;
   using FontSizeAdjust = mozilla::StyleFontSizeAdjust;
 
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(gfxFont)
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING_WITH_DESTROY(gfxFont, MaybeDestroy())
   int32_t GetRefCount() { return int32_t(mRefCnt); }
 
   // options to specify the kind of AA to be used when creating a font
@@ -1445,7 +1438,22 @@ class gfxFont {
 
   virtual ~gfxFont();
 
+  void MaybeDestroy() {
+    bool destroy = true;
+    if (gfxFontCache* fc = gfxFontCache::GetCache()) {
+      destroy = fc->MaybeDestroy(this);
+    }
+    if (destroy) {
+      Destroy();
+    }
+  }
+
  public:
+  void Destroy() {
+    MOZ_ASSERT(GetRefCount() == 0);
+    delete this;
+  }
+
   bool Valid() const { return mIsValid; }
 
   // options for the kind of bounding box to return from measurement
@@ -1683,7 +1691,7 @@ class gfxFont {
    * -- all glyphs use this font
    */
   void Draw(const gfxTextRun* aTextRun, uint32_t aStart, uint32_t aEnd,
-            mozilla::gfx::Point* aPt, const TextRunDrawParams& aRunParams,
+            mozilla::gfx::Point* aPt, TextRunDrawParams& aRunParams,
             mozilla::gfx::ShapedTextFlags aOrientation);
 
   /**
@@ -2266,9 +2274,6 @@ class gfxFont {
                         const FontDrawParams& aFontParams,
                         const mozilla::gfx::Point& aPoint, uint32_t aGlyphId);
 
-  void SetupColorPalette(FontDrawParams* aFontParams,
-                         const TextRunDrawParams& aRunParams) const;
-
   // Subclasses can override to return true if the platform is able to render
   // COLR-font glyphs directly, instead of us painting the layers explicitly.
   // (Currently used only for COLR.v0 fonts on macOS.)
@@ -2297,6 +2302,8 @@ struct MOZ_STACK_CLASS TextRunDrawParams {
   gfxFont::Spacing* spacing = nullptr;
   gfxTextRunDrawCallbacks* callbacks = nullptr;
   mozilla::SVGContextPaint* runContextPaint = nullptr;
+  mozilla::layout::TextDrawTarget* textDrawer = nullptr;
+  mozilla::LayoutDeviceRect clipRect;
   mozilla::gfx::Float direction = 1.0f;
   double devPerApp = 1.0;
   nscolor textStrokeColor = 0;
@@ -2310,6 +2317,34 @@ struct MOZ_STACK_CLASS TextRunDrawParams {
   bool isRTL = false;
   bool paintSVGGlyphs = true;
   bool allowGDI = true;
+
+  // MRU cache of color-font palettes being used by fonts in the run. We cache
+  // these in the TextRunDrawParams so that we can avoid re-creating a new
+  // palette (which can be quite expensive) for each individual glyph run.
+  using CacheKey = const gfxFont*;
+
+  struct CacheData {
+    CacheKey mKey;
+    mozilla::UniquePtr<nsTArray<mozilla::gfx::sRGBColor>> mPalette;
+  };
+
+  class PaletteCache
+      : public mozilla::MruCache<CacheKey, CacheData, PaletteCache> {
+   public:
+    static mozilla::HashNumber Hash(const CacheKey& aKey) {
+      return mozilla::HashGeneric(aKey);
+    }
+    static bool Match(const CacheKey& aKey, const CacheData& aVal) {
+      return aVal.mKey == aKey;
+    }
+  };
+
+  PaletteCache mPaletteCache;
+
+  // Returns a pointer to a palette owned by the PaletteCache. This is only
+  // valid until the next call to GetPaletteFor (which might evict it) or
+  // until the TextRunDrawParams goes out of scope.
+  nsTArray<mozilla::gfx::sRGBColor>* GetPaletteFor(const gfxFont* aFont);
 };
 
 struct MOZ_STACK_CLASS FontDrawParams {
@@ -2321,7 +2356,8 @@ struct MOZ_STACK_CLASS FontDrawParams {
   mozilla::gfx::DrawOptions drawOptions;
   gfxFloat advanceDirection;
   mozilla::gfx::sRGBColor currentColor;
-  mozilla::UniquePtr<nsTArray<mozilla::gfx::sRGBColor>> palette;
+  nsTArray<mozilla::gfx::sRGBColor>* palette;  // owned by TextRunDrawParams
+  mozilla::gfx::Rect fontExtents;
   bool isVerticalFont;
   bool haveSVGGlyphs;
   bool haveColorGlyphs;

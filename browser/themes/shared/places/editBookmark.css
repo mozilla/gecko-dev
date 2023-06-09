@@ -9,7 +9,16 @@
 
 #editBMPanel_folderTree,
 #editBMPanel_tagsSelector {
+  margin: 0;
   height: 12.5em;
+  flex: 1 auto;
+  border: 1px solid ThreeDShadow;
+  border-radius: 4px;
+}
+
+#editBMPanel_folderTree {
+  appearance: none;
+  overflow: hidden;
 }
 
 #editBMPanel_folderMenuList::part(icon) {
@@ -26,7 +35,7 @@
 }
 
 .folder-icon > .menu-iconic-left {
-  display: -moz-box;
+  display: flex;
 }
 
 .folder-icon {
@@ -35,20 +44,10 @@
   fill: currentColor;
 }
 
-#editBMPanel_folderTree {
-  margin-block: 2px;
-}
-
-@media (-moz-platform: macos) {
-  #editBMPanel_folderTree {
-    margin: 6px 4px 0;
-  }
-}
-
 #editBMPanel_tagsSelector > richlistitem > image {
   appearance: auto;
   -moz-default-appearance: checkbox;
-  -moz-box-align: center;
+  align-items: center;
   margin: 0 2px;
   min-width: 13px;
   min-height: 13px;

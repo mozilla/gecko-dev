@@ -1,10 +1,6 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-const { TabsSetupFlowManager } = ChromeUtils.importESModule(
-  "resource:///modules/firefox-view-tabs-setup-manager.sys.mjs"
-);
-
 const FXA_CONTINUE_EVENT = [
   ["firefoxview", "entered", "firefoxview", undefined],
   ["firefoxview", "fxa_continue", "sync", undefined],
@@ -86,7 +82,7 @@ add_task(async function test_unconfigured_initial_state() {
     state: UIState.STATUS_NOT_CONFIGURED,
     syncEnabled: false,
   });
-  await withFirefoxView({}, async browser => {
+  await withFirefoxView({ openNewWindow: true }, async browser => {
     Services.obs.notifyObservers(null, UIState.ON_UPDATE);
     await waitForVisibleSetupStep(browser, {
       expectedVisible: "#tabpickup-steps-view1",
@@ -138,7 +134,7 @@ add_task(async function test_signed_in() {
     ],
   });
 
-  await withFirefoxView({}, async browser => {
+  await withFirefoxView({ openNewWindow: true }, async browser => {
     Services.obs.notifyObservers(null, UIState.ON_UPDATE);
     await waitForVisibleSetupStep(browser, {
       expectedVisible: "#tabpickup-steps-view2",
@@ -194,7 +190,7 @@ add_task(async function test_support_links() {
       },
     ],
   });
-  await withFirefoxView({ win: window }, async browser => {
+  await withFirefoxView({}, async browser => {
     Services.obs.notifyObservers(null, UIState.ON_UPDATE);
     await waitForVisibleSetupStep(browser, {
       expectedVisible: "#tabpickup-steps-view2",
@@ -502,7 +498,9 @@ add_task(async function test_mobile_promo_pref() {
     });
 
     // reset the dismissed pref, which should case the promo to get shown
-    await SpecialPowers.popPrefEnv();
+    await SpecialPowers.pushPrefEnv({
+      set: [[MOBILE_PROMO_DISMISSED_PREF, false]],
+    });
     await waitForElementVisible(
       browser,
       "#tab-pickup-container > .promo-box",
@@ -551,10 +549,9 @@ add_task(async function test_mobile_promo_windows() {
         SpecialPowers.getBoolPref("browser.tabs.firefox-view")
     );
 
-    let win2 = await BrowserTestUtils.openNewBrowserWindow();
     info("Got window, now opening Firefox View in it");
     await withFirefoxView(
-      { resetFlowManager: false, win: win2 },
+      { openNewWindow: true, resetFlowManager: false },
       async win2Browser => {
         info("In withFirefoxView taskFn for win2");
         // promo should be visible in the 2nd window too
@@ -604,7 +601,11 @@ add_task(async function test_mobile_promo_windows() {
         );
         const closeButton = confirmBox.querySelector(".close");
         ok(closeButton.hasAttribute("aria-label"), "Button has an a11y name");
-        EventUtils.sendMouseEvent({ type: "click" }, closeButton, win2);
+        EventUtils.sendMouseEvent(
+          { type: "click" },
+          closeButton,
+          win2Browser.ownerGlobal
+        );
         BrowserTestUtils.is_hidden(confirmBox);
 
         for (let fxviewBrowser of [browser, win2Browser]) {
@@ -615,7 +616,6 @@ add_task(async function test_mobile_promo_windows() {
         }
       }
     );
-    await BrowserTestUtils.closeWindow(win2);
   });
   await tearDown(sandbox);
 });
@@ -626,7 +626,7 @@ async function mockFxaDeviceConnected(win) {
   const url = "https://example.org/pair/auth/complete";
   is(win.gBrowser.tabs.length, 3, "Tabs strip should contain three tabs");
 
-  BrowserTestUtils.loadURI(win.gBrowser.selectedTab.linkedBrowser, url);
+  BrowserTestUtils.loadURIString(win.gBrowser.selectedTab.linkedBrowser, url);
 
   await BrowserTestUtils.browserLoaded(
     win.gBrowser.selectedTab.linkedBrowser,
@@ -764,6 +764,5 @@ add_task(async function test_close_device_connected_tab() {
 
   // cleanup time
   await tearDown(sandbox);
-  await SpecialPowers.popPrefEnv();
   await BrowserTestUtils.closeWindow(win);
 });

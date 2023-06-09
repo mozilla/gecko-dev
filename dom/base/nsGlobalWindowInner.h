@@ -130,12 +130,10 @@ class WebTaskScheduler;
 class WebTaskSchedulerMainThread;
 class SpeechSynthesis;
 class Timeout;
-class U2F;
 class VisualViewport;
 class VRDisplay;
 enum class VRDisplayEventReason : uint8_t;
 class VREventObserver;
-class WakeLock;
 struct WindowPostMessageOptions;
 class Worklet;
 namespace cache {
@@ -247,9 +245,10 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   }
 
   // nsIGlobalObject
-  bool ShouldResistFingerprinting() const final;
+  bool ShouldResistFingerprinting(
+      RFPTarget aTarget = RFPTarget::Unknown) const final;
   mozilla::OriginTrials Trials() const final;
-  mozilla::dom::FontFaceSet* Fonts() final;
+  mozilla::dom::FontFaceSet* GetFonts() final;
 
   JSObject* GetGlobalJSObject() final { return GetWrapper(); }
   JSObject* GetGlobalJSObjectPreserveColor() const final {
@@ -663,9 +662,8 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   // https://w3c.github.io/webappsec-secure-contexts/#dom-window-issecurecontext
   bool IsSecureContext() const;
 
-  void GetSidebar(mozilla::dom::OwningExternalOrWindowProxy& aResult,
-                  mozilla::ErrorResult& aRv);
-  mozilla::dom::External* GetExternal(mozilla::ErrorResult& aRv);
+  void GetSidebar(mozilla::dom::OwningExternalOrWindowProxy& aResult);
+  mozilla::dom::External* External();
 
   mozilla::dom::Worklet* GetPaintWorklet(mozilla::ErrorResult& aRv);
 
@@ -870,7 +868,6 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   void SizeToContentConstrained(const mozilla::dom::SizeToContentConstraints&,
                                 mozilla::ErrorResult&);
   mozilla::dom::Crypto* GetCrypto(mozilla::ErrorResult& aError);
-  mozilla::dom::U2F* GetU2f(mozilla::ErrorResult& aError);
   nsIControllers* GetControllers(mozilla::ErrorResult& aError);
   nsresult GetControllers(nsIControllers** aControllers) override;
   mozilla::dom::Element* GetRealFrameElement(mozilla::ErrorResult& aError);
@@ -1059,8 +1056,6 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   void SetOuterHeight(int32_t aOuterHeight,
                       mozilla::dom::CallerType aCallerType,
                       mozilla::ErrorResult& aError);
-
-  RefPtr<mozilla::dom::WakeLock> mWakeLock;
 
   friend class HashchangeCallback;
   friend class mozilla::dom::BarProp;
@@ -1446,7 +1441,6 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
 
   RefPtr<nsGlobalWindowObserver> mObserver;
   RefPtr<mozilla::dom::Crypto> mCrypto;
-  RefPtr<mozilla::dom::U2F> mU2F;
   RefPtr<mozilla::dom::cache::CacheStorage> mCacheStorage;
   RefPtr<mozilla::dom::Console> mConsole;
   RefPtr<mozilla::dom::Worklet> mPaintWorklet;

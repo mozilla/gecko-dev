@@ -17,8 +17,9 @@ class ChildProfilerController;
 
 class RDDParent final : public PRDDParent {
  public:
+  NS_INLINE_DECL_REFCOUNTING(RDDParent, final)
+
   RDDParent();
-  ~RDDParent();
 
   static RDDParent* GetSingleton();
 
@@ -64,7 +65,11 @@ class RDDParent final : public PRDDParent {
   mozilla::ipc::IPCResult RecvTestTriggerMetrics(
       TestTriggerMetricsResolver&& aResolve);
 
+  mozilla::ipc::IPCResult RecvTestTelemetryProbes();
+
  private:
+  ~RDDParent();
+
   const TimeStamp mLaunchTime;
   RefPtr<ChildProfilerController> mProfilerController;
   ipc::AsyncBlockers mShutdownBlockers;

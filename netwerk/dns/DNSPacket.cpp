@@ -582,13 +582,6 @@ nsresult DNSPacket::DecodeInternal(
     }
     uint16_t TYPE = get16bit(aBuffer, index);
 
-    if ((TYPE != TRRTYPE_CNAME) && (TYPE != TRRTYPE_HTTPSSVC) &&
-        (TYPE != static_cast<uint16_t>(aType))) {
-      // Not the same type as was asked for nor CNAME
-      LOG(("TRR: Dohdecode:%d asked for type %d got %d\n", __LINE__, aType,
-           TYPE));
-      return NS_ERROR_UNEXPECTED;
-    }
     index += 2;
 
     // 16 bit class
@@ -623,6 +616,16 @@ nsresult DNSPacket::DecodeInternal(
       LOG(("TRR: Dohdecode:%d fail RDLENGTH=%d at index %d\n", __LINE__,
            RDLENGTH, index));
       return NS_ERROR_ILLEGAL_VALUE;
+    }
+
+    if ((TYPE != TRRTYPE_CNAME) && (TYPE != TRRTYPE_HTTPSSVC) &&
+        (TYPE != static_cast<uint16_t>(aType))) {
+      // Not the same type as was asked for nor CNAME
+      LOG(("TRR: Dohdecode:%d asked for type %d got %d\n", __LINE__, aType,
+           TYPE));
+      index += RDLENGTH;
+      answerRecords--;
+      continue;
     }
 
     // We check if the qname is a case-insensitive match for the host or the
@@ -1177,7 +1180,7 @@ bool ODoHDNSPacket::ParseODoHConfigs(Span<const uint8_t> aData,
   }
 
   nsTArray<ObliviousDoHConfig> result;
-  static const uint32_t kMinimumConfigContentLength = 12;
+  static const int kMinimumConfigContentLength = 12;
   while (std::distance(it, aData.cend()) > kMinimumConfigContentLength) {
     ObliviousDoHConfig config;
     if (!get16bit(aData, it, config.mVersion)) {

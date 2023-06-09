@@ -102,18 +102,11 @@ PACKAGES_WE_ALWAYS_WANT_AN_OVERRIDE_OF = [
 # If you do need to make changes increasing the number of duplicates, please
 # add a comment as to why.
 TOLERATED_DUPES = {
-    "bytes": 2,
-    "crossbeam-deque": 2,
-    "crossbeam-epoch": 2,
-    "crossbeam-utils": 3,
-    "futures": 2,
-    "memoffset": 2,
     "mio": 2,
     # Transition from time 0.1 to 0.3 underway, but chrono is stuck on 0.1
     # and hasn't been updated in 1.5 years (an hypothetical update is
     # expected to remove the dependency on time altogether).
     "time": 2,
-    "tokio": 2,
 }
 
 
@@ -179,13 +172,19 @@ class VendorRust(MozbuildObject):
         if not out.startswith("cargo"):
             return False
         version = LooseVersion(out.split()[1])
-        if version < MINIMUM_RUST_VERSION:
+        # Cargo 1.68.0 changed vendoring in a way that creates a lot of noise
+        # if we go back and forth between vendoring with an older version and
+        # a newer version. Only allow the newer versions.
+        minimum_rust_version = MINIMUM_RUST_VERSION
+        if LooseVersion("1.68.0") >= MINIMUM_RUST_VERSION:
+            minimum_rust_version = "1.68.0"
+        if version < minimum_rust_version:
             self.log(
                 logging.ERROR,
                 "cargo_version",
                 {},
                 "Cargo >= {0} required (install Rust {0} or newer)".format(
-                    MINIMUM_RUST_VERSION
+                    minimum_rust_version
                 ),
             )
             return False

@@ -29,7 +29,11 @@ const URI_EXTENSION_BLOCKLIST_DIALOG =
 // Allow insecure updates
 Services.prefs.setBoolPref("extensions.checkUpdateSecurity", false);
 
-if (AppConstants.platform == "android") {
+const IS_ANDROID_WITH_BLOCKLIST_V2 =
+  AppConstants.platform == "android" && !AppConstants.NIGHTLY_BUILD;
+
+// This is the initial value of Blocklist.allowDeprecatedBlocklistV2.
+if (IS_ANDROID_WITH_BLOCKLIST_V2) {
   // test_blocklistchange_v2.js tests blocklist v2, so we should flip the pref
   // to enable the v3 blocklist on Android.
   Assert.ok(
@@ -537,8 +541,8 @@ async function promiseStartupManagerWithAppChange(version) {
 add_task(async function setup() {
   createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1", "1");
   if (useMLBF) {
-    const { ClientEnvironmentBase } = ChromeUtils.import(
-      "resource://gre/modules/components-utils/ClientEnvironment.jsm"
+    const { ClientEnvironmentBase } = ChromeUtils.importESModule(
+      "resource://gre/modules/components-utils/ClientEnvironment.sys.mjs"
     );
     Object.defineProperty(ClientEnvironmentBase, "appinfo", {
       configurable: true,

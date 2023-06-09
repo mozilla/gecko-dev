@@ -9,6 +9,7 @@ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
+  ReaderMode: "resource://gre/modules/ReaderMode.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
 });
 
@@ -105,11 +106,8 @@ export var BrowserUtils = {
    */
   canFindInPage(location) {
     return (
-      !location.startsWith("about:addons") &&
-      !location.startsWith(
-        "chrome://mozapps/content/extensions/aboutaddons.html"
-      ) &&
-      !location.startsWith("about:preferences")
+      !location.startsWith("about:preferences") &&
+      !location.startsWith("about:logins")
     );
   },
 
@@ -183,14 +181,18 @@ export var BrowserUtils = {
           }
           // otherwise, fall through...
         } catch (ex) {
-          Cu.reportError(
-            "Invalid blob URI passed to formatURIForDisplay: " + ex
-          );
+          console.error("Invalid blob URI passed to formatURIForDisplay: ", ex);
         }
       /* For blob URIs without an origin, fall through and use the data URI
        * logic (shows just "(data)", localized). */
       case "data":
         return lazy.gLocalization.formatValueSync("browser-utils-url-data");
+      case "moz-extension":
+        let policy = WebExtensionPolicy.getByURI(uri);
+        return lazy.gLocalization.formatValueSync(
+          "browser-utils-url-extension",
+          { extension: policy?.name.trim() || uri.spec }
+        );
       case "chrome":
       case "resource":
       case "jar":
@@ -217,24 +219,30 @@ export var BrowserUtils = {
             }
           }
         } catch (ex) {
-          Cu.reportError(ex);
+          console.error(ex);
         }
     }
     return uri.asciiHost || uri.spec;
   },
 
-  isShareableURL(url) {
+  // Given a URL returns a (possibly transformed) URL suitable for sharing, or null if
+  // no such URL can be obtained.
+  getShareableURL(url) {
     if (!url) {
-      return false;
+      return null;
     }
 
+    // Carve out an exception for about:reader.
+    if (url.spec.startsWith("about:reader?")) {
+      url = Services.io.newURI(lazy.ReaderMode.getOriginalUrl(url.spec));
+    }
     // Disallow sharing URLs with more than 65535 characters.
     if (url.spec.length > 65535) {
-      return false;
+      return null;
     }
     // Use the same preference as synced tabs to disable what kind
     // of tabs we can send to another device
-    return !lazy.INVALID_SHAREABLE_SCHEMES.has(url.scheme);
+    return lazy.INVALID_SHAREABLE_SCHEMES.has(url.scheme) ? null : url;
   },
 
   /**
@@ -400,6 +408,7 @@ export var BrowserUtils = {
     RELAY: 2,
     FOCUS: 3,
     PIN: 4,
+    COOKIE_BANNERS: 5,
   },
 
   /**
@@ -423,6 +432,7 @@ export var BrowserUtils = {
       case this.PromoType.FOCUS:
       case this.PromoType.PIN:
       case this.PromoType.RELAY:
+      case this.PromoType.COOKIE_BANNERS:
         break;
       default:
         throw new Error("Unknown promo type: ", promoType);
@@ -449,6 +459,7 @@ export var BrowserUtils = {
 
     // Don't show promo if there's an active enterprise policy
     const noActivePolicy =
+      info.showForEnterprise ||
       !Services.policies ||
       Services.policies.status !== Services.policies.ACTIVE;
 
@@ -534,6 +545,12 @@ let PromoInfo = {
         "identity.fxaccounts.remote.pairing.uri",
         "identity.sync.tokenserver.uri",
       ].every(pref => !Services.prefs.prefHasUserValue(pref)),
+  },
+  [BrowserUtils.PromoType.COOKIE_BANNERS]: {
+    enabledPref: "browser.promo.cookiebanners.enabled",
+    lazyStringSetPrefs: {},
+    illegalRegions: [],
+    showForEnterprise: true,
   },
 };
 

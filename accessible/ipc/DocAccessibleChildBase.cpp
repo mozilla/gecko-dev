@@ -14,6 +14,7 @@
 #ifdef A11Y_LOG
 #  include "Logging.h"
 #endif
+#include "TextLeafRange.h"
 
 namespace mozilla {
 namespace a11y {
@@ -65,14 +66,28 @@ void DocAccessibleChildBase::SerializeTree(nsTArray<LocalAccessible*>& aTree,
       genericTypes |= eActionable;
     }
 
+    RefPtr<AccAttributes> fields;
+    // Even though we send moves as a hide and a show, we don't want to
+    // push the cache again for moves.
+    if (StaticPrefs::accessibility_cache_enabled_AtStartup() &&
+        !acc->Document()->IsAccessibleBeingMoved(acc)) {
+      fields =
+          acc->BundleFieldsForCache(CacheDomain::All, CacheUpdateType::Initial);
+      if (fields->Count() == 0) {
+        fields = nullptr;
+      }
+    }
+
 #if defined(XP_WIN)
     aData.AppendElement(AccessibleData(
         id, msaaId, role, childCount, static_cast<AccType>(acc->mType),
-        static_cast<AccGenericType>(genericTypes), acc->mRoleMapEntryIndex));
+        static_cast<AccGenericType>(genericTypes), acc->mRoleMapEntryIndex,
+        fields));
 #else
-    aData.AppendElement(AccessibleData(
-        id, role, childCount, static_cast<AccType>(acc->mType),
-        static_cast<AccGenericType>(genericTypes), acc->mRoleMapEntryIndex));
+    aData.AppendElement(
+        AccessibleData(id, role, childCount, static_cast<AccType>(acc->mType),
+                       static_cast<AccGenericType>(genericTypes),
+                       acc->mRoleMapEntryIndex, fields));
 #endif
   }
 }
@@ -87,34 +102,12 @@ void DocAccessibleChildBase::InsertIntoIpcTree(LocalAccessible* aParent,
   FlattenTree(aChild, shownTree);
   ShowEventData data(parentID, aIdxInParent,
                      nsTArray<AccessibleData>(shownTree.Length()),
-                     aSuppressShowEvent ||
-                         StaticPrefs::accessibility_cache_enabled_AtStartup());
+                     aSuppressShowEvent);
   SerializeTree(shownTree, data.NewTree());
   if (ipc::ProcessChild::ExpectingShutdown()) {
     return;
   }
   MaybeSendShowEvent(data, false);
-  if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
-    nsTArray<CacheData> cache(shownTree.Length());
-    for (LocalAccessible* acc : shownTree) {
-      if (mDoc->IsAccessibleBeingMoved(acc)) {
-        // Even though we send moves as a hide and a show, we don't want to
-        // push the cache again for moves.
-        continue;
-      }
-      RefPtr<AccAttributes> fields =
-          acc->BundleFieldsForCache(CacheDomain::All, CacheUpdateType::Initial);
-      if (fields->Count()) {
-        uint64_t id = reinterpret_cast<uint64_t>(acc->UniqueID());
-        cache.AppendElement(CacheData(id, fields));
-      }
-    }
-    // The cache array might be empty if there were only moved Accessibles or if
-    // no Accessibles generated any cache data.
-    if (!cache.IsEmpty()) {
-      Unused << SendCache(CacheUpdateType::Initial, cache, !aSuppressShowEvent);
-    }
-  }
 }
 
 void DocAccessibleChildBase::ShowEvent(AccShowEvent* aShowEvent) {
@@ -235,6 +228,52 @@ mozilla::ipc::IPCResult DocAccessibleChildBase::RecvSetCaretOffset(
   if (acc && acc->IsTextRole() && acc->IsValidOffset(aOffset)) {
     acc->SetCaretOffset(aOffset);
   }
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult DocAccessibleChildBase::RecvSetTextSelection(
+    const uint64_t& aStartID, const int32_t& aStartOffset,
+    const uint64_t& aEndID, const int32_t& aEndOffset,
+    const int32_t& aSelectionNum) {
+  TextLeafRange range(TextLeafPoint(IdToAccessible(aStartID), aStartOffset),
+                      TextLeafPoint(IdToAccessible(aEndID), aEndOffset));
+  if (range) {
+    range.SetSelection(aSelectionNum);
+  }
+
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult DocAccessibleChildBase::RecvScrollTextLeafRangeIntoView(
+    const uint64_t& aStartID, const int32_t& aStartOffset,
+    const uint64_t& aEndID, const int32_t& aEndOffset,
+    const uint32_t& aScrollType) {
+  TextLeafRange range(TextLeafPoint(IdToAccessible(aStartID), aStartOffset),
+                      TextLeafPoint(IdToAccessible(aEndID), aEndOffset));
+  if (range) {
+    range.ScrollIntoView(aScrollType);
+  }
+
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult DocAccessibleChildBase::RecvRemoveTextSelection(
+    const uint64_t& aID, const int32_t& aSelectionNum) {
+  HyperTextAccessible* acc = IdToHyperTextAccessible(aID);
+  if (acc && acc->IsTextRole()) {
+    acc->RemoveFromSelection(aSelectionNum);
+  }
+
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult DocAccessibleChildBase::RecvSetCurValue(
+    const uint64_t& aID, const double& aValue) {
+  LocalAccessible* acc = IdToAccessible(aID);
+  if (acc) {
+    acc->SetCurValue(aValue);
+  }
+
   return IPC_OK();
 }
 

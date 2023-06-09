@@ -3,7 +3,7 @@
 
 // Tests that disabling JavaScript for a tab works as it should.
 
-const TEST_URI = URL_ROOT + "browser_toolbox_options_disable_js.html";
+const TEST_URI = URL_ROOT_SSL + "browser_toolbox_options_disable_js.html";
 
 add_task(async function() {
   const tab = await addTab(TEST_URI);
@@ -20,6 +20,13 @@ add_task(async function() {
 
   await testJSDisabled();
   await testJSDisabledIframe();
+
+  // Navigate and check JS is still disabled
+  for (let i = 0; i < 10; i++) {
+    await navigateTo(`${TEST_URI}?nocache=${i}`);
+    await testJSDisabled();
+    await testJSDisabledIframe();
+  }
 
   // Re-enable JS.
   await toggleJS(toolbox);

@@ -36,7 +36,7 @@ class PrintHelper {
             null,
             true
           );
-          BrowserTestUtils.loadURI(browser, pageUrl);
+          BrowserTestUtils.loadURIString(browser, pageUrl);
           await loaded;
         }
         await testFn(new PrintHelper(browser));
@@ -114,8 +114,8 @@ class PrintHelper {
   // This is used only for the old print preview. For tests
   // involving the newer UI, use waitForPreview instead.
   static waitForOldPrintPreview(expectedBrowser) {
-    const { PrintingParent } = ChromeUtils.import(
-      "resource://gre/actors/PrintingParent.jsm"
+    const { PrintingParent } = ChromeUtils.importESModule(
+      "resource://gre/actors/PrintingParent.sys.mjs"
     );
 
     return new Promise(resolve => {

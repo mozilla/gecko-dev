@@ -17,7 +17,7 @@
 //   call (profiler_get_backtrace()). It involves writing a stack trace and
 //   little else into a temporary ProfileBuffer, and wrapping that up in a
 //   ProfilerBacktrace that can be subsequently used in a marker. The sampling
-//   is done on-thread, and so Registers::SyncPopulate() is used to get the
+//   is done on-thread, and so REGISTERS_SYNC_POPULATE() is used to get the
 //   register values.
 //
 // - A "backtrace" sample is the simplest kind. It is done in response to an
@@ -268,7 +268,7 @@ class GeckoJavaSampler
                                             featureStringArray.length());
 
     // 128 * 1024 * 1024 is the entries preset that is given in
-    // devtools/client/performance-new/popup/background.jsm.js
+    // devtools/client/performance-new/shared/background.jsm.js
     profiler_start(PowerOfTwo32(128 * 1024 * 1024), 5.0, features,
                    filtersTemp.begin(), filtersTemp.length(), 0, Nothing());
   }
@@ -284,6 +284,9 @@ class GeckoJavaSampler
           result->Complete(jni::ByteArray::New(
               reinterpret_cast<const int8_t*>(compressedProfile.Elements()),
               compressedProfile.Length()));
+
+          // Done with capturing a profile. Stop the profiler.
+          profiler_stop();
         },
         [result](nsresult aRv) {
           char errorString[9];
@@ -291,6 +294,9 @@ class GeckoJavaSampler
           result->CompleteExceptionally(
               mozilla::java::sdk::IllegalStateException::New(errorString)
                   .Cast<jni::Throwable>());
+
+          // Failed to capture a profile. Stop the profiler.
+          profiler_stop();
         });
   }
 };
@@ -1172,7 +1178,7 @@ class ActivePS {
         continue;
       }
       ThreadRegistry::OffThreadRef::RWFromAnyThreadWithLock lockedThreadData =
-          offThreadRef.LockedRWFromAnyThread();
+          offThreadRef.GetLockedRWFromAnyThread();
       MOZ_RELEASE_ASSERT(array.append(ProfiledThreadListElement{
           profiledThreadData->Info().RegisterTime(),
           lockedThreadData->GetJSContext(), profiledThreadData}));
@@ -1631,16 +1637,11 @@ class Registers {
  public:
   Registers() : mPC{nullptr}, mSP{nullptr}, mFP{nullptr}, mLR{nullptr} {}
 
-#if defined(HAVE_NATIVE_UNWIND)
-  // Fills in mPC, mSP, mFP, mLR, and mContext for a synchronous sample.
-  void SyncPopulate();
-#endif
-
   void Clear() { memset(this, 0, sizeof(*this)); }
 
   // These fields are filled in by
   // Sampler::SuspendAndSampleAndResumeThread() for periodic and backtrace
-  // samples, and by SyncPopulate() for synchronous samples.
+  // samples, and by REGISTERS_SYNC_POPULATE for synchronous samples.
   Address mPC;  // Instruction pointer.
   Address mSP;  // Stack pointer.
   Address mFP;  // Frame pointer.
@@ -2256,9 +2257,9 @@ static void DoEHABIBacktrace(
 #ifdef USE_LUL_STACKWALK
 
 // See the comment at the callsite for why this function is necessary.
-#  if defined(MOZ_HAVE_ASAN_BLACKLIST)
-MOZ_ASAN_BLACKLIST static void ASAN_memcpy(void* aDst, const void* aSrc,
-                                           size_t aLen) {
+#  if defined(MOZ_HAVE_ASAN_IGNORE)
+MOZ_ASAN_IGNORE static void ASAN_memcpy(void* aDst, const void* aSrc,
+                                        size_t aLen) {
   // The obvious thing to do here is call memcpy(). However, although
   // ASAN_memcpy() is not instrumented by ASAN, memcpy() still is, and the
   // false positive still manifests! So we must implement memcpy() ourselves
@@ -2407,7 +2408,7 @@ static void DoLULBacktrace(
       //
       // This code is very much a custom stack unwind mechanism! So we use an
       // alternative memcpy() implementation that is ignored by ASAN.
-#  if defined(MOZ_HAVE_ASAN_BLACKLIST)
+#  if defined(MOZ_HAVE_ASAN_IGNORE)
       ASAN_memcpy(&stackImg.mContents[0], (void*)start, nToCopy);
 #  else
       memcpy(&stackImg.mContents[0], (void*)start, nToCopy);
@@ -2598,15 +2599,15 @@ static void AddSharedLibraryInfoToStream(JSONWriter& aWriter,
   aWriter.StringProperty("debugPath",
                          NS_ConvertUTF16toUTF8(aLib.GetDebugPath()));
   aWriter.StringProperty("breakpadId", aLib.GetBreakpadId());
+  aWriter.StringProperty("codeId", aLib.GetCodeId());
   aWriter.StringProperty("arch", aLib.GetArch());
   aWriter.EndObject();
 }
 
-void AppendSharedLibraries(JSONWriter& aWriter) {
-  SharedLibraryInfo info = SharedLibraryInfo::GetInfoForSelf();
-  info.SortByAddress();
-  for (size_t i = 0; i < info.GetSize(); i++) {
-    AddSharedLibraryInfoToStream(aWriter, info.GetEntry(i));
+void AppendSharedLibraries(JSONWriter& aWriter,
+                           const SharedLibraryInfo& aInfo) {
+  for (size_t i = 0; i < aInfo.GetSize(); i++) {
+    AddSharedLibraryInfoToStream(aWriter, aInfo.GetEntry(i));
   }
 }
 
@@ -2766,7 +2767,10 @@ static PreRecordedMetaInformation PreRecordMetaInformation() {
       Unused << http->GetOscpu(info.mHttpOscpu);
     }
 
-    Unused << http->GetMisc(info.mHttpMisc);
+    // Firefox version is capped to 109.0 in the http "misc" field due to some
+    // webcompat issues (Bug 1805967). We need to put the real version instead.
+    info.mHttpMisc.AssignLiteral("rv:");
+    info.mHttpMisc.AppendLiteral(MOZILLA_UAVERSION);
   }
 
   if (nsCOMPtr<nsIXULRuntime> runtime =
@@ -2804,7 +2808,7 @@ static void StreamMetaJSCustomObject(
     const PreRecordedMetaInformation& aPreRecordedMetaInformation) {
   MOZ_RELEASE_ASSERT(CorePS::Exists() && ActivePS::Exists(aLock));
 
-  aWriter.IntProperty("version", 26);
+  aWriter.IntProperty("version", 27);
 
   // The "startTime" field holds the number of milliseconds since midnight
   // January 1, 1970 GMT. This grotty code computes (Now - (Now -
@@ -3157,7 +3161,8 @@ profiler_code_address_service_for_presymbolication() {
   return preSymbolicate ? MakeUnique<ProfilerCodeAddressService>() : nullptr;
 }
 
-static void locked_profiler_stream_json_for_this_process(
+static ProfilerResult<ProfileGenerationAdditionalInformation>
+locked_profiler_stream_json_for_this_process(
     PSLockRef aLock, SpliceableJSONWriter& aWriter, double aSinceTime,
     const PreRecordedMetaInformation& aPreRecordedMetaInformation,
     bool aIsShuttingDown, ProfilerCodeAddressService* aService,
@@ -3214,7 +3219,7 @@ static void locked_profiler_stream_json_for_this_process(
   aProgressLogger.SetLocalProgress(2_pc, "Discarded old data");
 
   if (aWriter.Failed()) {
-    return;
+    return Err(ProfilerError::JsonGenerationFailed);
   }
   SLOW_DOWN_FOR_TESTING();
 
@@ -3246,12 +3251,14 @@ static void locked_profiler_stream_json_for_this_process(
 
   // Put shared library info
   aWriter.StartArrayProperty("libs");
-  AppendSharedLibraries(aWriter);
+  SharedLibraryInfo sharedLibraryInfo = SharedLibraryInfo::GetInfoForSelf();
+  sharedLibraryInfo.SortByAddress();
+  AppendSharedLibraries(aWriter, sharedLibraryInfo);
   aWriter.EndArray();
   aProgressLogger.SetLocalProgress(4_pc, "Wrote library information");
 
   if (aWriter.Failed()) {
-    return;
+    return Err(ProfilerError::JsonGenerationFailed);
   }
   SLOW_DOWN_FOR_TESTING();
 
@@ -3265,7 +3272,7 @@ static void locked_profiler_stream_json_for_this_process(
   aProgressLogger.SetLocalProgress(5_pc, "Wrote profile metadata");
 
   if (aWriter.Failed()) {
-    return;
+    return Err(ProfilerError::JsonGenerationFailed);
   }
   SLOW_DOWN_FOR_TESTING();
 
@@ -3284,7 +3291,7 @@ static void locked_profiler_stream_json_for_this_process(
       aProgressLogger.CreateSubLoggerTo(14_pc, "Wrote counters"));
 
   if (aWriter.Failed()) {
-    return;
+    return Err(ProfilerError::JsonGenerationFailed);
   }
   SLOW_DOWN_FOR_TESTING();
 
@@ -3301,7 +3308,7 @@ static void locked_profiler_stream_json_for_this_process(
     const uint32_t threadCount = uint32_t(threads.length());
 
     if (aWriter.Failed()) {
-      return;
+      return Err(ProfilerError::JsonGenerationFailed);
     }
     SLOW_DOWN_FOR_TESTING();
 
@@ -3317,7 +3324,7 @@ static void locked_profiler_stream_json_for_this_process(
           *thread.mProfiledThreadData, buffer, thread.mJSContext, aService,
           std::move(progressLogger));
       if (aWriter.Failed()) {
-        return;
+        return Err(ProfilerError::JsonGenerationFailed);
       }
     }
 
@@ -3331,7 +3338,7 @@ static void locked_profiler_stream_json_for_this_process(
                                      "Processed samples and markers"));
 
     if (aWriter.Failed()) {
-      return;
+      return Err(ProfilerError::JsonGenerationFailed);
     }
     SLOW_DOWN_FOR_TESTING();
 
@@ -3349,7 +3356,7 @@ static void locked_profiler_stream_json_for_this_process(
           CorePS::ProcessName(aLock), CorePS::ETLDplus1(aLock),
           CorePS::ProcessStartTime(), aService, std::move(progressLogger));
       if (aWriter.Failed()) {
-        return;
+        return Err(ProfilerError::JsonGenerationFailed);
       }
     }
     aProgressLogger.SetLocalProgress(92_pc, "Wrote samples and markers");
@@ -3371,7 +3378,7 @@ static void locked_profiler_stream_json_for_this_process(
                                               "Streamed Java thread"));
       }
       if (aWriter.Failed()) {
-        return;
+        return Err(ProfilerError::JsonGenerationFailed);
       }
     } else {
       aProgressLogger.SetLocalProgress(96_pc, "No Java thread");
@@ -3383,7 +3390,7 @@ static void locked_profiler_stream_json_for_this_process(
     if (baseProfileThreads) {
       aWriter.Splice(MakeStringSpan(baseProfileThreads.get()));
       if (aWriter.Failed()) {
-        return;
+        return Err(ProfilerError::JsonGenerationFailed);
       }
       aProgressLogger.SetLocalProgress(97_pc, "Wrote baseprofiler data");
     } else {
@@ -3404,7 +3411,7 @@ static void locked_profiler_stream_json_for_this_process(
   aWriter.EndArray();
 
   if (aWriter.Failed()) {
-    return;
+    return Err(ProfilerError::JsonGenerationFailed);
   }
 
   ProfilingLog::Access([&](Json::Value& aProfilingLogObject) {
@@ -3436,10 +3443,13 @@ static void locked_profiler_stream_json_for_this_process(
     LOG("locked_profiler_stream_json_for_this_process done");
   }
 #endif  // DEBUG
+
+  return ProfileGenerationAdditionalInformation{std::move(sharedLibraryInfo)};
 }
 
 // Keep this internal function non-static, so it may be used by tests.
-bool do_profiler_stream_json_for_this_process(
+ProfilerResult<ProfileGenerationAdditionalInformation>
+do_profiler_stream_json_for_this_process(
     SpliceableJSONWriter& aWriter, double aSinceTime, bool aIsShuttingDown,
     ProfilerCodeAddressService* aService,
     mozilla::ProgressLogger aProgressLogger) {
@@ -3458,29 +3468,41 @@ bool do_profiler_stream_json_for_this_process(
   PSAutoLock lock;
 
   if (!ActivePS::Exists(lock)) {
-    return false;
+    return Err(ProfilerError::IsInactive);
   }
 
-  locked_profiler_stream_json_for_this_process(
-      lock, aWriter, aSinceTime, preRecordedMetaInformation, aIsShuttingDown,
-      aService,
-      aProgressLogger.CreateSubLoggerFromTo(
-          3_pc, "locked_profiler_stream_json_for_this_process started", 100_pc,
-          "locked_profiler_stream_json_for_this_process done"));
-  return !aWriter.Failed();
+  ProfileGenerationAdditionalInformation additionalInfo;
+  MOZ_TRY_VAR(
+      additionalInfo,
+      locked_profiler_stream_json_for_this_process(
+          lock, aWriter, aSinceTime, preRecordedMetaInformation,
+          aIsShuttingDown, aService,
+          aProgressLogger.CreateSubLoggerFromTo(
+              3_pc, "locked_profiler_stream_json_for_this_process started",
+              100_pc, "locked_profiler_stream_json_for_this_process done")));
+
+  if (aWriter.Failed()) {
+    return Err(ProfilerError::JsonGenerationFailed);
+  }
+  return additionalInfo;
 }
 
-bool profiler_stream_json_for_this_process(
-    SpliceableJSONWriter& aWriter, double aSinceTime, bool aIsShuttingDown,
-    ProfilerCodeAddressService* aService,
-    mozilla::ProgressLogger aProgressLogger) {
+ProfilerResult<ProfileGenerationAdditionalInformation>
+profiler_stream_json_for_this_process(SpliceableJSONWriter& aWriter,
+                                      double aSinceTime, bool aIsShuttingDown,
+                                      ProfilerCodeAddressService* aService,
+                                      mozilla::ProgressLogger aProgressLogger) {
   MOZ_RELEASE_ASSERT(
       !XRE_IsParentProcess() || NS_IsMainThread(),
       "In the parent process, profiles should only be generated from the main "
       "thread, otherwise they will be incomplete.");
-  return do_profiler_stream_json_for_this_process(aWriter, aSinceTime,
-                                                  aIsShuttingDown, aService,
-                                                  std::move(aProgressLogger));
+
+  ProfileGenerationAdditionalInformation additionalInfo;
+  MOZ_TRY_VAR(additionalInfo, do_profiler_stream_json_for_this_process(
+                                  aWriter, aSinceTime, aIsShuttingDown,
+                                  aService, std::move(aProgressLogger)));
+
+  return additionalInfo;
 }
 
 // END saving/streaming code
@@ -4201,7 +4223,7 @@ void SamplerThread::Run() {
 
             if (threadStackSampling) {
               ThreadRegistry::OffThreadRef::RWFromAnyThreadWithLock
-                  lockedThreadData = offThreadRef.LockedRWFromAnyThread();
+                  lockedThreadData = offThreadRef.GetLockedRWFromAnyThread();
               // Suspend the thread and collect its stack data in the local
               // buffer.
               mSampler.SuspendAndSampleAndResumeThread(
@@ -4915,7 +4937,7 @@ static ProfilingStack* locked_register_thread(
             aLock, aOffThreadRef.UnlockedConstReaderCRef().Info());
     if (threadProfilingFeatures != ThreadProfilingFeatures::NotProfiled) {
       ThreadRegistry::OffThreadRef::RWFromAnyThreadWithLock
-          lockedRWFromAnyThread = aOffThreadRef.LockedRWFromAnyThread();
+          lockedRWFromAnyThread = aOffThreadRef.GetLockedRWFromAnyThread();
 
       ProfiledThreadData* profiledThreadData = ActivePS::AddLiveProfiledThread(
           aLock, MakeUnique<ProfiledThreadData>(
@@ -5361,15 +5383,17 @@ static bool WriteProfileToJSONWriter(SpliceableChunkedJSONWriter& aWriter,
 
   aWriter.Start();
   {
-    if (!profiler_stream_json_for_this_process(
-            aWriter, aSinceTime, aIsShuttingDown, aService,
-            aProgressLogger.CreateSubLoggerFromTo(
-                0_pc,
-                "WriteProfileToJSONWriter: "
-                "profiler_stream_json_for_this_process started",
-                100_pc,
-                "WriteProfileToJSONWriter: "
-                "profiler_stream_json_for_this_process done"))) {
+    auto rv = profiler_stream_json_for_this_process(
+        aWriter, aSinceTime, aIsShuttingDown, aService,
+        aProgressLogger.CreateSubLoggerFromTo(
+            0_pc,
+            "WriteProfileToJSONWriter: "
+            "profiler_stream_json_for_this_process started",
+            100_pc,
+            "WriteProfileToJSONWriter: "
+            "profiler_stream_json_for_this_process done"));
+
+    if (rv.isErr()) {
       return false;
     }
 
@@ -5576,7 +5600,7 @@ static void locked_profiler_save_profile_to_file(
     SpliceableJSONWriter w(sw, FailureLatchInfallibleSource::Singleton());
     w.Start();
     {
-      locked_profiler_stream_json_for_this_process(
+      Unused << locked_profiler_stream_json_for_this_process(
           aLock, w, /* sinceTime */ 0, aPreRecordedMetaInformation,
           aIsShuttingDown, nullptr, ProgressLogger{});
 
@@ -5781,7 +5805,7 @@ static void locked_profiler_start(PSLockRef aLock, PowerOfTwo32 aCapacity,
         ActivePS::ProfilingFeaturesForThread(aLock, info);
     if (threadProfilingFeatures != ThreadProfilingFeatures::NotProfiled) {
       ThreadRegistry::OffThreadRef::RWFromAnyThreadWithLock lockedThreadData =
-          offThreadRef.LockedRWFromAnyThread();
+          offThreadRef.GetLockedRWFromAnyThread();
       ProfiledThreadData* profiledThreadData = ActivePS::AddLiveProfiledThread(
           aLock, MakeUnique<ProfiledThreadData>(info));
       lockedThreadData->SetProfilingFeaturesAndData(threadProfilingFeatures,
@@ -6005,7 +6029,7 @@ void profiler_ensure_started(PowerOfTwo32 aCapacity, double aInterval,
     }
 
     ThreadRegistry::OffThreadRef::RWFromAnyThreadWithLock lockedThreadData =
-        offThreadRef.LockedRWFromAnyThread();
+        offThreadRef.GetLockedRWFromAnyThread();
 
     lockedThreadData->ClearProfilingFeaturesAndData(aLock);
 
@@ -6277,6 +6301,13 @@ bool profiler_feature_active(uint32_t aFeature) {
   return RacyFeatures::IsActiveWithFeature(aFeature);
 }
 
+bool profiler_active_without_feature(uint32_t aFeature) {
+  // This function runs both on and off the main thread.
+
+  // This function is hot enough that we use RacyFeatures, not ActivePS.
+  return RacyFeatures::IsActiveWithoutFeature(aFeature);
+}
+
 void profiler_write_active_configuration(JSONWriter& aWriter) {
   MOZ_RELEASE_ASSERT(CorePS::Exists());
   PSAutoLock lock;
@@ -6348,7 +6379,7 @@ static void locked_unregister_thread(
   // thread that is in the process of disappearing.
 
   ThreadRegistration::OnThreadRef::RWOnThreadWithLock lockedThreadData =
-      aOnThreadRef.LockedRWOnThread();
+      aOnThreadRef.GetLockedRWOnThread();
 
   ProfiledThreadData* profiledThreadData =
       lockedThreadData->GetProfiledThreadData(lock);
@@ -6757,7 +6788,7 @@ bool profiler_capture_backtrace_into(ProfileChunkedBuffer& aChunkedBuffer,
 
         Registers regs;
 #if defined(HAVE_NATIVE_UNWIND)
-        regs.SyncPopulate();
+        REGISTERS_SYNC_POPULATE(regs);
 #else
         regs.Clear();
 #endif
@@ -6777,8 +6808,9 @@ UniquePtr<ProfileChunkedBuffer> profiler_capture_backtrace() {
   MOZ_RELEASE_ASSERT(CorePS::Exists());
   AUTO_PROFILER_LABEL("profiler_capture_backtrace", PROFILER);
 
-  // Quick is-active check before allocating a buffer.
-  if (!profiler_is_active()) {
+  // Quick is-active and feature check before allocating a buffer.
+  // If NoMarkerStacks is set, we don't want to capture a backtrace.
+  if (!profiler_active_without_feature(ProfilerFeature::NoMarkerStacks)) {
     return nullptr;
   }
 
@@ -6869,7 +6901,7 @@ void profiler_clear_js_context() {
         // The profiler mutex must be locked before the ThreadRegistration's.
         PSAutoLock lock;
         ThreadRegistration::OnThreadRef::RWOnThreadWithLock lockedThreadData =
-            aOnThreadRef.LockedRWOnThread();
+            aOnThreadRef.GetLockedRWOnThread();
 
         if (ProfiledThreadData* profiledThreadData =
                 lockedThreadData->GetProfiledThreadData(lock);
@@ -6960,7 +6992,7 @@ static void profiler_suspend_and_sample_thread(
     // Sampling the current thread, do NOT suspend it!
     Registers regs;
 #if defined(HAVE_NATIVE_UNWIND)
-    regs.SyncPopulate();
+    REGISTERS_SYNC_POPULATE(regs);
 #else
     regs.Clear();
 #endif

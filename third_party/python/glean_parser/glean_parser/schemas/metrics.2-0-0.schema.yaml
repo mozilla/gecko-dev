@@ -46,7 +46,7 @@ definitions:
 
   labeled_metric_id:
     type: string
-    pattern: "^[a-z_][a-z0-9_-]{0,29}(\\.[a-z_][a-z0-9_-]{0,29})*$"
+    pattern: "^[ -~]+$"
     maxLength: 71  # Note: this should be category + metric + 1
 
   metric:
@@ -368,7 +368,7 @@ definitions:
         description: |
           The acceptable keys on the "extra" object sent with events. This is an
           object mapping the key to an object containing metadata about the key.
-          A maximum of 10 extra keys is allowed.
+          A maximum of 15 extra keys is allowed.
           This metadata object has the following keys:
 
             - `description`: **Required.** A description of the key.

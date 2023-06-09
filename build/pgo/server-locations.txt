@@ -125,6 +125,7 @@ https://expired.example.com:443        privileged,cert=expired
 https://requestclientcert.example.com:443         privileged,clientauth=request
 https://requireclientcert.example.com:443         privileged,clientauth=require
 https://requireclientcert-2.example.com:443         privileged,clientauth=require
+https://requireclientcert-untrusted.example.com:443         privileged,clientauth=require,cert=untrusted
 https://mismatch.expired.example.com:443	privileged,cert=expired
 https://mismatch.untrusted.example.com:443	privileged,cert=untrusted
 https://untrusted-expired.example.com:443	privileged,cert=untrustedandexpired
@@ -371,3 +372,9 @@ http://expired.example.com:80                   privileged
 http://redirect-example.com:80              privileged
 https://redirect-example.com:443            privileged,cert=bug1706126cert
 https://www.redirect-example.com:443        privileged,cert=bug1706126cert
+
+# DoH server
+https://foo.example.com:4433                privileged,cert=http2-cert.pem
+
+# Mochitest
+https://mochi.test:443                      privileged,cert=mochitest-cert.pem

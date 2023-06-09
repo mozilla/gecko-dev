@@ -316,6 +316,7 @@ OpKind wasm::Classify(OpBytes op) {
         case GcOp::ArrayNewDefault:
           WASM_GC_OP(OpKind::ArrayNewDefault);
         case GcOp::ArrayNewData:
+        case GcOp::ArrayInitFromElemStaticV5:
         case GcOp::ArrayNewElem:
           WASM_GC_OP(OpKind::ArrayNewData);
         case GcOp::ArrayGet:
@@ -329,13 +330,30 @@ OpKind wasm::Classify(OpBytes op) {
           WASM_GC_OP(OpKind::ArrayLen);
         case GcOp::ArrayCopy:
           WASM_GC_OP(OpKind::ArrayCopy);
+        case GcOp::RefTestV5:
+          WASM_GC_OP(OpKind::RefTestV5);
+        case GcOp::RefCastV5:
+          WASM_GC_OP(OpKind::RefCastV5);
         case GcOp::RefTest:
+        case GcOp::RefTestNull:
           WASM_GC_OP(OpKind::RefTest);
         case GcOp::RefCast:
+        case GcOp::RefCastNull:
           WASM_GC_OP(OpKind::RefCast);
         case GcOp::BrOnCast:
-        case GcOp::BrOnCastFail:
           WASM_GC_OP(OpKind::BrOnCast);
+        case GcOp::BrOnCastV5:
+        case GcOp::BrOnCastHeapV5:
+        case GcOp::BrOnCastHeapNullV5:
+          WASM_GC_OP(OpKind::BrOnCastV5);
+        case GcOp::BrOnCastFailV5:
+        case GcOp::BrOnCastFailHeapV5:
+        case GcOp::BrOnCastFailHeapNullV5:
+          WASM_GC_OP(OpKind::BrOnCastFailV5);
+        case GcOp::RefAsStructV5:
+          WASM_GC_OP(OpKind::Conversion);
+        case GcOp::BrOnNonStructV5:
+          WASM_GC_OP(OpKind::BrOnNonStructV5);
         case GcOp::ExternInternalize:
           WASM_GC_OP(OpKind::RefConversion);
         case GcOp::ExternExternalize:
@@ -559,10 +577,10 @@ OpKind wasm::Classify(OpBytes op) {
         case SimdOp::I16x8ExtaddPairwiseI8x16U:
         case SimdOp::I32x4ExtaddPairwiseI16x8S:
         case SimdOp::I32x4ExtaddPairwiseI16x8U:
-        case SimdOp::I32x4RelaxedTruncSSatF32x4:
-        case SimdOp::I32x4RelaxedTruncUSatF32x4:
-        case SimdOp::I32x4RelaxedTruncSatF64x2SZero:
-        case SimdOp::I32x4RelaxedTruncSatF64x2UZero:
+        case SimdOp::I32x4RelaxedTruncF32x4S:
+        case SimdOp::I32x4RelaxedTruncF32x4U:
+        case SimdOp::I32x4RelaxedTruncF64x2SZero:
+        case SimdOp::I32x4RelaxedTruncF64x2UZero:
           WASM_SIMD_OP(OpKind::Unary);
         case SimdOp::I8x16Shl:
         case SimdOp::I8x16ShrS:
@@ -618,7 +636,6 @@ OpKind wasm::Classify(OpBytes op) {
         case SimdOp::I32x4RelaxedLaneSelect:
         case SimdOp::I64x2RelaxedLaneSelect:
         case SimdOp::I32x4DotI8x16I7x16AddS:
-        case SimdOp::F32x4RelaxedDotBF16x8AddF32x4:
           WASM_SIMD_OP(OpKind::Ternary);
       }
       break;
@@ -650,6 +667,8 @@ OpKind wasm::Classify(OpBytes op) {
           return OpKind::MemOrTableInit;
         case MiscOp::TableFill:
           return OpKind::TableFill;
+        case MiscOp::MemoryDiscard:
+          return OpKind::MemDiscard;
         case MiscOp::TableGrow:
           return OpKind::TableGrow;
         case MiscOp::TableSize:
@@ -758,9 +777,12 @@ OpKind wasm::Classify(OpBytes op) {
         case MozOp::F64Pow:
         case MozOp::F64Atan2:
           return OpKind::Binary;
-        case MozOp::F64Sin:
-        case MozOp::F64Cos:
-        case MozOp::F64Tan:
+        case MozOp::F64SinNative:
+        case MozOp::F64SinFdlibm:
+        case MozOp::F64CosNative:
+        case MozOp::F64CosFdlibm:
+        case MozOp::F64TanNative:
+        case MozOp::F64TanFdlibm:
         case MozOp::F64Asin:
         case MozOp::F64Acos:
         case MozOp::F64Atan:

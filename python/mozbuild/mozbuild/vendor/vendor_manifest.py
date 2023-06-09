@@ -8,9 +8,11 @@ import logging
 import os
 import re
 import shutil
+import stat
 import sys
 import tarfile
 import tempfile
+from collections import defaultdict
 
 import mozfile
 import mozpack.path as mozpath
@@ -49,6 +51,38 @@ def _replace_in_file(file, pattern, replacement, regex=False):
 
     with open(file, "w") as f:
         f.write(newcontents)
+
+
+def list_of_paths_to_readable_string(paths):
+    # From https://stackoverflow.com/a/41578071
+    dic = defaultdict(list)
+    for item in paths:
+        if os.path.isdir(item):  # To check path is a directory
+            _ = dic[item]  # will set default value as empty list
+        else:
+            path, file = os.path.split(item)
+            dic[path].append(file)
+
+    final_string = "["
+    for key, val in dic.items():
+        if len(val) == 0:
+            final_string += key + ", "
+        elif len(val) < 3:
+            final_string += ", ".join([os.path.join(key, v) for v in val]) + ", "
+        elif len(val) < 10:
+            final_string += "%s items in %s: %s and %s, " % (
+                len(val),
+                key,
+                ", ".join(val[0:-1]),
+                val[-1],
+            )
+        else:
+            final_string += "%s (omitted) items in %s, " % (len(val), key)
+
+    if final_string[-2:] == ", ":
+        final_string = final_string[:-2]
+
+    return final_string + "]"
 
 
 class VendorManifest(MozbuildObject):
@@ -283,6 +317,10 @@ class VendorManifest(MozbuildObject):
             from mozbuild.vendor.host_angle import AngleHost
 
             return AngleHost(self.manifest)
+        elif self.manifest["vendoring"]["source-hosting"] == "codeberg":
+            from mozbuild.vendor.host_codeberg import CodebergHost
+
+            return CodebergHost(self.manifest)
         else:
             raise Exception(
                 "Unknown source host: " + self.manifest["vendoring"]["source-hosting"]
@@ -331,6 +369,36 @@ class VendorManifest(MozbuildObject):
 
     def fetch_and_unpack(self, revision):
         """Fetch and unpack upstream source"""
+
+        def validate_tar_member(member, path):
+            def is_within_directory(directory, target):
+                real_directory = os.path.realpath(directory)
+                real_target = os.path.realpath(target)
+                prefix = os.path.commonprefix([real_directory, real_target])
+                return prefix == real_directory
+
+            member_path = os.path.join(path, member.name)
+            if not is_within_directory(path, member_path):
+                raise Exception("Attempted path traversal in tar file: " + member.name)
+            if member.issym():
+                link_path = os.path.join(os.path.dirname(member_path), member.linkname)
+                if not is_within_directory(path, link_path):
+                    raise Exception(
+                        "Attempted link path traversal in tar file: " + member.name
+                    )
+            if member.mode & (stat.S_ISUID | stat.S_ISGID):
+                raise Exception(
+                    "Attempted setuid or setgid in tar file: " + member.name
+                )
+
+        def safe_extract(tar, path=".", *, numeric_owner=False):
+            def _files(tar, path):
+                for member in tar:
+                    validate_tar_member(member, path)
+                    yield member
+
+            tar.extractall(path, members=_files(tar, path), numeric_owner=numeric_owner)
+
         url = self.source_host.upstream_snapshot(revision)
         self.logInfo({"url": url}, "Fetching code archive from {url}")
 
@@ -341,14 +409,6 @@ class VendorManifest(MozbuildObject):
                 for data in req.iter_content(4096):
                     tmptarfile.write(data)
                 tmptarfile.seek(0)
-
-                tar = tarfile.open(tmptarfile.name)
-
-                for name in tar.getnames():
-                    if name.startswith("/") or ".." in name:
-                        raise Exception(
-                            "Tar archive contains non-local paths, e.g. '%s'" % name
-                        )
 
                 vendor_dir = mozpath.normsep(
                     self.manifest["vendoring"]["vendor-directory"]
@@ -373,17 +433,18 @@ class VendorManifest(MozbuildObject):
                         mozfile.remove(file)
 
                 self.logInfo({"vd": vendor_dir}, "Unpacking upstream files for {vd}.")
-                tar.extractall(tmpextractdir.name)
+                with tarfile.open(tmptarfile.name) as tar:
 
-                def get_first_dir(p):
-                    halves = os.path.split(p)
-                    return get_first_dir(halves[0]) if halves[0] else halves[1]
+                    safe_extract(tar, tmpextractdir.name)
 
-                one_prefix = get_first_dir(tar.getnames()[0])
-                has_prefix = all(
-                    map(lambda name: name.startswith(one_prefix), tar.getnames())
-                )
-                tar.close()
+                    def get_first_dir(p):
+                        halves = os.path.split(p)
+                        return get_first_dir(halves[0]) if halves[0] else halves[1]
+
+                    one_prefix = get_first_dir(tar.getnames()[0])
+                    has_prefix = all(
+                        map(lambda name: name.startswith(one_prefix), tar.getnames())
+                    )
 
                 # GitLab puts everything down a directory; move it up.
                 if has_prefix:
@@ -415,7 +476,10 @@ class VendorManifest(MozbuildObject):
 
                 to_exclude = list(set(to_exclude) - set(to_include))
                 if to_exclude:
-                    self.logInfo({"files": str(to_exclude)}, "Removing: {files}")
+                    self.logInfo(
+                        {"files": list_of_paths_to_readable_string(to_exclude)},
+                        "Removing: {files}",
+                    )
                     for exclusion in to_exclude:
                         mozfile.remove(exclusion)
 

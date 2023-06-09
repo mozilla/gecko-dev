@@ -145,7 +145,7 @@ class Connection final : public PBackgroundSDBConnectionParent {
   PersistenceType GetPersistenceType() const { return mPersistenceType; }
 
   const PrincipalInfo& GetPrincipalInfo() const {
-    MOZ_ASSERT(NS_IsMainThread());
+    AssertIsOnBackgroundThread();
 
     return mPrincipalInfo;
   }
@@ -270,7 +270,7 @@ class ConnectionOperationBase : public Runnable,
  protected:
   ConnectionOperationBase(Connection* aConnection)
       : Runnable("dom::ConnectionOperationBase"),
-        mOwningEventTarget(GetCurrentEventTarget()),
+        mOwningEventTarget(GetCurrentSerialEventTarget()),
         mConnection(aConnection),
         mResultCode(NS_OK),
         mOperationMayProceed(true),
@@ -477,6 +477,8 @@ class QuotaClient final : public mozilla::dom::quota::Client {
   void OnOriginClearCompleted(PersistenceType aPersistenceType,
                               const nsACString& aOrigin) override;
 
+  void OnRepositoryClearCompleted(PersistenceType aPersistenceType) override;
+
   void ReleaseIOThreadObjects() override;
 
   void AbortOperationsForLocks(
@@ -594,7 +596,7 @@ already_AddRefed<mozilla::dom::quota::Client> CreateQuotaClient() {
 StreamHelper::StreamHelper(nsIFileRandomAccessStream* aFileRandomAccessStream,
                            nsIRunnable* aCallback)
     : Runnable("dom::StreamHelper"),
-      mOwningEventTarget(GetCurrentEventTarget()),
+      mOwningEventTarget(GetCurrentSerialEventTarget()),
       mFileRandomAccessStream(aFileRandomAccessStream),
       mCallback(aCallback) {
   AssertIsOnBackgroundThread();
@@ -862,6 +864,8 @@ PBackgroundSDBRequestParent* Connection::AllocPBackgroundSDBRequestParent(
     return nullptr;
   }
 
+  QM_TRY(QuotaManager::EnsureCreated(), nullptr);
+
   RefPtr<ConnectionOperationBase> actor;
 
   switch (aParams.type()) {
@@ -1079,24 +1083,6 @@ nsresult OpenOp::Open() {
     return NS_ERROR_UNEXPECTED;
   }
 
-  PersistenceType persistenceType = GetConnection()->GetPersistenceType();
-
-  const PrincipalInfo& principalInfo = GetConnection()->GetPrincipalInfo();
-
-  if (principalInfo.type() == PrincipalInfo::TSystemPrincipalInfo) {
-    mOriginMetadata = {QuotaManager::GetInfoForChrome(), persistenceType};
-  } else {
-    MOZ_ASSERT(principalInfo.type() == PrincipalInfo::TContentPrincipalInfo);
-
-    QM_TRY_INSPECT(const auto& principal,
-                   PrincipalInfoToPrincipal(principalInfo));
-
-    QM_TRY_UNWRAP(auto principalMetadata,
-                  QuotaManager::GetInfoFromPrincipal(principal));
-
-    mOriginMetadata = {std::move(principalMetadata), persistenceType};
-  }
-
   mState = State::FinishOpen;
   MOZ_ALWAYS_SUCCEEDS(OwningEventTarget()->Dispatch(this, NS_DISPATCH_NORMAL));
 
@@ -1105,13 +1091,32 @@ nsresult OpenOp::Open() {
 
 nsresult OpenOp::FinishOpen() {
   AssertIsOnOwningThread();
-  MOZ_ASSERT(!mOriginMetadata.mOrigin.IsEmpty());
+  MOZ_ASSERT(mOriginMetadata.mOrigin.IsEmpty());
   MOZ_ASSERT(!mDirectoryLock);
   MOZ_ASSERT(mState == State::FinishOpen);
 
   if (NS_WARN_IF(QuotaClient::IsShuttingDownOnBackgroundThread()) ||
       IsActorDestroyed()) {
     return NS_ERROR_ABORT;
+  }
+
+  QuotaManager* quotaManager = QuotaManager::Get();
+  MOZ_ASSERT(quotaManager);
+
+  const PrincipalInfo& principalInfo = GetConnection()->GetPrincipalInfo();
+
+  PersistenceType persistenceType = GetConnection()->GetPersistenceType();
+
+  if (principalInfo.type() == PrincipalInfo::TSystemPrincipalInfo) {
+    mOriginMetadata = {QuotaManager::GetInfoForChrome(), persistenceType};
+  } else {
+    MOZ_ASSERT(principalInfo.type() == PrincipalInfo::TContentPrincipalInfo);
+
+    QM_TRY_UNWRAP(
+        auto principalMetadata,
+        quotaManager->GetInfoFromValidatedPrincipalInfo(principalInfo));
+
+    mOriginMetadata = {std::move(principalMetadata), persistenceType};
   }
 
   if (gOpenConnections) {
@@ -1123,16 +1128,12 @@ nsresult OpenOp::FinishOpen() {
     }
   }
 
-  QM_TRY(QuotaManager::EnsureCreated());
-
   // Open the directory
-  MOZ_ASSERT(QuotaManager::Get());
 
-  RefPtr<DirectoryLock> directoryLock =
-      QuotaManager::Get()->CreateDirectoryLock(
-          GetConnection()->GetPersistenceType(), mOriginMetadata,
-          mozilla::dom::quota::Client::SDB,
-          /* aExclusive */ false);
+  RefPtr<DirectoryLock> directoryLock = quotaManager->CreateDirectoryLock(
+      GetConnection()->GetPersistenceType(), mOriginMetadata,
+      mozilla::dom::quota::Client::SDB,
+      /* aExclusive */ false);
 
   mState = State::DirectoryOpenPending;
   directoryLock->Acquire(this);
@@ -1677,12 +1678,13 @@ Result<UsageInfo, nsresult> QuotaClient::GetUsageForOrigin(
     PersistenceType aPersistenceType, const OriginMetadata& aOriginMetadata,
     const AtomicBool& aCanceled) {
   AssertIsOnIOThread();
+  MOZ_ASSERT(aOriginMetadata.mPersistenceType == aPersistenceType);
 
   QuotaManager* quotaManager = QuotaManager::Get();
   MOZ_ASSERT(quotaManager);
 
-  QM_TRY_UNWRAP(auto directory, quotaManager->GetDirectoryForOrigin(
-                                    aPersistenceType, aOriginMetadata.mOrigin));
+  QM_TRY_UNWRAP(auto directory,
+                quotaManager->GetOriginDirectory(aOriginMetadata));
 
   MOZ_ASSERT(directory);
 
@@ -1728,6 +1730,10 @@ Result<UsageInfo, nsresult> QuotaClient::GetUsageForOrigin(
 
 void QuotaClient::OnOriginClearCompleted(PersistenceType aPersistenceType,
                                          const nsACString& aOrigin) {
+  AssertIsOnIOThread();
+}
+
+void QuotaClient::OnRepositoryClearCompleted(PersistenceType aPersistenceType) {
   AssertIsOnIOThread();
 }
 

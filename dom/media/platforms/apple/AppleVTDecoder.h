@@ -24,9 +24,11 @@ namespace mozilla {
 
 DDLoggedTypeDeclNameAndBase(AppleVTDecoder, MediaDataDecoder);
 
-class AppleVTDecoder : public MediaDataDecoder,
-                       public DecoderDoctorLifeLogger<AppleVTDecoder> {
+class AppleVTDecoder final : public MediaDataDecoder,
+                             public DecoderDoctorLifeLogger<AppleVTDecoder> {
  public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(AppleVTDecoder, final);
+
   AppleVTDecoder(const VideoInfo& aConfig,
                  layers::ImageContainer* aImageContainer,
                  CreateDecoderParams::OptionSet aOptions,
@@ -64,6 +66,8 @@ class AppleVTDecoder : public MediaDataDecoder,
     return mIsHardwareAccelerated ? "apple hardware VT decoder"_ns
                                   : "apple software VT decoder"_ns;
   }
+
+  nsCString GetCodecName() const override;
 
   ConversionRequired NeedsConversion() const override {
     return ConversionRequired::kNeedAVCC;

@@ -5,6 +5,7 @@
 
 #include "js/ArrayBuffer.h"
 #include "js/Value.h"
+#include "mozilla/Attributes.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/Logging.h"
 #include "mozilla/dom/Promise.h"
@@ -17,6 +18,7 @@
 #include "Buffer.h"
 #include "ComputePipeline.h"
 #include "DeviceLostInfo.h"
+#include "PipelineLayout.h"
 #include "Queue.h"
 #include "RenderBundleEncoder.h"
 #include "RenderPipeline.h"
@@ -177,8 +179,9 @@ already_AddRefed<BindGroup> Device::CreateBindGroup(
   return object.forget();
 }
 
-already_AddRefed<ShaderModule> Device::CreateShaderModule(
-    JSContext* aCx, const dom::GPUShaderModuleDescriptor& aDesc) {
+MOZ_CAN_RUN_SCRIPT_FOR_DEFINITION already_AddRefed<ShaderModule>
+Device::CreateShaderModule(JSContext* aCx,
+                           const dom::GPUShaderModuleDescriptor& aDesc) {
   Unused << aCx;
 
   if (!mBridge->CanSend()) {
@@ -191,7 +194,8 @@ already_AddRefed<ShaderModule> Device::CreateShaderModule(
     return nullptr;
   }
 
-  return mBridge->DeviceCreateShaderModule(this, aDesc, promise);
+  return MOZ_KnownLive(mBridge)->DeviceCreateShaderModule(*this, aDesc,
+                                                          promise);
 }
 
 already_AddRefed<ComputePipeline> Device::CreateComputePipeline(
@@ -287,30 +291,12 @@ already_AddRefed<dom::Promise> Device::CreateRenderPipelineAsync(
 already_AddRefed<Texture> Device::InitSwapChain(
     const dom::GPUCanvasConfiguration& aDesc,
     const layers::RemoteTextureOwnerId aOwnerId, gfx::SurfaceFormat aFormat,
-    gfx::IntSize* aCanvasSize) {
+    gfx::IntSize aCanvasSize) {
   if (!mBridge->CanSend()) {
     return nullptr;
   }
 
-  gfx::IntSize size = *aCanvasSize;
-  if (aDesc.mSize.WasPassed()) {
-    const auto& descSize = aDesc.mSize.Value();
-    if (descSize.IsRangeEnforcedUnsignedLongSequence()) {
-      const auto& seq = descSize.GetAsRangeEnforcedUnsignedLongSequence();
-      // TODO: add a check for `seq.Length()`
-      size.width = AssertedCast<int>(seq[0]);
-      size.height = AssertedCast<int>(seq[1]);
-    } else if (descSize.IsGPUExtent3DDict()) {
-      const auto& dict = descSize.GetAsGPUExtent3DDict();
-      size.width = AssertedCast<int>(dict.mWidth);
-      size.height = AssertedCast<int>(dict.mHeight);
-    } else {
-      MOZ_CRASH("Unexpected union");
-    }
-    *aCanvasSize = size;
-  }
-
-  const layers::RGBDescriptor rgbDesc(size, aFormat);
+  const layers::RGBDescriptor rgbDesc(aCanvasSize, aFormat);
   // buffer count doesn't matter much, will be created on demand
   const size_t maxBufferCount = 10;
   mBridge->DeviceCreateSwapChain(mId, rgbDesc, maxBufferCount, aOwnerId);
@@ -318,8 +304,8 @@ already_AddRefed<Texture> Device::InitSwapChain(
   dom::GPUTextureDescriptor desc;
   desc.mDimension = dom::GPUTextureDimension::_2d;
   auto& sizeDict = desc.mSize.SetAsGPUExtent3DDict();
-  sizeDict.mWidth = size.width;
-  sizeDict.mHeight = size.height;
+  sizeDict.mWidth = aCanvasSize.width;
+  sizeDict.mHeight = aCanvasSize.height;
   sizeDict.mDepthOrArrayLayers = 1;
   desc.mFormat = aDesc.mFormat;
   desc.mMipLevelCount = 1;

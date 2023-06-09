@@ -44,15 +44,15 @@
  *      An URL cannot be longer than DB_URL_LENGTH_MAX, methods will throw if a
  *      longer value is provided.
  *
- * Each successful operation notifies through the nsINavBookmarksObserver
+ * Each successful operation notifies through the PlacesObservers
  * interface.  To listen to such notifications you must register using
- * nsINavBookmarksService addObserver and removeObserver methods.
+ * PlacesUtils.observers.addListener and PlacesUtils.observers.removeListener
+ * methods.
  * Note that bookmark addition or order changes won't notify bookmark-moved for
  * items that have their indexes changed.
  * Similarly, lastModified changes not done explicitly (like changing another
- * property) won't fire an onItemChanged notification for the lastModified
- * property.
- * @see nsINavBookmarkObserver
+ * property) won't fire a bookmark-time-changed notification.
+ * @see PlacesObservers
  */
 
 const lazy = {};
@@ -66,25 +66,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PlacesSyncUtils: "resource://gre/modules/PlacesSyncUtils.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
 });
-
-// This is an helper to temporarily cover the need to know the tags folder
-// itemId until bug 424160 is fixed.  This exists so that startup paths won't
-// pay the price to initialize the bookmarks service just to fetch this value.
-// If the method is already initing the bookmarks service for other reasons
-// (most of the writing methods will invoke getObservers() already) it can
-// directly use the PlacesUtils.tagsFolderId property.
-var gTagsFolderId;
-async function promiseTagsFolderId() {
-  if (gTagsFolderId) {
-    return gTagsFolderId;
-  }
-  let db = await lazy.PlacesUtils.promiseDBConnection();
-  let rows = await db.execute(
-    "SELECT id FROM moz_bookmarks WHERE guid = :guid",
-    { guid: Bookmarks.tagsGuid }
-  );
-  return (gTagsFolderId = rows[0].getResultByName("id"));
-}
 
 const MATCH_ANYWHERE_UNMODIFIED =
   Ci.mozIPlacesAutoComplete.MATCH_ANYWHERE_UNMODIFIED;
@@ -834,16 +815,6 @@ export var Bookmarks = Object.freeze({
             return updatedItem;
           });
 
-          if (
-            item.type == this.TYPE_BOOKMARK &&
-            item.url.href != updatedItem.url.href
-          ) {
-            // ...though we don't wait for the calculation.
-            updateFrecency(db, [item.url, updatedItem.url]).catch(
-              Cu.reportError
-            );
-          }
-
           const notifications = [];
 
           // For lastModified, we only care about the original input, since we
@@ -1373,7 +1344,6 @@ export var Bookmarks = Object.freeze({
       "Bookmarks.jsm: eraseEverything",
       async function(db) {
         let urls;
-
         await db.executeTransaction(async function() {
           urls = await removeFoldersContents(
             db,
@@ -1400,10 +1370,8 @@ export var Bookmarks = Object.freeze({
           );
         });
 
-        // We don't wait for the frecency calculation.
-        if (urls && urls.length) {
+        if (urls?.length) {
           await lazy.PlacesUtils.keywords.eraseEverything();
-          updateFrecency(db, urls).catch(Cu.reportError);
         }
       }
     );
@@ -2056,19 +2024,6 @@ async function updateBookmark(
         syncChangeDelta
       );
     }
-    // Remove the Sync orphan annotation from reparented items. We don't
-    // notify annotation observers about this because this is a temporary,
-    // internal anno that's only used by Sync.
-    await db.executeCached(
-      `DELETE FROM moz_items_annos
-       WHERE anno_attribute_id = (SELECT id FROM moz_anno_attributes
-                                  WHERE name = :orphanAnno) AND
-             item_id = :id`,
-      {
-        orphanAnno: lazy.PlacesSyncUtils.bookmarks.SYNC_PARENT_ANNO,
-        id: item._id,
-      }
-    );
   }
 
   // If the parent changed, update related non-enumerable properties.
@@ -2183,12 +2138,6 @@ function insertBookmark(item, parent) {
         );
       });
 
-      // If not a tag recalculate frecency...
-      if (item.type == Bookmarks.TYPE_BOOKMARK && !isTagging) {
-        // ...though we don't wait for the calculation.
-        updateFrecency(db, [item.url]).catch(Cu.reportError);
-      }
-
       return item;
     }
   );
@@ -2254,9 +2203,6 @@ function insertBookmarkTree(items, source, parent, urls, lastAddedForParent) {
           syncChangeDelta
         );
       });
-
-      // We don't wait for the frecency calculation.
-      updateFrecency(db, urls).catch(Cu.reportError);
 
       return items;
     }
@@ -2324,7 +2270,7 @@ async function handleBookmarkItemSpecialData(itemId, item) {
 
 async function queryBookmarks(info) {
   let queryParams = {
-    tags_folder: await promiseTagsFolderId(),
+    tags_folder: lazy.PlacesUtils.tagsFolderId,
   };
   // We're searching for bookmarks, so exclude tags.
   let queryString = "WHERE b.parent <> :tags_folder";
@@ -2534,7 +2480,6 @@ async function fetchBookmarksByGUIDPrefix(info, options = {}) {
 
 async function fetchBookmarksByURL(info, options = {}) {
   let query = async function(db) {
-    let tagsFolderId = await promiseTagsFolderId();
     let rows = await db.executeCached(
       `/* do not warn (bug no): not worth to add an index */
       SELECT b.guid, IFNULL(p.guid, '') AS parentGuid, b.position AS 'index',
@@ -2554,7 +2499,11 @@ async function fetchBookmarksByURL(info, options = {}) {
       AND _grandParentId <> :tagsFolderId
       ORDER BY b.lastModified DESC
       `,
-      { url: info.url.href, tagsFolderId, tagsGuid: Bookmarks.tagsGuid }
+      {
+        url: info.url.href,
+        tagsFolderId: lazy.PlacesUtils.tagsFolderId,
+        tagsGuid: Bookmarks.tagsGuid,
+      }
     );
 
     return rows.length ? rowsToItemsArray(rows) : null;
@@ -2607,7 +2556,6 @@ function fetchRecentBookmarks(numberOfItems) {
   return lazy.PlacesUtils.withConnectionWrapper(
     "Bookmarks.jsm: fetchRecentBookmarks",
     async function(db) {
-      let tagsFolderId = await promiseTagsFolderId();
       let rows = await db.executeCached(
         `SELECT b.guid, IFNULL(p.guid, '') AS parentGuid, b.position AS 'index',
                 b.dateAdded, b.lastModified, b.type,
@@ -2625,7 +2573,7 @@ function fetchRecentBookmarks(numberOfItems) {
         LIMIT :numberOfItems
         `,
         {
-          tagsFolderId,
+          tagsFolderId: lazy.PlacesUtils.tagsFolderId,
           type: Bookmarks.TYPE_BOOKMARK,
           numberOfItems,
         }
@@ -2691,11 +2639,6 @@ function removeBookmarks(items, options) {
           items,
           db.variableLimit
         )) {
-          // We don't go through the annotations service for this cause otherwise
-          // we'd get a pointless onItemChanged notification and it would also
-          // set lastModified to an unexpected value.
-          await removeAnnotationsForItems(db, chunk);
-
           // Remove the bookmarks.
           await db.executeCached(
             `DELETE FROM moz_bookmarks
@@ -2764,21 +2707,9 @@ function removeBookmarks(items, options) {
         await insertTombstones(db, items, syncChangeDelta);
       });
 
-      // Update the frecencies outside of the transaction, excluding tags, so that
-      // the updates can progress in the background.
-      urls = urls.concat(
-        items
-          .filter(item => {
-            let isUntagging =
-              item._grandParentId == lazy.PlacesUtils.tagsFolderId;
-            return !isUntagging && "url" in item;
-          })
-          .map(item => item.url)
-      );
-
+      urls = urls.concat(items.map(item => item.url).filter(item => item));
       if (urls.length) {
         await lazy.PlacesUtils.keywords.removeFromURLsIfNotBookmarked(urls);
-        updateFrecency(db, urls).catch(Cu.reportError);
       }
     }
   );
@@ -3022,87 +2953,6 @@ function validateBookmarkObject(name, input, behavior) {
 }
 
 /**
- * Updates frecency for a list of URLs.
- *
- * @param db
- *        the Sqlite.sys.mjs connection handle.
- * @param urls
- *        the array of URLs to update.
- */
-var updateFrecency = async function(db, urls) {
-  let hrefs = urls.map(url => url.href);
-  // We just use the hashes, since updating a few additional urls won't hurt.
-  for (let chunk of lazy.PlacesUtils.chunkArray(hrefs, db.variableLimit)) {
-    await db.execute(
-      `UPDATE moz_places
-       SET hidden = (url_hash BETWEEN hash("place", "prefix_lo") AND hash("place", "prefix_hi")),
-           frecency = CALCULATE_FRECENCY(id)
-       WHERE url_hash IN (${lazy.PlacesUtils.sqlBindPlaceholders(
-         chunk,
-         "hash(",
-         ")"
-       )})`,
-      chunk
-    );
-  }
-
-  // Trigger frecency updates for all affected origins.
-  await db.executeCached(`DELETE FROM moz_updateoriginsupdate_temp`);
-
-  PlacesObservers.notifyListeners([new PlacesRanking()]);
-};
-
-/**
- * Removes any orphan annotation entries.
- *
- * @param db
- *        the Sqlite.sys.mjs connection handle.
- */
-var removeOrphanAnnotations = async function(db) {
-  await db.executeCached(
-    `DELETE FROM moz_items_annos
-     WHERE id IN (SELECT a.id from moz_items_annos a
-                  LEFT JOIN moz_bookmarks b ON a.item_id = b.id
-                  WHERE b.id ISNULL)
-    `
-  );
-  await db.executeCached(
-    `DELETE FROM moz_anno_attributes
-     WHERE id IN (SELECT n.id from moz_anno_attributes n
-                  LEFT JOIN moz_annos a1 ON a1.anno_attribute_id = n.id
-                  LEFT JOIN moz_items_annos a2 ON a2.anno_attribute_id = n.id
-                  WHERE a1.id ISNULL AND a2.id ISNULL)
-    `
-  );
-};
-
-/**
- * Removes annotations for a given item.
- *
- * @param db
- *        the Sqlite.sys.mjs connection handle.
- * @param items
- *        The items for which to remove annotations.
- */
-var removeAnnotationsForItems = async function(db, items) {
-  // Remove the annotations.
-  let itemIds = items.map(item => item._id);
-  await db.executeCached(
-    `DELETE FROM moz_items_annos
-     WHERE item_id IN (${lazy.PlacesUtils.sqlBindPlaceholders(itemIds)})`,
-    itemIds
-  );
-  await db.executeCached(
-    `DELETE FROM moz_anno_attributes
-     WHERE id IN (SELECT n.id from moz_anno_attributes n
-                  LEFT JOIN moz_annos a1 ON a1.anno_attribute_id = n.id
-                  LEFT JOIN moz_items_annos a2 ON a2.anno_attribute_id = n.id
-                  WHERE a1.id ISNULL AND a2.id ISNULL)
-    `
-  );
-};
-
-/**
  * Updates lastModified for all the ancestors of a given folder GUID.
  *
  * @param db
@@ -3159,10 +3009,7 @@ var setAncestorsLastModified = async function(
  * @param {Array} folderGuids
  *        array of folder guids.
  * @return {Array}
- *         An array of urls that will need to be updated for frecency. These
- *         are returned rather than updated immediately so that the caller
- *         can decide when they need to be updated - they do not need to
- *         stop this function from completing.
+ *         An array of the affected urls.
  */
 var removeFoldersContents = async function(db, folderGuids, options) {
   let syncChangeDelta = lazy.PlacesSyncUtils.bookmarks.determineSyncChangeDelta(
@@ -3218,9 +3065,6 @@ var removeFoldersContents = async function(db, folderGuids, options) {
   // Bump the change counter for all tagged bookmarks when removing tag
   // folders.
   await addSyncChangesForRemovedTagFolders(db, itemsRemoved, syncChangeDelta);
-
-  // Cleanup orphans.
-  await removeOrphanAnnotations(db);
 
   // TODO (Bug 1087576): this may leave orphan tags behind.
 

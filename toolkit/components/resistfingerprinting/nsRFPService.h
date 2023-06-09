@@ -10,9 +10,7 @@
 #include "ErrorList.h"
 #include "PLDHashTable.h"
 #include "mozilla/BasicEvents.h"
-#include "nsContentUtils.h"
 #include "nsHashtablesFwd.h"
-#include "nsIGlobalObject.h"
 #include "nsIObserver.h"
 #include "nsISupports.h"
 #include "nsStringFwd.h"
@@ -105,7 +103,7 @@ class KeyboardHashKey : public PLDHashEntryHdr {
 
   explicit KeyboardHashKey(KeyTypePointer aOther);
 
-  KeyboardHashKey(KeyboardHashKey&& aOther);
+  KeyboardHashKey(KeyboardHashKey&& aOther) noexcept;
 
   ~KeyboardHashKey();
 
@@ -123,6 +121,16 @@ class KeyboardHashKey : public PLDHashEntryHdr {
   nsString mKey;
 };
 
+// ============================================================================
+
+// Reduce Timer Precision (RTP) Caller Type
+enum class RTPCallerType : uint8_t {
+  Normal = 0,
+  SystemPrincipal = (1 << 0),
+  ResistFingerprinting = (1 << 1),
+  CrossOriginIsolated = (1 << 2)
+};
+
 enum TimerPrecisionType {
   DangerouslyNone = 1,
   UnconditionalAKAHighRes = 2,
@@ -130,12 +138,29 @@ enum TimerPrecisionType {
   RFP = 4,
 };
 
+// ============================================================================
+
+// NOLINTNEXTLINE(bugprone-macro-parentheses)
+#define ITEM_VALUE(name, val) name = val,
+
+enum class RFPTarget : unsigned {
+#include "RFPTargets.inc"
+};
+
+#undef ITEM_VALUE
+
+// ============================================================================
+
 class nsRFPService final : public nsIObserver {
  public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
 
   static nsRFPService* GetOrCreate();
+
+  static bool IsRFPEnabledFor(RFPTarget aTarget);
+
+  // --------------------------------------------------------------------------
   static double TimerResolution(RTPCallerType aRTPCallerType);
 
   enum TimeScale { Seconds = 1, MilliSeconds = 1000, MicroSeconds = 1000000 };
@@ -168,6 +193,8 @@ class nsRFPService final : public nsIObserver {
                                  int64_t aContextMixin, long long* aMidpointOut,
                                  uint8_t* aSecretSeed = nullptr);
 
+  // --------------------------------------------------------------------------
+
   // This method calculates the video resolution (i.e. height x width) based
   // on the video quality (480p, 720p, etc).
   static uint32_t CalculateTargetVideoResolution(uint32_t aVideoQuality);
@@ -180,8 +207,12 @@ class nsRFPService final : public nsIObserver {
   static uint32_t GetSpoofedPresentedFrames(double aTime, uint32_t aWidth,
                                             uint32_t aHeight);
 
+  // --------------------------------------------------------------------------
+
   // This method generates the spoofed value of User Agent.
   static void GetSpoofedUserAgent(nsACString& userAgent, bool isForHTTPHeader);
+
+  // --------------------------------------------------------------------------
 
   /**
    * This method for getting spoofed modifier states for the given keyboard
@@ -227,6 +258,15 @@ class nsRFPService final : public nsIObserver {
                                 const WidgetKeyboardEvent* aKeyboardEvent,
                                 uint32_t& aOut);
 
+  // --------------------------------------------------------------------------
+
+  // The method to generate the key for randomization. It can return nothing if
+  // the session key is not available due to the randomization is disabled.
+  static Maybe<nsTArray<uint8_t>> GenerateKey(nsIURI* aTopLevelURI,
+                                              bool aIsPrivate);
+
+  // --------------------------------------------------------------------------
+
  private:
   nsresult Init();
 
@@ -234,11 +274,18 @@ class nsRFPService final : public nsIObserver {
 
   ~nsRFPService() = default;
 
+  nsCString mInitialTZValue;
+
   void UpdateRFPPref();
+  void UpdateFPPOverrideList();
   void StartShutdown();
 
   void PrefChanged(const char* aPref);
   static void PrefChanged(const char* aPref, void* aSelf);
+
+  static Maybe<RFPTarget> TextToRFPTarget(const nsAString& aText);
+
+  // --------------------------------------------------------------------------
 
   static void MaybeCreateSpoofingKeyCodes(const KeyboardLangs aLang,
                                           const KeyboardRegions aRegion);
@@ -254,6 +301,8 @@ class nsRFPService final : public nsIObserver {
   static nsTHashMap<KeyboardHashKey, const SpoofingKeyboardCode*>*
       sSpoofingKeyboardCodes;
 
+  // --------------------------------------------------------------------------
+
   static TimerPrecisionType GetTimerPrecisionType(RTPCallerType aRTPCallerType);
 
   static TimerPrecisionType GetTimerPrecisionTypeRFPOnly(
@@ -261,7 +310,24 @@ class nsRFPService final : public nsIObserver {
 
   static void TypeToText(TimerPrecisionType aType, nsACString& aText);
 
-  nsCString mInitialTZValue;
+  // --------------------------------------------------------------------------
+
+  // Generate the session key if it hasn't been generated.
+  nsresult EnsureSessionKey(bool aIsPrivate);
+  void ClearSessionKey(bool aIsPrivate);
+
+  // The keys that represent the browsing session. The lifetime of the key ties
+  // to the browsing session. For normal windows, the key is generated when
+  // loading the first http channel after the browser startup and persists until
+  // the browser shuts down. For private windows, the key is generated when
+  // opening a http channel on a private window and reset after all private
+  // windows close, i.e. private browsing session ends.
+  //
+  // The key will be used to generate the randomization noise used to fiddle the
+  // browser fingerprints. Note that this key lives and can only be accessed in
+  // the parent process.
+  Maybe<nsID> mBrowsingSessionKey;
+  Maybe<nsID> mPrivateBrowsingSessionKey;
 };
 
 }  // namespace mozilla

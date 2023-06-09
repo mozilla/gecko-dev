@@ -71,7 +71,6 @@ add_task(async function setup() {
     Services.prefs.clearUserPref(PRIVATE_SEARCH_PREF);
     Services.prefs.clearUserPref(TAIL_SUGGESTIONS_PREF);
     Services.prefs.clearUserPref(SUGGEST_ENABLED_PREF);
-    UrlbarPrefs.clear("resultGroups");
   });
   Services.search.setDefault(engine, Ci.nsISearchService.CHANGE_REASON_UNKNOWN);
   Services.prefs.setBoolPref(PRIVATE_SEARCH_PREF, false);
@@ -252,6 +251,7 @@ add_task(async function mixed_results() {
     url: "http://example.com/2",
     title: "what time is",
   });
+  await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
 
   // Tail suggestions should not be shown.
   const query = "what time is";

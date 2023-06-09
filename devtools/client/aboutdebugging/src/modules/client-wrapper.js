@@ -146,6 +146,11 @@ class ClientWrapper {
     return this.client.mainRoot.getAddon({ id });
   }
 
+  async uninstallAddon({ id }) {
+    const addonsFront = await this.getFront("addons");
+    return addonsFront.uninstallAddon(id);
+  }
+
   async getMainProcess() {
     return this.client.mainRoot.getMainProcess();
   }
@@ -178,7 +183,7 @@ class ClientWrapper {
 
   // This method will be mocked to return a dummy URL during mochitests
   getPerformancePanelUrl() {
-    return "chrome://devtools/content/performance-new/index.xhtml";
+    return "chrome://devtools/content/performance-new/panel/index.xhtml";
   }
 
   /**
@@ -205,6 +210,10 @@ class ClientWrapper {
       supportedFeatures,
       openRemoteDevTools
     );
+  }
+
+  get traits() {
+    return { ...this.client.mainRoot.traits };
   }
 }
 

@@ -3,9 +3,9 @@
 const {
   ExperimentAPI,
   _ExperimentFeature: ExperimentFeature,
-} = ChromeUtils.import("resource://nimbus/ExperimentAPI.jsm");
-const { ExperimentFakes } = ChromeUtils.import(
-  "resource://testing-common/NimbusTestUtils.jsm"
+} = ChromeUtils.importESModule("resource://nimbus/ExperimentAPI.sys.mjs");
+const { ExperimentFakes } = ChromeUtils.importESModule(
+  "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
 
 async function setupForExperimentFeature() {
@@ -238,7 +238,7 @@ add_task(async function test_onUpdate_before_store_ready() {
   const stub = sandbox.stub();
   const manager = ExperimentFakes.manager();
   sandbox.stub(ExperimentAPI, "_store").get(() => manager.store);
-  sandbox.stub(manager.store, "getAllActive").returns([
+  sandbox.stub(manager.store, "getAllActiveExperiments").returns([
     ExperimentFakes.experiment("foo-experiment", {
       branch: {
         slug: "control",
@@ -262,6 +262,12 @@ add_task(async function test_onUpdate_before_store_ready() {
     stub.calledOnce,
     "Called on startup after loading experiments from disk"
   );
+  Assert.equal(
+    stub.firstCall.args[0],
+    `featureUpdate:${feature.featureId}`,
+    "Called for correct feature"
+  );
+
   Assert.equal(
     stub.firstCall.args[1],
     "feature-experiment-loaded",
@@ -293,7 +299,7 @@ add_task(async function test_ExperimentFeature_test_ready_late() {
     },
   });
 
-  sandbox.stub(manager.store, "getAllRollouts").returns([rollout]);
+  sandbox.stub(manager.store, "getAllActiveRollouts").returns([rollout]);
 
   await manager.onStartup();
 
@@ -301,7 +307,9 @@ add_task(async function test_ExperimentFeature_test_ready_late() {
 
   await featureInstance.ready();
 
-  Assert.ok(stub.notCalled, "We register too late to catch any events");
+  Assert.ok(stub.calledOnce, "Callback called");
+  Assert.equal(stub.firstCall.args[0], "featureUpdate:test-feature");
+  Assert.equal(stub.firstCall.args[1], "rollout-updated");
 
   setDefaultBranch(TEST_FALLBACK_PREF, JSON.stringify({ foo: true }));
 

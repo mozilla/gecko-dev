@@ -17,6 +17,8 @@
 
 namespace mozilla::dom {
 
+using namespace streams_abstract;
+
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(TransformStreamDefaultController, mGlobal,
                                       mStream, mTransformerAlgorithms)
 NS_IMPL_CYCLE_COLLECTING_ADDREF(TransformStreamDefaultController)
@@ -140,7 +142,7 @@ void TransformStreamDefaultController::Enqueue(JSContext* aCx,
     MOZ_ASSERT(backpressure);
 
     // Step 7.2: Perform ! TransformStreamSetBackpressure(true).
-    stream->SetBackpressure(true, aRv);
+    stream->SetBackpressure(true);
   }
 }
 
@@ -192,6 +194,8 @@ void TransformStreamDefaultController::Terminate(JSContext* aCx,
   TransformStreamErrorWritableAndUnblockWrite(aCx, stream, error, aRv);
 }
 
+namespace streams_abstract {
+
 // https://streams.spec.whatwg.org/#set-up-transform-stream-default-controller
 void SetUpTransformStreamDefaultController(
     JSContext* aCx, TransformStream& aStream,
@@ -228,5 +232,7 @@ void SetUpTransformStreamDefaultControllerFromTransformer(
   // transformAlgorithm, flushAlgorithm).
   SetUpTransformStreamDefaultController(aCx, aStream, *controller, *algorithms);
 }
+
+}  // namespace streams_abstract
 
 }  // namespace mozilla::dom

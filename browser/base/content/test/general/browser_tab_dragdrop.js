@@ -55,7 +55,7 @@ var clickTest = async function(tab) {
 };
 
 function loadURI(tab, url) {
-  BrowserTestUtils.loadURI(tab.linkedBrowser, url);
+  BrowserTestUtils.loadURIString(tab.linkedBrowser, url);
   return BrowserTestUtils.browserLoaded(tab.linkedBrowser);
 }
 
@@ -134,6 +134,7 @@ add_task(async function() {
   );
   await loadURI(
     tabs[4],
+    // eslint-disable-next-line @microsoft/sdl/no-insecure-url
     "http://example.com/browser/browser/base/content/test/general/browser_tab_dragdrop_embed.html"
   );
   await BrowserTestUtils.switchTab(gBrowser, tabs[3]);

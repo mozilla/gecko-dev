@@ -24,12 +24,16 @@ add_task(async function() {
   await pushPref("devtools.browserconsole.enableNetworkMonitoring", true);
   await pushPref("devtools.browsertoolbox.scope", "everything");
 
+  // Open a parent process tab to check it doesn't have impact
+  const aboutRobotsTab = await addTab("about:robots");
+  // And open the "actual" test tab
   const tab = await addTab(TEST_URI);
 
   await testMessages();
 
   info("Close tab");
   await removeTab(tab);
+  await removeTab(aboutRobotsTab);
 });
 
 async function testMessages() {
@@ -91,6 +95,21 @@ async function testMessages() {
     URL.createObjectURL(blob)
   );
 
+  // Spawn Chrome worker from a chrome window and log a message
+  // It's important to use the browser console global so the message gets assigned
+  // a non-numeric innerID in Console.cpp
+  const browserConsoleGlobal = Cu.getGlobalForObject(hud);
+  const chromeWorker = new browserConsoleGlobal.ChromeWorker(
+    URL.createObjectURL(
+      new browserConsoleGlobal.Blob(
+        [`console.log("message in chrome worker")`],
+        {
+          type: "application/javascript",
+        }
+      )
+    )
+  );
+
   const sandbox = new Cu.Sandbox(null, {
     wantComponents: false,
     wantGlobalProperties: ["URL", "URLSearchParams"],
@@ -101,6 +120,9 @@ async function testMessages() {
   );
   console.error(error);
   Cu.nukeSandbox(sandbox);
+
+  const componentsException = new Components.Exception("Components.Exception");
+  console.error(componentsException);
 
   // Check privileged error message from a content process
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], () => {
@@ -237,6 +259,11 @@ async function testMessages() {
   await checkUniqueMessageExists(hud, "error in parent worker", ".error");
   await checkUniqueMessageExists(
     hud,
+    "message in chrome worker",
+    ".console-api"
+  );
+  await checkUniqueMessageExists(
+    hud,
     "Expected color but found ‘rainbow’",
     ".warn"
   );
@@ -246,6 +273,8 @@ async function testMessages() {
     ".warn"
   );
 
+  await checkComponentExceptionMessage(hud, componentsException);
+
   await resetFilters(hud);
 
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], () => {
@@ -253,6 +282,34 @@ async function testMessages() {
     delete content.testWorker;
   });
   chromeSpawnedWorker.terminate();
+  chromeWorker.terminate();
   info("Close the Browser Console");
   await safeCloseBrowserConsole();
+}
+
+async function checkComponentExceptionMessage(hud, exception) {
+  const msgNode = await checkUniqueMessageExists(
+    hud,
+    "Components.Exception",
+    ".error"
+  );
+  const framesNode = await waitFor(() => msgNode.querySelector(".pane.frames"));
+  ok(framesNode, "The Components.Exception stack is displayed right away");
+
+  const frameNodes = framesNode.querySelectorAll(".frame");
+  ok(frameNodes.length > 1, "Got at least one frame in the stack");
+  is(
+    frameNodes[0].querySelector(".line").textContent,
+    String(exception.lineNumber),
+    "The stack displayed by default refers to Components.Exception passed as argument"
+  );
+
+  const [, line] = msgNode
+    .querySelector(".frame-link-line")
+    .textContent.split(":");
+  is(
+    line,
+    String(exception.lineNumber + 1),
+    "The link on the top right refers to the console.error callsite"
+  );
 }

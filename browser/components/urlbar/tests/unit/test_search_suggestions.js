@@ -6,6 +6,12 @@
  * UrlbarProviderSearchSuggestions.
  */
 
+const lazy = {};
+
+ChromeUtils.defineESModuleGetters(lazy, {
+  sinon: "resource://testing-common/Sinon.sys.mjs",
+});
+
 const SUGGEST_PREF = "browser.urlbar.suggest.searches";
 const SUGGEST_ENABLED_PREF = "browser.search.suggest.enabled";
 const PRIVATE_ENABLED_PREF = "browser.search.suggest.enabled.private";
@@ -16,7 +22,6 @@ const MAX_RICH_RESULTS_PREF = "browser.urlbar.maxRichResults";
 const MAX_FORM_HISTORY_PREF = "browser.urlbar.maxHistoricalSearchSuggestions";
 const SHOW_SEARCH_SUGGESTIONS_FIRST_PREF =
   "browser.urlbar.showSearchSuggestionsFirst";
-const RESULT_GROUPS_PREF = "browser.urlbar.resultGroups";
 const SEARCH_STRING = "hello";
 
 const MAX_RESULTS = Services.prefs.getIntPref(MAX_RICH_RESULTS_PREF, 10);
@@ -24,6 +29,7 @@ const MAX_RESULTS = Services.prefs.getIntPref(MAX_RICH_RESULTS_PREF, 10);
 var suggestionsFn;
 var previousSuggestionsFn;
 let port;
+let sandbox;
 
 /**
  * Set the current suggestion funciton.
@@ -47,6 +53,7 @@ async function cleanup() {
   Services.prefs.clearUserPref(SUGGEST_ENABLED_PREF);
   await PlacesUtils.bookmarks.eraseEverything();
   await PlacesUtils.history.clear();
+  sandbox.restore();
 }
 
 async function cleanUpSuggestions() {
@@ -94,9 +101,9 @@ function makeRemoteSuggestionResults(
 }
 
 function setResultGroups(groups) {
-  Services.prefs.setCharPref(
-    RESULT_GROUPS_PREF,
-    JSON.stringify({
+  sandbox.restore();
+  sandbox.stub(UrlbarPrefs, "resultGroups").get(() => {
+    return {
       children: [
         // heuristic
         {
@@ -114,15 +121,16 @@ function setResultGroups(groups) {
         // extensions using the omnibox API
         {
           group: UrlbarUtils.RESULT_GROUP.OMNIBOX,
-          maxResultCount: UrlbarUtils.MAX_OMNIBOX_RESULT_COUNT - 1,
         },
         ...groups,
       ],
-    })
-  );
+    };
+  });
 }
 
 add_task(async function setup() {
+  sandbox = lazy.sinon.createSandbox();
+
   let engine = await addTestSuggestionsEngine(searchStr => {
     return suggestionsFn(searchStr);
   });
@@ -143,6 +151,7 @@ add_task(async function setup() {
     Services.prefs.clearUserPref(PRIVATE_SEARCH_PREF);
     Services.prefs.clearUserPref(QUICKACTIONS_PREF);
     Services.prefs.clearUserPref(TAB_TO_SEARCH_PREF);
+    sandbox.restore();
   });
   Services.search.setDefault(engine, Ci.nsISearchService.CHANGE_REASON_UNKNOWN);
   Services.prefs.setBoolPref(PRIVATE_SEARCH_PREF, false);
@@ -844,7 +853,6 @@ add_task(async function mixup_frecency() {
     ],
   });
 
-  Services.prefs.clearUserPref(RESULT_GROUPS_PREF);
   Services.prefs.clearUserPref(MAX_RICH_RESULTS_PREF);
   await cleanUpSuggestions();
 });
@@ -886,7 +894,7 @@ add_task(async function prohibit_suggestions() {
       makeVisitResult(context, {
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
         uri: `http://${SEARCH_STRING}/`,
-        title: `http://${SEARCH_STRING}/`,
+        fallbackTitle: `http://${SEARCH_STRING}/`,
         iconUri: "",
         heuristic: true,
       }),
@@ -931,7 +939,7 @@ add_task(async function prohibit_suggestions() {
       makeVisitResult(context, {
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
         uri: `http://${SEARCH_STRING}/`,
-        title: `http://${SEARCH_STRING}/`,
+        fallbackTitle: `http://${SEARCH_STRING}/`,
         iconUri: "",
         heuristic: true,
       }),
@@ -950,7 +958,7 @@ add_task(async function prohibit_suggestions() {
       makeVisitResult(context, {
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
         uri: "http://somethingelse/",
-        title: "http://somethingelse/",
+        fallbackTitle: "http://somethingelse/",
         iconUri: "",
         heuristic: true,
       }),
@@ -985,7 +993,7 @@ add_task(async function prohibit_suggestions() {
       makeVisitResult(context, {
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
         uri: "http://1.2.3.4/",
-        title: "http://1.2.3.4/",
+        fallbackTitle: "http://1.2.3.4/",
         iconUri: "page-icon:http://1.2.3.4/",
         heuristic: true,
       }),
@@ -999,7 +1007,7 @@ add_task(async function prohibit_suggestions() {
       makeVisitResult(context, {
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
         uri: "http://[2001::1]:30/",
-        title: "http://[2001::1]:30/",
+        fallbackTitle: "http://[2001::1]:30/",
         iconUri: "",
         heuristic: true,
       }),
@@ -1013,7 +1021,7 @@ add_task(async function prohibit_suggestions() {
       makeVisitResult(context, {
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
         uri: "http://user:pass@test/",
-        title: "http://user:pass@test/",
+        fallbackTitle: "http://user:pass@test/",
         iconUri: "",
         heuristic: true,
       }),
@@ -1027,7 +1035,7 @@ add_task(async function prohibit_suggestions() {
       makeVisitResult(context, {
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
         uri: "data:text/plain,Content",
-        title: "data:text/plain,Content",
+        fallbackTitle: "data:text/plain,Content",
         iconUri: "",
         heuristic: true,
       }),
@@ -1060,7 +1068,7 @@ add_task(async function uri_like_queries() {
     matches: [
       makeVisitResult(context, {
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
-        title: `http://${query}/`,
+        fallbackTitle: `http://${query}/`,
         uri: `http://${query}/`,
         iconUri: "",
         heuristic: true,
@@ -1312,7 +1320,7 @@ add_task(async function avoid_remote_url_suggestions_2() {
       makeVisitResult(context, {
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
         uri: "ftp://test/",
-        title: "ftp://test/",
+        fallbackTitle: "ftp://test/",
         iconUri: "",
         heuristic: true,
       }),
@@ -1370,7 +1378,7 @@ add_task(async function avoid_remote_url_suggestions_2() {
       makeVisitResult(context, {
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
         uri: "http://www/",
-        title: "http://www/",
+        fallbackTitle: "http://www/",
         iconUri: "",
         heuristic: true,
       }),
@@ -1384,7 +1392,7 @@ add_task(async function avoid_remote_url_suggestions_2() {
       makeVisitResult(context, {
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
         uri: "https://www/",
-        title: "https://www/",
+        fallbackTitle: "https://www/",
         iconUri: "",
         heuristic: true,
       }),
@@ -1398,7 +1406,7 @@ add_task(async function avoid_remote_url_suggestions_2() {
       makeVisitResult(context, {
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
         uri: "http://test/",
-        title: "http://test/",
+        fallbackTitle: "http://test/",
         iconUri: "",
         heuristic: true,
       }),
@@ -1412,7 +1420,7 @@ add_task(async function avoid_remote_url_suggestions_2() {
       makeVisitResult(context, {
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
         uri: "https://test/",
-        title: "https://test/",
+        fallbackTitle: "https://test/",
         iconUri: "",
         heuristic: true,
       }),
@@ -1426,7 +1434,7 @@ add_task(async function avoid_remote_url_suggestions_2() {
       makeVisitResult(context, {
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
         uri: "http://www.test/",
-        title: "http://www.test/",
+        fallbackTitle: "http://www.test/",
         iconUri: "",
         heuristic: true,
       }),
@@ -1440,7 +1448,7 @@ add_task(async function avoid_remote_url_suggestions_2() {
       makeVisitResult(context, {
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
         uri: "http://www.test.com/",
-        title: "http://www.test.com/",
+        fallbackTitle: "http://www.test.com/",
         iconUri: "",
         heuristic: true,
       }),
@@ -1484,7 +1492,7 @@ add_task(async function avoid_remote_url_suggestions_2() {
       makeVisitResult(context, {
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
         uri: "file:///Users",
-        title: "file:///Users",
+        fallbackTitle: "file:///Users",
         iconUri: "",
         heuristic: true,
       }),

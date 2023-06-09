@@ -92,7 +92,7 @@ impl<'de> Deserialize<'de> for TokenBinding {
                             id = Some(map.next_value()?);
                         }
                         k => {
-                            return Err(M::Error::custom(format!("unexpected key: {:?}", k)));
+                            return Err(M::Error::custom(format!("unexpected key: {k:?}")));
                         }
                     }
                 }
@@ -107,12 +107,7 @@ impl<'de> Deserialize<'de> for TokenBinding {
                             }
                         }
                         "supported" => Ok(TokenBinding::Supported),
-                        k => {
-                            return Err(M::Error::custom(format!(
-                                "unexpected status key: {:?}",
-                                k
-                            )));
-                        }
+                        k => Err(M::Error::custom(format!("unexpected status key: {k:?}"))),
                     }
                 } else {
                     Err(SerdeError::missing_field("status"))
@@ -144,8 +139,8 @@ impl Serialize for WebauthnType {
         S: Serializer,
     {
         match *self {
-            WebauthnType::Create => serializer.serialize_str(&"webauthn.create"),
-            WebauthnType::Get => serializer.serialize_str(&"webauthn.get"),
+            WebauthnType::Create => serializer.serialize_str("webauthn.create"),
+            WebauthnType::Get => serializer.serialize_str("webauthn.get"),
         }
     }
 }
@@ -185,7 +180,7 @@ pub struct Challenge(pub String);
 
 impl Challenge {
     pub fn new(input: Vec<u8>) -> Self {
-        let value = base64::encode_config(&input, base64::URL_SAFE_NO_PAD);
+        let value = base64::encode_config(input, base64::URL_SAFE_NO_PAD);
         Challenge(value)
     }
 }
@@ -219,8 +214,21 @@ pub struct CollectedClientData {
     pub token_binding: Option<TokenBinding>,
 }
 
-#[derive(Debug, Eq, PartialEq)]
-pub struct ClientDataHash([u8; 32]);
+impl CollectedClientData {
+    pub fn hash(&self) -> Result<ClientDataHash, HIDError> {
+        // WebIDL's dictionary definition specifies that the order of the struct
+        // is exactly as the WebIDL specification declares it, with an algorithm
+        // for partial dictionaries, so that's how interop works for these
+        // things.
+        // See: https://heycam.github.io/webidl/#dfn-dictionary
+        let json = json::to_vec(&self).map_err(CommandError::Json)?;
+        let digest = Sha256::digest(json);
+        Ok(ClientDataHash(digest.into()))
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ClientDataHash(pub [u8; 32]);
 
 impl PartialEq<[u8]> for ClientDataHash {
     fn eq(&self, other: &[u8]) -> bool {
@@ -244,72 +252,7 @@ impl Serialize for ClientDataHash {
 }
 
 #[cfg(test)]
-impl<'de> Deserialize<'de> for ClientDataHash {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct ClientDataHashVisitor;
-
-        impl<'de> Visitor<'de> for ClientDataHashVisitor {
-            type Value = ClientDataHash;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("a byte string")
-            }
-
-            fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                let mut out = [0u8; 32];
-                if out.len() != v.len() {
-                    return Err(E::invalid_length(v.len(), &"32"));
-                }
-                out.copy_from_slice(v);
-                Ok(ClientDataHash(out))
-            }
-        }
-
-        deserializer.deserialize_bytes(ClientDataHashVisitor)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CollectedClientDataWrapper {
-    pub client_data: CollectedClientData,
-    pub serialized_data: Vec<u8>,
-}
-
-impl CollectedClientDataWrapper {
-    pub fn new(client_data: CollectedClientData) -> Result<Self, HIDError> {
-        let serialized_data = json::to_vec(&client_data).map_err(CommandError::Json)?;
-        Ok(CollectedClientDataWrapper {
-            client_data,
-            serialized_data,
-        })
-    }
-
-    pub fn hash(&self) -> ClientDataHash {
-        // WebIDL's dictionary definition specifies that the order of the struct
-        // is exactly as the WebIDL specification declares it, with an algorithm
-        // for partial dictionaries, so that's how interop works for these
-        // things.
-        // See: https://heycam.github.io/webidl/#dfn-dictionary
-        let mut hasher = Sha256::new();
-        hasher.update(&self.serialized_data);
-
-        let mut output = [0u8; 32];
-        output.copy_from_slice(hasher.finalize().as_slice());
-
-        ClientDataHash(output)
-    }
-}
-
-#[cfg(test)]
 mod test {
-    use crate::CollectedClientDataWrapper;
-
     use super::{Challenge, ClientDataHash, CollectedClientData, TokenBinding, WebauthnType};
     use serde_json as json;
 
@@ -341,7 +284,7 @@ mod test {
     #[test]
     fn test_collected_client_data_parsing() {
         let original_str = "{\"type\":\"webauthn.create\",\"challenge\":\"AAECAw\",\"origin\":\"example.com\",\"crossOrigin\":false,\"tokenBinding\":{\"status\":\"present\",\"id\":\"AAECAw\"}}";
-        let parsed: CollectedClientData = serde_json::from_str(&original_str).unwrap();
+        let parsed: CollectedClientData = serde_json::from_str(original_str).unwrap();
         let expected = CollectedClientData {
             webauthn_type: WebauthnType::Create,
             challenge: Challenge::new(vec![0x00, 0x01, 0x02, 0x03]),
@@ -359,7 +302,7 @@ mod test {
     fn test_collected_client_data_defaults() {
         let cross_origin_str = "{\"type\":\"webauthn.create\",\"challenge\":\"AAECAw\",\"origin\":\"example.com\",\"crossOrigin\":false,\"tokenBinding\":{\"status\":\"present\",\"id\":\"AAECAw\"}}";
         let no_cross_origin_str = "{\"type\":\"webauthn.create\",\"challenge\":\"AAECAw\",\"origin\":\"example.com\",\"tokenBinding\":{\"status\":\"present\",\"id\":\"AAECAw\"}}";
-        let parsed: CollectedClientData = serde_json::from_str(&no_cross_origin_str).unwrap();
+        let parsed: CollectedClientData = serde_json::from_str(no_cross_origin_str).unwrap();
         let expected = CollectedClientData {
             webauthn_type: WebauthnType::Create,
             challenge: Challenge::new(vec![0x00, 0x01, 0x02, 0x03]),
@@ -382,18 +325,14 @@ mod test {
             cross_origin: false,
             token_binding: Some(TokenBinding::Present("AAECAw".to_string())),
         };
-        let c =
-            CollectedClientDataWrapper::new(client_data).expect("Failed to serialize client_data");
         assert_eq!(
-            c.hash(),
+            client_data.hash().expect("failed to serialize client data"),
             //  echo -n '{"type":"webauthn.create","challenge":"AAECAw","origin":"example.com","crossOrigin":false,"tokenBinding":{"status":"present","id":"AAECAw"}}' | sha256sum -t
-            ClientDataHash {
-                0: [
-                    0x75, 0x35, 0x35, 0x7d, 0x49, 0x6e, 0x33, 0xc8, 0x18, 0x7f, 0xea, 0x8d, 0x11,
-                    0x32, 0x64, 0xaa, 0xa4, 0x52, 0x3e, 0x13, 0x40, 0x14, 0x9f, 0xbe, 0x00, 0x3f,
-                    0x10, 0x87, 0x54, 0xc3, 0x2d, 0x80
-                ]
-            }
+            ClientDataHash([
+                0x75, 0x35, 0x35, 0x7d, 0x49, 0x6e, 0x33, 0xc8, 0x18, 0x7f, 0xea, 0x8d, 0x11, 0x32,
+                0x64, 0xaa, 0xa4, 0x52, 0x3e, 0x13, 0x40, 0x14, 0x9f, 0xbe, 0x00, 0x3f, 0x10, 0x87,
+                0x54, 0xc3, 0x2d, 0x80
+            ])
         );
     }
 }

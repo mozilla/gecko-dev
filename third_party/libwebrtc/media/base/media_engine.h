@@ -24,6 +24,7 @@
 #include "call/audio_state.h"
 #include "media/base/codec.h"
 #include "media/base/media_channel.h"
+#include "media/base/media_channel_impl.h"
 #include "media/base/media_config.h"
 #include "media/base/video_common.h"
 #include "rtc_base/system/file_wrapper.h"
@@ -37,9 +38,28 @@ class Call;
 
 namespace cricket {
 
-webrtc::RTCError CheckRtpParametersValues(
-    const webrtc::RtpParameters& new_parameters);
+// Checks that the scalability_mode value of each encoding is supported by at
+// least one video codec of the list. If the list is empty, no check is done.
+webrtc::RTCError CheckScalabilityModeValues(
+    const webrtc::RtpParameters& new_parameters,
+    rtc::ArrayView<cricket::VideoCodec> codecs);
 
+// Checks the parameters have valid and supported values, and checks parameters
+// with CheckScalabilityModeValues().
+webrtc::RTCError CheckRtpParametersValues(
+    const webrtc::RtpParameters& new_parameters,
+    rtc::ArrayView<cricket::VideoCodec> codecs);
+
+// Checks that the immutable values have not changed in new_parameters and
+// checks all parameters with CheckRtpParametersValues().
+webrtc::RTCError CheckRtpParametersInvalidModificationAndValues(
+    const webrtc::RtpParameters& old_parameters,
+    const webrtc::RtpParameters& new_parameters,
+    rtc::ArrayView<cricket::VideoCodec> codecs);
+
+// Checks that the immutable values have not changed in new_parameters and
+// checks parameters (except SVC) with CheckRtpParametersValues(). It should
+// usually be paired with a call to CheckScalabilityModeValues().
 webrtc::RTCError CheckRtpParametersInvalidModificationAndValues(
     const webrtc::RtpParameters& old_parameters,
     const webrtc::RtpParameters& new_parameters);

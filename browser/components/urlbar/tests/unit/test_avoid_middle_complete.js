@@ -145,7 +145,7 @@ add_task(async function test_searchEngine_www_noautofill() {
       makeVisitResult(context, {
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
         uri: "http://www.ham/",
-        title: "http://www.ham/",
+        fallbackTitle: "http://www.ham/",
         displayUrl: "http://www.ham",
         heuristic: true,
       }),
@@ -176,7 +176,7 @@ add_task(async function test_searchEngine_different_scheme_noautofill() {
       makeVisitResult(context, {
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
         uri: "http://pie/",
-        title: "http://pie/",
+        fallbackTitle: "http://pie/",
         iconUri: "",
         heuristic: true,
       }),
@@ -252,11 +252,10 @@ add_task(async function test_prefix_autofill() {
     incompleteSearch: "moz",
     autofilled: "mozilla.org/",
     completed: "http://mozilla.org/",
-    hasAutofillTitle: false,
     matches: [
       makeVisitResult(context, {
         uri: "http://mozilla.org/",
-        title: "mozilla.org",
+        fallbackTitle: "mozilla.org",
         heuristic: true,
       }),
       makeVisitResult(context, {

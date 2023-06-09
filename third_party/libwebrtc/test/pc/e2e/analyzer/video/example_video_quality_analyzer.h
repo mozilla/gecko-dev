@@ -44,7 +44,8 @@ class ExampleVideoQualityAnalyzer : public VideoQualityAnalyzerInterface {
   void OnFrameEncoded(absl::string_view peer_name,
                       uint16_t frame_id,
                       const EncodedImage& encoded_image,
-                      const EncoderStats& stats) override;
+                      const EncoderStats& stats,
+                      bool discarded) override;
   void OnFrameDropped(absl::string_view peer_name,
                       EncodedImageCallback::DropReason reason) override;
   void OnFramePreDecode(absl::string_view peer_name,
@@ -60,7 +61,8 @@ class ExampleVideoQualityAnalyzer : public VideoQualityAnalyzerInterface {
                       int32_t error_code) override;
   void OnDecoderError(absl::string_view peer_name,
                       uint16_t frame_id,
-                      int32_t error_code) override;
+                      int32_t error_code,
+                      const DecoderStats& stats) override;
   void Stop() override;
   std::string GetStreamLabel(uint16_t frame_id) override;
 
@@ -84,7 +86,7 @@ class ExampleVideoQualityAnalyzer : public VideoQualityAnalyzerInterface {
   // process frame id overlap.
   std::set<uint16_t> frames_in_flight_ RTC_GUARDED_BY(lock_);
   std::map<uint16_t, std::string> frames_to_stream_label_ RTC_GUARDED_BY(lock_);
-  uint16_t next_frame_id_ RTC_GUARDED_BY(lock_) = 0;
+  uint16_t next_frame_id_ RTC_GUARDED_BY(lock_) = 1;
   uint64_t frames_captured_ RTC_GUARDED_BY(lock_) = 0;
   uint64_t frames_pre_encoded_ RTC_GUARDED_BY(lock_) = 0;
   uint64_t frames_encoded_ RTC_GUARDED_BY(lock_) = 0;

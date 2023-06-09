@@ -15,10 +15,6 @@ const kWebExtensionButtonID2 = "fake-webextension-button-2";
 let gWin = null;
 
 add_setup(async function() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["extensions.unifiedExtensions.enabled", true]],
-  });
-
   gWin = await BrowserTestUtils.openNewBrowserWindow();
 
   // To make it easier to write a test where we can control overflowing
@@ -53,7 +49,7 @@ add_setup(async function() {
   // of the hidden widget) get overflowed.
   for (let webExtID of [kWebExtensionButtonID1, kWebExtensionButtonID2]) {
     let webExtNode = CustomizableUI.getWidget(webExtID).forWindow(gWin).node;
-    webExtNode.style.width = "100px";
+    webExtNode.style.minWidth = "100px";
   }
 
   CustomizableUI.createWidget({

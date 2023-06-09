@@ -8,18 +8,13 @@
  * preferences, but only for variables with fallback prefs.
  */
 
-import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
-
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
   TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.sys.mjs",
   UrlbarUtils: "resource:///modules/UrlbarUtils.sys.mjs",
-});
-
-XPCOMUtils.defineLazyModuleGetters(lazy, {
-  NimbusFeatures: "resource://nimbus/ExperimentAPI.jsm",
 });
 
 const PREF_URLBAR_BRANCH = "browser.urlbar.";
@@ -31,7 +26,7 @@ const PREF_URLBAR_BRANCH = "browser.urlbar.";
 // NOTE: Don't name prefs (relative to the `browser.urlbar` branch) the same as
 // Nimbus urlbar features. Doing so would cause a name collision because pref
 // names and Nimbus feature names are both kept as keys in UrlbarPref's map. For
-// a list of Nimbus features, see: toolkit/components/nimbus/FeatureManifest.js
+// a list of Nimbus features, see toolkit/components/nimbus/FeatureManifest.yaml.
 const PREF_URLBAR_DEFAULTS = new Map([
   // Whether we announce to screen readers when tab-to-search results are
   // inserted.
@@ -68,7 +63,7 @@ const PREF_URLBAR_DEFAULTS = new Map([
 
   // Whether best match results can be blocked. This pref is a fallback for the
   // Nimbus variable `bestMatchBlockingEnabled`.
-  ["bestMatch.blockingEnabled", false],
+  ["bestMatch.blockingEnabled", true],
 
   // Whether the best match feature is enabled.
   ["bestMatch.enabled", true],
@@ -120,9 +115,19 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // Whether the urlbar displays a permanent search button.
   ["experimental.searchButton", false],
 
-  // When we send events to extensions, we wait this amount of time in
-  // milliseconds for them to respond before timing out.
+  // Comma-separated list of `source.providers` combinations, that are used to
+  // determine if an exposure event should be fired. This can be set by a
+  // Nimbus variable and is expected to be set via nimbus experiment
+  // configuration.
+  ["exposureResults", ""],
+
+  // When we send events to (privileged) extensions (urlbar API), we wait this
+  // amount of time in milliseconds for them to respond before timing out.
   ["extension.timeout", 400],
+
+  // When we send events to extensions that use the omnibox API, we wait this
+  // amount of time in milliseconds for them to respond before timing out.
+  ["extension.omnibox.timeout", 3000],
 
   // When true, `javascript:` URLs are not included in search results.
   ["filter.javascript", true],
@@ -130,12 +135,15 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // Applies URL highlighting and other styling to the text in the urlbar input.
   ["formatting.enabled", true],
 
-  // Whether search engagement telemetry should be recorded. This pref is a
-  // fallback for the Nimbus variable `searchEngagementTelemetryEnabled`.
-  ["searchEngagementTelemetry.enabled", false],
-
   // Interval time until taking pause impression telemetry.
   ["searchEngagementTelemetry.pauseImpressionIntervalMs", 1000],
+
+  // Boolean to determine if the providers defined in `exposureResults`
+  // should be displayed in search results. This can be set by a
+  // Nimbus variable and is expected to be set via nimbus experiment
+  // configuration. For the control branch of an experiment this would be
+  // false and true for the treatment.
+  ["showExposureResults", false],
 
   // Whether Firefox Suggest group labels are shown in the urlbar view in en-*
   // locales. Labels are not shown in other locales but likely will be in the
@@ -179,16 +187,6 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // are styled to look like search engine results instead of the usual history
   // results.
   ["restyleSearches", false],
-
-  // Controls the composition of results.  The default value is computed by
-  // calling:
-  //   makeResultGroups({
-  //     showSearchSuggestionsFirst: UrlbarPrefs.get(
-  //       "showSearchSuggestionsFirst"
-  //     ),
-  //   });
-  // The value of this pref is a JSON string of the root group.  See below.
-  ["resultGroups", ""],
 
   // If true, we show tail suggestions when available.
   ["richSuggestions.tail", true],
@@ -254,11 +252,13 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // Whether we will match QuickActions within a phrase and not only a prefix.
   ["quickactions.matchInPhrase", true],
 
-  // Whether we show QuickActions when in zero-prefix.
-  ["quickactions.showInZeroPrefix", false],
-
   // Show multiple actions in a random order.
   ["quickactions.randomOrderActions", false],
+
+  // The minumum amount of characters required for the user to input before
+  // matching actions. Setting this to 0 will show the actions in the
+  // zero prefix state.
+  ["quickactions.minimumSearchString", 3],
 
   // Whether results will include non-sponsored quick suggest suggestions.
   ["suggest.quicksuggest.nonsponsored", false],
@@ -281,7 +281,7 @@ const PREF_URLBAR_DEFAULTS = new Map([
 
   // Whether the usual non-best-match quick suggest results can be blocked. This
   // pref is a fallback for the Nimbus variable `quickSuggestBlockingEnabled`.
-  ["quicksuggest.blockingEnabled", false],
+  ["quicksuggest.blockingEnabled", true],
 
   // Global toggle for whether the quick suggest feature is enabled, i.e.,
   // sponsored and recommended results related to the user's search string.
@@ -352,7 +352,10 @@ const PREF_URLBAR_DEFAULTS = new Map([
   ["quicksuggest.allowPositionInSuggestions", true],
 
   // Enable three-dot options button and menu for eligible results.
-  ["resultMenu", false],
+  ["resultMenu", true],
+
+  // Allow the result menu button to be reached with the Tab key.
+  ["resultMenu.keyboardAccessible", true],
 
   // When using switch to tabs, if set to true this will move the tab into the
   // active window.
@@ -398,7 +401,31 @@ const PREF_URLBAR_DEFAULTS = new Map([
 
   // Feature gate pref for weather suggestions in the urlbar.
   ["weather.featureGate", false],
+
+  // When false, the weather suggestion will not be fetched when a VPN is
+  // detected. When true, it will be fetched anyway.
+  ["weather.ignoreVPN", false],
+
+  // The minimum prefix length of a weather keyword the user must type to
+  // trigger the suggestion. 0 means the min length should be taken from Nimbus
+  // or remote settings.
+  ["weather.minKeywordLength", 0],
+
+  // Feature gate pref for trending suggestions in the urlbar.
+  ["trending.featureGate", false],
+
+  // Whether to only show trending results when the urlbar is in search
+  // mode or when the user initially opens the urlbar without selecting
+  // an engine.
+  ["trending.requireSearchMode", true],
+
+  // The maximum number of trending results to show in search mode.
+  ["trending.maxResultsSearchMode", 10],
+
+  // The maximum number of trending results to show while not in search mode.
+  ["trending.maxResultsNoSearchMode", 10],
 ]);
+
 const PREF_OTHER_DEFAULTS = new Map([
   ["browser.fixup.dns_first_for_single_words", false],
   ["browser.search.suggest.enabled", true],
@@ -415,6 +442,10 @@ const NIMBUS_DEFAULTS = {
   experimentType: "",
   isBestMatchExperiment: false,
   quickSuggestRemoteSettingsDataType: "data",
+  recordNavigationalSuggestionTelemetry: false,
+  weatherKeywords: null,
+  weatherKeywordsMinimumLength: 0,
+  weatherKeywordsMinimumLengthCap: 0,
 };
 
 // Maps preferences under browser.urlbar.suggest to behavior names, as defined
@@ -487,13 +518,13 @@ function makeResultGroups({ showSearchSuggestionsFirst }) {
           { group: lazy.UrlbarUtils.RESULT_GROUP.HEURISTIC_AUTOFILL },
           { group: lazy.UrlbarUtils.RESULT_GROUP.HEURISTIC_PRELOADED },
           { group: lazy.UrlbarUtils.RESULT_GROUP.HEURISTIC_TOKEN_ALIAS_ENGINE },
+          { group: lazy.UrlbarUtils.RESULT_GROUP.HEURISTIC_HISTORY_URL },
           { group: lazy.UrlbarUtils.RESULT_GROUP.HEURISTIC_FALLBACK },
         ],
       },
       // extensions using the omnibox API
       {
         group: lazy.UrlbarUtils.RESULT_GROUP.OMNIBOX,
-        availableSpan: lazy.UrlbarUtils.MAX_OMNIBOX_RESULT_COUNT - 1,
       },
     ],
   };
@@ -675,20 +706,13 @@ class Preferences {
     return makeResultGroups(options);
   }
 
-  /**
-   * Sets the value of the resultGroups pref to the current default groups.
-   * This should be called from BrowserGlue._migrateUI when the default groups
-   * are modified.
-   */
-  migrateResultGroups() {
-    this.set(
-      "resultGroups",
-      JSON.stringify(
-        makeResultGroups({
-          showSearchSuggestionsFirst: this.get("showSearchSuggestionsFirst"),
-        })
-      )
-    );
+  get resultGroups() {
+    if (!this.#resultGroups) {
+      this.#resultGroups = makeResultGroups({
+        showSearchSuggestionsFirst: this.get("showSearchSuggestionsFirst"),
+      });
+    }
+    return this.#resultGroups;
   }
 
   /**
@@ -901,7 +925,7 @@ class Preferences {
     }
     if (!this.FIREFOX_SUGGEST_DEFAULT_PREFS.hasOwnProperty(scenario)) {
       scenario = "history";
-      Cu.reportError(`Unrecognized Firefox Suggest scenario "${scenario}"`);
+      console.error(`Unrecognized Firefox Suggest scenario "${scenario}"`);
     }
     return scenario;
   }
@@ -1011,7 +1035,7 @@ class Preferences {
       try {
         this[methodName](scenario);
       } catch (error) {
-        Cu.reportError(
+        console.error(
           `Error migrating Firefox Suggest prefs to version ${nextVersion}: ` +
             error
         );
@@ -1216,14 +1240,32 @@ class Preferences {
    * Adds a preference observer.  Observers are held weakly.
    *
    * @param {object} observer
-   *        An object that must have a method named `onPrefChanged`, which will
-   *        be called when a urlbar preference changes.  It will be passed the
-   *        pref name.  For prefs in the `browser.urlbar.` branch, the name will
-   *        be relative to the branch.  For other prefs, the name will be the
-   *        full name.
+   *        An object that may optionally implement one or both methods:
+   *         - `onPrefChanged` invoked when one of the preferences listed here
+   *           change. It will be passed the pref name.  For prefs in the
+   *           `browser.urlbar.` branch, the name will be relative to the branch.
+   *           For other prefs, the name will be the full name.
+   *         - `onNimbusChanged` invoked when a Nimbus value changes. It will be
+   *           passed the name of the changed Nimbus variable.
    */
   addObserver(observer) {
     this._observerWeakRefs.push(Cu.getWeakReference(observer));
+  }
+
+  /**
+   * Removes a preference observer.
+   *
+   * @param {object} observer
+   *   An observer previously added with `addObserver()`.
+   */
+  removeObserver(observer) {
+    for (let i = 0; i < this._observerWeakRefs.length; i++) {
+      let obs = this._observerWeakRefs[i].get();
+      if (obs && obs == observer) {
+        this._observerWeakRefs.splice(i, 1);
+        break;
+      }
+    }
   }
 
   /**
@@ -1241,16 +1283,7 @@ class Preferences {
     if (!PREF_URLBAR_DEFAULTS.has(pref) && !PREF_OTHER_DEFAULTS.has(pref)) {
       return;
     }
-    for (let i = 0; i < this._observerWeakRefs.length; ) {
-      let observer = this._observerWeakRefs[i].get();
-      if (!observer) {
-        // The observer has been GC'ed, so remove it from our list.
-        this._observerWeakRefs.splice(i, 1);
-      } else {
-        observer.onPrefChanged(pref);
-        ++i;
-      }
-    }
+    this.#notifyObservers("onPrefChanged", pref);
   }
 
   /**
@@ -1269,12 +1302,7 @@ class Preferences {
         this._map.delete("autoFillAdaptiveHistoryUseCountThreshold");
         return;
       case "showSearchSuggestionsFirst":
-        this.set(
-          "resultGroups",
-          JSON.stringify(
-            makeResultGroups({ showSearchSuggestionsFirst: this.get(pref) })
-          )
-        );
+        this.#resultGroups = null;
         return;
     }
 
@@ -1293,6 +1321,13 @@ class Preferences {
   _onNimbusUpdate() {
     let oldNimbus = this._clearNimbusCache();
     let newNimbus = this._nimbus;
+
+    // Callback to observers having onNimbusChanged.
+    for (let name in newNimbus) {
+      if (oldNimbus[name] != newNimbus[name]) {
+        this.#notifyObservers("onNimbusChanged", name);
+      }
+    }
 
     // If a change occurred to the Firefox Suggest scenario variable or any
     // variables that correspond to prefs exposed in the UI, we need to update
@@ -1388,13 +1423,6 @@ class Preferences {
         }
         return val;
       }
-      case "resultGroups":
-        try {
-          return JSON.parse(this._readPref(pref));
-        } catch (ex) {}
-        return makeResultGroups({
-          showSearchSuggestionsFirst: this.get("showSearchSuggestionsFirst"),
-        });
       case "shouldHandOffToSearchMode":
         return this.shouldHandOffToSearchModePrefs.some(
           prefName => !this.get(prefName)
@@ -1531,6 +1559,27 @@ class Preferences {
       !this.get("browser.search.widget.inNavBar")
     );
   }
+
+  #notifyObservers(method, changed) {
+    for (let i = 0; i < this._observerWeakRefs.length; ) {
+      let observer = this._observerWeakRefs[i].get();
+      if (!observer) {
+        // The observer has been GC'ed, so remove it from our list.
+        this._observerWeakRefs.splice(i, 1);
+        continue;
+      }
+      if (method in observer) {
+        try {
+          observer[method](changed);
+        } catch (ex) {
+          console.error(ex);
+        }
+      }
+      ++i;
+    }
+  }
+
+  #resultGroups = null;
 }
 
 export var UrlbarPrefs = new Preferences();

@@ -471,33 +471,22 @@ add_task(async function nativeMessaging_permission() {
   }
 });
 
-add_task(async function declarativeNetRequest_unavailable_by_default() {
-  let manifestPermissions = await getManifestPermissions({
-    manifest: {
-      manifest_version: 3,
-      permissions: ["declarativeNetRequest"],
-    },
-  });
-  deepEqual(
-    manifestPermissions,
-    { origins: [], permissions: [] },
-    "Expected declarativeNetRequest permission to be ignored/stripped"
-  );
-});
-
 add_task(
   { pref_set: [["extensions.dnr.enabled", true]] },
   async function declarativeNetRequest_permission_with_warning() {
     let manifestPermissions = await getManifestPermissions({
       manifest: {
         manifest_version: 3,
-        permissions: ["declarativeNetRequest"],
+        permissions: ["declarativeNetRequest", "declarativeNetRequestFeedback"],
       },
     });
 
     deepEqual(
       manifestPermissions,
-      { origins: [], permissions: ["declarativeNetRequest"] },
+      {
+        origins: [],
+        permissions: ["declarativeNetRequest", "declarativeNetRequestFeedback"],
+      },
       "Expected origins and permissions"
     );
 
@@ -506,6 +495,9 @@ add_task(
       [
         bundle.GetStringFromName(
           "webextPerms.description.declarativeNetRequest"
+        ),
+        bundle.GetStringFromName(
+          "webextPerms.description.declarativeNetRequestFeedback"
         ),
       ],
       "Expected warnings"

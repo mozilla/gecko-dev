@@ -41,7 +41,7 @@ class OngoingEarlyHints final {
   bool Contains(const PreloadHashKey& aKey);
   bool Add(const PreloadHashKey& aKey, RefPtr<EarlyHintPreloader> aPreloader);
 
-  void CancelAllOngoingPreloads(const nsACString& aReason);
+  void CancelAll(const nsACString& aReason);
 
   // registers all channels and returns the ids
   void RegisterLinksAndGetConnectArgs(
@@ -102,7 +102,7 @@ class EarlyHintPreloader final : public nsIStreamListener,
   nsresult CancelChannel(nsresult aStatus, const nsACString& aReason,
                          bool aDeleteEntry);
 
-  void OnParentReady(nsIParentChannel* aParent, uint64_t aChannelId);
+  void OnParentReady(nsIParentChannel* aParent);
 
  private:
   void SetParentChannel();
@@ -132,7 +132,6 @@ class EarlyHintPreloader final : public nsIStreamListener,
   static void CollectResourcesTypeTelemetry(ASDestination aASDestination);
   nsCOMPtr<nsIChannel> mChannel;
   nsCOMPtr<nsIChannel> mRedirectChannel;
-  uint64_t mChannelId = 0;
 
   EarlyHintConnectArgs mConnectArgs;
 

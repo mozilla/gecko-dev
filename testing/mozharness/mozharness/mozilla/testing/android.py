@@ -18,6 +18,7 @@ import time
 from threading import Timer
 
 import six
+
 from mozharness.base.script import PostScriptAction, PreScriptAction
 from mozharness.mozilla.automation import EXIT_STATUS_DICT, TBPL_RETRY
 
@@ -47,6 +48,7 @@ class AndroidMixin(object):
         self.logcat_proc = None
         self.logcat_file = None
         self.use_gles3 = False
+        self.use_root = True
         self.xre_path = None
         super(AndroidMixin, self).__init__(**kwargs)
 
@@ -69,7 +71,7 @@ class AndroidMixin(object):
             import mozdevice
 
             self._device = mozdevice.ADBDeviceFactory(
-                adb=adb, device=self.device_serial
+                adb=adb, device=self.device_serial, use_root=self.use_root
             )
         return self._device
 

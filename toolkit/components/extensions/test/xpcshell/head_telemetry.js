@@ -2,7 +2,9 @@
 /* vim: set sts=2 sw=2 et tw=80: */
 "use strict";
 
-/* exported IS_OOP, valueSum, clearHistograms, getSnapshots, promiseTelemetryRecorded */
+/* exported IS_ANDROID_BUILD, IS_OOP, valueSum, clearHistograms, getSnapshots, promiseTelemetryRecorded,
+            assertDNRTelemetryMetricsDefined, assertDNRTelemetryMetricsNoSamples, assertDNRTelemetryMetricsGetValueEq,
+            assertDNRTelemetryMetricsSamplesCount, resetTelemetryData, setupTelemetryForTests */
 
 ChromeUtils.defineESModuleGetters(this, {
   ContentTaskUtils: "resource://testing-common/ContentTaskUtils.sys.mjs",
@@ -18,6 +20,13 @@ Services.prefs.setBoolPref(
 );
 
 const IS_OOP = Services.prefs.getBoolPref("extensions.webextensions.remote");
+
+// Initializing and asserting the expected telemetry is currently conditioned
+// on this const.
+// TODO(Bug 1752139) remove this along with initializing and asserting the expected
+// telemetry also for android build, once `Services.fog.testResetFOG()` is implemented
+// for Android builds.
+const IS_ANDROID_BUILD = AppConstants.platform === "android";
 
 const WEBEXT_EVENTPAGE_RUNNING_TIME_MS = "WEBEXT_EVENTPAGE_RUNNING_TIME_MS";
 const WEBEXT_EVENTPAGE_RUNNING_TIME_MS_BY_ADDONID =
@@ -46,6 +55,11 @@ function valueSum(arr) {
 function clearHistograms() {
   Services.telemetry.getSnapshotForHistograms("main", true /* clear */);
   Services.telemetry.getSnapshotForKeyedHistograms("main", true /* clear */);
+}
+
+function clearScalars() {
+  Services.telemetry.getSnapshotForScalars("main", true /* clear */);
+  Services.telemetry.getSnapshotForKeyedScalars("main", true /* clear */);
 }
 
 function getSnapshots(process) {
@@ -169,4 +183,252 @@ function assertHistogramCategoryNotEmpty(
     },
     message
   );
+}
+
+function setupTelemetryForTests() {
+  // FOG needs a profile directory to put its data in.
+  do_get_profile();
+  // FOG needs to be initialized in order for data to flow.
+  Services.fog.initializeFOG();
+}
+
+function resetTelemetryData() {
+  if (IS_ANDROID_BUILD) {
+    info("Skip testResetFOG on android builds");
+    return;
+  }
+  Services.fog.testResetFOG();
+
+  // Clear histograms data recorded in the unified telemetry
+  // (needed to make sure we can keep asserting that the same
+  // amount of samples collected by Glean should also be found
+  // in the related mirrored unified telemetry probe after we
+  // have reset Glean metrics data using testResetFOG).
+  clearHistograms();
+  clearScalars();
+}
+
+function assertDNRTelemetryMetricsDefined(metrics) {
+  const metricsNotFound = metrics.filter(metricDetails => {
+    const { metric, label } = metricDetails;
+    if (!Glean.extensionsApisDnr[metric]) {
+      return true;
+    }
+    if (label) {
+      return !Glean.extensionsApisDnr[metric][label];
+    }
+    return false;
+  });
+  Assert.deepEqual(
+    metricsNotFound,
+    [],
+    `All expected extensionsApisDnr Glean metrics should be found`
+  );
+}
+
+function assertDNRTelemetryMirrored({
+  gleanMetric,
+  gleanLabel,
+  unifiedName,
+  unifiedType,
+}) {
+  assertDNRTelemetryMetricsDefined([
+    { metric: gleanMetric, label: gleanLabel },
+  ]);
+  const gleanData = gleanLabel
+    ? Glean.extensionsApisDnr[gleanMetric][gleanLabel].testGetValue()
+    : Glean.extensionsApisDnr[gleanMetric].testGetValue();
+
+  if (!unifiedName) {
+    Assert.ok(
+      false,
+      `Unexpected missing unifiedName parameter on call to assertDNRTelemetryMirrored`
+    );
+    return;
+  }
+
+  let unifiedData;
+
+  switch (unifiedType) {
+    case "histogram": {
+      let found = false;
+      try {
+        const histogram = Services.telemetry.getHistogramById(unifiedName);
+        found = !!histogram;
+      } catch (err) {
+        Cu.reportError(err);
+      }
+      Assert.ok(found, `Expect an histogram named ${unifiedName} to be found`);
+      unifiedData = Services.telemetry.getSnapshotForHistograms("main", false)
+        .parent[unifiedName];
+      break;
+    }
+    case "keyedScalar": {
+      const snapshot = Services.telemetry.getSnapshotForKeyedScalars(
+        "main",
+        false
+      );
+      if (unifiedName in (snapshot?.parent || {})) {
+        unifiedData = snapshot.parent[unifiedName][gleanLabel];
+      }
+      break;
+    }
+    case "scalar": {
+      const snapshot = Services.telemetry.getSnapshotForScalars("main", false);
+      if (unifiedName in (snapshot?.parent || {})) {
+        unifiedData = snapshot.parent[unifiedName];
+      }
+      break;
+    }
+    default:
+      Assert.ok(
+        false,
+        `Unexpected unifiedType ${unifiedType} on call to assertDNRTelemetryMirrored`
+      );
+      return;
+  }
+
+  if (gleanData == undefined) {
+    Assert.deepEqual(
+      unifiedData,
+      undefined,
+      `Expect mirrored unified telemetry ${unifiedType} ${unifiedName} has no samples as Glean ${gleanMetric}`
+    );
+  } else {
+    switch (unifiedType) {
+      case "histogram": {
+        Assert.deepEqual(
+          valueSum(unifiedData.values),
+          valueSum(gleanData.values),
+          `Expect mirrored unified telemetry ${unifiedType} ${unifiedName} has samples mirrored from Glean ${gleanMetric}`
+        );
+        break;
+      }
+      case "scalar":
+      case "keyedScalar": {
+        Assert.deepEqual(
+          unifiedData,
+          gleanData,
+          `Expect mirrored unified telemetry ${unifiedType} ${unifiedName} has samples mirrored from Glean ${gleanMetric}`
+        );
+        break;
+      }
+    }
+  }
+}
+
+function assertDNRTelemetryMetricsNoSamples(metrics, msg) {
+  assertDNRTelemetryMetricsDefined(metrics);
+  for (const metricDetails of metrics) {
+    const { metric, label } = metricDetails;
+    if (IS_ANDROID_BUILD) {
+      info(
+        `Skip assertions on collected samples for extensionsApisDnr.${metric} on android builds (${msg})`
+      );
+      return;
+    }
+    const gleanData = label
+      ? Glean.extensionsApisDnr[metric][label].testGetValue()
+      : Glean.extensionsApisDnr[metric].testGetValue();
+    Assert.deepEqual(
+      gleanData,
+      undefined,
+      `Expect no sample for Glean metric extensionApisDnr.${metric} (${msg}): ${gleanData}`
+    );
+
+    if (metricDetails.mirroredName) {
+      const { mirroredName, mirroredType } = metricDetails;
+      assertDNRTelemetryMirrored({
+        gleanMetric: metric,
+        gleanLabel: label,
+        unifiedName: mirroredName,
+        unifiedType: mirroredType,
+      });
+    }
+  }
+}
+
+function assertDNRTelemetryMetricsGetValueEq(metrics, msg) {
+  assertDNRTelemetryMetricsDefined(metrics);
+  for (const metricDetails of metrics) {
+    const { metric, label, expectedGetValue } = metricDetails;
+    if (IS_ANDROID_BUILD) {
+      info(
+        `Skip assertions on collected samples for extensionsApisDnr.${metric} on android builds`
+      );
+      return;
+    }
+    const gleanData = label
+      ? Glean.extensionsApisDnr[metric][label].testGetValue()
+      : Glean.extensionsApisDnr[metric].testGetValue();
+    Assert.deepEqual(
+      gleanData,
+      expectedGetValue,
+      `Got expected value set on Glean metric extensionApisDnr.${metric}${
+        label ? `.${label}` : ""
+      } (${msg})`
+    );
+
+    if (metricDetails.mirroredName) {
+      const { mirroredName, mirroredType } = metricDetails;
+      assertDNRTelemetryMirrored({
+        gleanMetric: metric,
+        gleanLabel: label,
+        unifiedName: mirroredName,
+        unifiedType: mirroredType,
+      });
+    }
+  }
+}
+
+function assertDNRTelemetryMetricsSamplesCount(metrics, msg) {
+  assertDNRTelemetryMetricsDefined(metrics);
+
+  // This assertion helpers doesn't currently handle labeled metrics,
+  // raise an explicit error to catch if one is included by mistake.
+  const labeledMetricsFound = metrics.filter(metric => !!metric.label);
+  if (labeledMetricsFound.length) {
+    throw new Error(
+      `Unexpected labeled metrics in call to assertDNRTelemetryMetricsSamplesCount: ${labeledMetricsFound}`
+    );
+  }
+
+  for (const metricDetails of metrics) {
+    const { metric, expectedSamplesCount } = metricDetails;
+    if (IS_ANDROID_BUILD) {
+      info(
+        `Skip assertions on collected samples for extensionsApisDnr.${metric} on android builds`
+      );
+      return;
+    }
+    const gleanData = Glean.extensionsApisDnr[metric].testGetValue();
+    Assert.notEqual(
+      gleanData,
+      undefined,
+      `Got some sample for Glean metric extensionApisDnr.${metric}: ${gleanData &&
+        JSON.stringify(gleanData)}`
+    );
+    Assert.equal(
+      valueSum(gleanData.values),
+      expectedSamplesCount,
+      `Got the expected number of samples for Glean metric extensionsApisDnr.${metric} (${msg})`
+    );
+    // Make sure we are accumulating meaningfull values in the sample,
+    // if we do have samples for the bucket "0" it likely means we have
+    // not been collecting the value correctly (e.g. typo in the property
+    // name being collected).
+    Assert.ok(
+      !gleanData.values["0"],
+      `No sample for Glean metric extensionsApisDnr.${metric} should be collected for the bucket "0"`
+    );
+
+    if (metricDetails.mirroredName) {
+      const { mirroredName, mirroredType } = metricDetails;
+      assertDNRTelemetryMirrored({
+        gleanMetric: metric,
+        unifiedName: mirroredName,
+        unifiedType: mirroredType,
+      });
+    }
+  }
 }

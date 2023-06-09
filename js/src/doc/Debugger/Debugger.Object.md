@@ -476,6 +476,15 @@ compartment wrapper.
 If <i>value</i> is a native function in the debugger's compartment, return
 whether the referent is a native function for the same C++ native.
 
+### `isSameNativeWithJitInfo(value)`
+If <i>value</i> is a native function in the debugger's compartment, return
+whether the referent is a native function for the same C++ native with the
+same JSJitInfo pointer value.
+
+This can be used to distinguish functions with shared native function
+implementation with different JSJitInfo pointer to define the underlying
+functionality.
+
 ### `decompile([pretty])`
 If the referent is a function that is debuggee code, return the
 JavaScript source code for a function definition equivalent to the
@@ -575,6 +584,7 @@ exception.  The `options` object can have the following properties:
   * `text`: String contents of the JavaScript in the source.
   * `url`: URL the resulting source should be associated with.
   * `startLine`: Starting line of the source.
+  * `startColumn`: Starting column of the source.
   * `sourceMapURL`: Optional URL specifying the source's source map URL.
     If not specified, the source map URL can be filled in if specified by
     the source's text.
@@ -665,8 +675,8 @@ promise. There are several different sorts of reaction records:
 [promise]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise
 [saved-frame]: ../SavedFrame/index
 
-[tracking-allocs]: Debugger.Memory.html#trackingallocationsites
-[inv fr]: Debugger.Frame.html#invocation-functions-and-debugger-frames
-[wouldrun]: Conventions.html#the-debugger-debuggeewouldrun-exception
-[cv]: Conventions.html#completion-values
-[fr eval]: Debugger.Frame.html#eval-code-options
+[tracking-allocs]: Debugger.Memory.md#trackingallocationsites
+[inv fr]: Debugger.Frame.md#invocation-functions-and-debugger-frames
+[wouldrun]: Conventions.md#the-debugger-debuggeewouldrun-exception
+[cv]: Conventions.md#completion-values
+[fr eval]: Debugger.Frame.md#eval-code-options

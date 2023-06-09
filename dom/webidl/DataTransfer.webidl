@@ -152,11 +152,11 @@ partial interface DataTransfer {
   readonly attribute Node? mozSourceNode;
 
   /**
-   * The window context that mouse was pressed over to begin the drag. For
-   * external drags, this will be null.
+   * The top-level window context that mouse was pressed over to begin the drag.
+   * For external drags, this will be null.
    */
   [ChromeOnly]
-  readonly attribute WindowContext? sourceWindowContext;
+  readonly attribute WindowContext? sourceTopWindowContext;
 
   /**
    * The URI spec of the triggering principal.  This may be different than
@@ -180,4 +180,13 @@ partial interface DataTransfer {
    */
   [Throws, ChromeOnly]
   DataTransfer mozCloneForEvent(DOMString event);
+
+  /**
+   * Whether to show the "fail" animation that returns a dragged item
+   * to its source. Only works on macOS, and has to be set early in the drag
+   * on that platform.
+   * Defaults to true.
+   */
+  [ChromeOnly]
+  attribute boolean mozShowFailAnimation;
 };

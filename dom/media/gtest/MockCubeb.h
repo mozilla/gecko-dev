@@ -137,6 +137,12 @@ class SmartMockCubebStream;
 // Represents the fake cubeb_stream. The context instance is needed to
 // provide access on cubeb_ops struct.
 class MockCubebStream {
+  // These members need to have the exact same memory layout as a real
+  // cubeb_stream, so that AsMock() returns a pointer to this that can be used
+  // as a cubeb_stream.
+  cubeb* context;
+  void* mUserPtr;
+
  public:
   MockCubebStream(cubeb* aContext, cubeb_devid aInputDevice,
                   cubeb_stream_params* aInputStreamParams,
@@ -150,6 +156,7 @@ class MockCubebStream {
 
   int Start();
   int Stop();
+  void Destroy();
   int RegisterDeviceChangedCallback(
       cubeb_device_changed_callback aDeviceChangedCallback);
 
@@ -185,7 +192,8 @@ class MockCubebStream {
   MediaEventSource<cubeb_state>& StateEvent();
   MediaEventSource<uint32_t>& FramesProcessedEvent();
   MediaEventSource<uint32_t>& FramesVerifiedEvent();
-  MediaEventSource<Tuple<uint64_t, float, uint32_t>>& OutputVerificationEvent();
+  MediaEventSource<std::tuple<uint64_t, float, uint32_t>>&
+  OutputVerificationEvent();
   MediaEventSource<void>& ErrorForcedEvent();
   MediaEventSource<void>& ErrorStoppedEvent();
   MediaEventSource<void>& DeviceChangeForcedEvent();
@@ -193,8 +201,6 @@ class MockCubebStream {
   void Process10Ms();
 
  public:
-  cubeb* context = nullptr;
-
   const bool mHasInput;
   const bool mHasOutput;
   SmartMockCubebStream* const mSelf;
@@ -226,8 +232,6 @@ class MockCubebStream {
   cubeb_state_callback mStateCallback = nullptr;
   // The device changed callback
   cubeb_device_changed_callback mDeviceChangedCallback = nullptr;
-  // Stream's user data
-  void* mUserPtr = nullptr;
   // The stream params
   cubeb_stream_params mOutputParams = {};
   cubeb_stream_params mInputParams = {};
@@ -245,7 +249,8 @@ class MockCubebStream {
   MediaEventProducer<cubeb_state> mStateEvent;
   MediaEventProducer<uint32_t> mFramesProcessedEvent;
   MediaEventProducer<uint32_t> mFramesVerifiedEvent;
-  MediaEventProducer<Tuple<uint64_t, float, uint32_t>> mOutputVerificationEvent;
+  MediaEventProducer<std::tuple<uint64_t, float, uint32_t>>
+      mOutputVerificationEvent;
   MediaEventProducer<void> mErrorForcedEvent;
   MediaEventProducer<void> mErrorStoppedEvent;
   MediaEventProducer<void> mDeviceChangedForcedEvent;
@@ -456,9 +461,7 @@ int cubeb_mock_stream_stop(cubeb_stream* stream) {
 }
 
 void cubeb_mock_stream_destroy(cubeb_stream* stream) {
-  MockCubebStream* mockStream = MockCubebStream::AsMock(stream);
-  MockCubeb* mock = MockCubeb::AsMock(mockStream->context);
-  return mock->StreamDestroy(stream);
+  MockCubebStream::AsMock(stream)->Destroy();
 }
 
 static char const* cubeb_mock_get_backend_id(cubeb* context) {

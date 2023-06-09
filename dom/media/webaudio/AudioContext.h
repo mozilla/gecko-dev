@@ -305,6 +305,10 @@ class AudioContext final : public DOMEventTargetHelper,
 
   bool IsOffline() const { return mIsOffline; }
 
+  bool ShouldResistFingerprinting() const {
+    return mShouldResistFingerprinting;
+  }
+
   MediaTrackGraph* Graph() const;
   AudioNodeTrack* DestinationTrack() const;
 
@@ -421,6 +425,7 @@ class AudioContext final : public DOMEventTargetHelper,
   // Number of channels passed in the OfflineAudioContext ctor.
   uint32_t mNumberOfChannels;
   const RTPCallerType mRTPCallerType;
+  const bool mShouldResistFingerprinting;
   const bool mIsOffline;
   // true iff realtime or startRendering() has been called.
   bool mIsStarted;

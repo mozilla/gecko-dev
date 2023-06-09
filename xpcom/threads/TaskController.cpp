@@ -139,6 +139,33 @@ bool TaskManager::
   return false;
 }
 
+#ifdef MOZ_COLLECTING_RUNNABLE_TELEMETRY
+class MOZ_RAII AutoSetMainThreadRunnableName {
+ public:
+  explicit AutoSetMainThreadRunnableName(const nsCString& aName) {
+    MOZ_ASSERT(NS_IsMainThread());
+    // We want to record our current runnable's name in a static so
+    // that BHR can record it.
+    mRestoreRunnableName = nsThread::sMainThreadRunnableName;
+
+    // Copy the name into sMainThreadRunnableName's buffer, and append a
+    // terminating null.
+    uint32_t length = std::min((uint32_t)nsThread::kRunnableNameBufSize - 1,
+                               (uint32_t)aName.Length());
+    memcpy(nsThread::sMainThreadRunnableName.begin(), aName.BeginReading(),
+           length);
+    nsThread::sMainThreadRunnableName[length] = '\0';
+  }
+
+  ~AutoSetMainThreadRunnableName() {
+    nsThread::sMainThreadRunnableName = mRestoreRunnableName;
+  }
+
+ private:
+  Array<char, nsThread::kRunnableNameBufSize> mRestoreRunnableName;
+};
+#endif
+
 Task* Task::GetHighestPriorityDependency() {
   Task* currentTask = this;
 
@@ -168,10 +195,9 @@ TaskController* TaskController::Get() {
   return sSingleton.get();
 }
 
-bool TaskController::Initialize() {
+void TaskController::Initialize() {
   MOZ_ASSERT(!sSingleton);
   sSingleton = std::make_unique<TaskController>();
-  return sSingleton->InitializeInternal();
 }
 
 void ThreadFuncPoolThread(void* aIndex) {
@@ -180,7 +206,11 @@ void ThreadFuncPoolThread(void* aIndex) {
   TaskController::Get()->RunPoolThread();
 }
 
-bool TaskController::InitializeInternal() {
+TaskController::TaskController()
+    : mGraphMutex("TaskController::mGraphMutex"),
+      mThreadPoolCV(mGraphMutex, "TaskController::mThreadPoolCV"),
+      mMainThreadCV(mGraphMutex, "TaskController::mMainThreadCV"),
+      mRunOutOfMTTasksCounter(0) {
   InputTaskManager::Init();
   VsyncTaskManager::Init();
   mMTProcessingRunnable = NS_NewRunnableFunction(
@@ -189,8 +219,6 @@ bool TaskController::InitializeInternal() {
   mMTBlockingProcessingRunnable = NS_NewRunnableFunction(
       "TaskController::ExecutePendingMTTasks()",
       []() { TaskController::Get()->ProcessPendingMTTask(true); });
-
-  return true;
 }
 
 // We want our default stack size limit to be approximately 2MB, to be safe for
@@ -392,7 +420,6 @@ void TaskController::AddTask(already_AddRefed<Task>&& aTask) {
     MutexAutoLock lock(mPoolInitializationMutex);
     if (!mThreadPoolInitialized) {
       InitializeThreadPool();
-      mThreadPoolInitialized = true;
     }
   }
 
@@ -409,7 +436,9 @@ void TaskController::AddTask(already_AddRefed<Task>&& aTask) {
     task->mPriorityModifier = manager->mCurrentPriorityModifier;
   }
 
-  task->mInsertionTime = TimeStamp::Now();
+  if (profiler_is_active_and_unpaused()) {
+    task->mInsertionTime = TimeStamp::Now();
+  }
 
 #ifdef DEBUG
   task->mIsInGraph = true;
@@ -465,7 +494,14 @@ void TaskController::ProcessPendingMTTask(bool aMayWait) {
       break;
     }
 
-    BackgroundHangMonitor().NotifyWait();
+#ifdef MOZ_ENABLE_BACKGROUND_HANG_MONITOR
+    // Unlock before calling into the BackgroundHangMonitor API as it uses
+    // the timer API.
+    {
+      MutexAutoUnlock unlock(mGraphMutex);
+      BackgroundHangMonitor().NotifyWait();
+    }
+#endif
 
     {
       // ProcessNextEvent will also have attempted to wait, however we may have
@@ -475,7 +511,12 @@ void TaskController::ProcessPendingMTTask(bool aMayWait) {
       mMainThreadCV.Wait();
     }
 
-    BackgroundHangMonitor().NotifyActivity();
+#ifdef MOZ_ENABLE_BACKGROUND_HANG_MONITOR
+    {
+      MutexAutoUnlock unlock(mGraphMutex);
+      BackgroundHangMonitor().NotifyActivity();
+    }
+#endif
   }
 
   if (mMayHaveMainThreadTask) {
@@ -511,31 +552,6 @@ class RunnableTask : public Task {
       : Task(aMainThread, aPriority), mRunnable(aRunnable) {}
 
   virtual bool Run() override {
-#ifdef MOZ_COLLECTING_RUNNABLE_TELEMETRY
-    MOZ_ASSERT(NS_IsMainThread());
-    // If we're on the main thread, we want to record our current
-    // runnable's name in a static so that BHR can record it.
-    Array<char, nsThread::kRunnableNameBufSize> restoreRunnableName;
-    restoreRunnableName[0] = '\0';
-    auto clear = MakeScopeExit([&] {
-      MOZ_ASSERT(NS_IsMainThread());
-      nsThread::sMainThreadRunnableName = restoreRunnableName;
-    });
-    nsAutoCString name;
-    nsThread::GetLabeledRunnableName(mRunnable, name,
-                                     EventQueuePriority(GetPriority()));
-
-    restoreRunnableName = nsThread::sMainThreadRunnableName;
-
-    // Copy the name into sMainThreadRunnableName's buffer, and append a
-    // terminating null.
-    uint32_t length = std::min((uint32_t)nsThread::kRunnableNameBufSize - 1,
-                               (uint32_t)name.Length());
-    memcpy(nsThread::sMainThreadRunnableName.begin(), name.BeginReading(),
-           length);
-    nsThread::sMainThreadRunnableName[length] = '\0';
-#endif
-
     mRunnable->Run();
     mRunnable = nullptr;
     return true;
@@ -591,6 +607,7 @@ nsIRunnable* TaskController::GetRunnableForMTTask(bool aReallyWait) {
 }
 
 bool TaskController::HasMainThreadPendingTasks() {
+  MOZ_ASSERT(NS_IsMainThread());
   auto resetIdleState = MakeScopeExit([&idleManager = mIdleTaskManager] {
     if (idleManager) {
       idleManager->State().ClearCachedIdleDeadline();
@@ -677,6 +694,7 @@ uint64_t TaskController::PendingMainthreadTaskCountIncludingSuspended() {
 
 bool TaskController::ExecuteNextTaskOnlyMainThreadInternal(
     const MutexAutoLock& aProofOfLock) {
+  MOZ_ASSERT(NS_IsMainThread());
   mGraphMutex.AssertCurrentThreadOwns();
   // Block to make it easier to jump to our cleanup.
   bool taskRan = false;
@@ -834,12 +852,18 @@ bool TaskController::DoExecuteNextTaskOnlyMainThreadInternal(
         TimeStamp now = TimeStamp::Now();
 
         if (mainThread) {
-          if (task->GetPriority() < uint32_t(EventQueuePriority::InputHigh)) {
+          if (task->GetPriority() < uint32_t(EventQueuePriority::InputHigh) ||
+              task->mInsertionTime.IsNull()) {
             mainThread->SetRunningEventDelay(TimeDuration(), now);
           } else {
             mainThread->SetRunningEventDelay(now - task->mInsertionTime, now);
           }
         }
+
+        nsAutoCString name;
+#ifdef MOZ_COLLECTING_RUNNABLE_TELEMETRY
+        task->GetName(name);
+#endif
 
         PerformanceCounterState::Snapshot snapshot =
             mPerformanceCounterState->RunnableWillRun(
@@ -848,6 +872,9 @@ bool TaskController::DoExecuteNextTaskOnlyMainThreadInternal(
 
         {
           LogTask::Run log(task);
+#ifdef MOZ_COLLECTING_RUNNABLE_TELEMETRY
+          AutoSetMainThreadRunnableName nameGuard(name);
+#endif
           AUTO_PROFILE_FOLLOWING_TASK(task);
           result = task->Run();
         }
@@ -857,7 +884,7 @@ bool TaskController::DoExecuteNextTaskOnlyMainThreadInternal(
           manager->DidRunTask();
         }
 
-        mPerformanceCounterState->RunnableDidRun(std::move(snapshot));
+        mPerformanceCounterState->RunnableDidRun(name, std::move(snapshot));
       }
 
       // Task itself should keep manager alive.

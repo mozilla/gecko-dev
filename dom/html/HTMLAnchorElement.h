@@ -8,6 +8,7 @@
 #define mozilla_dom_HTMLAnchorElement_h
 
 #include "mozilla/Attributes.h"
+#include "mozilla/dom/AnchorAreaFormRelValues.h"
 #include "mozilla/dom/Link.h"
 #include "mozilla/dom/HTMLDNSPrefetch.h"
 #include "nsGenericHTMLElement.h"
@@ -20,7 +21,8 @@ namespace dom {
 
 class HTMLAnchorElement final : public nsGenericHTMLElement,
                                 public Link,
-                                public SupportsDNSPrefetch {
+                                public SupportsDNSPrefetch,
+                                public AnchorAreaFormRelValues {
  public:
   using Element::GetText;
 
@@ -37,19 +39,19 @@ class HTMLAnchorElement final : public nsGenericHTMLElement,
 
   NS_IMPL_FROMNODE_HTML_WITH_TAG(HTMLAnchorElement, a);
 
-  virtual int32_t TabIndexDefault() override;
-  virtual bool Draggable() const override;
+  int32_t TabIndexDefault() override;
+  bool Draggable() const override;
 
   // Element
-  virtual bool IsInteractiveHTMLContent() const override;
+  bool IsInteractiveHTMLContent() const override;
 
   // DOM memory reporter participant
   NS_DECL_ADDSIZEOFEXCLUDINGTHIS
 
-  virtual nsresult BindToTree(BindContext&, nsINode& aParent) override;
-  virtual void UnbindFromTree(bool aNullParent = true) override;
-  virtual bool IsHTMLFocusable(bool aWithMouse, bool* aIsFocusable,
-                               int32_t* aTabIndex) override;
+  nsresult BindToTree(BindContext&, nsINode& aParent) override;
+  void UnbindFromTree(bool aNullParent = true) override;
+  bool IsHTMLFocusable(bool aWithMouse, bool* aIsFocusable,
+                       int32_t* aTabIndex) override;
 
   void GetEventTargetParent(EventChainPreVisitor& aVisitor) override;
   MOZ_CAN_RUN_SCRIPT
@@ -58,18 +60,15 @@ class HTMLAnchorElement final : public nsGenericHTMLElement,
   void GetLinkTarget(nsAString& aTarget) override;
   already_AddRefed<nsIURI> GetHrefURI() const override;
 
-  virtual nsresult BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
-                                 const nsAttrValueOrString* aValue,
-                                 bool aNotify) override;
-  virtual nsresult AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
-                                const nsAttrValue* aValue,
-                                const nsAttrValue* aOldValue,
-                                nsIPrincipal* aSubjectPrincipal,
-                                bool aNotify) override;
+  void BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
+                     const nsAttrValue* aValue, bool aNotify) override;
+  void AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
+                    const nsAttrValue* aValue, const nsAttrValue* aOldValue,
+                    nsIPrincipal* aSubjectPrincipal, bool aNotify) override;
 
-  virtual nsresult Clone(dom::NodeInfo*, nsINode** aResult) const override;
+  nsresult Clone(dom::NodeInfo*, nsINode** aResult) const override;
 
-  virtual ElementState IntrinsicState() const override;
+  ElementState IntrinsicState() const override;
 
   // WebIDL API
 
@@ -193,13 +192,10 @@ class HTMLAnchorElement final : public nsGenericHTMLElement,
     nsGenericHTMLElement::NodeInfoChanged(aOldDoc);
   }
 
-  static DOMTokenListSupportedToken sSupportedRelValues[];
-
  protected:
   virtual ~HTMLAnchorElement();
 
-  virtual JSObject* WrapNode(JSContext* aCx,
-                             JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapNode(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
   RefPtr<nsDOMTokenList> mRelList;
 };
 

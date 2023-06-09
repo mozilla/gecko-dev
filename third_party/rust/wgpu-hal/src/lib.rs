@@ -38,6 +38,8 @@
     clippy::non_send_fields_in_send_ty,
     // TODO!
     clippy::missing_safety_doc,
+    // Clashes with clippy::pattern_type_mismatch
+    clippy::needless_borrowed_reference,
 )]
 #![warn(
     trivial_casts,
@@ -49,54 +51,43 @@
     clippy::pattern_type_mismatch,
 )]
 
-#[cfg(not(any(
-    feature = "dx11",
-    feature = "dx12",
-    feature = "gles",
-    feature = "metal",
-    feature = "vulkan"
-)))]
-compile_error!("No back ends enabled in `wgpu-hal`. Enable at least one backend feature.");
-
-#[cfg(all(feature = "metal", not(any(target_os = "macos", target_os = "ios"))))]
-compile_error!("Metal API enabled on non-Apple OS. If your project is not using resolver=\"2\" in Cargo.toml, it should.");
-#[cfg(all(feature = "dx12", not(windows)))]
-compile_error!("DX12 API enabled on non-Windows OS. If your project is not using resolver=\"2\" in Cargo.toml, it should.");
-
+/// DirectX11 API internals.
 #[cfg(all(feature = "dx11", windows))]
-mod dx11;
+pub mod dx11;
+/// DirectX12 API internals.
 #[cfg(all(feature = "dx12", windows))]
-mod dx12;
-mod empty;
+pub mod dx12;
+/// A dummy API implementation.
+pub mod empty;
+/// GLES API internals.
 #[cfg(all(feature = "gles"))]
-mod gles;
-#[cfg(all(feature = "metal"))]
-mod metal;
-#[cfg(feature = "vulkan")]
-mod vulkan;
+pub mod gles;
+/// Metal API internals.
+#[cfg(all(feature = "metal", any(target_os = "macos", target_os = "ios")))]
+pub mod metal;
+/// Vulkan API internals.
+#[cfg(all(feature = "vulkan", not(target_arch = "wasm32")))]
+pub mod vulkan;
 
 pub mod auxil;
 pub mod api {
-    #[cfg(feature = "dx11")]
+    #[cfg(all(feature = "dx11", windows))]
     pub use super::dx11::Api as Dx11;
-    #[cfg(feature = "dx12")]
+    #[cfg(all(feature = "dx12", windows))]
     pub use super::dx12::Api as Dx12;
     pub use super::empty::Api as Empty;
     #[cfg(feature = "gles")]
     pub use super::gles::Api as Gles;
-    #[cfg(feature = "metal")]
+    #[cfg(all(feature = "metal", any(target_os = "macos", target_os = "ios")))]
     pub use super::metal::Api as Metal;
-    #[cfg(feature = "vulkan")]
+    #[cfg(all(feature = "vulkan", not(target_arch = "wasm32")))]
     pub use super::vulkan::Api as Vulkan;
 }
-
-#[cfg(feature = "vulkan")]
-pub use vulkan::UpdateAfterBindTypes;
 
 use std::{
     borrow::{Borrow, Cow},
     fmt,
-    num::{NonZeroU32, NonZeroU8},
+    num::NonZeroU32,
     ops::{Range, RangeInclusive},
     ptr::NonNull,
     sync::atomic::AtomicBool,
@@ -122,15 +113,15 @@ pub type DropGuard = Box<dyn std::any::Any + Send + Sync>;
 
 #[derive(Clone, Debug, PartialEq, Eq, Error)]
 pub enum DeviceError {
-    #[error("out of memory")]
+    #[error("Out of memory")]
     OutOfMemory,
-    #[error("device is lost")]
+    #[error("Device is lost")]
     Lost,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Error)]
 pub enum ShaderError {
-    #[error("compilation failed: {0:?}")]
+    #[error("Compilation failed: {0:?}")]
     Compilation(String),
     #[error(transparent)]
     Device(#[from] DeviceError),
@@ -138,9 +129,9 @@ pub enum ShaderError {
 
 #[derive(Clone, Debug, Eq, PartialEq, Error)]
 pub enum PipelineError {
-    #[error("linkage failed for stage {0:?}: {1}")]
+    #[error("Linkage failed for stage {0:?}: {1}")]
     Linkage(wgt::ShaderStages, String),
-    #[error("entry point for stage {0:?} is invalid")]
+    #[error("Entry point for stage {0:?} is invalid")]
     EntryPoint(naga::ShaderStage),
     #[error(transparent)]
     Device(#[from] DeviceError),
@@ -148,13 +139,13 @@ pub enum PipelineError {
 
 #[derive(Clone, Debug, Eq, PartialEq, Error)]
 pub enum SurfaceError {
-    #[error("surface is lost")]
+    #[error("Surface is lost")]
     Lost,
-    #[error("surface is outdated, needs to be re-created")]
+    #[error("Surface is outdated, needs to be re-created")]
     Outdated,
     #[error(transparent)]
     Device(#[from] DeviceError),
-    #[error("other reason: {0}")]
+    #[error("Other reason: {0}")]
     Other(&'static str),
 }
 
@@ -398,6 +389,20 @@ pub trait CommandEncoder<A: Api>: Send + Sync + fmt::Debug {
     where
         T: Iterator<Item = BufferCopy>;
 
+    /// Copy from an external image to an internal texture.
+    /// Works with a single array layer.
+    /// Note: `dst` current usage has to be `TextureUses::COPY_DST`.
+    /// Note: the copy extent is in physical size (rounded to the block size)
+    #[cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))]
+    unsafe fn copy_external_image_to_texture<T>(
+        &mut self,
+        src: &wgt::ImageCopyExternalImage,
+        dst: &A::Texture,
+        dst_premultiplication: bool,
+        regions: T,
+    ) where
+        T: Iterator<Item = TextureCopy>;
+
     /// Copy from one texture to another.
     /// Works with a single array layer.
     /// Note: `dst` current usage has to be `TextureUses::COPY_DST`.
@@ -547,6 +552,7 @@ pub trait CommandEncoder<A: Api>: Send + Sync + fmt::Debug {
 
 bitflags!(
     /// Instance initialization flags.
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
     pub struct InstanceFlags: u32 {
         /// Generate debug information in shaders and objects.
         const DEBUG = 1 << 0;
@@ -557,6 +563,7 @@ bitflags!(
 
 bitflags!(
     /// Pipeline layout creation flags.
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
     pub struct PipelineLayoutFlags: u32 {
         /// Include support for base vertex/instance drawing.
         const BASE_VERTEX_INSTANCE = 1 << 0;
@@ -567,6 +574,7 @@ bitflags!(
 
 bitflags!(
     /// Pipeline layout creation flags.
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
     pub struct BindGroupLayoutFlags: u32 {
         /// Allows for bind group binding arrays to be shorter than the array in the BGL.
         const PARTIALLY_BOUND = 1 << 0;
@@ -575,6 +583,7 @@ bitflags!(
 
 bitflags!(
     /// Texture format capability flags.
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
     pub struct TextureFormatCapabilities: u32 {
         /// Format can be sampled.
         const SAMPLED = 1 << 0;
@@ -603,19 +612,22 @@ bitflags!(
         const MULTISAMPLE_X4   = 1 << 10;
         /// Format can be multisampled by x8.
         const MULTISAMPLE_X8   = 1 << 11;
+        /// Format can be multisampled by x16.
+        const MULTISAMPLE_X16  = 1 << 12;
 
         /// Format can be used for render pass resolve targets.
-        const MULTISAMPLE_RESOLVE = 1 << 12;
+        const MULTISAMPLE_RESOLVE = 1 << 13;
 
         /// Format can be copied from.
-        const COPY_SRC = 1 << 13;
+        const COPY_SRC = 1 << 14;
         /// Format can be copied to.
-        const COPY_DST = 1 << 14;
+        const COPY_DST = 1 << 15;
     }
 );
 
 bitflags!(
     /// Texture format capability flags.
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
     pub struct FormatAspects: u8 {
         const COLOR = 1 << 0;
         const DEPTH = 1 << 1;
@@ -623,12 +635,27 @@ bitflags!(
     }
 );
 
-impl From<wgt::TextureAspect> for FormatAspects {
-    fn from(aspect: wgt::TextureAspect) -> Self {
-        match aspect {
+impl FormatAspects {
+    pub fn new(format: wgt::TextureFormat, aspect: wgt::TextureAspect) -> Self {
+        let aspect_mask = match aspect {
             wgt::TextureAspect::All => Self::all(),
             wgt::TextureAspect::DepthOnly => Self::DEPTH,
             wgt::TextureAspect::StencilOnly => Self::STENCIL,
+        };
+        Self::from(format) & aspect_mask
+    }
+
+    /// Returns `true` if only one flag is set
+    pub fn is_one(&self) -> bool {
+        self.bits().count_ones() == 1
+    }
+
+    pub fn map(&self) -> wgt::TextureAspect {
+        match *self {
+            Self::COLOR => wgt::TextureAspect::All,
+            Self::DEPTH => wgt::TextureAspect::DepthOnly,
+            Self::STENCIL => wgt::TextureAspect::StencilOnly,
+            _ => unreachable!(),
         }
     }
 }
@@ -637,8 +664,9 @@ impl From<wgt::TextureFormat> for FormatAspects {
     fn from(format: wgt::TextureFormat) -> Self {
         match format {
             wgt::TextureFormat::Stencil8 => Self::STENCIL,
-            wgt::TextureFormat::Depth16Unorm => Self::DEPTH,
-            wgt::TextureFormat::Depth32Float | wgt::TextureFormat::Depth24Plus => Self::DEPTH,
+            wgt::TextureFormat::Depth16Unorm
+            | wgt::TextureFormat::Depth32Float
+            | wgt::TextureFormat::Depth24Plus => Self::DEPTH,
             wgt::TextureFormat::Depth32FloatStencil8 | wgt::TextureFormat::Depth24PlusStencil8 => {
                 Self::DEPTH | Self::STENCIL
             }
@@ -648,6 +676,7 @@ impl From<wgt::TextureFormat> for FormatAspects {
 }
 
 bitflags!(
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
     pub struct MemoryFlags: u32 {
         const TRANSIENT = 1 << 0;
         const PREFER_COHERENT = 1 << 1;
@@ -657,6 +686,7 @@ bitflags!(
 //TODO: it's not intuitive for the backends to consider `LOAD` being optional.
 
 bitflags!(
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
     pub struct AttachmentOps: u8 {
         const LOAD = 1 << 0;
         const STORE = 1 << 1;
@@ -665,6 +695,7 @@ bitflags!(
 
 bitflags::bitflags! {
     /// Similar to `wgt::BufferUsages` but for internal use.
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
     pub struct BufferUses: u16 {
         /// The argument to a read-only mapping.
         const MAP_READ = 1 << 0;
@@ -687,20 +718,21 @@ bitflags::bitflags! {
         /// The indirect or count buffer in a indirect draw or dispatch.
         const INDIRECT = 1 << 9;
         /// The combination of states that a buffer may be in _at the same time_.
-        const INCLUSIVE = Self::MAP_READ.bits | Self::COPY_SRC.bits |
-            Self::INDEX.bits | Self::VERTEX.bits | Self::UNIFORM.bits |
-            Self::STORAGE_READ.bits | Self::INDIRECT.bits;
+        const INCLUSIVE = Self::MAP_READ.bits() | Self::COPY_SRC.bits() |
+            Self::INDEX.bits() | Self::VERTEX.bits() | Self::UNIFORM.bits() |
+            Self::STORAGE_READ.bits() | Self::INDIRECT.bits();
         /// The combination of states that a buffer must exclusively be in.
-        const EXCLUSIVE = Self::MAP_WRITE.bits | Self::COPY_DST.bits | Self::STORAGE_READ_WRITE.bits;
+        const EXCLUSIVE = Self::MAP_WRITE.bits() | Self::COPY_DST.bits() | Self::STORAGE_READ_WRITE.bits();
         /// The combination of all usages that the are guaranteed to be be ordered by the hardware.
         /// If a usage is ordered, then if the buffer state doesn't change between draw calls, there
         /// are no barriers needed for synchronization.
-        const ORDERED = Self::INCLUSIVE.bits | Self::MAP_WRITE.bits;
+        const ORDERED = Self::INCLUSIVE.bits() | Self::MAP_WRITE.bits();
     }
 }
 
 bitflags::bitflags! {
     /// Similar to `wgt::TextureUsages` but for internal use.
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
     pub struct TextureUses: u16 {
         /// The texture is in unknown state.
         const UNINITIALIZED = 1 << 0;
@@ -723,13 +755,13 @@ bitflags::bitflags! {
         /// Read-write or write-only storage buffer usage.
         const STORAGE_READ_WRITE = 1 << 9;
         /// The combination of states that a texture may be in _at the same time_.
-        const INCLUSIVE = Self::COPY_SRC.bits | Self::RESOURCE.bits | Self::DEPTH_STENCIL_READ.bits;
+        const INCLUSIVE = Self::COPY_SRC.bits() | Self::RESOURCE.bits() | Self::DEPTH_STENCIL_READ.bits();
         /// The combination of states that a texture must exclusively be in.
-        const EXCLUSIVE = Self::COPY_DST.bits | Self::COLOR_TARGET.bits | Self::DEPTH_STENCIL_WRITE.bits | Self::STORAGE_READ.bits | Self::STORAGE_READ_WRITE.bits | Self::PRESENT.bits;
+        const EXCLUSIVE = Self::COPY_DST.bits() | Self::COLOR_TARGET.bits() | Self::DEPTH_STENCIL_WRITE.bits() | Self::STORAGE_READ.bits() | Self::STORAGE_READ_WRITE.bits() | Self::PRESENT.bits();
         /// The combination of all usages that the are guaranteed to be be ordered by the hardware.
         /// If a usage is ordered, then if the texture state doesn't change between draw calls, there
         /// are no barriers needed for synchronization.
-        const ORDERED = Self::INCLUSIVE.bits | Self::COLOR_TARGET.bits | Self::DEPTH_STENCIL_WRITE.bits | Self::STORAGE_READ.bits;
+        const ORDERED = Self::INCLUSIVE.bits() | Self::COLOR_TARGET.bits() | Self::DEPTH_STENCIL_WRITE.bits() | Self::STORAGE_READ.bits();
 
         /// Flag used by the wgpu-core texture tracker to say a texture is in different states for every sub-resource
         const COMPLEX = 1 << 10;
@@ -743,6 +775,7 @@ bitflags::bitflags! {
 pub struct InstanceDescriptor<'a> {
     pub name: &'a str,
     pub flags: InstanceFlags,
+    pub dx12_shader_compiler: wgt::Dx12Compiler,
 }
 
 #[derive(Clone, Debug)]
@@ -847,6 +880,29 @@ pub struct TextureDescriptor<'a> {
     pub format: wgt::TextureFormat,
     pub usage: TextureUses,
     pub memory_flags: MemoryFlags,
+    /// Allows views of this texture to have a different format
+    /// than the texture does.
+    pub view_formats: Vec<wgt::TextureFormat>,
+}
+
+impl TextureDescriptor<'_> {
+    pub fn copy_extent(&self) -> CopyExtent {
+        CopyExtent::map_extent_to_copy_size(&self.size, self.dimension)
+    }
+
+    pub fn is_cube_compatible(&self) -> bool {
+        self.dimension == wgt::TextureDimension::D2
+            && self.size.depth_or_array_layers % 6 == 0
+            && self.sample_count == 1
+            && self.size.width == self.size.height
+    }
+
+    pub fn array_layer_count(&self) -> u32 {
+        match self.dimension {
+            wgt::TextureDimension::D1 | wgt::TextureDimension::D3 => 1,
+            wgt::TextureDimension::D2 => self.size.depth_or_array_layers,
+        }
+    }
 }
 
 /// TextureView descriptor.
@@ -872,9 +928,12 @@ pub struct SamplerDescriptor<'a> {
     pub mag_filter: wgt::FilterMode,
     pub min_filter: wgt::FilterMode,
     pub mipmap_filter: wgt::FilterMode,
-    pub lod_clamp: Option<Range<f32>>,
+    pub lod_clamp: Range<f32>,
     pub compare: Option<wgt::CompareFunction>,
-    pub anisotropy_clamp: Option<NonZeroU8>,
+    // Must in the range [1, 16].
+    //
+    // Anisotropic filtering must be supported if this is not 1.
+    pub anisotropy_clamp: u16,
     pub border_color: Option<wgt::SamplerBorderColor>,
 }
 
@@ -1092,6 +1151,9 @@ pub struct SurfaceConfiguration {
     pub extent: wgt::Extent3d,
     /// Allowed usage of surface textures,
     pub usage: TextureUses,
+    /// Allows views of swapchain texture to have a different format
+    /// than the texture does.
+    pub view_formats: Vec<wgt::TextureFormat>,
 }
 
 #[derive(Debug, Clone)]

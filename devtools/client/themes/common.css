@@ -12,7 +12,6 @@
    * we're using the `font` shorthand. */
   font: message-box;
   font-size: var(--theme-body-font-size);
-  -moz-box-layout: flex;
 
   --tab-line-hover-color: rgba(0,0,0,.2);
   --tab-line-selected-color: var(--blue-50);
@@ -239,37 +238,6 @@ button::selection {
   list-style-type: none;
 }
 
-/* links to source code, like displaying `myfile.js:45` */
-
-.devtools-source-link {
-  font-family: var(--monospace-font-family);
-  color: var(--theme-highlight-blue);
-  cursor: pointer;
-  white-space: nowrap;
-  display: flex;
-  text-decoration: none;
-  font-size: 11px;
-  width: 12em; /* probably should be changed for each tool */
-}
-
-.devtools-source-link:hover {
-  text-decoration: underline;
-}
-
-.devtools-source-link > .filename {
-  text-overflow: ellipsis;
-  text-align: end;
-  overflow: hidden;
-  margin: 2px 0px;
-  cursor: pointer;
-}
-
-.devtools-source-link > .line-number {
-  flex: none;
-  margin: 2px 0px;
-  cursor: pointer;
-}
-
 /* Keyboard focus highlight styles */
 
 :-moz-focusring {
@@ -312,7 +280,7 @@ checkbox:-moz-focusring {
   border-radius: 2px;
   color: var(--theme-body-color);
   transition: background-color 0.05s ease-in-out;
-  -moz-box-align: center;
+  align-items: center;
   text-shadow: none;
   padding: 2px;
   margin: 1px;

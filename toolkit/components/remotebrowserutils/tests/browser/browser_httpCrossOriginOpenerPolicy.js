@@ -1,9 +1,5 @@
 "use strict";
 
-const { E10SUtils } = ChromeUtils.importESModule(
-  "resource://gre/modules/E10SUtils.sys.mjs"
-);
-
 const COOP_PREF = "browser.tabs.remote.useCrossOriginOpenerPolicy";
 
 async function setPref() {
@@ -68,7 +64,7 @@ async function test_coop(
           url: target,
           maybeErrorPage: false,
         },
-        async () => BrowserTestUtils.loadURI(browser, target)
+        async () => BrowserTestUtils.loadURIString(browser, target)
       );
 
       info(`Navigated to: ${target}`);
@@ -168,7 +164,7 @@ async function test_download_from(initCoop, downloadCoop) {
       },
       async () => {
         info(`test_download: Loading download page ${start}`);
-        return BrowserTestUtils.loadURI(_browser, start);
+        return BrowserTestUtils.loadURIString(_browser, start);
       }
     );
 
@@ -222,7 +218,7 @@ add_task(async function test_multiple_nav_process_switches() {
           url: target,
           maybeErrorPage: false,
         },
-        async () => BrowserTestUtils.loadURI(browser, target)
+        async () => BrowserTestUtils.loadURIString(browser, target)
       );
 
       Assert.equal(prevBC, browser.browsingContext);
@@ -238,7 +234,7 @@ add_task(async function test_multiple_nav_process_switches() {
           url: target,
           maybeErrorPage: false,
         },
-        async () => BrowserTestUtils.loadURI(browser, target)
+        async () => BrowserTestUtils.loadURIString(browser, target)
       );
 
       Assert.notEqual(prevBC, browser.browsingContext);
@@ -254,7 +250,7 @@ add_task(async function test_multiple_nav_process_switches() {
           url: target,
           maybeErrorPage: false,
         },
-        async () => BrowserTestUtils.loadURI(browser, target)
+        async () => BrowserTestUtils.loadURIString(browser, target)
       );
 
       Assert.notEqual(prevBC, browser.browsingContext);
@@ -270,7 +266,7 @@ add_task(async function test_multiple_nav_process_switches() {
           url: target,
           maybeErrorPage: false,
         },
-        async () => BrowserTestUtils.loadURI(browser, target)
+        async () => BrowserTestUtils.loadURIString(browser, target)
       );
 
       Assert.equal(prevBC, browser.browsingContext);

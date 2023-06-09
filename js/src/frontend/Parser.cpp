@@ -139,11 +139,10 @@ bool GeneralParser<ParseHandler, Unit>::mustMatchTokenInternal(
   return true;
 }
 
-ParserSharedBase::ParserSharedBase(JSContext* cx, FrontendContext* fc,
+ParserSharedBase::ParserSharedBase(FrontendContext* fc,
                                    CompilationState& compilationState,
                                    Kind kind)
-    : cx_(cx),
-      fc_(fc),
+    : fc_(fc),
       alloc_(compilationState.parserAllocScope.alloc()),
       compilationState_(compilationState),
       pc_(nullptr),
@@ -161,12 +160,10 @@ void ParserSharedBase::dumpAtom(TaggedParserAtomIndex index) const {
 }
 #endif
 
-ParserBase::ParserBase(JSContext* cx, FrontendContext* fc,
-                       JS::NativeStackLimit stackLimit,
+ParserBase::ParserBase(FrontendContext* fc, JS::NativeStackLimit stackLimit,
                        const ReadOnlyCompileOptions& options,
                        bool foldConstants, CompilationState& compilationState)
-    : ParserSharedBase(cx, fc, compilationState,
-                       ParserSharedBase::Kind::Parser),
+    : ParserSharedBase(fc, compilationState, ParserSharedBase::Kind::Parser),
       anyChars(fc, options, this),
       ss(nullptr),
       foldConstants_(foldConstants),
@@ -189,12 +186,19 @@ bool ParserBase::checkOptions() {
 
 ParserBase::~ParserBase() { MOZ_ASSERT(checkOptionsCalled_); }
 
+JSAtom* ParserBase::liftParserAtomToJSAtom(TaggedParserAtomIndex index) {
+  JSContext* cx = fc_->maybeCurrentJSContext();
+  MOZ_ASSERT(cx);
+  return parserAtoms().toJSAtom(cx, fc_, index,
+                                compilationState_.input.atomCache);
+}
+
 template <class ParseHandler>
 PerHandlerParser<ParseHandler>::PerHandlerParser(
-    JSContext* cx, FrontendContext* fc, JS::NativeStackLimit stackLimit,
+    FrontendContext* fc, JS::NativeStackLimit stackLimit,
     const ReadOnlyCompileOptions& options, bool foldConstants,
     CompilationState& compilationState, void* internalSyntaxParser)
-    : ParserBase(cx, fc, stackLimit, options, foldConstants, compilationState),
+    : ParserBase(fc, stackLimit, options, foldConstants, compilationState),
       handler_(fc, compilationState),
       internalSyntaxParser_(internalSyntaxParser) {
   MOZ_ASSERT(compilationState.isInitialStencil() ==
@@ -203,11 +207,11 @@ PerHandlerParser<ParseHandler>::PerHandlerParser(
 
 template <class ParseHandler, typename Unit>
 GeneralParser<ParseHandler, Unit>::GeneralParser(
-    JSContext* cx, FrontendContext* fc, JS::NativeStackLimit stackLimit,
+    FrontendContext* fc, JS::NativeStackLimit stackLimit,
     const ReadOnlyCompileOptions& options, const Unit* units, size_t length,
     bool foldConstants, CompilationState& compilationState,
     SyntaxParser* syntaxParser)
-    : Base(cx, fc, stackLimit, options, foldConstants, compilationState,
+    : Base(fc, stackLimit, options, foldConstants, compilationState,
            syntaxParser),
       tokenStream(fc, &compilationState.parserAtoms, options, units, length) {}
 
@@ -283,7 +287,7 @@ FunctionBox* PerHandlerParser<ParseHandler>::newFunctionBox(
    * function.
    */
   FunctionBox* funbox = alloc_.new_<FunctionBox>(
-      cx_, fc_, extent, compilationState_, inheritedDirectives, generatorKind,
+      fc_, extent, compilationState_, inheritedDirectives, generatorKind,
       asyncKind, isInitialStencil, explicitName, flags, index);
   if (!funbox) {
     ReportOutOfMemory(fc_);
@@ -318,7 +322,7 @@ FunctionBox* PerHandlerParser<ParseHandler>::newFunctionBox(
    * function.
    */
   FunctionBox* funbox = alloc_.new_<FunctionBox>(
-      cx_, fc_, cachedScriptExtra.extent, compilationState_,
+      fc_, cachedScriptExtra.extent, compilationState_,
       Directives(/* strict = */ false), cachedScriptExtra.generatorKind(),
       cachedScriptExtra.asyncKind(), compilationState_.isInitialStencil(),
       cachedScriptData.functionAtom, cachedScriptData.functionFlags, index);
@@ -347,14 +351,14 @@ bool ParserBase::setSourceMapInfo() {
   }
 
   if (anyChars.hasDisplayURL()) {
-    if (!ss->setDisplayURL(cx_, fc_, anyChars.displayURL())) {
+    if (!ss->setDisplayURL(fc_, anyChars.displayURL())) {
       return false;
     }
   }
 
   if (anyChars.hasSourceMapURL()) {
     MOZ_ASSERT(!ss->hasSourceMapURL());
-    if (!ss->setSourceMapURL(cx_, fc_, anyChars.sourceMapURL())) {
+    if (!ss->setSourceMapURL(fc_, anyChars.sourceMapURL())) {
       return false;
     }
   }
@@ -372,7 +376,7 @@ bool ParserBase::setSourceMapInfo() {
       }
     }
 
-    if (!ss->setSourceMapURL(cx_, fc_, options().sourceMapURL())) {
+    if (!ss->setSourceMapURL(fc_, options().sourceMapURL())) {
       return false;
     }
   }
@@ -390,7 +394,7 @@ typename ParseHandler::ListNodeType GeneralParser<ParseHandler, Unit>::parse() {
   SourceExtent extent = SourceExtent::makeGlobalExtent(
       /* len = */ 0, options().lineno, options().column);
   Directives directives(options().forceStrictMode());
-  GlobalSharedContext globalsc(cx_, this->fc_, ScopeKind::Global, options(),
+  GlobalSharedContext globalsc(this->fc_, ScopeKind::Global, options(),
                                directives, extent);
   SourceParseContext globalpc(this, &globalsc, /* newDirectives = */ nullptr);
   if (!globalpc.init()) {
@@ -1885,7 +1889,7 @@ ModuleNode* Parser<FullParseHandler, Unit>::moduleBody(
   MOZ_ASSERT(checkOptionsCalled_);
 
   this->compilationState_.moduleMetadata =
-      cx_->template new_<StencilModuleMetadata>();
+      fc_->getAllocator()->template new_<StencilModuleMetadata>();
   if (!this->compilationState_.moduleMetadata) {
     return null();
   }
@@ -2206,7 +2210,7 @@ bool PerHandlerParser<SyntaxParseHandler>::finishFunction(
 
   TaggedScriptThingIndex* cursor = nullptr;
   if (!this->compilationState_.allocateGCThingsUninitialized(
-          cx_, fc_, funbox->index(), ngcthings.value(), &cursor)) {
+          fc_, funbox->index(), ngcthings.value(), &cursor)) {
     return false;
   }
 
@@ -3195,8 +3199,7 @@ bool Parser<FullParseHandler, Unit>::trySyntaxParseInnerFunction(
         syntaxParser->clearAbortedSyntaxParse();
         usedNames_.rewind(token);
         this->compilationState_.rewind(statePosition);
-        MOZ_ASSERT_IF(!syntaxParser->cx_->isHelperThreadContext(),
-                      !syntaxParser->cx_->isExceptionPending());
+        MOZ_ASSERT(!fc_->hadErrors());
         break;
       }
       return false;
@@ -3873,8 +3876,8 @@ bool Parser<FullParseHandler, Unit>::asmJS(ListNodeType list) {
   // function from the beginning. Reparsing is triggered by marking that a
   // new directive has been encountered and returning 'false'.
   bool validated;
-  if (!CompileAsmJS(cx_, this->fc_, this->stackLimit_, this->parserAtoms(),
-                    *this, list, &validated)) {
+  if (!CompileAsmJS(this->fc_, this->stackLimit_, this->parserAtoms(), *this,
+                    list, &validated)) {
     return false;
   }
   if (!validated) {
@@ -7828,7 +7831,7 @@ bool GeneralParser<ParseHandler, Unit>::classMember(
       // ...
       // Step 3. Let privateStateDesc be the string-concatenation of name
       // and " accessor storage".
-      StringBuffer privateStateDesc(cx_, ec_);
+      StringBuffer privateStateDesc(fc_);
       if (!privateStateDesc.append(this->parserAtoms(), propAtom)) {
         return false;
       }
@@ -7839,7 +7842,7 @@ bool GeneralParser<ParseHandler, Unit>::classMember(
       // [[Description]] value is privateStateDesc.
       TokenPos propNamePos(propNameOffset, pos().end);
       auto privateStateName =
-          privateStateDesc.finishParserAtom(this->parserAtoms(), ec_);
+          privateStateDesc.finishParserAtom(this->parserAtoms(), fc_);
       if (!noteDeclaredPrivateName(
               propName, privateStateName, propType,
               isStatic ? FieldPlacement::Static : FieldPlacement::Instance,
@@ -11514,9 +11517,8 @@ RegExpLiteral* Parser<FullParseHandler, Unit>::newRegExp() {
     // Verify that the Regexp will syntax parse when the time comes to
     // instantiate it. If we have already done a syntax parse, we can
     // skip this.
-    if (!irregexp::CheckPatternSyntax(cx_->tempLifoAlloc(), this->stackLimit_,
-                                      anyChars, range, flags, Some(line),
-                                      Some(column))) {
+    if (!irregexp::CheckPatternSyntax(this->alloc_, this->stackLimit_, anyChars,
+                                      range, flags, Some(line), Some(column))) {
       return nullptr;
     }
   }
@@ -11556,9 +11558,8 @@ Parser<SyntaxParseHandler, Unit>::newRegExp() {
   tokenStream.computeLineAndColumn(offset, &line, &column);
 
   mozilla::Range<const char16_t> source(chars.begin(), chars.length());
-  if (!irregexp::CheckPatternSyntax(cx_->tempLifoAlloc(), this->stackLimit_,
-                                    anyChars, source, flags, Some(line),
-                                    Some(column))) {
+  if (!irregexp::CheckPatternSyntax(this->alloc_, this->stackLimit_, anyChars,
+                                    source, flags, Some(line), Some(column))) {
     return null();
   }
 

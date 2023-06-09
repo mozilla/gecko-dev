@@ -3,17 +3,17 @@
  */
 
 "use strict";
-const { PasswordGenerator } = ChromeUtils.import(
-  "resource://gre/modules/PasswordGenerator.jsm"
+const { PasswordGenerator } = ChromeUtils.importESModule(
+  "resource://gre/modules/PasswordGenerator.sys.mjs"
 );
-const { PasswordRulesManagerParent } = ChromeUtils.import(
-  "resource://gre/modules/PasswordRulesManager.jsm"
+const { PasswordRulesManagerParent } = ChromeUtils.importESModule(
+  "resource://gre/modules/PasswordRulesManager.sys.mjs"
 );
-const { PasswordRulesParser } = ChromeUtils.import(
-  "resource://gre/modules/PasswordRulesParser.jsm"
+const { PasswordRulesParser } = ChromeUtils.importESModule(
+  "resource://gre/modules/PasswordRulesParser.sys.mjs"
 );
-const { RemoteSettings } = ChromeUtils.import(
-  "resource://services-settings/remote-settings.js"
+const { RemoteSettings } = ChromeUtils.importESModule(
+  "resource://services-settings/remote-settings.sys.mjs"
 );
 const { TelemetryTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/TelemetryTestUtils.sys.mjs"
@@ -368,19 +368,6 @@ add_task(async function test_generatePassword_subdomain_rule() {
     // If a rule should be applied, we verify the password has all the required classes in the generated password.
     if (test.shouldApplyPWRule) {
       verifyPassword(rules, generatedPassword);
-    } else {
-      // If a rule should not be applied, we verify that the generated password has no special characters
-      // since our standard generation does not include special characters.
-
-      const SPECIAL_CHARACTERS = PasswordGenerator._getSpecialCharacters();
-      // We need to escape our special characters since some of them
-      // have special meaning in regex.
-      let escapedSpecialCharacters = SPECIAL_CHARACTERS.replace(
-        /[.*\-+?^${}()|[\]\\]/g,
-        "\\$&"
-      );
-      let checkSpecial = new RegExp(`[${escapedSpecialCharacters}]`);
-      Assert.ok(!generatedPassword.match(checkSpecial));
     }
   }
 });

@@ -7,9 +7,11 @@
 #include "GMPLoader.h"
 #include <stdio.h>
 #include "mozilla/Attributes.h"
+#include "nsExceptionHandler.h"
 #include "gmp-entrypoints.h"
 #include "prlink.h"
 #include "prenv.h"
+#include "prerror.h"
 #if defined(XP_WIN) && defined(MOZ_SANDBOX)
 #  include "mozilla/sandboxTarget.h"
 #  include "mozilla/sandboxing/SandboxInitialization.h"
@@ -38,12 +40,14 @@ class PassThroughGMPAdapter : public GMPAdapter {
   void SetAdaptee(PRLibrary* aLib) override { mLib = aLib; }
 
   GMPErr GMPInit(const GMPPlatformAPI* aPlatformAPI) override {
-    if (!mLib) {
+    if (NS_WARN_IF(!mLib)) {
+      MOZ_CRASH("Missing library!");
       return GMPGenericErr;
     }
     GMPInitFunc initFunc =
         reinterpret_cast<GMPInitFunc>(PR_FindFunctionSymbol(mLib, "GMPInit"));
     if (!initFunc) {
+      MOZ_CRASH("Missing init method!");
       return GMPNotImplementedErr;
     }
     return initFunc(aPlatformAPI);
@@ -80,8 +84,13 @@ class PassThroughGMPAdapter : public GMPAdapter {
 
 bool GMPLoader::Load(const char* aUTF8LibPath, uint32_t aUTF8LibPathLen,
                      const GMPPlatformAPI* aPlatformAPI, GMPAdapter* aAdapter) {
+  CrashReporter::AutoAnnotateCrashReport autoLibPath(
+      CrashReporter::Annotation::GMPLibraryPath,
+      nsDependentCString(aUTF8LibPath));
+
   if (!getenv("MOZ_DISABLE_GMP_SANDBOX") && mSandboxStarter &&
       !mSandboxStarter->Start(aUTF8LibPath)) {
+    MOZ_CRASH("Cannot start sandbox!");
     return false;
   }
 
@@ -90,12 +99,14 @@ bool GMPLoader::Load(const char* aUTF8LibPath, uint32_t aUTF8LibPathLen,
 #ifdef XP_WIN
   int pathLen = MultiByteToWideChar(CP_UTF8, 0, aUTF8LibPath, -1, nullptr, 0);
   if (pathLen == 0) {
+    MOZ_CRASH("Cannot get path length as wide char!");
     return false;
   }
 
   auto widePath = MakeUnique<wchar_t[]>(pathLen);
   if (MultiByteToWideChar(CP_UTF8, 0, aUTF8LibPath, -1, widePath.get(),
                           pathLen) == 0) {
+    MOZ_CRASH("Cannot convert path to wide char!");
     return false;
   }
 
@@ -107,6 +118,8 @@ bool GMPLoader::Load(const char* aUTF8LibPath, uint32_t aUTF8LibPathLen,
 #endif
   PRLibrary* lib = PR_LoadLibraryWithFlags(libSpec, 0);
   if (!lib) {
+    MOZ_CRASH_UNSAFE_PRINTF("Cannot load plugin as library %d %d",
+                            PR_GetError(), PR_GetOSError());
     return false;
   }
 
@@ -114,6 +127,7 @@ bool GMPLoader::Load(const char* aUTF8LibPath, uint32_t aUTF8LibPathLen,
   mAdapter->SetAdaptee(lib);
 
   if (mAdapter->GMPInit(aPlatformAPI) != GMPNoErr) {
+    MOZ_CRASH("Cannot initialize plugin adapter!");
     return false;
   }
 

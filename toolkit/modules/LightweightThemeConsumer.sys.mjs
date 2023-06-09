@@ -10,16 +10,11 @@ const lazy = {};
 // Get the theme variables from the app resource directory.
 // This allows per-app variables.
 ChromeUtils.defineESModuleGetters(lazy, {
+  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   ThemeContentPropertyList: "resource:///modules/ThemeVariableMap.sys.mjs",
   ThemeVariableMap: "resource:///modules/ThemeVariableMap.sys.mjs",
 });
-
-ChromeUtils.defineModuleGetter(
-  lazy,
-  "NimbusFeatures",
-  "resource://nimbus/ExperimentAPI.jsm"
-);
 
 // Whether the content and chrome areas should always use the same color
 // scheme (unless user-overridden). Thunderbird uses this.
@@ -75,28 +70,6 @@ const toolkitVariableMap = [
     "--arrowpanel-color",
     {
       lwtProperty: "popup_text",
-      processColor(rgbaChannels, element) {
-        const disabledColorVariable = "--panel-disabled-color";
-        const descriptionColorVariable = "--panel-description-color";
-
-        if (!rgbaChannels) {
-          element.style.removeProperty(disabledColorVariable);
-          element.style.removeProperty(descriptionColorVariable);
-          return null;
-        }
-
-        let { r, g, b, a } = rgbaChannels;
-
-        element.style.setProperty(
-          disabledColorVariable,
-          `rgba(${r}, ${g}, ${b}, 0.5)`
-        );
-        element.style.setProperty(
-          descriptionColorVariable,
-          `rgba(${r}, ${g}, ${b}, 0.7)`
-        );
-        return `rgba(${r}, ${g}, ${b}, ${a})`;
-      },
     },
   ],
   [

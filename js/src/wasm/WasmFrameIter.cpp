@@ -60,8 +60,8 @@ WasmFrameIter::WasmFrameIter(JitActivation* activation, wasm::Frame* fp)
       lineOrBytecode_(0),
       fp_(fp ? fp : activation->wasmExitFP()),
       instance_(nullptr),
-      unwoundJitCallerFP_(nullptr),
-      unwoundJitFrameType_(jit::FrameType(-1)),
+      unwoundCallerFP_(nullptr),
+      unwoundJitFrameType_(),
       unwind_(Unwind::False),
       unwoundAddressOfReturnAddress_(nullptr),
       resumePCinCurrentFrame_(nullptr) {
@@ -97,7 +97,7 @@ WasmFrameIter::WasmFrameIter(JitActivation* activation, wasm::Frame* fp)
   // was Ion, we can just skip the wasm frames.
 
   popFrame();
-  MOZ_ASSERT(!done() || unwoundJitCallerFP_);
+  MOZ_ASSERT(!done() || unwoundCallerFP_);
 }
 
 bool WasmFrameIter::done() const {
@@ -160,11 +160,11 @@ void WasmFrameIter::popFrame() {
     // Mark the frame as such.
     AssertDirectJitCall(fp_->jitEntryCaller());
 
-    unwoundJitCallerFP_ = fp_->jitEntryCaller();
-    unwoundJitFrameType_ = FrameType::Exit;
+    unwoundCallerFP_ = fp_->jitEntryCaller();
+    unwoundJitFrameType_.emplace(FrameType::Exit);
 
     if (unwind_ == Unwind::True) {
-      activation_->setJSExitFP(unwoundJitCallerFP());
+      activation_->setJSExitFP(unwoundCallerFP());
       unwoundAddressOfReturnAddress_ = fp_->addressOfReturnAddress();
     }
 
@@ -183,6 +183,9 @@ void WasmFrameIter::popFrame() {
   resumePCinCurrentFrame_ = returnAddress;
 
   if (codeRange_->isInterpEntry()) {
+    // Interpreter entry has a simple frame, record FP from it.
+    unwoundCallerFP_ = reinterpret_cast<uint8_t*>(fp_);
+
     fp_ = nullptr;
     code_ = nullptr;
     codeRange_ = nullptr;
@@ -211,15 +214,15 @@ void WasmFrameIter::popFrame() {
     //
     // The next value of FP is just a regular jit frame used as a marker to
     // know that we should transition to a JSJit frame iterator.
-    unwoundJitCallerFP_ = reinterpret_cast<uint8_t*>(fp_);
-    unwoundJitFrameType_ = FrameType::JSJitToWasm;
+    unwoundCallerFP_ = reinterpret_cast<uint8_t*>(fp_);
+    unwoundJitFrameType_.emplace(FrameType::JSJitToWasm);
 
     fp_ = nullptr;
     code_ = nullptr;
     codeRange_ = nullptr;
 
     if (unwind_ == Unwind::True) {
-      activation_->setJSExitFP(unwoundJitCallerFP());
+      activation_->setJSExitFP(unwoundCallerFP());
       unwoundAddressOfReturnAddress_ = prevFP->addressOfReturnAddress();
     }
 
@@ -332,10 +335,14 @@ DebugFrame* WasmFrameIter::debugFrame() const {
   return DebugFrame::from(fp_);
 }
 
+bool WasmFrameIter::hasUnwoundJitFrame() const {
+  return unwoundCallerFP_ && unwoundJitFrameType_.isSome();
+}
+
 jit::FrameType WasmFrameIter::unwoundJitFrameType() const {
-  MOZ_ASSERT(unwoundJitCallerFP_);
-  MOZ_ASSERT(unwoundJitFrameType_ != jit::FrameType(-1));
-  return unwoundJitFrameType_;
+  MOZ_ASSERT(unwoundCallerFP_);
+  MOZ_ASSERT(unwoundJitFrameType_.isSome());
+  return *unwoundJitFrameType_;
 }
 
 uint8_t* WasmFrameIter::resumePCinCurrentFrame() const {
@@ -397,6 +404,12 @@ static const unsigned PushedFP = 16;
 static const unsigned SetFP = 20;
 static const unsigned PoppedFP = 4;
 static const unsigned PoppedFPJitEntry = 0;
+#elif defined(JS_CODEGEN_RISCV64)
+static const unsigned PushedRetAddr = 8;
+static const unsigned PushedFP = 16;
+static const unsigned SetFP = 20;
+static const unsigned PoppedFP = 4;
+static const unsigned PoppedFPJitEntry = 0;
 #elif defined(JS_CODEGEN_NONE) || defined(JS_CODEGEN_WASM32)
 // Synthetic values to satisfy asserts and avoid compiler warnings.
 static const unsigned PushedRetAddr = 0;
@@ -441,7 +454,6 @@ void wasm::ClearExitFP(MacroAssembler& masm, Register scratch) {
 
 static void GenerateCallablePrologue(MacroAssembler& masm, uint32_t* entry) {
   AutoCreatedBy acb(masm, "GenerateCallablePrologue");
-
   masm.setFramePushed(0);
 
   // ProfilingFrameIterator needs to know the offsets of several key
@@ -465,6 +477,17 @@ static void GenerateCallablePrologue(MacroAssembler& masm, uint32_t* entry) {
   {
     *entry = masm.currentOffset();
 
+    masm.ma_push(ra);
+    MOZ_ASSERT_IF(!masm.oom(), PushedRetAddr == masm.currentOffset() - *entry);
+    masm.ma_push(FramePointer);
+    MOZ_ASSERT_IF(!masm.oom(), PushedFP == masm.currentOffset() - *entry);
+    masm.moveStackPtrTo(FramePointer);
+    MOZ_ASSERT_IF(!masm.oom(), SetFP == masm.currentOffset() - *entry);
+  }
+#elif defined(JS_CODEGEN_RISCV64)
+  {
+    *entry = masm.currentOffset();
+    BlockTrampolinePoolScope block_trampoline_pool(&masm, 5);
     masm.ma_push(ra);
     MOZ_ASSERT_IF(!masm.oom(), PushedRetAddr == masm.currentOffset() - *entry);
     masm.ma_push(FramePointer);
@@ -557,6 +580,18 @@ static void GenerateCallableEpilogue(MacroAssembler& masm, unsigned framePushed,
   masm.addToStackPtr(Imm32(sizeof(Frame)));
   masm.as_jirl(zero, ra, BOffImm16(0));
 
+#elif defined(JS_CODEGEN_RISCV64)
+  {
+    BlockTrampolinePoolScope block_trampoline_pool(&masm, 20);
+    masm.loadPtr(Address(StackPointer, Frame::callerFPOffset()), FramePointer);
+    poppedFP = masm.currentOffset();
+    masm.loadPtr(Address(StackPointer, Frame::returnAddressOffset()), ra);
+
+    *ret = masm.currentOffset();
+    masm.addToStackPtr(Imm32(sizeof(Frame)));
+    masm.jalr(zero, ra, 0);
+    masm.nop();
+  }
 #elif defined(JS_CODEGEN_ARM64)
 
   // See comment at equivalent place in |GenerateCallablePrologue| above.
@@ -664,7 +699,10 @@ void wasm::GenerateFunctionPrologue(MacroAssembler& masm,
     switch (callIndirectId.kind()) {
       case CallIndirectIdKind::Global: {
         Register scratch = WasmTableCallScratchReg0;
-        masm.loadWasmGlobalPtr(callIndirectId.globalDataOffset(), scratch);
+        masm.loadPtr(
+            Address(InstanceReg, Instance::offsetInData(
+                                     callIndirectId.instanceDataOffset())),
+            scratch);
         masm.branchPtr(Assembler::Condition::Equal, WasmTableCallSigReg,
                        scratch, &functionBody);
         masm.wasmTrap(Trap::IndirectCallBadSig, BytecodeOffset(0));
@@ -817,6 +855,10 @@ void wasm::GenerateJitEntryPrologue(MacroAssembler& masm,
 #elif defined(JS_CODEGEN_LOONG64)
     offsets->begin = masm.currentOffset();
     masm.push(ra);
+#elif defined(JS_CODEGEN_RISCV64)
+    BlockTrampolinePoolScope block_trampoline_pool(&masm, 10);
+    offsets->begin = masm.currentOffset();
+    masm.push(ra);
 #elif defined(JS_CODEGEN_ARM64)
     AutoForbidPoolsAndNops afp(&masm,
                                /* number of instructions in scope = */ 4);
@@ -832,7 +874,6 @@ void wasm::GenerateJitEntryPrologue(MacroAssembler& masm,
 #endif
     MOZ_ASSERT_IF(!masm.oom(),
                   PushedRetAddr == masm.currentOffset() - offsets->begin);
-
     // Save jit frame pointer, so unwinding from wasm to jit frames is trivial.
 #if defined(JS_CODEGEN_ARM64)
     static_assert(JitFrameLayout::offsetOfCallerFramePtr() == 0);
@@ -1162,6 +1203,25 @@ bool js::wasm::StartUnwinding(const RegisterState& registers,
         fixedFP = fp;
         AssertMatchesCallSite(fixedPC, fixedFP);
       } else
+#elif defined(JS_CODEGEN_RISCV64)
+      if (codeRange->isThunk()) {
+        // The FarJumpIsland sequence temporary scrambles ra.
+        // Don't unwind to caller.
+        fixedPC = pc;
+        fixedFP = fp;
+        *unwoundCaller = false;
+        AssertMatchesCallSite(
+            Frame::fromUntaggedWasmExitFP(fp)->returnAddress(),
+            Frame::fromUntaggedWasmExitFP(fp)->rawCaller());
+      } else if (offsetFromEntry < PushedFP) {
+        // On Riscv64 we rely on register state instead of state saved on
+        // stack until the wasm::Frame is completely built.
+        // On entry the return address is in ra (registers.lr) and
+        // fp holds the caller's fp.
+        fixedPC = (uint8_t*)registers.lr;
+        fixedFP = fp;
+        AssertMatchesCallSite(fixedPC, fixedFP);
+      } else
 #elif defined(JS_CODEGEN_ARM64)
       if (offsetFromEntry < PushedFP || codeRange->isThunk()) {
         // Constraints above ensure that this covers BeforePushRetAddr and
@@ -1207,6 +1267,16 @@ bool js::wasm::StartUnwinding(const RegisterState& registers,
         fixedFP = fp;
         AssertMatchesCallSite(fixedPC, fixedFP);
 #elif defined(JS_CODEGEN_LOONG64)
+      } else if (offsetInCode >= codeRange->ret() - PoppedFP &&
+                 offsetInCode <= codeRange->ret()) {
+        // The fixedFP field of the Frame has been loaded into fp.
+        // The ra might also be loaded, but the Frame structure is still on
+        // stack, so we can acess the ra from there.
+        MOZ_ASSERT(*sp == fp);
+        fixedPC = Frame::fromUntaggedWasmExitFP(sp)->returnAddress();
+        fixedFP = fp;
+        AssertMatchesCallSite(fixedPC, fixedFP);
+#elif defined(JS_CODEGEN_RISCV64)
       } else if (offsetInCode >= codeRange->ret() - PoppedFP &&
                  offsetInCode <= codeRange->ret()) {
         // The fixedFP field of the Frame has been loaded into fp.
@@ -1288,11 +1358,6 @@ bool js::wasm::StartUnwinding(const RegisterState& registers,
         // We've popped FP but still have to return. Similar to the
         // |offsetFromEntry < PushedFP| case above, the JIT frame is now
         // incomplete and we can't unwind.
-        return false;
-      }
-      // On the error return path, FP might be set to FailFP. Ignore these
-      // transient frames.
-      if (intptr_t(fp) == (FailFP & ~ExitFPTag)) {
         return false;
       }
       // Set fixedFP to the address of the JitFrameLayout on the stack.
@@ -1493,12 +1558,18 @@ static const char* ThunkedNativeToDescription(SymbolicAddress func) {
       return "call to native newCell<BigInt, NoGC> (in wasm)";
     case SymbolicAddress::ModD:
       return "call to asm.js native f64 % (mod)";
-    case SymbolicAddress::SinD:
+    case SymbolicAddress::SinNativeD:
       return "call to asm.js native f64 Math.sin";
-    case SymbolicAddress::CosD:
+    case SymbolicAddress::SinFdlibmD:
+      return "call to asm.js fdlibm f64 Math.sin";
+    case SymbolicAddress::CosNativeD:
       return "call to asm.js native f64 Math.cos";
-    case SymbolicAddress::TanD:
+    case SymbolicAddress::CosFdlibmD:
+      return "call to asm.js fdlibm f64 Math.cos";
+    case SymbolicAddress::TanNativeD:
       return "call to asm.js native f64 Math.tan";
+    case SymbolicAddress::TanFdlibmD:
+      return "call to asm.js fdlibm f64 Math.tan";
     case SymbolicAddress::ASinD:
       return "call to asm.js native f64 Math.asin";
     case SymbolicAddress::ACosD:
@@ -1575,6 +1646,12 @@ static const char* ThunkedNativeToDescription(SymbolicAddress func) {
       return "call to native table.copy function";
     case SymbolicAddress::TableFill:
       return "call to native table.fill function";
+    case SymbolicAddress::MemDiscardM32:
+    case SymbolicAddress::MemDiscardSharedM32:
+      return "call to native memory.discard m32 function";
+    case SymbolicAddress::MemDiscardM64:
+    case SymbolicAddress::MemDiscardSharedM64:
+      return "call to native memory.discard m64 function";
     case SymbolicAddress::ElemDrop:
       return "call to native elem.drop function";
     case SymbolicAddress::TableGet:
@@ -1589,19 +1666,19 @@ static const char* ThunkedNativeToDescription(SymbolicAddress func) {
       return "call to native table.size function";
     case SymbolicAddress::RefFunc:
       return "call to native ref.func function";
-    case SymbolicAddress::PreBarrierFiltering:
-      return "call to native filtering GC prebarrier (in wasm)";
     case SymbolicAddress::PostBarrier:
     case SymbolicAddress::PostBarrierPrecise:
-    case SymbolicAddress::PostBarrierFiltering:
+    case SymbolicAddress::PostBarrierPreciseWithOffset:
       return "call to native GC postbarrier (in wasm)";
-    case SymbolicAddress::StructNew:
-      return "call to native struct.new (in wasm)";
     case SymbolicAddress::ExceptionNew:
       return "call to native exception new (in wasm)";
     case SymbolicAddress::ThrowException:
       return "call to native throw exception (in wasm)";
+    case SymbolicAddress::StructNew:
+    case SymbolicAddress::StructNewUninit:
+      return "call to native struct.new (in wasm)";
     case SymbolicAddress::ArrayNew:
+    case SymbolicAddress::ArrayNewUninit:
       return "call to native array.new (in wasm)";
     case SymbolicAddress::ArrayNewData:
       return "call to native array.new_data function";
@@ -1609,8 +1686,6 @@ static const char* ThunkedNativeToDescription(SymbolicAddress func) {
       return "call to native array.new_elem function";
     case SymbolicAddress::ArrayCopy:
       return "call to native array.copy function";
-    case SymbolicAddress::RefTest:
-      return "call to native ref.test (in wasm)";
 #define OP(op, export, sa_name, abitype, entry, idx) \
   case SymbolicAddress::sa_name:                     \
     return "call to native " #op " intrinsic (in wasm)";

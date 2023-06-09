@@ -25,8 +25,9 @@ class GMPChild : public PGMPChild {
   friend class PGMPChild;
 
  public:
+  NS_INLINE_DECL_REFCOUNTING(GMPChild, override)
+
   GMPChild();
-  virtual ~GMPChild();
 
   bool Init(const nsAString& aPluginPath,
             mozilla::ipc::UntypedEndpoint&& aEndpoint);
@@ -42,6 +43,8 @@ class GMPChild : public PGMPChild {
 
  private:
   friend class GMPContentChild;
+
+  virtual ~GMPChild();
 
   bool GetUTF8LibPath(nsACString& aOutLibPath);
 
@@ -78,7 +81,8 @@ class GMPChild : public PGMPChild {
   GMPErr GetAPI(const char* aAPIName, void* aHostAPI, void** aPluginAPI,
                 const nsACString& aKeySystem = ""_ns);
 
-  nsTArray<std::pair<nsCString, nsCString>> MakeCDMHostVerificationPaths();
+  nsTArray<std::pair<nsCString, nsCString>> MakeCDMHostVerificationPaths(
+      const nsACString& aPluginLibPath);
 
   nsTArray<RefPtr<GMPContentChild>> mGMPContentChildren;
 

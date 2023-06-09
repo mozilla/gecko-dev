@@ -157,11 +157,13 @@ class nsMIMEInfoBase : public nsIMIMEInfo {
   HandlerClass mClass;
   nsCOMPtr<nsIHandlerApp> mPreferredApplication;
   nsCOMPtr<nsIMutableArray> mPossibleApplications;
-  nsHandlerInfoAction
-      mPreferredAction;  ///< preferred action to associate with this type
+  nsHandlerInfoAction mPreferredAction =
+      nsIMIMEInfo::saveToDisk;  ///< preferred action to associate with this
+                                ///< type
   nsString mPreferredAppDescription;
   nsString mDefaultAppDescription;
   bool mAlwaysAskBeforeHandling;
+  bool mIsDefaultAppInfoFresh = false;
 };
 
 /**
@@ -190,10 +192,11 @@ class nsMIMEInfoImpl : public nsMIMEInfoBase {
   // additional methods
   /**
    * Sets the default application. Supposed to be only called by the OS Helper
-   * App Services; the default application is immutable after it is first set.
+   * App Services.
    */
   void SetDefaultApplication(nsIFile* aApp) {
-    if (!mDefaultApplication) mDefaultApplication = aApp;
+    mDefaultApplication = aApp;
+    mIsDefaultAppInfoFresh = true;
   }
 
  protected:
@@ -210,6 +213,10 @@ class nsMIMEInfoImpl : public nsMIMEInfoBase {
    */
   virtual nsresult LoadUriInternal(nsIURI* aURI) override = 0;
 
+  // Accessor for default application for subclasses.
+  nsIFile* GetDefaultApplication() { return mDefaultApplication; }
+
+ private:
   nsCOMPtr<nsIFile>
       mDefaultApplication;  ///< default application associated with this type.
 };

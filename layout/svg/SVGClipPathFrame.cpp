@@ -39,7 +39,9 @@ NS_IMPL_FRAMEARENA_HELPERS(SVGClipPathFrame)
 void SVGClipPathFrame::ApplyClipPath(gfxContext& aContext,
                                      nsIFrame* aClippedFrame,
                                      const gfxMatrix& aMatrix) {
-  MOZ_ASSERT(IsTrivial(), "Caller needs to use GetClipMask");
+  ISVGDisplayableFrame* singleClipPathChild = nullptr;
+  DebugOnly<bool> trivial = IsTrivial(&singleClipPathChild);
+  MOZ_ASSERT(trivial, "Caller needs to use GetClipMask");
 
   const DrawTarget* drawTarget = aContext.GetDrawTarget();
 
@@ -47,12 +49,9 @@ void SVGClipPathFrame::ApplyClipPath(gfxContext& aContext,
   // don't reference another clip path.
 
   // Restore current transform after applying clip path:
-  gfxContextMatrixAutoSaveRestore autoRestore(&aContext);
+  gfxContextMatrixAutoSaveRestore autoRestoreTransform(&aContext);
 
   RefPtr<Path> clipPath;
-
-  ISVGDisplayableFrame* singleClipPathChild = nullptr;
-  IsTrivial(&singleClipPathChild);
 
   if (singleClipPathChild) {
     SVGGeometryFrame* pathFrame = do_QueryFrame(singleClipPathChild);
@@ -96,6 +95,41 @@ static void ComposeExtraMask(DrawTarget* aTarget, SourceSurface* aExtraMask) {
   aTarget->SetTransform(origin);
 }
 
+void SVGClipPathFrame::PaintChildren(gfxContext& aMaskContext,
+                                     nsIFrame* aClippedFrame,
+                                     const gfxMatrix& aMatrix) {
+  // Check if this clipPath is itself clipped by another clipPath:
+  SVGClipPathFrame* clipPathThatClipsClipPath;
+  // XXX check return value?
+  SVGObserverUtils::GetAndObserveClipPath(this, &clipPathThatClipsClipPath);
+  SVGUtils::MaskUsage maskUsage;
+  SVGUtils::DetermineMaskUsage(this, true, maskUsage);
+
+  gfxGroupForBlendAutoSaveRestore autoGroupForBlend(&aMaskContext);
+  if (maskUsage.shouldApplyClipPath) {
+    clipPathThatClipsClipPath->ApplyClipPath(aMaskContext, aClippedFrame,
+                                             aMatrix);
+  } else if (maskUsage.shouldGenerateClipMaskLayer) {
+    RefPtr<SourceSurface> maskSurface = clipPathThatClipsClipPath->GetClipMask(
+        aMaskContext, aClippedFrame, aMatrix);
+    // We want the mask to be untransformed so use the inverse of the current
+    // transform as the maskTransform to compensate.
+    Matrix maskTransform = aMaskContext.CurrentMatrix();
+    maskTransform.Invert();
+    autoGroupForBlend.PushGroupForBlendBack(gfxContentType::ALPHA, 1.0f,
+                                            maskSurface, maskTransform);
+  }
+
+  // Paint our children into the mask:
+  for (nsIFrame* kid = mFrames.FirstChild(); kid; kid = kid->GetNextSibling()) {
+    PaintFrameIntoMask(kid, aClippedFrame, aMaskContext);
+  }
+
+  if (maskUsage.shouldApplyClipPath) {
+    aMaskContext.PopClip();
+  }
+}
+
 void SVGClipPathFrame::PaintClipMask(gfxContext& aMaskContext,
                                      nsIFrame* aClippedFrame,
                                      const gfxMatrix& aMatrix,
@@ -120,39 +154,7 @@ void SVGClipPathFrame::PaintClipMask(gfxContext& aMaskContext,
   // transform.
   mMatrixForChildren = GetClipPathTransform(aClippedFrame) * aMatrix;
 
-  // Check if this clipPath is itself clipped by another clipPath:
-  SVGClipPathFrame* clipPathThatClipsClipPath;
-  // XXX check return value?
-  SVGObserverUtils::GetAndObserveClipPath(this, &clipPathThatClipsClipPath);
-  SVGUtils::MaskUsage maskUsage;
-  SVGUtils::DetermineMaskUsage(this, true, maskUsage);
-
-  if (maskUsage.shouldApplyClipPath) {
-    clipPathThatClipsClipPath->ApplyClipPath(aMaskContext, aClippedFrame,
-                                             aMatrix);
-  } else if (maskUsage.shouldGenerateClipMaskLayer) {
-    RefPtr<SourceSurface> maskSurface = clipPathThatClipsClipPath->GetClipMask(
-        aMaskContext, aClippedFrame, aMatrix);
-    // We want the mask to be untransformed so use the inverse of the current
-    // transform as the maskTransform to compensate.
-    Matrix maskTransform = aMaskContext.CurrentMatrix();
-    maskTransform.Invert();
-    aMaskContext.PushGroupForBlendBack(gfxContentType::ALPHA, 1.0, maskSurface,
-                                       maskTransform);
-    // The corresponding PopGroupAndBlend call below will mask the
-    // blend using |maskSurface|.
-  }
-
-  // Paint our children into the mask:
-  for (nsIFrame* kid = mFrames.FirstChild(); kid; kid = kid->GetNextSibling()) {
-    PaintFrameIntoMask(kid, aClippedFrame, aMaskContext);
-  }
-
-  if (maskUsage.shouldGenerateClipMaskLayer) {
-    aMaskContext.PopGroupAndBlend();
-  } else if (maskUsage.shouldApplyClipPath) {
-    aMaskContext.PopClip();
-  }
+  PaintChildren(aMaskContext, aClippedFrame, aMatrix);
 
   if (aExtraMask) {
     ComposeExtraMask(maskDT, aExtraMask);
@@ -181,21 +183,22 @@ void SVGClipPathFrame::PaintFrameIntoMask(nsIFrame* aFrame,
 
   SVGUtils::MaskUsage maskUsage;
   SVGUtils::DetermineMaskUsage(aFrame, true, maskUsage);
+  gfxGroupForBlendAutoSaveRestore autoGroupForBlend(&aTarget);
   if (maskUsage.shouldApplyClipPath) {
-    clipPathThatClipsChild->ApplyClipPath(aTarget, aClippedFrame,
-                                          mMatrixForChildren);
+    clipPathThatClipsChild->ApplyClipPath(
+        aTarget, aClippedFrame,
+        SVGUtils::GetTransformMatrixInUserSpace(aFrame) * mMatrixForChildren);
   } else if (maskUsage.shouldGenerateClipMaskLayer) {
     RefPtr<SourceSurface> maskSurface = clipPathThatClipsChild->GetClipMask(
-        aTarget, aClippedFrame, mMatrixForChildren);
+        aTarget, aClippedFrame,
+        SVGUtils::GetTransformMatrixInUserSpace(aFrame) * mMatrixForChildren);
 
     // We want the mask to be untransformed so use the inverse of the current
     // transform as the maskTransform to compensate.
     Matrix maskTransform = aTarget.CurrentMatrix();
     maskTransform.Invert();
-    aTarget.PushGroupForBlendBack(gfxContentType::ALPHA, 1.0, maskSurface,
-                                  maskTransform);
-    // The corresponding PopGroupAndBlend call below will mask the
-    // blend using |maskSurface|.
+    autoGroupForBlend.PushGroupForBlendBack(gfxContentType::ALPHA, 1.0f,
+                                            maskSurface, maskTransform);
   }
 
   gfxMatrix toChildsUserSpace = mMatrixForChildren;
@@ -215,9 +218,7 @@ void SVGClipPathFrame::PaintFrameIntoMask(nsIFrame* aFrame,
   // only the geometry (opaque black) if set.
   frame->PaintSVG(aTarget, toChildsUserSpace, imgParams);
 
-  if (maskUsage.shouldGenerateClipMaskLayer) {
-    aTarget.PopGroupAndBlend();
-  } else if (maskUsage.shouldApplyClipPath) {
+  if (maskUsage.shouldApplyClipPath) {
     aTarget.PopClip();
   }
 }
@@ -232,14 +233,8 @@ already_AddRefed<SourceSurface> SVGClipPathFrame::GetClipMask(
     return nullptr;
   }
 
-  RefPtr<gfxContext> maskContext =
-      gfxContext::CreatePreservingTransformOrNull(maskDT);
-  if (!maskContext) {
-    gfxCriticalError() << "SVGClipPath context problem " << gfx::hexa(maskDT);
-    return nullptr;
-  }
-
-  PaintClipMask(*maskContext, aClippedFrame, aMatrix, aExtraMask);
+  gfxContext maskContext(maskDT, /* aPreserveTransform */ true);
+  PaintClipMask(maskContext, aClippedFrame, aMatrix, aExtraMask);
 
   RefPtr<SourceSurface> surface = maskDT->Snapshot();
   return surface.forget();
@@ -394,15 +389,15 @@ nsresult SVGClipPathFrame::AttributeChanged(int32_t aNameSpaceID,
                                              aModType);
 }
 
+#ifdef DEBUG
 void SVGClipPathFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
                             nsIFrame* aPrevInFlow) {
   NS_ASSERTION(aContent->IsSVGElement(nsGkAtoms::clipPath),
                "Content is not an SVG clipPath!");
 
-  AddStateBits(NS_STATE_SVG_CLIPPATH_CHILD);
-  AddStateBits(NS_FRAME_MAY_BE_TRANSFORMED);
   SVGContainerFrame::Init(aContent, aParent, aPrevInFlow);
 }
+#endif
 
 gfxMatrix SVGClipPathFrame::GetCanvasTM() { return mMatrixForChildren; }
 
@@ -438,9 +433,7 @@ SVGBBox SVGClipPathFrame::GetBBoxForClipPathFrame(const SVGBBox& aBBox,
   nsIContent* node = GetContent()->GetFirstChild();
   SVGBBox unionBBox, tmpBBox;
   for (; node; node = node->GetNextSibling()) {
-    SVGElement* svgNode = static_cast<SVGElement*>(node);
-    nsIFrame* frame = svgNode->GetPrimaryFrame();
-    if (frame) {
+    if (nsIFrame* frame = node->GetPrimaryFrame()) {
       ISVGDisplayableFrame* svg = do_QueryFrame(frame);
       if (svg) {
         gfxMatrix matrix =

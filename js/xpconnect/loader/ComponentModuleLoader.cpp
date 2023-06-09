@@ -23,13 +23,7 @@ namespace loader {
 // ComponentScriptLoader
 //////////////////////////////////////////////////////////////
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(ComponentScriptLoader)
-NS_INTERFACE_MAP_END
-
-NS_IMPL_CYCLE_COLLECTION(ComponentScriptLoader)
-
-NS_IMPL_CYCLE_COLLECTING_ADDREF(ComponentScriptLoader)
-NS_IMPL_CYCLE_COLLECTING_RELEASE(ComponentScriptLoader)
+NS_IMPL_ISUPPORTS0(ComponentScriptLoader)
 
 nsIURI* ComponentScriptLoader::GetBaseURI() const { return nullptr; }
 
@@ -71,7 +65,7 @@ already_AddRefed<ModuleLoadRequest> ComponentModuleLoader::CreateStaticImport(
     nsIURI* aURI, ModuleLoadRequest* aParent) {
   RefPtr<ComponentLoadContext> context = new ComponentLoadContext();
   RefPtr<ModuleLoadRequest> request = new ModuleLoadRequest(
-      aURI, aParent->mFetchOptions, SRIMetadata(), aParent->mURI, context,
+      aURI, aParent->mFetchOptions, dom::SRIMetadata(), aParent->mURI, context,
       false, /* is top level */
       false, /* is dynamic import */
       this, aParent->mVisitedSet, aParent->GetRootModule());
@@ -105,7 +99,7 @@ nsresult ComponentModuleLoader::StartFetch(ModuleLoadRequest* aRequest) {
   }
 
   JSContext* cx = jsapi.cx();
-  RootedScript script(cx);
+  JS::RootedScript script(cx);
   nsresult rv =
       mozJSModuleLoader::LoadSingleModuleScript(this, cx, aRequest, &script);
   MOZ_ASSERT_IF(jsapi.HasException(), NS_FAILED(rv));

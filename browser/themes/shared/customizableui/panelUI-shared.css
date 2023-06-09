@@ -22,12 +22,8 @@
   --arrowpanel-menuitem-padding-inline: 8px;
   --arrowpanel-menuitem-padding: var(--arrowpanel-menuitem-padding-block) var(--arrowpanel-menuitem-padding-inline);
   --arrowpanel-menuitem-border-radius: 4px;
-  --arrowpanel-header-back-icon-padding: 8px;
-  --arrowpanel-header-back-icon-full-width: calc(16px + (2 * var(--arrowpanel-header-back-icon-padding)));
   --arrowpanel-header-info-icon-padding: 4px;
-  --arrowpanel-header-info-icon-margin-inline-end: 4px;
   --arrowpanel-header-info-icon-full-width: calc(16px + (2 * var(--arrowpanel-header-info-icon-padding)));
-  --arrowpanel-header-height: calc(16px + (var(--arrowpanel-header-back-icon-padding) * 2) + (var(--panel-separator-margin-horizontal) * 2));
   --panel-separator-margin-vertical: 4px;
   --panel-separator-margin-horizontal: 8px;
   --panel-separator-margin: var(--panel-separator-margin-vertical) var(--panel-separator-margin-horizontal);
@@ -45,14 +41,34 @@
 :root[uidensity=compact] {
   --arrowpanel-menuitem-margin-inline: 4px;
   --arrowpanel-menuitem-padding-block: 0px;
-  --arrowpanel-header-back-icon-padding: 4px;
-  --arrowpanel-header-info-icon-margin-inline-end: 0px;
   --panel-separator-margin-horizontal: 4px;
   --panel-subview-body-padding-block: 4px;
 }
 
+/* The vars in this rule are not on the :root above so that they would
+ * work in conjunction with when touchmode attribute is set on the panels. */
+panel,
+menupopup {
+  /* The value for the header back icon padding is selected in a way that the
+   * height of the header and its separator will be equal to the panel inner
+   * top padding plus standard menuitem, so that the header's separator will
+   * be located excatly where a normal toolbarseparator would be located after
+   * the first menuitem, in a menu without a header. */
+  --arrowpanel-header-back-icon-padding: 6px;
+  --arrowpanel-header-back-icon-full-width: calc(16px + (2 * var(--arrowpanel-header-back-icon-padding)));
+  /* The min-height is calculated with the separator's horizontal margin rather
+   * than the vertical, to let the back icon have even spacing all around
+   * while being aligned with the separator. */
+  --arrowpanel-header-min-height: calc(var(--arrowpanel-header-back-icon-full-width)
+                                       + (var(--panel-separator-margin-horizontal) * 2));
+}
+
+:root[uidensity=compact] :is(panel, menupopup):not([touchmode]) {
+  --arrowpanel-header-back-icon-padding: 4px;
+}
+
 #PanelUI-menu-button[badge-status] > .toolbarbutton-badge-stack > .toolbarbutton-badge {
-  display: -moz-box;
+  display: flex;
   height: 10px;
   width: 10px;
   background-size: contain;
@@ -139,7 +155,7 @@
 }
 
 panelview {
-  -moz-box-orient: vertical;
+  flex-direction: column;
   background: var(--arrowpanel-background);
   padding: 0;
 }
@@ -155,7 +171,7 @@ panelmultiview[transitioning] > .panel-viewcontainer > .panel-viewstack > panelv
 .panel-subview-body {
   overflow-y: auto;
   overflow-x: hidden;
-  -moz-box-flex: 1;
+  flex: 1;
   padding: var(--panel-subview-body-padding);
 }
 
@@ -169,7 +185,7 @@ toolbarseparator + .panel-subview-body {
 
 .panel-view-body-unscrollable {
   overflow: hidden;
-  -moz-box-flex: 1;
+  flex: 1;
 }
 
 .panel-info-button {
@@ -281,8 +297,6 @@ toolbarbutton menupopup[placespopup] > menu > .menu-right {
   fill-opacity: 0.6;
   width: unset;
   height: unset;
-  /* Reset the rect we inherit from the button */
-  -moz-image-region: auto;
 }
 
 toolbarbutton menupopup[placespopup] > menu > .menu-right:-moz-locale-dir(rtl) {
@@ -324,7 +338,7 @@ toolbarbutton menupopup[placespopup] menuseparator::before {
 }
 
 #confirmation-hint::part(content) {
-  -moz-box-align: center;
+  align-items: center;
 }
 
 #confirmation-hint-checkmark-animation-container {
@@ -475,7 +489,7 @@ panelview[id^=PanelUI-webext-] {
 }
 
 toolbarpaletteitem[place="panel"] > .toolbarbutton-1 {
-  -moz-box-flex: 1;
+  flex: 1;
 }
 
 /* Help webextension buttons fit in. */
@@ -489,7 +503,7 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
 
 #customization-palette .toolbarbutton-1 {
   appearance: none;
-  -moz-box-orient: vertical;
+  flex-direction: column;
   padding: 12px 0 9px;
   margin: 0;
 }
@@ -516,7 +530,7 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
 
 #appMenu-popup .panel-banner-item,
 #appMenu-popup .addon-banner-item {
-  -moz-box-align: start;
+  align-items: flex-start;
   color: var(--panel-banner-item-color);
   background-color: var(--panel-banner-item-background-color);
   margin-bottom: 4px;
@@ -550,7 +564,7 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
   width: 16px;
   height: 16px;
   /* Move the icon to appear after the text label. */
-  -moz-box-ordinal-group: 2;
+  order: 2;
 }
 
 .addon-banner-item > .toolbarbutton-icon {
@@ -561,7 +575,7 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
    added to put their generic notification in. */
 .addon-banner-item::after {
   content: "";
-  display: -moz-box;
+  display: flex;
   background: url(chrome://global/skin/icons/warning.svg) no-repeat center;
   width: 16px;
   height: 16px;
@@ -657,17 +671,14 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
 
 #fxa-manage-account-button > vbox > label,
 #PanelUI-fxa-menu-syncnow-button > hbox > label,
-#PanelUI-remotetabs-syncnow > hbox > label {
-  margin-inline-start: 0;
-}
-
+#PanelUI-remotetabs-syncnow > hbox > label,
 #appMenu-fxa-label2 > vbox > label {
-  margin-inline: 0;
+  margin: 0;
 }
 
 .syncNowBtn {
   visibility: collapse;
-  -moz-box-ordinal-group: 2;
+  order: 2;
 }
 
 .PanelUI-remotetabs-clientcontainer > label[itemtype="client"] {
@@ -705,10 +716,12 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
   display: none;
 }
 
-/* Hide the FxA toolbar button when its in the nav-bar, until in use */
-:root[fxastatus="not_configured"] #widget-overflow-list > #fxa-toolbar-menu-button,
-:root[fxastatus="not_configured"] #nav-bar-customization-target > #fxa-toolbar-menu-button {
-  display: none;
+@supports not -moz-bool-pref("identity.fxaccounts.toolbar.defaultVisible") {
+  /* Hide the FxA toolbar button when its in the nav-bar, until in use */
+  :root[fxastatus="not_configured"] #widget-overflow-list > #fxa-toolbar-menu-button,
+  :root[fxastatus="not_configured"] #nav-bar-customization-target > #fxa-toolbar-menu-button {
+    display: none;
+  }
 }
 
 #fxa-avatar-image,
@@ -757,10 +770,6 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
 
 #PanelUI-fxa-menu-monitor-button {
   list-style-image: url(chrome://browser/skin/fxa/monitor.svg);
-}
-
-#PanelUI-fxa-menu-connect-device-button {
-  list-style-image: url(chrome://browser/skin/fxa/add-device.svg);
 }
 
 :root:not([fxastatus="signedin"]) #PanelUI-fxa-menu-connect-device-button {
@@ -973,6 +982,7 @@ panelview .toolbarbutton-1,
   padding: var(--arrowpanel-menuitem-padding);
   border-radius: var(--arrowpanel-menuitem-border-radius);
   background-color: transparent;
+  flex-shrink: 0;
 }
 
 .subview-subheader {
@@ -985,7 +995,7 @@ panelview .toolbarbutton-1,
 
 .subviewbutton {
   /* toolbarbuttons default to centered, but we don't want that for subviews. */
-  -moz-box-pack: start;
+  justify-content: flex-start;
 }
 
 .subviewbutton[disabled="true"] {
@@ -1101,23 +1111,21 @@ panelview .toolbarbutton-1,
 
 .subviewbutton[shortcut]::after {
   content: attr(shortcut);
-  display: -moz-box;
+  display: flex;
   color: var(--panel-shortcut-color);
 }
 
 #protections-popup-mainView .subviewbutton-nav:not(.notFound)::after,
-#identity-credential-notification .subviewbutton-nav::after,
 .widget-overflow-list .subviewbutton-nav::after,
 .PanelUI-subView .subviewbutton-nav::after {
   -moz-context-properties: fill, fill-opacity;
   content: url(chrome://global/skin/icons/arrow-right.svg);
   fill: currentColor;
   fill-opacity: 0.6;
-  display: -moz-box;
+  display: flex;
 }
 
 #protections-popup-mainView .subviewbutton-nav:not(.notFound):-moz-locale-dir(rtl)::after,
-#identity-credential-notification .subviewbutton-nav:-moz-locale-dir(rtl)::after,
 .widget-overflow-list .subviewbutton-nav:-moz-locale-dir(rtl)::after,
 .PanelUI-subView .subviewbutton-nav:-moz-locale-dir(rtl)::after {
   content: url(chrome://global/skin/icons/arrow-left.svg);
@@ -1145,7 +1153,7 @@ panelview .toolbarbutton-1,
   -moz-context-properties: fill, fill-opacity;
   fill: currentColor;
   fill-opacity: 0.6;
-  display: -moz-box;
+  display: flex;
   height: 12px;
   width: 12px;
 }
@@ -1171,8 +1179,8 @@ panelview .toolbarbutton-1,
 
 .toolbaritem-combined-buttons,
 .toolbaritem-menu-buttons {
-  -moz-box-align: center;
-  -moz-box-orient: horizontal;
+  align-items: center;
+  flex-direction: row;
   border: 0;
   border-radius: 0;
 }
@@ -1183,13 +1191,13 @@ panelview .toolbarbutton-1,
 }
 
 panelmultiview .toolbaritem-combined-buttons > label {
-  -moz-box-flex: 1;
+  flex: 1;
   margin: 0;
   padding: 4px 0;
 }
 
 .PanelUI-subView .toolbaritem-combined-buttons > .subviewbutton {
-  -moz-box-flex: 0;
+  flex: none;
   height: auto;
   margin-inline-start: 18px;
   min-width: auto;
@@ -1309,20 +1317,20 @@ toolbarpaletteitem[place="palette"] > #search-container {
   max-height: 37px;
 }
 
-.toolbaritem-combined-buttons:is(
+.toolbaritem-combined-buttons:where(:not(.unified-extensions-item)):is(
   :not([cui-areatype="toolbar"]),
   [overflowedItem=true]
 ) > toolbarbutton {
   border: 0;
   margin: 0;
-  -moz-box-flex: 1;
+  flex: 1;
   padding-block: var(--arrowpanel-menuitem-padding-block);
-  -moz-box-orient: horizontal;
+  flex-direction: row;
 }
 
 toolbarpaletteitem[place="panel"],
 toolbarpaletteitem[place="panel"] > toolbaritem {
-  -moz-box-flex: 1;
+  flex: 1;
 }
 
 .toolbaritem-combined-buttons[cui-areatype="panel"] > .toolbarbutton-combined-buttons-dropmarker,
@@ -1349,7 +1357,7 @@ toolbarpaletteitem[place="panel"] > toolbaritem {
   [overflowedItem=true]
 ) > separator {
   appearance: none;
-  -moz-box-align: stretch;
+  align-items: stretch;
   margin: .5em 0;
   width: 1px;
   height: auto;
@@ -1366,16 +1374,9 @@ toolbarpaletteitem[place="panel"] > toolbaritem {
   margin: 0;
 }
 
-toolbaritem[overflowedItem=true],
 .widget-overflow-list .toolbarbutton-1 {
-  max-width: var(--menu-panel-width-wide);
-  background-repeat: no-repeat;
-  background-position: 0 center;
-}
-
-.widget-overflow-list .toolbarbutton-1 {
-  -moz-box-align: center;
-  -moz-box-orient: horizontal;
+  align-items: center;
+  flex-direction: row;
 }
 
 toolbarpaletteitem[place="menu-panel"] > .subviewbutton-nav::after {
@@ -1415,7 +1416,7 @@ toolbarpaletteitem[place="menu-panel"] > .subviewbutton-nav::after {
 }
 
 #panic-button-success-header {
-  -moz-box-align: center;
+  align-items: center;
   margin-bottom: 5px;
 }
 
@@ -1425,7 +1426,7 @@ toolbarpaletteitem[place="menu-panel"] > .subviewbutton-nav::after {
 
 .subviewradio {
   appearance: none;
-  -moz-box-align: center;
+  align-items: center;
   padding: 3px;
   margin: 0 0 2px;
   background-color: transparent;
@@ -1595,7 +1596,7 @@ radiogroup:focus-visible > .subviewradio[focused="true"] > .radio-label-box {
   padding: var(--arrowpanel-menuitem-margin-inline);
   /* Calculate the header's height assuming it includes an icon even if it doesn't,
      to make sure all headers are the same height (assuming their text is a one liner). */
-  min-height: var(--arrowpanel-header-height);
+  min-height: var(--arrowpanel-header-min-height);
 }
 
 .panel-header + toolbarseparator {
@@ -1603,25 +1604,26 @@ radiogroup:focus-visible > .subviewradio[focused="true"] > .radio-label-box {
 }
 
 .panel-header > h1 {
-  display: inline;
   flex: auto;
   font-size: inherit;
   font-weight: 600;
   margin: 0;
 }
 
-.panel-header.panel-header-with-info-button > .panel-info-button {
-  margin-inline-end: var(--arrowpanel-header-info-icon-margin-inline-end);
-}
-
 .panel-header.panel-header-with-info-button > h1 {
   /* Add the size of the info button to center properly. */
-  margin-inline-start: calc(var(--arrowpanel-header-info-icon-full-width) + var(--arrowpanel-header-info-icon-margin-inline-end));
+  margin-inline-start: var(--arrowpanel-header-info-icon-full-width);
 }
 
-.panel-header > .subviewbutton-back + h1 {
+.panel-header:not(.panel-header-with-info-button) > .subviewbutton-back + h1 {
   /* Add the size of the back button to center properly. */
   margin-inline-end: var(--arrowpanel-header-back-icon-full-width);
+}
+
+.panel-header.panel-header-with-info-button > .subviewbutton-back + h1 {
+  margin-inline-start: 0;
+  margin-inline-end: calc(var(--arrowpanel-header-back-icon-full-width)
+                          - var(--arrowpanel-header-info-icon-full-width));
 }
 
 .panel-header > h1 > span {
@@ -1844,10 +1846,6 @@ panelview:not([mainview]) #PanelUI-whatsNew-title {
 
 :where(#PanelUI-profiler) :is(description, label) {
   margin: 0;
-}
-
-#widget-overflow #PanelUI-profiler-header {
-  display: none;
 }
 
 #PanelUI-profiler-header[isinfocollapsed="false"] {

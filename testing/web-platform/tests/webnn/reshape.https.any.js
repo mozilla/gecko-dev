@@ -8,7 +8,7 @@
 // https://webmachinelearning.github.io/webnn/#api-mlgraphbuilder-reshape
 
 const buildReshape = (operationName, builder, resources) => {
-  // MLOperand reshape(MLOperand input, sequence<long> newShape);
+  // MLOperand reshape(MLOperand input, sequence<unsigned long?> newShape);
   const namedOutputOperand = {};
   const inputOperand = createSingleInputOperand(builder, resources);
   // invoke builder.reshape()
@@ -16,5 +16,5 @@ const buildReshape = (operationName, builder, resources) => {
   return namedOutputOperand;
 };
 
-testWebNNOperation('reshape', '/webnn/resources/test_data/reshape.json', buildReshape);
+testWebNNOperation('reshape', buildReshape);
 

@@ -30,6 +30,7 @@ const EXPECTED_REMOTE_SETTINGS_URLBAR_RESULT = {
   source: UrlbarUtils.RESULT_SOURCE.SEARCH,
   heuristic: false,
   payload: {
+    telemetryType: "adm_sponsored",
     qsSuggestion: SEARCH_STRING,
     title: "frabbits",
     url: "http://test.com/q=frabbits",
@@ -41,9 +42,17 @@ const EXPECTED_REMOTE_SETTINGS_URLBAR_RESULT = {
     sponsoredAdvertiser: "TestAdvertiser",
     isSponsored: true,
     helpUrl: QuickSuggest.HELP_URL,
-    helpL10n: { id: "firefox-suggest-urlbar-learn-more" },
-    isBlockable: false,
-    blockL10n: { id: "firefox-suggest-urlbar-block" },
+    helpL10n: {
+      id: UrlbarPrefs.get("resultMenu")
+        ? "urlbar-result-menu-learn-more-about-firefox-suggest"
+        : "firefox-suggest-urlbar-learn-more",
+    },
+    isBlockable: UrlbarPrefs.get("quickSuggestBlockingEnabled"),
+    blockL10n: {
+      id: UrlbarPrefs.get("resultMenu")
+        ? "urlbar-result-menu-dismiss-firefox-suggest"
+        : "firefox-suggest-urlbar-block",
+    },
     displayUrl: "http://test.com/q=frabbits",
     source: "remote-settings",
   },
@@ -54,6 +63,7 @@ const EXPECTED_MERINO_URLBAR_RESULT = {
   source: UrlbarUtils.RESULT_SOURCE.SEARCH,
   heuristic: false,
   payload: {
+    telemetryType: "adm_sponsored",
     qsSuggestion: "full_keyword",
     title: "title",
     url: "url",
@@ -65,21 +75,29 @@ const EXPECTED_MERINO_URLBAR_RESULT = {
     sponsoredAdvertiser: "advertiser",
     isSponsored: true,
     helpUrl: QuickSuggest.HELP_URL,
-    helpL10n: { id: "firefox-suggest-urlbar-learn-more" },
-    isBlockable: false,
-    blockL10n: { id: "firefox-suggest-urlbar-block" },
+    helpL10n: {
+      id: UrlbarPrefs.get("resultMenu")
+        ? "urlbar-result-menu-learn-more-about-firefox-suggest"
+        : "firefox-suggest-urlbar-learn-more",
+    },
+    isBlockable: UrlbarPrefs.get("quickSuggestBlockingEnabled"),
+    blockL10n: {
+      id: UrlbarPrefs.get("resultMenu")
+        ? "urlbar-result-menu-dismiss-firefox-suggest"
+        : "firefox-suggest-urlbar-block",
+    },
     displayUrl: "url",
     requestId: "request_id",
     source: "merino",
   },
 };
 
-// `UrlbarProviderQuickSuggest._merino` is lazily created on the first Merino
+// `UrlbarProviderQuickSuggest.#merino` is lazily created on the first Merino
 // fetch, so it's easiest to create `gClient` lazily too.
 XPCOMUtils.defineLazyGetter(
   this,
   "gClient",
-  () => UrlbarProviderQuickSuggest._merino
+  () => UrlbarProviderQuickSuggest._test_merino
 );
 
 add_task(async function init() {
@@ -96,7 +114,7 @@ add_task(async function init() {
   });
 
   Assert.equal(
-    typeof RemoteSettingsClient.DEFAULT_SUGGESTION_SCORE,
+    typeof QuickSuggestRemoteSettings.DEFAULT_SUGGESTION_SCORE,
     "number",
     "Sanity check: DEFAULT_SUGGESTION_SCORE is defined"
   );
@@ -113,7 +131,7 @@ add_task(async function oneEnabled_merino() {
   // Use a score lower than the remote settings score to make sure the
   // suggestion is included regardless.
   MerinoTestUtils.server.response.body.suggestions[0].score =
-    RemoteSettingsClient.DEFAULT_SUGGESTION_SCORE / 2;
+    QuickSuggestRemoteSettings.DEFAULT_SUGGESTION_SCORE / 2;
 
   let context = createContext(SEARCH_STRING, {
     providers: [UrlbarProviderQuickSuggest.name],
@@ -188,7 +206,7 @@ add_task(async function higherScore() {
   let histograms = MerinoTestUtils.getAndClearHistograms();
 
   MerinoTestUtils.server.response.body.suggestions[0].score =
-    2 * RemoteSettingsClient.DEFAULT_SUGGESTION_SCORE;
+    2 * QuickSuggestRemoteSettings.DEFAULT_SUGGESTION_SCORE;
 
   let context = createContext(SEARCH_STRING, {
     providers: [UrlbarProviderQuickSuggest.name],
@@ -220,7 +238,7 @@ add_task(async function lowerScore() {
   let histograms = MerinoTestUtils.getAndClearHistograms();
 
   MerinoTestUtils.server.response.body.suggestions[0].score =
-    RemoteSettingsClient.DEFAULT_SUGGESTION_SCORE / 2;
+    QuickSuggestRemoteSettings.DEFAULT_SUGGESTION_SCORE / 2;
 
   let context = createContext(SEARCH_STRING, {
     providers: [UrlbarProviderQuickSuggest.name],
@@ -252,7 +270,7 @@ add_task(async function sameScore() {
   let histograms = MerinoTestUtils.getAndClearHistograms();
 
   MerinoTestUtils.server.response.body.suggestions[0].score =
-    RemoteSettingsClient.DEFAULT_SUGGESTION_SCORE;
+    QuickSuggestRemoteSettings.DEFAULT_SUGGESTION_SCORE;
 
   let context = createContext(SEARCH_STRING, {
     providers: [UrlbarProviderQuickSuggest.name],
@@ -403,6 +421,7 @@ add_task(async function multipleMerinoSuggestions() {
 
   MerinoTestUtils.server.response.body.suggestions = [
     {
+      provider: "adm",
       full_keyword: "multipleMerinoSuggestions 0 full_keyword",
       title: "multipleMerinoSuggestions 0 title",
       url: "multipleMerinoSuggestions 0 url",
@@ -415,6 +434,7 @@ add_task(async function multipleMerinoSuggestions() {
       score: 0.1,
     },
     {
+      provider: "adm",
       full_keyword: "multipleMerinoSuggestions 1 full_keyword",
       title: "multipleMerinoSuggestions 1 title",
       url: "multipleMerinoSuggestions 1 url",
@@ -427,6 +447,7 @@ add_task(async function multipleMerinoSuggestions() {
       score: 1,
     },
     {
+      provider: "adm",
       full_keyword: "multipleMerinoSuggestions 2 full_keyword",
       title: "multipleMerinoSuggestions 2 title",
       url: "multipleMerinoSuggestions 2 url",
@@ -452,6 +473,7 @@ add_task(async function multipleMerinoSuggestions() {
         source: UrlbarUtils.RESULT_SOURCE.SEARCH,
         heuristic: false,
         payload: {
+          telemetryType: "adm_sponsored",
           qsSuggestion: "multipleMerinoSuggestions 1 full_keyword",
           title: "multipleMerinoSuggestions 1 title",
           url: "multipleMerinoSuggestions 1 url",
@@ -463,9 +485,17 @@ add_task(async function multipleMerinoSuggestions() {
           sponsoredAdvertiser: "multipleMerinoSuggestions 1 advertiser",
           isSponsored: true,
           helpUrl: QuickSuggest.HELP_URL,
-          helpL10n: { id: "firefox-suggest-urlbar-learn-more" },
-          isBlockable: false,
-          blockL10n: { id: "firefox-suggest-urlbar-block" },
+          helpL10n: {
+            id: UrlbarPrefs.get("resultMenu")
+              ? "urlbar-result-menu-learn-more-about-firefox-suggest"
+              : "firefox-suggest-urlbar-learn-more",
+          },
+          isBlockable: UrlbarPrefs.get("quickSuggestBlockingEnabled"),
+          blockL10n: {
+            id: UrlbarPrefs.get("resultMenu")
+              ? "urlbar-result-menu-dismiss-firefox-suggest"
+              : "firefox-suggest-urlbar-block",
+          },
           displayUrl: "multipleMerinoSuggestions 1 url",
           requestId: "request_id",
           source: "merino",
@@ -620,92 +650,27 @@ add_task(async function bestMatch() {
   expectedResult.isBestMatch = true;
   delete expectedResult.payload.qsSuggestion;
 
-  let context = createContext(SEARCH_STRING, {
-    providers: [UrlbarProviderQuickSuggest.name],
-    isPrivate: false,
-  });
-  await check_results({
-    context,
-    matches: [expectedResult],
-  });
+  await QuickSuggestTestUtils.withConfig({
+    config: QuickSuggestTestUtils.BEST_MATCH_CONFIG,
+    callback: async () => {
+      let context = createContext(SEARCH_STRING, {
+        providers: [UrlbarProviderQuickSuggest.name],
+        isPrivate: false,
+      });
+      await check_results({
+        context,
+        matches: [expectedResult],
+      });
 
-  // This isn't necessary since `check_results()` checks `isBestMatch`, but
-  // check it here explicitly for good measure.
-  Assert.ok(context.results[0].isBestMatch, "Result is a best match");
+      // This isn't necessary since `check_results()` checks `isBestMatch`, but
+      // check it here explicitly for good measure.
+      Assert.ok(context.results[0].isBestMatch, "Result is a best match");
+    },
+  });
 
   UrlbarPrefs.clear("bestMatch.enabled");
   UrlbarPrefs.clear("suggest.bestmatch");
 
   MerinoTestUtils.server.reset();
   gClient.resetSession();
-});
-
-add_task(async function topPick() {
-  UrlbarPrefs.set(PREF_MERINO_ENABLED, true);
-  UrlbarPrefs.set(PREF_REMOTE_SETTINGS_ENABLED, false);
-  UrlbarPrefs.set(PREF_DATA_COLLECTION_ENABLED, true);
-  UrlbarPrefs.set("bestMatch.enabled", true);
-  UrlbarPrefs.set("suggest.bestmatch", true);
-
-  let topPickSuggestion = createSuggestion(2, 2);
-  topPickSuggestion.is_top_pick = true;
-
-  MerinoTestUtils.server.response.body = {
-    request_id: "request_id",
-    suggestions: [
-      createSuggestion(0, 0.1),
-      createSuggestion(1, 1),
-      topPickSuggestion,
-    ],
-  };
-
-  let context = createContext(SEARCH_STRING, {
-    providers: [UrlbarProviderQuickSuggest.name],
-    isPrivate: false,
-  });
-  await check_results({
-    context,
-    matches: [
-      {
-        type: UrlbarUtils.RESULT_TYPE.URL,
-        source: UrlbarUtils.RESULT_SOURCE.SEARCH,
-        heuristic: false,
-        isBestMatch: true,
-        payload: {
-          title: "multipleMerinoSuggestions 2 title",
-          url: "multipleMerinoSuggestions 2 url",
-          originalUrl: "multipleMerinoSuggestions 2 url",
-          icon: "multipleMerinoSuggestions 2 icon",
-          sponsoredImpressionUrl: "multipleMerinoSuggestions 2 impression_url",
-          sponsoredClickUrl: "multipleMerinoSuggestions 2 click_url",
-          sponsoredBlockId: 2,
-          sponsoredAdvertiser: "multipleMerinoSuggestions 2 advertiser",
-          isSponsored: true,
-          helpUrl: QuickSuggest.HELP_URL,
-          helpL10n: { id: "firefox-suggest-urlbar-learn-more" },
-          isBlockable: false,
-          blockL10n: { id: "firefox-suggest-urlbar-block" },
-          displayUrl: "multipleMerinoSuggestions 2 url",
-          requestId: "request_id",
-          source: "merino",
-        },
-      },
-    ],
-  });
-
-  UrlbarPrefs.clear("bestMatch.enabled");
-  UrlbarPrefs.clear("suggest.bestmatch");
-});
-
-let createSuggestion = (n, score) => ({
-  full_keyword: `multipleMerinoSuggestions ${n} full_keyword`,
-  title: `multipleMerinoSuggestions ${n} title`,
-  url: `multipleMerinoSuggestions ${n} url`,
-  icon: `multipleMerinoSuggestions ${n} icon`,
-  impression_url: `multipleMerinoSuggestions ${n} impression_url`,
-  click_url: `multipleMerinoSuggestions ${n} click_url`,
-  block_id: n,
-  advertiser: `multipleMerinoSuggestions ${n} advertiser`,
-  is_sponsored: true,
-  score,
 });

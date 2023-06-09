@@ -73,14 +73,6 @@ public class BasicSelectionActionDelegate
   protected final @NonNull Activity mActivity;
   protected final boolean mUseFloatingToolbar;
 
-  @Deprecated
-  @DeprecationSchedule(id = "selection-fission", version = 112)
-  protected final @NonNull Matrix mTempMatrix = new Matrix();
-
-  @Deprecated
-  @DeprecationSchedule(id = "selection-fission", version = 112)
-  protected final @NonNull RectF mTempRect = new RectF();
-
   private boolean mExternalActionsEnabled;
 
   protected @Nullable ActionMode mActionMode;
@@ -477,11 +469,12 @@ public class BasicSelectionActionDelegate
       return;
     }
 
-    // mTempMatrix and mTempRect are deprecated.
-    mSession.getClientToScreenMatrix(mTempMatrix);
-    mTempMatrix.mapRect(mTempRect, mSelection.clientRect);
-
-    mSelection.screenRect.roundOut(outRect);
+    // outRect has to convert to current window coordinate.
+    final Matrix matrix = new Matrix();
+    mSession.getScreenToWindowManagerOffsetMatrix(matrix);
+    final RectF transformedRect = new RectF();
+    matrix.mapRect(transformedRect, mSelection.screenRect);
+    transformedRect.roundOut(outRect);
   }
 
   @TargetApi(Build.VERSION_CODES.M)

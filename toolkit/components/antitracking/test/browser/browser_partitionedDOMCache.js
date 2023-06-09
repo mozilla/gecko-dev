@@ -1,5 +1,3 @@
-/* import-globals-from partitionedstorage_head.js */
-
 const APS_PREF =
   "privacy.partition.always_partition_third_party_non_cookie_storage";
 
@@ -73,4 +71,40 @@ PartitionedStorageHelper.runTest(
   [[APS_PREF, true]],
 
   { runInSecureContext: true }
+);
+
+// Test that DOM cache is not available in PBM.
+PartitionedStorageHelper.runTest(
+  "DOMCache",
+  async (win3rdParty, win1stParty, allowed) => {
+    await win1stParty.caches.open("wow").then(
+      async cache => {
+        ok(false, "DOM Cache should not be available in PBM");
+      },
+      _ => {
+        ok(true, "DOM Cache should not be available in PBM");
+      }
+    );
+
+    await win3rdParty.caches.open("wow").then(
+      async cache => {
+        ok(false, "DOM Cache should not be available in PBM");
+      },
+      _ => {
+        ok(true, "DOM Cache should not be available in PBM");
+      }
+    );
+  },
+
+  async _ => {
+    await new Promise(resolve => {
+      Services.clearData.deleteData(Ci.nsIClearDataService.CLEAR_ALL, value =>
+        resolve()
+      );
+    });
+  },
+
+  [],
+
+  { runInSecureContext: true, runInPrivateWindow: true }
 );

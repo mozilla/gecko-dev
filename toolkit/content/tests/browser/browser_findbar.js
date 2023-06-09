@@ -1,11 +1,4 @@
 /* eslint-disable mozilla/no-arbitrary-setTimeout */
-const { setTimeout } = ChromeUtils.importESModule(
-  "resource://gre/modules/Timer.sys.mjs"
-);
-
-const { ContentTaskUtils } = ChromeUtils.importESModule(
-  "resource://testing-common/ContentTaskUtils.sys.mjs"
-);
 
 requestLongerTimeout(2);
 
@@ -193,7 +186,7 @@ add_task(async function test_reinitialization_at_remoteness_change() {
     false,
     E10S_PARENT_TEST_PAGE_URI
   );
-  BrowserTestUtils.loadURI(browser, E10S_PARENT_TEST_PAGE_URI);
+  BrowserTestUtils.loadURIString(browser, E10S_PARENT_TEST_PAGE_URI);
   await docLoaded;
   ok(!browser.isRemoteBrowser, "Browser should not be remote any more.");
   browser.contentDocument.body.append("The letter s.");

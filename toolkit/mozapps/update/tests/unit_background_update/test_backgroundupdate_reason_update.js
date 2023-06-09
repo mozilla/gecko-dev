@@ -6,19 +6,21 @@
 
 "use strict";
 
-const { BackgroundUpdate } = ChromeUtils.import(
-  "resource://gre/modules/BackgroundUpdate.jsm"
+const { BackgroundUpdate } = ChromeUtils.importESModule(
+  "resource://gre/modules/BackgroundUpdate.sys.mjs"
 );
 let reasons = () => BackgroundUpdate._reasonsToNotUpdateInstallation();
 let REASON = BackgroundUpdate.REASON;
 const { EnterprisePolicyTesting } = ChromeUtils.importESModule(
   "resource://testing-common/EnterprisePolicyTesting.sys.mjs"
 );
-const { UpdateService } = ChromeUtils.import(
-  "resource://gre/modules/UpdateService.jsm"
+const { UpdateService } = ChromeUtils.importESModule(
+  "resource://gre/modules/UpdateService.sys.mjs"
 );
 
-const { sinon } = ChromeUtils.import("resource://testing-common/Sinon.jsm");
+const { sinon } = ChromeUtils.importESModule(
+  "resource://testing-common/Sinon.sys.mjs"
+);
 
 // We can't reasonably check NO_MOZ_BACKGROUNDTASKS, nor NO_OMNIJAR.
 
@@ -47,15 +49,30 @@ async function setupPolicyEngineWithJson(json, customSchema) {
   return EnterprisePolicyTesting.setupPolicyEngineWithJson(json, customSchema);
 }
 
+add_setup(function test_setup() {
+  // FOG needs a profile directory to put its data in.
+  do_get_profile();
+
+  // We need to initialize it once, otherwise operations will be stuck in the pre-init queue.
+  Services.fog.initializeFOG();
+
+  setupProfileService();
+});
+
 add_task(async function test_reasons_update_no_app_update_auto() {
   let prev = await UpdateUtils.getAppUpdateAutoEnabled();
   try {
     await UpdateUtils.setAppUpdateAutoEnabled(false);
     let result = await reasons();
     Assert.ok(result.includes(REASON.NO_APP_UPDATE_AUTO));
+    result = await checkGleanPing();
+    Assert.ok(result.includes(REASON.NO_APP_UPDATE_AUTO));
 
     await UpdateUtils.setAppUpdateAutoEnabled(true);
     result = await reasons();
+    Assert.ok(!result.includes(REASON.NO_APP_UPDATE_AUTO));
+
+    result = await checkGleanPing();
     Assert.ok(!result.includes(REASON.NO_APP_UPDATE_AUTO));
   } finally {
     await UpdateUtils.setAppUpdateAutoEnabled(prev);
@@ -73,12 +90,16 @@ add_task(async function test_reasons_update_no_app_update_background_enabled() {
     );
     let result = await reasons();
     Assert.ok(result.includes(REASON.NO_APP_UPDATE_BACKGROUND_ENABLED));
+    result = await checkGleanPing();
+    Assert.ok(result.includes(REASON.NO_APP_UPDATE_BACKGROUND_ENABLED));
 
     await UpdateUtils.writeUpdateConfigSetting(
       "app.update.background.enabled",
       true
     );
     result = await reasons();
+    Assert.ok(!result.includes(REASON.NO_APP_UPDATE_BACKGROUND_ENABLED));
+    result = await checkGleanPing();
     Assert.ok(!result.includes(REASON.NO_APP_UPDATE_BACKGROUND_ENABLED));
   } finally {
     await UpdateUtils.writeUpdateConfigSetting(
@@ -101,6 +122,8 @@ add_task(async function test_reasons_update_cannot_usually_check() {
       .get(() => false);
     result = await reasons();
     Assert.ok(result.includes(REASON.CANNOT_USUALLY_CHECK));
+    result = await checkGleanPing();
+    Assert.ok(result.includes(REASON.CANNOT_USUALLY_CHECK));
   } finally {
     sandbox.restore();
   }
@@ -121,6 +144,10 @@ add_task(async function test_reasons_update_can_usually_stage_or_appl() {
     Assert.ok(
       !result.includes(REASON.CANNOT_USUALLY_STAGE_AND_CANNOT_USUALLY_APPLY)
     );
+    result = await checkGleanPing();
+    Assert.ok(
+      !result.includes(REASON.CANNOT_USUALLY_STAGE_AND_CANNOT_USUALLY_APPLY)
+    );
 
     sandbox
       .stub(UpdateService.prototype, "canUsuallyStageUpdates")
@@ -129,6 +156,10 @@ add_task(async function test_reasons_update_can_usually_stage_or_appl() {
       .stub(UpdateService.prototype, "canUsuallyApplyUpdates")
       .get(() => false);
     result = await reasons();
+    Assert.ok(
+      result.includes(REASON.CANNOT_USUALLY_STAGE_AND_CANNOT_USUALLY_APPLY)
+    );
+    result = await checkGleanPing();
     Assert.ok(
       result.includes(REASON.CANNOT_USUALLY_STAGE_AND_CANNOT_USUALLY_APPLY)
     );
@@ -159,9 +190,16 @@ add_task(
       Services.prefs.setBoolPref("app.update.BITS.enabled", false);
       let result = await reasons();
       Assert.ok(result.includes(REASON.WINDOWS_CANNOT_USUALLY_USE_BITS));
+      result = await checkGleanPing();
+      Assert.ok(
+        result.includes(REASON.WINDOWS_CANNOT_USUALLY_USE_BITS),
+        "result : " + result.join("', '") + "']"
+      );
 
       Services.prefs.setBoolPref("app.update.BITS.enabled", true);
       result = await reasons();
+      Assert.ok(!result.includes(REASON.WINDOWS_CANNOT_USUALLY_USE_BITS));
+      result = await checkGleanPing();
       Assert.ok(!result.includes(REASON.WINDOWS_CANNOT_USUALLY_USE_BITS));
     } finally {
       sandbox.restore();
@@ -184,10 +222,14 @@ add_task(async function test_reasons_update_manual_update_only() {
 
   let result = await reasons();
   Assert.ok(result.includes(REASON.MANUAL_UPDATE_ONLY));
+  result = await checkGleanPing();
+  Assert.ok(result.includes(REASON.MANUAL_UPDATE_ONLY));
 
   await setupPolicyEngineWithJson({});
 
   result = await reasons();
+  Assert.ok(!result.includes(REASON.MANUAL_UPDATE_ONLY));
+  result = await checkGleanPing();
   Assert.ok(!result.includes(REASON.MANUAL_UPDATE_ONLY));
 });
 

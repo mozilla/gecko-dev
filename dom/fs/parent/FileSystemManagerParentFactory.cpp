@@ -38,9 +38,18 @@ mozilla::ipc::IPCResult CreateFileSystemManagerParent(
          IPC_OK(),
          [aResolver](const auto&) { aResolver(NS_ERROR_DOM_SECURITY_ERR); });
 
-  quota::OriginMetadata originMetadata(
-      quota::QuotaManager::GetInfoFromValidatedPrincipalInfo(aPrincipalInfo),
-      quota::PERSISTENCE_TYPE_DEFAULT);
+  QM_TRY(quota::QuotaManager::EnsureCreated(), IPC_OK(),
+         [aResolver](const auto rv) { aResolver(rv); });
+
+  auto* const quotaManager = quota::QuotaManager::Get();
+  MOZ_ASSERT(quotaManager);
+
+  QM_TRY_UNWRAP(auto principalMetadata,
+                quotaManager->GetInfoFromValidatedPrincipalInfo(aPrincipalInfo),
+                IPC_OK(), [aResolver](const auto rv) { aResolver(rv); });
+
+  quota::OriginMetadata originMetadata(std::move(principalMetadata),
+                                       quota::PERSISTENCE_TYPE_DEFAULT);
 
   // Block use for now in PrivateBrowsing
   QM_TRY(OkIf(!OriginAttributes::IsPrivateBrowsing(originMetadata.mOrigin)),
@@ -65,7 +74,7 @@ mozilla::ipc::IPCResult CreateFileSystemManagerParent(
                 [aResolver](const auto& aRv) { aResolver(ToNSResult(aRv)); });
 
             InvokeAsync(
-                dataManager->MutableIOTargetPtr(), __func__,
+                dataManager->MutableIOTaskQueuePtr(), __func__,
                 [dataManager =
                      RefPtr<fs::data::FileSystemDataManager>(dataManager),
                  rootId, parentEndpoint = std::move(parentEndpoint)]() mutable {

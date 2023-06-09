@@ -8,6 +8,8 @@
 # - build directories and other items that we need to ignore
 
 !.eslintrc*.js
+!.prettierrc.js
+!.babel-eslint.rc.js
 
 # Always ignore node_modules.
 **/node_modules/
@@ -36,8 +38,8 @@ browser/components/sessionstore/test/unit/data/sessionstore_valid.js
 browser/components/sessionstore/test/unit/data/sessionstore_invalid.js
 # This file is split into two in order to keep it as a valid json file
 # for documentation purposes (policies.json) but to be accessed by the
-# code as a .jsm (schema.jsm)
-browser/components/enterprisepolicies/schemas/schema.jsm
+# code as a .sys.mjs (schema.sys.mjs)
+browser/components/enterprisepolicies/schemas/schema.sys.mjs
 # generated or library files in pocket
 browser/components/pocket/content/panels/js/tmpl.js
 browser/components/pocket/content/panels/js/vendor.bundle.js
@@ -86,11 +88,18 @@ devtools/client/webconsole/test/browser/code_bundle_nosource.js
 devtools/client/webconsole/test/browser/code_bundle_invalidmap.js
 devtools/client/webconsole/test/browser/test-autocomplete-mapped.js
 devtools/client/webconsole/test/browser/test-autocomplete-mapped.src.js
+devtools/client/inspector/markup/test/shadowdom_open_debugger.min.js
+devtools/client/webconsole/test/browser/test-click-function-to-source*.js
+devtools/client/webconsole/test/browser/test-external-script-errors.js
+devtools/client/webconsole/test/browser/test-mangled-function.*
+devtools/client/webconsole/test/browser/test-message-categories-canvas-css.js
+devtools/client/webconsole/test/browser/test-message-categories-empty-getelementbyid.js
+devtools/client/webconsole/test/browser/test-sourcemap*.js
 devtools/server/tests/xpcshell/setBreakpoint*
 devtools/server/tests/xpcshell/sourcemapped.js
 
 # Ignore generated code from wasm-bindgen
-devtools/client/performance-new/profiler_get_symbols.js
+devtools/client/performance-new/shared/profiler_get_symbols.js
 
 # Testing syntax error
 devtools/client/webconsole/test/browser/test-syntaxerror-worklet.js
@@ -182,7 +191,7 @@ services/common/kinto-http-client.js
 services/common/kinto-offline-client.js
 
 # Webpack-bundled library
-services/fxaccounts/FxAccountsPairingChannel.js
+services/fxaccounts/FxAccountsPairingChannel.sys.mjs
 
 # Servo is imported.
 servo/
@@ -215,7 +224,7 @@ toolkit/components/reader/Readability-readerable.js
 toolkit/components/reader/JSDOMParser.js
 
 # Uses preprocessing
-toolkit/components/reader/Readerable.jsm
+toolkit/components/reader/Readerable.sys.mjs
 
 # Generated & special files in cld2
 toolkit/components/translation/cld2/
@@ -232,9 +241,6 @@ tools/tryselect/selectors/chooser/templates/chooser.html
 
 # Ignore preprocessed *(P)refs.js files in update-packaging.
 tools/update-packaging/**/*refs.js
-
-# Ignore backgroundtasks preferences files.
-toolkit/components/backgroundtasks/defaults
 
 # Ignore pre-generated webpack and typescript transpiled files for translations
 browser/extensions/translations/extension/

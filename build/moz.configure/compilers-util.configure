@@ -105,18 +105,23 @@ def compiler_class(compiler, host_or_target):
                 self,
                 dependable(flags),
                 extra_toolchain_flags,
-                stlport_cppflags,
                 dependable(header),
                 onerror,
+                configure_cache,
                 when=when,
             )
             @checking_fn
-            def func(compiler, flags, extra_flags, stlport_flags, header, onerror):
+            def func(
+                compiler,
+                flags,
+                extra_flags,
+                header,
+                onerror,
+                configure_cache,
+            ):
                 flags = list(flags or [])
                 if is_target:
                     flags += extra_flags or []
-                    if compiler.language == "C++":
-                        flags += stlport_flags or []
                 header = header or ""
                 if isinstance(header, (list, tuple)):
                     header = "\n".join(header)
@@ -125,11 +130,13 @@ def compiler_class(compiler, host_or_target):
 
                 if (
                     try_invoke_compiler(
-                        compiler.wrapper + [compiler.compiler] + compiler.flags,
+                        configure_cache,
+                        [compiler.compiler] + compiler.flags,
                         compiler.language,
                         header + source,
                         flags,
                         onerror=onerror,
+                        wrapper=compiler.wrapper,
                     )
                     is not None
                 ):

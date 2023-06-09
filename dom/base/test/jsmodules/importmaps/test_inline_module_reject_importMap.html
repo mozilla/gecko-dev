@@ -6,6 +6,21 @@
 <body onload='testLoaded()'>
 <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
 
+<script>
+let gotMsg = false;
+let console = Cc["@mozilla.org/consoleservice;1"].getService(Ci.nsIConsoleService);
+let listener = {
+  QueryInterface: ChromeUtils.generateQI(["nsIConsoleListener"]),
+  observe(msg) {
+    info("console message:" + msg);
+    ok(msg.logLevel == Ci.nsIConsoleMessage.warn, "log level should be 'warn'.");
+    console.unregisterListener(this);
+    gotMsg = true;
+  }
+};
+console.registerListener(listener);
+</script>
+
 <!--There is an inline module before the import map tag, so the import map-->
 <!--cannot be accepted according to the spec.-->
 <!--And because the import map is rejected, so the module specifier-->
@@ -35,6 +50,7 @@
     import("./module_simpleExport.js").then((ns) => {
       ok(ns.x == 42, 'Check simple imported value result: ' + ns.x);
       ok(hasError, "onerror of the import map should be called.");
+      ok(gotMsg, "Should have got the console warning.");
     }).catch((e) => {
       ok(false, "throws " + e);
     }).then(() => {

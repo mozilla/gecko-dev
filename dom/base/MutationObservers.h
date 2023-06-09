@@ -45,8 +45,6 @@ class MutationObservers {
    * @param aNameSpaceID  Namespace of changing attribute
    * @param aAttribute    Local-name of changing attribute
    * @param aModType      Type of change (add/change/removal)
-   * @param aNewValue     The parsed new value, but only if BeforeSetAttr
-   *                      preparsed it!!!
    * @see nsIMutationObserver::AttributeWillChange
    */
   static void NotifyAttributeWillChange(mozilla::dom::Element* aElement,
@@ -87,15 +85,6 @@ class MutationObservers {
    */
   static void NotifyContentAppended(nsIContent* aContainer,
                                     nsIContent* aFirstNewContent);
-
-  /**
-   * Send NativeAnonymousChildList notifications to nsIMutationObservers
-   * @param aContent             Anonymous node that's been added or removed
-   * @param aIsRemove            True if it's a removal, false if an addition
-   * @see nsIMutationObserver::NativeAnonymousChildListChange
-   */
-  static void NotifyNativeAnonymousChildListChange(nsIContent* aContent,
-                                                   bool aIsRemove);
 
   /**
    * Send ContentInserted notifications to nsIMutationObservers

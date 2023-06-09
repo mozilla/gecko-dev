@@ -4,17 +4,26 @@ use super::{
     context::{Context, ExprPos, StmtContext},
     error::{Error, ErrorKind},
     types::scalar_components,
-    Parser, Result,
+    Frontend, Result,
 };
 use crate::{
     front::glsl::types::type_power, proc::ensure_block_returns, AddressSpace, Arena, Block,
-    Constant, ConstantInner, EntryPoint, Expression, FastHashMap, Function, FunctionArgument,
-    FunctionResult, Handle, LocalVariable, ScalarKind, ScalarValue, Span, Statement, StructMember,
-    Type, TypeInner,
+    Constant, ConstantInner, EntryPoint, Expression, Function, FunctionArgument, FunctionResult,
+    Handle, LocalVariable, ScalarKind, ScalarValue, Span, Statement, StructMember, Type, TypeInner,
 };
 use std::iter;
 
-impl Parser {
+/// Struct detailing a store operation that must happen after a function call
+struct ProxyWrite {
+    /// The store target
+    target: Handle<Expression>,
+    /// A pointer to read the value of the store
+    value: Handle<Expression>,
+    /// An optional conversion to be applied
+    convert: Option<(ScalarKind, crate::Bytes)>,
+}
+
+impl Frontend {
     fn add_constant_value(
         &mut self,
         scalar_kind: ScalarKind,
@@ -25,7 +34,7 @@ impl Parser {
             ScalarKind::Uint => ScalarValue::Uint(value),
             ScalarKind::Sint => ScalarValue::Sint(value as i64),
             ScalarKind::Float => ScalarValue::Float(value as f64),
-            _ => unreachable!(),
+            ScalarKind::Bool => unreachable!(),
         };
 
         self.module.constants.fetch_or_append(
@@ -292,7 +301,6 @@ impl Parser {
                             Expression::Compose {
                                 ty: vector_ty,
                                 components: (0..rows as u32)
-                                    .into_iter()
                                     .map(|r| match r == i {
                                         true => value,
                                         false => zero,
@@ -367,7 +375,6 @@ impl Parser {
                         components.push(match ori_rows.cmp(&rows) {
                             Ordering::Less => {
                                 let components = (0..rows as u32)
-                                    .into_iter()
                                     .map(|r| {
                                         if r < ori_rows as u32 {
                                             ctx.add_expression(
@@ -406,7 +413,6 @@ impl Parser {
                                 inner: ConstantInner::Composite {
                                     ty: vector_ty,
                                     components: (0..rows as u32)
-                                        .into_iter()
                                         .map(|r| match r == i {
                                             true => one_constant,
                                             false => zero_constant,
@@ -631,12 +637,14 @@ impl Parser {
 
         // Iterate over all the available overloads to select either an exact match or a
         // overload which has suitable implicit conversions
-        'outer: for overload in declaration.overloads.iter() {
+        'outer: for (overload_idx, overload) in declaration.overloads.iter().enumerate() {
             // If the overload and the function call don't have the same number of arguments
             // continue to the next overload
             if args.len() != overload.parameters.len() {
                 continue;
             }
+
+            log::trace!("Testing overload {}", overload_idx);
 
             // Stores whether the current overload matches exactly the function call
             let mut exact = true;
@@ -649,7 +657,7 @@ impl Parser {
             // conversions used for querying the best overload
             let mut new_conversions = vec![Conversion::None; args.len()];
 
-            // Loop trough the overload parameters and check if the current overload is better
+            // Loop through the overload parameters and check if the current overload is better
             // compared to the previous best overload.
             for (i, overload_parameter) in overload.parameters.iter().enumerate() {
                 let call_argument = &args[i];
@@ -721,8 +729,7 @@ impl Parser {
                         self.errors.push(Error {
                             kind: ErrorKind::SemanticError(
                                 format!(
-                                    "'{}': image needs {:?} access but only {:?} was provided",
-                                    name, overload_access, call_access
+                                    "'{name}': image needs {overload_access:?} access but only {call_access:?} was provided"
                                 )
                                 .into(),
                             ),
@@ -739,15 +746,32 @@ impl Parser {
                     continue;
                 }
 
-                // If the argument is to be passed as a pointer (i.e. either `out` or
-                // `inout` where used as qualifiers) no conversion shall be performed
-                if parameter_info.qualifier.is_lhs() {
+                // Glsl defines that inout follows both the conversions for input parameters and
+                // output parameters, this means that the type must have a conversion from both the
+                // call argument to the function parameter and the function parameter to the call
+                // argument, the only way this is possible is for the conversion to be an identity
+                // (i.e. call argument = function parameter)
+                if let ParameterQualifier::InOut = parameter_info.qualifier {
                     continue 'outer;
                 }
 
-                // Try to get the type of conversion needed otherwise this overload can't be used
-                // since no conversion makes it possible so skip it
-                let conversion = match conversion(overload_param_ty, call_arg_ty) {
+                // The function call argument and the function definition
+                // parameter are not equal at this point, so we need to try
+                // implicit conversions.
+                //
+                // Now there are two cases, the argument is defined as a normal
+                // parameter (`in` or `const`), in this case an implicit
+                // conversion is made from the calling argument to the
+                // definition argument. If the parameter is `out` the
+                // opposite needs to be done, so the implicit conversion is made
+                // from the definition argument to the calling argument.
+                let maybe_conversion = if parameter_info.qualifier.is_lhs() {
+                    conversion(call_arg_ty, overload_param_ty)
+                } else {
+                    conversion(overload_param_ty, call_arg_ty)
+                };
+
+                let conversion = match maybe_conversion {
                     Some(info) => info,
                     None => continue 'outer,
                 };
@@ -829,14 +853,14 @@ impl Parser {
         if ambiguous {
             self.errors.push(Error {
                 kind: ErrorKind::SemanticError(
-                    format!("Ambiguous best function for '{}'", name).into(),
+                    format!("Ambiguous best function for '{name}'").into(),
                 ),
                 meta,
             })
         }
 
         let overload = maybe_overload.ok_or_else(|| Error {
-            kind: ErrorKind::SemanticError(format!("Unknown function '{}'", name).into()),
+            kind: ErrorKind::SemanticError(format!("Unknown function '{name}'").into()),
             meta,
         })?;
 
@@ -847,130 +871,37 @@ impl Parser {
 
         let mut arguments = Vec::with_capacity(args.len());
         let mut proxy_writes = Vec::new();
-        // Iterate trough the function call arguments applying transformations as needed
-        for (parameter_info, (expr, parameter)) in parameters_info
+
+        // Iterate through the function call arguments applying transformations as needed
+        for (((parameter_info, call_argument), expr), parameter) in parameters_info
             .iter()
-            .zip(raw_args.iter().zip(parameters.iter()))
+            .zip(&args)
+            .zip(raw_args)
+            .zip(&parameters)
         {
             let (mut handle, meta) =
                 ctx.lower_expect_inner(stmt, self, *expr, parameter_info.qualifier.as_pos(), body)?;
 
             if parameter_info.qualifier.is_lhs() {
-                let (ty, value) = match *self.resolve_type(ctx, handle, meta)? {
-                    // If the argument is to be passed as a pointer but the type of the
-                    // expression returns a vector it must mean that it was for example
-                    // swizzled and it must be spilled into a local before calling
-                    TypeInner::Vector { size, kind, width } => (
-                        self.module.types.insert(
-                            Type {
-                                name: None,
-                                inner: TypeInner::Vector { size, kind, width },
-                            },
-                            Span::default(),
-                        ),
-                        handle,
-                    ),
-                    // If the argument is a pointer whose address space isn't `Function`, an
-                    // indirection through a local variable is needed to align the address
-                    // spaces of the call argument and the overload parameter.
-                    TypeInner::Pointer { base, space } if space != AddressSpace::Function => (
-                        base,
-                        ctx.add_expression(
-                            Expression::Load { pointer: handle },
-                            Span::default(),
-                            body,
-                        ),
-                    ),
-                    TypeInner::ValuePointer {
-                        size,
-                        kind,
-                        width,
-                        space,
-                    } if space != AddressSpace::Function => {
-                        let inner = match size {
-                            Some(size) => TypeInner::Vector { size, kind, width },
-                            None => TypeInner::Scalar { kind, width },
-                        };
+                self.process_lhs_argument(
+                    ctx,
+                    body,
+                    meta,
+                    *parameter,
+                    parameter_info,
+                    handle,
+                    call_argument,
+                    &mut proxy_writes,
+                    &mut arguments,
+                )?;
 
-                        (
-                            self.module
-                                .types
-                                .insert(Type { name: None, inner }, Span::default()),
-                            ctx.add_expression(
-                                Expression::Load { pointer: handle },
-                                Span::default(),
-                                body,
-                            ),
-                        )
-                    }
-                    _ => {
-                        arguments.push(handle);
-                        continue;
-                    }
-                };
-
-                let temp_var = ctx.locals.append(
-                    LocalVariable {
-                        name: None,
-                        ty,
-                        init: None,
-                    },
-                    Span::default(),
-                );
-                let temp_expr =
-                    ctx.add_expression(Expression::LocalVariable(temp_var), Span::default(), body);
-
-                body.push(
-                    Statement::Store {
-                        pointer: temp_expr,
-                        value,
-                    },
-                    Span::default(),
-                );
-
-                arguments.push(temp_expr);
-                // Register the temporary local to be written back to it's original
-                // place after the function call
-                if let Expression::Swizzle {
-                    size,
-                    mut vector,
-                    pattern,
-                } = ctx.expressions[value]
-                {
-                    if let Expression::Load { pointer } = ctx.expressions[vector] {
-                        vector = pointer;
-                    }
-
-                    for (i, component) in pattern.iter().take(size as usize).enumerate() {
-                        let original = ctx.add_expression(
-                            Expression::AccessIndex {
-                                base: vector,
-                                index: *component as u32,
-                            },
-                            Span::default(),
-                            body,
-                        );
-
-                        let temp = ctx.add_expression(
-                            Expression::AccessIndex {
-                                base: temp_expr,
-                                index: i as u32,
-                            },
-                            Span::default(),
-                            body,
-                        );
-
-                        proxy_writes.push((original, temp));
-                    }
-                } else {
-                    proxy_writes.push((handle, temp_expr));
-                }
                 continue;
             }
 
+            let scalar_comps = scalar_components(&self.module.types[*parameter].inner);
+
             // Apply implicit conversions as needed
-            let scalar_components = scalar_components(&self.module.types[*parameter].inner);
-            if let Some((kind, width)) = scalar_components {
+            if let Some((kind, width)) = scalar_comps {
                 ctx.implicit_conversion(self, &mut handle, meta, kind, width)?;
             }
 
@@ -999,14 +930,24 @@ impl Parser {
                 ctx.emit_start();
 
                 // Write back all the variables that were scheduled to their original place
-                for (original, pointer) in proxy_writes {
-                    let value = ctx.add_expression(Expression::Load { pointer }, meta, body);
+                for proxy_write in proxy_writes {
+                    let mut value = ctx.add_expression(
+                        Expression::Load {
+                            pointer: proxy_write.value,
+                        },
+                        meta,
+                        body,
+                    );
+
+                    if let Some((kind, width)) = proxy_write.convert {
+                        ctx.conversion(&mut value, meta, kind, width)?;
+                    }
 
                     ctx.emit_restart(body);
 
                     body.push(
                         Statement::Store {
-                            pointer: original,
+                            pointer: proxy_write.target,
                             value,
                         },
                         meta,
@@ -1021,6 +962,170 @@ impl Parser {
         }
     }
 
+    /// Processes a function call argument that appears in place of an output
+    /// parameter.
+    #[allow(clippy::too_many_arguments)]
+    fn process_lhs_argument(
+        &mut self,
+        ctx: &mut Context,
+        body: &mut Block,
+        meta: Span,
+        parameter_ty: Handle<Type>,
+        parameter_info: &ParameterInfo,
+        original: Handle<Expression>,
+        call_argument: &(Handle<Expression>, Span),
+        proxy_writes: &mut Vec<ProxyWrite>,
+        arguments: &mut Vec<Handle<Expression>>,
+    ) -> Result<()> {
+        let original_ty = self.resolve_type(ctx, original, meta)?;
+        let original_pointer_space = original_ty.pointer_space();
+
+        // The type of a possible spill variable needed for a proxy write
+        let mut maybe_ty = match *original_ty {
+            // If the argument is to be passed as a pointer but the type of the
+            // expression returns a vector it must mean that it was for example
+            // swizzled and it must be spilled into a local before calling
+            TypeInner::Vector { size, kind, width } => Some(self.module.types.insert(
+                Type {
+                    name: None,
+                    inner: TypeInner::Vector { size, kind, width },
+                },
+                Span::default(),
+            )),
+            // If the argument is a pointer whose address space isn't `Function`, an
+            // indirection through a local variable is needed to align the address
+            // spaces of the call argument and the overload parameter.
+            TypeInner::Pointer { base, space } if space != AddressSpace::Function => Some(base),
+            TypeInner::ValuePointer {
+                size,
+                kind,
+                width,
+                space,
+            } if space != AddressSpace::Function => {
+                let inner = match size {
+                    Some(size) => TypeInner::Vector { size, kind, width },
+                    None => TypeInner::Scalar { kind, width },
+                };
+
+                Some(
+                    self.module
+                        .types
+                        .insert(Type { name: None, inner }, Span::default()),
+                )
+            }
+            _ => None,
+        };
+
+        // Since the original expression might be a pointer and we want a value
+        // for the proxy writes, we might need to load the pointer.
+        let value = if original_pointer_space.is_some() {
+            ctx.add_expression(
+                Expression::Load { pointer: original },
+                Span::default(),
+                body,
+            )
+        } else {
+            original
+        };
+
+        let call_arg_ty = self.resolve_type(ctx, call_argument.0, call_argument.1)?;
+        let overload_param_ty = &self.module.types[parameter_ty].inner;
+        let needs_conversion = call_arg_ty != overload_param_ty;
+
+        let arg_scalar_comps = scalar_components(call_arg_ty);
+
+        // Since output parameters also allow implicit conversions from the
+        // parameter to the argument, we need to spill the conversion to a
+        // variable and create a proxy write for the original variable.
+        if needs_conversion {
+            maybe_ty = Some(parameter_ty);
+        }
+
+        if let Some(ty) = maybe_ty {
+            // Create the spill variable
+            let spill_var = ctx.locals.append(
+                LocalVariable {
+                    name: None,
+                    ty,
+                    init: None,
+                },
+                Span::default(),
+            );
+            let spill_expr =
+                ctx.add_expression(Expression::LocalVariable(spill_var), Span::default(), body);
+
+            // If the argument is also copied in we must store the value of the
+            // original variable to the spill variable.
+            if let ParameterQualifier::InOut = parameter_info.qualifier {
+                body.push(
+                    Statement::Store {
+                        pointer: spill_expr,
+                        value,
+                    },
+                    Span::default(),
+                );
+            }
+
+            // Add the spill variable as an argument to the function call
+            arguments.push(spill_expr);
+
+            let convert = if needs_conversion {
+                arg_scalar_comps
+            } else {
+                None
+            };
+
+            // Register the temporary local to be written back to it's original
+            // place after the function call
+            if let Expression::Swizzle {
+                size,
+                mut vector,
+                pattern,
+            } = ctx.expressions[original]
+            {
+                if let Expression::Load { pointer } = ctx.expressions[vector] {
+                    vector = pointer;
+                }
+
+                for (i, component) in pattern.iter().take(size as usize).enumerate() {
+                    let original = ctx.add_expression(
+                        Expression::AccessIndex {
+                            base: vector,
+                            index: *component as u32,
+                        },
+                        Span::default(),
+                        body,
+                    );
+
+                    let spill_component = ctx.add_expression(
+                        Expression::AccessIndex {
+                            base: spill_expr,
+                            index: i as u32,
+                        },
+                        Span::default(),
+                        body,
+                    );
+
+                    proxy_writes.push(ProxyWrite {
+                        target: original,
+                        value: spill_component,
+                        convert,
+                    });
+                }
+            } else {
+                proxy_writes.push(ProxyWrite {
+                    target: original,
+                    value: spill_expr,
+                    convert,
+                });
+            }
+        } else {
+            arguments.push(original);
+        }
+
+        Ok(())
+    }
+
     pub(crate) fn add_function(
         &mut self,
         ctx: Context,
@@ -1033,7 +1138,7 @@ impl Parser {
 
         let void = result.is_none();
 
-        let &mut Parser {
+        let &mut Frontend {
             ref mut lookup_function,
             ref mut module,
             ..
@@ -1065,7 +1170,7 @@ impl Parser {
             result,
             local_variables: locals,
             expressions,
-            named_expressions: FastHashMap::default(),
+            named_expressions: crate::NamedExpressions::default(),
             body,
         };
 
@@ -1122,7 +1227,7 @@ impl Parser {
     ) {
         let void = result.is_none();
 
-        let &mut Parser {
+        let &mut Frontend {
             ref mut lookup_function,
             ref mut module,
             ..
@@ -1218,7 +1323,7 @@ impl Parser {
             } => {
                 let mut location = match binding {
                     crate::Binding::Location { location, .. } => location,
-                    _ => return,
+                    crate::Binding::BuiltIn(_) => return,
                 };
 
                 // TODO: Better error reporting
@@ -1267,7 +1372,7 @@ impl Parser {
             TypeInner::Struct { ref members, .. } => {
                 let mut location = match binding {
                     crate::Binding::Location { location, .. } => location,
-                    _ => return,
+                    crate::Binding::BuiltIn(_) => return,
                 };
 
                 for (i, member) in members.iter().enumerate() {

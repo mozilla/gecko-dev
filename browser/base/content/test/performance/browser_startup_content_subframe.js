@@ -21,11 +21,11 @@
 "use strict";
 
 const actorModuleURI =
-  getRootDirectory(gTestPath) + "StartupContentSubframe.jsm";
+  getRootDirectory(gTestPath) + "StartupContentSubframe.sys.mjs";
 const subframeURI =
   getRootDirectory(gTestPath).replace(
     "chrome://mochitests/content",
-    "http://example.com"
+    "https://example.com"
   ) + "file_empty.html";
 
 // Set this to true only for debugging purpose; it makes the output noisy.
@@ -38,14 +38,10 @@ const known_scripts = {
 
     // General utilities
     "resource://gre/modules/AppConstants.sys.mjs",
-    "resource://gre/modules/DeferredTask.sys.mjs",
     "resource://gre/modules/XPCOMUtils.sys.mjs",
 
     // Logging related
     "resource://gre/modules/Log.sys.mjs",
-
-    // Browser front-end
-    "resource:///actors/PageStyleChild.jsm",
 
     // Telemetry
     "resource://gre/modules/TelemetryControllerBase.sys.mjs", // bug 1470339
@@ -68,7 +64,7 @@ const intermittently_loaded_scripts = {
     "resource://gre/modules/nsAsyncShutdown.sys.mjs",
 
     // Cookie banner handling.
-    "resource://gre/actors/CookieBannerChild.jsm",
+    "resource://gre/actors/CookieBannerChild.sys.mjs",
     "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
 
     // Test related
@@ -108,10 +104,10 @@ add_task(async function() {
   // script loading information is available.
   ChromeUtils.registerWindowActor("StartupContentSubframe", {
     parent: {
-      moduleURI: actorModuleURI,
+      esModuleURI: actorModuleURI,
     },
     child: {
-      moduleURI: actorModuleURI,
+      esModuleURI: actorModuleURI,
       events: {
         load: { mozSystemGroup: true, capture: true },
       },

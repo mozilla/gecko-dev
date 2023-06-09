@@ -219,6 +219,37 @@ class WebExtensionTest : BaseSessionTest() {
             }
         })
 
+        sessionRule.addExternalDelegateUntilTestEnd(
+            WebExtensionController.AddonManagerDelegate::class,
+            { delegate -> controller.setAddonManagerDelegate(delegate) },
+            { controller.setAddonManagerDelegate(null) },
+            object : WebExtensionController.AddonManagerDelegate {
+                @AssertCalled(count = 3)
+                override fun onEnabling(extension: WebExtension) {}
+
+                @AssertCalled(count = 3)
+                override fun onEnabled(extension: WebExtension) {}
+
+                @AssertCalled(count = 3)
+                override fun onDisabling(extension: WebExtension) {}
+
+                @AssertCalled(count = 3)
+                override fun onDisabled(extension: WebExtension) {}
+
+                @AssertCalled(count = 1)
+                override fun onUninstalling(extension: WebExtension) {}
+
+                @AssertCalled(count = 1)
+                override fun onUninstalled(extension: WebExtension) {}
+
+                @AssertCalled(count = 1)
+                override fun onInstalling(extension: WebExtension) {}
+
+                @AssertCalled(count = 1)
+                override fun onInstalled(extension: WebExtension) {}
+            }
+        )
+
         // First let's check that the color of the border is empty before loading
         // the WebExtension
         assertBodyBorderEqualTo("")
@@ -2493,6 +2524,40 @@ class WebExtensionTest : BaseSessionTest() {
                 return GeckoResult.allow()
             }
         })
+
+        sessionRule.addExternalDelegateUntilTestEnd(
+            WebExtensionController.AddonManagerDelegate::class,
+            { delegate -> controller.setAddonManagerDelegate(delegate) },
+            { controller.setAddonManagerDelegate(null) },
+            object : WebExtensionController.AddonManagerDelegate {
+                @AssertCalled(count = 0)
+                override fun onEnabling(extension: WebExtension) {}
+
+                @AssertCalled(count = 0)
+                override fun onEnabled(extension: WebExtension) {}
+
+                @AssertCalled(count = 1)
+                override fun onDisabling(extension: WebExtension) {}
+
+                @AssertCalled(count = 1)
+                override fun onDisabled(extension: WebExtension) {}
+
+                @AssertCalled(count = 1)
+                override fun onUninstalling(extension: WebExtension) {}
+
+                @AssertCalled(count = 1)
+                override fun onUninstalled(extension: WebExtension) {}
+
+                // We expect onInstalling/onInstalled to be invoked twice
+                // because we first install the extension and then we update
+                // it, which results in a second install.
+                @AssertCalled(count = 2)
+                override fun onInstalling(extension: WebExtension) {}
+
+                @AssertCalled(count = 2)
+                override fun onInstalled(extension: WebExtension) {}
+            }
+        )
 
         val webExtension = sessionRule.waitForResult(
             controller.install("https://example.org/tests/junit/update-1.xpi")

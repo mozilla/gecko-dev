@@ -19,6 +19,7 @@ import {
 import configureStore from "../actions/utils/create-store";
 import sourceQueue from "../utils/source-queue";
 import { setupCreate } from "../client/firefox/create";
+import { createLocation } from "./location";
 
 // Import the internal module used by the source-map worker
 // as node doesn't have Web Worker support and require path mapping
@@ -82,10 +83,17 @@ function commonLog(msg, data = {}) {
 }
 
 function makeFrame({ id, sourceId, thread }, opts = {}) {
+  const source = createSourceObject(sourceId);
+  const sourceActor = {
+    id: `${sourceId}-actor`,
+    actor: `${sourceId}-actor`,
+    source: sourceId,
+    sourceObject: source,
+  };
   return {
     id,
     scope: { bindings: { variables: {}, arguments: [] } },
-    location: { sourceId, line: 4 },
+    location: createLocation({ source, sourceActor, line: 4 }),
     thread: thread || "FakeThread",
     ...opts,
   };

@@ -739,11 +739,30 @@ const QuotaCleaner = {
   async cleanupAfterDeletionAtShutdown() {
     const storageDir = PathUtils.join(
       PathUtils.profileDir,
-      Services.prefs.getStringPref("dom.quotaManager.storageName"),
-      "to-be-removed"
+      Services.prefs.getStringPref("dom.quotaManager.storageName")
     );
 
-    await IOUtils.remove(storageDir, { recursive: true });
+    if (
+      !AppConstants.MOZ_BACKGROUNDTASKS ||
+      !Services.prefs.getBoolPref("dom.quotaManager.backgroundTask.enabled")
+    ) {
+      await IOUtils.remove(PathUtils.join(storageDir, "to-be-removed"), {
+        recursive: true,
+      });
+      return;
+    }
+
+    const runner = Cc["@mozilla.org/backgroundtasksrunner;1"].getService(
+      Ci.nsIBackgroundTasksRunner
+    );
+
+    runner.removeDirectoryInDetachedProcess(
+      storageDir,
+      "to-be-removed",
+      "0",
+      "",
+      "Quota"
+    );
   },
 };
 
@@ -872,7 +891,7 @@ const StorageAccessCleaner = {
         try {
           Services.perms.removePermission(perm);
         } catch (ex) {
-          Cu.reportError(ex);
+          console.error(ex);
         }
       });
   },
@@ -1174,7 +1193,7 @@ const ClientAuthRememberCleaner = {
               originSuffix
             );
           } catch (e) {
-            Cu.reportError(e);
+            console.error(e);
           }
         }
 
@@ -1401,44 +1420,86 @@ const PreflightCacheCleaner = {
 
 const IdentityCredentialStorageCleaner = {
   async deleteAll() {
-    lazy.IdentityCredentialStorageService.clear();
+    if (
+      Services.prefs.getBoolPref(
+        "dom.security.credentialmanagement.identity.enabled",
+        false
+      )
+    ) {
+      lazy.IdentityCredentialStorageService.clear();
+    }
   },
 
   async deleteByPrincipal(aPrincipal, aIsUserRequest) {
-    lazy.IdentityCredentialStorageService.deleteFromPrincipal(aPrincipal);
+    if (
+      Services.prefs.getBoolPref(
+        "dom.security.credentialmanagement.identity.enabled",
+        false
+      )
+    ) {
+      lazy.IdentityCredentialStorageService.deleteFromPrincipal(aPrincipal);
+    }
   },
 
   async deleteByBaseDomain(aBaseDomain, aIsUserRequest) {
     if (!aIsUserRequest) {
       return;
     }
-    lazy.IdentityCredentialStorageService.deleteFromBaseDomain(aBaseDomain);
+    if (
+      Services.prefs.getBoolPref(
+        "dom.security.credentialmanagement.identity.enabled",
+        false
+      )
+    ) {
+      lazy.IdentityCredentialStorageService.deleteFromBaseDomain(aBaseDomain);
+    }
   },
 
   async deleteByRange(aFrom, aTo) {
-    lazy.IdentityCredentialStorageService.deleteFromRange(aFrom, aTo);
+    if (
+      Services.prefs.getBoolPref(
+        "dom.security.credentialmanagement.identity.enabled",
+        false
+      )
+    ) {
+      lazy.IdentityCredentialStorageService.deleteFromTimeRange(aFrom, aTo);
+    }
   },
 
   async deleteByHost(aHost, aOriginAttributes) {
-    // Delete data from both HTTP and HTTPS sites.
-    let httpURI = Services.io.newURI("http://" + aHost);
-    let httpsURI = Services.io.newURI("https://" + aHost);
-    let httpPrincipal = Services.scriptSecurityManager.createContentPrincipal(
-      httpURI,
-      aOriginAttributes
-    );
-    let httpsPrincipal = Services.scriptSecurityManager.createContentPrincipal(
-      httpsURI,
-      aOriginAttributes
-    );
-    lazy.IdentityCredentialStorageService.deleteFromPrincipal(httpPrincipal);
-    lazy.IdentityCredentialStorageService.deleteFromPrincipal(httpsPrincipal);
+    if (
+      Services.prefs.getBoolPref(
+        "dom.security.credentialmanagement.identity.enabled",
+        false
+      )
+    ) {
+      // Delete data from both HTTP and HTTPS sites.
+      let httpURI = Services.io.newURI("http://" + aHost);
+      let httpsURI = Services.io.newURI("https://" + aHost);
+      let httpPrincipal = Services.scriptSecurityManager.createContentPrincipal(
+        httpURI,
+        aOriginAttributes
+      );
+      let httpsPrincipal = Services.scriptSecurityManager.createContentPrincipal(
+        httpsURI,
+        aOriginAttributes
+      );
+      lazy.IdentityCredentialStorageService.deleteFromPrincipal(httpPrincipal);
+      lazy.IdentityCredentialStorageService.deleteFromPrincipal(httpsPrincipal);
+    }
   },
 
   async deleteByOriginAttributes(aOriginAttributesString) {
-    lazy.IdentityCredentialStorageService.deleteFromOriginAttributesPattern(
-      aOriginAttributesString
-    );
+    if (
+      Services.prefs.getBoolPref(
+        "dom.security.credentialmanagement.identity.enabled",
+        false
+      )
+    ) {
+      lazy.IdentityCredentialStorageService.deleteFromOriginAttributesPattern(
+        aOriginAttributesString
+      );
+    }
   },
 };
 
@@ -1572,7 +1633,7 @@ ClearDataService.prototype = Object.freeze({
     // This is mainly needed for GeckoView that doesn't start QMS on startup
     // time.
     if (!Services.qms) {
-      Cu.reportError("Failed initializiation of QuotaManagerService.");
+      console.error("Failed initializiation of QuotaManagerService.");
     }
   },
 
@@ -1733,7 +1794,7 @@ ClearDataService.prototype = Object.freeze({
       return Promise.all(
         c.cleaners.map(cleaner => {
           return aHelper(cleaner).catch(e => {
-            Cu.reportError(e);
+            console.error(e);
             resultFlags |= c.flag;
           });
         })

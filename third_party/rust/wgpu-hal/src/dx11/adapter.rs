@@ -33,7 +33,7 @@ impl crate::Adapter<super::Api> for super::Adapter {
 impl super::Adapter {
     pub(super) fn expose(
         instance: &super::library::D3D11Lib,
-        adapter: native::DxgiAdapter,
+        adapter: d3d12::DxgiAdapter,
     ) -> Option<crate::ExposedAdapter<super::Api>> {
         use d3dcommon::{
             D3D_FEATURE_LEVEL_10_0 as FL10_0, D3D_FEATURE_LEVEL_10_1 as FL10_1,
@@ -97,7 +97,8 @@ impl super::Adapter {
             | wgt::Features::ADDRESS_MODE_CLAMP_TO_ZERO;
         let mut downlevel = wgt::DownlevelFlags::BASE_VERTEX
             | wgt::DownlevelFlags::READ_ONLY_DEPTH_STENCIL
-            | wgt::DownlevelFlags::UNRESTRICTED_INDEX_BUFFER;
+            | wgt::DownlevelFlags::UNRESTRICTED_INDEX_BUFFER
+            | wgt::DownlevelFlags::UNRESTRICTED_EXTERNAL_TEXTURE_COPIES;
 
         // Features from queries
         downlevel.set(
@@ -123,10 +124,10 @@ impl super::Adapter {
         }
 
         if feature_level >= FL10_0 {
-            downlevel |= wgt::DownlevelFlags::INDEPENDENT_BLEND;
             downlevel |= wgt::DownlevelFlags::FRAGMENT_STORAGE;
             downlevel |= wgt::DownlevelFlags::FRAGMENT_WRITABLE_STORAGE;
             downlevel |= wgt::DownlevelFlags::DEPTH_BIAS_CLAMP;
+            downlevel |= wgt::DownlevelFlags::VERTEX_STORAGE;
             features |= wgt::Features::DEPTH_CLIP_CONTROL;
             features |= wgt::Features::TIMESTAMP_QUERY;
             features |= wgt::Features::PIPELINE_STATISTICS_QUERY;
@@ -135,6 +136,7 @@ impl super::Adapter {
 
         if feature_level >= FL10_1 {
             downlevel |= wgt::DownlevelFlags::CUBE_ARRAY_TEXTURES;
+            downlevel |= wgt::DownlevelFlags::MULTISAMPLED_SHADING;
         }
 
         if feature_level >= FL11_0 {
@@ -144,7 +146,7 @@ impl super::Adapter {
         }
 
         if feature_level >= FL11_1 {
-            downlevel |= wgt::DownlevelFlags::VERTEX_STORAGE;
+            features |= wgt::Features::VERTEX_WRITABLE_STORAGE;
         }
 
         //

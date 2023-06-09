@@ -72,14 +72,10 @@ add_task(async () => {
     "js2.min.js"
   );
 
-  info(" - Test non-javascript source");
+  info(" - Test HTML source");
   const htmlSource = findSource(dbg, "doc-prettyprint-sourcemap.html");
   await selectSource(dbg, htmlSource);
-  assertPrettyPrintButton(
-    dbg,
-    L10N.getStr("sourceFooter.prettyPrint.isNotJavascriptMessage"),
-    true
-  );
+  assertPrettyPrintButton(dbg, L10N.getStr("sourceTabs.prettyPrint"), false);
 
   info(" - Test source with sourceMappingURL but sourcemap does not exist");
   const source1 = findSource(dbg, "js1.min.js");
@@ -88,9 +84,8 @@ add_task(async () => {
   // The source may be reported as pretty printable while we are fetching the sourcemap,
   // but once the sourcemap is reported to be failing, we no longer report to be pretty printable.
   await waitFor(
-    () =>
-      dbg.selectors.getSourceActorsForSource(source1.id)[0].sourceMapURL === "",
-    "Wait for the selector source to clear its sourceMapURL"
+    () => !dbg.selectors.isSourceWithMap(source1.id),
+    "Wait for the selector to report the source to be source-map less"
   );
 
   assertPrettyPrintButton(dbg, L10N.getStr("sourceTabs.prettyPrint"), false);

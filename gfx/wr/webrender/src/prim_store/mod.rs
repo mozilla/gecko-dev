@@ -18,7 +18,7 @@ use crate::scene_building::{CreateShadow, IsVisible};
 use crate::frame_builder::FrameBuildingState;
 use glyph_rasterizer::GlyphKey;
 use crate::gpu_cache::{GpuCacheAddress, GpuCacheHandle, GpuDataRequest};
-use crate::gpu_types::{BrushFlags};
+use crate::gpu_types::{BrushFlags, QuadSegment};
 use crate::intern;
 use crate::picture::PicturePrimitive;
 use crate::render_task_graph::RenderTaskId;
@@ -654,6 +654,7 @@ impl InternablePrimitive for PrimitiveKeyKind {
                     data_handle,
                     segment_instance_index: SegmentInstanceIndex::INVALID,
                     color_binding_index,
+                    use_legacy_path: false,
                 }
             }
         }
@@ -900,7 +901,6 @@ pub struct NinePatchDescriptor {
     pub fill: bool,
     pub repeat_horizontal: RepeatMode,
     pub repeat_vertical: RepeatMode,
-    pub outset: SideOffsetsKey,
     pub widths: SideOffsetsKey,
 }
 
@@ -996,6 +996,7 @@ pub enum PrimitiveInstanceKind {
         data_handle: PrimitiveDataHandle,
         segment_instance_index: SegmentInstanceIndex,
         color_binding_index: ColorBindingIndex,
+        use_legacy_path: bool,
     },
     YuvImage {
         /// Handle to the common interned data for this primitive.
@@ -1211,6 +1212,9 @@ pub struct PrimitiveScratchBuffer {
 
     /// Set of sub-graphs that are required, determined during visibility pass
     pub required_sub_graphs: FastHashSet<PictureIndex>,
+
+    /// Temporary buffer for building segments in to during prepare pass
+    pub quad_segments: Vec<QuadSegment>,
 }
 
 impl Default for PrimitiveScratchBuffer {
@@ -1225,6 +1229,7 @@ impl Default for PrimitiveScratchBuffer {
             debug_items: Vec::new(),
             messages: Vec::new(),
             required_sub_graphs: FastHashSet::default(),
+            quad_segments: Vec::new(),
         }
     }
 }
@@ -1238,6 +1243,7 @@ impl PrimitiveScratchBuffer {
         self.segment_instances.recycle(recycler);
         self.gradient_tiles.recycle(recycler);
         recycler.recycle_vec(&mut self.debug_items);
+        recycler.recycle_vec(&mut self.quad_segments);
     }
 
     pub fn begin_frame(&mut self) {
@@ -1246,6 +1252,7 @@ impl PrimitiveScratchBuffer {
         // location.
         self.clip_mask_instances.clear();
         self.clip_mask_instances.push(ClipMaskKind::None);
+        self.quad_segments.clear();
 
         self.border_cache_handles.clear();
 
@@ -1439,7 +1446,7 @@ fn test_struct_sizes() {
     //     test expectations and move on.
     // (b) You made a structure larger. This is not necessarily a problem, but should only
     //     be done with care, and after checking if talos performance regresses badly.
-    assert_eq!(mem::size_of::<PrimitiveInstance>(), 104, "PrimitiveInstance size changed");
+    assert_eq!(mem::size_of::<PrimitiveInstance>(), 88, "PrimitiveInstance size changed");
     assert_eq!(mem::size_of::<PrimitiveInstanceKind>(), 24, "PrimitiveInstanceKind size changed");
     assert_eq!(mem::size_of::<PrimitiveTemplate>(), 56, "PrimitiveTemplate size changed");
     assert_eq!(mem::size_of::<PrimitiveTemplateKind>(), 28, "PrimitiveTemplateKind size changed");

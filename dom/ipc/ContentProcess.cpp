@@ -13,78 +13,18 @@
 #if defined(XP_MACOSX) && defined(MOZ_SANDBOX)
 #  include <stdlib.h>
 #  include "mozilla/Sandbox.h"
-#endif
-
-#if defined(XP_WIN) && defined(MOZ_SANDBOX)
-#  include "mozilla/WindowsProcessMitigations.h"
-#endif
-
-#if (defined(XP_WIN) || defined(XP_MACOSX)) && defined(MOZ_SANDBOX)
 #  include "mozilla/SandboxSettings.h"
-#  include "nsAppDirectoryServiceDefs.h"
-#  include "nsDirectoryService.h"
-#  include "nsDirectoryServiceDefs.h"
 #endif
 
 #include "nsAppRunner.h"
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/ProcessUtils.h"
 #include "mozilla/GeckoArgs.h"
-#include "nsAppStartupNotifier.h"
+#include "nsCategoryManagerUtils.h"
 
 using mozilla::ipc::IOThreadChild;
 
 namespace mozilla::dom {
-
-#if defined(XP_WIN) && defined(MOZ_SANDBOX)
-static void SetTmpEnvironmentVariable(nsIFile* aValue) {
-  // Save the TMP environment variable so that is is picked up by GetTempPath().
-  // Note that we specifically write to the TMP variable, as that is the first
-  // variable that is checked by GetTempPath() to determine its output.
-  nsAutoString fullTmpPath;
-  nsresult rv = aValue->GetPath(fullTmpPath);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return;
-  }
-  Unused << NS_WARN_IF(!SetEnvironmentVariableW(L"TMP", fullTmpPath.get()));
-  // We also set TEMP in case there is naughty third-party code that is
-  // referencing the environment variable directly.
-  Unused << NS_WARN_IF(!SetEnvironmentVariableW(L"TEMP", fullTmpPath.get()));
-}
-#endif
-
-#if defined(XP_WIN) && defined(MOZ_SANDBOX)
-static void SetUpSandboxEnvironment() {
-  MOZ_ASSERT(
-      nsDirectoryService::gService,
-      "SetUpSandboxEnvironment relies on nsDirectoryService being initialized");
-
-  // On Windows, a sandbox-writable temp directory is used whenever the sandbox
-  // is enabled, except when win32k is locked down when we no longer require a
-  // temp directory.
-  if (!IsContentSandboxEnabled() || IsWin32kLockedDown()) {
-    return;
-  }
-
-  nsCOMPtr<nsIFile> sandboxedContentTemp;
-  nsresult rv = nsDirectoryService::gService->Get(
-      NS_APP_CONTENT_PROCESS_TEMP_DIR, NS_GET_IID(nsIFile),
-      getter_AddRefs(sandboxedContentTemp));
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return;
-  }
-
-  // Change the gecko defined temp directory to our sandbox-writable one.
-  // Undefine returns a failure if the property is not already set.
-  Unused << nsDirectoryService::gService->Undefine(NS_OS_TEMP_DIR);
-  rv = nsDirectoryService::gService->Set(NS_OS_TEMP_DIR, sandboxedContentTemp);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return;
-  }
-
-  SetTmpEnvironmentVariable(sandboxedContentTemp);
-}
-#endif
 
 static nsresult GetGREDir(nsIFile** aResult) {
   nsCOMPtr<nsIFile> current;
@@ -205,7 +145,7 @@ bool ContentProcess::Init(int aArgc, char* aArgv[]) {
 
   nsCOMPtr<nsIFile> xpcomAppDir = appDirArg ? appDirArg : greDir;
 
-  rv = mDirProvider.Initialize(xpcomAppDir, greDir, nullptr);
+  rv = mDirProvider.Initialize(xpcomAppDir, greDir);
   if (NS_FAILED(rv)) {
     return false;
   }
@@ -215,7 +155,8 @@ bool ContentProcess::Init(int aArgc, char* aArgv[]) {
     return false;
   }
 
-  nsAppStartupNotifier::NotifyObservers(APPSTARTUP_CATEGORY);
+  // "app-startup" is the name of both the category and the event
+  NS_CreateServicesFromCategory("app-startup", nullptr, "app-startup", nullptr);
 
 #if (defined(XP_MACOSX)) && defined(MOZ_SANDBOX)
   mContent.SetProfileDir(profileDir);
@@ -225,10 +166,6 @@ bool ContentProcess::Init(int aArgc, char* aArgv[]) {
   }
 #  endif /* DEBUG */
 #endif   /* XP_MACOSX && MOZ_SANDBOX */
-
-#if defined(XP_WIN) && defined(MOZ_SANDBOX)
-  SetUpSandboxEnvironment();
-#endif
 
   // Do this as early as possible to get the parent process to initialize the
   // background thread since we'll likely need database information very soon.

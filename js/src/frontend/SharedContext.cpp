@@ -21,7 +21,6 @@
 #include "js/Vector.h"
 #include "vm/FunctionFlags.h"          // js::FunctionFlags
 #include "vm/GeneratorAndAsyncKind.h"  // js::GeneratorKind, js::FunctionAsyncKind
-#include "vm/JSContext.h"
 #include "vm/JSScript.h"  // js::FillImmutableFlagsFromCompileOptionsForTopLevel, js::FillImmutableFlagsFromCompileOptionsForFunction
 #include "vm/StencilEnums.h"  // ImmutableScriptFlagsEnum
 
@@ -33,11 +32,10 @@ class ModuleBuilder;
 
 namespace frontend {
 
-SharedContext::SharedContext(JSContext* cx, FrontendContext* fc, Kind kind,
+SharedContext::SharedContext(FrontendContext* fc, Kind kind,
                              const JS::ReadOnlyCompileOptions& options,
                              Directives directives, SourceExtent extent)
-    : cx_(cx),
-      fc_(fc),
+    : fc_(fc),
       extent_(extent),
       allowNewTarget_(false),
       allowSuperProperty_(false),
@@ -77,10 +75,10 @@ SharedContext::SharedContext(JSContext* cx, FrontendContext* fc, Kind kind,
 }
 
 GlobalSharedContext::GlobalSharedContext(
-    JSContext* cx, FrontendContext* fc, ScopeKind scopeKind,
+    FrontendContext* fc, ScopeKind scopeKind,
     const JS::ReadOnlyCompileOptions& options, Directives directives,
     SourceExtent extent)
-    : SharedContext(cx, fc, Kind::Global, options, directives, extent),
+    : SharedContext(fc, Kind::Global, options, directives, extent),
       scopeKind_(scopeKind),
       bindings(nullptr) {
   MOZ_ASSERT(scopeKind == ScopeKind::Global ||
@@ -88,10 +86,10 @@ GlobalSharedContext::GlobalSharedContext(
   MOZ_ASSERT(thisBinding_ == ThisBinding::Global);
 }
 
-EvalSharedContext::EvalSharedContext(JSContext* cx, FrontendContext* fc,
+EvalSharedContext::EvalSharedContext(FrontendContext* fc,
                                      CompilationState& compilationState,
                                      SourceExtent extent)
-    : SharedContext(cx, fc, Kind::Eval, compilationState.input.options,
+    : SharedContext(fc, Kind::Eval, compilationState.input.options,
                     compilationState.directives, extent),
       bindings(nullptr) {
   // Eval inherits syntax and binding rules from enclosing environment.
@@ -104,23 +102,21 @@ EvalSharedContext::EvalSharedContext(JSContext* cx, FrontendContext* fc,
 }
 
 SuspendableContext::SuspendableContext(
-    JSContext* cx, FrontendContext* fc, Kind kind,
-    const JS::ReadOnlyCompileOptions& options, Directives directives,
-    SourceExtent extent, bool isGenerator, bool isAsync)
-    : SharedContext(cx, fc, kind, options, directives, extent) {
+    FrontendContext* fc, Kind kind, const JS::ReadOnlyCompileOptions& options,
+    Directives directives, SourceExtent extent, bool isGenerator, bool isAsync)
+    : SharedContext(fc, kind, options, directives, extent) {
   setFlag(ImmutableFlags::IsGenerator, isGenerator);
   setFlag(ImmutableFlags::IsAsync, isAsync);
 }
 
-FunctionBox::FunctionBox(JSContext* cx, FrontendContext* fc,
-                         SourceExtent extent,
+FunctionBox::FunctionBox(FrontendContext* fc, SourceExtent extent,
                          CompilationState& compilationState,
                          Directives directives, GeneratorKind generatorKind,
                          FunctionAsyncKind asyncKind, bool isInitialCompilation,
                          TaggedParserAtomIndex atom, FunctionFlags flags,
                          ScriptIndex index)
-    : SuspendableContext(cx, fc, Kind::FunctionBox,
-                         compilationState.input.options, directives, extent,
+    : SuspendableContext(fc, Kind::FunctionBox, compilationState.input.options,
+                         directives, extent,
                          generatorKind == GeneratorKind::Generator,
                          asyncKind == FunctionAsyncKind::AsyncFunction),
       compilationState_(compilationState),
@@ -284,7 +280,8 @@ bool FunctionBox::setAsmJSModule(const JS::WasmModule* module) {
   flags_.setKind(FunctionFlags::AsmJS);
 
   if (!compilationState_.asmJS) {
-    compilationState_.asmJS = cx_->new_<StencilAsmJSContainer>();
+    compilationState_.asmJS =
+        fc_->getAllocator()->new_<StencilAsmJSContainer>();
     if (!compilationState_.asmJS) {
       return false;
     }
@@ -298,11 +295,9 @@ bool FunctionBox::setAsmJSModule(const JS::WasmModule* module) {
 }
 
 ModuleSharedContext::ModuleSharedContext(
-    JSContext* cx, FrontendContext* fc,
-    const JS::ReadOnlyCompileOptions& options, ModuleBuilder& builder,
-    SourceExtent extent)
-    : SuspendableContext(cx, fc, Kind::Module, options, Directives(true),
-                         extent,
+    FrontendContext* fc, const JS::ReadOnlyCompileOptions& options,
+    ModuleBuilder& builder, SourceExtent extent)
+    : SuspendableContext(fc, Kind::Module, options, Directives(true), extent,
                          /* isGenerator = */ false,
                          /* isAsync = */ false),
       bindings(nullptr),

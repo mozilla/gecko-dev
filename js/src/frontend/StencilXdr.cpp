@@ -287,14 +287,15 @@ XDRResult StencilXDR::codeSharedData(XDRState<mode>* xdr,
   static_assert(frontend::CanCopyDataToDisk<TryNote>::value,
                 "TryNote cannot be bulk-copied to disk");
 
-  JSContext* cx = xdr->cx();
-
   uint32_t size;
+  uint32_t hash;
   if (mode == XDR_ENCODE) {
     if (sisd) {
       size = sisd->immutableDataLength();
+      hash = sisd->hash();
     } else {
       size = 0;
+      hash = 0;
     }
   }
   MOZ_TRY(xdr->codeUint32(&size));
@@ -309,6 +310,8 @@ XDRResult StencilXDR::codeSharedData(XDRState<mode>* xdr,
 
   MOZ_TRY(xdr->align32());
   static_assert(alignof(ImmutableScriptData) <= alignof(uint32_t));
+
+  MOZ_TRY(xdr->codeUint32(&hash));
 
   if constexpr (mode == XDR_ENCODE) {
     uint8_t* data = const_cast<uint8_t*>(sisd->get()->immutableData().data());
@@ -326,15 +329,15 @@ XDRResult StencilXDR::codeSharedData(XDRState<mode>* xdr,
       MOZ_ASSERT(options.borrowBuffer);
       ImmutableScriptData* isd;
       MOZ_TRY(xdr->borrowedData(&isd, size));
-      sisd->setExternal(isd);
+      sisd->setExternal(isd, hash);
     } else {
-      auto isd = ImmutableScriptData::new_(xdr->cx(), size);
+      auto isd = ImmutableScriptData::new_(xdr->fc(), size);
       if (!isd) {
         return xdr->fail(JS::TranscodeResult::Throw);
       }
       uint8_t* data = reinterpret_cast<uint8_t*>(isd.get());
       MOZ_TRY(xdr->codeBytes(data, size));
-      sisd->setOwn(std::move(isd));
+      sisd->setOwn(std::move(isd), hash);
     }
 
     if (!sisd->get()->validateLayout(size)) {
@@ -344,7 +347,7 @@ XDRResult StencilXDR::codeSharedData(XDRState<mode>* xdr,
   }
 
   if (mode == XDR_DECODE) {
-    if (!SharedImmutableScriptData::shareScriptData(cx, xdr->fc(), sisd)) {
+    if (!SharedImmutableScriptData::shareScriptData(xdr->fc(), sisd)) {
       return xdr->fail(JS::TranscodeResult::Throw);
     }
   }
@@ -853,7 +856,7 @@ template <XDRMode mode>
   if (stencil.scriptExtra[CompilationStencil::TopLevelIndex].isModule()) {
     if (mode == XDR_DECODE) {
       stencil.moduleMetadata =
-          xdr->cx()->template new_<StencilModuleMetadata>();
+          xdr->fc()->getAllocator()->template new_<StencilModuleMetadata>();
       if (!stencil.moduleMetadata) {
         return xdr->fail(JS::TranscodeResult::Throw);
       }
@@ -899,7 +902,7 @@ struct UnretrievableSourceDecoder {
         uncompressedLength_(uncompressedLength) {}
 
   XDRResult decode() {
-    auto sourceUnits = xdr_->cx()->make_pod_array<Unit>(
+    auto sourceUnits = xdr_->fc()->getAllocator()->make_pod_array<Unit>(
         std::max<size_t>(uncompressedLength_, 1));
     if (!sourceUnits) {
       return xdr_->fail(JS::TranscodeResult::Throw);
@@ -908,7 +911,7 @@ struct UnretrievableSourceDecoder {
     MOZ_TRY(xdr_->codeChars(sourceUnits.get(), uncompressedLength_));
 
     if (!scriptSource_->initializeUnretrievableUncompressedSource(
-            xdr_->cx(), std::move(sourceUnits), uncompressedLength_)) {
+            xdr_->fc(), std::move(sourceUnits), uncompressedLength_)) {
       return xdr_->fail(JS::TranscodeResult::Throw);
     }
 
@@ -1021,14 +1024,15 @@ XDRResult StencilXDR::codeSourceCompressedData(XDRState<mode>* const xdr,
 
   if (mode == XDR_DECODE) {
     // Compressed data is always single-byte chars.
-    auto bytes = xdr->cx()->template make_pod_array<char>(compressedLength);
+    auto bytes = xdr->fc()->getAllocator()->template make_pod_array<char>(
+        compressedLength);
     if (!bytes) {
       return xdr->fail(JS::TranscodeResult::Throw);
     }
     MOZ_TRY(xdr->codeBytes(bytes.get(), compressedLength));
 
     if (!ss->initializeWithUnretrievableCompressedSource<Unit>(
-            xdr->cx(), std::move(bytes), compressedLength,
+            xdr->fc(), std::move(bytes), compressedLength,
             uncompressedLength)) {
       return xdr->fail(JS::TranscodeResult::Throw);
     }
@@ -1217,7 +1221,6 @@ template <XDRMode mode>
 XDRResult StencilXDR::codeSource(XDRState<mode>* xdr,
                                  const JS::DecodeOptions* maybeOptions,
                                  RefPtr<ScriptSource>& source) {
-  JSContext* cx = xdr->cx();
   FrontendContext* fc = xdr->fc();
 
   if (mode == XDR_DECODE) {
@@ -1273,7 +1276,7 @@ XDRResult StencilXDR::codeSource(XDRState<mode>* xdr,
     }
     MOZ_TRY(xdr->codeCharsZ(chars));
     if (mode == XDR_DECODE) {
-      if (!source->setDisplayURL(cx, fc,
+      if (!source->setDisplayURL(fc,
                                  std::move(chars.ref<UniqueTwoByteChars>()))) {
         return xdr->fail(JS::TranscodeResult::Throw);
       }
@@ -1304,13 +1307,14 @@ XDRResult StencilXDR::codeSource(XDRState<mode>* xdr,
   }
 
   MOZ_TRY(xdr->codeUint32(&source->startLine_));
+  MOZ_TRY(xdr->codeUint32(&source->startColumn_));
 
   // The introduction info doesn't persist across encode/decode.
   if (mode == XDR_DECODE) {
     source->introductionType_ = maybeOptions->introductionType;
     source->setIntroductionOffset(maybeOptions->introductionOffset);
     if (maybeOptions->introducerFilename) {
-      if (!source->setIntroducerFilename(cx, fc,
+      if (!source->setIntroducerFilename(fc,
                                          maybeOptions->introducerFilename)) {
         return xdr->fail(JS::TranscodeResult::Throw);
       }
@@ -1421,7 +1425,7 @@ XDRResult XDRStencilEncoder::codeStencil(
     const frontend::CompilationStencil& stencil) {
 #ifdef DEBUG
   auto sanityCheck = mozilla::MakeScopeExit(
-      [&] { MOZ_ASSERT(validateResultCode(cx(), fc(), resultCode())); });
+      [&] { MOZ_ASSERT(validateResultCode(fc(), resultCode())); });
 #endif
 
   MOZ_TRY(frontend::StencilXDR::checkCompilationStencil(this, stencil));
@@ -1470,7 +1474,7 @@ XDRResult XDRStencilDecoder::codeStencil(
     const JS::DecodeOptions& options, frontend::CompilationStencil& stencil) {
 #ifdef DEBUG
   auto sanityCheck = mozilla::MakeScopeExit(
-      [&] { MOZ_ASSERT(validateResultCode(cx(), fc(), resultCode())); });
+      [&] { MOZ_ASSERT(validateResultCode(fc(), resultCode())); });
 #endif
 
   auto resetOptions = mozilla::MakeScopeExit([&] { options_ = nullptr; });

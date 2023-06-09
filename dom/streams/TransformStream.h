@@ -34,13 +34,10 @@ class TransformStream final : public nsISupports, public nsWrapperCache {
       const GlobalObject& aGlobal, TransformerAlgorithmsWrapper& aAlgorithms,
       ErrorResult& aRv);
 
-  TransformStream(nsIGlobalObject* aGlobal, ReadableStream* aReadable,
-                  WritableStream* aWritable);
-
   // Internal slot accessors
   bool Backpressure() const { return mBackpressure; }
   Promise* BackpressureChangePromise() { return mBackpressureChangePromise; }
-  void SetBackpressure(bool aBackpressure, ErrorResult& aRv);
+  void SetBackpressure(bool aBackpressure);
   MOZ_KNOWN_LIVE TransformStreamDefaultController* Controller() {
     return mController;
   }
@@ -60,8 +57,11 @@ class TransformStream final : public nsISupports, public nsWrapperCache {
       MessagePort& aPort2, JS::MutableHandle<JSObject*> aReturnObject);
 
  protected:
-  ~TransformStream();
+  TransformStream(nsIGlobalObject* aGlobal, ReadableStream* aReadable,
+                  WritableStream* aWritable);
   explicit TransformStream(nsIGlobalObject* aGlobal);
+
+  ~TransformStream();
 
   MOZ_CAN_RUN_SCRIPT void Initialize(
       JSContext* aCx, Promise* aStartPromise, double aWritableHighWaterMark,
@@ -97,6 +97,8 @@ class TransformStream final : public nsISupports, public nsWrapperCache {
   RefPtr<WritableStream> mWritable;
 };
 
+namespace streams_abstract {
+
 MOZ_CAN_RUN_SCRIPT void TransformStreamErrorWritableAndUnblockWrite(
     JSContext* aCx, TransformStream* aStream, JS::Handle<JS::Value> aError,
     ErrorResult& aRv);
@@ -105,6 +107,8 @@ MOZ_CAN_RUN_SCRIPT void TransformStreamError(JSContext* aCx,
                                              TransformStream* aStream,
                                              JS::Handle<JS::Value> aError,
                                              ErrorResult& aRv);
+
+}  // namespace streams_abstract
 
 }  // namespace mozilla::dom
 

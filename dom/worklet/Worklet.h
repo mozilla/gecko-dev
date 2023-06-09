@@ -23,6 +23,7 @@ namespace dom {
 
 class Promise;
 class WorkletFetchHandler;
+class WorkletScriptHandler;
 struct WorkletOptions;
 enum class CallerType : uint32_t;
 
@@ -49,6 +50,10 @@ class Worklet final : public nsISupports, public nsWrapperCache {
 
   WorkletImpl* Impl() const { return mImpl; }
 
+  const nsTArray<nsString>& GetLocalizedStrings() const {
+    return mLocalizedStrings;
+  }
+
  private:
   ~Worklet();
 
@@ -64,7 +69,10 @@ class Worklet final : public nsISupports, public nsWrapperCache {
 
   const RefPtr<WorkletImpl> mImpl;
 
+  nsTArray<nsString> mLocalizedStrings;
+
   friend class WorkletFetchHandler;
+  friend class WorkletScriptHandler;
 };
 
 }  // namespace dom

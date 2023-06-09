@@ -17,13 +17,12 @@ x86_64-unknown-linux-gnu)
     export RUSTFLAGS="-Clinker=$MOZ_FETCHES_DIR/clang/bin/clang++ -C link-arg=--sysroot=$MOZ_FETCHES_DIR/sysroot-x86_64-linux-gnu -C link-arg=-fuse-ld=lld"
     export CC=$MOZ_FETCHES_DIR/clang/bin/clang
     export CXX=$MOZ_FETCHES_DIR/clang/bin/clang++
-    export CFLAGS="--sysroot=$MOZ_FETCHES_DIR/sysroot-x86_64-linux-gnu"
-    export CXXFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0 --sysroot=$MOZ_FETCHES_DIR/sysroot-x86_64-linux-gnu"
+    export TARGET_CFLAGS="--sysroot=$MOZ_FETCHES_DIR/sysroot-x86_64-linux-gnu"
+    export TARGET_CXXFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0 --sysroot=$MOZ_FETCHES_DIR/sysroot-x86_64-linux-gnu"
     ;;
 *-apple-darwin)
     # Cross-compiling for Mac on Linux.
     export PATH="$MOZ_FETCHES_DIR/clang/bin:$PATH"
-    export PATH="$MOZ_FETCHES_DIR/cctools/bin:$PATH"
     export RUSTFLAGS="-C linker=$GECKO_PATH/taskcluster/scripts/misc/osx-cross-linker"
     if test "$TARGET" = "aarch64-apple-darwin"; then
         export MACOSX_DEPLOYMENT_TARGET=11.0
@@ -32,8 +31,8 @@ x86_64-unknown-linux-gnu)
     fi
     export CC="$MOZ_FETCHES_DIR/clang/bin/clang"
     export CXX="$MOZ_FETCHES_DIR/clang/bin/clang++"
-    export TARGET_CC="$CC -isysroot $MOZ_FETCHES_DIR/MacOSX11.3.sdk"
-    export TARGET_CXX="$CXX -isysroot $MOZ_FETCHES_DIR/MacOSX11.3.sdk -stdlib=libc++"
+    export TARGET_CFLAGS="-isysroot $MOZ_FETCHES_DIR/MacOSX13.0.sdk"
+    export TARGET_CXXFLAGS="-isysroot $MOZ_FETCHES_DIR/MacOSX13.0.sdk -stdlib=libc++"
     ;;
 *-pc-windows-msvc)
     # Cross-compiling for Windows on Linux.

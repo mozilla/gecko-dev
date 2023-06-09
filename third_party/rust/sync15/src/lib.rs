@@ -8,6 +8,8 @@
 pub mod bso;
 #[cfg(feature = "sync-client")]
 pub mod client;
+// Type to describe device types
+mod device_type;
 // Types to describe client records
 mod client_types;
 // Note that `clients_engine` should probably be in `sync_client`, but let's not make
@@ -25,7 +27,8 @@ mod record_types;
 mod server_timestamp;
 pub mod telemetry;
 
-pub use crate::client_types::{ClientData, DeviceType, RemoteClient};
+pub use crate::client_types::{ClientData, RemoteClient};
+pub use crate::device_type::DeviceType;
 pub use crate::error::{Error, Result};
 #[cfg(feature = "crypto")]
 pub use enc_payload::EncryptedPayload;
@@ -33,6 +36,11 @@ pub use enc_payload::EncryptedPayload;
 pub use key_bundle::KeyBundle;
 pub use server_timestamp::ServerTimestamp;
 pub use sync_guid::Guid;
+
+// Collection names are almost always `static, so we use a `Cow`:
+// * Either a `String` or a `'static &str` can be `.into()`'d into one of these.
+// * Cloning one with a `'static &str` is extremely cheap and doesn't allocate memory.
+pub type CollectionName = std::borrow::Cow<'static, str>;
 
 // For skip_serializing_if
 fn skip_if_default<T: PartialEq + Default>(v: &T) -> bool {

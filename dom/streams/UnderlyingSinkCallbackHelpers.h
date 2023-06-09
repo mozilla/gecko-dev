@@ -7,12 +7,15 @@
 #ifndef mozilla_dom_UnderlyingSinkCallbackHelpers_h
 #define mozilla_dom_UnderlyingSinkCallbackHelpers_h
 
+#include "mozilla/Maybe.h"
+#include "mozilla/Buffer.h"
 #include "mozilla/HoldDropJSObjects.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/UnderlyingSinkBinding.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsISupports.h"
 #include "nsISupportsImpl.h"
+#include "nsIAsyncOutputStream.h"
 
 /*
  * See the comment in UnderlyingSourceCallbackHelpers.h!
@@ -111,6 +114,87 @@ class UnderlyingSinkAlgorithms final : public UnderlyingSinkAlgorithmsBase {
   MOZ_KNOWN_LIVE RefPtr<UnderlyingSinkWriteCallback> mWriteCallback;
   MOZ_KNOWN_LIVE RefPtr<UnderlyingSinkCloseCallback> mCloseCallback;
   MOZ_KNOWN_LIVE RefPtr<UnderlyingSinkAbortCallback> mAbortCallback;
+};
+
+// https://streams.spec.whatwg.org/#writablestream-set-up
+// Wrappers defined by the "Set up" methods in the spec.
+// (closeAlgorithmWrapper, abortAlgorithmWrapper)
+// This helps you just return nullptr when 1) the algorithm is synchronous, or
+// 2) an error occurred, as this wrapper will return a resolved or rejected
+// promise respectively.
+// Note that StartCallback is only for JS consumers to access the
+// controller, and thus is no-op here since native consumers can call
+// `ErrorNative()` etc. without direct controller access.
+class UnderlyingSinkAlgorithmsWrapper : public UnderlyingSinkAlgorithmsBase {
+ public:
+  void StartCallback(JSContext* aCx,
+                     WritableStreamDefaultController& aController,
+                     JS::MutableHandle<JS::Value> aRetVal,
+                     ErrorResult& aRv) final {
+    // Step 1: Let startAlgorithm be an algorithm that returns undefined.
+    aRetVal.setUndefined();
+  }
+
+  MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> CloseCallback(
+      JSContext* aCx, ErrorResult& aRv) final;
+
+  MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> AbortCallback(
+      JSContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
+      ErrorResult& aRv) final;
+
+  virtual already_AddRefed<Promise> CloseCallbackImpl(JSContext* aCx,
+                                                      ErrorResult& aRv) {
+    // (closeAlgorithm is optional, give null by default)
+    return nullptr;
+  }
+
+  virtual already_AddRefed<Promise> AbortCallbackImpl(
+      JSContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
+      ErrorResult& aRv) {
+    // (abortAlgorithm is optional, give null by default)
+    return nullptr;
+  }
+};
+
+class WritableStreamToOutput final : public UnderlyingSinkAlgorithmsWrapper,
+                                     public nsIOutputStreamCallback {
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_NSIOUTPUTSTREAMCALLBACK
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(WritableStreamToOutput,
+                                           UnderlyingSinkAlgorithmsBase)
+
+  WritableStreamToOutput(nsIGlobalObject* aParent,
+                         nsIAsyncOutputStream* aOutput)
+      : mWritten(0), mParent(aParent), mOutput(aOutput) {}
+
+  // Streams algorithms
+
+  already_AddRefed<Promise> WriteCallback(
+      JSContext* aCx, JS::Handle<JS::Value> aChunk,
+      WritableStreamDefaultController& aController, ErrorResult& aRv) override;
+
+  // No CloseCallbackImpl() since ReleaseObjects() will call Close()
+
+  already_AddRefed<Promise> AbortCallbackImpl(
+      JSContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
+      ErrorResult& aRv) override;
+
+  void ReleaseObjects() override;
+
+ private:
+  ~WritableStreamToOutput() override = default;
+
+  void ClearData() {
+    mData = Nothing();
+    mPromise = nullptr;
+    mWritten = 0;
+  }
+
+  uint32_t mWritten;
+  nsCOMPtr<nsIGlobalObject> mParent;
+  nsCOMPtr<nsIAsyncOutputStream> mOutput;
+  RefPtr<Promise> mPromise;  // Resolved when entirely written
+  Maybe<Buffer<uint8_t>> mData;
 };
 
 }  // namespace mozilla::dom

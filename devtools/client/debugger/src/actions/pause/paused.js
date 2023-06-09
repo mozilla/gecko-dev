@@ -9,11 +9,10 @@ import {
   getThreadContext,
 } from "../../selectors";
 
-import { waitForSourceToBeRegisteredInStore } from "../../client/firefox/create";
 import { mapFrames, fetchFrames } from ".";
 import { removeBreakpoint } from "../breakpoints";
 import { evaluateExpressions } from "../expressions";
-import { selectSpecificLocation } from "../sources";
+import { selectLocation } from "../sources";
 import assert from "../../utils/assert";
 
 import { fetchScopes } from "./fetchScopes";
@@ -49,15 +48,16 @@ export function paused(pauseInfo) {
     // display it and update the UI to be paused.
     // But we then fetch all the other frames:
     await dispatch(fetchFrames(cx));
-    // And map them to original source locations:
+    // And map them to original source locations.
+    // Note that this will wait for all related original sources to be loaded in the reducers.
+    // So this step may pause for a little while.
     await dispatch(mapFrames(cx));
 
     // If we paused on a particular frame, automatically select the related source
     // and highlight the paused line
     const selectedFrame = getSelectedFrame(getState(), thread);
     if (selectedFrame) {
-      await waitForSourceToBeRegisteredInStore(selectedFrame.location.sourceId);
-      await dispatch(selectSpecificLocation(cx, selectedFrame.location));
+      await dispatch(selectLocation(cx, selectedFrame.location));
     }
 
     // Fetch the previews for variables visible in the currently selected paused stackframe

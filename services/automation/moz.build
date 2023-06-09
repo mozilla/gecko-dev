@@ -3,12 +3,12 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 with Files("**"):
-    BUG_COMPONENT = ("Firefox", "Services Automation")
+    BUG_COMPONENT = ("Firefox", "Sync")
 
 EXTRA_COMPONENTS += [
     "AutomationComponents.manifest",
 ]
 
 EXTRA_JS_MODULES["services-automation"] += [
-    "ServicesAutomation.jsm",
+    "ServicesAutomation.sys.mjs",
 ]

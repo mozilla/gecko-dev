@@ -7,23 +7,22 @@ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarUtils: "resource:///modules/UrlbarUtils.sys.mjs",
 });
 
 XPCOMUtils.defineLazyModuleGetters(lazy, {
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.jsm",
-  NimbusFeatures: "resource://nimbus/ExperimentAPI.jsm",
 });
 
 // Quick suggest features. On init, QuickSuggest creates an instance of each and
 // keeps it in the `#features` map. See `BaseFeature`.
 const FEATURES = {
+  AdmWikipedia: "resource:///modules/urlbar/private/AdmWikipedia.sys.mjs",
   BlockedSuggestions:
     "resource:///modules/urlbar/private/BlockedSuggestions.sys.mjs",
   ImpressionCaps: "resource:///modules/urlbar/private/ImpressionCaps.sys.mjs",
-  RemoteSettingsClient:
-    "resource:///modules/urlbar/private/RemoteSettingsClient.sys.mjs",
   Weather: "resource:///modules/urlbar/private/Weather.sys.mjs",
 };
 
@@ -98,15 +97,6 @@ class _QuickSuggest {
   }
 
   /**
-   * @returns {RemoteSettingsClient}
-   *   Quick suggest's remote settings client, which manages configuration and
-   *   suggestions stored in remote settings.
-   */
-  get remoteSettings() {
-    return this.#features.RemoteSettingsClient;
-  }
-
-  /**
    * @returns {BlockedSuggestions}
    *   The blocked suggestions feature.
    */
@@ -170,6 +160,18 @@ class _QuickSuggest {
     this._updateFeatureState();
     lazy.NimbusFeatures.urlbar.onUpdate(() => this._updateFeatureState());
     lazy.UrlbarPrefs.addObserver(this);
+  }
+
+  /**
+   * Returns a quick suggest feature by name.
+   *
+   * @param {string} name
+   *   The name of the feature's JS class.
+   * @returns {BaseFeature}
+   *   The feature object, an instance of a subclass of `BaseFeature`.
+   */
+  getFeature(name) {
+    return this.#features[name];
   }
 
   /**
@@ -420,9 +422,7 @@ class _QuickSuggest {
     switch (params.choice) {
       case ONBOARDING_CHOICE.LEARN_MORE_1:
       case ONBOARDING_CHOICE.LEARN_MORE_2:
-        win.openTrustedLinkIn(this.HELP_URL, "tab", {
-          fromChrome: true,
-        });
+        win.openTrustedLinkIn(this.HELP_URL, "tab");
         break;
       case ONBOARDING_CHOICE.ACCEPT_2:
       case ONBOARDING_CHOICE.REJECT_2:

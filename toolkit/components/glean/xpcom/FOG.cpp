@@ -9,6 +9,7 @@
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/FOGIPC.h"
+#include "mozilla/browser/NimbusFeatures.h"
 #include "mozilla/glean/bindings/Common.h"
 #include "mozilla/glean/bindings/jog/jog_ffi_generated.h"
 #include "mozilla/glean/fog_ffi_generated.h"
@@ -92,6 +93,14 @@ NS_IMETHODIMP
 FOG::InitializeFOG(const nsACString& aDataPathOverride,
                    const nsACString& aAppIdOverride) {
   MOZ_ASSERT(XRE_IsParentProcess());
+  RunOnShutdown(
+      [&] {
+        if (NimbusFeatures::GetBool("glean"_ns, "finalInactive"_ns, false)) {
+          glean::impl::fog_internal_glean_handle_client_inactive();
+        }
+      },
+      ShutdownPhase::XPCOMWillShutdown);
+
   return glean::impl::fog_init(&aDataPathOverride, &aAppIdOverride);
 }
 
@@ -259,6 +268,19 @@ FOG::TestGetExperimentData(const nsACString& aExperimentId, JSContext* aCx,
     }
   }
   aResult.setObject(*jsExperimentDataObj);
+  return NS_OK;
+#endif
+}
+
+NS_IMETHODIMP
+FOG::SetMetricsFeatureConfig(const nsACString& aJsonConfig) {
+#ifdef MOZ_GLEAN_ANDROID
+  NS_WARNING(
+      "Don't set metric feature configs from Gecko in Android. Ignoring.");
+  return NS_OK;
+#else
+  MOZ_ASSERT(XRE_IsParentProcess());
+  glean::impl::fog_set_metrics_feature_config(&aJsonConfig);
   return NS_OK;
 #endif
 }

@@ -86,6 +86,14 @@ nsBinaryOutputStream::Close() {
 }
 
 NS_IMETHODIMP
+nsBinaryOutputStream::StreamStatus() {
+  if (NS_WARN_IF(!mOutputStream)) {
+    return NS_ERROR_UNEXPECTED;
+  }
+  return mOutputStream->StreamStatus();
+}
+
+NS_IMETHODIMP
 nsBinaryOutputStream::Write(const char* aBuf, uint32_t aCount,
                             uint32_t* aActualBytes) {
   if (NS_WARN_IF(!mOutputStream)) {
@@ -376,6 +384,14 @@ nsBinaryInputStream::Available(uint64_t* aResult) {
     return NS_ERROR_UNEXPECTED;
   }
   return mInputStream->Available(aResult);
+}
+
+NS_IMETHODIMP
+nsBinaryInputStream::StreamStatus() {
+  if (NS_WARN_IF(!mInputStream)) {
+    return NS_ERROR_UNEXPECTED;
+  }
+  return mInputStream->StreamStatus();
 }
 
 NS_IMETHODIMP

@@ -81,8 +81,7 @@ add_task(async function test() {
           return true;
         }
         return false;
-      }),
-    "places"
+      })
   );
   let promiseIcon2 = PlacesTestUtils.waitForNotification(
     "favicon-changed",
@@ -108,8 +107,7 @@ add_task(async function test() {
           return true;
         }
         return false;
-      }),
-    "places"
+      })
   );
 
   // Now open the test page in a new tab.
@@ -119,7 +117,7 @@ add_task(async function test() {
     "DOMContentLoaded",
     true
   ).then(onPageLoad);
-  BrowserTestUtils.loadURI(gBrowser.selectedBrowser, pageurl);
+  BrowserTestUtils.loadURIString(gBrowser.selectedBrowser, pageurl);
 
   await promiseIcon1;
   await promiseIcon2;

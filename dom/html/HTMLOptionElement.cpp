@@ -96,9 +96,11 @@ void HTMLOptionElement::SetSelected(bool aValue) {
   HTMLSelectElement* selectInt = GetSelect();
   if (selectInt) {
     int32_t index = Index();
-    uint32_t mask = HTMLSelectElement::SET_DISABLED | HTMLSelectElement::NOTIFY;
+    HTMLSelectElement::OptionFlags mask{
+        HTMLSelectElement::OptionFlag::SetDisabled,
+        HTMLSelectElement::OptionFlag::Notify};
     if (aValue) {
-      mask |= HTMLSelectElement::IS_SELECTED;
+      mask += HTMLSelectElement::OptionFlag::IsSelected;
     }
 
     // This should end up calling SetSelectedInternal
@@ -140,16 +142,13 @@ nsChangeHint HTMLOptionElement::GetAttributeChangeHint(const nsAtom* aAttribute,
   return retval;
 }
 
-nsresult HTMLOptionElement::BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
-                                          const nsAttrValueOrString* aValue,
-                                          bool aNotify) {
-  nsresult rv =
-      nsGenericHTMLElement::BeforeSetAttr(aNamespaceID, aName, aValue, aNotify);
-  NS_ENSURE_SUCCESS(rv, rv);
+void HTMLOptionElement::BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
+                                      const nsAttrValue* aValue, bool aNotify) {
+  nsGenericHTMLElement::BeforeSetAttr(aNamespaceID, aName, aValue, aNotify);
 
   if (aNamespaceID != kNameSpaceID_None || aName != nsGkAtoms::selected ||
       mSelectedChanged) {
-    return NS_OK;
+    return;
   }
 
   // We just changed out selected state (since we look at the "selected"
@@ -160,7 +159,7 @@ nsresult HTMLOptionElement::BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
     // If option is a child of select, SetOptionsSelectedByIndex will set
     // mIsSelected if needed.
     mIsSelected = aValue;
-    return NS_OK;
+    return;
   }
 
   NS_ASSERTION(!mSelectedChanged, "Shouldn't be here");
@@ -169,13 +168,14 @@ nsresult HTMLOptionElement::BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
   mIsInSetDefaultSelected = true;
 
   int32_t index = Index();
-  uint32_t mask = HTMLSelectElement::SET_DISABLED;
+  HTMLSelectElement::OptionFlags mask =
+      HTMLSelectElement::OptionFlag::SetDisabled;
   if (aValue) {
-    mask |= HTMLSelectElement::IS_SELECTED;
+    mask += HTMLSelectElement::OptionFlag::IsSelected;
   }
 
   if (aNotify) {
-    mask |= HTMLSelectElement::NOTIFY;
+    mask += HTMLSelectElement::OptionFlag::Notify;
   }
 
   // This can end up calling SetSelectedInternal if our selected state needs to
@@ -190,15 +190,13 @@ nsresult HTMLOptionElement::BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
   // mIsSelected might have been changed by SetOptionsSelectedByIndex.  Possibly
   // more than once; make sure our mSelectedChanged state is set back correctly.
   mSelectedChanged = false;
-
-  return NS_OK;
 }
 
-nsresult HTMLOptionElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
-                                         const nsAttrValue* aValue,
-                                         const nsAttrValue* aOldValue,
-                                         nsIPrincipal* aSubjectPrincipal,
-                                         bool aNotify) {
+void HTMLOptionElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                                     const nsAttrValue* aValue,
+                                     const nsAttrValue* aOldValue,
+                                     nsIPrincipal* aSubjectPrincipal,
+                                     bool aNotify) {
   if (aNameSpaceID == kNameSpaceID_None) {
     if (aName == nsGkAtoms::disabled) {
       UpdateDisabledState(aNotify);

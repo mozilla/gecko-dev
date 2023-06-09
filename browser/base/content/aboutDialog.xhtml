@@ -12,7 +12,6 @@
         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
         id="aboutDialog"
         windowtype="Browser:About"
-        onload="init(event);"
 #ifdef MOZ_UPDATER
         onunload="onUnload(event);"
 #endif
@@ -32,8 +31,6 @@
     <html:link rel="localization" href="branding/brand.ftl"/>
     <html:link rel="localization" href="browser/aboutDialog.ftl"/>
   </linkset>
-
-  <script src="chrome://browser/content/aboutDialog.js"/>
 
   <html:div id="aboutDialogContainer">
     <hbox id="clientBox">
@@ -58,7 +55,7 @@
           <hbox id="updateBox">
 #ifdef MOZ_UPDATER
             <html:div id="icons">
-              <html:img class="icon update-throbber" src="chrome://global/skin/icons/loading.png" role="presentation"/>
+              <html:img class="icon update-throbber" role="presentation"/>
               <html:img class="icon noUpdatesFound" src="chrome://global/skin/icons/check.svg" role="presentation"/>
               <html:img class="icon apply" src="chrome://global/skin/icons/reload.svg" role="presentation"/>
             </html:div>
@@ -117,7 +114,9 @@
           </hbox>
 
 #ifdef MOZ_UPDATER
-          <description class="text-blurb" id="currentChannelText" data-l10n-id="channel-description">
+          <description class="text-blurb" id="currentChannelText"
+                       data-l10n-id="aboutdialog-channel-description"
+                       data-l10n-attrs="{&quot;channel&quot;: &quot;&quot;}">
             <label id="currentChannel" data-l10n-name="current-channel"/>
           </description>
 #endif
@@ -153,4 +152,5 @@
     <key keycode="VK_ESCAPE" oncommand="window.close();"/>
   </keyset>
 
+  <script src="chrome://browser/content/aboutDialog.js"/>
 </window>

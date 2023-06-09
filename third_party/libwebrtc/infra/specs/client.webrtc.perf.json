@@ -17,7 +17,7 @@
             "--test-suite",
             "low_bandwidth_audio_perf_test"
           ],
-          "script": "//tools_webrtc/perf/process_perf_results_py2.py"
+          "script": "//tools_webrtc/perf/process_perf_results.py"
         },
         "resultdb": {
           "enable": true,
@@ -30,13 +30,15 @@
               "android_devices": "1",
               "device_os": "M",
               "device_type": "shamu",
+              "gce": "0",
               "os": "Android",
               "pool": "WebRTC-perf"
             }
           ],
           "hard_timeout": 10800,
           "idempotent": false,
-          "io_timeout": 10800
+          "io_timeout": 10800,
+          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "low_bandwidth_audio_perf_test",
         "test_id_prefix": "ninja://audio:low_bandwidth_audio_perf_test/"
@@ -51,7 +53,7 @@
             "--test-suite",
             "webrtc_perf_tests"
           ],
-          "script": "//tools_webrtc/perf/process_perf_results_py2.py"
+          "script": "//tools_webrtc/perf/process_perf_results.py"
         },
         "resultdb": {
           "enable": true,
@@ -64,13 +66,15 @@
               "android_devices": "1",
               "device_os": "M",
               "device_type": "shamu",
+              "gce": "0",
               "os": "Android",
               "pool": "WebRTC-perf"
             }
           ],
           "hard_timeout": 10800,
           "idempotent": false,
-          "io_timeout": 10800
+          "io_timeout": 10800,
+          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "webrtc_perf_tests",
         "test_id_prefix": "ninja://:webrtc_perf_tests/"
@@ -93,7 +97,7 @@
             "--test-suite",
             "low_bandwidth_audio_perf_test"
           ],
-          "script": "//tools_webrtc/perf/process_perf_results_py2.py"
+          "script": "//tools_webrtc/perf/process_perf_results.py"
         },
         "resultdb": {
           "enable": true,
@@ -106,13 +110,15 @@
               "android_devices": "1",
               "device_os": "M",
               "device_type": "hammerhead",
+              "gce": "0",
               "os": "Android",
               "pool": "WebRTC-perf"
             }
           ],
           "hard_timeout": 10800,
           "idempotent": false,
-          "io_timeout": 10800
+          "io_timeout": 10800,
+          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "low_bandwidth_audio_perf_test",
         "test_id_prefix": "ninja://audio:low_bandwidth_audio_perf_test/"
@@ -127,7 +133,7 @@
             "--test-suite",
             "webrtc_perf_tests"
           ],
-          "script": "//tools_webrtc/perf/process_perf_results_py2.py"
+          "script": "//tools_webrtc/perf/process_perf_results.py"
         },
         "resultdb": {
           "enable": true,
@@ -140,13 +146,171 @@
               "android_devices": "1",
               "device_os": "M",
               "device_type": "hammerhead",
+              "gce": "0",
               "os": "Android",
               "pool": "WebRTC-perf"
             }
           ],
           "hard_timeout": 10800,
           "idempotent": false,
-          "io_timeout": 10800
+          "io_timeout": 10800,
+          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
+        },
+        "test": "webrtc_perf_tests",
+        "test_id_prefix": "ninja://:webrtc_perf_tests/"
+      }
+    ]
+  },
+  "Perf Android32 (O Pixel2)": {
+    "gtest_tests": [
+      {
+        "args": [
+          ".",
+          "--remove",
+          "--android",
+          "--adb-path",
+          "../../third_party/android_sdk/public/platform-tools/adb",
+          "--isolated-script-test-perf-output=${ISOLATED_OUTDIR}/perftest-output.pb"
+        ],
+        "merge": {
+          "args": [
+            "--test-suite",
+            "low_bandwidth_audio_perf_test"
+          ],
+          "script": "//tools_webrtc/perf/process_perf_results.py"
+        },
+        "resultdb": {
+          "enable": true,
+          "has_native_resultdb_integration": true
+        },
+        "swarming": {
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "android_devices": "1",
+              "device_type": "walleye",
+              "gce": "0",
+              "os": "Android",
+              "pool": "WebRTC-perf"
+            }
+          ],
+          "hard_timeout": 10800,
+          "idempotent": false,
+          "io_timeout": 10800,
+          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
+        },
+        "test": "low_bandwidth_audio_perf_test",
+        "test_id_prefix": "ninja://audio:low_bandwidth_audio_perf_test/"
+      },
+      {
+        "args": [
+          "--isolated-script-test-perf-output=${ISOLATED_OUTDIR}/perftest-output.pb",
+          "--nologs"
+        ],
+        "merge": {
+          "args": [
+            "--test-suite",
+            "webrtc_perf_tests"
+          ],
+          "script": "//tools_webrtc/perf/process_perf_results.py"
+        },
+        "resultdb": {
+          "enable": true,
+          "has_native_resultdb_integration": true
+        },
+        "swarming": {
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "android_devices": "1",
+              "device_type": "walleye",
+              "gce": "0",
+              "os": "Android",
+              "pool": "WebRTC-perf"
+            }
+          ],
+          "hard_timeout": 10800,
+          "idempotent": false,
+          "io_timeout": 10800,
+          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
+        },
+        "test": "webrtc_perf_tests",
+        "test_id_prefix": "ninja://:webrtc_perf_tests/"
+      }
+    ]
+  },
+  "Perf Android32 (R Pixel5)": {
+    "gtest_tests": [
+      {
+        "args": [
+          ".",
+          "--remove",
+          "--android",
+          "--adb-path",
+          "../../third_party/android_sdk/public/platform-tools/adb",
+          "--isolated-script-test-perf-output=${ISOLATED_OUTDIR}/perftest-output.pb"
+        ],
+        "merge": {
+          "args": [
+            "--test-suite",
+            "low_bandwidth_audio_perf_test"
+          ],
+          "script": "//tools_webrtc/perf/process_perf_results.py"
+        },
+        "resultdb": {
+          "enable": true,
+          "has_native_resultdb_integration": true
+        },
+        "swarming": {
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "android_devices": "1",
+              "device_type": "redfin",
+              "gce": "0",
+              "os": "Android",
+              "pool": "WebRTC-perf"
+            }
+          ],
+          "hard_timeout": 10800,
+          "idempotent": false,
+          "io_timeout": 10800,
+          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
+        },
+        "test": "low_bandwidth_audio_perf_test",
+        "test_id_prefix": "ninja://audio:low_bandwidth_audio_perf_test/"
+      },
+      {
+        "args": [
+          "--isolated-script-test-perf-output=${ISOLATED_OUTDIR}/perftest-output.pb",
+          "--nologs"
+        ],
+        "merge": {
+          "args": [
+            "--test-suite",
+            "webrtc_perf_tests"
+          ],
+          "script": "//tools_webrtc/perf/process_perf_results.py"
+        },
+        "resultdb": {
+          "enable": true,
+          "has_native_resultdb_integration": true
+        },
+        "swarming": {
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "android_devices": "1",
+              "device_type": "redfin",
+              "gce": "0",
+              "os": "Android",
+              "pool": "WebRTC-perf"
+            }
+          ],
+          "hard_timeout": 10800,
+          "idempotent": false,
+          "io_timeout": 10800,
+          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "webrtc_perf_tests",
         "test_id_prefix": "ninja://:webrtc_perf_tests/"
@@ -169,7 +333,7 @@
             "--test-suite",
             "low_bandwidth_audio_perf_test"
           ],
-          "script": "//tools_webrtc/perf/process_perf_results_py2.py"
+          "script": "//tools_webrtc/perf/process_perf_results.py"
         },
         "resultdb": {
           "enable": true,
@@ -182,13 +346,15 @@
               "android_devices": "1",
               "device_os": "MMB29Q",
               "device_type": "bullhead",
+              "gce": "0",
               "os": "Android",
               "pool": "WebRTC-perf"
             }
           ],
           "hard_timeout": 10800,
           "idempotent": false,
-          "io_timeout": 10800
+          "io_timeout": 10800,
+          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "low_bandwidth_audio_perf_test",
         "test_id_prefix": "ninja://audio:low_bandwidth_audio_perf_test/"
@@ -203,7 +369,7 @@
             "--test-suite",
             "webrtc_perf_tests"
           ],
-          "script": "//tools_webrtc/perf/process_perf_results_py2.py"
+          "script": "//tools_webrtc/perf/process_perf_results.py"
         },
         "resultdb": {
           "enable": true,
@@ -216,13 +382,15 @@
               "android_devices": "1",
               "device_os": "MMB29Q",
               "device_type": "bullhead",
+              "gce": "0",
               "os": "Android",
               "pool": "WebRTC-perf"
             }
           ],
           "hard_timeout": 10800,
           "idempotent": false,
-          "io_timeout": 10800
+          "io_timeout": 10800,
+          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "webrtc_perf_tests",
         "test_id_prefix": "ninja://:webrtc_perf_tests/"
@@ -245,7 +413,7 @@
             "--test-suite",
             "low_bandwidth_audio_perf_test"
           ],
-          "script": "//tools_webrtc/perf/process_perf_results_py2.py"
+          "script": "//tools_webrtc/perf/process_perf_results.py"
         },
         "resultdb": {
           "enable": true,
@@ -257,13 +425,15 @@
             {
               "android_devices": "1",
               "device_type": "walleye",
+              "gce": "0",
               "os": "Android",
               "pool": "WebRTC-perf"
             }
           ],
           "hard_timeout": 10800,
           "idempotent": false,
-          "io_timeout": 10800
+          "io_timeout": 10800,
+          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "low_bandwidth_audio_perf_test",
         "test_id_prefix": "ninja://audio:low_bandwidth_audio_perf_test/"
@@ -278,7 +448,7 @@
             "--test-suite",
             "webrtc_perf_tests"
           ],
-          "script": "//tools_webrtc/perf/process_perf_results_py2.py"
+          "script": "//tools_webrtc/perf/process_perf_results.py"
         },
         "resultdb": {
           "enable": true,
@@ -290,16 +460,134 @@
             {
               "android_devices": "1",
               "device_type": "walleye",
+              "gce": "0",
               "os": "Android",
               "pool": "WebRTC-perf"
             }
           ],
           "hard_timeout": 10800,
           "idempotent": false,
-          "io_timeout": 10800
+          "io_timeout": 10800,
+          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "webrtc_perf_tests",
         "test_id_prefix": "ninja://:webrtc_perf_tests/"
+      }
+    ]
+  },
+  "Perf Android64 (R Pixel5)": {
+    "gtest_tests": [
+      {
+        "args": [
+          ".",
+          "--remove",
+          "--android",
+          "--adb-path",
+          "../../third_party/android_sdk/public/platform-tools/adb",
+          "--isolated-script-test-perf-output=${ISOLATED_OUTDIR}/perftest-output.pb"
+        ],
+        "merge": {
+          "args": [
+            "--test-suite",
+            "low_bandwidth_audio_perf_test"
+          ],
+          "script": "//tools_webrtc/perf/process_perf_results.py"
+        },
+        "resultdb": {
+          "enable": true,
+          "has_native_resultdb_integration": true
+        },
+        "swarming": {
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "android_devices": "1",
+              "device_type": "redfin",
+              "gce": "0",
+              "os": "Android",
+              "pool": "WebRTC-perf"
+            }
+          ],
+          "hard_timeout": 10800,
+          "idempotent": false,
+          "io_timeout": 10800,
+          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
+        },
+        "test": "low_bandwidth_audio_perf_test",
+        "test_id_prefix": "ninja://audio:low_bandwidth_audio_perf_test/"
+      },
+      {
+        "args": [
+          "--isolated-script-test-perf-output=${ISOLATED_OUTDIR}/perftest-output.pb",
+          "--nologs"
+        ],
+        "merge": {
+          "args": [
+            "--test-suite",
+            "webrtc_perf_tests"
+          ],
+          "script": "//tools_webrtc/perf/process_perf_results.py"
+        },
+        "resultdb": {
+          "enable": true,
+          "has_native_resultdb_integration": true
+        },
+        "swarming": {
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "android_devices": "1",
+              "device_type": "redfin",
+              "gce": "0",
+              "os": "Android",
+              "pool": "WebRTC-perf"
+            }
+          ],
+          "hard_timeout": 10800,
+          "idempotent": false,
+          "io_timeout": 10800,
+          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
+        },
+        "test": "webrtc_perf_tests",
+        "test_id_prefix": "ninja://:webrtc_perf_tests/"
+      }
+    ]
+  },
+  "Perf Fuchsia": {
+    "isolated_scripts": [
+      {
+        "args": [
+          "--nologs"
+        ],
+        "isolate_name": "fuchsia_perf_tests",
+        "merge": {
+          "args": [
+            "--test-suite",
+            "fuchsia_perf_tests"
+          ],
+          "script": "//tools_webrtc/perf/process_perf_results.py"
+        },
+        "name": "fuchsia_perf_tests",
+        "resultdb": {
+          "enable": true,
+          "has_native_resultdb_integration": true
+        },
+        "swarming": {
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "x86-64",
+              "gce": "1",
+              "os": "Ubuntu-18.04",
+              "pool": "WebRTC-perf"
+            }
+          ],
+          "hard_timeout": 10800,
+          "idempotent": false,
+          "io_timeout": 10800,
+          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
+        },
+        "test_id_prefix": "ninja://:fuchsia_perf_tests/"
       }
     ]
   },
@@ -317,7 +605,7 @@
             "--test-suite",
             "low_bandwidth_audio_perf_test"
           ],
-          "script": "//tools_webrtc/perf/process_perf_results_py2.py"
+          "script": "//tools_webrtc/perf/process_perf_results.py"
         },
         "name": "low_bandwidth_audio_perf_test",
         "resultdb": {
@@ -328,6 +616,7 @@
           "can_use_on_swarming_builders": true,
           "dimension_sets": [
             {
+              "gce": "0",
               "os": "Ubuntu-18.04",
               "pool": "WebRTC-perf"
             }
@@ -351,7 +640,7 @@
             "--test-suite",
             "webrtc_perf_tests"
           ],
-          "script": "//tools_webrtc/perf/process_perf_results_py2.py"
+          "script": "//tools_webrtc/perf/process_perf_results.py"
         },
         "name": "webrtc_perf_tests",
         "resultdb": {
@@ -362,6 +651,7 @@
           "can_use_on_swarming_builders": true,
           "dimension_sets": [
             {
+              "gce": "0",
               "os": "Ubuntu-18.04",
               "pool": "WebRTC-perf"
             }
@@ -388,7 +678,7 @@
             "--test-suite",
             "low_bandwidth_audio_perf_test"
           ],
-          "script": "//tools_webrtc/perf/process_perf_results_py2.py"
+          "script": "//tools_webrtc/perf/process_perf_results.py"
         },
         "name": "low_bandwidth_audio_perf_test",
         "resultdb": {
@@ -400,6 +690,7 @@
           "dimension_sets": [
             {
               "cpu": "x86-64",
+              "gce": "0",
               "os": "Mac-11",
               "pool": "WebRTC-perf"
             }
@@ -423,7 +714,7 @@
             "--test-suite",
             "webrtc_perf_tests"
           ],
-          "script": "//tools_webrtc/perf/process_perf_results_py2.py"
+          "script": "//tools_webrtc/perf/process_perf_results.py"
         },
         "name": "webrtc_perf_tests",
         "resultdb": {
@@ -435,6 +726,7 @@
           "dimension_sets": [
             {
               "cpu": "x86-64",
+              "gce": "0",
               "os": "Mac-11",
               "pool": "WebRTC-perf"
             }
@@ -460,7 +752,7 @@
             "--test-suite",
             "webrtc_perf_tests"
           ],
-          "script": "//tools_webrtc/perf/process_perf_results_py2.py"
+          "script": "//tools_webrtc/perf/process_perf_results.py"
         },
         "name": "webrtc_perf_tests",
         "resultdb": {
@@ -472,6 +764,7 @@
           "dimension_sets": [
             {
               "cpu": "arm64-64-Apple_M1",
+              "gce": "0",
               "os": "Mac-12",
               "pool": "WebRTC-perf"
             }
@@ -484,7 +777,7 @@
       }
     ]
   },
-  "Perf Win7": {
+  "Perf Win 10": {
     "isolated_scripts": [
       {
         "args": [
@@ -498,7 +791,7 @@
             "--test-suite",
             "low_bandwidth_audio_perf_test"
           ],
-          "script": "//tools_webrtc/perf/process_perf_results_py2.py"
+          "script": "//tools_webrtc/perf/process_perf_results.py"
         },
         "name": "low_bandwidth_audio_perf_test",
         "resultdb": {
@@ -509,7 +802,8 @@
           "can_use_on_swarming_builders": true,
           "dimension_sets": [
             {
-              "os": "Windows",
+              "gce": "0",
+              "os": "Windows-10",
               "pool": "WebRTC-perf"
             }
           ],
@@ -532,7 +826,7 @@
             "--test-suite",
             "webrtc_perf_tests"
           ],
-          "script": "//tools_webrtc/perf/process_perf_results_py2.py"
+          "script": "//tools_webrtc/perf/process_perf_results.py"
         },
         "name": "webrtc_perf_tests",
         "resultdb": {
@@ -543,7 +837,8 @@
           "can_use_on_swarming_builders": true,
           "dimension_sets": [
             {
-              "os": "Windows",
+              "gce": "0",
+              "os": "Windows-10",
               "pool": "WebRTC-perf"
             }
           ],

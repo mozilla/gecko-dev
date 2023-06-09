@@ -126,14 +126,6 @@ void CompositorBridgeParentBase::NotifyNotUsed(PTextureParent* aTexture,
     return;
   }
 
-#ifdef MOZ_WIDGET_ANDROID
-  if (texture->GetAndroidHardwareBuffer()) {
-    MOZ_ASSERT(texture->GetFlags() & TextureFlags::RECYCLE);
-    ImageBridgeParent::NotifyBufferNotUsedOfCompositorBridge(
-        GetChildProcessId(), texture, aTransactionId);
-  }
-#endif
-
   if (!(texture->GetFlags() & TextureFlags::RECYCLE) &&
       !(texture->GetFlags() & TextureFlags::WAIT_HOST_USAGE_END)) {
     return;
@@ -267,6 +259,12 @@ void CompositorBridgeParent::InitSameProcess(widget::CompositorWidget* aWidget,
 
   mWidget = aWidget;
   mRootLayerTreeID = aLayerTreeId;
+#if defined(XP_WIN)
+  // when run in headless mode, no WinCompositorWidget is created
+  if (widget::WinCompositorWidget* windows = mWidget->AsWindows()) {
+    windows->SetRootLayerTreeID(mRootLayerTreeID);
+  }
+#endif
 
   Initialize();
 }
@@ -277,8 +275,9 @@ mozilla::ipc::IPCResult CompositorBridgeParent::RecvInitialize(
 
   mRootLayerTreeID = aRootLayerTreeId;
 #ifdef XP_WIN
-  if (XRE_IsGPUProcess()) {
-    mWidget->AsWindows()->SetRootLayerTreeID(mRootLayerTreeID);
+  // headless mode is probably always same-process; but just in case...
+  if (widget::WinCompositorWidget* windows = mWidget->AsWindows()) {
+    windows->SetRootLayerTreeID(mRootLayerTreeID);
   }
 #endif
 
@@ -1232,6 +1231,9 @@ void CompositorBridgeParent::UpdateQualitySettings() {
 
   MonitorAutoLock lock(*sIndirectLayerTreesLock);
   ForEachWebRenderBridgeParent([&](WebRenderBridgeParent* wrBridge) -> void {
+    if (!wrBridge->IsRootWebRenderBridgeParent()) {
+      return;
+    }
     wrBridge->UpdateQualitySettings();
   });
 }
@@ -1252,6 +1254,9 @@ void CompositorBridgeParent::UpdateDebugFlags() {
 
   MonitorAutoLock lock(*sIndirectLayerTreesLock);
   ForEachWebRenderBridgeParent([&](WebRenderBridgeParent* wrBridge) -> void {
+    if (!wrBridge->IsRootWebRenderBridgeParent()) {
+      return;
+    }
     wrBridge->UpdateDebugFlags();
   });
 }
@@ -1270,6 +1275,9 @@ void CompositorBridgeParent::UpdateWebRenderBoolParameters() {
 
   MonitorAutoLock lock(*sIndirectLayerTreesLock);
   ForEachWebRenderBridgeParent([&](WebRenderBridgeParent* wrBridge) -> void {
+    if (!wrBridge->IsRootWebRenderBridgeParent()) {
+      return;
+    }
     wrBridge->UpdateBoolParameters();
   });
 }
@@ -1288,6 +1296,9 @@ void CompositorBridgeParent::UpdateWebRenderParameters() {
 
   MonitorAutoLock lock(*sIndirectLayerTreesLock);
   ForEachWebRenderBridgeParent([&](WebRenderBridgeParent* wrBridge) -> void {
+    if (!wrBridge->IsRootWebRenderBridgeParent()) {
+      return;
+    }
     wrBridge->UpdateParameters();
   });
 }
@@ -1299,6 +1310,9 @@ void CompositorBridgeParent::UpdateWebRenderProfilerUI() {
   }
   MonitorAutoLock lock(*sIndirectLayerTreesLock);
   ForEachWebRenderBridgeParent([&](WebRenderBridgeParent* wrBridge) -> void {
+    if (!wrBridge->IsRootWebRenderBridgeParent()) {
+      return;
+    }
     wrBridge->UpdateProfilerUI();
   });
 }
@@ -1879,42 +1893,22 @@ mozilla::ipc::IPCResult CompositorBridgeParent::RecvBeginRecording(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult CompositorBridgeParent::RecvEndRecordingToDisk(
-    EndRecordingToDiskResolver&& aResolve) {
-  if (!mHaveCompositionRecorder) {
-    aResolve(false);
-    return IPC_OK();
-  }
-
-  if (mWrBridge) {
-    mWrBridge->WriteCollectedFrames()->Then(
-        NS_GetCurrentThread(), __func__,
-        [resolve{aResolve}](const bool success) { resolve(success); },
-        [resolve{aResolve}]() { resolve(false); });
-  } else {
-    aResolve(false);
-  }
-
-  mHaveCompositionRecorder = false;
-
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult CompositorBridgeParent::RecvEndRecordingToMemory(
-    EndRecordingToMemoryResolver&& aResolve) {
+mozilla::ipc::IPCResult CompositorBridgeParent::RecvEndRecording(
+    EndRecordingResolver&& aResolve) {
   if (!mHaveCompositionRecorder) {
     aResolve(Nothing());
     return IPC_OK();
   }
 
   if (mWrBridge) {
-    RefPtr<CompositorBridgeParent> self = this;
-    mWrBridge->GetCollectedFrames()->Then(
+    mWrBridge->EndRecording()->Then(
         NS_GetCurrentThread(), __func__,
-        [self, resolve{aResolve}](CollectedFrames&& frames) {
-          resolve(self->WrapCollectedFrames(std::move(frames)));
+        [resolve{aResolve}](FrameRecording&& recording) {
+          resolve(Some(std::move(recording)));
         },
         [resolve{aResolve}]() { resolve(Nothing()); });
+  } else {
+    aResolve(Nothing());
   }
 
   mHaveCompositionRecorder = false;
@@ -1922,35 +1916,24 @@ mozilla::ipc::IPCResult CompositorBridgeParent::RecvEndRecordingToMemory(
   return IPC_OK();
 }
 
-Maybe<CollectedFramesParams> CompositorBridgeParent::WrapCollectedFrames(
-    CollectedFrames&& aFrames) {
-  CollectedFramesParams ipcFrames;
-  ipcFrames.recordingStart() = aFrames.mRecordingStart;
-
-  size_t totalLength = 0;
-  for (const CollectedFrame& frame : aFrames.mFrames) {
-    totalLength += frame.mDataUri.Length();
+void CompositorBridgeParent::FlushPendingWrTransactionEventsWithWait() {
+  if (!mWrBridge) {
+    return;
   }
 
-  Shmem shmem;
-  if (!AllocShmem(totalLength, &shmem)) {
-    return Nothing();
+  std::vector<RefPtr<WebRenderBridgeParent>> bridgeParents;
+  {  // scope lock
+    MonitorAutoLock lock(*sIndirectLayerTreesLock);
+    ForEachIndirectLayerTree([&](LayerTreeState* lts, LayersId) -> void {
+      if (lts->mWrBridge) {
+        bridgeParents.emplace_back(lts->mWrBridge);
+      }
+    });
   }
 
-  {
-    char* raw = shmem.get<char>();
-    for (CollectedFrame& frame : aFrames.mFrames) {
-      size_t length = frame.mDataUri.Length();
-
-      PodCopy(raw, frame.mDataUri.get(), length);
-      raw += length;
-
-      ipcFrames.frames().EmplaceBack(frame.mTimeOffset, length);
-    }
+  for (auto& bridge : bridgeParents) {
+    bridge->FlushPendingWrTransactionEventsWithWait();
   }
-  ipcFrames.buffer() = std::move(shmem);
-
-  return Some(std::move(ipcFrames));
 }
 
 void RecordCompositionPayloadsPresented(

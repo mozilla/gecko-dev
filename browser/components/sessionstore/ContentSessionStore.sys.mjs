@@ -8,10 +8,6 @@ import {
   setTimeoutWithTarget,
 } from "resource://gre/modules/Timer.sys.mjs";
 
-function debug(msg) {
-  Services.console.logStringMessage("SessionStoreContent: " + msg);
-}
-
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
@@ -80,7 +76,7 @@ class EventListener extends Handler {
         !content.document.body.classList.contains("loaded")
       ) {
         // Don't restore the scroll position of an about:reader page at this
-        // point; listen for the custom event dispatched from AboutReader.jsm.
+        // point; listen for the custom event dispatched from AboutReader.sys.mjs.
         content.addEventListener("AboutReaderContentReady", this);
         return;
       }
@@ -372,7 +368,7 @@ class MessageQueue extends Handler {
           );
           break;
         default:
-          debug("received unknown message '" + data + "'");
+          console.error("received unknown message '" + data + "'");
           break;
       }
     }
@@ -570,7 +566,7 @@ export class ContentSessionStore {
         this.mm.docShell.persistLayoutHistoryState();
         break;
       default:
-        debug("received unknown message '" + name + "'");
+        console.error("received unknown message '" + name + "'");
         break;
     }
   }

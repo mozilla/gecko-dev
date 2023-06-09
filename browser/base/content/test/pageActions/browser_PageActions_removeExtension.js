@@ -1,10 +1,5 @@
 "use strict";
 
-const TELEMETRY_EVENTS_FILTERS = {
-  category: "addonsManager",
-  method: "action",
-};
-
 // Initialization. Must run first.
 add_setup(async function() {
   // The page action urlbar button, and therefore the panel, is only shown when
@@ -12,6 +7,7 @@ add_setup(async function() {
   // not, so open a new tab first thing, and close it when this test is done.
   let tab = await BrowserTestUtils.openNewForegroundTab({
     gBrowser,
+    // eslint-disable-next-line @microsoft/sdl/no-insecure-url
     url: "http://example.com/",
   });
 
@@ -25,8 +21,6 @@ add_setup(async function() {
 });
 
 add_task(async function contextMenu_removeExtension_panel() {
-  Services.telemetry.clearEvents();
-
   // We use an extension that shows a page action so that we can test the
   // "remove extension" item in the context menu.
   let extension = ExtensionTestUtils.loadExtension({
@@ -45,7 +39,7 @@ add_task(async function contextMenu_removeExtension_panel() {
   const url = "data:text/html,<h1>A Page</h1>";
   let win = await BrowserTestUtils.openNewBrowserWindow();
   await SimpleTest.promiseFocus(win);
-  BrowserTestUtils.loadURI(win.gBrowser, url);
+  BrowserTestUtils.loadURIString(win.gBrowser, url);
   await BrowserTestUtils.browserLoaded(win.gBrowser.selectedBrowser);
 
   info("Shrink the window if necessary, check the meatball menu is visible");
@@ -93,24 +87,11 @@ add_task(async function contextMenu_removeExtension_panel() {
   // Done, clean up.
   await extension.unload();
 
-  TelemetryTestUtils.assertEvents(
-    [
-      {
-        object: "pageAction",
-        value: "accepted",
-        extra: { addonId: extension.id, action: "uninstall" },
-      },
-    ],
-    TELEMETRY_EVENTS_FILTERS
-  );
-
   await promiseStableResize(originalOuterWidth, win);
   await BrowserTestUtils.closeWindow(win);
 });
 
 add_task(async function contextMenu_removeExtension_urlbar() {
-  Services.telemetry.clearEvents();
-
   // We use an extension that shows a page action so that we can test the
   // "remove extension" item in the context menu.
   let extension = ExtensionTestUtils.loadExtension({
@@ -163,17 +144,6 @@ add_task(async function contextMenu_removeExtension_urlbar() {
 
   // Done, clean up.
   await extension.unload();
-
-  TelemetryTestUtils.assertEvents(
-    [
-      {
-        object: "pageAction",
-        value: "cancelled",
-        extra: { addonId: extension.id, action: "uninstall" },
-      },
-    ],
-    TELEMETRY_EVENTS_FILTERS
-  );
 
   // urlbar tests that run after this one can break if the mouse is left over
   // the area where the urlbar popup appears, which seems to happen due to the
@@ -273,7 +243,7 @@ add_task(async function contextMenu_removeExtension_disabled_in_panel() {
   const url = "data:text/html,<h1>A Page</h1>";
   let win = await BrowserTestUtils.openNewBrowserWindow();
   await SimpleTest.promiseFocus(win);
-  BrowserTestUtils.loadURI(win.gBrowser, url);
+  BrowserTestUtils.loadURIString(win.gBrowser, url);
   await BrowserTestUtils.browserLoaded(win.gBrowser.selectedBrowser);
 
   info("Shrink the window if necessary, check the meatball menu is visible");

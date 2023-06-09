@@ -19,24 +19,16 @@ EXPORTS += [
 ]
 
 UNIFIED_SOURCES += [
-    "nsBox.cpp",
-    "nsBoxFrame.cpp",
-    "nsBoxLayout.cpp",
-    "nsBoxLayoutState.cpp",
-    "nsImageBoxFrame.cpp",
-    "nsLeafBoxFrame.cpp",
-    "nsMenuBarFrame.cpp",
-    "nsMenuBarListener.cpp",
+    "MiddleCroppingLabelFrame.cpp",
     "nsMenuPopupFrame.cpp",
     "nsRepeatService.cpp",
     "nsScrollbarButtonFrame.cpp",
     "nsScrollbarFrame.cpp",
     "nsSliderFrame.cpp",
     "nsSplitterFrame.cpp",
-    "nsSprocketLayout.cpp",
-    "nsTextBoxFrame.cpp",
     "nsXULPopupManager.cpp",
     "nsXULTooltipListener.cpp",
+    "SimpleXULLeafFrame.cpp",
 ]
 
 DIRS += ["tree"]

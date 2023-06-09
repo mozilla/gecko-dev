@@ -35,7 +35,8 @@ class SVGClipPathFrame final : public SVGContainerFrame {
   explicit SVGClipPathFrame(ComputedStyle* aStyle, nsPresContext* aPresContext)
       : SVGContainerFrame(aStyle, aPresContext, kClassID),
         mIsBeingProcessed(false) {
-    AddStateBits(NS_FRAME_IS_NONDISPLAY);
+    AddStateBits(NS_FRAME_IS_NONDISPLAY | NS_STATE_SVG_CLIPPATH_CHILD |
+                 NS_FRAME_MAY_BE_TRANSFORMED);
   }
 
  public:
@@ -115,8 +116,10 @@ class SVGClipPathFrame final : public SVGContainerFrame {
   nsresult AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
                             int32_t aModType) override;
 
+#ifdef DEBUG
   void Init(nsIContent* aContent, nsContainerFrame* aParent,
             nsIFrame* aPrevInFlow) override;
+#endif
 
 #ifdef DEBUG_FRAME_DUMP
   nsresult GetFrameName(nsAString& aResult) const override {
@@ -144,6 +147,9 @@ class SVGClipPathFrame final : public SVGContainerFrame {
 
   void PaintFrameIntoMask(nsIFrame* aFrame, nsIFrame* aClippedFrame,
                           gfxContext& aTarget);
+
+  void PaintChildren(gfxContext& aMaskContext, nsIFrame* aClippedFrame,
+                     const gfxMatrix& aMatrix);
 
   // Set, during a GetClipMask() call, to the transform that still needs to be
   // concatenated to the transform of the DrawTarget that was passed to

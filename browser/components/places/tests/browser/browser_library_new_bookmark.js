@@ -72,9 +72,10 @@ add_task(async function test_open_bookmark_from_library_instantEdiBookmark() {
     async dialogWin => {
       let promiseLocationChange = PlacesTestUtils.waitForNotification(
         "bookmark-url-changed",
-        events => events.some(e => e.url === "https://example4.com/"),
-        "places"
+        events => events.some(e => e.url === "https://example4.com/")
       );
+
+      let beforeUpdatedPRTime = Date.now() * 1000;
 
       fillBookmarkTextField(
         "editBMPanel_locationField",
@@ -92,6 +93,11 @@ add_task(async function test_open_bookmark_from_library_instantEdiBookmark() {
         node.uri,
         "https://example4.com/",
         "InstantEditBookmark: Should have selected the newly created bookmark"
+      );
+      Assert.greater(
+        node.lastModified,
+        beforeUpdatedPRTime,
+        "InstantEditBookmark: The lastModified should be greater than the time of before updating"
       );
     }
   );
@@ -124,6 +130,7 @@ add_task(async function test_open_bookmark_from_library_editBookmark() {
 
   library.ContentTree.view.selectNode(bmLibrary);
 
+  let beforeUpdatedPRTime;
   await withBookmarksDialog(
     false,
     async () => {
@@ -145,6 +152,8 @@ add_task(async function test_open_bookmark_from_library_editBookmark() {
       placesContext.activateItem(properties, {});
     },
     async dialogWin => {
+      beforeUpdatedPRTime = Date.now() * 1000;
+
       fillBookmarkTextField(
         "editBMPanel_locationField",
         "https://example4.com/",
@@ -161,6 +170,11 @@ add_task(async function test_open_bookmark_from_library_editBookmark() {
     node.uri,
     "https://example4.com/",
     "EditBookmark: Should have selected the newly created bookmark"
+  );
+  Assert.greater(
+    node.lastModified,
+    beforeUpdatedPRTime,
+    "EditBookmark: The lastModified should be greater than the time of before updating"
   );
   await PlacesUtils.bookmarks.eraseEverything();
 });

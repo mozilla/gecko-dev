@@ -837,11 +837,11 @@ class EditorDOMPointBase final {
     return EditorDOMPointType(parent);
   }
 
-  bool IsSet() const {
+  [[nodiscard]] bool IsSet() const {
     return mParent && (mIsChildInitialized || mOffset.isSome());
   }
 
-  bool IsSetAndValid() const {
+  [[nodiscard]] bool IsSetAndValid() const {
     if (!IsSet()) {
       return false;
     }
@@ -854,6 +854,14 @@ class EditorDOMPointBase final {
       return false;
     }
     return true;
+  }
+
+  [[nodiscard]] bool IsInComposedDoc() const {
+    return IsSet() && mParent->IsInComposedDoc();
+  }
+
+  [[nodiscard]] bool IsSetAndValidInComposedDoc() const {
+    return IsInComposedDoc() && IsSetAndValid();
   }
 
   bool IsStartOfContainer() const {
@@ -1367,9 +1375,10 @@ class EditorDOMRangeBase final {
     if (mStart.IsInNativeAnonymousSubtree()) {
       nsIContent* parent = nullptr;
       for (parent = mStart.template ContainerAs<nsIContent>()
-                        ->GetClosestNativeAnonymousSubtreeRootParent();
+                        ->GetClosestNativeAnonymousSubtreeRootParentOrHost();
            parent && parent->IsInNativeAnonymousSubtree();
-           parent = parent->GetClosestNativeAnonymousSubtreeRootParent()) {
+           parent =
+               parent->GetClosestNativeAnonymousSubtreeRootParentOrHost()) {
       }
       if (MOZ_UNLIKELY(!parent)) {
         return false;
@@ -1379,9 +1388,10 @@ class EditorDOMRangeBase final {
     if (mEnd.IsInNativeAnonymousSubtree()) {
       nsIContent* parent = nullptr;
       for (parent = mEnd.template ContainerAs<nsIContent>()
-                        ->GetClosestNativeAnonymousSubtreeRootParent();
+                        ->GetClosestNativeAnonymousSubtreeRootParentOrHost();
            parent && parent->IsInNativeAnonymousSubtree();
-           parent = parent->GetClosestNativeAnonymousSubtreeRootParent()) {
+           parent =
+               parent->GetClosestNativeAnonymousSubtreeRootParentOrHost()) {
       }
       if (MOZ_UNLIKELY(!parent)) {
         return false;

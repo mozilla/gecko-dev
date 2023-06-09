@@ -206,8 +206,6 @@ SiteHSTSState::GetOriginAttributes(
   return NS_OK;
 }
 
-const uint64_t kSixtyDaysInSeconds = 60 * 24 * 60 * 60;
-
 nsSiteSecurityService::nsSiteSecurityService()
     : mUsePreloadList(true), mPreloadListTimeOffset(0), mDafsa(kDafsa) {}
 
@@ -559,6 +557,9 @@ static uint32_t ParseSSSHeaders(const nsCString& aHeader,
   return nsISiteSecurityService::Success;
 }
 
+// 100 years is wildly longer than anyone will ever need.
+const uint64_t sMaxMaxAgeInSeconds = UINT64_C(60 * 60 * 24 * 365 * 100);
+
 nsresult nsSiteSecurityService::ProcessSTSHeader(
     nsIURI* aSourceURI, const nsCString& aHeader,
     const OriginAttributes& aOriginAttributes, uint64_t* aMaxAge,
@@ -590,6 +591,11 @@ nsresult nsSiteSecurityService::ProcessSTSHeader(
       *aFailureResult = nsISiteSecurityService::ERROR_NO_MAX_AGE;
     }
     return NS_ERROR_FAILURE;
+  }
+
+  // Cap the specified max-age.
+  if (maxAge > sMaxMaxAgeInSeconds) {
+    maxAge = sMaxMaxAgeInSeconds;
   }
 
   nsAutoCString hostname;

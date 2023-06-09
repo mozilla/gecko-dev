@@ -51,15 +51,11 @@ bool nsStyledElement::ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
                                              aMaybeScriptedPrincipal, aResult);
 }
 
-nsresult nsStyledElement::BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
-                                        const nsAttrValueOrString* aValue,
-                                        bool aNotify) {
-  if (aNamespaceID == kNameSpaceID_None) {
-    if (aName == nsGkAtoms::style) {
-      if (aValue) {
-        SetMayHaveStyle();
-      }
-    }
+void nsStyledElement::BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
+                                    const nsAttrValue* aValue, bool aNotify) {
+  if (aNamespaceID == kNameSpaceID_None && aName == nsGkAtoms::style &&
+      aValue) {
+    SetMayHaveStyle();
   }
 
   return nsStyledElementBase::BeforeSetAttr(aNamespaceID, aName, aValue,
@@ -216,7 +212,7 @@ nsresult nsStyledElement::BindToTree(BindContext& aContext, nsINode& aParent) {
 
   if (HasAttr(nsGkAtoms::autofocus) && aContext.AllowsAutoFocus() &&
       (!IsSVGElement() || IsFocusable())) {
-    aContext.OwnerDoc().SetAutoFocusElement(this);
+    aContext.OwnerDoc().ElementWithAutoFocusInserted(this);
   }
 
   return NS_OK;

@@ -13,7 +13,7 @@ use crate::str::CssStringWriter;
 use crate::values::specified::Integer;
 use crate::values::CustomIdent;
 use crate::Atom;
-use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser};
+use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, QualifiedRuleParser};
 use cssparser::{CowRcStr, Parser, SourceLocation, Token};
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
@@ -153,6 +153,12 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for CounterStyleRuleParser<'a, 'b> {
     type Error = StyleParseErrorKind<'i>;
 }
 
+impl<'a, 'b, 'i> QualifiedRuleParser<'i> for CounterStyleRuleParser<'a, 'b> {
+    type Prelude = ();
+    type QualifiedRule = ();
+    type Error = StyleParseErrorKind<'i>;
+}
+
 macro_rules! checker {
     ($self:ident._($value:ident)) => {};
     ($self:ident. $checker:ident($value:ident)) => {
@@ -244,7 +250,7 @@ macro_rules! counter_style_descriptors {
                         dest.write_str("; ")?;
                     }
                 )+
-                dest.write_str("}")
+                dest.write_char('}')
             }
         }
     }

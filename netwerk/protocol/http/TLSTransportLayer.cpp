@@ -48,6 +48,12 @@ NS_IMETHODIMP TLSTransportLayer::InputStreamWrapper::Available(
   return mSocketIn->Available(avail);
 }
 
+NS_IMETHODIMP TLSTransportLayer::InputStreamWrapper::StreamStatus() {
+  LOG(("TLSTransportLayer::InputStreamWrapper::StreamStatus [this=%p]\n",
+       this));
+  return mSocketIn->StreamStatus();
+}
+
 nsresult TLSTransportLayer::InputStreamWrapper::ReadDirectly(
     char* buf, uint32_t count, uint32_t* countRead) {
   LOG(("TLSTransportLayer::InputStreamWrapper::ReadDirectly [this=%p]\n",
@@ -190,6 +196,12 @@ NS_IMETHODIMP
 TLSTransportLayer::OutputStreamWrapper::Flush() {
   LOG(("TLSTransportLayerOutputStream::Flush [this=%p]\n", this));
   return mSocketOut->Flush();
+}
+
+NS_IMETHODIMP
+TLSTransportLayer::OutputStreamWrapper::StreamStatus() {
+  LOG(("TLSTransportLayerOutputStream::StreamStatus [this=%p]\n", this));
+  return mSocketOut->StreamStatus();
 }
 
 nsresult TLSTransportLayer::OutputStreamWrapper::WriteDirectly(
@@ -533,6 +545,22 @@ TLSTransportLayer::ResolvedByTRR(bool* aResolvedByTRR) {
     return NS_ERROR_FAILURE;
   }
   return mSocketTransport->ResolvedByTRR(aResolvedByTRR);
+}
+
+NS_IMETHODIMP TLSTransportLayer::GetEffectiveTRRMode(
+    nsIRequest::TRRMode* aEffectiveTRRMode) {
+  if (!mSocketTransport) {
+    return NS_ERROR_FAILURE;
+  }
+  return mSocketTransport->GetEffectiveTRRMode(aEffectiveTRRMode);
+}
+
+NS_IMETHODIMP TLSTransportLayer::GetTrrSkipReason(
+    nsITRRSkipReason::value* aTrrSkipReason) {
+  if (!mSocketTransport) {
+    return NS_ERROR_FAILURE;
+  }
+  return mSocketTransport->GetTrrSkipReason(aTrrSkipReason);
 }
 
 #define FWD_TS_PTR(fx, ts)                          \

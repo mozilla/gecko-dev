@@ -39,6 +39,8 @@ class nsContentSecurityManager : public nsIContentSecurityManager,
       nsIChannel* aChannel, nsCOMPtr<nsIStreamListener>& aInAndOutListener);
 
   static bool AllowTopLevelNavigationToDataURI(nsIChannel* aChannel);
+  static void ReportBlockedDataURI(nsIURI* aURI, nsILoadInfo* aLoadInfo,
+                                   bool aIsRedirect = false);
   static bool AllowInsecureRedirectToDataURI(nsIChannel* aNewChannel);
   static void MeasureUnexpectedPrivilegedLoads(nsILoadInfo* aLoadInfo,
                                                nsIURI* aFinalURI,
@@ -75,9 +77,12 @@ class nsContentSecurityManager : public nsIContentSecurityManager,
                                   nsIPrincipal* aResourceOrigin,
                                   nsACString& aResult, nsILoadInfo* aLoadInfo);
 
+  // https://html.spec.whatwg.org/multipage/browsers.html#compatible-with-cross-origin-isolation
+  static bool IsCompatibleWithCrossOriginIsolation(
+      nsILoadInfo::CrossOriginEmbedderPolicy aPolicy);
+
  private:
   static nsresult CheckChannel(nsIChannel* aChannel);
-  static nsresult CheckFTPSubresourceLoad(nsIChannel* aChannel);
   static nsresult CheckAllowLoadInSystemPrivilegedContext(nsIChannel* aChannel);
   static nsresult CheckAllowLoadInPrivilegedAboutContext(nsIChannel* aChannel);
   static nsresult CheckChannelHasProtocolSecurityFlag(nsIChannel* aChannel);

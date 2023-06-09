@@ -46,7 +46,7 @@ function isEventForMenuItem(event) {
   return event.accessible.role == ROLE_MENUITEM;
 }
 
-function isEventForTipButton(event) {
+function isEventForResultButton(event) {
   let parent = event.accessible.parent;
   return (
     event.accessible.role == ROLE_PUSHBUTTON &&
@@ -403,15 +403,15 @@ async function runTipTests() {
 
   info("Ensuring the tip button is focused on down arrow");
   info("Also ensuring that the tip button is a part of a labelled group");
-  focused = waitForEvent(EVENT_FOCUS, isEventForTipButton);
+  focused = waitForEvent(EVENT_FOCUS, isEventForResultButton);
   EventUtils.synthesizeKey("KEY_ArrowDown");
   event = await focused;
   testStates(event.accessible, STATE_FOCUSED);
 
-  info("Ensuring the help button is focused on down arrow");
+  info("Ensuring the help button is focused on tab");
   info("Also ensuring that the help button is a part of a labelled group");
-  focused = waitForEvent(EVENT_FOCUS, isEventForTipButton);
-  EventUtils.synthesizeKey("KEY_ArrowDown");
+  focused = waitForEvent(EVENT_FOCUS, isEventForResultButton);
+  EventUtils.synthesizeKey("KEY_Tab");
   event = await focused;
   testStates(event.accessible, STATE_FOCUSED);
 
@@ -421,9 +421,9 @@ async function runTipTests() {
   event = await focused;
   testStates(event.accessible, STATE_FOCUSED);
 
-  info("Ensuring the help button is focused on up arrow");
-  focused = waitForEvent(EVENT_FOCUS, isEventForTipButton);
-  EventUtils.synthesizeKey("KEY_ArrowUp");
+  info("Ensuring the help button is focused on shift+tab");
+  focused = waitForEvent(EVENT_FOCUS, isEventForResultButton);
+  EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true });
   event = await focused;
   testStates(event.accessible, STATE_FOCUSED);
 

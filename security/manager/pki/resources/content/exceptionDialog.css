@@ -4,20 +4,15 @@
 
 :root {
   max-width: 40em;
+  min-width: 35em;
 }
 
-#warningSupplemental {
-  font-weight: bold;
-}
-
+#warningSupplemental,
 .description {
   font-weight: bold;
 }
 
 .longDescription {
-  /* 40em is the max-width of the dialog defined above.
-     18px is the horizontal padding of the dialog. */
-  width: calc(40em - 18px);
   padding-bottom: 1em;
 }
 
@@ -25,6 +20,8 @@
 #warningSupplemental,
 #headerDescription,
 .longDescription {
+  /* Don't let these affect the min horizontal size of the dialog */
+  contain: inline-size;
   white-space: pre-wrap;
 }
 
@@ -34,5 +31,5 @@
 }
 
 #locationTextBox {
-  -moz-box-flex: 1;
+  flex: 1;
 }

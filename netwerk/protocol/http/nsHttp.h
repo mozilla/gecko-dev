@@ -14,7 +14,7 @@
 #include "nsTArray.h"
 #include "mozilla/OriginAttributes.h"
 #include "mozilla/TimeStamp.h"
-#include "mozilla/Tuple.h"
+
 #include "mozilla/UniquePtr.h"
 #include "NSSErrorsService.h"
 
@@ -433,6 +433,14 @@ void CreatePushHashKey(const nsCString& scheme, const nsCString& hostHeader,
                        const mozilla::OriginAttributes& originAttributes,
                        uint64_t serial, const nsACString& pathInfo,
                        nsCString& outOrigin, nsCString& outKey);
+
+nsresult GetNSResultFromWebTransportError(uint8_t aErrorCode);
+
+uint8_t GetWebTransportErrorFromNSResult(nsresult aResult);
+
+uint64_t WebTransportErrorToHttp3Error(uint8_t aErrorCode);
+
+uint8_t Http3ErrorToWebTransportError(uint64_t aErrorCode);
 
 }  // namespace net
 }  // namespace mozilla

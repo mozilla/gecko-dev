@@ -937,7 +937,20 @@ this.VideoControlsImplWidget = class {
             this.reflowTriggeringCallValidator.isReflowTriggeringPropsAllowed = true;
             this.updateReflowedDimensions();
             this.reflowTriggeringCallValidator.isReflowTriggeringPropsAllowed = false;
+
+            let scrubberWasHidden = this.scrubberStack.hidden;
             this.adjustControlSize();
+            if (scrubberWasHidden && !this.scrubberStack.hidden) {
+              // requestAnimationFrame + setTimeout of 0ms is a best effort way to avoid
+              // triggering reflows, but cannot fully guarantee a reflow will not happen.
+              this.window.requestAnimationFrame(() =>
+                this.window.setTimeout(() => {
+                  this.reflowTriggeringCallValidator.isReflowTriggeringPropsAllowed = true;
+                  this.updateReflowedDimensions();
+                  this.reflowTriggeringCallValidator.isReflowTriggeringPropsAllowed = false;
+                }, 0)
+              );
+            }
             this.updatePictureInPictureToggleDisplay();
             break;
           case "fullscreenchange":
@@ -1181,6 +1194,7 @@ this.VideoControlsImplWidget = class {
 
         this.seekToPosition(time);
         this.showPosition(time, duration);
+        this.updateScrubberProgress();
 
         this.scrubber.isDragging = true;
         this.pauseVideoDuringDragging();
@@ -1234,10 +1248,32 @@ this.VideoControlsImplWidget = class {
         }
         this.log("durationMs is " + durationMs + "ms.\n");
 
-        // Update the scrubber:
-        this.scrubber.max = durationMs;
-        this.scrubber.value = currentTimeMs;
-        this.updateScrubberProgress();
+        let scrubberProgress = Math.abs(
+          currentTimeMs / durationMs - this.scrubber.value / this.scrubber.max
+        );
+        let devPxProgress =
+          scrubberProgress *
+          this.reflowedDimensions.scrubberWidth *
+          this.window.devicePixelRatio;
+        // Hack: if we haven't updated the scrubber width to be non-0, but
+        // the scrubber stack is visible, assume there is progress.
+        // This should be rectified by the next time we do layout (see handling
+        // of resizevideocontrols events in handleEvent).
+        if (
+          !this.reflowedDimensions.scrubberWidth &&
+          !this.scrubberStack.hidden
+        ) {
+          devPxProgress = 1;
+        }
+        // Update the scrubber only if it will move by at least 1 pixel
+        // Note that this.scrubber.max can be "" if unitialized,
+        // and either or both of currentTimeMs or durationMs can be 0, leading
+        // to NaN or Infinity values for devPxProgress.
+        if (!this.scrubber.max || isNaN(devPxProgress) || devPxProgress > 0.5) {
+          this.scrubber.max = durationMs;
+          this.scrubber.value = currentTimeMs;
+          this.updateScrubberProgress();
+        }
 
         // If the duration is over an hour, thumb should show h:mm:ss instead
         // of mm:ss, which makes it bigger. We set the modifier prop which
@@ -1249,35 +1285,29 @@ this.VideoControlsImplWidget = class {
         // Update the text-based labels:
         let position = this.formatTime(currentTimeMs);
         let duration = durationIsInfinite ? "" : this.formatTime(durationMs);
-        this._updatePositionLabels(position, duration);
+        if (
+          this.positionString != position ||
+          this.durationString != duration
+        ) {
+          // Only update the DOM if there is a visible change.
+          this._updatePositionLabels(position, duration);
+        }
       },
 
       _updatePositionLabels(position, duration) {
+        this.positionString = position;
+        this.durationString = duration;
+
         this.l10n.setAttributes(
           this.positionDurationBox,
           "videocontrols-position-and-duration-labels",
           { position, duration }
         );
-
-        // We use .formatValueSync here because .setAttribute doesn't update
-        // the DOM fast enough to use this.positionDurationBox.textContent and
-        // if we set the innerHTML on the positionDurationBox then we lose
-        // reference to the durationSpan element so it is easier to use
-        // .formatValueSync to just update the string for the aria-valuetext
-        let positionDurationMarkup = this.l10n.formatValueSync(
-          "videocontrols-position-and-duration-labels",
+        this.l10n.setAttributes(
+          this.scrubber,
+          "videocontrols-scrubber-position-and-duration",
           { position, duration }
         );
-
-        // It's possible that the string we get has markup to overlay into the
-        // DOM. We only want the raw text so we use DOMParser to strip any tags
-        let parser = new this.window.DOMParser();
-        let positionDurationString = parser.parseFromString(
-          positionDurationMarkup,
-          "text/html"
-        ).body.textContent;
-
-        this.scrubber.setAttribute("aria-valuetext", positionDurationString);
       },
 
       showBuffered() {
@@ -1323,8 +1353,13 @@ this.VideoControlsImplWidget = class {
         if (index >= 0) {
           endTime = Math.round(buffered.end(index) * 1000);
         }
-        this.bufferBar.max = duration;
-        this.bufferBar.value = endTime;
+        if (this.duration == duration && this.buffered == endTime) {
+          // Avoid modifying the DOM if there is no update to show.
+          return;
+        }
+
+        this.bufferBar.max = this.duration = duration;
+        this.bufferBar.value = this.buffered = endTime;
         // Progress bars are automatically reported by screen readers even when
         // they aren't focused, which intrudes on the audio being played.
         // Ideally, we'd just change the a11y role of bufferBar, but there's
@@ -2311,12 +2346,20 @@ this.VideoControlsImplWidget = class {
         // so that we don't run into bug 1495821 (see comment on adjustControlSize()
         // below)
         videocontrolsWidth: 0,
+
+        // Used to decide if updating the scrubber progress will make a visible
+        // change (ie. make it move by at least one pixel).
+        // The default value is set to Infinity so that any small change is
+        // assumed to cause a visible change until updateReflowedDimensions
+        // has been called. (See bug 1817604)
+        scrubberWidth: Infinity,
       },
 
       updateReflowedDimensions() {
         this.reflowedDimensions.videoHeight = this.video.clientHeight;
         this.reflowedDimensions.videoWidth = this.video.clientWidth;
         this.reflowedDimensions.videocontrolsWidth = this.videocontrols.clientWidth;
+        this.reflowedDimensions.scrubberWidth = this.scrubber.clientWidth;
       },
 
       /**
@@ -2805,14 +2848,11 @@ this.VideoControlsImplWidget = class {
   }
 
   generateContent() {
-    /*
-     * Pass the markup through XML parser purely for the reason of loading the localization DTD.
-     * Remove it when migrate to Fluent.
-     */
     const parser = new this.window.DOMParser();
     let parserDoc = parser.parseFromString(
       `<div class="videocontrols" xmlns="http://www.w3.org/1999/xhtml" role="none">
         <link rel="stylesheet" href="chrome://global/skin/media/videocontrols.css" />
+        <link rel="stylesheet" href="chrome://global/skin/media/pipToggle.css" />
 
         <div id="controlsContainer" class="controlsContainer" role="none">
           <div id="statusOverlay" class="statusOverlay stackItem" hidden="true">
@@ -2863,7 +2903,7 @@ this.VideoControlsImplWidget = class {
                     <progress id="progressBar" class="progressBar" value="0" max="100" aria-hidden="true"></progress>
                   </div>
                 </div>
-                <input type="range" id="scrubber" class="scrubber" tabindex="-1" data-l10n-id="videocontrols-scrubber"/>
+                <input type="range" id="scrubber" class="scrubber" tabindex="-1" data-l10n-attrs="aria-valuetext" value="0"/>
               </div>
               <bdi id="positionLabel" class="positionLabel" role="presentation"></bdi>
               <bdi id="durationLabel" class="durationLabel" role="presentation"></bdi>
@@ -3097,10 +3137,6 @@ this.NoControlsMobileImplWidget = class {
   }
 
   generateContent() {
-    /*
-     * Pass the markup through XML parser purely for the reason of loading the localization DTD.
-     * Remove it when migrate to Fluent.
-     */
     const parser = new this.window.DOMParser();
     let parserDoc = parser.parseFromString(
       `<div class="videocontrols" xmlns="http://www.w3.org/1999/xhtml" role="none">
@@ -3149,10 +3185,6 @@ this.NoControlsPictureInPictureImplWidget = class {
   }
 
   generateContent() {
-    /*
-     * Pass the markup through XML parser purely for the reason of loading the localization DTD.
-     * Remove it when migrate to Fluent.
-     */
     const parser = new this.window.DOMParser();
     let parserDoc = parser.parseFromString(
       `<div class="videocontrols" xmlns="http://www.w3.org/1999/xhtml" role="none">
@@ -3332,14 +3364,11 @@ this.NoControlsDesktopImplWidget = class {
   }
 
   generateContent() {
-    /*
-     * Pass the markup through XML parser purely for the reason of loading the localization DTD.
-     * Remove it when migrate to Fluent.
-     */
     const parser = new this.window.DOMParser();
     let parserDoc = parser.parseFromString(
       `<div class="videocontrols" xmlns="http://www.w3.org/1999/xhtml" role="none">
         <link rel="stylesheet" href="chrome://global/skin/media/videocontrols.css" />
+        <link rel="stylesheet" href="chrome://global/skin/media/pipToggle.css" />
 
         <div id="controlsContainer" class="controlsContainer" role="none">
           <div class="controlsOverlay stackItem">

@@ -517,6 +517,10 @@ CSSCoord AxisX::GetPointOffset(const CSSPoint& aPoint) const {
   return aPoint.x;
 }
 
+OuterCSSCoord AxisX::GetPointOffset(const OuterCSSPoint& aPoint) const {
+  return aPoint.x;
+}
+
 ParentLayerCoord AxisX::GetPointOffset(const ParentLayerPoint& aPoint) const {
   return aPoint.x;
 }
@@ -530,9 +534,15 @@ ParentLayerCoord AxisX::GetRectLength(const ParentLayerRect& aRect) const {
   return aRect.Width();
 }
 
+CSSCoord AxisX::GetRectLength(const CSSRect& aRect) const {
+  return aRect.Width();
+}
+
 ParentLayerCoord AxisX::GetRectOffset(const ParentLayerRect& aRect) const {
   return aRect.X();
 }
+
+CSSCoord AxisX::GetRectOffset(const CSSRect& aRect) const { return aRect.X(); }
 
 float AxisX::GetTransformScale(
     const AsyncTransformComponentMatrix& aMatrix) const {
@@ -596,6 +606,10 @@ CSSCoord AxisY::GetPointOffset(const CSSPoint& aPoint) const {
   return aPoint.y;
 }
 
+OuterCSSCoord AxisY::GetPointOffset(const OuterCSSPoint& aPoint) const {
+  return aPoint.y;
+}
+
 ParentLayerCoord AxisY::GetPointOffset(const ParentLayerPoint& aPoint) const {
   return aPoint.y;
 }
@@ -609,9 +623,15 @@ ParentLayerCoord AxisY::GetRectLength(const ParentLayerRect& aRect) const {
   return aRect.Height();
 }
 
+CSSCoord AxisY::GetRectLength(const CSSRect& aRect) const {
+  return aRect.Height();
+}
+
 ParentLayerCoord AxisY::GetRectOffset(const ParentLayerRect& aRect) const {
   return aRect.Y();
 }
+
+CSSCoord AxisY::GetRectOffset(const CSSRect& aRect) const { return aRect.Y(); }
 
 float AxisY::GetTransformScale(
     const AsyncTransformComponentMatrix& aMatrix) const {

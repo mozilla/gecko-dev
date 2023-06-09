@@ -42,10 +42,8 @@ class SVGGradientElement : public SVGGradientElementBase {
                      JS::Handle<JSObject*> aGivenProto) override = 0;
 
  public:
-  nsresult Clone(dom::NodeInfo*, nsINode** aResult) const override = 0;
-
   // nsIContent
-  NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* aAttribute) const override;
+  nsresult Clone(dom::NodeInfo*, nsINode** aResult) const override = 0;
 
   virtual SVGAnimatedTransformList* GetAnimatedTransformList(
       uint32_t aFlags = 0) override;
@@ -80,7 +78,7 @@ class SVGGradientElement : public SVGGradientElementBase {
 
 using SVGLinearGradientElementBase = SVGGradientElement;
 
-class SVGLinearGradientElement : public SVGLinearGradientElementBase {
+class SVGLinearGradientElement final : public SVGLinearGradientElementBase {
   friend class mozilla::SVGLinearGradientFrame;
   friend nsresult(::NS_NewSVGLinearGradientElement(
       nsIContent** aResult,
@@ -113,7 +111,7 @@ class SVGLinearGradientElement : public SVGLinearGradientElementBase {
 
 using SVGRadialGradientElementBase = SVGGradientElement;
 
-class SVGRadialGradientElement : public SVGRadialGradientElementBase {
+class SVGRadialGradientElement final : public SVGRadialGradientElementBase {
   friend class mozilla::SVGRadialGradientFrame;
   friend nsresult(::NS_NewSVGRadialGradientElement(
       nsIContent** aResult,

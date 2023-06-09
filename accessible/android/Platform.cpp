@@ -64,8 +64,8 @@ void a11y::PlatformInit() {
   }
 
   // Preload any roles that have localized versions
-#define ROLE(geckoRole, stringRole, atkRole, macRole, macSubrole, msaaRole, \
-             ia2Role, androidClass, nameRule)                               \
+#define ROLE(geckoRole, stringRole, ariaRole, atkRole, macRole, macSubrole, \
+             msaaRole, ia2Role, androidClass, nameRule)                     \
   rv = stringBundle->GetStringFromName(stringRole, localizedStr);           \
   if (NS_SUCCEEDED(rv)) {                                                   \
     sLocalizedStrings.InsertOrUpdate(u##stringRole##_ns, localizedStr);     \
@@ -221,36 +221,6 @@ void a11y::ProxyAnnouncementEvent(RemoteAccessible* aTarget,
 
   if (sessionAcc) {
     sessionAcc->SendAnnouncementEvent(aTarget, aAnnouncement, aPriority);
-  }
-}
-
-void a11y::ProxyBatch(RemoteAccessible* aDocument, const uint64_t aBatchType,
-                      const nsTArray<RemoteAccessible*>& aAccessibles,
-                      const nsTArray<BatchData>& aData) {
-  RefPtr<SessionAccessibility> sessionAcc =
-      SessionAccessibility::GetInstanceFor(aDocument);
-  if (!sessionAcc) {
-    return;
-  }
-
-  nsTArray<Accessible*> accessibles(aAccessibles.Length());
-  for (size_t i = 0; i < aAccessibles.Length(); i++) {
-    accessibles.AppendElement(aAccessibles.ElementAt(i));
-  }
-
-  switch (aBatchType) {
-    case DocAccessibleWrap::eBatch_Viewport:
-      sessionAcc->ReplaceViewportCache(accessibles, aData);
-      break;
-    case DocAccessibleWrap::eBatch_FocusPath:
-      sessionAcc->ReplaceFocusPathCache(accessibles, aData);
-      break;
-    case DocAccessibleWrap::eBatch_BoundsUpdate:
-      sessionAcc->UpdateCachedBounds(accessibles, aData);
-      break;
-    default:
-      MOZ_ASSERT_UNREACHABLE("Unknown batch type.");
-      break;
   }
 }
 

@@ -16,9 +16,10 @@ from subprocess import PIPE, Popen
 import mozlog
 import requests
 import yaml
-from condprof import progress
 from requests.exceptions import ConnectionError
 from requests.packages.urllib3.util.retry import Retry
+
+from condprof import progress
 
 TASK_CLUSTER = "TASK_ID" in os.environ.keys()
 DOWNLOAD_TIMEOUT = 30
@@ -32,7 +33,7 @@ DEFAULT_PREFS = {
     "focusmanager.testmode": True,
     "marionette.defaultPrefs.port": 2828,
     "marionette.port": 2828,
-    "marionette.log.level": "Trace",
+    "remote.log.level": "Trace",
     "marionette.log.truncate": False,
     "extensions.autoDisableScopes": 10,
     "devtools.debugger.remote-enabled": True,

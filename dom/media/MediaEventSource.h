@@ -14,7 +14,7 @@
 #include "mozilla/Atomics.h"
 #include "mozilla/DataMutex.h"
 #include "mozilla/Mutex.h"
-#include "mozilla/Tuple.h"
+
 #include "mozilla/Unused.h"
 
 #include "nsISupportsImpl.h"
@@ -560,6 +560,19 @@ class MediaEventForwarder : public MediaEventSource<Es...> {
     // all mListeners synchronously and prevents this handler from running.
     mListeners.AppendElement(
         aSource.Connect(mEventTarget, [this](ArgType<Es>&&... aEvents) {
+          this->NotifyInternal(std::forward<ArgType<Es>...>(aEvents)...);
+        }));
+  }
+
+  template <typename Function>
+  void ForwardIf(MediaEventSource<Es...>& aSource, Function&& aFunction) {
+    // Forwarding a rawptr `this` here is fine, since DisconnectAll disconnect
+    // all mListeners synchronously and prevents this handler from running.
+    mListeners.AppendElement(aSource.Connect(
+        mEventTarget, [this, func = aFunction](ArgType<Es>&&... aEvents) {
+          if (!func()) {
+            return;
+          }
           this->NotifyInternal(std::forward<ArgType<Es>...>(aEvents)...);
         }));
   }

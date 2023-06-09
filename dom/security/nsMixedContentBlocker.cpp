@@ -370,6 +370,15 @@ bool nsMixedContentBlocker::IsPotentiallyTrustworthyOrigin(nsIURI* aURI) {
   return false;
 }
 
+/* static */
+bool nsMixedContentBlocker::IsUpgradableContentType(nsContentPolicyType aType) {
+  MOZ_ASSERT(NS_IsMainThread());
+  return (aType == nsIContentPolicy::TYPE_INTERNAL_IMAGE ||
+          aType == nsIContentPolicy::TYPE_INTERNAL_IMAGE_PRELOAD ||
+          aType == nsIContentPolicy::TYPE_INTERNAL_AUDIO ||
+          aType == nsIContentPolicy::TYPE_INTERNAL_VIDEO);
+}
+
 /*
  * Return the URI of the precusor principal or the URI of aPrincipal if there is
  * no precursor URI.
@@ -443,6 +452,8 @@ nsresult nsMixedContentBlocker::ShouldLoad(bool aHadInsecureImageRedirect,
   // external type in all cases right now.
   bool isWorkerType =
       internalContentType == nsIContentPolicy::TYPE_INTERNAL_WORKER ||
+      internalContentType ==
+          nsIContentPolicy::TYPE_INTERNAL_WORKER_STATIC_MODULE ||
       internalContentType == nsIContentPolicy::TYPE_INTERNAL_SHARED_WORKER ||
       internalContentType == nsIContentPolicy::TYPE_INTERNAL_SERVICE_WORKER;
   ExtContentPolicyType contentType =
@@ -752,12 +763,14 @@ nsresult nsMixedContentBlocker::ShouldLoad(bool aHadInsecureImageRedirect,
   // pref "security.mixed_content.upgrade_display_content" is true.
   // This behaves like GetUpgradeInsecureRequests above in that the channel will
   // be upgraded to https before fetching any data from the netwerk.
-  bool isUpgradableDisplayType =
-      nsContentUtils::IsUpgradableDisplayType(contentType) &&
-      StaticPrefs::security_mixed_content_upgrade_display_content();
-  if (isHttpScheme && isUpgradableDisplayType) {
-    *aDecision = ACCEPT;
-    return NS_OK;
+  if (isHttpScheme) {
+    bool isUpgradableContentType =
+        IsUpgradableContentType(internalContentType) &&
+        StaticPrefs::security_mixed_content_upgrade_display_content();
+    if (isUpgradableContentType) {
+      *aDecision = ACCEPT;
+      return NS_OK;
+    }
   }
 
   // The page might have set the CSP directive 'block-all-mixed-content' which

@@ -20,7 +20,6 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/CycleCollectedJSContext.h"
-#include "mozilla/FloatingPoint.h"
 #include "mozilla/HoldDropJSObjects.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/dom/BindingCallContext.h"
@@ -70,6 +69,8 @@ inline void ImplCycleCollectionUnlink(
 
 namespace mozilla::dom {
 
+using namespace streams_abstract;
+
 // Only needed for refcounted objects.
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_WITH_JS_MEMBERS(
     ReadableStream, (mGlobal, mController, mReader), (mStoredError))
@@ -81,17 +82,29 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(ReadableStream)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-ReadableStream::ReadableStream(nsIGlobalObject* aGlobal)
-    : mGlobal(aGlobal), mReader(nullptr) {
-  mozilla::HoldJSObjects(this);
+ReadableStream::ReadableStream(nsIGlobalObject* aGlobal,
+                               HoldDropJSObjectsCaller aHoldDropCaller)
+    : mGlobal(aGlobal), mReader(nullptr), mHoldDropCaller(aHoldDropCaller) {
+  if (mHoldDropCaller == HoldDropJSObjectsCaller::Implicit) {
+    mozilla::HoldJSObjects(this);
+  }
 }
 
-ReadableStream::ReadableStream(const GlobalObject& aGlobal)
-    : mGlobal(do_QueryInterface(aGlobal.GetAsSupports())), mReader(nullptr) {
-  mozilla::HoldJSObjects(this);
+ReadableStream::ReadableStream(const GlobalObject& aGlobal,
+                               HoldDropJSObjectsCaller aHoldDropCaller)
+    : mGlobal(do_QueryInterface(aGlobal.GetAsSupports())),
+      mReader(nullptr),
+      mHoldDropCaller(aHoldDropCaller) {
+  if (mHoldDropCaller == HoldDropJSObjectsCaller::Implicit) {
+    mozilla::HoldJSObjects(this);
+  }
 }
 
-ReadableStream::~ReadableStream() { mozilla::DropJSObjects(this); }
+ReadableStream::~ReadableStream() {
+  if (mHoldDropCaller == HoldDropJSObjectsCaller::Implicit) {
+    mozilla::DropJSObjects(this);
+  }
+}
 
 JSObject* ReadableStream::WrapObject(JSContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
@@ -105,6 +118,8 @@ ReadableStreamDefaultReader* ReadableStream::GetDefaultReader() {
 void ReadableStream::SetReader(ReadableStreamGenericReader* aReader) {
   mReader = aReader;
 }
+
+namespace streams_abstract {
 
 // https://streams.spec.whatwg.org/#readable-stream-has-byob-reader
 bool ReadableStreamHasBYOBReader(ReadableStream* aStream) {
@@ -136,6 +151,8 @@ bool ReadableStreamHasDefaultReader(ReadableStream* aStream) {
   return reader->IsDefault();
 }
 
+}  // namespace streams_abstract
+
 // Streams Spec: 4.2.4: https://streams.spec.whatwg.org/#rs-prototype
 /* static */
 already_AddRefed<ReadableStream> ReadableStream::Constructor(
@@ -162,7 +179,8 @@ already_AddRefed<ReadableStream> ReadableStream::Constructor(
   }
 
   // Step 3.
-  RefPtr<ReadableStream> readableStream = new ReadableStream(aGlobal);
+  RefPtr<ReadableStream> readableStream =
+      new ReadableStream(aGlobal, HoldDropJSObjectsCaller::Implicit);
 
   // Step 4.
   if (underlyingSourceDict.mType.WasPassed()) {
@@ -229,6 +247,7 @@ bool ReadableStream::Locked() const {
   return mReader;
 }
 
+namespace streams_abstract {
 // https://streams.spec.whatwg.org/#initialize-readable-stream
 static void InitializeReadableStream(ReadableStream* aStream) {
   // Step 1.
@@ -241,23 +260,25 @@ static void InitializeReadableStream(ReadableStream* aStream) {
   // Step 3.
   aStream->SetDisturbed(false);
 }
+}  // namespace streams_abstract
 
 // https://streams.spec.whatwg.org/#create-readable-stream
 MOZ_CAN_RUN_SCRIPT
-already_AddRefed<ReadableStream> CreateReadableStream(
+already_AddRefed<ReadableStream> ReadableStream::CreateAbstract(
     JSContext* aCx, nsIGlobalObject* aGlobal,
     UnderlyingSourceAlgorithmsBase* aAlgorithms,
     mozilla::Maybe<double> aHighWaterMark, QueuingStrategySize* aSizeAlgorithm,
     ErrorResult& aRv) {
-  // Step 1.
-  double highWaterMark = aHighWaterMark.isSome() ? *aHighWaterMark : 1.0;
+  // Step 1. If highWaterMark was not passed, set it to 1.
+  double highWaterMark = aHighWaterMark.valueOr(1.0);
 
   // Step 2. consumers of sizeAlgorithm
   //         handle null algorithms correctly.
   // Step 3.
   MOZ_ASSERT(IsNonNegativeNumber(highWaterMark));
   // Step 4.
-  RefPtr<ReadableStream> stream = new ReadableStream(aGlobal);
+  RefPtr<ReadableStream> stream =
+      new ReadableStream(aGlobal, HoldDropJSObjectsCaller::Implicit);
 
   // Step 5.
   InitializeReadableStream(stream);
@@ -274,6 +295,7 @@ already_AddRefed<ReadableStream> CreateReadableStream(
   return stream.forget();
 }
 
+namespace streams_abstract {
 // https://streams.spec.whatwg.org/#readable-stream-close
 void ReadableStreamClose(JSContext* aCx, ReadableStream* aStream,
                          ErrorResult& aRv) {
@@ -331,11 +353,8 @@ already_AddRefed<Promise> ReadableStreamCancel(JSContext* aCx,
 
   // Step 2.
   if (aStream->State() == ReadableStream::ReaderState::Closed) {
-    RefPtr<Promise> promise = Promise::Create(aStream->GetParentObject(), aRv);
-    if (aRv.Failed()) {
-      return nullptr;
-    }
-
+    RefPtr<Promise> promise =
+        Promise::CreateInfallible(aStream->GetParentObject());
     promise->MaybeResolveWithUndefined();
     return promise.forget();
   }
@@ -387,10 +406,7 @@ already_AddRefed<Promise> ReadableStreamCancel(JSContext* aCx,
 
   // Step 8.
   RefPtr<Promise> promise =
-      Promise::Create(sourceCancelPromise->GetParentObject(), aRv);
-  if (aRv.Failed()) {
-    return nullptr;
-  }
+      Promise::CreateInfallible(sourceCancelPromise->GetParentObject());
 
   // ThenWithCycleCollectedArgs will carry promise, keeping it alive until the
   // callback executes.
@@ -411,6 +427,8 @@ already_AddRefed<Promise> ReadableStreamCancel(JSContext* aCx,
   return returnResult.unwrap().forget();
 }
 
+}  // namespace streams_abstract
+
 // https://streams.spec.whatwg.org/#rs-cancel
 already_AddRefed<Promise> ReadableStream::Cancel(JSContext* aCx,
                                                  JS::Handle<JS::Value> aReason,
@@ -427,6 +445,7 @@ already_AddRefed<Promise> ReadableStream::Cancel(JSContext* aCx,
   return ReadableStreamCancel(aCx, thisRefPtr, aReason, aRv);
 }
 
+namespace streams_abstract {
 // https://streams.spec.whatwg.org/#acquire-readable-stream-reader
 already_AddRefed<ReadableStreamDefaultReader>
 AcquireReadableStreamDefaultReader(ReadableStream* aStream, ErrorResult& aRv) {
@@ -443,6 +462,7 @@ AcquireReadableStreamDefaultReader(ReadableStream* aStream, ErrorResult& aRv) {
   // Step 3.
   return reader.forget();
 }
+}  // namespace streams_abstract
 
 // https://streams.spec.whatwg.org/#rs-get-reader
 void ReadableStream::GetReader(const ReadableStreamGetReaderOptions& aOptions,
@@ -451,9 +471,8 @@ void ReadableStream::GetReader(const ReadableStreamGetReaderOptions& aOptions,
   // Step 1. If options["mode"] does not exist,
   // return ? AcquireReadableStreamDefaultReader(this).
   if (!aOptions.mMode.WasPassed()) {
-    RefPtr<ReadableStream> thisRefPtr = this;
     RefPtr<ReadableStreamDefaultReader> defaultReader =
-        AcquireReadableStreamDefaultReader(thisRefPtr, aRv);
+        AcquireReadableStreamDefaultReader(this, aRv);
     if (aRv.Failed()) {
       return;
     }
@@ -465,20 +484,21 @@ void ReadableStream::GetReader(const ReadableStreamGetReaderOptions& aOptions,
   MOZ_ASSERT(aOptions.mMode.Value() == ReadableStreamReaderMode::Byob);
 
   // Step 3. Return ? AcquireReadableStreamBYOBReader(this).
-  RefPtr<ReadableStream> thisRefPtr = this;
   RefPtr<ReadableStreamBYOBReader> byobReader =
-      AcquireReadableStreamBYOBReader(thisRefPtr, aRv);
+      AcquireReadableStreamBYOBReader(this, aRv);
   if (aRv.Failed()) {
     return;
   }
   resultReader.SetAsReadableStreamBYOBReader() = byobReader;
 }
 
+namespace streams_abstract {
 // https://streams.spec.whatwg.org/#is-readable-stream-locked
 bool IsReadableStreamLocked(ReadableStream* aStream) {
   // Step 1 + 2.
   return aStream->Locked();
 }
+}  // namespace streams_abstract
 
 // https://streams.spec.whatwg.org/#rs-pipe-through
 MOZ_CAN_RUN_SCRIPT already_AddRefed<ReadableStream> ReadableStream::PipeThrough(
@@ -520,6 +540,8 @@ MOZ_CAN_RUN_SCRIPT already_AddRefed<ReadableStream> ReadableStream::PipeThrough(
   // Step 6: Return transform["readable"].
   return do_AddRef(aTransform.mReadable.get());
 };
+
+namespace streams_abstract {
 
 // https://streams.spec.whatwg.org/#readable-stream-get-num-read-requests
 double ReadableStreamGetNumReadRequests(ReadableStream* aStream) {
@@ -620,6 +642,8 @@ void ReadableStreamAddReadRequest(ReadableStream* aStream,
   aStream->GetDefaultReader()->ReadRequests().insertBack(aReadRequest);
 }
 
+}  // namespace streams_abstract
+
 // https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee
 // Step 14, 15
 MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise>
@@ -697,15 +721,15 @@ static void ReadableStreamDefaultTee(JSContext* aCx, ReadableStream* aStream,
   // Step 17.
   nsCOMPtr<nsIGlobalObject> global(
       do_AddRef(teeState->GetStream()->GetParentObject()));
-  teeState->SetBranch1(CreateReadableStream(aCx, global, branch1Algorithms,
-                                            mozilla::Nothing(), nullptr, aRv));
+  teeState->SetBranch1(ReadableStream::CreateAbstract(
+      aCx, global, branch1Algorithms, mozilla::Nothing(), nullptr, aRv));
   if (aRv.Failed()) {
     return;
   }
 
   // Step 18.
-  teeState->SetBranch2(CreateReadableStream(aCx, global, branch2Algorithms,
-                                            mozilla::Nothing(), nullptr, aRv));
+  teeState->SetBranch2(ReadableStream::CreateAbstract(
+      aCx, global, branch2Algorithms, mozilla::Nothing(), nullptr, aRv));
   if (aRv.Failed()) {
     return;
   }
@@ -896,10 +920,7 @@ already_AddRefed<Promise> ReadableStream::GetNextIterationResult(
   MOZ_ASSERT(reader->GetStream());
 
   // Step 3. Let promise be a new promise.
-  RefPtr<Promise> promise = Promise::Create(GetParentObject(), aRv);
-  if (aRv.Failed()) {
-    return nullptr;
-  }
+  RefPtr<Promise> promise = Promise::CreateInfallible(GetParentObject());
 
   // Step 4. Let readRequest be a new read request with the following items:
   RefPtr<ReadRequest> request = new IteratorReadRequest(promise, reader);
@@ -944,6 +965,14 @@ already_AddRefed<Promise> ReadableStream::IteratorReturn(
       return nullptr;
     }
 
+    MOZ_DIAGNOSTIC_ASSERT(
+        reader->GetStream(),
+        "We shouldn't have a null stream here (bug 1821169).");
+    if (!reader->GetStream()) {
+      aRv.Throw(NS_ERROR_FAILURE);
+      return nullptr;
+    }
+
     // Step 4.2. Perform ! ReadableStreamDefaultReaderRelease(reader).
     ReadableStreamDefaultReaderRelease(aCx, reader, aRv);
     if (NS_WARN_IF(aRv.Failed())) {
@@ -964,6 +993,7 @@ already_AddRefed<Promise> ReadableStream::IteratorReturn(
   return Promise::CreateResolvedWithUndefined(GetParentObject(), aRv);
 }
 
+namespace streams_abstract {
 // https://streams.spec.whatwg.org/#readable-stream-add-read-into-request
 void ReadableStreamAddReadIntoRequest(ReadableStream* aStream,
                                       ReadIntoRequest* aReadIntoRequest) {
@@ -978,13 +1008,15 @@ void ReadableStreamAddReadIntoRequest(ReadableStream* aStream,
   aStream->GetReader()->AsBYOB()->ReadIntoRequests().insertBack(
       aReadIntoRequest);
 }
+}  // namespace streams_abstract
 
 // https://streams.spec.whatwg.org/#abstract-opdef-createreadablebytestream
-already_AddRefed<ReadableStream> CreateReadableByteStream(
+already_AddRefed<ReadableStream> ReadableStream::CreateByteAbstract(
     JSContext* aCx, nsIGlobalObject* aGlobal,
     UnderlyingSourceAlgorithmsBase* aAlgorithms, ErrorResult& aRv) {
   // Step 1. Let stream be a new ReadableStream.
-  RefPtr<ReadableStream> stream = new ReadableStream(aGlobal);
+  RefPtr<ReadableStream> stream =
+      new ReadableStream(aGlobal, HoldDropJSObjectsCaller::Implicit);
 
   // Step 2. Perform ! InitializeReadableStream(stream).
   InitializeReadableStream(stream);
@@ -1002,6 +1034,86 @@ already_AddRefed<ReadableStream> CreateReadableByteStream(
   }
 
   // Return stream.
+  return stream.forget();
+}
+
+// https://streams.spec.whatwg.org/#readablestream-set-up
+// (except this instead creates a new ReadableStream rather than accepting an
+// existing instance)
+already_AddRefed<ReadableStream> ReadableStream::CreateNative(
+    JSContext* aCx, nsIGlobalObject* aGlobal,
+    UnderlyingSourceAlgorithmsWrapper& aAlgorithms,
+    mozilla::Maybe<double> aHighWaterMark, QueuingStrategySize* aSizeAlgorithm,
+    ErrorResult& aRv) {
+  // an optional number highWaterMark (default 1)
+  double highWaterMark = aHighWaterMark.valueOr(1);
+  // and if given, highWaterMark must be a non-negative, non-NaN number.
+  MOZ_ASSERT(IsNonNegativeNumber(highWaterMark));
+
+  // Step 1: Let startAlgorithm be an algorithm that returns undefined.
+  // Step 2: Let pullAlgorithmWrapper be an algorithm that runs these steps:
+  // Step 3: Let cancelAlgorithmWrapper be an algorithm that runs these steps:
+  // (Done by UnderlyingSourceAlgorithmsWrapper)
+
+  // Step 4: If sizeAlgorithm was not given, then set it to an algorithm that
+  // returns 1. (Callers will treat nullptr as such, see
+  // ReadableStream::Constructor for details)
+
+  // Step 5: Perform ! InitializeReadableStream(stream).
+  RefPtr<ReadableStream> stream =
+      new ReadableStream(aGlobal, HoldDropJSObjectsCaller::Implicit);
+
+  // Step 6: Let controller be a new ReadableStreamDefaultController.
+  auto controller = MakeRefPtr<ReadableStreamDefaultController>(aGlobal);
+
+  // Step 7: Perform ! SetUpReadableStreamDefaultController(stream, controller,
+  // startAlgorithm, pullAlgorithmWrapper, cancelAlgorithmWrapper,
+  // highWaterMark, sizeAlgorithm).
+  SetUpReadableStreamDefaultController(aCx, stream, controller, &aAlgorithms,
+                                       highWaterMark, aSizeAlgorithm, aRv);
+  if (aRv.Failed()) {
+    return nullptr;
+  }
+  return stream.forget();
+}
+
+// https://streams.spec.whatwg.org/#readablestream-set-up-with-byte-reading-support
+void ReadableStream::SetUpByteNative(
+    JSContext* aCx, UnderlyingSourceAlgorithmsWrapper& aAlgorithms,
+    mozilla::Maybe<double> aHighWaterMark, ErrorResult& aRv) {
+  // an optional number highWaterMark (default 0)
+  double highWaterMark = aHighWaterMark.valueOr(0);
+  // and if given, highWaterMark must be a non-negative, non-NaN number.
+  MOZ_ASSERT(IsNonNegativeNumber(highWaterMark));
+
+  // Step 1: Let startAlgorithm be an algorithm that returns undefined.
+  // Step 2: Let pullAlgorithmWrapper be an algorithm that runs these steps:
+  // Step 3: Let cancelAlgorithmWrapper be an algorithm that runs these steps:
+  // (Done by UnderlyingSourceAlgorithmsWrapper)
+
+  // Step 4: Perform ! InitializeReadableStream(stream).
+  // (Covered by constructor)
+
+  // Step 5: Let controller be a new ReadableByteStreamController.
+  auto controller = MakeRefPtr<ReadableByteStreamController>(GetParentObject());
+
+  // Step 6: Perform ! SetUpReadableByteStreamController(stream, controller,
+  // startAlgorithm, pullAlgorithmWrapper, cancelAlgorithmWrapper,
+  // highWaterMark, undefined).
+  SetUpReadableByteStreamController(aCx, this, controller, &aAlgorithms,
+                                    highWaterMark, Nothing(), aRv);
+}
+
+already_AddRefed<ReadableStream> ReadableStream::CreateByteNative(
+    JSContext* aCx, nsIGlobalObject* aGlobal,
+    UnderlyingSourceAlgorithmsWrapper& aAlgorithms,
+    mozilla::Maybe<double> aHighWaterMark, ErrorResult& aRv) {
+  RefPtr<ReadableStream> stream =
+      new ReadableStream(aGlobal, HoldDropJSObjectsCaller::Implicit);
+  stream->SetUpByteNative(aCx, aAlgorithms, aHighWaterMark, aRv);
+  if (aRv.Failed()) {
+    return nullptr;
+  }
   return stream.forget();
 }
 
@@ -1032,6 +1144,21 @@ void ReadableStream::CloseNative(JSContext* aCx, ErrorResult& aRv) {
   // ReadableStreamDefaultControllerClose(stream.[[controller]]).
   RefPtr<ReadableStreamDefaultController> controller = mController->AsDefault();
   ReadableStreamDefaultControllerClose(aCx, controller, aRv);
+}
+
+// https://streams.spec.whatwg.org/#readablestream-error
+void ReadableStream::ErrorNative(JSContext* aCx, JS::Handle<JS::Value> aError,
+                                 ErrorResult& aRv) {
+  // Step 1: If stream.[[controller]] implements ReadableByteStreamController,
+  // then perform ! ReadableByteStreamControllerError(stream.[[controller]], e).
+  if (mController->IsByte()) {
+    ReadableByteStreamControllerError(mController->AsByte(), aError, aRv);
+    return;
+  }
+  // Step 2: Otherwise, perform !
+  // ReadableStreamDefaultControllerError(stream.[[controller]], e).
+  ReadableStreamDefaultControllerError(aCx, mController->AsDefault(), aError,
+                                       aRv);
 }
 
 // https://streams.spec.whatwg.org/#readablestream-current-byob-request-view
@@ -1134,20 +1261,13 @@ void ReadableStream::EnqueueNative(JSContext* aCx, JS::Handle<JS::Value> aChunk,
   ReadableByteStreamControllerEnqueue(aCx, controller, chunk, aRv);
 }
 
-already_AddRefed<ReadableStream> ReadableStream::Create(
-    JSContext* aCx, nsIGlobalObject* aGlobal,
-    BodyStreamHolder* aUnderlyingSource, ErrorResult& aRv) {
-  RefPtr<ReadableStream> stream = new ReadableStream(aGlobal);
-
-  SetUpReadableByteStreamControllerFromBodyStreamUnderlyingSource(
-      aCx, stream, aUnderlyingSource, aRv);
-
-  if (aRv.Failed()) {
-    return nullptr;
-  }
-
-  // Step 5. Return stream.
-  return stream.forget();
+// https://streams.spec.whatwg.org/#readablestream-get-a-reader
+// To get a reader for a ReadableStream stream, return ?
+// AcquireReadableStreamDefaultReader(stream). The result will be a
+// ReadableStreamDefaultReader.
+already_AddRefed<mozilla::dom::ReadableStreamDefaultReader>
+ReadableStream::GetReader(ErrorResult& aRv) {
+  return AcquireReadableStreamDefaultReader(this, aRv);
 }
 
 }  // namespace mozilla::dom

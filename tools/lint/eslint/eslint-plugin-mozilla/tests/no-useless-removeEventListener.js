@@ -10,17 +10,14 @@
 var rule = require("../lib/rules/no-useless-removeEventListener");
 var RuleTester = require("eslint").RuleTester;
 
-const ruleTester = new RuleTester({ parserOptions: { ecmaVersion: 6 } });
+const ruleTester = new RuleTester({ parserOptions: { ecmaVersion: "latest" } });
 
 // ------------------------------------------------------------------------------
 // Tests
 // ------------------------------------------------------------------------------
 
 function invalidCode(code) {
-  let message =
-    "use {once: true} instead of removeEventListener " +
-    "as the first instruction of the listener";
-  return { code, errors: [{ message, type: "CallExpression" }] };
+  return { code, errors: [{ messageId: "useOnce", type: "CallExpression" }] };
 }
 
 ruleTester.run("no-useless-removeEventListener", rule, {

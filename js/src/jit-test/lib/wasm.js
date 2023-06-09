@@ -50,10 +50,11 @@ function wasmEvalText(str, imports) {
     let m;
     try {
         m = new WebAssembly.Module(binary);
-        assertEq(valid, true);
+        assertEq(valid, true, "failed WebAssembly.validate but still compiled successfully");
     } catch(e) {
-        if (!e.toString().match(/out of memory/))
-            assertEq(valid, false);
+        if (!e.toString().match(/out of memory/)) {
+            assertEq(valid, false, `passed WebAssembly.validate but failed to compile: ${e}`);
+        }
         throw e;
     }
 
@@ -65,14 +66,15 @@ function wasmValidateText(str) {
     let valid = WebAssembly.validate(binary);
     if (!valid) {
         new WebAssembly.Module(binary);
+        throw new Error("module failed WebAssembly.validate but compiled successfully");
     }
-    assertEq(valid, true);
+    assertEq(valid, true, "wasm module was invalid");
 }
 
 function wasmFailValidateText(str, pattern) {
     let binary = wasmTextToBinary(str);
-    assertEq(WebAssembly.validate(binary), false);
-    assertErrorMessage(() => new WebAssembly.Module(binary), WebAssembly.CompileError, pattern);
+    assertEq(WebAssembly.validate(binary), false, "module passed WebAssembly.validate when it should not have");
+    assertErrorMessage(() => new WebAssembly.Module(binary), WebAssembly.CompileError, pattern, "module failed WebAssembly.validate but did not fail to compile as expected");
 }
 
 // Expected compilation failure can happen in a couple of ways:
@@ -417,22 +419,36 @@ function fuzzingSafe() {
 
 // Common instantiations of wasm values for dynamic type check testing
 
+// Valid values for funcref
 let WasmFuncrefValues = [
     wasmEvalText(`(module (func (export "")))`).exports[''],
 ];
-let WasmNonNullEqrefValues = [];
-let WasmEqrefValues = [];
+
+// Valid values for structref/arrayref
+let WasmStructrefValues = [];
+let WasmArrayrefValues = [];
 if (wasmGcEnabled()) {
-    let { newStruct } = wasmEvalText(`
+    let { newStruct, newArray } = wasmEvalText(`
       (module
         (type $s (struct))
-        (func (export "newStruct") (result eqref)
+        (type $a (array i32))
+        (func (export "newStruct") (result anyref)
             struct.new $s)
+        (func (export "newArray") (result anyref)
+            i32.const 0
+            i32.const 0
+            array.new $a)
       )`).exports;
-    WasmNonNullEqrefValues.push(newStruct());
-    WasmEqrefValues.push(null, ...WasmNonNullEqrefValues);
+    WasmStructrefValues.push(newStruct());
+    WasmArrayrefValues.push(newArray());
 }
-let WasmNonEqrefValues = [
+
+// Valid values for eqref
+let WasmEqrefValues = [...WasmStructrefValues, ...WasmArrayrefValues];
+
+// Valid and invalid values for anyref
+let WasmAnyrefValues = [...WasmEqrefValues];
+let WasmNonAnyrefValues = [
     undefined,
     true,
     false,
@@ -448,9 +464,11 @@ let WasmNonEqrefValues = [
     () => 1337,
     ...WasmFuncrefValues,
 ];
+
+// Valid externref values
 let WasmNonNullExternrefValues = [
-    ...WasmNonEqrefValues,
-    ...WasmNonNullEqrefValues
+    ...WasmNonAnyrefValues,
+    ...WasmAnyrefValues
 ];
 let WasmExternrefValues = [null, ...WasmNonNullExternrefValues];
 

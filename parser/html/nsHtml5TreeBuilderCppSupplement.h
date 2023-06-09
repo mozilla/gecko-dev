@@ -11,6 +11,7 @@
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/UniquePtr.h"
+#include "mozilla/UniquePtrExtensions.h"
 
 nsHtml5TreeBuilder::nsHtml5TreeBuilder(nsHtml5OplessBuilder* aBuilder)
     : mode(0),
@@ -179,7 +180,7 @@ nsIContentHandle* nsHtml5TreeBuilder::createElement(
         if (nsGkAtoms::img == aName) {
           nsHtml5String loading =
               aAttributes->getValue(nsHtml5AttributeName::ATTR_LOADING);
-          if (!StaticPrefs::dom_image_lazy_loading_enabled() ||
+          if (!mozilla::StaticPrefs::dom_image_lazy_loading_enabled() ||
               !loading.LowerCaseEqualsASCII("lazy")) {
             nsHtml5String url =
                 aAttributes->getValue(nsHtml5AttributeName::ATTR_SRC);
@@ -219,8 +220,9 @@ nsIContentHandle* nsHtml5TreeBuilder::createElement(
                 NS_ERROR_OUT_OF_MEMORY);
             return nullptr;
           }
-          opSetScriptLineNumberAndFreeze operation(content,
-                                                   tokenizer->getLineNumber());
+          opSetScriptLineAndColumnNumberAndFreeze operation(
+              content, tokenizer->getLineNumber(),
+              tokenizer->getColumnNumber());
           treeOp->Init(mozilla::AsVariant(operation));
 
           nsHtml5String url =
@@ -281,7 +283,7 @@ nsIContentHandle* nsHtml5TreeBuilder::createElement(
                 mSpeculativeLoadQueue.AppendElement()->InitPreconnect(
                     url, crossOrigin);
               }
-            } else if (StaticPrefs::network_preload() &&
+            } else if (mozilla::StaticPrefs::network_preload() &&
                        rel.LowerCaseEqualsASCII("preload")) {
               nsHtml5String url =
                   aAttributes->getValue(nsHtml5AttributeName::ATTR_HREF);
@@ -407,8 +409,9 @@ nsIContentHandle* nsHtml5TreeBuilder::createElement(
                 NS_ERROR_OUT_OF_MEMORY);
             return nullptr;
           }
-          opSetScriptLineNumberAndFreeze operation(content,
-                                                   tokenizer->getLineNumber());
+          opSetScriptLineAndColumnNumberAndFreeze operation(
+              content, tokenizer->getLineNumber(),
+              tokenizer->getColumnNumber());
           treeOp->Init(mozilla::AsVariant(operation));
 
           nsHtml5String url =
@@ -460,8 +463,8 @@ nsIContentHandle* nsHtml5TreeBuilder::createElement(
         MarkAsBrokenAndRequestSuspensionWithoutBuilder(NS_ERROR_OUT_OF_MEMORY);
         return nullptr;
       }
-      opSetScriptLineNumberAndFreeze operation(content,
-                                               tokenizer->getLineNumber());
+      opSetScriptLineAndColumnNumberAndFreeze operation(
+          content, tokenizer->getLineNumber(), tokenizer->getColumnNumber());
       treeOp->Init(mozilla::AsVariant(operation));
       if (aNamespace == kNameSpaceID_XHTML) {
         mCurrentHtmlScriptIsAsyncOrDefer =
@@ -760,7 +763,8 @@ void nsHtml5TreeBuilder::appendCharacters(nsIContentHandle* aParent,
   memcpy(bufferCopy.get(), aBuffer, aLength * sizeof(char16_t));
 
   if (mImportScanner.ShouldScan()) {
-    nsTArray<nsString> imports = mImportScanner.Scan(Span(aBuffer, aLength));
+    nsTArray<nsString> imports =
+        mImportScanner.Scan(mozilla::Span(aBuffer, aLength));
     for (nsString& url : imports) {
       mSpeculativeLoadQueue.AppendElement()->InitImportStyle(std::move(url));
     }
@@ -1232,7 +1236,7 @@ mozilla::Result<bool, nsresult> nsHtml5TreeBuilder::Flush(bool aDiscretionary) {
                    "as broken.");
       }
       if (!mOpSink->MoveOpsFrom(mOpQueue)) {
-        return Err(NS_ERROR_OUT_OF_MEMORY);
+        return mozilla::Err(NS_ERROR_OUT_OF_MEMORY);
       }
     }
     return hasOps;

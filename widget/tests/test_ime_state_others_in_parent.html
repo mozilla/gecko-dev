@@ -1,0 +1,153 @@
+<html>
+<head>
+  <title>Test for IME state controlling in some special cases</title>
+  <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
+  <script src="file_ime_state_test_helper.js"></script>
+  <link rel="stylesheet" type="text/css"
+          href="chrome://mochikit/content/tests/SimpleTest/test.css" />
+</head>
+<body>
+<div id="display"></div>
+<div id="content" style="display: none"></div>
+<pre id="test"></pre>
+<script>
+SimpleTest.waitForExplicitFinish();
+
+var gUtils = window.windowUtils;
+var gFM = Services.focus;
+
+function runEditorFlagChangeTests() {
+  var description = "runEditorFlagChangeTests: ";
+
+  var container = document.getElementById("display");
+
+  // Reset selection from previous tests.
+  window.getSelection().collapse(container, 0);
+
+  // the editor has focus directly.
+  container.setAttribute("contenteditable", "true");
+  container.focus();
+
+  is(gFM.focusedElement, container,
+     description + "The editor doesn't get focus");
+  is(gUtils.IMEStatus, gUtils.IME_STATUS_ENABLED,
+     description + "IME isn't enabled on HTML editor");
+  const kIMEStateChangeFlags = Ci.nsIEditor.eEditorReadonlyMask;
+  const kFlagsNotAllowedWithHTMLEditor =
+    Ci.nsIEditor.eEditorPasswordMask |
+    Ci.nsIEditor.eEditorSingleLineMask;
+  var editor = window.docShell.editor;
+  var flags = editor.flags;
+
+  // input characters
+  synthesizeCompositionChange(
+    { "composition":
+      { "string": "\u3078\u3093\u3057\u3093",
+        "clauses":
+        [
+          { "length": 4, "attr": COMPOSITION_ATTR_RAW_CLAUSE },
+        ],
+      },
+      "caret": { "start": 4, "length": 0 },
+    });
+
+  editor.flags &= ~kIMEStateChangeFlags;
+  ok(editor.composing,
+     description + "#1 IME composition was committed unexpectedly");
+  is(gUtils.IMEStatus, gUtils.IME_STATUS_ENABLED,
+     description + "#1 IME isn't enabled on HTML editor");
+
+  editor.flags |=
+      ~(kIMEStateChangeFlags | kFlagsNotAllowedWithHTMLEditor);
+  ok(editor.composing,
+     description + "#2 IME composition was committed unexpectedly");
+  is(gUtils.IMEStatus, gUtils.IME_STATUS_ENABLED,
+     description + "#2 IME isn't enabled on HTML editor");
+
+  editor.flags = flags;
+  ok(editor.composing,
+     description + "#3 IME composition was committed unexpectedly");
+  is(gUtils.IMEStatus, gUtils.IME_STATUS_ENABLED,
+     description + "#3 IME isn't enabled on HTML editor");
+
+  // cancel the composition
+  synthesizeComposition({ type: "compositioncommit", data: "" });
+
+  container.removeAttribute("contenteditable");
+}
+
+function runEditableSubframeTests() {
+  window.open("window_imestate_iframes.html", "_blank",
+              "width=600,height=600");
+}
+
+function runTestPasswordFieldOnDialog() {
+  if (document.activeElement) {
+    document.activeElement.blur();
+  }
+
+  var dialog;
+
+  function WindowObserver() {
+    Services.obs.addObserver(this, "domwindowopened");
+  }
+
+  WindowObserver.prototype = {
+    QueryInterface: ChromeUtils.generateQI(["nsIObserver"]),
+
+    observe(subject, topic, data) {
+      if (topic === "domwindowopened") {
+        ok(true, "dialog window is created");
+        dialog = subject;
+        dialog.addEventListener("load", onPasswordDialogLoad);
+      }
+    },
+  };
+
+  var observer = new WindowObserver();
+  var arg1 = {}, arg2 = {};
+  Services.prompt.promptPassword(window, "title", "text", arg1, "msg", arg2);
+
+  ok(true, "password dialog was closed");
+
+  Services.obs.removeObserver(observer, "domwindowopened");
+
+  var passwordField;
+
+  function onPasswordDialogLoad() {
+    ok(true, "onPasswordDialogLoad is called");
+    dialog.removeEventListener("load", onPasswordDialogLoad);
+    passwordField = dialog.document.getElementById("password1Textbox");
+    passwordField.addEventListener("focus", onPasswordFieldFocus);
+  }
+
+  function onPasswordFieldFocus() {
+    ok(true, "onPasswordFieldFocus is called");
+    passwordField.removeEventListener("focus", onPasswordFieldFocus);
+    var utils = dialog.windowUtils;
+    is(utils.IMEStatus, utils.IME_STATUS_PASSWORD,
+       "IME isn't disabled on a password field of password dialog");
+    synthesizeKey("VK_ESCAPE", { }, dialog);
+  }
+}
+
+SimpleTest.waitForFocus(async () => {
+  // test whether the IME state and composition are not changed unexpectedly
+  runEditorFlagChangeTests();
+
+  // test password field on dialog
+  // XXX temporary disable against failure
+  // runTestPasswordFieldOnDialog();
+
+  // This will call onFinish(), so, this test must be the last.
+  // TODO: Make this test run with remote content too.
+  runEditableSubframeTests();
+});
+
+function onFinish() {
+  SimpleTest.finish();
+}
+</script>
+</body>
+</html>

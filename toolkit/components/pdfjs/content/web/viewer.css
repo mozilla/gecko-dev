@@ -13,13 +13,22 @@
  * limitations under the License.
  */
 
+:root {
+  --highlight-bg-color: rgba(180, 0, 170, 1);
+  --highlight-selected-bg-color: rgba(0, 100, 0, 1);
+}
+
+@media screen and (forced-colors: active) {
+  :root {
+    --highlight-bg-color: Highlight;
+    --highlight-selected-bg-color: ButtonText;
+  }
+}
+
 .textLayer {
   position: absolute;
   text-align: initial;
-  left: 0;
-  top: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   overflow: hidden;
   opacity: 0.25;
   line-height: 1;
@@ -29,8 +38,7 @@
   z-index: 2;
 }
 
-.textLayer span,
-.textLayer br {
+.textLayer :is(span, br) {
   color: transparent;
   position: absolute;
   white-space: pre;
@@ -40,15 +48,11 @@
 
 /* Only necessary in Google Chrome, see issue 14205, and most unfortunately
  * the problem doesn't show up in "text" reference tests. */
-.textLayer span.markedContent {
-  top: 0;
-  height: 0;
-}
 
 .textLayer .highlight {
   margin: -1px;
   padding: 1px;
-  background-color: rgba(180, 0, 170, 1);
+  background-color: var(--highlight-bg-color);
   border-radius: 4px;
 }
 
@@ -69,7 +73,7 @@
 }
 
 .textLayer .highlight.selected {
-  background-color: rgba(0, 100, 0, 1);
+  background-color: var(--highlight-selected-bg-color);
 }
 
 .textLayer ::selection {
@@ -77,17 +81,11 @@
 }
 
 /* Avoids https://github.com/mozilla/pdf.js/issues/13840 in Chrome */
-.textLayer br::selection {
-  background: transparent;
-}
 
 .textLayer .endOfContent {
   display: block;
   position: absolute;
-  left: 0;
-  top: 100%;
-  right: 0;
-  bottom: 0;
+  inset: 100% 0 0;
   z-index: -1;
   cursor: default;
   user-select: none;
@@ -105,21 +103,27 @@
   --input-unfocused-border-color: transparent;
   --input-disabled-border-color: transparent;
   --input-hover-border-color: black;
+  --link-outline: none;
 }
 
-@media (forced-colors: active) {
+@media screen and (forced-colors: active) {
   :root {
     --input-focus-border-color: CanvasText;
     --input-unfocused-border-color: ActiveText;
     --input-disabled-border-color: GrayText;
     --input-hover-border-color: Highlight;
+    --link-outline: 1.5px solid LinkText;
   }
-  .annotationLayer .textWidgetAnnotation input:required,
-  .annotationLayer .textWidgetAnnotation textarea:required,
+  .annotationLayer .textWidgetAnnotation :is(input, textarea):required,
   .annotationLayer .choiceWidgetAnnotation select:required,
-  .annotationLayer .buttonWidgetAnnotation.checkBox input:required,
-  .annotationLayer .buttonWidgetAnnotation.radioButton input:required {
+  .annotationLayer
+    .buttonWidgetAnnotation:is(.checkBox, .radioButton)
+    input:required {
     outline: 1.5px solid selectedItem;
+  }
+
+  .annotationLayer .linkAnnotation:hover {
+    backdrop-filter: invert(100%);
   }
 }
 
@@ -132,6 +136,22 @@
   z-index: 3;
 }
 
+.annotationLayer[data-main-rotation="90"] .norotate {
+  transform: rotate(270deg) translateX(-100%);
+}
+.annotationLayer[data-main-rotation="180"] .norotate {
+  transform: rotate(180deg) translate(-100%, -100%);
+}
+.annotationLayer[data-main-rotation="270"] .norotate {
+  transform: rotate(90deg) translateY(-100%);
+}
+
+.annotationLayer canvas {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
 .annotationLayer section {
   position: absolute;
   text-align: initial;
@@ -140,8 +160,11 @@
   transform-origin: 0 0;
 }
 
-.annotationLayer .linkAnnotation > a,
-.annotationLayer .buttonWidgetAnnotation.pushButton > a {
+.annotationLayer .linkAnnotation {
+  outline: var(--link-outline);
+}
+
+.annotationLayer :is(.linkAnnotation, .buttonWidgetAnnotation.pushButton) > a {
   position: absolute;
   font-size: 1em;
   top: 0;
@@ -150,13 +173,9 @@
   height: 100%;
 }
 
-.annotationLayer .buttonWidgetAnnotation.pushButton > canvas {
-  width: 100%;
-  height: 100%;
-}
-
-.annotationLayer .linkAnnotation > a:hover,
-.annotationLayer .buttonWidgetAnnotation.pushButton > a:hover {
+.annotationLayer
+  :is(.linkAnnotation, .buttonWidgetAnnotation.pushButton)
+  > a:hover {
   opacity: 0.2;
   background: rgba(255, 255, 0, 1);
   box-shadow: 0 2px 10px rgba(255, 255, 0, 1);
@@ -167,13 +186,13 @@
   cursor: pointer;
   width: 100%;
   height: 100%;
+  top: 0;
+  left: 0;
 }
 
-.annotationLayer .textWidgetAnnotation input,
-.annotationLayer .textWidgetAnnotation textarea,
+.annotationLayer .textWidgetAnnotation :is(input, textarea),
 .annotationLayer .choiceWidgetAnnotation select,
-.annotationLayer .buttonWidgetAnnotation.checkBox input,
-.annotationLayer .buttonWidgetAnnotation.radioButton input {
+.annotationLayer .buttonWidgetAnnotation:is(.checkBox, .radioButton) input {
   background-image: var(--annotation-unfocused-field-background);
   border: 2px solid var(--input-unfocused-border-color);
   box-sizing: border-box;
@@ -184,11 +203,11 @@
   width: 100%;
 }
 
-.annotationLayer .textWidgetAnnotation input:required,
-.annotationLayer .textWidgetAnnotation textarea:required,
+.annotationLayer .textWidgetAnnotation :is(input, textarea):required,
 .annotationLayer .choiceWidgetAnnotation select:required,
-.annotationLayer .buttonWidgetAnnotation.checkBox input:required,
-.annotationLayer .buttonWidgetAnnotation.radioButton input:required {
+.annotationLayer
+  .buttonWidgetAnnotation:is(.checkBox, .radioButton)
+  input:required {
   outline: 1.5px solid red;
 }
 
@@ -204,32 +223,30 @@
   resize: none;
 }
 
-.annotationLayer .textWidgetAnnotation input[disabled],
-.annotationLayer .textWidgetAnnotation textarea[disabled],
+.annotationLayer .textWidgetAnnotation :is(input, textarea)[disabled],
 .annotationLayer .choiceWidgetAnnotation select[disabled],
-.annotationLayer .buttonWidgetAnnotation.checkBox input[disabled],
-.annotationLayer .buttonWidgetAnnotation.radioButton input[disabled] {
+.annotationLayer
+  .buttonWidgetAnnotation:is(.checkBox, .radioButton)
+  input[disabled] {
   background: none;
   border: 2px solid var(--input-disabled-border-color);
   cursor: not-allowed;
 }
 
-.annotationLayer .textWidgetAnnotation input:hover,
-.annotationLayer .textWidgetAnnotation textarea:hover,
+.annotationLayer .textWidgetAnnotation :is(input, textarea):hover,
 .annotationLayer .choiceWidgetAnnotation select:hover,
-.annotationLayer .buttonWidgetAnnotation.checkBox input:hover,
-.annotationLayer .buttonWidgetAnnotation.radioButton input:hover {
+.annotationLayer
+  .buttonWidgetAnnotation:is(.checkBox, .radioButton)
+  input:hover {
   border: 2px solid var(--input-hover-border-color);
 }
-.annotationLayer .textWidgetAnnotation input:hover,
-.annotationLayer .textWidgetAnnotation textarea:hover,
+.annotationLayer .textWidgetAnnotation :is(input, textarea):hover,
 .annotationLayer .choiceWidgetAnnotation select:hover,
 .annotationLayer .buttonWidgetAnnotation.checkBox input:hover {
   border-radius: 2px;
 }
 
-.annotationLayer .textWidgetAnnotation input:focus,
-.annotationLayer .textWidgetAnnotation textarea:focus,
+.annotationLayer .textWidgetAnnotation :is(input, textarea):focus,
 .annotationLayer .choiceWidgetAnnotation select:focus {
   background: none;
   border: 2px solid var(--input-focus-border-color);
@@ -237,8 +254,7 @@
   outline: var(--input-focus-outline);
 }
 
-.annotationLayer .buttonWidgetAnnotation.checkBox :focus,
-.annotationLayer .buttonWidgetAnnotation.radioButton :focus {
+.annotationLayer .buttonWidgetAnnotation:is(.checkBox, .radioButton) :focus {
   background-image: none;
   background-color: transparent;
 }
@@ -254,31 +270,31 @@
   outline: var(--input-focus-outline);
 }
 
-.annotationLayer .buttonWidgetAnnotation.checkBox input:checked:before,
-.annotationLayer .buttonWidgetAnnotation.checkBox input:checked:after,
-.annotationLayer .buttonWidgetAnnotation.radioButton input:checked:before {
+.annotationLayer .buttonWidgetAnnotation.checkBox input:checked::before,
+.annotationLayer .buttonWidgetAnnotation.checkBox input:checked::after,
+.annotationLayer .buttonWidgetAnnotation.radioButton input:checked::before {
   background-color: CanvasText;
   content: "";
   display: block;
   position: absolute;
 }
 
-.annotationLayer .buttonWidgetAnnotation.checkBox input:checked:before,
-.annotationLayer .buttonWidgetAnnotation.checkBox input:checked:after {
+.annotationLayer .buttonWidgetAnnotation.checkBox input:checked::before,
+.annotationLayer .buttonWidgetAnnotation.checkBox input:checked::after {
   height: 80%;
   left: 45%;
   width: 1px;
 }
 
-.annotationLayer .buttonWidgetAnnotation.checkBox input:checked:before {
+.annotationLayer .buttonWidgetAnnotation.checkBox input:checked::before {
   transform: rotate(45deg);
 }
 
-.annotationLayer .buttonWidgetAnnotation.checkBox input:checked:after {
+.annotationLayer .buttonWidgetAnnotation.checkBox input:checked::after {
   transform: rotate(-45deg);
 }
 
-.annotationLayer .buttonWidgetAnnotation.radioButton input:checked:before {
+.annotationLayer .buttonWidgetAnnotation.radioButton input:checked::before {
   border-radius: 50%;
   height: 50%;
   left: 30%;
@@ -302,14 +318,17 @@
   width: 103%;
 }
 
-.annotationLayer .buttonWidgetAnnotation.checkBox input,
-.annotationLayer .buttonWidgetAnnotation.radioButton input {
+.annotationLayer .buttonWidgetAnnotation:is(.checkBox, .radioButton) input {
   appearance: none;
 }
 
 .annotationLayer .popupTriggerArea {
   height: 100%;
   width: 100%;
+}
+
+.annotationLayer .fileAttachmentAnnotation .popupTriggerArea {
+  position: absolute;
 }
 
 .annotationLayer .popupWrapper {
@@ -381,6 +400,8 @@
   position: absolute;
   width: 100%;
   height: 100%;
+  top: 0;
+  left: 0;
 }
 
 .annotationLayer .annotationTextContent {
@@ -404,7 +425,7 @@
   --xfa-focus-outline: auto;
 }
 
-@media (forced-colors: active) {
+@media screen and (forced-colors: active) {
   :root {
     --xfa-focus-outline: 2px solid CanvasText;
   }
@@ -487,14 +508,8 @@
   outline: 1.5px solid red;
 }
 
-.xfaLayer div {
-  pointer-events: none;
-}
-
-.xfaLayer svg {
-  pointer-events: none;
-}
-
+.xfaLayer div,
+.xfaLayer svg,
 .xfaLayer svg * {
   pointer-events: none;
 }
@@ -545,10 +560,7 @@
   align-items: center;
 }
 
-.xfaLeft > .xfaCaption,
-.xfaLeft > .xfaCaptionForCheckButton,
-.xfaRight > .xfaCaption,
-.xfaRight > .xfaCaptionForCheckButton {
+:is(.xfaLeft, .xfaRight) > :is(.xfaCaption, .xfaCaptionForCheckButton) {
   max-height: 100%;
 }
 
@@ -564,10 +576,7 @@
   align-items: flex-start;
 }
 
-.xfaTop > .xfaCaption,
-.xfaTop > .xfaCaptionForCheckButton,
-.xfaBottom > .xfaCaption,
-.xfaBottom > .xfaCaptionForCheckButton {
+:is(.xfaTop, .xfaBottom) > :is(.xfaCaption, .xfaCaptionForCheckButton) {
   width: 100%;
 }
 
@@ -582,16 +591,14 @@
   height: 100%;
 }
 
-.xfaTextfield:focus,
-.xfaSelect:focus {
+:is(.xfaTextfield, .xfaSelect):focus {
   background-image: none;
   background-color: transparent;
   outline: var(--xfa-focus-outline);
   outline-offset: -1px;
 }
 
-.xfaCheckbox:focus,
-.xfaRadio:focus {
+:is(.xfaCheckbox, .xfaRadio):focus {
   outline: var(--xfa-focus-outline);
 }
 
@@ -609,10 +616,7 @@
   padding-inline: 2px;
 }
 
-.xfaTop > .xfaTextfield,
-.xfaTop > .xfaSelect,
-.xfaBottom > .xfaTextfield,
-.xfaBottom > .xfaSelect {
+:is(.xfaTop, .xfaBottom) > :is(.xfaTextfield, .xfaSelect) {
   flex: 0 1 auto;
 }
 
@@ -713,12 +717,7 @@
   flex: 1;
 }
 
-.xfaNonInteractive input,
-.xfaNonInteractive textarea,
-.xfaDisabled input,
-.xfaDisabled textarea,
-.xfaReadOnly input,
-.xfaReadOnly textarea {
+:is(.xfaNonInteractive, .xfaDisabled, .xfaReadOnly) :is(input, textarea) {
   background: initial;
 }
 
@@ -752,7 +751,7 @@
   }
 }
 
-@media (forced-colors: active) {
+@media screen and (forced-colors: active) {
   :root {
     --focus-outline: solid 3px ButtonText;
     --hover-outline: dashed 3px ButtonText;
@@ -786,6 +785,10 @@
 
 .annotationEditorLayer.inkEditing {
   cursor: var(--editorInk-editing-cursor);
+}
+
+.annotationEditorLayer :is(.freeTextEditor, .inkEditor)[draggable="true"] {
+  cursor: move;
 }
 
 .annotationEditorLayer .selectedEditor {
@@ -850,8 +853,8 @@
   resize: horizontal;
 }
 
-.annotationEditorLayer .freeTextEditor:hover:not(.selectedEditor),
-.annotationEditorLayer .inkEditor:hover:not(.selectedEditor) {
+.annotationEditorLayer
+  :is(.freeTextEditor, .inkEditor):hover:not(.selectedEditor) {
   outline: var(--hover-outline);
 }
 
@@ -887,7 +890,6 @@
   --page-margin: 1px auto -8px;
   --page-border: 9px solid transparent;
   --spreadHorizontalWrapped-margin-LR: -3.5px;
-  --scale-factor: 1;
   --loading-icon-delay: 400ms;
 }
 
@@ -910,7 +912,20 @@
   transform: rotate(270deg) translateX(-100%);
 }
 
+#hiddenCopyElement {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  display: none;
+}
+
 .pdfViewer {
+  /* Define this variable here and not in :root to avoid to reflow all the UI
+     when scaling (see #15929). */
+  --scale-factor: 1;
+
   padding-bottom: var(--pdfViewer-padding-bottom);
 }
 
@@ -939,25 +954,9 @@
   height: var(--viewer-container-height);
 }
 
-.pdfViewer.removePageBorders .page {
-  margin: 0 auto 10px;
-  border: none;
-}
-
-.pdfViewer.singlePageView {
-  display: inline-block;
-}
-
-.pdfViewer.singlePageView .page {
-  margin: 0;
-  border: none;
-}
-
-.pdfViewer.scrollHorizontal,
-.pdfViewer.scrollWrapped,
+.pdfViewer:is(.scrollHorizontal, .scrollWrapped),
 .spread {
-  margin-left: 3.5px;
-  margin-right: 3.5px;
+  margin-inline: 3.5px;
   text-align: center;
 }
 
@@ -966,40 +965,28 @@
   white-space: nowrap;
 }
 
-.pdfViewer.removePageBorders,
-.pdfViewer.scrollHorizontal .spread,
-.pdfViewer.scrollWrapped .spread {
-  margin-left: 0;
-  margin-right: 0;
+.pdfViewer:is(.scrollHorizontal, .scrollWrapped) .spread {
+  margin-inline: 0;
 }
 
-.spread .page,
-.spread .dummyPage,
-.pdfViewer.scrollHorizontal .page,
-.pdfViewer.scrollWrapped .page,
-.pdfViewer.scrollHorizontal .spread,
-.pdfViewer.scrollWrapped .spread {
+.spread :is(.page, .dummyPage),
+.pdfViewer:is(.scrollHorizontal, .scrollWrapped) :is(.page, .spread) {
   display: inline-block;
   vertical-align: middle;
 }
 
 .spread .page,
-.pdfViewer.scrollHorizontal .page,
-.pdfViewer.scrollWrapped .page {
-  margin-left: var(--spreadHorizontalWrapped-margin-LR);
-  margin-right: var(--spreadHorizontalWrapped-margin-LR);
-}
-
-.pdfViewer.removePageBorders .spread .page,
-.pdfViewer.removePageBorders.scrollHorizontal .page,
-.pdfViewer.removePageBorders.scrollWrapped .page {
-  margin-left: 5px;
-  margin-right: 5px;
+.pdfViewer:is(.scrollHorizontal, .scrollWrapped) .page {
+  margin-inline: var(--spreadHorizontalWrapped-margin-LR);
 }
 
 .pdfViewer .page canvas {
   margin: 0;
   display: block;
+}
+
+.pdfViewer .page canvas .structTree {
+  contain: strict;
 }
 
 .pdfViewer .page canvas[hidden] {
@@ -1011,29 +998,30 @@
   height: 100%;
 }
 
-.pdfViewer .page .loadingIcon {
+.pdfViewer .page.loadingIcon::after {
   position: absolute;
-  display: block;
-  left: 0;
   top: 0;
-  right: 0;
-  bottom: 0;
+  left: 0;
+  content: "";
+  width: 100%;
+  height: 100%;
   background: url("images/loading-icon.gif") center no-repeat;
-  visibility: visible;
+  display: none;
   /* Using a delay with background-image doesn't work,
-     consequently we use the visibility. */
-  transition-property: visibility;
+     consequently we use the display. */
+  transition-property: display;
   transition-delay: var(--loading-icon-delay);
   z-index: 5;
-}
-.pdfViewer .page .loadingIcon.notVisible {
-  transition-property: none;
-  visibility: hidden;
+  contain: strict;
 }
 
-.pdfViewer.enablePermissions .textLayer span {
-  user-select: none !important;
-  cursor: not-allowed;
+.pdfViewer .page.loading::after {
+  display: block;
+}
+
+.pdfViewer .page:not(.loading)::after {
+  transition-property: none;
+  display: none;
 }
 
 .pdfPresentationMode .pdfViewer {
@@ -1051,18 +1039,16 @@
 
 :root {
   --dir-factor: 1;
+
   --sidebar-width: 200px;
   --sidebar-transition-duration: 200ms;
   --sidebar-transition-timing-function: ease;
-  --scale-select-width: 140px;
 
   --toolbar-icon-opacity: 0.7;
   --doorhanger-icon-opacity: 0.9;
 
   --main-color: rgba(12, 12, 13, 1);
   --body-bg-color: rgba(212, 212, 215, 1);
-  --progressBar-percent: 0%;
-  --progressBar-end-offset: 0;
   --progressBar-color: rgba(10, 132, 255, 1);
   --progressBar-bg-color: rgba(221, 221, 222, 1);
   --progressBar-blend-color: rgba(116, 177, 239, 1);
@@ -1222,6 +1208,12 @@
   }
 }
 
+@media screen and (prefers-reduced-motion: reduce) {
+  :root {
+    --sidebar-transition-duration: 0;
+  }
+}
+
 * {
   padding: 0;
   margin: 0;
@@ -1274,8 +1266,7 @@ body {
 
 #sidebarContainer {
   position: absolute;
-  top: 32px;
-  bottom: 0;
+  inset-block: 32px 0;
   inset-inline-start: calc(-1 * var(--sidebar-width));
   width: var(--sidebar-width);
   visibility: hidden;
@@ -1288,8 +1279,7 @@ body {
   transition-timing-function: var(--sidebar-transition-timing-function);
 }
 
-#outerContainer.sidebarMoving #sidebarContainer,
-#outerContainer.sidebarOpen #sidebarContainer {
+#outerContainer:is(.sidebarMoving, .sidebarOpen) #sidebarContainer {
   visibility: visible;
 }
 #outerContainer.sidebarOpen #sidebarContainer {
@@ -1298,16 +1288,12 @@ body {
 
 #mainContainer {
   position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
+  inset: 0;
   min-width: 350px;
 }
 
 #sidebarContent {
-  top: 32px;
-  bottom: 0;
+  inset-block: 32px 0;
   inset-inline-start: 0;
   overflow: auto;
   position: absolute;
@@ -1318,10 +1304,7 @@ body {
 #viewerContainer {
   overflow: auto;
   position: absolute;
-  top: 32px;
-  right: 0;
-  bottom: 0;
-  left: 0;
+  inset: 32px 0 0;
   outline: none;
 }
 #viewerContainer:not(.pdfPresentationMode) {
@@ -1336,29 +1319,15 @@ body {
 
 .toolbar {
   position: relative;
-  left: 0;
-  right: 0;
+  inset-inline: 0;
   z-index: 9999;
   cursor: default;
   font: message-box;
 }
 
-.toolbar input,
-.toolbar button,
-.toolbar select,
-.secondaryToolbar input,
-.secondaryToolbar button,
-.secondaryToolbar a,
-.secondaryToolbar select,
-.editorParamsToolbar input,
-.editorParamsToolbar button,
-.editorParamsToolbar select,
-.findbar input,
-.findbar button,
-.findbar select,
-#sidebarContainer input,
-#sidebarContainer button,
-#sidebarContainer select {
+:is(.toolbar, .editorParamsToolbar, .findbar, #sidebarContainer)
+  :is(input, button, select),
+.secondaryToolbar :is(input, button, a, select) {
   outline: none;
   font: message-box;
 }
@@ -1377,8 +1346,7 @@ body {
 
 #sidebarResizer {
   position: absolute;
-  top: 0;
-  bottom: 0;
+  inset-block: 0;
   inset-inline-end: -6px;
   width: 6px;
   z-index: 200;
@@ -1401,6 +1369,11 @@ body {
 }
 
 #loadingBar {
+  /* Define these variables here, and not in :root, to avoid reflowing the
+     entire viewer when updating progress (see issue 15958). */
+  --progressBar-percent: 0%;
+  --progressBar-end-offset: 0;
+
   position: absolute;
   inset-inline: 0 var(--progressBar-end-offset);
   height: 4px;
@@ -1418,10 +1391,10 @@ body {
 #loadingBar .progress {
   position: absolute;
   top: 0;
-  left: 0;
+  inset-inline-start: 0;
   width: 100%;
   transform: scaleX(var(--progressBar-percent));
-  transform-origin: 0 0;
+  transform-origin: calc(50% - 50% * var(--dir-factor)) 0;
   height: 100%;
   background-color: var(--progressBar-color);
   overflow: hidden;
@@ -1430,7 +1403,7 @@ body {
 
 @keyframes progressIndeterminate {
   0% {
-    transform: translateX(-142px);
+    transform: translateX(calc(-142px * var(--dir-factor)));
   }
   100% {
     transform: translateX(0);
@@ -1446,7 +1419,7 @@ body {
 #loadingBar.indeterminate .progress .glimmer {
   position: absolute;
   top: 0;
-  left: 0;
+  inset-inline-start: 0;
   height: 100%;
   width: calc(100% + 150px);
   background: repeating-linear-gradient(
@@ -1461,9 +1434,8 @@ body {
   animation: progressIndeterminate 1s linear infinite;
 }
 
-#outerContainer.sidebarResizing #sidebarContainer,
-#outerContainer.sidebarResizing #viewerContainer,
-#outerContainer.sidebarResizing #loadingBar {
+#outerContainer.sidebarResizing
+  :is(#sidebarContainer, #viewerContainer, #loadingBar) {
   /* Improve responsiveness and avoid visual glitches when the sidebar is resized. */
   transition-duration: 0s;
 }
@@ -1613,10 +1585,8 @@ body {
     0 0 0 1px var(--doorhanger-border-color);
   border: var(--doorhanger-border-color-whcm);
 }
-.doorHanger:after,
-.doorHanger:before,
-.doorHangerRight:after,
-.doorHangerRight:before {
+:is(.doorHanger, .doorHangerRight)::after,
+:is(.doorHanger, .doorHangerRight)::before {
   bottom: 100%;
   border: 8px solid rgba(0, 0, 0, 0);
   content: " ";
@@ -1626,26 +1596,25 @@ body {
   pointer-events: none;
   opacity: var(--doorhanger-triangle-opacity-whcm);
 }
-.doorHanger:after {
+.doorHanger::after {
   inset-inline-start: 10px;
   margin-inline-start: -8px;
   border-bottom-color: var(--toolbar-bg-color);
 }
-.doorHangerRight:after {
+.doorHangerRight::after {
   inset-inline-end: 10px;
   margin-inline-end: -8px;
   border-bottom-color: var(--doorhanger-bg-color);
 }
-.doorHanger:before,
-.doorHangerRight:before {
+:is(.doorHanger, .doorHangerRight)::before {
   border-bottom-color: var(--doorhanger-border-color);
   border-width: 9px;
 }
-.doorHanger:before {
+.doorHanger::before {
   inset-inline-start: 10px;
   margin-inline-start: -9px;
 }
-.doorHangerRight:before {
+.doorHangerRight::before {
   inset-inline-end: 10px;
   margin-inline-end: -9px;
 }
@@ -1662,8 +1631,7 @@ body {
   color: rgba(251, 0, 0, 1);
 }
 
-#findResultsCount:empty,
-#findMsg:empty {
+:is(#findResultsCount, #findMsg):empty {
   display: none;
 }
 
@@ -1720,13 +1688,11 @@ body {
   outline: none;
 }
 
-.dialogButton:hover,
-.dialogButton:focus-visible {
+.dialogButton:is(:hover, :focus-visible) {
   background-color: var(--dialog-button-hover-bg-color);
 }
 
-.dialogButton:hover > span,
-.dialogButton:focus-visible > span {
+.dialogButton:is(:hover, :focus-visible) > span {
   color: var(--dialog-button-hover-color);
 }
 
@@ -1737,14 +1703,11 @@ body {
   overflow: hidden;
 }
 
-.toolbarButton[disabled],
-.secondaryToolbarButton[disabled],
-.dialogButton[disabled] {
+:is(.toolbarButton, .secondaryToolbarButton, .dialogButton)[disabled] {
   opacity: 0.5;
 }
 
-.splitToolbarButton > .toolbarButton:hover,
-.splitToolbarButton > .toolbarButton:focus-visible,
+.splitToolbarButton > .toolbarButton:is(:hover, :focus-visible),
 .dropdownToolbarButton:hover {
   background-color: var(--button-hover-color);
 }
@@ -1781,35 +1744,34 @@ body {
   box-sizing: border-box;
 }
 
-.toolbarButton:hover,
-.toolbarButton:focus-visible {
+.toolbarButton:is(:hover, :focus-visible) {
   background-color: var(--button-hover-color);
 }
-.secondaryToolbarButton:hover,
-.secondaryToolbarButton:focus-visible {
+.secondaryToolbarButton:is(:hover, :focus-visible) {
   background-color: var(--doorhanger-hover-bg-color);
   color: var(--doorhanger-hover-color);
 }
 
-.toolbarButton.toggled,
-.splitToolbarButton.toggled > .toolbarButton.toggled,
-.secondaryToolbarButton.toggled {
+:is(.toolbarButton, .secondaryToolbarButton).toggled,
+.splitToolbarButton.toggled > .toolbarButton.toggled {
   background-color: var(--toggled-btn-bg-color);
   color: var(--toggled-btn-color);
 }
 
-.toolbarButton.toggled::before,
-.secondaryToolbarButton.toggled::before {
+:is(.toolbarButton, .secondaryToolbarButton).toggled::before {
   background-color: var(--toggled-btn-color);
 }
 
-.toolbarButton.toggled:hover:active,
-.splitToolbarButton.toggled > .toolbarButton.toggled:hover:active,
-.secondaryToolbarButton.toggled:hover:active {
+:is(.toolbarButton, .secondaryToolbarButton).toggled:hover:active,
+.splitToolbarButton.toggled > .toolbarButton.toggled:hover:active {
   background-color: var(--toggled-hover-active-btn-color);
 }
 
 .dropdownToolbarButton {
+  /* Define this variable here, and not in :root, to avoid reflowing the
+     entire viewer when updating the width. */
+  --scale-select-width: 140px;
+
   width: var(--scale-select-width);
   padding: 0;
   background-color: var(--dropdown-btn-bg-color);
@@ -1834,8 +1796,7 @@ body {
   border: none;
   background-color: var(--dropdown-btn-bg-color);
 }
-.dropdownToolbarButton > select:hover,
-.dropdownToolbarButton > select:focus-visible {
+.dropdownToolbarButton > select:is(:hover, :focus-visible) {
   background-color: var(--button-hover-color);
   color: var(--toggled-btn-color);
 }
@@ -1850,10 +1811,8 @@ body {
   height: 1px;
 }
 
-.toolbarButton::before,
-.secondaryToolbarButton::before,
-.dropdownToolbarButton::after,
-.treeItemToggler::before {
+:is(.toolbarButton, .secondaryToolbarButton, .treeItemToggler)::before,
+.dropdownToolbarButton::after {
   /* All matching images have a size of 16x16
    * All relevant containers have a size of 28x28 */
   position: absolute;
@@ -1866,9 +1825,7 @@ body {
   mask-size: cover;
 }
 
-.dropdownToolbarButton:hover::after,
-.dropdownToolbarButton:focus-visible::after,
-.dropdownToolbarButton:active::after {
+.dropdownToolbarButton:is(:hover, :focus-visible, :active)::after {
   background-color: var(--toolbar-icon-hover-bg-color);
 }
 
@@ -1878,10 +1835,8 @@ body {
   left: 6px;
 }
 
-.toolbarButton:hover::before,
-.toolbarButton:focus-visible::before,
-.secondaryToolbarButton:hover::before,
-.secondaryToolbarButton:focus-visible::before {
+.toolbarButton:is(:hover, :focus-visible)::before,
+.secondaryToolbarButton:is(:hover, :focus-visible)::before {
   background-color: var(--toolbar-icon-hover-bg-color);
 }
 
@@ -1942,8 +1897,7 @@ body {
   mask-image: var(--toolbarButton-print-icon);
 }
 
-#download::before,
-#secondaryDownload::before {
+:is(#download, #secondaryDownload)::before {
   mask-image: var(--toolbarButton-download-icon);
 }
 
@@ -1951,8 +1905,7 @@ a.secondaryToolbarButton {
   padding-top: 5px;
   text-decoration: none;
 }
-a.toolbarButton[href="#"],
-a.secondaryToolbarButton[href="#"] {
+a:is(.toolbarButton, .secondaryToolbarButton)[href="#"] {
   opacity: 0.5;
   pointer-events: none;
 }
@@ -2114,7 +2067,7 @@ a.secondaryToolbarButton[href="#"] {
 
 #pageNumber {
   -moz-appearance: textfield; /* hides the spinner in moz */
-  text-align: right;
+  text-align: end;
   width: 40px;
   background-size: 0 0;
   transition-property: none;
@@ -2122,7 +2075,7 @@ a.secondaryToolbarButton[href="#"] {
 #pageNumber.visiblePageIsLoading {
   background-image: var(--loading-icon);
   background-repeat: no-repeat;
-  background-position: 3px;
+  background-position: calc(50% - 42% * var(--dir-factor));
   background-size: 16px 16px;
   /* Using a delay with background-image doesn't work,
      consequently we use background-size. */
@@ -2157,8 +2110,7 @@ a.secondaryToolbarButton[href="#"] {
 #layersView {
   position: absolute;
   width: calc(100% - 8px);
-  top: 0;
-  bottom: 0;
+  inset-block: 0;
   padding: 4px 4px 0;
   overflow: auto;
   user-select: none;
@@ -2168,8 +2120,7 @@ a.secondaryToolbarButton[href="#"] {
   padding: 10px 30px 0;
 }
 
-#thumbnailView > a:active,
-#thumbnailView > a:focus {
+#thumbnailView > a:is(:active, :focus) {
   outline: 0;
 }
 
@@ -2388,10 +2339,7 @@ dialog :link {
   position: fixed;
   background: rgba(0, 0, 0, 0);
   display: block;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   overflow: hidden;
   z-index: 50000; /* should be higher than anything else in PDF.js! */
 }
@@ -2444,8 +2392,7 @@ dialog :link {
     position: relative;
   }
 
-  #printContainer > .printedPage canvas,
-  #printContainer > .printedPage img {
+  #printContainer > .printedPage :is(canvas, img) {
     /* The intrinsic canvas / image size will make sure that we fit the page. */
     max-width: 100%;
     max-height: 100%;

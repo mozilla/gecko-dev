@@ -22,11 +22,13 @@
 #include "nsEffectiveTLDService.h"
 #include "nsGlobalWindowInner.h"
 #include "nsIChannel.h"
+#include "nsICookieService.h"
 #include "nsIHttpChannel.h"
 #include "nsIPermission.h"
 #include "nsIURI.h"
 #include "nsNetUtil.h"
 #include "nsPIDOMWindow.h"
+#include "nsRFPService.h"
 #include "nsSandboxFlags.h"
 #include "nsScriptSecurityManager.h"
 #include "PartitioningExceptionList.h"
@@ -85,7 +87,7 @@ already_AddRefed<nsIURI> AntiTrackingUtils::MaybeGetDocumentURIBeingLoaded(
     // coming from an OnStopRequest notification, which might mean that our
     // document may still be in the loading process, so we may need to pass in
     // the uriBeingLoaded argument explicitly.
-    rv = aChannel->GetURI(getter_AddRefs(uriBeingLoaded));
+    rv = NS_GetFinalChannelURI(aChannel, getter_AddRefs(uriBeingLoaded));
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return nullptr;
     }
@@ -885,4 +887,13 @@ void AntiTrackingUtils::UpdateAntiTrackingInfoForChannel(nsIChannel* aChannel) {
   nsCOMPtr<nsIURI> uri;
   Unused << aChannel->GetURI(getter_AddRefs(uri));
   net::CookieJarSettings::Cast(cookieJarSettings)->SetPartitionKey(uri);
+
+  // Generate the fingerprinting randomization key for top-level loads. The key
+  // will automatically be propagated to sub loads.
+  auto RFPRandomKey =
+      nsRFPService::GenerateKey(uri, NS_UsePrivateBrowsing(aChannel));
+  if (RFPRandomKey) {
+    net::CookieJarSettings::Cast(cookieJarSettings)
+        ->SetFingerprintingRandomizationKey(RFPRandomKey.ref());
+  }
 }

@@ -96,11 +96,15 @@ void DOMLocalization::Destroy() { DisconnectMutations(); }
 
 DOMLocalization::~DOMLocalization() { Destroy(); }
 
+bool DOMLocalization::HasPendingMutations() const {
+  return mMutations && mMutations->HasPendingMutations();
+}
+
 /**
  * DOMLocalization API
  */
 
-void DOMLocalization::ConnectRoot(nsINode& aNode, ErrorResult& aRv) {
+void DOMLocalization::ConnectRoot(nsINode& aNode) {
   nsCOMPtr<nsIGlobalObject> global = aNode.GetOwnerGlobal();
   if (!global) {
     return;
@@ -121,33 +125,25 @@ void DOMLocalization::ConnectRoot(nsINode& aNode, ErrorResult& aRv) {
   aNode.AddMutationObserverUnlessExists(mMutations);
 }
 
-void DOMLocalization::DisconnectRoot(nsINode& aNode, ErrorResult& aRv) {
+void DOMLocalization::DisconnectRoot(nsINode& aNode) {
   if (mRoots.Contains(&aNode)) {
     aNode.RemoveMutationObserver(mMutations);
     mRoots.Remove(&aNode);
   }
 }
 
-void DOMLocalization::PauseObserving(ErrorResult& aRv) {
-  mMutations->PauseObserving();
-}
+void DOMLocalization::PauseObserving() { mMutations->PauseObserving(); }
 
-void DOMLocalization::ResumeObserving(ErrorResult& aRv) {
-  mMutations->ResumeObserving();
-}
+void DOMLocalization::ResumeObserving() { mMutations->ResumeObserving(); }
 
 void DOMLocalization::SetAttributes(
     JSContext* aCx, Element& aElement, const nsAString& aId,
     const Optional<JS::Handle<JSObject*>>& aArgs, ErrorResult& aRv) {
-  if (!aElement.AttrValueIs(kNameSpaceID_None, nsGkAtoms::datal10nid, aId,
-                            eCaseMatters)) {
-    aElement.SetAttr(kNameSpaceID_None, nsGkAtoms::datal10nid, aId, true);
-  }
-
   if (aArgs.WasPassed() && aArgs.Value()) {
     nsAutoString data;
     JS::Rooted<JS::Value> val(aCx, JS::ObjectValue(*aArgs.Value()));
-    if (!nsContentUtils::StringifyJSON(aCx, &val, data)) {
+    if (!nsContentUtils::StringifyJSON(aCx, val, data,
+                                       UndefinedIsNullStringLiteral)) {
       aRv.NoteJSContextException(aCx);
       return;
     }
@@ -157,6 +153,11 @@ void DOMLocalization::SetAttributes(
     }
   } else {
     aElement.UnsetAttr(kNameSpaceID_None, nsGkAtoms::datal10nargs, true);
+  }
+
+  if (!aElement.AttrValueIs(kNameSpaceID_None, nsGkAtoms::datal10nid, aId,
+                            eCaseMatters)) {
+    aElement.SetAttr(kNameSpaceID_None, nsGkAtoms::datal10nid, aId, true);
   }
 }
 
@@ -349,26 +350,25 @@ already_AddRefed<Promise> DOMLocalization::TranslateElements(
 
     if (NS_WARN_IF(aRv.Failed())) {
       promise->MaybeRejectWithUndefined();
-      return MaybeWrapPromise(promise);
+      return promise.forget();
     }
 
     bool allTranslated =
         ApplyTranslations(domElements, l10nMessages, aProto, aRv);
     if (NS_WARN_IF(aRv.Failed()) || !allTranslated) {
       promise->MaybeRejectWithUndefined();
-      return MaybeWrapPromise(promise);
+      return promise.forget();
     }
 
     promise->MaybeResolveWithUndefined();
-  } else {
-    RefPtr<Promise> callbackResult = FormatMessages(l10nKeys, aRv);
-    if (NS_WARN_IF(aRv.Failed())) {
-      return nullptr;
-    }
-    nativeHandler->SetReturnValuePromise(promise);
-    callbackResult->AppendNativeHandler(nativeHandler);
+    return promise.forget();
   }
-
+  RefPtr<Promise> callbackResult = FormatMessages(l10nKeys, aRv);
+  if (NS_WARN_IF(aRv.Failed())) {
+    return nullptr;
+  }
+  nativeHandler->SetReturnValuePromise(promise);
+  callbackResult->AppendNativeHandler(nativeHandler);
   return MaybeWrapPromise(promise);
 }
 
@@ -488,11 +488,7 @@ bool DOMLocalization::ApplyTranslations(
     return false;
   }
 
-  PauseObserving(aRv);
-  if (NS_WARN_IF(aRv.Failed())) {
-    aRv.Throw(NS_ERROR_FAILURE);
-    return false;
-  }
+  PauseObserving();
 
   bool hasMissingTranslation = false;
 
@@ -534,11 +530,7 @@ bool DOMLocalization::ApplyTranslations(
 
   ReportL10nOverlaysErrors(errors);
 
-  ResumeObserving(aRv);
-  if (NS_WARN_IF(aRv.Failed())) {
-    aRv.Throw(NS_ERROR_FAILURE);
-    return false;
-  }
+  ResumeObserving();
 
   return !hasMissingTranslation;
 }

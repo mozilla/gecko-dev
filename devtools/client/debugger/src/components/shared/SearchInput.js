@@ -4,12 +4,16 @@
 
 import React, { Component } from "react";
 import PropTypes from "prop-types";
-
+import { connect } from "../../utils/connect";
 import { CloseButton } from "./Button";
 
 import AccessibleImage from "./AccessibleImage";
-import classnames from "classnames";
+import actions from "../../actions";
 import "./SearchInput.css";
+import { getSearchOptions } from "../../selectors";
+
+const classnames = require("devtools/client/shared/classnames.js");
+const SearchModifiers = require("devtools/client/shared/components/SearchModifiers");
 
 const arrowBtn = (onClick, type, className, tooltip) => {
   const props = {
@@ -27,7 +31,7 @@ const arrowBtn = (onClick, type, className, tooltip) => {
   );
 };
 
-class SearchInput extends Component {
+export class SearchInput extends Component {
   static defaultProps = {
     expanded: false,
     hasPrefix: false,
@@ -38,9 +42,9 @@ class SearchInput extends Component {
 
   constructor(props) {
     super(props);
-
     this.state = {
       history: [],
+      excludePatterns: props.searchOptions.excludePatterns,
     };
   }
 
@@ -49,24 +53,32 @@ class SearchInput extends Component {
       count: PropTypes.number.isRequired,
       expanded: PropTypes.bool.isRequired,
       handleClose: PropTypes.func,
-      handleNext: PropTypes.func.isRequired,
-      handlePrev: PropTypes.func.isRequired,
+      handleNext: PropTypes.func,
+      handlePrev: PropTypes.func,
       hasPrefix: PropTypes.bool.isRequired,
       isLoading: PropTypes.bool.isRequired,
-      onBlur: PropTypes.func.isRequired,
-      onChange: PropTypes.func.isRequired,
-      onFocus: PropTypes.func.isRequired,
-      onHistoryScroll: PropTypes.func.isRequired,
-      onKeyDown: PropTypes.func.isRequired,
+      onBlur: PropTypes.func,
+      onChange: PropTypes.func,
+      onFocus: PropTypes.func,
+      onHistoryScroll: PropTypes.func,
+      onKeyDown: PropTypes.func,
       onKeyUp: PropTypes.func,
       placeholder: PropTypes.string,
       query: PropTypes.string,
       selectedItemId: PropTypes.string,
-      shouldFocus: PropTypes.bool.isRequired,
+      shouldFocus: PropTypes.bool,
       showClose: PropTypes.bool.isRequired,
+      showExcludePatterns: PropTypes.bool.isRequired,
+      excludePatternsLabel: PropTypes.string,
+      excludePatternsPlaceholder: PropTypes.string,
       showErrorEmoji: PropTypes.bool.isRequired,
       size: PropTypes.string,
       summaryMsg: PropTypes.string,
+      searchKey: PropTypes.string.isRequired,
+      searchOptions: PropTypes.object,
+      setSearchOptions: PropTypes.func,
+      showSearchModifiers: PropTypes.bool.isRequired,
+      onToggleSearchModifier: PropTypes.func,
     };
   }
 
@@ -93,10 +105,6 @@ class SearchInput extends Component {
       const selectStartPos = this.props.hasPrefix ? 1 : 0;
       input.setSelectionRange(selectStartPos, input.value.length + 1);
     }
-  }
-
-  renderSvg() {
-    return <AccessibleImage className="search" />;
   }
 
   renderArrowButtons() {
@@ -171,6 +179,15 @@ class SearchInput extends Component {
     }
   };
 
+  onExcludeKeyDown = e => {
+    if (e.key === "Enter") {
+      this.props.setSearchOptions(this.props.searchKey, {
+        excludePatterns: this.state.excludePatterns,
+      });
+      this.props.onKeyDown(e);
+    }
+  };
+
   saveEnteredTerm(query) {
     const { history } = this.state;
     const previousIndex = history.indexOf(query);
@@ -210,10 +227,57 @@ class SearchInput extends Component {
     );
   }
 
+  renderSearchModifiers() {
+    if (!this.props.showSearchModifiers) {
+      return null;
+    }
+    return (
+      <SearchModifiers
+        modifiers={this.props.searchOptions}
+        onToggleSearchModifier={updatedOptions => {
+          this.props.setSearchOptions(this.props.searchKey, updatedOptions);
+          this.props.onToggleSearchModifier();
+        }}
+      />
+    );
+  }
+
+  renderExcludePatterns() {
+    if (!this.props.showExcludePatterns) {
+      return null;
+    }
+
+    return (
+      <div className={classnames("exclude-patterns-field", this.props.size)}>
+        <label>{this.props.excludePatternsLabel}</label>
+        <input
+          placeholder={this.props.excludePatternsPlaceholder}
+          value={this.state.excludePatterns}
+          onKeyDown={this.onExcludeKeyDown}
+          onChange={e => this.setState({ excludePatterns: e.target.value })}
+        />
+      </div>
+    );
+  }
+
+  renderClose() {
+    if (!this.props.showClose) {
+      return null;
+    }
+    return (
+      <React.Fragment>
+        <span className="pipe-divider" />
+        <CloseButton
+          handleClick={this.props.handleClose}
+          buttonClass={this.props.size}
+        />
+      </React.Fragment>
+    );
+  }
+
   render() {
     const {
       expanded,
-      handleClose,
       onChange,
       onKeyUp,
       placeholder,
@@ -221,7 +285,6 @@ class SearchInput extends Component {
       selectedItemId,
       showErrorEmoji,
       size,
-      showClose,
     } = this.props;
 
     const inputProps = {
@@ -252,18 +315,25 @@ class SearchInput extends Component {
           aria-owns="result-list"
           aria-expanded={expanded}
         >
-          {this.renderSvg()}
+          <AccessibleImage className="search" />
           <input {...inputProps} />
           {this.renderSpinner()}
           {this.renderSummaryMsg()}
           {this.renderNav()}
-          {showClose && (
-            <CloseButton handleClick={handleClose} buttonClass={size} />
-          )}
+          <div className="search-buttons-bar">
+            {this.renderSearchModifiers()}
+            {this.renderClose()}
+          </div>
         </div>
+        {this.renderExcludePatterns()}
       </div>
     );
   }
 }
+const mapStateToProps = (state, props) => ({
+  searchOptions: getSearchOptions(state, props.searchKey),
+});
 
-export default SearchInput;
+export default connect(mapStateToProps, {
+  setSearchOptions: actions.setSearchOptions,
+})(SearchInput);

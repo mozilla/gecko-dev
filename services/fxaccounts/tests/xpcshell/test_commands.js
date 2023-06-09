@@ -3,12 +3,12 @@
 
 "use strict";
 
-const { FxAccountsCommands, SendTab } = ChromeUtils.import(
-  "resource://gre/modules/FxAccountsCommands.js"
+const { FxAccountsCommands, SendTab } = ChromeUtils.importESModule(
+  "resource://gre/modules/FxAccountsCommands.sys.mjs"
 );
 
-const { FxAccountsClient } = ChromeUtils.import(
-  "resource://gre/modules/FxAccountsClient.jsm"
+const { FxAccountsClient } = ChromeUtils.importESModule(
+  "resource://gre/modules/FxAccountsClient.sys.mjs"
 );
 
 const { COMMAND_SENDTAB, COMMAND_SENDTAB_TAIL } = ChromeUtils.import(
@@ -228,7 +228,7 @@ add_task(async function test_sendtab_receive_old_client() {
   // No 'flowID' in the encrypted payload, no 'streamID' anywhere.
   const payload = {
     flowID: "flow-id",
-    encrypted: new TextEncoder("utf8").encode(JSON.stringify(data)),
+    encrypted: new TextEncoder().encode(JSON.stringify(data)),
   };
   const reason = "push";
   await sendTab.handle("sender-id", payload, reason);

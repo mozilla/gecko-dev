@@ -9,9 +9,6 @@ const BASE = getRootDirectory(gTestPath).replace(
   "https://example.com/"
 );
 
-var { ExtensionsUI } = ChromeUtils.import(
-  "resource:///modules/ExtensionsUI.jsm"
-);
 XPCOMUtils.defineLazyGetter(this, "Management", () => {
   // eslint-disable-next-line no-shadow
   const { Management } = ChromeUtils.import(
@@ -25,8 +22,8 @@ let { CustomizableUITestUtils } = ChromeUtils.import(
 );
 let gCUITestUtils = new CustomizableUITestUtils(window);
 
-const { PermissionTestUtils } = ChromeUtils.import(
-  "resource://testing-common/PermissionTestUtils.jsm"
+const { PermissionTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/PermissionTestUtils.sys.mjs"
 );
 
 /**
@@ -331,10 +328,6 @@ async function testInstallMethod(installFn, telemetryBase) {
     ],
   });
 
-  if (telemetryBase !== undefined) {
-    hookExtensionsTelemetry();
-  }
-
   let testURI = makeURI("https://example.com/");
   PermissionTestUtils.add(testURI, "install", Services.perms.ALLOW_ACTION);
   registerCleanupFunction(() => PermissionTestUtils.remove(testURI, "install"));
@@ -438,16 +431,6 @@ async function testInstallMethod(installFn, telemetryBase) {
   //    the extension to clean up.)
   await runOnce(PERMS_XPI, false);
 
-  if (telemetryBase !== undefined) {
-    // Should see 2 canceled installs followed by 1 successful install
-    // for this method.
-    expectTelemetry([
-      `${telemetryBase}Rejected`,
-      `${telemetryBase}Rejected`,
-      `${telemetryBase}Accepted`,
-    ]);
-  }
-
   await SpecialPowers.popPrefEnv();
 }
 
@@ -520,7 +503,7 @@ async function interactiveUpdateTest(autoUpdate, checkFn) {
 
   // Navigate away from the starting page to force about:addons to load
   // in a new tab during the tests below.
-  BrowserTestUtils.loadURI(gBrowser.selectedBrowser, "about:mozilla");
+  BrowserTestUtils.loadURIString(gBrowser.selectedBrowser, "about:mozilla");
   await BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
 
   // Install version 1.0 of the test extension
@@ -674,26 +657,3 @@ add_setup(async function head_setup() {
     }
   });
 });
-
-let collectedTelemetry = [];
-function hookExtensionsTelemetry() {
-  let originalHistogram = ExtensionsUI.histogram;
-  ExtensionsUI.histogram = {
-    add(value) {
-      collectedTelemetry.push(value);
-    },
-  };
-  registerCleanupFunction(() => {
-    is(
-      collectedTelemetry.length,
-      0,
-      "No unexamined telemetry after test is finished"
-    );
-    ExtensionsUI.histogram = originalHistogram;
-  });
-}
-
-function expectTelemetry(values) {
-  Assert.deepEqual(values, collectedTelemetry);
-  collectedTelemetry = [];
-}

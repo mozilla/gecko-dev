@@ -39,6 +39,7 @@ class SetObject;
 class Shape;
 class TypedArrayObject;
 class WithScope;
+class MegamorphicCacheEntry;
 
 namespace gc {
 
@@ -544,16 +545,21 @@ bool CallDOMSetter(JSContext* cx, const JSJitInfo* jitInfo, HandleObject obj,
 void HandleCodeCoverageAtPC(BaselineFrame* frame, jsbytecode* pc);
 void HandleCodeCoverageAtPrologue(BaselineFrame* frame);
 
-bool GetNativeDataPropertyPure(JSContext* cx, JSObject* obj, PropertyName* name,
-                               Value* vp);
+bool GetNativeDataPropertyByNamePure(JSContext* cx, JSObject* obj,
+                                     PropertyName* name,
+                                     MegamorphicCacheEntry* entry, Value* vp);
 
-bool GetNativeDataPropertyPureFallback(JSContext* cx, JSObject* obj,
-                                       PropertyKey id, Value* vp);
+bool GetNativeDataPropertyByIdPure(JSContext* cx, JSObject* obj, PropertyKey id,
+                                   MegamorphicCacheEntry* cacheEntry,
+                                   Value* vp);
 
-bool GetNativeDataPropertyByValuePure(JSContext* cx, JSObject* obj, Value* vp);
+bool GetNativeDataPropertyByValuePure(JSContext* cx, JSObject* obj,
+                                      MegamorphicCacheEntry* cacheEntry,
+                                      Value* vp);
 
 template <bool HasOwn>
-bool HasNativeDataPropertyPure(JSContext* cx, JSObject* obj, Value* vp);
+bool HasNativeDataPropertyPure(JSContext* cx, JSObject* obj,
+                               MegamorphicCacheEntry* cacheEntry, Value* vp);
 
 bool HasNativeElementPure(JSContext* cx, NativeObject* obj, int32_t index,
                           Value* vp);
@@ -567,6 +573,10 @@ bool ObjectHasGetterSetterPure(JSContext* cx, JSObject* objArg, jsid id,
 bool SetElementMegamorphic(JSContext* cx, HandleObject obj, HandleValue index,
                            HandleValue value, HandleValue receiver,
                            bool strict);
+
+bool SetElementMegamorphicCached(JSContext* cx, HandleObject obj,
+                                 HandleValue index, HandleValue value,
+                                 HandleValue receiver, bool strict);
 
 JSString* TypeOfNameObject(JSObject* obj, JSRuntime* rt);
 
@@ -679,6 +689,8 @@ void AssertSetObjectHash(JSContext* cx, SetObject* obj, const Value* value,
                          mozilla::HashNumber actualHash);
 void AssertMapObjectHash(JSContext* cx, MapObject* obj, const Value* value,
                          mozilla::HashNumber actualHash);
+
+void AssertPropertyLookup(NativeObject* obj, PropertyName* id, uint32_t slot);
 
 // Functions used when JS_MASM_VERBOSE is enabled.
 void AssumeUnreachable(const char* output);

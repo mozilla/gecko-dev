@@ -1,7 +1,9 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-const { sinon } = ChromeUtils.import("resource://testing-common/Sinon.jsm");
+const { sinon } = ChromeUtils.importESModule(
+  "resource://testing-common/Sinon.sys.mjs"
+);
 const sandbox = sinon.createSandbox();
 
 const URL1 = "https://example.com/1/";
@@ -72,8 +74,7 @@ add_task(async function test() {
 
     let promise = PlacesTestUtils.waitForNotification(
       "bookmark-added",
-      events => events.some(({ url }) => url == URL1),
-      "places"
+      events => events.some(({ url }) => url == URL1)
     );
 
     EventUtils.synthesizeDrop(
@@ -131,8 +132,7 @@ add_task(async function test() {
           e.oldParentGuid === PlacesUtils.bookmarks.toolbarGuid &&
           e.oldIndex == 1 &&
           e.index == 0
-      ),
-    "places"
+      )
   );
 
   EventUtils.synthesizeDrop(
@@ -166,8 +166,7 @@ add_task(async function test() {
           e.oldParentGuid === PlacesUtils.bookmarks.toolbarGuid &&
           e.oldIndex == 2 &&
           e.index == 1
-      ),
-    "places"
+      )
   );
 
   EventUtils.synthesizeDrop(

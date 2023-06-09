@@ -4,23 +4,23 @@
 
 //! Gecko's media-query device and expression representation.
 
+use crate::color::AbsoluteColor;
 use crate::context::QuirksMode;
 use crate::custom_properties::CssEnvironment;
 use crate::font_metrics::FontMetrics;
-use crate::gecko::values::{convert_nscolor_to_rgba, convert_rgba_to_nscolor};
+use crate::gecko::values::{convert_absolute_color_to_nscolor, convert_nscolor_to_absolute_color};
 use crate::gecko_bindings::bindings;
 use crate::gecko_bindings::structs;
 use crate::media_queries::MediaType;
 use crate::properties::ComputedValues;
 use crate::string_cache::Atom;
 use crate::values::computed::font::GenericFontFamily;
-use crate::values::computed::{ColorScheme, Length};
+use crate::values::computed::{ColorScheme, Length, NonNegativeLength};
 use crate::values::specified::color::SystemColor;
 use crate::values::specified::font::FONT_MEDIUM_PX;
 use crate::values::specified::ViewportVariant;
 use crate::values::{CustomIdent, KeyframesName};
 use app_units::{Au, AU_PER_PX};
-use cssparser::RGBA;
 use euclid::default::Size2D;
 use euclid::{Scale, SideOffsets2D};
 use servo_arc::Arc;
@@ -115,6 +115,30 @@ impl Device {
         &self.environment
     }
 
+    /// Returns the computed line-height for the font in a given computed values instance.
+    ///
+    /// If you pass down an element, then the used line-height is returned.
+    pub fn calc_line_height(
+        &self,
+        line_height: &crate::values::computed::LineHeight,
+        vertical: bool,
+        font: &crate::properties::style_structs::Font,
+        element: Option<super::wrapper::GeckoElement>,
+    ) -> NonNegativeLength {
+        let pres_context = self.pres_context();
+        let au = Au(unsafe {
+            bindings::Gecko_CalcLineHeight(
+                line_height,
+                pres_context.map_or(std::ptr::null(), |pc| pc),
+                vertical,
+                font.gecko(),
+                element.map_or(std::ptr::null(), |e| e.0)
+            )
+        });
+        NonNegativeLength::new(au.to_f32_px())
+    }
+
+
     /// Tells the device that a new viewport rule has been found, and stores the
     /// relevant viewport constraints.
     pub fn account_for_viewport_rule(&mut self, _constraints: &ViewportConstraints) {
@@ -165,14 +189,28 @@ impl Device {
     /// Sets the body text color for the "inherit color from body" quirk.
     ///
     /// <https://quirks.spec.whatwg.org/#the-tables-inherit-color-from-body-quirk>
-    pub fn set_body_text_color(&self, color: RGBA) {
-        self.body_text_color
-            .store(convert_rgba_to_nscolor(&color) as usize, Ordering::Relaxed)
+    pub fn set_body_text_color(&self, color: AbsoluteColor) {
+        self.body_text_color.store(
+            convert_absolute_color_to_nscolor(&color) as usize,
+            Ordering::Relaxed,
+        )
     }
 
     /// Gets the base size given a generic font family and a language.
     pub fn base_size_for_generic(&self, language: &Atom, generic: GenericFontFamily) -> Length {
         unsafe { bindings::Gecko_GetBaseSize(self.document(), language.as_ptr(), generic) }
+    }
+
+    /// Gets the size of the scrollbar in CSS pixels.
+    pub fn scrollbar_inline_size(&self) -> Length {
+        let pc = match self.pres_context() {
+            Some(pc) => pc,
+            // XXX: we could have a more reasonable default perhaps.
+            None => return Length::new(0.0),
+        };
+        Length::new(unsafe {
+            bindings::Gecko_GetScrollbarInlineSize(pc)
+        })
     }
 
     /// Queries font metrics
@@ -232,8 +270,8 @@ impl Device {
     }
 
     /// Returns the body text color.
-    pub fn body_text_color(&self) -> RGBA {
-        convert_nscolor_to_rgba(self.body_text_color.load(Ordering::Relaxed) as u32)
+    pub fn body_text_color(&self) -> AbsoluteColor {
+        convert_nscolor_to_absolute_color(self.body_text_color.load(Ordering::Relaxed) as u32)
     }
 
     /// Gets the document pointer.
@@ -458,17 +496,17 @@ impl Device {
     ///
     /// This is only for forced-colors/high-contrast, so looking at light colors
     /// is ok.
-    pub fn default_background_color(&self) -> RGBA {
+    pub fn default_background_color(&self) -> AbsoluteColor {
         let normal = ColorScheme::normal();
-        convert_nscolor_to_rgba(self.system_nscolor(SystemColor::Canvas, &normal))
+        convert_nscolor_to_absolute_color(self.system_nscolor(SystemColor::Canvas, &normal))
     }
 
     /// Returns the default foreground color.
     ///
     /// See above for looking at light colors only.
-    pub fn default_color(&self) -> RGBA {
+    pub fn default_color(&self) -> AbsoluteColor {
         let normal = ColorScheme::normal();
-        convert_nscolor_to_rgba(self.system_nscolor(SystemColor::Canvastext, &normal))
+        convert_nscolor_to_absolute_color(self.system_nscolor(SystemColor::Canvastext, &normal))
     }
 
     /// Returns the current effective text zoom.
@@ -517,8 +555,11 @@ impl Device {
     }
 
     /// Return whether the document is a chrome document.
+    ///
+    /// This check is consistent with how we enable chrome rules for chrome:// and resource://
+    /// stylesheets (and thus chrome:// documents).
     #[inline]
-    pub fn is_chrome_document(&self) -> bool {
-        self.pref_sheet_prefs().mIsChrome
+    pub fn chrome_rules_enabled_for_document(&self) -> bool {
+        self.document().mChromeRulesEnabled()
     }
 }

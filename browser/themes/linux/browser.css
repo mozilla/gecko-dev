@@ -18,28 +18,20 @@
   --toolbar-non-lwt-bgcolor: color-mix(in srgb, -moz-dialog 85%, white);
   --toolbar-non-lwt-textcolor: -moz-dialogtext;
 
-  --panel-separator-color: ThreeDShadow;
-
   --chrome-content-separator-color: ThreeDShadow;
 }
 
-#TabsToolbar:not(:-moz-lwtheme),
-#TabsToolbar[brighttext]:not(:-moz-lwtheme) {
+:root:not(:-moz-lwtheme),
+toolbar[brighttext]:not(:-moz-lwtheme) {
   --tab-attention-icon-color: AccentColor;
 }
 
 :root:-moz-lwtheme {
   --chrome-content-separator-color: rgba(0,0,0,.3);
-
-  --panel-separator-color: hsla(210,4%,10%,.14);
-}
-
-:root[lwt-popup-brighttext] {
-  --panel-separator-color: rgba(249,249,250,.1);
 }
 
 #menubar-items {
-  -moz-box-orient: vertical; /* for flex hack */
+  flex-direction: column; /* for flex hack */
 }
 
 #navigator-toolbox {
@@ -340,7 +332,7 @@ menuitem.bookmark-item {
    * can swallow those events. */
   .titlebar-buttonbox {
     z-index: 1;
-    -moz-box-align: center;
+    align-items: center;
   }
 
   /* Render titlebar command buttons according to system config.
@@ -348,22 +340,22 @@ menuitem.bookmark-item {
   .titlebar-min {
     appearance: auto;
     -moz-default-appearance: -moz-window-button-minimize;
-    -moz-box-ordinal-group: env(-moz-gtk-csd-minimize-button-position);
+    order: env(-moz-gtk-csd-minimize-button-position);
   }
   .titlebar-max {
     appearance: auto;
     -moz-default-appearance: -moz-window-button-maximize;
-    -moz-box-ordinal-group: env(-moz-gtk-csd-maximize-button-position);
+    order: env(-moz-gtk-csd-maximize-button-position);
   }
   .titlebar-restore {
     appearance: auto;
     -moz-default-appearance: -moz-window-button-restore;
-    -moz-box-ordinal-group: env(-moz-gtk-csd-maximize-button-position);
+    order: env(-moz-gtk-csd-maximize-button-position);
   }
   .titlebar-close {
     appearance: auto;
     -moz-default-appearance: -moz-window-button-close;
-    -moz-box-ordinal-group: env(-moz-gtk-csd-close-button-position);
+    order: env(-moz-gtk-csd-close-button-position);
   }
 
   /* When using lightweight themes, use our own buttons since native ones might
@@ -422,26 +414,7 @@ menuitem.bookmark-item {
 
   @media (-moz-gtk-csd-reversed-placement) {
     .titlebar-buttonbox-container {
-      -moz-box-ordinal-group: 0;
+      order: -1;
     }
   }
-}
-
-#historySwipeAnimationPreviousArrow {
-  background: url("chrome://browser/skin/history-swipe-arrow.svg")
-              center left / 192px 192px no-repeat transparent;
-  will-change: transform;
-  -moz-context-properties: fill;
-}
-#historySwipeAnimationPreviousArrow:-moz-locale-dir(rtl) {
-  transform: scaleX(-1);
-}
-#historySwipeAnimationNextArrow {
-  background: url("chrome://browser/skin/history-swipe-arrow.svg")
-              center left / 192px 192px no-repeat transparent;
-  will-change: transform;
-  -moz-context-properties: fill;
-}
-#historySwipeAnimationNextArrow:-moz-locale-dir(ltr) {
-  transform: scaleX(-1);
 }

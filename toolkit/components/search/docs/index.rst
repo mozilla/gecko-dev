@@ -24,9 +24,17 @@ Contents
 .. toctree::
    :maxdepth: 2
 
+   SearchServiceHighlevelOverview
    SearchEngineConfiguration
    SearchConfigurationSchema
    SearchEngines
    DefaultSearchEngines
    Preferences
    Telemetry
+
+API Reference
+-------------
+
+.. toctree::
+
+   SearchService

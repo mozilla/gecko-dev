@@ -10,7 +10,7 @@
 var rule = require("../lib/rules/no-cu-reportError");
 var RuleTester = require("eslint").RuleTester;
 
-const ruleTester = new RuleTester({ parserOptions: { ecmaVersion: 9 } });
+const ruleTester = new RuleTester({ parserOptions: { ecmaVersion: "latest" } });
 
 // ------------------------------------------------------------------------------
 // Tests
@@ -40,8 +40,18 @@ ruleTester.run("no-cu-reportError", rule, {
       errors: callError(),
     },
     {
+      code: "Cu.reportError(bar.stack)",
+      output: "console.error(bar.stack)",
+      errors: callError(),
+    },
+    {
       code: "foo().catch(Cu.reportError)",
       output: "foo().catch(console.error)",
+      errors: callError(),
+    },
+    {
+      code: "foo().then(bar, Cu.reportError)",
+      output: "foo().then(bar, console.error)",
       errors: callError(),
     },
     // When referencing identifiers/members, try to reference them rather

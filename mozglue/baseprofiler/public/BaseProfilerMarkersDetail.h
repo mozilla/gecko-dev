@@ -23,6 +23,7 @@
 
 #include <limits>
 #include <tuple>
+#include <type_traits>
 
 namespace mozilla::baseprofiler {
 // Implemented in platform.cpp
@@ -258,8 +259,8 @@ static ProfileBufferBlockIndex AddMarkerWithOptionalStackToBuffer(
 
 // Pointer to a function that can capture a backtrace into the provided
 // `ProfileChunkedBuffer`, and returns true when successful.
-using BacktraceCaptureFunction = bool (*)(ProfileChunkedBuffer&,
-                                          StackCaptureOptions);
+using OptionalBacktraceCaptureFunction = bool (*)(ProfileChunkedBuffer&,
+                                                  StackCaptureOptions);
 
 // Use a pre-allocated and cleared chunked buffer in the main thread's
 // `AddMarkerToBuffer()`.
@@ -276,7 +277,8 @@ template <typename MarkerType, typename... Ts>
 ProfileBufferBlockIndex AddMarkerToBuffer(
     ProfileChunkedBuffer& aBuffer, const ProfilerString8View& aName,
     const MarkerCategory& aCategory, MarkerOptions&& aOptions,
-    BacktraceCaptureFunction aBacktraceCaptureFunction, const Ts&... aTs) {
+    OptionalBacktraceCaptureFunction aOptionalBacktraceCaptureFunction,
+    const Ts&... aTs) {
   if (aOptions.ThreadId().IsUnspecified()) {
     // If yet unspecified, set thread to this thread where the marker is added.
     aOptions.Set(MarkerThreadId::CurrentThread());
@@ -288,14 +290,17 @@ ProfileBufferBlockIndex AddMarkerToBuffer(
   }
 
   StackCaptureOptions captureOptions = aOptions.Stack().CaptureOptions();
-  if (captureOptions != StackCaptureOptions::NoStack) {
+  if (captureOptions != StackCaptureOptions::NoStack &&
+      // Backtrace capture function will be nullptr if the profiler
+      // NoMarkerStacks feature is set.
+      aOptionalBacktraceCaptureFunction != nullptr) {
     // A capture was requested, let's attempt to do it here&now. This avoids a
     // lot of allocations that would be necessary if capturing a backtrace
     // separately.
     // TODO reduce internal profiler stack levels, see bug 1659872.
     auto CaptureStackAndAddMarker = [&](ProfileChunkedBuffer& aChunkedBuffer) {
       aOptions.StackRef().UseRequestedBacktrace(
-          aBacktraceCaptureFunction(aChunkedBuffer, captureOptions)
+          aOptionalBacktraceCaptureFunction(aChunkedBuffer, captureOptions)
               ? &aChunkedBuffer
               : nullptr);
       // This call must be made from here, while chunkedBuffer is in scope.
@@ -403,8 +408,8 @@ void DeserializeAfterKindAndStream(
         }
 
         auto payloadType = static_cast<mozilla::MarkerPayloadType>(
-            aEntryReader
-                .ReadObject<mozilla::MarkerPayloadTypeUnderlyingType>());
+            aEntryReader.ReadObject<
+                std::underlying_type_t<mozilla::MarkerPayloadType>>());
 
         // Stream the payload, including the type.
         switch (payloadType) {

@@ -46,6 +46,8 @@ class ReadStream::Inner final : public ReadStream::Controllable {
 
   nsresult Available(uint64_t* aNumAvailableOut);
 
+  nsresult StreamStatus();
+
   nsresult Read(char* aBuf, uint32_t aCount, uint32_t* aNumReadOut);
 
   nsresult ReadSegments(nsWriteSegmentFun aWriter, void* aClosure,
@@ -257,6 +259,21 @@ nsresult ReadStream::Inner::Available(uint64_t* aNumAvailableOut) {
   {
     MutexAutoLock lock(mMutex);
     rv = EnsureStream()->Available(aNumAvailableOut);
+  }
+
+  if (NS_FAILED(rv)) {
+    Close();
+  }
+
+  return rv;
+}
+
+nsresult ReadStream::Inner::StreamStatus() {
+  // stream ops can happen on any thread
+  nsresult rv = NS_OK;
+  {
+    MutexAutoLock lock(mMutex);
+    rv = EnsureStream()->StreamStatus();
   }
 
   if (NS_FAILED(rv)) {
@@ -507,7 +524,7 @@ already_AddRefed<ReadStream> ReadStream::Create(
   // The parameter may or may not be for a Cache created stream.  The way we
   // tell is by looking at the stream control actor.  If the actor exists,
   // then we know the Cache created it.
-  if (!aReadStream.controlChild() && !aReadStream.controlParent()) {
+  if (!aReadStream.control()) {
     return nullptr;
   }
 
@@ -518,13 +535,13 @@ already_AddRefed<ReadStream> ReadStream::Create(
   // Control is guaranteed to survive this method as ActorDestroy() cannot
   // run on this thread until we complete.
   StreamControl* control;
-  if (aReadStream.controlChild()) {
+  if (aReadStream.control().IsChild()) {
     auto actor =
-        static_cast<CacheStreamControlChild*>(aReadStream.controlChild());
+        static_cast<CacheStreamControlChild*>(aReadStream.control().AsChild());
     control = actor;
   } else {
-    auto actor =
-        static_cast<CacheStreamControlParent*>(aReadStream.controlParent());
+    auto actor = static_cast<CacheStreamControlParent*>(
+        aReadStream.control().AsParent());
     control = actor;
   }
   MOZ_DIAGNOSTIC_ASSERT(control);
@@ -580,6 +597,9 @@ NS_IMETHODIMP
 ReadStream::Available(uint64_t* aNumAvailableOut) {
   return mInner->Available(aNumAvailableOut);
 }
+
+NS_IMETHODIMP
+ReadStream::StreamStatus() { return mInner->StreamStatus(); }
 
 NS_IMETHODIMP
 ReadStream::Read(char* aBuf, uint32_t aCount, uint32_t* aNumReadOut) {

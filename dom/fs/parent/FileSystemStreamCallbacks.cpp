@@ -6,16 +6,12 @@
 
 #include "FileSystemStreamCallbacks.h"
 
+#include "mozilla/dom/quota/RemoteQuotaObjectParent.h"
+
 namespace mozilla::dom {
 
-bool FileSystemStreamCallbacks::HasNoRemoteQuotaObjectParents() const {
-  return !mRemoteQuotaObjectParents.Count();
-}
-
-void FileSystemStreamCallbacks::SetRemoteQuotaObjectParentCallback(
-    std::function<void()>&& aCallback) {
-  mRemoteQuotaObjectParentCallback = std::move(aCallback);
-}
+FileSystemStreamCallbacks::FileSystemStreamCallbacks()
+    : mRemoteQuotaObjectParent(nullptr) {}
 
 NS_IMPL_ISUPPORTS(FileSystemStreamCallbacks, nsIInterfaceRequestor,
                   quota::RemoteQuotaObjectParentTracker)
@@ -27,20 +23,16 @@ FileSystemStreamCallbacks::GetInterface(const nsIID& aIID, void** aResult) {
 
 void FileSystemStreamCallbacks::RegisterRemoteQuotaObjectParent(
     NotNull<quota::RemoteQuotaObjectParent*> aActor) {
-  MOZ_ASSERT(!mRemoteQuotaObjectParents.Contains(aActor));
+  MOZ_ASSERT(!mRemoteQuotaObjectParent);
 
-  mRemoteQuotaObjectParents.Insert(aActor);
+  mRemoteQuotaObjectParent = aActor;
 }
 
 void FileSystemStreamCallbacks::UnregisterRemoteQuotaObjectParent(
     NotNull<quota::RemoteQuotaObjectParent*> aActor) {
-  MOZ_ASSERT(mRemoteQuotaObjectParents.Contains(aActor));
+  MOZ_ASSERT(mRemoteQuotaObjectParent);
 
-  mRemoteQuotaObjectParents.Remove(aActor);
-
-  if (!mRemoteQuotaObjectParents.Count() && mRemoteQuotaObjectParentCallback) {
-    mRemoteQuotaObjectParentCallback();
-  }
+  mRemoteQuotaObjectParent = nullptr;
 }
 
 }  // namespace mozilla::dom

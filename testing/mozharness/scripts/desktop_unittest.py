@@ -322,6 +322,15 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
                     "times in which case the test must contain at least one of the given tags.",
                 },
             ],
+            [
+                ["--use-http3-server"],
+                {
+                    "action": "store_true",
+                    "default": False,
+                    "dest": "useHttp3Server",
+                    "help": "Whether to use the Http3 server",
+                },
+            ],
         ]
         + copy.deepcopy(testing_config_options)
         + copy.deepcopy(code_coverage_config_options)
@@ -620,6 +629,9 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
                 "jittest",
             ]:
                 base_cmd.append("--disable-fission")
+
+            if c["useHttp3Server"]:
+                base_cmd.append("--use-http3-server")
 
             # Ignore chunking if we have user specified test paths
             if not (self.verify_enabled or self.per_test_coverage):
@@ -1287,10 +1299,10 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
                             self.info("Per-test run abandoned due to RETRY status")
                             return False
                     else:
-                        self.log(
+                        # report as INFO instead of log_level to avoid extra Treeherder lines
+                        self.info(
                             "The %s suite: %s ran with return status: %s"
                             % (suite_category, suite, tbpl_status),
-                            level=log_level,
                         )
 
             if executed_too_many_tests:

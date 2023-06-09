@@ -15,11 +15,13 @@ const { SearchUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/SearchUtils.sys.mjs"
 );
 
-const { RemoteSettings } = ChromeUtils.import(
-  "resource://services-settings/remote-settings.js"
+const { RemoteSettings } = ChromeUtils.importESModule(
+  "resource://services-settings/remote-settings.sys.mjs"
 );
 
-const { sinon } = ChromeUtils.import("resource://testing-common/Sinon.jsm");
+const { sinon } = ChromeUtils.importESModule(
+  "resource://testing-common/Sinon.sys.mjs"
+);
 
 const URLTYPE_SUGGEST_JSON = "application/x-suggestions+json";
 

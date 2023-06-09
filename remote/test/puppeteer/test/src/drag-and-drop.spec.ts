@@ -15,14 +15,14 @@
  */
 
 import expect from 'expect';
+
 import {
   getTestState,
   setupTestPageAndContextHooks,
   setupTestBrowserHooks,
-  describeChromeOnly,
 } from './mocha-utils.js';
 
-describeChromeOnly('Input.drag', function () {
+describe('Input.drag', function () {
   setupTestBrowserHooks();
   setupTestPageAndContextHooks();
   it('should throw an exception if not enabled before usage', async () => {

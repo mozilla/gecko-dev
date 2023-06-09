@@ -89,6 +89,89 @@ exported_symbols.smokeTest = async function smokeTest() {
   }
 };
 
+exported_symbols.quotaTest = async function() {
+  const storage = navigator.storage;
+  const allowCreate = { create: true };
+
+  {
+    let root = await storage.getDirectory();
+    Assert.ok(root, "Can we access the root directory?");
+
+    const fileHandle = await root.getFileHandle("test.txt", allowCreate);
+    Assert.ok(!!fileHandle, "Can we get file handle?");
+
+    const cachedOriginUsage = await Utils.getCachedOriginUsage();
+
+    const writable = await fileHandle.createWritable();
+    Assert.ok(!!writable, "Can we create writable file stream?");
+
+    const buffer = new ArrayBuffer(42);
+    Assert.ok(!!buffer, "Can we create array buffer?");
+
+    const result = await writable.write(buffer);
+    Assert.equal(result, undefined, "Can we write entire buffer?");
+
+    await writable.close();
+
+    const cachedOriginUsage2 = await Utils.getCachedOriginUsage();
+
+    Assert.equal(
+      cachedOriginUsage2 - cachedOriginUsage,
+      buffer.byteLength,
+      "Is cached origin usage correct after writing?"
+    );
+
+    await root.removeEntry("test.txt");
+
+    const cachedOriginUsage3 = await Utils.getCachedOriginUsage();
+
+    Assert.equal(
+      cachedOriginUsage3,
+      cachedOriginUsage,
+      "Is cached origin usage correct after removing file?"
+    );
+  }
+};
+
+exported_symbols.pagedIterationTest = async function() {
+  const root = await navigator.storage.getDirectory();
+
+  for await (let contentItem of root.keys()) {
+    await root.removeEntry(contentItem, { recursive: true });
+  }
+
+  const allowCreate = { create: true };
+
+  // When half of the buffer is iterated, a request for the second half is sent.
+  // We test that the this boundary is crossed smoothly.
+  // After the buffer is filled, a request for more items is sent. The
+  // items are placed in the first half of the buffer.
+  // This boundary should also be crossed without problems.
+  // Currently, the buffer is half-filled at 1024.
+  const itemBatch = 3 + 2 * 1024;
+  for (let i = 0; i <= itemBatch; ++i) {
+    await root.getDirectoryHandle("" + i, allowCreate);
+  }
+
+  let result = 0;
+  let sum = 0;
+  const handles = new Set();
+  let isUnique = true;
+  for await (let [key, elem] of root.entries()) {
+    result += key.length;
+    sum += parseInt(elem.name);
+    if (handles.has(key)) {
+      // Asserting here is slow and verbose
+      isUnique = false;
+      break;
+    }
+    handles.add(key);
+  }
+  Assert.ok(isUnique);
+  Assert.equal(result, 7098);
+  Assert.equal(sum, (itemBatch * (itemBatch + 1)) / 2);
+};
+
 for (const [key, value] of Object.entries(exported_symbols)) {
   Object.defineProperty(value, "name", {
     value: key,

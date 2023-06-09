@@ -4,10 +4,6 @@
 
 "use strict";
 
-const { AppConstants } = ChromeUtils.importESModule(
-  "resource://gre/modules/AppConstants.sys.mjs"
-);
-
 XPCOMUtils.defineLazyModuleGetters(this, {
   CustomizableUI: "resource:///modules/CustomizableUI.jsm",
   CustomizableUITestUtils:
@@ -403,7 +399,7 @@ function waitFor(aTimeout = 100) {
 function promiseTabLoadEvent(aTab, aURL) {
   let browser = aTab.linkedBrowser;
 
-  BrowserTestUtils.loadURI(browser, aURL);
+  BrowserTestUtils.loadURIString(browser, aURL);
   return BrowserTestUtils.browserLoaded(browser);
 }
 

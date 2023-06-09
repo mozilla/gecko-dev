@@ -72,6 +72,7 @@ EXPORTS.mozilla = [
     "MemoryChecking.h",
     "MemoryReporting.h",
     "MoveOnlyFunction.h",
+    "MruCache.h",
     "NonDereferenceable.h",
     "NotNull.h",
     "Opaque.h",
@@ -112,10 +113,8 @@ EXPORTS.mozilla = [
     "ThreadSafety.h",
     "ThreadSafeWeakPtr.h",
     "ToString.h",
-    "Tuple.h",
     "TypedEnumBits.h",
     "Types.h",
-    "TypeTraits.h",
     "UniquePtr.h",
     "UniquePtrExtensions.h",
     "Unused.h",
@@ -206,5 +205,3 @@ if CONFIG["MOZ_NEEDS_LIBATOMIC"]:
     OS_LIBS += ["atomic"]
 
 DEFINES["LZ4LIB_VISIBILITY"] = ""
-
-REQUIRES_UNIFIED_BUILD = True

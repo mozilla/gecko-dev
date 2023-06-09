@@ -143,11 +143,17 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "CloseEvent",
   // IMPORTANT: Do not change this list without review from a DOM peer!
+  "CompressionStream",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
   "CountQueuingStrategy",
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "Crypto",
   // IMPORTANT: Do not change this list without review from a DOM peer!
+  "CryptoKey",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
   "CustomEvent",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  "DecompressionStream",
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "Directory",
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -189,13 +195,13 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "FileReader",
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "FileSystemDirectoryHandle", nightly: true },
+  { name: "FileSystemDirectoryHandle" },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "FileSystemFileHandle", nightly: true },
+  { name: "FileSystemFileHandle" },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "FileSystemHandle", nightly: true },
+  { name: "FileSystemHandle" },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "FileSystemWritableFileStream", nightly: true },
+  { name: "FileSystemWritableFileStream" },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "FontFace",
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -346,6 +352,18 @@ let interfaceNamesInGlobalScope = [
   "URLSearchParams",
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "WebSocket",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  "WebTransport",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  "WebTransportBidirectionalStream",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  "WebTransportDatagramDuplexStream",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  "WebTransportError",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  "WebTransportReceiveStream",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  "WebTransportSendStream",
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "WebGL2RenderingContext",
   // IMPORTANT: Do not change this list without review from a DOM peer!

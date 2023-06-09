@@ -168,8 +168,8 @@ class RequestHeaders {
   void MergeOrSet(const char* aName, const nsACString& aValue);
   void MergeOrSet(const nsACString& aName, const nsACString& aValue);
   void Clear();
-  void ApplyToChannel(nsIHttpChannel* aChannel,
-                      bool aStripRequestBodyHeader) const;
+  void ApplyToChannel(nsIHttpChannel* aChannel, bool aStripRequestBodyHeader,
+                      bool aStripAuth) const;
   void GetCORSUnsafeHeaders(nsTArray<nsCString>& aArray) const;
 };
 
@@ -431,8 +431,6 @@ class XMLHttpRequestMainThread final : public XMLHttpRequest,
                              const ProgressEventType aType, int64_t aLoaded,
                              int64_t aTotal);
 
-  void SetRequestObserver(nsIRequestObserver* aObserver);
-
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(
       XMLHttpRequestMainThread, XMLHttpRequest)
   virtual bool IsCertainlyAliveForCC() const override;
@@ -493,7 +491,7 @@ class XMLHttpRequestMainThread final : public XMLHttpRequest,
 
   void MaybeCreateBlobStorage();
 
-  nsresult OnRedirectVerifyCallback(nsresult result);
+  nsresult OnRedirectVerifyCallback(nsresult result, bool stripAuth = false);
 
   nsIEventTarget* GetTimerEventTarget();
 
@@ -643,8 +641,6 @@ class XMLHttpRequestMainThread final : public XMLHttpRequest,
   nsCOMPtr<nsIChannelEventSink> mChannelEventSink;
   nsCOMPtr<nsIProgressEventSink> mProgressEventSink;
 
-  nsIRequestObserver* mRequestObserver;
-
   nsCOMPtr<nsIURI> mBaseURI;
   nsCOMPtr<nsILoadGroup> mLoadGroup;
 
@@ -731,7 +727,6 @@ class XMLHttpRequestMainThread final : public XMLHttpRequest,
    */
   void CloseRequestWithError(const ProgressEventType aType);
 
-  bool mFirstStartRequestSeen;
   bool mInLoadProgressEvent;
 
   nsCOMPtr<nsIAsyncVerifyRedirectCallback> mRedirectCallback;

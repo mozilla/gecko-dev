@@ -24,18 +24,19 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   ClientID: "resource://gre/modules/ClientID.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
+  ProvenanceData: "resource:///modules/ProvenanceData.sys.mjs",
   SearchSERPTelemetry: "resource:///modules/SearchSERPTelemetry.sys.mjs",
-  clearInterval: "resource://gre/modules/Timer.sys.mjs",
+  SearchSERPTelemetryUtils: "resource:///modules/SearchSERPTelemetry.sys.mjs",
+  WindowsInstallsInfo:
+    "resource://gre/modules/components-utils/WindowsInstallsInfo.sys.mjs",
   clearTimeout: "resource://gre/modules/Timer.sys.mjs",
-  setInterval: "resource://gre/modules/Timer.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
+  DeferredTask: "resource://gre/modules/DeferredTask.sys.mjs",
 });
 
 XPCOMUtils.defineLazyModuleGetters(lazy, {
   CustomizableUI: "resource:///modules/CustomizableUI.jsm",
   PageActions: "resource:///modules/PageActions.jsm",
-  WindowsInstallsInfo:
-    "resource://gre/modules/components-utils/WindowsInstallsInfo.jsm",
 });
 
 // This pref is in seconds!
@@ -74,11 +75,7 @@ const UNFILTERED_URI_COUNT_SCALAR_NAME =
 const TOTAL_URI_COUNT_NORMAL_AND_PRIVATE_MODE_SCALAR_NAME =
   "browser.engagement.total_uri_count_normal_and_private_mode";
 
-const CONTENT_PROCESS_COUNT = "CONTENT_PROCESS_COUNT";
-const CONTENT_PROCESS_PRECISE_COUNT = "CONTENT_PROCESS_PRECISE_COUNT";
-
 const MINIMUM_TAB_COUNT_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes, in ms
-const CONTENT_PROCESS_COUNT_INTERVAL_MS = 5 * 60 * 1000;
 
 // The elements we consider to be interactive.
 const UI_TARGET_ELEMENTS = [
@@ -110,9 +107,14 @@ const BROWSER_UI_CONTAINER_IDS = {
   "page-action-buttons": "pageaction-urlbar",
   pageActionPanel: "pageaction-panel",
   "unified-extensions-area": "unified-extensions-area",
+  "allTabsMenu-allTabsView": "alltabs-menu",
 
   // This should appear last as some of the above are inside the nav bar.
   "nav-bar": "nav-bar",
+};
+
+const ENTRYPOINT_TRACKED_CONTEXT_MENU_IDS = {
+  [BROWSER_UI_CONTAINER_IDS.tabContextMenu]: "tabs-context-entrypoint",
 };
 
 // A list of the expected panes in about:preferences
@@ -158,6 +160,19 @@ const SET_USAGECOUNT_PREF_BUTTONS = [
   "pageAction-panel-pinTab",
   "pageAction-panel-screenshots_mozilla_org",
   "pageAction-panel-shareURL",
+];
+
+// Places context menu IDs.
+const PLACES_CONTEXT_MENU_ID = "placesContext";
+const PLACES_OPEN_IN_CONTAINER_TAB_MENU_ID =
+  "placesContext_open:newcontainertab";
+
+// Commands used to open history or bookmark links from places context menu.
+const PLACES_OPEN_COMMANDS = [
+  "placesCmd_open",
+  "placesCmd_open:window",
+  "placesCmd_open:privatewindow",
+  "placesCmd_open:tab",
 ];
 
 function telemetryId(widgetId, obscureAddons = true) {
@@ -266,7 +281,10 @@ let URICountListener = {
       webProgress.isTopLevel
     ) {
       // By default, assume we no longer need to track this tab.
-      lazy.SearchSERPTelemetry.stopTrackingBrowser(browser);
+      lazy.SearchSERPTelemetry.stopTrackingBrowser(
+        browser,
+        lazy.SearchSERPTelemetryUtils.ABANDONMENTS.NAVIGATION
+      );
     }
 
     // Don't count this URI if it's an error page.
@@ -446,9 +464,9 @@ let BrowserUsageTelemetry = {
 
     this._recordUITelemetry();
 
-    this._recordContentProcessCountInterval = lazy.setInterval(
-      () => this._recordContentProcessCount(),
-      CONTENT_PROCESS_COUNT_INTERVAL_MS
+    this._onTabsOpenedTask = new lazy.DeferredTask(
+      () => this._onTabsOpened(),
+      0
     );
   },
 
@@ -491,8 +509,6 @@ let BrowserUsageTelemetry = {
     }
     Services.obs.removeObserver(this, DOMWINDOW_OPENED_TOPIC);
     Services.obs.removeObserver(this, TELEMETRY_SUBSESSIONSPLIT_TOPIC);
-
-    lazy.clearInterval(this._recordContentProcessCountInterval);
   },
 
   observe(subject, topic, data) {
@@ -520,7 +536,7 @@ let BrowserUsageTelemetry = {
   handleEvent(event) {
     switch (event.type) {
       case "TabOpen":
-        this._onTabOpen(getOpenTabsAndWinsCounts());
+        this._onTabOpen();
         break;
       case "TabPinned":
         this._onTabPinned();
@@ -692,9 +708,13 @@ let BrowserUsageTelemetry = {
 
     // A couple of special cases in the tabs.
     for (let cls of ["bookmark-item", "tab-icon-sound", "tab-close-button"]) {
-      if (node.classList.contains(cls)) {
-        return cls;
+      if (!node.classList.contains(cls)) {
+        continue;
       }
+      if (cls == "bookmark-item" && node.parentElement.id.includes("history")) {
+        return "history-item";
+      }
+      return cls;
     }
 
     // One of these will at least let us know what the widget is for.
@@ -776,11 +796,9 @@ let BrowserUsageTelemetry = {
       return;
     }
 
-    let types = [event.type];
     let sourceEvent = event;
     while (sourceEvent.sourceEvent) {
       sourceEvent = sourceEvent.sourceEvent;
-      types.push(sourceEvent.type);
     }
 
     let lastTarget = this.lastClickTarget?.get();
@@ -841,6 +859,19 @@ let BrowserUsageTelemetry = {
       }
     }
 
+    if (sourceEvent.type === "command") {
+      const { command, ownerDocument, parentNode } = node;
+      // Check if this command is for a history or bookmark link being opened
+      // from the context menu. In this case, we are interested in the DOM node
+      // for the link, not the menu item itself.
+      if (
+        PLACES_OPEN_COMMANDS.includes(command) ||
+        parentNode?.parentNode?.id === PLACES_OPEN_IN_CONTAINER_TAB_MENU_ID
+      ) {
+        node = ownerDocument.getElementById(PLACES_CONTEXT_MENU_ID).triggerNode;
+      }
+    }
+
     let item = this._getWidgetID(node);
     let source = this._getWidgetContainer(node);
 
@@ -853,6 +884,21 @@ let BrowserUsageTelemetry = {
       }
       if (SET_USAGE_PREF_BUTTONS.includes(item)) {
         Services.prefs.setBoolPref(`browser.engagement.${item}.has-used`, true);
+      }
+    }
+
+    if (ENTRYPOINT_TRACKED_CONTEXT_MENU_IDS[source]) {
+      let contextMenu = ENTRYPOINT_TRACKED_CONTEXT_MENU_IDS[source];
+      let triggerContainer = this._getWidgetContainer(
+        node.closest("menupopup")?.triggerNode
+      );
+      if (triggerContainer) {
+        let scalar = `browser.ui.interaction.${contextMenu.replace(/-/g, "_")}`;
+        Services.telemetry.keyedScalarAdd(
+          scalar,
+          telemetryId(triggerContainer),
+          1
+        );
       }
     }
   },
@@ -1006,11 +1052,22 @@ let BrowserUsageTelemetry = {
 
   /**
    * Updates the tab counts.
-   * @param {Object} [counts] The counts returned by `getOpenTabsAndWindowCounts`.
    */
-  _onTabOpen({ tabCount, loadedTabCount }) {
+  _onTabOpen() {
     // Update the "tab opened" count and its maximum.
     Services.telemetry.scalarAdd(TAB_OPEN_EVENT_COUNT_SCALAR_NAME, 1);
+
+    // In the case of opening multiple tabs at once, avoid enumerating all open
+    // tabs and windows each time a tab opens.
+    this._onTabsOpenedTask.disarm();
+    this._onTabsOpenedTask.arm();
+  },
+
+  /**
+   * Update tab counts after opening multiple tabs.
+   */
+  _onTabsOpened() {
+    const { tabCount, loadedTabCount } = getOpenTabsAndWinsCounts();
     Services.telemetry.scalarSetMaximum(MAX_TAB_COUNT_SCALAR_NAME, tabCount);
 
     this._recordTabCounts({ tabCount, loadedTabCount });
@@ -1207,6 +1264,8 @@ let BrowserUsageTelemetry = {
       "browser.engagement.profile_count",
       valueToReport
     );
+    // Manually mirror to Glean
+    Glean.browserEngagement.profileCount.set(valueToReport);
   },
 
   /**
@@ -1228,6 +1287,16 @@ let BrowserUsageTelemetry = {
     if (AppConstants.platform != "win") {
       // This is a windows-only feature.
       return;
+    }
+
+    let provenanceExtra = {};
+    try {
+      provenanceExtra = await lazy.ProvenanceData.submitProvenanceTelemetry();
+    } catch (ex) {
+      console.warn(
+        "reportInstallationTelemetry - submitProvenanceTelemetry failed",
+        ex
+      );
     }
 
     const TIMESTAMP_PREF = "app.installation.timestamp";
@@ -1359,19 +1428,13 @@ let BrowserUsageTelemetry = {
       null,
       extra
     );
-  },
-
-  /**
-   * Record the number of content processes.
-   */
-  _recordContentProcessCount() {
-    // All DOM processes includes the parent.
-    const count = ChromeUtils.getAllDOMProcesses().length - 1;
-
-    Services.telemetry.getHistogramById(CONTENT_PROCESS_COUNT).add(count);
-    Services.telemetry
-      .getHistogramById(CONTENT_PROCESS_PRECISE_COUNT)
-      .add(count);
+    Services.telemetry.recordEvent(
+      "installation",
+      "first_seen_prov_ext",
+      installer_type,
+      null,
+      provenanceExtra
+    );
   },
 };
 

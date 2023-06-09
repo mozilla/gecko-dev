@@ -164,8 +164,12 @@ describe("getSourceLocationFromMouseEvent", () => {
     const e = { clientX: 30, clientY: 60 };
     expect(getSourceLocationFromMouseEvent(editor, source, e)).toEqual({
       sourceId: "test-123",
+      source,
       line: 7,
       column: 31,
+      sourceActorId: undefined,
+      sourceActor: null,
+      sourceUrl: "",
     });
     expect(editor.codeMirror.coordsChar).toHaveBeenCalledWith({
       left: 30,
@@ -190,7 +194,7 @@ describe("removeLineClass", () => {
     removeLineClass(codeMirror, line, className);
     expect(codeMirror.removeLineClass).toHaveBeenCalledWith(
       line,
-      "wrapClass",
+      "wrap",
       className
     );
   });

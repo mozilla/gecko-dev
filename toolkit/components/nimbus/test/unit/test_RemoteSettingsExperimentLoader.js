@@ -1,14 +1,19 @@
 "use strict";
 
-const { ExperimentFakes } = ChromeUtils.import(
-  "resource://testing-common/NimbusTestUtils.jsm"
+const { ExperimentFakes } = ChromeUtils.importESModule(
+  "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
-const { ExperimentManager } = ChromeUtils.import(
-  "resource://nimbus/lib/ExperimentManager.jsm"
+const { ExperimentManager } = ChromeUtils.importESModule(
+  "resource://nimbus/lib/ExperimentManager.sys.mjs"
 );
-
-const { RemoteSettingsExperimentLoader } = ChromeUtils.import(
-  "resource://nimbus/lib/RemoteSettingsExperimentLoader.jsm"
+const {
+  RemoteSettingsExperimentLoader,
+  EnrollmentsContext,
+} = ChromeUtils.importESModule(
+  "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs"
+);
+const { TestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/TestUtils.sys.mjs"
 );
 
 const ENABLED_PREF = "messaging-system.rsexperimentloader.enabled";
@@ -156,11 +161,14 @@ add_task(async function test_updateRecipes_someMismatch() {
   );
   ok(loader.manager.onFinalize.calledOnce, "Should call onFinalize.");
   ok(
-    loader.manager.onFinalize.calledWith("rs-loader", {
+    onFinalizeCalled(loader.manager.onFinalize, "rs-loader", {
       recipeMismatches: [FAIL_FILTER_RECIPE.slug],
       invalidRecipes: [],
       invalidBranches: new Map(),
       invalidFeatures: new Map(),
+      missingL10nIds: new Map(),
+      missingLocale: [],
+      locale: Services.locale.appLocaleAsBCP47,
       validationEnabled: true,
     }),
     "should call .onFinalize with the recipes that failed targeting"
@@ -205,13 +213,14 @@ add_task(async function test_updateRecipes_forNoneFirstStartup() {
 
 add_task(async function test_checkTargeting() {
   const loader = ExperimentFakes.rsLoader();
+  const ctx = new EnrollmentsContext(loader.manager);
   equal(
-    await loader.checkTargeting({}),
+    await ctx.checkTargeting({}),
     true,
     "should return true if .targeting is not defined"
   );
   equal(
-    await loader.checkTargeting({
+    await ctx.checkTargeting({
       targeting: "'foo'",
       slug: "test_checkTargeting",
     }),
@@ -219,7 +228,7 @@ add_task(async function test_checkTargeting() {
     "should return true for truthy expression"
   );
   equal(
-    await loader.checkTargeting({
+    await ctx.checkTargeting({
       targeting: "aPropertyThatDoesNotExist",
       slug: "test_checkTargeting",
     }),
@@ -230,6 +239,7 @@ add_task(async function test_checkTargeting() {
 
 add_task(async function test_checkExperimentSelfReference() {
   const loader = ExperimentFakes.rsLoader();
+  const ctx = new EnrollmentsContext(loader.manager);
   const PASS_FILTER_RECIPE = ExperimentFakes.recipe("foo", {
     targeting:
       "experiment.slug == 'foo' && experiment.branches[0].slug == 'control'",
@@ -240,12 +250,12 @@ add_task(async function test_checkExperimentSelfReference() {
   });
 
   equal(
-    await loader.checkTargeting(PASS_FILTER_RECIPE),
+    await ctx.checkTargeting(PASS_FILTER_RECIPE),
     true,
     "Should return true for matching on slug name and branch"
   );
   equal(
-    await loader.checkTargeting(FAIL_FILTER_RECIPE),
+    await ctx.checkTargeting(FAIL_FILTER_RECIPE),
     false,
     "Should fail targeting"
   );
@@ -312,4 +322,25 @@ add_task(async function test_optIn_studies_disabled() {
   Services.prefs.clearUserPref(DEBUG_PREF);
   Services.prefs.clearUserPref(UPLOAD_PREF);
   Services.prefs.clearUserPref(STUDIES_OPT_OUT_PREF);
+});
+
+add_task(async function test_enrollment_changed_notification() {
+  const loader = ExperimentFakes.rsLoader();
+
+  const PASS_FILTER_RECIPE = ExperimentFakes.recipe("foo", {
+    targeting: "true",
+  });
+  sinon.stub(loader, "setTimer");
+  sinon.spy(loader, "updateRecipes");
+  const enrollmentChanged = TestUtils.topicObserved(
+    "nimbus:enrollments-updated"
+  );
+  sinon.stub(loader.remoteSettingsClient, "get").resolves([PASS_FILTER_RECIPE]);
+  sinon.stub(loader.manager, "onRecipe").resolves();
+  sinon.stub(loader.manager, "onFinalize");
+
+  Services.prefs.setBoolPref(ENABLED_PREF, true);
+  await loader.init();
+  await enrollmentChanged;
+  ok(loader.updateRecipes.called, "should call .updateRecipes");
 });

@@ -14,13 +14,13 @@
 #include "gfxContext.h"
 
 #include "mozilla/AppUnits.h"
+#include "mozilla/Baseline.h"
 #include "mozilla/ComputedStyle.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/StaticPrefs_layout.h"
-#include "mozilla/SVGUtils.h"
 #include "mozilla/ToString.h"
 #include "mozilla/UniquePtr.h"
 
@@ -576,7 +576,7 @@ nsresult nsBlockFrame::GetFrameName(nsAString& aResult) const {
 
 void nsBlockFrame::InvalidateFrame(uint32_t aDisplayItemKey,
                                    bool aRebuildDisplayItems) {
-  if (SVGUtils::IsInSVGTextSubtree(this)) {
+  if (IsInSVGTextSubtree()) {
     NS_ASSERTION(GetParent()->IsSVGTextFrame(),
                  "unexpected block frame in SVG text");
     GetParent()->InvalidateFrame();
@@ -588,7 +588,7 @@ void nsBlockFrame::InvalidateFrame(uint32_t aDisplayItemKey,
 void nsBlockFrame::InvalidateFrameWithRect(const nsRect& aRect,
                                            uint32_t aDisplayItemKey,
                                            bool aRebuildDisplayItems) {
-  if (SVGUtils::IsInSVGTextSubtree(this)) {
+  if (IsInSVGTextSubtree()) {
     NS_ASSERTION(GetParent()->IsSVGTextFrame(),
                  "unexpected block frame in SVG text");
     GetParent()->InvalidateFrame();
@@ -598,46 +598,59 @@ void nsBlockFrame::InvalidateFrameWithRect(const nsRect& aRect,
                                             aRebuildDisplayItems);
 }
 
-nscoord nsBlockFrame::GetLogicalBaseline(WritingMode aWM) const {
-  auto lastBaseline = BaselineBOffset(aWM, BaselineSharingGroup::Last,
-                                      AlignmentContext::Inline);
-  return BSize(aWM) - lastBaseline;
+nscoord nsBlockFrame::SynthesizeFallbackBaseline(
+    WritingMode aWM, BaselineSharingGroup aBaselineGroup) const {
+  return Baseline::SynthesizeBOffsetFromMarginBox(this, aWM, aBaselineGroup);
 }
 
-bool nsBlockFrame::GetNaturalBaselineBOffset(
-    mozilla::WritingMode aWM, BaselineSharingGroup aBaselineGroup,
-    nscoord* aBaseline) const {
+Maybe<nscoord> nsBlockFrame::GetNaturalBaselineBOffset(
+    WritingMode aWM, BaselineSharingGroup aBaselineGroup) const {
   if (StyleDisplay()->IsContainLayout()) {
-    return false;
+    return Nothing{};
   }
 
   if (aBaselineGroup == BaselineSharingGroup::First) {
-    return nsLayoutUtils::GetFirstLineBaseline(aWM, this, aBaseline);
+    nscoord result;
+    if (!nsLayoutUtils::GetFirstLineBaseline(aWM, this, &result)) {
+      return Nothing{};
+    }
+    return Some(result);
   }
 
   for (ConstReverseLineIterator line = LinesRBegin(), line_end = LinesREnd();
        line != line_end; ++line) {
     if (line->IsBlock()) {
-      nscoord offset;
       nsIFrame* kid = line->mFirstChild;
-      if (!aWM.IsOrthogonalTo(kid->GetWritingMode()) &&
-          kid->GetVerticalAlignBaseline(aWM, &offset)) {
-        // Ignore relative positioning for baseline calculations.
-        const nsSize& sz = line->mContainerSize;
-        offset += kid->GetLogicalNormalPosition(aWM, sz).B(aWM);
-        *aBaseline = BSize(aWM) - offset;
-        return true;
+      if (aWM.IsOrthogonalTo(kid->GetWritingMode())) {
+        continue;
       }
+      if (kid->IsTableWrapperFrame()) {
+        // `<table>` in block display context does not export any baseline.
+        continue;
+      }
+      const auto kidBaselineGroup = kid->GetDefaultBaselineSharingGroup();
+      const auto kidBaseline =
+          kid->GetNaturalBaselineBOffset(aWM, kidBaselineGroup);
+      if (!kidBaseline) {
+        continue;
+      }
+      auto result = *kidBaseline;
+      if (kidBaselineGroup == BaselineSharingGroup::Last) {
+        result = kid->BSize(aWM) - result;
+      }
+      // Ignore relative positioning for baseline calculations.
+      const nsSize& sz = line->mContainerSize;
+      result += kid->GetLogicalNormalPosition(aWM, sz).B(aWM);
+      return Some(BSize(aWM) - result);
     } else {
       // XXX Is this the right test?  We have some bogus empty lines
       // floating around, but IsEmpty is perhaps too weak.
       if (line->BSize() != 0 || !line->IsEmpty()) {
-        *aBaseline = BSize(aWM) - (line->BStart() + line->GetLogicalAscent());
-        return true;
+        return Some(BSize(aWM) - (line->BStart() + line->GetLogicalAscent()));
       }
     }
   }
-  return false;
+  return Nothing{};
 }
 
 nscoord nsBlockFrame::GetCaretBaseline() const {
@@ -658,7 +671,7 @@ nscoord nsBlockFrame::GetCaretBaseline() const {
   RefPtr<nsFontMetrics> fm =
       nsLayoutUtils::GetFontMetricsForFrame(this, inflation);
   nscoord lineHeight = ReflowInput::CalcLineHeight(
-      GetContent(), Style(), PresContext(), contentRect.height, inflation);
+      *Style(), PresContext(), GetContent(), contentRect.height, inflation);
   const WritingMode wm = GetWritingMode();
   return nsLayoutUtils::GetCenteredFontBaseline(fm, lineHeight,
                                                 wm.IsLineInverted()) +
@@ -1555,14 +1568,13 @@ void nsBlockFrame::Reflow(nsPresContext* aPresContext, ReflowOutput& aMetrics,
       LogicalRect bbox =
           marker->GetLogicalRect(wm, reflowOutput.PhysicalSize());
       const auto baselineGroup = BaselineSharingGroup::First;
-      nscoord markerBaseline;
-      if (MOZ_UNLIKELY(wm.IsOrthogonalTo(marker->GetWritingMode()) ||
-                       !marker->GetNaturalBaselineBOffset(wm, baselineGroup,
-                                                          &markerBaseline))) {
-        // ::marker has no baseline in this axis: align with its margin-box end.
-        markerBaseline =
-            bbox.BSize(wm) + marker->GetLogicalUsedMargin(wm).BEnd(wm);
+      Maybe<nscoord> result;
+      if (MOZ_LIKELY(!wm.IsOrthogonalTo(marker->GetWritingMode()))) {
+        result = marker->GetNaturalBaselineBOffset(wm, baselineGroup);
       }
+      const auto markerBaseline = result.valueOrFrom([bbox, wm, marker]() {
+        return bbox.BSize(wm) + marker->GetLogicalUsedMargin(wm).BEnd(wm);
+      });
       bbox.BStart(wm) = position.mBaseline - markerBaseline;
       marker->SetRect(wm, bbox, reflowOutput.PhysicalSize());
     }
@@ -2346,8 +2358,7 @@ static inline bool IsAlignedLeft(StyleTextAlign aAlignment,
                                  StyleDirection aDirection,
                                  StyleUnicodeBidi aUnicodeBidi,
                                  nsIFrame* aFrame) {
-  return SVGUtils::IsInSVGTextSubtree(aFrame) ||
-         StyleTextAlign::Left == aAlignment ||
+  return aFrame->IsInSVGTextSubtree() || StyleTextAlign::Left == aAlignment ||
          (((StyleTextAlign::Start == aAlignment &&
             StyleDirection::Ltr == aDirection) ||
            (StyleTextAlign::End == aAlignment &&
@@ -2647,10 +2658,22 @@ void nsBlockFrame::ReflowDirtyLines(BlockReflowState& aState) {
   // See: https://www.w3.org/TR/css-break-3/#btw-blocks
   const nsPresContext* const presCtx = aState.mPresContext;
   const bool canBreakForPageNames =
+      aState.mReflowInput.mFlags.mCanHaveClassABreakpoints &&
       aState.mReflowInput.AvailableBSize() != NS_UNCONSTRAINEDSIZE &&
-      presCtx->IsPaginated() && StaticPrefs::layout_css_named_pages_enabled() &&
       presCtx->GetPresShell()->GetRootFrame()->GetWritingMode().IsVertical() ==
           GetWritingMode().IsVertical();
+
+  // ReflowInput.mFlags.mCanHaveClassABreakpoints should respect the named
+  // pages pref and presCtx->IsPaginated, so we did not explicitly check these
+  // above when setting canBreakForPageNames.
+  if (canBreakForPageNames) {
+    MOZ_ASSERT(presCtx->IsPaginated(),
+               "canBreakForPageNames should not be set during non-paginated "
+               "reflow");
+    MOZ_ASSERT(StaticPrefs::layout_css_named_pages_enabled(),
+               "canBreakForPageNames should not be set when "
+               "layout.css.named_pages.enabled is false");
+  }
 
   // Reflow the lines that are already ours
   for (; line != line_end; ++line, aState.AdvanceToNextLine()) {
@@ -2824,13 +2847,16 @@ void nsBlockFrame::ReflowDirtyLines(BlockReflowState& aState) {
     if (canBreakForPageNames && (!aState.mReflowInput.mFlags.mIsTopOfPage ||
                                  !aState.IsAdjacentWithBStart())) {
       const nsIFrame* const frame = line->mFirstChild;
-      if (const nsIFrame* const prevFrame = frame->GetPrevSibling()) {
-        if (!frame->IsPlaceholderFrame() && !prevFrame->IsPlaceholderFrame()) {
-          nextPageName = frame->GetStartPageValue();
-          if (nextPageName != prevFrame->GetEndPageValue()) {
-            shouldBreakForPageName = true;
-            line->MarkDirty();
-          }
+      if (!frame->IsPlaceholderFrame()) {
+        nextPageName = frame->GetStartPageValue();
+        // Walk back to the last frame that isn't a placeholder.
+        const nsIFrame* prevFrame = frame->GetPrevSibling();
+        while (prevFrame && prevFrame->IsPlaceholderFrame()) {
+          prevFrame = prevFrame->GetPrevSibling();
+        }
+        if (prevFrame && prevFrame->GetEndPageValue() != nextPageName) {
+          shouldBreakForPageName = true;
+          line->MarkDirty();
         }
       }
     }
@@ -3437,6 +3463,8 @@ nsIFrame* nsBlockFrame::PullFrameFrom(nsLineBox* aLine,
   MOZ_ASSERT(fromLine, "bad line to pull from");
   MOZ_ASSERT(fromLine->GetChildCount(), "empty line");
   MOZ_ASSERT(aLine->GetChildCount(), "empty line");
+  MOZ_ASSERT(!HasProperty(LineIteratorProperty()),
+             "Shouldn't have line iterators mid-reflow");
 
   NS_ASSERTION(fromLine->IsBlock() == fromLine->mFirstChild->IsBlockOutside(),
                "Disagreement about whether it's a block or not");
@@ -3452,8 +3480,8 @@ nsIFrame* nsBlockFrame::PullFrameFrom(nsLineBox* aLine,
   nsIFrame* newFirstChild = frame->GetNextSibling();
 
   if (aFromContainer != this) {
-    // The frame is being pulled from a next-in-flow; therefore we
-    // need to add it to our sibling list.
+    // The frame is being pulled from a next-in-flow; therefore we need to add
+    // it to our sibling list.
     MOZ_ASSERT(aLine == mLines.back());
     MOZ_ASSERT(aFromLine == aFromContainer->mLines.begin(),
                "should only pull from first line");
@@ -4490,14 +4518,14 @@ void nsBlockFrame::DoReflowInlineFrames(
 
   // XXX Unfortunately we need to know this before reflowing the first
   // inline frame in the line. FIX ME.
-  if ((0 == aLineLayout.GetLineNumber()) &&
-      (NS_BLOCK_HAS_FIRST_LETTER_CHILD & mState) &&
-      (NS_BLOCK_HAS_FIRST_LETTER_STYLE & mState)) {
+  if (0 == aLineLayout.GetLineNumber() &&
+      HasAllStateBits(NS_BLOCK_HAS_FIRST_LETTER_CHILD |
+                      NS_BLOCK_HAS_FIRST_LETTER_STYLE)) {
     aLineLayout.SetFirstLetterStyleOK(true);
   }
-  NS_ASSERTION(
-      !((NS_BLOCK_HAS_FIRST_LETTER_CHILD & mState) && GetPrevContinuation()),
-      "first letter child bit should only be on first continuation");
+  NS_ASSERTION(!(HasAnyStateBits(NS_BLOCK_HAS_FIRST_LETTER_CHILD) &&
+                 GetPrevContinuation()),
+               "first letter child bit should only be on first continuation");
 
   // Reflow the frames that are already on the line first
   LineReflowStatus lineReflowStatus = LineReflowStatus::OK;
@@ -4995,7 +5023,6 @@ bool nsBlockFrame::IsLastLine(BlockReflowState& aState, LineIterator aLine) {
     // The next line is empty, try the next one
   }
 
-  // XXX Not sure about this part
   // Try our next-in-flows lines to answer the question
   nsBlockFrame* nextInFlow = (nsBlockFrame*)GetNextInFlow();
   while (nullptr != nextInFlow) {
@@ -5143,7 +5170,7 @@ bool nsBlockFrame::PlaceLine(BlockReflowState& aState,
    * In other words, isLastLine really means isLastLineAndWeCare.
    */
   const bool isLastLine =
-      !SVGUtils::IsInSVGTextSubtree(this) &&
+      !IsInSVGTextSubtree() &&
       styleText->TextAlignForLastLine() != styleText->mTextAlign &&
       (aLineLayout.GetLineEndsInBR() || IsLastLine(aState, aLine));
 
@@ -5726,7 +5753,7 @@ void nsBlockFrame::AppendFrames(ChildListID aListID, nsFrameList&& aFrameList) {
   ListTag(stdout);
   printf(": append ");
   for (nsIFrame* frame : aFrameList) {
-    frame->ListTag(out);
+    frame->ListTag(stdout);
   }
   if (lastKid) {
     printf(" after ");
@@ -5735,7 +5762,7 @@ void nsBlockFrame::AppendFrames(ChildListID aListID, nsFrameList&& aFrameList) {
   printf("\n");
 #endif
 
-  if (SVGUtils::IsInSVGTextSubtree(this)) {
+  if (IsInSVGTextSubtree()) {
     MOZ_ASSERT(GetParent()->IsSVGTextFrame(),
                "unexpected block frame in SVG text");
     // Workaround for bug 1399425 in case this bit has been removed from the
@@ -5771,7 +5798,7 @@ void nsBlockFrame::InsertFrames(ChildListID aListID, nsIFrame* aPrevFrame,
   ListTag(stdout);
   printf(": insert ");
   for (nsIFrame* frame : aFrameList) {
-    frame->ListTag(out);
+    frame->ListTag(stdout);
   }
   if (aPrevFrame) {
     printf(" after ");
@@ -6935,7 +6962,7 @@ void nsBlockFrame::RecoverFloatsFor(nsIFrame* aFrame,
     // accordingly so that we consider relatively positioned frames
     // at their original position.
 
-    LogicalRect rect(aWM, block->GetNormalRect(), aContainerSize);
+    const LogicalRect rect = block->GetLogicalNormalRect(aWM, aContainerSize);
     nscoord lineLeft = rect.LineLeft(aWM, aContainerSize);
     nscoord blockStart = rect.BStart(aWM);
     aFloatManager.Translate(lineLeft, blockStart);
@@ -7141,8 +7168,10 @@ void nsBlockFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   // hold:
   //    (A) the backplate feature is preffed on
   //    (B) we are not honoring the document colors
+  //    (C) the force color adjust property is set to auto
   if (StaticPrefs::browser_display_permit_backplate() &&
-      PresContext()->ForcingColors() && !IsComboboxControlFrame()) {
+      PresContext()->ForcingColors() && !IsComboboxControlFrame() &&
+      StyleText()->mForcedColorAdjust != StyleForcedColorAdjust::None) {
     backplateColor.emplace(GetBackplateColor(this));
   }
 
@@ -7517,7 +7546,7 @@ void nsBlockFrame::SetInitialChildList(ChildListID aListID,
         !IsColumnSetWrapperFrame() &&
         RefPtr<ComputedStyle>(GetFirstLetterStyle(PresContext())) != nullptr;
     NS_ASSERTION(haveFirstLetterStyle ==
-                     ((mState & NS_BLOCK_HAS_FIRST_LETTER_STYLE) != 0),
+                     HasAnyStateBits(NS_BLOCK_HAS_FIRST_LETTER_STYLE),
                  "NS_BLOCK_HAS_FIRST_LETTER_STYLE state out of sync");
 #endif
 

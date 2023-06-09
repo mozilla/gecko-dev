@@ -12,6 +12,7 @@ devtools/client/shared/sourceeditor/codemirror/
 devtools/client/shared/sourceeditor/test/cm_mode_ruby.js
 devtools/client/shared/sourceeditor/test/codemirror/
 devtools/client/shared/vendor/
+devtools/client/inspector/markup/test/helper_diff.js
 devtools/shared/acorn/
 devtools/shared/heapsnapshot/CoreDump.pb.cc
 devtools/shared/heapsnapshot/CoreDump.pb.h
@@ -31,6 +32,7 @@ dom/media/gmp/widevine-adapter/content_decryption_module_proxy.h
 dom/media/platforms/ffmpeg/ffmpeg57/
 dom/media/platforms/ffmpeg/ffmpeg58/
 dom/media/platforms/ffmpeg/ffmpeg59/
+dom/media/platforms/ffmpeg/ffmpeg60/
 dom/media/platforms/ffmpeg/libav53/
 dom/media/platforms/ffmpeg/libav54/
 dom/media/platforms/ffmpeg/libav55/
@@ -43,7 +45,7 @@ dom/media/webspeech/recognition/energy_endpointer.cc
 dom/media/webspeech/recognition/energy_endpointer.h
 dom/media/webspeech/recognition/energy_endpointer_params.cc
 dom/media/webspeech/recognition/energy_endpointer_params.h
-dom/media/webvtt/vtt.jsm
+dom/media/webvtt/vtt.sys.mjs
 dom/tests/mochitest/ajax/
 dom/tests/mochitest/dom-level1-core/
 dom/tests/mochitest/dom-level2-core/
@@ -51,6 +53,7 @@ dom/tests/mochitest/dom-level2-html/
 dom/u2f/tests/pkijs/
 dom/webauthn/cbor-cpp/
 dom/webauthn/tests/pkijs/
+dom/webgpu/tests/cts/checkout/
 editor/libeditor/tests/browserscope/lib/richtext/
 editor/libeditor/tests/browserscope/lib/richtext2/
 extensions/spellcheck/hunspell/src/
@@ -160,8 +163,9 @@ testing/talos/talos/tests/kraken/
 testing/talos/talos/tests/v8_7/
 testing/web-platform/tests/resources/webidl2/
 testing/web-platform/tests/tools/third_party/
+testing/web-platform/mozilla/tests/webgpu/
 testing/xpcshell/dns-packet/
-testing/xpcshell/node-ip/
+testing/xpcshell/node_ip/
 testing/xpcshell/node-http2/
 testing/xpcshell/node-ws/
 testing/xpcshell/odoh-wasm/
@@ -169,9 +173,12 @@ third_party/
 toolkit/components/certviewer/content/vendor/
 toolkit/components/jsoncpp/
 toolkit/components/normandy/vendor/
-toolkit/components/passwordmgr/PasswordRulesParser.jsm
+toolkit/components/passwordmgr/PasswordRulesParser.sys.mjs
 toolkit/components/protobuf/
 toolkit/components/translation/cld2/
+toolkit/components/translations/bergamot-translator
+toolkit/components/translations/fasttext/fasttext.js
+toolkit/components/translations/fasttext/fasttext_wasm.js
 toolkit/components/url-classifier/chromium/
 toolkit/components/utils/mozjexl.js
 toolkit/components/viaduct/fetch_msg_types.pb.cc

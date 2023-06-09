@@ -1,6 +1,6 @@
 # Writing new browser mochitests
 
-After [creating a new empty test file](index.html#adding-new-tests), you will
+After [creating a new empty test file](index.md#adding-new-tests), you will
 have an empty `add_task` into which you can write your test.
 
 ## General guidance
@@ -29,7 +29,7 @@ To help do this, a number of useful primitives are available:
 - `add_setup` allows you to add setup tasks that run before any `add_task` tasks.
 - `SpecialPowers.pushPrefEnv` ([see below](#changing-preferences)) allows you to set prefs that will be automatically
   reverted when the test file has finished running.
-- [`BrowserTestUtils.withNewTab`](browsertestutils.html#BrowserTestUtils.withNewTab), allows you to easily run async code
+- [`BrowserTestUtils.withNewTab`](browsertestutils.rst#BrowserTestUtils.withNewTab), allows you to easily run async code
   talking to a tab that you open and close it when done.
 - `registerCleanupFunction` takes an async callback function that you can use
   to do any other cleanup your test might need.
@@ -43,7 +43,7 @@ is available without any additional work).
 
 Typical would be something like:
 
-```lang=js
+```js
 add_task(async function() {
   await BrowserTestUtils.withNewTab("https://example.com/mypage", async (browser) {
     // `browser` will have finished loading the passed URL when this code runs.
@@ -57,7 +57,7 @@ add_task(async function() {
 
 Should be done using `SpecialPowers.spawn`:
 
-```lang=js
+```js
 let result = await SpecialPowers.spawn(browser, [42, 100], async (val, val2) => {
   // Replaces the document body with '42':
   content.document.body.textContent = val;
@@ -76,7 +76,7 @@ to the `window` of the web content in that browser/BrowsingContext.
 For some operations, like mouse clicks, convenience helpers are available on
 `BrowserTestUtils`:
 
-```lang=js
+```js
 await BrowserTestUtils.synthesizeMouseAtCenter("#my.css.selector", {accelKey: true}, browser);
 ```
 
@@ -84,7 +84,7 @@ await BrowserTestUtils.synthesizeMouseAtCenter("#my.css.selector", {accelKey: tr
 
 Use `SpecialPowers.pushPrefEnv`:
 
-```lang=js
+```js
 await SpecialPowers.pushPrefEnv({
   set: [["accessibility.tabfocus", 7]]
 });
@@ -95,21 +95,21 @@ order for your test to pass reliably on macOS if it uses keyboard focus.
 
 ### Wait for an observer service notification topic or DOM event
 
-Use the utilities for this on [`TestUtils`](../testutils.html#TestUtils.topicObserved):
+Use the utilities for this on [`TestUtils`](../testutils.rst#TestUtils.topicObserved):
 
-```lang=js
+```js
 await TestUtils.topicObserved("sync-pane-loaded");
 ```
 
-and [`BrowserTestUtils`](browsertestutils.html#BrowserTestUtils.waitForEvent), respectively:
+and [`BrowserTestUtils`](browsertestutils.rst#BrowserTestUtils.waitForEvent), respectively:
 
-```lang=js
+```js
 await BrowserTestUtils.waitForEvent(domElement, "click");
 ```
 
 ### Wait for some DOM to update.
 
-Use [`BrowserTestUtils.waitForMutationCondition`](browsertestutils.html#BrowserTestUtils.waitForMutationCondition).
+Use [`BrowserTestUtils.waitForMutationCondition`](browsertestutils.rst#BrowserTestUtils.waitForMutationCondition).
 Do **not** use `waitForCondition`, which uses a timeout loop and often
 leads to intermittent failures.
 
@@ -118,8 +118,8 @@ leads to intermittent failures.
 The [`Sinon`](https://sinonjs.org/) mocking framework is available. You can import it
 using something like:
 
-```lang=js
-const { sinon } = ChromeUtils.import("resource://testing-common/Sinon.jsm");
+```js
+const { sinon } = ChromeUtils.importESModule("resource://testing-common/Sinon.sys.mjs");
 ```
 
 More details on how to do mocking are available on the Sinon website.
@@ -129,7 +129,7 @@ More details on how to do mocking are available on the Sinon website.
 You can use extra files (e.g. webpages to load) by adding them to a `support-files`
 property using the `browser.ini` file:
 
-```lang=ini
+```ini
 [browser_foo.js]
 support-files =
   bar.html

@@ -164,12 +164,13 @@ RTCRtpTransceiver::RTCRtpTransceiver(
       mPc(aPc),
       mTransportHandler(aTransportHandler),
       mTransceiverId(aTransceiverId),
-      mJsepTransceiver(aJsepSession->GetTransceiver(mTransceiverId)),
+      mJsepTransceiver(*aJsepSession->GetTransceiver(mTransceiverId)),
       mStsThread(aStsThread),
       mCallWrapper(aCallWrapper),
       mSendTrack(aSendTrack),
       mIdGenerator(aIdGenerator),
-      mPrivacyNeeded(aPrivacyNeeded),
+      mPrincipalPrivacy(aPrivacyNeeded ? PrincipalPrivacy::Private
+                                       : PrincipalPrivacy::NonPrivate),
       mIsVideo(aIsVideo),
       INIT_CANONICAL(mMid, std::string()),
       INIT_CANONICAL(mSyncGroup, std::string()) {}
@@ -213,7 +214,7 @@ void RTCRtpTransceiver::Init(const RTCRtpTransceiverInit& aInit,
     return;
   }
 
-  mReceiver = new RTCRtpReceiver(mWindow, mPrivacyNeeded, mPc,
+  mReceiver = new RTCRtpReceiver(mWindow, mPrincipalPrivacy, mPc,
                                  mTransportHandler, mCallWrapper->mCallThread,
                                  mStsThread, mConduit, this, trackingId);
 
@@ -225,18 +226,7 @@ void RTCRtpTransceiver::Init(const RTCRtpTransceiverInit& aInit,
     InitConduitControl();
   }
 
-  auto self = nsMainThreadPtrHandle<RTCRtpTransceiver>(
-      new nsMainThreadPtrHolder<RTCRtpTransceiver>(
-          "RTCRtpTransceiver::RTCRtpTransceiver::self", this, false));
-  mStsThread->Dispatch(
-      NS_NewRunnableFunction("RTCRtpTransceiver::RTCRtpTransceiver", [self] {
-        self->mTransportHandler->SignalStateChange.connect(
-            self.get(), &RTCRtpTransceiver::UpdateDtlsTransportState);
-        self->mTransportHandler->SignalRtcpStateChange.connect(
-            self.get(), &RTCRtpTransceiver::UpdateDtlsTransportState);
-      }));
-
-  mSender->SetStreams(aInit.mStreams);
+  mSender->SetStreamsImpl(aInit.mStreams);
   mDirection = aInit.mDirection;
 }
 
@@ -250,23 +240,6 @@ void RTCRtpTransceiver::SetDtlsTransport(dom::RTCDtlsTransport* aDtlsTransport,
 
 void RTCRtpTransceiver::RollbackToStableDtlsTransport() {
   mDtlsTransport = mLastStableDtlsTransport;
-}
-
-void RTCRtpTransceiver::UpdateDtlsTransportState(
-    const std::string& aTransportId, TransportLayer::State aState) {
-  if (!GetMainThreadEventTarget()->IsOnCurrentThread()) {
-    GetMainThreadEventTarget()->Dispatch(
-        WrapRunnable(this, &RTCRtpTransceiver::UpdateDtlsTransportState,
-                     aTransportId, aState),
-        NS_DISPATCH_NORMAL);
-    return;
-  }
-
-  if (!mDtlsTransport) {
-    return;
-  }
-
-  mDtlsTransport->UpdateState(aState);
 }
 
 void RTCRtpTransceiver::InitAudio() {
@@ -400,6 +373,15 @@ nsresult RTCRtpTransceiver::UpdateConduit() {
   return NS_OK;
 }
 
+void RTCRtpTransceiver::UpdatePrincipalPrivacy(PrincipalPrivacy aPrivacy) {
+  if (mPrincipalPrivacy == aPrivacy) {
+    return;
+  }
+
+  mPrincipalPrivacy = aPrivacy;
+  mReceiver->UpdatePrincipalPrivacy(mPrincipalPrivacy);
+}
+
 void RTCRtpTransceiver::ResetSync() { mSyncGroup = std::string(); }
 
 // TODO: Only called from one place in PeerConnectionImpl, synchronously, when
@@ -467,7 +449,7 @@ bool RTCRtpTransceiver::ConduitHasPluginID(uint64_t aPluginID) {
   return mConduit && mConduit->HasCodecPluginID(aPluginID);
 }
 
-void RTCRtpTransceiver::SyncFromJsep() {
+void RTCRtpTransceiver::SyncFromJsep(const JsepSession& aSession) {
   MOZ_MTLOG(ML_DEBUG, mPc->GetHandle()
                           << "[" << mMid.Ref() << "]: " << __FUNCTION__
                           << " Syncing from JSEP transceiver");
@@ -477,35 +459,35 @@ void RTCRtpTransceiver::SyncFromJsep() {
     return;
   }
 
-  auto jsepTransceiver = GetJsepTransceiver();
+  mJsepTransceiver = *aSession.GetTransceiver(mTransceiverId);
 
   // Transceivers can stop due to JSEP negotiation, so we need to check that
-  if (jsepTransceiver->IsStopped()) {
+  if (mJsepTransceiver.IsStopped()) {
     StopImpl();
   }
 
-  mReceiver->SyncFromJsep(*jsepTransceiver);
-  mSender->SyncFromJsep(*jsepTransceiver);
+  mReceiver->SyncFromJsep(mJsepTransceiver);
+  mSender->SyncFromJsep(mJsepTransceiver);
 
   // mid from JSEP
-  if (jsepTransceiver->IsAssociated()) {
-    mMid = jsepTransceiver->GetMid();
+  if (mJsepTransceiver.IsAssociated()) {
+    mMid = mJsepTransceiver.GetMid();
   } else {
     mMid = std::string();
   }
 
   // currentDirection from JSEP, but not if "this transceiver has never been
   // represented in an offer/answer exchange"
-  if (jsepTransceiver->HasLevel() && jsepTransceiver->IsNegotiated()) {
-    if (jsepTransceiver->mRecvTrack.GetActive()) {
-      if (jsepTransceiver->mSendTrack.GetActive()) {
+  if (mJsepTransceiver.HasLevel() && mJsepTransceiver.IsNegotiated()) {
+    if (mJsepTransceiver.mRecvTrack.GetActive()) {
+      if (mJsepTransceiver.mSendTrack.GetActive()) {
         mCurrentDirection.SetValue(dom::RTCRtpTransceiverDirection::Sendrecv);
         mHasBeenUsedToSend = true;
       } else {
         mCurrentDirection.SetValue(dom::RTCRtpTransceiverDirection::Recvonly);
       }
     } else {
-      if (jsepTransceiver->mSendTrack.GetActive()) {
+      if (mJsepTransceiver.mSendTrack.GetActive()) {
         mCurrentDirection.SetValue(dom::RTCRtpTransceiverDirection::Sendonly);
         mHasBeenUsedToSend = true;
       } else {
@@ -514,28 +496,25 @@ void RTCRtpTransceiver::SyncFromJsep() {
     }
   }
 
-  mShouldRemove = jsepTransceiver->IsRemoved();
-  mHasTransport = jsepTransceiver->HasLevel() && !jsepTransceiver->IsStopped();
+  mShouldRemove = mJsepTransceiver.IsRemoved();
+  mHasTransport = mJsepTransceiver.HasLevel() && !mJsepTransceiver.IsStopped();
 }
 
-void RTCRtpTransceiver::SyncToJsep() const {
+void RTCRtpTransceiver::SyncToJsep(JsepSession& aSession) const {
   MOZ_MTLOG(ML_DEBUG, mPc->GetHandle()
                           << "[" << mMid.Ref() << "]: " << __FUNCTION__
                           << " Syncing to JSEP transceiver");
 
-  auto jsepTransceiver = GetJsepTransceiver();
-  mReceiver->SyncToJsep(*jsepTransceiver);
-  mSender->SyncToJsep(*jsepTransceiver);
-  jsepTransceiver->mJsDirection = ToSdpDirection(mDirection);
-  if (mStopped) {
-    jsepTransceiver->Stop();
-  }
-}
-
-// TODO: Unify with SyncFromJsep
-void RTCRtpTransceiver::SetJsepSession(JsepSession* aJsepSession) {
-  mJsepTransceiver = aJsepSession->GetTransceiver(mTransceiverId);
-  MOZ_RELEASE_ASSERT(mJsepTransceiver);
+  aSession.ApplyToTransceiver(
+      mTransceiverId, [this, self = RefPtr<const RTCRtpTransceiver>(this)](
+                          JsepTransceiver& aTransceiver) {
+        mReceiver->SyncToJsep(aTransceiver);
+        mSender->SyncToJsep(aTransceiver);
+        aTransceiver.mJsDirection = ToSdpDirection(mDirection);
+        if (mStopped) {
+          aTransceiver.Stop();
+        }
+      });
 }
 
 void RTCRtpTransceiver::GetKind(nsAString& aKind) const {
@@ -583,14 +562,6 @@ void RTCRtpTransceiver::SetDirectionInternal(
   mDirection = aDirection;
 }
 
-void RTCRtpTransceiver::SetAddTrackMagic() {
-  // TODO(bug 1767820): Refactor this to only forbid removal, not to set the
-  // magic bit
-  // We do this immediately, without waiting for a SyncToJsep, because this is
-  // set at transceiver creation time.
-  GetJsepTransceiver()->SetAddTrackMagic();
-}
-
 bool RTCRtpTransceiver::ShouldRemove() const { return mShouldRemove; }
 
 bool RTCRtpTransceiver::CanSendDTMF() const {
@@ -609,8 +580,8 @@ bool RTCRtpTransceiver::CanSendDTMF() const {
 
   // Ok, it looks like the connection is up and sending. Did we negotiate
   // telephone-event?
-  JsepTrackNegotiatedDetails* details =
-      GetJsepTransceiver()->mSendTrack.GetNegotiatedDetails();
+  const JsepTrackNegotiatedDetails* details =
+      mJsepTransceiver.mSendTrack.GetNegotiatedDetails();
   if (NS_WARN_IF(!details || !details->GetEncodingCount())) {
     // What?
     return false;
@@ -668,12 +639,11 @@ static void JsepCodecDescToAudioCodecConfig(
 // TODO: This and the next function probably should move to JsepTransceiver
 Maybe<const std::vector<UniquePtr<JsepCodecDescription>>&>
 RTCRtpTransceiver::GetNegotiatedSendCodecs() const {
-  auto jsepTransceiver = GetJsepTransceiver();
-  if (!jsepTransceiver->mSendTrack.GetActive()) {
+  if (!mJsepTransceiver.mSendTrack.GetActive()) {
     return Nothing();
   }
 
-  const auto* details = jsepTransceiver->mSendTrack.GetNegotiatedDetails();
+  const auto* details = mJsepTransceiver.mSendTrack.GetNegotiatedDetails();
   if (!details) {
     return Nothing();
   }
@@ -687,12 +657,11 @@ RTCRtpTransceiver::GetNegotiatedSendCodecs() const {
 
 Maybe<const std::vector<UniquePtr<JsepCodecDescription>>&>
 RTCRtpTransceiver::GetNegotiatedRecvCodecs() const {
-  auto jsepTransceiver = GetJsepTransceiver();
-  if (!jsepTransceiver->mRecvTrack.GetActive()) {
+  if (!mJsepTransceiver.mRecvTrack.GetActive()) {
     return Nothing();
   }
 
-  const auto* details = jsepTransceiver->mRecvTrack.GetNegotiatedDetails();
+  const auto* details = mJsepTransceiver.mRecvTrack.GetNegotiatedDetails();
   if (!details) {
     return Nothing();
   }
@@ -857,8 +826,6 @@ void RTCRtpTransceiver::StopImpl() {
   if (mStopped) {
     return;
   }
-  mSender->Stop();
-  mReceiver->Stop();
 
   if (mCallWrapper) {
     auto conduit = std::move(mConduit);
@@ -875,13 +842,15 @@ void RTCRtpTransceiver::StopImpl() {
   }
   mStopped = true;
   mCurrentDirection.SetNull();
+
+  mSender->Stop();
+  mReceiver->Stop();
+
   auto self = nsMainThreadPtrHandle<RTCRtpTransceiver>(
       new nsMainThreadPtrHolder<RTCRtpTransceiver>(
           "RTCRtpTransceiver::StopImpl::self", this, false));
-  mStsThread->Dispatch(NS_NewRunnableFunction(__func__, [self] {
-    self->disconnect_all();
-    self->mTransportHandler = nullptr;
-  }));
+  mStsThread->Dispatch(NS_NewRunnableFunction(
+      __func__, [self] { self->mTransportHandler = nullptr; }));
 }
 
 bool RTCRtpTransceiver::IsVideo() const { return mIsVideo; }

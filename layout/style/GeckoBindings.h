@@ -216,6 +216,14 @@ bool Gecko_StyleAnimationsEquals(
     const nsStyleAutoArray<mozilla::StyleAnimation>*,
     const nsStyleAutoArray<mozilla::StyleAnimation>*);
 
+bool Gecko_StyleScrollTimelinesEquals(
+    const nsStyleAutoArray<mozilla::StyleScrollTimeline>*,
+    const nsStyleAutoArray<mozilla::StyleScrollTimeline>*);
+
+bool Gecko_StyleViewTimelinesEquals(
+    const nsStyleAutoArray<mozilla::StyleViewTimeline>*,
+    const nsStyleAutoArray<mozilla::StyleViewTimeline>*);
+
 void Gecko_CopyAnimationNames(
     nsStyleAutoArray<mozilla::StyleAnimation>* aDest,
     const nsStyleAutoArray<mozilla::StyleAnimation>* aSrc);
@@ -306,7 +314,7 @@ void Gecko_SetFontPaletteBase(
 
 void Gecko_SetFontPaletteOverride(
     mozilla::gfx::FontPaletteValueSet::PaletteValues* aValues, int32_t aIndex,
-    mozilla::StyleRGBA aColor);
+    mozilla::StyleAbsoluteColor* aColor);
 
 // Visibility style
 void Gecko_SetImageOrientation(nsStyleVisibility* aVisibility,
@@ -350,6 +358,8 @@ void Gecko_NoteAnimationOnlyDirtyElement(const mozilla::dom::Element*);
 bool Gecko_AnimationNameMayBeReferencedFromStyle(const nsPresContext*,
                                                  nsAtom* name);
 
+float Gecko_GetScrollbarInlineSize(const nsPresContext*);
+
 // Incremental restyle.
 mozilla::PseudoStyleType Gecko_GetImplementedPseudo(
     const mozilla::dom::Element*);
@@ -361,6 +371,11 @@ uint32_t Gecko_CalcStyleDifference(const mozilla::ComputedStyle* old_style,
                                    const mozilla::ComputedStyle* new_style,
                                    bool* any_style_struct_changed,
                                    bool* reset_only_changed);
+
+nscoord Gecko_CalcLineHeight(const mozilla::StyleLineHeight*,
+                             const nsPresContext*, bool aVertical,
+                             const nsStyleFont* aAgainstFont,
+                             const mozilla::dom::Element* aElement);
 
 // Get an element snapshot for a given element from the table.
 const mozilla::ServoElementSnapshot* Gecko_GetElementSnapshot(
@@ -389,6 +404,8 @@ void Gecko_EnsureImageLayersLength(nsStyleImageLayers* layers, size_t len,
 
 void Gecko_EnsureStyleAnimationArrayLength(void* array, size_t len);
 void Gecko_EnsureStyleTransitionArrayLength(void* array, size_t len);
+void Gecko_EnsureStyleScrollTimelineArrayLength(void* array, size_t len);
+void Gecko_EnsureStyleViewTimelineArrayLength(void* array, size_t len);
 
 // Searches from the beginning of |keyframes| for a Keyframe object with the
 // specified offset and timing function. If none is found, a new Keyframe object
@@ -581,6 +598,8 @@ bool Gecko_IsFontFormatSupported(
     mozilla::StyleFontFaceSourceFormatKeyword aFormat);
 bool Gecko_IsFontTechSupported(mozilla::StyleFontFaceSourceTechFlags aFlag);
 
+bool Gecko_IsKnownIconFontFamily(const nsAtom* aFamilyName);
+
 // Returns true if we're currently performing the servo traversal.
 bool Gecko_IsInServoTraversal();
 
@@ -596,12 +615,12 @@ bool Gecko_IsDOMWorkerThread();
 mozilla::StyleDisplayMode Gecko_MediaFeatures_GetDisplayMode(
     const mozilla::dom::Document*);
 
-bool Gecko_MediaFeatures_WindowsNonNativeMenus();
+bool Gecko_MediaFeatures_WindowsNonNativeMenus(const mozilla::dom::Document*);
 
 bool Gecko_MediaFeatures_ShouldAvoidNativeTheme(const mozilla::dom::Document*);
 bool Gecko_MediaFeatures_UseOverlayScrollbars(const mozilla::dom::Document*);
-uint32_t Gecko_MediaFeatures_GetColorDepth(const mozilla::dom::Document*);
-uint32_t Gecko_MediaFeatures_GetMonochromeBitsPerPixel(
+int32_t Gecko_MediaFeatures_GetColorDepth(const mozilla::dom::Document*);
+int32_t Gecko_MediaFeatures_GetMonochromeBitsPerPixel(
     const mozilla::dom::Document*);
 mozilla::dom::ScreenColorGamut Gecko_MediaFeatures_ColorGamut(
     const mozilla::dom::Document*);
@@ -611,10 +630,15 @@ void Gecko_MediaFeatures_GetDeviceSize(const mozilla::dom::Document*,
 
 float Gecko_MediaFeatures_GetResolution(const mozilla::dom::Document*);
 bool Gecko_MediaFeatures_PrefersReducedMotion(const mozilla::dom::Document*);
+bool Gecko_MediaFeatures_PrefersReducedTransparency(
+    const mozilla::dom::Document*);
 mozilla::StylePrefersContrast Gecko_MediaFeatures_PrefersContrast(
     const mozilla::dom::Document*);
 mozilla::StylePrefersColorScheme Gecko_MediaFeatures_PrefersColorScheme(
     const mozilla::dom::Document*, bool aUseContent);
+bool Gecko_MediaFeatures_InvertedColors(const mozilla::dom::Document*);
+mozilla::StyleScripting Gecko_MediaFeatures_Scripting(
+    const mozilla::dom::Document*);
 
 mozilla::StyleDynamicRange Gecko_MediaFeatures_DynamicRange(
     const mozilla::dom::Document*);

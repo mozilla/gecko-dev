@@ -4,6 +4,8 @@
 
 "use strict";
 
+loadScripts({ name: "role.js", dir: MOCHITESTS_DIR });
+
 // test basic translation
 addAccessibleTask(
   `<p id="translate">hello world</p>`,
@@ -111,6 +113,113 @@ addAccessibleTask(
     }
     await testBoundsWithContent(docAcc, "willChangeTopP2", browser);
     await testBoundsWithContent(docAcc, "willChangeInnerP2", browser);
+  },
+  { topLevel: true, iframe: true, remoteIframe: true }
+);
+
+// Verify that a transform forces creation of an accessible.
+addAccessibleTask(
+  `
+<div id="container">
+  <div style="transform:translate(100px,100px);">
+    <p>test</p>
+  </div>
+</div>
+
+<div id="div-presentational" role="presentation" style="transform:translate(100px,100px);">
+  <p>test</p>
+</div>
+  `,
+  async function(browser, docAcc) {
+    const tree = { TEXT_CONTAINER: [{ PARAGRAPH: [{ TEXT_LEAF: [] }] }] };
+
+    const divWithTransform = findAccessibleChildByID(docAcc, "container")
+      .firstChild;
+    testAccessibleTree(divWithTransform, tree);
+    // testBoundsWithContent takes an id, but divWithTransform doesn't have one,
+    // so we can't test the bounds for it.
+
+    // An accessible should still be created, even if the role is "presentation."
+    const divPresentational = findAccessibleChildByID(
+      docAcc,
+      "div-presentational"
+    );
+    testAccessibleTree(divPresentational, tree);
+    await testBoundsWithContent(docAcc, "div-presentational", browser);
+  },
+  { topLevel: true, iframe: true, remoteIframe: true }
+);
+
+// Verify that adding a transform on the fly forces creation of an accessible.
+addAccessibleTask(
+  `
+<div id="div-to-transform" role="none" style="position: absolute; width: 300px; height: 300px;">
+  <p>test</p>
+</div>
+  `,
+  async function(browser, docAcc) {
+    let divToTransform = findAccessibleChildByID(docAcc, "div-to-transform");
+    ok(!divToTransform, "There should not be a div accessible.");
+
+    // Translate the div.
+    await invokeContentTask(browser, [], () => {
+      let div = content.document.getElementById("div-to-transform");
+      div.style.transform = "translate(100%, 100%)";
+    });
+    await waitForContentPaint(browser);
+
+    // Verify that the SECTION accessible appeared after we gave it a transform.
+    divToTransform = findAccessibleChildByID(docAcc, "div-to-transform");
+    const tree = {
+      TEXT_CONTAINER: [{ PARAGRAPH: [{ TEXT_LEAF: [] }] }],
+    };
+    testAccessibleTree(divToTransform, tree);
+
+    // Verify that the bounds of the div are correctly modified.
+    await testBoundsWithContent(docAcc, "div-to-transform", browser);
+  },
+  { topLevel: true, iframe: true, remoteIframe: true }
+);
+
+// Test translated, position: absolute Accessible in a container.
+addAccessibleTask(
+  `
+<div id="container">
+  <div id="transform" style="position: absolute; transform: translate(100px, 100px);">
+    <p id="p">test</p>
+  </div>
+</div>
+  `,
+  async function(browser, docAcc) {
+    await testBoundsWithContent(docAcc, "transform", browser);
+    await testBoundsWithContent(docAcc, "p", browser);
+  },
+  { topLevel: true, iframe: true, remoteIframe: true }
+);
+
+// Test bounds of a rotated element after scroll.
+addAccessibleTask(
+  `
+<div id="scrollable" style="transform: rotate(180deg); overflow: scroll; height: 500px;">
+  <p id="test">hello world</p><hr style="height: 100vh;">
+</div>
+  `,
+  async function(browser, docAcc) {
+    info(
+      "Testing that the unscrolled bounds of a transformed element are correct."
+    );
+    await testBoundsWithContent(docAcc, "test", browser);
+
+    await invokeContentTask(browser, [], () => {
+      // Scroll the scrollable region down (scrolls up due to the transform).
+      let elem = content.document.getElementById("scrollable");
+      elem.scrollTo(0, elem.scrollHeight);
+    });
+
+    info(
+      "Testing that the scrolled bounds of a transformed element are correct."
+    );
+    await testBoundsWithContent(docAcc, "test", browser);
   },
   { topLevel: true, iframe: true, remoteIframe: true }
 );

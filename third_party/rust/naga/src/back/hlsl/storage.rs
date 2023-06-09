@@ -1,7 +1,47 @@
 /*!
-Logic related to `ByteAddressBuffer` operations.
+Generating accesses to [`ByteAddressBuffer`] contents.
 
-HLSL backend uses byte address buffers for all storage buffers in IR.
+Naga IR globals in the [`Storage`] address space are rendered as
+[`ByteAddressBuffer`]s or [`RWByteAddressBuffer`]s in HLSL. These
+buffers don't have HLSL types (structs, arrays, etc.); instead, they
+are just raw blocks of bytes, with methods to load and store values of
+specific types at particular byte offsets. This means that Naga must
+translate chains of [`Access`] and [`AccessIndex`] expressions into
+HLSL expressions that compute byte offsets into the buffer.
+
+To generate code for a [`Storage`] access:
+
+- Call [`Writer::fill_access_chain`] on the expression referring to
+  the value. This populates [`Writer::temp_access_chain`] with the
+  appropriate byte offset calculations, as a vector of [`SubAccess`]
+  values.
+
+- Call [`Writer::write_storage_address`] to emit an HLSL expression
+  for a given slice of [`SubAccess`] values.
+
+Naga IR expressions can operate on composite values of any type, but
+[`ByteAddressBuffer`] and [`RWByteAddressBuffer`] have only a fixed
+set of `Load` and `Store` methods, to access one through four
+consecutive 32-bit values. To synthesize a Naga access, you can
+initialize [`temp_access_chain`] to refer to the composite, and then
+temporarily push and pop additional steps on
+[`Writer::temp_access_chain`] to generate accesses to the individual
+elements/members.
+
+The [`temp_access_chain`] field is a member of [`Writer`] solely to
+allow re-use of the `Vec`'s dynamic allocation. Its value is no longer
+needed once HLSL for the access has been generated.
+
+[`Storage`]: crate::AddressSpace::Storage
+[`ByteAddressBuffer`]: https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/sm5-object-byteaddressbuffer
+[`RWByteAddressBuffer`]: https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/sm5-object-rwbyteaddressbuffer
+[`Access`]: crate::Expression::Access
+[`AccessIndex`]: crate::Expression::AccessIndex
+[`Writer::fill_access_chain`]: super::Writer::fill_access_chain
+[`Writer::write_storage_address`]: super::Writer::write_storage_address
+[`Writer::temp_access_chain`]: super::Writer::temp_access_chain
+[`temp_access_chain`]: super::Writer::temp_access_chain
+[`Writer`]: super::Writer
 */
 
 use super::{super::FunctionCtx, BackendResult, Error};
@@ -14,9 +54,25 @@ use std::{fmt, mem};
 
 const STORE_TEMP_NAME: &str = "_value";
 
+/// One step in accessing a [`Storage`] global's component or element.
+///
+/// [`Writer::temp_access_chain`] holds a series of these structures,
+/// describing how to compute the byte offset of a particular element
+/// or member of some global variable in the [`Storage`] address
+/// space.
+///
+/// [`Writer::temp_access_chain`]: super::Writer::temp_access_chain
+/// [`Storage`]: crate::AddressSpace::Storage
 #[derive(Debug)]
 pub(super) enum SubAccess {
+    /// Add the given byte offset. This is used for struct members, or
+    /// known components of a vector or matrix. In all those cases,
+    /// the byte offset is a compile-time constant.
     Offset(u32),
+
+    /// Scale `value` by `stride`, and add that to the current byte
+    /// offset. This is used to compute the offset of an array element
+    /// whose index is computed at runtime.
     Index {
         value: Handle<crate::Expression>,
         stride: u32,
@@ -53,11 +109,11 @@ impl<W: fmt::Write> super::Writer<'_, W> {
             }
             match *access {
                 SubAccess::Offset(offset) => {
-                    write!(self.out, "{}", offset)?;
+                    write!(self.out, "{offset}")?;
                 }
                 SubAccess::Index { value, stride } => {
                     self.write_expr(module, value, func_ctx)?;
-                    write!(self.out, "*{}", stride)?;
+                    write!(self.out, "*{stride}")?;
                 }
             }
         }
@@ -83,7 +139,16 @@ impl<W: fmt::Write> super::Writer<'_, W> {
         Ok(())
     }
 
-    /// Helper function to write down the Load operation on a `ByteAddressBuffer`.
+    /// Emit code to access a [`Storage`] global's component.
+    ///
+    /// Emit HLSL to access the component of `var_handle`, a global
+    /// variable in the [`Storage`] address space, whose type is
+    /// `result_ty` and whose location within the global is given by
+    /// [`self.temp_access_chain`]. See the [`storage`] module's
+    /// documentation for background.
+    ///
+    /// [`Storage`]: crate::AddressSpace::Storage
+    /// [`self.temp_access_chain`]: super::Writer::temp_access_chain
     pub(super) fn write_storage_load(
         &mut self,
         module: &crate::Module,
@@ -97,7 +162,7 @@ impl<W: fmt::Write> super::Writer<'_, W> {
                 let chain = mem::take(&mut self.temp_access_chain);
                 let var_name = &self.names[&NameKey::GlobalVariable(var_handle)];
                 let cast = kind.to_hlsl_cast();
-                write!(self.out, "{}({}.Load(", cast, var_name)?;
+                write!(self.out, "{cast}({var_name}.Load(")?;
                 self.write_storage_address(module, &chain, func_ctx)?;
                 write!(self.out, "))")?;
                 self.temp_access_chain = chain;
@@ -147,12 +212,16 @@ impl<W: fmt::Write> super::Writer<'_, W> {
                 size: crate::ArraySize::Constant(const_handle),
                 ..
             } => {
-                write!(self.out, "{{")?;
+                let constructor = super::help::WrappedConstructor {
+                    ty: result_ty.handle().unwrap(),
+                };
+                self.write_wrapped_constructor_function_name(module, constructor)?;
+                write!(self.out, "(")?;
                 let count = module.constants[const_handle].to_array_length().unwrap();
                 let stride = module.types[base].inner.size(&module.constants);
                 let iter = (0..count).map(|i| (TypeResolution::Handle(base), stride * i));
                 self.write_storage_load_sequence(module, var_handle, iter, func_ctx)?;
-                write!(self.out, "}}")?;
+                write!(self.out, ")")?;
             }
             crate::TypeInner::Struct { ref members, .. } => {
                 let constructor = super::help::WrappedConstructor {
@@ -183,14 +252,14 @@ impl<W: fmt::Write> super::Writer<'_, W> {
                 depth,
                 index,
                 ty: _,
-            } => write!(self.out, "{}{}[{}]", STORE_TEMP_NAME, depth, index)?,
+            } => write!(self.out, "{STORE_TEMP_NAME}{depth}[{index}]")?,
             StoreValue::TempAccess {
                 depth,
                 base,
                 member_index,
             } => {
                 let name = &self.names[&NameKey::StructMember(base, member_index)];
-                write!(self.out, "{}{}.{}", STORE_TEMP_NAME, depth, name)?
+                write!(self.out, "{STORE_TEMP_NAME}{depth}.{name}")?
             }
         }
         Ok(())
@@ -233,7 +302,7 @@ impl<W: fmt::Write> super::Writer<'_, W> {
                 // working around the borrow checker in `self.write_expr`
                 let chain = mem::take(&mut self.temp_access_chain);
                 let var_name = &self.names[&NameKey::GlobalVariable(var_handle)];
-                write!(self.out, "{}{}.Store(", level, var_name)?;
+                write!(self.out, "{level}{var_name}.Store(")?;
                 self.write_storage_address(module, &chain, func_ctx)?;
                 write!(self.out, ", asuint(")?;
                 self.write_store_value(module, &value, func_ctx)?;
@@ -257,7 +326,7 @@ impl<W: fmt::Write> super::Writer<'_, W> {
                 width,
             } => {
                 // first, assign the value to a temporary
-                writeln!(self.out, "{}{{", level)?;
+                writeln!(self.out, "{level}{{")?;
                 let depth = level.0 + 1;
                 write!(
                     self.out,
@@ -293,7 +362,7 @@ impl<W: fmt::Write> super::Writer<'_, W> {
                     self.temp_access_chain.pop();
                 }
                 // done
-                writeln!(self.out, "{}}}", level)?;
+                writeln!(self.out, "{level}}}")?;
             }
             crate::TypeInner::Array {
                 base,
@@ -301,11 +370,11 @@ impl<W: fmt::Write> super::Writer<'_, W> {
                 ..
             } => {
                 // first, assign the value to a temporary
-                writeln!(self.out, "{}{{", level)?;
+                writeln!(self.out, "{level}{{")?;
                 write!(self.out, "{}", level.next())?;
                 self.write_value_type(module, &module.types[base].inner)?;
                 let depth = level.next().0;
-                write!(self.out, " {}{}", STORE_TEMP_NAME, depth)?;
+                write!(self.out, " {STORE_TEMP_NAME}{depth}")?;
                 self.write_array_size(module, base, crate::ArraySize::Constant(const_handle))?;
                 write!(self.out, " = ")?;
                 self.write_store_value(module, &value, func_ctx)?;
@@ -324,11 +393,11 @@ impl<W: fmt::Write> super::Writer<'_, W> {
                     self.temp_access_chain.pop();
                 }
                 // done
-                writeln!(self.out, "{}}}", level)?;
+                writeln!(self.out, "{level}}}")?;
             }
             crate::TypeInner::Struct { ref members, .. } => {
                 // first, assign the value to a temporary
-                writeln!(self.out, "{}{{", level)?;
+                writeln!(self.out, "{level}{{")?;
                 let depth = level.next().0;
                 let struct_ty = ty_resolution.handle().unwrap();
                 let struct_name = &self.names[&NameKey::Type(struct_ty)];
@@ -355,13 +424,24 @@ impl<W: fmt::Write> super::Writer<'_, W> {
                     self.temp_access_chain.pop();
                 }
                 // done
-                writeln!(self.out, "{}}}", level)?;
+                writeln!(self.out, "{level}}}")?;
             }
             _ => unreachable!(),
         }
         Ok(())
     }
 
+    /// Set [`temp_access_chain`] to compute the byte offset of `cur_expr`.
+    ///
+    /// The `cur_expr` expression must be a reference to a global
+    /// variable in the [`Storage`] address space, or a chain of
+    /// [`Access`] and [`AccessIndex`] expressions referring to some
+    /// component of such a global.
+    ///
+    /// [`temp_access_chain`]: super::Writer::temp_access_chain
+    /// [`Storage`]: crate::AddressSpace::Storage
+    /// [`Access`]: crate::Expression::Access
+    /// [`AccessIndex`]: crate::Expression::AccessIndex
     pub(super) fn fill_access_chain(
         &mut self,
         module: &crate::Module,
@@ -386,10 +466,7 @@ impl<W: fmt::Write> super::Writer<'_, W> {
                     (base, AccessIndex::Constant(index))
                 }
                 ref other => {
-                    return Err(Error::Unimplemented(format!(
-                        "Pointer access of {:?}",
-                        other
-                    )))
+                    return Err(Error::Unimplemented(format!("Pointer access of {other:?}")))
                 }
             };
 

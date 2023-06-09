@@ -7,12 +7,9 @@
 "use strict";
 
 ChromeUtils.defineESModuleGetters(this, {
+  ExperimentFakes: "resource://testing-common/NimbusTestUtils.sys.mjs",
   MerinoClient: "resource:///modules/MerinoClient.sys.mjs",
-});
-
-XPCOMUtils.defineLazyModuleGetters(this, {
-  ExperimentFakes: "resource://testing-common/NimbusTestUtils.jsm",
-  NimbusFeatures: "resource://nimbus/ExperimentAPI.jsm",
+  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
 });
 
 // Set the `merino.timeoutMs` pref to a large value so that the client will not
@@ -566,7 +563,7 @@ add_task(async function nimbus() {
 
   // First, with the endpoint pref set to an empty string, make sure no Merino
   // suggestion are returned.
-  await fetchAndCheckSuggestions({ expected: null });
+  await fetchAndCheckSuggestions({ expected: [] });
 
   // Now install an experiment that sets the endpoint and other Merino-related
   // variables. Make sure a suggestion is returned and the request includes the

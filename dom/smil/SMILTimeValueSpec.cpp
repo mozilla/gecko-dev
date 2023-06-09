@@ -215,13 +215,13 @@ void SMILTimeValueSpec::UnregisterFromReferencedElement(Element* aElement) {
 }
 
 SMILTimedElement* SMILTimeValueSpec::GetTimedElement(Element* aElement) {
-  nsCOMPtr<SVGAnimationElement> animationElement = do_QueryInterface(aElement);
+  auto* animationElement = SVGAnimationElement::FromNodeOrNull(aElement);
   return animationElement ? &animationElement->TimedElement() : nullptr;
 }
 
 // Indicates whether we're allowed to register an event-listener
 // when scripting is disabled.
-bool SMILTimeValueSpec::IsWhitelistedEvent() {
+bool SMILTimeValueSpec::IsEventAllowedWhenScriptingIsDisabled() {
   // The category of (SMIL-specific) "repeat(n)" events are allowed.
   if (mParams.mType == SMILTimeValueSpecParams::REPEAT) {
     return true;
@@ -249,9 +249,9 @@ void SMILTimeValueSpec::RegisterEventListener(Element* aTarget) {
 
   if (!aTarget) return;
 
-  // When script is disabled, only allow registration for whitelisted events.
+  // When script is disabled, only allow registration for limited events.
   if (!aTarget->GetOwnerDocument()->IsScriptEnabled() &&
-      !IsWhitelistedEvent()) {
+      !IsEventAllowedWhenScriptingIsDisabled()) {
     return;
   }
 

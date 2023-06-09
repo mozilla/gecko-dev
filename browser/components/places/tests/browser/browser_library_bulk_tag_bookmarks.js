@@ -32,19 +32,18 @@ async function test_bulk_tag_from_library(delayedApply) {
   // Add a tag to multiple bookmarks.
   library.ContentTree.view.selectAll();
   const promiseAllTagsChanged = TEST_URLS.map(url =>
-    PlacesTestUtils.waitForNotification(
-      "bookmark-tags-changed",
-      events => events.some(evt => evt.url === url),
-      "places"
+    PlacesTestUtils.waitForNotification("bookmark-tags-changed", events =>
+      events.some(evt => evt.url === url)
     )
   );
   const tag = delayedApply ? "delayed, tag" : "instant, tag";
-  fillBookmarkTextField("editBMPanel_tagsField", tag, library);
+  const tagWithDuplicates = `${tag}, tag`;
+  fillBookmarkTextField("editBMPanel_tagsField", tagWithDuplicates, library);
   await Promise.all(promiseAllTagsChanged);
   await TestUtils.waitForCondition(
     () =>
       library.document.getElementById("editBMPanel_tagsField").value === tag,
-    "Input field matches the new tags."
+    "Input field matches the new tags and duplicates are removed."
   );
 
   // Verify that the bookmarks were tagged successfully.

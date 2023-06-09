@@ -44,7 +44,7 @@ class ProcessHangMonitor final : public nsIObserver {
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
 
-  static PProcessHangMonitorParent* AddProcess(
+  static already_AddRefed<PProcessHangMonitorParent> AddProcess(
       dom::ContentParent* aContentParent);
   static void RemoveProcess(PProcessHangMonitorParent* aParent);
 
@@ -53,6 +53,11 @@ class ProcessHangMonitor final : public nsIObserver {
   static void PaintWhileInterruptingJS(
       PProcessHangMonitorParent* aParent, dom::BrowserParent* aTab,
       const layers::LayersObserverEpoch& aEpoch);
+
+  static void UnloadLayersWhileInterruptingJS(
+      PProcessHangMonitorParent* aParent, dom::BrowserParent* aTab,
+      const layers::LayersObserverEpoch& aEpoch);
+
   static void ClearPaintWhileInterruptingJS(
       const layers::LayersObserverEpoch& aEpoch);
   static void MaybeStartPaintWhileInterruptingJS();

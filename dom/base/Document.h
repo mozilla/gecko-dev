@@ -14,7 +14,6 @@
 #include <utility>
 #include "ErrorList.h"
 #include "MainThreadUtils.h"
-#include "ReferrerInfo.h"
 #include "Units.h"
 #include "imgIRequest.h"
 #include "js/RootingAPI.h"
@@ -210,6 +209,7 @@ class ServoStyleSet;
 enum class StyleOrigin : uint8_t;
 class SMILAnimationController;
 enum class StyleCursorKind : uint8_t;
+class SVGContextPaint;
 enum class ColorScheme : uint8_t;
 enum class StyleRuleChangeKind : uint32_t;
 template <typename>
@@ -248,6 +248,7 @@ class FeaturePolicy;
 class FontFaceSet;
 class FrameRequestCallback;
 class ImageTracker;
+class HighlightRegistry;
 class HTMLAllCollection;
 class HTMLBodyElement;
 class HTMLInputElement;
@@ -290,7 +291,6 @@ class XPathNSResolver;
 class XPathResult;
 class BrowsingContext;
 
-class nsDocumentOnStack;
 class nsUnblockOnloadEvent;
 
 template <typename, typename>
@@ -316,6 +316,7 @@ enum BFCacheStatus {
   RESTORING = 1 << 14,                   // Status 14
   BEFOREUNLOAD_LISTENER = 1 << 15,       // Status 15
   ACTIVE_LOCK = 1 << 16,                 // Status 16
+  ACTIVE_WEBTRANSPORT = 1 << 17,         // Status 17
 };
 
 }  // namespace dom
@@ -726,7 +727,6 @@ class Document : public nsINode,
   virtual bool SuppressParserErrorConsoleMessages() { return false; }
 
   // nsINode
-  bool IsNodeOfType(uint32_t aFlags) const final;
   void InsertChildBefore(nsIContent* aKid, nsIContent* aBeforeThis,
                          bool aNotify, ErrorResult& aRv) override;
   void RemoveChildNode(nsIContent* aKid, bool aNotify) final;
@@ -873,9 +873,7 @@ class Document : public nsINode,
     return mUpgradeInsecureRequests;
   }
 
-  void SetReferrerInfo(nsIReferrerInfo* aReferrerInfo) {
-    mReferrerInfo = aReferrerInfo;
-  }
+  void SetReferrerInfo(nsIReferrerInfo*);
 
   /*
    * Referrer policy from <meta name="referrer" content=`policy`>
@@ -966,6 +964,7 @@ class Document : public nsINode,
    * the document, a new one is created.
    */
   URLExtraData* DefaultStyleAttrURLData();
+  nsIReferrerInfo* ReferrerInfoForInternalCSSAndSVGResources();
 
   /**
    * Get/Set the base target of a link in a document.
@@ -1180,8 +1179,8 @@ class Document : public nsINode,
    * method is responsible for calling BeginObservingDocument() on the
    * presshell if the presshell should observe document mutations.
    */
-  already_AddRefed<PresShell> CreatePresShell(nsPresContext* aContext,
-                                              nsViewManager* aViewManager);
+  MOZ_CAN_RUN_SCRIPT already_AddRefed<PresShell> CreatePresShell(
+      nsPresContext* aContext, nsViewManager* aViewManager);
   void DeletePresShell();
 
   PresShell* GetPresShell() const {
@@ -1230,6 +1229,14 @@ class Document : public nsINode,
         mIsDevToolsDocument = mParentDocument->IsDevToolsDocument();
       }
     }
+  }
+
+  void SetCurrentContextPaint(const SVGContextPaint* aContextPaint) {
+    mCurrentContextPaint = aContextPaint;
+  }
+
+  const SVGContextPaint* GetCurrentContextPaint() const {
+    return mCurrentContextPaint;
   }
 
   /**
@@ -1337,7 +1344,7 @@ class Document : public nsINode,
 
   already_AddRefed<AnonymousContent> InsertAnonymousContent(
       Element& aElement, bool aForce, ErrorResult& aError);
-  void RemoveAnonymousContent(AnonymousContent& aContent, ErrorResult& aError);
+  void RemoveAnonymousContent(AnonymousContent& aContent);
   /**
    * If aNode is a descendant of anonymous content inserted by
    * InsertAnonymousContent, this method returns the root element of the
@@ -1463,7 +1470,7 @@ class Document : public nsINode,
    * changed to true, -1 if it was changed to false.
    */
   void ChangeContentEditableCount(Element*, int32_t aChange);
-  void DeferredContentEditableCountChange(Element*);
+  MOZ_CAN_RUN_SCRIPT void DeferredContentEditableCountChange(Element*);
 
   enum class EditingState : int8_t {
     eTearingDown = -2,
@@ -1884,26 +1891,26 @@ class Document : public nsINode,
    */
   nsTArray<Element*> GetTopLayer() const;
 
-  /**
-   * Asynchronously requests that the document make aElement the fullscreen
-   * element, and move into fullscreen mode. The current fullscreen element
-   * (if any) is pushed onto the top layer, and it can be
-   * returned to fullscreen status by calling RestorePreviousFullscreenState().
-   *
-   * Note that requesting fullscreen in a document also makes the element which
-   * contains this document in this document's parent document fullscreen. i.e.
-   * the <iframe> or <browser> that contains this document is also mode
-   * fullscreen. This happens recursively in all ancestor documents.
-   */
-  void AsyncRequestFullscreen(UniquePtr<FullscreenRequest>);
+  bool TopLayerContains(Element&) const;
 
   // Do the "fullscreen element ready check" from the fullscreen spec.
   // It returns true if the given element is allowed to go into fullscreen.
   // It is responsive to dispatch "fullscreenerror" event when necessary.
   bool FullscreenElementReadyCheck(FullscreenRequest&);
 
-  // This is called asynchronously by Document::AsyncRequestFullscreen()
-  // to move this document into fullscreen mode if allowed.
+  /**
+   * When this is called on content process, this asynchronously requests that
+   * the document make aElement the fullscreen element, and move into fullscreen
+   * mode. The current fullscreen element (if any) is pushed onto the top layer,
+   * and it can be returned to fullscreen status by calling
+   * RestorePreviousFullscreenState().
+   * If on chrome process, this is synchronously.
+   *
+   * Note that requesting fullscreen in a document also makes the element which
+   * contains this document in this document's parent document fullscreen. i.e.
+   * the <iframe> or <browser> that contains this document is also mode
+   * fullscreen. This happens recursively in all ancestor documents.
+   */
   void RequestFullscreen(UniquePtr<FullscreenRequest> aRequest,
                          bool aApplyFullscreenDirectly = false);
 
@@ -1920,6 +1927,12 @@ class Document : public nsINode,
   // layer. The removed element, if any, is returned.
   Element* TopLayerPop(FunctionRef<bool(Element*)> aPredicate);
 
+  // Removes the given element from the top layer. The removed element, if any,
+  // is returned.
+  Element* TopLayerPop(Element&);
+
+  MOZ_CAN_RUN_SCRIPT bool TryAutoFocusCandidate(Element& aElement);
+
  public:
   // Removes all the elements with fullscreen flag set from the top layer, and
   // clears their fullscreen flag.
@@ -1933,6 +1946,9 @@ class Document : public nsINode,
   // Pushes the given element into the top of top layer and set fullscreen
   // flag.
   void SetFullscreenElement(Element&);
+
+  // Whether we has pending fullscreen request.
+  bool HasPendingFullscreenRequests();
 
   // Cancel the dialog element if the document is blocked by the dialog
   void TryCancelDialog();
@@ -2223,7 +2239,7 @@ class Document : public nsINode,
     return AllowXULXBL();
   }
 
-  bool IsScriptEnabled();
+  bool IsScriptEnabled() const;
 
   /**
    * Returns true if this document was created from a nsXULPrototypeDocument.
@@ -2602,7 +2618,7 @@ class Document : public nsINode,
     return !mParentDocument && !mDisplayDocument;
   }
 
-  bool IsDocumentURISchemeChrome() const { return mDocURISchemeIsChrome; }
+  bool ChromeRulesEnabled() const { return mChromeRulesEnabled; }
 
   bool IsInChromeDocShell() const {
     const Document* root = this;
@@ -3093,10 +3109,14 @@ class Document : public nsINode,
 
   nsISupports* GetCurrentContentSink();
 
-  void SetAutoFocusElement(Element* aAutoFocusElement);
-  void TriggerAutoFocus();
+  void ElementWithAutoFocusInserted(Element* aAutoFocusCandidate);
+  MOZ_CAN_RUN_SCRIPT void FlushAutoFocusCandidates();
+  void ScheduleFlushAutoFocusCandidates();
+  bool HasAutoFocusCandidates() const {
+    return !mAutoFocusCandidates.IsEmpty();
+  }
+
   void SetAutoFocusFired();
-  bool IsAutoFocusFired();
 
   void SetScrollToRef(nsIURI* aDocumentURI);
   MOZ_CAN_RUN_SCRIPT void ScrollToRef();
@@ -3388,7 +3408,16 @@ class Document : public nsINode,
   // they could want the IncludeChromeOnly::Yes version.
   nsIContent* GetUnretargetedFocusedContent(
       IncludeChromeOnly = IncludeChromeOnly::No) const;
+  /**
+   * Return true if this document or a subdocument has focus.
+   */
   bool HasFocus(ErrorResult& rv) const;
+
+  /**
+   * Return true if this document itself has focus.
+   */
+  bool ThisDocumentHasFocus() const;
+
   void GetDesignMode(nsAString& aDesignMode);
   void SetDesignMode(const nsAString& aDesignMode,
                      nsIPrincipal& aSubjectPrincipal, mozilla::ErrorResult& rv);
@@ -3432,6 +3461,35 @@ class Document : public nsINode,
 
   MOZ_CAN_RUN_SCRIPT void GetWireframe(bool aIncludeNodes,
                                        Nullable<Wireframe>&);
+
+  // Hides all popovers until the given end point, see
+  // https://html.spec.whatwg.org/multipage/popover.html#hide-all-popovers-until
+  MOZ_CAN_RUN_SCRIPT void HideAllPopoversUntil(nsINode& aEndpoint,
+                                               bool aFocusPreviousElement,
+                                               bool aFireEvents);
+
+  // Hides the given popover element, see
+  // https://html.spec.whatwg.org/multipage/popover.html#hide-popover-algorithm
+  MOZ_CAN_RUN_SCRIPT void HidePopover(Element& popover,
+                                      bool aFocusPreviousElement,
+                                      bool aFireEvents, ErrorResult& aRv);
+
+  // Returns a list of all the elements in the Document's top layer whose
+  // popover attribute is in the auto state.
+  // See https://html.spec.whatwg.org/multipage/popover.html#auto-popover-list
+  nsTArray<Element*> AutoPopoverList() const;
+
+  // Return document's auto popover list's last element.
+  // See
+  // https://html.spec.whatwg.org/multipage/popover.html#topmost-auto-popover
+  Element* GetTopmostAutoPopover() const;
+
+  // Adds/removes an element to/from the auto popover list.
+  void AddToAutoPopoverList(Element&);
+  void RemoveFromAutoPopoverList(Element&);
+
+  void AddPopoverToTopLayer(Element&);
+  void RemovePopoverFromTopLayer(Element&);
 
   Element* GetTopLayerTop();
   // Return the fullscreen element in the top layer
@@ -3549,11 +3607,11 @@ class Document : public nsINode,
     return mStyleSheetChangeEventsEnabled;
   }
 
-  void SetShadowRootAttachedEventEnabled(bool aValue) {
-    mShadowRootAttachedEventEnabled = aValue;
+  void SetDevToolsAnonymousAndShadowEventsEnabled(bool aValue) {
+    mDevToolsAnonymousAndShadowEventsEnabled = aValue;
   }
-  bool ShadowRootAttachedEventEnabled() const {
-    return mShadowRootAttachedEventEnabled;
+  bool DevToolsAnonymousAndShadowEventsEnabled() const {
+    return mDevToolsAnonymousAndShadowEventsEnabled;
   }
 
   already_AddRefed<Promise> BlockParsing(Promise& aPromise,
@@ -3636,6 +3694,7 @@ class Document : public nsINode,
   FontFaceSet* GetFonts() { return mFontFaceSet; }
 
   // FontFaceSource
+  FontFaceSet* GetFonts(ErrorResult&) { return Fonts(); }
   FontFaceSet* Fonts();
 
   bool DidFireDOMContentLoaded() const { return mDidFireDOMContentLoaded; }
@@ -3684,10 +3743,6 @@ class Document : public nsINode,
   bool UserHasInteracted() { return mUserHasInteracted; }
   void ResetUserInteractionTimer();
 
-  // This method would return current autoplay policy, it would be "allowed"
-  // , "allowed-muted" or "disallowed".
-  DocumentAutoplayPolicy AutoplayPolicy() const;
-
   // This should be called when this document receives events which are likely
   // to be user interaction with the document, rather than the byproduct of
   // interaction with the browser (i.e. a keypress to scroll the view port,
@@ -3721,7 +3776,7 @@ class Document : public nsINode,
   // popup, a visible tab, a visible iframe ...e.t.c.
   bool IsExtensionPage() const;
 
-  bool HasScriptsBlockedBySandbox();
+  bool HasScriptsBlockedBySandbox() const;
 
   void ReportHasScrollLinkedEffect(const TimeStamp& aTimeStamp);
   bool HasScrollLinkedEffect() const;
@@ -3779,6 +3834,9 @@ class Document : public nsINode,
   }
   DOMIntersectionObserver& EnsureLazyLoadImageObserver();
 
+  DOMIntersectionObserver* GetContentVisibilityObserver() const {
+    return mContentVisibilityObserver;
+  }
   DOMIntersectionObserver& EnsureContentVisibilityObserver();
   void ObserveForContentVisibility(Element&);
   void UnobserveForContentVisibility(Element&);
@@ -3794,11 +3852,9 @@ class Document : public nsINode,
   nsresult Dispatch(TaskCategory aCategory,
                     already_AddRefed<nsIRunnable>&& aRunnable) final;
 
-  virtual nsISerialEventTarget* EventTargetFor(
-      TaskCategory aCategory) const override;
+  nsISerialEventTarget* EventTargetFor(TaskCategory) const override;
 
-  virtual AbstractThread* AbstractMainThreadFor(
-      TaskCategory aCategory) override;
+  AbstractThread* AbstractMainThreadFor(TaskCategory) override;
 
   // The URLs passed to this function should match what
   // JS::DescribeScriptedCaller() returns, since this API is used to
@@ -3834,6 +3890,8 @@ class Document : public nsINode,
     return mShouldNotifyFormOrPasswordRemoved;
   }
 
+  HTMLEditor* GetHTMLEditor() const;
+
   /**
    * Localization
    *
@@ -3846,7 +3904,14 @@ class Document : public nsINode,
    * This is a public method exposed on Document WebIDL
    * to chrome only documents.
    */
-  DocumentL10n* GetL10n();
+  DocumentL10n* GetL10n() const { return mDocumentL10n.get(); }
+
+  /**
+   * Whether there's any async l10n mutation work pending.
+   *
+   * When this turns false, we fire the L10nMutationsFinished event.
+   */
+  bool HasPendingL10nMutations() const;
 
   /**
    * This method should be called when the container
@@ -3940,6 +4005,8 @@ class Document : public nsINode,
   void DoCacheAllKnownLangPrefs();
   void RecomputeLanguageFromCharset();
   bool GetSHEntryHasUserInteraction();
+
+  void AppendAutoFocusCandidateToTopDocument(Element* aAutoFocusCandidate);
 
  public:
   void SetMayNeedFontPrefsUpdate() { mMayNeedFontPrefsUpdate = true; }
@@ -4102,9 +4169,13 @@ class Document : public nsINode,
 
   bool DidHitCompleteSheetCache() const { return mDidHitCompleteSheetCache; }
 
-  bool ShouldResistFingerprinting() const {
-    return mShouldResistFingerprinting;
-  }
+  /**
+   * Get the `HighlightRegistry` which contains all highlights associated
+   * with this document.
+   */
+  class HighlightRegistry& HighlightRegistry();
+
+  bool ShouldResistFingerprinting(RFPTarget aTarget = RFPTarget::Unknown) const;
 
   void RecomputeResistFingerprinting();
 
@@ -4366,17 +4437,6 @@ class Document : public nsINode,
   UniquePtr<ServoStyleSet> mStyleSet;
 
  protected:
-  friend class nsDocumentOnStack;
-
-  void IncreaseStackRefCnt() { ++mStackRefCnt; }
-
-  void DecreaseStackRefCnt() {
-    if (--mStackRefCnt == 0 && mNeedsReleaseAfterStackRefCntRelease) {
-      mNeedsReleaseAfterStackRefCntRelease = false;
-      NS_RELEASE_THIS();
-    }
-  }
-
   // Never ever call this. Only call GetWindow!
   nsPIDOMWindowOuter* GetWindowInternal() const;
 
@@ -4446,9 +4506,9 @@ class Document : public nsINode,
   // The base domain of the document for third-party checks.
   nsCString mBaseDomain;
 
-  // A lazily-constructed URL data for style system to resolve URL value.
+  // A lazily-constructed URL data for style system to resolve URL values.
   RefPtr<URLExtraData> mCachedURLData;
-  nsCOMPtr<nsIReferrerInfo> mCachedReferrerInfo;
+  nsCOMPtr<nsIReferrerInfo> mCachedReferrerInfoForInternalCSSAndSVGResources;
 
   nsWeakPtr mDocumentLoadGroup;
 
@@ -4464,6 +4524,9 @@ class Document : public nsINode,
 
   // A reference to the element last returned from GetRootElement().
   Element* mCachedRootElement;
+
+  // This is maintained by AutoSetRestoreSVGContextPaint.
+  const SVGContextPaint* mCurrentContextPaint = nullptr;
 
   // This is a weak reference, but we hold a strong reference to mNodeInfo,
   // which in turn holds a strong reference to this mNodeInfoManager.
@@ -4630,8 +4693,8 @@ class Document : public nsINode,
   // True if we're an SVG document being used as an image.
   bool mIsBeingUsedAsImage : 1;
 
-  // True if our current document URI's scheme is chrome://
-  bool mDocURISchemeIsChrome : 1;
+  // True if our current document URI's scheme enables privileged CSS rules.
+  bool mChromeRulesEnabled : 1;
 
   // True if we're loaded in a chrome docshell.
   bool mInChromeDocShell : 1;
@@ -4682,8 +4745,9 @@ class Document : public nsINode,
   // Whether style sheet change events will be dispatched for this document
   bool mStyleSheetChangeEventsEnabled : 1;
 
-  // Whether shadowrootattached events will be dispatched for this document.
-  bool mShadowRootAttachedEventEnabled : 1;
+  // Whether shadowrootattached/anonymousnodecreated/anonymousnoderemoved events
+  // will be dispatched for this document.
+  bool mDevToolsAnonymousAndShadowEventsEnabled : 1;
 
   // Whether the document was created by a srcdoc iframe.
   bool mIsSrcdocDocument : 1;
@@ -4730,8 +4794,6 @@ class Document : public nsINode,
   bool mIsGoingAway : 1;
 
   bool mInXBLUpdate : 1;
-
-  bool mNeedsReleaseAfterStackRefCntRelease : 1;
 
   // Whether we have filled our style set with all the stylesheets.
   bool mStyleSetFilled : 1;
@@ -4871,8 +4933,6 @@ class Document : public nsINode,
 
   // Whether we should resist fingerprinting.
   bool mShouldResistFingerprinting : 1;
-
-  uint8_t mPendingFullscreenRequests;
 
   uint8_t mXMLDeclarationBits;
 
@@ -5097,8 +5157,6 @@ class Document : public nsINode,
   // reference to the prototype document to allow tracing.
   RefPtr<nsXULPrototypeDocument> mPrototypeDocument;
 
-  nsrefcnt mStackRefCnt;
-
   // Weak reference to our sink for in case we no longer have a parser.  This
   // will allow us to flush out any pending stuff from the sink even if
   // EndLoad() has already happened.
@@ -5138,7 +5196,11 @@ class Document : public nsINode,
   // Recorded time of change to 'loading' state.
   TimeStamp mLoadingTimeStamp;
 
-  nsWeakPtr mAutoFocusElement;
+  // Decided to use nsTObserverArray because it allows us to
+  // remove candidates while iterating them and this is what
+  // the spec defines. We could implement the spec without
+  // using nsTObserverArray, however using nsTObserverArray is more clear.
+  nsTObserverArray<nsWeakPtr> mAutoFocusCandidates;
 
   nsCString mScrollToRef;
 
@@ -5350,6 +5412,9 @@ class Document : public nsINode,
   // Not holding strong refs here since we don't actually use the BBCs.
   nsTArray<const BrowserBridgeChild*> mOOPChildrenLoading;
 
+  // Registry of custom highlight definitions associated with this document.
+  RefPtr<class HighlightRegistry> mHighlightRegistry;
+
  public:
   // Needs to be public because the bindings code pokes at it.
   JS::ExpandoAndGeneration mExpandoAndGeneration;
@@ -5469,6 +5534,10 @@ class MOZ_RAII IgnoreOpensDuringUnload final {
   Document* mDoc;
 };
 
+bool IsInFocusedTab(Document* aDoc);
+
+// This covers all cases covered by IsInFocusedTab, but also ensures that
+// focused tab is "active" meaning not occluded.
 bool IsInActiveTab(Document* aDoc);
 
 }  // namespace mozilla::dom

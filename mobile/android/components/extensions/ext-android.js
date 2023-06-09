@@ -3,21 +3,16 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
+/**
+ * NOTE: If you change the globals in this file, you must check if the globals
+ * list in mobile/android/.eslintrc.js also needs updating.
+ */
+
 ChromeUtils.defineESModuleGetters(this, {
+  GeckoViewTabBridge: "resource://gre/modules/GeckoViewTab.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
+  mobileWindowTracker: "resource://gre/modules/GeckoViewWebExtension.sys.mjs",
 });
-
-ChromeUtils.defineModuleGetter(
-  this,
-  "GeckoViewTabBridge",
-  "resource://gre/modules/GeckoViewTab.jsm"
-);
-
-ChromeUtils.defineModuleGetter(
-  this,
-  "mobileWindowTracker",
-  "resource://gre/modules/GeckoViewWebExtension.jsm"
-);
 
 var { EventDispatcher } = ChromeUtils.importESModule(
   "resource://gre/modules/Messaging.sys.mjs"
@@ -33,8 +28,6 @@ var { ExtensionUtils } = ChromeUtils.import(
 var { DefaultWeakMap, ExtensionError } = ExtensionUtils;
 
 var { defineLazyGetter } = ExtensionCommon;
-
-global.GlobalEventDispatcher = EventDispatcher.instance;
 
 const BrowserStatusFilter = Components.Constructor(
   "@mozilla.org/appshell/component/browser-status-filter;1",
@@ -209,9 +202,9 @@ global.makeGlobalEvent = function makeGlobalEvent(
         },
       };
 
-      GlobalEventDispatcher.registerListener(listener2, [event]);
+      EventDispatcher.instance.registerListener(listener2, [event]);
       return () => {
-        GlobalEventDispatcher.unregisterListener(listener2, [event]);
+        EventDispatcher.instance.unregisterListener(listener2, [event]);
       };
     },
   }).api();
@@ -230,10 +223,10 @@ class TabTracker extends TabTrackerBase {
     });
 
     windowTracker.addCloseListener(window => {
-      const { tab, browser } = window;
+      const { tab: nativeTab, browser } = window;
       const { windowId, tabId } = this.getBrowserData(browser);
       this.emit("tab-removed", {
-        tab,
+        nativeTab,
         tabId,
         windowId,
         // In GeckoView, it is not meaningful to speak of "window closed", because a tab is a window.
@@ -622,7 +615,7 @@ global.openOptionsPage = async extension => {
     const { browser } = tab;
     const flags = Ci.nsIWebNavigation.LOAD_FLAGS_NONE;
 
-    browser.loadURI(options_ui.page, {
+    browser.fixupAndLoadURIString(options_ui.page, {
       flags,
       triggeringPrincipal: extension.principal,
     });

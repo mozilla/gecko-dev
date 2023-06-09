@@ -10,15 +10,14 @@
 var rule = require("../lib/rules/prefer-boolean-length-check");
 var RuleTester = require("eslint").RuleTester;
 
-const ruleTester = new RuleTester({ parserOptions: { ecmaVersion: 6 } });
+const ruleTester = new RuleTester({ parserOptions: { ecmaVersion: "latest" } });
 
 // ------------------------------------------------------------------------------
 // Tests
 // ------------------------------------------------------------------------------
 
 function invalidError() {
-  let message = "Prefer boolean length check";
-  return [{ message, type: "BinaryExpression" }];
+  return [{ messageId: "preferBooleanCheck", type: "BinaryExpression" }];
 }
 
 ruleTester.run("check-length", rule, {

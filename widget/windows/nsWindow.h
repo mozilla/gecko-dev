@@ -97,6 +97,11 @@ IVirtualDesktopManager : public IUnknown {
       __RPC__in HWND topLevelWindow, __RPC__in REFGUID desktopId) = 0;
 };
 
+#ifdef __MINGW32__
+__CRT_UUID_DECL(IVirtualDesktopManager, 0xa5cd92ff, 0x29be, 0x454c, 0x8d, 0x04,
+                0xd8, 0x28, 0x79, 0xfb, 0x3f, 0x1b)
+#endif
+
 /**
  * Native WIN32 window wrapper.
  */
@@ -163,7 +168,7 @@ class nsWindow final : public nsBaseWidget {
   [[nodiscard]] nsresult Create(nsIWidget* aParent,
                                 nsNativeWidget aNativeParent,
                                 const LayoutDeviceIntRect& aRect,
-                                nsWidgetInitData* aInitData = nullptr) override;
+                                InitData* aInitData = nullptr) override;
   void Destroy() override;
   void SetParent(nsIWidget* aNewParent) override;
   nsIWidget* GetParent(void) override;
@@ -223,8 +228,7 @@ class nsWindow final : public nsBaseWidget {
   nsresult SetTitle(const nsAString& aTitle) override;
   void SetIcon(const nsAString& aIconSpec) override;
   LayoutDeviceIntPoint WidgetToScreenOffset() override;
-  LayoutDeviceIntSize ClientToWindowSize(
-      const LayoutDeviceIntSize& aClientSize) override;
+  LayoutDeviceIntMargin ClientToWindowMargin() override;
   nsresult DispatchEvent(mozilla::WidgetGUIEvent* aEvent,
                          nsEventStatus& aStatus) override;
   void EnableDragDrop(bool aEnable) override;
@@ -270,10 +274,10 @@ class nsWindow final : public nsBaseWidget {
                        const InputContextAction& aAction) override;
   InputContext GetInputContext() override;
   TextEventDispatcherListener* GetNativeTextEventDispatcherListener() override;
-  void SetTransparencyMode(nsTransparencyMode aMode) override;
-  nsTransparencyMode GetTransparencyMode() override;
+  void SetTransparencyMode(TransparencyMode aMode) override;
+  TransparencyMode GetTransparencyMode() override;
   void UpdateOpaqueRegion(const LayoutDeviceIntRegion& aOpaqueRegion) override;
-  nsresult SetNonClientMargins(LayoutDeviceIntMargin& aMargins) override;
+  nsresult SetNonClientMargins(const LayoutDeviceIntMargin&) override;
   void SetResizeMargin(mozilla::LayoutDeviceIntCoord aResizeMargin) override;
   void SetDrawsInTitlebar(bool aState) override;
   void UpdateWindowDraggingRegion(
@@ -282,7 +286,8 @@ class nsWindow final : public nsBaseWidget {
   void UpdateThemeGeometries(
       const nsTArray<ThemeGeometry>& aThemeGeometries) override;
   uint32_t GetMaxTouchPoints() const override;
-  void SetWindowClass(const nsAString& xulWinType) override;
+  void SetWindowClass(const nsAString& xulWinType, const nsAString& xulWinClass,
+                      const nsAString& xulWinName) override;
 
   /**
    * Event helpers
@@ -313,7 +318,6 @@ class nsWindow final : public nsBaseWidget {
   /**
    * Misc.
    */
-  bool AutoErase(HDC dc);
   bool WidgetTypeSupportsAcceleration() override;
 
   void ForcePresent();
@@ -456,8 +460,14 @@ class nsWindow final : public nsBaseWidget {
     explicit FrameState(nsWindow* aWindow);
 
     void ConsumePreXULSkeletonState(bool aWasMaximized);
-    void EnsureSizeMode(nsSizeMode aMode);
-    void EnsureFullscreenMode(bool aFullScreen);
+
+    // Whether we should call ShowWindow with the relevant size mode if needed.
+    // We want to avoid that when Windows is already performing the change for
+    // us (via the SWP_FRAMECHANGED messages).
+    enum class DoShowWindow : bool { No, Yes };
+
+    void EnsureSizeMode(nsSizeMode, DoShowWindow = DoShowWindow::Yes);
+    void EnsureFullscreenMode(bool, DoShowWindow = DoShowWindow::Yes);
     void OnFrameChanging();
     void OnFrameChanged();
 
@@ -466,9 +476,10 @@ class nsWindow final : public nsBaseWidget {
     void CheckInvariant() const;
 
    private:
-    void SetSizeModeInternal(nsSizeMode aMode);
+    void SetSizeModeInternal(nsSizeMode, DoShowWindow);
 
     nsSizeMode mSizeMode = nsSizeMode_Normal;
+    // XXX mLastSizeMode is rather bizarre and needs some documentation.
     nsSizeMode mLastSizeMode = nsSizeMode_Normal;
     // The old size mode before going into fullscreen mode. This should never
     // be nsSizeMode_Fullscreen.
@@ -538,14 +549,14 @@ class nsWindow final : public nsBaseWidget {
   HRGN ExcludeNonClientFromPaintRegion(HRGN aRegion);
   static const wchar_t* GetMainWindowClass();
   bool HasGlass() const {
-    return mTransparencyMode == eTransparencyBorderlessGlass;
+    return mTransparencyMode == TransparencyMode::BorderlessGlass;
   }
   HWND GetOwnerWnd() const { return ::GetWindow(mWnd, GW_OWNER); }
   bool IsOwnerForegroundWindow() const {
     HWND owner = GetOwnerWnd();
     return owner && owner == ::GetForegroundWindow();
   }
-  bool IsPopup() const { return mWindowType == eWindowType_popup; }
+  bool IsPopup() const { return mWindowType == WindowType::Popup; }
   bool IsCloaked() const { return mIsCloaked; }
 
   /**
@@ -609,8 +620,7 @@ class nsWindow final : public nsBaseWidget {
   DWORD WindowStyle();
   DWORD WindowExStyle();
 
-  static const wchar_t* ChooseWindowClass(nsWindowType,
-                                          bool aForMenupopupFrame);
+  static const wchar_t* ChooseWindowClass(WindowType, bool aForMenupopupFrame);
   // This method registers the given window class, and returns the class name.
   static const wchar_t* RegisterWindowClass(const wchar_t* aClassName,
                                             UINT aExtraStyle, LPWSTR aIconID);
@@ -636,8 +646,8 @@ class nsWindow final : public nsBaseWidget {
   /**
    * Window transparency helpers
    */
-  void SetWindowTranslucencyInner(nsTransparencyMode aMode);
-  nsTransparencyMode GetWindowTranslucencyInner() const {
+  void SetWindowTranslucencyInner(TransparencyMode aMode);
+  TransparencyMode GetWindowTranslucencyInner() const {
     return mTransparencyMode;
   }
   void UpdateGlass();
@@ -691,8 +701,8 @@ class nsWindow final : public nsBaseWidget {
                         POINTER_FLAGS aFlags, uint32_t aPressure = 1024,
                         uint32_t aOrientation = 90);
 
-  void OnFullscreenWillChange(bool aFullScreen);
   void OnFullscreenChanged(nsSizeMode aOldSizeMode, bool aFullScreen);
+  void TryDwmResizeHack();
 
   static void OnCloakEvent(HWND aWnd, bool aCloaked);
   void OnCloakChanged(bool aCloaked);
@@ -701,6 +711,10 @@ class nsWindow final : public nsBaseWidget {
   virtual nsresult SetHiDPIMode(bool aHiDPI) override;
   virtual nsresult RestoreHiDPIMode() override;
 #endif
+
+  // Get the orientation of the hidden taskbar, on the screen that this window
+  // is on, or Nothing if taskbar isn't hidden.
+  mozilla::Maybe<UINT> GetHiddenTaskbarEdge();
 
   static bool sTouchInjectInitialized;
   static InjectTouchInputPtr sInjectTouchFuncPtr;
@@ -750,7 +764,6 @@ class nsWindow final : public nsBaseWidget {
   bool mInDtor = false;
   bool mIsVisible = false;
   bool mIsCloaked = false;
-  bool mPainting = false;
   bool mTouchWindow = false;
   bool mDisplayPanFeedback = false;
   bool mHideChrome = false;
@@ -764,6 +777,7 @@ class nsWindow final : public nsBaseWidget {
   bool mIsShowingPreXULSkeletonUI = false;
   bool mResizable = false;
   bool mForMenupopupFrame = false;
+  bool mIsPerformingDwmFlushHack = false;
   DWORD_PTR mOldStyle = 0;
   DWORD_PTR mOldExStyle = 0;
   nsNativeDragTarget* mNativeDragTarget = nullptr;
@@ -775,6 +789,13 @@ class nsWindow final : public nsBaseWidget {
   HICON mIconBig = nullptr;
   HWND mLastKillFocusWindow = nullptr;
   PlatformCompositorWidgetDelegate* mCompositorWidgetDelegate = nullptr;
+
+  LayoutDeviceIntMargin NonClientSizeMargin() const {
+    return NonClientSizeMargin(mNonClientOffset);
+  }
+  LayoutDeviceIntMargin NonClientSizeMargin(
+      const LayoutDeviceIntMargin& aNonClientOffset) const;
+  LayoutDeviceIntMargin NormalWindowNonClientOffset() const;
 
   // Non-client margin settings
   // Pre-calculated outward offset applied to default frames
@@ -816,7 +837,7 @@ class nsWindow final : public nsBaseWidget {
   ResizeState mResizeState = NOT_RESIZING;
 
   // Transparency
-  nsTransparencyMode mTransparencyMode = eTransparencyOpaque;
+  TransparencyMode mTransparencyMode = TransparencyMode::Opaque;
   nsIntRegion mPossiblyTransparentRegion;
   MARGINS mGlassMargins = {0, 0, 0, 0};
 
@@ -901,7 +922,13 @@ class nsWindow final : public nsBaseWidget {
 
   mozilla::DataMutex<Desktop> mDesktopId;
 
+  // If set, indicates the edge of the NC region we should clear to black
+  // on next paint.  One of: ABE_TOP, ABE_BOTTOM, ABE_LEFT or ABE_RIGHT.
+  mozilla::Maybe<UINT> mClearNCEdge;
+
   friend class nsWindowGfx;
+
+  static constexpr int kHiddenTaskbarSize = 2;
 };
 
 #endif  // WIDGET_WINDOWS_NSWINDOW_H_

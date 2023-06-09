@@ -192,6 +192,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(WorkerGlobalScopeBase,
                                                   DOMEventTargetHelper)
   tmp->AssertIsOnWorkerThread();
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mConsole)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mModuleLoader)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSerialEventTarget)
   tmp->TraverseObjectsInGlobal(cb);
   // If we already exited WorkerThreadPrimaryRunnable, we will find it
@@ -206,6 +207,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(WorkerGlobalScopeBase,
                                                 DOMEventTargetHelper)
   tmp->AssertIsOnWorkerThread();
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mConsole)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mModuleLoader)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mSerialEventTarget)
   tmp->UnlinkObjectsInGlobal();
   // If we already exited WorkerThreadPrimaryRunnable, we will find it
@@ -270,9 +272,10 @@ bool WorkerGlobalScopeBase::IsSharedMemoryAllowed() const {
   return mWorkerPrivate->IsSharedMemoryAllowed();
 }
 
-bool WorkerGlobalScopeBase::ShouldResistFingerprinting() const {
+bool WorkerGlobalScopeBase::ShouldResistFingerprinting(
+    RFPTarget aTarget /* = RFPTarget::Unknown */) const {
   AssertIsOnWorkerThread();
-  return mShouldResistFingerprinting;
+  return mShouldResistFingerprinting && nsRFPService::IsRFPEnabledFor(aTarget);
 }
 
 OriginTrials WorkerGlobalScopeBase::Trials() const {
@@ -509,12 +512,15 @@ already_AddRefed<WorkerNavigator> WorkerGlobalScope::GetExistingNavigator()
   return navigator.forget();
 }
 
-FontFaceSet* WorkerGlobalScope::Fonts() {
+FontFaceSet* WorkerGlobalScope::GetFonts(ErrorResult& aRv) {
   AssertIsOnWorkerThread();
 
   if (!mFontFaceSet) {
     mFontFaceSet = FontFaceSet::CreateForWorker(this, mWorkerPrivate);
-    MOZ_ASSERT(mFontFaceSet);
+    if (MOZ_UNLIKELY(!mFontFaceSet)) {
+      aRv.ThrowInvalidStateError("Couldn't acquire worker reference");
+      return nullptr;
+    }
   }
 
   return mFontFaceSet;
@@ -552,7 +558,11 @@ void WorkerGlobalScope::ImportScripts(JSContext* aCx,
         profiler_thread_is_being_profiled_for_markers()
             ? StringJoin(","_ns, aScriptURLs,
                          [](nsACString& dest, const auto& scriptUrl) {
-                           AppendUTF16toUTF8(scriptUrl, dest);
+                           AppendUTF16toUTF8(
+                               Substring(
+                                   scriptUrl, 0,
+                                   std::min(size_t(128), scriptUrl.Length())),
+                               dest);
                          })
             : nsAutoCString{});
     workerinternals::Load(mWorkerPrivate, std::move(stack), aScriptURLs,

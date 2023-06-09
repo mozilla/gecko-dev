@@ -8,11 +8,8 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   BrowserSearchTelemetry: "resource:///modules/BrowserSearchTelemetry.sys.mjs",
+  RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
   SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
-});
-
-XPCOMUtils.defineLazyModuleGetters(lazy, {
-  RemoteSettings: "resource://services-settings/remote-settings.js",
 });
 
 // The various histograms and scalars that we report to.
@@ -24,12 +21,47 @@ const SEARCH_TELEMETRY_PRIVATE_BROWSING_KEY_SUFFIX = "pb";
 
 const TELEMETRY_SETTINGS_KEY = "search-telemetry-v2";
 
+const impressionIdsWithoutEngagementsSet = new Set();
+
 XPCOMUtils.defineLazyGetter(lazy, "logConsole", () => {
   return console.createInstance({
     prefix: "SearchTelemetry",
     maxLogLevel: lazy.SearchUtils.loggingEnabled ? "Debug" : "Warn",
   });
 });
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "serpEventsEnabled",
+  "browser.search.serpEventTelemetry.enabled",
+  false
+);
+
+export var SearchSERPTelemetryUtils = {
+  ACTIONS: {
+    CLICKED: "clicked",
+    EXPANDED: "expanded",
+    SUBMITTED: "submitted",
+  },
+  COMPONENTS: {
+    AD_CAROUSEL: "ad_carousel",
+    AD_LINK: "ad_link",
+    AD_SIDEBAR: "ad_sidebar",
+    AD_SITELINK: "ad_sitelink",
+    INCONTENT_SEARCHBOX: "incontent_searchbox",
+    NON_ADS_LINK: "non_ads_link",
+    REFINED_SEARCH_BUTTONS: "refined_search_buttons",
+    SHOPPING_TAB: "shopping_tab",
+  },
+  ABANDONMENTS: {
+    TAB_CLOSE: "tab_close",
+    WINDOW_CLOSE: "window_close",
+    NAVIGATION: "navigation",
+  },
+  INCONTENT_SOURCES: {
+    SEARCHBOX: "follow_on_from_refine_on_incontent_search",
+  },
+};
 
 /**
  * TelemetryHandler is the main class handling Search Engine Result Page (SERP)
@@ -56,8 +88,9 @@ class TelemetryHandler {
   // _browserInfoByURL is a map of tracked search urls to objects containing:
   // * {object} info
   //   the search provider information associated with the url.
-  // * {WeakMap} browsers
-  //   a weak map of browsers that have the url loaded and their ad report state.
+  // * {WeakMap} browserTelemetryStateMap
+  //   a weak map of browsers that have the url loaded, their ad report state,
+  //   and their impression id.
   // * {integer} count
   //   a manual count of browsers logged.
   // We keep a weak map of browsers, in case we miss something on our counts
@@ -71,6 +104,34 @@ class TelemetryHandler {
   // _browserSourceMap is a map of the latest search source for a particular
   // browser - one of the KNOWN_SEARCH_SOURCES in BrowserSearchTelemetry.
   _browserSourceMap = new WeakMap();
+
+  /**
+   * A WeakMap whose key is a browser with value of a source type found in
+   * INCONTENT_SOURCES. Kept separate to avoid overlapping with legacy
+   * search sources. These sources are specific to the content of a search
+   * provider page rather than something from within the browser itself.
+   */
+  #browserContentSourceMap = new WeakMap();
+
+  /**
+   * Sets the source of a SERP visit from something that occured in content
+   * rather than from the browser.
+   *
+   * @param {browser} browser
+   *   The browser object associated with the page that should be a SERP.
+   * @param {string} type
+   *   The component type that started the load.
+   */
+  setBrowserContentSource(browser, type) {
+    switch (type) {
+      case SearchSERPTelemetryUtils.COMPONENTS.INCONTENT_SEARCHBOX:
+        this.#browserContentSourceMap.set(
+          browser,
+          SearchSERPTelemetryUtils.INCONTENT_SOURCES.SEARCHBOX
+        );
+        break;
+    }
+  }
 
   // _browserNewtabSessionMap is a map of the newtab session id for particular
   // browsers.
@@ -162,6 +223,28 @@ class TelemetryHandler {
   }
 
   /**
+   * Helper function for recording the reason for a Glean abandonment event.
+   *
+   * @param {string} impressionId
+   *    The impression id for the abandonment event about to be recorded.
+   * @param {string} reason
+   *    The reason the SERP is deemed abandoned.
+   *    One of SearchSERPTelemetryUtils.ABANDONMENTS.
+   */
+  recordAbandonmentTelemetry(impressionId, reason) {
+    impressionIdsWithoutEngagementsSet.delete(impressionId);
+
+    lazy.logConsole.debug(
+      `Recording an abandonment event for impression id ${impressionId} with reason: ${reason}`
+    );
+
+    Glean.serp.abandonment.record({
+      impression_id: impressionId,
+      reason,
+    });
+  }
+
+  /**
    * Handles the TabClose event received from the listeners.
    *
    * @param {object} event
@@ -174,7 +257,10 @@ class TelemetryHandler {
     }
 
     this._browserNewtabSessionMap.delete(event.target.linkedBrowser);
-    this.stopTrackingBrowser(event.target.linkedBrowser);
+    this.stopTrackingBrowser(
+      event.target.linkedBrowser,
+      SearchSERPTelemetryUtils.ABANDONMENTS.TAB_CLOSE
+    );
   }
 
   /**
@@ -210,13 +296,40 @@ class TelemetryHandler {
           r => new RegExp(r)
         );
       }
+      if (provider.extraPageRegexps) {
+        newProvider.extraPageRegexps = provider.extraPageRegexps.map(
+          r => new RegExp(r)
+        );
+      }
+
+      newProvider.nonAdsLinkRegexps = provider.nonAdsLinkRegexps?.length
+        ? provider.nonAdsLinkRegexps.map(r => new RegExp(r))
+        : [];
+      if (provider.shoppingTab?.regexp) {
+        newProvider.shoppingTab = {
+          selector: provider.shoppingTab.selector,
+          regexp: new RegExp(provider.shoppingTab.regexp),
+        };
+      }
       return newProvider;
     });
     this._contentHandler._searchProviderInfo = this._searchProviderInfo;
   }
 
+  reportPageAction(info, browser) {
+    this._contentHandler._reportPageAction(info, browser);
+  }
+
   reportPageWithAds(info, browser) {
     this._contentHandler._reportPageWithAds(info, browser);
+  }
+
+  reportPageWithAdImpressions(info, browser) {
+    this._contentHandler._reportPageWithAdImpressions(info, browser);
+  }
+
+  reportPageImpression(info, browser) {
+    this._contentHandler._reportPageImpression(info, browser);
   }
 
   /**
@@ -256,6 +369,15 @@ class TelemetryHandler {
       this._browserSourceMap.delete(browser);
     }
 
+    // If it's a SERP but doesn't have a browser source, the source might be
+    // from something that happened in content. We keep this separate from
+    // source because legacy telemetry should not change its reporting.
+    let inContentSource;
+    if (lazy.serpEventsEnabled && this.#browserContentSourceMap.has(browser)) {
+      inContentSource = this.#browserContentSourceMap.get(browser);
+      this.#browserContentSourceMap.delete(browser);
+    }
+
     let newtabSessionId;
     if (this._browserNewtabSessionMap.has(browser)) {
       newtabSessionId = this._browserNewtabSessionMap.get(browser);
@@ -263,18 +385,59 @@ class TelemetryHandler {
       // until we stop loading SERP pages or the tab is closed.
     }
 
+    let impressionId;
+    if (lazy.serpEventsEnabled) {
+      // The UUID generated by Services.uuid contains leading and trailing braces.
+      // Need to trim them first.
+      impressionId = Services.uuid
+        .generateUUID()
+        .toString()
+        .slice(1, -1);
+
+      impressionIdsWithoutEngagementsSet.add(impressionId);
+    }
+
     this._reportSerpPage(info, source, url);
 
     let item = this._browserInfoByURL.get(url);
 
+    let impressionInfo;
+    if (lazy.serpEventsEnabled) {
+      let partnerCode = "";
+      if (info.code != "none" && info.code != null) {
+        partnerCode = info.code;
+      }
+      impressionInfo = {
+        provider: info.provider,
+        tagged: info.type.startsWith("tagged"),
+        partnerCode,
+        source: inContentSource ?? source,
+        isShoppingPage: info.isShoppingPage,
+      };
+    }
+
     if (item) {
-      item.browsers.set(browser, "no ads reported");
+      item.browserTelemetryStateMap.set(browser, {
+        adsReported: false,
+        adImpressionsReported: false,
+        impressionId,
+        hrefToComponentMap: null,
+        impressionInfo,
+        searchBoxSubmitted: false,
+      });
       item.count++;
       item.source = source;
       item.newtabSessionId = newtabSessionId;
     } else {
       item = this._browserInfoByURL.set(url, {
-        browsers: new WeakMap().set(browser, "no ads reported"),
+        browserTelemetryStateMap: new WeakMap().set(browser, {
+          adsReported: false,
+          adImpressionsReported: false,
+          impressionId,
+          hrefToComponentMap: null,
+          impressionInfo,
+          searchBoxSubmitted: false,
+        }),
         info,
         count: 1,
         source,
@@ -285,14 +448,25 @@ class TelemetryHandler {
 
   /**
    * Stops tracking of a tab, for example the tab has loaded a different URL.
+   * Also records a Glean abandonment event if appropriate.
    *
    * @param {object} browser The browser associated with the tab to stop being
-   *                         tracked.
+   *   tracked.
+   * @param {string} abandonmentReason
+   *   An optional parameter that specifies why the browser is deemed abandoned.
+   *   The reason will be recorded as part of Glean abandonment telemetry.
+   *   One of SearchSERPTelemetryUtils.ABANDONMENTS.
    */
-  stopTrackingBrowser(browser) {
+  stopTrackingBrowser(browser, abandonmentReason) {
     for (let [url, item] of this._browserInfoByURL) {
-      if (item.browsers.has(browser)) {
-        item.browsers.delete(browser);
+      if (item.browserTelemetryStateMap.has(browser)) {
+        let impressionId = item.browserTelemetryStateMap.get(browser)
+          .impressionId;
+        if (impressionIdsWithoutEngagementsSet.has(impressionId)) {
+          this.recordAbandonmentTelemetry(impressionId, abandonmentReason);
+        }
+
+        item.browserTelemetryStateMap.delete(browser);
         item.count--;
       }
 
@@ -445,7 +619,10 @@ class TelemetryHandler {
    */
   _unregisterWindow(win) {
     for (let tab of win.gBrowser.tabs) {
-      this.stopTrackingBrowser(tab);
+      this.stopTrackingBrowser(
+        tab.linkedBrowser,
+        SearchSERPTelemetryUtils.ABANDONMENTS.WINDOW_CLOSE
+      );
     }
 
     win.gBrowser.tabContainer.removeEventListener("TabClose", this);
@@ -542,7 +719,16 @@ class TelemetryHandler {
         }
       }
     }
-    return { provider: searchProviderInfo.telemetryId, type, code };
+    let isShoppingPage = false;
+    if (lazy.serpEventsEnabled && searchProviderInfo.shoppingTab?.regexp) {
+      isShoppingPage = searchProviderInfo.shoppingTab.regexp.test(url);
+    }
+    return {
+      provider: searchProviderInfo.telemetryId,
+      type,
+      code,
+      isShoppingPage,
+    };
   }
 
   /**
@@ -562,8 +748,7 @@ class TelemetryHandler {
       payload,
       1
     );
-
-    lazy.logConsole.debug("Counting", payload, "for", url);
+    lazy.logConsole.debug("Impression:", payload, url);
   }
 }
 
@@ -743,18 +928,128 @@ class ContentHandler {
         return provider.telemetryId == providerInfo;
       });
 
+      // The SERP "clicked" action is implied if a user loads another page from
+      // the context of a SERP. At this point, we don't know if the request is
+      // from a SERP but we want to avoid inspecting requests that are not
+      // documents, or not a top level load.
+      if (
+        lazy.serpEventsEnabled &&
+        channel.isDocument &&
+        channel.loadInfo.isTopLevelLoad &&
+        !wrappedChannel._countedClick
+      ) {
+        let start = Cu.now();
+
+        // Step 1: Check if the browser associated with the request was a
+        // tracked SERP.
+        let browser = wrappedChannel.browserElement;
+        let telemetryState;
+        if (item.browserTelemetryStateMap.has(browser)) {
+          // Current browser is tracked.
+          telemetryState = item.browserTelemetryStateMap.get(browser);
+        } else if (browser) {
+          // Current browser might have been created by a browser in a
+          // different tab.
+          let tabBrowser = browser.getTabBrowser();
+          let tab = tabBrowser.getTabForBrowser(browser).openerTab;
+          telemetryState = item.browserTelemetryStateMap.get(tab.linkedBrowser);
+        }
+
+        // Step 2: If we have telemetryState, the browser object must be
+        // associated with another browser that is tracked. Try to find the
+        // component type on the SERP responsible for the request.
+        // Exceptions:
+        // - If a searchbox was used to initiate the load, don't record another
+        //   engagement because the event was logged elsewhere.
+        // - If the ad impression hasn't been recorded yet, we have no way of
+        //   knowing precisely what kind of component was selected.
+        if (
+          telemetryState &&
+          telemetryState.adImpressionsReported &&
+          !telemetryState.searchBoxSubmitted
+        ) {
+          // Determine the "type" of the link.
+          let type = telemetryState.hrefToComponentMap?.get(URL);
+          // The SERP provider may have modified the url with different query
+          // parameters, so try checking all the recorded hrefs to see if any
+          // look similar.
+          if (!type) {
+            for (let [
+              href,
+              componentType,
+            ] of telemetryState.hrefToComponentMap.entries()) {
+              if (URL.startsWith(href)) {
+                type = componentType;
+                break;
+              }
+            }
+          }
+          // Check if the href matches a non-ads link. Do this after looking at
+          // hrefToComponentMap because a link that looks like a non-ad might
+          // have a more specific component type.
+          if (!type) {
+            type = info.nonAdsLinkRegexps.some(r => r.test(URL))
+              ? SearchSERPTelemetryUtils.COMPONENTS.NON_ADS_LINK
+              : "";
+          }
+          // The SERP may have moved onto another page that matches a SERP page
+          // e.g. Related Search
+          if (!type) {
+            type = info.searchPageRegexp?.test(URL)
+              ? SearchSERPTelemetryUtils.COMPONENTS.NON_ADS_LINK
+              : "";
+          }
+          // There might be other types of pages on a SERP that don't fall
+          // neatly into expected non-ad expressions or SERPs, such as Image
+          // Search, Maps, etc.
+          if (!type) {
+            type = info.extraPageRegexps?.some(r => r.test(URL))
+              ? SearchSERPTelemetryUtils.COMPONENTS.NON_ADS_LINK
+              : "";
+          }
+
+          // Step 3: If we have a type, record an engagement.
+          // Exceptions:
+          // - Related searches on some SERPs can be encoded with a URL that
+          //   match a nonAdsLinkRegexp. This means we'll have seen the link
+          //   twice, once with the nonAdsLinkRegexp and again with a SERP URL
+          //   matching a searchPageRegexp. We don't want to record the
+          //   engagement twice, so if the origin of the request was
+          //   nonAdsLinkRegexp, skip the categorization. The reason why we
+          //   don't do this check earlier is because if the final URL is a
+          //   SERP, we'll want to define the source property of the subsequent
+          //   SERP impression.
+          if (type && !info.nonAdsLinkRegexps.some(r => r.test(originURL))) {
+            impressionIdsWithoutEngagementsSet.delete(
+              telemetryState.impressionId
+            );
+            Glean.serp.engagement.record({
+              impression_id: telemetryState.impressionId,
+              action: SearchSERPTelemetryUtils.ACTIONS.CLICKED,
+              target: type,
+            });
+            lazy.logConsole.debug("Counting click:", {
+              impressionId: telemetryState.impressionId,
+              type,
+              URL,
+            });
+            wrappedChannel._countedClick = true;
+          } else if (!type) {
+            lazy.logConsole.warn(`Could not find a component type for ${URL}`);
+          }
+        }
+        ChromeUtils.addProfilerMarker(
+          "SearchSERPTelemetry._observeActivity",
+          start,
+          "Maybe record user engagement."
+        );
+      }
+
       if (!info.extraAdServersRegexps?.some(regex => regex.test(URL))) {
         return;
       }
 
       try {
-        lazy.logConsole.debug(
-          "Counting ad click in page for",
-          info.telemetryId,
-          item.source,
-          originURL,
-          URL
-        );
         Services.telemetry.keyedScalarAdd(
           SEARCH_AD_CLICKS_SCALAR_BASE + item.source,
           `${info.telemetryId}:${item.info.type}`,
@@ -770,6 +1065,12 @@ class ContentHandler {
             telemetry_id: item.info.provider,
           });
         }
+
+        lazy.logConsole.debug("Counting ad click in page for:", {
+          source: item.source,
+          originURL,
+          URL,
+        });
       } catch (e) {
         console.error(e);
       }
@@ -800,8 +1101,8 @@ class ContentHandler {
       return;
     }
 
-    let adReportState = item.browsers.get(browser);
-    if (adReportState == "ad reported") {
+    let telemetryState = item.browserTelemetryStateMap.get(browser);
+    if (telemetryState.adsReported) {
       lazy.logConsole.debug(
         "Ad was previously reported for browser with URI",
         info.url
@@ -822,7 +1123,7 @@ class ContentHandler {
       1
     );
 
-    item.browsers.set(browser, "ad reported");
+    telemetryState.adsReported = true;
 
     if (item.newtabSessionId) {
       Glean.newtabSearchAd.impression.record({
@@ -832,6 +1133,137 @@ class ContentHandler {
         is_tagged: item.info.type.startsWith("tagged"),
         telemetry_id: item.info.provider,
       });
+    }
+  }
+
+  /**
+   * Logs ad impression telemetry for a page with adverts, if it is
+   * one of the partner search provider pages that we're tracking.
+   *
+   * @param {object} info
+   *     The search provider information for the page.
+   * @param {string} info.url
+   *     The url of the page.
+   * @param {Map<string, object>} info.adImpressions
+   *     A map of ad impressions found for the page, where the key
+   *     is the type of ad component and the value is an object
+   *     containing the number of ads that were loaded, visible,
+   *     and hidden.
+   * @param {Map<string, string>} info.hrefToComponentMap
+   *     A map of hrefs to their component type. Contains both ads
+   *     and non-ads.
+   * @param {object} browser
+   *     The browser associated with the page.
+   */
+  _reportPageWithAdImpressions(info, browser) {
+    let item = this._findBrowserItemForURL(info.url);
+    if (!item) {
+      return;
+    }
+    let telemetryState = item.browserTelemetryStateMap.get(browser);
+    if (
+      lazy.serpEventsEnabled &&
+      info.adImpressions &&
+      telemetryState &&
+      !telemetryState.adImpressionsReported
+    ) {
+      for (let [componentType, data] of info.adImpressions.entries()) {
+        lazy.logConsole.debug("Counting ad:", { type: componentType, ...data });
+        Glean.serp.adImpression.record({
+          impression_id: telemetryState.impressionId,
+          component: componentType,
+          ads_loaded: data.adsLoaded,
+          ads_visible: data.adsVisible,
+          ads_hidden: data.adsHidden,
+        });
+      }
+      telemetryState.hrefToComponentMap = info.hrefToComponentMap;
+      telemetryState.adImpressionsReported = true;
+      Services.obs.notifyObservers(null, "reported-page-with-ad-impressions");
+    }
+  }
+
+  /**
+   * Records a page action from a SERP page. Normally, actions are tracked in
+   * parent process by observing network events but some actions are not
+   * possible to detect outside of subscribing to the child process.
+   *
+   * @param {object} info
+   *   The search provider infomation for the page.
+   * @param {string} info.type
+   *   The component type that was clicked on.
+   * @param {string} info.action
+   *   The action taken on the page.
+   * @param {object} browser
+   *   The browser associated with the page.
+   */
+  _reportPageAction(info, browser) {
+    let item = this._findBrowserItemForURL(info.url);
+    if (!item) {
+      return;
+    }
+    let telemetryState = item.browserTelemetryStateMap.get(browser);
+    let impressionId = telemetryState?.impressionId;
+    if (info.type && impressionId) {
+      lazy.logConsole.debug(`Recorded page action:`, {
+        impressionId: telemetryState.impressionId,
+        type: info.type,
+        action: info.action,
+      });
+      Glean.serp.engagement.record({
+        impression_id: impressionId,
+        action: info.action,
+        target: info.type,
+      });
+      impressionIdsWithoutEngagementsSet.delete(impressionId);
+      // In-content searches are not be categorized with a type, so they will
+      // not be picked up in the network processes.
+      if (
+        info.type == SearchSERPTelemetryUtils.COMPONENTS.INCONTENT_SEARCHBOX &&
+        info.action == SearchSERPTelemetryUtils.ACTIONS.SUBMITTED
+      ) {
+        telemetryState.searchBoxSubmitted = true;
+        SearchSERPTelemetry.setBrowserContentSource(browser, info.type);
+      }
+    } else {
+      lazy.logConsole.warn(
+        "Expected to report a",
+        info.action,
+        "engagement for",
+        info.url,
+        "but couldn't find an impression id."
+      );
+    }
+  }
+
+  _reportPageImpression(info, browser) {
+    let item = this._findBrowserItemForURL(info.url);
+    let telemetryState = item.browserTelemetryStateMap.get(browser);
+    if (!telemetryState?.impressionInfo) {
+      lazy.logConsole.debug(
+        "Could not find telemetry state or impression info."
+      );
+      return;
+    }
+    let impressionId = telemetryState.impressionId;
+    if (impressionId) {
+      let impressionInfo = telemetryState.impressionInfo;
+      Glean.serp.impression.record({
+        impression_id: impressionId,
+        provider: impressionInfo.provider,
+        tagged: impressionInfo.tagged,
+        partner_code: impressionInfo.partnerCode,
+        source: impressionInfo.source,
+        shopping_tab_displayed: info.hasShoppingTab,
+        is_shopping_page: impressionInfo.isShoppingPage,
+      });
+      lazy.logConsole.debug(`Reported Impression:`, {
+        impressionId,
+        ...impressionInfo,
+        hasShopping: info.hasShoppingTab,
+      });
+    } else {
+      lazy.logConsole.debug("Could not find an impression id.");
     }
   }
 }

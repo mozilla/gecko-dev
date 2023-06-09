@@ -149,34 +149,6 @@ void vp9_highbd_quantize_fp_32x32_c(
 }
 #endif
 
-void vp9_regular_quantize_b_4x4(MACROBLOCK *x, int plane, int block,
-                                const int16_t *scan, const int16_t *iscan) {
-  MACROBLOCKD *const xd = &x->e_mbd;
-  struct macroblock_plane *p = &x->plane[plane];
-  struct macroblockd_plane *pd = &xd->plane[plane];
-  tran_low_t *qcoeff = BLOCK_OFFSET(p->qcoeff, block),
-             *dqcoeff = BLOCK_OFFSET(pd->dqcoeff, block);
-  const int n_coeffs = 4 * 4;
-
-  if (x->skip_block) {
-    memset(qcoeff, 0, n_coeffs * sizeof(*qcoeff));
-    memset(dqcoeff, 0, n_coeffs * sizeof(*dqcoeff));
-    return;
-  }
-
-#if CONFIG_VP9_HIGHBITDEPTH
-  if (xd->cur_buf->flags & YV12_FLAG_HIGHBITDEPTH) {
-    vpx_highbd_quantize_b(BLOCK_OFFSET(p->coeff, block), n_coeffs, p->zbin,
-                          p->round, p->quant, p->quant_shift, qcoeff, dqcoeff,
-                          pd->dequant, &p->eobs[block], scan, iscan);
-    return;
-  }
-#endif
-  vpx_quantize_b(BLOCK_OFFSET(p->coeff, block), n_coeffs, p->zbin, p->round,
-                 p->quant, p->quant_shift, qcoeff, dqcoeff, pd->dequant,
-                 &p->eobs[block], scan, iscan);
-}
-
 static void invert_quant(int16_t *quant, int16_t *shift, int d) {
   unsigned t;
   int l, m;
@@ -277,8 +249,7 @@ void vp9_init_plane_quantizers(VP9_COMP *cpi, MACROBLOCK *x) {
   // Y
   x->plane[0].quant = quants->y_quant[qindex];
   x->plane[0].quant_fp = quants->y_quant_fp[qindex];
-  memcpy(x->plane[0].round_fp, quants->y_round_fp[qindex],
-         8 * sizeof(*(x->plane[0].round_fp)));
+  x->plane[0].round_fp = quants->y_round_fp[qindex];
   x->plane[0].quant_shift = quants->y_quant_shift[qindex];
   x->plane[0].zbin = quants->y_zbin[qindex];
   x->plane[0].round = quants->y_round[qindex];
@@ -290,8 +261,7 @@ void vp9_init_plane_quantizers(VP9_COMP *cpi, MACROBLOCK *x) {
   for (i = 1; i < 3; i++) {
     x->plane[i].quant = quants->uv_quant[qindex];
     x->plane[i].quant_fp = quants->uv_quant_fp[qindex];
-    memcpy(x->plane[i].round_fp, quants->uv_round_fp[qindex],
-           8 * sizeof(*(x->plane[i].round_fp)));
+    x->plane[i].round_fp = quants->uv_round_fp[qindex];
     x->plane[i].quant_shift = quants->uv_quant_shift[qindex];
     x->plane[i].zbin = quants->uv_zbin[qindex];
     x->plane[i].round = quants->uv_round[qindex];

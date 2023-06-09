@@ -26,6 +26,7 @@
 #include "Pivot.h"
 #include "Relation.h"
 #include "RelationType.h"
+#include "TextLeafRange.h"
 #include "xpcAccessibleDocument.h"
 
 #ifdef A11Y_LOG
@@ -242,7 +243,7 @@ void RemoteAccessibleBase<Derived>::Value(nsString& aValue) const {
 
     if (HasNumericValue()) {
       double checkValue = CurValue();
-      if (!IsNaN(checkValue)) {
+      if (!std::isnan(checkValue)) {
         aValue.AppendFloat(checkValue);
       }
       return;
@@ -329,12 +330,107 @@ double RemoteAccessibleBase<Derived>::Step() const {
 }
 
 template <class Derived>
+bool RemoteAccessibleBase<Derived>::SetCurValue(double aValue) {
+  if (!HasNumericValue() || IsProgress()) {
+    return false;
+  }
+
+  if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
+    // XXX: If cache is disabled there is a slight regression
+    // where we don't check the readonly/unavailable state or the min/max
+    // values. This will go away once cache is enabled by default.
+    const uint32_t kValueCannotChange = states::READONLY | states::UNAVAILABLE;
+    if (State() & kValueCannotChange) {
+      return false;
+    }
+
+    double checkValue = MinValue();
+    if (!std::isnan(checkValue) && aValue < checkValue) {
+      return false;
+    }
+
+    checkValue = MaxValue();
+    if (!std::isnan(checkValue) && aValue > checkValue) {
+      return false;
+    }
+  }
+
+  Unused << mDoc->SendSetCurValue(mID, aValue);
+  return true;
+}
+
+template <class Derived>
+bool RemoteAccessibleBase<Derived>::ContainsPoint(int32_t aX, int32_t aY) {
+  if (!BoundsWithOffset(Nothing(), true).Contains(aX, aY)) {
+    return false;
+  }
+  if (!IsTextLeaf()) {
+    return true;
+  }
+  // This is a text leaf. The text might wrap across lines, which means our
+  // rect might cover a wider area than the actual text. For example, if the
+  // text begins in the middle of the first line and wraps on to the second,
+  // the rect will cover the start of the first line and the end of the second.
+  auto lines = GetCachedTextLines();
+  if (!lines) {
+    // This means the text is empty or occupies a single line (but does not
+    // begin the line). In that case, the Bounds check above is sufficient,
+    // since there's only one rect.
+    return true;
+  }
+  uint32_t length = lines->Length();
+  MOZ_ASSERT(length > 0,
+             "Line starts shouldn't be in cache if there aren't any");
+  if (length == 0 || (length == 1 && (*lines)[0] == 0)) {
+    // This means the text begins and occupies a single line. Again, the Bounds
+    // check above is sufficient.
+    return true;
+  }
+  // Walk the lines of the text. Even if this text doesn't start at the
+  // beginning of a line (i.e. lines[0] > 0), we always want to consider its
+  // first line.
+  int32_t lineStart = 0;
+  for (uint32_t index = 0; index <= length; ++index) {
+    int32_t lineEnd;
+    if (index < length) {
+      int32_t nextLineStart = (*lines)[index];
+      if (nextLineStart == 0) {
+        // This Accessible starts at the beginning of a line. Here, we always
+        // treat 0 as the first line start anyway.
+        MOZ_ASSERT(index == 0);
+        continue;
+      }
+      lineEnd = nextLineStart - 1;
+    } else {
+      // This is the last line.
+      lineEnd = static_cast<int32_t>(nsAccUtils::TextLength(this)) - 1;
+    }
+    MOZ_ASSERT(lineEnd >= lineStart);
+    nsRect lineRect = GetCachedCharRect(lineStart);
+    if (lineEnd > lineStart) {
+      lineRect.UnionRect(lineRect, GetCachedCharRect(lineEnd));
+    }
+    if (BoundsWithOffset(Some(lineRect), true).Contains(aX, aY)) {
+      return true;
+    }
+    lineStart = lineEnd + 1;
+  }
+  return false;
+}
+
+template <class Derived>
 Accessible* RemoteAccessibleBase<Derived>::ChildAtPoint(
     int32_t aX, int32_t aY, LocalAccessible::EWhichChildAtPoint aWhichChild) {
+  // Elements that are partially on-screen should have their bounds masked by
+  // their containing scroll area so hittesting yields results that are
+  // consistent with the content's visual representation. Pass this value to
+  // bounds calculation functions to indicate that we're hittesting.
+  const bool hitTesting = true;
+
   if (IsOuterDoc() && aWhichChild == EWhichChildAtPoint::DirectChild) {
     // This is an iframe, which is as deep as the viewport cache goes. The
     // caller wants a direct child, which can only be the embedded document.
-    if (Bounds().Contains(aX, aY)) {
+    if (BoundsWithOffset(Nothing(), hitTesting).Contains(aX, aY)) {
       return RemoteFirstChild();
     }
     return nullptr;
@@ -369,7 +465,7 @@ Accessible* RemoteAccessibleBase<Derived>::ChildAtPoint(
 
         if (acc->IsOuterDoc() &&
             aWhichChild == EWhichChildAtPoint::DeepestChild &&
-            acc->Bounds().Contains(aX, aY)) {
+            acc->BoundsWithOffset(Nothing(), hitTesting).Contains(aX, aY)) {
           // acc is an iframe, which is as deep as the viewport cache goes. This
           // iframe contains the requested point.
           RemoteAccessible* innerDoc = acc->RemoteFirstChild();
@@ -398,7 +494,7 @@ Accessible* RemoteAccessibleBase<Derived>::ChildAtPoint(
           break;
         }
 
-        if (acc->Bounds().Contains(aX, aY)) {
+        if (acc->ContainsPoint(aX, aY)) {
           // Because our rects are in hittesting order, the
           // first match we encounter is guaranteed to be the
           // deepest match.
@@ -432,7 +528,7 @@ Accessible* RemoteAccessibleBase<Derived>::ChildAtPoint(
     lastMatch = nullptr;
   }
 
-  if (!lastMatch && Bounds().Contains(aX, aY)) {
+  if (!lastMatch && BoundsWithOffset(Nothing(), hitTesting).Contains(aX, aY)) {
     // Even though the hit target isn't inside `this`, the point is still
     // within our bounds, so fall back to `this`.
     return this;
@@ -463,19 +559,19 @@ Maybe<nsRect> RemoteAccessibleBase<Derived>::RetrieveCachedBounds() const {
 
 template <class Derived>
 void RemoteAccessibleBase<Derived>::ApplyCrossDocOffset(nsRect& aBounds) const {
-  Accessible* parentAcc = Parent();
-  if (!parentAcc || !parentAcc->IsRemote() || !parentAcc->IsOuterDoc()) {
-    return;
-  }
-
   if (!IsDoc()) {
     // We should only apply cross-doc offsets to documents. If we're anything
     // else, return early here.
     return;
   }
 
+  RemoteAccessible* parentAcc = RemoteParent();
+  if (!parentAcc || !parentAcc->IsOuterDoc()) {
+    return;
+  }
+
   Maybe<const nsTArray<int32_t>&> maybeOffset =
-      parentAcc->AsRemote()->mCachedFields->GetAttribute<nsTArray<int32_t>>(
+      parentAcc->mCachedFields->GetAttribute<nsTArray<int32_t>>(
           nsGkAtoms::crossorigin);
   if (!maybeOffset) {
     return;
@@ -490,7 +586,7 @@ void RemoteAccessibleBase<Derived>::ApplyCrossDocOffset(nsRect& aBounds) const {
 
 template <class Derived>
 bool RemoteAccessibleBase<Derived>::ApplyTransform(
-    nsRect& aCumulativeBounds, const nsRect& aParentRelativeBounds) const {
+    nsRect& aCumulativeBounds) const {
   // First, attempt to retrieve the transform from the cache.
   Maybe<const UniquePtr<gfx::Matrix4x4>&> maybeTransform =
       mCachedFields->GetAttribute<UniquePtr<gfx::Matrix4x4>>(
@@ -498,13 +594,6 @@ bool RemoteAccessibleBase<Derived>::ApplyTransform(
   if (!maybeTransform) {
     return false;
   }
-
-  // The transform matrix we cache is meant to operate on rects
-  // within the coordinate space of the frame to which the
-  // transform is applied (self-relative rects). We cache bounds
-  // relative to some ancestor. Remove the relative offset before
-  // transforming. The transform matrix will add it back in.
-  aCumulativeBounds.MoveBy(-aParentRelativeBounds.TopLeft());
 
   auto mtxInPixels = gfx::Matrix4x4Typed<CSSPixel, CSSPixel>::FromUnknownMatrix(
       *(*maybeTransform));
@@ -519,12 +608,12 @@ bool RemoteAccessibleBase<Derived>::ApplyTransform(
 }
 
 template <class Derived>
-void RemoteAccessibleBase<Derived>::ApplyScrollOffset(nsRect& aBounds) const {
+bool RemoteAccessibleBase<Derived>::ApplyScrollOffset(nsRect& aBounds) const {
   Maybe<const nsTArray<int32_t>&> maybeScrollPosition =
       mCachedFields->GetAttribute<nsTArray<int32_t>>(nsGkAtoms::scrollPosition);
 
   if (!maybeScrollPosition || maybeScrollPosition->Length() != 2) {
-    return;
+    return false;
   }
   // Our retrieved value is in app units, so we don't need to do any
   // unit conversion here.
@@ -536,6 +625,11 @@ void RemoteAccessibleBase<Derived>::ApplyScrollOffset(nsRect& aBounds) const {
   nsPoint scrollOffset(-scrollPosition[0], -scrollPosition[1]);
 
   aBounds.MoveBy(scrollOffset.x, scrollOffset.y);
+
+  // Return true here even if the scroll offset was 0,0 because the RV is used
+  // as a scroll container indicator. Non-scroll containers won't have cached
+  // scroll position.
+  return true;
 }
 
 template <class Derived>
@@ -555,11 +649,26 @@ nsRect RemoteAccessibleBase<Derived>::BoundsInAppUnits() const {
 }
 
 template <class Derived>
+bool RemoteAccessibleBase<Derived>::IsFixedPos() const {
+  MOZ_ASSERT(mCachedFields);
+  if (auto maybePosition =
+          mCachedFields->GetAttribute<RefPtr<nsAtom>>(nsGkAtoms::position)) {
+    return *maybePosition == nsGkAtoms::fixed;
+  }
+
+  return false;
+}
+
+template <class Derived>
 LayoutDeviceIntRect RemoteAccessibleBase<Derived>::BoundsWithOffset(
-    Maybe<nsRect> aOffset) const {
+    Maybe<nsRect> aOffset, bool aBoundsAreForHittesting) const {
   Maybe<nsRect> maybeBounds = RetrieveCachedBounds();
   if (maybeBounds) {
     nsRect bounds = *maybeBounds;
+    // maybeBounds is parent-relative. However, the transform matrix we cache
+    // (if any) is meant to operate on self-relative rects. Therefore, make
+    // bounds self-relative until after we transform.
+    bounds.MoveTo(0, 0);
     const DocAccessibleParent* topDoc = IsDoc() ? AsDoc() : nullptr;
 
     if (aOffset.isSome()) {
@@ -569,13 +678,22 @@ LayoutDeviceIntRect RemoteAccessibleBase<Derived>::BoundsWithOffset(
       bounds.SetRectY(bounds.y + internalRect.y, internalRect.height);
     }
 
-    ApplyCrossDocOffset(bounds);
+    Unused << ApplyTransform(bounds);
+    // Now apply the parent-relative offset.
+    bounds.MoveBy(maybeBounds->TopLeft());
 
-    Unused << ApplyTransform(bounds, *maybeBounds);
+    ApplyCrossDocOffset(bounds);
 
     LayoutDeviceIntRect devPxBounds;
     const Accessible* acc = Parent();
+    bool encounteredFixedContainer = IsFixedPos();
     while (acc && acc->IsRemote()) {
+      // Return early if we're hit testing and our cumulative bounds are empty,
+      // since walking the ancestor chain won't produce any hits.
+      if (aBoundsAreForHittesting && bounds.IsEmpty()) {
+        return LayoutDeviceIntRect{};
+      }
+
       RemoteAccessible* remoteAcc = const_cast<Accessible*>(acc)->AsRemote();
 
       if (Maybe<nsRect> maybeRemoteBounds = remoteAcc->RetrieveCachedBounds()) {
@@ -599,24 +717,55 @@ LayoutDeviceIntRect RemoteAccessibleBase<Derived>::BoundsWithOffset(
           topDoc = remoteAcc->AsDoc();
         }
 
-        // We don't account for the document offset of iframes when computing
-        // parent-relative bounds. Instead, we store this value separately on
-        // all iframes and apply it here. See the comments in
+        // We don't account for the document offset of iframes when
+        // computing parent-relative bounds. Instead, we store this value
+        // separately on all iframes and apply it here. See the comments in
         // LocalAccessible::BundleFieldsForCache where we set the
         // nsGkAtoms::crossorigin attribute.
         remoteAcc->ApplyCrossDocOffset(remoteBounds);
+        if (!encounteredFixedContainer) {
+          // Apply scroll offset, if applicable. Only the contents of an
+          // element are affected by its scroll offset, which is why this call
+          // happens in this loop instead of both inside and outside of
+          // the loop (like ApplyTransform).
+          // Never apply scroll offsets past a fixed container.
+          const bool hasScrollArea = remoteAcc->ApplyScrollOffset(bounds);
 
-        // Apply scroll offset, if applicable. Only the contents of an
-        // element are affected by its scroll offset, which is why this call
-        // happens in this loop instead of both inside and outside of
-        // the loop (like ApplyTransform).
-        remoteAcc->ApplyScrollOffset(remoteBounds);
+          // If we are hit testing and the Accessible has a scroll area, ensure
+          // that the bounds we've calculated so far are constrained to the
+          // bounds of the scroll area. Without this, we'll "hit" the off-screen
+          // portions of accs that are are partially (but not fully) within the
+          // scroll area.
+          if (aBoundsAreForHittesting && hasScrollArea) {
+            nsRect selfRelativeScrollBounds(0, 0, remoteBounds.width,
+                                            remoteBounds.height);
+            bounds = bounds.SafeIntersect(selfRelativeScrollBounds);
+          }
+        }
+        if (remoteAcc->IsDoc()) {
+          // Fixed elements are document relative, so if we've hit a
+          // document we're now subject to that document's styling
+          // (including scroll offsets that operate on it).
+          // This ordering is important, we don't want to apply scroll
+          // offsets on this doc's content.
+          encounteredFixedContainer = false;
+        }
+        if (!encounteredFixedContainer) {
+          // The transform matrix we cache (if any) is meant to operate on
+          // self-relative rects. Therefore, we must apply the transform before
+          // we make bounds parent-relative.
+          Unused << remoteAcc->ApplyTransform(bounds);
+          // Regardless of whether this is a doc, we should offset `bounds`
+          // by the bounds retrieved here. This is how we build screen
+          // coordinates from relative coordinates.
+          bounds.MoveBy(remoteBounds.X(), remoteBounds.Y());
+        }
 
-        // Regardless of whether this is a doc, we should offset `bounds`
-        // by the bounds retrieved here. This is how we build screen
-        // coordinates from relative coordinates.
-        bounds.MoveBy(remoteBounds.X(), remoteBounds.Y());
-        Unused << remoteAcc->ApplyTransform(bounds, remoteBounds);
+        if (remoteAcc->IsFixedPos()) {
+          encounteredFixedContainer = true;
+        }
+        // we can't just break here if we're scroll suppressed because we still
+        // need to find the top doc.
       }
       acc = acc->Parent();
     }
@@ -1032,32 +1181,34 @@ RemoteAccessibleBase<Derived>::GetCachedTextLines() {
 }
 
 template <class Derived>
-Maybe<nsTArray<nsRect>> RemoteAccessibleBase<Derived>::GetCachedCharData() {
+nsRect RemoteAccessibleBase<Derived>::GetCachedCharRect(int32_t aOffset) {
   MOZ_ASSERT(IsText());
   if (!mCachedFields) {
-    return Nothing();
+    return nsRect();
   }
 
   if (Maybe<const nsTArray<int32_t>&> maybeCharData =
           mCachedFields->GetAttribute<nsTArray<int32_t>>(
               nsGkAtoms::characterData)) {
     const nsTArray<int32_t>& charData = *maybeCharData;
-    nsTArray<nsRect> rects;
-    for (int i = 0; i < static_cast<int32_t>(charData.Length()); i += 4) {
-      nsRect r(charData[i], charData[i + 1], charData[i + 2], charData[i + 3]);
-      rects.AppendElement(r);
+    const int32_t index = aOffset * kNumbersInRect;
+    if (index < static_cast<int32_t>(charData.Length())) {
+      return nsRect(charData[index], charData[index + 1], charData[index + 2],
+                    charData[index + 3]);
     }
-    return Some(std::move(rects));
+    // It is valid for a client to call this with an offset 1 after the last
+    // character because of the insertion point at the end of text boxes.
+    MOZ_ASSERT(index == static_cast<int32_t>(charData.Length()));
   }
 
-  return Nothing();
+  return nsRect();
 }
 
 template <class Derived>
 void RemoteAccessibleBase<Derived>::DOMNodeID(nsString& aID) const {
   if (mCachedFields) {
     mCachedFields->GetAttribute(nsGkAtoms::id, aID);
-    VERIFY_CACHE(CacheDomain::DOMNodeID);
+    VERIFY_CACHE(CacheDomain::DOMNodeIDAndClass);
   }
 }
 
@@ -1270,6 +1421,20 @@ already_AddRefed<AccAttributes> RemoteAccessibleBase<Derived>::Attributes() {
     if (!id.IsEmpty()) {
       attributes->SetAttribute(nsGkAtoms::id, std::move(id));
     }
+
+    nsString className;
+    mCachedFields->GetAttribute(nsGkAtoms::_class, className);
+    if (!className.IsEmpty()) {
+      attributes->SetAttribute(nsGkAtoms::_class, std::move(className));
+    }
+
+    if (IsImage()) {
+      nsString src;
+      mCachedFields->GetAttribute(nsGkAtoms::src, src);
+      if (!src.IsEmpty()) {
+        attributes->SetAttribute(nsGkAtoms::src, std::move(src));
+      }
+    }
   }
 
   nsAutoString name;
@@ -1298,6 +1463,19 @@ nsAtom* RemoteAccessibleBase<Derived>::TagName() const {
     if (auto tag =
             mCachedFields->GetAttribute<RefPtr<nsAtom>>(nsGkAtoms::tag)) {
       return *tag;
+    }
+  }
+
+  return nullptr;
+}
+
+template <class Derived>
+already_AddRefed<nsAtom> RemoteAccessibleBase<Derived>::InputType() const {
+  if (mCachedFields) {
+    if (auto inputType = mCachedFields->GetAttribute<RefPtr<nsAtom>>(
+            nsGkAtoms::textInputType)) {
+      RefPtr<nsAtom> result = *inputType;
+      return result.forget();
     }
   }
 
@@ -1448,6 +1626,18 @@ template <class Derived>
 void RemoteAccessibleBase<Derived>::SelectionRanges(
     nsTArray<TextRange>* aRanges) const {
   Document()->SelectionRanges(aRanges);
+}
+
+template <class Derived>
+bool RemoteAccessibleBase<Derived>::RemoveFromSelection(int32_t aSelectionNum) {
+  MOZ_ASSERT(IsHyperText());
+  if (SelectionCount() <= aSelectionNum) {
+    return false;
+  }
+
+  Unused << mDoc->SendRemoveTextSelection(mID, aSelectionNum);
+
+  return true;
 }
 
 template <class Derived>
@@ -1744,6 +1934,16 @@ Maybe<int32_t> RemoteAccessibleBase<Derived>::GetIntARIAAttr(
     }
   }
   return Nothing();
+}
+
+template <class Derived>
+void RemoteAccessibleBase<Derived>::Language(nsAString& aLocale) {
+  if (!IsHyperText()) {
+    return;
+  }
+  if (auto attrs = GetCachedTextAttributes()) {
+    attrs->GetAttribute(nsGkAtoms::language, aLocale);
+  }
 }
 
 template <class Derived>

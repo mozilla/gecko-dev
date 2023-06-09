@@ -8,11 +8,14 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
+  Log: "chrome://remote/content/shared/Log.sys.mjs",
 });
 
 XPCOMUtils.defineLazyGetter(lazy, "disabledExperimentalAPI", () => {
   return !Services.prefs.getBoolPref("remote.experimental.enabled");
 });
+
+XPCOMUtils.defineLazyGetter(lazy, "logger", () => lazy.Log.get());
 
 export class Module {
   #messageHandler;
@@ -29,11 +32,11 @@ export class Module {
 
   /**
    * Clean-up the module instance.
-   *
-   * It's required to be implemented in the sub class.
    */
   destroy() {
-    throw new Error("Not implemented");
+    lazy.logger.warn(
+      `Module ${this.constructor.name} is missing a destroy method`
+    );
   }
 
   /**
@@ -41,10 +44,10 @@ export class Module {
    *
    * Such events should bubble up to the root of a MessageHandler network.
    *
-   * @param {String} name
+   * @param {string} name
    *     Name of the event. Protocol level events should be of the
    *     form [module name].[event name].
-   * @param {Object} data
+   * @param {object} data
    *     The event's data.
    * @param {ContextInfo=} contextInfo
    *     The event's context info, see MessageHandler:emitEvent. Optional.
@@ -60,9 +63,9 @@ export class Module {
    *
    * @param {string} name
    *     Name of the event.
-   * @param {Object} payload
+   * @param {object} payload
    *    The event's payload.
-   * @returns {Object}
+   * @returns {object}
    *     The modified event payload.
    */
   interceptEvent(name, payload) {
@@ -74,7 +77,7 @@ export class Module {
   /**
    * Assert if experimental commands are enabled.
    *
-   * @param {String} methodName
+   * @param {string} methodName
    *     Name of the command.
    *
    * @throws {UnknownCommandError}

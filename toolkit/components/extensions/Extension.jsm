@@ -13,6 +13,7 @@ var EXPORTED_SYMBOLS = [
   "Management",
   "SitePermission",
   "ExtensionAddonObserver",
+  "ExtensionProcessCrashObserver",
   "PRIVILEGED_PERMS",
 ];
 
@@ -70,6 +71,7 @@ XPCOMUtils.defineLazyModuleGetters(lazy, {
   ExtensionScriptingStore: "resource://gre/modules/ExtensionScriptingStore.jsm",
   ExtensionStorage: "resource://gre/modules/ExtensionStorage.jsm",
   ExtensionStorageIDB: "resource://gre/modules/ExtensionStorageIDB.jsm",
+  extensionStorageSync: "resource://gre/modules/ExtensionStorageSync.jsm",
   ExtensionTelemetry: "resource://gre/modules/ExtensionTelemetry.jsm",
   LightweightThemeManager: "resource://gre/modules/LightweightThemeManager.jsm",
   NetUtil: "resource://gre/modules/NetUtil.jsm",
@@ -128,6 +130,13 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "[]"
 );
 
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "dnrEnabled",
+  "extensions.dnr.enabled",
+  true
+);
+
 // This pref modifies behavior for MV2.  MV3 is enabled regardless.
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
@@ -135,8 +144,40 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "extensions.eventPages.enabled"
 );
 
+// This pref is used to check if storage.sync is still the Kinto-based backend
+// (GeckoView should be the only one still using it).
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "storageSyncOldKintoBackend",
+  "webextensions.storage.sync.kinto",
+  false
+);
+
+// Deprecation of browser_style, through .supported & .same_as_mv2 prefs:
+// - true true  = warn only: deprecation message only (no behavioral changes).
+// - true false = deprecate: default to false, even if default was true in MV2.
+// - false      = remove: always use false, even when true is specified.
+//                (if .same_as_mv2 is set, also warn if the default changed)
+// Deprecation plan: https://bugzilla.mozilla.org/show_bug.cgi?id=1827910#c1
+// Bug 1830711 will set browser_style_mv3.supported to false.
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "browserStyleMV3supported",
+  "extensions.browser_style_mv3.supported",
+  false
+);
+// Bug 1830710 will set browser_style_mv3.same_as_mv2 to true.
+// Bug 1830711 will then set browser_style_mv3.supported to false.
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "browserStyleMV3sameAsMV2",
+  "extensions.browser_style_mv3.same_as_mv2",
+  false
+);
+
 var {
   GlobalManager,
+  IconDetails,
   ParentAPIManager,
   StartupCache,
   apiManager: Management,
@@ -218,9 +259,6 @@ if (
   }
 }
 
-const PREF_DNR_ENABLED = "extensions.dnr.enabled";
-const PREF_DNR_FEEDBACK = "extensions.dnr.feedback";
-
 // Message included in warnings and errors related to privileged permissions and
 // privileged manifest properties. Provides a link to the firefox-source-docs.mozilla.org
 // section related to developing and sign Privileged Add-ons.
@@ -277,23 +315,6 @@ function isMozillaExtension(extension) {
   return isSigned && isMozillaLineExtension;
 }
 
-function isDNRPermissionAllowed(perm) {
-  // DNR is under development and therefore disabled by default for now.
-  if (!Services.prefs.getBoolPref(PREF_DNR_ENABLED, false)) {
-    return false;
-  }
-
-  // APIs tied to declarativeNetRequestFeedback are for debugging purposes and
-  // are only supposed to be available when the (add-on dev) user opts in.
-  if (
-    perm === "declarativeNetRequestFeedback" &&
-    !Services.prefs.getBoolPref(PREF_DNR_FEEDBACK, false)
-  ) {
-    return false;
-  }
-  return true;
-}
-
 /**
  * Classify an individual permission from a webextension manifest
  * as a host/origin permission, an api permission, or a regular permission.
@@ -326,10 +347,7 @@ function classifyPermission(perm, restrictSchemes, isPrivileged) {
     return { api: match[2] };
   } else if (!isPrivileged && PRIVILEGED_PERMS.has(match[1])) {
     return { invalid: perm, privileged: true };
-  } else if (
-    perm.startsWith("declarativeNetRequest") &&
-    !isDNRPermissionAllowed(perm)
-  ) {
+  } else if (perm.startsWith("declarativeNetRequest") && !lazy.dnrEnabled) {
     return { invalid: perm };
   }
   return { permission: perm };
@@ -539,6 +557,16 @@ var ExtensionAddonObserver = {
         lazy.ExtensionStorage.clear(addon.id, { shouldNotifyListeners: false })
       );
 
+      // Clear browser.storage.sync rust-based backend.
+      // (storage.sync clearOnUninstall will resolve and log an error on the
+      // browser console in case of unexpected failures).
+      if (!lazy.storageSyncOldKintoBackend) {
+        lazy.AsyncShutdown.profileChangeTeardown.addBlocker(
+          `Clear Extension StorageSync ${addon.id}`,
+          lazy.extensionStorageSync.clearOnUninstall(addon.id)
+        );
+      }
+
       // Clear any IndexedDB and Cache API storage created by the extension.
       // If LSNG is enabled, this also clears localStorage.
       Services.qms.clearStoragesForPrincipal(principal);
@@ -595,6 +623,89 @@ var ExtensionAddonObserver = {
 };
 
 ExtensionAddonObserver.init();
+
+/**
+ * Observer ExtensionProcess crashes and notify all the extensions
+ * using a Management event named "extension-process-crash".
+ */
+var ExtensionProcessCrashObserver = {
+  initialized: false,
+  // Technically there is at most one child extension process,
+  // but we may need to adjust this assumption to account for more
+  // than one if that ever changes in the future.
+  currentProcessChildID: undefined,
+  lastCrashedProcessChildID: undefined,
+  QueryInterface: ChromeUtils.generateQI(["nsIObserver"]),
+
+  init() {
+    if (!this.initialized) {
+      Services.obs.addObserver(this, "ipc:content-created");
+      Services.obs.addObserver(this, "process-type-set");
+      Services.obs.addObserver(this, "ipc:content-shutdown");
+      this.initialized = true;
+    }
+  },
+
+  uninit() {
+    if (this.initialized) {
+      try {
+        Services.obs.removeObserver(this, "ipc:content-created");
+        Services.obs.removeObserver(this, "process-type-set");
+        Services.obs.removeObserver(this, "ipc:content-shutdown");
+      } catch (err) {
+        // Removing the observer may fail if they are not registered anymore,
+        // this shouldn't happen in practice, but let's still log the error
+        // in case it does.
+        Cu.reportError(err);
+      }
+      this.initialized = false;
+    }
+  },
+
+  observe(subject, topic, data) {
+    let childID = data;
+    switch (topic) {
+      case "process-type-set":
+      // Intentional fall-through
+      case "ipc:content-created": {
+        let pp = subject.QueryInterface(Ci.nsIDOMProcessParent);
+        if (pp.remoteType === "extension") {
+          this.currentProcessChildID = childID;
+        }
+        break;
+      }
+      case "ipc:content-shutdown": {
+        if (Services.startup.shuttingDown) {
+          // The application is shutting down, don't bother
+          // signaling process crashes anymore.
+          return;
+        }
+        if (this.currentProcessChildID !== childID) {
+          // Ignore non-extension child process shutdowns.
+          return;
+        }
+
+        // At this point we are sure that the current extension
+        // process is gone, and so even if the process did shutdown
+        // cleanly instead of crashing, we can clear the property
+        // that keeps track of the current extension process childID.
+        this.currentProcessChildID = undefined;
+
+        subject.QueryInterface(Ci.nsIPropertyBag2);
+        if (!subject.get("abnormal")) {
+          // Ignore non-abnormal child process shutdowns.
+          return;
+        }
+
+        this.lastCrashedProcessChildID = childID;
+        Management.emit("extension-process-crash", { childID });
+        break;
+      }
+    }
+  },
+};
+
+ExtensionProcessCrashObserver.init();
 
 const manifestTypes = new Map([
   ["theme", "manifest.ThemeManifest"],
@@ -1200,6 +1311,51 @@ class ExtensionData {
     return lazy.Schemas.normalize(this.rawManifest, manifestType, context);
   }
 
+  #parseBrowserStyleInManifest(manifest, manifestKey, defaultValueInMV2) {
+    const obj = manifest[manifestKey];
+    if (!obj) {
+      return;
+    }
+    const browserStyleIsVoid = obj.browser_style == null;
+    obj.browser_style ??= defaultValueInMV2;
+    if (this.manifestVersion < 3 || !obj.browser_style) {
+      // MV2 (true or false), or MV3 (false set explicitly or default false).
+      // No changes in observed behavior, return now to avoid logspam.
+      return;
+    }
+    // Now there are two cases (MV3 only):
+    // - browser_style was not specified, but defaults to true.
+    // - browser_style was set to true by the extension.
+    //
+    // These will eventually be deprecated. For the deprecation plan, see
+    // https://bugzilla.mozilla.org/show_bug.cgi?id=1827910#c1
+    let warning;
+    if (!lazy.browserStyleMV3supported) {
+      obj.browser_style = false;
+      if (browserStyleIsVoid && !lazy.browserStyleMV3sameAsMV2) {
+        // defaultValueInMV2 is true, but there was no intent to use these
+        // defaults. Don't warn.
+        return;
+      }
+      warning = `"browser_style:true" is no longer supported in Manifest Version 3.`;
+    } else {
+      warning = `"browser_style:true" has been deprecated in Manifest Version 3 and will be unsupported in the near future.`;
+    }
+    if (browserStyleIsVoid) {
+      warning += ` While "${manifestKey}.browser_style" was not explicitly specified in manifest.json, its default value was true.`;
+      if (!lazy.browserStyleMV3sameAsMV2) {
+        obj.browser_style = false;
+        warning += ` The default value of "${manifestKey}.browser_style" has changed from true to false in Manifest Version 3.`;
+      } else {
+        warning += ` Its default will change to false in Manifest Version 3 starting from Firefox 115.`;
+      }
+    }
+
+    this.manifestWarning(
+      `Warning processing ${manifestKey}.browser_style: ${warning}`
+    );
+  }
+
   async initializeAddonTypeAndID() {
     if (this.type) {
       // Already initialized.
@@ -1298,6 +1454,29 @@ class ExtensionData {
       manifest.applications = manifest.browser_specific_settings;
     }
 
+    // On Android, override the browser specific settings with those found in
+    // `bss.gecko_android`, if any.
+    //
+    // It is also worth noting that the `gecko_android` key in `applications`
+    // is marked as "unsupported" in the JSON schema.
+    if (
+      AppConstants.platform == "android" &&
+      manifest.browser_specific_settings?.gecko_android
+    ) {
+      const {
+        strict_min_version,
+        strict_max_version,
+      } = manifest.browser_specific_settings.gecko_android;
+
+      if (strict_min_version?.length) {
+        manifest.applications.gecko.strict_min_version = strict_min_version;
+      }
+
+      if (strict_max_version?.length) {
+        manifest.applications.gecko.strict_max_version = strict_max_version;
+      }
+    }
+
     if (
       this.manifestVersion < 3 &&
       manifest.background &&
@@ -1315,6 +1494,24 @@ class ExtensionData {
       this.manifestError(
         "Cannot use browser and/or page actions in hidden add-ons"
       );
+    }
+
+    if (manifest.options_ui) {
+      if (manifest.options_ui.open_in_tab) {
+        // browser_style:true has no effect when open_in_tab is true.
+        manifest.options_ui.browser_style = false;
+      } else {
+        this.#parseBrowserStyleInManifest(manifest, "options_ui", true);
+      }
+    }
+    if (this.manifestVersion < 3) {
+      this.#parseBrowserStyleInManifest(manifest, "browser_action", false);
+    } else {
+      this.#parseBrowserStyleInManifest(manifest, "action", false);
+    }
+    this.#parseBrowserStyleInManifest(manifest, "page_action", false);
+    if (AppConstants.MOZ_BUILD_APP === "browser") {
+      this.#parseBrowserStyleInManifest(manifest, "sidebar_action", true);
     }
 
     let apiNames = new Set();
@@ -1350,12 +1547,11 @@ class ExtensionData {
         isPrivileged && manifest.permissions.includes("mozillaAddons")
       );
 
-      // Privileged and temporary extensions can opt out of originControls.
-      if (
-        (isPrivileged || this.temporarilyInstalled) &&
-        manifest.granted_host_permissions
-      ) {
-        result.originControls = false;
+      // Privileged and temporary extensions still get OriginControls, but
+      // can have host permissions automatically granted during install.
+      // For all other cases, ensure granted_host_permissions is false.
+      if (!isPrivileged && !this.temporarilyInstalled) {
+        manifest.granted_host_permissions = false;
       }
 
       let host_permissions = manifest.host_permissions ?? [];
@@ -2062,8 +2258,12 @@ class ExtensionData {
         `webextSitePerms.headerWithGatedPerms.${info.sitePermissions[0]}`,
         [host]
       );
+
+      // We use the same string for midi and midi-sysex, and don't support any
+      // other types of site permission add-ons. So we just hard-code the
+      // descriptor for now. See bug 1826747.
       result.text = bundle.GetStringFromName(
-        `webextSitePerms.descriptionGatedPerms`
+        `webextSitePerms.descriptionGatedPerms.midi`
       );
 
       return result;
@@ -2685,8 +2885,13 @@ class Extension extends ExtensionData {
     return common == this.baseURL;
   }
 
+  checkLoadURI(uri, options = {}) {
+    return ExtensionCommon.checkLoadURI(uri, this.principal, options);
+  }
+
+  // Note: use checkLoadURI instead of checkLoadURL if you already have a URI.
   checkLoadURL(url, options = {}) {
-    // As an optimization, f the URL starts with the extension's base URL,
+    // As an optimization, if the URL starts with the extension's base URL,
     // don't do any further checks. It's always allowed to load it.
     if (url.startsWith(this.baseURL)) {
       return true;
@@ -2769,6 +2974,10 @@ class Extension extends ExtensionData {
     return this.manifest.background?.scripts;
   }
 
+  get backgroundTypeModule() {
+    return this.manifest.background?.type === "module";
+  }
+
   get backgroundWorkerScript() {
     return this.manifest.background?.service_worker;
   }
@@ -2837,6 +3046,7 @@ class Extension extends ExtensionData {
     return {
       backgroundScripts: this.backgroundScripts,
       backgroundWorkerScript: this.backgroundWorkerScript,
+      backgroundTypeModule: this.backgroundTypeModule,
       childModules: this.modules && this.modules.child,
       dependencies: this.dependencies,
       persistentBackground: this.persistentBackground,
@@ -3122,72 +3332,7 @@ class Extension extends ExtensionData {
       }
 
       await this.clearCache(this.startupReason);
-
-      // We automatically add permissions to system/built-in extensions.
-      // Extensions expliticy stating not_allowed will never get permission.
-      let isAllowed = this.permissions.has(PRIVATE_ALLOWED_PERMISSION);
-      if (this.manifest.incognito === "not_allowed") {
-        // If an extension previously had permission, but upgrades/downgrades to
-        // a version that specifies "not_allowed" in manifest, remove the
-        // permission.
-        if (isAllowed) {
-          lazy.ExtensionPermissions.remove(this.id, {
-            permissions: [PRIVATE_ALLOWED_PERMISSION],
-            origins: [],
-          });
-          this.permissions.delete(PRIVATE_ALLOWED_PERMISSION);
-        }
-      } else if (
-        !isAllowed &&
-        this.isPrivileged &&
-        !this.temporarilyInstalled
-      ) {
-        // Add to EP so it is preserved after ADDON_INSTALL.  We don't wait on the add here
-        // since we are pushing the value into this.permissions.  EP will eventually save.
-        lazy.ExtensionPermissions.add(this.id, {
-          permissions: [PRIVATE_ALLOWED_PERMISSION],
-          origins: [],
-        });
-        this.permissions.add(PRIVATE_ALLOWED_PERMISSION);
-      }
-
-      // Allow other extensions to access static themes in private browsing windows
-      // (See Bug 1790115).
-      if (this.type === "theme") {
-        this.permissions.add(PRIVATE_ALLOWED_PERMISSION);
-      }
-
-      // We only want to update the SVG_CONTEXT_PROPERTIES_PERMISSION during install and
-      // upgrade/downgrade startups.
-      if (INSTALL_AND_UPDATE_STARTUP_REASONS.has(this.startupReason)) {
-        if (isMozillaExtension(this)) {
-          // Add to EP so it is preserved after ADDON_INSTALL.  We don't wait on the add here
-          // since we are pushing the value into this.permissions.  EP will eventually save.
-          lazy.ExtensionPermissions.add(this.id, {
-            permissions: [SVG_CONTEXT_PROPERTIES_PERMISSION],
-            origins: [],
-          });
-          this.permissions.add(SVG_CONTEXT_PROPERTIES_PERMISSION);
-        } else {
-          lazy.ExtensionPermissions.remove(this.id, {
-            permissions: [SVG_CONTEXT_PROPERTIES_PERMISSION],
-            origins: [],
-          });
-          this.permissions.delete(SVG_CONTEXT_PROPERTIES_PERMISSION);
-        }
-      }
-
-      // Ensure devtools permission is set
-      if (
-        this.manifest.devtools_page &&
-        !this.manifest.optional_permissions.includes("devtools")
-      ) {
-        lazy.ExtensionPermissions.add(this.id, {
-          permissions: ["devtools"],
-          origins: [],
-        });
-        this.permissions.add("devtools");
-      }
+      this._setupStartupPermissions();
 
       GlobalManager.init(this);
 
@@ -3289,6 +3434,97 @@ class Extension extends ExtensionData {
       // Mark readyPromise as resolved in case it has not happened before,
       // e.g. due to an early return or an error.
       resolveReadyPromise(null);
+    }
+  }
+
+  // Setup initial permissions on extension startup based on manifest
+  // and potentially previous manifest and permissions values. None of
+  // the ExtensionPermissions.add/remove() calls are are awaited here
+  // because we update the in-memory representation at the same time.
+  _setupStartupPermissions() {
+    // If we add/remove permissions conditionally based on startupReason,
+    // we need to update the cache, or changes will be lost after restart.
+    let updateCache = false;
+
+    // We automatically add permissions to system/built-in extensions.
+    // Extensions expliticy stating not_allowed will never get permission.
+    let isAllowed = this.permissions.has(PRIVATE_ALLOWED_PERMISSION);
+    if (this.manifest.incognito === "not_allowed") {
+      // If an extension previously had permission, but upgrades/downgrades to
+      // a version that specifies "not_allowed" in manifest, remove the
+      // permission.
+      if (isAllowed) {
+        lazy.ExtensionPermissions.remove(this.id, {
+          permissions: [PRIVATE_ALLOWED_PERMISSION],
+          origins: [],
+        });
+        this.permissions.delete(PRIVATE_ALLOWED_PERMISSION);
+      }
+    } else if (!isAllowed && this.isPrivileged && !this.temporarilyInstalled) {
+      // Add to EP so it is preserved after ADDON_INSTALL.
+      lazy.ExtensionPermissions.add(this.id, {
+        permissions: [PRIVATE_ALLOWED_PERMISSION],
+        origins: [],
+      });
+      this.permissions.add(PRIVATE_ALLOWED_PERMISSION);
+    }
+
+    // Allow other extensions to access static themes in private browsing windows
+    // (See Bug 1790115).
+    if (this.type === "theme") {
+      this.permissions.add(PRIVATE_ALLOWED_PERMISSION);
+    }
+
+    // We only want to update the SVG_CONTEXT_PROPERTIES_PERMISSION during
+    // install and upgrade/downgrade startups.
+    if (INSTALL_AND_UPDATE_STARTUP_REASONS.has(this.startupReason)) {
+      if (isMozillaExtension(this)) {
+        // Add to EP so it is preserved after ADDON_INSTALL.
+        lazy.ExtensionPermissions.add(this.id, {
+          permissions: [SVG_CONTEXT_PROPERTIES_PERMISSION],
+          origins: [],
+        });
+        this.permissions.add(SVG_CONTEXT_PROPERTIES_PERMISSION);
+      } else {
+        lazy.ExtensionPermissions.remove(this.id, {
+          permissions: [SVG_CONTEXT_PROPERTIES_PERMISSION],
+          origins: [],
+        });
+        this.permissions.delete(SVG_CONTEXT_PROPERTIES_PERMISSION);
+      }
+      updateCache = true;
+    }
+
+    // Ensure devtools permission is set.
+    if (
+      this.manifest.devtools_page &&
+      !this.manifest.optional_permissions.includes("devtools")
+    ) {
+      lazy.ExtensionPermissions.add(this.id, {
+        permissions: ["devtools"],
+        origins: [],
+      });
+      this.permissions.add("devtools");
+    }
+
+    if (
+      this.originControls &&
+      this.manifest.granted_host_permissions &&
+      this.startupReason === "ADDON_INSTALL"
+    ) {
+      let origins = this.getManifestOrigins();
+      lazy.ExtensionPermissions.add(this.id, { permissions: [], origins });
+      updateCache = true;
+
+      let allowed = this.allowedOrigins.patterns.map(p => p.pattern);
+      this.allowedOrigins = new MatchPatternSet(origins.concat(allowed), {
+        restrictSchemes: this.restrictSchemes,
+        ignorePath: true,
+      });
+    }
+
+    if (updateCache) {
+      this.cachePermissions();
     }
   }
 
@@ -3439,6 +3675,11 @@ class Extension extends ExtensionData {
 
   get hasBrowserActionUI() {
     return this.manifest.browser_action || this.manifest.action;
+  }
+
+  getPreferredIcon(size = 16) {
+    return IconDetails.getPreferredIcon(this.manifest.icons ?? {}, this, size)
+      .icon;
   }
 }
 

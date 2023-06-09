@@ -29,11 +29,11 @@ XPCSHELL_TESTS_MANIFESTS += ["test/unit/xpcshell.ini"]
 SPHINX_TREES["docs"] = "docs"
 
 TESTING_JS_MODULES += [
-    "test/NimbusTestUtils.jsm",
+    "test/NimbusTestUtils.sys.mjs",
 ]
 
 GeneratedFile(
-    "FeatureManifest.js",
+    "FeatureManifest.sys.mjs",
     script="generate/generate_feature_manifest.py",
     entry_point="generate_feature_manifest",
     inputs=["./FeatureManifest.yaml"],

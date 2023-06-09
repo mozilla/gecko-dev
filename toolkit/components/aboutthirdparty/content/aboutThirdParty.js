@@ -65,7 +65,7 @@ async function fetchData() {
       !(e instanceof Components.Exception) ||
       e.result != Cr.NS_ERROR_NOT_AVAILABLE
     ) {
-      Cu.reportError(e);
+      console.error(e);
     }
   }
 
@@ -201,18 +201,19 @@ async function confirmRestartPrompt() {
   return buttonIndex === 0;
 }
 
+let processingBlockRequest = false;
 async function onBlock(event) {
   const module = event.target.closest(".card").module;
   if (!module?.moduleName) {
     return;
   }
-
-  const allButtons = document.querySelectorAll(".button-block");
   // To avoid race conditions, don't allow any modules to be blocked/unblocked
   // until we've updated and written the blocklist.
-  allButtons.forEach(b => {
-    b.disabled = true;
-  });
+  if (processingBlockRequest) {
+    return;
+  }
+  processingBlockRequest = true;
+
   let updatedBlocklist = false;
   try {
     const wasBlocked = event.target.classList.contains("module-blocked");
@@ -230,11 +231,10 @@ async function onBlock(event) {
     event.target.setAttribute("data-l10n-id", blockButtonL10nId);
     updatedBlocklist = true;
   } catch (ex) {
-    Cu.reportError("Failed to update the blocklist file - " + ex.result);
+    console.error("Failed to update the blocklist file - ", ex.result);
+  } finally {
+    processingBlockRequest = false;
   }
-  allButtons.forEach(b => {
-    b.disabled = false;
-  });
   if (updatedBlocklist && (await confirmRestartPrompt())) {
     let cancelQuit = Cc["@mozilla.org/supports-PRBool;1"].createInstance(
       Ci.nsISupportsPRBool
@@ -582,7 +582,7 @@ async function collectCrashInfo() {
     try {
       return BigInt(maybeBigInt);
     } catch (e) {
-      Cu.reportError(e);
+      console.error(e);
     }
     return NaN;
   };
@@ -591,8 +591,8 @@ async function collectCrashInfo() {
     return;
   }
 
-  const { getCrashManager } = ChromeUtils.import(
-    "resource://gre/modules/CrashManager.jsm"
+  const { getCrashManager } = ChromeUtils.importESModule(
+    "resource://gre/modules/CrashManager.sys.mjs"
   );
   const crashes = await getCrashManager().getCrashes();
   CrashModuleSet = new Set(
@@ -626,7 +626,7 @@ async function onLoad() {
       e.target.disabled = true;
 
       const data = await fetchData();
-      await copyDataToClipboard(data || []).catch(Cu.reportError);
+      await copyDataToClipboard(data || []).catch(console.error);
 
       e.target.disabled = false;
     });
@@ -665,7 +665,7 @@ async function onLoad() {
       // we show the reload button to call visualizeData again.
       button.hidden = false;
     })
-    .catch(Cu.reportError);
+    .catch(console.error);
 
   const data = await fetchData();
   // Used for testing purposes
@@ -688,5 +688,5 @@ try {
 } catch (ex) {
   // Do nothing if we fail to create a singleton instance,
   // showing the default no-module message.
-  Cu.reportError(ex);
+  console.error(ex);
 }

@@ -195,6 +195,11 @@ NonBlockingAsyncInputStream::Available(uint64_t* aLength) {
 }
 
 NS_IMETHODIMP
+NonBlockingAsyncInputStream::StreamStatus() {
+  return mInputStream->StreamStatus();
+}
+
+NS_IMETHODIMP
 NonBlockingAsyncInputStream::Read(char* aBuffer, uint32_t aCount,
                                   uint32_t* aReadCount) {
   return mInputStream->Read(aBuffer, aCount, aReadCount);
@@ -281,14 +286,11 @@ NonBlockingAsyncInputStream::AsyncWait(nsIInputStreamCallback* aCallback,
   {
     MutexAutoLock lock(mLock);
 
-    if (aCallback && (mWaitClosureOnly.isSome() || mAsyncWaitCallback)) {
-      return NS_ERROR_FAILURE;
-    }
+    mWaitClosureOnly.reset();
+    mAsyncWaitCallback = nullptr;
 
     if (!aCallback) {
-      // Canceling previous callbacks.
-      mWaitClosureOnly.reset();
-      mAsyncWaitCallback = nullptr;
+      // Canceling previous callbacks, which is done above.
       return NS_OK;
     }
 

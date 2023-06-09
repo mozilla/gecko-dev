@@ -563,11 +563,11 @@ describe("CFRPageActions", () => {
         // .toFixed to sort out some floating precision errors
         assert.equal(
           footerFilledStars.style.width,
-          `${(4.2 * 17).toFixed(1)}px`
+          `${(4.2 * 16).toFixed(1)}px`
         );
         assert.equal(
           footerEmptyStars.style.width,
-          `${(0.8 * 17).toFixed(1)}px`
+          `${(0.8 * 16).toFixed(1)}px`
         );
       });
       it("should add the number of users correctly", async () => {
@@ -576,7 +576,7 @@ describe("CFRPageActions", () => {
         assert.isNull(footerUsers.getAttribute("hidden"));
         assert.equal(
           footerUsers.getAttribute("value"),
-          `${fakeRecommendation.content.addon.users} users`
+          `${fakeRecommendation.content.addon.users}`
         );
       });
       it("should send the right telemetry", async () => {
@@ -735,6 +735,11 @@ describe("CFRPageActions", () => {
             eventCallback: pageAction._popupStateChange,
             persistent: false,
             persistWhileVisible: false,
+            popupIconClass: fakeRecommendation.content.icon_class,
+            name: {
+              string_id: "cfr-doorhanger-extension-author",
+              args: { name: fakeRecommendation.content.addon.author },
+            },
           }
         );
       });
@@ -998,6 +1003,17 @@ describe("CFRPageActions", () => {
             dispatchStub
           )
         );
+      });
+      it("should fail and not add a recommendation if the browser does not exist", async () => {
+        assert.isFalse(
+          await CFRPageActions.addRecommendation(
+            undefined,
+            fakeHost,
+            fakeRecommendation,
+            dispatchStub
+          )
+        );
+        assert.isFalse(CFRPageActions.RecommendationMap.has(fakeBrowser));
       });
       it("should fail and not add a recommendation if the host doesn't match", async () => {
         const someOtherFakeHost = "subdomain.mozilla.com";

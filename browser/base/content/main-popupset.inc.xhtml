@@ -62,7 +62,7 @@
           data-lazy-l10n-id="tab-context-send-tabs-to-device"
           data-l10n-args='{"tabCount": 1}'>
       <menupopup id="context_sendTabToDevicePopupMenu"
-                 onpopupshowing="gSync.populateSendTabToDevicesMenu(event.target, TabContextMenu.contextTab.linkedBrowser.currentURI.spec, TabContextMenu.contextTab.linkedBrowser.contentTitle, TabContextMenu.contextTab.multiselected);"/>
+                 onpopupshowing="gSync.populateSendTabToDevicesMenu(event.target, TabContextMenu.contextTab.linkedBrowser.currentURI, TabContextMenu.contextTab.linkedBrowser.contentTitle, TabContextMenu.contextTab.multiselected);"/>
     </menu>
     <menu id="context_reopenInContainer"
           data-lazy-l10n-id="tab-context-open-in-new-container-tab"
@@ -135,20 +135,6 @@
          role="group"
          noautofocus="true"
          hidden="true" />
-
-  <html:template id="dateTimePickerTemplate">
-    <!-- for date/time picker. consumeoutsideclicks is set to never, so that
-         clicks on the anchored input box are never consumed. -->
-    <panel id="DateTimePickerPanel"
-           type="arrow"
-           orient="vertical"
-           ignorekeys="true"
-           norolluponanchor="true"
-           consumeoutsideclicks="never"
-           level="parent"
-           tabspecific="true">
-    </panel>
-  </html:template>
 
   <html:template id="printPreviewStackTemplate">
     <stack class="previewStack" rendering="true" flex="1" previewtype="primary">
@@ -275,7 +261,7 @@
 
   <html:template id="dialogStackTemplate">
     <stack class="dialogStack tab-dialog-box" hidden="true">
-      <vbox class="dialogTemplate dialogOverlay" align="center" topmost="true" hidden="true">
+      <vbox class="dialogTemplate dialogOverlay" topmost="true" hidden="true">
         <hbox class="dialogBox">
           <browser class="dialogFrame"
                    autoscroll="false"
@@ -539,6 +525,7 @@
 #include ../../components/controlcenter/content/permissionPanel.inc.xhtml
 #include ../../components/controlcenter/content/protectionsPanel.inc.xhtml
 #include ../../components/downloads/content/downloadsPanel.inc.xhtml
+#include ../../components/translations/content/translationsPanel.inc.xhtml
 #include ../../../devtools/startup/enableDevToolsPopup.inc.xhtml
 #include browser-allTabsMenu.inc.xhtml
 
@@ -603,6 +590,8 @@
             crop="end"/>
   </hbox>
 
+#include swipe-navigation.inc.xhtml
+
   <html:template id="sharing-tabs-warning-panel-template">
     <panel id="sharing-tabs-warning-panel"
            role="alert"
@@ -644,6 +633,12 @@
               data-lazy-l10n-id="unified-extensions-context-menu-pin-to-toolbar"
               type="checkbox"
               class="unified-extensions-context-menu-pin-to-toolbar"/>
+    <menuitem oncommand="gUnifiedExtensions.moveWidget(this.parentElement, 'up');"
+              data-lazy-l10n-id="unified-extensions-context-menu-move-widget-up"
+              class="unified-extensions-context-menu-move-widget-up"/>
+    <menuitem oncommand="gUnifiedExtensions.moveWidget(this.parentElement, 'down');"
+              data-lazy-l10n-id="unified-extensions-context-menu-move-widget-down"
+              class="unified-extensions-context-menu-move-widget-down"/>
     <menuseparator class="unified-extensions-context-menu-management-separator"/>
     <menuitem data-lazy-l10n-id="unified-extensions-context-menu-manage-extension"
               class="unified-extensions-context-menu-manage-extension"

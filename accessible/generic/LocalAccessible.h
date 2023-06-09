@@ -138,10 +138,7 @@ class LocalAccessible : public nsISupports, public Accessible {
     return IsDoc() ? 0 : reinterpret_cast<uintptr_t>(this);
   }
 
-  /**
-   * Return language associated with the accessible.
-   */
-  void Language(nsAString& aLocale);
+  virtual void Language(nsAString& aLocale) override;
 
   /**
    * Get the description of this accessible.
@@ -472,8 +469,6 @@ class LocalAccessible : public nsISupports, public Accessible {
 
   a11y::RootAccessible* AsRoot();
 
-  bool IsSearchbox() const;
-
   virtual TableAccessible* AsTable() { return nullptr; }
 
   virtual TableCellAccessible* AsTableCell() { return nullptr; }
@@ -517,34 +512,6 @@ class LocalAccessible : public nsISupports, public Accessible {
    * Return true if the accessible is hyper link accessible.
    */
   virtual bool IsLink() const override;
-
-  /**
-   * Return true if the link is valid (e. g. points to a valid URL).
-   */
-  inline bool IsLinkValid() {
-    MOZ_ASSERT(IsLink(), "IsLinkValid is called on not hyper link!");
-
-    // XXX In order to implement this we would need to follow every link
-    // Perhaps we can get information about invalid links from the cache
-    // In the mean time authors can use role="link" aria-invalid="true"
-    // to force it for links they internally know to be invalid
-    return (0 == (State() & mozilla::a11y::states::INVALID));
-  }
-
-  /**
-   * Return the number of anchors within the link.
-   */
-  virtual uint32_t AnchorCount();
-
-  /**
-   * Returns an anchor accessible at the given index.
-   */
-  virtual LocalAccessible* AnchorAt(uint32_t aAnchorIndex);
-
-  /**
-   * Returns an anchor URI at the given index.
-   */
-  virtual already_AddRefed<nsIURI> AnchorURIAt(uint32_t aAnchorIndex) const;
 
   //////////////////////////////////////////////////////////////////////////////
   // SelectAccessible
@@ -596,7 +563,7 @@ class LocalAccessible : public nsISupports, public Accessible {
   virtual double MinValue() const override;
   virtual double CurValue() const override;
   virtual double Step() const override;
-  virtual bool SetCurValue(double aValue);
+  virtual bool SetCurValue(double aValue) override;
 
   //////////////////////////////////////////////////////////////////////////////
   // Widgets
@@ -770,6 +737,8 @@ class LocalAccessible : public nsISupports, public Accessible {
   void MaybeQueueCacheUpdateForStyleChanges();
 
   virtual nsAtom* TagName() const override;
+
+  virtual already_AddRefed<nsAtom> InputType() const override;
 
   virtual already_AddRefed<nsAtom> DisplayStyle() const override;
 

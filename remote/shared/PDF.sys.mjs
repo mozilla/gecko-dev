@@ -7,9 +7,6 @@ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  clearInterval: "resource://gre/modules/Timer.sys.mjs",
-  setInterval: "resource://gre/modules/Timer.sys.mjs",
-
   assert: "chrome://remote/content/shared/webdriver/Assert.sys.mjs",
   Log: "chrome://remote/content/shared/Log.sys.mjs",
 });
@@ -19,40 +16,73 @@ XPCOMUtils.defineLazyGetter(lazy, "logger", () => lazy.Log.get());
 export const print = {
   maxScaleValue: 2.0,
   minScaleValue: 0.1,
-  letterPaperSizeCm: {
+};
+
+print.defaults = {
+  // The size of the page in centimeters.
+  page: {
     width: 21.59,
     height: 27.94,
   },
+  margin: {
+    top: 1.0,
+    bottom: 1.0,
+    left: 1.0,
+    right: 1.0,
+  },
+  orientationValue: ["landscape", "portrait"],
 };
 
 print.addDefaultSettings = function(settings) {
   const {
-    landscape = false,
-    margin = {
-      top: 1,
-      bottom: 1,
-      left: 1,
-      right: 1,
-    },
-    page = print.letterPaperSizeCm,
-    shrinkToFit = true,
-    printBackground = false,
-    scale = 1.0,
+    background = false,
+    margin = {},
+    orientation = "portrait",
+    page = {},
     pageRanges = [],
+    scale = 1.0,
+    shrinkToFit = true,
   } = settings;
 
+  lazy.assert.object(page, `Expected "page" to be a object, got ${page}`);
+  lazy.assert.object(margin, `Expected "margin" to be a object, got ${margin}`);
+
+  if (!("width" in page)) {
+    page.width = print.defaults.page.width;
+  }
+
+  if (!("height" in page)) {
+    page.height = print.defaults.page.height;
+  }
+
+  if (!("top" in margin)) {
+    margin.top = print.defaults.margin.top;
+  }
+
+  if (!("bottom" in margin)) {
+    margin.bottom = print.defaults.margin.bottom;
+  }
+
+  if (!("right" in margin)) {
+    margin.right = print.defaults.margin.right;
+  }
+
+  if (!("left" in margin)) {
+    margin.left = print.defaults.margin.left;
+  }
+
   return {
-    landscape,
+    background,
     margin,
+    orientation,
     page,
-    shrinkToFit,
-    printBackground,
-    scale,
     pageRanges,
+    scale,
+    shrinkToFit,
   };
 };
 
-function getPrintSettings(settings, filePath) {
+print.getPrintSettings = function(settings) {
   const psService = Cc["@mozilla.org/gfx/printsettings-service;1"].getService(
     Ci.nsIPrintSettingsService
   );
@@ -64,8 +94,6 @@ function getPrintSettings(settings, filePath) {
   printSettings.outputFormat = Ci.nsIPrintSettings.kOutputFormatPDF;
   printSettings.printerName = "marionette";
   printSettings.printSilent = true;
-  printSettings.outputDestination = Ci.nsIPrintSettings.kOutputDestinationFile;
-  printSettings.toFileName = filePath;
 
   // Setting the paperSizeUnit to kPaperSizeMillimeters doesn't work on mac
   printSettings.paperSizeUnit = Ci.nsIPrintSettings.kPaperSizeInches;
@@ -77,8 +105,8 @@ function getPrintSettings(settings, filePath) {
   printSettings.marginRight = cmToInches(settings.margin.right);
   printSettings.marginTop = cmToInches(settings.margin.top);
 
-  printSettings.printBGColors = settings.printBackground;
-  printSettings.printBGImages = settings.printBackground;
+  printSettings.printBGColors = settings.background;
+  printSettings.printBGImages = settings.background;
   printSettings.scaling = settings.scale;
   printSettings.shrinkToFit = settings.shrinkToFit;
 
@@ -95,7 +123,7 @@ function getPrintSettings(settings, filePath) {
   printSettings.unwriteableMarginBottom = 0;
   printSettings.unwriteableMarginRight = 0;
 
-  if (settings.landscape) {
+  if (settings.orientation === "landscape") {
     printSettings.orientation = Ci.nsIPrintSettings.kLandscapeOrientation;
   }
 
@@ -104,7 +132,7 @@ function getPrintSettings(settings, filePath) {
   }
 
   return printSettings;
-}
+};
 
 /**
  * Convert array of strings of the form ["1-3", "2-4", "7", "9-"] to an flat array of
@@ -114,7 +142,7 @@ function getPrintSettings(settings, filePath) {
  *     Page ranges to print, e.g., ['1-5', '8', '11-13'].
  *     Defaults to the empty string, which means print all pages.
  *
- * @return {Array.<number>}
+ * @returns {Array.<number>}
  *     Even-length array containing page range limits
  */
 function parseRanges(ranges) {
@@ -189,34 +217,29 @@ function parseRanges(ranges) {
   return rv;
 }
 
-print.printToFile = async function(browser, settings) {
-  // Create a unique filename for the temporary PDF file
-  const filePath = await IOUtils.createUniqueFile(
-    PathUtils.tempDir,
-    "marionette.pdf",
-    0o600
+print.printToBinaryString = async function(browsingContext, printSettings) {
+  // Create a stream to write to.
+  const stream = Cc["@mozilla.org/storagestream;1"].createInstance(
+    Ci.nsIStorageStream
+  );
+  stream.init(4096, 0xffffffff);
+
+  printSettings.outputDestination =
+    Ci.nsIPrintSettings.kOutputDestinationStream;
+  printSettings.outputStream = stream.getOutputStream(0);
+
+  await browsingContext.print(printSettings);
+
+  const inputStream = Cc["@mozilla.org/binaryinputstream;1"].createInstance(
+    Ci.nsIBinaryInputStream
   );
 
-  let printSettings = getPrintSettings(settings, filePath);
+  inputStream.setInputStream(stream.newInputStream(0));
 
-  await browser.browsingContext.print(printSettings);
+  const available = inputStream.available();
+  const bytes = inputStream.readBytes(available);
 
-  // Bug 1603739 - With e10s enabled the promise returned by print() resolves
-  // too early, which means the file hasn't been completely written.
-  await new Promise(resolve => {
-    const DELAY_CHECK_FILE_COMPLETELY_WRITTEN = 100;
+  stream.close();
 
-    let lastSize = 0;
-    const timerId = lazy.setInterval(async () => {
-      const fileInfo = await IOUtils.stat(filePath);
-      if (lastSize > 0 && fileInfo.size == lastSize) {
-        lazy.clearInterval(timerId);
-        resolve();
-      }
-      lastSize = fileInfo.size;
-    }, DELAY_CHECK_FILE_COMPLETELY_WRITTEN);
-  });
-
-  lazy.logger.debug(`PDF output written to ${filePath}`);
-  return filePath;
+  return bytes;
 };

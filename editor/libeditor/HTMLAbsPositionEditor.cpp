@@ -624,13 +624,6 @@ nsresult HTMLEditor::SetFinalPosition(int32_t aX, int32_t aY) {
   return rv;
 }
 
-void HTMLEditor::AddPositioningOffset(int32_t& aX, int32_t& aY) {
-  // Get the positioning offset
-  const int32_t positioningOffset = StaticPrefs::editor_positioning_offset();
-  aX += positioningOffset;
-  aY += positioningOffset;
-}
-
 nsresult HTMLEditor::SetPositionToAbsoluteOrStatic(Element& aElement,
                                                    bool aEnabled) {
   nsAutoString positionValue;
@@ -687,7 +680,6 @@ nsresult HTMLEditor::SetPositionToAbsolute(Element& aElement) {
         "absolute) failed, but ignored");
   }
 
-  AddPositioningOffset(x, y);
   SnapToGrid(x, y);
   if (styledElement) {
     // MOZ_KnownLive(*styledElement): aElement's lifetime must be guarantted
@@ -986,9 +978,10 @@ nsresult HTMLEditor::GetTemporaryStyleForFocusedPositionedElement(
 
   static const uint8_t kBlackBgTrigger = 0xd0;
 
-  const auto& color = style->StyleText()->mColor;
-  if (color.red >= kBlackBgTrigger && color.green >= kBlackBgTrigger &&
-      color.blue >= kBlackBgTrigger) {
+  auto color = style->StyleText()->mColor.ToColor();
+  if (NS_GET_R(color) >= kBlackBgTrigger &&
+      NS_GET_G(color) >= kBlackBgTrigger &&
+      NS_GET_B(color) >= kBlackBgTrigger) {
     aReturn.AssignLiteral("black");
   } else {
     aReturn.AssignLiteral("white");

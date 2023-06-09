@@ -24,6 +24,7 @@ class nsIFrame;
 
 namespace mozilla {
 
+using Modifiers = uint16_t;
 struct StyleColorSchemeFlags;
 
 namespace dom {
@@ -97,9 +98,6 @@ class LookAndFeel {
     TabFocusModel,
     // Should menu items blink when they're chosen?
     ChosenMenuItemsShouldBlink,
-
-    // Whether to always show access keys and focus rings.
-    ShowKeyboardCues,
 
     /*
      * A Boolean value to determine whether the Windows accent color
@@ -294,8 +292,24 @@ class LookAndFeel {
      * 0: no-preference
      * 1: reduce
      */
-
     PrefersReducedMotion,
+
+    /**
+     * Corresponding to prefers-reduced-transparency.
+     * https://drafts.csswg.org/mediaqueries-5/#prefers-reduced-transparency
+     * 0: no-preference
+     * 1: reduce
+     */
+    PrefersReducedTransparency,
+
+    /**
+     * Corresponding to inverted-colors.
+     * https://drafts.csswg.org/mediaqueries-5/#inverted
+     * 0: none
+     * 1: inverted
+     */
+    InvertedColors,
+
     /**
      * Corresponding to PointerCapabilities in ServoTypes.h
      * 0: None
@@ -310,11 +324,9 @@ class LookAndFeel {
      * 'Coarse | Fine | Hover'.
      */
     AllPointerCapabilities,
-    /** The vertical scrollbar width, in CSS pixels. */
-    SystemVerticalScrollbarWidth,
 
-    /** The horizontal scrollbar height, in CSS pixels. */
-    SystemHorizontalScrollbarHeight,
+    /** The scrollbar size, in CSS pixels. */
+    SystemScrollbarSize,
 
     /** A boolean value to determine whether a touch device is present */
     TouchDeviceSupportPresent,
@@ -347,6 +359,12 @@ class LookAndFeel {
   static bool UseOverlayScrollbars() {
     return GetInt(IntID::UseOverlayScrollbars);
   }
+
+  // Returns keyCode value of a modifier key which is used for accesskey.
+  // Returns 0 if the platform doesn't support access key.
+  static uint32_t GetMenuAccessKey();
+  // Modifier mask for the menu accesskey.
+  static Modifiers GetMenuAccessKeyModifiers();
 
   enum {
     eScrollArrow_None = 0,

@@ -154,58 +154,15 @@ function isPreloadRequest(channel) {
 }
 
 /**
- * Creates a network event based on the channel.
+ * Get the channel cause details.
  *
- * @param {*} channel
- * @return {Object} event - The network event
+ * @param {nsIChannel} channel
+ * @returns {Object}
+ *          - loadingDocumentUri {string} uri of the document which created the
+ *            channel
+ *          - type {string} cause type as string
  */
-function createNetworkEvent(
-  channel,
-  {
-    timestamp,
-    fromCache,
-    fromServiceWorker,
-    extraStringData,
-    blockedReason,
-    blockingExtension = null,
-    saveRequestAndResponseBodies = false,
-  }
-) {
-  channel.QueryInterface(Ci.nsIPrivateBrowsingChannel);
-
-  const event = {};
-  event.method = channel.requestMethod;
-  event.channelId = channel.channelId;
-  event.isFromSystemPrincipal = isChannelFromSystemPrincipal(channel);
-  event.browsingContextID = this.getChannelBrowsingContextID(channel);
-  event.innerWindowId = this.getChannelInnerWindowId(channel);
-  event.url = channel.URI.spec;
-  event.private = channel.isChannelPrivate;
-  event.headersSize = extraStringData ? extraStringData.length : 0;
-  event.startedDateTime = (timestamp
-    ? new Date(Math.round(timestamp / 1000))
-    : new Date()
-  ).toISOString();
-  event.fromCache = fromCache;
-  event.fromServiceWorker = fromServiceWorker;
-  // Only consider channels classified as level-1 to be trackers if our preferences
-  // would not cause such channels to be blocked in strict content blocking mode.
-  // Make sure the value produced here is a boolean.
-  if (channel instanceof Ci.nsIClassifiedChannel) {
-    event.isThirdPartyTrackingResource = !!(
-      channel.isThirdPartyTrackingResource() &&
-      (channel.thirdPartyClassificationFlags & lazy.tpFlagsMask) == 0
-    );
-  }
-  const referrerInfo = channel.referrerInfo;
-  event.referrerPolicy = referrerInfo
-    ? referrerInfo.getReferrerPolicyString()
-    : "";
-
-  if (channel instanceof Ci.nsISupportsPriority) {
-    event.priority = channel.priority;
-  }
-
+function getCauseDetails(channel) {
   // Determine the cause and if this is an XHR request.
   let causeType = Ci.nsIContentPolicy.TYPE_OTHER;
   let causeUri = null;
@@ -218,9 +175,206 @@ function createNetworkEvent(
     }
   }
 
-  // Show the right WebSocket URL in case of WS channel.
+  return {
+    loadingDocumentUri: causeUri,
+    type: causeTypeToString(
+      causeType,
+      channel.loadFlags,
+      channel.loadInfo.internalContentPolicyType
+    ),
+  };
+}
+
+/**
+ * Get the channel priority. Priority is a number which typically ranges from
+ * -20 (lowest priority) to 20 (highest priority). Can be null if the channel
+ * does not implement nsISupportsPriority.
+ *
+ * @param {nsIChannel} channel
+ * @returns {number|undefined}
+ */
+function getChannelPriority(channel) {
+  if (channel instanceof Ci.nsISupportsPriority) {
+    return channel.priority;
+  }
+
+  return null;
+}
+
+/**
+ * Get the channel HTTP version as an uppercase string starting with "HTTP/"
+ * (eg "HTTP/2").
+ *
+ * @param {nsIChannel} channel
+ * @returns {string}
+ */
+function getHttpVersion(channel) {
+  // Determine the HTTP version.
+  const httpVersionMaj = {};
+  const httpVersionMin = {};
+
+  channel.QueryInterface(Ci.nsIHttpChannelInternal);
+  channel.getResponseVersion(httpVersionMaj, httpVersionMin);
+
+  // The official name HTTP version 2.0 and 3.0 are HTTP/2 and HTTP/3, omit the
+  // trailing `.0`.
+  if (httpVersionMin.value == 0) {
+    return "HTTP/" + httpVersionMaj.value;
+  }
+
+  return "HTTP/" + httpVersionMaj.value + "." + httpVersionMin.value;
+}
+
+const UNKNOWN_PROTOCOL_STRINGS = ["", "unknown"];
+const HTTP_PROTOCOL_STRINGS = ["http", "https"];
+/**
+ * Get the protocol for the provided httpActivity. Either the ALPN negotiated
+ * protocol or as a fallback a protocol computed from the scheme and the
+ * response status.
+ *
+ * TODO: The `protocol` is similar to another response property called
+ * `httpVersion`. `httpVersion` is uppercase and purely computed from the
+ * response status, whereas `protocol` uses nsIHttpChannel.protocolVersion by
+ * default and otherwise falls back on `httpVersion`. Ideally we should merge
+ * the two properties.
+ *
+ * @param {Object} httpActivity
+ *     The httpActivity object for which we need to get the protocol.
+ *
+ * @returns {string}
+ *     The protocol as a string.
+ */
+function getProtocol(channel) {
+  let protocol = "";
+  try {
+    const httpChannel = channel.QueryInterface(Ci.nsIHttpChannel);
+    // protocolVersion corresponds to ALPN negotiated protocol.
+    protocol = httpChannel.protocolVersion;
+  } catch (e) {
+    // Ignore errors reading protocolVersion.
+  }
+
+  if (UNKNOWN_PROTOCOL_STRINGS.includes(protocol)) {
+    protocol = channel.URI.scheme;
+    const httpVersion = getHttpVersion(channel);
+    if (
+      typeof httpVersion == "string" &&
+      HTTP_PROTOCOL_STRINGS.includes(protocol)
+    ) {
+      protocol = httpVersion.toLowerCase();
+    }
+  }
+
+  return protocol;
+}
+
+/**
+ * Get the channel referrer policy as a string
+ * (eg "strict-origin-when-cross-origin").
+ *
+ * @param {nsIChannel} channel
+ * @returns {string}
+ */
+function getReferrerPolicy(channel) {
+  return channel.referrerInfo
+    ? channel.referrerInfo.getReferrerPolicyString()
+    : "";
+}
+
+/**
+ * Check if the channel is private.
+ *
+ * @param {nsIChannel} channel
+ * @returns {boolean}
+ */
+function isChannelPrivate(channel) {
+  channel.QueryInterface(Ci.nsIPrivateBrowsingChannel);
+  return channel.isChannelPrivate;
+}
+
+/**
+ * Check if the channel data is loaded from the cache or not.
+ *
+ * @param {nsIChannel} channel
+ *     The channel for which we need to check the cache status.
+ *
+ * @returns {boolean}
+ *     True if the channel data is loaded from the cache, false otherwise.
+ */
+function isFromCache(channel) {
+  if (channel instanceof Ci.nsICacheInfoChannel) {
+    return channel.isFromCache();
+  }
+
+  return false;
+}
+
+const REDIRECT_STATES = [
+  301, // HTTP Moved Permanently
+  302, // HTTP Found
+  303, // HTTP See Other
+  307, // HTTP Temporary Redirect
+];
+/**
+ * Check if the channel's status corresponds to a known redirect status.
+ *
+ * @param {nsIChannel} channel
+ *     The channel for which we need to check the redirect status.
+ *
+ * @returns {boolean}
+ *     True if the channel data is a redirect, false otherwise.
+ */
+function isRedirectedChannel(channel) {
+  try {
+    return REDIRECT_STATES.includes(channel.responseStatus);
+  } catch (e) {
+    // Throws NS_ERROR_NOT_AVAILABLE if the request was not sent yet.
+  }
+  return false;
+}
+
+/**
+ * isNavigationRequest is true for the one request used to load a new top level
+ * document of a given tab, or top level window. It will typically be false for
+ * navigation requests of iframes, i.e. the request loading another document in
+ * an iframe.
+ *
+ * @param {nsIChannel} channel
+ * @return {boolean}
+ */
+function isNavigationRequest(channel) {
+  return channel.isMainDocumentChannel && channel.loadInfo.isTopLevelLoad;
+}
+
+/**
+ * Returns true  if the channel has been processed by URL-Classifier features
+ * and is considered third-party with the top window URI, and if it has loaded
+ * a resource that is classified as a tracker.
+ *
+ * @param {nsIChannel} channel
+ * @return {boolean}
+ */
+function isThirdPartyTrackingResource(channel) {
+  // Only consider channels classified as level-1 to be trackers if our preferences
+  // would not cause such channels to be blocked in strict content blocking mode.
+  // Make sure the value produced here is a boolean.
+  return !!(
+    channel instanceof Ci.nsIClassifiedChannel &&
+    channel.isThirdPartyTrackingResource() &&
+    (channel.thirdPartyClassificationFlags & lazy.tpFlagsMask) == 0
+  );
+}
+
+/**
+ * Retrieve the websocket channel for the provided channel, if available.
+ * Returns null otherwise.
+ *
+ * @param {nsIChannel} channel
+ * @returns {nsIWebSocketChannel|null}
+ */
+function getWebSocketChannel(channel) {
+  let wsChannel = null;
   if (channel.notificationCallbacks) {
-    let wsChannel = null;
     try {
       wsChannel = channel.notificationCallbacks.QueryInterface(
         Ci.nsIWebSocketChannel
@@ -228,65 +382,14 @@ function createNetworkEvent(
     } catch (e) {
       // Not all channels implement nsIWebSocketChannel.
     }
-    if (wsChannel) {
-      event.url = wsChannel.URI.spec;
-      event.serial = wsChannel.serial;
-    }
   }
-
-  event.cause = {
-    type: this.causeTypeToString(
-      causeType,
-      channel.loadFlags,
-      channel.loadInfo.internalContentPolicyType
-    ),
-    loadingDocumentUri: causeUri,
-    stacktrace: undefined,
-  };
-
-  event.isXHR =
-    causeType === Ci.nsIContentPolicy.TYPE_XMLHTTPREQUEST ||
-    causeType === Ci.nsIContentPolicy.TYPE_FETCH;
-
-  // Determine the HTTP version.
-  const httpVersionMaj = {};
-  const httpVersionMin = {};
-
-  channel.QueryInterface(Ci.nsIHttpChannelInternal);
-  channel.getRequestVersion(httpVersionMaj, httpVersionMin);
-
-  event.httpVersion =
-    "HTTP/" + httpVersionMaj.value + "." + httpVersionMin.value;
-
-  event.discardRequestBody = !saveRequestAndResponseBodies;
-  event.discardResponseBody = !saveRequestAndResponseBodies;
-
-  if (blockedReason) {
-    event.blockedReason = blockedReason;
-    if (blockingExtension) {
-      event.blockingExtension = blockingExtension;
-    }
-  } else if (blockedReason !== undefined) {
-    // We were definitely blocked, but the blocker didn't say why.
-    event.blockedReason = "unknown";
-  }
-
-  // isNavigationRequest is true for the one request used to load a new top level document
-  // of a given tab, or top level window. It will typically be false for navigation requests
-  // of iframes, i.e. the request loading another document in an iframe.
-  event.isNavigationRequest =
-    channel.isMainDocumentChannel && channel.loadInfo.isTopLevelLoad;
-
-  return event;
+  return wsChannel;
 }
 
 /**
- * For a given channel, with its associated http activity object,
- * fetch the request's headers and cookies.
- * This data is passed to the owner, i.e. the NetworkEventActor,
- * so that the frontend can later fetch it via getRequestHeaders/getRequestCookies.
+ * For a given channel, fetch the request's headers and cookies.
  *
- * @param {*} channel
+ * @param {nsIChannel} channel
  * @return {Object}
  *     An object with two properties:
  *     @property {Array<Object>} cookies
@@ -314,6 +417,38 @@ function fetchRequestHeadersAndCookies(channel) {
   }
 
   return { cookies, headers };
+}
+
+/**
+ * For a given channel, fetch the response's headers and cookies.
+ *
+ * @param {nsIChannel} channel
+ * @return {Object}
+ *     An object with two properties:
+ *     @property {Array<Object>} cookies
+ *         Array of { name, value } objects.
+ *     @property {Array<Object>} headers
+ *         Array of { name, value } objects.
+ */
+function fetchResponseHeadersAndCookies(channel) {
+  // Read response headers and cookies.
+  const headers = [];
+  const setCookieHeaders = [];
+
+  const SET_COOKIE_REGEXP = /set-cookie/i;
+  channel.visitOriginalResponseHeaders({
+    visitHeader(name, value) {
+      if (SET_COOKIE_REGEXP.test(name)) {
+        setCookieHeaders.push(value);
+      }
+      headers.push({ name, value });
+    },
+  });
+
+  return {
+    cookies: lazy.NetworkHelper.parseSetCookieHeaders(setCookieHeaders),
+    headers,
+  };
 }
 
 /**
@@ -372,7 +507,7 @@ function matchRequest(channel, filters) {
     }
     if (type == "webextension") {
       return (
-        channel?.loadInfo.loadingPrincipal.addonId ===
+        channel.loadInfo?.loadingPrincipal?.addonId ===
         filters.sessionContext.addonId
       );
     }
@@ -410,8 +545,7 @@ function legacyMatchRequest(channel, filters) {
   // Ignore requests from chrome or add-on code when we are monitoring
   // content.
   if (
-    channel.loadInfo &&
-    channel.loadInfo.loadingDocument === null &&
+    channel.loadInfo?.loadingDocument === null &&
     (channel.loadInfo.loadingPrincipal ===
       Services.scriptSecurityManager.getSystemPrincipal() ||
       channel.loadInfo.isInDevToolsContext)
@@ -450,18 +584,14 @@ function legacyMatchRequest(channel, filters) {
 
     // If we couldn't get the top frame BrowsingContext from the loadContext,
     // look for it on channel.loadInfo instead.
-    if (
-      channel.loadInfo &&
-      channel.loadInfo.browsingContext &&
-      channel.loadInfo.browsingContext.browserId == filters.browserId
-    ) {
+    if (channel.loadInfo?.browsingContext?.browserId == filters.browserId) {
       return true;
     }
   }
 
   if (
     filters.addonId &&
-    channel?.loadInfo.loadingPrincipal.addonId === filters.addonId
+    channel.loadInfo?.loadingPrincipal?.addonId === filters.addonId
   ) {
     return true;
   }
@@ -469,13 +599,72 @@ function legacyMatchRequest(channel, filters) {
   return false;
 }
 
+function getBlockedReason(channel) {
+  let blockingExtension, blockedReason;
+  const { status } = channel;
+
+  try {
+    const request = channel.QueryInterface(Ci.nsIHttpChannel);
+    const properties = request.QueryInterface(Ci.nsIPropertyBag);
+
+    blockedReason = request.loadInfo.requestBlockingReason;
+    blockingExtension = properties.getProperty("cancelledByExtension");
+
+    // WebExtensionPolicy is not available for workers
+    if (typeof WebExtensionPolicy !== "undefined") {
+      blockingExtension = WebExtensionPolicy.getByID(blockingExtension).name;
+    }
+  } catch (err) {
+    // "cancelledByExtension" doesn't have to be available.
+  }
+  // These are platform errors which are not exposed to the users,
+  // usually the requests (with these errors) might be displayed with various
+  // other status codes.
+  const ignoreList = [
+    // This is emited when the request is already in the cache.
+    "NS_ERROR_PARSED_DATA_CACHED",
+    // This is emited when there is some issues around images e.g When the img.src
+    // links to a non existent url. This is typically shown as a 404 request.
+    "NS_IMAGELIB_ERROR_FAILURE",
+    // This is emited when there is a redirect. They are shown as 301 requests.
+    "NS_BINDING_REDIRECTED",
+    // E.g Emited by send beacon requests.
+    "NS_ERROR_ABORT",
+  ];
+
+  // If the request has not failed or is not blocked by a web extension, check for
+  // any errors not on the ignore list. e.g When a host is not found (NS_ERROR_UNKNOWN_HOST).
+  if (
+    blockedReason == 0 &&
+    !Components.isSuccessCode(status) &&
+    !ignoreList.includes(ChromeUtils.getXPCOMErrorName(status))
+  ) {
+    blockedReason = ChromeUtils.getXPCOMErrorName(status);
+  }
+
+  return { blockingExtension, blockedReason };
+}
+
 export const NetworkUtils = {
   causeTypeToString,
-  createNetworkEvent,
   fetchRequestHeadersAndCookies,
+  fetchResponseHeadersAndCookies,
+  getCauseDetails,
   getChannelBrowsingContextID,
   getChannelInnerWindowId,
+  getChannelPriority,
+  getHttpVersion,
+  getProtocol,
+  getReferrerPolicy,
+  getWebSocketChannel,
+  isChannelFromSystemPrincipal,
+  isChannelPrivate,
+  isFromCache,
+  isNavigationRequest,
   isPreloadRequest,
+  isRedirectedChannel,
+  isThirdPartyTrackingResource,
   matchRequest,
   stringToCauseType,
+  getBlockedReason,
 };

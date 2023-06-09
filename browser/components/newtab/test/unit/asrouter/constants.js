@@ -98,12 +98,13 @@ export const FAKE_RECOMMENDATION = {
       sumo_path: "a_help_path_fragment",
     },
     heading_text: "Fake Heading Text",
+    icon_class: "Fake Icon class",
     addon: {
       title: "Fake Addon Title",
       author: "Fake Addon Author",
       icon: "a_path_to_some_icon",
-      rating: 4.2,
-      users: 1234,
+      rating: "4.2",
+      users: "1234",
       amo_url: "a_path_to_amo",
     },
     descriptionDetails: {
@@ -134,33 +135,3 @@ export const FAKE_RECOMMENDATION = {
     },
   },
 };
-
-// Stubs methods on RemotePageManager
-export class FakeRemotePageManager {
-  constructor() {
-    this.messagePorts = [];
-    this.addMessageListener = sinon.stub();
-    this.sendAsyncMessage = sinon.stub();
-    this.removeMessageListener = sinon.stub();
-    this.browser = {
-      ownerGlobal: {
-        openTrustedLinkIn: sinon.stub(),
-        openLinkIn: sinon.stub(),
-        OpenBrowserWindow: sinon.stub(),
-        openPreferences: sinon.stub(),
-        gBrowser: {
-          pinTab: sinon.stub(),
-          selectedTab: {},
-        },
-        ConfirmationHint: {
-          show: sinon.stub(),
-        },
-        gProtectionsHandler: {
-          showProtectionsPopup: sinon.stub(),
-          openProtections: sinon.stub(),
-        },
-      },
-    };
-    this.portID = "6000:2";
-  }
-}

@@ -58,7 +58,7 @@ class GMPParent final
   friend class PGMPParent;
 
  public:
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(GMPParent)
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(GMPParent, final)
 
   GMPParent();
 
@@ -190,8 +190,8 @@ class GMPParent final
   void PreTranslateBinsWorker();
 #endif
 
-#if defined(XP_MACOSX)
-  nsresult GetPluginFileArch(nsIFile* aPluginDir, nsAutoString& aLeafName,
+#if defined(XP_WIN) || defined(XP_MACOSX)
+  nsresult GetPluginFileArch(nsIFile* aPluginDir, const nsString& aBaseName,
                              uint32_t& aArchSet);
 #endif
 
@@ -228,15 +228,11 @@ class GMPParent final
 
   int mChildPid;
 
-  // We hold a self reference to ourself while the child process is alive.
-  // This ensures that if the GMPService tries to shut us down and drops
-  // its reference to us, we stay alive long enough for the child process
-  // to terminate gracefully.
-  bool mHoldingSelfRef;
-
-#if defined(XP_MACOSX) && defined(__aarch64__)
+#ifdef ALLOW_GECKO_CHILD_PROCESS_ARCH
   // The child process architecture to use.
   uint32_t mChildLaunchArch;
+#endif
+#if defined(XP_MACOSX) && defined(__aarch64__)
   nsCString mPluginFilePath;
 #endif
 

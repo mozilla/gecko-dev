@@ -11,6 +11,7 @@ import signal
 import subprocess
 import sys
 import tempfile
+import traceback
 import zipfile
 from collections import namedtuple
 
@@ -194,7 +195,8 @@ ABORT_SIGNATURES = (
     "std::sys_common::backtrace::__rust_end_short_backtrace",
     "rust_begin_unwind",
     # This started showing up when we enabled dumping inlined functions
-    "MOZ_Crash",
+    "MOZ_Crash(char const*, int, char const*)",
+    "<alloc::boxed::Box<F,A> as core::ops::function::Fn<Args>>::call",
 )
 
 # Similar to above, but matches if the substring appears anywhere in the
@@ -251,31 +253,20 @@ class CrashInfo(object):
             stackwalk_binary = os.environ.get("MINIDUMP_STACKWALK", None)
         if stackwalk_binary is None:
             # Location of minidump-stackwalk installed by "mach bootstrap".
-            #
-            # In the transition to rust-minidump, the binary name was changed
-            # from minidump_stackwalk to minidump-stackwalk, but if the user
-            # hasn't run mach bootstrap yet, then they'll still have the old
-            # binary. So we try both names (but prefer the new one).
-            #
-            # If neither exists, then we intentionally leave a junk path
-            # in stackwalk_binary, as later checks will handle this properly
-            # when our actual error reporting is setup.
-            possible_names = ["minidump-stackwalk", "minidump_stackwalk"]
+            executable_name = "minidump-stackwalk"
             state_dir = os.environ.get(
                 "MOZBUILD_STATE_PATH",
                 os.path.expanduser(os.path.join("~", ".mozbuild")),
             )
-            for possible_name in possible_names:
-                stackwalk_binary = os.path.join(state_dir, possible_name, possible_name)
-                if mozinfo.isWin and not stackwalk_binary.endswith(".exe"):
-                    stackwalk_binary += ".exe"
-                if os.path.exists(stackwalk_binary):
-                    # If we reach this point, then we're almost certainly
-                    # running on a local user's machine. Full minidump-stackwalk
-                    # output is a bit noisy and verbose for that use-case,
-                    # so we should use the --brief output.
-                    self.brief_output = True
-                    break
+            stackwalk_binary = os.path.join(state_dir, executable_name, executable_name)
+            if mozinfo.isWin and not stackwalk_binary.endswith(".exe"):
+                stackwalk_binary += ".exe"
+            if os.path.exists(stackwalk_binary):
+                # If we reach this point, then we're almost certainly
+                # running on a local user's machine. Full minidump-stackwalk
+                # output is a bit noisy and verbose for that use-case,
+                # so we should use the --brief output.
+                self.brief_output = True
 
         self.stackwalk_binary = stackwalk_binary
 
@@ -358,7 +349,6 @@ class CrashInfo(object):
 
         errors = []
         signature = None
-        include_stderr = False
         out = None
         err = None
         retcode = None
@@ -369,44 +359,6 @@ class CrashInfo(object):
             and os.path.exists(self.stackwalk_binary)
             and os.access(self.stackwalk_binary, os.X_OK)
         ):
-            # If minidump-stackwalk -V fails, then we're using the old breakpad version,
-            # (minidump_stackwalk) which is implicitly "human" output and doesn't
-            # support the --human flag.
-            #
-            # Otherwise we're using rust-minidump's minidump-stackwalk. Before 0.9.6
-            # --human had to be passed explicitly to get human output, but now it's
-            # the default (to behave more similarly to breakpad). But since we've
-            # already filtered out breakpad as an option, we can explicitly pass
-            # --human.
-            #
-            # In the future we would also like to use rust-minidump's --cyborg
-            # (introduced in 0.9.5), which outputs both human-readable *and*
-            # machine-readable (JSON) output, so we can output something nice to the
-            # CLI, but more reliably parse all the details we care about.
-            # The machine-readable output is also exactly what socorro (crash-stats)
-            # consumes, so in theory using it will make the two more compatible.
-            stackwalk_version_check = subprocess.Popen(
-                [self.stackwalk_binary, "-V"],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-            stackwalk_version_check.wait()
-
-            # Right now we don't have any rust-minidump-version-specific handling,
-            # so we don't need to bother parsing the output at all. But when we
-            # want to start using newer features (like --cyborg) we should parse
-            # the version string, so here's some notes on that:
-            #
-            # Example outputs:
-            # minidump_stackwalk 0.9.2
-            # minidump-stackwalk 0.9.5
-            #
-            # Either `_` or `-` may be used in the name, so be careful of that
-            # (newer versions should use `-`). Otherwise the actual version number
-            # is the usual `<major>.<minor>.<patch>` that can be parsed with
-            # `looseversion.LooseVersion`.
-            rust_minidump = stackwalk_version_check.returncode == 0
-
             # Now build up the actual command
             command = [self.stackwalk_binary]
 
@@ -415,63 +367,40 @@ class CrashInfo(object):
             if "MOZ_AUTOMATION" in os.environ:
                 command.append("--symbols-url=https://symbols.mozilla.org/")
 
-            # Specify the kind of output
-            if rust_minidump:
-                command.append("--human")
+            with tempfile.TemporaryDirectory() as json_dir:
+                crash_id = os.path.basename(path)[:-4]
+                json_output = os.path.join(json_dir, "{}.trace".format(crash_id))
+                # Specify the kind of output
+                command.append("--cyborg={}".format(json_output))
                 if self.brief_output:
                     command.append("--brief")
 
-            # The minidump path and symbols_path values are positional and come last
-            # (in practice the CLI parsers are more permissive, but best not to
-            # unecessarily play with fire).
-            command.append(path)
+                # The minidump path and symbols_path values are positional and come last
+                # (in practice the CLI parsers are more permissive, but best not to
+                # unecessarily play with fire).
+                command.append(path)
 
-            if self.symbols_path:
-                command.append(self.symbols_path)
+                if self.symbols_path:
+                    command.append(self.symbols_path)
 
-            self.logger.info("Copy/paste: {}".format(" ".join(command)))
-            # run minidump-stackwalk
-            p = subprocess.Popen(
-                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-            (out, err) = p.communicate()
-            retcode = p.returncode
-            if six.PY3:
-                out = six.ensure_str(out)
-                err = six.ensure_str(err)
+                self.logger.info("Copy/paste: {}".format(" ".join(command)))
+                # run minidump-stackwalk
+                p = subprocess.Popen(
+                    command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                )
+                (out, err) = p.communicate()
+                retcode = p.returncode
+                if six.PY3:
+                    out = six.ensure_str(out)
+                    err = six.ensure_str(err)
 
-            if len(out) > 3:
-                # minidump-stackwalk is chatty,
-                # so ignore stderr when it succeeds.
-                # The top frame of the crash is always the line after "Thread N (crashed)"
-                # Examples:
-                #  0  libc.so + 0xa888
-                #  0  libnss3.so!nssCertificate_Destroy [certificate.c : 102 + 0x0]
-                #  0  mozjs.dll!js::GlobalObject::getDebuggers() [GlobalObject.cpp:89df18f9b6da : 580 + 0x0] # noqa
-                # 0  libxul.so!void js::gc::MarkInternal<JSObject>(JSTracer*, JSObject**)
-                # [Marking.cpp : 92 + 0x28]
-                lines = out.splitlines()
-                for i, line in enumerate(lines):
-                    if "(crashed)" in line:
-                        # Try to find the first frame that isn't an abort
-                        # function to use as the signature.
-                        for line in lines[i + 1 :]:
-                            if not line.startswith(" "):
-                                break
+                if retcode == 0:
+                    signature = self._generate_signature(json_output)
 
-                            match = re.search(r"^ \d  (?:.*!)?(?:void )?([^\[]+)", line)
-                            if match:
-                                func = match.group(1).strip()
-                                signature = "@ %s" % func
-
-                                if not (
-                                    func in ABORT_SIGNATURES
-                                    or any(pat in func for pat in ABORT_SUBSTRINGS)
-                                ):
-                                    break
-                        break
-            else:
-                include_stderr = True
+                    # Strip parameters from signature
+                    pmatch = re.search(r"(.*)\(.*\)", signature)
+                    if pmatch:
+                        signature = pmatch.group(1)
 
         else:
             if not self.stackwalk_binary:
@@ -506,13 +435,50 @@ class CrashInfo(object):
             path,
             signature,
             out,
-            err if include_stderr else None,
+            err,
             retcode,
             errors,
             extra,
             reason,
             java_stack,
         )
+
+    def _generate_signature(self, json_path):
+        signature = None
+
+        try:
+            json_file = open(json_path, "r")
+            crash_json = json.load(json_file)
+            json_file.close()
+            crashing_thread = crash_json.get("crashing_thread") or {}
+            frames = crashing_thread.get("frames") or []
+
+            flattened_frames = []
+            for frame in frames:
+                for inline in frame.get("inlines") or []:
+                    flattened_frames.append(inline.get("function"))
+
+                flattened_frames.append(
+                    frame.get("function")
+                    or "{} + {}".format(frame.get("module"), frame.get("module_offset"))
+                )
+
+            for func in flattened_frames:
+                if not func:
+                    continue
+
+                signature = "@ %s" % func
+
+                if not (
+                    func in ABORT_SIGNATURES
+                    or any(pat in func for pat in ABORT_SUBSTRINGS)
+                ):
+                    break
+        except Exception as e:
+            traceback.print_exc()
+            signature = "an error occurred while generating the signature: {}".format(e)
+
+        return signature
 
     def _parse_extra_file(self, path):
         with open(path) as file:

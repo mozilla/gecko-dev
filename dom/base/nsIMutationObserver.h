@@ -168,8 +168,6 @@ class nsIMutationObserver
    * @param aModType     Whether or not the attribute will be added, changed, or
    *                     removed. The constants are defined in
    *                     MutationEvent.webidl.
-   * @param aNewValue    The new value, IF it has been preparsed by
-   *                     BeforeSetAttr, otherwise null.
    *
    * @note Callers of this method might not hold a strong reference to the
    *       observer.  The observer is responsible for making sure it stays
@@ -203,16 +201,6 @@ class nsIMutationObserver
                                 int32_t aNameSpaceID, nsAtom* aAttribute,
                                 int32_t aModType,
                                 const nsAttrValue* aOldValue) = 0;
-
-  /**
-   * Notification that the root of a native anonymous has been added
-   * or removed.
-   *
-   * @param aContent     Anonymous node that's been added or removed
-   * @param aIsRemove    True if it's a removal, false if an addition
-   */
-  virtual void NativeAnonymousChildListChange(nsIContent* aContent,
-                                              bool aIsRemove) {}
 
   /**
    * Notification that an attribute of an element has been
@@ -331,10 +319,6 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIMutationObserver, NS_IMUTATION_OBSERVER_IID)
                                    int32_t aNameSpaceID, nsAtom* aAttribute, \
                                    int32_t aModType) override;
 
-#define NS_DECL_NSIMUTATIONOBSERVER_NATIVEANONYMOUSCHILDLISTCHANGE  \
-  virtual void NativeAnonymousChildListChange(nsIContent* aContent, \
-                                              bool aIsRemove) override;
-
 #define NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTECHANGED                      \
   virtual void AttributeChanged(mozilla::dom::Element* aElement,          \
                                 int32_t aNameSpaceID, nsAtom* aAttribute, \
@@ -371,7 +355,6 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIMutationObserver, NS_IMUTATION_OBSERVER_IID)
   NS_DECL_NSIMUTATIONOBSERVER_CHARACTERDATAWILLCHANGE        \
   NS_DECL_NSIMUTATIONOBSERVER_CHARACTERDATACHANGED           \
   NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTEWILLCHANGE            \
-  NS_DECL_NSIMUTATIONOBSERVER_NATIVEANONYMOUSCHILDLISTCHANGE \
   NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTECHANGED               \
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED                \
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTINSERTED                \
@@ -392,8 +375,6 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIMutationObserver, NS_IMUTATION_OBSERVER_IID)
   void _class::AttributeWillChange(mozilla::dom::Element* aElement,            \
                                    int32_t aNameSpaceID, nsAtom* aAttribute,   \
                                    int32_t aModType) {}                        \
-  void _class::NativeAnonymousChildListChange(nsIContent* aContent,            \
-                                              bool aIsRemove) {}               \
   void _class::AttributeChanged(                                               \
       mozilla::dom::Element* aElement, int32_t aNameSpaceID,                   \
       nsAtom* aAttribute, int32_t aModType, const nsAttrValue* aOldValue) {}   \

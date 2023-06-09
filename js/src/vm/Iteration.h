@@ -18,11 +18,122 @@
 #include "gc/Barrier.h"
 #include "vm/NativeObject.h"
 
+/*
+ * [SMDOC] For-in enumeration
+ *
+ * A for-in loop in JS iterates over the string-valued, enumerable
+ * property keys of an object and its prototype chain. The order in
+ * which keys appear is specified to the extent that implementations
+ * historically agreed, and implementation-defined beyond that. See
+ * https://tc39.es/ecma262/#sec-enumerate-object-properties for the
+ * gory details. Each key appears only once in the enumeration.
+ *
+ * We enumerate properties using PropertyEnumerator, which creates an
+ * ordered list of PropertyKeys, using ShapePropertyIter for native
+ * objects and calling enumerate hooks where necessary. This list is
+ * used to create a NativeIterator, which contains (among other
+ * things) a trailing array of strings representing the property keys
+ * of the object, and a cursor pointing into that array. This
+ * NativeIterator is wrapped in a PropertyIteratorObject, which is
+ * pushed by JSOp::Iter and used by JSOp::MoreIter and JSOp::EndIter.
+ *
+ * While active, a NativeIterator is registered in a doubly linked
+ * list, rooted in the compartment. When any property is deleted from
+ * an object, this list is used to remove the deleted property from
+ * any active enumerations. See SuppressDeletedProperty. This slows
+ * down deletion but speeds up enumeration, which is generally a good
+ * tradeoff.
+ *
+ * In many cases, objects with the same shape will have the same set
+ * of property keys. (The most common exception is objects with dense
+ * elements, which can be added or removed without changing the shape
+ * of the object.) In such cases, we can reuse an existing iterator by
+ * storing a pointer to the PropertyIteratorObject in the shape's
+ * |cache_| pointer. Before reusing an iterator, we have to verify
+ * that the prototype chain has not changed and no dense elements have
+ * been added, which is done by storing a trailing array of prototype
+ * shapes in the NativeIterator and comparing it against the shapes of
+ * the prototype chain.
+ *
+ * One of the most frequent uses of for-in loops is in loops that look
+ * like this, which iterate over each property of an object and do
+ * something with those values:
+ *   for (var key in obj) {
+ *     if (obj.hasOwnProperty(key)) {
+ *       doSomethingWith(obj[key]);
+ *     }
+ *   }
+ * Most objects don't have any enumerable properties on the prototype
+ * chain. In such cases, we can speed up property access inside the
+ * loop by precomputing some information and storing it in the
+ * iterator.  When we see a pattern like this in Ion, we generate a
+ * call to GetIteratorWithIndices instead of GetIterator. In this
+ * case, in addition to the list of property keys, PropertyEnumerator
+ * will try to generate a list of corresponding PropertyIndex values,
+ * which represent the location of the own property key in the object
+ * (fixed slot/dynamic slot/dense element + offset). This list will be
+ * stored in NativeIterator as yet another trailing array. When
+ * present, it can be used by Ion code to speed up property access
+ * inside for-in loops. See OptimizeIteratorIndices in
+ * IonAnalysis.cpp.
+ */
+
 namespace js {
 
 class ArrayObject;
 class PlainObject;
 class PropertyIteratorObject;
+
+// A PropertyIndex stores information about the location of an own data
+// property in a format that can be stored in a NativeIterator and consumed by
+// jitcode to access properties without needing to use the megamorphic cache.
+struct PropertyIndex {
+ private:
+  uint32_t asBits_;
+
+ public:
+  enum class Kind : uint32_t { DynamicSlot, FixedSlot, Element, Invalid };
+
+  PropertyIndex(Kind kind, uint32_t index) : asBits_(encode(kind, index)) {}
+
+  static PropertyIndex Invalid() { return PropertyIndex(Kind::Invalid, 0); }
+
+  static PropertyIndex ForElement(uint32_t index) {
+    return PropertyIndex(Kind::Element, index);
+  }
+
+  static PropertyIndex ForSlot(NativeObject* obj, uint32_t index) {
+    if (index < obj->numFixedSlots()) {
+      return PropertyIndex(Kind::FixedSlot, index);
+    } else {
+      return PropertyIndex(Kind::DynamicSlot, index - obj->numFixedSlots());
+    }
+  }
+
+  static constexpr uint32_t KindBits = 2;
+
+  static constexpr uint32_t IndexBits = 32 - KindBits;
+  static constexpr uint32_t IndexLimit = 1 << IndexBits;
+  static constexpr uint32_t IndexMask = (1 << IndexBits) - 1;
+
+  static constexpr uint32_t KindShift = IndexBits;
+
+  static_assert(NativeObject::MAX_FIXED_SLOTS < IndexLimit);
+  static_assert(NativeObject::MAX_SLOTS_COUNT < IndexLimit);
+  static_assert(NativeObject::MAX_DENSE_ELEMENTS_COUNT < IndexLimit);
+
+ private:
+  uint32_t encode(Kind kind, uint32_t index) {
+    MOZ_ASSERT(index < IndexLimit);
+    return (uint32_t(kind) << KindShift) | index;
+  }
+
+ public:
+  Kind kind() const { return Kind(asBits_ >> KindShift); }
+  uint32_t index() const { return asBits_ & IndexMask; }
+};
+
+using PropertyIndexVector = js::Vector<PropertyIndex, 8, js::TempAllocPolicy>;
 
 struct NativeIterator;
 
@@ -81,6 +192,27 @@ class NativeIteratorListIter {
   }
 };
 
+// If an object only has own data properties, we can store a list of
+// PropertyIndex that can be used in Ion to more efficiently access those
+// properties in cases like `for (var key in obj) { ...obj[key]... }`.
+enum class NativeIteratorIndices : uint32_t {
+  // The object being iterated does not support indices.
+  Unavailable = 0,
+
+  // The object being iterated supports indices, but none have been
+  // allocated, because it has not yet been iterated by Ion code that
+  // can use indices-based access.
+  AvailableOnRequest = 1,
+
+  // The object being iterated had indices allocated, but they were
+  // disabled due to a deleted property.
+  Disabled = 2,
+
+  // The object being iterated had indices allocated, and they are
+  // still valid.
+  Valid = 3
+};
+
 struct NativeIterator : public NativeIteratorListNode {
  private:
   // Object being iterated.  Non-null except in NativeIterator sentinels,
@@ -92,20 +224,22 @@ struct NativeIterator : public NativeIteratorListNode {
   const GCPtr<JSObject*> iterObj_ = {};
 
   // The end of GCPtr<Shape*>s that appear directly after |this|, as part of an
-  // overall allocation that stores |*this|, shapes, and iterated strings.
-  // Once this has been fully initialized, it also equals the start of iterated
-  // strings.
+  // overall allocation that stores |*this|, shapes, iterated strings, and maybe
+  // indices. Once this has been fully initialized, it also equals the start of
+  // iterated strings.
   GCPtr<Shape*>* shapesEnd_;  // initialized by constructor
 
   // The next property, pointing into an array of strings directly after any
   // GCPtr<Shape*>s that appear directly after |*this|, as part of an overall
-  // allocation that stores |*this|, shapes, and iterated strings.
+  // allocation that stores |*this|, shapes, iterated strings, and maybe
+  // indices.
   GCPtr<JSLinearString*>* propertyCursor_;  // initialized by constructor
 
-  // The limit/end of properties to iterate (and, assuming no error occurred
-  // while constructing this NativeIterator, the end of the full allocation
-  // storing |*this|, shapes, and strings).  Beware!  This value may change as
-  // properties are deleted from the observed object.
+  // The limit/end of properties to iterate. Once |this| has been fully
+  // initialized, it also equals the start of indices, if indices are present,
+  // or the end of the full allocation storing |*this|, shapes, and strings, if
+  // indices are not present. Beware! This value may change as properties are
+  // deleted from the observed object.
   GCPtr<JSLinearString*>* propertiesEnd_;  // initialized by constructor
 
   HashNumber shapesHash_;  // initialized by constructor
@@ -151,14 +285,23 @@ struct NativeIterator : public NativeIteratorListNode {
 
  private:
   static constexpr uint32_t FlagsBits = 4;
+  static constexpr uint32_t IndicesBits = 2;
+
   static constexpr uint32_t FlagsMask = (1 << FlagsBits) - 1;
 
+  static constexpr uint32_t PropCountShift = IndicesBits + FlagsBits;
+  static constexpr uint32_t PropCountBits = 32 - PropCountShift;
+
  public:
-  static constexpr uint32_t PropCountLimit = 1 << (32 - FlagsBits);
+  static constexpr uint32_t IndicesShift = FlagsBits;
+  static constexpr uint32_t IndicesMask = ((1 << IndicesBits) - 1)
+                                          << IndicesShift;
+
+  static constexpr uint32_t PropCountLimit = 1 << PropCountBits;
 
  private:
-  // Stores Flags bits in the lower bits and the initial property count above
-  // them.
+  // Stores Flags bits and indices state in the lower bits and the initial
+  // property count above them.
   uint32_t flagsAndCount_ = 0;
 
 #ifdef DEBUG
@@ -169,15 +312,17 @@ struct NativeIterator : public NativeIteratorListNode {
 
   // END OF PROPERTIES
 
-  // No further fields appear after here *in NativeIterator*, but this class
-  // is always allocated with space tacked on immediately after |this| to
-  // store iterated property names up to |props_end| and |numShapes| shapes
-  // after that.
+  // No further fields appear after here *in NativeIterator*, but this class is
+  // always allocated with space tacked on immediately after |this| to store
+  // shapes p to |shapesEnd_|, iterated property names after that up to
+  // |propertiesEnd_|, and maybe PropertyIndex values up to |indices_end()|.
 
  public:
   /**
    * Initialize a NativeIterator properly allocated for |props.length()|
-   * properties and |numShapes| shapes.
+   * properties and |numShapes| shapes. If |indices| is non-null, also
+   * allocates room for |indices.length()| PropertyIndex values. In this case,
+   * |indices.length()| must equal |props.length()|.
    *
    * Despite being a constructor, THIS FUNCTION CAN REPORT ERRORS.  Users
    * MUST set |*hadError = false| on entry and consider |*hadError| on return
@@ -185,7 +330,8 @@ struct NativeIterator : public NativeIteratorListNode {
    */
   NativeIterator(JSContext* cx, Handle<PropertyIteratorObject*> propIter,
                  Handle<JSObject*> objBeingIterated, HandleIdVector props,
-                 uint32_t numShapes, HashNumber shapesHash, bool* hadError);
+                 bool supportsIndices, PropertyIndexVector* indices,
+                 uint32_t numShapes, bool* hadError);
 
   JSObject* objectBeingIterated() const { return objectBeingIterated_; }
 
@@ -243,6 +389,18 @@ struct NativeIterator : public NativeIteratorListNode {
 
   GCPtr<JSLinearString*>* nextProperty() const { return propertyCursor_; }
 
+  PropertyIndex* indicesBegin() const {
+    // PropertyIndex must be able to be appear directly after the properties
+    // array, with no padding required for correct alignment.
+    static_assert(alignof(GCPtr<JSLinearString*>) >= alignof(PropertyIndex));
+    return reinterpret_cast<PropertyIndex*>(propertiesEnd_);
+  }
+
+  PropertyIndex* indicesEnd() const {
+    MOZ_ASSERT(indicesState() == NativeIteratorIndices::Valid);
+    return indicesBegin() + numKeys() * sizeof(PropertyIndex);
+  }
+
   MOZ_ALWAYS_INLINE JS::Value nextIteratedValueAndAdvance() {
     if (propertyCursor_ >= propertiesEnd_) {
       MOZ_ASSERT(propertyCursor_ == propertiesEnd_);
@@ -278,13 +436,15 @@ struct NativeIterator : public NativeIteratorListNode {
 
   void trimLastProperty() {
     MOZ_ASSERT(isInitialized());
-
     propertiesEnd_--;
 
     // This invokes the pre barrier on this property, since it's no longer
     // going to be marked, and it ensures that any existing remembered set
     // entry will be dropped.
     *propertiesEnd_ = nullptr;
+
+    // Indices are no longer valid.
+    disableIndices();
   }
 
   JSObject* iterObj() const { return iterObj_; }
@@ -316,17 +476,33 @@ struct NativeIterator : public NativeIteratorListNode {
  private:
   uint32_t flags() const { return flagsAndCount_ & FlagsMask; }
 
-  uint32_t initialPropertyCount() const { return flagsAndCount_ >> FlagsBits; }
+  NativeIteratorIndices indicesState() const {
+    return NativeIteratorIndices((flagsAndCount_ & IndicesMask) >>
+                                 IndicesShift);
+  }
+
+  uint32_t initialPropertyCount() const {
+    return flagsAndCount_ >> PropCountShift;
+  }
 
   static uint32_t initialFlagsAndCount(uint32_t count) {
     // No flags are initially set.
     MOZ_ASSERT(count < PropCountLimit);
-    return count << FlagsBits;
+    return count << PropCountShift;
   }
 
   void setFlags(uint32_t flags) {
     MOZ_ASSERT((flags & ~FlagsMask) == 0);
-    flagsAndCount_ = (initialPropertyCount() << FlagsBits) | flags;
+    flagsAndCount_ = (flagsAndCount_ & ~FlagsMask) | flags;
+  }
+
+  void setIndicesState(NativeIteratorIndices indices) {
+    uint32_t indicesBits = uint32_t(indices) << IndicesShift;
+    flagsAndCount_ = (flagsAndCount_ & ~IndicesMask) | indicesBits;
+  }
+
+  bool indicesAllocated() const {
+    return indicesState() >= NativeIteratorIndices::Disabled;
   }
 
   void markInitialized() {
@@ -393,6 +569,23 @@ struct NativeIterator : public NativeIteratorListNode {
     MOZ_ASSERT(!isEmptyIteratorSingleton());
 
     flagsAndCount_ |= Flags::HasUnvisitedPropertyDeletion;
+  }
+
+  bool hasValidIndices() const {
+    return indicesState() == NativeIteratorIndices::Valid;
+  }
+
+  bool indicesAvailableOnRequest() const {
+    return indicesState() == NativeIteratorIndices::AvailableOnRequest;
+  }
+
+  void disableIndices() {
+    // If we have allocated indices, set the state to Disabled.
+    // This will ensure that we don't use them, but we still
+    // free them correctly.
+    if (indicesState() == NativeIteratorIndices::Valid) {
+      setIndicesState(NativeIteratorIndices::Disabled);
+    }
   }
 
   void link(NativeIteratorListNode* other) {
@@ -504,9 +697,10 @@ RegExpStringIteratorObject* NewRegExpStringIterator(JSContext* cx);
 
 PropertyIteratorObject* LookupInIteratorCache(JSContext* cx, HandleObject obj);
 
-JSObject* GetIterator(JSContext* cx, HandleObject obj);
+PropertyIteratorObject* GetIterator(JSContext* cx, HandleObject obj);
+PropertyIteratorObject* GetIteratorWithIndices(JSContext* cx, HandleObject obj);
 
-JSObject* ValueToIterator(JSContext* cx, HandleValue vp);
+PropertyIteratorObject* ValueToIterator(JSContext* cx, HandleValue vp);
 
 void CloseIterator(JSObject* obj);
 

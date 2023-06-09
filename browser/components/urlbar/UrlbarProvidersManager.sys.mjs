@@ -32,6 +32,7 @@ XPCOMUtils.defineLazyGetter(lazy, "logger", () =>
 
 // List of available local providers, each is implemented in its own jsm module
 // and will track different queries internally by queryContext.
+// When adding new providers please remember to update the list in metrics.yaml.
 var localProviderModules = {
   UrlbarProviderAboutPages:
     "resource:///modules/UrlbarProviderAboutPages.sys.mjs",
@@ -46,6 +47,8 @@ var localProviderModules = {
     "resource:///modules/UrlbarProviderContextualSearch.sys.mjs",
   UrlbarProviderHeuristicFallback:
     "resource:///modules/UrlbarProviderHeuristicFallback.sys.mjs",
+  UrlbarProviderHistoryUrlHeuristic:
+    "resource:///modules/UrlbarProviderHistoryUrlHeuristic.sys.mjs",
   UrlbarProviderInputHistory:
     "resource:///modules/UrlbarProviderInputHistory.sys.mjs",
   UrlbarProviderInterventions:
@@ -73,6 +76,7 @@ var localProviderModules = {
   UrlbarProviderTopSites: "resource:///modules/UrlbarProviderTopSites.sys.mjs",
   UrlbarProviderUnitConversion:
     "resource:///modules/UrlbarProviderUnitConversion.sys.mjs",
+  UrlbarProviderWeather: "resource:///modules/UrlbarProviderWeather.sys.mjs",
 };
 
 // List of available local muxers, each is implemented in its own jsm module.
@@ -335,7 +339,7 @@ class ProvidersManager {
    * @param {object} details
    *   An object that describes the search string and the picked result, if any.
    */
-  notifyEngagementChange(isPrivate, state, queryContext, details) {
+  notifyEngagementChange(isPrivate, state, queryContext, details = {}) {
     for (let provider of this.providers) {
       provider.tryMethod(
         "onEngagement",
@@ -376,6 +380,7 @@ class Query {
     // caller and we don't want to port previous query state over.
     this.context.pendingHeuristicProviders.clear();
     this.context.deferUserSelectionProviders.clear();
+    this.unsortedResults = [];
     this.muxer = muxer;
     this.controller = controller;
     this.providers = providers;
@@ -599,7 +604,7 @@ class Query {
 
     result.providerName = provider.name;
     result.providerType = provider.type;
-    this.context.results.push(result);
+    this.unsortedResults.push(result);
 
     this._notifyResultsFromProvider(provider);
   }
@@ -640,7 +645,7 @@ class Query {
   }
 
   _notifyResults() {
-    this.muxer.sort(this.context);
+    this.muxer.sort(this.context, this.unsortedResults);
 
     if (this._heuristicProviderTimer) {
       this._heuristicProviderTimer.cancel().catch(ex => lazy.logger.error(ex));
@@ -652,14 +657,10 @@ class Query {
       this._chunkTimer = null;
     }
 
-    // Before the muxer.sort call above, this.context.results should never be
-    // empty since this method is called when results are added.  But the muxer
-    // may have excluded one or more results from the final sorted list.  For
-    // example, it excludes the "Search in a Private Window" result if it's the
-    // only result that's been added so far.  We don't want to notify consumers
-    // if there are no results since they generally expect at least one result
-    // when notified, so bail, but only after nulling out the chunk timer above
-    // so that it will be restarted the next time results are added.
+    // We don't want to notify consumers if there are no results since they
+    // generally expect at least one result when notified, so bail, but only
+    // after nulling out the chunk timer above so that it will be restarted
+    // the next time results are added.
     if (!this.context.results.length) {
       return;
     }

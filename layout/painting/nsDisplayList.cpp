@@ -55,7 +55,6 @@
 #include "mozilla/MathAlgorithms.h"
 
 #include "imgIContainer.h"
-#include "nsBoxFrame.h"
 #include "nsImageFrame.h"
 #include "nsSubDocumentFrame.h"
 #include "nsViewManager.h"
@@ -97,6 +96,7 @@
 #include "nsTableCellFrame.h"
 #include "nsTableColFrame.h"
 #include "nsTextFrame.h"
+#include "nsTextPaintStyle.h"
 #include "nsSliderFrame.h"
 #include "nsFocusManager.h"
 #include "TextDrawTarget.h"
@@ -249,8 +249,7 @@ static uint64_t AddAnimationsForWebRender(
     nsDisplayItem* aItem, RenderRootStateManager* aManager,
     nsDisplayListBuilder* aDisplayListBuilder,
     const Maybe<LayoutDevicePoint>& aPosition = Nothing()) {
-  EffectSet* effects =
-      EffectSet::GetEffectSetForFrame(aItem->Frame(), aItem->GetType());
+  auto* effects = EffectSet::GetForFrame(aItem->Frame(), aItem->GetType());
   if (!effects || effects->IsEmpty()) {
     // If there is no animation on the nsIFrame, that means
     //  1) we've never created any animations on this frame or
@@ -316,14 +315,12 @@ static bool GenerateAndPushTextMask(nsIFrame* aFrame, gfxContext* aContext,
   if (!maskDT || !maskDT->IsValid()) {
     return false;
   }
-  RefPtr<gfxContext> maskCtx =
-      gfxContext::CreatePreservingTransformOrNull(maskDT);
-  MOZ_ASSERT(maskCtx);
-  maskCtx->Multiply(Matrix::Translation(bounds.TopLeft().ToUnknownPoint()));
+  gfxContext maskCtx(maskDT, /* aPreserveTransform */ true);
+  maskCtx.Multiply(Matrix::Translation(bounds.TopLeft().ToUnknownPoint()));
 
   // Shade text shape into mask A8 surface.
   nsLayoutUtils::PaintFrame(
-      maskCtx, aFrame, nsRect(nsPoint(0, 0), aFrame->GetSize()),
+      &maskCtx, aFrame, nsRect(nsPoint(0, 0), aFrame->GetSize()),
       NS_RGB(255, 255, 255), nsDisplayListBuilderMode::GenerateGlyph);
 
   // Push the generated mask into aContext, so that the caller can pop and
@@ -641,6 +638,8 @@ void nsDisplayListBuilder::Linkifier::MaybeAppendLink(
   }
 }
 
+uint32_t nsDisplayListBuilder::sPaintSequenceNumber(1);
+
 nsDisplayListBuilder::nsDisplayListBuilder(nsIFrame* aReferenceFrame,
                                            nsDisplayListBuilderMode aMode,
                                            bool aBuildCaret,
@@ -651,18 +650,18 @@ nsDisplayListBuilder::nsDisplayListBuilder(nsIFrame* aReferenceFrame,
       mCurrentContainerASR(nullptr),
       mCurrentFrame(aReferenceFrame),
       mCurrentReferenceFrame(aReferenceFrame),
-      mBuildingExtraPagesForPageNum(0),
-      mDirtyRect(-1, -1, -1, -1),
       mGlassDisplayItem(nullptr),
-      mHasGlassItemDuringPartial(false),
       mCaretFrame(nullptr),
       mScrollInfoItemsForHoisting(nullptr),
       mFirstClipChainToDestroy(nullptr),
-      mMode(aMode),
       mTableBackgroundSet(nullptr),
       mCurrentScrollParentId(ScrollableLayerGuid::NULL_SCROLL_ID),
       mCurrentScrollbarTarget(ScrollableLayerGuid::NULL_SCROLL_ID),
       mFilterASR(nullptr),
+      mDirtyRect(-1, -1, -1, -1),
+      mBuildingExtraPagesForPageNum(0),
+      mHasGlassItemDuringPartial(false),
+      mMode(aMode),
       mContainsBlendMode(false),
       mIsBuildingScrollbar(false),
       mCurrentScrollbarWillHaveLayer(false),
@@ -819,19 +818,43 @@ void nsDisplayListBuilder::AddFrameMarkedForDisplayIfVisible(nsIFrame* aFrame) {
   mFramesMarkedForDisplayIfVisible.AppendElement(aFrame);
 }
 
-void nsDisplayListBuilder::MarkFrameForDisplayIfVisible(
-    nsIFrame* aFrame, const nsIFrame* aStopAtFrame) {
-  AddFrameMarkedForDisplayIfVisible(aFrame);
+static void MarkFrameForDisplayIfVisibleInternal(nsIFrame* aFrame,
+                                                 const nsIFrame* aStopAtFrame) {
   for (nsIFrame* f = aFrame; f; f = nsLayoutUtils::GetDisplayListParent(f)) {
     if (f->ForceDescendIntoIfVisible()) {
       return;
     }
     f->SetForceDescendIntoIfVisible(true);
+
+    // This condition must match the condition in
+    // nsLayoutUtils::GetParentOrPlaceholderFor which is used by
+    // nsLayoutUtils::GetDisplayListParent
+    if (f->HasAnyStateBits(NS_FRAME_OUT_OF_FLOW) && !f->GetPrevInFlow()) {
+      nsIFrame* parent = f->GetParent();
+      if (parent && !parent->ForceDescendIntoIfVisible()) {
+        // If the GetDisplayListParent call is going to walk to a placeholder,
+        // in rare cases the placeholder might be contained in a different
+        // continuation from the oof. So we have to make sure to mark the oofs
+        // parent. In the common case this doesn't make us do any extra work,
+        // just changes the order in which we visit the frames since walking
+        // through placeholders will walk through the parent, and we stop when
+        // we find a ForceDescendIntoIfVisible bit set.
+        MarkFrameForDisplayIfVisibleInternal(parent, aStopAtFrame);
+      }
+    }
+
     if (f == aStopAtFrame) {
       // we've reached a frame that we know will be painted, so we can stop.
       break;
     }
   }
+}
+
+void nsDisplayListBuilder::MarkFrameForDisplayIfVisible(
+    nsIFrame* aFrame, const nsIFrame* aStopAtFrame) {
+  AddFrameMarkedForDisplayIfVisible(aFrame);
+
+  MarkFrameForDisplayIfVisibleInternal(aFrame, aStopAtFrame);
 }
 
 void nsDisplayListBuilder::SetGlassDisplayItem(nsDisplayItem* aItem) {
@@ -974,6 +997,23 @@ static void UnmarkFrameForDisplayIfVisible(nsIFrame* aFrame) {
       return;
     }
     f->SetForceDescendIntoIfVisible(false);
+
+    // This condition must match the condition in
+    // nsLayoutUtils::GetParentOrPlaceholderFor which is used by
+    // nsLayoutUtils::GetDisplayListParent
+    if (f->HasAnyStateBits(NS_FRAME_OUT_OF_FLOW) && !f->GetPrevInFlow()) {
+      nsIFrame* parent = f->GetParent();
+      if (parent && parent->ForceDescendIntoIfVisible()) {
+        // If the GetDisplayListParent call is going to walk to a placeholder,
+        // in rare cases the placeholder might be contained in a different
+        // continuation from the oof. So we have to make sure to mark the oofs
+        // parent. In the common case this doesn't make us do any extra work,
+        // just changes the order in which we visit the frames since walking
+        // through placeholders will walk through the parent, and we stop when
+        // we find a ForceDescendIntoIfVisible bit set.
+        UnmarkFrameForDisplayIfVisible(f);
+      }
+    }
   }
 }
 
@@ -1213,7 +1253,7 @@ void nsDisplayListBuilder::LeavePresShell(const nsIFrame* aReferenceFrame,
       }
     }
     nsRootPresContext* rootPresContext = pc->GetRootPresContext();
-    if (!pc->HadContentfulPaint() && rootPresContext) {
+    if (!pc->HadFirstContentfulPaint() && rootPresContext) {
       if (!CurrentPresShellState()->mIsBackgroundOnly) {
         if (pc->HasEverBuiltInvisibleText() ||
             DisplayListIsContentful(this, aPaintedContents)) {
@@ -2657,7 +2697,7 @@ Maybe<nsRect> nsDisplayItem::GetClipWithRespectToASR(
     return Some(clip->GetClipRect());
   }
 #ifdef DEBUG
-  MOZ_ASSERT(false, "item should have finite clip with respect to aASR");
+  NS_ASSERTION(false, "item should have finite clip with respect to aASR");
 #endif
   return Nothing();
 }
@@ -2955,28 +2995,6 @@ nsDisplayBackgroundImage::~nsDisplayBackgroundImage() {
   }
 }
 
-static nsIFrame* GetBackgroundComputedStyleFrame(nsIFrame* aFrame) {
-  nsIFrame* f = nsCSSRendering::FindBackgroundFrame(aFrame);
-  if (!f) {
-    // We don't want to bail out if moz-appearance is set on a root
-    // node. If it has a parent content node, bail because it's not
-    // a root, other wise keep going in order to let the theme stuff
-    // draw the background. The canvas really should be drawing the
-    // bg, but there's no way to hook that up via css.
-    if (!aFrame->StyleDisplay()->HasAppearance()) {
-      return nullptr;
-    }
-
-    nsIContent* content = aFrame->GetContent();
-    if (!content || content->GetParent()) {
-      return nullptr;
-    }
-
-    f = aFrame;
-  }
-  return f;
-}
-
 static void SetBackgroundClipRegion(
     DisplayListClipState::AutoSaveRestore& aClipState, nsIFrame* aFrame,
     const nsStyleImageLayers::Layer& aLayer, const nsRect& aBackgroundRect,
@@ -3072,7 +3090,7 @@ static nsDisplayBackgroundImage* CreateBackgroundImage(
 
 static nsDisplayThemedBackground* CreateThemedBackground(
     nsDisplayListBuilder* aBuilder, nsIFrame* aFrame, nsIFrame* aSecondaryFrame,
-    nsRect& aBgRect) {
+    const nsRect& aBgRect) {
   if (aSecondaryFrame) {
     const uint16_t index = static_cast<uint16_t>(GetTableTypeFromFrame(aFrame));
     return MakeDisplayItemWithIndex<nsDisplayTableThemedBackground>(
@@ -3131,36 +3149,39 @@ AppendedBackgroundType nsDisplayBackgroundImage::AppendBackgroundItemsToTop(
     nsIFrame* aSecondaryReferenceFrame,
     Maybe<nsDisplayListBuilder::AutoBuildingDisplayList>*
         aAutoBuildingDisplayList) {
-  const ComputedStyle* bgSC = nullptr;
-  const nsStyleBackground* bg = nullptr;
-  nsRect bgRect = aBackgroundRect;
-  nsRect bgOriginRect = bgRect;
-  if (!aBackgroundOriginRect.IsEmpty()) {
-    bgOriginRect = aBackgroundOriginRect;
+  MOZ_ASSERT(!aFrame->IsCanvasFrame(),
+             "We don't expect propagated canvas backgrounds here");
+#ifdef DEBUG
+  {
+    nsIFrame* bgFrame = nsCSSRendering::FindBackgroundFrame(aFrame);
+    MOZ_ASSERT(
+        !bgFrame || bgFrame == aFrame,
+        "Should only suppress backgrounds, never propagate to another frame");
   }
-  const bool isThemed = aFrame->IsThemed();
+#endif
+
   DealWithWindowsAppearanceHacks(aFrame, aBuilder);
 
-  nsIFrame* dependentFrame = nullptr;
-  if (!isThemed) {
-    if (!bgSC) {
-      dependentFrame = GetBackgroundComputedStyleFrame(aFrame);
-      if (dependentFrame) {
-        bgSC = dependentFrame->Style();
-        if (dependentFrame == aFrame) {
-          dependentFrame = nullptr;
-        }
-      }
-    }
-    if (bgSC) {
-      bg = bgSC->StyleBackground();
-    }
+  const bool isThemed = aFrame->IsThemed();
+
+  const ComputedStyle* bgSC = aFrame->Style();
+  const nsStyleBackground* bg = bgSC->StyleBackground();
+  const bool needsBackgroundColor =
+      aBuilder->IsForEventDelivery() ||
+      (EffectCompositor::HasAnimationsForCompositor(
+           aFrame, DisplayItemType::TYPE_BACKGROUND_COLOR) &&
+       !isThemed);
+  if (!needsBackgroundColor && !isThemed && bg->IsTransparent(bgSC)) {
+    return AppendedBackgroundType::None;
   }
 
   bool drawBackgroundColor = false;
   bool drawBackgroundImage = false;
   nscolor color = NS_RGBA(0, 0, 0, 0);
-  if (bg && !(aFrame->IsCanvasFrame() || aFrame->IsViewportFrame())) {
+  // Don't get background color / images if we propagated our background to the
+  // canvas (that is, if FindBackgroundFrame is null). But don't early return
+  // yet, since we might still need a background-color item for hit-testing.
+  if (!isThemed && nsCSSRendering::FindBackgroundFrame(aFrame)) {
     color = nsCSSRendering::DetermineBackgroundColor(
         aFrame->PresContext(), bgSC, aFrame, drawBackgroundImage,
         drawBackgroundColor);
@@ -3171,11 +3192,21 @@ AppendedBackgroundType nsDisplayBackgroundImage::AppendBackgroundItemsToTop(
     return AppendedBackgroundType::None;
   }
 
-  const nsStyleBorder* borderStyle = aFrame->StyleBorder();
-  const nsStyleEffects* effectsStyle = aFrame->StyleEffects();
-  bool hasInsetShadow = effectsStyle->HasBoxShadowWithInset(true);
-  bool willPaintBorder = aAllowWillPaintBorderOptimization && !isThemed &&
-                         !hasInsetShadow && borderStyle->HasBorder();
+  const nsStyleBorder& border = *aFrame->StyleBorder();
+  const bool willPaintBorder =
+      aAllowWillPaintBorderOptimization && !isThemed &&
+      !aFrame->StyleEffects()->HasBoxShadowWithInset(true) &&
+      border.HasBorder();
+
+  auto EnsureBuildingDisplayList = [&] {
+    if (!aAutoBuildingDisplayList || *aAutoBuildingDisplayList) {
+      return;
+    }
+    nsPoint offset = aBuilder->GetCurrentFrame()->GetOffsetTo(aFrame);
+    aAutoBuildingDisplayList->emplace(aBuilder, aFrame,
+                                      aBuilder->GetVisibleRect() + offset,
+                                      aBuilder->GetDirtyRect() + offset);
+  };
 
   // An auxiliary list is necessary in case we have background blending; if that
   // is the case, background items need to be wrapped by a blend container to
@@ -3185,18 +3216,11 @@ AppendedBackgroundType nsDisplayBackgroundImage::AppendBackgroundItemsToTop(
   // need to create an item for hit testing and we still need to create an item
   // for background-color animations.
   if ((drawBackgroundColor && color != NS_RGBA(0, 0, 0, 0)) ||
-      aBuilder->IsForEventDelivery() ||
-      EffectCompositor::HasAnimationsForCompositor(
-          aFrame, DisplayItemType::TYPE_BACKGROUND_COLOR)) {
-    if (aAutoBuildingDisplayList && !*aAutoBuildingDisplayList) {
-      nsPoint offset = aBuilder->GetCurrentFrame()->GetOffsetTo(aFrame);
-      aAutoBuildingDisplayList->emplace(aBuilder, aFrame,
-                                        aBuilder->GetVisibleRect() + offset,
-                                        aBuilder->GetDirtyRect() + offset);
-    }
+      needsBackgroundColor) {
+    EnsureBuildingDisplayList();
     Maybe<DisplayListClipState::AutoSaveRestore> clipState;
-    nsRect bgColorRect = bgRect;
-    if (bg && !aBuilder->IsForEventDelivery()) {
+    nsRect bgColorRect = aBackgroundRect;
+    if (!isThemed && !aBuilder->IsForEventDelivery()) {
       // Disable the will-paint-border optimization for background
       // colors with no border-radius. Enabling it for background colors
       // doesn't help much (there are no tiling issues) and clipping the
@@ -3204,13 +3228,13 @@ AppendedBackgroundType nsDisplayBackgroundImage::AppendBackgroundItemsToTop(
       // opaque. For nonzero border-radius we still need it because we
       // want to inset the background if possible to avoid antialiasing
       // artifacts along the rounded corners.
-      bool useWillPaintBorderOptimization =
+      const bool useWillPaintBorderOptimization =
           willPaintBorder &&
-          nsLayoutUtils::HasNonZeroCorner(borderStyle->mBorderRadius);
+          nsLayoutUtils::HasNonZeroCorner(border.mBorderRadius);
 
       nsCSSRendering::ImageLayerClipState clip;
       nsCSSRendering::GetImageLayerClip(
-          bg->BottomLayer(), aFrame, *aFrame->StyleBorder(), bgRect, bgRect,
+          bg->BottomLayer(), aFrame, border, aBackgroundRect, aBackgroundRect,
           useWillPaintBorderOptimization,
           aFrame->PresContext()->AppUnitsPerDevPixel(), &clip);
 
@@ -3229,14 +3253,13 @@ AppendedBackgroundType nsDisplayBackgroundImage::AppendBackgroundItemsToTop(
         drawBackgroundColor ? color : NS_RGBA(0, 0, 0, 0));
 
     if (bgItem) {
-      bgItem->SetDependentFrame(aBuilder, dependentFrame);
       bgItemList.AppendToTop(bgItem);
     }
   }
 
   if (isThemed) {
     nsDisplayThemedBackground* bgItem = CreateThemedBackground(
-        aBuilder, aFrame, aSecondaryReferenceFrame, bgRect);
+        aBuilder, aFrame, aSecondaryReferenceFrame, aBackgroundRect);
 
     if (bgItem) {
       bgItem->Init(aBuilder);
@@ -3251,7 +3274,7 @@ AppendedBackgroundType nsDisplayBackgroundImage::AppendBackgroundItemsToTop(
     return AppendedBackgroundType::None;
   }
 
-  if (!bg || !drawBackgroundImage) {
+  if (!drawBackgroundImage) {
     if (!bgItemList.IsEmpty()) {
       aList->AppendToTop(&bgItemList);
       return AppendedBackgroundType::Background;
@@ -3263,6 +3286,8 @@ AppendedBackgroundType nsDisplayBackgroundImage::AppendBackgroundItemsToTop(
   const ActiveScrolledRoot* asr = aBuilder->CurrentActiveScrolledRoot();
 
   bool needBlendContainer = false;
+  const nsRect& bgOriginRect =
+      aBackgroundOriginRect.IsEmpty() ? aBackgroundRect : aBackgroundOriginRect;
 
   // Passing bg == nullptr in this macro will result in one iteration with
   // i = 0.
@@ -3271,12 +3296,7 @@ AppendedBackgroundType nsDisplayBackgroundImage::AppendBackgroundItemsToTop(
       continue;
     }
 
-    if (aAutoBuildingDisplayList && !*aAutoBuildingDisplayList) {
-      nsPoint offset = aBuilder->GetCurrentFrame()->GetOffsetTo(aFrame);
-      aAutoBuildingDisplayList->emplace(aBuilder, aFrame,
-                                        aBuilder->GetVisibleRect() + offset,
-                                        aBuilder->GetDirtyRect() + offset);
-    }
+    EnsureBuildingDisplayList();
 
     if (bg->mImage.mLayers[i].mBlendMode != StyleBlend::Normal) {
       needBlendContainer = true;
@@ -3285,7 +3305,7 @@ AppendedBackgroundType nsDisplayBackgroundImage::AppendBackgroundItemsToTop(
     DisplayListClipState::AutoSaveRestore clipState(aBuilder);
     if (!aBuilder->IsForEventDelivery()) {
       const nsStyleImageLayers::Layer& layer = bg->mImage.mLayers[i];
-      SetBackgroundClipRegion(clipState, aFrame, layer, bgRect,
+      SetBackgroundClipRegion(clipState, aFrame, layer, aBackgroundRect,
                               willPaintBorder);
     }
 
@@ -3334,8 +3354,6 @@ AppendedBackgroundType nsDisplayBackgroundImage::AppendBackgroundItemsToTop(
                                        aSecondaryReferenceFrame, bgData);
       }
       if (bgItem) {
-        bgItem->SetDependentFrame(aBuilder, dependentFrame);
-
         thisItemList.AppendToTop(
             nsDisplayFixedPosition::CreateForFixedBackground(
                 aBuilder, aFrame, aSecondaryReferenceFrame, bgItem, i, asr));
@@ -3344,13 +3362,11 @@ AppendedBackgroundType nsDisplayBackgroundImage::AppendBackgroundItemsToTop(
       nsDisplayBackgroundImage* bgItem = CreateBackgroundImage(
           aBuilder, aFrame, aSecondaryReferenceFrame, bgData);
       if (bgItem) {
-        bgItem->SetDependentFrame(aBuilder, dependentFrame);
         thisItemList.AppendToTop(bgItem);
       }
     }
 
     if (bg->mImage.mLayers[i].mBlendMode != StyleBlend::Normal) {
-      DisplayListClipState::AutoSaveRestore blendClip(aBuilder);
       // asr is scrolled. Even if we wrap a fixed background layer, that's
       // fine, because the item will have a scrolled clip that limits the
       // item with respect to asr.
@@ -3371,8 +3387,6 @@ AppendedBackgroundType nsDisplayBackgroundImage::AppendBackgroundItemsToTop(
   }
 
   if (needBlendContainer) {
-    DisplayListClipState::AutoSaveRestore blendContainerClip(aBuilder);
-
     bgItemList.AppendToTop(
         nsDisplayBlendContainer::CreateForBackgroundBlendMode(
             aBuilder, aFrame, aSecondaryReferenceFrame, &bgItemList, asr));
@@ -5090,9 +5104,9 @@ void nsDisplayBlendMode::Paint(nsDisplayListBuilder* aBuilder,
     return;
   }
 
-  RefPtr<gfxContext> ctx = gfxContext::CreatePreservingTransformOrNull(temp);
+  gfxContext ctx(temp, /* aPreserveTransform */ true);
 
-  GetChildren()->Paint(aBuilder, ctx,
+  GetChildren()->Paint(aBuilder, &ctx,
                        mFrame->PresContext()->AppUnitsPerDevPixel());
 
   // Draw the temporary DT to the real destination, applying the blend mode, but
@@ -6893,8 +6907,7 @@ void nsDisplayTransform::Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx,
   untransformedDT->SetTransform(
       Matrix::Translation(-Point(pixelBounds.X(), pixelBounds.Y())));
 
-  RefPtr<gfxContext> groupTarget =
-      gfxContext::CreatePreservingTransformOrNull(untransformedDT);
+  gfxContext groupTarget(untransformedDT, /* aPreserveTransform */ true);
 
   if (aPolygon) {
     RefPtr<gfx::Path> path =
@@ -6902,7 +6915,7 @@ void nsDisplayTransform::Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx,
     aCtx->GetDrawTarget()->PushClip(path);
   }
 
-  GetChildren()->Paint(aBuilder, groupTarget,
+  GetChildren()->Paint(aBuilder, &groupTarget,
                        mFrame->PresContext()->AppUnitsPerDevPixel());
 
   if (aPolygon) {
@@ -7556,19 +7569,47 @@ bool nsDisplayText::CreateWebRenderCommands(
           .ToUnknownPoint();
 
   // Clipping the bounds to the PaintRect (factoring in what's covered by parent
-  // frames) let's us early reject a bunch of things, but it can produce
-  // incorrect results for shadows, because they can translate things back into
-  // view. Also if we're selected we might have some shadows from the
-  // ::selected and ::inctive-selected pseudo-selectors. So don't do this
-  // optimization if we have shadows or a selection.
-  if (!(f->IsSelected() || f->StyleText()->HasTextShadow())) {
-    nsRect visible = mVisibleRect;
-    visible.Inflate(3 * appUnitsPerDevPixel);
-    bounds = bounds.Intersect(visible);
+  // frames) lets us early reject a bunch of things.
+  nsRect visible = mVisibleRect;
+
+  // Add the "source rect" area from which the given shadows could intersect
+  // with mVisibleRect, and which therefore needs to included in the paint
+  // operation, to the `visible` rect that we will use to limit the bounds of
+  // what we send to the renderer.
+  auto addShadowSourceToVisible = [&](Span<const StyleSimpleShadow> aShadows) {
+    for (const auto& shadow : aShadows) {
+      nsRect sourceRect = mVisibleRect;
+      // Negate the offsets, because we're looking for the "source" rect that
+      // could cast a shadow into the visible rect, rather than a "target" area
+      // onto which the visible rect would cast a shadow.
+      sourceRect.MoveBy(-shadow.horizontal.ToAppUnits(),
+                        -shadow.vertical.ToAppUnits());
+      // Inflate to account for the shadow blur.
+      sourceRect.Inflate(nsContextBoxBlur::GetBlurRadiusMargin(
+          shadow.blur.ToAppUnits(), appUnitsPerDevPixel));
+      visible.OrWith(sourceRect);
+    }
+  };
+
+  // Shadows can translate things back into view, so we enlarge the notional
+  // "visible" rect to ensure we don't skip painting relevant parts that might
+  // cast a shadow within the visible area.
+  addShadowSourceToVisible(f->StyleText()->mTextShadow.AsSpan());
+
+  // Similarly for shadows that may be cast by ::selection.
+  if (f->IsSelected()) {
+    nsTextPaintStyle textPaint(f);
+    Span<const StyleSimpleShadow> shadows;
+    f->GetSelectionTextShadow(SelectionType::eNormal, textPaint, &shadows);
+    addShadowSourceToVisible(shadows);
   }
 
-  RefPtr<gfxContext> textDrawer = aBuilder.GetTextContext(
-      aResources, aSc, aManager, this, bounds, deviceOffset);
+  // Inflate a little extra to allow for potential antialiasing "blur".
+  visible.Inflate(3 * appUnitsPerDevPixel);
+  bounds = bounds.Intersect(visible);
+
+  gfxContext* textDrawer = aBuilder.GetTextContext(aResources, aSc, aManager,
+                                                   this, bounds, deviceOffset);
 
   aBuilder.StartGroup(this);
 
@@ -7778,17 +7819,17 @@ void nsDisplayEffectsBase::ComputeInvalidationRegion(
 }
 
 bool nsDisplayEffectsBase::ValidateSVGFrame() {
-  const nsIContent* content = mFrame->GetContent();
-  bool hasSVGLayout = mFrame->HasAnyStateBits(NS_FRAME_SVG_LAYOUT);
-  if (hasSVGLayout) {
+  if (mFrame->HasAnyStateBits(NS_FRAME_SVG_LAYOUT)) {
     ISVGDisplayableFrame* svgFrame = do_QueryFrame(mFrame);
-    if (!svgFrame || !mFrame->GetContent()->IsSVGElement()) {
-      NS_ASSERTION(false, "why?");
+    if (!svgFrame) {
       return false;
     }
-    if (!static_cast<const SVGElement*>(content)->HasValidDimensions()) {
-      return false;  // The SVG spec says not to draw filters for this
+    if (auto* svgElement = SVGElement::FromNode(mFrame->GetContent())) {
+      // The SVG spec says only to draw filters if the element
+      // has valid dimensions.
+      return svgElement->HasValidDimensions();
     }
+    return false;
   }
 
   return true;
@@ -7846,8 +7887,8 @@ static void ComputeMaskGeometry(PaintFramesParams& aParams) {
       nsCSSRendering::ImageLayerClipState clipState;
       nsCSSRendering::GetImageLayerClip(
           svgReset->mMask.mLayers[i], frame, *frame->StyleBorder(),
-          userSpaceBorderArea, userSpaceDirtyRect, false, /* aWillPaintBorder */
-          appUnitsPerDevPixel, &clipState);
+          userSpaceBorderArea, userSpaceDirtyRect,
+          /* aWillPaintBorder = */ false, appUnitsPerDevPixel, &clipState);
       currentMaskSurfaceRect = LayoutDeviceRect::FromUnknownRect(
           ToRect(clipState.mDirtyRectInDevPx));
     }
@@ -8226,7 +8267,7 @@ Maybe<nsRect> nsDisplayMasksAndClipPaths::GetClipWithRespectToASR(
     return Some(childList->GetClippedBoundsWithRespectToASR(aBuilder, aASR));
   }
 #ifdef DEBUG
-  MOZ_ASSERT(false, "item should have finite clip with respect to aASR");
+  NS_ASSERTION(false, "item should have finite clip with respect to aASR");
 #endif
   return Nothing();
 }

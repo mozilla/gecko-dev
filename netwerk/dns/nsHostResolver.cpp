@@ -65,26 +65,22 @@ static const unsigned int NEGATIVE_RECORD_LIFETIME = 60;
 // the time. In particular, thread creation results in a res_init() call from
 // libc which is quite expensive.
 //
-// The pool dynamically grows between 0 and MAX_RESOLVER_THREADS in size. New
+// The pool dynamically grows between 0 and MaxResolverThreads() in size. New
 // requests go first to an idle thread. If that cannot be found and there are
-// fewer than MAX_RESOLVER_THREADS currently in the pool a new thread is created
+// fewer than MaxResolverThreads() currently in the pool a new thread is created
 // for high priority requests. If the new request is at a lower priority a new
-// thread will only be created if there are fewer than HighThreadThreshold
-// currently outstanding. If a thread cannot be created or an idle thread
-// located for the request it is queued.
+// thread will only be created if there are fewer than
+// MaxResolverThreadsAnyPriority() currently outstanding. If a thread cannot be
+// created or an idle thread located for the request it is queued.
 //
-// When the pool is greater than HighThreadThreshold in size a thread will be
-// destroyed after ShortIdleTimeoutSeconds of idle time. Smaller pools use
-// LongIdleTimeoutSeconds for a timeout period.
+// When the pool is greater than MaxResolverThreadsAnyPriority() in size a
+// thread will be destroyed after ShortIdleTimeoutSeconds of idle time. Smaller
+// pools use LongIdleTimeoutSeconds for a timeout period.
 
-#define HighThreadThreshold MAX_RESOLVER_THREADS_FOR_ANY_PRIORITY
-#define LongIdleTimeoutSeconds 300  // for threads 1 -> HighThreadThreshold
-#define ShortIdleTimeoutSeconds \
-  60  // for threads HighThreadThreshold+1 -> MAX_RESOLVER_THREADS
-
-static_assert(
-    HighThreadThreshold <= MAX_RESOLVER_THREADS,
-    "High Thread Threshold should be less equal Maximum allowed thread");
+// for threads 1 -> MaxResolverThreadsAnyPriority()
+#define LongIdleTimeoutSeconds 300
+// for threads MaxResolverThreadsAnyPriority() + 1 -> MaxResolverThreads()
+#define ShortIdleTimeoutSeconds 60
 
 //----------------------------------------------------------------------------
 
@@ -228,8 +224,8 @@ nsresult nsHostResolver::Init() MOZ_NO_THREAD_SAFETY_ANALYSIS {
   }
 
   nsCOMPtr<nsIThreadPool> threadPool = new nsThreadPool();
-  MOZ_ALWAYS_SUCCEEDS(threadPool->SetThreadLimit(MAX_RESOLVER_THREADS));
-  MOZ_ALWAYS_SUCCEEDS(threadPool->SetIdleThreadLimit(MAX_RESOLVER_THREADS));
+  MOZ_ALWAYS_SUCCEEDS(threadPool->SetThreadLimit(MaxResolverThreads()));
+  MOZ_ALWAYS_SUCCEEDS(threadPool->SetIdleThreadLimit(MaxResolverThreads()));
   MOZ_ALWAYS_SUCCEEDS(threadPool->SetIdleThreadTimeout(poolTimeoutMs));
   MOZ_ALWAYS_SUCCEEDS(
       threadPool->SetThreadStackSize(nsIThreadManager::kThreadPoolStackSize));
@@ -810,9 +806,9 @@ nsresult nsHostResolver::ConditionallyCreateThread(nsHostRecord* rec) {
   if (mNumIdleTasks) {
     // wake up idle tasks to process this lookup
     mIdleTaskCV.Notify();
-  } else if ((mActiveTaskCount < HighThreadThreshold) ||
+  } else if ((mActiveTaskCount < MaxResolverThreadsAnyPriority()) ||
              (IsHighPriority(rec->flags) &&
-              mActiveTaskCount < MAX_RESOLVER_THREADS)) {
+              mActiveTaskCount < MaxResolverThreads())) {
     nsCOMPtr<nsIRunnable> event = mozilla::NewRunnableMethod(
         "nsHostResolver::ThreadFunc", this, &nsHostResolver::ThreadFunc);
     mActiveTaskCount++;
@@ -1100,6 +1096,15 @@ nsresult nsHostResolver::NameLookup(nsHostRecord* rec,
 
   ComputeEffectiveTRRMode(rec);
 
+  // We only keep store a heuristicResult (other than
+  // TRRSkippedReason::TRR_UNSET) if the native fallback warning is enabled and
+  // we are in nsIRequest::TRR_FIRST_MODE.
+  TRRSkippedReason heuristicResult = TRRSkippedReason::TRR_UNSET;
+  if (StaticPrefs::network_trr_display_fallback_warning() &&
+      rec->mEffectiveTRRMode == nsIRequest::TRR_FIRST_MODE) {
+    heuristicResult = TRRService::Get()->GetHeuristicDetectionResult();
+  }
+
   if (!rec->mTrrServer.IsEmpty()) {
     LOG(("NameLookup: %s use trr:%s", rec->host.get(), rec->mTrrServer.get()));
     if (rec->mEffectiveTRRMode != nsIRequest::TRR_ONLY_MODE) {
@@ -1124,7 +1129,12 @@ nsresult nsHostResolver::NameLookup(nsHostRecord* rec,
 
   if (rec->mEffectiveTRRMode != nsIRequest::TRR_DISABLED_MODE &&
       !((rec->flags & nsIDNSService::RESOLVE_DISABLE_TRR)) &&
-      !serviceNotReady) {
+      !serviceNotReady &&
+      // Only perform a TRR lookup if the heuristic result is unset or ok.
+      // (If the native fallback warning is enabled, a tripped heuristic result
+      // may be set.)
+      (heuristicResult == TRRSkippedReason::TRR_UNSET ||
+       heuristicResult == TRRSkippedReason::TRR_OK)) {
     rv = TrrLookup(rec, aLock);
   }
 
@@ -1143,6 +1153,43 @@ nsresult nsHostResolver::NameLookup(nsHostRecord* rec,
     RefPtr<AddrHostRecord> addrRec = do_QueryObject(rec);
     MOZ_ASSERT(addrRec && addrRec->mResolverType == DNSResolverType::Native);
 #endif
+
+    // We did not lookup via TRR - don't fallback to native if the
+    // network.trr.display_fallback_warning pref is set and we are in TRR first
+    // mode.
+    if (StaticPrefs::network_trr_display_fallback_warning() &&
+        rec->mEffectiveTRRMode == nsIRequest::TRR_FIRST_MODE) {
+      if (heuristicResult != TRRSkippedReason::TRR_UNSET &&
+          heuristicResult != TRRSkippedReason::TRR_OK) {
+        rec->mTRRSkippedReason = heuristicResult;
+      }
+
+      LOG(("NameLookup: %s heuristicResult: %d ", rec->host.get(),
+           heuristicResult));
+
+      if ((rec->mTRRSkippedReason == TRRSkippedReason::TRR_NOT_CONFIRMED ||
+           (rec->mTRRSkippedReason >=
+                nsITRRSkipReason::TRR_HEURISTIC_TRIPPED_GOOGLE_SAFESEARCH &&
+            rec->mTRRSkippedReason <=
+                nsITRRSkipReason::TRR_HEURISTIC_TRIPPED_NRPT))) {
+        LOG((
+            "NameLookup: ResolveHostComplete with status NS_ERROR_UNKNOWN_HOST "
+            "for: %s effectiveTRRmode: "
+            "%d SkippedReason: %d",
+            rec->host.get(),
+            static_cast<nsIRequest::TRRMode>(rec->mEffectiveTRRMode),
+            static_cast<int32_t>(rec->mTRRSkippedReason)));
+
+        mozilla::LinkedList<RefPtr<nsResolveHostCallback>> cbs =
+            std::move(rec->mCallbacks);
+        for (nsResolveHostCallback* c = cbs.getFirst(); c;
+             c = c->removeAndGetNext()) {
+          c->OnResolveHostComplete(this, rec, NS_ERROR_UNKNOWN_HOST);
+        }
+
+        return NS_OK;
+      }
+    }
 
     rv = NativeLookup(rec, aLock);
   }
@@ -1175,8 +1222,9 @@ bool nsHostResolver::GetHostToLookup(AddrHostRecord** result) {
 
   MutexAutoLock lock(mLock);
 
-  timeout = (mNumIdleTasks >= HighThreadThreshold) ? mShortIdleTimeout
-                                                   : mLongIdleTimeout;
+  timeout = (mNumIdleTasks >= MaxResolverThreadsAnyPriority())
+                ? mShortIdleTimeout
+                : mLongIdleTimeout;
   epoch = TimeStamp::Now();
 
   while (!mShutdown) {
@@ -1192,7 +1240,7 @@ bool nsHostResolver::GetHostToLookup(AddrHostRecord** result) {
       return true;
     }
 
-    if (mActiveAnyThreadCount < HighThreadThreshold) {
+    if (mActiveAnyThreadCount < MaxResolverThreadsAnyPriority()) {
       addrRec = mQueue.Dequeue(false, lock);
       if (addrRec) {
         MOZ_ASSERT(IsMediumPriority(addrRec->flags) ||
@@ -1319,7 +1367,17 @@ void nsHostResolver::AddToEvictionQ(nsHostRecord* rec,
 // Returns true if we retried with either TRR or Native.
 bool nsHostResolver::MaybeRetryTRRLookup(
     AddrHostRecord* aAddrRec, nsresult aFirstAttemptStatus,
-    TRRSkippedReason aFirstAttemptSkipReason, const MutexAutoLock& aLock) {
+    TRRSkippedReason aFirstAttemptSkipReason, nsresult aChannelStatus,
+    const MutexAutoLock& aLock) {
+  if (NS_FAILED(aFirstAttemptStatus) &&
+      (aChannelStatus == NS_ERROR_PROXY_UNAUTHORIZED ||
+       aChannelStatus == NS_ERROR_PROXY_AUTHENTICATION_FAILED) &&
+      aAddrRec->mEffectiveTRRMode == nsIRequest::TRR_ONLY_MODE) {
+    LOG(("MaybeRetryTRRLookup retry because of proxy connect failed"));
+    TRRService::Get()->DontUseTRRThread();
+    return DoRetryTRR(aAddrRec, aLock);
+  }
+
   if (NS_SUCCEEDED(aFirstAttemptStatus) ||
       aAddrRec->mEffectiveTRRMode != nsIRequest::TRR_FIRST_MODE ||
       aFirstAttemptStatus == NS_ERROR_DEFINITIVE_UNKNOWN_HOST) {
@@ -1367,6 +1425,11 @@ bool nsHostResolver::MaybeRetryTRRLookup(
        static_cast<uint32_t>(aFirstAttemptSkipReason)));
   TRRService::Get()->RetryTRRConfirm();
 
+  return DoRetryTRR(aAddrRec, aLock);
+}
+
+bool nsHostResolver::DoRetryTRR(AddrHostRecord* aAddrRec,
+                                const mozilla::MutexAutoLock& aLock) {
   {
     // Clear out the old query
     auto trrQuery = aAddrRec->mTRRQuery.Lock();
@@ -1450,7 +1513,8 @@ nsHostResolver::LookupStatus nsHostResolver::CompleteLookupLocked(
       addrRec->RecordReason(TRRSkippedReason::TRR_OK);
     }
 
-    if (MaybeRetryTRRLookup(addrRec, status, aReason, aLock)) {
+    nsresult channelStatus = aTRRRequest->ChannelStatus();
+    if (MaybeRetryTRRLookup(addrRec, status, aReason, channelStatus, aLock)) {
       MOZ_ASSERT(addrRec->mResolving);
       return LOOKUP_OK;
     }

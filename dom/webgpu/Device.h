@@ -96,7 +96,7 @@ class Device final : public DOMEventTargetHelper, public SupportsWeakPtr {
   already_AddRefed<Texture> InitSwapChain(
       const dom::GPUCanvasConfiguration& aDesc,
       const layers::RemoteTextureOwnerId aOwnerId, gfx::SurfaceFormat aFormat,
-      gfx::IntSize* aDefaultSize);
+      gfx::IntSize aDefaultSize);
   bool CheckNewWarning(const nsACString& aMessage);
 
   void CleanupUnregisteredInParent();
@@ -146,7 +146,7 @@ class Device final : public DOMEventTargetHelper, public SupportsWeakPtr {
   already_AddRefed<BindGroup> CreateBindGroup(
       const dom::GPUBindGroupDescriptor& aDesc);
 
-  already_AddRefed<ShaderModule> CreateShaderModule(
+  MOZ_CAN_RUN_SCRIPT already_AddRefed<ShaderModule> CreateShaderModule(
       JSContext* aCx, const dom::GPUShaderModuleDescriptor& aDesc);
   already_AddRefed<ComputePipeline> CreateComputePipeline(
       const dom::GPUComputePipelineDescriptor& aDesc);

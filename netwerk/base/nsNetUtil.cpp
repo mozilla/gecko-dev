@@ -338,7 +338,8 @@ void AssertLoadingPrincipalAndClientInfoMatch(
       (aType == nsIContentPolicy::TYPE_INTERNAL_WORKER ||
        aType == nsIContentPolicy::TYPE_INTERNAL_SHARED_WORKER ||
        aType == nsIContentPolicy::TYPE_INTERNAL_SERVICE_WORKER ||
-       aType == nsIContentPolicy::TYPE_INTERNAL_WORKER_IMPORT_SCRIPTS)) {
+       aType == nsIContentPolicy::TYPE_INTERNAL_WORKER_IMPORT_SCRIPTS ||
+       aType == nsIContentPolicy::TYPE_INTERNAL_WORKER_STATIC_MODULE)) {
     return;
   }
 
@@ -1887,8 +1888,7 @@ nsresult NS_NewURI(nsIURI** aURI, const nsACString& aSpec,
 
   if (scheme.EqualsLiteral("moz-safe-about") ||
       scheme.EqualsLiteral("page-icon") || scheme.EqualsLiteral("moz") ||
-      scheme.EqualsLiteral("moz-anno") ||
-      scheme.EqualsLiteral("moz-fonttable")) {
+      scheme.EqualsLiteral("moz-anno")) {
     return NS_MutateURI(new nsSimpleURI::Mutator())
         .SetSpec(aSpec)
         .Finalize(aURI);
@@ -1920,7 +1920,7 @@ nsresult NS_NewURI(nsIURI** aURI, const nsACString& aSpec,
     return handler->NewURI(aSpec, aCharset, aBaseURI, aURI);
   }
 
-  if (scheme.EqualsLiteral("indexeddb")) {
+  if (scheme.EqualsLiteral("indexeddb") || scheme.EqualsLiteral("uuid")) {
     return NS_MutateURI(new nsStandardURL::Mutator())
         .Apply(&nsIStandardURLMutator::Init, nsIStandardURL::URLTYPE_AUTHORITY,
                0, aSpec, aCharset, aBaseURI, nullptr)
@@ -2582,6 +2582,33 @@ bool NS_IsHSTSUpgradeRedirect(nsIChannel* aOldChannel, nsIChannel* aNewChannel,
   return NS_SUCCEEDED(upgradedURI->Equals(newURI, &res)) && res;
 }
 
+bool NS_ShouldRemoveAuthHeaderOnRedirect(nsIChannel* aOldChannel,
+                                         nsIChannel* aNewChannel,
+                                         uint32_t aFlags) {
+  // we need to strip Authentication headers for external cross-origin redirects
+  // Howerver, we should NOT strip auth headers for
+  // - internal redirects/HSTS upgrades
+  // - same origin redirects
+  // Ref: https://fetch.spec.whatwg.org/#http-redirect-fetch
+  if ((aFlags & (nsIChannelEventSink::REDIRECT_STS_UPGRADE |
+                 nsIChannelEventSink::REDIRECT_INTERNAL))) {
+    // this is an internal redirect do not strip auth header
+    return false;
+  }
+  nsCOMPtr<nsIURI> oldUri;
+  MOZ_ALWAYS_SUCCEEDS(
+      NS_GetFinalChannelURI(aOldChannel, getter_AddRefs(oldUri)));
+
+  nsCOMPtr<nsIURI> newUri;
+  MOZ_ALWAYS_SUCCEEDS(
+      NS_GetFinalChannelURI(aNewChannel, getter_AddRefs(newUri)));
+
+  nsresult rv = nsContentUtils::GetSecurityManager()->CheckSameOriginURI(
+      newUri, oldUri, false, false);
+
+  return NS_FAILED(rv);
+}
+
 nsresult NS_LinkRedirectChannels(uint64_t channelId,
                                  nsIParentChannel* parentChannel,
                                  nsIChannel** _result) {
@@ -2937,9 +2964,16 @@ static bool ShouldSecureUpgradeNoHSTS(nsIURI* aURI, nsILoadInfo* aLoadInfo) {
     return true;
   }
 
-  // 4. Https-Only / -First
-  if (nsHTTPSOnlyUtils::ShouldUpgradeRequest(aURI, aLoadInfo) ||
-      nsHTTPSOnlyUtils::ShouldUpgradeHttpsFirstRequest(aURI, aLoadInfo)) {
+  // 4. Https-Only
+  if (nsHTTPSOnlyUtils::ShouldUpgradeRequest(aURI, aLoadInfo)) {
+    Telemetry::AccumulateCategorical(
+        Telemetry::LABELS_HTTP_SCHEME_UPGRADE_TYPE::HTTPSOnly);
+    return true;
+  }
+  // 4.a Https-First
+  if (nsHTTPSOnlyUtils::ShouldUpgradeHttpsFirstRequest(aURI, aLoadInfo)) {
+    Telemetry::AccumulateCategorical(
+        Telemetry::LABELS_HTTP_SCHEME_UPGRADE_TYPE::HTTPSFirst);
     return true;
   }
   return false;
@@ -3863,6 +3897,23 @@ void CheckForBrokenChromeURL(nsILoadInfo* aLoadInfo, nsIURI* aURI) {
 
   nsCString spec;
   aURI->GetSpec(spec);
+
+#ifdef ANDROID
+  // Various toolkit files use this and are shipped on android, but
+  // info-pages.css and aboutLicense.css are not - bug 1808987
+  if (StringEndsWith(spec, "info-pages.css"_ns) ||
+      StringEndsWith(spec, "aboutLicense.css"_ns) ||
+      // Error page CSS is also missing: bug 1810039
+      StringEndsWith(spec, "aboutNetError.css"_ns) ||
+      StringEndsWith(spec, "aboutHttpsOnlyError.css"_ns) ||
+      StringEndsWith(spec, "error-pages.css"_ns) ||
+      // popup.css is used in a single mochitest: bug 1810577
+      StringEndsWith(spec, "/popup.css"_ns) ||
+      // Used by an extension installation test - bug 1809650
+      StringBeginsWith(spec, "resource://android/assets/web_extensions/"_ns)) {
+    return;
+  }
+#endif
 
   // DTD files from gre may not exist when requested by tests.
   if (StringBeginsWith(spec, "resource://gre/res/dtd/"_ns)) {

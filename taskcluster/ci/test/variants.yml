@@ -25,7 +25,7 @@ headless:
 a11y-checks:
     description: "{description} with accessibility checks enabled"
     component: "Core::Disability Access APIs"
-    expiration: "2023-03-01"
+    expiration: "2023-09-01"
     suffix: "a11y-checks"
     replace:
         tier: 2
@@ -37,7 +37,7 @@ a11y-checks:
 aab:
     description: "{description} with aab test_runner"
     component: "GeckoView::General"
-    expiration: "2023-03-01"
+    expiration: "2023-09-01"
     when: &gv_e10s_filter
         $eval: '"android" in task["test-platform"]'
     suffix: "aab"
@@ -55,23 +55,10 @@ aab:
     replace:
         target: "geckoview-test_runner.aab"
 
-geckoview-e10s-single:
-    description: "{description} with single-process e10s"
-    component: "Core::DOM: Content Processes"
-    expiration: "2023-03-01"
-    when:
-        <<: *gv_e10s_filter
-    suffix: "e10s-single"
-    merge:
-        mozharness:
-            extra-options:
-                - "--setpref=dom.ipc.processCount=1"
-                - "--disable-fission"
-
 geckoview-no-fission:
     description: "{description} without fission enabled"
     component: "Core::DOM: Content Processes"
-    expiration: "2023-03-01"
+    expiration: "2023-09-01"
     when:
         <<: *gv_e10s_filter
     suffix: "nofis"
@@ -83,31 +70,21 @@ geckoview-no-fission:
 geckoview-fission:
     description: "{description} with fission enabled"
     component: "Core::DOM: Content Processes"
-    expiration: "2023-03-01"
+    expiration: "2023-09-01"
     when:
         <<: *gv_e10s_filter
     suffix: "fis"
 
 fission:
     description: "{description} with fission enabled"
-    component: "Testing::General"
-    expiration: "2023-03-01"
-    suffix: "fis"
-
-fission-no-isolate:
-    description: "{description} with fission and webContentIsolationStrategy=0"
     component: "Core::DOM: Content Processes"
-    expiration: "2023-03-01"
-    suffix: "fis-0"
-    merge:
-        mozharness:
-            extra-options:
-                - "--web-content-isolation-strategy=0"
+    expiration: "2023-09-01"
+    suffix: "fis"
 
 no-fission:
     description: "{description} without fission enabled"
-    component: "Testing::General"
-    expiration: "2023-03-01"
+    component: "Core::DOM: Content Processes"
+    expiration: "2023-09-01"
     suffix: "nofis"
     merge:
         mozharness:
@@ -117,7 +94,7 @@ no-fission:
 xorigin:
     description: "{description} with cross-origin"
     component: "Core::DOM: Content Processes"
-    expiration: "2023-03-01"
+    expiration: "2023-09-01"
     suffix: "xorig"
     replace:
         e10s: true
@@ -130,7 +107,7 @@ xorigin:
 conditioned_profile:
     description: "{description} with conditioned profile"
     component: "Testing::General"
-    expiration: "2023-03-01"
+    expiration: "2023-09-01"
     suffix: "condprof"
     merge:
         mozharness:
@@ -142,7 +119,7 @@ conditioned_profile:
 socketprocess:
     description: "{description} with socket process enabled"
     component: "Core::Networking"
-    expiration: "2023-03-01"
+    expiration: "2023-08-01"
     suffix: "spi"
     merge:
         mozharness:
@@ -153,7 +130,7 @@ socketprocess:
 socketprocess_networking:
     description: "{description} with networking on socket process enabled"
     component: "Core::Networking"
-    expiration: "2023-03-01"
+    expiration: "2023-08-01"
     suffix: "spi-nw"
     merge:
         mozharness:
@@ -161,31 +138,16 @@ socketprocess_networking:
                 - "--setpref=network.process.enabled=true"
                 - "--setpref=network.http.network_access_on_socket_process.enabled=true"
 
-wayland:
-    description: "{description} with Wayland backend enabled"
-    component: "Core::Widget: Gtk"
-    expiration: "2023-03-01"
-    when:
-        $eval: '"linux" in task["test-platform"]'
-    suffix: "wayland"
-    replace:
-        run-on-projects: []
-        tier: 3
-    merge:
-        mozharness:
-            extra-options:
-                - "--setpref=widget.wayland.test-workarounds.enabled=true"
-
 # -
 # Webrender DComp variants for Win10
 
 webrender-dcomp-disabled:
     description: "{description} with dcomp disabled"
     component: "Core::Graphics: WebRender"
-    expiration: "2023-03-01"
+    expiration: "2023-09-01"
     suffix: "wr-dc0"
     when:
-        $eval: '"windows10" in task["test-platform"]'
+        $eval: '"windows1" in task["test-platform"]'
     merge:
         mozharness:
             extra-options:
@@ -198,10 +160,10 @@ webrender-dcomp-disabled:
 webrender-dcomp-present:  # Default variant ends up like this.
     description: "{description} with dcomp present but not overlays"
     component: "Core::Graphics: WebRender"
-    expiration: "2023-03-01"
+    expiration: "2023-09-01"
     suffix: "wr-dc1-p"
     when:
-        $eval: '"windows10" in task["test-platform"]'
+        $eval: '"windows1" in task["test-platform"]'
     merge:
         mozharness:
             extra-options:
@@ -214,10 +176,10 @@ webrender-dcomp-present:  # Default variant ends up like this.
 webrender-dcomp-overlays:
     description: "{description} with dcomp overlays but not compositing"
     component: "Core::Graphics: WebRender"
-    expiration: "2023-03-01"
+    expiration: "2023-09-01"
     suffix: "wr-dc2-o"
     when:
-        $eval: '"windows10" in task["test-platform"]'
+        $eval: '"windows1" in task["test-platform"]'
     merge:
         mozharness:
             extra-options:
@@ -230,10 +192,10 @@ webrender-dcomp-overlays:
 webrender-dcomp-compositing:
     description: "{description} with dcomp compositing"
     component: "Core::Graphics: WebRender"
-    expiration: "2023-03-01"
+    expiration: "2023-09-01"
     suffix: "wr-dc3-c"
     when:
-        $eval: '"windows10" in task["test-platform"]'
+        $eval: '"windows1" in task["test-platform"]'
     merge:
         mozharness:
             extra-options:
@@ -248,7 +210,7 @@ webrender-dcomp-compositing:
 webrender-sw:
     description: "{description} with software webrender enabled"
     component: "Core::Graphics: WebRender"
-    expiration: "2023-03-01"
+    expiration: "2023-09-01"
     suffix: "swr"
     merge:
         webrender: true
@@ -258,8 +220,8 @@ webrender-sw:
 
 webgl-ipc:
     description: "{description} with WebGL IPC process enabled"
-    component: "Core::Canvas: WebGL"
-    expiration: "2023-03-01"
+    component: "Core::Graphics: CanvasWebGL"
+    expiration: "2023-09-01"
     suffix: "gli"
     merge:
         mozharness:
@@ -270,7 +232,7 @@ webgl-ipc:
 devtools-no-eft:
     description: "{description} with DevTools EFT disabled"
     component: "DevTools::Framework"
-    expiration: "2023-03-01"
+    expiration: "2023-09-01"
     suffix: "dt-no-eft"
     merge:
         mozharness:
@@ -279,10 +241,10 @@ devtools-no-eft:
 
 wmf-media-engine:
     description: "{description} with Windows Media Foundation media engine enabled"
-    component: "Core::Audio/Video:Playback"
-    expiration: "2023-04-10"
+    component: "Core::Audio/Video: Playback"
+    expiration: "2023-10-10"
     when:
-        $eval: '"windows10" in task["test-platform"]'
+        $eval: '"windows1" in task["test-platform"]'
     suffix: "wmfme"
     replace:
         tier: 2
@@ -296,7 +258,7 @@ wmf-media-engine:
 a11y-no-cache:
     description: "{description} with accessibility cache disabled"
     component: "Core::Disability Access APIs"
-    expiration: "2023-05-01"
+    expiration: "2023-08-01"
     suffix: "a11y-no-cache"
     merge:
         mozharness:
@@ -309,8 +271,18 @@ msix:
     expiration: "never"
     suffix: "msix"
     when:
-        $eval: '"windows10-64" in task["test-platform"] && "opt" in task["test-platform"] && !("asan" in task["test-platform"]) && !("ccov" in task["test-platform"])'
+        $eval: '"windows1" in task["test-platform"] && "-64" in task["test-platform"] && ("opt" in task["test-platform"] || "debug" in task["test-platform"]) && !("asan" in task["test-platform"]) && !("ccov" in task["test-platform"])'
     merge:
         mozharness:
             extra-options:
                 - "--installer-path installer.msix"
+
+http3:
+    description: "{description} with http3 server"
+    component: "Testing::General"
+    expiration: "2023-09-01"
+    suffix: "http3"
+    merge:
+        mozharness:
+            extra-options:
+                - "--use-http3-server"

@@ -42,6 +42,14 @@
 #include "mozilla/gfx/GPUProcessManager.h"
 #include "mozilla/ipc/UtilityProcessManager.h"
 #include "mozilla/ipc/FileDescriptorUtils.h"
+#ifdef MOZ_PHC
+#  include "replace_malloc_bridge.h"
+#endif
+
+#ifdef MOZ_WIDGET_ANDROID
+#  include "mozilla/java/GeckoAppShellWrappers.h"
+#  include "mozilla/jni/Utils.h"
+#endif
 
 #ifdef XP_WIN
 #  include "mozilla/MemoryInfo.h"
@@ -1330,6 +1338,25 @@ class JemallocHeapReporter final : public nsIMemoryReporter {
     MOZ_COLLECT_REPORT(
       "heap-chunksize", KIND_OTHER, UNITS_BYTES, stats.chunksize,
       "Size of chunks.");
+
+#ifdef MOZ_PHC
+    mozilla::phc::MemoryUsage usage;
+    ReplaceMalloc::PHCMemoryUsage(usage);
+
+    MOZ_COLLECT_REPORT(
+      "explicit/heap-overhead/phc/metadata", KIND_NONHEAP, UNITS_BYTES,
+      usage.mMetadataBytes,
+"Memory used by PHC to store stacks and other metadata for each allocation");
+    MOZ_COLLECT_REPORT(
+      "explicit/heap-overhead/phc/fragmentation", KIND_NONHEAP, UNITS_BYTES,
+      usage.mFragmentationBytes,
+"The amount of memory lost due to rounding up allocations to the next page "
+"size. "
+"This is also known as 'internal fragmentation'. "
+"Note that all allocators have some internal fragmentation, there may still "
+"be some internal fragmentation without PHC.");
+#endif
+
     // clang-format on
 
     return NS_OK;
@@ -1461,8 +1488,10 @@ class ThreadsReporter final : public nsIMemoryReporter {
           "platform");
 #endif
 
+      nsCString threadName;
+      thread->GetThreadName(threadName);
       threads.AppendElement(ThreadData{
-          nsCString(PR_GetThreadName(thread->GetPRThread())),
+          std::move(threadName),
           thread->ThreadId(),
           // On Linux, it's possible (but unlikely) that our stack region will
           // have been merged with adjacent heap regions, in which case we'll
@@ -1606,6 +1635,35 @@ NS_IMPL_ISUPPORTS(DMDReporter, nsIMemoryReporter)
 
 #endif  // MOZ_DMD
 
+#ifdef MOZ_WIDGET_ANDROID
+class AndroidMemoryReporter final : public nsIMemoryReporter {
+ public:
+  NS_DECL_ISUPPORTS
+
+  AndroidMemoryReporter() = default;
+
+  NS_IMETHOD
+  CollectReports(nsIHandleReportCallback* aHandleReport, nsISupports* aData,
+                 bool aAnonymize) override {
+    if (!jni::IsAvailable() || jni::GetAPIVersion() < 23) {
+      return NS_OK;
+    }
+
+    int32_t heap = java::GeckoAppShell::GetMemoryUsage("summary.java-heap"_ns);
+    if (heap > 0) {
+      MOZ_COLLECT_REPORT("java-heap", KIND_OTHER, UNITS_BYTES, heap * 1024,
+                         "The private Java Heap usage");
+    }
+    return NS_OK;
+  }
+
+ private:
+  ~AndroidMemoryReporter() = default;
+};
+
+NS_IMPL_ISUPPORTS(AndroidMemoryReporter, nsIMemoryReporter)
+#endif
+
 /**
  ** nsMemoryReporterManager implementation
  **/
@@ -1693,6 +1751,10 @@ nsMemoryReporterManager::Init() {
 
 #ifdef XP_WIN
   RegisterStrongReporter(new WindowsAddressSpaceReporter());
+#endif
+
+#ifdef MOZ_WIDGET_ANDROID
+  RegisterStrongReporter(new AndroidMemoryReporter());
 #endif
 
 #ifdef XP_UNIX
@@ -1870,13 +1932,15 @@ nsresult nsMemoryReporterManager::StartGettingReports() {
     }
   }
 
-  if (RefPtr<UtilityProcessManager> utility =
-          UtilityProcessManager::GetIfExists()) {
-    for (RefPtr<UtilityProcessParent>& parent :
-         utility->GetAllProcessesProcessParent()) {
-      if (RefPtr<MemoryReportingProcess> proc =
-              utility->GetProcessMemoryReporter(parent)) {
-        s->mChildrenPending.AppendElement(proc.forget());
+  if (!IsRegistrationBlocked()) {
+    if (RefPtr<UtilityProcessManager> utility =
+            UtilityProcessManager::GetIfExists()) {
+      for (RefPtr<UtilityProcessParent>& parent :
+           utility->GetAllProcessesProcessParent()) {
+        if (RefPtr<MemoryReportingProcess> proc =
+                utility->GetProcessMemoryReporter(parent)) {
+          s->mChildrenPending.AppendElement(proc.forget());
+        }
       }
     }
   }

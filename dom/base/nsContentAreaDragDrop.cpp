@@ -150,9 +150,9 @@ nsresult nsContentAreaDragDropDataProvider::SaveURIToFile(
       nsIWebBrowserPersist::PERSIST_FLAGS_AUTODETECT_APPLY_CONVERSION);
 
   // referrer policy can be anything since the referrer is nullptr
-  return persist->SavePrivacyAwareURI(
-      inSourceURI, inTriggeringPrincipal, 0, nullptr, inCookieJarSettings,
-      nullptr, nullptr, inDestFile, inContentPolicyType, isPrivate);
+  return persist->SaveURI(inSourceURI, inTriggeringPrincipal, 0, nullptr,
+                          inCookieJarSettings, nullptr, nullptr, inDestFile,
+                          inContentPolicyType, isPrivate);
 }
 
 /*
@@ -326,16 +326,6 @@ static nsIContent* FindDragTarget(nsIContent* aContent) {
   for (nsIContent* content = aContent; content;
        content = content->GetFlattenedTreeParent()) {
     if (nsContentUtils::ContentIsDraggable(content)) {
-      return content;
-    }
-  }
-  return nullptr;
-}
-
-static nsIContent* FindParentLinkNode(nsIContent* aContent) {
-  for (nsIContent* content = aContent; content;
-       content = content->GetFlattenedTreeParent()) {
-    if (nsContentUtils::IsDraggableLink(content)) {
       return content;
     }
   }
@@ -548,7 +538,7 @@ nsresult DragDataProducer::Produce(DataTransfer* aDataTransfer, bool* aCanDrag,
       //
       // if the alt key is down, don't start a drag if we're in an
       // anchor because we want to do selection.
-      parentLink = FindParentLinkNode(draggedNode);
+      parentLink = nsContentUtils::GetClosestLinkInFlatTree(draggedNode);
       if (parentLink && mIsAltKeyPressed) {
         *aCanDrag = false;
         return NS_OK;
@@ -692,7 +682,7 @@ nsresult DragDataProducer::Produce(DataTransfer* aDataTransfer, bool* aCanDrag,
     if (NS_SUCCEEDED(rv)) {
       data->GetData(mInfoString);
     }
-    rv = transferable->GetTransferData(kUnicodeMime, getter_AddRefs(supports));
+    rv = transferable->GetTransferData(kTextMime, getter_AddRefs(supports));
     data = do_QueryInterface(supports);
     NS_ENSURE_SUCCESS(rv, rv);  // require plain text at a minimum
     data->GetData(mTitleString);

@@ -8,16 +8,14 @@ job-defaults:
 geckoview-junit:
     description: "Geckoview junit run"
     suite: geckoview-junit
-    variants: ["geckoview-e10s-single", "geckoview-fission", "fission-no-isolate", "no-fission"]
+    variants: ["geckoview-fission", "no-fission"]
     treeherder-symbol: gv-junit
     loopback-video: true
     target: geckoview-androidTest.apk
     max-run-time: 3600
     run-on-projects:
         by-variant:
-            geckoview-e10s-single: ['trunk']
             geckoview-fission: ['trunk']
-            fission-no-isolate: ['trunk']
             no-fission: built-projects
             default: []
     tier: default
@@ -114,9 +112,6 @@ test-verify:
                     - macosx64-node
                     - macosx64-minidump-stackwalk
                     - macosx64-fix-stacks
-                win.*aarch64.*:
-                    - win32-node
-                    - win32-minidump-stackwalk
                 win.*-64.*:
                     - win64-node
                     - win32-minidump-stackwalk
@@ -220,9 +215,6 @@ test-coverage:
                     - macosx64-node
                     - macosx64-minidump-stackwalk
                     - macosx64-fix-stacks
-                win.*aarch64.*:
-                    - win32-node
-                    - win32-minidump-stackwalk
                 win.*-64.*:
                     - win64-node
                     - win32-minidump-stackwalk
@@ -255,7 +247,7 @@ test-coverage-gpu:
             default: []
     tier:
         by-test-platform:
-            windows10-64-asan.*: 3
+            windows.*asan.*: 3
             default: 2
     mozharness:
         script:

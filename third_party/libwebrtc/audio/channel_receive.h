@@ -52,9 +52,8 @@ class RtpPacketReceived;
 class RtpRtcp;
 
 struct CallReceiveStatistics {
-  unsigned int cumulativeLost;
+  int cumulativeLost;
   unsigned int jitterSamples;
-  int64_t rttMs;
   int64_t payload_bytes_rcvd = 0;
   int64_t header_and_padding_bytes_rcvd = 0;
   int packetsReceived;

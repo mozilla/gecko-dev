@@ -9,11 +9,7 @@ extern crate app_services_logger;
 extern crate audioipc2_client;
 #[cfg(feature = "cubeb-remoting")]
 extern crate audioipc2_server;
-#[cfg(feature = "cubeb-remoting")]
-extern crate audioipc_client;
-#[cfg(feature = "cubeb-remoting")]
-extern crate audioipc_server;
-extern crate authenticator;
+extern crate authrs_bridge;
 #[cfg(feature = "bitsdownload")]
 extern crate bitsdownload;
 #[cfg(feature = "moz_places")]
@@ -49,8 +45,6 @@ extern crate static_prefs;
 extern crate storage;
 extern crate webrender_bindings;
 extern crate xpcom;
-#[cfg(feature = "new_xulstore")]
-extern crate xulstore;
 
 extern crate audio_thread_priority;
 

@@ -1,13 +1,12 @@
-use std::cell::UnsafeCell;
-use std::fmt;
-use std::marker::PhantomData;
-use std::mem::{self, ManuallyDrop};
-use std::ptr;
-use std::sync::atomic::{self, AtomicPtr, AtomicUsize, Ordering};
+use alloc::boxed::Box;
+use core::cell::UnsafeCell;
+use core::fmt;
+use core::marker::PhantomData;
+use core::mem::MaybeUninit;
+use core::ptr;
+use core::sync::atomic::{self, AtomicPtr, AtomicUsize, Ordering};
 
 use crossbeam_utils::{Backoff, CachePadded};
-
-use err::PopError;
 
 // Bits indicating the state of a slot:
 // * If a value has been written into the slot, `WRITE` is set.
@@ -29,13 +28,18 @@ const HAS_NEXT: usize = 1;
 /// A slot in a block.
 struct Slot<T> {
     /// The value.
-    value: UnsafeCell<ManuallyDrop<T>>,
+    value: UnsafeCell<MaybeUninit<T>>,
 
     /// The state of the slot.
     state: AtomicUsize,
 }
 
 impl<T> Slot<T> {
+    const UNINIT: Self = Self {
+        value: UnsafeCell::new(MaybeUninit::uninit()),
+        state: AtomicUsize::new(0),
+    };
+
     /// Waits until a value is written into the slot.
     fn wait_write(&self) {
         let backoff = Backoff::new();
@@ -59,7 +63,10 @@ struct Block<T> {
 impl<T> Block<T> {
     /// Creates an empty block that starts at `start_index`.
     fn new() -> Block<T> {
-        unsafe { mem::zeroed() }
+        Self {
+            next: AtomicPtr::new(ptr::null_mut()),
+            slots: [Slot::UNINIT; BLOCK_CAP],
+        }
     }
 
     /// Waits until the next pointer is set.
@@ -111,21 +118,21 @@ struct Position<T> {
 /// at a time. However, since segments need to be dynamically allocated as elements get pushed,
 /// this queue is somewhat slower than [`ArrayQueue`].
 ///
-/// [`ArrayQueue`]: struct.ArrayQueue.html
+/// [`ArrayQueue`]: super::ArrayQueue
 ///
 /// # Examples
 ///
 /// ```
-/// use crossbeam_queue::{PopError, SegQueue};
+/// use crossbeam_queue::SegQueue;
 ///
 /// let q = SegQueue::new();
 ///
 /// q.push('a');
 /// q.push('b');
 ///
-/// assert_eq!(q.pop(), Ok('a'));
-/// assert_eq!(q.pop(), Ok('b'));
-/// assert_eq!(q.pop(), Err(PopError));
+/// assert_eq!(q.pop(), Some('a'));
+/// assert_eq!(q.pop(), Some('b'));
+/// assert!(q.pop().is_none());
 /// ```
 pub struct SegQueue<T> {
     /// The head of the queue.
@@ -151,7 +158,7 @@ impl<T> SegQueue<T> {
     ///
     /// let q = SegQueue::<i32>::new();
     /// ```
-    pub fn new() -> SegQueue<T> {
+    pub const fn new() -> SegQueue<T> {
         SegQueue {
             head: CachePadded::new(Position {
                 block: AtomicPtr::new(ptr::null_mut()),
@@ -205,7 +212,12 @@ impl<T> SegQueue<T> {
             if block.is_null() {
                 let new = Box::into_raw(Box::new(Block::<T>::new()));
 
-                if self.tail.block.compare_and_swap(block, new, Ordering::Release) == block {
+                if self
+                    .tail
+                    .block
+                    .compare_exchange(block, new, Ordering::Release, Ordering::Relaxed)
+                    .is_ok()
+                {
                     self.head.block.store(new, Ordering::Release);
                     block = new;
                 } else {
@@ -219,14 +231,12 @@ impl<T> SegQueue<T> {
             let new_tail = tail + (1 << SHIFT);
 
             // Try advancing the tail forward.
-            match self.tail.index
-                .compare_exchange_weak(
-                    tail,
-                    new_tail,
-                    Ordering::SeqCst,
-                    Ordering::Acquire,
-                )
-            {
+            match self.tail.index.compare_exchange_weak(
+                tail,
+                new_tail,
+                Ordering::SeqCst,
+                Ordering::Acquire,
+            ) {
                 Ok(_) => unsafe {
                     // If we've reached the end of the block, install the next one.
                     if offset + 1 == BLOCK_CAP {
@@ -240,11 +250,11 @@ impl<T> SegQueue<T> {
 
                     // Write the value into the slot.
                     let slot = (*block).slots.get_unchecked(offset);
-                    slot.value.get().write(ManuallyDrop::new(value));
+                    slot.value.get().write(MaybeUninit::new(value));
                     slot.state.fetch_or(WRITE, Ordering::Release);
 
                     return;
-                }
+                },
                 Err(t) => {
                     tail = t;
                     block = self.tail.block.load(Ordering::Acquire);
@@ -256,20 +266,20 @@ impl<T> SegQueue<T> {
 
     /// Pops an element from the queue.
     ///
-    /// If the queue is empty, an error is returned.
+    /// If the queue is empty, `None` is returned.
     ///
     /// # Examples
     ///
     /// ```
-    /// use crossbeam_queue::{PopError, SegQueue};
+    /// use crossbeam_queue::SegQueue;
     ///
     /// let q = SegQueue::new();
     ///
     /// q.push(10);
-    /// assert_eq!(q.pop(), Ok(10));
-    /// assert_eq!(q.pop(), Err(PopError));
+    /// assert_eq!(q.pop(), Some(10));
+    /// assert!(q.pop().is_none());
     /// ```
-    pub fn pop(&self) -> Result<T, PopError> {
+    pub fn pop(&self) -> Option<T> {
         let backoff = Backoff::new();
         let mut head = self.head.index.load(Ordering::Acquire);
         let mut block = self.head.block.load(Ordering::Acquire);
@@ -294,7 +304,7 @@ impl<T> SegQueue<T> {
 
                 // If the tail equals the head, that means the queue is empty.
                 if head >> SHIFT == tail >> SHIFT {
-                    return Err(PopError);
+                    return None;
                 }
 
                 // If head and tail are not in the same block, set `HAS_NEXT` in head.
@@ -313,14 +323,12 @@ impl<T> SegQueue<T> {
             }
 
             // Try moving the head index forward.
-            match self.head.index
-                .compare_exchange_weak(
-                    head,
-                    new_head,
-                    Ordering::SeqCst,
-                    Ordering::Acquire,
-                )
-            {
+            match self.head.index.compare_exchange_weak(
+                head,
+                new_head,
+                Ordering::SeqCst,
+                Ordering::Acquire,
+            ) {
                 Ok(_) => unsafe {
                     // If we've reached the end of the block, move to the next one.
                     if offset + 1 == BLOCK_CAP {
@@ -337,8 +345,7 @@ impl<T> SegQueue<T> {
                     // Read the value.
                     let slot = (*block).slots.get_unchecked(offset);
                     slot.wait_write();
-                    let m = slot.value.get().read();
-                    let value = ManuallyDrop::into_inner(m);
+                    let value = slot.value.get().read().assume_init();
 
                     // Destroy the block if we've reached the end, or if another thread wanted to
                     // destroy but couldn't because we were busy reading from the slot.
@@ -348,8 +355,8 @@ impl<T> SegQueue<T> {
                         Block::destroy(block, offset + 1);
                     }
 
-                    return Ok(value);
-                }
+                    return Some(value);
+                },
                 Err(h) => {
                     head = h;
                     block = self.head.block.load(Ordering::Acquire);
@@ -383,7 +390,7 @@ impl<T> SegQueue<T> {
     /// # Examples
     ///
     /// ```
-    /// use crossbeam_queue::{SegQueue, PopError};
+    /// use crossbeam_queue::SegQueue;
     ///
     /// let q = SegQueue::new();
     /// assert_eq!(q.len(), 0);
@@ -406,6 +413,14 @@ impl<T> SegQueue<T> {
                 tail &= !((1 << SHIFT) - 1);
                 head &= !((1 << SHIFT) - 1);
 
+                // Fix up indices if they fall onto block ends.
+                if (tail >> SHIFT) & (LAP - 1) == LAP - 1 {
+                    tail = tail.wrapping_add(1 << SHIFT);
+                }
+                if (head >> SHIFT) & (LAP - 1) == LAP - 1 {
+                    head = head.wrapping_add(1 << SHIFT);
+                }
+
                 // Rotate indices so that head falls into the first block.
                 let lap = (head >> SHIFT) / LAP;
                 tail = tail.wrapping_sub((lap * LAP) << SHIFT);
@@ -414,15 +429,6 @@ impl<T> SegQueue<T> {
                 // Remove the lower bits.
                 tail >>= SHIFT;
                 head >>= SHIFT;
-
-                // Fix up indices if they fall onto block ends.
-                if head == BLOCK_CAP {
-                    head = 0;
-                    tail -= LAP;
-                }
-                if tail == BLOCK_CAP {
-                    tail += 1;
-                }
 
                 // Return the difference minus the number of blocks between tail and head.
                 return tail - head - tail / LAP;
@@ -433,9 +439,9 @@ impl<T> SegQueue<T> {
 
 impl<T> Drop for SegQueue<T> {
     fn drop(&mut self) {
-        let mut head = self.head.index.load(Ordering::Relaxed);
-        let mut tail = self.tail.index.load(Ordering::Relaxed);
-        let mut block = self.head.block.load(Ordering::Relaxed);
+        let mut head = *self.head.index.get_mut();
+        let mut tail = *self.tail.index.get_mut();
+        let mut block = *self.head.block.get_mut();
 
         // Erase the lower bits.
         head &= !((1 << SHIFT) - 1);
@@ -449,10 +455,11 @@ impl<T> Drop for SegQueue<T> {
                 if offset < BLOCK_CAP {
                     // Drop the value in the slot.
                     let slot = (*block).slots.get_unchecked(offset);
-                    ManuallyDrop::drop(&mut *(*slot).value.get());
+                    let p = &mut *slot.value.get();
+                    p.as_mut_ptr().drop_in_place();
                 } else {
                     // Deallocate the block and move to the next one.
-                    let next = (*block).next.load(Ordering::Relaxed);
+                    let next = *(*block).next.get_mut();
                     drop(Box::from_raw(block));
                     block = next;
                 }
@@ -469,7 +476,7 @@ impl<T> Drop for SegQueue<T> {
 }
 
 impl<T> fmt::Debug for SegQueue<T> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.pad("SegQueue { .. }")
     }
 }
@@ -477,5 +484,64 @@ impl<T> fmt::Debug for SegQueue<T> {
 impl<T> Default for SegQueue<T> {
     fn default() -> SegQueue<T> {
         SegQueue::new()
+    }
+}
+
+impl<T> IntoIterator for SegQueue<T> {
+    type Item = T;
+
+    type IntoIter = IntoIter<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        IntoIter { value: self }
+    }
+}
+
+#[derive(Debug)]
+pub struct IntoIter<T> {
+    value: SegQueue<T>,
+}
+
+impl<T> Iterator for IntoIter<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let value = &mut self.value;
+        let head = *value.head.index.get_mut();
+        let tail = *value.tail.index.get_mut();
+        if head >> SHIFT == tail >> SHIFT {
+            None
+        } else {
+            let block = *value.head.block.get_mut();
+            let offset = (head >> SHIFT) % LAP;
+
+            // SAFETY: We have mutable access to this, so we can read without
+            // worrying about concurrency. Furthermore, we know this is
+            // initialized because it is the value pointed at by `value.head`
+            // and this is a non-empty queue.
+            let item = unsafe {
+                let slot = (*block).slots.get_unchecked(offset);
+                let p = &mut *slot.value.get();
+                p.as_mut_ptr().read()
+            };
+            if offset + 1 == BLOCK_CAP {
+                // Deallocate the block and move to the next one.
+                // SAFETY: The block is initialized because we've been reading
+                // from it this entire time. We can drop it b/c everything has
+                // been read out of it, so nothing is pointing to it anymore.
+                unsafe {
+                    let next = *(*block).next.get_mut();
+                    drop(Box::from_raw(block));
+                    *value.head.block.get_mut() = next;
+                }
+                // The last value in a block is empty, so skip it
+                *value.head.index.get_mut() = head.wrapping_add(2 << SHIFT);
+                // Double-check that we're pointing to the first item in a block.
+                debug_assert_eq!((*value.head.index.get_mut() >> SHIFT) % LAP, 0);
+            } else {
+                *value.head.index.get_mut() = head.wrapping_add(1 << SHIFT);
+            }
+            Some(item)
+        }
     }
 }

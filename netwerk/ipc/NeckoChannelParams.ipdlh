@@ -23,7 +23,7 @@ include "mozilla/AntiTrackingIPCUtils.h";
 include "mozilla/net/ClassOfService.h";
 
 using mozilla::OriginAttributes from "mozilla/ipc/BackgroundUtils.h";
-using RequestHeaderTuples from "mozilla/net/PHttpChannelParams.h";
+using mozilla::net::RequestHeaderTuples from "mozilla/net/PHttpChannelParams.h";
 using struct nsHttpAtom from "nsHttp.h";
 using class mozilla::net::nsHttpResponseHead from "nsHttpResponseHead.h";
 using class mozilla::TimeStamp from "mozilla/TimeStamp.h";
@@ -61,6 +61,8 @@ struct CookieJarSettingsArgs
   CookiePermissionData[] cookiePermissions;
   bool isFixed;
   nsString partitionKey;
+  bool hasFingerprintingRandomizationKey;
+  uint8_t[] fingerprintingRandomizationKey;
 };
 
 //-----------------------------------------------------------------------------
@@ -179,7 +181,7 @@ struct LoadInfoArgs
   bool                        isMetaRefresh;
   CrossOriginEmbedderPolicy   loadingEmbedderPolicy;
   bool                        originTrialCoepCredentiallessEnabledForTopLevel;
-  nsIURI                      unstrippedURI;
+  nullable nsIURI             unstrippedURI;
   InterceptionInfoArg?        interceptionInfo;
 };
 
@@ -251,7 +253,7 @@ struct ParentLoadInfoForwarderArgs
 
   bool isInThirdPartyContext;
 
-  nsIURI unstrippedURI;
+  nullable nsIURI unstrippedURI;
 
   // IMPORTANT: when you add new properites here you must also update
   // LoadInfoToParentLoadInfoForwarder and MergeParentLoadInfoForwarder
@@ -290,62 +292,64 @@ struct CorsPreflightArgs
 
 struct HttpChannelOpenArgs
 {
-  nsIURI                      uri;
+  nullable nsIURI             uri;
   // - TODO: bug 571161: unclear if any HTTP channel clients ever
   // set originalURI != uri (about:credits?); also not clear if
   // chrome channel would ever need to know.  Get rid of next arg?
-  nsIURI                      original;
-  nsIURI                      doc;
-  nsIReferrerInfo             referrerInfo;
-  nsIURI                      apiRedirectTo;
-  nsIURI                      topWindowURI;
-  uint32_t                    loadFlags;
+  nullable nsIURI             original;
+  nullable nsIURI             doc;
+  nullable nsIReferrerInfo    referrerInfo;
+  nullable nsIURI             apiRedirectTo;
+  nullable nsIURI             topWindowURI;
   RequestHeaderTuples         requestHeaders;
-  nsCString                   requestMethod;
-  IPCStream?                  uploadStream;
-  bool                        uploadStreamHasHeaders;
-  int16_t                     priority;
-  ClassOfService              classOfService;
-  uint8_t                     redirectionLimit;
-  bool                        allowSTS;
-  uint32_t                    thirdPartyFlags;
-  bool                        resumeAt;
-  uint64_t                    startPos;
-  nsCString                   entityID;
-  bool                        chooseApplicationCache;
-  nsCString                   appCacheClientID;
-  bool                        allowSpdy;
-  bool                        allowHttp3;
-  bool                        allowAltSvc;
-  bool                        beConservative;
-  bool                        bypassProxy;
-  uint32_t                    tlsFlags;
-  LoadInfoArgs?               loadInfo;
-  uint32_t                    cacheKey;
-  uint64_t                    requestContextID;
-  CorsPreflightArgs?          preflightArgs;
-  uint32_t                    initialRwin;
-  bool                        blockAuthPrompt;
-  bool                        allowStaleCacheContent;
-  bool                        forceValidateCacheContent;
-  bool                        preferCacheLoadOverBypass;
-  nsCString                   contentTypeHint;
-  RequestMode                 requestMode;
-  uint32_t                    redirectMode;
-  uint64_t                    channelId;
-  nsString                    integrityMetadata;
-  uint64_t                    contentWindowId;
   PreferredAlternativeDataTypeParams[] preferredAlternativeTypes;
-  uint64_t                    topBrowsingContextId;
   TimeStamp                   launchServiceWorkerStart;
   TimeStamp                   launchServiceWorkerEnd;
   TimeStamp                   dispatchFetchEventStart;
   TimeStamp                   dispatchFetchEventEnd;
   TimeStamp                   handleFetchEventStart;
   TimeStamp                   handleFetchEventEnd;
-  bool                        forceMainDocumentChannel;
   TimeStamp                   navigationStartTimeStamp;
+  uint64_t                    startPos;
+  uint64_t                    requestContextID;
+  uint64_t                    channelId;
+  uint64_t                    contentWindowId;
+  uint64_t                    browserId;
   uint64_t                    earlyHintPreloaderId;
+  nsCString                   requestMethod;
+  ClassOfService              classOfService;
+  nsCString                   entityID;
+  nsCString                   appCacheClientID;
+  CorsPreflightArgs?          preflightArgs;
+  nsCString                   contentTypeHint;
+  nsString                    integrityMetadata;
+  IPCStream?                  uploadStream;
+  LoadInfoArgs?               loadInfo;
+  uint32_t                    loadFlags;
+  uint32_t                    thirdPartyFlags;
+  uint32_t                    tlsFlags;
+  uint32_t                    cacheKey;
+  uint32_t                    initialRwin;
+  uint32_t                    redirectMode;
+  int16_t                     priority;
+  bool                        uploadStreamHasHeaders;
+  bool                        allowSTS;
+  bool                        resumeAt;
+  bool                        chooseApplicationCache;
+  bool                        allowSpdy;
+  bool                        allowHttp3;
+  bool                        allowAltSvc;
+  bool                        beConservative;
+  bool                        bypassProxy;
+  bool                        blockAuthPrompt;
+  bool                        allowStaleCacheContent;
+  RequestMode                 requestMode;
+  bool                        forceValidateCacheContent;
+  bool                        preferCacheLoadOverBypass;
+  bool                        forceMainDocumentChannel;
+  uint8_t                     redirectionLimit;
+  nsString                    classicScriptHintCharset;
+  nsString                    documentCharacterSet;
 };
 
 struct HttpChannelConnectArgs
@@ -455,7 +459,7 @@ struct DocumentChannelCreationArgs {
   TimeStamp asyncOpenTime;
   uint64_t channelId;
   uint32_t cacheKey;
-  nsDOMNavigationTiming? timing;
+  nullable nsDOMNavigationTiming timing;
   IPCClientInfo? initialClientInfo;
   DocumentChannelElementCreationArgs elementCreationArgs;
   uint64_t parentInitiatedNavigationEpoch;
@@ -468,27 +472,28 @@ struct EarlyHintConnectArgs {
 
 struct RedirectToRealChannelArgs {
   uint32_t registrarId;
-  nsIURI uri;
+  nullable nsIURI uri;
   uint32_t newLoadFlags;
   ReplacementChannelConfigInit? init;
   LoadInfoArgs? loadInfo;
   uint64_t channelId;
-  nsIURI originalURI;
+  nullable nsIURI originalURI;
   uint32_t redirectMode;
   uint32_t redirectFlags;
   uint32_t? contentDisposition;
   nsString? contentDispositionFilename;
-  nsIPropertyBag2 properties;
+  nullable nsIPropertyBag2 properties;
   uint32_t loadStateExternalLoadFlags;
   uint32_t loadStateInternalLoadFlags;
   uint32_t loadStateLoadType;
-  nsDOMNavigationTiming? timing;
+  nullable nsDOMNavigationTiming timing;
   nsString srcdocData;
-  nsIURI baseUri;
+  nullable nsIURI baseUri;
   LoadingSessionHistoryInfo? loadingSessionHistoryInfo;
   uint64_t loadIdentifier;
   nsCString? originalUriString;
   EarlyHintConnectArgs[] earlyHints;
+  uint32_t earlyHintLinkType;
 };
 
 struct TimingStructArgs {
@@ -565,6 +570,7 @@ struct SpeculativeConnectionOverriderArgs {
   bool ignoreIdle;
   bool isFromPredictor;
   bool allow1918;
+  bool ignoreUserCertCheck;
 };
 
 //-----------------------------------------------------------------------------
@@ -593,7 +599,7 @@ union GIOChannelCreationArgs
 };
 
 struct RemoteStreamInfo {
-  nsIInputStream inputStream;
+  nullable nsIInputStream inputStream;
   nsCString contentType;
   int64_t contentLength;
 };

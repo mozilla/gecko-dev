@@ -73,15 +73,15 @@ class HttpTransactionShell : public nsISupports {
   //        the dispatch target were notifications should be sent.
   // @param callbacks
   //        the notification callbacks to be given to PSM.
-  // @param topBrowsingContextId
-  //        indicate the id of the top browsing context in which
-  //        this transaction is being loaded.
+  // @param browserId
+  //        indicate the id of the browser in which this transaction is being
+  //        loaded.
   [[nodiscard]] nsresult virtual Init(
       uint32_t caps, nsHttpConnectionInfo* connInfo,
       nsHttpRequestHead* reqHeaders, nsIInputStream* reqBody,
       uint64_t reqContentLength, bool reqBodyIncludesHeaders,
       nsIEventTarget* consumerTarget, nsIInterfaceRequestor* callbacks,
-      nsITransportEventSink* eventsink, uint64_t topBrowsingContextId,
+      nsITransportEventSink* eventsink, uint64_t browserId,
       HttpTrafficCategory trafficCategory, nsIRequestContext* requestContext,
       ClassOfService classOfService, uint32_t initialRwin,
       bool responseTimeoutEnabled, uint64_t channelId,
@@ -112,6 +112,8 @@ class HttpTransactionShell : public nsISupports {
 
   virtual void GetNetworkAddresses(NetAddr& self, NetAddr& peer,
                                    bool& aResolvedByTRR,
+                                   nsIRequest::TRRMode& aEffectiveTRRMode,
+                                   TRRSkippedReason& aSkipReason,
                                    bool& aEchConfigUsed) = 0;
 
   // Functions for Timing interface
@@ -177,7 +179,7 @@ NS_DEFINE_STATIC_IID_ACCESSOR(HttpTransactionShell, HTTPTRANSACTIONSHELL_IID)
       nsHttpRequestHead* reqHeaders, nsIInputStream* reqBody,                  \
       uint64_t reqContentLength, bool reqBodyIncludesHeaders,                  \
       nsIEventTarget* consumerTarget, nsIInterfaceRequestor* callbacks,        \
-      nsITransportEventSink* eventsink, uint64_t topBrowsingContextId,         \
+      nsITransportEventSink* eventsink, uint64_t browserId,                    \
       HttpTrafficCategory trafficCategory, nsIRequestContext* requestContext,  \
       ClassOfService classOfService, uint32_t initialRwin,                     \
       bool responseTimeoutEnabled, uint64_t channelId,                         \
@@ -192,9 +194,10 @@ NS_DEFINE_STATIC_IID_ACCESSOR(HttpTransactionShell, HTTPTRANSACTIONSHELL_IID)
   virtual already_AddRefed<nsITransportSecurityInfo> SecurityInfo() override;  \
   virtual void SetSecurityCallbacks(nsIInterfaceRequestor* aCallbacks)         \
       override;                                                                \
-  virtual void GetNetworkAddresses(NetAddr& self, NetAddr& peer,               \
-                                   bool& aResolvedByTRR, bool& aEchConfigUsed) \
-      override;                                                                \
+  virtual void GetNetworkAddresses(                                            \
+      NetAddr& self, NetAddr& peer, bool& aResolvedByTRR,                      \
+      nsIRequest::TRRMode& aEffectiveTRRMode, TRRSkippedReason& aSkipReason,   \
+      bool& aEchConfigUsed) override;                                          \
   virtual mozilla::TimeStamp GetDomainLookupStart() override;                  \
   virtual mozilla::TimeStamp GetDomainLookupEnd() override;                    \
   virtual mozilla::TimeStamp GetConnectStart() override;                       \

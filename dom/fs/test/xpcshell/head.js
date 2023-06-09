@@ -15,13 +15,19 @@ async function require_module(id) {
 
     Cu.importGlobalProperties(["storage"]);
 
+    const { Utils } = ChromeUtils.importESModule(
+      "resource://testing-common/dom/quota/test/modules/Utils.sys.mjs"
+    );
+
     const proto = {
       Assert,
       Cr,
+      DOMException,
       navigator: {
         storage,
       },
       TextEncoder,
+      Utils,
     };
 
     require_module.moduleLoader = new ModuleLoader(base, depth, proto);
@@ -57,6 +63,7 @@ add_setup(async function() {
     setStoragePrefs,
     clearStoragePrefs,
     clearStoragesForOrigin,
+    resetStorage,
   } = ChromeUtils.importESModule(
     "resource://testing-common/dom/quota/test/modules/StorageUtils.sys.mjs"
   );
@@ -74,6 +81,12 @@ add_setup(async function() {
     );
 
     await clearStoragesForOrigin(principal);
+
+    Services.prefs.clearUserPref(
+      "dom.quotaManager.temporaryStorage.fixedLimit"
+    );
+
+    await resetStorage();
 
     const optionalPrefsToClear = [
       "dom.fs.enabled",

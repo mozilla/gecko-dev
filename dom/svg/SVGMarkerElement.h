@@ -32,7 +32,7 @@ class DOMSVGAnimatedEnumeration;
 
 using SVGMarkerElementBase = SVGElement;
 
-class SVGMarkerElement : public SVGMarkerElementBase {
+class SVGMarkerElement final : public SVGMarkerElementBase {
   friend class mozilla::SVGMarkerFrame;
 
  protected:
@@ -44,9 +44,6 @@ class SVGMarkerElement : public SVGMarkerElementBase {
   JSObject* WrapNode(JSContext* cx, JS::Handle<JSObject*> aGivenProto) override;
 
  public:
-  // nsIContent interface
-  NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* name) const override;
-
   // SVGSVGElement methods:
   bool HasValidDimensions() const override;
 

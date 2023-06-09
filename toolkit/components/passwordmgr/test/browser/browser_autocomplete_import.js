@@ -1,13 +1,15 @@
 const { ChromeMigrationUtils } = ChromeUtils.import(
   "resource:///modules/ChromeMigrationUtils.jsm"
 );
-const { ExperimentAPI } = ChromeUtils.import(
-  "resource://nimbus/ExperimentAPI.jsm"
+const { ExperimentAPI } = ChromeUtils.importESModule(
+  "resource://nimbus/ExperimentAPI.sys.mjs"
 );
-const { MigrationUtils } = ChromeUtils.import(
-  "resource:///modules/MigrationUtils.jsm"
+const { ExperimentFakes } = ChromeUtils.importESModule(
+  "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
-const { sinon } = ChromeUtils.import("resource://testing-common/Sinon.jsm");
+const { sinon } = ChromeUtils.importESModule(
+  "resource://testing-common/Sinon.sys.mjs"
+);
 
 // Dummy migrator to change and detect importable behavior.
 const gTestMigrator = {
@@ -23,6 +25,35 @@ const gTestMigrator = {
       LoginTestUtils.addLogin({ username: "import", password: "pass" })
     ),
 };
+
+// Showing importables updates counts delayed, so adjust and cleanup.
+add_setup(async function setup() {
+  const debounce = sinon
+    .stub(LoginManagerParent, "SUGGEST_IMPORT_DEBOUNCE_MS")
+    .value(0);
+  const importable = sinon
+    .stub(ChromeMigrationUtils, "getImportableLogins")
+    .resolves(["chrome"]);
+  const migrator = sinon
+    .stub(MigrationUtils, "getMigrator")
+    .resolves(gTestMigrator);
+
+  const doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+    featureId: "password-autocomplete",
+    value: { directMigrateSingleProfile: true },
+  });
+
+  // This makes the last autocomplete test *not* show import suggestions.
+  Services.prefs.setIntPref("signon.suggestImportCount", 3);
+
+  registerCleanupFunction(async () => {
+    await doExperimentCleanup();
+    debounce.restore();
+    importable.restore();
+    migrator.restore();
+    Services.prefs.clearUserPref("signon.suggestImportCount");
+  });
+});
 
 add_task(async function check_fluent_ids() {
   await document.l10n.ready;
@@ -44,43 +75,15 @@ add_task(async function check_fluent_ids() {
   }
 });
 
-// Showing importables updates counts delayed, so adjust and cleanup.
-add_task(async function test_initialize() {
-  const debounce = sinon
-    .stub(LoginManagerParent, "SUGGEST_IMPORT_DEBOUNCE_MS")
-    .value(0);
-  const importable = sinon
-    .stub(ChromeMigrationUtils, "getImportableLogins")
-    .resolves(["chrome"]);
-  const migrator = sinon
-    .stub(MigrationUtils, "getMigrator")
-    .resolves(gTestMigrator);
-
-  const experiment = sinon.stub(ExperimentAPI, "getActiveBranch").returns({
-    slug: "foo",
-    ratio: 1,
-    features: [
-      {
-        featureId: "password-autocomplete",
-        value: { directMigrateSingleProfile: true },
-      },
-    ],
-  });
-
-  // This makes the last autocomplete test *not* show import suggestions.
-  Services.prefs.setIntPref("signon.suggestImportCount", 3);
-
-  registerCleanupFunction(() => {
-    debounce.restore();
-    importable.restore();
-    migrator.restore();
-    experiment.restore();
-    Services.prefs.clearUserPref("signon.suggestImportCount");
-  });
-});
-
+/**
+ * Tests that if the user selects the password import suggestion from
+ * the autocomplete popup, and there is more than one profile available
+ * to import from, that the migration wizard opens to guide the user
+ * through importing those logins.
+ */
 add_task(async function import_suggestion_wizard() {
   let wizard;
+
   await BrowserTestUtils.withNewTab(
     {
       gBrowser,
@@ -105,10 +108,7 @@ add_task(async function import_suggestion_wizard() {
       gTestMigrator.profiles.length = 2;
 
       info("Clicking on importable suggestion");
-      const wizardPromise = BrowserTestUtils.waitForCondition(
-        () => Services.wm.getMostRecentWindow("Browser:MigrationWizard"),
-        "Wait for migration wizard to open"
-      );
+      const wizardPromise = BrowserTestUtils.waitForMigrationWizard(window);
 
       // The modal window blocks execution, so avoid calling directly.
       executeSoon(() => EventUtils.synthesizeMouseAtCenter(importableItem, {}));
@@ -128,7 +128,7 @@ add_task(async function import_suggestion_wizard() {
   // Close the wizard in the end of the test. If we close the wizard when the tab
   // is still opened, the username field will be focused again, which triggers another
   // importable suggestion.
-  await BrowserTestUtils.closeWindow(wizard);
+  await BrowserTestUtils.closeMigrationWizard(wizard);
 });
 
 add_task(async function import_suggestion_learn_more() {

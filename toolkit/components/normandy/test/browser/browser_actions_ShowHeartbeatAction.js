@@ -1,21 +1,20 @@
 "use strict";
 
-const { BaseAction } = ChromeUtils.import(
-  "resource://normandy/actions/BaseAction.jsm"
+const { BaseAction } = ChromeUtils.importESModule(
+  "resource://normandy/actions/BaseAction.sys.mjs"
 );
-const { ShowHeartbeatAction } = ChromeUtils.import(
-  "resource://normandy/actions/ShowHeartbeatAction.jsm"
+const { ClientEnvironment } = ChromeUtils.importESModule(
+  "resource://normandy/lib/ClientEnvironment.sys.mjs"
 );
-const { ClientEnvironment } = ChromeUtils.import(
-  "resource://normandy/lib/ClientEnvironment.jsm"
+const { Heartbeat } = ChromeUtils.importESModule(
+  "resource://normandy/lib/Heartbeat.sys.mjs"
 );
-const { Heartbeat } = ChromeUtils.import(
-  "resource://normandy/lib/Heartbeat.jsm"
+
+const { Uptake } = ChromeUtils.importESModule(
+  "resource://normandy/lib/Uptake.sys.mjs"
 );
-const { Storage } = ChromeUtils.import("resource://normandy/lib/Storage.jsm");
-const { Uptake } = ChromeUtils.import("resource://normandy/lib/Uptake.jsm");
-const { NormandyTestUtils } = ChromeUtils.import(
-  "resource://testing-common/NormandyTestUtils.jsm"
+const { NormandyTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/NormandyTestUtils.sys.mjs"
 );
 
 const HOUR_IN_MS = 60 * 60 * 1000;
@@ -43,52 +42,6 @@ function heartbeatRecipeFactory(overrides = {}) {
   }
 
   return recipeFactory(Object.assign(defaults, overrides));
-}
-
-class MockHeartbeat {
-  constructor() {
-    this.eventEmitter = new MockEventEmitter();
-  }
-}
-
-class MockEventEmitter {
-  constructor() {
-    this.once = sinon.stub();
-  }
-}
-
-function withStubbedHeartbeat() {
-  return function(testFunction) {
-    return async function wrappedTestFunction(args) {
-      const heartbeatInstanceStub = new MockHeartbeat();
-      const heartbeatClassStub = sinon.stub();
-      heartbeatClassStub.returns(heartbeatInstanceStub);
-      ShowHeartbeatAction.overrideHeartbeatForTests(heartbeatClassStub);
-
-      try {
-        await testFunction({
-          ...args,
-          heartbeatClassStub,
-          heartbeatInstanceStub,
-        });
-      } finally {
-        ShowHeartbeatAction.overrideHeartbeatForTests();
-      }
-    };
-  };
-}
-
-function withClearStorage() {
-  return function(testFunction) {
-    return async function wrappedTestFunction(args) {
-      Storage.clearAllStorage();
-      try {
-        await testFunction(args);
-      } finally {
-        Storage.clearAllStorage();
-      }
-    };
-  };
 }
 
 // Test that a normal heartbeat works as expected

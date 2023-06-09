@@ -205,22 +205,21 @@ struct FrameMetrics {
 
   /*
    * Calculate the composition bounds of this frame in the CSS pixels of
-   * the content surrounding the scroll frame. (This can be thought of as
-   * "parent CSS" pixels).
+   * the content surrounding the scroll frame (OuterCSS pixels).
    * Note that it does not make sense to ask for the composition bounds in the
    * CSS pixels of the scrolled content (that is, regular CSS pixels),
    * because the origin of the composition bounds is not meaningful in that
    * coordinate space. (The size is, use CalculateCompositedSizeInCssPixels()
    * for that.)
    */
-  CSSRect CalculateCompositionBoundsInCssPixelsOfSurroundingContent() const {
+  OuterCSSRect CalculateCompositionBoundsInOuterCssPixels() const {
     if (GetZoom() == CSSToParentLayerScale(0)) {
-      return CSSRect();  // avoid division by zero
+      return OuterCSSRect();  // avoid division by zero
     }
     // The CSS pixels of the scrolled content and the CSS pixels of the
     // surrounding content only differ if the scrolled content is rendered
     // at a higher resolution, and the difference is the resolution.
-    return mCompositionBounds / GetZoom() * CSSToCSSScale{mPresShellResolution};
+    return mCompositionBounds / GetZoom() * GetCSSToOuterCSSScale();
   }
 
   CSSSize CalculateBoundedCompositedSizeInCssPixels() const {
@@ -316,6 +315,13 @@ struct FrameMetrics {
 
   const CSSToLayoutDeviceScale& GetDevPixelsPerCSSPixel() const {
     return mDevPixelsPerCSSPixel;
+  }
+
+  CSSToOuterCSSScale GetCSSToOuterCSSScale() const {
+    // The scale difference between CSS and OuterCSS pixels is the
+    // part of the zoom that's not subject to all enclosing content,
+    // i.e. the pres shell resolution.
+    return CSSToOuterCSSScale(mPresShellResolution);
   }
 
   void SetIsRootContent(bool aIsRootContent) {
@@ -843,7 +849,6 @@ struct ScrollMetadata {
       : mMetrics(),
         mSnapInfo(),
         mScrollParentId(ScrollableLayerGuid::NULL_SCROLL_ID),
-        mBackgroundColor(),
         mContentDescription(),
         mLineScrollAmount(0, 0),
         mPageScrollAmount(0, 0),
@@ -862,7 +867,6 @@ struct ScrollMetadata {
   bool operator==(const ScrollMetadata& aOther) const {
     return mMetrics == aOther.mMetrics && mSnapInfo == aOther.mSnapInfo &&
            mScrollParentId == aOther.mScrollParentId &&
-           mBackgroundColor == aOther.mBackgroundColor &&
            // don't compare mContentDescription
            mLineScrollAmount == aOther.mLineScrollAmount &&
            mPageScrollAmount == aOther.mPageScrollAmount &&
@@ -904,10 +908,6 @@ struct ScrollMetadata {
   ViewID GetScrollParentId() const { return mScrollParentId; }
 
   void SetScrollParentId(ViewID aParentId) { mScrollParentId = aParentId; }
-  const gfx::DeviceColor& GetBackgroundColor() const {
-    return mBackgroundColor;
-  }
-  void SetBackgroundColor(const gfx::sRGBColor& aBackgroundColor);
   const nsCString& GetContentDescription() const { return mContentDescription; }
   void SetContentDescription(const nsCString& aContentDescription) {
     mContentDescription = aContentDescription;
@@ -1015,9 +1015,6 @@ struct ScrollMetadata {
   // The ViewID of the scrollable frame to which overscroll should be handed
   // off.
   ViewID mScrollParentId;
-
-  // The background color to use when overscrolling.
-  gfx::DeviceColor mBackgroundColor;
 
   // A description of the content element corresponding to this frame.
   // This is empty unless this is a scrollable layer and the

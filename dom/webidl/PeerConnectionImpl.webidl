@@ -45,7 +45,8 @@ interface PeerConnectionImpl  {
   [Throws]
   RTCRtpTransceiver addTransceiver(RTCRtpTransceiverInit init,
                                    DOMString kind,
-                                   MediaStreamTrack? sendTrack);
+                                   MediaStreamTrack? sendTrack,
+                                   boolean addTrackMagic);
   sequence<RTCRtpTransceiver> getTransceivers();
 
   [Throws]
@@ -108,12 +109,15 @@ interface PeerConnectionImpl  {
 
   readonly attribute RTCIceConnectionState iceConnectionState;
   readonly attribute RTCIceGatheringState iceGatheringState;
+  readonly attribute RTCPeerConnectionState connectionState;
   readonly attribute RTCSignalingState signalingState;
   attribute DOMString id;
 
   [SetterThrows]
   attribute DOMString peerIdentity;
   readonly attribute boolean privacyRequested;
+
+  readonly attribute RTCSctpTransport? sctp;
 
   /* Data channels */
   [Throws]

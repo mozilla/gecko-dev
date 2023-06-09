@@ -4,6 +4,7 @@
 
 use std::sync::Arc;
 
+use crate::common_metric_data::CommonMetricDataInternal;
 use crate::error_recording::{record_error, test_get_num_recorded_errors, ErrorType};
 use crate::histogram::{Functional, Histogram};
 use crate::metrics::memory_unit::MemoryUnit;
@@ -27,7 +28,7 @@ const MAX_BYTES: u64 = 1 << 40;
 /// Memory distributions are used to accumulate and store memory sizes.
 #[derive(Clone, Debug)]
 pub struct MemoryDistributionMetric {
-    meta: Arc<CommonMetricData>,
+    meta: Arc<CommonMetricDataInternal>,
     memory_unit: MemoryUnit,
 }
 
@@ -49,7 +50,7 @@ pub(crate) fn snapshot(hist: &Histogram<Functional>) -> DistributionData {
 }
 
 impl MetricType for MemoryDistributionMetric {
-    fn meta(&self) -> &CommonMetricData {
+    fn meta(&self) -> &CommonMetricDataInternal {
         &self.meta
     }
 }
@@ -62,7 +63,7 @@ impl MemoryDistributionMetric {
     /// Creates a new memory distribution metric.
     pub fn new(meta: CommonMetricData, memory_unit: MemoryUnit) -> Self {
         Self {
-            meta: Arc::new(meta),
+            meta: Arc::new(meta.into()),
             memory_unit,
         }
     }
@@ -111,9 +112,14 @@ impl MemoryDistributionMetric {
             sample = MAX_BYTES;
         }
 
-        glean
-            .storage()
-            .record_with(glean, &self.meta, |old_value| match old_value {
+        // Let's be defensive here:
+        // The uploader tries to store some memory distribution metrics,
+        // but in tests that storage might be gone already.
+        // Let's just ignore those.
+        // We do the same for counters and timing distributions.
+        // This should never happen in real app usage.
+        if let Some(storage) = glean.storage_opt() {
+            storage.record_with(glean, &self.meta, |old_value| match old_value {
                 Some(Metric::MemoryDistribution(mut hist)) => {
                     hist.accumulate(sample);
                     Metric::MemoryDistribution(hist)
@@ -124,6 +130,12 @@ impl MemoryDistributionMetric {
                     Metric::MemoryDistribution(hist)
                 }
             });
+        } else {
+            log::warn!(
+                "Couldn't get storage. Can't record memory distribution '{}'.",
+                self.meta.base_identifier()
+            );
+        }
     }
 
     /// Accumulates the provided signed samples in the metric.
@@ -224,13 +236,13 @@ impl MemoryDistributionMetric {
     ) -> Option<DistributionData> {
         let queried_ping_name = ping_name
             .into()
-            .unwrap_or_else(|| &self.meta().send_in_pings[0]);
+            .unwrap_or_else(|| &self.meta().inner.send_in_pings[0]);
 
         match StorageManager.snapshot_metric_for_test(
             glean.storage(),
             queried_ping_name,
             &self.meta.identifier(glean),
-            self.meta.lifetime,
+            self.meta.inner.lifetime,
         ) {
             Some(Metric::MemoryDistribution(hist)) => Some(snapshot(&hist)),
             _ => None,

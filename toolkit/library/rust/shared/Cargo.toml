@@ -12,7 +12,7 @@ mozglue-static = { path = "../../../../mozglue/static/rust" }
 geckoservo = { path = "../../../../servo/ports/geckolib" }
 kvstore = { path = "../../../components/kvstore" }
 lmdb-rkv-sys = { version = "0.11", features = ["mdb_idl_logn_9"] }
-mp4parse_capi = { git = "https://github.com/mozilla/mp4parse-rust", rev = "3bfc47d9a571d0842676043ba60716318e946c06", features = ["missing-pixi-permitted"] }
+mp4parse_capi = { git = "https://github.com/mozilla/mp4parse-rust", rev = "2b572e83608a3d0867b935e076f45d9fe248069d", features = ["missing-pixi-permitted"] }
 nserror = { path = "../../../../xpcom/rust/nserror" }
 nsstring = { path = "../../../../xpcom/rust/nsstring" }
 netwerk_helper = { path = "../../../../netwerk/base/rust-helper" }
@@ -25,25 +25,13 @@ webrender_bindings = { path = "../../../../gfx/webrender_bindings" }
 cubeb-coreaudio = { git = "https://github.com/mozilla/cubeb-coreaudio-rs", rev = "93b5c01a131f65c83c11aeb317f4583405c5eb79", optional = true }
 cubeb-pulse = { git = "https://github.com/mozilla/cubeb-pulse-rs", rev="cf48897be5cbe147d051ebbbe1eaf5fd8fb6bbc9", optional = true, features=["pulse-dlopen"] }
 cubeb-sys = { version = "0.10.3", optional = true, features=["gecko-in-tree"] }
-audioipc2-client = { git = "https://github.com/kinetiknz/audioipc-2", rev = "42eb59ab3b86cd43d3dbe37d159ce102a8eaf2a5", optional = true } # macos (v2) branch
-audioipc2-server = { git = "https://github.com/kinetiknz/audioipc-2", rev = "42eb59ab3b86cd43d3dbe37d159ce102a8eaf2a5", optional = true } # macos (v2) branch
-audioipc-client = { git = "https://github.com/mozilla/audioipc", rev = "fb7a2b12ced3b43e6a268621989c6191d1ed7e39", optional = true }
-audioipc-server = { git = "https://github.com/mozilla/audioipc", rev = "fb7a2b12ced3b43e6a268621989c6191d1ed7e39", optional = true }
-# Force tokio-reactor on an old version to avoid new dependencies of newer versions.
-# Remove when audioipc-client and audioipc-server above are replaced with
-# audioipc2-client and audioipc2-server.
-tokio-reactor = { version = "=0.1.3", optional = true }
-# Force tokio-threadpool on an old version that doesn't depend on crossbeam-queue 0.2
-# that has licensing issues.
-# Remove when audioipc-client and audioipc-server above are replaced with
-# audioipc2-client and audioipc2-server.
-tokio-threadpool = { version = "=0.1.17", optional = true }
+audioipc2-client = { git = "https://github.com/mozilla/audioipc", rev = "0b51291d2483a17dce3e300c7784b369e02bee73", optional = true }
+audioipc2-server = { git = "https://github.com/mozilla/audioipc", rev = "0b51291d2483a17dce3e300c7784b369e02bee73", optional = true }
 encoding_glue = { path = "../../../../intl/encoding_glue" }
-authenticator = { version = "0.4.0-alpha.6", features = ["gecko"] }
+authrs_bridge = { path = "../../../../dom/webauthn/authrs_bridge" }
 gkrust_utils = { path = "../../../../xpcom/rust/gkrust_utils" }
 gecko_logger = { path = "../../../../xpcom/rust/gecko_logger" }
 rsdparsa_capi = { path = "../../../../dom/media/webrtc/sdp/rsdparsa_capi" }
-xulstore = { path = "../../../components/xulstore", optional = true }
 # We have these to enforce common feature sets for said crates.
 log = {version = "0.4", features = ["release_max_level_info"]}
 cose-c = { version = "0.1.5" }
@@ -75,11 +63,11 @@ origin-trials-ffi = { path = "../../../../dom/origin-trials/ffi" }
 jog = { path = "../../../components/glean/bindings/jog" }
 dap_ffi = { path = "../../../components/telemetry/dap/ffi" }
 data-encoding-ffi = { path = "../../../../dom/fs/parent/rust/data-encoding-ffi" }
-uniffi-example-arithmetic = { git = "https://github.com/mozilla/uniffi-rs.git", rev = "846612a1d4fb5d11e246bf0682da4a499409424c", optional = true }
-uniffi-example-geometry = { git = "https://github.com/mozilla/uniffi-rs.git", rev = "846612a1d4fb5d11e246bf0682da4a499409424c", optional = true }
-uniffi-example-rondpoint = { git = "https://github.com/mozilla/uniffi-rs.git", rev = "846612a1d4fb5d11e246bf0682da4a499409424c", optional = true }
-uniffi-example-sprites = { git = "https://github.com/mozilla/uniffi-rs.git", rev = "846612a1d4fb5d11e246bf0682da4a499409424c", optional = true }
-uniffi-example-todolist = { git = "https://github.com/mozilla/uniffi-rs.git", rev = "846612a1d4fb5d11e246bf0682da4a499409424c", optional = true }
+uniffi-example-arithmetic = { git = "https://github.com/mozilla/uniffi-rs.git", rev = "bc7ff8977bf38d0fdd1a458810b14f434d4dc4de", optional = true }
+uniffi-example-geometry = { git = "https://github.com/mozilla/uniffi-rs.git", rev = "bc7ff8977bf38d0fdd1a458810b14f434d4dc4de", optional = true }
+uniffi-example-rondpoint = { git = "https://github.com/mozilla/uniffi-rs.git", rev = "bc7ff8977bf38d0fdd1a458810b14f434d4dc4de", optional = true }
+uniffi-example-sprites = { git = "https://github.com/mozilla/uniffi-rs.git", rev = "bc7ff8977bf38d0fdd1a458810b14f434d4dc4de", optional = true }
+uniffi-example-todolist = { git = "https://github.com/mozilla/uniffi-rs.git", rev = "bc7ff8977bf38d0fdd1a458810b14f434d4dc4de", optional = true }
 uniffi-example-custom-types = { path = "../../../components/uniffi-example-custom-types/", optional = true }
 uniffi-fixture-callbacks = { path = "../../../components/uniffi-fixture-callbacks/", optional = true }
 uniffi-fixture-external-types = { path = "../../../components/uniffi-fixture-external-types/", optional = true }
@@ -125,7 +113,7 @@ detect_win32k_conflicts = { path = "../../../xre/detect_win32k_conflicts" }
 [features]
 default = []
 moz_memory = ["mozglue-static/moz_memory"]
-cubeb-remoting = ["cubeb-sys", "audioipc-client", "audioipc-server", "audioipc2-client", "audioipc2-server"]
+cubeb-remoting = ["cubeb-sys", "audioipc2-client", "audioipc2-server"]
 cubeb_coreaudio_rust = ["cubeb-sys", "cubeb-coreaudio"]
 cubeb_pulse_rust = ["cubeb-sys", "cubeb-pulse"]
 gecko_debug = ["geckoservo/gecko_debug", "nsstring/gecko_debug"]
@@ -136,8 +124,7 @@ spidermonkey_rust = []
 smoosh = ["jsrust_shared/smoosh"]
 gecko_profiler = ["gecko-profiler/enabled", "profiler_helper"]
 gecko_profiler_parse_elf = ["profiler_helper/parse_elf"]
-new_xulstore = ["xulstore"]
-libfuzzer = ["neqo_glue/fuzzing"]
+libfuzzer = []
 webrtc = ["mdns_service"]
 glean_disable_upload = ["fog_control/disable_upload"]
 glean_million_queue = ["fog_control/million_queue"]

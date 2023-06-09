@@ -32,12 +32,14 @@
 #include "mozilla/dom/Timeout.h"
 #include "mozilla/dom/quota/CheckedUnsafePtr.h"
 #include "mozilla/dom/Worker.h"
+#include "mozilla/dom/WorkerBinding.h"
 #include "mozilla/dom/WorkerCommon.h"
 #include "mozilla/dom/WorkerLoadInfo.h"
 #include "mozilla/dom/WorkerStatus.h"
 #include "mozilla/dom/workerinternals/JSSettings.h"
 #include "mozilla/dom/workerinternals/Queue.h"
 #include "mozilla/dom/JSExecutionManager.h"
+#include "mozilla/net/NeckoChannelParams.h"
 #include "mozilla/StaticPrefs_extensions.h"
 #include "nsContentUtils.h"
 #include "nsIChannel.h"
@@ -128,6 +130,78 @@ class WorkerPrivate final
     : public RelativeTimeline,
       public SupportsCheckedUnsafePtr<CheckIf<DiagnosticAssertEnabled>> {
  public:
+  // Callback invoked on the parent thread when the worker's cancellation is
+  // about to be requested.  This covers both calls to
+  // WorkerPrivate::Cancel() by the owner as well as self-initiated cancellation
+  // due to top-level script evaluation failing or close() being invoked on the
+  // global scope for Dedicated and Shared workers, but not Service Workers as
+  // they do not expose a close() method.
+  //
+  // ### Parent-Initiated Cancellation
+  //
+  // When WorkerPrivate::Cancel is invoked on the parent thread (by the binding
+  // exposed Worker::Terminate), this callback is invoked synchronously inside
+  // that call.
+  //
+  // ### Worker Self-Cancellation
+  //
+  // When a worker initiates self-cancellation, the worker's notification to the
+  // parent thread is a non-blocking, async mechanism triggered by
+  // `WorkerPrivate::DispatchCancelingRunnable`.
+  //
+  // Self-cancellation races a normally scheduled runnable against a timer that
+  // is scheduled against the parent.  The 2 paths initiated by
+  // DispatchCancelingRunnable are:
+  //
+  // 1. A CancelingRunnable is dispatched at the worker's normal event target to
+  //    wait for the event loop to be clear of runnables.  When the
+  //    CancelingRunnable runs it will dispatch a CancelingOnParentRunnable to
+  //    its parent which is a normal, non-control WorkerDebuggeeRunnable to
+  //    ensure that any postMessages to the parent or similar events get a
+  //    chance to be processed prior to cancellation.  The timer scheduled in
+  //    the next bullet will not be canceled unless
+  //
+  // 2. A CancelingWithTimeoutOnParentRunnable control runnable is dispatched
+  //    to the parent to schedule a timer which will (also) fire on the parent
+  //    thread.  This handles the case where the worker does not yield
+  //    control-flow, and so the normal runnable scheduled above does not get to
+  //    run in a timely fashion.  Because this is a control runnable, if the
+  //    parent is a worker then the runnable will be processed with urgency.
+  //    However, if the worker is top-level, then the control-like throttled
+  //    WorkerPrivate::mMainThreadEventTarget will end up getting used which is
+  //    nsIRunnablePriority::PRIORITY_MEDIUMHIGH and distinct from the
+  //    mMainThreadDebuggeeEventTarget which most runnables (like postMessage)
+  //    use.
+  //
+  //    The timer will explicitly use the control event target if the parent is
+  //    a worker and the implicit event target (via `NS_NewTimer()`) otherwise.
+  //    The callback is CancelingTimerCallback which just calls
+  //    WorkerPrivate::Cancel.
+  using CancellationCallback = std::function<void(bool aEverRan)>;
+
+  // Callback invoked on the parent just prior to dropping the worker thread's
+  // strong reference that keeps the WorkerPrivate alive while the worker thread
+  // is running.  This does not provide a guarantee that the underlying thread
+  // has fully shutdown, just that the worker logic has fully shutdown.
+  //
+  // ### Details
+  //
+  // The last thing the worker thread's WorkerThreadPrimaryRunnable does before
+  // initiating the shutdown of the underlying thread is call ScheduleDeletion.
+  // ScheduleDeletion dispatches a runnable to the parent to notify it that the
+  // worker has completed its work and will never touch the WorkerPrivate again
+  // and that the strong self-reference can be dropped.
+  //
+  // For parents that are themselves workers, this will be done by
+  // WorkerFinishedRunnable which is a WorkerControlRunnable, ensuring that this
+  // is processed in a timely fashion.  For main-thread parents,
+  // TopLevelWorkerFinishedRunnable will be used and sent via
+  // mMainThreadEventTargetForMessaging which is a weird ThrottledEventQueue
+  // which does not provide any ordering guarantees relative to
+  // mMainThreadDebuggeeEventTarget, so if you want those, you need to enhance
+  // things.
+  using TerminationCallback = std::function<void(void)>;
+
   struct LocationInfo {
     nsCString mHref;
     nsCString mProtocol;
@@ -144,24 +218,33 @@ class WorkerPrivate final
 
   static already_AddRefed<WorkerPrivate> Constructor(
       JSContext* aCx, const nsAString& aScriptURL, bool aIsChromeWorker,
-      WorkerKind aWorkerKind, const nsAString& aWorkerName,
+      WorkerKind aWorkerKind, RequestCredentials aRequestCredentials,
+      const WorkerType aWorkerType, const nsAString& aWorkerName,
       const nsACString& aServiceWorkerScope, WorkerLoadInfo* aLoadInfo,
-      ErrorResult& aRv, nsString aId = u""_ns);
+      ErrorResult& aRv, nsString aId = u""_ns,
+      CancellationCallback&& aCancellationCallback = {},
+      TerminationCallback&& aTerminationCallback = {});
 
   enum LoadGroupBehavior { InheritLoadGroup, OverrideLoadGroup };
 
-  static nsresult GetLoadInfo(JSContext* aCx, nsPIDOMWindowInner* aWindow,
-                              WorkerPrivate* aParent,
-                              const nsAString& aScriptURL, bool aIsChromeWorker,
-                              LoadGroupBehavior aLoadGroupBehavior,
-                              WorkerKind aWorkerKind,
-                              WorkerLoadInfo* aLoadInfo);
+  static nsresult GetLoadInfo(
+      JSContext* aCx, nsPIDOMWindowInner* aWindow, WorkerPrivate* aParent,
+      const nsAString& aScriptURL, const enum WorkerType& aWorkerType,
+      const RequestCredentials& aCredentials, bool aIsChromeWorker,
+      LoadGroupBehavior aLoadGroupBehavior, WorkerKind aWorkerKind,
+      WorkerLoadInfo* aLoadInfo);
 
   void Traverse(nsCycleCollectionTraversalCallback& aCb);
 
   void ClearSelfAndParentEventTargetRef() {
     AssertIsOnParentThread();
     MOZ_ASSERT(mSelfRef);
+
+    if (mTerminationCallback) {
+      mTerminationCallback();
+      mTerminationCallback = nullptr;
+    }
+
     mParentEventTargetRef = nullptr;
     mSelfRef = nullptr;
   }
@@ -447,6 +530,8 @@ class WorkerPrivate final
     return mCancelAllPendingRunnables;
   }
 
+  void ShutdownModuleLoader();
+
   void ClearMainEventQueue(WorkerRanOrNot aRanOrNot);
 
   void ClearDebuggerEventQueue();
@@ -637,6 +722,8 @@ class WorkerPrivate final
   const nsString& ScriptURL() const { return mScriptURL; }
 
   const nsString& WorkerName() const { return mWorkerName; }
+  RequestCredentials WorkerCredentials() const { return mCredentialsMode; }
+  enum WorkerType WorkerType() const { return mWorkerType; }
 
   WorkerKind Kind() const { return mWorkerKind; }
 
@@ -676,6 +763,10 @@ class WorkerPrivate final
   nsLoadFlags GetLoadFlags() const { return mLoadInfo.mLoadFlags; }
 
   uint64_t WindowID() const { return mLoadInfo.mWindowID; }
+
+  uint64_t AssociatedBrowsingContextID() const {
+    return mLoadInfo.mAssociatedBrowsingContextID;
+  }
 
   uint64_t ServiceWorkerID() const { return GetServiceWorkerDescriptor().Id(); }
 
@@ -872,6 +963,11 @@ class WorkerPrivate final
     return mLoadInfo.mCookieJarSettings;
   }
 
+  const net::CookieJarSettingsArgs& CookieJarSettingsArgs() const {
+    MOZ_ASSERT(mLoadInfo.mCookieJarSettings);
+    return mLoadInfo.mCookieJarSettingsArgs;
+  }
+
   const OriginAttributes& GetOriginAttributes() const {
     return mLoadInfo.mOriginAttributes;
   }
@@ -891,11 +987,6 @@ class WorkerPrivate final
   RemoteWorkerChild* GetRemoteWorkerController();
 
   void SetRemoteWorkerController(RemoteWorkerChild* aController);
-
-  void SetRemoteWorkerControllerWeakRef(
-      ThreadSafeWeakPtr<RemoteWorkerChild> aWeakRef);
-
-  ThreadSafeWeakPtr<RemoteWorkerChild> GetRemoteWorkerControllerWeakRef();
 
   RefPtr<GenericPromise> SetServiceWorkerSkipWaitingFlag();
 
@@ -1026,6 +1117,7 @@ class WorkerPrivate final
   nsILoadInfo::CrossOriginEmbedderPolicy GetOwnerEmbedderPolicy() const;
 
   void SetCCCollectedAnything(bool collectedAnything);
+  bool isLastCCCollectedAnything();
 
   uint32_t GetCurrentTimerNestingLevel() const {
     auto data = mWorkerThreadAccessible.Access();
@@ -1046,10 +1138,13 @@ class WorkerPrivate final
  private:
   WorkerPrivate(
       WorkerPrivate* aParent, const nsAString& aScriptURL, bool aIsChromeWorker,
-      WorkerKind aWorkerKind, const nsAString& aWorkerName,
+      WorkerKind aWorkerKind, RequestCredentials aRequestCredentials,
+      enum WorkerType aWorkerType, const nsAString& aWorkerName,
       const nsACString& aServiceWorkerScope, WorkerLoadInfo& aLoadInfo,
       nsString&& aId, const nsID& aAgentClusterId,
-      const nsILoadInfo::CrossOriginOpenerPolicy aAgentClusterOpenerPolicy);
+      const nsILoadInfo::CrossOriginOpenerPolicy aAgentClusterOpenerPolicy,
+      CancellationCallback&& aCancellationCallback,
+      TerminationCallback&& aTerminationCallback);
 
   ~WorkerPrivate();
 
@@ -1120,6 +1215,10 @@ class WorkerPrivate final
 
   void SetGCTimerMode(GCTimerMode aMode);
 
+ public:
+  void CancelGCTimers() { SetGCTimerMode(NoTimer); }
+
+ private:
   void ShutdownGCTimers();
 
   friend class WorkerRef;
@@ -1138,9 +1237,9 @@ class WorkerPrivate final
 
   friend class WorkerEventTarget;
 
-  bool RegisterShutdownTask(nsITargetShutdownTask* aTask);
+  nsresult RegisterShutdownTask(nsITargetShutdownTask* aTask);
 
-  bool UnregisterShutdownTask(nsITargetShutdownTask* aTask);
+  nsresult UnregisterShutdownTask(nsITargetShutdownTask* aTask);
 
   // Internal logic to dispatch a runnable. This is separate from Dispatch()
   // to allow runnables to be atomically dispatched in bulk.
@@ -1196,6 +1295,8 @@ class WorkerPrivate final
 
   // This is the worker name for shared workers and dedicated workers.
   const nsString mWorkerName;
+  const RequestCredentials mCredentialsMode;
+  enum WorkerType mWorkerType;
 
   const WorkerKind mWorkerKind;
 
@@ -1213,6 +1314,13 @@ class WorkerPrivate final
   // 4. xpcom-shutdown notification - We call Kill().
   RefPtr<Worker> mParentEventTargetRef;
   RefPtr<WorkerPrivate> mSelfRef;
+
+  CancellationCallback mCancellationCallback;
+
+  // The termination callback is passed into the constructor on the parent
+  // thread and invoked by `ClearSelfAndParentEventTargetRef` just before it
+  // drops its self-ref.
+  TerminationCallback mTerminationCallback;
 
   // The lifetime of these objects within LoadInfo is managed explicitly;
   // they do not need to be cycle collected.
@@ -1277,11 +1385,9 @@ class WorkerPrivate final
   // Protected by mMutex.
   nsTArray<RefPtr<WorkerRunnable>> mPreStartRunnables MOZ_GUARDED_BY(mMutex);
 
-  // Only touched on the parent thread. This is set only if IsSharedWorker().
+  // Only touched on the parent thread.  Used for both SharedWorker and
+  // ServiceWorker RemoteWorkers.
   RefPtr<RemoteWorkerChild> mRemoteWorkerController;
-
-  // This is set only if IsServiceWorker().
-  ThreadSafeWeakPtr<RemoteWorkerChild> mRemoteWorkerControllerWeakRef;
 
   JS::UniqueChars mDefaultLocale;  // nulled during worker JSContext init
   TimeStamp mKillTime;
@@ -1322,7 +1428,8 @@ class WorkerPrivate final
     nsCOMPtr<nsITimer> mTimer;
     nsCOMPtr<nsITimerCallback> mTimerRunnable;
 
-    nsCOMPtr<nsITimer> mGCTimer;
+    nsCOMPtr<nsITimer> mPeriodicGCTimer;
+    nsCOMPtr<nsITimer> mIdleGCTimer;
 
     RefPtr<MemoryReporter> mMemoryReporter;
 
@@ -1471,8 +1578,7 @@ class WorkerPrivate final
 
   nsTArray<nsCOMPtr<nsITargetShutdownTask>> mShutdownTasks
       MOZ_GUARDED_BY(mMutex);
-  bool mRunShutdownTasksStarted MOZ_GUARDED_BY(mMutex) = false;
-  bool mRunShutdownTasksFinished MOZ_GUARDED_BY(mMutex) = false;
+  bool mShutdownTasksRun MOZ_GUARDED_BY(mMutex) = false;
 };
 
 class AutoSyncLoopHolder {

@@ -77,6 +77,7 @@ COLD void dav1d_default_settings(Dav1dSettings *const s) {
     s->strict_std_compliance = 0;
     s->output_invisible_frames = 0;
     s->inloop_filters = DAV1D_INLOOPFILTER_ALL;
+    s->decode_frame_type = DAV1D_DECODEFRAMETYPE_ALL;
 }
 
 static void close_internal(Dav1dContext **const c_out, int flush);
@@ -144,6 +145,8 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
                           DAV1D_ERR(EINVAL));
     validate_input_or_ret(s->operating_point >= 0 &&
                           s->operating_point <= 31, DAV1D_ERR(EINVAL));
+    validate_input_or_ret(s->decode_frame_type >= DAV1D_DECODEFRAMETYPE_ALL &&
+                          s->decode_frame_type <= DAV1D_DECODEFRAMETYPE_KEY, DAV1D_ERR(EINVAL));
 
     pthread_attr_t thread_attr;
     if (pthread_attr_init(&thread_attr)) return DAV1D_ERR(ENOMEM);
@@ -164,6 +167,7 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
     c->strict_std_compliance = s->strict_std_compliance;
     c->output_invisible_frames = s->output_invisible_frames;
     c->inloop_filters = s->inloop_filters;
+    c->decode_frame_type = s->decode_frame_type;
 
     dav1d_data_props_set_defaults(&c->cached_error_props);
 
@@ -393,6 +397,7 @@ static int output_picture_ready(Dav1dContext *const c, const int drain) {
 
 static int drain_picture(Dav1dContext *const c, Dav1dPicture *const out) {
     unsigned drain_count = 0;
+    int drained = 0;
     do {
         const unsigned next = c->frame_thread.next;
         Dav1dFrameContext *const f = &c->fc[next];
@@ -412,6 +417,10 @@ static int drain_picture(Dav1dContext *const c, Dav1dPicture *const out) {
                                            &first, UINT_MAX);
             if (c->task_thread.cur && c->task_thread.cur < c->n_fc)
                 c->task_thread.cur--;
+            drained = 1;
+        } else if (drained) {
+            pthread_mutex_unlock(&c->task_thread.lock);
+            break;
         }
         if (++c->frame_thread.next == c->n_fc)
             c->frame_thread.next = 0;
@@ -561,16 +570,16 @@ error:
 
 void dav1d_flush(Dav1dContext *const c) {
     dav1d_data_unref_internal(&c->in);
-    if (c->out.p.data[0])
+    if (c->out.p.frame_hdr)
         dav1d_thread_picture_unref(&c->out);
-    if (c->cache.p.data[0])
+    if (c->cache.p.frame_hdr)
         dav1d_thread_picture_unref(&c->cache);
 
     c->drain = 0;
     c->cached_error = 0;
 
     for (int i = 0; i < 8; i++) {
-        if (c->refs[i].p.p.data[0])
+        if (c->refs[i].p.p.frame_hdr)
             dav1d_thread_picture_unref(&c->refs[i].p);
         dav1d_ref_dec(&c->refs[i].segmap);
         dav1d_ref_dec(&c->refs[i].refmvs);
@@ -625,7 +634,7 @@ void dav1d_flush(Dav1dContext *const c) {
             f->n_tile_data = 0;
             f->task_thread.retval = 0;
             Dav1dThreadPicture *out_delayed = &c->frame_thread.out_delayed[next];
-            if (out_delayed->p.data[0]) {
+            if (out_delayed->p.frame_hdr) {
                 dav1d_thread_picture_unref(out_delayed);
             }
         }
@@ -704,7 +713,7 @@ static COLD void close_internal(Dav1dContext **const c_out, int flush) {
     dav1d_free_aligned(c->fc);
     if (c->n_fc > 1 && c->frame_thread.out_delayed) {
         for (unsigned n = 0; n < c->n_fc; n++)
-            if (c->frame_thread.out_delayed[n].p.data[0])
+            if (c->frame_thread.out_delayed[n].p.frame_hdr)
                 dav1d_thread_picture_unref(&c->frame_thread.out_delayed[n]);
         free(c->frame_thread.out_delayed);
     }
@@ -713,7 +722,7 @@ static COLD void close_internal(Dav1dContext **const c_out, int flush) {
     free(c->tile);
     for (int n = 0; n < 8; n++) {
         dav1d_cdf_thread_unref(&c->cdf[n]);
-        if (c->refs[n].p.p.data[0])
+        if (c->refs[n].p.p.frame_hdr)
             dav1d_thread_picture_unref(&c->refs[n].p);
         dav1d_ref_dec(&c->refs[n].refmvs);
         dav1d_ref_dec(&c->refs[n].segmap);

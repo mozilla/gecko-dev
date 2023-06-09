@@ -8,7 +8,6 @@ browser.jar:
   skin/classic/browser/sanitizeDialog.css
   skin/classic/browser/browser.css
   skin/classic/browser/browser-custom-colors.css     (../shared/browser-custom-colors.css)
-  skin/classic/browser/pageInfo.css
   skin/classic/browser/customizableui/panelUI.css    (customizableui/panelUI.css)
   skin/classic/browser/downloads/allDownloadsView.css (downloads/allDownloadsView.css)
   skin/classic/browser/downloads/downloads.css              (downloads/downloads.css)
@@ -22,4 +21,3 @@ browser.jar:
   skin/classic/browser/share.svg                            (share.svg)
   skin/classic/browser/e10s-64@2x.png                       (../shared/e10s-64@2x.png)
   skin/classic/browser/webRTC-menubar-indicator.css         (../shared/webRTC-menubar-indicator.css)
-  skin/classic/browser/history-swipe-arrow.svg              (swipe-gesture-icons/history-swipe-arrow.svg)

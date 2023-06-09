@@ -7,6 +7,10 @@
 #include "nsISupports.idl"
 #include "domstubs.idl"
 
+%{C++
+#include "mozilla/Debug.h"
+%}
+
 interface nsISelectionController;
 interface nsIDocumentStateListener;
 interface nsIEditActionListener;
@@ -41,6 +45,46 @@ interface nsIEditor  : nsISupports
   const short eToBeginningOfLine = 5;
   const short eToEndOfLine = 6;
 
+%{C++
+  static bool EDirectionIsValid(EDirection aDirectionAndAmount) {
+    return aDirectionAndAmount == nsIEditor::eNone ||
+           aDirectionAndAmount == nsIEditor::eNext ||
+           aDirectionAndAmount == nsIEditor::ePrevious ||
+           aDirectionAndAmount == nsIEditor::eNextWord ||
+           aDirectionAndAmount == nsIEditor::ePreviousWord ||
+           aDirectionAndAmount == nsIEditor::eToBeginningOfLine ||
+           aDirectionAndAmount == nsIEditor::eToEndOfLine;
+  }
+  static bool EDirectionIsValidExceptNone(EDirection aDirectionAndAmount) {
+    return aDirectionAndAmount != nsIEditor::eNone &&
+           EDirectionIsValid(aDirectionAndAmount);
+  }
+
+  /**
+   * Return true if nsIEditor::EDirection value means the direction of pressing
+   * `Backspace` key.
+   */
+  [[nodiscard]] static bool DirectionIsBackspace(
+    EDirection aDirectionAndAmount) {
+    MOZ_ASSERT(EDirectionIsValid(aDirectionAndAmount));
+    return aDirectionAndAmount == nsIEditor::ePrevious ||
+           aDirectionAndAmount == nsIEditor::ePreviousWord ||
+           aDirectionAndAmount == nsIEditor::eToBeginningOfLine;
+  }
+
+  /**
+   * Return true if nsIEditor::EDirection value means the direction of pressing
+   * `Delete` key (forwardDelete).
+   */
+  [[nodiscard]] static bool DirectionIsDelete(
+    EDirection aDirectionAndAmount) {
+    MOZ_ASSERT(EDirectionIsValid(aDirectionAndAmount));
+    return aDirectionAndAmount == nsIEditor::eNext ||
+           aDirectionAndAmount == nsIEditor::eNextWord ||
+           aDirectionAndAmount == nsIEditor::eToEndOfLine;
+  }
+%}
+
   const short eStrip = 0;
   const short eNoStrip = 1;
 
@@ -54,9 +98,14 @@ interface nsIEditor  : nsISupports
   // don't specify this for HTML editor.
   const long eEditorPasswordMask        = 0x0004;
   // When the editor should be in readonly mode (currently, same as "disabled"),
-  // you can specify this flag with any editor instances.  Note that setting
-  // this flag does not change the style of editor.  This just changes the
-  // internal editor's readonly state.
+  // you can specify this flag with any editor instances.
+  // NOTE: Setting this flag does not change the style of editor.  This just
+  // changes the internal editor's readonly state.
+  // NOTE: The readonly mode does NOT block XPCOM APIs which modify the editor
+  // content.  This just blocks edit operations from user input and editing
+  // commands (both HTML Document.execCommand and the XUL commands).
+  // FIXME: XPCOM methods of TextEditor may be blocked by this flag.  If you
+  // find it, file a bug.
   const long eEditorReadonlyMask        = 0x0008;
   // If you want an HTML editor to work as an email composer, specify this flag.
   // And you can specify this to text editor too for making spellchecker for

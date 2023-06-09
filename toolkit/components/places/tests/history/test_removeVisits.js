@@ -30,7 +30,7 @@ add_task(async function remove_visits_outside_unbookmarked_uri() {
     endDate: new Date(JS_NOW),
   };
   await PlacesUtils.history.removeVisitsByFilter(filter);
-  await PlacesTestUtils.promiseAsyncUpdates();
+  await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
 
   info("URI should still exist in moz_places.");
   Assert.ok(page_in_database(TEST_URI.spec));
@@ -54,9 +54,13 @@ add_task(async function remove_visits_outside_unbookmarked_uri() {
     "visit should exist"
   );
 
-  await PlacesTestUtils.promiseAsyncUpdates();
+  await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
   info("Frecency should be positive.");
-  Assert.ok(frecencyForUrl(TEST_URI) > 0);
+  Assert.ok(
+    (await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
+      url: TEST_URI,
+    })) > 0
+  );
 
   await cleanup();
 });
@@ -85,7 +89,7 @@ add_task(async function remove_visits_outside_bookmarked_uri() {
     endDate: new Date(JS_NOW),
   };
   await PlacesUtils.history.removeVisitsByFilter(filter);
-  await PlacesTestUtils.promiseAsyncUpdates();
+  await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
 
   info("URI should still exist in moz_places.");
   Assert.ok(page_in_database(TEST_URI.spec));
@@ -108,10 +112,14 @@ add_task(async function remove_visits_outside_bookmarked_uri() {
     await PlacesUtils.history.hasVisits(TEST_URI),
     "visit should exist"
   );
-  await PlacesTestUtils.promiseAsyncUpdates();
+  await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
 
   info("Frecency should be positive.");
-  Assert.ok(frecencyForUrl(TEST_URI) > 0);
+  Assert.ok(
+    (await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
+      url: TEST_URI,
+    })) > 0
+  );
 
   await cleanup();
 });
@@ -132,7 +140,7 @@ add_task(async function remove_visits_unbookmarked_uri() {
     endDate: new Date(JS_NOW),
   };
   await PlacesUtils.history.removeVisitsByFilter(filter);
-  await PlacesTestUtils.promiseAsyncUpdates();
+  await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
 
   info("URI should still exist in moz_places.");
   Assert.ok(page_in_database(TEST_URI.spec));
@@ -157,10 +165,14 @@ add_task(async function remove_visits_unbookmarked_uri() {
     await PlacesUtils.history.hasVisits(TEST_URI),
     "visit should exist"
   );
-  await PlacesTestUtils.promiseAsyncUpdates();
+  await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
 
   info("Frecency should be positive.");
-  Assert.ok(frecencyForUrl(TEST_URI) > 0);
+  Assert.ok(
+    (await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
+      url: TEST_URI,
+    })) > 0
+  );
 
   await cleanup();
 });
@@ -187,7 +199,7 @@ add_task(async function remove_visits_bookmarked_uri() {
     endDate: new Date(JS_NOW),
   };
   await PlacesUtils.history.removeVisitsByFilter(filter);
-  await PlacesTestUtils.promiseAsyncUpdates();
+  await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
 
   info("URI should still exist in moz_places.");
   Assert.ok(page_in_database(TEST_URI.spec));
@@ -212,10 +224,14 @@ add_task(async function remove_visits_bookmarked_uri() {
     await PlacesUtils.history.hasVisits(TEST_URI),
     "visit should exist"
   );
-  await PlacesTestUtils.promiseAsyncUpdates();
+  await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
 
   info("Frecency should be positive.");
-  Assert.ok(frecencyForUrl(TEST_URI) > 0);
+  Assert.ok(
+    (await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
+      url: TEST_URI,
+    })) > 0
+  );
 
   await cleanup();
 });
@@ -236,7 +252,7 @@ add_task(async function remove_all_visits_unbookmarked_uri() {
     endDate: new Date(JS_NOW),
   };
   await PlacesUtils.history.removeVisitsByFilter(filter);
-  await PlacesTestUtils.promiseAsyncUpdates();
+  await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
 
   info("URI should no longer exist in moz_places.");
   Assert.ok(!page_in_database(TEST_URI.spec));
@@ -275,8 +291,12 @@ add_task(async function remove_all_visits_bookmarked_uri() {
     url: TEST_URI,
     title: "bookmark title",
   });
-  await PlacesTestUtils.promiseAsyncUpdates();
-  let initialFrecency = frecencyForUrl(TEST_URI);
+  await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
+  let initialFrecency = await PlacesTestUtils.getDatabaseValue(
+    "moz_places",
+    "frecency",
+    { url: TEST_URI }
+  );
 
   info("Remove all visits.");
   let filter = {
@@ -284,7 +304,7 @@ add_task(async function remove_all_visits_bookmarked_uri() {
     endDate: new Date(JS_NOW),
   };
   await PlacesUtils.history.removeVisitsByFilter(filter);
-  await PlacesTestUtils.promiseAsyncUpdates();
+  await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
 
   info("URI should still exist in moz_places.");
   Assert.ok(page_in_database(TEST_URI.spec));
@@ -307,10 +327,14 @@ add_task(async function remove_all_visits_bookmarked_uri() {
 
   info("URI should be bookmarked");
   Assert.ok(await PlacesUtils.bookmarks.fetch({ url: TEST_URI }));
-  await PlacesTestUtils.promiseAsyncUpdates();
+  await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
 
   info("Frecency should be smaller.");
-  Assert.ok(frecencyForUrl(TEST_URI) < initialFrecency);
+  Assert.ok(
+    (await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
+      url: TEST_URI,
+    })) < initialFrecency
+  );
 
   await cleanup();
 });
@@ -336,12 +360,17 @@ add_task(async function remove_all_visits_bookmarked_uri() {
     endDate: new Date(JS_NOW),
   };
   await PlacesUtils.history.removeVisitsByFilter(filter);
-  await PlacesTestUtils.promiseAsyncUpdates();
+  await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
 
   info("URI should still exist in moz_places.");
   Assert.ok(page_in_database(TEST_URI.spec));
   info("Frecency should be zero.");
-  Assert.equal(frecencyForUrl(TEST_URI), 0);
+  Assert.equal(
+    await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
+      url: TEST_URI,
+    }),
+    0
+  );
 
   await cleanup();
 });

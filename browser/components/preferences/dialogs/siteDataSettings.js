@@ -14,11 +14,9 @@ ChromeUtils.defineModuleGetter(
   "SiteDataManager",
   "resource:///modules/SiteDataManager.jsm"
 );
-ChromeUtils.defineModuleGetter(
-  this,
-  "DownloadUtils",
-  "resource://gre/modules/DownloadUtils.jsm"
-);
+ChromeUtils.defineESModuleGetters(this, {
+  DownloadUtils: "resource://gre/modules/DownloadUtils.sys.mjs",
+});
 
 let gSiteDataSettings = {
   // Array of metadata of sites. Each array element is object holding:
@@ -41,7 +39,7 @@ let gSiteDataSettings = {
     function addColumnItem(l10n, flexWidth, tooltipText) {
       let box = document.createXULElement("hbox");
       box.className = "item-box";
-      box.setAttribute("style", `-moz-box-flex: ${flexWidth}`);
+      box.setAttribute("style", `flex: ${flexWidth} ${flexWidth};`);
       let label = document.createXULElement("label");
       label.setAttribute("crop", "end");
       if (l10n) {

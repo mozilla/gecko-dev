@@ -34,6 +34,7 @@
 #include "api/video/video_timing.h"
 #include "call/call.h"
 #include "media/base/media_channel.h"
+#include "media/base/media_channel_impl.h"
 #include "modules/audio_processing/include/audio_processing_statistics.h"
 #include "p2p/base/ice_transport_internal.h"
 #include "p2p/base/p2p_constants.h"
@@ -46,7 +47,6 @@
 #include "pc/transport_stats.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/ip_address.h"
-#include "rtc_base/location.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/rtc_certificate.h"
 #include "rtc_base/socket_address.h"
@@ -861,9 +861,9 @@ std::map<std::string, std::string> LegacyStatsCollector::ExtractSessionInfo() {
 
   SessionStats stats;
   auto transceivers = pc_->GetTransceiversInternal();
-  pc_->network_thread()->Invoke<void>(
-      RTC_FROM_HERE, [&, sctp_transport_name = pc_->sctp_transport_name(),
-                      sctp_mid = pc_->sctp_mid()]() mutable {
+  pc_->network_thread()->BlockingCall(
+      [&, sctp_transport_name = pc_->sctp_transport_name(),
+       sctp_mid = pc_->sctp_mid()]() mutable {
         stats = ExtractSessionInfo_n(
             transceivers, std::move(sctp_transport_name), std::move(sctp_mid));
       });
@@ -1044,12 +1044,12 @@ void LegacyStatsCollector::ExtractBweInfo() {
     auto* video_channel = transceiver->internal()->channel();
     if (video_channel) {
       video_media_channels.push_back(static_cast<cricket::VideoMediaChannel*>(
-          video_channel->media_channel()));
+          video_channel->video_media_send_channel()));
     }
   }
 
   if (!video_media_channels.empty()) {
-    pc_->worker_thread()->Invoke<void>(RTC_FROM_HERE, [&] {
+    pc_->worker_thread()->BlockingCall([&] {
       for (const auto& channel : video_media_channels) {
         channel->FillBitrateInfo(&bwe_info);
       }
@@ -1156,11 +1156,11 @@ std::unique_ptr<MediaChannelStatsGatherer> CreateMediaChannelStatsGatherer(
   RTC_DCHECK(channel);
   if (channel->media_type() == cricket::MEDIA_TYPE_AUDIO) {
     return std::make_unique<VoiceMediaChannelStatsGatherer>(
-        static_cast<cricket::VoiceMediaChannel*>(channel));
+        channel->AsVoiceChannel());
   } else {
     RTC_DCHECK_EQ(channel->media_type(), cricket::MEDIA_TYPE_VIDEO);
     return std::make_unique<VideoMediaChannelStatsGatherer>(
-        static_cast<cricket::VideoMediaChannel*>(channel));
+        channel->AsVideoChannel());
   }
 }
 
@@ -1200,7 +1200,7 @@ void LegacyStatsCollector::ExtractMediaInfo(
     }
   }
 
-  pc_->worker_thread()->Invoke<void>(RTC_FROM_HERE, [&] {
+  pc_->worker_thread()->BlockingCall([&] {
     rtc::Thread::ScopedDisallowBlockingCalls no_blocking_calls;
     // Populate `receiver_track_id_by_ssrc` for the gatherers.
     int i = 0;

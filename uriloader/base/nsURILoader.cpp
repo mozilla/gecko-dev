@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsURILoader.h"
+#include "nsComponentManagerUtils.h"
 #include "nsIURIContentListener.h"
 #include "nsIContentHandler.h"
 #include "nsILoadGroup.h"
@@ -70,7 +71,8 @@ nsDocumentOpenInfo::nsDocumentOpenInfo(nsIInterfaceRequestor* aWindowContext,
       mFlags(aFlags),
       mURILoader(aURILoader),
       mDataConversionDepthLimit(
-          StaticPrefs::general_document_open_conversion_depth_limit()) {}
+          mozilla::StaticPrefs::
+              general_document_open_conversion_depth_limit()) {}
 
 nsDocumentOpenInfo::nsDocumentOpenInfo(uint32_t aFlags,
                                        bool aAllowListenerConversions)
@@ -78,7 +80,7 @@ nsDocumentOpenInfo::nsDocumentOpenInfo(uint32_t aFlags,
       mFlags(aFlags),
       mURILoader(nullptr),
       mDataConversionDepthLimit(
-          StaticPrefs::general_document_open_conversion_depth_limit()),
+          mozilla::StaticPrefs::general_document_open_conversion_depth_limit()),
       mAllowListenerConversions(aAllowListenerConversions) {}
 
 nsDocumentOpenInfo::~nsDocumentOpenInfo() {}
@@ -269,7 +271,7 @@ nsresult nsDocumentOpenInfo::DispatchContent(nsIRequest* request) {
   LOG(("  forceExternalHandling: %s", forceExternalHandling ? "yes" : "no"));
 
   if (forceExternalHandling &&
-      StaticPrefs::browser_download_open_pdf_attachments_inline()) {
+      mozilla::StaticPrefs::browser_download_open_pdf_attachments_inline()) {
     // Check if this is a PDF which should be opened internally. We also handle
     // octet-streams that look like they might be PDFs based on their extension.
     bool isPDF = mContentType.LowerCaseEqualsASCII(APPLICATION_PDF);
@@ -355,32 +357,7 @@ nsresult nsDocumentOpenInfo::DispatchContent(nsIRequest* request) {
       }
 
       //
-      // Third step: Try to find a content listener that has not yet had
-      // the chance to register, as it is contained in a not-yet-loaded
-      // module, but which has registered a contract ID.
-      //
-      nsCOMPtr<nsICategoryManager> catman =
-          do_GetService(NS_CATEGORYMANAGER_CONTRACTID);
-      if (catman) {
-        nsCString contractidString;
-        rv = catman->GetCategoryEntry(NS_CONTENT_LISTENER_CATEGORYMANAGER_ENTRY,
-                                      mContentType, contractidString);
-        if (NS_SUCCEEDED(rv) && !contractidString.IsEmpty()) {
-          LOG(("  Listener contractid for '%s' is '%s'", mContentType.get(),
-               contractidString.get()));
-
-          listener = do_CreateInstance(contractidString.get());
-          LOG(("  Listener from category manager: 0x%p", listener.get()));
-
-          if (listener && TryContentListener(listener, aChannel)) {
-            LOG(("  Listener from category manager likes this type"));
-            return NS_OK;
-          }
-        }
-      }
-
-      //
-      // Fourth step: try to find an nsIContentHandler for our type.
+      // Third step: Try to find an nsIContentHandler for our type.
       //
       nsAutoCString handlerContractID(NS_CONTENT_HANDLER_CONTRACTID_PREFIX);
       handlerContractID += mContentType;
@@ -418,7 +395,7 @@ nsresult nsDocumentOpenInfo::DispatchContent(nsIRequest* request) {
     }
 
     //
-    // Fifth step:  If no listener prefers this type, see if any stream
+    // Fourth step: If no listener prefers this type, see if any stream
     //              converters exist to transform this content type into
     //              some other.
     //
@@ -459,7 +436,7 @@ nsresult nsDocumentOpenInfo::DispatchContent(nsIRequest* request) {
     }
   }
 
-  // Sixth step:
+  // Fifth step:
   //
   // All attempts to dispatch this content have failed.  Just pass it off to
   // the helper app service.

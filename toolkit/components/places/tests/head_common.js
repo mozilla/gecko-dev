@@ -41,11 +41,13 @@ ChromeUtils.defineESModuleGetters(this, {
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   PromiseUtils: "resource://gre/modules/PromiseUtils.sys.mjs",
   Sqlite: "resource://gre/modules/Sqlite.sys.mjs",
+  TelemetryTestUtils: "resource://testing-common/TelemetryTestUtils.sys.mjs",
   TestUtils: "resource://testing-common/TestUtils.sys.mjs",
 });
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   NetUtil: "resource://gre/modules/NetUtil.jsm",
+  ObjectUtils: "resource://gre/modules/ObjectUtils.jsm",
 });
 
 XPCOMUtils.defineLazyGetter(this, "SMALLPNG_DATA_URI", function() {
@@ -66,6 +68,12 @@ XPCOMUtils.defineLazyGetter(this, "SMALLSVG_DATA_URI", function() {
       "uNCIvPg0KICA8cmVjdCB4PSI0NSIgeT0iMzkuOSIgd2lkdGg9IjEwLjEi" +
       "IGhlaWdodD0iNDEuOCIvPg0KPC9zdmc%2BDQo%3D"
   );
+});
+
+XPCOMUtils.defineLazyGetter(this, "PlacesFrecencyRecalculator", () => {
+  return Cc["@mozilla.org/places/frecency-recalculator;1"].getService(
+    Ci.nsIObserver
+  ).wrappedJSObject;
 });
 
 var gTestDir = do_get_cwd();
@@ -523,34 +531,6 @@ function check_JSON_backup(aIsAutomaticBackup) {
 }
 
 /**
- * Returns the frecency of a url.
- *
- * @param aURI
- *        The URI or spec to get frecency for.
- * @return the frecency value.
- */
-function frecencyForUrl(aURI) {
-  let url = aURI;
-  if (aURI instanceof Ci.nsIURI) {
-    url = aURI.spec;
-  } else if (URL.isInstance(aURI)) {
-    url = aURI.href;
-  }
-  let stmt = DBConn().createStatement(
-    "SELECT frecency FROM moz_places WHERE url_hash = hash(?1) AND url = ?1"
-  );
-  stmt.bindByIndex(0, url);
-  try {
-    if (!stmt.executeStep()) {
-      throw new Error("No result for frecency.");
-    }
-    return stmt.getInt32(0);
-  } finally {
-    stmt.finalize();
-  }
-}
-
-/**
  * Returns the hidden status of a url.
  *
  * @param aURI
@@ -615,29 +595,6 @@ function do_check_valid_places_guid(aGuid) {
 }
 
 /**
- * Retrieves the guid for a given uri.
- *
- * @param aURI
- *        The uri to check.
- * @param [optional] aStack
- *        The stack frame used to report the error.
- * @return the associated the guid.
- */
-function do_get_guid_for_uri(aURI) {
-  let stmt = DBConn().createStatement(
-    `SELECT guid
-     FROM moz_places
-     WHERE url_hash = hash(:url) AND url = :url`
-  );
-  stmt.params.url = aURI.spec;
-  Assert.ok(stmt.executeStep(), "GUID for URI statement should succeed");
-  let guid = stmt.row.guid;
-  stmt.finalize();
-  do_check_valid_places_guid(guid);
-  return guid;
-}
-
-/**
  * Tests that a guid was set in moz_places for a given uri.
  *
  * @param aURI
@@ -645,35 +602,14 @@ function do_get_guid_for_uri(aURI) {
  * @param [optional] aGUID
  *        The expected guid in the database.
  */
-function do_check_guid_for_uri(aURI, aGUID) {
-  let guid = do_get_guid_for_uri(aURI);
+async function check_guid_for_uri(aURI, aGUID) {
+  let guid = await PlacesTestUtils.getDatabaseValue("moz_places", "guid", {
+    url: aURI,
+  });
   if (aGUID) {
     do_check_valid_places_guid(aGUID);
     Assert.equal(guid, aGUID, "Should have a guid in moz_places for the URI");
   }
-}
-
-/**
- * Retrieves the guid for a given bookmark.
- *
- * @param aId
- *        The bookmark id to check.
- * @param [optional] aStack
- *        The stack frame used to report the error.
- * @return the associated the guid.
- */
-function do_get_guid_for_bookmark(aId) {
-  let stmt = DBConn().createStatement(
-    `SELECT guid
-     FROM moz_bookmarks
-     WHERE id = :item_id`
-  );
-  stmt.params.item_id = aId;
-  Assert.ok(stmt.executeStep(), "Should succeed executing the SQL statement");
-  let guid = stmt.row.guid;
-  stmt.finalize();
-  do_check_valid_places_guid(guid);
-  return guid;
 }
 
 /**
@@ -684,8 +620,10 @@ function do_get_guid_for_bookmark(aId) {
  * @param [optional] aGUID
  *        The expected guid in the database.
  */
-function do_check_guid_for_bookmark(aId, aGUID) {
-  let guid = do_get_guid_for_bookmark(aId);
+async function check_guid_for_bookmark(aId, aGUID) {
+  let guid = await PlacesTestUtils.getDatabaseValue("moz_bookmarks", "guid", {
+    id: aId,
+  });
   if (aGUID) {
     do_check_valid_places_guid(aGUID);
     Assert.equal(guid, aGUID, "Should have the correct GUID for the bookmark");
@@ -716,18 +654,6 @@ function do_compare_arrays(a1, a2, sorted) {
     !a2.filter(e => !a1.includes(e)).length
   );
 }
-
-/**
- * Generic nsINavBookmarkObserver that doesn't implement anything, but provides
- * dummy methods to prevent errors about an object not having a certain method.
- */
-function NavBookmarkObserver() {}
-
-NavBookmarkObserver.prototype = {
-  onItemRemoved() {},
-  onItemChanged() {},
-  QueryInterface: ChromeUtils.generateQI(["nsINavBookmarkObserver"]),
-};
 
 /**
  * Generic nsINavHistoryResultObserver that doesn't implement anything, but

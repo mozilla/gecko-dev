@@ -14,7 +14,7 @@
 #include "nsPIDOMWindow.h"
 #include "AppWindow.h"
 
-#include "nsWidgetInitData.h"
+#include "mozilla/widget/InitData.h"
 #include "nsWidgetsCID.h"
 #include "nsIWidget.h"
 
@@ -35,6 +35,7 @@
 #include "mozilla/StaticPrefs_fission.h"
 #include "mozilla/intl/LocaleService.h"
 #include "mozilla/dom/BrowsingContext.h"
+#include "mozilla/dom/Document.h"
 
 #include "nsEmbedCID.h"
 #include "nsIWebBrowser.h"
@@ -529,7 +530,6 @@ static bool CheckForFullscreenWindow() {
       }
     }
   }
-  return false;
 }
 #endif
 
@@ -540,6 +540,7 @@ nsresult nsAppShellService::JustCreateTopWindow(
     nsIAppWindow* aParent, nsIURI* aUrl, uint32_t aChromeMask,
     int32_t aInitialWidth, int32_t aInitialHeight, bool aIsHiddenWindow,
     AppWindow** aResult) {
+  using BorderStyle = widget::BorderStyle;
   *aResult = nullptr;
   NS_ENSURE_STATE(!mXPCOMWillShutDown);
 
@@ -555,18 +556,18 @@ nsresult nsAppShellService::JustCreateTopWindow(
   if (window && CheckForFullscreenWindow()) window->IgnoreXULSizeMode(true);
 #endif
 
-  nsWidgetInitData widgetInitData;
+  widget::InitData widgetInitData;
 
   if (aIsHiddenWindow)
-    widgetInitData.mWindowType = eWindowType_invisible;
+    widgetInitData.mWindowType = widget::WindowType::Invisible;
   else
     widgetInitData.mWindowType =
         aChromeMask & nsIWebBrowserChrome::CHROME_OPENAS_DIALOG
-            ? eWindowType_dialog
-            : eWindowType_toplevel;
+            ? widget::WindowType::Dialog
+            : widget::WindowType::TopLevel;
 
   if (aChromeMask & nsIWebBrowserChrome::CHROME_WINDOW_POPUP)
-    widgetInitData.mWindowType = eWindowType_popup;
+    widgetInitData.mWindowType = widget::WindowType::Popup;
 
   if (aChromeMask & nsIWebBrowserChrome::CHROME_SUPPRESS_ANIMATION)
     widgetInitData.mIsAnimationSuppressed = true;
@@ -577,29 +578,18 @@ nsresult nsAppShellService::JustCreateTopWindow(
   if (aChromeMask & nsIWebBrowserChrome::CHROME_REMOTE_WINDOW)
     widgetInitData.mHasRemoteContent = true;
 
-#ifdef MOZ_WIDGET_GTK
-  // Linux/Gtk PIP window support. It's Chrome Toplevel window, always on top
+#if defined(MOZ_WIDGET_GTK) || defined(XP_WIN)
+  // Windows/Gtk PIP window support. It's Chrome dialog window, always on top
   // and without any bar.
   uint32_t pipMask = nsIWebBrowserChrome::CHROME_ALWAYS_ON_TOP |
-                     nsIWebBrowserChrome::CHROME_OPENAS_CHROME;
+                     nsIWebBrowserChrome::CHROME_OPENAS_CHROME |
+                     nsIWebBrowserChrome::CHROME_WINDOW_RESIZE;
   uint32_t barMask = nsIWebBrowserChrome::CHROME_MENUBAR |
                      nsIWebBrowserChrome::CHROME_TOOLBAR |
                      nsIWebBrowserChrome::CHROME_LOCATIONBAR |
+                     nsIWebBrowserChrome::CHROME_TITLEBAR |
                      nsIWebBrowserChrome::CHROME_STATUSBAR;
-  if (widgetInitData.mWindowType == eWindowType_toplevel &&
-      ((aChromeMask & pipMask) == pipMask) && !(aChromeMask & barMask)) {
-    widgetInitData.mPIPWindow = true;
-  }
-#elif defined(XP_WIN)
-  // Windows PIP window support. It's Chrome dialog window, always on top
-  // and without any bar.
-  uint32_t pipMask = nsIWebBrowserChrome::CHROME_ALWAYS_ON_TOP |
-                     nsIWebBrowserChrome::CHROME_OPENAS_CHROME;
-  uint32_t barMask = nsIWebBrowserChrome::CHROME_MENUBAR |
-                     nsIWebBrowserChrome::CHROME_TOOLBAR |
-                     nsIWebBrowserChrome::CHROME_LOCATIONBAR |
-                     nsIWebBrowserChrome::CHROME_STATUSBAR;
-  if (widgetInitData.mWindowType == eWindowType_dialog &&
+  if (widgetInitData.mWindowType == widget::WindowType::Dialog &&
       ((aChromeMask & pipMask) == pipMask) && !(aChromeMask & barMask)) {
     widgetInitData.mPIPWindow = true;
   }
@@ -617,52 +607,44 @@ nsresult nsAppShellService::JustCreateTopWindow(
                        nsIWebBrowserChrome::CHROME_OPENAS_CHROME;
   if (parent && (parent != mHiddenWindow) &&
       ((aChromeMask & sheetMask) == sheetMask)) {
-    widgetInitData.mWindowType = eWindowType_sheet;
+    widgetInitData.mWindowType = widget::WindowType::Sheet;
   }
 #endif
 
 #if defined(XP_WIN)
-  if (widgetInitData.mWindowType == eWindowType_toplevel ||
-      widgetInitData.mWindowType == eWindowType_dialog)
+  if (widgetInitData.mWindowType == widget::WindowType::TopLevel ||
+      widgetInitData.mWindowType == widget::WindowType::Dialog)
     widgetInitData.mClipChildren = true;
 #endif
 
   // note default chrome overrides other OS chrome settings, but
   // not internal chrome
   if (aChromeMask & nsIWebBrowserChrome::CHROME_DEFAULT)
-    widgetInitData.mBorderStyle = eBorderStyle_default;
+    widgetInitData.mBorderStyle = BorderStyle::Default;
   else if ((aChromeMask & nsIWebBrowserChrome::CHROME_ALL) ==
            nsIWebBrowserChrome::CHROME_ALL)
-    widgetInitData.mBorderStyle = eBorderStyle_all;
+    widgetInitData.mBorderStyle = BorderStyle::All;
   else {
-    widgetInitData.mBorderStyle = eBorderStyle_none;  // assumes none == 0x00
+    widgetInitData.mBorderStyle = BorderStyle::None;  // assumes none == 0x00
     if (aChromeMask & nsIWebBrowserChrome::CHROME_WINDOW_BORDERS)
-      widgetInitData.mBorderStyle = static_cast<enum nsBorderStyle>(
-          widgetInitData.mBorderStyle | eBorderStyle_border);
+      widgetInitData.mBorderStyle |= BorderStyle::Border;
     if (aChromeMask & nsIWebBrowserChrome::CHROME_TITLEBAR)
-      widgetInitData.mBorderStyle = static_cast<enum nsBorderStyle>(
-          widgetInitData.mBorderStyle | eBorderStyle_title);
+      widgetInitData.mBorderStyle |= BorderStyle::Title;
     if (aChromeMask & nsIWebBrowserChrome::CHROME_WINDOW_CLOSE)
-      widgetInitData.mBorderStyle = static_cast<enum nsBorderStyle>(
-          widgetInitData.mBorderStyle | eBorderStyle_close);
+      widgetInitData.mBorderStyle |= BorderStyle::Close;
     if (aChromeMask & nsIWebBrowserChrome::CHROME_WINDOW_RESIZE) {
       widgetInitData.mResizable = true;
-      widgetInitData.mBorderStyle = static_cast<enum nsBorderStyle>(
-          widgetInitData.mBorderStyle | eBorderStyle_resizeh);
+      widgetInitData.mBorderStyle |= BorderStyle::ResizeH;
       // only resizable windows get the maximize button (but not dialogs)
       if (!(aChromeMask & nsIWebBrowserChrome::CHROME_OPENAS_DIALOG))
-        widgetInitData.mBorderStyle = static_cast<enum nsBorderStyle>(
-            widgetInitData.mBorderStyle | eBorderStyle_maximize);
+        widgetInitData.mBorderStyle |= BorderStyle::Maximize;
     }
     // all windows (except dialogs) get minimize buttons and the system menu
     if (!(aChromeMask & nsIWebBrowserChrome::CHROME_OPENAS_DIALOG))
-      widgetInitData.mBorderStyle = static_cast<enum nsBorderStyle>(
-          widgetInitData.mBorderStyle | eBorderStyle_minimize |
-          eBorderStyle_menu);
+      widgetInitData.mBorderStyle |= BorderStyle::Minimize | BorderStyle::Menu;
     // but anyone can explicitly ask for a minimize button
     if (aChromeMask & nsIWebBrowserChrome::CHROME_WINDOW_MIN) {
-      widgetInitData.mBorderStyle = static_cast<enum nsBorderStyle>(
-          widgetInitData.mBorderStyle | eBorderStyle_minimize);
+      widgetInitData.mBorderStyle |= BorderStyle::Minimize;
     }
   }
 
@@ -677,9 +659,14 @@ nsresult nsAppShellService::JustCreateTopWindow(
 
   widgetInitData.mRTL = LocaleService::GetInstance()->IsAppLocaleRTL();
 
+  // Enforce the Private Browsing autoStart pref first.
+  bool isPrivateBrowsingWindow =
+      StaticPrefs::browser_privatebrowsing_autostart();
   if (aChromeMask & nsIWebBrowserChrome::CHROME_PRIVATE_WINDOW) {
-    widgetInitData.mIsPrivate = true;
+    // Caller requested a private window
+    isPrivateBrowsingWindow = true;
   }
+  widgetInitData.mIsPrivate = isPrivateBrowsingWindow;
 
   nsresult rv =
       window->Initialize(parent, center ? aParent : nullptr, aInitialWidth,
@@ -687,14 +674,6 @@ nsresult nsAppShellService::JustCreateTopWindow(
 
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // Enforce the Private Browsing autoStart pref first.
-  bool isPrivateBrowsingWindow =
-      StaticPrefs::browser_privatebrowsing_autostart();
-
-  if (aChromeMask & nsIWebBrowserChrome::CHROME_PRIVATE_WINDOW) {
-    // Caller requested a private window
-    isPrivateBrowsingWindow = true;
-  }
   nsCOMPtr<mozIDOMWindowProxy> domWin = do_GetInterface(aParent);
   nsCOMPtr<nsIWebNavigation> webNav = do_GetInterface(domWin);
   nsCOMPtr<nsILoadContext> parentContext = do_QueryInterface(webNav);
@@ -739,7 +718,7 @@ nsresult nsAppShellService::JustCreateTopWindow(
           /* aCsp = */ nullptr, /* aBaseURI = */ nullptr,
           /* aIsInitialDocument = */ true);
       NS_ENSURE_SUCCESS(rv, rv);
-      RefPtr<Document> doc = docShell->GetDocument();
+      RefPtr<dom::Document> doc = docShell->GetDocument();
       NS_ENSURE_TRUE(!!doc, NS_ERROR_FAILURE);
       MOZ_ASSERT(doc->IsInitialDocument(),
                  "Document should be an initial document");

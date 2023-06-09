@@ -13,9 +13,9 @@
  * limitations under the License.
  */
 
-use crate::{BinaryReader, Result, SectionIteratorLimited, SectionReader, SectionWithLimitedItems};
+use crate::limits::{MAX_WASM_FUNCTION_PARAMS, MAX_WASM_FUNCTION_RETURNS};
+use crate::{BinaryReader, FromReader, Result, SectionLimited};
 use std::fmt::Debug;
-use std::ops::Range;
 
 /// Represents the types of values in a WebAssembly module.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -30,19 +30,181 @@ pub enum ValType {
     F64,
     /// The value type is v128.
     V128,
-    /// The value type is a function reference.
-    FuncRef,
-    /// The value type is an extern reference.
-    ExternRef,
+    /// The value type is a reference. Which type of reference is decided by
+    /// RefType. This is a change in syntax from the function references proposal,
+    /// which now provides FuncRef and ExternRef as sugar for the generic ref
+    /// construct.
+    Ref(RefType),
+}
+
+/// A reference type. When the function references feature is disabled, this
+/// only represents funcref and externref, using the following format:
+/// RefType { nullable: true, heap_type: Func | Extern })
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[repr(packed)]
+pub struct RefType {
+    /// Whether it's nullable
+    pub nullable: bool,
+    /// The relevant heap type
+    pub heap_type: HeapType,
+}
+
+impl RefType {
+    /// Alias for the wasm `funcref` type.
+    pub const FUNCREF: RefType = RefType {
+        nullable: true,
+        heap_type: HeapType::Func,
+    };
+    /// Alias for the wasm `externref` type.
+    pub const EXTERNREF: RefType = RefType {
+        nullable: true,
+        heap_type: HeapType::Extern,
+    };
+}
+
+impl From<RefType> for ValType {
+    fn from(ty: RefType) -> ValType {
+        ValType::Ref(ty)
+    }
+}
+
+/// Used as a performance optimization in HeapType. Call `.into()` to get the u32
+// A u16 forces 2-byte alignment, which forces HeapType to be 4 bytes,
+// which forces ValType to 5 bytes. This newtype is annotated as unaligned to
+// store the necessary bits compactly
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[repr(packed)]
+pub struct PackedIndex(u16);
+
+impl TryFrom<u32> for PackedIndex {
+    type Error = ();
+
+    fn try_from(idx: u32) -> Result<PackedIndex, ()> {
+        idx.try_into().map(PackedIndex).map_err(|_| ())
+    }
+}
+
+impl From<PackedIndex> for u32 {
+    fn from(x: PackedIndex) -> u32 {
+        x.0 as u32
+    }
+}
+
+/// A heap type from function references. When the proposal is disabled, Index
+/// is an invalid type.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum HeapType {
+    /// Function type index
+    /// Note: [PackedIndex] may need to be unpacked
+    TypedFunc(PackedIndex),
+    /// From reference types
+    Func,
+    /// From reference types
+    Extern,
 }
 
 impl ValType {
+    /// Alias for the wasm `funcref` type.
+    pub const FUNCREF: ValType = ValType::Ref(RefType::FUNCREF);
+    /// Alias for the wasm `externref` type.
+    pub const EXTERNREF: ValType = ValType::Ref(RefType::EXTERNREF);
+
     /// Returns whether this value type is a "reference type".
     ///
     /// Only reference types are allowed in tables, for example, and with some
     /// instructions. Current reference types include `funcref` and `externref`.
     pub fn is_reference_type(&self) -> bool {
-        matches!(self, ValType::FuncRef | ValType::ExternRef)
+        matches!(self, ValType::Ref(_))
+    }
+    /// Whether the type is defaultable according to function references
+    /// spec. This amounts to whether it's a non-nullable ref
+    pub fn is_defaultable(&self) -> bool {
+        !matches!(
+            self,
+            ValType::Ref(RefType {
+                nullable: false,
+                ..
+            })
+        )
+    }
+
+    pub(crate) fn is_valtype_byte(byte: u8) -> bool {
+        match byte {
+            0x7F | 0x7E | 0x7D | 0x7C | 0x7B | 0x70 | 0x6F | 0x6B | 0x6C => true,
+            _ => false,
+        }
+    }
+}
+
+impl<'a> FromReader<'a> for ValType {
+    fn from_reader(reader: &mut BinaryReader<'a>) -> Result<Self> {
+        match reader.peek()? {
+            0x7F => {
+                reader.position += 1;
+                Ok(ValType::I32)
+            }
+            0x7E => {
+                reader.position += 1;
+                Ok(ValType::I64)
+            }
+            0x7D => {
+                reader.position += 1;
+                Ok(ValType::F32)
+            }
+            0x7C => {
+                reader.position += 1;
+                Ok(ValType::F64)
+            }
+            0x7B => {
+                reader.position += 1;
+                Ok(ValType::V128)
+            }
+            0x70 | 0x6F | 0x6B | 0x6C => Ok(ValType::Ref(reader.read()?)),
+            _ => bail!(reader.original_position(), "invalid value type"),
+        }
+    }
+}
+
+impl<'a> FromReader<'a> for RefType {
+    fn from_reader(reader: &mut BinaryReader<'a>) -> Result<Self> {
+        match reader.read()? {
+            0x70 => Ok(RefType::FUNCREF),
+            0x6F => Ok(RefType::EXTERNREF),
+            byte @ (0x6B | 0x6C) => Ok(RefType {
+                nullable: byte == 0x6C,
+                heap_type: reader.read()?,
+            }),
+            _ => bail!(reader.original_position(), "malformed reference type"),
+        }
+    }
+}
+
+impl<'a> FromReader<'a> for HeapType {
+    fn from_reader(reader: &mut BinaryReader<'a>) -> Result<Self> {
+        match reader.peek()? {
+            0x70 => {
+                reader.position += 1;
+                Ok(HeapType::Func)
+            }
+            0x6F => {
+                reader.position += 1;
+                Ok(HeapType::Extern)
+            }
+            _ => {
+                let idx = match u32::try_from(reader.read_var_s33()?) {
+                    Ok(idx) => idx,
+                    Err(_) => {
+                        bail!(reader.original_position(), "invalid function heap type",);
+                    }
+                };
+                match idx.try_into() {
+                    Ok(packed) => Ok(HeapType::TypedFunc(packed)),
+                    Err(_) => {
+                        bail!(reader.original_position(), "function index too large");
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -117,7 +279,7 @@ impl FuncType {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct TableType {
     /// The table's element type.
-    pub element_type: ValType,
+    pub element_type: RefType,
     /// Initial size of this table, in elements.
     pub initial: u32,
     /// Optional maximum size of the table, in elements.
@@ -191,89 +353,28 @@ pub struct TagType {
 }
 
 /// A reader for the type section of a WebAssembly module.
-#[derive(Clone)]
-pub struct TypeSectionReader<'a> {
-    reader: BinaryReader<'a>,
-    count: u32,
-}
+pub type TypeSectionReader<'a> = SectionLimited<'a, Type>;
 
-impl<'a> TypeSectionReader<'a> {
-    /// Constructs a new `TypeSectionReader` for the given data and offset.
-    pub fn new(data: &'a [u8], offset: usize) -> Result<Self> {
-        let mut reader = BinaryReader::new_with_offset(data, offset);
-        let count = reader.read_var_u32()?;
-        Ok(Self { reader, count })
-    }
-
-    /// Gets the original position of the reader.
-    pub fn original_position(&self) -> usize {
-        self.reader.original_position()
-    }
-
-    /// Gets a count of items in the section.
-    pub fn get_count(&self) -> u32 {
-        self.count
-    }
-
-    /// Reads content of the type section.
-    ///
-    /// # Examples
-    /// ```
-    /// use wasmparser::TypeSectionReader;
-    /// let data: &[u8] = &[0x01, 0x60, 0x00, 0x00];
-    /// let mut reader = TypeSectionReader::new(data, 0).unwrap();
-    /// for _ in 0..reader.get_count() {
-    ///     let ty = reader.read().expect("type");
-    ///     println!("Type {:?}", ty);
-    /// }
-    /// ```
-    pub fn read(&mut self) -> Result<Type> {
-        self.reader.read_type()
+impl<'a> FromReader<'a> for Type {
+    fn from_reader(reader: &mut BinaryReader<'a>) -> Result<Self> {
+        Ok(match reader.read_u8()? {
+            0x60 => Type::Func(reader.read()?),
+            x => return reader.invalid_leading_byte(x, "type"),
+        })
     }
 }
 
-impl<'a> SectionReader for TypeSectionReader<'a> {
-    type Item = Type;
-
-    fn read(&mut self) -> Result<Self::Item> {
-        Self::read(self)
-    }
-
-    fn eof(&self) -> bool {
-        self.reader.eof()
-    }
-
-    fn original_position(&self) -> usize {
-        Self::original_position(self)
-    }
-
-    fn range(&self) -> Range<usize> {
-        self.reader.range()
-    }
-}
-
-impl<'a> SectionWithLimitedItems for TypeSectionReader<'a> {
-    fn get_count(&self) -> u32 {
-        Self::get_count(self)
-    }
-}
-
-impl<'a> IntoIterator for TypeSectionReader<'a> {
-    type Item = Result<Type>;
-    type IntoIter = SectionIteratorLimited<Self>;
-
-    /// Implements iterator over the type section.
-    ///
-    /// # Examples
-    /// ```
-    /// use wasmparser::TypeSectionReader;
-    /// # let data: &[u8] = &[0x01, 0x60, 0x00, 0x00];
-    /// let mut reader = TypeSectionReader::new(data, 0).unwrap();
-    /// for ty in reader {
-    ///     println!("Type {:?}", ty.expect("type"));
-    /// }
-    /// ```
-    fn into_iter(self) -> Self::IntoIter {
-        SectionIteratorLimited::new(self)
+impl<'a> FromReader<'a> for FuncType {
+    fn from_reader(reader: &mut BinaryReader<'a>) -> Result<Self> {
+        let mut params_results = reader
+            .read_iter(MAX_WASM_FUNCTION_PARAMS, "function params")?
+            .collect::<Result<Vec<_>>>()?;
+        let len_params = params_results.len();
+        let results = reader.read_iter(MAX_WASM_FUNCTION_RETURNS, "function returns")?;
+        params_results.reserve(results.size_hint().0);
+        for result in results {
+            params_results.push(result?);
+        }
+        Ok(FuncType::from_raw_parts(params_results.into(), len_params))
     }
 }

@@ -3,17 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 const lazy = {};
-ChromeUtils.defineModuleGetter(
-  lazy,
-  "pktApi",
-  "chrome://pocket/content/pktApi.jsm"
-);
-
-ChromeUtils.defineModuleGetter(
-  lazy,
-  "SaveToPocket",
-  "chrome://pocket/content/SaveToPocket.jsm"
-);
+ChromeUtils.defineESModuleGetters(lazy, {
+  pktApi: "chrome://pocket/content/pktApi.sys.mjs",
+  SaveToPocket: "chrome://pocket/content/SaveToPocket.sys.mjs",
+});
 
 export class AboutPocketParent extends JSWindowActorParent {
   sendResponseMessageToPanel(messageId, payload) {
@@ -65,6 +58,13 @@ export class AboutPocketParent extends JSWindowActorParent {
       }
       case "PKT_getTags": {
         this.sendResponseMessageToPanel("PKT_getTags", lazy.pktApi.getTags());
+        break;
+      }
+      case "PKT_getRecentTags": {
+        this.sendResponseMessageToPanel(
+          "PKT_getRecentTags",
+          lazy.pktApi.getRecentTags()
+        );
         break;
       }
       case "PKT_getSuggestedTags": {

@@ -13,7 +13,7 @@ import json
 
 import jinja2
 from glean_parser import util
-from glean_parser.metrics import Rate
+from glean_parser.metrics import CowString, Event, Rate
 from util import generate_metric_ids, generate_ping_ids, get_metrics
 
 from js import ID_BITS, ID_SIGNAL_BITS
@@ -55,36 +55,20 @@ def rust_datatypes_filter(value):
             elif isinstance(value, set):
                 yield from self.iterencode(sorted(list(value)))
             elif isinstance(value, list):
-                if len(value) > 8 and all(isinstance(v, str) for v in value):
-                    # For large enough sets and lists of strings, we use a single string
-                    # with an array of lengths and convert to a Vec at runtime. This yields
-                    # smaller code, data, and relocations than using vec![].
-                    yield "{"
-                    yield f"""const S: &'static str = "{"".join(value)}";"""
-                    lengths = [len(v) for v in value]
-                    largest = max(lengths)
-                    # Use a type adequate for the largest string.
-                    # In most cases, this will be u8.
-                    len_type = f"u{((largest.bit_length() + 7) // 8) * 8}"
-                    yield f"const LENGTHS: [{len_type}; {len(lengths)}] = {lengths};"
-                    yield "let mut offset = 0;"
-                    yield "LENGTHS.iter().map(|len| {"
-                    yield "  let start = offset;"
-                    yield "  offset += *len as usize;"
-                    yield "  S[start..offset].into()"
-                    yield "}).collect()"
-                    yield "}"
-                else:
-                    yield "vec!["
-                    first = True
-                    for subvalue in list(value):
-                        if not first:
-                            yield ", "
-                        yield from self.iterencode(subvalue)
-                        first = False
-                    yield "]"
+                yield "vec!["
+                first = True
+                for subvalue in list(value):
+                    if not first:
+                        yield ", "
+                    yield from self.iterencode(subvalue)
+                    first = False
+                yield "]"
             elif value is None:
                 yield "None"
+            # CowString is also a 'str' but is a special case.
+            # Ensure its case is handled before str's (below).
+            elif isinstance(value, CowString):
+                yield f'::std::borrow::Cow::from("{value.inner}")'
             elif isinstance(value, str):
                 yield '"' + value + '".into()'
             elif isinstance(value, Rate):
@@ -118,11 +102,14 @@ def type_name(obj):
     """
 
     if getattr(obj, "labeled", False):
-        return "LabeledMetric<Labeled{}>".format(class_name(obj.type))
+        label_enum = "super::DynamicLabel"
+        if obj.labels and len(obj.labels):
+            label_enum = f"{util.Camelize(obj.name)}Label"
+        return f"LabeledMetric<Labeled{class_name(obj.type)}, {label_enum}>"
     generate_enums = getattr(obj, "_generate_enums", [])  # Extra Keys? Reasons?
     if len(generate_enums):
-        for name, suffix in generate_enums:
-            if not len(getattr(obj, name)) and suffix == "Keys":
+        for name, _ in generate_enums:
+            if not len(getattr(obj, name)) and isinstance(obj, Event):
                 return class_name(obj.type) + "<NoExtraKeys>"
             else:
                 # we always use the `extra` suffix,
@@ -167,17 +154,19 @@ def extra_keys(allowed_extra_keys):
     return "&[" + ", ".join(map(lambda key: '"' + key + '"', allowed_extra_keys)) + "]"
 
 
-def output_rust(objs, output_fd, options={}):
+def output_rust(objs, output_fd, ping_names_by_app_id, options={}):
     """
     Given a tree of objects, output Rust code to the file-like object `output_fd`.
 
     :param objs: A tree of objects (metrics and pings) as returned from
     `parser.parse_objects`.
     :param output_fd: Writeable file to write the output to.
+    :param ping_names_by_app_id: A map of app_ids to lists of ping names.
+                                 Used to determine which custom pings to register.
     :param options: options dictionary, presently unused.
     """
 
-    # Monkeypatch a util.snake_case function for the templates to use
+    # Monkeypatch util.snake_case for the templates to use
     util.snake_case = lambda value: value.replace(".", "_").replace("-", "_")
     # Monkeypatch util.get_jinja2_template to find templates nearby
 
@@ -219,6 +208,16 @@ def output_rust(objs, output_fd, options={}):
     #   17 -> "test_only::an_event"
     events_by_id = {}
 
+    # Map from a labeled type (e.g. "counter") to a map from metric ID to the
+    # fully qualified path of the labeled metric object in Rust paired with
+    # whether the labeled metric has an enum.
+    # Required for the special handling of labeled metric lookups.
+    #
+    # Example:
+    #
+    #   "counter" -> 42 -> ("test_only::mabels_kitchen_counters", false)
+    labeleds_by_id_by_type = {}
+
     if "pings" in objs:
         template_filename = "rust_pings.jinja2"
         objs = {"pings": objs["pings"]}
@@ -233,11 +232,21 @@ def output_rust(objs, output_fd, options={}):
                 key = (const_name, typ)
 
                 metric_name = util.snake_case(metric.name)
-                category_name = util.snake_case(category_name)
-                full_path = f"{category_name}::{metric_name}"
+                category_snake = util.snake_case(category_name)
+                full_path = f"{category_snake}::{metric_name}"
 
                 if metric.type == "event":
                     events_by_id[get_metric_id(metric)] = full_path
+                    continue
+
+                if getattr(metric, "labeled", False):
+                    labeled_type = metric.type[8:]
+                    if labeled_type not in labeleds_by_id_by_type:
+                        labeleds_by_id_by_type[labeled_type] = {}
+                    labeleds_by_id_by_type[labeled_type][get_metric_id(metric)] = (
+                        full_path,
+                        metric.labels and len(metric.labels),
+                    )
                     continue
 
                 if key not in objs_by_type:
@@ -266,7 +275,9 @@ def output_rust(objs, output_fd, options={}):
             metric_by_type=objs_by_type,
             extra_args=util.extra_args,
             events_by_id=events_by_id,
+            labeleds_by_id_by_type=labeleds_by_id_by_type,
             submetric_bit=ID_BITS - ID_SIGNAL_BITS,
+            ping_names_by_app_id=ping_names_by_app_id,
         )
     )
     output_fd.write("\n")

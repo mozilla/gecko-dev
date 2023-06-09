@@ -871,8 +871,7 @@ bool CreateThisFromIon(JSContext* cx, HandleObject callee,
 
 void PostWriteBarrier(JSRuntime* rt, js::gc::Cell* cell) {
   AutoUnsafeCallWithABI unsafe;
-  MOZ_ASSERT(!IsInsideNursery(cell));
-  rt->gc.storeBuffer().putWholeCell(cell);
+  rt->gc.storeBuffer().putWholeCellDontCheckLast(cell);
 }
 
 static const size_t MAX_WHOLE_CELL_BUFFER_SIZE = 4096;
@@ -925,7 +924,8 @@ void PostGlobalWriteBarrier(JSRuntime* rt, GlobalObject* obj) {
   MOZ_ASSERT(obj->JSObject::is<GlobalObject>());
 
   if (!obj->realm()->globalWriteBarriered) {
-    PostWriteBarrier(rt, obj);
+    AutoUnsafeCallWithABI unsafe;
+    rt->gc.storeBuffer().putWholeCell(obj);
     obj->realm()->globalWriteBarriered = 1;
   }
 }
@@ -1482,6 +1482,7 @@ bool CallDOMGetter(JSContext* cx, const JSJitInfo* info, HandleObject obj,
   MOZ_ASSERT(info->type() == JSJitInfo::Getter);
   MOZ_ASSERT(obj->is<NativeObject>());
   MOZ_ASSERT(obj->getClass()->isDOMClass());
+  MOZ_ASSERT(obj->as<NativeObject>().numFixedSlots() > 0);
 
 #ifdef DEBUG
   DOMInstanceClassHasProtoAtDepth instanceChecker =
@@ -1515,6 +1516,7 @@ bool CallDOMSetter(JSContext* cx, const JSJitInfo* info, HandleObject obj,
   MOZ_ASSERT(info->type() == JSJitInfo::Setter);
   MOZ_ASSERT(obj->is<NativeObject>());
   MOZ_ASSERT(obj->getClass()->isDOMClass());
+  MOZ_ASSERT(obj->as<NativeObject>().numFixedSlots() > 0);
 
 #ifdef DEBUG
   DOMInstanceClassHasProtoAtDepth instanceChecker =
@@ -1563,7 +1565,7 @@ static bool MaybeTypedArrayIndexString(jsid id) {
 }
 
 static void VerifyCacheEntry(JSContext* cx, NativeObject* obj, PropertyKey key,
-                             const MegamorphicCache::Entry& entry) {
+                             const MegamorphicCacheEntry& entry) {
 #ifdef DEBUG
   if (entry.isMissingProperty()) {
     NativeObject* pobj;
@@ -1584,13 +1586,14 @@ static void VerifyCacheEntry(JSContext* cx, NativeObject* obj, PropertyKey key,
   mozilla::Maybe<PropertyInfo> prop = obj->lookupPure(key);
   MOZ_ASSERT(prop.isSome());
   MOZ_ASSERT(prop->isDataProperty());
-  MOZ_ASSERT(prop->slot() == entry.slot());
+  MOZ_ASSERT(obj->getTaggedSlotOffset(prop->slot()) == entry.slotOffset());
 #endif
 }
 
-static MOZ_ALWAYS_INLINE bool GetNativeDataPropertyPureFallback(
-    JSContext* cx, JSObject* obj, jsid id, Value* vp,
-    MegamorphicCache::Entry* entry) {
+static MOZ_ALWAYS_INLINE bool GetNativeDataPropertyPureImpl(
+    JSContext* cx, JSObject* obj, jsid id, MegamorphicCacheEntry* entry,
+    Value* vp) {
+  MOZ_ASSERT(obj->is<NativeObject>());
   NativeObject* nobj = &obj->as<NativeObject>();
   Shape* receiverShape = obj->shape();
   MegamorphicCache& cache = cx->caches().megamorphicCache;
@@ -1607,9 +1610,10 @@ static MOZ_ALWAYS_INLINE bool GetNativeDataPropertyPureFallback(
       if (!prop.isDataProperty()) {
         return false;
       }
-      if (JitOptions.enableWatchtowerMegamorphic) {
+      if (entry) {
+        TaggedSlotOffset offset = nobj->getTaggedSlotOffset(prop.slot());
         cache.initEntryForDataProperty(entry, receiverShape, id, numHops,
-                                       prop.slot());
+                                       offset);
       }
       *vp = nobj->getSlot(prop.slot());
       return true;
@@ -1631,7 +1635,7 @@ static MOZ_ALWAYS_INLINE bool GetNativeDataPropertyPureFallback(
 
     JSObject* proto = nobj->staticPrototype();
     if (!proto) {
-      if (JitOptions.enableWatchtowerMegamorphic) {
+      if (entry) {
         cache.initEntryForMissingProperty(entry, receiverShape, id);
       }
       vp->setUndefined();
@@ -1646,61 +1650,56 @@ static MOZ_ALWAYS_INLINE bool GetNativeDataPropertyPureFallback(
   }
 }
 
-static MOZ_ALWAYS_INLINE bool GetNativeDataPropertyPure(JSContext* cx,
-                                                        JSObject* obj, jsid id,
-                                                        Value* vp) {
-  // Fast path used by megamorphic IC stubs. Unlike our other property
-  // lookup paths, this is optimized to be as fast as possible for simple
-  // data property lookups.
-
+bool GetNativeDataPropertyByNamePure(JSContext* cx, JSObject* obj,
+                                     PropertyName* name,
+                                     MegamorphicCacheEntry* entry, Value* vp) {
   AutoUnsafeCallWithABI unsafe;
 
-  MOZ_ASSERT(id.isAtom() || id.isSymbol());
+  jsid id = NameToId(name);
 
-  Shape* receiverShape = obj->shape();
-  MegamorphicCache& cache = cx->caches().megamorphicCache;
-  MegamorphicCache::Entry* entry = nullptr;
-  if (JitOptions.enableWatchtowerMegamorphic &&
-      cache.lookup(receiverShape, id, &entry)) {
-    NativeObject* nobj = &obj->as<NativeObject>();
-    VerifyCacheEntry(cx, nobj, id, *entry);
-    if (entry->isDataProperty()) {
-      for (size_t i = 0, numHops = entry->numHops(); i < numHops; i++) {
-        nobj = &nobj->staticPrototype()->as<NativeObject>();
-      }
-      *vp = nobj->getSlot(entry->slot());
-      return true;
-    }
-    if (entry->isMissingProperty()) {
-      vp->setUndefined();
-      return true;
-    }
-    MOZ_ASSERT(entry->isMissingOwnProperty());
-  }
-
-  if (!obj->is<NativeObject>()) {
-    return false;
-  }
-
-  return GetNativeDataPropertyPureFallback(cx, obj, id, vp, entry);
-}
-
-bool GetNativeDataPropertyPure(JSContext* cx, JSObject* obj, PropertyName* name,
-                               Value* vp) {
-  return GetNativeDataPropertyPure(cx, obj, NameToId(name), vp);
-}
-
-bool GetNativeDataPropertyPureFallback(JSContext* cx, JSObject* obj,
-                                       PropertyKey id, Value* vp) {
-  AutoUnsafeCallWithABI unsafe;
-
-  Shape* receiverShape = obj->shape();
-  MegamorphicCache& cache = cx->caches().megamorphicCache;
-  MegamorphicCache::Entry* entry = nullptr;
+#ifndef JS_CODEGEN_X86
+  MOZ_ASSERT_IF(JitOptions.enableWatchtowerMegamorphic, entry);
+#else
+  // If we're on x86, we didn't have enough registers to populate this
+  // directly in Baseline JITted code, so we do the lookup here.
   if (JitOptions.enableWatchtowerMegamorphic) {
-    cache.lookup(receiverShape, id, &entry);
+    Shape* receiverShape = obj->shape();
+    MegamorphicCache& cache = cx->caches().megamorphicCache;
+
+    if (cache.lookup(receiverShape, id, &entry)) {
+      NativeObject* nobj = &obj->as<NativeObject>();
+      VerifyCacheEntry(cx, nobj, id, *entry);
+      if (entry->isDataProperty()) {
+        for (size_t i = 0, numHops = entry->numHops(); i < numHops; i++) {
+          nobj = &nobj->staticPrototype()->as<NativeObject>();
+        }
+        uint32_t offset = entry->slotOffset().offset();
+        if (entry->slotOffset().isFixedSlot()) {
+          size_t index = NativeObject::getFixedSlotIndexFromOffset(offset);
+          *vp = nobj->getFixedSlot(index);
+        } else {
+          size_t index = NativeObject::getDynamicSlotIndexFromOffset(offset);
+          *vp = nobj->getDynamicSlot(index);
+        }
+        return true;
+      }
+      if (entry->isMissingProperty()) {
+        vp->setUndefined();
+        return true;
+      }
+      MOZ_ASSERT(entry->isMissingOwnProperty());
+    }
   }
-  return GetNativeDataPropertyPureFallback(cx, obj, id, vp, entry);
+#endif
+
+  return GetNativeDataPropertyPureImpl(cx, obj, id, entry, vp);
+}
+
+bool GetNativeDataPropertyByIdPure(JSContext* cx, JSObject* obj, PropertyKey id,
+                                   MegamorphicCacheEntry* entry, Value* vp) {
+  AutoUnsafeCallWithABI unsafe;
+  MOZ_ASSERT_IF(JitOptions.enableWatchtowerMegamorphic, entry);
+  return GetNativeDataPropertyPureImpl(cx, obj, id, entry, vp);
 }
 
 static MOZ_ALWAYS_INLINE bool ValueToAtomOrSymbolPure(JSContext* cx,
@@ -1737,10 +1736,21 @@ static MOZ_ALWAYS_INLINE bool ValueToAtomOrSymbolPure(JSContext* cx,
     return true;
   }
 
+  if (idVal.isNull()) {
+    *id = PropertyKey::NonIntAtom(cx->names().null);
+    return true;
+  }
+
+  if (idVal.isUndefined()) {
+    *id = PropertyKey::NonIntAtom(cx->names().undefined);
+    return true;
+  }
+
   return false;
 }
 
-bool GetNativeDataPropertyByValuePure(JSContext* cx, JSObject* obj, Value* vp) {
+bool GetNativeDataPropertyByValuePure(JSContext* cx, JSObject* obj,
+                                      MegamorphicCacheEntry* entry, Value* vp) {
   AutoUnsafeCallWithABI unsafe;
 
   // vp[0] contains the id, result will be stored in vp[1].
@@ -1750,8 +1760,14 @@ bool GetNativeDataPropertyByValuePure(JSContext* cx, JSObject* obj, Value* vp) {
     return false;
   }
 
+  Shape* receiverShape = obj->shape();
+  MegamorphicCache& cache = cx->caches().megamorphicCache;
+  if (!entry && JitOptions.enableWatchtowerMegamorphic) {
+    cache.lookup(receiverShape, id, &entry);
+  }
+
   Value* res = vp + 1;
-  return GetNativeDataPropertyPure(cx, obj, id, res);
+  return GetNativeDataPropertyPureImpl(cx, obj, id, entry, res);
 }
 
 bool SetNativeDataPropertyPure(JSContext* cx, JSObject* obj, PropertyName* name,
@@ -1825,7 +1841,8 @@ bool ObjectHasGetterSetterPure(JSContext* cx, JSObject* objArg, jsid id,
 }
 
 template <bool HasOwn>
-bool HasNativeDataPropertyPure(JSContext* cx, JSObject* obj, Value* vp) {
+bool HasNativeDataPropertyPure(JSContext* cx, JSObject* obj,
+                               MegamorphicCacheEntry* entry, Value* vp) {
   AutoUnsafeCallWithABI unsafe;
 
   // vp[0] contains the id, result will be stored in vp[1].
@@ -1835,22 +1852,12 @@ bool HasNativeDataPropertyPure(JSContext* cx, JSObject* obj, Value* vp) {
     return false;
   }
 
-  Shape* receiverShape = obj->shape();
   MegamorphicCache& cache = cx->caches().megamorphicCache;
-  MegamorphicCache::Entry* entry;
-  if (JitOptions.enableWatchtowerMegamorphic &&
-      cache.lookup(receiverShape, id, &entry)) {
-    VerifyCacheEntry(cx, &obj->as<NativeObject>(), id, *entry);
-    if (entry->isDataProperty()) {
-      vp[1].setBoolean(HasOwn ? entry->numHops() == 0 : true);
-      return true;
+  Shape* receiverShape = obj->shape();
+  if (!entry && JitOptions.enableWatchtowerMegamorphic) {
+    if (cache.lookup(receiverShape, id, &entry)) {
+      VerifyCacheEntry(cx, &obj->as<NativeObject>(), id, *entry);
     }
-    if (HasOwn || entry->isMissingProperty()) {
-      vp[1].setBoolean(false);
-      return true;
-    }
-    MOZ_ASSERT(!HasOwn);
-    MOZ_ASSERT(entry->isMissingOwnProperty());
   }
 
   size_t numHops = 0;
@@ -1861,14 +1868,15 @@ bool HasNativeDataPropertyPure(JSContext* cx, JSObject* obj, Value* vp) {
 
     MOZ_ASSERT(!obj->getOpsLookupProperty());
 
+    NativeObject* nobj = &obj->as<NativeObject>();
     uint32_t index;
-    if (PropMap* map =
-            obj->as<NativeObject>().shape()->lookup(cx, id, &index)) {
+    if (PropMap* map = nobj->shape()->lookup(cx, id, &index)) {
       if (JitOptions.enableWatchtowerMegamorphic) {
         PropertyInfo prop = map->getPropertyInfo(index);
         if (prop.isDataProperty()) {
+          TaggedSlotOffset offset = nobj->getTaggedSlotOffset(prop.slot());
           cache.initEntryForDataProperty(entry, receiverShape, id, numHops,
-                                         prop.slot());
+                                         offset);
         }
       }
       vp[1].setBoolean(true);
@@ -1904,7 +1912,7 @@ bool HasNativeDataPropertyPure(JSContext* cx, JSObject* obj, Value* vp) {
   } while (obj);
 
   // Missing property.
-  if (JitOptions.enableWatchtowerMegamorphic) {
+  if (entry) {
     if constexpr (HasOwn) {
       cache.initEntryForMissingOwnProperty(entry, receiverShape, id);
     } else {
@@ -1916,9 +1924,11 @@ bool HasNativeDataPropertyPure(JSContext* cx, JSObject* obj, Value* vp) {
 }
 
 template bool HasNativeDataPropertyPure<true>(JSContext* cx, JSObject* obj,
+                                              MegamorphicCacheEntry* entry,
                                               Value* vp);
 
 template bool HasNativeDataPropertyPure<false>(JSContext* cx, JSObject* obj,
+                                               MegamorphicCacheEntry* entry,
                                                Value* vp);
 
 bool HasNativeElementPure(JSContext* cx, NativeObject* obj, int32_t index,
@@ -1964,6 +1974,7 @@ bool HasNativeElementPure(JSContext* cx, NativeObject* obj, int32_t index,
 
 // Fast path for setting/adding a plain object property. This is the common case
 // for megamorphic SetProp/SetElem.
+template <bool UseCache>
 static bool TryAddOrSetPlainObjectProperty(JSContext* cx,
                                            Handle<PlainObject*> obj,
                                            HandleValue keyVal,
@@ -1977,6 +1988,33 @@ static bool TryAddOrSetPlainObjectProperty(JSContext* cx,
     return true;
   }
 
+  Shape* receiverShape = obj->shape();
+  MegamorphicSetPropCache& cache = cx->caches().megamorphicSetPropCache;
+
+#ifdef DEBUG
+  if constexpr (UseCache) {
+    MegamorphicSetPropCache::Entry* entry;
+    if (cache.lookup(receiverShape, key, &entry)) {
+      if (entry->afterShape() != nullptr) {  // AddProp
+        NativeObject* holder = nullptr;
+        PropertyResult prop;
+        MOZ_ASSERT(LookupPropertyPure(cx, obj, key, &holder, &prop));
+        MOZ_ASSERT(obj != holder);
+        MOZ_ASSERT_IF(prop.isFound(),
+                      prop.isNativeProperty() &&
+                          prop.propertyInfo().isDataProperty() &&
+                          prop.propertyInfo().writable());
+      } else {  // SetProp
+        mozilla::Maybe<PropertyInfo> prop = obj->lookupPure(key);
+        MOZ_ASSERT(prop.isSome());
+        MOZ_ASSERT(prop->isDataProperty());
+        MOZ_ASSERT(obj->getTaggedSlotOffset(prop->slot()) ==
+                   entry->slotOffset());
+      }
+    }
+  }
+#endif
+
   // Fast path for changing a data property.
   uint32_t index;
   if (PropMap* map = obj->shape()->lookup(cx, key, &index)) {
@@ -1986,6 +2024,11 @@ static bool TryAddOrSetPlainObjectProperty(JSContext* cx,
     }
     obj->setSlot(prop.slot(), value);
     *optimized = true;
+
+    if constexpr (UseCache) {
+      TaggedSlotOffset offset = obj->getTaggedSlotOffset(prop.slot());
+      cache.set(receiverShape, nullptr, key, offset, 0);
+    }
     return true;
   }
 
@@ -2033,7 +2076,25 @@ static bool TryAddOrSetPlainObjectProperty(JSContext* cx,
 
   *optimized = true;
   Rooted<PropertyKey> keyRoot(cx, key);
-  return AddDataPropertyToPlainObject(cx, obj, keyRoot, value);
+  Rooted<Shape*> receiverShapeRoot(cx, receiverShape);
+  uint32_t resultSlot = 0;
+  size_t numDynamic = obj->numDynamicSlots();
+  bool res = AddDataPropertyToPlainObject(cx, obj, keyRoot, value, &resultSlot);
+
+  if constexpr (UseCache) {
+    if (res && obj->shape()->isShared() &&
+        resultSlot < SharedPropMap::MaxPropsForNonDictionary) {
+      TaggedSlotOffset offset = obj->getTaggedSlotOffset(resultSlot);
+      uint32_t newCapacity = 0;
+      if (!(resultSlot < obj->numFixedSlots() ||
+            (resultSlot - obj->numFixedSlots()) < numDynamic)) {
+        newCapacity = obj->numDynamicSlots();
+      }
+      cache.set(receiverShapeRoot, obj->shape(), keyRoot, offset, newCapacity);
+    }
+  }
+
+  return res;
 }
 
 bool SetElementMegamorphic(JSContext* cx, HandleObject obj, HandleValue index,
@@ -2041,8 +2102,24 @@ bool SetElementMegamorphic(JSContext* cx, HandleObject obj, HandleValue index,
                            bool strict) {
   if (obj->is<PlainObject>()) {
     bool optimized = false;
-    if (!TryAddOrSetPlainObjectProperty(cx, obj.as<PlainObject>(), index, value,
-                                        &optimized)) {
+    if (!TryAddOrSetPlainObjectProperty<false>(cx, obj.as<PlainObject>(), index,
+                                               value, &optimized)) {
+      return false;
+    }
+    if (optimized) {
+      return true;
+    }
+  }
+  return SetObjectElementWithReceiver(cx, obj, index, value, receiver, strict);
+}
+
+bool SetElementMegamorphicCached(JSContext* cx, HandleObject obj,
+                                 HandleValue index, HandleValue value,
+                                 HandleValue receiver, bool strict) {
+  if (obj->is<PlainObject>()) {
+    bool optimized = false;
+    if (!TryAddOrSetPlainObjectProperty<true>(cx, obj.as<PlainObject>(), index,
+                                              value, &optimized)) {
       return false;
     }
     if (optimized) {
@@ -2221,9 +2298,16 @@ void AllocateAndInitTypedArrayBuffer(JSContext* cx, TypedArrayObject* obj,
 
 void* CreateMatchResultFallbackFunc(JSContext* cx, gc::AllocKind kind,
                                     size_t nDynamicSlots) {
+  MOZ_ASSERT(nDynamicSlots);
+
   AutoUnsafeCallWithABI unsafe;
-  return cx->newCell<ArrayObject, NoGC>(kind, nDynamicSlots, gc::DefaultHeap,
-                                        &ArrayObject::class_);
+  ArrayObject* array = cx->newCell<ArrayObject, NoGC>(kind, gc::DefaultHeap,
+                                                      &ArrayObject::class_);
+  if (!array || !array->allocateInitialSlots(cx, nDynamicSlots)) {
+    return nullptr;
+  }
+
+  return array;
 }
 
 #ifdef JS_GC_PROBES
@@ -2805,6 +2889,17 @@ void AssertMapObjectHash(JSContext* cx, MapObject* obj, const Value* value,
   AutoUnsafeCallWithABI unsafe;
 
   MOZ_ASSERT(actualHash == HashValue(cx, obj->getData(), value));
+}
+
+void AssertPropertyLookup(NativeObject* obj, PropertyName* id, uint32_t slot) {
+  AutoUnsafeCallWithABI unsafe;
+#ifdef DEBUG
+  mozilla::Maybe<PropertyInfo> prop = obj->lookupPure(id);
+  MOZ_ASSERT(prop.isSome());
+  MOZ_ASSERT(prop->slot() == slot);
+#else
+  MOZ_CRASH("This should only be called in debug builds.");
+#endif
 }
 
 void AssumeUnreachable(const char* output) {

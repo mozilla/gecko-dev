@@ -19,6 +19,9 @@
 #include <type_traits>
 #include <vector>
 
+// TODO(alcooper): Update include usage in downstream consumers and then change
+// this to a forward declaration.
+#include "modules/desktop_capture/delegated_source_list_controller.h"
 #if defined(WEBRTC_USE_GIO)
 #include "modules/desktop_capture/desktop_capture_metadata.h"
 #endif  // defined(WEBRTC_USE_GIO)
@@ -79,6 +82,15 @@ class RTC_EXPORT DesktopCapturer {
     // Title of the window or screen in UTF-8 encoding, maybe empty. This field
     // should not be used to identify a source.
     std::string title;
+
+#if defined(CHROMEOS)
+    // TODO(https://crbug.com/1369162): Remove or refactor this value.
+    WindowId in_process_id = kNullWindowId;
+#endif
+
+    // The display's unique ID. If no ID is defined, it will hold the value
+    // kInvalidDisplayId.
+    int64_t display_id = kInvalidDisplayId;
   };
 
   typedef std::vector<Source> SourceList;
@@ -88,6 +100,18 @@ class RTC_EXPORT DesktopCapturer {
   // Called at the beginning of a capturing session. `callback` must remain
   // valid until capturer is destroyed.
   virtual void Start(Callback* callback) = 0;
+
+  // Returns a valid pointer if the capturer requires the user to make a
+  // selection from a source list provided by the capturer.
+  // Returns nullptr if the capturer does not provide a UI for the user to make
+  // a selection.
+  //
+  // Callers should not take ownership of the returned pointer, but it is
+  // guaranteed to be valid as long as the desktop_capturer is valid.
+  // Note that consumers should still use GetSourceList and SelectSource, but
+  // their behavior may be modified if this returns a value. See those methods
+  // for a more in-depth discussion of those potential modifications.
+  virtual DelegatedSourceListController* GetDelegatedSourceListController();
 
   // Sets SharedMemoryFactory that will be used to create buffers for the
   // captured frames. The factory can be invoked on a thread other than the one
@@ -117,10 +141,19 @@ class RTC_EXPORT DesktopCapturer {
   // should return monitors.
   // For DesktopCapturer implementations to capture windows, this function
   // should only return root windows owned by applications.
+  //
+  // Note that capturers who use a delegated source list will return a
+  // SourceList with exactly one value, but it may not be viable for capture
+  // (e.g. CaptureFrame will return ERROR_TEMPORARY) until a selection has been
+  // made.
   virtual bool GetSourceList(SourceList* sources);
 
   // Selects a source to be captured. Returns false in case of a failure (e.g.
   // if there is no source with the specified type and id.)
+  //
+  // Note that some capturers with delegated source lists may also support
+  // selecting a SourceID that is not in the returned source list as a form of
+  // restore token.
   virtual bool SelectSource(SourceId id);
 
   // Brings the selected source to the front and sets the input focus on it.
@@ -134,6 +167,10 @@ class RTC_EXPORT DesktopCapturer {
   // starts from (0, 0).
   // The return value if `pos` is out of the scope of the source is undefined.
   virtual bool IsOccluded(const DesktopVector& pos);
+
+  // Creates a DesktopCapturer instance which targets to capture windows and screens.
+  static std::unique_ptr<DesktopCapturer> CreateGenericCapturer(
+      const DesktopCaptureOptions& options);
 
   // Creates a DesktopCapturer instance which targets to capture windows.
   static std::unique_ptr<DesktopCapturer> CreateWindowCapturer(
@@ -164,6 +201,11 @@ class RTC_EXPORT DesktopCapturer {
   // the following two functions are protected.
 
   // Creates a platform specific DesktopCapturer instance which targets to
+  // capture windows and screens.
+  static std::unique_ptr<DesktopCapturer> CreateRawGenericCapturer(
+      const DesktopCaptureOptions& options);
+
+  // Creates a platform specific DesktopCapturer instance which targets to
   // capture windows.
   static std::unique_ptr<DesktopCapturer> CreateRawWindowCapturer(
       const DesktopCaptureOptions& options);
@@ -171,11 +213,6 @@ class RTC_EXPORT DesktopCapturer {
   // Creates a platform specific DesktopCapturer instance which targets to
   // capture screens.
   static std::unique_ptr<DesktopCapturer> CreateRawScreenCapturer(
-      const DesktopCaptureOptions& options);
-
-  // Creates a platform specific DesktopCapturer instance which targets to
-  // capture apps.
-  static std::unique_ptr<DesktopCapturer> CreateRawAppCapturer(
       const DesktopCaptureOptions& options);
 
   // Creates a DesktopCapturer instance which targets to capture tabs

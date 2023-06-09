@@ -135,9 +135,9 @@ NS_IMPL_ISUPPORTS(nsBaseWidget, nsIWidget, nsISupportsWeakReference)
 //
 //-------------------------------------------------------------------------
 
-nsBaseWidget::nsBaseWidget() : nsBaseWidget(eBorderStyle_none) {}
+nsBaseWidget::nsBaseWidget() : nsBaseWidget(BorderStyle::None) {}
 
-nsBaseWidget::nsBaseWidget(nsBorderStyle aBorderStyle)
+nsBaseWidget::nsBaseWidget(BorderStyle aBorderStyle)
     : mWidgetListener(nullptr),
       mAttachedWidgetListener(nullptr),
       mPreviouslyAttachedWidgetListener(nullptr),
@@ -145,8 +145,8 @@ nsBaseWidget::nsBaseWidget(nsBorderStyle aBorderStyle)
       mBorderStyle(aBorderStyle),
       mBounds(0, 0, 0, 0),
       mIsTiled(false),
-      mPopupLevel(ePopupLevelTop),
-      mPopupType(ePopupTypeAny),
+      mPopupLevel(PopupLevel::Top),
+      mPopupType(PopupType::Any),
       mHasRemoteContent(false),
       mUpdateCursor(true),
       mUseAttachedEvents(false),
@@ -412,7 +412,7 @@ nsBaseWidget::~nsBaseWidget() {
 // Basic create.
 //
 //-------------------------------------------------------------------------
-void nsBaseWidget::BaseCreate(nsIWidget* aParent, nsWidgetInitData* aInitData) {
+void nsBaseWidget::BaseCreate(nsIWidget* aParent, widget::InitData* aInitData) {
   if (aInitData) {
     mWindowType = aInitData->mWindowType;
     mBorderStyle = aInitData->mBorderStyle;
@@ -441,7 +441,7 @@ void nsBaseWidget::SetWidgetListener(nsIWidgetListener* aWidgetListener) {
 }
 
 already_AddRefed<nsIWidget> nsBaseWidget::CreateChild(
-    const LayoutDeviceIntRect& aRect, nsWidgetInitData* aInitData,
+    const LayoutDeviceIntRect& aRect, widget::InitData* aInitData,
     bool aForceUseIWidgetParent) {
   nsIWidget* parent = this;
   nsNativeWidget nativeParent = nullptr;
@@ -456,7 +456,7 @@ already_AddRefed<nsIWidget> nsBaseWidget::CreateChild(
   }
 
   nsCOMPtr<nsIWidget> widget;
-  if (aInitData && aInitData->mWindowType == eWindowType_popup) {
+  if (aInitData && aInitData->mWindowType == WindowType::Popup) {
     widget = AllocateChildPopupWidget();
   } else {
     widget = nsIWidget::CreateChildWindow();
@@ -476,10 +476,10 @@ already_AddRefed<nsIWidget> nsBaseWidget::CreateChild(
 
 // Attach a view to our widget which we'll send events to.
 void nsBaseWidget::AttachViewToTopLevel(bool aUseAttachedEvents) {
-  NS_ASSERTION((mWindowType == eWindowType_toplevel ||
-                mWindowType == eWindowType_dialog ||
-                mWindowType == eWindowType_invisible ||
-                mWindowType == eWindowType_child),
+  NS_ASSERTION((mWindowType == WindowType::TopLevel ||
+                mWindowType == WindowType::Dialog ||
+                mWindowType == WindowType::Invisible ||
+                mWindowType == WindowType::Child),
                "Can't attach to window of that type");
 
   mUseAttachedEvents = aUseAttachedEvents;
@@ -508,6 +508,8 @@ void nsBaseWidget::SetAttachedWidgetListener(nsIWidgetListener* aListener) {
 //
 //-------------------------------------------------------------------------
 void nsBaseWidget::Destroy() {
+  DestroyCompositor();
+
   // Just in case our parent is the only ref to us
   nsCOMPtr<nsIWidget> kungFuDeathGrip(this);
   // disconnect from the parent
@@ -565,6 +567,15 @@ nsIntSize nsIWidget::CustomCursorSize(const Cursor& aCursor) {
   aCursor.mContainer->GetHeight(&height);
   aCursor.mResolution.ApplyTo(width, height);
   return {width, height};
+}
+
+LayoutDeviceIntSize nsIWidget::ClientToWindowSizeDifference() {
+  auto margin = ClientToWindowMargin();
+  MOZ_ASSERT(margin.top >= 0, "Window should be bigger than client area");
+  MOZ_ASSERT(margin.left >= 0, "Window should be bigger than client area");
+  MOZ_ASSERT(margin.right >= 0, "Window should be bigger than client area");
+  MOZ_ASSERT(margin.bottom >= 0, "Window should be bigger than client area");
+  return {margin.LeftRight(), margin.TopBottom()};
 }
 
 RefPtr<mozilla::VsyncDispatcher> nsIWidget::GetVsyncDispatcher() {
@@ -698,10 +709,10 @@ void nsBaseWidget::SetCursor(const Cursor& aCursor) { mCursor = aCursor; }
 //
 //-------------------------------------------------------------------------
 
-void nsBaseWidget::SetTransparencyMode(nsTransparencyMode aMode) {}
+void nsBaseWidget::SetTransparencyMode(TransparencyMode aMode) {}
 
-nsTransparencyMode nsBaseWidget::GetTransparencyMode() {
-  return eTransparencyOpaque;
+TransparencyMode nsBaseWidget::GetTransparencyMode() {
+  return TransparencyMode::Opaque;
 }
 
 /* virtual */
@@ -954,7 +965,7 @@ nsBaseWidget::AutoLayerManagerSetup::~AutoLayerManagerSetup() {
 }
 
 bool nsBaseWidget::IsSmallPopup() const {
-  return mWindowType == eWindowType_popup && mPopupType != ePopupTypePanel;
+  return mWindowType == WindowType::Popup && mPopupType != PopupType::Panel;
 }
 
 bool nsBaseWidget::ComputeShouldAccelerate() {
@@ -965,10 +976,10 @@ bool nsBaseWidget::ComputeShouldAccelerate() {
 
 bool nsBaseWidget::UseAPZ() {
   return (gfxPlatform::AsyncPanZoomEnabled() &&
-          (WindowType() == eWindowType_toplevel ||
-           WindowType() == eWindowType_child ||
-           ((WindowType() == eWindowType_popup ||
-             WindowType() == eWindowType_dialog) &&
+          (mWindowType == WindowType::TopLevel ||
+           mWindowType == WindowType::Child ||
+           ((mWindowType == WindowType::Popup ||
+             mWindowType == WindowType::Dialog) &&
             HasRemoteContent() && StaticPrefs::apz_popups_enabled())));
 }
 
@@ -1345,7 +1356,10 @@ already_AddRefed<WebRenderLayerManager> nsBaseWidget::CreateCompositorSession(
     // Make sure GPU process is ready for use.
     // If it failed to connect to GPU process, GPU process usage is disabled in
     // EnsureGPUReady(). It could update gfxVars and gfxConfigs.
-    gpu->EnsureGPUReady();
+    nsresult rv = gpu->EnsureGPUReady();
+    if (NS_WARN_IF(rv == NS_ERROR_ILLEGAL_DURING_SHUTDOWN)) {
+      return nullptr;
+    }
 
     // If widget type does not supports acceleration, we may be allowed to use
     // software WebRender instead.
@@ -1494,7 +1508,7 @@ void nsBaseWidget::CreateCompositor(int aWidth, int aHeight) {
 #if defined(XP_MACOSX)
   bool getCompositorFromThisWindow = true;
 #else
-  bool getCompositorFromThisWindow = (mWindowType == eWindowType_toplevel);
+  bool getCompositorFromThisWindow = mWindowType == WindowType::TopLevel;
 #endif
 
   if (getCompositorFromThisWindow) {
@@ -1691,7 +1705,7 @@ LayoutDeviceIntPoint nsBaseWidget::GetClientOffset() {
   return LayoutDeviceIntPoint(0, 0);
 }
 
-nsresult nsBaseWidget::SetNonClientMargins(LayoutDeviceIntMargin& margins) {
+nsresult nsBaseWidget::SetNonClientMargins(const LayoutDeviceIntMargin&) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -1773,7 +1787,7 @@ void nsBaseWidget::SetSizeConstraints(const SizeConstraints& aConstraints) {
   //
   // The right fix here is probably making constraint changes go through the
   // view manager and such.
-  if (mWindowType == eWindowType_popup) {
+  if (mWindowType == WindowType::Popup) {
     return;
   }
 
@@ -1989,20 +2003,11 @@ LayersId nsBaseWidget::GetRootLayerTreeId() {
                             : LayersId{0};
 }
 
-already_AddRefed<nsIScreen> nsBaseWidget::GetWidgetScreen() {
-  nsCOMPtr<nsIScreenManager> screenManager;
-  screenManager = do_GetService("@mozilla.org/gfx/screenmanager;1");
-  if (!screenManager) {
-    return nullptr;
-  }
-
+already_AddRefed<widget::Screen> nsBaseWidget::GetWidgetScreen() {
+  ScreenManager& screenManager = ScreenManager::GetSingleton();
   LayoutDeviceIntRect bounds = GetScreenBounds();
   DesktopIntRect deskBounds = RoundedToInt(bounds / GetDesktopToDeviceScale());
-  nsCOMPtr<nsIScreen> screen;
-  screenManager->ScreenForRect(deskBounds.X(), deskBounds.Y(),
-                               deskBounds.Width(), deskBounds.Height(),
-                               getter_AddRefs(screen));
-  return screen.forget();
+  return screenManager.ScreenForRect(deskBounds);
 }
 
 mozilla::DesktopToLayoutDeviceScale
@@ -2303,7 +2308,8 @@ WidgetWheelEvent nsBaseWidget::MayStartSwipeForAPZ(
         // the swipe now.
         TrackScrollEventAsSwipe(aPanInput, swipeInfo.allowedDirections,
                                 aApzResult.mInputBlockId);
-      } else {
+      } else if (!aApzResult.GetHandledResult() ||
+                 !aApzResult.GetHandledResult()->IsHandledByRoot()) {
         // We don't know whether this event can start a swipe, so we need
         // to queue up events and wait for a call to ReportSwipeStarted.
         // APZ might already have started scrolling in response to the

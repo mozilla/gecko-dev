@@ -13,7 +13,7 @@ import { connect } from "react-redux";
 import { ModalOverlayWrapper } from "../../asrouter/components/ModalOverlay/ModalOverlay";
 import React from "react";
 import { SearchShortcutsForm } from "./SearchShortcutsForm";
-import { TOP_SITES_MAX_SITES_PER_ROW } from "common/Reducers.jsm";
+import { TOP_SITES_MAX_SITES_PER_ROW } from "common/Reducers.sys.mjs";
 import { TopSiteForm } from "./TopSiteForm";
 import { TopSiteList } from "./TopSite";
 
@@ -207,8 +207,7 @@ export class _TopSites extends React.PureComponent {
 }
 
 export const TopSites = connect((state, props) => ({
-  // For SPOC Experiment only, take TopSites from DiscoveryStream TopSites that takes in SPOC Data
-  TopSites: props.TopSitesWithSpoc || state.TopSites,
+  TopSites: state.TopSites,
   Prefs: state.Prefs,
   TopSitesRows: state.Prefs.values.topSitesRows,
 }))(_TopSites);

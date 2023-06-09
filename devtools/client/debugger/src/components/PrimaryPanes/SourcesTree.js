@@ -5,7 +5,6 @@
 // Dependencies
 import React, { Component } from "react";
 import PropTypes from "prop-types";
-import classnames from "classnames";
 import { connect } from "../../utils/connect";
 
 // Selectors
@@ -14,13 +13,12 @@ import {
   getMainThreadHost,
   getExpandedState,
   getProjectDirectoryRoot,
+  getProjectDirectoryRootName,
   getSourcesTreeSources,
   getFocusedSourceItem,
   getContext,
   getGeneratedSourceByURL,
   getBlackBoxRanges,
-  getSourceActor,
-  getSource,
 } from "../../selectors";
 
 // Actions
@@ -28,10 +26,14 @@ import actions from "../../actions";
 
 // Components
 import SourcesTreeItem from "./SourcesTreeItem";
+import AccessibleImage from "../shared/AccessibleImage";
 import ManagedTree from "../shared/ManagedTree";
 
 // Utils
 import { getRawSourceURL } from "../../utils/source";
+import { createLocation } from "../../utils/location";
+
+const classnames = require("devtools/client/shared/classnames.js");
 
 function shouldAutoExpand(item, mainThreadHost) {
   // There is only one case where we want to force auto expand,
@@ -116,6 +118,8 @@ class SourcesTree extends Component {
       setExpandedState: PropTypes.func.isRequired,
       blackBoxRanges: PropTypes.object.isRequired,
       rootItems: PropTypes.object.isRequired,
+      clearProjectDirectoryRoot: PropTypes.func.isRequired,
+      projectRootName: PropTypes.string.isRequired,
     };
   }
 
@@ -126,12 +130,12 @@ class SourcesTree extends Component {
     // We might fail to find the source if its thread is registered late,
     // so that we should re-search the selected source if highlightItems is empty.
     if (
-      nextProps.selectedTreeLocation.source &&
-      (nextProps.selectedTreeLocation.source != selectedTreeLocation.source ||
+      nextProps.selectedTreeLocation?.source &&
+      (nextProps.selectedTreeLocation.source != selectedTreeLocation?.source ||
         (nextProps.selectedTreeLocation.source ===
-          selectedTreeLocation.source &&
+          selectedTreeLocation?.source &&
           nextProps.selectedTreeLocation.sourceActor !=
-            selectedTreeLocation.sourceActor) ||
+            selectedTreeLocation?.sourceActor) ||
         !this.state.highlightItems?.length)
     ) {
       let parentDirectory = getDirectoryForSource(
@@ -150,11 +154,7 @@ class SourcesTree extends Component {
   }
 
   selectSourceItem = item => {
-    this.props.selectSource(
-      this.props.cx,
-      item.source.id,
-      item.sourceActor.actor
-    );
+    this.props.selectSource(this.props.cx, item.source, item.sourceActor);
   };
 
   onFocus = item => {
@@ -298,12 +298,30 @@ class SourcesTree extends Component {
     };
   };
 
+  renderProjectRootHeader() {
+    const { cx, projectRootName } = this.props;
+
+    if (!projectRootName) {
+      return null;
+    }
+
+    return (
+      <div key="root" className="sources-clear-root-container">
+        <button
+          className="sources-clear-root"
+          onClick={() => this.props.clearProjectDirectoryRoot(cx)}
+          title={L10N.getStr("removeDirectoryRoot.label")}
+        >
+          <AccessibleImage className="home" />
+          <AccessibleImage className="breadcrumb" />
+          <span className="sources-clear-root-label">{projectRootName}</span>
+        </button>
+      </div>
+    );
+  }
+
   renderItem = (item, depth, focused, _, expanded, { setExpanded }) => {
     const { mainThreadHost, projectRoot } = this.props;
-    const isSourceBlackBoxed = item.source
-      ? this.props.blackBoxRanges[item.source.url]
-      : null;
-
     return (
       <SourcesTreeItem
         item={item}
@@ -313,7 +331,6 @@ class SourcesTree extends Component {
         expanded={expanded}
         focusItem={this.onFocus}
         selectSourceItem={this.selectSourceItem}
-        isSourceBlackBoxed={isSourceBlackBoxed}
         projectRoot={projectRoot}
         setExpanded={setExpanded}
         getBlackBoxSourcesGroups={this.getBlackBoxSourcesGroups}
@@ -366,30 +383,46 @@ class SourcesTree extends Component {
   }
 
   render() {
-    return this.renderPane(
-      this.isEmpty() ? (
-        this.renderEmptyElement(L10N.getStr("noSourcesText"))
-      ) : (
-        <div key="tree" className="sources-list">
-          {this.renderTree()}
-        </div>
-      )
+    const { projectRoot } = this.props;
+    return (
+      <div
+        key="pane"
+        className={classnames("sources-list", {
+          "sources-list-custom-root": !!projectRoot,
+        })}
+      >
+        {this.isEmpty() ? (
+          this.renderEmptyElement(L10N.getStr("noSourcesText"))
+        ) : (
+          <>
+            {this.renderProjectRootHeader()}
+            {this.renderTree()}
+          </>
+        )}
+      </div>
     );
   }
 }
 
 function getTreeLocation(state, location) {
-  let source = location ? getSource(state, location.sourceId) : null;
-  const sourceActor = location
-    ? getSourceActor(state, location.sourceActorId)
-    : null;
-
-  if (source && source.isPrettyPrinted) {
-    source =
-      getGeneratedSourceByURL(state, getRawSourceURL(source.url)) || null;
+  // In the SourceTree, we never show the pretty printed sources and only
+  // the minified version, so if we are selecting a pretty file, fake selecting
+  // the minified version.
+  if (location?.source.isPrettyPrinted) {
+    const source = getGeneratedSourceByURL(
+      state,
+      getRawSourceURL(location.source.url)
+    );
+    if (source) {
+      return createLocation({
+        source,
+        // A source actor is required by getDirectoryForSource
+        // in order to know in which thread this source relates to.
+        sourceActor: location.sourceActor,
+      });
+    }
   }
-
-  return { source, sourceActor };
+  return location;
 }
 
 const mapStateToProps = state => {
@@ -404,6 +437,7 @@ const mapStateToProps = state => {
     projectRoot: getProjectDirectoryRoot(state),
     rootItems,
     blackBoxRanges: getBlackBoxRanges(state),
+    projectRootName: getProjectDirectoryRootName(state),
   };
 };
 
@@ -411,4 +445,5 @@ export default connect(mapStateToProps, {
   selectSource: actions.selectSource,
   setExpandedState: actions.setExpandedState,
   focusItem: actions.focusItem,
+  clearProjectDirectoryRoot: actions.clearProjectDirectoryRoot,
 })(SourcesTree);

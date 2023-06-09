@@ -10,6 +10,7 @@
 #include "Link.h"
 #include "nsDOMTokenList.h"
 #include "SVGAnimatedString.h"
+#include "mozilla/dom/AnchorAreaFormRelValues.h"
 #include "mozilla/dom/SVGGraphicsElement.h"
 
 nsresult NS_NewSVGAElement(
@@ -24,7 +25,9 @@ namespace dom {
 
 using SVGAElementBase = SVGGraphicsElement;
 
-class SVGAElement final : public SVGAElementBase, public Link {
+class SVGAElement final : public SVGAElementBase,
+                          public Link,
+                          public AnchorAreaFormRelValues {
  protected:
   using Element::GetText;
 
@@ -48,7 +51,6 @@ class SVGAElement final : public SVGAElementBase, public Link {
   // nsIContent
   nsresult BindToTree(BindContext&, nsINode& aParent) override;
   void UnbindFromTree(bool aNullParent = true) override;
-  NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* aAttribute) const override;
 
   int32_t TabIndexDefault() override;
   bool IsFocusableInternal(int32_t* aTabIndex, bool aWithMouse) override;
@@ -58,11 +60,11 @@ class SVGAElement final : public SVGAElementBase, public Link {
   bool HasHref() const;
 
   ElementState IntrinsicState() const override;
-  virtual nsresult AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
-                                const nsAttrValue* aValue,
-                                const nsAttrValue* aOldValue,
-                                nsIPrincipal* aMaybeScriptedPrincipal,
-                                bool aNotify) override;
+  virtual void AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                            const nsAttrValue* aValue,
+                            const nsAttrValue* aOldValue,
+                            nsIPrincipal* aMaybeScriptedPrincipal,
+                            bool aNotify) override;
 
   // WebIDL
   already_AddRefed<DOMSVGAnimatedString> Href();
@@ -88,7 +90,7 @@ class SVGAElement final : public SVGAElementBase, public Link {
     SVGAElementBase::NodeInfoChanged(aOldDoc);
   }
 
-  NS_IMPL_FROMNODE_WITH_TAG(SVGAElement, kNameSpaceID_SVG, nsGkAtoms::a);
+  NS_IMPL_FROMNODE_WITH_TAG(SVGAElement, kNameSpaceID_SVG, a)
 
  protected:
   virtual ~SVGAElement() = default;
@@ -100,7 +102,6 @@ class SVGAElement final : public SVGAElementBase, public Link {
   static StringInfo sStringInfo[3];
 
   RefPtr<nsDOMTokenList> mRelList;
-  static DOMTokenListSupportedToken sSupportedRelValues[];
 };
 
 }  // namespace dom

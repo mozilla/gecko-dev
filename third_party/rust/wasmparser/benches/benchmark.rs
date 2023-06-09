@@ -4,7 +4,10 @@ use once_cell::unsync::Lazy;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
-use wasmparser::{DataKind, ElementKind, Parser, Payload, Validator, VisitOperator, WasmFeatures};
+use wasmparser::{
+    DataKind, ElementKind, HeapType, Parser, Payload, ValType, Validator, VisitOperator,
+    WasmFeatures,
+};
 
 /// A benchmark input.
 pub struct BenchmarkInput {
@@ -130,8 +133,17 @@ fn read_all_wasm(wasm: &[u8]) -> Result<()> {
                             op?;
                         }
                     }
-                    for op in item.items.get_items_reader()? {
-                        op?;
+                    match item.items {
+                        wasmparser::ElementItems::Functions(r) => {
+                            for op in r {
+                                op?;
+                            }
+                        }
+                        wasmparser::ElementItems::Expressions(r) => {
+                            for op in r {
+                                op?;
+                            }
+                        }
                     }
                 }
             }
@@ -149,7 +161,7 @@ fn read_all_wasm(wasm: &[u8]) -> Result<()> {
                 let mut reader = body.get_binary_reader();
                 for _ in 0..reader.read_var_u32()? {
                     reader.read_var_u32()?;
-                    reader.read_val_type()?;
+                    reader.read::<wasmparser::ValType>()?;
                 }
                 while !reader.eof() {
                     reader.visit_operator(&mut NopVisit)?;
@@ -238,10 +250,12 @@ fn define_benchmarks(c: &mut Criterion) {
             multi_memory: true,
             memory64: true,
             extended_const: true,
-            deterministic_only: false,
+            floats: true,
             mutable_global: true,
             saturating_float_to_int: true,
             sign_extension: true,
+            function_references: true,
+            memory_control: true,
         })
     }
 

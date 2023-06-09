@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use fog::factory;
-use fog::private::traits::HistogramType;
-use fog::private::{CommonMetricData, Lifetime, MemoryUnit, TimeUnit};
+use firefox_on_glean::factory;
+use firefox_on_glean::private::traits::HistogramType;
+use firefox_on_glean::private::{CommonMetricData, Lifetime, MemoryUnit, TimeUnit};
 #[cfg(feature = "with_gecko")]
 use nsstring::{nsACString, nsAString, nsCString};
 use serde::Deserialize;
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
@@ -23,7 +24,7 @@ struct ExtraMetricArgs {
     bucket_count: Option<u64>,
     histogram_type: Option<HistogramType>,
     numerators: Option<Vec<CommonMetricData>>,
-    labels: Option<Vec<String>>,
+    labels: Option<Vec<Cow<'static, str>>>,
 }
 
 /// Test-only method.
@@ -72,6 +73,7 @@ pub extern "C" fn jog_test_register_metric(
         extra_args,
     )
     .expect("Creation/Registration of metric failed") // ok to panic in test-only method
+    .0
 }
 
 fn create_and_register_metric(
@@ -82,10 +84,10 @@ fn create_and_register_metric(
     lifetime: Lifetime,
     disabled: bool,
     extra_args: ExtraMetricArgs,
-) -> Result<u32, Box<dyn std::error::Error>> {
+) -> Result<(u32, u32), Box<dyn std::error::Error>> {
     let ns_name = nsCString::from(&name);
     let ns_category = nsCString::from(&category);
-    let metric_id = factory::create_and_register_metric(
+    let metric = factory::create_and_register_metric(
         metric_type,
         category,
         name,
@@ -103,22 +105,27 @@ fn create_and_register_metric(
         extra_args.labels,
     );
     extern "C" {
-        fn JOG_RegisterMetric(category: &nsACString, name: &nsACString, metric: u32);
+        fn JOG_RegisterMetric(
+            category: &nsACString,
+            name: &nsACString,
+            metric: u32,
+            metric_id: u32,
+        );
     }
-    if let Ok(metric_id) = metric_id {
+    if let Ok((metric, metric_id)) = metric {
         unsafe {
             // Safety: We're loaning to C++ data we don't later use.
-            JOG_RegisterMetric(&ns_category, &ns_name, metric_id);
+            JOG_RegisterMetric(&ns_category, &ns_name, metric, metric_id);
         }
     } else {
         log::warn!(
             "Could not register metric {}.{} due to {:?}",
             ns_category,
             ns_name,
-            metric_id
+            metric
         );
     }
-    metric_id
+    metric
 }
 
 /// Test-only method.

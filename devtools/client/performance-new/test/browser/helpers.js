@@ -499,9 +499,19 @@ async function withDevToolsPanel(url, callback, aWindow = window) {
 
   info("About to remove the about:blank tab");
   await toolbox.destroy();
+
+  // The previous asynchronous functions may resolve within a tick after opening a new tab.
+  // We shouldn't remove the newly opened tab in the same tick.
+  // Wait for the next tick here.
+  await TestUtils.waitForTick();
+
+  // Take care to register the TabClose event before we call removeTab, to avoid
+  // race issues.
+  const waitForClosingPromise = BrowserTestUtils.waitForTabClosing(tab);
   BrowserTestUtils.removeTab(tab);
+  info("Requested closing the about:blank tab, waiting...");
+  await waitForClosingPromise;
   info("The about:blank tab is now removed.");
-  await new Promise(resolve => setTimeout(resolve, 500));
 }
 /* exported withDevToolsPanel */
 
@@ -515,7 +525,7 @@ async function withDevToolsPanel(url, callback, aWindow = window) {
  */
 function getActiveConfiguration() {
   const BackgroundJSM = ChromeUtils.import(
-    "resource://devtools/client/performance-new/popup/background.jsm.js"
+    "resource://devtools/client/performance-new/shared/background.jsm.js"
   );
 
   const { startProfiler, stopProfiler } = BackgroundJSM;

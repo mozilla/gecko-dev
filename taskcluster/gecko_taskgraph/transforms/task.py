@@ -14,10 +14,10 @@ import hashlib
 import os
 import re
 import time
-from copy import deepcopy
 
 import attr
 from mozbuild.util import memoize
+from taskcluster.utils import fromNow
 from taskgraph.transforms.base import TransformSequence
 from taskgraph.util.keyed_by import evaluate_keyed_by
 from taskgraph.util.schema import (
@@ -35,12 +35,12 @@ from gecko_taskgraph.optimize.schema import OptimizationSchema
 from gecko_taskgraph.transforms.job.common import get_expiration
 from gecko_taskgraph.util import docker as dockerutil
 from gecko_taskgraph.util.attributes import TRUNK_PROJECTS, is_try, release_level
+from gecko_taskgraph.util.copy_task import copy_task
 from gecko_taskgraph.util.hash import hash_path
 from gecko_taskgraph.util.partners import get_partners_to_be_published
 from gecko_taskgraph.util.scriptworker import BALROG_ACTIONS, get_release_config
 from gecko_taskgraph.util.signed_artifacts import get_signed_artifacts
 from gecko_taskgraph.util.workertypes import get_worker_type, worker_type_implementation
-from taskcluster.utils import fromNow
 
 RUN_TASK = os.path.join(GECKO, "taskcluster", "scripts", "run-task")
 
@@ -525,12 +525,11 @@ def build_docker_worker_payload(config, task, task_def):
             config, task.get("expiration-policy", "default")
         )
         now = datetime.datetime.utcnow()
+        task_exp = task_def["expires"]["relative-datestamp"]
+        task_exp_from_now = fromNow(task_exp)
         for artifact in worker["artifacts"]:
             art_exp = artifact.get("expires-after", expires_policy)
-            task_exp = task_def["expires"]["relative-datestamp"]
-            expires = (
-                art_exp if fromNow(art_exp, now) < fromNow(task_exp, now) else task_exp
-            )
+            expires = art_exp if fromNow(art_exp, now) < task_exp_from_now else task_exp
             artifacts[artifact["name"]] = {
                 "path": artifact["path"],
                 "type": artifact["type"],
@@ -758,12 +757,12 @@ def build_generic_worker_payload(config, task, task_def):
 
     expires_policy = get_expiration(config, task.get("expiration-policy", "default"))
     now = datetime.datetime.utcnow()
+    task_exp = task_def["expires"]["relative-datestamp"]
+    task_exp_from_now = fromNow(task_exp)
     for artifact in worker.get("artifacts", []):
         art_exp = artifact.get("expires-after", expires_policy)
         task_exp = task_def["expires"]["relative-datestamp"]
-        expires = (
-            art_exp if fromNow(art_exp, now) < fromNow(task_exp, now) else task_exp
-        )
+        expires = art_exp if fromNow(art_exp, now) < task_exp_from_now else task_exp
         a = {
             "path": artifact["path"],
             "type": artifact["type"],
@@ -780,7 +779,7 @@ def build_generic_worker_payload(config, task, task_def):
     #   * 'cache-name' -> 'cacheName'
     #   * 'task-id'    -> 'taskId'
     # All other key names are already suitable, and don't need renaming.
-    mounts = deepcopy(worker.get("mounts", []))
+    mounts = copy_task(worker.get("mounts", []))
     for mount in mounts:
         if "cache-name" in mount:
             mount["cacheName"] = "{trust_domain}-level-{level}-{name}".format(
@@ -851,6 +850,8 @@ def build_generic_worker_payload(config, task, task_def):
         Optional("mac-behavior"): Any(
             "mac_notarize_part_1",
             "mac_notarize_part_3",
+            "apple_notarization",
+            "mac_sign",
             "mac_sign_and_pkg",
             "mac_geckodriver",
             "mac_notarize_geckodriver",
@@ -884,7 +885,7 @@ def build_scriptworker_signing_payload(config, task, task_def):
                     behavior=worker.get("mac-behavior"),
                 )
             )
-    task["attributes"]["release_artifacts"] = list(artifacts)
+    task["attributes"]["release_artifacts"] = sorted(list(artifacts))
 
 
 @payload_builder(
@@ -981,6 +982,21 @@ def build_beetmover_push_to_release_payload(config, task, task_def):
         "version": release_config["version"],
         "build_number": release_config["build_number"],
         "partners": partners,
+    }
+
+
+@payload_builder(
+    "beetmover-import-from-gcs-to-artifact-registry",
+    schema={
+        Required("max-run-time"): int,
+        Required("gcs-sources"): [str],
+        Required("product"): str,
+    },
+)
+def build_import_from_gcs_to_artifact_registry_payload(config, task, task_def):
+    task_def["payload"] = {
+        "product": task["worker"]["product"],
+        "gcs_sources": task["worker"]["gcs-sources"],
     }
 
 
@@ -1511,6 +1527,7 @@ def set_defaults(config, tasks):
             "beetmover",
             "beetmover-push-to-release",
             "beetmover-maven",
+            "beetmover-import-from-gcs-to-artifact-registry",
         ):
             worker.setdefault("max-run-time", 600)
         elif worker["implementation"] == "push-apk":
@@ -2083,7 +2100,7 @@ def chain_of_trust(config, tasks):
 @transforms.add
 def check_task_identifiers(config, tasks):
     """Ensures that all tasks have well defined identifiers:
-    ^[a-zA-Z0-9_-]{1,38}$
+    ``^[a-zA-Z0-9_-]{1,38}$``
     """
     e = re.compile("^[a-zA-Z0-9_-]{1,38}$")
     for task in tasks:

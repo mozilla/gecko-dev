@@ -14,7 +14,7 @@ pub struct MergeInstruction {
     pub continue_block_id: Option<BlockId>,
 }
 
-impl<I: Iterator<Item = u32>> super::Parser<I> {
+impl<I: Iterator<Item = u32>> super::Frontend<I> {
     // Registers a function call. It will generate a dummy handle to call, which
     // gets resolved after all the functions are processed.
     pub(super) fn add_call(
@@ -61,7 +61,7 @@ impl<I: Iterator<Item = u32>> super::Parser<I> {
                 local_variables: Arena::new(),
                 expressions: self
                     .make_expression_storage(&module.global_variables, &module.constants),
-                named_expressions: crate::FastHashMap::default(),
+                named_expressions: crate::NamedExpressions::default(),
                 body: crate::Block::new(),
             }
         };
@@ -170,7 +170,7 @@ impl<I: Iterator<Item = u32>> super::Parser<I> {
                 None => format!("block_ctx.Fun-{}.txt", module.functions.len()),
             };
             let dest = prefix.join(dump_suffix);
-            let dump = format!("{:#?}", block_ctx);
+            let dump = format!("{block_ctx:#?}");
             if let Err(e) = std::fs::write(&dest, dump) {
                 log::error!("Unable to dump the block context into {:?}: {}", dest, e);
             }
@@ -298,7 +298,7 @@ impl<I: Iterator<Item = u32>> super::Parser<I> {
                 result: None,
                 local_variables: Arena::new(),
                 expressions: Arena::new(),
-                named_expressions: crate::FastHashMap::default(),
+                named_expressions: crate::NamedExpressions::default(),
                 body: crate::Block::new(),
             };
 
@@ -370,24 +370,63 @@ impl<I: Iterator<Item = u32>> super::Parser<I> {
                     let expr_handle = function
                         .expressions
                         .append(crate::Expression::GlobalVariable(lvar.handle), span);
+
+                    // Cull problematic builtins of gl_PerVertex.
+                    // See the docs for `Frontend::gl_per_vertex_builtin_access`.
+                    {
+                        let ty = &module.types[result.ty];
+                        match ty.inner {
+                            crate::TypeInner::Struct {
+                                members: ref original_members,
+                                span,
+                            } if ty.name.as_deref() == Some("gl_PerVertex") => {
+                                let mut new_members = original_members.clone();
+                                for member in &mut new_members {
+                                    if let Some(crate::Binding::BuiltIn(built_in)) = member.binding
+                                    {
+                                        if !self.gl_per_vertex_builtin_access.contains(&built_in) {
+                                            member.binding = None
+                                        }
+                                    }
+                                }
+                                if &new_members != original_members {
+                                    module.types.replace(
+                                        result.ty,
+                                        crate::Type {
+                                            name: ty.name.clone(),
+                                            inner: crate::TypeInner::Struct {
+                                                members: new_members,
+                                                span,
+                                            },
+                                        },
+                                    );
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+
                     match module.types[result.ty].inner {
                         crate::TypeInner::Struct {
                             members: ref sub_members,
                             ..
                         } => {
                             for (index, sm) in sub_members.iter().enumerate() {
-                                match sm.binding {
-                                    Some(crate::Binding::BuiltIn(built_in)) => {
-                                        // Cull unused builtins to preserve performances
-                                        if !self.builtin_usage.contains(&built_in) {
-                                            continue;
-                                        }
-                                    }
-                                    // unrecognized binding, skip
-                                    None => continue,
-                                    _ => {}
+                                if sm.binding.is_none() {
+                                    continue;
                                 }
-                                members.push(sm.clone());
+                                let mut sm = sm.clone();
+
+                                if let Some(ref mut binding) = sm.binding {
+                                    if ep.stage == crate::ShaderStage::Vertex {
+                                        binding.apply_default_interpolation(
+                                            &module.types[sm.ty].inner,
+                                        );
+                                    }
+                                }
+
+                                members.push(sm);
+
                                 components.push(function.expressions.append(
                                     crate::Expression::AccessIndex {
                                         base: expr_handle,
@@ -397,11 +436,18 @@ impl<I: Iterator<Item = u32>> super::Parser<I> {
                                 ));
                             }
                         }
-                        _ => {
+                        ref inner => {
+                            let mut binding = result.binding.clone();
+                            if let Some(ref mut binding) = binding {
+                                if ep.stage == crate::ShaderStage::Vertex {
+                                    binding.apply_default_interpolation(inner);
+                                }
+                            }
+
                             members.push(crate::StructMember {
                                 name: None,
                                 ty: result.ty,
-                                binding: result.binding.clone(),
+                                binding,
                                 offset: 0,
                             });
                             // populate just the globals first, then do `Load` in a
@@ -578,7 +624,7 @@ impl<'function> BlockContext<'function> {
                                 let fall_through = body.last().map_or(true, |s| !s.is_terminator());
 
                                 crate::SwitchCase {
-                                    value: crate::SwitchValue::Integer(value),
+                                    value: crate::SwitchValue::I32(value),
                                     body,
                                     fall_through,
                                 }

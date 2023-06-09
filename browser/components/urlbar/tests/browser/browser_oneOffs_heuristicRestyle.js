@@ -84,7 +84,7 @@ async function heuristicIsNotRestyled(expectedType, resultDetails) {
   if (
     expectedType === UrlbarUtils.RESULT_TYPE.URL &&
     resultDetails.result.heuristic &&
-    resultDetails.result.autofill?.hasTitle
+    resultDetails.result.payload.title
   ) {
     Assert.equal(
       resultDetails.displayed.url,
@@ -138,7 +138,7 @@ async function heuristicIsRestyled(
   let engine = selectedOneOff.engine;
   let source = selectedOneOff.source;
   if (!engine && !source) {
-    Assert.fail("An invalid one-off was passed to urlbarResultIsRestyled");
+    Assert.ok(false, "An invalid one-off was passed to urlbarResultIsRestyled");
     return;
   }
   Assert.equal(

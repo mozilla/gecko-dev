@@ -21,6 +21,7 @@ web-platform-tests:
     - web-platform-tests-print-reftest
     - web-platform-tests-reftest
     - web-platform-tests-wdspec
+    - web-platform-tests-webgpu
 
 web-platform-tests-backlog:
     - web-platform-tests-backlog
@@ -60,7 +61,6 @@ talos-profiling:
     - talos-chrome-profiling
     # - talos-damp-profiling - Disabled b/c of Bug 1597734
     - talos-dromaeojs-profiling
-    # - talos-flex-profiling - Disabled b/c of Bug 1597736
     - talos-g1-profiling
     - talos-g3-profiling
     - talos-g4-profiling
@@ -88,9 +88,22 @@ browsertime:
     - browsertime-benchmark
     - browsertime-benchmark-wasm
     - browsertime-youtube-playback
+    - browsertime-youtube-playback-power
     - browsertime-custom
     - browsertime-first-install
-    - browsertime-grandprix
+    - browsertime-responsiveness
+    - browsertime-regression-tests
+    - browsertime-upload
+
+browsertime-clang:
+    - browsertime-tp6
+    - browsertime-tp6-essential
+    - browsertime-tp6-bytecode
+    - browsertime-tp6-live
+    - browsertime-tp6-live-sheriffed
+    - browsertime-benchmark
+    - browsertime-benchmark-wasm
+    - browsertime-youtube-playback
     - browsertime-responsiveness
 
 browsertime-profiling:
@@ -99,12 +112,6 @@ browsertime-profiling:
 browsertime-high-priority:
     - browsertime-benchmark
     - browsertime-tp6
-
-# Raptor desktop power tests
-# (requires Intel Power Gadget to be pre-installed)
-raptor-firefox-power:
-    - raptor-youtube-playback-v9-power-firefox
-    - raptor-youtube-playback-h264-power-firefox
 
 awsy:
     - awsy
@@ -170,20 +177,16 @@ linux1804-ccov-tests:
     # on ccov builds.
     - jittest
 
-linux-talos-flex:
-    - talos-flex
-
 # Windows
 
 windows-7-tests:
+    - cppunit
     - mochitest-browser-a11y
     - mochitest-browser-chrome
     - mochitest-browser-media
-    - mochitest-webgpu
-    - reftest
     - xpcshell
 
-windows32-2004-tests:
+windows32-2009-tests:
     - cppunit
     - crashtest
     - gtest
@@ -197,12 +200,32 @@ windows32-2004-tests:
     - mochitest-plain
     - mochitest-plain-gpu
     - mochitest-remote
+    - mochitest-webgpu
+    - reftest
     - telemetry-tests-client
     - test-verify
     - test-verify-gpu
     - test-verify-wpt
 
 windows10-2004-tests:
+    - cppunit
+    - gtest
+    - mochitest-chrome
+    - mochitest-chrome-gpu
+    - mochitest-plain
+    - mochitest-plain-gpu
+    - xpcshell
+
+windows11-64-2009-ccov-tests:
+    - jittest
+    - test-coverage
+    - web-platform-tests
+    - web-platform-tests-crashtest
+    - web-platform-tests-print-reftest
+    - web-platform-tests-reftest
+    - web-platform-tests-wdspec
+
+windows11-2009-tests:
     - cppunit
     - crashtest
     - firefox-ui-functional
@@ -231,15 +254,6 @@ windows10-2004-tests:
     - test-verify-gpu
     - test-verify-wpt
     - xpcshell
-
-windows10-64-2004-ccov-tests:
-    - jittest
-    - test-coverage
-    - web-platform-tests
-    - web-platform-tests-crashtest
-    - web-platform-tests-print-reftest
-    - web-platform-tests-reftest
-    - web-platform-tests-wdspec
 
 mingwclang-tests-debug:
     - cppunit
@@ -276,9 +290,6 @@ mingwclang-tests-opt:
     - cppunit
     - mochitest-chrome-gpu
     - mochitest-plain-gpu
-
-windows-aarch64-tests:
-    - mochitest-media
 
 windows-talos:
     - talos-bcv

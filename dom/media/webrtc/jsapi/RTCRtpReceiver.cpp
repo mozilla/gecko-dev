@@ -3,10 +3,11 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "RTCRtpReceiver.h"
+#include "PeerConnectionImpl.h"
+#include "mozilla/dom/RTCRtpCapabilitiesBinding.h"
 #include "transport/logging.h"
 #include "mozilla/dom/MediaStreamTrack.h"
 #include "mozilla/dom/Promise.h"
-#include "transportbridge/MediaPipeline.h"
 #include "nsPIDOMWindow.h"
 #include "PrincipalHandle.h"
 #include "nsIPrincipal.h"
@@ -39,7 +40,8 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(RTCRtpReceiver)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(RTCRtpReceiver)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mWindow, mPc, mTransceiver, mTrack)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mWindow, mPc, mTransceiver, mTrack,
+                                    mTrackSource)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(RTCRtpReceiver)
@@ -50,7 +52,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(RTCRtpReceiver)
 NS_INTERFACE_MAP_END
 
 static PrincipalHandle GetPrincipalHandle(nsPIDOMWindowInner* aWindow,
-                                          bool aPrivacyNeeded) {
+                                          PrincipalPrivacy aPrivacy) {
   // Set the principal used for creating the tracks. This makes the track
   // data (audio/video samples) accessible to the receiving page. We're
   // only certain that privacy hasn't been requested if we're connected.
@@ -58,41 +60,10 @@ static PrincipalHandle GetPrincipalHandle(nsPIDOMWindowInner* aWindow,
   RefPtr<nsIPrincipal> principal = winPrincipal->GetPrincipal();
   if (NS_WARN_IF(!principal)) {
     principal = NullPrincipal::CreateWithoutOriginAttributes();
-  } else if (aPrivacyNeeded) {
+  } else if (aPrivacy == PrincipalPrivacy::Private) {
     principal = NullPrincipal::CreateWithInheritedAttributes(principal);
   }
   return MakePrincipalHandle(principal);
-}
-
-static already_AddRefed<dom::MediaStreamTrack> CreateTrack(
-    nsPIDOMWindowInner* aWindow, bool aAudio,
-    const nsCOMPtr<nsIPrincipal>& aPrincipal, const TrackingId& aTrackingId) {
-  MediaTrackGraph* graph = MediaTrackGraph::GetInstance(
-      aAudio ? MediaTrackGraph::AUDIO_THREAD_DRIVER
-             : MediaTrackGraph::SYSTEM_THREAD_DRIVER,
-      aWindow, MediaTrackGraph::REQUEST_DEFAULT_SAMPLE_RATE,
-      MediaTrackGraph::DEFAULT_OUTPUT_DEVICE);
-
-  RefPtr<MediaStreamTrack> track;
-  RefPtr<RemoteTrackSource> trackSource;
-  if (aAudio) {
-    RefPtr<SourceMediaTrack> source =
-        graph->CreateSourceTrack(MediaSegment::AUDIO);
-    trackSource = new RemoteTrackSource(source, aPrincipal, u"remote audio"_ns,
-                                        aTrackingId);
-    track = new AudioStreamTrack(aWindow, source, trackSource);
-  } else {
-    RefPtr<SourceMediaTrack> source =
-        graph->CreateSourceTrack(MediaSegment::VIDEO);
-    trackSource = new RemoteTrackSource(source, aPrincipal, u"remote video"_ns,
-                                        aTrackingId);
-    track = new VideoStreamTrack(aWindow, source, trackSource);
-  }
-
-  // Spec says remote tracks start out muted.
-  trackSource->SetMuted(true);
-
-  return track.forget();
 }
 
 #define INIT_CANONICAL(name, val)         \
@@ -100,11 +71,13 @@ static already_AddRefed<dom::MediaStreamTrack> CreateTrack(
        "RTCRtpReceiver::" #name " (Canonical)")
 
 RTCRtpReceiver::RTCRtpReceiver(
-    nsPIDOMWindowInner* aWindow, bool aPrivacyNeeded, PeerConnectionImpl* aPc,
-    MediaTransportHandler* aTransportHandler, AbstractThread* aCallThread,
-    nsISerialEventTarget* aStsThread, MediaSessionConduit* aConduit,
-    RTCRtpTransceiver* aTransceiver, const TrackingId& aTrackingId)
-    : mWindow(aWindow),
+    nsPIDOMWindowInner* aWindow, PrincipalPrivacy aPrivacy,
+    PeerConnectionImpl* aPc, MediaTransportHandler* aTransportHandler,
+    AbstractThread* aCallThread, nsISerialEventTarget* aStsThread,
+    MediaSessionConduit* aConduit, RTCRtpTransceiver* aTransceiver,
+    const TrackingId& aTrackingId)
+    : mWatchManager(this, AbstractThread::MainThread()),
+      mWindow(aWindow),
       mPc(aPc),
       mCallThread(aCallThread),
       mStsThread(aStsThread),
@@ -117,9 +90,40 @@ RTCRtpReceiver::RTCRtpReceiver(
       INIT_CANONICAL(mVideoCodecs, std::vector<VideoCodecConfig>()),
       INIT_CANONICAL(mVideoRtpRtcpConfig, Nothing()),
       INIT_CANONICAL(mReceiving, false) {
-  PrincipalHandle principalHandle = GetPrincipalHandle(aWindow, aPrivacyNeeded);
-  mTrack = CreateTrack(aWindow, aConduit->type() == MediaSessionConduit::AUDIO,
-                       principalHandle.get(), aTrackingId);
+  PrincipalHandle principalHandle = GetPrincipalHandle(aWindow, aPrivacy);
+  const bool isAudio = aConduit->type() == MediaSessionConduit::AUDIO;
+
+  MediaTrackGraph* graph = MediaTrackGraph::GetInstance(
+      isAudio ? MediaTrackGraph::AUDIO_THREAD_DRIVER
+              : MediaTrackGraph::SYSTEM_THREAD_DRIVER,
+      aWindow, MediaTrackGraph::REQUEST_DEFAULT_SAMPLE_RATE,
+      MediaTrackGraph::DEFAULT_OUTPUT_DEVICE);
+
+  if (isAudio) {
+    auto* source = graph->CreateSourceTrack(MediaSegment::AUDIO);
+    mTrackSource = MakeAndAddRef<RemoteTrackSource>(
+        source, this, principalHandle, u"remote audio"_ns, aTrackingId);
+    mTrack = MakeAndAddRef<AudioStreamTrack>(aWindow, source, mTrackSource);
+    mPipeline = MakeAndAddRef<MediaPipelineReceiveAudio>(
+        mPc->GetHandle(), aTransportHandler, aCallThread, mStsThread.get(),
+        *aConduit->AsAudioSessionConduit(), mTrackSource->Stream(), aTrackingId,
+        principalHandle, aPrivacy);
+  } else {
+    auto* source = graph->CreateSourceTrack(MediaSegment::VIDEO);
+    mTrackSource = MakeAndAddRef<RemoteTrackSource>(
+        source, this, principalHandle, u"remote video"_ns, aTrackingId);
+    mTrack = MakeAndAddRef<VideoStreamTrack>(aWindow, source, mTrackSource);
+    mPipeline = MakeAndAddRef<MediaPipelineReceiveVideo>(
+        mPc->GetHandle(), aTransportHandler, aCallThread, mStsThread.get(),
+        *aConduit->AsVideoSessionConduit(), mTrackSource->Stream(), aTrackingId,
+        principalHandle, aPrivacy);
+  }
+
+  mPipeline->InitControl(this);
+
+  // Spec says remote tracks start out muted.
+  mTrackSource->SetMuted(true);
+
   // Until Bug 1232234 is fixed, we'll get extra RTCP BYES during renegotiation,
   // so we'll disable muting on RTCP BYE and timeout for now.
   if (Preferences::GetBool("media.peerconnection.mute_on_bye_or_timeout",
@@ -129,15 +133,9 @@ RTCRtpReceiver::RTCRtpReceiver(
     mRtcpTimeoutListener = aConduit->RtcpTimeoutEvent().Connect(
         GetMainThreadSerialEventTarget(), this, &RTCRtpReceiver::OnRtcpTimeout);
   }
-  if (aConduit->type() == MediaSessionConduit::AUDIO) {
-    mPipeline = new MediaPipelineReceiveAudio(
-        mPc->GetHandle(), aTransportHandler, aCallThread, mStsThread.get(),
-        *aConduit->AsAudioSessionConduit(), mTrack, principalHandle);
-  } else {
-    mPipeline = new MediaPipelineReceiveVideo(
-        mPc->GetHandle(), aTransportHandler, aCallThread, mStsThread.get(),
-        *aConduit->AsVideoSessionConduit(), mTrack, principalHandle);
-  }
+
+  mWatchManager.Watch(mReceiveTrackMute,
+                      &RTCRtpReceiver::UpdateReceiveTrackMute);
 }
 
 #undef INIT_CANONICAL
@@ -154,6 +152,12 @@ RTCDtlsTransport* RTCRtpReceiver::GetTransport() const {
     return nullptr;
   }
   return mTransceiver->GetDtlsTransport();
+}
+
+void RTCRtpReceiver::GetCapabilities(
+    const GlobalObject&, const nsAString& aKind,
+    Nullable<dom::RTCRtpCapabilities>& aResult) {
+  PeerConnectionImpl::GetCapabilities(aKind, aResult, sdp::Direction::kRecv);
 }
 
 already_AddRefed<Promise> RTCRtpReceiver::GetStats(ErrorResult& aError) {
@@ -257,25 +261,24 @@ nsTArray<RefPtr<RTCStatsPromise>> RTCRtpReceiver::GetStatsInternal(
                   aRemote.mTimestamp.Construct(aTimestamp);
                   aRemote.mId.Construct(remoteId);
                   aRemote.mType.Construct(RTCStatsType::Remote_outbound_rtp);
-                  ssrc.apply(
-                      [&](uint32_t aSsrc) { aRemote.mSsrc.Construct(aSsrc); });
+                  ssrc.apply([&](uint32_t aSsrc) { aRemote.mSsrc = aSsrc; });
+                  aRemote.mKind = kind;
                   aRemote.mMediaType.Construct(
                       kind);  // mediaType is the old name for kind.
-                  aRemote.mKind.Construct(kind);
                   aRemote.mLocalId.Construct(localId);
                 };
 
             auto constructCommonInboundRtpStats =
                 [&](RTCInboundRtpStreamStats& aLocal) {
+                  aLocal.mTrackIdentifier = recvTrackId;
                   aLocal.mTimestamp.Construct(
                       pipeline->GetTimestampMaker().GetNow());
                   aLocal.mId.Construct(localId);
                   aLocal.mType.Construct(RTCStatsType::Inbound_rtp);
-                  ssrc.apply(
-                      [&](uint32_t aSsrc) { aLocal.mSsrc.Construct(aSsrc); });
+                  ssrc.apply([&](uint32_t aSsrc) { aLocal.mSsrc = aSsrc; });
+                  aLocal.mKind = kind;
                   aLocal.mMediaType.Construct(
                       kind);  // mediaType is the old name for kind.
-                  aLocal.mKind.Construct(kind);
                   if (remoteId.Length()) {
                     aLocal.mRemoteId.Construct(remoteId);
                   }
@@ -481,13 +484,10 @@ nsTArray<RefPtr<RTCStatsPromise>> RTCRtpReceiver::GetStatsInternal(
                         webrtc::Timestamp::Millis(
                             *videoStats->estimated_playout_ntp_timestamp_ms)));
               }
-              local.mFramesReceived.Construct(
-                  videoStats->frame_counts.key_frames +
-                  videoStats->frame_counts.delta_frames);
+               */
               // Not including frames dropped in the rendering pipe, which
               // is not of webrtc's concern anyway?!
               local.mFramesDropped.Construct(videoStats->frames_dropped);
-               */
               if (!report->mInboundRtpStreamStats.AppendElement(
                       std::move(local), fallible)) {
                 mozalloc_handle_oom(0);
@@ -556,19 +556,25 @@ nsPIDOMWindowInner* RTCRtpReceiver::GetParentObject() const { return mWindow; }
 
 void RTCRtpReceiver::Shutdown() {
   MOZ_ASSERT(NS_IsMainThread());
+  mWatchManager.Shutdown();
   if (mPipeline) {
     mPipeline->Shutdown();
     mPipeline = nullptr;
   }
+  if (mTrackSource) {
+    mTrackSource->Destroy();
+  }
   mCallThread = nullptr;
   mRtcpByeListener.DisconnectIfExists();
   mRtcpTimeoutListener.DisconnectIfExists();
+  mUnmuteListener.DisconnectIfExists();
 }
 
 void RTCRtpReceiver::BreakCycles() {
   mWindow = nullptr;
   mPc = nullptr;
   mTrack = nullptr;
+  mTrackSource = nullptr;
 }
 
 void RTCRtpReceiver::UpdateTransport() {
@@ -617,17 +623,14 @@ void RTCRtpReceiver::UpdateTransport() {
 }
 
 void RTCRtpReceiver::UpdateConduit() {
-  mReceiving = false;
-  Stop();
-
   if (mPipeline->mConduit->type() == MediaSessionConduit::VIDEO) {
     UpdateVideoConduit();
   } else {
     UpdateAudioConduit();
   }
 
-  if ((mReceiving = GetJsepTransceiver().mRecvTrack.GetActive())) {
-    Start();
+  if ((mReceiving = mTransceiver->IsReceiving())) {
+    mHaveStartedReceiving = true;
   }
 }
 
@@ -756,14 +759,8 @@ void RTCRtpReceiver::UpdateAudioConduit() {
 }
 
 void RTCRtpReceiver::Stop() {
-  if (mPipeline) {
-    mPipeline->Stop();
-  }
-}
-
-void RTCRtpReceiver::Start() {
-  mPipeline->Start();
-  mHaveStartedReceiving = true;
+  MOZ_ASSERT(mTransceiver->Stopped());
+  mReceiving = false;
 }
 
 bool RTCRtpReceiver::HasTrack(const dom::MediaStreamTrack* aTrack) const {
@@ -771,11 +768,20 @@ bool RTCRtpReceiver::HasTrack(const dom::MediaStreamTrack* aTrack) const {
 }
 
 void RTCRtpReceiver::SyncFromJsep(const JsepTransceiver& aJsepTransceiver) {
-  // If a SRD has unset the receive bit, stop the receive pipeline so incoming
-  // RTP does not unmute the receive track.
-  if (!aJsepTransceiver.mRecvTrack.GetRemoteSetSendBit() ||
-      !aJsepTransceiver.mRecvTrack.GetActive()) {
-    Stop();
+  if (!mPipeline) {
+    return;
+  }
+
+  // Spec says we set [[Receptive]] to true on sLD(sendrecv/recvonly), and to
+  // false on sRD(recvonly/inactive), sLD(sendonly/inactive), or when stop()
+  // is called.
+  bool wasReceptive = mReceptive;
+  mReceptive = aJsepTransceiver.mRecvTrack.GetReceptive();
+  if (!wasReceptive && mReceptive) {
+    mUnmuteListener = mPipeline->mConduit->RtpPacketEvent().Connect(
+        GetMainThreadSerialEventTarget(), this, &RTCRtpReceiver::OnRtpPacket);
+  } else if (wasReceptive && !mReceptive) {
+    mUnmuteListener.DisconnectIfExists();
   }
 }
 
@@ -812,13 +818,25 @@ void RTCRtpReceiver::UpdateStreams(StreamAssociationChanges* aChanges) {
     if (mRemoteSetSendBit) {
       needsTrackEvent = true;
     } else {
-      aChanges->mTracksToMute.push_back(mTrack);
+      aChanges->mReceiversToMute.push_back(this);
     }
   }
 
   if (needsTrackEvent) {
     aChanges->mTrackEvents.push_back({this, mStreamIds});
   }
+}
+
+void RTCRtpReceiver::UpdatePrincipalPrivacy(PrincipalPrivacy aPrivacy) {
+  if (!mPipeline) {
+    return;
+  }
+
+  if (aPrivacy != PrincipalPrivacy::Private) {
+    return;
+  }
+
+  mPipeline->SetPrivatePrincipal(GetPrincipalHandle(mWindow, aPrivacy));
 }
 
 // test-only: adds fake CSRCs and audio data
@@ -832,15 +850,40 @@ void RTCRtpReceiver::MozInsertAudioLevelForContributingSource(
       aSource, aTimestamp, aRtpTimestamp, aHasLevel, aLevel);
 }
 
-void RTCRtpReceiver::OnRtcpBye() { SetReceiveTrackMuted(true); }
+void RTCRtpReceiver::OnRtcpBye() { mReceiveTrackMute = true; }
 
-void RTCRtpReceiver::OnRtcpTimeout() { SetReceiveTrackMuted(true); }
+void RTCRtpReceiver::OnRtcpTimeout() { mReceiveTrackMute = true; }
 
-void RTCRtpReceiver::SetReceiveTrackMuted(bool aMuted) {
-  if (mTrack) {
-    // This sets the muted state for mTrack and all its clones.
-    static_cast<RemoteTrackSource&>(mTrack->GetSource()).SetMuted(aMuted);
+void RTCRtpReceiver::SetTrackMuteFromRemoteSdp() {
+  MOZ_ASSERT(!mReceptive,
+             "PeerConnectionImpl should have blocked unmute events prior to "
+             "firing mute");
+  mReceiveTrackMute = true;
+  // Set the mute state (and fire the mute event) synchronously. Unmute is
+  // handled asynchronously after receiving RTP packets.
+  UpdateReceiveTrackMute();
+  MOZ_ASSERT(mTrack->Muted(), "Muted state was indeed set synchronously");
+}
+
+void RTCRtpReceiver::OnRtpPacket() {
+  MOZ_ASSERT(mReceptive, "We should not be registered unless this is set!");
+  // We should be registered since we're currently getting a callback.
+  mUnmuteListener.Disconnect();
+  if (mReceptive) {
+    mReceiveTrackMute = false;
   }
+}
+
+void RTCRtpReceiver::UpdateReceiveTrackMute() {
+  if (!mTrack) {
+    return;
+  }
+  if (!mTrackSource) {
+    return;
+  }
+  // This sets the muted state for mTrack and all its clones.
+  // Idempotent -- only reacts to changes.
+  mTrackSource->SetMuted(mReceiveTrackMute);
 }
 
 std::string RTCRtpReceiver::GetMid() const {
@@ -849,12 +892,12 @@ std::string RTCRtpReceiver::GetMid() const {
 
 JsepTransceiver& RTCRtpReceiver::GetJsepTransceiver() {
   MOZ_ASSERT(mTransceiver);
-  return *mTransceiver->GetJsepTransceiver();
+  return mTransceiver->GetJsepTransceiver();
 }
 
 const JsepTransceiver& RTCRtpReceiver::GetJsepTransceiver() const {
   MOZ_ASSERT(mTransceiver);
-  return *mTransceiver->GetJsepTransceiver();
+  return mTransceiver->GetJsepTransceiver();
 }
 
 }  // namespace mozilla::dom

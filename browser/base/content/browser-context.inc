@@ -67,19 +67,23 @@
                 oncommand="InlineSpellCheckerUI.undoAddToDictionary();" />
       <menuseparator id="spell-suggestions-separator"/>
       <menuitem id="context-openlinkincurrent"
+                class="context-menu-open-link"
                 data-l10n-id="main-context-menu-open-link"
                 oncommand="gContextMenu.openLinkInCurrent();"/>
 # label and data-usercontextid are dynamically set.
       <menuitem id="context-openlinkincontainertab"
+                class="context-menu-open-link"
                 data-l10n-id="main-context-menu-open-link-in-container-tab"
                 data-l10n-args='{"containerName":""}'
                 oncommand="gContextMenu.openLinkInTab(event);"/>
       <menuitem id="context-openlinkintab"
+                class="context-menu-open-link"
                 data-l10n-id="main-context-menu-open-link-new-tab"
                 data-usercontextid="0"
                 oncommand="gContextMenu.openLinkInTab(event);"/>
 
       <menu id="context-openlinkinusercontext-menu"
+            class="context-menu-open-link"
             data-l10n-id="main-context-menu-open-link-container-tab"
             hidden="true">
         <menupopup oncommand="gContextMenu.openLinkInTab(event);"
@@ -87,9 +91,11 @@
       </menu>
 
       <menuitem id="context-openlink"
+                class="context-menu-open-link"
                 data-l10n-id="main-context-menu-open-link-new-window"
                 oncommand="gContextMenu.openLink();"/>
       <menuitem id="context-openlinkprivate"
+                class="context-menu-open-link"
                 data-l10n-id="main-context-menu-open-link-new-private-window"
                 oncommand="gContextMenu.openLinkInPrivateWindow();"/>
       <menuseparator id="context-sep-open"/>
@@ -116,7 +122,7 @@
             data-l10n-id="main-context-menu-link-send-to-device"
             hidden="true">
             <menupopup id="context-sendlinktodevice-popup"
-                  onpopupshowing="gSync.populateSendTabToDevicesMenu(event.target, gContextMenu.linkURL, gContextMenu.linkTextStr);"/>
+                  onpopupshowing="gSync.populateSendTabToDevicesMenu(event.target, gContextMenu.linkURI, gContextMenu.linkTextStr);"/>
       </menu>
       <menuseparator id="context-sep-sendlinktodevice" class="sync-ui-item"
                 hidden="true"/>
@@ -266,7 +272,7 @@
             data-l10n-id="main-context-menu-send-to-device"
             hidden="true">
         <menupopup id="context-sendpagetodevice-popup"
-                   onpopupshowing="(() => { gSync.populateSendTabToDevicesMenu(event.target, gBrowser.currentURI.spec, gBrowser.contentTitle); })()"/>
+                   onpopupshowing="(() => { gSync.populateSendTabToDevicesMenu(event.target, gBrowser.currentURI, gBrowser.contentTitle); })()"/>
       </menu>
       <menu id="fill-login" hidden="true">
         <menupopup id="fill-login-popup" />
@@ -275,6 +281,10 @@
                 data-l10n-id="main-context-menu-suggest-strong-password"
                 hidden="true"
                 oncommand="gContextMenu.useGeneratedPassword();"/>
+      <menuitem id="use-relay-mask"
+                data-l10n-id="main-context-menu-use-relay-mask"
+                hidden="true"
+                oncommand="gContextMenu.useRelayMask();"/>
       <menuitem id="manage-saved-logins"
                 data-l10n-id="main-context-menu-manage-logins2"
                 hidden="true"

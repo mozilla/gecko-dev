@@ -11,6 +11,7 @@
 
 #include "jsapi.h"
 #include "xpcpublic.h"
+#include "prprf.h"
 
 #include "nsIAppStartup.h"
 #include "nsIFile.h"
@@ -76,13 +77,10 @@
 #  include "UIKitDirProvider.h"
 #endif
 
-#if defined(MOZ_SANDBOX)
+#if defined(MOZ_CONTENT_TEMP_DIR)
 #  include "mozilla/SandboxSettings.h"
 #  include "nsID.h"
 #  include "mozilla/Unused.h"
-#  if defined(XP_WIN)
-#    include "sandboxBroker.h"
-#  endif
 #endif
 
 #if defined(XP_MACOSX)
@@ -95,7 +93,7 @@
 
 #define PREF_OVERRIDE_DIRNAME "preferences"
 
-#if defined(MOZ_SANDBOX)
+#if defined(MOZ_CONTENT_TEMP_DIR)
 static already_AddRefed<nsIFile> GetProcessSandboxTempDir(
     GeckoProcessType type);
 static nsresult DeleteDirIfExists(nsIFile* dir);
@@ -131,9 +129,7 @@ static const char* GetAppVendor() {
 }
 #endif
 
-nsXREDirProvider::nsXREDirProvider() : mProfileNotified(false) {
-  gDirServiceProvider = this;
-}
+nsXREDirProvider::nsXREDirProvider() { gDirServiceProvider = this; }
 
 nsXREDirProvider::~nsXREDirProvider() {
   gDirServiceProvider = nullptr;
@@ -148,47 +144,45 @@ already_AddRefed<nsXREDirProvider> nsXREDirProvider::GetSingleton() {
   return do_AddRef(gDirServiceProvider);
 }
 
-nsresult nsXREDirProvider::Initialize(
-    nsIFile* aXULAppDir, nsIFile* aGREDir,
-    nsIDirectoryServiceProvider* aAppProvider) {
+nsresult nsXREDirProvider::Initialize(nsIFile* aXULAppDir, nsIFile* aGREDir) {
   NS_ENSURE_ARG(aXULAppDir);
   NS_ENSURE_ARG(aGREDir);
 
-  mAppProvider = aAppProvider;
   mXULAppDir = aXULAppDir;
   mGREDir = aGREDir;
   nsCOMPtr<nsIFile> binaryPath;
   nsresult rv = XRE_GetBinaryPath(getter_AddRefs(binaryPath));
-  if (NS_FAILED(rv)) return rv;
-  rv = binaryPath->GetParent(getter_AddRefs(mGREBinDir));
-  if (NS_FAILED(rv)) return rv;
-
-  if (!mProfileDir) {
-    nsCOMPtr<nsIDirectoryServiceProvider> app(mAppProvider);
-    if (app) {
-      bool per = false;
-      app->GetFile(NS_APP_USER_PROFILE_50_DIR, &per,
-                   getter_AddRefs(mProfileDir));
-      NS_ASSERTION(per, "NS_APP_USER_PROFILE_50_DIR must be persistent!");
-      NS_ASSERTION(
-          mProfileDir,
-          "NS_APP_USER_PROFILE_50_DIR not defined! This shouldn't happen!");
-    }
-  }
-
-  return NS_OK;
+  NS_ENSURE_SUCCESS(rv, rv);
+  return binaryPath->GetParent(getter_AddRefs(mGREBinDir));
 }
 
 nsresult nsXREDirProvider::SetProfile(nsIFile* aDir, nsIFile* aLocalDir) {
-  NS_ASSERTION(aDir && aLocalDir, "We don't support no-profile apps yet!");
+  MOZ_ASSERT(aDir && aLocalDir, "We don't support no-profile apps!");
+  MOZ_ASSERT(!mProfileDir && !mProfileLocalDir,
+             "You may only set the profile directories once");
 
-  nsresult rv;
-
-  rv = EnsureDirectoryExists(aDir);
-  if (NS_FAILED(rv)) return rv;
+  nsresult rv = EnsureDirectoryExists(aDir);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   rv = EnsureDirectoryExists(aLocalDir);
-  if (NS_FAILED(rv)) return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
+
+#ifndef XP_WIN
+  nsAutoCString profilePath;
+  rv = aDir->GetNativePath(profilePath);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsAutoCString localProfilePath;
+  rv = aLocalDir->GetNativePath(localProfilePath);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (!mozilla::IsUtf8(profilePath) || !mozilla::IsUtf8(localProfilePath)) {
+    PR_fprintf(
+        PR_STDERR,
+        "Error: The profile path is not valid UTF-8. Unable to continue.\n");
+    return NS_ERROR_FAILURE;
+  }
+#endif
 
 #ifdef XP_MACOSX
   bool same;
@@ -328,139 +322,88 @@ static nsresult GetSystemParentDirectory(nsIFile** aFile) {
 NS_IMETHODIMP
 nsXREDirProvider::GetFile(const char* aProperty, bool* aPersistent,
                           nsIFile** aFile) {
-  nsresult rv;
-
-  bool gettingProfile = false;
-
-  if (!strcmp(aProperty, NS_APP_USER_PROFILE_LOCAL_50_DIR)) {
-    // If XRE_NotifyProfile hasn't been called, don't fall through to
-    // mAppProvider on the profile keys.
-    if (!mProfileNotified) return NS_ERROR_FAILURE;
-
-    if (mProfileLocalDir) return mProfileLocalDir->Clone(aFile);
-
-    if (mAppProvider)
-      return mAppProvider->GetFile(aProperty, aPersistent, aFile);
-
-    // This falls through to the case below
-    gettingProfile = true;
-  }
-  if (!strcmp(aProperty, NS_APP_USER_PROFILE_50_DIR) || gettingProfile) {
-    if (!mProfileNotified) return NS_ERROR_FAILURE;
-
-    if (mProfileDir) return mProfileDir->Clone(aFile);
-
-    if (mAppProvider)
-      return mAppProvider->GetFile(aProperty, aPersistent, aFile);
-
-    // If we don't succeed here, bail early so that we aren't reentrant
-    // through the "GetProfileDir" call below.
-    return NS_ERROR_FAILURE;
-  }
-
-  if (mAppProvider) {
-    rv = mAppProvider->GetFile(aProperty, aPersistent, aFile);
-    if (NS_SUCCEEDED(rv) && *aFile) return rv;
-  }
-
   *aPersistent = true;
+  nsresult rv = NS_ERROR_FAILURE;
 
-  if (!strcmp(aProperty, NS_GRE_DIR)) {
-#if defined(MOZ_WIDGET_ANDROID)
-    // On Android, internal files are inside the APK, a zip file, so this
-    // folder doesn't really make sense.
-    return NS_ERROR_FAILURE;
-#else
-    return mGREDir->Clone(aFile);
-#endif
-  } else if (!strcmp(aProperty, NS_GRE_BIN_DIR)) {
-    return mGREBinDir->Clone(aFile);
-  } else if (!strcmp(aProperty, NS_OS_CURRENT_PROCESS_DIR) ||
-             !strcmp(aProperty, NS_APP_INSTALL_CLEANUP_DIR)) {
-    return GetAppDir()->Clone(aFile);
-  }
-
-  rv = NS_ERROR_FAILURE;
   nsCOMPtr<nsIFile> file;
 
-  if (!strcmp(aProperty, NS_APP_PREF_DEFAULTS_50_DIR)) {
-#if defined(MOZ_WIDGET_ANDROID)
+  if (!strcmp(aProperty, NS_APP_USER_PROFILE_LOCAL_50_DIR)) {
+    if (mProfileLocalDir) {
+      rv = mProfileLocalDir->Clone(getter_AddRefs(file));
+    }
+  } else if (!strcmp(aProperty, NS_APP_USER_PROFILE_50_DIR)) {
+    if (mProfileDir) {
+      rv = mProfileDir->Clone(getter_AddRefs(file));
+    }
+  } else if (!strcmp(aProperty, NS_GRE_DIR)) {
+    // On Android, internal files are inside the APK, a zip file, so this
+    // folder doesn't really make sense.
+#if !defined(MOZ_WIDGET_ANDROID)
+    rv = mGREDir->Clone(getter_AddRefs(file));
+#endif  // !defined(MOZ_WIDGET_ANDROID)
+  } else if (!strcmp(aProperty, NS_GRE_BIN_DIR)) {
+    rv = mGREBinDir->Clone(getter_AddRefs(file));
+  } else if (!strcmp(aProperty, NS_OS_CURRENT_PROCESS_DIR) ||
+             !strcmp(aProperty, NS_APP_INSTALL_CLEANUP_DIR)) {
+    rv = GetAppDir()->Clone(getter_AddRefs(file));
+  } else if (!strcmp(aProperty, NS_APP_PREF_DEFAULTS_50_DIR)) {
     // Same as NS_GRE_DIR
-    return NS_ERROR_FAILURE;
-#else
+#if !defined(MOZ_WIDGET_ANDROID)
     // return the GRE default prefs directory here, and the app default prefs
     // directory (if applicable) in NS_APP_PREFS_DEFAULTS_DIR_LIST.
     rv = mGREDir->Clone(getter_AddRefs(file));
-    if (NS_SUCCEEDED(rv)) {
-      rv = file->AppendNative("defaults"_ns);
-      if (NS_SUCCEEDED(rv)) rv = file->AppendNative("pref"_ns);
-    }
-#endif
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = file->AppendNative("defaults"_ns);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = file->AppendNative("pref"_ns);
+#endif  // !defined(MOZ_WIDGET_ANDROID)
   } else if (!strcmp(aProperty, NS_APP_APPLICATION_REGISTRY_DIR) ||
              !strcmp(aProperty, XRE_USER_APP_DATA_DIR)) {
     rv = GetUserAppDataDirectory(getter_AddRefs(file));
   }
 #if defined(XP_UNIX) || defined(XP_MACOSX)
   else if (!strcmp(aProperty, XRE_SYS_NATIVE_MANIFESTS)) {
-    nsCOMPtr<nsIFile> localDir;
-
-    rv = ::GetSystemParentDirectory(getter_AddRefs(localDir));
-    if (NS_SUCCEEDED(rv)) {
-      localDir.swap(file);
-    }
+    rv = ::GetSystemParentDirectory(getter_AddRefs(file));
   } else if (!strcmp(aProperty, XRE_USER_NATIVE_MANIFESTS)) {
-    nsCOMPtr<nsIFile> localDir;
-    rv = GetUserDataDirectoryHome(getter_AddRefs(localDir), false);
-    if (NS_SUCCEEDED(rv)) {
+    rv = GetUserDataDirectoryHome(getter_AddRefs(file), false);
+    NS_ENSURE_SUCCESS(rv, rv);
 #  if defined(XP_MACOSX)
-      rv = localDir->AppendNative("Mozilla"_ns);
-#  else
-      rv = localDir->AppendNative(".mozilla"_ns);
-#  endif
-    }
-    if (NS_SUCCEEDED(rv)) {
-      localDir.swap(file);
-    }
+    rv = file->AppendNative("Mozilla"_ns);
+#  else   // defined(XP_MACOSX)
+    rv = file->AppendNative(".mozilla"_ns);
+#  endif  // defined(XP_MACOSX)
   }
-#endif
+#endif  // defined(XP_UNIX) || defined(XP_MACOSX)
   else if (!strcmp(aProperty, XRE_UPDATE_ROOT_DIR)) {
     rv = GetUpdateRootDir(getter_AddRefs(file));
   } else if (!strcmp(aProperty, XRE_OLD_UPDATE_ROOT_DIR)) {
     rv = GetUpdateRootDir(getter_AddRefs(file), true);
   } else if (!strcmp(aProperty, NS_APP_APPLICATION_REGISTRY_FILE)) {
     rv = GetUserAppDataDirectory(getter_AddRefs(file));
-    if (NS_SUCCEEDED(rv))
-      rv = file->AppendNative(nsLiteralCString(APP_REGISTRY_NAME));
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = file->AppendNative(nsLiteralCString(APP_REGISTRY_NAME));
   } else if (!strcmp(aProperty, NS_APP_USER_PROFILES_ROOT_DIR)) {
     rv = GetUserProfilesRootDir(getter_AddRefs(file));
   } else if (!strcmp(aProperty, NS_APP_USER_PROFILES_LOCAL_ROOT_DIR)) {
     rv = GetUserProfilesLocalDir(getter_AddRefs(file));
   } else if (!strcmp(aProperty, XRE_EXECUTABLE_FILE)) {
-    nsCOMPtr<nsIFile> lf;
-    rv = XRE_GetBinaryPath(getter_AddRefs(lf));
-    if (NS_SUCCEEDED(rv)) file = lf;
-  }
-
-  else if (!strcmp(aProperty, NS_APP_PROFILE_DIR_STARTUP) && mProfileDir) {
-    return mProfileDir->Clone(aFile);
+    rv = XRE_GetBinaryPath(getter_AddRefs(file));
+  } else if (!strcmp(aProperty, NS_APP_PROFILE_DIR_STARTUP)) {
+    if (mProfileDir) {
+      rv = mProfileDir->Clone(getter_AddRefs(file));
+    }
   } else if (!strcmp(aProperty, NS_APP_PROFILE_LOCAL_DIR_STARTUP)) {
-    if (mProfileLocalDir) return mProfileLocalDir->Clone(aFile);
-
-    if (mProfileDir) return mProfileDir->Clone(aFile);
-
-    if (mAppProvider)
-      return mAppProvider->GetFile(NS_APP_PROFILE_DIR_STARTUP, aPersistent,
-                                   aFile);
+    if (mProfileLocalDir) {
+      rv = mProfileLocalDir->Clone(getter_AddRefs(file));
+    }
   }
 #if defined(XP_UNIX) || defined(XP_MACOSX)
   else if (!strcmp(aProperty, XRE_SYS_LOCAL_EXTENSION_PARENT_DIR)) {
 #  ifdef ENABLE_SYSTEM_EXTENSION_DIRS
-    return GetSystemExtensionsDirectory(aFile);
-#  else
-    return NS_ERROR_FAILURE;
+    rv = GetSystemExtensionsDirectory(getter_AddRefs(file));
 #  endif
   }
-#endif
+#endif  // defined(XP_UNIX) || defined(XP_MACOSX)
 #if defined(XP_UNIX) && !defined(XP_MACOSX)
   else if (!strcmp(aProperty, XRE_SYS_SHARE_EXTENSION_PARENT_DIR)) {
 #  ifdef ENABLE_SYSTEM_EXTENSION_DIRS
@@ -469,95 +412,68 @@ nsXREDirProvider::GetFile(const char* aProperty, bool* aPersistent,
 #    else
     static const char* const sysLExtDir = "/usr/share/mozilla/extensions";
 #    endif
-    return NS_NewNativeLocalFile(nsDependentCString(sysLExtDir), false, aFile);
-#  else
-    return NS_ERROR_FAILURE;
+    rv = NS_NewNativeLocalFile(nsDependentCString(sysLExtDir), false,
+                               getter_AddRefs(file));
 #  endif
   }
-#endif
+#endif  // defined(XP_UNIX) && !defined(XP_MACOSX)
   else if (!strcmp(aProperty, XRE_USER_SYS_EXTENSION_DIR)) {
 #ifdef ENABLE_SYSTEM_EXTENSION_DIRS
-    return GetSysUserExtensionsDirectory(aFile);
-#else
-    return NS_ERROR_FAILURE;
+    rv = GetSysUserExtensionsDirectory(getter_AddRefs(file));
 #endif
   } else if (!strcmp(aProperty, XRE_USER_RUNTIME_DIR)) {
 #if defined(XP_UNIX)
     nsPrintfCString path("/run/user/%d/%s/", getuid(), GetAppName());
     ToLowerCase(path);
-    return NS_NewNativeLocalFile(path, false, aFile);
-#else
-    return NS_ERROR_FAILURE;
+    rv = NS_NewNativeLocalFile(path, false, getter_AddRefs(file));
 #endif
   } else if (!strcmp(aProperty, XRE_APP_DISTRIBUTION_DIR)) {
     bool persistent = false;
     rv = GetFile(NS_GRE_DIR, &persistent, getter_AddRefs(file));
-    if (NS_SUCCEEDED(rv)) rv = file->AppendNative("distribution"_ns);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = file->AppendNative("distribution"_ns);
   } else if (!strcmp(aProperty, XRE_APP_FEATURES_DIR)) {
     rv = GetAppDir()->Clone(getter_AddRefs(file));
-    if (NS_SUCCEEDED(rv)) rv = file->AppendNative("features"_ns);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = file->AppendNative("features"_ns);
   } else if (!strcmp(aProperty, XRE_ADDON_APP_DIR)) {
     nsCOMPtr<nsIDirectoryServiceProvider> dirsvc(
         do_GetService("@mozilla.org/file/directory_service;1", &rv));
-    if (NS_FAILED(rv)) return rv;
+    NS_ENSURE_SUCCESS(rv, rv);
     bool unused;
     rv = dirsvc->GetFile("XCurProcD", &unused, getter_AddRefs(file));
   }
-#if defined(MOZ_SANDBOX)
+#if defined(MOZ_CONTENT_TEMP_DIR)
   else if (!strcmp(aProperty, NS_APP_CONTENT_PROCESS_TEMP_DIR)) {
-    if (!mContentTempDir && NS_FAILED((rv = LoadContentProcessTempDir()))) {
-      return rv;
+    if (!mContentTempDir) {
+      rv = LoadContentProcessTempDir();
+      NS_ENSURE_SUCCESS(rv, rv);
     }
     rv = mContentTempDir->Clone(getter_AddRefs(file));
   }
-#endif  // defined(MOZ_SANDBOX)
-  else if (NS_SUCCEEDED(GetProfileStartupDir(getter_AddRefs(file)))) {
+#endif  // defined(MOZ_CONTENT_TEMP_DIR)
+  else if (!strcmp(aProperty, NS_APP_USER_CHROME_DIR)) {
     // We need to allow component, xpt, and chrome registration to
     // occur prior to the profile-after-change notification.
-    if (!strcmp(aProperty, NS_APP_USER_CHROME_DIR)) {
-      rv = file->AppendNative("chrome"_ns);
-    }
+    rv = GetProfileStartupDir(getter_AddRefs(file));
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = file->AppendNative("chrome"_ns);
+  } else if (!strcmp(aProperty, NS_APP_PREFS_50_DIR)) {
+    rv = GetProfileDir(getter_AddRefs(file));
+  } else if (!strcmp(aProperty, NS_APP_PREFS_50_FILE)) {
+    rv = GetProfileDir(getter_AddRefs(file));
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = file->AppendNative("prefs.js"_ns);
+  } else if (!strcmp(aProperty, NS_APP_PREFS_OVERRIDE_DIR)) {
+    rv = GetProfileDir(getter_AddRefs(file));
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = file->AppendNative(nsLiteralCString(PREF_OVERRIDE_DIRNAME));
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = EnsureDirectoryExists(file);
   }
 
-  if (NS_SUCCEEDED(rv) && file) {
-    file.forget(aFile);
-    return NS_OK;
-  }
-
-  bool ensureFilePermissions = false;
-
-  if (NS_SUCCEEDED(GetProfileDir(getter_AddRefs(file)))) {
-    if (!strcmp(aProperty, NS_APP_PREFS_50_DIR)) {
-      rv = NS_OK;
-    } else if (!strcmp(aProperty, NS_APP_PREFS_50_FILE)) {
-      rv = file->AppendNative("prefs.js"_ns);
-    } else if (!strcmp(aProperty, NS_APP_PREFS_OVERRIDE_DIR)) {
-      rv = mProfileDir->Clone(getter_AddRefs(file));
-      nsresult tmp =
-          file->AppendNative(nsLiteralCString(PREF_OVERRIDE_DIRNAME));
-      if (NS_FAILED(tmp)) {
-        rv = tmp;
-      }
-      tmp = EnsureDirectoryExists(file);
-      if (NS_FAILED(tmp)) {
-        rv = tmp;
-      }
-    }
-  }
-  if (NS_FAILED(rv) || !file) return NS_ERROR_FAILURE;
-
-  if (ensureFilePermissions) {
-    bool fileToEnsureExists;
-    bool isWritable;
-    if (NS_SUCCEEDED(file->Exists(&fileToEnsureExists)) && fileToEnsureExists &&
-        NS_SUCCEEDED(file->IsWritable(&isWritable)) && !isWritable) {
-      uint32_t permissions;
-      if (NS_SUCCEEDED(file->GetPermissions(&permissions))) {
-        rv = file->SetPermissions(permissions | 0600);
-        NS_ASSERTION(NS_SUCCEEDED(rv), "failed to ensure file permissions");
-      }
-    }
-  }
+  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_TRUE(file, NS_ERROR_FAILURE);
 
   file.forget(aFile);
   return NS_OK;
@@ -581,49 +497,9 @@ static void LoadDirIntoArray(nsIFile* dir, const char* const* aAppendList,
   }
 }
 
-NS_IMETHODIMP
-nsXREDirProvider::GetFiles(const char* aProperty,
-                           nsISimpleEnumerator** aResult) {
-  nsresult rv;
+#if defined(MOZ_CONTENT_TEMP_DIR)
 
-  nsCOMPtr<nsISimpleEnumerator> appEnum;
-  nsCOMPtr<nsIDirectoryServiceProvider2> appP2(do_QueryInterface(mAppProvider));
-  if (appP2) {
-    rv = appP2->GetFiles(aProperty, getter_AddRefs(appEnum));
-    if (NS_FAILED(rv)) {
-      appEnum = nullptr;
-    } else if (rv != NS_SUCCESS_AGGREGATE_RESULT) {
-      appEnum.forget(aResult);
-      return NS_OK;
-    }
-  }
-
-  nsCOMPtr<nsISimpleEnumerator> xreEnum;
-  rv = GetFilesInternal(aProperty, getter_AddRefs(xreEnum));
-  if (NS_FAILED(rv)) {
-    if (appEnum) {
-      appEnum.forget(aResult);
-      return NS_SUCCESS_AGGREGATE_RESULT;
-    }
-
-    return rv;
-  }
-
-  rv = NS_NewUnionEnumerator(aResult, appEnum, xreEnum);
-  if (NS_FAILED(rv)) return rv;
-
-  return NS_SUCCESS_AGGREGATE_RESULT;
-}
-
-#if defined(MOZ_SANDBOX)
-
-static const char* GetProcessTempBaseDirKey() {
-#  if defined(XP_WIN)
-  return NS_WIN_LOW_INTEGRITY_TEMP_BASE;
-#  else
-  return NS_OS_TEMP_DIR;
-#  endif
-}
+static const char* GetProcessTempBaseDirKey() { return NS_OS_TEMP_DIR; }
 
 //
 // Sets mContentTempDir so that it refers to the appropriate temp dir.
@@ -779,7 +655,7 @@ static nsresult DeleteDirIfExists(nsIFile* dir) {
   return NS_OK;
 }
 
-#endif  // defined(MOZ_SANDBOX)
+#endif  // defined(MOZ_CONTENT_TEMP_DIR)
 
 static const char* const kAppendPrefDir[] = {"defaults", "preferences",
                                              nullptr};
@@ -788,9 +664,10 @@ static const char* const kAppendBackgroundTasksPrefDir[] = {
     "defaults", "backgroundtasks", nullptr};
 #endif
 
-nsresult nsXREDirProvider::GetFilesInternal(const char* aProperty,
-                                            nsISimpleEnumerator** aResult) {
-  nsresult rv = NS_OK;
+NS_IMETHODIMP
+nsXREDirProvider::GetFiles(const char* aProperty,
+                           nsISimpleEnumerator** aResult) {
+  nsresult rv = NS_ERROR_FAILURE;
   *aResult = nullptr;
 
   if (!strcmp(aProperty, NS_APP_PREFS_DEFAULTS_DIR_LIST)) {
@@ -814,40 +691,27 @@ nsresult nsXREDirProvider::GetFilesInternal(const char* aProperty,
     LoadDirIntoArray(mXULAppDir, kAppendChromeDir, directories);
 
     rv = NS_NewArrayEnumerator(aResult, directories, NS_GET_IID(nsIFile));
-  } else
-    rv = NS_ERROR_FAILURE;
+  }
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  return rv;
+  return NS_SUCCESS_AGGREGATE_RESULT;
 }
 
 NS_IMETHODIMP
 nsXREDirProvider::GetDirectory(nsIFile** aResult) {
   NS_ENSURE_TRUE(mProfileDir, NS_ERROR_NOT_INITIALIZED);
-
   return mProfileDir->Clone(aResult);
 }
 
 void nsXREDirProvider::InitializeUserPrefs() {
   if (!mPrefsInitialized) {
-    // Temporarily set mProfileNotified to true so that the preference service
-    // can access the profile directory during initialization. Afterwards, clear
-    // it so that no other code can inadvertently access it until we get to
-    // profile-do-change.
-    mozilla::AutoRestore<bool> ar(mProfileNotified);
-    mProfileNotified = true;
-
     mozilla::Preferences::InitializeUserPrefs();
   }
 }
 
 void nsXREDirProvider::FinishInitializingUserPrefs() {
   if (!mPrefsInitialized) {
-    // See InitializeUserPrefs above.
-    mozilla::AutoRestore<bool> ar(mProfileNotified);
-    mProfileNotified = true;
-
     mozilla::Preferences::FinishInitializingUserPrefs();
-
     mPrefsInitialized = true;
   }
 }
@@ -856,12 +720,12 @@ NS_IMETHODIMP
 nsXREDirProvider::DoStartup() {
   nsresult rv;
 
-  if (!mProfileNotified) {
+  if (!mAppStarted) {
     nsCOMPtr<nsIObserverService> obsSvc =
         mozilla::services::GetObserverService();
     if (!obsSvc) return NS_ERROR_FAILURE;
 
-    mProfileNotified = true;
+    mAppStarted = true;
 
     /*
        Make sure we've setup prefs before profile-do-change to be able to use
@@ -897,17 +761,6 @@ nsXREDirProvider::DoStartup() {
         policies->Observe(nullptr, "policies-startup", nullptr);
       }
     }
-
-#if defined(MOZ_SANDBOX) && defined(XP_WIN)
-    // Call SandboxBroker to initialize things that depend on Gecko machinery
-    // like the directory provider. We insert this initialization code here
-    // (rather than in XRE_mainRun) because we need NS_APP_USER_PROFILE_50_DIR
-    // to be known and so that any child content processes spawned by extensions
-    // from the notifications below will have all the requisite directories
-    // white-listed for read/write access. An example of this is the
-    // tor-launcher launching the network configuration window. See bug 1485836.
-    mozilla::SandboxBroker::GeckoDependentInitialize();
-#endif
 
 #ifdef MOZ_THUNDERBIRD
     bool bgtaskMode = false;
@@ -976,7 +829,7 @@ nsXREDirProvider::DoStartup() {
 
     obsSvc->NotifyObservers(nullptr, "profile-initial-state", nullptr);
 
-#if defined(MOZ_SANDBOX)
+#if defined(MOZ_CONTENT_TEMP_DIR)
     // Makes sure the content temp dir has been loaded if it hasn't been
     // already. In the parent this ensures it has been created before we attempt
     // to start any content processes.
@@ -991,7 +844,7 @@ nsXREDirProvider::DoStartup() {
 void nsXREDirProvider::DoShutdown() {
   AUTO_PROFILER_LABEL("nsXREDirProvider::DoShutdown", OTHER);
 
-  if (mProfileNotified) {
+  if (mAppStarted) {
     mozilla::AppShutdown::AdvanceShutdownPhase(
         mozilla::ShutdownPhase::AppShutdownNetTeardown, nullptr);
     mozilla::AppShutdown::AdvanceShutdownPhase(
@@ -1010,17 +863,17 @@ void nsXREDirProvider::DoShutdown() {
         mozilla::ShutdownPhase::AppShutdownQM, nullptr);
     mozilla::AppShutdown::AdvanceShutdownPhase(
         mozilla::ShutdownPhase::AppShutdownTelemetry, nullptr);
-    mProfileNotified = false;
+    mAppStarted = false;
   }
 
   gDataDirProfileLocal = nullptr;
   gDataDirProfile = nullptr;
 
+#if defined(MOZ_CONTENT_TEMP_DIR)
   if (XRE_IsParentProcess()) {
-#if defined(MOZ_SANDBOX)
     mozilla::Unused << DeleteDirIfExists(mContentProcessSandboxTempDir);
-#endif
   }
+#endif
 }
 
 #ifdef XP_WIN
@@ -1284,41 +1137,27 @@ nsresult nsXREDirProvider::GetUpdateRootDir(nsIFile** aResult,
   nsAutoString updatePathStr;
   updatePathStr.Assign(updatePath.get());
   updRoot->InitWithPath(updatePathStr);
-#endif  // XP_WIN
   updRoot.forget(aResult);
   return NS_OK;
+#else
+  updRoot.forget(aResult);
+  return NS_OK;
+#endif  // XP_WIN
 }
 
 nsresult nsXREDirProvider::GetProfileStartupDir(nsIFile** aResult) {
-  if (mProfileDir) return mProfileDir->Clone(aResult);
-
-  if (mAppProvider) {
-    nsCOMPtr<nsIFile> needsclone;
-    bool dummy;
-    nsresult rv = mAppProvider->GetFile(NS_APP_PROFILE_DIR_STARTUP, &dummy,
-                                        getter_AddRefs(needsclone));
-    if (NS_SUCCEEDED(rv)) return needsclone->Clone(aResult);
-  }
-
-  return NS_ERROR_FAILURE;
+  NS_ENSURE_TRUE(mProfileDir, NS_ERROR_FAILURE);
+  return mProfileDir->Clone(aResult);
 }
 
 nsresult nsXREDirProvider::GetProfileDir(nsIFile** aResult) {
-  if (mProfileDir) {
-    if (!mProfileNotified) return NS_ERROR_FAILURE;
-
-    return mProfileDir->Clone(aResult);
+  if (!mProfileDir) {
+    nsresult rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR,
+                                         getter_AddRefs(mProfileDir));
+    NS_ENSURE_SUCCESS(rv, rv);
+    NS_ENSURE_TRUE(mProfileDir, NS_ERROR_FAILURE);
   }
-
-  if (mAppProvider) {
-    nsCOMPtr<nsIFile> needsclone;
-    bool dummy;
-    nsresult rv = mAppProvider->GetFile(NS_APP_USER_PROFILE_50_DIR, &dummy,
-                                        getter_AddRefs(needsclone));
-    if (NS_SUCCEEDED(rv)) return needsclone->Clone(aResult);
-  }
-
-  return NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, aResult);
+  return mProfileDir->Clone(aResult);
 }
 
 NS_IMETHODIMP

@@ -297,6 +297,15 @@ async function expectTabThroughResults(options = { reverse: false }) {
 
   for (let i = initiallySelectedIndex + 1; i < resultCount; i++) {
     EventUtils.synthesizeKey("KEY_Tab", { shiftKey: options.reverse });
+    if (
+      UrlbarTestUtils.getButtonForResultIndex(
+        window,
+        "menu",
+        UrlbarTestUtils.getSelectedRowIndex(window)
+      )
+    ) {
+      EventUtils.synthesizeKey("KEY_Tab", { shiftKey: options.reverse });
+    }
     Assert.equal(
       UrlbarTestUtils.getSelectedRowIndex(window),
       options.reverse ? resultCount - i : i

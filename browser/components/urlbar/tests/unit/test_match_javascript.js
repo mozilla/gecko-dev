@@ -31,6 +31,8 @@ add_task(async function test_javascript_match() {
     { uri: uri1, title: "Title with javascript:" },
   ]);
 
+  await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
+
   info("Match non-javascript: with plain search");
   let context = createContext("a", { isPrivate: false });
   await check_results({
@@ -114,7 +116,7 @@ add_task(async function test_javascript_match() {
     matches: [
       makeVisitResult(context, {
         uri: "javascript: a",
-        title: "javascript: a",
+        fallbackTitle: "javascript: a",
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
         heuristic: true,
       }),
@@ -137,7 +139,7 @@ add_task(async function test_javascript_match() {
     matches: [
       makeVisitResult(context, {
         uri: "javascript: 5",
-        title: "javascript: 5",
+        fallbackTitle: "javascript: 5",
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
         heuristic: true,
       }),

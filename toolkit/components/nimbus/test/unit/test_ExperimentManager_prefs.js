@@ -4,17 +4,17 @@
 const {
   _ExperimentFeature: ExperimentFeature,
   NimbusFeatures,
-} = ChromeUtils.import("resource://nimbus/ExperimentAPI.jsm");
+} = ChromeUtils.importESModule("resource://nimbus/ExperimentAPI.sys.mjs");
 
-const { PrefUtils } = ChromeUtils.import(
-  "resource://normandy/lib/PrefUtils.jsm"
+const { PrefUtils } = ChromeUtils.importESModule(
+  "resource://normandy/lib/PrefUtils.sys.mjs"
 );
 
 const { TelemetryTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/TelemetryTestUtils.sys.mjs"
 );
-const { TelemetryEvents } = ChromeUtils.import(
-  "resource://normandy/lib/TelemetryEvents.jsm"
+const { TelemetryEvents } = ChromeUtils.importESModule(
+  "resource://normandy/lib/TelemetryEvents.sys.mjs"
 );
 
 /**
@@ -192,13 +192,13 @@ function assertExpectedPrefValues(pref, branch, expected, visible, msg) {
  */
 function assertEmptyStore(store) {
   Assert.deepEqual(
-    store.getAllActive(),
+    store.getAllActiveExperiments(),
     [],
     "There should be no experiments active."
   );
 
   Assert.deepEqual(
-    store.getAllRollouts(),
+    store.getAllActiveRollouts(),
     [],
     "There should be no rollouts active"
   );
@@ -1766,8 +1766,8 @@ add_task(async function test_prefChange() {
       );
 
       const enrollments = isRollout
-        ? store.getAllRollouts()
-        : store.getAllActive();
+        ? store.getAllActiveRollouts()
+        : store.getAllActiveExperiments();
 
       Assert.equal(
         enrollments.length,
@@ -2374,8 +2374,8 @@ add_task(async function test_clearUserPref() {
       );
 
       const enrollments = isRollout
-        ? store.getAllRollouts()
-        : store.getAllActive();
+        ? store.getAllActiveRollouts()
+        : store.getAllActiveExperiments();
 
       Assert.equal(
         enrollments.length,
@@ -2823,8 +2823,8 @@ add_task(async function test_restorePrefs_manifestChanged() {
         });
 
         const enrollments = isRollout
-          ? store.getAllRollouts()
-          : store.getAllActive();
+          ? store.getAllActiveRollouts()
+          : store.getAllActiveExperiments();
 
         Assert.equal(
           enrollments.length,

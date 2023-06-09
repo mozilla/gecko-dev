@@ -9,31 +9,43 @@
 
 #include "mozilla/dom/WritableStream.h"
 
-#if WEBTRANSPORT_STREAM_IMPLEMENTED
-namespace mozilla::dom {
-class WebTransportSendStream final : public WritableStream {
- protected:
-  WebTransportSendStream();
+namespace mozilla::ipc {
+class DataPipeSender;
+}
 
+namespace mozilla::dom {
+
+class WebTransport;
+
+class WebTransportSendStream final : public WritableStream {
  public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(WebTransportSendStream,
                                            WritableStream)
 
-  already_AddRefed<Promise> GetStats();
-};
-#else
-namespace mozilla::dom {
-class WebTransportSendStream final : public nsISupports {
- protected:
-  WebTransportSendStream();
+  WebTransportSendStream(nsIGlobalObject* aGlobal, WebTransport* aTransport);
 
- public:
-  NS_DECL_ISUPPORTS
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY static already_AddRefed<WebTransportSendStream>
+  Create(WebTransport* aWebTransport, nsIGlobalObject* aGlobal,
+         uint64_t aStreamId, mozilla::ipc::DataPipeSender* sender,
+         ErrorResult& aRv);
 
+  // WebIDL Boilerplate
+  JSObject* WrapObject(JSContext* aCx,
+                       JS::Handle<JSObject*> aGivenProto) override;
+
+  // WebIDL Interface
   already_AddRefed<Promise> GetStats();
+
+ private:
+  ~WebTransportSendStream() override { mozilla::DropJSObjects(this); };
+
+  // We must hold a reference to the WebTransport so it can't go away on
+  // us.  This forms a cycle with WebTransport that will be broken when the
+  // CC runs.   WebTransport::CleanUp() will destroy all the send and receive
+  // streams, breaking the cycle.
+  RefPtr<WebTransport> mTransport;
 };
-#endif
-}
+}  // namespace mozilla::dom
 
 #endif

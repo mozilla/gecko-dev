@@ -7,8 +7,9 @@
 #ifndef DOM_FS_CHILD_FILESYSTEMMANAGERCHILD_H_
 #define DOM_FS_CHILD_FILESYSTEMMANAGERCHILD_H_
 
+#include "mozilla/dom/FileSystemWritableFileStreamChild.h"
 #include "mozilla/dom/PFileSystemManagerChild.h"
-#include "nsISupportsImpl.h"
+#include "mozilla/dom/quota/ForwardDecls.h"
 
 namespace mozilla::dom {
 
@@ -22,16 +23,15 @@ class FileSystemManagerChild : public PFileSystemManagerChild {
   void SetBackgroundRequestHandler(
       FileSystemBackgroundRequestHandler* aBackgroundRequestHandler);
 
+  void CloseAllWritables(std::function<void()>&& aCallback);
+
 #ifdef DEBUG
   virtual bool AllSyncAccessHandlesClosed() const;
+
+  virtual bool AllWritableFileStreamsClosed() const;
 #endif
 
-  virtual void CloseAllWritableFileStreams();
-
   virtual void Shutdown();
-
-  already_AddRefed<PFileSystemAccessHandleChild>
-  AllocPFileSystemAccessHandleChild();
 
   already_AddRefed<PFileSystemWritableFileStreamChild>
   AllocPFileSystemWritableFileStreamChild();
@@ -51,6 +51,10 @@ class FileSystemManagerChild : public PFileSystemManagerChild {
   // The weak reference is cleared in ActorDestroy.
   FileSystemBackgroundRequestHandler* MOZ_NON_OWNING_REF
       mBackgroundRequestHandler;
+
+ private:
+  template <class T>
+  void CloseAllWritablesImpl(T& aPromises);
 };
 
 }  // namespace mozilla::dom

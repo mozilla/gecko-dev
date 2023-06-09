@@ -1,9 +1,5 @@
 "use strict";
 
-const { AppConstants } = ChromeUtils.importESModule(
-  "resource://gre/modules/AppConstants.sys.mjs"
-);
-
 const PROFILE = {
   id: "Default",
   name: "Person 1",
@@ -253,13 +249,11 @@ add_task(async function setup() {
   let dirSvcFile = do_get_file(dirSvcPath);
   registerFakePath(pathId, dirSvcFile);
 
-  // We don't import osfile.jsm until after registering the fake path, because
-  // importing osfile will sometimes greedily fetch certain path identifiers
-  // from the dir service, which means they get cached, which means we can't
-  // register a fake path for them anymore.
-  const { OS } = ChromeUtils.import("resource://gre/modules/osfile.jsm");
-  info(OS.Path.join(dirSvcFile.path, ...profilePathSegments));
-  let loginDataFilePath = OS.Path.join(dirSvcFile.path, ...profilePathSegments);
+  info(PathUtils.join(dirSvcFile.path, ...profilePathSegments));
+  let loginDataFilePath = PathUtils.join(
+    dirSvcFile.path,
+    ...profilePathSegments
+  );
   dbConn = await Sqlite.openConnection({ path: loginDataFilePath });
 
   if (AppConstants.platform == "macosx") {

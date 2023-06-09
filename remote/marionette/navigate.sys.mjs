@@ -44,7 +44,7 @@ export const navigate = {};
  * @param {string} eventData.readyState
  *     Current ready state of the document.
  *
- * @return {boolean}
+ * @returns {boolean}
  *     True if the page load has been finished.
  */
 function checkReadyState(pageLoadStrategy, eventData = {}) {
@@ -92,7 +92,7 @@ function checkReadyState(pageLoadStrategy, eventData = {}) {
  *
  * @param {URL} current
  *     URL the browser is currently visiting.
- * @param {Object} options
+ * @param {object} options
  * @param {BrowsingContext=} options.browsingContext
  *     The current browsing context. Needed for targets of _parent and _top.
  * @param {URL=} options.future
@@ -100,7 +100,7 @@ function checkReadyState(pageLoadStrategy, eventData = {}) {
  * @param {target=} options.target
  *     Link target, if known.
  *
- * @return {boolean}
+ * @returns {boolean}
  *     Full page load would be expected if future is followed.
  *
  * @throws TypeError
@@ -168,7 +168,7 @@ navigate.navigateTo = async function(browsingContext, url) {
     // Fake user activation.
     hasValidUserGestureActivation: true,
   };
-  browsingContext.loadURI(url, opts);
+  browsingContext.fixupAndLoadURIString(url, opts);
 };
 
 /**
@@ -189,13 +189,13 @@ navigate.refresh = async function(browsingContext) {
  *     Reference to driver instance.
  * @param {Function} callback
  *     Callback to execute that might trigger a navigation.
- * @param {Object} options
- * @param {BrowsingContext=} browsingContext
+ * @param {object} options
+ * @param {BrowsingContext=} options.browsingContext
  *     Browsing context to observe. Defaults to the current browsing context.
- * @param {boolean=} loadEventExpected
+ * @param {boolean=} options.loadEventExpected
  *     If false, return immediately and don't wait for
  *     the navigation to be completed. Defaults to true.
- * @param {boolean=} requireBeforeUnload
+ * @param {boolean=} options.requireBeforeUnload
  *     If false and no beforeunload event is fired, abort waiting
  *     for the navigation. Defaults to true.
  */
@@ -405,6 +405,7 @@ navigate.waitForNavigationCompleted = async function waitForNavigationCompleted(
       }
     },
     {
+      errorMessage: "Navigation timed out",
       timeout: driver.currentSession.timeouts.pageLoad,
     }
   ).finally(() => {

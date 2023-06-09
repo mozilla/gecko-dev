@@ -41,6 +41,9 @@ const asyncStorage = require("devtools/shared/async-storage");
 const {
   getSelectedLocation,
 } = require("devtools/client/debugger/src/utils/selected-location");
+const {
+  createLocation,
+} = require("devtools/client/debugger/src/utils/location");
 
 const {
   resetSchemaVersion,
@@ -197,16 +200,18 @@ function waitForSelectedLocation(dbg, line, column) {
  */
 function waitForSelectedSource(dbg, sourceOrUrl) {
   const {
-    getSelectedSource,
     getSelectedSourceTextContent,
     getSymbols,
     getBreakableLines,
+    getSourceActorsForSource,
+    getSourceActorBreakableLines,
+    getFirstSourceActorForGeneratedSource,
   } = dbg.selectors;
 
   return waitForState(
     dbg,
     state => {
-      const source = getSelectedSource() || {};
+      const location = dbg.selectors.getSelectedLocation() || {};
       const sourceTextContent = getSelectedSourceTextContent();
       if (!sourceTextContent) {
         return false;
@@ -216,18 +221,45 @@ function waitForSelectedSource(dbg, sourceOrUrl) {
         // Second argument is either a source URL (string)
         // or a Source object.
         if (typeof sourceOrUrl == "string") {
-          if (!source.url.includes(encodeURI(sourceOrUrl))) {
+          if (!location.source.url.includes(encodeURI(sourceOrUrl))) {
             return false;
           }
-        } else if (source.id != sourceOrUrl.id) {
+        } else if (location.source.id != sourceOrUrl.id) {
           return false;
         }
       }
 
-      return getSymbols(source) && getBreakableLines(source.id);
+      // Wait for symbols/AST to be parsed
+      if (!getSymbols(location) && !isWasmBinarySource(location.source)) {
+        return false;
+      }
+
+      // Finaly wait for breakable lines to be set
+      if (location.source.isHTML) {
+        // For HTML sources we need to wait for each source actor to be processed.
+        // getBreakableLines will return the aggregation without being able to know
+        // if that's complete, with all the source actors.
+        const sourceActors = getSourceActorsForSource(location.source.id);
+        const allSourceActorsProcessed = sourceActors.every(
+          sourceActor => !!getSourceActorBreakableLines(sourceActor.id)
+        );
+        return allSourceActorsProcessed;
+      }
+      return getBreakableLines(location.source.id);
     },
     "selected source"
   );
+}
+
+/**
+ * The generated source of WASM source are WASM binary file,
+ * which have many broken/disabled features in the debugger.
+ *
+ * They especially have a very special behavior in CodeMirror
+ * where line labels aren't line number, but hex addresses.
+ */
+function isWasmBinarySource(source) {
+  return source.isWasm && !source.isOriginal;
 }
 
 function getVisibleSelectedFrameLine(dbg) {
@@ -246,17 +278,20 @@ function getVisibleSelectedFrameColumn(dbg) {
  */
 function assertLineIsBreakable(dbg, file, line, shouldBeBreakable) {
   const lineInfo = getCM(dbg).lineInfo(line - 1);
+  const lineText = `${line}| ${lineInfo.text.substring(0, 50)}${
+    lineInfo.text.length > 50 ? "…" : ""
+  } — in ${file}`;
   // When a line is not breakable, the "empty-line" class is added
   // and the line is greyed out
   if (shouldBeBreakable) {
     ok(
       !lineInfo.wrapClass?.includes("empty-line"),
-      `${file}:${line} should be breakable`
+      `${lineText} should be breakable`
     );
   } else {
     ok(
       lineInfo?.wrapClass?.includes("empty-line"),
-      `${file}:${line} should NOT be breakable`
+      `${lineText} should NOT be breakable`
     );
   }
 }
@@ -303,9 +338,14 @@ function assertHighlightLocation(dbg, source, line) {
  * Assert that CodeMirror reports to be paused at the given line/column.
  */
 function _assertDebugLine(dbg, line, column) {
+  const source = dbg.selectors.getSelectedSource();
+  // WASM lines are hex addresses which have to be mapped to decimal line number
+  if (isWasmBinarySource(source)) {
+    line = dbg.wasmOffsetToLine(source.id, line) + 1;
+  }
+
   // Check the debug line
   const lineInfo = getCM(dbg).lineInfo(line - 1);
-  const source = dbg.selectors.getSelectedSource();
   const sourceTextContent = dbg.selectors.getSelectedSourceTextContent();
   if (source && !sourceTextContent) {
     const url = source.url;
@@ -344,7 +384,7 @@ function _assertDebugLine(dbg, line, column) {
   ok(isVisibleInEditor(dbg, debugLine), "debug line is visible");
 
   const markedSpans = lineInfo.handle.markedSpans;
-  if (markedSpans && markedSpans.length) {
+  if (markedSpans && markedSpans.length && !isWasmBinarySource(source)) {
     const hasExpectedDebugLine = markedSpans.some(
       span =>
         span.marker.className?.includes("debug-expression") &&
@@ -401,6 +441,13 @@ function assertPausedAtSourceAndLine(
   ok(isVisibleInEditor(dbg, getCM(dbg).display.gutters), "gutter is visible");
 
   const frames = dbg.selectors.getCurrentThreadFrames();
+  const source = dbg.selectors.getSelectedSource();
+
+  // WASM support is limited when we are on the generated binary source
+  if (isWasmBinarySource(source)) {
+    return;
+  }
+
   ok(frames.length >= 1, "Got at least one frame");
 
   // Lets make sure we can assert both original and generated file locations when needed
@@ -687,10 +734,11 @@ function findSourceContent(dbg, url, opts) {
   if (!source) {
     return null;
   }
-  const content = dbg.selectors.getSettledSourceTextContent({
-    sourceId: source.id,
-    sourceActorId: null,
-  });
+  const content = dbg.selectors.getSettledSourceTextContent(
+    createLocation({
+      source,
+    })
+  );
 
   if (!content) {
     return null;
@@ -714,10 +762,11 @@ function waitForLoadedSource(dbg, url) {
       const source = findSource(dbg, url, { silent: true });
       return (
         source &&
-        dbg.selectors.getSettledSourceTextContent({
-          sourceId: source.id,
-          sourceActorId: null,
-        })
+        dbg.selectors.getSettledSourceTextContent(
+          createLocation({
+            source,
+          })
+        )
       );
     },
     "loaded source"
@@ -730,6 +779,53 @@ function getContext(dbg) {
 
 function getThreadContext(dbg) {
   return dbg.selectors.getThreadContext();
+}
+
+/*
+ * Selects the source node for a specific source
+ * from the source tree.
+ *
+ * @param {Object} dbg
+ * @param {String} filename - The filename for the specific source
+ * @param {Number} sourcePosition - The source node postion in the tree
+ * @param {String} message - The info message to display
+ */
+async function selectSourceFromSourceTree(
+  dbg,
+  fileName,
+  sourcePosition,
+  message
+) {
+  info(message);
+  await clickElement(dbg, "sourceNode", sourcePosition);
+  await waitForSelectedSource(dbg, fileName);
+  await waitFor(
+    () => getCM(dbg).getValue() !== `Loading…`,
+    "Wait for source to completely load"
+  );
+}
+
+/*
+ * Trigger a context menu in the debugger source tree
+ *
+ * @param {Object} dbg
+ * @param {Obejct} sourceTreeNode - The node in the source tree which the context menu
+ *                                  item needs to be triggered on.
+ * @param {String} contextMenuItem - The id for the context menu item to be selected
+ */
+async function triggerSourceTreeContextMenu(
+  dbg,
+  sourceTreeNode,
+  contextMenuItem
+) {
+  const onContextMenu = waitForContextMenu(dbg);
+  rightClickEl(dbg, sourceTreeNode);
+  const menupopup = await onContextMenu;
+  const onHidden = new Promise(resolve => {
+    menupopup.addEventListener("popuphidden", resolve, { once: true });
+  });
+  selectContextMenuItem(dbg, contextMenuItem);
+  await onHidden;
 }
 
 /**
@@ -748,10 +844,10 @@ async function selectSource(dbg, url, line, column) {
 
   await dbg.actions.selectLocation(
     getContext(dbg),
-    { sourceId: source.id, line, column },
+    createLocation({ source, line, column }),
     { keepContext: false }
   );
-  return waitForSelectedSource(dbg, url);
+  return waitForSelectedSource(dbg, source);
 }
 
 async function closeTab(dbg, url) {
@@ -838,8 +934,35 @@ function deleteExpression(dbg, input) {
  * @static
  */
 async function reload(dbg, ...sources) {
-  // We aren't waiting for load as the page may not load because of a breakpoint
-  await reloadBrowser({ waitForLoad: false });
+  await reloadBrowser();
+  return waitForSources(dbg, ...sources);
+}
+
+// Only use this method when the page is paused by the debugger
+// during page load and we navigate away without resuming.
+//
+// In this particular scenario, the page will never be "loaded".
+// i.e. emit DOCUMENT_EVENT's dom-complete
+// And consequently, debugger panel won't emit "reloaded" event.
+async function reloadWhenPausedBeforePageLoaded(dbg, ...sources) {
+  // But we can at least listen for the next DOCUMENT_EVENT's dom-loading,
+  // which should be fired even if the page is pause the earliest.
+  const { resourceCommand } = dbg.commands;
+  const {
+    onResource: onTopLevelDomLoading,
+  } = await resourceCommand.waitForNextResource(
+    resourceCommand.TYPES.DOCUMENT_EVENT,
+    {
+      ignoreExistingResources: true,
+      predicate: resource =>
+        resource.targetFront.isTopLevel && resource.name === "dom-loading",
+    }
+  );
+
+  gBrowser.reloadTab(gBrowser.selectedTab);
+
+  info("Wait for DOCUMENT_EVENT dom-loading after reload");
+  await onTopLevelDomLoading;
   return waitForSources(dbg, ...sources);
 }
 
@@ -916,12 +1039,11 @@ function getBreakpointForLocation(dbg, location) {
  */
 async function addBreakpoint(dbg, source, line, column, options) {
   source = findSource(dbg, source);
-  const sourceId = source.id;
   const bpCount = dbg.selectors.getBreakpointCount();
   const onBreakpoint = waitForDispatch(dbg.store, "SET_BREAKPOINT");
   await dbg.actions.addBreakpoint(
     getContext(dbg),
-    { sourceId, line, column },
+    createLocation({ source, line, column }),
     options
   );
   await onBreakpoint;
@@ -946,7 +1068,12 @@ async function addBreakpointViaGutter(dbg, line) {
 function disableBreakpoint(dbg, source, line, column) {
   column =
     column || getFirstBreakpointColumn(dbg, { line, sourceId: source.id });
-  const location = { sourceId: source.id, sourceUrl: source.url, line, column };
+  const location = createLocation({
+    source,
+    sourceUrl: source.url,
+    line,
+    column,
+  });
   const bp = getBreakpointForLocation(dbg, location);
   return dbg.actions.disableBreakpoint(getContext(dbg), bp);
 }
@@ -963,8 +1090,11 @@ function findColumnBreakpoint(dbg, url, line, column) {
     source.id,
     line
   );
+
   return lineBreakpoints.find(bp => {
-    return bp.generatedLocation.column === column;
+    return source.isOriginal
+      ? bp.location.column === column
+      : bp.generatedLocation.column === column;
   });
 }
 
@@ -984,7 +1114,7 @@ async function loadAndAddBreakpoint(dbg, filename, line, column) {
   await addBreakpoint(dbg, source, line, column);
 
   is(getBreakpointCount(), 1, "One breakpoint exists");
-  if (!getBreakpoint({ sourceId: source.id, line, column })) {
+  if (!getBreakpoint(createLocation({ source, line, column }))) {
     const breakpoints = getBreakpointsMap();
     const id = Object.keys(breakpoints).pop();
     const loc = breakpoints[id].location;
@@ -1118,14 +1248,7 @@ async function expandSourceTree(dbg) {
 }
 
 async function expandAllSourceNodes(dbg, treeNode) {
-  const onContextMenu = waitForContextMenu(dbg);
-  rightClickEl(dbg, treeNode);
-  const menupopup = await onContextMenu;
-  const onHidden = new Promise(resolve => {
-    menupopup.addEventListener("popuphidden", resolve, { once: true });
-  });
-  selectContextMenuItem(dbg, "#node-menu-expand-all");
-  await onHidden;
+  return triggerSourceTreeContextMenu(dbg, treeNode, "#node-menu-expand-all");
 }
 
 /**
@@ -1264,6 +1387,7 @@ const keyMappings = {
     code: "VK_F11",
     modifiers: { shiftKey: true },
   },
+  Backspace: { code: "VK_BACK_SPACE" },
 };
 
 /**
@@ -1277,8 +1401,8 @@ const keyMappings = {
  */
 function pressKey(dbg, keyName) {
   const keyEvent = keyMappings[keyName];
-
   const { code, modifiers } = keyEvent;
+  info(`The ${keyName} key is pressed`);
   return EventUtils.synthesizeKey(code, modifiers || {}, dbg.win);
 }
 
@@ -1510,6 +1634,7 @@ const selectors = {
   frame: i => `.frames [role="list"] [role="listitem"]:nth-child(${i})`,
   frames: '.frames [role="list"] [role="listitem"]',
   gutter: i => `.CodeMirror-code *:nth-child(${i}) .CodeMirror-linenumber`,
+  line: i => `.CodeMirror-code div:nth-child(${i}) .CodeMirror-line`,
   addConditionItem:
     "#node-menu-add-condition, #node-menu-add-conditional-breakpoint",
   editConditionItem:
@@ -1531,8 +1656,7 @@ const selectors = {
   stepOver: ".stepOver.active",
   stepOut: ".stepOut.active",
   stepIn: ".stepIn.active",
-  replayPrevious: ".replay-previous.active",
-  replayNext: ".replay-next.active",
+  trace: ".debugger-trace-menu-button",
   prettyPrintButton: ".source-footer .prettyPrint",
   sourceMapLink: ".source-footer .mapped-source",
   sourcesFooter: ".sources-panel .source-footer",
@@ -1544,8 +1668,6 @@ const selectors = {
     '.sources-list .tree-node[aria-level="1"] > .node > span:nth-child(1)',
   sourceTreeFiles: ".sources-list .tree-node[data-expandable=false]",
   threadSourceTree: i => `.threads-list .sources-pane:nth-child(${i})`,
-  threadSourceTreeHeader: i =>
-    `${selectors.threadSourceTree(i)} .thread-header`,
   threadSourceTreeSourceNode: (i, j) =>
     `${selectors.threadSourceTree(i)} .tree-node:nth-child(${j}) .node`,
   sourceDirectoryLabel: i => `.sources-list .tree-node:nth-child(${i}) .label`,
@@ -1567,9 +1689,16 @@ const selectors = {
   logPointInSecPane: ".breakpoint.is-log",
   searchField: ".search-field",
   blackbox: ".action.black-box",
+  projectSearchSearchInput: ".project-text-search .search-field input",
   projectSearchCollapsed: ".project-text-search .arrow:not(.expanded)",
   projectSearchExpandedResults: ".project-text-search .result",
   projectSearchFileResults: ".project-text-search .file-result",
+  projectSearchModifiersCaseSensitive:
+    ".project-text-search button.case-sensitive-btn",
+  projectSearchModifiersRegexMatch:
+    ".project-text-search button.regex-match-btn",
+  projectSearchModifiersWholeWordMatch:
+    ".project-text-search button.whole-word-btn",
   threadsPaneItems: ".threads-pane .thread",
   threadsPaneItem: i => `.threads-pane .thread:nth-child(${i})`,
   threadsPaneItemPause: i => `${selectors.threadsPaneItem(i)} .pause-badge`,
@@ -1587,6 +1716,7 @@ const selectors = {
   previewPopupObjectObject: ".preview-popup .objectBox-object",
   sourceTreeRootNode: ".sources-panel .node .window",
   sourceTreeFolderNode: ".sources-panel .node .folder",
+  excludePatternsInput: ".project-text-search .exclude-patterns-field input",
 };
 
 function getSelector(elementName, ...args) {
@@ -1691,6 +1821,18 @@ function rightClickEl(dbg, el) {
   EventUtils.synthesizeMouseAtCenter(el, { type: "contextmenu" }, dbg.win);
 }
 
+async function clearElement(dbg, elementName) {
+  await clickElement(dbg, elementName);
+  await pressKey(dbg, "End");
+  const selector = getSelector(elementName);
+  const el = findElementWithSelector(dbg, getSelector(elementName));
+  let len = el.value.length;
+  while (len) {
+    pressKey(dbg, "Backspace");
+    len--;
+  }
+}
+
 async function clickGutter(dbg, line) {
   const el = await codeMirrorGutterElement(dbg, line);
   clickDOMElement(dbg, el);
@@ -1735,6 +1877,24 @@ async function waitForContextMenu(dbg) {
   return popup;
 }
 
+/**
+ * Closes and open context menu popup.
+ *
+ * @memberof mochitest/helpers
+ * @param {Object} dbg
+ * @param {String} popup - The currently opened popup returned by
+ *                         `waitForContextMenu`.
+ * @return {Promise}
+ */
+
+async function closeContextMenu(dbg, popup) {
+  const onHidden = new Promise(resolve => {
+    popup.addEventListener("popuphidden", resolve, { once: true });
+  });
+  popup.hidePopup();
+  return onHidden;
+}
+
 function selectContextMenuItem(dbg, selector) {
   const item = findContextMenu(dbg, selector);
   item.closest("menupopup").activateItem(item);
@@ -1751,9 +1911,13 @@ async function openContextMenuSubmenu(dbg, selector) {
   return popup;
 }
 
-async function assertContextMenuLabel(dbg, selector, label) {
+async function assertContextMenuLabel(dbg, selector, expectedLabel) {
   const item = await waitFor(() => findContextMenu(dbg, selector));
-  is(item.label, label, "The label of the context menu item shown to the user");
+  is(
+    item.label,
+    expectedLabel,
+    "The label of the context menu item shown to the user"
+  );
 }
 
 async function typeInPanel(dbg, text) {
@@ -2228,7 +2392,8 @@ async function checkEvaluateInTopFrame(dbg, text, expected) {
 async function findConsoleMessage({ toolbox }, query) {
   const [message] = await findConsoleMessages(toolbox, query);
   const value = message.querySelector(".message-body").innerText;
-  const link = message.querySelector(".frame-link-source").innerText;
+  // There are console messages which might not have a link e.g Error messages
+  const link = message.querySelector(".frame-link-source")?.innerText;
   return { value, link };
 }
 
@@ -2343,85 +2508,62 @@ async function setLogPoint(dbg, index, value) {
   await typeInPanel(dbg, value);
   await onBreakpointSet;
 }
+/**
+ * Opens the project search panel
+ *
+ * @param {Object} dbg
+ * @return {Boolean} The project search is open
+ */
+function openProjectSearch(dbg) {
+  info("Opening the project search panel");
+  synthesizeKeyShortcut("CmdOrCtrl+Shift+F");
+  return waitForState(
+    dbg,
+    state => dbg.selectors.getActiveSearch() === "project"
+  );
+}
 
 /**
- * Instantiate a HTTP Server that serves files from a given test folder.
- * The test folder should be made of multiple sub folder named: v1, v2, v3,...
- * We will serve the content from one of these sub folder
- * and switch to the next one, each time `httpServer.switchToNextVersion()`
- * is called.
+ * Starts a project search based on the specified search term
  *
- * @return Object Test server with two functions:
- *   - urlFor(path)
- *     Returns the absolute url for a given file.
- *   - switchToNextVersion()
- *     Start serving files from the next available sub folder.
- *   - backToFirstVersion()
- *     When running more than one test, helps restart from the first folder.
+ * @param {Object} dbg
+ * @param {String} searchTerm - The test to search for
+ * @return {Array} List of search results element nodes
  */
-function createVersionizedHttpTestServer(testFolderName) {
-  const httpServer = createTestHTTPServer();
+async function doProjectSearch(dbg, searchTerm) {
+  await clearElement(dbg, "projectSearchSearchInput");
+  type(dbg, searchTerm);
+  pressKey(dbg, "Enter");
+  return waitForSearchResults(dbg);
+}
 
-  let currentVersion = 1;
+/**
+ * Waits for the search resluts node to render
+ *
+ * @param {Object} dbg
+ * @param {Number} expectedResults - The expected no of results to wait for
+ * @return (Array) List of search result element nodes
+ */
+async function waitForSearchResults(dbg, expectedResults) {
+  await waitForState(dbg, state => state.projectTextSearch.status === "DONE");
+  if (expectedResults) {
+    await waitUntil(
+      () =>
+        findAllElements(dbg, "projectSearchFileResults").length ==
+        expectedResults
+    );
+  }
+  return findAllElements(dbg, "projectSearchFileResults");
+}
 
-  httpServer.registerPrefixHandler("/", async (request, response) => {
-    response.processAsync();
-    response.setStatusLine(request.httpVersion, 200, "OK");
-    if (request.path.endsWith(".js")) {
-      response.setHeader("Content-Type", "application/javascript");
-    } else if (request.path.endsWith(".js.map")) {
-      response.setHeader("Content-Type", "application/json");
-    }
-    if (request.path == "/" || request.path == "/index.html") {
-      response.setHeader("Content-Type", "text/html");
-    }
-    // If a query string is passed, lookup with a matching file, if available
-    // The '?' is replaced by '.'
-    let fetchResponse;
-    if (request.queryString) {
-      const url = `${URL_ROOT}${testFolderName}/v${currentVersion}${request.path}.${request.queryString}`;
-      try {
-        fetchResponse = await fetch(url);
-        // Log this only if the request succeed
-        info(`[test-http-server] serving: ${url}`);
-      } catch (e) {
-        // Ignore any error and proceed without the query string
-        fetchResponse = null;
-      }
-    }
-    if (!fetchResponse) {
-      const url = `${URL_ROOT}${testFolderName}/v${currentVersion}${request.path}`;
-      info(`[test-http-server] serving: ${url}`);
-      fetchResponse = await fetch(url);
-    }
-
-    // Ensure forwarding the response headers generated by the other http server
-    // (this can be especially useful when query .sjs files)
-    for (const [name, value] of fetchResponse.headers.entries()) {
-      response.setHeader(name, value);
-    }
-
-    // Override cache settings so that versionized requests are never cached
-    // and we get brand new content for any request.
-    response.setHeader("Cache-Control", "no-store");
-
-    const text = await fetchResponse.text();
-    response.write(text);
-    response.finish();
-  });
-
-  return {
-    switchToNextVersion() {
-      currentVersion++;
-    },
-    backToFirstVersion() {
-      currentVersion = 1;
-    },
-    urlFor(path) {
-      const port = httpServer.identity.primaryPort;
-      return `http://localhost:${port}/${path}`;
-    },
-  };
+/**
+ * Get the no of expanded search results
+ *
+ * @param {Object} dbg
+ * @return {Number} No of expanded results
+ */
+function getExpandedResultsCount(dbg) {
+  return findAllElements(dbg, "projectSearchExpandedResults").length;
 }
 
 // This module is also loaded for Browser Toolbox tests, within the browser toolbox process

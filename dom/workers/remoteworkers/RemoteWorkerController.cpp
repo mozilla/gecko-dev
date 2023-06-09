@@ -45,6 +45,7 @@ already_AddRefed<RemoteWorkerController> RemoteWorkerController::Create(
   RefPtr<RemoteWorkerManager> manager = RemoteWorkerManager::GetOrCreate();
   MOZ_ASSERT(manager);
 
+  // XXX: We do not check for failure here, should we?
   manager->Launch(controller, aData, aProcessId);
 
   return controller.forget();
@@ -139,6 +140,12 @@ void RemoteWorkerController::NotifyLock(bool aCreated) {
   AssertIsOnBackgroundThread();
 
   mObserver->LockNotified(aCreated);
+}
+
+void RemoteWorkerController::NotifyWebTransport(bool aCreated) {
+  AssertIsOnBackgroundThread();
+
+  mObserver->WebTransportNotified(aCreated);
 }
 
 void RemoteWorkerController::WorkerTerminated() {

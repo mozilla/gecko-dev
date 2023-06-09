@@ -7,7 +7,9 @@
 const { AppConstants } = ChromeUtils.importESModule(
   "resource://gre/modules/AppConstants.sys.mjs"
 );
-const { ctypes } = ChromeUtils.import("resource://gre/modules/ctypes.jsm");
+const { ctypes } = ChromeUtils.importESModule(
+  "resource://gre/modules/ctypes.sys.mjs"
+);
 const { FileUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/FileUtils.sys.mjs"
 );
@@ -23,7 +25,9 @@ const { XPCOMUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/XPCOMUtils.sys.mjs"
 );
 
-const { X509 } = ChromeUtils.import("resource://gre/modules/psm/X509.jsm");
+const { X509 } = ChromeUtils.importESModule(
+  "resource://gre/modules/psm/X509.sys.mjs"
+);
 
 const isDebugBuild = Cc["@mozilla.org/xpcom/debug;1"].getService(Ci.nsIDebug2)
   .isDebugBuild;

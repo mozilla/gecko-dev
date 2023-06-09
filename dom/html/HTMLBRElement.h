@@ -14,7 +14,7 @@
 namespace mozilla::dom {
 
 #define BR_ELEMENT_FLAG_BIT(n_) \
-  NODE_FLAG_BIT(ELEMENT_TYPE_SPECIFIC_BITS_OFFSET + (n_))
+  NODE_FLAG_BIT(HTML_ELEMENT_TYPE_SPECIFIC_BITS_OFFSET + (n_))
 
 // BR element specific bits
 enum {
@@ -28,7 +28,7 @@ enum {
   NS_PADDING_FOR_EMPTY_LAST_LINE = BR_ELEMENT_FLAG_BIT(1),
 };
 
-ASSERT_NODE_FLAGS_SPACE(ELEMENT_TYPE_SPECIFIC_BITS_OFFSET + 2);
+ASSERT_NODE_FLAGS_SPACE(HTML_ELEMENT_TYPE_SPECIFIC_BITS_OFFSET + 2);
 
 class HTMLBRElement final : public nsGenericHTMLElement {
  public:
@@ -36,16 +36,15 @@ class HTMLBRElement final : public nsGenericHTMLElement {
 
   NS_IMPL_FROMNODE_HTML_WITH_TAG(HTMLBRElement, br)
 
-  virtual bool ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
-                              const nsAString& aValue,
-                              nsIPrincipal* aMaybeScriptedPrincipal,
-                              nsAttrValue& aResult) override;
+  bool ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
+                      const nsAString& aValue,
+                      nsIPrincipal* aMaybeScriptedPrincipal,
+                      nsAttrValue& aResult) override;
   NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* aAttribute) const override;
-  virtual nsMapRuleToAttributesFunc GetAttributeMappingFunction()
-      const override;
-  virtual nsresult Clone(dom::NodeInfo*, nsINode** aResult) const override;
+  nsMapRuleToAttributesFunc GetAttributeMappingFunction() const override;
+  nsresult Clone(dom::NodeInfo*, nsINode** aResult) const override;
 
-  bool Clear() { return GetBoolAttr(nsGkAtoms::clear); }
+  bool Clear() const { return GetBoolAttr(nsGkAtoms::clear); }
   void SetClear(const nsAString& aClear, ErrorResult& aError) {
     return SetHTMLAttr(nsGkAtoms::clear, aClear, aError);
   }
@@ -53,8 +52,8 @@ class HTMLBRElement final : public nsGenericHTMLElement {
     return GetHTMLAttr(nsGkAtoms::clear, aClear);
   }
 
-  virtual JSObject* WrapNode(JSContext* aCx,
-                             JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapNode(JSContext* aCx,
+                     JS::Handle<JSObject*> aGivenProto) override;
 
   bool IsPaddingForEmptyEditor() const {
     return HasFlag(NS_PADDING_FOR_EMPTY_EDITOR);

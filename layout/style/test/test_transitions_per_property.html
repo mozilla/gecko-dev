@@ -86,7 +86,6 @@ var supported_properties = {
             test_length_unclamped, test_percent_unclamped ],
     "cy": [ test_length_transition, test_percent_transition,
             test_length_unclamped, test_percent_unclamped ],
-    "-moz-image-region": [ test_rect_transition ],
     "background-color": [ test_color_transition,
                           test_currentcolor_transition ],
     "background-position": [ test_background_position_transition,
@@ -139,6 +138,7 @@ var supported_properties = {
                    test_path_function ],
     "color": [ test_color_transition,
                test_currentcolor_transition ],
+    "d": [ test_path_function ],
     "fill": [ test_color_transition,
               test_currentcolor_transition ],
     "fill-opacity" : [ test_float_zeroToOne_transition,
@@ -411,8 +411,9 @@ if (IsCSSPropertyPrefEnabled("layout.css.motion-path.enabled")) {
     [ test_background_position_transition ];
 }
 
-if (IsCSSPropertyPrefEnabled("layout.css.d-property.enabled")) {
-  supported_properties["d"] = [ test_path_function ];
+if (IsCSSPropertyPrefEnabled("layout.css.motion-path-offset-position.enabled")) {
+  supported_properties["offset-position"] =
+    [ test_background_position_transition ];
 }
 
 if (IsCSSPropertyPrefEnabled("layout.css.font-variations.enabled")) {
@@ -1841,7 +1842,7 @@ function test_shape_or_url_equals(computedValStr, expected)
   if (expectedList.length == 0) {
     if (computedValStr == "") {
       return true;
-    } 
+    }
     ok(false, "expected basic shape");
     return false;
   }
@@ -2142,9 +2143,9 @@ function test_shadow_transition(prop) {
      "shadow-valued property " + prop + ": computed value before transition");
   div.style.setProperty("transition-property", prop, "");
   div.style.setProperty(prop, "0px 0px 0px rgba(100, 100, 100, 0.5)", "");
-  // The alpha value, 0.5 * 1.2989961788069297 * 255, is clamped to 166 and then
-  // converted to 0.65.
-  is(cs.getPropertyValue(prop), "rgba(100, 100, 100, 0.65) 0px 0px 0px" + spreadStr,
+  // The alpha value, 0.5 * 1.2989961788069297 * 255, is 165.622012798, and then
+  // converted to 0.649.
+  is(cs.getPropertyValue(prop), "rgba(100, 100, 100, 0.649) 0px 0px 0px" + spreadStr,
      "shadow-valued property " + prop + ": interpolation of shadows with " +
      "timing function which produces values greater than 1.0");
 
@@ -3056,21 +3057,22 @@ function test_font_variations_transition(prop) {
 
   div.style.setProperty("transition-property", "none", "");
   div.style.setProperty(prop, "\"wght\" 0, \"wdth\" 1.5", "");
-  is(cs.getPropertyValue(prop), "\"wght\" 0, \"wdth\" 1.5",
+  // Note that computed-style returns the tags in sorted order.
+  is(cs.getPropertyValue(prop), "\"wdth\" 1.5, \"wght\" 0",
      "font-variation-settings property " + prop + ": computed value before transition");
   div.style.setProperty("transition-property", prop, "");
   div.style.setProperty(prop, "\"wght\" 2, \"wdth\" 0.5", "");
-  is(cs.getPropertyValue(prop), "\"wght\" 0.5, \"wdth\" 1.25",
+  is(cs.getPropertyValue(prop), "\"wdth\" 1.25, \"wght\" 0.5",
      "font-variation-settings property " + prop + ": interpolation of font-variation-settings");
   check_distance(prop, "\"wght\" 0, \"wdth\" 1.5", "\"wght\" 0.5, \"wdth\" 1.25", "\"wght\" 2, \"wdth\" 0.5");
 
   div.style.setProperty("transition-property", "none", "");
   div.style.setProperty(prop, "\"wght\" 2, \"wdth\" 0.5", "");
-  is(cs.getPropertyValue(prop), "\"wght\" 2, \"wdth\" 0.5",
+  is(cs.getPropertyValue(prop), "\"wdth\" 0.5, \"wght\" 2",
      "font-variation-settings property " + prop + ": computed value before transition");
   div.style.setProperty("transition-property", prop, "");
   div.style.setProperty(prop, "\"wght\" 0, \"wdth\" 1.5", "");
-  is(cs.getPropertyValue(prop), "\"wght\" 1.5, \"wdth\" 0.75",
+  is(cs.getPropertyValue(prop), "\"wdth\" 0.75, \"wght\" 1.5",
      "font-variation-settings property " + prop + ": interpolation of font-variation-settings");
   check_distance(prop, "\"wght\" 2, \"wdth\" 0.5", "\"wght\" 1.5, \"wdth\" 0.75", "\"wght\" 0, \"wdth\" 1.5");
 }

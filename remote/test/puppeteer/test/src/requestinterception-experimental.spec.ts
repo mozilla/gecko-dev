@@ -16,19 +16,21 @@
 
 import fs from 'fs';
 import path from 'path';
-import utils from './utils.js';
+
 import expect from 'expect';
+import {ConsoleMessage} from 'puppeteer-core/internal/common/ConsoleMessage.js';
+import {
+  ActionResult,
+  HTTPRequest,
+  InterceptResolutionAction,
+} from 'puppeteer-core/internal/common/HTTPRequest.js';
+
 import {
   getTestState,
   setupTestBrowserHooks,
   setupTestPageAndContextHooks,
 } from './mocha-utils.js';
-import {ConsoleMessage} from '../../lib/cjs/puppeteer/common/ConsoleMessage.js';
-import {
-  ActionResult,
-  HTTPRequest,
-  InterceptResolutionAction,
-} from '../../lib/cjs/puppeteer/common/HTTPRequest.js';
+import utils from './utils.js';
 
 describe('request interception', function () {
   setupTestBrowserHooks();

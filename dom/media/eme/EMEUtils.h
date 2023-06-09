@@ -8,6 +8,7 @@
 #define EME_LOG_H_
 
 #include "mozilla/Logging.h"
+#include "mozilla/dom/MediaKeyStatusMapBinding.h"
 #include "nsString.h"
 #include "nsTArray.h"
 
@@ -76,11 +77,15 @@ struct ArrayData {
 ArrayData GetArrayBufferViewOrArrayBufferData(
     const dom::ArrayBufferViewOrArrayBuffer& aBufferOrView);
 
-nsString KeySystemToGMPName(const nsAString& aKeySystem);
+nsString KeySystemToProxyName(const nsAString& aKeySystem);
 
 bool IsClearkeyKeySystem(const nsAString& aKeySystem);
 
 bool IsWidevineKeySystem(const nsAString& aKeySystem);
+
+#ifdef MOZ_WMF_CDM
+bool IsPlayReadyKeySystem(const nsAString& aKeySystem);
+#endif
 
 // Note: Primetime is now unsupported, but we leave it in the enum so
 // that the telemetry enum values are not changed; doing so would break
@@ -93,6 +98,8 @@ enum CDMType {
 };
 
 CDMType ToCDMTypeTelemetryEnum(const nsString& aKeySystem);
+
+const char* ToMediaKeyStatusStr(dom::MediaKeyStatus aStatus);
 
 }  // namespace mozilla
 

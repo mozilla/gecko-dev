@@ -1,11 +1,11 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-XPCOMUtils.defineLazyModuleGetters(this, {
-  ExperimentAPI: "resource://nimbus/ExperimentAPI.jsm",
-  ExperimentFakes: "resource://testing-common/NimbusTestUtils.jsm",
-  NimbusFeatures: "resource://nimbus/ExperimentAPI.jsm",
-  sinon: "resource://testing-common/Sinon.jsm",
+ChromeUtils.defineESModuleGetters(this, {
+  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
+  ExperimentFakes: "resource://testing-common/NimbusTestUtils.sys.mjs",
+  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
+  sinon: "resource://testing-common/Sinon.sys.mjs",
 });
 
 XPCOMUtils.defineLazyServiceGetter(
@@ -218,4 +218,74 @@ add_task(async function remoteDisable() {
   Assert.ok(setDefaultStub.called);
 
   await doCleanup();
+});
+
+add_task(async function test_setAsDefaultPDFHandler_knownBrowser() {
+  const sandbox = sinon.createSandbox();
+
+  const aumi = XreDirProvider.getInstallHash();
+  const expectedArguments = [
+    "set-default-extension-handlers-user-choice",
+    aumi,
+    ".pdf",
+    "FirefoxPDF",
+  ];
+
+  try {
+    const pdfHandlerResult = { registered: true, knownBrowser: true };
+    sandbox
+      .stub(ShellService, "getDefaultPDFHandler")
+      .returns(pdfHandlerResult);
+
+    info("Testing setAsDefaultPDFHandler(true) when knownBrowser = true");
+    ShellService.setAsDefaultPDFHandler(true);
+    Assert.ok(
+      _callExternalDefaultBrowserAgentStub.called,
+      "Called default browser agent"
+    );
+    Assert.deepEqual(
+      _callExternalDefaultBrowserAgentStub.firstCall.args,
+      [{ arguments: expectedArguments }],
+      "Called default browser agent with expected arguments"
+    );
+    _callExternalDefaultBrowserAgentStub.resetHistory();
+
+    info("Testing setAsDefaultPDFHandler(false) when knownBrowser = true");
+    ShellService.setAsDefaultPDFHandler(false);
+    Assert.ok(
+      _callExternalDefaultBrowserAgentStub.called,
+      "Called default browser agent"
+    );
+    Assert.deepEqual(
+      _callExternalDefaultBrowserAgentStub.firstCall.args,
+      [{ arguments: expectedArguments }],
+      "Called default browser agent with expected arguments"
+    );
+    _callExternalDefaultBrowserAgentStub.resetHistory();
+
+    pdfHandlerResult.knownBrowser = false;
+
+    info("Testing setAsDefaultPDFHandler(true) when knownBrowser = false");
+    ShellService.setAsDefaultPDFHandler(true);
+    Assert.ok(
+      _callExternalDefaultBrowserAgentStub.notCalled,
+      "Did not call default browser agent"
+    );
+    _callExternalDefaultBrowserAgentStub.resetHistory();
+
+    info("Testing setAsDefaultPDFHandler(false) when knownBrowser = false");
+    ShellService.setAsDefaultPDFHandler(false);
+    Assert.ok(
+      _callExternalDefaultBrowserAgentStub.called,
+      "Called default browser agent"
+    );
+    Assert.deepEqual(
+      _callExternalDefaultBrowserAgentStub.firstCall.args,
+      [{ arguments: expectedArguments }],
+      "Called default browser agent with expected arguments"
+    );
+    _callExternalDefaultBrowserAgentStub.resetHistory();
+  } finally {
+    sandbox.restore();
+  }
 });

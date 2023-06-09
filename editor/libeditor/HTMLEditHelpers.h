@@ -15,6 +15,7 @@
 #include "EditorDOMPoint.h"
 #include "EditorForwards.h"
 #include "EditorUtils.h"  // for CaretPoint
+#include "HTMLEditHelpers.h"
 #include "JoinSplitNodeDirection.h"
 
 #include "mozilla/AlreadyAddRefed.h"
@@ -372,7 +373,7 @@ class MOZ_STACK_CLASS SplitNodeResult final : public CaretPoint {
         mDirection(aDirection) {}
 
   SplitNodeResult ToHandledResult() const {
-    mHandledCaretPoint = true;
+    CaretPointHandled();
     SplitNodeResult result(mDirection);
     result.mPreviousNode = GetPreviousContent();
     result.mNextNode = GetNextContent();
@@ -380,7 +381,7 @@ class MOZ_STACK_CLASS SplitNodeResult final : public CaretPoint {
     // Don't recompute the caret position because in this case, split has not
     // occurred yet.  In the case,  the caller shouldn't need to update
     // selection.
-    result.mCaretPoint = mCaretPoint;
+    result.SetCaretPoint(CaretPointRef());
     return result;
   }
 
@@ -447,7 +448,7 @@ class MOZ_STACK_CLASS SplitNodeResult final : public CaretPoint {
     aSplitNodeResult.UnmarkAsHandledCaretPoint();
     aDeeperSplitNodeResult.IgnoreCaretPointSuggestion();
     if (aSplitNodeResult.DidSplit() ||
-        !aDeeperSplitNodeResult.mCaretPoint.IsSet()) {
+        !aDeeperSplitNodeResult.HasCaretPointSuggestion()) {
       return std::move(aSplitNodeResult);
     }
     SplitNodeResult result(std::move(aSplitNodeResult));
@@ -494,12 +495,7 @@ class MOZ_STACK_CLASS SplitNodeResult final : public CaretPoint {
   // for representing the point.
   EditorDOMPoint mGivenSplitPoint;
 
-  // The point which is a good point to put caret from point of view the
-  // splitter.
-  EditorDOMPoint mCaretPoint;
-
   SplitNodeDirection mDirection;
-  bool mutable mHandledCaretPoint = false;
 };
 
 /*****************************************************************************
@@ -923,8 +919,19 @@ class MOZ_STACK_CLASS EditorElementStyle {
            aAttribute == nsGkAtoms::valign || aAttribute == nsGkAtoms::width;
   }
 
-  [[nodiscard]] bool IsCSSEditable(const nsStaticAtom& aTagName) const;
-  [[nodiscard]] bool IsCSSEditable(const dom::Element& aElement) const;
+  /**
+   * Returns true if the style can be represented by CSS and it's possible to
+   * apply the style with CSS.
+   */
+  [[nodiscard]] bool IsCSSSettable(const nsStaticAtom& aTagName) const;
+  [[nodiscard]] bool IsCSSSettable(const dom::Element& aElement) const;
+
+  /**
+   * Returns true if the style can be represented by CSS and it's possible to
+   * remove the style with CSS.
+   */
+  [[nodiscard]] bool IsCSSRemovable(const nsStaticAtom& aTagName) const;
+  [[nodiscard]] bool IsCSSRemovable(const dom::Element& aElement) const;
 
   nsStaticAtom* Style() const { return mStyle; }
 
@@ -995,6 +1002,24 @@ struct MOZ_STACK_CLASS EditorInlineStyle : public EditorElementStyle {
   }
 
   /**
+   * Returns true if the style can be represented with <font>.
+   */
+  [[nodiscard]] bool IsStyleOfFontElement() const {
+    MOZ_ASSERT_IF(
+        mHTMLProperty == nsGkAtoms::font,
+        mAttribute == nsGkAtoms::bgcolor || mAttribute == nsGkAtoms::color ||
+            mAttribute == nsGkAtoms::face || mAttribute == nsGkAtoms::size);
+    return mHTMLProperty == nsGkAtoms::font && mAttribute != nsGkAtoms::bgcolor;
+  }
+
+  /**
+   * Returns true if the style is font-size or <font size="...">.
+   */
+  [[nodiscard]] bool IsStyleOfFontSize() const {
+    return mHTMLProperty == nsGkAtoms::font && mAttribute == nsGkAtoms::size;
+  }
+
+  /**
    * Returns true if the style is conflict with vertical-align even though
    * they are not mapped to vertical-align in the CSS mode.
    */
@@ -1034,16 +1059,10 @@ struct MOZ_STACK_CLASS EditorInlineStyle : public EditorElementStyle {
 
   explicit EditorInlineStyle(const nsStaticAtom& aHTMLProperty,
                              nsAtom* aAttribute = nullptr)
-      // Needs const_cast hack here because the struct users may want
-      // non-const nsStaticAtom pointer due to bug 1794954
-      : mHTMLProperty(const_cast<nsStaticAtom*>(&aHTMLProperty)),
-        mAttribute(aAttribute) {}
+      : EditorInlineStyle(aHTMLProperty, aAttribute, HasValue::No) {}
   EditorInlineStyle(const nsStaticAtom& aHTMLProperty,
                     RefPtr<nsAtom>&& aAttribute)
-      // Needs const_cast hack here because the struct users may want
-      // non-const nsStaticAtom pointer due to bug 1794954
-      : mHTMLProperty(const_cast<nsStaticAtom*>(&aHTMLProperty)),
-        mAttribute(std::move(aAttribute)) {}
+      : EditorInlineStyle(aHTMLProperty, aAttribute, HasValue::No) {}
 
   /**
    * Returns the instance which means remove all inline styles.
@@ -1056,6 +1075,33 @@ struct MOZ_STACK_CLASS EditorInlineStyle : public EditorElementStyle {
     return mHTMLProperty == aOther.mHTMLProperty &&
            mAttribute == aOther.mAttribute;
   }
+
+  bool MaybeHasValue() const { return mMaybeHasValue; }
+  inline EditorInlineStyleAndValue& AsInlineStyleAndValue();
+  inline const EditorInlineStyleAndValue& AsInlineStyleAndValue() const;
+
+ protected:
+  const bool mMaybeHasValue = false;
+
+  enum class HasValue { No, Yes };
+  EditorInlineStyle(const nsStaticAtom& aHTMLProperty, nsAtom* aAttribute,
+                    HasValue aHasValue)
+      // Needs const_cast hack here because the struct users may want
+      // non-const nsStaticAtom pointer due to bug 1794954
+      : mHTMLProperty(const_cast<nsStaticAtom*>(&aHTMLProperty)),
+        mAttribute(aAttribute),
+        mMaybeHasValue(aHasValue == HasValue::Yes) {}
+  EditorInlineStyle(const nsStaticAtom& aHTMLProperty,
+                    RefPtr<nsAtom>&& aAttribute, HasValue aHasValue)
+      // Needs const_cast hack here because the struct users may want
+      // non-const nsStaticAtom pointer due to bug 1794954
+      : mHTMLProperty(const_cast<nsStaticAtom*>(&aHTMLProperty)),
+        mAttribute(std::move(aAttribute)),
+        mMaybeHasValue(aHasValue == HasValue::Yes) {}
+  EditorInlineStyle(const EditorInlineStyle& aStyle, HasValue aHasValue)
+      : mHTMLProperty(aStyle.mHTMLProperty),
+        mAttribute(aStyle.mAttribute),
+        mMaybeHasValue(aHasValue == HasValue::Yes) {}
 
  private:
   EditorInlineStyle() = default;
@@ -1085,25 +1131,25 @@ struct MOZ_STACK_CLASS EditorInlineStyleAndValue : public EditorInlineStyle {
   EditorInlineStyleAndValue() = delete;
 
   explicit EditorInlineStyleAndValue(nsStaticAtom& aHTMLProperty)
-      : EditorInlineStyle(aHTMLProperty) {}
+      : EditorInlineStyle(aHTMLProperty, nullptr, HasValue::No) {}
   EditorInlineStyleAndValue(nsStaticAtom& aHTMLProperty, nsAtom& aAttribute,
                             const nsAString& aValue)
-      : EditorInlineStyle(aHTMLProperty, &aAttribute),
+      : EditorInlineStyle(aHTMLProperty, &aAttribute, HasValue::Yes),
         mAttributeValue(aValue) {}
   EditorInlineStyleAndValue(nsStaticAtom& aHTMLProperty,
                             RefPtr<nsAtom>&& aAttribute,
                             const nsAString& aValue)
-      : EditorInlineStyle(aHTMLProperty, std::move(aAttribute)),
+      : EditorInlineStyle(aHTMLProperty, std::move(aAttribute), HasValue::Yes),
         mAttributeValue(aValue) {
     MOZ_ASSERT(mAttribute);
   }
   EditorInlineStyleAndValue(nsStaticAtom& aHTMLProperty, nsAtom& aAttribute,
                             nsString&& aValue)
-      : EditorInlineStyle(aHTMLProperty, &aAttribute),
+      : EditorInlineStyle(aHTMLProperty, &aAttribute, HasValue::Yes),
         mAttributeValue(std::move(aValue)) {}
   EditorInlineStyleAndValue(nsStaticAtom& aHTMLProperty,
                             RefPtr<nsAtom>&& aAttribute, nsString&& aValue)
-      : EditorInlineStyle(aHTMLProperty, std::move(aAttribute)),
+      : EditorInlineStyle(aHTMLProperty, std::move(aAttribute), HasValue::Yes),
         mAttributeValue(aValue) {}
 
   [[nodiscard]] static EditorInlineStyleAndValue ToInvert(
@@ -1143,8 +1189,20 @@ struct MOZ_STACK_CLASS EditorInlineStyleAndValue : public EditorInlineStyle {
 
   EditorInlineStyleAndValue(const EditorInlineStyle& aStyle,
                             const nsAString& aValue)
-      : EditorInlineStyle(aStyle), mAttributeValue(aValue) {}
+      : EditorInlineStyle(aStyle, HasValue::Yes), mAttributeValue(aValue) {}
+
+  using EditorInlineStyle::AsInlineStyleAndValue;
+  using EditorInlineStyle::HasValue;
 };
+
+inline EditorInlineStyleAndValue& EditorInlineStyle::AsInlineStyleAndValue() {
+  return reinterpret_cast<EditorInlineStyleAndValue&>(*this);
+}
+
+inline const EditorInlineStyleAndValue&
+EditorInlineStyle::AsInlineStyleAndValue() const {
+  return reinterpret_cast<const EditorInlineStyleAndValue&>(*this);
+}
 
 }  // namespace mozilla
 

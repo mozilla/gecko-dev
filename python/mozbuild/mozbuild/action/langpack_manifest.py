@@ -17,7 +17,9 @@ import io
 import json
 import logging
 import os
+import re
 import sys
+import time
 
 import fluent.syntax.ast as FTL
 import mozpack.path as mozpath
@@ -37,9 +39,17 @@ def write_file(path, content):
 pushlog_api_url = "{0}/json-rev/{1}"
 
 
+def get_build_date():
+    """Return the current date or SOURCE_DATE_EPOCH, if set."""
+    return datetime.datetime.utcfromtimestamp(
+        int(os.environ.get("SOURCE_DATE_EPOCH", time.time()))
+    )
+
+
 ###
-# Retrievers a UTC datetime of the push for the current commit
-# from a mercurial clone directory.
+# Retrieves a UTC datetime of the push for the current commit from a
+# mercurial clone directory. The SOURCE_DATE_EPOCH environment
+# variable is honored, for reproducibility.
 #
 # Args:
 #    path (str) - path to a directory
@@ -55,7 +65,7 @@ def get_dt_from_hg(path):
     with mozversioncontrol.get_repository_object(path=path) as repo:
         phase = repo._run("log", "-r", ".", "-T" "{phase}")
         if phase.strip() != "public":
-            return datetime.datetime.utcnow()
+            return get_build_date()
         repo_url = repo._run("paths", "default")
         repo_url = repo_url.strip().replace("ssh://", "https://")
         repo_url = repo_url.replace("hg://", "https://")
@@ -106,7 +116,7 @@ def get_timestamp_for_locale(path):
         dt = get_dt_from_hg(path)
 
     if dt is None:
-        dt = datetime.datetime.utcnow()
+        dt = get_build_date()
 
     dt = dt.replace(microsecond=0)
     return dt.strftime("%Y%m%d%H%M%S")
@@ -345,29 +355,50 @@ def parse_chrome_manifest(path, base_path, chrome_entries):
             raise Exception("Unknown type {0}".format(entry.name))
 
 
-##
+###
 # Gets the version to use in the langpack.
 #
-# This uses the env variable MOZ_BUILD_DATE if it exists to expand the version to be unique
-# in automation.
+# This uses the env variable MOZ_BUILD_DATE if it exists to expand the version
+# to be unique in automation.
 #
 # Args:
-#    min_version - Application version
+#    app_version - Application version
 #
 # Returns:
-#    str - Version to use, may include buildid
+#    str - Version to use
 #
 ###
-def get_version_maybe_buildid(version):
+def get_version_maybe_buildid(app_version):
+    def _extract_numeric_part(part):
+        matches = re.compile("[^\d]").search(part)
+        if matches:
+            part = part[0 : matches.start()]
+        if len(part) == 0:
+            return "0"
+        return part
+
+    parts = [_extract_numeric_part(part) for part in app_version.split(".")]
+
     buildid = os.environ.get("MOZ_BUILD_DATE")
     if buildid and len(buildid) != 14:
         print("Ignoring invalid MOZ_BUILD_DATE: %s" % buildid, file=sys.stderr)
         buildid = None
+
     if buildid:
-        # Split into date/time parts so no part is >= 2^31 (bug 1732676)
-        # Bug 1733396 may revisit that limit
+        # Use simple versioning format, see: Bug 1793925 - The version string
+        # should start with: <firefox major>.<firefox minor>
+        version = ".".join(parts[0:2])
+        # We then break the buildid into two version parts so that the full
+        # version looks like: <firefox major>.<firefox minor>.YYYYMMDD.HHmmss
         date, time = buildid[:8], buildid[8:]
-        version = f"{version}buildid{date}.{time}"
+        # Leading zeros are not allowed.
+        time = time.lstrip("0")
+        if len(time) == 0:
+            time = "0"
+        version = f"{version}.{date}.{time}"
+    else:
+        version = ".".join(parts)
+
     return version
 
 
@@ -423,7 +454,7 @@ def get_version_maybe_buildid(version):
 #                'base_path': 'browser/'
 #            }
 #        },
-#        'applications': {
+#        'browser_specific_settings': {
 #            'gecko':  {
 #                'strict_min_version': '57.0',
 #                'strict_max_version': '57.0.*',
@@ -454,7 +485,7 @@ def create_webmanifest(
     manifest = {
         "langpack_id": main_locale,
         "manifest_version": 2,
-        "applications": {
+        "browser_specific_settings": {
             "gecko": {
                 "id": langpack_eid,
                 "strict_min_version": min_app_ver,

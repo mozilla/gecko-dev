@@ -49,12 +49,19 @@ add_task(async function test() {
     value: "test",
   });
 
-  let oneOffs = UrlbarTestUtils.getOneOffSearchButtons(window);
+  EventUtils.synthesizeKey("KEY_Tab", {
+    repeat: UrlbarPrefs.get("resultMenu") ? 5 : 3,
+  });
+  EventUtils.synthesizeKey("KEY_ArrowDown");
+  ok(
+    UrlbarTestUtils.getOneOffSearchButtons(window).selectedButton,
+    "a one off button is selected"
+  );
 
-  while (!oneOffs.selectedButton) {
-    EventUtils.synthesizeKey("KEY_ArrowDown");
-  }
-
-  Assert.equal(selectionCount, 4, "We selected the four elements in the view.");
+  Assert.equal(
+    selectionCount,
+    UrlbarPrefs.get("resultMenu") ? 6 : 4,
+    "Number of elements selected in the view."
+  );
   UrlbarProvidersManager.unregisterProvider(provider);
 });

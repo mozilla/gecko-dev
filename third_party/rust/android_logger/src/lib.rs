@@ -13,13 +13,13 @@
 //! #[macro_use] extern crate log;
 //! extern crate android_logger;
 //!
-//! use log::Level;
+//! use log::LevelFilter;
 //! use android_logger::Config;
 //!
 //! /// Android code may not have obvious "main", this is just an example.
 //! fn main() {
 //!     android_logger::init_once(
-//!         Config::default().with_min_level(Level::Trace),
+//!         Config::default().with_max_level(LevelFilter::Trace),
 //!     );
 //!
 //!     debug!("this is a debug {}", "message");
@@ -36,13 +36,13 @@
 //! #[macro_use] extern crate log;
 //! extern crate android_logger;
 //!
-//! use log::Level;
+//! use log::LevelFilter;
 //! use android_logger::{Config,FilterBuilder};
 //!
 //! fn main() {
 //!     android_logger::init_once(
 //!         Config::default()
-//!             .with_min_level(Level::Trace)
+//!             .with_max_level(LevelFilter::Trace)
 //!             .with_tag("mytag")
 //!             .with_filter(FilterBuilder::new().parse("debug,hello::crate=trace").build()),
 //!     );
@@ -58,7 +58,7 @@
 //!
 //! android_logger::init_once(
 //!     Config::default()
-//!         .with_min_level(log::Level::Trace)
+//!         .with_max_level(log::LevelFilter::Trace)
 //!         .format(|f, record| write!(f, "my_app: {}", record.args()))
 //! )
 //! ```
@@ -72,7 +72,7 @@ extern crate log;
 
 extern crate env_logger;
 
-use log::{Level, Log, Metadata, Record};
+use log::{Level, LevelFilter, Log, Metadata, Record};
 #[cfg(target_os = "android")]
 use log_ffi::LogPriority;
 use std::ffi::{CStr, CString};
@@ -113,6 +113,10 @@ impl AndroidLogger {
             config: OnceCell::from(config),
         }
     }
+
+    fn config(&self) -> &Config {
+        self.config.get_or_init(Config::default)
+    }
 }
 
 static ANDROID_LOGGER: OnceCell<AndroidLogger> = OnceCell::new();
@@ -130,13 +134,21 @@ impl Default for AndroidLogger {
 }
 
 impl Log for AndroidLogger {
-    fn enabled(&self, _: &Metadata) -> bool {
-        true
+    fn enabled(&self, metadata: &Metadata) -> bool {
+        let config = self.config();
+        // todo: consider __android_log_is_loggable.
+        metadata.level() <= config.log_level.unwrap_or_else(log::max_level)
     }
 
     fn log(&self, record: &Record) {
-        let config = self.config.get_or_init(Config::default);
+        let config = self.config();
 
+        if !self.enabled(record.metadata()) {
+            return;
+        }
+
+        // this also checks the level, but only if a filter was
+        // installed.
         if !config.filter_matches(record) {
             return;
         }
@@ -202,18 +214,29 @@ impl AndroidLogger {
 /// Filter for android logger.
 #[derive(Default)]
 pub struct Config {
-    log_level: Option<Level>,
+    log_level: Option<LevelFilter>,
     filter: Option<env_logger::filter::Filter>,
     tag: Option<CString>,
     custom_format: Option<FormatFn>,
 }
 
 impl Config {
-    /// Change the minimum log level.
+    // TODO: Remove on 0.13 version release.
+    /// **DEPRECATED**, use [`Config::with_max_level()`] instead.
+    #[deprecated(note = "use `.with_max_level()` instead")]
+    pub fn with_min_level(self, level: Level) -> Self {
+        self.with_max_level(level.to_level_filter())
+    }
+
+    /// Changes the maximum log level.
     ///
-    /// All values above the set level are logged. For example, if
-    /// `Warn` is set, the `Error` is logged too, but `Info` isn't.
-    pub fn with_min_level(mut self, level: Level) -> Self {
+    /// Note, that `Trace` is the maximum level, because it provides the
+    /// maximum amount of detail in the emitted logs.
+    ///
+    /// If `Off` level is provided, then nothing is logged at all.
+    ///
+    /// [`log::max_level()`] is considered as the default level.
+    pub fn with_max_level(mut self, level: LevelFilter) -> Self {
         self.log_level = Some(level);
         self
     }
@@ -241,7 +264,7 @@ impl Config {
     /// # use android_logger::Config;
     /// android_logger::init_once(
     ///     Config::default()
-    ///         .with_min_level(log::Level::Trace)
+    ///         .with_max_level(log::LevelFilter::Trace)
     ///         .format(|f, record| write!(f, "my_app: {}", record.args()))
     /// )
     /// ```
@@ -267,21 +290,29 @@ pub struct PlatformLogWriter<'a> {
 
 impl<'a> PlatformLogWriter<'a> {
     #[cfg(target_os = "android")]
-    pub fn new(level: Level, tag: &CStr) -> PlatformLogWriter {
+    pub fn new_with_priority(priority: log_ffi::LogPriority, tag: &CStr) -> PlatformLogWriter {
         #[allow(deprecated)] // created an issue #35 for this
         PlatformLogWriter {
-            priority: match level {
+            priority,
+            len: 0,
+            last_newline_index: 0,
+            tag,
+            buffer: uninit_array(),
+        }
+    }
+
+    #[cfg(target_os = "android")]
+    pub fn new(level: Level, tag: &CStr) -> PlatformLogWriter {
+        Self::new_with_priority(
+            match level {
                 Level::Warn => LogPriority::WARN,
                 Level::Info => LogPriority::INFO,
                 Level::Debug => LogPriority::DEBUG,
                 Level::Error => LogPriority::ERROR,
                 Level::Trace => LogPriority::VERBOSE,
             },
-            len: 0,
-            last_newline_index: 0,
             tag,
-            buffer: uninit_array(),
-        }
+        )
     }
 
     #[cfg(not(target_os = "android"))]
@@ -429,7 +460,7 @@ pub fn init_once(config: Config) {
     if let Err(err) = log::set_logger(logger) {
         debug!("android_logger: log::set_logger failed: {}", err);
     } else if let Some(level) = log_level {
-        log::set_max_level(level.to_level_filter());
+        log::set_max_level(level);
     }
 }
 
@@ -449,10 +480,10 @@ mod tests {
     fn check_config_values() {
         // Filter is checked in config_filter_match below.
         let config = Config::default()
-            .with_min_level(Level::Trace)
+            .with_max_level(LevelFilter::Trace)
             .with_tag("my_app");
 
-        assert_eq!(config.log_level, Some(Level::Trace));
+        assert_eq!(config.log_level, Some(LevelFilter::Trace));
         assert_eq!(config.tag, Some(CString::new("my_app").unwrap()));
     }
 
@@ -460,7 +491,7 @@ mod tests {
     fn log_calls_formatter() {
         static FORMAT_FN_WAS_CALLED: AtomicBool = AtomicBool::new(false);
         let config = Config::default()
-            .with_min_level(Level::Info)
+            .with_max_level(LevelFilter::Info)
             .format(|_, _| {
                 FORMAT_FN_WAS_CALLED.store(true, Ordering::SeqCst);
                 Ok(())
@@ -473,10 +504,12 @@ mod tests {
     }
 
     #[test]
-    fn logger_always_enabled() {
-        let logger = AndroidLogger::new(Config::default());
+    fn logger_enabled_threshold() {
+        let logger = AndroidLogger::new(Config::default().with_max_level(LevelFilter::Info));
 
-        assert!(logger.enabled(&log::MetadataBuilder::new().build()));
+        assert!(logger.enabled(&log::MetadataBuilder::new().level(Level::Warn).build()));
+        assert!(logger.enabled(&log::MetadataBuilder::new().level(Level::Info).build()));
+        assert!(!logger.enabled(&log::MetadataBuilder::new().level(Level::Debug).build()));
     }
 
     // Test whether the filter gets called correctly. Not meant to be exhaustive for all filter

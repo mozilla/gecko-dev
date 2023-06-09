@@ -15,6 +15,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   MockColorPicker: "resource://specialpowers/MockColorPicker.sys.mjs",
   MockFilePicker: "resource://specialpowers/MockFilePicker.sys.mjs",
   MockPermissionPrompt: "resource://specialpowers/MockPermissionPrompt.sys.mjs",
+  PerTestCoverageUtils:
+    "resource://testing-common/PerTestCoverageUtils.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   SpecialPowersSandbox: "resource://specialpowers/SpecialPowersSandbox.sys.mjs",
   WrapPrivileged: "resource://specialpowers/WrapPrivileged.sys.mjs",
@@ -25,12 +27,6 @@ ChromeUtils.defineModuleGetter(
   "resource://gre/modules/NetUtil.jsm"
 );
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
-
-ChromeUtils.defineModuleGetter(
-  lazy,
-  "PerTestCoverageUtils",
-  "resource://testing-common/PerTestCoverageUtils.jsm"
-);
 
 Cu.crashIfNotInAutomation();
 
@@ -380,6 +376,12 @@ export class SpecialPowersChild extends JSWindowActorChild {
   }
   isWrapper(val) {
     return lazy.WrapPrivileged.isWrapper(val);
+  }
+
+  unwrapIfWrapped(obj) {
+    return lazy.WrapPrivileged.isWrapper(obj)
+      ? lazy.WrapPrivileged.unwrap(obj)
+      : obj;
   }
 
   /*
@@ -882,6 +884,34 @@ export class SpecialPowersChild extends JSWindowActorChild {
     }
   }
 
+  /*
+    Collect a snapshot of all preferences in Firefox (i.e. about:prefs).
+    From this, store the results within specialpowers for later reference.
+  */
+  async getBaselinePrefs(callback = null) {
+    await this.sendQuery("getBaselinePrefs");
+    if (callback) {
+      await callback();
+    }
+  }
+
+  /*
+    This uses the stored prefs from getBaselinePrefs, collects a new snapshot
+    of preferences, then compares the new vs the baseline.  If there are differences
+    they are recorded and returned as an array of preferences, in addition
+    all the changed preferences are reset to the value found in the baseline.
+
+    ignorePrefs: array of strings which are preferences.  If they end in *,
+                 we do a partial match
+  */
+  async comparePrefsToBaseline(ignorePrefs, callback = null) {
+    let retVal = await this.sendQuery("comparePrefsToBaseline", ignorePrefs);
+    if (callback) {
+      callback(retVal);
+    }
+    return retVal;
+  }
+
   _promiseEarlyRefresh() {
     return new Promise(r => {
       // for mochitest-browser
@@ -1011,6 +1041,9 @@ export class SpecialPowersChild extends JSWindowActorChild {
   getComplexValue(prefName, iid) {
     return Services.prefs.getComplexValue(prefName, iid);
   }
+  getStringPref(...args) {
+    return Services.prefs.getStringPref(...args);
+  }
 
   getParentBoolPref(prefName, defaultValue) {
     return this._getParentPref(prefName, "BOOL", { defaultValue });
@@ -1020,6 +1053,9 @@ export class SpecialPowersChild extends JSWindowActorChild {
   }
   getParentCharPref(prefName, defaultValue) {
     return this._getParentPref(prefName, "CHAR", { defaultValue });
+  }
+  getParentStringPref(prefName, defaultValue) {
+    return this._getParentPref(prefName, "STRING", { defaultValue });
   }
 
   // Mimic the set*Pref API
@@ -1034,6 +1070,9 @@ export class SpecialPowersChild extends JSWindowActorChild {
   }
   setComplexValue(prefName, iid, value) {
     return this._setPref(prefName, "COMPLEX", value, iid);
+  }
+  setStringPref(prefName, value) {
+    return this._setPref(prefName, "STRING", value);
   }
 
   // Mimic the clearUserPref API
@@ -1069,6 +1108,8 @@ export class SpecialPowersChild extends JSWindowActorChild {
         return Services.prefs.getIntPref(prefName);
       case "CHAR":
         return Services.prefs.getCharPref(prefName);
+      case "STRING":
+        return Services.prefs.getStringPref(prefName);
     }
     return undefined;
   }
@@ -1608,7 +1649,7 @@ export class SpecialPowersChild extends JSWindowActorChild {
   }
 
   /**
-   * Automatically imports the given symbol from the given JSM for any
+   * Automatically imports the given symbol from the given sys.mjs for any
    * task spawned by this SpecialPowers instance.
    */
   addTaskImport(symbol, url) {
@@ -1714,7 +1755,9 @@ export class SpecialPowersChild extends JSWindowActorChild {
   }
 
   supportsSelectionClipboard() {
-    return Services.clipboard.supportsSelectionClipboard();
+    return Services.clipboard.isClipboardTypeSupported(
+      Services.clipboard.kSelectionClipboard
+    );
   }
 
   swapFactoryRegistration(cid, contractID, newFactory) {
@@ -2099,13 +2142,6 @@ export class SpecialPowersChild extends JSWindowActorChild {
         return lazy.WrapPrivileged.wrap(walker.lastChild(), contentWindow);
       },
     };
-  }
-
-  observeMutationEvents(mo, node, nativeAnonymousChildList, subtree) {
-    lazy.WrapPrivileged.unwrap(mo).observe(lazy.WrapPrivileged.unwrap(node), {
-      nativeAnonymousChildList,
-      subtree,
-    });
   }
 
   /**

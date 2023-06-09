@@ -7,10 +7,6 @@
 
 "use strict";
 
-const { AppConstants } = ChromeUtils.import(
-  "resource://gre/modules/AppConstants.jsm"
-);
-
 add_task(async function test() {
   const testPageURL =
     "http://mochi.test:8888/browser/" +
@@ -37,7 +33,7 @@ add_task(async function test() {
 
   async function testTabTitle(aWindow, url, insidePB, expected_title) {
     let tab = await BrowserTestUtils.openNewForegroundTab(aWindow.gBrowser);
-    BrowserTestUtils.loadURI(tab.linkedBrowser, url);
+    BrowserTestUtils.loadURIString(tab.linkedBrowser, url);
     await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
 
     await BrowserTestUtils.waitForCondition(() => {

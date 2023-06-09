@@ -3,9 +3,8 @@ file-whitespace:
     description: File content sanity check
     include:
         - .
-        - tools/lint/python/flake8_requirements.txt
-        - tools/lint/python/pylint_requirements.txt
         - tools/lint/python/black_requirements.txt
+        - tools/lint/python/ruff_requirements.txt
         - tools/lint/rst/requirements.txt
         - tools/lint/tox/tox_requirements.txt
         - tools/lint/spell/codespell_requirements.txt
@@ -126,7 +125,6 @@ file-whitespace:
         - widget/tests
         - widget/windows/tests/TestUrisToValidate.h
         - xpcom/reflect/xptcall/porting.html
-        - xpcom/reflect/xptcall/status.html
         - xpcom/tests/test.properties
         - xpcom/tests/unit/data/bug121341.properties
         # Excluded below files because tests were failing unexpectedly

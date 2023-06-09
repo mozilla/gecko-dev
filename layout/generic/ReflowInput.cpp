@@ -13,7 +13,7 @@
 #include "CounterStyleManager.h"
 #include "LayoutLogging.h"
 #include "mozilla/dom/HTMLInputElement.h"
-#include "mozilla/SVGUtils.h"
+#include "mozilla/StaticPrefs_layout.h"
 #include "mozilla/WritingModes.h"
 #include "nsBlockFrame.h"
 #include "nsCSSAnonBoxes.h"
@@ -39,16 +39,6 @@ using namespace mozilla;
 using namespace mozilla::css;
 using namespace mozilla::dom;
 using namespace mozilla::layout;
-
-enum eNormalLineHeightControl {
-  eUninitialized = -1,
-  eNoExternalLeading = 0,   // does not include external leading
-  eIncludeExternalLeading,  // use whatever value font vendor provides
-  eCompensateLeading  // compensate leading if leading provided by font vendor
-                      // is not enough
-};
-
-static eNormalLineHeightControl sNormalLineHeightControl = eUninitialized;
 
 static bool CheckNextInFlowParenthood(nsIFrame* aFrame, nsIFrame* aParent) {
   nsIFrame* frameNext = aFrame->GetNextInFlow();
@@ -150,6 +140,9 @@ ReflowInput::ReflowInput(nsPresContext* aPresContext, nsIFrame* aFrame,
   if (!aFlags.contains(InitFlag::CallerWillInit)) {
     Init(aPresContext);
   }
+  // If we encounter a PageContent frame, this will be flipped on and the pref
+  // layout.css.named-pages.enabled will be checked.
+  mFlags.mCanHaveClassABreakpoints = false;
 }
 
 // Initialize a reflow input for a child frame's reflow. Some state
@@ -208,6 +201,54 @@ ReflowInput::ReflowInput(nsPresContext* aPresContext,
   mFlags.mDummyParentReflowInput = false;
   mFlags.mStaticPosIsCBOrigin = aFlags.contains(InitFlag::StaticPosIsCBOrigin);
   mFlags.mIOffsetsNeedCSSAlign = mFlags.mBOffsetsNeedCSSAlign = false;
+
+  // aPresContext->IsPaginated() and the named pages pref should have been
+  // checked when constructing the root ReflowInput.
+  if (aParentReflowInput.mFlags.mCanHaveClassABreakpoints) {
+    MOZ_ASSERT(aPresContext->IsPaginated(),
+               "mCanHaveClassABreakpoints set during non-paginated reflow.");
+    MOZ_ASSERT(StaticPrefs::layout_css_named_pages_enabled(),
+               "mCanHaveClassABreakpoints should not be set when "
+               "layout.css.named_pages.enabled is false");
+  }
+
+  {
+    using mozilla::LayoutFrameType;
+    switch (mFrame->Type()) {
+      case LayoutFrameType::PageContent:
+        // PageContent requires paginated reflow.
+        MOZ_ASSERT(aPresContext->IsPaginated(),
+                   "nsPageContentFrame should not be in non-paginated reflow");
+        MOZ_ASSERT(!mFlags.mCanHaveClassABreakpoints,
+                   "mFlags.mCanHaveClassABreakpoints should have been "
+                   "initalized to false before we found nsPageContentFrame");
+        mFlags.mCanHaveClassABreakpoints =
+            StaticPrefs::layout_css_named_pages_enabled();
+        break;
+      case LayoutFrameType::Block:          // FALLTHROUGH
+      case LayoutFrameType::Canvas:         // FALLTHROUGH
+      case LayoutFrameType::FlexContainer:  // FALLTHROUGH
+      case LayoutFrameType::GridContainer:
+        if (mFrame->HasAnyStateBits(NS_FRAME_OUT_OF_FLOW)) {
+          // Never allow breakpoints inside of out-of-flow frames.
+          mFlags.mCanHaveClassABreakpoints = false;
+          break;
+        }
+        // This frame type can have class A breakpoints, inherit this flag
+        // from the parent (this is done for all flags during construction).
+        // This also includes Canvas frames, as each PageContent frame always
+        // has exactly one child which is a Canvas frame.
+        // Do NOT include the subclasses of BlockFrame here, as the ones for
+        // which this could be applicable (ColumnSetWrapper and the MathML
+        // frames) cannot have class A breakpoints.
+        MOZ_ASSERT(mFlags.mCanHaveClassABreakpoints ==
+                   aParentReflowInput.mFlags.mCanHaveClassABreakpoints);
+        break;
+      default:
+        mFlags.mCanHaveClassABreakpoints = false;
+        break;
+    }
+  }
 
   if (aFlags.contains(InitFlag::DummyParentReflowInput) ||
       (mParentReflowInput->mFlags.mDummyParentReflowInput &&
@@ -273,19 +314,11 @@ bool ReflowInput::ShouldReflowAllKids() const {
 
 void ReflowInput::SetComputedISize(nscoord aComputedISize,
                                    ResetResizeFlags aFlags) {
-  // It'd be nice to assert that |frame| is not in reflow, but this fails for
-  // two reasons:
-  //
-  // 1) Viewport frames reset the computed isize on a copy of their reflow
-  //    input when reflowing fixed-pos kids.  In that case we actually don't
-  //    want to mess with the resize flags, because comparing the frame's rect
-  //    to the munged computed width is pointless.
-  // 2) nsIFrame::BoxReflow creates a reflow input for its parent.  This reflow
-  //    input is not used to reflow the parent, but just as a parent for the
-  //    frame's own reflow input.  So given a nsBoxFrame inside some non-XUL
-  //    (like a text control, for example), we'll end up creating a reflow
-  //    input for the parent while the parent is reflowing.
-
+  // It'd be nice to assert that |frame| is not in reflow, but this fails
+  // because viewport frames reset the computed isize on a copy of their reflow
+  // input when reflowing fixed-pos kids.  In that case we actually don't want
+  // to mess with the resize flags, because comparing the frame's rect to the
+  // munged computed isize is pointless.
   NS_WARNING_ASSERTION(aComputedISize >= 0, "Invalid computed inline-size!");
   if (ComputedISize() != aComputedISize) {
     mComputedSize.ISize(mWritingMode) = std::max(0, aComputedISize);
@@ -298,18 +331,7 @@ void ReflowInput::SetComputedISize(nscoord aComputedISize,
 void ReflowInput::SetComputedBSize(nscoord aComputedBSize,
                                    ResetResizeFlags aFlags) {
   // It'd be nice to assert that |frame| is not in reflow, but this fails
-  // for two reasons:
-  //
-  // 1) Viewport frames reset the computed block size on a copy of their reflow
-  //    input when reflowing fixed-pos kids. In that case we actually don't want
-  //    to mess with the resize flags, because comparing the frame's rect to the
-  //    munged computed bsize is pointless.
-  // 2) nsIFrame::BoxReflow creates a reflow input for its parent.  This reflow
-  //    input is not used to reflow the parent, but just as a parent for the
-  //    frame's own reflow input.  So given a nsBoxFrame inside some non-XUL
-  //    (like a text control, for example), we'll end up creating a reflow
-  //    input for the parent while the parent is reflowing.
-
+  // for the same reason as above.
   NS_WARNING_ASSERTION(aComputedBSize >= 0, "Invalid computed block-size!");
   if (ComputedBSize() != aComputedBSize) {
     mComputedSize.BSize(mWritingMode) = std::max(0, aComputedBSize);
@@ -674,8 +696,7 @@ void ReflowInput::InitResizeFlags(nsPresContext* aPresContext,
                           mStylePosition->MinBSizeDependsOnContainer(wm) ||
                           mStylePosition->MaxBSizeDependsOnContainer(wm) ||
                           mStylePosition->mOffset.GetBStart(wm).HasPercent() ||
-                          !mStylePosition->mOffset.GetBEnd(wm).IsAuto() ||
-                          mFrame->IsXULBoxFrame();
+                          !mStylePosition->mOffset.GetBEnd(wm).IsAuto();
 
   // If mFrame is a flex item, and mFrame's block axis is the flex container's
   // main axis (e.g. in a column-oriented flex container with same
@@ -769,6 +790,13 @@ bool ReflowInput::ShouldApplyAutomaticMinimumOnBlockAxis() const {
   return mFlags.mIsBSizeSetByAspectRatio &&
          !mStyleDisplay->IsScrollableOverflow() &&
          mStylePosition->MinBSize(GetWritingMode()).IsAuto();
+}
+
+bool ReflowInput::IsInFragmentedContext() const {
+  // We consider mFrame with a prev-in-flow being in a fragmented context
+  // because nsColumnSetFrame can reflow its last column with an unconstrained
+  // available block-size.
+  return AvailableBSize() != NS_UNCONSTRAINEDSIZE || mFrame->GetPrevInFlow();
 }
 
 /* static */
@@ -1011,12 +1039,6 @@ void ReflowInput::ApplyRelativePositioning(
       mozilla::LogicalPoint(aWritingMode, pos, aContainerSize - frameSize);
 }
 
-// Returns true if aFrame is non-null, a XUL frame, and "XUL-collapsed" (which
-// only becomes a valid question to ask if we know it's a XUL frame).
-static bool IsXULCollapsedXULFrame(nsIFrame* aFrame) {
-  return aFrame && aFrame->IsXULBoxFrame() && aFrame->IsXULCollapsed();
-}
-
 nsIFrame* ReflowInput::GetHypotheticalBoxContainer(nsIFrame* aFrame,
                                                    nscoord& aCBIStartEdge,
                                                    LogicalSize& aCBSize) const {
@@ -1051,22 +1073,10 @@ nsIFrame* ReflowInput::GetHypotheticalBoxContainer(nsIFrame* aFrame,
                  "aFrame shouldn't be in reflow; we'll lie if it is");
     WritingMode wm = aFrame->GetWritingMode();
     // Compute CB's offset & content-box size by subtracting borderpadding from
-    // frame size.  Exception: if the CB is 0-sized, it *might* be a child of a
-    // XUL-collapsed frame and might have nonzero borderpadding that was simply
-    // discarded during its layout. (See the child-zero-sizing in
-    // nsSprocketLayout::XULLayout()).  In that case, we ignore the
-    // borderpadding here (just like we did when laying it out), or else we'd
-    // produce a bogus negative content-box size.
-    aCBIStartEdge = 0;
-    aCBSize = aFrame->GetLogicalSize(wm);
-    if (!aCBSize.IsAllZero() ||
-        (!IsXULCollapsedXULFrame(aFrame->GetParent()))) {
-      // aFrame is not XUL-collapsed (nor is it a child of a XUL-collapsed
-      // frame), so we can go ahead and subtract out border padding.
-      LogicalMargin borderPadding = aFrame->GetLogicalUsedBorderAndPadding(wm);
-      aCBIStartEdge += borderPadding.IStart(wm);
-      aCBSize -= borderPadding.Size(wm);
-    }
+    // frame size.
+    const auto& bp = aFrame->GetLogicalUsedBorderAndPadding(wm);
+    aCBIStartEdge = bp.IStart(wm);
+    aCBSize = aFrame->GetLogicalSize(wm) - bp.Size(wm);
   }
 
   return aFrame;
@@ -1285,7 +1295,7 @@ void ReflowInput::CalculateHypotheticalPosition(
       // value calculated using the absolute containing block width
       nscoord insideBoxBSizing, dummy;
       CalculateBorderPaddingMargin(eLogicalAxisBlock,
-                                   blockContentSize.BSize(wm),
+                                   blockContentSize.ISize(wm),
                                    &insideBoxBSizing, &dummy);
       boxISize.emplace(
           ComputeISizeValue(wm, blockContentSize,
@@ -2116,17 +2126,6 @@ LogicalSize ReflowInput::ComputeContainingBlockRectangle(
   return cbSize.ConvertTo(GetWritingMode(), wm);
 }
 
-static eNormalLineHeightControl GetNormalLineHeightCalcControl(void) {
-  if (sNormalLineHeightControl == eUninitialized) {
-    // browser.display.normal_lineheight_calc_control is not user
-    // changeable, so no need to register callback for it.
-    int32_t val = Preferences::GetInt(
-        "browser.display.normal_lineheight_calc_control", eNoExternalLeading);
-    sNormalLineHeightControl = static_cast<eNormalLineHeightControl>(val);
-  }
-  return sNormalLineHeightControl;
-}
-
 // XXX refactor this code to have methods for each set of properties
 // we are computing: width,height,line-height; margin; offsets
 
@@ -2134,11 +2133,6 @@ void ReflowInput::InitConstraints(
     nsPresContext* aPresContext, const Maybe<LogicalSize>& aContainingBlockSize,
     const Maybe<LogicalMargin>& aBorder, const Maybe<LogicalMargin>& aPadding,
     LayoutFrameType aFrameType) {
-  MOZ_ASSERT(!mStyleDisplay->IsFloating(mFrame) ||
-                 (mStyleDisplay->mDisplay != StyleDisplay::MozBox &&
-                  mStyleDisplay->mDisplay != StyleDisplay::MozInlineBox),
-             "Please don't try to float a -moz-box or a -moz-inline-box");
-
   WritingMode wm = GetWritingMode();
   LogicalSize cbSize = aContainingBlockSize.valueOr(
       LogicalSize(mWritingMode, NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE));
@@ -2499,7 +2493,7 @@ void SizeComputationInput::InitOffsets(WritingMode aCBWM, nscoord aPercentBasis,
         widgetPadding, presContext->AppUnitsPerDevPixel());
     SetComputedLogicalPadding(wm, LogicalMargin(wm, padding));
     needPaddingProp = false;
-  } else if (SVGUtils::IsInSVGTextSubtree(mFrame)) {
+  } else if (mFrame->IsInSVGTextSubtree()) {
     SetComputedLogicalPadding(wm, LogicalMargin(wm));
     needPaddingProp = false;
   } else if (aPadding) {  // padding is an input arg
@@ -2553,7 +2547,7 @@ void SizeComputationInput::InitOffsets(WritingMode aCBWM, nscoord aPercentBasis,
     border = LogicalMargin(
         wm, LayoutDevicePixel::ToAppUnits(widgetBorder,
                                           presContext->AppUnitsPerDevPixel()));
-  } else if (SVGUtils::IsInSVGTextSubtree(mFrame)) {
+  } else if (mFrame->IsInSVGTextSubtree()) {
     // Do nothing since the border local variable is initialized all zero.
   } else if (aBorder) {  // border is an input arg
     border = *aBorder;
@@ -2712,70 +2706,62 @@ void ReflowInput::CalculateBlockSideMargins() {
   }
 }
 
-#define NORMAL_LINE_HEIGHT_FACTOR 1.2f  // in term of emHeight
 // For "normal" we use the font's normal line height (em height + leading).
-// If both internal leading and  external leading specified by font itself
-// are zeros, we should compensate this by creating extra (external) leading
-// in eCompensateLeading mode. This is necessary because without this
-// compensation, normal line height might looks too tight.
-
-// For risk management, we use preference to control the behavior, and
-// eNoExternalLeading is the old behavior.
+// If both internal leading and  external leading specified by font itself are
+// zeros, we should compensate this by creating extra (external) leading.
+// This is necessary because without this compensation, normal line height might
+// look too tight.
+constexpr float kNormalLineHeightFactor = 1.2f;
 static nscoord GetNormalLineHeight(nsFontMetrics* aFontMetrics) {
-  MOZ_ASSERT(nullptr != aFontMetrics, "no font metrics");
-
-  nscoord normalLineHeight;
-
+  MOZ_ASSERT(aFontMetrics, "no font metrics");
   nscoord externalLeading = aFontMetrics->ExternalLeading();
   nscoord internalLeading = aFontMetrics->InternalLeading();
   nscoord emHeight = aFontMetrics->EmHeight();
-  switch (GetNormalLineHeightCalcControl()) {
-    case eIncludeExternalLeading:
-      normalLineHeight = emHeight + internalLeading + externalLeading;
-      break;
-    case eCompensateLeading:
-      if (!internalLeading && !externalLeading)
-        normalLineHeight = NSToCoordRound(emHeight * NORMAL_LINE_HEIGHT_FACTOR);
-      else
-        normalLineHeight = emHeight + internalLeading + externalLeading;
-      break;
-    default:
-      // case eNoExternalLeading:
-      normalLineHeight = emHeight + internalLeading;
+  if (!internalLeading && !externalLeading) {
+    return NSToCoordRound(emHeight * kNormalLineHeightFactor);
   }
-  return normalLineHeight;
+  return emHeight + internalLeading + externalLeading;
 }
 
-static inline nscoord ComputeLineHeight(const ComputedStyle* aComputedStyle,
+static inline nscoord ComputeLineHeight(const StyleLineHeight& aLh,
+                                        const nsStyleFont& aRelativeToFont,
                                         nsPresContext* aPresContext,
-                                        nscoord aBlockBSize,
+                                        bool aIsVertical, nscoord aBlockBSize,
                                         float aFontSizeInflation) {
-  const StyleLineHeight& lineHeight = aComputedStyle->StyleText()->mLineHeight;
-  if (lineHeight.IsLength()) {
-    nscoord result = lineHeight.length._0.ToAppUnits();
+  if (aLh.IsLength()) {
+    nscoord result = aLh.AsLength().ToAppUnits();
     if (aFontSizeInflation != 1.0f) {
       result = NSToCoordRound(result * aFontSizeInflation);
     }
     return result;
   }
 
-  if (lineHeight.IsNumber()) {
+  if (aLh.IsNumber()) {
     // For factor units the computed value of the line-height property
     // is found by multiplying the factor by the font's computed size
     // (adjusted for min-size prefs and text zoom).
-    return aComputedStyle->StyleFont()
-        ->mFont.size.ScaledBy(lineHeight.AsNumber() * aFontSizeInflation)
+    return aRelativeToFont.mFont.size
+        .ScaledBy(aLh.AsNumber() * aFontSizeInflation)
         .ToAppUnits();
   }
 
-  MOZ_ASSERT(lineHeight.IsNormal() || lineHeight.IsMozBlockHeight());
-  if (lineHeight.IsMozBlockHeight() && aBlockBSize != NS_UNCONSTRAINEDSIZE) {
+  MOZ_ASSERT(aLh.IsNormal() || aLh.IsMozBlockHeight());
+  if (aLh.IsMozBlockHeight() && aBlockBSize != NS_UNCONSTRAINEDSIZE) {
     return aBlockBSize;
   }
 
-  RefPtr<nsFontMetrics> fm = nsLayoutUtils::GetFontMetricsForComputedStyle(
-      aComputedStyle, aPresContext, aFontSizeInflation);
-  return GetNormalLineHeight(fm);
+  auto size = aRelativeToFont.mFont.size;
+  size.ScaleBy(aFontSizeInflation);
+
+  if (aPresContext) {
+    RefPtr<nsFontMetrics> fm = nsLayoutUtils::GetMetricsFor(
+        aPresContext, aIsVertical, &aRelativeToFont, size,
+        /* aUseUserFontSet = */ true);
+    return GetNormalLineHeight(fm);
+  }
+  // If we don't have a pres context, use a 1.2em fallback.
+  size.ScaleBy(kNormalLineHeightFactor);
+  return size.ToAppUnits();
 }
 
 nscoord ReflowInput::GetLineHeight() const {
@@ -2787,8 +2773,8 @@ nscoord ReflowInput::GetLineHeight() const {
                            ? ComputedBSize()
                            : (mCBReflowInput ? mCBReflowInput->ComputedBSize()
                                              : NS_UNCONSTRAINEDSIZE);
-  mLineHeight = CalcLineHeight(mFrame->GetContent(), mFrame->Style(),
-                               mFrame->PresContext(), blockBSize,
+  mLineHeight = CalcLineHeight(*mFrame->Style(), mFrame->PresContext(),
+                               mFrame->GetContent(), blockBSize,
                                nsLayoutUtils::FontSizeInflationFor(mFrame));
   return mLineHeight;
 }
@@ -2805,27 +2791,36 @@ void ReflowInput::SetLineHeight(nscoord aLineHeight) {
 }
 
 /* static */
-nscoord ReflowInput::CalcLineHeight(nsIContent* aContent,
-                                    const ComputedStyle* aComputedStyle,
+nscoord ReflowInput::CalcLineHeight(const ComputedStyle& aStyle,
                                     nsPresContext* aPresContext,
+                                    const nsIContent* aContent,
                                     nscoord aBlockBSize,
                                     float aFontSizeInflation) {
-  MOZ_ASSERT(aComputedStyle, "Must have a ComputedStyle");
+  const StyleLineHeight& lh = aStyle.StyleText()->mLineHeight;
+  WritingMode wm(&aStyle);
+  const bool vertical = wm.IsVertical() && !wm.IsSideways();
+  return CalcLineHeight(lh, *aStyle.StyleFont(), aPresContext, vertical,
+                        aContent, aBlockBSize, aFontSizeInflation);
+}
 
-  nscoord lineHeight = ComputeLineHeight(aComputedStyle, aPresContext,
-                                         aBlockBSize, aFontSizeInflation);
+nscoord ReflowInput::CalcLineHeight(
+    const StyleLineHeight& aLh, const nsStyleFont& aRelativeToFont,
+    nsPresContext* aPresContext, bool aIsVertical, const nsIContent* aContent,
+    nscoord aBlockBSize, float aFontSizeInflation) {
+  nscoord lineHeight =
+      ComputeLineHeight(aLh, aRelativeToFont, aPresContext, aIsVertical,
+                        aBlockBSize, aFontSizeInflation);
 
   NS_ASSERTION(lineHeight >= 0, "ComputeLineHeight screwed up");
 
-  HTMLInputElement* input = HTMLInputElement::FromNodeOrNull(aContent);
+  const auto* input = HTMLInputElement::FromNodeOrNull(aContent);
   if (input && input->IsSingleLineTextControl()) {
     // For Web-compatibility, single-line text input elements cannot
     // have a line-height smaller than 'normal'.
-    const StyleLineHeight& lh = aComputedStyle->StyleText()->mLineHeight;
-    if (!lh.IsNormal()) {
-      RefPtr<nsFontMetrics> fm = nsLayoutUtils::GetFontMetricsForComputedStyle(
-          aComputedStyle, aPresContext, aFontSizeInflation);
-      nscoord normal = GetNormalLineHeight(fm);
+    if (!aLh.IsNormal()) {
+      nscoord normal = ComputeLineHeight(
+          StyleLineHeight::Normal(), aRelativeToFont, aPresContext, aIsVertical,
+          aBlockBSize, aFontSizeInflation);
       if (lineHeight < normal) {
         lineHeight = normal;
       }
@@ -2839,7 +2834,7 @@ bool SizeComputationInput::ComputeMargin(WritingMode aCBWM,
                                          nscoord aPercentBasis,
                                          LayoutFrameType aFrameType) {
   // SVG text frames have no margin.
-  if (SVGUtils::IsInSVGTextSubtree(mFrame)) {
+  if (mFrame->IsInSVGTextSubtree()) {
     return false;
   }
 

@@ -59,17 +59,32 @@
   font-style: italic;
 }
 
+.objectBox-string a {
+  word-break: break-all;
+}
+
 .objectBox-string a,
 .objectBox-string a:visited {
   color: currentColor;
-  text-decoration: none;
+  text-decoration: underline;
+  text-decoration-skip-ink: none;
   font-style: italic;
   cursor: pointer;
 }
 
-.objectBox-string a:hover {
-  text-decoration: underline;
+/* Visually hide the middle of "cropped" url */
+.objectBox-string a .cropped-url-middle {
+  max-width: 0;
+  max-height: 0;
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
 }
+
+.objectBox-string a .cropped-url-end::before {
+  content: "…";
+}
+
 
 .objectBox-function,
 .objectBox-profile {
@@ -153,7 +168,8 @@
  * adjustments to align it with the toggle arrow and fit its width to its
  * contents. */
 .objectBox-jsonml-wrapper {
-  display: inline-block;
+  display: inline-flex;
+  flex-direction: column;
   width: fit-content;
   word-break: break-word;
   line-height: normal;
@@ -167,6 +183,23 @@
   margin: 0 4px 2px 0;
   padding: 0;
   vertical-align: middle;
+}
+
+.objectBox-jsonml-wrapper .jsonml-header-collapse-button::before {
+  content: "";
+  display: block;
+  width: 10px;
+  height: 10px;
+  background: url("chrome://devtools/skin/images/arrow.svg") no-repeat center;
+  background-size: 10px;
+  transform: rotate(-90deg);
+  transition: transform 125ms ease;
+  -moz-context-properties: fill;
+  fill: var(--theme-icon-dimmed-color);
+}
+
+.objectBox-jsonml-wrapper .jsonml-header-collapse-button[aria-expanded="true"]::before {
+  transform: rotate(0deg);
 }
 
 /******************************************************************************/
@@ -270,16 +303,22 @@
 /* Open DOMNode in inspector or Accessible in accessibility inspector button */
 
 button.open-accessibility-inspector {
-  mask: url("chrome://devtools/content/shared/components/reps/images/open-a11y.svg")
+  background: url("chrome://devtools/content/shared/components/reps/images/open-a11y.svg")
     no-repeat;
 }
 
 button.open-inspector {
-  mask: url("chrome://devtools/content/shared/components/reps/images/open-inspector.svg")
+  background: url("chrome://devtools/content/shared/components/reps/images/open-inspector.svg")
     no-repeat;
 }
 
-button:is(.open-accessibility-inspector,.open-inspector) {
+button.highlight-node {
+  background: url("chrome://devtools/skin/images/highlight-selector.svg")
+    no-repeat;
+}
+
+
+button:is(.open-accessibility-inspector, .open-inspector, .highlight-node) {
   display: inline-block;
   vertical-align: top;
   height: 15px;
@@ -287,16 +326,18 @@ button:is(.open-accessibility-inspector,.open-inspector) {
   margin: 0 4px;
   padding: 0;
   border: none;
-  background-color: var(--theme-icon-color);
+  fill: var(--theme-icon-color);
   cursor: pointer;
+  -moz-context-properties: fill;
 }
 
 .objectBox-accessible:hover .open-accessibility-inspector,
 .objectBox-node:hover .open-inspector,
 .objectBox-textNode:hover .open-inspector,
 .open-accessibility-inspector:hover,
+.highlight-node:hover,
 .open-inspector:hover {
-  background-color: var(--theme-icon-checked-color);
+  fill: var(--theme-icon-checked-color);
 }
 
 /******************************************************************************/

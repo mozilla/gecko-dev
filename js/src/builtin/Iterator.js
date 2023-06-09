@@ -10,7 +10,7 @@ function IteratorIdentity() {
 function IteratorNext(iteratorRecord, value) {
   // Steps 1-2.
   const result =
-    arguments.length < 2
+    ArgumentsLength() < 2
       ? callContentFunction(iteratorRecord.nextMethod, iteratorRecord.iterator)
       : callContentFunction(
           iteratorRecord.nextMethod,
@@ -32,7 +32,7 @@ function IteratorClose(iteratorRecord, value) {
   // Step 4.
   const returnMethod = iterator.return;
   // Step 5.
-  if (returnMethod !== undefined && returnMethod !== null) {
+  if (!IsNullOrUndefined(returnMethod)) {
     const result = callContentFunction(returnMethod, iterator);
     // Step 8.
     if (!IsObject(result)) {
@@ -124,7 +124,7 @@ function GetIteratorDirectWrapper(obj) {
     },
     return(value) {
       const returnMethod = obj.return;
-      if (returnMethod !== undefined && returnMethod !== null) {
+      if (!IsNullOrUndefined(returnMethod)) {
         return callContentFunction(returnMethod, obj, value);
       }
       return { done: true, value };
@@ -136,7 +136,7 @@ function GetIteratorDirectWrapper(obj) {
 function IteratorStep(iteratorRecord, value) {
   // Steps 2-3.
   let result;
-  if (arguments.length === 2) {
+  if (ArgumentsLength() === 2) {
     result = callContentFunction(
       iteratorRecord.nextMethod,
       iteratorRecord.iterator,
@@ -165,7 +165,7 @@ function IteratorFrom(O) {
 
   let iteratorRecord;
   // Step 2.
-  if (usingIterator !== undefined && usingIterator !== null) {
+  if (!IsNullOrUndefined(usingIterator)) {
     // Step a.
     // Inline call to GetIterator.
     const iterator = callContentFunction(usingIterator, O);
@@ -192,7 +192,7 @@ function WrapForValidIteratorNext(value) {
   // Step 1-2.
   let O = this;
   if (!IsObject(O) || (O = GuardToWrapForValidIterator(O)) === null) {
-    if (arguments.length === 0) {
+    if (ArgumentsLength() === 0) {
       return callFunction(
         CallWrapForValidIteratorMethodIfWrapped,
         this,
@@ -209,7 +209,7 @@ function WrapForValidIteratorNext(value) {
   const iterated = UnsafeGetReservedSlot(O, ITERATED_SLOT);
   // Step 3.
   let result;
-  if (arguments.length === 0) {
+  if (ArgumentsLength() === 0) {
     result = callContentFunction(iterated.nextMethod, iterated.iterator);
   } else {
     // Step 4.
@@ -240,7 +240,7 @@ function WrapForValidIteratorReturn(value) {
   // Inline call to IteratorClose.
   const iterator = iterated.iterator;
   const returnMethod = iterator.return;
-  if (returnMethod !== undefined && returnMethod !== null) {
+  if (!IsNullOrUndefined(returnMethod)) {
     let innerResult = callContentFunction(returnMethod, iterator);
     if (!IsObject(innerResult)) {
       ThrowTypeError(JSMSG_OBJECT_REQUIRED, DecompileArg(0, innerResult));
@@ -271,7 +271,7 @@ function WrapForValidIteratorThrow(value) {
   // Step 4.
   const throwMethod = iterator.throw;
   // Step 5.
-  if (throwMethod === undefined || throwMethod === null) {
+  if (IsNullOrUndefined(throwMethod)) {
     throw value;
   }
   // Step 6.
@@ -673,7 +673,7 @@ function IteratorReduce(reducer /*, initialValue*/) {
 
   // Step 3.
   let accumulator;
-  if (arguments.length === 1) {
+  if (ArgumentsLength() === 1) {
     // Step a.
     const next = callContentFunction(iterated.next, iterated);
     if (!IsObject(next)) {
@@ -687,7 +687,7 @@ function IteratorReduce(reducer /*, initialValue*/) {
     accumulator = next.value;
   } else {
     // Step 4.
-    accumulator = arguments[1];
+    accumulator = GetArgument(1);
   }
 
   // Step 5.

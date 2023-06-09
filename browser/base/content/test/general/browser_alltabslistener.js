@@ -198,8 +198,8 @@ async function test() {
     BrowserTestUtils.browserStopped(gBackgroundBrowser, kBasePage),
     BrowserTestUtils.browserStopped(gForegroundBrowser, kBasePage),
   ];
-  BrowserTestUtils.loadURI(gBackgroundBrowser, kBasePage);
-  BrowserTestUtils.loadURI(gForegroundBrowser, kBasePage);
+  BrowserTestUtils.loadURIString(gBackgroundBrowser, kBasePage);
+  BrowserTestUtils.loadURIString(gForegroundBrowser, kBasePage);
   await Promise.all(promises);
   // If we process switched, the tabbrowser may still be processing the state_stop
   // notification here because of how microtasks work. Ensure that that has
@@ -214,7 +214,7 @@ function runTest(browser, url, next) {
   gAllNotificationsPos = 0;
   gNextTest = next;
   gTestBrowser = browser;
-  BrowserTestUtils.loadURI(browser, url);
+  BrowserTestUtils.loadURIString(browser, url);
 }
 
 function startTest1() {
@@ -223,6 +223,7 @@ function startTest1() {
   gBrowser.addTabsProgressListener(gAllProgressListener);
 
   gFrontNotifications = gAllNotifications;
+  // eslint-disable-next-line @microsoft/sdl/no-insecure-url
   runTest(gForegroundBrowser, "http://example.org" + gTestPage, startTest2);
 }
 
@@ -235,6 +236,7 @@ function startTest2() {
 function startTest3() {
   info("\nTest 3");
   gFrontNotifications = [];
+  // eslint-disable-next-line @microsoft/sdl/no-insecure-url
   runTest(gBackgroundBrowser, "http://example.org" + gTestPage, startTest4);
 }
 
@@ -258,12 +260,14 @@ function startTest5() {
   gBrowser.addProgressListener(gFrontProgressListener);
 
   gFrontNotifications = gAllNotifications;
+  // eslint-disable-next-line @microsoft/sdl/no-insecure-url
   runTest(gForegroundBrowser, "http://example.org" + gTestPage, startTest6);
 }
 
 function startTest6() {
   info("\nTest 6");
   gFrontNotifications = [];
+  // eslint-disable-next-line @microsoft/sdl/no-insecure-url
   runTest(gBackgroundBrowser, "http://example.org" + gTestPage, startTest7);
 }
 
@@ -314,6 +318,7 @@ function startTest9() {
     "onSecurityChange",
     "onStateChange",
   ];
+  // eslint-disable-next-line @microsoft/sdl/no-insecure-url
   runTest(gBackgroundBrowser, "http://example.org" + gTestPage, finishTest);
 }
 

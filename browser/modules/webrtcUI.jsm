@@ -1003,19 +1003,14 @@ function getGlobalIndicator() {
   if (!webrtcUI.useLegacyGlobalIndicator) {
     const INDICATOR_CHROME_URI =
       "chrome://browser/content/webrtcIndicator.xhtml";
-    let features = "chrome,titlebar=no,alwaysontop,minimizable=yes";
-
-    /* Don't use dialog on Gtk as it adds extra border and titlebar to indicator */
-    if (!AppConstants.MOZ_WIDGET_GTK) {
-      features += ",dialog=yes";
-    }
+    let features = "chrome,titlebar=no,alwaysontop,minimizable,dialog";
 
     return Services.ww.openWindow(
       null,
       INDICATOR_CHROME_URI,
       "_blank",
       features,
-      []
+      null
     );
   }
 
@@ -1029,7 +1024,7 @@ function getGlobalIndicator() {
       LEGACY_INDICATOR_CHROME_URI,
       "_blank",
       features,
-      []
+      null
     );
   }
 
@@ -1239,7 +1234,7 @@ class MacOSWebRTCStatusbarIndicator {
 }
 
 function onTabSharingMenuPopupShowing(e) {
-  const streams = webrtcUI.getActiveStreams(true, true, true);
+  const streams = webrtcUI.getActiveStreams(true, true, true, true);
   for (let streamInfo of streams) {
     const names = streamInfo.devices.map(({ mediaSource }) => {
       const l10nId = MEDIA_SOURCE_L10NID_BY_TYPE.get(mediaSource);

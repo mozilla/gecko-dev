@@ -10,7 +10,6 @@ const FIREFOX_VIEW_PREF = "browser.firefox-view.feature-tour";
 const PDFJS_PREF = "browser.pdfjs.feature-tour";
 // Empty screens are included as placeholders to ensure step
 // indicator shows the correct number of total steps in the tour
-const PDF_SOURCE = `(source || "") | regExpMatch('(?<!q\=.+)\.pdf') | length > 0`;
 const EMPTY_SCREEN = { content: {} };
 const ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
 
@@ -18,7 +17,18 @@ const ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
 // id found in a given Feature Callout tour progress preference
 // and the `complete` property being true
 const matchCurrentScreenTargeting = (prefName, screenId) => {
-  return `'${prefName}' | preferenceValue | regExpMatch('(?<=screen\"\:)"(.*)(?=",)')[1] == '${screenId}' && '${prefName}' | preferenceValue | regExpMatch('(?<=complete\"\:)(.*)(?=})')[1] != "true"`;
+  const prefVal = `'${prefName}' | preferenceValue`;
+  //regExpMatch() is a JEXL filter expression. Here we check if 'screen' and 'complete' exist in the pref's value (which is stringified JSON), and return their values. Returns null otherwise
+  const screenRegEx = '(?<=screen":)"(.*)(?=",)';
+  const completeRegEx = '(?<=complete":)(.*)(?=})';
+
+  const screenMatch = `${prefVal}  | regExpMatch('${screenRegEx}')`;
+  const completeMatch = `${prefVal}  | regExpMatch('${completeRegEx}')`;
+  //We are checking the return of regExpMatch() here. If it's truthy, we grab the matched string and compare it to the desired value
+  const screenVal = `(${screenMatch}) ? (${screenMatch}[1] == '${screenId}') : false`;
+  const completeVal = `(${completeMatch}) ? (${completeMatch}[1] != "true") : false`;
+
+  return `(${screenVal}) && (${completeVal})`;
 };
 
 /**
@@ -139,7 +149,7 @@ const MESSAGES = () => {
         // Add the highest possible cap to ensure impressions are recorded while allowing the Spotlight to sync across windows/tabs with Firefox View open
         lifetime: 100,
       },
-      targeting: `!inMr2022Holdback && source == "firefoxview" &&
+      targeting: `!inMr2022Holdback && source == "about:firefoxview" &&
        !'browser.newtabpage.activity-stream.asrouter.providers.cfr'|preferenceIsUserSet &&
        'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features'|preferenceValue &&
        ${matchCurrentScreenTargeting(
@@ -212,7 +222,7 @@ const MESSAGES = () => {
         ],
       },
       priority: 3,
-      targeting: `!inMr2022Holdback && source == "firefoxview" && ${matchCurrentScreenTargeting(
+      targeting: `!inMr2022Holdback && source == "about:firefoxview" && ${matchCurrentScreenTargeting(
         FIREFOX_VIEW_PREF,
         "FEATURE_CALLOUT_1"
       )}`,
@@ -278,7 +288,7 @@ const MESSAGES = () => {
         ],
       },
       priority: 3,
-      targeting: `!inMr2022Holdback && source == "firefoxview" && ${matchCurrentScreenTargeting(
+      targeting: `!inMr2022Holdback && source == "about:firefoxview" && ${matchCurrentScreenTargeting(
         FIREFOX_VIEW_PREF,
         "FEATURE_CALLOUT_2"
       )}`,
@@ -337,7 +347,7 @@ const MESSAGES = () => {
         ],
       },
       priority: 2,
-      targeting: `!inMr2022Holdback && source == "firefoxview" && "browser.firefox-view.view-count" | preferenceValue > 2
+      targeting: `!inMr2022Holdback && source == "about:firefoxview" && "browser.firefox-view.view-count" | preferenceValue > 2
     && (("identity.fxaccounts.enabled" | preferenceValue == false) || !(("services.sync.engine.tabs" | preferenceValue == true) && ("services.sync.username" | preferenceValue))) && (!messageImpressions.FIREFOX_VIEW_SPOTLIGHT[messageImpressions.FIREFOX_VIEW_SPOTLIGHT | length - 1] || messageImpressions.FIREFOX_VIEW_SPOTLIGHT[messageImpressions.FIREFOX_VIEW_SPOTLIGHT | length - 1] < currentDate|date - ${ONE_DAY_IN_MS})`,
       frequency: {
         lifetime: 1,
@@ -407,7 +417,7 @@ const MESSAGES = () => {
         ],
       },
       priority: 1,
-      targeting: `${PDF_SOURCE} && ${matchCurrentScreenTargeting(
+      targeting: `source == "chrome" && ${matchCurrentScreenTargeting(
         PDFJS_PREF,
         "FEATURE_CALLOUT_1_A"
       )}`,
@@ -477,7 +487,7 @@ const MESSAGES = () => {
         ],
       },
       priority: 1,
-      targeting: `${PDF_SOURCE} && ${matchCurrentScreenTargeting(
+      targeting: `source == "chrome" && ${matchCurrentScreenTargeting(
         PDFJS_PREF,
         "FEATURE_CALLOUT_2_A"
       )}`,
@@ -546,7 +556,7 @@ const MESSAGES = () => {
         ],
       },
       priority: 1,
-      targeting: `${PDF_SOURCE} && ${matchCurrentScreenTargeting(
+      targeting: `source == "chrome" && ${matchCurrentScreenTargeting(
         PDFJS_PREF,
         "FEATURE_CALLOUT_1_B"
       )}`,
@@ -616,7 +626,7 @@ const MESSAGES = () => {
         ],
       },
       priority: 1,
-      targeting: `${PDF_SOURCE} && ${matchCurrentScreenTargeting(
+      targeting: `source == "chrome" && ${matchCurrentScreenTargeting(
         PDFJS_PREF,
         "FEATURE_CALLOUT_2_B"
       )}`,

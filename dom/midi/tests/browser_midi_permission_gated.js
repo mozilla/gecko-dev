@@ -92,12 +92,12 @@ add_task(async function testRequestMIDIAccess() {
   );
   is(
     installPopupHeader.textContent,
-    gNavigatorBundle.getString("sitePermissionInstallFirstPrompt.header"),
+    gNavigatorBundle.getString("sitePermissionInstallFirstPrompt.midi.header"),
     "First popup has expected header text"
   );
   is(
     installPopupMessage.textContent,
-    gNavigatorBundle.getString("sitePermissionInstallFirstPrompt.message"),
+    gNavigatorBundle.getString("sitePermissionInstallFirstPrompt.midi.message"),
     "First popup has expected message"
   );
 
@@ -153,7 +153,7 @@ add_task(async function testRequestMIDIAccess() {
     installDialog.querySelector("popupnotificationcontent description")
       .textContent,
     gNavigatorBundle.getFormattedString(
-      "webextSitePerms.descriptionGatedPerms",
+      "webextSitePerms.descriptionGatedPerms.midi",
       [testPageHost]
     ),
     "Install dialog has expected description"
@@ -299,7 +299,7 @@ add_task(async function testRequestMIDIAccess() {
     installDialog.querySelector("popupnotificationcontent description")
       .textContent,
     gNavigatorBundle.getFormattedString(
-      "webextSitePerms.descriptionGatedPerms",
+      "webextSitePerms.descriptionGatedPerms.midi",
       [testPageHost]
     ),
     "Install dialog has expected description"
@@ -808,14 +808,15 @@ async function waitForNotification(notificationId) {
   return window.PopupNotifications.panel;
 }
 
+// This function is similar to the one in
+// toolkit/mozapps/extensions/test/xpinstall/browser_doorhanger_installs.js,
+// please keep both in sync!
 function getObserverTopic(aNotificationId) {
   let topic = aNotificationId;
   if (topic == "xpinstall-disabled") {
     topic = "addon-install-disabled";
   } else if (topic == "addon-progress") {
     topic = "addon-install-started";
-  } else if (topic == "addon-install-restart") {
-    topic = "addon-install-complete";
   } else if (topic == "addon-installed") {
     topic = "webextension-install-notify";
   }

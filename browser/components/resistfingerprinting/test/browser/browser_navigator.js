@@ -7,15 +7,10 @@
 
 const CC = Components.Constructor;
 
-const { AppConstants } = ChromeUtils.importESModule(
-  "resource://gre/modules/AppConstants.sys.mjs"
-);
-
-ChromeUtils.defineModuleGetter(
-  this,
-  "WindowsVersionInfo",
-  "resource://gre/modules/components-utils/WindowsVersionInfo.jsm"
-);
+ChromeUtils.defineESModuleGetters(this, {
+  WindowsVersionInfo:
+    "resource://gre/modules/components-utils/WindowsVersionInfo.sys.mjs",
+});
 
 let expectedResults;
 
@@ -375,7 +370,6 @@ add_task(async function setupRFPExemptions() {
   await SpecialPowers.pushPrefEnv({
     set: [
       ["privacy.resistFingerprinting", true],
-      ["privacy.resistFingerprinting.testGranularityMask", 4],
       [
         "privacy.resistFingerprinting.exemptedDomains",
         "example.net, mochi.test",

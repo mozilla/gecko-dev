@@ -11,7 +11,10 @@
 #import "MacUtils.h"
 #import "mozView.h"
 #import "MOXSearchInfo.h"
+#import "MOXTextMarkerDelegate.h"
+#import "MOXWebAreaAccessible.h"
 #import "mozTextAccessible.h"
+#import "mozRootAccessible.h"
 
 #include "LocalAccessible-inl.h"
 #include "nsAccUtils.h"
@@ -24,6 +27,7 @@
 #include "mozilla/dom/BrowserParent.h"
 #include "OuterDocAccessible.h"
 #include "nsChildView.h"
+#include "xpcAccessibleMacInterface.h"
 
 #include "nsRect.h"
 #include "nsCocoaUtils.h"
@@ -297,7 +301,7 @@ static const uint64_t kCacheInitialized = ((uint64_t)0x1) << 63;
   }
 
   id nativeParent = GetNativeFromGeckoAccessible(parent);
-  if ([nativeParent respondsToSelector:@selector(rootGroup)]) {
+  if ([nativeParent isKindOfClass:[MOXWebAreaAccessible class]]) {
     // Before returning a WebArea as parent, check to see if
     // there is a generated root group that is an intermediate container.
     if (id<mozAccessible> rootGroup = [nativeParent rootGroup]) {
@@ -352,8 +356,8 @@ static const uint64_t kCacheInitialized = ((uint64_t)0x1) << 63;
 }
 
 - (NSString*)moxRole {
-#define ROLE(geckoRole, stringRole, atkRole, macRole, macSubrole, msaaRole, \
-             ia2Role, androidClass, nameRule)                               \
+#define ROLE(geckoRole, stringRole, ariaRole, atkRole, macRole, macSubrole, \
+             msaaRole, ia2Role, androidClass, nameRule)                     \
   case roles::geckoRole:                                                    \
     return macRole;
 
@@ -426,8 +430,8 @@ static const uint64_t kCacheInitialized = ((uint64_t)0x1) << 63;
     }
   }
 
-#define ROLE(geckoRole, stringRole, atkRole, macRole, macSubrole, msaaRole, \
-             ia2Role, androidClass, nameRule)                               \
+#define ROLE(geckoRole, stringRole, ariaRole, atkRole, macRole, macSubrole, \
+             msaaRole, ia2Role, androidClass, nameRule)                     \
   case roles::geckoRole:                                                    \
     if (![macSubrole isEqualToString:NSAccessibilityUnknownSubrole]) {      \
       return macSubrole;                                                    \

@@ -468,7 +468,7 @@ nsresult nsPrintJob::PrintPreview(Document& aDoc,
     if (mPrintPreviewCallback) {
       // signal error
       mPrintPreviewCallback(
-          PrintPreviewResultInfo(0, 0, false, false, false, {}));
+          PrintPreviewResultInfo(0, 0, false, false, false, {}, {}, {}));
       mPrintPreviewCallback = nullptr;
     }
   }
@@ -615,7 +615,7 @@ void nsPrintJob::FirePrintingErrorEvent(nsresult aPrintError) {
   if (mPrintPreviewCallback) {
     // signal error
     mPrintPreviewCallback(
-        PrintPreviewResultInfo(0, 0, false, false, false, {}));
+        PrintPreviewResultInfo(0, 0, false, false, false, {}, {}, {}));
     mPrintPreviewCallback = nullptr;
   }
 
@@ -1333,8 +1333,11 @@ nsresult nsPrintJob::ReflowPrintObject(const UniquePtr<nsPrintObject>& aPO) {
   // correct viewport size for the print preview page when notifying the media
   // feature values changed. See au_viewport_size_for_viewport_unit_resolution()
   // in media_queries.rs for more details.
-  aPO->mPresShell =
-      aPO->mDocument->CreatePresShell(aPO->mPresContext, aPO->mViewManager);
+  RefPtr<Document> doc = aPO->mDocument;
+  RefPtr<nsPresContext> presContext = aPO->mPresContext;
+  RefPtr<nsViewManager> viewManager = aPO->mViewManager;
+
+  aPO->mPresShell = doc->CreatePresShell(presContext, viewManager);
   if (!aPO->mPresShell) {
     return NS_ERROR_FAILURE;
   }
@@ -1376,15 +1379,23 @@ nsresult nsPrintJob::ReflowPrintObject(const UniquePtr<nsPrintObject>& aPO) {
       }
     }
 
+    const ServoStyleSet::FirstPageSizeAndOrientation sizeAndOrientation =
+        presShell->StyleSet()->GetFirstPageSizeAndOrientation(firstPageName);
+    if (mPrintSettings->GetUsePageRuleSizeAsPaperSize()) {
+      mMaybeCSSPageSize = sizeAndOrientation.size;
+      if (sizeAndOrientation.size) {
+        pageSize = sizeAndOrientation.size.value();
+        aPO->mPresContext->SetPageSize(pageSize);
+      }
+    }
+
     // If the document has a specified CSS page-size, we rotate the page to
     // reflect this. Changing the orientation is reflected by the result of
     // FinishPrintPreview, so that the frontend can reflect this.
     // The new document has not yet been reflowed, so we have to query the
     // original document for any CSS page-size.
-    if (const Maybe<StylePageSizeOrientation> maybeOrientation =
-            presShell->StyleSet()->GetDefaultPageSizeOrientation(
-                firstPageName)) {
-      switch (maybeOrientation.value()) {
+    if (sizeAndOrientation.orientation) {
+      switch (sizeAndOrientation.orientation.value()) {
         case StylePageSizeOrientation::Landscape:
           if (pageSize.width < pageSize.height) {
             // Paper is in portrait, CSS page size is landscape.
@@ -1398,8 +1409,8 @@ nsresult nsPrintJob::ReflowPrintObject(const UniquePtr<nsPrintObject>& aPO) {
           }
           break;
       }
-      mMaybeCSSPageLandscape =
-          Some(maybeOrientation.value() == StylePageSizeOrientation::Landscape);
+      mMaybeCSSPageLandscape = Some(sizeAndOrientation.orientation.value() ==
+                                    StylePageSizeOrientation::Landscape);
       aPO->mPresContext->SetPageSize(pageSize);
     }
   }
@@ -2006,10 +2017,20 @@ nsresult nsPrintJob::FinishPrintPreview() {
 
   if (mPrintPreviewCallback) {
     const bool hasSelection = !mDisallowSelectionPrint && mSelectionRoot;
+
+    Maybe<float> pageWidth;
+    Maybe<float> pageHeight;
+    if (mMaybeCSSPageSize) {
+      nsSize cssPageSize = *mMaybeCSSPageSize;
+      pageWidth = Some(float(cssPageSize.width) / float(AppUnitsPerCSSInch()));
+      pageHeight =
+          Some(float(cssPageSize.height) / float(AppUnitsPerCSSInch()));
+    }
+
     mPrintPreviewCallback(PrintPreviewResultInfo(
         GetPrintPreviewNumSheets(), GetRawNumPages(), GetIsEmpty(),
         hasSelection, hasSelection && mPrintObject->HasSelection(),
-        mMaybeCSSPageLandscape));
+        mMaybeCSSPageLandscape, pageWidth, pageHeight));
     mPrintPreviewCallback = nullptr;
   }
 

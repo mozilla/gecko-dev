@@ -214,7 +214,8 @@ static void RelocateCell(Zone* zone, TenuredCell* src, AllocKind thingKind,
 
   // Allocate a new cell.
   MOZ_ASSERT(zone == src->zone());
-  TenuredCell* dst = AllocateCellInGC(zone, thingKind);
+  TenuredCell* dst =
+      reinterpret_cast<TenuredCell*>(AllocateCellInGC(zone, thingKind));
 
   // Copy source cell contents to destination.
   memcpy(dst, src, thingSize);
@@ -454,10 +455,11 @@ void Zone::prepareForCompacting() {
 }
 
 void GCRuntime::sweepZoneAfterCompacting(MovingTracer* trc, Zone* zone) {
-  MOZ_ASSERT(zone->isCollecting());
-  traceWeakFinalizationObserverEdges(trc, zone);
+  MOZ_ASSERT(zone->isGCCompacting());
 
   zone->traceWeakMaps(trc);
+
+  traceWeakFinalizationObserverEdges(trc, zone);
 
   for (auto* cache : zone->weakCaches()) {
     cache->traceWeak(trc, nullptr);
@@ -816,6 +818,10 @@ void GCRuntime::updateRuntimePointersToRelocatedCells(AutoGCSession& session) {
   jit::JitRuntime::TraceWeakJitcodeGlobalTable(rt, &trc);
   for (JS::detail::WeakCacheBase* cache : rt->weakCaches()) {
     cache->traceWeak(&trc, nullptr);
+  }
+
+  if (rt->hasJitRuntime() && rt->jitRuntime()->hasInterpreterEntryMap()) {
+    rt->jitRuntime()->getInterpreterEntryMap()->updateScriptsAfterMovingGC();
   }
 
   // Type inference may put more blocks here to free.

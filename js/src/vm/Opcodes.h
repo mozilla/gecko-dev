@@ -1513,7 +1513,8 @@
      * except by `JSOp::InitElemArray` and `JSOp::InitElemInc`.
      *
      * `index` must be an integer, `0 <= index <= INT32_MAX`. If `index` is
-     * `INT32_MAX`, this throws a RangeError.
+     * `INT32_MAX`, this throws a RangeError. Unlike `InitElemArray`, it is not
+     * necessary that the `array` length > `index`.
      *
      * This instruction is used when an array literal contains a
      * *SpreadElement*. In `[a, ...b, c]`, `InitElemArray 0` is used to put
@@ -1664,7 +1665,7 @@
      *   Operands: uint32_t funcIndex
      *   Stack: => fn
      */ \
-    MACRO(Lambda, lambda, NULL, 5, 0, 1, JOF_OBJECT) \
+    MACRO(Lambda, lambda, NULL, 5, 0, 1, JOF_OBJECT|JOF_USES_ENV) \
     /*
      * Set the name of a function.
      *
@@ -1727,7 +1728,7 @@
      *   Operands: uint32_t funcIndex
      *   Stack: proto => obj
      */ \
-    MACRO(FunWithProto, fun_with_proto, NULL, 5, 1, 1, JOF_OBJECT) \
+    MACRO(FunWithProto, fun_with_proto, NULL, 5, 1, 1, JOF_OBJECT|JOF_USES_ENV) \
     /*
      * Pushes the current global's %BuiltinObject%.
      *
@@ -1890,7 +1891,7 @@
      *   Operands: uint32_t nameIndex
      *   Stack: => this
      */ \
-    MACRO(ImplicitThis, implicit_this, "", 5, 0, 1, JOF_ATOM) \
+    MACRO(ImplicitThis, implicit_this, "", 5, 0, 1, JOF_ATOM|JOF_USES_ENV) \
     /*
      * Push the call site object for a tagged template call.
      *
@@ -2004,7 +2005,7 @@
      *   Operands:
      *   Stack: => gen
      */ \
-    MACRO(Generator, generator, NULL, 1, 0, 1, JOF_BYTE) \
+    MACRO(Generator, generator, NULL, 1, 0, 1, JOF_BYTE|JOF_USES_ENV) \
     /*
      * Suspend the current generator and return to the caller.
      *
@@ -2782,7 +2783,7 @@
      *   Operands: uint32_t nameIndex
      *   Stack: => env
      */ \
-    MACRO(BindName, bind_name, NULL, 5, 0, 1, JOF_ATOM|JOF_NAME|JOF_IC) \
+    MACRO(BindName, bind_name, NULL, 5, 0, 1, JOF_ATOM|JOF_NAME|JOF_IC|JOF_USES_ENV) \
     /*
      * Find a binding on the environment chain and push its value.
      *
@@ -2804,7 +2805,7 @@
      *   Operands: uint32_t nameIndex
      *   Stack: => val
      */ \
-    MACRO(GetName, get_name, NULL, 5, 0, 1, JOF_ATOM|JOF_NAME|JOF_IC) \
+    MACRO(GetName, get_name, NULL, 5, 0, 1, JOF_ATOM|JOF_NAME|JOF_IC|JOF_USES_ENV) \
     /*
      * Find a global binding and push its value.
      *
@@ -2840,6 +2841,17 @@
      */ \
     MACRO(GetArg, get_arg, NULL, 3, 0, 1, JOF_QARG|JOF_NAME) \
     /*
+     * Push the value of an argument that is stored in the stack frame. Like
+     * `JSOp::GetArg`, but ignores the frame's `ArgumentsObject` and doesn't
+     * assert the argument is unaliased.
+     *
+     *   Category: Variables and scopes
+     *   Type: Getting binding values
+     *   Operands: uint16_t argno
+     *   Stack: => arguments[argno]
+     */ \
+    MACRO(GetFrameArg, get_frame_arg, NULL, 3, 0, 1, JOF_QARG|JOF_NAME) \
+    /*
      * Push the value of an optimized local variable.
      *
      * If the variable is an uninitialized lexical, push
@@ -2851,6 +2863,30 @@
      *   Stack: => val
      */ \
     MACRO(GetLocal, get_local, NULL, 4, 0, 1, JOF_LOCAL|JOF_NAME) \
+    /*
+     * Push the number of actual arguments as Int32Value.
+     *
+     * This is emitted for the ArgumentsLength() intrinsic in self-hosted code.
+     *
+     *   Category: Variables and scopes
+     *   Type: Getting binding values
+     *   Operands:
+     *   Stack: => arguments.length
+     */ \
+    MACRO(ArgumentsLength, arguments_length, NULL, 1, 0, 1, JOF_BYTE) \
+    /*
+     * Push the value of an argument that is stored in the stack frame. The
+     * value on top of the stack must be an Int32Value storing the index. The
+     * index must be less than the number of actual arguments.
+     *
+     * This is emitted for the GetArgument(i) intrinsic in self-hosted code.
+     *
+     *   Category: Variables and scopes
+     *   Type: Getting binding values
+     *   Operands:
+     *   Stack: index => arguments[index]
+     */ \
+    MACRO(GetActualArg, get_actual_arg, NULL, 1, 1, 1, JOF_BYTE) \
     /*
      * Push the value of an aliased binding.
      *
@@ -2875,7 +2911,7 @@
      *   Operands: uint8_t hops, uint24_t slot
      *   Stack: => aliasedVar
      */ \
-    MACRO(GetAliasedVar, get_aliased_var, NULL, 5, 0, 1, JOF_ENVCOORD|JOF_NAME) \
+    MACRO(GetAliasedVar, get_aliased_var, NULL, 5, 0, 1, JOF_ENVCOORD|JOF_NAME|JOF_USES_ENV) \
     /*
      * Push the value of an aliased binding, which may have to bypass a DebugEnvironmentProxy
      * on the environment chain.
@@ -2992,7 +3028,7 @@
      *   Operands: uint32_t nameIndex
      *   Stack: env, val => val
      */ \
-    MACRO(SetName, set_name, NULL, 5, 2, 1, JOF_ATOM|JOF_NAME|JOF_PROPSET|JOF_CHECKSLOPPY|JOF_IC) \
+    MACRO(SetName, set_name, NULL, 5, 2, 1, JOF_ATOM|JOF_NAME|JOF_PROPSET|JOF_CHECKSLOPPY|JOF_IC|JOF_USES_ENV) \
     /*
      * Like `JSOp::SetName`, but throw a TypeError if there is no binding for
      * the specified name in `env`, or if the binding is immutable (a `const`
@@ -3007,7 +3043,7 @@
      *   Operands: uint32_t nameIndex
      *   Stack: env, val => val
      */ \
-    MACRO(StrictSetName, strict_set_name, NULL, 5, 2, 1, JOF_ATOM|JOF_NAME|JOF_PROPSET|JOF_CHECKSTRICT|JOF_IC) \
+    MACRO(StrictSetName, strict_set_name, NULL, 5, 2, 1, JOF_ATOM|JOF_NAME|JOF_PROPSET|JOF_CHECKSTRICT|JOF_IC|JOF_USES_ENV) \
     /*
      * Like `JSOp::SetName`, but for assigning to globals. `env` must be an
      * environment pushed by `JSOp::BindGName`.
@@ -3061,7 +3097,7 @@
      *   Operands: uint8_t hops, uint24_t slot
      *   Stack: val => val
      */ \
-    MACRO(SetAliasedVar, set_aliased_var, NULL, 5, 1, 1, JOF_ENVCOORD|JOF_NAME|JOF_PROPSET) \
+    MACRO(SetAliasedVar, set_aliased_var, NULL, 5, 1, 1, JOF_ENVCOORD|JOF_NAME|JOF_PROPSET|JOF_USES_ENV) \
     /*
      * Assign to an intrinsic.
      *
@@ -3119,7 +3155,7 @@
      *   Operands: uint32_t lexicalScopeIndex
      *   Stack: =>
      */ \
-    MACRO(PushLexicalEnv, push_lexical_env, NULL, 5, 0, 0, JOF_SCOPE) \
+    MACRO(PushLexicalEnv, push_lexical_env, NULL, 5, 0, 0, JOF_SCOPE|JOF_USES_ENV) \
     /*
      * Pop a lexical or class-body environment from the environment chain.
      *
@@ -3130,7 +3166,7 @@
      *   Operands:
      *   Stack: =>
      */ \
-    MACRO(PopLexicalEnv, pop_lexical_env, NULL, 1, 0, 0, JOF_BYTE) \
+    MACRO(PopLexicalEnv, pop_lexical_env, NULL, 1, 0, 0, JOF_BYTE|JOF_USES_ENV) \
     /*
      * No-op instruction that indicates leaving an optimized lexical scope.
      *
@@ -3226,7 +3262,7 @@
      *   Operands: uint32_t scopeIndex
      *   Stack: =>
      */ \
-    MACRO(PushVarEnv, push_var_env, NULL, 5, 0, 0, JOF_SCOPE) \
+    MACRO(PushVarEnv, push_var_env, NULL, 5, 0, 0, JOF_SCOPE|JOF_USES_ENV) \
     /*
      * Push a `WithEnvironmentObject` wrapping ToObject(`val`) to the
      * environment chain.
@@ -3281,7 +3317,7 @@
      *   Operands:
      *   Stack: => env
      */ \
-    MACRO(BindVar, bind_var, NULL, 1, 0, 1, JOF_BYTE) \
+    MACRO(BindVar, bind_var, NULL, 1, 0, 1, JOF_BYTE|JOF_USES_ENV) \
     /*
      * Check for conflicting bindings and then initialize them in global or
      * sloppy eval scripts. This is required for global scripts with any
@@ -3303,7 +3339,7 @@
      *   Operands: uint32_t lastFun
      *   Stack: =>
      */ \
-    MACRO(GlobalOrEvalDeclInstantiation, global_or_eval_decl_instantiation, NULL, 5, 0, 0, JOF_GCTHING) \
+    MACRO(GlobalOrEvalDeclInstantiation, global_or_eval_decl_instantiation, NULL, 5, 0, 0, JOF_GCTHING|JOF_USES_ENV) \
     /*
      * Look up a variable on the environment chain and delete it. Push `true`
      * on success (if a binding was deleted, or if no such binding existed in
@@ -3321,7 +3357,7 @@
      *   Operands: uint32_t nameIndex
      *   Stack: => succeeded
      */ \
-    MACRO(DelName, del_name, NULL, 5, 0, 1, JOF_ATOM|JOF_NAME|JOF_CHECKSLOPPY) \
+    MACRO(DelName, del_name, NULL, 5, 0, 1, JOF_ATOM|JOF_NAME|JOF_CHECKSLOPPY|JOF_USES_ENV) \
     /*
      * Create and push the `arguments` object for the current function activation.
      *
@@ -3342,7 +3378,7 @@
      *   Operands:
      *   Stack: => arguments
      */ \
-    MACRO(Arguments, arguments, NULL, 1, 0, 1, JOF_BYTE) \
+    MACRO(Arguments, arguments, NULL, 1, 0, 1, JOF_BYTE|JOF_USES_ENV) \
     /*
      * Create and push the rest parameter array for current function call.
      *
@@ -3527,16 +3563,13 @@
  * a power of two.  Use this macro to do so.
  */
 #define FOR_EACH_TRAILING_UNUSED_OPCODE(MACRO) \
-  IF_RECORD_TUPLE(/* empty */, MACRO(227))     \
-  IF_RECORD_TUPLE(/* empty */, MACRO(228))     \
-  IF_RECORD_TUPLE(/* empty */, MACRO(229))     \
   IF_RECORD_TUPLE(/* empty */, MACRO(230))     \
   IF_RECORD_TUPLE(/* empty */, MACRO(231))     \
   IF_RECORD_TUPLE(/* empty */, MACRO(232))     \
   IF_RECORD_TUPLE(/* empty */, MACRO(233))     \
-  MACRO(234)                                   \
-  MACRO(235)                                   \
-  MACRO(236)                                   \
+  IF_RECORD_TUPLE(/* empty */, MACRO(234))     \
+  IF_RECORD_TUPLE(/* empty */, MACRO(235))     \
+  IF_RECORD_TUPLE(/* empty */, MACRO(236))     \
   MACRO(237)                                   \
   MACRO(238)                                   \
   MACRO(239)                                   \

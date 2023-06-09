@@ -25,6 +25,7 @@
 #include "nsTextFormatter.h"      // for page number localization formatting
 #include "nsBidiUtils.h"
 #include "nsIPrintSettings.h"
+#include "PrintedSheetFrame.h"
 
 #include "mozilla/Logging.h"
 extern mozilla::LazyLogModule gLayoutPrintingLog;
@@ -542,6 +543,11 @@ static gfx::Matrix4x4 ComputePagesPerSheetAndPageSizeTransform(
   MOZ_ASSERT(aFrame->IsPageFrame());
   auto* pageFrame = static_cast<const nsPageFrame*>(aFrame);
 
+  const nsContainerFrame* const parentFrame = pageFrame->GetParent();
+  MOZ_ASSERT(parentFrame->IsPrintedSheetFrame(),
+             "Parent of nsPageFrame should be PrintedSheetFrame");
+  auto* sheetFrame = static_cast<const PrintedSheetFrame*>(parentFrame);
+
   // Variables that we use in our transform (initialized with reasonable
   // defaults that work for the regular one-page-per-sheet scenario):
   const nsSize contentPageSize = pageFrame->ComputePageSize();
@@ -550,14 +556,13 @@ static gfx::Matrix4x4 ComputePagesPerSheetAndPageSizeTransform(
   uint32_t rowIdx = 0;
   uint32_t colIdx = 0;
 
-  if (nsSharedPageData* pd = pageFrame->GetSharedPageData()) {
-    const auto* ppsInfo = pd->PagesPerSheetInfo();
-    if (ppsInfo->mNumPages > 1) {
-      scale *= pd->mPagesPerSheetScale;
-      gridOrigin = pd->mPagesPerSheetGridOrigin;
-      std::tie(rowIdx, colIdx) = GetRowAndColFromIdx(pageFrame->IndexOnSheet(),
-                                                     pd->mPagesPerSheetNumCols);
-    }
+  nsSharedPageData* pd = pageFrame->GetSharedPageData();
+  const auto* ppsInfo = pd->PagesPerSheetInfo();
+  if (ppsInfo->mNumPages > 1) {
+    scale *= sheetFrame->GetPagesPerSheetScale();
+    gridOrigin = sheetFrame->GetPagesPerSheetGridOrigin();
+    std::tie(rowIdx, colIdx) = GetRowAndColFromIdx(
+        pageFrame->IndexOnSheet(), sheetFrame->GetPagesPerSheetNumCols());
   }
 
   // Scale down the page based on the above-computed scale:
@@ -570,6 +575,50 @@ static gfx::Matrix4x4 ComputePagesPerSheetAndPageSizeTransform(
       NSAppUnitsToFloatPixels(rowIdx * contentPageSize.height,
                               aAppUnitsPerPixel),
       0);
+
+  // Apply 'page-orientation' for multiple pages-per-sheet, if applicable:
+  if (ppsInfo->mNumPages > 1 &&
+      StaticPrefs::layout_css_page_orientation_enabled()) {
+    const StylePageOrientation& orientation =
+        pageFrame->PageContentFrame()->StylePage()->mPageOrientation;
+
+    double angle = 0.0;
+    if (orientation == StylePageOrientation::RotateLeft) {
+      angle = -M_PI / 2.0;
+    } else if (orientation == StylePageOrientation::RotateRight) {
+      angle = M_PI / 2.0;
+    }
+
+    if (angle != 0.0) {
+      float cellRatio =
+          sheetFrame->GetGridCellWidth() / sheetFrame->GetGridCellHeight();
+      float pageRatio =
+          float(contentPageSize.width) / float(contentPageSize.height);
+      // To fit into the available space on a sheet, a page typically needs to
+      // be scaled. If rotated 90 degrees, the scale will be different (assuming
+      // the page size is rectangular, not square). This variable flags whether
+      // the scale at the default rotation is the smaller of the two scales.
+      bool isSmallerOfRotatedScales = floor(cellRatio) != floor(pageRatio);
+      float fitScale = cellRatio;
+      if (isSmallerOfRotatedScales != bool(floor(fitScale))) {
+        fitScale = 1.0f / cellRatio;
+      }
+
+      transform.PreTranslate(
+          NSAppUnitsToFloatPixels(contentPageSize.width / 2, aAppUnitsPerPixel),
+          NSAppUnitsToFloatPixels(contentPageSize.height / 2,
+                                  aAppUnitsPerPixel),
+          0);
+      transform.PreScale(fitScale, fitScale, 1.0f);
+      transform.RotateZ(angle);
+      transform.PreTranslate(
+          NSAppUnitsToFloatPixels(-contentPageSize.width / 2,
+                                  aAppUnitsPerPixel),
+          NSAppUnitsToFloatPixels(-contentPageSize.height / 2,
+                                  aAppUnitsPerPixel),
+          0);
+    }
+  }
 
   // Also add the grid origin as an offset (so that we're not drawing into the
   // sheet's unwritable area). Note that this is a PostTranslate operation
@@ -600,14 +649,21 @@ nsSize nsPageFrame::ComputePageSize() const {
           ? this
           : static_cast<nsPageFrame*>(FirstContinuation());
   const StylePageSize& pageSize = frame->PageContentFrame()->StylePage()->mSize;
-
+  nsSize size = PresContext()->GetPageSize();
   if (pageSize.IsSize()) {
-    // Use the specified size
-    return nsSize{pageSize.AsSize().width.ToAppUnits(),
-                  pageSize.AsSize().height.ToAppUnits()};
+    // Use the specified size,
+    // ignoring sizes that include a zero width or height.
+    // These are also ignored in ServoStyleSet::GetPageSizeForPageName()
+    // when getting the paper size.
+    nscoord cssPageWidth = pageSize.AsSize().width.ToAppUnits();
+    nscoord cssPageHeight = pageSize.AsSize().height.ToAppUnits();
+    if (cssPageWidth > 0 && cssPageHeight > 0) {
+      return nsSize{cssPageWidth, cssPageHeight};
+    }
+    // Invalid size; just return the default
+    return size;
   }
 
-  nsSize size = PresContext()->GetPageSize();
   if (pageSize.IsOrientation()) {
     // Ensure the correct orientation is applied.
     if (pageSize.AsOrientation() == StylePageSizeOrientation::Portrait) {

@@ -120,7 +120,7 @@ customElements.define(
     #setStateMessage() {
       const messages = OriginControls.getStateMessageIDs({
         policy: this.extension.policy,
-        uri: this.ownerGlobal.gBrowser.currentURI,
+        tab: this.ownerGlobal.gBrowser.selectedTab,
       });
 
       if (!messages) {
@@ -147,7 +147,7 @@ customElements.define(
     #hasAction() {
       const state = OriginControls.getState(
         this.extension.policy,
-        this.ownerGlobal.gBrowser.currentURI
+        this.ownerGlobal.gBrowser.selectedTab
       );
 
       return state && state.whenClicked && !state.hasAccess;
@@ -161,7 +161,10 @@ customElements.define(
       }
 
       this.setAttribute("extension-id", this.extension.id);
-      this.classList.add("unified-extensions-item");
+      this.classList.add(
+        "toolbaritem-combined-buttons",
+        "unified-extensions-item"
+      );
 
       // The data-extensionid attribute is used by context menu handlers
       // to identify the extension being manipulated by the context menu.

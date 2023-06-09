@@ -5,8 +5,8 @@ function test_deleted_iframe(perSitePref, windowOptions = {}) {
     await SpecialPowers.pushPrefEnv({
       set: [[SAVE_PER_SITE_PREF, perSitePref]],
     });
-    let { DownloadLastDir } = ChromeUtils.import(
-      "resource://gre/modules/DownloadLastDir.jsm"
+    let { DownloadLastDir } = ChromeUtils.importESModule(
+      "resource://gre/modules/DownloadLastDir.sys.mjs"
     );
 
     let win = await BrowserTestUtils.openNewBrowserWindow(windowOptions);
@@ -37,11 +37,7 @@ function test_deleted_iframe(perSitePref, windowOptions = {}) {
 
     let someDir = "blah";
     try {
-      someDir = await new Promise((resolve, reject) => {
-        gDownloadLastDir.getFileAsync("http://www.mozilla.org/", function(dir) {
-          resolve(dir);
-        });
-      });
+      someDir = await gDownloadLastDir.getFileAsync("http://www.mozilla.org/");
     } catch (ex) {
       ok(
         false,

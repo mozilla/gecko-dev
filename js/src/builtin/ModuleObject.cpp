@@ -594,10 +594,7 @@ void ModuleNamespaceObject::ProxyHandler::trace(JSTracer* trc,
   auto& self = proxy->as<ModuleNamespaceObject>();
 
   if (self.hasExports()) {
-    for (JSAtom*& name : self.mutableExports()) {
-      TraceManuallyBarrieredEdge(trc, &name,
-                                 "ModuleNamespaceObject export name");
-    }
+    self.mutableExports().trace(trc);
   }
 
   if (self.hasBindings()) {
@@ -1332,10 +1329,9 @@ bool ModuleObject::createEnvironment(JSContext* cx,
 ///////////////////////////////////////////////////////////////////////////
 // ModuleBuilder
 
-ModuleBuilder::ModuleBuilder(JSContext* cx, FrontendContext* fc,
+ModuleBuilder::ModuleBuilder(FrontendContext* fc,
                              const frontend::EitherParser& eitherParser)
-    : cx_(cx),
-      fc_(fc),
+    : fc_(fc),
       eitherParser_(eitherParser),
       requestedModuleSpecifiers_(fc),
       importEntries_(fc),
@@ -1672,9 +1668,6 @@ bool ModuleBuilder::processAssertions(frontend::StencilModuleRequest& request,
                                       frontend::ListNode* assertionList) {
   using namespace js::frontend;
 
-  const JS::ImportAssertionVector& supportedAssertions =
-      cx_->runtime()->supportedImportAssertions;
-
   for (ParseNode* assertionItem : assertionList->contents()) {
     BinaryNode* assertion = &assertionItem->as<BinaryNode>();
     MOZ_ASSERT(assertion->isKind(ParseNodeKind::ImportAssertion));
@@ -1682,7 +1675,7 @@ bool ModuleBuilder::processAssertions(frontend::StencilModuleRequest& request,
     auto key = assertion->left()->as<NameNode>().atom();
     auto value = assertion->right()->as<NameNode>().atom();
 
-    for (JS::ImportAssertion assertion : supportedAssertions) {
+    for (JS::ImportAssertion assertion : fc_->getSupportedImportAssertions()) {
       if (isAssertionSupported(assertion, key)) {
         markUsedByStencil(key);
         markUsedByStencil(value);
@@ -2061,13 +2054,13 @@ frontend::MaybeModuleRequestIndex ModuleBuilder::appendModuleRequest(
   markUsedByStencil(specifier);
   auto request = frontend::StencilModuleRequest(specifier);
 
-  uint32_t index = moduleRequests_.length();
-  if (!moduleRequests_.append(request)) {
-    js::ReportOutOfMemory(fc_);
+  if (!processAssertions(request, assertionList)) {
     return MaybeModuleRequestIndex();
   }
 
-  if (!processAssertions(request, assertionList)) {
+  uint32_t index = moduleRequests_.length();
+  if (!moduleRequests_.append(request)) {
+    js::ReportOutOfMemory(fc_);
     return MaybeModuleRequestIndex();
   }
 

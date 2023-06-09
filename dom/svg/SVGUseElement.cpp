@@ -14,13 +14,15 @@
 #include "mozilla/SVGUseFrame.h"
 #include "mozilla/URLExtraData.h"
 #include "mozilla/dom/Document.h"
-#include "mozilla/dom/Element.h"
+#include "mozilla/dom/ReferrerInfo.h"
 #include "mozilla/dom/ShadowIncludingTreeIterator.h"
 #include "mozilla/dom/SVGLengthBinding.h"
+#include "mozilla/dom/SVGGraphicsElement.h"
 #include "mozilla/dom/SVGSVGElement.h"
 #include "mozilla/dom/SVGUseElementBinding.h"
 #include "nsGkAtoms.h"
 #include "nsContentUtils.h"
+#include "nsIReferrerInfo.h"
 #include "nsIURI.h"
 #include "SVGGeometryProperty.h"
 
@@ -90,10 +92,6 @@ namespace SVGT = SVGGeometryProperty::Tags;
 //----------------------------------------------------------------------
 // nsINode methods
 
-bool SVGUseElement::IsNodeOfType(uint32_t aFlags) const {
-  return !(aFlags & ~eUSE_TARGET);
-}
-
 void SVGUseElement::ProcessAttributeChange(int32_t aNamespaceID,
                                            nsAtom* aAttribute) {
   if (aNamespaceID == kNameSpaceID_None) {
@@ -123,11 +121,11 @@ void SVGUseElement::ProcessAttributeChange(int32_t aNamespaceID,
   }
 }
 
-nsresult SVGUseElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aAttribute,
-                                     const nsAttrValue* aValue,
-                                     const nsAttrValue* aOldValue,
-                                     nsIPrincipal* aSubjectPrincipal,
-                                     bool aNotify) {
+void SVGUseElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aAttribute,
+                                 const nsAttrValue* aValue,
+                                 const nsAttrValue* aOldValue,
+                                 nsIPrincipal* aSubjectPrincipal,
+                                 bool aNotify) {
   ProcessAttributeChange(aNamespaceID, aAttribute);
   return SVGUseElementBase::AfterSetAttr(aNamespaceID, aAttribute, aValue,
                                          aOldValue, aSubjectPrincipal, aNotify);
@@ -253,16 +251,53 @@ static bool NodeCouldBeRendered(const nsINode& aNode) {
   return true;
 }
 
+// <svg:use> can be used (no pun intended) to trivially cause an explosion of
+// clones that could potentially DoS the browser. We have a configurable limit
+// to control this.
+static bool IsTooMuchRecursion(uint32_t aCount) {
+  switch (StaticPrefs::svg_use_element_recursive_clone_limit_enabled()) {
+    case 0:
+      return false;
+    case 1:
+      break;
+    default:
+      if (!XRE_IsParentProcess()) {
+        return false;
+      }
+      break;
+  }
+  return NS_WARN_IF(aCount >=
+                    StaticPrefs::svg_use_element_recursive_clone_limit());
+}
+
 // Circular loop detection, plus detection of whether this shadow tree is
 // rendered at all.
 auto SVGUseElement::ScanAncestors(const Element& aTarget) const -> ScanResult {
+  uint32_t count = 0;
+  return ScanAncestorsInternal(aTarget, count);
+}
+
+auto SVGUseElement::ScanAncestorsInternal(const Element& aTarget,
+                                          uint32_t& aCount) const
+    -> ScanResult {
   if (&aTarget == this) {
     return ScanResult::CyclicReference;
   }
-  if (mOriginal &&
-      mOriginal->ScanAncestors(aTarget) == ScanResult::CyclicReference) {
-    return ScanResult::CyclicReference;
+  if (mOriginal) {
+    if (IsTooMuchRecursion(++aCount)) {
+      return ScanResult::TooDeep;
+    }
+    auto result = mOriginal->ScanAncestorsInternal(aTarget, aCount);
+    switch (result) {
+      case ScanResult::TooDeep:
+      case ScanResult::CyclicReference:
+        return result;
+      case ScanResult::Ok:
+      case ScanResult::Invisible:
+        break;
+    }
   }
+
   auto result = ScanResult::Ok;
   for (nsINode* parent = GetParentOrShadowHostNode(); parent;
        parent = parent->GetParentOrShadowHostNode()) {
@@ -270,6 +305,9 @@ auto SVGUseElement::ScanAncestors(const Element& aTarget) const -> ScanResult {
       return ScanResult::CyclicReference;
     }
     if (auto* use = SVGUseElement::FromNode(*parent)) {
+      if (IsTooMuchRecursion(++aCount)) {
+        return ScanResult::TooDeep;
+      }
       if (mOriginal && use->mOriginal == mOriginal) {
         return ScanResult::CyclicReference;
       }
@@ -365,7 +403,8 @@ void SVGUseElement::UpdateShadowTree() {
   }
   MOZ_ASSERT(shadow);
 
-  Element* targetElement = mReferencedElementTracker.get();
+  auto* targetElement =
+      SVGGraphicsElement::FromNodeOrNull(mReferencedElementTracker.get());
   RefPtr<Element> newElement;
 
   auto UpdateShadowTree = mozilla::MakeScopeExit([&]() {
@@ -381,7 +420,7 @@ void SVGUseElement::UpdateShadowTree() {
   });
 
   // make sure target is valid type for <use>
-  if (!targetElement || !targetElement->IsNodeOfType(nsINode::eUSE_TARGET)) {
+  if (!targetElement) {
     return;
   }
 
@@ -515,10 +554,9 @@ void SVGUseElement::LookupHref() {
   nsCOMPtr<nsIURI> targetURI;
   nsContentUtils::NewURIWithDocumentCharset(getter_AddRefs(targetURI), href,
                                             GetComposedDoc(), baseURI);
-  nsCOMPtr<nsIReferrerInfo> referrerInfo =
-      ReferrerInfo::CreateForSVGResources(OwnerDoc());
-
-  mReferencedElementTracker.ResetToURIFragmentID(this, targetURI, referrerInfo);
+  nsIReferrerInfo* referrer =
+      OwnerDoc()->ReferrerInfoForInternalCSSAndSVGResources();
+  mReferencedElementTracker.ResetToURIFragmentID(this, targetURI, referrer);
 }
 
 void SVGUseElement::TriggerReclone() {
@@ -613,17 +651,7 @@ SVGUseFrame* SVGUseElement::GetFrame() const {
 
 NS_IMETHODIMP_(bool)
 SVGUseElement::IsAttributeMapped(const nsAtom* name) const {
-  static const MappedAttributeEntry* const map[] = {sFEFloodMap,
-                                                    sFiltersMap,
-                                                    sFontSpecificationMap,
-                                                    sGradientStopMap,
-                                                    sLightingEffectsMap,
-                                                    sMarkersMap,
-                                                    sTextContentElementsMap,
-                                                    sViewportsMap};
-
   return name == nsGkAtoms::x || name == nsGkAtoms::y ||
-         FindAttributeDependence(name, map) ||
          SVGUseElementBase::IsAttributeMapped(name);
 }
 

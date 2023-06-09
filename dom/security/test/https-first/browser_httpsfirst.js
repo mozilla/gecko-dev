@@ -11,7 +11,7 @@ const TIMEOUT_PAGE_URI_HTTP =
 async function runPrefTest(aURI, aDesc, aAssertURLStartsWith) {
   await BrowserTestUtils.withNewTab("about:blank", async function(browser) {
     const loaded = BrowserTestUtils.browserLoaded(browser, false, null, true);
-    BrowserTestUtils.loadURI(browser, aURI);
+    BrowserTestUtils.loadURIString(browser, aURI);
     await loaded;
 
     await ContentTask.spawn(browser, { aDesc, aAssertURLStartsWith }, function({
@@ -51,6 +51,12 @@ add_task(async function() {
     "http://httpsfirst.com",
     "Should downgrade after error.",
     "http://"
+  );
+
+  await runPrefTest(
+    "http://httpsfirst.com/?https://httpsfirst.com",
+    "Should downgrade after error and leave query params untouched.",
+    "http://httpsfirst.com/?https://httpsfirst.com"
   );
 
   await runPrefTest(

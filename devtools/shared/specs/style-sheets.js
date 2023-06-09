@@ -9,36 +9,22 @@ const {
   generateActorSpec,
 } = require("resource://devtools/shared/protocol.js");
 
-// Load the "stylesheet" type used in this file.
-require("resource://devtools/shared/specs/style-sheet.js");
-
 const styleSheetsSpec = generateActorSpec({
   typeName: "stylesheets",
 
-  events: {
-    "stylesheet-added": {
-      type: "stylesheetAdded",
-      sheet: Arg(0, "stylesheet"),
-      isNew: Arg(1, "boolean"),
-      fileName: Arg(2, "nullable:string"),
-    },
-  },
+  events: {},
 
   methods: {
     getTraits: {
       request: {},
       response: { traits: RetVal("json") },
     },
-    getStyleSheets: {
-      request: {},
-      response: { styleSheets: RetVal("array:stylesheet") },
-    },
     addStyleSheet: {
       request: {
         text: Arg(0, "string"),
         fileName: Arg(1, "nullable:string"),
       },
-      response: { styleSheet: RetVal("nullable:stylesheet") },
+      response: {},
     },
     toggleDisabled: {
       request: { resourceId: Arg(0, "string") },

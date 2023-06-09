@@ -238,6 +238,20 @@ class nsPIDOMWindowInner : public mozIDOMWindow {
 
   /**
    * Call this to check whether some node (this window, its document,
+   * or content in that document) has a transition* event listeners.
+   */
+  bool HasTransitionEventListeners() { return mMayHaveTransitionEventListener; }
+
+  /**
+   * Call this to indicate that some node (this window, its document,
+   * or content in that document) has a transition* event listener.
+   */
+  void SetHasTransitionEventListeners() {
+    mMayHaveTransitionEventListener = true;
+  }
+
+  /**
+   * Call this to check whether some node (this window, its document,
    * or content in that document) has a beforeinput event listener.
    * Returing false may be wrong if some nodes have come from another document
    * with `Document.adoptNode`.
@@ -622,6 +636,13 @@ class nsPIDOMWindowInner : public mozIDOMWindow {
   };
   bool HasActiveLocks() { return mLockCount > 0; }
 
+  uint32_t UpdateWebTransportCount(bool aIncrement) {
+    MOZ_ASSERT_IF(!aIncrement, mWebTransportCount > 0);
+    mWebTransportCount += aIncrement ? 1 : -1;
+    return mWebTransportCount;
+  };
+  bool HasActiveWebTransports() { return mWebTransportCount > 0; }
+
  protected:
   void CreatePerformanceObjectIfNeeded();
 
@@ -667,6 +688,7 @@ class nsPIDOMWindowInner : public mozIDOMWindow {
   bool mMayHaveFormSelectEventListener;
   bool mMayHaveMouseEnterLeaveEventListener;
   bool mMayHavePointerEnterLeaveEventListener;
+  bool mMayHaveTransitionEventListener;
   // Only used for telemetry probes.  This may be wrong if some nodes have
   // come from another document with `Document.adoptNode`.
   bool mMayHaveBeforeInputEventListenerForTelemetry;
@@ -743,6 +765,11 @@ class nsPIDOMWindowInner : public mozIDOMWindow {
    * workers.
    */
   uint32_t mLockCount = 0;
+  /**
+   * Count of the number of active WebTransport objects, including ones from
+   * workers.
+   */
+  uint32_t mWebTransportCount = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsPIDOMWindowInner, NS_PIDOMWINDOWINNER_IID)

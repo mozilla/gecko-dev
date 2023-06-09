@@ -18,21 +18,22 @@ import android.view.accessibility.AccessibilityNodeProvider
 import android.view.accessibility.AccessibilityRecord
 import android.widget.EditText
 import android.widget.FrameLayout
+import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import androidx.test.platform.app.InstrumentationRegistry
 import org.hamcrest.Matchers.* // ktlint-disable no-wildcard-imports
 import org.junit.After
-import org.junit.Assume.assumeThat
 import org.junit.Before
 import org.junit.Ignore
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 import org.mozilla.geckoview.AllowOrDeny
 import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.AssertCalled
-import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.Setting
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.ShouldContinue
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.WithDisplay
 
@@ -47,6 +48,10 @@ class AccessibilityTest : BaseSessionTest() {
     val screenRect = Rect(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT)
     val provider: AccessibilityNodeProvider get() = view.accessibilityNodeProvider
     private val nodeInfos = mutableListOf<AccessibilityNodeInfo>()
+    private val activityRule = ActivityScenarioRule(GeckoViewTestActivity::class.java)
+
+    @get:Rule
+    override val rules: RuleChain = RuleChain.outerRule(activityRule).around(sessionRule)
 
     // Given a child ID, return the virtual descendent ID.
     private fun getVirtualDescendantId(childId: Long): Int {
@@ -78,20 +83,28 @@ class AccessibilityTest : BaseSessionTest() {
     }
 
     // Get a child ID by index.
-    private fun AccessibilityNodeInfo.getChildId(index: Int): Int =
-        getVirtualDescendantId(
-            if (Build.VERSION.SDK_INT >= 21) {
-                AccessibilityNodeInfo::class.java.getMethod(
-                    "getChildId",
-                    Int::class.java
-                ).invoke(this, index) as Long
-            } else {
-                (
-                    AccessibilityNodeInfo::class.java.getMethod("getChildNodeIds")
-                        .invoke(this) as SparseLongArray
-                    ).get(index)
-            }
-        )
+    private fun AccessibilityNodeInfo.getChildId(index: Int): Int {
+        try {
+            val field = AccessibilityNodeInfo::class.java.getDeclaredField("mChildNodeIds")
+            field.setAccessible(true)
+            val id = Class.forName("android.util.LongArray").getMethod("get", Int::class.java).invoke(field.get(this), index) as Long
+            return getVirtualDescendantId(id)
+        } catch (ex: Exception) {
+            return getVirtualDescendantId(
+                if (Build.VERSION.SDK_INT >= 21) {
+                    AccessibilityNodeInfo::class.java.getMethod(
+                        "getChildId",
+                        Int::class.java
+                    ).invoke(this, index) as Long
+                } else {
+                    (
+                        AccessibilityNodeInfo::class.java.getMethod("getChildNodeIds")
+                            .invoke(this) as SparseLongArray
+                        ).get(index)
+                }
+            )
+        }
+    }
 
     private interface EventDelegate {
         fun onAccessibilityFocused(event: AccessibilityEvent) { }
@@ -547,6 +560,13 @@ class AccessibilityTest : BaseSessionTest() {
     }
 
     @Test fun testClipboard() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // Writing clipboard requires foreground on Android 10.
+            activityRule.scenario?.onActivity { activity ->
+                activity.onWindowFocusChanged(true)
+            }
+        }
+
         var nodeId = AccessibilityNodeProvider.HOST_VIEW_ID
         loadTestPage("test-clipboard")
         waitForInitialFocus()
@@ -1292,7 +1312,6 @@ class AccessibilityTest : BaseSessionTest() {
         })
     }
 
-    @Setting(key = Setting.Key.FULL_ACCESSIBILITY_TREE, value = "true")
     @Test
     fun autoFill() {
         // Wait for the accessibility nodes to populate.
@@ -1305,16 +1324,19 @@ class AccessibilityTest : BaseSessionTest() {
             "#user2" to "bar",
             "#pass2" to "baz"
         ) +
-            if (Build.VERSION.SDK_INT >= 19) mapOf(
-                "#email1" to "a@b.c",
-                "#number1" to "24",
-                "#tel1" to "42"
-            )
-            else mapOf(
-                "#email1" to "bar",
-                "#number1" to "",
-                "#tel1" to "bar"
-            )
+            if (Build.VERSION.SDK_INT >= 19) {
+                mapOf(
+                    "#email1" to "a@b.c",
+                    "#number1" to "24",
+                    "#tel1" to "42"
+                )
+            } else {
+                mapOf(
+                    "#email1" to "bar",
+                    "#number1" to "",
+                    "#tel1" to "bar"
+                )
+            }
 
         // Set up promises to monitor the values changing.
         val promises = autoFills.flatMap { entry ->
@@ -1359,8 +1381,12 @@ class AccessibilityTest : BaseSessionTest() {
                 }
 
                 val args = Bundle(1)
-                val value = if (child.isPassword) "baz" else {
-                    if (Build.VERSION.SDK_INT < 19) "bar" else {
+                val value = if (child.isPassword) {
+                    "baz"
+                } else {
+                    if (Build.VERSION.SDK_INT < 19) {
+                        "bar"
+                    } else {
                         when (child.inputType) {
                             InputType.TYPE_CLASS_TEXT or
                                 InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS -> "a@b.c"
@@ -1378,7 +1404,9 @@ class AccessibilityTest : BaseSessionTest() {
                 }
                 val ACTION_SET_TEXT = if (Build.VERSION.SDK_INT >= 21) {
                     AccessibilityNodeInfo.ACTION_SET_TEXT
-                } else 0x200000
+                } else {
+                    0x200000
+                }
 
                 args.putCharSequence(ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, value)
                 assertThat(
@@ -1398,7 +1426,6 @@ class AccessibilityTest : BaseSessionTest() {
         }
     }
 
-    @Setting(key = Setting.Key.FULL_ACCESSIBILITY_TREE, value = "true")
     @Test
     fun autoFill_navigation() {
         // Fails with BFCache in the parent.
@@ -1415,14 +1442,19 @@ class AccessibilityTest : BaseSessionTest() {
         ): Int {
             val info = createNodeInfo(id)
             return (
-                if (cond(info) && info.className != "android.webkit.WebView") 1
-                else 0
+                if (cond(info) && info.className != "android.webkit.WebView") {
+                    1
+                } else {
+                    0
+                }
                 ) + (
                 if (info.childCount > 0) {
                     (0 until info.childCount).sumOf {
                         countAutoFillNodes(cond, info.getChildId(it))
                     }
-                } else 0
+                } else {
+                    0
+                }
                 )
         }
 
@@ -1508,7 +1540,6 @@ class AccessibilityTest : BaseSessionTest() {
         )
     }
 
-    @Setting(key = Setting.Key.FULL_ACCESSIBILITY_TREE, value = "true")
     @Test
     fun testTree() {
         loadTestPage("test-tree")
@@ -1622,14 +1653,10 @@ class AccessibilityTest : BaseSessionTest() {
     }
 
     @Test fun testRemoteAccessibilityFocusIframe() {
-        var cacheEnabled = (sessionRule.getPrefs("accessibility.cache.enabled")[0] as Boolean)
-        assumeThat("Cache is enabled", cacheEnabled, equalTo(true))
         testAccessibilityFocusIframe(REMOTE_IFRAME)
     }
 
     @Test fun testLocalAccessibilityFocusIframe() {
-        var cacheEnabled = (sessionRule.getPrefs("accessibility.cache.enabled")[0] as Boolean)
-        assumeThat("Cache is enabled", cacheEnabled, equalTo(true))
         testAccessibilityFocusIframe(LOCAL_IFRAME)
     }
 
@@ -1669,19 +1696,16 @@ class AccessibilityTest : BaseSessionTest() {
         assertThat("inner node in inner doc bounds", innerDocBounds.contains(nodeBounds), equalTo(true))
     }
 
-    @Setting(key = Setting.Key.FULL_ACCESSIBILITY_TREE, value = "true")
     @Test
     fun testRemoteIframeTree() {
         testIframeTree(REMOTE_IFRAME)
     }
 
-    @Setting(key = Setting.Key.FULL_ACCESSIBILITY_TREE, value = "true")
     @Test
     fun testLocalIframeTree() {
         testIframeTree(LOCAL_IFRAME)
     }
 
-    @Setting(key = Setting.Key.FULL_ACCESSIBILITY_TREE, value = "true")
     @Test
     fun testCollection() {
         loadTestPage("test-collection")
@@ -1702,7 +1726,7 @@ class AccessibilityTest : BaseSessionTest() {
         val firstListFirstItem = createNodeInfo(firstList.getChildId(0))
         if (Build.VERSION.SDK_INT >= 19) {
             assertThat("Item has collectionItemInfo", firstListFirstItem.collectionItemInfo, notNullValue())
-            assertThat("Item has collectionItemInfo", firstListFirstItem.collectionItemInfo.rowIndex, equalTo(1))
+            assertThat("Item has correct rowIndex", firstListFirstItem.collectionItemInfo.rowIndex, equalTo(0))
         }
 
         val secondList = createNodeInfo(rootNode.getChildId(1))
@@ -1714,7 +1738,62 @@ class AccessibilityTest : BaseSessionTest() {
         }
     }
 
-    @Setting(key = Setting.Key.FULL_ACCESSIBILITY_TREE, value = "true")
+    @Test fun testNavigateListItems() {
+        loadTestPage("test-collection")
+        waitForInitialFocus()
+        var nodeId = View.NO_ID
+
+        provider.performAction(
+            nodeId,
+            AccessibilityNodeInfo.ACTION_NEXT_HTML_ELEMENT,
+            null
+        )
+        sessionRule.waitUntilCalled(object : EventDelegate {
+            @AssertCalled(count = 1)
+            override fun onAccessibilityFocused(event: AccessibilityEvent) {
+                nodeId = getSourceId(event)
+                val node = createNodeInfo(nodeId)
+                assertThat(
+                    "Accessibility focus on text leaf",
+                    node.text as String,
+                    startsWith("One")
+                )
+                if (Build.VERSION.SDK_INT >= 19) {
+                    assertThat(
+                        "first item is a text leaf",
+                        node.extras.getCharSequence("AccessibilityNodeInfo.geckoRole")!!.toString(),
+                        equalTo("text leaf")
+                    )
+                }
+            }
+        })
+
+        provider.performAction(
+            nodeId,
+            AccessibilityNodeInfo.ACTION_NEXT_HTML_ELEMENT,
+            null
+        )
+        sessionRule.waitUntilCalled(object : EventDelegate {
+            @AssertCalled(count = 1)
+            override fun onAccessibilityFocused(event: AccessibilityEvent) {
+                nodeId = getSourceId(event)
+                val node = createNodeInfo(nodeId)
+                assertThat(
+                    "Accessibility focus on link",
+                    node.contentDescription as String,
+                    startsWith("Two")
+                )
+                if (Build.VERSION.SDK_INT >= 19) {
+                    assertThat(
+                        "second item is a link",
+                        node.extras.getCharSequence("AccessibilityNodeInfo.geckoRole")!!.toString(),
+                        equalTo("link")
+                    )
+                }
+            }
+        })
+    }
+
     @Test
     fun testRange() {
         loadTestPage("test-range")

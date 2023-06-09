@@ -16,14 +16,14 @@ with Files('dav1d/**'):
 with Files('function2/**'):
     BUG_COMPONENT = ('Core', 'MFBT')
 
+with Files('gemmology/**'):
+    BUG_COMPONENT = ('Core', 'Javascript: WebAssembly')
+
 with Files('googletest/**'):
     BUG_COMPONENT = ('Testing', 'GTest')
 
 with Files('highway/**'):
     BUG_COMPONENT = ('Core', 'Graphics: ImageLib')
-
-with Files('intgemm/**'):
-    BUG_COMPONENT = ('Core', 'Javascript: WebAssembly')
 
 with Files('jpeg-xl/**'):
     BUG_COMPONENT = ('Core', 'Graphics: ImageLib')
@@ -34,13 +34,16 @@ with Files('js/d3/**'):
 with Files('js/cfworker/**'):
     BUG_COMPONENT = ('Toolkit', 'General')
 
+with Files('js/PKI.js/**'):
+    BUG_COMPONENT = ('Firefox', 'Security')
+
 with Files('rust/**'):
     BUG_COMPONENT = ('Firefox Build System', 'General')
 
 with Files('webkit/**'):
     BUG_COMPONENT = ('Firefox Build System', 'General')
 
-with Files('prio/**'):
+with Files('xsimd/**'):
     BUG_COMPONENT = ('Firefox Build System', 'General')
 
 with Files('msgpack/**'):
@@ -58,8 +61,20 @@ with Files('rlbox/**'):
 with Files("libwebrtc/**"):
     BUG_COMPONENT = ("Core", "WebRTC")
 
+with Files("gbm/**"):
+    BUG_COMPONENT = ("Core", "WebRTC")
+
 with Files("pipewire/**"):
     BUG_COMPONENT = ("Core", "WebRTC")
+
+with Files("drm/**"):
+    BUG_COMPONENT = ("Core", "WebRTC")
+
+with Files("libepoxy/**"):
+    BUG_COMPONENT = ("Core", "WebRTC")
+
+with Files('picosha2/**'):
+    BUG_COMPONENT = ('Firefox Build System', 'General')
 
 with Files('rlbox_wasm2c_sandbox/**'):
     BUG_COMPONENT = ('Firefox Build System', 'General')

@@ -14,6 +14,7 @@
 
 namespace mozilla {
 namespace dom {
+class OwningHTMLCanvasElementOrOffscreenCanvas;
 class Promise;
 struct GPUCanvasConfiguration;
 enum class GPUTextureFormat : uint8_t;
@@ -39,14 +40,10 @@ class CanvasContext final : public nsICanvasRenderingContextInternal,
                        JS::Handle<JSObject*> aGivenProto) override;
 
  public:  // nsICanvasRenderingContextInternal
-  int32_t GetWidth() override { return mWidth; }
-  int32_t GetHeight() override { return mHeight; }
+  int32_t GetWidth() override { return mCanvasSize.width; }
+  int32_t GetHeight() override { return mCanvasSize.height; }
 
-  NS_IMETHOD SetDimensions(int32_t aWidth, int32_t aHeight) override {
-    mWidth = aWidth;
-    mHeight = aHeight;
-    return NS_OK;
-  }
+  NS_IMETHOD SetDimensions(int32_t aWidth, int32_t aHeight) override;
   NS_IMETHOD InitializeWithDrawTarget(
       nsIDocShell* aShell, NotNull<gfx::DrawTarget*> aTarget) override {
     return NS_OK;
@@ -57,7 +54,8 @@ class CanvasContext final : public nsICanvasRenderingContextInternal,
 
   bool InitializeCanvasRenderer(nsDisplayListBuilder* aBuilder,
                                 layers::CanvasRenderer* aRenderer) override;
-  mozilla::UniquePtr<uint8_t[]> GetImageBuffer(int32_t* aFormat) override;
+  mozilla::UniquePtr<uint8_t[]> GetImageBuffer(
+      int32_t* out_format, gfx::IntSize* out_imageSize) override;
   NS_IMETHOD GetInputStream(const char* aMimeType,
                             const nsAString& aEncoderOptions,
                             nsIInputStream** aStream) override;
@@ -81,23 +79,24 @@ class CanvasContext final : public nsICanvasRenderingContextInternal,
   }
 
  public:
+  void GetCanvas(dom::OwningHTMLCanvasElementOrOffscreenCanvas&) const;
+
   void Configure(const dom::GPUCanvasConfiguration& aDesc);
   void Unconfigure();
 
-  dom::GPUTextureFormat GetPreferredFormat(Adapter& aAdapter) const;
   RefPtr<Texture> GetCurrentTexture(ErrorResult& aRv);
   void MaybeQueueSwapChainPresent();
   void SwapChainPresent();
   void ForceNewFrame();
 
  private:
-  uint32_t mWidth = 0, mHeight = 0;
+  gfx::IntSize mCanvasSize;
+  std::unique_ptr<dom::GPUCanvasConfiguration> mConfig;
   bool mPendingSwapChainPresent = false;
 
   RefPtr<WebGPUChild> mBridge;
   RefPtr<Texture> mTexture;
   gfx::SurfaceFormat mGfxFormat = gfx::SurfaceFormat::R8G8B8A8;
-  gfx::IntSize mGfxSize;
 
   Maybe<layers::RemoteTextureId> mLastRemoteTextureId;
   Maybe<layers::RemoteTextureOwnerId> mRemoteTextureOwnerId;

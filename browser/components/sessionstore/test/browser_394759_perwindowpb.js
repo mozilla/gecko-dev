@@ -14,7 +14,7 @@ function promiseTestOpenCloseWindow(aIsPrivate, aTest) {
     let win = await BrowserTestUtils.openNewBrowserWindow({
       private: aIsPrivate,
     });
-    BrowserTestUtils.loadURI(win.gBrowser.selectedBrowser, aTest.url);
+    BrowserTestUtils.loadURIString(win.gBrowser.selectedBrowser, aTest.url);
     await promiseBrowserLoaded(win.gBrowser.selectedBrowser, true, aTest.url);
     // Mark the window with some unique data to be restored later on.
     ss.setCustomWindowValue(win, aTest.key, aTest.value);
@@ -46,9 +46,7 @@ function promiseTestOnWindow(aIsPrivate, aValue) {
 
 add_setup(async function() {
   forgetClosedWindows();
-  while (ss.getClosedTabCount(window) > 0) {
-    ss.forgetClosedTab(window, 0);
-  }
+  forgetClosedTabs(window);
 });
 
 add_task(async function main() {

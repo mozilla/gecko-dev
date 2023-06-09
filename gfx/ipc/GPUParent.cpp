@@ -201,7 +201,6 @@ bool GPUParent::Init(mozilla::ipc::UntypedEndpoint&& aEndpoint,
   apz::InitializeGlobalState();
   LayerTreeOwnerTracker::Initialize();
   CompositorBridgeParent::InitializeStatics();
-  gfxGradientCache::Init();
   mozilla::ipc::SetThisProcessName("GPU Process");
 
   return true;
@@ -286,6 +285,10 @@ mozilla::ipc::IPCResult GPUParent::RecvInit(
   // here that would normally be initialized there.
   SkGraphics::Init();
 
+  if (gfxVars::RemoteCanvasEnabled()) {
+    gfxGradientCache::Init();
+  }
+
 #if defined(XP_WIN)
   if (gfxConfig::IsEnabled(Feature::D3D11_COMPOSITING)) {
     if (DeviceManagerDx::Get()->CreateCompositorDevices() &&
@@ -356,8 +359,7 @@ mozilla::ipc::IPCResult GPUParent::RecvInit(
   // hardcode this value because we do not have a gfxPlatform instance.
   SkInitCairoFT(false);
 
-  if (gfxVars::UseAHardwareBufferContent() ||
-      gfxVars::UseAHardwareBufferSharedSurface()) {
+  if (gfxVars::UseAHardwareBufferSharedSurfaceWebglOop()) {
     layers::AndroidHardwareBufferApi::Init();
     layers::AndroidHardwareBufferManager::Init();
   }
@@ -676,17 +678,17 @@ void GPUParent::ActorDestroy(ActorDestroyReason aWhy) {
 
   // Wait until all RemoteDecoderManagerParent have closed.
   mShutdownBlockers.WaitUntilClear(10 * 1000 /* 10s timeout*/)
-      ->Then(GetCurrentSerialEventTarget(), __func__, [this]() {
-        if (mProfilerController) {
-          mProfilerController->Shutdown();
-          mProfilerController = nullptr;
+      ->Then(GetCurrentSerialEventTarget(), __func__, [self = RefPtr{this}]() {
+        if (self->mProfilerController) {
+          self->mProfilerController->Shutdown();
+          self->mProfilerController = nullptr;
         }
 
-        if (mVsyncBridge) {
-          mVsyncBridge->Shutdown();
-          mVsyncBridge = nullptr;
+        if (self->mVsyncBridge) {
+          self->mVsyncBridge->Shutdown();
+          self->mVsyncBridge = nullptr;
         }
-        RemoteDecoderManagerParent::ShutdownVideoBridge();
+        VideoBridgeParent::Shutdown();
         // This could be running on either the Compositor or the Renderer
         // thread.
         CanvasManagerParent::Shutdown();

@@ -504,6 +504,7 @@ add_task(async function validate_domains() {
   });
 });
 
+// Basic urlFilter validation; test_ext_dnr_urlFilter.js has more tests.
 add_task(async function validate_urlFilter() {
   await runAsDNRExtension({
     background: async dnrTestUtils => {
@@ -575,10 +576,11 @@ add_task(async function validate_urlFilter() {
   });
 });
 
+// Basic regexFilter validation; test_ext_dnr_regexFilter.js has more tests.
 add_task(async function validate_regexFilter() {
   await runAsDNRExtension({
     background: async dnrTestUtils => {
-      const { testInvalidCondition } = dnrTestUtils;
+      const { testInvalidCondition, testValidCondition } = dnrTestUtils;
 
       // This check is duplicated in validate_urlFilter.
       await testInvalidCondition(
@@ -596,10 +598,13 @@ add_task(async function validate_regexFilter() {
         { regexFilter: "" },
         "regexFilter should not be an empty string"
       );
-      // TODO bug 1745760: implement regexFilter support
       await testInvalidCondition(
+        { regexFilter: "*" },
+        "regexFilter is not a valid regular expression"
+      );
+      await testValidCondition(
         { regexFilter: "^https://example\\.com\\/" },
-        "regexFilter is not supported yet"
+        "regexFilter with valid regexp should be accepted"
       );
 
       browser.test.notifyPass();
@@ -610,7 +615,11 @@ add_task(async function validate_regexFilter() {
 add_task(async function validate_actions() {
   await runAsDNRExtension({
     background: async dnrTestUtils => {
-      const { testInvalidAction, testValidAction } = dnrTestUtils;
+      const {
+        testInvalidAction,
+        testValidAction,
+        testValidRule,
+      } = dnrTestUtils;
 
       await testValidAction({ type: "allow" });
       // Note: allowAllRequests is already covered in validate_resourceTypes
@@ -629,11 +638,37 @@ add_task(async function validate_actions() {
       );
       await testInvalidAction(
         { type: "redirect", redirect: { extensionPath: "/", url: "http://a" } },
-        "redirect.extensionPath and redirect.url are mutually exclusive"
+        "redirect.url, redirect.extensionPath, redirect.transform and redirect.regexSubstitution are mutually exclusive"
       );
       await testInvalidAction(
         { type: "redirect", redirect: { extensionPath: "", url: "http://a" } },
-        "redirect.extensionPath and redirect.url are mutually exclusive"
+        "redirect.url, redirect.extensionPath, redirect.transform and redirect.regexSubstitution are mutually exclusive"
+      );
+      await testInvalidAction(
+        {
+          type: "redirect",
+          redirect: { regexSubstitution: "", transform: {} },
+        },
+        "redirect.url, redirect.extensionPath, redirect.transform and redirect.regexSubstitution are mutually exclusive"
+      );
+      await testInvalidAction(
+        {
+          type: "redirect",
+          redirect: { regexSubstitution: "x", transform: {}, url: "http://a" },
+        },
+        "redirect.url, redirect.extensionPath, redirect.transform and redirect.regexSubstitution are mutually exclusive"
+      );
+      await testInvalidAction(
+        {
+          type: "redirect",
+          redirect: {
+            url: "http://a",
+            extensionPath: "/",
+            transform: {},
+            regexSubstitution: "http://a",
+          },
+        },
+        "redirect.url, redirect.extensionPath, redirect.transform and redirect.regexSubstitution are mutually exclusive"
       );
       await testInvalidAction(
         { type: "redirect", redirect: { extensionPath: "" } },
@@ -667,6 +702,10 @@ add_task(async function validate_actions() {
         /Access denied for URL data:,/,
         /* isSchemaError */ true
       );
+      await testInvalidAction(
+        { type: "redirect", redirect: { regexSubstitution: "http:///" } },
+        "redirect.regexSubstitution requires the regexFilter condition to be specified"
+      );
 
       // redirect actions, valid cases
       await testValidAction({
@@ -686,6 +725,15 @@ add_task(async function validate_actions() {
         redirect: { transform: {} },
       });
       // redirect.transform is validated in validate_action_redirect_transform.
+      await testValidRule({
+        id: 1,
+        condition: { regexFilter: ".+" },
+        action: {
+          type: "redirect",
+          redirect: { regexSubstitution: "http://example.com/" },
+        },
+      });
+      // ^ redirect.regexSubstitution is tested by test_ext_dnr_regexFilter.js.
 
       // modifyHeaders actions, invalid cases
       await testInvalidAction(
@@ -978,6 +1026,88 @@ add_task(async function validate_action_redirect_transform() {
         queryTransform: null,
         fragment: "#f",
       });
+
+      browser.test.notifyPass();
+    },
+  });
+});
+
+add_task(async function session_rules_total_rule_limit() {
+  await runAsDNRExtension({
+    background: async dnrTestUtils => {
+      const {
+        MAX_NUMBER_OF_DYNAMIC_AND_SESSION_RULES,
+      } = browser.declarativeNetRequest;
+
+      let inputRules = [];
+      let nextRuleId = 1;
+      for (let i = 0; i < MAX_NUMBER_OF_DYNAMIC_AND_SESSION_RULES; ++i) {
+        inputRules.push(dnrTestUtils.makeRuleInput(nextRuleId++));
+      }
+      let excessRule = dnrTestUtils.makeRuleInput(nextRuleId++);
+
+      browser.test.log(`Should be able to add ${inputRules.length} rules.`);
+      await browser.declarativeNetRequest.updateSessionRules({
+        addRules: inputRules,
+      });
+
+      browser.test.assertEq(
+        inputRules.length,
+        (await browser.declarativeNetRequest.getSessionRules()).length,
+        "Added up to MAX_NUMBER_OF_DYNAMIC_AND_SESSION_RULES session rules"
+      );
+
+      await browser.test.assertRejects(
+        browser.declarativeNetRequest.updateSessionRules({
+          addRules: [excessRule],
+        }),
+        `Number of rules in ruleset "_session" exceeds MAX_NUMBER_OF_DYNAMIC_AND_SESSION_RULES.`,
+        "Should not accept more than MAX_NUMBER_OF_DYNAMIC_AND_SESSION_RULES rules"
+      );
+
+      await browser.test.assertRejects(
+        browser.declarativeNetRequest.updateSessionRules({
+          removeRuleIds: [inputRules[0].id],
+          addRules: [inputRules[0], excessRule],
+        }),
+        `Number of rules in ruleset "_session" exceeds MAX_NUMBER_OF_DYNAMIC_AND_SESSION_RULES.`,
+        "Removing one rule is not enough to make space for two rules"
+      );
+
+      browser.test.log("Should be able to replace one rule while at the limit");
+      await browser.declarativeNetRequest.updateSessionRules({
+        removeRuleIds: [inputRules[0].id],
+        addRules: [excessRule],
+      });
+
+      browser.test.log("Should be able to remove many rules, even at quota");
+      await browser.declarativeNetRequest.updateSessionRules({
+        // Note: inputRules[0].id was already removed, but that's fine.
+        removeRuleIds: inputRules.map(r => r.id),
+      });
+
+      browser.test.assertDeepEq(
+        [dnrTestUtils.makeRuleOutput(excessRule.id)],
+        await browser.declarativeNetRequest.getSessionRules(),
+        "Expected one rule after removing all-but-one-rule"
+      );
+
+      await browser.test.assertRejects(
+        browser.declarativeNetRequest.updateSessionRules({
+          addRules: inputRules,
+        }),
+        `Number of rules in ruleset "_session" exceeds MAX_NUMBER_OF_DYNAMIC_AND_SESSION_RULES.`,
+        "Should not be able to add MAX_NUMBER_OF_DYNAMIC_AND_SESSION_RULES when there is already a rule"
+      );
+
+      await browser.declarativeNetRequest.updateSessionRules({
+        removeRuleIds: [excessRule.id],
+      });
+      browser.test.assertDeepEq(
+        [],
+        await browser.declarativeNetRequest.getSessionRules(),
+        "Removed last remaining rule"
+      );
 
       browser.test.notifyPass();
     },

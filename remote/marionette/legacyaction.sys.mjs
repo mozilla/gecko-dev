@@ -17,7 +17,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   json: "chrome://remote/content/marionette/json.sys.mjs",
   event: "chrome://remote/content/marionette/event.sys.mjs",
   Log: "chrome://remote/content/shared/Log.sys.mjs",
-  WebReference: "chrome://remote/content/marionette/element.sys.mjs",
+  WebElement: "chrome://remote/content/marionette/element.sys.mjs",
 });
 
 XPCOMUtils.defineLazyGetter(lazy, "logger", () =>
@@ -57,11 +57,11 @@ action.Chain = function() {
  *
  * @param {Element} elem
  *        The Element on which the touch event should be created.
- * @param {Number} x
+ * @param {number} x
  *        x coordinate relative to the viewport.
- * @param {Number} y
+ * @param {number} y
  *        y coordinate relative to the viewport.
- * @param {Number} touchId
+ * @param {number} touchId
  *        Touch event id used by legacyactions.
  */
 action.Chain.prototype.createATouch = function(elem, x, y, touchId) {
@@ -126,13 +126,15 @@ action.Chain.prototype.dispatchActions = function(
  *     Current document.
  * @param {string} type
  *     Type of event to dispatch.
- * @param {number} clickCount
- *     Number of clicks, button notes the mouse button.
  * @param {number} elClientX
  *     X coordinate of the mouse relative to the viewport.
  * @param {number} elClientY
  *     Y coordinate of the mouse relative to the viewport.
- * @param {Object} modifiers
+ * @param {number} button
+ *     The button number.
+ * @param {number} clickCount
+ *     Number of clicks, button notes the mouse button.
+ * @param {object} modifiers
  *     An object of modifier keys present.
  */
 action.Chain.prototype.emitMouseEvent = function(
@@ -238,7 +240,7 @@ action.Chain.prototype.singleTap = async function(
   }
 
   let a11y = lazy.accessibility.get(capabilities["moz:accessibilityChecks"]);
-  let acc = await a11y.getAccessible(el, true);
+  let acc = await a11y.assertAccessible(el, true);
   a11y.assertVisible(acc, el, visible);
   a11y.assertActionable(acc, el);
   if (!doc.createTouch) {
@@ -262,16 +264,16 @@ action.Chain.prototype.singleTap = async function(
  *
  * @param {Array.<Array<?>>} chain
  *     A multi-dimensional array of actions.
- * @param {Object.<string, number>} touchId
+ * @param {Object<string, number>} touchId
  *     Represents the finger ID.
  * @param {number} i
  *     Keeps track of the current action of the chain.
- * @param {Object.<string, boolean>} keyModifiers
+ * @param {Object<string, boolean>} keyModifiers
  *     Keeps track of keyDown/keyUp pairs through an action chain.
  * @param {function(?)} cb
  *     Called on success.
  *
- * @return {Object.<string, number>}
+ * @returns {Object<string, number>}
  *     Last finger ID, or an empty object.
  */
 action.Chain.prototype.actions = function(chain, touchId, i, keyModifiers, cb) {
@@ -308,7 +310,7 @@ action.Chain.prototype.actions = function(chain, touchId, i, keyModifiers, cb) {
       break;
 
     case "click":
-      webEl = lazy.WebReference.fromUUID(pack[1]);
+      webEl = lazy.WebElement.fromUUID(pack[1]);
       el = this.seenEls.get(webEl);
       let button = pack[2];
       let clickCount = pack[3];
@@ -356,7 +358,7 @@ action.Chain.prototype.actions = function(chain, touchId, i, keyModifiers, cb) {
       if (i != chain.length && chain[i][0].includes("move")) {
         this.scrolling = true;
       }
-      webEl = lazy.WebReference.fromUUID(pack[1]);
+      webEl = lazy.WebElement.fromUUID(pack[1]);
       el = this.seenEls.get(webEl);
       c = lazy.element.coordinates(el, pack[2], pack[3]);
       touchId = this.generateEvents("press", c.x, c.y, null, el, keyModifiers);
@@ -377,7 +379,7 @@ action.Chain.prototype.actions = function(chain, touchId, i, keyModifiers, cb) {
       break;
 
     case "move":
-      webEl = lazy.WebReference.fromUUID(pack[1]);
+      webEl = lazy.WebElement.fromUUID(pack[1]);
       el = this.seenEls.get(webEl);
       c = lazy.element.coordinates(el);
       this.generateEvents("move", c.x, c.y, touchId, null, keyModifiers);
@@ -464,12 +466,18 @@ action.Chain.prototype.getCoordinateInfo = function(el, corx, cory) {
 };
 
 /**
+ * @param {string} type
+ *     The event type (eg "tap", "press", ...).
  * @param {number} x
  *     X coordinate of the location to generate the event that is relative
  *     to the viewport.
  * @param {number} y
  *     Y coordinate of the location to generate the event that is relative
  *     to the viewport.
+ * @param {number} touchId
+ *     The current touch id.
+ * @param {Element} target
+ *     The Element on which the events should be created.
  */
 action.Chain.prototype.generateEvents = function(
   type,

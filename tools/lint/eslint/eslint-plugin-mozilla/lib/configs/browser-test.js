@@ -23,7 +23,6 @@ module.exports = {
     PromiseDebugging: false,
     SpecialPowers: false,
     TestUtils: false,
-    XPCNativeWrapper: false,
     addLoadEvent: false,
     add_setup: false,
     add_task: false,
@@ -84,5 +83,9 @@ module.exports = {
     "mozilla/mark-test-function-used": "error",
     "mozilla/no-addtask-setup": "error",
     "mozilla/no-arbitrary-setTimeout": "error",
+    "mozilla/no-redeclare-with-import-autofix": [
+      "error",
+      { errorForNonImports: false },
+    ],
   },
 };

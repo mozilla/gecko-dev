@@ -5,7 +5,7 @@ use super::{
     },
     error::{Error, ErrorKind},
     types::{scalar_components, type_power},
-    Parser, Result,
+    Frontend, Result,
 };
 use crate::{
     front::{Emitter, Typifier},
@@ -34,7 +34,10 @@ impl ExprPos {
     /// Returns an lhs position if the current position is lhs otherwise AccessBase
     const fn maybe_access_base(&self, constant_index: bool) -> Self {
         match *self {
-            ExprPos::Lhs => *self,
+            ExprPos::Lhs
+            | ExprPos::AccessBase {
+                constant_index: false,
+            } => *self,
             _ => ExprPos::AccessBase { constant_index },
         }
     }
@@ -44,8 +47,24 @@ impl ExprPos {
 pub struct Context {
     pub expressions: Arena<Expression>,
     pub locals: Arena<LocalVariable>,
+
+    /// The [`FunctionArgument`]s for the final [`crate::Function`].
+    ///
+    /// Parameters with the `out` and `inout` qualifiers have [`Pointer`] types
+    /// here. For example, an `inout vec2 a` argument would be a [`Pointer`] to
+    /// a [`Vector`].
+    ///
+    /// [`Pointer`]: crate::TypeInner::Pointer
+    /// [`Vector`]: crate::TypeInner::Vector
     pub arguments: Vec<FunctionArgument>,
 
+    /// The parameter types given in the source code.
+    ///
+    /// The `out` and `inout` qualifiers don't affect the types that appear
+    /// here. For example, an `inout vec2 a` argument would simply be a
+    /// [`Vector`], not a pointer to one.
+    ///
+    /// [`Vector`]: crate::TypeInner::Vector
     pub parameters: Vec<Handle<Type>>,
     pub parameters_info: Vec<ParameterInfo>,
 
@@ -58,7 +77,7 @@ pub struct Context {
 }
 
 impl Context {
-    pub fn new(parser: &Parser, body: &mut Block) -> Self {
+    pub fn new(frontend: &Frontend, body: &mut Block) -> Self {
         let mut this = Context {
             expressions: Arena::new(),
             locals: Arena::new(),
@@ -77,8 +96,8 @@ impl Context {
 
         this.emit_start();
 
-        for &(ref name, lookup) in parser.global_variables.iter() {
-            this.add_global(parser, name, lookup, body)
+        for &(ref name, lookup) in frontend.global_variables.iter() {
+            this.add_global(frontend, name, lookup, body)
         }
 
         this
@@ -86,7 +105,7 @@ impl Context {
 
     pub fn add_global(
         &mut self,
-        parser: &Parser,
+        frontend: &Frontend,
         name: &str,
         GlobalLookup {
             kind,
@@ -98,10 +117,10 @@ impl Context {
         self.emit_end(body);
         let (expr, load, constant) = match kind {
             GlobalLookupKind::Variable(v) => {
-                let span = parser.module.global_variables.get_span(v);
+                let span = frontend.module.global_variables.get_span(v);
                 let res = (
                     self.expressions.append(Expression::GlobalVariable(v), span),
-                    parser.module.global_variables[v].space != AddressSpace::Handle,
+                    frontend.module.global_variables[v].space != AddressSpace::Handle,
                     None,
                 );
                 self.emit_start();
@@ -109,7 +128,7 @@ impl Context {
                 res
             }
             GlobalLookupKind::BlockSelect(handle, index) => {
-                let span = parser.module.global_variables.get_span(handle);
+                let span = frontend.module.global_variables.get_span(handle);
                 let base = self
                     .expressions
                     .append(Expression::GlobalVariable(handle), span);
@@ -121,14 +140,14 @@ impl Context {
                 (
                     expr,
                     {
-                        let ty = parser.module.global_variables[handle].ty;
+                        let ty = frontend.module.global_variables[handle].ty;
 
-                        match parser.module.types[ty].inner {
+                        match frontend.module.types[ty].inner {
                             TypeInner::Struct { ref members, .. } => {
                                 if let TypeInner::Array {
                                     size: crate::ArraySize::Dynamic,
                                     ..
-                                } = parser.module.types[members[index as usize].ty].inner
+                                } = frontend.module.types[members[index as usize].ty].inner
                                 {
                                     false
                                 } else {
@@ -142,7 +161,7 @@ impl Context {
                 )
             }
             GlobalLookupKind::Constant(v, ty) => {
-                let span = parser.module.constants.get_span(v);
+                let span = frontend.module.constants.get_span(v);
                 let res = (
                     self.expressions.append(Expression::Constant(v), span),
                     false,
@@ -238,7 +257,7 @@ impl Context {
     /// Add function argument to current scope
     pub fn add_function_arg(
         &mut self,
-        parser: &mut Parser,
+        frontend: &mut Frontend,
         body: &mut Block,
         name_meta: Option<(String, Span)>,
         ty: Handle<Type>,
@@ -252,14 +271,14 @@ impl Context {
         };
         self.parameters.push(ty);
 
-        let opaque = match parser.module.types[ty].inner {
+        let opaque = match frontend.module.types[ty].inner {
             TypeInner::Image { .. } | TypeInner::Sampler { .. } => true,
             _ => false,
         };
 
         if qualifier.is_lhs() {
-            let span = parser.module.types.get_span(arg.ty);
-            arg.ty = parser.module.types.insert(
+            let span = frontend.module.types.get_span(arg.ty);
+            arg.ty = frontend.module.types.insert(
                 Type {
                     name: None,
                     inner: TypeInner::Pointer {
@@ -342,12 +361,12 @@ impl Context {
     pub fn lower(
         &mut self,
         mut stmt: StmtContext,
-        parser: &mut Parser,
+        frontend: &mut Frontend,
         expr: Handle<HirExpr>,
         pos: ExprPos,
         body: &mut Block,
     ) -> Result<(Option<Handle<Expression>>, Span)> {
-        let res = self.lower_inner(&stmt, parser, expr, pos, body);
+        let res = self.lower_inner(&stmt, frontend, expr, pos, body);
 
         stmt.hir_exprs.clear();
         self.stmt_ctx = Some(stmt);
@@ -363,12 +382,12 @@ impl Context {
     pub fn lower_expect(
         &mut self,
         mut stmt: StmtContext,
-        parser: &mut Parser,
+        frontend: &mut Frontend,
         expr: Handle<HirExpr>,
         pos: ExprPos,
         body: &mut Block,
     ) -> Result<(Handle<Expression>, Span)> {
-        let res = self.lower_expect_inner(&stmt, parser, expr, pos, body);
+        let res = self.lower_expect_inner(&stmt, frontend, expr, pos, body);
 
         stmt.hir_exprs.clear();
         self.stmt_ctx = Some(stmt);
@@ -379,17 +398,17 @@ impl Context {
     /// internal implementation of [`lower_expect`](Self::lower_expect)
     ///
     /// this method is only public because it's used in
-    /// [`function_call`](Parser::function_call), unless you know what
+    /// [`function_call`](Frontend::function_call), unless you know what
     /// you're doing use [`lower_expect`](Self::lower_expect)
     pub fn lower_expect_inner(
         &mut self,
         stmt: &StmtContext,
-        parser: &mut Parser,
+        frontend: &mut Frontend,
         expr: Handle<HirExpr>,
         pos: ExprPos,
         body: &mut Block,
     ) -> Result<(Handle<Expression>, Span)> {
-        let (maybe_expr, meta) = self.lower_inner(stmt, parser, expr, pos, body)?;
+        let (maybe_expr, meta) = self.lower_inner(stmt, frontend, expr, pos, body)?;
 
         let expr = match maybe_expr {
             Some(e) => e,
@@ -469,30 +488,30 @@ impl Context {
     fn lower_inner(
         &mut self,
         stmt: &StmtContext,
-        parser: &mut Parser,
+        frontend: &mut Frontend,
         expr: Handle<HirExpr>,
         pos: ExprPos,
         body: &mut Block,
     ) -> Result<(Option<Handle<Expression>>, Span)> {
         let HirExpr { ref kind, meta } = stmt.hir_exprs[expr];
 
-        log::debug!("Lowering {:?}", expr);
+        log::debug!("Lowering {:?} (kind {:?}, pos {:?})", expr, kind, pos);
 
         let handle = match *kind {
             HirExprKind::Access { base, index } => {
                 let (index, index_meta) =
-                    self.lower_expect_inner(stmt, parser, index, ExprPos::Rhs, body)?;
+                    self.lower_expect_inner(stmt, frontend, index, ExprPos::Rhs, body)?;
                 let maybe_constant_index = match pos {
                     // Don't try to generate `AccessIndex` if in a LHS position, since it
                     // wouldn't produce a pointer.
                     ExprPos::Lhs => None,
-                    _ => parser.solve_constant(self, index, index_meta).ok(),
+                    _ => frontend.solve_constant(self, index, index_meta).ok(),
                 };
 
                 let base = self
                     .lower_expect_inner(
                         stmt,
-                        parser,
+                        frontend,
                         base,
                         pos.maybe_access_base(maybe_constant_index.is_some()),
                         body,
@@ -504,7 +523,7 @@ impl Context {
                         Some(self.add_expression(
                             Expression::AccessIndex {
                                 base,
-                                index: match parser.module.constants[constant].inner {
+                                index: match frontend.module.constants[constant].inner {
                                     crate::ConstantInner::Scalar {
                                         value: ScalarValue::Uint(i),
                                         ..
@@ -525,7 +544,7 @@ impl Context {
                     });
 
                 if ExprPos::Rhs == pos {
-                    let resolved = parser.resolve_type(self, pointer, meta)?;
+                    let resolved = frontend.resolve_type(self, pointer, meta)?;
                     if resolved.pointer_space().is_some() {
                         return Ok((
                             Some(self.add_expression(Expression::Load { pointer }, meta, body)),
@@ -537,34 +556,38 @@ impl Context {
                 pointer
             }
             HirExprKind::Select { base, ref field } => {
-                let base = self
-                    .lower_expect_inner(stmt, parser, base, pos.maybe_access_base(true), body)?
-                    .0;
+                let base = self.lower_expect_inner(stmt, frontend, base, pos, body)?.0;
 
-                parser.field_selection(self, pos, body, base, field, meta)?
+                frontend.field_selection(self, pos, body, base, field, meta)?
             }
             HirExprKind::Constant(constant) if pos != ExprPos::Lhs => {
                 self.add_expression(Expression::Constant(constant), meta, body)
             }
             HirExprKind::Binary { left, op, right } if pos != ExprPos::Lhs => {
                 let (mut left, left_meta) =
-                    self.lower_expect_inner(stmt, parser, left, ExprPos::Rhs, body)?;
+                    self.lower_expect_inner(stmt, frontend, left, ExprPos::Rhs, body)?;
                 let (mut right, right_meta) =
-                    self.lower_expect_inner(stmt, parser, right, ExprPos::Rhs, body)?;
+                    self.lower_expect_inner(stmt, frontend, right, ExprPos::Rhs, body)?;
 
                 match op {
                     BinaryOperator::ShiftLeft | BinaryOperator::ShiftRight => self
-                        .implicit_conversion(parser, &mut right, right_meta, ScalarKind::Uint, 4)?,
+                        .implicit_conversion(
+                            frontend,
+                            &mut right,
+                            right_meta,
+                            ScalarKind::Uint,
+                            4,
+                        )?,
                     _ => self.binary_implicit_conversion(
-                        parser, &mut left, left_meta, &mut right, right_meta,
+                        frontend, &mut left, left_meta, &mut right, right_meta,
                     )?,
                 }
 
-                parser.typifier_grow(self, left, left_meta)?;
-                parser.typifier_grow(self, right, right_meta)?;
+                frontend.typifier_grow(self, left, left_meta)?;
+                frontend.typifier_grow(self, right, right_meta)?;
 
-                let left_inner = self.typifier.get(left, &parser.module.types);
-                let right_inner = self.typifier.get(right, &parser.module.types);
+                let left_inner = self.typifier.get(left, &frontend.module.types);
+                let right_inner = self.typifier.get(right, &frontend.module.types);
 
                 match (left_inner, right_inner) {
                     (
@@ -587,11 +610,10 @@ impl Context {
 
                         // Check that the two arguments have the same dimensions
                         if !dimensions_ok || left_width != right_width {
-                            parser.errors.push(Error {
+                            frontend.errors.push(Error {
                                 kind: ErrorKind::SemanticError(
                                     format!(
-                                        "Cannot apply operation to {:?} and {:?}",
-                                        left_inner, right_inner
+                                        "Cannot apply operation to {left_inner:?} and {right_inner:?}"
                                     )
                                     .into(),
                                 ),
@@ -634,7 +656,7 @@ impl Context {
                                 // Rebuild the matrix from the divided vectors
                                 self.expressions.append(
                                     Expression::Compose {
-                                        ty: parser.module.types.insert(
+                                        ty: frontend.module.types.insert(
                                             Type {
                                                 name: None,
                                                 inner: TypeInner::Matrix {
@@ -819,11 +841,10 @@ impl Context {
                     ) => {
                         // Check that the two arguments have the same width
                         if left_width != right_width {
-                            parser.errors.push(Error {
+                            frontend.errors.push(Error {
                                 kind: ErrorKind::SemanticError(
                                     format!(
-                                        "Cannot apply operation to {:?} and {:?}",
-                                        left_inner, right_inner
+                                        "Cannot apply operation to {left_inner:?} and {right_inner:?}"
                                     )
                                     .into(),
                                 ),
@@ -875,7 +896,7 @@ impl Context {
                                 // Rebuild the matrix from the operation result vectors
                                 self.expressions.append(
                                     Expression::Compose {
-                                        ty: parser.module.types.insert(
+                                        ty: frontend.module.types.insert(
                                             Type {
                                                 name: None,
                                                 inner: TypeInner::Matrix {
@@ -910,11 +931,10 @@ impl Context {
                     ) => {
                         // Check that the two arguments have the same width
                         if left_width != right_width {
-                            parser.errors.push(Error {
+                            frontend.errors.push(Error {
                                 kind: ErrorKind::SemanticError(
                                     format!(
-                                        "Cannot apply operation to {:?} and {:?}",
-                                        left_inner, right_inner
+                                        "Cannot apply operation to {left_inner:?} and {right_inner:?}"
                                     )
                                     .into(),
                                 ),
@@ -967,7 +987,7 @@ impl Context {
                                 // Rebuild the matrix from the operation result vectors
                                 self.expressions.append(
                                     Expression::Compose {
-                                        ty: parser.module.types.insert(
+                                        ty: frontend.module.types.insert(
                                             Type {
                                                 name: None,
                                                 inner: TypeInner::Matrix {
@@ -995,7 +1015,7 @@ impl Context {
             }
             HirExprKind::Unary { op, expr } if pos != ExprPos::Lhs => {
                 let expr = self
-                    .lower_expect_inner(stmt, parser, expr, ExprPos::Rhs, body)?
+                    .lower_expect_inner(stmt, frontend, expr, ExprPos::Rhs, body)?
                     .0;
 
                 self.add_expression(Expression::Unary { op, expr }, meta, body)
@@ -1003,7 +1023,7 @@ impl Context {
             HirExprKind::Variable(ref var) => match pos {
                 ExprPos::Lhs => {
                     if !var.mutable {
-                        parser.errors.push(Error {
+                        frontend.errors.push(Error {
                             kind: ErrorKind::SemanticError(
                                 "Variable cannot be used in LHS position".into(),
                             ),
@@ -1015,7 +1035,7 @@ impl Context {
                 }
                 ExprPos::AccessBase { constant_index } => {
                     // If the index isn't constant all accesses backed by a constant base need
-                    // to be done trough a proxy local variable, since constants have a non
+                    // to be done through a proxy local variable, since constants have a non
                     // pointer type which is required for dynamic indexing
                     if !constant_index {
                         if let Some((constant, ty)) = var.constant {
@@ -1043,10 +1063,10 @@ impl Context {
                 _ if var.load => {
                     self.add_expression(Expression::Load { pointer: var.expr }, meta, body)
                 }
-                _ => var.expr,
+                ExprPos::Rhs => var.expr,
             },
             HirExprKind::Call(ref call) if pos != ExprPos::Lhs => {
-                let maybe_expr = parser.function_or_constructor_call(
+                let maybe_expr = frontend.function_or_constructor_call(
                     self,
                     stmt,
                     body,
@@ -1082,7 +1102,7 @@ impl Context {
 
                 // Lower the condition first to the current bodyy
                 let condition = self
-                    .lower_expect_inner(stmt, parser, condition, ExprPos::Rhs, body)?
+                    .lower_expect_inner(stmt, frontend, condition, ExprPos::Rhs, body)?
                     .0;
 
                 // Emit all expressions since we will be adding statements to
@@ -1095,7 +1115,7 @@ impl Context {
 
                 // Lower the `true` branch
                 let (mut accept, accept_meta) =
-                    self.lower_expect_inner(stmt, parser, accept, pos, &mut accept_body)?;
+                    self.lower_expect_inner(stmt, frontend, accept, pos, &mut accept_body)?;
 
                 // Flush the body of the `true` branch, to start emitting on the
                 // `false` branch
@@ -1103,7 +1123,7 @@ impl Context {
 
                 // Lower the `false` branch
                 let (mut reject, reject_meta) =
-                    self.lower_expect_inner(stmt, parser, reject, pos, &mut reject_body)?;
+                    self.lower_expect_inner(stmt, frontend, reject, pos, &mut reject_body)?;
 
                 // Flush the body of the `false` branch
                 self.emit_restart(&mut reject_body);
@@ -1115,9 +1135,9 @@ impl Context {
                     Some((reject_power, reject_width, reject_kind)),
                 ) = (
                     // Get the components of both branches and calculate the type power
-                    self.expr_scalar_components(parser, accept, accept_meta)?
+                    self.expr_scalar_components(frontend, accept, accept_meta)?
                         .and_then(|(kind, width)| Some((type_power(kind, width)?, width, kind))),
-                    self.expr_scalar_components(parser, reject, reject_meta)?
+                    self.expr_scalar_components(frontend, reject, reject_meta)?
                         .and_then(|(kind, width)| Some((type_power(kind, width)?, width, kind))),
                 ) {
                     match accept_power.cmp(&reject_power) {
@@ -1148,7 +1168,7 @@ impl Context {
                 // We need to get the type of the resulting expression to create the local,
                 // this must be done after implicit conversions to ensure both branches have
                 // the same type.
-                let ty = parser.resolve_type_handle(self, accept, accept_meta)?;
+                let ty = frontend.resolve_type_handle(self, accept, accept_meta)?;
 
                 // Add the local that will hold the result of our conditional
                 let local = self.locals.append(
@@ -1207,17 +1227,17 @@ impl Context {
             }
             HirExprKind::Assign { tgt, value } if ExprPos::Lhs != pos => {
                 let (pointer, ptr_meta) =
-                    self.lower_expect_inner(stmt, parser, tgt, ExprPos::Lhs, body)?;
+                    self.lower_expect_inner(stmt, frontend, tgt, ExprPos::Lhs, body)?;
                 let (mut value, value_meta) =
-                    self.lower_expect_inner(stmt, parser, value, ExprPos::Rhs, body)?;
+                    self.lower_expect_inner(stmt, frontend, value, ExprPos::Rhs, body)?;
 
-                let ty = match *parser.resolve_type(self, pointer, ptr_meta)? {
-                    TypeInner::Pointer { base, .. } => &parser.module.types[base].inner,
+                let ty = match *frontend.resolve_type(self, pointer, ptr_meta)? {
+                    TypeInner::Pointer { base, .. } => &frontend.module.types[base].inner,
                     ref ty => ty,
                 };
 
                 if let Some((kind, width)) = scalar_components(ty) {
-                    self.implicit_conversion(parser, &mut value, value_meta, kind, width)?;
+                    self.implicit_conversion(frontend, &mut value, value_meta, kind, width)?;
                 }
 
                 self.lower_store(pointer, value, meta, body);
@@ -1226,7 +1246,7 @@ impl Context {
             }
             HirExprKind::PrePostfix { op, postfix, expr } if ExprPos::Lhs != pos => {
                 let (pointer, _) =
-                    self.lower_expect_inner(stmt, parser, expr, ExprPos::Lhs, body)?;
+                    self.lower_expect_inner(stmt, frontend, expr, ExprPos::Lhs, body)?;
                 let left = if let Expression::Swizzle { .. } = self.expressions[pointer] {
                     pointer
                 } else {
@@ -1243,7 +1263,7 @@ impl Context {
 
                     Some(crate::ConstantInner::Scalar { width, value })
                 };
-                let res = match *parser.resolve_type(self, left, meta)? {
+                let res = match *frontend.resolve_type(self, left, meta)? {
                     TypeInner::Scalar { kind, width } => {
                         let ty = TypeInner::Scalar { kind, width };
                         make_constant_inner(kind, width).map(|i| (ty, i, None, None))
@@ -1270,7 +1290,7 @@ impl Context {
                 let (ty_inner, inner, rows, columns) = match res {
                     Some(res) => res,
                     None => {
-                        parser.errors.push(Error {
+                        frontend.errors.push(Error {
                             kind: ErrorKind::SemanticError(
                                 "Increment/decrement only works on scalar/vector/matrix".into(),
                             ),
@@ -1280,7 +1300,7 @@ impl Context {
                     }
                 };
 
-                let constant_1 = parser.module.constants.append(
+                let constant_1 = frontend.module.constants.append(
                     Constant {
                         name: None,
                         specialization: None,
@@ -1299,7 +1319,7 @@ impl Context {
                         self.add_expression(Expression::Splat { size, value: right }, meta, body);
 
                     if let Some(cols) = columns {
-                        let ty = parser.module.types.insert(
+                        let ty = frontend.module.types.insert(
                             Type {
                                 name: None,
                                 inner: ty_inner,
@@ -1335,21 +1355,22 @@ impl Context {
             } if ExprPos::Lhs != pos => {
                 let args = args
                     .iter()
-                    .map(|e| self.lower_expect_inner(stmt, parser, *e, ExprPos::Rhs, body))
+                    .map(|e| self.lower_expect_inner(stmt, frontend, *e, ExprPos::Rhs, body))
                     .collect::<Result<Vec<_>>>()?;
                 match name.as_ref() {
                     "length" => {
                         if !args.is_empty() {
-                            parser.errors.push(Error {
+                            frontend.errors.push(Error {
                                 kind: ErrorKind::SemanticError(
                                     ".length() doesn't take any arguments".into(),
                                 ),
                                 meta,
                             });
                         }
-                        let lowered_array =
-                            self.lower_expect_inner(stmt, parser, object, pos, body)?.0;
-                        let array_type = parser.resolve_type(self, lowered_array, meta)?;
+                        let lowered_array = self
+                            .lower_expect_inner(stmt, frontend, object, pos, body)?
+                            .0;
+                        let array_type = frontend.resolve_type(self, lowered_array, meta)?;
 
                         match *array_type {
                             TypeInner::Array {
@@ -1359,7 +1380,7 @@ impl Context {
                                 let mut array_length =
                                     self.add_expression(Expression::Constant(size), meta, body);
                                 self.forced_conversion(
-                                    parser,
+                                    frontend,
                                     &mut array_length,
                                     meta,
                                     ScalarKind::Sint,
@@ -1382,7 +1403,7 @@ impl Context {
                     _ => {
                         return Err(Error {
                             kind: ErrorKind::SemanticError(
-                                format!("unknown method '{}'", name).into(),
+                                format!("unknown method '{name}'").into(),
                             ),
                             meta,
                         });
@@ -1413,22 +1434,22 @@ impl Context {
 
     pub fn expr_scalar_components(
         &mut self,
-        parser: &Parser,
+        frontend: &Frontend,
         expr: Handle<Expression>,
         meta: Span,
     ) -> Result<Option<(ScalarKind, crate::Bytes)>> {
-        let ty = parser.resolve_type(self, expr, meta)?;
+        let ty = frontend.resolve_type(self, expr, meta)?;
         Ok(scalar_components(ty))
     }
 
     pub fn expr_power(
         &mut self,
-        parser: &Parser,
+        frontend: &Frontend,
         expr: Handle<Expression>,
         meta: Span,
     ) -> Result<Option<u32>> {
         Ok(self
-            .expr_scalar_components(parser, expr, meta)?
+            .expr_scalar_components(frontend, expr, meta)?
             .and_then(|(kind, width)| type_power(kind, width)))
     }
 
@@ -1453,7 +1474,7 @@ impl Context {
 
     pub fn implicit_conversion(
         &mut self,
-        parser: &Parser,
+        frontend: &Frontend,
         expr: &mut Handle<Expression>,
         meta: Span,
         kind: ScalarKind,
@@ -1461,7 +1482,7 @@ impl Context {
     ) -> Result<()> {
         if let (Some(tgt_power), Some(expr_power)) = (
             type_power(kind, width),
-            self.expr_power(parser, *expr, meta)?,
+            self.expr_power(frontend, *expr, meta)?,
         ) {
             if tgt_power > expr_power {
                 self.conversion(expr, meta, kind, width)?;
@@ -1473,14 +1494,14 @@ impl Context {
 
     pub fn forced_conversion(
         &mut self,
-        parser: &Parser,
+        frontend: &Frontend,
         expr: &mut Handle<Expression>,
         meta: Span,
         kind: ScalarKind,
         width: crate::Bytes,
     ) -> Result<()> {
         if let Some((expr_scalar_kind, expr_width)) =
-            self.expr_scalar_components(parser, *expr, meta)?
+            self.expr_scalar_components(frontend, *expr, meta)?
         {
             if expr_scalar_kind != kind || expr_width != width {
                 self.conversion(expr, meta, kind, width)?;
@@ -1492,14 +1513,14 @@ impl Context {
 
     pub fn binary_implicit_conversion(
         &mut self,
-        parser: &Parser,
+        frontend: &Frontend,
         left: &mut Handle<Expression>,
         left_meta: Span,
         right: &mut Handle<Expression>,
         right_meta: Span,
     ) -> Result<()> {
-        let left_components = self.expr_scalar_components(parser, *left, left_meta)?;
-        let right_components = self.expr_scalar_components(parser, *right, right_meta)?;
+        let left_components = self.expr_scalar_components(frontend, *left, left_meta)?;
+        let right_components = self.expr_scalar_components(frontend, *right, right_meta)?;
 
         if let (
             Some((left_power, left_width, left_kind)),
@@ -1525,12 +1546,12 @@ impl Context {
 
     pub fn implicit_splat(
         &mut self,
-        parser: &Parser,
+        frontend: &Frontend,
         expr: &mut Handle<Expression>,
         meta: Span,
         vector_size: Option<VectorSize>,
     ) -> Result<()> {
-        let expr_type = parser.resolve_type(self, *expr, meta)?;
+        let expr_type = frontend.resolve_type(self, *expr, meta)?;
 
         if let (&TypeInner::Scalar { .. }, Some(size)) = (expr_type, vector_size) {
             *expr = self
@@ -1570,11 +1591,11 @@ impl Index<Handle<Expression>> for Context {
 
 /// Helper struct passed when parsing expressions
 ///
-/// This struct should only be obtained trough [`stmt_ctx`](Context::stmt_ctx)
+/// This struct should only be obtained through [`stmt_ctx`](Context::stmt_ctx)
 /// and only one of these may be active at any time per context.
 #[derive(Debug)]
 pub struct StmtContext {
-    /// A arena of high level expressions which can be lowered trough a
+    /// A arena of high level expressions which can be lowered through a
     /// [`Context`](Context) to naga's [`Expression`](crate::Expression)s
     pub hir_exprs: Arena<HirExpr>,
 }

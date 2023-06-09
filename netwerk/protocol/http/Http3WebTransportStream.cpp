@@ -164,7 +164,10 @@ NS_IMETHODIMP Http3WebTransportStream::OnInputStreamReady(
       ("Http3WebTransportStream::OnInputStreamReady [this=%p stream=%p "
        "state=%d]",
        this, aStream, mSendState));
-  MOZ_ASSERT(mSendState == WAITING_DATA);
+  if (mSendState == SEND_DONE) {
+    // already closed
+    return NS_OK;
+  }
 
   mSendState = SENDING;
   mSession->StreamHasDataToWrite(this);
@@ -269,6 +272,7 @@ nsresult Http3WebTransportStream::OnReadSegment(const char* buf, uint32_t count,
              "error=0x%" PRIx32 ".",
              this, static_cast<uint32_t>(rv)));
         mStreamReadyCallback(Err(rv));
+        mStreamReadyCallback = nullptr;
         break;
       }
 
@@ -283,11 +287,13 @@ nsresult Http3WebTransportStream::OnReadSegment(const char* buf, uint32_t count,
              this, static_cast<uint32_t>(rv)));
         mSendState = SEND_DONE;
         mStreamReadyCallback(Err(rv));
+        mStreamReadyCallback = nullptr;
         break;
       }
 
       // Successfully activated.
       mStreamReadyCallback(RefPtr{this});
+      mStreamReadyCallback = nullptr;
       break;
     case SENDING: {
       rv = mSession->SendRequestBody(mStreamId, buf, count, countRead);
@@ -297,9 +303,20 @@ nsresult Http3WebTransportStream::OnReadSegment(const char* buf, uint32_t count,
            this, static_cast<uint32_t>(rv)));
       mTotalSent += *countRead;
     } break;
-    default:
+    case WAITING_DATA:
+      // Still waiting
+      LOG3((
+          "Http3WebTransportStream::OnReadSegment %p Still waiting for data...",
+          this));
+      break;
+    case SEND_DONE:
+      LOG3(("Http3WebTransportStream::OnReadSegment %p called after SEND_DONE ",
+            this));
       MOZ_ASSERT(false, "We are done sending this request!");
+      MOZ_ASSERT(mStreamReadyCallback);
       rv = NS_ERROR_UNEXPECTED;
+      mStreamReadyCallback(Err(rv));
+      mStreamReadyCallback = nullptr;
       break;
   }
 
@@ -350,6 +367,7 @@ nsresult Http3WebTransportStream::ReadSegments() {
           rv = NS_OK;
           break;
         }
+        mSendState = SENDING;
         rv = mSendStreamPipeIn->ReadSegments(ReadRequestSegment, this,
                                              nsIOService::gDefaultSegmentSize,
                                              &sendBytes);
@@ -382,6 +400,15 @@ nsresult Http3WebTransportStream::ReadSegments() {
         rv = mSendStreamPipeIn->AsyncWait(this, 0, 0, gSocketTransportService);
       }
       again = false;
+
+      // Got a  WebTransport specific error
+      if (rv >= NS_ERROR_WEBTRANSPORT_CODE_BASE &&
+          rv <= NS_ERROR_WEBTRANSPORT_CODE_END) {
+        uint8_t errorCode = GetWebTransportErrorFromNSResult(rv);
+        mSendState = SEND_DONE;
+        Reset(WebTransportErrorToHttp3Error(errorCode));
+        rv = NS_OK;
+      }
     } else if (NS_FAILED(mSocketOutCondition)) {
       if (mSocketOutCondition != NS_BASE_STREAM_WOULD_BLOCK) {
         rv = mSocketOutCondition;
@@ -398,6 +425,8 @@ nsresult Http3WebTransportStream::ReadSegments() {
           task();
         }
       }
+      // Tell the underlying stream we're done
+      SendFin();
     }
 
     // write more to the socket until error or end-of-request...
@@ -410,15 +439,12 @@ nsresult Http3WebTransportStream::OnWriteSegment(char* buf, uint32_t count,
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
 
   LOG(("Http3WebTransportStream::OnWriteSegment [this=%p, state=%d", this,
-       mRecvState));
+       static_cast<uint32_t>(mRecvState)));
   nsresult rv = NS_OK;
   switch (mRecvState) {
     case READING: {
       rv = mSession->ReadResponseData(mStreamId, buf, count, countWritten,
                                       &mFin);
-      if (NS_FAILED(rv)) {
-        break;
-      }
       if (*countWritten == 0) {
         if (mFin) {
           mRecvState = RECV_DONE;
@@ -474,6 +500,10 @@ nsresult Http3WebTransportStream::WritePipeSegment(nsIOutputStream* stream,
 
 nsresult Http3WebTransportStream::WriteSegments() {
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
+  if (!mReceiveStreamPipeOut) {
+    return NS_OK;
+  }
+
   LOG(("Http3WebTransportStream::WriteSegments [this=%p]", this));
 
   nsresult rv = NS_OK;
@@ -486,7 +516,7 @@ nsresult Http3WebTransportStream::WriteSegments() {
     rv = mReceiveStreamPipeOut->WriteSegments(WritePipeSegment, this,
                                               nsIOService::gDefaultSegmentSize,
                                               &countWrittenSingle);
-    LOG(("Http3Stream::WriteSegments rv=0x%" PRIx32
+    LOG(("Http3WebTransportStream::WriteSegments rv=0x%" PRIx32
          " countWrittenSingle=%" PRIu32 " socketin=%" PRIx32 " [this=%p]",
          static_cast<uint32_t>(rv), countWrittenSingle,
          static_cast<uint32_t>(mSocketInCondition), this));
@@ -498,23 +528,38 @@ nsresult Http3WebTransportStream::WriteSegments() {
     } else if (NS_FAILED(mSocketInCondition)) {
       if (mSocketInCondition != NS_BASE_STREAM_WOULD_BLOCK) {
         rv = mSocketInCondition;
+        if (rv == NS_BASE_STREAM_CLOSED) {
+          mReceiveStreamPipeOut->Close();
+          rv = NS_OK;
+        }
       }
       again = false;
     }
     // read more from the socket until error...
   } while (again && gHttpHandler->Active());
 
-  return NS_OK;
+  return rv;
 }
 
 bool Http3WebTransportStream::Done() const {
-  // To be implemented in bug 1790403.
-  return false;
+  return mSendState == SEND_DONE && mRecvState == RECV_DONE;
 }
 
 void Http3WebTransportStream::Close(nsresult aResult) {
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
   LOG(("Http3WebTransportStream::Close [this=%p]", this));
+  mTransaction = nullptr;
+  if (mSendStreamPipeIn) {
+    mSendStreamPipeIn->AsyncWait(nullptr, 0, 0, nullptr);
+    mSendStreamPipeIn->CloseWithStatus(aResult);
+  }
+  if (mReceiveStreamPipeOut) {
+    mReceiveStreamPipeOut->AsyncWait(nullptr, 0, 0, nullptr);
+    mReceiveStreamPipeOut->CloseWithStatus(aResult);
+  }
+  mSendState = SEND_DONE;
+  mRecvState = RECV_DONE;
+  mSession = nullptr;
 }
 
 void Http3WebTransportStream::SendFin() {
@@ -522,7 +567,7 @@ void Http3WebTransportStream::SendFin() {
   LOG(("Http3WebTransportStream::SendFin [this=%p mSendState=%d]", this,
        mSendState));
 
-  if (mSendFin) {
+  if (mSendFin || !mSession || mResetError) {
     // Already closed.
     return;
   }
@@ -549,12 +594,12 @@ void Http3WebTransportStream::SendFin() {
   }
 }
 
-void Http3WebTransportStream::Reset(uint8_t aErrorCode) {
+void Http3WebTransportStream::Reset(uint64_t aErrorCode) {
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
   LOG(("Http3WebTransportStream::Reset [this=%p, mSendState=%d]", this,
        mSendState));
 
-  if (mResetError) {
+  if (mResetError || !mSession || mSendFin) {
     // The stream is already reset.
     return;
   }
@@ -573,6 +618,7 @@ void Http3WebTransportStream::Reset(uint8_t aErrorCode) {
             NS_NewRunnableFunction("Http3WebTransportStream::Reset", [self]() {
               self->mSession->ResetWebTransportStream(self, *self->mResetError);
               self->mSession->StreamHasDataToWrite(self);
+              self->mSession->ConnectSlowConsumer(self);
             }));
       });
     } break;
@@ -583,6 +629,7 @@ void Http3WebTransportStream::Reset(uint8_t aErrorCode) {
       mSession->ResetWebTransportStream(this, *mResetError);
       // StreamHasDataToWrite needs to be called to trigger ProcessOutput.
       mSession->StreamHasDataToWrite(this);
+      mSession->ConnectSlowConsumer(this);
       break;
     default:
       MOZ_ASSERT_UNREACHABLE("invalid mSendState!");
@@ -599,7 +646,7 @@ void Http3WebTransportStream::SendStopSending(uint8_t aErrorCode) {
     return;
   }
 
-  if (mStopSendingError) {
+  if (mStopSendingError || !mSession) {
     return;
   }
 

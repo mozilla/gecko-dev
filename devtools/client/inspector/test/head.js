@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 /* eslint no-unused-vars: [2, {"vars": "local"}] */
-/* import-globals-from ../../shared/test/shared-head.js */
-/* import-globals-from ../../inspector/test/shared-head.js */
+
 "use strict";
 
 // Load the shared-head file first.
@@ -794,39 +793,6 @@ function getHighlighterTestHelpers(inspector) {
   };
 }
 
-// The expand all operation of the markup-view calls itself recursively and
-// there's not one event we can wait for to know when it's done so use this
-// helper function to wait until all recursive children updates are done.
-async function waitForMultipleChildrenUpdates(inspector) {
-  // As long as child updates are queued up while we wait for an update already
-  // wait again
-  if (
-    inspector.markup._queuedChildUpdates &&
-    inspector.markup._queuedChildUpdates.size
-  ) {
-    await waitForChildrenUpdated(inspector);
-    return waitForMultipleChildrenUpdates(inspector);
-  }
-  return null;
-}
-
-/**
- * Using the markupview's _waitForChildren function, wait for all queued
- * children updates to be handled.
- * @param {InspectorPanel} inspector The instance of InspectorPanel currently
- * loaded in the toolbox
- * @return a promise that resolves when all queued children updates have been
- * handled
- */
-function waitForChildrenUpdated({ markup }) {
-  info("Waiting for queued children updates to be handled");
-  return new Promise(resolve => {
-    markup._waitForChildren().then(() => {
-      executeSoon(resolve);
-    });
-  });
-}
-
 /**
  * Wait for the toolbox to emit the styleeditor-selected event and when done
  * wait for the stylesheet identified by href to be loaded in the stylesheet
@@ -1118,15 +1084,6 @@ async function toggleShapesHighlighter(
     );
     await onHighlighterHidden;
   }
-}
-
-/**
- * Expand the provided markup container programatically and  wait for all children to
- * update.
- */
-async function expandContainer(inspector, container) {
-  await inspector.markup.expandNode(container.node);
-  await waitForMultipleChildrenUpdates(inspector);
 }
 
 /**

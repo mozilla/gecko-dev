@@ -725,9 +725,6 @@ PresShell::PresShell(Document* aDocument)
     : mDocument(aDocument),
       mViewManager(nullptr),
       mFrameManager(nullptr),
-#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
-      mAllocatedPointers(MakeUnique<nsTHashSet<void*>>()),
-#endif  // MOZ_DIAGNOSTIC_ASSERT_ENABLED
       mAutoWeakFrames(nullptr),
 #ifdef ACCESSIBILITY
       mDocAccessible(nullptr),
@@ -1849,7 +1846,9 @@ nsresult PresShell::Initialize() {
     NS_ENSURE_STATE(!mHaveShutDown);
   }
 
-  mDocument->TriggerAutoFocus();
+  if (mDocument->HasAutoFocusCandidates()) {
+    mDocument->ScheduleFlushAutoFocusCandidates();
+  }
 
   NS_ASSERTION(rootFrame, "How did that happen?");
 
@@ -1944,6 +1943,13 @@ void PresShell::RefreshZoomConstraintsForScreenSizeChange() {
   if (mZoomConstraintsClient) {
     mZoomConstraintsClient->ScreenSizeChanged();
   }
+}
+
+void PresShell::ForceResizeReflowWithCurrentDimensions() {
+  nscoord currentWidth = 0;
+  nscoord currentHeight = 0;
+  mViewManager->GetWindowDimensions(&currentWidth, &currentHeight);
+  ResizeReflow(currentWidth, currentHeight);
 }
 
 void PresShell::ResizeReflow(nscoord aWidth, nscoord aHeight,
@@ -2155,6 +2161,16 @@ static nsIContent* GetNativeAnonymousSubtreeRoot(nsIContent* aContent) {
 
 void PresShell::NativeAnonymousContentRemoved(nsIContent* aAnonContent) {
   MOZ_ASSERT(aAnonContent->IsRootOfNativeAnonymousSubtree());
+  mPresContext->EventStateManager()->NativeAnonymousContentRemoved(
+      aAnonContent);
+#ifdef ACCESSIBILITY
+  if (nsAccessibilityService* accService = GetAccService()) {
+    accService->ContentRemoved(this, aAnonContent);
+  }
+#endif
+  if (mDocument->DevToolsAnonymousAndShadowEventsEnabled()) {
+    aAnonContent->QueueDevtoolsAnonymousEvent(/* aIsRemove = */ true);
+  }
   if (nsIContent* root = GetNativeAnonymousSubtreeRoot(mCurrentEventContent)) {
     if (aAnonContent == root) {
       mCurrentEventContent = aAnonContent->GetFlattenedTreeParent();
@@ -3040,7 +3056,7 @@ void PresShell::RestyleForAnimation(Element* aElement, RestyleHint aHint) {
   // Now that we no longer have separate non-animation and animation
   // restyles, this method having a distinct identity is less important,
   // but it still seems useful to offer as a "more public" API and as a
-  // chokepoint for these restyles to go through.
+  // checkpoint for these restyles to go through.
   mPresContext->RestyleManager()->PostRestyleEvent(aElement, aHint,
                                                    nsChangeHint(0));
 }
@@ -3073,20 +3089,17 @@ void PresShell::ClearFrameRefs(nsIFrame* aFrame) {
   }
 }
 
-already_AddRefed<gfxContext> PresShell::CreateReferenceRenderingContext() {
-  nsDeviceContext* devCtx = mPresContext->DeviceContext();
-  RefPtr<gfxContext> rc;
+UniquePtr<gfxContext> PresShell::CreateReferenceRenderingContext() {
   if (mPresContext->IsScreen()) {
-    rc = gfxContext::CreateOrNull(
+    return gfxContext::CreateOrNull(
         gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget().get());
-  } else {
-    // We assume the devCtx has positive width and height for this call.
-    // However, width and height, may be outside of the reasonable range
-    // so rc may still be null.
-    rc = devCtx->CreateReferenceRenderingContext();
   }
 
-  return rc ? rc.forget() : nullptr;
+  // We assume the devCtx has positive width and height for this call.
+  // However, width and height, may be outside of the reasonable range
+  // so rc may still be null.
+  nsDeviceContext* devCtx = mPresContext->DeviceContext();
+  return devCtx->CreateReferenceRenderingContext();
 }
 
 // https://html.spec.whatwg.org/#scroll-to-the-fragment-identifier
@@ -3128,52 +3141,8 @@ nsresult PresShell::GoToAnchor(const nsAString& aAnchorName, bool aScroll,
   //
   // https://html.spec.whatwg.org/#target-element
   // https://html.spec.whatwg.org/#find-a-potential-indicated-element
-  RefPtr<Element> target = [&]() -> Element* {
-    // 1. If there is an element in the document tree that has an ID equal to
-    //    fragment, then return the first such element in tree order.
-    if (Element* el = mDocument->GetElementById(aAnchorName)) {
-      return el;
-    }
-
-    // 2. If there is an a element in the document tree that has a name
-    // attribute whose value is equal to fragment, then return the first such
-    // element in tree order.
-    //
-    // FIXME(emilio): Why the different code-paths for HTML and non-HTML docs?
-    if (mDocument->IsHTMLDocument()) {
-      nsCOMPtr<nsINodeList> list = mDocument->GetElementsByName(aAnchorName);
-      // Loop through the named nodes looking for the first anchor
-      uint32_t length = list->Length();
-      for (uint32_t i = 0; i < length; i++) {
-        nsIContent* node = list->Item(i);
-        if (node->IsHTMLElement(nsGkAtoms::a)) {
-          return node->AsElement();
-        }
-      }
-    } else {
-      constexpr auto nameSpace = u"http://www.w3.org/1999/xhtml"_ns;
-      // Get the list of anchor elements
-      nsCOMPtr<nsINodeList> list =
-          mDocument->GetElementsByTagNameNS(nameSpace, u"a"_ns);
-      // Loop through the anchors looking for the first one with the given name.
-      for (uint32_t i = 0; true; i++) {
-        nsIContent* node = list->Item(i);
-        if (!node) {  // End of list
-          break;
-        }
-
-        // Compare the name attribute
-        if (node->IsElement() &&
-            node->AsElement()->AttrValueIs(kNameSpaceID_None, nsGkAtoms::name,
-                                           aAnchorName, eCaseMatters)) {
-          return node->AsElement();
-        }
-      }
-    }
-
-    // 3. Return null.
-    return nullptr;
-  }();
+  RefPtr<Element> target =
+      nsContentUtils::GetTargetElement(mDocument, aAnchorName);
 
   // 1. If there is no indicated part of the document, set the Document's
   //    target element to null.
@@ -3273,8 +3242,7 @@ nsresult PresShell::GoToAnchor(const nsAString& aAnchorName, bool aScroll,
     }
 
     // If the target is an animation element, activate the animation
-    if (nsCOMPtr<SVGAnimationElement> animationElement =
-            do_QueryInterface(target)) {
+    if (auto* animationElement = SVGAnimationElement::FromNode(target.get())) {
       animationElement->ActivateByHyperlink();
     }
 
@@ -3557,10 +3525,17 @@ static void ScrollToShowRect(nsIScrollableFrame* aFrameAsScrollable,
   }
 
   ScrollMode scrollMode = ScrollMode::Instant;
-  bool autoBehaviorIsSmooth = aFrameAsScrollable->IsSmoothScroll();
-  bool smoothScroll =
-      (aScrollFlags & ScrollFlags::ScrollSmooth) ||
-      ((aScrollFlags & ScrollFlags::ScrollSmoothAuto) && autoBehaviorIsSmooth);
+  // Default to an instant scroll, but if the scroll behavior given is "auto"
+  // or "smooth", use that as the specified behavior. If the user has disabled
+  // smooth scrolls, a given mode of "auto" or "smooth" should not result in
+  // a smooth scroll.
+  ScrollBehavior behavior = ScrollBehavior::Instant;
+  if (aScrollFlags & ScrollFlags::ScrollSmooth) {
+    behavior = ScrollBehavior::Smooth;
+  } else if (aScrollFlags & ScrollFlags::ScrollSmoothAuto) {
+    behavior = ScrollBehavior::Auto;
+  }
+  bool smoothScroll = aFrameAsScrollable->IsSmoothScroll(behavior);
   if (smoothScroll) {
     scrollMode = ScrollMode::SmoothMsd;
   }
@@ -5158,8 +5133,7 @@ already_AddRefed<SourceSurface> PresShell::PaintRangePaintInfo(
     return nullptr;
   }
 
-  RefPtr<gfxContext> ctx = gfxContext::CreateOrNull(dt);
-  MOZ_ASSERT(ctx);  // already checked the draw target above
+  gfxContext ctx(dt);
 
   if (aRegion) {
     RefPtr<PathBuilder> builder = dt->CreatePathBuilder(FillRule::FILL_WINDING);
@@ -5178,10 +5152,10 @@ already_AddRefed<SourceSurface> PresShell::PaintRangePaintInfo(
     }
 
     RefPtr<Path> path = builder->Finish();
-    ctx->Clip(path);
+    ctx.Clip(path);
   }
 
-  gfxMatrix initialTM = ctx->CurrentMatrixDouble();
+  gfxMatrix initialTM = ctx.CurrentMatrixDouble();
 
   if (resize) {
     initialTM.PreScale(scale, scale);
@@ -5210,10 +5184,10 @@ already_AddRefed<SourceSurface> PresShell::PaintRangePaintInfo(
     // frame, so account for that translation too:
     gfxPoint rootOffset = nsLayoutUtils::PointToGfxPoint(
         rangeInfo->mRootOffset, pc->AppUnitsPerDevPixel());
-    ctx->SetMatrixDouble(initialTM.PreTranslate(rootOffset));
+    ctx.SetMatrixDouble(initialTM.PreTranslate(rootOffset));
     aArea.MoveBy(-rangeInfo->mRootOffset.x, -rangeInfo->mRootOffset.y);
     nsRegion visible(aArea);
-    rangeInfo->mList.PaintRoot(&rangeInfo->mBuilder, ctx,
+    rangeInfo->mList.PaintRoot(&rangeInfo->mBuilder, &ctx,
                                nsDisplayList::PAINT_DEFAULT, Nothing());
     aArea.MoveBy(rangeInfo->mRootOffset.x, rangeInfo->mRootOffset.y);
   }
@@ -5505,8 +5479,9 @@ PresShell::CanvasBackground PresShell::ComputeCanvasBackground() const {
 
 nscolor PresShell::ComputeBackstopColor(nsView* aDisplayRoot) {
   nsIWidget* widget = aDisplayRoot->GetWidget();
-  if (widget && (widget->GetTransparencyMode() != eTransparencyOpaque ||
-                 widget->WidgetPaintsBackground())) {
+  if (widget &&
+      (widget->GetTransparencyMode() != widget::TransparencyMode::Opaque ||
+       widget->WidgetPaintsBackground())) {
     // Within a transparent widget, so the backstop color must be
     // totally transparent.
     return NS_RGBA(0, 0, 0, 0);
@@ -5677,7 +5652,7 @@ static nsView* FindViewContaining(nsView* aRelativeToView,
                                   nsView* aView, nsPoint aPt) {
   MOZ_ASSERT(aRelativeToView->GetFrame());
 
-  if (aView->GetVisibility() == nsViewVisibility_kHide) {
+  if (aView->GetVisibility() == ViewVisibility::Hide) {
     return nullptr;
   }
 
@@ -6007,7 +5982,7 @@ void PresShell::MarkFramesInSubtreeApproximatelyVisible(
       // We can properly set the base rect for root scroll frames on top level
       // and root content documents. Otherwise the base rect we compute might
       // be way too big without the limiting that
-      // ScrollFrameHelper::DecideScrollableLayer does, so we just ignore the
+      // nsHTMLScrollFrame::DecideScrollableLayer does, so we just ignore the
       // displayport in that case.
       nsPresContext* pc = aFrame->PresContext();
       if (scrollFrame->IsRootScrollFrameOfDocument() &&
@@ -6359,7 +6334,8 @@ void PresShell::PaintInternal(nsView* aViewToPaint, PaintInternalFlags aFlags) {
     uri = contentRoot->GetDocumentURI();
   }
   url = uri ? uri->GetSpecOrDefault() : "N/A"_ns;
-  AUTO_PROFILER_LABEL_DYNAMIC_NSCSTRING_RELEVANT_FOR_JS("Paint", GRAPHICS, url);
+  AUTO_PROFILER_LABEL_DYNAMIC_NSCSTRING_RELEVANT_FOR_JS(
+      "Paint", GRAPHICS, Substring(url, std::min(size_t(128), url.Length())));
 
   Maybe<js::AutoAssertNoContentJS> nojs;
 
@@ -7131,6 +7107,11 @@ nsresult PresShell::EventHandler::HandleEventUsingCoordinates(
       NS_WARN_IF(!eventTargetData.mFrame)) {
     return NS_OK;
   }
+
+  // Wheel events only apply to elements. If this is a wheel event, attempt to
+  // update the event target from the current wheel transaction before we
+  // compute the element from the target frame.
+  eventTargetData.UpdateWheelEventTarget(aGUIEvent);
 
   if (!eventTargetData.ComputeElementFromFrame(aGUIEvent)) {
     return NS_OK;
@@ -8633,7 +8614,8 @@ nsresult PresShell::EventHandler::DispatchEventToDOM(
     }
   }
   if (eventTarget) {
-    if (aEvent->IsBlockedForFingerprintingResistance()) {
+    if (eventTarget->OwnerDoc()->ShouldResistFingerprinting() &&
+        aEvent->IsBlockedForFingerprintingResistance()) {
       aEvent->mFlags.mOnlySystemGroupDispatchInContent = true;
     } else if (aEvent->mMessage == eKeyPress) {
       // If eKeyPress event is marked as not dispatched in the default event
@@ -8851,7 +8833,7 @@ bool PresShell::EventHandler::AdjustContextMenuKeyEvent(
   // if a menu is open, open the context menu relative to the active item on the
   // menu.
   if (nsXULPopupManager* pm = nsXULPopupManager::GetInstance()) {
-    nsIFrame* popupFrame = pm->GetTopPopup(ePopupTypeMenu);
+    nsIFrame* popupFrame = pm->GetTopPopup(widget::PopupType::Menu);
     if (popupFrame) {
       nsIFrame* itemFrame = (static_cast<nsMenuPopupFrame*>(popupFrame))
                                 ->GetCurrentMenuItemFrame();
@@ -9552,8 +9534,8 @@ bool PresShell::DoReflow(nsIFrame* target, bool aInterruptible,
     innerWindowID = Some(window->WindowID());
   }
   AutoProfilerTracing tracingLayoutFlush(
-      "Paint", "Reflow", geckoprofiler::category::LAYOUT,
-      std::move(mReflowCause), innerWindowID);
+      "Paint", aInterruptible ? "Reflow (interruptible)" : "Reflow (sync)",
+      geckoprofiler::category::LAYOUT, std::move(mReflowCause), innerWindowID);
   mReflowCause = nullptr;
 
   FlushPendingScrollAnchorSelections();
@@ -9570,7 +9552,7 @@ bool PresShell::DoReflow(nsIFrame* target, bool aInterruptible,
              "non-root frames");
 
   // CreateReferenceRenderingContext can return nullptr
-  RefPtr<gfxContext> rcx(CreateReferenceRenderingContext());
+  UniquePtr<gfxContext> rcx(CreateReferenceRenderingContext());
 
 #ifdef DEBUG
   mCurrentReflowRoot = target;
@@ -9598,7 +9580,7 @@ bool PresShell::DoReflow(nsIFrame* target, bool aInterruptible,
   // Don't pass size directly to the reflow input, since a
   // constrained height implies page/column breaking.
   LogicalSize reflowSize(wm, size.ISize(wm), NS_UNCONSTRAINEDSIZE);
-  ReflowInput reflowInput(mPresContext, target, rcx, reflowSize,
+  ReflowInput reflowInput(mPresContext, target, rcx.get(), reflowSize,
                           ReflowInput::InitFlag::CallerWillInit);
   reflowInput.mOrthogonalLimit = size.BSize(wm);
 
@@ -9666,16 +9648,17 @@ bool PresShell::DoReflow(nsIFrame* target, bool aInterruptible,
 
   target->SetSize(boundsRelativeToTarget.Size());
 
-  // Always use boundsRelativeToTarget here, not
-  // desiredSize.InkOverflowRect(), because for root frames (where they
-  // could be different, since root frames are allowed to have overflow) the
-  // root view bounds need to match the viewport bounds; the view manager
-  // "window dimensions" code depends on it.
-  nsContainerFrame::SyncFrameViewAfterReflow(
-      mPresContext, target, target->GetView(), boundsRelativeToTarget);
-  nsContainerFrame::SyncWindowProperties(mPresContext, target,
-                                         target->GetView(), rcx,
-                                         nsContainerFrame::SET_ASYNC);
+  // Always use boundsRelativeToTarget here, not desiredSize.InkOverflowRect(),
+  // because for root frames (where they could be different, since root frames
+  // are allowed to have overflow) the root view bounds need to match the
+  // viewport bounds; the view manager "window dimensions" code depends on it.
+  if (target->HasView()) {
+    nsContainerFrame::SyncFrameViewAfterReflow(
+        mPresContext, target, target->GetView(), boundsRelativeToTarget);
+    if (target->IsViewportFrame()) {
+      SyncWindowProperties(/* aSync = */ false);
+    }
+  }
 
   target->DidReflow(mPresContext, nullptr);
   if (target->IsInScrollAnchorChain()) {
@@ -11066,15 +11049,8 @@ void PresShell::MaybeRecreateMobileViewportManager(bool aAfterInitialization) {
                             ResolutionChangeOrigin::MainThreadRestore);
 
     if (aAfterInitialization) {
-      // Force a reflow to our correct size by going back to the docShell
-      // and asking it to reassert its size. This is necessary because
-      // everything underneath the docShell, like the ViewManager, has been
-      // altered by the MobileViewportManager in an irreversible way.
-      nsDocShell* docShell =
-          static_cast<nsDocShell*>(GetPresContext()->GetDocShell());
-      int32_t width, height;
-      docShell->GetSize(&width, &height);
-      docShell->SetSize(width, height, false);
+      // Force a reflow to our correct view manager size.
+      ForceResizeReflowWithCurrentDimensions();
     }
   }
 
@@ -11518,13 +11494,108 @@ bool PresShell::DetermineFontSizeInflationState() {
   return true;
 }
 
-void PresShell::SyncWindowProperties(nsView* aView) {
-  nsIFrame* frame = aView->GetFrame();
-  if (frame && mPresContext) {
-    // CreateReferenceRenderingContext can return nullptr
-    RefPtr<gfxContext> rcx(CreateReferenceRenderingContext());
-    nsContainerFrame::SyncWindowProperties(mPresContext, frame, aView, rcx, 0);
+static nsIWidget* GetPresContextContainerWidget(nsPresContext* aPresContext) {
+  nsCOMPtr<nsISupports> container = aPresContext->Document()->GetContainer();
+  nsCOMPtr<nsIBaseWindow> baseWindow = do_QueryInterface(container);
+  if (!baseWindow) {
+    return nullptr;
   }
+
+  nsCOMPtr<nsIWidget> mainWidget;
+  baseWindow->GetMainWidget(getter_AddRefs(mainWidget));
+  return mainWidget;
+}
+
+static bool IsTopLevelWidget(nsIWidget* aWidget) {
+  using WindowType = mozilla::widget::WindowType;
+
+  auto windowType = aWidget->GetWindowType();
+  return windowType == WindowType::TopLevel ||
+         windowType == WindowType::Dialog || windowType == WindowType::Popup ||
+         windowType == WindowType::Sheet;
+}
+
+PresShell::WindowSizeConstraints PresShell::GetWindowSizeConstraints() {
+  nsSize minSize(0, 0);
+  nsSize maxSize(NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
+  nsIFrame* rootFrame = FrameConstructor()->GetRootElementStyleFrame();
+  if (!rootFrame || !mPresContext) {
+    return {minSize, maxSize};
+  }
+  const auto* pos = rootFrame->StylePosition();
+  if (pos->mMinWidth.ConvertsToLength()) {
+    minSize.width = pos->mMinWidth.ToLength();
+  }
+  if (pos->mMinHeight.ConvertsToLength()) {
+    minSize.height = pos->mMinHeight.ToLength();
+  }
+  if (pos->mMaxWidth.ConvertsToLength()) {
+    maxSize.width = pos->mMaxWidth.ToLength();
+  }
+  if (pos->mMaxHeight.ConvertsToLength()) {
+    maxSize.height = pos->mMaxHeight.ToLength();
+  }
+  return {minSize, maxSize};
+}
+
+void PresShell::SyncWindowProperties(bool aSync) {
+  nsView* view = mViewManager->GetRootView();
+  if (!view || !view->HasWidget()) {
+    return;
+  }
+  RefPtr pc = mPresContext;
+  if (!pc) {
+    return;
+  }
+
+  nsCOMPtr<nsIWidget> windowWidget = GetPresContextContainerWidget(pc);
+  if (!windowWidget || !IsTopLevelWidget(windowWidget)) {
+    return;
+  }
+
+  nsIFrame* rootFrame = FrameConstructor()->GetRootElementStyleFrame();
+  if (!rootFrame) {
+    return;
+  }
+
+  if (!aSync) {
+    view->SetNeedsWindowPropertiesSync();
+    return;
+  }
+
+  AutoWeakFrame weak(rootFrame);
+  if (!GetRootScrollFrame()) {
+    // Scrollframes use native widgets which don't work well with
+    // translucent windows, at least in Windows XP. So if the document
+    // has a root scrollrame it's useless to try to make it transparent,
+    // we'll just get something broken.
+    // We can change this to allow translucent toplevel HTML documents
+    // (e.g. to do something like Dashboard widgets), once we
+    // have broad support for translucent scrolled documents, but be
+    // careful because apparently some Firefox extensions expect
+    // openDialog("something.html") to produce an opaque window
+    // even if the HTML doesn't have a background-color set.
+    auto* canvas = GetCanvasFrame();
+    widget::TransparencyMode mode = nsLayoutUtils::GetFrameTransparency(
+        canvas ? canvas : rootFrame, rootFrame);
+    StyleWindowShadow shadow = rootFrame->StyleUIReset()->mWindowShadow;
+    nsCOMPtr<nsIWidget> viewWidget = view->GetWidget();
+    viewWidget->SetTransparencyMode(mode);
+    windowWidget->SetWindowShadowStyle(shadow);
+
+    // For macOS, apply color scheme overrides to the top level window widget.
+    if (auto scheme = pc->GetOverriddenOrEmbedderColorScheme()) {
+      windowWidget->SetColorScheme(scheme);
+    }
+  }
+
+  if (!weak.IsAlive()) {
+    return;
+  }
+
+  const auto& constraints = GetWindowSizeConstraints();
+  nsContainerFrame::SetSizeConstraints(pc, windowWidget, constraints.mMinSize,
+                                       constraints.mMaxSize);
 }
 
 nsresult PresShell::HasRuleProcessorUsedByMultipleStyleSets(uint32_t aSheetType,
@@ -11744,6 +11815,34 @@ bool PresShell::EventHandler::EventTargetData::ComputeElementFromFrame(
 
   // If we found an element, target it.  Otherwise, target *nothing*.
   return !!mContent;
+}
+
+void PresShell::EventHandler::EventTargetData::UpdateWheelEventTarget(
+    WidgetGUIEvent* aGUIEvent) {
+  MOZ_ASSERT(aGUIEvent);
+
+  if (aGUIEvent->mMessage != eWheel) {
+    return;
+  }
+
+  // If dom.event.wheel-event-groups.enabled is not set or the stored
+  // event target is removed, we will not get a event target frame from the
+  // wheel transaction here.
+  nsIFrame* groupFrame = WheelTransaction::GetEventTargetFrame();
+  if (!groupFrame) {
+    return;
+  }
+
+  // If the browsing context is no longer the same as the context of the
+  // current wheel transaction, do not override the event target.
+  if (!groupFrame->PresContext() || !groupFrame->PresShell() ||
+      groupFrame->PresContext() != GetPresContext()) {
+    return;
+  }
+
+  // If dom.event.wheel-event-groups.enabled is set and whe have a stored
+  // event target from the wheel transaction, override the event target.
+  SetFrameAndComputePresShellAndContent(groupFrame, aGUIEvent);
 }
 
 void PresShell::EventHandler::EventTargetData::UpdateTouchEventTarget(

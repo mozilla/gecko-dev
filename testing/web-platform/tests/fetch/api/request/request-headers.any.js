@@ -9,6 +9,7 @@ var validRequestHeaders = [
   ["sec", "OK"],
   ["secb", "OK"],
   ["Set-Cookie2", "OK"],
+  ["User-Agent", "OK"],
 ];
 var invalidRequestHeaders = [
   ["Accept-Charset", "KO"],
@@ -59,6 +60,7 @@ var invalidRequestNoCorsHeaders = [
   ["proxya", "KO"],
   ["sec", "KO"],
   ["secb", "KO"],
+  ["Empty-Value", ""],
 ];
 
 validRequestHeaders.forEach(function(header) {

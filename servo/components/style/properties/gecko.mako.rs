@@ -39,8 +39,7 @@ use servo_arc::{Arc, RawOffsetArc, UniqueArc};
 use std::mem::{forget, MaybeUninit};
 use std::{cmp, ops, ptr};
 use crate::values::{self, CustomIdent, KeyframesName};
-use crate::values::computed::{Percentage, TransitionProperty};
-use crate::values::computed::BorderStyle;
+use crate::values::computed::{BorderStyle, Percentage, Time, TransitionProperty};
 use crate::values::computed::font::FontSize;
 use crate::values::generics::column::ColumnCount;
 
@@ -838,12 +837,11 @@ fn static_assert() {
 </%self:impl_trait>
 
 <% skip_font_longhands = """font-family font-size font-size-adjust font-weight
-                            font-style font-stretch font-synthesis -x-lang
+                            font-style font-stretch -x-lang
                             font-variant-alternates font-variant-east-asian
                             font-variant-ligatures font-variant-numeric
                             font-language-override font-feature-settings
-                            font-variation-settings -moz-min-font-size-ratio
-                            -x-text-zoom""" %>
+                            font-variation-settings -moz-min-font-size-ratio""" %>
 <%self:impl_trait style_struct_name="Font"
     skip_longhands="${skip_font_longhands}">
 
@@ -910,8 +908,6 @@ fn static_assert() {
     ${impl_simple('font_stretch', 'mFont.stretch')}
     ${impl_simple('font_style', 'mFont.style')}
 
-    ${impl_simple_type_with_conversion("font_synthesis", "mFont.synthesis")}
-
     ${impl_simple("font_variant_alternates", "mFont.variantAlternates")}
 
     ${impl_simple("font_size_adjust", "mFont.sizeAdjust")}
@@ -946,27 +942,8 @@ fn static_assert() {
         })
     }
 
-    #[allow(non_snake_case)]
-    pub fn set__x_text_zoom(&mut self, v: longhands::_x_text_zoom::computed_value::T) {
-        self.gecko.mAllowZoomAndMinSize = v.0;
-    }
 
-    #[allow(non_snake_case)]
-    pub fn copy__x_text_zoom_from(&mut self, other: &Self) {
-        self.gecko.mAllowZoomAndMinSize = other.gecko.mAllowZoomAndMinSize;
-    }
-
-    #[allow(non_snake_case)]
-    pub fn reset__x_text_zoom(&mut self, other: &Self) {
-        self.copy__x_text_zoom_from(other)
-    }
-
-    #[allow(non_snake_case)]
-    pub fn clone__x_text_zoom(&self) -> longhands::_x_text_zoom::computed_value::T {
-        longhands::_x_text_zoom::computed_value::T(self.gecko.mAllowZoomAndMinSize)
-    }
-
-    <% impl_simple_type_with_conversion("font_language_override", "mFont.languageOverride") %>
+    ${impl_simple_type_with_conversion("font_language_override", "mFont.languageOverride")}
     ${impl_simple_type_with_conversion("font_variant_ligatures", "mFont.variantLigatures")}
     ${impl_simple_type_with_conversion("font_variant_east_asian", "mFont.variantEastAsian")}
     ${impl_simple_type_with_conversion("font_variant_numeric", "mFont.variantNumeric")}
@@ -995,111 +972,67 @@ fn static_assert() {
     ${impl_simple_copy('_moz_min_font_size_ratio', 'mMinFontSizeRatio')}
 </%self:impl_trait>
 
-<%def name="impl_copy_animation_or_transition_value(type, ident, gecko_ffi_name)">
+<%def name="impl_coordinated_property_copy(type, ident, gecko_ffi_name)">
     #[allow(non_snake_case)]
     pub fn copy_${type}_${ident}_from(&mut self, other: &Self) {
-        self.gecko.m${type.capitalize()}s.ensure_len(other.gecko.m${type.capitalize()}s.len());
+        self.gecko.m${to_camel_case(type)}s.ensure_len(other.gecko.m${to_camel_case(type)}s.len());
 
-        let count = other.gecko.m${type.capitalize()}${gecko_ffi_name}Count;
-        self.gecko.m${type.capitalize()}${gecko_ffi_name}Count = count;
+        let count = other.gecko.m${to_camel_case(type)}${gecko_ffi_name}Count;
+        self.gecko.m${to_camel_case(type)}${gecko_ffi_name}Count = count;
 
-        let iter = self.gecko.m${type.capitalize()}s.iter_mut().take(count as usize).zip(
-            other.gecko.m${type.capitalize()}s.iter()
+        let iter = self.gecko.m${to_camel_case(type)}s.iter_mut().take(count as usize).zip(
+            other.gecko.m${to_camel_case(type)}s.iter()
         );
 
         for (ours, others) in iter {
             ours.m${gecko_ffi_name} = others.m${gecko_ffi_name}.clone();
         }
     }
-
     #[allow(non_snake_case)]
     pub fn reset_${type}_${ident}(&mut self, other: &Self) {
         self.copy_${type}_${ident}_from(other)
     }
 </%def>
 
-<%def name="impl_animation_or_transition_count(type, ident, gecko_ffi_name)">
+<%def name="impl_coordinated_property_count(type, ident, gecko_ffi_name)">
     #[allow(non_snake_case)]
     pub fn ${type}_${ident}_count(&self) -> usize {
-        self.gecko.m${type.capitalize()}${gecko_ffi_name}Count as usize
+        self.gecko.m${to_camel_case(type)}${gecko_ffi_name}Count as usize
     }
 </%def>
 
-<%def name="impl_animation_or_transition_time_value(type, ident, gecko_ffi_name)">
+<%def name="impl_coordinated_property(type, ident, gecko_ffi_name)">
     #[allow(non_snake_case)]
     pub fn set_${type}_${ident}<I>(&mut self, v: I)
-        where I: IntoIterator<Item = longhands::${type}_${ident}::computed_value::single_value::T>,
-              I::IntoIter: ExactSizeIterator + Clone
+    where
+        I: IntoIterator<Item = longhands::${type}_${ident}::computed_value::single_value::T>,
+        I::IntoIter: ExactSizeIterator + Clone
     {
         let v = v.into_iter();
         debug_assert_ne!(v.len(), 0);
         let input_len = v.len();
-        self.gecko.m${type.capitalize()}s.ensure_len(input_len);
+        self.gecko.m${to_camel_case(type)}s.ensure_len(input_len);
 
-        self.gecko.m${type.capitalize()}${gecko_ffi_name}Count = input_len as u32;
-        for (gecko, servo) in self.gecko.m${type.capitalize()}s.iter_mut().take(input_len as usize).zip(v) {
-            gecko.m${gecko_ffi_name} = servo.seconds() * 1000.;
+        self.gecko.m${to_camel_case(type)}${gecko_ffi_name}Count = input_len as u32;
+        for (gecko, servo) in self.gecko.m${to_camel_case(type)}s.iter_mut().take(input_len as usize).zip(v) {
+            gecko.m${gecko_ffi_name} = servo;
         }
     }
     #[allow(non_snake_case)]
     pub fn ${type}_${ident}_at(&self, index: usize)
         -> longhands::${type}_${ident}::computed_value::SingleComputedValue {
-        use crate::values::computed::Time;
-        Time::from_seconds(self.gecko.m${type.capitalize()}s[index].m${gecko_ffi_name} / 1000.)
+        self.gecko.m${to_camel_case(type)}s[index % self.${type}_${ident}_count()].m${gecko_ffi_name}.clone()
     }
-    ${impl_animation_or_transition_count(type, ident, gecko_ffi_name)}
-    ${impl_copy_animation_or_transition_value(type, ident, gecko_ffi_name)}
-</%def>
-
-<%def name="impl_animation_or_transition_timing_function(type)">
-    pub fn set_${type}_timing_function<I>(&mut self, v: I)
-        where I: IntoIterator<Item = longhands::${type}_timing_function::computed_value::single_value::T>,
-              I::IntoIter: ExactSizeIterator + Clone
-    {
-        let v = v.into_iter();
-        debug_assert_ne!(v.len(), 0);
-        let input_len = v.len();
-        self.gecko.m${type.capitalize()}s.ensure_len(input_len);
-
-        self.gecko.m${type.capitalize()}TimingFunctionCount = input_len as u32;
-        for (gecko, servo) in self.gecko.m${type.capitalize()}s.iter_mut().take(input_len as usize).zip(v) {
-            gecko.mTimingFunction = servo;
-        }
-    }
-    ${impl_animation_or_transition_count(type, 'timing_function', 'TimingFunction')}
-    ${impl_copy_animation_or_transition_value(type, 'timing_function', "TimingFunction")}
-    pub fn ${type}_timing_function_at(&self, index: usize)
-        -> longhands::${type}_timing_function::computed_value::SingleComputedValue {
-        self.gecko.m${type.capitalize()}s[index].mTimingFunction.clone()
-    }
-</%def>
-
-<%def name="impl_transition_time_value(ident, gecko_ffi_name)">
-    ${impl_animation_or_transition_time_value('transition', ident, gecko_ffi_name)}
-</%def>
-
-<%def name="impl_transition_count(ident, gecko_ffi_name)">
-    ${impl_animation_or_transition_count('transition', ident, gecko_ffi_name)}
-</%def>
-
-<%def name="impl_copy_animation_value(ident, gecko_ffi_name)">
-    ${impl_copy_animation_or_transition_value('animation', ident, gecko_ffi_name)}
-</%def>
-
-
-<%def name="impl_animation_count(ident, gecko_ffi_name)">
-    ${impl_animation_or_transition_count('animation', ident, gecko_ffi_name)}
-</%def>
-
-<%def name="impl_animation_time_value(ident, gecko_ffi_name)">
-    ${impl_animation_or_transition_time_value('animation', ident, gecko_ffi_name)}
+    ${impl_coordinated_property_copy(type, ident, gecko_ffi_name)}
+    ${impl_coordinated_property_count(type, ident, gecko_ffi_name)}
 </%def>
 
 <%def name="impl_animation_keyword(ident, gecko_ffi_name, keyword, cast_type='u8')">
     #[allow(non_snake_case)]
     pub fn set_animation_${ident}<I>(&mut self, v: I)
-        where I: IntoIterator<Item = longhands::animation_${ident}::computed_value::single_value::T>,
-              I::IntoIter: ExactSizeIterator + Clone
+    where
+        I: IntoIterator<Item = longhands::animation_${ident}::computed_value::single_value::T>,
+        I::IntoIter: ExactSizeIterator + Clone
     {
         use crate::properties::longhands::animation_${ident}::single_value::computed_value::T as Keyword;
 
@@ -1134,8 +1067,8 @@ fn static_assert() {
             % endif
         }
     }
-    ${impl_animation_count(ident, gecko_ffi_name)}
-    ${impl_copy_animation_value(ident, gecko_ffi_name)}
+    ${impl_coordinated_property_copy('animation', ident, gecko_ffi_name)}
+    ${impl_coordinated_property_count('animation', ident, gecko_ffi_name)}
 </%def>
 
 <% skip_box_longhands= """display contain""" %>
@@ -1765,22 +1698,27 @@ mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-
                           animation-play-state animation-iteration-count
                           animation-timing-function animation-composition animation-timeline
                           transition-duration transition-delay
-                          transition-timing-function transition-property""" %>
+                          transition-timing-function transition-property
+                          scroll-timeline-name scroll-timeline-axis
+                          view-timeline-name view-timeline-axis view-timeline-inset""" %>
 
 <%self:impl_trait style_struct_name="UI" skip_longhands="${skip_ui_longhands}">
-    ${impl_transition_time_value('delay', 'Delay')}
-    ${impl_transition_time_value('duration', 'Duration')}
-    ${impl_animation_or_transition_timing_function('transition')}
+    ${impl_coordinated_property('transition', 'delay', 'Delay')}
+    ${impl_coordinated_property('transition', 'duration', 'Duration')}
+    ${impl_coordinated_property('transition', 'timing_function', 'TimingFunction')}
 
-    pub fn transition_combined_duration_at(&self, index: usize) -> f32 {
+    pub fn transition_combined_duration_at(&self, index: usize) -> Time {
         // https://drafts.csswg.org/css-transitions/#transition-combined-duration
-        self.gecko.mTransitions[index % self.gecko.mTransitionDurationCount as usize].mDuration.max(0.0)
-            + self.gecko.mTransitions[index % self.gecko.mTransitionDelayCount as usize].mDelay
+        Time::from_seconds(
+            self.transition_duration_at(index).seconds().max(0.0) +
+            self.transition_delay_at(index).seconds()
+        )
     }
 
     pub fn set_transition_property<I>(&mut self, v: I)
-        where I: IntoIterator<Item = longhands::transition_property::computed_value::single_value::T>,
-              I::IntoIter: ExactSizeIterator
+    where
+        I: IntoIterator<Item = longhands::transition_property::computed_value::single_value::T>,
+        I::IntoIter: ExactSizeIterator
     {
         use crate::gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_no_properties;
         use crate::gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_variable;
@@ -1818,7 +1756,7 @@ mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-
         use crate::gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_all_properties;
         if self.gecko.mTransitionPropertyCount == 1 &&
             self.gecko.mTransitions[0].mProperty == eCSSPropertyExtra_all_properties &&
-            self.transition_combined_duration_at(0) <= 0.0f32 {
+            self.transition_combined_duration_at(0).seconds() <= 0.0f32 {
             return false;
         }
 
@@ -1884,7 +1822,7 @@ mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-
         self.copy_transition_property_from(other)
     }
 
-    ${impl_transition_count('property', 'Property')}
+    ${impl_coordinated_property_count('transition', 'property', 'Property')}
 
     pub fn animations_equals(&self, other: &Self) -> bool {
         return self.gecko.mAnimationNameCount == other.gecko.mAnimationNameCount
@@ -1901,8 +1839,9 @@ mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-
     }
 
     pub fn set_animation_name<I>(&mut self, v: I)
-        where I: IntoIterator<Item = longhands::animation_name::computed_value::single_value::T>,
-              I::IntoIter: ExactSizeIterator
+    where
+        I: IntoIterator<Item = longhands::animation_name::computed_value::single_value::T>,
+        I::IntoIter: ExactSizeIterator
     {
         let v = v.into_iter();
         debug_assert_ne!(v.len(), 0);
@@ -1930,11 +1869,9 @@ mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-
         self.copy_animation_name_from(other)
     }
 
-    ${impl_animation_count('name', 'Name')}
-
-    ${impl_animation_time_value('delay', 'Delay')}
-    ${impl_animation_time_value('duration', 'Duration')}
-
+    ${impl_coordinated_property_count('animation', 'name', 'Name')}
+    ${impl_coordinated_property('animation', 'delay', 'Delay')}
+    ${impl_coordinated_property('animation', 'duration', 'Duration')}
     ${impl_animation_keyword('direction', 'Direction',
                              data.longhands_by_name["animation-direction"].keyword)}
     ${impl_animation_keyword('fill_mode', 'FillMode',
@@ -1943,68 +1880,39 @@ mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-
                              data.longhands_by_name["animation-play-state"].keyword)}
     ${impl_animation_keyword('composition', 'Composition',
                              data.longhands_by_name["animation-composition"].keyword)}
+    ${impl_coordinated_property('animation', 'iteration_count', 'IterationCount')}
+    ${impl_coordinated_property('animation', 'timeline', 'Timeline')}
+    ${impl_coordinated_property('animation', 'timing_function', 'TimingFunction')}
 
-    pub fn set_animation_iteration_count<I>(&mut self, v: I)
-    where
-        I: IntoIterator<Item = values::computed::AnimationIterationCount>,
-        I::IntoIter: ExactSizeIterator + Clone
-    {
-        use std::f32;
-        use crate::values::generics::box_::AnimationIterationCount;
+    ${impl_coordinated_property('scroll_timeline', 'name', 'Name')}
+    ${impl_coordinated_property('scroll_timeline', 'axis', 'Axis')}
 
-        let v = v.into_iter();
-
-        debug_assert_ne!(v.len(), 0);
-        let input_len = v.len();
-        self.gecko.mAnimations.ensure_len(input_len);
-
-        self.gecko.mAnimationIterationCountCount = input_len as u32;
-        for (gecko, servo) in self.gecko.mAnimations.iter_mut().take(input_len as usize).zip(v) {
-            match servo {
-                AnimationIterationCount::Number(n) => gecko.mIterationCount = n,
-                AnimationIterationCount::Infinite => gecko.mIterationCount = f32::INFINITY,
+    pub fn scroll_timelines_equals(&self, other: &Self) -> bool {
+        self.gecko.mScrollTimelineNameCount == other.gecko.mScrollTimelineNameCount
+            && self.gecko.mScrollTimelineAxisCount == other.gecko.mScrollTimelineAxisCount
+            && unsafe {
+                bindings::Gecko_StyleScrollTimelinesEquals(
+                    &self.gecko.mScrollTimelines,
+                    &other.gecko.mScrollTimelines,
+                )
             }
-        }
     }
 
-    pub fn animation_iteration_count_at(
-        &self,
-        index: usize,
-    ) -> values::computed::AnimationIterationCount {
-        use crate::values::generics::box_::AnimationIterationCount;
+    ${impl_coordinated_property('view_timeline', 'name', 'Name')}
+    ${impl_coordinated_property('view_timeline', 'axis', 'Axis')}
+    ${impl_coordinated_property('view_timeline', 'inset', 'Inset')}
 
-        if self.gecko.mAnimations[index].mIterationCount.is_infinite() {
-            AnimationIterationCount::Infinite
-        } else {
-            AnimationIterationCount::Number(self.gecko.mAnimations[index].mIterationCount)
-        }
+    pub fn view_timelines_equals(&self, other: &Self) -> bool {
+        self.gecko.mViewTimelineNameCount == other.gecko.mViewTimelineNameCount
+            && self.gecko.mViewTimelineAxisCount == other.gecko.mViewTimelineAxisCount
+            && self.gecko.mViewTimelineInsetCount == other.gecko.mViewTimelineInsetCount
+            && unsafe {
+                bindings::Gecko_StyleViewTimelinesEquals(
+                    &self.gecko.mViewTimelines,
+                    &other.gecko.mViewTimelines,
+                )
+            }
     }
-
-    ${impl_animation_count('iteration_count', 'IterationCount')}
-    ${impl_copy_animation_value('iteration_count', 'IterationCount')}
-    ${impl_animation_or_transition_timing_function('animation')}
-
-    pub fn set_animation_timeline<I>(&mut self, v: I)
-    where
-        I: IntoIterator<Item = longhands::animation_timeline::computed_value::single_value::T>,
-        I::IntoIter: ExactSizeIterator
-    {
-        let v = v.into_iter();
-        debug_assert_ne!(v.len(), 0);
-        let input_len = v.len();
-        self.gecko.mAnimations.ensure_len(input_len);
-
-        self.gecko.mAnimationTimelineCount = input_len as u32;
-        for (gecko, servo) in self.gecko.mAnimations.iter_mut().take(input_len as usize).zip(v) {
-            gecko.mTimeline = servo;
-        }
-    }
-    pub fn animation_timeline_at(&self, index: usize) -> values::specified::box_::AnimationTimeline {
-        self.gecko.mAnimations[index].mTimeline.clone()
-    }
-    ${impl_animation_count('timeline', 'Timeline')}
-    ${impl_copy_animation_value('timeline', 'Timeline')}
-
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="XUL">

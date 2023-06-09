@@ -9,7 +9,6 @@ const ALWAYS_DOWNLOAD_DIR_PREF = "browser.download.useDownloadDir";
 const ALWAYS_ASK_PREF = "browser.download.always_ask_before_handling_new_types";
 const UCT_URI = "chrome://mozapps/content/downloads/unknownContentType.xhtml";
 
-/* import-globals-from ../../../../../toolkit/content/tests/browser/common/mockTransfer.js */
 Services.scriptloader.loadSubScript(
   "chrome://mochitests/content/browser/toolkit/content/tests/browser/common/mockTransfer.js",
   this
@@ -44,7 +43,7 @@ function triggerSave(aWindow, aCallback) {
     windowObserver.setCallback(onUCTDialog);
   }
 
-  BrowserTestUtils.loadURI(testBrowser, testURI);
+  BrowserTestUtils.loadURIString(testBrowser, testURI);
 
   // Create the folder the link will be saved into.
   var destDir = createTemporarySaveDirectory();

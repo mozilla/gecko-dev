@@ -20,9 +20,7 @@ add_task(async function() {
   // Make sure titles are correctly saved for a URI with the proper
   // notifications.
   const titleChangedPromise = PlacesTestUtils.waitForNotification(
-    "page-title-changed",
-    () => true,
-    "places"
+    "page-title-changed"
   );
 
   const url1 =
@@ -32,7 +30,7 @@ add_task(async function() {
   const url2 =
     "http://example.com/tests/toolkit/components/places/tests/browser/title2.html";
   let loadPromise = BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
-  BrowserTestUtils.loadURI(gBrowser.selectedBrowser, url2);
+  BrowserTestUtils.loadURIString(gBrowser.selectedBrowser, url2);
   await loadPromise;
 
   const events = await titleChangedPromise;

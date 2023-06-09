@@ -27,6 +27,7 @@
 #include "mozilla/URLPreloader.h"
 #include "mozilla/Unused.h"
 #include "mozilla/ErrorResult.h"
+#include "mozilla/Services.h"
 #include "mozilla/dom/ipc/StructuredCloneData.h"
 
 #include "nsAppDirectoryServiceDefs.h"
@@ -41,6 +42,7 @@
 #include "nsIZipReader.h"
 #include "nsJARProtocolHandler.h"
 #include "nsJSUtils.h"
+#include "nsIObserverService.h"
 #include "nsReadableUtils.h"
 #include "nsXULAppAPI.h"
 
@@ -202,7 +204,7 @@ static_assert(sizeof STRUCTURED_CLONE_MAGIC % 8 == 0,
               "Magic number should be an array of uint64_t");
 
 /**
- * Reads the contents of a LZ4-compressed file, as stored by the OS.File
+ * Reads the contents of a LZ4-compressed file, as stored by the IOUtils
  * module, and returns the decompressed contents on success.
  */
 static Result<nsCString, nsresult> ReadFileLZ4(nsIFile* file) {

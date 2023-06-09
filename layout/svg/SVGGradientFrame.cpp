@@ -344,15 +344,11 @@ SVGGradientFrame* SVGGradientFrame::GetReferencedGradient() {
     this->mNoHRefURI = aHref.IsEmpty();
   };
 
-  nsIFrame* tframe = SVGObserverUtils::GetAndObserveTemplate(this, GetHref);
-  if (tframe) {
-    return static_cast<SVGGradientFrame*>(do_QueryFrame(tframe));
-  }
   // We don't call SVGObserverUtils::RemoveTemplateObserver and set
-  // `mNoHRefURI = false` here since we want to be invalidated if the ID
+  // `mNoHRefURI = false` on failure since we want to be invalidated if the ID
   // specified by our href starts resolving to a different/valid element.
 
-  return nullptr;
+  return do_QueryFrame(SVGObserverUtils::GetAndObserveTemplate(this, GetHref));
 }
 
 void SVGGradientFrame::GetStopFrames(nsTArray<nsIFrame*>* aStopFrames) {
@@ -464,12 +460,10 @@ bool SVGLinearGradientFrame::GradientVectorLengthIsZero() {
 }
 
 already_AddRefed<gfxPattern> SVGLinearGradientFrame::CreateGradient() {
-  float x1, y1, x2, y2;
-
-  x1 = GetLengthValue(dom::SVGLinearGradientElement::ATTR_X1);
-  y1 = GetLengthValue(dom::SVGLinearGradientElement::ATTR_Y1);
-  x2 = GetLengthValue(dom::SVGLinearGradientElement::ATTR_X2);
-  y2 = GetLengthValue(dom::SVGLinearGradientElement::ATTR_Y2);
+  float x1 = GetLengthValue(dom::SVGLinearGradientElement::ATTR_X1);
+  float y1 = GetLengthValue(dom::SVGLinearGradientElement::ATTR_Y1);
+  float x2 = GetLengthValue(dom::SVGLinearGradientElement::ATTR_X2);
+  float y2 = GetLengthValue(dom::SVGLinearGradientElement::ATTR_Y2);
 
   RefPtr<gfxPattern> pattern = new gfxPattern(x1, y1, x2, y2);
   return pattern.forget();
@@ -562,19 +556,24 @@ SVGRadialGradientFrame::GetRadialGradientWithLength(
 }
 
 bool SVGRadialGradientFrame::GradientVectorLengthIsZero() {
-  return GetLengthValue(dom::SVGRadialGradientElement::ATTR_R) == 0;
+  float cx = GetLengthValue(dom::SVGRadialGradientElement::ATTR_CX);
+  float cy = GetLengthValue(dom::SVGRadialGradientElement::ATTR_CY);
+  float r = GetLengthValue(dom::SVGRadialGradientElement::ATTR_R);
+  // If fx or fy are not set, use cx/cy instead
+  float fx = GetLengthValue(dom::SVGRadialGradientElement::ATTR_FX, cx);
+  float fy = GetLengthValue(dom::SVGRadialGradientElement::ATTR_FY, cy);
+  float fr = GetLengthValue(dom::SVGRadialGradientElement::ATTR_FR);
+  return cx == fx && cy == fy && r == fr;
 }
 
 already_AddRefed<gfxPattern> SVGRadialGradientFrame::CreateGradient() {
-  float cx, cy, r, fx, fy, fr;
-
-  cx = GetLengthValue(dom::SVGRadialGradientElement::ATTR_CX);
-  cy = GetLengthValue(dom::SVGRadialGradientElement::ATTR_CY);
-  r = GetLengthValue(dom::SVGRadialGradientElement::ATTR_R);
+  float cx = GetLengthValue(dom::SVGRadialGradientElement::ATTR_CX);
+  float cy = GetLengthValue(dom::SVGRadialGradientElement::ATTR_CY);
+  float r = GetLengthValue(dom::SVGRadialGradientElement::ATTR_R);
   // If fx or fy are not set, use cx/cy instead
-  fx = GetLengthValue(dom::SVGRadialGradientElement::ATTR_FX, cx);
-  fy = GetLengthValue(dom::SVGRadialGradientElement::ATTR_FY, cy);
-  fr = GetLengthValue(dom::SVGRadialGradientElement::ATTR_FR);
+  float fx = GetLengthValue(dom::SVGRadialGradientElement::ATTR_FX, cx);
+  float fy = GetLengthValue(dom::SVGRadialGradientElement::ATTR_FY, cy);
+  float fr = GetLengthValue(dom::SVGRadialGradientElement::ATTR_FR);
 
   RefPtr<gfxPattern> pattern = new gfxPattern(fx, fy, fr, cx, cy, r);
   return pattern.forget();

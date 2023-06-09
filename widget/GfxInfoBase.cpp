@@ -36,6 +36,8 @@
 #include "mozilla/widget/ScreenManager.h"
 #include "mozilla/widget/Screen.h"
 
+#include "jsapi.h"
+
 #include "gfxPlatform.h"
 #include "gfxConfig.h"
 #include "DriverCrashGuard.h"
@@ -673,8 +675,7 @@ static bool BlocklistEntryToDriverInfo(const nsACString& aBlocklistEntry,
       aDriverInfo.mFeature = BlocklistFeatureToGfxFeature(dataValue);
       if (aDriverInfo.mFeature < 0) {
         // If we don't recognize the feature, we do not want to proceed.
-        gfxCriticalErrorOnce(CriticalLog::DefaultOptions(false))
-            << "Unrecognized feature " << value.get();
+        gfxWarning() << "Unrecognized feature " << value.get();
         return false;
       }
     } else if (key.EqualsLiteral("featureStatus")) {
@@ -978,14 +979,8 @@ int32_t GfxInfoBase::FindBlocklistedDeviceInList(
   int32_t status = nsIGfxInfo::FEATURE_STATUS_UNKNOWN;
 
   // Some properties are not available on all platforms.
-  nsAutoString desktopEnvironment;
-  nsresult rv = GetDesktopEnvironment(desktopEnvironment);
-  if (NS_FAILED(rv) && rv != NS_ERROR_NOT_IMPLEMENTED) {
-    return 0;
-  }
-
   nsAutoString windowProtocol;
-  rv = GetWindowProtocol(windowProtocol);
+  nsresult rv = GetWindowProtocol(windowProtocol);
   if (NS_FAILED(rv) && rv != NS_ERROR_NOT_IMPLEMENTED) {
     return 0;
   }
@@ -1254,7 +1249,8 @@ bool GfxInfoBase::DoesDriverVendorMatch(const nsAString& aBlocklistVendor,
 }
 
 bool GfxInfoBase::IsFeatureAllowlisted(int32_t aFeature) const {
-  return aFeature == nsIGfxInfo::FEATURE_HW_DECODED_VIDEO_ZERO_COPY;
+  return aFeature == nsIGfxInfo::FEATURE_VIDEO_OVERLAY ||
+         aFeature == nsIGfxInfo::FEATURE_HW_DECODED_VIDEO_ZERO_COPY;
 }
 
 nsresult GfxInfoBase::GetFeatureStatusImpl(
@@ -1454,9 +1450,9 @@ NS_IMETHODIMP GfxInfoBase::GetFailures(nsTArray<int32_t>& indices,
   LoggingRecord loggedStrings = logForwarder->LoggingRecordCopy();
   LoggingRecord::const_iterator it;
   for (it = loggedStrings.begin(); it != loggedStrings.end(); ++it) {
-    failures.AppendElement(
-        nsDependentCSubstring(Get<1>(*it).c_str(), Get<1>(*it).size()));
-    indices.AppendElement(Get<0>(*it));
+    failures.AppendElement(nsDependentCSubstring(std::get<1>(*it).c_str(),
+                                                 std::get<1>(*it).size()));
+    indices.AppendElement(std::get<0>(*it));
   }
 
   return NS_OK;
@@ -1923,7 +1919,8 @@ GfxInfoBase::ControlGPUProcessForXPCShell(bool aEnable, bool* _retval) {
     if (!gfxConfig::IsEnabled(gfx::Feature::GPU_PROCESS)) {
       gfxConfig::UserForceEnable(gfx::Feature::GPU_PROCESS, "xpcshell-test");
     }
-    gpm->EnsureGPUReady();
+    DebugOnly<nsresult> rv = gpm->EnsureGPUReady();
+    MOZ_ASSERT(rv != NS_ERROR_ILLEGAL_DURING_SHUTDOWN);
   } else {
     gfxConfig::UserDisable(gfx::Feature::GPU_PROCESS, "xpcshell-test");
     gpm->KillProcess();

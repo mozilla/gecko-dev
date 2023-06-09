@@ -37,7 +37,10 @@
 }
 
 .img.coffeescript {
-  mask-image: url(chrome://devtools/content/debugger/images/sources/coffeescript.svg);
+  background-image: url(chrome://devtools/content/debugger/images/sources/coffeescript.svg);
+  background-color: transparent !important;
+  fill: var(--theme-icon-color);
+  -moz-context-properties: fill;
 }
 
 .img.dojo {
@@ -63,8 +66,26 @@
 }
 
 .img.javascript {
-  mask-image: url(chrome://devtools/content/debugger/images/sources/javascript.svg);
-  mask-size: 14px 14px;
+  background-image: url(chrome://devtools/content/debugger/images/sources/javascript.svg);
+  background-size: 14px 14px;
+  background-color: transparent !important;
+  fill: var(--theme-icon-color);
+  -moz-context-properties: fill;
+}
+
+.img.override::after {
+  content: "";
+  display: block;
+  height: 5px;
+  width: 5px;
+  background-color: var(--purple-30);
+  border-radius: 100%;
+  outline: 1px solid 	var(--theme-sidebar-background);
+  translate: 12px 10px;
+}
+
+.node.focused .img.override::after {
+  outline-color: var(--theme-selection-background);
 }
 
 .img.jquery {
@@ -111,8 +132,10 @@
 }
 
 .img.react {
-  mask-image: url(chrome://devtools/content/debugger/images/sources/react.svg);
-  background-color: var(--theme-highlight-bluegrey);
+  background-image: url(chrome://devtools/content/debugger/images/sources/react.svg);
+  background-color: transparent !important;
+  fill: var(--theme-highlight-bluegrey);
+  -moz-context-properties: fill;
 }
 
 .img.redux {
@@ -130,7 +153,10 @@
 }
 
 .img.typescript {
-  mask-image: url(chrome://devtools/content/debugger/images/sources/typescript.svg);
+  background-image: url(chrome://devtools/content/debugger/images/sources/typescript.svg);
+  background-color: transparent !important;
+  fill: var(--theme-icon-color);
+  -moz-context-properties: fill;
 }
 
 .img.underscore {

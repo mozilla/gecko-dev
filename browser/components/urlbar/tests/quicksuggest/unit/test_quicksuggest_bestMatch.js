@@ -2,7 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// Tests best match quick suggest results.
+// Tests best match quick suggest results. "Best match" refers to two different
+// concepts:
+//
+// (1) The "best match" UI treatment (labeled "top pick" in the UI) that makes a
+//     result's row larger than usual and sets `suggestedIndex` to 1.
+// (2) The quick suggest config in remote settings can contain a `best_match`
+//     object that tells Firefox to use the best match UI treatment if the
+//     user's search string is a certain length.
+//
+// This file tests aspects of both concepts.
+//
+// See also test_quicksuggest_topPicks.js. "Top picks" refer to a similar
+// concept but it is not related to (2).
 
 "use strict";
 
@@ -29,7 +41,6 @@ const REMOTE_SETTINGS_RESULTS = [
       "fullkeywo",
       "fullkeywor",
       "fullkeyword",
-      "example",
     ],
     click_url: "http://example.com/click",
     impression_url: "http://example.com/impression",
@@ -53,6 +64,7 @@ const EXPECTED_BEST_MATCH_URLBAR_RESULT = {
   heuristic: false,
   isBestMatch: true,
   payload: {
+    telemetryType: "adm_sponsored",
     url: "http://example.com/",
     originalUrl: "http://example.com/",
     title: "Fullkeyword title",
@@ -63,9 +75,17 @@ const EXPECTED_BEST_MATCH_URLBAR_RESULT = {
     sponsoredBlockId: 1,
     sponsoredAdvertiser: "TestAdvertiser",
     helpUrl: QuickSuggest.HELP_URL,
-    helpL10n: { id: "firefox-suggest-urlbar-learn-more" },
-    isBlockable: false,
-    blockL10n: { id: "firefox-suggest-urlbar-block" },
+    helpL10n: {
+      id: UrlbarPrefs.get("resultMenu")
+        ? "urlbar-result-menu-learn-more-about-firefox-suggest"
+        : "firefox-suggest-urlbar-learn-more",
+    },
+    isBlockable: UrlbarPrefs.get("bestMatchBlockingEnabled"),
+    blockL10n: {
+      id: UrlbarPrefs.get("resultMenu")
+        ? "urlbar-result-menu-dismiss-firefox-suggest"
+        : "firefox-suggest-urlbar-block",
+    },
     displayUrl: "http://example.com",
     source: "remote-settings",
   },
@@ -76,6 +96,7 @@ const EXPECTED_NON_BEST_MATCH_URLBAR_RESULT = {
   source: UrlbarUtils.RESULT_SOURCE.SEARCH,
   heuristic: false,
   payload: {
+    telemetryType: "adm_sponsored",
     url: "http://example.com/",
     originalUrl: "http://example.com/",
     title: "Fullkeyword title",
@@ -87,9 +108,17 @@ const EXPECTED_NON_BEST_MATCH_URLBAR_RESULT = {
     sponsoredBlockId: 1,
     sponsoredAdvertiser: "TestAdvertiser",
     helpUrl: QuickSuggest.HELP_URL,
-    helpL10n: { id: "firefox-suggest-urlbar-learn-more" },
-    isBlockable: false,
-    blockL10n: { id: "firefox-suggest-urlbar-block" },
+    helpL10n: {
+      id: UrlbarPrefs.get("resultMenu")
+        ? "urlbar-result-menu-learn-more-about-firefox-suggest"
+        : "firefox-suggest-urlbar-learn-more",
+    },
+    isBlockable: UrlbarPrefs.get("quickSuggestBlockingEnabled"),
+    blockL10n: {
+      id: UrlbarPrefs.get("resultMenu")
+        ? "urlbar-result-menu-dismiss-firefox-suggest"
+        : "firefox-suggest-urlbar-block",
+    },
     displayUrl: "http://example.com",
     source: "remote-settings",
   },
@@ -101,6 +130,7 @@ const EXPECTED_BEST_MATCH_POSITION_URLBAR_RESULT = {
   heuristic: false,
   isBestMatch: true,
   payload: {
+    telemetryType: "adm_sponsored",
     url: "http://example.com/best-match-position",
     originalUrl: "http://example.com/best-match-position",
     title: `${BEST_MATCH_POSITION_SEARCH_STRING} title`,
@@ -111,9 +141,17 @@ const EXPECTED_BEST_MATCH_POSITION_URLBAR_RESULT = {
     sponsoredBlockId: 2,
     sponsoredAdvertiser: "TestAdvertiser",
     helpUrl: QuickSuggest.HELP_URL,
-    helpL10n: { id: "firefox-suggest-urlbar-learn-more" },
-    isBlockable: false,
-    blockL10n: { id: "firefox-suggest-urlbar-block" },
+    helpL10n: {
+      id: UrlbarPrefs.get("resultMenu")
+        ? "urlbar-result-menu-learn-more-about-firefox-suggest"
+        : "firefox-suggest-urlbar-learn-more",
+    },
+    isBlockable: UrlbarPrefs.get("bestMatchBlockingEnabled"),
+    blockL10n: {
+      id: UrlbarPrefs.get("resultMenu")
+        ? "urlbar-result-menu-dismiss-firefox-suggest"
+        : "firefox-suggest-urlbar-block",
+    },
     displayUrl: "http://example.com/best-match-position",
     source: "remote-settings",
   },
@@ -131,6 +169,7 @@ add_task(async function init() {
 
   await QuickSuggestTestUtils.ensureQuickSuggestInit({
     remoteSettingsResults: REMOTE_SETTINGS_RESULTS,
+    config: QuickSuggestTestUtils.BEST_MATCH_CONFIG,
   });
 });
 
@@ -264,7 +303,7 @@ add_task(async function tabToSearch() {
       makeSearchResult(context, {
         engineName: engine.name,
         engineIconUri: UrlbarUtils.ICON.SEARCH_GLASS,
-        uri: UrlbarUtils.stripPublicSuffixFromHost(engine.getResultDomain()),
+        uri: UrlbarUtils.stripPublicSuffixFromHost(engine.searchUrlDomain),
         providesSearchMode: true,
         query: "",
         providerName: "TabToSearch",
@@ -384,7 +423,7 @@ add_task(async function position() {
 
 // Tests a suggestion that is blocked from being a best match.
 add_task(async function blockedAsBestMatch() {
-  let config = QuickSuggestTestUtils.DEFAULT_CONFIG;
+  let config = QuickSuggestTestUtils.BEST_MATCH_CONFIG;
   config.best_match.blocked_suggestion_ids = [1];
   await QuickSuggestTestUtils.withConfig({
     config,
@@ -416,34 +455,4 @@ add_task(async function noConfig() {
       });
     },
   });
-});
-
-// Test that bestMatch results are not shown when there is a heuristic
-// result for the same domain.
-add_task(async function hueristicDeduplication() {
-  let scenarios = [
-    ["http://example.com/", false],
-    ["http://www.example.com/", false],
-    ["http://exampledomain.com/", true],
-  ];
-
-  for (let [url, expectBestMatch] of scenarios) {
-    await PlacesTestUtils.addVisits(url);
-    let context = createContext("example", {
-      providers: [UrlbarProviderQuickSuggest.name, UrlbarProviderAutofill.name],
-      isPrivate: false,
-    });
-    const EXPECTED_AUTOFILL_RESULT = makeVisitResult(context, {
-      uri: url,
-      title: `test visit for ${url}`,
-      heuristic: true,
-    });
-    await check_results({
-      context,
-      matches: expectBestMatch
-        ? [EXPECTED_AUTOFILL_RESULT, EXPECTED_BEST_MATCH_URLBAR_RESULT]
-        : [EXPECTED_AUTOFILL_RESULT],
-    });
-    await PlacesUtils.history.clear();
-  }
 });

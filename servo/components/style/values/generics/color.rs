@@ -4,176 +4,24 @@
 
 //! Generic types for color properties.
 
-use crate::values::animated::color::AnimatedRGBA;
+use crate::color::mix::ColorInterpolationMethod;
+use crate::color::AbsoluteColor;
 use crate::values::animated::ToAnimatedValue;
 use crate::values::specified::percentage::ToPercentage;
-use crate::values::{Parse, Parser, ParserContext};
 use std::fmt::{self, Write};
-use style_traits::{CssWriter, ParseError, ToCss};
+use style_traits::{CssWriter, ToCss};
 
 /// This struct represents a combined color from a numeric color and
 /// the current foreground color (currentcolor keyword).
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToAnimatedValue, ToShmem)]
 #[repr(C)]
-pub enum GenericColor<RGBA, Percentage> {
+pub enum GenericColor<Percentage> {
     /// The actual numeric color.
-    Numeric(RGBA),
+    Absolute(AbsoluteColor),
     /// The `CurrentColor` keyword.
     CurrentColor,
     /// The color-mix() function.
     ColorMix(Box<GenericColorMix<Self, Percentage>>),
-}
-
-/// A color space as defined in [1].
-///
-/// [1]: https://drafts.csswg.org/css-color-4/#typedef-color-space
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    MallocSizeOf,
-    Parse,
-    PartialEq,
-    ToAnimatedValue,
-    ToComputedValue,
-    ToCss,
-    ToResolvedValue,
-    ToShmem,
-)]
-#[repr(u8)]
-pub enum ColorSpace {
-    /// The sRGB color space.
-    Srgb,
-    /// The linear-sRGB color space.
-    LinearSrgb,
-    /// The CIEXYZ color space.
-    #[parse(aliases = "xyz-d65")]
-    Xyz,
-    /// https://drafts.csswg.org/css-color-4/#valdef-color-xyz
-    XyzD50,
-    /// The CIELAB color space.
-    Lab,
-    /// https://drafts.csswg.org/css-color-4/#valdef-hsl-hsl
-    Hsl,
-    /// https://drafts.csswg.org/css-color-4/#valdef-hwb-hwb
-    Hwb,
-    /// The CIELAB color space, expressed in cylindrical coordinates.
-    Lch,
-    // TODO: Oklab, Lch
-}
-
-impl ColorSpace {
-    /// Returns whether this is a `<polar-color-space>`.
-    pub fn is_polar(self) -> bool {
-        match self {
-            Self::Srgb | Self::LinearSrgb | Self::Xyz | Self::XyzD50 | Self::Lab => false,
-            Self::Hsl | Self::Hwb | Self::Lch => true,
-        }
-    }
-}
-
-/// A hue-interpolation-method as defined in [1].
-///
-/// [1]: https://drafts.csswg.org/css-color-4/#typedef-hue-interpolation-method
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    MallocSizeOf,
-    Parse,
-    PartialEq,
-    ToAnimatedValue,
-    ToComputedValue,
-    ToCss,
-    ToResolvedValue,
-    ToShmem,
-)]
-#[repr(u8)]
-pub enum HueInterpolationMethod {
-    /// https://drafts.csswg.org/css-color-4/#shorter
-    Shorter,
-    /// https://drafts.csswg.org/css-color-4/#longer
-    Longer,
-    /// https://drafts.csswg.org/css-color-4/#increasing
-    Increasing,
-    /// https://drafts.csswg.org/css-color-4/#decreasing
-    Decreasing,
-    /// https://drafts.csswg.org/css-color-4/#specified
-    Specified,
-}
-
-/// https://drafts.csswg.org/css-color-4/#color-interpolation-method
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    MallocSizeOf,
-    PartialEq,
-    ToShmem,
-    ToAnimatedValue,
-    ToComputedValue,
-    ToResolvedValue,
-)]
-#[repr(C)]
-pub struct ColorInterpolationMethod {
-    /// The color-space the interpolation should be done in.
-    pub space: ColorSpace,
-    /// The hue interpolation method.
-    pub hue: HueInterpolationMethod,
-}
-
-impl ColorInterpolationMethod {
-    /// Returns the srgb interpolation method.
-    pub fn srgb() -> Self {
-        Self {
-            space: ColorSpace::Srgb,
-            hue: HueInterpolationMethod::Shorter,
-        }
-    }
-}
-
-impl Parse for ColorInterpolationMethod {
-    fn parse<'i, 't>(
-        _: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        input.expect_ident_matching("in")?;
-        let space = ColorSpace::parse(input)?;
-        // https://drafts.csswg.org/css-color-4/#hue-interpolation
-        //     Unless otherwise specified, if no specific hue interpolation
-        //     algorithm is selected by the host syntax, the default is shorter.
-        let hue = if space.is_polar() {
-            input
-                .try_parse(|input| -> Result<_, ParseError<'i>> {
-                    let hue = HueInterpolationMethod::parse(input)?;
-                    input.expect_ident_matching("hue")?;
-                    Ok(hue)
-                })
-                .unwrap_or(HueInterpolationMethod::Shorter)
-        } else {
-            HueInterpolationMethod::Shorter
-        };
-        Ok(Self { space, hue })
-    }
-}
-
-impl ToCss for ColorInterpolationMethod {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        dest.write_str("in ")?;
-        self.space.to_css(dest)?;
-        if self.hue != HueInterpolationMethod::Shorter {
-            dest.write_char(' ')?;
-            self.hue.to_css(dest)?;
-            dest.write_str(" hue")?;
-        }
-        Ok(())
-    }
 }
 
 /// A restricted version of the css `color-mix()` function, which only supports
@@ -230,71 +78,72 @@ impl<Color: ToCss, Percentage: ToCss + ToPercentage> ToCss for ColorMix<Color, P
         dest.write_str(", ")?;
         self.left.to_css(dest)?;
         if !can_omit(&self.left_percentage, &self.right_percentage, true) {
-            dest.write_str(" ")?;
+            dest.write_char(' ')?;
             self.left_percentage.to_css(dest)?;
         }
         dest.write_str(", ")?;
         self.right.to_css(dest)?;
         if !can_omit(&self.right_percentage, &self.left_percentage, false) {
-            dest.write_str(" ")?;
+            dest.write_char(' ')?;
             self.right_percentage.to_css(dest)?;
         }
-        dest.write_str(")")
+        dest.write_char(')')
     }
 }
 
-impl<RGBA, Percentage> ColorMix<GenericColor<RGBA, Percentage>, Percentage> {
-    fn to_rgba(&self) -> Option<RGBA>
+impl<Percentage> ColorMix<GenericColor<Percentage>, Percentage> {
+    /// Mix the colors so that we get a single color. If any of the 2 colors are
+    /// not mixable (perhaps not absolute?), then return None.
+    fn mix_into_absolute(&self) -> Option<AbsoluteColor>
     where
-        RGBA: Clone + ToAnimatedValue<AnimatedValue = AnimatedRGBA>,
         Percentage: ToPercentage,
     {
-        use crate::values::animated::color::Color as AnimatedColor;
-        let left = self.left.as_numeric()?.clone().to_animated_value();
-        let right = self.right.as_numeric()?.clone().to_animated_value();
-        Some(ToAnimatedValue::from_animated_value(AnimatedColor::mix(
-            &self.interpolation,
+        let left = self.left.as_absolute()?.to_animated_value();
+        let right = self.right.as_absolute()?.to_animated_value();
+
+        let mixed = crate::color::mix::mix(
+            self.interpolation,
             &left,
             self.left_percentage.to_percentage(),
             &right,
             self.right_percentage.to_percentage(),
             self.normalize_weights,
-        )))
+        );
+
+        Some(ToAnimatedValue::from_animated_value(mixed.into()))
     }
 }
 
 pub use self::GenericColor as Color;
 
-impl<RGBA, Percentage> Color<RGBA, Percentage> {
-    /// Returns the numeric rgba value if this color is numeric, or None
-    /// otherwise.
-    pub fn as_numeric(&self) -> Option<&RGBA> {
+impl<Percentage> Color<Percentage> {
+    /// If this color is absolute return it's value, otherwise return None.
+    pub fn as_absolute(&self) -> Option<&AbsoluteColor> {
         match *self {
-            Self::Numeric(ref rgba) => Some(rgba),
+            Self::Absolute(ref absolute) => Some(absolute),
             _ => None,
         }
     }
 
     /// Simplifies the color-mix()es to the extent possible given a current
     /// color (or not).
-    pub fn simplify(&mut self, current_color: Option<&RGBA>)
+    pub fn simplify(&mut self, current_color: Option<&AbsoluteColor>)
     where
-        RGBA: Clone + ToAnimatedValue<AnimatedValue = AnimatedRGBA>,
         Percentage: ToPercentage,
     {
         match *self {
-            Self::Numeric(..) => {},
+            Self::Absolute(..) => {},
             Self::CurrentColor => {
                 if let Some(c) = current_color {
-                    *self = Self::Numeric(c.clone());
+                    *self = Self::Absolute(c.clone());
                 }
             },
             Self::ColorMix(ref mut mix) => {
                 mix.left.simplify(current_color);
                 mix.right.simplify(current_color);
 
-                if let Some(mix) = mix.to_rgba() {
-                    *self = Self::Numeric(mix);
+                if let Some(mix) = mix.mix_into_absolute() {
+                    *self = Self::Absolute(mix);
                 }
             },
         }
@@ -305,19 +154,14 @@ impl<RGBA, Percentage> Color<RGBA, Percentage> {
         Self::CurrentColor
     }
 
-    /// Returns a numeric color representing the given RGBA value.
-    pub fn rgba(color: RGBA) -> Self {
-        Self::Numeric(color)
-    }
-
     /// Whether it is a currentcolor value (no numeric color component).
     pub fn is_currentcolor(&self) -> bool {
         matches!(*self, Self::CurrentColor)
     }
 
-    /// Whether it is a numeric color (no currentcolor component).
-    pub fn is_numeric(&self) -> bool {
-        matches!(*self, Self::Numeric(..))
+    /// Whether this color is an absolute color.
+    pub fn is_absolute(&self) -> bool {
+        matches!(*self, Self::Absolute(..))
     }
 }
 

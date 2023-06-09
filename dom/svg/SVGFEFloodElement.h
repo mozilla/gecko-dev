@@ -16,7 +16,7 @@ namespace mozilla::dom {
 
 using SVGFEFloodElementBase = SVGFE;
 
-class SVGFEFloodElement : public SVGFEFloodElementBase {
+class SVGFEFloodElement final : public SVGFEFloodElementBase {
   friend nsresult(::NS_NewSVGFEFloodElement(
       nsIContent** aResult,
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo));
@@ -39,8 +39,6 @@ class SVGFEFloodElement : public SVGFEFloodElementBase {
   }
 
   // nsIContent interface
-  NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* aAttribute) const override;
-
   nsresult Clone(dom::NodeInfo*, nsINode** aResult) const override;
 
   nsresult BindToTree(BindContext& aCtx, nsINode& aParent) override;

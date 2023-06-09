@@ -111,13 +111,6 @@ class TextRange final {
    */
   bool Crop(Accessible* aContainer);
 
-  MOZ_CAN_RUN_SCRIPT bool SetSelectionAt(int32_t aSelectionNum) const;
-
-  /**
-   * Scroll the text range into view.
-   */
-  void ScrollIntoView(uint32_t aScrollType) const;
-
   /**
    * Convert stored hypertext offsets into DOM offsets and assign it to DOM
    * range.

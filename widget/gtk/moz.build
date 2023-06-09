@@ -23,7 +23,7 @@ if CONFIG["COMPILE_ENVIRONMENT"]:
     DIRS += ["mozgtk"]
 
 if CONFIG["MOZ_WAYLAND"]:
-    DIRS += ["wayland", "mozwayland"]
+    DIRS += ["wayland", "mozwayland", "vaapitest"]
 
 EXPORTS += [
     "MozContainer.h",
@@ -33,6 +33,8 @@ EXPORTS += [
 ]
 
 EXPORTS.mozilla += [
+    "GfxInfo.h",
+    "GfxInfoUtils.h",
     "GRefPtr.h",
     "GUniquePtr.h",
     "WidgetUtilsGtk.h",
@@ -82,11 +84,6 @@ SOURCES += [
     "nsWindow.cpp",  # conflicts with X11 headers
     "WaylandVsyncSource.cpp",  # conflicts with X11 headers
 ]
-
-if CONFIG["ACCESSIBILITY"]:
-    UNIFIED_SOURCES += [
-        "maiRedundantObjectFactory.c",
-    ]
 
 if CONFIG["MOZ_WAYLAND"]:
     UNIFIED_SOURCES += [

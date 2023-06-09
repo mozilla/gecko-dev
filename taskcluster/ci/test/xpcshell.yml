@@ -12,11 +12,7 @@ job-defaults:
     target:
         by-test-platform:
             android-em-7.*: geckoview-test_runner.apk
-            windows10-64-2004-shippable-qr/opt:
-                by-variant:
-                    msix: target.installer.msix
-                    default: null
-            windows10-64-2004-qr/opt:
+            windows11-64-2009.*:
                 by-variant:
                     msix: target.installer.msix
                     default: null
@@ -41,11 +37,8 @@ job-defaults:
         requires-signed-builds:
             by-test-platform:
                 macosx1100.*: true
-                windows10-64-2004-asan-qr/opt: false    # No XPCShell on ASAN yet
-                windows10-32-mingwclang-qr/opt: false
-                windows10-32-mingwclang-qr/debug: false
-                windows10-64-2004-mingwclang-qr/opt: false
-                windows10-64-2004-mingwclang-qr/debug: false
+                windows.*-asan-qr/opt: false    # No XPCShell on ASAN yet
+                windows.*-mingwclang-qr/.*: false
                 windows.*: true
                 default: false
 
@@ -62,7 +55,9 @@ xpcshell:
         by-variant:
             conditioned_profile:
                 by-test-platform:
-                    (linux1804-64|windows10-64-2004)(-shippable)?-qr/opt: ['trunk']
+                    .*asan.*: []
+                    .*ccov.*: []
+                    (linux1804-64|windows11-64.*)(-shippable)?-qr/opt: ['trunk']
                     default: []
             socketprocess_networking+no-fission:
                 by-test-platform:
@@ -71,7 +66,8 @@ xpcshell:
             socketprocess_networking:
                 by-test-platform:
                     (linux1804-64|macosx).*: ['trunk']  # All Linux & Mac variants
-                    ^(?!.*asan).*windows.*: ['trunk']   # All Windows except ASAN
+                    windows7-32.*: ['trunk']
+                    ^(?!.*asan).*windows11.*: ['trunk']   # All Windows11 except ASAN
                     default: []
             no-fission:
                 by-test-platform:
@@ -81,40 +77,40 @@ xpcshell:
                     default: []
             msix:
                 by-test-platform:
-                    windows10-64-2004-shippable-qr/opt: built-projects
-                    windows10-64-2004-qr/opt: built-projects
+                    windows11-64-2009(-shippable)?-qr/opt: built-projects
+                    windows11-64-2009-qr/debug: built-projects
                     default: []
             default:
                 by-test-platform:
                     android.*: []
-                    windows10-64-2004-asan-qr/opt: []  # No XPCShell on ASAN yet
+                    windows.*-asan-qr/opt: []  # No XPCShell on ASAN yet
                     default: built-projects
     chunks:
         by-test-platform:
             .*-asan-qr/opt: 4
-            .*-ccov.*/.*: 6
+            .*-ccov.*/.*: 8
             .*-tsan-qr/opt: 8
             (android-em-7.*|macosx.*|linux1804-64.*/opt): 2
             default: 4
     max-run-time:
         by-variant:
             msix: 7200
+            conditioned_profile: 7200
             default:
                 by-test-platform:
-                    .*64-ccov(-qr)?/.*: 7200
-                    .*64-2004-ccov(-qr)?/.*: 7200  # Windows 10 x64 2004 CCov specific, the line above does not catch this case.
+                    .*-ccov(-qr)?/.*: 7200
                     .*-tsan-qr/opt: 7200
                     default: 5400
     allow-software-gl-layers: false
     tier:
         by-test-platform:
-            windows10-64-2004-asan.*: 3
+            windows.*-asan.*: 3
             android-em-7.0-x86_64-qr/debug-isolated-process: 3
             default: default
     mozharness:
         extra-options:
             by-test-platform:
-                windows10.*:
+                windows1.*:
                     - --threads=2
                 default: []
     fetches:
@@ -132,9 +128,6 @@ xpcshell:
                     - macosx64-node-12
                     - macosx64-minidump-stackwalk
                     - macosx64-fix-stacks
-                win.*aarch64.*:
-                    - win32-node-12
-                    - win32-minidump-stackwalk
                 win.*-64.*:
                     - win64-node-12
                     - win32-minidump-stackwalk
@@ -162,21 +155,17 @@ xpcshell-failures:
         script:
             by-test-platform:
                 macos.*: mac_unittest.py
-                windows10.*: desktop_unittest.py
+                windows1.*: desktop_unittest.py
         config:
             by-test-platform:
                 macos.*:
                     - unittests/mac_unittest.py
-                windows10.*:
+                windows1.*:
                     - unittests/win_unittest.py
         extra-options:
             by-test-platform:
                 macosx1100.*:
                     - --run-failures=apple_silicon
-                    - --timeout-as-pass
-                    - --crash-as-pass
-                windows10-32-2004.*:
-                    - --run-failures=win10_2004
                     - --timeout-as-pass
                     - --crash-as-pass
     fetches:

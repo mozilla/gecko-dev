@@ -3,14 +3,13 @@
 
 "use strict";
 
-/* import-globals-from ../../../performance-new/test/browser/helpers.js */
 Services.scriptloader.loadSubScript(
   "chrome://mochitests/content/browser/devtools/client/performance-new/test/browser/helpers.js",
   this
 );
 
 const BackgroundJSM = ChromeUtils.import(
-  "resource://devtools/client/performance-new/popup/background.jsm.js"
+  "resource://devtools/client/performance-new/shared/background.jsm.js"
 );
 
 registerCleanupFunction(() => {

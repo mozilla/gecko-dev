@@ -104,8 +104,8 @@
         <html:link href="chrome://global/skin/menulist.css" rel="stylesheet"/>
         <hbox id="label-box" part="label-box" flex="1" role="none">
           <image part="icon" role="none"/>
-          <label id="label" part="label" crop="right" flex="1" role="none"/>
-          <label id="highlightable-label" part="label" crop="right" flex="1" role="none"/>
+          <label id="label" part="label" crop="end" flex="1" role="none"/>
+          <label id="highlightable-label" part="label" crop="end" flex="1" role="none"/>
         </hbox>
         <dropmarker part="dropmarker" exportparts="icon: dropmarker-icon" type="menu" role="none"/>
         <html:slot/>
@@ -156,16 +156,6 @@
     // nsIDOMXULSelectControlElement
     get value() {
       return this.getAttribute("value");
-    }
-
-    // nsIDOMXULMenuListElement
-    set crop(val) {
-      this.setAttribute("crop", val);
-    }
-
-    // nsIDOMXULMenuListElement
-    get crop() {
-      return this.getAttribute("crop");
     }
 
     // nsIDOMXULMenuListElement

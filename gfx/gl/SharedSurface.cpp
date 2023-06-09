@@ -100,7 +100,7 @@ UniquePtr<SurfaceFactory> SurfaceFactory::Create(
     case layers::TextureType::DMABUF:
 #ifdef MOZ_WAYLAND
       if (gl.GetContextType() == GLContextType::EGL &&
-          widget::GetDMABufDevice()->IsDMABufWebGLEnabled()) {
+          widget::DMABufDevice::IsDMABufWebGLEnabled()) {
         return SurfaceFactory_DMABUF::Create(gl);
       }
 #endif
@@ -115,10 +115,12 @@ UniquePtr<SurfaceFactory> SurfaceFactory::Create(
 
     case layers::TextureType::AndroidHardwareBuffer:
 #ifdef MOZ_WIDGET_ANDROID
-      return SurfaceFactory_AndroidHardwareBuffer::Create(gl);
-#else
-      return nullptr;
+      if (XRE_IsGPUProcess()) {
+        // Enable SharedSurface of AndroidHardwareBuffer only in GPU process.
+        return SurfaceFactory_AndroidHardwareBuffer::Create(gl);
+      }
 #endif
+      return nullptr;
 
     case layers::TextureType::EGLImage:
 #ifdef MOZ_WIDGET_ANDROID

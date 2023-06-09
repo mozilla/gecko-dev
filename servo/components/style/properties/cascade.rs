@@ -5,6 +5,7 @@
 //! The main cascading algorithm of the style system.
 
 use crate::applicable_declarations::CascadePriority;
+use crate::color::AbsoluteColor;
 use crate::context::QuirksMode;
 use crate::custom_properties::CustomPropertiesBuilder;
 use crate::dom::TElement;
@@ -412,9 +413,8 @@ fn tweak_when_ignoring_colors(
     declaration: &mut Cow<PropertyDeclaration>,
     declarations_to_apply_unless_overriden: &mut DeclarationsToApplyUnlessOverriden,
 ) {
-    use crate::values::specified::Color;
     use crate::values::computed::ToComputedValue;
-    use cssparser::RGBA;
+    use crate::values::specified::Color;
 
     if !longhand_id.ignored_when_document_colors_disabled() {
         return;
@@ -422,6 +422,12 @@ fn tweak_when_ignoring_colors(
 
     let is_ua_or_user_rule = matches!(origin, Origin::User | Origin::UserAgent);
     if is_ua_or_user_rule {
+        return;
+    }
+
+    // Always honor colors if forced-color-adjust is set to none.
+    let forced = context.builder.get_inherited_text().clone_forced_color_adjust();
+    if forced == computed::ForcedColorAdjust::None {
         return;
     }
 
@@ -434,9 +440,11 @@ fn tweak_when_ignoring_colors(
         return;
     }
 
-    fn alpha_channel(color: &Color, context: &computed::Context) -> u8 {
+    fn alpha_channel(color: &Color, context: &computed::Context) -> f32 {
         // We assume here currentColor is opaque.
-        let color = color.to_computed_value(context).into_rgba(RGBA::new(0, 0, 0, 255));
+        let color = color
+            .to_computed_value(context)
+            .resolve_into_absolute(&AbsoluteColor::black());
         color.alpha
     }
 
@@ -459,7 +467,7 @@ fn tweak_when_ignoring_colors(
             // otherwise, this is needed to preserve semi-transparent
             // backgrounds.
             let alpha = alpha_channel(color, context);
-            if alpha == 0 {
+            if alpha == 0.0 {
                 return;
             }
             let mut color = context.builder.device.default_background_color();
@@ -475,7 +483,7 @@ fn tweak_when_ignoring_colors(
             // If the inherited color would be transparent, but we would
             // override this with a non-transparent color, then override it with
             // the default color. Otherwise just let it inherit through.
-            if context.builder.get_parent_inherited_text().clone_color().alpha == 0 {
+            if context.builder.get_parent_inherited_text().clone_color().alpha == 0.0 {
                 let color = context.builder.device.default_color();
                 declarations_to_apply_unless_overriden.push(PropertyDeclaration::Color(
                     specified::ColorPropertyValue(color.into()),
@@ -808,32 +816,24 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_BORDER_BACKGROUND);
         }
 
-        if self
-            .author_specified
-            .contains(LonghandId::FontFamily)
-        {
+        if self.author_specified.contains(LonghandId::FontFamily) {
             builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_FAMILY);
         }
 
-        if self
-            .author_specified
-            .contains(LonghandId::LetterSpacing)
-        {
+        if self.author_specified.contains(LonghandId::LetterSpacing) {
             builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_LETTER_SPACING);
         }
 
-        if self
-            .author_specified
-            .contains(LonghandId::WordSpacing)
-        {
+        if self.author_specified.contains(LonghandId::WordSpacing) {
             builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_WORD_SPACING);
         }
 
-        if self
-            .author_specified
-            .contains(LonghandId::FontSynthesis)
-        {
-            builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_SYNTHESIS);
+        if self.author_specified.contains(LonghandId::FontSynthesisWeight) {
+            builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_SYNTHESIS_WEIGHT);
+        }
+
+        if self.author_specified.contains(LonghandId::FontSynthesisStyle) {
+            builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_SYNTHESIS_STYLE);
         }
 
         #[cfg(feature = "servo")]
@@ -1025,28 +1025,31 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
         builder.mutate_font().gecko_mut().mFont.size = min_font_size;
     }
 
-    /// <svg:text> is not affected by text zoom, and it uses a preshint
-    /// to disable it. We fix up the struct when this happens by
-    /// unzooming its contained font values, which will have been zoomed
-    /// in the parent.
+    /// <svg:text> is not affected by text zoom, and it uses a preshint to disable it. We fix up
+    /// the struct when this happens by unzooming its contained font values, which will have been
+    /// zoomed in the parent.
     ///
-    /// FIXME(emilio): Also, why doing this _before_ handling font-size? That
-    /// sounds wrong.
+    /// FIXME(emilio): Why doing this _before_ handling font-size? That sounds wrong.
     #[cfg(feature = "gecko")]
     fn unzoom_fonts_if_needed(&mut self) {
-        if !self.seen.contains(LonghandId::XTextZoom) {
+        if !self.seen.contains(LonghandId::XTextScale) {
             return;
         }
 
         let builder = &mut self.context.builder;
 
-        let parent_zoom = builder.get_parent_font().gecko().mAllowZoomAndMinSize;
-        let zoom = builder.get_font().gecko().mAllowZoomAndMinSize;
-        if zoom == parent_zoom {
+        let parent_text_scale = builder.get_parent_font().clone__x_text_scale();
+        let text_scale = builder.get_font().clone__x_text_scale();
+        if parent_text_scale == text_scale {
             return;
         }
+        debug_assert_ne!(
+            parent_text_scale.text_zoom_enabled(),
+            text_scale.text_zoom_enabled(),
+            "There's only one value that disables it"
+        );
         debug_assert!(
-            !zoom,
+            !text_scale.text_zoom_enabled(),
             "We only ever disable text zoom (in svg:text), never enable it"
         );
         let device = builder.device;
@@ -1137,7 +1140,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             }
 
             let mut min = parent_font.mScriptMinSize;
-            if font.mAllowZoomAndMinSize {
+            if font.mXTextScale.text_zoom_enabled() {
                 min = builder.device.zoom_text(min);
             }
 

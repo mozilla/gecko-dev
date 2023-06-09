@@ -177,16 +177,15 @@ class ModuleLoaderBase : public nsISupports {
 
   nsCOMPtr<nsIGlobalObject> mGlobalObject;
 
-  // Event handler used to process MozPromise actions, used internally to wait
-  // for fetches to finish and for imports to become avilable.
-  nsCOMPtr<nsISerialEventTarget> mEventTarget;
-
   // https://html.spec.whatwg.org/multipage/webappapis.html#import-maps-allowed
   //
   // Each Window has an import maps allowed boolean, initially true.
   bool mImportMapsAllowed = true;
 
  protected:
+  // Event handler used to process MozPromise actions, used internally to wait
+  // for fetches to finish and for imports to become avilable.
+  nsCOMPtr<nsISerialEventTarget> mEventTarget;
   RefPtr<ScriptLoaderInterface> mLoader;
 
   mozilla::UniquePtr<ImportMap> mImportMap;
@@ -203,6 +202,8 @@ class ModuleLoaderBase : public nsISupports {
 
   // Called to break cycles during shutdown to prevent memory leaks.
   void Shutdown();
+
+  virtual nsIURI* GetBaseURI() const { return mLoader->GetBaseURI(); };
 
   using LoadedScript = JS::loader::LoadedScript;
   using ScriptFetchOptions = JS::loader::ScriptFetchOptions;
@@ -243,6 +244,19 @@ class ModuleLoaderBase : public nsISupports {
 
   // Called when a module script has been loaded, including imports.
   virtual void OnModuleLoadComplete(ModuleLoadRequest* aRequest) = 0;
+
+  virtual bool IsModuleEvaluationAborted(ModuleLoadRequest* aRequest) {
+    return false;
+  }
+
+  // Get the error message when resolving failed. The default is to call
+  // nsContentUtils::FormatLoalizedString. But currently
+  // nsContentUtils::FormatLoalizedString cannot be called on a worklet thread,
+  // see bug 1808301. So WorkletModuleLoader will override this function to
+  // get the error message.
+  virtual nsresult GetResolveFailureMessage(ResolveError aError,
+                                            const nsAString& aSpecifier,
+                                            nsAString& aResult);
 
   // Public API methods.
 
@@ -288,6 +302,8 @@ class ModuleLoaderBase : public nsISupports {
   // https://html.spec.whatwg.org/multipage/webappapis.html#register-an-import-map
   void RegisterImportMap(mozilla::UniquePtr<ImportMap> aImportMap);
 
+  bool HasImportMapRegistered() const { return bool(mImportMap); }
+
   // Getter for mImportMapsAllowed.
   bool IsImportMapAllowed() const { return mImportMapsAllowed; }
   // https://html.spec.whatwg.org/multipage/webappapis.html#disallow-further-import-maps
@@ -328,12 +344,11 @@ class ModuleLoaderBase : public nsISupports {
   ResolveResult ResolveModuleSpecifier(LoadedScript* aScript,
                                        const nsAString& aSpecifier);
 
-  static nsresult HandleResolveFailure(JSContext* aCx, LoadedScript* aScript,
-                                       const nsAString& aSpecifier,
-                                       ResolveError aError,
-                                       uint32_t aLineNumber,
-                                       uint32_t aColumnNumber,
-                                       JS::MutableHandle<JS::Value> aErrorOut);
+  nsresult HandleResolveFailure(JSContext* aCx, LoadedScript* aScript,
+                                const nsAString& aSpecifier,
+                                ResolveError aError, uint32_t aLineNumber,
+                                uint32_t aColumnNumber,
+                                JS::MutableHandle<JS::Value> aErrorOut);
 
   enum class RestartRequest { No, Yes };
   nsresult StartOrRestartModuleLoad(ModuleLoadRequest* aRequest,

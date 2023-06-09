@@ -11,13 +11,13 @@ const { XPCOMUtils } = ChromeUtils.importESModule(
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  AttributionCode: "resource:///modules/AttributionCode.sys.mjs",
   ClientID: "resource://gre/modules/ClientID.sys.mjs",
   TelemetrySession: "resource://gre/modules/TelemetrySession.sys.mjs",
 });
 
 XPCOMUtils.defineLazyModuleGetters(lazy, {
   PingCentre: "resource:///modules/PingCentre.jsm",
-  AttributionCode: "resource:///modules/AttributionCode.jsm",
 });
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
@@ -110,7 +110,8 @@ class AboutWelcomeTelemetry {
     const ping = await this._createPing(event);
     this.pingCentre.sendStructuredIngestionPing(
       ping,
-      this._generateStructuredIngestionEndpoint()
+      this._generateStructuredIngestionEndpoint(),
+      STRUCTURED_INGESTION_NAMESPACE_MS
     );
   }
 }

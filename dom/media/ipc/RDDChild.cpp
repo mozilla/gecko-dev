@@ -20,6 +20,7 @@
 #endif
 
 #include "mozilla/Telemetry.h"
+#include "mozilla/TelemetryIPC.h"
 
 #if defined(XP_WIN)
 #  include "mozilla/WinDllServices.h"
@@ -33,11 +34,9 @@ namespace mozilla {
 using namespace layers;
 using namespace gfx;
 
-RDDChild::RDDChild(RDDProcessHost* aHost) : mHost(aHost) {
-  MOZ_COUNT_CTOR(RDDChild);
-}
+RDDChild::RDDChild(RDDProcessHost* aHost) : mHost(aHost) {}
 
-RDDChild::~RDDChild() { MOZ_COUNT_DTOR(RDDChild); }
+RDDChild::~RDDChild() = default;
 
 bool RDDChild::Init() {
   Maybe<FileDescriptor> brokerFd;
@@ -148,6 +147,45 @@ mozilla::ipc::IPCResult RDDChild::RecvUpdateMediaCodecsSupported(
   return IPC_OK();
 }
 
+mozilla::ipc::IPCResult RDDChild::RecvAccumulateChildHistograms(
+    nsTArray<HistogramAccumulation>&& aAccumulations) {
+  TelemetryIPC::AccumulateChildHistograms(Telemetry::ProcessID::Rdd,
+                                          aAccumulations);
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult RDDChild::RecvAccumulateChildKeyedHistograms(
+    nsTArray<KeyedHistogramAccumulation>&& aAccumulations) {
+  TelemetryIPC::AccumulateChildKeyedHistograms(Telemetry::ProcessID::Rdd,
+                                               aAccumulations);
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult RDDChild::RecvUpdateChildScalars(
+    nsTArray<ScalarAction>&& aScalarActions) {
+  TelemetryIPC::UpdateChildScalars(Telemetry::ProcessID::Rdd, aScalarActions);
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult RDDChild::RecvUpdateChildKeyedScalars(
+    nsTArray<KeyedScalarAction>&& aScalarActions) {
+  TelemetryIPC::UpdateChildKeyedScalars(Telemetry::ProcessID::Rdd,
+                                        aScalarActions);
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult RDDChild::RecvRecordChildEvents(
+    nsTArray<mozilla::Telemetry::ChildEventData>&& aEvents) {
+  TelemetryIPC::RecordChildEvents(Telemetry::ProcessID::Rdd, aEvents);
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult RDDChild::RecvRecordDiscardedData(
+    const mozilla::Telemetry::DiscardedData& aDiscardedData) {
+  TelemetryIPC::RecordDiscardedData(Telemetry::ProcessID::Rdd, aDiscardedData);
+  return IPC_OK();
+}
+
 mozilla::ipc::IPCResult RDDChild::RecvFOGData(ByteBuf&& aBuf) {
   glean::FOGData(std::move(aBuf));
   return IPC_OK();
@@ -170,17 +208,17 @@ void RDDChild::ActorDestroy(ActorDestroyReason aWhy) {
 
 class DeferredDeleteRDDChild : public Runnable {
  public:
-  explicit DeferredDeleteRDDChild(UniquePtr<RDDChild>&& aChild)
+  explicit DeferredDeleteRDDChild(RefPtr<RDDChild>&& aChild)
       : Runnable("gfx::DeferredDeleteRDDChild"), mChild(std::move(aChild)) {}
 
   NS_IMETHODIMP Run() override { return NS_OK; }
 
  private:
-  UniquePtr<RDDChild> mChild;
+  RefPtr<RDDChild> mChild;
 };
 
 /* static */
-void RDDChild::Destroy(UniquePtr<RDDChild>&& aChild) {
+void RDDChild::Destroy(RefPtr<RDDChild>&& aChild) {
   NS_DispatchToMainThread(new DeferredDeleteRDDChild(std::move(aChild)));
 }
 

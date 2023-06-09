@@ -9,12 +9,12 @@ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  action: "chrome://remote/content/marionette/action.sys.mjs",
+  accessibility: "chrome://remote/content/marionette/accessibility.sys.mjs",
+  action: "chrome://remote/content/shared/webdriver/Actions.sys.mjs",
   atom: "chrome://remote/content/marionette/atom.sys.mjs",
   element: "chrome://remote/content/marionette/element.sys.mjs",
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   evaluate: "chrome://remote/content/marionette/evaluate.sys.mjs",
-  event: "chrome://remote/content/marionette/event.sys.mjs",
   interaction: "chrome://remote/content/marionette/interaction.sys.mjs",
   json: "chrome://remote/content/marionette/json.sys.mjs",
   legacyaction: "chrome://remote/content/marionette/legacyaction.sys.mjs",
@@ -110,6 +110,12 @@ export class MarionetteCommandsChild extends JSWindowActorChild {
         case "MarionetteCommandsParent:getActiveElement":
           result = await this.getActiveElement();
           break;
+        case "MarionetteCommandsParent:getComputedLabel":
+          result = await this.getComputedLabel(data);
+          break;
+        case "MarionetteCommandsParent:getComputedRole":
+          result = await this.getComputedRole(data);
+          break;
         case "MarionetteCommandsParent:getElementAttribute":
           result = await this.getElementAttribute(data);
           break;
@@ -190,7 +196,7 @@ export class MarionetteCommandsChild extends JSWindowActorChild {
 
   /** Clear the text of an element.
    *
-   * @param {Object} options
+   * @param {object} options
    * @param {Element} options.elem
    */
   clearElement(options = {}) {
@@ -232,11 +238,11 @@ export class MarionetteCommandsChild extends JSWindowActorChild {
    * Find an element in the current browsing context's document using the
    * given search strategy.
    *
-   * @param {Object} options
-   * @param {Object} options.opts
-   * @param {Element} opts.startNode
-   * @param {string} opts.strategy
-   * @param {string} opts.selector
+   * @param {object=} options
+   * @param {string} options.strategy
+   * @param {string} options.selector
+   * @param {object} options.opts
+   * @param {Element} options.opts.startNode
    *
    */
   async findElement(options = {}) {
@@ -252,11 +258,11 @@ export class MarionetteCommandsChild extends JSWindowActorChild {
    * Find elements in the current browsing context's document using the
    * given search strategy.
    *
-   * @param {Object} options
-   * @param {Object} options.opts
-   * @param {Element} opts.startNode
-   * @param {string} opts.strategy
-   * @param {string} opts.selector
+   * @param {object=} options
+   * @param {string} options.strategy
+   * @param {string} options.selector
+   * @param {object} options.opts
+   * @param {Element} options.opts.startNode
    *
    */
   async findElements(options = {}) {
@@ -278,6 +284,34 @@ export class MarionetteCommandsChild extends JSWindowActorChild {
     }
 
     return elem;
+  }
+
+  /**
+   * Return the accessible label for a given element.
+   */
+  async getComputedLabel(options = {}) {
+    const { elem } = options;
+
+    const accessible = await lazy.accessibility.getAccessible(elem);
+    if (!accessible) {
+      return null;
+    }
+
+    return accessible.name;
+  }
+
+  /**
+   * Return the accessible role for a given element.
+   */
+  async getComputedRole(options = {}) {
+    const { elem } = options;
+
+    const accessible = await lazy.accessibility.getAccessible(elem);
+    if (!accessible) {
+      return null;
+    }
+
+    return accessible.computedARIARole;
   }
 
   /**
@@ -372,7 +406,7 @@ export class MarionetteCommandsChild extends JSWindowActorChild {
    *
    * Also it takes care of scrolling an element into view if requested.
    *
-   * @param {Object} options
+   * @param {object} options
    * @param {Element} options.elem
    *     Optional element to take a screenshot of.
    * @param {boolean=} options.full
@@ -382,7 +416,7 @@ export class MarionetteCommandsChild extends JSWindowActorChild {
    *     When <var>elem</var> is given, scroll it into view.
    *     Defaults to true.
    *
-   * @return {DOMRect}
+   * @returns {DOMRect}
    *     The area to take a snapshot from.
    */
   async getScreenshotRect(options = {}) {
@@ -462,10 +496,10 @@ export class MarionetteCommandsChild extends JSWindowActorChild {
   /**
    * Perform a series of grouped actions at the specified points in time.
    *
-   * @param {Object} options
-   * @param {Object} options.actions
+   * @param {object} options
+   * @param {object} options.actions
    *     Array of objects with each representing an action sequence.
-   * @param {Object} options.capabilities
+   * @param {object} options.capabilities
    *     Object with a list of WebDriver session capabilities.
    */
   async performActions(options = {}) {
@@ -492,13 +526,8 @@ export class MarionetteCommandsChild extends JSWindowActorChild {
     if (this.actionState === null) {
       return;
     }
-    this.actionState.inputsToCancel.reverse();
-    await this.actionState.inputsToCancel.dispatch(
-      this.actionState,
-      this.document.defaultView
-    );
+    await this.actionState.release(this.document.defaultView);
     this.actionState = null;
-    lazy.event.DoubleClickTracker.resetClick();
   }
 
   /*
@@ -527,7 +556,7 @@ export class MarionetteCommandsChild extends JSWindowActorChild {
   /**
    * Switch to the specified frame.
    *
-   * @param {Object=} options
+   * @param {object=} options
    * @param {(number|Element)=} options.id
    *     If it's a number treat it as the index for all the existing frames.
    *     If it's an Element switch to this specific frame.

@@ -75,12 +75,12 @@ if CONFIG["OS_ARCH"] == "WINNT":
     EXPORTS.mozilla += [
         "DynamicallyLinkedFunctionPtr.h",
         "ImportDir.h",
-        "MozProcessMitigationDynamicCodePolicy.h",
         "NativeNt.h",
         "WindowsDpiInitialization.h",
         "WindowsEnumProcessModules.h",
         "WindowsMapRemoteView.h",
         "WindowsProcessMitigations.h",
+        "WindowsStackCookie.h",
         "WindowsUnwindInfo.h",
     ]
     EXPORTS.mozilla.glue += [

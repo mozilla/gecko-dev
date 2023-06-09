@@ -20,7 +20,6 @@
 #include "nsIPushErrorReporter.h"
 #include "nsISupportsImpl.h"
 #include "nsITimer.h"
-#include "nsProxyRelease.h"
 #include "nsServiceManagerUtils.h"
 #include "nsTArray.h"
 #include "nsThreadUtils.h"
@@ -324,11 +323,11 @@ bool ServiceWorkerOp::MaybeStart(RemoteWorkerChild* aOwner,
                                  RemoteWorkerChild::State& aState) {
   MOZ_ASSERT(!mStarted);
   MOZ_ASSERT(aOwner);
-  MOZ_ASSERT(aOwner->GetOwningEventTarget()->IsOnCurrentThread());
+  MOZ_ASSERT(aOwner->GetActorEventTarget()->IsOnCurrentThread());
 
   auto launcherData = aOwner->mLauncherData.Access();
 
-  if (NS_WARN_IF(!launcherData->mIPCActive)) {
+  if (NS_WARN_IF(!aOwner->CanSend())) {
     RejectAll(NS_ERROR_DOM_ABORT_ERR);
     mStarted = true;
     return true;
@@ -339,8 +338,8 @@ bool ServiceWorkerOp::MaybeStart(RemoteWorkerChild* aOwner,
     return false;
   }
 
-  if (NS_WARN_IF(aState.is<RemoteWorkerChild::PendingTerminated>()) ||
-      NS_WARN_IF(aState.is<RemoteWorkerChild::Terminated>())) {
+  if (NS_WARN_IF(aState.is<RemoteWorkerChild::Canceled>()) ||
+      NS_WARN_IF(aState.is<RemoteWorkerChild::Killed>())) {
     RejectAll(NS_ERROR_DOM_INVALID_STATE_ERR);
     mStarted = true;
     return true;
@@ -368,35 +367,13 @@ bool ServiceWorkerOp::MaybeStart(RemoteWorkerChild* aOwner,
         });
   }
 
+  // NewRunnableMethod doesn't work here because the template does not appear to
+  // be able to deal with the owner argument having storage as a RefPtr but
+  // with the method taking a RefPtr&.
   RefPtr<RemoteWorkerChild> owner = aOwner;
-
   nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
       __func__, [self = std::move(self), owner = std::move(owner)]() mutable {
-        MaybeReportServiceWorkerShutdownProgress(self->mArgs);
-
-        auto lock = owner->mState.Lock();
-        auto& state = lock.ref();
-
-        if (NS_WARN_IF(!state.is<Running>() && !self->IsTerminationOp())) {
-          self->RejectAll(NS_ERROR_DOM_INVALID_STATE_ERR);
-          return;
-        }
-
-        if (self->IsTerminationOp()) {
-          owner->CloseWorkerOnMainThread(state);
-        } else {
-          MOZ_ASSERT(state.is<Running>());
-
-          RefPtr<WorkerRunnable> workerRunnable =
-              self->GetRunnable(state.as<Running>().mWorkerPrivate);
-
-          if (NS_WARN_IF(!workerRunnable->Dispatch())) {
-            self->RejectAll(NS_ERROR_FAILURE);
-          }
-        }
-
-        nsCOMPtr<nsIEventTarget> target = owner->GetOwningEventTarget();
-        NS_ProxyRelease(__func__, target, owner.forget());
+        self->StartOnMainThread(owner);
       });
 
   mStarted = true;
@@ -405,6 +382,33 @@ bool ServiceWorkerOp::MaybeStart(RemoteWorkerChild* aOwner,
       SchedulerGroup::Dispatch(TaskCategory::Other, r.forget()));
 
   return true;
+}
+
+void ServiceWorkerOp::StartOnMainThread(RefPtr<RemoteWorkerChild>& aOwner) {
+  MaybeReportServiceWorkerShutdownProgress(mArgs);
+
+  {
+    auto lock = aOwner->mState.Lock();
+
+    if (NS_WARN_IF(!lock->is<Running>() && !IsTerminationOp())) {
+      RejectAll(NS_ERROR_DOM_INVALID_STATE_ERR);
+      return;
+    }
+  }
+
+  if (IsTerminationOp()) {
+    aOwner->CloseWorkerOnMainThread();
+  } else {
+    auto lock = aOwner->mState.Lock();
+    MOZ_ASSERT(lock->is<Running>());
+
+    RefPtr<WorkerRunnable> workerRunnable =
+        GetRunnable(lock->as<Running>().mWorkerPrivate);
+
+    if (NS_WARN_IF(!workerRunnable->Dispatch())) {
+      RejectAll(NS_ERROR_FAILURE);
+    }
+  }
 }
 
 void ServiceWorkerOp::Cancel() { RejectAll(NS_ERROR_DOM_ABORT_ERR); }
@@ -1215,11 +1219,6 @@ FetchEventOp::~FetchEventOp() {
           NS_ERROR_DOM_ABORT_ERR,
           FetchEventTimeStamps(mFetchHandlerStart, mFetchHandlerFinish)),
       __func__);
-
-  if (mActor) {
-    NS_ProxyRelease("FetchEventOp::mActor", RemoteWorkerService::Thread(),
-                    mActor.forget());
-  }
 }
 
 void FetchEventOp::RejectAll(nsresult aStatus) {
@@ -1271,6 +1270,7 @@ void FetchEventOp::MaybeFinished() {
     mHandled = nullptr;
     mPreloadResponse = nullptr;
     mPreloadResponseAvailablePromiseRequestHolder.DisconnectIfExists();
+    mPreloadResponseTimingPromiseRequestHolder.DisconnectIfExists();
     mPreloadResponseEndPromiseRequestHolder.DisconnectIfExists();
 
     ServiceWorkerFetchEventOpResult result(
@@ -1520,7 +1520,7 @@ void FetchEventOp::ResolvedCallback(JSContext* aCx,
   // where it's going.
   mHandled->MaybeResolveWithUndefined();
   mRespondWithPromiseHolder.Resolve(
-      FetchEventRespondWithResult(MakeTuple(
+      FetchEventRespondWithResult(std::make_tuple(
           std::move(ir), mRespondWithClosure.ref(),
           FetchEventTimeStamps(mFetchHandlerStart, mFetchHandlerFinish))),
       __func__);
@@ -1698,21 +1698,35 @@ nsresult FetchEventOp::DispatchFetchEvent(JSContext* aCx,
     RefPtr<PerformanceStorage> performanceStorage =
         aWorkerPrivate->GetPerformanceStorage();
 
+    RefPtr<FetchEventPreloadResponseTimingPromise>
+        preloadResponseTimingPromise =
+            mActor->GetPreloadResponseTimingPromise();
+    MOZ_ASSERT(preloadResponseTimingPromise);
+    preloadResponseTimingPromise
+        ->Then(
+            GetCurrentSerialEventTarget(), __func__,
+            [self, performanceStorage,
+             globalObjectAsSupports](ResponseTiming&& aTiming) {
+              if (performanceStorage && !aTiming.entryName().IsEmpty() &&
+                  aTiming.initiatorType().Equals(u"navigation"_ns)) {
+                performanceStorage->AddEntry(
+                    aTiming.entryName(), aTiming.initiatorType(),
+                    MakeUnique<PerformanceTimingData>(aTiming.timingData()));
+              }
+              self->mPreloadResponseTimingPromiseRequestHolder.Complete();
+            },
+            [self](int) {
+              self->mPreloadResponseTimingPromiseRequestHolder.Complete();
+            })
+        ->Track(mPreloadResponseTimingPromiseRequestHolder);
+
     RefPtr<FetchEventPreloadResponseEndPromise> preloadResponseEndPromise =
         mActor->GetPreloadResponseEndPromise();
     MOZ_ASSERT(preloadResponseEndPromise);
     preloadResponseEndPromise
         ->Then(
             GetCurrentSerialEventTarget(), __func__,
-            [self, performanceStorage,
-             globalObjectAsSupports](ResponseEndArgs&& aArgs) {
-              if (aArgs.timing().isSome() && performanceStorage) {
-                performanceStorage->AddEntry(
-                    aArgs.timing().ref().entryName(),
-                    aArgs.timing().ref().initiatorType(),
-                    MakeUnique<PerformanceTimingData>(
-                        aArgs.timing().ref().timingData()));
-              }
+            [self, globalObjectAsSupports](ResponseEndArgs&& aArgs) {
               if (aArgs.endReason() == FetchDriverObserver::eAborted) {
                 self->mPreloadResponse->MaybeReject(NS_ERROR_DOM_ABORT_ERR);
               }

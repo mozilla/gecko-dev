@@ -16,29 +16,19 @@ FINAL_LIBRARY = "webrtc"
 
 LOCAL_INCLUDES += [
     "!/ipc/ipdl/_ipdlheaders",
+    "!/third_party/libwebrtc/gen",
     "/ipc/chromium/src",
     "/third_party/libwebrtc/",
     "/third_party/libwebrtc/third_party/abseil-cpp/",
     "/tools/profiler/public"
 ]
 
-SOURCES += [
-    "/third_party/libwebrtc/third_party/abseil-cpp/absl/strings/numbers.cc"
-]
-
 UNIFIED_SOURCES += [
     "/third_party/libwebrtc/third_party/abseil-cpp/absl/strings/ascii.cc",
-    "/third_party/libwebrtc/third_party/abseil-cpp/absl/strings/charconv.cc",
-    "/third_party/libwebrtc/third_party/abseil-cpp/absl/strings/escaping.cc",
-    "/third_party/libwebrtc/third_party/abseil-cpp/absl/strings/internal/charconv_bigint.cc",
-    "/third_party/libwebrtc/third_party/abseil-cpp/absl/strings/internal/charconv_parse.cc",
     "/third_party/libwebrtc/third_party/abseil-cpp/absl/strings/internal/memutil.cc",
     "/third_party/libwebrtc/third_party/abseil-cpp/absl/strings/match.cc",
-    "/third_party/libwebrtc/third_party/abseil-cpp/absl/strings/str_cat.cc",
-    "/third_party/libwebrtc/third_party/abseil-cpp/absl/strings/str_replace.cc",
     "/third_party/libwebrtc/third_party/abseil-cpp/absl/strings/str_split.cc",
-    "/third_party/libwebrtc/third_party/abseil-cpp/absl/strings/string_view.cc",
-    "/third_party/libwebrtc/third_party/abseil-cpp/absl/strings/substitute.cc"
+    "/third_party/libwebrtc/third_party/abseil-cpp/absl/strings/string_view.cc"
 ]
 
 if not CONFIG["MOZ_DEBUG"]:
@@ -148,6 +138,10 @@ if CONFIG["CPU_ARCH"] == "arm" and CONFIG["OS_TARGET"] == "Android":
 
 if CONFIG["CPU_ARCH"] == "x86" and CONFIG["OS_TARGET"] == "Android":
 
+    CXXFLAGS += [
+        "-msse2"
+    ]
+
     OS_LIBS += [
         "android_support"
     ]
@@ -161,6 +155,10 @@ if CONFIG["CPU_ARCH"] == "arm" and CONFIG["OS_TARGET"] == "Linux":
     DEFINES["_GNU_SOURCE"] = True
 
 if CONFIG["CPU_ARCH"] == "x86" and CONFIG["OS_TARGET"] == "Linux":
+
+    CXXFLAGS += [
+        "-msse2"
+    ]
 
     DEFINES["_GNU_SOURCE"] = True
 

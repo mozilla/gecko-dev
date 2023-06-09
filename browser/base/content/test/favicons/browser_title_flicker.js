@@ -1,4 +1,5 @@
 const TEST_PATH =
+  // eslint-disable-next-line @microsoft/sdl/no-insecure-url
   "http://example.com/browser/browser/base/content/test/favicons/";
 
 function waitForAttributeChange(tab, attr) {
@@ -37,7 +38,7 @@ add_task(async () => {
     { gBrowser, url: "about:blank" },
     async browser => {
       let tab = gBrowser.getTabForBrowser(browser);
-      BrowserTestUtils.loadURI(
+      BrowserTestUtils.loadURIString(
         browser,
         TEST_PATH + "file_with_slow_favicon.html"
       );
@@ -77,6 +78,7 @@ add_task(async () => {
     { gBrowser, url: TEST_PATH + "blank.html" },
     async browser => {
       let icon = await iconAvailable;
+      // eslint-disable-next-line @microsoft/sdl/no-insecure-url
       is(icon.iconURL, "http://example.com/favicon.ico");
 
       let tab = gBrowser.getTabForBrowser(browser);
@@ -145,7 +147,7 @@ add_task(async () => {
       gBrowser.pinTab(tab);
 
       let bounds = tab.getBoundingClientRect();
-      BrowserTestUtils.loadURI(
+      BrowserTestUtils.loadURIString(
         browser,
         TEST_PATH + "file_with_slow_favicon.html"
       );

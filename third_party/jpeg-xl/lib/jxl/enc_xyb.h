@@ -8,7 +8,6 @@
 
 // Converts to XYB color space.
 
-#include "lib/jxl/aux_out_fwd.h"
 #include "lib/jxl/base/compiler_specific.h"
 #include "lib/jxl/base/data_parallel.h"
 #include "lib/jxl/base/status.h"
@@ -31,9 +30,16 @@ void Image3FToXYB(const Image3F& in, const ColorEncoding& color_encoding,
                   float intensity_target, ThreadPool* pool,
                   Image3F* JXL_RESTRICT xyb, const JxlCmsInterface& cms);
 
+void LinearRGBRowToXYB(float* JXL_RESTRICT row0, float* JXL_RESTRICT row1,
+                       float* JXL_RESTRICT row2,
+                       const float* JXL_RESTRICT premul_absorb, size_t xsize);
+
+void ComputePremulAbsorb(float intensity_target, float* premul_absorb);
+
 // Transforms each color component of the given XYB image into the [0.0, 1.0]
 // interval with an affine transform.
 void ScaleXYB(Image3F* opsin);
+void ScaleXYBRow(float* row0, float* row1, float* row2, size_t xsize);
 
 // Bt.601 to match JPEG/JFIF. Outputs _signed_ YCbCr values suitable for DCT,
 // see F.1.1.3 of T.81 (because our data type is float, there is no need to add

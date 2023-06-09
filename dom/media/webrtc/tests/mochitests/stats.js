@@ -7,6 +7,7 @@
 const statsExpectedByType = {
   "inbound-rtp": {
     expected: [
+      "trackIdentifier",
       "id",
       "timestamp",
       "type",
@@ -31,6 +32,7 @@ const statsExpectedByType = {
       "firCount",
       "pliCount",
       "framesDecoded",
+      "framesDropped",
       "discardedPackets",
       "framesPerSecond",
       "frameWidth",
@@ -151,6 +153,26 @@ const statsExpectedByType = {
     optional: ["nackCount"],
     unimplemented: ["mediaTrackId", "transportId", "sliCount", "targetBitrate"],
     deprecated: ["isRemote"],
+  },
+  "media-source": {
+    expected: ["id", "timestamp", "type", "trackIdentifier", "kind"],
+    unimplemented: [
+      "audioLevel",
+      "totalAudioEnergy",
+      "totalSamplesDuration",
+      "echoReturnLoss",
+      "echoReturnLossEnhancement",
+      "droppedSamplesDuration",
+      "droppedSamplesEvents",
+      "totalCaptureDelay",
+      "totalSamplesCaptured",
+      "width",
+      "height",
+      "frames",
+      "framesPerSecond",
+    ],
+    optional: [],
+    deprecated: [],
   },
   csrc: { skip: true },
   codec: {
@@ -493,6 +515,10 @@ function pedanticChecks(report) {
       // Required fields
       //
 
+      // trackIdentifier
+      is(typeof stat.trackIdentifier, "string");
+      isnot(stat.trackIdentifier, "");
+
       // packetsReceived
       ok(
         stat.packetsReceived >= 0 && stat.packetsReceived < 10 ** 5,
@@ -706,6 +732,13 @@ function pedanticChecks(report) {
           stat.framesDecoded > 0 && stat.framesDecoded < 1000000,
           `${stat.type}.framesDecoded is a sane number for a short ` +
             `${stat.kind} test. value=${stat.framesDecoded}`
+        );
+
+        // framesDropped
+        ok(
+          stat.framesDropped >= 0 && stat.framesDropped < 100,
+          `${stat.type}.framesDropped is a sane number for a short ` +
+            `${stat.kind} test. value=${stat.framesDropped}`
         );
 
         // frameWidth
@@ -1011,6 +1044,14 @@ function pedanticChecks(report) {
           `${stat.type}.timestamp, and no older than 30 seconds. ` +
           `difference=${ageSeconds}s`
       );
+    } else if (stat.type == "media-source") {
+      // trackIdentifier
+      is(typeof stat.trackIdentifier, "string");
+      isnot(stat.trackIdentifier, "");
+
+      // kind
+      is(typeof stat.kind, "string");
+      ok(stat.kind == "audio" || stat.kind == "video");
     } else if (stat.type == "codec") {
       //
       // Required fields

@@ -84,10 +84,6 @@
 #include "rtc_base/thread_annotations.h"
 #include "rtc_base/weak_ptr.h"
 
-namespace cricket {
-class ChannelManager;
-}
-
 namespace webrtc {
 
 // PeerConnection is the implementation of the PeerConnection object as defined
@@ -129,6 +125,14 @@ class PeerConnection : public PeerConnectionInternal,
   RTCErrorOr<rtc::scoped_refptr<RtpSenderInterface>> AddTrack(
       rtc::scoped_refptr<MediaStreamTrackInterface> track,
       const std::vector<std::string>& stream_ids) override;
+  RTCErrorOr<rtc::scoped_refptr<RtpSenderInterface>> AddTrack(
+      rtc::scoped_refptr<MediaStreamTrackInterface> track,
+      const std::vector<std::string>& stream_ids,
+      const std::vector<RtpEncodingParameters>& init_send_encodings) override;
+  RTCErrorOr<rtc::scoped_refptr<RtpSenderInterface>> AddTrack(
+      rtc::scoped_refptr<MediaStreamTrackInterface> track,
+      const std::vector<std::string>& stream_ids,
+      const std::vector<RtpEncodingParameters>* init_send_encodings);
   RTCError RemoveTrackOrError(
       rtc::scoped_refptr<RtpSenderInterface> sender) override;
 
@@ -370,10 +374,6 @@ class PeerConnection : public PeerConnectionInternal,
   // Asynchronously adds a remote candidate on the network thread.
   void AddRemoteCandidate(const std::string& mid,
                           const cricket::Candidate& candidate) override;
-
-  // Report the UMA metric SdpFormatReceived for the given remote description.
-  void ReportSdpFormatReceived(
-      const SessionDescriptionInterface& remote_description) override;
 
   // Report the UMA metric BundleUsage for the given remote description.
   void ReportSdpBundleUsage(

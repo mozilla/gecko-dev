@@ -259,28 +259,14 @@ nsRect nsCaret::GetGeometryForFrame(nsIFrame* aFrame, int32_t aFrameOffset,
   }
   NS_ASSERTION(!frame->HasAnyStateBits(NS_FRAME_IN_REFLOW),
                "We should not be in the middle of reflow");
-  nscoord baseline = frame->GetCaretBaseline();
-  nscoord ascent = 0, descent = 0;
+  WritingMode wm = aFrame->GetWritingMode();
   RefPtr<nsFontMetrics> fm =
       nsLayoutUtils::GetInflatedFontMetricsForFrame(aFrame);
-  NS_ASSERTION(fm, "We should be able to get the font metrics");
-  if (fm) {
-    ascent = fm->MaxAscent();
-    descent = fm->MaxDescent();
-  }
-  nscoord height = ascent + descent;
-  WritingMode wm = aFrame->GetWritingMode();
+  const auto caretBlockAxisMetrics = frame->GetCaretBlockAxisMetrics(wm, *fm);
+  nscoord inlineOffset = 0;
   bool vertical = wm.IsVertical();
-  if (vertical) {
-    if (wm.IsLineInverted()) {
-      framePos.x = baseline - descent;
-    } else {
-      framePos.x = baseline - ascent;
-    }
-  } else {
-    framePos.y = baseline - ascent;
-  }
-  Metrics caretMetrics = ComputeMetrics(aFrame, aFrameOffset, height);
+  Metrics caretMetrics =
+      ComputeMetrics(aFrame, aFrameOffset, caretBlockAxisMetrics.mExtent);
 
   nsTextFrame* textFrame = do_QueryFrame(aFrame);
   if (textFrame) {
@@ -299,18 +285,24 @@ nsRect nsCaret::GetGeometryForFrame(nsIFrame* aFrame, int32_t aFrameOffset,
       //   if ( (!textRun->IsSidewaysLeft() && textRunDirIsReverseOfFrame) ||
       //        (textRun->IsSidewaysLeft()  && !textRunDirIsReverseOfFrame) )
       if (textRunDirIsReverseOfFrame != textRun->IsSidewaysLeft()) {
-        int dir = wm.IsBidiLTR() ? -1 : 1;
-        if (vertical) {
-          framePos.y += dir * caretMetrics.mCaretWidth;
-        } else {
-          framePos.x += dir * caretMetrics.mCaretWidth;
-        }
+        inlineOffset = wm.IsBidiLTR() ? -caretMetrics.mCaretWidth
+                                      : caretMetrics.mCaretWidth;
       }
     }
   }
 
-  rect = nsRect(framePos, vertical ? nsSize(height, caretMetrics.mCaretWidth)
-                                   : nsSize(caretMetrics.mCaretWidth, height));
+  if (vertical) {
+    framePos.x = caretBlockAxisMetrics.mOffset;
+    framePos.y += inlineOffset;
+  } else {
+    framePos.x += inlineOffset;
+    framePos.y = caretBlockAxisMetrics.mOffset;
+  }
+
+  rect = nsRect(framePos, vertical ? nsSize(caretBlockAxisMetrics.mExtent,
+                                            caretMetrics.mCaretWidth)
+                                   : nsSize(caretMetrics.mCaretWidth,
+                                            caretBlockAxisMetrics.mExtent));
 
   // Clamp the inline-position to be within our scroll frame. If we don't, then
   // it clips us, and we don't appear at all. See bug 335560.
@@ -612,7 +604,7 @@ void nsCaret::ResetBlinking() {
   }
 
   auto blinkRate =
-      uint32_t(LookAndFeel::GetInt(IntID::CaretBlinkTime, kDefaultBlinkRate));
+      LookAndFeel::GetInt(IntID::CaretBlinkTime, kDefaultBlinkRate);
 
   if (blinkRate > 0) {
     // Make sure to reset the remaining blink count even if the blink rate
@@ -758,9 +750,10 @@ nsIFrame* nsCaret::GetCaretFrameForNodeOffset(nsFrameSelection* aFrameSelection,
                 // be in. We have to find the visually first frame on the line.
                 BidiEmbeddingLevel baseLevel = frameAfter->GetBaseLevel();
                 if (baseLevel != levelAfter) {
-                  nsPeekOffsetStruct pos(eSelectBeginLine, eDirPrevious, 0,
-                                         nsPoint(0, 0), false, true, false,
-                                         true, false);
+                  PeekOffsetStruct pos(eSelectBeginLine, eDirPrevious, 0,
+                                       nsPoint(0, 0),
+                                       {PeekOffsetOption::ScrollViewStop,
+                                        PeekOffsetOption::Visual});
                   if (NS_SUCCEEDED(frameAfter->PeekOffset(&pos))) {
                     theFrame = pos.mResultFrame;
                     theFrameOffset = pos.mContentOffset;
@@ -789,9 +782,10 @@ nsIFrame* nsCaret::GetCaretFrameForNodeOffset(nsFrameSelection* aFrameSelection,
                 // frame on the line.
                 BidiEmbeddingLevel baseLevel = frameBefore->GetBaseLevel();
                 if (baseLevel != levelBefore) {
-                  nsPeekOffsetStruct pos(eSelectEndLine, eDirNext, 0,
-                                         nsPoint(0, 0), false, true, false,
-                                         true, false);
+                  PeekOffsetStruct pos(eSelectEndLine, eDirNext, 0,
+                                       nsPoint(0, 0),
+                                       {PeekOffsetOption::ScrollViewStop,
+                                        PeekOffsetOption::Visual});
                   if (NS_SUCCEEDED(frameBefore->PeekOffset(&pos))) {
                     theFrame = pos.mResultFrame;
                     theFrameOffset = pos.mContentOffset;
@@ -888,7 +882,7 @@ bool nsCaret::IsMenuPopupHidingCaret() {
       return false;
     }
 
-    if (popupFrame->PopupType() == ePopupTypeMenu &&
+    if (popupFrame->GetPopupType() == widget::PopupType::Menu &&
         !popupFrame->IsContextMenu()) {
       // This is an open menu popup. It does not contain the caret (else we'd
       // have returned above). Even if the caret is in a subsequent popup,

@@ -18,7 +18,7 @@ with Files("tests/**"):
     BUG_COMPONENT = ("Core", "WebRTC")
 
 component_signaling = ("Core", "WebRTC: Signaling")
-with Files("IdpSandbox.jsm"):
+with Files("IdpSandbox.sys.mjs"):
     BUG_COMPONENT = component_signaling
 with Files("PeerConnection*"):
     BUG_COMPONENT = component_signaling
@@ -98,6 +98,7 @@ BROWSER_CHROME_MANIFESTS += [
     "mediacontrol/tests/browser/browser.ini",
     "mediasession/test/browser.ini",
     "test/browser/browser.ini",
+    "test/browser/wmfme/browser.ini",
 ]
 
 if CONFIG["MOZ_WEBRTC"]:
@@ -346,12 +347,12 @@ if CONFIG["MOZ_WEBRTC"]:
     ]
 
     EXTRA_JS_MODULES.media += [
-        "PeerConnection.jsm",
+        "PeerConnection.sys.mjs",
     ]
 
 EXTRA_JS_MODULES.media += [
-    "IdpSandbox.jsm",
-    "PeerConnectionIdp.jsm",
+    "IdpSandbox.sys.mjs",
+    "PeerConnectionIdp.sys.mjs",
 ]
 
 LOCAL_INCLUDES += [
@@ -382,8 +383,6 @@ if CONFIG["COMPILE_ENVIRONMENT"]:
     EXPORTS += [
         "!audioipc2_client_ffi_generated.h",
         "!audioipc2_server_ffi_generated.h",
-        "!audioipc_client_ffi_generated.h",
-        "!audioipc_server_ffi_generated.h",
     ]
 
     CbindgenHeader(
@@ -396,13 +395,10 @@ if CONFIG["COMPILE_ENVIRONMENT"]:
         inputs=["/third_party/rust/audioipc2-server"],
     )
 
-    CbindgenHeader(
-        "audioipc_client_ffi_generated.h", inputs=["/third_party/rust/audioipc-client"]
-    )
-
-    CbindgenHeader(
-        "audioipc_server_ffi_generated.h", inputs=["/third_party/rust/audioipc-server"]
-    )
+if CONFIG["ENABLE_TESTS"]:
+    DIRS += [
+        "test/rdd_process_xpcom",
+    ]
 
 include("/ipc/chromium/chromium-config.mozbuild")
 

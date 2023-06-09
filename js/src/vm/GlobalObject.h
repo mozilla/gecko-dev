@@ -201,6 +201,9 @@ class GlobalObjectData {
   HeapPtr<SharedShape*> functionShapeWithDefaultProto;
   HeapPtr<SharedShape*> extendedFunctionShapeWithDefaultProto;
 
+  // Shape for BoundFunctionObject with %Function.prototype% as proto.
+  HeapPtr<SharedShape*> boundFunctionShapeWithDefaultProto;
+
   // Global state for regular expressions.
   UniquePtr<RegExpStatics> regExpStatics;
 
@@ -215,6 +218,14 @@ class GlobalObjectData {
   HeapPtr<ScriptSourceObject*> selfHostingScriptSource;
 
   UniquePtr<gc::FinalizationRegistryGlobalData> finalizationRegistryData;
+
+  // The number of times that one of the following has occurred:
+  // 1. A property of this GlobalObject is deleted.
+  // 2. A data property of this GlobalObject is converted to an accessor,
+  //    or vice versa.
+  // 3. A property is defined on the global lexical that shadows a property on
+  //    this GlobalObject.
+  uint32_t generationCount = 0;
 
   // Whether the |globalThis| property has been resolved on the global object.
   bool globalThisResolved = false;
@@ -986,9 +997,11 @@ class GlobalObject : public NativeObject {
 
   static bool initStandardClasses(JSContext* cx, Handle<GlobalObject*> global);
 
-  Realm::DebuggerVector& getDebuggers() const {
-    return realm()->getDebuggers();
+  // Disallow GC as it may mutate the vector.
+  Realm::DebuggerVector& getDebuggers(const JS::AutoRequireNoGC& nogc) const {
+    return realm()->getDebuggers(nogc);
   }
+  bool hasDebuggers() const { return realm()->hasDebuggers(); }
 
   inline NativeObject* getForOfPICObject() { return data().forOfPICChain; }
   static NativeObject* getOrCreateForOfPICObject(JSContext* cx,
@@ -1053,6 +1066,13 @@ class GlobalObject : public NativeObject {
   static SharedShape* createFunctionShapeWithDefaultProto(JSContext* cx,
                                                           bool extended);
 
+  SharedShape* maybeBoundFunctionShapeWithDefaultProto() const {
+    return data().boundFunctionShapeWithDefaultProto;
+  }
+  void setBoundFunctionShapeWithDefaultProto(SharedShape* shape) {
+    data().boundFunctionShapeWithDefaultProto = shape;
+  }
+
   PropertyIteratorObject* maybeEmptyIterator() const {
     return data().emptyIterator;
   }
@@ -1070,6 +1090,15 @@ class GlobalObject : public NativeObject {
 
   static size_t offsetOfGlobalDataSlot() {
     return getFixedSlotOffset(GLOBAL_DATA_SLOT);
+  }
+
+  uint32_t generationCount() const { return data().generationCount; }
+  const void* addressOfGenerationCount() const {
+    return &data().generationCount;
+  }
+  void bumpGenerationCount() {
+    MOZ_RELEASE_ASSERT(data().generationCount < UINT32_MAX);
+    data().generationCount++;
   }
 };
 

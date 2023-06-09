@@ -12,6 +12,7 @@
 #include "LiveResizeListener.h"
 #include "Units.h"
 #include "js/TypeDecls.h"
+#include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/ContentCache.h"
 #include "mozilla/EventForwards.h"
 #include "mozilla/RefPtr.h"
@@ -25,6 +26,7 @@
 #include "nsIAuthPromptProvider.h"
 #include "nsIBrowserDOMWindow.h"
 #include "nsIDOMEventListener.h"
+#include "nsIFilePicker.h"
 #include "nsIRemoteTab.h"
 #include "nsIWidget.h"
 #include "nsTArray.h"
@@ -417,11 +419,9 @@ class BrowserParent final : public PBrowserParent,
       const ScrollAxis& aHorizontal, const ScrollFlags& aScrollFlags,
       const int32_t& aAppUnitsPerDevPixel);
 
-  PColorPickerParent* AllocPColorPickerParent(
+  already_AddRefed<PColorPickerParent> AllocPColorPickerParent(
       const nsString& aTitle, const nsString& aInitialColor,
       const nsTArray<nsString>& aDefaultColors);
-
-  bool DeallocPColorPickerParent(PColorPickerParent* aColorPicker);
 
   PVsyncParent* AllocPVsyncParent();
 
@@ -594,10 +594,8 @@ class BrowserParent final : public PBrowserParent,
       TapType aType, const LayoutDevicePoint& aPoint, Modifiers aModifiers,
       const ScrollableLayerGuid& aGuid, uint64_t aInputBlockId);
 
-  PFilePickerParent* AllocPFilePickerParent(const nsString& aTitle,
-                                            const int16_t& aMode);
-
-  bool DeallocPFilePickerParent(PFilePickerParent* actor);
+  already_AddRefed<PFilePickerParent> AllocPFilePickerParent(
+      const nsString& aTitle, const nsIFilePicker::Mode& aMode);
 
   bool GetGlobalJSObject(JSContext* cx, JSObject** globalp);
 
@@ -674,7 +672,8 @@ class BrowserParent final : public PBrowserParent,
       const gfx::SurfaceFormat& aFormat, const LayoutDeviceIntRect& aDragRect,
       nsIPrincipal* aPrincipal, nsIContentSecurityPolicy* aCsp,
       const CookieJarSettingsArgs& aCookieJarSettingsArgs,
-      const MaybeDiscarded<WindowContext>& aSourceWindowContext);
+      const MaybeDiscarded<WindowContext>& aSourceWindowContext,
+      const MaybeDiscarded<WindowContext>& aSourceTopWindowContext);
 
   void AddInitialDnDDataTo(DataTransfer* aDataTransfer,
                            nsIPrincipal** aPrincipal);

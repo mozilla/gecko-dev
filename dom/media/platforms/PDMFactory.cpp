@@ -334,7 +334,7 @@ void PDMFactory::EnsureInit() {
     initalization();
     return;
   }
-  nsCOMPtr<nsIEventTarget> mainTarget = GetMainThreadEventTarget();
+  nsCOMPtr<nsIEventTarget> mainTarget = GetMainThreadSerialEventTarget();
   nsCOMPtr<nsIRunnable> runnable = NS_NewRunnableFunction(
       "PDMFactory::EnsureInit", std::move(initalization));
   SyncRunnable::DispatchToThread(mainTarget, runnable);
@@ -689,7 +689,8 @@ void PDMFactory::CreateContentPDMs() {
   CreateAndStartupPDM<AgnosticDecoderModule>();
 
   if (StaticPrefs::media_gmp_decoder_enabled() &&
-      !CreateAndStartupPDM<GMPDecoderModule>()) {
+      !StartupPDM(GMPDecoderModule::Create(),
+                  StaticPrefs::media_gmp_decoder_preferred())) {
     mFailureFlags += DecoderDoctorDiagnostics::Flags::GMPPDMFailedToStartup;
   }
 }
@@ -735,7 +736,8 @@ void PDMFactory::CreateDefaultPDMs() {
   CreateAndStartupPDM<AgnosticDecoderModule>();
 
   if (StaticPrefs::media_gmp_decoder_enabled() &&
-      !CreateAndStartupPDM<GMPDecoderModule>()) {
+      !StartupPDM(GMPDecoderModule::Create(),
+                  StaticPrefs::media_gmp_decoder_preferred())) {
     mFailureFlags += DecoderDoctorDiagnostics::Flags::GMPPDMFailedToStartup;
   }
 }

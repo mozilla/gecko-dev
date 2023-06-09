@@ -28,7 +28,6 @@ cookie.banners:
       - disabled
       - reject
       - reject_or_accept
-      - detect_only
       - invalid
     telemetry_mirror: COOKIE_BANNERS_NORMAL_WINDOW_SERVICE_MODE
   private_window_service_mode:
@@ -50,6 +49,19 @@ cookie.banners:
       - reject_or_accept
       - invalid
     telemetry_mirror: COOKIE_BANNERS_PRIVATE_WINDOW_SERVICE_MODE
+  service_detect_only:
+    type: boolean
+    description: >
+      Tracks the value of the cookiebanners.service.detectOnly pref.
+    bugs:
+      - https://bugzilla.mozilla.org/1809700
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1809700#c3
+    notification_emails:
+      - tihuang@mozilla.com
+      - pbz@mozilla.com
+    expires: never
+    telemetry_mirror: COOKIE_BANNERS_SERVICE_DETECT_ONLY
   rule_lookup_by_load:
     type: labeled_counter
     description: >
@@ -60,14 +72,16 @@ cookie.banners:
     bugs:
       - https://bugzilla.mozilla.org/1797073
       - https://bugzilla.mozilla.org/1804259
+      - https://bugzilla.mozilla.org/1827765
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1797073#c6
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1827765#c9
     data_sensitivity:
       - interaction
     notification_emails:
       - tihuang@mozilla.com
       - pbz@mozilla.com
-    expires: 115
+    expires: 120
     labels:
       - top_hit
       - top_hit_opt_in
@@ -105,14 +119,16 @@ cookie.banners:
     bugs:
       - https://bugzilla.mozilla.org/1797073
       - https://bugzilla.mozilla.org/1804259
+      - https://bugzilla.mozilla.org/1827765
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1797073#c6
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1827765#c9
     data_sensitivity:
       - interaction
     notification_emails:
       - tihuang@mozilla.com
       - pbz@mozilla.com
-    expires: 115
+    expires: 120
     labels:
       - top_hit
       - top_hit_opt_in
@@ -146,12 +162,14 @@ cookie.banners:
       know whether or not the reloading domain has cookie banner rule.
     bugs:
       - https://bugzilla.mozilla.org/1797079
+      - https://bugzilla.mozilla.org/1827765
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1797079#c6
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1827765#c9
     notification_emails:
       - pbz@mozilla.com
       - tihuang@mozilla.com
-    expires: 115
+    expires: 120
     data_sensitivity:
       - interaction
     extra_keys:
@@ -175,31 +193,40 @@ cookie.banners.click:
     bugs:
       - https://bugzilla.mozilla.org/1797078
       - https://bugzilla.mozilla.org/1804259
+      - https://bugzilla.mozilla.org/1827765
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1797078#c6
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1827765#c9
     notification_emails:
       - pbz@mozilla.com
       - tihuang@mozilla.com
-    expires: 115
+    expires: 120
     telemetry_mirror: COOKIE_BANNERS_CLICK_HANDLE_DURATION_MS
+  # TODO: consider moving this out of "click". It also records cookie injection.
   result:
     type: labeled_counter
     description: >
-      Given a matching cookie banner click rule, how often do we handle or fail
-      to handle cookie banners, labelled by reason. The 'success' and 'fail'
+      Given a matching cookie banner rule, how often do we handle or fail to
+      handle cookie banners, labelled by reason. The 'success' and 'fail'
       counters count the total numbers independently of the reason counters.
-      Counters are incremented after the content window has been destroyed.
+      Counters are incremented after the content window has been destroyed. This
+      metric additionally reports cookie injections after which we didn't see a
+      banner as "success_cookie_injected".
     bugs:
       - https://bugzilla.mozilla.org/1797078
       - https://bugzilla.mozilla.org/1804259
+      - https://bugzilla.mozilla.org/1821738
+      - https://bugzilla.mozilla.org/1827765
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1797078#c6
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1827765#c9
     notification_emails:
       - pbz@mozilla.com
       - tihuang@mozilla.com
-    expires: 115
+    expires: 120
     labels:
       - success
+      - success_cookie_injected
       - success_dom_content_loaded
       - success_mutation_pre_load
       - success_mutation_post_load

@@ -15,10 +15,12 @@
  */
 
 import expect from 'expect';
+import {KnownDevices} from 'puppeteer';
+
 import {
   getTestState,
-  setupTestPageAndContextHooks,
   setupTestBrowserHooks,
+  setupTestPageAndContextHooks,
 } from './mocha-utils.js';
 import utils from './utils.js';
 
@@ -51,24 +53,21 @@ describe('Page.click', function () {
       })
     ).toBe(42);
   });
-  it(
-    'should click the button if window.Node is removed',
-    async () => {
-      const {page, server} = getTestState();
+  it('should click the button if window.Node is removed', async () => {
+    const {page, server} = getTestState();
 
-      await page.goto(server.PREFIX + '/input/button.html');
+    await page.goto(server.PREFIX + '/input/button.html');
+    await page.evaluate(() => {
+      // @ts-expect-error Expected.
+      return delete window.Node;
+    });
+    await page.click('button');
+    expect(
       await page.evaluate(() => {
-        // @ts-expect-error Expected.
-        return delete window.Node;
-      });
-      await page.click('button');
-      expect(
-        await page.evaluate(() => {
-          return (globalThis as any).result;
-        })
-      ).toBe('Clicked');
-    }
-  );
+        return (globalThis as any).result;
+      })
+    ).toBe('Clicked');
+  });
   // @see https://github.com/puppeteer/puppeteer/issues/4281
   it('should click on a span with an inline element inside', async () => {
     const {page} = getTestState();
@@ -281,9 +280,9 @@ describe('Page.click', function () {
   });
   // @see https://github.com/puppeteer/puppeteer/issues/161
   it('should not hang with touch-enabled viewports', async () => {
-    const {page, puppeteer} = getTestState();
+    const {page} = getTestState();
 
-    await page.setViewport(puppeteer.devices['iPhone 6']!.viewport);
+    await page.setViewport(KnownDevices['iPhone 6'].viewport);
     await page.mouse.down();
     await page.mouse.move(100, 10);
     await page.mouse.up();
@@ -421,7 +420,7 @@ describe('Page.click', function () {
     ).toBe('Clicked');
   });
   // @see https://github.com/puppeteer/puppeteer/issues/4110
-  xit('should click the button with fixed position inside an iframe', async () => {
+  it('should click the button with fixed position inside an iframe', async () => {
     const {page, server} = getTestState();
 
     await page.goto(server.EMPTY_PAGE);

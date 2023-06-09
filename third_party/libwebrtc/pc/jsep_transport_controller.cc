@@ -29,7 +29,6 @@
 #include "p2p/base/p2p_constants.h"
 #include "p2p/base/port.h"
 #include "rtc_base/checks.h"
-#include "rtc_base/location.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/thread.h"
 #include "rtc_base/trace_event.h"
@@ -63,6 +62,9 @@ JsepTransportController::JsepTransportController(
   RTC_DCHECK(config_.ice_transport_factory);
   RTC_DCHECK(config_.on_dtls_handshake_error_);
   RTC_DCHECK(config_.field_trials);
+  if (port_allocator_) {
+    port_allocator_->SetIceTiebreaker(ice_tiebreaker_);
+  }
 }
 
 JsepTransportController::~JsepTransportController() {
@@ -77,8 +79,8 @@ RTCError JsepTransportController::SetLocalDescription(
     const cricket::SessionDescription* description) {
   TRACE_EVENT0("webrtc", "JsepTransportController::SetLocalDescription");
   if (!network_thread_->IsCurrent()) {
-    return network_thread_->Invoke<RTCError>(
-        RTC_FROM_HERE, [=] { return SetLocalDescription(type, description); });
+    return network_thread_->BlockingCall(
+        [=] { return SetLocalDescription(type, description); });
   }
 
   RTC_DCHECK_RUN_ON(network_thread_);
@@ -98,8 +100,8 @@ RTCError JsepTransportController::SetRemoteDescription(
     const cricket::SessionDescription* description) {
   TRACE_EVENT0("webrtc", "JsepTransportController::SetRemoteDescription");
   if (!network_thread_->IsCurrent()) {
-    return network_thread_->Invoke<RTCError>(
-        RTC_FROM_HERE, [=] { return SetRemoteDescription(type, description); });
+    return network_thread_->BlockingCall(
+        [=] { return SetRemoteDescription(type, description); });
   }
 
   RTC_DCHECK_RUN_ON(network_thread_);
@@ -199,8 +201,7 @@ absl::optional<rtc::SSLRole> JsepTransportController::GetDtlsRole(
   // thread during negotiations, potentially multiple times.
   // WebRtcSessionDescriptionFactory::InternalCreateAnswer is one example.
   if (!network_thread_->IsCurrent()) {
-    return network_thread_->Invoke<absl::optional<rtc::SSLRole>>(
-        RTC_FROM_HERE, [&] { return GetDtlsRole(mid); });
+    return network_thread_->BlockingCall([&] { return GetDtlsRole(mid); });
   }
 
   RTC_DCHECK_RUN_ON(network_thread_);
@@ -215,8 +216,8 @@ absl::optional<rtc::SSLRole> JsepTransportController::GetDtlsRole(
 bool JsepTransportController::SetLocalCertificate(
     const rtc::scoped_refptr<rtc::RTCCertificate>& certificate) {
   if (!network_thread_->IsCurrent()) {
-    return network_thread_->Invoke<bool>(
-        RTC_FROM_HERE, [&] { return SetLocalCertificate(certificate); });
+    return network_thread_->BlockingCall(
+        [&] { return SetLocalCertificate(certificate); });
   }
 
   RTC_DCHECK_RUN_ON(network_thread_);
@@ -274,8 +275,7 @@ JsepTransportController::GetRemoteSSLCertChain(
 
 void JsepTransportController::MaybeStartGathering() {
   if (!network_thread_->IsCurrent()) {
-    network_thread_->Invoke<void>(RTC_FROM_HERE,
-                                  [&] { MaybeStartGathering(); });
+    network_thread_->BlockingCall([&] { MaybeStartGathering(); });
     return;
   }
 
@@ -301,8 +301,8 @@ RTCError JsepTransportController::AddRemoteCandidates(
 RTCError JsepTransportController::RemoveRemoteCandidates(
     const cricket::Candidates& candidates) {
   if (!network_thread_->IsCurrent()) {
-    return network_thread_->Invoke<RTCError>(
-        RTC_FROM_HERE, [&] { return RemoveRemoteCandidates(candidates); });
+    return network_thread_->BlockingCall(
+        [&] { return RemoveRemoteCandidates(candidates); });
   }
 
   RTC_DCHECK_RUN_ON(network_thread_);
@@ -361,9 +361,8 @@ bool JsepTransportController::GetStats(const std::string& transport_name,
 void JsepTransportController::SetActiveResetSrtpParams(
     bool active_reset_srtp_params) {
   if (!network_thread_->IsCurrent()) {
-    network_thread_->Invoke<void>(RTC_FROM_HERE, [=] {
-      SetActiveResetSrtpParams(active_reset_srtp_params);
-    });
+    network_thread_->BlockingCall(
+        [=] { SetActiveResetSrtpParams(active_reset_srtp_params); });
     return;
   }
   RTC_DCHECK_RUN_ON(network_thread_);
@@ -378,8 +377,7 @@ void JsepTransportController::SetActiveResetSrtpParams(
 
 RTCError JsepTransportController::RollbackTransports() {
   if (!network_thread_->IsCurrent()) {
-    return network_thread_->Invoke<RTCError>(
-        RTC_FROM_HERE, [=] { return RollbackTransports(); });
+    return network_thread_->BlockingCall([=] { return RollbackTransports(); });
   }
   RTC_DCHECK_RUN_ON(network_thread_);
   bundles_.Rollback();
@@ -401,8 +399,13 @@ JsepTransportController::CreateIceTransport(const std::string& transport_name,
   init.set_async_dns_resolver_factory(async_dns_resolver_factory_);
   init.set_event_log(config_.event_log);
   init.set_field_trials(config_.field_trials);
-  return config_.ice_transport_factory->CreateIceTransport(
+  auto transport = config_.ice_transport_factory->CreateIceTransport(
       transport_name, component, std::move(init));
+  RTC_DCHECK(transport);
+  transport->internal()->SetIceRole(ice_role_);
+  transport->internal()->SetIceTiebreaker(ice_tiebreaker_);
+  transport->internal()->SetIceConfig(ice_config_);
+  return transport;
 }
 
 std::unique_ptr<cricket::DtlsTransportInternal>
@@ -423,9 +426,8 @@ JsepTransportController::CreateDtlsTransport(
   }
 
   RTC_DCHECK(dtls);
-  dtls->ice_transport()->SetIceRole(ice_role_);
-  dtls->ice_transport()->SetIceTiebreaker(ice_tiebreaker_);
-  dtls->ice_transport()->SetIceConfig(ice_config_);
+  RTC_DCHECK_EQ(ice, dtls->ice_transport());
+
   if (certificate_) {
     bool set_cert_success = dtls->SetLocalCertificate(certificate_);
     RTC_DCHECK(set_cert_success);
@@ -1037,7 +1039,6 @@ RTCError JsepTransportController::MaybeCreateJsepTransport(
 
   rtc::scoped_refptr<webrtc::IceTransportInterface> ice =
       CreateIceTransport(content_info.name, /*rtcp=*/false);
-  RTC_DCHECK(ice);
 
   std::unique_ptr<cricket::DtlsTransportInternal> rtp_dtls_transport =
       CreateDtlsTransport(content_info, ice->internal());

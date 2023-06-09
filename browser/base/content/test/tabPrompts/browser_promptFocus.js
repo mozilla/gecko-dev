@@ -3,8 +3,8 @@
 
 "use strict";
 
-const { PromptTestUtils } = ChromeUtils.import(
-  "resource://testing-common/PromptTestUtils.jsm"
+const { PromptTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/PromptTestUtils.sys.mjs"
 );
 
 // MacOS has different default focus behavior for prompts.
@@ -20,6 +20,7 @@ add_task(async function test_tabdialogbox_tab_switch_focus() {
     tabPromises.push(
       BrowserTestUtils.openNewForegroundTab(
         gBrowser,
+        // eslint-disable-next-line @microsoft/sdl/no-insecure-url
         "http://example.com",
         true
       )

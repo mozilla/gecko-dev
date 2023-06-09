@@ -657,7 +657,7 @@ void DocAccessible::HandleScroll(nsINode* aTarget) {
   if (!targetAcc && target->IsInNativeAnonymousSubtree()) {
     // The scroll event for textareas comes from a native anonymous div. We need
     // the closest non-anonymous ancestor to get the right Accessible.
-    target = target->GetClosestNativeAnonymousSubtreeRootParent();
+    target = target->GetClosestNativeAnonymousSubtreeRootParentOrHost();
     targetAcc = GetAccessible(target);
   }
   // Regardless of our scroll timer, we need to send a cache update
@@ -796,21 +796,6 @@ void DocAccessible::AttributeWillChange(dom::Element* aElement,
   }
 }
 
-void DocAccessible::NativeAnonymousChildListChange(nsIContent* aContent,
-                                                   bool aIsRemove) {
-  if (aIsRemove) {
-#ifdef A11Y_LOG
-    if (logging::IsEnabled(logging::eTree)) {
-      logging::MsgBegin("TREE", "Anonymous content removed; doc: %p", this);
-      logging::Node("node", aContent);
-      logging::MsgEnd();
-    }
-#endif
-
-    ContentRemoved(aContent);
-  }
-}
-
 void DocAccessible::AttributeChanged(dom::Element* aElement,
                                      int32_t aNameSpaceID, nsAtom* aAttribute,
                                      int32_t aModType,
@@ -860,7 +845,7 @@ void DocAccessible::AttributeChanged(dom::Element* aElement,
     dom::Element* elm = accessible->Elm();
     RelocateARIAOwnedIfNeeded(elm);
     ARIAActiveDescendantIDMaybeMoved(accessible);
-    accessible->SendCache(CacheDomain::DOMNodeID, CacheUpdateType::Update);
+    QueueCacheUpdate(accessible, CacheDomain::DOMNodeIDAndClass);
     QueueCacheUpdateForDependentRelations(accessible);
   }
 
@@ -1002,7 +987,7 @@ void DocAccessible::ElementStateChanged(dom::Document* aDocument,
 
   if (aStateMask.HasState(dom::ElementState::INVALID)) {
     RefPtr<AccEvent> event =
-        new AccStateChangeEvent(accessible, states::INVALID, true);
+        new AccStateChangeEvent(accessible, states::INVALID);
     FireDelayedEvent(event);
   }
 
@@ -1351,6 +1336,14 @@ bool DocAccessible::PruneOrInsertSubtree(nsIContent* aRoot) {
       return false;
     }
 
+    // If the frame is hidden because its ancestor is specified with
+    // `content-visibility: hidden`, remove its Accessible.
+    if (frame && frame->IsHiddenByContentVisibilityOnAnyAncestor(
+                     nsIFrame::IncludeContentVisibility::Hidden)) {
+      ContentRemoved(aRoot);
+      return false;
+    }
+
     // If it's a XULLabel it was probably reframed because a `value` attribute
     // was added. The accessible creates its text leaf upon construction, so we
     // need to recreate. Remove it, and schedule for reconstruction.
@@ -1540,7 +1533,7 @@ void DocAccessible::ProcessQueuedCacheUpdates() {
   }
 
   if (data.Length()) {
-    IPCDoc()->SendCache(CacheUpdateType::Update, data, false);
+    IPCDoc()->SendCache(CacheUpdateType::Update, data);
   }
 }
 
@@ -1554,6 +1547,9 @@ void DocAccessible::SendAccessiblesWillMove() {
     // moved.
     if (!acc->IsDefunct() && acc->IsInDocument()) {
       ids.AppendElement(reinterpret_cast<uintptr_t>(acc->UniqueID()));
+      // acc might have been re-parented. Since we cache bounds relative to the
+      // parent, we need to update the cache.
+      QueueCacheUpdate(acc, CacheDomain::Bounds);
     }
   }
   if (!ids.IsEmpty()) {
@@ -1574,10 +1570,9 @@ LocalAccessible* DocAccessible::GetAccessibleEvenIfNotInMap(
   if (imageFrame) {
     LocalAccessible* parent = GetAccessible(imageFrame->GetContent());
     if (parent) {
-      LocalAccessible* area =
-          parent->AsImageMap()->GetChildAccessibleFor(aNode);
-      if (area) return area;
-
+      if (HTMLImageMapAccessible* imageMap = parent->AsImageMap()) {
+        return imageMap->GetChildAccessibleFor(aNode);
+      }
       return nullptr;
     }
   }
@@ -2449,12 +2444,17 @@ void DocAccessible::PutChildrenBack(
 }
 
 void DocAccessible::TrackMovedAccessible(LocalAccessible* aAcc) {
+  MOZ_ASSERT(aAcc->mDoc == this);
   // If an Accessible is inserted and moved during the same tick, don't track
   // it as a move because it hasn't been shown yet.
   if (!mInsertedAccessibles.Contains(aAcc)) {
     mMovedAccessibles.EnsureInserted(aAcc);
   }
   // When we move an Accessible, we're also moving its descendants.
+  if (aAcc->IsOuterDoc()) {
+    // Don't descend into other documents.
+    return;
+  }
   for (uint32_t c = 0, count = aAcc->ContentChildCount(); c < count; ++c) {
     TrackMovedAccessible(aAcc->ContentChildAt(c));
   }

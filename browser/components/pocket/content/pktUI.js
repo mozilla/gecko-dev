@@ -45,35 +45,13 @@
 /* eslint-env mozilla/browser-window */
 
 ChromeUtils.defineESModuleGetters(this, {
+  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
+  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
+  pktApi: "chrome://pocket/content/pktApi.sys.mjs",
+  pktTelemetry: "chrome://pocket/content/pktTelemetry.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
-});
-ChromeUtils.defineModuleGetter(
-  this,
-  "ReaderMode",
-  "resource://gre/modules/ReaderMode.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  this,
-  "pktApi",
-  "chrome://pocket/content/pktApi.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  this,
-  "SaveToPocket",
-  "chrome://pocket/content/SaveToPocket.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  this,
-  "pktTelemetry",
-  "chrome://pocket/content/pktTelemetry.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  this,
-  "ExperimentAPI",
-  "resource://nimbus/ExperimentAPI.jsm"
-);
-XPCOMUtils.defineLazyModuleGetters(this, {
-  NimbusFeatures: "resource://nimbus/ExperimentAPI.jsm",
+  ReaderMode: "resource://gre/modules/ReaderMode.sys.mjs",
+  SaveToPocket: "chrome://pocket/content/SaveToPocket.sys.mjs",
 });
 
 const POCKET_ONSAVERECS_PREF = "extensions.pocket.onSaveRecs";
@@ -475,7 +453,7 @@ var pktUI = (function() {
   function openTabWithUrl(url, aTriggeringPrincipal, aCsp) {
     let recentWindow = Services.wm.getMostRecentWindow("navigator:browser");
     if (!recentWindow) {
-      Cu.reportError("Pocket: No open browser windows to openTabWithUrl");
+      console.error("Pocket: No open browser windows to openTabWithUrl");
       return;
     }
     closePanel();

@@ -5,6 +5,7 @@
 // META: script=/common/utils.js
 // META: script=/html/browsers/browsing-the-web/back-forward-cache/resources/rc-helper.js
 // META: script=/html/browsers/browsing-the-web/remote-context-helper/resources/remote-context-helper.js
+// META: timeout=long
 
 'use strict';
 
@@ -18,10 +19,10 @@ promise_test(async t => {
 
   // Check the BFCache result and verify that no reasons are recorded
   // for successful restore.
-  await assertBFCache(rc1, /*shouldRestoreFromBFCache=*/ true);
+  await assertBFCacheEligibility(rc1, /*shouldRestoreFromBFCache=*/ true);
   assert_true(await rc1.executeScript(() => {
     let reasons =
         performance.getEntriesByType('navigation')[0].notRestoredReasons;
-    return reasons == null;
+    return reasons === null;
   }));
 });

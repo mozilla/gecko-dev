@@ -37,7 +37,8 @@ class NetworkEventContentWatcher {
    *          This would be called multiple times for each resource.
    */
   async watch(targetActor, { onAvailable, onUpdated }) {
-    this._networkEvents = new Map();
+    // Map from channelId to network event objects.
+    this.networkEvents = new Map();
 
     this.targetActor = targetActor;
     this.onAvailable = onAvailable;
@@ -60,11 +61,7 @@ class NetworkEventContentWatcher {
    * Allows clearing of network events
    */
   clear() {
-    this._networkEvents.clear();
-  }
-
-  get conn() {
-    return this.targetActor.conn;
+    this.networkEvents.clear();
   }
 
   httpFailedOpeningRequest(subject, topic) {
@@ -89,8 +86,6 @@ class NetworkEventContentWatcher {
       networkEventOptions: {
         blockedReason: channel.loadInfo.requestBlockingReason,
       },
-      resourceOverrides: null,
-      onNetworkEventUpdate: this.onFailedNetworkEventUpdated.bind(this),
     });
   }
 
@@ -113,131 +108,144 @@ class NetworkEventContentWatcher {
     }
 
     // Only one network request should be created per URI for images from the cache
-    const hasNetworkEventForURI = Array.from(this._networkEvents.values()).find(
-      networkEvent => networkEvent.url === channel.URI.spec
+    const hasURI = Array.from(this.networkEvents.values()).some(
+      networkEvent => networkEvent.uri === channel.URI.spec
     );
 
-    if (hasNetworkEventForURI) {
+    if (hasURI) {
       return;
     }
 
     this.onNetworkEventAvailable(channel, {
       networkEventOptions: { fromCache: true },
-      resourceOverrides: {
-        status: 200,
-        statusText: "OK",
-        totalTime: 0,
-        mimeType: channel.contentType,
-        contentSize: channel.contentLength,
-      },
-      onNetworkEventUpdate: this.onImageCacheNetworkEventUpdated.bind(this),
     });
   }
 
-  onNetworkEventAvailable(
-    channel,
-    { networkEventOptions, resourceOverrides, onNetworkEventUpdate }
-  ) {
-    const event = lazy.NetworkUtils.createNetworkEvent(
-      channel,
-      networkEventOptions
-    );
-
+  onNetworkEventAvailable(channel, { networkEventOptions }) {
     const actor = new NetworkEventActor(
-      this.conn,
+      this.targetActor.conn,
       this.targetActor.sessionContext,
       {
-        onNetworkEventUpdate,
+        onNetworkEventUpdate: this.onNetworkEventUpdate.bind(this),
         onNetworkEventDestroy: this.onNetworkEventDestroyed.bind(this),
       },
-      event
+      networkEventOptions,
+      channel
     );
     this.targetActor.manage(actor);
 
     const resource = actor.asResource();
 
-    this._networkEvents.set(resource.resourceId, {
+    const networkEvent = {
       browsingContextID: resource.browsingContextID,
       innerWindowId: resource.innerWindowId,
       resourceId: resource.resourceId,
       resourceType: resource.resourceType,
-      url: resource.url,
-      types: [],
-      resourceUpdates: {},
-    });
-
-    // Override the default resource property values if need be
-    if (resourceOverrides) {
-      for (const prop in resourceOverrides) {
-        resource[prop] = resourceOverrides[prop];
-      }
-    }
+      receivedUpdates: [],
+      resourceUpdates: {
+        // Requests already come with request cookies and headers, so those
+        // should always be considered as available. But the client still
+        // heavily relies on those `Available` flags to fetch additional data,
+        // so it is better to keep them for consistency.
+        requestCookiesAvailable: true,
+        requestHeadersAvailable: true,
+      },
+      uri: channel.URI.spec,
+    };
+    this.networkEvents.set(resource.resourceId, networkEvent);
 
     this.onAvailable([resource]);
-    const {
-      cookies,
-      headers,
-    } = lazy.NetworkUtils.fetchRequestHeadersAndCookies(channel);
-    actor.addRequestHeaders(headers);
-    actor.addRequestCookies(cookies);
+    const isBlocked = !!resource.blockedReason;
+    if (isBlocked) {
+      this._emitUpdate(networkEvent);
+    } else {
+      actor.addResponseStart({ channel, fromCache: true });
+      actor.addEventTimings(
+        0 /* totalTime */,
+        {} /* timings */,
+        {} /* offsets */
+      );
+      actor.addResponseContent(
+        {
+          mimeType: channel.contentType,
+          size: channel.contentLength,
+          text: "",
+          transferredSize: 0,
+        },
+        {}
+      );
+    }
   }
 
-  /*
-   * When an update is needed for a network event.
-   *
-   * @param {Object} updateResource
-   *                 The resource to be updated
-   * @param {Array} allRequiredUpdates
-   *                The updates that are essential to be received before notifying
-   *                the client. Other updates may or may not be available.
-   */
-
-  onNetworkEventUpdated(updateResource, allRequiredUpdates) {
-    const networkEvent = this._networkEvents.get(updateResource.resourceId);
+  onNetworkEventUpdate(updateResource) {
+    const networkEvent = this.networkEvents.get(updateResource.resourceId);
 
     if (!networkEvent) {
       return;
     }
 
-    const {
-      browsingContextID,
-      innerWindowId,
-      resourceId,
-      resourceType,
-      resourceUpdates,
-      types,
-    } = networkEvent;
+    const { resourceUpdates, receivedUpdates } = networkEvent;
+
+    switch (updateResource.updateType) {
+      case "responseStart":
+        // For cached image requests channel.responseStatus is set to 200 as
+        // expected. However responseStatusText is empty. In this case fallback
+        // to the expected statusText "OK".
+        let statusText = updateResource.statusText;
+        if (!statusText && updateResource.status === "200") {
+          statusText = "OK";
+        }
+        resourceUpdates.httpVersion = updateResource.httpVersion;
+        resourceUpdates.status = updateResource.status;
+        resourceUpdates.statusText = statusText;
+        resourceUpdates.remoteAddress = updateResource.remoteAddress;
+        resourceUpdates.remotePort = updateResource.remotePort;
+        resourceUpdates.waitingTime = updateResource.waitingTime;
+
+        resourceUpdates.responseHeadersAvailable = true;
+        resourceUpdates.responseCookiesAvailable = true;
+        break;
+      case "responseContent":
+        resourceUpdates.contentSize = updateResource.contentSize;
+        resourceUpdates.mimeType = updateResource.mimeType;
+        resourceUpdates.transferredSize = updateResource.transferredSize;
+        break;
+      case "eventTimings":
+        resourceUpdates.totalTime = updateResource.totalTime;
+        break;
+    }
 
     resourceUpdates[`${updateResource.updateType}Available`] = true;
-    types.push(updateResource.updateType);
+    receivedUpdates.push(updateResource.updateType);
 
-    if (allRequiredUpdates.every(header => types.includes(header))) {
-      this.onUpdated([
-        {
-          browsingContextID,
-          innerWindowId,
-          resourceType,
-          resourceId,
-          resourceUpdates,
-        },
-      ]);
+    // Here we explicitly call all three `add` helpers on each network event
+    // actor so in theory we could check only the last one to be called, ie
+    // responseContent.
+    const isComplete =
+      receivedUpdates.includes("responseStart") &&
+      receivedUpdates.includes("responseContent") &&
+      receivedUpdates.includes("eventTimings");
+
+    if (isComplete) {
+      this._emitUpdate(networkEvent);
     }
   }
 
-  onFailedNetworkEventUpdated(updateResource) {
-    this.onNetworkEventUpdated(updateResource, [
-      "requestHeaders",
-      "requestCookies",
+  _emitUpdate(networkEvent) {
+    this.onUpdated([
+      {
+        resourceType: networkEvent.resourceType,
+        resourceId: networkEvent.resourceId,
+        resourceUpdates: networkEvent.resourceUpdates,
+        browsingContextID: networkEvent.browsingContextID,
+        innerWindowId: networkEvent.innerWindowId,
+      },
     ]);
   }
 
-  onImageCacheNetworkEventUpdated(updateResource) {
-    this.onNetworkEventUpdated(updateResource, ["requestHeaders"]);
-  }
-
   onNetworkEventDestroyed(channelId) {
-    if (this._networkEvents.has(channelId)) {
-      this._networkEvents.delete(channelId);
+    if (this.networkEvents.has(channelId)) {
+      this.networkEvents.delete(channelId);
     }
   }
 

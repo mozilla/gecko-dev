@@ -6,10 +6,16 @@
 
 #include "PerformanceRecorder.h"
 #ifdef MOZ_WMF_MEDIA_ENGINE
-#  include "mozilla/MFMediaEngineChild.h"
 #  include "MFMediaEngineDecoderModule.h"
+#  include "mozilla/MFMediaEngineChild.h"
+#  include "mozilla/StaticPrefs_media.h"
 #endif
+#include "mozilla/Atomics.h"
+#include "mozilla/ClearOnShutdown.h"
 #include "mozilla/ProfilerLabels.h"
+#include "mozilla/UniquePtr.h"
+#include "mozilla/StaticMutex.h"
+#include "nsThreadUtils.h"
 
 namespace mozilla {
 
@@ -55,6 +61,79 @@ const char* ExternalEngineEventToStr(ExternalEngineEvent aEvent) {
 #undef EVENT_TO_STR
 }
 
+/**
+ * This class monitors the amount of crash happened for a remote engine
+ * process. It the amount of crash of the remote process exceeds the defined
+ * threshold, then `ShouldRecoverProcess()` will return false to indicate that
+ * we should not keep spawning that remote process because it's too easy to
+ * crash.
+ *
+ * In addition, we also have another mechanism in the media format reader
+ * (MFR) to detect crash amount of remote processes, but that would only
+ * happen during the decoding process. The main reason to choose using this
+ * simple monitor, instead of the mechanism in the MFR is because that
+ * mechanism can't detect every crash happening in the remote process, such as
+ * crash happening during initializing the remote engine, or setting the CDM
+ * pipepline, which can happen prior to decoding.
+ */
+class ProcessCrashMonitor final {
+ public:
+  static void NotifyCrash() {
+    StaticMutexAutoLock lock(sMutex);
+    auto* monitor = ProcessCrashMonitor::EnsureInstance();
+    if (!monitor) {
+      return;
+    }
+    monitor->mCrashNums++;
+  }
+  static bool ShouldRecoverProcess() {
+    StaticMutexAutoLock lock(sMutex);
+    auto* monitor = ProcessCrashMonitor::EnsureInstance();
+    if (!monitor) {
+      return false;
+    }
+    return monitor->mCrashNums <= monitor->mMaxCrashes;
+  }
+
+ private:
+  ProcessCrashMonitor() : mCrashNums(0) {
+#ifdef MOZ_WMF_MEDIA_ENGINE
+    mMaxCrashes = StaticPrefs::media_wmf_media_engine_max_crashes();
+#else
+    mMaxCrashes = 0;
+#endif
+  };
+  ProcessCrashMonitor(const ProcessCrashMonitor&) = delete;
+  ProcessCrashMonitor& operator=(const ProcessCrashMonitor&) = delete;
+
+  static ProcessCrashMonitor* EnsureInstance() {
+    if (sIsShutdown) {
+      return nullptr;
+    }
+    if (!sCrashMonitor) {
+      sCrashMonitor.reset(new ProcessCrashMonitor());
+      GetMainThreadSerialEventTarget()->Dispatch(
+          NS_NewRunnableFunction("ProcessCrashMonitor::EnsureInstance", [&] {
+            RunOnShutdown(
+                [&] {
+                  StaticMutexAutoLock lock(sMutex);
+                  sCrashMonitor.reset();
+                  sIsShutdown = true;
+                },
+                ShutdownPhase::XPCOMShutdown);
+          }));
+    }
+    return sCrashMonitor.get();
+  }
+
+  static inline StaticMutex sMutex;
+  static inline UniquePtr<ProcessCrashMonitor> sCrashMonitor;
+  static inline Atomic<bool> sIsShutdown{false};
+
+  uint32_t mCrashNums;
+  uint32_t mMaxCrashes;
+};
+
 /* static */
 const char* ExternalEngineStateMachine::StateToStr(State aNextState) {
 #define STATE_TO_STR(state) \
@@ -66,6 +145,7 @@ const char* ExternalEngineStateMachine::StateToStr(State aNextState) {
     STATE_TO_STR(RunningEngine);
     STATE_TO_STR(SeekingData);
     STATE_TO_STR(ShutdownEngine);
+    STATE_TO_STR(RecoverEngine);
     default:
       MOZ_ASSERT_UNREACHABLE("Undefined state!");
       return "Undefined";
@@ -86,13 +166,18 @@ void ExternalEngineStateMachine::ChangeStateTo(State aNextState) {
   MOZ_ASSERT_IF(mState.IsReadingMetadata(),
                 aNextState == State::RunningEngine ||
                     aNextState == State::ShutdownEngine);
-  MOZ_ASSERT_IF(
-      mState.IsRunningEngine(),
-      aNextState == State::SeekingData || aNextState == State::ShutdownEngine);
+  MOZ_ASSERT_IF(mState.IsRunningEngine(),
+                aNextState == State::SeekingData ||
+                    aNextState == State::ShutdownEngine ||
+                    aNextState == State::RecoverEngine);
   MOZ_ASSERT_IF(mState.IsSeekingData(),
                 aNextState == State::RunningEngine ||
-                    aNextState == State::ShutdownEngine);
+                    aNextState == State::ShutdownEngine ||
+                    aNextState == State::RecoverEngine);
   MOZ_ASSERT_IF(mState.IsShutdownEngine(), aNextState == State::ShutdownEngine);
+  MOZ_ASSERT_IF(
+      mState.IsRecoverEngine(),
+      aNextState == State::SeekingData || aNextState == State::ShutdownEngine);
   if (aNextState == State::SeekingData) {
     mState = StateObject({StateObject::SeekingData()});
   } else if (aNextState == State::ReadingMetadata) {
@@ -101,6 +186,8 @@ void ExternalEngineStateMachine::ChangeStateTo(State aNextState) {
     mState = StateObject({StateObject::RunningEngine()});
   } else if (aNextState == State::ShutdownEngine) {
     mState = StateObject({StateObject::ShutdownEngine()});
+  } else if (aNextState == State::RecoverEngine) {
+    mState = StateObject({StateObject::RecoverEngine()});
   } else {
     MOZ_ASSERT_UNREACHABLE("Wrong state!");
   }
@@ -111,6 +198,11 @@ ExternalEngineStateMachine::ExternalEngineStateMachine(
     : MediaDecoderStateMachineBase(aDecoder, aReader) {
   LOG("Created ExternalEngineStateMachine");
   MOZ_ASSERT(mState.IsInitEngine());
+  InitEngine();
+}
+
+void ExternalEngineStateMachine::InitEngine() {
+  MOZ_ASSERT(mState.IsInitEngine() || mState.IsRecoverEngine());
 #ifdef MOZ_WMF_MEDIA_ENGINE
   mEngine.reset(new MFMediaEngineWrapper(this, mFrameStats));
 #endif
@@ -129,21 +221,32 @@ void ExternalEngineStateMachine::OnEngineInitSuccess() {
   AssertOnTaskQueue();
   AUTO_PROFILER_LABEL("ExternalEngineStateMachine::OnEngineInitSuccess",
                       MEDIA_PLAYBACK);
-  MOZ_ASSERT(mState.IsInitEngine());
-  LOG("Initialized the external playback engine %" PRIu64
-      ", start reading metadata",
-      mEngine->Id());
+  MOZ_ASSERT(mState.IsInitEngine() || mState.IsRecoverEngine());
+  LOG("Initialized the external playback engine %" PRIu64, mEngine->Id());
   auto* state = mState.AsInitEngine();
   state->mEngineInitRequest.Complete();
   mReader->UpdateMediaEngineId(mEngine->Id());
   state->mInitPromise = nullptr;
-  ChangeStateTo(State::ReadingMetadata);
-  ReadMetadata();
+  if (mState.IsInitEngine()) {
+    ChangeStateTo(State::ReadingMetadata);
+    ReadMetadata();
+    return;
+  }
+  // We just recovered from CDM process crash, so we need to update the media
+  // info to the new CDM process.
+  MOZ_ASSERT(mInfo);
+  mEngine->SetMediaInfo(*mInfo);
+  SeekTarget target(mCurrentPosition.Ref(), SeekTarget::Type::Accurate);
+  Seek(target);
+  // If the engine was playing before, ask the new engine to play as well.
+  if (mPlayState == MediaDecoder::PLAY_STATE_PLAYING) {
+    mEngine->Play();
+  }
 }
 
 void ExternalEngineStateMachine::OnEngineInitFailure() {
   AssertOnTaskQueue();
-  MOZ_ASSERT(mState.IsInitEngine());
+  MOZ_ASSERT(mState.IsInitEngine() || mState.IsRecoverEngine());
   LOGE("Failed to initialize the external playback engine");
   auto* state = mState.AsInitEngine();
   state->mEngineInitRequest.Complete();
@@ -237,7 +340,8 @@ bool ExternalEngineStateMachine::IsFormatSupportedByExternalEngine(
 RefPtr<MediaDecoder::SeekPromise> ExternalEngineStateMachine::Seek(
     const SeekTarget& aTarget) {
   AssertOnTaskQueue();
-  if (!mState.IsRunningEngine() && !mState.IsSeekingData()) {
+  if (!mState.IsRunningEngine() && !mState.IsSeekingData() &&
+      !mState.IsRecoverEngine()) {
     MOZ_ASSERT(false, "Can't seek due to unsupported state.");
     return MediaDecoder::SeekPromise::CreateAndReject(true, __func__);
   }
@@ -250,7 +354,7 @@ RefPtr<MediaDecoder::SeekPromise> ExternalEngineStateMachine::Seek(
   LOG("Start seeking to %" PRId64, aTarget.GetTime().ToMicroseconds());
   auto* state = mState.AsSeekingData();
   if (!state) {
-    // We're in the running engine state, and change the state to seeking.
+    // We're in other states, so change the state to seeking.
     ChangeStateTo(State::SeekingData);
     state = mState.AsSeekingData();
   }
@@ -423,6 +527,9 @@ RefPtr<ShutdownPromise> ExternalEngineStateMachine::Shutdown() {
 
   mMetadataManager.Disconnect();
 
+  mSetCDMProxyPromise.RejectIfExists(NS_ERROR_DOM_MEDIA_ABORT_ERR, __func__);
+  mSetCDMProxyRequest.DisconnectIfExists();
+
   mEngine->Shutdown();
 
   auto* state = mState.AsShutdownEngine();
@@ -467,8 +574,9 @@ void ExternalEngineStateMachine::BufferedRangeUpdated() {
 // Note: the variadic only supports passing member variables.
 #define PERFORM_WHEN_ALLOW(Func, ...)                                         \
   do {                                                                        \
-    /* Initialzation is not done yet, posepone the operation */               \
-    if (mState.IsInitEngine() && mState.AsInitEngine()->mInitPromise) {       \
+    /* Initialzation is not done yet, postpone the operation */               \
+    if ((mState.IsInitEngine() || mState.IsRecoverEngine()) &&                \
+        mState.AsInitEngine()->mInitPromise) {                                \
       LOG("%s is called before init", __func__);                              \
       mState.AsInitEngine()->mInitPromise->Then(                              \
           OwnerThread(), __func__,                                            \
@@ -691,6 +799,10 @@ void ExternalEngineStateMachine::OnRequestAudio() {
                 LOG("Reach to the end, no more audio data");
                 EndOfStream(MediaData::Type::AUDIO_DATA);
                 break;
+              case NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_MF_CDM_ERR:
+                // We will handle the process crash in `NotifyErrorInternal()`
+                // so here just silently ignore this.
+                break;
               default:
                 DecodeError(aError);
             }
@@ -762,6 +874,10 @@ void ExternalEngineStateMachine::OnRequestVideo() {
               case NS_ERROR_DOM_MEDIA_END_OF_STREAM:
                 LOG("Reach to the end, no more video data");
                 EndOfStream(MediaData::Type::VIDEO_DATA);
+                break;
+              case NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_MF_CDM_ERR:
+                // We will handle the process crash in `NotifyErrorInternal()`
+                // so here just silently ignore this.
                 break;
               default:
                 DecodeError(aError);
@@ -952,9 +1068,41 @@ void ExternalEngineStateMachine::NotifyErrorInternal(
     // to use our own state machine again.
     DecodeError(
         MediaResult(NS_ERROR_DOM_MEDIA_EXTERNAL_ENGINE_NOT_SUPPORTED_ERR));
+  } else if (aError == NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_MF_CDM_ERR) {
+    RecoverFromCDMProcessCrashIfNeeded();
   } else {
     DecodeError(aError);
   }
+}
+
+void ExternalEngineStateMachine::RecoverFromCDMProcessCrashIfNeeded() {
+  AssertOnTaskQueue();
+  if (mState.IsRecoverEngine()) {
+    return;
+  }
+  ProcessCrashMonitor::NotifyCrash();
+  if (!ProcessCrashMonitor::ShouldRecoverProcess()) {
+    LOG("CDM process has crashed too many times, abort recovery");
+    DecodeError(
+        MediaResult(NS_ERROR_DOM_MEDIA_EXTERNAL_ENGINE_NOT_SUPPORTED_ERR));
+    return;
+  }
+
+  LOG("CDM process crashed, recover the engine again (last time=%" PRId64 ")",
+      mCurrentPosition.Ref().ToMicroseconds());
+  ChangeStateTo(State::RecoverEngine);
+  if (HasVideo()) {
+    mVideoDataRequest.DisconnectIfExists();
+    mVideoWaitRequest.DisconnectIfExists();
+  }
+  if (HasAudio()) {
+    mAudioDataRequest.DisconnectIfExists();
+    mAudioWaitRequest.DisconnectIfExists();
+  }
+  // Ask the reader to shutdown current decoders which are no longer available
+  // due to the remote process crash.
+  mReader->ReleaseResources();
+  InitEngine();
 }
 
 media::TimeUnit ExternalEngineStateMachine::GetVideoThreshold() {
@@ -969,6 +1117,45 @@ void ExternalEngineStateMachine::UpdateSecondaryVideoContainer() {
   AssertOnTaskQueue();
   LOG("UpdateSecondaryVideoContainer=%p", mSecondaryVideoContainer.Ref().get());
   mOnSecondaryVideoContainerInstalled.Notify(mSecondaryVideoContainer.Ref());
+}
+
+RefPtr<SetCDMPromise> ExternalEngineStateMachine::SetCDMProxy(
+    CDMProxy* aProxy) {
+  if (mState.IsShutdownEngine()) {
+    return SetCDMPromise::CreateAndReject(NS_ERROR_FAILURE, __func__);
+  }
+
+  if (mState.IsInitEngine() && mState.AsInitEngine()->mInitPromise) {
+    LOG("SetCDMProxy is called before init");
+    mState.AsInitEngine()->mInitPromise->Then(
+        OwnerThread(), __func__,
+        [self = RefPtr{this}, proxy = RefPtr{aProxy},
+         this](const GenericNonExclusivePromise::ResolveOrRejectValue& aVal) {
+          SetCDMProxy(proxy)
+              ->Then(OwnerThread(), __func__,
+                     [self = RefPtr{this},
+                      this](const SetCDMPromise::ResolveOrRejectValue& aVal) {
+                       mSetCDMProxyRequest.Complete();
+                       if (aVal.IsResolve()) {
+                         mSetCDMProxyPromise.Resolve(true, __func__);
+                       } else {
+                         mSetCDMProxyPromise.Reject(NS_ERROR_DOM_MEDIA_CDM_ERR,
+                                                    __func__);
+                       }
+                     })
+              ->Track(mSetCDMProxyRequest);
+        });
+    return mSetCDMProxyPromise.Ensure(__func__);
+  }
+
+  // TODO : set CDM proxy again if we recreate the media engine after crash.
+  LOG("SetCDMProxy=%p", aProxy);
+  MOZ_DIAGNOSTIC_ASSERT(mEngine);
+  if (!mEngine->SetCDMProxy(aProxy)) {
+    LOG("Failed to set CDM proxy on the engine");
+    return SetCDMPromise::CreateAndReject(NS_ERROR_DOM_MEDIA_CDM_ERR, __func__);
+  }
+  return MediaDecoderStateMachineBase::SetCDMProxy(aProxy);
 }
 
 #undef FMT

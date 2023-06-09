@@ -11,8 +11,6 @@
   --toolbar-non-lwt-bgcolor: -moz-dialog;
   --toolbar-non-lwt-textcolor: -moz-dialogtext;
 
-  --panel-separator-color: hsla(210,4%,10%,.14);
-
   --arrowpanel-field-background: rgba(249,249,250,.3);
 
   --chrome-content-separator-color: #e1e1e2;
@@ -23,7 +21,6 @@
 }
 
 :root[lwt-popup-brighttext] {
-  --panel-separator-color: rgba(249,249,250,.1);
   --arrowpanel-field-background: rgba(12,12,13,.3);
 }
 
@@ -57,7 +54,7 @@
 */
 #navigator-toolbox::after {
   content: "";
-  display: -moz-box;
+  display: flex;
   appearance: auto;
   -moz-default-appearance: toolbox;
   height: 1px;
@@ -69,7 +66,7 @@
 
 #titlebar {
   /* Centrally align content items vertically */
-  -moz-box-pack: center;
+  justify-content: center;
 }
 
 .titlebar-button {
@@ -77,7 +74,7 @@
 }
 
 .titlebar-buttonbox-container {
-  -moz-box-align: center;
+  align-items: center;
 }
 
 /* Hide window controls in fullscreen */
@@ -138,7 +135,7 @@
 
 #nav-bar-customization-target > #wrapper-personal-bookmarks > #personal-bookmarks {
   min-height: 32px;
-  -moz-box-align: center;
+  align-items: center;
 }
 
 /* Workaround for native menubar inheritance */
@@ -229,45 +226,6 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left {
    specific to the editBookmarkPanel should be in browser.css. Styling that
    should be shared by all editBookmarkPanel.inc.xhtml consumers should be in
    editBookmark.css. */
-
-#editBMPanel_newFolderBox {
-  background-color: var(--arrowpanel-field-background);
-  color: inherit;
-  border: 1px solid var(--panel-separator-color);
-  border-radius: 0 0 2px 2px;
-  margin: 0;
-  padding: 0;
-  height: 24px;
-}
-
-#editBMPanel_newFolderButton {
-  appearance: none;
-  -moz-box-flex: 1;
-  -moz-context-properties: fill, fill-opacity;
-  fill: currentColor;
-  fill-opacity: 0.8;
-  border: none;
-  border-radius: 0;
-  padding: 0 9px;
-  margin: 0;
-  min-height: 24px;
-  height: 24px;
-  color: inherit;
-  list-style-image: url("chrome://global/skin/icons/plus.svg");
-}
-
-#editBMPanel_newFolderButton:hover {
-  background-color: var(--arrowpanel-dimmed);
-}
-
-#editBMPanel_newFolderButton:hover:active {
-  background-color: var(--arrowpanel-dimmed-further);
-}
-
-#editBMPanel_newFolderButton .button-text {
-  -moz-box-flex: 1; /* push the button icon to the start side */
-  text-align: start;
-}
 
 /**** folder tree and tag selector ****/
 
@@ -375,7 +333,7 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left {
 
 #tabbrowser-tabs {
   /* overriding tabbox.css */
-  -moz-box-align: stretch;
+  align-items: stretch;
   margin-bottom: 0;
   position: static;
   z-index: auto;
@@ -438,21 +396,4 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left {
 #UITourTooltipClose {
   margin-inline-end: -10px;
   margin-top: -14px;
-}
-
-#historySwipeAnimationPreviousArrow {
-  background: url("chrome://browser/skin/history-swipe-arrow.svg")
-              center left / 64px 128px no-repeat transparent;
-  will-change: transform;
-}
-#historySwipeAnimationPreviousArrow:-moz-locale-dir(rtl) {
-  transform: scaleX(-1);
-}
-#historySwipeAnimationNextArrow {
-  background: url("chrome://browser/skin/history-swipe-arrow.svg")
-              center left / 64px 128px no-repeat transparent;
-  will-change: transform;
-}
-#historySwipeAnimationNextArrow:-moz-locale-dir(ltr) {
-  transform: scaleX(-1);
 }

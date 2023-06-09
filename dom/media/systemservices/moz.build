@@ -33,7 +33,6 @@ if CONFIG["MOZ_WEBRTC"]:
             "android_video_capture/video_capture_android.cc",
         ]
     elif CONFIG["OS_TARGET"] == "Darwin":
-        REQUIRES_UNIFIED_BUILD = True
         UNIFIED_SOURCES += [
             "objc_video_capture/device_info.mm",
             "objc_video_capture/device_info_avfoundation.mm",
@@ -54,7 +53,6 @@ if CONFIG["MOZ_WEBRTC"]:
         UNIFIED_SOURCES += [
             "video_engine/desktop_capture_impl.cc",
             "video_engine/desktop_device_info.cc",
-            "video_engine/platform_uithread.cc",
             "video_engine/tab_capturer.cc",
         ]
 

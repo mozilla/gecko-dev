@@ -1,12 +1,8 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-const { TabsSetupFlowManager } = ChromeUtils.importESModule(
-  "resource:///modules/firefox-view-tabs-setup-manager.sys.mjs"
-);
-
-XPCOMUtils.defineLazyModuleGetters(globalThis, {
-  SyncedTabs: "resource://services-sync/SyncedTabs.jsm",
+ChromeUtils.defineESModuleGetters(globalThis, {
+  SyncedTabs: "resource://services-sync/SyncedTabs.sys.mjs",
 });
 
 const twoTabs = [
@@ -70,6 +66,55 @@ const syncedTabsData5 = [
   },
 ];
 
+const desktopTabs = [
+  {
+    type: "tab",
+    title: "Internet for people, not profits - Mozilla",
+    url: "https://www.mozilla.org/",
+    icon:
+      "https://www.mozilla.org/media/img/favicons/mozilla/favicon.d25d81d39065.ico",
+    lastUsed: 1655730486, // Mon Jan 19 1970 22:55:30 GMT+0000
+  },
+  {
+    type: "tab",
+    title: "Firefox Privacy Notice",
+    url: "https://www.mozilla.org/en-US/privacy/firefox/",
+    icon:
+      "https://www.mozilla.org/media/img/favicons/mozilla/favicon.d25d81d39065.ico",
+    lastUsed: 1673991540155, // Tue, 17 Jan 2023 16:39:00 GMT
+  },
+  {
+    type: "tab",
+    title: "Bugzilla Main Page",
+    url: "https://bugzilla.mozilla.org/",
+    icon: "https://bugzilla.mozilla.org/extensions/BMO/web/images/favicon.ico",
+    lastUsed: 1673513538000, // Thu, 12 Jan 2023 03:52:18 GMT
+  },
+];
+
+const mobileTabs = [
+  {
+    type: "tab",
+    title: "Internet for people, not profits - Mozilla",
+    url: "https://www.mozilla.org/",
+    icon:
+      "https://www.mozilla.org/media/img/favicons/mozilla/favicon.d25d81d39065.ico",
+    lastUsed: 1606510800000, // Fri Nov 27 2020 16:00:00 GMT+0000
+  },
+  {
+    type: "tab",
+    title: "Firefox Privacy Notice",
+    url: "https://www.mozilla.org/en-US/privacy/firefox/",
+    icon:
+      "https://www.mozilla.org/media/img/favicons/mozilla/favicon.d25d81d39065.ico",
+    lastUsed: 1606510800000, // Fri Nov 27 2020 16:00:00 GMT+0000
+  },
+];
+
+const syncedTabsData6 = structuredClone(syncedTabsData1);
+syncedTabsData6[0].tabs = desktopTabs;
+syncedTabsData6[1].tabs = mobileTabs;
+
 const NO_TABS_EVENTS = [
   ["firefoxview", "entered", "firefoxview", undefined],
   ["firefoxview", "synced_tabs", "tabs", undefined, { count: "0" }],
@@ -95,16 +140,24 @@ registerCleanupFunction(async function() {
   cleanup_tab_pickup();
 });
 
+add_setup(async function setup() {
+  // set updateTimeMs to 0 to prevent unexpected/unrelated DOM mutations during testing
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.tabs.firefox-view.updateTimeMs", 0]],
+  });
+});
+
 add_task(async function test_tab_list_ordering() {
   const sandbox = setupRecentDeviceListMocks();
   const syncedTabsMock = sandbox.stub(SyncedTabs, "getRecentTabs");
   let mockTabs1 = getMockTabData(syncedTabsData1);
   let mockTabs2 = getMockTabData(syncedTabsData2);
+  let getRecentTabsResult = mockTabs1;
   syncedTabsMock.callsFake(() => {
     info(
-      `Stubbed SyncedTabs.getRecentTabs returning a promise that resolves to ${mockTabs1.length} tabs\n`
+      `Stubbed SyncedTabs.getRecentTabs returning a promise that resolves to ${getRecentTabsResult.length} tabs\n`
     );
-    return Promise.resolve(mockTabs1);
+    return Promise.resolve(getRecentTabsResult);
   });
 
   await withFirefoxView({}, async browser => {
@@ -137,7 +190,7 @@ add_task(async function test_tab_list_ordering() {
       "Last list item in synced-tabs-list is in the correct order"
     );
 
-    syncedTabsMock.returns(mockTabs2);
+    getRecentTabsResult = mockTabs2;
     // Initiate a synced tabs update
     Services.obs.notifyObservers(null, "services.sync.tabs.changed");
 
@@ -145,7 +198,7 @@ add_task(async function test_tab_list_ordering() {
     // first list item has been updated
     await BrowserTestUtils.waitForMutationCondition(
       syncedTabsList,
-      { childList: true },
+      { childList: true, subtree: true },
       () => syncedTabsList.firstChild.textContent.includes("Firefox")
     );
 
@@ -178,11 +231,12 @@ add_task(async function test_empty_list_items() {
   const syncedTabsMock = sandbox.stub(SyncedTabs, "getRecentTabs");
   let mockTabs1 = getMockTabData(syncedTabsData3);
   let mockTabs2 = getMockTabData(syncedTabsData4);
+  let getRecentTabsResult = mockTabs1;
   syncedTabsMock.callsFake(() => {
     info(
-      `Stubbed SyncedTabs.getRecentTabs returning a promise that resolves to ${mockTabs1.length} tabs\n`
+      `Stubbed SyncedTabs.getRecentTabs returning a promise that resolves to ${getRecentTabsResult.length} tabs\n`
     );
-    return Promise.resolve(mockTabs1);
+    return Promise.resolve(getRecentTabsResult);
   });
 
   await withFirefoxView({}, async browser => {
@@ -222,7 +276,7 @@ add_task(async function test_empty_list_items() {
       "Last list item in synced-tabs-list should be a placeholder"
     );
 
-    syncedTabsMock.returns(mockTabs2);
+    getRecentTabsResult = mockTabs2;
     // Initiate a synced tabs update
     Services.obs.notifyObservers(null, "services.sync.tabs.changed");
 
@@ -230,7 +284,7 @@ add_task(async function test_empty_list_items() {
     // first list item has been updated
     await BrowserTestUtils.waitForMutationCondition(
       syncedTabsList,
-      { childList: true },
+      { childList: true, subtree: true },
       () =>
         syncedTabsList.firstChild.textContent.includes("Firefox Privacy Notice")
     );
@@ -260,11 +314,12 @@ add_task(async function test_empty_list() {
   const syncedTabsMock = sandbox.stub(SyncedTabs, "getRecentTabs");
   let mockTabs1 = getMockTabData([]);
   let mockTabs2 = getMockTabData(syncedTabsData4);
+  let getRecentTabsResult = mockTabs1;
   syncedTabsMock.callsFake(() => {
     info(
-      `Stubbed SyncedTabs.getRecentTabs returning a promise that resolves to ${mockTabs1.length} tabs\n`
+      `Stubbed SyncedTabs.getRecentTabs returning a promise that resolves to ${getRecentTabsResult.length} tabs\n`
     );
-    return Promise.resolve(mockTabs1);
+    return Promise.resolve(getRecentTabsResult);
   });
 
   await withFirefoxView({}, async browser => {
@@ -305,19 +360,14 @@ add_task(async function test_empty_list() {
       { clear: true, process: "parent" }
     );
 
-    syncedTabsMock.callsFake(() => {
-      info(
-        `Stubbed SyncedTabs.getRecentTabs returning a promise that resolves to ${mockTabs2.length} tabs\n`
-      );
-      return Promise.resolve(mockTabs2);
-    });
+    getRecentTabsResult = mockTabs2;
     // Initiate a synced tabs update
     Services.obs.notifyObservers(null, "services.sync.tabs.changed");
 
     const syncedTabsList = document.querySelector("ol.synced-tabs-list");
     await BrowserTestUtils.waitForMutationCondition(
       syncedTabsList,
-      { childList: true },
+      { childList: true, subtree: true },
       () => syncedTabsList.children.length
     );
 
@@ -342,11 +392,12 @@ add_task(async function test_time_updates_correctly() {
   const sandbox = setupRecentDeviceListMocks();
   const syncedTabsMock = sandbox.stub(SyncedTabs, "getRecentTabs");
   let mockTabs1 = getMockTabData(syncedTabsData5);
+  let getRecentTabsResult = mockTabs1;
   syncedTabsMock.callsFake(() => {
     info(
-      `Stubbed SyncedTabs.getRecentTabs returning a promise that resolves to ${mockTabs1.length} tabs\n`
+      `Stubbed SyncedTabs.getRecentTabs returning a promise that resolves to ${getRecentTabsResult.length} tabs\n`
     );
-    return Promise.resolve(mockTabs1);
+    return Promise.resolve(getRecentTabsResult);
   });
 
   await withFirefoxView({}, async browser => {
@@ -369,7 +420,7 @@ add_task(async function test_time_updates_correctly() {
     const timeLabel = document.querySelector("span.synced-tab-li-time");
     await BrowserTestUtils.waitForMutationCondition(
       timeLabel,
-      { childList: true },
+      { childList: true, subtree: true },
       () => !timeLabel.textContent.includes("now")
     );
 
@@ -452,11 +503,12 @@ add_task(async function test_tabs_sync_on_user_page_reload() {
   const syncedTabsMock = sandbox.stub(SyncedTabs, "getRecentTabs");
   let mockTabs1 = getMockTabData(syncedTabsData1);
   let expectedTabsAfterReload = getMockTabData(syncedTabsData3);
+  let getRecentTabsResult = mockTabs1;
   syncedTabsMock.callsFake(() => {
     info(
-      `Stubbed SyncedTabs.getRecentTabs returning a promise that resolves to ${mockTabs1.length} tabs\n`
+      `Stubbed SyncedTabs.getRecentTabs returning a promise that resolves to ${getRecentTabsResult.length} tabs\n`
     );
-    return Promise.resolve(mockTabs1);
+    return Promise.resolve(getRecentTabsResult);
   });
 
   await withFirefoxView({}, async browser => {
@@ -473,18 +525,22 @@ add_task(async function test_tabs_sync_on_user_page_reload() {
     ok(true, "Firefox View has been reloaded");
     ok(TabsSetupFlowManager.waitingForTabs, "waitingForTabs is true");
 
-    syncedTabsMock.returns(expectedTabsAfterReload);
+    let waitedForTabs = TestUtils.waitForCondition(() => {
+      return !TabsSetupFlowManager.waitingForTabs;
+    });
+
+    getRecentTabsResult = expectedTabsAfterReload;
     Services.obs.notifyObservers(null, "services.sync.tabs.changed");
-    ok(!TabsSetupFlowManager.waitingForTabs, "waitingForTabs is false");
 
     const syncedTabsList = document.querySelector("ol.synced-tabs-list");
     // The tab pickup list has been updated
     await BrowserTestUtils.waitForMutationCondition(
       syncedTabsList,
-      { childList: true },
+      { childList: true, subtree: true },
       () =>
         syncedTabsList.firstChild.textContent.includes("Sandboxes - Sinon.JS")
     );
+    await waitedForTabs;
 
     sandbox.restore();
     cleanup_tab_pickup();
@@ -492,18 +548,17 @@ add_task(async function test_tabs_sync_on_user_page_reload() {
 });
 
 add_task(async function test_keyboard_navigation() {
-  // Setting this pref allows the test to run as expected on MacOS
-  await SpecialPowers.pushPrefEnv({ set: [["accessibility.tabfocus", 7]] });
   TabsSetupFlowManager.resetInternalState();
 
   const sandbox = setupRecentDeviceListMocks();
   const syncedTabsMock = sandbox.stub(SyncedTabs, "getRecentTabs");
   let mockTabs1 = getMockTabData(syncedTabsData1);
+  let getRecentTabsResult = mockTabs1;
   syncedTabsMock.callsFake(() => {
     info(
-      `Stubbed SyncedTabs.getRecentTabs returning a promise that resolves to ${mockTabs1.length} tabs\n`
+      `Stubbed SyncedTabs.getRecentTabs returning a promise that resolves to ${getRecentTabsResult.length} tabs\n`
     );
-    return Promise.resolve(mockTabs1);
+    return Promise.resolve(getRecentTabsResult);
   });
 
   await withFirefoxView({}, async browser => {
@@ -601,6 +656,142 @@ add_task(async function test_keyboard_navigation() {
       "Summary element should be focused when shift tabbing away from list"
     );
 
+    sandbox.restore();
+    cleanup_tab_pickup();
+  });
+});
+
+add_task(async function test_duplicate_tab_filter() {
+  const sandbox = setupRecentDeviceListMocks();
+  const syncedTabsMock = sandbox.stub(SyncedTabs, "getRecentTabs");
+  let mockTabs6 = getMockTabData(syncedTabsData6);
+  let getRecentTabsResult = mockTabs6;
+  syncedTabsMock.callsFake(() => {
+    info(
+      `Stubbed SyncedTabs.getRecentTabs returning a promise that resolves to ${getRecentTabsResult.length} tabs\n`
+    );
+    return Promise.resolve(getRecentTabsResult);
+  });
+
+  await withFirefoxView({}, async browser => {
+    await setupListState(browser);
+
+    Assert.equal(
+      mockTabs6[0].title,
+      "Firefox Privacy Notice",
+      `First tab should be ${mockTabs6[0].title}`
+    );
+
+    Assert.equal(
+      mockTabs6[0].lastUsed,
+      1673991540155,
+      `First tab lastUsed value should be ${mockTabs6[0].lastUsed}`
+    );
+
+    Assert.equal(
+      mockTabs6[1].title,
+      "Bugzilla Main Page",
+      `Second tab should be ${mockTabs6[1].title}`
+    );
+
+    Assert.equal(
+      mockTabs6[1].lastUsed,
+      1673513538000,
+      `Second tab lastUsed value should be ${mockTabs6[1].lastUsed}`
+    );
+
+    Assert.equal(
+      mockTabs6[2].title,
+      "Internet for people, not profits - Mozilla",
+      `Third tab should be ${mockTabs6[2].title}`
+    );
+
+    Assert.equal(
+      mockTabs6[2].lastUsed,
+      1606510800000,
+      `Third tab lastUsed value should be ${mockTabs6[2].lastUsed}`
+    );
+
+    sandbox.restore();
+    cleanup_tab_pickup();
+  });
+});
+
+add_task(async function test_tabs_dont_update_unnecessarily() {
+  const sandbox = setupRecentDeviceListMocks();
+  const syncedTabsMock = sandbox.stub(SyncedTabs, "getRecentTabs");
+  let mockTabs1 = getMockTabData(syncedTabsData1);
+  let getRecentTabsResult = mockTabs1;
+  syncedTabsMock.callsFake(() => {
+    info(
+      `Stubbed SyncedTabs.getRecentTabs returning a promise that resolves to ${getRecentTabsResult.length} tabs\n`
+    );
+    return Promise.resolve(getRecentTabsResult);
+  });
+
+  await withFirefoxView({}, async browser => {
+    await setupListState(browser);
+
+    const { document } = browser.contentWindow;
+    const syncedTabsList = document.querySelector("ol.synced-tabs-list");
+
+    Assert.ok(
+      syncedTabsList.children.length === 3,
+      "Tab Pickup list should have three list items"
+    );
+
+    Assert.ok(
+      syncedTabsList.firstChild.textContent.includes(
+        "Internet for people, not profits - Mozilla"
+      ),
+      `First item in the Tab Pickup list is ${mockTabs1[0].title}`
+    );
+
+    Assert.ok(
+      syncedTabsList.children[1].textContent.includes("The Times"),
+      `Second item in Tab Pickup list is ${mockTabs1[1].title}`
+    );
+
+    Assert.ok(
+      syncedTabsList.children[2].textContent.includes("Sandboxes - Sinon.JS"),
+      `Third item in Tab Pickup list is ${mockTabs1[2].title}`
+    );
+
+    let wasMutated = false;
+
+    const callback = mutationList => {
+      // some logging so if this starts to fail we have some clues as to why
+      for (const mutation of mutationList) {
+        if (mutation.type === "childList") {
+          info(
+            "A child node has been added or removed:" + mutation.target.nodeName
+          );
+        } else if (mutation.type === "attributes") {
+          info(`The ${mutation.attributeName} attribute was modified.`);
+        } else if (mutation.type === "characterData") {
+          info(`The characterData was modified.`);
+        }
+      }
+      wasMutated = true;
+    };
+
+    const observer = new MutationObserver(callback);
+
+    observer.observe(syncedTabsList, { childList: true, subtree: true });
+
+    getRecentTabsResult = mockTabs1;
+    const tabPickupList = document.querySelector("tab-pickup-list");
+    const updateTabsListSpy = sandbox.spy(tabPickupList, "updateTabsList");
+
+    // Initiate a synced tabs update
+    Services.obs.notifyObservers(null, "services.sync.tabs.changed");
+    await TestUtils.waitForCondition(() => {
+      return !TabsSetupFlowManager.waitingForTabs;
+    });
+    await TestUtils.waitForCondition(() => updateTabsListSpy.called);
+    Assert.ok(!wasMutated, "The synced tabs list was not mutated");
+
+    observer.disconnect();
     sandbox.restore();
     cleanup_tab_pickup();
   });

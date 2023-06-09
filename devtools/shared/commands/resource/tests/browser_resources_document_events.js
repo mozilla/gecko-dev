@@ -12,10 +12,6 @@ add_task(async function() {
   await testIframeNavigation();
   await testBfCacheNavigation();
   await testDomCompleteWithWindowStop();
-
-  // Enable server side target switching for next test
-  // as the regression it tracks only occurs with server side target switching enabled
-  await pushPref("devtools.target-switching.server.enabled", true);
   await testCrossOriginNavigation();
 });
 
@@ -283,7 +279,7 @@ async function testBfCacheNavigation() {
   const secondLocation = "data:text/html,<title>second</title>second page";
   const tab = await addTab(firstLocation);
   const onLoaded = BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
-  BrowserTestUtils.loadURI(gBrowser.selectedBrowser, secondLocation);
+  BrowserTestUtils.loadURIString(gBrowser.selectedBrowser, secondLocation);
   await onLoaded;
 
   const { commands } = await initResourceCommand(tab);
@@ -425,7 +421,7 @@ async function testCrossOriginNavigation() {
     "https://example.net/document-builder.sjs?html=<head><title>titleNet</title></head>net";
   const onLoaded = BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
   const targetBeforeNavigation = commands.targetCommand.targetFront;
-  BrowserTestUtils.loadURI(gBrowser.selectedBrowser, netUrl);
+  BrowserTestUtils.loadURIString(gBrowser.selectedBrowser, netUrl);
   await onLoaded;
 
   // We are switching to a new target only when fission is enabled...
@@ -570,7 +566,7 @@ async function testDomCompleteWithWindowStop() {
 </html>`;
   const secondLocation = "data:text/html," + encodeURIComponent(html);
   const targetBeforeNavigation = commands.targetCommand.targetFront;
-  BrowserTestUtils.loadURI(gBrowser.selectedBrowser, secondLocation);
+  BrowserTestUtils.loadURIString(gBrowser.selectedBrowser, secondLocation);
   info(
     "Wait for will-navigate, dom-loading, dom-interactive and dom-complete events"
   );

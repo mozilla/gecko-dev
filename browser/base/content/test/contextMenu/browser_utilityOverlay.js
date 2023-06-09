@@ -51,12 +51,12 @@ add_task(async function test_eventMatchesKey() {
   }
 });
 
-add_task(async function test_getTopWin() {
-  is(getTopWin(), window, "got top window");
+add_task(async function test_getTargetWindow() {
+  is(URILoadingHelper.getTargetWindow(window), window, "got top window");
 });
 
 add_task(async function test_openUILink() {
-  const kURL = "http://example.org/";
+  const kURL = "https://example.org/";
   let tab = await BrowserTestUtils.openNewForegroundTab(
     gBrowser,
     "about:blank"

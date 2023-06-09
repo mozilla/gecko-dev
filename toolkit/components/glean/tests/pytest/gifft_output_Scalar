@@ -6,25 +6,29 @@
 
 #include "mozilla/AppShutdown.h"
 #include "mozilla/ClearOnShutdown.h"
+#include "mozilla/glean/bindings/GleanJSMetricsLookup.h"
+#include "mozilla/glean/bindings/jog/JOG.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/Telemetry.h"
-#include "mozilla/Tuple.h"
+#include <tuple>
 #include "mozilla/DataMutex.h"
-#include "mozilla/Tuple.h"
 #include "nsClassHashtable.h"
-#include "nsIThread.h"
 #include "nsTHashMap.h"
+#include "nsIThread.h"
 #include "nsThreadUtils.h"
 
 #ifndef mozilla_glean_ScalarGifftMap_h
 #define mozilla_glean_ScalarGifftMap_h
+
+#define DYNAMIC_METRIC_BIT (26)
+#define GLEAN_METRIC_ID(id) ((id) & ((1ULL << 27) - 1))
 
 namespace mozilla::glean {
 
 using Telemetry::ScalarID;
 
 typedef nsUint32HashKey SubmetricIdHashKey;
-typedef nsTHashMap<SubmetricIdHashKey, Tuple<ScalarID, nsString>>
+typedef nsTHashMap<SubmetricIdHashKey, std::tuple<ScalarID, nsString>>
     SubmetricToLabeledMirrorMapType;
 typedef StaticDataMutex<UniquePtr<SubmetricToLabeledMirrorMapType>>
     SubmetricToMirrorMutex;
@@ -141,49 +145,74 @@ static inline bool IsSubmetricId(uint32_t aId) {
   return (aId & (1 << 25)) > 0;
 }
 
-static Maybe<ScalarID> ScalarIdForMetric(uint32_t aId) {
+static inline Maybe<ScalarID> ScalarIdForMetric(uint32_t aId) {
   switch(aId) {
     case 1: { // test.boolean_metric
       return Some(ScalarID::SOME_BOOL_SCALAR);
     }
-    case 2: { // test.labeled_boolean_metric
-      return Some(ScalarID::SOME_KEYED_BOOL_SCALAR);
-    }
-    case 3: { // test.labeled_boolean_metric_labels
-      return Some(ScalarID::SOME_OTHER_KEYED_BOOL_SCALAR);
-    }
-    case 4: { // test.counter_metric
+    case 2: { // test.counter_metric
       return Some(ScalarID::SOME_UINT_SCALAR);
     }
-    case 5: { // test.labeled_counter_metric
+    case 4: { // test.labeled_boolean_metric
+      return Some(ScalarID::SOME_KEYED_BOOL_SCALAR);
+    }
+    case 5: { // test.labeled_boolean_metric_labels
+      return Some(ScalarID::SOME_OTHER_KEYED_BOOL_SCALAR);
+    }
+    case 6: { // test.labeled_counter_metric
       return Some(ScalarID::SOME_KEYED_UINT_SCALAR);
     }
-    case 6: { // test.labeled_counter_metric_labels
+    case 7: { // test.labeled_counter_metric_labels
       return Some(ScalarID::SOME_OTHER_KEYED_UINT_SCALAR);
     }
-    case 7: { // test.string_metric
-      return Some(ScalarID::SOME_STRING_SCALAR);
-    }
-    case 10: { // test.string_list_metric
+    case 11: { // test.string_list_metric
       return Some(ScalarID::YET_ANOTHER_KEYED_BOOL_SCALAR);
     }
-    case 11: { // test.timespan_metric
+    case 12: { // test.string_metric
+      return Some(ScalarID::SOME_STRING_SCALAR);
+    }
+    case 13: { // test.timespan_metric
       return Some(ScalarID::SOME_OTHER_UINT_SCALAR);
     }
-    case 15: { // test.nested.uuid_metric
-      return Some(ScalarID::SOME_OTHER_STRING_SCALAR);
-    }
-    case 16: { // test.nested.datetime_metric
+    case 15: { // test.nested.datetime_metric
       return Some(ScalarID::SOME_STILL_OTHER_STRING_SCALAR);
     }
     case 19: { // test.nested.quantity_metric
       return Some(ScalarID::TELEMETRY_TEST_MIRROR_FOR_QUANTITY);
     }
+    case 22: { // test.nested.uuid_metric
+      return Some(ScalarID::SOME_OTHER_STRING_SCALAR);
+    }
     default: {
+      if (MOZ_UNLIKELY(aId & (1 << DYNAMIC_METRIC_BIT))) {
+        // Dynamic (runtime-registered) metric. Use its static (compiletime-
+        // registered) metric's telemetry_mirror mapping.
+        // ...if applicable.
+
+        // Only JS can use dynamic (runtime-registered) metric ids.
+        MOZ_ASSERT(NS_IsMainThread());
+
+        auto metricName = JOG::GetMetricName(aId);
+        // All of these should have names, but the storage only lasts until
+        // XPCOMWillShutdown, so it might return `Nothing()`.
+        if (metricName.isSome()) {
+          auto maybeMetric = MetricByNameLookup(metricName.ref());
+          if (maybeMetric.isSome()) {
+            uint32_t staticId = GLEAN_METRIC_ID(maybeMetric.value());
+            // Let's ensure we don't infinite loop, huh.
+            MOZ_ASSERT(!(staticId & (1 << DYNAMIC_METRIC_BIT)));
+            return ScalarIdForMetric(staticId);
+          }
+        }
+      }
       return Nothing();
     }
   }
 }
 
 }  // namespace mozilla::glean
+
+#undef GLEAN_METRIC_ID
+#undef DYNAMIC_METRIC_BIT
+
 #endif  // mozilla_glean_ScalarGifftMaps_h

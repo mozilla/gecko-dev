@@ -6,7 +6,6 @@
 #include "CacheLog.h"
 #include "CacheFileIOManager.h"
 
-#include "../cache/nsCacheUtils.h"
 #include "CacheHashUtils.h"
 #include "CacheStorageService.h"
 #include "CacheIndex.h"
@@ -4143,7 +4142,7 @@ nsresult CacheFileIOManager::DispatchPurgeTask(
       do_GetService("@mozilla.org/backgroundtasksrunner;1");
 
   return runner->RemoveDirectoryInDetachedProcess(
-      path, aCacheDirName, aSecondsToWait, aPurgeExtension);
+      path, aCacheDirName, aSecondsToWait, aPurgeExtension, "HttpCache"_ns);
 #endif
 }
 

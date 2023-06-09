@@ -7,10 +7,11 @@ const { ASRouter } = ChromeUtils.import(
   "resource://activity-stream/lib/ASRouter.jsm"
 );
 
-const calloutId = "root";
+const calloutId = "multi-stage-message-root";
 const calloutSelector = `#${calloutId}.featureCallout`;
 const primaryButtonSelector = `#${calloutId} .primary`;
-const PDF_TEST_URL = "https://example.com/some.pdf";
+const PDF_TEST_URL =
+  "https://example.com/browser/browser/components/newtab/test/browser/file_pdf.PDF";
 
 const waitForCalloutScreen = async (doc, screenId) => {
   await BrowserTestUtils.waitForCondition(() => {
@@ -20,13 +21,13 @@ const waitForCalloutScreen = async (doc, screenId) => {
 
 const waitForRemoved = async doc => {
   await BrowserTestUtils.waitForCondition(() => {
-    return !document.querySelector(calloutSelector);
+    return !doc.querySelector(calloutSelector);
   });
 };
 
 async function openURLInWindow(window, url) {
   const { selectedBrowser } = window.gBrowser;
-  BrowserTestUtils.loadURI(selectedBrowser, url);
+  BrowserTestUtils.loadURIString(selectedBrowser, url);
   await BrowserTestUtils.browserLoaded(selectedBrowser, false, url);
 }
 
@@ -35,9 +36,7 @@ async function openURLInNewTab(window, url) {
 }
 
 const pdfMatch = sinon.match(val => {
-  return (
-    val?.id === "featureCalloutCheck" && val?.context?.source === PDF_TEST_URL
-  );
+  return val?.id === "featureCalloutCheck" && val?.context?.source === "chrome";
 });
 
 const validateCalloutCustomPosition = (element, positionOverride, doc) => {
@@ -132,6 +131,10 @@ const testMessage = {
 
 const testMessageCalloutSelector = testMessage.message.content.screens[0].id;
 
+add_setup(async function() {
+  requestLongerTimeout(2);
+});
+
 add_task(async function feature_callout_renders_in_browser_chrome_for_pdf() {
   const sandbox = sinon.createSandbox();
   const sendTriggerStub = sandbox.stub(ASRouter, "sendTriggerMessage");
@@ -150,7 +153,7 @@ add_task(async function feature_callout_renders_in_browser_chrome_for_pdf() {
 
   // click primary button to close
   doc.querySelector(primaryButtonSelector).click();
-  await waitForRemoved();
+  await waitForRemoved(doc);
   ok(
     true,
     "Feature callout removed from browser chrome after clicking button configured to navigate"
@@ -184,7 +187,9 @@ add_task(
     const tab2 = await openURLInNewTab(win, "about:preferences");
     tab2.focus();
     await BrowserTestUtils.waitForCondition(() => {
-      return !doc.body.querySelector("#root.featureCallout");
+      return !doc.body.querySelector(
+        "#multi-stage-message-root.featureCallout"
+      );
     });
 
     ok(
@@ -233,12 +238,12 @@ add_task(
       "Feature callout rendered when opening a new tab with PDF url"
     );
 
-    BrowserTestUtils.loadURI(win.gBrowser, "about:preferences");
+    BrowserTestUtils.loadURIString(win.gBrowser, "about:preferences");
     await BrowserTestUtils.waitForLocationChange(
       win.gBrowser,
       "about:preferences"
     );
-    await waitForRemoved();
+    await waitForRemoved(doc);
 
     ok(
       !doc.querySelector(`.${testMessageCalloutSelector}`),
@@ -272,7 +277,7 @@ add_task(
     );
 
     BrowserTestUtils.removeTab(tab1);
-    await waitForRemoved();
+    await waitForRemoved(doc);
 
     ok(
       !doc.querySelector(`.${testMessageCalloutSelector}`),
@@ -408,6 +413,70 @@ add_task(
           .callout_position_override
       ),
       "Callout custom position is rendered appropriately in RTL mode"
+    );
+
+    await BrowserTestUtils.closeWindow(win);
+    sandbox.restore();
+  }
+);
+
+add_task(async function feature_callout_dismissed_on_escape() {
+  const sandbox = sinon.createSandbox();
+  const sendTriggerStub = sandbox.stub(ASRouter, "sendTriggerMessage");
+  sendTriggerStub.withArgs(pdfMatch).resolves(testMessage);
+  sendTriggerStub.callThrough();
+
+  const win = await BrowserTestUtils.openNewBrowserWindow();
+  await openURLInWindow(win, PDF_TEST_URL);
+  const doc = win.document;
+  await waitForCalloutScreen(doc, testMessageCalloutSelector);
+  const container = doc.querySelector(calloutSelector);
+  ok(
+    container,
+    "Feature Callout is rendered in the browser chrome with a new window when a message is available"
+  );
+
+  // Ensure the browser is focused
+  win.gBrowser.selectedBrowser.focus();
+
+  // Press Escape to close
+  EventUtils.synthesizeKey("KEY_Escape", {}, win);
+  await waitForRemoved(doc);
+  ok(true, "Feature callout dismissed after pressing Escape");
+
+  await BrowserTestUtils.closeWindow(win);
+  sandbox.restore();
+});
+
+add_task(
+  async function feature_callout_not_dismissed_on_escape_with_interactive_elm_focused() {
+    const sandbox = sinon.createSandbox();
+    const sendTriggerStub = sandbox.stub(ASRouter, "sendTriggerMessage");
+    sendTriggerStub.withArgs(pdfMatch).resolves(testMessage);
+    sendTriggerStub.callThrough();
+
+    const win = await BrowserTestUtils.openNewBrowserWindow();
+    await openURLInWindow(win, PDF_TEST_URL);
+    const doc = win.document;
+    await waitForCalloutScreen(doc, testMessageCalloutSelector);
+    const container = doc.querySelector(calloutSelector);
+    ok(
+      container,
+      "Feature Callout is rendered in the browser chrome with a new window when a message is available"
+    );
+
+    // Ensure an interactive element is focused
+    win.gURLBar.focus();
+
+    // Press Escape to close
+    EventUtils.synthesizeKey("KEY_Escape", {}, win);
+    await TestUtils.waitForTick();
+    // Wait 500ms for transition to complete
+    // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
+    await new Promise(resolve => setTimeout(resolve, 500));
+    ok(
+      doc.querySelector(calloutSelector),
+      "Feature callout is not dismissed after pressing Escape because an interactive element is focused"
     );
 
     await BrowserTestUtils.closeWindow(win);

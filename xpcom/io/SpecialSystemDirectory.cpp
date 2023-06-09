@@ -28,6 +28,7 @@
 #  include <sys/param.h>
 #  include "prenv.h"
 #  if defined(MOZ_WIDGET_COCOA)
+#    include "CFTypeRefPtr.h"
 #    include "CocoaFileUtils.h"
 #  endif
 
@@ -190,15 +191,13 @@ static nsresult GetUnixSystemConfigDir(nsIFile** aFile) {
 #  if defined(ANDROID)
   return NS_ERROR_FAILURE;
 #  else
-  nsCOMPtr<nsIXULAppInfo> appInfo =
-      do_GetService("@mozilla.org/xre/app-info;1");
-  if (!appInfo) {
-    MOZ_CRASH("No appInfo");
-  }
-
   nsAutoCString appName;
-  nsresult rv = appInfo->GetName(appName);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (nsCOMPtr<nsIXULAppInfo> appInfo =
+          do_GetService("@mozilla.org/xre/app-info;1")) {
+    MOZ_TRY(appInfo->GetName(appName));
+  } else {
+    appName.AssignLiteral(MOZ_APP_BASENAME);
+  }
 
   ToLowerCase(appName);
 
@@ -207,13 +206,9 @@ static nsresult GetUnixSystemConfigDir(nsIFile** aFile) {
   nsDependentCString sysConfigDir = nsDependentCString(
       mozSystemConfigDir ? mozSystemConfigDir : defaultSystemConfigDir);
 
-  rv = NS_NewNativeLocalFile(sysConfigDir, true, aFile);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  (*aFile)->AppendNative(appName);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return rv;
+  MOZ_TRY(NS_NewNativeLocalFile(sysConfigDir, true, aFile));
+  MOZ_TRY((*aFile)->AppendNative(appName));
+  return NS_OK;
 #  endif
 }
 
@@ -546,6 +541,25 @@ nsresult GetSpecialSystemDirectory(SystemDirectories aSystemSystemDirectory,
     case Mac_PictureDocumentsDirectory: {
       return GetOSXFolderType(kUserDomain, kPictureDocumentsFolderType, aFile);
     }
+    case Mac_DefaultScreenshotDirectory: {
+      auto prefValue = CFTypeRefPtr<CFPropertyListRef>::WrapUnderCreateRule(
+          CFPreferencesCopyAppValue(CFSTR("location"),
+                                    CFSTR("com.apple.screencapture")));
+
+      if (!prefValue || CFGetTypeID(prefValue.get()) != CFStringGetTypeID()) {
+        return GetOSXFolderType(kUserDomain, kPictureDocumentsFolderType,
+                                aFile);
+      }
+
+      nsAutoString path;
+      mozilla::Span<char16_t> data =
+          path.GetMutableData(CFStringGetLength((CFStringRef)prefValue.get()));
+      CFStringGetCharacters((CFStringRef)prefValue.get(),
+                            CFRangeMake(0, data.Length()),
+                            reinterpret_cast<UniChar*>(data.Elements()));
+
+      return NS_NewLocalFile(path, true, aFile);
+    }
 #elif defined(XP_WIN)
     case Win_SystemDirectory: {
       int32_t len = ::GetSystemDirectoryW(path, MAX_PATH);
@@ -665,12 +679,6 @@ nsresult GetSpecialSystemDirectory(SystemDirectories aSystemSystemDirectory,
       }
       return rv;
     }
-#  if defined(MOZ_SANDBOX)
-    case Win_LocalAppdataLow: {
-      GUID localAppDataLowGuid = FOLDERID_LocalAppDataLow;
-      return GetKnownFolder(&localAppDataLowGuid, aFile);
-    }
-#  endif
 #  if defined(MOZ_THUNDERBIRD) || defined(MOZ_SUITE)
     case Win_Documents: {
       return GetLibrarySaveToPath(CSIDL_MYDOCUMENTS, FOLDERID_DocumentsLibrary,

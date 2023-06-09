@@ -21,7 +21,7 @@ where
     T: serde::Serialize,
 {
     assert_eq!(
-        serde_json::to_value(&v).expect("should get a value"),
+        serde_json::to_value(v).expect("should get a value"),
         expected
     );
 }
@@ -508,7 +508,7 @@ mod engine_tests {
     #[test]
     fn test_engine_not_finished() {
         let e = Engine::new("test_engine");
-        serde_json::to_value(&e).expect_err("unfinished stopwatch should fail");
+        serde_json::to_value(e).expect_err("unfinished stopwatch should fail");
     }
 
     #[test]

@@ -21,7 +21,6 @@
 #include "mozilla/Sprintf.h"
 #include "mozilla/TextUtils.h"
 #include "mozilla/ThreadLocal.h"
-#include "mozilla/Tuple.h"
 
 #include <algorithm>
 #include <cfloat>
@@ -76,7 +75,8 @@
 #include "js/CompilationAndEvaluation.h"
 #include "js/CompileOptions.h"
 #include "js/Date.h"
-#include "js/experimental/CodeCoverage.h"      // js::GetCodeCoverageSummary
+#include "js/experimental/CodeCoverage.h"  // js::GetCodeCoverageSummary
+#include "js/experimental/CompileScript.h"  // JS::ParseGlobalScript, JS::PrepareForInstantiate
 #include "js/experimental/JSStencil.h"         // JS::Stencil
 #include "js/experimental/PCCountProfiling.h"  // JS::{Start,Stop}PCCountProfiling, JS::PurgePCCounts, JS::GetPCCountScript{Count,Summary,Contents}
 #include "js/experimental/TypedData.h"         // JS_GetObjectAsUint8Array
@@ -107,6 +107,7 @@
 #include "util/Text.h"
 #include "vm/BooleanObject.h"
 #include "vm/DateObject.h"
+#include "vm/DateTime.h"
 #include "vm/ErrorObject.h"
 #include "vm/GlobalObject.h"
 #include "vm/HelperThreads.h"
@@ -150,8 +151,6 @@ using mozilla::AssertedCast;
 using mozilla::AsWritableChars;
 using mozilla::Maybe;
 using mozilla::Span;
-using mozilla::Tie;
-using mozilla::Tuple;
 
 using JS::AutoStableStringChars;
 using JS::CompileOptions;
@@ -451,6 +450,24 @@ static bool GetBuildConfiguration(JSContext* cx, unsigned argc, Value* vp) {
   value = BooleanValue(false);
 #endif
   if (!JS_SetProperty(cx, info, "loong64-simulator", value)) {
+    return false;
+  }
+
+#ifdef JS_CODEGEN_RISCV64
+  value = BooleanValue(true);
+#else
+  value = BooleanValue(false);
+#endif
+  if (!JS_SetProperty(cx, info, "riscv64", value)) {
+    return false;
+  }
+
+#ifdef JS_SIMULATOR_RISCV64
+  value = BooleanValue(true);
+#else
+  value = BooleanValue(false);
+#endif
+  if (!JS_SetProperty(cx, info, "riscv64-simulator", value)) {
     return false;
   }
 
@@ -2465,6 +2482,33 @@ static bool SetMarkStackLimit(JSContext* cx, unsigned argc, Value* vp) {
 
 #endif /* JS_GC_ZEAL */
 
+static bool SetMallocMaxDirtyPageModifier(JSContext* cx, unsigned argc,
+                                          Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  if (args.length() != 1) {
+    RootedObject callee(cx, &args.callee());
+    ReportUsageErrorASCII(cx, callee, "Wrong number of arguments");
+    return false;
+  }
+
+  constexpr int32_t MinSupportedValue = -5;
+  constexpr int32_t MaxSupportedValue = 16;
+
+  int32_t value;
+  if (!ToInt32(cx, args[0], &value)) {
+    return false;
+  }
+  if (value < MinSupportedValue || value > MaxSupportedValue) {
+    JS_ReportErrorASCII(cx, "Bad argument to setMallocMaxDirtyPageModifier");
+    return false;
+  }
+
+  moz_set_max_dirty_page_modifier(value);
+
+  args.rval().setUndefined();
+  return true;
+}
+
 static bool GCState(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -2768,7 +2812,7 @@ static bool SaveStack(JSContext* cx, unsigned argc, Value* vp) {
     if (!ToNumber(cx, args[0], &maxDouble)) {
       return false;
     }
-    if (mozilla::IsNaN(maxDouble) || maxDouble < 0 || maxDouble > UINT32_MAX) {
+    if (std::isnan(maxDouble) || maxDouble < 0 || maxDouble > UINT32_MAX) {
       ReportValueError(cx, JSMSG_UNEXPECTED_TYPE, JSDVG_SEARCH_STACK, args[0],
                        nullptr, "not a valid maximum frame count");
       return false;
@@ -3003,6 +3047,104 @@ static bool NewObjectWithAddPropertyHook(JSContext* cx, unsigned argc,
   return true;
 }
 
+static bool NewObjectWithCallHook(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+
+  static auto hookShared = [](JSContext* cx, CallArgs& args) {
+    Rooted<PlainObject*> obj(cx, NewPlainObject(cx));
+    if (!obj) {
+      return false;
+    }
+
+    // Define |this|. We can't expose the MagicValue to JS, so we use
+    // "<is_constructing>" in that case.
+    Rooted<Value> thisv(cx, args.thisv());
+    if (thisv.isMagic(JS_IS_CONSTRUCTING)) {
+      JSString* str = NewStringCopyZ<CanGC>(cx, "<is_constructing>");
+      if (!str) {
+        return false;
+      }
+      thisv.setString(str);
+    }
+    if (!DefineDataProperty(cx, obj, cx->names().this_, thisv,
+                            JSPROP_ENUMERATE)) {
+      return false;
+    }
+
+    // Define |callee|.
+    if (!DefineDataProperty(cx, obj, cx->names().callee, args.calleev(),
+                            JSPROP_ENUMERATE)) {
+      return false;
+    }
+
+    // Define |arguments| array.
+    Rooted<ArrayObject*> arr(
+        cx, NewDenseCopiedArray(cx, args.length(), args.array()));
+    if (!arr) {
+      return false;
+    }
+    Rooted<Value> arrVal(cx, ObjectValue(*arr));
+    if (!DefineDataProperty(cx, obj, cx->names().arguments, arrVal,
+                            JSPROP_ENUMERATE)) {
+      return false;
+    }
+
+    // Define |newTarget| if constructing.
+    if (args.isConstructing()) {
+      const char* propName = "newTarget";
+      Rooted<JSAtom*> name(cx, Atomize(cx, propName, strlen(propName)));
+      if (!name) {
+        return false;
+      }
+      Rooted<PropertyKey> key(cx, NameToId(name->asPropertyName()));
+      if (!DefineDataProperty(cx, obj, key, args.newTarget(),
+                              JSPROP_ENUMERATE)) {
+        return false;
+      }
+    }
+
+    args.rval().setObject(*obj);
+    return true;
+  };
+
+  static auto callHook = [](JSContext* cx, unsigned argc, Value* vp) {
+    CallArgs args = CallArgsFromVp(argc, vp);
+    MOZ_ASSERT(!args.isConstructing());
+    return hookShared(cx, args);
+  };
+  static auto constructHook = [](JSContext* cx, unsigned argc, Value* vp) {
+    CallArgs args = CallArgsFromVp(argc, vp);
+    MOZ_ASSERT(args.isConstructing());
+    return hookShared(cx, args);
+  };
+
+  static const JSClassOps classOps = {
+      nullptr,        // addProperty
+      nullptr,        // delProperty
+      nullptr,        // enumerate
+      nullptr,        // newEnumerate
+      nullptr,        // resolve
+      nullptr,        // mayResolve
+      nullptr,        // finalize
+      callHook,       // call
+      constructHook,  // construct
+      nullptr,        // trace
+  };
+  static const JSClass cls = {
+      "ObjectWithCallHook",
+      0,
+      &classOps,
+  };
+
+  Rooted<JSObject*> obj(cx, JS_NewObject(cx, &cls));
+  if (!obj) {
+    return false;
+  }
+
+  args.rval().setObject(*obj);
+  return true;
+}
+
 static constexpr JSClass ObjectWithManyReservedSlotsClass = {
     "ObjectWithManyReservedSlots", JSCLASS_HAS_RESERVED_SLOTS(40)};
 
@@ -3126,28 +3268,53 @@ static bool NewString(JSContext* cx, unsigned argc, Value* vp) {
   bool wantTwoByte = false;
   bool forceExternal = false;
   bool maybeExternal = false;
+  uint32_t capacity = 0;
 
   if (args.get(1).isObject()) {
     RootedObject options(cx, &args[1].toObject());
     RootedValue v(cx);
     bool requestTenured = false;
-    struct Setting {
+    struct BoolSetting {
       const char* name;
       bool* value;
     };
     for (auto [name, setting] :
-         {Setting{"tenured", &requestTenured}, Setting{"twoByte", &wantTwoByte},
-          Setting{"external", &forceExternal},
-          Setting{"maybeExternal", &maybeExternal}}) {
+         {BoolSetting{"tenured", &requestTenured},
+          BoolSetting{"twoByte", &wantTwoByte},
+          BoolSetting{"external", &forceExternal},
+          BoolSetting{"maybeExternal", &maybeExternal}}) {
       if (!JS_GetProperty(cx, options, name, &v)) {
         return false;
       }
       *setting = ToBoolean(v);  // false if not given (or otherwise undefined)
     }
+    struct Uint32Setting {
+      const char* name;
+      uint32_t* value;
+    };
+    for (auto [name, setting] : {Uint32Setting{"capacity", &capacity}}) {
+      if (!JS_GetProperty(cx, options, name, &v)) {
+        return false;
+      }
+      int32_t i32;
+      if (!ToInt32(cx, v, &i32)) {
+        return false;
+      }
+      if (i32 < 0) {
+        JS_ReportErrorASCII(cx, "nonnegative value required");
+        return false;
+      }
+      *setting = static_cast<uint32_t>(i32);
+    }
 
     heap = requestTenured ? gc::TenuredHeap : gc::DefaultHeap;
     if (forceExternal || maybeExternal) {
       wantTwoByte = true;
+      if (capacity != 0) {
+        JS_ReportErrorASCII(cx,
+                            "strings cannot be both external and extensible");
+        return false;
+      }
     }
   }
 
@@ -3187,7 +3354,37 @@ static bool NewString(JSContext* cx, unsigned argc, Value* vp) {
         return false;
       }
     }
-    if (wantTwoByte) {
+    if (capacity) {
+      if (capacity < len) {
+        capacity = len;
+      }
+      if (len == 0) {
+        JS_ReportErrorASCII(cx, "Cannot set capacity of empty string");
+        return false;
+      }
+      if (stable.isLatin1()) {
+        auto news = cx->make_pod_arena_array<JS::Latin1Char>(
+            js::StringBufferArena, capacity);
+        if (!news) {
+          return false;
+        }
+        mozilla::PodCopy(news.get(), stable.latin1Chars(), len);
+        dest = JSLinearString::newValidLength<CanGC>(cx, std::move(news), len,
+                                                     heap);
+      } else {
+        auto news =
+            cx->make_pod_arena_array<char16_t>(js::StringBufferArena, capacity);
+        if (!news) {
+          return false;
+        }
+        mozilla::PodCopy(news.get(), stable.twoByteChars(), len);
+        dest = JSLinearString::newValidLength<CanGC>(cx, std::move(news), len,
+                                                     heap);
+      }
+      if (dest) {
+        dest->asLinear().makeExtensible(capacity);
+      }
+    } else if (wantTwoByte) {
       dest = NewStringCopyNDontDeflate<CanGC>(cx, stable.twoByteChars(), len,
                                               heap);
     } else if (stable.isLatin1()) {
@@ -3240,7 +3437,13 @@ static bool NewRope(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  Rooted<JSRope*> str(cx, JSRope::new_<CanGC>(cx, left, right, length, heap));
+  // Disallow creating ropes where one side is empty.
+  if (left->empty() || right->empty()) {
+    JS_ReportErrorASCII(cx, "rope child mustn't be the empty string");
+    return false;
+  }
+
+  auto* str = JSRope::new_<CanGC>(cx, left, right, length, heap);
   if (!str) {
     return false;
   }
@@ -5381,12 +5584,6 @@ static bool SharedMemoryEnabled(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-static bool SharedArrayRawBufferCount(JSContext* cx, unsigned argc, Value* vp) {
-  CallArgs args = CallArgsFromVp(argc, vp);
-  args.rval().setInt32(LiveMappedBufferCount());
-  return true;
-}
-
 static bool SharedArrayRawBufferRefcount(JSContext* cx, unsigned argc,
                                          Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -5542,8 +5739,15 @@ static bool GetBacktrace(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  JS::ConstUTF8CharsZ utf8chars(buf.get(), strlen(buf.get()));
-  JSString* str = NewStringCopyUTF8Z(cx, utf8chars);
+  size_t len;
+  UniqueTwoByteChars ucbuf(JS::LossyUTF8CharsToNewTwoByteCharsZ(
+                               cx, JS::UTF8Chars(buf.get(), strlen(buf.get())),
+                               &len, js::MallocArena)
+                               .get());
+  if (!ucbuf) {
+    return false;
+  }
+  JSString* str = JS_NewUCStringCopyN(cx, ucbuf.get(), len);
   if (!str) {
     return false;
   }
@@ -5798,13 +6002,18 @@ static bool FindPath(JSContext* cx, unsigned argc, Value* vp) {
       return false;
     }
 
-    RootedValue wrapped(cx, nodes[i]);
-    if (!cx->compartment()->wrap(cx, &wrapped)) {
-      return false;
-    }
+    // Only define the "node" property if we're not fuzzing, to prevent the
+    // fuzzers from messing with internal objects that we don't want to expose
+    // to arbitrary JS.
+    if (!fuzzingSafe) {
+      RootedValue wrapped(cx, nodes[i]);
+      if (!cx->compartment()->wrap(cx, &wrapped)) {
+        return false;
+      }
 
-    if (!JS_DefineProperty(cx, obj, "node", wrapped, JSPROP_ENUMERATE)) {
-      return false;
+      if (!JS_DefineProperty(cx, obj, "node", wrapped, JSPROP_ENUMERATE)) {
+        return false;
+      }
     }
 
     heaptools::EdgeName edgeName = std::move(edges[i]);
@@ -6271,10 +6480,33 @@ static bool ParseCompileOptionsForModule(JSContext* cx,
   return true;
 }
 
+static bool ParseCompileOptionsForInstantiate(JSContext* cx,
+                                              JS::CompileOptions& options,
+                                              JS::Handle<JSObject*> opts,
+                                              bool& prepareForInstantiate) {
+  JS::Rooted<JS::Value> v(cx);
+
+  if (!JS_GetProperty(cx, opts, "prepareForInstantiate", &v)) {
+    return false;
+  }
+  if (!v.isUndefined()) {
+    prepareForInstantiate = JS::ToBoolean(v);
+  } else {
+    prepareForInstantiate = false;
+  }
+
+  return true;
+}
+
 static bool CompileToStencil(JSContext* cx, uint32_t argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
   if (!args.requireAtLeast(cx, "compileToStencil", 1)) {
+    return false;
+  }
+  if (!args[0].isString()) {
+    const char* typeName = InformalValueTypeName(args[0]);
+    JS_ReportErrorASCII(cx, "expected string to parse, got %s", typeName);
     return false;
   }
 
@@ -6298,6 +6530,7 @@ static bool CompileToStencil(JSContext* cx, uint32_t argc, Value* vp) {
   RootedString sourceMapURL(cx);
   UniqueChars fileNameBytes;
   bool isModule = false;
+  bool prepareForInstantiate = false;
   if (args.length() == 2) {
     if (!args[1].isObject()) {
       JS_ReportErrorASCII(
@@ -6313,24 +6546,40 @@ static bool CompileToStencil(JSContext* cx, uint32_t argc, Value* vp) {
     if (!ParseCompileOptionsForModule(cx, options, opts, isModule)) {
       return false;
     }
+    if (!ParseCompileOptionsForInstantiate(cx, options, opts,
+                                           prepareForInstantiate)) {
+      return false;
+    }
     if (!js::ParseSourceOptions(cx, opts, &displayURL, &sourceMapURL)) {
       return false;
     }
   }
 
+  AutoReportFrontendContext fc(cx);
   RefPtr<JS::Stencil> stencil;
+  JS::CompilationStorage compileStorage;
   if (isModule) {
-    stencil = JS::CompileModuleScriptToStencil(cx, options, srcBuf);
+    stencil = JS::CompileModuleScriptToStencil(
+        &fc, options, cx->stackLimitForCurrentPrincipal(), srcBuf,
+        compileStorage);
   } else {
-    stencil = JS::CompileGlobalScriptToStencil(cx, options, srcBuf);
+    stencil = JS::CompileGlobalScriptToStencil(
+        &fc, options, cx->stackLimitForCurrentPrincipal(), srcBuf,
+        compileStorage);
   }
   if (!stencil) {
     return false;
   }
 
-  AutoReportFrontendContext fc(cx);
   if (!SetSourceOptions(cx, &fc, stencil->source, displayURL, sourceMapURL)) {
     return false;
+  }
+
+  JS::InstantiationStorage storage;
+  if (prepareForInstantiate) {
+    if (!JS::PrepareForInstantiate(&fc, compileStorage, *stencil, storage)) {
+      return false;
+    }
   }
 
   Rooted<js::StencilObject*> stencilObj(
@@ -6471,8 +6720,8 @@ static bool CompileToStencilXDR(JSContext* cx, uint32_t argc, Value* vp) {
   UniquePtr<frontend::ExtensibleCompilationStencil> stencil;
   if (isModule) {
     stencil = frontend::ParseModuleToExtensibleStencil(
-        cx, &fc, cx->stackLimitForCurrentPrincipal(), input.get(), &scopeCache,
-        srcBuf);
+        cx, &fc, cx->stackLimitForCurrentPrincipal(), cx->tempLifoAlloc(),
+        input.get(), &scopeCache, srcBuf);
   } else {
     stencil = frontend::CompileGlobalScriptToExtensibleStencil(
         cx, &fc, cx->stackLimitForCurrentPrincipal(), input.get(), &scopeCache,
@@ -6555,7 +6804,7 @@ static bool EvalStencilXDR(JSContext* cx, uint32_t argc, Value* vp) {
   AutoReportFrontendContext fc(cx);
   Rooted<frontend::CompilationInput> input(cx,
                                            frontend::CompilationInput(options));
-  if (!input.get().initForGlobal(cx, &fc)) {
+  if (!input.get().initForGlobal(&fc)) {
     return false;
   }
   frontend::CompilationStencil stencil(nullptr);
@@ -6563,8 +6812,7 @@ static bool EvalStencilXDR(JSContext* cx, uint32_t argc, Value* vp) {
   /* Deserialize the stencil from XDR. */
   JS::TranscodeRange xdrRange(xdrObj->buffer(), xdrObj->bufferLength());
   bool succeeded = false;
-  if (!stencil.deserializeStencils(cx, &fc, input.get(), xdrRange,
-                                   &succeeded)) {
+  if (!stencil.deserializeStencils(&fc, input.get(), xdrRange, &succeeded)) {
     return false;
   }
   if (!succeeded) {
@@ -6915,7 +7163,7 @@ static bool ClearMarkQueue(JSContext* cx, unsigned argc, Value* vp) {
 
 static bool NurseryStringsEnabled(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
-  args.rval().setBoolean(cx->zone()->allocNurseryStrings);
+  args.rval().setBoolean(cx->zone()->allocNurseryStrings());
   return true;
 }
 
@@ -7605,15 +7853,15 @@ static bool EncodeAsUtf8InBuffer(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  Maybe<Tuple<size_t, size_t>> amounts = JS_EncodeStringToUTF8BufferPartial(
-      cx, args[0].toString(), AsWritableChars(Span(data, length)));
+  Maybe<std::tuple<size_t, size_t>> amounts =
+      JS_EncodeStringToUTF8BufferPartial(cx, args[0].toString(),
+                                         AsWritableChars(Span(data, length)));
   if (!amounts) {
     ReportOutOfMemory(cx);
     return false;
   }
 
-  size_t unitsRead, bytesWritten;
-  Tie(unitsRead, bytesWritten) = *amounts;
+  auto [unitsRead, bytesWritten] = *amounts;
 
   array->initDenseElement(0, Int32Value(AssertedCast<int32_t>(unitsRead)));
   array->initDenseElement(1, Int32Value(AssertedCast<int32_t>(bytesWritten)));
@@ -7643,16 +7891,6 @@ JSScript* js::TestingFunctionArgumentToScript(
   RootedFunction fun(cx, JS_ValueToFunction(cx, v));
   if (!fun) {
     return nullptr;
-  }
-
-  // Unwrap bound functions.
-  while (fun->isBoundFunction()) {
-    JSObject* target = fun->getBoundFunctionTarget();
-    if (target && target->is<JSFunction>()) {
-      fun = &target->as<JSFunction>();
-    } else {
-      break;
-    }
   }
 
   if (!fun->isInterpreted()) {
@@ -7827,7 +8065,8 @@ static bool GetICUOptions(JSContext* cx, unsigned argc, Value* vp) {
 
   intl::FormatBuffer<char16_t, intl::INITIAL_CHAR_BUFFER_SIZE> buf(cx);
 
-  if (auto ok = mozilla::intl::TimeZone::GetDefaultTimeZone(buf); ok.isErr()) {
+  if (auto ok = DateTimeInfo::timeZoneId(DateTimeInfo::ShouldRFP::No, buf);
+      ok.isErr()) {
     intl::ReportInternalError(cx, ok.unwrapErr());
     return false;
   }
@@ -8050,7 +8289,7 @@ static bool FdLibM_Pow(JSContext* cx, unsigned argc, Value* vp) {
 
   // Because C99 and ECMA specify different behavior for pow(), we need to wrap
   // the fdlibm call to make it ECMA compliant.
-  if (!mozilla::IsFinite(y) && (x == 1.0 || x == -1.0)) {
+  if (!std::isfinite(y) && (x == 1.0 || x == -1.0)) {
     args.rval().setNaN();
   } else {
     args.rval().setDouble(fdlibm::pow(x, y));
@@ -8177,6 +8416,11 @@ static const JSFunctionSpecWithHelp TestingFunctions[] = {
 "  Returns a new object with an addProperty JSClass hook. This hook\n"
 "  increments the value of the _propertiesAdded data property on the object\n"
 "  when a new property is added."),
+
+    JS_FN_HELP("newObjectWithCallHook", NewObjectWithCallHook, 0, 0,
+"newObjectWithCallHook()",
+"  Returns a new object with call/construct JSClass hooks. These hooks return\n"
+"  a new object that contains the Values supplied by the caller."),
 
     JS_FN_HELP("newObjectWithManyReservedSlots", NewObjectWithManyReservedSlots, 0, 0,
 "newObjectWithManyReservedSlots()",
@@ -8415,6 +8659,11 @@ gc::ZealModeHelpText),
     JS_FN_HELP("abortgc", AbortGC, 1, 0,
 "abortgc()",
 "  Abort the current incremental GC."),
+
+    JS_FN_HELP("setMallocMaxDirtyPageModifier", SetMallocMaxDirtyPageModifier, 1, 0,
+"setMallocMaxDirtyPageModifier(value)",
+"  Change the maximum size of jemalloc's page cache. The value should be between\n"
+"  -5 and 16 (inclusive). See moz_set_max_dirty_page_modifier.\n"),
 
     JS_FN_HELP("fullcompartmentchecks", FullCompartmentChecks, 1, 0,
 "fullcompartmentchecks(true|false)",
@@ -8797,10 +9046,6 @@ JS_FOR_WASM_FEATURES(WASM_FEATURE, WASM_FEATURE, WASM_FEATURE)
     JS_FN_HELP("sharedMemoryEnabled", SharedMemoryEnabled, 0, 0,
 "sharedMemoryEnabled()",
 "  Return true if SharedArrayBuffer and Atomics are enabled"),
-
-    JS_FN_HELP("sharedArrayRawBufferCount", SharedArrayRawBufferCount, 0, 0,
-"sharedArrayRawBufferCount()",
-"  Return the number of live SharedArrayRawBuffer objects"),
 
     JS_FN_HELP("sharedArrayRawBufferRefcount", SharedArrayRawBufferRefcount, 0, 0,
 "sharedArrayRawBufferRefcount(sab)",
@@ -9234,6 +9479,10 @@ void js::FuzzilliHashObject(JSContext* cx, JSObject* obj) {
 
 void js::FuzzilliHashObjectInl(JSContext* cx, JSObject* obj, uint32_t* out) {
   *out = 0;
+  if (!js::SupportDifferentialTesting()) {
+    return;
+  }
+
   RootedValue v(cx);
   v.setObject(*obj);
 

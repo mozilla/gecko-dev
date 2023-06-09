@@ -6,6 +6,7 @@
 
 #include "mozilla/layers/DcompSurfaceImage.h"
 #include "MFMediaEngineUtils.h"
+#include "mozilla/StaticPrefs_media.h"
 
 namespace mozilla {
 
@@ -66,6 +67,7 @@ void MFMediaEngineVideoStream::SetDCompSurfaceHandle(
 HRESULT MFMediaEngineVideoStream::CreateMediaType(const TrackInfo& aInfo,
                                                   IMFMediaType** aMediaType) {
   auto& videoInfo = *aInfo.GetAsVideoInfo();
+  mIsEncrypted = videoInfo.mCrypto.IsEncrypted();
 
   GUID subType = VideoMimeTypeToMediaFoundationSubtype(videoInfo.mMimeType);
   NS_ENSURE_TRUE(subType != GUID_NULL, MF_E_TOPO_CODEC_NOT_FOUND);
@@ -174,11 +176,11 @@ HRESULT MFMediaEngineVideoStream::CreateMediaType(const TrackInfo& aInfo,
 
   LOGV(
       "Created video type, subtype=%s, image=[%ux%u], display=[%ux%u], "
-      "rotation=%s, tranFuns=%s, primaries=%s",
+      "rotation=%s, tranFuns=%s, primaries=%s, encrypted=%d",
       GUIDToStr(subType), imageWidth, imageHeight, displayWidth, displayHeight,
       MFVideoRotationFormatToStr(rotation),
       MFVideoTransferFunctionToStr(transFunc),
-      MFVideoPrimariesToStr(videoPrimaries));
+      MFVideoPrimariesToStr(videoPrimaries), mIsEncrypted);
   *aMediaType = mediaType.Detach();
   return S_OK;
 }
@@ -323,6 +325,23 @@ bool MFMediaEngineVideoStream::IsEnded() const {
   // get the decoded frame and revolve the drain promise.
   return (mReceivedEOS || !mPendingDrainPromise.IsEmpty()) &&
          mRawDataQueueForFeedingEngine.GetSize() == 0;
+}
+
+bool MFMediaEngineVideoStream::IsEncrypted() const { return mIsEncrypted; }
+
+nsCString MFMediaEngineVideoStream::GetCodecName() const {
+  switch (mStreamType) {
+    case WMFStreamType::H264:
+      return "h264"_ns;
+    case WMFStreamType::VP8:
+      return "vp8"_ns;
+    case WMFStreamType::VP9:
+      return "vp9"_ns;
+    case WMFStreamType::AV1:
+      return "av1"_ns;
+    default:
+      return "unknown"_ns;
+  };
 }
 
 #undef LOGV

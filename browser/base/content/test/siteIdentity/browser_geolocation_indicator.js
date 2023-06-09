@@ -5,14 +5,12 @@
 
 requestLongerTimeout(2);
 
-const { PermissionUI } = ChromeUtils.import(
-  "resource:///modules/PermissionUI.jsm"
+const { PermissionUI } = ChromeUtils.importESModule(
+  "resource:///modules/PermissionUI.sys.mjs"
 );
-const { SitePermissions } = ChromeUtils.import(
-  "resource:///modules/SitePermissions.jsm"
-);
-const { PermissionTestUtils } = ChromeUtils.import(
-  "resource://testing-common/PermissionTestUtils.jsm"
+
+const { PermissionTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/PermissionTestUtils.sys.mjs"
 );
 
 const CP = Cc["@mozilla.org/content-pref/service;1"].getService(

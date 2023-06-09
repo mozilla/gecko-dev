@@ -14,6 +14,7 @@ const callExpressionDefinitions = [
   /^loader\.lazyRequireGetter\((?:globalThis|window), "(\w+)"/,
   /^XPCOMUtils\.defineLazyGetter\((?:globalThis|window), "(\w+)"/,
   /^XPCOMUtils\.defineLazyModuleGetter\((?:globalThis|window), "(\w+)"/,
+  /^ChromeUtils\.defineLazyGetter\((?:globalThis|window), "(\w+)"/,
   /^ChromeUtils\.defineModuleGetter\((?:globalThis|window), "(\w+)"/,
   /^XPCOMUtils\.defineLazyPreferenceGetter\((?:globalThis|window), "(\w+)"/,
   /^XPCOMUtils\.defineLazyProxy\((?:globalThis|window), "(\w+)"/,
@@ -50,6 +51,7 @@ module.exports = {
       rejectLazyImportsIntoGlobals:
         "Non-system modules should not import into globalThis nor window. Prefer a lazy object holder",
     },
+    schema: [],
     type: "suggestion",
   },
 

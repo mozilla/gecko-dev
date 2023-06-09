@@ -2829,9 +2829,9 @@ int dav1d_decode_tile_sbrow(Dav1dTaskContext *const t) {
     if (ts->msac.cnt < -15) return 1;
 
     if (f->c->n_tc > 1 && f->frame_hdr->use_ref_frame_mvs) {
-        dav1d_refmvs_load_tmvs(&f->rf, ts->tiling.row,
-                               ts->tiling.col_start >> 1, ts->tiling.col_end >> 1,
-                               t->by >> 1, (t->by + sb_step) >> 1);
+        f->c->refmvs_dsp.load_tmvs(&f->rf, ts->tiling.row,
+                                   ts->tiling.col_start >> 1, ts->tiling.col_end >> 1,
+                                   t->by >> 1, (t->by + sb_step) >> 1);
     }
     memset(t->pal_sz_uv[1], 0, sizeof(*t->pal_sz_uv));
     const int sb128y = t->by >> 5;
@@ -2914,7 +2914,7 @@ int dav1d_decode_tile_sbrow(Dav1dTaskContext *const t) {
     }
 
     if (f->seq_hdr->ref_frame_mvs && f->c->n_tc > 1 && IS_INTER_OR_SWITCH(f->frame_hdr)) {
-        dav1d_refmvs_save_tmvs(&t->rt,
+        dav1d_refmvs_save_tmvs(&f->c->refmvs_dsp, &t->rt,
                                ts->tiling.col_start >> 1, ts->tiling.col_end >> 1,
                                t->by >> 1, (t->by + sb_step) >> 1);
     }
@@ -3394,15 +3394,16 @@ int dav1d_decode_frame_main(Dav1dFrameContext *const f) {
             t->by = sby << (4 + f->seq_hdr->sb128);
             const int by_end = (t->by + f->sb_step) >> 1;
             if (f->frame_hdr->use_ref_frame_mvs) {
-                dav1d_refmvs_load_tmvs(&f->rf, tile_row,
-                                       0, f->bw >> 1, t->by >> 1, by_end);
+                f->c->refmvs_dsp.load_tmvs(&f->rf, tile_row,
+                                           0, f->bw >> 1, t->by >> 1, by_end);
             }
             for (int tile_col = 0; tile_col < f->frame_hdr->tiling.cols; tile_col++) {
                 t->ts = &f->ts[tile_row * f->frame_hdr->tiling.cols + tile_col];
                 if (dav1d_decode_tile_sbrow(t)) goto error;
             }
             if (IS_INTER_OR_SWITCH(f->frame_hdr)) {
-                dav1d_refmvs_save_tmvs(&t->rt, 0, f->bw >> 1, t->by >> 1, by_end);
+                dav1d_refmvs_save_tmvs(&f->c->refmvs_dsp, &t->rt,
+                                       0, f->bw >> 1, t->by >> 1, by_end);
             }
 
             // loopfilter + cdef + restoration
@@ -3426,7 +3427,7 @@ void dav1d_decode_frame_exit(Dav1dFrameContext *const f, const int retval) {
                (size_t)f->frame_thread.cf_sz * 128 * 128 / 2);
     }
     for (int i = 0; i < 7; i++) {
-        if (f->refp[i].p.data[0])
+        if (f->refp[i].p.frame_hdr)
             dav1d_thread_picture_unref(&f->refp[i]);
         dav1d_ref_dec(&f->ref_mvs_ref[i]);
     }
@@ -3832,7 +3833,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
     const unsigned refresh_frame_flags = f->frame_hdr->refresh_frame_flags;
     for (int i = 0; i < 8; i++) {
         if (refresh_frame_flags & (1 << i)) {
-            if (c->refs[i].p.p.data[0])
+            if (c->refs[i].p.p.frame_hdr)
                 dav1d_thread_picture_unref(&c->refs[i].p);
             dav1d_thread_picture_ref(&c->refs[i].p, &f->sr_cur);
 
@@ -3862,7 +3863,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
             dav1d_thread_picture_unref(&c->out);
             for (int i = 0; i < 8; i++) {
                 if (refresh_frame_flags & (1 << i)) {
-                    if (c->refs[i].p.p.data[0])
+                    if (c->refs[i].p.p.frame_hdr)
                         dav1d_thread_picture_unref(&c->refs[i].p);
                     dav1d_cdf_thread_unref(&c->cdf[i]);
                     dav1d_ref_dec(&c->refs[i].segmap);
@@ -3883,7 +3884,7 @@ error:
     if (f->frame_hdr->refresh_context)
         dav1d_cdf_thread_unref(&f->out_cdf);
     for (int i = 0; i < 7; i++) {
-        if (f->refp[i].p.data[0])
+        if (f->refp[i].p.frame_hdr)
             dav1d_thread_picture_unref(&f->refp[i]);
         dav1d_ref_dec(&f->ref_mvs_ref[i]);
     }

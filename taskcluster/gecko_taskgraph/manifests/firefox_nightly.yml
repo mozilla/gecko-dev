@@ -42,10 +42,14 @@ tasktype_map:
     mar-signing: signing
     partials-signing: signing
     repackage: repackage
+    repackage-deb: repackage
+    repackage-deb-l10n: repackage
     repackage-signing: repackage
     repackage-signing-msi: repackage
     repackage-signing-shippable-l10n-msix: signing
     langpack-copy: signing
+    attribution: build
+    attribution-l10n: build
 platform_names:
     filename_platform:
         by-platform:
@@ -194,13 +198,6 @@ mapping:
         description: "Results for running the xpcshell testing framework to enable XPConnect console application"
         pretty_name: firefox-${version}.${locale}.${filename_platform}.xpcshell.tests.tar.gz
         checksums_path: firefox-${version}.${locale}.${filename_platform}.xpcshell.tests.tar.gz
-    target.normandy.json:
-        <<: *default
-        description: "Metadata about the Normandy client of this build"
-        only_for_platforms:
-            - linux64-shippable
-        pretty_name: firefox-${version}.normandy.json
-        checksums_path: firefox-${version}.normandy.json
     target_info.txt:
         <<: *default
         description: "File containing the buildID"
@@ -246,6 +243,27 @@ mapping:
                 default:
                     - ${year}/${month}/${upload_date}-${branch}-l10n/${filename_platform}/xpi
                     - latest-${branch}-l10n/${filename_platform}/xpi
+    target.langpack.deb:
+        <<: *default
+        all_locales: true
+        description: "langpack.xpi repackaged as a .deb"
+        from:
+            - repackage-deb-l10n
+        only_for_platforms:
+            - linux-shippable
+            - linux64-shippable
+            - linux-devedition
+            - linux64-devedition
+        pretty_name: firefox-${version}.${locale}.langpack.deb
+        checksums_path: firefox-${version}.${locale}.langpack.deb
+        destinations:
+            by-locale:
+                en-US:
+                    - ${year}/${month}/${upload_date}-${branch}
+                    - latest-${branch}
+                default:
+                    - ${year}/${month}/${upload_date}-${branch}-l10n/${filename_platform}/deb-l10n
+                    - latest-${branch}-l10n/${filename_platform}/deb-l10n
     mar:
         <<: *default
         description: "Alongside `mbsdiff`, a tool used to generate partials"
@@ -371,8 +389,14 @@ mapping:
         <<: *default
         description: "Main installer for Windows platforms"
         all_locales: true
+        source_path_modifier: ''
         from:
-            - repackage-signing
+            by-platform:
+                win64-asan-reporter-shippable:
+                    - repackage-signing
+                default:
+                    - attribution
+                    - attribution-l10n
         only_for_platforms:
             - win64-shippable
             - win32-shippable
@@ -393,8 +417,10 @@ mapping:
         <<: *default
         description: "Stub installer for Win32 platforms"
         all_locales: true
+        source_path_modifier: ''
         from:
-            - repackage-signing
+            - attribution
+            - attribution-l10n
         only_for_platforms:
             - win32-shippable
         pretty_name: Firefox Installer.${locale}.exe
@@ -461,6 +487,20 @@ mapping:
                 default:
                     - ${year}/${month}/${upload_date}-${branch}-l10n
                     - latest-${branch}-l10n
+    target.deb:
+        <<: *default
+        description: "Firefox as a .deb package"
+        from:
+            - repackage-deb
+        only_for_platforms:
+            - linux-shippable
+            - linux64-shippable
+        pretty_name: firefox-${version}.${locale}.${filename_platform}.deb
+        checksums_path: firefox-${version}.${locale}.${filename_platform}.deb
+        update_balrog_manifest: false
+        destinations:
+            - ${year}/${month}/${upload_date}-${branch}
+            - latest-${branch}
     ${partial}:
         <<: *default
         description: "Partials MAR files to serve as updates"

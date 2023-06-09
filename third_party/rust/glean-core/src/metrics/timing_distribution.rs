@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
+use crate::common_metric_data::CommonMetricDataInternal;
 use crate::error_recording::{record_error, test_get_num_recorded_errors, ErrorType};
 use crate::histogram::{Functional, Histogram};
 use crate::metrics::time_unit::TimeUnit;
@@ -56,7 +57,7 @@ impl From<usize> for TimerId {
 /// Timing distributions are used to accumulate and store time measurement, for analyzing distributions of the timing data.
 #[derive(Clone, Debug)]
 pub struct TimingDistributionMetric {
-    meta: Arc<CommonMetricData>,
+    meta: Arc<CommonMetricDataInternal>,
     time_unit: TimeUnit,
     next_id: Arc<AtomicUsize>,
     start_times: Arc<Mutex<HashMap<TimerId, u64>>>,
@@ -80,7 +81,7 @@ pub(crate) fn snapshot(hist: &Histogram<Functional>) -> DistributionData {
 }
 
 impl MetricType for TimingDistributionMetric {
-    fn meta(&self) -> &CommonMetricData {
+    fn meta(&self) -> &CommonMetricDataInternal {
         &self.meta
     }
 }
@@ -93,7 +94,7 @@ impl TimingDistributionMetric {
     /// Creates a new timing distribution metric.
     pub fn new(meta: CommonMetricData, time_unit: TimeUnit) -> Self {
         Self {
-            meta: Arc::new(meta),
+            meta: Arc::new(meta.into()),
             time_unit,
             next_id: Arc::new(AtomicUsize::new(0)),
             start_times: Arc::new(Mutex::new(Default::default())),
@@ -119,6 +120,14 @@ impl TimingDistributionMetric {
         let id = self.next_id.fetch_add(1, Ordering::SeqCst).into();
         let metric = self.clone();
         crate::launch_with_glean(move |_glean| metric.set_start(id, start_time));
+        id
+    }
+
+    pub(crate) fn start_sync(&self) -> TimerId {
+        let start_time = time::precise_time_ns();
+        let id = self.next_id.fetch_add(1, Ordering::SeqCst).into();
+        let metric = self.clone();
+        metric.set_start(id, start_time);
         id
     }
 
@@ -215,9 +224,14 @@ impl TimingDistributionMetric {
             return;
         }
 
-        glean
-            .storage()
-            .record_with(glean, &self.meta, |old_value| match old_value {
+        // Let's be defensive here:
+        // The uploader tries to store some timing distribution metrics,
+        // but in tests that storage might be gone already.
+        // Let's just ignore those.
+        // We do the same for counters.
+        // This should never happen in real app usage.
+        if let Some(storage) = glean.storage_opt() {
+            storage.record_with(glean, &self.meta, |old_value| match old_value {
                 Some(Metric::TimingDistribution(mut hist)) => {
                     hist.accumulate(duration);
                     Metric::TimingDistribution(hist)
@@ -228,6 +242,12 @@ impl TimingDistributionMetric {
                     Metric::TimingDistribution(hist)
                 }
             });
+        } else {
+            log::warn!(
+                "Couldn't get storage. Can't record timing distribution '{}'.",
+                self.meta.base_identifier()
+            );
+        }
     }
 
     /// Aborts a previous [`start`](Self::start) call.
@@ -245,7 +265,7 @@ impl TimingDistributionMetric {
     }
 
     /// Aborts a previous [`start`](Self::start) call synchronously.
-    fn cancel_sync(&self, id: TimerId) {
+    pub(crate) fn cancel_sync(&self, id: TimerId) {
         let mut map = self.start_times.lock().expect("can't lock timings map");
         map.remove(&id);
     }
@@ -426,13 +446,13 @@ impl TimingDistributionMetric {
     ) -> Option<DistributionData> {
         let queried_ping_name = ping_name
             .into()
-            .unwrap_or_else(|| &self.meta().send_in_pings[0]);
+            .unwrap_or_else(|| &self.meta().inner.send_in_pings[0]);
 
         match StorageManager.snapshot_metric_for_test(
             glean.storage(),
             queried_ping_name,
             &self.meta.identifier(glean),
-            self.meta.lifetime,
+            self.meta.inner.lifetime,
         ) {
             Some(Metric::TimingDistribution(hist)) => Some(snapshot(&hist)),
             _ => None,

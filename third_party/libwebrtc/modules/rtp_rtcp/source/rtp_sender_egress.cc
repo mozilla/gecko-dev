@@ -28,14 +28,6 @@ constexpr int kBitrateStatisticsWindowMs = 1000;
 constexpr size_t kRtpSequenceNumberMapMaxEntries = 1 << 13;
 constexpr TimeDelta kUpdateInterval =
     TimeDelta::Millis(kBitrateStatisticsWindowMs);
-
-bool IsTrialSetTo(const FieldTrialsView* field_trials,
-                  absl::string_view name,
-                  absl::string_view value) {
-  FieldTrialBasedConfig default_trials;
-  auto& trials = field_trials ? *field_trials : default_trials;
-  return absl::StartsWith(trials.Lookup(name), value);
-}
 }  // namespace
 
 RtpSenderEgress::NonPacedPacketSender::NonPacedPacketSender(
@@ -81,10 +73,6 @@ RtpSenderEgress::RtpSenderEgress(const RtpRtcpInterface::Configuration& config,
       flexfec_ssrc_(config.fec_generator ? config.fec_generator->FecSsrc()
                                          : absl::nullopt),
       populate_network2_timestamp_(config.populate_network2_timestamp),
-      send_side_bwe_with_overhead_(
-          !IsTrialSetTo(config.field_trials,
-                        "WebRTC-SendSideBwe-WithOverhead",
-                        "Disabled")),
       clock_(config.clock),
       packet_history_(packet_history),
       transport_(config.outgoing_transport),
@@ -104,7 +92,6 @@ RtpSenderEgress::RtpSenderEgress(const RtpRtcpInterface::Configuration& config,
       timestamp_offset_(0),
       max_delay_it_(send_delays_.end()),
       sum_delays_ms_(0),
-      total_packet_send_delay_ms_(0),
       send_rates_(kNumMediaTypes,
                   {kBitrateStatisticsWindowMs, RateStatistics::kBpsScale}),
       rtp_sequence_number_map_(need_rtp_packet_infos_
@@ -390,6 +377,17 @@ RtpSenderEgress::FetchFecPackets() {
   return {};
 }
 
+void RtpSenderEgress::OnAbortedRetransmissions(
+    rtc::ArrayView<const uint16_t> sequence_numbers) {
+  RTC_DCHECK_RUN_ON(&pacer_checker_);
+  // Mark aborted retransmissions as sent, rather than leaving them in
+  // a 'pending' state - otherwise they can not be requested again and
+  // will not be cleared until the history has reached its max size.
+  for (uint16_t seq_no : sequence_numbers) {
+    packet_history_->MarkPacketAsSent(seq_no);
+  }
+}
+
 bool RtpSenderEgress::HasCorrectSsrc(const RtpPacketToSend& packet) const {
   switch (*packet.packet_type()) {
     case RtpPacketMediaType::kAudio:
@@ -412,15 +410,10 @@ void RtpSenderEgress::AddPacketToTransportFeedback(
     const RtpPacketToSend& packet,
     const PacedPacketInfo& pacing_info) {
   if (transport_feedback_observer_) {
-    size_t packet_size = packet.payload_size() + packet.padding_size();
-    if (send_side_bwe_with_overhead_) {
-      packet_size = packet.size();
-    }
-
     RtpPacketSendInfo packet_info;
     packet_info.transport_sequence_number = packet_id;
     packet_info.rtp_timestamp = packet.Timestamp();
-    packet_info.length = packet_size;
+    packet_info.length = packet.size();
     packet_info.pacing_info = pacing_info;
     packet_info.packet_type = packet.packet_type();
 
@@ -456,7 +449,6 @@ void RtpSenderEgress::UpdateDelayStatistics(int64_t capture_time_ms,
 
   int avg_delay_ms = 0;
   int max_delay_ms = 0;
-  uint64_t total_packet_send_delay_ms = 0;
   {
     MutexLock lock(&lock_);
     // Compute the max and average of the recent capture-to-send delays.
@@ -507,8 +499,6 @@ void RtpSenderEgress::UpdateDelayStatistics(int64_t capture_time_ms,
       max_delay_it_ = it;
     }
     sum_delays_ms_ += new_send_delay;
-    total_packet_send_delay_ms_ += new_send_delay;
-    total_packet_send_delay_ms = total_packet_send_delay_ms_;
 
     size_t num_delays = send_delays_.size();
     RTC_DCHECK(max_delay_it_ != send_delays_.end());
@@ -520,8 +510,8 @@ void RtpSenderEgress::UpdateDelayStatistics(int64_t capture_time_ms,
     avg_delay_ms =
         rtc::dchecked_cast<int>((sum_delays_ms_ + num_delays / 2) / num_delays);
   }
-  send_side_delay_observer_->SendSideDelayUpdated(
-      avg_delay_ms, max_delay_ms, total_packet_send_delay_ms, ssrc);
+  send_side_delay_observer_->SendSideDelayUpdated(avg_delay_ms, max_delay_ms,
+                                                  ssrc);
 }
 
 void RtpSenderEgress::RecomputeMaxSendDelay() {

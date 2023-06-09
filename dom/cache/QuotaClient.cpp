@@ -127,9 +127,8 @@ Result<int64_t, nsresult> GetPaddingSizeFromDB(
   // CacheDirectoryMetadata) because this method should only be called from
   // QuotaClient::InitOrigin when the temporary storage hasn't been initialized
   // yet. At that time, the in-memory objects (e.g. OriginInfo) are only being
-  // created so it doesn't make sense to tunnel quota information to
-  // TelemetryVFS to get corresponding QuotaObject instance for the SQLite
-  // file).
+  // created so it doesn't make sense to tunnel quota information to QuotaVFS
+  // to get corresponding QuotaObject instance for the SQLite file).
   MOZ_DIAGNOSTIC_ASSERT(directoryMetadata.mDirectoryLockId == -1);
 
 #ifdef DEBUG
@@ -176,13 +175,12 @@ Result<UsageInfo, nsresult> CacheQuotaClient::InitOrigin(
     PersistenceType aPersistenceType, const OriginMetadata& aOriginMetadata,
     const AtomicBool& aCanceled) {
   AssertIsOnIOThread();
+  MOZ_ASSERT(aOriginMetadata.mPersistenceType == aPersistenceType);
 
   QuotaManager* const qm = QuotaManager::Get();
   MOZ_DIAGNOSTIC_ASSERT(qm);
 
-  QM_TRY_INSPECT(
-      const auto& dir,
-      qm->GetDirectoryForOrigin(aPersistenceType, aOriginMetadata.mOrigin));
+  QM_TRY_INSPECT(const auto& dir, qm->GetOriginDirectory(aOriginMetadata));
 
   QM_TRY(MOZ_TO_RESULT(
       dir->Append(NS_LITERAL_STRING_FROM_CSTRING(DOMCACHE_DIRECTORY_NAME))));
@@ -349,6 +347,13 @@ Result<UsageInfo, nsresult> CacheQuotaClient::GetUsageForOrigin(
 
 void CacheQuotaClient::OnOriginClearCompleted(PersistenceType aPersistenceType,
                                               const nsACString& aOrigin) {
+  // Nothing to do here.
+}
+
+void CacheQuotaClient::OnRepositoryClearCompleted(
+    PersistenceType aPersistenceType) {
+  AssertIsOnIOThread();
+
   // Nothing to do here.
 }
 

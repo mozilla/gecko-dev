@@ -25,7 +25,7 @@ class SVGViewportElement;
 
 using SVGViewElementBase = SVGElement;
 
-class SVGViewElement : public SVGViewElementBase {
+class SVGViewElement final : public SVGViewElementBase {
  protected:
   friend class mozilla::SVGFragmentIdentifier;
   friend class mozilla::SVGOuterSVGFrame;
@@ -38,6 +38,8 @@ class SVGViewElement : public SVGViewElementBase {
   JSObject* WrapNode(JSContext* cx, JS::Handle<JSObject*> aGivenProto) override;
 
  public:
+  NS_IMPL_FROMNODE_WITH_TAG(SVGViewElement, kNameSpaceID_SVG, view)
+
   nsresult Clone(dom::NodeInfo*, nsINode** aResult) const override;
 
   // WebIDL

@@ -19,8 +19,8 @@ uniform sampler2D sClipMask;
 
 #ifndef SWGL_CLIP_MASK
 // TODO: convert back to RectWithEndpoint if driver issues are resolved, if ever.
-flat varying vec4 vClipMaskUvBounds;
-varying vec2 vClipMaskUv;
+flat varying mediump vec4 vClipMaskUvBounds;
+varying highp vec2 vClipMaskUv;
 #endif
 
 #ifdef WR_VERTEX_SHADER

@@ -447,6 +447,11 @@ with modules["NETWORK"]:
     # Generic error for non-specific failures during service worker interception
     errors["NS_ERROR_INTERCEPTION_FAILED"] = FAILURE(100)
 
+    errors["NS_ERROR_WEBTRANSPORT_CODE_BASE"] = FAILURE(200)
+    errors["NS_ERROR_WEBTRANSPORT_CODE_END"] = (
+        errors["NS_ERROR_WEBTRANSPORT_CODE_BASE"] + 255
+    )
+
     # All Http proxy CONNECT response codes
     errors["NS_ERROR_PROXY_CODE_BASE"] = FAILURE(1000)
     # Redirection 3xx
@@ -696,14 +701,8 @@ with modules["DOM"]:
     # https://heycam.github.io/webidl/#notallowederror
     errors["NS_ERROR_DOM_NOT_ALLOWED_ERR"] = FAILURE(33)
     # DOM error codes defined by us
-    errors["NS_ERROR_DOM_SECMAN_ERR"] = FAILURE(1001)
     errors["NS_ERROR_DOM_WRONG_TYPE_ERR"] = FAILURE(1002)
-    errors["NS_ERROR_DOM_NOT_OBJECT_ERR"] = FAILURE(1003)
-    errors["NS_ERROR_DOM_NOT_XPC_OBJECT_ERR"] = FAILURE(1004)
     errors["NS_ERROR_DOM_NOT_NUMBER_ERR"] = FAILURE(1005)
-    errors["NS_ERROR_DOM_NOT_BOOLEAN_ERR"] = FAILURE(1006)
-    errors["NS_ERROR_DOM_NOT_FUNCTION_ERR"] = FAILURE(1007)
-    errors["NS_ERROR_DOM_TOO_FEW_PARAMETERS_ERR"] = FAILURE(1008)
     errors["NS_ERROR_DOM_PROP_ACCESS_DENIED"] = FAILURE(1010)
     errors["NS_ERROR_DOM_XPCONNECT_ACCESS_DENIED"] = FAILURE(1011)
     errors["NS_ERROR_DOM_BAD_URI"] = FAILURE(1012)
@@ -1073,10 +1072,8 @@ with modules["DOM_INDEXEDDB"]:
     errors["NS_ERROR_DOM_INDEXEDDB_TRANSACTION_INACTIVE_ERR"] = FAILURE(7)
     errors["NS_ERROR_DOM_INDEXEDDB_ABORT_ERR"] = FAILURE(8)
     errors["NS_ERROR_DOM_INDEXEDDB_READ_ONLY_ERR"] = FAILURE(9)
-    errors["NS_ERROR_DOM_INDEXEDDB_TIMEOUT_ERR"] = FAILURE(10)
     errors["NS_ERROR_DOM_INDEXEDDB_QUOTA_ERR"] = FAILURE(11)
     errors["NS_ERROR_DOM_INDEXEDDB_VERSION_ERR"] = FAILURE(12)
-    errors["NS_ERROR_DOM_INDEXEDDB_RECOVERABLE_ERR"] = FAILURE(1001)
     errors["NS_ERROR_DOM_INDEXEDDB_KEY_ERR"] = FAILURE(1002)
     errors["NS_ERROR_DOM_INDEXEDDB_RENAME_OBJECT_STORE_ERR"] = FAILURE(1003)
     errors["NS_ERROR_DOM_INDEXEDDB_RENAME_INDEX_ERR"] = FAILURE(1004)
@@ -1131,13 +1128,11 @@ with modules["SIGNED_APP"]:
 # 40: NS_ERROR_MODULE_DOM_PUSH
 # =======================================================================
 with modules["DOM_PUSH"]:
-    errors["NS_ERROR_DOM_PUSH_INVALID_REGISTRATION_ERR"] = FAILURE(1)
     errors["NS_ERROR_DOM_PUSH_DENIED_ERR"] = FAILURE(2)
     errors["NS_ERROR_DOM_PUSH_ABORT_ERR"] = FAILURE(3)
     errors["NS_ERROR_DOM_PUSH_SERVICE_UNREACHABLE"] = FAILURE(4)
     errors["NS_ERROR_DOM_PUSH_INVALID_KEY_ERR"] = FAILURE(5)
     errors["NS_ERROR_DOM_PUSH_MISMATCHED_KEY_ERR"] = FAILURE(6)
-    errors["NS_ERROR_DOM_PUSH_GCM_DISABLED"] = FAILURE(7)
 
 
 # =======================================================================
@@ -1165,6 +1160,11 @@ with modules["DOM_MEDIA"]:
     errors["NS_ERROR_DOM_MEDIA_INITIALIZING_DECODER"] = FAILURE(15)
     errors["NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_RDD_OR_GPU_ERR"] = FAILURE(16)
     errors["NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_UTILITY_ERR"] = FAILURE(17)
+    errors["NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_MF_CDM_ERR"] = FAILURE(18)
+
+    # Internal CDM error
+    errors["NS_ERROR_DOM_MEDIA_CDM_NO_SESSION_ERR"] = FAILURE(50)
+    errors["NS_ERROR_DOM_MEDIA_CDM_SESSION_OPERATION_ERR"] = FAILURE(51)
 
     # Internal platform-related errors
     errors["NS_ERROR_DOM_MEDIA_CUBEB_INITIALIZATION_ERR"] = FAILURE(101)

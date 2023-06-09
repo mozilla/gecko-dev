@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 use crate::consts::CID_BROADCAST;
-use crate::crypto::ECDHSecret;
+use crate::crypto::SharedSecret;
 use crate::ctap2::commands::get_info::AuthenticatorInfo;
 use crate::transport::device_selector::DeviceCommand;
 use crate::transport::{hid::HIDDevice, FidoDevice, HIDError};
@@ -105,7 +105,7 @@ impl Hash for Device {
 }
 
 impl U2FDevice for Device {
-    fn get_cid<'a>(&'a self) -> &'a [u8; 4] {
+    fn get_cid(&self) -> &[u8; 4] {
         &self.cid
     }
 
@@ -122,7 +122,7 @@ impl U2FDevice for Device {
     }
 
     fn get_property(&self, prop_name: &str) -> io::Result<String> {
-        Ok(format!("{} not implemented", prop_name))
+        Ok(format!("{prop_name} not implemented"))
     }
     fn get_device_info(&self) -> U2FDeviceInfo {
         self.dev_info.clone().unwrap()
@@ -145,10 +145,10 @@ impl HIDDevice for Device {
         self.authenticator_info = Some(authenticator_info);
     }
 
-    fn set_shared_secret(&mut self, _: ECDHSecret) {
+    fn set_shared_secret(&mut self, _: SharedSecret) {
         // Nothing
     }
-    fn get_shared_secret(&self) -> std::option::Option<&ECDHSecret> {
+    fn get_shared_secret(&self) -> std::option::Option<&SharedSecret> {
         None
     }
 
@@ -171,19 +171,6 @@ impl HIDDevice for Device {
 
     fn id(&self) -> Self::Id {
         self.id.clone()
-    }
-
-    fn clone_device_as_write_only(&self) -> Result<Self, HIDError> {
-        Ok(Device {
-            id: self.id.clone(),
-            cid: self.cid,
-            reads: self.reads.clone(),
-            writes: self.writes.clone(),
-            dev_info: self.dev_info.clone(),
-            authenticator_info: self.authenticator_info.clone(),
-            sender: self.sender.clone(),
-            receiver: None,
-        })
     }
 
     fn is_u2f(&mut self) -> bool {

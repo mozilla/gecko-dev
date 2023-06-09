@@ -312,8 +312,8 @@ $(BUILD_PFX)libvpx_g.a: $(LIBVPX_OBJS)
 # To determine SO_VERSION_{MAJOR,MINOR,PATCH}, calculate c,a,r with current
 # SO_VERSION_* then follow the rules in the link to detemine the new version
 # (c1, a1, r1) and set MAJOR to [c1-a1], MINOR to a1 and PATCH to r1
-SO_VERSION_MAJOR := 7
-SO_VERSION_MINOR := 1
+SO_VERSION_MAJOR := 8
+SO_VERSION_MINOR := 0
 SO_VERSION_PATCH := 0
 ifeq ($(filter darwin%,$(TGT_OS)),$(TGT_OS))
 LIBVPX_SO               := libvpx.$(SO_VERSION_MAJOR).dylib
@@ -446,13 +446,13 @@ ifeq ($(VPX_ARCH_X86)$(VPX_ARCH_X86_64),yes)
 # YASM
 $(BUILD_PFX)vpx_config.asm: $(BUILD_PFX)vpx_config.h
 	@echo "    [CREATE] $@"
-	@LC_ALL=C egrep "#define [A-Z0-9_]+ [01]" $< \
+	@LC_ALL=C grep -E "#define [A-Z0-9_]+ [01]" $< \
 	    | awk '{print $$2 " equ " $$3}' > $@
 else
 ADS2GAS=$(if $(filter yes,$(CONFIG_GCC)),| $(ASM_CONVERSION))
 $(BUILD_PFX)vpx_config.asm: $(BUILD_PFX)vpx_config.h
 	@echo "    [CREATE] $@"
-	@LC_ALL=C egrep "#define [A-Z0-9_]+ [01]" $< \
+	@LC_ALL=C grep -E "#define [A-Z0-9_]+ [01]" $< \
 	    | awk '{print $$2 " EQU " $$3}' $(ADS2GAS) > $@
 	@echo "        END" $(ADS2GAS) >> $@
 CLEAN-OBJS += $(BUILD_PFX)vpx_config.asm

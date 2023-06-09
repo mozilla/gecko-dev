@@ -263,12 +263,16 @@ already_AddRefed<gfxFont> gfxFontEntry::FindOrMakeFont(
     return font.forget();
   }
 
-  font = CreateFontInstance(aStyle);
-  if (!font || !font->Valid()) {
+  gfxFont* newFont = CreateFontInstance(aStyle);
+  if (!newFont) {
     return nullptr;
   }
-  font->SetUnicodeRangeMap(aUnicodeRangeMap);
-  return gfxFontCache::GetCache()->MaybeInsert(std::move(font));
+  if (!newFont->Valid()) {
+    newFont->Destroy();
+    return nullptr;
+  }
+  newFont->SetUnicodeRangeMap(aUnicodeRangeMap);
+  return gfxFontCache::GetCache()->MaybeInsert(newFont);
 }
 
 uint16_t gfxFontEntry::UnitsPerEm() {
@@ -280,6 +284,13 @@ uint16_t gfxFontEntry::UnitsPerEm() {
           reinterpret_cast<const HeadTable*>(hb_blob_get_data(headTable, &len));
       if (len >= sizeof(HeadTable)) {
         mUnitsPerEm = head->unitsPerEm;
+        if (int16_t(head->xMax) > int16_t(head->xMin) &&
+            int16_t(head->yMax) > int16_t(head->yMin)) {
+          mXMin = head->xMin;
+          mYMin = head->yMin;
+          mXMax = head->xMax;
+          mYMax = head->yMax;
+        }
       }
     }
 
@@ -1267,6 +1278,8 @@ void gfxFontEntry::CheckForVariationAxes() {
       } else if (axis.mTag == HB_TAG('i', 't', 'a', 'l') &&
                  axis.mMaxValue >= 1.0f) {
         mRangeFlags |= RangeFlags::eItalicVariation;
+      } else if (axis.mTag == HB_TAG('s', 'l', 'n', 't')) {
+        mRangeFlags |= RangeFlags::eSlantVariation;
       } else if (axis.mTag == HB_TAG('o', 'p', 's', 'z')) {
         mRangeFlags |= RangeFlags::eOpticalSize;
       }
@@ -1286,6 +1299,13 @@ bool gfxFontEntry::HasItalicVariation() {
              "should not be called for user-font containers!");
   CheckForVariationAxes();
   return bool(mRangeFlags & RangeFlags::eItalicVariation);
+}
+
+bool gfxFontEntry::HasSlantVariation() {
+  MOZ_ASSERT(!mIsUserFontContainer,
+             "should not be called for user-font containers!");
+  CheckForVariationAxes();
+  return bool(mRangeFlags & RangeFlags::eSlantVariation);
 }
 
 bool gfxFontEntry::HasOpticalSize() {
@@ -1336,18 +1356,14 @@ void gfxFontEntry::GetVariationsForStyle(nsTArray<gfxFontVariation>& aResult,
     // The 'ital' axis is normally a binary toggle; intermediate values
     // can only be set using font-variation-settings.
     aResult.AppendElement(gfxFontVariation{HB_TAG('i', 't', 'a', 'l'), 1.0f});
-  } else if (SlantStyle().Min().IsOblique()) {
+  } else if (aStyle.style != StyleFontStyle::NORMAL && HasSlantVariation()) {
     // Figure out what slant angle we should try to match from the
     // requested style.
-    float angle = aStyle.style.IsNormal() ? 0.0f
-                  : aStyle.style.IsItalic()
-                      ? FontSlantStyle::DEFAULT_OBLIQUE_DEGREES
-                      : aStyle.style.ObliqueAngle();
+    float angle = aStyle.style.SlantAngle();
     // Clamp to the available range, unless the face is a user font
     // with no explicit descriptor.
     if (!(IsUserFont() && (mRangeFlags & RangeFlags::eAutoSlantStyle))) {
-      angle =
-          SlantStyle().Clamp(FontSlantStyle::FromFloat(angle)).ObliqueAngle();
+      angle = SlantStyle().Clamp(FontSlantStyle::FromFloat(angle)).SlantAngle();
     }
     // OpenType and CSS measure angles in opposite directions, so we have to
     // invert the sign of the CSS oblique value when setting OpenType 'slnt'.

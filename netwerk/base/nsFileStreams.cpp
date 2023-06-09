@@ -28,6 +28,7 @@
 #include "mozilla/ipc/RandomAccessStreamParams.h"
 #include "mozilla/Unused.h"
 #include "mozilla/FileUtils.h"
+#include "mozilla/UniquePtr.h"
 #include "nsNetCID.h"
 #include "nsXULAppAPI.h"
 
@@ -158,6 +159,10 @@ nsFileStreamBase::GetFileDescriptor(PRFileDesc** _retval) {
 }
 
 nsresult nsFileStreamBase::Close() {
+  if (mState == eClosed) {
+    return NS_OK;
+  }
+
   CleanUpOpen();
 
   nsresult rv = NS_OK;
@@ -231,6 +236,34 @@ nsresult nsFileStreamBase::Flush(void) {
     return NS_ErrorAccordingToNSPR();
   }
   return NS_OK;
+}
+
+nsresult nsFileStreamBase::StreamStatus() {
+  switch (mState) {
+    case eUnitialized:
+      MOZ_CRASH("This should not happen.");
+      return NS_ERROR_FAILURE;
+
+    case eDeferredOpen:
+      return NS_OK;
+
+    case eOpened:
+      MOZ_ASSERT(mFD);
+      if (NS_WARN_IF(!mFD)) {
+        return NS_ERROR_FAILURE;
+      }
+      return NS_OK;
+
+    case eClosed:
+      MOZ_ASSERT(!mFD);
+      return NS_BASE_STREAM_CLOSED;
+
+    case eError:
+      return mErrorValue;
+  }
+
+  MOZ_CRASH("Invalid mState value.");
+  return NS_ERROR_FAILURE;
 }
 
 nsresult nsFileStreamBase::Write(const char* buf, uint32_t count,
@@ -308,7 +341,7 @@ nsresult nsFileStreamBase::DoOpen() {
     // Result doesn't need to be checked. If the file's parent path does not
     // exist, make it. If it does exist, do nothing.
     if (parent) {
-      Unused << parent->Create(nsIFile::DIRECTORY_TYPE, 0755);
+      mozilla::Unused << parent->Create(nsIFile::DIRECTORY_TYPE, 0755);
     }
   }
 
@@ -447,6 +480,11 @@ nsFileInputStream::Init(nsIFile* aFile, int32_t aIOFlags, int32_t aPerm,
 
 NS_IMETHODIMP
 nsFileInputStream::Close() {
+  // If this stream has already been closed, do nothing.
+  if (mState == eClosed) {
+    return NS_OK;
+  }
+
   // Get the cache position at the time the file was close. This allows
   // NS_SEEK_CUR on a closed file that has been opened with
   // REOPEN_ON_REWIND.
@@ -455,7 +493,7 @@ nsFileInputStream::Close() {
     nsFileStreamBase::Tell(&mCachedPosition);
   }
 
-  // null out mLineBuffer in case Close() is called again after failing
+  // explicitly clear mLineBuffer in case this stream is reopened
   mLineBuffer = nullptr;
   return nsFileStreamBase::Close();
 }
@@ -481,7 +519,7 @@ nsFileInputStream::Read(char* aBuf, uint32_t aCount, uint32_t* _retval) {
 NS_IMETHODIMP
 nsFileInputStream::ReadLine(nsACString& aLine, bool* aResult) {
   if (!mLineBuffer) {
-    mLineBuffer = MakeUnique<nsLineBuffer<char>>();
+    mLineBuffer = mozilla::MakeUnique<nsLineBuffer<char>>();
   }
   return NS_ReadLine(this, mLineBuffer.get(), aLine, aResult);
 }
@@ -537,6 +575,9 @@ NS_IMETHODIMP
 nsFileInputStream::Available(uint64_t* aResult) {
   return nsFileStreamBase::Available(aResult);
 }
+
+NS_IMETHODIMP
+nsFileInputStream::StreamStatus() { return nsFileStreamBase::StreamStatus(); }
 
 void nsFileInputStream::SerializedComplexity(uint32_t aMaxSize,
                                              uint32_t* aSizeUsed,

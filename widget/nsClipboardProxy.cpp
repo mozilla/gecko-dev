@@ -6,6 +6,8 @@
 #  include "mozilla/a11y/Compatibility.h"
 #endif
 #include "mozilla/dom/ContentChild.h"
+#include "mozilla/net/CookieJarSettings.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/Unused.h"
 #include "nsArrayUtils.h"
 #include "nsClipboardProxy.h"
@@ -21,7 +23,7 @@ using namespace mozilla::dom;
 
 NS_IMPL_ISUPPORTS(nsClipboardProxy, nsIClipboard, nsIClipboardProxy)
 
-nsClipboardProxy::nsClipboardProxy() : mClipboardCaps(false, false) {}
+nsClipboardProxy::nsClipboardProxy() : mClipboardCaps(false, false, false) {}
 
 NS_IMETHODIMP
 nsClipboardProxy::SetData(nsITransferable* aTransferable,
@@ -34,15 +36,23 @@ nsClipboardProxy::SetData(nsITransferable* aTransferable,
 
   IPCDataTransfer ipcDataTransfer;
   nsContentUtils::TransferableToIPCTransferable(aTransferable, &ipcDataTransfer,
-                                                false, child, nullptr);
+                                                false, nullptr);
 
+  Maybe<mozilla::net::CookieJarSettingsArgs> cookieJarSettingsArgs;
+  if (nsCOMPtr<nsICookieJarSettings> cookieJarSettings =
+          aTransferable->GetCookieJarSettings()) {
+    mozilla::net::CookieJarSettingsArgs args;
+    mozilla::net::CookieJarSettings::Cast(cookieJarSettings)->Serialize(args);
+    cookieJarSettingsArgs = Some(args);
+  }
   bool isPrivateData = aTransferable->GetIsPrivateData();
   nsCOMPtr<nsIPrincipal> requestingPrincipal =
       aTransferable->GetRequestingPrincipal();
   nsContentPolicyType contentPolicyType = aTransferable->GetContentPolicyType();
+  nsCOMPtr<nsIReferrerInfo> referrerInfo = aTransferable->GetReferrerInfo();
   child->SendSetClipboard(std::move(ipcDataTransfer), isPrivateData,
-                          requestingPrincipal, contentPolicyType,
-                          aWhichClipboard);
+                          requestingPrincipal, cookieJarSettingsArgs,
+                          contentPolicyType, referrerInfo, aWhichClipboard);
 
   return NS_OK;
 }
@@ -80,14 +90,25 @@ nsClipboardProxy::HasDataMatchingFlavors(const nsTArray<nsCString>& aFlavorList,
 }
 
 NS_IMETHODIMP
-nsClipboardProxy::SupportsSelectionClipboard(bool* aIsSupported) {
-  *aIsSupported = mClipboardCaps.supportsSelectionClipboard();
-  return NS_OK;
-}
+nsClipboardProxy::IsClipboardTypeSupported(int32_t aWhichClipboard,
+                                           bool* aIsSupported) {
+  switch (aWhichClipboard) {
+    case kGlobalClipboard:
+      // We always support the global clipboard.
+      *aIsSupported = true;
+      return NS_OK;
+    case kSelectionClipboard:
+      *aIsSupported = mClipboardCaps.supportsSelectionClipboard();
+      return NS_OK;
+    case kFindClipboard:
+      *aIsSupported = mClipboardCaps.supportsFindClipboard();
+      return NS_OK;
+    case kSelectionCache:
+      *aIsSupported = mClipboardCaps.supportsSelectionCache();
+      return NS_OK;
+  }
 
-NS_IMETHODIMP
-nsClipboardProxy::SupportsFindClipboard(bool* aIsSupported) {
-  *aIsSupported = mClipboardCaps.supportsFindClipboard();
+  *aIsSupported = false;
   return NS_OK;
 }
 

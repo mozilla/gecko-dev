@@ -84,11 +84,20 @@ enum class TypeCode {
   // Type constructor for non-nullable reference types.
   Ref = 0x6b,  // SLEB128(-0x15)
 
+  // A null reference in the extern hierarchy.
+  NullExternRef = 0x69,  // SLEB128(-0x17)
+
+  // A null reference in the func hierarchy.
+  NullFuncRef = 0x68,  // SLEB128(-0x18)
+
   // A reference to any struct value.
   StructRef = 0x67,  // SLEB128(-0x19)
 
   // A reference to any array value.
   ArrayRef = 0x66,  // SLEB128(-0x1A)
+
+  // A null reference in the any hierarchy.
+  NullAnyRef = 0x65,  // SLEB128(-0x1B)
 
   // Type constructor for function types
   Func = 0x60,  // SLEB128(-0x20)
@@ -98,6 +107,9 @@ enum class TypeCode {
 
   // Type constructor for array types - gc proposal
   Array = 0x5e,  // SLEB128(-0x22)
+
+  // Value for non-nullable type present.
+  TableHasInitExpr = 0x40,
 
   // The 'empty' case of blocktype.
   BlockVoid = 0x40,  // SLEB128(-0x40)
@@ -480,7 +492,10 @@ enum class GcOp {
   ArrayNewFixed = 0x1a,
   ArrayNewDefault = 0x1c,
   ArrayNewData = 0x1d,
-  ArrayNewElem = 0x10,
+  // array.init_from_elem_static in V5 became array.new_elem in V6, changing
+  // opcodes in the process
+  ArrayInitFromElemStaticV5 = 0x10,
+  ArrayNewElem = 0x1f,
   ArrayGet = 0x13,
   ArrayGetS = 0x14,
   ArrayGetU = 0x15,
@@ -490,10 +505,23 @@ enum class GcOp {
   ArrayLen = 0x19,
 
   // Ref operations
-  RefTest = 0x44,
-  RefCast = 0x45,
-  BrOnCast = 0x46,
-  BrOnCastFail = 0x47,
+  RefTestV5 = 0x44,
+  RefCastV5 = 0x45,
+  BrOnCastV5 = 0x46,
+  BrOnCastHeapV5 = 0x42,
+  BrOnCastHeapNullV5 = 0x4a,
+  BrOnCastFailV5 = 0x47,
+  BrOnCastFailHeapV5 = 0x43,
+  BrOnCastFailHeapNullV5 = 0x4b,
+  RefTest = 0x40,
+  RefCast = 0x41,
+  RefTestNull = 0x48,
+  RefCastNull = 0x49,
+  BrOnCast = 0x4f,
+
+  // Dart compatibility instruction
+  RefAsStructV5 = 0x59,
+  BrOnNonStructV5 = 0x64,
 
   // Extern/any coercion operations
   ExternInternalize = 0x70,
@@ -766,10 +794,10 @@ enum class SimdOp {
   F64x2ConvertLowI32x4S = 0xfe,
   F64x2ConvertLowI32x4U = 0xff,
   I8x16RelaxedSwizzle = 0x100,
-  I32x4RelaxedTruncSSatF32x4 = 0x101,
-  I32x4RelaxedTruncUSatF32x4 = 0x102,
-  I32x4RelaxedTruncSatF64x2SZero = 0x103,
-  I32x4RelaxedTruncSatF64x2UZero = 0x104,
+  I32x4RelaxedTruncF32x4S = 0x101,
+  I32x4RelaxedTruncF32x4U = 0x102,
+  I32x4RelaxedTruncF64x2SZero = 0x103,
+  I32x4RelaxedTruncF64x2UZero = 0x104,
   F32x4RelaxedFma = 0x105,
   F32x4RelaxedFnma = 0x106,
   F64x2RelaxedFma = 0x107,
@@ -785,9 +813,8 @@ enum class SimdOp {
   I16x8RelaxedQ15MulrS = 0x111,
   I16x8DotI8x16I7x16S = 0x112,
   I32x4DotI8x16I7x16AddS = 0x113,
-  F32x4RelaxedDotBF16x8AddF32x4 = 0x114,
 
-  // Reserved for Relaxed SIMD = 0x115-0x12f
+  // Reserved for Relaxed SIMD = 0x114-0x12f
 
   // Unused = 0x130 and up
 
@@ -822,6 +849,8 @@ enum class MiscOp {
   TableGrow = 0x0f,
   TableSize = 0x10,
   TableFill = 0x11,
+
+  MemoryDiscard = 0x12,
 
   Limit
 };
@@ -951,9 +980,12 @@ enum class MozOp {
   F32TeeStore,
   F64TeeStore,
   F64Mod,
-  F64Sin,
-  F64Cos,
-  F64Tan,
+  F64SinNative,
+  F64SinFdlibm,
+  F64CosNative,
+  F64CosFdlibm,
+  F64TanNative,
+  F64TanFdlibm,
   F64Asin,
   F64Acos,
   F64Atan,
@@ -985,6 +1017,38 @@ struct OpBytes {
     b1 = 0;
   }
   OpBytes() = default;
+
+  // Whether this opcode should have a breakpoint site inserted directly before
+  // the opcode in baseline when debugging. We use this as a heuristic to
+  // reduce the number of breakpoint sites.
+  bool shouldHaveBreakpoint() const {
+    switch (Op(b0)) {
+      // Block-like instructions don't get their own breakpoint site, a
+      // breakpoint can be used on instructions in the block.
+      case Op::Block:
+      case Op::Loop:
+      case Op::If:
+      case Op::Else:
+      case Op::Try:
+      case Op::Delegate:
+      case Op::Catch:
+      case Op::CatchAll:
+      case Op::End:
+      // Effect-less instructions without inputs are leaf nodes in expressions,
+      // a breakpoint can be used on instructions that consume these values.
+      case Op::LocalGet:
+      case Op::GlobalGet:
+      case Op::I32Const:
+      case Op::I64Const:
+      case Op::F32Const:
+      case Op::F64Const:
+      case Op::RefNull:
+      case Op::Drop:
+        return false;
+      default:
+        return true;
+    }
+  }
 };
 
 static const char NameSectionName[] = "name";
@@ -1031,14 +1095,6 @@ static const unsigned MaxFunctionBytes = 7654321;
 
 // These limits pertain to our WebAssembly implementation only, but may make
 // sense to get into the shared limits spec eventually.
-
-// See PackedTypeCode for exact bits available for these fields depending on
-// platform
-#ifdef JS_64BIT
-static const unsigned MaxTypeIndex = 1000000;
-#else
-static const unsigned MaxTypeIndex = 15000;
-#endif
 
 static const unsigned MaxRecGroups = 1000000;
 static const unsigned MaxSubTypingDepth = 31;

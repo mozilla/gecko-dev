@@ -22,7 +22,7 @@
 # shared with other top level windows in macWindow.inc.xhtml.
 #include browser-menubar.inc
       </toolbaritem>
-      <spacer flex="1" skipintoolbarset="true" style="-moz-box-ordinal-group: 1000;"/>
+      <spacer flex="1" skipintoolbarset="true" style="order: 1000;"/>
 #include titlebar-items.inc.xhtml
     </toolbar>
 
@@ -53,7 +53,6 @@
 
           <tabs id="tabbrowser-tabs"
                 is="tabbrowser-tabs"
-                flex="1"
                 aria-multiselectable="true"
                 setfocus="false"
                 tooltip="tabbrowser-tab-tooltip"
@@ -94,8 +93,8 @@
                          class="toolbarbutton-1 chromeclass-toolbar-additional tabs-alltabs-button"
                          delegatesanchor="true"
                          badged="true"
-                         onkeypress="gTabsPanel.showAllTabsPanel(event);"
-                         onmousedown="gTabsPanel.showAllTabsPanel(event);"
+                         onkeypress="gTabsPanel.showAllTabsPanel(event, 'alltabs-button');"
+                         onmousedown="gTabsPanel.showAllTabsPanel(event, 'alltabs-button');"
                          data-l10n-id="tabs-toolbar-list-all-tabs"
                          removable="false"/>
         </hbox>
@@ -296,10 +295,6 @@
                        data-l10n-id="urlbar-web-rtc-share-speaker-notification-anchor"/>
                 <image id="servicesInstall-notification-icon" class="notification-anchor-icon service-icon" role="button"
                        data-l10n-id="urlbar-services-notification-anchor"/>
-                <image id="translate-notification-icon" class="notification-anchor-icon translation-icon" role="button"
-                       data-l10n-id="urlbar-translate-notification-anchor"/>
-                <image id="translated-notification-icon" class="notification-anchor-icon translation-icon in-use" role="button"
-                       data-l10n-id="urlbar-translated-notification-anchor"/>
                 <image id="eme-notification-icon" class="notification-anchor-icon drm-icon" role="button"
                        data-l10n-id="urlbar-eme-notification-anchor"/>
                 <image id="persistent-storage-notification-icon" class="notification-anchor-icon persistent-storage-icon" role="button"
@@ -370,6 +365,22 @@
                 <image id="reader-mode-button-icon"
                        class="urlbar-icon"/>
               </hbox>
+              <hbox id="picture-in-picture-button"
+                    class="urlbar-page-action"
+                    role="button"
+                    hidden="true"
+                    onclick="PictureInPicture.toggleUrlbar(event)">
+                <image id="picture-in-picture-button-icon"
+                       class="urlbar-icon"/>
+              </hbox>
+              <hbox id="translations-button"
+                    class="urlbar-page-action"
+                    role="button"
+                    data-l10n-id="urlbar-translations-button"
+                    hidden="true"
+                    onclick="TranslationsPanel.open(event);">
+                <image class="urlbar-icon"/>
+              </hbox>
               <toolbarbutton id="urlbar-zoom-button"
                      onclick="FullZoom.reset(); FullZoom.resetScalingZoom();"
                      tooltip="dynamic-shortcut-tooltip"
@@ -413,8 +424,7 @@
                      overflows="false"
                      cui-areatype="toolbar"
                      hidden="true"
-                     tooltip="dynamic-shortcut-tooltip"
-                     indicator="true">
+                     tooltip="dynamic-shortcut-tooltip">
         <box id="downloads-indicator-anchor"
                consumeanchor="downloads-button">
           <image id="downloads-indicator-icon"/>
@@ -444,6 +454,16 @@
                       <image id="fxa-avatar-image"/>
                      </vbox>
       </toolbarbutton>
+
+      <toolbarbutton id="unified-extensions-button"
+                     class="toolbarbutton-1 chromeclass-toolbar-additional"
+                     delegatesanchor="true"
+                     data-l10n-id="unified-extensions-button"
+                     hidden="true"
+                     onkeypress="gUnifiedExtensions.togglePanel(event)"
+                     onmousedown="gUnifiedExtensions.togglePanel(event)"
+                     overflows="false"
+                     removable="false"/>
     </hbox>
 
     <toolbarbutton id="nav-bar-overflow-button"
@@ -455,16 +475,6 @@
         <image class="toolbarbutton-animatable-image"/>
       </box>
     </toolbarbutton>
-
-    <toolbarbutton id="unified-extensions-button"
-                   class="toolbarbutton-1"
-                   delegatesanchor="true"
-                   data-l10n-id="unified-extensions-button"
-                   hidden="true"
-                   onkeypress="gUnifiedExtensions.togglePanel(event)"
-                   onmousedown="gUnifiedExtensions.togglePanel(event)"
-                   overflows="false"
-                   removable="false"/>
 
     <toolbaritem id="PanelUI-button"
                  removable="false">
@@ -615,6 +625,10 @@
                   data-l10n-args='{ "isVisible": false }'
                   oncommand="SidebarUI.toggle('viewBookmarksSidebar');"
                   key="viewBookmarksSidebarKb"/>
+        <menuitem id="BMB_searchBookmarks"
+                  class="subviewbutton"
+                  data-l10n-id="bookmarks-search"
+                  oncommand="PlacesCommandHook.searchBookmarks();"/>
         <!-- NB: temporary solution for bug 985024, this should go away soon. -->
         <menuitem id="BMB_bookmarksShowAllTop"
                   class="subviewbutton"

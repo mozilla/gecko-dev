@@ -83,13 +83,14 @@ NS_INTERFACE_MAP_BEGIN(TRRServiceChannel)
   NS_INTERFACE_MAP_ENTRY(nsITransportEventSink)
   NS_INTERFACE_MAP_ENTRY(nsIDNSListener)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
+  NS_INTERFACE_MAP_ENTRY(nsIUploadChannel2)
   NS_INTERFACE_MAP_ENTRY_CONCRETE(TRRServiceChannel)
 NS_INTERFACE_MAP_END_INHERITING(HttpBaseChannel)
 
 TRRServiceChannel::TRRServiceChannel()
     : HttpAsyncAborter<TRRServiceChannel>(this),
       mProxyRequest(nullptr, "TRRServiceChannel::mProxyRequest"),
-      mCurrentEventTarget(GetCurrentEventTarget()) {
+      mCurrentEventTarget(GetCurrentSerialEventTarget()) {
   LOG(("TRRServiceChannel ctor [this=%p]\n", this));
 }
 
@@ -679,7 +680,7 @@ nsresult TRRServiceChannel::SetupTransaction() {
   rv = mTransaction->Init(
       mCaps, mConnectionInfo, &mRequestHead, mUploadStream, mReqContentLength,
       LoadUploadStreamHasHeaders(), mCurrentEventTarget, callbacks, this,
-      mTopBrowsingContextId, HttpTrafficCategory::eInvalid, mRequestContext,
+      mBrowserId, HttpTrafficCategory::eInvalid, mRequestContext,
       mClassOfService, mInitialRwin, LoadResponseTimeoutEnabled(), mChannelId,
       nullptr, std::move(pushCallback), mTransWithPushedStream,
       mPushedStreamId);
@@ -1027,6 +1028,17 @@ TRRServiceChannel::OnStartRequest(nsIRequest* request) {
     mResponseHead = mTransaction->TakeResponseHead();
     if (mResponseHead) {
       uint32_t httpStatus = mResponseHead->Status();
+      if (mTransaction->ProxyConnectFailed()) {
+        LOG(("TRRServiceChannel proxy connect failed httpStatus: %d",
+             httpStatus));
+        MOZ_ASSERT(mConnectionInfo->UsingConnect(),
+                   "proxy connect failed but not using CONNECT?");
+        nsresult rv = HttpProxyResponseToErrorCode(httpStatus);
+        mTransaction->DontReuseConnection();
+        Cancel(rv);
+        return CallOnStartRequest();
+      }
+
       if ((httpStatus < 500) && (httpStatus != 421) && (httpStatus != 407)) {
         ProcessAltService();
       }

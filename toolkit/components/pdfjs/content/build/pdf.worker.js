@@ -2,7 +2,7 @@
  * @licstart The following is the entire license notice for the
  * JavaScript code in this page
  *
- * Copyright 2022 Mozilla Foundation
+ * Copyright 2023 Mozilla Foundation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,14 +44,14 @@ Object.defineProperty(exports, "__esModule", ({
 }));
 exports.WorkerTask = exports.WorkerMessageHandler = void 0;
 var _util = __w_pdfjs_require__(2);
-var _primitives = __w_pdfjs_require__(3);
-var _core_utils = __w_pdfjs_require__(4);
+var _core_utils = __w_pdfjs_require__(3);
+var _primitives = __w_pdfjs_require__(4);
 var _pdf_manager = __w_pdfjs_require__(6);
-var _cleanup_helper = __w_pdfjs_require__(69);
-var _writer = __w_pdfjs_require__(63);
-var _is_node = __w_pdfjs_require__(100);
-var _message_handler = __w_pdfjs_require__(101);
-var _worker_stream = __w_pdfjs_require__(102);
+var _cleanup_helper = __w_pdfjs_require__(71);
+var _writer = __w_pdfjs_require__(65);
+var _is_node = __w_pdfjs_require__(102);
+var _message_handler = __w_pdfjs_require__(103);
+var _worker_stream = __w_pdfjs_require__(104);
 class WorkerTask {
   constructor(name) {
     this.name = name;
@@ -95,13 +95,13 @@ class WorkerMessageHandler {
     let pdfManager;
     let terminated = false;
     let cancelXHRs = null;
-    const WorkerTasks = [];
+    const WorkerTasks = new Set();
     const verbosity = (0, _util.getVerbosityLevel)();
     const {
       docId,
       apiVersion
     } = docParams;
-    const workerVersion = '3.3.56';
+    const workerVersion = '3.6.126';
     if (apiVersion !== workerVersion) {
       throw new Error(`The API version "${apiVersion}" does not match ` + `the Worker version "${workerVersion}".`);
     }
@@ -113,12 +113,11 @@ class WorkerMessageHandler {
       }
     }
     function startWorkerTask(task) {
-      WorkerTasks.push(task);
+      WorkerTasks.add(task);
     }
     function finishWorkerTask(task) {
       task.finish();
-      const i = WorkerTasks.indexOf(task);
-      WorkerTasks.splice(i, 1);
+      WorkerTasks.delete(task);
     }
     async function loadDocument(recoveryMode) {
       await pdfManager.ensureDoc("checkHeader");
@@ -150,11 +149,24 @@ class WorkerMessageHandler {
       enableXfa,
       evaluatorOptions
     }) {
+      const pdfManagerArgs = {
+        source: null,
+        disableAutoFetch,
+        docBaseUrl,
+        docId,
+        enableXfa,
+        evaluatorOptions,
+        handler,
+        length,
+        password,
+        rangeChunkSize
+      };
       const pdfManagerCapability = (0, _util.createPromiseCapability)();
       let newPdfManager;
       if (data) {
         try {
-          newPdfManager = new _pdf_manager.LocalPdfManager(docId, data, password, handler, evaluatorOptions, enableXfa, docBaseUrl);
+          pdfManagerArgs.source = data;
+          newPdfManager = new _pdf_manager.LocalPdfManager(pdfManagerArgs);
           pdfManagerCapability.resolve(newPdfManager);
         } catch (ex) {
           pdfManagerCapability.reject(ex);
@@ -174,14 +186,10 @@ class WorkerMessageHandler {
         if (!fullRequest.isRangeSupported) {
           return;
         }
-        disableAutoFetch = disableAutoFetch || fullRequest.isStreamingSupported;
-        newPdfManager = new _pdf_manager.NetworkPdfManager(docId, pdfStream, {
-          msgHandler: handler,
-          password,
-          length: fullRequest.contentLength,
-          disableAutoFetch,
-          rangeChunkSize
-        }, evaluatorOptions, enableXfa, docBaseUrl);
+        pdfManagerArgs.source = pdfStream;
+        pdfManagerArgs.length = fullRequest.contentLength;
+        pdfManagerArgs.disableAutoFetch = pdfManagerArgs.disableAutoFetch || fullRequest.isStreamingSupported;
+        newPdfManager = new _pdf_manager.NetworkPdfManager(pdfManagerArgs);
         for (const chunk of cachedChunks) {
           newPdfManager.sendProgressiveData(chunk);
         }
@@ -194,12 +202,13 @@ class WorkerMessageHandler {
       });
       let loaded = 0;
       const flushChunks = function () {
-        const pdfFile = (0, _util.arraysToBytes)(cachedChunks);
+        const pdfFile = (0, _core_utils.arrayBuffersToBytes)(cachedChunks);
         if (length && pdfFile.length !== length) {
           (0, _util.warn)("reported HTTP length is different from actual");
         }
         try {
-          newPdfManager = new _pdf_manager.LocalPdfManager(docId, pdfFile, password, handler, evaluatorOptions, enableXfa, docBaseUrl);
+          pdfManagerArgs.source = pdfFile;
+          newPdfManager = new _pdf_manager.LocalPdfManager(pdfManagerArgs);
           pdfManagerCapability.resolve(newPdfManager);
         } catch (ex) {
           pdfManagerCapability.reject(ex);
@@ -220,7 +229,7 @@ class WorkerMessageHandler {
               cancelXHRs = null;
               return;
             }
-            loaded += (0, _util.arrayByteLength)(value);
+            loaded += value.byteLength;
             if (!fullRequest.isStreamingSupported) {
               handler.send("DocProgress", {
                 loaded,
@@ -388,6 +397,7 @@ class WorkerMessageHandler {
           return data;
         }, reason => {
           finishWorkerTask(task);
+          throw reason;
         });
       });
     });
@@ -472,6 +482,7 @@ class WorkerMessageHandler {
               }
             });
           }
+          const lastXRefStreamPos = xref.lastXRefStreamPos;
           newXrefInfo = {
             rootRef: xref.trailer.getRaw("Root") || null,
             encryptRef: xref.trailer.getRaw("Encrypt") || null,
@@ -479,7 +490,7 @@ class WorkerMessageHandler {
             infoRef: xref.trailer.getRaw("Info") || null,
             info: infoObj,
             fileIds: xref.trailer.get("ID") || null,
-            startXRef,
+            startXRef: lastXRefStreamPos === null ? startXRef : lastXRefStreamPos,
             filename
           };
         }
@@ -531,7 +542,11 @@ class WorkerMessageHandler {
       });
     });
     handler.on("GetTextContent", function (data, sink) {
-      const pageIndex = data.pageIndex;
+      const {
+        pageIndex,
+        includeMarkedContent,
+        disableNormalization
+      } = data;
       pdfManager.getPage(pageIndex).then(function (page) {
         const task = new WorkerTask("GetTextContent: page " + pageIndex);
         startWorkerTask(task);
@@ -540,8 +555,8 @@ class WorkerMessageHandler {
           handler,
           task,
           sink,
-          includeMarkedContent: data.includeMarkedContent,
-          combineTextItems: data.combineTextItems
+          includeMarkedContent,
+          disableNormalization
         }).then(function () {
           finishWorkerTask(task);
           if (start) {
@@ -620,9 +635,7 @@ if (typeof window === "undefined" && !_is_node.isNodeJS && typeof self !== "unde
 Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
-exports.VerbosityLevel = exports.Util = exports.UnknownErrorException = exports.UnexpectedResponseException = exports.UNSUPPORTED_FEATURES = exports.TextRenderingMode = exports.RenderingIntentFlag = exports.PermissionFlag = exports.PasswordResponses = exports.PasswordException = exports.PageActionEventType = exports.OPS = exports.MissingPDFException = exports.LINE_FACTOR = exports.LINE_DESCENT_FACTOR = exports.InvalidPDFException = exports.ImageKind = exports.IDENTITY_MATRIX = exports.FormatError = exports.FeatureTest = exports.FONT_IDENTITY_MATRIX = exports.DocumentActionEventType = exports.CMapCompressionType = exports.BaseException = exports.BASELINE_FACTOR = exports.AnnotationType = exports.AnnotationStateModelType = exports.AnnotationReviewState = exports.AnnotationReplyType = exports.AnnotationMode = exports.AnnotationMarkedState = exports.AnnotationFlag = exports.AnnotationFieldFlag = exports.AnnotationEditorType = exports.AnnotationEditorPrefix = exports.AnnotationEditorParamsType = exports.AnnotationBorderStyleType = exports.AnnotationActionEventType = exports.AbortException = void 0;
-exports.arrayByteLength = arrayByteLength;
-exports.arraysToBytes = arraysToBytes;
+exports.VerbosityLevel = exports.Util = exports.UnknownErrorException = exports.UnexpectedResponseException = exports.TextRenderingMode = exports.RenderingIntentFlag = exports.PermissionFlag = exports.PasswordResponses = exports.PasswordException = exports.PageActionEventType = exports.OPS = exports.MissingPDFException = exports.MAX_IMAGE_SIZE_TO_CACHE = exports.LINE_FACTOR = exports.LINE_DESCENT_FACTOR = exports.InvalidPDFException = exports.ImageKind = exports.IDENTITY_MATRIX = exports.FormatError = exports.FeatureTest = exports.FONT_IDENTITY_MATRIX = exports.DocumentActionEventType = exports.CMapCompressionType = exports.BaseException = exports.BASELINE_FACTOR = exports.AnnotationType = exports.AnnotationStateModelType = exports.AnnotationReviewState = exports.AnnotationReplyType = exports.AnnotationMode = exports.AnnotationMarkedState = exports.AnnotationFlag = exports.AnnotationFieldFlag = exports.AnnotationEditorType = exports.AnnotationEditorPrefix = exports.AnnotationEditorParamsType = exports.AnnotationBorderStyleType = exports.AnnotationActionEventType = exports.AbortException = void 0;
 exports.assert = assert;
 exports.bytesToString = bytesToString;
 exports.createPromiseCapability = createPromiseCapability;
@@ -632,6 +645,7 @@ exports.getVerbosityLevel = getVerbosityLevel;
 exports.info = info;
 exports.isArrayBuffer = isArrayBuffer;
 exports.isArrayEqual = isArrayEqual;
+exports.normalizeUnicode = normalizeUnicode;
 exports.objectFromMap = objectFromMap;
 exports.objectSize = objectSize;
 exports.setVerbosityLevel = setVerbosityLevel;
@@ -648,6 +662,8 @@ const IDENTITY_MATRIX = [1, 0, 0, 1, 0, 0];
 exports.IDENTITY_MATRIX = IDENTITY_MATRIX;
 const FONT_IDENTITY_MATRIX = [0.001, 0, 0, 0.001, 0, 0];
 exports.FONT_IDENTITY_MATRIX = FONT_IDENTITY_MATRIX;
+const MAX_IMAGE_SIZE_TO_CACHE = 10e6;
+exports.MAX_IMAGE_SIZE_TO_CACHE = MAX_IMAGE_SIZE_TO_CACHE;
 const LINE_FACTOR = 1.35;
 exports.LINE_FACTOR = LINE_FACTOR;
 const LINE_DESCENT_FACTOR = 0.35;
@@ -947,8 +963,6 @@ const OPS = {
   constructPath: 91
 };
 exports.OPS = OPS;
-const UNSUPPORTED_FEATURES = null;
-exports.UNSUPPORTED_FEATURES = UNSUPPORTED_FEATURES;
 const PasswordResponses = {
   NEED_PASSWORD: 1,
   INCORRECT_PASSWORD: 2
@@ -1115,41 +1129,6 @@ function stringToBytes(str) {
     bytes[i] = str.charCodeAt(i) & 0xff;
   }
   return bytes;
-}
-function arrayByteLength(arr) {
-  if (arr.length !== undefined) {
-    return arr.length;
-  }
-  if (arr.byteLength !== undefined) {
-    return arr.byteLength;
-  }
-  unreachable("Invalid argument for arrayByteLength");
-}
-function arraysToBytes(arr) {
-  const length = arr.length;
-  if (length === 1 && arr[0] instanceof Uint8Array) {
-    return arr[0];
-  }
-  let resultLength = 0;
-  for (let i = 0; i < length; i++) {
-    resultLength += arrayByteLength(arr[i]);
-  }
-  let pos = 0;
-  const data = new Uint8Array(resultLength);
-  for (let i = 0; i < length; i++) {
-    let item = arr[i];
-    if (!(item instanceof Uint8Array)) {
-      if (typeof item === "string") {
-        item = stringToBytes(item);
-      } else {
-        item = new Uint8Array(item);
-      }
-    }
-    const itemLength = item.byteLength;
-    data.set(item, pos);
-    pos += itemLength;
-  }
-  return data;
 }
 function string32(value) {
   return String.fromCharCode(value >> 24 & 0xff, value >> 16 & 0xff, value >> 8 & 0xff, value & 0xff);
@@ -1437,9 +1416,470 @@ function createPromiseCapability() {
   });
   return capability;
 }
+let NormalizeRegex = null;
+let NormalizationMap = null;
+function normalizeUnicode(str) {
+  if (!NormalizeRegex) {
+    NormalizeRegex = /([\u00a0\u00b5\u037e\u0eb3\u2000-\u200a\u202f\u2126\ufb00-\ufb04\ufb06\ufb20-\ufb36\ufb38-\ufb3c\ufb3e\ufb40-\ufb41\ufb43-\ufb44\ufb46-\ufba1\ufba4-\ufba9\ufbae-\ufbb1\ufbd3-\ufbdc\ufbde-\ufbe7\ufbea-\ufbf8\ufbfc-\ufbfd\ufc00-\ufc5d\ufc64-\ufcf1\ufcf5-\ufd3d\ufd88\ufdf4\ufdfa-\ufdfb\ufe71\ufe77\ufe79\ufe7b\ufe7d]+)|(\ufb05+)/gu;
+    NormalizationMap = new Map([["ﬅ", "ſt"]]);
+  }
+  return str.replaceAll(NormalizeRegex, (_, p1, p2) => {
+    return p1 ? p1.normalize("NFKC") : NormalizationMap.get(p2);
+  });
+}
 
 /***/ }),
 /* 3 */
+/***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
+
+
+
+Object.defineProperty(exports, "__esModule", ({
+  value: true
+}));
+exports.XRefParseException = exports.XRefEntryException = exports.ParserEOFException = exports.PDF_VERSION_REGEXP = exports.MissingDataException = void 0;
+exports.arrayBuffersToBytes = arrayBuffersToBytes;
+exports.collectActions = collectActions;
+exports.encodeToXmlString = encodeToXmlString;
+exports.escapePDFName = escapePDFName;
+exports.escapeString = escapeString;
+exports.getArrayLookupTableFactory = getArrayLookupTableFactory;
+exports.getInheritableProperty = getInheritableProperty;
+exports.getLookupTableFactory = getLookupTableFactory;
+exports.getNewAnnotationsMap = getNewAnnotationsMap;
+exports.getRotationMatrix = getRotationMatrix;
+exports.isAscii = isAscii;
+exports.isWhiteSpace = isWhiteSpace;
+exports.log2 = log2;
+exports.numberToString = numberToString;
+exports.parseXFAPath = parseXFAPath;
+exports.readInt8 = readInt8;
+exports.readUint16 = readUint16;
+exports.readUint32 = readUint32;
+exports.recoverJsURL = recoverJsURL;
+exports.stringToUTF16HexString = stringToUTF16HexString;
+exports.stringToUTF16String = stringToUTF16String;
+exports.toRomanNumerals = toRomanNumerals;
+exports.validateCSSFont = validateCSSFont;
+var _util = __w_pdfjs_require__(2);
+var _primitives = __w_pdfjs_require__(4);
+var _base_stream = __w_pdfjs_require__(5);
+const PDF_VERSION_REGEXP = /^[1-9]\.\d$/;
+exports.PDF_VERSION_REGEXP = PDF_VERSION_REGEXP;
+function getLookupTableFactory(initializer) {
+  let lookup;
+  return function () {
+    if (initializer) {
+      lookup = Object.create(null);
+      initializer(lookup);
+      initializer = null;
+    }
+    return lookup;
+  };
+}
+function getArrayLookupTableFactory(initializer) {
+  let lookup;
+  return function () {
+    if (initializer) {
+      let arr = initializer();
+      initializer = null;
+      lookup = Object.create(null);
+      for (let i = 0, ii = arr.length; i < ii; i += 2) {
+        lookup[arr[i]] = arr[i + 1];
+      }
+      arr = null;
+    }
+    return lookup;
+  };
+}
+class MissingDataException extends _util.BaseException {
+  constructor(begin, end) {
+    super(`Missing data [${begin}, ${end})`, "MissingDataException");
+    this.begin = begin;
+    this.end = end;
+  }
+}
+exports.MissingDataException = MissingDataException;
+class ParserEOFException extends _util.BaseException {
+  constructor(msg) {
+    super(msg, "ParserEOFException");
+  }
+}
+exports.ParserEOFException = ParserEOFException;
+class XRefEntryException extends _util.BaseException {
+  constructor(msg) {
+    super(msg, "XRefEntryException");
+  }
+}
+exports.XRefEntryException = XRefEntryException;
+class XRefParseException extends _util.BaseException {
+  constructor(msg) {
+    super(msg, "XRefParseException");
+  }
+}
+exports.XRefParseException = XRefParseException;
+function arrayBuffersToBytes(arr) {
+  const length = arr.length;
+  if (length === 0) {
+    return new Uint8Array(0);
+  }
+  if (length === 1) {
+    return new Uint8Array(arr[0]);
+  }
+  let dataLength = 0;
+  for (let i = 0; i < length; i++) {
+    dataLength += arr[i].byteLength;
+  }
+  const data = new Uint8Array(dataLength);
+  let pos = 0;
+  for (let i = 0; i < length; i++) {
+    const item = new Uint8Array(arr[i]);
+    data.set(item, pos);
+    pos += item.byteLength;
+  }
+  return data;
+}
+function getInheritableProperty({
+  dict,
+  key,
+  getArray = false,
+  stopWhenFound = true
+}) {
+  let values;
+  const visited = new _primitives.RefSet();
+  while (dict instanceof _primitives.Dict && !(dict.objId && visited.has(dict.objId))) {
+    if (dict.objId) {
+      visited.put(dict.objId);
+    }
+    const value = getArray ? dict.getArray(key) : dict.get(key);
+    if (value !== undefined) {
+      if (stopWhenFound) {
+        return value;
+      }
+      if (!values) {
+        values = [];
+      }
+      values.push(value);
+    }
+    dict = dict.get("Parent");
+  }
+  return values;
+}
+const ROMAN_NUMBER_MAP = ["", "C", "CC", "CCC", "CD", "D", "DC", "DCC", "DCCC", "CM", "", "X", "XX", "XXX", "XL", "L", "LX", "LXX", "LXXX", "XC", "", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"];
+function toRomanNumerals(number, lowerCase = false) {
+  (0, _util.assert)(Number.isInteger(number) && number > 0, "The number should be a positive integer.");
+  const romanBuf = [];
+  let pos;
+  while (number >= 1000) {
+    number -= 1000;
+    romanBuf.push("M");
+  }
+  pos = number / 100 | 0;
+  number %= 100;
+  romanBuf.push(ROMAN_NUMBER_MAP[pos]);
+  pos = number / 10 | 0;
+  number %= 10;
+  romanBuf.push(ROMAN_NUMBER_MAP[10 + pos]);
+  romanBuf.push(ROMAN_NUMBER_MAP[20 + number]);
+  const romanStr = romanBuf.join("");
+  return lowerCase ? romanStr.toLowerCase() : romanStr;
+}
+function log2(x) {
+  if (x <= 0) {
+    return 0;
+  }
+  return Math.ceil(Math.log2(x));
+}
+function readInt8(data, offset) {
+  return data[offset] << 24 >> 24;
+}
+function readUint16(data, offset) {
+  return data[offset] << 8 | data[offset + 1];
+}
+function readUint32(data, offset) {
+  return (data[offset] << 24 | data[offset + 1] << 16 | data[offset + 2] << 8 | data[offset + 3]) >>> 0;
+}
+function isWhiteSpace(ch) {
+  return ch === 0x20 || ch === 0x09 || ch === 0x0d || ch === 0x0a;
+}
+function parseXFAPath(path) {
+  const positionPattern = /(.+)\[(\d+)\]$/;
+  return path.split(".").map(component => {
+    const m = component.match(positionPattern);
+    if (m) {
+      return {
+        name: m[1],
+        pos: parseInt(m[2], 10)
+      };
+    }
+    return {
+      name: component,
+      pos: 0
+    };
+  });
+}
+function escapePDFName(str) {
+  const buffer = [];
+  let start = 0;
+  for (let i = 0, ii = str.length; i < ii; i++) {
+    const char = str.charCodeAt(i);
+    if (char < 0x21 || char > 0x7e || char === 0x23 || char === 0x28 || char === 0x29 || char === 0x3c || char === 0x3e || char === 0x5b || char === 0x5d || char === 0x7b || char === 0x7d || char === 0x2f || char === 0x25) {
+      if (start < i) {
+        buffer.push(str.substring(start, i));
+      }
+      buffer.push(`#${char.toString(16)}`);
+      start = i + 1;
+    }
+  }
+  if (buffer.length === 0) {
+    return str;
+  }
+  if (start < str.length) {
+    buffer.push(str.substring(start, str.length));
+  }
+  return buffer.join("");
+}
+function escapeString(str) {
+  return str.replaceAll(/([()\\\n\r])/g, match => {
+    if (match === "\n") {
+      return "\\n";
+    } else if (match === "\r") {
+      return "\\r";
+    }
+    return `\\${match}`;
+  });
+}
+function _collectJS(entry, xref, list, parents) {
+  if (!entry) {
+    return;
+  }
+  let parent = null;
+  if (entry instanceof _primitives.Ref) {
+    if (parents.has(entry)) {
+      return;
+    }
+    parent = entry;
+    parents.put(parent);
+    entry = xref.fetch(entry);
+  }
+  if (Array.isArray(entry)) {
+    for (const element of entry) {
+      _collectJS(element, xref, list, parents);
+    }
+  } else if (entry instanceof _primitives.Dict) {
+    if ((0, _primitives.isName)(entry.get("S"), "JavaScript")) {
+      const js = entry.get("JS");
+      let code;
+      if (js instanceof _base_stream.BaseStream) {
+        code = js.getString();
+      } else if (typeof js === "string") {
+        code = js;
+      }
+      code = code && (0, _util.stringToPDFString)(code).replaceAll("\x00", "");
+      if (code) {
+        list.push(code);
+      }
+    }
+    _collectJS(entry.getRaw("Next"), xref, list, parents);
+  }
+  if (parent) {
+    parents.remove(parent);
+  }
+}
+function collectActions(xref, dict, eventType) {
+  const actions = Object.create(null);
+  const additionalActionsDicts = getInheritableProperty({
+    dict,
+    key: "AA",
+    stopWhenFound: false
+  });
+  if (additionalActionsDicts) {
+    for (let i = additionalActionsDicts.length - 1; i >= 0; i--) {
+      const additionalActions = additionalActionsDicts[i];
+      if (!(additionalActions instanceof _primitives.Dict)) {
+        continue;
+      }
+      for (const key of additionalActions.getKeys()) {
+        const action = eventType[key];
+        if (!action) {
+          continue;
+        }
+        const actionDict = additionalActions.getRaw(key);
+        const parents = new _primitives.RefSet();
+        const list = [];
+        _collectJS(actionDict, xref, list, parents);
+        if (list.length > 0) {
+          actions[action] = list;
+        }
+      }
+    }
+  }
+  if (dict.has("A")) {
+    const actionDict = dict.get("A");
+    const parents = new _primitives.RefSet();
+    const list = [];
+    _collectJS(actionDict, xref, list, parents);
+    if (list.length > 0) {
+      actions.Action = list;
+    }
+  }
+  return (0, _util.objectSize)(actions) > 0 ? actions : null;
+}
+const XMLEntities = {
+  0x3c: "&lt;",
+  0x3e: "&gt;",
+  0x26: "&amp;",
+  0x22: "&quot;",
+  0x27: "&apos;"
+};
+function encodeToXmlString(str) {
+  const buffer = [];
+  let start = 0;
+  for (let i = 0, ii = str.length; i < ii; i++) {
+    const char = str.codePointAt(i);
+    if (0x20 <= char && char <= 0x7e) {
+      const entity = XMLEntities[char];
+      if (entity) {
+        if (start < i) {
+          buffer.push(str.substring(start, i));
+        }
+        buffer.push(entity);
+        start = i + 1;
+      }
+    } else {
+      if (start < i) {
+        buffer.push(str.substring(start, i));
+      }
+      buffer.push(`&#x${char.toString(16).toUpperCase()};`);
+      if (char > 0xd7ff && (char < 0xe000 || char > 0xfffd)) {
+        i++;
+      }
+      start = i + 1;
+    }
+  }
+  if (buffer.length === 0) {
+    return str;
+  }
+  if (start < str.length) {
+    buffer.push(str.substring(start, str.length));
+  }
+  return buffer.join("");
+}
+function validateCSSFont(cssFontInfo) {
+  const DEFAULT_CSS_FONT_OBLIQUE = "14";
+  const DEFAULT_CSS_FONT_WEIGHT = "400";
+  const CSS_FONT_WEIGHT_VALUES = new Set(["100", "200", "300", "400", "500", "600", "700", "800", "900", "1000", "normal", "bold", "bolder", "lighter"]);
+  const {
+    fontFamily,
+    fontWeight,
+    italicAngle
+  } = cssFontInfo;
+  const m = /^("|').*("|')$/.exec(fontFamily);
+  if (m && m[1] === m[2]) {
+    const re = new RegExp(`[^\\\\]${m[1]}`);
+    if (re.test(fontFamily.slice(1, -1))) {
+      (0, _util.warn)(`XFA - FontFamily contains unescaped ${m[1]}: ${fontFamily}.`);
+      return false;
+    }
+  } else {
+    for (const ident of fontFamily.split(/[ \t]+/)) {
+      if (/^(\d|(-(\d|-)))/.test(ident) || !/^[\w-\\]+$/.test(ident)) {
+        (0, _util.warn)(`XFA - FontFamily contains invalid <custom-ident>: ${fontFamily}.`);
+        return false;
+      }
+    }
+  }
+  const weight = fontWeight ? fontWeight.toString() : "";
+  cssFontInfo.fontWeight = CSS_FONT_WEIGHT_VALUES.has(weight) ? weight : DEFAULT_CSS_FONT_WEIGHT;
+  const angle = parseFloat(italicAngle);
+  cssFontInfo.italicAngle = isNaN(angle) || angle < -90 || angle > 90 ? DEFAULT_CSS_FONT_OBLIQUE : italicAngle.toString();
+  return true;
+}
+function recoverJsURL(str) {
+  const URL_OPEN_METHODS = ["app.launchURL", "window.open", "xfa.host.gotoURL"];
+  const regex = new RegExp("^\\s*(" + URL_OPEN_METHODS.join("|").replaceAll(".", "\\.") + ")\\((?:'|\")([^'\"]*)(?:'|\")(?:,\\s*(\\w+)\\)|\\))", "i");
+  const jsUrl = regex.exec(str);
+  if (jsUrl && jsUrl[2]) {
+    const url = jsUrl[2];
+    let newWindow = false;
+    if (jsUrl[3] === "true" && jsUrl[1] === "app.launchURL") {
+      newWindow = true;
+    }
+    return {
+      url,
+      newWindow
+    };
+  }
+  return null;
+}
+function numberToString(value) {
+  if (Number.isInteger(value)) {
+    return value.toString();
+  }
+  const roundedValue = Math.round(value * 100);
+  if (roundedValue % 100 === 0) {
+    return (roundedValue / 100).toString();
+  }
+  if (roundedValue % 10 === 0) {
+    return value.toFixed(1);
+  }
+  return value.toFixed(2);
+}
+function getNewAnnotationsMap(annotationStorage) {
+  if (!annotationStorage) {
+    return null;
+  }
+  const newAnnotationsByPage = new Map();
+  for (const [key, value] of annotationStorage) {
+    if (!key.startsWith(_util.AnnotationEditorPrefix)) {
+      continue;
+    }
+    let annotations = newAnnotationsByPage.get(value.pageIndex);
+    if (!annotations) {
+      annotations = [];
+      newAnnotationsByPage.set(value.pageIndex, annotations);
+    }
+    annotations.push(value);
+  }
+  return newAnnotationsByPage.size > 0 ? newAnnotationsByPage : null;
+}
+function isAscii(str) {
+  return /^[\x00-\x7F]*$/.test(str);
+}
+function stringToUTF16HexString(str) {
+  const buf = [];
+  for (let i = 0, ii = str.length; i < ii; i++) {
+    const char = str.charCodeAt(i);
+    buf.push((char >> 8 & 0xff).toString(16).padStart(2, "0"), (char & 0xff).toString(16).padStart(2, "0"));
+  }
+  return buf.join("");
+}
+function stringToUTF16String(str, bigEndian = false) {
+  const buf = [];
+  if (bigEndian) {
+    buf.push("\xFE\xFF");
+  }
+  for (let i = 0, ii = str.length; i < ii; i++) {
+    const char = str.charCodeAt(i);
+    buf.push(String.fromCharCode(char >> 8 & 0xff), String.fromCharCode(char & 0xff));
+  }
+  return buf.join("");
+}
+function getRotationMatrix(rotation, width, height) {
+  switch (rotation) {
+    case 90:
+      return [0, 1, -1, 0, width, 0];
+    case 180:
+      return [-1, 0, 0, -1, width, height];
+    case 270:
+      return [0, -1, 1, 0, 0, height];
+    default:
+      throw new Error("Invalid rotation");
+  }
+}
+
+/***/ }),
+/* 4 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -1458,37 +1898,31 @@ const CIRCULAR_REF = Symbol("CIRCULAR_REF");
 exports.CIRCULAR_REF = CIRCULAR_REF;
 const EOF = Symbol("EOF");
 exports.EOF = EOF;
-const Name = function NameClosure() {
-  let nameCache = Object.create(null);
-  class Name {
-    constructor(name) {
-      this.name = name;
-    }
-    static get(name) {
-      return nameCache[name] || (nameCache[name] = new Name(name));
-    }
-    static _clearCache() {
-      nameCache = Object.create(null);
-    }
+let CmdCache = Object.create(null);
+let NameCache = Object.create(null);
+let RefCache = Object.create(null);
+function clearPrimitiveCaches() {
+  CmdCache = Object.create(null);
+  NameCache = Object.create(null);
+  RefCache = Object.create(null);
+}
+class Name {
+  constructor(name) {
+    this.name = name;
   }
-  return Name;
-}();
+  static get(name) {
+    return NameCache[name] || (NameCache[name] = new Name(name));
+  }
+}
 exports.Name = Name;
-const Cmd = function CmdClosure() {
-  let cmdCache = Object.create(null);
-  class Cmd {
-    constructor(cmd) {
-      this.cmd = cmd;
-    }
-    static get(cmd) {
-      return cmdCache[cmd] || (cmdCache[cmd] = new Cmd(cmd));
-    }
-    static _clearCache() {
-      cmdCache = Object.create(null);
-    }
+class Cmd {
+  constructor(cmd) {
+    this.cmd = cmd;
   }
-  return Cmd;
-}();
+  static get(cmd) {
+    return CmdCache[cmd] || (CmdCache[cmd] = new Cmd(cmd));
+  }
+}
 exports.Cmd = Cmd;
 const nonSerializable = function nonSerializableClosure() {
   return nonSerializable;
@@ -1625,29 +2059,22 @@ class Dict {
   }
 }
 exports.Dict = Dict;
-const Ref = function RefClosure() {
-  let refCache = Object.create(null);
-  class Ref {
-    constructor(num, gen) {
-      this.num = num;
-      this.gen = gen;
-    }
-    toString() {
-      if (this.gen === 0) {
-        return `${this.num}R`;
-      }
-      return `${this.num}R${this.gen}`;
-    }
-    static get(num, gen) {
-      const key = gen === 0 ? `${num}R` : `${num}R${gen}`;
-      return refCache[key] || (refCache[key] = new Ref(num, gen));
-    }
-    static _clearCache() {
-      refCache = Object.create(null);
-    }
+class Ref {
+  constructor(num, gen) {
+    this.num = num;
+    this.gen = gen;
   }
-  return Ref;
-}();
+  toString() {
+    if (this.gen === 0) {
+      return `${this.num}R`;
+    }
+    return `${this.num}R${this.gen}`;
+  }
+  static get(num, gen) {
+    const key = gen === 0 ? `${num}R` : `${num}R${gen}`;
+    return RefCache[key] || (RefCache[key] = new Ref(num, gen));
+  }
+}
 exports.Ref = Ref;
 class RefSet {
   constructor(parent = null) {
@@ -1708,442 +2135,6 @@ function isDict(v, type) {
 }
 function isRefsEqual(v1, v2) {
   return v1.num === v2.num && v1.gen === v2.gen;
-}
-function clearPrimitiveCaches() {
-  Cmd._clearCache();
-  Name._clearCache();
-  Ref._clearCache();
-}
-
-/***/ }),
-/* 4 */
-/***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
-
-
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-exports.XRefParseException = exports.XRefEntryException = exports.ParserEOFException = exports.PDF_VERSION_REGEXP = exports.MissingDataException = void 0;
-exports.collectActions = collectActions;
-exports.encodeToXmlString = encodeToXmlString;
-exports.escapePDFName = escapePDFName;
-exports.escapeString = escapeString;
-exports.getArrayLookupTableFactory = getArrayLookupTableFactory;
-exports.getInheritableProperty = getInheritableProperty;
-exports.getLookupTableFactory = getLookupTableFactory;
-exports.getNewAnnotationsMap = getNewAnnotationsMap;
-exports.getRotationMatrix = getRotationMatrix;
-exports.isAscii = isAscii;
-exports.isWhiteSpace = isWhiteSpace;
-exports.log2 = log2;
-exports.numberToString = numberToString;
-exports.parseXFAPath = parseXFAPath;
-exports.readInt8 = readInt8;
-exports.readUint16 = readUint16;
-exports.readUint32 = readUint32;
-exports.recoverJsURL = recoverJsURL;
-exports.stringToUTF16HexString = stringToUTF16HexString;
-exports.stringToUTF16String = stringToUTF16String;
-exports.toRomanNumerals = toRomanNumerals;
-exports.validateCSSFont = validateCSSFont;
-var _util = __w_pdfjs_require__(2);
-var _primitives = __w_pdfjs_require__(3);
-var _base_stream = __w_pdfjs_require__(5);
-const PDF_VERSION_REGEXP = /^[1-9]\.\d$/;
-exports.PDF_VERSION_REGEXP = PDF_VERSION_REGEXP;
-function getLookupTableFactory(initializer) {
-  let lookup;
-  return function () {
-    if (initializer) {
-      lookup = Object.create(null);
-      initializer(lookup);
-      initializer = null;
-    }
-    return lookup;
-  };
-}
-function getArrayLookupTableFactory(initializer) {
-  let lookup;
-  return function () {
-    if (initializer) {
-      let arr = initializer();
-      initializer = null;
-      lookup = Object.create(null);
-      for (let i = 0, ii = arr.length; i < ii; i += 2) {
-        lookup[arr[i]] = arr[i + 1];
-      }
-      arr = null;
-    }
-    return lookup;
-  };
-}
-class MissingDataException extends _util.BaseException {
-  constructor(begin, end) {
-    super(`Missing data [${begin}, ${end})`, "MissingDataException");
-    this.begin = begin;
-    this.end = end;
-  }
-}
-exports.MissingDataException = MissingDataException;
-class ParserEOFException extends _util.BaseException {
-  constructor(msg) {
-    super(msg, "ParserEOFException");
-  }
-}
-exports.ParserEOFException = ParserEOFException;
-class XRefEntryException extends _util.BaseException {
-  constructor(msg) {
-    super(msg, "XRefEntryException");
-  }
-}
-exports.XRefEntryException = XRefEntryException;
-class XRefParseException extends _util.BaseException {
-  constructor(msg) {
-    super(msg, "XRefParseException");
-  }
-}
-exports.XRefParseException = XRefParseException;
-function getInheritableProperty({
-  dict,
-  key,
-  getArray = false,
-  stopWhenFound = true
-}) {
-  let values;
-  const visited = new _primitives.RefSet();
-  while (dict instanceof _primitives.Dict && !(dict.objId && visited.has(dict.objId))) {
-    if (dict.objId) {
-      visited.put(dict.objId);
-    }
-    const value = getArray ? dict.getArray(key) : dict.get(key);
-    if (value !== undefined) {
-      if (stopWhenFound) {
-        return value;
-      }
-      if (!values) {
-        values = [];
-      }
-      values.push(value);
-    }
-    dict = dict.get("Parent");
-  }
-  return values;
-}
-const ROMAN_NUMBER_MAP = ["", "C", "CC", "CCC", "CD", "D", "DC", "DCC", "DCCC", "CM", "", "X", "XX", "XXX", "XL", "L", "LX", "LXX", "LXXX", "XC", "", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"];
-function toRomanNumerals(number, lowerCase = false) {
-  (0, _util.assert)(Number.isInteger(number) && number > 0, "The number should be a positive integer.");
-  const romanBuf = [];
-  let pos;
-  while (number >= 1000) {
-    number -= 1000;
-    romanBuf.push("M");
-  }
-  pos = number / 100 | 0;
-  number %= 100;
-  romanBuf.push(ROMAN_NUMBER_MAP[pos]);
-  pos = number / 10 | 0;
-  number %= 10;
-  romanBuf.push(ROMAN_NUMBER_MAP[10 + pos]);
-  romanBuf.push(ROMAN_NUMBER_MAP[20 + number]);
-  const romanStr = romanBuf.join("");
-  return lowerCase ? romanStr.toLowerCase() : romanStr;
-}
-function log2(x) {
-  if (x <= 0) {
-    return 0;
-  }
-  return Math.ceil(Math.log2(x));
-}
-function readInt8(data, offset) {
-  return data[offset] << 24 >> 24;
-}
-function readUint16(data, offset) {
-  return data[offset] << 8 | data[offset + 1];
-}
-function readUint32(data, offset) {
-  return (data[offset] << 24 | data[offset + 1] << 16 | data[offset + 2] << 8 | data[offset + 3]) >>> 0;
-}
-function isWhiteSpace(ch) {
-  return ch === 0x20 || ch === 0x09 || ch === 0x0d || ch === 0x0a;
-}
-function parseXFAPath(path) {
-  const positionPattern = /(.+)\[(\d+)\]$/;
-  return path.split(".").map(component => {
-    const m = component.match(positionPattern);
-    if (m) {
-      return {
-        name: m[1],
-        pos: parseInt(m[2], 10)
-      };
-    }
-    return {
-      name: component,
-      pos: 0
-    };
-  });
-}
-function escapePDFName(str) {
-  const buffer = [];
-  let start = 0;
-  for (let i = 0, ii = str.length; i < ii; i++) {
-    const char = str.charCodeAt(i);
-    if (char < 0x21 || char > 0x7e || char === 0x23 || char === 0x28 || char === 0x29 || char === 0x3c || char === 0x3e || char === 0x5b || char === 0x5d || char === 0x7b || char === 0x7d || char === 0x2f || char === 0x25) {
-      if (start < i) {
-        buffer.push(str.substring(start, i));
-      }
-      buffer.push(`#${char.toString(16)}`);
-      start = i + 1;
-    }
-  }
-  if (buffer.length === 0) {
-    return str;
-  }
-  if (start < str.length) {
-    buffer.push(str.substring(start, str.length));
-  }
-  return buffer.join("");
-}
-function escapeString(str) {
-  return str.replace(/([()\\\n\r])/g, match => {
-    if (match === "\n") {
-      return "\\n";
-    } else if (match === "\r") {
-      return "\\r";
-    }
-    return `\\${match}`;
-  });
-}
-function _collectJS(entry, xref, list, parents) {
-  if (!entry) {
-    return;
-  }
-  let parent = null;
-  if (entry instanceof _primitives.Ref) {
-    if (parents.has(entry)) {
-      return;
-    }
-    parent = entry;
-    parents.put(parent);
-    entry = xref.fetch(entry);
-  }
-  if (Array.isArray(entry)) {
-    for (const element of entry) {
-      _collectJS(element, xref, list, parents);
-    }
-  } else if (entry instanceof _primitives.Dict) {
-    if ((0, _primitives.isName)(entry.get("S"), "JavaScript")) {
-      const js = entry.get("JS");
-      let code;
-      if (js instanceof _base_stream.BaseStream) {
-        code = js.getString();
-      } else if (typeof js === "string") {
-        code = js;
-      }
-      code = code && (0, _util.stringToPDFString)(code).replace(/\u0000/g, "");
-      if (code) {
-        list.push(code);
-      }
-    }
-    _collectJS(entry.getRaw("Next"), xref, list, parents);
-  }
-  if (parent) {
-    parents.remove(parent);
-  }
-}
-function collectActions(xref, dict, eventType) {
-  const actions = Object.create(null);
-  const additionalActionsDicts = getInheritableProperty({
-    dict,
-    key: "AA",
-    stopWhenFound: false
-  });
-  if (additionalActionsDicts) {
-    for (let i = additionalActionsDicts.length - 1; i >= 0; i--) {
-      const additionalActions = additionalActionsDicts[i];
-      if (!(additionalActions instanceof _primitives.Dict)) {
-        continue;
-      }
-      for (const key of additionalActions.getKeys()) {
-        const action = eventType[key];
-        if (!action) {
-          continue;
-        }
-        const actionDict = additionalActions.getRaw(key);
-        const parents = new _primitives.RefSet();
-        const list = [];
-        _collectJS(actionDict, xref, list, parents);
-        if (list.length > 0) {
-          actions[action] = list;
-        }
-      }
-    }
-  }
-  if (dict.has("A")) {
-    const actionDict = dict.get("A");
-    const parents = new _primitives.RefSet();
-    const list = [];
-    _collectJS(actionDict, xref, list, parents);
-    if (list.length > 0) {
-      actions.Action = list;
-    }
-  }
-  return (0, _util.objectSize)(actions) > 0 ? actions : null;
-}
-const XMLEntities = {
-  0x3c: "&lt;",
-  0x3e: "&gt;",
-  0x26: "&amp;",
-  0x22: "&quot;",
-  0x27: "&apos;"
-};
-function encodeToXmlString(str) {
-  const buffer = [];
-  let start = 0;
-  for (let i = 0, ii = str.length; i < ii; i++) {
-    const char = str.codePointAt(i);
-    if (0x20 <= char && char <= 0x7e) {
-      const entity = XMLEntities[char];
-      if (entity) {
-        if (start < i) {
-          buffer.push(str.substring(start, i));
-        }
-        buffer.push(entity);
-        start = i + 1;
-      }
-    } else {
-      if (start < i) {
-        buffer.push(str.substring(start, i));
-      }
-      buffer.push(`&#x${char.toString(16).toUpperCase()};`);
-      if (char > 0xd7ff && (char < 0xe000 || char > 0xfffd)) {
-        i++;
-      }
-      start = i + 1;
-    }
-  }
-  if (buffer.length === 0) {
-    return str;
-  }
-  if (start < str.length) {
-    buffer.push(str.substring(start, str.length));
-  }
-  return buffer.join("");
-}
-function validateCSSFont(cssFontInfo) {
-  const DEFAULT_CSS_FONT_OBLIQUE = "14";
-  const DEFAULT_CSS_FONT_WEIGHT = "400";
-  const CSS_FONT_WEIGHT_VALUES = new Set(["100", "200", "300", "400", "500", "600", "700", "800", "900", "1000", "normal", "bold", "bolder", "lighter"]);
-  const {
-    fontFamily,
-    fontWeight,
-    italicAngle
-  } = cssFontInfo;
-  if (/^".*"$/.test(fontFamily)) {
-    if (/[^\\]"/.test(fontFamily.slice(1, fontFamily.length - 1))) {
-      (0, _util.warn)(`XFA - FontFamily contains some unescaped ": ${fontFamily}.`);
-      return false;
-    }
-  } else if (/^'.*'$/.test(fontFamily)) {
-    if (/[^\\]'/.test(fontFamily.slice(1, fontFamily.length - 1))) {
-      (0, _util.warn)(`XFA - FontFamily contains some unescaped ': ${fontFamily}.`);
-      return false;
-    }
-  } else {
-    for (const ident of fontFamily.split(/[ \t]+/)) {
-      if (/^(\d|(-(\d|-)))/.test(ident) || !/^[\w-\\]+$/.test(ident)) {
-        (0, _util.warn)(`XFA - FontFamily contains some invalid <custom-ident>: ${fontFamily}.`);
-        return false;
-      }
-    }
-  }
-  const weight = fontWeight ? fontWeight.toString() : "";
-  cssFontInfo.fontWeight = CSS_FONT_WEIGHT_VALUES.has(weight) ? weight : DEFAULT_CSS_FONT_WEIGHT;
-  const angle = parseFloat(italicAngle);
-  cssFontInfo.italicAngle = isNaN(angle) || angle < -90 || angle > 90 ? DEFAULT_CSS_FONT_OBLIQUE : italicAngle.toString();
-  return true;
-}
-function recoverJsURL(str) {
-  const URL_OPEN_METHODS = ["app.launchURL", "window.open", "xfa.host.gotoURL"];
-  const regex = new RegExp("^\\s*(" + URL_OPEN_METHODS.join("|").split(".").join("\\.") + ")\\((?:'|\")([^'\"]*)(?:'|\")(?:,\\s*(\\w+)\\)|\\))", "i");
-  const jsUrl = regex.exec(str);
-  if (jsUrl && jsUrl[2]) {
-    const url = jsUrl[2];
-    let newWindow = false;
-    if (jsUrl[3] === "true" && jsUrl[1] === "app.launchURL") {
-      newWindow = true;
-    }
-    return {
-      url,
-      newWindow
-    };
-  }
-  return null;
-}
-function numberToString(value) {
-  if (Number.isInteger(value)) {
-    return value.toString();
-  }
-  const roundedValue = Math.round(value * 100);
-  if (roundedValue % 100 === 0) {
-    return (roundedValue / 100).toString();
-  }
-  if (roundedValue % 10 === 0) {
-    return value.toFixed(1);
-  }
-  return value.toFixed(2);
-}
-function getNewAnnotationsMap(annotationStorage) {
-  if (!annotationStorage) {
-    return null;
-  }
-  const newAnnotationsByPage = new Map();
-  for (const [key, value] of annotationStorage) {
-    if (!key.startsWith(_util.AnnotationEditorPrefix)) {
-      continue;
-    }
-    let annotations = newAnnotationsByPage.get(value.pageIndex);
-    if (!annotations) {
-      annotations = [];
-      newAnnotationsByPage.set(value.pageIndex, annotations);
-    }
-    annotations.push(value);
-  }
-  return newAnnotationsByPage.size > 0 ? newAnnotationsByPage : null;
-}
-function isAscii(str) {
-  return /^[\x00-\x7F]*$/.test(str);
-}
-function stringToUTF16HexString(str) {
-  const buf = [];
-  for (let i = 0, ii = str.length; i < ii; i++) {
-    const char = str.charCodeAt(i);
-    buf.push((char >> 8 & 0xff).toString(16).padStart(2, "0"), (char & 0xff).toString(16).padStart(2, "0"));
-  }
-  return buf.join("");
-}
-function stringToUTF16String(str, bigEndian = false) {
-  const buf = [];
-  if (bigEndian) {
-    buf.push("\xFE\xFF");
-  }
-  for (let i = 0, ii = str.length; i < ii; i++) {
-    const char = str.charCodeAt(i);
-    buf.push(String.fromCharCode(char >> 8 & 0xff), String.fromCharCode(char & 0xff));
-  }
-  return buf.join("");
-}
-function getRotationMatrix(rotation, width, height) {
-  switch (rotation) {
-    case 90:
-      return [0, 1, -1, 0, width, 0];
-    case 180:
-      return [-1, 0, 0, -1, width, height];
-    case 270:
-      return [0, -1, 1, 0, 0, height];
-    default:
-      throw new Error("Invalid rotation");
-  }
 }
 
 /***/ }),
@@ -2241,7 +2232,7 @@ Object.defineProperty(exports, "__esModule", ({
 exports.NetworkPdfManager = exports.LocalPdfManager = void 0;
 var _util = __w_pdfjs_require__(2);
 var _chunked_stream = __w_pdfjs_require__(7);
-var _core_utils = __w_pdfjs_require__(4);
+var _core_utils = __w_pdfjs_require__(3);
 var _document = __w_pdfjs_require__(9);
 var _stream = __w_pdfjs_require__(8);
 function parseDocBaseUrl(url) {
@@ -2255,10 +2246,16 @@ function parseDocBaseUrl(url) {
   return null;
 }
 class BasePdfManager {
-  constructor() {
+  constructor(args) {
     if (this.constructor === BasePdfManager) {
       (0, _util.unreachable)("Cannot initialize BasePdfManager.");
     }
+    this._docBaseUrl = parseDocBaseUrl(args.docBaseUrl);
+    this._docId = args.docId;
+    this._password = args.password;
+    this.enableXfa = args.enableXfa;
+    args.evaluatorOptions.isOffscreenCanvasSupported = args.evaluatorOptions.isOffscreenCanvasSupported && _util.FeatureTest.isOffscreenCanvasSupported;
+    this.evaluatorOptions = args.evaluatorOptions;
   }
   get docId() {
     return this._docId;
@@ -2317,15 +2314,9 @@ class BasePdfManager {
   }
 }
 class LocalPdfManager extends BasePdfManager {
-  constructor(docId, data, password, msgHandler, evaluatorOptions, enableXfa, docBaseUrl) {
-    super();
-    this._docId = docId;
-    this._password = password;
-    this._docBaseUrl = parseDocBaseUrl(docBaseUrl);
-    this.msgHandler = msgHandler;
-    this.evaluatorOptions = evaluatorOptions;
-    this.enableXfa = enableXfa;
-    const stream = new _stream.Stream(data);
+  constructor(args) {
+    super(args);
+    const stream = new _stream.Stream(args.source);
     this.pdfDocument = new _document.PDFDocument(this, stream);
     this._loadedStreamPromise = Promise.resolve(stream);
   }
@@ -2346,16 +2337,10 @@ class LocalPdfManager extends BasePdfManager {
 }
 exports.LocalPdfManager = LocalPdfManager;
 class NetworkPdfManager extends BasePdfManager {
-  constructor(docId, pdfNetworkStream, args, evaluatorOptions, enableXfa, docBaseUrl) {
-    super();
-    this._docId = docId;
-    this._password = args.password;
-    this._docBaseUrl = parseDocBaseUrl(docBaseUrl);
-    this.msgHandler = args.msgHandler;
-    this.evaluatorOptions = evaluatorOptions;
-    this.enableXfa = enableXfa;
-    this.streamManager = new _chunked_stream.ChunkedStreamManager(pdfNetworkStream, {
-      msgHandler: args.msgHandler,
+  constructor(args) {
+    super(args);
+    this.streamManager = new _chunked_stream.ChunkedStreamManager(args.source, {
+      msgHandler: args.handler,
       length: args.length,
       disableAutoFetch: args.disableAutoFetch,
       rangeChunkSize: args.rangeChunkSize
@@ -2404,8 +2389,8 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.ChunkedStreamManager = exports.ChunkedStream = void 0;
+var _core_utils = __w_pdfjs_require__(3);
 var _util = __w_pdfjs_require__(2);
-var _core_utils = __w_pdfjs_require__(4);
 var _stream = __w_pdfjs_require__(8);
 class ChunkedStream extends _stream.Stream {
   constructor(length, chunkSize, manager) {
@@ -2616,23 +2601,25 @@ class ChunkedStreamManager {
     let chunks = [],
       loaded = 0;
     return new Promise((resolve, reject) => {
-      const readChunk = chunk => {
+      const readChunk = ({
+        value,
+        done
+      }) => {
         try {
-          if (!chunk.done) {
-            const data = chunk.value;
-            chunks.push(data);
-            loaded += (0, _util.arrayByteLength)(data);
-            if (rangeReader.isStreamingSupported) {
-              this.onProgress({
-                loaded
-              });
-            }
-            rangeReader.read().then(readChunk, reject);
+          if (done) {
+            const chunkData = (0, _core_utils.arrayBuffersToBytes)(chunks);
+            chunks = null;
+            resolve(chunkData);
             return;
           }
-          const chunkData = (0, _util.arraysToBytes)(chunks);
-          chunks = null;
-          resolve(chunkData);
+          loaded += value.byteLength;
+          if (rangeReader.isStreamingSupported) {
+            this.onProgress({
+              loaded
+            });
+          }
+          chunks.push(value);
+          rangeReader.read().then(readChunk, reject);
         } catch (e) {
           reject(e);
         }
@@ -2926,24 +2913,24 @@ Object.defineProperty(exports, "__esModule", ({
 exports.Page = exports.PDFDocument = void 0;
 var _annotation = __w_pdfjs_require__(10);
 var _util = __w_pdfjs_require__(2);
-var _core_utils = __w_pdfjs_require__(4);
-var _primitives = __w_pdfjs_require__(3);
-var _xfa_fonts = __w_pdfjs_require__(49);
+var _core_utils = __w_pdfjs_require__(3);
+var _primitives = __w_pdfjs_require__(4);
+var _xfa_fonts = __w_pdfjs_require__(51);
 var _base_stream = __w_pdfjs_require__(5);
-var _crypto = __w_pdfjs_require__(65);
-var _catalog = __w_pdfjs_require__(67);
-var _cleanup_helper = __w_pdfjs_require__(69);
-var _dataset_reader = __w_pdfjs_require__(98);
-var _parser = __w_pdfjs_require__(15);
+var _crypto = __w_pdfjs_require__(67);
+var _catalog = __w_pdfjs_require__(69);
+var _cleanup_helper = __w_pdfjs_require__(71);
+var _dataset_reader = __w_pdfjs_require__(100);
+var _parser = __w_pdfjs_require__(16);
 var _stream = __w_pdfjs_require__(8);
-var _object_loader = __w_pdfjs_require__(73);
-var _operator_list = __w_pdfjs_require__(60);
+var _object_loader = __w_pdfjs_require__(75);
+var _operator_list = __w_pdfjs_require__(63);
 var _evaluator = __w_pdfjs_require__(13);
-var _decode_stream = __w_pdfjs_require__(17);
-var _struct_tree = __w_pdfjs_require__(72);
-var _writer = __w_pdfjs_require__(63);
-var _factory = __w_pdfjs_require__(74);
-var _xref = __w_pdfjs_require__(99);
+var _decode_stream = __w_pdfjs_require__(18);
+var _struct_tree = __w_pdfjs_require__(74);
+var _writer = __w_pdfjs_require__(65);
+var _factory = __w_pdfjs_require__(76);
+var _xref = __w_pdfjs_require__(101);
 const DEFAULT_USER_UNIT = 1.0;
 const LETTER_SIZE_MEDIABOX = [0, 0, 612, 792];
 class Page {
@@ -3063,20 +3050,20 @@ class Page {
     }
     return (0, _util.shadow)(this, "rotate", rotate);
   }
-  _onSubStreamError(handler, reason, objId) {
+  _onSubStreamError(reason, objId) {
     if (this.evaluatorOptions.ignoreErrors) {
       (0, _util.warn)(`getContentStream - ignoring sub-stream (${objId}): "${reason}".`);
       return;
     }
     throw reason;
   }
-  getContentStream(handler) {
+  getContentStream() {
     return this.pdfManager.ensure(this, "content").then(content => {
       if (content instanceof _base_stream.BaseStream) {
         return content;
       }
       if (Array.isArray(content)) {
-        return new _decode_stream.StreamsSequenceStream(content, this._onSubStreamError.bind(this, handler));
+        return new _decode_stream.StreamsSequenceStream(content, this._onSubStreamError.bind(this));
       }
       return new _stream.NullStream();
     });
@@ -3172,7 +3159,7 @@ class Page {
     cacheKey,
     annotationStorage = null
   }) {
-    const contentStreamPromise = this.getContentStream(handler);
+    const contentStreamPromise = this.getContentStream();
     const resourcesPromise = this.loadResources(["ColorSpace", "ExtGState", "Font", "Pattern", "Properties", "Shading", "XObject"]);
     const partialEvaluator = new _evaluator.PartialEvaluator({
       xref: this.xref,
@@ -3267,10 +3254,10 @@ class Page {
     handler,
     task,
     includeMarkedContent,
-    sink,
-    combineTextItems
+    disableNormalization,
+    sink
   }) {
-    const contentStreamPromise = this.getContentStream(handler);
+    const contentStreamPromise = this.getContentStream();
     const resourcesPromise = this.loadResources(["ExtGState", "Font", "Properties", "XObject"]);
     const dataPromises = Promise.all([contentStreamPromise, resourcesPromise]);
     return dataPromises.then(([contentStream]) => {
@@ -3290,7 +3277,7 @@ class Page {
         task,
         resources: this.resources,
         includeMarkedContent,
-        combineTextItems,
+        disableNormalization,
         sink,
         viewBox: this.view
       });
@@ -3743,7 +3730,7 @@ class PDFDocument {
         continue;
       }
       let fontFamily = descriptor.get("FontFamily");
-      fontFamily = fontFamily.replace(/[ ]+(\d)/g, "$1");
+      fontFamily = fontFamily.replaceAll(/[ ]+(\d)/g, "$1");
       const fontWeight = descriptor.get("FontWeight");
       const italicAngle = -descriptor.get("ItalicAngle");
       const cssFontInfo = {
@@ -4192,19 +4179,19 @@ Object.defineProperty(exports, "__esModule", ({
 exports.PopupAnnotation = exports.MarkupAnnotation = exports.AnnotationFactory = exports.AnnotationBorderStyle = exports.Annotation = void 0;
 exports.getQuadPoints = getQuadPoints;
 var _util = __w_pdfjs_require__(2);
-var _core_utils = __w_pdfjs_require__(4);
+var _core_utils = __w_pdfjs_require__(3);
 var _default_appearance = __w_pdfjs_require__(11);
-var _primitives = __w_pdfjs_require__(3);
-var _writer = __w_pdfjs_require__(63);
+var _primitives = __w_pdfjs_require__(4);
+var _writer = __w_pdfjs_require__(65);
 var _base_stream = __w_pdfjs_require__(5);
-var _bidi = __w_pdfjs_require__(58);
-var _catalog = __w_pdfjs_require__(67);
+var _bidi = __w_pdfjs_require__(60);
+var _catalog = __w_pdfjs_require__(69);
 var _colorspace = __w_pdfjs_require__(12);
-var _file_spec = __w_pdfjs_require__(70);
-var _object_loader = __w_pdfjs_require__(73);
-var _operator_list = __w_pdfjs_require__(60);
+var _file_spec = __w_pdfjs_require__(72);
+var _object_loader = __w_pdfjs_require__(75);
+var _operator_list = __w_pdfjs_require__(63);
 var _stream = __w_pdfjs_require__(8);
-var _factory = __w_pdfjs_require__(74);
+var _factory = __w_pdfjs_require__(76);
 class AnnotationFactory {
   static create(xref, ref, pdfManager, idFactory, collectFields) {
     return Promise.all([pdfManager.ensureCatalog("acroForm"), pdfManager.ensureCatalog("baseUrl"), pdfManager.ensureCatalog("attachments"), pdfManager.ensureDoc("xfaDatasets"), collectFields ? this._getPageIndex(xref, ref, pdfManager) : -1]).then(([acroForm, baseUrl, attachments, xfaDatasets, pageIndex]) => pdfManager.ensure(this, "_create", [xref, ref, pdfManager, idFactory, acroForm, attachments, xfaDatasets, collectFields, pageIndex]));
@@ -4231,7 +4218,7 @@ class AnnotationFactory {
       collectFields,
       needAppearances: !collectFields && acroFormDict.get("NeedAppearances") === true,
       pageIndex,
-      isOffscreenCanvasSupported: _util.FeatureTest.isOffscreenCanvasSupported && pdfManager.evaluatorOptions.isOffscreenCanvasSupported
+      isOffscreenCanvasSupported: pdfManager.evaluatorOptions.isOffscreenCanvasSupported
     };
     switch (subtype) {
       case "Link":
@@ -4356,8 +4343,10 @@ class AnnotationFactory {
       return null;
     }
     const xref = evaluator.xref;
+    const {
+      isOffscreenCanvasSupported
+    } = evaluator.options;
     const promises = [];
-    const isOffscreenCanvasSupported = _util.FeatureTest.isOffscreenCanvasSupported && evaluator.options.isOffscreenCanvasSupported;
     for (const annotation of annotations) {
       switch (annotation.annotationType) {
         case _util.AnnotationEditorType.FREETEXT:
@@ -4471,6 +4460,8 @@ class Annotation {
     if (this.appearance) {
       this._streams.push(this.appearance);
     }
+    const isLocked = !!(this.flags & _util.AnnotationFlag.LOCKED);
+    const isContentLocked = !!(this.flags & _util.AnnotationFlag.LOCKEDCONTENTS);
     this.data = {
       annotationFlags: this.flags,
       borderStyle: this.borderStyle,
@@ -4484,7 +4475,9 @@ class Annotation {
       modificationDate: this.modificationDate,
       rect: this.rectangle,
       subtype: params.subtype,
-      hasOwnCanvas: false
+      hasOwnCanvas: false,
+      noRotate: !!(this.flags & _util.AnnotationFlag.NOROTATE),
+      noHTML: isLocked && isContentLocked
     };
     if (params.collectFields) {
       const kids = dict.get("Kids");
@@ -4683,7 +4676,10 @@ class Annotation {
     if (!(as instanceof _primitives.Name) || !normalAppearanceState.has(as.name)) {
       return;
     }
-    this.appearance = normalAppearanceState.get(as.name);
+    const appearance = normalAppearanceState.get(as.name);
+    if (appearance instanceof _base_stream.BaseStream) {
+      this.appearance = appearance;
+    }
   }
   setOptionalContent(dict) {
     this.oc = null;
@@ -4783,7 +4779,6 @@ class Annotation {
       task,
       resources,
       includeMarkedContent: true,
-      combineTextItems: true,
       sink,
       viewBox
     });
@@ -4842,7 +4837,10 @@ class Annotation {
         visited.put(loopDict.objId);
       }
       if (loopDict.has("T")) {
-        fieldName.unshift((0, _util.stringToPDFString)(loopDict.get("T")));
+        const t = (0, _util.stringToPDFString)(loopDict.get("T"));
+        if (!t.startsWith("#")) {
+          fieldName.unshift(t);
+        }
       }
     }
     return fieldName.join(".");
@@ -5228,7 +5226,7 @@ class WidgetAnnotation extends Annotation {
     return str;
   }
   async getOperatorList(evaluator, task, intent, renderForms, annotationStorage) {
-    if (renderForms && !(this instanceof SignatureWidgetAnnotation)) {
+    if (renderForms && !(this instanceof SignatureWidgetAnnotation) && !this.data.noHTML) {
       return {
         opList: new _operator_list.OperatorList(),
         separateForm: true,
@@ -5291,6 +5289,7 @@ class WidgetAnnotation extends Annotation {
     }
     return mk.size > 0 ? mk : null;
   }
+  amendSavedDict(annotationStorage, dict) {}
   async save(evaluator, task, annotationStorage) {
     const storageEntry = annotationStorage ? annotationStorage.get(this.data.id) : undefined;
     let value = storageEntry && storageEntry.value;
@@ -5333,13 +5332,14 @@ class WidgetAnnotation extends Annotation {
       }
     }
     const xfa = {
-      path: (0, _util.stringToPDFString)(dict.get("T") || ""),
+      path: this.data.fieldName,
       value
     };
     const encoder = val => {
       return (0, _core_utils.isAscii)(val) ? val : (0, _core_utils.stringToUTF16String)(val, true);
     };
     dict.set("V", Array.isArray(value) ? value.map(encoder) : encoder(value));
+    this.amendSavedDict(annotationStorage, dict);
     const maybeMK = this._getMKDict(rotation);
     if (maybeMK) {
       dict.set("MK", maybeMK);
@@ -5361,12 +5361,10 @@ class WidgetAnnotation extends Annotation {
       let newTransform = null;
       if (encrypt) {
         newTransform = encrypt.createCipherTransform(newRef.num, newRef.gen);
-        appearance = newTransform.encryptString(appearance);
       }
       const resources = this._getSaveFieldResources(xref);
       const appearanceStream = new _stream.StringStream(appearance);
       const appearanceDict = appearanceStream.dict = new _primitives.Dict(xref);
-      appearanceDict.set("Length", appearance.length);
       appearanceDict.set("Subtype", _primitives.Name.get("Form"));
       appearanceDict.set("Resources", resources);
       appearanceDict.set("BBox", [0, 0, this.data.rect[2] - this.data.rect[0], this.data.rect[3] - this.data.rect[1]]);
@@ -5415,13 +5413,12 @@ class WidgetAnnotation extends Annotation {
       value = value[0];
     }
     (0, _util.assert)(typeof value === "string", "Expected `value` to be a string.");
-    if (!this.data.combo) {
-      value = value.trim();
-    } else {
+    value = value.trim();
+    if (this.data.combo) {
       const option = this.data.options.find(({
         exportValue
-      }) => value === exportValue) || this.data.options[0];
-      value = option && option.displayValue || "";
+      }) => value === exportValue);
+      value = option && option.displayValue || value;
     }
     if (value === "") {
       return `/Tx BMC q ${colors}Q EMC`;
@@ -5880,7 +5877,7 @@ class ButtonWidgetAnnotation extends WidgetAnnotation {
       value = this.data.fieldValue === this.data.exportValue;
     }
     const xfa = {
-      path: (0, _util.stringToPDFString)(dict.get("T") || ""),
+      path: this.data.fieldName,
       value: value ? this.data.exportValue : ""
     };
     const name = _primitives.Name.get(value ? this.data.exportValue : "Off");
@@ -5932,7 +5929,7 @@ class ButtonWidgetAnnotation extends WidgetAnnotation {
       rotation = this.rotation;
     }
     const xfa = {
-      path: (0, _util.stringToPDFString)(dict.get("T") || ""),
+      path: this.data.fieldName,
       value: value ? this.data.buttonValue : ""
     };
     const name = _primitives.Name.get(value ? this.data.buttonValue : "Off");
@@ -6056,8 +6053,10 @@ class ButtonWidgetAnnotation extends WidgetAnnotation {
       this.data.fieldValue = "Off";
     }
     this.data.exportValue = exportValues[1];
-    this.checkedAppearance = normalAppearance.get(this.data.exportValue) || null;
-    this.uncheckedAppearance = normalAppearance.get("Off") || null;
+    const checkedAppearance = normalAppearance.get(this.data.exportValue);
+    this.checkedAppearance = checkedAppearance instanceof _base_stream.BaseStream ? checkedAppearance : null;
+    const uncheckedAppearance = normalAppearance.get("Off");
+    this.uncheckedAppearance = uncheckedAppearance instanceof _base_stream.BaseStream ? uncheckedAppearance : null;
     if (this.checkedAppearance) {
       this._streams.push(this.checkedAppearance);
     } else {
@@ -6092,8 +6091,10 @@ class ButtonWidgetAnnotation extends WidgetAnnotation {
         break;
       }
     }
-    this.checkedAppearance = normalAppearance.get(this.data.buttonValue) || null;
-    this.uncheckedAppearance = normalAppearance.get("Off") || null;
+    const checkedAppearance = normalAppearance.get(this.data.buttonValue);
+    this.checkedAppearance = checkedAppearance instanceof _base_stream.BaseStream ? checkedAppearance : null;
+    const uncheckedAppearance = normalAppearance.get("Off");
+    this.uncheckedAppearance = uncheckedAppearance instanceof _base_stream.BaseStream ? uncheckedAppearance : null;
     if (this.checkedAppearance) {
       this._streams.push(this.checkedAppearance);
     } else {
@@ -6160,6 +6161,8 @@ class ChoiceWidgetAnnotation extends WidgetAnnotation {
       dict,
       xref
     } = params;
+    this.indices = dict.getArray("I");
+    this.hasIndices = Array.isArray(this.indices) && this.indices.length > 0;
     this.data.options = [];
     const options = (0, _core_utils.getInheritableProperty)({
       dict,
@@ -6175,10 +6178,20 @@ class ChoiceWidgetAnnotation extends WidgetAnnotation {
         };
       }
     }
-    if (typeof this.data.fieldValue === "string") {
-      this.data.fieldValue = [this.data.fieldValue];
-    } else if (!this.data.fieldValue) {
+    if (!this.hasIndices) {
+      if (typeof this.data.fieldValue === "string") {
+        this.data.fieldValue = [this.data.fieldValue];
+      } else if (!this.data.fieldValue) {
+        this.data.fieldValue = [];
+      }
+    } else {
       this.data.fieldValue = [];
+      const ii = this.data.options.length;
+      for (const i of this.indices) {
+        if (Number.isInteger(i) && i >= 0 && i < ii) {
+          this.data.fieldValue.push(this.data.options[i].exportValue);
+        }
+      }
     }
     this.data.combo = this.hasFieldFlag(_util.AnnotationFieldFlag.COMBO);
     this.data.multiSelect = this.hasFieldFlag(_util.AnnotationFieldFlag.MULTISELECT);
@@ -6205,6 +6218,27 @@ class ChoiceWidgetAnnotation extends WidgetAnnotation {
       rotation: this.rotation,
       type
     };
+  }
+  amendSavedDict(annotationStorage, dict) {
+    if (!this.hasIndices) {
+      return;
+    }
+    const storageEntry = annotationStorage ? annotationStorage.get(this.data.id) : undefined;
+    let values = storageEntry && storageEntry.value;
+    if (!Array.isArray(values)) {
+      values = [values];
+    }
+    const indices = [];
+    const {
+      options
+    } = this.data;
+    for (let i = 0, j = 0, ii = options.length; i < ii; i++) {
+      if (options[i].exportValue === values[j]) {
+        indices.push(i);
+        j += 1;
+      }
+    }
+    dict.set("I", indices);
   }
   async _getAppearance(evaluator, task, intent, annotationStorage) {
     if (this.data.combo) {
@@ -6306,6 +6340,7 @@ class SignatureWidgetAnnotation extends WidgetAnnotation {
   constructor(params) {
     super(params);
     this.data.fieldValue = null;
+    this.data.hasOwnCanvas = this.data.noRotate;
   }
   getFieldObject() {
     return {
@@ -6320,6 +6355,8 @@ class TextAnnotation extends MarkupAnnotation {
   constructor(params) {
     const DEFAULT_ICON_SIZE = 22;
     super(params);
+    this.data.noRotate = true;
+    this.data.hasOwnCanvas = this.data.noRotate;
     const {
       dict
     } = params;
@@ -6414,15 +6451,17 @@ exports.PopupAnnotation = PopupAnnotation;
 class FreeTextAnnotation extends MarkupAnnotation {
   constructor(params) {
     super(params);
+    this.data.hasOwnCanvas = this.data.noRotate;
     const {
       xref
     } = params;
     this.data.annotationType = _util.AnnotationType.FREETEXT;
     this.setDefaultAppearance(params);
     if (!this.appearance && this._isOffscreenCanvasSupported) {
+      const strokeAlpha = params.dict.get("CA");
       const fakeUnicodeFont = new _default_appearance.FakeUnicodeFont(xref, "sans-serif");
       const fontData = this.data.defaultAppearanceData;
-      this.appearance = fakeUnicodeFont.createAppearance(this._contents.str, this.rectangle, this.rotation, fontData.fontSize || 10, fontData.fontColor);
+      this.appearance = fakeUnicodeFont.createAppearance(this._contents.str, this.rectangle, this.rotation, fontData.fontSize || 10, fontData.fontColor, strokeAlpha);
       this._streams.push(this.appearance, _default_appearance.FakeUnicodeFont.toUnicodeStream);
     } else if (!this._isOffscreenCanvasSupported) {
       (0, _util.warn)("FreeTextAnnotation: OffscreenCanvas is not supported, annotation may not render correctly.");
@@ -6547,7 +6586,6 @@ class FreeTextAnnotation extends MarkupAnnotation {
     appearanceStreamDict.set("Subtype", _primitives.Name.get("Form"));
     appearanceStreamDict.set("Type", _primitives.Name.get("XObject"));
     appearanceStreamDict.set("BBox", [0, 0, w, h]);
-    appearanceStreamDict.set("Length", appearance.length);
     appearanceStreamDict.set("Resources", resources);
     if (rotation) {
       const matrix = (0, _core_utils.getRotationMatrix)(rotation, w, h);
@@ -6566,6 +6604,7 @@ class LineAnnotation extends MarkupAnnotation {
       xref
     } = params;
     this.data.annotationType = _util.AnnotationType.LINE;
+    this.data.hasOwnCanvas = this.data.noRotate;
     const lineCoordinates = dict.getArray("L");
     this.data.lineCoordinates = _util.Util.normalizeRect(lineCoordinates);
     this.setLineEndings(dict.getArray("LE"));
@@ -6605,6 +6644,7 @@ class SquareAnnotation extends MarkupAnnotation {
       xref
     } = params;
     this.data.annotationType = _util.AnnotationType.SQUARE;
+    this.data.hasOwnCanvas = this.data.noRotate;
     if (!this.appearance) {
       const strokeColor = this.color ? getPdfColorArray(this.color) : [0, 0, 0];
       const strokeAlpha = dict.get("CA");
@@ -6692,6 +6732,7 @@ class PolylineAnnotation extends MarkupAnnotation {
       xref
     } = params;
     this.data.annotationType = _util.AnnotationType.POLYLINE;
+    this.data.hasOwnCanvas = this.data.noRotate;
     this.data.vertices = [];
     if (!(this instanceof PolygonAnnotation)) {
       this.setLineEndings(dict.getArray("LE"));
@@ -6754,6 +6795,7 @@ class CaretAnnotation extends MarkupAnnotation {
 class InkAnnotation extends MarkupAnnotation {
   constructor(params) {
     super(params);
+    this.data.hasOwnCanvas = this.data.noRotate;
     const {
       dict,
       xref
@@ -7027,6 +7069,7 @@ class StampAnnotation extends MarkupAnnotation {
   constructor(params) {
     super(params);
     this.data.annotationType = _util.AnnotationType.STAMP;
+    this.data.hasOwnCanvas = this.data.noRotate;
   }
 }
 class FileAttachmentAnnotation extends MarkupAnnotation {
@@ -7038,6 +7081,7 @@ class FileAttachmentAnnotation extends MarkupAnnotation {
     } = params;
     const file = new _file_spec.FileSpec(dict.get("FS"), xref);
     this.data.annotationType = _util.AnnotationType.FILEATTACHMENT;
+    this.data.hasOwnCanvas = this.data.noRotate;
     this.data.file = file.serializable;
     const name = dict.get("Name");
     this.data.name = name instanceof _primitives.Name ? (0, _util.stringToPDFString)(name.name) : "PushPin";
@@ -7057,8 +7101,8 @@ exports.FakeUnicodeFont = void 0;
 exports.createDefaultAppearance = createDefaultAppearance;
 exports.getPdfColor = getPdfColor;
 exports.parseDefaultAppearance = parseDefaultAppearance;
-var _primitives = __w_pdfjs_require__(3);
-var _core_utils = __w_pdfjs_require__(4);
+var _primitives = __w_pdfjs_require__(4);
+var _core_utils = __w_pdfjs_require__(3);
 var _util = __w_pdfjs_require__(2);
 var _colorspace = __w_pdfjs_require__(12);
 var _evaluator = __w_pdfjs_require__(13);
@@ -7265,7 +7309,7 @@ endcmap CMapName currentdict /CMap defineresource pop end end`;
     }
     return this.resources;
   }
-  createAppearance(text, rect, rotation, fontSize, bgColor) {
+  createAppearance(text, rect, rotation, fontSize, bgColor, strokeAlpha) {
     const ctx = this._createContext();
     const lines = [];
     let maxWidth = -Infinity;
@@ -7306,6 +7350,20 @@ endcmap CMapName currentdict /CMap defineresource pop end end`;
     const fscale = Math.min(hscale, vscale);
     const newFontSize = fontSize * fscale;
     const buffer = ["q", `0 0 ${(0, _core_utils.numberToString)(w)} ${(0, _core_utils.numberToString)(h)} re W n`, `BT`, `1 0 0 1 0 ${(0, _core_utils.numberToString)(h + lineDescent)} Tm 0 Tc ${getPdfColor(bgColor, true)}`, `/${this.fontName.name} ${(0, _core_utils.numberToString)(newFontSize)} Tf`];
+    const {
+      resources
+    } = this;
+    strokeAlpha = typeof strokeAlpha === "number" && strokeAlpha >= 0 && strokeAlpha <= 1 ? strokeAlpha : 1;
+    if (strokeAlpha !== 1) {
+      buffer.push("/R0 gs");
+      const extGState = new _primitives.Dict(this.xref);
+      const r0 = new _primitives.Dict(this.xref);
+      r0.set("ca", strokeAlpha);
+      r0.set("CA", strokeAlpha);
+      r0.set("Type", _primitives.Name.get("ExtGState"));
+      extGState.set("R0", r0);
+      resources.set("ExtGState", extGState);
+    }
     const vShift = (0, _core_utils.numberToString)(lineHeight);
     for (const line of lines) {
       buffer.push(`0 -${vShift} Td <${(0, _core_utils.stringToUTF16HexString)(line)}> Tj`);
@@ -7317,7 +7375,7 @@ endcmap CMapName currentdict /CMap defineresource pop end end`;
     appearanceStreamDict.set("Type", _primitives.Name.get("XObject"));
     appearanceStreamDict.set("BBox", [0, 0, w, h]);
     appearanceStreamDict.set("Length", appearance.length);
-    appearanceStreamDict.set("Resources", this.resources);
+    appearanceStreamDict.set("Resources", resources);
     if (rotation) {
       const matrix = (0, _core_utils.getRotationMatrix)(rotation, w, h);
       appearanceStreamDict.set("Matrix", matrix);
@@ -7340,9 +7398,9 @@ Object.defineProperty(exports, "__esModule", ({
 }));
 exports.ColorSpace = void 0;
 var _util = __w_pdfjs_require__(2);
-var _primitives = __w_pdfjs_require__(3);
+var _primitives = __w_pdfjs_require__(4);
 var _base_stream = __w_pdfjs_require__(5);
-var _core_utils = __w_pdfjs_require__(4);
+var _core_utils = __w_pdfjs_require__(3);
 function resizeRgbImage(src, dest, w1, h1, w2, h2, alpha01) {
   const COMPONENTS = 3;
   alpha01 = alpha01 !== 1 ? 0 : alpha01;
@@ -8210,35 +8268,37 @@ Object.defineProperty(exports, "__esModule", ({
 exports.PartialEvaluator = exports.EvaluatorPreprocessor = void 0;
 var _util = __w_pdfjs_require__(2);
 var _cmap = __w_pdfjs_require__(14);
-var _primitives = __w_pdfjs_require__(3);
-var _fonts = __w_pdfjs_require__(32);
-var _encodings = __w_pdfjs_require__(35);
-var _standard_fonts = __w_pdfjs_require__(39);
-var _pattern = __w_pdfjs_require__(48);
-var _xfa_fonts = __w_pdfjs_require__(49);
-var _to_unicode_map = __w_pdfjs_require__(40);
-var _function = __w_pdfjs_require__(55);
-var _parser = __w_pdfjs_require__(15);
-var _image_utils = __w_pdfjs_require__(57);
+var _primitives = __w_pdfjs_require__(4);
+var _fonts = __w_pdfjs_require__(34);
+var _encodings = __w_pdfjs_require__(37);
+var _standard_fonts = __w_pdfjs_require__(41);
+var _pattern = __w_pdfjs_require__(50);
+var _xfa_fonts = __w_pdfjs_require__(51);
+var _to_unicode_map = __w_pdfjs_require__(42);
+var _function = __w_pdfjs_require__(57);
+var _parser = __w_pdfjs_require__(16);
+var _image_utils = __w_pdfjs_require__(59);
 var _stream = __w_pdfjs_require__(8);
 var _base_stream = __w_pdfjs_require__(5);
-var _bidi = __w_pdfjs_require__(58);
+var _bidi = __w_pdfjs_require__(60);
 var _colorspace = __w_pdfjs_require__(12);
-var _decode_stream = __w_pdfjs_require__(17);
-var _fonts_utils = __w_pdfjs_require__(36);
-var _glyphlist = __w_pdfjs_require__(37);
-var _core_utils = __w_pdfjs_require__(4);
-var _metrics = __w_pdfjs_require__(43);
-var _unicode = __w_pdfjs_require__(38);
-var _murmurhash = __w_pdfjs_require__(59);
-var _operator_list = __w_pdfjs_require__(60);
-var _image = __w_pdfjs_require__(61);
+var _decode_stream = __w_pdfjs_require__(18);
+var _fonts_utils = __w_pdfjs_require__(38);
+var _glyphlist = __w_pdfjs_require__(39);
+var _core_utils = __w_pdfjs_require__(3);
+var _metrics = __w_pdfjs_require__(45);
+var _unicode = __w_pdfjs_require__(40);
+var _image_resizer = __w_pdfjs_require__(61);
+var _murmurhash = __w_pdfjs_require__(62);
+var _operator_list = __w_pdfjs_require__(63);
+var _image = __w_pdfjs_require__(64);
 const DefaultPartialEvaluatorOptions = Object.freeze({
   maxImageSize: -1,
   disableFontFace: false,
   ignoreErrors: false,
   isEvalSupported: true,
-  isOffscreenCanvasSupported: true,
+  isOffscreenCanvasSupported: false,
+  canvasMaxAreaInBytes: -1,
   fontExtraProperties: false,
   useSystemFonts: true,
   cMapUrl: null,
@@ -8357,7 +8417,9 @@ class PartialEvaluator {
     this.globalImageCache = globalImageCache;
     this.options = options || DefaultPartialEvaluatorOptions;
     this.parsingType3Font = false;
+    this._regionalImageCache = new _image_utils.RegionalImageCache();
     this._fetchBuiltInCMapBound = this.fetchBuiltInCMap.bind(this);
+    _image_resizer.ImageResizer.setMaxArea(this.options.canvasMaxAreaInBytes);
   }
   get _pdfFunctionFactory() {
     const pdfFunctionFactory = new _function.PDFFunctionFactory({
@@ -8649,15 +8711,19 @@ class PartialEvaluator {
         args = [imgData];
         operatorList.addImageOps(_util.OPS.paintImageMaskXObject, args, optionalContent);
         if (cacheKey) {
-          localImageCache.set(cacheKey, imageRef, {
+          const cacheData = {
             fn: _util.OPS.paintImageMaskXObject,
             args,
             optionalContent
-          });
+          };
+          localImageCache.set(cacheKey, imageRef, cacheData);
+          if (imageRef) {
+            this._regionalImageCache.set(null, imageRef, cacheData);
+          }
         }
         return;
       }
-      imgData = _image.PDFImage.createMask({
+      imgData = await _image.PDFImage.createMask({
         imgArray,
         width: w,
         height: h,
@@ -8669,11 +8735,15 @@ class PartialEvaluator {
       if (imgData.isSingleOpaquePixel) {
         operatorList.addImageOps(_util.OPS.paintSolidColorImageMask, [], optionalContent);
         if (cacheKey) {
-          localImageCache.set(cacheKey, imageRef, {
+          const cacheData = {
             fn: _util.OPS.paintSolidColorImageMask,
             args: [],
             optionalContent
-          });
+          };
+          localImageCache.set(cacheKey, imageRef, cacheData);
+          if (imageRef) {
+            this._regionalImageCache.set(null, imageRef, cacheData);
+          }
         }
         return;
       }
@@ -8689,11 +8759,15 @@ class PartialEvaluator {
       }];
       operatorList.addImageOps(_util.OPS.paintImageMaskXObject, args, optionalContent);
       if (cacheKey) {
-        localImageCache.set(cacheKey, imageRef, {
+        const cacheData = {
           fn: _util.OPS.paintImageMaskXObject,
           args,
           optionalContent
-        });
+        };
+        localImageCache.set(cacheKey, imageRef, cacheData);
+        if (imageRef) {
+          this._regionalImageCache.set(null, imageRef, cacheData);
+        }
       }
       return;
     }
@@ -8709,7 +8783,8 @@ class PartialEvaluator {
         pdfFunctionFactory: this._pdfFunctionFactory,
         localColorSpaceCache
       });
-      imgData = imageObj.createImageData(true);
+      imgData = await imageObj.createImageData(true, false);
+      operatorList.isOffscreenCanvasSupported = this.options.isOffscreenCanvasSupported;
       operatorList.addImageOps(_util.OPS.paintInlineImageXObject, [imgData], optionalContent);
       return;
     }
@@ -8732,10 +8807,16 @@ class PartialEvaluator {
       isInline,
       pdfFunctionFactory: this._pdfFunctionFactory,
       localColorSpaceCache
-    }).then(imageObj => {
-      imgData = imageObj.createImageData(false);
+    }).then(async imageObj => {
+      imgData = await imageObj.createImageData(false, this.options.isOffscreenCanvasSupported);
       if (cacheKey && imageRef && cacheGlobally) {
-        this.globalImageCache.addByteSize(imageRef, imgData.data.length);
+        let length = 0;
+        if (imgData.bitmap) {
+          length = imgData.width * imgData.height * 4;
+        } else {
+          length = imgData.data.length;
+        }
+        this.globalImageCache.addByteSize(imageRef, length);
       }
       return this._sendImgData(objId, imgData, cacheGlobally);
     }).catch(reason => {
@@ -8744,12 +8825,14 @@ class PartialEvaluator {
     });
     operatorList.addImageOps(_util.OPS.paintImageXObject, args, optionalContent);
     if (cacheKey) {
-      localImageCache.set(cacheKey, imageRef, {
+      const cacheData = {
         fn: _util.OPS.paintImageXObject,
         args,
         optionalContent
-      });
+      };
+      localImageCache.set(cacheKey, imageRef, cacheData);
       if (imageRef) {
+        this._regionalImageCache.set(null, imageRef, cacheData);
         (0, _util.assert)(!isInline, "Cannot cache an inline image globally.");
         this.globalImageCache.addPageIndex(imageRef, this.pageIndex);
         if (cacheGlobally) {
@@ -9190,11 +9273,18 @@ class PartialEvaluator {
   }) {
     let id = localShadingPatternCache.get(shading);
     if (!id) {
-      var shadingFill = _pattern.Pattern.parseShading(shading, this.xref, resources, this.handler, this._pdfFunctionFactory, localColorSpaceCache);
+      var shadingFill = _pattern.Pattern.parseShading(shading, this.xref, resources, this._pdfFunctionFactory, localColorSpaceCache);
       const patternIR = shadingFill.getIR();
       id = `pattern_${this.idFactory.createObjId()}`;
+      if (this.parsingType3Font) {
+        id = `${this.idFactory.getDocId()}_type3_${id}`;
+      }
       localShadingPatternCache.set(shading, id);
-      this.handler.send("obj", [id, this.pageIndex, "Pattern", patternIR]);
+      if (this.parsingType3Font) {
+        this.handler.send("commonobj", [id, "Pattern", patternIR]);
+      } else {
+        this.handler.send("obj", [id, this.pageIndex, "Pattern", patternIR]);
+      }
     }
     return id;
   }
@@ -9393,7 +9483,7 @@ class PartialEvaluator {
               }
               let xobj = xobjs.getRaw(name);
               if (xobj instanceof _primitives.Ref) {
-                const localImage = localImageCache.getByRef(xobj);
+                const localImage = localImageCache.getByRef(xobj) || self._regionalImageCache.getByRef(xobj);
                 if (localImage) {
                   operatorList.addImageOps(localImage.fn, localImage.args, localImage.optionalContent);
                   incrementCachedImageMaskCount(localImage);
@@ -9763,12 +9853,12 @@ class PartialEvaluator {
     task,
     resources,
     stateManager = null,
-    combineTextItems = false,
     includeMarkedContent = false,
     sink,
     seenStyles = new Set(),
     viewBox,
-    markedContentData = null
+    markedContentData = null,
+    disableNormalization = false
   }) {
     resources = resources || _primitives.Dict.empty;
     stateManager = stateManager || new StateManager(new TextState());
@@ -9809,15 +9899,19 @@ class PartialEvaluator {
       twoLastCharsPos = nextPos;
       return ret;
     }
+    function shouldAddWhitepsace() {
+      return twoLastChars[twoLastCharsPos] !== " " && twoLastChars[(twoLastCharsPos + 1) % 2] === " ";
+    }
     function resetLastChars() {
       twoLastChars[0] = twoLastChars[1] = " ";
       twoLastCharsPos = 0;
     }
-    const TRACKING_SPACE_FACTOR = 0.1;
+    const TRACKING_SPACE_FACTOR = 0.102;
     const NOT_A_SPACE_FACTOR = 0.03;
     const NEGATIVE_SPACE_FACTOR = -0.2;
-    const SPACE_IN_FLOW_MIN_FACTOR = 0.1;
+    const SPACE_IN_FLOW_MIN_FACTOR = 0.102;
     const SPACE_IN_FLOW_MAX_FACTOR = 0.6;
+    const VERTICAL_SHIFT_RATIO = 0.25;
     const self = this;
     const xref = this.xref;
     const showSpacedTextBuffer = [];
@@ -9826,6 +9920,22 @@ class PartialEvaluator {
     const emptyGStateCache = new _image_utils.LocalGStateCache();
     const preprocessor = new EvaluatorPreprocessor(stream, xref, stateManager);
     let textState;
+    function pushWhitespace({
+      width = 0,
+      height = 0,
+      transform = textContentItem.prevTransform,
+      fontName = textContentItem.fontName
+    }) {
+      textContent.items.push({
+        str: " ",
+        dir: "ltr",
+        width,
+        height,
+        transform,
+        fontName,
+        hasEOL: false
+      });
+    }
     function getCurrentTextTransform() {
       const font = textState.font;
       const tsm = [textState.fontSize * textState.textHScale, 0, 0, textState.fontSize, 0, textState.textRise];
@@ -9868,11 +9978,14 @@ class PartialEvaluator {
       const scaleLineX = Math.hypot(textState.textLineMatrix[0], textState.textLineMatrix[1]);
       const scaleCtmX = Math.hypot(textState.ctm[0], textState.ctm[1]);
       textContentItem.textAdvanceScale = scaleCtmX * scaleLineX;
-      textContentItem.trackingSpaceMin = textState.fontSize * TRACKING_SPACE_FACTOR;
-      textContentItem.notASpace = textState.fontSize * NOT_A_SPACE_FACTOR;
-      textContentItem.negativeSpaceMax = textState.fontSize * NEGATIVE_SPACE_FACTOR;
-      textContentItem.spaceInFlowMin = textState.fontSize * SPACE_IN_FLOW_MIN_FACTOR;
-      textContentItem.spaceInFlowMax = textState.fontSize * SPACE_IN_FLOW_MAX_FACTOR;
+      const {
+        fontSize
+      } = textState;
+      textContentItem.trackingSpaceMin = fontSize * TRACKING_SPACE_FACTOR;
+      textContentItem.notASpace = fontSize * NOT_A_SPACE_FACTOR;
+      textContentItem.negativeSpaceMax = fontSize * NEGATIVE_SPACE_FACTOR;
+      textContentItem.spaceInFlowMin = fontSize * SPACE_IN_FLOW_MIN_FACTOR;
+      textContentItem.spaceInFlowMax = fontSize * SPACE_IN_FLOW_MAX_FACTOR;
       textContentItem.hasEOL = false;
       textContentItem.initialized = true;
       return textContentItem;
@@ -9897,7 +10010,10 @@ class PartialEvaluator {
       textContentItem.textAdvanceScale = scaleFactor;
     }
     function runBidiTransform(textChunk) {
-      const text = textChunk.str.join("");
+      let text = textChunk.str.join("");
+      if (!disableNormalization) {
+        text = (0, _util.normalizeUnicode)(text);
+      }
       const bidiResult = (0, _bidi.bidi)(text, -1, textChunk.vertical);
       return {
         str: bidiResult.str,
@@ -9927,16 +10043,18 @@ class PartialEvaluator {
       const scale = Math.hypot(matrix[0], matrix[1]);
       return [(matrix[0] * x + matrix[1] * y) / scale, (matrix[2] * x + matrix[3] * y) / scale];
     }
-    function compareWithLastPosition() {
+    function compareWithLastPosition(glyphWidth) {
       const currentTransform = getCurrentTextTransform();
       let posX = currentTransform[4];
       let posY = currentTransform[5];
-      const shiftedX = posX - viewBox[0];
-      const shiftedY = posY - viewBox[1];
-      if (shiftedX < 0 || shiftedX > viewBox[2] || shiftedY < 0 || shiftedY > viewBox[3]) {
+      if (textState.font && textState.font.vertical) {
+        if (posX < viewBox[0] || posX > viewBox[2] || posY + glyphWidth < viewBox[1] || posY > viewBox[3]) {
+          return false;
+        }
+      } else if (posX + glyphWidth < viewBox[0] || posX > viewBox[2] || posY < viewBox[1] || posY > viewBox[3]) {
         return false;
       }
-      if (!combineTextItems || !textState.font || !textContentItem.prevTransform) {
+      if (!textState.font || !textContentItem.prevTransform) {
         return true;
       }
       let lastPosX = textContentItem.prevTransform[4];
@@ -9989,22 +10107,27 @@ class PartialEvaluator {
           resetLastChars();
         }
         if (advanceY <= textOrientation * textContentItem.trackingSpaceMin) {
-          textContentItem.height += advanceY;
-        } else if (!addFakeSpaces(advanceY, textContentItem.prevTransform, textOrientation)) {
-          if (textContentItem.str.length === 0) {
+          if (shouldAddWhitepsace()) {
             resetLastChars();
-            textContent.items.push({
-              str: " ",
-              dir: "ltr",
-              width: 0,
-              height: Math.abs(advanceY),
-              transform: textContentItem.prevTransform,
-              fontName: textContentItem.fontName,
-              hasEOL: false
+            flushTextContentItem();
+            pushWhitespace({
+              height: Math.abs(advanceY)
             });
           } else {
             textContentItem.height += advanceY;
           }
+        } else if (!addFakeSpaces(advanceY, textContentItem.prevTransform, textOrientation)) {
+          if (textContentItem.str.length === 0) {
+            resetLastChars();
+            pushWhitespace({
+              height: Math.abs(advanceY)
+            });
+          } else {
+            textContentItem.height += advanceY;
+          }
+        }
+        if (Math.abs(advanceX) > textContentItem.width * VERTICAL_SHIFT_RATIO) {
+          flushTextContentItem();
         }
         return true;
       }
@@ -10028,22 +10151,27 @@ class PartialEvaluator {
         resetLastChars();
       }
       if (advanceX <= textOrientation * textContentItem.trackingSpaceMin) {
-        textContentItem.width += advanceX;
-      } else if (!addFakeSpaces(advanceX, textContentItem.prevTransform, textOrientation)) {
-        if (textContentItem.str.length === 0) {
+        if (shouldAddWhitepsace()) {
           resetLastChars();
-          textContent.items.push({
-            str: " ",
-            dir: "ltr",
-            width: Math.abs(advanceX),
-            height: 0,
-            transform: textContentItem.prevTransform,
-            fontName: textContentItem.fontName,
-            hasEOL: false
+          flushTextContentItem();
+          pushWhitespace({
+            width: Math.abs(advanceX)
           });
         } else {
           textContentItem.width += advanceX;
         }
+      } else if (!addFakeSpaces(advanceX, textContentItem.prevTransform, textOrientation)) {
+        if (textContentItem.str.length === 0) {
+          resetLastChars();
+          pushWhitespace({
+            width: Math.abs(advanceX)
+          });
+        } else {
+          textContentItem.width += advanceX;
+        }
+      }
+      if (Math.abs(advanceY) > textContentItem.height * VERTICAL_SHIFT_RATIO) {
+        flushTextContentItem();
       }
       return true;
     }
@@ -10090,7 +10218,12 @@ class PartialEvaluator {
           saveLastChar(" ");
           continue;
         }
-        if (!compareWithLastPosition()) {
+        if (!category.isZeroWidthDiacritic && !compareWithLastPosition(scaledDim)) {
+          if (!font.vertical) {
+            textState.translateTextMatrix(scaledDim * textState.textHScale, 0);
+          } else {
+            textState.translateTextMatrix(0, scaledDim);
+          }
           continue;
         }
         const textChunk = ensureTextContentItem();
@@ -10109,7 +10242,7 @@ class PartialEvaluator {
         if (scaledDim) {
           textChunk.prevTransform = getCurrentTextTransform();
         }
-        const glyphUnicode = glyph.normalizedUnicode;
+        const glyphUnicode = glyph.unicode;
         if (saveLastChar(glyphUnicode)) {
           textChunk.str.push(" ");
         }
@@ -10156,14 +10289,11 @@ class PartialEvaluator {
       }
       flushTextContentItem();
       resetLastChars();
-      textContent.items.push({
-        str: " ",
-        dir: "ltr",
+      pushWhitespace({
         width: Math.abs(width),
         height: Math.abs(height),
         transform: transf || getCurrentTextTransform(),
-        fontName,
-        hasEOL: false
+        fontName
       });
       return true;
     }
@@ -10397,12 +10527,12 @@ class PartialEvaluator {
                 task,
                 resources: xobj.dict.get("Resources") || resources,
                 stateManager: xObjStateManager,
-                combineTextItems,
                 includeMarkedContent,
                 sink: sinkWrapper,
                 seenStyles,
                 viewBox,
-                markedContentData
+                markedContentData,
+                disableNormalization
               }).then(function () {
                 if (!sinkWrapper.enqueueInvoked) {
                   emptyXObjectCache.set(name, xobj.dict.objId, true);
@@ -10674,6 +10804,15 @@ class PartialEvaluator {
             code = unicode;
           }
           break;
+        default:
+          switch (glyphName) {
+            case "f_h":
+            case "f_t":
+            case "T_h":
+              toUnicode[charcode] = glyphName.replaceAll("_", "");
+              continue;
+          }
+          break;
       }
       if (code > 0 && code <= 0x10ffff && Number.isInteger(code)) {
         if (baseEncodingName && code === +charcode) {
@@ -10710,14 +10849,19 @@ class PartialEvaluator {
         fetchBuiltInCMap: this._fetchBuiltInCMapBound,
         useCMap: null
       });
-      const toUnicode = [];
+      const toUnicode = [],
+        buf = [];
       properties.cMap.forEach(function (charcode, cid) {
         if (cid > 0xffff) {
           throw new _util.FormatError("Max size of CID is 65,535");
         }
         const ucs2 = ucs2CMap.lookup(cid);
         if (ucs2) {
-          toUnicode[charcode] = String.fromCharCode((ucs2.charCodeAt(0) << 8) + ucs2.charCodeAt(1));
+          buf.length = 0;
+          for (let i = 0, ii = ucs2.length; i < ii; i += 2) {
+            buf.push((ucs2.charCodeAt(i) << 8) + ucs2.charCodeAt(i + 1));
+          }
+          toUnicode[charcode] = String.fromCharCode(...buf);
         }
       });
       return new _to_unicode_map.ToUnicodeMap(toUnicode);
@@ -11067,7 +11211,7 @@ class PartialEvaluator {
         if (!(baseFontName instanceof _primitives.Name)) {
           throw new _util.FormatError("Base font is not specified");
         }
-        baseFontName = baseFontName.name.replace(/[,_]/g, "-");
+        baseFontName = baseFontName.name.replaceAll(/[,_]/g, "-");
         const metrics = this.getBaseFontMetrics(baseFontName);
         const fontNameWoStyle = baseFontName.split("-")[0];
         const flags = (this.isSerifFont(fontNameWoStyle) ? _fonts_utils.FontFlags.Serif : 0) | (metrics.monospace ? _fonts_utils.FontFlags.FixedPitch : 0) | ((0, _standard_fonts.getSymbolsFonts)()[fontNameWoStyle] ? _fonts_utils.FontFlags.Symbolic : _fonts_utils.FontFlags.Nonsymbolic);
@@ -11987,10 +12131,11 @@ Object.defineProperty(exports, "__esModule", ({
 }));
 exports.IdentityCMap = exports.CMapFactory = exports.CMap = void 0;
 var _util = __w_pdfjs_require__(2);
-var _primitives = __w_pdfjs_require__(3);
+var _primitives = __w_pdfjs_require__(4);
 var _base_stream = __w_pdfjs_require__(5);
-var _parser = __w_pdfjs_require__(15);
-var _core_utils = __w_pdfjs_require__(4);
+var _binary_cmap = __w_pdfjs_require__(15);
+var _parser = __w_pdfjs_require__(16);
+var _core_utils = __w_pdfjs_require__(3);
 var _stream = __w_pdfjs_require__(8);
 const BUILT_IN_CMAPS = ["Adobe-GB1-UCS2", "Adobe-CNS1-UCS2", "Adobe-Japan1-UCS2", "Adobe-Korea1-UCS2", "78-EUC-H", "78-EUC-V", "78-H", "78-RKSJ-H", "78-RKSJ-V", "78-V", "78ms-RKSJ-H", "78ms-RKSJ-V", "83pv-RKSJ-H", "90ms-RKSJ-H", "90ms-RKSJ-V", "90msp-RKSJ-H", "90msp-RKSJ-V", "90pv-RKSJ-H", "90pv-RKSJ-V", "Add-H", "Add-RKSJ-H", "Add-RKSJ-V", "Add-V", "Adobe-CNS1-0", "Adobe-CNS1-1", "Adobe-CNS1-2", "Adobe-CNS1-3", "Adobe-CNS1-4", "Adobe-CNS1-5", "Adobe-CNS1-6", "Adobe-GB1-0", "Adobe-GB1-1", "Adobe-GB1-2", "Adobe-GB1-3", "Adobe-GB1-4", "Adobe-GB1-5", "Adobe-Japan1-0", "Adobe-Japan1-1", "Adobe-Japan1-2", "Adobe-Japan1-3", "Adobe-Japan1-4", "Adobe-Japan1-5", "Adobe-Japan1-6", "Adobe-Korea1-0", "Adobe-Korea1-1", "Adobe-Korea1-2", "B5-H", "B5-V", "B5pc-H", "B5pc-V", "CNS-EUC-H", "CNS-EUC-V", "CNS1-H", "CNS1-V", "CNS2-H", "CNS2-V", "ETHK-B5-H", "ETHK-B5-V", "ETen-B5-H", "ETen-B5-V", "ETenms-B5-H", "ETenms-B5-V", "EUC-H", "EUC-V", "Ext-H", "Ext-RKSJ-H", "Ext-RKSJ-V", "Ext-V", "GB-EUC-H", "GB-EUC-V", "GB-H", "GB-V", "GBK-EUC-H", "GBK-EUC-V", "GBK2K-H", "GBK2K-V", "GBKp-EUC-H", "GBKp-EUC-V", "GBT-EUC-H", "GBT-EUC-V", "GBT-H", "GBT-V", "GBTpc-EUC-H", "GBTpc-EUC-V", "GBpc-EUC-H", "GBpc-EUC-V", "H", "HKdla-B5-H", "HKdla-B5-V", "HKdlb-B5-H", "HKdlb-B5-V", "HKgccs-B5-H", "HKgccs-B5-V", "HKm314-B5-H", "HKm314-B5-V", "HKm471-B5-H", "HKm471-B5-V", "HKscs-B5-H", "HKscs-B5-V", "Hankaku", "Hiragana", "KSC-EUC-H", "KSC-EUC-V", "KSC-H", "KSC-Johab-H", "KSC-Johab-V", "KSC-V", "KSCms-UHC-H", "KSCms-UHC-HW-H", "KSCms-UHC-HW-V", "KSCms-UHC-V", "KSCpc-EUC-H", "KSCpc-EUC-V", "Katakana", "NWP-H", "NWP-V", "RKSJ-H", "RKSJ-V", "Roman", "UniCNS-UCS2-H", "UniCNS-UCS2-V", "UniCNS-UTF16-H", "UniCNS-UTF16-V", "UniCNS-UTF32-H", "UniCNS-UTF32-V", "UniCNS-UTF8-H", "UniCNS-UTF8-V", "UniGB-UCS2-H", "UniGB-UCS2-V", "UniGB-UTF16-H", "UniGB-UTF16-V", "UniGB-UTF32-H", "UniGB-UTF32-V", "UniGB-UTF8-H", "UniGB-UTF8-V", "UniJIS-UCS2-H", "UniJIS-UCS2-HW-H", "UniJIS-UCS2-HW-V", "UniJIS-UCS2-V", "UniJIS-UTF16-H", "UniJIS-UTF16-V", "UniJIS-UTF32-H", "UniJIS-UTF32-V", "UniJIS-UTF8-H", "UniJIS-UTF8-V", "UniJIS2004-UTF16-H", "UniJIS2004-UTF16-V", "UniJIS2004-UTF32-H", "UniJIS2004-UTF32-V", "UniJIS2004-UTF8-H", "UniJIS2004-UTF8-V", "UniJISPro-UCS2-HW-V", "UniJISPro-UCS2-V", "UniJISPro-UTF8-V", "UniJISX0213-UTF32-H", "UniJISX0213-UTF32-V", "UniJISX02132004-UTF32-H", "UniJISX02132004-UTF32-V", "UniKS-UCS2-H", "UniKS-UCS2-V", "UniKS-UTF16-H", "UniKS-UTF16-V", "UniKS-UTF32-H", "UniKS-UTF32-V", "UniKS-UTF8-H", "UniKS-UTF8-V", "V", "WP-Symbol"];
 const MAX_MAP_RANGE = 2 ** 24 - 1;
@@ -12180,519 +12325,261 @@ class IdentityCMap extends CMap {
   }
 }
 exports.IdentityCMap = IdentityCMap;
-const BinaryCMapReader = function BinaryCMapReaderClosure() {
-  function hexToInt(a, size) {
-    let n = 0;
-    for (let i = 0; i <= size; i++) {
-      n = n << 8 | a[i];
-    }
-    return n >>> 0;
+function strToInt(str) {
+  let a = 0;
+  for (let i = 0; i < str.length; i++) {
+    a = a << 8 | str.charCodeAt(i);
   }
-  function hexToStr(a, size) {
-    if (size === 1) {
-      return String.fromCharCode(a[0], a[1]);
-    }
-    if (size === 3) {
-      return String.fromCharCode(a[0], a[1], a[2], a[3]);
-    }
-    return String.fromCharCode.apply(null, a.subarray(0, size + 1));
+  return a >>> 0;
+}
+function expectString(obj) {
+  if (typeof obj !== "string") {
+    throw new _util.FormatError("Malformed CMap: expected string.");
   }
-  function addHex(a, b, size) {
-    let c = 0;
-    for (let i = size; i >= 0; i--) {
-      c += a[i] + b[i];
-      a[i] = c & 255;
-      c >>= 8;
-    }
+}
+function expectInt(obj) {
+  if (!Number.isInteger(obj)) {
+    throw new _util.FormatError("Malformed CMap: expected int.");
   }
-  function incHex(a, size) {
-    let c = 1;
-    for (let i = size; i >= 0 && c > 0; i--) {
-      c += a[i];
-      a[i] = c & 255;
-      c >>= 8;
+}
+function parseBfChar(cMap, lexer) {
+  while (true) {
+    let obj = lexer.getObj();
+    if (obj === _primitives.EOF) {
+      break;
     }
+    if ((0, _primitives.isCmd)(obj, "endbfchar")) {
+      return;
+    }
+    expectString(obj);
+    const src = strToInt(obj);
+    obj = lexer.getObj();
+    expectString(obj);
+    const dst = obj;
+    cMap.mapOne(src, dst);
   }
-  const MAX_NUM_SIZE = 16;
-  const MAX_ENCODED_NUM_SIZE = 19;
-  class BinaryCMapStream {
-    constructor(data) {
-      this.buffer = data;
-      this.pos = 0;
-      this.end = data.length;
-      this.tmpBuf = new Uint8Array(MAX_ENCODED_NUM_SIZE);
+}
+function parseBfRange(cMap, lexer) {
+  while (true) {
+    let obj = lexer.getObj();
+    if (obj === _primitives.EOF) {
+      break;
     }
-    readByte() {
-      if (this.pos >= this.end) {
-        return -1;
-      }
-      return this.buffer[this.pos++];
+    if ((0, _primitives.isCmd)(obj, "endbfrange")) {
+      return;
     }
-    readNumber() {
-      let n = 0;
-      let last;
-      do {
-        const b = this.readByte();
-        if (b < 0) {
-          throw new _util.FormatError("unexpected EOF in bcmap");
-        }
-        last = !(b & 0x80);
-        n = n << 7 | b & 0x7f;
-      } while (!last);
-      return n;
-    }
-    readSigned() {
-      const n = this.readNumber();
-      return n & 1 ? ~(n >>> 1) : n >>> 1;
-    }
-    readHex(num, size) {
-      num.set(this.buffer.subarray(this.pos, this.pos + size + 1));
-      this.pos += size + 1;
-    }
-    readHexNumber(num, size) {
-      let last;
-      const stack = this.tmpBuf;
-      let sp = 0;
-      do {
-        const b = this.readByte();
-        if (b < 0) {
-          throw new _util.FormatError("unexpected EOF in bcmap");
-        }
-        last = !(b & 0x80);
-        stack[sp++] = b & 0x7f;
-      } while (!last);
-      let i = size,
-        buffer = 0,
-        bufferSize = 0;
-      while (i >= 0) {
-        while (bufferSize < 8 && stack.length > 0) {
-          buffer |= stack[--sp] << bufferSize;
-          bufferSize += 7;
-        }
-        num[i] = buffer & 255;
-        i--;
-        buffer >>= 8;
-        bufferSize -= 8;
-      }
-    }
-    readHexSigned(num, size) {
-      this.readHexNumber(num, size);
-      const sign = num[size] & 1 ? 255 : 0;
-      let c = 0;
-      for (let i = 0; i <= size; i++) {
-        c = (c & 1) << 8 | num[i];
-        num[i] = c >> 1 ^ sign;
-      }
-    }
-    readString() {
-      const len = this.readNumber();
-      let s = "";
-      for (let i = 0; i < len; i++) {
-        s += String.fromCharCode(this.readNumber());
-      }
-      return s;
-    }
-  }
-  class BinaryCMapReader {
-    async process(data, cMap, extend) {
-      const stream = new BinaryCMapStream(data);
-      const header = stream.readByte();
-      cMap.vertical = !!(header & 1);
-      let useCMap = null;
-      const start = new Uint8Array(MAX_NUM_SIZE);
-      const end = new Uint8Array(MAX_NUM_SIZE);
-      const char = new Uint8Array(MAX_NUM_SIZE);
-      const charCode = new Uint8Array(MAX_NUM_SIZE);
-      const tmp = new Uint8Array(MAX_NUM_SIZE);
-      let code;
-      let b;
-      while ((b = stream.readByte()) >= 0) {
-        const type = b >> 5;
-        if (type === 7) {
-          switch (b & 0x1f) {
-            case 0:
-              stream.readString();
-              break;
-            case 1:
-              useCMap = stream.readString();
-              break;
-          }
-          continue;
-        }
-        const sequence = !!(b & 0x10);
-        const dataSize = b & 15;
-        if (dataSize + 1 > MAX_NUM_SIZE) {
-          throw new Error("BinaryCMapReader.process: Invalid dataSize.");
-        }
-        const ucs2DataSize = 1;
-        const subitemsCount = stream.readNumber();
-        switch (type) {
-          case 0:
-            stream.readHex(start, dataSize);
-            stream.readHexNumber(end, dataSize);
-            addHex(end, start, dataSize);
-            cMap.addCodespaceRange(dataSize + 1, hexToInt(start, dataSize), hexToInt(end, dataSize));
-            for (let i = 1; i < subitemsCount; i++) {
-              incHex(end, dataSize);
-              stream.readHexNumber(start, dataSize);
-              addHex(start, end, dataSize);
-              stream.readHexNumber(end, dataSize);
-              addHex(end, start, dataSize);
-              cMap.addCodespaceRange(dataSize + 1, hexToInt(start, dataSize), hexToInt(end, dataSize));
-            }
-            break;
-          case 1:
-            stream.readHex(start, dataSize);
-            stream.readHexNumber(end, dataSize);
-            addHex(end, start, dataSize);
-            stream.readNumber();
-            for (let i = 1; i < subitemsCount; i++) {
-              incHex(end, dataSize);
-              stream.readHexNumber(start, dataSize);
-              addHex(start, end, dataSize);
-              stream.readHexNumber(end, dataSize);
-              addHex(end, start, dataSize);
-              stream.readNumber();
-            }
-            break;
-          case 2:
-            stream.readHex(char, dataSize);
-            code = stream.readNumber();
-            cMap.mapOne(hexToInt(char, dataSize), code);
-            for (let i = 1; i < subitemsCount; i++) {
-              incHex(char, dataSize);
-              if (!sequence) {
-                stream.readHexNumber(tmp, dataSize);
-                addHex(char, tmp, dataSize);
-              }
-              code = stream.readSigned() + (code + 1);
-              cMap.mapOne(hexToInt(char, dataSize), code);
-            }
-            break;
-          case 3:
-            stream.readHex(start, dataSize);
-            stream.readHexNumber(end, dataSize);
-            addHex(end, start, dataSize);
-            code = stream.readNumber();
-            cMap.mapCidRange(hexToInt(start, dataSize), hexToInt(end, dataSize), code);
-            for (let i = 1; i < subitemsCount; i++) {
-              incHex(end, dataSize);
-              if (!sequence) {
-                stream.readHexNumber(start, dataSize);
-                addHex(start, end, dataSize);
-              } else {
-                start.set(end);
-              }
-              stream.readHexNumber(end, dataSize);
-              addHex(end, start, dataSize);
-              code = stream.readNumber();
-              cMap.mapCidRange(hexToInt(start, dataSize), hexToInt(end, dataSize), code);
-            }
-            break;
-          case 4:
-            stream.readHex(char, ucs2DataSize);
-            stream.readHex(charCode, dataSize);
-            cMap.mapOne(hexToInt(char, ucs2DataSize), hexToStr(charCode, dataSize));
-            for (let i = 1; i < subitemsCount; i++) {
-              incHex(char, ucs2DataSize);
-              if (!sequence) {
-                stream.readHexNumber(tmp, ucs2DataSize);
-                addHex(char, tmp, ucs2DataSize);
-              }
-              incHex(charCode, dataSize);
-              stream.readHexSigned(tmp, dataSize);
-              addHex(charCode, tmp, dataSize);
-              cMap.mapOne(hexToInt(char, ucs2DataSize), hexToStr(charCode, dataSize));
-            }
-            break;
-          case 5:
-            stream.readHex(start, ucs2DataSize);
-            stream.readHexNumber(end, ucs2DataSize);
-            addHex(end, start, ucs2DataSize);
-            stream.readHex(charCode, dataSize);
-            cMap.mapBfRange(hexToInt(start, ucs2DataSize), hexToInt(end, ucs2DataSize), hexToStr(charCode, dataSize));
-            for (let i = 1; i < subitemsCount; i++) {
-              incHex(end, ucs2DataSize);
-              if (!sequence) {
-                stream.readHexNumber(start, ucs2DataSize);
-                addHex(start, end, ucs2DataSize);
-              } else {
-                start.set(end);
-              }
-              stream.readHexNumber(end, ucs2DataSize);
-              addHex(end, start, ucs2DataSize);
-              stream.readHex(charCode, dataSize);
-              cMap.mapBfRange(hexToInt(start, ucs2DataSize), hexToInt(end, ucs2DataSize), hexToStr(charCode, dataSize));
-            }
-            break;
-          default:
-            throw new Error(`BinaryCMapReader.process - unknown type: ${type}`);
-        }
-      }
-      if (useCMap) {
-        return extend(useCMap);
-      }
-      return cMap;
-    }
-  }
-  return BinaryCMapReader;
-}();
-const CMapFactory = function CMapFactoryClosure() {
-  function strToInt(str) {
-    let a = 0;
-    for (let i = 0; i < str.length; i++) {
-      a = a << 8 | str.charCodeAt(i);
-    }
-    return a >>> 0;
-  }
-  function expectString(obj) {
-    if (typeof obj !== "string") {
-      throw new _util.FormatError("Malformed CMap: expected string.");
-    }
-  }
-  function expectInt(obj) {
-    if (!Number.isInteger(obj)) {
-      throw new _util.FormatError("Malformed CMap: expected int.");
-    }
-  }
-  function parseBfChar(cMap, lexer) {
-    while (true) {
-      let obj = lexer.getObj();
-      if (obj === _primitives.EOF) {
-        break;
-      }
-      if ((0, _primitives.isCmd)(obj, "endbfchar")) {
-        return;
-      }
-      expectString(obj);
-      const src = strToInt(obj);
+    expectString(obj);
+    const low = strToInt(obj);
+    obj = lexer.getObj();
+    expectString(obj);
+    const high = strToInt(obj);
+    obj = lexer.getObj();
+    if (Number.isInteger(obj) || typeof obj === "string") {
+      const dstLow = Number.isInteger(obj) ? String.fromCharCode(obj) : obj;
+      cMap.mapBfRange(low, high, dstLow);
+    } else if ((0, _primitives.isCmd)(obj, "[")) {
       obj = lexer.getObj();
-      expectString(obj);
-      const dst = obj;
-      cMap.mapOne(src, dst);
-    }
-  }
-  function parseBfRange(cMap, lexer) {
-    while (true) {
-      let obj = lexer.getObj();
-      if (obj === _primitives.EOF) {
-        break;
-      }
-      if ((0, _primitives.isCmd)(obj, "endbfrange")) {
-        return;
-      }
-      expectString(obj);
-      const low = strToInt(obj);
-      obj = lexer.getObj();
-      expectString(obj);
-      const high = strToInt(obj);
-      obj = lexer.getObj();
-      if (Number.isInteger(obj) || typeof obj === "string") {
-        const dstLow = Number.isInteger(obj) ? String.fromCharCode(obj) : obj;
-        cMap.mapBfRange(low, high, dstLow);
-      } else if ((0, _primitives.isCmd)(obj, "[")) {
+      const array = [];
+      while (!(0, _primitives.isCmd)(obj, "]") && obj !== _primitives.EOF) {
+        array.push(obj);
         obj = lexer.getObj();
-        const array = [];
-        while (!(0, _primitives.isCmd)(obj, "]") && obj !== _primitives.EOF) {
-          array.push(obj);
-          obj = lexer.getObj();
-        }
-        cMap.mapBfRangeToArray(low, high, array);
-      } else {
-        break;
       }
+      cMap.mapBfRangeToArray(low, high, array);
+    } else {
+      break;
     }
-    throw new _util.FormatError("Invalid bf range.");
   }
-  function parseCidChar(cMap, lexer) {
-    while (true) {
-      let obj = lexer.getObj();
+  throw new _util.FormatError("Invalid bf range.");
+}
+function parseCidChar(cMap, lexer) {
+  while (true) {
+    let obj = lexer.getObj();
+    if (obj === _primitives.EOF) {
+      break;
+    }
+    if ((0, _primitives.isCmd)(obj, "endcidchar")) {
+      return;
+    }
+    expectString(obj);
+    const src = strToInt(obj);
+    obj = lexer.getObj();
+    expectInt(obj);
+    const dst = obj;
+    cMap.mapOne(src, dst);
+  }
+}
+function parseCidRange(cMap, lexer) {
+  while (true) {
+    let obj = lexer.getObj();
+    if (obj === _primitives.EOF) {
+      break;
+    }
+    if ((0, _primitives.isCmd)(obj, "endcidrange")) {
+      return;
+    }
+    expectString(obj);
+    const low = strToInt(obj);
+    obj = lexer.getObj();
+    expectString(obj);
+    const high = strToInt(obj);
+    obj = lexer.getObj();
+    expectInt(obj);
+    const dstLow = obj;
+    cMap.mapCidRange(low, high, dstLow);
+  }
+}
+function parseCodespaceRange(cMap, lexer) {
+  while (true) {
+    let obj = lexer.getObj();
+    if (obj === _primitives.EOF) {
+      break;
+    }
+    if ((0, _primitives.isCmd)(obj, "endcodespacerange")) {
+      return;
+    }
+    if (typeof obj !== "string") {
+      break;
+    }
+    const low = strToInt(obj);
+    obj = lexer.getObj();
+    if (typeof obj !== "string") {
+      break;
+    }
+    const high = strToInt(obj);
+    cMap.addCodespaceRange(obj.length, low, high);
+  }
+  throw new _util.FormatError("Invalid codespace range.");
+}
+function parseWMode(cMap, lexer) {
+  const obj = lexer.getObj();
+  if (Number.isInteger(obj)) {
+    cMap.vertical = !!obj;
+  }
+}
+function parseCMapName(cMap, lexer) {
+  const obj = lexer.getObj();
+  if (obj instanceof _primitives.Name) {
+    cMap.name = obj.name;
+  }
+}
+async function parseCMap(cMap, lexer, fetchBuiltInCMap, useCMap) {
+  let previous, embeddedUseCMap;
+  objLoop: while (true) {
+    try {
+      const obj = lexer.getObj();
       if (obj === _primitives.EOF) {
         break;
-      }
-      if ((0, _primitives.isCmd)(obj, "endcidchar")) {
-        return;
-      }
-      expectString(obj);
-      const src = strToInt(obj);
-      obj = lexer.getObj();
-      expectInt(obj);
-      const dst = obj;
-      cMap.mapOne(src, dst);
-    }
-  }
-  function parseCidRange(cMap, lexer) {
-    while (true) {
-      let obj = lexer.getObj();
-      if (obj === _primitives.EOF) {
-        break;
-      }
-      if ((0, _primitives.isCmd)(obj, "endcidrange")) {
-        return;
-      }
-      expectString(obj);
-      const low = strToInt(obj);
-      obj = lexer.getObj();
-      expectString(obj);
-      const high = strToInt(obj);
-      obj = lexer.getObj();
-      expectInt(obj);
-      const dstLow = obj;
-      cMap.mapCidRange(low, high, dstLow);
-    }
-  }
-  function parseCodespaceRange(cMap, lexer) {
-    while (true) {
-      let obj = lexer.getObj();
-      if (obj === _primitives.EOF) {
-        break;
-      }
-      if ((0, _primitives.isCmd)(obj, "endcodespacerange")) {
-        return;
-      }
-      if (typeof obj !== "string") {
-        break;
-      }
-      const low = strToInt(obj);
-      obj = lexer.getObj();
-      if (typeof obj !== "string") {
-        break;
-      }
-      const high = strToInt(obj);
-      cMap.addCodespaceRange(obj.length, low, high);
-    }
-    throw new _util.FormatError("Invalid codespace range.");
-  }
-  function parseWMode(cMap, lexer) {
-    const obj = lexer.getObj();
-    if (Number.isInteger(obj)) {
-      cMap.vertical = !!obj;
-    }
-  }
-  function parseCMapName(cMap, lexer) {
-    const obj = lexer.getObj();
-    if (obj instanceof _primitives.Name) {
-      cMap.name = obj.name;
-    }
-  }
-  async function parseCMap(cMap, lexer, fetchBuiltInCMap, useCMap) {
-    let previous, embeddedUseCMap;
-    objLoop: while (true) {
-      try {
-        const obj = lexer.getObj();
-        if (obj === _primitives.EOF) {
-          break;
-        } else if (obj instanceof _primitives.Name) {
-          if (obj.name === "WMode") {
-            parseWMode(cMap, lexer);
-          } else if (obj.name === "CMapName") {
-            parseCMapName(cMap, lexer);
-          }
-          previous = obj;
-        } else if (obj instanceof _primitives.Cmd) {
-          switch (obj.cmd) {
-            case "endcmap":
-              break objLoop;
-            case "usecmap":
-              if (previous instanceof _primitives.Name) {
-                embeddedUseCMap = previous.name;
-              }
-              break;
-            case "begincodespacerange":
-              parseCodespaceRange(cMap, lexer);
-              break;
-            case "beginbfchar":
-              parseBfChar(cMap, lexer);
-              break;
-            case "begincidchar":
-              parseCidChar(cMap, lexer);
-              break;
-            case "beginbfrange":
-              parseBfRange(cMap, lexer);
-              break;
-            case "begincidrange":
-              parseCidRange(cMap, lexer);
-              break;
-          }
+      } else if (obj instanceof _primitives.Name) {
+        if (obj.name === "WMode") {
+          parseWMode(cMap, lexer);
+        } else if (obj.name === "CMapName") {
+          parseCMapName(cMap, lexer);
         }
-      } catch (ex) {
-        if (ex instanceof _core_utils.MissingDataException) {
-          throw ex;
+        previous = obj;
+      } else if (obj instanceof _primitives.Cmd) {
+        switch (obj.cmd) {
+          case "endcmap":
+            break objLoop;
+          case "usecmap":
+            if (previous instanceof _primitives.Name) {
+              embeddedUseCMap = previous.name;
+            }
+            break;
+          case "begincodespacerange":
+            parseCodespaceRange(cMap, lexer);
+            break;
+          case "beginbfchar":
+            parseBfChar(cMap, lexer);
+            break;
+          case "begincidchar":
+            parseCidChar(cMap, lexer);
+            break;
+          case "beginbfrange":
+            parseBfRange(cMap, lexer);
+            break;
+          case "begincidrange":
+            parseCidRange(cMap, lexer);
+            break;
         }
-        (0, _util.warn)("Invalid cMap data: " + ex);
-        continue;
       }
+    } catch (ex) {
+      if (ex instanceof _core_utils.MissingDataException) {
+        throw ex;
+      }
+      (0, _util.warn)("Invalid cMap data: " + ex);
+      continue;
     }
-    if (!useCMap && embeddedUseCMap) {
-      useCMap = embeddedUseCMap;
+  }
+  if (!useCMap && embeddedUseCMap) {
+    useCMap = embeddedUseCMap;
+  }
+  if (useCMap) {
+    return extendCMap(cMap, fetchBuiltInCMap, useCMap);
+  }
+  return cMap;
+}
+async function extendCMap(cMap, fetchBuiltInCMap, useCMap) {
+  cMap.useCMap = await createBuiltInCMap(useCMap, fetchBuiltInCMap);
+  if (cMap.numCodespaceRanges === 0) {
+    const useCodespaceRanges = cMap.useCMap.codespaceRanges;
+    for (let i = 0; i < useCodespaceRanges.length; i++) {
+      cMap.codespaceRanges[i] = useCodespaceRanges[i].slice();
     }
-    if (useCMap) {
+    cMap.numCodespaceRanges = cMap.useCMap.numCodespaceRanges;
+  }
+  cMap.useCMap.forEach(function (key, value) {
+    if (!cMap.contains(key)) {
+      cMap.mapOne(key, cMap.useCMap.lookup(key));
+    }
+  });
+  return cMap;
+}
+async function createBuiltInCMap(name, fetchBuiltInCMap) {
+  if (name === "Identity-H") {
+    return new IdentityCMap(false, 2);
+  } else if (name === "Identity-V") {
+    return new IdentityCMap(true, 2);
+  }
+  if (!BUILT_IN_CMAPS.includes(name)) {
+    throw new Error("Unknown CMap name: " + name);
+  }
+  if (!fetchBuiltInCMap) {
+    throw new Error("Built-in CMap parameters are not provided.");
+  }
+  const {
+    cMapData,
+    compressionType
+  } = await fetchBuiltInCMap(name);
+  const cMap = new CMap(true);
+  if (compressionType === _util.CMapCompressionType.BINARY) {
+    return new _binary_cmap.BinaryCMapReader().process(cMapData, cMap, useCMap => {
       return extendCMap(cMap, fetchBuiltInCMap, useCMap);
-    }
-    return cMap;
-  }
-  async function extendCMap(cMap, fetchBuiltInCMap, useCMap) {
-    cMap.useCMap = await createBuiltInCMap(useCMap, fetchBuiltInCMap);
-    if (cMap.numCodespaceRanges === 0) {
-      const useCodespaceRanges = cMap.useCMap.codespaceRanges;
-      for (let i = 0; i < useCodespaceRanges.length; i++) {
-        cMap.codespaceRanges[i] = useCodespaceRanges[i].slice();
-      }
-      cMap.numCodespaceRanges = cMap.useCMap.numCodespaceRanges;
-    }
-    cMap.useCMap.forEach(function (key, value) {
-      if (!cMap.contains(key)) {
-        cMap.mapOne(key, cMap.useCMap.lookup(key));
-      }
     });
-    return cMap;
   }
-  async function createBuiltInCMap(name, fetchBuiltInCMap) {
-    if (name === "Identity-H") {
-      return new IdentityCMap(false, 2);
-    } else if (name === "Identity-V") {
-      return new IdentityCMap(true, 2);
-    }
-    if (!BUILT_IN_CMAPS.includes(name)) {
-      throw new Error("Unknown CMap name: " + name);
-    }
-    if (!fetchBuiltInCMap) {
-      throw new Error("Built-in CMap parameters are not provided.");
-    }
-    const {
-      cMapData,
-      compressionType
-    } = await fetchBuiltInCMap(name);
-    const cMap = new CMap(true);
-    if (compressionType === _util.CMapCompressionType.BINARY) {
-      return new BinaryCMapReader().process(cMapData, cMap, useCMap => {
-        return extendCMap(cMap, fetchBuiltInCMap, useCMap);
-      });
-    }
-    if (compressionType === _util.CMapCompressionType.NONE) {
-      const lexer = new _parser.Lexer(new _stream.Stream(cMapData));
-      return parseCMap(cMap, lexer, fetchBuiltInCMap, null);
-    }
-    throw new Error(`Invalid CMap "compressionType" value: ${compressionType}`);
+  if (compressionType === _util.CMapCompressionType.NONE) {
+    const lexer = new _parser.Lexer(new _stream.Stream(cMapData));
+    return parseCMap(cMap, lexer, fetchBuiltInCMap, null);
   }
-  return {
-    async create(params) {
-      const encoding = params.encoding;
-      const fetchBuiltInCMap = params.fetchBuiltInCMap;
-      const useCMap = params.useCMap;
-      if (encoding instanceof _primitives.Name) {
-        return createBuiltInCMap(encoding.name, fetchBuiltInCMap);
-      } else if (encoding instanceof _base_stream.BaseStream) {
-        const parsedCMap = await parseCMap(new CMap(), new _parser.Lexer(encoding), fetchBuiltInCMap, useCMap);
-        if (parsedCMap.isIdentityCMap) {
-          return createBuiltInCMap(parsedCMap.name, fetchBuiltInCMap);
-        }
-        return parsedCMap;
+  throw new Error(`Invalid CMap "compressionType" value: ${compressionType}`);
+}
+class CMapFactory {
+  static async create({
+    encoding,
+    fetchBuiltInCMap,
+    useCMap
+  }) {
+    if (encoding instanceof _primitives.Name) {
+      return createBuiltInCMap(encoding.name, fetchBuiltInCMap);
+    } else if (encoding instanceof _base_stream.BaseStream) {
+      const parsedCMap = await parseCMap(new CMap(), new _parser.Lexer(encoding), fetchBuiltInCMap, useCMap);
+      if (parsedCMap.isIdentityCMap) {
+        return createBuiltInCMap(parsedCMap.name, fetchBuiltInCMap);
       }
-      throw new Error("Encoding required.");
+      return parsedCMap;
     }
-  };
-}();
+    throw new Error("Encoding required.");
+  }
+}
 exports.CMapFactory = CMapFactory;
 
 /***/ }),
@@ -12704,21 +12591,288 @@ exports.CMapFactory = CMapFactory;
 Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
+exports.BinaryCMapReader = void 0;
+var _util = __w_pdfjs_require__(2);
+function hexToInt(a, size) {
+  let n = 0;
+  for (let i = 0; i <= size; i++) {
+    n = n << 8 | a[i];
+  }
+  return n >>> 0;
+}
+function hexToStr(a, size) {
+  if (size === 1) {
+    return String.fromCharCode(a[0], a[1]);
+  }
+  if (size === 3) {
+    return String.fromCharCode(a[0], a[1], a[2], a[3]);
+  }
+  return String.fromCharCode(...a.subarray(0, size + 1));
+}
+function addHex(a, b, size) {
+  let c = 0;
+  for (let i = size; i >= 0; i--) {
+    c += a[i] + b[i];
+    a[i] = c & 255;
+    c >>= 8;
+  }
+}
+function incHex(a, size) {
+  let c = 1;
+  for (let i = size; i >= 0 && c > 0; i--) {
+    c += a[i];
+    a[i] = c & 255;
+    c >>= 8;
+  }
+}
+const MAX_NUM_SIZE = 16;
+const MAX_ENCODED_NUM_SIZE = 19;
+class BinaryCMapStream {
+  constructor(data) {
+    this.buffer = data;
+    this.pos = 0;
+    this.end = data.length;
+    this.tmpBuf = new Uint8Array(MAX_ENCODED_NUM_SIZE);
+  }
+  readByte() {
+    if (this.pos >= this.end) {
+      return -1;
+    }
+    return this.buffer[this.pos++];
+  }
+  readNumber() {
+    let n = 0;
+    let last;
+    do {
+      const b = this.readByte();
+      if (b < 0) {
+        throw new _util.FormatError("unexpected EOF in bcmap");
+      }
+      last = !(b & 0x80);
+      n = n << 7 | b & 0x7f;
+    } while (!last);
+    return n;
+  }
+  readSigned() {
+    const n = this.readNumber();
+    return n & 1 ? ~(n >>> 1) : n >>> 1;
+  }
+  readHex(num, size) {
+    num.set(this.buffer.subarray(this.pos, this.pos + size + 1));
+    this.pos += size + 1;
+  }
+  readHexNumber(num, size) {
+    let last;
+    const stack = this.tmpBuf;
+    let sp = 0;
+    do {
+      const b = this.readByte();
+      if (b < 0) {
+        throw new _util.FormatError("unexpected EOF in bcmap");
+      }
+      last = !(b & 0x80);
+      stack[sp++] = b & 0x7f;
+    } while (!last);
+    let i = size,
+      buffer = 0,
+      bufferSize = 0;
+    while (i >= 0) {
+      while (bufferSize < 8 && stack.length > 0) {
+        buffer |= stack[--sp] << bufferSize;
+        bufferSize += 7;
+      }
+      num[i] = buffer & 255;
+      i--;
+      buffer >>= 8;
+      bufferSize -= 8;
+    }
+  }
+  readHexSigned(num, size) {
+    this.readHexNumber(num, size);
+    const sign = num[size] & 1 ? 255 : 0;
+    let c = 0;
+    for (let i = 0; i <= size; i++) {
+      c = (c & 1) << 8 | num[i];
+      num[i] = c >> 1 ^ sign;
+    }
+  }
+  readString() {
+    const len = this.readNumber(),
+      buf = new Array(len);
+    for (let i = 0; i < len; i++) {
+      buf[i] = this.readNumber();
+    }
+    return String.fromCharCode(...buf);
+  }
+}
+class BinaryCMapReader {
+  async process(data, cMap, extend) {
+    const stream = new BinaryCMapStream(data);
+    const header = stream.readByte();
+    cMap.vertical = !!(header & 1);
+    let useCMap = null;
+    const start = new Uint8Array(MAX_NUM_SIZE);
+    const end = new Uint8Array(MAX_NUM_SIZE);
+    const char = new Uint8Array(MAX_NUM_SIZE);
+    const charCode = new Uint8Array(MAX_NUM_SIZE);
+    const tmp = new Uint8Array(MAX_NUM_SIZE);
+    let code;
+    let b;
+    while ((b = stream.readByte()) >= 0) {
+      const type = b >> 5;
+      if (type === 7) {
+        switch (b & 0x1f) {
+          case 0:
+            stream.readString();
+            break;
+          case 1:
+            useCMap = stream.readString();
+            break;
+        }
+        continue;
+      }
+      const sequence = !!(b & 0x10);
+      const dataSize = b & 15;
+      if (dataSize + 1 > MAX_NUM_SIZE) {
+        throw new Error("BinaryCMapReader.process: Invalid dataSize.");
+      }
+      const ucs2DataSize = 1;
+      const subitemsCount = stream.readNumber();
+      switch (type) {
+        case 0:
+          stream.readHex(start, dataSize);
+          stream.readHexNumber(end, dataSize);
+          addHex(end, start, dataSize);
+          cMap.addCodespaceRange(dataSize + 1, hexToInt(start, dataSize), hexToInt(end, dataSize));
+          for (let i = 1; i < subitemsCount; i++) {
+            incHex(end, dataSize);
+            stream.readHexNumber(start, dataSize);
+            addHex(start, end, dataSize);
+            stream.readHexNumber(end, dataSize);
+            addHex(end, start, dataSize);
+            cMap.addCodespaceRange(dataSize + 1, hexToInt(start, dataSize), hexToInt(end, dataSize));
+          }
+          break;
+        case 1:
+          stream.readHex(start, dataSize);
+          stream.readHexNumber(end, dataSize);
+          addHex(end, start, dataSize);
+          stream.readNumber();
+          for (let i = 1; i < subitemsCount; i++) {
+            incHex(end, dataSize);
+            stream.readHexNumber(start, dataSize);
+            addHex(start, end, dataSize);
+            stream.readHexNumber(end, dataSize);
+            addHex(end, start, dataSize);
+            stream.readNumber();
+          }
+          break;
+        case 2:
+          stream.readHex(char, dataSize);
+          code = stream.readNumber();
+          cMap.mapOne(hexToInt(char, dataSize), code);
+          for (let i = 1; i < subitemsCount; i++) {
+            incHex(char, dataSize);
+            if (!sequence) {
+              stream.readHexNumber(tmp, dataSize);
+              addHex(char, tmp, dataSize);
+            }
+            code = stream.readSigned() + (code + 1);
+            cMap.mapOne(hexToInt(char, dataSize), code);
+          }
+          break;
+        case 3:
+          stream.readHex(start, dataSize);
+          stream.readHexNumber(end, dataSize);
+          addHex(end, start, dataSize);
+          code = stream.readNumber();
+          cMap.mapCidRange(hexToInt(start, dataSize), hexToInt(end, dataSize), code);
+          for (let i = 1; i < subitemsCount; i++) {
+            incHex(end, dataSize);
+            if (!sequence) {
+              stream.readHexNumber(start, dataSize);
+              addHex(start, end, dataSize);
+            } else {
+              start.set(end);
+            }
+            stream.readHexNumber(end, dataSize);
+            addHex(end, start, dataSize);
+            code = stream.readNumber();
+            cMap.mapCidRange(hexToInt(start, dataSize), hexToInt(end, dataSize), code);
+          }
+          break;
+        case 4:
+          stream.readHex(char, ucs2DataSize);
+          stream.readHex(charCode, dataSize);
+          cMap.mapOne(hexToInt(char, ucs2DataSize), hexToStr(charCode, dataSize));
+          for (let i = 1; i < subitemsCount; i++) {
+            incHex(char, ucs2DataSize);
+            if (!sequence) {
+              stream.readHexNumber(tmp, ucs2DataSize);
+              addHex(char, tmp, ucs2DataSize);
+            }
+            incHex(charCode, dataSize);
+            stream.readHexSigned(tmp, dataSize);
+            addHex(charCode, tmp, dataSize);
+            cMap.mapOne(hexToInt(char, ucs2DataSize), hexToStr(charCode, dataSize));
+          }
+          break;
+        case 5:
+          stream.readHex(start, ucs2DataSize);
+          stream.readHexNumber(end, ucs2DataSize);
+          addHex(end, start, ucs2DataSize);
+          stream.readHex(charCode, dataSize);
+          cMap.mapBfRange(hexToInt(start, ucs2DataSize), hexToInt(end, ucs2DataSize), hexToStr(charCode, dataSize));
+          for (let i = 1; i < subitemsCount; i++) {
+            incHex(end, ucs2DataSize);
+            if (!sequence) {
+              stream.readHexNumber(start, ucs2DataSize);
+              addHex(start, end, ucs2DataSize);
+            } else {
+              start.set(end);
+            }
+            stream.readHexNumber(end, ucs2DataSize);
+            addHex(end, start, ucs2DataSize);
+            stream.readHex(charCode, dataSize);
+            cMap.mapBfRange(hexToInt(start, ucs2DataSize), hexToInt(end, ucs2DataSize), hexToStr(charCode, dataSize));
+          }
+          break;
+        default:
+          throw new Error(`BinaryCMapReader.process - unknown type: ${type}`);
+      }
+    }
+    if (useCMap) {
+      return extend(useCMap);
+    }
+    return cMap;
+  }
+}
+exports.BinaryCMapReader = BinaryCMapReader;
+
+/***/ }),
+/* 16 */
+/***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
+
+
+
+Object.defineProperty(exports, "__esModule", ({
+  value: true
+}));
 exports.Parser = exports.Linearization = exports.Lexer = void 0;
 var _util = __w_pdfjs_require__(2);
-var _primitives = __w_pdfjs_require__(3);
-var _core_utils = __w_pdfjs_require__(4);
-var _ascii_85_stream = __w_pdfjs_require__(16);
-var _ascii_hex_stream = __w_pdfjs_require__(18);
-var _ccitt_stream = __w_pdfjs_require__(19);
-var _flate_stream = __w_pdfjs_require__(21);
-var _jbig2_stream = __w_pdfjs_require__(22);
-var _jpeg_stream = __w_pdfjs_require__(25);
-var _jpx_stream = __w_pdfjs_require__(27);
-var _lzw_stream = __w_pdfjs_require__(29);
+var _primitives = __w_pdfjs_require__(4);
+var _core_utils = __w_pdfjs_require__(3);
+var _ascii_85_stream = __w_pdfjs_require__(17);
+var _ascii_hex_stream = __w_pdfjs_require__(19);
+var _ccitt_stream = __w_pdfjs_require__(20);
+var _flate_stream = __w_pdfjs_require__(22);
+var _jbig2_stream = __w_pdfjs_require__(23);
+var _jpeg_stream = __w_pdfjs_require__(26);
+var _jpx_stream = __w_pdfjs_require__(29);
+var _lzw_stream = __w_pdfjs_require__(31);
 var _stream = __w_pdfjs_require__(8);
-var _predictor_stream = __w_pdfjs_require__(30);
-var _run_length_stream = __w_pdfjs_require__(31);
+var _predictor_stream = __w_pdfjs_require__(32);
+var _run_length_stream = __w_pdfjs_require__(33);
 const MAX_LENGTH_TO_CACHE = 1000;
 function getInlineImageCacheKey(bytes) {
   const strBuf = [],
@@ -13770,7 +13924,7 @@ class Linearization {
 exports.Linearization = Linearization;
 
 /***/ }),
-/* 16 */
+/* 17 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -13779,8 +13933,8 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.Ascii85Stream = void 0;
-var _decode_stream = __w_pdfjs_require__(17);
-var _core_utils = __w_pdfjs_require__(4);
+var _decode_stream = __w_pdfjs_require__(18);
+var _core_utils = __w_pdfjs_require__(3);
 class Ascii85Stream extends _decode_stream.DecodeStream {
   constructor(str, maybeLength) {
     if (maybeLength) {
@@ -13847,7 +14001,7 @@ class Ascii85Stream extends _decode_stream.DecodeStream {
 exports.Ascii85Stream = Ascii85Stream;
 
 /***/ }),
-/* 17 */
+/* 18 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -13993,7 +14147,7 @@ class StreamsSequenceStream extends DecodeStream {
 exports.StreamsSequenceStream = StreamsSequenceStream;
 
 /***/ }),
-/* 18 */
+/* 19 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -14002,7 +14156,7 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.AsciiHexStream = void 0;
-var _decode_stream = __w_pdfjs_require__(17);
+var _decode_stream = __w_pdfjs_require__(18);
 class AsciiHexStream extends _decode_stream.DecodeStream {
   constructor(str, maybeLength) {
     if (maybeLength) {
@@ -14054,7 +14208,7 @@ class AsciiHexStream extends _decode_stream.DecodeStream {
 exports.AsciiHexStream = AsciiHexStream;
 
 /***/ }),
-/* 19 */
+/* 20 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -14063,9 +14217,9 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.CCITTFaxStream = void 0;
-var _ccitt = __w_pdfjs_require__(20);
-var _decode_stream = __w_pdfjs_require__(17);
-var _primitives = __w_pdfjs_require__(3);
+var _ccitt = __w_pdfjs_require__(21);
+var _decode_stream = __w_pdfjs_require__(18);
+var _primitives = __w_pdfjs_require__(4);
 class CCITTFaxStream extends _decode_stream.DecodeStream {
   constructor(str, maybeLength, params) {
     super(maybeLength);
@@ -14104,7 +14258,7 @@ class CCITTFaxStream extends _decode_stream.DecodeStream {
 exports.CCITTFaxStream = CCITTFaxStream;
 
 /***/ }),
-/* 20 */
+/* 21 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -14636,7 +14790,7 @@ class CCITTFaxDecoder {
 exports.CCITTFaxDecoder = CCITTFaxDecoder;
 
 /***/ }),
-/* 21 */
+/* 22 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -14645,7 +14799,7 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.FlateStream = void 0;
-var _decode_stream = __w_pdfjs_require__(17);
+var _decode_stream = __w_pdfjs_require__(18);
 var _util = __w_pdfjs_require__(2);
 const codeLenCodeMap = new Int32Array([16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15]);
 const lengthDecode = new Int32Array([0x00003, 0x00004, 0x00005, 0x00006, 0x00007, 0x00008, 0x00009, 0x0000a, 0x1000b, 0x1000d, 0x1000f, 0x10011, 0x20013, 0x20017, 0x2001b, 0x2001f, 0x30023, 0x3002b, 0x30033, 0x3003b, 0x40043, 0x40053, 0x40063, 0x40073, 0x50083, 0x500a3, 0x500c3, 0x500e3, 0x00102, 0x00102, 0x00102]);
@@ -14884,7 +15038,7 @@ class FlateStream extends _decode_stream.DecodeStream {
 exports.FlateStream = FlateStream;
 
 /***/ }),
-/* 22 */
+/* 23 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -14894,9 +15048,9 @@ Object.defineProperty(exports, "__esModule", ({
 }));
 exports.Jbig2Stream = void 0;
 var _base_stream = __w_pdfjs_require__(5);
-var _decode_stream = __w_pdfjs_require__(17);
-var _primitives = __w_pdfjs_require__(3);
-var _jbig = __w_pdfjs_require__(23);
+var _decode_stream = __w_pdfjs_require__(18);
+var _primitives = __w_pdfjs_require__(4);
+var _jbig = __w_pdfjs_require__(24);
 var _util = __w_pdfjs_require__(2);
 class Jbig2Stream extends _decode_stream.DecodeStream {
   constructor(stream, maybeLength, params) {
@@ -14945,7 +15099,7 @@ class Jbig2Stream extends _decode_stream.DecodeStream {
 exports.Jbig2Stream = Jbig2Stream;
 
 /***/ }),
-/* 23 */
+/* 24 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -14955,9 +15109,9 @@ Object.defineProperty(exports, "__esModule", ({
 }));
 exports.Jbig2Image = void 0;
 var _util = __w_pdfjs_require__(2);
-var _core_utils = __w_pdfjs_require__(4);
-var _arithmetic_decoder = __w_pdfjs_require__(24);
-var _ccitt = __w_pdfjs_require__(20);
+var _core_utils = __w_pdfjs_require__(3);
+var _arithmetic_decoder = __w_pdfjs_require__(25);
+var _ccitt = __w_pdfjs_require__(21);
 class Jbig2Error extends _util.BaseException {
   constructor(msg) {
     super(`JBIG2 error: ${msg}`, "Jbig2Error");
@@ -14986,6 +15140,8 @@ class DecodingContext {
     return (0, _util.shadow)(this, "contextCache", cache);
   }
 }
+const MAX_INT_32 = 2 ** 31 - 1;
+const MIN_INT_32 = -(2 ** 31);
 function decodeInteger(contextCache, procedure, decoder) {
   const contexts = contextCache.getContexts(procedure);
   let prev = 1;
@@ -15000,10 +15156,14 @@ function decodeInteger(contextCache, procedure, decoder) {
   }
   const sign = readBits(1);
   const value = readBits(1) ? readBits(1) ? readBits(1) ? readBits(1) ? readBits(1) ? readBits(32) + 4436 : readBits(12) + 340 : readBits(8) + 84 : readBits(6) + 20 : readBits(4) + 4 : readBits(2);
+  let signedValue;
   if (sign === 0) {
-    return value;
+    signedValue = value;
   } else if (value > 0) {
-    return -value;
+    signedValue = -value;
+  }
+  if (signedValue >= MIN_INT_32 && signedValue <= MAX_INT_32) {
+    return signedValue;
   }
   return null;
 }
@@ -16690,7 +16850,7 @@ class Jbig2Image {
 exports.Jbig2Image = Jbig2Image;
 
 /***/ }),
-/* 24 */
+/* 25 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -17026,7 +17186,7 @@ class ArithmeticDecoder {
 exports.ArithmeticDecoder = ArithmeticDecoder;
 
 /***/ }),
-/* 25 */
+/* 26 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -17035,9 +17195,9 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.JpegStream = void 0;
-var _decode_stream = __w_pdfjs_require__(17);
-var _primitives = __w_pdfjs_require__(3);
-var _jpg = __w_pdfjs_require__(26);
+var _decode_stream = __w_pdfjs_require__(18);
+var _primitives = __w_pdfjs_require__(4);
+var _jpg = __w_pdfjs_require__(27);
 var _util = __w_pdfjs_require__(2);
 class JpegStream extends _decode_stream.DecodeStream {
   constructor(stream, maybeLength, params) {
@@ -17067,7 +17227,7 @@ class JpegStream extends _decode_stream.DecodeStream {
       colorTransform: undefined
     };
     const decodeArr = this.dict.getArray("D", "Decode");
-    if (this.forceRGB && Array.isArray(decodeArr)) {
+    if ((this.forceRGBA || this.forceRGB) && Array.isArray(decodeArr)) {
       const bitsPerComponent = this.dict.get("BPC", "BitsPerComponent") || 8;
       const decodeArrLength = decodeArr.length;
       const transform = new Int32Array(decodeArrLength);
@@ -17095,6 +17255,7 @@ class JpegStream extends _decode_stream.DecodeStream {
     const data = jpegImage.getData({
       width: this.drawWidth,
       height: this.drawHeight,
+      forceRGBA: this.forceRGBA,
       forceRGB: this.forceRGB,
       isSourcePDF: true
     });
@@ -17106,7 +17267,7 @@ class JpegStream extends _decode_stream.DecodeStream {
 exports.JpegStream = JpegStream;
 
 /***/ }),
-/* 26 */
+/* 27 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -17116,7 +17277,8 @@ Object.defineProperty(exports, "__esModule", ({
 }));
 exports.JpegImage = void 0;
 var _util = __w_pdfjs_require__(2);
-var _core_utils = __w_pdfjs_require__(4);
+var _image_utils = __w_pdfjs_require__(28);
+var _core_utils = __w_pdfjs_require__(3);
 class JpegError extends _util.BaseException {
   constructor(msg) {
     super(`JPEG error: ${msg}`, "JpegError");
@@ -18059,6 +18221,18 @@ class JpegImage {
     }
     return data;
   }
+  _convertYccToRgba(data, out) {
+    for (let i = 0, j = 0, length = data.length; i < length; i += 3, j += 4) {
+      const Y = data[i];
+      const Cb = data[i + 1];
+      const Cr = data[i + 2];
+      out[j] = Y - 179.456 + 1.402 * Cr;
+      out[j + 1] = Y + 135.459 - 0.344 * Cb - 0.714 * Cr;
+      out[j + 2] = Y - 226.816 + 1.772 * Cb;
+      out[j + 3] = 255;
+    }
+    return out;
+  }
   _convertYcckToRgb(data) {
     let Y, Cb, Cr, k;
     let offset = 0;
@@ -18072,6 +18246,19 @@ class JpegImage {
       data[offset++] = -20.810012546947 + Cb * (-0.000570115196973677 * Cb - 2.63409051004589e-5 * Cr + 0.0020741088115012 * Y - 0.00288260236853442 * k + 0.814272968359295) + Cr * (-1.53496057440975e-5 * Cr - 0.000132689043961446 * Y + 0.000560833691242812 * k - 0.195152027534049) + Y * (0.00174418132927582 * Y - 0.00255243321439347 * k + 0.116935020465145) + k * (-0.000343531996510555 * k + 0.24165260232407);
     }
     return data.subarray(0, offset);
+  }
+  _convertYcckToRgba(data) {
+    for (let i = 0, length = data.length; i < length; i += 4) {
+      const Y = data[i];
+      const Cb = data[i + 1];
+      const Cr = data[i + 2];
+      const k = data[i + 3];
+      data[i] = -122.67195406894 + Cb * (-6.60635669420364e-5 * Cb + 0.000437130475926232 * Cr - 5.4080610064599e-5 * Y + 0.00048449797120281 * k - 0.154362151871126) + Cr * (-0.000957964378445773 * Cr + 0.000817076911346625 * Y - 0.00477271405408747 * k + 1.53380253221734) + Y * (0.000961250184130688 * Y - 0.00266257332283933 * k + 0.48357088451265) + k * (-0.000336197177618394 * k + 0.484791561490776);
+      data[i + 1] = 107.268039397724 + Cb * (2.19927104525741e-5 * Cb - 0.000640992018297945 * Cr + 0.000659397001245577 * Y + 0.000426105652938837 * k - 0.176491792462875) + Cr * (-0.000778269941513683 * Cr + 0.00130872261408275 * Y + 0.000770482631801132 * k - 0.151051492775562) + Y * (0.00126935368114843 * Y - 0.00265090189010898 * k + 0.25802910206845) + k * (-0.000318913117588328 * k - 0.213742400323665);
+      data[i + 2] = -20.810012546947 + Cb * (-0.000570115196973677 * Cb - 2.63409051004589e-5 * Cr + 0.0020741088115012 * Y - 0.00288260236853442 * k + 0.814272968359295) + Cr * (-1.53496057440975e-5 * Cr - 0.000132689043961446 * Y + 0.000560833691242812 * k - 0.195152027534049) + Y * (0.00174418132927582 * Y - 0.00255243321439347 * k + 0.116935020465145) + k * (-0.000343531996510555 * k + 0.24165260232407);
+      data[i + 3] = 255;
+    }
+    return data;
   }
   _convertYcckToCmyk(data) {
     let Y, Cb, Cr;
@@ -18099,9 +18286,23 @@ class JpegImage {
     }
     return data.subarray(0, offset);
   }
+  _convertCmykToRgba(data) {
+    for (let i = 0, length = data.length; i < length; i += 4) {
+      const c = data[i];
+      const m = data[i + 1];
+      const y = data[i + 2];
+      const k = data[i + 3];
+      data[i] = 255 + c * (-0.00006747147073602441 * c + 0.0008379262121013727 * m + 0.0002894718188643294 * y + 0.003264231057537806 * k - 1.1185611867203937) + m * (0.000026374107616089405 * m - 0.00008626949158638572 * y - 0.0002748769067499491 * k - 0.02155688794978967) + y * (-0.00003878099212869363 * y - 0.0003267808279485286 * k + 0.0686742238595345) - k * (0.0003361971776183937 * k + 0.7430659151342254);
+      data[i + 1] = 255 + c * (0.00013596372813588848 * c + 0.000924537132573585 * m + 0.00010567359618683593 * y + 0.0004791864687436512 * k - 0.3109689587515875) + m * (-0.00023545346108370344 * m + 0.0002702845253534714 * y + 0.0020200308977307156 * k - 0.7488052167015494) + y * (0.00006834815998235662 * y + 0.00015168452363460973 * k - 0.09751927774728933) - k * (0.0003189131175883281 * k + 0.7364883807733168);
+      data[i + 2] = 255 + c * (0.000013598650411385307 * c + 0.00012423956175490851 * m + 0.0004751985097583589 * y - 0.0000036729317476630422 * k - 0.05562186980264034) + m * (0.00016141380598724676 * m + 0.0009692239130725186 * y + 0.0007782692450036253 * k - 0.44015232367526463) + y * (5.068882914068769e-7 * y + 0.0017778369011375071 * k - 0.7591454649749609) - k * (0.0003435319965105553 * k + 0.7063770186160144);
+      data[i + 3] = 255;
+    }
+    return data;
+  }
   getData({
     width,
     height,
+    forceRGBA = false,
     forceRGB = false,
     isSourcePDF = false
   }) {
@@ -18109,23 +18310,37 @@ class JpegImage {
       throw new JpegError("Unsupported color mode");
     }
     const data = this._getLinearizedBlockData(width, height, isSourcePDF);
-    if (this.numComponents === 1 && forceRGB) {
-      const rgbData = new Uint8ClampedArray(data.length * 3);
+    if (this.numComponents === 1 && (forceRGBA || forceRGB)) {
+      const len = data.length * (forceRGBA ? 4 : 3);
+      const rgbaData = new Uint8ClampedArray(len);
       let offset = 0;
-      for (const grayColor of data) {
-        rgbData[offset++] = grayColor;
-        rgbData[offset++] = grayColor;
-        rgbData[offset++] = grayColor;
+      if (forceRGBA) {
+        (0, _image_utils.grayToRGBA)(data, new Uint32Array(rgbaData.buffer));
+      } else {
+        for (const grayColor of data) {
+          rgbaData[offset++] = grayColor;
+          rgbaData[offset++] = grayColor;
+          rgbaData[offset++] = grayColor;
+        }
       }
-      return rgbData;
+      return rgbaData;
     } else if (this.numComponents === 3 && this._isColorConversionNeeded) {
+      if (forceRGBA) {
+        const rgbaData = new Uint8ClampedArray(data.length / 3 * 4);
+        return this._convertYccToRgba(data, rgbaData);
+      }
       return this._convertYccToRgb(data);
     } else if (this.numComponents === 4) {
       if (this._isColorConversionNeeded) {
+        if (forceRGBA) {
+          return this._convertYcckToRgba(data);
+        }
         if (forceRGB) {
           return this._convertYcckToRgb(data);
         }
         return this._convertYcckToCmyk(data);
+      } else if (forceRGBA) {
+        return this._convertCmykToRgba(data);
       } else if (forceRGB) {
         return this._convertCmykToRgb(data);
       }
@@ -18136,7 +18351,125 @@ class JpegImage {
 exports.JpegImage = JpegImage;
 
 /***/ }),
-/* 27 */
+/* 28 */
+/***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
+
+
+
+Object.defineProperty(exports, "__esModule", ({
+  value: true
+}));
+exports.convertBlackAndWhiteToRGBA = convertBlackAndWhiteToRGBA;
+exports.convertToRGBA = convertToRGBA;
+exports.grayToRGBA = grayToRGBA;
+var _util = __w_pdfjs_require__(2);
+function convertToRGBA(params) {
+  switch (params.kind) {
+    case _util.ImageKind.GRAYSCALE_1BPP:
+      return convertBlackAndWhiteToRGBA(params);
+    case _util.ImageKind.RGB_24BPP:
+      return convertRGBToRGBA(params);
+  }
+  return null;
+}
+function convertBlackAndWhiteToRGBA({
+  src,
+  srcPos = 0,
+  dest,
+  width,
+  height,
+  nonBlackColor = 0xffffffff,
+  inverseDecode = false
+}) {
+  const black = _util.FeatureTest.isLittleEndian ? 0xff000000 : 0x000000ff;
+  const [zeroMapping, oneMapping] = inverseDecode ? [nonBlackColor, black] : [black, nonBlackColor];
+  const widthInSource = width >> 3;
+  const widthRemainder = width & 7;
+  const srcLength = src.length;
+  dest = new Uint32Array(dest.buffer);
+  let destPos = 0;
+  for (let i = 0; i < height; i++) {
+    for (const max = srcPos + widthInSource; srcPos < max; srcPos++) {
+      const elem = srcPos < srcLength ? src[srcPos] : 255;
+      dest[destPos++] = elem & 0b10000000 ? oneMapping : zeroMapping;
+      dest[destPos++] = elem & 0b1000000 ? oneMapping : zeroMapping;
+      dest[destPos++] = elem & 0b100000 ? oneMapping : zeroMapping;
+      dest[destPos++] = elem & 0b10000 ? oneMapping : zeroMapping;
+      dest[destPos++] = elem & 0b1000 ? oneMapping : zeroMapping;
+      dest[destPos++] = elem & 0b100 ? oneMapping : zeroMapping;
+      dest[destPos++] = elem & 0b10 ? oneMapping : zeroMapping;
+      dest[destPos++] = elem & 0b1 ? oneMapping : zeroMapping;
+    }
+    if (widthRemainder === 0) {
+      continue;
+    }
+    const elem = srcPos < srcLength ? src[srcPos++] : 255;
+    for (let j = 0; j < widthRemainder; j++) {
+      dest[destPos++] = elem & 1 << 7 - j ? oneMapping : zeroMapping;
+    }
+  }
+  return {
+    srcPos,
+    destPos
+  };
+}
+function convertRGBToRGBA({
+  src,
+  srcPos = 0,
+  dest,
+  destPos = 0,
+  width,
+  height
+}) {
+  let i = 0;
+  const len32 = src.length >> 2;
+  const src32 = new Uint32Array(src.buffer, srcPos, len32);
+  if (_util.FeatureTest.isLittleEndian) {
+    for (; i < len32 - 2; i += 3, destPos += 4) {
+      const s1 = src32[i];
+      const s2 = src32[i + 1];
+      const s3 = src32[i + 2];
+      dest[destPos] = s1 | 0xff000000;
+      dest[destPos + 1] = s1 >>> 24 | s2 << 8 | 0xff000000;
+      dest[destPos + 2] = s2 >>> 16 | s3 << 16 | 0xff000000;
+      dest[destPos + 3] = s3 >>> 8 | 0xff000000;
+    }
+    for (let j = i * 4, jj = src.length; j < jj; j += 3) {
+      dest[destPos++] = src[j] | src[j + 1] << 8 | src[j + 2] << 16 | 0xff000000;
+    }
+  } else {
+    for (; i < len32 - 2; i += 3, destPos += 4) {
+      const s1 = src32[i];
+      const s2 = src32[i + 1];
+      const s3 = src32[i + 2];
+      dest[destPos] = s1 | 0xff;
+      dest[destPos + 1] = s1 << 24 | s2 >>> 8 | 0xff;
+      dest[destPos + 2] = s2 << 16 | s3 >>> 16 | 0xff;
+      dest[destPos + 3] = s3 << 8 | 0xff;
+    }
+    for (let j = i * 4, jj = src.length; j < jj; j += 3) {
+      dest[destPos++] = src[j] << 24 | src[j + 1] << 16 | src[j + 2] << 8 | 0xff;
+    }
+  }
+  return {
+    srcPos,
+    destPos
+  };
+}
+function grayToRGBA(src, dest) {
+  if (_util.FeatureTest.isLittleEndian) {
+    for (let i = 0, ii = src.length; i < ii; i++) {
+      dest[i] = src[i] * 0x10101 | 0xff000000;
+    }
+  } else {
+    for (let i = 0, ii = src.length; i < ii; i++) {
+      dest[i] = src[i] * 0x1010100 | 0x000000ff;
+    }
+  }
+}
+
+/***/ }),
+/* 29 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -18145,8 +18478,8 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.JpxStream = void 0;
-var _decode_stream = __w_pdfjs_require__(17);
-var _jpx = __w_pdfjs_require__(28);
+var _decode_stream = __w_pdfjs_require__(18);
+var _jpx = __w_pdfjs_require__(30);
 var _util = __w_pdfjs_require__(2);
 class JpxStream extends _decode_stream.DecodeStream {
   constructor(stream, maybeLength, params) {
@@ -18201,7 +18534,7 @@ class JpxStream extends _decode_stream.DecodeStream {
 exports.JpxStream = JpxStream;
 
 /***/ }),
-/* 28 */
+/* 30 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -18211,8 +18544,8 @@ Object.defineProperty(exports, "__esModule", ({
 }));
 exports.JpxImage = void 0;
 var _util = __w_pdfjs_require__(2);
-var _core_utils = __w_pdfjs_require__(4);
-var _arithmetic_decoder = __w_pdfjs_require__(24);
+var _core_utils = __w_pdfjs_require__(3);
+var _arithmetic_decoder = __w_pdfjs_require__(25);
 class JpxError extends _util.BaseException {
   constructor(msg) {
     super(`JPX error: ${msg}`, "JpxError");
@@ -20129,7 +20462,7 @@ class ReversibleTransform extends Transform {
 }
 
 /***/ }),
-/* 29 */
+/* 31 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -20138,7 +20471,7 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.LZWStream = void 0;
-var _decode_stream = __w_pdfjs_require__(17);
+var _decode_stream = __w_pdfjs_require__(18);
 class LZWStream extends _decode_stream.DecodeStream {
   constructor(str, maybeLength, earlyChange) {
     super(maybeLength);
@@ -20256,7 +20589,7 @@ class LZWStream extends _decode_stream.DecodeStream {
 exports.LZWStream = LZWStream;
 
 /***/ }),
-/* 30 */
+/* 32 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -20265,8 +20598,8 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.PredictorStream = void 0;
-var _decode_stream = __w_pdfjs_require__(17);
-var _primitives = __w_pdfjs_require__(3);
+var _decode_stream = __w_pdfjs_require__(18);
+var _primitives = __w_pdfjs_require__(4);
 var _util = __w_pdfjs_require__(2);
 class PredictorStream extends _decode_stream.DecodeStream {
   constructor(str, maybeLength, params) {
@@ -20457,7 +20790,7 @@ class PredictorStream extends _decode_stream.DecodeStream {
 exports.PredictorStream = PredictorStream;
 
 /***/ }),
-/* 31 */
+/* 33 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -20466,7 +20799,7 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.RunLengthStream = void 0;
-var _decode_stream = __w_pdfjs_require__(17);
+var _decode_stream = __w_pdfjs_require__(18);
 class RunLengthStream extends _decode_stream.DecodeStream {
   constructor(str, maybeLength) {
     super(maybeLength);
@@ -20504,7 +20837,7 @@ class RunLengthStream extends _decode_stream.DecodeStream {
 exports.RunLengthStream = RunLengthStream;
 
 /***/ }),
-/* 32 */
+/* 34 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -20514,22 +20847,22 @@ Object.defineProperty(exports, "__esModule", ({
 }));
 exports.Font = exports.ErrorFont = void 0;
 var _util = __w_pdfjs_require__(2);
-var _cff_parser = __w_pdfjs_require__(33);
-var _fonts_utils = __w_pdfjs_require__(36);
-var _unicode = __w_pdfjs_require__(38);
-var _glyphlist = __w_pdfjs_require__(37);
-var _encodings = __w_pdfjs_require__(35);
-var _standard_fonts = __w_pdfjs_require__(39);
-var _to_unicode_map = __w_pdfjs_require__(40);
-var _cff_font = __w_pdfjs_require__(41);
-var _font_renderer = __w_pdfjs_require__(42);
-var _metrics = __w_pdfjs_require__(43);
-var _glyf = __w_pdfjs_require__(44);
+var _cff_parser = __w_pdfjs_require__(35);
+var _fonts_utils = __w_pdfjs_require__(38);
+var _unicode = __w_pdfjs_require__(40);
+var _glyphlist = __w_pdfjs_require__(39);
+var _encodings = __w_pdfjs_require__(37);
+var _standard_fonts = __w_pdfjs_require__(41);
+var _to_unicode_map = __w_pdfjs_require__(42);
+var _cff_font = __w_pdfjs_require__(43);
+var _font_renderer = __w_pdfjs_require__(44);
+var _metrics = __w_pdfjs_require__(45);
+var _glyf = __w_pdfjs_require__(46);
 var _cmap = __w_pdfjs_require__(14);
-var _opentype_file_builder = __w_pdfjs_require__(45);
-var _core_utils = __w_pdfjs_require__(4);
+var _opentype_file_builder = __w_pdfjs_require__(47);
+var _core_utils = __w_pdfjs_require__(3);
 var _stream = __w_pdfjs_require__(8);
-var _type1_font = __w_pdfjs_require__(46);
+var _type1_font = __w_pdfjs_require__(48);
 const PRIVATE_USE_AREAS = [[0xe000, 0xf8ff], [0x100000, 0x10fffd]];
 const PDF_GLYPH_SPACE_UNITS = 1000;
 const EXPORT_DATA_PROPERTIES = ["ascent", "bbox", "black", "bold", "charProcOperatorList", "composite", "cssFontInfo", "data", "defaultVMetrics", "defaultWidth", "descent", "fallbackName", "fontMatrix", "isInvalidPDFjsFont", "isType3Font", "italic", "loadedName", "mimetype", "missingFile", "name", "remeasure", "subtype", "type", "vertical"];
@@ -20548,7 +20881,52 @@ function adjustWidths(properties) {
   }
   properties.defaultWidth *= scale;
 }
-function adjustToUnicode(properties, builtInEncoding) {
+function adjustTrueTypeToUnicode(properties, isSymbolicFont, nameRecords) {
+  if (properties.isInternalFont) {
+    return;
+  }
+  if (properties.hasIncludedToUnicodeMap) {
+    return;
+  }
+  if (properties.hasEncoding) {
+    return;
+  }
+  if (properties.toUnicode instanceof _to_unicode_map.IdentityToUnicodeMap) {
+    return;
+  }
+  if (!isSymbolicFont) {
+    return;
+  }
+  if (nameRecords.length === 0) {
+    return;
+  }
+  if (properties.defaultEncoding === _encodings.WinAnsiEncoding) {
+    return;
+  }
+  for (const r of nameRecords) {
+    if (!isWinNameRecord(r)) {
+      return;
+    }
+  }
+  const encoding = _encodings.WinAnsiEncoding;
+  const toUnicode = [],
+    glyphsUnicodeMap = (0, _glyphlist.getGlyphsUnicode)();
+  for (const charCode in encoding) {
+    const glyphName = encoding[charCode];
+    if (glyphName === "") {
+      continue;
+    }
+    const unicode = glyphsUnicodeMap[glyphName];
+    if (unicode === undefined) {
+      continue;
+    }
+    toUnicode[charCode] = String.fromCharCode(unicode);
+  }
+  if (toUnicode.length > 0) {
+    properties.toUnicode.amend(toUnicode);
+  }
+}
+function adjustType1ToUnicode(properties, builtInEncoding) {
   if (properties.isInternalFont) {
     return;
   }
@@ -20565,7 +20943,7 @@ function adjustToUnicode(properties, builtInEncoding) {
     glyphsUnicodeMap = (0, _glyphlist.getGlyphsUnicode)();
   for (const charCode in builtInEncoding) {
     if (properties.hasEncoding) {
-      if (properties.differences.length === 0 || properties.differences[charCode] !== undefined) {
+      if (properties.baseEncodingName || properties.differences[charCode] !== undefined) {
         continue;
       }
     }
@@ -20611,12 +20989,6 @@ class Glyph {
   }
   get category() {
     return (0, _util.shadow)(this, "category", (0, _unicode.getCharUnicodeCategory)(this.unicode), true);
-  }
-  get normalizedUnicode() {
-    return (0, _util.shadow)(this, "normalizedUnicode", (0, _unicode.reverseIfRtl)(Glyph._NormalizedUnicodes[this.unicode] || this.unicode), true);
-  }
-  static get _NormalizedUnicodes() {
-    return (0, _util.shadow)(this, "_NormalizedUnicodes", (0, _unicode.getNormalizedUnicodes)());
   }
 }
 function int16(b0, b1) {
@@ -20734,6 +21106,12 @@ function buildToFontChar(encoding, glyphsUnicodeMap, differences) {
   }
   return toFontChar;
 }
+function isMacNameRecord(r) {
+  return r.platform === 1 && r.encoding === 0 && r.language === 0;
+}
+function isWinNameRecord(r) {
+  return r.platform === 3 && r.encoding === 1 && r.language === 0x409;
+}
 function convertCidString(charCode, cid, shouldThrow = false) {
   switch (cid.length) {
     case 1:
@@ -20757,6 +21135,7 @@ function adjustMapping(charCodeToGlyphId, hasGlyph, newGlyphZeroId, toUnicode) {
   const privateUseOffetStart = PRIVATE_USE_AREAS[privateUseAreaIndex][0];
   let nextAvailableFontCharCode = privateUseOffetStart;
   let privateUseOffetEnd = PRIVATE_USE_AREAS[privateUseAreaIndex][1];
+  const isInPrivateArea = code => PRIVATE_USE_AREAS[0][0] <= code && code <= PRIVATE_USE_AREAS[0][1] || PRIVATE_USE_AREAS[1][0] <= code && code <= PRIVATE_USE_AREAS[1][1];
   for (let originalCharCode in charCodeToGlyphId) {
     originalCharCode |= 0;
     let glyphId = charCodeToGlyphId[originalCharCode];
@@ -20780,7 +21159,7 @@ function adjustMapping(charCodeToGlyphId, hasGlyph, newGlyphZeroId, toUnicode) {
     if (typeof unicode === "string") {
       unicode = unicode.codePointAt(0);
     }
-    if (unicode && unicode < privateUseOffetStart && !usedGlyphIds.has(glyphId)) {
+    if (unicode && !isInPrivateArea(unicode) && !usedGlyphIds.has(glyphId)) {
       toUnicodeExtraMap.set(unicode, glyphId);
       usedGlyphIds.add(glyphId);
     }
@@ -20962,6 +21341,7 @@ function createOS2Table(properties, charstrings, override) {
   let ulUnicodeRange4 = 0;
   let firstCharIndex = null;
   let lastCharIndex = 0;
+  let position = -1;
   if (charstrings) {
     for (let code in charstrings) {
       code |= 0;
@@ -20971,7 +21351,7 @@ function createOS2Table(properties, charstrings, override) {
       if (lastCharIndex < code) {
         lastCharIndex = code;
       }
-      const position = (0, _unicode.getUnicodeRangeFor)(code);
+      position = (0, _unicode.getUnicodeRangeFor)(code, position);
       if (position < 32) {
         ulUnicodeRange1 |= 1 << position;
       } else if (position < 64) {
@@ -21008,7 +21388,7 @@ function createPostTable(properties) {
   return "\x00\x03\x00\x00" + (0, _util.string32)(angle) + "\x00\x00" + "\x00\x00" + (0, _util.string32)(properties.fixedPitch ? 1 : 0) + "\x00\x00\x00\x00" + "\x00\x00\x00\x00" + "\x00\x00\x00\x00" + "\x00\x00\x00\x00";
 }
 function createPostscriptName(name) {
-  return name.replace(/[^\x21-\x7E]|[[\](){}<>/%]/g, "").slice(0, 63);
+  return name.replaceAll(/[^\x21-\x7E]|[[\](){}<>/%]/g, "").slice(0, 63);
 }
 function createNameTable(name, proto) {
   if (!proto) {
@@ -21058,7 +21438,7 @@ class Font {
     this._glyphCache = Object.create(null);
     let isSerifFont = !!(properties.flags & _fonts_utils.FontFlags.Serif);
     if (!isSerifFont && !properties.isSimulatedFlags) {
-      const baseName = name.replace(/[,_]/g, "-").split("-")[0],
+      const baseName = name.replaceAll(/[,_]/g, "-").split("-")[0],
         serifFonts = (0, _standard_fonts.getSerifFonts)();
       for (const namePart of baseName.split("+")) {
         if (serifFonts[namePart]) {
@@ -21377,10 +21757,10 @@ class Font {
         if (!potentialTables.name) {
           throw new _util.FormatError('TrueType Collection font must contain a "name" table.');
         }
-        const nameTable = readNameTable(potentialTables.name);
+        const [nameTable] = readNameTable(potentialTables.name);
         for (let j = 0, jj = nameTable.length; j < jj; j++) {
           for (let k = 0, kk = nameTable[j].length; k < kk; k++) {
-            const nameEntry = nameTable[j][k] && nameTable[j][k].replace(/\s/g, "");
+            const nameEntry = nameTable[j][k] && nameTable[j][k].replaceAll(/\s/g, "");
             if (!nameEntry) {
               continue;
             }
@@ -21979,17 +22359,17 @@ class Font {
     function readNameTable(nameTable) {
       const start = (font.start || 0) + nameTable.offset;
       font.pos = start;
-      const names = [[], []];
+      const names = [[], []],
+        records = [];
       const length = nameTable.length,
         end = start + length;
       const format = font.getUint16();
       const FORMAT_0_HEADER_LENGTH = 6;
       if (format !== 0 || length < FORMAT_0_HEADER_LENGTH) {
-        return names;
+        return [names, records];
       }
       const numRecords = font.getUint16();
       const stringsStart = font.getUint16();
-      const records = [];
       const NAME_RECORD_LENGTH = 12;
       let i, ii;
       for (i = 0; i < numRecords && font.pos + NAME_RECORD_LENGTH <= end; i++) {
@@ -22001,7 +22381,7 @@ class Font {
           length: font.getUint16(),
           offset: font.getUint16()
         };
-        if (r.platform === 1 && r.encoding === 0 && r.language === 0 || r.platform === 3 && r.encoding === 1 && r.language === 0x409) {
+        if (isMacNameRecord(r) || isWinNameRecord(r)) {
           records.push(r);
         }
       }
@@ -22026,7 +22406,7 @@ class Font {
           names[0][nameIndex] = font.getString(record.length);
         }
       }
-      return names;
+      return [names, records];
     }
     const TTOpsStackDeltas = [0, 0, 0, 0, 0, 0, 0, 0, -2, -2, -2, -2, 0, 0, -2, -5, -1, -1, -1, -1, -1, -1, -1, -1, 0, 0, -1, 0, -1, -1, -1, -1, 1, -1, -999, 0, 1, 0, -1, -2, 0, -1, -2, -1, -1, 0, -1, -1, 0, 0, -999, -999, -1, -1, -1, -1, -2, -999, -2, -2, -999, 0, -2, -2, 0, 0, -2, 0, -2, 0, 0, 0, -2, -1, -1, 1, 1, 0, 0, -1, -1, -1, -1, -1, -1, -1, 0, 0, -1, 0, -1, -1, 0, -999, -1, -1, -1, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -2, -999, -999, -999, -999, -999, -1, -1, -2, -2, 0, 0, 0, 0, -1, -1, -999, -2, -2, 0, 0, -1, -2, -2, 0, 0, 0, -1, -1, -1, -2];
     function sanitizeTTProgram(table, ttContext) {
@@ -22567,9 +22947,12 @@ class Font {
         data: createNameTable(this.name)
       };
     } else {
-      const namePrototype = readNameTable(tables.name);
+      const [namePrototype, nameRecords] = readNameTable(tables.name);
       tables.name.data = createNameTable(name, namePrototype);
       this.psName = namePrototype[0][6] || null;
+      if (!properties.composite) {
+        adjustTrueTypeToUnicode(properties, this.isSymbolicFont, nameRecords);
+      }
     }
     const builder = new _opentype_file_builder.OpenTypeFileBuilder(header.version);
     for (const tableTag in tables) {
@@ -22580,7 +22963,7 @@ class Font {
   convert(fontName, font, properties) {
     properties.fixedPitch = false;
     if (properties.builtInEncoding) {
-      adjustToUnicode(properties, properties.builtInEncoding);
+      adjustType1ToUnicode(properties, properties.builtInEncoding);
     }
     let glyphZeroId = 1;
     if (font instanceof _cff_font.CFFFont) {
@@ -22874,7 +23257,7 @@ class ErrorFont {
 exports.ErrorFont = ErrorFont;
 
 /***/ }),
-/* 33 */
+/* 35 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -22884,8 +23267,8 @@ Object.defineProperty(exports, "__esModule", ({
 }));
 exports.CFFTopDict = exports.CFFStrings = exports.CFFStandardStrings = exports.CFFPrivateDict = exports.CFFParser = exports.CFFIndex = exports.CFFHeader = exports.CFFFDSelect = exports.CFFCompiler = exports.CFFCharset = exports.CFF = void 0;
 var _util = __w_pdfjs_require__(2);
-var _charsets = __w_pdfjs_require__(34);
-var _encodings = __w_pdfjs_require__(35);
+var _charsets = __w_pdfjs_require__(36);
+var _encodings = __w_pdfjs_require__(37);
 const MAX_SUBR_NESTING = 10;
 const CFFStandardStrings = [".notdef", "space", "exclam", "quotedbl", "numbersign", "dollar", "percent", "ampersand", "quoteright", "parenleft", "parenright", "asterisk", "plus", "comma", "hyphen", "period", "slash", "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "colon", "semicolon", "less", "equal", "greater", "question", "at", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "bracketleft", "backslash", "bracketright", "asciicircum", "underscore", "quoteleft", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "braceleft", "bar", "braceright", "asciitilde", "exclamdown", "cent", "sterling", "fraction", "yen", "florin", "section", "currency", "quotesingle", "quotedblleft", "guillemotleft", "guilsinglleft", "guilsinglright", "fi", "fl", "endash", "dagger", "daggerdbl", "periodcentered", "paragraph", "bullet", "quotesinglbase", "quotedblbase", "quotedblright", "guillemotright", "ellipsis", "perthousand", "questiondown", "grave", "acute", "circumflex", "tilde", "macron", "breve", "dotaccent", "dieresis", "ring", "cedilla", "hungarumlaut", "ogonek", "caron", "emdash", "AE", "ordfeminine", "Lslash", "Oslash", "OE", "ordmasculine", "ae", "dotlessi", "lslash", "oslash", "oe", "germandbls", "onesuperior", "logicalnot", "mu", "trademark", "Eth", "onehalf", "plusminus", "Thorn", "onequarter", "divide", "brokenbar", "degree", "thorn", "threequarters", "twosuperior", "registered", "minus", "eth", "multiply", "threesuperior", "copyright", "Aacute", "Acircumflex", "Adieresis", "Agrave", "Aring", "Atilde", "Ccedilla", "Eacute", "Ecircumflex", "Edieresis", "Egrave", "Iacute", "Icircumflex", "Idieresis", "Igrave", "Ntilde", "Oacute", "Ocircumflex", "Odieresis", "Ograve", "Otilde", "Scaron", "Uacute", "Ucircumflex", "Udieresis", "Ugrave", "Yacute", "Ydieresis", "Zcaron", "aacute", "acircumflex", "adieresis", "agrave", "aring", "atilde", "ccedilla", "eacute", "ecircumflex", "edieresis", "egrave", "iacute", "icircumflex", "idieresis", "igrave", "ntilde", "oacute", "ocircumflex", "odieresis", "ograve", "otilde", "scaron", "uacute", "ucircumflex", "udieresis", "ugrave", "yacute", "ydieresis", "zcaron", "exclamsmall", "Hungarumlautsmall", "dollaroldstyle", "dollarsuperior", "ampersandsmall", "Acutesmall", "parenleftsuperior", "parenrightsuperior", "twodotenleader", "onedotenleader", "zerooldstyle", "oneoldstyle", "twooldstyle", "threeoldstyle", "fouroldstyle", "fiveoldstyle", "sixoldstyle", "sevenoldstyle", "eightoldstyle", "nineoldstyle", "commasuperior", "threequartersemdash", "periodsuperior", "questionsmall", "asuperior", "bsuperior", "centsuperior", "dsuperior", "esuperior", "isuperior", "lsuperior", "msuperior", "nsuperior", "osuperior", "rsuperior", "ssuperior", "tsuperior", "ff", "ffi", "ffl", "parenleftinferior", "parenrightinferior", "Circumflexsmall", "hyphensuperior", "Gravesmall", "Asmall", "Bsmall", "Csmall", "Dsmall", "Esmall", "Fsmall", "Gsmall", "Hsmall", "Ismall", "Jsmall", "Ksmall", "Lsmall", "Msmall", "Nsmall", "Osmall", "Psmall", "Qsmall", "Rsmall", "Ssmall", "Tsmall", "Usmall", "Vsmall", "Wsmall", "Xsmall", "Ysmall", "Zsmall", "colonmonetary", "onefitted", "rupiah", "Tildesmall", "exclamdownsmall", "centoldstyle", "Lslashsmall", "Scaronsmall", "Zcaronsmall", "Dieresissmall", "Brevesmall", "Caronsmall", "Dotaccentsmall", "Macronsmall", "figuredash", "hypheninferior", "Ogoneksmall", "Ringsmall", "Cedillasmall", "questiondownsmall", "oneeighth", "threeeighths", "fiveeighths", "seveneighths", "onethird", "twothirds", "zerosuperior", "foursuperior", "fivesuperior", "sixsuperior", "sevensuperior", "eightsuperior", "ninesuperior", "zeroinferior", "oneinferior", "twoinferior", "threeinferior", "fourinferior", "fiveinferior", "sixinferior", "seveninferior", "eightinferior", "nineinferior", "centinferior", "dollarinferior", "periodinferior", "commainferior", "Agravesmall", "Aacutesmall", "Acircumflexsmall", "Atildesmall", "Adieresissmall", "Aringsmall", "AEsmall", "Ccedillasmall", "Egravesmall", "Eacutesmall", "Ecircumflexsmall", "Edieresissmall", "Igravesmall", "Iacutesmall", "Icircumflexsmall", "Idieresissmall", "Ethsmall", "Ntildesmall", "Ogravesmall", "Oacutesmall", "Ocircumflexsmall", "Otildesmall", "Odieresissmall", "OEsmall", "Oslashsmall", "Ugravesmall", "Uacutesmall", "Ucircumflexsmall", "Udieresissmall", "Yacutesmall", "Thornsmall", "Ydieresissmall", "001.000", "001.001", "001.002", "001.003", "Black", "Bold", "Book", "Light", "Medium", "Regular", "Roman", "Semibold"];
 exports.CFFStandardStrings = CFFStandardStrings;
@@ -23989,7 +24372,11 @@ class CFFCompiler {
       data: [],
       length: 0,
       add(data) {
-        this.data = this.data.concat(data);
+        if (data.length <= 65536) {
+          this.data.push(...data);
+        } else {
+          this.data = this.data.concat(data);
+        }
         this.length = this.data.length;
       }
     };
@@ -24228,10 +24615,6 @@ class CFFCompiler {
     }
     return this.compileIndex(stringIndex);
   }
-  compileGlobalSubrIndex() {
-    const globalSubrIndex = this.cff.globalSubrIndex;
-    this.out.writeByteArray(this.compileIndex(globalSubrIndex));
-  }
   compileCharStrings(charStrings) {
     const charStringsIndex = new CFFIndex();
     for (let i = 0; i < charStrings.count; i++) {
@@ -24310,11 +24693,7 @@ class CFFCompiler {
     return this.compileTypedArray(out);
   }
   compileTypedArray(data) {
-    const out = [];
-    for (let i = 0, ii = data.length; i < ii; ++i) {
-      out[i] = data[i];
-    }
-    return out;
+    return Array.from(data);
   }
   compileIndex(index, trackers = []) {
     const objects = index.objects;
@@ -24366,7 +24745,7 @@ class CFFCompiler {
 exports.CFFCompiler = CFFCompiler;
 
 /***/ }),
-/* 34 */
+/* 36 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -24383,7 +24762,7 @@ const ExpertSubsetCharset = [".notdef", "space", "dollaroldstyle", "dollarsuperi
 exports.ExpertSubsetCharset = ExpertSubsetCharset;
 
 /***/ }),
-/* 35 */
+/* 37 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -24428,7 +24807,7 @@ function getEncoding(encodingName) {
 }
 
 /***/ }),
-/* 36 */
+/* 38 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -24440,9 +24819,9 @@ exports.SEAC_ANALYSIS_ENABLED = exports.MacStandardGlyphOrdering = exports.FontF
 exports.normalizeFontName = normalizeFontName;
 exports.recoverGlyphName = recoverGlyphName;
 exports.type1FontGlyphMapping = type1FontGlyphMapping;
-var _encodings = __w_pdfjs_require__(35);
-var _glyphlist = __w_pdfjs_require__(37);
-var _unicode = __w_pdfjs_require__(38);
+var _encodings = __w_pdfjs_require__(37);
+var _glyphlist = __w_pdfjs_require__(39);
+var _unicode = __w_pdfjs_require__(40);
 var _util = __w_pdfjs_require__(2);
 const SEAC_ANALYSIS_ENABLED = true;
 exports.SEAC_ANALYSIS_ENABLED = SEAC_ANALYSIS_ENABLED;
@@ -24539,11 +24918,11 @@ function type1FontGlyphMapping(properties, builtInEncoding, glyphNames) {
   return charCodeToGlyphId;
 }
 function normalizeFontName(name) {
-  return name.replace(/[,_]/g, "-").replace(/\s/g, "");
+  return name.replaceAll(/[,_]/g, "-").replaceAll(/\s/g, "");
 }
 
 /***/ }),
-/* 37 */
+/* 39 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -24552,7 +24931,7 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.getGlyphsUnicode = exports.getDingbatsGlyphsUnicode = void 0;
-var _core_utils = __w_pdfjs_require__(4);
+var _core_utils = __w_pdfjs_require__(3);
 const getGlyphsUnicode = (0, _core_utils.getArrayLookupTableFactory)(function () {
   return ["A", 0x0041, "AE", 0x00c6, "AEacute", 0x01fc, "AEmacron", 0x01e2, "AEsmall", 0xf7e6, "Aacute", 0x00c1, "Aacutesmall", 0xf7e1, "Abreve", 0x0102, "Abreveacute", 0x1eae, "Abrevecyrillic", 0x04d0, "Abrevedotbelow", 0x1eb6, "Abrevegrave", 0x1eb0, "Abrevehookabove", 0x1eb2, "Abrevetilde", 0x1eb4, "Acaron", 0x01cd, "Acircle", 0x24b6, "Acircumflex", 0x00c2, "Acircumflexacute", 0x1ea4, "Acircumflexdotbelow", 0x1eac, "Acircumflexgrave", 0x1ea6, "Acircumflexhookabove", 0x1ea8, "Acircumflexsmall", 0xf7e2, "Acircumflextilde", 0x1eaa, "Acute", 0xf6c9, "Acutesmall", 0xf7b4, "Acyrillic", 0x0410, "Adblgrave", 0x0200, "Adieresis", 0x00c4, "Adieresiscyrillic", 0x04d2, "Adieresismacron", 0x01de, "Adieresissmall", 0xf7e4, "Adotbelow", 0x1ea0, "Adotmacron", 0x01e0, "Agrave", 0x00c0, "Agravesmall", 0xf7e0, "Ahookabove", 0x1ea2, "Aiecyrillic", 0x04d4, "Ainvertedbreve", 0x0202, "Alpha", 0x0391, "Alphatonos", 0x0386, "Amacron", 0x0100, "Amonospace", 0xff21, "Aogonek", 0x0104, "Aring", 0x00c5, "Aringacute", 0x01fa, "Aringbelow", 0x1e00, "Aringsmall", 0xf7e5, "Asmall", 0xf761, "Atilde", 0x00c3, "Atildesmall", 0xf7e3, "Aybarmenian", 0x0531, "B", 0x0042, "Bcircle", 0x24b7, "Bdotaccent", 0x1e02, "Bdotbelow", 0x1e04, "Becyrillic", 0x0411, "Benarmenian", 0x0532, "Beta", 0x0392, "Bhook", 0x0181, "Blinebelow", 0x1e06, "Bmonospace", 0xff22, "Brevesmall", 0xf6f4, "Bsmall", 0xf762, "Btopbar", 0x0182, "C", 0x0043, "Caarmenian", 0x053e, "Cacute", 0x0106, "Caron", 0xf6ca, "Caronsmall", 0xf6f5, "Ccaron", 0x010c, "Ccedilla", 0x00c7, "Ccedillaacute", 0x1e08, "Ccedillasmall", 0xf7e7, "Ccircle", 0x24b8, "Ccircumflex", 0x0108, "Cdot", 0x010a, "Cdotaccent", 0x010a, "Cedillasmall", 0xf7b8, "Chaarmenian", 0x0549, "Cheabkhasiancyrillic", 0x04bc, "Checyrillic", 0x0427, "Chedescenderabkhasiancyrillic", 0x04be, "Chedescendercyrillic", 0x04b6, "Chedieresiscyrillic", 0x04f4, "Cheharmenian", 0x0543, "Chekhakassiancyrillic", 0x04cb, "Cheverticalstrokecyrillic", 0x04b8, "Chi", 0x03a7, "Chook", 0x0187, "Circumflexsmall", 0xf6f6, "Cmonospace", 0xff23, "Coarmenian", 0x0551, "Csmall", 0xf763, "D", 0x0044, "DZ", 0x01f1, "DZcaron", 0x01c4, "Daarmenian", 0x0534, "Dafrican", 0x0189, "Dcaron", 0x010e, "Dcedilla", 0x1e10, "Dcircle", 0x24b9, "Dcircumflexbelow", 0x1e12, "Dcroat", 0x0110, "Ddotaccent", 0x1e0a, "Ddotbelow", 0x1e0c, "Decyrillic", 0x0414, "Deicoptic", 0x03ee, "Delta", 0x2206, "Deltagreek", 0x0394, "Dhook", 0x018a, "Dieresis", 0xf6cb, "DieresisAcute", 0xf6cc, "DieresisGrave", 0xf6cd, "Dieresissmall", 0xf7a8, "Digammagreek", 0x03dc, "Djecyrillic", 0x0402, "Dlinebelow", 0x1e0e, "Dmonospace", 0xff24, "Dotaccentsmall", 0xf6f7, "Dslash", 0x0110, "Dsmall", 0xf764, "Dtopbar", 0x018b, "Dz", 0x01f2, "Dzcaron", 0x01c5, "Dzeabkhasiancyrillic", 0x04e0, "Dzecyrillic", 0x0405, "Dzhecyrillic", 0x040f, "E", 0x0045, "Eacute", 0x00c9, "Eacutesmall", 0xf7e9, "Ebreve", 0x0114, "Ecaron", 0x011a, "Ecedillabreve", 0x1e1c, "Echarmenian", 0x0535, "Ecircle", 0x24ba, "Ecircumflex", 0x00ca, "Ecircumflexacute", 0x1ebe, "Ecircumflexbelow", 0x1e18, "Ecircumflexdotbelow", 0x1ec6, "Ecircumflexgrave", 0x1ec0, "Ecircumflexhookabove", 0x1ec2, "Ecircumflexsmall", 0xf7ea, "Ecircumflextilde", 0x1ec4, "Ecyrillic", 0x0404, "Edblgrave", 0x0204, "Edieresis", 0x00cb, "Edieresissmall", 0xf7eb, "Edot", 0x0116, "Edotaccent", 0x0116, "Edotbelow", 0x1eb8, "Efcyrillic", 0x0424, "Egrave", 0x00c8, "Egravesmall", 0xf7e8, "Eharmenian", 0x0537, "Ehookabove", 0x1eba, "Eightroman", 0x2167, "Einvertedbreve", 0x0206, "Eiotifiedcyrillic", 0x0464, "Elcyrillic", 0x041b, "Elevenroman", 0x216a, "Emacron", 0x0112, "Emacronacute", 0x1e16, "Emacrongrave", 0x1e14, "Emcyrillic", 0x041c, "Emonospace", 0xff25, "Encyrillic", 0x041d, "Endescendercyrillic", 0x04a2, "Eng", 0x014a, "Enghecyrillic", 0x04a4, "Enhookcyrillic", 0x04c7, "Eogonek", 0x0118, "Eopen", 0x0190, "Epsilon", 0x0395, "Epsilontonos", 0x0388, "Ercyrillic", 0x0420, "Ereversed", 0x018e, "Ereversedcyrillic", 0x042d, "Escyrillic", 0x0421, "Esdescendercyrillic", 0x04aa, "Esh", 0x01a9, "Esmall", 0xf765, "Eta", 0x0397, "Etarmenian", 0x0538, "Etatonos", 0x0389, "Eth", 0x00d0, "Ethsmall", 0xf7f0, "Etilde", 0x1ebc, "Etildebelow", 0x1e1a, "Euro", 0x20ac, "Ezh", 0x01b7, "Ezhcaron", 0x01ee, "Ezhreversed", 0x01b8, "F", 0x0046, "Fcircle", 0x24bb, "Fdotaccent", 0x1e1e, "Feharmenian", 0x0556, "Feicoptic", 0x03e4, "Fhook", 0x0191, "Fitacyrillic", 0x0472, "Fiveroman", 0x2164, "Fmonospace", 0xff26, "Fourroman", 0x2163, "Fsmall", 0xf766, "G", 0x0047, "GBsquare", 0x3387, "Gacute", 0x01f4, "Gamma", 0x0393, "Gammaafrican", 0x0194, "Gangiacoptic", 0x03ea, "Gbreve", 0x011e, "Gcaron", 0x01e6, "Gcedilla", 0x0122, "Gcircle", 0x24bc, "Gcircumflex", 0x011c, "Gcommaaccent", 0x0122, "Gdot", 0x0120, "Gdotaccent", 0x0120, "Gecyrillic", 0x0413, "Ghadarmenian", 0x0542, "Ghemiddlehookcyrillic", 0x0494, "Ghestrokecyrillic", 0x0492, "Gheupturncyrillic", 0x0490, "Ghook", 0x0193, "Gimarmenian", 0x0533, "Gjecyrillic", 0x0403, "Gmacron", 0x1e20, "Gmonospace", 0xff27, "Grave", 0xf6ce, "Gravesmall", 0xf760, "Gsmall", 0xf767, "Gsmallhook", 0x029b, "Gstroke", 0x01e4, "H", 0x0048, "H18533", 0x25cf, "H18543", 0x25aa, "H18551", 0x25ab, "H22073", 0x25a1, "HPsquare", 0x33cb, "Haabkhasiancyrillic", 0x04a8, "Hadescendercyrillic", 0x04b2, "Hardsigncyrillic", 0x042a, "Hbar", 0x0126, "Hbrevebelow", 0x1e2a, "Hcedilla", 0x1e28, "Hcircle", 0x24bd, "Hcircumflex", 0x0124, "Hdieresis", 0x1e26, "Hdotaccent", 0x1e22, "Hdotbelow", 0x1e24, "Hmonospace", 0xff28, "Hoarmenian", 0x0540, "Horicoptic", 0x03e8, "Hsmall", 0xf768, "Hungarumlaut", 0xf6cf, "Hungarumlautsmall", 0xf6f8, "Hzsquare", 0x3390, "I", 0x0049, "IAcyrillic", 0x042f, "IJ", 0x0132, "IUcyrillic", 0x042e, "Iacute", 0x00cd, "Iacutesmall", 0xf7ed, "Ibreve", 0x012c, "Icaron", 0x01cf, "Icircle", 0x24be, "Icircumflex", 0x00ce, "Icircumflexsmall", 0xf7ee, "Icyrillic", 0x0406, "Idblgrave", 0x0208, "Idieresis", 0x00cf, "Idieresisacute", 0x1e2e, "Idieresiscyrillic", 0x04e4, "Idieresissmall", 0xf7ef, "Idot", 0x0130, "Idotaccent", 0x0130, "Idotbelow", 0x1eca, "Iebrevecyrillic", 0x04d6, "Iecyrillic", 0x0415, "Ifraktur", 0x2111, "Igrave", 0x00cc, "Igravesmall", 0xf7ec, "Ihookabove", 0x1ec8, "Iicyrillic", 0x0418, "Iinvertedbreve", 0x020a, "Iishortcyrillic", 0x0419, "Imacron", 0x012a, "Imacroncyrillic", 0x04e2, "Imonospace", 0xff29, "Iniarmenian", 0x053b, "Iocyrillic", 0x0401, "Iogonek", 0x012e, "Iota", 0x0399, "Iotaafrican", 0x0196, "Iotadieresis", 0x03aa, "Iotatonos", 0x038a, "Ismall", 0xf769, "Istroke", 0x0197, "Itilde", 0x0128, "Itildebelow", 0x1e2c, "Izhitsacyrillic", 0x0474, "Izhitsadblgravecyrillic", 0x0476, "J", 0x004a, "Jaarmenian", 0x0541, "Jcircle", 0x24bf, "Jcircumflex", 0x0134, "Jecyrillic", 0x0408, "Jheharmenian", 0x054b, "Jmonospace", 0xff2a, "Jsmall", 0xf76a, "K", 0x004b, "KBsquare", 0x3385, "KKsquare", 0x33cd, "Kabashkircyrillic", 0x04a0, "Kacute", 0x1e30, "Kacyrillic", 0x041a, "Kadescendercyrillic", 0x049a, "Kahookcyrillic", 0x04c3, "Kappa", 0x039a, "Kastrokecyrillic", 0x049e, "Kaverticalstrokecyrillic", 0x049c, "Kcaron", 0x01e8, "Kcedilla", 0x0136, "Kcircle", 0x24c0, "Kcommaaccent", 0x0136, "Kdotbelow", 0x1e32, "Keharmenian", 0x0554, "Kenarmenian", 0x053f, "Khacyrillic", 0x0425, "Kheicoptic", 0x03e6, "Khook", 0x0198, "Kjecyrillic", 0x040c, "Klinebelow", 0x1e34, "Kmonospace", 0xff2b, "Koppacyrillic", 0x0480, "Koppagreek", 0x03de, "Ksicyrillic", 0x046e, "Ksmall", 0xf76b, "L", 0x004c, "LJ", 0x01c7, "LL", 0xf6bf, "Lacute", 0x0139, "Lambda", 0x039b, "Lcaron", 0x013d, "Lcedilla", 0x013b, "Lcircle", 0x24c1, "Lcircumflexbelow", 0x1e3c, "Lcommaaccent", 0x013b, "Ldot", 0x013f, "Ldotaccent", 0x013f, "Ldotbelow", 0x1e36, "Ldotbelowmacron", 0x1e38, "Liwnarmenian", 0x053c, "Lj", 0x01c8, "Ljecyrillic", 0x0409, "Llinebelow", 0x1e3a, "Lmonospace", 0xff2c, "Lslash", 0x0141, "Lslashsmall", 0xf6f9, "Lsmall", 0xf76c, "M", 0x004d, "MBsquare", 0x3386, "Macron", 0xf6d0, "Macronsmall", 0xf7af, "Macute", 0x1e3e, "Mcircle", 0x24c2, "Mdotaccent", 0x1e40, "Mdotbelow", 0x1e42, "Menarmenian", 0x0544, "Mmonospace", 0xff2d, "Msmall", 0xf76d, "Mturned", 0x019c, "Mu", 0x039c, "N", 0x004e, "NJ", 0x01ca, "Nacute", 0x0143, "Ncaron", 0x0147, "Ncedilla", 0x0145, "Ncircle", 0x24c3, "Ncircumflexbelow", 0x1e4a, "Ncommaaccent", 0x0145, "Ndotaccent", 0x1e44, "Ndotbelow", 0x1e46, "Nhookleft", 0x019d, "Nineroman", 0x2168, "Nj", 0x01cb, "Njecyrillic", 0x040a, "Nlinebelow", 0x1e48, "Nmonospace", 0xff2e, "Nowarmenian", 0x0546, "Nsmall", 0xf76e, "Ntilde", 0x00d1, "Ntildesmall", 0xf7f1, "Nu", 0x039d, "O", 0x004f, "OE", 0x0152, "OEsmall", 0xf6fa, "Oacute", 0x00d3, "Oacutesmall", 0xf7f3, "Obarredcyrillic", 0x04e8, "Obarreddieresiscyrillic", 0x04ea, "Obreve", 0x014e, "Ocaron", 0x01d1, "Ocenteredtilde", 0x019f, "Ocircle", 0x24c4, "Ocircumflex", 0x00d4, "Ocircumflexacute", 0x1ed0, "Ocircumflexdotbelow", 0x1ed8, "Ocircumflexgrave", 0x1ed2, "Ocircumflexhookabove", 0x1ed4, "Ocircumflexsmall", 0xf7f4, "Ocircumflextilde", 0x1ed6, "Ocyrillic", 0x041e, "Odblacute", 0x0150, "Odblgrave", 0x020c, "Odieresis", 0x00d6, "Odieresiscyrillic", 0x04e6, "Odieresissmall", 0xf7f6, "Odotbelow", 0x1ecc, "Ogoneksmall", 0xf6fb, "Ograve", 0x00d2, "Ogravesmall", 0xf7f2, "Oharmenian", 0x0555, "Ohm", 0x2126, "Ohookabove", 0x1ece, "Ohorn", 0x01a0, "Ohornacute", 0x1eda, "Ohorndotbelow", 0x1ee2, "Ohorngrave", 0x1edc, "Ohornhookabove", 0x1ede, "Ohorntilde", 0x1ee0, "Ohungarumlaut", 0x0150, "Oi", 0x01a2, "Oinvertedbreve", 0x020e, "Omacron", 0x014c, "Omacronacute", 0x1e52, "Omacrongrave", 0x1e50, "Omega", 0x2126, "Omegacyrillic", 0x0460, "Omegagreek", 0x03a9, "Omegaroundcyrillic", 0x047a, "Omegatitlocyrillic", 0x047c, "Omegatonos", 0x038f, "Omicron", 0x039f, "Omicrontonos", 0x038c, "Omonospace", 0xff2f, "Oneroman", 0x2160, "Oogonek", 0x01ea, "Oogonekmacron", 0x01ec, "Oopen", 0x0186, "Oslash", 0x00d8, "Oslashacute", 0x01fe, "Oslashsmall", 0xf7f8, "Osmall", 0xf76f, "Ostrokeacute", 0x01fe, "Otcyrillic", 0x047e, "Otilde", 0x00d5, "Otildeacute", 0x1e4c, "Otildedieresis", 0x1e4e, "Otildesmall", 0xf7f5, "P", 0x0050, "Pacute", 0x1e54, "Pcircle", 0x24c5, "Pdotaccent", 0x1e56, "Pecyrillic", 0x041f, "Peharmenian", 0x054a, "Pemiddlehookcyrillic", 0x04a6, "Phi", 0x03a6, "Phook", 0x01a4, "Pi", 0x03a0, "Piwrarmenian", 0x0553, "Pmonospace", 0xff30, "Psi", 0x03a8, "Psicyrillic", 0x0470, "Psmall", 0xf770, "Q", 0x0051, "Qcircle", 0x24c6, "Qmonospace", 0xff31, "Qsmall", 0xf771, "R", 0x0052, "Raarmenian", 0x054c, "Racute", 0x0154, "Rcaron", 0x0158, "Rcedilla", 0x0156, "Rcircle", 0x24c7, "Rcommaaccent", 0x0156, "Rdblgrave", 0x0210, "Rdotaccent", 0x1e58, "Rdotbelow", 0x1e5a, "Rdotbelowmacron", 0x1e5c, "Reharmenian", 0x0550, "Rfraktur", 0x211c, "Rho", 0x03a1, "Ringsmall", 0xf6fc, "Rinvertedbreve", 0x0212, "Rlinebelow", 0x1e5e, "Rmonospace", 0xff32, "Rsmall", 0xf772, "Rsmallinverted", 0x0281, "Rsmallinvertedsuperior", 0x02b6, "S", 0x0053, "SF010000", 0x250c, "SF020000", 0x2514, "SF030000", 0x2510, "SF040000", 0x2518, "SF050000", 0x253c, "SF060000", 0x252c, "SF070000", 0x2534, "SF080000", 0x251c, "SF090000", 0x2524, "SF100000", 0x2500, "SF110000", 0x2502, "SF190000", 0x2561, "SF200000", 0x2562, "SF210000", 0x2556, "SF220000", 0x2555, "SF230000", 0x2563, "SF240000", 0x2551, "SF250000", 0x2557, "SF260000", 0x255d, "SF270000", 0x255c, "SF280000", 0x255b, "SF360000", 0x255e, "SF370000", 0x255f, "SF380000", 0x255a, "SF390000", 0x2554, "SF400000", 0x2569, "SF410000", 0x2566, "SF420000", 0x2560, "SF430000", 0x2550, "SF440000", 0x256c, "SF450000", 0x2567, "SF460000", 0x2568, "SF470000", 0x2564, "SF480000", 0x2565, "SF490000", 0x2559, "SF500000", 0x2558, "SF510000", 0x2552, "SF520000", 0x2553, "SF530000", 0x256b, "SF540000", 0x256a, "Sacute", 0x015a, "Sacutedotaccent", 0x1e64, "Sampigreek", 0x03e0, "Scaron", 0x0160, "Scarondotaccent", 0x1e66, "Scaronsmall", 0xf6fd, "Scedilla", 0x015e, "Schwa", 0x018f, "Schwacyrillic", 0x04d8, "Schwadieresiscyrillic", 0x04da, "Scircle", 0x24c8, "Scircumflex", 0x015c, "Scommaaccent", 0x0218, "Sdotaccent", 0x1e60, "Sdotbelow", 0x1e62, "Sdotbelowdotaccent", 0x1e68, "Seharmenian", 0x054d, "Sevenroman", 0x2166, "Shaarmenian", 0x0547, "Shacyrillic", 0x0428, "Shchacyrillic", 0x0429, "Sheicoptic", 0x03e2, "Shhacyrillic", 0x04ba, "Shimacoptic", 0x03ec, "Sigma", 0x03a3, "Sixroman", 0x2165, "Smonospace", 0xff33, "Softsigncyrillic", 0x042c, "Ssmall", 0xf773, "Stigmagreek", 0x03da, "T", 0x0054, "Tau", 0x03a4, "Tbar", 0x0166, "Tcaron", 0x0164, "Tcedilla", 0x0162, "Tcircle", 0x24c9, "Tcircumflexbelow", 0x1e70, "Tcommaaccent", 0x0162, "Tdotaccent", 0x1e6a, "Tdotbelow", 0x1e6c, "Tecyrillic", 0x0422, "Tedescendercyrillic", 0x04ac, "Tenroman", 0x2169, "Tetsecyrillic", 0x04b4, "Theta", 0x0398, "Thook", 0x01ac, "Thorn", 0x00de, "Thornsmall", 0xf7fe, "Threeroman", 0x2162, "Tildesmall", 0xf6fe, "Tiwnarmenian", 0x054f, "Tlinebelow", 0x1e6e, "Tmonospace", 0xff34, "Toarmenian", 0x0539, "Tonefive", 0x01bc, "Tonesix", 0x0184, "Tonetwo", 0x01a7, "Tretroflexhook", 0x01ae, "Tsecyrillic", 0x0426, "Tshecyrillic", 0x040b, "Tsmall", 0xf774, "Twelveroman", 0x216b, "Tworoman", 0x2161, "U", 0x0055, "Uacute", 0x00da, "Uacutesmall", 0xf7fa, "Ubreve", 0x016c, "Ucaron", 0x01d3, "Ucircle", 0x24ca, "Ucircumflex", 0x00db, "Ucircumflexbelow", 0x1e76, "Ucircumflexsmall", 0xf7fb, "Ucyrillic", 0x0423, "Udblacute", 0x0170, "Udblgrave", 0x0214, "Udieresis", 0x00dc, "Udieresisacute", 0x01d7, "Udieresisbelow", 0x1e72, "Udieresiscaron", 0x01d9, "Udieresiscyrillic", 0x04f0, "Udieresisgrave", 0x01db, "Udieresismacron", 0x01d5, "Udieresissmall", 0xf7fc, "Udotbelow", 0x1ee4, "Ugrave", 0x00d9, "Ugravesmall", 0xf7f9, "Uhookabove", 0x1ee6, "Uhorn", 0x01af, "Uhornacute", 0x1ee8, "Uhorndotbelow", 0x1ef0, "Uhorngrave", 0x1eea, "Uhornhookabove", 0x1eec, "Uhorntilde", 0x1eee, "Uhungarumlaut", 0x0170, "Uhungarumlautcyrillic", 0x04f2, "Uinvertedbreve", 0x0216, "Ukcyrillic", 0x0478, "Umacron", 0x016a, "Umacroncyrillic", 0x04ee, "Umacrondieresis", 0x1e7a, "Umonospace", 0xff35, "Uogonek", 0x0172, "Upsilon", 0x03a5, "Upsilon1", 0x03d2, "Upsilonacutehooksymbolgreek", 0x03d3, "Upsilonafrican", 0x01b1, "Upsilondieresis", 0x03ab, "Upsilondieresishooksymbolgreek", 0x03d4, "Upsilonhooksymbol", 0x03d2, "Upsilontonos", 0x038e, "Uring", 0x016e, "Ushortcyrillic", 0x040e, "Usmall", 0xf775, "Ustraightcyrillic", 0x04ae, "Ustraightstrokecyrillic", 0x04b0, "Utilde", 0x0168, "Utildeacute", 0x1e78, "Utildebelow", 0x1e74, "V", 0x0056, "Vcircle", 0x24cb, "Vdotbelow", 0x1e7e, "Vecyrillic", 0x0412, "Vewarmenian", 0x054e, "Vhook", 0x01b2, "Vmonospace", 0xff36, "Voarmenian", 0x0548, "Vsmall", 0xf776, "Vtilde", 0x1e7c, "W", 0x0057, "Wacute", 0x1e82, "Wcircle", 0x24cc, "Wcircumflex", 0x0174, "Wdieresis", 0x1e84, "Wdotaccent", 0x1e86, "Wdotbelow", 0x1e88, "Wgrave", 0x1e80, "Wmonospace", 0xff37, "Wsmall", 0xf777, "X", 0x0058, "Xcircle", 0x24cd, "Xdieresis", 0x1e8c, "Xdotaccent", 0x1e8a, "Xeharmenian", 0x053d, "Xi", 0x039e, "Xmonospace", 0xff38, "Xsmall", 0xf778, "Y", 0x0059, "Yacute", 0x00dd, "Yacutesmall", 0xf7fd, "Yatcyrillic", 0x0462, "Ycircle", 0x24ce, "Ycircumflex", 0x0176, "Ydieresis", 0x0178, "Ydieresissmall", 0xf7ff, "Ydotaccent", 0x1e8e, "Ydotbelow", 0x1ef4, "Yericyrillic", 0x042b, "Yerudieresiscyrillic", 0x04f8, "Ygrave", 0x1ef2, "Yhook", 0x01b3, "Yhookabove", 0x1ef6, "Yiarmenian", 0x0545, "Yicyrillic", 0x0407, "Yiwnarmenian", 0x0552, "Ymonospace", 0xff39, "Ysmall", 0xf779, "Ytilde", 0x1ef8, "Yusbigcyrillic", 0x046a, "Yusbigiotifiedcyrillic", 0x046c, "Yuslittlecyrillic", 0x0466, "Yuslittleiotifiedcyrillic", 0x0468, "Z", 0x005a, "Zaarmenian", 0x0536, "Zacute", 0x0179, "Zcaron", 0x017d, "Zcaronsmall", 0xf6ff, "Zcircle", 0x24cf, "Zcircumflex", 0x1e90, "Zdot", 0x017b, "Zdotaccent", 0x017b, "Zdotbelow", 0x1e92, "Zecyrillic", 0x0417, "Zedescendercyrillic", 0x0498, "Zedieresiscyrillic", 0x04de, "Zeta", 0x0396, "Zhearmenian", 0x053a, "Zhebrevecyrillic", 0x04c1, "Zhecyrillic", 0x0416, "Zhedescendercyrillic", 0x0496, "Zhedieresiscyrillic", 0x04dc, "Zlinebelow", 0x1e94, "Zmonospace", 0xff3a, "Zsmall", 0xf77a, "Zstroke", 0x01b5, "a", 0x0061, "aabengali", 0x0986, "aacute", 0x00e1, "aadeva", 0x0906, "aagujarati", 0x0a86, "aagurmukhi", 0x0a06, "aamatragurmukhi", 0x0a3e, "aarusquare", 0x3303, "aavowelsignbengali", 0x09be, "aavowelsigndeva", 0x093e, "aavowelsigngujarati", 0x0abe, "abbreviationmarkarmenian", 0x055f, "abbreviationsigndeva", 0x0970, "abengali", 0x0985, "abopomofo", 0x311a, "abreve", 0x0103, "abreveacute", 0x1eaf, "abrevecyrillic", 0x04d1, "abrevedotbelow", 0x1eb7, "abrevegrave", 0x1eb1, "abrevehookabove", 0x1eb3, "abrevetilde", 0x1eb5, "acaron", 0x01ce, "acircle", 0x24d0, "acircumflex", 0x00e2, "acircumflexacute", 0x1ea5, "acircumflexdotbelow", 0x1ead, "acircumflexgrave", 0x1ea7, "acircumflexhookabove", 0x1ea9, "acircumflextilde", 0x1eab, "acute", 0x00b4, "acutebelowcmb", 0x0317, "acutecmb", 0x0301, "acutecomb", 0x0301, "acutedeva", 0x0954, "acutelowmod", 0x02cf, "acutetonecmb", 0x0341, "acyrillic", 0x0430, "adblgrave", 0x0201, "addakgurmukhi", 0x0a71, "adeva", 0x0905, "adieresis", 0x00e4, "adieresiscyrillic", 0x04d3, "adieresismacron", 0x01df, "adotbelow", 0x1ea1, "adotmacron", 0x01e1, "ae", 0x00e6, "aeacute", 0x01fd, "aekorean", 0x3150, "aemacron", 0x01e3, "afii00208", 0x2015, "afii08941", 0x20a4, "afii10017", 0x0410, "afii10018", 0x0411, "afii10019", 0x0412, "afii10020", 0x0413, "afii10021", 0x0414, "afii10022", 0x0415, "afii10023", 0x0401, "afii10024", 0x0416, "afii10025", 0x0417, "afii10026", 0x0418, "afii10027", 0x0419, "afii10028", 0x041a, "afii10029", 0x041b, "afii10030", 0x041c, "afii10031", 0x041d, "afii10032", 0x041e, "afii10033", 0x041f, "afii10034", 0x0420, "afii10035", 0x0421, "afii10036", 0x0422, "afii10037", 0x0423, "afii10038", 0x0424, "afii10039", 0x0425, "afii10040", 0x0426, "afii10041", 0x0427, "afii10042", 0x0428, "afii10043", 0x0429, "afii10044", 0x042a, "afii10045", 0x042b, "afii10046", 0x042c, "afii10047", 0x042d, "afii10048", 0x042e, "afii10049", 0x042f, "afii10050", 0x0490, "afii10051", 0x0402, "afii10052", 0x0403, "afii10053", 0x0404, "afii10054", 0x0405, "afii10055", 0x0406, "afii10056", 0x0407, "afii10057", 0x0408, "afii10058", 0x0409, "afii10059", 0x040a, "afii10060", 0x040b, "afii10061", 0x040c, "afii10062", 0x040e, "afii10063", 0xf6c4, "afii10064", 0xf6c5, "afii10065", 0x0430, "afii10066", 0x0431, "afii10067", 0x0432, "afii10068", 0x0433, "afii10069", 0x0434, "afii10070", 0x0435, "afii10071", 0x0451, "afii10072", 0x0436, "afii10073", 0x0437, "afii10074", 0x0438, "afii10075", 0x0439, "afii10076", 0x043a, "afii10077", 0x043b, "afii10078", 0x043c, "afii10079", 0x043d, "afii10080", 0x043e, "afii10081", 0x043f, "afii10082", 0x0440, "afii10083", 0x0441, "afii10084", 0x0442, "afii10085", 0x0443, "afii10086", 0x0444, "afii10087", 0x0445, "afii10088", 0x0446, "afii10089", 0x0447, "afii10090", 0x0448, "afii10091", 0x0449, "afii10092", 0x044a, "afii10093", 0x044b, "afii10094", 0x044c, "afii10095", 0x044d, "afii10096", 0x044e, "afii10097", 0x044f, "afii10098", 0x0491, "afii10099", 0x0452, "afii10100", 0x0453, "afii10101", 0x0454, "afii10102", 0x0455, "afii10103", 0x0456, "afii10104", 0x0457, "afii10105", 0x0458, "afii10106", 0x0459, "afii10107", 0x045a, "afii10108", 0x045b, "afii10109", 0x045c, "afii10110", 0x045e, "afii10145", 0x040f, "afii10146", 0x0462, "afii10147", 0x0472, "afii10148", 0x0474, "afii10192", 0xf6c6, "afii10193", 0x045f, "afii10194", 0x0463, "afii10195", 0x0473, "afii10196", 0x0475, "afii10831", 0xf6c7, "afii10832", 0xf6c8, "afii10846", 0x04d9, "afii299", 0x200e, "afii300", 0x200f, "afii301", 0x200d, "afii57381", 0x066a, "afii57388", 0x060c, "afii57392", 0x0660, "afii57393", 0x0661, "afii57394", 0x0662, "afii57395", 0x0663, "afii57396", 0x0664, "afii57397", 0x0665, "afii57398", 0x0666, "afii57399", 0x0667, "afii57400", 0x0668, "afii57401", 0x0669, "afii57403", 0x061b, "afii57407", 0x061f, "afii57409", 0x0621, "afii57410", 0x0622, "afii57411", 0x0623, "afii57412", 0x0624, "afii57413", 0x0625, "afii57414", 0x0626, "afii57415", 0x0627, "afii57416", 0x0628, "afii57417", 0x0629, "afii57418", 0x062a, "afii57419", 0x062b, "afii57420", 0x062c, "afii57421", 0x062d, "afii57422", 0x062e, "afii57423", 0x062f, "afii57424", 0x0630, "afii57425", 0x0631, "afii57426", 0x0632, "afii57427", 0x0633, "afii57428", 0x0634, "afii57429", 0x0635, "afii57430", 0x0636, "afii57431", 0x0637, "afii57432", 0x0638, "afii57433", 0x0639, "afii57434", 0x063a, "afii57440", 0x0640, "afii57441", 0x0641, "afii57442", 0x0642, "afii57443", 0x0643, "afii57444", 0x0644, "afii57445", 0x0645, "afii57446", 0x0646, "afii57448", 0x0648, "afii57449", 0x0649, "afii57450", 0x064a, "afii57451", 0x064b, "afii57452", 0x064c, "afii57453", 0x064d, "afii57454", 0x064e, "afii57455", 0x064f, "afii57456", 0x0650, "afii57457", 0x0651, "afii57458", 0x0652, "afii57470", 0x0647, "afii57505", 0x06a4, "afii57506", 0x067e, "afii57507", 0x0686, "afii57508", 0x0698, "afii57509", 0x06af, "afii57511", 0x0679, "afii57512", 0x0688, "afii57513", 0x0691, "afii57514", 0x06ba, "afii57519", 0x06d2, "afii57534", 0x06d5, "afii57636", 0x20aa, "afii57645", 0x05be, "afii57658", 0x05c3, "afii57664", 0x05d0, "afii57665", 0x05d1, "afii57666", 0x05d2, "afii57667", 0x05d3, "afii57668", 0x05d4, "afii57669", 0x05d5, "afii57670", 0x05d6, "afii57671", 0x05d7, "afii57672", 0x05d8, "afii57673", 0x05d9, "afii57674", 0x05da, "afii57675", 0x05db, "afii57676", 0x05dc, "afii57677", 0x05dd, "afii57678", 0x05de, "afii57679", 0x05df, "afii57680", 0x05e0, "afii57681", 0x05e1, "afii57682", 0x05e2, "afii57683", 0x05e3, "afii57684", 0x05e4, "afii57685", 0x05e5, "afii57686", 0x05e6, "afii57687", 0x05e7, "afii57688", 0x05e8, "afii57689", 0x05e9, "afii57690", 0x05ea, "afii57694", 0xfb2a, "afii57695", 0xfb2b, "afii57700", 0xfb4b, "afii57705", 0xfb1f, "afii57716", 0x05f0, "afii57717", 0x05f1, "afii57718", 0x05f2, "afii57723", 0xfb35, "afii57793", 0x05b4, "afii57794", 0x05b5, "afii57795", 0x05b6, "afii57796", 0x05bb, "afii57797", 0x05b8, "afii57798", 0x05b7, "afii57799", 0x05b0, "afii57800", 0x05b2, "afii57801", 0x05b1, "afii57802", 0x05b3, "afii57803", 0x05c2, "afii57804", 0x05c1, "afii57806", 0x05b9, "afii57807", 0x05bc, "afii57839", 0x05bd, "afii57841", 0x05bf, "afii57842", 0x05c0, "afii57929", 0x02bc, "afii61248", 0x2105, "afii61289", 0x2113, "afii61352", 0x2116, "afii61573", 0x202c, "afii61574", 0x202d, "afii61575", 0x202e, "afii61664", 0x200c, "afii63167", 0x066d, "afii64937", 0x02bd, "agrave", 0x00e0, "agujarati", 0x0a85, "agurmukhi", 0x0a05, "ahiragana", 0x3042, "ahookabove", 0x1ea3, "aibengali", 0x0990, "aibopomofo", 0x311e, "aideva", 0x0910, "aiecyrillic", 0x04d5, "aigujarati", 0x0a90, "aigurmukhi", 0x0a10, "aimatragurmukhi", 0x0a48, "ainarabic", 0x0639, "ainfinalarabic", 0xfeca, "aininitialarabic", 0xfecb, "ainmedialarabic", 0xfecc, "ainvertedbreve", 0x0203, "aivowelsignbengali", 0x09c8, "aivowelsigndeva", 0x0948, "aivowelsigngujarati", 0x0ac8, "akatakana", 0x30a2, "akatakanahalfwidth", 0xff71, "akorean", 0x314f, "alef", 0x05d0, "alefarabic", 0x0627, "alefdageshhebrew", 0xfb30, "aleffinalarabic", 0xfe8e, "alefhamzaabovearabic", 0x0623, "alefhamzaabovefinalarabic", 0xfe84, "alefhamzabelowarabic", 0x0625, "alefhamzabelowfinalarabic", 0xfe88, "alefhebrew", 0x05d0, "aleflamedhebrew", 0xfb4f, "alefmaddaabovearabic", 0x0622, "alefmaddaabovefinalarabic", 0xfe82, "alefmaksuraarabic", 0x0649, "alefmaksurafinalarabic", 0xfef0, "alefmaksurainitialarabic", 0xfef3, "alefmaksuramedialarabic", 0xfef4, "alefpatahhebrew", 0xfb2e, "alefqamatshebrew", 0xfb2f, "aleph", 0x2135, "allequal", 0x224c, "alpha", 0x03b1, "alphatonos", 0x03ac, "amacron", 0x0101, "amonospace", 0xff41, "ampersand", 0x0026, "ampersandmonospace", 0xff06, "ampersandsmall", 0xf726, "amsquare", 0x33c2, "anbopomofo", 0x3122, "angbopomofo", 0x3124, "angbracketleft", 0x3008, "angbracketright", 0x3009, "angkhankhuthai", 0x0e5a, "angle", 0x2220, "anglebracketleft", 0x3008, "anglebracketleftvertical", 0xfe3f, "anglebracketright", 0x3009, "anglebracketrightvertical", 0xfe40, "angleleft", 0x2329, "angleright", 0x232a, "angstrom", 0x212b, "anoteleia", 0x0387, "anudattadeva", 0x0952, "anusvarabengali", 0x0982, "anusvaradeva", 0x0902, "anusvaragujarati", 0x0a82, "aogonek", 0x0105, "apaatosquare", 0x3300, "aparen", 0x249c, "apostrophearmenian", 0x055a, "apostrophemod", 0x02bc, "apple", 0xf8ff, "approaches", 0x2250, "approxequal", 0x2248, "approxequalorimage", 0x2252, "approximatelyequal", 0x2245, "araeaekorean", 0x318e, "araeakorean", 0x318d, "arc", 0x2312, "arighthalfring", 0x1e9a, "aring", 0x00e5, "aringacute", 0x01fb, "aringbelow", 0x1e01, "arrowboth", 0x2194, "arrowdashdown", 0x21e3, "arrowdashleft", 0x21e0, "arrowdashright", 0x21e2, "arrowdashup", 0x21e1, "arrowdblboth", 0x21d4, "arrowdbldown", 0x21d3, "arrowdblleft", 0x21d0, "arrowdblright", 0x21d2, "arrowdblup", 0x21d1, "arrowdown", 0x2193, "arrowdownleft", 0x2199, "arrowdownright", 0x2198, "arrowdownwhite", 0x21e9, "arrowheaddownmod", 0x02c5, "arrowheadleftmod", 0x02c2, "arrowheadrightmod", 0x02c3, "arrowheadupmod", 0x02c4, "arrowhorizex", 0xf8e7, "arrowleft", 0x2190, "arrowleftdbl", 0x21d0, "arrowleftdblstroke", 0x21cd, "arrowleftoverright", 0x21c6, "arrowleftwhite", 0x21e6, "arrowright", 0x2192, "arrowrightdblstroke", 0x21cf, "arrowrightheavy", 0x279e, "arrowrightoverleft", 0x21c4, "arrowrightwhite", 0x21e8, "arrowtableft", 0x21e4, "arrowtabright", 0x21e5, "arrowup", 0x2191, "arrowupdn", 0x2195, "arrowupdnbse", 0x21a8, "arrowupdownbase", 0x21a8, "arrowupleft", 0x2196, "arrowupleftofdown", 0x21c5, "arrowupright", 0x2197, "arrowupwhite", 0x21e7, "arrowvertex", 0xf8e6, "asciicircum", 0x005e, "asciicircummonospace", 0xff3e, "asciitilde", 0x007e, "asciitildemonospace", 0xff5e, "ascript", 0x0251, "ascriptturned", 0x0252, "asmallhiragana", 0x3041, "asmallkatakana", 0x30a1, "asmallkatakanahalfwidth", 0xff67, "asterisk", 0x002a, "asteriskaltonearabic", 0x066d, "asteriskarabic", 0x066d, "asteriskmath", 0x2217, "asteriskmonospace", 0xff0a, "asterisksmall", 0xfe61, "asterism", 0x2042, "asuperior", 0xf6e9, "asymptoticallyequal", 0x2243, "at", 0x0040, "atilde", 0x00e3, "atmonospace", 0xff20, "atsmall", 0xfe6b, "aturned", 0x0250, "aubengali", 0x0994, "aubopomofo", 0x3120, "audeva", 0x0914, "augujarati", 0x0a94, "augurmukhi", 0x0a14, "aulengthmarkbengali", 0x09d7, "aumatragurmukhi", 0x0a4c, "auvowelsignbengali", 0x09cc, "auvowelsigndeva", 0x094c, "auvowelsigngujarati", 0x0acc, "avagrahadeva", 0x093d, "aybarmenian", 0x0561, "ayin", 0x05e2, "ayinaltonehebrew", 0xfb20, "ayinhebrew", 0x05e2, "b", 0x0062, "babengali", 0x09ac, "backslash", 0x005c, "backslashmonospace", 0xff3c, "badeva", 0x092c, "bagujarati", 0x0aac, "bagurmukhi", 0x0a2c, "bahiragana", 0x3070, "bahtthai", 0x0e3f, "bakatakana", 0x30d0, "bar", 0x007c, "barmonospace", 0xff5c, "bbopomofo", 0x3105, "bcircle", 0x24d1, "bdotaccent", 0x1e03, "bdotbelow", 0x1e05, "beamedsixteenthnotes", 0x266c, "because", 0x2235, "becyrillic", 0x0431, "beharabic", 0x0628, "behfinalarabic", 0xfe90, "behinitialarabic", 0xfe91, "behiragana", 0x3079, "behmedialarabic", 0xfe92, "behmeeminitialarabic", 0xfc9f, "behmeemisolatedarabic", 0xfc08, "behnoonfinalarabic", 0xfc6d, "bekatakana", 0x30d9, "benarmenian", 0x0562, "bet", 0x05d1, "beta", 0x03b2, "betasymbolgreek", 0x03d0, "betdagesh", 0xfb31, "betdageshhebrew", 0xfb31, "bethebrew", 0x05d1, "betrafehebrew", 0xfb4c, "bhabengali", 0x09ad, "bhadeva", 0x092d, "bhagujarati", 0x0aad, "bhagurmukhi", 0x0a2d, "bhook", 0x0253, "bihiragana", 0x3073, "bikatakana", 0x30d3, "bilabialclick", 0x0298, "bindigurmukhi", 0x0a02, "birusquare", 0x3331, "blackcircle", 0x25cf, "blackdiamond", 0x25c6, "blackdownpointingtriangle", 0x25bc, "blackleftpointingpointer", 0x25c4, "blackleftpointingtriangle", 0x25c0, "blacklenticularbracketleft", 0x3010, "blacklenticularbracketleftvertical", 0xfe3b, "blacklenticularbracketright", 0x3011, "blacklenticularbracketrightvertical", 0xfe3c, "blacklowerlefttriangle", 0x25e3, "blacklowerrighttriangle", 0x25e2, "blackrectangle", 0x25ac, "blackrightpointingpointer", 0x25ba, "blackrightpointingtriangle", 0x25b6, "blacksmallsquare", 0x25aa, "blacksmilingface", 0x263b, "blacksquare", 0x25a0, "blackstar", 0x2605, "blackupperlefttriangle", 0x25e4, "blackupperrighttriangle", 0x25e5, "blackuppointingsmalltriangle", 0x25b4, "blackuppointingtriangle", 0x25b2, "blank", 0x2423, "blinebelow", 0x1e07, "block", 0x2588, "bmonospace", 0xff42, "bobaimaithai", 0x0e1a, "bohiragana", 0x307c, "bokatakana", 0x30dc, "bparen", 0x249d, "bqsquare", 0x33c3, "braceex", 0xf8f4, "braceleft", 0x007b, "braceleftbt", 0xf8f3, "braceleftmid", 0xf8f2, "braceleftmonospace", 0xff5b, "braceleftsmall", 0xfe5b, "bracelefttp", 0xf8f1, "braceleftvertical", 0xfe37, "braceright", 0x007d, "bracerightbt", 0xf8fe, "bracerightmid", 0xf8fd, "bracerightmonospace", 0xff5d, "bracerightsmall", 0xfe5c, "bracerighttp", 0xf8fc, "bracerightvertical", 0xfe38, "bracketleft", 0x005b, "bracketleftbt", 0xf8f0, "bracketleftex", 0xf8ef, "bracketleftmonospace", 0xff3b, "bracketlefttp", 0xf8ee, "bracketright", 0x005d, "bracketrightbt", 0xf8fb, "bracketrightex", 0xf8fa, "bracketrightmonospace", 0xff3d, "bracketrighttp", 0xf8f9, "breve", 0x02d8, "brevebelowcmb", 0x032e, "brevecmb", 0x0306, "breveinvertedbelowcmb", 0x032f, "breveinvertedcmb", 0x0311, "breveinverteddoublecmb", 0x0361, "bridgebelowcmb", 0x032a, "bridgeinvertedbelowcmb", 0x033a, "brokenbar", 0x00a6, "bstroke", 0x0180, "bsuperior", 0xf6ea, "btopbar", 0x0183, "buhiragana", 0x3076, "bukatakana", 0x30d6, "bullet", 0x2022, "bulletinverse", 0x25d8, "bulletoperator", 0x2219, "bullseye", 0x25ce, "c", 0x0063, "caarmenian", 0x056e, "cabengali", 0x099a, "cacute", 0x0107, "cadeva", 0x091a, "cagujarati", 0x0a9a, "cagurmukhi", 0x0a1a, "calsquare", 0x3388, "candrabindubengali", 0x0981, "candrabinducmb", 0x0310, "candrabindudeva", 0x0901, "candrabindugujarati", 0x0a81, "capslock", 0x21ea, "careof", 0x2105, "caron", 0x02c7, "caronbelowcmb", 0x032c, "caroncmb", 0x030c, "carriagereturn", 0x21b5, "cbopomofo", 0x3118, "ccaron", 0x010d, "ccedilla", 0x00e7, "ccedillaacute", 0x1e09, "ccircle", 0x24d2, "ccircumflex", 0x0109, "ccurl", 0x0255, "cdot", 0x010b, "cdotaccent", 0x010b, "cdsquare", 0x33c5, "cedilla", 0x00b8, "cedillacmb", 0x0327, "cent", 0x00a2, "centigrade", 0x2103, "centinferior", 0xf6df, "centmonospace", 0xffe0, "centoldstyle", 0xf7a2, "centsuperior", 0xf6e0, "chaarmenian", 0x0579, "chabengali", 0x099b, "chadeva", 0x091b, "chagujarati", 0x0a9b, "chagurmukhi", 0x0a1b, "chbopomofo", 0x3114, "cheabkhasiancyrillic", 0x04bd, "checkmark", 0x2713, "checyrillic", 0x0447, "chedescenderabkhasiancyrillic", 0x04bf, "chedescendercyrillic", 0x04b7, "chedieresiscyrillic", 0x04f5, "cheharmenian", 0x0573, "chekhakassiancyrillic", 0x04cc, "cheverticalstrokecyrillic", 0x04b9, "chi", 0x03c7, "chieuchacirclekorean", 0x3277, "chieuchaparenkorean", 0x3217, "chieuchcirclekorean", 0x3269, "chieuchkorean", 0x314a, "chieuchparenkorean", 0x3209, "chochangthai", 0x0e0a, "chochanthai", 0x0e08, "chochingthai", 0x0e09, "chochoethai", 0x0e0c, "chook", 0x0188, "cieucacirclekorean", 0x3276, "cieucaparenkorean", 0x3216, "cieuccirclekorean", 0x3268, "cieuckorean", 0x3148, "cieucparenkorean", 0x3208, "cieucuparenkorean", 0x321c, "circle", 0x25cb, "circlecopyrt", 0x00a9, "circlemultiply", 0x2297, "circleot", 0x2299, "circleplus", 0x2295, "circlepostalmark", 0x3036, "circlewithlefthalfblack", 0x25d0, "circlewithrighthalfblack", 0x25d1, "circumflex", 0x02c6, "circumflexbelowcmb", 0x032d, "circumflexcmb", 0x0302, "clear", 0x2327, "clickalveolar", 0x01c2, "clickdental", 0x01c0, "clicklateral", 0x01c1, "clickretroflex", 0x01c3, "club", 0x2663, "clubsuitblack", 0x2663, "clubsuitwhite", 0x2667, "cmcubedsquare", 0x33a4, "cmonospace", 0xff43, "cmsquaredsquare", 0x33a0, "coarmenian", 0x0581, "colon", 0x003a, "colonmonetary", 0x20a1, "colonmonospace", 0xff1a, "colonsign", 0x20a1, "colonsmall", 0xfe55, "colontriangularhalfmod", 0x02d1, "colontriangularmod", 0x02d0, "comma", 0x002c, "commaabovecmb", 0x0313, "commaaboverightcmb", 0x0315, "commaaccent", 0xf6c3, "commaarabic", 0x060c, "commaarmenian", 0x055d, "commainferior", 0xf6e1, "commamonospace", 0xff0c, "commareversedabovecmb", 0x0314, "commareversedmod", 0x02bd, "commasmall", 0xfe50, "commasuperior", 0xf6e2, "commaturnedabovecmb", 0x0312, "commaturnedmod", 0x02bb, "compass", 0x263c, "congruent", 0x2245, "contourintegral", 0x222e, "control", 0x2303, "controlACK", 0x0006, "controlBEL", 0x0007, "controlBS", 0x0008, "controlCAN", 0x0018, "controlCR", 0x000d, "controlDC1", 0x0011, "controlDC2", 0x0012, "controlDC3", 0x0013, "controlDC4", 0x0014, "controlDEL", 0x007f, "controlDLE", 0x0010, "controlEM", 0x0019, "controlENQ", 0x0005, "controlEOT", 0x0004, "controlESC", 0x001b, "controlETB", 0x0017, "controlETX", 0x0003, "controlFF", 0x000c, "controlFS", 0x001c, "controlGS", 0x001d, "controlHT", 0x0009, "controlLF", 0x000a, "controlNAK", 0x0015, "controlNULL", 0x0000, "controlRS", 0x001e, "controlSI", 0x000f, "controlSO", 0x000e, "controlSOT", 0x0002, "controlSTX", 0x0001, "controlSUB", 0x001a, "controlSYN", 0x0016, "controlUS", 0x001f, "controlVT", 0x000b, "copyright", 0x00a9, "copyrightsans", 0xf8e9, "copyrightserif", 0xf6d9, "cornerbracketleft", 0x300c, "cornerbracketlefthalfwidth", 0xff62, "cornerbracketleftvertical", 0xfe41, "cornerbracketright", 0x300d, "cornerbracketrighthalfwidth", 0xff63, "cornerbracketrightvertical", 0xfe42, "corporationsquare", 0x337f, "cosquare", 0x33c7, "coverkgsquare", 0x33c6, "cparen", 0x249e, "cruzeiro", 0x20a2, "cstretched", 0x0297, "curlyand", 0x22cf, "curlyor", 0x22ce, "currency", 0x00a4, "cyrBreve", 0xf6d1, "cyrFlex", 0xf6d2, "cyrbreve", 0xf6d4, "cyrflex", 0xf6d5, "d", 0x0064, "daarmenian", 0x0564, "dabengali", 0x09a6, "dadarabic", 0x0636, "dadeva", 0x0926, "dadfinalarabic", 0xfebe, "dadinitialarabic", 0xfebf, "dadmedialarabic", 0xfec0, "dagesh", 0x05bc, "dageshhebrew", 0x05bc, "dagger", 0x2020, "daggerdbl", 0x2021, "dagujarati", 0x0aa6, "dagurmukhi", 0x0a26, "dahiragana", 0x3060, "dakatakana", 0x30c0, "dalarabic", 0x062f, "dalet", 0x05d3, "daletdagesh", 0xfb33, "daletdageshhebrew", 0xfb33, "dalethebrew", 0x05d3, "dalfinalarabic", 0xfeaa, "dammaarabic", 0x064f, "dammalowarabic", 0x064f, "dammatanaltonearabic", 0x064c, "dammatanarabic", 0x064c, "danda", 0x0964, "dargahebrew", 0x05a7, "dargalefthebrew", 0x05a7, "dasiapneumatacyrilliccmb", 0x0485, "dblGrave", 0xf6d3, "dblanglebracketleft", 0x300a, "dblanglebracketleftvertical", 0xfe3d, "dblanglebracketright", 0x300b, "dblanglebracketrightvertical", 0xfe3e, "dblarchinvertedbelowcmb", 0x032b, "dblarrowleft", 0x21d4, "dblarrowright", 0x21d2, "dbldanda", 0x0965, "dblgrave", 0xf6d6, "dblgravecmb", 0x030f, "dblintegral", 0x222c, "dbllowline", 0x2017, "dbllowlinecmb", 0x0333, "dbloverlinecmb", 0x033f, "dblprimemod", 0x02ba, "dblverticalbar", 0x2016, "dblverticallineabovecmb", 0x030e, "dbopomofo", 0x3109, "dbsquare", 0x33c8, "dcaron", 0x010f, "dcedilla", 0x1e11, "dcircle", 0x24d3, "dcircumflexbelow", 0x1e13, "dcroat", 0x0111, "ddabengali", 0x09a1, "ddadeva", 0x0921, "ddagujarati", 0x0aa1, "ddagurmukhi", 0x0a21, "ddalarabic", 0x0688, "ddalfinalarabic", 0xfb89, "dddhadeva", 0x095c, "ddhabengali", 0x09a2, "ddhadeva", 0x0922, "ddhagujarati", 0x0aa2, "ddhagurmukhi", 0x0a22, "ddotaccent", 0x1e0b, "ddotbelow", 0x1e0d, "decimalseparatorarabic", 0x066b, "decimalseparatorpersian", 0x066b, "decyrillic", 0x0434, "degree", 0x00b0, "dehihebrew", 0x05ad, "dehiragana", 0x3067, "deicoptic", 0x03ef, "dekatakana", 0x30c7, "deleteleft", 0x232b, "deleteright", 0x2326, "delta", 0x03b4, "deltaturned", 0x018d, "denominatorminusonenumeratorbengali", 0x09f8, "dezh", 0x02a4, "dhabengali", 0x09a7, "dhadeva", 0x0927, "dhagujarati", 0x0aa7, "dhagurmukhi", 0x0a27, "dhook", 0x0257, "dialytikatonos", 0x0385, "dialytikatonoscmb", 0x0344, "diamond", 0x2666, "diamondsuitwhite", 0x2662, "dieresis", 0x00a8, "dieresisacute", 0xf6d7, "dieresisbelowcmb", 0x0324, "dieresiscmb", 0x0308, "dieresisgrave", 0xf6d8, "dieresistonos", 0x0385, "dihiragana", 0x3062, "dikatakana", 0x30c2, "dittomark", 0x3003, "divide", 0x00f7, "divides", 0x2223, "divisionslash", 0x2215, "djecyrillic", 0x0452, "dkshade", 0x2593, "dlinebelow", 0x1e0f, "dlsquare", 0x3397, "dmacron", 0x0111, "dmonospace", 0xff44, "dnblock", 0x2584, "dochadathai", 0x0e0e, "dodekthai", 0x0e14, "dohiragana", 0x3069, "dokatakana", 0x30c9, "dollar", 0x0024, "dollarinferior", 0xf6e3, "dollarmonospace", 0xff04, "dollaroldstyle", 0xf724, "dollarsmall", 0xfe69, "dollarsuperior", 0xf6e4, "dong", 0x20ab, "dorusquare", 0x3326, "dotaccent", 0x02d9, "dotaccentcmb", 0x0307, "dotbelowcmb", 0x0323, "dotbelowcomb", 0x0323, "dotkatakana", 0x30fb, "dotlessi", 0x0131, "dotlessj", 0xf6be, "dotlessjstrokehook", 0x0284, "dotmath", 0x22c5, "dottedcircle", 0x25cc, "doubleyodpatah", 0xfb1f, "doubleyodpatahhebrew", 0xfb1f, "downtackbelowcmb", 0x031e, "downtackmod", 0x02d5, "dparen", 0x249f, "dsuperior", 0xf6eb, "dtail", 0x0256, "dtopbar", 0x018c, "duhiragana", 0x3065, "dukatakana", 0x30c5, "dz", 0x01f3, "dzaltone", 0x02a3, "dzcaron", 0x01c6, "dzcurl", 0x02a5, "dzeabkhasiancyrillic", 0x04e1, "dzecyrillic", 0x0455, "dzhecyrillic", 0x045f, "e", 0x0065, "eacute", 0x00e9, "earth", 0x2641, "ebengali", 0x098f, "ebopomofo", 0x311c, "ebreve", 0x0115, "ecandradeva", 0x090d, "ecandragujarati", 0x0a8d, "ecandravowelsigndeva", 0x0945, "ecandravowelsigngujarati", 0x0ac5, "ecaron", 0x011b, "ecedillabreve", 0x1e1d, "echarmenian", 0x0565, "echyiwnarmenian", 0x0587, "ecircle", 0x24d4, "ecircumflex", 0x00ea, "ecircumflexacute", 0x1ebf, "ecircumflexbelow", 0x1e19, "ecircumflexdotbelow", 0x1ec7, "ecircumflexgrave", 0x1ec1, "ecircumflexhookabove", 0x1ec3, "ecircumflextilde", 0x1ec5, "ecyrillic", 0x0454, "edblgrave", 0x0205, "edeva", 0x090f, "edieresis", 0x00eb, "edot", 0x0117, "edotaccent", 0x0117, "edotbelow", 0x1eb9, "eegurmukhi", 0x0a0f, "eematragurmukhi", 0x0a47, "efcyrillic", 0x0444, "egrave", 0x00e8, "egujarati", 0x0a8f, "eharmenian", 0x0567, "ehbopomofo", 0x311d, "ehiragana", 0x3048, "ehookabove", 0x1ebb, "eibopomofo", 0x311f, "eight", 0x0038, "eightarabic", 0x0668, "eightbengali", 0x09ee, "eightcircle", 0x2467, "eightcircleinversesansserif", 0x2791, "eightdeva", 0x096e, "eighteencircle", 0x2471, "eighteenparen", 0x2485, "eighteenperiod", 0x2499, "eightgujarati", 0x0aee, "eightgurmukhi", 0x0a6e, "eighthackarabic", 0x0668, "eighthangzhou", 0x3028, "eighthnotebeamed", 0x266b, "eightideographicparen", 0x3227, "eightinferior", 0x2088, "eightmonospace", 0xff18, "eightoldstyle", 0xf738, "eightparen", 0x247b, "eightperiod", 0x248f, "eightpersian", 0x06f8, "eightroman", 0x2177, "eightsuperior", 0x2078, "eightthai", 0x0e58, "einvertedbreve", 0x0207, "eiotifiedcyrillic", 0x0465, "ekatakana", 0x30a8, "ekatakanahalfwidth", 0xff74, "ekonkargurmukhi", 0x0a74, "ekorean", 0x3154, "elcyrillic", 0x043b, "element", 0x2208, "elevencircle", 0x246a, "elevenparen", 0x247e, "elevenperiod", 0x2492, "elevenroman", 0x217a, "ellipsis", 0x2026, "ellipsisvertical", 0x22ee, "emacron", 0x0113, "emacronacute", 0x1e17, "emacrongrave", 0x1e15, "emcyrillic", 0x043c, "emdash", 0x2014, "emdashvertical", 0xfe31, "emonospace", 0xff45, "emphasismarkarmenian", 0x055b, "emptyset", 0x2205, "enbopomofo", 0x3123, "encyrillic", 0x043d, "endash", 0x2013, "endashvertical", 0xfe32, "endescendercyrillic", 0x04a3, "eng", 0x014b, "engbopomofo", 0x3125, "enghecyrillic", 0x04a5, "enhookcyrillic", 0x04c8, "enspace", 0x2002, "eogonek", 0x0119, "eokorean", 0x3153, "eopen", 0x025b, "eopenclosed", 0x029a, "eopenreversed", 0x025c, "eopenreversedclosed", 0x025e, "eopenreversedhook", 0x025d, "eparen", 0x24a0, "epsilon", 0x03b5, "epsilontonos", 0x03ad, "equal", 0x003d, "equalmonospace", 0xff1d, "equalsmall", 0xfe66, "equalsuperior", 0x207c, "equivalence", 0x2261, "erbopomofo", 0x3126, "ercyrillic", 0x0440, "ereversed", 0x0258, "ereversedcyrillic", 0x044d, "escyrillic", 0x0441, "esdescendercyrillic", 0x04ab, "esh", 0x0283, "eshcurl", 0x0286, "eshortdeva", 0x090e, "eshortvowelsigndeva", 0x0946, "eshreversedloop", 0x01aa, "eshsquatreversed", 0x0285, "esmallhiragana", 0x3047, "esmallkatakana", 0x30a7, "esmallkatakanahalfwidth", 0xff6a, "estimated", 0x212e, "esuperior", 0xf6ec, "eta", 0x03b7, "etarmenian", 0x0568, "etatonos", 0x03ae, "eth", 0x00f0, "etilde", 0x1ebd, "etildebelow", 0x1e1b, "etnahtafoukhhebrew", 0x0591, "etnahtafoukhlefthebrew", 0x0591, "etnahtahebrew", 0x0591, "etnahtalefthebrew", 0x0591, "eturned", 0x01dd, "eukorean", 0x3161, "euro", 0x20ac, "evowelsignbengali", 0x09c7, "evowelsigndeva", 0x0947, "evowelsigngujarati", 0x0ac7, "exclam", 0x0021, "exclamarmenian", 0x055c, "exclamdbl", 0x203c, "exclamdown", 0x00a1, "exclamdownsmall", 0xf7a1, "exclammonospace", 0xff01, "exclamsmall", 0xf721, "existential", 0x2203, "ezh", 0x0292, "ezhcaron", 0x01ef, "ezhcurl", 0x0293, "ezhreversed", 0x01b9, "ezhtail", 0x01ba, "f", 0x0066, "fadeva", 0x095e, "fagurmukhi", 0x0a5e, "fahrenheit", 0x2109, "fathaarabic", 0x064e, "fathalowarabic", 0x064e, "fathatanarabic", 0x064b, "fbopomofo", 0x3108, "fcircle", 0x24d5, "fdotaccent", 0x1e1f, "feharabic", 0x0641, "feharmenian", 0x0586, "fehfinalarabic", 0xfed2, "fehinitialarabic", 0xfed3, "fehmedialarabic", 0xfed4, "feicoptic", 0x03e5, "female", 0x2640, "ff", 0xfb00, "f_f", 0xfb00, "ffi", 0xfb03, "f_f_i", 0xfb03, "ffl", 0xfb04, "f_f_l", 0xfb04, "fi", 0xfb01, "f_i", 0xfb01, "fifteencircle", 0x246e, "fifteenparen", 0x2482, "fifteenperiod", 0x2496, "figuredash", 0x2012, "filledbox", 0x25a0, "filledrect", 0x25ac, "finalkaf", 0x05da, "finalkafdagesh", 0xfb3a, "finalkafdageshhebrew", 0xfb3a, "finalkafhebrew", 0x05da, "finalmem", 0x05dd, "finalmemhebrew", 0x05dd, "finalnun", 0x05df, "finalnunhebrew", 0x05df, "finalpe", 0x05e3, "finalpehebrew", 0x05e3, "finaltsadi", 0x05e5, "finaltsadihebrew", 0x05e5, "firsttonechinese", 0x02c9, "fisheye", 0x25c9, "fitacyrillic", 0x0473, "five", 0x0035, "fivearabic", 0x0665, "fivebengali", 0x09eb, "fivecircle", 0x2464, "fivecircleinversesansserif", 0x278e, "fivedeva", 0x096b, "fiveeighths", 0x215d, "fivegujarati", 0x0aeb, "fivegurmukhi", 0x0a6b, "fivehackarabic", 0x0665, "fivehangzhou", 0x3025, "fiveideographicparen", 0x3224, "fiveinferior", 0x2085, "fivemonospace", 0xff15, "fiveoldstyle", 0xf735, "fiveparen", 0x2478, "fiveperiod", 0x248c, "fivepersian", 0x06f5, "fiveroman", 0x2174, "fivesuperior", 0x2075, "fivethai", 0x0e55, "fl", 0xfb02, "f_l", 0xfb02, "florin", 0x0192, "fmonospace", 0xff46, "fmsquare", 0x3399, "fofanthai", 0x0e1f, "fofathai", 0x0e1d, "fongmanthai", 0x0e4f, "forall", 0x2200, "four", 0x0034, "fourarabic", 0x0664, "fourbengali", 0x09ea, "fourcircle", 0x2463, "fourcircleinversesansserif", 0x278d, "fourdeva", 0x096a, "fourgujarati", 0x0aea, "fourgurmukhi", 0x0a6a, "fourhackarabic", 0x0664, "fourhangzhou", 0x3024, "fourideographicparen", 0x3223, "fourinferior", 0x2084, "fourmonospace", 0xff14, "fournumeratorbengali", 0x09f7, "fouroldstyle", 0xf734, "fourparen", 0x2477, "fourperiod", 0x248b, "fourpersian", 0x06f4, "fourroman", 0x2173, "foursuperior", 0x2074, "fourteencircle", 0x246d, "fourteenparen", 0x2481, "fourteenperiod", 0x2495, "fourthai", 0x0e54, "fourthtonechinese", 0x02cb, "fparen", 0x24a1, "fraction", 0x2044, "franc", 0x20a3, "g", 0x0067, "gabengali", 0x0997, "gacute", 0x01f5, "gadeva", 0x0917, "gafarabic", 0x06af, "gaffinalarabic", 0xfb93, "gafinitialarabic", 0xfb94, "gafmedialarabic", 0xfb95, "gagujarati", 0x0a97, "gagurmukhi", 0x0a17, "gahiragana", 0x304c, "gakatakana", 0x30ac, "gamma", 0x03b3, "gammalatinsmall", 0x0263, "gammasuperior", 0x02e0, "gangiacoptic", 0x03eb, "gbopomofo", 0x310d, "gbreve", 0x011f, "gcaron", 0x01e7, "gcedilla", 0x0123, "gcircle", 0x24d6, "gcircumflex", 0x011d, "gcommaaccent", 0x0123, "gdot", 0x0121, "gdotaccent", 0x0121, "gecyrillic", 0x0433, "gehiragana", 0x3052, "gekatakana", 0x30b2, "geometricallyequal", 0x2251, "gereshaccenthebrew", 0x059c, "gereshhebrew", 0x05f3, "gereshmuqdamhebrew", 0x059d, "germandbls", 0x00df, "gershayimaccenthebrew", 0x059e, "gershayimhebrew", 0x05f4, "getamark", 0x3013, "ghabengali", 0x0998, "ghadarmenian", 0x0572, "ghadeva", 0x0918, "ghagujarati", 0x0a98, "ghagurmukhi", 0x0a18, "ghainarabic", 0x063a, "ghainfinalarabic", 0xfece, "ghaininitialarabic", 0xfecf, "ghainmedialarabic", 0xfed0, "ghemiddlehookcyrillic", 0x0495, "ghestrokecyrillic", 0x0493, "gheupturncyrillic", 0x0491, "ghhadeva", 0x095a, "ghhagurmukhi", 0x0a5a, "ghook", 0x0260, "ghzsquare", 0x3393, "gihiragana", 0x304e, "gikatakana", 0x30ae, "gimarmenian", 0x0563, "gimel", 0x05d2, "gimeldagesh", 0xfb32, "gimeldageshhebrew", 0xfb32, "gimelhebrew", 0x05d2, "gjecyrillic", 0x0453, "glottalinvertedstroke", 0x01be, "glottalstop", 0x0294, "glottalstopinverted", 0x0296, "glottalstopmod", 0x02c0, "glottalstopreversed", 0x0295, "glottalstopreversedmod", 0x02c1, "glottalstopreversedsuperior", 0x02e4, "glottalstopstroke", 0x02a1, "glottalstopstrokereversed", 0x02a2, "gmacron", 0x1e21, "gmonospace", 0xff47, "gohiragana", 0x3054, "gokatakana", 0x30b4, "gparen", 0x24a2, "gpasquare", 0x33ac, "gradient", 0x2207, "grave", 0x0060, "gravebelowcmb", 0x0316, "gravecmb", 0x0300, "gravecomb", 0x0300, "gravedeva", 0x0953, "gravelowmod", 0x02ce, "gravemonospace", 0xff40, "gravetonecmb", 0x0340, "greater", 0x003e, "greaterequal", 0x2265, "greaterequalorless", 0x22db, "greatermonospace", 0xff1e, "greaterorequivalent", 0x2273, "greaterorless", 0x2277, "greateroverequal", 0x2267, "greatersmall", 0xfe65, "gscript", 0x0261, "gstroke", 0x01e5, "guhiragana", 0x3050, "guillemotleft", 0x00ab, "guillemotright", 0x00bb, "guilsinglleft", 0x2039, "guilsinglright", 0x203a, "gukatakana", 0x30b0, "guramusquare", 0x3318, "gysquare", 0x33c9, "h", 0x0068, "haabkhasiancyrillic", 0x04a9, "haaltonearabic", 0x06c1, "habengali", 0x09b9, "hadescendercyrillic", 0x04b3, "hadeva", 0x0939, "hagujarati", 0x0ab9, "hagurmukhi", 0x0a39, "haharabic", 0x062d, "hahfinalarabic", 0xfea2, "hahinitialarabic", 0xfea3, "hahiragana", 0x306f, "hahmedialarabic", 0xfea4, "haitusquare", 0x332a, "hakatakana", 0x30cf, "hakatakanahalfwidth", 0xff8a, "halantgurmukhi", 0x0a4d, "hamzaarabic", 0x0621, "hamzalowarabic", 0x0621, "hangulfiller", 0x3164, "hardsigncyrillic", 0x044a, "harpoonleftbarbup", 0x21bc, "harpoonrightbarbup", 0x21c0, "hasquare", 0x33ca, "hatafpatah", 0x05b2, "hatafpatah16", 0x05b2, "hatafpatah23", 0x05b2, "hatafpatah2f", 0x05b2, "hatafpatahhebrew", 0x05b2, "hatafpatahnarrowhebrew", 0x05b2, "hatafpatahquarterhebrew", 0x05b2, "hatafpatahwidehebrew", 0x05b2, "hatafqamats", 0x05b3, "hatafqamats1b", 0x05b3, "hatafqamats28", 0x05b3, "hatafqamats34", 0x05b3, "hatafqamatshebrew", 0x05b3, "hatafqamatsnarrowhebrew", 0x05b3, "hatafqamatsquarterhebrew", 0x05b3, "hatafqamatswidehebrew", 0x05b3, "hatafsegol", 0x05b1, "hatafsegol17", 0x05b1, "hatafsegol24", 0x05b1, "hatafsegol30", 0x05b1, "hatafsegolhebrew", 0x05b1, "hatafsegolnarrowhebrew", 0x05b1, "hatafsegolquarterhebrew", 0x05b1, "hatafsegolwidehebrew", 0x05b1, "hbar", 0x0127, "hbopomofo", 0x310f, "hbrevebelow", 0x1e2b, "hcedilla", 0x1e29, "hcircle", 0x24d7, "hcircumflex", 0x0125, "hdieresis", 0x1e27, "hdotaccent", 0x1e23, "hdotbelow", 0x1e25, "he", 0x05d4, "heart", 0x2665, "heartsuitblack", 0x2665, "heartsuitwhite", 0x2661, "hedagesh", 0xfb34, "hedageshhebrew", 0xfb34, "hehaltonearabic", 0x06c1, "heharabic", 0x0647, "hehebrew", 0x05d4, "hehfinalaltonearabic", 0xfba7, "hehfinalalttwoarabic", 0xfeea, "hehfinalarabic", 0xfeea, "hehhamzaabovefinalarabic", 0xfba5, "hehhamzaaboveisolatedarabic", 0xfba4, "hehinitialaltonearabic", 0xfba8, "hehinitialarabic", 0xfeeb, "hehiragana", 0x3078, "hehmedialaltonearabic", 0xfba9, "hehmedialarabic", 0xfeec, "heiseierasquare", 0x337b, "hekatakana", 0x30d8, "hekatakanahalfwidth", 0xff8d, "hekutaarusquare", 0x3336, "henghook", 0x0267, "herutusquare", 0x3339, "het", 0x05d7, "hethebrew", 0x05d7, "hhook", 0x0266, "hhooksuperior", 0x02b1, "hieuhacirclekorean", 0x327b, "hieuhaparenkorean", 0x321b, "hieuhcirclekorean", 0x326d, "hieuhkorean", 0x314e, "hieuhparenkorean", 0x320d, "hihiragana", 0x3072, "hikatakana", 0x30d2, "hikatakanahalfwidth", 0xff8b, "hiriq", 0x05b4, "hiriq14", 0x05b4, "hiriq21", 0x05b4, "hiriq2d", 0x05b4, "hiriqhebrew", 0x05b4, "hiriqnarrowhebrew", 0x05b4, "hiriqquarterhebrew", 0x05b4, "hiriqwidehebrew", 0x05b4, "hlinebelow", 0x1e96, "hmonospace", 0xff48, "hoarmenian", 0x0570, "hohipthai", 0x0e2b, "hohiragana", 0x307b, "hokatakana", 0x30db, "hokatakanahalfwidth", 0xff8e, "holam", 0x05b9, "holam19", 0x05b9, "holam26", 0x05b9, "holam32", 0x05b9, "holamhebrew", 0x05b9, "holamnarrowhebrew", 0x05b9, "holamquarterhebrew", 0x05b9, "holamwidehebrew", 0x05b9, "honokhukthai", 0x0e2e, "hookabovecomb", 0x0309, "hookcmb", 0x0309, "hookpalatalizedbelowcmb", 0x0321, "hookretroflexbelowcmb", 0x0322, "hoonsquare", 0x3342, "horicoptic", 0x03e9, "horizontalbar", 0x2015, "horncmb", 0x031b, "hotsprings", 0x2668, "house", 0x2302, "hparen", 0x24a3, "hsuperior", 0x02b0, "hturned", 0x0265, "huhiragana", 0x3075, "huiitosquare", 0x3333, "hukatakana", 0x30d5, "hukatakanahalfwidth", 0xff8c, "hungarumlaut", 0x02dd, "hungarumlautcmb", 0x030b, "hv", 0x0195, "hyphen", 0x002d, "hypheninferior", 0xf6e5, "hyphenmonospace", 0xff0d, "hyphensmall", 0xfe63, "hyphensuperior", 0xf6e6, "hyphentwo", 0x2010, "i", 0x0069, "iacute", 0x00ed, "iacyrillic", 0x044f, "ibengali", 0x0987, "ibopomofo", 0x3127, "ibreve", 0x012d, "icaron", 0x01d0, "icircle", 0x24d8, "icircumflex", 0x00ee, "icyrillic", 0x0456, "idblgrave", 0x0209, "ideographearthcircle", 0x328f, "ideographfirecircle", 0x328b, "ideographicallianceparen", 0x323f, "ideographiccallparen", 0x323a, "ideographiccentrecircle", 0x32a5, "ideographicclose", 0x3006, "ideographiccomma", 0x3001, "ideographiccommaleft", 0xff64, "ideographiccongratulationparen", 0x3237, "ideographiccorrectcircle", 0x32a3, "ideographicearthparen", 0x322f, "ideographicenterpriseparen", 0x323d, "ideographicexcellentcircle", 0x329d, "ideographicfestivalparen", 0x3240, "ideographicfinancialcircle", 0x3296, "ideographicfinancialparen", 0x3236, "ideographicfireparen", 0x322b, "ideographichaveparen", 0x3232, "ideographichighcircle", 0x32a4, "ideographiciterationmark", 0x3005, "ideographiclaborcircle", 0x3298, "ideographiclaborparen", 0x3238, "ideographicleftcircle", 0x32a7, "ideographiclowcircle", 0x32a6, "ideographicmedicinecircle", 0x32a9, "ideographicmetalparen", 0x322e, "ideographicmoonparen", 0x322a, "ideographicnameparen", 0x3234, "ideographicperiod", 0x3002, "ideographicprintcircle", 0x329e, "ideographicreachparen", 0x3243, "ideographicrepresentparen", 0x3239, "ideographicresourceparen", 0x323e, "ideographicrightcircle", 0x32a8, "ideographicsecretcircle", 0x3299, "ideographicselfparen", 0x3242, "ideographicsocietyparen", 0x3233, "ideographicspace", 0x3000, "ideographicspecialparen", 0x3235, "ideographicstockparen", 0x3231, "ideographicstudyparen", 0x323b, "ideographicsunparen", 0x3230, "ideographicsuperviseparen", 0x323c, "ideographicwaterparen", 0x322c, "ideographicwoodparen", 0x322d, "ideographiczero", 0x3007, "ideographmetalcircle", 0x328e, "ideographmooncircle", 0x328a, "ideographnamecircle", 0x3294, "ideographsuncircle", 0x3290, "ideographwatercircle", 0x328c, "ideographwoodcircle", 0x328d, "ideva", 0x0907, "idieresis", 0x00ef, "idieresisacute", 0x1e2f, "idieresiscyrillic", 0x04e5, "idotbelow", 0x1ecb, "iebrevecyrillic", 0x04d7, "iecyrillic", 0x0435, "ieungacirclekorean", 0x3275, "ieungaparenkorean", 0x3215, "ieungcirclekorean", 0x3267, "ieungkorean", 0x3147, "ieungparenkorean", 0x3207, "igrave", 0x00ec, "igujarati", 0x0a87, "igurmukhi", 0x0a07, "ihiragana", 0x3044, "ihookabove", 0x1ec9, "iibengali", 0x0988, "iicyrillic", 0x0438, "iideva", 0x0908, "iigujarati", 0x0a88, "iigurmukhi", 0x0a08, "iimatragurmukhi", 0x0a40, "iinvertedbreve", 0x020b, "iishortcyrillic", 0x0439, "iivowelsignbengali", 0x09c0, "iivowelsigndeva", 0x0940, "iivowelsigngujarati", 0x0ac0, "ij", 0x0133, "ikatakana", 0x30a4, "ikatakanahalfwidth", 0xff72, "ikorean", 0x3163, "ilde", 0x02dc, "iluyhebrew", 0x05ac, "imacron", 0x012b, "imacroncyrillic", 0x04e3, "imageorapproximatelyequal", 0x2253, "imatragurmukhi", 0x0a3f, "imonospace", 0xff49, "increment", 0x2206, "infinity", 0x221e, "iniarmenian", 0x056b, "integral", 0x222b, "integralbottom", 0x2321, "integralbt", 0x2321, "integralex", 0xf8f5, "integraltop", 0x2320, "integraltp", 0x2320, "intersection", 0x2229, "intisquare", 0x3305, "invbullet", 0x25d8, "invcircle", 0x25d9, "invsmileface", 0x263b, "iocyrillic", 0x0451, "iogonek", 0x012f, "iota", 0x03b9, "iotadieresis", 0x03ca, "iotadieresistonos", 0x0390, "iotalatin", 0x0269, "iotatonos", 0x03af, "iparen", 0x24a4, "irigurmukhi", 0x0a72, "ismallhiragana", 0x3043, "ismallkatakana", 0x30a3, "ismallkatakanahalfwidth", 0xff68, "issharbengali", 0x09fa, "istroke", 0x0268, "isuperior", 0xf6ed, "iterationhiragana", 0x309d, "iterationkatakana", 0x30fd, "itilde", 0x0129, "itildebelow", 0x1e2d, "iubopomofo", 0x3129, "iucyrillic", 0x044e, "ivowelsignbengali", 0x09bf, "ivowelsigndeva", 0x093f, "ivowelsigngujarati", 0x0abf, "izhitsacyrillic", 0x0475, "izhitsadblgravecyrillic", 0x0477, "j", 0x006a, "jaarmenian", 0x0571, "jabengali", 0x099c, "jadeva", 0x091c, "jagujarati", 0x0a9c, "jagurmukhi", 0x0a1c, "jbopomofo", 0x3110, "jcaron", 0x01f0, "jcircle", 0x24d9, "jcircumflex", 0x0135, "jcrossedtail", 0x029d, "jdotlessstroke", 0x025f, "jecyrillic", 0x0458, "jeemarabic", 0x062c, "jeemfinalarabic", 0xfe9e, "jeeminitialarabic", 0xfe9f, "jeemmedialarabic", 0xfea0, "jeharabic", 0x0698, "jehfinalarabic", 0xfb8b, "jhabengali", 0x099d, "jhadeva", 0x091d, "jhagujarati", 0x0a9d, "jhagurmukhi", 0x0a1d, "jheharmenian", 0x057b, "jis", 0x3004, "jmonospace", 0xff4a, "jparen", 0x24a5, "jsuperior", 0x02b2, "k", 0x006b, "kabashkircyrillic", 0x04a1, "kabengali", 0x0995, "kacute", 0x1e31, "kacyrillic", 0x043a, "kadescendercyrillic", 0x049b, "kadeva", 0x0915, "kaf", 0x05db, "kafarabic", 0x0643, "kafdagesh", 0xfb3b, "kafdageshhebrew", 0xfb3b, "kaffinalarabic", 0xfeda, "kafhebrew", 0x05db, "kafinitialarabic", 0xfedb, "kafmedialarabic", 0xfedc, "kafrafehebrew", 0xfb4d, "kagujarati", 0x0a95, "kagurmukhi", 0x0a15, "kahiragana", 0x304b, "kahookcyrillic", 0x04c4, "kakatakana", 0x30ab, "kakatakanahalfwidth", 0xff76, "kappa", 0x03ba, "kappasymbolgreek", 0x03f0, "kapyeounmieumkorean", 0x3171, "kapyeounphieuphkorean", 0x3184, "kapyeounpieupkorean", 0x3178, "kapyeounssangpieupkorean", 0x3179, "karoriisquare", 0x330d, "kashidaautoarabic", 0x0640, "kashidaautonosidebearingarabic", 0x0640, "kasmallkatakana", 0x30f5, "kasquare", 0x3384, "kasraarabic", 0x0650, "kasratanarabic", 0x064d, "kastrokecyrillic", 0x049f, "katahiraprolongmarkhalfwidth", 0xff70, "kaverticalstrokecyrillic", 0x049d, "kbopomofo", 0x310e, "kcalsquare", 0x3389, "kcaron", 0x01e9, "kcedilla", 0x0137, "kcircle", 0x24da, "kcommaaccent", 0x0137, "kdotbelow", 0x1e33, "keharmenian", 0x0584, "kehiragana", 0x3051, "kekatakana", 0x30b1, "kekatakanahalfwidth", 0xff79, "kenarmenian", 0x056f, "kesmallkatakana", 0x30f6, "kgreenlandic", 0x0138, "khabengali", 0x0996, "khacyrillic", 0x0445, "khadeva", 0x0916, "khagujarati", 0x0a96, "khagurmukhi", 0x0a16, "khaharabic", 0x062e, "khahfinalarabic", 0xfea6, "khahinitialarabic", 0xfea7, "khahmedialarabic", 0xfea8, "kheicoptic", 0x03e7, "khhadeva", 0x0959, "khhagurmukhi", 0x0a59, "khieukhacirclekorean", 0x3278, "khieukhaparenkorean", 0x3218, "khieukhcirclekorean", 0x326a, "khieukhkorean", 0x314b, "khieukhparenkorean", 0x320a, "khokhaithai", 0x0e02, "khokhonthai", 0x0e05, "khokhuatthai", 0x0e03, "khokhwaithai", 0x0e04, "khomutthai", 0x0e5b, "khook", 0x0199, "khorakhangthai", 0x0e06, "khzsquare", 0x3391, "kihiragana", 0x304d, "kikatakana", 0x30ad, "kikatakanahalfwidth", 0xff77, "kiroguramusquare", 0x3315, "kiromeetorusquare", 0x3316, "kirosquare", 0x3314, "kiyeokacirclekorean", 0x326e, "kiyeokaparenkorean", 0x320e, "kiyeokcirclekorean", 0x3260, "kiyeokkorean", 0x3131, "kiyeokparenkorean", 0x3200, "kiyeoksioskorean", 0x3133, "kjecyrillic", 0x045c, "klinebelow", 0x1e35, "klsquare", 0x3398, "kmcubedsquare", 0x33a6, "kmonospace", 0xff4b, "kmsquaredsquare", 0x33a2, "kohiragana", 0x3053, "kohmsquare", 0x33c0, "kokaithai", 0x0e01, "kokatakana", 0x30b3, "kokatakanahalfwidth", 0xff7a, "kooposquare", 0x331e, "koppacyrillic", 0x0481, "koreanstandardsymbol", 0x327f, "koroniscmb", 0x0343, "kparen", 0x24a6, "kpasquare", 0x33aa, "ksicyrillic", 0x046f, "ktsquare", 0x33cf, "kturned", 0x029e, "kuhiragana", 0x304f, "kukatakana", 0x30af, "kukatakanahalfwidth", 0xff78, "kvsquare", 0x33b8, "kwsquare", 0x33be, "l", 0x006c, "labengali", 0x09b2, "lacute", 0x013a, "ladeva", 0x0932, "lagujarati", 0x0ab2, "lagurmukhi", 0x0a32, "lakkhangyaothai", 0x0e45, "lamaleffinalarabic", 0xfefc, "lamalefhamzaabovefinalarabic", 0xfef8, "lamalefhamzaaboveisolatedarabic", 0xfef7, "lamalefhamzabelowfinalarabic", 0xfefa, "lamalefhamzabelowisolatedarabic", 0xfef9, "lamalefisolatedarabic", 0xfefb, "lamalefmaddaabovefinalarabic", 0xfef6, "lamalefmaddaaboveisolatedarabic", 0xfef5, "lamarabic", 0x0644, "lambda", 0x03bb, "lambdastroke", 0x019b, "lamed", 0x05dc, "lameddagesh", 0xfb3c, "lameddageshhebrew", 0xfb3c, "lamedhebrew", 0x05dc, "lamfinalarabic", 0xfede, "lamhahinitialarabic", 0xfcca, "laminitialarabic", 0xfedf, "lamjeeminitialarabic", 0xfcc9, "lamkhahinitialarabic", 0xfccb, "lamlamhehisolatedarabic", 0xfdf2, "lammedialarabic", 0xfee0, "lammeemhahinitialarabic", 0xfd88, "lammeeminitialarabic", 0xfccc, "largecircle", 0x25ef, "lbar", 0x019a, "lbelt", 0x026c, "lbopomofo", 0x310c, "lcaron", 0x013e, "lcedilla", 0x013c, "lcircle", 0x24db, "lcircumflexbelow", 0x1e3d, "lcommaaccent", 0x013c, "ldot", 0x0140, "ldotaccent", 0x0140, "ldotbelow", 0x1e37, "ldotbelowmacron", 0x1e39, "leftangleabovecmb", 0x031a, "lefttackbelowcmb", 0x0318, "less", 0x003c, "lessequal", 0x2264, "lessequalorgreater", 0x22da, "lessmonospace", 0xff1c, "lessorequivalent", 0x2272, "lessorgreater", 0x2276, "lessoverequal", 0x2266, "lesssmall", 0xfe64, "lezh", 0x026e, "lfblock", 0x258c, "lhookretroflex", 0x026d, "lira", 0x20a4, "liwnarmenian", 0x056c, "lj", 0x01c9, "ljecyrillic", 0x0459, "ll", 0xf6c0, "lladeva", 0x0933, "llagujarati", 0x0ab3, "llinebelow", 0x1e3b, "llladeva", 0x0934, "llvocalicbengali", 0x09e1, "llvocalicdeva", 0x0961, "llvocalicvowelsignbengali", 0x09e3, "llvocalicvowelsigndeva", 0x0963, "lmiddletilde", 0x026b, "lmonospace", 0xff4c, "lmsquare", 0x33d0, "lochulathai", 0x0e2c, "logicaland", 0x2227, "logicalnot", 0x00ac, "logicalnotreversed", 0x2310, "logicalor", 0x2228, "lolingthai", 0x0e25, "longs", 0x017f, "lowlinecenterline", 0xfe4e, "lowlinecmb", 0x0332, "lowlinedashed", 0xfe4d, "lozenge", 0x25ca, "lparen", 0x24a7, "lslash", 0x0142, "lsquare", 0x2113, "lsuperior", 0xf6ee, "ltshade", 0x2591, "luthai", 0x0e26, "lvocalicbengali", 0x098c, "lvocalicdeva", 0x090c, "lvocalicvowelsignbengali", 0x09e2, "lvocalicvowelsigndeva", 0x0962, "lxsquare", 0x33d3, "m", 0x006d, "mabengali", 0x09ae, "macron", 0x00af, "macronbelowcmb", 0x0331, "macroncmb", 0x0304, "macronlowmod", 0x02cd, "macronmonospace", 0xffe3, "macute", 0x1e3f, "madeva", 0x092e, "magujarati", 0x0aae, "magurmukhi", 0x0a2e, "mahapakhhebrew", 0x05a4, "mahapakhlefthebrew", 0x05a4, "mahiragana", 0x307e, "maichattawalowleftthai", 0xf895, "maichattawalowrightthai", 0xf894, "maichattawathai", 0x0e4b, "maichattawaupperleftthai", 0xf893, "maieklowleftthai", 0xf88c, "maieklowrightthai", 0xf88b, "maiekthai", 0x0e48, "maiekupperleftthai", 0xf88a, "maihanakatleftthai", 0xf884, "maihanakatthai", 0x0e31, "maitaikhuleftthai", 0xf889, "maitaikhuthai", 0x0e47, "maitholowleftthai", 0xf88f, "maitholowrightthai", 0xf88e, "maithothai", 0x0e49, "maithoupperleftthai", 0xf88d, "maitrilowleftthai", 0xf892, "maitrilowrightthai", 0xf891, "maitrithai", 0x0e4a, "maitriupperleftthai", 0xf890, "maiyamokthai", 0x0e46, "makatakana", 0x30de, "makatakanahalfwidth", 0xff8f, "male", 0x2642, "mansyonsquare", 0x3347, "maqafhebrew", 0x05be, "mars", 0x2642, "masoracirclehebrew", 0x05af, "masquare", 0x3383, "mbopomofo", 0x3107, "mbsquare", 0x33d4, "mcircle", 0x24dc, "mcubedsquare", 0x33a5, "mdotaccent", 0x1e41, "mdotbelow", 0x1e43, "meemarabic", 0x0645, "meemfinalarabic", 0xfee2, "meeminitialarabic", 0xfee3, "meemmedialarabic", 0xfee4, "meemmeeminitialarabic", 0xfcd1, "meemmeemisolatedarabic", 0xfc48, "meetorusquare", 0x334d, "mehiragana", 0x3081, "meizierasquare", 0x337e, "mekatakana", 0x30e1, "mekatakanahalfwidth", 0xff92, "mem", 0x05de, "memdagesh", 0xfb3e, "memdageshhebrew", 0xfb3e, "memhebrew", 0x05de, "menarmenian", 0x0574, "merkhahebrew", 0x05a5, "merkhakefulahebrew", 0x05a6, "merkhakefulalefthebrew", 0x05a6, "merkhalefthebrew", 0x05a5, "mhook", 0x0271, "mhzsquare", 0x3392, "middledotkatakanahalfwidth", 0xff65, "middot", 0x00b7, "mieumacirclekorean", 0x3272, "mieumaparenkorean", 0x3212, "mieumcirclekorean", 0x3264, "mieumkorean", 0x3141, "mieumpansioskorean", 0x3170, "mieumparenkorean", 0x3204, "mieumpieupkorean", 0x316e, "mieumsioskorean", 0x316f, "mihiragana", 0x307f, "mikatakana", 0x30df, "mikatakanahalfwidth", 0xff90, "minus", 0x2212, "minusbelowcmb", 0x0320, "minuscircle", 0x2296, "minusmod", 0x02d7, "minusplus", 0x2213, "minute", 0x2032, "miribaarusquare", 0x334a, "mirisquare", 0x3349, "mlonglegturned", 0x0270, "mlsquare", 0x3396, "mmcubedsquare", 0x33a3, "mmonospace", 0xff4d, "mmsquaredsquare", 0x339f, "mohiragana", 0x3082, "mohmsquare", 0x33c1, "mokatakana", 0x30e2, "mokatakanahalfwidth", 0xff93, "molsquare", 0x33d6, "momathai", 0x0e21, "moverssquare", 0x33a7, "moverssquaredsquare", 0x33a8, "mparen", 0x24a8, "mpasquare", 0x33ab, "mssquare", 0x33b3, "msuperior", 0xf6ef, "mturned", 0x026f, "mu", 0x00b5, "mu1", 0x00b5, "muasquare", 0x3382, "muchgreater", 0x226b, "muchless", 0x226a, "mufsquare", 0x338c, "mugreek", 0x03bc, "mugsquare", 0x338d, "muhiragana", 0x3080, "mukatakana", 0x30e0, "mukatakanahalfwidth", 0xff91, "mulsquare", 0x3395, "multiply", 0x00d7, "mumsquare", 0x339b, "munahhebrew", 0x05a3, "munahlefthebrew", 0x05a3, "musicalnote", 0x266a, "musicalnotedbl", 0x266b, "musicflatsign", 0x266d, "musicsharpsign", 0x266f, "mussquare", 0x33b2, "muvsquare", 0x33b6, "muwsquare", 0x33bc, "mvmegasquare", 0x33b9, "mvsquare", 0x33b7, "mwmegasquare", 0x33bf, "mwsquare", 0x33bd, "n", 0x006e, "nabengali", 0x09a8, "nabla", 0x2207, "nacute", 0x0144, "nadeva", 0x0928, "nagujarati", 0x0aa8, "nagurmukhi", 0x0a28, "nahiragana", 0x306a, "nakatakana", 0x30ca, "nakatakanahalfwidth", 0xff85, "napostrophe", 0x0149, "nasquare", 0x3381, "nbopomofo", 0x310b, "nbspace", 0x00a0, "ncaron", 0x0148, "ncedilla", 0x0146, "ncircle", 0x24dd, "ncircumflexbelow", 0x1e4b, "ncommaaccent", 0x0146, "ndotaccent", 0x1e45, "ndotbelow", 0x1e47, "nehiragana", 0x306d, "nekatakana", 0x30cd, "nekatakanahalfwidth", 0xff88, "newsheqelsign", 0x20aa, "nfsquare", 0x338b, "ngabengali", 0x0999, "ngadeva", 0x0919, "ngagujarati", 0x0a99, "ngagurmukhi", 0x0a19, "ngonguthai", 0x0e07, "nhiragana", 0x3093, "nhookleft", 0x0272, "nhookretroflex", 0x0273, "nieunacirclekorean", 0x326f, "nieunaparenkorean", 0x320f, "nieuncieuckorean", 0x3135, "nieuncirclekorean", 0x3261, "nieunhieuhkorean", 0x3136, "nieunkorean", 0x3134, "nieunpansioskorean", 0x3168, "nieunparenkorean", 0x3201, "nieunsioskorean", 0x3167, "nieuntikeutkorean", 0x3166, "nihiragana", 0x306b, "nikatakana", 0x30cb, "nikatakanahalfwidth", 0xff86, "nikhahitleftthai", 0xf899, "nikhahitthai", 0x0e4d, "nine", 0x0039, "ninearabic", 0x0669, "ninebengali", 0x09ef, "ninecircle", 0x2468, "ninecircleinversesansserif", 0x2792, "ninedeva", 0x096f, "ninegujarati", 0x0aef, "ninegurmukhi", 0x0a6f, "ninehackarabic", 0x0669, "ninehangzhou", 0x3029, "nineideographicparen", 0x3228, "nineinferior", 0x2089, "ninemonospace", 0xff19, "nineoldstyle", 0xf739, "nineparen", 0x247c, "nineperiod", 0x2490, "ninepersian", 0x06f9, "nineroman", 0x2178, "ninesuperior", 0x2079, "nineteencircle", 0x2472, "nineteenparen", 0x2486, "nineteenperiod", 0x249a, "ninethai", 0x0e59, "nj", 0x01cc, "njecyrillic", 0x045a, "nkatakana", 0x30f3, "nkatakanahalfwidth", 0xff9d, "nlegrightlong", 0x019e, "nlinebelow", 0x1e49, "nmonospace", 0xff4e, "nmsquare", 0x339a, "nnabengali", 0x09a3, "nnadeva", 0x0923, "nnagujarati", 0x0aa3, "nnagurmukhi", 0x0a23, "nnnadeva", 0x0929, "nohiragana", 0x306e, "nokatakana", 0x30ce, "nokatakanahalfwidth", 0xff89, "nonbreakingspace", 0x00a0, "nonenthai", 0x0e13, "nonuthai", 0x0e19, "noonarabic", 0x0646, "noonfinalarabic", 0xfee6, "noonghunnaarabic", 0x06ba, "noonghunnafinalarabic", 0xfb9f, "nooninitialarabic", 0xfee7, "noonjeeminitialarabic", 0xfcd2, "noonjeemisolatedarabic", 0xfc4b, "noonmedialarabic", 0xfee8, "noonmeeminitialarabic", 0xfcd5, "noonmeemisolatedarabic", 0xfc4e, "noonnoonfinalarabic", 0xfc8d, "notcontains", 0x220c, "notelement", 0x2209, "notelementof", 0x2209, "notequal", 0x2260, "notgreater", 0x226f, "notgreaternorequal", 0x2271, "notgreaternorless", 0x2279, "notidentical", 0x2262, "notless", 0x226e, "notlessnorequal", 0x2270, "notparallel", 0x2226, "notprecedes", 0x2280, "notsubset", 0x2284, "notsucceeds", 0x2281, "notsuperset", 0x2285, "nowarmenian", 0x0576, "nparen", 0x24a9, "nssquare", 0x33b1, "nsuperior", 0x207f, "ntilde", 0x00f1, "nu", 0x03bd, "nuhiragana", 0x306c, "nukatakana", 0x30cc, "nukatakanahalfwidth", 0xff87, "nuktabengali", 0x09bc, "nuktadeva", 0x093c, "nuktagujarati", 0x0abc, "nuktagurmukhi", 0x0a3c, "numbersign", 0x0023, "numbersignmonospace", 0xff03, "numbersignsmall", 0xfe5f, "numeralsigngreek", 0x0374, "numeralsignlowergreek", 0x0375, "numero", 0x2116, "nun", 0x05e0, "nundagesh", 0xfb40, "nundageshhebrew", 0xfb40, "nunhebrew", 0x05e0, "nvsquare", 0x33b5, "nwsquare", 0x33bb, "nyabengali", 0x099e, "nyadeva", 0x091e, "nyagujarati", 0x0a9e, "nyagurmukhi", 0x0a1e, "o", 0x006f, "oacute", 0x00f3, "oangthai", 0x0e2d, "obarred", 0x0275, "obarredcyrillic", 0x04e9, "obarreddieresiscyrillic", 0x04eb, "obengali", 0x0993, "obopomofo", 0x311b, "obreve", 0x014f, "ocandradeva", 0x0911, "ocandragujarati", 0x0a91, "ocandravowelsigndeva", 0x0949, "ocandravowelsigngujarati", 0x0ac9, "ocaron", 0x01d2, "ocircle", 0x24de, "ocircumflex", 0x00f4, "ocircumflexacute", 0x1ed1, "ocircumflexdotbelow", 0x1ed9, "ocircumflexgrave", 0x1ed3, "ocircumflexhookabove", 0x1ed5, "ocircumflextilde", 0x1ed7, "ocyrillic", 0x043e, "odblacute", 0x0151, "odblgrave", 0x020d, "odeva", 0x0913, "odieresis", 0x00f6, "odieresiscyrillic", 0x04e7, "odotbelow", 0x1ecd, "oe", 0x0153, "oekorean", 0x315a, "ogonek", 0x02db, "ogonekcmb", 0x0328, "ograve", 0x00f2, "ogujarati", 0x0a93, "oharmenian", 0x0585, "ohiragana", 0x304a, "ohookabove", 0x1ecf, "ohorn", 0x01a1, "ohornacute", 0x1edb, "ohorndotbelow", 0x1ee3, "ohorngrave", 0x1edd, "ohornhookabove", 0x1edf, "ohorntilde", 0x1ee1, "ohungarumlaut", 0x0151, "oi", 0x01a3, "oinvertedbreve", 0x020f, "okatakana", 0x30aa, "okatakanahalfwidth", 0xff75, "okorean", 0x3157, "olehebrew", 0x05ab, "omacron", 0x014d, "omacronacute", 0x1e53, "omacrongrave", 0x1e51, "omdeva", 0x0950, "omega", 0x03c9, "omega1", 0x03d6, "omegacyrillic", 0x0461, "omegalatinclosed", 0x0277, "omegaroundcyrillic", 0x047b, "omegatitlocyrillic", 0x047d, "omegatonos", 0x03ce, "omgujarati", 0x0ad0, "omicron", 0x03bf, "omicrontonos", 0x03cc, "omonospace", 0xff4f, "one", 0x0031, "onearabic", 0x0661, "onebengali", 0x09e7, "onecircle", 0x2460, "onecircleinversesansserif", 0x278a, "onedeva", 0x0967, "onedotenleader", 0x2024, "oneeighth", 0x215b, "onefitted", 0xf6dc, "onegujarati", 0x0ae7, "onegurmukhi", 0x0a67, "onehackarabic", 0x0661, "onehalf", 0x00bd, "onehangzhou", 0x3021, "oneideographicparen", 0x3220, "oneinferior", 0x2081, "onemonospace", 0xff11, "onenumeratorbengali", 0x09f4, "oneoldstyle", 0xf731, "oneparen", 0x2474, "oneperiod", 0x2488, "onepersian", 0x06f1, "onequarter", 0x00bc, "oneroman", 0x2170, "onesuperior", 0x00b9, "onethai", 0x0e51, "onethird", 0x2153, "oogonek", 0x01eb, "oogonekmacron", 0x01ed, "oogurmukhi", 0x0a13, "oomatragurmukhi", 0x0a4b, "oopen", 0x0254, "oparen", 0x24aa, "openbullet", 0x25e6, "option", 0x2325, "ordfeminine", 0x00aa, "ordmasculine", 0x00ba, "orthogonal", 0x221f, "oshortdeva", 0x0912, "oshortvowelsigndeva", 0x094a, "oslash", 0x00f8, "oslashacute", 0x01ff, "osmallhiragana", 0x3049, "osmallkatakana", 0x30a9, "osmallkatakanahalfwidth", 0xff6b, "ostrokeacute", 0x01ff, "osuperior", 0xf6f0, "otcyrillic", 0x047f, "otilde", 0x00f5, "otildeacute", 0x1e4d, "otildedieresis", 0x1e4f, "oubopomofo", 0x3121, "overline", 0x203e, "overlinecenterline", 0xfe4a, "overlinecmb", 0x0305, "overlinedashed", 0xfe49, "overlinedblwavy", 0xfe4c, "overlinewavy", 0xfe4b, "overscore", 0x00af, "ovowelsignbengali", 0x09cb, "ovowelsigndeva", 0x094b, "ovowelsigngujarati", 0x0acb, "p", 0x0070, "paampssquare", 0x3380, "paasentosquare", 0x332b, "pabengali", 0x09aa, "pacute", 0x1e55, "padeva", 0x092a, "pagedown", 0x21df, "pageup", 0x21de, "pagujarati", 0x0aaa, "pagurmukhi", 0x0a2a, "pahiragana", 0x3071, "paiyannoithai", 0x0e2f, "pakatakana", 0x30d1, "palatalizationcyrilliccmb", 0x0484, "palochkacyrillic", 0x04c0, "pansioskorean", 0x317f, "paragraph", 0x00b6, "parallel", 0x2225, "parenleft", 0x0028, "parenleftaltonearabic", 0xfd3e, "parenleftbt", 0xf8ed, "parenleftex", 0xf8ec, "parenleftinferior", 0x208d, "parenleftmonospace", 0xff08, "parenleftsmall", 0xfe59, "parenleftsuperior", 0x207d, "parenlefttp", 0xf8eb, "parenleftvertical", 0xfe35, "parenright", 0x0029, "parenrightaltonearabic", 0xfd3f, "parenrightbt", 0xf8f8, "parenrightex", 0xf8f7, "parenrightinferior", 0x208e, "parenrightmonospace", 0xff09, "parenrightsmall", 0xfe5a, "parenrightsuperior", 0x207e, "parenrighttp", 0xf8f6, "parenrightvertical", 0xfe36, "partialdiff", 0x2202, "paseqhebrew", 0x05c0, "pashtahebrew", 0x0599, "pasquare", 0x33a9, "patah", 0x05b7, "patah11", 0x05b7, "patah1d", 0x05b7, "patah2a", 0x05b7, "patahhebrew", 0x05b7, "patahnarrowhebrew", 0x05b7, "patahquarterhebrew", 0x05b7, "patahwidehebrew", 0x05b7, "pazerhebrew", 0x05a1, "pbopomofo", 0x3106, "pcircle", 0x24df, "pdotaccent", 0x1e57, "pe", 0x05e4, "pecyrillic", 0x043f, "pedagesh", 0xfb44, "pedageshhebrew", 0xfb44, "peezisquare", 0x333b, "pefinaldageshhebrew", 0xfb43, "peharabic", 0x067e, "peharmenian", 0x057a, "pehebrew", 0x05e4, "pehfinalarabic", 0xfb57, "pehinitialarabic", 0xfb58, "pehiragana", 0x307a, "pehmedialarabic", 0xfb59, "pekatakana", 0x30da, "pemiddlehookcyrillic", 0x04a7, "perafehebrew", 0xfb4e, "percent", 0x0025, "percentarabic", 0x066a, "percentmonospace", 0xff05, "percentsmall", 0xfe6a, "period", 0x002e, "periodarmenian", 0x0589, "periodcentered", 0x00b7, "periodhalfwidth", 0xff61, "periodinferior", 0xf6e7, "periodmonospace", 0xff0e, "periodsmall", 0xfe52, "periodsuperior", 0xf6e8, "perispomenigreekcmb", 0x0342, "perpendicular", 0x22a5, "perthousand", 0x2030, "peseta", 0x20a7, "pfsquare", 0x338a, "phabengali", 0x09ab, "phadeva", 0x092b, "phagujarati", 0x0aab, "phagurmukhi", 0x0a2b, "phi", 0x03c6, "phi1", 0x03d5, "phieuphacirclekorean", 0x327a, "phieuphaparenkorean", 0x321a, "phieuphcirclekorean", 0x326c, "phieuphkorean", 0x314d, "phieuphparenkorean", 0x320c, "philatin", 0x0278, "phinthuthai", 0x0e3a, "phisymbolgreek", 0x03d5, "phook", 0x01a5, "phophanthai", 0x0e1e, "phophungthai", 0x0e1c, "phosamphaothai", 0x0e20, "pi", 0x03c0, "pieupacirclekorean", 0x3273, "pieupaparenkorean", 0x3213, "pieupcieuckorean", 0x3176, "pieupcirclekorean", 0x3265, "pieupkiyeokkorean", 0x3172, "pieupkorean", 0x3142, "pieupparenkorean", 0x3205, "pieupsioskiyeokkorean", 0x3174, "pieupsioskorean", 0x3144, "pieupsiostikeutkorean", 0x3175, "pieupthieuthkorean", 0x3177, "pieuptikeutkorean", 0x3173, "pihiragana", 0x3074, "pikatakana", 0x30d4, "pisymbolgreek", 0x03d6, "piwrarmenian", 0x0583, "plus", 0x002b, "plusbelowcmb", 0x031f, "pluscircle", 0x2295, "plusminus", 0x00b1, "plusmod", 0x02d6, "plusmonospace", 0xff0b, "plussmall", 0xfe62, "plussuperior", 0x207a, "pmonospace", 0xff50, "pmsquare", 0x33d8, "pohiragana", 0x307d, "pointingindexdownwhite", 0x261f, "pointingindexleftwhite", 0x261c, "pointingindexrightwhite", 0x261e, "pointingindexupwhite", 0x261d, "pokatakana", 0x30dd, "poplathai", 0x0e1b, "postalmark", 0x3012, "postalmarkface", 0x3020, "pparen", 0x24ab, "precedes", 0x227a, "prescription", 0x211e, "primemod", 0x02b9, "primereversed", 0x2035, "product", 0x220f, "projective", 0x2305, "prolongedkana", 0x30fc, "propellor", 0x2318, "propersubset", 0x2282, "propersuperset", 0x2283, "proportion", 0x2237, "proportional", 0x221d, "psi", 0x03c8, "psicyrillic", 0x0471, "psilipneumatacyrilliccmb", 0x0486, "pssquare", 0x33b0, "puhiragana", 0x3077, "pukatakana", 0x30d7, "pvsquare", 0x33b4, "pwsquare", 0x33ba, "q", 0x0071, "qadeva", 0x0958, "qadmahebrew", 0x05a8, "qafarabic", 0x0642, "qaffinalarabic", 0xfed6, "qafinitialarabic", 0xfed7, "qafmedialarabic", 0xfed8, "qamats", 0x05b8, "qamats10", 0x05b8, "qamats1a", 0x05b8, "qamats1c", 0x05b8, "qamats27", 0x05b8, "qamats29", 0x05b8, "qamats33", 0x05b8, "qamatsde", 0x05b8, "qamatshebrew", 0x05b8, "qamatsnarrowhebrew", 0x05b8, "qamatsqatanhebrew", 0x05b8, "qamatsqatannarrowhebrew", 0x05b8, "qamatsqatanquarterhebrew", 0x05b8, "qamatsqatanwidehebrew", 0x05b8, "qamatsquarterhebrew", 0x05b8, "qamatswidehebrew", 0x05b8, "qarneyparahebrew", 0x059f, "qbopomofo", 0x3111, "qcircle", 0x24e0, "qhook", 0x02a0, "qmonospace", 0xff51, "qof", 0x05e7, "qofdagesh", 0xfb47, "qofdageshhebrew", 0xfb47, "qofhebrew", 0x05e7, "qparen", 0x24ac, "quarternote", 0x2669, "qubuts", 0x05bb, "qubuts18", 0x05bb, "qubuts25", 0x05bb, "qubuts31", 0x05bb, "qubutshebrew", 0x05bb, "qubutsnarrowhebrew", 0x05bb, "qubutsquarterhebrew", 0x05bb, "qubutswidehebrew", 0x05bb, "question", 0x003f, "questionarabic", 0x061f, "questionarmenian", 0x055e, "questiondown", 0x00bf, "questiondownsmall", 0xf7bf, "questiongreek", 0x037e, "questionmonospace", 0xff1f, "questionsmall", 0xf73f, "quotedbl", 0x0022, "quotedblbase", 0x201e, "quotedblleft", 0x201c, "quotedblmonospace", 0xff02, "quotedblprime", 0x301e, "quotedblprimereversed", 0x301d, "quotedblright", 0x201d, "quoteleft", 0x2018, "quoteleftreversed", 0x201b, "quotereversed", 0x201b, "quoteright", 0x2019, "quoterightn", 0x0149, "quotesinglbase", 0x201a, "quotesingle", 0x0027, "quotesinglemonospace", 0xff07, "r", 0x0072, "raarmenian", 0x057c, "rabengali", 0x09b0, "racute", 0x0155, "radeva", 0x0930, "radical", 0x221a, "radicalex", 0xf8e5, "radoverssquare", 0x33ae, "radoverssquaredsquare", 0x33af, "radsquare", 0x33ad, "rafe", 0x05bf, "rafehebrew", 0x05bf, "ragujarati", 0x0ab0, "ragurmukhi", 0x0a30, "rahiragana", 0x3089, "rakatakana", 0x30e9, "rakatakanahalfwidth", 0xff97, "ralowerdiagonalbengali", 0x09f1, "ramiddlediagonalbengali", 0x09f0, "ramshorn", 0x0264, "ratio", 0x2236, "rbopomofo", 0x3116, "rcaron", 0x0159, "rcedilla", 0x0157, "rcircle", 0x24e1, "rcommaaccent", 0x0157, "rdblgrave", 0x0211, "rdotaccent", 0x1e59, "rdotbelow", 0x1e5b, "rdotbelowmacron", 0x1e5d, "referencemark", 0x203b, "reflexsubset", 0x2286, "reflexsuperset", 0x2287, "registered", 0x00ae, "registersans", 0xf8e8, "registerserif", 0xf6da, "reharabic", 0x0631, "reharmenian", 0x0580, "rehfinalarabic", 0xfeae, "rehiragana", 0x308c, "rekatakana", 0x30ec, "rekatakanahalfwidth", 0xff9a, "resh", 0x05e8, "reshdageshhebrew", 0xfb48, "reshhebrew", 0x05e8, "reversedtilde", 0x223d, "reviahebrew", 0x0597, "reviamugrashhebrew", 0x0597, "revlogicalnot", 0x2310, "rfishhook", 0x027e, "rfishhookreversed", 0x027f, "rhabengali", 0x09dd, "rhadeva", 0x095d, "rho", 0x03c1, "rhook", 0x027d, "rhookturned", 0x027b, "rhookturnedsuperior", 0x02b5, "rhosymbolgreek", 0x03f1, "rhotichookmod", 0x02de, "rieulacirclekorean", 0x3271, "rieulaparenkorean", 0x3211, "rieulcirclekorean", 0x3263, "rieulhieuhkorean", 0x3140, "rieulkiyeokkorean", 0x313a, "rieulkiyeoksioskorean", 0x3169, "rieulkorean", 0x3139, "rieulmieumkorean", 0x313b, "rieulpansioskorean", 0x316c, "rieulparenkorean", 0x3203, "rieulphieuphkorean", 0x313f, "rieulpieupkorean", 0x313c, "rieulpieupsioskorean", 0x316b, "rieulsioskorean", 0x313d, "rieulthieuthkorean", 0x313e, "rieultikeutkorean", 0x316a, "rieulyeorinhieuhkorean", 0x316d, "rightangle", 0x221f, "righttackbelowcmb", 0x0319, "righttriangle", 0x22bf, "rihiragana", 0x308a, "rikatakana", 0x30ea, "rikatakanahalfwidth", 0xff98, "ring", 0x02da, "ringbelowcmb", 0x0325, "ringcmb", 0x030a, "ringhalfleft", 0x02bf, "ringhalfleftarmenian", 0x0559, "ringhalfleftbelowcmb", 0x031c, "ringhalfleftcentered", 0x02d3, "ringhalfright", 0x02be, "ringhalfrightbelowcmb", 0x0339, "ringhalfrightcentered", 0x02d2, "rinvertedbreve", 0x0213, "rittorusquare", 0x3351, "rlinebelow", 0x1e5f, "rlongleg", 0x027c, "rlonglegturned", 0x027a, "rmonospace", 0xff52, "rohiragana", 0x308d, "rokatakana", 0x30ed, "rokatakanahalfwidth", 0xff9b, "roruathai", 0x0e23, "rparen", 0x24ad, "rrabengali", 0x09dc, "rradeva", 0x0931, "rragurmukhi", 0x0a5c, "rreharabic", 0x0691, "rrehfinalarabic", 0xfb8d, "rrvocalicbengali", 0x09e0, "rrvocalicdeva", 0x0960, "rrvocalicgujarati", 0x0ae0, "rrvocalicvowelsignbengali", 0x09c4, "rrvocalicvowelsigndeva", 0x0944, "rrvocalicvowelsigngujarati", 0x0ac4, "rsuperior", 0xf6f1, "rtblock", 0x2590, "rturned", 0x0279, "rturnedsuperior", 0x02b4, "ruhiragana", 0x308b, "rukatakana", 0x30eb, "rukatakanahalfwidth", 0xff99, "rupeemarkbengali", 0x09f2, "rupeesignbengali", 0x09f3, "rupiah", 0xf6dd, "ruthai", 0x0e24, "rvocalicbengali", 0x098b, "rvocalicdeva", 0x090b, "rvocalicgujarati", 0x0a8b, "rvocalicvowelsignbengali", 0x09c3, "rvocalicvowelsigndeva", 0x0943, "rvocalicvowelsigngujarati", 0x0ac3, "s", 0x0073, "sabengali", 0x09b8, "sacute", 0x015b, "sacutedotaccent", 0x1e65, "sadarabic", 0x0635, "sadeva", 0x0938, "sadfinalarabic", 0xfeba, "sadinitialarabic", 0xfebb, "sadmedialarabic", 0xfebc, "sagujarati", 0x0ab8, "sagurmukhi", 0x0a38, "sahiragana", 0x3055, "sakatakana", 0x30b5, "sakatakanahalfwidth", 0xff7b, "sallallahoualayhewasallamarabic", 0xfdfa, "samekh", 0x05e1, "samekhdagesh", 0xfb41, "samekhdageshhebrew", 0xfb41, "samekhhebrew", 0x05e1, "saraaathai", 0x0e32, "saraaethai", 0x0e41, "saraaimaimalaithai", 0x0e44, "saraaimaimuanthai", 0x0e43, "saraamthai", 0x0e33, "saraathai", 0x0e30, "saraethai", 0x0e40, "saraiileftthai", 0xf886, "saraiithai", 0x0e35, "saraileftthai", 0xf885, "saraithai", 0x0e34, "saraothai", 0x0e42, "saraueeleftthai", 0xf888, "saraueethai", 0x0e37, "saraueleftthai", 0xf887, "sarauethai", 0x0e36, "sarauthai", 0x0e38, "sarauuthai", 0x0e39, "sbopomofo", 0x3119, "scaron", 0x0161, "scarondotaccent", 0x1e67, "scedilla", 0x015f, "schwa", 0x0259, "schwacyrillic", 0x04d9, "schwadieresiscyrillic", 0x04db, "schwahook", 0x025a, "scircle", 0x24e2, "scircumflex", 0x015d, "scommaaccent", 0x0219, "sdotaccent", 0x1e61, "sdotbelow", 0x1e63, "sdotbelowdotaccent", 0x1e69, "seagullbelowcmb", 0x033c, "second", 0x2033, "secondtonechinese", 0x02ca, "section", 0x00a7, "seenarabic", 0x0633, "seenfinalarabic", 0xfeb2, "seeninitialarabic", 0xfeb3, "seenmedialarabic", 0xfeb4, "segol", 0x05b6, "segol13", 0x05b6, "segol1f", 0x05b6, "segol2c", 0x05b6, "segolhebrew", 0x05b6, "segolnarrowhebrew", 0x05b6, "segolquarterhebrew", 0x05b6, "segoltahebrew", 0x0592, "segolwidehebrew", 0x05b6, "seharmenian", 0x057d, "sehiragana", 0x305b, "sekatakana", 0x30bb, "sekatakanahalfwidth", 0xff7e, "semicolon", 0x003b, "semicolonarabic", 0x061b, "semicolonmonospace", 0xff1b, "semicolonsmall", 0xfe54, "semivoicedmarkkana", 0x309c, "semivoicedmarkkanahalfwidth", 0xff9f, "sentisquare", 0x3322, "sentosquare", 0x3323, "seven", 0x0037, "sevenarabic", 0x0667, "sevenbengali", 0x09ed, "sevencircle", 0x2466, "sevencircleinversesansserif", 0x2790, "sevendeva", 0x096d, "seveneighths", 0x215e, "sevengujarati", 0x0aed, "sevengurmukhi", 0x0a6d, "sevenhackarabic", 0x0667, "sevenhangzhou", 0x3027, "sevenideographicparen", 0x3226, "seveninferior", 0x2087, "sevenmonospace", 0xff17, "sevenoldstyle", 0xf737, "sevenparen", 0x247a, "sevenperiod", 0x248e, "sevenpersian", 0x06f7, "sevenroman", 0x2176, "sevensuperior", 0x2077, "seventeencircle", 0x2470, "seventeenparen", 0x2484, "seventeenperiod", 0x2498, "seventhai", 0x0e57, "sfthyphen", 0x00ad, "shaarmenian", 0x0577, "shabengali", 0x09b6, "shacyrillic", 0x0448, "shaddaarabic", 0x0651, "shaddadammaarabic", 0xfc61, "shaddadammatanarabic", 0xfc5e, "shaddafathaarabic", 0xfc60, "shaddakasraarabic", 0xfc62, "shaddakasratanarabic", 0xfc5f, "shade", 0x2592, "shadedark", 0x2593, "shadelight", 0x2591, "shademedium", 0x2592, "shadeva", 0x0936, "shagujarati", 0x0ab6, "shagurmukhi", 0x0a36, "shalshelethebrew", 0x0593, "shbopomofo", 0x3115, "shchacyrillic", 0x0449, "sheenarabic", 0x0634, "sheenfinalarabic", 0xfeb6, "sheeninitialarabic", 0xfeb7, "sheenmedialarabic", 0xfeb8, "sheicoptic", 0x03e3, "sheqel", 0x20aa, "sheqelhebrew", 0x20aa, "sheva", 0x05b0, "sheva115", 0x05b0, "sheva15", 0x05b0, "sheva22", 0x05b0, "sheva2e", 0x05b0, "shevahebrew", 0x05b0, "shevanarrowhebrew", 0x05b0, "shevaquarterhebrew", 0x05b0, "shevawidehebrew", 0x05b0, "shhacyrillic", 0x04bb, "shimacoptic", 0x03ed, "shin", 0x05e9, "shindagesh", 0xfb49, "shindageshhebrew", 0xfb49, "shindageshshindot", 0xfb2c, "shindageshshindothebrew", 0xfb2c, "shindageshsindot", 0xfb2d, "shindageshsindothebrew", 0xfb2d, "shindothebrew", 0x05c1, "shinhebrew", 0x05e9, "shinshindot", 0xfb2a, "shinshindothebrew", 0xfb2a, "shinsindot", 0xfb2b, "shinsindothebrew", 0xfb2b, "shook", 0x0282, "sigma", 0x03c3, "sigma1", 0x03c2, "sigmafinal", 0x03c2, "sigmalunatesymbolgreek", 0x03f2, "sihiragana", 0x3057, "sikatakana", 0x30b7, "sikatakanahalfwidth", 0xff7c, "siluqhebrew", 0x05bd, "siluqlefthebrew", 0x05bd, "similar", 0x223c, "sindothebrew", 0x05c2, "siosacirclekorean", 0x3274, "siosaparenkorean", 0x3214, "sioscieuckorean", 0x317e, "sioscirclekorean", 0x3266, "sioskiyeokkorean", 0x317a, "sioskorean", 0x3145, "siosnieunkorean", 0x317b, "siosparenkorean", 0x3206, "siospieupkorean", 0x317d, "siostikeutkorean", 0x317c, "six", 0x0036, "sixarabic", 0x0666, "sixbengali", 0x09ec, "sixcircle", 0x2465, "sixcircleinversesansserif", 0x278f, "sixdeva", 0x096c, "sixgujarati", 0x0aec, "sixgurmukhi", 0x0a6c, "sixhackarabic", 0x0666, "sixhangzhou", 0x3026, "sixideographicparen", 0x3225, "sixinferior", 0x2086, "sixmonospace", 0xff16, "sixoldstyle", 0xf736, "sixparen", 0x2479, "sixperiod", 0x248d, "sixpersian", 0x06f6, "sixroman", 0x2175, "sixsuperior", 0x2076, "sixteencircle", 0x246f, "sixteencurrencydenominatorbengali", 0x09f9, "sixteenparen", 0x2483, "sixteenperiod", 0x2497, "sixthai", 0x0e56, "slash", 0x002f, "slashmonospace", 0xff0f, "slong", 0x017f, "slongdotaccent", 0x1e9b, "smileface", 0x263a, "smonospace", 0xff53, "sofpasuqhebrew", 0x05c3, "softhyphen", 0x00ad, "softsigncyrillic", 0x044c, "sohiragana", 0x305d, "sokatakana", 0x30bd, "sokatakanahalfwidth", 0xff7f, "soliduslongoverlaycmb", 0x0338, "solidusshortoverlaycmb", 0x0337, "sorusithai", 0x0e29, "sosalathai", 0x0e28, "sosothai", 0x0e0b, "sosuathai", 0x0e2a, "space", 0x0020, "spacehackarabic", 0x0020, "spade", 0x2660, "spadesuitblack", 0x2660, "spadesuitwhite", 0x2664, "sparen", 0x24ae, "squarebelowcmb", 0x033b, "squarecc", 0x33c4, "squarecm", 0x339d, "squarediagonalcrosshatchfill", 0x25a9, "squarehorizontalfill", 0x25a4, "squarekg", 0x338f, "squarekm", 0x339e, "squarekmcapital", 0x33ce, "squareln", 0x33d1, "squarelog", 0x33d2, "squaremg", 0x338e, "squaremil", 0x33d5, "squaremm", 0x339c, "squaremsquared", 0x33a1, "squareorthogonalcrosshatchfill", 0x25a6, "squareupperlefttolowerrightfill", 0x25a7, "squareupperrighttolowerleftfill", 0x25a8, "squareverticalfill", 0x25a5, "squarewhitewithsmallblack", 0x25a3, "srsquare", 0x33db, "ssabengali", 0x09b7, "ssadeva", 0x0937, "ssagujarati", 0x0ab7, "ssangcieuckorean", 0x3149, "ssanghieuhkorean", 0x3185, "ssangieungkorean", 0x3180, "ssangkiyeokkorean", 0x3132, "ssangnieunkorean", 0x3165, "ssangpieupkorean", 0x3143, "ssangsioskorean", 0x3146, "ssangtikeutkorean", 0x3138, "ssuperior", 0xf6f2, "sterling", 0x00a3, "sterlingmonospace", 0xffe1, "strokelongoverlaycmb", 0x0336, "strokeshortoverlaycmb", 0x0335, "subset", 0x2282, "subsetnotequal", 0x228a, "subsetorequal", 0x2286, "succeeds", 0x227b, "suchthat", 0x220b, "suhiragana", 0x3059, "sukatakana", 0x30b9, "sukatakanahalfwidth", 0xff7d, "sukunarabic", 0x0652, "summation", 0x2211, "sun", 0x263c, "superset", 0x2283, "supersetnotequal", 0x228b, "supersetorequal", 0x2287, "svsquare", 0x33dc, "syouwaerasquare", 0x337c, "t", 0x0074, "tabengali", 0x09a4, "tackdown", 0x22a4, "tackleft", 0x22a3, "tadeva", 0x0924, "tagujarati", 0x0aa4, "tagurmukhi", 0x0a24, "taharabic", 0x0637, "tahfinalarabic", 0xfec2, "tahinitialarabic", 0xfec3, "tahiragana", 0x305f, "tahmedialarabic", 0xfec4, "taisyouerasquare", 0x337d, "takatakana", 0x30bf, "takatakanahalfwidth", 0xff80, "tatweelarabic", 0x0640, "tau", 0x03c4, "tav", 0x05ea, "tavdages", 0xfb4a, "tavdagesh", 0xfb4a, "tavdageshhebrew", 0xfb4a, "tavhebrew", 0x05ea, "tbar", 0x0167, "tbopomofo", 0x310a, "tcaron", 0x0165, "tccurl", 0x02a8, "tcedilla", 0x0163, "tcheharabic", 0x0686, "tchehfinalarabic", 0xfb7b, "tchehinitialarabic", 0xfb7c, "tchehmedialarabic", 0xfb7d, "tcircle", 0x24e3, "tcircumflexbelow", 0x1e71, "tcommaaccent", 0x0163, "tdieresis", 0x1e97, "tdotaccent", 0x1e6b, "tdotbelow", 0x1e6d, "tecyrillic", 0x0442, "tedescendercyrillic", 0x04ad, "teharabic", 0x062a, "tehfinalarabic", 0xfe96, "tehhahinitialarabic", 0xfca2, "tehhahisolatedarabic", 0xfc0c, "tehinitialarabic", 0xfe97, "tehiragana", 0x3066, "tehjeeminitialarabic", 0xfca1, "tehjeemisolatedarabic", 0xfc0b, "tehmarbutaarabic", 0x0629, "tehmarbutafinalarabic", 0xfe94, "tehmedialarabic", 0xfe98, "tehmeeminitialarabic", 0xfca4, "tehmeemisolatedarabic", 0xfc0e, "tehnoonfinalarabic", 0xfc73, "tekatakana", 0x30c6, "tekatakanahalfwidth", 0xff83, "telephone", 0x2121, "telephoneblack", 0x260e, "telishagedolahebrew", 0x05a0, "telishaqetanahebrew", 0x05a9, "tencircle", 0x2469, "tenideographicparen", 0x3229, "tenparen", 0x247d, "tenperiod", 0x2491, "tenroman", 0x2179, "tesh", 0x02a7, "tet", 0x05d8, "tetdagesh", 0xfb38, "tetdageshhebrew", 0xfb38, "tethebrew", 0x05d8, "tetsecyrillic", 0x04b5, "tevirhebrew", 0x059b, "tevirlefthebrew", 0x059b, "thabengali", 0x09a5, "thadeva", 0x0925, "thagujarati", 0x0aa5, "thagurmukhi", 0x0a25, "thalarabic", 0x0630, "thalfinalarabic", 0xfeac, "thanthakhatlowleftthai", 0xf898, "thanthakhatlowrightthai", 0xf897, "thanthakhatthai", 0x0e4c, "thanthakhatupperleftthai", 0xf896, "theharabic", 0x062b, "thehfinalarabic", 0xfe9a, "thehinitialarabic", 0xfe9b, "thehmedialarabic", 0xfe9c, "thereexists", 0x2203, "therefore", 0x2234, "theta", 0x03b8, "theta1", 0x03d1, "thetasymbolgreek", 0x03d1, "thieuthacirclekorean", 0x3279, "thieuthaparenkorean", 0x3219, "thieuthcirclekorean", 0x326b, "thieuthkorean", 0x314c, "thieuthparenkorean", 0x320b, "thirteencircle", 0x246c, "thirteenparen", 0x2480, "thirteenperiod", 0x2494, "thonangmonthothai", 0x0e11, "thook", 0x01ad, "thophuthaothai", 0x0e12, "thorn", 0x00fe, "thothahanthai", 0x0e17, "thothanthai", 0x0e10, "thothongthai", 0x0e18, "thothungthai", 0x0e16, "thousandcyrillic", 0x0482, "thousandsseparatorarabic", 0x066c, "thousandsseparatorpersian", 0x066c, "three", 0x0033, "threearabic", 0x0663, "threebengali", 0x09e9, "threecircle", 0x2462, "threecircleinversesansserif", 0x278c, "threedeva", 0x0969, "threeeighths", 0x215c, "threegujarati", 0x0ae9, "threegurmukhi", 0x0a69, "threehackarabic", 0x0663, "threehangzhou", 0x3023, "threeideographicparen", 0x3222, "threeinferior", 0x2083, "threemonospace", 0xff13, "threenumeratorbengali", 0x09f6, "threeoldstyle", 0xf733, "threeparen", 0x2476, "threeperiod", 0x248a, "threepersian", 0x06f3, "threequarters", 0x00be, "threequartersemdash", 0xf6de, "threeroman", 0x2172, "threesuperior", 0x00b3, "threethai", 0x0e53, "thzsquare", 0x3394, "tihiragana", 0x3061, "tikatakana", 0x30c1, "tikatakanahalfwidth", 0xff81, "tikeutacirclekorean", 0x3270, "tikeutaparenkorean", 0x3210, "tikeutcirclekorean", 0x3262, "tikeutkorean", 0x3137, "tikeutparenkorean", 0x3202, "tilde", 0x02dc, "tildebelowcmb", 0x0330, "tildecmb", 0x0303, "tildecomb", 0x0303, "tildedoublecmb", 0x0360, "tildeoperator", 0x223c, "tildeoverlaycmb", 0x0334, "tildeverticalcmb", 0x033e, "timescircle", 0x2297, "tipehahebrew", 0x0596, "tipehalefthebrew", 0x0596, "tippigurmukhi", 0x0a70, "titlocyrilliccmb", 0x0483, "tiwnarmenian", 0x057f, "tlinebelow", 0x1e6f, "tmonospace", 0xff54, "toarmenian", 0x0569, "tohiragana", 0x3068, "tokatakana", 0x30c8, "tokatakanahalfwidth", 0xff84, "tonebarextrahighmod", 0x02e5, "tonebarextralowmod", 0x02e9, "tonebarhighmod", 0x02e6, "tonebarlowmod", 0x02e8, "tonebarmidmod", 0x02e7, "tonefive", 0x01bd, "tonesix", 0x0185, "tonetwo", 0x01a8, "tonos", 0x0384, "tonsquare", 0x3327, "topatakthai", 0x0e0f, "tortoiseshellbracketleft", 0x3014, "tortoiseshellbracketleftsmall", 0xfe5d, "tortoiseshellbracketleftvertical", 0xfe39, "tortoiseshellbracketright", 0x3015, "tortoiseshellbracketrightsmall", 0xfe5e, "tortoiseshellbracketrightvertical", 0xfe3a, "totaothai", 0x0e15, "tpalatalhook", 0x01ab, "tparen", 0x24af, "trademark", 0x2122, "trademarksans", 0xf8ea, "trademarkserif", 0xf6db, "tretroflexhook", 0x0288, "triagdn", 0x25bc, "triaglf", 0x25c4, "triagrt", 0x25ba, "triagup", 0x25b2, "ts", 0x02a6, "tsadi", 0x05e6, "tsadidagesh", 0xfb46, "tsadidageshhebrew", 0xfb46, "tsadihebrew", 0x05e6, "tsecyrillic", 0x0446, "tsere", 0x05b5, "tsere12", 0x05b5, "tsere1e", 0x05b5, "tsere2b", 0x05b5, "tserehebrew", 0x05b5, "tserenarrowhebrew", 0x05b5, "tserequarterhebrew", 0x05b5, "tserewidehebrew", 0x05b5, "tshecyrillic", 0x045b, "tsuperior", 0xf6f3, "ttabengali", 0x099f, "ttadeva", 0x091f, "ttagujarati", 0x0a9f, "ttagurmukhi", 0x0a1f, "tteharabic", 0x0679, "ttehfinalarabic", 0xfb67, "ttehinitialarabic", 0xfb68, "ttehmedialarabic", 0xfb69, "tthabengali", 0x09a0, "tthadeva", 0x0920, "tthagujarati", 0x0aa0, "tthagurmukhi", 0x0a20, "tturned", 0x0287, "tuhiragana", 0x3064, "tukatakana", 0x30c4, "tukatakanahalfwidth", 0xff82, "tusmallhiragana", 0x3063, "tusmallkatakana", 0x30c3, "tusmallkatakanahalfwidth", 0xff6f, "twelvecircle", 0x246b, "twelveparen", 0x247f, "twelveperiod", 0x2493, "twelveroman", 0x217b, "twentycircle", 0x2473, "twentyhangzhou", 0x5344, "twentyparen", 0x2487, "twentyperiod", 0x249b, "two", 0x0032, "twoarabic", 0x0662, "twobengali", 0x09e8, "twocircle", 0x2461, "twocircleinversesansserif", 0x278b, "twodeva", 0x0968, "twodotenleader", 0x2025, "twodotleader", 0x2025, "twodotleadervertical", 0xfe30, "twogujarati", 0x0ae8, "twogurmukhi", 0x0a68, "twohackarabic", 0x0662, "twohangzhou", 0x3022, "twoideographicparen", 0x3221, "twoinferior", 0x2082, "twomonospace", 0xff12, "twonumeratorbengali", 0x09f5, "twooldstyle", 0xf732, "twoparen", 0x2475, "twoperiod", 0x2489, "twopersian", 0x06f2, "tworoman", 0x2171, "twostroke", 0x01bb, "twosuperior", 0x00b2, "twothai", 0x0e52, "twothirds", 0x2154, "u", 0x0075, "uacute", 0x00fa, "ubar", 0x0289, "ubengali", 0x0989, "ubopomofo", 0x3128, "ubreve", 0x016d, "ucaron", 0x01d4, "ucircle", 0x24e4, "ucircumflex", 0x00fb, "ucircumflexbelow", 0x1e77, "ucyrillic", 0x0443, "udattadeva", 0x0951, "udblacute", 0x0171, "udblgrave", 0x0215, "udeva", 0x0909, "udieresis", 0x00fc, "udieresisacute", 0x01d8, "udieresisbelow", 0x1e73, "udieresiscaron", 0x01da, "udieresiscyrillic", 0x04f1, "udieresisgrave", 0x01dc, "udieresismacron", 0x01d6, "udotbelow", 0x1ee5, "ugrave", 0x00f9, "ugujarati", 0x0a89, "ugurmukhi", 0x0a09, "uhiragana", 0x3046, "uhookabove", 0x1ee7, "uhorn", 0x01b0, "uhornacute", 0x1ee9, "uhorndotbelow", 0x1ef1, "uhorngrave", 0x1eeb, "uhornhookabove", 0x1eed, "uhorntilde", 0x1eef, "uhungarumlaut", 0x0171, "uhungarumlautcyrillic", 0x04f3, "uinvertedbreve", 0x0217, "ukatakana", 0x30a6, "ukatakanahalfwidth", 0xff73, "ukcyrillic", 0x0479, "ukorean", 0x315c, "umacron", 0x016b, "umacroncyrillic", 0x04ef, "umacrondieresis", 0x1e7b, "umatragurmukhi", 0x0a41, "umonospace", 0xff55, "underscore", 0x005f, "underscoredbl", 0x2017, "underscoremonospace", 0xff3f, "underscorevertical", 0xfe33, "underscorewavy", 0xfe4f, "union", 0x222a, "universal", 0x2200, "uogonek", 0x0173, "uparen", 0x24b0, "upblock", 0x2580, "upperdothebrew", 0x05c4, "upsilon", 0x03c5, "upsilondieresis", 0x03cb, "upsilondieresistonos", 0x03b0, "upsilonlatin", 0x028a, "upsilontonos", 0x03cd, "uptackbelowcmb", 0x031d, "uptackmod", 0x02d4, "uragurmukhi", 0x0a73, "uring", 0x016f, "ushortcyrillic", 0x045e, "usmallhiragana", 0x3045, "usmallkatakana", 0x30a5, "usmallkatakanahalfwidth", 0xff69, "ustraightcyrillic", 0x04af, "ustraightstrokecyrillic", 0x04b1, "utilde", 0x0169, "utildeacute", 0x1e79, "utildebelow", 0x1e75, "uubengali", 0x098a, "uudeva", 0x090a, "uugujarati", 0x0a8a, "uugurmukhi", 0x0a0a, "uumatragurmukhi", 0x0a42, "uuvowelsignbengali", 0x09c2, "uuvowelsigndeva", 0x0942, "uuvowelsigngujarati", 0x0ac2, "uvowelsignbengali", 0x09c1, "uvowelsigndeva", 0x0941, "uvowelsigngujarati", 0x0ac1, "v", 0x0076, "vadeva", 0x0935, "vagujarati", 0x0ab5, "vagurmukhi", 0x0a35, "vakatakana", 0x30f7, "vav", 0x05d5, "vavdagesh", 0xfb35, "vavdagesh65", 0xfb35, "vavdageshhebrew", 0xfb35, "vavhebrew", 0x05d5, "vavholam", 0xfb4b, "vavholamhebrew", 0xfb4b, "vavvavhebrew", 0x05f0, "vavyodhebrew", 0x05f1, "vcircle", 0x24e5, "vdotbelow", 0x1e7f, "vecyrillic", 0x0432, "veharabic", 0x06a4, "vehfinalarabic", 0xfb6b, "vehinitialarabic", 0xfb6c, "vehmedialarabic", 0xfb6d, "vekatakana", 0x30f9, "venus", 0x2640, "verticalbar", 0x007c, "verticallineabovecmb", 0x030d, "verticallinebelowcmb", 0x0329, "verticallinelowmod", 0x02cc, "verticallinemod", 0x02c8, "vewarmenian", 0x057e, "vhook", 0x028b, "vikatakana", 0x30f8, "viramabengali", 0x09cd, "viramadeva", 0x094d, "viramagujarati", 0x0acd, "visargabengali", 0x0983, "visargadeva", 0x0903, "visargagujarati", 0x0a83, "vmonospace", 0xff56, "voarmenian", 0x0578, "voicediterationhiragana", 0x309e, "voicediterationkatakana", 0x30fe, "voicedmarkkana", 0x309b, "voicedmarkkanahalfwidth", 0xff9e, "vokatakana", 0x30fa, "vparen", 0x24b1, "vtilde", 0x1e7d, "vturned", 0x028c, "vuhiragana", 0x3094, "vukatakana", 0x30f4, "w", 0x0077, "wacute", 0x1e83, "waekorean", 0x3159, "wahiragana", 0x308f, "wakatakana", 0x30ef, "wakatakanahalfwidth", 0xff9c, "wakorean", 0x3158, "wasmallhiragana", 0x308e, "wasmallkatakana", 0x30ee, "wattosquare", 0x3357, "wavedash", 0x301c, "wavyunderscorevertical", 0xfe34, "wawarabic", 0x0648, "wawfinalarabic", 0xfeee, "wawhamzaabovearabic", 0x0624, "wawhamzaabovefinalarabic", 0xfe86, "wbsquare", 0x33dd, "wcircle", 0x24e6, "wcircumflex", 0x0175, "wdieresis", 0x1e85, "wdotaccent", 0x1e87, "wdotbelow", 0x1e89, "wehiragana", 0x3091, "weierstrass", 0x2118, "wekatakana", 0x30f1, "wekorean", 0x315e, "weokorean", 0x315d, "wgrave", 0x1e81, "whitebullet", 0x25e6, "whitecircle", 0x25cb, "whitecircleinverse", 0x25d9, "whitecornerbracketleft", 0x300e, "whitecornerbracketleftvertical", 0xfe43, "whitecornerbracketright", 0x300f, "whitecornerbracketrightvertical", 0xfe44, "whitediamond", 0x25c7, "whitediamondcontainingblacksmalldiamond", 0x25c8, "whitedownpointingsmalltriangle", 0x25bf, "whitedownpointingtriangle", 0x25bd, "whiteleftpointingsmalltriangle", 0x25c3, "whiteleftpointingtriangle", 0x25c1, "whitelenticularbracketleft", 0x3016, "whitelenticularbracketright", 0x3017, "whiterightpointingsmalltriangle", 0x25b9, "whiterightpointingtriangle", 0x25b7, "whitesmallsquare", 0x25ab, "whitesmilingface", 0x263a, "whitesquare", 0x25a1, "whitestar", 0x2606, "whitetelephone", 0x260f, "whitetortoiseshellbracketleft", 0x3018, "whitetortoiseshellbracketright", 0x3019, "whiteuppointingsmalltriangle", 0x25b5, "whiteuppointingtriangle", 0x25b3, "wihiragana", 0x3090, "wikatakana", 0x30f0, "wikorean", 0x315f, "wmonospace", 0xff57, "wohiragana", 0x3092, "wokatakana", 0x30f2, "wokatakanahalfwidth", 0xff66, "won", 0x20a9, "wonmonospace", 0xffe6, "wowaenthai", 0x0e27, "wparen", 0x24b2, "wring", 0x1e98, "wsuperior", 0x02b7, "wturned", 0x028d, "wynn", 0x01bf, "x", 0x0078, "xabovecmb", 0x033d, "xbopomofo", 0x3112, "xcircle", 0x24e7, "xdieresis", 0x1e8d, "xdotaccent", 0x1e8b, "xeharmenian", 0x056d, "xi", 0x03be, "xmonospace", 0xff58, "xparen", 0x24b3, "xsuperior", 0x02e3, "y", 0x0079, "yaadosquare", 0x334e, "yabengali", 0x09af, "yacute", 0x00fd, "yadeva", 0x092f, "yaekorean", 0x3152, "yagujarati", 0x0aaf, "yagurmukhi", 0x0a2f, "yahiragana", 0x3084, "yakatakana", 0x30e4, "yakatakanahalfwidth", 0xff94, "yakorean", 0x3151, "yamakkanthai", 0x0e4e, "yasmallhiragana", 0x3083, "yasmallkatakana", 0x30e3, "yasmallkatakanahalfwidth", 0xff6c, "yatcyrillic", 0x0463, "ycircle", 0x24e8, "ycircumflex", 0x0177, "ydieresis", 0x00ff, "ydotaccent", 0x1e8f, "ydotbelow", 0x1ef5, "yeharabic", 0x064a, "yehbarreearabic", 0x06d2, "yehbarreefinalarabic", 0xfbaf, "yehfinalarabic", 0xfef2, "yehhamzaabovearabic", 0x0626, "yehhamzaabovefinalarabic", 0xfe8a, "yehhamzaaboveinitialarabic", 0xfe8b, "yehhamzaabovemedialarabic", 0xfe8c, "yehinitialarabic", 0xfef3, "yehmedialarabic", 0xfef4, "yehmeeminitialarabic", 0xfcdd, "yehmeemisolatedarabic", 0xfc58, "yehnoonfinalarabic", 0xfc94, "yehthreedotsbelowarabic", 0x06d1, "yekorean", 0x3156, "yen", 0x00a5, "yenmonospace", 0xffe5, "yeokorean", 0x3155, "yeorinhieuhkorean", 0x3186, "yerahbenyomohebrew", 0x05aa, "yerahbenyomolefthebrew", 0x05aa, "yericyrillic", 0x044b, "yerudieresiscyrillic", 0x04f9, "yesieungkorean", 0x3181, "yesieungpansioskorean", 0x3183, "yesieungsioskorean", 0x3182, "yetivhebrew", 0x059a, "ygrave", 0x1ef3, "yhook", 0x01b4, "yhookabove", 0x1ef7, "yiarmenian", 0x0575, "yicyrillic", 0x0457, "yikorean", 0x3162, "yinyang", 0x262f, "yiwnarmenian", 0x0582, "ymonospace", 0xff59, "yod", 0x05d9, "yoddagesh", 0xfb39, "yoddageshhebrew", 0xfb39, "yodhebrew", 0x05d9, "yodyodhebrew", 0x05f2, "yodyodpatahhebrew", 0xfb1f, "yohiragana", 0x3088, "yoikorean", 0x3189, "yokatakana", 0x30e8, "yokatakanahalfwidth", 0xff96, "yokorean", 0x315b, "yosmallhiragana", 0x3087, "yosmallkatakana", 0x30e7, "yosmallkatakanahalfwidth", 0xff6e, "yotgreek", 0x03f3, "yoyaekorean", 0x3188, "yoyakorean", 0x3187, "yoyakthai", 0x0e22, "yoyingthai", 0x0e0d, "yparen", 0x24b4, "ypogegrammeni", 0x037a, "ypogegrammenigreekcmb", 0x0345, "yr", 0x01a6, "yring", 0x1e99, "ysuperior", 0x02b8, "ytilde", 0x1ef9, "yturned", 0x028e, "yuhiragana", 0x3086, "yuikorean", 0x318c, "yukatakana", 0x30e6, "yukatakanahalfwidth", 0xff95, "yukorean", 0x3160, "yusbigcyrillic", 0x046b, "yusbigiotifiedcyrillic", 0x046d, "yuslittlecyrillic", 0x0467, "yuslittleiotifiedcyrillic", 0x0469, "yusmallhiragana", 0x3085, "yusmallkatakana", 0x30e5, "yusmallkatakanahalfwidth", 0xff6d, "yuyekorean", 0x318b, "yuyeokorean", 0x318a, "yyabengali", 0x09df, "yyadeva", 0x095f, "z", 0x007a, "zaarmenian", 0x0566, "zacute", 0x017a, "zadeva", 0x095b, "zagurmukhi", 0x0a5b, "zaharabic", 0x0638, "zahfinalarabic", 0xfec6, "zahinitialarabic", 0xfec7, "zahiragana", 0x3056, "zahmedialarabic", 0xfec8, "zainarabic", 0x0632, "zainfinalarabic", 0xfeb0, "zakatakana", 0x30b6, "zaqefgadolhebrew", 0x0595, "zaqefqatanhebrew", 0x0594, "zarqahebrew", 0x0598, "zayin", 0x05d6, "zayindagesh", 0xfb36, "zayindageshhebrew", 0xfb36, "zayinhebrew", 0x05d6, "zbopomofo", 0x3117, "zcaron", 0x017e, "zcircle", 0x24e9, "zcircumflex", 0x1e91, "zcurl", 0x0291, "zdot", 0x017c, "zdotaccent", 0x017c, "zdotbelow", 0x1e93, "zecyrillic", 0x0437, "zedescendercyrillic", 0x0499, "zedieresiscyrillic", 0x04df, "zehiragana", 0x305c, "zekatakana", 0x30bc, "zero", 0x0030, "zeroarabic", 0x0660, "zerobengali", 0x09e6, "zerodeva", 0x0966, "zerogujarati", 0x0ae6, "zerogurmukhi", 0x0a66, "zerohackarabic", 0x0660, "zeroinferior", 0x2080, "zeromonospace", 0xff10, "zerooldstyle", 0xf730, "zeropersian", 0x06f0, "zerosuperior", 0x2070, "zerothai", 0x0e50, "zerowidthjoiner", 0xfeff, "zerowidthnonjoiner", 0x200c, "zerowidthspace", 0x200b, "zeta", 0x03b6, "zhbopomofo", 0x3113, "zhearmenian", 0x056a, "zhebrevecyrillic", 0x04c2, "zhecyrillic", 0x0436, "zhedescendercyrillic", 0x0497, "zhedieresiscyrillic", 0x04dd, "zihiragana", 0x3058, "zikatakana", 0x30b8, "zinorhebrew", 0x05ae, "zlinebelow", 0x1e95, "zmonospace", 0xff5a, "zohiragana", 0x305e, "zokatakana", 0x30be, "zparen", 0x24b5, "zretroflexhook", 0x0290, "zstroke", 0x01b6, "zuhiragana", 0x305a, "zukatakana", 0x30ba, ".notdef", 0x0000, "angbracketleftbig", 0x2329, "angbracketleftBig", 0x2329, "angbracketleftbigg", 0x2329, "angbracketleftBigg", 0x2329, "angbracketrightBig", 0x232a, "angbracketrightbig", 0x232a, "angbracketrightBigg", 0x232a, "angbracketrightbigg", 0x232a, "arrowhookleft", 0x21aa, "arrowhookright", 0x21a9, "arrowlefttophalf", 0x21bc, "arrowleftbothalf", 0x21bd, "arrownortheast", 0x2197, "arrownorthwest", 0x2196, "arrowrighttophalf", 0x21c0, "arrowrightbothalf", 0x21c1, "arrowsoutheast", 0x2198, "arrowsouthwest", 0x2199, "backslashbig", 0x2216, "backslashBig", 0x2216, "backslashBigg", 0x2216, "backslashbigg", 0x2216, "bardbl", 0x2016, "bracehtipdownleft", 0xfe37, "bracehtipdownright", 0xfe37, "bracehtipupleft", 0xfe38, "bracehtipupright", 0xfe38, "braceleftBig", 0x007b, "braceleftbig", 0x007b, "braceleftbigg", 0x007b, "braceleftBigg", 0x007b, "bracerightBig", 0x007d, "bracerightbig", 0x007d, "bracerightbigg", 0x007d, "bracerightBigg", 0x007d, "bracketleftbig", 0x005b, "bracketleftBig", 0x005b, "bracketleftbigg", 0x005b, "bracketleftBigg", 0x005b, "bracketrightBig", 0x005d, "bracketrightbig", 0x005d, "bracketrightbigg", 0x005d, "bracketrightBigg", 0x005d, "ceilingleftbig", 0x2308, "ceilingleftBig", 0x2308, "ceilingleftBigg", 0x2308, "ceilingleftbigg", 0x2308, "ceilingrightbig", 0x2309, "ceilingrightBig", 0x2309, "ceilingrightbigg", 0x2309, "ceilingrightBigg", 0x2309, "circledotdisplay", 0x2299, "circledottext", 0x2299, "circlemultiplydisplay", 0x2297, "circlemultiplytext", 0x2297, "circleplusdisplay", 0x2295, "circleplustext", 0x2295, "contintegraldisplay", 0x222e, "contintegraltext", 0x222e, "coproductdisplay", 0x2210, "coproducttext", 0x2210, "floorleftBig", 0x230a, "floorleftbig", 0x230a, "floorleftbigg", 0x230a, "floorleftBigg", 0x230a, "floorrightbig", 0x230b, "floorrightBig", 0x230b, "floorrightBigg", 0x230b, "floorrightbigg", 0x230b, "hatwide", 0x0302, "hatwider", 0x0302, "hatwidest", 0x0302, "intercal", 0x1d40, "integraldisplay", 0x222b, "integraltext", 0x222b, "intersectiondisplay", 0x22c2, "intersectiontext", 0x22c2, "logicalanddisplay", 0x2227, "logicalandtext", 0x2227, "logicalordisplay", 0x2228, "logicalortext", 0x2228, "parenleftBig", 0x0028, "parenleftbig", 0x0028, "parenleftBigg", 0x0028, "parenleftbigg", 0x0028, "parenrightBig", 0x0029, "parenrightbig", 0x0029, "parenrightBigg", 0x0029, "parenrightbigg", 0x0029, "prime", 0x2032, "productdisplay", 0x220f, "producttext", 0x220f, "radicalbig", 0x221a, "radicalBig", 0x221a, "radicalBigg", 0x221a, "radicalbigg", 0x221a, "radicalbt", 0x221a, "radicaltp", 0x221a, "radicalvertex", 0x221a, "slashbig", 0x002f, "slashBig", 0x002f, "slashBigg", 0x002f, "slashbigg", 0x002f, "summationdisplay", 0x2211, "summationtext", 0x2211, "tildewide", 0x02dc, "tildewider", 0x02dc, "tildewidest", 0x02dc, "uniondisplay", 0x22c3, "unionmultidisplay", 0x228e, "unionmultitext", 0x228e, "unionsqdisplay", 0x2294, "unionsqtext", 0x2294, "uniontext", 0x22c3, "vextenddouble", 0x2225, "vextendsingle", 0x2223];
 });
@@ -24563,7 +24942,7 @@ const getDingbatsGlyphsUnicode = (0, _core_utils.getArrayLookupTableFactory)(fun
 exports.getDingbatsGlyphsUnicode = getDingbatsGlyphsUnicode;
 
 /***/ }),
-/* 38 */
+/* 40 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -24573,12 +24952,10 @@ Object.defineProperty(exports, "__esModule", ({
 }));
 exports.clearUnicodeCaches = clearUnicodeCaches;
 exports.getCharUnicodeCategory = getCharUnicodeCategory;
-exports.getNormalizedUnicodes = void 0;
 exports.getUnicodeForGlyph = getUnicodeForGlyph;
 exports.getUnicodeRangeFor = getUnicodeRangeFor;
 exports.mapSpecialUnicodeValues = mapSpecialUnicodeValues;
-exports.reverseIfRtl = reverseIfRtl;
-var _core_utils = __w_pdfjs_require__(4);
+var _core_utils = __w_pdfjs_require__(3);
 const getSpecialPUASymbols = (0, _core_utils.getLookupTableFactory)(function (t) {
   t[63721] = 0x00a9;
   t[63193] = 0x00a9;
@@ -24642,410 +25019,25 @@ function getUnicodeForGlyph(name, glyphsUnicodeMap) {
   }
   return -1;
 }
-const UnicodeRanges = [{
-  begin: 0x0000,
-  end: 0x007f
-}, {
-  begin: 0x0080,
-  end: 0x00ff
-}, {
-  begin: 0x0100,
-  end: 0x017f
-}, {
-  begin: 0x0180,
-  end: 0x024f
-}, {
-  begin: 0x0250,
-  end: 0x02af
-}, {
-  begin: 0x02b0,
-  end: 0x02ff
-}, {
-  begin: 0x0300,
-  end: 0x036f
-}, {
-  begin: 0x0370,
-  end: 0x03ff
-}, {
-  begin: 0x2c80,
-  end: 0x2cff
-}, {
-  begin: 0x0400,
-  end: 0x04ff
-}, {
-  begin: 0x0530,
-  end: 0x058f
-}, {
-  begin: 0x0590,
-  end: 0x05ff
-}, {
-  begin: 0xa500,
-  end: 0xa63f
-}, {
-  begin: 0x0600,
-  end: 0x06ff
-}, {
-  begin: 0x07c0,
-  end: 0x07ff
-}, {
-  begin: 0x0900,
-  end: 0x097f
-}, {
-  begin: 0x0980,
-  end: 0x09ff
-}, {
-  begin: 0x0a00,
-  end: 0x0a7f
-}, {
-  begin: 0x0a80,
-  end: 0x0aff
-}, {
-  begin: 0x0b00,
-  end: 0x0b7f
-}, {
-  begin: 0x0b80,
-  end: 0x0bff
-}, {
-  begin: 0x0c00,
-  end: 0x0c7f
-}, {
-  begin: 0x0c80,
-  end: 0x0cff
-}, {
-  begin: 0x0d00,
-  end: 0x0d7f
-}, {
-  begin: 0x0e00,
-  end: 0x0e7f
-}, {
-  begin: 0x0e80,
-  end: 0x0eff
-}, {
-  begin: 0x10a0,
-  end: 0x10ff
-}, {
-  begin: 0x1b00,
-  end: 0x1b7f
-}, {
-  begin: 0x1100,
-  end: 0x11ff
-}, {
-  begin: 0x1e00,
-  end: 0x1eff
-}, {
-  begin: 0x1f00,
-  end: 0x1fff
-}, {
-  begin: 0x2000,
-  end: 0x206f
-}, {
-  begin: 0x2070,
-  end: 0x209f
-}, {
-  begin: 0x20a0,
-  end: 0x20cf
-}, {
-  begin: 0x20d0,
-  end: 0x20ff
-}, {
-  begin: 0x2100,
-  end: 0x214f
-}, {
-  begin: 0x2150,
-  end: 0x218f
-}, {
-  begin: 0x2190,
-  end: 0x21ff
-}, {
-  begin: 0x2200,
-  end: 0x22ff
-}, {
-  begin: 0x2300,
-  end: 0x23ff
-}, {
-  begin: 0x2400,
-  end: 0x243f
-}, {
-  begin: 0x2440,
-  end: 0x245f
-}, {
-  begin: 0x2460,
-  end: 0x24ff
-}, {
-  begin: 0x2500,
-  end: 0x257f
-}, {
-  begin: 0x2580,
-  end: 0x259f
-}, {
-  begin: 0x25a0,
-  end: 0x25ff
-}, {
-  begin: 0x2600,
-  end: 0x26ff
-}, {
-  begin: 0x2700,
-  end: 0x27bf
-}, {
-  begin: 0x3000,
-  end: 0x303f
-}, {
-  begin: 0x3040,
-  end: 0x309f
-}, {
-  begin: 0x30a0,
-  end: 0x30ff
-}, {
-  begin: 0x3100,
-  end: 0x312f
-}, {
-  begin: 0x3130,
-  end: 0x318f
-}, {
-  begin: 0xa840,
-  end: 0xa87f
-}, {
-  begin: 0x3200,
-  end: 0x32ff
-}, {
-  begin: 0x3300,
-  end: 0x33ff
-}, {
-  begin: 0xac00,
-  end: 0xd7af
-}, {
-  begin: 0xd800,
-  end: 0xdfff
-}, {
-  begin: 0x10900,
-  end: 0x1091f
-}, {
-  begin: 0x4e00,
-  end: 0x9fff
-}, {
-  begin: 0xe000,
-  end: 0xf8ff
-}, {
-  begin: 0x31c0,
-  end: 0x31ef
-}, {
-  begin: 0xfb00,
-  end: 0xfb4f
-}, {
-  begin: 0xfb50,
-  end: 0xfdff
-}, {
-  begin: 0xfe20,
-  end: 0xfe2f
-}, {
-  begin: 0xfe10,
-  end: 0xfe1f
-}, {
-  begin: 0xfe50,
-  end: 0xfe6f
-}, {
-  begin: 0xfe70,
-  end: 0xfeff
-}, {
-  begin: 0xff00,
-  end: 0xffef
-}, {
-  begin: 0xfff0,
-  end: 0xffff
-}, {
-  begin: 0x0f00,
-  end: 0x0fff
-}, {
-  begin: 0x0700,
-  end: 0x074f
-}, {
-  begin: 0x0780,
-  end: 0x07bf
-}, {
-  begin: 0x0d80,
-  end: 0x0dff
-}, {
-  begin: 0x1000,
-  end: 0x109f
-}, {
-  begin: 0x1200,
-  end: 0x137f
-}, {
-  begin: 0x13a0,
-  end: 0x13ff
-}, {
-  begin: 0x1400,
-  end: 0x167f
-}, {
-  begin: 0x1680,
-  end: 0x169f
-}, {
-  begin: 0x16a0,
-  end: 0x16ff
-}, {
-  begin: 0x1780,
-  end: 0x17ff
-}, {
-  begin: 0x1800,
-  end: 0x18af
-}, {
-  begin: 0x2800,
-  end: 0x28ff
-}, {
-  begin: 0xa000,
-  end: 0xa48f
-}, {
-  begin: 0x1700,
-  end: 0x171f
-}, {
-  begin: 0x10300,
-  end: 0x1032f
-}, {
-  begin: 0x10330,
-  end: 0x1034f
-}, {
-  begin: 0x10400,
-  end: 0x1044f
-}, {
-  begin: 0x1d000,
-  end: 0x1d0ff
-}, {
-  begin: 0x1d400,
-  end: 0x1d7ff
-}, {
-  begin: 0xff000,
-  end: 0xffffd
-}, {
-  begin: 0xfe00,
-  end: 0xfe0f
-}, {
-  begin: 0xe0000,
-  end: 0xe007f
-}, {
-  begin: 0x1900,
-  end: 0x194f
-}, {
-  begin: 0x1950,
-  end: 0x197f
-}, {
-  begin: 0x1980,
-  end: 0x19df
-}, {
-  begin: 0x1a00,
-  end: 0x1a1f
-}, {
-  begin: 0x2c00,
-  end: 0x2c5f
-}, {
-  begin: 0x2d30,
-  end: 0x2d7f
-}, {
-  begin: 0x4dc0,
-  end: 0x4dff
-}, {
-  begin: 0xa800,
-  end: 0xa82f
-}, {
-  begin: 0x10000,
-  end: 0x1007f
-}, {
-  begin: 0x10140,
-  end: 0x1018f
-}, {
-  begin: 0x10380,
-  end: 0x1039f
-}, {
-  begin: 0x103a0,
-  end: 0x103df
-}, {
-  begin: 0x10450,
-  end: 0x1047f
-}, {
-  begin: 0x10480,
-  end: 0x104af
-}, {
-  begin: 0x10800,
-  end: 0x1083f
-}, {
-  begin: 0x10a00,
-  end: 0x10a5f
-}, {
-  begin: 0x1d300,
-  end: 0x1d35f
-}, {
-  begin: 0x12000,
-  end: 0x123ff
-}, {
-  begin: 0x1d360,
-  end: 0x1d37f
-}, {
-  begin: 0x1b80,
-  end: 0x1bbf
-}, {
-  begin: 0x1c00,
-  end: 0x1c4f
-}, {
-  begin: 0x1c50,
-  end: 0x1c7f
-}, {
-  begin: 0xa880,
-  end: 0xa8df
-}, {
-  begin: 0xa900,
-  end: 0xa92f
-}, {
-  begin: 0xa930,
-  end: 0xa95f
-}, {
-  begin: 0xaa00,
-  end: 0xaa5f
-}, {
-  begin: 0x10190,
-  end: 0x101cf
-}, {
-  begin: 0x101d0,
-  end: 0x101ff
-}, {
-  begin: 0x102a0,
-  end: 0x102df
-}, {
-  begin: 0x1f030,
-  end: 0x1f09f
-}];
-function getUnicodeRangeFor(value) {
+const UnicodeRanges = [[0x0000, 0x007f], [0x0080, 0x00ff], [0x0100, 0x017f], [0x0180, 0x024f], [0x0250, 0x02af, 0x1d00, 0x1d7f, 0x1d80, 0x1dbf], [0x02b0, 0x02ff, 0xa700, 0xa71f], [0x0300, 0x036f, 0x1dc0, 0x1dff], [0x0370, 0x03ff], [0x2c80, 0x2cff], [0x0400, 0x04ff, 0x0500, 0x052f, 0x2de0, 0x2dff, 0xa640, 0xa69f], [0x0530, 0x058f], [0x0590, 0x05ff], [0xa500, 0xa63f], [0x0600, 0x06ff, 0x0750, 0x077f], [0x07c0, 0x07ff], [0x0900, 0x097f], [0x0980, 0x09ff], [0x0a00, 0x0a7f], [0x0a80, 0x0aff], [0x0b00, 0x0b7f], [0x0b80, 0x0bff], [0x0c00, 0x0c7f], [0x0c80, 0x0cff], [0x0d00, 0x0d7f], [0x0e00, 0x0e7f], [0x0e80, 0x0eff], [0x10a0, 0x10ff, 0x2d00, 0x2d2f], [0x1b00, 0x1b7f], [0x1100, 0x11ff], [0x1e00, 0x1eff, 0x2c60, 0x2c7f, 0xa720, 0xa7ff], [0x1f00, 0x1fff], [0x2000, 0x206f, 0x2e00, 0x2e7f], [0x2070, 0x209f], [0x20a0, 0x20cf], [0x20d0, 0x20ff], [0x2100, 0x214f], [0x2150, 0x218f], [0x2190, 0x21ff, 0x27f0, 0x27ff, 0x2900, 0x297f, 0x2b00, 0x2bff], [0x2200, 0x22ff, 0x2a00, 0x2aff, 0x27c0, 0x27ef, 0x2980, 0x29ff], [0x2300, 0x23ff], [0x2400, 0x243f], [0x2440, 0x245f], [0x2460, 0x24ff], [0x2500, 0x257f], [0x2580, 0x259f], [0x25a0, 0x25ff], [0x2600, 0x26ff], [0x2700, 0x27bf], [0x3000, 0x303f], [0x3040, 0x309f], [0x30a0, 0x30ff, 0x31f0, 0x31ff], [0x3100, 0x312f, 0x31a0, 0x31bf], [0x3130, 0x318f], [0xa840, 0xa87f], [0x3200, 0x32ff], [0x3300, 0x33ff], [0xac00, 0xd7af], [0xd800, 0xdfff], [0x10900, 0x1091f], [0x4e00, 0x9fff, 0x2e80, 0x2eff, 0x2f00, 0x2fdf, 0x2ff0, 0x2fff, 0x3400, 0x4dbf, 0x20000, 0x2a6df, 0x3190, 0x319f], [0xe000, 0xf8ff], [0x31c0, 0x31ef, 0xf900, 0xfaff, 0x2f800, 0x2fa1f], [0xfb00, 0xfb4f], [0xfb50, 0xfdff], [0xfe20, 0xfe2f], [0xfe10, 0xfe1f], [0xfe50, 0xfe6f], [0xfe70, 0xfeff], [0xff00, 0xffef], [0xfff0, 0xffff], [0x0f00, 0x0fff], [0x0700, 0x074f], [0x0780, 0x07bf], [0x0d80, 0x0dff], [0x1000, 0x109f], [0x1200, 0x137f, 0x1380, 0x139f, 0x2d80, 0x2ddf], [0x13a0, 0x13ff], [0x1400, 0x167f], [0x1680, 0x169f], [0x16a0, 0x16ff], [0x1780, 0x17ff], [0x1800, 0x18af], [0x2800, 0x28ff], [0xa000, 0xa48f], [0x1700, 0x171f, 0x1720, 0x173f, 0x1740, 0x175f, 0x1760, 0x177f], [0x10300, 0x1032f], [0x10330, 0x1034f], [0x10400, 0x1044f], [0x1d000, 0x1d0ff, 0x1d100, 0x1d1ff, 0x1d200, 0x1d24f], [0x1d400, 0x1d7ff], [0xff000, 0xffffd], [0xfe00, 0xfe0f, 0xe0100, 0xe01ef], [0xe0000, 0xe007f], [0x1900, 0x194f], [0x1950, 0x197f], [0x1980, 0x19df], [0x1a00, 0x1a1f], [0x2c00, 0x2c5f], [0x2d30, 0x2d7f], [0x4dc0, 0x4dff], [0xa800, 0xa82f], [0x10000, 0x1007f, 0x10080, 0x100ff, 0x10100, 0x1013f], [0x10140, 0x1018f], [0x10380, 0x1039f], [0x103a0, 0x103df], [0x10450, 0x1047f], [0x10480, 0x104af], [0x10800, 0x1083f], [0x10a00, 0x10a5f], [0x1d300, 0x1d35f], [0x12000, 0x123ff, 0x12400, 0x1247f], [0x1d360, 0x1d37f], [0x1b80, 0x1bbf], [0x1c00, 0x1c4f], [0x1c50, 0x1c7f], [0xa880, 0xa8df], [0xa900, 0xa92f], [0xa930, 0xa95f], [0xaa00, 0xaa5f], [0x10190, 0x101cf], [0x101d0, 0x101ff], [0x102a0, 0x102df, 0x10280, 0x1029f, 0x10920, 0x1093f], [0x1f030, 0x1f09f, 0x1f000, 0x1f02f]];
+function getUnicodeRangeFor(value, lastPosition = -1) {
+  if (lastPosition !== -1) {
+    const range = UnicodeRanges[lastPosition];
+    for (let i = 0, ii = range.length; i < ii; i += 2) {
+      if (value >= range[i] && value <= range[i + 1]) {
+        return lastPosition;
+      }
+    }
+  }
   for (let i = 0, ii = UnicodeRanges.length; i < ii; i++) {
     const range = UnicodeRanges[i];
-    if (value >= range.begin && value < range.end) {
-      return i;
+    for (let j = 0, jj = range.length; j < jj; j += 2) {
+      if (value >= range[j] && value <= range[j + 1]) {
+        return i;
+      }
     }
   }
   return -1;
-}
-function isRTLRangeFor(value) {
-  let range = UnicodeRanges[13];
-  if (value >= range.begin && value < range.end) {
-    return true;
-  }
-  range = UnicodeRanges[11];
-  if (value >= range.begin && value < range.end) {
-    return true;
-  }
-  return false;
-}
-const getNormalizedUnicodes = (0, _core_utils.getArrayLookupTableFactory)(function () {
-  return ["\u00A8", "\u0020\u0308", "\u00AF", "\u0020\u0304", "\u00B4", "\u0020\u0301", "\u00B5", "\u03BC", "\u00B8", "\u0020\u0327", "\u0132", "\u0049\u004A", "\u0133", "\u0069\u006A", "\u013F", "\u004C\u00B7", "\u0140", "\u006C\u00B7", "\u0149", "\u02BC\u006E", "\u017F", "\u0073", "\u01C4", "\u0044\u017D", "\u01C5", "\u0044\u017E", "\u01C6", "\u0064\u017E", "\u01C7", "\u004C\u004A", "\u01C8", "\u004C\u006A", "\u01C9", "\u006C\u006A", "\u01CA", "\u004E\u004A", "\u01CB", "\u004E\u006A", "\u01CC", "\u006E\u006A", "\u01F1", "\u0044\u005A", "\u01F2", "\u0044\u007A", "\u01F3", "\u0064\u007A", "\u02D8", "\u0020\u0306", "\u02D9", "\u0020\u0307", "\u02DA", "\u0020\u030A", "\u02DB", "\u0020\u0328", "\u02DC", "\u0020\u0303", "\u02DD", "\u0020\u030B", "\u037A", "\u0020\u0345", "\u0384", "\u0020\u0301", "\u03D0", "\u03B2", "\u03D1", "\u03B8", "\u03D2", "\u03A5", "\u03D5", "\u03C6", "\u03D6", "\u03C0", "\u03F0", "\u03BA", "\u03F1", "\u03C1", "\u03F2", "\u03C2", "\u03F4", "\u0398", "\u03F5", "\u03B5", "\u03F9", "\u03A3", "\u0587", "\u0565\u0582", "\u0675", "\u0627\u0674", "\u0676", "\u0648\u0674", "\u0677", "\u06C7\u0674", "\u0678", "\u064A\u0674", "\u0E33", "\u0E4D\u0E32", "\u0EB3", "\u0ECD\u0EB2", "\u0EDC", "\u0EAB\u0E99", "\u0EDD", "\u0EAB\u0EA1", "\u0F77", "\u0FB2\u0F81", "\u0F79", "\u0FB3\u0F81", "\u1E9A", "\u0061\u02BE", "\u1FBD", "\u0020\u0313", "\u1FBF", "\u0020\u0313", "\u1FC0", "\u0020\u0342", "\u1FFE", "\u0020\u0314", "\u2002", "\u0020", "\u2003", "\u0020", "\u2004", "\u0020", "\u2005", "\u0020", "\u2006", "\u0020", "\u2008", "\u0020", "\u2009", "\u0020", "\u200A", "\u0020", "\u2017", "\u0020\u0333", "\u2024", "\u002E", "\u2025", "\u002E\u002E", "\u2026", "\u002E\u002E\u002E", "\u2033", "\u2032\u2032", "\u2034", "\u2032\u2032\u2032", "\u2036", "\u2035\u2035", "\u2037", "\u2035\u2035\u2035", "\u203C", "\u0021\u0021", "\u203E", "\u0020\u0305", "\u2047", "\u003F\u003F", "\u2048", "\u003F\u0021", "\u2049", "\u0021\u003F", "\u2057", "\u2032\u2032\u2032\u2032", "\u205F", "\u0020", "\u20A8", "\u0052\u0073", "\u2100", "\u0061\u002F\u0063", "\u2101", "\u0061\u002F\u0073", "\u2103", "\u00B0\u0043", "\u2105", "\u0063\u002F\u006F", "\u2106", "\u0063\u002F\u0075", "\u2107", "\u0190", "\u2109", "\u00B0\u0046", "\u2116", "\u004E\u006F", "\u2121", "\u0054\u0045\u004C", "\u2135", "\u05D0", "\u2136", "\u05D1", "\u2137", "\u05D2", "\u2138", "\u05D3", "\u213B", "\u0046\u0041\u0058", "\u2160", "\u0049", "\u2161", "\u0049\u0049", "\u2162", "\u0049\u0049\u0049", "\u2163", "\u0049\u0056", "\u2164", "\u0056", "\u2165", "\u0056\u0049", "\u2166", "\u0056\u0049\u0049", "\u2167", "\u0056\u0049\u0049\u0049", "\u2168", "\u0049\u0058", "\u2169", "\u0058", "\u216A", "\u0058\u0049", "\u216B", "\u0058\u0049\u0049", "\u216C", "\u004C", "\u216D", "\u0043", "\u216E", "\u0044", "\u216F", "\u004D", "\u2170", "\u0069", "\u2171", "\u0069\u0069", "\u2172", "\u0069\u0069\u0069", "\u2173", "\u0069\u0076", "\u2174", "\u0076", "\u2175", "\u0076\u0069", "\u2176", "\u0076\u0069\u0069", "\u2177", "\u0076\u0069\u0069\u0069", "\u2178", "\u0069\u0078", "\u2179", "\u0078", "\u217A", "\u0078\u0069", "\u217B", "\u0078\u0069\u0069", "\u217C", "\u006C", "\u217D", "\u0063", "\u217E", "\u0064", "\u217F", "\u006D", "\u222C", "\u222B\u222B", "\u222D", "\u222B\u222B\u222B", "\u222F", "\u222E\u222E", "\u2230", "\u222E\u222E\u222E", "\u2474", "\u0028\u0031\u0029", "\u2475", "\u0028\u0032\u0029", "\u2476", "\u0028\u0033\u0029", "\u2477", "\u0028\u0034\u0029", "\u2478", "\u0028\u0035\u0029", "\u2479", "\u0028\u0036\u0029", "\u247A", "\u0028\u0037\u0029", "\u247B", "\u0028\u0038\u0029", "\u247C", "\u0028\u0039\u0029", "\u247D", "\u0028\u0031\u0030\u0029", "\u247E", "\u0028\u0031\u0031\u0029", "\u247F", "\u0028\u0031\u0032\u0029", "\u2480", "\u0028\u0031\u0033\u0029", "\u2481", "\u0028\u0031\u0034\u0029", "\u2482", "\u0028\u0031\u0035\u0029", "\u2483", "\u0028\u0031\u0036\u0029", "\u2484", "\u0028\u0031\u0037\u0029", "\u2485", "\u0028\u0031\u0038\u0029", "\u2486", "\u0028\u0031\u0039\u0029", "\u2487", "\u0028\u0032\u0030\u0029", "\u2488", "\u0031\u002E", "\u2489", "\u0032\u002E", "\u248A", "\u0033\u002E", "\u248B", "\u0034\u002E", "\u248C", "\u0035\u002E", "\u248D", "\u0036\u002E", "\u248E", "\u0037\u002E", "\u248F", "\u0038\u002E", "\u2490", "\u0039\u002E", "\u2491", "\u0031\u0030\u002E", "\u2492", "\u0031\u0031\u002E", "\u2493", "\u0031\u0032\u002E", "\u2494", "\u0031\u0033\u002E", "\u2495", "\u0031\u0034\u002E", "\u2496", "\u0031\u0035\u002E", "\u2497", "\u0031\u0036\u002E", "\u2498", "\u0031\u0037\u002E", "\u2499", "\u0031\u0038\u002E", "\u249A", "\u0031\u0039\u002E", "\u249B", "\u0032\u0030\u002E", "\u249C", "\u0028\u0061\u0029", "\u249D", "\u0028\u0062\u0029", "\u249E", "\u0028\u0063\u0029", "\u249F", "\u0028\u0064\u0029", "\u24A0", "\u0028\u0065\u0029", "\u24A1", "\u0028\u0066\u0029", "\u24A2", "\u0028\u0067\u0029", "\u24A3", "\u0028\u0068\u0029", "\u24A4", "\u0028\u0069\u0029", "\u24A5", "\u0028\u006A\u0029", "\u24A6", "\u0028\u006B\u0029", "\u24A7", "\u0028\u006C\u0029", "\u24A8", "\u0028\u006D\u0029", "\u24A9", "\u0028\u006E\u0029", "\u24AA", "\u0028\u006F\u0029", "\u24AB", "\u0028\u0070\u0029", "\u24AC", "\u0028\u0071\u0029", "\u24AD", "\u0028\u0072\u0029", "\u24AE", "\u0028\u0073\u0029", "\u24AF", "\u0028\u0074\u0029", "\u24B0", "\u0028\u0075\u0029", "\u24B1", "\u0028\u0076\u0029", "\u24B2", "\u0028\u0077\u0029", "\u24B3", "\u0028\u0078\u0029", "\u24B4", "\u0028\u0079\u0029", "\u24B5", "\u0028\u007A\u0029", "\u2A0C", "\u222B\u222B\u222B\u222B", "\u2A74", "\u003A\u003A\u003D", "\u2A75", "\u003D\u003D", "\u2A76", "\u003D\u003D\u003D", "\u2E9F", "\u6BCD", "\u2EF3", "\u9F9F", "\u2F00", "\u4E00", "\u2F01", "\u4E28", "\u2F02", "\u4E36", "\u2F03", "\u4E3F", "\u2F04", "\u4E59", "\u2F05", "\u4E85", "\u2F06", "\u4E8C", "\u2F07", "\u4EA0", "\u2F08", "\u4EBA", "\u2F09", "\u513F", "\u2F0A", "\u5165", "\u2F0B", "\u516B", "\u2F0C", "\u5182", "\u2F0D", "\u5196", "\u2F0E", "\u51AB", "\u2F0F", "\u51E0", "\u2F10", "\u51F5", "\u2F11", "\u5200", "\u2F12", "\u529B", "\u2F13", "\u52F9", "\u2F14", "\u5315", "\u2F15", "\u531A", "\u2F16", "\u5338", "\u2F17", "\u5341", "\u2F18", "\u535C", "\u2F19", "\u5369", "\u2F1A", "\u5382", "\u2F1B", "\u53B6", "\u2F1C", "\u53C8", "\u2F1D", "\u53E3", "\u2F1E", "\u56D7", "\u2F1F", "\u571F", "\u2F20", "\u58EB", "\u2F21", "\u5902", "\u2F22", "\u590A", "\u2F23", "\u5915", "\u2F24", "\u5927", "\u2F25", "\u5973", "\u2F26", "\u5B50", "\u2F27", "\u5B80", "\u2F28", "\u5BF8", "\u2F29", "\u5C0F", "\u2F2A", "\u5C22", "\u2F2B", "\u5C38", "\u2F2C", "\u5C6E", "\u2F2D", "\u5C71", "\u2F2E", "\u5DDB", "\u2F2F", "\u5DE5", "\u2F30", "\u5DF1", "\u2F31", "\u5DFE", "\u2F32", "\u5E72", "\u2F33", "\u5E7A", "\u2F34", "\u5E7F", "\u2F35", "\u5EF4", "\u2F36", "\u5EFE", "\u2F37", "\u5F0B", "\u2F38", "\u5F13", "\u2F39", "\u5F50", "\u2F3A", "\u5F61", "\u2F3B", "\u5F73", "\u2F3C", "\u5FC3", "\u2F3D", "\u6208", "\u2F3E", "\u6236", "\u2F3F", "\u624B", "\u2F40", "\u652F", "\u2F41", "\u6534", "\u2F42", "\u6587", "\u2F43", "\u6597", "\u2F44", "\u65A4", "\u2F45", "\u65B9", "\u2F46", "\u65E0", "\u2F47", "\u65E5", "\u2F48", "\u66F0", "\u2F49", "\u6708", "\u2F4A", "\u6728", "\u2F4B", "\u6B20", "\u2F4C", "\u6B62", "\u2F4D", "\u6B79", "\u2F4E", "\u6BB3", "\u2F4F", "\u6BCB", "\u2F50", "\u6BD4", "\u2F51", "\u6BDB", "\u2F52", "\u6C0F", "\u2F53", "\u6C14", "\u2F54", "\u6C34", "\u2F55", "\u706B", "\u2F56", "\u722A", "\u2F57", "\u7236", "\u2F58", "\u723B", "\u2F59", "\u723F", "\u2F5A", "\u7247", "\u2F5B", "\u7259", "\u2F5C", "\u725B", "\u2F5D", "\u72AC", "\u2F5E", "\u7384", "\u2F5F", "\u7389", "\u2F60", "\u74DC", "\u2F61", "\u74E6", "\u2F62", "\u7518", "\u2F63", "\u751F", "\u2F64", "\u7528", "\u2F65", "\u7530", "\u2F66", "\u758B", "\u2F67", "\u7592", "\u2F68", "\u7676", "\u2F69", "\u767D", "\u2F6A", "\u76AE", "\u2F6B", "\u76BF", "\u2F6C", "\u76EE", "\u2F6D", "\u77DB", "\u2F6E", "\u77E2", "\u2F6F", "\u77F3", "\u2F70", "\u793A", "\u2F71", "\u79B8", "\u2F72", "\u79BE", "\u2F73", "\u7A74", "\u2F74", "\u7ACB", "\u2F75", "\u7AF9", "\u2F76", "\u7C73", "\u2F77", "\u7CF8", "\u2F78", "\u7F36", "\u2F79", "\u7F51", "\u2F7A", "\u7F8A", "\u2F7B", "\u7FBD", "\u2F7C", "\u8001", "\u2F7D", "\u800C", "\u2F7E", "\u8012", "\u2F7F", "\u8033", "\u2F80", "\u807F", "\u2F81", "\u8089", "\u2F82", "\u81E3", "\u2F83", "\u81EA", "\u2F84", "\u81F3", "\u2F85", "\u81FC", "\u2F86", "\u820C", "\u2F87", "\u821B", "\u2F88", "\u821F", "\u2F89", "\u826E", "\u2F8A", "\u8272", "\u2F8B", "\u8278", "\u2F8C", "\u864D", "\u2F8D", "\u866B", "\u2F8E", "\u8840", "\u2F8F", "\u884C", "\u2F90", "\u8863", "\u2F91", "\u897E", "\u2F92", "\u898B", "\u2F93", "\u89D2", "\u2F94", "\u8A00", "\u2F95", "\u8C37", "\u2F96", "\u8C46", "\u2F97", "\u8C55", "\u2F98", "\u8C78", "\u2F99", "\u8C9D", "\u2F9A", "\u8D64", "\u2F9B", "\u8D70", "\u2F9C", "\u8DB3", "\u2F9D", "\u8EAB", "\u2F9E", "\u8ECA", "\u2F9F", "\u8F9B", "\u2FA0", "\u8FB0", "\u2FA1", "\u8FB5", "\u2FA2", "\u9091", "\u2FA3", "\u9149", "\u2FA4", "\u91C6", "\u2FA5", "\u91CC", "\u2FA6", "\u91D1", "\u2FA7", "\u9577", "\u2FA8", "\u9580", "\u2FA9", "\u961C", "\u2FAA", "\u96B6", "\u2FAB", "\u96B9", "\u2FAC", "\u96E8", "\u2FAD", "\u9751", "\u2FAE", "\u975E", "\u2FAF", "\u9762", "\u2FB0", "\u9769", "\u2FB1", "\u97CB", "\u2FB2", "\u97ED", "\u2FB3", "\u97F3", "\u2FB4", "\u9801", "\u2FB5", "\u98A8", "\u2FB6", "\u98DB", "\u2FB7", "\u98DF", "\u2FB8", "\u9996", "\u2FB9", "\u9999", "\u2FBA", "\u99AC", "\u2FBB", "\u9AA8", "\u2FBC", "\u9AD8", "\u2FBD", "\u9ADF", "\u2FBE", "\u9B25", "\u2FBF", "\u9B2F", "\u2FC0", "\u9B32", "\u2FC1", "\u9B3C", "\u2FC2", "\u9B5A", "\u2FC3", "\u9CE5", "\u2FC4", "\u9E75", "\u2FC5", "\u9E7F", "\u2FC6", "\u9EA5", "\u2FC7", "\u9EBB", "\u2FC8", "\u9EC3", "\u2FC9", "\u9ECD", "\u2FCA", "\u9ED1", "\u2FCB", "\u9EF9", "\u2FCC", "\u9EFD", "\u2FCD", "\u9F0E", "\u2FCE", "\u9F13", "\u2FCF", "\u9F20", "\u2FD0", "\u9F3B", "\u2FD1", "\u9F4A", "\u2FD2", "\u9F52", "\u2FD3", "\u9F8D", "\u2FD4", "\u9F9C", "\u2FD5", "\u9FA0", "\u3036", "\u3012", "\u3038", "\u5341", "\u3039", "\u5344", "\u303A", "\u5345", "\u309B", "\u0020\u3099", "\u309C", "\u0020\u309A", "\u3131", "\u1100", "\u3132", "\u1101", "\u3133", "\u11AA", "\u3134", "\u1102", "\u3135", "\u11AC", "\u3136", "\u11AD", "\u3137", "\u1103", "\u3138", "\u1104", "\u3139", "\u1105", "\u313A", "\u11B0", "\u313B", "\u11B1", "\u313C", "\u11B2", "\u313D", "\u11B3", "\u313E", "\u11B4", "\u313F", "\u11B5", "\u3140", "\u111A", "\u3141", "\u1106", "\u3142", "\u1107", "\u3143", "\u1108", "\u3144", "\u1121", "\u3145", "\u1109", "\u3146", "\u110A", "\u3147", "\u110B", "\u3148", "\u110C", "\u3149", "\u110D", "\u314A", "\u110E", "\u314B", "\u110F", "\u314C", "\u1110", "\u314D", "\u1111", "\u314E", "\u1112", "\u314F", "\u1161", "\u3150", "\u1162", "\u3151", "\u1163", "\u3152", "\u1164", "\u3153", "\u1165", "\u3154", "\u1166", "\u3155", "\u1167", "\u3156", "\u1168", "\u3157", "\u1169", "\u3158", "\u116A", "\u3159", "\u116B", "\u315A", "\u116C", "\u315B", "\u116D", "\u315C", "\u116E", "\u315D", "\u116F", "\u315E", "\u1170", "\u315F", "\u1171", "\u3160", "\u1172", "\u3161", "\u1173", "\u3162", "\u1174", "\u3163", "\u1175", "\u3164", "\u1160", "\u3165", "\u1114", "\u3166", "\u1115", "\u3167", "\u11C7", "\u3168", "\u11C8", "\u3169", "\u11CC", "\u316A", "\u11CE", "\u316B", "\u11D3", "\u316C", "\u11D7", "\u316D", "\u11D9", "\u316E", "\u111C", "\u316F", "\u11DD", "\u3170", "\u11DF", "\u3171", "\u111D", "\u3172", "\u111E", "\u3173", "\u1120", "\u3174", "\u1122", "\u3175", "\u1123", "\u3176", "\u1127", "\u3177", "\u1129", "\u3178", "\u112B", "\u3179", "\u112C", "\u317A", "\u112D", "\u317B", "\u112E", "\u317C", "\u112F", "\u317D", "\u1132", "\u317E", "\u1136", "\u317F", "\u1140", "\u3180", "\u1147", "\u3181", "\u114C", "\u3182", "\u11F1", "\u3183", "\u11F2", "\u3184", "\u1157", "\u3185", "\u1158", "\u3186", "\u1159", "\u3187", "\u1184", "\u3188", "\u1185", "\u3189", "\u1188", "\u318A", "\u1191", "\u318B", "\u1192", "\u318C", "\u1194", "\u318D", "\u119E", "\u318E", "\u11A1", "\u3200", "\u0028\u1100\u0029", "\u3201", "\u0028\u1102\u0029", "\u3202", "\u0028\u1103\u0029", "\u3203", "\u0028\u1105\u0029", "\u3204", "\u0028\u1106\u0029", "\u3205", "\u0028\u1107\u0029", "\u3206", "\u0028\u1109\u0029", "\u3207", "\u0028\u110B\u0029", "\u3208", "\u0028\u110C\u0029", "\u3209", "\u0028\u110E\u0029", "\u320A", "\u0028\u110F\u0029", "\u320B", "\u0028\u1110\u0029", "\u320C", "\u0028\u1111\u0029", "\u320D", "\u0028\u1112\u0029", "\u320E", "\u0028\u1100\u1161\u0029", "\u320F", "\u0028\u1102\u1161\u0029", "\u3210", "\u0028\u1103\u1161\u0029", "\u3211", "\u0028\u1105\u1161\u0029", "\u3212", "\u0028\u1106\u1161\u0029", "\u3213", "\u0028\u1107\u1161\u0029", "\u3214", "\u0028\u1109\u1161\u0029", "\u3215", "\u0028\u110B\u1161\u0029", "\u3216", "\u0028\u110C\u1161\u0029", "\u3217", "\u0028\u110E\u1161\u0029", "\u3218", "\u0028\u110F\u1161\u0029", "\u3219", "\u0028\u1110\u1161\u0029", "\u321A", "\u0028\u1111\u1161\u0029", "\u321B", "\u0028\u1112\u1161\u0029", "\u321C", "\u0028\u110C\u116E\u0029", "\u321D", "\u0028\u110B\u1169\u110C\u1165\u11AB\u0029", "\u321E", "\u0028\u110B\u1169\u1112\u116E\u0029", "\u3220", "\u0028\u4E00\u0029", "\u3221", "\u0028\u4E8C\u0029", "\u3222", "\u0028\u4E09\u0029", "\u3223", "\u0028\u56DB\u0029", "\u3224", "\u0028\u4E94\u0029", "\u3225", "\u0028\u516D\u0029", "\u3226", "\u0028\u4E03\u0029", "\u3227", "\u0028\u516B\u0029", "\u3228", "\u0028\u4E5D\u0029", "\u3229", "\u0028\u5341\u0029", "\u322A", "\u0028\u6708\u0029", "\u322B", "\u0028\u706B\u0029", "\u322C", "\u0028\u6C34\u0029", "\u322D", "\u0028\u6728\u0029", "\u322E", "\u0028\u91D1\u0029", "\u322F", "\u0028\u571F\u0029", "\u3230", "\u0028\u65E5\u0029", "\u3231", "\u0028\u682A\u0029", "\u3232", "\u0028\u6709\u0029", "\u3233", "\u0028\u793E\u0029", "\u3234", "\u0028\u540D\u0029", "\u3235", "\u0028\u7279\u0029", "\u3236", "\u0028\u8CA1\u0029", "\u3237", "\u0028\u795D\u0029", "\u3238", "\u0028\u52B4\u0029", "\u3239", "\u0028\u4EE3\u0029", "\u323A", "\u0028\u547C\u0029", "\u323B", "\u0028\u5B66\u0029", "\u323C", "\u0028\u76E3\u0029", "\u323D", "\u0028\u4F01\u0029", "\u323E", "\u0028\u8CC7\u0029", "\u323F", "\u0028\u5354\u0029", "\u3240", "\u0028\u796D\u0029", "\u3241", "\u0028\u4F11\u0029", "\u3242", "\u0028\u81EA\u0029", "\u3243", "\u0028\u81F3\u0029", "\u32C0", "\u0031\u6708", "\u32C1", "\u0032\u6708", "\u32C2", "\u0033\u6708", "\u32C3", "\u0034\u6708", "\u32C4", "\u0035\u6708", "\u32C5", "\u0036\u6708", "\u32C6", "\u0037\u6708", "\u32C7", "\u0038\u6708", "\u32C8", "\u0039\u6708", "\u32C9", "\u0031\u0030\u6708", "\u32CA", "\u0031\u0031\u6708", "\u32CB", "\u0031\u0032\u6708", "\u3358", "\u0030\u70B9", "\u3359", "\u0031\u70B9", "\u335A", "\u0032\u70B9", "\u335B", "\u0033\u70B9", "\u335C", "\u0034\u70B9", "\u335D", "\u0035\u70B9", "\u335E", "\u0036\u70B9", "\u335F", "\u0037\u70B9", "\u3360", "\u0038\u70B9", "\u3361", "\u0039\u70B9", "\u3362", "\u0031\u0030\u70B9", "\u3363", "\u0031\u0031\u70B9", "\u3364", "\u0031\u0032\u70B9", "\u3365", "\u0031\u0033\u70B9", "\u3366", "\u0031\u0034\u70B9", "\u3367", "\u0031\u0035\u70B9", "\u3368", "\u0031\u0036\u70B9", "\u3369", "\u0031\u0037\u70B9", "\u336A", "\u0031\u0038\u70B9", "\u336B", "\u0031\u0039\u70B9", "\u336C", "\u0032\u0030\u70B9", "\u336D", "\u0032\u0031\u70B9", "\u336E", "\u0032\u0032\u70B9", "\u336F", "\u0032\u0033\u70B9", "\u3370", "\u0032\u0034\u70B9", "\u33E0", "\u0031\u65E5", "\u33E1", "\u0032\u65E5", "\u33E2", "\u0033\u65E5", "\u33E3", "\u0034\u65E5", "\u33E4", "\u0035\u65E5", "\u33E5", "\u0036\u65E5", "\u33E6", "\u0037\u65E5", "\u33E7", "\u0038\u65E5", "\u33E8", "\u0039\u65E5", "\u33E9", "\u0031\u0030\u65E5", "\u33EA", "\u0031\u0031\u65E5", "\u33EB", "\u0031\u0032\u65E5", "\u33EC", "\u0031\u0033\u65E5", "\u33ED", "\u0031\u0034\u65E5", "\u33EE", "\u0031\u0035\u65E5", "\u33EF", "\u0031\u0036\u65E5", "\u33F0", "\u0031\u0037\u65E5", "\u33F1", "\u0031\u0038\u65E5", "\u33F2", "\u0031\u0039\u65E5", "\u33F3", "\u0032\u0030\u65E5", "\u33F4", "\u0032\u0031\u65E5", "\u33F5", "\u0032\u0032\u65E5", "\u33F6", "\u0032\u0033\u65E5", "\u33F7", "\u0032\u0034\u65E5", "\u33F8", "\u0032\u0035\u65E5", "\u33F9", "\u0032\u0036\u65E5", "\u33FA", "\u0032\u0037\u65E5", "\u33FB", "\u0032\u0038\u65E5", "\u33FC", "\u0032\u0039\u65E5", "\u33FD", "\u0033\u0030\u65E5", "\u33FE", "\u0033\u0031\u65E5", "\uFB00", "\u0066\u0066", "\uFB01", "\u0066\u0069", "\uFB02", "\u0066\u006C", "\uFB03", "\u0066\u0066\u0069", "\uFB04", "\u0066\u0066\u006C", "\uFB05", "\u017F\u0074", "\uFB06", "\u0073\u0074", "\uFB13", "\u0574\u0576", "\uFB14", "\u0574\u0565", "\uFB15", "\u0574\u056B", "\uFB16", "\u057E\u0576", "\uFB17", "\u0574\u056D", "\uFB4F", "\u05D0\u05DC", "\uFB50", "\u0671", "\uFB51", "\u0671", "\uFB52", "\u067B", "\uFB53", "\u067B", "\uFB54", "\u067B", "\uFB55", "\u067B", "\uFB56", "\u067E", "\uFB57", "\u067E", "\uFB58", "\u067E", "\uFB59", "\u067E", "\uFB5A", "\u0680", "\uFB5B", "\u0680", "\uFB5C", "\u0680", "\uFB5D", "\u0680", "\uFB5E", "\u067A", "\uFB5F", "\u067A", "\uFB60", "\u067A", "\uFB61", "\u067A", "\uFB62", "\u067F", "\uFB63", "\u067F", "\uFB64", "\u067F", "\uFB65", "\u067F", "\uFB66", "\u0679", "\uFB67", "\u0679", "\uFB68", "\u0679", "\uFB69", "\u0679", "\uFB6A", "\u06A4", "\uFB6B", "\u06A4", "\uFB6C", "\u06A4", "\uFB6D", "\u06A4", "\uFB6E", "\u06A6", "\uFB6F", "\u06A6", "\uFB70", "\u06A6", "\uFB71", "\u06A6", "\uFB72", "\u0684", "\uFB73", "\u0684", "\uFB74", "\u0684", "\uFB75", "\u0684", "\uFB76", "\u0683", "\uFB77", "\u0683", "\uFB78", "\u0683", "\uFB79", "\u0683", "\uFB7A", "\u0686", "\uFB7B", "\u0686", "\uFB7C", "\u0686", "\uFB7D", "\u0686", "\uFB7E", "\u0687", "\uFB7F", "\u0687", "\uFB80", "\u0687", "\uFB81", "\u0687", "\uFB82", "\u068D", "\uFB83", "\u068D", "\uFB84", "\u068C", "\uFB85", "\u068C", "\uFB86", "\u068E", "\uFB87", "\u068E", "\uFB88", "\u0688", "\uFB89", "\u0688", "\uFB8A", "\u0698", "\uFB8B", "\u0698", "\uFB8C", "\u0691", "\uFB8D", "\u0691", "\uFB8E", "\u06A9", "\uFB8F", "\u06A9", "\uFB90", "\u06A9", "\uFB91", "\u06A9", "\uFB92", "\u06AF", "\uFB93", "\u06AF", "\uFB94", "\u06AF", "\uFB95", "\u06AF", "\uFB96", "\u06B3", "\uFB97", "\u06B3", "\uFB98", "\u06B3", "\uFB99", "\u06B3", "\uFB9A", "\u06B1", "\uFB9B", "\u06B1", "\uFB9C", "\u06B1", "\uFB9D", "\u06B1", "\uFB9E", "\u06BA", "\uFB9F", "\u06BA", "\uFBA0", "\u06BB", "\uFBA1", "\u06BB", "\uFBA2", "\u06BB", "\uFBA3", "\u06BB", "\uFBA4", "\u06C0", "\uFBA5", "\u06C0", "\uFBA6", "\u06C1", "\uFBA7", "\u06C1", "\uFBA8", "\u06C1", "\uFBA9", "\u06C1", "\uFBAA", "\u06BE", "\uFBAB", "\u06BE", "\uFBAC", "\u06BE", "\uFBAD", "\u06BE", "\uFBAE", "\u06D2", "\uFBAF", "\u06D2", "\uFBB0", "\u06D3", "\uFBB1", "\u06D3", "\uFBD3", "\u06AD", "\uFBD4", "\u06AD", "\uFBD5", "\u06AD", "\uFBD6", "\u06AD", "\uFBD7", "\u06C7", "\uFBD8", "\u06C7", "\uFBD9", "\u06C6", "\uFBDA", "\u06C6", "\uFBDB", "\u06C8", "\uFBDC", "\u06C8", "\uFBDD", "\u0677", "\uFBDE", "\u06CB", "\uFBDF", "\u06CB", "\uFBE0", "\u06C5", "\uFBE1", "\u06C5", "\uFBE2", "\u06C9", "\uFBE3", "\u06C9", "\uFBE4", "\u06D0", "\uFBE5", "\u06D0", "\uFBE6", "\u06D0", "\uFBE7", "\u06D0", "\uFBE8", "\u0649", "\uFBE9", "\u0649", "\uFBEA", "\u0626\u0627", "\uFBEB", "\u0626\u0627", "\uFBEC", "\u0626\u06D5", "\uFBED", "\u0626\u06D5", "\uFBEE", "\u0626\u0648", "\uFBEF", "\u0626\u0648", "\uFBF0", "\u0626\u06C7", "\uFBF1", "\u0626\u06C7", "\uFBF2", "\u0626\u06C6", "\uFBF3", "\u0626\u06C6", "\uFBF4", "\u0626\u06C8", "\uFBF5", "\u0626\u06C8", "\uFBF6", "\u0626\u06D0", "\uFBF7", "\u0626\u06D0", "\uFBF8", "\u0626\u06D0", "\uFBF9", "\u0626\u0649", "\uFBFA", "\u0626\u0649", "\uFBFB", "\u0626\u0649", "\uFBFC", "\u06CC", "\uFBFD", "\u06CC", "\uFBFE", "\u06CC", "\uFBFF", "\u06CC", "\uFC00", "\u0626\u062C", "\uFC01", "\u0626\u062D", "\uFC02", "\u0626\u0645", "\uFC03", "\u0626\u0649", "\uFC04", "\u0626\u064A", "\uFC05", "\u0628\u062C", "\uFC06", "\u0628\u062D", "\uFC07", "\u0628\u062E", "\uFC08", "\u0628\u0645", "\uFC09", "\u0628\u0649", "\uFC0A", "\u0628\u064A", "\uFC0B", "\u062A\u062C", "\uFC0C", "\u062A\u062D", "\uFC0D", "\u062A\u062E", "\uFC0E", "\u062A\u0645", "\uFC0F", "\u062A\u0649", "\uFC10", "\u062A\u064A", "\uFC11", "\u062B\u062C", "\uFC12", "\u062B\u0645", "\uFC13", "\u062B\u0649", "\uFC14", "\u062B\u064A", "\uFC15", "\u062C\u062D", "\uFC16", "\u062C\u0645", "\uFC17", "\u062D\u062C", "\uFC18", "\u062D\u0645", "\uFC19", "\u062E\u062C", "\uFC1A", "\u062E\u062D", "\uFC1B", "\u062E\u0645", "\uFC1C", "\u0633\u062C", "\uFC1D", "\u0633\u062D", "\uFC1E", "\u0633\u062E", "\uFC1F", "\u0633\u0645", "\uFC20", "\u0635\u062D", "\uFC21", "\u0635\u0645", "\uFC22", "\u0636\u062C", "\uFC23", "\u0636\u062D", "\uFC24", "\u0636\u062E", "\uFC25", "\u0636\u0645", "\uFC26", "\u0637\u062D", "\uFC27", "\u0637\u0645", "\uFC28", "\u0638\u0645", "\uFC29", "\u0639\u062C", "\uFC2A", "\u0639\u0645", "\uFC2B", "\u063A\u062C", "\uFC2C", "\u063A\u0645", "\uFC2D", "\u0641\u062C", "\uFC2E", "\u0641\u062D", "\uFC2F", "\u0641\u062E", "\uFC30", "\u0641\u0645", "\uFC31", "\u0641\u0649", "\uFC32", "\u0641\u064A", "\uFC33", "\u0642\u062D", "\uFC34", "\u0642\u0645", "\uFC35", "\u0642\u0649", "\uFC36", "\u0642\u064A", "\uFC37", "\u0643\u0627", "\uFC38", "\u0643\u062C", "\uFC39", "\u0643\u062D", "\uFC3A", "\u0643\u062E", "\uFC3B", "\u0643\u0644", "\uFC3C", "\u0643\u0645", "\uFC3D", "\u0643\u0649", "\uFC3E", "\u0643\u064A", "\uFC3F", "\u0644\u062C", "\uFC40", "\u0644\u062D", "\uFC41", "\u0644\u062E", "\uFC42", "\u0644\u0645", "\uFC43", "\u0644\u0649", "\uFC44", "\u0644\u064A", "\uFC45", "\u0645\u062C", "\uFC46", "\u0645\u062D", "\uFC47", "\u0645\u062E", "\uFC48", "\u0645\u0645", "\uFC49", "\u0645\u0649", "\uFC4A", "\u0645\u064A", "\uFC4B", "\u0646\u062C", "\uFC4C", "\u0646\u062D", "\uFC4D", "\u0646\u062E", "\uFC4E", "\u0646\u0645", "\uFC4F", "\u0646\u0649", "\uFC50", "\u0646\u064A", "\uFC51", "\u0647\u062C", "\uFC52", "\u0647\u0645", "\uFC53", "\u0647\u0649", "\uFC54", "\u0647\u064A", "\uFC55", "\u064A\u062C", "\uFC56", "\u064A\u062D", "\uFC57", "\u064A\u062E", "\uFC58", "\u064A\u0645", "\uFC59", "\u064A\u0649", "\uFC5A", "\u064A\u064A", "\uFC5B", "\u0630\u0670", "\uFC5C", "\u0631\u0670", "\uFC5D", "\u0649\u0670", "\uFC5E", "\u0020\u064C\u0651", "\uFC5F", "\u0020\u064D\u0651", "\uFC60", "\u0020\u064E\u0651", "\uFC61", "\u0020\u064F\u0651", "\uFC62", "\u0020\u0650\u0651", "\uFC63", "\u0020\u0651\u0670", "\uFC64", "\u0626\u0631", "\uFC65", "\u0626\u0632", "\uFC66", "\u0626\u0645", "\uFC67", "\u0626\u0646", "\uFC68", "\u0626\u0649", "\uFC69", "\u0626\u064A", "\uFC6A", "\u0628\u0631", "\uFC6B", "\u0628\u0632", "\uFC6C", "\u0628\u0645", "\uFC6D", "\u0628\u0646", "\uFC6E", "\u0628\u0649", "\uFC6F", "\u0628\u064A", "\uFC70", "\u062A\u0631", "\uFC71", "\u062A\u0632", "\uFC72", "\u062A\u0645", "\uFC73", "\u062A\u0646", "\uFC74", "\u062A\u0649", "\uFC75", "\u062A\u064A", "\uFC76", "\u062B\u0631", "\uFC77", "\u062B\u0632", "\uFC78", "\u062B\u0645", "\uFC79", "\u062B\u0646", "\uFC7A", "\u062B\u0649", "\uFC7B", "\u062B\u064A", "\uFC7C", "\u0641\u0649", "\uFC7D", "\u0641\u064A", "\uFC7E", "\u0642\u0649", "\uFC7F", "\u0642\u064A", "\uFC80", "\u0643\u0627", "\uFC81", "\u0643\u0644", "\uFC82", "\u0643\u0645", "\uFC83", "\u0643\u0649", "\uFC84", "\u0643\u064A", "\uFC85", "\u0644\u0645", "\uFC86", "\u0644\u0649", "\uFC87", "\u0644\u064A", "\uFC88", "\u0645\u0627", "\uFC89", "\u0645\u0645", "\uFC8A", "\u0646\u0631", "\uFC8B", "\u0646\u0632", "\uFC8C", "\u0646\u0645", "\uFC8D", "\u0646\u0646", "\uFC8E", "\u0646\u0649", "\uFC8F", "\u0646\u064A", "\uFC90", "\u0649\u0670", "\uFC91", "\u064A\u0631", "\uFC92", "\u064A\u0632", "\uFC93", "\u064A\u0645", "\uFC94", "\u064A\u0646", "\uFC95", "\u064A\u0649", "\uFC96", "\u064A\u064A", "\uFC97", "\u0626\u062C", "\uFC98", "\u0626\u062D", "\uFC99", "\u0626\u062E", "\uFC9A", "\u0626\u0645", "\uFC9B", "\u0626\u0647", "\uFC9C", "\u0628\u062C", "\uFC9D", "\u0628\u062D", "\uFC9E", "\u0628\u062E", "\uFC9F", "\u0628\u0645", "\uFCA0", "\u0628\u0647", "\uFCA1", "\u062A\u062C", "\uFCA2", "\u062A\u062D", "\uFCA3", "\u062A\u062E", "\uFCA4", "\u062A\u0645", "\uFCA5", "\u062A\u0647", "\uFCA6", "\u062B\u0645", "\uFCA7", "\u062C\u062D", "\uFCA8", "\u062C\u0645", "\uFCA9", "\u062D\u062C", "\uFCAA", "\u062D\u0645", "\uFCAB", "\u062E\u062C", "\uFCAC", "\u062E\u0645", "\uFCAD", "\u0633\u062C", "\uFCAE", "\u0633\u062D", "\uFCAF", "\u0633\u062E", "\uFCB0", "\u0633\u0645", "\uFCB1", "\u0635\u062D", "\uFCB2", "\u0635\u062E", "\uFCB3", "\u0635\u0645", "\uFCB4", "\u0636\u062C", "\uFCB5", "\u0636\u062D", "\uFCB6", "\u0636\u062E", "\uFCB7", "\u0636\u0645", "\uFCB8", "\u0637\u062D", "\uFCB9", "\u0638\u0645", "\uFCBA", "\u0639\u062C", "\uFCBB", "\u0639\u0645", "\uFCBC", "\u063A\u062C", "\uFCBD", "\u063A\u0645", "\uFCBE", "\u0641\u062C", "\uFCBF", "\u0641\u062D", "\uFCC0", "\u0641\u062E", "\uFCC1", "\u0641\u0645", "\uFCC2", "\u0642\u062D", "\uFCC3", "\u0642\u0645", "\uFCC4", "\u0643\u062C", "\uFCC5", "\u0643\u062D", "\uFCC6", "\u0643\u062E", "\uFCC7", "\u0643\u0644", "\uFCC8", "\u0643\u0645", "\uFCC9", "\u0644\u062C", "\uFCCA", "\u0644\u062D", "\uFCCB", "\u0644\u062E", "\uFCCC", "\u0644\u0645", "\uFCCD", "\u0644\u0647", "\uFCCE", "\u0645\u062C", "\uFCCF", "\u0645\u062D", "\uFCD0", "\u0645\u062E", "\uFCD1", "\u0645\u0645", "\uFCD2", "\u0646\u062C", "\uFCD3", "\u0646\u062D", "\uFCD4", "\u0646\u062E", "\uFCD5", "\u0646\u0645", "\uFCD6", "\u0646\u0647", "\uFCD7", "\u0647\u062C", "\uFCD8", "\u0647\u0645", "\uFCD9", "\u0647\u0670", "\uFCDA", "\u064A\u062C", "\uFCDB", "\u064A\u062D", "\uFCDC", "\u064A\u062E", "\uFCDD", "\u064A\u0645", "\uFCDE", "\u064A\u0647", "\uFCDF", "\u0626\u0645", "\uFCE0", "\u0626\u0647", "\uFCE1", "\u0628\u0645", "\uFCE2", "\u0628\u0647", "\uFCE3", "\u062A\u0645", "\uFCE4", "\u062A\u0647", "\uFCE5", "\u062B\u0645", "\uFCE6", "\u062B\u0647", "\uFCE7", "\u0633\u0645", "\uFCE8", "\u0633\u0647", "\uFCE9", "\u0634\u0645", "\uFCEA", "\u0634\u0647", "\uFCEB", "\u0643\u0644", "\uFCEC", "\u0643\u0645", "\uFCED", "\u0644\u0645", "\uFCEE", "\u0646\u0645", "\uFCEF", "\u0646\u0647", "\uFCF0", "\u064A\u0645", "\uFCF1", "\u064A\u0647", "\uFCF2", "\u0640\u064E\u0651", "\uFCF3", "\u0640\u064F\u0651", "\uFCF4", "\u0640\u0650\u0651", "\uFCF5", "\u0637\u0649", "\uFCF6", "\u0637\u064A", "\uFCF7", "\u0639\u0649", "\uFCF8", "\u0639\u064A", "\uFCF9", "\u063A\u0649", "\uFCFA", "\u063A\u064A", "\uFCFB", "\u0633\u0649", "\uFCFC", "\u0633\u064A", "\uFCFD", "\u0634\u0649", "\uFCFE", "\u0634\u064A", "\uFCFF", "\u062D\u0649", "\uFD00", "\u062D\u064A", "\uFD01", "\u062C\u0649", "\uFD02", "\u062C\u064A", "\uFD03", "\u062E\u0649", "\uFD04", "\u062E\u064A", "\uFD05", "\u0635\u0649", "\uFD06", "\u0635\u064A", "\uFD07", "\u0636\u0649", "\uFD08", "\u0636\u064A", "\uFD09", "\u0634\u062C", "\uFD0A", "\u0634\u062D", "\uFD0B", "\u0634\u062E", "\uFD0C", "\u0634\u0645", "\uFD0D", "\u0634\u0631", "\uFD0E", "\u0633\u0631", "\uFD0F", "\u0635\u0631", "\uFD10", "\u0636\u0631", "\uFD11", "\u0637\u0649", "\uFD12", "\u0637\u064A", "\uFD13", "\u0639\u0649", "\uFD14", "\u0639\u064A", "\uFD15", "\u063A\u0649", "\uFD16", "\u063A\u064A", "\uFD17", "\u0633\u0649", "\uFD18", "\u0633\u064A", "\uFD19", "\u0634\u0649", "\uFD1A", "\u0634\u064A", "\uFD1B", "\u062D\u0649", "\uFD1C", "\u062D\u064A", "\uFD1D", "\u062C\u0649", "\uFD1E", "\u062C\u064A", "\uFD1F", "\u062E\u0649", "\uFD20", "\u062E\u064A", "\uFD21", "\u0635\u0649", "\uFD22", "\u0635\u064A", "\uFD23", "\u0636\u0649", "\uFD24", "\u0636\u064A", "\uFD25", "\u0634\u062C", "\uFD26", "\u0634\u062D", "\uFD27", "\u0634\u062E", "\uFD28", "\u0634\u0645", "\uFD29", "\u0634\u0631", "\uFD2A", "\u0633\u0631", "\uFD2B", "\u0635\u0631", "\uFD2C", "\u0636\u0631", "\uFD2D", "\u0634\u062C", "\uFD2E", "\u0634\u062D", "\uFD2F", "\u0634\u062E", "\uFD30", "\u0634\u0645", "\uFD31", "\u0633\u0647", "\uFD32", "\u0634\u0647", "\uFD33", "\u0637\u0645", "\uFD34", "\u0633\u062C", "\uFD35", "\u0633\u062D", "\uFD36", "\u0633\u062E", "\uFD37", "\u0634\u062C", "\uFD38", "\u0634\u062D", "\uFD39", "\u0634\u062E", "\uFD3A", "\u0637\u0645", "\uFD3B", "\u0638\u0645", "\uFD3C", "\u0627\u064B", "\uFD3D", "\u0627\u064B", "\uFD50", "\u062A\u062C\u0645", "\uFD51", "\u062A\u062D\u062C", "\uFD52", "\u062A\u062D\u062C", "\uFD53", "\u062A\u062D\u0645", "\uFD54", "\u062A\u062E\u0645", "\uFD55", "\u062A\u0645\u062C", "\uFD56", "\u062A\u0645\u062D", "\uFD57", "\u062A\u0645\u062E", "\uFD58", "\u062C\u0645\u062D", "\uFD59", "\u062C\u0645\u062D", "\uFD5A", "\u062D\u0645\u064A", "\uFD5B", "\u062D\u0645\u0649", "\uFD5C", "\u0633\u062D\u062C", "\uFD5D", "\u0633\u062C\u062D", "\uFD5E", "\u0633\u062C\u0649", "\uFD5F", "\u0633\u0645\u062D", "\uFD60", "\u0633\u0645\u062D", "\uFD61", "\u0633\u0645\u062C", "\uFD62", "\u0633\u0645\u0645", "\uFD63", "\u0633\u0645\u0645", "\uFD64", "\u0635\u062D\u062D", "\uFD65", "\u0635\u062D\u062D", "\uFD66", "\u0635\u0645\u0645", "\uFD67", "\u0634\u062D\u0645", "\uFD68", "\u0634\u062D\u0645", "\uFD69", "\u0634\u062C\u064A", "\uFD6A", "\u0634\u0645\u062E", "\uFD6B", "\u0634\u0645\u062E", "\uFD6C", "\u0634\u0645\u0645", "\uFD6D", "\u0634\u0645\u0645", "\uFD6E", "\u0636\u062D\u0649", "\uFD6F", "\u0636\u062E\u0645", "\uFD70", "\u0636\u062E\u0645", "\uFD71", "\u0637\u0645\u062D", "\uFD72", "\u0637\u0645\u062D", "\uFD73", "\u0637\u0645\u0645", "\uFD74", "\u0637\u0645\u064A", "\uFD75", "\u0639\u062C\u0645", "\uFD76", "\u0639\u0645\u0645", "\uFD77", "\u0639\u0645\u0645", "\uFD78", "\u0639\u0645\u0649", "\uFD79", "\u063A\u0645\u0645", "\uFD7A", "\u063A\u0645\u064A", "\uFD7B", "\u063A\u0645\u0649", "\uFD7C", "\u0641\u062E\u0645", "\uFD7D", "\u0641\u062E\u0645", "\uFD7E", "\u0642\u0645\u062D", "\uFD7F", "\u0642\u0645\u0645", "\uFD80", "\u0644\u062D\u0645", "\uFD81", "\u0644\u062D\u064A", "\uFD82", "\u0644\u062D\u0649", "\uFD83", "\u0644\u062C\u062C", "\uFD84", "\u0644\u062C\u062C", "\uFD85", "\u0644\u062E\u0645", "\uFD86", "\u0644\u062E\u0645", "\uFD87", "\u0644\u0645\u062D", "\uFD88", "\u0644\u0645\u062D", "\uFD89", "\u0645\u062D\u062C", "\uFD8A", "\u0645\u062D\u0645", "\uFD8B", "\u0645\u062D\u064A", "\uFD8C", "\u0645\u062C\u062D", "\uFD8D", "\u0645\u062C\u0645", "\uFD8E", "\u0645\u062E\u062C", "\uFD8F", "\u0645\u062E\u0645", "\uFD92", "\u0645\u062C\u062E", "\uFD93", "\u0647\u0645\u062C", "\uFD94", "\u0647\u0645\u0645", "\uFD95", "\u0646\u062D\u0645", "\uFD96", "\u0646\u062D\u0649", "\uFD97", "\u0646\u062C\u0645", "\uFD98", "\u0646\u062C\u0645", "\uFD99", "\u0646\u062C\u0649", "\uFD9A", "\u0646\u0645\u064A", "\uFD9B", "\u0646\u0645\u0649", "\uFD9C", "\u064A\u0645\u0645", "\uFD9D", "\u064A\u0645\u0645", "\uFD9E", "\u0628\u062E\u064A", "\uFD9F", "\u062A\u062C\u064A", "\uFDA0", "\u062A\u062C\u0649", "\uFDA1", "\u062A\u062E\u064A", "\uFDA2", "\u062A\u062E\u0649", "\uFDA3", "\u062A\u0645\u064A", "\uFDA4", "\u062A\u0645\u0649", "\uFDA5", "\u062C\u0645\u064A", "\uFDA6", "\u062C\u062D\u0649", "\uFDA7", "\u062C\u0645\u0649", "\uFDA8", "\u0633\u062E\u0649", "\uFDA9", "\u0635\u062D\u064A", "\uFDAA", "\u0634\u062D\u064A", "\uFDAB", "\u0636\u062D\u064A", "\uFDAC", "\u0644\u062C\u064A", "\uFDAD", "\u0644\u0645\u064A", "\uFDAE", "\u064A\u062D\u064A", "\uFDAF", "\u064A\u062C\u064A", "\uFDB0", "\u064A\u0645\u064A", "\uFDB1", "\u0645\u0645\u064A", "\uFDB2", "\u0642\u0645\u064A", "\uFDB3", "\u0646\u062D\u064A", "\uFDB4", "\u0642\u0645\u062D", "\uFDB5", "\u0644\u062D\u0645", "\uFDB6", "\u0639\u0645\u064A", "\uFDB7", "\u0643\u0645\u064A", "\uFDB8", "\u0646\u062C\u062D", "\uFDB9", "\u0645\u062E\u064A", "\uFDBA", "\u0644\u062C\u0645", "\uFDBB", "\u0643\u0645\u0645", "\uFDBC", "\u0644\u062C\u0645", "\uFDBD", "\u0646\u062C\u062D", "\uFDBE", "\u062C\u062D\u064A", "\uFDBF", "\u062D\u062C\u064A", "\uFDC0", "\u0645\u062C\u064A", "\uFDC1", "\u0641\u0645\u064A", "\uFDC2", "\u0628\u062D\u064A", "\uFDC3", "\u0643\u0645\u0645", "\uFDC4", "\u0639\u062C\u0645", "\uFDC5", "\u0635\u0645\u0645", "\uFDC6", "\u0633\u062E\u064A", "\uFDC7", "\u0646\u062C\u064A", "\uFE49", "\u203E", "\uFE4A", "\u203E", "\uFE4B", "\u203E", "\uFE4C", "\u203E", "\uFE4D", "\u005F", "\uFE4E", "\u005F", "\uFE4F", "\u005F", "\uFE80", "\u0621", "\uFE81", "\u0622", "\uFE82", "\u0622", "\uFE83", "\u0623", "\uFE84", "\u0623", "\uFE85", "\u0624", "\uFE86", "\u0624", "\uFE87", "\u0625", "\uFE88", "\u0625", "\uFE89", "\u0626", "\uFE8A", "\u0626", "\uFE8B", "\u0626", "\uFE8C", "\u0626", "\uFE8D", "\u0627", "\uFE8E", "\u0627", "\uFE8F", "\u0628", "\uFE90", "\u0628", "\uFE91", "\u0628", "\uFE92", "\u0628", "\uFE93", "\u0629", "\uFE94", "\u0629", "\uFE95", "\u062A", "\uFE96", "\u062A", "\uFE97", "\u062A", "\uFE98", "\u062A", "\uFE99", "\u062B", "\uFE9A", "\u062B", "\uFE9B", "\u062B", "\uFE9C", "\u062B", "\uFE9D", "\u062C", "\uFE9E", "\u062C", "\uFE9F", "\u062C", "\uFEA0", "\u062C", "\uFEA1", "\u062D", "\uFEA2", "\u062D", "\uFEA3", "\u062D", "\uFEA4", "\u062D", "\uFEA5", "\u062E", "\uFEA6", "\u062E", "\uFEA7", "\u062E", "\uFEA8", "\u062E", "\uFEA9", "\u062F", "\uFEAA", "\u062F", "\uFEAB", "\u0630", "\uFEAC", "\u0630", "\uFEAD", "\u0631", "\uFEAE", "\u0631", "\uFEAF", "\u0632", "\uFEB0", "\u0632", "\uFEB1", "\u0633", "\uFEB2", "\u0633", "\uFEB3", "\u0633", "\uFEB4", "\u0633", "\uFEB5", "\u0634", "\uFEB6", "\u0634", "\uFEB7", "\u0634", "\uFEB8", "\u0634", "\uFEB9", "\u0635", "\uFEBA", "\u0635", "\uFEBB", "\u0635", "\uFEBC", "\u0635", "\uFEBD", "\u0636", "\uFEBE", "\u0636", "\uFEBF", "\u0636", "\uFEC0", "\u0636", "\uFEC1", "\u0637", "\uFEC2", "\u0637", "\uFEC3", "\u0637", "\uFEC4", "\u0637", "\uFEC5", "\u0638", "\uFEC6", "\u0638", "\uFEC7", "\u0638", "\uFEC8", "\u0638", "\uFEC9", "\u0639", "\uFECA", "\u0639", "\uFECB", "\u0639", "\uFECC", "\u0639", "\uFECD", "\u063A", "\uFECE", "\u063A", "\uFECF", "\u063A", "\uFED0", "\u063A", "\uFED1", "\u0641", "\uFED2", "\u0641", "\uFED3", "\u0641", "\uFED4", "\u0641", "\uFED5", "\u0642", "\uFED6", "\u0642", "\uFED7", "\u0642", "\uFED8", "\u0642", "\uFED9", "\u0643", "\uFEDA", "\u0643", "\uFEDB", "\u0643", "\uFEDC", "\u0643", "\uFEDD", "\u0644", "\uFEDE", "\u0644", "\uFEDF", "\u0644", "\uFEE0", "\u0644", "\uFEE1", "\u0645", "\uFEE2", "\u0645", "\uFEE3", "\u0645", "\uFEE4", "\u0645", "\uFEE5", "\u0646", "\uFEE6", "\u0646", "\uFEE7", "\u0646", "\uFEE8", "\u0646", "\uFEE9", "\u0647", "\uFEEA", "\u0647", "\uFEEB", "\u0647", "\uFEEC", "\u0647", "\uFEED", "\u0648", "\uFEEE", "\u0648", "\uFEEF", "\u0649", "\uFEF0", "\u0649", "\uFEF1", "\u064A", "\uFEF2", "\u064A", "\uFEF3", "\u064A", "\uFEF4", "\u064A", "\uFEF5", "\u0644\u0622", "\uFEF6", "\u0644\u0622", "\uFEF7", "\u0644\u0623", "\uFEF8", "\u0644\u0623", "\uFEF9", "\u0644\u0625", "\uFEFA", "\u0644\u0625", "\uFEFB", "\u0644\u0627", "\uFEFC", "\u0644\u0627"];
-});
-exports.getNormalizedUnicodes = getNormalizedUnicodes;
-function reverseIfRtl(chars) {
-  const charsLength = chars.length;
-  if (charsLength <= 1 || !isRTLRangeFor(chars.charCodeAt(0))) {
-    return chars;
-  }
-  const buf = [];
-  for (let ii = charsLength - 1; ii >= 0; ii--) {
-    buf.push(chars[ii]);
-  }
-  return buf.join("");
 }
 const SpecialCharRegExp = new RegExp("^(\\s)|(\\p{Mn})|(\\p{Cf})$", "u");
 const CategoryCache = new Map();
@@ -25068,7 +25060,7 @@ function clearUnicodeCaches() {
 }
 
 /***/ }),
-/* 39 */
+/* 41 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -25079,8 +25071,8 @@ Object.defineProperty(exports, "__esModule", ({
 exports.getSerifFonts = exports.getNonStdFontMap = exports.getGlyphMapForStandardFonts = exports.getFontNameToFileMap = void 0;
 exports.getStandardFontName = getStandardFontName;
 exports.getSymbolsFonts = exports.getSupplementalGlyphMapForCalibri = exports.getSupplementalGlyphMapForArialBlack = exports.getStdFontMap = void 0;
-var _core_utils = __w_pdfjs_require__(4);
-var _fonts_utils = __w_pdfjs_require__(36);
+var _core_utils = __w_pdfjs_require__(3);
+var _fonts_utils = __w_pdfjs_require__(38);
 const getStdFontMap = (0, _core_utils.getLookupTableFactory)(function (t) {
   t["Times-Roman"] = "Times-Roman";
   t.Helvetica = "Helvetica";
@@ -25538,6 +25530,7 @@ const getGlyphMapForStandardFonts = (0, _core_utils.getLookupTableFactory)(funct
   t[182] = 8217;
   t[200] = 193;
   t[203] = 205;
+  t[207] = 211;
   t[210] = 218;
   t[223] = 711;
   t[224] = 321;
@@ -25928,7 +25921,7 @@ function getStandardFontName(name) {
 }
 
 /***/ }),
-/* 40 */
+/* 42 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -26007,7 +26000,7 @@ class IdentityToUnicodeMap {
 exports.IdentityToUnicodeMap = IdentityToUnicodeMap;
 
 /***/ }),
-/* 41 */
+/* 43 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -26016,8 +26009,8 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.CFFFont = void 0;
-var _cff_parser = __w_pdfjs_require__(33);
-var _fonts_utils = __w_pdfjs_require__(36);
+var _cff_parser = __w_pdfjs_require__(35);
+var _fonts_utils = __w_pdfjs_require__(38);
 var _util = __w_pdfjs_require__(2);
 class CFFFont {
   constructor(file, properties) {
@@ -26119,7 +26112,7 @@ class CFFFont {
 exports.CFFFont = CFFFont;
 
 /***/ }),
-/* 42 */
+/* 44 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -26129,9 +26122,9 @@ Object.defineProperty(exports, "__esModule", ({
 }));
 exports.FontRendererFactory = void 0;
 var _util = __w_pdfjs_require__(2);
-var _cff_parser = __w_pdfjs_require__(33);
-var _glyphlist = __w_pdfjs_require__(37);
-var _encodings = __w_pdfjs_require__(35);
+var _cff_parser = __w_pdfjs_require__(35);
+var _glyphlist = __w_pdfjs_require__(39);
+var _encodings = __w_pdfjs_require__(37);
 var _stream = __w_pdfjs_require__(8);
 function getUint32(data, offset) {
   return (data[offset] << 24 | data[offset + 1] << 16 | data[offset + 2] << 8 | data[offset + 3]) >>> 0;
@@ -26936,7 +26929,7 @@ class FontRendererFactory {
 exports.FontRendererFactory = FontRendererFactory;
 
 /***/ }),
-/* 43 */
+/* 45 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -26945,7 +26938,7 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.getMetrics = exports.getFontBasicMetrics = void 0;
-var _core_utils = __w_pdfjs_require__(4);
+var _core_utils = __w_pdfjs_require__(3);
 const getMetrics = (0, _core_utils.getLookupTableFactory)(function (t) {
   t.Courier = 600;
   t["Courier-Bold"] = 600;
@@ -29974,7 +29967,7 @@ const getFontBasicMetrics = (0, _core_utils.getLookupTableFactory)(function (t) 
 exports.getFontBasicMetrics = getFontBasicMetrics;
 
 /***/ }),
-/* 44 */
+/* 46 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -30519,7 +30512,7 @@ class CompositeGlyph {
 }
 
 /***/ }),
-/* 45 */
+/* 47 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -30528,7 +30521,7 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.OpenTypeFileBuilder = void 0;
-var _core_utils = __w_pdfjs_require__(4);
+var _core_utils = __w_pdfjs_require__(3);
 var _util = __w_pdfjs_require__(2);
 function writeInt16(dest, offset, num) {
   dest[offset] = num >> 8 & 0xff;
@@ -30635,7 +30628,7 @@ class OpenTypeFileBuilder {
 exports.OpenTypeFileBuilder = OpenTypeFileBuilder;
 
 /***/ }),
-/* 46 */
+/* 48 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -30644,12 +30637,12 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.Type1Font = void 0;
-var _cff_parser = __w_pdfjs_require__(33);
+var _cff_parser = __w_pdfjs_require__(35);
 var _util = __w_pdfjs_require__(2);
-var _fonts_utils = __w_pdfjs_require__(36);
-var _core_utils = __w_pdfjs_require__(4);
+var _fonts_utils = __w_pdfjs_require__(38);
+var _core_utils = __w_pdfjs_require__(3);
 var _stream = __w_pdfjs_require__(8);
-var _type1_parser = __w_pdfjs_require__(47);
+var _type1_parser = __w_pdfjs_require__(49);
 function findBlock(streamBytes, signature, startIndex) {
   const streamBytesLength = streamBytes.length;
   const signatureLength = signature.length;
@@ -30921,7 +30914,7 @@ class Type1Font {
 exports.Type1Font = Type1Font;
 
 /***/ }),
-/* 47 */
+/* 49 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -30930,8 +30923,8 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.Type1Parser = void 0;
-var _encodings = __w_pdfjs_require__(35);
-var _core_utils = __w_pdfjs_require__(4);
+var _encodings = __w_pdfjs_require__(37);
+var _core_utils = __w_pdfjs_require__(3);
 var _stream = __w_pdfjs_require__(8);
 var _util = __w_pdfjs_require__(2);
 const HINTING_ENABLED = false;
@@ -31118,7 +31111,7 @@ class Type1CharString {
             subrNumber = this.stack.pop();
             const numArgs = this.stack.pop();
             if (subrNumber === 0 && numArgs === 3) {
-              const flexArgs = this.stack.splice(this.stack.length - 17, 17);
+              const flexArgs = this.stack.splice(-17, 17);
               this.stack.push(flexArgs[2] + flexArgs[0], flexArgs[3] + flexArgs[1], flexArgs[4], flexArgs[5], flexArgs[6], flexArgs[7], flexArgs[8], flexArgs[9], flexArgs[10], flexArgs[11], flexArgs[12], flexArgs[13], flexArgs[14]);
               error = this.executeCommand(13, COMMAND_MAP.flex, true);
               this.flexing = false;
@@ -31496,7 +31489,7 @@ class Type1Parser {
 exports.Type1Parser = Type1Parser;
 
 /***/ }),
-/* 48 */
+/* 50 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -31509,7 +31502,7 @@ exports.getTilingPatternIR = getTilingPatternIR;
 var _util = __w_pdfjs_require__(2);
 var _base_stream = __w_pdfjs_require__(5);
 var _colorspace = __w_pdfjs_require__(12);
-var _core_utils = __w_pdfjs_require__(4);
+var _core_utils = __w_pdfjs_require__(3);
 const ShadingType = {
   FUNCTION_BASED: 1,
   AXIAL: 2,
@@ -31523,7 +31516,7 @@ class Pattern {
   constructor() {
     (0, _util.unreachable)("Cannot initialize Pattern.");
   }
-  static parseShading(shading, xref, res, handler, pdfFunctionFactory, localColorSpaceCache) {
+  static parseShading(shading, xref, res, pdfFunctionFactory, localColorSpaceCache) {
     const dict = shading instanceof _base_stream.BaseStream ? shading.dict : shading;
     const type = dict.get("ShadingType");
     try {
@@ -32280,7 +32273,7 @@ function getTilingPatternIR(operatorList, dict, color) {
 }
 
 /***/ }),
-/* 49 */
+/* 51 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -32290,14 +32283,14 @@ Object.defineProperty(exports, "__esModule", ({
 }));
 exports.getXfaFontDict = getXfaFontDict;
 exports.getXfaFontName = getXfaFontName;
-var _calibri_factors = __w_pdfjs_require__(50);
-var _primitives = __w_pdfjs_require__(3);
-var _helvetica_factors = __w_pdfjs_require__(51);
-var _liberationsans_widths = __w_pdfjs_require__(52);
-var _myriadpro_factors = __w_pdfjs_require__(53);
-var _segoeui_factors = __w_pdfjs_require__(54);
-var _core_utils = __w_pdfjs_require__(4);
-var _fonts_utils = __w_pdfjs_require__(36);
+var _calibri_factors = __w_pdfjs_require__(52);
+var _primitives = __w_pdfjs_require__(4);
+var _helvetica_factors = __w_pdfjs_require__(53);
+var _liberationsans_widths = __w_pdfjs_require__(54);
+var _myriadpro_factors = __w_pdfjs_require__(55);
+var _segoeui_factors = __w_pdfjs_require__(56);
+var _core_utils = __w_pdfjs_require__(3);
+var _fonts_utils = __w_pdfjs_require__(38);
 const getXFAFontMap = (0, _core_utils.getLookupTableFactory)(function (t) {
   t["MyriadPro-Regular"] = t["PdfJS-Fallback-Regular"] = {
     name: "LiberationSans-Regular",
@@ -32493,7 +32486,7 @@ function getXfaFontDict(name) {
 }
 
 /***/ }),
-/* 50 */
+/* 52 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -32532,7 +32525,7 @@ const CalibriRegularMetrics = {
 exports.CalibriRegularMetrics = CalibriRegularMetrics;
 
 /***/ }),
-/* 51 */
+/* 53 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -32571,7 +32564,7 @@ const HelveticaRegularMetrics = {
 exports.HelveticaRegularMetrics = HelveticaRegularMetrics;
 
 /***/ }),
-/* 52 */
+/* 54 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -32598,7 +32591,7 @@ const LiberationSansRegularMapping = [-1, -1, -1, 32, 33, 34, 35, 36, 37, 38, 39
 exports.LiberationSansRegularMapping = LiberationSansRegularMapping;
 
 /***/ }),
-/* 53 */
+/* 55 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -32637,7 +32630,7 @@ const MyriadProRegularMetrics = {
 exports.MyriadProRegularMetrics = MyriadProRegularMetrics;
 
 /***/ }),
-/* 54 */
+/* 56 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -32676,7 +32669,7 @@ const SegoeuiRegularMetrics = {
 exports.SegoeuiRegularMetrics = SegoeuiRegularMetrics;
 
 /***/ }),
-/* 55 */
+/* 57 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -32686,11 +32679,11 @@ Object.defineProperty(exports, "__esModule", ({
 }));
 exports.PostScriptEvaluator = exports.PostScriptCompiler = exports.PDFFunctionFactory = void 0;
 exports.isPDFFunction = isPDFFunction;
-var _primitives = __w_pdfjs_require__(3);
+var _primitives = __w_pdfjs_require__(4);
 var _util = __w_pdfjs_require__(2);
-var _ps_parser = __w_pdfjs_require__(56);
+var _ps_parser = __w_pdfjs_require__(58);
 var _base_stream = __w_pdfjs_require__(5);
-var _image_utils = __w_pdfjs_require__(57);
+var _image_utils = __w_pdfjs_require__(59);
 class PDFFunctionFactory {
   constructor({
     xref,
@@ -33109,9 +33102,7 @@ class PDFFunction {
 }
 function isPDFFunction(v) {
   let fnDict;
-  if (typeof v !== "object") {
-    return false;
-  } else if (v instanceof _primitives.Dict) {
+  if (v instanceof _primitives.Dict) {
     fnDict = v;
   } else if (v instanceof _base_stream.BaseStream) {
     fnDict = v.dict;
@@ -33220,8 +33211,13 @@ class PostScriptEvaluator {
           }
           break;
         case "atan":
+          b = stack.pop();
           a = stack.pop();
-          stack.push(Math.atan(a));
+          a = Math.atan2(a, b) / Math.PI * 180;
+          if (a < 0) {
+            a += 360;
+          }
+          stack.push(a);
           break;
         case "bitshift":
           b = stack.pop();
@@ -33242,7 +33238,7 @@ class PostScriptEvaluator {
           break;
         case "cos":
           a = stack.pop();
-          stack.push(Math.cos(a));
+          stack.push(Math.cos(a % 360 / 180 * Math.PI));
           break;
         case "cvi":
           a = stack.pop() | 0;
@@ -33365,7 +33361,7 @@ class PostScriptEvaluator {
           break;
         case "sin":
           a = stack.pop();
-          stack.push(Math.sin(a));
+          stack.push(Math.sin(a % 360 / 180 * Math.PI));
           break;
         case "sqrt":
           a = stack.pop();
@@ -33728,7 +33724,7 @@ class PostScriptCompiler {
 exports.PostScriptCompiler = PostScriptCompiler;
 
 /***/ }),
-/* 56 */
+/* 58 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -33738,8 +33734,8 @@ Object.defineProperty(exports, "__esModule", ({
 }));
 exports.PostScriptParser = exports.PostScriptLexer = void 0;
 var _util = __w_pdfjs_require__(2);
-var _primitives = __w_pdfjs_require__(3);
-var _core_utils = __w_pdfjs_require__(4);
+var _primitives = __w_pdfjs_require__(4);
+var _core_utils = __w_pdfjs_require__(3);
 class PostScriptParser {
   constructor(lexer) {
     this.lexer = lexer;
@@ -33932,7 +33928,7 @@ class PostScriptLexer {
 exports.PostScriptLexer = PostScriptLexer;
 
 /***/ }),
-/* 57 */
+/* 59 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -33940,9 +33936,9 @@ exports.PostScriptLexer = PostScriptLexer;
 Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
-exports.LocalTilingPatternCache = exports.LocalImageCache = exports.LocalGStateCache = exports.LocalFunctionCache = exports.LocalColorSpaceCache = exports.GlobalImageCache = void 0;
+exports.RegionalImageCache = exports.LocalTilingPatternCache = exports.LocalImageCache = exports.LocalGStateCache = exports.LocalFunctionCache = exports.LocalColorSpaceCache = exports.GlobalImageCache = void 0;
 var _util = __w_pdfjs_require__(2);
-var _primitives = __w_pdfjs_require__(3);
+var _primitives = __w_pdfjs_require__(4);
 class BaseLocalCache {
   constructor(options) {
     if (this.constructor === BaseLocalCache) {
@@ -34068,6 +34064,23 @@ class LocalTilingPatternCache extends BaseLocalCache {
   }
 }
 exports.LocalTilingPatternCache = LocalTilingPatternCache;
+class RegionalImageCache extends BaseLocalCache {
+  constructor(options) {
+    super({
+      onlyRefs: true
+    });
+  }
+  set(name = null, ref, data) {
+    if (!ref) {
+      throw new Error('RegionalImageCache.set - expected "ref" argument.');
+    }
+    if (this._imageCache.has(ref)) {
+      return;
+    }
+    this._imageCache.put(ref, data);
+  }
+}
+exports.RegionalImageCache = RegionalImageCache;
 class GlobalImageCache {
   static get NUM_PAGES_THRESHOLD() {
     return (0, _util.shadow)(this, "NUM_PAGES_THRESHOLD", 2);
@@ -34076,7 +34089,7 @@ class GlobalImageCache {
     return (0, _util.shadow)(this, "MIN_IMAGES_TO_CACHE", 10);
   }
   static get MAX_BYTE_SIZE() {
-    return (0, _util.shadow)(this, "MAX_BYTE_SIZE", 40e6);
+    return (0, _util.shadow)(this, "MAX_BYTE_SIZE", 5 * _util.MAX_IMAGE_SIZE_TO_CACHE);
   }
   constructor() {
     this._refCache = new _primitives.RefSetCache();
@@ -34165,7 +34178,7 @@ class GlobalImageCache {
 exports.GlobalImageCache = GlobalImageCache;
 
 /***/ }),
-/* 58 */
+/* 60 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -34241,7 +34254,7 @@ function bidi(str, startLevel = -1, vertical = false) {
       if (!charType) {
         (0, _util.warn)("Bidi: invalid Unicode character " + charCode.toString(16));
       }
-    } else if (0x0700 <= charCode && charCode <= 0x08ac) {
+    } else if (0x0700 <= charCode && charCode <= 0x08ac || 0xfb50 <= charCode && charCode <= 0xfdff || 0xfe70 <= charCode && charCode <= 0xfeff) {
       charType = "AL";
     }
     if (charType === "R" || charType === "AL" || charType === "AN") {
@@ -34412,7 +34425,261 @@ function bidi(str, startLevel = -1, vertical = false) {
 }
 
 /***/ }),
-/* 59 */
+/* 61 */
+/***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
+
+
+
+Object.defineProperty(exports, "__esModule", ({
+  value: true
+}));
+exports.ImageResizer = void 0;
+var _util = __w_pdfjs_require__(2);
+const MIN_IMAGE_DIM = 2048;
+const MAX_IMAGE_DIM = 65537;
+const MAX_ERROR = 128;
+class ImageResizer {
+  constructor(imgData, isMask) {
+    this._imgData = imgData;
+    this._isMask = isMask;
+  }
+  static needsToBeResized(width, height) {
+    if (width <= this._goodSquareLength && height <= this._goodSquareLength) {
+      return false;
+    }
+    const {
+      MAX_DIM
+    } = this;
+    if (width > MAX_DIM || height > MAX_DIM) {
+      return true;
+    }
+    const area = width * height;
+    if (this._hasMaxArea) {
+      return area > this.MAX_AREA;
+    }
+    if (area < this._goodSquareLength ** 2) {
+      return false;
+    }
+    if (this._areGoodDims(width, height)) {
+      this._goodSquareLength = Math.max(this._goodSquareLength, Math.floor(Math.sqrt(width * height)));
+      return false;
+    }
+    this._goodSquareLength = this._guessMax(this._goodSquareLength, MAX_DIM, MAX_ERROR, 0);
+    const maxArea = this.MAX_AREA = this._goodSquareLength ** 2;
+    return area > maxArea;
+  }
+  static get MAX_DIM() {
+    return (0, _util.shadow)(this, "MAX_DIM", this._guessMax(MIN_IMAGE_DIM, MAX_IMAGE_DIM, 0, 1));
+  }
+  static get MAX_AREA() {
+    this._hasMaxArea = true;
+    return (0, _util.shadow)(this, "MAX_AREA", this._guessMax(ImageResizer._goodSquareLength, this.MAX_DIM, MAX_ERROR, 0) ** 2);
+  }
+  static set MAX_AREA(area) {
+    if (area >= 0) {
+      this._hasMaxArea = true;
+      (0, _util.shadow)(this, "MAX_AREA", area);
+    }
+  }
+  static setMaxArea(area) {
+    if (!this._hasMaxArea) {
+      this.MAX_AREA = area >> 2;
+    }
+  }
+  static _areGoodDims(width, height) {
+    try {
+      const canvas = new OffscreenCanvas(width, height);
+      const ctx = canvas.getContext("2d");
+      ctx.fillRect(0, 0, 1, 1);
+      const opacity = ctx.getImageData(0, 0, 1, 1).data[3];
+      canvas.width = canvas.height = 1;
+      return opacity !== 0;
+    } catch (e) {
+      return false;
+    }
+  }
+  static _guessMax(start, end, tolerance, defaultHeight) {
+    while (start + tolerance + 1 < end) {
+      const middle = Math.floor((start + end) / 2);
+      const height = defaultHeight || middle;
+      if (this._areGoodDims(middle, height)) {
+        start = middle;
+      } else {
+        end = middle;
+      }
+    }
+    return start;
+  }
+  static async createImage(imgData, isMask = false) {
+    return new ImageResizer(imgData, isMask)._createImage();
+  }
+  async _createImage() {
+    const data = this._encodeBMP();
+    const blob = new Blob([data.buffer], {
+      type: "image/bmp"
+    });
+    const bitmapPromise = createImageBitmap(blob);
+    const {
+      MAX_AREA,
+      MAX_DIM
+    } = ImageResizer;
+    const {
+      _imgData: imgData
+    } = this;
+    const {
+      width,
+      height
+    } = imgData;
+    const minFactor = Math.max(width / MAX_DIM, height / MAX_DIM, Math.sqrt(width * height / MAX_AREA));
+    const firstFactor = Math.max(minFactor, 2);
+    const factor = Math.round(10 * (minFactor + 1.25)) / 10 / firstFactor;
+    const N = Math.floor(Math.log2(factor));
+    const steps = new Array(N + 2).fill(2);
+    steps[0] = firstFactor;
+    steps.splice(-1, 1, factor / (1 << N));
+    let newWidth = width;
+    let newHeight = height;
+    let bitmap = await bitmapPromise;
+    for (const step of steps) {
+      const prevWidth = newWidth;
+      const prevHeight = newHeight;
+      newWidth = Math.floor(newWidth / step) - 1;
+      newHeight = Math.floor(newHeight / step) - 1;
+      const canvas = new OffscreenCanvas(newWidth, newHeight);
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(bitmap, 0, 0, prevWidth, prevHeight, 0, 0, newWidth, newHeight);
+      bitmap = canvas.transferToImageBitmap();
+    }
+    imgData.data = null;
+    imgData.bitmap = bitmap;
+    imgData.width = newWidth;
+    imgData.height = newHeight;
+    return imgData;
+  }
+  _encodeBMP() {
+    const {
+      width,
+      height,
+      kind
+    } = this._imgData;
+    let data = this._imgData.data;
+    let bitPerPixel;
+    let colorTable = new Uint8Array(0);
+    let maskTable = colorTable;
+    let compression = 0;
+    switch (kind) {
+      case _util.ImageKind.GRAYSCALE_1BPP:
+        {
+          bitPerPixel = 1;
+          colorTable = new Uint8Array(this._isMask ? [255, 255, 255, 255, 0, 0, 0, 0] : [0, 0, 0, 0, 255, 255, 255, 255]);
+          const rowLen = width + 7 >> 3;
+          const rowSize = rowLen + 3 & -4;
+          if (rowLen !== rowSize) {
+            const newData = new Uint8Array(rowSize * height);
+            let k = 0;
+            for (let i = 0, ii = height * rowLen; i < ii; i += rowLen, k += rowSize) {
+              newData.set(data.subarray(i, i + rowLen), k);
+            }
+            data = newData;
+          }
+          break;
+        }
+      case _util.ImageKind.RGB_24BPP:
+        {
+          bitPerPixel = 24;
+          if (width & 3) {
+            const rowLen = 3 * width;
+            const rowSize = rowLen + 3 & -4;
+            const extraLen = rowSize - rowLen;
+            const newData = new Uint8Array(rowSize * height);
+            let k = 0;
+            for (let i = 0, ii = height * rowLen; i < ii; i += rowLen) {
+              const row = data.subarray(i, i + rowLen);
+              for (let j = 0; j < rowLen; j += 3) {
+                newData[k++] = row[j + 2];
+                newData[k++] = row[j + 1];
+                newData[k++] = row[j];
+              }
+              k += extraLen;
+            }
+            data = newData;
+          } else {
+            for (let i = 0, ii = data.length; i < ii; i += 3) {
+              const tmp = data[i];
+              data[i] = data[i + 2];
+              data[i + 2] = tmp;
+            }
+          }
+          break;
+        }
+      case _util.ImageKind.RGBA_32BPP:
+        bitPerPixel = 32;
+        compression = 3;
+        maskTable = new Uint8Array(4 + 4 + 4 + 4 + 52);
+        const view = new DataView(maskTable.buffer);
+        if (_util.FeatureTest.isLittleEndian) {
+          view.setUint32(0, 0x000000ff, true);
+          view.setUint32(4, 0x0000ff00, true);
+          view.setUint32(8, 0x00ff0000, true);
+          view.setUint32(12, 0xff000000, true);
+        } else {
+          view.setUint32(0, 0xff000000, true);
+          view.setUint32(4, 0x00ff0000, true);
+          view.setUint32(8, 0x0000ff00, true);
+          view.setUint32(12, 0x000000ff, true);
+        }
+        break;
+      default:
+        throw new Error("invalid format");
+    }
+    let i = 0;
+    const headerLength = 40 + maskTable.length;
+    const fileLength = 14 + headerLength + colorTable.length + data.length;
+    const bmpData = new Uint8Array(fileLength);
+    const view = new DataView(bmpData.buffer);
+    view.setUint16(i, 0x4d42, true);
+    i += 2;
+    view.setUint32(i, fileLength, true);
+    i += 4;
+    view.setUint32(i, 0, true);
+    i += 4;
+    view.setUint32(i, 14 + headerLength + colorTable.length, true);
+    i += 4;
+    view.setUint32(i, headerLength, true);
+    i += 4;
+    view.setInt32(i, width, true);
+    i += 4;
+    view.setInt32(i, -height, true);
+    i += 4;
+    view.setUint16(i, 1, true);
+    i += 2;
+    view.setUint16(i, bitPerPixel, true);
+    i += 2;
+    view.setUint32(i, compression, true);
+    i += 4;
+    view.setUint32(i, 0, true);
+    i += 4;
+    view.setInt32(i, 0, true);
+    i += 4;
+    view.setInt32(i, 0, true);
+    i += 4;
+    view.setUint32(i, colorTable.length / 4, true);
+    i += 4;
+    view.setUint32(i, 0, true);
+    i += 4;
+    bmpData.set(maskTable, i);
+    i += maskTable.length;
+    bmpData.set(colorTable, i);
+    i += colorTable.length;
+    bmpData.set(data, i);
+    return bmpData;
+  }
+}
+exports.ImageResizer = ImageResizer;
+ImageResizer._goodSquareLength = MIN_IMAGE_DIM;
+
+/***/ }),
+/* 62 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -34516,7 +34783,7 @@ class MurmurHash3_64 {
 exports.MurmurHash3_64 = MurmurHash3_64;
 
 /***/ }),
-/* 60 */
+/* 63 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -34621,13 +34888,22 @@ addState(InitialState, [_util.OPS.save, _util.OPS.transform, _util.OPS.paintInli
       offset -= imgRowSize;
     }
   }
-  fnArray.splice(iFirstSave, count * 4, _util.OPS.paintInlineImageXObjectGroup);
-  argsArray.splice(iFirstSave, count * 4, [{
+  const img = {
     width: imgWidth,
-    height: imgHeight,
-    kind: _util.ImageKind.RGBA_32BPP,
-    data: imgData
-  }, map]);
+    height: imgHeight
+  };
+  if (context.isOffscreenCanvasSupported) {
+    const canvas = new OffscreenCanvas(imgWidth, imgHeight);
+    const ctx = canvas.getContext("2d");
+    ctx.putImageData(new ImageData(new Uint8ClampedArray(imgData.buffer), imgWidth, imgHeight), 0, 0);
+    img.bitmap = canvas.transferToImageBitmap();
+    img.data = null;
+  } else {
+    img.kind = _util.ImageKind.RGBA_32BPP;
+    img.data = imgData;
+  }
+  fnArray.splice(iFirstSave, count * 4, _util.OPS.paintInlineImageXObjectGroup);
+  argsArray.splice(iFirstSave, count * 4, [img, map]);
   return iFirstSave + 1;
 });
 addState(InitialState, [_util.OPS.save, _util.OPS.transform, _util.OPS.paintImageMaskXObject, _util.OPS.restore], null, function iterateImageMaskGroup(context, i) {
@@ -34855,10 +35131,14 @@ class QueueOptimizer extends NullOptimizer {
     this.context = {
       iCurr: 0,
       fnArray: queue.fnArray,
-      argsArray: queue.argsArray
+      argsArray: queue.argsArray,
+      isOffscreenCanvasSupported: false
     };
     this.match = null;
     this.lastProcessed = 0;
+  }
+  set isOffscreenCanvasSupported(value) {
+    this.context.isOffscreenCanvasSupported = value;
   }
   _optimize() {
     const fnArray = this.queue.fnArray;
@@ -34939,6 +35219,9 @@ class OperatorList {
     this._totalLength = 0;
     this.weight = 0;
     this._resolved = streamSink ? null : Promise.resolve();
+  }
+  set isOffscreenCanvasSupported(value) {
+    this.optimizer.isOffscreenCanvasSupported = value;
   }
   get length() {
     return this.argsArray.length;
@@ -35042,7 +35325,7 @@ class OperatorList {
 exports.OperatorList = OperatorList;
 
 /***/ }),
-/* 61 */
+/* 64 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -35052,13 +35335,14 @@ Object.defineProperty(exports, "__esModule", ({
 }));
 exports.PDFImage = void 0;
 var _util = __w_pdfjs_require__(2);
-var _image_utils = __w_pdfjs_require__(62);
+var _image_utils = __w_pdfjs_require__(28);
 var _base_stream = __w_pdfjs_require__(5);
 var _colorspace = __w_pdfjs_require__(12);
-var _decode_stream = __w_pdfjs_require__(17);
-var _jpeg_stream = __w_pdfjs_require__(25);
-var _jpx = __w_pdfjs_require__(28);
-var _primitives = __w_pdfjs_require__(3);
+var _decode_stream = __w_pdfjs_require__(18);
+var _image_resizer = __w_pdfjs_require__(61);
+var _jpeg_stream = __w_pdfjs_require__(26);
+var _jpx = __w_pdfjs_require__(30);
+var _primitives = __w_pdfjs_require__(4);
 function decodeAndClamp(value, addend, coefficient, max) {
   value = addend + value * coefficient;
   if (value < 0) {
@@ -35308,14 +35592,14 @@ class PDFImage {
       interpolate
     };
   }
-  static createMask({
+  static async createMask({
     imgArray,
     width,
     height,
     imageIsFromDecodeStream,
     inverseDecode,
     interpolate,
-    isOffscreenCanvasSupported = true
+    isOffscreenCanvasSupported = false
   }) {
     const isSingleOpaquePixel = width === 1 && height === 1 && inverseDecode === (imgArray.length === 0 || !!(imgArray[0] & 128));
     if (isSingleOpaquePixel) {
@@ -35323,15 +35607,34 @@ class PDFImage {
         isSingleOpaquePixel
       };
     }
-    if (isOffscreenCanvasSupported && _util.FeatureTest.isOffscreenCanvasSupported) {
+    if (isOffscreenCanvasSupported) {
+      if (_image_resizer.ImageResizer.needsToBeResized(width, height)) {
+        const data = new Uint8ClampedArray(width * height * 4);
+        (0, _image_utils.convertBlackAndWhiteToRGBA)({
+          src: imgArray,
+          dest: data,
+          width,
+          height,
+          nonBlackColor: 0,
+          inverseDecode
+        });
+        return _image_resizer.ImageResizer.createImage({
+          kind: _util.ImageKind.RGBA_32BPP,
+          data,
+          width,
+          height,
+          interpolate
+        });
+      }
       const canvas = new OffscreenCanvas(width, height);
       const ctx = canvas.getContext("2d");
       const imgData = ctx.createImageData(width, height);
-      (0, _image_utils.applyMaskImageData)({
+      (0, _image_utils.convertBlackAndWhiteToRGBA)({
         src: imgArray,
         dest: imgData.data,
         width,
         height,
+        nonBlackColor: 0,
         inverseDecode
       });
       ctx.putImageData(imgData, 0, 0);
@@ -35534,7 +35837,7 @@ class PDFImage {
       buffer[i + 2] = (buffer[i + 2] - matteB) * k + matteB;
     }
   }
-  createImageData(forceRGBA = false) {
+  async createImageData(forceRGBA = false, isOffscreenCanvasSupported = false) {
     const drawWidth = this.drawWidth;
     const drawHeight = this.drawHeight;
     const imgData = {
@@ -35549,6 +35852,7 @@ class PDFImage {
     const originalHeight = this.height;
     const bpc = this.bpc;
     const rowBytes = originalWidth * numComps * bpc + 7 >> 3;
+    const mustBeResized = isOffscreenCanvasSupported && _image_resizer.ImageResizer.needsToBeResized(drawWidth, drawHeight);
     if (!forceRGBA) {
       let kind;
       if (this.colorSpace.name === "DeviceGray" && bpc === 1) {
@@ -35557,8 +35861,21 @@ class PDFImage {
         kind = _util.ImageKind.RGB_24BPP;
       }
       if (kind && !this.smask && !this.mask && drawWidth === originalWidth && drawHeight === originalHeight) {
+        const data = this.getImageBytes(originalHeight * rowBytes, {});
+        if (isOffscreenCanvasSupported) {
+          if (mustBeResized) {
+            return _image_resizer.ImageResizer.createImage({
+              data,
+              kind,
+              width: drawWidth,
+              height: drawHeight,
+              interpolate: this.interpolate
+            }, this.needsDecode);
+          }
+          return this.createBitmap(kind, originalWidth, originalHeight, data);
+        }
         imgData.kind = kind;
-        imgData.data = this.getImageBytes(originalHeight * rowBytes, {});
+        imgData.data = data;
         if (this.needsDecode) {
           (0, _util.assert)(kind === _util.ImageKind.GRAYSCALE_1BPP, "PDFImage.createImageData: The image must be grayscale.");
           const buffer = imgData.data;
@@ -35570,18 +35887,46 @@ class PDFImage {
       }
       if (this.image instanceof _jpeg_stream.JpegStream && !this.smask && !this.mask) {
         let imageLength = originalHeight * rowBytes;
-        switch (this.colorSpace.name) {
-          case "DeviceGray":
-            imageLength *= 3;
-          case "DeviceRGB":
-          case "DeviceCMYK":
-            imgData.kind = _util.ImageKind.RGB_24BPP;
-            imgData.data = this.getImageBytes(imageLength, {
+        if (isOffscreenCanvasSupported && !mustBeResized) {
+          let isHandled = false;
+          switch (this.colorSpace.name) {
+            case "DeviceGray":
+              imageLength *= 4;
+              isHandled = true;
+              break;
+            case "DeviceRGB":
+              imageLength = imageLength / 3 * 4;
+              isHandled = true;
+              break;
+            case "DeviceCMYK":
+              isHandled = true;
+              break;
+          }
+          if (isHandled) {
+            const rgba = this.getImageBytes(imageLength, {
               drawWidth,
               drawHeight,
-              forceRGB: true
+              forceRGBA: true
             });
-            return imgData;
+            return this.createBitmap(_util.ImageKind.RGBA_32BPP, drawWidth, drawHeight, rgba);
+          }
+        } else {
+          switch (this.colorSpace.name) {
+            case "DeviceGray":
+              imageLength *= 3;
+            case "DeviceRGB":
+            case "DeviceCMYK":
+              imgData.kind = _util.ImageKind.RGB_24BPP;
+              imgData.data = this.getImageBytes(imageLength, {
+                drawWidth,
+                drawHeight,
+                forceRGB: true
+              });
+              if (mustBeResized) {
+                return _image_resizer.ImageResizer.createImage(imgData);
+              }
+              return imgData;
+          }
         }
       }
     }
@@ -35591,24 +35936,54 @@ class PDFImage {
     const actualHeight = 0 | imgArray.length / rowBytes * drawHeight / originalHeight;
     const comps = this.getComponents(imgArray);
     let alpha01, maybeUndoPreblend;
+    let canvas, ctx, canvasImgData, data;
+    if (isOffscreenCanvasSupported && !mustBeResized) {
+      canvas = new OffscreenCanvas(drawWidth, drawHeight);
+      ctx = canvas.getContext("2d");
+      canvasImgData = ctx.createImageData(drawWidth, drawHeight);
+      data = canvasImgData.data;
+    }
+    imgData.kind = _util.ImageKind.RGBA_32BPP;
     if (!forceRGBA && !this.smask && !this.mask) {
-      imgData.kind = _util.ImageKind.RGB_24BPP;
-      imgData.data = new Uint8ClampedArray(drawWidth * drawHeight * 3);
-      alpha01 = 0;
+      if (!isOffscreenCanvasSupported || mustBeResized) {
+        imgData.kind = _util.ImageKind.RGB_24BPP;
+        data = new Uint8ClampedArray(drawWidth * drawHeight * 3);
+        alpha01 = 0;
+      } else {
+        const arr = new Uint32Array(data.buffer);
+        arr.fill(_util.FeatureTest.isLittleEndian ? 0xff000000 : 0x000000ff);
+        alpha01 = 1;
+      }
       maybeUndoPreblend = false;
     } else {
-      imgData.kind = _util.ImageKind.RGBA_32BPP;
-      imgData.data = new Uint8ClampedArray(drawWidth * drawHeight * 4);
+      if (!isOffscreenCanvasSupported || mustBeResized) {
+        data = new Uint8ClampedArray(drawWidth * drawHeight * 4);
+      }
       alpha01 = 1;
       maybeUndoPreblend = true;
-      this.fillOpacity(imgData.data, drawWidth, drawHeight, actualHeight, comps);
+      this.fillOpacity(data, drawWidth, drawHeight, actualHeight, comps);
     }
     if (this.needsDecode) {
       this.decodeBuffer(comps);
     }
-    this.colorSpace.fillRgb(imgData.data, originalWidth, originalHeight, drawWidth, drawHeight, actualHeight, bpc, comps, alpha01);
+    this.colorSpace.fillRgb(data, originalWidth, originalHeight, drawWidth, drawHeight, actualHeight, bpc, comps, alpha01);
     if (maybeUndoPreblend) {
-      this.undoPreblend(imgData.data, drawWidth, actualHeight);
+      this.undoPreblend(data, drawWidth, actualHeight);
+    }
+    if (isOffscreenCanvasSupported && !mustBeResized) {
+      ctx.putImageData(canvasImgData, 0, 0);
+      const bitmap = canvas.transferToImageBitmap();
+      return {
+        data: null,
+        width: drawWidth,
+        height: drawHeight,
+        bitmap,
+        interpolate: this.interpolate
+      };
+    }
+    imgData.data = data;
+    if (mustBeResized) {
+      return _image_resizer.ImageResizer.createImage(imgData);
     }
     return imgData;
   }
@@ -35648,15 +36023,44 @@ class PDFImage {
       buffer[i] = scale * comps[i];
     }
   }
+  createBitmap(kind, width, height, src) {
+    const canvas = new OffscreenCanvas(width, height);
+    const ctx = canvas.getContext("2d");
+    let imgData;
+    if (kind === _util.ImageKind.RGBA_32BPP) {
+      imgData = new ImageData(src, width, height);
+    } else {
+      imgData = ctx.createImageData(width, height);
+      (0, _image_utils.convertToRGBA)({
+        kind,
+        src,
+        dest: new Uint32Array(imgData.data.buffer),
+        width,
+        height,
+        inverseDecode: this.needsDecode
+      });
+    }
+    ctx.putImageData(imgData, 0, 0);
+    const bitmap = canvas.transferToImageBitmap();
+    return {
+      data: null,
+      width,
+      height,
+      bitmap,
+      interpolate: this.interpolate
+    };
+  }
   getImageBytes(length, {
     drawWidth,
     drawHeight,
+    forceRGBA = false,
     forceRGB = false,
     internal = false
   }) {
     this.image.reset();
     this.image.drawWidth = drawWidth || this.width;
     this.image.drawHeight = drawHeight || this.height;
+    this.image.forceRGBA = !!forceRGBA;
     this.image.forceRGB = !!forceRGB;
     const imageBytes = this.image.getBytes(length);
     if (internal || this.image instanceof _decode_stream.DecodeStream) {
@@ -35669,59 +36073,7 @@ class PDFImage {
 exports.PDFImage = PDFImage;
 
 /***/ }),
-/* 62 */
-/***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
-
-
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-exports.applyMaskImageData = applyMaskImageData;
-var _util = __w_pdfjs_require__(2);
-function applyMaskImageData({
-  src,
-  srcPos = 0,
-  dest,
-  destPos = 0,
-  width,
-  height,
-  inverseDecode = false
-}) {
-  const opaque = _util.FeatureTest.isLittleEndian ? 0xff000000 : 0x000000ff;
-  const [zeroMapping, oneMapping] = !inverseDecode ? [opaque, 0] : [0, opaque];
-  const widthInSource = width >> 3;
-  const widthRemainder = width & 7;
-  const srcLength = src.length;
-  dest = new Uint32Array(dest.buffer);
-  for (let i = 0; i < height; i++) {
-    for (const max = srcPos + widthInSource; srcPos < max; srcPos++) {
-      const elem = srcPos < srcLength ? src[srcPos] : 255;
-      dest[destPos++] = elem & 0b10000000 ? oneMapping : zeroMapping;
-      dest[destPos++] = elem & 0b1000000 ? oneMapping : zeroMapping;
-      dest[destPos++] = elem & 0b100000 ? oneMapping : zeroMapping;
-      dest[destPos++] = elem & 0b10000 ? oneMapping : zeroMapping;
-      dest[destPos++] = elem & 0b1000 ? oneMapping : zeroMapping;
-      dest[destPos++] = elem & 0b100 ? oneMapping : zeroMapping;
-      dest[destPos++] = elem & 0b10 ? oneMapping : zeroMapping;
-      dest[destPos++] = elem & 0b1 ? oneMapping : zeroMapping;
-    }
-    if (widthRemainder === 0) {
-      continue;
-    }
-    const elem = srcPos < srcLength ? src[srcPos++] : 255;
-    for (let j = 0; j < widthRemainder; j++) {
-      dest[destPos++] = elem & 1 << 7 - j ? oneMapping : zeroMapping;
-    }
-  }
-  return {
-    srcPos,
-    destPos
-  };
-}
-
-/***/ }),
-/* 63 */
+/* 65 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -35733,11 +36085,11 @@ exports.incrementalUpdate = incrementalUpdate;
 exports.writeDict = writeDict;
 exports.writeObject = writeObject;
 var _util = __w_pdfjs_require__(2);
-var _primitives = __w_pdfjs_require__(3);
-var _core_utils = __w_pdfjs_require__(4);
-var _xml_parser = __w_pdfjs_require__(64);
+var _primitives = __w_pdfjs_require__(4);
+var _core_utils = __w_pdfjs_require__(3);
+var _xml_parser = __w_pdfjs_require__(66);
 var _base_stream = __w_pdfjs_require__(5);
-var _crypto = __w_pdfjs_require__(65);
+var _crypto = __w_pdfjs_require__(67);
 function writeObject(ref, obj, buffer, transform) {
   buffer.push(`${ref.num} ${ref.gen} obj\n`);
   if (obj instanceof _primitives.Dict) {
@@ -35756,13 +36108,13 @@ function writeDict(dict, buffer, transform) {
   buffer.push(">>");
 }
 function writeStream(stream, buffer, transform) {
-  writeDict(stream.dict, buffer, transform);
-  buffer.push(" stream\n");
   let string = stream.getString();
   if (transform !== null) {
     string = transform.encryptString(string);
   }
-  buffer.push(string, "\nendstream");
+  stream.dict.set("Length", string.length);
+  writeDict(stream.dict, buffer, transform);
+  buffer.push(" stream\n", string, "\nendstream");
 }
 function writeArray(array, buffer, transform) {
   buffer.push("[");
@@ -35849,7 +36201,11 @@ function writeXFADataForAcroform(str, newRefs) {
     if (!path) {
       continue;
     }
-    const node = xml.documentElement.searchNode((0, _core_utils.parseXFAPath)(path), 0);
+    const nodePath = (0, _core_utils.parseXFAPath)(path);
+    let node = xml.documentElement.searchNode(nodePath, 0);
+    if (!node && nodePath.length > 1) {
+      node = xml.documentElement.searchNode([nodePath.at(-1)], 0);
+    }
     if (node) {
       if (Array.isArray(value)) {
         node.childNodes = value.map(val => new _xml_parser.SimpleDOMNode("value", val));
@@ -36033,7 +36389,7 @@ function incrementalUpdate({
 }
 
 /***/ }),
-/* 64 */
+/* 66 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -36042,7 +36398,7 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.XMLParserErrorCode = exports.XMLParserBase = exports.SimpleXMLParser = exports.SimpleDOMNode = void 0;
-var _core_utils = __w_pdfjs_require__(4);
+var _core_utils = __w_pdfjs_require__(3);
 const XMLParserErrorCode = {
   NoError: 0,
   EndOfDocument: -1,
@@ -36071,7 +36427,7 @@ function isWhitespaceString(s) {
 }
 class XMLParserBase {
   _resolveEntities(s) {
-    return s.replace(/&([^;]+);/g, (all, entity) => {
+    return s.replaceAll(/&([^;]+);/g, (all, entity) => {
       if (entity.substring(0, 2) === "#x") {
         return String.fromCodePoint(parseInt(entity.substring(2), 16));
       } else if (entity.substring(0, 1) === "#") {
@@ -36461,7 +36817,7 @@ class SimpleXMLParser extends XMLParserBase {
 exports.SimpleXMLParser = SimpleXMLParser;
 
 /***/ }),
-/* 65 */
+/* 67 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -36473,8 +36829,8 @@ exports.calculateSHA256 = exports.calculateMD5 = exports.PDF20 = exports.PDF17 =
 exports.calculateSHA384 = calculateSHA384;
 exports.calculateSHA512 = void 0;
 var _util = __w_pdfjs_require__(2);
-var _primitives = __w_pdfjs_require__(3);
-var _decrypt_stream = __w_pdfjs_require__(66);
+var _primitives = __w_pdfjs_require__(4);
+var _decrypt_stream = __w_pdfjs_require__(68);
 class ARCFourCipher {
   constructor(key) {
     this.a = 0;
@@ -37368,8 +37724,8 @@ class PDF17 {
   }
 }
 exports.PDF17 = PDF17;
-const PDF20 = function PDF20Closure() {
-  function calculatePDF20Hash(password, input, userBytes) {
+class PDF20 {
+  _hash(password, input, userBytes) {
     let k = calculateSHA256(input, 0, input.length).subarray(0, 32);
     let e = [0];
     let i = 0;
@@ -37400,45 +37756,39 @@ const PDF20 = function PDF20Closure() {
     }
     return k.subarray(0, 32);
   }
-  class PDF20 {
-    hash(password, concatBytes, userBytes) {
-      return calculatePDF20Hash(password, concatBytes, userBytes);
-    }
-    checkOwnerPassword(password, ownerValidationSalt, userBytes, ownerPassword) {
-      const hashData = new Uint8Array(password.length + 56);
-      hashData.set(password, 0);
-      hashData.set(ownerValidationSalt, password.length);
-      hashData.set(userBytes, password.length + ownerValidationSalt.length);
-      const result = calculatePDF20Hash(password, hashData, userBytes);
-      return (0, _util.isArrayEqual)(result, ownerPassword);
-    }
-    checkUserPassword(password, userValidationSalt, userPassword) {
-      const hashData = new Uint8Array(password.length + 8);
-      hashData.set(password, 0);
-      hashData.set(userValidationSalt, password.length);
-      const result = calculatePDF20Hash(password, hashData, []);
-      return (0, _util.isArrayEqual)(result, userPassword);
-    }
-    getOwnerKey(password, ownerKeySalt, userBytes, ownerEncryption) {
-      const hashData = new Uint8Array(password.length + 56);
-      hashData.set(password, 0);
-      hashData.set(ownerKeySalt, password.length);
-      hashData.set(userBytes, password.length + ownerKeySalt.length);
-      const key = calculatePDF20Hash(password, hashData, userBytes);
-      const cipher = new AES256Cipher(key);
-      return cipher.decryptBlock(ownerEncryption, false, new Uint8Array(16));
-    }
-    getUserKey(password, userKeySalt, userEncryption) {
-      const hashData = new Uint8Array(password.length + 8);
-      hashData.set(password, 0);
-      hashData.set(userKeySalt, password.length);
-      const key = calculatePDF20Hash(password, hashData, []);
-      const cipher = new AES256Cipher(key);
-      return cipher.decryptBlock(userEncryption, false, new Uint8Array(16));
-    }
+  checkOwnerPassword(password, ownerValidationSalt, userBytes, ownerPassword) {
+    const hashData = new Uint8Array(password.length + 56);
+    hashData.set(password, 0);
+    hashData.set(ownerValidationSalt, password.length);
+    hashData.set(userBytes, password.length + ownerValidationSalt.length);
+    const result = this._hash(password, hashData, userBytes);
+    return (0, _util.isArrayEqual)(result, ownerPassword);
   }
-  return PDF20;
-}();
+  checkUserPassword(password, userValidationSalt, userPassword) {
+    const hashData = new Uint8Array(password.length + 8);
+    hashData.set(password, 0);
+    hashData.set(userValidationSalt, password.length);
+    const result = this._hash(password, hashData, []);
+    return (0, _util.isArrayEqual)(result, userPassword);
+  }
+  getOwnerKey(password, ownerKeySalt, userBytes, ownerEncryption) {
+    const hashData = new Uint8Array(password.length + 56);
+    hashData.set(password, 0);
+    hashData.set(ownerKeySalt, password.length);
+    hashData.set(userBytes, password.length + ownerKeySalt.length);
+    const key = this._hash(password, hashData, userBytes);
+    const cipher = new AES256Cipher(key);
+    return cipher.decryptBlock(ownerEncryption, false, new Uint8Array(16));
+  }
+  getUserKey(password, userKeySalt, userEncryption) {
+    const hashData = new Uint8Array(password.length + 8);
+    hashData.set(password, 0);
+    hashData.set(userKeySalt, password.length);
+    const key = this._hash(password, hashData, []);
+    const cipher = new AES256Cipher(key);
+    return cipher.decryptBlock(userEncryption, false, new Uint8Array(16));
+  }
+}
 exports.PDF20 = PDF20;
 class CipherTransform {
   constructor(stringCipherConstructor, streamCipherConstructor) {
@@ -37701,8 +38051,10 @@ const CipherTransformFactory = function CipherTransformFactoryClosure() {
       if (!Number.isInteger(keyLength) || keyLength < 40 || keyLength % 8 !== 0) {
         throw new _util.FormatError("invalid key length");
       }
-      const ownerPassword = (0, _util.stringToBytes)(dict.get("O")).subarray(0, 32);
-      const userPassword = (0, _util.stringToBytes)(dict.get("U")).subarray(0, 32);
+      const ownerBytes = (0, _util.stringToBytes)(dict.get("O")),
+        userBytes = (0, _util.stringToBytes)(dict.get("U"));
+      const ownerPassword = ownerBytes.subarray(0, 32);
+      const userPassword = userBytes.subarray(0, 32);
       const flags = dict.get("P");
       const revision = dict.get("R");
       const encryptMetadata = (algorithm === 4 || algorithm === 5) && dict.get("EncryptMetadata") !== false;
@@ -37714,7 +38066,7 @@ const CipherTransformFactory = function CipherTransformFactoryClosure() {
           try {
             password = (0, _util.utf8StringToString)(password);
           } catch (ex) {
-            (0, _util.warn)("CipherTransformFactory: " + "Unable to convert UTF8 encoded password.");
+            (0, _util.warn)("CipherTransformFactory: Unable to convert UTF8 encoded password.");
           }
         }
         passwordBytes = (0, _util.stringToBytes)(password);
@@ -37723,11 +38075,11 @@ const CipherTransformFactory = function CipherTransformFactoryClosure() {
       if (algorithm !== 5) {
         encryptionKey = prepareKeyData(fileIdBytes, passwordBytes, ownerPassword, userPassword, flags, revision, keyLength, encryptMetadata);
       } else {
-        const ownerValidationSalt = (0, _util.stringToBytes)(dict.get("O")).subarray(32, 40);
-        const ownerKeySalt = (0, _util.stringToBytes)(dict.get("O")).subarray(40, 48);
-        const uBytes = (0, _util.stringToBytes)(dict.get("U")).subarray(0, 48);
-        const userValidationSalt = (0, _util.stringToBytes)(dict.get("U")).subarray(32, 40);
-        const userKeySalt = (0, _util.stringToBytes)(dict.get("U")).subarray(40, 48);
+        const ownerValidationSalt = ownerBytes.subarray(32, 40);
+        const ownerKeySalt = ownerBytes.subarray(40, 48);
+        const uBytes = userBytes.subarray(0, 48);
+        const userValidationSalt = userBytes.subarray(32, 40);
+        const userKeySalt = userBytes.subarray(40, 48);
         const ownerEncryption = (0, _util.stringToBytes)(dict.get("OE"));
         const userEncryption = (0, _util.stringToBytes)(dict.get("UE"));
         const perms = (0, _util.stringToBytes)(dict.get("Perms"));
@@ -37770,7 +38122,7 @@ const CipherTransformFactory = function CipherTransformFactoryClosure() {
 exports.CipherTransformFactory = CipherTransformFactory;
 
 /***/ }),
-/* 66 */
+/* 68 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -37779,7 +38131,7 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.DecryptStream = void 0;
-var _decode_stream = __w_pdfjs_require__(17);
+var _decode_stream = __w_pdfjs_require__(18);
 const chunkSize = 512;
 class DecryptStream extends _decode_stream.DecodeStream {
   constructor(str, maybeLength, decrypt) {
@@ -37816,7 +38168,7 @@ class DecryptStream extends _decode_stream.DecodeStream {
 exports.DecryptStream = DecryptStream;
 
 /***/ }),
-/* 67 */
+/* 69 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -37825,17 +38177,17 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.Catalog = void 0;
-var _core_utils = __w_pdfjs_require__(4);
+var _core_utils = __w_pdfjs_require__(3);
 var _util = __w_pdfjs_require__(2);
-var _primitives = __w_pdfjs_require__(3);
-var _name_number_tree = __w_pdfjs_require__(68);
+var _primitives = __w_pdfjs_require__(4);
+var _name_number_tree = __w_pdfjs_require__(70);
 var _base_stream = __w_pdfjs_require__(5);
-var _cleanup_helper = __w_pdfjs_require__(69);
+var _cleanup_helper = __w_pdfjs_require__(71);
 var _colorspace = __w_pdfjs_require__(12);
-var _file_spec = __w_pdfjs_require__(70);
-var _image_utils = __w_pdfjs_require__(57);
-var _metadata_parser = __w_pdfjs_require__(71);
-var _struct_tree = __w_pdfjs_require__(72);
+var _file_spec = __w_pdfjs_require__(72);
+var _image_utils = __w_pdfjs_require__(59);
+var _metadata_parser = __w_pdfjs_require__(73);
+var _struct_tree = __w_pdfjs_require__(74);
 function fetchDestination(dest) {
   if (dest instanceof _primitives.Dict) {
     dest = dest.get("D");
@@ -38626,7 +38978,7 @@ class Catalog {
       if (javaScript === null) {
         javaScript = new Map();
       }
-      js = (0, _util.stringToPDFString)(js).replace(/\u0000/g, "");
+      js = (0, _util.stringToPDFString)(js).replaceAll("\x00", "");
       javaScript.set(name, js);
     }
     if (obj instanceof _primitives.Dict && obj.has("JavaScript")) {
@@ -39154,7 +39506,7 @@ class Catalog {
 exports.Catalog = Catalog;
 
 /***/ }),
-/* 68 */
+/* 70 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -39163,7 +39515,7 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.NumberTree = exports.NameTree = void 0;
-var _primitives = __w_pdfjs_require__(3);
+var _primitives = __w_pdfjs_require__(4);
 var _util = __w_pdfjs_require__(2);
 class NameOrNumberTree {
   constructor(root, xref, type) {
@@ -39282,7 +39634,7 @@ class NumberTree extends NameOrNumberTree {
 exports.NumberTree = NumberTree;
 
 /***/ }),
-/* 69 */
+/* 71 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -39291,15 +39643,15 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.clearGlobalCaches = clearGlobalCaches;
-var _primitives = __w_pdfjs_require__(3);
-var _unicode = __w_pdfjs_require__(38);
+var _primitives = __w_pdfjs_require__(4);
+var _unicode = __w_pdfjs_require__(40);
 function clearGlobalCaches() {
   (0, _primitives.clearPrimitiveCaches)();
   (0, _unicode.clearUnicodeCaches)();
 }
 
 /***/ }),
-/* 70 */
+/* 72 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -39310,7 +39662,7 @@ Object.defineProperty(exports, "__esModule", ({
 exports.FileSpec = void 0;
 var _util = __w_pdfjs_require__(2);
 var _base_stream = __w_pdfjs_require__(5);
-var _primitives = __w_pdfjs_require__(3);
+var _primitives = __w_pdfjs_require__(4);
 function pickPlatformItem(dict) {
   if (dict.has("UF")) {
     return dict.get("UF");
@@ -39348,7 +39700,7 @@ class FileSpec {
   get filename() {
     if (!this._filename && this.root) {
       const filename = pickPlatformItem(this.root) || "unnamed";
-      this._filename = (0, _util.stringToPDFString)(filename).replace(/\\\\/g, "\\").replace(/\\\//g, "/").replace(/\\/g, "/");
+      this._filename = (0, _util.stringToPDFString)(filename).replaceAll("\\\\", "\\").replaceAll("\\/", "/").replaceAll("\\", "/");
     }
     return this._filename;
   }
@@ -39382,7 +39734,7 @@ class FileSpec {
 exports.FileSpec = FileSpec;
 
 /***/ }),
-/* 71 */
+/* 73 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -39391,7 +39743,7 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.MetadataParser = void 0;
-var _xml_parser = __w_pdfjs_require__(64);
+var _xml_parser = __w_pdfjs_require__(66);
 class MetadataParser {
   constructor(data) {
     data = this._repair(data);
@@ -39406,10 +39758,10 @@ class MetadataParser {
     }
   }
   _repair(data) {
-    return data.replace(/^[^<]+/, "").replace(/>\\376\\377([^<]+)/g, function (all, codes) {
-      const bytes = codes.replace(/\\([0-3])([0-7])([0-7])/g, function (code, d1, d2, d3) {
+    return data.replace(/^[^<]+/, "").replaceAll(/>\\376\\377([^<]+)/g, function (all, codes) {
+      const bytes = codes.replaceAll(/\\([0-3])([0-7])([0-7])/g, function (code, d1, d2, d3) {
         return String.fromCharCode(d1 * 64 + d2 * 8 + d3 * 1);
-      }).replace(/&(amp|apos|gt|lt|quot);/g, function (str, name) {
+      }).replaceAll(/&(amp|apos|gt|lt|quot);/g, function (str, name) {
         switch (name) {
           case "amp":
             return "&";
@@ -39424,7 +39776,7 @@ class MetadataParser {
         }
         throw new Error(`_repair: ${name} isn't defined.`);
       });
-      const charBuf = [];
+      const charBuf = [">"];
       for (let i = 0, ii = bytes.length; i < ii; i += 2) {
         const code = bytes.charCodeAt(i) * 256 + bytes.charCodeAt(i + 1);
         if (code >= 32 && code < 127 && code !== 60 && code !== 62 && code !== 38) {
@@ -39433,7 +39785,7 @@ class MetadataParser {
           charBuf.push("&#x" + (0x10000 + code).toString(16).substring(1) + ";");
         }
       }
-      return ">" + charBuf.join("");
+      return charBuf.join("");
     });
   }
   _getSequence(entry) {
@@ -39490,7 +39842,7 @@ class MetadataParser {
 exports.MetadataParser = MetadataParser;
 
 /***/ }),
-/* 72 */
+/* 74 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -39499,9 +39851,9 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.StructTreeRoot = exports.StructTreePage = void 0;
-var _primitives = __w_pdfjs_require__(3);
+var _primitives = __w_pdfjs_require__(4);
 var _util = __w_pdfjs_require__(2);
-var _name_number_tree = __w_pdfjs_require__(68);
+var _name_number_tree = __w_pdfjs_require__(70);
 const MAX_DEPTH = 40;
 const StructElementType = {
   PAGE_CONTENT: "PAGE_CONTENT",
@@ -39778,7 +40130,7 @@ class StructTreePage {
 exports.StructTreePage = StructTreePage;
 
 /***/ }),
-/* 73 */
+/* 75 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -39787,9 +40139,9 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.ObjectLoader = void 0;
-var _primitives = __w_pdfjs_require__(3);
+var _primitives = __w_pdfjs_require__(4);
 var _base_stream = __w_pdfjs_require__(5);
-var _core_utils = __w_pdfjs_require__(4);
+var _core_utils = __w_pdfjs_require__(3);
 var _util = __w_pdfjs_require__(2);
 function mayHaveChildren(value) {
   return value instanceof _primitives.Ref || value instanceof _primitives.Dict || value instanceof _base_stream.BaseStream || Array.isArray(value);
@@ -39898,7 +40250,7 @@ class ObjectLoader {
 exports.ObjectLoader = ObjectLoader;
 
 /***/ }),
-/* 74 */
+/* 76 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -39907,14 +40259,14 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.XFAFactory = void 0;
-var _xfa_object = __w_pdfjs_require__(75);
-var _bind = __w_pdfjs_require__(79);
-var _data = __w_pdfjs_require__(85);
-var _fonts = __w_pdfjs_require__(83);
-var _utils = __w_pdfjs_require__(76);
+var _xfa_object = __w_pdfjs_require__(77);
+var _bind = __w_pdfjs_require__(81);
+var _data = __w_pdfjs_require__(87);
+var _fonts = __w_pdfjs_require__(85);
+var _utils = __w_pdfjs_require__(78);
 var _util = __w_pdfjs_require__(2);
-var _parser = __w_pdfjs_require__(86);
-var _xhtml = __w_pdfjs_require__(96);
+var _parser = __w_pdfjs_require__(88);
+var _xhtml = __w_pdfjs_require__(98);
 class XFAFactory {
   constructor(data) {
     try {
@@ -40049,7 +40401,7 @@ class XFAFactory {
 exports.XFAFactory = XFAFactory;
 
 /***/ }),
-/* 75 */
+/* 77 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -40058,11 +40410,11 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.XmlObject = exports.XFAObjectArray = exports.XFAObject = exports.XFAAttribute = exports.StringObject = exports.OptionObject = exports.Option10 = exports.Option01 = exports.IntegerObject = exports.ContentObject = exports.$uid = exports.$toStyle = exports.$toString = exports.$toPages = exports.$toHTML = exports.$text = exports.$tabIndex = exports.$setValue = exports.$setSetAttributes = exports.$setId = exports.$searchNode = exports.$root = exports.$resolvePrototypes = exports.$removeChild = exports.$pushPara = exports.$pushGlyphs = exports.$popPara = exports.$onText = exports.$onChildCheck = exports.$onChild = exports.$nsAttributes = exports.$nodeName = exports.$namespaceId = exports.$isUsable = exports.$isTransparent = exports.$isThereMoreWidth = exports.$isSplittable = exports.$isNsAgnostic = exports.$isDescendent = exports.$isDataValue = exports.$isCDATAXml = exports.$isBindable = exports.$insertAt = exports.$indexOf = exports.$ids = exports.$hasSettableValue = exports.$globalData = exports.$getTemplateRoot = exports.$getSubformParent = exports.$getRealChildrenByNameIt = exports.$getParent = exports.$getNextPage = exports.$getExtra = exports.$getDataValue = exports.$getContainedChildren = exports.$getChildrenByNameIt = exports.$getChildrenByName = exports.$getChildrenByClass = exports.$getChildren = exports.$getAvailableSpace = exports.$getAttributes = exports.$getAttributeIt = exports.$flushHTML = exports.$finalize = exports.$extra = exports.$dump = exports.$data = exports.$content = exports.$consumed = exports.$clone = exports.$cleanup = exports.$cleanPage = exports.$clean = exports.$childrenToHTML = exports.$appendChild = exports.$addHTML = exports.$acceptWhitespace = void 0;
-var _utils = __w_pdfjs_require__(76);
+var _utils = __w_pdfjs_require__(78);
 var _util = __w_pdfjs_require__(2);
-var _core_utils = __w_pdfjs_require__(4);
-var _namespaces = __w_pdfjs_require__(77);
-var _som = __w_pdfjs_require__(78);
+var _core_utils = __w_pdfjs_require__(3);
+var _namespaces = __w_pdfjs_require__(79);
+var _som = __w_pdfjs_require__(80);
 const $acceptWhitespace = Symbol();
 exports.$acceptWhitespace = $acceptWhitespace;
 const $addHTML = Symbol();
@@ -40494,9 +40846,9 @@ class XFAObject {
     if (usehref) {
       ref = usehref;
       if (usehref.startsWith("#som(") && usehref.endsWith(")")) {
-        somExpression = usehref.slice("#som(".length, usehref.length - 1);
+        somExpression = usehref.slice("#som(".length, -1);
       } else if (usehref.startsWith(".#som(") && usehref.endsWith(")")) {
-        somExpression = usehref.slice(".#som(".length, usehref.length - 1);
+        somExpression = usehref.slice(".#som(".length, -1);
       } else if (usehref.startsWith("#")) {
         id = usehref.slice(1);
       } else if (usehref.startsWith(".#")) {
@@ -40985,7 +41337,7 @@ class Option10 extends IntegerObject {
 exports.Option10 = Option10;
 
 /***/ }),
-/* 76 */
+/* 78 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -41015,7 +41367,7 @@ const dimConverters = {
 const measurementPattern = /([+-]?\d+\.?\d*)(.*)/;
 function stripQuotes(str) {
   if (str.startsWith("'") || str.startsWith('"')) {
-    return str.slice(1, str.length - 1);
+    return str.slice(1, -1);
   }
   return str;
 }
@@ -41204,7 +41556,7 @@ class HTMLResult {
 exports.HTMLResult = HTMLResult;
 
 /***/ }),
-/* 77 */
+/* 79 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -41280,7 +41632,7 @@ const NamespaceIds = {
 exports.NamespaceIds = NamespaceIds;
 
 /***/ }),
-/* 78 */
+/* 80 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -41290,8 +41642,8 @@ Object.defineProperty(exports, "__esModule", ({
 }));
 exports.createDataNode = createDataNode;
 exports.searchNode = searchNode;
-var _xfa_object = __w_pdfjs_require__(75);
-var _namespaces = __w_pdfjs_require__(77);
+var _xfa_object = __w_pdfjs_require__(77);
+var _namespaces = __w_pdfjs_require__(79);
 var _util = __w_pdfjs_require__(2);
 const namePattern = /^[^.[]+/;
 const indexPattern = /^[^\]]+/;
@@ -41552,7 +41904,7 @@ function createDataNode(root, container, expr) {
 }
 
 /***/ }),
-/* 79 */
+/* 81 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -41561,10 +41913,10 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.Binder = void 0;
-var _xfa_object = __w_pdfjs_require__(75);
-var _template = __w_pdfjs_require__(80);
-var _som = __w_pdfjs_require__(78);
-var _namespaces = __w_pdfjs_require__(77);
+var _xfa_object = __w_pdfjs_require__(77);
+var _template = __w_pdfjs_require__(82);
+var _som = __w_pdfjs_require__(80);
+var _namespaces = __w_pdfjs_require__(79);
 var _util = __w_pdfjs_require__(2);
 const NS_DATASETS = _namespaces.NamespaceIds.datasets.id;
 function createText(content) {
@@ -41986,7 +42338,7 @@ class Binder {
 exports.Binder = Binder;
 
 /***/ }),
-/* 80 */
+/* 82 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -41995,15 +42347,15 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.Value = exports.Text = exports.TemplateNamespace = exports.Template = exports.SetProperty = exports.Items = exports.Field = exports.BindItems = void 0;
-var _xfa_object = __w_pdfjs_require__(75);
-var _namespaces = __w_pdfjs_require__(77);
-var _layout = __w_pdfjs_require__(81);
-var _html_utils = __w_pdfjs_require__(82);
-var _utils = __w_pdfjs_require__(76);
+var _xfa_object = __w_pdfjs_require__(77);
+var _namespaces = __w_pdfjs_require__(79);
+var _layout = __w_pdfjs_require__(83);
+var _html_utils = __w_pdfjs_require__(84);
+var _utils = __w_pdfjs_require__(78);
 var _util = __w_pdfjs_require__(2);
-var _fonts = __w_pdfjs_require__(83);
-var _core_utils = __w_pdfjs_require__(4);
-var _som = __w_pdfjs_require__(78);
+var _fonts = __w_pdfjs_require__(85);
+var _core_utils = __w_pdfjs_require__(3);
+var _som = __w_pdfjs_require__(80);
 const TEMPLATE_NS_ID = _namespaces.NamespaceIds.template.id;
 const SVG_NS = "http://www.w3.org/2000/svg";
 const MAX_ATTEMPTS_FOR_LRTB_LAYOUT = 2;
@@ -46183,7 +46535,7 @@ class Text extends _xfa_object.ContentObject {
   }
   [_xfa_object.$finalize]() {
     if (typeof this[_xfa_object.$content] === "string") {
-      this[_xfa_object.$content] = this[_xfa_object.$content].replace(/\r\n/g, "\n");
+      this[_xfa_object.$content] = this[_xfa_object.$content].replaceAll("\r\n", "\n");
     }
   }
   [_xfa_object.$getExtra]() {
@@ -46885,7 +47237,7 @@ class TemplateNamespace {
 exports.TemplateNamespace = TemplateNamespace;
 
 /***/ }),
-/* 81 */
+/* 83 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -46897,8 +47249,8 @@ exports.addHTML = addHTML;
 exports.checkDimensions = checkDimensions;
 exports.flushHTML = flushHTML;
 exports.getAvailableSpace = getAvailableSpace;
-var _xfa_object = __w_pdfjs_require__(75);
-var _html_utils = __w_pdfjs_require__(82);
+var _xfa_object = __w_pdfjs_require__(77);
+var _html_utils = __w_pdfjs_require__(84);
 function createLine(node, children) {
   return {
     name: "div",
@@ -47165,7 +47517,7 @@ function checkDimensions(node, space) {
 }
 
 /***/ }),
-/* 82 */
+/* 84 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -47187,11 +47539,11 @@ exports.setFontFamily = setFontFamily;
 exports.setMinMaxDimensions = setMinMaxDimensions;
 exports.setPara = setPara;
 exports.toStyle = toStyle;
-var _xfa_object = __w_pdfjs_require__(75);
+var _xfa_object = __w_pdfjs_require__(77);
 var _util = __w_pdfjs_require__(2);
-var _utils = __w_pdfjs_require__(76);
-var _fonts = __w_pdfjs_require__(83);
-var _text = __w_pdfjs_require__(84);
+var _utils = __w_pdfjs_require__(78);
+var _fonts = __w_pdfjs_require__(85);
+var _text = __w_pdfjs_require__(86);
 function measureToString(m) {
   if (typeof m === "string") {
     return "0px";
@@ -47710,7 +48062,7 @@ function fixURL(str) {
 }
 
 /***/ }),
-/* 83 */
+/* 85 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -47721,8 +48073,8 @@ Object.defineProperty(exports, "__esModule", ({
 exports.FontFinder = void 0;
 exports.getMetrics = getMetrics;
 exports.selectFont = selectFont;
-var _xfa_object = __w_pdfjs_require__(75);
-var _utils = __w_pdfjs_require__(76);
+var _xfa_object = __w_pdfjs_require__(77);
+var _utils = __w_pdfjs_require__(78);
 var _util = __w_pdfjs_require__(2);
 class FontFinder {
   constructor(pdfFonts) {
@@ -47789,7 +48141,7 @@ class FontFinder {
       return font;
     }
     const pattern = /,|-|_| |bolditalic|bold|italic|regular|it/gi;
-    let name = fontName.replace(pattern, "");
+    let name = fontName.replaceAll(pattern, "");
     font = this.fonts.get(name);
     if (font) {
       this.cache.set(fontName, font);
@@ -47798,28 +48150,28 @@ class FontFinder {
     name = name.toLowerCase();
     const maybe = [];
     for (const [family, pdfFont] of this.fonts.entries()) {
-      if (family.replace(pattern, "").toLowerCase().startsWith(name)) {
+      if (family.replaceAll(pattern, "").toLowerCase().startsWith(name)) {
         maybe.push(pdfFont);
       }
     }
     if (maybe.length === 0) {
       for (const [, pdfFont] of this.fonts.entries()) {
-        if (pdfFont.regular.name && pdfFont.regular.name.replace(pattern, "").toLowerCase().startsWith(name)) {
+        if (pdfFont.regular.name && pdfFont.regular.name.replaceAll(pattern, "").toLowerCase().startsWith(name)) {
           maybe.push(pdfFont);
         }
       }
     }
     if (maybe.length === 0) {
-      name = name.replace(/psmt|mt/gi, "");
+      name = name.replaceAll(/psmt|mt/gi, "");
       for (const [family, pdfFont] of this.fonts.entries()) {
-        if (family.replace(pattern, "").toLowerCase().startsWith(name)) {
+        if (family.replaceAll(pattern, "").toLowerCase().startsWith(name)) {
           maybe.push(pdfFont);
         }
       }
     }
     if (maybe.length === 0) {
       for (const pdfFont of this.fonts.values()) {
-        if (pdfFont.regular.name && pdfFont.regular.name.replace(pattern, "").toLowerCase().startsWith(name)) {
+        if (pdfFont.regular.name && pdfFont.regular.name.replaceAll(pattern, "").toLowerCase().startsWith(name)) {
           maybe.push(pdfFont);
         }
       }
@@ -47875,7 +48227,7 @@ function getMetrics(xfaFont, real = false) {
 }
 
 /***/ }),
-/* 84 */
+/* 86 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -47884,7 +48236,7 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.TextMeasure = void 0;
-var _fonts = __w_pdfjs_require__(83);
+var _fonts = __w_pdfjs_require__(85);
 const WIDTH_FACTOR = 1.02;
 class FontInfo {
   constructor(xfaFont, margin, lineHeight, fontFinder) {
@@ -48095,7 +48447,7 @@ class TextMeasure {
 exports.TextMeasure = TextMeasure;
 
 /***/ }),
-/* 85 */
+/* 87 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -48104,7 +48456,7 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.DataHandler = void 0;
-var _xfa_object = __w_pdfjs_require__(75);
+var _xfa_object = __w_pdfjs_require__(77);
 class DataHandler {
   constructor(root, data) {
     this.data = data;
@@ -48154,7 +48506,7 @@ class DataHandler {
 exports.DataHandler = DataHandler;
 
 /***/ }),
-/* 86 */
+/* 88 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -48163,9 +48515,9 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.XFAParser = void 0;
-var _xfa_object = __w_pdfjs_require__(75);
-var _xml_parser = __w_pdfjs_require__(64);
-var _builder = __w_pdfjs_require__(87);
+var _xfa_object = __w_pdfjs_require__(77);
+var _xml_parser = __w_pdfjs_require__(66);
+var _builder = __w_pdfjs_require__(89);
 var _util = __w_pdfjs_require__(2);
 class XFAParser extends _xml_parser.XMLParserBase {
   constructor(rootNameSpace = null, richText = false) {
@@ -48299,7 +48651,7 @@ class XFAParser extends _xml_parser.XMLParserBase {
 exports.XFAParser = XFAParser;
 
 /***/ }),
-/* 87 */
+/* 89 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -48308,11 +48660,11 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.Builder = void 0;
-var _namespaces = __w_pdfjs_require__(77);
-var _xfa_object = __w_pdfjs_require__(75);
-var _setup = __w_pdfjs_require__(88);
-var _template = __w_pdfjs_require__(80);
-var _unknown = __w_pdfjs_require__(97);
+var _namespaces = __w_pdfjs_require__(79);
+var _xfa_object = __w_pdfjs_require__(77);
+var _setup = __w_pdfjs_require__(90);
+var _template = __w_pdfjs_require__(82);
+var _unknown = __w_pdfjs_require__(99);
 var _util = __w_pdfjs_require__(2);
 class Root extends _xfa_object.XFAObject {
   constructor(ids) {
@@ -48476,7 +48828,7 @@ class Builder {
 exports.Builder = Builder;
 
 /***/ }),
-/* 88 */
+/* 90 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -48485,15 +48837,15 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.NamespaceSetUp = void 0;
-var _config = __w_pdfjs_require__(89);
-var _connection_set = __w_pdfjs_require__(90);
-var _datasets = __w_pdfjs_require__(91);
-var _locale_set = __w_pdfjs_require__(92);
-var _signature = __w_pdfjs_require__(93);
-var _stylesheet = __w_pdfjs_require__(94);
-var _template = __w_pdfjs_require__(80);
-var _xdp = __w_pdfjs_require__(95);
-var _xhtml = __w_pdfjs_require__(96);
+var _config = __w_pdfjs_require__(91);
+var _connection_set = __w_pdfjs_require__(92);
+var _datasets = __w_pdfjs_require__(93);
+var _locale_set = __w_pdfjs_require__(94);
+var _signature = __w_pdfjs_require__(95);
+var _stylesheet = __w_pdfjs_require__(96);
+var _template = __w_pdfjs_require__(82);
+var _xdp = __w_pdfjs_require__(97);
+var _xhtml = __w_pdfjs_require__(98);
 const NamespaceSetUp = {
   config: _config.ConfigNamespace,
   connection: _connection_set.ConnectionSetNamespace,
@@ -48508,7 +48860,7 @@ const NamespaceSetUp = {
 exports.NamespaceSetUp = NamespaceSetUp;
 
 /***/ }),
-/* 89 */
+/* 91 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -48517,9 +48869,9 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.ConfigNamespace = void 0;
-var _namespaces = __w_pdfjs_require__(77);
-var _xfa_object = __w_pdfjs_require__(75);
-var _utils = __w_pdfjs_require__(76);
+var _namespaces = __w_pdfjs_require__(79);
+var _xfa_object = __w_pdfjs_require__(77);
+var _utils = __w_pdfjs_require__(78);
 var _util = __w_pdfjs_require__(2);
 const CONFIG_NS_ID = _namespaces.NamespaceIds.config.id;
 class Acrobat extends _xfa_object.XFAObject {
@@ -49944,7 +50296,7 @@ class ConfigNamespace {
 exports.ConfigNamespace = ConfigNamespace;
 
 /***/ }),
-/* 90 */
+/* 92 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -49953,8 +50305,8 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.ConnectionSetNamespace = void 0;
-var _namespaces = __w_pdfjs_require__(77);
-var _xfa_object = __w_pdfjs_require__(75);
+var _namespaces = __w_pdfjs_require__(79);
+var _xfa_object = __w_pdfjs_require__(77);
 const CONNECTION_SET_NS_ID = _namespaces.NamespaceIds.connectionSet.id;
 class ConnectionSet extends _xfa_object.XFAObject {
   constructor(attributes) {
@@ -50115,7 +50467,7 @@ class ConnectionSetNamespace {
 exports.ConnectionSetNamespace = ConnectionSetNamespace;
 
 /***/ }),
-/* 91 */
+/* 93 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -50124,8 +50476,8 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.DatasetsNamespace = void 0;
-var _xfa_object = __w_pdfjs_require__(75);
-var _namespaces = __w_pdfjs_require__(77);
+var _xfa_object = __w_pdfjs_require__(77);
+var _namespaces = __w_pdfjs_require__(79);
 const DATASETS_NS_ID = _namespaces.NamespaceIds.datasets.id;
 class Data extends _xfa_object.XmlObject {
   constructor(attributes) {
@@ -50166,7 +50518,7 @@ class DatasetsNamespace {
 exports.DatasetsNamespace = DatasetsNamespace;
 
 /***/ }),
-/* 92 */
+/* 94 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -50175,9 +50527,9 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.LocaleSetNamespace = void 0;
-var _namespaces = __w_pdfjs_require__(77);
-var _xfa_object = __w_pdfjs_require__(75);
-var _utils = __w_pdfjs_require__(76);
+var _namespaces = __w_pdfjs_require__(79);
+var _xfa_object = __w_pdfjs_require__(77);
+var _utils = __w_pdfjs_require__(78);
 const LOCALE_SET_NS_ID = _namespaces.NamespaceIds.localeSet.id;
 class CalendarSymbols extends _xfa_object.XFAObject {
   constructor(attributes) {
@@ -50424,7 +50776,7 @@ class LocaleSetNamespace {
 exports.LocaleSetNamespace = LocaleSetNamespace;
 
 /***/ }),
-/* 93 */
+/* 95 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -50433,8 +50785,8 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.SignatureNamespace = void 0;
-var _namespaces = __w_pdfjs_require__(77);
-var _xfa_object = __w_pdfjs_require__(75);
+var _namespaces = __w_pdfjs_require__(79);
+var _xfa_object = __w_pdfjs_require__(77);
 const SIGNATURE_NS_ID = _namespaces.NamespaceIds.signature.id;
 class Signature extends _xfa_object.XFAObject {
   constructor(attributes) {
@@ -50455,7 +50807,7 @@ class SignatureNamespace {
 exports.SignatureNamespace = SignatureNamespace;
 
 /***/ }),
-/* 94 */
+/* 96 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -50464,8 +50816,8 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.StylesheetNamespace = void 0;
-var _namespaces = __w_pdfjs_require__(77);
-var _xfa_object = __w_pdfjs_require__(75);
+var _namespaces = __w_pdfjs_require__(79);
+var _xfa_object = __w_pdfjs_require__(77);
 const STYLESHEET_NS_ID = _namespaces.NamespaceIds.stylesheet.id;
 class Stylesheet extends _xfa_object.XFAObject {
   constructor(attributes) {
@@ -50486,7 +50838,7 @@ class StylesheetNamespace {
 exports.StylesheetNamespace = StylesheetNamespace;
 
 /***/ }),
-/* 95 */
+/* 97 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -50495,8 +50847,8 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.XdpNamespace = void 0;
-var _namespaces = __w_pdfjs_require__(77);
-var _xfa_object = __w_pdfjs_require__(75);
+var _namespaces = __w_pdfjs_require__(79);
+var _xfa_object = __w_pdfjs_require__(77);
 const XDP_NS_ID = _namespaces.NamespaceIds.xdp.id;
 class Xdp extends _xfa_object.XFAObject {
   constructor(attributes) {
@@ -50529,7 +50881,7 @@ class XdpNamespace {
 exports.XdpNamespace = XdpNamespace;
 
 /***/ }),
-/* 96 */
+/* 98 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -50538,10 +50890,10 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.XhtmlNamespace = void 0;
-var _xfa_object = __w_pdfjs_require__(75);
-var _namespaces = __w_pdfjs_require__(77);
-var _html_utils = __w_pdfjs_require__(82);
-var _utils = __w_pdfjs_require__(76);
+var _xfa_object = __w_pdfjs_require__(77);
+var _namespaces = __w_pdfjs_require__(79);
+var _html_utils = __w_pdfjs_require__(84);
+var _utils = __w_pdfjs_require__(78);
 const XHTML_NS_ID = _namespaces.NamespaceIds.xhtml.id;
 const $richText = Symbol();
 const VALID_STYLES = new Set(["color", "font", "font-family", "font-size", "font-stretch", "font-style", "font-weight", "margin", "margin-bottom", "margin-left", "margin-right", "margin-top", "letter-spacing", "line-height", "orphans", "page-break-after", "page-break-before", "page-break-inside", "tab-interval", "tab-stop", "text-align", "text-decoration", "text-indent", "vertical-align", "widows", "kerning-mode", "xfa-font-horizontal-scale", "xfa-font-vertical-scale", "xfa-spacerun", "xfa-tab-stops"]);
@@ -50629,9 +50981,9 @@ class XhtmlObject extends _xfa_object.XmlObject {
   }
   [_xfa_object.$onText](str, richText = false) {
     if (!richText) {
-      str = str.replace(crlfRegExp, "");
+      str = str.replaceAll(crlfRegExp, "");
       if (!this.style.includes("xfa-spacerun:yes")) {
-        str = str.replace(spacesRegExp, " ");
+        str = str.replaceAll(spacesRegExp, " ");
       }
     } else {
       this[$richText] = true;
@@ -50733,7 +51085,7 @@ class XhtmlObject extends _xfa_object.XmlObject {
     }
     let value;
     if (this[$richText]) {
-      value = this[_xfa_object.$content] ? this[_xfa_object.$content].replace(crlfForRichTextRegExp, "\n") : undefined;
+      value = this[_xfa_object.$content] ? this[_xfa_object.$content].replaceAll(crlfForRichTextRegExp, "\n") : undefined;
     } else {
       value = this[_xfa_object.$content] || undefined;
     }
@@ -50945,7 +51297,7 @@ class XhtmlNamespace {
 exports.XhtmlNamespace = XhtmlNamespace;
 
 /***/ }),
-/* 97 */
+/* 99 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -50954,8 +51306,8 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.UnknownNamespace = void 0;
-var _namespaces = __w_pdfjs_require__(77);
-var _xfa_object = __w_pdfjs_require__(75);
+var _namespaces = __w_pdfjs_require__(79);
+var _xfa_object = __w_pdfjs_require__(77);
 class UnknownNamespace {
   constructor(nsId) {
     this.namespaceId = nsId;
@@ -50967,7 +51319,7 @@ class UnknownNamespace {
 exports.UnknownNamespace = UnknownNamespace;
 
 /***/ }),
-/* 98 */
+/* 100 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -50977,8 +51329,8 @@ Object.defineProperty(exports, "__esModule", ({
 }));
 exports.DatasetReader = void 0;
 var _util = __w_pdfjs_require__(2);
-var _core_utils = __w_pdfjs_require__(4);
-var _xml_parser = __w_pdfjs_require__(64);
+var _core_utils = __w_pdfjs_require__(3);
+var _xml_parser = __w_pdfjs_require__(66);
 function decodeString(str) {
   try {
     return (0, _util.stringToUTF8String)(str);
@@ -51034,7 +51386,7 @@ class DatasetReader {
 exports.DatasetReader = DatasetReader;
 
 /***/ }),
-/* 99 */
+/* 101 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -51044,17 +51396,17 @@ Object.defineProperty(exports, "__esModule", ({
 }));
 exports.XRef = void 0;
 var _util = __w_pdfjs_require__(2);
-var _primitives = __w_pdfjs_require__(3);
-var _parser = __w_pdfjs_require__(15);
-var _core_utils = __w_pdfjs_require__(4);
+var _primitives = __w_pdfjs_require__(4);
+var _parser = __w_pdfjs_require__(16);
+var _core_utils = __w_pdfjs_require__(3);
 var _base_stream = __w_pdfjs_require__(5);
-var _crypto = __w_pdfjs_require__(65);
+var _crypto = __w_pdfjs_require__(67);
 class XRef {
   constructor(stream, pdfManager) {
     this.stream = stream;
     this.pdfManager = pdfManager;
     this.entries = [];
-    this.xrefstms = Object.create(null);
+    this._xrefStms = new Set();
     this._cacheMap = new Map();
     this._pendingRefs = new _primitives.RefSet();
     this._newPersistentRefNum = null;
@@ -51423,7 +51775,7 @@ class XRef {
         const xrefTagOffset = skipUntil(content, 0, xrefBytes);
         if (xrefTagOffset < contentLength && content[xrefTagOffset + 5] < 64) {
           xrefStms.push(position - stream.start);
-          this.xrefstms[position - stream.start] = 1;
+          this._xrefStms.add(position - stream.start);
         }
         position += contentLength;
       } else if (token.startsWith("trailer") && (token.length === 7 || /\s/.test(token[7]))) {
@@ -51540,12 +51892,9 @@ class XRef {
             this.topDict = dict;
           }
           obj = dict.get("XRefStm");
-          if (Number.isInteger(obj)) {
-            const pos = obj;
-            if (!(pos in this.xrefstms)) {
-              this.xrefstms[pos] = 1;
-              this.startXRefQueue.push(pos);
-            }
+          if (Number.isInteger(obj) && !this._xrefStms.has(obj)) {
+            this._xrefStms.add(obj);
+            this.startXRefQueue.push(obj);
           }
         } else if (Number.isInteger(obj)) {
           if (!Number.isInteger(parser.getObj()) || !(0, _primitives.isCmd)(parser.getObj(), "obj") || !((obj = parser.getObj()) instanceof _base_stream.BaseStream)) {
@@ -51582,6 +51931,9 @@ class XRef {
       return undefined;
     }
     throw new _core_utils.XRefParseException();
+  }
+  get lastXRefStreamPos() {
+    return this._xrefStms.size > 0 ? Math.max(...this._xrefStms) : null;
   }
   getEntry(i) {
     const xrefEntry = this.entries[i];
@@ -51762,7 +52114,7 @@ class XRef {
 exports.XRef = XRef;
 
 /***/ }),
-/* 100 */
+/* 102 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -51775,7 +52127,7 @@ const isNodeJS = false;
 exports.isNodeJS = isNodeJS;
 
 /***/ }),
-/* 101 */
+/* 103 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -52188,7 +52540,7 @@ class MessageHandler {
 exports.MessageHandler = MessageHandler;
 
 /***/ }),
-/* 102 */
+/* 104 */
 /***/ ((__unused_webpack_module, exports, __w_pdfjs_require__) => {
 
 
@@ -52350,8 +52702,8 @@ Object.defineProperty(exports, "WorkerMessageHandler", ({
   }
 }));
 var _worker = __w_pdfjs_require__(1);
-const pdfjsVersion = '3.3.56';
-const pdfjsBuild = '1e938a688';
+const pdfjsVersion = '3.6.126';
+const pdfjsBuild = '3f89a99a5';
 })();
 
 /******/ 	return __webpack_exports__;

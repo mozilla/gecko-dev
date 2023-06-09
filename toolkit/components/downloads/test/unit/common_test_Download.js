@@ -62,10 +62,27 @@ function promiseStartDownload(aSourceUrl) {
  * @rejects JavaScript exception.
  */
 var promiseVerifyTarget = async function(downloadTarget, expectedContents) {
-  await promiseVerifyContents(downloadTarget.path, expectedContents);
   Assert.ok(downloadTarget.exists);
-  Assert.equal(downloadTarget.size, expectedContents.length);
+  Assert.equal(
+    await expectNonZeroDownloadTargetSize(downloadTarget),
+    expectedContents.length
+  );
+  await promiseVerifyContents(downloadTarget.path, expectedContents);
 };
+
+/**
+ * This is a temporary workaround for frequent intermittent Bug 1760112.
+ * For some reason the download target size is not updated, even if the code
+ * is "apparently" already executing and awaiting for refresh().
+ * TODO(Bug 1814364): Figure out a proper fix for this.
+ */
+async function expectNonZeroDownloadTargetSize(downloadTarget) {
+  todo_check_true(downloadTarget.size, "Size should not be zero.");
+  if (!downloadTarget.size) {
+    await downloadTarget.refresh();
+  }
+  return downloadTarget.size;
+}
 
 /**
  * Waits for an attempt to launch a file, and returns the nsIMIMEInfo used for
@@ -571,7 +588,10 @@ add_task(async function test_initial_final_state() {
   Assert.equal(download.progress, 100);
   Assert.ok(isValidDate(download.startTime));
   Assert.ok(download.target.exists);
-  Assert.equal(download.target.size, TEST_DATA_SHORT.length);
+  Assert.equal(
+    await expectNonZeroDownloadTargetSize(download.target),
+    TEST_DATA_SHORT.length
+  );
 });
 
 /**
@@ -1309,7 +1329,10 @@ add_task(async function test_refresh_succeeded() {
   await IOUtils.move(download.target.path, `${download.target.path}.old`);
   await download.refresh();
   Assert.ok(!download.target.exists);
-  Assert.equal(download.target.size, TEST_DATA_SHORT.length);
+  Assert.equal(
+    await expectNonZeroDownloadTargetSize(download.target),
+    TEST_DATA_SHORT.length
+  );
 
   // The DownloadTarget properties should be restored when the file is put back.
   await IOUtils.move(`${download.target.path}.old`, download.target.path);
@@ -1603,6 +1626,17 @@ add_task(async function test_error_target() {
     Assert.ok(download.error !== null);
     Assert.ok(download.error.becauseTargetFailed);
     Assert.ok(!download.error.becauseSourceFailed);
+
+    // Check unserializing a download with an errorObj and restarting it will
+    // clear the errorObj initially.
+    let serializable = download.toSerializable();
+    Assert.ok(serializable.errorObj, "Ensure we have an errorObj initially");
+    let reserialized = JSON.parse(JSON.stringify(serializable));
+    download = await Downloads.createDownload(reserialized);
+    let promise = download.start().catch(() => {});
+    serializable = download.toSerializable();
+    Assert.ok(!serializable.errorObj, "Ensure we didn't persist the errorObj");
+    await promise;
   } finally {
     // Restore the default permissions to allow deleting the file on Windows.
     if (targetFile.exists()) {
@@ -1808,7 +1842,10 @@ add_task(async function test_with_content_encoding_ignore_extension() {
 
   Assert.equal(download.progress, 100);
   Assert.equal(download.totalBytes, TEST_DATA_SHORT_GZIP_ENCODED.length);
-  Assert.equal(download.target.size, TEST_DATA_SHORT_GZIP_ENCODED.length);
+  Assert.equal(
+    await expectNonZeroDownloadTargetSize(download.target),
+    TEST_DATA_SHORT_GZIP_ENCODED.length
+  );
 
   // Ensure the content matches the encoded test data.  We convert the data to a
   // string before executing the content check.
@@ -2437,25 +2474,25 @@ add_task(async function test_history() {
   // We will wait for the visit to be notified during the download.
   await PlacesUtils.history.clear();
   let promiseVisit = promiseWaitForVisit(sourceUrl);
-  let promiseAnnotation = waitForAnnotation(
-    sourceUrl,
-    "downloads/destinationFileURI"
-  );
 
   // Start a download that is not allowed to finish yet.
   let download = await promiseStartDownload(sourceUrl);
+  let expectedFile = new FileUtils.File(download.target.path);
+  let expectedFileURI = Services.io.newFileURI(expectedFile);
+  let promiseAnnotation = waitForAnnotation(
+    sourceUrl,
+    "downloads/destinationFileURI",
+    expectedFileURI.spec
+  );
 
   // The history and annotation notifications should be received before the download completes.
   let [time, transitionType, lastKnownTitle] = await promiseVisit;
   await promiseAnnotation;
 
-  let expectedFile = new FileUtils.File(download.target.path);
-
   Assert.equal(time, download.startTime.getTime());
   Assert.equal(transitionType, Ci.nsINavHistoryService.TRANSITION_DOWNLOAD);
   Assert.equal(lastKnownTitle, expectedFile.leafName);
 
-  let expectedFileURI = Services.io.newFileURI(expectedFile);
   let pageInfo = await PlacesUtils.history.fetch(sourceUrl, {
     includeAnnotations: true,
   });

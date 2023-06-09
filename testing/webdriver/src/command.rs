@@ -7,7 +7,7 @@ use crate::capabilities::{
     BrowserCapabilities, Capabilities, CapabilitiesMatching, LegacyNewSessionParameters,
     SpecNewSessionParameters,
 };
-use crate::common::{Date, FrameId, LocatorStrategy, WebElement, MAX_SAFE_INTEGER};
+use crate::common::{Date, FrameId, LocatorStrategy, ShadowRoot, WebElement, MAX_SAFE_INTEGER};
 use crate::error::{ErrorStatus, WebDriverError, WebDriverResult};
 use crate::httpapi::{Route, VoidWebDriverExtensionRoute, WebDriverExtensionRoute};
 use crate::Parameters;
@@ -41,7 +41,11 @@ pub enum WebDriverCommand<T: WebDriverExtensionCommand> {
     FindElements(LocatorParameters),
     FindElementElement(WebElement, LocatorParameters),
     FindElementElements(WebElement, LocatorParameters),
+    FindShadowRootElement(ShadowRoot, LocatorParameters),
+    FindShadowRootElements(ShadowRoot, LocatorParameters),
     GetActiveElement,
+    GetComputedLabel(WebElement),
+    GetComputedRole(WebElement),
     GetShadowRoot(WebElement),
     IsDisplayed(WebElement),
     IsSelected(WebElement),
@@ -167,6 +171,30 @@ impl<U: WebDriverExtensionRoute> WebDriverMessage<U> {
                 let element = WebElement(element_id.as_str().into());
                 WebDriverCommand::FindElementElements(element, serde_json::from_str(raw_body)?)
             }
+            Route::FindShadowRootElement => {
+                let shadow_id = try_opt!(
+                    params.get("shadowId"),
+                    ErrorStatus::InvalidArgument,
+                    "Missing shadowId parameter"
+                );
+                let shadow_root = ShadowRoot(shadow_id.as_str().into());
+                WebDriverCommand::FindShadowRootElement(
+                    shadow_root,
+                    serde_json::from_str(raw_body)?,
+                )
+            }
+            Route::FindShadowRootElements => {
+                let shadow_id = try_opt!(
+                    params.get("shadowId"),
+                    ErrorStatus::InvalidArgument,
+                    "Missing shadowId parameter"
+                );
+                let shadow_root = ShadowRoot(shadow_id.as_str().into());
+                WebDriverCommand::FindShadowRootElements(
+                    shadow_root,
+                    serde_json::from_str(raw_body)?,
+                )
+            }
             Route::GetActiveElement => WebDriverCommand::GetActiveElement,
             Route::GetShadowRoot => {
                 let element_id = try_opt!(
@@ -176,6 +204,24 @@ impl<U: WebDriverExtensionRoute> WebDriverMessage<U> {
                 );
                 let element = WebElement(element_id.as_str().into());
                 WebDriverCommand::GetShadowRoot(element)
+            }
+            Route::GetComputedLabel => {
+                let element_id = try_opt!(
+                    params.get("elementId"),
+                    ErrorStatus::InvalidArgument,
+                    "Missing elementId parameter"
+                );
+                let element = WebElement(element_id.as_str().into());
+                WebDriverCommand::GetComputedLabel(element)
+            }
+            Route::GetComputedRole => {
+                let element_id = try_opt!(
+                    params.get("elementId"),
+                    ErrorStatus::InvalidArgument,
+                    "Missing elementId parameter"
+                );
+                let element = WebElement(element_id.as_str().into());
+                WebDriverCommand::GetComputedRole(element)
             }
             Route::IsDisplayed => {
                 let element_id = try_opt!(

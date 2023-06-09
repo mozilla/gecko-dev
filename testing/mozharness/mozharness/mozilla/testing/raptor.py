@@ -9,11 +9,14 @@ import copy
 import glob
 import multiprocessing
 import os
+import pathlib
 import re
 import subprocess
 import sys
 import tempfile
 from shutil import copyfile, rmtree
+
+from six import string_types
 
 import mozharness
 from mozharness.base.errors import PythonErrorList
@@ -33,7 +36,6 @@ from mozharness.mozilla.testing.codecoverage import (
 )
 from mozharness.mozilla.testing.errors import HarnessErrorList, TinderBoxPrintRe
 from mozharness.mozilla.testing.testbase import TestingMixin, testing_config_options
-from six import string_types
 
 scripts_path = os.path.abspath(os.path.dirname(os.path.dirname(mozharness.__file__)))
 external_tools_path = os.path.join(scripts_path, "external_tools")
@@ -193,6 +195,7 @@ class Raptor(
                         "refbrow",
                         "fenix",
                         "safari",
+                        "custom-car",
                     ],
                     "dest": "app",
                     "help": "Name of the application we are testing (default: firefox).",
@@ -796,7 +799,10 @@ class Raptor(
             )
             return
         self.info("Fetching and installing Google Chrome for Android")
+        self.device.shell_output("cmd package install-existing com.android.chrome")
+        self.info("Google Chrome for Android successfully installed")
 
+    def download_chrome_android(self):
         # Fetch the APK
         tmpdir = tempfile.mkdtemp()
         self.tooltool_fetch(
@@ -809,8 +815,6 @@ class Raptor(
             ),
             output_dir=tmpdir,
         )
-
-        # Find the downloaded APK
         files = os.listdir(tmpdir)
         if len(files) > 1:
             raise Exception(
@@ -826,20 +830,19 @@ class Raptor(
         self.device.shell_output("settings put global verifier_verify_adb_installs 1")
         rmtree(tmpdir)
 
-        self.info("Google Chrome for Android successfully installed")
-
     def install_chromium_distribution(self):
         """Install Google Chromium distribution in production"""
         linux, mac, win = "linux", "mac", "win"
-        chrome, chromium = "chrome", "chromium"
+        chrome, chromium, chromium_release = "chrome", "chromium", "custom-car"
 
-        available_chromium_dists = [chrome, chromium]
+        available_chromium_dists = [chrome, chromium, chromium_release]
         binary_location = {
             chromium: {
                 linux: ["chrome-linux", "chrome"],
                 mac: ["chrome-mac", "Chromium.app", "Contents", "MacOS", "Chromium"],
                 win: ["chrome-win", "Chrome.exe"],
             },
+            chromium_release: {linux: ["chromium", "Default", "chrome"]},
         }
 
         if self.app not in available_chromium_dists:
@@ -979,6 +982,13 @@ class Raptor(
         # Extra arguments
         if args is not None:
             options += args
+        if os.getenv("PERF_FLAGS"):
+            for option in os.getenv("PERF_FLAGS").split():
+                if "=" in option:
+                    kw_option, value = option.split("=")
+                    kw_options[kw_option] = value
+                else:
+                    options.extend(["--" + option])
 
         if self.config.get("run_local", False):
             options.extend(["--run-local"])
@@ -1227,7 +1237,17 @@ class Raptor(
         if not self.config.get("noinstall", False):
             if self.app in self.firefox_android_browsers:
                 self.device.uninstall_app(self.binary_path)
-                self.install_android_app(self.installer_path)
+
+                # Check if the user supplied their own APK, and install
+                # that instead
+                installer_path = pathlib.Path(
+                    self.raptor_path, "raptor", "user_upload.apk"
+                )
+                if not installer_path.exists():
+                    installer_path = self.installer_path
+
+                self.info(f"Installing APK from: {installer_path}")
+                self.install_android_app(str(installer_path))
             else:
                 super(Raptor, self).install()
 
@@ -1290,16 +1310,15 @@ class Raptor(
         # Run Raptor tests
         run_tests = os.path.join(self.raptor_path, "raptor", "raptor.py")
 
-        mozlog_opts = ["--log-tbpl-level=debug"]
+        # Dynamically set the log level based on the raptor config for consistency
+        # throughout the test
+        mozlog_opts = [f"--log-tbpl-level={self.config['log_level']}"]
+
         if not self.run_local and "suite" in self.config:
             fname_pattern = "%s_%%s.log" % self.config["test"]
             mozlog_opts.append(
                 "--log-errorsummary=%s"
                 % os.path.join(env["MOZ_UPLOAD_DIR"], fname_pattern % "errorsummary")
-            )
-            mozlog_opts.append(
-                "--log-raw=%s"
-                % os.path.join(env["MOZ_UPLOAD_DIR"], fname_pattern % "raw")
             )
 
         def launch_in_debug_mode(cmdline):

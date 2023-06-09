@@ -6,11 +6,11 @@ Figures out the following properties:
   - expression reference counts
 !*/
 
-use super::{CallError, ExpressionError, FunctionError, ModuleInfo, ShaderStages, ValidationFlags};
+use super::{ExpressionError, FunctionError, ModuleInfo, ShaderStages, ValidationFlags};
 use crate::span::{AddSpan as _, WithSpan};
 use crate::{
     arena::{Arena, Handle},
-    proc::{ResolveContext, ResolveError, TypeResolution},
+    proc::{ResolveContext, TypeResolution},
 };
 use std::ops;
 
@@ -308,10 +308,7 @@ impl FunctionInfo {
         handle: Handle<crate::Expression>,
         global_use: GlobalUse,
     ) -> NonUniformResult {
-        //Note: if the expression doesn't exist, this function
-        // will return `None`, but the later validation of
-        // expressions should detect this and error properly.
-        let info = self.expressions.get_mut(handle.index())?;
+        let info = &mut self.expressions[handle.index()];
         info.ref_count += 1;
         // mark the used global as read
         if let Some(global) = info.assignable_global {
@@ -335,8 +332,7 @@ impl FunctionInfo {
         handle: Handle<crate::Expression>,
         assignable_global: &mut Option<Handle<crate::GlobalVariable>>,
     ) -> NonUniformResult {
-        //Note: similarly to `add_ref_impl`, this ignores invalid expressions.
-        let info = self.expressions.get_mut(handle.index())?;
+        let info = &mut self.expressions[handle.index()];
         info.ref_count += 1;
         // propagate the assignable global up the chain, till it either hits
         // a value-type expression, or the assignment statement.
@@ -689,14 +685,8 @@ impl FunctionInfo {
                 non_uniform_result: self.add_ref(expr),
                 requirements: UniformityRequirements::empty(),
             },
-            E::CallResult(function) => {
-                let info = other_functions
-                    .get(function.index())
-                    .ok_or(ExpressionError::CallToUndeclaredFunction(function))?;
-
-                info.uniformity.clone()
-            }
-            E::AtomicResult { .. } => Uniformity {
+            E::CallResult(function) => other_functions[function.index()].uniformity.clone(),
+            E::AtomicResult { .. } | E::RayQueryProceedResult => Uniformity {
                 non_uniform_result: Some(handle),
                 requirements: UniformityRequirements::empty(),
             },
@@ -704,14 +694,16 @@ impl FunctionInfo {
                 non_uniform_result: self.add_ref_impl(expr, GlobalUse::QUERY),
                 requirements: UniformityRequirements::empty(),
             },
+            E::RayQueryGetIntersection {
+                query,
+                committed: _,
+            } => Uniformity {
+                non_uniform_result: self.add_ref(query),
+                requirements: UniformityRequirements::empty(),
+            },
         };
 
-        let ty = resolve_context.resolve(expression, |h| {
-            self.expressions
-                .get(h.index())
-                .map(|ei| &ei.ty)
-                .ok_or(ResolveError::ExpressionForwardDependency(h))
-        })?;
+        let ty = resolve_context.resolve(expression, |h| Ok(&self[h].ty))?;
         self.expressions[handle.index()] = ExpressionInfo {
             uniformity,
             ref_count: 0,
@@ -741,15 +733,12 @@ impl FunctionInfo {
         use crate::Statement as S;
 
         let mut combined_uniformity = FunctionUniformity::new();
-        for (statement, &span) in statements.span_iter() {
+        for statement in statements {
             let uniformity = match *statement {
                 S::Emit(ref range) => {
                     let mut requirements = UniformityRequirements::empty();
                     for expr in range.clone() {
-                        let req = match self.expressions.get(expr.index()) {
-                            Some(expr) => expr.uniformity.requirements,
-                            None => UniformityRequirements::empty(),
-                        };
+                        let req = self.expressions[expr.index()].uniformity.requirements;
                         #[cfg(feature = "validate")]
                         if self
                             .flags
@@ -894,13 +883,7 @@ impl FunctionInfo {
                     for &argument in arguments {
                         let _ = self.add_ref(argument);
                     }
-                    let info = other_functions.get(function.index()).ok_or(
-                        FunctionError::InvalidCall {
-                            function,
-                            error: CallError::ForwardDeclaredFunction,
-                        }
-                        .with_span_static(span, "forward call"),
-                    )?;
+                    let info = &other_functions[function.index()];
                     //Note: the result is validated by the Validator, not here
                     self.process_call(info, arguments, expression_arena)?
                 }
@@ -914,6 +897,18 @@ impl FunctionInfo {
                     let _ = self.add_ref(value);
                     if let crate::AtomicFunction::Exchange { compare: Some(cmp) } = *fun {
                         let _ = self.add_ref(cmp);
+                    }
+                    FunctionUniformity::new()
+                }
+                S::RayQuery { query, ref fun } => {
+                    let _ = self.add_ref(query);
+                    if let crate::RayQueryFunction::Initialize {
+                        acceleration_structure,
+                        descriptor,
+                    } = *fun
+                    {
+                        let _ = self.add_ref(acceleration_structure);
+                        let _ = self.add_ref(descriptor);
                     }
                     FunctionUniformity::new()
                 }
@@ -946,14 +941,8 @@ impl ModuleInfo {
             expressions: vec![ExpressionInfo::new(); fun.expressions.len()].into_boxed_slice(),
             sampling: crate::FastHashSet::default(),
         };
-        let resolve_context = ResolveContext {
-            constants: &module.constants,
-            types: &module.types,
-            global_vars: &module.global_variables,
-            local_vars: &fun.local_variables,
-            functions: &module.functions,
-            arguments: &fun.arguments,
-        };
+        let resolve_context =
+            ResolveContext::with_locals(module, &fun.local_variables, &fun.arguments);
 
         for (handle, expr) in fun.expressions.iter() {
             if let Err(source) = info.process_expression(
@@ -1039,6 +1028,7 @@ fn uniform_control_flow() {
     let derivative_expr = expressions.append(
         E::Derivative {
             axis: crate::DerivativeAxis::X,
+            ctrl: crate::DerivativeControl::None,
             expr: constant_expr,
         },
         Default::default(),
@@ -1075,6 +1065,7 @@ fn uniform_control_flow() {
     let resolve_context = ResolveContext {
         constants: &constant_arena,
         types: &type_arena,
+        special_types: &crate::SpecialTypes::default(),
         global_vars: &global_var_arena,
         local_vars: &Arena::new(),
         functions: &Arena::new(),

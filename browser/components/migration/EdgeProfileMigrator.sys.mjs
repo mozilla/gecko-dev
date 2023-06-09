@@ -10,6 +10,9 @@ import { MigrationUtils } from "resource:///modules/MigrationUtils.sys.mjs";
 import { MigratorBase } from "resource:///modules/MigratorBase.sys.mjs";
 import { MSMigrationUtils } from "resource:///modules/MSMigrationUtils.sys.mjs";
 
+const EDGE_COOKIE_PATH_OPTIONS = ["", "#!001\\", "#!002\\"];
+const EDGE_COOKIES_SUFFIX = "MicrosoftEdge\\Cookies";
+
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   ESEDBReader: "resource:///modules/ESEDBReader.sys.mjs",
@@ -89,13 +92,13 @@ function readTableFromEdgeDB(
       }
     }
   } catch (ex) {
-    Cu.reportError(
-      "Failed to extract items from table " +
-        tableName +
-        " in Edge database at " +
-        dbFile.path +
-        " due to the following error: " +
-        ex
+    console.error(
+      "Failed to extract items from table ",
+      tableName,
+      " in Edge database at ",
+      dbFile.path,
+      " due to the following error: ",
+      ex
     );
     // Deliberately make this fail so we expose failure in the UI:
     throw ex;
@@ -126,7 +129,17 @@ EdgeTypedURLMigrator.prototype = {
   migrate(aCallback) {
     let typedURLs = this._typedURLs;
     let pageInfos = [];
+    let now = new Date();
+    let maxDate = new Date(
+      Date.now() - MigrationUtils.HISTORY_MAX_AGE_IN_MILLISECONDS
+    );
+
     for (let [urlString, time] of typedURLs) {
+      let visitDate = time ? lazy.PlacesUtils.toDate(time) : now;
+      if (time && visitDate < maxDate) {
+        continue;
+      }
+
       let url;
       try {
         url = new URL(urlString);
@@ -134,7 +147,7 @@ EdgeTypedURLMigrator.prototype = {
           continue;
         }
       } catch (ex) {
-        Cu.reportError(ex);
+        console.error(ex);
         continue;
       }
 
@@ -161,13 +174,15 @@ EdgeTypedURLMigrator.prototype = {
   },
 };
 
-function EdgeTypedURLDBMigrator() {}
+function EdgeTypedURLDBMigrator(dbOverride) {
+  this.dbOverride = dbOverride;
+}
 
 EdgeTypedURLDBMigrator.prototype = {
   type: MigrationUtils.resourceTypes.HISTORY,
 
   get db() {
-    return lazy.gEdgeDatabase;
+    return this.dbOverride || lazy.gEdgeDatabase;
   },
 
   get exists() {
@@ -178,7 +193,7 @@ EdgeTypedURLDBMigrator.prototype = {
     this._migrateTypedURLsFromDB().then(
       () => callback(true),
       ex => {
-        Cu.reportError(ex);
+        console.error(ex);
         callback(false);
       }
     );
@@ -207,23 +222,21 @@ EdgeTypedURLDBMigrator.prototype = {
     }
 
     let pageInfos = [];
-    // Sometimes the values are bogus (e.g. 0 becomes some date in 1600),
-    // and places will throw *everything* away, not just the bogus ones,
-    // so deal with that by having a cutoff date. Also, there's not much
-    // point importing really old entries. The cut-off date is related to
-    // Edge's launch date.
-    const kDateCutOff = new Date("2016", 0, 1);
+
+    const kDateCutOff = new Date(
+      Date.now() - MigrationUtils.HISTORY_MAX_AGE_IN_MILLISECONDS
+    );
     for (let typedUrlInfo of typedUrls) {
       try {
-        let url = new URL(typedUrlInfo.URL);
-        if (!["http:", "https:", "ftp:"].includes(url.protocol)) {
-          continue;
-        }
-
         let date = typedUrlInfo.AccessDateTimeUTC;
         if (!date) {
           date = kDateCutOff;
         } else if (date < kDateCutOff) {
+          continue;
+        }
+
+        let url = new URL(typedUrlInfo.URL);
+        if (!["http:", "https:", "ftp:"].includes(url.protocol)) {
           continue;
         }
 
@@ -237,7 +250,7 @@ EdgeTypedURLDBMigrator.prototype = {
           ],
         });
       } catch (ex) {
-        Cu.reportError(ex);
+        console.error(ex);
       }
     }
     await MigrationUtils.insertVisitsWrapper(pageInfos);
@@ -263,7 +276,7 @@ EdgeReadingListMigrator.prototype = {
     this._migrateReadingList(lazy.PlacesUtils.bookmarks.menuGuid).then(
       () => callback(true),
       ex => {
-        Cu.reportError(ex);
+        console.error(ex);
         callback(false);
       }
     );
@@ -364,7 +377,7 @@ EdgeBookmarksMigrator.prototype = {
     this._migrateBookmarks().then(
       () => callback(true),
       ex => {
-        Cu.reportError(ex);
+        console.error(ex);
         callback(false);
       }
     );
@@ -420,7 +433,7 @@ EdgeBookmarksMigrator.prototype = {
         try {
           new URL(bookmark.URL);
         } catch (ex) {
-          Cu.reportError(
+          console.error(
             `Ignoring ${bookmark.URL} when importing from Edge because of exception: ${ex}`
           );
           continue;
@@ -464,12 +477,37 @@ EdgeBookmarksMigrator.prototype = {
   },
 };
 
+function getCookiesPaths() {
+  let folders = [];
+  let edgeDir = MSMigrationUtils.getEdgeLocalDataFolder();
+  if (edgeDir) {
+    edgeDir.append("AC");
+    for (let path of EDGE_COOKIE_PATH_OPTIONS) {
+      let folder = edgeDir.clone();
+      let fullPath = path + EDGE_COOKIES_SUFFIX;
+      folder.appendRelativePath(fullPath);
+      if (folder.exists() && folder.isReadable() && folder.isDirectory()) {
+        folders.push(fullPath);
+      }
+    }
+  }
+  return folders;
+}
+
 /**
  * Edge (EdgeHTML) profile migrator
  */
 export class EdgeProfileMigrator extends MigratorBase {
   static get key() {
     return "edge";
+  }
+
+  static get displayNameL10nID() {
+    return "migration-wizard-migrator-display-name-edge-legacy";
+  }
+
+  static get brandImage() {
+    return "chrome://browser/content/migration/brands/edge.png";
   }
 
   getBookmarksMigratorForTesting(dbOverride) {
@@ -480,10 +518,17 @@ export class EdgeProfileMigrator extends MigratorBase {
     return new EdgeReadingListMigrator(dbOverride);
   }
 
+  getHistoryDBMigratorForTesting(dbOverride) {
+    return new EdgeTypedURLDBMigrator(dbOverride);
+  }
+
+  getHistoryRegistryMigratorForTesting() {
+    return new EdgeTypedURLMigrator();
+  }
+
   getResources() {
     let resources = [
       new EdgeBookmarksMigrator(),
-      MSMigrationUtils.getCookiesMigrator(MSMigrationUtils.MIGRATION_TYPE_EDGE),
       new EdgeTypedURLMigrator(),
       new EdgeTypedURLDBMigrator(),
       new EdgeReadingListMigrator(),
@@ -507,11 +552,7 @@ export class EdgeProfileMigrator extends MigratorBase {
       "edb.log"
     );
     let dbPath = lazy.gEdgeDatabase.path;
-    let cookieMigrator = MSMigrationUtils.getCookiesMigrator(
-      MSMigrationUtils.MIGRATION_TYPE_EDGE
-    );
-    let cookiePaths = cookieMigrator._cookiesFolders.map(f => f.path);
-    let datePromises = [logFilePath, dbPath, ...cookiePaths].map(path => {
+    let datePromises = [logFilePath, dbPath, ...getCookiesPaths()].map(path => {
       return IOUtils.stat(path)
         .then(info => info.lastModified)
         .catch(() => 0);

@@ -14,6 +14,7 @@ import uuid
 import zipfile
 
 import mozinfo
+
 from mozharness.base.script import PostScriptAction, PreScriptAction
 from mozharness.mozilla.testing.per_test_base import SingleTestMixin
 
@@ -328,6 +329,13 @@ class CodeCoverageMixin(SingleTestMixin):
         if filter_covered:
             grcov_command += ["--filter", "covered"]
 
+        def skip_cannot_normalize(output_to_filter):
+            return "\n".join(
+                line
+                for line in output_to_filter.rstrip().splitlines()
+                if "cannot be normalized because" not in line
+            )
+
         # 'grcov_output' will be a tuple, the first variable is the path to the lcov output,
         # the other is the path to the standard error output.
         tmp_output_file, _ = self.get_output_from_command(
@@ -336,6 +344,7 @@ class CodeCoverageMixin(SingleTestMixin):
             save_tmpfiles=True,
             return_type="files",
             throw_exception=True,
+            output_filter=skip_cannot_normalize,
         )
         shutil.move(tmp_output_file, grcov_output_file)
 
@@ -384,8 +393,15 @@ class CodeCoverageMixin(SingleTestMixin):
             assert "JSVM_RESULTS_DIR" in env
             # In this case, parse_coverage_artifacts has removed GCOV_RESULTS_DIR and
             # JSVM_RESULTS_DIR so we need to remove GCOV_PREFIX and JS_CODE_COVERAGE_OUTPUT_DIR.
-            shutil.rmtree(self.gcov_dir)
-            shutil.rmtree(self.jsvm_dir)
+            try:
+                shutil.rmtree(self.gcov_dir)
+            except FileNotFoundError:
+                pass
+
+            try:
+                shutil.rmtree(self.jsvm_dir)
+            except FileNotFoundError:
+                pass
 
     def is_covered(self, sf):
         # For C/C++ source files, we can consider a file as being uncovered

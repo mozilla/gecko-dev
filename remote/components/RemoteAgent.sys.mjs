@@ -157,7 +157,7 @@ class RemoteAgentParentProcess {
    *
    * @param {nsIURI} uri
    *     The URI to check.
-   * @return {boolean}
+   * @returns {boolean}
    */
   #isIPAddress(uri) {
     try {
@@ -307,18 +307,17 @@ class RemoteAgentParentProcess {
       return;
     }
 
-    try {
-      // Stop the CDP support before stopping the server.
-      // Otherwise the HTTP server will fail to stop.
-      await this.#cdp?.stop();
-      await this.#webDriverBiDi?.stop();
+    // Stop each protocol before stopping the HTTP server.
+    await this.#cdp?.stop();
+    await this.#webDriverBiDi?.stop();
 
+    try {
       await this.#server.stop();
       this.#server = null;
       Services.obs.notifyObservers(null, "remote-listening");
     } catch (e) {
       // this function must never fail
-      lazy.logger.error("unable to stop listener", e);
+      lazy.logger.error("Unable to stop listener", e);
     }
   }
 
@@ -328,7 +327,7 @@ class RemoteAgentParentProcess {
    * @param {nsICommandLine} cmdLine
    *     Instance of the command line interface.
    *
-   * @return {boolean}
+   * @returns {boolean}
    *     Return `true` if the command line argument has been found.
    */
   handleRemoteDebuggingPortFlag(cmdLine) {

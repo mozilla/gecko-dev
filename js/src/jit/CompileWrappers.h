@@ -80,7 +80,9 @@ class CompileRuntime {
   const void* addressOfInterruptBits();
   const void* addressOfZone();
   const void* addressOfMegamorphicCache();
+  const void* addressOfMegamorphicSetPropCache();
   const void* addressOfStringToAtomCache();
+  const void* addressOfLastBufferedWholeCell();
 
 #ifdef DEBUG
   const void* addressOfIonBailAfterCounter();
@@ -112,15 +114,13 @@ class CompileZone {
   const void* addressOfStringNurseryCurrentEnd();
   const void* addressOfBigIntNurseryCurrentEnd();
 
-  uint32_t* addressOfNurseryAllocCount();
-
   void* addressOfNurseryAllocatedSites();
 
   bool canNurseryAllocateStrings();
   bool canNurseryAllocateBigInts();
 
-  uintptr_t nurseryCellHeader(JS::TraceKind traceKind,
-                              gc::CatchAllAllocSite siteKind);
+  gc::AllocSite* catchAllAllocSite(JS::TraceKind traceKind,
+                                   gc::CatchAllAllocSite siteKind);
 };
 
 class JitRealm;

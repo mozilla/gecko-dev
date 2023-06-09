@@ -131,7 +131,7 @@
 }
 
 #password-notification-icon[extraAttr="attention"] {
-  fill: var(--toolbar-field-icon-fill-attention);
+  fill: var(--toolbarbutton-icon-fill-attention);
   fill-opacity: 1;
 }
 
@@ -199,7 +199,7 @@
 }
 
 #identity-credential-notification-icon {
-  list-style-image: url(chrome://browser/skin/fingerprint.svg);
+  list-style-image: url(chrome://browser/skin/login.svg);
 }
 
 #permission-popup-menulist {
@@ -207,7 +207,7 @@
 }
 
 #webRTC-preview:not([hidden]) {
-  -moz-box-orient: vertical;
+  flex-direction: column;
 }
 
 #webRTC-previewVideo {
@@ -348,7 +348,7 @@
 #notification-popup-box[hidden] {
   /* Override display:none to make the pluginBlockedNotification animation work
      when showing the notification repeatedly. */
-  display: -moz-box;
+  display: flex;
   visibility: collapse;
 }
 
@@ -362,28 +362,6 @@
   }
   to {
     opacity: 1;
-  }
-}
-
-/* TRANSLATION */
-
-.translation-icon {
-  list-style-image: url(chrome://browser/skin/translation-16.png);
-  -moz-image-region: rect(0px, 16px, 16px, 0px);
-}
-
-.translation-icon.in-use {
-  -moz-image-region: rect(0px, 32px, 16px, 16px);
-}
-
-@media (-moz-platform: macos) and (min-resolution: 1.1dppx) {
-  .translation-icon {
-    list-style-image: url(chrome://browser/skin/translation-16@2x.png);
-    -moz-image-region: rect(0px, 32px, 32px, 0px);
-  }
-
-  .translation-icon.in-use {
-    -moz-image-region: rect(0px, 64px, 32px, 32px);
   }
 }
 

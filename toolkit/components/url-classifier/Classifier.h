@@ -10,13 +10,15 @@
 #include "HashStore.h"
 #include "ProtocolParser.h"
 #include "LookupCache.h"
+#include "mozilla/Atomics.h"
 #include "nsCOMPtr.h"
 #include "nsString.h"
 #include "nsIFile.h"
 
-class nsIThread;
-
 namespace mozilla {
+
+class LazyIdleThread;
+
 namespace safebrowsing {
 
 /**
@@ -239,9 +241,9 @@ class Classifier {
   bool mUpdateInterrupted;
 
   // True once CLose() has been called
-  bool mIsClosed;
+  Atomic<bool> mIsClosed;
 
-  nsCOMPtr<nsIThread> mUpdateThread;  // For async update.
+  RefPtr<LazyIdleThread> mUpdateThread;  // For async update.
 
   // Identical to mRootStoreDirectory but for update only because
   // nsIFile is not thread safe and mRootStoreDirectory needs to

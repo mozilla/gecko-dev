@@ -10,6 +10,7 @@
 #include "nsCycleCollectionParticipant.h"
 #include "mozilla/dom/AuthenticatorResponse.h"
 #include "mozilla/HoldDropJSObjects.h"
+#include "mozilla/Preferences.h"
 
 #ifdef OS_WIN
 #  include "WinWebAuthnManager.h"
@@ -33,6 +34,7 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(PublicKeyCredential,
                                                   Credential)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mResponse)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_ADDREF_INHERITED(PublicKeyCredential, Credential)
@@ -130,11 +132,15 @@ PublicKeyCredential::IsExternalCTAP2SecurityKeySupported(GlobalObject& aGlobal,
 #ifdef OS_WIN
   if (WinWebAuthnManager::AreWebAuthNApisAvailable()) {
     promise->MaybeResolve(true);
-    return promise.forget();
+  } else {
+    promise->MaybeResolve(Preferences::GetBool("security.webauthn.ctap2"));
   }
+#elif defined(MOZ_WIDGET_ANDROID)
+  promise->MaybeResolve(false);
+#else
+  promise->MaybeResolve(Preferences::GetBool("security.webauthn.ctap2"));
 #endif
 
-  promise->MaybeResolve(false);
   return promise.forget();
 }
 

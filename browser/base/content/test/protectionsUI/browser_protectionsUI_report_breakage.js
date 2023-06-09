@@ -4,10 +4,13 @@
 "use strict";
 
 const TRACKING_PAGE =
+  // eslint-disable-next-line @microsoft/sdl/no-insecure-url
   "http://tracking.example.org/browser/browser/base/content/test/protectionsUI/trackingPage.html";
 const BENIGN_PAGE =
+  // eslint-disable-next-line @microsoft/sdl/no-insecure-url
   "http://tracking.example.org/browser/browser/base/content/test/protectionsUI/benignPage.html";
 const COOKIE_PAGE =
+  // eslint-disable-next-line @microsoft/sdl/no-insecure-url
   "http://not-tracking.example.com/browser/browser/base/content/test/protectionsUI/cookiePage.html";
 
 const CM_PREF = "privacy.trackingprotection.cryptomining.enabled";
@@ -18,7 +21,9 @@ const CB_PREF = "network.cookie.cookieBehavior";
 const PREF_REPORT_BREAKAGE_URL = "browser.contentblocking.reportBreakage.url";
 
 let { HttpServer } = ChromeUtils.import("resource://testing-common/httpd.js");
-let { CommonUtils } = ChromeUtils.import("resource://services-common/utils.js");
+let { CommonUtils } = ChromeUtils.importESModule(
+  "resource://services-common/utils.sys.mjs"
+);
 let { Preferences } = ChromeUtils.importESModule(
   "resource://gre/modules/Preferences.sys.mjs"
 );

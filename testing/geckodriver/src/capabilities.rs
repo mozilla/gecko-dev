@@ -5,6 +5,8 @@
 use crate::command::LogOptions;
 use crate::logging::Level;
 use crate::marionette::MarionetteSettings;
+use base64::prelude::BASE64_STANDARD;
+use base64::Engine;
 use mozdevice::AndroidStorageInput;
 use mozprofile::preferences::Pref;
 use mozprofile::profile::Profile;
@@ -307,6 +309,7 @@ impl<'a> BrowserCapabilities for FirefoxCapabilities<'a> {
                 }
             }
             "moz:useNonSpecCompliantPointerOrigin" => {
+                warn!("You are using the deprecated vendor specific capability 'moz:useNonSpecCompliantPointerOrigin', which will be removed in Firefox 116.");
                 if !value.is_boolean() {
                     return Err(WebDriverError::new(
                         ErrorStatus::InvalidArgument,
@@ -432,10 +435,9 @@ impl FirefoxOptions {
             rv.env = FirefoxOptions::load_env(options)?;
             rv.log = FirefoxOptions::load_log(options)?;
             rv.prefs = FirefoxOptions::load_prefs(options)?;
-            if let Some(profile) = FirefoxOptions::load_profile(
-                settings.profile_root.as_deref(),
-                options,
-            )? {
+            if let Some(profile) =
+                FirefoxOptions::load_profile(settings.profile_root.as_deref(), options)?
+            {
                 rv.profile = ProfileType::Path(profile);
             }
         }
@@ -544,16 +546,6 @@ impl FirefoxOptions {
             }
         }
 
-        // Force Fission disabled until the CDP implementation is compatible,
-        // and preference hasn't been already set
-        if has_debugger_address {
-            let has_fission_pref = rv.prefs.iter().find(|&x| x.0 == "fission.autostart");
-            if has_fission_pref.is_none() {
-                rv.prefs
-                    .push(("fission.autostart".to_owned(), Pref::new(false)));
-            }
-        }
-
         Ok(rv)
     }
 
@@ -565,7 +557,7 @@ impl FirefoxOptions {
             let profile_base64 = profile_json.as_str().ok_or_else(|| {
                 WebDriverError::new(ErrorStatus::InvalidArgument, "Profile is not a string")
             })?;
-            let profile_zip = &*base64::decode(profile_base64)?;
+            let profile_zip = &*BASE64_STANDARD.decode(profile_base64)?;
 
             // Create an emtpy profile directory
             let profile = Profile::new(profile_root)?;
@@ -877,7 +869,7 @@ mod tests {
         let mut profile_data = Vec::with_capacity(1024);
         let mut profile = File::open("src/tests/profile.zip").unwrap();
         profile.read_to_end(&mut profile_data).unwrap();
-        Value::String(base64::encode(&profile_data))
+        Value::String(BASE64_STANDARD.encode(&profile_data))
     }
 
     fn make_options(
@@ -1095,11 +1087,6 @@ mod tests {
         } else {
             panic!("CLI arguments for Firefox not found");
         }
-
-        assert!(opts
-            .prefs
-            .iter()
-            .any(|pref| pref == &("fission.autostart".to_owned(), Pref::new(false))));
     }
 
     #[test]

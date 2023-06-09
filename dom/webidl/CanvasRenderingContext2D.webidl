@@ -43,18 +43,6 @@ interface CanvasRenderingContext2D {
   // associated with a canvas.
   readonly attribute HTMLCanvasElement? canvas;
 
-  // Use `CanvasRenderingContext2D.font` instead (bug 1294362).
-  [Deprecated="MozTextStyle",
-   Pref="dom.mozTextStyle.enabled",
-   SetterThrows]
-  attribute UTF8String mozTextStyle;
-
-  // image smoothing mode -- if disabled, images won't be smoothed
-  // if scaled.
-  [Deprecated="PrefixedImageSmoothingEnabled",
-   BinaryName="imageSmoothingEnabled"]
-  attribute boolean mozImageSmoothingEnabled;
-
   // Show the caret if appropriate when drawing
   [Func="CanvasUtils::HasDrawWindowPrivilege"]
   const unsigned long DRAWWINDOW_DRAW_CARET   = 0x01;
@@ -144,6 +132,7 @@ interface mixin CanvasState {
   // state
   undefined save(); // push state on state stack
   undefined restore(); // pop state stack and restore state
+  undefined reset(); // reset the rendering context to its default state
 };
 
 interface mixin CanvasTransform {
@@ -320,6 +309,9 @@ interface mixin CanvasPathMethods {
 
   [LenientFloat]
   undefined rect(double x, double y, double w, double h);
+
+  [Throws]
+  undefined roundRect(unrestricted double x, unrestricted double y, unrestricted double w, unrestricted double h, optional (unrestricted double or DOMPointInit or sequence<(unrestricted double or DOMPointInit)>) radii = 0);
 
   [Throws, LenientFloat]
   undefined arc(double x, double y, double radius, double startAngle, double endAngle, optional boolean anticlockwise = false);

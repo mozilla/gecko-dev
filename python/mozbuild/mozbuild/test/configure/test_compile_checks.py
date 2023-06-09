@@ -8,11 +8,11 @@ import unittest
 
 import mozpack.path as mozpath
 from buildconfig import topsrcdir
-from common import ConfigureTestSandbox
 from mozunit import main
 from six import StringIO
 from test_toolchain_helpers import FakeCompiler
 
+from common import ConfigureTestSandbox
 from mozbuild.util import exec_
 
 
@@ -21,18 +21,19 @@ class BaseCompileChecks(unittest.TestCase):
         expected_flags = expected_flags or []
 
         def mock_compiler(stdin, args):
-            test_file = [a for a in args if not a.startswith("-")]
-            self.assertEqual(len(test_file), 1)
-            test_file = test_file[0]
-            args = [a for a in args if a.startswith("-")]
-            self.assertIn("-c", args)
-            for flag in expected_flags:
-                self.assertIn(flag, args)
+            if args != ["--version"]:
+                test_file = [a for a in args if not a.startswith("-")]
+                self.assertEqual(len(test_file), 1)
+                test_file = test_file[0]
+                args = [a for a in args if a.startswith("-")]
+                self.assertIn("-c", args)
+                for flag in expected_flags:
+                    self.assertIn(flag, args)
 
-            if expected_test_content:
-                with open(test_file) as fh:
-                    test_content = fh.read()
-                self.assertEqual(test_content, expected_test_content)
+                if expected_test_content:
+                    with open(test_file) as fh:
+                        test_content = fh.read()
+                    self.assertEqual(test_content, expected_test_content)
 
             return FakeCompiler()(None, args)
 
@@ -56,14 +57,23 @@ class BaseCompileChecks(unittest.TestCase):
                 return []
 
             @depends(when=True)
-            def stlport_cppflags():
-                return []
-
-            @depends(when=True)
             def linker_ldflags():
                 return []
 
             target = depends(when=True)(lambda: True)
+
+            @depends(when=True)
+            def configure_cache():
+
+                class ConfigureCache(dict):
+                    pass
+
+                cache_data = {}
+
+                cache = ConfigureCache(cache_data)
+                cache.version_checked_compilers = set()
+
+                return cache
 
             include('%s/compilers-util.configure')
 

@@ -166,7 +166,7 @@ add_task(async function feature_callout_closes_on_dismiss() {
         event: "CLICK_BUTTON",
         event_context: {
           source: "dismiss_button",
-          page: document.location.href,
+          page: "about:firefoxview",
         },
         message_id: sinon.match("FEATURE_CALLOUT_2"),
       });
@@ -174,12 +174,60 @@ add_task(async function feature_callout_closes_on_dismiss() {
         event: "DISMISS",
         event_context: {
           source: "dismiss_button",
-          page: document.location.href,
+          page: "about:firefoxview",
         },
         message_id: sinon.match("FEATURE_CALLOUT_2"),
       });
     }
   );
+  sandbox.restore();
+});
+
+add_task(async function feature_callout_not_rendered_when_it_has_no_parent() {
+  Services.telemetry.clearEvents();
+  const testMessage = getCalloutMessageById(
+    "FIREFOX_VIEW_FEATURE_TOUR_1_NO_CWS"
+  );
+  testMessage.message.content.screens[0].parent_selector = "#fake-selector";
+  const sandbox = createSandboxWithCalloutTriggerStub(testMessage);
+
+  await BrowserTestUtils.withNewTab(
+    {
+      gBrowser,
+      url: "about:firefoxview",
+    },
+    async browser => {
+      const { document } = browser.contentWindow;
+
+      const CONTAINER_NOT_CREATED_EVENT = [
+        [
+          "messaging_experiments",
+          "feature_callout",
+          "create_failed",
+          `${testMessage.message.id}-${testMessage.message.content.screens[0].parent_selector}`,
+        ],
+      ];
+      await TestUtils.waitForCondition(() => {
+        let events = Services.telemetry.snapshotEvents(
+          Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
+          false
+        ).parent;
+        return events && events.length >= 2;
+      }, "Waiting for container_not_created event");
+
+      TelemetryTestUtils.assertEvents(
+        CONTAINER_NOT_CREATED_EVENT,
+        { method: "feature_callout" },
+        { clear: true, process: "parent" }
+      );
+
+      ok(
+        !document.querySelector(`${calloutSelector}:not(.hidden)`),
+        "Feature Callout screen does not render if its parent element does not exist"
+      );
+    }
+  );
+
   sandbox.restore();
 });
 
@@ -418,7 +466,7 @@ add_task(async function feature_callout_dismiss_on_page_click() {
           action: "DISMISS",
           reason: "CLICK",
           source: sinon.match(testClickSelector),
-          page: document.location.href,
+          page: "about:firefoxview",
         },
         message_id: screenId,
       });
@@ -428,7 +476,7 @@ add_task(async function feature_callout_dismiss_on_page_click() {
           source: sinon
             .match("PAGE_EVENT:")
             .and(sinon.match(testClickSelector)),
-          page: document.location.href,
+          page: "about:firefoxview",
         },
         message_id: screenId,
       });
@@ -439,7 +487,6 @@ add_task(async function feature_callout_dismiss_on_page_click() {
     }
   );
   Services.prefs.clearUserPref("browser.firefox-view.view-count");
-  Services.prefs.clearUserPref("identity.fxaccounts.enabled");
   sandbox.restore();
   ASRouter.resetMessageState();
 });
@@ -517,6 +564,47 @@ add_task(async function feature_callout_advance_tour_on_page_click() {
   await ASRouter.loadMessagesFromAllProviders(
     ASRouter.state.providers.filter(p => p.id === "onboarding")
   );
+});
+
+add_task(async function feature_callout_dismiss_on_escape() {
+  await SpecialPowers.pushPrefEnv({
+    set: [[featureTourPref, `{"message":"","screen":"","complete":true}`]],
+  });
+  const screenId = "FIREFOX_VIEW_TAB_PICKUP_REMINDER";
+  let testMessage = getCalloutMessageById(screenId);
+  const sandbox = createSandboxWithCalloutTriggerStub(testMessage);
+  const spy = new TelemetrySpy(sandbox);
+
+  await BrowserTestUtils.withNewTab(
+    {
+      gBrowser,
+      url: "about:firefoxview",
+    },
+    async browser => {
+      const { document } = browser.contentWindow;
+
+      info("Waiting for callout to render");
+      await waitForCalloutScreen(document, screenId);
+
+      info("Pressing escape");
+      // Press Escape to close
+      EventUtils.synthesizeKey("KEY_Escape", {}, browser.contentWindow);
+      await waitForCalloutRemoved(document);
+
+      // Test that appropriate telemetry is sent
+      spy.assertCalledWith({
+        event: "DISMISS",
+        event_context: {
+          source: "KEY_Escape",
+          page: "about:firefoxview",
+        },
+        message_id: screenId,
+      });
+    }
+  );
+  Services.prefs.clearUserPref("browser.firefox-view.view-count");
+  sandbox.restore();
+  ASRouter.resetMessageState();
 });
 
 add_task(async function test_firefox_view_spotlight_promo() {
@@ -653,3 +741,32 @@ add_task(
     sandbox.restore();
   }
 );
+
+add_task(async function feature_callout_does_not_display_arrow_if_hidden() {
+  const testMessage = getCalloutMessageById(
+    "FIREFOX_VIEW_FEATURE_TOUR_1_NO_CWS"
+  );
+  testMessage.message.content.screens[0].content.hide_arrow = true;
+  const sandbox = createSandboxWithCalloutTriggerStub(testMessage);
+  await BrowserTestUtils.withNewTab(
+    {
+      gBrowser,
+      url: "about:firefoxview",
+    },
+    async browser => {
+      const { document } = browser.contentWindow;
+      ok(
+        getComputedStyle(
+          document.querySelector(".callout-arrow"),
+          ":before"
+        ).getPropertyValue("display") == "none" &&
+          getComputedStyle(
+            document.querySelector(".callout-arrow"),
+            ":after"
+          ).getPropertyValue("display") == "none",
+        "callout arrow is not visible"
+      );
+    }
+  );
+  sandbox.restore();
+});

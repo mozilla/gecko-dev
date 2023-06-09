@@ -29,6 +29,7 @@ using mozilla::net::RedirectHistoryEntryInfo;
 namespace mozilla {
 
 namespace ipc {
+class PBackgroundChild;
 class PrincipalInfo;
 }  // namespace ipc
 
@@ -69,7 +70,7 @@ namespace dom {
  *                   | TYPE_STYLESHEET
  * "track"           | TYPE_INTERNAL_TRACK
  * "video"           | TYPE_INTERNAL_VIDEO
- * "worker"          | TYPE_INTERNAL_WORKER
+ * "worker"          | TYPE_INTERNAL_WORKER, TYPE_INTERNAL_WORKER_STATIC_MODULE
  * "xslt"            | TYPE_XSLT
  * ""                | Default for everything else.
  *
@@ -96,6 +97,9 @@ class InternalRequest final : public AtomicSafeRefCounted<InternalRequest> {
                   const nsAString& aIntegrity);
 
   explicit InternalRequest(const IPCInternalRequest& aIPCRequest);
+
+  void ToIPCInternalRequest(IPCInternalRequest* aIPCRequest,
+                            mozilla::ipc::PBackgroundChild* aManager);
 
   SafeRefPtr<InternalRequest> Clone();
 

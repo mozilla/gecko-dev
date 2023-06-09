@@ -16,12 +16,14 @@ DEFINES["WEBRTC_ENABLE_PROTOBUF"] = "0"
 DEFINES["WEBRTC_LIBRARY_IMPL"] = True
 DEFINES["WEBRTC_MOZILLA_BUILD"] = True
 DEFINES["WEBRTC_NON_STATIC_TRACE_EVENT_HANDLERS"] = "0"
+DEFINES["WEBRTC_STRICT_FIELD_TRIALS"] = "0"
 
 FINAL_LIBRARY = "webrtc"
 
 
 LOCAL_INCLUDES += [
     "!/ipc/ipdl/_ipdlheaders",
+    "!/third_party/libwebrtc/gen",
     "/ipc/chromium/src",
     "/media/libyuv/",
     "/media/libyuv/libyuv/include/",
@@ -39,11 +41,9 @@ UNIFIED_SOURCES += [
     "/third_party/libwebrtc/common_video/h264/pps_parser.cc",
     "/third_party/libwebrtc/common_video/h264/sps_parser.cc",
     "/third_party/libwebrtc/common_video/h264/sps_vui_rewriter.cc",
-    "/third_party/libwebrtc/common_video/incoming_video_stream.cc",
     "/third_party/libwebrtc/common_video/libyuv/webrtc_libyuv.cc",
     "/third_party/libwebrtc/common_video/video_frame_buffer.cc",
-    "/third_party/libwebrtc/common_video/video_frame_buffer_pool.cc",
-    "/third_party/libwebrtc/common_video/video_render_frames.cc"
+    "/third_party/libwebrtc/common_video/video_frame_buffer_pool.cc"
 ]
 
 if not CONFIG["MOZ_DEBUG"]:
@@ -201,6 +201,10 @@ if CONFIG["CPU_ARCH"] == "arm" and CONFIG["OS_TARGET"] == "Android":
 
 if CONFIG["CPU_ARCH"] == "x86" and CONFIG["OS_TARGET"] == "Android":
 
+    CXXFLAGS += [
+        "-msse2"
+    ]
+
     OS_LIBS += [
         "android_support"
     ]
@@ -216,6 +220,10 @@ if CONFIG["CPU_ARCH"] == "arm" and CONFIG["OS_TARGET"] == "Linux":
     DEFINES["_GNU_SOURCE"] = True
 
 if CONFIG["CPU_ARCH"] == "x86" and CONFIG["OS_TARGET"] == "Linux":
+
+    CXXFLAGS += [
+        "-msse2"
+    ]
 
     DEFINES["WEBRTC_ENABLE_AVX2"] = True
     DEFINES["_GNU_SOURCE"] = True

@@ -47,23 +47,26 @@ const { ExtensionUtils } = ChromeUtils.import(
 
 const lazy = {};
 
+ChromeUtils.defineESModuleGetters(lazy, {
+  BulkKeyBundle: "resource://services-sync/keys.sys.mjs",
+  CollectionKeyManager: "resource://services-sync/record.sys.mjs",
+  CommonUtils: "resource://services-common/utils.sys.mjs",
+  CryptoUtils: "resource://services-crypto/utils.sys.mjs",
+  FirefoxAdapter: "resource://services-common/kinto-storage-adapter.sys.mjs",
+  Observers: "resource://services-common/observers.sys.mjs",
+  Utils: "resource://services-sync/util.sys.mjs",
+});
+
 XPCOMUtils.defineLazyModuleGetters(lazy, {
   AddonManager: "resource://gre/modules/AddonManager.jsm",
-  BulkKeyBundle: "resource://services-sync/keys.js",
-  CollectionKeyManager: "resource://services-sync/record.js",
-  CommonUtils: "resource://services-common/utils.js",
-  CryptoUtils: "resource://services-crypto/utils.js",
   ExtensionCommon: "resource://gre/modules/ExtensionCommon.jsm",
   KintoHttpClient: "resource://services-common/kinto-http-client.js",
   Kinto: "resource://services-common/kinto-offline-client.js",
-  FirefoxAdapter: "resource://services-common/kinto-storage-adapter.js",
-  Observers: "resource://services-common/observers.js",
-  Utils: "resource://services-sync/util.js",
 });
 
 XPCOMUtils.defineLazyGetter(lazy, "fxAccounts", () => {
-  return ChromeUtils.import(
-    "resource://gre/modules/FxAccounts.jsm"
+  return ChromeUtils.importESModule(
+    "resource://gre/modules/FxAccounts.sys.mjs"
   ).getFxAccountsSingleton();
 });
 
@@ -80,8 +83,8 @@ XPCOMUtils.defineLazyPreferenceGetter(
   KINTO_DEFAULT_SERVER_URL
 );
 XPCOMUtils.defineLazyGetter(lazy, "WeaveCrypto", function() {
-  let { WeaveCrypto } = ChromeUtils.import(
-    "resource://services-crypto/WeaveCrypto.js"
+  let { WeaveCrypto } = ChromeUtils.importESModule(
+    "resource://services-crypto/WeaveCrypto.sys.mjs"
   );
   return new WeaveCrypto();
 });

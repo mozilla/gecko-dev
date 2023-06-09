@@ -61,12 +61,30 @@ addAccessibleTask(
       [" ", "#000000", "#ffffff", null, null, null, 16, null, null],
       ["test", "#0000ee", "#ffffff", 1, "#0000ee", null, 16, "a2", null],
     ]);
+
+    // Test different NSRange parameters for AXAttributedStringForRange
+    let worldLeaf = findAccessibleChildByID(accDoc, "a1").firstChild;
+    let wordStaticText = worldLeaf.nativeInterface.QueryInterface(
+      Ci.nsIAccessibleMacInterface
+    );
+    attributedText = wordStaticText.getParameterizedAttributeValue(
+      "AXAttributedStringForRange",
+      NSRange(4, 1)
+    );
+    is(attributedText.length, 1, "Last character is in single attribute run");
+    is(attributedText[0].string, "d", "Last character matches");
+
+    attributedText = wordStaticText.getParameterizedAttributeValue(
+      "AXAttributedStringForRange",
+      NSRange(5, 1)
+    );
+    is(attributedText.length, 0, "Range is past accessible bounds");
   }
 );
 
 // Test misspelling in text area
 addAccessibleTask(
-  `<textarea id="t">hello worlf</textarea>`,
+  `<textarea id="t">hello worlf, i love you</textarea>`,
   async (browser, accDoc) => {
     let textArea = getNativeInterface(accDoc, "t");
     let spellDone = waitForEvent(EVENT_TEXT_ATTRIBUTE_CHANGED, "t");
@@ -85,7 +103,7 @@ addAccessibleTask(
         NSRange(...range)
       );
 
-      if (attributedText.length != 2) {
+      if (attributedText.length != 3) {
         spellDone = waitForEvent(EVENT_TEXT_ATTRIBUTE_CHANGED, "t");
       } else {
         break;
@@ -95,3 +113,32 @@ addAccessibleTask(
     ok(attributedText[1].AXMarkedMisspelled);
   }
 );
+
+// Test getting a span of attributed text that includes an empty input element.
+addAccessibleTask(`hello <input id="input"> world`, async (browser, accDoc) => {
+  let macDoc = accDoc.nativeInterface.QueryInterface(
+    Ci.nsIAccessibleMacInterface
+  );
+
+  let range = macDoc.getParameterizedAttributeValue(
+    "AXTextMarkerRangeForUnorderedTextMarkers",
+    [
+      macDoc.getAttributeValue("AXStartTextMarker"),
+      macDoc.getAttributeValue("AXEndTextMarker"),
+    ]
+  );
+
+  let attributedText = macDoc.getParameterizedAttributeValue(
+    "AXAttributedStringForTextMarkerRange",
+    range
+  );
+
+  let text = macDoc.getParameterizedAttributeValue(
+    "AXStringForTextMarkerRange",
+    range
+  );
+
+  is(attributedText.length, 1, "Empty input does not break up attribute run.");
+  is(attributedText[0].string, `hello  world `, "Attributed string is correct");
+  is(text, `hello  world `, "Unattributed string is correct");
+});

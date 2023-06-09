@@ -5,6 +5,7 @@
 
 ChromeUtils.defineESModuleGetters(this, {
   ExtensionDNR: "resource://gre/modules/ExtensionDNR.sys.mjs",
+  ExtensionDNRLimits: "resource://gre/modules/ExtensionDNRLimits.sys.mjs",
   ExtensionDNRStore: "resource://gre/modules/ExtensionDNRStore.sys.mjs",
   TestUtils: "resource://testing-common/TestUtils.sys.mjs",
 });
@@ -16,6 +17,12 @@ Services.scriptloader.loadSubScript(
   Services.io.newFileURI(do_get_file("head_dnr.js")).spec,
   this
 );
+
+const server = createHttpServer({ hosts: ["example.com"] });
+server.registerPathHandler("/", (req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.write("response from server");
+});
 
 function backgroundWithDNRAPICallHandlers() {
   browser.test.onMessage.addListener(async (msg, ...args) => {
@@ -137,6 +144,8 @@ add_setup(async () => {
   Services.prefs.setBoolPref("extensions.manifestV3.enabled", true);
   Services.prefs.setBoolPref("extensions.dnr.enabled", true);
   Services.prefs.setBoolPref("extensions.dnr.feedback", true);
+
+  setupTelemetryForTests();
 
   await ExtensionTestUtils.startAddonManager();
 });
@@ -473,6 +482,9 @@ add_task(async function test_load_from_corrupted_data() {
       "DNR store data cleared from memory after the extension has been disabled"
     );
 
+    // Make sure we remove a previous corrupt file in case there is one from a previous run.
+    await IOUtils.remove(expectedCorruptFile, { ignoreAbsent: true });
+
     await asyncWriteStoreFile();
 
     await extension.addon.enable();
@@ -488,11 +500,6 @@ add_task(async function test_load_from_corrupted_data() {
     await TestUtils.waitForCondition(
       () => IOUtils.exists(`${expectedCorruptFile}`),
       `Wait for the "${expectedCorruptFile}" file to have been created`
-    );
-
-    ok(
-      !(await IOUtils.exists(storeFile)),
-      "Corrupted store file expected to be removed"
     );
   }
 
@@ -700,18 +707,96 @@ add_task(async function test_ruleset_validation() {
         },
       ],
     },
+    {
+      description: "invalid ruleset JSON - unexpected comments",
+      rule_resources: [
+        {
+          id: "invalid_ruleset_with_comments",
+          path: "invalid_ruleset_with_comments.json",
+          enabled: true,
+        },
+      ],
+      files: {
+        "invalid_ruleset_with_comments.json":
+          "/* an unexpected inline comment */\n[]",
+      },
+      expectInstallFailed: false,
+      expected: [
+        {
+          message: /Reading declarative_net_request .*invalid_ruleset_with_comments\.json: JSON.parse: unexpected character/,
+        },
+      ],
+    },
+    {
+      description: "invalid ruleset JSON - empty string",
+      rule_resources: [
+        {
+          id: "invalid_ruleset_emptystring",
+          path: "invalid_ruleset_emptystring.json",
+          enabled: true,
+        },
+      ],
+      files: {
+        "invalid_ruleset_emptystring.json": JSON.stringify(""),
+      },
+      expectInstallFailed: false,
+      expected: [
+        {
+          message: /Reading declarative_net_request .*invalid_ruleset_emptystring\.json: rules file must contain an Array/,
+        },
+      ],
+    },
+    {
+      description: "invalid ruleset JSON - object",
+      rule_resources: [
+        {
+          id: "invalid_ruleset_object",
+          path: "invalid_ruleset_object.json",
+          enabled: true,
+        },
+      ],
+      files: {
+        "invalid_ruleset_object.json": JSON.stringify({}),
+      },
+      expectInstallFailed: false,
+      expected: [
+        {
+          message: /Reading declarative_net_request .*invalid_ruleset_object\.json: rules file must contain an Array/,
+        },
+      ],
+    },
+    {
+      description: "invalid ruleset JSON - null",
+      rule_resources: [
+        {
+          id: "invalid_ruleset_null",
+          path: "invalid_ruleset_null.json",
+          enabled: true,
+        },
+      ],
+      files: {
+        "invalid_ruleset_null.json": JSON.stringify(null),
+      },
+      expectInstallFailed: false,
+      expected: [
+        {
+          message: /Reading declarative_net_request .*invalid_ruleset_null\.json: rules file must contain an Array/,
+        },
+      ],
+    },
   ];
 
   for (const {
     description,
     declarative_net_request,
     rule_resources,
+    files,
     expected,
     expectInstallFailed = true,
   } of invalidRulesetIdCases) {
     info(`Test manifest validation: ${description}`);
     let extension = ExtensionTestUtils.loadExtension(
-      getDNRExtension({ rule_resources, declarative_net_request })
+      getDNRExtension({ rule_resources, declarative_net_request, files })
     );
 
     const { messages } = await AddonTestUtils.promiseConsoleOutput(async () => {
@@ -874,7 +959,7 @@ add_task(async function test_getAvailableStaticRulesCountAndLimits() {
   Services.prefs.setBoolPref("extensions.background.idle.enabled", false);
 
   const dnrStore = ExtensionDNRStore._getStoreForTesting();
-  const { GUARANTEED_MINIMUM_STATIC_RULES } = ExtensionDNR.limits;
+  const { GUARANTEED_MINIMUM_STATIC_RULES } = ExtensionDNRLimits;
   equal(
     typeof GUARANTEED_MINIMUM_STATIC_RULES,
     "number",
@@ -951,6 +1036,25 @@ add_task(async function test_getAvailableStaticRulesCountAndLimits() {
   await extension.startup();
   await extension.awaitMessage("bgpage:ready");
 
+  async function updateEnabledRulesets({ expectedErrorMessage, ...options }) {
+    // Note: options = { disableRulesetIds, enableRulesetIds }
+    extension.sendMessage("updateEnabledRulesets", options);
+    let [result] = await extension.awaitMessage("updateEnabledRulesets:done");
+    if (expectedErrorMessage) {
+      Assert.deepEqual(
+        result,
+        { rejectedWithErrorMessage: expectedErrorMessage },
+        "updateEnabledRulesets() should reject with the given error"
+      );
+    } else {
+      Assert.deepEqual(
+        result,
+        undefined,
+        "updateEnabledRulesets() should resolve without error"
+      );
+    }
+  }
+
   const expectedEnabledRulesets = {};
   expectedEnabledRulesets.ruleset_0 = getSchemaNormalizedRules(
     extension,
@@ -969,10 +1073,10 @@ add_task(async function test_getAvailableStaticRulesCountAndLimits() {
   );
 
   // Try to enable ruleset_1 again from the API method.
-  extension.sendMessage("updateEnabledRulesets", {
+  await updateEnabledRulesets({
     enableRulesetIds: ["ruleset_1"],
+    expectedErrorMessage: `Number of rules across all enabled static rulesets exceeds GUARANTEED_MINIMUM_STATIC_RULES if ruleset "ruleset_1" were to be enabled.`,
   });
-  await extension.awaitMessage("updateEnabledRulesets:done");
 
   info(
     "Expect ruleset_1 to not be enabled because still exceeded the static rules count limit"
@@ -986,11 +1090,10 @@ add_task(async function test_getAvailableStaticRulesCountAndLimits() {
     "Got the available static rule count on ruleset_0 still the only one enabled"
   );
 
-  extension.sendMessage("updateEnabledRulesets", {
+  await updateEnabledRulesets({
     disableRulesetIds: ["ruleset_0"],
     enableRulesetIds: ["ruleset_1"],
   });
-  await extension.awaitMessage("updateEnabledRulesets:done");
 
   info("Expect ruleset_1 to be enabled along with disabling ruleset_0");
   await assertDNRGetEnabledRulesets(extension, ["ruleset_1"]);
@@ -1015,10 +1118,10 @@ add_task(async function test_getAvailableStaticRulesCountAndLimits() {
   info(
     "Expect ruleset_disabled to stay disabled because along with ruleset_1 exceeeds the limits"
   );
-  extension.sendMessage("updateEnabledRulesets", {
+  await updateEnabledRulesets({
     enableRulesetIds: ["ruleset_disabled"],
+    expectedErrorMessage: `Number of rules across all enabled static rulesets exceeds GUARANTEED_MINIMUM_STATIC_RULES if ruleset "ruleset_disabled" were to be enabled.`,
   });
-  await extension.awaitMessage("updateEnabledRulesets:done");
   await assertDNRGetEnabledRulesets(extension, ["ruleset_1"]);
   await assertDNRStoreData(dnrStore, extension, expectedEnabledRulesets, {
     // Assert total amount of expected rules and only the first and last rule
@@ -1033,10 +1136,9 @@ add_task(async function test_getAvailableStaticRulesCountAndLimits() {
   );
 
   info("Expect ruleset_empty to be enabled despite having reached the limit");
-  extension.sendMessage("updateEnabledRulesets", {
+  await updateEnabledRulesets({
     enableRulesetIds: ["ruleset_empty"],
   });
-  await extension.awaitMessage("updateEnabledRulesets:done");
   await assertDNRGetEnabledRulesets(extension, ["ruleset_1", "ruleset_empty"]);
   await assertDNRStoreData(
     dnrStore,
@@ -1057,11 +1159,10 @@ add_task(async function test_getAvailableStaticRulesCountAndLimits() {
   );
 
   info("Expect invalid rules to not be counted towards the limits");
-  extension.sendMessage("updateEnabledRulesets", {
+  await updateEnabledRulesets({
     disableRulesetIds: ["ruleset_1", "ruleset_empty"],
     enableRulesetIds: ["ruleset_withInvalid"],
   });
-  await extension.awaitMessage("updateEnabledRulesets:done");
   await assertDNRGetEnabledRulesets(extension, ["ruleset_withInvalid"]);
   await assertDNRStoreData(dnrStore, extension, {
     // Only the valid rule has been actually loaded, and the invalid one
@@ -1092,7 +1193,7 @@ add_task(async function test_static_rulesets_limits() {
   const {
     MAX_NUMBER_OF_STATIC_RULESETS,
     MAX_NUMBER_OF_ENABLED_STATIC_RULESETS,
-  } = ExtensionDNR.limits;
+  } = ExtensionDNRLimits;
 
   equal(
     typeof MAX_NUMBER_OF_STATIC_RULESETS,
@@ -1224,7 +1325,14 @@ add_task(async function test_static_rulesets_limits() {
   // Ensure all changes were stored and reloaded from disk store and the
   // DNR store update queue can accept new updates.
   info("Verify static rules load and updates after extension is restarted");
+
+  // NOTE: promiseRestartManager will not be enough to make sure the
+  // DNR store data for the test extension is going to be loaded from
+  // the DNR startup cache file.
+  // See test_ext_dnr_startup_cache.js for a test case that more completely
+  // simulates ExtensionDNRStore initialization on browser restart.
   await AddonTestUtils.promiseRestartManager();
+
   await extension.awaitStartup();
   await extension.awaitMessage("bgpage:ready");
   await assertDNRGetEnabledRulesets(
@@ -1317,6 +1425,410 @@ add_task(async function test_tabId_conditions_invalid_in_static_rules() {
       ruleset2_with_excludeTabId_condition[1],
     ]),
   });
+
+  await extension.unload();
+});
+
+add_task(async function test_dnr_all_rules_disabled_allowed() {
+  const ruleset1 = [
+    getDNRRule({ id: 3, condition: { urlFilter: "valid-ruleset1-rule" } }),
+  ];
+
+  const rule_resources = [
+    {
+      id: "ruleset1",
+      enabled: true,
+      path: "ruleset1.json",
+    },
+  ];
+
+  const files = {
+    "ruleset1.json": JSON.stringify(ruleset1),
+  };
+
+  const extension = ExtensionTestUtils.loadExtension(
+    getDNRExtension({
+      id: "all-static-rulesets-disabled-allowed@mochitest",
+      rule_resources,
+      files,
+    })
+  );
+
+  await extension.startup();
+  await extension.awaitMessage("bgpage:ready");
+
+  await assertDNRGetEnabledRulesets(extension, ["ruleset1"]);
+
+  const dnrStore = ExtensionDNRStore._getStoreForTesting();
+  await assertDNRStoreData(dnrStore, extension, {
+    ruleset1: getSchemaNormalizedRules(extension, ruleset1),
+  });
+
+  info("Disable static ruleset1");
+  extension.sendMessage("updateEnabledRulesets", {
+    disableRulesetIds: ["ruleset1"],
+  });
+  await extension.awaitMessage("updateEnabledRulesets:done");
+  await assertDNRGetEnabledRulesets(extension, []);
+  await assertDNRStoreData(dnrStore, extension, {});
+
+  info("Verify that static ruleset1 is still disable after browser restart");
+
+  // NOTE: promiseRestartManager will not be enough to make sure the
+  // DNR store data for the test extension is going to be loaded from
+  // the DNR startup cache file.
+  // See test_ext_dnr_startup_cache.js for a test case that more completely
+  // simulates ExtensionDNRStore initialization on browser restart.
+  await AddonTestUtils.promiseRestartManager();
+
+  await extension.awaitStartup;
+  await ExtensionDNR.ensureInitialized(extension.extension);
+  await extension.awaitMessage("bgpage:ready");
+
+  await assertDNRGetEnabledRulesets(extension, []);
+  await assertDNRStoreData(dnrStore, extension, {});
+
+  await extension.unload();
+});
+
+add_task(async function test_static_rules_telemetry() {
+  resetTelemetryData();
+
+  const ruleset1 = [
+    getDNRRule({
+      id: 1,
+      action: { type: "block" },
+      condition: {
+        resourceTypes: ["xmlhttprequest"],
+        requestDomains: ["example.com"],
+      },
+    }),
+  ];
+  const ruleset2 = [
+    getDNRRule({
+      id: 1,
+      action: { type: "block" },
+      condition: {
+        resourceTypes: ["xmlhttprequest"],
+        requestDomains: ["example.org"],
+      },
+    }),
+    getDNRRule({
+      id: 2,
+      action: { type: "block" },
+      condition: {
+        resourceTypes: ["xmlhttprequest"],
+        requestDomains: ["example2.org"],
+      },
+    }),
+  ];
+
+  const rule_resources = [
+    {
+      id: "ruleset1",
+      enabled: false,
+      path: "ruleset1.json",
+    },
+    {
+      id: "ruleset2",
+      enabled: false,
+      path: "ruleset2.json",
+    },
+  ];
+
+  const files = {
+    "ruleset1.json": JSON.stringify(ruleset1),
+    "ruleset2.json": JSON.stringify(ruleset2),
+  };
+
+  const extension = ExtensionTestUtils.loadExtension(
+    getDNRExtension({
+      id: "tabId-invalid-in-session-rules@mochitest",
+      rule_resources,
+      files,
+    })
+  );
+
+  assertDNRTelemetryMetricsNoSamples(
+    [
+      {
+        metric: "validateRulesTime",
+        mirroredName: "WEBEXT_DNR_VALIDATE_RULES_MS",
+        mirroredType: "histogram",
+      },
+      {
+        metric: "evaluateRulesTime",
+        mirroredName: "WEBEXT_DNR_EVALUATE_RULES_MS",
+        mirroredType: "histogram",
+      },
+    ],
+    "before test extension have been loaded"
+  );
+
+  await extension.startup();
+  await extension.awaitMessage("bgpage:ready");
+
+  await assertDNRGetEnabledRulesets(extension, []);
+
+  assertDNRTelemetryMetricsNoSamples(
+    [
+      {
+        metric: "validateRulesTime",
+        mirroredName: "WEBEXT_DNR_VALIDATE_RULES_MS",
+        mirroredType: "histogram",
+      },
+    ],
+    "after test extension loaded with all static rulesets disabled"
+  );
+
+  info("Enable static ruleset1");
+  extension.sendMessage("updateEnabledRulesets", {
+    enableRulesetIds: ["ruleset1"],
+  });
+  await extension.awaitMessage("updateEnabledRulesets:done");
+
+  await assertDNRGetEnabledRulesets(extension, ["ruleset1"]);
+
+  // Expect one sample after enabling ruleset1.
+  let expectedValidateRulesTimeSamples = 1;
+  assertDNRTelemetryMetricsSamplesCount(
+    [
+      {
+        metric: "validateRulesTime",
+        mirroredName: "WEBEXT_DNR_VALIDATE_RULES_MS",
+        mirroredType: "histogram",
+        expectedSamplesCount: expectedValidateRulesTimeSamples,
+      },
+    ],
+    "after enabling static rulesets1"
+  );
+
+  info("Enable static ruleset2");
+  extension.sendMessage("updateEnabledRulesets", {
+    enableRulesetIds: ["ruleset2"],
+  });
+  await extension.awaitMessage("updateEnabledRulesets:done");
+
+  await assertDNRGetEnabledRulesets(extension, ["ruleset1", "ruleset2"]);
+
+  // Expect one new sample after enabling ruleset2.
+  expectedValidateRulesTimeSamples += 1;
+  assertDNRTelemetryMetricsSamplesCount(
+    [
+      {
+        metric: "validateRulesTime",
+        mirroredName: "WEBEXT_DNR_VALIDATE_RULES_MS",
+        mirroredType: "histogram",
+        expectedSamplesCount: expectedValidateRulesTimeSamples,
+      },
+    ],
+    "after enabling static rulesets2"
+  );
+
+  await extension.addon.disable();
+
+  assertDNRTelemetryMetricsSamplesCount(
+    [
+      {
+        metric: "validateRulesTime",
+        mirroredName: "WEBEXT_DNR_VALIDATE_RULES_MS",
+        mirroredType: "histogram",
+        expectedSamplesCount: expectedValidateRulesTimeSamples,
+      },
+    ],
+    "no new samples expected after disabling test extension"
+  );
+
+  await extension.addon.enable();
+  await extension.awaitMessage("bgpage:ready");
+  await ExtensionDNR.ensureInitialized(extension.extension);
+
+  // Expect 2 new samples after re-enabling the addon with
+  // the 2 rulesets enabled being loaded from the DNR store file.
+  expectedValidateRulesTimeSamples += 2;
+  assertDNRTelemetryMetricsSamplesCount(
+    [
+      {
+        metric: "validateRulesTime",
+        mirroredName: "WEBEXT_DNR_VALIDATE_RULES_MS",
+        mirroredType: "histogram",
+        expectedSamplesCount: expectedValidateRulesTimeSamples,
+      },
+    ],
+    "after re-enabling test extension"
+  );
+
+  info("Disable static ruleset1");
+
+  extension.sendMessage("updateEnabledRulesets", {
+    disableRulesetIds: ["ruleset1"],
+  });
+  await extension.awaitMessage("updateEnabledRulesets:done");
+
+  await assertDNRGetEnabledRulesets(extension, ["ruleset2"]);
+
+  assertDNRTelemetryMetricsSamplesCount(
+    [
+      {
+        metric: "validateRulesTime",
+        mirroredName: "WEBEXT_DNR_VALIDATE_RULES_MS",
+        mirroredType: "histogram",
+        expectedSamplesCount: expectedValidateRulesTimeSamples,
+      },
+    ],
+    "no new validation should be hit after disabling ruleset1"
+  );
+
+  info("Verify telemetry recorded on rules evaluation");
+  extension.sendMessage("updateEnabledRulesets", {
+    enableRulesetIds: ["ruleset1"],
+    disableRulesetIds: ["ruleset2"],
+  });
+  await extension.awaitMessage("updateEnabledRulesets:done");
+  await assertDNRGetEnabledRulesets(extension, ["ruleset1"]);
+
+  assertDNRTelemetryMetricsNoSamples(
+    [
+      {
+        metric: "evaluateRulesTime",
+        mirroredName: "WEBEXT_DNR_EVALUATE_RULES_MS",
+        mirroredType: "histogram",
+      },
+      {
+        metric: "evaluateRulesCountMax",
+        mirroredName: "extensions.apis.dnr.evaluate_rules_count_max",
+        mirroredType: "scalar",
+      },
+    ],
+    "before any request have been intercepted"
+  );
+
+  Assert.equal(
+    await fetch("http://example.com/").then(res => res.text()),
+    "response from server",
+    "DNR should not block system requests"
+  );
+
+  assertDNRTelemetryMetricsNoSamples(
+    [
+      {
+        metric: "evaluateRulesTime",
+        mirroredName: "WEBEXT_DNR_EVALUATE_RULES_MS",
+        mirroredType: "histogram",
+      },
+      {
+        metric: "evaluateRulesCountMax",
+        mirroredName: "extensions.apis.dnr.evaluate_rules_count_max",
+        mirroredType: "scalar",
+      },
+    ],
+    "after restricted request have been intercepted (but no rules evaluated)"
+  );
+
+  const page = await ExtensionTestUtils.loadContentPage("http://example.com");
+  const callPageFetch = async () => {
+    Assert.equal(
+      await page.spawn([], () => {
+        return this.content.fetch("http://example.com/").then(
+          res => res.text(),
+          err => err.message
+        );
+      }),
+      "NetworkError when attempting to fetch resource.",
+      "DNR should have blocked test request to example.com"
+    );
+  };
+
+  // Expect one sample recorded on evaluating rules for the
+  // top level navigation.
+  let expectedEvaluateRulesTimeSamples = 1;
+  assertDNRTelemetryMetricsSamplesCount(
+    [
+      {
+        metric: "evaluateRulesTime",
+        mirroredName: "WEBEXT_DNR_EVALUATE_RULES_MS",
+        mirroredType: "histogram",
+        expectedSamplesCount: expectedEvaluateRulesTimeSamples,
+      },
+    ],
+    "evaluateRulesTime should be collected after evaluated rulesets"
+  );
+  // Expect same number of rules included in the single ruleset
+  // currently enabled.
+  let expectedEvaluateRulesCountMax = ruleset1.length;
+  assertDNRTelemetryMetricsGetValueEq(
+    [
+      {
+        metric: "evaluateRulesCountMax",
+        mirroredName: "extensions.apis.dnr.evaluate_rules_count_max",
+        mirroredType: "scalar",
+        expectedGetValue: expectedEvaluateRulesCountMax,
+      },
+    ],
+    "evaluateRulesCountMax should be collected after evaluated rulesets1"
+  );
+
+  await callPageFetch();
+
+  // Expect one new sample reported on evaluating rules for the
+  // first fetch request originated from the test page.
+  expectedEvaluateRulesTimeSamples += 1;
+  assertDNRTelemetryMetricsSamplesCount(
+    [
+      {
+        metric: "evaluateRulesTime",
+        mirroredName: "WEBEXT_DNR_EVALUATE_RULES_MS",
+        mirroredType: "histogram",
+        expectedSamplesCount: expectedEvaluateRulesTimeSamples,
+      },
+    ],
+    "evaluateRulesTime should be collected after evaluated rulesets"
+  );
+
+  extension.sendMessage("updateEnabledRulesets", {
+    enableRulesetIds: ["ruleset2"],
+  });
+  await extension.awaitMessage("updateEnabledRulesets:done");
+  await assertDNRGetEnabledRulesets(extension, ["ruleset1", "ruleset2"]);
+
+  await callPageFetch();
+
+  // Expect 3 rules with both rulesets enabled
+  // (1 from ruleset1 and 2 more from ruleset2).
+  expectedEvaluateRulesCountMax += ruleset2.length;
+  assertDNRTelemetryMetricsGetValueEq(
+    [
+      {
+        metric: "evaluateRulesCountMax",
+        mirroredName: "extensions.apis.dnr.evaluate_rules_count_max",
+        mirroredType: "scalar",
+        expectedGetValue: expectedEvaluateRulesCountMax,
+      },
+    ],
+    "evaluateRulesCountMax should have been increased after enabling ruleset2"
+  );
+
+  extension.sendMessage("updateEnabledRulesets", {
+    disableRulesetIds: ["ruleset2"],
+  });
+  await extension.awaitMessage("updateEnabledRulesets:done");
+  await assertDNRGetEnabledRulesets(extension, ["ruleset1"]);
+
+  await callPageFetch();
+
+  assertDNRTelemetryMetricsGetValueEq(
+    [
+      {
+        metric: "evaluateRulesCountMax",
+        mirroredName: "extensions.apis.dnr.evaluate_rules_count_max",
+        mirroredType: "scalar",
+        expectedGetValue: expectedEvaluateRulesCountMax,
+      },
+    ],
+    "evaluateRulesCountMax should have not been decreased after disabling ruleset2"
+  );
+
+  await page.close();
 
   await extension.unload();
 });

@@ -16,7 +16,7 @@ const {
 const getStorageTypeURL = require("resource://devtools/client/storage/utils/doc-utils.js");
 
 // GUID to be used as a separator in compound keys. This must match the same
-// constant in devtools/server/actors/storage.js,
+// constant in devtools/server/actors/resources/storage/index.js,
 // devtools/client/storage/test/head.js and
 // devtools/server/tests/browser/head.js
 const SEPARATOR_GUID = "{9d414cc5-8319-0a04-0586-c0a6ae01670a}";
@@ -315,17 +315,22 @@ class StorageUI {
     this._onResourceListAvailable = this._onResourceListAvailable.bind(this);
 
     const { resourceCommand } = this._toolbox;
+
+    this._listenedResourceTypes = [
+      // The first item in this list will be the first selected storage item
+      // Tests assume Cookie -- moving cookie will break tests
+      resourceCommand.TYPES.COOKIE,
+      resourceCommand.TYPES.CACHE_STORAGE,
+      resourceCommand.TYPES.INDEXED_DB,
+      resourceCommand.TYPES.LOCAL_STORAGE,
+      resourceCommand.TYPES.SESSION_STORAGE,
+    ];
+    // EXTENSION_STORAGE is only relevant when debugging web extensions
+    if (this._commands.descriptorFront.isWebExtensionDescriptor) {
+      this._listenedResourceTypes.push(resourceCommand.TYPES.EXTENSION_STORAGE);
+    }
     await this._toolbox.resourceCommand.watchResources(
-      [
-        // The first item in this list will be the first selected storage item
-        // Tests assume Cookie -- moving cookie will break tests
-        resourceCommand.TYPES.COOKIE,
-        resourceCommand.TYPES.CACHE_STORAGE,
-        resourceCommand.TYPES.EXTENSION_STORAGE,
-        resourceCommand.TYPES.INDEXED_DB,
-        resourceCommand.TYPES.LOCAL_STORAGE,
-        resourceCommand.TYPES.SESSION_STORAGE,
-      ],
+      this._listenedResourceTypes,
       {
         onAvailable: this._onResourceListAvailable,
       }
@@ -356,16 +361,6 @@ class StorageUI {
     );
 
     this._l10nStrings = new Map(ids.map((id, i) => [id, results[i]]));
-  }
-
-  async _onTargetAvailable({ targetFront }) {
-    // Only support top level target and navigation to new processes.
-    // i.e. ignore additional targets created for remote <iframes>
-    if (!targetFront.isTopLevel) {
-      return;
-    }
-
-    this.front = await targetFront.getFront("storage");
   }
 
   async _onResourceListAvailable(resources) {
@@ -407,6 +402,10 @@ class StorageUI {
     }
   }
 
+  // We only need to listen to target destruction, but TargetCommand.watchTarget
+  // requires a target available function...
+  async _onTargetAvailable({ targetFront }) {}
+
   _onTargetDestroyed({ targetFront }) {
     // Remove all storages related to this target
     for (const type in this.storageResources) {
@@ -443,19 +442,9 @@ class StorageUI {
     this._destroyed = true;
 
     const { resourceCommand } = this._toolbox;
-    resourceCommand.unwatchResources(
-      [
-        resourceCommand.TYPES.COOKIE,
-        resourceCommand.TYPES.CACHE_STORAGE,
-        resourceCommand.TYPES.EXTENSION_STORAGE,
-        resourceCommand.TYPES.INDEXED_DB,
-        resourceCommand.TYPES.LOCAL_STORAGE,
-        resourceCommand.TYPES.SESSION_STORAGE,
-      ],
-      {
-        onAvailable: this._onResourceListAvailable,
-      }
-    );
+    resourceCommand.unwatchResources(this._listenedResourceTypes, {
+      onAvailable: this._onResourceListAvailable,
+    });
 
     this.table.off(TableWidget.EVENTS.ROW_SELECTED, this.updateObjectSidebar);
     this.table.off(TableWidget.EVENTS.SCROLL_END, this.loadMoreItems);

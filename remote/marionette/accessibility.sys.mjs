@@ -9,6 +9,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   Log: "chrome://remote/content/shared/Log.sys.mjs",
+  waitForObserverTopic: "chrome://remote/content/marionette/sync.sys.mjs",
 });
 
 XPCOMUtils.defineLazyGetter(lazy, "logger", () =>
@@ -92,6 +93,58 @@ accessibility.get = function(strict = false) {
 };
 
 /**
+ * Wait for the document accessibility state to be different from STATE_BUSY.
+ *
+ * @param {Document} doc
+ *     The document to wait for.
+ * @returns {Promise}
+ *     A promise which resolves when the document's accessibility state is no
+ *     longer busy.
+ */
+function waitForDocumentAccessibility(doc) {
+  const documentAccessible = accessibility.service.getAccessibleFor(doc);
+  const state = {};
+  documentAccessible.getState(state, {});
+  if ((state.value & Ci.nsIAccessibleStates.STATE_BUSY) == 0) {
+    return Promise.resolve();
+  }
+
+  // Accessibility for the doc is busy, so wait for the state to change.
+  return lazy.waitForObserverTopic("accessible-event", {
+    checkFn: subject => {
+      // If event type does not match expected type, skip the event.
+      // If event's accessible does not match expected accessible,
+      // skip the event.
+      const event = subject.QueryInterface(Ci.nsIAccessibleEvent);
+      return (
+        event.eventType === Ci.nsIAccessibleEvent.EVENT_STATE_CHANGE &&
+        event.accessible === documentAccessible
+      );
+    },
+  });
+}
+
+/**
+ * Retrieve the Accessible for the provided element.
+ *
+ * @param {Element} element
+ *     The element for which we need to retrieve the accessible.
+ *
+ * @returns {nsIAccessible|null}
+ *     The Accessible object corresponding to the provided element or null if
+ *     the accessibility service is not available.
+ */
+accessibility.getAccessible = async function(element) {
+  if (!accessibility.service) {
+    return null;
+  }
+
+  // First, wait for accessibility to be ready for the element's document.
+  await waitForDocumentAccessibility(element.ownerDocument);
+  return accessibility.service.getAccessibleFor(element);
+};
+
+/**
  * Component responsible for interacting with platform accessibility
  * API.
  *
@@ -109,7 +162,10 @@ accessibility.Checks = class {
   }
 
   /**
-   * Get an accessible object for an element.
+   * Assert that the element has a corresponding accessible object, and retrieve
+   * this accessible. Note that if the accessibility.Checks component was
+   * created in non-strict mode, this helper will not attempt to resolve the
+   * accessible at all and will simply return null.
    *
    * @param {DOMElement|XULElement} element
    *     Element to get the accessible object for.
@@ -117,68 +173,20 @@ accessibility.Checks = class {
    *     Flag indicating that the element must have an accessible object.
    *     Defaults to not require this.
    *
-   * @return {Promise.<nsIAccessible>}
+   * @returns {Promise.<nsIAccessible>}
    *     Promise with an accessibility object for the given element.
    */
-  getAccessible(element, mustHaveAccessible = false) {
+  async assertAccessible(element, mustHaveAccessible = false) {
     if (!this.strict) {
-      return Promise.resolve();
+      return null;
     }
 
-    return new Promise((resolve, reject) => {
-      if (!accessibility.service) {
-        reject();
-        return;
-      }
+    const accessible = await accessibility.getAccessible(element);
+    if (!accessible && mustHaveAccessible) {
+      this.error("Element does not have an accessible object", element);
+    }
 
-      // First, check if accessibility is ready.
-      let docAcc = accessibility.service.getAccessibleFor(
-        element.ownerDocument
-      );
-      let state = {};
-      docAcc.getState(state, {});
-      if ((state.value & Ci.nsIAccessibleStates.STATE_BUSY) == 0) {
-        // Accessibility is ready, resolve immediately.
-        let acc = accessibility.service.getAccessibleFor(element);
-        if (mustHaveAccessible && !acc) {
-          reject();
-        } else {
-          resolve(acc);
-        }
-        return;
-      }
-      // Accessibility for the doc is busy, so wait for the state to change.
-      let eventObserver = {
-        observe(subject, topic) {
-          if (topic !== "accessible-event") {
-            return;
-          }
-
-          // If event type does not match expected type, skip the event.
-          let event = subject.QueryInterface(Ci.nsIAccessibleEvent);
-          if (event.eventType !== Ci.nsIAccessibleEvent.EVENT_STATE_CHANGE) {
-            return;
-          }
-
-          // If event's accessible does not match expected accessible,
-          // skip the event.
-          if (event.accessible !== docAcc) {
-            return;
-          }
-
-          Services.obs.removeObserver(this, "accessible-event");
-          let acc = accessibility.service.getAccessibleFor(element);
-          if (mustHaveAccessible && !acc) {
-            reject();
-          } else {
-            resolve(acc);
-          }
-        },
-      };
-      Services.obs.addObserver(eventObserver, "accessible-event");
-    }).catch(() =>
-      this.error("Element does not have an accessible object", element)
-    );
+    return accessible;
   }
 
   /**
@@ -188,7 +196,7 @@ accessibility.Checks = class {
    * @param {nsIAccessible} accessible
    *     Accessible object.
    *
-   * @return {boolean}
+   * @returns {boolean}
    *     True if an actionable role is found on the accessible, false
    *     otherwise.
    */
@@ -204,7 +212,7 @@ accessibility.Checks = class {
    * @param {nsIAccessible} accessible
    *     Accessible object.
    *
-   * @return {boolean}
+   * @returns {boolean}
    *     True if the accessible has at least one supported action,
    *     false otherwise.
    */
@@ -218,7 +226,7 @@ accessibility.Checks = class {
    * @param {nsIAccessible} accessible
    *     Accessible object.
    *
-   * @return {boolean}
+   * @returns {boolean}
    *     True if the accessible has a non-empty valid name, or false if
    *     this is not the case.
    */
@@ -232,7 +240,7 @@ accessibility.Checks = class {
    * @param {nsIAccessible} accessible
    *     Accessible object.
    *
-   * @return {boolean}
+   * @returns {boolean}
    *     True if the accessible object has a {@code hidden} attribute,
    *     false otherwise.
    */
@@ -254,7 +262,7 @@ accessibility.Checks = class {
    * @param {number} stateToMatch
    *     State to match.
    *
-   * @return {boolean}
+   * @returns {boolean}
    *     True if |accessible| has |stateToMatch|, false otherwise.
    */
   matchState(accessible, stateToMatch) {
@@ -269,7 +277,7 @@ accessibility.Checks = class {
    * @param {nsIAccessible} accessible
    *     Accessible object.
    *
-   * @return {boolean}
+   * @returns {boolean}
    *     True if element is hidden from user, false otherwise.
    */
   isHidden(accessible) {
@@ -397,7 +405,7 @@ accessibility.Checks = class {
    *
    * @param {nsIAccessible} accessible
    *     Accessible object.
-   * @param {DOMElement|XULElement}
+   * @param {DOMElement|XULElement} element
    *     Element associated with |accessible|.
    * @param {boolean} selected
    *     The |element|s selected state.

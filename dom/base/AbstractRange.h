@@ -8,6 +8,7 @@
 #define mozilla_dom_AbstractRange_h
 
 #include <cstdint>
+#include <ostream>
 #include "ErrorList.h"
 #include "js/RootingAPI.h"
 #include "mozilla/Assertions.h"
@@ -21,15 +22,16 @@
 class JSObject;
 class nsIContent;
 class nsINode;
+class nsRange;
 struct JSContext;
 
 namespace mozilla::dom {
-
+class StaticRange;
 class Document;
 
 class AbstractRange : public nsISupports, public nsWrapperCache {
  protected:
-  explicit AbstractRange(nsINode* aNode);
+  explicit AbstractRange(nsINode* aNode, bool aIsDynamicRange);
   virtual ~AbstractRange();
 
  public:
@@ -70,6 +72,10 @@ class AbstractRange : public nsISupports, public nsWrapperCache {
   nsINode* GetStartContainer() const { return mStart.Container(); }
   nsINode* GetEndContainer() const { return mEnd.Container(); }
 
+  Document* GetComposedDocOfContainers() const {
+    return mStart.Container() ? mStart.Container()->GetComposedDoc() : nullptr;
+  }
+
   // FYI: Returns 0 if it's not positioned.
   uint32_t StartOffset() const {
     return static_cast<uint32_t>(
@@ -93,6 +99,12 @@ class AbstractRange : public nsISupports, public nsWrapperCache {
   bool HasEqualBoundaries(const AbstractRange& aOther) const {
     return (mStart == aOther.mStart) && (mEnd == aOther.mEnd);
   }
+  bool IsDynamicRange() const { return mIsDynamicRange; }
+  bool IsStaticRange() const { return !mIsDynamicRange; }
+  inline nsRange* AsDynamicRange();
+  inline const nsRange* AsDynamicRange() const;
+  inline StaticRange* AsStaticRange();
+  inline const StaticRange* AsStaticRange() const;
 
  protected:
   template <typename SPT, typename SRT, typename EPT, typename ERT,
@@ -105,6 +117,21 @@ class AbstractRange : public nsISupports, public nsWrapperCache {
   static bool MaybeCacheToReuse(RangeType& aInstance);
 
   void Init(nsINode* aNode);
+
+  friend std::ostream& operator<<(std::ostream& aStream,
+                                  const AbstractRange& aRange) {
+    if (aRange.Collapsed()) {
+      aStream << "{ mStart=mEnd=" << aRange.mStart;
+    } else {
+      aStream << "{ mStart=" << aRange.mStart << ", mEnd=" << aRange.mEnd;
+    }
+    return aStream << ", mIsGenerated="
+                   << (aRange.mIsGenerated ? "true" : "false")
+                   << ", mCalledByJS="
+                   << (aRange.mIsPositioned ? "true" : "false")
+                   << ", mIsDynamicRange="
+                   << (aRange.mIsDynamicRange ? "true" : "false") << " }";
+  }
 
  private:
   void ClearForReuse();
@@ -121,6 +148,9 @@ class AbstractRange : public nsISupports, public nsWrapperCache {
   bool mIsGenerated;
   // Used by nsRange, but this should have this for minimizing the size.
   bool mCalledByJS;
+
+  // true if this is an `nsRange` object.
+  const bool mIsDynamicRange;
 
   static bool sHasShutDown;
 };

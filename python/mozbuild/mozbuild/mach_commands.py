@@ -9,6 +9,7 @@ import json
 import logging
 import operator
 import os
+import os.path
 import platform
 import re
 import shutil
@@ -16,9 +17,11 @@ import subprocess
 import sys
 import tempfile
 import time
+from os import path
 from pathlib import Path
 
 import mozpack.path as mozpath
+import yaml
 from mach.decorators import (
     Command,
     CommandArgument,
@@ -26,11 +29,15 @@ from mach.decorators import (
     SettingsProvider,
     SubCommand,
 )
+from voluptuous import All, Boolean, Required, Schema
 
 import mozbuild.settings  # noqa need @SettingsProvider hook to execute
-from mozbuild.base import BinaryNotFoundException, BuildEnvironmentNotFoundException
+from mozbuild.base import (
+    BinaryNotFoundException,
+    BuildEnvironmentNotFoundException,
+    MozbuildObject,
+)
 from mozbuild.base import MachCommandConditions as conditions
-from mozbuild.base import MozbuildObject
 from mozbuild.util import MOZBUILD_METRICS_PATH
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -100,6 +107,50 @@ def watch(command_context, verbose=False):
         sys.exit(3)
 
 
+CARGO_CONFIG_NOT_FOUND_ERROR_MSG = """\
+The sub-command {subcommand} is not currently configured to be used with ./mach cargo.
+To do so, add the corresponding file in <mozilla-root-dir>/build/cargo, following other examples in this directory"""
+
+
+def _cargo_config_yaml_schema():
+    def starts_with_cargo(s):
+        if s.startswith("cargo-"):
+            return s
+        else:
+            raise ValueError
+
+    return Schema(
+        {
+            # The name of the command (not checked for now, but maybe
+            #  later)
+            Required("command"): All(str, starts_with_cargo),
+            # Whether `make` should stop immediately in case
+            # of error returned by the command. Default: False
+            "continue_on_error": Boolean,
+            # Whether this command requires pre_export and export build
+            # targets to have run. Defaults to bool(cargo_build_flags).
+            "requires_export": Boolean,
+            # Build flags to use.  If this variable is not
+            # defined here, the build flags are generated automatically and are
+            # the same as for `cargo build`. See available substitutions at the
+            # end.
+            "cargo_build_flags": [str],
+            # Extra build flags to use. These flags are added
+            # after the cargo_build_flags both when they are provided or
+            # automatically generated. See available substitutions at the end.
+            "cargo_extra_flags": [str],
+            # Available substitutions for `cargo_*_flags`:
+            # * {arch}: architecture target
+            # * {crate}: current crate name
+            # * {directory}: Directory of the current crate within the source tree
+            # * {features}: Rust features (for `--features`)
+            # * {manifest}: full path of `Cargo.toml` file
+            # * {target}: `--lib` for library, `--bin CRATE` for executables
+            # * {topsrcdir}: Top directory of sources
+        }
+    )
+
+
 @Command(
     "cargo",
     category="build",
@@ -109,15 +160,16 @@ def watch(command_context, verbose=False):
 @CommandArgument(
     "cargo_command",
     default=None,
-    choices=["check", "udeps", "audit", "clippy"],
-    help="The cargo subcommand to run.",
+    help="Target to cargo, must be one of the commands in config/cargo/",
 )
 @CommandArgument(
     "--all-crates",
     action="store_true",
     help="Check all of the crates in the tree.",
 )
-@CommandArgument("crates", default=None, nargs="*", help="The crate name(s) to check.")
+@CommandArgument(
+    "-p", "--package", default=None, help="The specific crate name to check."
+)
 @CommandArgument(
     "--jobs",
     "-j",
@@ -134,7 +186,7 @@ def watch(command_context, verbose=False):
     help="Emit error messages as JSON.",
 )
 @CommandArgument(
-    "--no-errors",
+    "--continue-on-error",
     action="store_true",
     help="Do not return an error exit code if the subcommands errors out.",
 )
@@ -147,11 +199,11 @@ def cargo(
     command_context,
     cargo_command,
     all_crates=None,
-    crates=None,
+    package=None,
     jobs=0,
     verbose=False,
     message_format_json=False,
-    no_errors=False,
+    continue_on_error=False,
     subcommand_args=[],
 ):
 
@@ -159,10 +211,41 @@ def cargo(
 
     command_context.log_manager.enable_all_structured_loggers()
 
-    if cargo_command in ["check", "udeps", "clippy"]:
-        try:
-            command_context.config_environment
-        except BuildEnvironmentNotFoundException:
+    topsrcdir = Path(mozpath.normpath(command_context.topsrcdir))
+    cargodir = Path(topsrcdir / "build" / "cargo")
+
+    cargo_command_basename = "cargo-" + cargo_command + ".yaml"
+    cargo_command_fullname = Path(cargodir / cargo_command_basename)
+    if path.exists(cargo_command_fullname):
+        with open(cargo_command_fullname) as fh:
+            yaml_config = yaml.load(fh, Loader=yaml.FullLoader)
+            schema = _cargo_config_yaml_schema()
+            schema(yaml_config)
+        if not yaml_config:
+            yaml_config = {}
+    else:
+        print(CARGO_CONFIG_NOT_FOUND_ERROR_MSG.format(subcommand=cargo_command))
+        return 1
+
+    # print("yaml_config = ", yaml_config)
+
+    yaml_config.setdefault("continue_on_error", False)
+    continue_on_error = continue_on_error or yaml_config["continue_on_error"] is True
+
+    cargo_build_flags = yaml_config.get("cargo_build_flags")
+    if cargo_build_flags is not None:
+        cargo_build_flags = " ".join(cargo_build_flags)
+    cargo_extra_flags = yaml_config.get("cargo_extra_flags")
+    if cargo_extra_flags is not None:
+        cargo_extra_flags = " ".join(cargo_extra_flags)
+    requires_export = yaml_config.get("requires_export", bool(cargo_build_flags))
+
+    ret = 0
+    if requires_export:
+        # This directory is created during export. If it's not there,
+        # export hasn't run already.
+        deps = Path(command_context.topobjdir) / ".deps"
+        if not deps.exists():
             build = command_context._spawn(BuildDriver)
             ret = build.build(
                 command_context.metrics,
@@ -171,24 +254,38 @@ def cargo(
                 verbose=verbose,
                 mach_context=command_context._mach_context,
             )
-            if ret != 0:
-                return ret
+    else:
+        try:
+            command_context.config_environment
+        except BuildEnvironmentNotFoundException:
+            build = command_context._spawn(BuildDriver)
+            ret = build.configure(
+                command_context.metrics,
+                buildstatus_messages=False,
+            )
+    if ret != 0:
+        return ret
 
     # XXX duplication with `mach vendor rust`
     crates_and_roots = {
-        "gkrust": "toolkit/library/rust",
-        "gkrust-gtest": "toolkit/library/gtest/rust",
-        "geckodriver": "testing/geckodriver",
+        "gkrust": {"directory": "toolkit/library/rust", "library": True},
+        "gkrust-gtest": {"directory": "toolkit/library/gtest/rust", "library": True},
+        "geckodriver": {"directory": "testing/geckodriver", "library": False},
     }
 
     if all_crates:
         crates = crates_and_roots.keys()
-    elif not crates:
+    elif package:
+        crates = [package]
+    else:
         crates = ["gkrust"]
 
+    if subcommand_args:
+        subcommand_args = " ".join(subcommand_args)
+
     for crate in crates:
-        root = crates_and_roots.get(crate, None)
-        if not root:
+        crate_info = crates_and_roots.get(crate, None)
+        if not crate_info:
             print(
                 "Cannot locate crate %s.  Please check your spelling or "
                 "add the crate information to the list." % crate
@@ -202,24 +299,46 @@ def cargo(
             "force-cargo-host-program-%s" % cargo_command,
         ]
 
+        directory = crate_info["directory"]
+        # you can use these variables in 'cargo_build_flags'
+        subst = {
+            "arch": '"$(RUST_TARGET)"',
+            "crate": crate,
+            "directory": directory,
+            "features": '"$(RUST_LIBRARY_FEATURES)"',
+            "manifest": str(Path(topsrcdir / directory / "Cargo.toml")),
+            "target": "--lib" if crate_info["library"] else "--bin " + crate,
+            "topsrcdir": str(topsrcdir),
+        }
+
         if subcommand_args:
-            targets = targets + ["cargo_extra_cli_flags=%s" % " ".join(subcommand_args)]
-        if cargo_command == "audit":
             targets = targets + [
-                "cargo_build_flags=-f %s/Cargo.lock" % command_context.topsrcdir
+                "cargo_extra_cli_flags=%s" % (subcommand_args.format(**subst))
+            ]
+        if cargo_build_flags:
+            targets = targets + [
+                "cargo_build_flags=%s" % (cargo_build_flags.format(**subst))
             ]
 
         append_env = {}
+        if cargo_extra_flags:
+            append_env["CARGO_EXTRA_FLAGS"] = cargo_extra_flags.format(**subst)
         if message_format_json:
             append_env["USE_CARGO_JSON_MESSAGE_FORMAT"] = "1"
-        if no_errors:
-            append_env["CARGO_NO_ERR"] = "1"
-        if cargo_command == "audit":
+        if continue_on_error:
+            append_env["CARGO_CONTINUE_ON_ERROR"] = "1"
+        if cargo_build_flags:
             append_env["CARGO_NO_AUTO_ARG"] = "1"
+        else:
+            append_env[
+                "ADD_RUST_LTOABLE"
+            ] = "force-cargo-library-{s:s} force-cargo-program-{s:s}".format(
+                s=cargo_command
+            )
 
         ret = command_context._run_make(
             srcdir=False,
-            directory=root,
+            directory=directory,
             ensure_exit_code=0,
             silent=not verbose,
             print_directory=False,
@@ -2131,16 +2250,32 @@ def repackage(command_context):
 @SubCommand(
     "repackage", "deb", description="Repackage a tar file into a .deb for Linux"
 )
-@CommandArgument("--input", "-i", type=str, required=True, help="Input filename")
-@CommandArgument("--output", "-o", type=str, required=True, help="Output filename")
+@CommandArgument(
+    "--input", "-i", type=str, required=True, help="Input tarfile filename"
+)
+@CommandArgument("--output", "-o", type=str, required=True, help="Output .deb filename")
 @CommandArgument("--arch", type=str, required=True, help="One of ['x86', 'x86_64']")
+@CommandArgument(
+    "--version",
+    type=str,
+    required=True,
+    help="The Firefox version used to create the installer",
+)
+@CommandArgument(
+    "--build-number",
+    type=str,
+    required=True,
+    help="The release's build number",
+)
 @CommandArgument(
     "--templates",
     type=str,
     required=True,
     help="Location of the templates used to generate the debian/ directory files",
 )
-def repackage_deb(command_context, input, output, arch, templates):
+def repackage_deb(
+    command_context, input, output, arch, version, build_number, templates
+):
     if not os.path.exists(input):
         print("Input file does not exist: %s" % input)
         return 1
@@ -2152,7 +2287,57 @@ def repackage_deb(command_context, input, output, arch, templates):
 
     from mozbuild.repackaging.deb import repackage_deb
 
-    repackage_deb(input, output, template_dir, arch)
+    repackage_deb(input, output, template_dir, arch, version, build_number)
+
+
+@SubCommand(
+    "repackage",
+    "deb-l10n",
+    description="Repackage a .xpi langpack file into a .deb for Linux",
+)
+@CommandArgument(
+    "--input-xpi-file", type=str, required=True, help="Path to the XPI file"
+)
+@CommandArgument(
+    "--input-tar-file",
+    type=str,
+    required=True,
+    help="Path to tar archive that contains application.ini",
+)
+@CommandArgument(
+    "--version",
+    type=str,
+    required=True,
+    help="The Firefox version used to create the installer",
+)
+@CommandArgument(
+    "--build-number",
+    type=str,
+    required=True,
+    help="The release's build number",
+)
+@CommandArgument("--output", "-o", type=str, required=True, help="Output filename")
+def repackage_deb_l10n(
+    command_context, input_xpi_file, input_tar_file, output, version, build_number
+):
+    for input_file in (input_xpi_file, input_tar_file):
+        if not os.path.exists(input_file):
+            print("Input file does not exist: %s" % input_file)
+            return 1
+
+    template_dir = os.path.join(
+        command_context.topsrcdir,
+        "browser",
+        "installer",
+        "linux",
+        "debian",
+    )
+
+    from mozbuild.repackaging.deb import repackage_deb_l10n
+
+    repackage_deb_l10n(
+        input_xpi_file, input_tar_file, output, template_dir, version, build_number
+    )
 
 
 @SubCommand("repackage", "dmg", description="Repackage a tar file into a .dmg for OSX")
@@ -2544,7 +2729,7 @@ def repackage_mar(command_context, input, mar, output, arch, mar_channel_id):
     metavar="LOCALES",
     nargs="+",
     required=True,
-    help='List of locales to package, including "en-US"',
+    help="List of locales to package",
 )
 @CommandArgument(
     "--verbose", action="store_true", help="Log informative status messages."
@@ -2560,16 +2745,7 @@ def package_l10n(command_context, verbose=False, locales=[]):
         )
         return 1
 
-    if "en-US" not in locales:
-        command_context.log(
-            logging.WARN,
-            "package-multi-locale",
-            {"locales": locales},
-            'List of locales does not include default locale "en-US": '
-            '{locales}; adding "en-US"',
-        )
-        locales.append("en-US")
-    locales = list(sorted(locales))
+    locales = sorted(locale for locale in locales if locale != "en-US")
 
     append_env = {
         # We are only (re-)packaging, we don't want to (re-)build
@@ -2578,33 +2754,20 @@ def package_l10n(command_context, verbose=False, locales=[]):
         "MOZ_CHROME_MULTILOCALE": " ".join(locales),
     }
 
-    for locale in locales:
-        if locale == "en-US":
-            command_context.log(
-                logging.INFO,
-                "package-multi-locale",
-                {"locale": locale},
-                "Skipping default locale {locale}",
-            )
-            continue
-
-        command_context.log(
-            logging.INFO,
-            "package-multi-locale",
-            {"locale": locale},
-            "Processing chrome Gecko resources for locale {locale}",
-        )
-        command_context.run_process(
-            [
-                mozpath.join(command_context.topsrcdir, "mach"),
-                "build",
-                "chrome-{}".format(locale),
-            ],
-            append_env=append_env,
-            pass_thru=True,
-            ensure_exit_code=True,
-            cwd=mozpath.join(command_context.topsrcdir),
-        )
+    command_context.log(
+        logging.INFO,
+        "package-multi-locale",
+        {"locales": locales},
+        "Processing chrome Gecko resources for locales {locales}",
+    )
+    command_context._run_make(
+        directory=command_context.topobjdir,
+        target=["chrome-{}".format(locale) for locale in locales],
+        append_env=append_env,
+        pass_thru=False,
+        print_directory=False,
+        ensure_exit_code=True,
+    )
 
     if command_context.substs["MOZ_BUILD_APP"] == "mobile/android":
         command_context.log(

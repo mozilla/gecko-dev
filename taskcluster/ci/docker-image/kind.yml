@@ -42,11 +42,11 @@ jobs:
         parent: ubuntu1804-i386-raw
     ubuntu1804-base:
         symbol: I(ub18-base)
-        definition: debian-base
         parent: ubuntu1804-raw
         packages:
             - ub18-mercurial
             - ub18-python-zstandard
+            - ub18-python-psutil
     ubuntu1804-test-base:
         symbol: I(ub18-test-base)
         parent: ubuntu1804-base
@@ -100,6 +100,10 @@ jobs:
         parent: debian8-i386-raw
     custom-v8:
         symbol: I(custom-v8)
+        parent: debian11-base
+    # Chromium-as-Release
+    custom-car-linux:
+        symbol: I(custom-car-linux)
         parent: debian11-base
     valgrind-build:
         symbol: I(vb)

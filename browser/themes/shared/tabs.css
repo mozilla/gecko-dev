@@ -15,7 +15,7 @@
   /* --tabpanel-background-color matches $in-content-page-background in newtab
      (browser/components/newtab/content-src/styles/_variables.scss) */
   --tabpanel-background-color: #F9F9FB;
-  --tab-attention-icon-color: var(--lwt-tab-attention-icon-color, rgb(42,195,162));
+  --tab-attention-icon-color: rgb(42,195,162);
 }
 
 #tabbrowser-tabpanels browser[type=content] {
@@ -46,11 +46,18 @@
   --tab-min-height: 41px;
 }
 
+toolbar[brighttext] {
+  --tab-attention-icon-color: rgb(84,255,189);
+}
+
 #tabbrowser-tabs {
   --tab-min-width: 76px;
   --tab-loading-fill: #0A84FF;
   --tab-overflow-pinned-tabs-width: 0px;
   padding-inline: var(--tab-overflow-pinned-tabs-width) 0;
+  /* Use a bigger flex value than the searchbar to prevent it from
+   * taking all the toolbar space. */
+  flex: 1000 1000;
 }
 
 #tabbrowser-tabpanels {
@@ -92,16 +99,20 @@
   border-width: 0;
   margin: 0;
   padding: 0 2px;
-  -moz-box-align: stretch;
+  align-items: stretch;
   /* Needed so that overflowing content overflows towards the end rather than
      getting centered. That prevents tab opening animation from looking off at
      the start, see bug 1759221. */
-  -moz-box-pack: start;
+  justify-content: flex-start;
   overflow: clip;
   /* Needed to avoid clipping the tab-background shadow, which has a 4px blur
    * (we only have 2px padding in the inline direction) */
   overflow-clip-margin: 2px;
   min-height: var(--tab-min-height);
+}
+
+.tabbrowser-tab[pinned] {
+  flex-shrink: 0;
 }
 
 /* tabbrowser-tab keyboard focus */
@@ -445,14 +456,15 @@
   margin-inline-end: calc(var(--inline-tab-padding) / -2);
   width: 24px;
   height: 24px;
-  padding: 7px;
+  padding: 6px;
   border-radius: var(--tab-border-radius);
+  list-style-image: url(chrome://global/skin/icons/close-12.svg);
 }
 
 /* The following rulesets allow showing more of the tab title */
 .tabbrowser-tab:not([labelendaligned],:hover) > .tab-stack > .tab-content > .tab-close-button {
   padding-inline-start: 0;
-  width: 17px;
+  width: 18px;
 }
 
 .tabbrowser-tab[visuallyselected=true]:not([labelendaligned]):hover,
@@ -607,10 +619,6 @@
 
 /* Pinned tabs */
 
-toolbar[brighttext] {
-  --tab-attention-icon-color: var(--lwt-tab-attention-icon-color, rgb(84,255,189));
-}
-
 .tabbrowser-tab:is([image], [pinned]) > .tab-stack > .tab-content[attention]:not([selected="true"]),
 .tabbrowser-tab > .tab-stack > .tab-content[pinned][titlechanged]:not([selected="true"]),
 #firefox-view-button[attention] {
@@ -645,6 +653,7 @@ toolbar[brighttext] {
   background: url(chrome://browser/skin/tabbrowser/tab-drag-indicator.svg) no-repeat center;
   position: relative;
   z-index: 2;
+  pointer-events: none;
 }
 
 /* Drag space */

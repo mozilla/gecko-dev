@@ -60,6 +60,7 @@
 #include "sslexp.h"
 #include "sslproto.h"
 
+using namespace mozilla;
 using namespace mozilla::psm;
 using namespace mozilla::ipc;
 
@@ -733,6 +734,8 @@ static int16_t nsSSLIOLayerPoll(PRFileDesc* fd, int16_t in_flags,
                  "using lower %d\n"
                : "[%p] poll SSL socket using lower %d\n",
            fd, (int)in_flags));
+
+  socketInfo->MaybeDispatchSelectClientAuthCertificate();
 
   // We want the handshake to continue during certificate validation, so we
   // don't need to do anything special here. libssl automatically blocks when

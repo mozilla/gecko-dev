@@ -6,13 +6,13 @@ import logging
 import os
 
 import six
-from common import BaseConfigureTest
 from mozboot.util import MINIMUM_RUST_VERSION
 from mozpack import path as mozpath
 from mozunit import main
 from six import StringIO
 from test_toolchain_helpers import CompilerResult, FakeCompiler, PrependFlags
 
+from common import BaseConfigureTest
 from mozbuild.configure.util import Version
 from mozbuild.util import ReadOnlyNamespace, memoize
 
@@ -291,13 +291,21 @@ LIBRARY_NAME_INFOS = {
         "IMPORT_LIB_SUFFIX": "a",
         "OBJ_SUFFIX": "o",
     },
-    "msvc": {
+    "windows-msvc": {
         "DLL_PREFIX": "",
         "DLL_SUFFIX": ".dll",
         "LIB_PREFIX": "",
         "LIB_SUFFIX": "lib",
         "IMPORT_LIB_SUFFIX": "lib",
         "OBJ_SUFFIX": "obj",
+    },
+    "windows-gnu": {
+        "DLL_PREFIX": "",
+        "DLL_SUFFIX": ".dll",
+        "LIB_PREFIX": "lib",
+        "LIB_SUFFIX": "a",
+        "IMPORT_LIB_SUFFIX": "a",
+        "OBJ_SUFFIX": "o",
     },
     "openbsd6.1": {
         "DLL_PREFIX": "lib",
@@ -378,7 +386,7 @@ class BaseToolchainTest(BaseConfigureTest):
         if target_os == "mingw32":
             compiler_type = sandbox._value_for(sandbox["c_compiler"]).type
             if compiler_type == "clang-cl":
-                target_os = "msvc"
+                target_os = "windows-msvc"
         elif target_os == "linux-gnuabi64":
             target_os = "linux-gnu"
 
@@ -387,7 +395,7 @@ class BaseToolchainTest(BaseConfigureTest):
         # Try again on artifact builds. In that case, we always get library
         # name info for msvc on Windows
         if target_os == "mingw32":
-            target_os = "msvc"
+            target_os = "windows-msvc"
 
         sandbox = self.get_sandbox(
             paths, {}, args + ["--enable-artifact-builds"], environ, logger=self.logger
@@ -950,7 +958,7 @@ class OSXToolchainTest(BaseToolchainTest):
         )
 
 
-class WindowsToolchainTest(BaseToolchainTest):
+class MingwToolchainTest(BaseToolchainTest):
     HOST = "i686-pc-mingw32"
 
     # For the purpose of this test, it doesn't matter that the paths are not
@@ -1005,16 +1013,6 @@ class WindowsToolchainTest(BaseToolchainTest):
     CLANGXX_4_0_RESULT = LinuxToolchainTest.CLANGXX_4_0_RESULT
     DEFAULT_CLANG_RESULT = LinuxToolchainTest.DEFAULT_CLANG_RESULT
     DEFAULT_CLANGXX_RESULT = LinuxToolchainTest.DEFAULT_CLANGXX_RESULT
-    GCC_4_9_RESULT = LinuxToolchainTest.GCC_4_9_RESULT
-    GXX_4_9_RESULT = LinuxToolchainTest.GXX_4_9_RESULT
-    GCC_5_RESULT = LinuxToolchainTest.GCC_5_RESULT
-    GXX_5_RESULT = LinuxToolchainTest.GXX_5_RESULT
-    GCC_6_RESULT = LinuxToolchainTest.GCC_6_RESULT
-    GXX_6_RESULT = LinuxToolchainTest.GXX_6_RESULT
-    GCC_7_RESULT = LinuxToolchainTest.GCC_7_RESULT
-    GXX_7_RESULT = LinuxToolchainTest.GXX_7_RESULT
-    DEFAULT_GCC_RESULT = LinuxToolchainTest.DEFAULT_GCC_RESULT
-    DEFAULT_GXX_RESULT = LinuxToolchainTest.DEFAULT_GXX_RESULT
 
     def test_unsupported_msvc(self):
         self.do_toolchain_test(
@@ -1044,7 +1042,7 @@ class WindowsToolchainTest(BaseToolchainTest):
         paths = {
             k: v
             for k, v in six.iteritems(self.PATHS)
-            if os.path.basename(k) not in ("cl", "clang-cl")
+            if os.path.basename(k) != "clang-cl"
         }
         self.do_toolchain_test(
             paths,
@@ -1076,7 +1074,7 @@ class WindowsToolchainTest(BaseToolchainTest):
         paths = {
             k: v
             for k, v in six.iteritems(self.PATHS)
-            if os.path.basename(k) not in ("cl", "clang-cl", "gcc")
+            if os.path.basename(k) not in ("clang-cl", "gcc")
         }
         self.do_toolchain_test(
             paths,
@@ -1098,7 +1096,7 @@ class WindowsToolchainTest(BaseToolchainTest):
         )
 
 
-class Windows64ToolchainTest(WindowsToolchainTest):
+class Mingw64ToolchainTest(MingwToolchainTest):
     HOST = "x86_64-pc-mingw32"
 
     # For the purpose of this test, it doesn't matter that the paths are not
@@ -1126,6 +1124,154 @@ class Windows64ToolchainTest(WindowsToolchainTest):
         "/usr/bin/clang-3.3": CLANG_3_3 + CLANG_PLATFORM_X86_64_WIN,
         "/usr/bin/clang++-3.3": CLANGXX_3_3 + CLANG_PLATFORM_X86_64_WIN,
     }
+
+
+class WindowsToolchainTest(BaseToolchainTest):
+    HOST = "i686-pc-windows-msvc"
+
+    PATHS = MingwToolchainTest.PATHS
+
+    def test_unsupported_msvc(self):
+        self.do_toolchain_test(
+            self.PATHS,
+            {"c_compiler": "Unknown compiler or compiler not supported."},
+            environ={"CC": "/usr/bin/cl"},
+        )
+
+    def test_unsupported_clang_cl(self):
+        self.do_toolchain_test(
+            self.PATHS,
+            {"c_compiler": MingwToolchainTest.CLANG_CL_3_9_RESULT},
+            environ={"CC": "/usr/bin/clang-cl-3.9"},
+        )
+
+    def test_clang_cl(self):
+        self.do_toolchain_test(
+            self.PATHS,
+            {
+                "c_compiler": MingwToolchainTest.CLANG_CL_8_0_RESULT,
+                "cxx_compiler": MingwToolchainTest.CLANGXX_CL_8_0_RESULT,
+            },
+        )
+
+    def test_unsupported_gcc(self):
+        paths = {
+            k: v
+            for k, v in six.iteritems(self.PATHS)
+            if os.path.basename(k) != "clang-cl"
+        }
+        self.do_toolchain_test(
+            paths,
+            {"c_compiler": "Cannot find the target C compiler"},
+        )
+
+    def test_overridden_unsupported_gcc(self):
+        self.do_toolchain_test(
+            self.PATHS,
+            {"c_compiler": "Unknown compiler or compiler not supported."},
+            environ={"CC": "gcc-5", "CXX": "g++-5"},
+        )
+
+    def test_unsupported_clang(self):
+        paths = {
+            k: v
+            for k, v in six.iteritems(self.PATHS)
+            if os.path.basename(k) not in ("clang-cl", "gcc")
+        }
+        self.do_toolchain_test(
+            paths,
+            {"c_compiler": "Cannot find the target C compiler"},
+        )
+
+    def test_overridden_unsupported_clang(self):
+        self.do_toolchain_test(
+            self.PATHS,
+            {"c_compiler": "Unknown compiler or compiler not supported."},
+            environ={"CC": "clang-3.3", "CXX": "clang++-3.3"},
+        )
+
+
+class Windows64ToolchainTest(WindowsToolchainTest):
+    HOST = "x86_64-pc-windows-msvc"
+
+    PATHS = Mingw64ToolchainTest.PATHS
+
+
+class WindowsGnuToolchainTest(BaseToolchainTest):
+    HOST = "i686-pc-windows-gnu"
+
+    PATHS = MingwToolchainTest.PATHS
+
+    def test_unsupported_msvc(self):
+        self.do_toolchain_test(
+            self.PATHS,
+            {"c_compiler": "Unknown compiler or compiler not supported."},
+            environ={"CC": "/usr/bin/cl"},
+        )
+
+    def test_unsupported_clang_cl(self):
+        paths = {
+            k: v
+            for k, v in six.iteritems(self.PATHS)
+            if os.path.basename(k) == "clang-cl"
+        }
+        self.do_toolchain_test(
+            paths,
+            {"c_compiler": "Cannot find the target C compiler"},
+        )
+
+    def test_overridden_unsupported_clang_cl(self):
+        self.do_toolchain_test(
+            self.PATHS,
+            {"c_compiler": "Unknown compiler or compiler not supported."},
+            environ={"CC": "clang-cl", "CXX": "clang-cl"},
+        )
+
+    def test_unsupported_gcc(self):
+        paths = {
+            k: v for k, v in six.iteritems(self.PATHS) if os.path.basename(k) == "gcc"
+        }
+        self.do_toolchain_test(
+            paths,
+            {"c_compiler": "Cannot find the target C compiler"},
+        )
+
+    def test_overridden_unsupported_gcc(self):
+        self.do_toolchain_test(
+            self.PATHS,
+            {"c_compiler": "Unknown compiler or compiler not supported."},
+            environ={"CC": "gcc-5", "CXX": "g++-5"},
+        )
+
+    def test_clang(self):
+        paths = {
+            k: v
+            for k, v in six.iteritems(self.PATHS)
+            if os.path.basename(k) not in ("clang-cl", "gcc")
+        }
+        self.do_toolchain_test(
+            paths,
+            {
+                "c_compiler": MingwToolchainTest.DEFAULT_CLANG_RESULT,
+                "cxx_compiler": MingwToolchainTest.DEFAULT_CLANGXX_RESULT,
+            },
+        )
+
+    def test_overridden_unsupported_clang(self):
+        self.do_toolchain_test(
+            self.PATHS,
+            {
+                "c_compiler": MingwToolchainTest.CLANG_3_3_RESULT,
+                "cxx_compiler": MingwToolchainTest.CLANGXX_3_3_RESULT,
+            },
+            environ={"CC": "clang-3.3", "CXX": "clang++-3.3"},
+        )
+
+
+class WindowsGnu64ToolchainTest(WindowsGnuToolchainTest):
+    HOST = "x86_64-pc-windows-gnu"
+
+    PATHS = Mingw64ToolchainTest.PATHS
 
 
 class LinuxCrossCompileToolchainTest(BaseToolchainTest):
@@ -1475,7 +1621,7 @@ class OSXCrossToolchainTest(BaseToolchainTest):
 
 
 class WindowsCrossToolchainTest(BaseToolchainTest):
-    TARGET = "x86_64-pc-mingw32"
+    TARGET = "x86_64-pc-windows-msvc"
     DEFAULT_CLANG_RESULT = LinuxToolchainTest.DEFAULT_CLANG_RESULT
     DEFAULT_CLANGXX_RESULT = LinuxToolchainTest.DEFAULT_CLANGXX_RESULT
 
@@ -1485,8 +1631,8 @@ class WindowsCrossToolchainTest(BaseToolchainTest):
         self.do_toolchain_test(
             paths,
             {
-                "c_compiler": WindowsToolchainTest.CLANG_CL_8_0_RESULT,
-                "cxx_compiler": WindowsToolchainTest.CLANGXX_CL_8_0_RESULT,
+                "c_compiler": MingwToolchainTest.CLANG_CL_8_0_RESULT,
+                "cxx_compiler": MingwToolchainTest.CLANGXX_CL_8_0_RESULT,
                 "host_c_compiler": self.DEFAULT_CLANG_RESULT,
                 "host_cxx_compiler": self.DEFAULT_CLANGXX_RESULT,
             },
@@ -1789,6 +1935,11 @@ class RustTest(BaseConfigureTest):
             "mips64el-unknown-linux-gnuabi64",
             "powerpc64-unknown-linux-gnu",
             "powerpc64le-unknown-linux-gnu",
+            "i686-pc-windows-msvc",
+            "x86_64-pc-windows-msvc",
+            "aarch64-pc-windows-msvc",
+            "i686-pc-windows-gnu",
+            "x86_64-pc-windows-gnu",
         ):
             self.assertEqual(self.get_rust_target(straightforward), straightforward)
 
@@ -1809,10 +1960,8 @@ class RustTest(BaseConfigureTest):
 
         # Windows
         for autoconf, building_with_gcc, rust in (
-            ("i686-pc-mingw32", "cl", "i686-pc-windows-msvc"),
-            ("x86_64-pc-mingw32", "cl", "x86_64-pc-windows-msvc"),
-            ("i686-pc-mingw32", "gcc", "i686-pc-windows-gnu"),
-            ("x86_64-pc-mingw32", "gcc", "x86_64-pc-windows-gnu"),
+            ("i686-pc-mingw32", "clang-cl", "i686-pc-windows-msvc"),
+            ("x86_64-pc-mingw32", "clang-cl", "x86_64-pc-windows-msvc"),
             ("i686-pc-mingw32", "clang", "i686-pc-windows-gnu"),
             ("x86_64-pc-mingw32", "clang", "x86_64-pc-windows-gnu"),
             ("i686-w64-mingw32", "clang", "i686-pc-windows-gnu"),

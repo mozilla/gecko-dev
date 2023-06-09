@@ -22,8 +22,7 @@ add_task(async function test_remove_history() {
 
   let promiseVisitRemoved = PlacesTestUtils.waitForNotification(
     "page-removed",
-    events => events[0].url === TEST_URL,
-    "places"
+    events => events[0].url === TEST_URL
   );
 
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
@@ -105,7 +104,7 @@ add_task(async function test_remove_form_history() {
   }
   Assert.ok(index < count, "Result found");
 
-  EventUtils.synthesizeKey("KEY_ArrowDown", { repeat: index });
+  EventUtils.synthesizeKey("KEY_Tab", { repeat: index });
   Assert.equal(UrlbarTestUtils.getSelectedRowIndex(window), index);
   EventUtils.synthesizeKey("KEY_Delete", { shiftKey: true });
   await promiseRemoved;
@@ -219,6 +218,11 @@ add_task(async function test_searchMode_removeRestyledHistory() {
 });
 
 add_task(async function blockButton() {
+  if (UrlbarPrefs.get("resultMenu")) {
+    // This case is covered by browser_result_menu.js.
+    return;
+  }
+
   let url = "https://example.com/has-block-button";
   let provider = new UrlbarTestUtils.TestProvider({
     priority: Infinity,
@@ -235,12 +239,11 @@ add_task(async function blockButton() {
     ],
   });
 
-  // Implement the provider's `blockResult()`. Return true from it so the view
-  // removes the row after it's called.
-  let blockResultCallCount = 0;
-  provider.blockResult = () => {
-    blockResultCallCount++;
-    return true;
+  // Implement the provider's `onEngagement()` so it removes the result.
+  let onEngagementCallCount = 0;
+  provider.onEngagement = (isPrivate, state, queryContext, details) => {
+    onEngagementCallCount++;
+    queryContext.view.controller.removeResult(details.result);
   };
 
   UrlbarProvidersManager.registerProvider(provider);
@@ -266,22 +269,22 @@ add_task(async function blockButton() {
   let button = row.querySelector(".urlbarView-button-block");
   Assert.ok(button, "The row should have a block button");
 
-  info("Arrowing down to block button");
-  EventUtils.synthesizeKey("KEY_ArrowDown", { repeat: 2 });
+  info("Tabbing down to block button");
+  EventUtils.synthesizeKey("KEY_Tab", { repeat: 2 });
 
   Assert.equal(
     UrlbarTestUtils.getSelectedElement(window),
     button,
-    "The block button should be selected after arrowing down"
+    "The block button should be selected after tabbing down"
   );
 
   info("Pressing Enter on block button");
   EventUtils.synthesizeKey("KEY_Enter");
 
   Assert.equal(
-    blockResultCallCount,
+    onEngagementCallCount,
     1,
-    "blockResult() should have been called once"
+    "onEngagement() should have been called once"
   );
   Assert.equal(
     UrlbarTestUtils.getResultCount(window),

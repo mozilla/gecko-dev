@@ -5,12 +5,16 @@
 #include "mozilla/BackgroundTasksRunner.h"
 
 #include "base/process_util.h"
+#include "mozilla/StaticPrefs_datareporting.h"
+#include "mozilla/StaticPrefs_telemetry.h"
 #include "mozilla/StaticPrefs_toolkit.h"
 #include "nsIFile.h"
 
 #ifdef XP_WIN
 #  include "mozilla/AssembleCmdLine.h"
 #endif
+
+#include "mozilla/ResultVariant.h"
 
 namespace mozilla {
 
@@ -46,7 +50,7 @@ NS_IMETHODIMP BackgroundTasksRunner::RunInDetachedProcess(
     return NS_ERROR_FAILURE;
   }
 
-  if (!base::LaunchApp(assembledCmdLine, options, nullptr)) {
+  if (base::LaunchApp(assembledCmdLine, options, nullptr).isErr()) {
     return NS_ERROR_FAILURE;
   }
 #else
@@ -56,7 +60,7 @@ NS_IMETHODIMP BackgroundTasksRunner::RunInDetachedProcess(
     argv.push_back(str.get());
   }
 
-  if (!base::LaunchApp(argv, options, nullptr)) {
+  if (base::LaunchApp(argv, options, nullptr).isErr()) {
     return NS_ERROR_FAILURE;
   }
 #endif
@@ -66,7 +70,8 @@ NS_IMETHODIMP BackgroundTasksRunner::RunInDetachedProcess(
 
 NS_IMETHODIMP BackgroundTasksRunner::RemoveDirectoryInDetachedProcess(
     const nsACString& aParentDirPath, const nsACString& aChildDirName,
-    const nsACString& aSecondsToWait, const nsACString& aOtherFoldersSuffix) {
+    const nsACString& aSecondsToWait, const nsACString& aOtherFoldersSuffix,
+    const nsACString& aMetricsId) {
   nsTArray<nsCString> argv = {aParentDirPath + ""_ns, aChildDirName + ""_ns,
                               aSecondsToWait + ""_ns,
                               aOtherFoldersSuffix + ""_ns};
@@ -79,6 +84,23 @@ NS_IMETHODIMP BackgroundTasksRunner::RemoveDirectoryInDetachedProcess(
     sleep.AppendInt(testingSleepMs);
     argv.AppendElement(sleep);
   }
+
+  bool telemetryEnabled =
+      StaticPrefs::datareporting_healthreport_uploadEnabled() &&
+      // Talos set this to not send telemetry but still enable the code path.
+      // But in this case we just disable it since this telemetry happens
+      // independently from the main process and thus shouldn't be relevant to
+      // performance tests.
+      StaticPrefs::telemetry_fog_test_localhost_port() != -1;
+
+  if (!aMetricsId.IsEmpty() && telemetryEnabled) {
+    argv.AppendElement("--metrics-id");
+    argv.AppendElement(aMetricsId);
+  }
+
+#ifdef DEBUG
+  argv.AppendElement("--attach-console");
+#endif
 
   return RunInDetachedProcess("removeDirectory"_ns, argv);
 }

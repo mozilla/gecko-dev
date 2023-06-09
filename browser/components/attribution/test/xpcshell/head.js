@@ -3,8 +3,8 @@
  */
 "use strict";
 
-const { AttributionCode } = ChromeUtils.import(
-  "resource:///modules/AttributionCode.jsm"
+const { AttributionCode } = ChromeUtils.importESModule(
+  "resource:///modules/AttributionCode.sys.mjs"
 );
 
 let validAttrCodes = [
@@ -64,6 +64,12 @@ let validAttrCodes = [
     code: "dltoken%3Dc18f86a3-f228-4d98-91bb-f90135c0aa9c",
     parsed: { dltoken: "c18f86a3-f228-4d98-91bb-f90135c0aa9c" },
   },
+  {
+    code: "dlsource%3Dsome-dl-source",
+    parsed: {
+      dlsource: "some-dl-source",
+    },
+  },
 ];
 
 let invalidAttrCodes = [
@@ -96,7 +102,9 @@ async function setupStubs() {
   const { AppConstants } = ChromeUtils.importESModule(
     "resource://gre/modules/AppConstants.sys.mjs"
   );
-  const { sinon } = ChromeUtils.import("resource://testing-common/Sinon.jsm");
+  const { sinon } = ChromeUtils.importESModule(
+    "resource://testing-common/Sinon.sys.mjs"
+  );
 
   // This depends on the caller to invoke it by name.  We do try to
   // prevent the most obvious incorrect invocation, namely
@@ -115,8 +123,8 @@ async function setupStubs() {
 
   if (AppConstants.platform == "macosx") {
     // We're implicitly using the fact that modules are shared between importers here.
-    const { MacAttribution } = ChromeUtils.import(
-      "resource:///modules/MacAttribution.jsm"
+    const { MacAttribution } = ChromeUtils.importESModule(
+      "resource:///modules/MacAttribution.sys.mjs"
     );
     sinon
       .stub(MacAttribution, "applicationPath")

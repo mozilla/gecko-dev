@@ -37,6 +37,7 @@ const NAVIGATION_ITEMS =
 
 add_task(async function test_setup() {
   const example_base =
+    // eslint-disable-next-line @microsoft/sdl/no-insecure-url
     "http://example.com/browser/browser/base/content/test/contextMenu/";
   const url = example_base + "subtst_contextmenu_input.html";
   await BrowserTestUtils.openNewForegroundTab(gBrowser, url);
@@ -172,6 +173,70 @@ add_task(async function test_password_input() {
       },
     }
   );
+  await SpecialPowers.popPrefEnv();
+});
+
+add_task(async function firefox_relay_input() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["signon.firefoxRelay.feature", "enabled"]],
+  });
+
+  await test_contextmenu("#input_username", [
+    "use-relay-mask",
+    true,
+    "---",
+    null,
+    "context-undo",
+    false,
+    "context-redo",
+    false,
+    "---",
+    null,
+    "context-cut",
+    false,
+    "context-copy",
+    false,
+    "context-paste",
+    null, // ignore clipboard state
+    "context-delete",
+    false,
+    "context-selectall",
+    false,
+    "---",
+    null,
+    "spell-check-enabled",
+    true,
+  ]);
+
+  await test_contextmenu(
+    "#input_email",
+    [
+      "use-relay-mask",
+      true,
+      "---",
+      null,
+      "context-undo",
+      false,
+      "context-redo",
+      false,
+      "---",
+      null,
+      "context-cut",
+      false,
+      "context-copy",
+      false,
+      "context-paste",
+      null, // ignore clipboard state
+      "context-delete",
+      false,
+      "context-selectall",
+      null,
+    ],
+    {
+      skipFocusChange: true,
+    }
+  );
+
   await SpecialPowers.popPrefEnv();
 });
 

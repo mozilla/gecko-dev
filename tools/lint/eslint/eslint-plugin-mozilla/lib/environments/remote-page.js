@@ -21,7 +21,8 @@ module.exports = {
     RPMSetBoolPref: false,
     RPMGetFormatURLPref: false,
     RPMIsTRROnlyFailure: false,
-    RPMShowTRROnlyFailureError: false,
+    RPMIsFirefox: false,
+    RPMIsNativeFallbackFailure: false,
     RPMIsWindowPrivate: false,
     RPMSendAsyncMessage: false,
     RPMSendQuery: false,
@@ -36,5 +37,7 @@ module.exports = {
     RPMOpenPreferences: false,
     RPMGetTRRSkipReason: false,
     RPMGetTRRDomain: false,
+    RPMIsSiteSpecificTRRError: false,
+    RPMSetTRRDisabledLoadFlags: false,
   },
 };

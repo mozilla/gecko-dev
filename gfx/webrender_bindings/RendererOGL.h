@@ -55,6 +55,8 @@ class RendererOGL {
  public:
   wr::WrExternalImageHandler GetExternalImageHandler();
 
+  void SetFramePublishId(FramePublishId aPublishId);
+
   /// This can be called on the render thread only.
   void Update();
 
@@ -86,8 +88,8 @@ class RendererOGL {
   void BeginRecording(const TimeStamp& aRecordingStart,
                       wr::PipelineId aPipelineId);
   void MaybeRecordFrame(const WebRenderPipelineInfo* aPipelineInfo);
-  void WriteCollectedFrames();
-  Maybe<layers::CollectedFrames> GetCollectedFrames();
+
+  Maybe<layers::FrameRecording> EndRecording();
 
   /// This can be called on the render thread only.
   ~RendererOGL();

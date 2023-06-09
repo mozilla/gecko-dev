@@ -46,7 +46,7 @@ add_task(async function() {
 
       let exceptions = [
         /**
-         * Nothing here! Please don't add anything new!
+         * Please don't add anything new unless justified!
          */
       ];
 

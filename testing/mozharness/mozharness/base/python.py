@@ -23,6 +23,8 @@ try:
 except ImportError:
     import urllib.parse as urlparse
 
+from six import string_types
+
 import mozharness
 from mozharness.base.errors import VirtualenvErrorList
 from mozharness.base.log import FATAL, WARNING
@@ -32,7 +34,6 @@ from mozharness.base.script import (
     PreScriptAction,
     ScriptMixin,
 )
-from six import string_types
 
 external_tools_path = os.path.join(
     os.path.abspath(os.path.dirname(os.path.dirname(mozharness.__file__))),
@@ -216,9 +217,9 @@ class VirtualenvMixin(object):
                     + pip_freeze_output
                 )
 
-        for line in pip_freeze_output.splitlines():
+        for l in pip_freeze_output.splitlines():
             # parse the output into package, version
-            line = line.strip()
+            line = l.strip()
             if not line:
                 # whitespace
                 continue
@@ -299,16 +300,6 @@ class VirtualenvMixin(object):
                 command += ["--no-index"]
             for opt in global_options:
                 command += ["--global-option", opt]
-        elif install_method == "easy_install":
-            if not module:
-                self.fatal(
-                    "module parameter required with install_method='easy_install'"
-                )
-            if requirements:
-                # Install pip requirements files separately, since they're
-                # not understood by easy_install.
-                self.install_module(requirements=requirements, install_method="pip")
-            command = [self.query_python_path(), "-m", "easy_install"]
         else:
             self.fatal(
                 "install_module() doesn't understand an install_method of %s!"
@@ -479,7 +470,7 @@ class VirtualenvMixin(object):
                 / "python"
                 / "_venv"
                 / "wheels"
-                / "pip-21.2.3-py3-none-any.whl"
+                / "pip-23.0.1-py3-none-any.whl"
             )
             setuptools_wheel_path = (
                 src_dir
@@ -530,17 +521,29 @@ class VirtualenvMixin(object):
                                     sys.executable, str(expected_python_debug_exe)
                                 )
 
-            # We install "--without-pip" since the version of pip bundled with
-            # python is not consistent across versions/platforms and could be
-            # incompatible. We don't use "--upgrade" to get the newest pip
-            # since that would tie us to pypy being available, which we don't want.
+            venv_creation_flags = ["-m", "venv", venv_path]
+
+            if self._is_windows():
+                # To workaround an issue on Windows10 jobs in CI we have to
+                # explicitly install the default pip separately. Ideally we
+                # could just remove the "--without-pip" above and get the same
+                # result, but that's apparently not always the case.
+                venv_creation_flags = venv_creation_flags + ["--without-pip"]
+
             self.mkdir_p(dirs["abs_work_dir"])
             self.run_command(
-                [sys.executable, "-m", "venv", "--without-pip", venv_path],
+                [sys.executable] + venv_creation_flags,
                 cwd=dirs["abs_work_dir"],
                 error_list=VirtualenvErrorList,
                 halt_on_failure=True,
             )
+
+            if self._is_windows():
+                self.run_command(
+                    [str(venv_python_bin), "-m", "ensurepip", "--default-pip"],
+                    cwd=dirs["abs_work_dir"],
+                    halt_on_failure=True,
+                )
 
             self._ensure_python_exe(venv_python_bin.parent)
 
@@ -558,16 +561,11 @@ class VirtualenvMixin(object):
                     new_venv_config = Path(venv_path) / "pyvenv.cfg"
                     shutil.copyfile(str(this_venv_config), str(new_venv_config))
 
-            # Since we didn't install pip, we can use the pip wheel directly
-            # to install pip itself, and setuptools afterwards. Doing this "self
-            # install" is faster than letting venv install the bundled pip only
-            # to uninstall it when it installs this vendored pip wheel. We set the
-            pip_path = pip_wheel_path / "pip"
-
             self.run_command(
                 [
                     str(venv_python_bin),
-                    str(pip_path),
+                    "-m",
+                    "pip",
                     "install",
                     "--only-binary",
                     ":all:",
@@ -628,8 +626,6 @@ class VirtualenvMixin(object):
                 module_url = self.config.get("%s_url" % module, module_url)
                 module_name = module
             install_method = "pip"
-            if module_name in ("pywin32",):
-                install_method = "easy_install"
             self.install_module(
                 module=module_name,
                 module_url=module_url,

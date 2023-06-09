@@ -4,7 +4,6 @@
 
 import { PROMISE } from "../utils/middleware/promise";
 import {
-  getSource,
   getSourceTextContent,
   getSettledSourceTextContent,
   getGeneratedSource,
@@ -22,7 +21,7 @@ import { isPretty } from "../../utils/source";
 import { createLocation } from "../../utils/location";
 import { memoizeableAction } from "../../utils/memoizableAction";
 
-async function loadGeneratedSource(state, sourceActor, client) {
+async function loadGeneratedSource(sourceActor, { client }) {
   // If no source actor can be found then the text for the
   // source cannot be loaded.
   if (!sourceActor) {
@@ -43,22 +42,19 @@ async function loadGeneratedSource(state, sourceActor, client) {
 }
 
 async function loadOriginalSource(
-  state,
   source,
-  client,
-  sourceMapLoader,
-  prettyPrintWorker
+  { getState, client, sourceMapLoader, prettyPrintWorker }
 ) {
   if (isPretty(source)) {
-    const generatedSource = getGeneratedSource(state, source);
+    const generatedSource = getGeneratedSource(getState(), source);
     if (!generatedSource) {
       throw new Error("Unable to find minified original.");
     }
 
     const content = getSettledSourceTextContent(
-      state,
+      getState(),
       createLocation({
-        sourceId: generatedSource.id,
+        source: generatedSource,
       })
     );
 
@@ -67,7 +63,7 @@ async function loadOriginalSource(
       prettyPrintWorker,
       generatedSource,
       content,
-      getSourceActorsForSource(state, generatedSource.id)
+      getSourceActorsForSource(getState(), generatedSource.id)
     );
   }
 
@@ -82,98 +78,83 @@ async function loadOriginalSource(
   return result;
 }
 
-async function loadGeneratedSourceTextPromise(
-  cx,
-  sourceActor,
-  { dispatch, getState, client, parserWorker }
-) {
+async function loadGeneratedSourceTextPromise(cx, sourceActor, thunkArgs) {
+  const { dispatch, getState } = thunkArgs;
   const epoch = getSourcesEpoch(getState());
 
   await dispatch({
     type: "LOAD_GENERATED_SOURCE_TEXT",
     sourceActorId: sourceActor.actor,
     epoch,
-    [PROMISE]: loadGeneratedSource(getState(), sourceActor, client),
+    [PROMISE]: loadGeneratedSource(sourceActor, thunkArgs),
   });
 
-  await setParserAndBreakpointsTextContent(
+  await onSourceTextContentAvailable(
     cx,
-    sourceActor.source,
-    sourceActor.actor,
-    {
-      state: getState(),
-      parserWorker,
-      dispatch,
-    }
+    sourceActor.sourceObject,
+    sourceActor,
+    thunkArgs
   );
 }
 
-async function loadOriginalSourceTextPromise(
-  cx,
-  source,
-  {
-    dispatch,
-    getState,
-    client,
-    sourceMapLoader,
-    parserWorker,
-    prettyPrintWorker,
-  }
-) {
+async function loadOriginalSourceTextPromise(cx, source, thunkArgs) {
+  const { dispatch, getState } = thunkArgs;
   const epoch = getSourcesEpoch(getState());
   await dispatch({
     type: "LOAD_ORIGINAL_SOURCE_TEXT",
     sourceId: source.id,
     epoch,
-    [PROMISE]: loadOriginalSource(
-      getState(),
-      source,
-      client,
-      sourceMapLoader,
-      prettyPrintWorker
-    ),
+    [PROMISE]: loadOriginalSource(source, thunkArgs),
   });
 
-  await setParserAndBreakpointsTextContent(cx, source.id, null, {
-    state: getState(),
-    parserWorker,
-    dispatch,
-  });
+  await onSourceTextContentAvailable(cx, source, null, thunkArgs);
 }
 
-async function setParserAndBreakpointsTextContent(
+/**
+ * Function called everytime a new original or generated source gets its text content
+ * fetched from the server and registered in the reducer.
+ *
+ * @param {Object} cx
+ * @param {Object} source
+ * @param {Object} sourceActor (optional)
+ *        If this is a generated source, we expect a precise source actor.
+ * @param {Object} thunkArgs
+ */
+async function onSourceTextContentAvailable(
   cx,
-  sourceId,
-  sourceActorId,
-  { dispatch, state, parserWorker }
+  source,
+  sourceActor,
+  { dispatch, getState, parserWorker }
 ) {
-  const source = getSource(state, sourceId);
-
-  if (!source) {
+  const location = createLocation({
+    source,
+    sourceActor,
+  });
+  const content = getSettledSourceTextContent(getState(), location);
+  if (!content) {
     return;
   }
 
-  const content = getSettledSourceTextContent(
-    state,
-    createLocation({
-      sourceId: source.id,
-      sourceActorId,
-    })
-  );
-
-  if (!source.isWasm && content) {
+  if (parserWorker.isLocationSupported(location)) {
     parserWorker.setSource(
       source.id,
       isFulfilled(content)
         ? content.value
         : { type: "text", value: "", contentType: undefined }
     );
+  }
 
-    // Update the text in any breakpoints for this source by re-adding them.
-    const breakpoints = getBreakpointsForSource(state, source.id);
-    for (const { location, options, disabled } of breakpoints) {
-      await dispatch(addBreakpoint(cx, location, options, disabled));
-    }
+  // Update the text in any breakpoints for this source by re-adding them.
+  const breakpoints = getBreakpointsForSource(getState(), source.id);
+  for (const breakpoint of breakpoints) {
+    await dispatch(
+      addBreakpoint(
+        cx,
+        breakpoint.location,
+        breakpoint.options,
+        breakpoint.disabled
+      )
+    );
   }
 }
 
@@ -196,8 +177,8 @@ export const loadGeneratedSourceText = memoizeableAction(
       const sourceTextContent = getSourceTextContent(
         getState(),
         createLocation({
-          sourceId: sourceActor.source,
-          sourceActorId: sourceActor.actor,
+          source: sourceActor.sourceObject,
+          sourceActor,
         })
       );
 
@@ -235,7 +216,7 @@ export const loadOriginalSourceText = memoizeableAction(
       const sourceTextContent = getSourceTextContent(
         getState(),
         createLocation({
-          sourceId: source.id,
+          source,
         })
       );
       if (!sourceTextContent || sourceTextContent.state === "pending") {

@@ -38,6 +38,7 @@ pth:testing/mozbase/mozprocess
 pth:testing/mozbase/mozprofile
 pth:testing/mozbase/mozproxy
 pth:testing/mozbase/mozrunner
+pth:testing/mozbase/mozserve
 pth:testing/mozbase/mozsystemmonitor
 pth:testing/mozbase/mozscreenshot
 pth:testing/mozbase/moztest
@@ -77,11 +78,11 @@ vendored:third_party/python/esprima
 vendored:third_party/python/fluent.migrate
 vendored:third_party/python/fluent.syntax
 vendored:third_party/python/giturlparse
+vendored:third_party/python/glean_parser
 vendored:third_party/python/gyp/pylib
 vendored:third_party/python/idna
-vendored:third_party/python/idna-ssl
 vendored:third_party/python/importlib_metadata
-vendored:third_party/python/iso8601
+vendored:third_party/python/importlib_resources
 vendored:third_party/python/Jinja2
 vendored:third_party/python/jinxed
 vendored:third_party/python/jsmin
@@ -97,6 +98,7 @@ vendored:third_party/python/packaging
 vendored:third_party/python/pathspec
 vendored:third_party/python/pip
 vendored:third_party/python/pip_tools
+vendored:third_party/python/pkgutil_resolve_name
 vendored:third_party/python/ply
 vendored:third_party/python/pyasn1
 vendored:third_party/python/pyasn1_modules
@@ -136,7 +138,7 @@ pth:xpcom/geckoprocesstypes_generator
 pth:xpcom/idl-parser
 # glean-sdk may not be installable if a wheel isn't available
 # and it has to be built from source.
-pypi-optional:glean-sdk==51.8.2:telemetry will not be collected
+pypi-optional:glean-sdk==52.7.0:telemetry will not be collected
 # Mach gracefully handles the case where `psutil` is unavailable.
 # We aren't (yet) able to pin packages in automation, so we have to
 # support down to the oldest locally-installed version (5.4.2).

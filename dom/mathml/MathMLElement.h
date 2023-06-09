@@ -35,16 +35,15 @@ class MathMLElement final : public MathMLElementBase,
   NS_IMPL_FROMNODE(MathMLElement, kNameSpaceID_MathML)
 
   nsresult BindToTree(BindContext&, nsINode& aParent) override;
-  virtual void UnbindFromTree(bool aNullParent = true) override;
+  void UnbindFromTree(bool aNullParent = true) override;
 
-  virtual bool ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
-                              const nsAString& aValue,
-                              nsIPrincipal* aMaybeScriptedPrincipal,
-                              nsAttrValue& aResult) override;
+  bool ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
+                      const nsAString& aValue,
+                      nsIPrincipal* aMaybeScriptedPrincipal,
+                      nsAttrValue& aResult) override;
 
   NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* aAttribute) const override;
-  virtual nsMapRuleToAttributesFunc GetAttributeMappingFunction()
-      const override;
+  nsMapRuleToAttributesFunc GetAttributeMappingFunction() const override;
 
   enum {
     PARSE_ALLOW_NEGATIVE = 0x02,
@@ -64,8 +63,7 @@ class MathMLElement final : public MathMLElementBase,
   MOZ_CAN_RUN_SCRIPT
   nsresult PostHandleEvent(mozilla::EventChainPostVisitor& aVisitor) override;
   nsresult Clone(mozilla::dom::NodeInfo*, nsINode** aResult) const override;
-  virtual mozilla::dom::ElementState IntrinsicState() const override;
-  virtual bool IsNodeOfType(uint32_t aFlags) const override;
+  mozilla::dom::ElementState IntrinsicState() const override;
 
   // Set during reflow as necessary. Does a style change notification,
   // aNotify must be true.
@@ -96,16 +94,13 @@ class MathMLElement final : public MathMLElementBase,
  protected:
   virtual ~MathMLElement() = default;
 
-  virtual JSObject* WrapNode(JSContext* aCx,
-                             JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapNode(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
 
-  nsresult BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
-                         const nsAttrValueOrString* aValue, bool aNotify) final;
-  virtual nsresult AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
-                                const nsAttrValue* aValue,
-                                const nsAttrValue* aOldValue,
-                                nsIPrincipal* aSubjectPrincipal,
-                                bool aNotify) override;
+  void BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
+                     const nsAttrValue* aValue, bool aNotify) final;
+  void AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                    const nsAttrValue* aValue, const nsAttrValue* aOldValue,
+                    nsIPrincipal* aSubjectPrincipal, bool aNotify) override;
 
  private:
   bool mIncrementScriptLevel;

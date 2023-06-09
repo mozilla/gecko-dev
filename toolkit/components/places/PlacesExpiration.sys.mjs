@@ -120,22 +120,29 @@ const ACTION = {
 const EXPIRATION_QUERIES = {
   // Some visits can be expired more often than others, cause they are less
   // useful to the user and can pollute awesomebar results:
-  // 1. visits to urls over 255 chars
+  // 1. urls over 255 chars having only one visit
   // 2. downloads
+  // 3. non-typed hidden single-visit urls
   // We never expire redirect targets, because they are currently necessary to
   // recognize redirect sources (see Bug 468710 for better options).
-  // Note: due to the REPLACE option, this should be executed before
-  // QUERY_FIND_VISITS_TO_EXPIRE, that has a more complete result.
   QUERY_FIND_EXOTIC_VISITS_TO_EXPIRE: {
     sql: `INSERT INTO expiration_notify (v_id, url, guid, visit_date, reason)
-          SELECT v.id, h.url, h.guid, v.visit_date, "exotic"
-          FROM moz_historyvisits v
-          JOIN moz_places h ON h.id = v.place_id
-          WHERE visit_date < strftime('%s','now','localtime','start of day','-60 days','utc') * 1000000
-          AND visit_type NOT IN (5,6)
-          AND ( LENGTH(h.url) > 255 OR v.visit_type = 7 )
-          ORDER BY v.visit_date ASC
-          LIMIT :limit_visits`,
+      WITH visits AS (
+        SELECT v.id, url, guid, visit_type, visit_date, visit_count, hidden, typed
+        FROM moz_historyvisits v
+        JOIN moz_places h ON h.id = v.place_id
+        WHERE visit_date < strftime('%s','now','localtime','start of day','-90 days','utc') * 1000000
+        AND visit_type NOT IN (5,6)
+      )
+      SELECT id, url, guid, visit_date, "exotic"
+      FROM visits
+      WHERE (hidden = 1 AND typed = 0 AND visit_count <= 1) OR visit_type = 7
+      UNION ALL
+      SELECT id, url, guid, visit_date, "exotic"
+      FROM visits
+      WHERE visit_count = 1 AND LENGTH(url) > 255
+      ORDER BY visit_date ASC
+      LIMIT :limit_visits`,
     actions:
       ACTION.TIMED_OVERLIMIT |
       ACTION.IDLE_DIRTY |
@@ -229,42 +236,34 @@ const EXPIRATION_QUERIES = {
       ACTION.DEBUG,
   },
 
-  // Expire old favicons for:
-  //  - urls that permanently redirect.
-  //  - urls with ref, when the origin has a root favicon that can be used as
-  //    a fallback.
-  // This deletes pages instead of icons, because icons may be referenced by
-  // multiple pages. The moz_pages_to_icons entries are removed by the table's
-  // FOREIGN KEY, while orphan icons are removed by one of the next queries.
+  // Expire from favicons any page that has only relations older than 180 days,
+  // if the page is not bookmarked, and we have a root icon that can be used
+  // as a placeholder until the page is visited again.
+  // The moz_pages_to_icons entries are removed by the table's FOREIGN KEY,
+  // while orphan icons are removed by the following queries.
   QUERY_EXPIRE_OLD_FAVICONS: {
-    sql: `DELETE FROM moz_pages_w_icons WHERE id IN (
-            SELECT DISTINCT page_id FROM moz_icons i
-            JOIN moz_icons_to_pages ON icon_id = i.id
-            JOIN moz_pages_w_icons p ON page_id = p.id
-            JOIN moz_places h ON h.url_hash = page_url_hash
-            JOIN moz_origins o ON o.id = h.origin_id
-            WHERE root = 0
-              AND h.foreign_count = 0
-              AND i.expire_ms BETWEEN 1 AND strftime('%s','now','localtime','start of day','-180 days','utc') * 1000
-              AND (
-              h.id IN (
-                SELECT v.place_id
-                FROM moz_historyvisits v
-                JOIN moz_historyvisits v_dest on v_dest.from_visit = v.id
-                WHERE v_dest.visit_type = 5
-              )
-              OR (
-                INSTR(page_url, '#') >= 0
-                AND EXISTS(SELECT id FROM moz_icons WHERE root = 1 AND fixed_icon_url_hash = hash(fixup_url(o.host) || '/favicon.ico'))
-              )
-            )
-            LIMIT 100
-          )`,
-    actions:
-      ACTION.SHUTDOWN_DIRTY |
-      ACTION.IDLE_DIRTY |
-      ACTION.IDLE_DAILY |
-      ACTION.DEBUG,
+    sql: `
+    DELETE FROM moz_pages_w_icons WHERE id IN (
+      WITH pages_with_old_relations (page_id, page_url_hash) AS (
+        SELECT page_id, page_url_hash
+        FROM moz_icons_to_pages ip
+        JOIN moz_pages_w_icons p ON p.id = page_id
+        GROUP BY page_id
+        HAVING max(expire_ms) < strftime('%s','now','localtime','start of day','-180 days','utc') * 1000
+      )
+      SELECT page_id
+      FROM pages_with_old_relations
+      JOIN moz_places h ON h.url_hash = page_url_hash
+      JOIN moz_origins o ON h.origin_id = o.id
+      WHERE foreign_count = 0
+      AND EXISTS (
+        SELECT 1 FROM moz_icons
+        WHERE root = 1
+          AND fixed_icon_url_hash = hash(fixup_url(o.host) || '/favicon.ico')
+      )
+      LIMIT 100
+    )`,
+    actions: ACTION.IDLE_DIRTY | ACTION.IDLE_DAILY | ACTION.DEBUG,
   },
 
   // Expire orphan pages from the icons database.
@@ -309,34 +308,6 @@ const EXPIRATION_QUERIES = {
     actions:
       ACTION.TIMED |
       ACTION.TIMED_OVERLIMIT |
-      ACTION.SHUTDOWN_DIRTY |
-      ACTION.IDLE_DIRTY |
-      ACTION.IDLE_DAILY |
-      ACTION.DEBUG,
-  },
-
-  // Expire item annos without a corresponding item id.
-  QUERY_EXPIRE_ITEMS_ANNOS: {
-    sql: `DELETE FROM moz_items_annos WHERE id IN (
-            SELECT a.id FROM moz_items_annos a
-            LEFT JOIN moz_bookmarks b ON a.item_id = b.id
-            WHERE b.id IS NULL
-            LIMIT :limit_annos
-          )`,
-    actions: ACTION.IDLE_DAILY | ACTION.DEBUG,
-  },
-
-  // Expire all annotation names without a corresponding annotation.
-  QUERY_EXPIRE_ANNO_ATTRIBUTES: {
-    sql: `DELETE FROM moz_anno_attributes WHERE id IN (
-            SELECT n.id FROM moz_anno_attributes n
-            LEFT JOIN moz_annos a ON n.id = a.anno_attribute_id
-            LEFT JOIN moz_items_annos t ON n.id = t.anno_attribute_id
-            WHERE a.anno_attribute_id IS NULL
-              AND t.anno_attribute_id IS NULL
-            LIMIT :limit_annos
-          )`,
-    actions:
       ACTION.SHUTDOWN_DIRTY |
       ACTION.IDLE_DIRTY |
       ACTION.IDLE_DAILY |
@@ -412,6 +383,7 @@ const EXPIRATION_QUERIES = {
       );
     },
     actions:
+      ACTION.TIMED_OVERLIMIT |
       ACTION.SHUTDOWN_DIRTY |
       ACTION.IDLE_DIRTY |
       ACTION.IDLE_DAILY |
@@ -485,7 +457,7 @@ export function nsPlacesExpiration() {
       // Expire daily on idle.
       Services.obs.addObserver(this, TOPIC_IDLE_DAILY, true);
     })
-    .catch(Cu.reportError);
+    .catch(console.error);
 
   // Block shutdown.
   let shutdownClient =
@@ -503,7 +475,7 @@ export function nsPlacesExpiration() {
     // If the database is dirty, we want to expire some entries, to speed up
     // the expiration process.
     if (this.status == STATUS.DIRTY) {
-      this._expire(ACTION.SHUTDOWN_DIRTY, LIMIT.LARGE).catch(Cu.reportError);
+      this._expire(ACTION.SHUTDOWN_DIRTY, LIMIT.LARGE).catch(console.error);
     }
   });
 }
@@ -522,19 +494,19 @@ nsPlacesExpiration.prototype = {
         // Everything should be expired without any limit.  If history is over
         // capacity then all existing visits will be expired.
         // Should only be used in tests, since may cause dataloss.
-        this._expire(ACTION.DEBUG, LIMIT.UNLIMITED).catch(Cu.reportError);
+        this._expire(ACTION.DEBUG, LIMIT.UNLIMITED).catch(console.error);
       } else if (limit > 0) {
         // The number of expired visits is limited by this amount.  It may be
         // used for testing purposes, like checking that limited queries work.
         this._debugLimit = limit;
-        this._expire(ACTION.DEBUG, LIMIT.DEBUG).catch(Cu.reportError);
+        this._expire(ACTION.DEBUG, LIMIT.DEBUG).catch(console.error);
       } else {
         // Any other value is intended as a 0 limit, that means no visits
         // will be expired.  Even if this doesn't touch visits, it will remove
         // any orphan pages, icons, annotations and similar from the database,
         // so it may be used for cleanup purposes.
         this._debugLimit = -1;
-        this._expire(ACTION.DEBUG, LIMIT.DEBUG).catch(Cu.reportError);
+        this._expire(ACTION.DEBUG, LIMIT.DEBUG).catch(console.error);
       }
     } else if (aTopic == TOPIC_IDLE_BEGIN) {
       // Stop the expiration timer.  We don't want to keep up expiring on idle
@@ -544,7 +516,7 @@ nsPlacesExpiration.prototype = {
         this._timer = null;
       }
       if (this.expireOnIdle) {
-        this._expire(ACTION.IDLE_DIRTY, LIMIT.LARGE).catch(Cu.reportError);
+        this._expire(ACTION.IDLE_DIRTY, LIMIT.LARGE).catch(console.error);
       }
     } else if (aTopic == TOPIC_IDLE_END) {
       // Restart the expiration timer.
@@ -552,7 +524,7 @@ nsPlacesExpiration.prototype = {
         this._newTimer();
       }
     } else if (aTopic == TOPIC_IDLE_DAILY) {
-      this._expire(ACTION.IDLE_DAILY, LIMIT.LARGE).catch(Cu.reportError);
+      this._expire(ACTION.IDLE_DAILY, LIMIT.LARGE).catch(console.error);
     } else if (aTopic == TOPIC_TESTING_MODE) {
       this._testingMode = true;
     } else if (aTopic == lazy.PlacesUtils.TOPIC_INIT_COMPLETE) {
@@ -565,6 +537,10 @@ nsPlacesExpiration.prototype = {
       PlacesObservers.addListener(["history-cleared"], placesObserver);
     }
   },
+
+  // nsINamed
+
+  name: "nsPlacesExpiration",
 
   // nsITimerCallback
 
@@ -582,11 +558,11 @@ nsPlacesExpiration.prototype = {
       // Adapt expiration aggressivity to the number of pages over the limit.
       let limit =
         overLimitPages > OVERLIMIT_PAGES_THRESHOLD ? LIMIT.LARGE : LIMIT.SMALL;
-      this._expire(action, limit).catch(Cu.reportError);
+      this._expire(action, limit).catch(console.error);
     }, 300000);
   },
 
-  _onQueryResult(row) {
+  _handleQueryResultAndAddNotification(row, notifications) {
     // We don't want to notify after shutdown.
     if (this._shuttingDown) {
       return;
@@ -628,15 +604,15 @@ nsPlacesExpiration.prototype = {
 
     // Dispatch expiration notifications to history.
     const isRemovedFromStore = !!wholeEntry;
-    PlacesObservers.notifyListeners([
+    notifications.push(
       new PlacesVisitRemoved({
         url: uri.spec,
         pageGuid: guid,
         reason: PlacesVisitRemoved.REASON_EXPIRED,
         isRemovedFromStore,
         isPartialVisistsRemoval: !isRemovedFromStore && visitDate > 0,
-      }),
-    ]);
+      })
+    );
   },
 
   _shuttingDown: false,
@@ -779,6 +755,7 @@ nsPlacesExpiration.prototype = {
     await this._dbInitializedPromise;
 
     try {
+      let notifications = [];
       await lazy.PlacesUtils.withConnectionWrapper(
         "PlacesExpiration.jsm: expire",
         async db => {
@@ -791,16 +768,17 @@ nsPlacesExpiration.prototype = {
                   aLimit,
                   aAction
                 );
-                await db.executeCached(
-                  query.sql,
-                  params,
-                  this._onQueryResult.bind(this)
-                );
+                await db.executeCached(query.sql, params, row => {
+                  this._handleQueryResultAndAddNotification(row, notifications);
+                });
               }
             }
           });
         }
       );
+      if (notifications.length) {
+        PlacesObservers.notifyListeners(notifications);
+      }
     } catch (ex) {
       console.error(ex);
       return;
@@ -915,14 +893,6 @@ nsPlacesExpiration.prototype = {
           // Each page may have multiple annos.
           limit_annos: baseLimit * EXPIRE_AGGRESSIVITY_MULTIPLIER,
         };
-      case "QUERY_EXPIRE_ITEMS_ANNOS":
-        return {
-          limit_annos: baseLimit,
-        };
-      case "QUERY_EXPIRE_ANNO_ATTRIBUTES":
-        return {
-          limit_annos: baseLimit,
-        };
       case "QUERY_EXPIRE_INPUTHISTORY":
         return {
           limit_inputhistory: baseLimit,
@@ -952,6 +922,12 @@ nsPlacesExpiration.prototype = {
     if (this._shuttingDown) {
       return undefined;
     }
+
+    if (!this._isIdleObserver) {
+      this._idle.addIdleObserver(this, IDLE_TIMEOUT_SECONDS);
+      this._isIdleObserver = true;
+    }
+
     let interval =
       this.status != STATUS.DIRTY
         ? this.intervalSeconds * EXPIRE_AGGRESSIVITY_MULTIPLIER
@@ -972,8 +948,9 @@ nsPlacesExpiration.prototype = {
   classID: Components.ID("705a423f-2f69-42f3-b9fe-1517e0dee56f"),
 
   QueryInterface: ChromeUtils.generateQI([
+    "nsINamed",
     "nsIObserver",
-    "nsITimerCallback",
     "nsISupportsWeakReference",
+    "nsITimerCallback",
   ]),
 };

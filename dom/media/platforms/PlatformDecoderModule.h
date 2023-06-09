@@ -446,7 +446,7 @@ class MediaDataDecoder : public DecoderDoctorLifeLogger<MediaDataDecoder> {
       DecodePromise;
   typedef MozPromise<bool, MediaResult, /* IsExclusive = */ true> FlushPromise;
 
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaDataDecoder)
+  NS_INLINE_DECL_PURE_VIRTUAL_REFCOUNTING
 
   // Initialize the decoder. The decoder should be ready to decode once
   // the promise resolves. The decoder should do any initialization here, rather
@@ -522,6 +522,11 @@ class MediaDataDecoder : public DecoderDoctorLifeLogger<MediaDataDecoder> {
   // Return the name of the MediaDataDecoder, only used for decoding.
   // May be accessed in a non thread-safe fashion.
   virtual nsCString GetDescriptionName() const = 0;
+
+  virtual nsCString GetProcessName() const {
+    return nsCString(XRE_GetProcessTypeString());
+  };
+  virtual nsCString GetCodecName() const = 0;
 
   // Set a hint of seek target time to decoder. Decoder will drop any decoded
   // data which pts is smaller than this value. This threshold needs to be clear

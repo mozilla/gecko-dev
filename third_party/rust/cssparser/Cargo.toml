@@ -11,8 +11,9 @@
 
 [package]
 edition = "2018"
+rust-version = "1.63"
 name = "cssparser"
-version = "0.29.6"
+version = "0.31.0"
 authors = ["Simon Sapin <simon.sapin@exyr.org>"]
 build = "build.rs"
 exclude = [
@@ -39,11 +40,8 @@ version = "0.3"
 [dependencies.itoa]
 version = "1.0"
 
-[dependencies.matches]
-version = "0.1"
-
 [dependencies.phf]
-version = ">=0.8,<=0.10"
+version = ">=0.8,<=0.11"
 features = ["macros"]
 
 [dependencies.serde]

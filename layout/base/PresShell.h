@@ -241,7 +241,7 @@ class PresShell final : public nsStubDocumentObserver,
     return mLastOverWindowPointerLocation;
   }
 
-  void Init(nsPresContext*, nsViewManager*);
+  MOZ_CAN_RUN_SCRIPT void Init(nsPresContext*, nsViewManager*);
 
   /**
    * All callers are responsible for calling |Destroy| after calling
@@ -355,6 +355,7 @@ class PresShell final : public nsStubDocumentObserver,
   MOZ_CAN_RUN_SCRIPT bool ResizeReflowIgnoreOverride(
       nscoord aWidth, nscoord aHeight,
       ResizeReflowOptions = ResizeReflowOptions::NoOption);
+  MOZ_CAN_RUN_SCRIPT void ForceResizeReflowWithCurrentDimensions();
 
   /**
    * Add this pres shell to the refresh driver to be observed for resize
@@ -396,7 +397,8 @@ class PresShell final : public nsStubDocumentObserver,
    * Note that the assumptions that determine whether we need a mobile viewport
    * manager may have changed.
    */
-  void MaybeRecreateMobileViewportManager(bool aAfterInitialization);
+  MOZ_CAN_RUN_SCRIPT void MaybeRecreateMobileViewportManager(
+      bool aAfterInitialization);
 
   /**
    * Returns true if this document uses mobile viewport sizing (including
@@ -588,7 +590,7 @@ class PresShell final : public nsStubDocumentObserver,
    * be rendered to, but is suitable for measuring text and performing
    * other non-rendering operations. Guaranteed to return non-null.
    */
-  already_AddRefed<gfxContext> CreateReferenceRenderingContext();
+  mozilla::UniquePtr<gfxContext> CreateReferenceRenderingContext();
 
   /**
    * Scrolls the view of the document so that the given area of a frame
@@ -1239,7 +1241,12 @@ class PresShell final : public nsStubDocumentObserver,
     return mObservingLayoutFlushes || mReflowContinueTimer;
   }
 
-  void SyncWindowProperties(nsView* aView);
+  void SyncWindowProperties(bool aSync);
+  struct WindowSizeConstraints {
+    nsSize mMinSize;
+    nsSize mMaxSize;
+  };
+  WindowSizeConstraints GetWindowSizeConstraints();
 
   Document* GetPrimaryContentDocument();
 
@@ -1784,11 +1791,11 @@ class PresShell final : public nsStubDocumentObserver,
   bool DetermineFontSizeInflationState();
 
   void RecordAlloc(void* aPtr) {
-#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
+#ifdef DEBUG
     if (!mAllocatedPointers) {
       return;  // Hash set was presumably freed to avert OOM.
     }
-    MOZ_DIAGNOSTIC_ASSERT(!mAllocatedPointers->Contains(aPtr));
+    MOZ_ASSERT(!mAllocatedPointers->Contains(aPtr));
     if (!mAllocatedPointers->Insert(aPtr, fallible)) {
       // Yikes! We're nearly out of memory, and this insertion would've pushed
       // us over the ledge. At this point, we discard & stop using this set,
@@ -1800,11 +1807,11 @@ class PresShell final : public nsStubDocumentObserver,
   }
 
   void RecordFree(void* aPtr) {
-#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
+#ifdef DEBUG
     if (!mAllocatedPointers) {
       return;  // Hash set was presumably freed to avert OOM.
     }
-    MOZ_DIAGNOSTIC_ASSERT(mAllocatedPointers->Contains(aPtr));
+    MOZ_ASSERT(mAllocatedPointers->Contains(aPtr));
     mAllocatedPointers->Remove(aPtr);
 #endif
   }
@@ -2201,6 +2208,16 @@ class PresShell final : public nsStubDocumentObserver,
        *                        this method does nothing.
        */
       void UpdateTouchEventTarget(WidgetGUIEvent* aGUIEvent);
+
+      /**
+       * UpdateWheelEventTarget() updates mFrame, mPresShell, and mContent if
+       * aGUIEvent is a wheel event and aGUIEvent should be grouped with prior
+       * wheel events.
+       *
+       * @param aGUIEvent       The handled event.  If it's not a wheel event,
+       *                        this method does nothing.
+       */
+      void UpdateWheelEventTarget(WidgetGUIEvent* aGUIEvent);
 
       RefPtr<PresShell> mPresShell;
       nsIFrame* mFrame = nullptr;
@@ -2903,7 +2920,7 @@ class PresShell final : public nsStubDocumentObserver,
   // moving/sizing loop is running, see bug 491700 for details.
   nsCOMPtr<nsITimer> mReflowContinueTimer;
 
-#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
+#ifdef DEBUG
   // We track allocated pointers in a diagnostic hash set, to assert against
   // missing/double frees. This set is allocated infallibly in the PresShell
   // constructor's initialization list. The set can get quite large, so we use
@@ -2911,7 +2928,8 @@ class PresShell final : public nsStubDocumentObserver,
   // fail, then we just get rid of the set and stop using this diagnostic from
   // that point on.  (There's not much else we can do, when the set grows
   // larger than the available memory.)
-  UniquePtr<nsTHashSet<void*>> mAllocatedPointers;
+  UniquePtr<nsTHashSet<void*>> mAllocatedPointers{
+      MakeUnique<nsTHashSet<void*>>()};
 #endif
 
   // A list of stack weak frames. This is a pointer to the last item in the

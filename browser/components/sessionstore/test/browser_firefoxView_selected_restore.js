@@ -4,7 +4,9 @@
 const { _LastSession } = ChromeUtils.importESModule(
   "resource:///modules/sessionstore/SessionStore.sys.mjs"
 );
-const { sinon } = ChromeUtils.import("resource://testing-common/Sinon.jsm");
+const { sinon } = ChromeUtils.importESModule(
+  "resource://testing-common/Sinon.sys.mjs"
+);
 
 const state = {
   windows: [
@@ -23,29 +25,6 @@ const state = {
     },
   ],
 };
-
-/**
- * This is regrettable, but when `promiseBrowserState` resolves, we're still
- * midway through loading the tabs. To avoid race conditions in URLs for tabs
- * being available, wait for all the loads to finish:
- */
-function promiseSessionStoreLoads(numberOfLoads) {
-  let loadsSeen = 0;
-  return new Promise(resolve => {
-    Services.obs.addObserver(function obs(browser) {
-      loadsSeen++;
-      if (loadsSeen == numberOfLoads) {
-        resolve();
-      }
-      // The typeof check is here to avoid one test messing with everything else by
-      // keeping the observer indefinitely.
-      if (typeof info == "undefined" || loadsSeen >= numberOfLoads) {
-        Services.obs.removeObserver(obs, "sessionstore-debug-tab-restored");
-      }
-      info("Saw load for " + browser.currentURI.spec);
-    }, "sessionstore-debug-tab-restored");
-  });
-}
 
 add_task(async function test_firefox_view_selected_tab() {
   let fxViewBtn = document.getElementById("firefox-view-button");

@@ -38,22 +38,22 @@ namespace js {
   MOZ_ASSERT(shape->numFixedSlots() == 0);
 
   size_t nDynamicSlots = calculateDynamicSlots(0, slotSpan, clasp);
-  ArrayObject* aobj =
-      cx->newCell<ArrayObject>(kind, nDynamicSlots, heap, clasp, site);
+  ArrayObject* aobj = cx->newCell<ArrayObject>(kind, heap, clasp, site);
   if (!aobj) {
     return nullptr;
   }
 
   aobj->initShape(shape);
-  // NOTE: Dynamic slots are created internally by Allocate<JSObject>.
+  aobj->initFixedElements(kind, length);
+
   if (!nDynamicSlots) {
     aobj->initEmptyDynamicSlots();
+  } else if (!aobj->allocateInitialSlots(cx, nDynamicSlots)) {
+    return nullptr;
   }
 
   MOZ_ASSERT(clasp->shouldDelayMetadataBuilder());
-  cx->realm()->setObjectPendingMetadata(cx, aobj);
-
-  aobj->initFixedElements(kind, length);
+  cx->realm()->setObjectPendingMetadata(aobj);
 
   if (slotSpan > 0) {
     aobj->initDynamicSlots(slotSpan);
@@ -61,6 +61,25 @@ namespace js {
 
   gc::gcprobes::CreateObject(aobj);
   return aobj;
+}
+
+inline DenseElementResult ArrayObject::addDenseElementNoLengthChange(
+    JSContext* cx, uint32_t index, const Value& val) {
+  MOZ_ASSERT(isExtensible());
+
+  // Only support the `index < length` case so that we don't have to increase
+  // the array's .length value below.
+  if (index >= length() || containsDenseElement(index) || isIndexed()) {
+    return DenseElementResult::Incomplete;
+  }
+
+  DenseElementResult res = ensureDenseElements(cx, index, 1);
+  if (MOZ_UNLIKELY(res != DenseElementResult::Success)) {
+    return res;
+  }
+
+  initDenseElement(index, val);
+  return DenseElementResult::Success;
 }
 
 }  // namespace js

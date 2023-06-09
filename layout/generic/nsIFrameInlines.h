@@ -8,16 +8,12 @@
 #define nsIFrameInlines_h___
 
 #include "mozilla/dom/ElementInlines.h"
+#include "mozilla/ComputedStyleInlines.h"
 #include "nsContainerFrame.h"
 #include "nsLayoutUtils.h"
 #include "nsPlaceholderFrame.h"
-#include "nsStyleStructInlines.h"
 #include "nsCSSAnonBoxes.h"
 #include "nsFrameManager.h"
-
-bool nsIFrame::IsSVGGeometryFrameOrSubclass() const {
-  return IsSVGGeometryFrame() || IsSVGImageFrame();
-}
 
 bool nsIFrame::IsFlexItem() const {
   return GetParent() && GetParent()->IsFlexContainerFrame() &&
@@ -57,11 +53,11 @@ bool nsIFrame::IsFloating() const {
 }
 
 bool nsIFrame::IsAbsPosContainingBlock() const {
-  return StyleDisplay()->IsAbsPosContainingBlock(this);
+  return Style()->IsAbsPosContainingBlock(this);
 }
 
 bool nsIFrame::IsFixedPosContainingBlock() const {
-  return StyleDisplay()->IsFixedPosContainingBlock(this);
+  return Style()->IsFixedPosContainingBlock(this);
 }
 
 bool nsIFrame::IsRelativelyOrStickyPositioned() const {
@@ -115,94 +111,6 @@ bool nsIFrame::IsColumnSpanInMulticolSubtree() const {
 
 mozilla::StyleDisplay nsIFrame::GetDisplay() const {
   return StyleDisplay()->GetDisplay(this);
-}
-
-nscoord nsIFrame::SynthesizeBaselineBOffsetFromMarginBox(
-    mozilla::WritingMode aWM, BaselineSharingGroup aGroup) const {
-  MOZ_ASSERT(!aWM.IsOrthogonalTo(GetWritingMode()));
-  auto margin = GetLogicalUsedMargin(aWM);
-  if (aGroup == BaselineSharingGroup::First) {
-    if (aWM.IsAlphabeticalBaseline()) {
-      // First baseline for inverted-line content is the block-start margin
-      // edge, as the frame is in effect "flipped" for alignment purposes.
-      return MOZ_UNLIKELY(aWM.IsLineInverted()) ? -margin.BStart(aWM)
-                                                : BSize(aWM) + margin.BEnd(aWM);
-    }
-    nscoord marginBoxCenter = (BSize(aWM) + margin.BStartEnd(aWM)) / 2;
-    return marginBoxCenter - margin.BStart(aWM);
-  }
-  MOZ_ASSERT(aGroup == BaselineSharingGroup::Last);
-  if (aWM.IsAlphabeticalBaseline()) {
-    // Last baseline for inverted-line content is the block-start margin edge,
-    // as the frame is in effect "flipped" for alignment purposes.
-    return MOZ_UNLIKELY(aWM.IsLineInverted()) ? BSize(aWM) + margin.BStart(aWM)
-                                              : -margin.BEnd(aWM);
-  }
-  // Round up for central baseline offset, to be consistent with ::First.
-  nscoord marginBoxSize = BSize(aWM) + margin.BStartEnd(aWM);
-  nscoord marginBoxCenter = (marginBoxSize / 2) + (marginBoxSize % 2);
-  return marginBoxCenter - margin.BEnd(aWM);
-}
-
-nscoord nsIFrame::SynthesizeBaselineBOffsetFromBorderBox(
-    mozilla::WritingMode aWM, BaselineSharingGroup aGroup) const {
-  nscoord borderBoxSize = MOZ_UNLIKELY(aWM.IsOrthogonalTo(GetWritingMode()))
-                              ? ISize(aWM)
-                              : BSize(aWM);
-  if (aGroup == BaselineSharingGroup::First) {
-    return MOZ_LIKELY(aWM.IsAlphabeticalBaseline()) ? borderBoxSize
-                                                    : borderBoxSize / 2;
-  }
-  MOZ_ASSERT(aGroup == BaselineSharingGroup::Last);
-  // Round up for central baseline offset, to be consistent with ::First.
-  auto borderBoxCenter = (borderBoxSize / 2) + (borderBoxSize % 2);
-  return MOZ_LIKELY(aWM.IsAlphabeticalBaseline()) ? 0 : borderBoxCenter;
-}
-
-nscoord nsIFrame::SynthesizeBaselineBOffsetFromContentBox(
-    mozilla::WritingMode aWM, BaselineSharingGroup aGroup) const {
-  mozilla::WritingMode wm = GetWritingMode();
-  MOZ_ASSERT(!aWM.IsOrthogonalTo(wm));
-  const auto bp = GetLogicalUsedBorderAndPadding(wm)
-                      .ApplySkipSides(GetLogicalSkipSides())
-                      .ConvertTo(aWM, wm);
-
-  if (MOZ_UNLIKELY(aWM.IsCentralBaseline())) {
-    nscoord contentBoxBSize = BSize(aWM) - bp.BStartEnd(aWM);
-    if (aGroup == BaselineSharingGroup::First) {
-      return contentBoxBSize / 2 + bp.BStart(aWM);
-    }
-    // Return the same center position as for ::First, but as offset from end:
-    nscoord halfContentBoxBSize = (contentBoxBSize / 2) + (contentBoxBSize % 2);
-    return halfContentBoxBSize + bp.BEnd(aWM);
-  }
-  if (aGroup == BaselineSharingGroup::First) {
-    // First baseline for inverted-line content is the block-start content
-    // edge, as the frame is in effect "flipped" for alignment purposes.
-    return MOZ_UNLIKELY(aWM.IsLineInverted()) ? bp.BStart(aWM)
-                                              : BSize(aWM) - bp.BEnd(aWM);
-  }
-  // Last baseline for inverted-line content is the block-start content edge,
-  // as the frame is in effect "flipped" for alignment purposes.
-  return MOZ_UNLIKELY(aWM.IsLineInverted()) ? BSize(aWM) - bp.BStart(aWM)
-                                            : bp.BEnd(aWM);
-}
-
-nscoord nsIFrame::BaselineBOffset(mozilla::WritingMode aWM,
-                                  BaselineSharingGroup aBaselineGroup,
-                                  AlignmentContext aAlignmentContext) const {
-  MOZ_ASSERT(!aWM.IsOrthogonalTo(GetWritingMode()));
-  nscoord baseline;
-  if (GetNaturalBaselineBOffset(aWM, aBaselineGroup, &baseline)) {
-    return baseline;
-  }
-  if (aAlignmentContext == AlignmentContext::Inline) {
-    return SynthesizeBaselineBOffsetFromMarginBox(aWM, aBaselineGroup);
-  }
-  if (aAlignmentContext == AlignmentContext::Table) {
-    return SynthesizeBaselineBOffsetFromContentBox(aWM, aBaselineGroup);
-  }
-  return SynthesizeBaselineBOffsetFromBorderBox(aWM, aBaselineGroup);
 }
 
 void nsIFrame::PropagateWritingModeToSelfAndAncestors(

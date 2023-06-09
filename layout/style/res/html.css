@@ -163,26 +163,6 @@ center {
   text-align: -moz-center;
 }
 
-blockquote[type=cite] {
-  display: block;
-  margin-block-start: 1em;
-  margin-block-end: 1em;
-  margin-inline-start: 0;
-  margin-inline-end: 0;
-  padding-inline-start: 1em;
-  border-inline-start: solid;
-  border-color: blue;
-  border-width: thin;
-}
-
-span[_moz_quote=true] {
-  color: blue;
-}
-
-pre[_moz_quote=true] {
-  color: blue;
-}
-
 h1 {
   display: block;
   font-size: 2em;
@@ -905,4 +885,56 @@ ruby, rb, rt, rtc {
  * https://drafts.csswg.org/css-scoping/#slots-in-shadow-tree */
 slot {
   display: contents;
+}
+
+/* Un-invert images and videos for users using inverted colors.
+ * "User agents must add the following rule to their UA style sheet"
+ * https://www.w3.org/TR/mediaqueries-5/#inverted
+ */
+@media (inverted-colors) {
+  img:not(picture > img), picture, video {
+    filter: invert(100%);
+  }
+}
+
+/* Hide noscript elements if scripting is enabled */
+@media (scripting) {
+  noscript {
+    display: none !important;
+  }
+}
+
+/* Popover UA style, https://html.spec.whatwg.org/#flow-content-3 */
+@media (-moz-popover-enabled) {
+  [popover]:not(:popover-open):not(dialog[open]) {
+    display:none;
+  }
+
+  dialog:popover-open {
+    display:block;
+  }
+
+  [popover] {
+    position: fixed;
+    inset: 0;
+    width: fit-content;
+    height: fit-content;
+    margin: auto;
+    border: solid;
+    padding: 0.25em;
+    overflow: auto;
+    color: CanvasText;
+    background-color: Canvas;
+  }
+
+  :popover-open {
+    -moz-top-layer: top;
+  }
+
+  :popover-open::backdrop {
+    position: fixed;
+    inset: 0;
+    pointer-events: none !important;
+    background-color: transparent;
+  }
 }

@@ -93,7 +93,7 @@ static nsresult EncodeForTextUnicode(nsIDocumentEncoder& aEncoder,
   // html content with pre-wrap style : text/plain. Otherwise text/html. see
   // nsHTMLCopyEncoder::SetSelection
   nsAutoString mimeType;
-  mimeType.AssignLiteral(kUnicodeMime);
+  mimeType.AssignLiteral("text/unicode");
 
   // Do the first and potentially trial encoding as preformatted and raw.
   uint32_t flags = aAdditionalEncoderFlags |
@@ -171,7 +171,7 @@ static nsresult EncodeAsTextHTMLWithContext(
 }
 
 struct EncodedDocumentWithContext {
-  // When determening `mSerializationForTextUnicode`, `text/unicode` is passed
+  // When determining `mSerializationForTextUnicode`, `text/unicode` is passed
   // as mime type to the encoder. It uses this as a switch to decide whether to
   // encode the document as `text/html` or `text/plain`. It  is `true` iff
   // `text/html` was used.
@@ -274,14 +274,13 @@ static nsresult CreateTransferable(
 
     if (!aEncodedDocumentWithContext.mSerializationForTextUnicode.IsEmpty()) {
       // unicode text
-      // Add the unicode DataFlavor to the transferable
+      // Add the plain text DataFlavor to the transferable
       // If we didn't have this, then nsDataObj::GetData matches
-      // text/unicode against the kURLMime flavour which is not desirable
+      // text/plain against the kURLMime flavour which is not desirable
       // (eg. when pasting into Notepad)
-      rv =
-          AppendString(aTransferable,
-                       aEncodedDocumentWithContext.mSerializationForTextUnicode,
-                       kUnicodeMime);
+      rv = AppendString(
+          aTransferable,
+          aEncodedDocumentWithContext.mSerializationForTextUnicode, kTextMime);
       NS_ENSURE_SUCCESS(rv, rv);
     }
 
@@ -308,10 +307,9 @@ static nsresult CreateTransferable(
   } else {
     if (!aEncodedDocumentWithContext.mSerializationForTextUnicode.IsEmpty()) {
       // Add the unicode DataFlavor to the transferable
-      rv =
-          AppendString(aTransferable,
-                       aEncodedDocumentWithContext.mSerializationForTextUnicode,
-                       kUnicodeMime);
+      rv = AppendString(
+          aTransferable,
+          aEncodedDocumentWithContext.mSerializationForTextUnicode, kTextMime);
       NS_ENSURE_SUCCESS(rv, rv);
     }
   }
@@ -417,7 +415,8 @@ nsresult nsCopySupport::GetTransferableForNode(
   if (NS_WARN_IF(result.Failed())) {
     return result.StealNSResult();
   }
-  selection->AddRangeAndSelectFramesAndNotifyListeners(*range, aDoc, result);
+  selection->AddRangeAndSelectFramesAndNotifyListenersInternal(*range, aDoc,
+                                                               result);
   if (NS_WARN_IF(result.Failed())) {
     return result.StealNSResult();
   }
@@ -475,7 +474,7 @@ nsresult nsCopySupport::ImageCopy(nsIImageLoadingContent* aImageElement,
     NS_ENSURE_SUCCESS(rv, rv);
 
     // append the string to the transferable
-    rv = AppendString(trans, NS_ConvertUTF8toUTF16(location), kUnicodeMime);
+    rv = AppendString(trans, NS_ConvertUTF8toUTF16(location), kTextMime);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -495,6 +494,13 @@ nsresult nsCopySupport::ImageCopy(nsIImageLoadingContent* aImageElement,
         aImageElement, getter_AddRefs(imgRequest));
     NS_ENSURE_TRUE(image, NS_ERROR_FAILURE);
 
+    if (imgRequest) {
+      // Remember the referrer used for this image request.
+      nsCOMPtr<nsIReferrerInfo> referrerInfo;
+      imgRequest->GetReferrerInfo(getter_AddRefs(referrerInfo));
+      trans->SetReferrerInfo(referrerInfo);
+    }
+
 #ifdef XP_WIN
     rv = AppendImagePromise(trans, imgRequest, aImageElement);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -510,12 +516,8 @@ nsresult nsCopySupport::ImageCopy(nsIImageLoadingContent* aImageElement,
   NS_ENSURE_SUCCESS(rv, rv);
 
   // check whether the system supports the selection clipboard or not.
-  bool selectionSupported;
-  rv = clipboard->SupportsSelectionClipboard(&selectionSupported);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  // put the transferable on the clipboard
-  if (selectionSupported) {
+  if (clipboard->IsClipboardTypeSupported(nsIClipboard::kSelectionClipboard)) {
+    // put the transferable on the clipboard
     rv = clipboard->SetData(trans, nullptr, nsIClipboard::kSelectionClipboard);
     NS_ENSURE_SUCCESS(rv, rv);
   }
@@ -639,6 +641,7 @@ static nsresult AppendImagePromise(nsITransferable* aTransferable,
   NS_ENSURE_SUCCESS(rv, rv);
 
   aTransferable->SetRequestingPrincipal(node->NodePrincipal());
+  aTransferable->SetCookieJarSettings(node->OwnerDoc()->CookieJarSettings());
   aTransferable->SetContentPolicyType(nsIContentPolicy::TYPE_INTERNAL_IMAGE);
 
   // add the dataless file promise flavor

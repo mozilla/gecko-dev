@@ -21,12 +21,33 @@
 #include "p2p/base/port_allocator.h"
 #include "rtc_base/async_resolver_interface.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/experiments/field_trial_parser.h"
 #include "rtc_base/helpers.h"
 #include "rtc_base/ip_address.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/strings/string_builder.h"
 
 namespace cricket {
+
+namespace {
+
+bool ResolveStunHostnameForFamily(const webrtc::FieldTrialsView& field_trials) {
+  // Bug fix for STUN hostname resolution on IPv6.
+  // Field trial key reserved in bugs.webrtc.org/14334
+  static constexpr char field_trial_name[] =
+      "WebRTC-IPv6NetworkResolutionFixes";
+  if (!field_trials.IsEnabled(field_trial_name)) {
+    return false;
+  }
+
+  webrtc::FieldTrialParameter<bool> resolve_stun_hostname_for_family(
+      "ResolveStunHostnameForFamily", /*default_value=*/false);
+  webrtc::ParseFieldTrial({&resolve_stun_hostname_for_family},
+                          field_trials.Lookup(field_trial_name));
+  return resolve_stun_hostname_for_family;
+}
+
+}  // namespace
 
 // TODO(?): Move these to a common place (used in relayport too)
 const int RETRY_TIMEOUT = 50 * 1000;  // 50 seconds
@@ -142,9 +163,7 @@ void UDPPort::AddressResolver::Resolve(
       done_(it->first, it->second->result().GetError());
     }
   };
-  // Bug fix for STUN hostname resolution on IPv6.
-  // Field trial key reserved in bugs.webrtc.org/14334
-  if (field_trials.IsEnabled("WebRTC-IPv6NetworkResolutionFixes")) {
+  if (ResolveStunHostnameForFamily(field_trials)) {
     resolver_ptr->Start(address, family, std::move(callback));
   } else {
     resolver_ptr->Start(address, std::move(callback));
@@ -531,11 +550,12 @@ void UDPPort::OnStunBindingRequestSucceeded(
   }
   bind_request_succeeded_servers_.insert(stun_server_addr);
   // If socket is shared and `stun_reflected_addr` is equal to local socket
-  // address, or if the same address has been added by another STUN server,
-  // then discarding the stun address.
+  // address and mDNS obfuscation is not enabled, or if the same address has
+  // been added by another STUN server, then discarding the stun address.
   // For STUN, related address is the local socket address.
-  if ((!SharedSocket() || stun_reflected_addr != socket_->GetLocalAddress()) &&
-      !HasCandidateWithAddress(stun_reflected_addr)) {
+  if ((!SharedSocket() || stun_reflected_addr != socket_->GetLocalAddress() ||
+       Network()->GetMdnsResponder() != nullptr) &&
+      !HasStunCandidateWithAddress(stun_reflected_addr)) {
     rtc::SocketAddress related_address = socket_->GetLocalAddress();
     // If we can't stamp the related address correctly, empty it to avoid leak.
     if (!MaybeSetDefaultLocalAddress(&related_address)) {
@@ -618,11 +638,12 @@ void UDPPort::OnSendPacket(const void* data, size_t size, StunRequest* req) {
   stats_.stun_binding_requests_sent++;
 }
 
-bool UDPPort::HasCandidateWithAddress(const rtc::SocketAddress& addr) const {
+bool UDPPort::HasStunCandidateWithAddress(
+    const rtc::SocketAddress& addr) const {
   const std::vector<Candidate>& existing_candidates = Candidates();
   std::vector<Candidate>::const_iterator it = existing_candidates.begin();
   for (; it != existing_candidates.end(); ++it) {
-    if (it->address() == addr)
+    if (it->type() == STUN_PORT_TYPE && it->address() == addr)
       return true;
   }
   return false;

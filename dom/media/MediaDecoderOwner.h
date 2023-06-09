@@ -166,7 +166,7 @@ class MediaDecoderOwner {
   // size of the image has changed, or the video needs to be be repainted
   // for some other reason.
   virtual void Invalidate(bool aImageSizeChanged,
-                          Maybe<nsIntSize>& aNewIntrinsicSize,
+                          const Maybe<nsIntSize>& aNewIntrinsicSize,
                           bool aForceInvalidate) {}
 
   // Called after the MediaStream we're playing rendered a frame to aContainer
@@ -182,6 +182,9 @@ class MediaDecoderOwner {
 
   // Return true is the owner is actually invisible to users.
   virtual bool IsActuallyInvisible() const = 0;
+
+  // Returns true if the owner should resist fingerprinting.
+  virtual bool ShouldResistFingerprinting() const = 0;
 
   /*
    * Servo only methods go here. Please provide default implementations so they

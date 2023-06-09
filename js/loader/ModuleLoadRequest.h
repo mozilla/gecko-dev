@@ -63,6 +63,8 @@ class ModuleLoadRequest final : public ScriptLoadRequest {
 
   bool IsDynamicImport() const { return mIsDynamicImport; }
 
+  bool IsErrored() const;
+
   nsIGlobalObject* GetGlobalObject();
 
   void SetReady() override;
@@ -116,6 +118,9 @@ class ModuleLoadRequest final : public ScriptLoadRequest {
   void LoadFinished();
   void CancelImports();
   void CheckModuleDependenciesLoaded();
+
+  void AssertAllImportsReady() const;
+  void AssertAllImportsCancelled() const;
 
  public:
   // Is this a request for a top level module script or an import?

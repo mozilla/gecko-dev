@@ -6,6 +6,7 @@
 #include "XULMenuAccessible.h"
 
 #include "LocalAccessible-inl.h"
+#include "XULMenuBarElement.h"
 #include "XULMenuParentElement.h"
 #include "XULPopupElement.h"
 #include "mozilla/Assertions.h"
@@ -21,7 +22,6 @@
 #include "nsIDOMXULSelectCntrlEl.h"
 #include "nsIDOMXULSelectCntrlItemEl.h"
 #include "nsIContent.h"
-#include "nsMenuBarFrame.h"
 #include "nsMenuPopupFrame.h"
 
 #include "mozilla/Preferences.h"
@@ -322,7 +322,7 @@ XULMenupopupAccessible::XULMenupopupAccessible(nsIContent* aContent,
                                                DocAccessible* aDoc)
     : XULSelectControlAccessible(aContent, aDoc) {
   if (nsMenuPopupFrame* menuPopupFrame = do_QueryFrame(GetFrame())) {
-    if (menuPopupFrame->PopupType() == ePopupTypeMenu) {
+    if (menuPopupFrame->GetPopupType() == widget::PopupType::Menu) {
       mType = eMenuPopupType;
     }
   }
@@ -464,8 +464,8 @@ role XULMenubarAccessible::NativeRole() const { return roles::MENUBAR; }
 // XULMenubarAccessible: Widgets
 
 bool XULMenubarAccessible::IsActiveWidget() const {
-  nsMenuBarFrame* menuBarFrame = do_QueryFrame(GetFrame());
-  return menuBarFrame && menuBarFrame->IsActive();
+  auto* menuBar = dom::XULMenuBarElement::FromNode(GetContent());
+  return menuBar && menuBar->IsActive();
 }
 
 bool XULMenubarAccessible::AreItemsOperable() const { return true; }

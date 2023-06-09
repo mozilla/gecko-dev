@@ -583,13 +583,32 @@ bool nsCoreUtils::CanCreateAccessibleWithoutFrame(nsIContent* aContent) {
     // Out of the flat tree or in a display: none subtree.
     return false;
   }
-  if (element->IsDisplayContents()) {
-    return true;
+
+  // If we aren't display: contents or option/optgroup we can't create an
+  // accessible without frame. Our select combobox code relies on the latter.
+  if (!element->IsDisplayContents() &&
+      !element->IsAnyOfHTMLElements(nsGkAtoms::option, nsGkAtoms::optgroup)) {
+    return false;
   }
-  // We don't have a frame, but we're not display: contents either.
-  // For now, only create accessibles for <option>/<optgroup> as our combobox
-  // select code depends on it.
-  return element->IsAnyOfHTMLElements(nsGkAtoms::option, nsGkAtoms::optgroup);
+
+  // Even if we're display: contents or optgroups, we might not be able to
+  // create an accessible if we're in a content-visibility: hidden subtree.
+  //
+  // To check that, find the closest ancestor element with a frame.
+  for (nsINode* ancestor = element->GetFlattenedTreeParentNode();
+       ancestor && ancestor->IsContent();
+       ancestor = ancestor->GetFlattenedTreeParentNode()) {
+    if (nsIFrame* f = ancestor->AsContent()->GetPrimaryFrame()) {
+      if (f->HidesContent(nsIFrame::IncludeContentVisibility::Hidden) ||
+          f->IsHiddenByContentVisibilityOnAnyAncestor(
+              nsIFrame::IncludeContentVisibility::Hidden)) {
+        return false;
+      }
+      break;
+    }
+  }
+
+  return true;
 }
 
 bool nsCoreUtils::IsDocumentVisibleConsideringInProcessAncestors(

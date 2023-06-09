@@ -12,8 +12,8 @@ const { ActivityStreamStorage } = ChromeUtils.import(
 const { Prefs } = ChromeUtils.import(
   "resource://activity-stream/lib/ActivityStreamPrefs.jsm"
 );
-const { reducers } = ChromeUtils.import(
-  "resource://activity-stream/common/Reducers.jsm"
+const { reducers } = ChromeUtils.importESModule(
+  "resource://activity-stream/common/Reducers.sys.mjs"
 );
 const { redux } = ChromeUtils.import(
   "resource://activity-stream/vendor/Redux.jsm"
@@ -145,7 +145,6 @@ class Store {
     }
 
     this._prefs.observeBranch(this);
-    this._messageChannel.createChannel();
 
     // Dispatch an initial action after all enabled feeds are ready
     if (initAction) {
@@ -183,7 +182,13 @@ class Store {
     this._prefs.ignoreBranch(this);
     this.feeds.clear();
     this._feedFactories = null;
-    this._messageChannel.destroyChannel();
+  }
+
+  /**
+   * getMessageChannel - Used by the AboutNewTabParent actor to get the message channel.
+   */
+  getMessageChannel() {
+    return this._messageChannel;
   }
 }
 

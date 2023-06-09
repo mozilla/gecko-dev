@@ -34,9 +34,11 @@ class JS_PUBLIC_API JSTracer;
 // Underlying opaque type.
 namespace js {
 struct ParseTask;
+class FrontendContext;
 namespace frontend {
 struct CompilationStencil;
 struct CompilationGCOutput;
+struct CompilationInput;
 }  // namespace frontend
 }  // namespace js
 
@@ -46,7 +48,10 @@ struct CompilationGCOutput;
 
 namespace JS {
 
+struct CompilationStorage;
+
 using Stencil = js::frontend::CompilationStencil;
+using FrontendContext = js::FrontendContext;
 
 // Temporary storage used during instantiating Stencil.
 //
@@ -67,6 +72,10 @@ struct InstantiationStorage {
   friend JS_PUBLIC_API JSObject* InstantiateModuleStencil(
       JSContext* cx, const InstantiateOptions& options, Stencil* stencil,
       InstantiationStorage* storage);
+
+  friend JS_PUBLIC_API bool PrepareForInstantiate(
+      JS::FrontendContext* fc, JS::CompilationStorage& compileStorage,
+      JS::Stencil& stencil, JS::InstantiationStorage& storage);
 
   friend struct js::ParseTask;
 

@@ -57,7 +57,7 @@ void RenderTextureHostWrapper::EnsureRemoteTexture() const {
   }
 
   auto externalImageId =
-      layers::RemoteTextureMap::Get()->GetExternalImageIdOfRemoteTextureSync(
+      layers::RemoteTextureMap::Get()->GetExternalImageIdOfRemoteTexture(
           *mTextureId, *mOwnerId, *mForPid);
   if (externalImageId.isNothing()) {
     // This could happen with IPC abnormal shutdown
@@ -89,6 +89,14 @@ void RenderTextureHostWrapper::Unlock() {
   if (mTextureHost) {
     mTextureHost->Unlock();
   }
+}
+
+std::pair<gfx::Point, gfx::Point> RenderTextureHostWrapper::GetUvCoords(
+    gfx::IntSize aTextureSize) const {
+  if (mTextureHost) {
+    return mTextureHost->GetUvCoords(aTextureSize);
+  }
+  return RenderTextureHost::GetUvCoords(aTextureSize);
 }
 
 void RenderTextureHostWrapper::ClearCachedResources() {
@@ -168,6 +176,14 @@ RenderTextureHostSWGL* RenderTextureHostWrapper::AsRenderTextureHostSWGL() {
     return nullptr;
   }
   return mTextureHost->AsRenderTextureHostSWGL();
+}
+
+RenderAndroidHardwareBufferTextureHost*
+RenderTextureHostWrapper::AsRenderAndroidHardwareBufferTextureHost() {
+  if (!mTextureHost) {
+    return nullptr;
+  }
+  return mTextureHost->AsRenderAndroidHardwareBufferTextureHost();
 }
 
 RenderAndroidSurfaceTextureHost*

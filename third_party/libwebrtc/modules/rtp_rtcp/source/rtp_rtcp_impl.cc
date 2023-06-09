@@ -265,11 +265,6 @@ void ModuleRtpRtcpImpl::SetMid(absl::string_view mid) {
   // RTCP, this will need to be passed down to the RTCPSender also.
 }
 
-void ModuleRtpRtcpImpl::SetCsrcs(const std::vector<uint32_t>& csrcs) {
-  rtcp_sender_.SetCsrcs(csrcs);
-  rtp_sender_->packet_generator.SetCsrcs(csrcs);
-}
-
 // TODO(pbos): Handle media and RTX streams separately (separate RTCP
 // feedbacks).
 RTCPSender::FeedbackState ModuleRtpRtcpImpl::GetFeedbackState() {
@@ -398,6 +393,12 @@ std::vector<std::unique_ptr<RtpPacketToSend>>
 ModuleRtpRtcpImpl::FetchFecPackets() {
   // Deferred FEC not supported in deprecated RTP module.
   return {};
+}
+
+void ModuleRtpRtcpImpl::OnAbortedRetransmissions(
+    rtc::ArrayView<const uint16_t> sequence_numbers) {
+  RTC_DCHECK_NOTREACHED()
+      << "Stream flushing not supported with legacy rtp modules.";
 }
 
 void ModuleRtpRtcpImpl::OnPacketsAcknowledged(

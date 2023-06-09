@@ -142,10 +142,15 @@ for updates on a better design and implementation for ping tests. ))
 
 ## mochitest
 
-`browser-chrome`-flavoured mochitests can be tested very similarly to `xpcshell`.
+`browser-chrome`-flavoured mochitests can be tested very similarly to `xpcshell`,
+though you do not need to request a profile or initialize FOG.
+`plain`-flavoured mochitests aren't yet supported (follow
+[bug 1799977](https://bugzilla.mozilla.org/show_bug.cgi?id=1799977)
+for updates and a workaround).
 
-Prefer `xpcshell` and only use mochitests if you cannot express the behaviour in `xpcshell`.
-This can happen, for example, if the behaviour happens on a non-main process.
+If you're testing in `mochitest`, your instrumentation (or your test)
+might not be running in the parent process.
+This means you get to learn the IPC test APIs.
 
 ### IPC
 
@@ -189,7 +194,7 @@ is a good thing to review first.
 Unfortunately, FOG requires gecko
 (to tell it where the profile dir is, and other things),
 which means we need to use the
-[GTest + FFI approach](/testing-rust-code/index.html#gtests)
+[GTest + FFI approach](/testing-rust-code/index.md#gtests)
 where GTest is the runner and Rust is just the language the test is written in.
 
 This means your test will look like a GTest like this:

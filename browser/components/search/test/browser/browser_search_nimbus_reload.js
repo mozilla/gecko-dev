@@ -3,16 +3,16 @@
 
 "use strict";
 
-const { ExperimentFakes } = ChromeUtils.import(
-  "resource://testing-common/NimbusTestUtils.jsm"
+const { ExperimentFakes } = ChromeUtils.importESModule(
+  "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
-const { NimbusFeatures } = ChromeUtils.import(
-  "resource://nimbus/ExperimentAPI.jsm"
-);
+
 const { SearchService } = ChromeUtils.importESModule(
   "resource://gre/modules/SearchService.sys.mjs"
 );
-const { sinon } = ChromeUtils.import("resource://testing-common/Sinon.jsm");
+const { sinon } = ChromeUtils.importESModule(
+  "resource://testing-common/Sinon.sys.mjs"
+);
 
 add_task(async function test_engines_reloaded_nimbus() {
   let reloadSpy = sinon.spy(SearchService.prototype, "_maybeReloadEngines");

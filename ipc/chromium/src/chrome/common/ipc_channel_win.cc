@@ -25,10 +25,6 @@
 #include "mozilla/RandomNum.h"
 #include "nsThreadUtils.h"
 
-#ifdef FUZZING
-#  include "mozilla/ipc/Faulty.h"
-#endif
-
 using namespace mozilla::ipc;
 
 namespace IPC {
@@ -119,6 +115,11 @@ void Channel::ChannelImpl::Close() {
 void Channel::ChannelImpl::CloseLocked() {
   chan_cap_.NoteExclusiveAccess();
 
+  if (connect_timeout_) {
+    connect_timeout_->Cancel();
+    connect_timeout_ = nullptr;
+  }
+
   // If we still have pending I/O, cancel it. The references inside
   // `input_state_` and `output_state_` will keep the buffers alive until they
   // complete.
@@ -163,11 +164,6 @@ bool Channel::ChannelImpl::Send(mozilla::UniquePtr<Message> message) {
   DLOG(INFO) << "sending message @" << message.get() << " on channel @" << this
              << " with type " << message->type() << " ("
              << output_queue_.Count() << " in queue)";
-#endif
-
-#ifdef FUZZING
-  message = mozilla::ipc::Faulty::instance().MutateIPCMessage(
-      "Channel::ChannelImpl::Send", std::move(message));
 #endif
 
   if (pipe_ == INVALID_HANDLE_VALUE) {
@@ -325,9 +321,23 @@ bool Channel::ChannelImpl::ProcessConnection() {
   switch (err) {
     case ERROR_IO_PENDING:
       input_state_.is_pending = this;
+      NS_NewTimerWithCallback(
+          getter_AddRefs(connect_timeout_),
+          [self = RefPtr{this}](nsITimer* timer) {
+            CHROMIUM_LOG(ERROR) << "ConnectNamedPipe timed out!";
+            self->IOThread().AssertOnCurrentThread();
+            self->Close();
+            self->listener_->OnChannelError();
+          },
+          10000, nsITimer::TYPE_ONE_SHOT, "ChannelImpl::ProcessConnection",
+          IOThread().GetEventTarget());
       break;
     case ERROR_PIPE_CONNECTED:
       waiting_connect_ = false;
+      if (connect_timeout_) {
+        connect_timeout_->Cancel();
+        connect_timeout_ = nullptr;
+      }
       break;
     case ERROR_NO_DATA:
       // The pipe is being closed.

@@ -2,13 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
-
 const lazy = {};
 
-XPCOMUtils.defineLazyModuleGetters(lazy, {
-  RemoteSettings: "resource://services-settings/remote-settings.js",
-  RemoteSettingsClient: "resource://services-settings/RemoteSettingsClient.jsm",
+ChromeUtils.defineESModuleGetters(lazy, {
+  RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
+  RemoteSettingsClient:
+    "resource://services-settings/RemoteSettingsClient.sys.mjs",
 });
 
 const SETTINGS_IGNORELIST_KEY = "hijack-blocklists";
@@ -84,7 +83,7 @@ class IgnoreListsManager {
       }
       // Don't throw an error just log it, just continue with no data, and hopefully
       // a sync will fix things later on.
-      Cu.reportError(ex);
+      console.error(ex);
     }
     return result;
   }

@@ -186,7 +186,7 @@ bool mozTXTToHTMLConv::FindURLStart(const char16_t* aInString,
       return false;
     }
     case RFC2396E: {
-      nsString temp(aInString, aInLength);
+      nsDependentSubstring temp(aInString, aInLength);
       int32_t i = pos <= 0 ? kNotFound : temp.RFindCharInSet(u"<>\"", pos - 1);
       if (i != kNotFound &&
           (temp[uint32_t(i)] == '<' || temp[uint32_t(i)] == '"')) {
@@ -250,7 +250,7 @@ bool mozTXTToHTMLConv::FindURLEnd(const char16_t* aInString,
   switch (check) {  // no breaks, because end of blocks is never reached
     case RFC1738:
     case RFC2396E: {
-      nsString temp(aInString, aInStringLength);
+      nsDependentSubstring temp(aInString, aInStringLength);
 
       int32_t i = temp.FindCharInSet(u"<>\"", pos + 1);
       if (i != kNotFound &&
@@ -597,7 +597,11 @@ uint32_t mozTXTToHTMLConv::NumberOfMatches(const char16_t* aInString,
                                            LIMTYPE before, LIMTYPE after) {
   uint32_t result = 0;
 
-  const uint32_t len = mozilla::AssertedCast<uint32_t>(aInStringLength);
+  // Limit lookahead length to avoid pathological O(n^2) behavior; looking so
+  // far ahead is unlikely to be important for cases where styling marked-up
+  // fragments is actually useful anyhow.
+  const uint32_t len =
+      std::min(2000u, mozilla::AssertedCast<uint32_t>(aInStringLength));
   GraphemeClusterBreakIteratorUtf16 ci(Span<const char16_t>(aInString, len));
   for (uint32_t pos = 0; pos < len; pos = *ci.Next()) {
     if (ItMatchesDelimited(aInString + pos, aInStringLength - pos, rep, aRepLen,
@@ -1208,7 +1212,7 @@ mozTXTToHTMLConv::ScanHTML(const nsAString& input, uint32_t whattodo,
       i = aInString.FindChar('<', i);
       if (i == kNotFound) i = lengthOfInString;
 
-      nsString tempString;
+      nsAutoStringN<256> tempString;
       tempString.SetCapacity(uint32_t((uint32_t(i) - start) * growthRate));
       UnescapeStr(uniBuffer, start, uint32_t(i) - start, tempString);
       ScanTXT(tempString, whattodo, aOutString);

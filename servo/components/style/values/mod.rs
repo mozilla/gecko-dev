@@ -92,6 +92,44 @@ where
     serialize_name(&ident, dest)
 }
 
+fn nan_inf_enabled() -> bool {
+    static_prefs::pref!("layout.css.nan-inf.enabled")
+}
+
+/// Serialize a specified dimension with unit, calc, and NaN/infinity handling (if enabled)
+pub fn serialize_specified_dimension<W>(v: f32, unit: &str, was_calc: bool, dest: &mut CssWriter<W>) -> fmt::Result
+where
+    W: Write,
+{
+    if was_calc {
+        dest.write_str("calc(")?;
+    }
+
+    if !v.is_finite() && nan_inf_enabled() {
+        // https://drafts.csswg.org/css-values/#calc-error-constants:
+        // "While not technically numbers, these keywords act as numeric values,
+        // similar to e and pi. Thus to get an infinite length, for example,
+        // requires an expression like calc(infinity * 1px)."
+
+        if v.is_nan() {
+            dest.write_str("NaN * 1")?;
+        } else if v == f32::INFINITY {
+            dest.write_str("infinity * 1")?;
+        } else if v == f32::NEG_INFINITY {
+            dest.write_str("-infinity * 1")?;
+        }
+    } else {
+        v.to_css(dest)?;
+    }
+
+    dest.write_str(unit)?;
+
+    if was_calc {
+        dest.write_char(')')?;
+    }
+    Ok(())
+}
+
 /// A CSS string stored as an `Atom`.
 #[repr(transparent)]
 #[derive(
@@ -334,6 +372,14 @@ impl AtomIdent {
             callback(&*atom)
         })
     }
+
+    /// Cast an atom ref to an AtomIdent ref.
+    #[inline]
+    pub fn cast<'a>(atom: &'a Atom) -> &'a Self {
+        let ptr = atom as *const _ as *const Self;
+        // safety: repr(transparent)
+        unsafe { &*ptr }
+    }
 }
 
 #[cfg(feature = "gecko")]
@@ -344,13 +390,21 @@ impl std::borrow::Borrow<crate::gecko_string_cache::WeakAtom> for AtomIdent {
     }
 }
 
-/// Serialize a normalized value into percentage.
+/// Serialize a value into percentage.
 pub fn serialize_percentage<W>(value: CSSFloat, dest: &mut CssWriter<W>) -> fmt::Result
 where
     W: Write,
 {
+    serialize_specified_dimension(value * 100., "%", /* was_calc = */ false, dest)
+}
+
+/// Serialize a value into normalized (no NaN/inf serialization) percentage.
+pub fn serialize_normalized_percentage<W>(value: CSSFloat, dest: &mut CssWriter<W>) -> fmt::Result
+where
+    W: Write,
+{
     (value * 100.).to_css(dest)?;
-    dest.write_str("%")
+    dest.write_char('%')
 }
 
 /// Convenience void type to disable some properties and values through types.
@@ -600,13 +654,6 @@ impl TimelineOrKeyframesName {
 
 impl Eq for TimelineOrKeyframesName {}
 
-/// A trait that returns whether a given type is the `auto` value or not. So far
-/// only needed for background-size serialization, which special-cases `auto`.
-pub trait IsAuto {
-    /// Returns whether the value is the `auto` value.
-    fn is_auto(&self) -> bool;
-}
-
 /// The typedef of <timeline-name>.
 #[repr(transparent)]
 #[derive(
@@ -659,6 +706,7 @@ impl ToCss for TimelineName {
 }
 
 /// The typedef of <keyframes-name>.
+#[repr(transparent)]
 #[derive(
     Clone,
     Debug,

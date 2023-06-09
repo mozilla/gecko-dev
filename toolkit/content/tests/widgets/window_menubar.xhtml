@@ -5,7 +5,8 @@
      unfocuses and refocuses the window on Windows -->
 
 <window title="Popup Tests"
-  xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+  xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+  xmlns:html="http://www.w3.org/1999/xhtml">
 
   <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
   <script type="application/javascript" src="popup_shared.js"></script>
@@ -72,11 +73,21 @@
 </menubar>
 <hbox>
   <description id="outside">Outside menubar</description>
+  <html:input id="input"/>
 </hbox>
 </hbox>
 
 <script class="testbody" type="application/javascript">
 <![CDATA[
+
+async function moveMouseOver(id) {
+  // A single synthesized mouse move isn't always enough in some platforms.
+  let el = document.getElementById(id);
+  synthesizeMouse(el, 5, 5, { type: "mousemove" });
+  await new Promise(r => setTimeout(r, 0));
+  synthesizeMouse(el, 8, 8, { type: "mousemove" });
+}
+
 let gFilePopup;
 window.opener.SimpleTest.waitForFocus(function () {
   gFilePopup = document.getElementById("filepopup");
@@ -899,9 +910,9 @@ var popupTests = [
 {
   testname: "Menubar activation / deactivation on mouse over",
   events: [ "DOMMenuBarActive menubar", "DOMMenuItemActive filemenu", "DOMMenuItemInactive filemenu", "DOMMenuBarInactive menubar" ],
-  test() {
-    synthesizeMouse(document.getElementById("filemenu"), 8, 8, { type: "mousemove" });
-    synthesizeMouse(document.getElementById("outside"), 8, 8, { type: "mousemove" });
+  async test() {
+    await moveMouseOver("filemenu");
+    await moveMouseOver("outside");
   },
 },
 
@@ -913,10 +924,10 @@ var popupTests = [
     "DOMMenuItemActive filemenu",
     /* Shouldn't deactivate the menubar nor filemenu! */
   ],
-  test() {
+  async test() {
     synthesizeKey("KEY_Alt");
-    synthesizeMouse(document.getElementById("filemenu"), 8, 8, { type: "mousemove" });
-    synthesizeMouse(document.getElementById("outside"), 8, 8, { type: "mousemove" });
+    await moveMouseOver("filemenu");
+    await moveMouseOver("outside");
   },
 },
 {
@@ -928,6 +939,48 @@ var popupTests = [
   test() {
     synthesizeMouse(document.getElementById("outside"), 8, 8, {});
   },
+},
+
+
+// bug 1818241
+{
+  testname: "Shortcut navigation on mouse-activated menubar",
+  events: [ "DOMMenuBarActive menubar", "DOMMenuItemActive filemenu", "DOMMenuItemInactive filemenu", "DOMMenuBarInactive menubar" ],
+  async test() {
+    let input = document.getElementById("input");
+    input.value = "";
+    input.focus();
+    await moveMouseOver("filemenu");
+    synthesizeKey("F");
+    await moveMouseOver("outside");
+    is(input.value, "F", "Key shouldn't be consumed by menubar");
+  },
+},
+
+// FIXME: This leaves the menubar in a state where IsActive() is false but
+// IsActiveByKeyboard() is true!
+{
+  testname: "Trying to activate menubar without activatable items shouldn't crash",
+  events: [ "TestDone menubar" ],
+  test() {
+    const items = document.querySelectorAll("menubar > menu");
+    let wasDisabled = {};
+    for (let item of items) {
+      wasDisabled[item] = item.disabled;
+      item.disabled = true;
+    }
+
+    synthesizeKey("KEY_F10");
+    setTimeout(function() {
+      synthesizeKey("KEY_F10");
+
+      for (let item of items) {
+        item.disabled = wasDisabled[item];
+      }
+
+      document.getElementById("menubar").dispatchEvent(new CustomEvent("TestDone", { bubbles: true }));
+    }, 0);
+  }
 },
 
 // bug 625151

@@ -75,7 +75,6 @@
 #include "mozilla/ProfilerMarkers.h"
 #include "mozilla/Services.h"
 #include "mozilla/StaticPrefs_accessibility.h"
-#include "mozilla/SVGGeometryFrame.h"
 
 #include "XULAlertAccessible.h"
 #include "XULComboboxAccessible.h"
@@ -104,11 +103,49 @@ using namespace mozilla::dom;
 ////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Return true if the element must be accessible.
+ * Return true if the role map entry is an ARIA table part.
  */
-static bool MustBeAccessible(nsIContent* aContent, DocAccessible* aDocument) {
-  if (aContent->GetPrimaryFrame()->IsFocusable()) return true;
+static bool IsARIATablePart(const nsRoleMapEntry* aRoleMapEntry) {
+  return aRoleMapEntry &&
+         (aRoleMapEntry->accTypes & (eTableCell | eTableRow | eTable));
+}
 
+/**
+ * Create and return an Accessible for the given content depending on which
+ * table part we think it is.
+ */
+static LocalAccessible* CreateARIATablePartAcc(
+    const nsRoleMapEntry* aRoleMapEntry, const LocalAccessible* aContext,
+    nsIContent* aContent, DocAccessible* aDocument) {
+  // In case of ARIA grid or table use table-specific classes if it's not
+  // native table based.
+  if ((aRoleMapEntry->accTypes & eTableCell)) {
+    if (aContext->IsTableRow()) {
+      return new ARIAGridCellAccessible(aContent, aDocument);
+    }
+  } else if (aRoleMapEntry->IsOfType(eTableRow)) {
+    if (aContext->IsTable() ||
+        // There can be an Accessible between a row and its table, but it
+        // can only be a row group or a generic container. This is
+        // consistent with Filters::GetRow and CachedTableAccessible's
+        // TablePartRule.
+        ((aContext->Role() == roles::GROUPING ||
+          (aContext->IsGenericHyperText() && !aContext->ARIARoleMap())) &&
+         aContext->LocalParent() && aContext->LocalParent()->IsTable())) {
+      return new ARIARowAccessible(aContent, aDocument);
+    }
+  } else if (aRoleMapEntry->IsOfType(eTable)) {
+    return new ARIAGridAccessible(aContent, aDocument);
+  }
+  return nullptr;
+}
+
+/**
+ * Return true if the element has an attribute (ARIA, title, or relation) that
+ * requires the creation of an Accessible for the element.
+ */
+static bool AttributesMustBeAccessible(nsIContent* aContent,
+                                       DocAccessible* aDocument) {
   if (aContent->IsElement()) {
     uint32_t attrCount = aContent->AsElement()->GetAttrCount();
     for (uint32_t attrIdx = 0; attrIdx < attrCount; attrIdx++) {
@@ -135,7 +172,7 @@ static bool MustBeAccessible(nsIContent* aContent, DocAccessible* aDocument) {
     }
 
     // If the given ID is referred by relation attribute then create an
-    // accessible for it.
+    // Accessible for it.
     nsAutoString id;
     if (nsCoreUtils::GetID(aContent, id) && !id.IsEmpty()) {
       return aDocument->IsDependentID(aContent->AsElement(), id);
@@ -143,6 +180,53 @@ static bool MustBeAccessible(nsIContent* aContent, DocAccessible* aDocument) {
   }
 
   return false;
+}
+
+/**
+ * Return true if the element must be a generic Accessible, even if it has been
+ * marked presentational with role="presentation", etc. MustBeAccessible causes
+ * an Accessible to be created as if it weren't marked presentational at all;
+ * e.g. <table role="presentation" tabindex="0"> will expose roles::TABLE and
+ * support TableAccessibleBase. In contrast, this function causes a generic
+ * Accessible to be created; e.g. <table role="presentation" style="position:
+ * fixed;"> will expose roles::TEXT_CONTAINER and will not support
+ * TableAccessibleBase. This is necessary in certain cases for the
+ * RemoteAccessible cache.
+ */
+static bool MustBeGenericAccessible(nsIContent* aContent,
+                                    DocAccessible* aDocument) {
+  nsIFrame* frame = aContent->GetPrimaryFrame();
+  MOZ_ASSERT(frame);
+  // If the frame has been transformed, and the content has any children, we
+  // should create an Accessible so that we can account for the transform when
+  // calculating the Accessible's bounds using the parent process cache.
+  // Ditto for content which is position: fixed or sticky.
+  // However, don't do this for XUL widgets, as this breaks XUL a11y code
+  // expectations in some cases. XUL widgets are only used in the parent
+  // process and can't be cached anyway.
+  return aContent->HasChildren() && !aContent->IsXULElement() &&
+         (frame->IsTransformed() || frame->IsStickyPositioned() ||
+          (frame->StyleDisplay()->mPosition == StylePositionProperty::Fixed &&
+           nsLayoutUtils::IsReallyFixedPos(frame)));
+}
+
+/**
+ * Return true if the element must be accessible.
+ */
+static bool MustBeAccessible(nsIContent* aContent, DocAccessible* aDocument) {
+  nsIFrame* frame = aContent->GetPrimaryFrame();
+  MOZ_ASSERT(frame);
+  // This document might be invisible when it first loads. Therefore, we must
+  // check focusability irrespective of visibility here. Otherwise, we might not
+  // create Accessibles for some focusable elements; e.g. a span with only a
+  // tabindex. Elements that are invisible within this document are excluded
+  // earlier in CreateAccessible.
+  if (frame->IsFocusable(/* aWithMouse */ false,
+                         /* aCheckVisibility */ false)) {
+    return true;
+  }
+
+  return AttributesMustBeAccessible(aContent, aDocument);
 }
 
 bool nsAccessibilityService::ShouldCreateImgAccessible(
@@ -187,7 +271,8 @@ bool nsAccessibilityService::ShouldCreateImgAccessible(
 /**
  * Return true if the SVG element should be accessible
  */
-static bool MustSVGElementBeAccessible(nsIContent* aContent) {
+static bool MustSVGElementBeAccessible(nsIContent* aContent,
+                                       DocAccessible* aDocument) {
   // https://w3c.github.io/svg-aam/#include_elements
   for (nsIContent* childElm = aContent->GetFirstChild(); childElm;
        childElm = childElm->GetNextSibling()) {
@@ -195,7 +280,7 @@ static bool MustSVGElementBeAccessible(nsIContent* aContent) {
       return true;
     }
   }
-  return false;
+  return MustBeAccessible(aContent, aDocument);
 }
 
 /**
@@ -406,7 +491,7 @@ void nsAccessibilityService::NotifyOfPossibleBoundsChange(
     mozilla::PresShell* aPresShell, nsIContent* aContent) {
   if (IPCAccessibilityActive() &&
       StaticPrefs::accessibility_cache_enabled_AtStartup()) {
-    DocAccessible* document = GetDocAccessible(aPresShell);
+    DocAccessible* document = aPresShell->GetDocAccessible();
     if (document) {
       // DocAccessible::GetAccessible() won't return the document if a root
       // element like body is passed.
@@ -422,34 +507,46 @@ void nsAccessibilityService::NotifyOfPossibleBoundsChange(
 
 void nsAccessibilityService::NotifyOfComputedStyleChange(
     mozilla::PresShell* aPresShell, nsIContent* aContent) {
-  if (!IPCAccessibilityActive() ||
-      !StaticPrefs::accessibility_cache_enabled_AtStartup()) {
+  DocAccessible* document = aPresShell->GetDocAccessible();
+  if (!document) {
     return;
   }
 
-  DocAccessible* document = GetDocAccessible(aPresShell);
-  if (document) {
-    // DocAccessible::GetAccessible() won't return the document if a root
-    // element like body is passed.
-    LocalAccessible* accessible = aContent == document->GetContent()
-                                      ? document
-                                      : document->GetAccessible(aContent);
-    if (accessible) {
-      accessible->MaybeQueueCacheUpdateForStyleChanges();
+  // DocAccessible::GetAccessible() won't return the document if a root
+  // element like body is passed.
+  LocalAccessible* accessible = aContent == document->GetContent()
+                                    ? document
+                                    : document->GetAccessible(aContent);
+  if (!accessible && aContent && aContent->HasChildren()) {
+    // If the content has children and its frame has a transform, create an
+    // Accessible so that we can account for the transform when calculating
+    // the Accessible's bounds using the parent process cache. Ditto for
+    // position: fixed/sticky content.
+    const nsIFrame* frame = aContent->GetPrimaryFrame();
+    const ComputedStyle* newStyle = frame ? frame->Style() : nullptr;
+    if (newStyle &&
+        (newStyle->StyleDisplay()->HasTransform(frame) ||
+         newStyle->StyleDisplay()->mPosition == StylePositionProperty::Fixed ||
+         newStyle->StyleDisplay()->mPosition ==
+             StylePositionProperty::Sticky)) {
+      document->ContentInserted(aContent, aContent->GetNextSibling());
     }
+  } else if (accessible && IPCAccessibilityActive() &&
+             StaticPrefs::accessibility_cache_enabled_AtStartup()) {
+    accessible->MaybeQueueCacheUpdateForStyleChanges();
   }
 }
 
 void nsAccessibilityService::NotifyOfResolutionChange(
     mozilla::PresShell* aPresShell, float aResolution) {
   if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
-    DocAccessible* document = GetDocAccessible(aPresShell);
+    DocAccessible* document = aPresShell->GetDocAccessible();
     if (document && document->IPCDoc()) {
       AutoTArray<mozilla::a11y::CacheData, 1> data;
       RefPtr<AccAttributes> fields = new AccAttributes();
       fields->SetAttribute(nsGkAtoms::resolution, aResolution);
       data.AppendElement(mozilla::a11y::CacheData(0, fields));
-      document->IPCDoc()->SendCache(CacheUpdateType::Update, data, false);
+      document->IPCDoc()->SendCache(CacheUpdateType::Update, data);
     }
   }
 }
@@ -457,14 +554,14 @@ void nsAccessibilityService::NotifyOfResolutionChange(
 void nsAccessibilityService::NotifyOfDevPixelRatioChange(
     mozilla::PresShell* aPresShell, int32_t aAppUnitsPerDevPixel) {
   if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
-    DocAccessible* document = GetDocAccessible(aPresShell);
+    DocAccessible* document = aPresShell->GetDocAccessible();
     if (document && document->IPCDoc()) {
       AutoTArray<mozilla::a11y::CacheData, 1> data;
       RefPtr<AccAttributes> fields = new AccAttributes();
       fields->SetAttribute(nsGkAtoms::_moz_device_pixel_ratio,
                            aAppUnitsPerDevPixel);
       data.AppendElement(mozilla::a11y::CacheData(0, fields));
-      document->IPCDoc()->SendCache(CacheUpdateType::Update, data, false);
+      document->IPCDoc()->SendCache(CacheUpdateType::Update, data);
     }
   }
 }
@@ -689,8 +786,8 @@ void nsAccessibilityService::RecreateAccessible(PresShell* aPresShell,
 }
 
 void nsAccessibilityService::GetStringRole(uint32_t aRole, nsAString& aString) {
-#define ROLE(geckoRole, stringRole, atkRole, macRole, macSubrole, msaaRole, \
-             ia2Role, androidClass, nameRule)                               \
+#define ROLE(geckoRole, stringRole, ariaRole, atkRole, macRole, macSubrole, \
+             msaaRole, ia2Role, androidClass, nameRule)                     \
   case roles::geckoRole:                                                    \
     aString.AssignLiteral(stringRole);                                      \
     return;
@@ -965,28 +1062,67 @@ LocalAccessible* nsAccessibilityService::CreateAccessible(
     return nullptr;
   }
 
-  // Check frame and its visibility. Note, hidden frame allows visible
-  // elements in subtree.
+  // Check frame and its visibility.
   nsIFrame* frame = content->GetPrimaryFrame();
-  if (!frame || !frame->StyleVisibility()->IsVisible()) {
-    // display:contents element doesn't have a frame, but retains the semantics.
-    // All its children are unaffected.
-    if (nsCoreUtils::CanCreateAccessibleWithoutFrame(content)) {
-      const MarkupMapInfo* markupMap = GetMarkupMapInfoFor(content);
-      if (markupMap && markupMap->new_func) {
-        RefPtr<LocalAccessible> newAcc =
-            markupMap->new_func(content->AsElement(), aContext);
-        if (newAcc) {
-          document->BindToDocument(newAcc,
-                                   aria::GetRoleMap(content->AsElement()));
-        }
-        return newAcc;
-      }
+  if (frame) {
+    // If invisible or inert, we don't create an accessible, but we don't mark
+    // it with aIsSubtreeHidden = true, since visibility: hidden frame allows
+    // visible elements in subtree, and inert elements allow non-inert
+    // elements.
+    if (!frame->StyleVisibility()->IsVisible() || frame->StyleUI()->IsInert()) {
       return nullptr;
     }
+  } else if (nsCoreUtils::CanCreateAccessibleWithoutFrame(content)) {
+    // display:contents element doesn't have a frame, but retains the
+    // semantics. All its children are unaffected.
+    const MarkupMapInfo* markupMap = GetMarkupMapInfoFor(content);
+    RefPtr<LocalAccessible> newAcc;
+    if (markupMap && markupMap->new_func) {
+      newAcc = markupMap->new_func(content->AsElement(), aContext);
+    }
 
-    if (aIsSubtreeHidden && !frame) *aIsSubtreeHidden = true;
+    // Check whether this element has an ARIA role or attribute that requires
+    // us to create an Accessible.
+    const nsRoleMapEntry* roleMapEntry = aria::GetRoleMap(content->AsElement());
+    const bool hasNonPresentationalARIARole =
+        roleMapEntry && !roleMapEntry->Is(nsGkAtoms::presentation) &&
+        !roleMapEntry->Is(nsGkAtoms::none);
+    if (!newAcc && (hasNonPresentationalARIARole ||
+                    AttributesMustBeAccessible(content, document))) {
+      // If this element is an ARIA table part, create the proper table part
+      // Accessible. Otherwise, create a generic HyperTextAccessible.
+      if (IsARIATablePart(roleMapEntry)) {
+        newAcc =
+            CreateARIATablePartAcc(roleMapEntry, aContext, content, document);
+      } else {
+        newAcc = new HyperTextAccessibleWrap(content, document);
+      }
+    }
 
+    // If there's still no Accessible but we do have an entry in the markup
+    // map for this non-presentational element, create a generic
+    // HyperTextAccessible.
+    if (!newAcc && markupMap &&
+        (!roleMapEntry || hasNonPresentationalARIARole)) {
+      newAcc = new HyperTextAccessibleWrap(content, document);
+    }
+
+    if (newAcc) {
+      document->BindToDocument(newAcc, roleMapEntry);
+    }
+    return newAcc;
+  } else {
+    if (aIsSubtreeHidden) {
+      *aIsSubtreeHidden = true;
+    }
+    return nullptr;
+  }
+
+  if (frame->IsHiddenByContentVisibilityOnAnyAncestor(
+          nsIFrame::IncludeContentVisibility::Hidden)) {
+    if (aIsSubtreeHidden) {
+      *aIsSubtreeHidden = true;
+    }
     return nullptr;
   }
 
@@ -1075,19 +1211,27 @@ LocalAccessible* nsAccessibilityService::CreateAccessible(
 
   const nsRoleMapEntry* roleMapEntry = aria::GetRoleMap(content->AsElement());
 
-  // If the element is focusable or global ARIA attribute is applied to it or
-  // it is referenced by ARIA relationship then treat role="presentation" on
-  // the element as the role is not there.
   if (roleMapEntry && (roleMapEntry->Is(nsGkAtoms::presentation) ||
                        roleMapEntry->Is(nsGkAtoms::none))) {
-    if (!MustBeAccessible(content, document)) return nullptr;
-
-    roleMapEntry = nullptr;
+    if (MustBeAccessible(content, document)) {
+      // If the element is focusable, a global ARIA attribute is applied to it
+      // or it is referenced by an ARIA relationship, then treat
+      // role="presentation" on the element as if the role is not there.
+      roleMapEntry = nullptr;
+    } else if (MustBeGenericAccessible(content, document)) {
+      // Clear roleMapEntry so that we use the generic role specified below.
+      // Otherwise, we'd expose roles::NOTHING as specified for presentation in
+      // ARIAMap.
+      roleMapEntry = nullptr;
+      newAcc = new EnumRoleHyperTextAccessible<roles::TEXT_CONTAINER>(content,
+                                                                      document);
+    } else {
+      return nullptr;
+    }
   }
 
   if (!newAcc && content->IsHTMLElement()) {  // HTML accessibles
-    bool isARIATablePart = roleMapEntry && (roleMapEntry->accTypes &
-                                            (eTableCell | eTableRow | eTable));
+    const bool isARIATablePart = IsARIATablePart(roleMapEntry);
 
     if (!isARIATablePart || frame->AccessibleType() == eHTMLTableCellType ||
         frame->AccessibleType() == eHTMLTableRowType ||
@@ -1111,25 +1255,9 @@ LocalAccessible* nsAccessibilityService::CreateAccessible(
     // In case of ARIA grid or table use table-specific classes if it's not
     // native table based.
     if (isARIATablePart && (!newAcc || newAcc->IsGenericHyperText())) {
-      if ((roleMapEntry->accTypes & eTableCell)) {
-        if (aContext->IsTableRow()) {
-          newAcc = new ARIAGridCellAccessible(content, document);
-        }
-
-      } else if (roleMapEntry->IsOfType(eTableRow)) {
-        if (aContext->IsTable() ||
-            // There can be an Accessible between a row and its table, but it
-            // can only be a row group or a generic container. This is
-            // consistent with Filters::GetRow and CachedTableAccessible's
-            // TablePartRule.
-            ((aContext->Role() == roles::GROUPING ||
-              (aContext->IsGenericHyperText() && !aContext->ARIARoleMap())) &&
-             aContext->LocalParent() && aContext->LocalParent()->IsTable())) {
-          newAcc = new ARIARowAccessible(content, document);
-        }
-
-      } else if (roleMapEntry->IsOfType(eTable)) {
-        newAcc = new ARIAGridAccessible(content, document);
+      if (LocalAccessible* tablePartAcc = CreateARIATablePartAcc(
+              roleMapEntry, aContext, content, document)) {
+        newAcc = tablePartAcc;
       }
     }
 
@@ -1190,8 +1318,7 @@ LocalAccessible* nsAccessibilityService::CreateAccessible(
         content->GetParent() == aContext->GetContent()) {
       LayoutFrameType frameType = frame->Type();
       // FIXME(emilio): Why only these frame types?
-      if (frameType == LayoutFrameType::Box ||
-          frameType == LayoutFrameType::FlexContainer ||
+      if (frameType == LayoutFrameType::FlexContainer ||
           frameType == LayoutFrameType::Scroll) {
         newAcc = new XULTabpanelAccessible(content, document);
       }
@@ -1200,24 +1327,26 @@ LocalAccessible* nsAccessibilityService::CreateAccessible(
 
   if (!newAcc) {
     if (content->IsSVGElement()) {
-      SVGGeometryFrame* geometryFrame = do_QueryFrame(frame);
-      if (geometryFrame && MustSVGElementBeAccessible(content)) {
-        // A graphic elements: rect, circle, ellipse, line, path, polygon,
-        // polyline and image. A 'use' and 'text' graphic elements require
+      if (content->IsSVGGeometryElement() ||
+          content->IsSVGElement(nsGkAtoms::image)) {
+        // Shape elements: rect, circle, ellipse, line, path, polygon,
+        // and polyline. 'use' and 'text' graphic elements require
         // special support.
-        newAcc = new EnumRoleAccessible<roles::GRAPHIC>(content, document);
+        if (MustSVGElementBeAccessible(content, document)) {
+          newAcc = new EnumRoleAccessible<roles::GRAPHIC>(content, document);
+        }
       } else if (content->IsSVGElement(nsGkAtoms::text)) {
         newAcc = new HyperTextAccessibleWrap(content->AsElement(), document);
       } else if (content->IsSVGElement(nsGkAtoms::svg)) {
-        // An <svg> element could contain <foreignobject>, which contains HTML
+        // An <svg> element could contain <foreignObject>, which contains HTML
         // but does not normally create its own Accessible. This means that the
         // <svg> Accessible could have TextLeafAccessible children, so it must
         // be a HyperTextAccessible.
         newAcc =
             new EnumRoleHyperTextAccessible<roles::DIAGRAM>(content, document);
       } else if (content->IsSVGElement(nsGkAtoms::g) &&
-                 MustSVGElementBeAccessible(content)) {
-        // <g> can also contain <foreignobject>.
+                 MustSVGElementBeAccessible(content, document)) {
+        // <g> can also contain <foreignObject>.
         newAcc =
             new EnumRoleHyperTextAccessible<roles::GROUPING>(content, document);
       }
@@ -1267,6 +1396,9 @@ LocalAccessible* nsAccessibilityService::CreateAccessible(
       // Interesting generic non-HTML container
       newAcc = new AccessibleWrap(content, document);
     }
+  } else if (!newAcc && MustBeGenericAccessible(content, document)) {
+    newAcc = new EnumRoleHyperTextAccessible<roles::TEXT_CONTAINER>(content,
+                                                                    document);
   }
 
   if (newAcc) {

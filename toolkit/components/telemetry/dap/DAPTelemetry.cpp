@@ -247,14 +247,14 @@ bool dapHpkeEncrypt(HpkeContext* aContext, const uint8_t* aAad,
                     nsTArray<uint8_t>* aOutputShare) {
   SECItem aad_si = {siBuffer, toUcharPtr(aAad), aAadLength};
   SECItem plaintext_si = {siBuffer, toUcharPtr(aPlaintext), aPlaintextLength};
-  SECItem* ct = nullptr;
-  SECStatus rv = PK11_HPKE_Seal(aContext, &aad_si, &plaintext_si, &ct);
+  SECItem* chCt = nullptr;
+  SECStatus rv = PK11_HPKE_Seal(aContext, &aad_si, &plaintext_si, &chCt);
   if (rv != SECSuccess) {
     return false;
   }
+  UniqueSECItem ct(chCt);
 
   aOutputShare->AppendElements(ct->data, ct->len);
-
   return true;
 }
 
@@ -278,14 +278,28 @@ bool dapHpkeEncryptOneshot(const uint8_t* aKey, uint32_t aKeyLength,
 }
 }
 
-NS_IMETHODIMP DAPTelemetry::GetReport(
+NS_IMETHODIMP DAPTelemetry::GetReportU8(
     const nsTArray<uint8_t>& aLeaderHpkeConfig,
     const nsTArray<uint8_t>& aHelperHpkeConfig, uint8_t aMeasurement,
     const nsTArray<uint8_t>& aTaskID, const uint64_t aTimePrecision,
     nsTArray<uint8_t>& aOutReport) {
   MOZ_RELEASE_ASSERT(aTaskID.Length() == 32, "TaskID must have 32 bytes.");
-  if (!dapGetReport(&aLeaderHpkeConfig, &aHelperHpkeConfig, aMeasurement,
-                    &aTaskID, aTimePrecision, &aOutReport)) {
+  if (!dapGetReportU8(&aLeaderHpkeConfig, &aHelperHpkeConfig, aMeasurement,
+                      &aTaskID, aTimePrecision, &aOutReport)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP DAPTelemetry::GetReportVecU16(
+    const nsTArray<uint8_t>& aLeaderHpkeConfig,
+    const nsTArray<uint8_t>& aHelperHpkeConfig,
+    const nsTArray<uint16_t>& aMeasurement, const nsTArray<uint8_t>& aTaskID,
+    const uint64_t aTimePrecision, nsTArray<uint8_t>& aOutReport) {
+  MOZ_RELEASE_ASSERT(aTaskID.Length() == 32, "TaskID must have 32 bytes.");
+  if (!dapGetReportVecU16(&aLeaderHpkeConfig, &aHelperHpkeConfig, &aMeasurement,
+                          &aTaskID, aTimePrecision, &aOutReport)) {
     return NS_ERROR_FAILURE;
   }
 

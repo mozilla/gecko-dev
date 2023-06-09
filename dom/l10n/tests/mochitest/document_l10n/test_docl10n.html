@@ -6,7 +6,7 @@
   <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
   <link rel="stylesheet" type="text/css" href="chrome://mochikit/content/tests/SimpleTest/test.css">
   <link rel="localization" href="crashreporter/aboutcrashes.ftl"/>
-  <script type="application/javascript">
+  <script>
   "use strict";
   SimpleTest.waitForExplicitFinish();
 
@@ -16,24 +16,28 @@
   (async function() {
     await document.l10n.ready;
 
-    // Test for initial localization applied.
-    let desc = document.getElementById("main-desc");
-    is(!!desc.textContent.length, true);
+    const desc = document.getElementById("main-desc");
+    is(!!desc.textContent.length, true, "initial localization is applied");
 
-    // Test for manual value formatting.
-    let msg = await document.l10n.formatValue("id-heading");
-    is(!!msg.length, true);
+    const msg = await document.l10n.formatValue("id-heading");
+    is(!!msg.length, true, "value is formatted manually");
 
-    // Test for mutations applied.
-    let verifyL10n = () => {
-      if (label.textContent.length) {
-        window.removeEventListener("MozAfterPaint", verifyL10n);
-        SimpleTest.finish();
-      }
-    };
-    window.addEventListener("MozAfterPaint", verifyL10n);
+    const label = document.getElementById("label1");
+    let l10nArgs = document.l10n.getAttributes(label);
+    is(l10nArgs.id, null, "id is null if not set");
 
-    let label = document.getElementById("label1");
+    SimpleTest.doesThrow(
+      () => {
+        const bad = {};
+        bad.bad = bad;
+        document.l10n.setAttributes(label, "date-crashed-heading", bad);
+      },
+      "an error is thrown for invalid args",
+    );
+
+    l10nArgs = document.l10n.getAttributes(label);
+    is(l10nArgs.id, null, "id is not set if args are invalid");
+
     document.l10n.setAttributes(
       label,
       "date-crashed-heading",
@@ -41,11 +45,16 @@
         name: "John",
       }
     );
-
-    // Test for l10n.getAttributes
-    let l10nArgs = document.l10n.getAttributes(label);
-    is(l10nArgs.id, "date-crashed-heading");
-    is(l10nArgs.args.name, "John");
+    ok(document.hasPendingL10nMutations, "Should have pending mutations");
+    l10nArgs = document.l10n.getAttributes(label);
+    is(l10nArgs.id, "date-crashed-heading", "id is set by setAttributes");
+    is(l10nArgs.args.name, "John", "args are set by setAttributes");
+    // Test for mutations applied.
+    document.addEventListener("L10nMutationsFinished", function() {
+      ok(!!label.textContent.length, "Should've applied translation");
+      ok(!document.hasPendingL10nMutations, "Should have no more pending mutations");
+      SimpleTest.finish();
+    }, { once: true });
   })();
   </script>
 </head>

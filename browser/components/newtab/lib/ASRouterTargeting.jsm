@@ -1,4 +1,4 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
+/* This Source Code Form is subject to the terms of the Mozilla PublicddonMa
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -15,16 +15,19 @@ const { AppConstants } = ChromeUtils.importESModule(
 const { NewTabUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/NewTabUtils.sys.mjs"
 );
-const { ShellService } = ChromeUtils.import(
-  "resource:///modules/ShellService.jsm"
+const { ShellService } = ChromeUtils.importESModule(
+  "resource:///modules/ShellService.sys.mjs"
 );
 
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  BuiltInThemes: "resource:///modules/BuiltInThemes.sys.mjs",
+  AttributionCode: "resource:///modules/AttributionCode.sys.mjs",
+  ClientEnvironment: "resource://normandy/lib/ClientEnvironment.sys.mjs",
+  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   ProfileAge: "resource://gre/modules/ProfileAge.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
+  TargetingContext: "resource://messaging-system/targeting/Targeting.sys.mjs",
   TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.sys.mjs",
   TelemetrySession: "resource://gre/modules/TelemetrySession.sys.mjs",
 });
@@ -32,13 +35,9 @@ ChromeUtils.defineESModuleGetters(lazy, {
 XPCOMUtils.defineLazyModuleGetters(lazy, {
   ASRouterPreferences: "resource://activity-stream/lib/ASRouterPreferences.jsm",
   AddonManager: "resource://gre/modules/AddonManager.jsm",
-  ClientEnvironment: "resource://normandy/lib/ClientEnvironment.jsm",
-  AttributionCode: "resource:///modules/AttributionCode.jsm",
-  TargetingContext: "resource://messaging-system/targeting/Targeting.jsm",
   HomePage: "resource:///modules/HomePage.jsm",
   AboutNewTab: "resource:///modules/AboutNewTab.jsm",
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.jsm",
-  NimbusFeatures: "resource://nimbus/ExperimentAPI.jsm",
 });
 
 ChromeUtils.defineModuleGetter(
@@ -48,8 +47,8 @@ ChromeUtils.defineModuleGetter(
 );
 
 XPCOMUtils.defineLazyGetter(lazy, "fxAccounts", () => {
-  return ChromeUtils.import(
-    "resource://gre/modules/FxAccounts.jsm"
+  return ChromeUtils.importESModule(
+    "resource://gre/modules/FxAccounts.sys.mjs"
   ).getFxAccountsSingleton();
 });
 
@@ -118,6 +117,34 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "snippetsUserPref",
   "browser.newtabpage.activity-stream.feeds.snippets",
   false
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "hasMigratedBookmarks",
+  "browser.migrate.interactions.bookmarks",
+  false
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "hasMigratedHistory",
+  "browser.migrate.interactions.history",
+  false
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "hasMigratedPasswords",
+  "browser.migrate.interactions.passwords",
+  false
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "useEmbeddedMigrationWizard",
+  "browser.migrate.content-modal.about-welcome-behavior",
+  "default",
+  null,
+  behaviorString => {
+    return behaviorString === "embedded";
+  }
 );
 
 XPCOMUtils.defineLazyServiceGetters(lazy, {
@@ -290,6 +317,24 @@ const QueryCache = {
       FRECENT_SITES_UPDATE_INTERVAL,
       lazy.AddonManager // eslint-disable-line mozilla/valid-lazy
     ),
+    isDefaultHTMLHandler: new CachedTargetingGetter(
+      "isDefaultHandlerFor",
+      [".html"],
+      FRECENT_SITES_UPDATE_INTERVAL,
+      ShellService
+    ),
+    isDefaultPDFHandler: new CachedTargetingGetter(
+      "isDefaultHandlerFor",
+      [".pdf"],
+      FRECENT_SITES_UPDATE_INTERVAL,
+      ShellService
+    ),
+    defaultPDFHandler: new CachedTargetingGetter(
+      "getDefaultPDFHandler",
+      null,
+      FRECENT_SITES_UPDATE_INTERVAL,
+      ShellService
+    ),
   },
 };
 
@@ -413,6 +458,63 @@ function parseAboutPageURL(url) {
   }
 
   return ret;
+}
+
+/**
+ * Get the number of records in autofill storage, e.g. credit cards/addresses.
+ *
+ * @param  {Object} [data]
+ * @param  {string} [data.collectionName]
+ *         The name used to specify which collection to retrieve records.
+ * @param  {string} [data.searchString]
+ *         The typed string for filtering out the matched records.
+ * @param  {string} [data.info]
+ *         The input autocomplete property's information.
+ * @returns {Promise<number>} The number of matched records.
+ * @see FormAutofillParent._getRecords
+ */
+async function getAutofillRecords(data) {
+  let actor;
+  try {
+    const win = Services.wm.getMostRecentBrowserWindow();
+    actor = win.gBrowser.selectedBrowser.browsingContext.currentWindowGlobal.getActor(
+      "FormAutofill"
+    );
+  } catch (error) {
+    // If the actor is not available, we can't get the records. We could import
+    // the records directly from FormAutofillStorage to avoid the messiness of
+    // JSActors, but that would import a lot of code for a targeting attribute.
+    return 0;
+  }
+  let records = await actor?.receiveMessage({
+    name: "FormAutofill:GetRecords",
+    data,
+  });
+  return records?.length ?? 0;
+}
+
+// Attribution data can be encoded multiple times so we need this function to
+// get a cleartext value.
+function decodeAttributionValue(value) {
+  if (!value) {
+    return null;
+  }
+
+  let decodedValue = value;
+
+  while (decodedValue.includes("%")) {
+    try {
+      const result = decodeURIComponent(decodedValue);
+      if (result === decodedValue) {
+        break;
+      }
+      decodedValue = result;
+    } catch (e) {
+      break;
+    }
+  }
+
+  return decodedValue;
 }
 
 const TargetingGetters = {
@@ -686,12 +788,6 @@ const TargetingGetters = {
       host: urls[0].host,
     };
   },
-  get isFissionExperimentEnabled() {
-    return (
-      Services.appinfo.fissionExperimentStatus ===
-      Ci.nsIXULRuntime.eExperimentStatusTreatment
-    );
-  },
   get activeNotifications() {
     let bts = Cc["@mozilla.org/backgroundtasks;1"]?.getService(
       Ci.nsIBackgroundTasks
@@ -771,32 +867,7 @@ const TargetingGetters = {
     let window = Services.appShell.hiddenDOMWindow;
     return window?.matchMedia("(prefers-reduced-motion: reduce)")?.matches;
   },
-  /**
-   * Is there an active Colorway collection?
-   * @return {boolean} `true` if an active collection exists.
-   */
-  get colorwaysActive() {
-    return !!lazy.BuiltInThemes.findActiveColorwayCollection();
-  },
-  /**
-   * Has the user enabled an active Colorway as their theme?
-   * @return {boolean} `true` if an active theme from the current
-   * collection is enabled.
-   */
-  get userEnabledActiveColorway() {
-    let bts = Cc["@mozilla.org/backgroundtasks;1"]?.getService(
-      Ci.nsIBackgroundTasks
-    );
-    if (bts?.isBackgroundTaskMode) {
-      return Promise.resolve(false);
-    }
-    return QueryCache.getters.currentThemes.get().then(themes => {
-      let themeId = themes.find(theme => theme.isActive)?.id;
-      return !!(
-        themeId && lazy.BuiltInThemes.isColorwayFromCurrentCollection(themeId)
-      );
-    });
-  },
+
   /**
    * Whether or not the user is in the Major Release 2022 holdback study.
    */
@@ -805,6 +876,7 @@ const TargetingGetters = {
       lazy.NimbusFeatures.majorRelease2022.getVariable("onboarding") === false
     );
   },
+
   /**
    * The distribution id, if any.
    * @return {string}
@@ -823,6 +895,87 @@ const TargetingGetters = {
     let button = lazy.CustomizableUI.getWidget("firefox-view-button");
     return button.areaType;
   },
+
+  isDefaultHandler: {
+    get html() {
+      return QueryCache.getters.isDefaultHTMLHandler.get();
+    },
+    get pdf() {
+      return QueryCache.getters.isDefaultPDFHandler.get();
+    },
+  },
+
+  get defaultPDFHandler() {
+    return QueryCache.getters.defaultPDFHandler.get();
+  },
+
+  get creditCardsSaved() {
+    return getAutofillRecords({ collectionName: "creditCards" });
+  },
+
+  get addressesSaved() {
+    return getAutofillRecords({ collectionName: "addresses" });
+  },
+
+  /**
+   * Has the user ever used the Migration Wizard to migrate bookmarks?
+   * @return {boolean} `true` if bookmark migration has occurred.
+   */
+  get hasMigratedBookmarks() {
+    return lazy.hasMigratedBookmarks;
+  },
+
+  /**
+   * Has the user ever used the Migration Wizard to migrate history?
+   * @return {boolean} `true` if history migration has occurred.
+   */
+  get hasMigratedHistory() {
+    return lazy.hasMigratedHistory;
+  },
+
+  /**
+   * Has the user ever used the Migration Wizard to migrate passwords?
+   * @return {boolean} `true` if password migration has occurred.
+   */
+  get hasMigratedPasswords() {
+    return lazy.hasMigratedPasswords;
+  },
+
+  /**
+   * Returns true if the user is configured to use the embedded migration
+   * wizard in about:welcome by having
+   * "browser.migrate.content-modal.about-welcome-behavior" be equal to
+   * "embedded".
+   * @return {boolean} `true` if the embedded migration wizard is enabled.
+   */
+  get useEmbeddedMigrationWizard() {
+    return lazy.useEmbeddedMigrationWizard;
+  },
+
+  /**
+   * Whether the user installed Firefox via the RTAMO flow.
+   * @return {boolean} `true` when RTAMO has been used to download Firefox,
+   * `false` otherwise.
+   */
+  get isRTAMO() {
+    const { attributionData } = this;
+
+    return (
+      attributionData?.source === "addons.mozilla.org" &&
+      !!decodeAttributionValue(attributionData?.content)?.startsWith("rta:")
+    );
+  },
+
+  /**
+   * Whether the user installed via the device migration flow.
+   * @return {boolean} `true` when the link to download the browser was part
+   * of guidance for device migration. `false` otherwise.
+   */
+  get isDeviceMigration() {
+    const { attributionData } = this;
+
+    return attributionData?.campaign === "migration";
+  },
 };
 
 const ASRouterTargeting = {
@@ -839,25 +992,46 @@ const ASRouterTargeting = {
    * integer.
    */
   async getEnvironmentSnapshot(target = ASRouterTargeting.Environment) {
-    // One promise for each named property.  Label promises with property name.
-    let promises = Object.keys(target).map(async name => {
-      // Each promise needs to check if we're shutting down when it is evaluated.
-      if (Services.startup.shuttingDown) {
-        throw new Error("shutting down, so not querying targeting environment");
-      }
-      return [name, await target[name]];
-    });
+    async function resolve(object) {
+      if (typeof object === "object" && object !== null) {
+        if (Array.isArray(object)) {
+          return Promise.all(object.map(async item => resolve(await item)));
+        }
 
-    // Ignore properties that are rejected.
-    let results = await Promise.allSettled(promises);
+        if (object instanceof Date) {
+          return object;
+        }
 
-    let environment = {};
-    for (let result of results) {
-      if (result.status === "fulfilled") {
-        let [name, value] = result.value;
-        environment[name] = value;
+        // One promise for each named property. Label promises with property name.
+        const promises = Object.keys(object).map(async key => {
+          // Each promise needs to check if we're shutting down when it is evaluated.
+          if (Services.startup.shuttingDown) {
+            throw new Error(
+              "shutting down, so not querying targeting environment"
+            );
+          }
+
+          const value = await resolve(await object[key]);
+
+          return [key, value];
+        });
+
+        const resolved = {};
+        for (const result of await Promise.allSettled(promises)) {
+          // Ignore properties that are rejected.
+          if (result.status === "fulfilled") {
+            const [key, value] = result.value;
+            resolved[key] = value;
+          }
+        }
+
+        return resolved;
       }
+
+      return object;
     }
+
+    const environment = await resolve(target);
 
     // Should we need to migrate in the future.
     const snapshot = { environment, version: 1 };

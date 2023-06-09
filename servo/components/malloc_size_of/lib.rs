@@ -427,6 +427,28 @@ where
     }
 }
 
+impl<T> MallocShallowSizeOf for thin_vec::ThinVec<T> {
+    fn shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        if self.capacity() == 0 {
+            // If it's the singleton we might not be a heap pointer.
+            return 0;
+        }
+
+        assert_eq!(std::mem::size_of::<Self>(), std::mem::size_of::<*const ()>());
+        unsafe { ops.malloc_size_of(*(self as *const Self as *const *const ())) }
+    }
+}
+
+impl<T: MallocSizeOf> MallocSizeOf for thin_vec::ThinVec<T> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        let mut n = self.shallow_size_of(ops);
+        for elem in self.iter() {
+            n += elem.size_of(ops);
+        }
+        n
+    }
+}
+
 macro_rules! malloc_size_of_hash_set {
     ($ty:ty) => {
         impl<T, S> MallocShallowSizeOf for $ty
@@ -725,8 +747,8 @@ where
                 selector.size_of(ops)
             },
             Component::Is(ref list) |
-            Component::Where(ref list) |
-            Component::Has(ref list) => list.size_of(ops),
+            Component::Where(ref list) => list.size_of(ops),
+            Component::Has(ref relative_selectors) => relative_selectors.size_of(ops),
             Component::NthOf(ref nth_of_data) => nth_of_data.size_of(ops),
             Component::PseudoElement(ref pseudo) => (*pseudo).size_of(ops),
             Component::Combinator(..) |
@@ -744,8 +766,10 @@ where
             Component::Root |
             Component::Empty |
             Component::Scope |
+            Component::ParentSelector |
             Component::Nth(..) |
-            Component::Host(None) => 0,
+            Component::Host(None) |
+            Component::RelativeSelectorAnchor => 0,
         }
     }
 }

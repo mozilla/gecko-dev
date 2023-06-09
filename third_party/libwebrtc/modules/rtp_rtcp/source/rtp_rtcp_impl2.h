@@ -114,8 +114,6 @@ class ModuleRtpRtcpImpl2 final : public RtpRtcpInterface,
 
   void SetMid(absl::string_view mid) override;
 
-  void SetCsrcs(const std::vector<uint32_t>& csrcs) override;
-
   RTCPSender::FeedbackState GetFeedbackState();
 
   void SetRtxSendStatus(int mode) override;
@@ -153,6 +151,9 @@ class ModuleRtpRtcpImpl2 final : public RtpRtcpInterface,
                               const FecProtectionParams& key_params) override;
 
   std::vector<std::unique_ptr<RtpPacketToSend>> FetchFecPackets() override;
+
+  void OnAbortedRetransmissions(
+      rtc::ArrayView<const uint16_t> sequence_numbers) override;
 
   void OnPacketsAcknowledged(
       rtc::ArrayView<const uint16_t> sequence_numbers) override;

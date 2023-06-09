@@ -18,10 +18,10 @@ export class Branch {
    *
    * @param {string} pref
    *     Preference name.
-   * @param {?=} fallback
+   * @param {*=} fallback
    *     Fallback value to return if `pref` does not exist.
    *
-   * @return {(string|boolean|number)}
+   * @returns {(string|boolean|number)}
    *     Value of `pref`, or the `fallback` value if `pref` does
    *     not exist.
    *
@@ -88,16 +88,11 @@ export class Branch {
  * preferences.
  *
  * Some of Marionette's preferences are stored using primitive values
- * that internally are represented by complex types.  One such example
- * is `marionette.log.level` which stores a string such as `info` or
- * `DEBUG`, and which is represented as `Log.Level`.
+ * that internally are represented by complex types.
  *
  * Because we cannot trust the input of many of these preferences,
  * this class provides abstraction that lets us safely deal with
- * potentially malformed input.  In the `marionette.log.level` example,
- * `DEBUG`, `Debug`, and `dEbUg` are considered valid inputs and the
- * `LogBranch` specialisation deserialises the string value to the
- * correct `Log.Level` by sanitising the input data first.
+ * potentially malformed input.
  *
  * A further complication is that we cannot rely on `Preferences.sys.mjs`
  * in Marionette.  See https://bugzilla.mozilla.org/show_bug.cgi?id=1357517
@@ -113,7 +108,7 @@ class MarionetteBranch extends Branch {
    * server startup until a modal dialogue has been clicked to allow
    * time for user to set breakpoints in the Browser Toolbox.
    *
-   * @return {boolean}
+   * @returns {boolean}
    */
   get clickToStart() {
     return this.get("debugging.clicktostart", false);
@@ -123,7 +118,7 @@ class MarionetteBranch extends Branch {
    * The `marionette.port` preference, detailing which port
    * the TCP server should listen on.
    *
-   * @return {number}
+   * @returns {number}
    */
   get port() {
     return this.get("port", 2828);
@@ -137,7 +132,7 @@ class MarionetteBranch extends Branch {
    * Gets the `marionette.setpermission.enabled` preference, should
    * only be used for testdriver's set_permission API.
    *
-   * @return {boolean}
+   * @returns {boolean}
    */
   get setPermissionEnabled() {
     return this.get("setpermission.enabled", false);
@@ -155,7 +150,7 @@ export class EnvironmentPrefs {
    * @param {string} key
    *     Environment variable.
    *
-   * @return {Iterable.<string, (string|boolean|number)>
+   * @returns {Iterable.<string, (string|boolean|number)>}
    */
   static *from(key) {
     if (!Services.env.exists(key)) {

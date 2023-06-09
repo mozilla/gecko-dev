@@ -155,11 +155,6 @@ GfxInfo::GetWindowProtocol(nsAString& aWindowProtocol) {
 }
 
 NS_IMETHODIMP
-GfxInfo::GetDesktopEnvironment(nsAString& aDesktopEnvironment) {
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
 GfxInfo::GetTestType(nsAString& aTestType) { return NS_ERROR_NOT_IMPLEMENTED; }
 
 static nsresult GetKeyValue(const WCHAR* keyLocation, const WCHAR* keyName,
@@ -1301,6 +1296,16 @@ const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
         GfxDriverInfo::allFeatures, nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION,
         DRIVER_EQUAL, V(22, 19, 162, 4), "FEATURE_FAILURE_BUG_1587155");
 
+    // Bug 1829487 - Work around a gen6 driver bug that miscompiles shaders
+    // resulting
+    //               in black squares. Disabling shader optimization pass
+    //               appears to work around this for now.
+    APPEND_TO_DRIVER_BLOCKLIST2(
+        OperatingSystem::Windows, DeviceFamily::IntelSandyBridge,
+        nsIGfxInfo::FEATURE_WEBRENDER_OPTIMIZED_SHADERS,
+        nsIGfxInfo::FEATURE_BLOCKED_DEVICE, DRIVER_LESS_THAN,
+        GfxDriverInfo::allDriverVersions, "FEATURE_FAILURE_BUG_1829487");
+
     // Bug 1198815
     APPEND_TO_DRIVER_BLOCKLIST_RANGE(
         OperatingSystem::Windows, DeviceFamily::AtiAll,
@@ -1744,13 +1749,27 @@ const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
         "FEATURE_UNQUALIFIED_P010_NVIDIA");
 
     ////////////////////////////////////
+    // FEATURE_VIDEO_OVERLAY - ALLOWLIST
+#ifdef EARLY_BETA_OR_EARLIER
+    APPEND_TO_DRIVER_BLOCKLIST2(
+        OperatingSystem::Windows, DeviceFamily::All,
+        nsIGfxInfo::FEATURE_VIDEO_OVERLAY, nsIGfxInfo::FEATURE_ALLOW_ALWAYS,
+        DRIVER_COMPARISON_IGNORED, V(0, 0, 0, 0), "FEATURE_ROLLOUT_ALL");
+#else
+    APPEND_TO_DRIVER_BLOCKLIST2(
+        OperatingSystem::Windows, DeviceFamily::IntelAll,
+        nsIGfxInfo::FEATURE_VIDEO_OVERLAY, nsIGfxInfo::FEATURE_ALLOW_ALWAYS,
+        DRIVER_COMPARISON_IGNORED, V(0, 0, 0, 0), "FEATURE_ROLLOUT_INTEL");
+#endif
+
+    ////////////////////////////////////
     // FEATURE_HW_DECODED_VIDEO_ZERO_COPY
 
     APPEND_TO_DRIVER_BLOCKLIST_RANGE(
         OperatingSystem::Windows10, DeviceFamily::IntelSkylake,
         nsIGfxInfo::FEATURE_HW_DECODED_VIDEO_ZERO_COPY,
         nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION, DRIVER_BETWEEN_INCLUSIVE,
-        V(20, 19, 15, 4285), V(20, 19, 15, 4380), "FEATURE_FAILURE_BUG_1763280",
+        V(20, 19, 15, 4285), V(20, 19, 15, 4390), "FEATURE_FAILURE_BUG_1763280",
         "Intel driver 20.19.15.*");
 
     APPEND_TO_DRIVER_BLOCKLIST_RANGE(
@@ -1788,6 +1807,23 @@ const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
         nsIGfxInfo::FEATURE_HW_DECODED_VIDEO_ZERO_COPY,
         nsIGfxInfo::FEATURE_ALLOW_ALWAYS, DRIVER_COMPARISON_IGNORED,
         V(0, 0, 0, 0), "FEATURE_ROLLOUT_ALL");
+
+    ////////////////////////////////////
+    // FEATURE_REUSE_DECODER_DEVICE
+
+    APPEND_TO_DRIVER_BLOCKLIST_RANGE(
+        OperatingSystem::Windows10, DeviceFamily::IntelSkylake,
+        nsIGfxInfo::FEATURE_REUSE_DECODER_DEVICE,
+        nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION, DRIVER_BETWEEN_INCLUSIVE,
+        V(20, 19, 15, 4285), V(20, 19, 15, 4390), "FEATURE_FAILURE_BUG_1833809",
+        "Intel driver 20.19.15.*");
+
+    APPEND_TO_DRIVER_BLOCKLIST_RANGE(
+        OperatingSystem::Windows10, DeviceFamily::IntelSkylake,
+        nsIGfxInfo::FEATURE_REUSE_DECODER_DEVICE,
+        nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION, DRIVER_BETWEEN_INCLUSIVE,
+        V(10, 18, 15, 4256), V(10, 18, 15, 4293), "FEATURE_FAILURE_BUG_1833809",
+        "Intel driver 10.18.15.*");
 
     ////////////////////////////////////
     // FEATURE_WEBRENDER
@@ -1945,11 +1981,13 @@ nsresult GfxInfo::GetFeatureStatusImpl(
       return NS_OK;
     }
 
+#ifndef NIGHTLY_BUILD
     if (mHasDriverVersionMismatch) {
       aFailureId = "FEATURE_FAILURE_MISMATCHED_VERSION";
       *aStatus = nsIGfxInfo::FEATURE_BLOCKED_MISMATCHED_VERSION;
       return NS_OK;
     }
+#endif
   }
 
   return GfxInfoBase::GetFeatureStatusImpl(
@@ -2028,7 +2066,5 @@ NS_IMETHODIMP GfxInfo::SpoofOSVersion(uint32_t aVersion) {
   mWindowsVersion = aVersion;
   return NS_OK;
 }
-
-NS_IMETHODIMP GfxInfo::FireTestProcess() { return NS_OK; }
 
 #endif

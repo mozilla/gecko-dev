@@ -8,11 +8,14 @@ import { JsonSchema } from "resource://gre/modules/JsonSchema.sys.mjs";
 
 const lazy = {};
 
+ChromeUtils.defineESModuleGetters(lazy, {
+  SpecialMessageActions:
+    "resource://messaging-system/lib/SpecialMessageActions.sys.mjs",
+});
 XPCOMUtils.defineLazyModuleGetters(lazy, {
   InfoBar: "resource://activity-stream/lib/InfoBar.jsm",
   Spotlight: "resource://activity-stream/lib/Spotlight.jsm",
-  SpecialMessageActions:
-    "resource://messaging-system/lib/SpecialMessageActions.jsm",
+  CFRPageActions: "resource://activity-stream/lib/CFRPageActions.jsm",
 });
 
 function dispatchCFRAction({ type, data }, browser) {
@@ -22,16 +25,20 @@ function dispatchCFRAction({ type, data }, browser) {
 }
 
 export class AboutMessagePreviewParent extends JSWindowActorParent {
-  showInfoBar(message) {
-    const browser = this.browsingContext.topChromeWindow.gBrowser
-      .selectedBrowser;
+  showInfoBar(message, browser) {
     lazy.InfoBar.showInfoBarMessage(browser, message, dispatchCFRAction);
   }
 
-  showSpotlight(message) {
-    const browser = this.browsingContext.topChromeWindow.gBrowser
-      .selectedBrowser;
+  showSpotlight(message, browser) {
     lazy.Spotlight.showSpotlightDialog(browser, message, () => {});
+  }
+
+  showCFR(message, browser) {
+    lazy.CFRPageActions.forceRecommendation(
+      browser,
+      message,
+      dispatchCFRAction
+    );
   }
 
   async showMessage(data) {
@@ -55,12 +62,17 @@ export class AboutMessagePreviewParent extends JSWindowActorParent {
       );
     }
 
+    const browser = this.browsingContext.topChromeWindow.gBrowser
+      .selectedBrowser;
     switch (message.template) {
       case "infobar":
-        this.showInfoBar(message);
+        this.showInfoBar(message, browser);
         return;
       case "spotlight":
-        this.showSpotlight(message);
+        this.showSpotlight(message, browser);
+        return;
+      case "cfr_doorhanger":
+        this.showCFR(message, browser);
         return;
       default:
         console.error(`Unsupported message template ${message.template}`);

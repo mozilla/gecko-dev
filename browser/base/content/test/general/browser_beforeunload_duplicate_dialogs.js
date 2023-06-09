@@ -36,16 +36,7 @@ function onCommonDialogLoaded(promptWindow) {
   let dialog = promptWindow.Dialog;
   if (wantToClose) {
     // This accepts the dialog, closing it.
-    // On Mac we wait 375ms (ie. the duration of the tab-burst-animation)
-    // to avoid bug 1765387.
-    if (AppConstants.platform == "macosx") {
-      // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
-      setTimeout(() => {
-        dialog.ui.button0.click();
-      }, 375);
-    } else {
-      dialog.ui.button0.click();
-    }
+    dialog.ui.button0.click();
   } else {
     // This keeps the page open
     dialog.ui.button1.click();
@@ -88,6 +79,7 @@ add_task(async function closeWindowWithMultipleTabsIncludingOneBeforeUnload() {
   await promiseTabLoadEvent(firstTab, TEST_PAGE);
   await promiseTabLoadEvent(
     BrowserTestUtils.addTab(newWin.gBrowser),
+    // eslint-disable-next-line @microsoft/sdl/no-insecure-url
     "http://example.com/"
   );
   let windowClosedPromise = BrowserTestUtils.domWindowClosed(newWin);

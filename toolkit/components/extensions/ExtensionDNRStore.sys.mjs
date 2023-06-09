@@ -15,13 +15,25 @@ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 const lazy = {};
 
 XPCOMUtils.defineLazyModuleGetters(lazy, {
+  Extension: "resource://gre/modules/Extension.jsm",
   Schemas: "resource://gre/modules/Schemas.jsm",
   PromiseUtils: "resource://gre/modules/PromiseUtils.jsm",
 });
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  DeferredTask: "resource://gre/modules/DeferredTask.sys.mjs",
   ExtensionDNR: "resource://gre/modules/ExtensionDNR.sys.mjs",
+  ExtensionDNRLimits: "resource://gre/modules/ExtensionDNRLimits.sys.mjs",
 });
+
+XPCOMUtils.defineLazyServiceGetters(lazy, {
+  aomStartup: [
+    "@mozilla.org/addons/addon-manager-startup;1",
+    "amIAddonManagerStartup",
+  ],
+});
+
+const LAST_UPDATE_TAG_PREF_PREFIX = "extensions.dnr.lastStoreUpdateTag.";
 
 const { DefaultMap, ExtensionError } = ExtensionUtils;
 const { StartupCache } = ExtensionParent;
@@ -31,10 +43,15 @@ const { StartupCache } = ExtensionParent;
 // NOTE: each extension's stored rules are stored in a per-extension file
 // and stored rules filename is derived from the extension uuid assigned
 // at install time.
-//
-// TODO(Bug 1803365): consider introducing a startupCache file.
 const RULES_STORE_DIRNAME = "extension-dnr";
 const RULES_STORE_FILEEXT = ".json.lz4";
+const RULES_CACHE_FILENAME = "extensions-dnr.sc.lz4";
+
+const requireTestOnlyCallers = () => {
+  if (!Services.env.exists("XPCSHELL_TEST_PROFILE_DIR")) {
+    throw new Error("This should only be called from XPCShell tests");
+  }
+};
 
 /**
  * Internal representation of the enabled static rulesets (used in StoreData
@@ -62,12 +79,60 @@ class StoreData {
   // along with bumps to the schema version here.
   static VERSION = 1;
 
+  static getLastUpdateTagPref(extensionUUID) {
+    return `${LAST_UPDATE_TAG_PREF_PREFIX}${extensionUUID}`;
+  }
+
+  static getLastUpdateTag(extensionUUID) {
+    return Services.prefs.getCharPref(
+      this.getLastUpdateTagPref(extensionUUID),
+      null
+    );
+  }
+
+  static storeLastUpdateTag(extensionUUID, lastUpdateTag) {
+    Services.prefs.setCharPref(
+      this.getLastUpdateTagPref(extensionUUID),
+      lastUpdateTag
+    );
+  }
+
+  static clearLastUpdateTagPref(extensionUUID) {
+    Services.prefs.clearUserPref(this.getLastUpdateTagPref(extensionUUID));
+  }
+
+  static isStaleCacheEntry(extensionUUID, cacheStoreData) {
+    return (
+      // Drop the cache entry if the data stored doesn't match the current
+      // StoreData schema version (this shouldn't happen unless the file
+      // have been manually restored by the user from an older firefox version).
+      cacheStoreData.schemaVersion !== this.VERSION ||
+      // Drop the cache entry if the lastUpdateTag from the cached data entry
+      // doesn't match the lastUpdateTag recorded in the prefs, the tag is applied
+      // with a per-extension granularity to reduce the chances of cache misses
+      // last update on the cached data for an unrelated extensions did not make it
+      // to disk).
+      cacheStoreData.lastUpdateTag != this.getLastUpdateTag(extensionUUID)
+    );
+  }
+
+  #extUUID;
+  #initialLastUdateTag;
+  #temporarilyInstalled;
+
   /**
+   * @param {Extension} extension
+   *        The extension the StoreData is associated to.
    * @param {object} params
+   * @param {string} params.extVersion
+   *        extension version
+   * @param {string} [params.lastUpdateTag]
+   *        a tag associated to the data. It is only passed when we are loading the data
+   *        from the StartupCache file, while a new tag uuid string will be generated
+   *        for brand new data (and then new ones generated on each calls to the `updateRulesets`
+   *        method).
    * @param {number} [params.schemaVersion=StoreData.VERSION]
    *        file schema version
-   * @param {string} [params.extVersion]
-   *        extension version
    * @param {Map<string, EnabledStaticRuleset>} [params.staticRulesets=new Map()]
    *        map of the enabled static rulesets by ruleset_id, as resolved by
    *        `Store.prototype.#getManifestStaticRulesets`.
@@ -77,28 +142,108 @@ class StoreData {
    * @param {Array<Rule>} [params.dynamicRuleset=[]]
    *        array of dynamic rules stored by the extension.
    */
-  constructor({
-    schemaVersion,
-    extVersion,
-    staticRulesets,
-    dynamicRuleset,
-  } = {}) {
+  constructor(
+    extension,
+    {
+      extVersion,
+      lastUpdateTag,
+      dynamicRuleset,
+      staticRulesets,
+      schemaVersion,
+    } = {}
+  ) {
+    if (!(extension instanceof lazy.Extension)) {
+      throw new Error("Missing mandatory extension parameter");
+    }
     this.schemaVersion = schemaVersion || this.constructor.VERSION;
-    this.extVersion = extVersion ?? null;
-    this.setStaticRulesets(staticRulesets);
-    this.setDynamicRuleset(dynamicRuleset);
+    this.extVersion = extVersion ?? extension.version;
+    this.#extUUID = extension.uuid;
+    // Used to skip storing the data in the startupCache or storing the lastUpdateTag in
+    // the about:config prefs.
+    this.#temporarilyInstalled = extension.temporarilyInstalled;
+    // The lastUpdateTag gets set (and updated) by calls to updateRulesets.
+    this.lastUpdateTag = undefined;
+    this.#initialLastUdateTag = lastUpdateTag;
+    this.#updateRulesets({
+      staticRulesets: staticRulesets ?? new Map(),
+      dynamicRuleset: dynamicRuleset ?? [],
+      lastUpdateTag,
+    });
+  }
+
+  isFromStartupCache() {
+    return this.#initialLastUdateTag == this.lastUpdateTag;
+  }
+
+  isFromTemporarilyInstalled() {
+    return this.#temporarilyInstalled;
   }
 
   get isEmpty() {
     return !this.staticRulesets.size && !this.dynamicRuleset.length;
   }
 
-  setStaticRulesets(updatedStaticRulesets = new Map()) {
-    this.staticRulesets = updatedStaticRulesets;
+  /**
+   * Updates the static and or dynamic rulesets stored for the related
+   * extension.
+   *
+   * NOTE: This method also:
+   * - regenerates the lastUpdateTag associated as an unique identifier
+   *   of the revision for the stored data (used to detect stale startup
+   *   cache data)
+   * - stores the lastUpdateTag into an about:config pref associated to
+   *   the extension uuid (also used as part of detecting stale startup
+   *   cache data), unless the extension is installed temporarily.
+   *
+   * @param {object} params
+   * @param {Map<string, EnabledStaticRuleset>} [params.staticRulesets]
+   *        optional new updated Map of static rulesets
+   *        (static rulesets are unchanged if not passed).
+   * @param {Array<Rule>} [params.dynamicRuleset=[]]
+   *        optional array of updated dynamic rules
+   *        (dynamic rules are unchanged if not passed).
+   */
+  updateRulesets({ staticRulesets, dynamicRuleset } = {}) {
+    let currentUpdateTag = this.lastUpdateTag;
+    let lastUpdateTag = this.#updateRulesets({
+      staticRulesets,
+      dynamicRuleset,
+    });
+
+    // Tag each cache data entry with a value synchronously stored in an
+    // about:config prefs, if on a browser restart the tag in the startupCache
+    // data entry doesn't match the one in the about:config pref then the startup
+    // cache entry is dropped as stale (assuming an issue prevented the updated
+    // cache data to be written on disk, e.g. browser crash, failure on writing
+    // on disk etc.), each entry is tagged separately to decrease the chances
+    // of cache misses on unrelated cache data entries if only a few extension
+    // got stale data in the startup cache file.
+    if (
+      !this.isFromTemporarilyInstalled() &&
+      currentUpdateTag != lastUpdateTag
+    ) {
+      StoreData.storeLastUpdateTag(this.#extUUID, lastUpdateTag);
+    }
   }
 
-  setDynamicRuleset(updatedDynamicRuleset = []) {
-    this.dynamicRuleset = updatedDynamicRuleset;
+  #updateRulesets({
+    staticRulesets,
+    dynamicRuleset,
+    lastUpdateTag = Services.uuid.generateUUID().toString(),
+  } = {}) {
+    if (staticRulesets) {
+      this.staticRulesets = staticRulesets;
+    }
+
+    if (dynamicRuleset) {
+      this.dynamicRuleset = dynamicRuleset;
+    }
+
+    if (staticRulesets || dynamicRuleset) {
+      this.lastUpdateTag = lastUpdateTag;
+    }
+
+    return this.lastUpdateTag;
   }
 
   // This method is used to convert the data in the format stored on disk
@@ -115,6 +260,25 @@ class StoreData {
       dynamicRuleset: this.dynamicRuleset,
     };
     return data;
+  }
+
+  // This method is used to convert the data back to a StoreData class from
+  // the format stored on disk as a JSON file.
+  // NOTE: this method should be kept in sync with toJSON and make sure that
+  // we do deserialize the same property we are serializing into the JSON file.
+  static fromJSON(paramsFromJSON, extension) {
+    let {
+      schemaVersion,
+      extVersion,
+      staticRulesets,
+      dynamicRuleset,
+    } = paramsFromJSON;
+    return new StoreData(extension, {
+      schemaVersion,
+      extVersion,
+      staticRulesets,
+      dynamicRuleset,
+    });
   }
 }
 
@@ -205,6 +369,39 @@ class RulesetsStore {
     // Promise to await on to ensure the store parent directory exist
     // (the parent directory is shared by all extensions and so we only need one).
     this._ensureStoreDirectoryPromise = null;
+    // Promise to await on to ensure (there is only one startupCache file for all
+    // extensions and so we only need one):
+    // - the cache file parent directory exist
+    // - the cache file data has been loaded (if any was available and matching
+    //   the last DNR data stored on disk)
+    // - the cache file data has been saved.
+    this._ensureCacheDirectoryPromise = null;
+    this._ensureCacheLoaded = null;
+    this._saveCacheTask = null;
+    // Map of the raw data read from the startupCache.
+    // Map<extensionUUID, Object>
+    this._startupCacheData = new Map();
+  }
+
+  /**
+   * Wait for the startup cache data to be stored on disk.
+   *
+   * NOTE: Only meant to be used in xpcshell tests.
+   *
+   * @returns {Promise<void>}
+   */
+  async waitSaveCacheDataForTesting() {
+    requireTestOnlyCallers();
+    if (this._saveCacheTask) {
+      if (this._saveCacheTask.isRunning) {
+        await this._saveCacheTask._runningPromise;
+      }
+      // #saveCacheDataNow() may schedule another save if anything has changed in between
+      while (this._saveCacheTask.isArmed) {
+        this._saveCacheTask.disarm();
+        await this.#saveCacheDataNow();
+      }
+    }
   }
 
   /**
@@ -215,6 +412,9 @@ class RulesetsStore {
    * @returns {Promise<void>}
    */
   async clearOnUninstall(extensionUUID) {
+    // TODO(Bug 1825510): call scheduleCacheDataSave to update the startup cache data
+    // stored on disk, but skip it if it is late in the application shutdown.
+    StoreData.clearLastUpdateTagPref(extensionUUID);
     const storeFile = this.#getStoreFilePath(extensionUUID);
 
     // TODO(Bug 1803363): consider collect telemetry on DNR store file removal errors.
@@ -263,7 +463,7 @@ class RulesetsStore {
   }
 
   async getAvailableStaticRuleCount(extension) {
-    const { GUARANTEED_MINIMUM_STATIC_RULES } = lazy.ExtensionDNR.limits;
+    const { GUARANTEED_MINIMUM_STATIC_RULES } = lazy.ExtensionDNRLimits;
 
     const ruleResources =
       extension.manifest.declarative_net_request?.rule_resources;
@@ -414,15 +614,19 @@ class RulesetsStore {
   }
 
   /**
-   * Return the store file path for the given the extension's uuid.
+   * Return the store file path for the given the extension's uuid and the cache
+   * file with startupCache data for all the extensions.
    *
    * @param {string} extensionUUID
-   * @returns {{ storeFile: string}}
-   *          An object including the full paths to the storeFile for the extension.
+   * @returns {{ storeFile: string | void, cacheFile: string}}
+   *          An object including the full paths to both the per-extension store file
+   *          for the given extension UUID and the full path to the single startupCache
+   *          file (which would include the cached data for all the extensions).
    */
   getFilePaths(extensionUUID) {
     return {
       storeFile: this.#getStoreFilePath(extensionUUID),
+      cacheFile: this.#getCacheFilePath(),
     };
   }
 
@@ -436,7 +640,7 @@ class RulesetsStore {
     let savePromise = this._savePromises.get(uuid);
 
     if (!savePromise) {
-      savePromise = this.#saveNow(uuid);
+      savePromise = this.#saveNow(uuid, id);
       this._savePromises.set(uuid, savePromise);
       IOUtils.profileBeforeChange.addBlocker(
         `Flush WebExtension DNR RulesetsStore: ${id}`,
@@ -474,9 +678,27 @@ class RulesetsStore {
    * @returns {StoreData}
    */
   #getDefaults(extension) {
-    return new StoreData({
+    return new StoreData(extension, {
+      extUUID: extension.uuid,
       extVersion: extension.version,
+      temporarilyInstalled: extension.temporarilyInstalled,
     });
+  }
+
+  /**
+   * Return the cache file path.
+   *
+   * @returns {string}
+   *          The absolute path to the startupCache file.
+   */
+  #getCacheFilePath() {
+    // When the application version changes, this file is removed by
+    // RemoveComponentRegistries in nsAppRunner.cpp.
+    return PathUtils.join(
+      Services.dirsvc.get("ProfLD", Ci.nsIFile).path,
+      "startupCache",
+      RULES_CACHE_FILENAME
+    );
   }
 
   /**
@@ -491,6 +713,20 @@ class RulesetsStore {
       RULES_STORE_DIRNAME,
       `${extensionUUID}${RULES_STORE_FILEEXT}`
     );
+  }
+
+  #ensureCacheDirectory() {
+    if (this._ensureCacheDirectoryPromise === null) {
+      const file = this.#getCacheFilePath();
+      this._ensureCacheDirectoryPromise = IOUtils.makeDirectory(
+        PathUtils.parent(file),
+        {
+          ignoreExisting: true,
+          createAncestors: true,
+        }
+      );
+    }
+    return this._ensureCacheDirectoryPromise;
   }
 
   #ensureStoreDirectory(extensionUUID) {
@@ -509,7 +745,7 @@ class RulesetsStore {
     return this._ensureStoreDirectoryPromise;
   }
 
-  async #getDataPromise(extension) {
+  #getDataPromise(extension) {
     let dataPromise = this._dataPromises.get(extension.uuid);
     if (!dataPromise) {
       if (extension.hasShutdown) {
@@ -530,13 +766,23 @@ class RulesetsStore {
    * for the enabled static ruleset ids listed in the store file.
    *
    * @param {Extension} extension
-   * @param {Array<string>} [enabledRulesetIds]
+   * @param {object} [options]
+   * @param {Array<string>} [options.enabledRulesetIds]
    *        An optional array of enabled ruleset ids to be loaded
    *        (used to load a specific group of static rulesets,
    *        either when the list of static rules needs to be recreated based
    *        on the enabled rulesets, or when the extension is
    *        changing the enabled rulesets using the `updateEnabledRulesets`
    *        API method).
+   * @param {boolean} [options.isUpdateEnabledRulesets]
+   *        Whether this is a call by updateEnabledRulesets. When true,
+   *        `enabledRulesetIds` contains the IDs of disabled rulesets that
+   *        should be enabled. Already-enabled rulesets are not included in
+   *        `enabledRulesetIds`.
+   * @param {RuleQuotaCounter} [options.ruleQuotaCounter]
+   *        The counter of already-enabled rules that are not part of
+   *        `enabledRulesetIds`. Set when `isUpdateEnabledRulesets` is true.
+   *        This method may mutate its internal counters.
    * @returns {Promise<Map<ruleset_id, EnabledStaticRuleset>>}
    *          map of the enabled static rulesets by ruleset_id.
    */
@@ -544,9 +790,8 @@ class RulesetsStore {
     extension,
     {
       enabledRulesetIds = null,
-      availableStaticRuleCount = lazy.ExtensionDNR.limits
-        .GUARANTEED_MINIMUM_STATIC_RULES,
       isUpdateEnabledRulesets = false,
+      ruleQuotaCounter,
     } = {}
   ) {
     // Map<ruleset_id, EnabledStaticRuleset>}
@@ -558,17 +803,20 @@ class RulesetsStore {
       return rulesets;
     }
 
+    if (!isUpdateEnabledRulesets) {
+      ruleQuotaCounter = new lazy.ExtensionDNR.RuleQuotaCounter(
+        /* isStaticRulesets */ true
+      );
+    }
+
     const {
       MAX_NUMBER_OF_ENABLED_STATIC_RULESETS,
       // Warnings on MAX_NUMBER_OF_STATIC_RULESETS are already
       // reported (see ExtensionDNR.validateManifestEntry, called
       // from the DNR API onManifestEntry callback).
-    } = lazy.ExtensionDNR.limits;
+    } = lazy.ExtensionDNRLimits;
 
     for (let [idx, { id, enabled, path }] of ruleResources.entries()) {
-      // Retrieve the file path from the normalized path.
-      path = Services.io.newURI(path).filePath;
-
       // If passed enabledRulesetIds is used to determine if the enabled
       // rules in the manifest should be overridden from the list of
       // enabled static rulesets stored on disk.
@@ -597,15 +845,23 @@ class RulesetsStore {
         continue;
       }
 
+      const readJSONStartTime = Cu.now();
       const rawRules =
         enabled &&
-        (await extension.readJSON(path).catch(err => {
-          Cu.reportError(err);
-          enabled = false;
-          extension.packagingError(
-            `Reading declarative_net_request static rules file ${path}: ${err.message}`
-          );
-        }));
+        (await fetch(path)
+          .then(res => res.json())
+          .catch(err => {
+            Cu.reportError(err);
+            enabled = false;
+            extension.packagingError(
+              `Reading declarative_net_request static rules file ${path}: ${err.message}`
+            );
+          }));
+      ChromeUtils.addProfilerMarker(
+        "ExtensionDNRStore",
+        { startTime: readJSONStartTime },
+        `StaticRulesetsReadJSON, addonId: ${extension.id}`
+      );
 
       // Skip rulesets that are not enabled or can't be enabled (e.g. if we got error on loading or
       // parsing the rules JSON file).
@@ -632,23 +888,21 @@ class RulesetsStore {
       // only the valid rules will be actually be loaded. Reconsider if
       // we should instead also account for the rules that have been
       // ignored as invalid.
-      if (availableStaticRuleCount - validatedRules.length < 0) {
+      try {
+        ruleQuotaCounter.tryAddRules(id, validatedRules);
+      } catch (e) {
+        // If this is an API call (updateEnabledRulesets), just propagate the
+        // error. Otherwise we are intializing the extension and should just
+        // ignore the ruleset while reporting the error.
         if (isUpdateEnabledRulesets) {
-          throw new ExtensionError(
-            "updateEnabledRulesets request is exceeding the available static rule count"
-          );
+          throw e;
         }
-
         // TODO(Bug 1803363): consider collect telemetry.
         Cu.reportError(
-          `Ignoring static ruleset exceeding the available static rule count: ruleset_id "${id}" (extension: "${extension.id}")`
+          `Ignoring static ruleset "${id}" in extension "${extension.id}" because: ${e.message}`
         );
-        // TODO: currently ignoring the current ruleset but would load the one that follows if it
-        // fits in the available rule count when loading the rule on extension startup,
-        // should it stop loading additional rules instead?
         continue;
       }
-      availableStaticRuleCount -= validatedRules.length;
 
       rulesets.set(id, { idx, rules: validatedRules });
     }
@@ -679,55 +933,69 @@ class RulesetsStore {
     rawRules,
     { logRuleValidationError = err => Cu.reportError(err) } = {}
   ) {
-    const ruleValidator = new lazy.ExtensionDNR.RuleValidator([]);
-    // Normalize rules read from JSON.
-    const validationContext = {
-      url: extension.baseURI.spec,
-      principal: extension.principal,
-      logError: logRuleValidationError,
-      preprocessors: {},
-      manifestVersion: extension.manifestVersion,
-    };
+    const startTime = Cu.now();
+    const validatedRulesTimerId = Glean.extensionsApisDnr.validateRulesTime.start();
+    try {
+      const ruleValidator = new lazy.ExtensionDNR.RuleValidator([]);
+      // Normalize rules read from JSON.
+      const validationContext = {
+        url: extension.baseURI.spec,
+        principal: extension.principal,
+        logError: logRuleValidationError,
+        preprocessors: {},
+        manifestVersion: extension.manifestVersion,
+      };
 
-    // TODO(Bug 1803369): consider to also include the rule id if one was available.
-    const getInvalidRuleMessage = (ruleIndex, msg) =>
-      `Invalid rule at index ${ruleIndex} from ruleset "${rulesetId}", ${msg}`;
+      // TODO(Bug 1803369): consider to also include the rule id if one was available.
+      const getInvalidRuleMessage = (ruleIndex, msg) =>
+        `Invalid rule at index ${ruleIndex} from ruleset "${rulesetId}", ${msg}`;
 
-    for (const [rawIndex, rawRule] of rawRules.entries()) {
-      try {
-        const normalizedRule = lazy.Schemas.normalize(
-          rawRule,
-          "declarativeNetRequest.Rule",
-          validationContext
-        );
-        if (normalizedRule.value) {
-          ruleValidator.addRules([normalizedRule.value]);
-        } else {
+      for (const [rawIndex, rawRule] of rawRules.entries()) {
+        try {
+          const normalizedRule = lazy.Schemas.normalize(
+            rawRule,
+            "declarativeNetRequest.Rule",
+            validationContext
+          );
+          if (normalizedRule.value) {
+            ruleValidator.addRules([normalizedRule.value]);
+          } else {
+            logRuleValidationError(
+              getInvalidRuleMessage(
+                rawIndex,
+                normalizedRule.error ?? "Unexpected undefined rule"
+              )
+            );
+          }
+        } catch (err) {
+          Cu.reportError(err);
           logRuleValidationError(
-            getInvalidRuleMessage(
-              rawIndex,
-              normalizedRule.error ?? "Unexpected undefined rule"
-            )
+            getInvalidRuleMessage(rawIndex, "An unexpected error occurred")
           );
         }
-      } catch (err) {
+      }
+
+      // TODO(Bug 1803369): consider including an index in the invalid rules warnings.
+      if (ruleValidator.getFailures().length) {
         logRuleValidationError(
-          getInvalidRuleMessage(rawIndex, "An unexpected error occurred")
+          `Invalid rules found in ruleset "${rulesetId}": ${ruleValidator
+            .getFailures()
+            .map(f => f.message)
+            .join(", ")}`
         );
       }
-    }
 
-    // TODO(Bug 1803369): consider including an index in the invalid rules warnings.
-    if (ruleValidator.getFailures().length) {
-      logRuleValidationError(
-        `Invalid rules found in ruleset "${rulesetId}": ${ruleValidator
-          .getFailures()
-          .map(f => f.message)
-          .join(", ")}`
+      return ruleValidator.getValidatedRules();
+    } finally {
+      ChromeUtils.addProfilerMarker(
+        "ExtensionDNRStore",
+        { startTime },
+        `#getValidatedRules, addonId: ${extension.id}`
+      );
+      Glean.extensionsApisDnr.validateRulesTime.stopAndAccumulate(
+        validatedRulesTimerId
       );
     }
-
-    return ruleValidator.getValidatedRules();
   }
 
   #hasInstallOrUpdateStartupReason(extension) {
@@ -783,12 +1051,88 @@ class RulesetsStore {
     );
 
     if (hasEnabledStaticRules || hasDynamicRules) {
-      await this.#getDataPromise(extension);
+      const data = await this.#getDataPromise(extension);
+      if (!data.isFromStartupCache() && !data.isFromTemporarilyInstalled()) {
+        this.scheduleCacheDataSave();
+      }
+      if (extension.hasShutdown) {
+        return;
+      }
       this.updateRulesetManager(extension, {
         updateStaticRulesets: hasEnabledStaticRules,
         updateDynamicRuleset: hasDynamicRules,
       });
     }
+  }
+
+  #promiseStartupCacheLoaded() {
+    if (!this._ensureCacheLoaded) {
+      if (this._data.size) {
+        return Promise.reject(
+          new Error(
+            "Unexpected non-empty DNRStore data. DNR startupCache data load aborted."
+          )
+        );
+      }
+
+      const startTime = Cu.now();
+      const timerId = Glean.extensionsApisDnr.startupCacheReadTime.start();
+      this._ensureCacheLoaded = (async () => {
+        const cacheFilePath = this.#getCacheFilePath();
+        const { buffer, byteLength } = await IOUtils.read(cacheFilePath);
+        Glean.extensionsApisDnr.startupCacheReadSize.accumulate(byteLength);
+        const decodedData = lazy.aomStartup.decodeBlob(buffer);
+        const emptyOrCorruptedCache = !(decodedData?.cacheData instanceof Map);
+        if (emptyOrCorruptedCache) {
+          Cu.reportError(
+            `Unexpected corrupted DNRStore startupCache data. DNR startupCache data load dropped.`
+          );
+          // Remove the cache file right away on corrupted (unexpected empty)
+          // or obsolete cache content.
+          await IOUtils.remove(cacheFilePath, { ignoreAbsent: true });
+          return;
+        }
+        if (this._data.size) {
+          Cu.reportError(
+            `Unexpected non-empty DNRStore data. DNR startupCache data load dropped.`
+          );
+          return;
+        }
+        for (const [
+          extUUID,
+          cacheStoreData,
+        ] of decodedData.cacheData.entries()) {
+          if (StoreData.isStaleCacheEntry(extUUID, cacheStoreData)) {
+            StoreData.clearLastUpdateTagPref(extUUID);
+            continue;
+          }
+          // TODO(Bug 1825510): schedule a task long enough after startup to detect and
+          // remove unused entries in the _startupCacheData Map sooner.
+          this._startupCacheData.set(extUUID, {
+            extUUID: extUUID,
+            ...cacheStoreData,
+          });
+        }
+      })()
+        .catch(err => {
+          // TODO: collect telemetry on unexpected cache load failures.
+          if (!DOMException.isInstance(err) || err.name !== "NotFoundError") {
+            Cu.reportError(err);
+          }
+        })
+        .finally(() => {
+          ChromeUtils.addProfilerMarker(
+            "ExtensionDNRStore",
+            { startTime },
+            "_ensureCacheLoaded"
+          );
+          Glean.extensionsApisDnr.startupCacheReadTime.stopAndAccumulate(
+            timerId
+          );
+        });
+    }
+
+    return this._ensureCacheLoaded;
   }
 
   /**
@@ -804,47 +1148,93 @@ class RulesetsStore {
    * @returns {Promise<StoreData>}
    */
   async #readData(extension) {
-    // Try to load the data stored in the json file.
-    let result = await this.#readStoreData(extension);
+    const startTime = Cu.now();
+    try {
+      let result;
+      // Try to load data from the startupCache.
+      if (extension.startupReason === "APP_STARTUP") {
+        result = await this.#readStoreDataFromStartupCache(extension);
+      }
+      // Fallback to load the data stored in the json file.
+      result ??= await this.#readStoreData(extension);
 
-    // Reset the stored data if a data schema version downgrade has been
-    // detected (this should only be hit on downgrades if the user have
-    // also explicitly passed --allow-downgrade CLI option).
-    if (result && result.version > StoreData.VERSION) {
-      Cu.reportError(
-        `Unsupport DNR store schema version downgrade: resetting stored data for ${extension.id}`
+      // Reset the stored data if a data schema version downgrade has been
+      // detected (this should only be hit on downgrades if the user have
+      // also explicitly passed --allow-downgrade CLI option).
+      if (result && result.version > StoreData.VERSION) {
+        Cu.reportError(
+          `Unsupport DNR store schema version downgrade: resetting stored data for ${extension.id}`
+        );
+        result = null;
+      }
+
+      // Use defaults and extension manifest if no data stored was found
+      // (or it got reset due to an unsupported profile downgrade being detected).
+      if (!result) {
+        // We don't have any data stored, load the static rules from the manifest.
+        result = this.#getDefaults(extension);
+        // Initialize the staticRules data from the manifest.
+        result.updateRulesets({
+          staticRulesets: await this.#getManifestStaticRulesets(extension),
+        });
+      }
+
+      // TODO: handle DNR store schema changes here when the StoreData.VERSION is being bumped.
+      // if (result && result.version < StoreData.VERSION) {
+      //   result = this.upgradeStoreDataSchema(result);
+      // }
+
+      // The extension has already shutting down and we may already got past
+      // the unloadData cleanup (given that there is still a promise in
+      // the _dataPromises Map).
+      if (extension.hasShutdown && !this._dataPromises.has(extension.uuid)) {
+        throw new Error(
+          `DNR store data loading aborted, the extension is already shutting down: ${extension.id}`
+        );
+      }
+
+      this._data.set(extension.uuid, result);
+
+      return result;
+    } finally {
+      ChromeUtils.addProfilerMarker(
+        "ExtensionDNRStore",
+        { startTime },
+        `readData, addonId: ${extension.id}`
       );
-      result = null;
+    }
+  }
+
+  // Convert extension entries in the startCache map back to StoreData instances
+  // (because the StoreData instances get converted into plain objects when
+  // serialized into the startupCache structured clone blobs).
+  async #readStoreDataFromStartupCache(extension) {
+    await this.#promiseStartupCacheLoaded();
+
+    if (!this._startupCacheData.has(extension.uuid)) {
+      Glean.extensionsApisDnr.startupCacheEntries.miss.add(1);
+      return;
     }
 
-    // Use defaults and extension manifest if no data stored was found
-    // (or it got reset due to an unsupported profile downgrade being detected).
-    if (!result) {
-      // We don't have any data stored, load the static rules from the manifest.
-      result = this.#getDefaults(extension);
-      // Initialize the staticRules data from the manifest.
-      result.setStaticRulesets(
-        await this.#getManifestStaticRulesets(extension)
-      );
+    const extCacheData = this._startupCacheData.get(extension.uuid);
+    this._startupCacheData.delete(extension.uuid);
+
+    if (extCacheData.extVersion != extension.version) {
+      StoreData.clearLastUpdateTagPref(extension.uuid);
+      Glean.extensionsApisDnr.startupCacheEntries.miss.add(1);
+      return;
     }
 
-    // TODO: handle DNR store schema changes here when the StoreData.VERSION is being bumped.
-    // if (result && result.version < StoreData.VERSION) {
-    //   result = this.upgradeStoreDataSchema(result);
-    // }
-
-    // The extension has already shutting down and we may already got past
-    // the unloadData cleanup (given that there is still a promise in
-    // the _dataPromises Map).
-    if (extension.hasShutdown && !this._dataPromises.has(extension.uuid)) {
-      throw new Error(
-        `DNR store data loading aborted, the extension is already shutting down: ${extension.id}`
+    Glean.extensionsApisDnr.startupCacheEntries.hit.add(1);
+    for (const ruleset of extCacheData.staticRulesets.values()) {
+      ruleset.rules = ruleset.rules.map(rule =>
+        lazy.ExtensionDNR.RuleValidator.deserializeRule(rule)
       );
     }
-
-    this._data.set(extension.uuid, result);
-
-    return result;
+    extCacheData.dynamicRuleset = extCacheData.dynamicRuleset.map(rule =>
+      lazy.ExtensionDNR.RuleValidator.deserializeRule(rule)
+    );
+    return new StoreData(extension, extCacheData);
   }
 
   /**
@@ -953,50 +1343,142 @@ class RulesetsStore {
         data.dynamicRuleset
       );
 
-      const {
-        MAX_NUMBER_OF_DYNAMIC_AND_SESSION_RULES,
-      } = lazy.ExtensionDNR.limits;
-
-      if (
-        validatedDynamicRules.length > MAX_NUMBER_OF_DYNAMIC_AND_SESSION_RULES
-      ) {
+      let ruleQuotaCounter = new lazy.ExtensionDNR.RuleQuotaCounter();
+      try {
+        ruleQuotaCounter.tryAddRules("_dynamic", validatedDynamicRules);
+        data.dynamicRuleset = validatedDynamicRules;
+      } catch (e) {
+        // This should not happen in practice, because updateDynamicRules
+        // rejects quota errors. If we get here, the data on disk may have been
+        // tampered with, or the limit was lowered in a browser update.
         Cu.reportError(
-          `Ignoring dynamic rules exceeding rule count limits while loading DNR store data for ${extension.id}`
+          `Ignoring dynamic ruleset in extension "${extension.id}" because: ${e.message}`
         );
-        data.dynamicRuleset = validatedDynamicRules.slice(
-          0,
-          MAX_NUMBER_OF_DYNAMIC_AND_SESSION_RULES
-        );
+        data.dynamicRuleset = [];
       }
     }
-    return new StoreData(data);
+    // We use StoreData.fromJSON here to prevent properties that are not expected to
+    // be stored in the JSON file from overriding other StoreData constructor properties
+    // that are not included in the JSON data returned by StoreData toJSON.
+    return StoreData.fromJSON(data, extension);
+  }
+
+  async scheduleCacheDataSave() {
+    this.#ensureCacheDirectory();
+    if (!this._saveCacheTask) {
+      this._saveCacheTask = new lazy.DeferredTask(
+        () => this.#saveCacheDataNow(),
+        5000
+      );
+      IOUtils.profileBeforeChange.addBlocker(
+        "Flush WebExtensions DNR RulesetsStore startupCache",
+        async () => {
+          await this._saveCacheTask.finalize();
+          this._saveCacheTask = null;
+        }
+      );
+    }
+
+    return this._saveCacheTask.arm();
+  }
+
+  getStartupCacheData() {
+    const filteredData = new Map();
+    const seenLastUpdateTags = new Set();
+    for (const [extUUID, dataEntry] of this._data) {
+      // Only store in the startup cache extensions that are permanently
+      // installed (the temporarilyInstalled extension are removed
+      // automatically either on shutdown or startup, and so the data
+      // stored and then loaded back from the startup cache file
+      // would never be used).
+      if (dataEntry.isFromTemporarilyInstalled()) {
+        continue;
+      }
+      filteredData.set(extUUID, dataEntry);
+      seenLastUpdateTags.add(dataEntry.lastUpdateTag);
+    }
+    return {
+      seenLastUpdateTags,
+      filteredData,
+    };
+  }
+
+  detectStartupCacheDataChanged(seenLastUpdateTags) {
+    // Detect if there are changes to the stored data applied while we
+    // have been writing the cache data on disk, and reschedule a new
+    // cache data save if that is the case.
+    // TODO(Bug 1825510): detect also obsoleted entries to make sure
+    // they are removed from the startup cache data stored on disk
+    // sooner.
+    for (const dataEntry of this._data.values()) {
+      if (dataEntry.isFromTemporarilyInstalled()) {
+        continue;
+      }
+      if (!seenLastUpdateTags.has(dataEntry.lastUpdateTag)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  async #saveCacheDataNow() {
+    const startTime = Cu.now();
+    const timerId = Glean.extensionsApisDnr.startupCacheWriteTime.start();
+    try {
+      const cacheFilePath = this.#getCacheFilePath();
+      const { filteredData, seenLastUpdateTags } = this.getStartupCacheData();
+      const data = new Uint8Array(
+        lazy.aomStartup.encodeBlob({
+          cacheData: filteredData,
+        })
+      );
+      await this._ensureCacheDirectoryPromise;
+      await IOUtils.write(cacheFilePath, data, {
+        tmpPath: `${cacheFilePath}.tmp`,
+      });
+      Glean.extensionsApisDnr.startupCacheWriteSize.accumulate(data.byteLength);
+
+      if (this.detectStartupCacheDataChanged(seenLastUpdateTags)) {
+        this.scheduleCacheDataSave();
+      }
+    } finally {
+      ChromeUtils.addProfilerMarker(
+        "ExtensionDNRStore",
+        { startTime },
+        "#saveCacheDataNow"
+      );
+      Glean.extensionsApisDnr.startupCacheWriteTime.stopAndAccumulate(timerId);
+    }
   }
 
   /**
    * Save the data for the given extension on disk.
    *
    * @param {string} extensionUUID
+   * @param {string} extensionId
    * @returns {Promise<void>}
    */
-  async #saveNow(extensionUUID) {
+  async #saveNow(extensionUUID, extensionId) {
+    const startTime = Cu.now();
     try {
-      if (!this._dataPromises.has(extensionUUID)) {
+      if (
+        !this._dataPromises.has(extensionUUID) ||
+        !this._data.has(extensionUUID)
+      ) {
         throw new Error(
           `Unexpected uninitialized DNR store on saving data for extension uuid "${extensionUUID}"`
         );
       }
       const storeFile = this.#getStoreFilePath(extensionUUID);
-
       const data = this._data.get(extensionUUID);
-      if (data.isEmpty) {
-        await IOUtils.remove(storeFile, { ignoreAbsent: true });
-        return;
-      }
       await this.#ensureStoreDirectory(extensionUUID);
       await IOUtils.writeJSON(storeFile, data, {
         tmpPath: `${storeFile}.tmp`,
         compress: true,
       });
+
+      this.scheduleCacheDataSave();
+
       // TODO(Bug 1803363): report jsonData lengths into a telemetry scalar.
       // TODO(Bug 1803363): report jsonData time to write into a telemetry scalar.
     } catch (err) {
@@ -1004,6 +1486,11 @@ class RulesetsStore {
       throw err;
     } finally {
       this._savePromises.delete(extensionUUID);
+      ChromeUtils.addProfilerMarker(
+        "ExtensionDNRStore",
+        { startTime },
+        `#saveNow, addonId: ${extensionId}`
+      );
     }
   }
 
@@ -1076,18 +1563,13 @@ class RulesetsStore {
       throw new ExtensionError(failures[0].message);
     }
 
-    const {
-      MAX_NUMBER_OF_DYNAMIC_AND_SESSION_RULES,
-    } = lazy.ExtensionDNR.limits;
     const validatedRules = ruleValidator.getValidatedRules();
+    let ruleQuotaCounter = new lazy.ExtensionDNR.RuleQuotaCounter();
+    ruleQuotaCounter.tryAddRules("_dynamic", validatedRules);
 
-    if (validatedRules.length > MAX_NUMBER_OF_DYNAMIC_AND_SESSION_RULES) {
-      throw new ExtensionError(
-        `updateDynamicRules request is exceeding MAX_NUMBER_OF_DYNAMIC_AND_SESSION_RULES limit (${MAX_NUMBER_OF_DYNAMIC_AND_SESSION_RULES})`
-      );
-    }
-
-    this._data.get(extension.uuid).setDynamicRuleset(validatedRules);
+    this._data.get(extension.uuid).updateRulesets({
+      dynamicRuleset: validatedRules,
+    });
     await this.save(extension);
     // updateRulesetManager calls ruleManager.setDynamicRules using the
     // validated rules assigned above to this._data.
@@ -1145,10 +1627,7 @@ class RulesetsStore {
       }
     }
 
-    const {
-      MAX_NUMBER_OF_ENABLED_STATIC_RULESETS,
-      GUARANTEED_MINIMUM_STATIC_RULES,
-    } = lazy.ExtensionDNR.limits;
+    const { MAX_NUMBER_OF_ENABLED_STATIC_RULESETS } = lazy.ExtensionDNRLimits;
 
     const maxNewRulesetsCount =
       MAX_NUMBER_OF_ENABLED_STATIC_RULESETS - updatedEnabledRulesets.size;
@@ -1160,16 +1639,20 @@ class RulesetsStore {
       );
     }
 
-    const availableStaticRuleCount =
-      GUARANTEED_MINIMUM_STATIC_RULES -
-      Array.from(updatedEnabledRulesets.values()).reduce(
-        (acc, ruleset) => acc + ruleset.rules.length,
-        0
-      );
+    // At this point, every item in |updatedEnabledRulesets| is an enabled
+    // ruleset with already-valid rules. In order to not exceed the rule quota
+    // when previously-disabled rulesets are enabled, we need to count what we
+    // already have.
+    let ruleQuotaCounter = new lazy.ExtensionDNR.RuleQuotaCounter(
+      /* isStaticRulesets */ true
+    );
+    for (let [rulesetId, ruleset] of updatedEnabledRulesets) {
+      ruleQuotaCounter.tryAddRules(rulesetId, ruleset.rules);
+    }
 
     const newRulesets = await this.#getManifestStaticRulesets(extension, {
       enabledRulesetIds: Array.from(enableIds),
-      availableStaticRuleCount,
+      ruleQuotaCounter,
       isUpdateEnabledRulesets: true,
     });
 
@@ -1177,7 +1660,9 @@ class RulesetsStore {
       updatedEnabledRulesets.set(rulesetId, ruleset);
     }
 
-    this._data.get(extension.uuid).setStaticRulesets(updatedEnabledRulesets);
+    this._data.get(extension.uuid).updateRulesets({
+      staticRulesets: updatedEnabledRulesets,
+    });
     await this.save(extension);
     this.updateRulesetManager(extension, {
       updateDynamicRuleset: false,
@@ -1186,13 +1671,7 @@ class RulesetsStore {
   }
 }
 
-const store = new RulesetsStore();
-
-const requireTestOnlyCallers = () => {
-  if (!Services.env.exists("XPCSHELL_TEST_PROFILE_DIR")) {
-    throw new Error("This should only be called from XPCShell tests");
-  }
-};
+let store = new RulesetsStore();
 
 export const ExtensionDNRStore = {
   async clearOnUninstall(extensionUUID) {
@@ -1208,8 +1687,25 @@ export const ExtensionDNRStore = {
     await store.updateEnabledStaticRulesets(extension, updateRulesetOptions);
   },
   // Test-only helpers
+  _getLastUpdateTag(extensionUUID) {
+    requireTestOnlyCallers();
+    return StoreData.getLastUpdateTag(extensionUUID);
+  },
   _getStoreForTesting() {
     requireTestOnlyCallers();
     return store;
+  },
+  _getStoreDataClassForTesting() {
+    requireTestOnlyCallers();
+    return StoreData;
+  },
+  _recreateStoreForTesting() {
+    requireTestOnlyCallers();
+    store = new RulesetsStore();
+    return store;
+  },
+  _storeLastUpdateTag(extensionUUID, lastUpdateTag) {
+    requireTestOnlyCallers();
+    return StoreData.storeLastUpdateTag(extensionUUID, lastUpdateTag);
   },
 };

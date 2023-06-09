@@ -10,7 +10,7 @@
 #include <utility>
 
 #include "mozilla/MozPromise.h"
-#include "mozilla/Tuple.h"
+
 #include "mozilla/dom/SafeRefPtr.h"
 #include "mozilla/dom/ServiceWorkerOpArgs.h"
 
@@ -19,8 +19,8 @@ namespace mozilla::dom {
 class InternalResponse;
 
 using SynthesizeResponseArgs =
-    Tuple<SafeRefPtr<InternalResponse>, FetchEventRespondWithClosure,
-          FetchEventTimeStamps>;
+    std::tuple<SafeRefPtr<InternalResponse>, FetchEventRespondWithClosure,
+               FetchEventTimeStamps>;
 
 using FetchEventRespondWithResult =
     Variant<SynthesizeResponseArgs, ResetInterceptionArgs,
@@ -33,6 +33,9 @@ using FetchEventRespondWithPromise =
 // Unfortunately void is not supported as a reject type.
 using FetchEventPreloadResponseAvailablePromise =
     MozPromise<SafeRefPtr<InternalResponse>, int, true>;
+
+using FetchEventPreloadResponseTimingPromise =
+    MozPromise<ResponseTiming, int, true>;
 
 using FetchEventPreloadResponseEndPromise =
     MozPromise<ResponseEndArgs, int, true>;

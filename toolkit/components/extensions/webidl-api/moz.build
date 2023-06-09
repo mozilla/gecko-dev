@@ -28,15 +28,25 @@ EXPORTS.mozilla.extensions += [
 # WebExtensions API namespaces.
 UNIFIED_SOURCES += [
     "ExtensionAlarms.cpp",
+    "ExtensionBrowserSettings.cpp",
+    "ExtensionBrowserSettingsColorManagement.cpp",
+    "ExtensionDns.cpp",
+    "ExtensionProxy.cpp",
     "ExtensionRuntime.cpp",
     "ExtensionScripting.cpp",
+    "ExtensionSetting.cpp",
     "ExtensionTest.cpp",
 ]
 
 EXPORTS.mozilla.extensions += [
     "ExtensionAlarms.h",
+    "ExtensionBrowserSettings.h",
+    "ExtensionBrowserSettingsColorManagement.h",
+    "ExtensionDns.h",
+    "ExtensionProxy.h",
     "ExtensionRuntime.h",
     "ExtensionScripting.h",
+    "ExtensionSetting.h",
     "ExtensionTest.h",
 ]
 
@@ -60,8 +70,6 @@ LOCAL_INCLUDES += [
 ]
 
 FINAL_LIBRARY = "xul"
-
-REQUIRES_UNIFIED_BUILD = True
 
 # Must be defined unconditionally (TC tasks doesn't account for build
 # configs and these tests do not depend on the bindings to be enabled).

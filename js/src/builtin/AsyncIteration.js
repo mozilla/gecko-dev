@@ -37,7 +37,7 @@ async function AsyncIteratorClose(iteratorRecord, value) {
   // Step 4.
   const returnMethod = iterator.return;
   // Step 5.
-  if (returnMethod !== undefined && returnMethod !== null) {
+  if (!IsNullOrUndefined(returnMethod)) {
     const result = await callContentFunction(returnMethod, iterator);
     // Step 8.
     if (!IsObject(result)) {
@@ -74,7 +74,7 @@ function GetAsyncIteratorDirectWrapper(obj) {
     },
     async return(value) {
       const returnMethod = obj.return;
-      if (returnMethod !== undefined && returnMethod !== null) {
+      if (!IsNullOrUndefined(returnMethod)) {
         return callContentFunction(returnMethod, obj, value);
       }
       return { done: true, value };
@@ -468,7 +468,7 @@ async function AsyncIteratorReduce(reducer /*, initialValue*/) {
 
   // Step 3.
   let accumulator;
-  if (arguments.length === 1) {
+  if (ArgumentsLength() === 1) {
     // Step a.
     const next = await callContentFunction(iterated.next, iterated);
     if (!IsObject(next)) {
@@ -482,7 +482,7 @@ async function AsyncIteratorReduce(reducer /*, initialValue*/) {
     accumulator = next.value;
   } else {
     // Step 4.
-    accumulator = arguments[1];
+    accumulator = GetArgument(1);
   }
 
   // Step 5.

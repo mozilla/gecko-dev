@@ -18,6 +18,7 @@ describe("PrefsFeed", () => {
       ["foo", 1],
       ["bar", 2],
       ["baz", { value: 1, skipBroadcast: true }],
+      ["qux", { value: 1, skipBroadcast: true, alsoToPreloaded: true }],
     ]);
     feed = new PrefsFeed(FAKE_PREFS);
     const storage = {
@@ -177,6 +178,17 @@ describe("PrefsFeed", () => {
       })
     );
   });
+  it("should not send a PREF_CHANGED actions when onPocketExperimentUpdated is called during startup", () => {
+    sandbox
+      .stub(global.NimbusFeatures.pocketNewtab, "getAllVariables")
+      .returns({
+        prefsButtonIcon: "icon-new",
+      });
+    feed.onPocketExperimentUpdated({}, "feature-experiment-loaded");
+    assert.notCalled(feed.store.dispatch);
+    feed.onPocketExperimentUpdated({}, "feature-rollout-loaded");
+    assert.notCalled(feed.store.dispatch);
+  });
   it("should send a PREF_CHANGED actions when onExperimentUpdated is called", () => {
     sandbox.stub(global.NimbusFeatures.newtab, "getAllVariables").returns({
       prefsButtonIcon: "icon-new",
@@ -198,15 +210,15 @@ describe("PrefsFeed", () => {
 
   it("should remove all events on removeListeners", () => {
     feed.geo = "";
-    sandbox.spy(global.NimbusFeatures.pocketNewtab, "off");
-    sandbox.spy(global.NimbusFeatures.newtab, "off");
+    sandbox.spy(global.NimbusFeatures.pocketNewtab, "offUpdate");
+    sandbox.spy(global.NimbusFeatures.newtab, "offUpdate");
     feed.removeListeners();
     assert.calledWith(
-      global.NimbusFeatures.pocketNewtab.off,
+      global.NimbusFeatures.pocketNewtab.offUpdate,
       feed.onPocketExperimentUpdated
     );
     assert.calledWith(
-      global.NimbusFeatures.newtab.off,
+      global.NimbusFeatures.newtab.offUpdate,
       feed.onExperimentUpdated
     );
     assert.calledWith(
@@ -248,6 +260,23 @@ describe("PrefsFeed", () => {
       ac.OnlyToMain({
         type: at.PREF_CHANGED,
         data: { name: "baz", value: { value: 2, skipBroadcast: true } },
+      })
+    );
+  });
+  it("should send AlsoToPreloaded pref update if config for pref has skipBroadcast: true and alsoToPreloaded: true", async () => {
+    feed.onPrefChanged("qux", {
+      value: 2,
+      skipBroadcast: true,
+      alsoToPreloaded: true,
+    });
+    assert.calledWith(
+      feed.store.dispatch,
+      ac.AlsoToPreloaded({
+        type: at.PREF_CHANGED,
+        data: {
+          name: "qux",
+          value: { value: 2, skipBroadcast: true, alsoToPreloaded: true },
+        },
       })
     );
   });

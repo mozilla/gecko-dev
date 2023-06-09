@@ -1,7 +1,6 @@
 toolkit.jar:
 %  content global %content/global/ contentaccessible=yes
 *  content/global/license.html
-   content/global/minimal-xul.css
    content/global/xul.css
    content/global/autocomplete.css
    content/global/aboutAbout.js
@@ -25,7 +24,9 @@ toolkit.jar:
    content/global/aboutServiceWorkers.js
    content/global/aboutServiceWorkers.xhtml
    content/global/aboutwebrtc/aboutWebrtc.css   (aboutwebrtc/aboutWebrtc.css)
-   content/global/aboutwebrtc/aboutWebrtc.js    (aboutwebrtc/aboutWebrtc.js)
+   content/global/aboutwebrtc/aboutWebrtc.mjs    (aboutwebrtc/aboutWebrtc.mjs)
+   content/global/aboutwebrtc/graph.mjs    (aboutwebrtc/graph.mjs)
+   content/global/aboutwebrtc/graphdb.mjs    (aboutwebrtc/graphdb.mjs)
    content/global/aboutwebrtc/aboutWebrtc.html (aboutwebrtc/aboutWebrtc.html)
    content/global/aboutSupport.js
 *  content/global/aboutSupport.xhtml
@@ -95,7 +96,11 @@ toolkit.jar:
    content/global/elements/moz-button-group.css    (widgets/moz-button-group/moz-button-group.css)
    content/global/elements/moz-button-group.mjs    (widgets/moz-button-group/moz-button-group.mjs)
    content/global/elements/moz-input-box.js    (widgets/moz-input-box.js)
+   content/global/elements/moz-label.css       (widgets/moz-label/moz-label.css)
+   content/global/elements/moz-label.mjs       (widgets/moz-label/moz-label.mjs)
    content/global/elements/moz-support-link.mjs    (widgets/moz-support-link/moz-support-link.mjs)
+   content/global/elements/moz-toggle.css      (widgets/moz-toggle/moz-toggle.css)
+   content/global/elements/moz-toggle.mjs      (widgets/moz-toggle/moz-toggle.mjs)
    content/global/elements/named-deck.js       (widgets/named-deck.js)
    content/global/elements/notificationbox.js  (widgets/notificationbox.js)
    content/global/elements/panel.js            (widgets/panel.js)

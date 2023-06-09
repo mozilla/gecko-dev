@@ -13,9 +13,11 @@ import android.app.AlertDialog;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.content.SharedPreferences;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
@@ -81,6 +83,7 @@ import org.mozilla.geckoview.GeckoSessionSettings;
 import org.mozilla.geckoview.GeckoView;
 import org.mozilla.geckoview.GeckoWebExecutor;
 import org.mozilla.geckoview.Image;
+import org.mozilla.geckoview.MediaSession;
 import org.mozilla.geckoview.OrientationController;
 import org.mozilla.geckoview.RuntimeTelemetry;
 import org.mozilla.geckoview.SlowScriptResponse;
@@ -774,7 +777,7 @@ public class GeckoViewActivity extends AppCompatActivity
     createNotificationChannel();
     setContentView(R.layout.geckoview_activity);
     mGeckoView = findViewById(R.id.gecko_view);
-
+    mGeckoView.setActivityContextDelegate(new ExampleActivityDelegate());
     mTabSessionManager = new TabSessionManager();
 
     setSupportActionBar(findViewById(R.id.toolbar));
@@ -1117,6 +1120,8 @@ public class GeckoViewActivity extends AppCompatActivity
 
     session.setMediaDelegate(new ExampleMediaDelegate(this));
 
+    session.setMediaSessionDelegate(new ExampleMediaSessionDelegate(this));
+
     session.setSelectionActionDelegate(new BasicSelectionActionDelegate(this));
     if (sExtensionManager.extension != null) {
       final WebExtension.SessionController sessionController = session.getWebExtensionController();
@@ -1268,6 +1273,9 @@ public class GeckoViewActivity extends AppCompatActivity
       case R.id.save_pdf:
         savePdf(session);
         break;
+      case R.id.print_page:
+        printPage(session);
+        break;
       default:
         return super.onOptionsItemSelected(item);
     }
@@ -1370,6 +1378,10 @@ public class GeckoViewActivity extends AppCompatActivity
                 Log.d(LOGTAG, e.getMessage());
               }
             });
+  }
+
+  private void printPage(GeckoSession session) {
+    session.printPageContent();
   }
 
   @Override
@@ -1699,6 +1711,11 @@ public class GeckoViewActivity extends AppCompatActivity
       setRequestedOrientation(aOrientation);
       return GeckoResult.allow();
     }
+
+    @Override
+    public void onOrientationUnlock() {
+      setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+    }
   }
 
   private class ExampleContentDelegate implements GeckoSession.ContentDelegate {
@@ -1848,6 +1865,7 @@ public class GeckoViewActivity extends AppCompatActivity
       final View toolbar = findViewById(R.id.toolbar);
       if (toolbar != null) {
         toolbar.setTranslationY(0f);
+        mGeckoView.setVerticalClipping(0);
       }
     }
 
@@ -2459,6 +2477,38 @@ public class GeckoViewActivity extends AppCompatActivity
     }
   }
 
+  private class ExampleMediaSessionDelegate implements MediaSession.Delegate {
+    private final Activity mActivity;
+
+    public ExampleMediaSessionDelegate(Activity activity) {
+      mActivity = activity;
+    }
+
+    @Override
+    public void onFullscreen(
+        @NonNull final GeckoSession session,
+        @NonNull final MediaSession mediaSession,
+        final boolean enabled,
+        @Nullable final MediaSession.ElementMetadata meta) {
+      Log.d(LOGTAG, "onFullscreen: Metadata=" + (meta != null ? meta.toString() : "null"));
+
+      if (!enabled) {
+        mActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_USER);
+        return;
+      }
+
+      if (meta == null) {
+        return;
+      }
+
+      if (meta.width > meta.height) {
+        mActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+      } else {
+        mActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT);
+      }
+    }
+  }
+
   private final class ExampleTelemetryDelegate implements RuntimeTelemetry.Delegate {
     @Override
     public void onHistogram(final @NonNull RuntimeTelemetry.Histogram histogram) {
@@ -2478,6 +2528,12 @@ public class GeckoViewActivity extends AppCompatActivity
     @Override
     public void onStringScalar(final @NonNull RuntimeTelemetry.Metric<String> scalar) {
       Log.d(LOGTAG, "onStringScalar " + scalar);
+    }
+  }
+
+  private class ExampleActivityDelegate implements GeckoView.ActivityContextDelegate {
+    public Context getActivityContext() {
+      return GeckoViewActivity.this;
     }
   }
 }

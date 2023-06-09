@@ -4,14 +4,12 @@
 
 "use strict";
 
+const { Actor } = require("resource://devtools/shared/protocol.js");
+const { sourceSpec } = require("resource://devtools/shared/specs/source.js");
+
 const {
   setBreakpointAtEntryPoints,
 } = require("resource://devtools/server/actors/breakpoint.js");
-const {
-  ActorClassWithSpec,
-  Actor,
-} = require("resource://devtools/shared/protocol.js");
-const { sourceSpec } = require("resource://devtools/shared/specs/source.js");
 const {
   getSourcemapBaseURL,
 } = require("resource://devtools/server/actors/utils/source-map-utils.js");
@@ -111,16 +109,15 @@ function getSourceURL(source, targetActor) {
  * @param ThreadActor thread
  *        The current thread actor.
  */
-const SourceActor = ActorClassWithSpec(sourceSpec, {
-  initialize({ source, thread }) {
-    Actor.prototype.initialize.call(this, thread.conn);
+class SourceActor extends Actor {
+  constructor({ source, thread }) {
+    super(thread.conn, sourceSpec);
 
     this._threadActor = thread;
     this._url = undefined;
     this._source = source;
     this.__isInlineSource = undefined;
-    this._startLineColumnDisplacement = null;
-  },
+  }
 
   get _isInlineSource() {
     const source = this._source;
@@ -135,26 +132,26 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
         !this.url.startsWith("about:srcdoc");
     }
     return this.__isInlineSource;
-  },
+  }
 
   get threadActor() {
     return this._threadActor;
-  },
+  }
   get sourcesManager() {
     return this._threadActor.sourcesManager;
-  },
+  }
   get dbg() {
     return this.threadActor.dbg;
-  },
+  }
   get breakpointActorMap() {
     return this.threadActor.breakpointActorMap;
-  },
+  }
   get url() {
     if (this._url === undefined) {
       this._url = getSourceURL(this._source, this.threadActor._parent);
     }
     return this._url;
-  },
+  }
 
   get extensionName() {
     if (this._extensionName === undefined) {
@@ -176,11 +173,11 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
     }
 
     return this._extensionName;
-  },
+  }
 
   get internalSourceId() {
     return this._source.id;
-  },
+  }
 
   form() {
     const source = this._source;
@@ -208,20 +205,23 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
       sourceMapURL: source.sourceMapURL,
       introductionType,
       isInlineSource: this._isInlineSource,
+      sourceStartLine: source.startLine,
+      sourceStartColumn: source.startColumn,
+      sourceLength: source.text?.length,
     };
-  },
+  }
 
   destroy() {
     const parent = this.getParent();
     if (parent && parent.sourceActors) {
       delete parent.sourceActors[this.actorID];
     }
-    Actor.prototype.destroy.call(this);
-  },
+    super.destroy();
+  }
 
   get _isWasm() {
     return this._source.introductionType === "wasm";
-  },
+  }
 
   async _getSourceText() {
     if (this._isWasm) {
@@ -264,7 +264,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
       /* partial */ false,
       /* canUseCache */ this._isInlineSource
     );
-  },
+  }
 
   // Get the actual text of this source, padded so that line numbers will match
   // up with the source itself.
@@ -279,7 +279,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
       ? "\n".repeat(this._source.startLine - 1)
       : "";
     return padding + this._source.text;
-  },
+  }
 
   // Return whether the specified fetched contents includes the actual text of
   // this source in the expected position.
@@ -295,10 +295,10 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
       }
     }
     return true;
-  },
+  }
 
-  async getBreakableLines() {
-    const positions = await this.getBreakpointPositions();
+  getBreakableLines() {
+    const positions = this._getBreakpointPositions();
     const lines = new Set();
     for (const position of positions) {
       if (!lines.has(position.line)) {
@@ -307,107 +307,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
     }
 
     return Array.from(lines);
-  },
-
-  // For inline <script> tags in HTML pages, the column numbers of the start
-  // line are relative to the column immediately after the opening <script> tag,
-  // rather than the start of the line itself. Calculate the start line and any
-  // column displacement from the start of that line in the HTML file.
-  _getStartLineColumnDisplacement() {
-    if (this._startLineColumnDisplacement) {
-      return this._startLineColumnDisplacement;
-    }
-
-    // Allow fetching the partial contents of the HTML file. When getting the
-    // displacement to install breakpoints on an inline source that just
-    // appeared, we don't expect the HTML file to be completely loaded, and if
-    // we wait for it to load then the script will have already started running.
-    // Fetching the partial contents will only return a promise if we haven't
-    // seen any data for the file, which will only be the case when the debugger
-    // attaches to an existing page. In this case we don't need to get the
-    // displacement synchronously, so it's OK if we yield to the event loop
-    // while the promise resolves.
-    const fileContents = this.sourcesManager.urlContents(
-      this.url,
-      /* partial */ true,
-      /* canUseCache */ this._isInlineSource
-    );
-    if (fileContents.then) {
-      return fileContents.then(contents =>
-        this._setStartLineColumnDisplacement(contents)
-      );
-    }
-    return this._setStartLineColumnDisplacement(fileContents);
-  },
-
-  _setStartLineColumnDisplacement(fileContents) {
-    const d = this._calculateStartLineColumnDisplacement(fileContents);
-    this._startLineColumnDisplacement = d;
-    return d;
-  },
-
-  _calculateStartLineColumnDisplacement(fileContents) {
-    const startLine = this._source.startLine;
-
-    const lineBreak = /\r\n?|\n|\u2028|\u2029/;
-    const fileStartLine =
-      fileContents.content.split(lineBreak)[startLine - 1] || "";
-
-    const sourceContents = this._source.text;
-
-    if (lineBreak.test(sourceContents)) {
-      // The inline script must end the HTML file's line.
-      const firstLine = sourceContents.split(lineBreak)[0];
-      if (firstLine.length && fileStartLine.endsWith(firstLine)) {
-        const column = fileStartLine.length - firstLine.length;
-        return { startLine, column };
-      }
-      return {};
-    }
-
-    // The inline script could be anywhere on the line. Search for its
-    // contents in the line's text. This is a best-guess method and may return
-    // the wrong result if the text appears multiple times on the line, but
-    // the result should make some sense to the user in any case.
-    const column = fileStartLine.indexOf(sourceContents);
-    if (column != -1) {
-      return { startLine, column };
-    }
-    return {};
-  },
-
-  // If a { line, column } location is on the starting line of an inline source,
-  // adjust it upwards or downwards (per |upward|) according to the starting
-  // column displacement.
-  _adjustInlineScriptLocation(location, upward) {
-    if (!this._isInlineSource) {
-      return location;
-    }
-
-    const info = this._getStartLineColumnDisplacement();
-    if (info.then) {
-      return info.then(i =>
-        this._adjustInlineScriptLocationFromDisplacement(i, location, upward)
-      );
-    }
-    return this._adjustInlineScriptLocationFromDisplacement(
-      info,
-      location,
-      upward
-    );
-  },
-
-  _adjustInlineScriptLocationFromDisplacement(info, location, upward) {
-    const { line, column } = location;
-    if (this._startLineColumnDisplacement.startLine == line) {
-      let displacement = this._startLineColumnDisplacement.column;
-      if (!upward) {
-        displacement = -displacement;
-      }
-      return { line, column: column + displacement };
-    }
-    return location;
-  },
+  }
 
   // Get all toplevel scripts in the source. Transitive child scripts must be
   // found by traversing the child script tree.
@@ -435,11 +335,11 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
 
     this._scripts = scripts;
     return scripts;
-  },
+  }
 
   resetDebuggeeScripts() {
     this._scripts = null;
-  },
+  }
 
   // Get toplevel scripts which contain all breakpoint positions for the source.
   // This is different from _scripts if we detected that some scripts have been
@@ -480,7 +380,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
 
     this._breakpointPositionScripts = scripts;
     return scripts;
-  },
+  }
 
   // Get all scripts in this source that might include content in the range
   // specified by the given query.
@@ -540,9 +440,9 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
         }
       }
     }
-  },
+  }
 
-  async getBreakpointPositions(query) {
+  _getBreakpointPositions(query) {
     const scripts = this._findDebuggeeScripts(
       query,
       /* forBreakpointPositions */ true
@@ -550,7 +450,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
 
     const positions = [];
     for (const script of scripts) {
-      await this._addScriptBreakpointPositions(query, script, positions);
+      this._addScriptBreakpointPositions(query, script, positions);
     }
 
     return (
@@ -561,9 +461,9 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
           return lineDiff === 0 ? a.column - b.column : lineDiff;
         })
     );
-  },
+  }
 
-  async _addScriptBreakpointPositions(query, script, positions) {
+  _addScriptBreakpointPositions(query, script, positions) {
     const {
       start: { line: startLine = 0, column: startColumn = 0 } = {},
       end: { line: endLine = Infinity, column: endColumn = Infinity } = {},
@@ -580,22 +480,15 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
         continue;
       }
 
-      // Adjust columns according to any inline script start column, so that
-      // column breakpoints show up correctly in the UI.
-      const position = await this._adjustInlineScriptLocation(
-        {
-          line: lineNumber,
-          column: columnNumber,
-        },
-        /* upward */ true
-      );
-
-      positions.push(position);
+      positions.push({
+        line: lineNumber,
+        column: columnNumber,
+      });
     }
-  },
+  }
 
-  async getBreakpointPositionsCompressed(query) {
-    const items = await this.getBreakpointPositions(query);
+  getBreakpointPositionsCompressed(query) {
+    const items = this._getBreakpointPositions(query);
     const compressed = {};
     for (const { line, column } of items) {
       if (!compressed[line]) {
@@ -604,7 +497,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
       compressed[line].push(column);
     }
     return compressed;
-  },
+  }
 
   /**
    * Handler for the "onSource" packet.
@@ -640,7 +533,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
           DevToolsUtils.safeErrorString(error)
       );
     }
-  },
+  }
 
   /**
    * Handler for the "blackbox" packet.
@@ -655,14 +548,14 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
       return true;
     }
     return false;
-  },
+  }
 
   /**
    * Handler for the "unblackbox" packet.
    */
   unblackbox(range) {
     this.sourcesManager.unblackBox(this.url, range);
-  },
+  }
 
   /**
    * Handler for the "setPausePoints" packet.
@@ -693,7 +586,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
     }
 
     this.pausePoints = uncompressed;
-  },
+  }
 
   /*
    * Ensure the given BreakpointActor is set as a breakpoint handler on all
@@ -705,7 +598,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
    * @returns A Promise that resolves to the given BreakpointActor.
    */
   async applyBreakpoint(actor) {
-    let { line, column } = actor.location;
+    const { line, column } = actor.location;
 
     // Find all entry points that correspond to the given location.
     const entryPoints = [];
@@ -743,20 +636,6 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
         }
       }
     } else {
-      // Adjust columns according to any inline script start column, to undo
-      // the adjustment performed when sending the breakpoint to the client and
-      // allow the breakpoint to be set correctly in the source (which treats
-      // the location after the <script> tag as column 0).
-      let adjusted = this._adjustInlineScriptLocation(
-        { line, column },
-        /* upward */ false
-      );
-      if (adjusted.then) {
-        adjusted = await adjusted;
-      }
-      line = adjusted.line;
-      column = adjusted.column;
-
       // Find all scripts that match the given source actor, line,
       // and column number.
       const query = { start: { line, column }, end: { line, column } };
@@ -783,7 +662,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
     }
 
     setBreakpointAtEntryPoints(actor, entryPoints);
-  },
-});
+  }
+}
 
 exports.SourceActor = SourceActor;

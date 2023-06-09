@@ -27,16 +27,10 @@ ChromeUtils.defineModuleGetter(
   "AddonManagerPrivate",
   "resource://gre/modules/AddonManager.jsm"
 );
-ChromeUtils.defineModuleGetter(
-  lazy,
-  "RemoteSettings",
-  "resource://services-settings/remote-settings.js"
-);
-ChromeUtils.defineModuleGetter(
-  lazy,
-  "jexlFilterFunc",
-  "resource://services-settings/remote-settings.js"
-);
+ChromeUtils.defineESModuleGetters(lazy, {
+  RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
+  jexlFilterFunc: "resource://services-settings/remote-settings.sys.mjs",
+});
 
 const CascadeFilter = Components.Constructor(
   "@mozilla.org/cascade-filter;1",
@@ -1434,10 +1428,9 @@ let Blocklist = {
   recordAddonBlockChangeTelemetry(addon, reason) {
     BlocklistTelemetry.recordAddonBlockChangeTelemetry(addon, reason);
   },
-
-  // TODO bug 1649906, bug 1639050: Remove blocklist v2.
-  // Allow blocklist for Android and unit tests only.
-  allowDeprecatedBlocklistV2: AppConstants.platform === "android",
+  // TODO bug 1649906 and 1824863: Remove blocklist v2 (dead code).
+  allowDeprecatedBlocklistV2:
+    AppConstants.platform === "android" && !AppConstants.NIGHTLY_BUILD,
 
   _chooseExtensionBlocklistImplementationFromPref() {
     if (

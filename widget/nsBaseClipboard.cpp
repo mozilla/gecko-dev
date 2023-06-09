@@ -40,13 +40,12 @@ NS_IMETHODIMP nsBaseClipboard::SetData(nsITransferable* aTransferable,
     CLIPBOARD_LOG("%s: skipping update.", __FUNCTION__);
     return NS_OK;
   }
-  bool selectClipPresent;
-  SupportsSelectionClipboard(&selectClipPresent);
-  bool findClipPresent;
-  SupportsFindClipboard(&findClipPresent);
-  if (!selectClipPresent && !findClipPresent &&
-      aWhichClipboard != kGlobalClipboard)
+
+  if (!nsIClipboard::IsClipboardTypeSupported(kSelectionClipboard) &&
+      !nsIClipboard::IsClipboardTypeSupported(kFindClipboard) &&
+      aWhichClipboard != kGlobalClipboard) {
     return NS_ERROR_FAILURE;
+  }
 
   mEmptyingForSetData = true;
   if (NS_FAILED(EmptyClipboard(aWhichClipboard))) {
@@ -80,13 +79,11 @@ NS_IMETHODIMP nsBaseClipboard::GetData(nsITransferable* aTransferable,
 
   CLIPBOARD_LOG("%s", __FUNCTION__);
 
-  bool selectClipPresent;
-  SupportsSelectionClipboard(&selectClipPresent);
-  bool findClipPresent;
-  SupportsFindClipboard(&findClipPresent);
-  if (!selectClipPresent && !findClipPresent &&
-      aWhichClipboard != kGlobalClipboard)
+  if (!nsIClipboard::IsClipboardTypeSupported(kSelectionClipboard) &&
+      !nsIClipboard::IsClipboardTypeSupported(kFindClipboard) &&
+      aWhichClipboard != kGlobalClipboard) {
     return NS_ERROR_FAILURE;
+  }
 
   if (aTransferable)
     return GetNativeClipboardData(aTransferable, aWhichClipboard);
@@ -107,24 +104,18 @@ RefPtr<GenericPromise> nsBaseClipboard::AsyncGetData(
 NS_IMETHODIMP nsBaseClipboard::EmptyClipboard(int32_t aWhichClipboard) {
   CLIPBOARD_LOG("%s: clipboard=%i", __FUNCTION__, aWhichClipboard);
 
-  bool selectClipPresent;
-  SupportsSelectionClipboard(&selectClipPresent);
-  bool findClipPresent;
-  SupportsFindClipboard(&findClipPresent);
-  if (!selectClipPresent && !findClipPresent &&
-      aWhichClipboard != kGlobalClipboard)
+  if (!nsIClipboard::IsClipboardTypeSupported(kSelectionClipboard) &&
+      !nsIClipboard::IsClipboardTypeSupported(kFindClipboard) &&
+      aWhichClipboard != kGlobalClipboard) {
     return NS_ERROR_FAILURE;
+  }
 
   if (mIgnoreEmptyNotification) {
+    MOZ_DIAGNOSTIC_ASSERT(false, "How did we get here?");
     return NS_OK;
   }
 
-  if (mClipboardOwner) {
-    mClipboardOwner->LosingOwnership(mTransferable);
-    mClipboardOwner = nullptr;
-  }
-
-  mTransferable = nullptr;
+  ClearClipboardCache();
   return NS_OK;
 }
 
@@ -152,13 +143,18 @@ RefPtr<DataFlavorsPromise> nsBaseClipboard::AsyncHasDataMatchingFlavors(
 }
 
 NS_IMETHODIMP
-nsBaseClipboard::SupportsSelectionClipboard(bool* _retval) {
-  *_retval = false;  // we don't support the selection clipboard by default.
+nsBaseClipboard::IsClipboardTypeSupported(int32_t aWhichClipboard,
+                                          bool* _retval) {
+  NS_ENSURE_ARG_POINTER(_retval);
+  // We support global clipboard by default.
+  *_retval = kGlobalClipboard == aWhichClipboard;
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsBaseClipboard::SupportsFindClipboard(bool* _retval) {
-  *_retval = false;  // we don't support the find clipboard by default.
-  return NS_OK;
+void nsBaseClipboard::ClearClipboardCache() {
+  if (mClipboardOwner) {
+    mClipboardOwner->LosingOwnership(mTransferable);
+    mClipboardOwner = nullptr;
+  }
+  mTransferable = nullptr;
 }

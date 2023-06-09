@@ -77,6 +77,8 @@ typedef int VAStatus;
 #  define CUSTOMIZED_BUFFER_ALLOCATION 1
 #endif
 
+#define AV_LOG_DEBUG 48
+
 typedef mozilla::layers::Image Image;
 typedef mozilla::layers::PlanarYCbCrImage PlanarYCbCrImage;
 
@@ -190,13 +192,17 @@ class VAAPIDisplayHolder<LIBAV_VER>;
 template <>
 class VAAPIDisplayHolder<LIBAV_VER> {
  public:
-  VAAPIDisplayHolder(FFmpegLibWrapper* aLib, VADisplay aDisplay)
-      : mLib(aLib), mDisplay(aDisplay){};
-  ~VAAPIDisplayHolder() { mLib->vaTerminate(mDisplay); }
+  VAAPIDisplayHolder(FFmpegLibWrapper* aLib, VADisplay aDisplay, int aDRMFd)
+      : mLib(aLib), mDisplay(aDisplay), mDRMFd(aDRMFd){};
+  ~VAAPIDisplayHolder() {
+    mLib->vaTerminate(mDisplay);
+    close(mDRMFd);
+  }
 
  private:
   FFmpegLibWrapper* mLib;
   VADisplay mDisplay;
+  int mDRMFd;
 };
 
 static void VAAPIDisplayReleaseCallback(struct AVHWDeviceContext* hwctx) {
@@ -218,13 +224,14 @@ bool FFmpegVideoDecoder<LIBAV_VER>::CreateVAAPIDeviceContext() {
   AVHWDeviceContext* hwctx = (AVHWDeviceContext*)mVAAPIDeviceContext->data;
   AVVAAPIDeviceContext* vactx = (AVVAAPIDeviceContext*)hwctx->hwctx;
 
-  mDisplay = mLib->vaGetDisplayDRM(widget::GetDMABufDevice()->GetDRMFd());
+  int drmFd = widget::GetDMABufDevice()->OpenDRMFd();
+  mDisplay = mLib->vaGetDisplayDRM(drmFd);
   if (!mDisplay) {
     FFMPEG_LOG("  Can't get DRM VA-API display.");
     return false;
   }
 
-  hwctx->user_opaque = new VAAPIDisplayHolder<LIBAV_VER>(mLib, mDisplay);
+  hwctx->user_opaque = new VAAPIDisplayHolder<LIBAV_VER>(mLib, mDisplay, drmFd);
   hwctx->free = VAAPIDisplayReleaseCallback;
 
   int major, minor;
@@ -319,6 +326,10 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::InitVAAPIDecoder() {
                  mLib->avcodec_get_name(mCodecID));
       return NS_ERROR_NOT_AVAILABLE;
     }
+  }
+
+  if (MOZ_LOG_TEST(sPDMLog, LogLevel::Debug)) {
+    mLib->av_log_set_level(AV_LOG_DEBUG);
   }
 
   FFMPEG_LOG("  VA-API FFmpeg init successful");
@@ -777,6 +788,14 @@ void FFmpegVideoDecoder<LIBAV_VER>::InitCodecContext() {
 #endif
 }
 
+nsCString FFmpegVideoDecoder<LIBAV_VER>::GetCodecName() const {
+#if LIBAVCODEC_VERSION_MAJOR > 53
+  return nsCString(mLib->avcodec_descriptor_get(mCodecID)->name);
+#else
+  return nsLiteralCString("FFmpegAudioDecoder");
+#endif
+}
+
 #ifdef MOZ_WAYLAND_USE_VAAPI
 void FFmpegVideoDecoder<LIBAV_VER>::InitVAAPICodecContext() {
   mCodecContext->width = mInfo.mImage.width;
@@ -909,11 +928,6 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::DoDecode(
     }
 
 #  ifdef MOZ_WAYLAND_USE_VAAPI
-    // Create VideoFramePool in case we need it.
-    if (!mVideoFramePool && mEnableHardwareDecoding) {
-      mVideoFramePool = MakeUnique<VideoFramePool<LIBAV_VER>>();
-    }
-
     // Release unused VA-API surfaces before avcodec_receive_frame() as
     // ffmpeg recycles VASurface for HW decoding.
     if (mVideoFramePool) {
@@ -1316,8 +1330,16 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::CreateImageVAAPI(
         NS_ERROR_DOM_MEDIA_DECODE_ERR,
         RESULT_DETAIL("Unable to get frame by vaExportSurfaceHandle()"));
   }
+  auto releaseSurfaceDescriptor = MakeScopeExit(
+      [&] { DMABufSurfaceYUV::ReleaseVADRMPRIMESurfaceDescriptor(vaDesc); });
 
   MOZ_ASSERT(mTaskQueue->IsOnCurrentThread());
+  if (!mVideoFramePool) {
+    AVHWFramesContext* context =
+        (AVHWFramesContext*)mCodecContext->hw_frames_ctx->data;
+    mVideoFramePool =
+        MakeUnique<VideoFramePool<LIBAV_VER>>(context->initial_pool_size);
+  }
   auto surface = mVideoFramePool->GetVideoFrameSurface(
       vaDesc, mFrame->width, mFrame->height, mCodecContext, mFrame, mLib);
   if (!surface) {

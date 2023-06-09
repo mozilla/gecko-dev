@@ -11,9 +11,9 @@ include DocAccessibleTypes;
 
 include "mozilla/GfxMessageUtils.h";
 
-using LayoutDeviceIntRect from "Units.h";
-using LayoutDeviceIntPoint from "Units.h";
-using LayoutDeviceIntSize from "Units.h";
+using mozilla::LayoutDeviceIntRect from "Units.h";
+using mozilla::LayoutDeviceIntPoint from "Units.h";
+using mozilla::LayoutDeviceIntSize from "Units.h";
 using mozilla::a11y::role from "mozilla/a11y/IPCTypes.h";
 using mozilla::a11y::AccType from "mozilla/a11y/IPCTypes.h";
 using mozilla::a11y::AccGenericType from "mozilla/a11y/IPCTypes.h";
@@ -32,29 +32,12 @@ struct AccessibleData
   AccType Type;
   AccGenericType GenericTypes;
   uint8_t RoleMapEntryIndex;
+  nullable AccAttributes CacheFields;
 };
 
 union OriginDocument
 {
   PDocAccessible;
-};
-
-struct BatchData
-{
-  OriginDocument Document;
-  uint64_t ID;
-  uint64_t State;
-  LayoutDeviceIntRect Bounds;
-  uint8_t ActionCount;
-  nsString Name;
-  nsString TextValue;
-  nsString DOMNodeID;
-  nsString Description;
-  double CurValue;
-  double MinValue;
-  double MaxValue;
-  double Step;
-  AccAttributes Attributes;
 };
 
 struct ShowEventData
@@ -125,16 +108,10 @@ parent:
    */
   async BindChildDoc(PDocAccessible aChildDoc, uint64_t aID);
 
-  // Android
-  async Batch(uint64_t aBatchType, BatchData[] aData);
-
   /*
    * Cache The World
-   * aDispatchShowEvent is true when a show event with the first accessible in
-   * the cache list as the target should be dispatched after the cache is
-   * populated. The show event will have a from-user flag value of false.
    */
-  async Cache(CacheUpdateType aUpdateType, CacheData[] aData, bool aDispatchShowEvent);
+  async Cache(CacheUpdateType aUpdateType, CacheData[] aData);
 
   /*
    * Lists of accessibles that either gained or lost a selected state.
@@ -169,7 +146,7 @@ child:
   [Nested=inside_sync] sync Value(uint64_t aID) returns(nsString value);
   [Nested=inside_sync] sync Help(uint64_t aID) returns(nsString help);
   [Nested=inside_sync] sync Description(uint64_t aID) returns(nsString desc);
-  [Nested=inside_sync] sync Attributes(uint64_t aID) returns(AccAttributes attributes);
+  [Nested=inside_sync] sync Attributes(uint64_t aID) returns(nullable AccAttributes attributes);
   [Nested=inside_sync] sync RelationByType(uint64_t aID, uint32_t aRelationType)
     returns(uint64_t[] targets);
   [Nested=inside_sync] sync Relations(uint64_t aID) returns(RelationTargets[] relations);
@@ -202,8 +179,8 @@ child:
   [Nested=inside_sync] sync CharAt(uint64_t aID, int32_t aOffset) returns(uint16_t aChar);
 
   [Nested=inside_sync] sync TextAttributes(uint64_t aID, bool aIncludeDefAttrs, int32_t aOffset)
-    returns(AccAttributes aAttributes, int32_t aStartOffset, int32_t aEndOffset);
-  [Nested=inside_sync] sync DefaultTextAttributes(uint64_t aID) returns(AccAttributes aAttributes);
+    returns(nullable AccAttributes aAttributes, int32_t aStartOffset, int32_t aEndOffset);
+  [Nested=inside_sync] sync DefaultTextAttributes(uint64_t aID) returns(nullable AccAttributes aAttributes);
 
   [Nested=inside_sync] sync TextBounds(uint64_t aID, int32_t aStartOffset, int32_t aEndOffset,
                              uint32_t aCoordType)
@@ -216,6 +193,11 @@ child:
 
   [Nested=inside_sync] sync SelectionBoundsAt(uint64_t aID, int32_t aSelectionNum)
     returns(bool aSucceeded, nsString aData, int32_t aStartOffset, int32_t aEndOffset);
+
+  /*
+   * Text selection setters. The sync ones will be ultimately replaced
+   * with the async ones below.
+   */
   [Nested=inside_sync] sync SetSelectionBoundsAt(uint64_t aID, int32_t aSelectionNum,
                                        int32_t aStartOffset, int32_t aEndOffset)
     returns(bool aSucceeded);
@@ -224,6 +206,14 @@ child:
   [Nested=inside_sync] sync RemoveFromSelection(uint64_t aID, int32_t aSelectionNum)
     returns(bool aSucceeded);
 
+  async SetTextSelection(uint64_t aStartID, int32_t aStartOffset,
+                     uint64_t aEndID, int32_t aEndOffset,
+                     int32_t aSelectionNum);
+  async RemoveTextSelection(uint64_t aID, int32_t aSelectionNum);
+
+  async ScrollTextLeafRangeIntoView(uint64_t aStartID, int32_t aStartOffset,
+                                    uint64_t aEndID, int32_t aEndOffset,
+                                    uint32_t aScrollType);
   async ScrollSubstringTo(uint64_t aID, int32_t aStartOffset, int32_t aEndOffset,
                           uint32_t aScrollType);
   async ScrollSubstringToPoint(uint64_t aID,
@@ -250,13 +240,8 @@ child:
 
   [Nested=inside_sync] sync StartOffset(uint64_t aID) returns(uint32_t aRetVal, bool aOk);
   [Nested=inside_sync] sync EndOffset(uint64_t aID) returns(uint32_t aRetVal, bool aOk);
-  [Nested=inside_sync] sync IsLinkValid(uint64_t aID) returns(bool aRetVal);
-  [Nested=inside_sync] sync AnchorCount(uint64_t aID) returns(uint32_t aRetVal, bool aOk);
-  [Nested=inside_sync] sync AnchorURIAt(uint64_t aID, uint32_t aIndex) returns(nsCString aURI, bool aOk);
-  [Nested=inside_sync] sync AnchorAt(uint64_t aID, uint32_t aIndex) returns(uint64_t aIDOfAnchor, bool aOk);
 
   [Nested=inside_sync] sync LinkCount(uint64_t aID) returns(uint32_t aCount);
-  [Nested=inside_sync] sync LinkAt(uint64_t aID, uint32_t aIndex) returns(uint64_t aIDOfLink, bool aOk);
   [Nested=inside_sync] sync LinkIndexAtOffset(uint64_t aID, uint32_t aOffset) returns(int32_t aIndex);
 
   [Nested=inside_sync] sync TableOfACell(uint64_t aID) returns(uint64_t aTableID, bool aOk);
@@ -324,7 +309,7 @@ child:
   [Nested=inside_sync] sync AtkKeyBinding(uint64_t aID) returns(nsString aResult);
 
   [Nested=inside_sync] sync CurValue(uint64_t aID) returns(double aValue);
-  [Nested=inside_sync] sync SetCurValue(uint64_t aID, double aValue) returns(bool aRetVal);
+  async SetCurValue(uint64_t aID, double aValue);
   [Nested=inside_sync] sync MinValue(uint64_t aID) returns(double aValue);
   [Nested=inside_sync] sync MaxValue(uint64_t aID) returns(double aValue);
   [Nested=inside_sync] sync Step(uint64_t aID) returns(double aStep);
@@ -349,7 +334,7 @@ child:
   /*
    * Verify the cache. Used for testing purposes.
    */
-  async VerifyCache(uint64_t aID, uint64_t aCacheDomain, AccAttributes aFields);
+  async VerifyCache(uint64_t aID, uint64_t aCacheDomain, nullable AccAttributes aFields);
 
 };
 

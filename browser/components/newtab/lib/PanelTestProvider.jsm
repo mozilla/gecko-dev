@@ -216,158 +216,11 @@ const MESSAGES = () => [
     },
   },
   {
-    id: "SPOTLIGHT_MESSAGE_93",
-    template: "spotlight",
-    groups: ["panel-test-provider"],
-    content: {
-      template: "logo-and-content",
-      logo: {
-        imageURL: "chrome://browser/content/logos/vpn-promo-logo.svg",
-      },
-      body: {
-        title: {
-          label: {
-            string_id: "spotlight-public-wifi-vpn-header",
-          },
-        },
-        text: {
-          label: {
-            string_id: "spotlight-public-wifi-vpn-body",
-          },
-        },
-        primary: {
-          label: {
-            string_id: "spotlight-public-wifi-vpn-primary-button",
-          },
-          action: {
-            type: "OPEN_URL",
-            data: {
-              args: "https://www.mozilla.org/en-US/products/vpn/",
-              where: "tabshifted",
-            },
-          },
-        },
-        secondary: {
-          label: {
-            string_id: "spotlight-public-wifi-vpn-link",
-          },
-          action: {
-            type: "CANCEL",
-          },
-        },
-      },
-    },
-    frequency: { lifetime: 3 },
-    trigger: { id: "defaultBrowserCheck" },
-  },
-  {
-    id: "BETTER_INTERNET_GLOBAL_ROLLOUT",
-    groups: ["eco"],
-    content: {
-      template: "logo-and-content",
-      logo: {
-        imageURL:
-          "chrome://activity-stream/content/data/content/assets/remote/mountain.svg",
-        size: "115px",
-      },
-      body: {
-        title: {
-          label: {
-            string_id: "spotlight-better-internet-header",
-          },
-          size: "22px",
-        },
-        text: {
-          label: {
-            string_id: "spotlight-better-internet-body",
-          },
-          size: "16px",
-        },
-        primary: {
-          label: {
-            string_id: "spotlight-pin-primary-button",
-          },
-          action: {
-            type: "PIN_FIREFOX_TO_TASKBAR",
-          },
-        },
-        secondary: {
-          label: {
-            string_id: "spotlight-pin-secondary-button",
-          },
-          action: {
-            type: "CANCEL",
-          },
-        },
-      },
-    },
-    trigger: {
-      id: "defaultBrowserCheck",
-    },
-    template: "spotlight",
-    frequency: {
-      lifetime: 1,
-    },
-    targeting:
-      "userMonthlyActivity|length >= 1 && userMonthlyActivity|length <= 6 && doesAppNeedPin",
-  },
-  {
-    id: "PEACE_OF_MIND_GLOBAL_ROLLOUT",
-    groups: ["eco"],
-    content: {
-      template: "logo-and-content",
-      logo: {
-        imageURL:
-          "chrome://activity-stream/content/data/content/assets/remote/umbrella.png",
-        size: "115px",
-      },
-      body: {
-        title: {
-          label: {
-            string_id: "spotlight-peace-mind-header",
-          },
-          size: "22px",
-        },
-        text: {
-          label: {
-            string_id: "spotlight-peace-mind-body",
-          },
-          size: "15px",
-        },
-        primary: {
-          label: {
-            string_id: "spotlight-pin-primary-button",
-          },
-          action: {
-            type: "PIN_FIREFOX_TO_TASKBAR",
-          },
-        },
-        secondary: {
-          label: {
-            string_id: "spotlight-pin-secondary-button",
-          },
-          action: {
-            type: "CANCEL",
-          },
-        },
-      },
-    },
-    trigger: {
-      id: "defaultBrowserCheck",
-    },
-    template: "spotlight",
-    frequency: {
-      lifetime: 1,
-    },
-    targeting:
-      "userMonthlyActivity|length >= 7 && userMonthlyActivity|length <= 13 && doesAppNeedPin",
-  },
-  {
     id: "MULTISTAGE_SPOTLIGHT_MESSAGE",
     groups: ["panel-test-provider"],
     template: "spotlight",
     content: {
-      id: "control",
+      id: "MULTISTAGE_SPOTLIGHT_MESSAGE",
       template: "multistage",
       backdrop: "transparent",
       transitions: true,
@@ -377,29 +230,27 @@ const MESSAGES = () => [
           content: {
             has_noodles: true,
             title: {
-              string_id: "mr1-onboarding-pin-header",
+              string_id: "mr2022-onboarding-welcome-pin-header",
             },
             logo: {
               imageURL: "chrome://browser/content/callout-tab-pickup.svg",
               darkModeImageURL:
                 "chrome://browser/content/callout-tab-pickup-dark.svg",
               reducedMotionImageURL:
-                "chrome://browser/content/callout-colorways.svg",
+                "chrome://activity-stream/content/data/content/assets/glyph-pin-16.svg",
               darkModeReducedMotionImageURL:
-                "chrome://browser/content/callout-colorways-dark.svg",
+                "chrome://activity-stream/content/data/content/assets/firefox.svg",
               alt: "sample alt text",
             },
             hero_text: {
-              string_id: "mr1-welcome-screen-hero-text",
+              string_id: "fx100-thank-you-hero-text",
             },
             help_text: {
-              text: {
-                string_id: "mr1-onboarding-welcome-image-caption",
-              },
+              text: "Some sample help text",
             },
             primary_button: {
               label: {
-                string_id: "mr1-onboarding-pin-primary-button-label",
+                string_id: "mr2022-onboarding-pin-primary-button-label",
               },
               action: {
                 navigate: true,
@@ -408,10 +259,15 @@ const MESSAGES = () => [
             },
             secondary_button: {
               label: {
-                string_id: "mr1-onboarding-set-default-secondary-button-label",
+                string_id: "onboarding-not-now-button-label",
               },
               action: {
                 navigate: true,
+              },
+            },
+            dismiss_button: {
+              action: {
+                dismiss: true,
               },
             },
           },
@@ -427,14 +283,14 @@ const MESSAGES = () => [
             title: {
               fontSize: "36px",
               fontWeight: 276,
-              string_id: "mr1-onboarding-default-header",
+              string_id: "mr2022-onboarding-set-default-title",
             },
             subtitle: {
-              string_id: "mr1-onboarding-default-subtitle",
+              string_id: "mr2022-onboarding-set-default-subtitle",
             },
             primary_button: {
               label: {
-                string_id: "mr1-onboarding-default-primary-button-label",
+                string_id: "mr2022-onboarding-set-default-primary-button-label",
               },
               action: {
                 navigate: true,
@@ -443,7 +299,7 @@ const MESSAGES = () => [
             },
             secondary_button: {
               label: {
-                string_id: "mr1-onboarding-set-default-secondary-button-label",
+                string_id: "onboarding-not-now-button-label",
               },
               action: {
                 navigate: true,
@@ -454,15 +310,14 @@ const MESSAGES = () => [
         {
           id: "BACKGROUND_IMAGE",
           content: {
-            background:
-              "url(chrome://activity-stream/content/data/content/assets/proton-bkg.avif) no-repeat center/cover",
+            background: "#000",
             text_color: "light",
             progress_bar: true,
             logo: {
               imageURL:
                 "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/ms-images/a3c640c8-7594-4bb2-bc18-8b4744f3aaf2.gif",
             },
-            title: "A dialog with a background image",
+            title: "A dialog with a background",
             subtitle:
               "The text color is configurable and a progress bar style step indicator is used",
             primary_button: {
@@ -473,7 +328,7 @@ const MESSAGES = () => [
             },
             secondary_button: {
               label: {
-                string_id: "mr1-onboarding-set-default-secondary-button-label",
+                string_id: "onboarding-not-now-button-label",
               },
               action: {
                 navigate: true,
@@ -506,7 +361,7 @@ const MESSAGES = () => [
             },
             secondary_button: {
               label: {
-                string_id: "mr1-onboarding-set-default-secondary-button-label",
+                string_id: "onboarding-not-now-button-label",
               },
               action: {
                 navigate: true,
@@ -543,7 +398,7 @@ const MESSAGES = () => [
             },
             dismiss_button: {
               action: {
-                navigate: true,
+                dismiss: true,
               },
             },
             ios: {

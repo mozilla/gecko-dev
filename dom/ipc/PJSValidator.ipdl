@@ -5,6 +5,8 @@
 
 include protocol PJSOracle;
 
+using mozilla::net::OpaqueResponseBlocker::ValidatorResult from "mozilla/net/OpaqueResponseUtils.h";
+
 namespace mozilla {
 namespace dom {
 
@@ -12,11 +14,16 @@ async protocol PJSValidator {
   manager PJSOracle;
 
 child:
-  async IsOpaqueResponseAllowed() returns(bool aAllowed, Shmem? aMem);
+  [ReplyPriority=control]
+  async IsOpaqueResponseAllowed() returns (Shmem? aMem, ValidatorResult aResult);
 
   async OnDataAvailable(Shmem aData);
 
-  async OnStopRequest(nsresult aReason);
+  // aContentCharset, aHintCharset and aDocumentCharset
+  // are needed to determine the decoder for the received data
+  async OnStopRequest(nsresult aReason, nsCString aContentCharset,
+                              nsString aHintCharset,
+                              nsString aDocumentCharset);
 
   async __delete__();
 };

@@ -360,12 +360,35 @@ class RestyleManager {
   void ProcessAllPendingAttributeAndStateInvalidations();
 
   void ElementStateChanged(Element*, dom::ElementState);
+
+  /**
+   * Posts restyle hints for siblings of an element and their descendants if the
+   * element's parent has NODE_HAS_SLOW_SELECTOR_NTH_OF and the element has a
+   * relevant state dependency.
+   */
+  void MaybeRestyleForNthOfState(ServoStyleSet& aStyleSet, dom::Element* aChild,
+                                 dom::ElementState aChangedBits);
+
   void AttributeWillChange(Element* aElement, int32_t aNameSpaceID,
                            nsAtom* aAttribute, int32_t aModType);
   void ClassAttributeWillBeChangedBySMIL(dom::Element* aElement);
   void AttributeChanged(dom::Element* aElement, int32_t aNameSpaceID,
                         nsAtom* aAttribute, int32_t aModType,
                         const nsAttrValue* aOldValue);
+
+  /**
+   * Restyle an element's previous and/or next siblings.
+   */
+  void RestyleSiblings(dom::Element* aChild,
+                       nsBaseContentList::FlagsType aParentFlags);
+
+  /**
+   * Posts restyle hints for siblings of an element and their descendants if the
+   * element's parent has NODE_HAS_SLOW_SELECTOR_NTH_OF and the element has a
+   * relevant attribute dependency.
+   */
+  void MaybeRestyleForNthOfAttribute(dom::Element* aChild, nsAtom* aAttribute,
+                                     const nsAttrValue* aOldValue);
 
   // This is only used to reparent things when moving them in/out of the
   // ::first-line.
@@ -471,8 +494,11 @@ class RestyleManager {
 
   ServoStyleSet* StyleSet() const { return PresContext()->StyleSet(); }
 
+  void RestylePreviousSiblings(nsIContent* aStartingSibling);
+  void RestyleSiblingsStartingWith(nsIContent* aStartingSibling);
+
   void RestyleForEmptyChange(Element* aContainer);
-  void MaybeRestyleForEdgeChildChange(Element* aContainer,
+  void MaybeRestyleForEdgeChildChange(nsINode* aContainer,
                                       nsIContent* aChangedChild);
 
   bool IsDisconnected() const { return !mPresContext; }

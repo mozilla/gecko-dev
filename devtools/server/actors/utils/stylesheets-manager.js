@@ -5,14 +5,9 @@
 "use strict";
 
 const EventEmitter = require("resource://devtools/shared/event-emitter.js");
-const { fetch } = require("resource://devtools/shared/DevToolsUtils.js");
-const InspectorUtils = require("InspectorUtils");
 const {
   getSourcemapBaseURL,
 } = require("resource://devtools/server/actors/utils/source-map-utils.js");
-const {
-  TYPES,
-} = require("resource://devtools/server/actors/resources/index.js");
 
 loader.lazyRequireGetter(
   this,
@@ -28,8 +23,8 @@ loader.lazyRequireGetter(
 );
 loader.lazyRequireGetter(
   this,
-  ["getSheetOwnerNode", "UPDATE_GENERAL", "UPDATE_PRESERVING_RULES"],
-  "resource://devtools/server/actors/style-sheet.js",
+  ["getStyleSheetOwnerNode", "getStyleSheetText"],
+  "resource://devtools/server/actors/utils/stylesheet-utils.js",
   true
 );
 
@@ -47,6 +42,13 @@ const TRANSITION_SHEET =
     transition-property: all !important;
   }
 `);
+
+// The possible kinds of style-applied events.
+// UPDATE_PRESERVING_RULES means that the update is guaranteed to
+// preserve the number and order of rules on the style sheet.
+// UPDATE_GENERAL covers any other kind of change to the style sheet.
+const UPDATE_PRESERVING_RULES = 0;
+const UPDATE_GENERAL = 1;
 
 // If the user edits a stylesheet, we stash a copy of the edited text
 // here, keyed by the stylesheet.  This way, if the tools are closed
@@ -117,7 +119,17 @@ class StyleSheetsManager extends EventEmitter {
     let styleSheets = await Promise.all(promises);
     styleSheets = styleSheets.flat();
     for (const styleSheet of styleSheets) {
-      this._registerStyleSheet(styleSheet);
+      const resourceId = this._findStyleSheetResourceId(styleSheet);
+      if (resourceId) {
+        // If the stylesheet was already registered before any consumer started
+        // watching, emit "applicable-stylesheet-added" immediately.
+        this.emitAsync("applicable-stylesheet-added", {
+          resourceId,
+          styleSheet,
+        });
+      } else {
+        this._registerStyleSheet(styleSheet);
+      }
     }
   }
 
@@ -270,17 +282,7 @@ class StyleSheetsManager extends EventEmitter {
       return modifiedText;
     }
 
-    if (!styleSheet.href) {
-      if (styleSheet.ownerNode) {
-        // this is an inline <style> sheet
-        return styleSheet.ownerNode.textContent;
-      }
-      // Constructed stylesheet.
-      // TODO(bug 176993): Maybe preserve authored text?
-      return "";
-    }
-
-    return this._fetchStyleSheet(styleSheet);
+    return getStyleSheetText(styleSheet);
   }
 
   /**
@@ -418,82 +420,6 @@ class StyleSheetsManager extends EventEmitter {
         event: { kind, cause },
       },
     });
-  }
-
-  /**
-   * Retrieve the content of a given stylesheet
-   *
-   * @param {StyleSheet} styleSheet
-   * @returns {String}
-   */
-  async _fetchStyleSheet(styleSheet) {
-    const href = styleSheet.href;
-
-    const options = {
-      loadFromCache: true,
-      policy: Ci.nsIContentPolicy.TYPE_INTERNAL_STYLESHEET,
-      charset: this._getCSSCharset(styleSheet),
-    };
-
-    // Bug 1282660 - We use the system principal to load the default internal
-    // stylesheets instead of the content principal since such stylesheets
-    // require system principal to load. At meanwhile, we strip the loadGroup
-    // for preventing the assertion of the userContextId mismatching.
-
-    // chrome|file|resource|moz-extension protocols rely on the system principal.
-    const excludedProtocolsRe = /^(chrome|file|resource|moz-extension):\/\//;
-    if (!excludedProtocolsRe.test(href)) {
-      // Stylesheets using other protocols should use the content principal.
-      const ownerNode = getSheetOwnerNode(styleSheet);
-      if (ownerNode) {
-        // eslint-disable-next-line mozilla/use-ownerGlobal
-        options.window = ownerNode.ownerDocument.defaultView;
-        options.principal = ownerNode.ownerDocument.nodePrincipal;
-      }
-    }
-
-    let result;
-
-    try {
-      result = await fetch(href, options);
-    } catch (e) {
-      // The list of excluded protocols can be missing some protocols, try to use the
-      // system principal if the first fetch failed.
-      console.error(
-        `stylesheets: fetch failed for ${href},` +
-          ` using system principal instead.`
-      );
-      options.window = undefined;
-      options.principal = undefined;
-      result = await fetch(href, options);
-    }
-
-    return result.content;
-  }
-
-  /**
-   * Get charset of a given stylesheet
-   *
-   * @param {StyleSheet} styleSheet
-   * @returns {String}
-   */
-  _getCSSCharset(styleSheet) {
-    if (styleSheet) {
-      // charset attribute of <link> or <style> element, if it exists
-      if (styleSheet.ownerNode?.getAttribute) {
-        const linkCharset = styleSheet.ownerNode.getAttribute("charset");
-        if (linkCharset != null) {
-          return linkCharset;
-        }
-      }
-
-      // charset of referring document.
-      if (styleSheet.ownerNode?.ownerDocument.characterSet) {
-        return styleSheet.ownerNode.ownerDocument.characterSet;
-      }
-    }
-
-    return "UTF-8";
   }
 
   /**
@@ -717,7 +643,7 @@ class StyleSheetsManager extends EventEmitter {
     // When the style is injected via nsIDOMWindowUtils.loadSheet, even
     // the parent style sheet has no owner, so default back to target actor
     // document
-    const ownerNode = getSheetOwnerNode(styleSheet);
+    const ownerNode = getStyleSheetOwnerNode(styleSheet);
     const ownerDocument = ownerNode
       ? ownerNode.ownerDocument
       : this._targetActor.window;
@@ -905,7 +831,7 @@ class StyleSheetsManager extends EventEmitter {
   }
 
   /**
-   * The StyleSheetManager instance is managed by the target, so this will be called when
+   * The StyleSheetsManager instance is managed by the target, so this will be called when
    * the target gets destroyed.
    */
   destroy() {
@@ -936,13 +862,8 @@ class StyleSheetsManager extends EventEmitter {
   }
 }
 
-function hasStyleSheetWatcherSupportForTarget(targetActor) {
-  return (
-    targetActor.sessionContext.supportedResources?.[TYPES.STYLESHEET] || false
-  );
-}
-
 module.exports = {
   StyleSheetsManager,
-  hasStyleSheetWatcherSupportForTarget,
+  UPDATE_GENERAL,
+  UPDATE_PRESERVING_RULES,
 };

@@ -50,14 +50,11 @@ virtual already_AddRefed<AccAttributes> Attributes() override;
 
 virtual Relation RelationByType(RelationType aType) const override;
 
-bool IsSearchbox() const;
-
 virtual mozilla::a11y::GroupPos GroupPosition() override;
 void ScrollToPoint(uint32_t aScrollType, int32_t aX, int32_t aY);
 
 void Announce(const nsString& aAnnouncement, uint16_t aPriority);
 
-int32_t CaretLineNumber();
 virtual int32_t CaretOffset() const override;
 
 virtual void TextSubstring(int32_t aStartOffset, int32_t aEndOfset,
@@ -77,20 +74,16 @@ virtual void TextBeforeOffset(int32_t aOffset,
                               int32_t* aStartOffset, int32_t* aEndOffset,
                               nsAString& aText) override;
 
-char16_t CharAt(int32_t aOffset);
-
 virtual int32_t OffsetAtPoint(int32_t aX, int32_t aY,
                               uint32_t aCoordType) override;
 
-bool SetSelectionBoundsAt(int32_t aSelectionNum, int32_t aStartOffset,
-                          int32_t aEndOffset);
+virtual bool SetSelectionBoundsAt(int32_t aSelectionNum, int32_t aStartOffset,
+                                  int32_t aEndOffset) override;
 
-bool AddToSelection(int32_t aStartOffset, int32_t aEndOffset);
+virtual bool RemoveFromSelection(int32_t aSelectionNum) override;
 
-bool RemoveFromSelection(int32_t aSelectionNum);
-
-void ScrollSubstringTo(int32_t aStartOffset, int32_t aEndOffset,
-                       uint32_t aScrollType);
+virtual void ScrollSubstringTo(int32_t aStartOffset, int32_t aEndOffset,
+                               uint32_t aScrollType) override;
 
 void ScrollSubstringToPoint(int32_t aStartOffset, int32_t aEndOffset,
                             uint32_t aCoordinateType, int32_t aX, int32_t aY);
@@ -113,17 +106,7 @@ LayoutDeviceIntPoint ImagePosition(uint32_t aCoordType);
 
 LayoutDeviceIntSize ImageSize();
 
-bool IsLinkValid();
-
-uint32_t AnchorCount(bool* aOk);
-
-void AnchorURIAt(uint32_t aIndex, nsCString& aURI, bool* aOk);
-
-RemoteAccessible* AnchorAt(uint32_t aIndex);
-
 uint32_t LinkCount();
-
-RemoteAccessible* LinkAt(const uint32_t& aIndex);
 
 RemoteAccessible* TableOfACell();
 
@@ -183,7 +166,6 @@ double CurValue() const override;
 double MinValue() const override;
 double MaxValue() const override;
 double Step() const override;
-bool SetCurValue(double aValue);
 
 Accessible* ChildAtPoint(
     int32_t aX, int32_t aY,
@@ -191,7 +173,7 @@ Accessible* ChildAtPoint(
 LayoutDeviceIntRect Bounds() const override;
 virtual nsIntRect BoundsInCSSPixels() const override;
 
-void Language(nsString& aLocale);
+virtual void Language(nsAString& aLocale) override;
 void DocType(nsString& aType);
 void Title(nsString& aTitle);
 void MimeType(nsString aMime);

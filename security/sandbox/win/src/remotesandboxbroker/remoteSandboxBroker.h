@@ -10,6 +10,9 @@
 #include "sandboxBroker.h"
 #include "RemoteSandboxBrokerParent.h"
 
+#include "mozilla/Result.h"
+#include "mozilla/ipc/LaunchError.h"
+
 namespace mozilla {
 
 // To make sandboxing an x86 plugin-container process on Windows on ARM64,
@@ -20,23 +23,23 @@ namespace mozilla {
 // same arch still hold.
 class RemoteSandboxBroker : public AbstractSandboxBroker {
  public:
-  RemoteSandboxBroker();
+  explicit RemoteSandboxBroker(uint32_t aLaunchArch);
 
   void Shutdown() override;
 
   // Note: This should be called on the IPC launch thread, and this spins
   // the event loop. So this means potentially another IPC launch could occur
   // re-entrantly while calling this.
-  bool LaunchApp(const wchar_t* aPath, const wchar_t* aArguments,
-                 base::EnvironmentMap& aEnvironment,
-                 GeckoProcessType aProcessType, const bool aEnableLogging,
-                 const IMAGE_THUNK_DATA*, void** aProcessHandle) override;
+  Result<Ok, mozilla::ipc::LaunchError> LaunchApp(
+      const wchar_t* aPath, const wchar_t* aArguments,
+      base::EnvironmentMap& aEnvironment, GeckoProcessType aProcessType,
+      const bool aEnableLogging, const IMAGE_THUNK_DATA*,
+      void** aProcessHandle) override;
 
   // Security levels for different types of processes
   void SetSecurityLevelForContentProcess(int32_t aSandboxLevel,
                                          bool aIsFileProcess) override;
-  void SetSecurityLevelForGPUProcess(
-      int32_t aSandboxLevel, const nsCOMPtr<nsIFile>& aProfileDir) override;
+  void SetSecurityLevelForGPUProcess(int32_t aSandboxLevel) override;
   bool SetSecurityLevelForRDDProcess() override;
   bool SetSecurityLevelForSocketProcess() override;
   bool SetSecurityLevelForGMPlugin(SandboxLevel aLevel,
@@ -54,7 +57,7 @@ class RemoteSandboxBroker : public AbstractSandboxBroker {
   // Parameters that we use to launch the child process.
   LaunchParameters mParameters;
 
-  RemoteSandboxBrokerParent mParent;
+  RefPtr<RemoteSandboxBrokerParent> mParent;
 
   // We bind the RemoteSandboxBrokerParent to the IPC launch thread.
   // As such, we must close its channel on the same thread. So we save
@@ -63,6 +66,8 @@ class RemoteSandboxBroker : public AbstractSandboxBroker {
 
   // True if we've been shutdown.
   bool mShutdown = false;
+
+  uint32_t mLaunchArch;
 };
 
 }  // namespace mozilla

@@ -247,7 +247,7 @@ class HTMLInputElement final : public TextControlElement,
   MOZ_CAN_RUN_SCRIPT nsresult
   SetValueFromSetRangeText(const nsAString& aValue) override;
   bool HasCachedSelection() override;
-  void SetRevealPassword(bool aValue);
+  MOZ_CAN_RUN_SCRIPT void SetRevealPassword(bool aValue);
   bool RevealPassword() const;
 
   /**
@@ -939,16 +939,15 @@ class HTMLInputElement final : public TextControlElement,
   /**
    * Called when an attribute is about to be changed
    */
-  nsresult BeforeSetAttr(int32_t aNameSpaceID, nsAtom* aName,
-                         const nsAttrValueOrString* aValue,
-                         bool aNotify) override;
+  void BeforeSetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                     const nsAttrValue* aValue, bool aNotify) override;
   /**
    * Called when an attribute has just been changed
    */
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
-  nsresult AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
-                        const nsAttrValue* aValue, const nsAttrValue* aOldValue,
-                        nsIPrincipal* aSubjectPrincipal, bool aNotify) override;
+  void AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                    const nsAttrValue* aValue, const nsAttrValue* aOldValue,
+                    nsIPrincipal* aSubjectPrincipal, bool aNotify) override;
 
   void BeforeSetForm(bool aBindToTree) override;
 
@@ -1639,7 +1638,7 @@ class HTMLInputElement final : public TextControlElement,
                               nsIFilePicker* aFilePicker);
     NS_DECL_ISUPPORTS
 
-    NS_IMETHOD Done(int16_t aResult) override;
+    NS_IMETHOD Done(nsIFilePicker::ResultCode aResult) override;
 
    private:
     nsCOMPtr<nsIFilePicker> mFilePicker;

@@ -30,6 +30,13 @@ using namespace mozilla;
 
 namespace xpc {
 
+#ifndef MOZ_UNIFIED_BUILD
+extern template class FilteringWrapper<js::CrossCompartmentSecurityWrapper,
+                                       Opaque>;
+extern template class FilteringWrapper<js::CrossCompartmentSecurityWrapper,
+                                       OpaqueWithCall>;
+#endif
+
 // When chrome pulls a naked property across the membrane using
 // .wrappedJSObject, we want it to cross the membrane into the
 // chrome compartment without automatically being wrapped into an
@@ -478,7 +485,8 @@ JSObject* WrapperFactory::Rewrap(JSContext* cx, HandleObject existing,
   if (originIsChrome && !targetIsChrome) {
     // If this is a chrome function being exposed to content, we need to allow
     // call (but nothing else).
-    if ((IdentifyStandardInstance(obj) == JSProto_Function)) {
+    JSProtoKey key = IdentifyStandardInstance(obj);
+    if (key == JSProto_Function || key == JSProto_BoundFunction) {
       wrapper = &FilteringWrapper<CrossCompartmentSecurityWrapper,
                                   OpaqueWithCall>::singleton;
     }
@@ -486,7 +494,7 @@ JSObject* WrapperFactory::Rewrap(JSContext* cx, HandleObject existing,
     // For vanilla JSObjects exposed from chrome to content, we use a wrapper
     // that fails silently in a few cases. We'd like to get rid of this
     // eventually, but in their current form they don't cause much trouble.
-    else if (IdentifyStandardInstance(obj) == JSProto_Object) {
+    else if (key == JSProto_Object) {
       wrapper = &ChromeObjectWrapper::singleton;
     }
 

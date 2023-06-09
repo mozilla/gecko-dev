@@ -8,6 +8,7 @@
 #define mozilla_dom_workerscope_h__
 
 #include "js/TypeDecls.h"
+#include "js/loader/ModuleLoaderBase.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/DOMEventTargetHelper.h"
@@ -118,7 +119,8 @@ class WorkerGlobalScopeBase : public DOMEventTargetHelper,
 
   bool IsSharedMemoryAllowed() const final;
 
-  bool ShouldResistFingerprinting() const final;
+  bool ShouldResistFingerprinting(
+      RFPTarget aTarget = RFPTarget::Unknown) const final;
 
   OriginTrials Trials() const final;
 
@@ -156,6 +158,19 @@ class WorkerGlobalScopeBase : public DOMEventTargetHelper,
 
   Console* GetConsoleIfExists() const { return mConsole; }
 
+  void InitModuleLoader(JS::loader::ModuleLoaderBase* aModuleLoader) {
+    if (!mModuleLoader) {
+      mModuleLoader = aModuleLoader;
+    }
+  }
+
+  // The nullptr here is not used, but is required to make the override method
+  // have the same signature as other GetModuleLoader methods on globals.
+  JS::loader::ModuleLoaderBase* GetModuleLoader(
+      JSContext* aCx = nullptr) override {
+    return mModuleLoader;
+  };
+
   uint64_t WindowID() const;
 
   // Usually global scope dies earlier than the WorkerPrivate, but if we see
@@ -180,6 +195,7 @@ class WorkerGlobalScopeBase : public DOMEventTargetHelper,
 
  private:
   RefPtr<Console> mConsole;
+  RefPtr<JS::loader::ModuleLoaderBase> mModuleLoader;
   const UniquePtr<ClientSource> mClientSource;
   nsCOMPtr<nsISerialEventTarget> mSerialEventTarget;
   bool mShouldResistFingerprinting;
@@ -242,7 +258,8 @@ class WorkerGlobalScope : public WorkerGlobalScopeBase {
 
   already_AddRefed<WorkerNavigator> GetExistingNavigator() const;
 
-  FontFaceSet* Fonts() final;
+  FontFaceSet* GetFonts(ErrorResult&);
+  FontFaceSet* GetFonts() final { return GetFonts(IgnoreErrors()); }
 
   void ImportScripts(JSContext* aCx, const Sequence<nsString>& aScriptURLs,
                      ErrorResult& aRv);

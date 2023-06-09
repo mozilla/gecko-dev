@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const { ctypes } = ChromeUtils.import("resource://gre/modules/ctypes.jsm");
+import { ctypes } from "resource://gre/modules/ctypes.sys.mjs";
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 const lazy = {};
@@ -76,8 +76,7 @@ export const ESE = {};
 ESE.JET_ERR = ctypes.long;
 ESE.JET_PCWSTR = ctypes.char16_t.ptr;
 // The ESE header calls this JET_API_PTR, but because it isn't ever used as a
-// pointer and because OS.File code implies that the name you give a type
-// matters, I opted for a different name.
+// pointer, I opted for a different name.
 // Note that this is defined differently on 32 vs. 64-bit in the header.
 ESE.JET_API_ITEM =
   ctypes.voidptr_t.size == 4 ? ctypes.unsigned_long : ctypes.uint64_t;
@@ -424,7 +423,7 @@ ESEDB.prototype = {
       try {
         this._close();
       } catch (innerException) {
-        Cu.reportError(innerException);
+        console.error(innerException);
       }
       // Make sure caller knows we failed.
       throw ex;
@@ -574,11 +573,11 @@ ESEDB.prototype = {
         // Deal with null values:
         buffer = null;
       } else {
-        Cu.reportError(
-          "Unexpected JET error: " +
-            err +
-            "; retrieving value for column " +
-            column.name
+        console.error(
+          "Unexpected JET error: ",
+          err,
+          "; retrieving value for column ",
+          column.name
         );
         throw new Error(convertESEError(err));
       }
@@ -591,8 +590,10 @@ ESEDB.prototype = {
     }
     if (column.type == "guid") {
       if (buffer.length != 16) {
-        Cu.reportError(
-          "Buffer size for guid field " + column.id + " should have been 16!"
+        console.error(
+          "Buffer size for guid field ",
+          column.id,
+          " should have been 16!"
         );
         return "";
       }
@@ -785,7 +786,7 @@ export let ESEDBReader = {
     const locked = await utils.isDbLocked(dbFile);
 
     if (locked) {
-      Cu.reportError(`ESE DB at ${dbFile.path} is locked.`);
+      console.error(`ESE DB at ${dbFile.path} is locked.`);
     }
 
     return locked;

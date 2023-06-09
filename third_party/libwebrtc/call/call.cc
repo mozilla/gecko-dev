@@ -52,7 +52,6 @@
 #include "modules/rtp_rtcp/source/rtp_util.h"
 #include "modules/video_coding/fec_controller_default.h"
 #include "rtc_base/checks.h"
-#include "rtc_base/location.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/strings/string_builder.h"
 #include "rtc_base/system/no_unique_address.h"
@@ -1027,6 +1026,8 @@ webrtc::VideoReceiveStreamInterface* Call::CreateVideoReceiveStream(
   // and `video_receiver_controller_` out of VideoReceiveStream2 construction
   // and set it up asynchronously on the network thread (the registration and
   // `video_receiver_controller_` need to live on the network thread).
+  // TODO(crbug.com/1381982): Re-enable decode synchronizer once the Chromium
+  // API has adapted to the new Metronome interface.
   VideoReceiveStream2* receive_stream = new VideoReceiveStream2(
       task_queue_factory_, this, num_cpu_cores_,
       transport_send_->packet_router(), std::move(configuration),

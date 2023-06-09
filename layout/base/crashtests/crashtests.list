@@ -365,7 +365,7 @@ asserts(0-2) pref(dom.disable_open_during_load,false) load 735943.html # the ass
 asserts(0-2) load 736389-1.xhtml # sometimes the above assertions are delayed and is reported on this test instead
 load 736924-1.html
 load 749816-1.html
-load 763223-1.html
+asserts(1-1) load 763223-1.html # bogus size
 test-pref(font.size.inflation.emPerLine,15) test-pref(font.size.inflation.lineThreshold,100) load 763702.xhtml
 load 767593-1.html
 load 767593-2.html
@@ -497,6 +497,7 @@ load 1463940.html
 HTTP load 1464641.html
 load 1464737.html
 load 1466638.html
+pref(layout.css.motion-path-ray.enabled,true) asserts(1-1) load 1467519.html # bogus size
 load 1467688.html
 load 1467964.html
 load 1469354.html
@@ -530,7 +531,7 @@ load 1539303.html
 load 1541679.html
 load 1547261.html
 load 1547391.html
-load 1548057.html
+pref(widget.windows.window_occlusion_tracking.enabled,false) load 1548057.html # Bug 1819154
 load 1549867.html
 load 1553874.html
 load 1560328.html
@@ -567,3 +568,5 @@ load 1771503.html
 load 1789934.html
 load 1791883.html
 load 1797995.html
+pref(layout.accessiblecaret.enabled,true) load 1818036.html
+load 1821469.html

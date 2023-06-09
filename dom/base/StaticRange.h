@@ -60,8 +60,18 @@ class StaticRange final : public AbstractRange {
       const RangeBoundaryBase<SPT, SRT>& aStartBoundary,
       const RangeBoundaryBase<EPT, ERT>& aEndBoundary, ErrorResult& aRv);
 
+  /**
+   * Returns true if the range is valid.
+   *
+   * @see https://dom.spec.whatwg.org/#staticrange-valid
+   */
+  bool IsValid() const {
+    return mStart.IsSetAndValid() && mEnd.IsSetAndValid();
+  }
+
  protected:
-  explicit StaticRange(nsINode* aNode) : AbstractRange(aNode) {}
+  explicit StaticRange(nsINode* aNode)
+      : AbstractRange(aNode, /* aIsDynamicRange = */ false) {}
   virtual ~StaticRange() = default;
 
  public:
@@ -111,6 +121,15 @@ class StaticRange final : public AbstractRange {
 
   friend class AbstractRange;
 };
+
+inline StaticRange* AbstractRange::AsStaticRange() {
+  MOZ_ASSERT(IsStaticRange());
+  return static_cast<StaticRange*>(this);
+}
+inline const StaticRange* AbstractRange::AsStaticRange() const {
+  MOZ_ASSERT(IsStaticRange());
+  return static_cast<const StaticRange*>(this);
+}
 
 }  // namespace dom
 }  // namespace mozilla

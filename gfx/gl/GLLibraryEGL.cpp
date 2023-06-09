@@ -92,7 +92,9 @@ static const char* sEGLExtensionNames[] = {
     "EGL_NV_robustness_video_memory_purge",
     "EGL_EXT_image_dma_buf_import",
     "EGL_EXT_image_dma_buf_import_modifiers",
-    "EGL_MESA_image_dma_buf_export"};
+    "EGL_MESA_image_dma_buf_export",
+    "EGL_KHR_no_config_context",
+};
 
 PRLibrary* LoadApitraceLibrary() {
   const char* path = nullptr;
@@ -896,15 +898,14 @@ std::shared_ptr<EglDisplay> GLLibraryEGL::CreateDisplayLocked(
   } else {
     void* nativeDisplay = EGL_DEFAULT_DISPLAY;
 #ifdef MOZ_WAYLAND
-    GdkDisplay* gdkDisplay = gdk_display_get_default();
-    if (!gdkDisplay) {
+    if (!gdk_display_get_default()) {
       ret = GetAndInitDeviceDisplay(*this, aProofOfLock);
       if (!ret) {
         ret = GetAndInitSurfacelessDisplay(*this, aProofOfLock);
       }
-    } else if (widget::GdkIsWaylandDisplay(gdkDisplay)) {
+    } else if (widget::GdkIsWaylandDisplay()) {
       // Wayland does not support EGL_DEFAULT_DISPLAY
-      nativeDisplay = widget::WaylandDisplayGetWLDisplay(gdkDisplay);
+      nativeDisplay = widget::WaylandDisplayGetWLDisplay();
       if (!nativeDisplay) {
         NS_WARNING("Failed to get wl_display.");
         return nullptr;

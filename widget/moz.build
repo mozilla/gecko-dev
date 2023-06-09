@@ -159,7 +159,6 @@ EXPORTS += [
     "nsPaper.h",
     "nsPrinterListBase.h",
     "nsUserIdleService.h",
-    "nsWidgetInitData.h",
     "nsWidgetsCID.h",
     "PuppetWidget.h",
 ]
@@ -195,6 +194,7 @@ EXPORTS.mozilla.widget += [
     "CompositorWidget.h",
     "IconLoader.h",
     "IMEData.h",
+    "InitData.h",
     "InProcessCompositorWidget.h",
     "MediaKeysEventSourceFactory.h",
     "NativeMenu.h",
@@ -388,5 +388,3 @@ if CONFIG["MOZ_WIDGET_TOOLKIT"] == "gtk":
     CXXFLAGS += CONFIG["MOZ_GTK3_CFLAGS"]
 if CONFIG["MOZ_WAYLAND"]:
     CXXFLAGS += CONFIG["MOZ_WAYLAND_CFLAGS"]
-
-REQUIRES_UNIFIED_BUILD = True

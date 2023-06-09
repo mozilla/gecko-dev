@@ -5,6 +5,7 @@
 import asyncio
 import contextlib
 import time
+from urllib.parse import quote
 
 import webdriver
 
@@ -74,13 +75,13 @@ class Client:
     @property
     def pen(self):
         return self.session.actions.sequence(
-            "pointer", "pointer_id", {"pointerType": "touch"}
+            "pointer", "pointer_id", {"pointerType": "pen"}
         )
 
     @property
     def touch(self):
         return self.session.actions.sequence(
-            "pointer", "pointer_id", {"pointerType": "pen"}
+            "pointer", "pointer_id", {"pointerType": "touch"}
         )
 
     @property
@@ -93,6 +94,9 @@ class Client:
             return "\ue03d"  # meta (command)
         else:
             return "\ue009"  # control
+
+    def inline(self, doc):
+        return "data:text/html;charset=utf-8,{}".format(quote(doc))
 
     async def navigate(self, url, timeout=None, await_console_message=None):
         if timeout is not None:
@@ -329,10 +333,43 @@ class Client:
         elem = finder.find(self)
         while time.time() < t0 + timeout:
             try:
-                if self.is_displayed(elem):
-                    time.sleep(delay)
+                if not self.is_displayed(elem):
+                    return
+                time.sleep(delay)
             except webdriver.error.StaleElementReferenceException:
                 return
+
+    def soft_click(self, element):
+        self.execute_script("arguments[0].click()", element)
+
+    def remove_element(self, element):
+        self.execute_script("arguments[0].remove()", element)
+
+    def scroll_into_view(self, element):
+        self.execute_script(
+            "arguments[0].scrollIntoView({block:'center', inline:'center', behavior: 'instant'})",
+            element,
+        )
+
+    def test_for_fastclick(self, element):
+        # FastClick cancels touchend, breaking default actions on Fenix.
+        # It instead fires a mousedown or click, which we can detect.
+        self.execute_script(
+            """
+                const sel = arguments[0];
+                sel.fastclicked = false;
+                const evt = sel.nodeName === "SELECT" ? "mousedown" : "click";
+                document.addEventListener(evt, e => {
+                    if (e.target === sel && !e.isTrusted) {
+                        sel.fastclicked = true;
+                    }
+                }, true);
+            """,
+            element,
+        )
+        self.scroll_into_view(element)
+        self.touch.click(element=element).perform()
+        return self.execute_script("return arguments[0].fastclicked", element)
 
     def is_displayed(self, element):
         if element is None:
@@ -344,7 +381,7 @@ class Client:
                     s = window.getComputedStyle(e),
                     v = s.visibility === "visible",
                     o = Math.abs(parseFloat(s.opacity));
-              return e.getClientRects().length && v && (isNaN(o) || o === 1.0);
+              return e.getClientRects().length > 0 && v && (isNaN(o) || o === 1.0);
           """,
             args=[element],
         )

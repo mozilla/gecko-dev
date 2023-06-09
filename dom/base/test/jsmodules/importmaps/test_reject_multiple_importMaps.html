@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<head>
+  <meta charset=utf-8>
+  <title>Test the 2nd import map should be rejected.</title>
+</head>
+<body onload='testLoaded()'>
+<script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+
+<script>
+let gotMsg = false;
+let console = Cc["@mozilla.org/consoleservice;1"].getService(Ci.nsIConsoleService);
+let listener = {
+  QueryInterface: ChromeUtils.generateQI(["nsIConsoleListener"]),
+  observe(msg) {
+    info("console message:" + msg);
+    ok(msg.logLevel == Ci.nsIConsoleMessage.warn, "log level should be 'warn'.");
+    console.unregisterListener(this);
+    gotMsg = true;
+  }
+};
+console.registerListener(listener);
+</script>
+
+<script type="importmap" onerror='importMapError1()'>
+{
+  "imports": {
+    "./module_simpleExport.js": "./scope1/module_simpleExport.js"
+  }
+}
+</script>
+
+<!--The 2nd import map should be rejected.-->
+<script type="importmap" onerror='importMapError2()'>
+{
+  "imports": {
+    "./module_simpleExport.js": "./scope1/module_simpleExport.js"
+  }
+}
+</script>
+
+<script>
+  SimpleTest.waitForExplicitFinish();
+
+  let hasError = false;
+  function importMapError1() {
+    ok(false, "The first import map should be accepted.");
+  }
+  function importMapError2() {
+    hasError = true;
+  }
+
+  function testLoaded() {
+    import("./module_simpleExport.js").then((ns) => {
+      ok(ns.x == 84, 'Check simple imported value result: ' + ns.x);
+      ok(hasError, "onerror of the import map should be called.");
+      ok(gotMsg, "Should have got the console warning.");
+    }).catch((e) => {
+      ok(false, "throws " + e);
+    }).then(() => {
+      SimpleTest.finish();
+    });
+  }
+</script>
+</body>

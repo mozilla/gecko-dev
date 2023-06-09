@@ -94,7 +94,7 @@ add_task(async function testReopen() {
    *    reopen container tab in regular tab
    *  Close all the tabs
    * This tests that behaviour of reopening tabs is correct
-   * */
+   */
 
   let regularPage = await openURIInRegularTab("about:blank");
   var currRemoteType;
@@ -106,7 +106,7 @@ add_task(async function testReopen() {
       false,
       uri
     );
-    await BrowserTestUtils.loadURI(regularPage.tab.linkedBrowser, uri);
+    await BrowserTestUtils.loadURIString(regularPage.tab.linkedBrowser, uri);
     await loaded;
     info(`Start Opened ${uri} in a regular tab`);
     currRemoteType = regularPage.tab.linkedBrowser.remoteType;

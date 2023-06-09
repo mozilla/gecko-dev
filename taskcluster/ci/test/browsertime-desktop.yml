@@ -20,6 +20,8 @@ job-defaults:
                 - .*shippable.*
             safari:
                 - .*macos.*shippable.*
+            custom-car:
+                - linux.*shippable.*
             default: []
     test-manifest-loader: null  # don't load tests in the taskgraph
     tier: 3
@@ -36,6 +38,32 @@ job-defaults:
                     - raptor/linux_config.py
         extra-options:
             - --conditioned-profile=settled
+    fetches:
+        toolchain:
+            by-app:
+                custom-car:
+                    by-test-platform:
+                        # this satisfied taskgraph for now, but once mac/win is implemented
+                        # then linux will be the default
+                        linux.*:
+                            - linux64-custom-car
+                            - linux64-minidump-stackwalk
+                            - linux64-fix-stacks
+                        default: []
+                default:
+                    by-test-platform:
+                        windows.*-32.*.:
+                            - win32-minidump-stackwalk
+                            - win32-fix-stacks
+                        windows10-64.*:
+                            - win64-minidump-stackwalk
+                            - win64-fix-stacks
+                        macos.*:
+                            - macosx64-minidump-stackwalk
+                            - macosx64-fix-stacks
+                        default:
+                            - linux64-minidump-stackwalk
+                            - linux64-fix-stacks
 
 browsertime-tp6:
     <<: &tp6-defaults
@@ -61,10 +89,12 @@ browsertime-tp6:
                         - --browsertime-no-ffwindowrecorder
                         - --conditioned-profile=settled
                         - --extra-profiler-run
+                        - --extra-summary-methods=geomean
                     default:
                         - --chimera
                         - --conditioned-profile=settled
                         - --extra-profiler-run
+                        - --extra-summary-methods=geomean
         run-on-projects:
             by-subtest:
                 netflix:  # Bug 1756212 - Disable temporarily due to perma on mac
@@ -81,7 +111,7 @@ browsertime-tp6:
                         firefox:
                             by-test-platform:
                                 windows.*-32.*: []
-                                .*64.*shippable-qr/.*: [trunk, mozilla-beta, mozilla-release]
+                                .*64(?!.*nightlyasrelease).*shippable-qr/.*: [trunk, mozilla-beta, mozilla-release]
                                 default: []
                         default: []
         treeherder-symbol: Btime(tp6)
@@ -147,7 +177,7 @@ browsertime-responsiveness:
             firefox:
                 by-test-platform:
                     windows.*-32.*: []
-                    .*64.*shippable-qr/.*: [trunk]
+                    .*64(?!.*nightlyasrelease).*shippable-qr/.*: [trunk]
                     default: []
             default: []
     tier:
@@ -167,16 +197,14 @@ browsertime-tp6-essential:
                         - --conditioned-profile=settled
                         - --collect-perfstats
                         - --extra-profiler-run
-                        - --extra-summary-methods=mean
                         - --extra-summary-methods=geomean
                     default:
                         - --chimera
                         - --conditioned-profile=settled
                         - --extra-profiler-run
-                        - --extra-summary-methods=mean
                         - --extra-summary-methods=geomean
         raptor:
-            apps: [firefox, chrome, chromium]
+            apps: [firefox, chrome, chromium, custom-car]
             test: tp6
             run-visual-metrics: true
             subtests:
@@ -195,7 +223,7 @@ browsertime-tp6-essential:
                     by-test-platform:
                         windows.*-32.*: []
                         macosx1100.*shippable.*: [mozilla-central, mozilla-beta]
-                        .*64.*shippable-qr/.*: [trunk, mozilla-beta, mozilla-release]
+                        .*64(?!.*nightlyasrelease).*shippable-qr/.*: [trunk, mozilla-beta, mozilla-release]
                         default: []
                 default: []
         tier:
@@ -223,6 +251,15 @@ browsertime-tp6-bytecode:
             - twitter
             - wikipedia
             - yahoo-mail
+    run-on-projects:
+        by-app:
+            firefox:
+                by-test-platform:
+                    windows.*-32.*: []
+                    macosx1100.*shippable.*: [mozilla-central, mozilla-beta]
+                    .*64(?!.*nightlyasrelease).*shippable-qr/.*: [trunk, mozilla-beta, mozilla-release]
+                    default: []
+            default: []
     mozharness:
         extra-options:
             by-test-platform:
@@ -248,7 +285,7 @@ browsertime-tp6-bytecode:
 browsertime-benchmark:
     description: Raptor (browsertime) Benchmark tests
     raptor:
-        apps: [firefox, chrome, chromium, safari]
+        apps: [firefox, chrome, chromium, safari, custom-car]
         subtests:
             by-app:
                 firefox:
@@ -278,6 +315,9 @@ browsertime-benchmark:
                     - [sunspider, ss]
                     - [unity-webgl, ugl]
                     # - [webaudio, wa] (Bug 1802922)
+                custom-car:
+                    - [speedometer, sp]
+                    - [speedometer3, sp3]
                 default:
                     - ares6
                     - [assorted-dom, dom]
@@ -318,6 +358,7 @@ browsertime-benchmark:
                         by-test-platform:
                             windows.*-32.*: []
                             .*64.*shippable-qr/.*: [trunk, mozilla-release]
+                            .*nightlyasrelease.*: [autoland]
                             default: []
                     default: []
             unity-webgl:
@@ -326,6 +367,15 @@ browsertime-benchmark:
                         by-test-platform:
                             windows.*-32.*: []
                             .*64.*shippable-qr/.*: [trunk, mozilla-release]
+                            default: []
+                    default: []
+            speedometer:
+                by-app:
+                    firefox:
+                        by-test-platform:
+                            windows.*-32.*: []
+                            .*64.*shippable-qr/.*: [trunk, mozilla-beta, mozilla-release]
+                            .*nightlyasrelease.*: [autoland]
                             default: []
                     default: []
             default:
@@ -375,7 +425,7 @@ browsertime-benchmark-wasm:
             firefox:
                 by-test-platform:
                     windows.*-32.*: []
-                    .*64.*shippable-qr/.*: [mozilla-central, mozilla-release]
+                    .*64(?!.*nightlyasrelease).*shippable-qr/.*: [mozilla-central, mozilla-release]
                     default: []
             default: []
     max-run-time:
@@ -405,7 +455,7 @@ browsertime-youtube-playback:
     run-on-projects:
         by-test-platform:
             windows.*-32.*: []
-            .*64.*shippable-qr/.*: [mozilla-central, mozilla-release]
+            .*64(?!.*nightlyasrelease).*shippable-qr/.*: [mozilla-central, mozilla-release]
             default: []
     tier: 2
     limit-platforms:
@@ -417,10 +467,31 @@ browsertime-youtube-playback:
         by-subtest:
             youtube-playback-hfr: 3600
             youtube-playback-widevine.*: 3600
-            default:
-                by-test-platform:
-                    windows10-aarch64/opt: 3600
-                    default: 2700
+            default: 2700
+
+browsertime-youtube-playback-power:
+    description: Browsertime YouTube Playback on Firefox with power usage tracking
+    raptor:
+        apps: [firefox]
+        subtests:
+            by-app:
+                firefox:
+
+                    - [youtube-playback-h264-1080p30, ytp-h264-1080p30]
+                    - [youtube-playback-h264-1080p60, ytp-h264-1080p60]
+                    - [youtube-playback-h264-full-1080p30, ytp-h264-full-1080p30]
+                    - [youtube-playback-h264-full-1080p60, ytp-h264-full-1080p60]
+                    - [youtube-playback-v9-1080p30, ytp-v9-1080p30]
+                    - [youtube-playback-v9-1080p60, ytp-v9-1080p60]
+                    - [youtube-playback-v9-full-1080p30, ytp-v9-full-1080p30]
+                    - [youtube-playback-v9-full-1080p60, ytp-v9-full-1080p60]
+    treeherder-symbol: Btime()
+    run-on-projects:
+        by-test-platform:
+            macosx.*shippable-qr.*: [mozilla-central]
+            default: []
+    tier: 2
+    max-run-time: 2700
 
 browsertime-tp6-live:
     <<: *tp6-defaults
@@ -463,6 +534,33 @@ browsertime-tp6-live:
                     - twitter
                     - wikipedia
                     # - yahoo-mail (Bug 1802922)
+                    - youtube
+                chrome:
+                    - amazon
+                    - [bing-search, bing]
+                    - ebay
+                    - [facebook, fb]
+                    - fandom
+                    - [google-docs, gdocs]
+                    - [google-mail, gmail]
+                    - [google-search, gsearch]
+                    - [google-slides, gslides]
+                    - imdb
+                    # - imgur (see bugs 1825337 & 1817420)
+                    # - instagram (see bug 1736999)
+                    - linkedin
+                    - microsoft
+                    - netflix
+                    # - office (site loads blank page if not signed in)
+                    - outlook
+                    - paypal
+                    - pinterest
+                    - reddit
+                    - tumblr
+                    - twitch
+                    - twitter
+                    - wikipedia
+                    - yahoo-mail
                     - youtube
                 default:
                     - amazon
@@ -552,9 +650,9 @@ browsertime-custom:
     run-on-projects:
         by-test-platform:
             windows.*-32.*: []
-            .*64.*shippable-qr/.*: [mozilla-central]
+            .*64(?!.*nightlyasrelease).*shippable-qr/.*: [mozilla-central]
             default: []
-    tier: 2
+    tier: 1
     treeherder-symbol: Btime(ps)
 
 browsertime-first-install:
@@ -571,16 +669,33 @@ browsertime-first-install:
     run-on-projects:
         by-test-platform:
             windows.*-32.*: []
-            .*64.*shippable-qr/.*: [trunk]
+            .*64(?!.*nightlyasrelease).*shippable-qr/.*: [trunk]
             default: []
-    tier: 2
+    tier: 1
     treeherder-symbol: Btime(welcome)
 
-browsertime-grandprix:
+browsertime-regression-tests:
+    raptor:
+        apps: [firefox]
+        subtests: [[constant-regression, regress-c]]
+    description: Raptor (browsertime) tests for our regression detection system
+    max-run-time: 700
+    run-on-projects: [autoland]
+    limit-platforms:
+        - .*linux(?!.*shippable)(?!.*clang).*
+    mozharness:
+        extra-options:
+            by-test-platform:
+                windows10-64.*shippable.*-qr.*: []
+                default: []
+    tier: 2
+    treeherder-symbol: Btime(regressor)
+
+browsertime-upload:
     raptor:
         apps: [firefox, chrome, chromium, safari]
-        subtests: [grandprix]
-    description: Raptor (browsertime) grandprix benchmark test
+        subtests: [upload]
+    description: Raptor (browsertime) file upload performance test
     max-run-time: 2700
     run-on-projects:
         by-app:
@@ -591,4 +706,7 @@ browsertime-grandprix:
                     default: []
             default: []
     tier: 3
-    treeherder-symbol: Btime(grandprix)
+    treeherder-symbol: Btime(upload)
+    fetches:
+        fetch:
+            - upload-speed-test-file

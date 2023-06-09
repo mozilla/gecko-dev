@@ -557,10 +557,6 @@ void ParseTask::moveGCOutputInto(JS::InstantiationStorage& storage) {
   storage.gcOutput_ = gcOutput_.release();
 }
 
-void ParseTask::activate(JSRuntime* rt) { rt->addParseTaskRef(); }
-
-void ParseTask::deactivate(JSRuntime* rt) { rt->decParseTaskRef(); }
-
 ParseTask::~ParseTask() {
   // The LinkedListElement destructor will remove us from any list we are part
   // of without synchronization, so ensure that doesn't happen.
@@ -761,8 +757,9 @@ void CompileModuleToStencilTask<Unit>::parse(JSContext* cx,
   }
 
   frontend::NoScopeBindingCache scopeCache;
-  stencil_ = frontend::ParseModuleToStencil(cx, fc, stackLimit, *stencilInput_,
-                                            &scopeCache, data);
+  stencil_ =
+      frontend::ParseModuleToStencil(cx, fc, stackLimit, cx->tempLifoAlloc(),
+                                     *stencilInput_, &scopeCache, data);
   if (!stencil_) {
     return;
   }
@@ -792,7 +789,7 @@ void DecodeStencilTask::parse(JSContext* cx, FrontendContext* fc) {
   if (!stencilInput_) {
     return;
   }
-  if (!stencilInput_->initForGlobal(cx, fc)) {
+  if (!stencilInput_->initForGlobal(fc)) {
     return;
   }
 
@@ -803,8 +800,7 @@ void DecodeStencilTask::parse(JSContext* cx, FrontendContext* fc) {
   }
 
   bool succeeded = false;
-  (void)stencil_->deserializeStencils(cx, fc, *stencilInput_, range,
-                                      &succeeded);
+  (void)stencil_->deserializeStencils(fc, *stencilInput_, range, &succeeded);
   if (!succeeded) {
     stencil_ = nullptr;
     return;
@@ -834,7 +830,7 @@ void MultiStencilsDecodeTask::parse(JSContext* cx, FrontendContext* fc) {
 
   for (auto& source : *sources) {
     frontend::CompilationInput stencilInput(options);
-    if (!stencilInput.initForGlobal(cx, fc)) {
+    if (!stencilInput.initForGlobal(fc)) {
       break;
     }
 
@@ -845,7 +841,7 @@ void MultiStencilsDecodeTask::parse(JSContext* cx, FrontendContext* fc) {
       break;
     }
     bool succeeded = false;
-    (void)stencil->deserializeStencils(cx, fc, stencilInput, source.range,
+    (void)stencil->deserializeStencils(fc, stencilInput, source.range,
                                        &succeeded);
     if (!succeeded) {
       // If any decodes fail, don't process the rest. We likely are hitting OOM.
@@ -1041,9 +1037,7 @@ UniquePtr<DelazifyTask> DelazifyTask::Create(
 
 DelazifyTask::DelazifyTask(JSRuntime* runtime,
                            const JS::ContextOptions& options)
-    : runtime(runtime), contextOptions(options), merger() {
-  runtime->addParseTaskRef();
-}
+    : runtime(runtime), contextOptions(options), merger() {}
 
 DelazifyTask::~DelazifyTask() {
   // The LinkedListElement destructor will remove us from any list we are part
@@ -1441,8 +1435,6 @@ bool GlobalHelperThreadState::submitTask(
   if (!parseWorklist(locked).append(std::move(task))) {
     return false;
   }
-
-  parseWorklist(locked).back()->activate(rt);
 
   dispatch(DispatchReason::NewTask, locked);
   return true;
@@ -2424,7 +2416,6 @@ void GlobalHelperThreadState::cancelParseTask(JSRuntime* rt,
   for (size_t i = 0; i < worklist.length(); i++) {
     if (task == worklist[i]) {
       MOZ_ASSERT(task->runtimeMatches(rt));
-      task->deactivate(rt);
       HelperThreadState().remove(worklist, &i);
       return;
     }
@@ -2462,7 +2453,6 @@ void GlobalHelperThreadState::cancelParseTask(JSRuntime* rt,
 void GlobalHelperThreadState::destroyParseTask(JSRuntime* rt,
                                                ParseTask* parseTask) {
   MOZ_ASSERT(!parseTask->isInList());
-  parseTask->deactivate(rt);
   js_delete(parseTask);
 }
 

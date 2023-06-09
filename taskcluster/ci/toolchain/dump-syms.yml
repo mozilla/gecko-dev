@@ -24,7 +24,7 @@ linux64-dump_syms:
     fetches:
         toolchain:
             - linux64-clang-toolchain
-            - linux64-rust-1.66
+            - linux64-rust-toolchain
             - sysroot-x86_64-linux-gnu
 
 macosx64-dump_syms:
@@ -35,10 +35,9 @@ macosx64-dump_syms:
         arguments: ['x86_64-apple-darwin']
     fetches:
         toolchain:
-            - linux64-rust-macos-1.66
+            - linux64-rust-macos-toolchain
             - linux64-clang-toolchain
-            - linux64-cctools-port
-            - macosx64-sdk
+            - macosx64-sdk-toolchain
 
 macosx64-aarch64-dump_syms:
     treeherder:
@@ -47,10 +46,9 @@ macosx64-aarch64-dump_syms:
         arguments: ['aarch64-apple-darwin']
     fetches:
         toolchain:
-            - linux64-rust-macos-1.66
+            - linux64-rust-macos-toolchain
             - linux64-clang-toolchain
-            - linux64-cctools-port
-            - macosx64-sdk
+            - macosx64-sdk-toolchain
 
 win64-dump_syms:
     treeherder:
@@ -60,5 +58,5 @@ win64-dump_syms:
     fetches:
         toolchain:
             - linux64-clang-toolchain
-            - linux64-rust-windows-1.66
+            - linux64-rust-windows-toolchain
             - win64-vs2017

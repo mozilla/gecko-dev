@@ -62,6 +62,8 @@ class VideoQualityAnalyzerInterface
     // https://crbug.com/webrtc/11443: improve stats API to make available
     // there.
     uint32_t target_encode_bitrate = 0;
+    // Encoder quantizer value.
+    int qp = -1;
   };
   // Contains extra statistic provided by video decoder.
   struct DecoderStats {
@@ -101,7 +103,8 @@ class VideoQualityAnalyzerInterface
   virtual void OnFrameEncoded(absl::string_view peer_name,
                               uint16_t frame_id,
                               const EncodedImage& encoded_image,
-                              const EncoderStats& stats) {}
+                              const EncoderStats& stats,
+                              bool discarded) {}
   // Will be called for each frame dropped by encoder.
   // `peer_name` is name of the peer on which side frame drop was detected.
   virtual void OnFrameDropped(absl::string_view peer_name,
@@ -133,7 +136,8 @@ class VideoQualityAnalyzerInterface
   // `peer_name` is name of the peer on which side error acquired.
   virtual void OnDecoderError(absl::string_view peer_name,
                               uint16_t frame_id,
-                              int32_t error_code) {}
+                              int32_t error_code,
+                              const DecoderStats& stats) {}
   // Will be called every time new stats reports are available for the
   // Peer Connection identified by `pc_label`.
   void OnStatsReports(

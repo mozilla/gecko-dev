@@ -101,6 +101,7 @@
 #include "mozilla/layers/IAPZCTreeManager.h"
 #include "mozilla/ProfilerLabels.h"
 #include "mozilla/widget/AndroidVsync.h"
+#include "mozilla/widget/Screen.h"
 
 #define GVS_LOG(...) MOZ_LOG(sGVSupportLog, LogLevel::Warning, (__VA_ARGS__))
 
@@ -805,7 +806,14 @@ class NPZCSupport final
       if (!win) {
         return;
       }
-      nsWindow* gkWindow = win->GetNsWindow();
+      RefPtr<nsWindow> gkWindow = win->GetNsWindow();
+      if (!gkWindow) {
+        return;
+      }
+      MutexAutoLock lock(gkWindow->GetDestroyMutex());
+      if (gkWindow->Destroyed()) {
+        return;
+      }
       jni::NativeWeakPtr<NPZCSupport> weakPtrToThis =
           gkWindow->GetNPZCSupportWeakPtr();
       mObserver = Observer::Create(std::move(weakPtrToThis));
@@ -872,9 +880,19 @@ class NPZCSupport final
 
     if (result.GetStatus() == nsEventStatus_eConsumeNoDefault) {
       if (aReturnResult) {
-        aReturnResult->Complete(java::PanZoomController::InputResultDetail::New(
-            INPUT_RESULT_IGNORED, java::PanZoomController::SCROLLABLE_FLAG_NONE,
-            java::PanZoomController::OVERSCROLL_FLAG_NONE));
+        if (result.GetHandledResult() != Nothing()) {
+          aReturnResult->Complete(
+              ConvertAPZHandledResult(result.GetHandledResult().value()));
+        } else {
+          MOZ_ASSERT_UNREACHABLE(
+              "nsEventStatus_eConsumeNoDefault should involve a valid "
+              "APZHandledResult");
+          aReturnResult->Complete(
+              java::PanZoomController::InputResultDetail::New(
+                  INPUT_RESULT_IGNORED,
+                  java::PanZoomController::SCROLLABLE_FLAG_NONE,
+                  java::PanZoomController::OVERSCROLL_FLAG_NONE));
+        }
       }
       return;
     }
@@ -1799,19 +1817,19 @@ GeckoViewSupport::GetContentCanonicalBrowsingContext() {
   return bc->Canonical();
 }
 
-void GeckoViewSupport::PrintToPdf(
-    const java::GeckoSession::Window::LocalRef& inst,
-    jni::Object::Param aResult) {
-  auto stream = java::GeckoInputStream::New(nullptr);
-  auto geckoResult = java::GeckoResult::Ref::From(aResult);
+void GeckoViewSupport::CreatePdf(
+    jni::LocalRef<mozilla::java::GeckoResult> aGeckoResult,
+    RefPtr<dom::CanonicalBrowsingContext> aCbc) {
+  MOZ_ASSERT(NS_IsMainThread());
   const auto pdfErrorMsg = "Could not save this page as PDF.";
+  auto stream = java::GeckoInputStream::New(nullptr);
   RefPtr<GeckoViewOutputStream> streamListener =
       new GeckoViewOutputStream(stream);
 
   nsCOMPtr<nsIPrintSettingsService> printSettingsService =
       do_GetService("@mozilla.org/gfx/printsettings-service;1");
   if (!printSettingsService) {
-    geckoResult->CompleteExceptionally(
+    aGeckoResult->CompleteExceptionally(
         GeckoPrintException::New(
             GeckoPrintException::ERROR_PRINT_SETTINGS_SERVICE_NOT_AVAILABLE)
             .Cast<jni::Throwable>());
@@ -1823,11 +1841,12 @@ void GeckoViewSupport::PrintToPdf(
   nsresult rv = printSettingsService->CreateNewPrintSettings(
       getter_AddRefs(printSettings));
   if (NS_WARN_IF(NS_FAILED(rv))) {
-    geckoResult->CompleteExceptionally(
+    aGeckoResult->CompleteExceptionally(
         GeckoPrintException::New(
             GeckoPrintException::ERROR_UNABLE_TO_CREATE_PRINT_SETTINGS)
             .Cast<jni::Throwable>());
     GVS_LOG("Could not create print settings.");
+    return;
   }
 
   printSettings->SetPrinterName(u"Mozilla Save to PDF"_ns);
@@ -1837,6 +1856,27 @@ void GeckoViewSupport::PrintToPdf(
   printSettings->SetOutputStream(streamListener);
   printSettings->SetPrintSilent(true);
 
+  RefPtr<CanonicalBrowsingContext::PrintPromise> print =
+      aCbc->Print(printSettings);
+
+  aGeckoResult->Complete(stream);
+  print->Then(
+      mozilla::GetCurrentSerialEventTarget(), __func__,
+      [result = java::GeckoResult::GlobalRef(aGeckoResult), stream,
+       pdfErrorMsg](
+          const CanonicalBrowsingContext::PrintPromise::ResolveOrRejectValue&
+              aValue) {
+        if (aValue.IsReject()) {
+          GVS_LOG("Could not print. %s", pdfErrorMsg);
+          stream->WriteError();
+        }
+      });
+}
+
+void GeckoViewSupport::PrintToPdf(
+    const java::GeckoSession::Window::LocalRef& inst,
+    jni::Object::Param aResult) {
+  auto geckoResult = java::GeckoResult::Ref::From(aResult);
   RefPtr<CanonicalBrowsingContext> cbc = GetContentCanonicalBrowsingContext();
   if (!cbc) {
     geckoResult->CompleteExceptionally(
@@ -1847,21 +1887,25 @@ void GeckoViewSupport::PrintToPdf(
     GVS_LOG("Could not retrieve content canonical browsing context.");
     return;
   }
+  CreatePdf(geckoResult, cbc);
+}
 
-  RefPtr<CanonicalBrowsingContext::PrintPromise> print =
-      cbc->Print(printSettings);
+void GeckoViewSupport::PrintToPdf(
+    const java::GeckoSession::Window::LocalRef& inst,
+    jni::Object::Param aResult, int64_t aBcId) {
+  auto geckoResult = java::GeckoResult::Ref::From(aResult);
 
-  geckoResult->Complete(stream);
-  print->Then(
-      mozilla::GetCurrentSerialEventTarget(), __func__,
-      [result = java::GeckoResult::GlobalRef(geckoResult), stream, pdfErrorMsg](
-          const CanonicalBrowsingContext::PrintPromise::ResolveOrRejectValue&
-              aValue) {
-        if (aValue.IsReject()) {
-          GVS_LOG("Could not print. %s", pdfErrorMsg);
-          stream->SendError();
-        }
-      });
+  RefPtr<CanonicalBrowsingContext> cbc = CanonicalBrowsingContext::Get(aBcId);
+  if (!cbc) {
+    geckoResult->CompleteExceptionally(
+        GeckoPrintException::New(
+            GeckoPrintException::
+                ERROR_UNABLE_TO_RETRIEVE_CANONICAL_BROWSING_CONTEXT)
+            .Cast<jni::Throwable>());
+    GVS_LOG("Could not retrieve content canonical browsing context by ID.");
+    return;
+  }
+  CreatePdf(geckoResult, cbc);
 }
 }  // namespace widget
 }  // namespace mozilla
@@ -1898,7 +1942,7 @@ already_AddRefed<nsWindow> nsWindow::From(nsIWidget* aWidget) {
   // widget is a top-level window and that its NS_NATIVE_WIDGET value is
   // non-null, which is not the case for non-native widgets like
   // PuppetWidget.
-  if (aWidget && aWidget->WindowType() == nsWindowType::eWindowType_toplevel &&
+  if (aWidget && aWidget->GetWindowType() == WindowType::TopLevel &&
       aWidget->GetNativeData(NS_NATIVE_WIDGET) == aWidget) {
     RefPtr<nsWindow> window = static_cast<nsWindow*>(aWidget);
     return window.forget();
@@ -1918,7 +1962,7 @@ void nsWindow::LogWindow(nsWindow* win, int index, int indent) {
   ALOG("%s [% 2d] 0x%p [parent 0x%p] [% 3d,% 3dx% 3d,% 3d] vis %d type %d",
        spaces, index, win, win->mParent, win->mBounds.x, win->mBounds.y,
        win->mBounds.width, win->mBounds.height, win->mIsVisible,
-       win->mWindowType);
+       int(win->mWindowType));
 #endif
 }
 
@@ -1939,7 +1983,8 @@ nsWindow::nsWindow()
       mDynamicToolbarMaxHeight(0),
       mSizeMode(nsSizeMode_Normal),
       mIsFullScreen(false),
-      mCompositorWidgetDelegate(nullptr) {}
+      mCompositorWidgetDelegate(nullptr),
+      mDestroyMutex("nsWindow::mDestroyMutex") {}
 
 nsWindow::~nsWindow() {
   gTopLevelWindows.RemoveElement(this);
@@ -1951,14 +1996,14 @@ nsWindow::~nsWindow() {
 }
 
 bool nsWindow::IsTopLevel() {
-  return mWindowType == eWindowType_toplevel ||
-         mWindowType == eWindowType_dialog ||
-         mWindowType == eWindowType_invisible;
+  return mWindowType == WindowType::TopLevel ||
+         mWindowType == WindowType::Dialog ||
+         mWindowType == WindowType::Invisible;
 }
 
 nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
                           const LayoutDeviceIntRect& aRect,
-                          nsWidgetInitData* aInitData) {
+                          InitData* aInitData) {
   ALOG("nsWindow[%p]::Create %p [%d %d %d %d]", (void*)this, (void*)aParent,
        aRect.x, aRect.y, aRect.width, aRect.height);
 
@@ -2008,6 +2053,8 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
 }
 
 void nsWindow::Destroy() {
+  MutexAutoLock lock(mDestroyMutex);
+
   nsBaseWidget::mOnDestroyCalled = true;
 
   // Disassociate our native object from GeckoView.
@@ -2167,7 +2214,7 @@ double nsWindow::GetDefaultScaleInternal() {
 void nsWindow::Show(bool aState) {
   ALOG("nsWindow[%p]::Show %d", (void*)this, aState);
 
-  if (mWindowType == eWindowType_invisible) {
+  if (mWindowType == WindowType::Invisible) {
     ALOG("trying to show invisible window! ignoring..");
     return;
   }
@@ -2389,19 +2436,14 @@ nsresult nsWindow::MakeFullScreen(bool aFullScreen) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  nsIWidgetListener* listener = GetWidgetListener();
-  if (listener) {
-    listener->FullscreenWillChange(aFullScreen);
-  }
-
   mIsFullScreen = aFullScreen;
   mAndroidView->mEventDispatcher->Dispatch(
       aFullScreen ? u"GeckoView:FullScreenEnter" : u"GeckoView:FullScreenExit");
 
+  nsIWidgetListener* listener = GetWidgetListener();
   if (listener) {
     mSizeMode = mIsFullScreen ? nsSizeMode_Fullscreen : nsSizeMode_Normal;
     listener->SizeModeChanged(mSizeMode);
-    listener->FullscreenChanged(mIsFullScreen);
   }
   return NS_OK;
 }
@@ -2420,7 +2462,7 @@ void nsWindow::CreateLayerManager() {
   }
 
   nsWindow* topLevelWindow = FindTopLevel();
-  if (!topLevelWindow || topLevelWindow->mWindowType == eWindowType_invisible) {
+  if (!topLevelWindow || topLevelWindow->mWindowType == WindowType::Invisible) {
     // don't create a layer manager for an invisible top-level window
     return;
   }
@@ -2552,9 +2594,6 @@ void nsWindow::UpdateOverscrollOffset(const float aX, const float aY) {
 void* nsWindow::GetNativeData(uint32_t aDataType) {
   switch (aDataType) {
     // used by GLContextProviderEGL, nullptr is EGL_DEFAULT_DISPLAY
-    case NS_NATIVE_DISPLAY:
-      return nullptr;
-
     case NS_NATIVE_WIDGET:
       return (void*)this;
 

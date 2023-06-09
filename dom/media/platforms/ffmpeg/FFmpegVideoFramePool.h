@@ -95,7 +95,9 @@ class VideoFrameSurface<LIBAV_VER> {
   // Check if DMABufSurface is used by any gecko rendering process
   // (WebRender or GL compositor) or by DMABUFSurfaceImage/VideoData.
   bool IsUsed() const { return mSurface->IsGlobalRefSet(); }
-  void MarkAsUsed() { mSurface->GlobalRefAdd(); }
+
+  // Surface points to dmabuf memmory owned by ffmpeg.
+  bool IsFFMPEGSurface() const { return !!mLib; }
 
  private:
   virtual ~VideoFrameSurface();
@@ -104,13 +106,14 @@ class VideoFrameSurface<LIBAV_VER> {
   const FFmpegLibWrapper* mLib;
   AVBufferRef* mAVHWFrameContext;
   AVBufferRef* mHWAVBuffer;
+  VASurfaceID mFFMPEGSurfaceID;
 };
 
 // VideoFramePool class is thread-safe.
 template <>
 class VideoFramePool<LIBAV_VER> {
  public:
-  VideoFramePool();
+  explicit VideoFramePool(int aFFMPEGPoolSize);
   ~VideoFramePool();
 
   RefPtr<VideoFrameSurface<LIBAV_VER>> GetVideoFrameSurface(
@@ -121,14 +124,21 @@ class VideoFramePool<LIBAV_VER> {
 
  private:
   RefPtr<VideoFrameSurface<LIBAV_VER>> GetFreeVideoFrameSurface();
+  bool ShouldCopySurface();
+  void CheckNewFFMPEGSurface(VASurfaceID aNewSurfaceID);
 
  private:
   // Protect mDMABufSurfaces pool access
   Mutex mSurfaceLock MOZ_UNANNOTATED;
   nsTArray<RefPtr<VideoFrameSurface<LIBAV_VER>>> mDMABufSurfaces;
+  // Number of dmabuf surfaces allocated by ffmpeg for decoded video frames.
+  // Can be adjusted by extra_hw_frames at InitVAAPICodecContext().
+  int mFFMPEGPoolSize;
   // We may fail to create texture over DMABuf memory due to driver bugs so
   // check that before we export first DMABuf video frame.
   Maybe<bool> mTextureCreationWorks;
+  // We may fail to copy DMABuf memory on NVIDIA drivers.
+  bool mTextureCopyWorks = true;
 };
 
 }  // namespace mozilla

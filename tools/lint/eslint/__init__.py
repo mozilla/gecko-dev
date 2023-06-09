@@ -11,9 +11,10 @@ import subprocess
 import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "eslint"))
-from eslint import setup_helper
 from mozbuild.nodeutil import find_node_executable
 from mozlint import result
+
+from eslint import setup_helper
 
 ESLINT_ERROR_MESSAGE = """
 An error occurred running eslint. Please check the following error messages:
@@ -30,6 +31,16 @@ mach eslint --setup
 
 and try again.
 """.strip()
+
+PRETTIER_ERROR_MESSAGE = """
+An error occurred running prettier. Please check the following error messages:
+
+{}
+""".strip()
+
+PRETTIER_FORMATTING_MESSAGE = (
+    "This file needs formatting with Prettier (use 'mach lint --fix <path>')."
+)
 
 
 def setup(root, **lintargs):
@@ -69,6 +80,7 @@ def lint(paths, config, binary=None, fix=None, rules=[], setup=None, **lintargs)
     for rule in rules:
         extra_args.extend(["--rule", rule])
 
+    # First run ESLint
     cmd_args = (
         [
             binary,
@@ -85,17 +97,58 @@ def lint(paths, config, binary=None, fix=None, rules=[], setup=None, **lintargs)
         + exclude_args
         + paths
     )
-    log.debug("Command: {}".format(" ".join(cmd_args)))
-    results = run(cmd_args, config)
-    fixed = 0
-    # eslint requires that --fix be set before the --ext argument.
-    if fix:
-        fixed += len(results)
-        cmd_args.insert(2, "--fix")
-        results = run(cmd_args, config)
-        fixed = fixed - len(results)
 
-    return {"results": results, "fixed": fixed}
+    if fix:
+        # eslint requires that --fix be set before the --ext argument.
+        cmd_args.insert(2, "--fix")
+
+    log.debug("ESLint command: {}".format(" ".join(cmd_args)))
+
+    result = run(cmd_args, config)
+    if result == 1:
+        return result
+
+    # Then run Prettier
+    patterns = []
+    arg_wrapper = ""
+    if is_windows():
+        arg_wrapper = '"'
+    for p in paths:
+        filename, file_extension = os.path.splitext(p)
+        if file_extension:
+            patterns.append(p)
+        else:
+            patterns.append(
+                "{}{}/**/*.+({}){}".format(
+                    arg_wrapper, p, "|".join(config["extensions"]), arg_wrapper
+                )
+            )
+
+    cmd_args = (
+        [
+            binary,
+            os.path.join(module_path, "node_modules", "prettier", "bin-prettier.js"),
+            "--list-different",
+        ]
+        + extra_args
+        # Prettier does not support exclude arguments.
+        # + exclude_args
+        # Prettier only supports this from 2.3 and above (bug 1826062).
+        # + "--no-error-on-unmatched-pattern",
+        + patterns
+    )
+    log.debug("Prettier command: {}".format(" ".join(cmd_args)))
+
+    if fix:
+        cmd_args.append("--write")
+
+    prettier_result = run_prettier(cmd_args, config, fix)
+    if prettier_result == 1:
+        return prettier_result
+
+    result["results"].extend(prettier_result["results"])
+    result["fixed"] = result["fixed"] + prettier_result["fixed"]
+    return result
 
 
 def run(cmd_args, config):
@@ -119,7 +172,7 @@ def run(cmd_args, config):
         output, errors = proc.communicate()
     except KeyboardInterrupt:
         proc.kill()
-        return []
+        return {"results": [], "fixed": 0}
 
     if errors:
         errors = errors.decode(encoding, "replace")
@@ -129,7 +182,7 @@ def run(cmd_args, config):
         return 1
 
     if not output:
-        return []  # no output means success
+        return {"results": [], "fixed": 0}  # no output means success
     output = output.decode(encoding, "replace")
     try:
         jsonresult = json.loads(output)
@@ -138,8 +191,13 @@ def run(cmd_args, config):
         return 1
 
     results = []
+    fixed = 0
     for obj in jsonresult:
         errors = obj["messages"]
+        # This will return a count of files fixed, rather than issues fixed, as
+        # that is the only count we have.
+        if "output" in obj:
+            fixed = fixed + 1
 
         for err in errors:
             err.update(
@@ -153,4 +211,81 @@ def run(cmd_args, config):
             )
             results.append(result.from_config(config, **err))
 
-    return results
+    return {"results": results, "fixed": fixed}
+
+
+def run_prettier(cmd_args, config, fix):
+    shell = False
+    if is_windows():
+        # The eslint binary needs to be run from a shell with msys
+        shell = True
+    encoding = "utf-8"
+
+    orig = signal.signal(signal.SIGINT, signal.SIG_IGN)
+    proc = subprocess.Popen(
+        cmd_args, shell=shell, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    signal.signal(signal.SIGINT, orig)
+
+    try:
+        output, errors = proc.communicate()
+    except KeyboardInterrupt:
+        proc.kill()
+        return {"results": [], "fixed": 0}
+
+    if errors:
+        errors = errors.decode(encoding, "replace")
+        # --no-error-on-unmatched-pattern was only added in Prettier 2.3,
+        # when we upgrade to the latest version (bug 1826062), we can pass in
+        # that argument and remove this check.
+        if "No matching files." in errors:
+            return {"results": [], "fixed": 0}
+        print(PRETTIER_ERROR_MESSAGE.format(errors))
+
+    if proc.returncode >= 2:
+        return 1
+
+    if not output:
+        return {"results": [], "fixed": 0}  # no output means success
+
+    output = output.decode(encoding, "replace").splitlines()
+
+    results = []
+    fixed = 0
+
+    if fix:
+        # When Prettier is running in fix mode, it outputs the list of files
+        # that have been fixed, so sum them up here.
+        # If it can't fix files, it will throw an error, which will be handled
+        # above.
+        fixed = len(output)
+    else:
+        # When in "check" mode, Prettier will output the list of files that
+        # need changing, so we'll wrap them in our result structure here.
+        for file in output:
+            if not file:
+                continue
+
+            results.append(
+                result.from_config(
+                    config,
+                    **{
+                        "name": "eslint",
+                        "path": file,
+                        "message": PRETTIER_FORMATTING_MESSAGE,
+                        "level": "error",
+                        "rule": "prettier",
+                        "lineno": 0,
+                        "column": 0,
+                    }
+                )
+            )
+
+    return {"results": results, "fixed": fixed}
+
+
+def is_windows():
+    return (
+        os.environ.get("MSYSTEM") in ("MINGW32", "MINGW64")
+        or "MOZILLABUILD" in os.environ
+    )

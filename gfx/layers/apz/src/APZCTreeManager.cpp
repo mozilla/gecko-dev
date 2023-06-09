@@ -760,8 +760,9 @@ void APZCTreeManager::SampleForWebRender(const Maybe<VsyncId>& aVsyncId,
       auto it = mTestData.find(guid.mLayersId);
       if (it != mTestData.end()) {
         it->second->RecordSampledResult(
-            apzc->GetCurrentAsyncScrollOffsetInCssPixels(
-                AsyncPanZoomController::eForCompositing),
+            apzc->GetCurrentAsyncVisualViewport(
+                    AsyncPanZoomController::eForCompositing)
+                .TopLeft(),
             (aSampleTime.Time() - TimeStamp::ProcessCreation())
                 .ToMicroseconds(),
             guid.mLayersId, guid.mScrollId);
@@ -1857,7 +1858,7 @@ static TouchBehaviorFlags ConvertToTouchBehavior(
     result = AllowedTouchBehavior::VERTICAL_PAN |
              AllowedTouchBehavior::HORIZONTAL_PAN |
              AllowedTouchBehavior::PINCH_ZOOM |
-             AllowedTouchBehavior::DOUBLE_TAP_ZOOM;
+             AllowedTouchBehavior::ANIMATING_ZOOM;
     if (info.contains(CompositorHitTestFlags::eTouchActionPanXDisabled)) {
       result &= ~AllowedTouchBehavior::HORIZONTAL_PAN;
     }
@@ -1868,8 +1869,8 @@ static TouchBehaviorFlags ConvertToTouchBehavior(
       result &= ~AllowedTouchBehavior::PINCH_ZOOM;
     }
     if (info.contains(
-            CompositorHitTestFlags::eTouchActionDoubleTapZoomDisabled)) {
-      result &= ~AllowedTouchBehavior::DOUBLE_TAP_ZOOM;
+            CompositorHitTestFlags::eTouchActionAnimatingZoomDisabled)) {
+      result &= ~AllowedTouchBehavior::ANIMATING_ZOOM;
     }
   }
   return result;
@@ -2184,7 +2185,7 @@ void APZCTreeManager::SetupScrollbarDrag(
     // TransformToLocal() on the event, but we need its mLocalOrigin now
     // to compute a drag start offset for the AsyncDragMetrics.
     aMouseInput.TransformToLocal(aApzc->GetTransformToThis());
-    CSSCoord dragStart =
+    OuterCSSCoord dragStart =
         aApzc->ConvertScrollbarPoint(aMouseInput.mLocalOrigin, thumbData);
     // ConvertScrollbarPoint() got the drag start offset relative to
     // the scroll track. Now get it relative to the thumb.
@@ -2199,7 +2200,7 @@ void APZCTreeManager::SetupScrollbarDrag(
     }
     // Only consider the translation, since we do not support both
     // zooming and scrollbar dragging on any platform.
-    CSSCoord thumbStart =
+    OuterCSSCoord thumbStart =
         thumbData.mThumbStart +
         ((*thumbData.mDirection == ScrollDirection::eHorizontal)
              ? thumbTransform._41
@@ -2876,16 +2877,15 @@ APZCTreeManager::BuildOverscrollHandoffChain(
   while (apzc != nullptr) {
     result->Add(apzc);
 
-    if (apzc->GetScrollHandoffParentId() ==
-        ScrollableLayerGuid::NULL_SCROLL_ID) {
-      if (!apzc->IsRootForLayersId()) {
-        // This probably indicates a bug or missed case in layout code
-        NS_WARNING("Found a non-root APZ with no handoff parent");
-      }
-    }
-
     APZCTreeManager::TargetApzcForNodeResult handoffResult =
         FindHandoffParent(apzc);
+
+    if (!handoffResult.mIsFixed && !apzc->IsRootForLayersId() &&
+        apzc->GetScrollHandoffParentId() ==
+            ScrollableLayerGuid::NULL_SCROLL_ID) {
+      // This probably indicates a bug or missed case in layout code
+      NS_WARNING("Found a non-root APZ with no handoff parent");
+    }
 
     // If `apzc` is inside fixed content, we want to hand off to the document's
     // root APZC next. The scroll parent id wouldn't give us this because it's

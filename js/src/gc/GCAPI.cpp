@@ -58,6 +58,7 @@ JS::AutoDisableGenerationalGC::AutoDisableGenerationalGC(JSContext* cx)
     cx->nursery().disable();
   }
   ++cx->generationalDisabled;
+  MOZ_ASSERT(cx->nursery().isEmpty());
 }
 
 JS::AutoDisableGenerationalGC::~AutoDisableGenerationalGC() {
@@ -95,8 +96,7 @@ void js::ReleaseAllJITCode(JS::GCContext* gcx) {
   js::CancelOffThreadIonCompile(gcx->runtime());
 
   for (ZonesIter zone(gcx->runtime(), SkipAtoms); !zone.done(); zone.next()) {
-    zone->setPreservingCode(false);
-    zone->discardJitCode(gcx);
+    zone->forceDiscardJitCode(gcx);
   }
 
   for (RealmsIter realm(gcx->runtime()); !realm.done(); realm.next()) {
@@ -626,7 +626,7 @@ static bool ZoneMallocTriggerBytesGetter(JSContext* cx, unsigned argc,
 
 static bool ZoneGCNumberGetter(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
-  args.rval().setNumber(double(cx->zone()->gcNumber()));
+  args.rval().setNumber(double(cx->runtime()->gc.gcNumber()));
   return true;
 }
 

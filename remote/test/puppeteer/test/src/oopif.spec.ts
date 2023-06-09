@@ -14,19 +14,15 @@
  * limitations under the License.
  */
 
-import utils from './utils.js';
 import expect from 'expect';
-import {
-  getTestState,
-  describeChromeOnly,
-} from './mocha-utils.js';
-import {
-  Browser,
-  BrowserContext,
-} from '../../lib/cjs/puppeteer/common/Browser.js';
-import {Page} from '../../lib/cjs/puppeteer/common/Page.js';
+import {Browser} from 'puppeteer-core/internal/api/Browser.js';
+import {BrowserContext} from 'puppeteer-core/internal/api/BrowserContext.js';
+import {Page} from 'puppeteer-core/internal/api/Page.js';
 
-describeChromeOnly('OOPIF', function () {
+import {describeWithDebugLogs, getTestState} from './mocha-utils.js';
+import utils from './utils.js';
+
+describeWithDebugLogs('OOPIF', function () {
   /* We use a special browser for this test as we need the --site-per-process flag */
   let browser: Browser;
   let context: BrowserContext;
@@ -206,6 +202,7 @@ describeChromeOnly('OOPIF', function () {
     await utils.navigateFrame(page, 'frame1', server.EMPTY_PAGE);
     expect(frame.url()).toBe(server.EMPTY_PAGE);
   });
+
   it('should support evaluating in oop iframes', async () => {
     const {server} = getTestState();
 
@@ -234,10 +231,10 @@ describeChromeOnly('OOPIF', function () {
   it('should provide access to elements', async () => {
     const {server, isHeadless, headless} = getTestState();
 
-    if (!isHeadless || headless === 'chrome') {
+    if (!isHeadless || headless === 'new') {
       // TODO: this test is partially blocked on crbug.com/1334119. Enable test once
       // the upstream is fixed.
-      // TLDR: when we dispatch events ot the frame the compositor might
+      // TLDR: when we dispatch events to the frame the compositor might
       // not be up-to-date yet resulting in a misclick (the iframe element
       // becomes the event target instead of the content inside the iframe).
       // The solution is to use InsertVisualCallback on the backend but that causes

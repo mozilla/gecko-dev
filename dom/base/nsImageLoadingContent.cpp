@@ -51,6 +51,7 @@
 #include "mozilla/dom/HTMLImageElement.h"
 #include "mozilla/dom/ImageTextBinding.h"
 #include "mozilla/dom/ImageTracker.h"
+#include "mozilla/dom/ReferrerInfo.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/intl/LocaleService.h"
 #include "mozilla/intl/Locale.h"
@@ -309,7 +310,7 @@ void nsImageLoadingContent::OnImageIsAnimated(imgIRequest* aRequest) {
 
 static bool IsOurImageFrame(nsIFrame* aFrame) {
   if (nsImageFrame* f = do_QueryFrame(aFrame)) {
-    return f->IsForElement();
+    return f->IsForImageLoadingContent();
   }
   return aFrame->IsSVGImageFrame() || aFrame->IsSVGFEImageFrame();
 }

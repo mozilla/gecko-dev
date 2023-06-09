@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include "gfxContext.h"
+#include "mozilla/Baseline.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/Likely.h"
 #include "mozilla/PresShell.h"
@@ -834,61 +835,42 @@ a11y::AccType nsFieldSetFrame::AccessibleType() {
 }
 #endif
 
-nscoord nsFieldSetFrame::GetLogicalBaseline(WritingMode aWM) const {
+BaselineSharingGroup nsFieldSetFrame::GetDefaultBaselineSharingGroup() const {
   switch (StyleDisplay()->DisplayInside()) {
     case mozilla::StyleDisplayInside::Grid:
     case mozilla::StyleDisplayInside::Flex:
-      return BaselineBOffset(aWM, BaselineSharingGroup::First,
-                             AlignmentContext::Inline);
+      return BaselineSharingGroup::First;
     default:
-      return BSize(aWM) - BaselineBOffset(aWM, BaselineSharingGroup::Last,
-                                          AlignmentContext::Inline);
+      return BaselineSharingGroup::Last;
   }
 }
 
-bool nsFieldSetFrame::GetVerticalAlignBaseline(WritingMode aWM,
-                                               nscoord* aBaseline) const {
-  if (StyleDisplay()->IsContainLayout()) {
-    // If we are layout-contained, our child 'inner' should not
-    // affect how we calculate our baseline.
-    return false;
-  }
-  nsIFrame* inner = GetInner();
-  if (MOZ_UNLIKELY(!inner)) {
-    return false;
-  }
-  MOZ_ASSERT(!inner->GetWritingMode().IsOrthogonalTo(aWM));
-  if (!inner->GetVerticalAlignBaseline(aWM, aBaseline)) {
-    return false;
-  }
-  nscoord innerBStart = inner->BStart(aWM, GetSize());
-  *aBaseline += innerBStart;
-  return true;
+nscoord nsFieldSetFrame::SynthesizeFallbackBaseline(
+    WritingMode aWM, BaselineSharingGroup aBaselineGroup) const {
+  return Baseline::SynthesizeBOffsetFromMarginBox(this, aWM, aBaselineGroup);
 }
 
-bool nsFieldSetFrame::GetNaturalBaselineBOffset(
-    WritingMode aWM, BaselineSharingGroup aBaselineGroup,
-    nscoord* aBaseline) const {
+Maybe<nscoord> nsFieldSetFrame::GetNaturalBaselineBOffset(
+    WritingMode aWM, BaselineSharingGroup aBaselineGroup) const {
   if (StyleDisplay()->IsContainLayout()) {
     // If we are layout-contained, our child 'inner' should not
     // affect how we calculate our baseline.
-    return false;
+    return Nothing{};
   }
   nsIFrame* inner = GetInner();
   if (MOZ_UNLIKELY(!inner)) {
-    return false;
+    return Nothing{};
   }
   MOZ_ASSERT(!inner->GetWritingMode().IsOrthogonalTo(aWM));
-  if (!inner->GetNaturalBaselineBOffset(aWM, aBaselineGroup, aBaseline)) {
-    return false;
+  const auto result = inner->GetNaturalBaselineBOffset(aWM, aBaselineGroup);
+  if (!result) {
+    return Nothing{};
   }
   nscoord innerBStart = inner->BStart(aWM, GetSize());
   if (aBaselineGroup == BaselineSharingGroup::First) {
-    *aBaseline += innerBStart;
-  } else {
-    *aBaseline += BSize(aWM) - (innerBStart + inner->BSize(aWM));
+    return Some(*result + innerBStart);
   }
-  return true;
+  return Some(*result + BSize(aWM) - (innerBStart + inner->BSize(aWM)));
 }
 
 nsIScrollableFrame* nsFieldSetFrame::GetScrollTargetFrame() const {

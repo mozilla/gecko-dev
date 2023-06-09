@@ -13,7 +13,7 @@
 #include "mozilla/SizeOfState.h"
 #include "mozilla/ThreadSafeWeakPtr.h"
 #include "mozilla/TimeStamp.h"
-#include "mozilla/Tuple.h"
+
 #include "gfx2DGlue.h"
 #include "imgIContainer.h"
 #include "ImageContainer.h"
@@ -391,10 +391,8 @@ class ImageResource : public Image {
       if (self->mURI && profiler_thread_is_being_profiled_for_markers()) {
         mStartTime = TimeStamp::Now();
         static const size_t sMaxTruncatedLength = 1024;
-        self->mURI->GetSpec(mSpec);
-        if (mSpec.Length() >= sMaxTruncatedLength) {
-          mSpec.Truncate(sMaxTruncatedLength);
-        }
+        mSpec = nsContentUtils::TruncatedURLForDisplay(self->mURI,
+                                                       sMaxTruncatedLength);
       }
     }
 

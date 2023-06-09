@@ -87,10 +87,7 @@ export class CDP {
     lazy.logger.debug(`Waiting for initial application window`);
     await this.agent.browserStartupFinished;
 
-    this.agent.server.registerPrefixHandler(
-      "/json/",
-      new lazy.JSONHandler(this)
-    );
+    this.agent.server.registerPrefixHandler("/", new lazy.JSONHandler(this));
 
     this.targetList = new lazy.TargetList();
     this.targetList.on("target-created", (eventName, target) => {
@@ -129,18 +126,20 @@ export class CDP {
     }
 
     try {
-      try {
-        await IOUtils.remove(this._activePortPath);
-      } catch (e) {
-        lazy.logger.warn(
-          `Failed to remove ${this._activePortPath} (${e.message})`
-        );
-      }
+      await IOUtils.remove(this._activePortPath);
+    } catch (e) {
+      lazy.logger.warn(
+        `Failed to remove ${this._activePortPath} (${e.message})`
+      );
+    }
 
+    try {
       this.targetList?.destructor();
       this.targetList = null;
 
       lazy.RecommendedPreferences.restorePreferences(RECOMMENDED_PREFS);
+    } catch (e) {
+      lazy.logger.error("Failed to stop protocol", e);
     } finally {
       this._running = false;
     }

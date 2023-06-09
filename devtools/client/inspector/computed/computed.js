@@ -1263,10 +1263,11 @@ PropertyView.prototype = {
       const span = createChild(p, "span", {
         class: "rule-link",
       });
+
       const link = createChild(span, "a", {
         target: "_blank",
         class: "computed-link theme-link",
-        title: selector.href,
+        title: selector.longSource,
         sourcelocation: selector.source,
         tabindex: "0",
         textContent: selector.source,
@@ -1389,10 +1390,13 @@ function SelectorView(tree, selectorInfo) {
   const rule = this.selectorInfo.rule;
   if (!rule || !rule.parentStyleSheet || rule.type == ELEMENT_STYLE) {
     this.source = CssLogic.l10n("rule.sourceElement");
+    this.longSource = this.source;
   } else {
     // This always refers to the generated location.
     const sheet = rule.parentStyleSheet;
-    this.source = CssLogic.shortSource(sheet) + ":" + rule.line;
+    const sourceSuffix = rule.line > 0 ? ":" + rule.line : "";
+    this.source = CssLogic.shortSource(sheet) + sourceSuffix;
+    this.longSource = CssLogic.longSource(sheet) + sourceSuffix;
 
     this.generatedLocation = {
       sheet,
@@ -1402,8 +1406,7 @@ function SelectorView(tree, selectorInfo) {
     };
     this.sourceMapURLService = this.tree.inspector.toolbox.sourceMapURLService;
     this._unsubscribeCallback = this.sourceMapURLService.subscribeByID(
-      this.generatedLocation.sheet.resourceId ||
-        this.generatedLocation.sheet.actorID,
+      this.generatedLocation.sheet.resourceId,
       this.generatedLocation.line,
       this.generatedLocation.column,
       this._updateLocation
@@ -1553,7 +1556,7 @@ SelectorView.prototype = {
 
     const { sheet, line, column } = this.generatedLocation;
     if (ToolDefinitions.styleEditor.isToolSupported(inspector.toolbox)) {
-      inspector.toolbox.viewSourceInStyleEditorByFront(sheet, line, column);
+      inspector.toolbox.viewSourceInStyleEditorByResource(sheet, line, column);
     }
   },
 

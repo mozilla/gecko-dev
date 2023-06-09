@@ -179,14 +179,15 @@ NS_IMETHODIMP nsWifiMonitor::Run() {
   }
 
   if (doError) {
-    nsCOMPtr<nsIEventTarget> target = GetMainThreadEventTarget();
+    nsCOMPtr<nsIEventTarget> target = GetMainThreadSerialEventTarget();
     if (!target) return NS_ERROR_UNEXPECTED;
 
     nsCOMPtr<nsIRunnable> runnable(
         new nsPassErrorToWifiListeners(std::move(currentListeners), rv));
     if (!runnable) return NS_ERROR_OUT_OF_MEMORY;
 
-    target->Dispatch(runnable, NS_DISPATCH_SYNC);
+    NS_DispatchAndSpinEventLoopUntilComplete("nsWifiMonitor::Run"_ns, target,
+                                             runnable.forget());
   }
 
   LOG(("@@@@@ wifi monitor run complete\n"));
@@ -251,7 +252,8 @@ nsresult nsWifiMonitor::CallWifiListeners(
         std::move(currentListeners), std::move(accessPoints)));
     if (!runnable) return NS_ERROR_OUT_OF_MEMORY;
 
-    thread->Dispatch(runnable, NS_DISPATCH_SYNC);
+    NS_DispatchAndSpinEventLoopUntilComplete(
+        "nsWifiMonitor::CallWifiListeners"_ns, thread, runnable.forget());
   }
 
   return NS_OK;

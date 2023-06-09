@@ -9,6 +9,7 @@
 #include "js/PropertyAndElement.h"  // JS_GetElement
 #include "js/TypeDecls.h"
 #include "jsapi.h"
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/dom/AutocompleteInfoBinding.h"
 #include "mozilla/dom/CanonicalBrowsingContext.h"
@@ -970,29 +971,19 @@ static void CollectCurrentFormData(JSContext* aCx, Document& aDocument,
 MOZ_CAN_RUN_SCRIPT
 static void SetElementAsString(Element* aElement, const nsAString& aValue) {
   IgnoredErrorResult rv;
-  HTMLTextAreaElement* textArea = HTMLTextAreaElement::FromNode(aElement);
-  if (textArea) {
+  if (auto* textArea = HTMLTextAreaElement::FromNode(aElement)) {
     textArea->SetValue(aValue, rv);
     if (!rv.Failed()) {
       nsContentUtils::DispatchInputEvent(aElement);
     }
     return;
   }
-  HTMLInputElement* input = HTMLInputElement::FromNode(aElement);
-  if (input) {
-    input->SetValue(aValue, CallerType::NonSystem, rv);
-    if (!rv.Failed()) {
-      nsContentUtils::DispatchInputEvent(aElement);
-      return;
-    }
-  }
-  input = HTMLInputElement::FromNodeOrNull(
-      nsFocusManager::GetRedirectedFocus(aElement));
-  if (input) {
+  if (auto* input = HTMLInputElement::FromNode(aElement)) {
     input->SetValue(aValue, CallerType::NonSystem, rv);
     if (!rv.Failed()) {
       nsContentUtils::DispatchInputEvent(aElement);
     }
+    return;
   }
 }
 
@@ -1138,7 +1129,8 @@ MOZ_CAN_RUN_SCRIPT
 static void SetSessionData(JSContext* aCx, Element* aElement,
                            JS::MutableHandle<JS::Value> aObject) {
   nsAutoString data;
-  if (nsContentUtils::StringifyJSON(aCx, aObject, data)) {
+  if (nsContentUtils::StringifyJSON(aCx, aObject, data,
+                                    UndefinedIsNullStringLiteral)) {
     SetElementAsString(aElement, data);
   } else {
     JS_ClearPendingException(aCx);

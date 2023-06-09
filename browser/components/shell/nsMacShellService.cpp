@@ -21,6 +21,7 @@
 #include "nsILoadContext.h"
 #include "nsIPrefService.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/ReferrerInfo.h"
 #include "DesktopBackgroundImage.h"
 
 #include <Carbon/Carbon.h>
@@ -158,7 +159,8 @@ nsMacShellService::SetDesktopBackground(Element* aElement, int32_t aPosition,
       aElement->OwnerDoc()->CookieJarSettings();
   return wbp->SaveURI(imageURI, aElement->NodePrincipal(), 0, referrerInfo,
                       cookieJarSettings, nullptr, nullptr, mBackgroundFile,
-                      nsIContentPolicy::TYPE_IMAGE, loadContext);
+                      nsIContentPolicy::TYPE_IMAGE,
+                      loadContext->UsePrivateBrowsing());
 }
 
 NS_IMETHODIMP

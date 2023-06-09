@@ -311,6 +311,16 @@ ChildDNSService::SetDetectedTrrURI(const nsACString& aURI) {
 }
 
 NS_IMETHODIMP
+ChildDNSService::SetHeuristicDetectionResult(nsITRRSkipReason::value aValue) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+ChildDNSService::GetHeuristicDetectionResult(nsITRRSkipReason::value* aValue) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
 ChildDNSService::GetTRRSkipReasonName(nsITRRSkipReason::value aValue,
                                       nsACString& aName) {
   return mozilla::net::GetTRRSkipReasonName(aValue, aName);
@@ -328,12 +338,27 @@ ChildDNSService::GetCurrentTrrURI(nsACString& aURI) {
 
 NS_IMETHODIMP
 ChildDNSService::GetCurrentTrrMode(nsIDNSService::ResolverMode* aMode) {
+  if (XRE_IsContentProcess()) {
+    *aMode = mTRRMode;
+    return NS_OK;
+  }
   if (!mTRRServiceParent) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
   *aMode = mTRRServiceParent->Mode();
   return NS_OK;
+}
+
+void ChildDNSService::SetTRRModeInChild(
+    nsIDNSService::ResolverMode mode,
+    nsIDNSService::ResolverMode modeFromPref) {
+  if (!XRE_IsContentProcess()) {
+    MOZ_ASSERT(false, "Why are we calling this?");
+    return;
+  }
+  mTRRMode = mode;
+  TRRService::SetCurrentTRRMode(modeFromPref);
 }
 
 NS_IMETHODIMP
@@ -483,6 +508,20 @@ void ChildDNSService::GetTRRDomainKey(nsACString& aTRRDomain) {
 NS_IMETHODIMP
 ChildDNSService::GetTrrDomain(nsACString& aTRRDomain) {
   aTRRDomain = mTRRDomain;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+ChildDNSService::GetLastConfirmationStatus(nsresult* aConfirmationStatus) {
+  // XXX(valentin): Fix for socket process
+  *aConfirmationStatus = NS_OK;
+  return NS_OK;
+}
+
+NS_IMETHODIMP ChildDNSService::GetLastConfirmationSkipReason(
+    TRRSkippedReason* aSkipReason) {
+  // XXX(valentin): Fix for socket process
+  *aSkipReason = nsITRRSkipReason::TRR_UNSET;
   return NS_OK;
 }
 

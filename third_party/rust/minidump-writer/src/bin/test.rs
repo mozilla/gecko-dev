@@ -88,7 +88,7 @@ mod linux {
     fn test_file_id() -> Result<()> {
         let ppid = getppid().as_raw();
         let exe_link = format!("/proc/{}/exe", ppid);
-        let exe_name = std::fs::read_link(&exe_link)?.into_os_string();
+        let exe_name = std::fs::read_link(exe_link)?.into_os_string();
         let mut dumper = PtraceDumper::new(getppid().as_raw())?;
         let mut found_exe = None;
         for (idx, mapping) in dumper.mappings.iter().enumerate() {
@@ -207,11 +207,11 @@ mod linux {
 
     fn spawn_mmap_wait() -> Result<()> {
         let page_size = nix::unistd::sysconf(nix::unistd::SysconfVar::PAGE_SIZE).unwrap();
-        let memory_size = page_size.unwrap() as usize;
+        let memory_size = std::num::NonZeroUsize::new(page_size.unwrap() as usize).unwrap();
         // Get some memory to be mapped by the child-process
         let mapped_mem = unsafe {
             mmap(
-                std::ptr::null_mut(),
+                None,
                 memory_size,
                 ProtFlags::PROT_READ | ProtFlags::PROT_WRITE,
                 MapFlags::MAP_PRIVATE | MapFlags::MAP_ANON,
@@ -295,13 +295,16 @@ mod linux {
 
 #[cfg(target_os = "windows")]
 mod windows {
-    use minidump_writer::ffi::{
-        GetCurrentProcessId, GetCurrentThread, GetCurrentThreadId, GetThreadContext,
-        EXCEPTION_POINTERS, EXCEPTION_RECORD,
-    };
-
     use super::*;
     use std::mem;
+
+    #[link(name = "kernel32")]
+    extern "system" {
+        pub fn GetCurrentProcessId() -> u32;
+        pub fn GetCurrentThreadId() -> u32;
+        pub fn GetCurrentThread() -> isize;
+        pub fn GetThreadContext(thread: isize, context: *mut crash_context::CONTEXT) -> i32;
+    }
 
     #[inline(never)]
     pub(super) fn real_main(args: Vec<String>) -> Result<()> {
@@ -310,7 +313,7 @@ mod windows {
         // Generate the exception and communicate back where the exception pointers
         // are
         unsafe {
-            let mut exception_record: EXCEPTION_RECORD = mem::zeroed();
+            let mut exception_record: crash_context::EXCEPTION_RECORD = mem::zeroed();
             let mut exception_context = std::mem::MaybeUninit::uninit();
 
             let pid = GetCurrentProcessId();
@@ -320,12 +323,12 @@ mod windows {
 
             let mut exception_context = exception_context.assume_init();
 
-            let exception_ptrs = EXCEPTION_POINTERS {
+            let exception_ptrs = crash_context::EXCEPTION_POINTERS {
                 ExceptionRecord: &mut exception_record,
                 ContextRecord: &mut exception_context,
             };
 
-            exception_record.ExceptionCode = exception_code;
+            exception_record.ExceptionCode = exception_code as _;
 
             let exc_ptr_addr = &exception_ptrs as *const _ as usize;
 

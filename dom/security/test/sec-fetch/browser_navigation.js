@@ -8,10 +8,6 @@ let gExpectedHeader = {};
 
 async function setup() {
   waitForExplicitFinish();
-
-  await SpecialPowers.pushPrefEnv({
-    set: [["dom.security.secFetch.enabled", true]],
-  });
 }
 
 function checkSecFetchUser(subject, topic, data) {
@@ -54,7 +50,7 @@ async function testNavigations() {
 
   // Load initial site
   let loaded = BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
-  BrowserTestUtils.loadURI(gBrowser, REQUEST_URL + "?test1");
+  BrowserTestUtils.loadURIString(gBrowser, REQUEST_URL + "?test1");
   await loaded;
 
   // Load another site
@@ -165,10 +161,6 @@ async function testNavigations() {
 
 add_task(async function() {
   waitForExplicitFinish();
-
-  await SpecialPowers.pushPrefEnv({
-    set: [["dom.security.secFetch.enabled", true]],
-  });
 
   await testNavigations();
 

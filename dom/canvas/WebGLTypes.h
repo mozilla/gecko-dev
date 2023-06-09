@@ -261,6 +261,7 @@ enum class WebGLExtensionID : uint8_t {
   WEBGL_draw_buffers,
   WEBGL_explicit_present,
   WEBGL_lose_context,
+  WEBGL_provoking_vertex,
   Max
 };
 
@@ -916,6 +917,22 @@ inline Maybe<T> MaybeAs(const U val) {
 
 // -
 
+inline GLenum IsTexImageTarget(const GLenum imageTarget) {
+  switch (imageTarget) {
+    case LOCAL_GL_TEXTURE_2D:
+    case LOCAL_GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
+    case LOCAL_GL_TEXTURE_CUBE_MAP_POSITIVE_X:
+    case LOCAL_GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
+    case LOCAL_GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
+    case LOCAL_GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
+    case LOCAL_GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
+    case LOCAL_GL_TEXTURE_3D:
+    case LOCAL_GL_TEXTURE_2D_ARRAY:
+      return true;
+  }
+  return false;
+}
+
 inline GLenum ImageToTexTarget(const GLenum imageTarget) {
   switch (imageTarget) {
     case LOCAL_GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
@@ -925,9 +942,11 @@ inline GLenum ImageToTexTarget(const GLenum imageTarget) {
     case LOCAL_GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
     case LOCAL_GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
       return LOCAL_GL_TEXTURE_CUBE_MAP;
-    default:
-      return imageTarget;
   }
+  if (IsTexImageTarget(imageTarget)) {
+    return imageTarget;
+  }
+  return 0;
 }
 
 inline bool IsTexTarget3D(const GLenum texTarget) {
@@ -1207,6 +1226,27 @@ union UniformDataVal {
   int32_t i32;
   uint32_t u32;
 };
+
+enum class ProvokingVertex : GLenum {
+  FirstVertex = LOCAL_GL_FIRST_VERTEX_CONVENTION,
+  LastVertex = LOCAL_GL_LAST_VERTEX_CONVENTION,
+};
+inline constexpr bool IsEnumCase(const ProvokingVertex raw) {
+  switch (raw) {
+    case ProvokingVertex::FirstVertex:
+    case ProvokingVertex::LastVertex:
+      return true;
+  }
+  return false;
+}
+
+template <class E>
+inline constexpr std::optional<E> AsEnumCase(
+    const std::underlying_type_t<E> raw) {
+  const auto ret = static_cast<E>(raw);
+  if (!IsEnumCase(ret)) return {};
+  return ret;
+}
 
 }  // namespace webgl
 

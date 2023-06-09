@@ -11,6 +11,7 @@
 #include "HTMLListAccessible.h"
 #include "nsAccUtils.h"
 #include "nsFrameSelection.h"
+#include "TextLeafRange.h"
 #include "TextRange.h"
 #include "TreeWalker.h"
 
@@ -634,8 +635,15 @@ LocalAccessible* HyperTextAccessibleWrap::LeafAtOffset(int32_t aOffset) {
 void HyperTextAccessibleWrap::SelectRange(int32_t aStartOffset,
                                           HyperTextAccessible* aEndContainer,
                                           int32_t aEndOffset) {
-  TextRange range(this, this, aStartOffset, aEndContainer, aEndOffset);
-  range.SetSelectionAt(0);
+  TextLeafPoint start = ToTextLeafPoint(aStartOffset);
+  TextLeafPoint end = aEndContainer ? aEndContainer->ToTextLeafPoint(aEndOffset)
+                                    : TextLeafPoint();
+
+  TextLeafRange range(start, end);
+
+  if (range) {
+    range.SetSelection(0);
+  }
 }
 
 TextPoint HyperTextAccessibleWrap::FindTextPoint(
@@ -720,14 +728,12 @@ TextPoint HyperTextAccessibleWrap::FindTextPoint(
     }
   }
 
-  const bool kIsJumpLinesOk = true;       // okay to jump lines
-  const bool kIsScrollViewAStop = false;  // do not stop at scroll views
-  const bool kIsKeyboardSelect = true;    // is keyboard selection
-  const bool kIsVisualBidi = false;       // use visual order for bidi text
-  nsPeekOffsetStruct pos(
-      aAmount, aDirection, innerContentOffset, nsPoint(0, 0), kIsJumpLinesOk,
-      kIsScrollViewAStop, kIsKeyboardSelect, kIsVisualBidi, false,
-      nsPeekOffsetStruct::ForceEditableRegion::No, aWordMovementType, false);
+  PeekOffsetStruct pos(
+      aAmount, aDirection, innerContentOffset, nsPoint(0, 0),
+      {PeekOffsetOption::JumpLines, PeekOffsetOption::IsKeyboardSelect,
+       PeekOffsetOption::PreserveSpaces,
+       PeekOffsetOption::AllowContentInDifferentNativeAnonymousSubtreeRoot},
+      aWordMovementType);
   nsresult rv = frameAtOffset->PeekOffset(&pos);
 
   // PeekOffset fails on last/first lines of the text in certain cases.

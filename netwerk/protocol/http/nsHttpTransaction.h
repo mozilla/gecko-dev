@@ -92,6 +92,12 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   void SetIsHttp2Websocket(bool h2ws) override { mIsHttp2Websocket = h2ws; }
   bool IsHttp2Websocket() override { return mIsHttp2Websocket; }
 
+  void SetTRRInfo(nsIRequest::TRRMode aMode,
+                  TRRSkippedReason aSkipReason) override {
+    mEffectiveTRRMode = aMode;
+    mTRRSkipReason = aSkipReason;
+  }
+
   bool WaitingForHTTPSRR() const { return mCaps & NS_HTTP_FORCE_WAIT_HTTP_RR; }
   void MakeDontWaitHTTPSRR() { mCaps &= ~NS_HTTP_FORCE_WAIT_HTTP_RR; }
 
@@ -161,7 +167,7 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   // restart - this indicates that state for dev tools
   void Refused0RTT();
 
-  uint64_t TopBrowsingContextId() override { return mTopBrowsingContextId; }
+  uint64_t BrowserId() override { return mBrowserId; }
 
   void SetHttpTrailers(nsCString& aTrailers);
 
@@ -292,6 +298,19 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   };
   void SetRestartReason(TRANSACTION_RESTART_REASON aReason);
 
+  bool HandleWebTransportResponse(uint16_t aStatus);
+
+  void MaybeRefreshSecurityInfo() {
+    MutexAutoLock lock(mLock);
+    if (mConnection) {
+      nsCOMPtr<nsITLSSocketControl> tlsSocketControl;
+      mConnection->GetTLSSocketControl(getter_AddRefs(tlsSocketControl));
+      if (tlsSocketControl) {
+        tlsSocketControl->GetSecurityInfo(getter_AddRefs(mSecurityInfo));
+      }
+    }
+  }
+
  private:
   class UpdateSecurityCallbacks : public Runnable {
    public:
@@ -374,7 +393,7 @@ class nsHttpTransaction final : public nsAHttpTransaction,
 
   // the number of times this transaction has been restarted
   uint16_t mRestartCount{0};
-  uint32_t mCaps{0};
+  Atomic<uint32_t, ReleaseAcquire> mCaps{0};
 
   HttpVersion mHttpVersion{HttpVersion::UNKNOWN};
   uint16_t mHttpResponseCode{0};
@@ -460,7 +479,7 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   TimeStamp mPendingTime;
   TimeDuration mPendingDurationTime;
 
-  uint64_t mTopBrowsingContextId{0};
+  uint64_t mBrowserId{0};
 
   // For Rate Pacing via an EventTokenBucket
  public:
@@ -517,6 +536,9 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   NetAddr mSelfAddr;
   NetAddr mPeerAddr;
   bool mResolvedByTRR{false};
+  Atomic<nsIRequest::TRRMode, Relaxed> mEffectiveTRRMode{
+      nsIRequest::TRR_DEFAULT_MODE};
+  Atomic<TRRSkippedReason, Relaxed> mTRRSkipReason{nsITRRSkipReason::TRR_UNSET};
   bool mEchConfigUsed = false;
 
   bool m0RTTInProgress{false};

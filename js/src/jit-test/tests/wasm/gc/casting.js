@@ -5,7 +5,7 @@
   const MaxDepth = 31;
   let types = `(type (struct))\n`;
   for (let depth = 1; depth <= MaxDepth + 1; depth++) {
-    types += `(sub ${depth - 1} (type (struct)))\n`;
+    types += `(type (sub ${depth - 1} (struct)))\n`;
   }
   wasmFailValidateText(`(module
     ${types}
@@ -21,9 +21,23 @@
 //  C1  C2   C3
 //  | \      |
 //  D1  D2   D3
+//  | \      |
+//  E1  E2   E3
+//  | \      |
+//  F1  F2   F3
+//  | \      |
+//  G1  G2   G3
+//  | \      |
+//  H1  H2   H3
+//  | \      |
+//  I1  I2   I3
+//  | \      |
+//  J1  J2   J3
 //
 // NOTE: this object will be mutated and needs to be ordered such that parent
-// definitions come before children.
+// definitions come before children.  Note also, to be properly effective,
+// these trees need to have a depth of at least MinSuperTypeVectorLength as
+// defined in wasm/WasmCodegenConstants.h; keep it in sync with that.
 const TYPES = {
   'A1': { super: null },
   'A2': { super: null },
@@ -35,6 +49,24 @@ const TYPES = {
   'D1': { super: 'C1' },
   'D2': { super: 'C1' },
   'D3': { super: 'C3' },
+  'E1': { super: 'D1' },
+  'E2': { super: 'D1' },
+  'E3': { super: 'D3' },
+  'F1': { super: 'E1' },
+  'F2': { super: 'E1' },
+  'F3': { super: 'E3' },
+  'G1': { super: 'F1' },
+  'G2': { super: 'F1' },
+  'G3': { super: 'F3' },
+  'H1': { super: 'G1' },
+  'H2': { super: 'G1' },
+  'H3': { super: 'G3' },
+  'I1': { super: 'H1' },
+  'I2': { super: 'H1' },
+  'I3': { super: 'H3' },
+  'J1': { super: 'I1' },
+  'J2': { super: 'I1' },
+  'J3': { super: 'I3' },
 };
 
 // The oracle method for testing the declared subtype relationship.
@@ -53,7 +85,7 @@ function testAllCasts(types) {
     if (type.super === null) {
       typeSection += `(type \$${name} (struct))\n`;
     } else {
-      typeSection += `(sub \$${type.super} (type \$${name} (struct)))\n`;
+      typeSection += `(type \$${name} (sub \$${type.super} (struct)))\n`;
     }
     funcSection += `
       (func (export "new${name}") (result externref)
@@ -63,7 +95,7 @@ function testAllCasts(types) {
       (func (export "is${name}") (param externref) (result i32)
         local.get 0
         extern.internalize
-        ref.test \$${name}
+        ref.test (ref \$${name})
       )`;
   }
   // NOTE: we place all types in a single recursion group to prevent

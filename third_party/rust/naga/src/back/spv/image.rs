@@ -314,25 +314,47 @@ impl<'w> BlockContext<'w> {
         };
 
         // Convert the index to the coordinate component type, if necessary.
-        let array_index_i32_id = self.cached[array_index];
-        let reconciled_array_index_id = if component_kind == crate::ScalarKind::Sint {
-            array_index_i32_id
+        let array_index_id = self.cached[array_index];
+        let ty = &self.fun_info[array_index].ty;
+        let inner_ty = ty.inner_with(&self.ir_module.types);
+        let array_index_kind = if let Ti::Scalar { kind, width: 4 } = *inner_ty {
+            debug_assert!(matches!(
+                kind,
+                crate::ScalarKind::Sint | crate::ScalarKind::Uint
+            ));
+            kind
         } else {
-            let component_type_id = self.get_type_id(LookupType::Local(LocalType::Value {
+            unreachable!("we only allow i32 and u32");
+        };
+        let cast = match (component_kind, array_index_kind) {
+            (crate::ScalarKind::Sint, crate::ScalarKind::Sint)
+            | (crate::ScalarKind::Uint, crate::ScalarKind::Uint) => None,
+            (crate::ScalarKind::Sint, crate::ScalarKind::Uint)
+            | (crate::ScalarKind::Uint, crate::ScalarKind::Sint) => Some(spirv::Op::Bitcast),
+            (crate::ScalarKind::Float, crate::ScalarKind::Sint) => Some(spirv::Op::ConvertSToF),
+            (crate::ScalarKind::Float, crate::ScalarKind::Uint) => Some(spirv::Op::ConvertUToF),
+            (crate::ScalarKind::Bool, _) => unreachable!("we don't allow bool for component"),
+            (_, crate::ScalarKind::Bool | crate::ScalarKind::Float) => {
+                unreachable!("we don't allow bool or float for array index")
+            }
+        };
+        let reconciled_array_index_id = if let Some(cast) = cast {
+            let component_ty_id = self.get_type_id(LookupType::Local(LocalType::Value {
                 vector_size: None,
                 kind: component_kind,
                 width: 4,
                 pointer_space: None,
             }));
-
             let reconciled_id = self.gen_id();
             block.body.push(Instruction::unary(
-                spirv::Op::ConvertUToF,
-                component_type_id,
+                cast,
+                component_ty_id,
                 reconciled_id,
-                array_index_i32_id,
+                array_index_id,
             ));
             reconciled_id
+        } else {
+            array_index_id
         };
 
         // Find the SPIR-V type for the combined coordinates/index vector.
@@ -357,7 +379,7 @@ impl<'w> BlockContext<'w> {
         })
     }
 
-    fn get_image_id(&mut self, expr_handle: Handle<crate::Expression>) -> Word {
+    pub(super) fn get_image_id(&mut self, expr_handle: Handle<crate::Expression>) -> Word {
         let id = match self.ir_function.expressions[expr_handle] {
             crate::Expression::GlobalVariable(handle) => {
                 self.writer.global_variables[handle.index()].handle_id
@@ -1016,21 +1038,19 @@ impl<'w> BlockContext<'w> {
                     Id::D2 | Id::Cube => 2,
                     Id::D3 => 3,
                 };
-                let extended_size_type_id = {
-                    let array_coords = if arrayed { 1 } else { 0 };
-                    let vector_size = match dim_coords + array_coords {
-                        2 => Some(crate::VectorSize::Bi),
-                        3 => Some(crate::VectorSize::Tri),
-                        4 => Some(crate::VectorSize::Quad),
-                        _ => None,
-                    };
-                    self.get_type_id(LookupType::Local(LocalType::Value {
-                        vector_size,
-                        kind: crate::ScalarKind::Sint,
-                        width: 4,
-                        pointer_space: None,
-                    }))
+                let array_coords = usize::from(arrayed);
+                let vector_size = match dim_coords + array_coords {
+                    2 => Some(crate::VectorSize::Bi),
+                    3 => Some(crate::VectorSize::Tri),
+                    4 => Some(crate::VectorSize::Quad),
+                    _ => None,
                 };
+                let extended_size_type_id = self.get_type_id(LookupType::Local(LocalType::Value {
+                    vector_size,
+                    kind: crate::ScalarKind::Sint,
+                    width: 4,
+                    pointer_space: None,
+                }));
 
                 let (query_op, level_id) = match class {
                     Ic::Sampled { multi: true, .. }
@@ -1059,7 +1079,24 @@ impl<'w> BlockContext<'w> {
                 }
                 block.body.push(inst);
 
-                if result_type_id != extended_size_type_id {
+                let bitcast_type_id = self.get_type_id(
+                    LocalType::Value {
+                        vector_size,
+                        kind: crate::ScalarKind::Uint,
+                        width: 4,
+                        pointer_space: None,
+                    }
+                    .into(),
+                );
+                let bitcast_id = self.gen_id();
+                block.body.push(Instruction::unary(
+                    spirv::Op::Bitcast,
+                    bitcast_type_id,
+                    bitcast_id,
+                    id_extended,
+                ));
+
+                if result_type_id != bitcast_type_id {
                     let id = self.gen_id();
                     let components = match dim {
                         // always pick the first component, and duplicate it for all 3 dimensions
@@ -1069,23 +1106,41 @@ impl<'w> BlockContext<'w> {
                     block.body.push(Instruction::vector_shuffle(
                         result_type_id,
                         id,
-                        id_extended,
-                        id_extended,
+                        bitcast_id,
+                        bitcast_id,
                         components,
                     ));
+
                     id
                 } else {
-                    id_extended
+                    bitcast_id
                 }
             }
             Iq::NumLevels => {
-                let id = self.gen_id();
+                let query_id = self.gen_id();
                 block.body.push(Instruction::image_query(
                     spirv::Op::ImageQueryLevels,
-                    result_type_id,
-                    id,
+                    self.get_type_id(
+                        LocalType::Value {
+                            vector_size: None,
+                            kind: crate::ScalarKind::Sint,
+                            width: 4,
+                            pointer_space: None,
+                        }
+                        .into(),
+                    ),
+                    query_id,
                     image_id,
                 ));
+
+                let id = self.gen_id();
+                block.body.push(Instruction::unary(
+                    spirv::Op::Bitcast,
+                    result_type_id,
+                    id,
+                    query_id,
+                ));
+
                 id
             }
             Iq::NumLayers => {
@@ -1109,23 +1164,58 @@ impl<'w> BlockContext<'w> {
                 );
                 inst.add_operand(self.get_index_constant(0));
                 block.body.push(inst);
-                let id = self.gen_id();
+
+                let extract_id = self.gen_id();
                 block.body.push(Instruction::composite_extract(
-                    result_type_id,
-                    id,
+                    self.get_type_id(
+                        LocalType::Value {
+                            vector_size: None,
+                            kind: crate::ScalarKind::Sint,
+                            width: 4,
+                            pointer_space: None,
+                        }
+                        .into(),
+                    ),
+                    extract_id,
                     id_extended,
                     &[vec_size as u32 - 1],
                 ));
+
+                let id = self.gen_id();
+                block.body.push(Instruction::unary(
+                    spirv::Op::Bitcast,
+                    result_type_id,
+                    id,
+                    extract_id,
+                ));
+
                 id
             }
             Iq::NumSamples => {
-                let id = self.gen_id();
+                let query_id = self.gen_id();
                 block.body.push(Instruction::image_query(
                     spirv::Op::ImageQuerySamples,
-                    result_type_id,
-                    id,
+                    self.get_type_id(
+                        LocalType::Value {
+                            vector_size: None,
+                            kind: crate::ScalarKind::Sint,
+                            width: 4,
+                            pointer_space: None,
+                        }
+                        .into(),
+                    ),
+                    query_id,
                     image_id,
                 ));
+
+                let id = self.gen_id();
+                block.body.push(Instruction::unary(
+                    spirv::Op::Bitcast,
+                    result_type_id,
+                    id,
+                    query_id,
+                ));
+
                 id
             }
         };

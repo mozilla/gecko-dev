@@ -38,7 +38,7 @@ add_task(async function() {
 
   checkA11yFront(accessibleFront, {
     name: "Accessible Button",
-    role: "pushbutton",
+    role: "button",
   });
 
   const ancestry = await a11yWalker.getAncestry(accessibleFront);
@@ -50,7 +50,7 @@ add_task(async function() {
   );
   is(
     ancestry[0].children.length,
-    4,
+    7,
     "Root doc should have correct number of children"
   );
   ok(
@@ -79,7 +79,7 @@ add_task(async function() {
 
   // Ensure reorder event is emitted by walker when DOM tree changes.
   let docChildren = await a11yDoc.children();
-  is(docChildren.length, 4, "Root doc should have correct number of children");
+  is(docChildren.length, 7, "Root doc should have correct number of children");
 
   await emitA11yEvent(
     a11yWalker,
@@ -96,7 +96,7 @@ add_task(async function() {
   );
 
   docChildren = await a11yDoc.children();
-  is(docChildren.length, 5, "Root doc should have correct number of children");
+  is(docChildren.length, 8, "Root doc should have correct number of children");
 
   let shown = await a11yWalker.highlightAccessible(docChildren[0]);
   ok(shown, "AccessibleHighlighter highlighted the node");
@@ -164,26 +164,11 @@ add_task(async function() {
   is(index, 2, "Current index is correct");
   await a11yWalker.hideTabbingOrder();
 
-  // If server targets are enable, reloads will spawn a new toplevel target,
-  // so that we can no longer expect an event on previous target's front.
-  // Instead the panel should emit the 'reloaded' event.
-  if (isServerTargetSwitchingEnabled()) {
-    info(
-      "When targets follow the WindowGlobal lifecycle and handle only one document, " +
-        "only check that the panel refreshes correctly and emit its 'reloaded' event"
-    );
-    await reloadBrowser();
-  } else {
-    info(
-      "When targets follow the DocShell lifecycle and handle more than one document, " +
-        "check that document-ready event fired by walker when top level accessible document is recreated."
-    );
-    const reloaded = BrowserTestUtils.browserLoaded(browser);
-    const documentReady = a11yWalker.once("document-ready");
-    browser.reload();
-    await reloaded;
-    await documentReady;
-  }
+  info(
+    "When targets follow the WindowGlobal lifecycle and handle only one document, " +
+      "only check that the panel refreshes correctly and emit its 'reloaded' event"
+  );
+  await reloadBrowser();
 
   await waitForA11yShutdown(parentAccessibility);
   await target.destroy();

@@ -76,6 +76,73 @@ void webgl::ObjectJS::WarnInvalidUse(const ClientWebGLContext& targetContext,
                              argName);
 }
 
+// -
+
+WebGLBufferJS::~WebGLBufferJS() {
+  const auto webgl = Context();
+  if (webgl) {
+    webgl->DeleteBuffer(this);
+  }
+}
+
+WebGLFramebufferJS::~WebGLFramebufferJS() {
+  const auto webgl = Context();
+  if (webgl) {
+    webgl->DeleteFramebuffer(this);
+  }
+}
+
+WebGLQueryJS::~WebGLQueryJS() {
+  const auto webgl = Context();
+  if (webgl) {
+    webgl->DeleteQuery(this);
+  }
+}
+
+WebGLRenderbufferJS::~WebGLRenderbufferJS() {
+  const auto webgl = Context();
+  if (webgl) {
+    webgl->DeleteRenderbuffer(this);
+  }
+}
+
+WebGLSamplerJS::~WebGLSamplerJS() {
+  const auto webgl = Context();
+  if (webgl) {
+    webgl->DeleteSampler(this);
+  }
+}
+
+WebGLSyncJS::~WebGLSyncJS() {
+  const auto webgl = Context();
+  if (webgl) {
+    webgl->DeleteSync(this);
+  }
+}
+
+WebGLTextureJS::~WebGLTextureJS() {
+  const auto webgl = Context();
+  if (webgl) {
+    webgl->DeleteTexture(this);
+  }
+}
+
+WebGLTransformFeedbackJS::~WebGLTransformFeedbackJS() {
+  const auto webgl = Context();
+  if (webgl) {
+    webgl->DeleteTransformFeedback(this);
+  }
+}
+
+WebGLVertexArrayJS::~WebGLVertexArrayJS() {
+  const auto webgl = Context();
+  if (webgl) {
+    webgl->DeleteVertexArray(this);
+  }
+}
+
+// -
+
 static bool GetJSScalarFromGLType(GLenum type,
                                   js::Scalar::Type* const out_scalarType) {
   switch (type) {
@@ -474,7 +541,8 @@ Maybe<layers::SurfaceDescriptor> ClientWebGLContext::GetFrontBuffer(
   const auto& textureId = fb ? fb->mLastRemoteTextureId : mLastRemoteTextureId;
   auto& needsSync = fb ? fb->mNeedsRemoteTextureSync : mNeedsRemoteTextureSync;
   if (ownerId && textureId) {
-    if (gfx::gfxVars::WebglOopAsyncPresentForceSync() || needsSync) {
+    if (XRE_IsParentProcess() ||
+        gfx::gfxVars::WebglOopAsyncPresentForceSync() || needsSync) {
       needsSync = false;
       // Request the front buffer from IPDL to cause a sync, even though we
       // will continue to use the remote texture descriptor after.
@@ -1170,8 +1238,10 @@ RefPtr<gfx::DataSourceSurface> ClientWebGLContext::BackBufferSnapshot() {
   return surf;
 }
 
-UniquePtr<uint8_t[]> ClientWebGLContext::GetImageBuffer(int32_t* out_format) {
+UniquePtr<uint8_t[]> ClientWebGLContext::GetImageBuffer(
+    int32_t* out_format, gfx::IntSize* out_imageSize) {
   *out_format = 0;
+  *out_imageSize = {};
 
   // Use GetSurfaceSnapshot() to make sure that appropriate y-flip gets applied
   gfxAlphaType any;
@@ -1181,6 +1251,7 @@ UniquePtr<uint8_t[]> ClientWebGLContext::GetImageBuffer(int32_t* out_format) {
   RefPtr<gfx::DataSourceSurface> dataSurface = snapshot->GetDataSurface();
 
   const auto& premultAlpha = mNotLost->info.options.premultipliedAlpha;
+  *out_imageSize = dataSurface->GetSize();
   return gfxUtils::GetImageBuffer(dataSurface, premultAlpha, out_format);
 }
 
@@ -1997,6 +2068,11 @@ void ClientWebGLContext::GetParameter(JSContext* cx, GLenum pname,
       retval.set(JS::NumberValue(state.mPixelUnpackState.colorspaceConversion));
       return;
 
+    case dom::WEBGL_provoking_vertex_Binding::PROVOKING_VERTEX_WEBGL:
+      if (!IsExtensionEnabled(WebGLExtensionID::WEBGL_provoking_vertex)) break;
+      retval.set(JS::NumberValue(UnderlyingValue(state.mProvokingVertex)));
+      return;
+
     // -
     // Array returns
 
@@ -2180,7 +2256,7 @@ void ClientWebGLContext::GetParameter(JSContext* cx, GLenum pname,
 
       case LOCAL_GL_RENDERER: {
         bool allowRenderer = StaticPrefs::webgl_enable_renderer_query();
-        if (nsContentUtils::ShouldResistFingerprinting()) {
+        if (ShouldResistFingerprinting()) {
           allowRenderer = false;
         }
         if (allowRenderer) {
@@ -3350,11 +3426,11 @@ void ClientWebGLContext::RawBufferData(GLenum target, const uint8_t* srcBytes,
 void ClientWebGLContext::RawBufferSubData(GLenum target,
                                           WebGLsizeiptr dstByteOffset,
                                           const uint8_t* srcBytes,
-                                          size_t srcLen) {
+                                          size_t srcLen, bool unsynchronized) {
   const FuncScope funcScope(*this, "bufferSubData");
 
   Run<RPROC(BufferSubData)>(target, dstByteOffset,
-                            RawBuffer<>({srcBytes, srcLen}));
+                            RawBuffer<>({srcBytes, srcLen}), unsynchronized);
 }
 
 void ClientWebGLContext::BufferSubData(GLenum target,
@@ -3363,7 +3439,8 @@ void ClientWebGLContext::BufferSubData(GLenum target,
   const FuncScope funcScope(*this, "bufferSubData");
   src.ComputeState();
   const auto range = Range<const uint8_t>{src.Data(), src.Length()};
-  Run<RPROC(BufferSubData)>(target, dstByteOffset, RawBuffer<>(range));
+  Run<RPROC(BufferSubData)>(target, dstByteOffset, RawBuffer<>(range),
+                            /* unsynchronized */ false);
 }
 
 void ClientWebGLContext::BufferSubData(GLenum target,
@@ -3379,7 +3456,8 @@ void ClientWebGLContext::BufferSubData(GLenum target,
     return;
   }
   const auto range = Range<const uint8_t>{bytes, byteLen};
-  Run<RPROC(BufferSubData)>(target, dstByteOffset, RawBuffer<>(range));
+  Run<RPROC(BufferSubData)>(target, dstByteOffset, RawBuffer<>(range),
+                            /* unsynchronized */ false);
 }
 
 void ClientWebGLContext::CopyBufferSubData(GLenum readTarget,
@@ -5374,11 +5452,16 @@ GLenum ClientWebGLContext::ClientWaitSync(WebGLSyncJS& sync,
   const bool canBeAvailable =
       (sync.mCanBeAvailable || StaticPrefs::webgl_allow_immediate_queries());
   if (!canBeAvailable) {
-    if (!sync.mHasWarnedNotAvailable) {
-      EnqueueWarning(
-          "ClientWaitSync must return TIMEOUT_EXPIRED until control has"
-          " returned to the user agent's main loop. (only warns once)");
-      sync.mHasWarnedNotAvailable = true;
+    constexpr uint8_t WARN_AT = 100;
+    if (sync.mNumQueriesBeforeFirstFrameBoundary <= WARN_AT) {
+      sync.mNumQueriesBeforeFirstFrameBoundary += 1;
+      if (sync.mNumQueriesBeforeFirstFrameBoundary == WARN_AT) {
+        EnqueueWarning(
+            "ClientWaitSync must return TIMEOUT_EXPIRED until control has"
+            " returned to the user agent's main loop, but was polled %hhu "
+            "times. Are you spin-locking? (only warns once)",
+            sync.mNumQueriesBeforeFirstFrameBoundary);
+      }
     }
     return LOCAL_GL_TIMEOUT_EXPIRED;
   }
@@ -5595,24 +5678,26 @@ void ClientWebGLContext::RequestExtension(const WebGLExtensionID ext) const {
 
 // -
 
-static bool IsExtensionForbiddenForCaller(const WebGLExtensionID ext,
-                                          const dom::CallerType callerType) {
-  if (callerType == dom::CallerType::System) return false;
+bool ClientWebGLContext::IsExtensionForbiddenForCaller(
+    const WebGLExtensionID ext, const dom::CallerType callerType) const {
+  if (callerType == dom::CallerType::System) {
+    return false;
+  }
 
-  if (StaticPrefs::webgl_enable_privileged_extensions()) return false;
+  if (StaticPrefs::webgl_enable_privileged_extensions()) {
+    return false;
+  }
 
-  const bool resistFingerprinting =
-      nsContentUtils::ShouldResistFingerprinting();
   switch (ext) {
     case WebGLExtensionID::MOZ_debug:
       return true;
 
     case WebGLExtensionID::WEBGL_debug_renderer_info:
-      return resistFingerprinting ||
+      return ShouldResistFingerprinting() ||
              !StaticPrefs::webgl_enable_debug_renderer_info();
 
     case WebGLExtensionID::WEBGL_debug_shaders:
-      return resistFingerprinting;
+      return ShouldResistFingerprinting();
 
     default:
       return false;
@@ -5621,7 +5706,10 @@ static bool IsExtensionForbiddenForCaller(const WebGLExtensionID ext,
 
 bool ClientWebGLContext::IsSupported(const WebGLExtensionID ext,
                                      const dom::CallerType callerType) const {
-  if (IsExtensionForbiddenForCaller(ext, callerType)) return false;
+  if (IsExtensionForbiddenForCaller(ext, callerType)) {
+    return false;
+  }
+
   const auto& limits = Limits();
   return limits.supportedExtensions[ext];
 }
@@ -5656,19 +5744,29 @@ void ClientWebGLContext::GetSupportedProfilesASTC(
   }
 }
 
+void ClientWebGLContext::ProvokingVertex(const GLenum rawMode) const {
+  const FuncScope funcScope(*this, "provokingVertex");
+  if (IsContextLost()) return;
+
+  const auto mode = webgl::AsEnumCase<webgl::ProvokingVertex>(rawMode);
+  if (!mode) return;
+
+  Run<RPROC(ProvokingVertex)>(*mode);
+
+  funcScope.mKeepNotLostOrNull->state.mProvokingVertex = *mode;
+}
+
 // -
 
 bool ClientWebGLContext::ShouldResistFingerprinting() const {
   if (mCanvasElement) {
-    // If we're constructed from a canvas element.
     return mCanvasElement->OwnerDoc()->ShouldResistFingerprinting();
   }
   if (mOffscreenCanvas) {
-    // If we're constructed from an offscreen canvas
     return mOffscreenCanvas->ShouldResistFingerprinting();
   }
   // Last resort, just check the global preference
-  return nsContentUtils::ShouldResistFingerprinting();
+  return nsContentUtils::ShouldResistFingerprinting("Fallback");
 }
 
 uint32_t ClientWebGLContext::GetPrincipalHashValue() const {

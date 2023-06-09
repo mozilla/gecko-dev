@@ -79,15 +79,6 @@ ifdef ENABLE_MOZSEARCH_PLUGIN
 	$(RM) $(MOZSEARCH_ARCHIVE_BASENAME).zip
 	cd $(topobjdir)/mozsearch_index && \
           zip -r5D '$(ABS_DIST)/$(PKG_PATH)$(MOZSEARCH_ARCHIVE_BASENAME).zip' .
-	@echo 'Generating mozsearch rust-analysis tarball...'
-	$(RM) $(MOZSEARCH_RUST_ANALYSIS_BASENAME).zip
-	cd $(topobjdir)/ && \
-          find . -type d -name save-analysis | xargs zip -r5D '$(ABS_DIST)/$(PKG_PATH)$(MOZSEARCH_RUST_ANALYSIS_BASENAME).zip'
-	@echo 'Generating mozsearch rust stdlib analysis tarball ($(RUST_TARGET))...'
-	$(RM) $(MOZSEARCH_RUST_STDLIB_BASENAME).zip
-	cd $(MOZ_FETCHES_DIR)/rustc/lib && \
-          zip -r5D '$(ABS_DIST)/$(PKG_PATH)$(MOZSEARCH_RUST_STDLIB_BASENAME).zip' \
-          rustlib/$(RUST_TARGET)/analysis/ rustlib/src/
 	@echo 'Generating mozsearch distinclude map...'
 	cd $(topobjdir)/ && cp _build_manifests/install/dist_include '$(ABS_DIST)/$(PKG_PATH)$(MOZSEARCH_INCLUDEMAP_BASENAME).map'
 	@echo 'Generating mozsearch scip index...'
@@ -138,16 +129,6 @@ ifdef MOZ_AUTOMATION
 		--package=$(DIST)/$(PACKAGE) --installer=$(INSTALLER_PACKAGE), \
 		--no-download \
 	  )
-endif
-ifdef MOZ_NORMANDY
-ifndef CROSS_COMPILE
-ifndef FUZZING_SNAPSHOT
-	# Generate a file that describes the local Normandy client.
-	env LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(DIST)/$(PKG_PATH)/bin" \
-		$(DIST)/$(PKG_PATH)/bin/xpcshell \
-		$(MOZILLA_DIR)/toolkit/components/normandy/metadata-script.js $(MOZ_NORMANDY_JSON)
-endif
-endif
 endif
 	$(TOUCH) $@
 

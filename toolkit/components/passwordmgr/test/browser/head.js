@@ -1,22 +1,14 @@
 const DIRECTORY_PATH = "/browser/toolkit/components/passwordmgr/test/browser/";
 
-const { LoginHelper } = ChromeUtils.import(
-  "resource://gre/modules/LoginHelper.jsm"
+var { LoginTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/LoginTestUtils.sys.mjs"
 );
-const { LoginManagerParent } = ChromeUtils.import(
-  "resource://gre/modules/LoginManagerParent.jsm"
-);
-var { LoginTestUtils } = ChromeUtils.import(
-  "resource://testing-common/LoginTestUtils.jsm"
-);
-const { ContentTaskUtils } = ChromeUtils.importESModule(
-  "resource://testing-common/ContentTaskUtils.sys.mjs"
-);
+
 const { TelemetryTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/TelemetryTestUtils.sys.mjs"
 );
-const { PromptTestUtils } = ChromeUtils.import(
-  "resource://testing-common/PromptTestUtils.jsm"
+const { PromptTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/PromptTestUtils.sys.mjs"
 );
 
 add_setup(async function common_initialize() {
@@ -469,8 +461,8 @@ async function cleanupPasswordNotifications(
 
 async function clearMessageCache(browser) {
   await SpecialPowers.spawn(browser, [], async () => {
-    const { LoginManagerChild } = ChromeUtils.import(
-      "resource://gre/modules/LoginManagerChild.jsm"
+    const { LoginManagerChild } = ChromeUtils.importESModule(
+      "resource://gre/modules/LoginManagerChild.sys.mjs"
     );
     let docState = LoginManagerChild.forWindow(content).stateForDocument(
       content.document
@@ -643,7 +635,9 @@ async function openPasswordManager(openingFunc, waitForFilter) {
   if (waitForFilter) {
     filterValue = await SpecialPowers.spawn(tab.linkedBrowser, [], async () => {
       let loginFilter = Cu.waiveXrays(
-        content.document.querySelector("login-filter")
+        content.document
+          .querySelector("login-list")
+          .shadowRoot.querySelector("login-filter")
       );
       await ContentTaskUtils.waitForCondition(
         () => !!loginFilter.value,

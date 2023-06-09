@@ -436,7 +436,7 @@ class gfxUserFontSet {
             aKey->mFontEntry->Weight().AsScalar(),
             aKey->mFontEntry->SlantStyle().AsScalar(),
             aKey->mFontEntry->Stretch().AsScalar(),
-            aKey->mFontEntry->mLanguageOverride);
+            aKey->mFontEntry->mRangeFlags, aKey->mFontEntry->mLanguageOverride);
       }
 
       enum { ALLOW_MEMMOVE = false };
@@ -685,7 +685,7 @@ class gfxUserFontEntry : public gfxFontEntry {
   };
 
   const uint8_t* SanitizeOpenTypeData(const uint8_t* aData, uint32_t aLength,
-                                      uint32_t& aSaneLength,
+                                      uint32_t& aSanitaryLength,
                                       gfxUserFontType& aFontType,
                                       nsTArray<OTSMessage>& aMessages);
 

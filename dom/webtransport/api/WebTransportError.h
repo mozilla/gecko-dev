@@ -12,21 +12,27 @@
 
 namespace mozilla::dom {
 class WebTransportError final : public DOMException {
- protected:
-  explicit WebTransportError(const nsACString& aMessage)
-      : DOMException(NS_OK, aMessage, "stream"_ns, 0) {}
-
  public:
+  explicit WebTransportError(
+      const nsACString& aMessage,
+      WebTransportErrorSource aSource = WebTransportErrorSource::Stream,
+      Nullable<uint8_t> aCode = Nullable<uint8_t>())
+      : DOMException(NS_OK, aMessage, "WebTransportError"_ns, 0),
+        mStreamErrorCode(aCode),
+        mSource(aSource) {}
+
+  JSObject* WrapObject(JSContext* aCx,
+                       JS::Handle<JSObject*> aGivenProto) override;
+
   static already_AddRefed<WebTransportError> Constructor(
       const GlobalObject& aGlobal, const WebTransportErrorInit& aInit);
 
-  WebTransportErrorSource Source();
-  Nullable<uint8_t> GetStreamErrorCode() const {
-    return Nullable<uint8_t>(mStreamErrorCode);
-  }
+  WebTransportErrorSource Source() { return mSource; }
+  Nullable<uint8_t> GetStreamErrorCode() const { return mStreamErrorCode; }
 
  private:
-  uint8_t mStreamErrorCode = 0;
+  Nullable<uint8_t> mStreamErrorCode;
+  const WebTransportErrorSource mSource;
 };
 
 }  // namespace mozilla::dom

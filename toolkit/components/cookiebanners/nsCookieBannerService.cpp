@@ -14,7 +14,7 @@
 #include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/Logging.h"
 #include "mozilla/StaticPrefs_cookiebanners.h"
-#include "mozilla/Tuple.h"
+
 #include "nsCOMPtr.h"
 #include "nsCookieBannerRule.h"
 #include "nsCookieInjector.h"
@@ -60,8 +60,6 @@ nsCString ConvertModeToStringForTelemetry(uint32_t aModes) {
       return "reject"_ns;
     case nsICookieBannerService::MODE_REJECT_OR_ACCEPT:
       return "reject_or_accept"_ns;
-    case nsICookieBannerService::MODE_DETECT_ONLY:
-      return "detect_only"_ns;
     default:
       // Fall back to return "invalid" if we got any unsupported service
       // mode. Note this this also includes MODE_UNSET.
@@ -208,6 +206,7 @@ nsresult nsCookieBannerService::Init() {
   NS_ENSURE_TRUE(obsSvc, NS_ERROR_FAILURE);
 
   obsSvc->AddObserver(this, OBSERVER_TOPIC_BC_ATTACHED, false);
+  obsSvc->AddObserver(this, OBSERVER_TOPIC_BC_DISCARDED, false);
 
   return NS_OK;
 }
@@ -234,6 +233,7 @@ nsresult nsCookieBannerService::Shutdown() {
   NS_ENSURE_TRUE(obsSvc, NS_ERROR_FAILURE);
 
   obsSvc->RemoveObserver(this, OBSERVER_TOPIC_BC_ATTACHED);
+  obsSvc->RemoveObserver(this, OBSERVER_TOPIC_BC_DISCARDED);
 
   return NS_OK;
 }
@@ -357,7 +357,7 @@ nsCookieBannerService::GetCookiesForURI(
   // We don't need to check the domain preference if the cookie banner handling
   // service is disabled by pref.
   if (mode != nsICookieBannerService::MODE_DISABLED &&
-      mode != nsICookieBannerService::MODE_DETECT_ONLY) {
+      !StaticPrefs::cookiebanners_service_detectOnly()) {
     // Get the domain preference for the uri, the domain preference takes
     // precedence over the pref setting. Note that the domain preference is
     // supposed to stored only for top level URIs.
@@ -374,7 +374,7 @@ nsCookieBannerService::GetCookiesForURI(
   // preference), return empty array. Same for detect-only mode where no cookies
   // should be injected.
   if (mode == nsICookieBannerService::MODE_DISABLED ||
-      mode == nsICookieBannerService::MODE_DETECT_ONLY) {
+      StaticPrefs::cookiebanners_service_detectOnly()) {
     MOZ_LOG(gCookieBannerLog, LogLevel::Debug,
             ("%s. Returning empty array. Got MODE_DISABLED for "
              "aIsPrivateBrowsing: %d.",
@@ -586,7 +586,10 @@ nsCookieBannerService::HasRuleForBrowsingContextTree(
 
     bool hasClickRule = false;
     bool hasCookieRule = false;
-    rv = HasRuleForBrowsingContextInternal(bc, hasClickRule, hasCookieRule);
+    // Pass ignoreDomainPref=true: when checking whether a suitable rule exists
+    // we don't care what the domain-specific user pref is set to.
+    rv = HasRuleForBrowsingContextInternal(bc, true, hasClickRule,
+                                           hasCookieRule);
     // If the method failed abort the walk. We will return the stored error
     // result when exiting the method.
     if (NS_FAILED(rv)) {
@@ -615,8 +618,8 @@ nsCookieBannerService::HasRuleForBrowsingContextTree(
 }
 
 nsresult nsCookieBannerService::HasRuleForBrowsingContextInternal(
-    mozilla::dom::BrowsingContext* aBrowsingContext, bool& aHasClickRule,
-    bool& aHasCookieRule) {
+    mozilla::dom::BrowsingContext* aBrowsingContext, bool aIgnoreDomainPref,
+    bool& aHasClickRule, bool& aHasCookieRule) {
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(mIsInitialized);
   NS_ENSURE_ARG_POINTER(aBrowsingContext);
@@ -629,11 +632,12 @@ nsresult nsCookieBannerService::HasRuleForBrowsingContextInternal(
   // First, check if our current mode is disabled. If so there is no applicable
   // rule.
   nsICookieBannerService::Modes mode;
-  nsresult rv = GetServiceModeForBrowsingContext(aBrowsingContext, &mode);
+  nsresult rv = GetServiceModeForBrowsingContext(aBrowsingContext,
+                                                 aIgnoreDomainPref, &mode);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (mode == nsICookieBannerService::MODE_DISABLED ||
-      mode == nsICookieBannerService::MODE_DETECT_ONLY) {
+      StaticPrefs::cookiebanners_service_detectOnly()) {
     return NS_OK;
   }
 
@@ -715,7 +719,7 @@ nsresult nsCookieBannerService::GetCookieRulesForDomainInternal(
   // No cookie rules if disabled or in detect-only mode. Cookie injection is not
   // supported for the detect-only mode.
   if (aMode == nsICookieBannerService::MODE_DISABLED ||
-      aMode == nsICookieBannerService::MODE_DETECT_ONLY) {
+      StaticPrefs::cookiebanners_service_detectOnly()) {
     return NS_OK;
   }
 
@@ -929,16 +933,13 @@ nsCookieBannerService::OnLocationChange(nsIWebProgress* aWebProgress,
     return NS_OK;
   }
 
-  Maybe<Tuple<bool, bool>> telemetryData =
+  Maybe<std::tuple<bool, bool>> telemetryData =
       mReloadTelemetryData.MaybeGet(bc->Top()->Id());
   if (!telemetryData) {
     return NS_OK;
   }
 
-  bool hasClickRuleInData;
-  bool hasCookieRuleInData;
-
-  Tie(hasClickRuleInData, hasCookieRuleInData) = telemetryData.ref();
+  auto [hasClickRuleInData, hasCookieRuleInData] = telemetryData.ref();
 
   // If the location change is triggered by a reload, we report the telemetry
   // for the given top-level browsing context.
@@ -976,14 +977,15 @@ nsCookieBannerService::OnLocationChange(nsIWebProgress* aWebProgress,
   bool hasCookieRule = false;
 
   nsresult rv =
-      HasRuleForBrowsingContextInternal(bc, hasClickRule, hasCookieRule);
+      HasRuleForBrowsingContextInternal(bc, false, hasClickRule, hasCookieRule);
   NS_ENSURE_SUCCESS(rv, rv);
 
   hasClickRuleInData |= hasClickRule;
   hasCookieRuleInData |= hasCookieRule;
 
   mReloadTelemetryData.InsertOrUpdate(
-      bc->Top()->Id(), MakeTuple(hasClickRuleInData, hasCookieRuleInData));
+      bc->Top()->Id(),
+      std::make_tuple(hasClickRuleInData, hasCookieRuleInData));
 
   return NS_OK;
 }
@@ -1019,8 +1021,10 @@ void nsCookieBannerService::DailyReportTelemetry() {
   nsCString modePBMStr = ConvertModeToStringForTelemetry(modePBM);
 
   nsTArray<nsCString> serviceModeLabels = {
-      "disabled"_ns,    "reject"_ns,  "reject_or_accept"_ns,
-      "detect_only"_ns, "invalid"_ns,
+      "disabled"_ns,
+      "reject"_ns,
+      "reject_or_accept"_ns,
+      "invalid"_ns,
   };
 
   // Record the service mode glean.
@@ -1030,10 +1034,14 @@ void nsCookieBannerService::DailyReportTelemetry() {
     glean::cookie_banners::private_window_service_mode.Get(label).Set(
         modePBMStr.Equals(label));
   }
+
+  // Report the state of the cookiebanners.service.detectOnly pref.
+  glean::cookie_banners::service_detect_only.Set(
+      StaticPrefs::cookiebanners_service_detectOnly());
 }
 
 nsresult nsCookieBannerService::GetServiceModeForBrowsingContext(
-    dom::BrowsingContext* aBrowsingContext,
+    dom::BrowsingContext* aBrowsingContext, bool aIgnoreDomainPref,
     nsICookieBannerService::Modes* aMode) {
   MOZ_ASSERT(XRE_IsParentProcess());
   NS_ENSURE_ARG_POINTER(aBrowsingContext);
@@ -1050,6 +1058,16 @@ nsresult nsCookieBannerService::GetServiceModeForBrowsingContext(
     mode = StaticPrefs::cookiebanners_service_mode();
   }
 
+  // We can skip checking domain-specific prefs if passed the skip pref or if
+  // the mode pref disables the feature. Per-domain modes enabling the service
+  // sites while it's globally disabled is not supported.
+  if (aIgnoreDomainPref || mode == nsICookieBannerService::MODE_DISABLED) {
+    *aMode = static_cast<nsICookieBannerService::Modes>(mode);
+    return NS_OK;
+  }
+
+  // Check if there is a per-domain service mode, disabling the feature for a
+  // specific domain or overriding the mode.
   RefPtr<dom::WindowGlobalParent> topWGP =
       aBrowsingContext->Top()->Canonical()->GetCurrentWindowGlobal();
   NS_ENSURE_TRUE(topWGP, NS_ERROR_FAILURE);
@@ -1063,17 +1081,14 @@ nsresult nsCookieBannerService::GetServiceModeForBrowsingContext(
   NS_ENSURE_SUCCESS(rv, rv);
   NS_ENSURE_TRUE(!baseDomain.IsEmpty(), NS_ERROR_FAILURE);
 
-  if (mode != nsICookieBannerService::MODE_DISABLED) {
-    // Get the domain preference for the top-level baseDomain, the domain
-    // preference takes precedence over the pref setting.
+  // Get the domain preference for the top-level baseDomain, the domain
+  // preference takes precedence over the global pref setting.
+  nsICookieBannerService::Modes domainPref;
+  rv = GetDomainPrefInternal(baseDomain, usePBM, &domainPref);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-    nsICookieBannerService::Modes domainPref;
-    nsresult rv = GetDomainPrefInternal(baseDomain, usePBM, &domainPref);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    if (domainPref != nsICookieBannerService::MODE_UNSET) {
-      mode = domainPref;
-    }
+  if (domainPref != nsICookieBannerService::MODE_UNSET) {
+    mode = domainPref;
   }
 
   *aMode = static_cast<nsICookieBannerService::Modes>(mode);
@@ -1099,7 +1114,7 @@ nsresult nsCookieBannerService::RegisterWebProgressListener(
     return NS_OK;
   }
 
-  mReloadTelemetryData.InsertOrUpdate(bc->Id(), MakeTuple(false, false));
+  mReloadTelemetryData.InsertOrUpdate(bc->Id(), std::make_tuple(false, false));
 
   return bc->GetWebProgress()->AddProgressListener(
       this, nsIWebProgress::NOTIFY_LOCATION);
@@ -1122,7 +1137,14 @@ nsresult nsCookieBannerService::RemoveWebProgressListener(
 
   mReloadTelemetryData.Remove(bc->Id());
 
-  return bc->GetWebProgress()->RemoveProgressListener(this);
+  // The browsing context web progress can be null when navigating to about
+  // pages.
+  nsCOMPtr<nsIWebProgress> webProgress = bc->GetWebProgress();
+  if (!webProgress) {
+    return NS_OK;
+  }
+
+  return webProgress->RemoveProgressListener(this);
 }
 
 void nsCookieBannerService::ReportRuleLookupTelemetry(

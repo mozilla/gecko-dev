@@ -509,7 +509,7 @@ CookieService::GetCookieStringFromHttp(nsIURI* aHostURI, nsIChannel* aChannel,
       result.contains(ThirdPartyAnalysis::IsThirdPartySocialTrackingResource),
       result.contains(ThirdPartyAnalysis::IsStorageAccessPermissionGranted),
       rejectedReason, isSafeTopLevelNav, isSameSiteForeign,
-      hadCrossSiteRedirects, true, attrs, foundCookieList);
+      hadCrossSiteRedirects, true, false, attrs, foundCookieList);
 
   ComposeCookieString(foundCookieList, aCookieString);
 
@@ -929,6 +929,7 @@ void CookieService::GetCookiesForURI(
     bool aStorageAccessPermissionGranted, uint32_t aRejectedReason,
     bool aIsSafeTopLevelNav, bool aIsSameSiteForeign,
     bool aHadCrossSiteRedirects, bool aHttpBound,
+    bool aAllowSecureCookiesToInsecureOrigin,
     const OriginAttributes& aOriginAttrs, nsTArray<Cookie*>& aCookieList) {
   NS_ASSERTION(aHostURI, "null host!");
 
@@ -1045,8 +1046,12 @@ void CookieService::GetCookiesForURI(
       continue;
     }
 
-    // if the cookie is secure and the host scheme isn't, we can't send it
-    if (cookie->IsSecure() && !potentiallyTurstworthy) {
+    // if the cookie is secure and the host scheme isn't, we avoid sending
+    // cookie if possible. But for process synchronization purposes, we may want
+    // the content process to know about the cookie (without it's value). In
+    // which case we will wipe the value before sending
+    if (cookie->IsSecure() && !potentiallyTurstworthy &&
+        !aAllowSecureCookiesToInsecureOrigin) {
       continue;
     }
 
@@ -1154,6 +1159,24 @@ void CookieService::GetCookiesForURI(
   aCookieList.Sort(CompareCookiesForSending());
 }
 
+static bool ContainsUnicodeChars(const nsCString& str) {
+  const auto* start = str.BeginReading();
+  const auto* end = str.EndReading();
+
+  return std::find_if(start, end, [](unsigned char c) { return c >= 0x80; }) !=
+         end;
+}
+
+static void RecordUnicodeTelemetry(const CookieStruct& cookieData) {
+  auto label = Telemetry::LABELS_NETWORK_COOKIE_UNICODE_BYTE::none;
+  if (ContainsUnicodeChars(cookieData.name())) {
+    label = Telemetry::LABELS_NETWORK_COOKIE_UNICODE_BYTE::unicodeName;
+  } else if (ContainsUnicodeChars(cookieData.value())) {
+    label = Telemetry::LABELS_NETWORK_COOKIE_UNICODE_BYTE::unicodeValue;
+  }
+  Telemetry::AccumulateCategorical(label);
+}
+
 // processes a single cookie, and returns true if there are more cookies
 // to be processed
 bool CookieService::CanSetCookie(
@@ -1224,6 +1247,8 @@ bool CookieService::CanSetCookie(
         "CookieOversize"_ns, params);
     return newCookie;
   }
+
+  RecordUnicodeTelemetry(aCookieData);
 
   if (!CookieCommons::CheckName(aCookieData)) {
     COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, savedCookieHeader,
@@ -2531,6 +2556,8 @@ bool CookieService::SetCookiesFromIPC(const nsACString& aBaseDomain,
     if (!CookieCommons::CheckNameAndValueSize(cookieData)) {
       return false;
     }
+
+    RecordUnicodeTelemetry(cookieData);
 
     if (!CookieCommons::CheckName(cookieData)) {
       return false;

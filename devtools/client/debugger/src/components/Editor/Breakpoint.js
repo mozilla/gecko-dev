@@ -4,13 +4,13 @@
 
 import { PureComponent } from "react";
 import PropTypes from "prop-types";
-import classnames from "classnames";
 
 import { getDocument, toEditorLine } from "../../utils/editor";
 import { getSelectedLocation } from "../../utils/selected-location";
 import { features } from "../../utils/prefs";
 import { showMenu } from "../../context-menu/menu";
 import { breakpointItems } from "./menus/breakpoints";
+const classnames = require("devtools/client/shared/classnames.js");
 
 const breakpointSvg = document.createElement("div");
 breakpointSvg.innerHTML =
@@ -130,19 +130,19 @@ class Breakpoint extends PureComponent {
 
     doc.setGutterMarker(line, "breakpoints", this.makeMarker());
 
-    editor.codeMirror.addLineClass(line, "wrapClass", "new-breakpoint");
-    editor.codeMirror.removeLineClass(line, "wrapClass", "breakpoint-disabled");
-    editor.codeMirror.removeLineClass(line, "wrapClass", "has-condition");
-    editor.codeMirror.removeLineClass(line, "wrapClass", "has-log");
+    editor.codeMirror.addLineClass(line, "wrap", "new-breakpoint");
+    editor.codeMirror.removeLineClass(line, "wrap", "breakpoint-disabled");
+    editor.codeMirror.removeLineClass(line, "wrap", "has-condition");
+    editor.codeMirror.removeLineClass(line, "wrap", "has-log");
 
     if (breakpoint.disabled) {
-      editor.codeMirror.addLineClass(line, "wrapClass", "breakpoint-disabled");
+      editor.codeMirror.addLineClass(line, "wrap", "breakpoint-disabled");
     }
 
     if (breakpoint.options.logValue) {
-      editor.codeMirror.addLineClass(line, "wrapClass", "has-log");
+      editor.codeMirror.addLineClass(line, "wrap", "has-log");
     } else if (breakpoint.options.condition) {
-      editor.codeMirror.addLineClass(line, "wrapClass", "has-condition");
+      editor.codeMirror.addLineClass(line, "wrap", "has-condition");
     }
   }
 
@@ -163,10 +163,10 @@ class Breakpoint extends PureComponent {
     const line = toEditorLine(sourceId, selectedLocation.line);
 
     doc.setGutterMarker(line, "breakpoints", null);
-    doc.removeLineClass(line, "wrapClass", "new-breakpoint");
-    doc.removeLineClass(line, "wrapClass", "breakpoint-disabled");
-    doc.removeLineClass(line, "wrapClass", "has-condition");
-    doc.removeLineClass(line, "wrapClass", "has-log");
+    doc.removeLineClass(line, "wrap", "new-breakpoint");
+    doc.removeLineClass(line, "wrap", "breakpoint-disabled");
+    doc.removeLineClass(line, "wrap", "has-condition");
+    doc.removeLineClass(line, "wrap", "has-log");
   }
 
   render() {

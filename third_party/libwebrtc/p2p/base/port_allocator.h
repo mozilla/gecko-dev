@@ -171,14 +171,12 @@ struct RTC_EXPORT RelayServerConfig {
   ~RelayServerConfig();
 
   bool operator==(const RelayServerConfig& o) const {
-    return ports == o.ports && credentials == o.credentials &&
-           priority == o.priority;
+    return ports == o.ports && credentials == o.credentials;
   }
   bool operator!=(const RelayServerConfig& o) const { return !(*this == o); }
 
   PortList ports;
   RelayCredentials credentials;
-  int priority = 0;
   TlsCertPolicy tls_cert_policy = TlsCertPolicy::TLS_CERT_POLICY_SECURE;
   std::vector<std::string> tls_alpn_protocols;
   std::vector<std::string> tls_elliptic_curves;
@@ -205,6 +203,10 @@ class RTC_EXPORT PortAllocatorSession : public sigslot::has_slots<> {
   const std::string& ice_ufrag() const { return ice_ufrag_; }
   const std::string& ice_pwd() const { return ice_pwd_; }
   bool pooled() const { return pooled_; }
+
+  // TODO(bugs.webrtc.org/14605): move this to the constructor
+  void set_ice_tiebreaker(uint64_t tiebreaker) { tiebreaker_ = tiebreaker; }
+  uint64_t ice_tiebreaker() const { return tiebreaker_; }
 
   // Setting this filter should affect not only candidates gathered in the
   // future, but candidates already gathered and ports already "ready",
@@ -322,6 +324,9 @@ class RTC_EXPORT PortAllocatorSession : public sigslot::has_slots<> {
 
   bool pooled_ = false;
 
+  // TODO(bugs.webrtc.org/14605): move this to the constructor
+  uint64_t tiebreaker_;
+
   // SetIceParameters is an implementation detail which only PortAllocator
   // should be able to call.
   friend class PortAllocator;
@@ -373,6 +378,9 @@ class RTC_EXPORT PortAllocator : public sigslot::has_slots<> {
                         webrtc::TurnCustomizer* turn_customizer = nullptr,
                         const absl::optional<int>&
                             stun_candidate_keepalive_interval = absl::nullopt);
+
+  void SetIceTiebreaker(uint64_t tiebreaker);
+  uint64_t IceTiebreaker() const { return tiebreaker_; }
 
   const ServerAddresses& stun_servers() const {
     CheckRunOnValidThreadIfInitialized();
@@ -665,6 +673,9 @@ class RTC_EXPORT PortAllocator : public sigslot::has_slots<> {
   // if ice_credentials is nullptr.
   std::vector<std::unique_ptr<PortAllocatorSession>>::const_iterator
   FindPooledSession(const IceParameters* ice_credentials = nullptr) const;
+
+  // ICE tie breaker.
+  uint64_t tiebreaker_;
 };
 
 }  // namespace cricket

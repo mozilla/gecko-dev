@@ -17,7 +17,6 @@
 #include <memory>
 #include <vector>
 
-#include "absl/base/attributes.h"
 #include "absl/types/optional.h"
 #include "api/field_trials_view.h"
 #include "api/sequence_checker.h"
@@ -28,9 +27,9 @@
 #include "modules/pacing/pacing_controller.h"
 #include "modules/pacing/rtp_packet_pacer.h"
 #include "modules/rtp_rtcp/source/rtp_packet_to_send.h"
+#include "modules/utility/maybe_worker_thread.h"
 #include "rtc_base/experiments/field_trial_parser.h"
 #include "rtc_base/numerics/exp_filter.h"
-#include "rtc_base/task_queue.h"
 #include "rtc_base/thread_annotations.h"
 
 namespace webrtc {
@@ -40,16 +39,25 @@ class TaskQueuePacedSender : public RtpPacketPacer, public RtpPacketSender {
  public:
   static const int kNoPacketHoldback;
 
+  // The pacer can be configured using `field_trials` or specified parameters.
+  //
   // The `hold_back_window` parameter sets a lower bound on time to sleep if
   // there is currently a pacer queue and packets can't immediately be
   // processed. Increasing this reduces thread wakeups at the expense of higher
   // latency.
-  TaskQueuePacedSender(Clock* clock,
-                       PacingController::PacketSender* packet_sender,
-                       const FieldTrialsView& field_trials,
-                       TaskQueueFactory* task_queue_factory,
-                       TimeDelta max_hold_back_window,
-                       int max_hold_back_window_in_packets);
+  //
+  // If the `burst_interval` parameter is set, the pacer is allowed to build up
+  // a packet "debt" that correspond to approximately the send rate during the
+  // specified interval. This greatly reduced wake ups by not pacing packets
+  // within the allowed burst budget.
+  TaskQueuePacedSender(
+      Clock* clock,
+      PacingController::PacketSender* packet_sender,
+      const FieldTrialsView& field_trials,
+      TaskQueueFactory* task_queue_factory,
+      TimeDelta max_hold_back_window,
+      int max_hold_back_window_in_packets,
+      absl::optional<TimeDelta> burst_interval = absl::nullopt);
 
   ~TaskQueuePacedSender() override;
 
@@ -62,6 +70,8 @@ class TaskQueuePacedSender : public RtpPacketPacer, public RtpPacketSender {
   // PacingController::PacketSender::SendPacket() when it's time to send.
   void EnqueuePackets(
       std::vector<std::unique_ptr<RtpPacketToSend>> packets) override;
+  // Remove any pending packets matching this SSRC from the packet queue.
+  void RemovePacketsForSsrc(uint32_t ssrc) override;
 
   // Methods implementing RtpPacketPacer.
 
@@ -187,10 +197,13 @@ class TaskQueuePacedSender : public RtpPacketPacer, public RtpPacketSender {
   rtc::ExpFilter packet_size_ RTC_GUARDED_BY(task_queue_);
   bool include_overhead_ RTC_GUARDED_BY(task_queue_);
 
+  // TODO(webrtc:14502): Remove stats_mutex_ when pacer runs on the worker
+  // thread.
   mutable Mutex stats_mutex_;
   Stats current_stats_ RTC_GUARDED_BY(stats_mutex_);
 
-  rtc::TaskQueue task_queue_;
+  ScopedTaskSafety safety_;
+  MaybeWorkerThread task_queue_;
 };
 }  // namespace webrtc
 #endif  // MODULES_PACING_TASK_QUEUE_PACED_SENDER_H_

@@ -33,12 +33,16 @@ registerCleanupFunction(async function() {
 
 async function check_uri(uri, frecency, hidden) {
   is(
-    await PlacesTestUtils.fieldInDB(uri, "frecency"),
+    await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
+      url: uri,
+    }),
     frecency,
     "Frecency of the page is the expected one"
   );
   is(
-    await PlacesTestUtils.fieldInDB(uri, "hidden"),
+    await PlacesTestUtils.getDatabaseValue("moz_places", "hidden", {
+      url: uri,
+    }),
     hidden,
     "Hidden value of the page is the expected one"
   );
@@ -46,19 +50,15 @@ async function check_uri(uri, frecency, hidden) {
 
 async function waitVisitedNotifications() {
   let redirectNotified = false;
-  await PlacesTestUtils.waitForNotification(
-    "page-visited",
-    visits => {
-      is(visits.length, 1, "Was notified for the right number of visits.");
-      let { url } = visits[0];
-      info("Received 'page-visited': " + url);
-      if (url == REDIRECT_URI.spec) {
-        redirectNotified = true;
-      }
-      return url == TARGET_URI.spec;
-    },
-    "places"
-  );
+  await PlacesTestUtils.waitForNotification("page-visited", visits => {
+    is(visits.length, 1, "Was notified for the right number of visits.");
+    let { url } = visits[0];
+    info("Received 'page-visited': " + url);
+    if (url == REDIRECT_URI.spec) {
+      redirectNotified = true;
+    }
+    return url == TARGET_URI.spec;
+  });
   return redirectNotified;
 }
 

@@ -7,7 +7,6 @@ import { Module } from "chrome://remote/content/shared/messagehandler/Module.sys
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   NetworkListener:
     "chrome://remote/content/shared/listeners/NetworkListener.sys.mjs",
   TabManager: "chrome://remote/content/shared/TabManager.sys.mjs",
@@ -16,16 +15,16 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 /**
- * @typedef {Object} BaseParameters
+ * @typedef {object} BaseParameters
  * @property {string=} context
- * @property {boolean} isRedirect
  * @property {Navigation=} navigation
+ * @property {number} redirectCount
  * @property {RequestData} request
  * @property {number} timestamp
  */
 
 /**
- * @typedef {Object} Cookie
+ * @typedef {object} Cookie
  * @property {Array<number>=} binaryValue
  * @property {string} domain
  * @property {number=} expires
@@ -39,7 +38,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
  */
 
 /**
- * @typedef {Object} FetchTimingInfo
+ * @typedef {object} FetchTimingInfo
  * @property {number} originTime
  * @property {number} requestTime
  * @property {number} redirectStart
@@ -56,7 +55,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
  */
 
 /**
- * @typedef {Object} Header
+ * @typedef {object} Header
  * @property {Array<number>=} binaryValue
  * @property {string} name
  * @property {string=} value
@@ -64,14 +63,14 @@ ChromeUtils.defineESModuleGetters(lazy, {
 
 /**
  * @typedef {string} InitiatorType
- **/
+ */
 
 /**
  * Enum of possible initiator types.
  *
  * @readonly
  * @enum {InitiatorType}
- **/
+ */
 const InitiatorType = {
   Other: "other",
   Parser: "parser",
@@ -79,7 +78,7 @@ const InitiatorType = {
   Script: "script",
 };
 /**
- * @typedef {Object} Initiator
+ * @typedef {object} Initiator
  * @property {InitiatorType} type
  * @property {number=} columnNumber
  * @property {number=} lineNumber
@@ -88,7 +87,7 @@ const InitiatorType = {
  */
 
 /**
- * @typedef {Object} RequestData
+ * @typedef {object} RequestData
  * @property {number|null} bodySize
  *     Defaults to null.
  * @property {Array<Cookie>} cookies
@@ -101,24 +100,26 @@ const InitiatorType = {
  */
 
 /**
- * @typedef {Object} BeforeRequestSentParametersProperties
+ * @typedef {object} BeforeRequestSentParametersProperties
  * @property {Initiator} initiator
  */
 
+/* eslint-disable jsdoc/valid-types */
 /**
  * Parameters for the BeforeRequestSent event
  *
  * @typedef {BaseParameters & BeforeRequestSentParametersProperties} BeforeRequestSentParameters
  */
+/* eslint-enable jsdoc/valid-types */
 
 /**
- * @typedef {Object} ResponseContent
+ * @typedef {object} ResponseContent
  * @property {number|null} size
  *     Defaults to null.
  */
 
 /**
- * @typedef {Object} ResponseData
+ * @typedef {object} ResponseData
  * @property {string} url
  * @property {string} protocol
  * @property {number} status
@@ -135,40 +136,37 @@ const InitiatorType = {
  */
 
 /**
- * @typedef {Object} ResponseStartedParametersProperties
+ * @typedef {object} ResponseStartedParametersProperties
  * @property {ResponseData} response
  */
 
+/* eslint-disable jsdoc/valid-types */
 /**
  * Parameters for the ResponseStarted event
  *
  * @typedef {BaseParameters & ResponseStartedParametersProperties} ResponseStartedParameters
  */
+/* eslint-enable jsdoc/valid-types */
 
 /**
- * @typedef {Object} ResponseCompletedParametersProperties
+ * @typedef {object} ResponseCompletedParametersProperties
  * @property {ResponseData} response
  */
 
+/* eslint-disable jsdoc/valid-types */
 /**
  * Parameters for the ResponseCompleted event
  *
  * @typedef {BaseParameters & ResponseCompletedParametersProperties} ResponseCompletedParameters
  */
+/* eslint-enable jsdoc/valid-types */
 
 class NetworkModule extends Module {
-  #beforeRequestSentMap;
   #networkListener;
   #subscribedEvents;
 
   constructor(messageHandler) {
     super(messageHandler);
-
-    // Map of request ids to redirect counts. A WebDriver BiDi request id is
-    // identical for redirects of a given request, this map allows to know if we
-    // already emitted a beforeRequestSent event for a given request with a
-    // specific redirectCount.
-    this.#beforeRequestSentMap = new Map();
 
     // Set of event names which have active subscriptions
     this.#subscribedEvents = new Set();
@@ -184,7 +182,6 @@ class NetworkModule extends Module {
     this.#networkListener.off("response-completed", this.#onResponseEvent);
     this.#networkListener.off("response-started", this.#onResponseEvent);
 
-    this.#beforeRequestSentMap = null;
     this.#subscribedEvents = null;
   }
 
@@ -198,9 +195,6 @@ class NetworkModule extends Module {
   #onBeforeRequestSent = (name, data) => {
     const { contextId, requestData, timestamp, redirectCount } = data;
 
-    const isRedirect = redirectCount > 0;
-    this.#beforeRequestSentMap.set(requestData.requestId, redirectCount);
-
     // Bug 1805479: Handle the initiator, including stacktrace details.
     const initiator = {
       type: InitiatorType.Other,
@@ -208,10 +202,9 @@ class NetworkModule extends Module {
 
     const baseParameters = {
       context: contextId,
-      isRedirect,
-      redirectCount,
       // Bug 1805405: Handle the navigation id.
       navigation: null,
+      redirectCount,
       request: requestData,
       timestamp,
     };
@@ -238,21 +231,11 @@ class NetworkModule extends Module {
       redirectCount,
     } = data;
 
-    const isRedirect = redirectCount > 0;
-
-    const requestId = requestData.requestId;
-    if (this.#beforeRequestSentMap.get(requestId) != redirectCount) {
-      throw new lazy.error.UnknownError(
-        `Redirect count of the request ${requestId} does not match the before request sent map`
-      );
-    }
-
     const baseParameters = {
       context: contextId,
-      isRedirect,
-      redirectCount,
       // Bug 1805405: Handle the navigation id.
       navigation: null,
+      redirectCount,
       request: requestData,
       timestamp,
     };

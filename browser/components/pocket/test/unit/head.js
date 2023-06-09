@@ -1,12 +1,12 @@
-ChromeUtils.defineModuleGetter(
-  this,
-  "pktApi",
-  "chrome://pocket/content/pktApi.jsm"
-);
+ChromeUtils.defineESModuleGetters(this, {
+  pktApi: "chrome://pocket/content/pktApi.sys.mjs",
+});
 XPCOMUtils.defineLazyScriptGetter(
   this,
   "pktUI",
   "chrome://pocket/content/pktUI.js"
 );
 
-const { sinon } = ChromeUtils.import("resource://testing-common/Sinon.jsm");
+const { sinon } = ChromeUtils.importESModule(
+  "resource://testing-common/Sinon.sys.mjs"
+);

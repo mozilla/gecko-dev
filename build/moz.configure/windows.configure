@@ -31,19 +31,23 @@ def valid_windows_version(value):
 option(env="WINDOWSSDKDIR", nargs=1, help="Directory containing the Windows SDK")
 
 
-@depends("WINDOWSSDKDIR", "WINSYSROOT", c_compiler, host_c_compiler)
-def windows_sdk_dir(value, winsysroot, compiler, host_compiler):
+@depends(
+    "WINDOWSSDKDIR", "WINSYSROOT", winsysroot, target_windows_abi, host_windows_abi
+)
+def windows_sdk_dir(
+    value, winsysroot_env, winsysroot, target_windows_abi, host_windows_abi
+):
     if value:
-        if winsysroot:
+        if winsysroot_env:
             die("WINDOWSSDKDIR and WINSYSROOT cannot be set together.")
+        if winsysroot:
+            die("WINDOWSSDKDIR cannot be set when using the bootstrapped WINSYSROOT")
         return value
-    # Ideally, we'd actually check for host/target ABI being MSVC, but
-    # that's waiting for bug 1617793.
-    if compiler.type != "clang-cl" and host_compiler.type != "clang-cl":
+    if target_windows_abi != "msvc" and host_windows_abi != "msvc":
         return ()
 
     if winsysroot:
-        return [os.path.join(winsysroot[0], "Windows Kits", "10")]
+        return [os.path.join(winsysroot, "Windows Kits", "10")]
 
     return set(
         normalize_path(x[1])
@@ -86,17 +90,23 @@ def valid_windows_sdk_dir_result(value):
 
 
 @depends(
-    c_compiler, host_c_compiler, windows_sdk_dir, valid_windows_version, "WINDOWSSDKDIR"
+    target_windows_abi,
+    host_windows_abi,
+    windows_sdk_dir,
+    valid_windows_version,
+    "WINDOWSSDKDIR",
 )
 @checking("for Windows SDK", valid_windows_sdk_dir_result)
 @imports(_from="__builtin__", _import="Exception")
-@imports(_from="textwrap", _import="dedent")
+@imports(_from="__builtin__", _import="open")
 def valid_windows_sdk_dir(
-    compiler, host_compiler, windows_sdk_dir, target_version, windows_sdk_dir_env
+    target_windows_abi,
+    host_windows_abi,
+    windows_sdk_dir,
+    target_version,
+    windows_sdk_dir_env,
 ):
-    # Ideally, we'd actually check for host/target ABI being MSVC, but
-    # that's waiting for bug 1617793.
-    if compiler.type != "clang-cl" and host_compiler.type != "clang-cl":
+    if target_windows_abi != "msvc" and host_windows_abi != "msvc":
         return None
     if windows_sdk_dir_env:
         windows_sdk_dir_env = windows_sdk_dir_env[0]
@@ -104,25 +114,18 @@ def valid_windows_sdk_dir(
     for d in windows_sdk_dir:
         sdklist = get_sdk_dirs(d, "um")
         for sdk in sdklist:
-            check = dedent(
-                """\
-            #include <winsdkver.h>
-            WINVER_MAXVER
-            """
-            )
-            um_dir = os.path.join(sdk.include, "um")
-            shared_dir = os.path.join(sdk.include, "shared")
-            result = try_preprocess(
-                compiler.wrapper
-                + [compiler.compiler]
-                + compiler.flags
-                + ["-X", "-I", um_dir, "-I", shared_dir],
-                "C",
-                check,
-                onerror=lambda: "",
-            )
-            if result:
-                maxver = result.splitlines()[-1]
+            maxver = None
+            winsdkver = os.path.join(sdk.include, "um", "winsdkver.h")
+            with open(winsdkver) as fh:
+                for line in fh.readlines():
+                    if line.startswith("#define"):
+                        line = line.split(None, 2)
+                        assert line.pop(0) == "#define"
+                        if line.pop(0) == "WINVER_MAXVER":
+                            maxver = line.pop(0)
+                            break
+
+            if maxver:
                 try:
                     maxver = int(maxver, 0)
                 except Exception:
@@ -171,14 +174,14 @@ def valid_ucrt_sdk_dir_result(value):
         return "%s in %s" % (value.version, quote(value.path))
 
 
-@depends(windows_sdk_dir, "WINDOWSSDKDIR", c_compiler, host_c_compiler)
+@depends(windows_sdk_dir, "WINDOWSSDKDIR", target_windows_abi, host_windows_abi)
 @checking("for Universal CRT SDK", valid_ucrt_sdk_dir_result)
 @imports("os")
 @imports(_import="mozpack.path", _as="mozpath")
-def valid_ucrt_sdk_dir(windows_sdk_dir, windows_sdk_dir_env, compiler, host_compiler):
-    # Ideally, we'd actually check for host/target ABI being MSVC, but
-    # that's waiting for bug 1617793.
-    if compiler.type != "clang-cl" and host_compiler.type != "clang-cl":
+def valid_ucrt_sdk_dir(
+    windows_sdk_dir, windows_sdk_dir_env, target_windows_abi, host_windows_abi
+):
+    if target_windows_abi != "msvc" and host_windows_abi != "msvc":
         return None
     if windows_sdk_dir_env:
         windows_sdk_dir_env = windows_sdk_dir_env[0]
@@ -256,10 +259,10 @@ def valid_ucrt_sdk_dir(windows_sdk_dir, windows_sdk_dir_env, compiler, host_comp
     )
 
 
-@depends(c_compiler, host_c_compiler, vc_toolchain_search_path)
+@depends(target_windows_abi, host_windows_abi, vc_toolchain_search_path)
 @imports("os")
-def vc_path(c_compiler, host_c_compiler, vc_toolchain_search_path):
-    if c_compiler.type != "clang-cl" and host_c_compiler.type != "clang-cl":
+def vc_path(target_windows_abi, host_windows_abi, vc_toolchain_search_path):
+    if target_windows_abi != "msvc" and host_windows_abi != "msvc":
         return
 
     # In clang-cl builds, we need the headers and libraries from an MSVC installation.
@@ -342,9 +345,10 @@ def lib_path_for(host_or_target):
         vc_path,
         valid_windows_sdk_dir,
         valid_ucrt_sdk_dir,
+        c_compiler,
     )
     @imports("os")
-    def lib_path(target, is_host, vc_path, windows_sdk_dir, ucrt_sdk_dir):
+    def lib_path(target, is_host, vc_path, windows_sdk_dir, ucrt_sdk_dir, compiler):
         if not vc_path:
             return
         sdk_target = {
@@ -374,6 +378,18 @@ def lib_path_for(host_or_target):
                 os.path.join(ucrt_sdk_dir.lib, "ucrt", sdk_target),
             )
         )
+        if compiler.type == "clang-cl":
+            runtime_dir = check_cmd_output(
+                compiler.compiler,
+                "/clang:--print-runtime-dir",
+                *compiler.flags,
+                onerror=lambda: None
+            ).strip()
+            if runtime_dir and os.path.exists(runtime_dir):
+                # Put the clang runtime directory first, in case there is
+                # a different version in some of the other directories (notably,
+                # some versions of MSVC come with clang runtimes)
+                libs.insert(0, runtime_dir)
         return libs
 
     return lib_path

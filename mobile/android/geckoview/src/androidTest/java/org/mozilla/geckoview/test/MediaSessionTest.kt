@@ -790,7 +790,7 @@ class MediaSessionTest : BaseSessionTest() {
 
     @Test
     fun fullscreenVideoElementMetadata() {
-        // TODO: bug 1706656
+        // TODO: bug 1810736
         assumeThat(sessionRule.env.isIsolatedProcess, equalTo(false))
 
         sessionRule.setPrefsUntilTestEnd(
@@ -952,5 +952,80 @@ class MediaSessionTest : BaseSessionTest() {
         // 5.
         mediaSession1!!.pause()
         sessionRule.waitForResult(completedStep5)
+    }
+
+    @Test
+    fun fullscreenVideoWithActivated() {
+        // TODO: bug 1810736
+        assumeThat(sessionRule.env.isIsolatedProcess, equalTo(false))
+
+        sessionRule.setPrefsUntilTestEnd(
+            mapOf(
+                "media.autoplay.default" to 0,
+                "full-screen-api.allow-trusted-requests-only" to false
+            )
+        )
+
+        val path = VIDEO_WEBM_PATH
+        val session = sessionRule.createOpenSession()
+        val resultFullscreen = GeckoResult<Void>()
+        session.loadTestPath(path)
+        sessionRule.waitForPageStop()
+
+        session.delegateDuringNextWait(object : MediaSession.Delegate {
+            override fun onFullscreen(
+                session: GeckoSession,
+                mediaSession: MediaSession,
+                enabled: Boolean,
+                meta: MediaSession.ElementMetadata?
+            ) {
+                assertThat(
+                    "Fullscreen should be enabled",
+                    enabled,
+                    equalTo(true)
+                )
+                assertThat(
+                    "Element metadata should exist",
+                    meta,
+                    notNullValue()
+                )
+                resultFullscreen.complete(null)
+            }
+        })
+
+        session.evaluateJS("document.querySelector('video').requestFullscreen()")
+        sessionRule.waitForResult(resultFullscreen)
+    }
+
+    @Test
+    fun switchingProcess() {
+        // TODO: bug 1810736
+        assumeThat(sessionRule.env.isIsolatedProcess, equalTo(false))
+
+        sessionRule.setPrefsUntilTestEnd(
+            mapOf(
+                "media.autoplay.default" to 0
+            )
+        )
+
+        mainSession.loadUri("about:blank")
+        sessionRule.waitForPageStop()
+
+        mainSession.loadTestPath(VIDEO_WEBM_PATH)
+        sessionRule.waitForPageStop()
+
+        val onPlayCalled = GeckoResult<Void>()
+        mainSession.delegateUntilTestEnd(object : MediaSession.Delegate {
+            @AssertCalled(count = 1)
+            override fun onPlay(
+                session: GeckoSession,
+                mediaSession: MediaSession
+            ) {
+                onPlayCalled.complete(null)
+            }
+        })
+
+        mainSession.evaluateJS("document.querySelector('video').play()")
+        sessionRule.waitForResult(onPlayCalled)
     }
 }

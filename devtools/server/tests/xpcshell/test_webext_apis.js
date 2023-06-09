@@ -3,6 +3,15 @@ http://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
 
+const { AddonManager } = ChromeUtils.import(
+  "resource://gre/modules/AddonManager.jsm"
+);
+const { ExtensionTestUtils } = ChromeUtils.import(
+  "resource://testing-common/ExtensionXPCShellUtils.jsm"
+);
+
+ExtensionTestUtils.init(this);
+
 // The `AddonsManager` test helper can only be called once per test script.
 // This `setup` task will run first.
 add_task(async function setup() {
@@ -73,11 +82,12 @@ add_task(async function test_webext_run_apis() {
   equal(addon.actor, false, "temporary add-on does not have an actor");
 
   // listAddons
-  const { addons } = await sendRequest(transport, {
+  let { addons } = await sendRequest(transport, {
     to: "root",
     type: "listAddons",
   });
   ok(Array.isArray(addons), "listAddons() returns a list of add-ons");
+  equal(addons.length, 1, "expected an add-on installed");
 
   const installedAddon = addons[0];
   equal(installedAddon.id, addonId, "installed add-on is the expected one");
@@ -91,6 +101,63 @@ add_task(async function test_webext_run_apis() {
     type: "reload",
   });
   await Promise.all([promiseReloaded, promiseRestarted]);
+
+  // uninstallAddon
+  const promiseUninstalled = new Promise(resolve => {
+    const listener = {};
+    listener.onUninstalled = uninstalledAddon => {
+      if (uninstalledAddon.id == addonId) {
+        AddonManager.removeAddonListener(listener);
+        resolve();
+      }
+    };
+    AddonManager.addAddonListener(listener);
+  });
+  await sendRequest(transport, {
+    to: getRootResponse.addonsActor,
+    type: "uninstallAddon",
+    addonId,
+  });
+  await promiseUninstalled;
+
+  ({ addons } = await sendRequest(transport, {
+    to: "root",
+    type: "listAddons",
+  }));
+  equal(addons.length, 0, "expected no add-on installed");
+
+  // Attempt to uninstall an add-on that is (no longer) installed.
+  let error = await sendRequest(transport, {
+    to: getRootResponse.addonsActor,
+    type: "uninstallAddon",
+    addonId,
+  });
+  equal(
+    error?.message,
+    `Could not uninstall add-on "${addonId}"`,
+    "expected error"
+  );
+
+  // Attempt to uninstall a non-temporarily loaded extension, which we do not
+  // allow at the moment. We start by loading an extension, then we call the
+  // `uninstallAddon`.
+  const id = "not-a-temporary@extension";
+  const extension = ExtensionTestUtils.loadExtension({
+    manifest: {
+      browser_specific_settings: { gecko: { id } },
+    },
+    useAddonManager: "permanent",
+  });
+  await extension.startup();
+
+  error = await sendRequest(transport, {
+    to: getRootResponse.addonsActor,
+    type: "uninstallAddon",
+    addonId: id,
+  });
+  equal(error?.message, `Could not uninstall add-on "${id}"`, "expected error");
+
+  await extension.unload();
 
   transport.close();
 });

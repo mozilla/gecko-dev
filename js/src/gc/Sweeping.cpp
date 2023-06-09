@@ -487,7 +487,7 @@ IncrementalProgress GCRuntime::markWeakReferences(
     SliceBudget& incrementalBudget) {
   MOZ_ASSERT(!marker().isWeakMarking());
 
-  gcstats::AutoPhase ap1(stats(), gcstats::PhaseKind::SWEEP_MARK_WEAK);
+  gcstats::AutoPhase ap1(stats(), gcstats::PhaseKind::MARK_WEAK);
 
   auto unlimited = SliceBudget::unlimited();
   SliceBudget& budget =
@@ -931,7 +931,7 @@ void js::gc::DelayCrossCompartmentGrayMarking(GCMarker* maybeMarker,
 }
 
 void GCRuntime::markIncomingGrayCrossCompartmentPointers() {
-  gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::SWEEP_MARK_INCOMING_GRAY);
+  gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::MARK_INCOMING_GRAY);
 
   for (SweepGroupCompartmentsIter c(rt); !c.done(); c.next()) {
     MOZ_ASSERT(c->zone()->isGCMarkingBlackAndGray());
@@ -1099,7 +1099,7 @@ IncrementalProgress GCRuntime::beginMarkingSweepGroup(JS::GCContext* gcx,
   MOZ_ASSERT(cellsToAssertNotGray.ref().empty());
 #endif
 
-  gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::SWEEP_MARK);
+  gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::MARK);
 
   // Change state of current group to MarkBlackAndGray to restrict gray marking
   // to this group. Note that there may be pointers to the atoms zone, and these
@@ -1119,17 +1119,17 @@ IncrementalProgress GCRuntime::beginMarkingSweepGroup(JS::GCContext* gcx,
 
 IncrementalProgress GCRuntime::markGrayRootsInCurrentGroup(
     JS::GCContext* gcx, SliceBudget& budget) {
-  gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::SWEEP_MARK);
+  gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::MARK);
 
   AutoSetMarkColor setColorGray(marker(), MarkColor::Gray);
 
-  return markGrayRoots<SweepGroupZonesIter>(
-      budget, gcstats::PhaseKind::SWEEP_MARK_GRAY);
+  return markGrayRoots<SweepGroupZonesIter>(budget,
+                                            gcstats::PhaseKind::MARK_GRAY);
 }
 
 IncrementalProgress GCRuntime::markGray(JS::GCContext* gcx,
                                         SliceBudget& budget) {
-  gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::SWEEP_MARK);
+  gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::MARK);
 
   if (markUntilBudgetExhausted(budget, AllowParallelMarking) == NotFinished) {
     return NotFinished;
@@ -1149,7 +1149,7 @@ IncrementalProgress GCRuntime::endMarkingSweepGroup(JS::GCContext* gcx,
   MOZ_ASSERT(!HasIncomingCrossCompartmentPointers(rt));
 #endif
 
-  gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::SWEEP_MARK);
+  gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::MARK);
 
   if (markWeakReferencesInCurrentGroup(budget) == NotFinished) {
     return NotFinished;
@@ -1502,10 +1502,6 @@ IncrementalProgress GCRuntime::beginSweepingSweepGroup(JS::GCContext* gcx,
     }
   }
 
-#ifdef JS_GC_ZEAL
-  validateIncrementalMarking();
-#endif
-
 #ifdef DEBUG
   for (auto cell : cellsToAssertNotGray.ref()) {
     JS::AssertCellIsNotGray(cell);
@@ -1520,6 +1516,10 @@ IncrementalProgress GCRuntime::beginSweepingSweepGroup(JS::GCContext* gcx,
     AutoPhase ap(stats(), PhaseKind::UPDATE_ATOMS_BITMAP);
     updateAtomsBitmap();
   }
+
+#ifdef JS_GC_ZEAL
+  validateIncrementalMarking();
+#endif
 
   AutoSetThreadIsSweeping threadIsSweeping;
 
@@ -1678,7 +1678,7 @@ IncrementalProgress GCRuntime::markDuringSweeping(JS::GCContext* gcx,
   MOZ_ASSERT(markTask.isIdle());
 
   if (markOnBackgroundThreadDuringSweeping) {
-    if (!marker().isDrained()) {
+    if (!marker().isDrained() || hasDelayedMarking()) {
       AutoLockHelperThreadState lock;
       MOZ_ASSERT(markTask.isIdle(lock));
       markTask.setBudget(budget);
@@ -1687,7 +1687,7 @@ IncrementalProgress GCRuntime::markDuringSweeping(JS::GCContext* gcx,
     return Finished;  // This means don't yield to the mutator here.
   }
 
-  gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::SWEEP_MARK);
+  gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::MARK);
   return markUntilBudgetExhausted(budget, AllowParallelMarking);
 }
 
@@ -1748,7 +1748,7 @@ bool GCRuntime::foregroundFinalize(JS::GCContext* gcx, Zone* zone,
 }
 
 BackgroundMarkTask::BackgroundMarkTask(GCRuntime* gc)
-    : GCParallelTask(gc, gcstats::PhaseKind::SWEEP_MARK, GCUse::Marking),
+    : GCParallelTask(gc, gcstats::PhaseKind::MARK, GCUse::Marking),
       budget(SliceBudget::unlimited()) {}
 
 void js::gc::BackgroundMarkTask::run(AutoLockHelperThreadState& lock) {

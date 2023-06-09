@@ -40,7 +40,7 @@ class LazyReferenceRenderingDrawTargetGetterFromFrame final
   explicit LazyReferenceRenderingDrawTargetGetterFromFrame(nsIFrame* aFrame)
       : mFrame(aFrame) {}
   virtual already_AddRefed<DrawTarget> GetRefDrawTarget() override {
-    RefPtr<gfxContext> ctx =
+    UniquePtr<gfxContext> ctx =
         mFrame->PresShell()->CreateReferenceRenderingContext();
     RefPtr<DrawTarget> dt = ctx->GetDrawTarget();
     return dt.forget();
@@ -270,8 +270,12 @@ bool nsDisplayTextOverflowMarker::CreateWebRenderCommands(
   // Run the rendering algorithm to capture the glyphs and shadows
   RefPtr<TextDrawTarget> textDrawer =
       new TextDrawTarget(aBuilder, aResources, aSc, aManager, this, bounds);
-  RefPtr<gfxContext> captureCtx = gfxContext::CreateOrNull(textDrawer);
-  Paint(aDisplayListBuilder, captureCtx);
+  MOZ_ASSERT(textDrawer->IsValid());
+  if (!textDrawer->IsValid()) {
+    return false;
+  }
+  gfxContext captureCtx(textDrawer);
+  Paint(aDisplayListBuilder, &captureCtx);
   textDrawer->TerminateShadows();
 
   return textDrawer->Finish();
@@ -916,7 +920,7 @@ void TextOverflow::Marker::SetupString(nsIFrame* aFrame) {
       mISize = 0;
     }
   } else {
-    RefPtr<gfxContext> rc =
+    UniquePtr<gfxContext> rc =
         aFrame->PresShell()->CreateReferenceRenderingContext();
     RefPtr<nsFontMetrics> fm =
         nsLayoutUtils::GetInflatedFontMetricsForFrame(aFrame);

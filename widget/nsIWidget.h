@@ -9,6 +9,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include "imgIContainer.h"
 #include "ErrorList.h"
 #include "Units.h"
 #include "mozilla/AlreadyAddRefed.h"
@@ -40,16 +41,14 @@
 #include "nsStringFwd.h"
 #include "nsTArray.h"
 #include "nsTHashMap.h"
-#include "nsWidgetInitData.h"
+#include "mozilla/widget/InitData.h"
 #include "nsXULAppAPI.h"
 
 // forward declarations
 class nsIBidiKeyboard;
 class nsIRollupListener;
-class imgIContainer;
 class nsIContent;
 class ViewWrapper;
-class nsIScreen;
 class nsIRunnable;
 
 namespace mozilla {
@@ -87,6 +86,7 @@ class TextEventDispatcher;
 class TextEventDispatcherListener;
 class CompositorWidget;
 class CompositorWidgetInitData;
+class Screen;
 }  // namespace widget
 namespace wr {
 class DisplayListBuilder;
@@ -119,7 +119,6 @@ typedef void* nsNativeWidget;
 #define NS_NATIVE_GRAPHIC 1
 #define NS_NATIVE_TMP_WINDOW 2
 #define NS_NATIVE_WIDGET 3
-#define NS_NATIVE_DISPLAY 4
 #define NS_NATIVE_REGION 5
 #define NS_NATIVE_OFFSETX 6
 #define NS_NATIVE_OFFSETY 7
@@ -158,20 +157,6 @@ typedef void* nsNativeWidget;
       0xac, 0x45, 0x75, 0x26, 0x53, 0xb1, 0xc9, 0x80 \
     }                                                \
   }
-
-/**
- * Transparency modes
- */
-
-enum nsTransparencyMode {
-  eTransparencyOpaque = 0,      // Fully opaque
-  eTransparencyTransparent,     // Parts of the window may be transparent
-  eTransparencyBorderlessGlass  // Transparent parts of the window has windows 7
-                                // glass effect, without a border around opaque
-                                // areas.
-  // If you add to the end here, you must update the serialization code in
-  // WidgetMessageUtils.h
-};
 
 /**
  * Cursor types.
@@ -261,8 +246,7 @@ enum nsTopLevelWidgetZPlacement {  // for PlaceBehind()
  */
 #define NS_WIDGET_MAC_APP_ACTIVATE_OBSERVER_TOPIC "mac_app_activate"
 
-namespace mozilla {
-namespace widget {
+namespace mozilla::widget {
 
 /**
  * Size constraints for setting the minimum and maximum size of a widget.
@@ -343,8 +327,7 @@ struct AutoObserverNotifier {
   static nsTHashMap<uint64_t, nsCOMPtr<nsIObserver>> sSavedObservers;
 };
 
-}  // namespace widget
-}  // namespace mozilla
+}  // namespace mozilla::widget
 
 /**
  * The base class for all the widgets. It provides the interface for
@@ -393,6 +376,14 @@ class nsIWidget : public nsISupports {
   typedef mozilla::CSSPoint CSSPoint;
   typedef mozilla::CSSRect CSSRect;
 
+  using InitData = mozilla::widget::InitData;
+  using WindowType = mozilla::widget::WindowType;
+  using PopupType = mozilla::widget::PopupType;
+  using PopupLevel = mozilla::widget::PopupLevel;
+  using BorderStyle = mozilla::widget::BorderStyle;
+  using TransparencyMode = mozilla::widget::TransparencyMode;
+  using Screen = mozilla::widget::Screen;
+
   // Used in UpdateThemeGeometries.
   struct ThemeGeometry {
     // The ThemeGeometryType value for the themed widget, see
@@ -412,7 +403,7 @@ class nsIWidget : public nsISupports {
       : mLastChild(nullptr),
         mPrevSibling(nullptr),
         mOnDestroyCalled(false),
-        mWindowType(eWindowType_child),
+        mWindowType(WindowType::Child),
         mZIndex(0)
 
   {
@@ -450,10 +441,10 @@ class nsIWidget : public nsISupports {
    * @param     aInitData     data that is used for widget initialization
    *
    */
-  [[nodiscard]] virtual nsresult Create(
-      nsIWidget* aParent, nsNativeWidget aNativeParent,
-      const LayoutDeviceIntRect& aRect,
-      nsWidgetInitData* aInitData = nullptr) = 0;
+  [[nodiscard]] virtual nsresult Create(nsIWidget* aParent,
+                                        nsNativeWidget aNativeParent,
+                                        const LayoutDeviceIntRect& aRect,
+                                        InitData* = nullptr) = 0;
 
   /*
    * As above, but with aRect specified in DesktopPixel units (for top-level
@@ -466,7 +457,7 @@ class nsIWidget : public nsISupports {
   [[nodiscard]] virtual nsresult Create(nsIWidget* aParent,
                                         nsNativeWidget aNativeParent,
                                         const DesktopIntRect& aRect,
-                                        nsWidgetInitData* aInitData = nullptr) {
+                                        InitData* aInitData = nullptr) {
     LayoutDeviceIntRect devPixRect =
         RoundedToInt(aRect * GetDesktopToDeviceScale());
     return Create(aParent, aNativeParent, devPixRect, aInitData);
@@ -489,7 +480,7 @@ class nsIWidget : public nsISupports {
    * understood code, and shouldn't be used in new code.
    */
   virtual already_AddRefed<nsIWidget> CreateChild(
-      const LayoutDeviceIntRect& aRect, nsWidgetInitData* aInitData = nullptr,
+      const LayoutDeviceIntRect& aRect, InitData* = nullptr,
       bool aForceUseIWidgetParent = false) = 0;
 
   /**
@@ -695,6 +686,14 @@ class nsIWidget : public nsISupports {
    *
    */
   virtual bool IsVisible() const = 0;
+
+  /**
+   * Returns whether the window has allocated resources so
+   * we can paint into it.
+   * Recently it's used on Linux/Gtk where we should not paint
+   * to invisible window.
+   */
+  virtual bool IsMapped() const { return true; }
 
   /**
    * Perform platform-dependent sanity check on a potential window position.
@@ -947,7 +946,7 @@ class nsIWidget : public nsISupports {
    *  icon and window title text. Glass desktops will refuse to set
    *  dimensions between zero and size < system default.
    */
-  virtual nsresult SetNonClientMargins(LayoutDeviceIntMargin& aMargins) = 0;
+  virtual nsresult SetNonClientMargins(const LayoutDeviceIntMargin&) = 0;
 
   /**
    * Sets the region around the edges of the window that can be dragged to
@@ -1019,7 +1018,7 @@ class nsIWidget : public nsISupports {
   /**
    * Get the window type of this widget.
    */
-  nsWindowType WindowType() { return mWindowType; }
+  WindowType GetWindowType() const { return mWindowType; }
 
   /**
    * Set the transparency mode of the top-level window containing this widget.
@@ -1038,13 +1037,13 @@ class nsIWidget : public nsISupports {
    * all pixels are reset to 1.
    * Pixel RGB color values are already premultiplied with alpha channel values.
    */
-  virtual void SetTransparencyMode(nsTransparencyMode aMode) = 0;
+  virtual void SetTransparencyMode(TransparencyMode aMode) = 0;
 
   /**
    * Get the transparency mode of the top-level window that contains this
    * widget.
    */
-  virtual nsTransparencyMode GetTransparencyMode() = 0;
+  virtual TransparencyMode GetTransparencyMode() = 0;
 
   /**
    * Set the shadow style of the window.
@@ -1169,7 +1168,7 @@ class nsIWidget : public nsISupports {
   /**
    * Return the screen the widget is in, or null if we don't know.
    */
-  virtual already_AddRefed<nsIScreen> GetWidgetScreen() = 0;
+  virtual already_AddRefed<Screen> GetWidgetScreen() = 0;
 
   /**
    * Put the toplevel window into or out of fullscreen mode.
@@ -1329,12 +1328,13 @@ class nsIWidget : public nsISupports {
   }
 
   /**
-   * Given the specified client size, return the corresponding window size,
-   * which includes the area for the borders and titlebar. This method
-   * should work even when the window is not yet visible.
+   * Returns the margins that are applied to go from client sizes to window
+   * sizes (which includes window borders and titlebar).
+   * This method should work even when the window is not yet visible.
    */
-  virtual LayoutDeviceIntSize ClientToWindowSize(
-      const LayoutDeviceIntSize& aClientSize) = 0;
+  virtual LayoutDeviceIntMargin ClientToWindowMargin() { return {}; }
+
+  LayoutDeviceIntSize ClientToWindowSizeDifference();
 
   /**
    * Dispatches an event to the widget
@@ -1396,8 +1396,22 @@ class nsIWidget : public nsISupports {
 
   /**
    * Classify the window for the window manager. Mostly for X11.
+   *
+   *  @param xulWinType The window type. Characters other than [A-Za-z0-9_-] are
+   *                    converted to '_'. Anything before the first colon is
+   *                    assigned to name, anything after it to role. If there's
+   *                    no colon, assign the whole thing to both role and name.
+   *
+   * @param xulWinClass The window class. If set, overrides the normal value.
+   *                    Otherwise, the program class it used.
+   *
+   * @param xulWinName The window name. If set, overrides the value specified in
+   *                   window type. Otherwise, name from window type is used.
+   *
    */
-  virtual void SetWindowClass(const nsAString& xulWinType) = 0;
+  virtual void SetWindowClass(const nsAString& xulWinType,
+                              const nsAString& xulWinClass,
+                              const nsAString& xulWinName) = 0;
 
   /**
    * Enables/Disables system capture of any and all events that would cause a
@@ -2130,7 +2144,7 @@ class nsIWidget : public nsISupports {
   nsIWidget* MOZ_NON_OWNING_REF mPrevSibling;
   // When Destroy() is called, the sub class should set this true.
   bool mOnDestroyCalled;
-  nsWindowType mWindowType;
+  WindowType mWindowType;
   int32_t mZIndex;
 };
 

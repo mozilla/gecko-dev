@@ -38,12 +38,9 @@ class nsHTMLButtonControlFrame : public nsContainerFrame,
                       const ReflowInput& aReflowInput,
                       nsReflowStatus& aStatus) override;
 
-  bool GetVerticalAlignBaseline(mozilla::WritingMode aWM,
-                                nscoord* aBaseline) const override;
-
-  bool GetNaturalBaselineBOffset(mozilla::WritingMode aWM,
-                                 BaselineSharingGroup aBaselineGroup,
-                                 nscoord* aBaseline) const override;
+  Maybe<nscoord> GetNaturalBaselineBOffset(
+      mozilla::WritingMode aWM,
+      BaselineSharingGroup aBaselineGroup) const override;
 
   virtual nsresult HandleEvent(nsPresContext* aPresContext,
                                mozilla::WidgetGUIEvent* aEvent,
@@ -73,8 +70,6 @@ class nsHTMLButtonControlFrame : public nsContainerFrame,
     return MakeFrameName(u"HTMLButtonControl"_ns, aResult);
   }
 #endif
-
-  virtual bool HonorPrintBackgroundSettings() const override { return false; }
 
   // nsIFormControlFrame
   void SetFocus(bool aOn, bool aRepaint) override;
@@ -111,6 +106,11 @@ class nsHTMLButtonControlFrame : public nsContainerFrame,
                             ReflowOutput& aButtonDesiredSize,
                             const ReflowInput& aButtonReflowInput,
                             nsIFrame* aFirstKid);
+
+  BaselineSharingGroup GetDefaultBaselineSharingGroup() const override;
+  nscoord SynthesizeFallbackBaseline(
+      mozilla::WritingMode aWM,
+      BaselineSharingGroup aBaselineGroup) const override;
 
   nsButtonFrameRenderer mRenderer;
 };

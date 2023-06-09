@@ -258,14 +258,18 @@ const tests = [
 
   async function(win) {
     let tipProvider = registerTipProvider();
-    info("Selecting a tip's help button, enter.");
+    info("Selecting a tip's help option.");
     let promise = BrowserTestUtils.browserLoaded(win.gBrowser.selectedBrowser);
     win.gURLBar.search("x");
     await UrlbarTestUtils.promiseSearchComplete(win);
     EventUtils.synthesizeKey("KEY_ArrowDown", {}, win);
     EventUtils.synthesizeKey("KEY_ArrowDown", {}, win);
-    EventUtils.synthesizeKey("KEY_ArrowDown", {}, win);
-    EventUtils.synthesizeKey("VK_RETURN", {}, win);
+    if (UrlbarPrefs.get("resultMenu")) {
+      await UrlbarTestUtils.openResultMenuAndPressAccesskey(win, "h");
+    } else {
+      EventUtils.synthesizeKey("KEY_Tab", {}, win);
+      EventUtils.synthesizeKey("VK_RETURN", {}, win);
+    }
     await promise;
     unregisterTipProvider(tipProvider);
     return {
@@ -521,20 +525,38 @@ const tests = [
     EventUtils.synthesizeKey("VK_RETURN", {}, win);
     await promise;
 
-    return {
-      category: "urlbar",
-      method: "engagement",
-      object: "enter",
-      value: "typed",
-      extra: {
-        elapsed: val => parseInt(val) > 0,
-        numChars: "3",
-        numWords: "1",
-        selIndex: "0",
-        selType: "searchengine",
-        provider: "HeuristicFallback",
+    return [
+      // engagement on the keyword offer result to enter search mode
+      {
+        category: "urlbar",
+        method: "engagement",
+        object: "enter",
+        value: "typed",
+        extra: {
+          elapsed: val => parseInt(val) > 0,
+          numChars: "1",
+          numWords: "1",
+          selIndex: "6",
+          selType: "searchengine",
+          provider: "TokenAliasEngines",
+        },
       },
-    };
+      // engagement on the search heuristic
+      {
+        category: "urlbar",
+        method: "engagement",
+        object: "enter",
+        value: "typed",
+        extra: {
+          elapsed: val => parseInt(val) > 0,
+          numChars: "3",
+          numWords: "1",
+          selIndex: "0",
+          selType: "searchengine",
+          provider: "HeuristicFallback",
+        },
+      },
+    ];
   },
 
   async function(win) {
@@ -972,20 +994,38 @@ const tests = [
     await PlacesUtils.history.clear();
     await SpecialPowers.popPrefEnv();
 
-    return {
-      category: "urlbar",
-      method: "engagement",
-      object: "enter",
-      value: "typed",
-      extra: {
-        elapsed: val => parseInt(val) > 0,
-        numChars: "3",
-        numWords: "1",
-        selIndex: "0",
-        selType: "searchengine",
-        provider: "HeuristicFallback",
+    return [
+      // engagement on the tab-to-search to enter search mode
+      {
+        category: "urlbar",
+        method: "engagement",
+        object: "enter",
+        value: "typed",
+        extra: {
+          elapsed: val => parseInt(val) > 0,
+          numChars: "4",
+          numWords: "1",
+          selIndex: "1",
+          selType: "tabtosearch",
+          provider: "TabToSearch",
+        },
       },
-    };
+      // engagement on the search heuristic
+      {
+        category: "urlbar",
+        method: "engagement",
+        object: "enter",
+        value: "typed",
+        extra: {
+          elapsed: val => parseInt(val) > 0,
+          numChars: "3",
+          numWords: "1",
+          selIndex: "0",
+          selType: "searchengine",
+          provider: "HeuristicFallback",
+        },
+      },
+    ];
   },
 
   async function(win) {
@@ -1191,6 +1231,10 @@ async function doTest(eventTelemetryEnabled) {
   for (let i = 0; i < tests.length; i++) {
     info(`Running test at index ${i}`);
     let events = await tests[i](win);
+    if (events === null) {
+      info("Skipping test");
+      continue;
+    }
     if (!Array.isArray(events)) {
       events = [events];
     }
@@ -1268,6 +1312,11 @@ let tipMatches = [
     UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
     {
       helpUrl: "http://example.com/",
+      helpL10n: {
+        id: UrlbarPrefs.get("resultMenu")
+          ? "urlbar-result-menu-tip-get-help"
+          : "urlbar-tip-help-icon",
+      },
       type: "test",
       titleL10n: { id: "urlbar-search-tips-confirm" },
       buttons: [

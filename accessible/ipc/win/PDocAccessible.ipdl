@@ -33,6 +33,7 @@ struct AccessibleData
   AccType Type;
   AccGenericType GenericTypes;
   uint8_t RoleMapEntryIndex;
+  nullable AccAttributes CacheFields;
 };
 
 struct ShowEventData
@@ -97,11 +98,8 @@ parent:
 
   /*
    * Cache The World
-   * aDispatchShowEvent is true when a show event with the first accessible in
-   * the cache list as the target should be dispatched after the cache is
-   * populated. The show event will have a from-user flag value of false.
    */
-  async Cache(CacheUpdateType aUpdateType, CacheData[] aData, bool aDispatchShowEvent);
+  async Cache(CacheUpdateType aUpdateType, CacheData[] aData);
 
   /*
    * Lists of accessibles that either gained or lost a selected state.
@@ -139,14 +137,25 @@ child:
   async SetSelected(uint64_t aID, bool aSelected);
   async ScrollTo(uint64_t aID, uint32_t aScrollType);
 
+  async SetTextSelection(uint64_t aStartID, int32_t aStartOffset,
+                     uint64_t aEndID, int32_t aEndOffset,
+                     int32_t aSelectionNum);
+  async RemoveTextSelection(uint64_t aID, int32_t aSelectionNum);
+
+  async ScrollTextLeafRangeIntoView(uint64_t aStartID, int32_t aStartOffset,
+                                    uint64_t aEndID, int32_t aEndOffset,
+                                    uint32_t aScrollType);
+
   /*
    * Verify the cache. Used for testing purposes.
    */
-  async VerifyCache(uint64_t aID, uint64_t aCacheDomain, AccAttributes aFields);
+  async VerifyCache(uint64_t aID, uint64_t aCacheDomain, nullable AccAttributes aFields);
 
   async DoActionAsync(uint64_t aID, uint8_t aIndex);
 
   async SetCaretOffset(uint64_t aID, int32_t aOffset);
+
+  async SetCurValue(uint64_t aID, double aValue);
 
   async __delete__();
 };

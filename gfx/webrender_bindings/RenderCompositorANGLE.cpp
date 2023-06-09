@@ -263,11 +263,12 @@ bool RenderCompositorANGLE::CreateSwapChain(nsACString& aError) {
         desc.BufferCount = 2;
       }
       desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
+      desc.Scaling = DXGI_SCALING_NONE;
     } else {
       desc.BufferCount = 1;
       desc.SwapEffect = DXGI_SWAP_EFFECT_SEQUENTIAL;
+      desc.Scaling = DXGI_SCALING_STRETCH;
     }
-    desc.Scaling = DXGI_SCALING_NONE;
     desc.Flags = 0;
 
     hr = dxgiFactory2->CreateSwapChainForHwnd(
@@ -660,14 +661,8 @@ bool RenderCompositorANGLE::CreateEGLSurface() {
     }
   }
 
-  const EGLint pbuffer_attribs[]{
-      LOCAL_EGL_WIDTH,
-      size.width,
-      LOCAL_EGL_HEIGHT,
-      size.height,
-      LOCAL_EGL_FLEXIBLE_SURFACE_COMPATIBILITY_SUPPORTED_ANGLE,
-      LOCAL_EGL_TRUE,
-      LOCAL_EGL_NONE};
+  const EGLint pbuffer_attribs[]{LOCAL_EGL_WIDTH, size.width, LOCAL_EGL_HEIGHT,
+                                 size.height, LOCAL_EGL_NONE};
 
   const auto buffer = reinterpret_cast<EGLClientBuffer>(backBuf.get());
 
@@ -920,6 +915,8 @@ void RenderCompositorANGLE::GetCompositorCapabilities(
   } else {
     aCaps->virtual_surface_size = 0;
   }
+  // DComp video overlay does not support negative scaling. See Bug 1831820
+  aCaps->supports_external_compositor_surface_negative_scaling = false;
 }
 
 void RenderCompositorANGLE::EnableNativeCompositor(bool aEnable) {

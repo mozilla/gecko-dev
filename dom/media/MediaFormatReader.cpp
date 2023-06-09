@@ -476,6 +476,10 @@ void MediaFormatReader::DecoderFactory::DoInitDecoder(Data& aData) {
               DecoderBenchmark::CheckVersion(
                   ownerData.GetCurrentInfo()->mMimeType);
             }
+            if (aTrack == TrackInfo::kAudioTrack) {
+              ownerData.mProcessName = ownerData.mDecoder->GetProcessName();
+              ownerData.mCodecName = ownerData.mDecoder->GetCodecName();
+            }
           },
           [this, &aData, &ownerData](const MediaResult& aError) {
             AUTO_PROFILER_LABEL("DecoderFactory::DoInitDecoder:Rejected",
@@ -1357,6 +1361,12 @@ void MediaFormatReader::ReadUpdatedMetadata(MediaInfo* aInfo) {
     MutexAutoLock lock(mAudio.mMutex);
     if (HasAudio()) {
       aInfo->mAudio = *mAudio.GetWorkingInfo()->GetAsAudioInfo();
+      Maybe<nsCString> audioProcessPerCodecName = GetAudioProcessPerCodec();
+      if (audioProcessPerCodecName.isSome()) {
+        Telemetry::ScalarAdd(
+            Telemetry::ScalarID::MEDIA_AUDIO_PROCESS_PER_CODEC_NAME,
+            NS_ConvertUTF8toUTF16(*audioProcessPerCodecName), 1);
+      }
     }
   }
 }
@@ -1739,6 +1749,9 @@ void MediaFormatReader::NotifyNewOutput(
       decoder.mNumSamplesOutput++;
       decoder.mNumOfConsecutiveDecodingError = 0;
       decoder.mNumOfConsecutiveRDDOrGPUCrashes = 0;
+      if (aTrack == TrackInfo::kAudioTrack) {
+        decoder.mNumOfConsecutiveUtilityCrashes = 0;
+      }
     }
   LOG("Done processing new %s samples", TrackTypeToStr(aTrack));
 
@@ -2429,15 +2442,28 @@ void MediaFormatReader::Update(TrackType aTrack) {
     bool needsNewDecoder =
         decoder.mError.ref() == NS_ERROR_DOM_MEDIA_NEED_NEW_DECODER ||
         firstFrameDecodingFailedWithHardware;
-    // Limit number of RDD process restarts after crash
-    // Restart Utility without any limit after crash
+    // Limit number of process restarts after crash
     if ((decoder.mError.ref() ==
              NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_RDD_OR_GPU_ERR &&
          decoder.mNumOfConsecutiveRDDOrGPUCrashes++ <
              decoder.mMaxConsecutiveRDDOrGPUCrashes) ||
         (decoder.mError.ref() ==
-         NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_UTILITY_ERR)) {
+             NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_UTILITY_ERR &&
+         decoder.mNumOfConsecutiveUtilityCrashes++ <
+             decoder.mMaxConsecutiveUtilityCrashes)) {
       needsNewDecoder = true;
+    }
+    // For MF CDM crash, it needs to be handled differently. We need to shutdown
+    // current decoder and report that error to the state machine in order to
+    // let it to determine if playback can keep going or not.
+    if (decoder.mError.ref() ==
+        NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_MF_CDM_ERR) {
+      LOG("Error: notify MF CDM crash and shutdown %s decoder",
+          TrackTypeToStr(aTrack));
+      ShutdownDecoder(aTrack);
+      decoder.RejectPromise(decoder.mError.ref(), __func__);
+      decoder.mError.reset();
+      return;
     }
 #ifdef XP_LINUX
     // We failed to decode on Linux with HW decoder,
@@ -2472,6 +2498,7 @@ void MediaFormatReader::Update(TrackType aTrack) {
       NotifyError(aTrack, decoder.mError.ref());
       return;
     }
+
     if (firstFrameDecodingFailedWithHardware) {
       decoder.mHardwareDecodingDisabled = true;
     }
@@ -2950,13 +2977,15 @@ void MediaFormatReader::OnSeekFailed(TrackType aTrack,
 
   auto type = aTrack == TrackType::kAudioTrack ? MediaData::Type::AUDIO_DATA
                                                : MediaData::Type::VIDEO_DATA;
-  mSeekPromise.Reject(SeekRejectValue(type, aError), __func__);
+  mSeekPromise.RejectIfExists(SeekRejectValue(type, aError), __func__);
 }
 
 void MediaFormatReader::DoVideoSeek() {
   AUTO_PROFILER_LABEL("MediaFormatReader::DoVideoSeek", MEDIA_PLAYBACK);
   MOZ_ASSERT(mPendingSeekTime.isSome());
   LOGV("Seeking video to %" PRId64, mPendingSeekTime.ref().ToMicroseconds());
+  MOZ_DIAGNOSTIC_ASSERT(!IsAudioOnlySeeking());
+  MOZ_DIAGNOSTIC_ASSERT(!mVideo.mSeekRequest.Exists());
   auto seekTime = mPendingSeekTime.ref();
   mVideo.mTrackDemuxer->Seek(seekTime)
       ->Then(OwnerThread(), __func__, this,
@@ -2987,7 +3016,7 @@ void MediaFormatReader::OnVideoSeekCompleted(TimeUnit aTime) {
     DoAudioSeek();
   } else {
     mPendingSeekTime.reset();
-    mSeekPromise.Resolve(aTime, __func__);
+    mSeekPromise.ResolveIfExists(aTime, __func__);
   }
 }
 
@@ -3040,6 +3069,8 @@ void MediaFormatReader::DoAudioSeek() {
   AUTO_PROFILER_LABEL("MediaFormatReader::DoAudioSeek", MEDIA_PLAYBACK);
   MOZ_ASSERT(mPendingSeekTime.isSome());
   LOGV("Seeking audio to %" PRId64, mPendingSeekTime.ref().ToMicroseconds());
+  MOZ_DIAGNOSTIC_ASSERT(!IsVideoOnlySeeking());
+  MOZ_DIAGNOSTIC_ASSERT(!mAudio.mSeekRequest.Exists());
   auto seekTime = mPendingSeekTime.ref();
   mAudio.mTrackDemuxer->Seek(seekTime)
       ->Then(OwnerThread(), __func__, this,
@@ -3056,7 +3087,7 @@ void MediaFormatReader::OnAudioSeekCompleted(TimeUnit aTime) {
   mAudio.mSeekRequest.Complete();
   mAudio.mFirstFrameTime = Some(aTime);
   mPendingSeekTime.reset();
-  mSeekPromise.Resolve(aTime, __func__);
+  mSeekPromise.ResolveIfExists(aTime, __func__);
 }
 
 void MediaFormatReader::OnAudioSeekFailed(const MediaResult& aError) {
@@ -3209,6 +3240,28 @@ RefPtr<GenericPromise> MediaFormatReader::RequestDebugInfo(
   }
   GetDebugInfo(aInfo);
   return GenericPromise::CreateAndResolve(true, __func__);
+}
+
+Maybe<nsCString> MediaFormatReader::GetAudioProcessPerCodec() {
+  if (mAudio.mDescription == "uninitialized"_ns) {
+    return Nothing();
+  }
+
+  MOZ_ASSERT(mAudio.mProcessName.Length() > 0,
+             "Should have had a process name");
+  MOZ_ASSERT(mAudio.mCodecName.Length() > 0, "Should have had a codec name");
+
+  nsCString processName = mAudio.mProcessName;
+  nsCString audioProcessPerCodecName(processName + ","_ns + mAudio.mCodecName);
+  if (processName != "utility"_ns) {
+    if (!StaticPrefs::media_rdd_process_enabled()) {
+      audioProcessPerCodecName += ",rdd-disabled"_ns;
+    }
+    if (!StaticPrefs::media_utility_process_enabled()) {
+      audioProcessPerCodecName += ",utility-disabled"_ns;
+    }
+  }
+  return Some(audioProcessPerCodecName);
 }
 
 void MediaFormatReader::GetDebugInfo(dom::MediaFormatReaderDebugInfo& aInfo) {

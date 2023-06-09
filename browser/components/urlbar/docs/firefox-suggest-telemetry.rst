@@ -9,10 +9,9 @@ For information on other telemetry related to the address bar, see the general
 address bar :doc:`telemetry` document. For information on all telemetry in
 Firefox, see the toolkit :doc:`/toolkit/components/telemetry/index` document.
 
-.. toctree::
-   :caption: Table of Contents
+.. contents::
+   :depth: 2
 
-   firefox-suggest-telemetry
 
 Histograms
 ----------
@@ -290,6 +289,75 @@ Changelog
 
 .. _1800993: https://bugzilla.mozilla.org/show_bug.cgi?id=1800993
 
+contextual.services.quicksuggest.click_nav_notmatched
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This keyed scalar records how many times a heuristic result was clicked while a
+navigational suggestion was absent. It is recorded only when the Nimbus variable
+``recordNavigationalSuggestionTelemetry`` is true. (The variable is false by
+default.)
+
+Each key is the type of heuristic result that was clicked. Key names are the
+same as the heuristic result type names recorded in Glean telemetry.
+
+Changelog
+  Firefox 112.0
+    Introduced. [Bug 1819797_]
+
+.. _1819797: https://bugzilla.mozilla.org/show_bug.cgi?id=1819797
+
+contextual.services.quicksuggest.click_nav_shown_heuristic
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This keyed scalar records how many times a heuristic result was clicked while a
+navigational suggestion was present. It is recorded only when the Nimbus
+variable ``recordNavigationalSuggestionTelemetry`` is true. (The variable is
+false by default.)
+
+Each key is the type of heuristic result that was clicked. Key names are the
+same as the heuristic result type names recorded in Glean telemetry.
+
+Changelog
+  Firefox 112.0
+    Introduced. [Bug 1819797_]
+
+.. _1819797: https://bugzilla.mozilla.org/show_bug.cgi?id=1819797
+
+contextual.services.quicksuggest.click_nav_shown_nav
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This keyed scalar records how many times a navigational suggestion was clicked.
+It is recorded only when the Nimbus variable
+``recordNavigationalSuggestionTelemetry`` is true. (The variable is false by
+default.)
+
+Each key is the type of heuristic result that was present at the time of the
+engagement. Key names are the same as the heuristic result type names recorded
+in Glean telemetry.
+
+Changelog
+  Firefox 112.0
+    Introduced. [Bug 1819797_]
+
+.. _1819797: https://bugzilla.mozilla.org/show_bug.cgi?id=1819797
+
+contextual.services.quicksuggest.click_nav_superceded
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This keyed scalar records how many times a heuristic result was clicked when a
+navigational suggestion was matched but superseded by the heuristic. It is
+recorded only when the Nimbus variable ``recordNavigationalSuggestionTelemetry``
+is true. (The variable is false by default.)
+
+Each key is the type of heuristic result that was clicked. Key names are the
+same as the heuristic result type names recorded in Glean telemetry.
+
+Changelog
+  Firefox 112.0
+    Introduced. [Bug 1819797_]
+
+.. _1819797: https://bugzilla.mozilla.org/show_bug.cgi?id=1819797
+
 contextual.services.quicksuggest.click_nonsponsored
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -371,7 +439,12 @@ Changelog
   Firefox 110.0
     Introduced. [Bug 1806765_]
 
+  Firefox 114.0
+    Removed since the weather suggestion is no longer triggered on zero prefix.
+    [Bug 1831971_]
+
 .. _1806765: https://bugzilla.mozilla.org/show_bug.cgi?id=1806765
+.. _1831971: https://bugzilla.mozilla.org/show_bug.cgi?id=1831971
 
 contextual.services.quicksuggest.help
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -519,6 +592,60 @@ Changelog
     Introduced. [Bug 1800993_]
 
 .. _1800993: https://bugzilla.mozilla.org/show_bug.cgi?id=1800993
+
+contextual.services.quicksuggest.impression_nav_notmatched
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This keyed scalar records how many times a urlbar engagement occurred while a
+navigational suggestion was absent. It is recorded only when the Nimbus variable
+``recordNavigationalSuggestionTelemetry`` is true. (The variable is false by
+default.)
+
+Each key is the type of heuristic result that was present at the time of the
+engagement. Key names are the same as the heuristic result type names recorded
+in Glean telemetry.
+
+Changelog
+  Firefox 112.0
+    Introduced. [Bug 1819797_]
+
+.. _1819797: https://bugzilla.mozilla.org/show_bug.cgi?id=1819797
+
+contextual.services.quicksuggest.impression_nav_shown
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This keyed scalar records how many times a urlbar engagement occurred while a
+navigational suggestion was present. It is recorded only when the Nimbus
+variable ``recordNavigationalSuggestionTelemetry`` is true. (The variable is
+false by default.)
+
+Each key is the type of heuristic result that was present at the time of the
+engagement. Key names are the same as the heuristic result type names recorded
+in Glean telemetry.
+
+Changelog
+  Firefox 112.0
+    Introduced. [Bug 1819797_]
+
+.. _1819797: https://bugzilla.mozilla.org/show_bug.cgi?id=1819797
+
+contextual.services.quicksuggest.impression_nav_superceded
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This keyed scalar records how many times a urlbar engagement occurred when a
+navigational suggestion was matched but superseded by a heuristic result. It is
+recorded only when the Nimbus variable ``recordNavigationalSuggestionTelemetry``
+is true. (The variable is false by default.)
+
+Each key is the type of heuristic result that was present at the time of the
+engagement. Key names are the same as the heuristic result type names recorded
+in Glean telemetry.
+
+Changelog
+  Firefox 112.0
+    Introduced. [Bug 1819797_]
+
+.. _1819797: https://bugzilla.mozilla.org/show_bug.cgi?id=1819797
 
 contextual.services.quicksuggest.impression_nonsponsored
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -717,6 +844,10 @@ The event's objects are the following possible values:
   The user picked the suggestion's help button.
 :impression_only:
   The user picked some other row.
+:other:
+  The user engaged with the suggestion in some other way, for example by picking
+  a command in the result menu. This is a catch-all category and going forward
+  Glean telemetry should be preferred.
 
 The event's ``extra`` contains the following properties:
 
@@ -726,7 +857,8 @@ The event's ``extra`` contains the following properties:
 :position:
   The index of the suggestion in the list of results (1-based).
 :suggestion_type:
-  The type of suggestion, one of: "sponsored", "nonsponsored", "dynamic-wikipedia"
+  The type of suggestion, one of: "sponsored", "nonsponsored",
+  "dynamic-wikipedia", "navigational"
 :source:
   The source of suggestion, one of: "remote-settings", "merino"
 
@@ -738,8 +870,16 @@ Changelog
     ``source`` is added. [Bug 1800993_]
     ``dynamic-wikipedia`` is added as a value of ``suggestion_type``. [Bug 1800993_]
 
+  Firefox 112.0
+    ``navigational`` is added as a value of ``suggestion_type``. [Bug 1819797_]
+
+  Firefox 114.0
+    ``other`` is added as a value of the event object. [Bug 1827943_]
+
 .. _1761059: https://bugzilla.mozilla.org/show_bug.cgi?id=1761059
 .. _1800993: https://bugzilla.mozilla.org/show_bug.cgi?id=1800993
+.. _1819797: https://bugzilla.mozilla.org/show_bug.cgi?id=1819797
+.. _1827943: https://bugzilla.mozilla.org/show_bug.cgi?id=1827943
 
 contextservices.quicksuggest.impression_cap
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

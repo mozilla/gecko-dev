@@ -146,6 +146,7 @@ MockCubebStream::MockCubebStream(cubeb* aContext, cubeb_devid aInputDevice,
                                  void* aUserPtr, SmartMockCubebStream* aSelf,
                                  bool aFrozenStart)
     : context(aContext),
+      mUserPtr(aUserPtr),
       mHasInput(aInputStreamParams),
       mHasOutput(aOutputStreamParams),
       mSelf(aSelf),
@@ -153,7 +154,6 @@ MockCubebStream::MockCubebStream(cubeb* aContext, cubeb_devid aInputDevice,
       mFrozenStart(aFrozenStart),
       mDataCallback(aDataCallback),
       mStateCallback(aStateCallback),
-      mUserPtr(aUserPtr),
       mInputDeviceID(aInputDevice),
       mOutputDeviceID(aOutputDevice),
       mAudioGenerator(aInputStreamParams ? aInputStreamParams->channels
@@ -225,7 +225,7 @@ int MockCubebStream::Start() {
 }
 
 int MockCubebStream::Stop() {
-  mOutputVerificationEvent.Notify(MakeTuple(
+  mOutputVerificationEvent.Notify(std::make_tuple(
       mAudioVerifier.PreSilenceSamples(), mAudioVerifier.EstimatedFreq(),
       mAudioVerifier.CountDiscontinuities()));
   int rv = MockCubeb::AsMock(context)->StopStream(this);
@@ -234,6 +234,14 @@ int MockCubebStream::Stop() {
     NotifyStateChanged(CUBEB_STATE_STOPPED);
   }
   return rv;
+}
+
+void MockCubebStream::Destroy() {
+  // Dispatch an extra STOPPED state change as produced with audioipc.
+  // https://bugzilla.mozilla.org/show_bug.cgi?id=1801190#c1
+  NotifyStateChanged(CUBEB_STATE_STOPPED);
+
+  MockCubeb::AsMock(context)->StreamDestroy(AsCubebStream());
 }
 
 int MockCubebStream::RegisterDeviceChangedCallback(
@@ -317,7 +325,7 @@ MediaEventSource<uint32_t>& MockCubebStream::FramesVerifiedEvent() {
   return mFramesVerifiedEvent;
 }
 
-MediaEventSource<Tuple<uint64_t, float, uint32_t>>&
+MediaEventSource<std::tuple<uint64_t, float, uint32_t>>&
 MockCubebStream::OutputVerificationEvent() {
   return mOutputVerificationEvent;
 }

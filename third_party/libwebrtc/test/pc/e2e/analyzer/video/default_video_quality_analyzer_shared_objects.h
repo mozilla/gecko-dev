@@ -11,8 +11,10 @@
 #ifndef TEST_PC_E2E_ANALYZER_VIDEO_DEFAULT_VIDEO_QUALITY_ANALYZER_SHARED_OBJECTS_H_
 #define TEST_PC_E2E_ANALYZER_VIDEO_DEFAULT_VIDEO_QUALITY_ANALYZER_SHARED_OBJECTS_H_
 
+#include <cstdint>
 #include <map>
 #include <memory>
+#include <ostream>
 #include <set>
 #include <string>
 #include <utility>
@@ -21,6 +23,7 @@
 #include "absl/types/optional.h"
 #include "api/numerics/samples_stats_counter.h"
 #include "api/units/timestamp.h"
+#include "rtc_base/strings/string_builder.h"
 
 namespace webrtc {
 
@@ -62,6 +65,9 @@ struct FrameCounters {
   // Count of frames that were dropped in any point between capturing and
   // rendering.
   int64_t dropped = 0;
+  // Count of frames for which decoder returned error when they were sent for
+  // decoding.
+  int64_t failed_to_decode = 0;
 };
 
 // Contains information about the codec that was used for encoding or decoding
@@ -77,7 +83,14 @@ struct StreamCodecInfo {
   Timestamp switched_on_at = Timestamp::PlusInfinity();
   // Timestamp when this codec was used last time.
   Timestamp switched_from_at = Timestamp::PlusInfinity();
+
+  std::string ToString() const;
 };
+
+std::ostream& operator<<(std::ostream& os, const StreamCodecInfo& state);
+rtc::StringBuilder& operator<<(rtc::StringBuilder& sb,
+                               const StreamCodecInfo& state);
+bool operator==(const StreamCodecInfo& a, const StreamCodecInfo& b);
 
 // Represents phases where video frame can be dropped and such drop will be
 // detected by analyzer.
@@ -85,10 +98,15 @@ enum class FrameDropPhase : int {
   kBeforeEncoder,
   kByEncoder,
   kTransport,
+  kByDecoder,
   kAfterDecoder,
   // kLastValue must be the last value in this enumeration.
   kLastValue
 };
+
+std::string ToString(FrameDropPhase phase);
+std::ostream& operator<<(std::ostream& os, FrameDropPhase phase);
+rtc::StringBuilder& operator<<(rtc::StringBuilder& sb, FrameDropPhase phase);
 
 struct StreamStats {
   explicit StreamStats(Timestamp stream_started_time);
@@ -108,6 +126,7 @@ struct StreamStats {
   SamplesStatsCounter total_delay_incl_transport_ms;
   // Time between frames out from renderer.
   SamplesStatsCounter time_between_rendered_frames_ms;
+  SamplesRateCounter capture_frame_rate;
   SamplesRateCounter encode_frame_rate;
   SamplesStatsCounter encode_time_ms;
   SamplesStatsCounter decode_time_ms;
@@ -124,8 +143,9 @@ struct StreamStats {
   SamplesStatsCounter freeze_time_ms;
   // Mean time between one freeze end and next freeze start.
   SamplesStatsCounter time_between_freezes_ms;
-  SamplesStatsCounter resolution_of_rendered_frame;
+  SamplesStatsCounter resolution_of_decoded_frame;
   SamplesStatsCounter target_encode_bitrate;
+  SamplesStatsCounter qp;
 
   int64_t total_encoded_images_payload = 0;
   // Counters on which phase how many frames were dropped.
@@ -164,6 +184,16 @@ struct AnalyzerStats {
   // Count of frames in flight in analyzer measured when new comparison is added
   // and after analyzer was stopped.
   SamplesStatsCounter frames_in_flight_left_count;
+
+  // Next metrics are collected and reported iff
+  // `DefaultVideoQualityAnalyzerOptions::report_infra_metrics` is true.
+  SamplesStatsCounter on_frame_captured_processing_time_ms;
+  SamplesStatsCounter on_frame_pre_encode_processing_time_ms;
+  SamplesStatsCounter on_frame_encoded_processing_time_ms;
+  SamplesStatsCounter on_frame_pre_decode_processing_time_ms;
+  SamplesStatsCounter on_frame_decoded_processing_time_ms;
+  SamplesStatsCounter on_frame_rendered_processing_time_ms;
+  SamplesStatsCounter on_decoder_error_processing_time_ms;
 };
 
 struct StatsKey {
@@ -227,6 +257,9 @@ struct DefaultVideoQualityAnalyzerOptions {
   // Tells DefaultVideoQualityAnalyzer if detailed frame stats should be
   // reported.
   bool report_detailed_frame_stats = false;
+  // Tells DefaultVideoQualityAnalyzer if infra metrics related to the
+  // performance and stability of the analyzer itself should be reported.
+  bool report_infra_metrics = false;
   // If true DefaultVideoQualityAnalyzer will try to adjust frames before
   // computing PSNR and SSIM for them. In some cases picture may be shifted by
   // a few pixels after the encode/decode step. Those difference is invisible

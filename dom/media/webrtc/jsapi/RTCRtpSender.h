@@ -11,18 +11,18 @@
 #include "mozilla/StateMirroring.h"
 #include "mozilla/Maybe.h"
 #include "js/RootingAPI.h"
-#include "libwebrtcglue/MediaConduitInterface.h"
 #include "libwebrtcglue/RtpRtcpConfig.h"
 #include "nsTArray.h"
 #include "mozilla/dom/RTCStatsReportBinding.h"
+#include "mozilla/dom/RTCRtpCapabilitiesBinding.h"
 #include "mozilla/dom/RTCRtpParametersBinding.h"
 #include "RTCStatsReport.h"
 #include "jsep/JsepTrack.h"
+#include "transportbridge/MediaPipeline.h"
 
 class nsPIDOMWindowInner;
 
 namespace mozilla {
-class MediaPipelineTransmit;
 class MediaSessionConduit;
 class MediaTransportHandler;
 class JsepTransceiver;
@@ -34,9 +34,12 @@ class MediaStreamTrack;
 class Promise;
 class RTCDtlsTransport;
 class RTCDTMFSender;
+struct RTCRtpCapabilities;
 class RTCRtpTransceiver;
 
-class RTCRtpSender : public nsISupports, public nsWrapperCache {
+class RTCRtpSender : public nsISupports,
+                     public nsWrapperCache,
+                     public MediaPipelineTransmitControlInterface {
  public:
   RTCRtpSender(nsPIDOMWindowInner* aWindow, PeerConnectionImpl* aPc,
                MediaTransportHandler* aTransportHandler,
@@ -60,6 +63,8 @@ class RTCRtpSender : public nsISupports, public nsWrapperCache {
   already_AddRefed<Promise> ReplaceTrack(MediaStreamTrack* aWithTrack,
                                          ErrorResult& aError);
   already_AddRefed<Promise> GetStats(ErrorResult& aError);
+  static void GetCapabilities(const GlobalObject&, const nsAString& kind,
+                              Nullable<dom::RTCRtpCapabilities>& result);
   already_AddRefed<Promise> SetParameters(
       const dom::RTCRtpSendParameters& aParameters, ErrorResult& aError);
   // Not a simple getter, so not const
@@ -74,19 +79,18 @@ class RTCRtpSender : public nsISupports, public nsWrapperCache {
   nsTArray<RefPtr<RTCStatsPromise>> GetStatsInternal(
       bool aSkipIceStats = false);
 
-  // This would just be stream ids, except PeerConnection.jsm uses GetStreams
-  // to implement the non-standard RTCPeerConnection.getLocalStreams. We might
-  // be able to simplify this later.
-  // ChromeOnly webidl
-  void SetStreams(const Sequence<OwningNonNull<DOMMediaStream>>& aStreams);
+  void SetStreams(const Sequence<OwningNonNull<DOMMediaStream>>& aStreams,
+                  ErrorResult& aRv);
   // ChromeOnly webidl
   void GetStreams(nsTArray<RefPtr<DOMMediaStream>>& aStreams);
+  // ChromeOnly webidl
+  void SetStreamsImpl(const Sequence<OwningNonNull<DOMMediaStream>>& aStreams);
   // ChromeOnly webidl
   void SetTrack(const RefPtr<MediaStreamTrack>& aTrack);
   void Shutdown();
   void BreakCycles();
+  // Terminal state, reached through stopping RTCRtpTransceiver.
   void Stop();
-  void Start();
   bool HasTrack(const dom::MediaStreamTrack* aTrack) const;
   bool IsMyPc(const PeerConnectionImpl* aPc) const { return mPc.get() == aPc; }
   RefPtr<MediaPipelineTransmit> GetPipeline() const;
@@ -120,7 +124,9 @@ class RTCRtpSender : public nsISupports, public nsWrapperCache {
     return &mVideoCodecMode;
   }
   AbstractCanonical<std::string>* CanonicalCname() { return &mCname; }
-  AbstractCanonical<bool>* CanonicalTransmitting() { return &mTransmitting; }
+  AbstractCanonical<bool>* CanonicalTransmitting() override {
+    return &mTransmitting;
+  }
 
   bool HasPendingSetParameters() const { return mPendingParameters.isSome(); }
   void InvalidateLastReturnedParameters() {
@@ -130,13 +136,8 @@ class RTCRtpSender : public nsISupports, public nsWrapperCache {
  private:
   virtual ~RTCRtpSender();
 
-  void UpdateVideoConduit();
-  void UpdateAudioConduit();
-
   std::string GetMid() const;
   JsepTransceiver& GetJsepTransceiver();
-  void ConfigureVideoCodecMode();
-  void SetJsepRids(const RTCRtpSendParameters& aParameters);
   static void ApplyJsEncodingToConduitEncoding(
       const RTCRtpEncodingParameters& aJsEncoding,
       VideoCodecConfig::Encoding* aConduitEncoding);
@@ -147,12 +148,15 @@ class RTCRtpSender : public nsISupports, public nsWrapperCache {
   Sequence<RTCRtpEncodingParameters> ToSendEncodings(
       const std::vector<std::string>& aRids) const;
   void MaybeGetJsepRids();
+  void UpdateDtmfSender();
 
   void WarnAboutBadSetParameters(const nsCString& aError);
 
+  WatchManager<RTCRtpSender> mWatchManager;
   nsCOMPtr<nsPIDOMWindowInner> mWindow;
   RefPtr<PeerConnectionImpl> mPc;
   RefPtr<dom::MediaStreamTrack> mSenderTrack;
+  bool mAddTrackCalled = false;
   RTCRtpSendParameters mParameters;
   Maybe<RTCRtpSendParameters> mPendingParameters;
   uint32_t mNumSetParametersCalls = 0;
@@ -161,6 +165,8 @@ class RTCRtpSender : public nsISupports, public nsWrapperCache {
   // from before.
   Maybe<RTCRtpEncodingParameters> mUnicastEncoding;
   bool mSimulcastEnvelopeSet = false;
+  bool mSimulcastEnvelopeSetByJSEP = false;
+  bool mPendingRidChangeFromCompatMode = false;
   Maybe<RTCRtpSendParameters> mLastReturnedParameters;
   RefPtr<MediaPipelineTransmit> mPipeline;
   RefPtr<MediaTransportHandler> mTransportHandler;
@@ -173,7 +179,6 @@ class RTCRtpSender : public nsISupports, public nsWrapperCache {
   // TODO(bug 1803388): Remove the glean warnings once they are no longer needed
   bool mHaveWarnedBecauseNoGetParameters = false;
   bool mHaveWarnedBecauseEncodingCountChange = false;
-  bool mHaveWarnedBecauseRidChange = false;
   bool mHaveWarnedBecauseNoTransactionId = false;
   bool mHaveWarnedBecauseStaleTransactionId = false;
   // TODO(bug 1803389): Remove the glean errors once they are no longer needed.

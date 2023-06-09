@@ -100,11 +100,15 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
 
   void ResponsiveContentDensityChanged();
   void ElementStateChanged(mozilla::dom::ElementState) override;
-  void SetupForContentURLRequest();
+  void SetupOwnedRequest();
+  void DeinitOwnedRequest();
   bool ShouldShowBrokenImageIcon() const;
 
-  bool IsForElement() const { return mKind == Kind::ImageElement; }
+  bool IsForImageLoadingContent() const {
+    return mKind == Kind::ImageLoadingContent;
+  }
 
+  void UpdateXULImage();
   const mozilla::StyleImage* GetImageFromStyle() const;
 
 #ifdef ACCESSIBILITY
@@ -124,12 +128,7 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
 
   LogicalSides GetLogicalSkipSides() const final;
 
-  static void ReleaseGlobals() {
-    if (gIconLoad) {
-      gIconLoad->Shutdown();
-      gIconLoad = nullptr;
-    }
-  }
+  static void ReleaseGlobals();
 
   already_AddRefed<imgIRequest> GetCurrentRequest() const;
   void Notify(imgIRequest*, int32_t aType, const nsIntRect* aData);
@@ -190,7 +189,9 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
   // The kind of image frame we are.
   enum class Kind : uint8_t {
     // For an nsImageLoadingContent.
-    ImageElement,
+    ImageLoadingContent,
+    // For a <xul:image> element.
+    XULImage,
     // For css 'content: url(..)' on non-generated content.
     ContentProperty,
     // For a child of a ::before / ::after pseudo-element that had an url() item
@@ -206,6 +207,7 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
 
  private:
   friend nsIFrame* NS_NewImageFrame(mozilla::PresShell*, ComputedStyle*);
+  friend nsIFrame* NS_NewXULImageFrame(mozilla::PresShell*, ComputedStyle*);
   friend nsIFrame* NS_NewImageFrameForContentProperty(mozilla::PresShell*,
                                                       ComputedStyle*);
   friend nsIFrame* NS_NewImageFrameForGeneratedContentIndex(mozilla::PresShell*,
@@ -225,7 +227,7 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
 
  protected:
   nsImageFrame(ComputedStyle* aStyle, nsPresContext* aPresContext, ClassID aID)
-      : nsImageFrame(aStyle, aPresContext, aID, Kind::ImageElement) {}
+      : nsImageFrame(aStyle, aPresContext, aID, Kind::ImageLoadingContent) {}
 
   ~nsImageFrame() override;
 
@@ -319,15 +321,7 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
   nsRect PredictedDestRect(const nsRect& aFrameContentBox);
 
  private:
-  void MaybeRecordContentUrlOnImageTelemetry();
-
-  // random helpers
-  inline void SpecToURI(const nsAString& aSpec, nsIURI** aURI);
-
-  inline void GetLoadGroup(nsPresContext* aPresContext,
-                           nsILoadGroup** aLoadGroup);
   nscoord GetContinuationOffset() const;
-  void GetDocumentCharacterSet(nsACString& aCharset) const;
   bool ShouldDisplaySelection();
 
   // Whether the image frame should use the mapped aspect ratio from width=""
@@ -390,8 +384,9 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
 
   RefPtr<nsImageListener> mListener;
 
-  // An image request created for content: url(..) or list-style-image.
-  RefPtr<imgRequestProxy> mContentURLRequest;
+  // An image request created for content: url(..), list-style-image, or
+  // <xul:image>.
+  RefPtr<imgRequestProxy> mOwnedRequest;
 
   nsCOMPtr<imgIContainer> mImage;
   nsCOMPtr<imgIContainer> mPrevImage;
@@ -407,67 +402,14 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
   mozilla::AspectRatio mIntrinsicRatio;
 
   const Kind mKind;
-  bool mContentURLRequestRegistered;
-  bool mDisplayingIcon;
-  bool mFirstFrameComplete;
-  bool mReflowCallbackPosted;
-  bool mForceSyncDecoding;
-
+  bool mOwnedRequestRegistered = false;
+  bool mDisplayingIcon = false;
+  bool mFirstFrameComplete = false;
+  bool mReflowCallbackPosted = false;
+  bool mForceSyncDecoding = false;
   bool mIsInObjectOrEmbed = false;
 
-  /* loading / broken image icon support */
-
-  // XXXbz this should be handled by the prescontext, I think; that
-  // way we would have a single iconload per mozilla session instead
-  // of one per document...
-
-  // LoadIcons: initiate the loading of the static icons used to show
-  // loading / broken images
-  nsresult LoadIcons(nsPresContext* aPresContext);
-  nsresult LoadIcon(const nsAString& aSpec, nsPresContext* aPresContext,
-                    imgRequestProxy** aRequest);
-
-  class IconLoad final : public nsIObserver, public imgINotificationObserver {
-    // private class that wraps the data and logic needed for
-    // broken image and loading image icons
-   public:
-    IconLoad();
-
-    void Shutdown();
-
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIOBSERVER
-    NS_DECL_IMGINOTIFICATIONOBSERVER
-
-    void AddIconObserver(nsImageFrame* frame) {
-      MOZ_ASSERT(!mIconObservers.Contains(frame),
-                 "Observer shouldn't aleady be in array");
-      mIconObservers.AppendElement(frame);
-    }
-
-    void RemoveIconObserver(nsImageFrame* frame) {
-      mozilla::DebugOnly<bool> didRemove = mIconObservers.RemoveElement(frame);
-      MOZ_ASSERT(didRemove, "Observer not in array");
-    }
-
-   private:
-    ~IconLoad() = default;
-
-    void GetPrefs();
-    nsTObserverArray<nsImageFrame*> mIconObservers;
-
-   public:
-    RefPtr<imgRequestProxy> mLoadingImage;
-    RefPtr<imgRequestProxy> mBrokenImage;
-    bool mPrefForceInlineAltText;
-    bool mPrefShowPlaceholders;
-    bool mPrefShowLoadingPlaceholder;
-  };
-
  public:
-  // singleton pattern: one LoadIcons instance is used
-  static mozilla::StaticRefPtr<IconLoad> gIconLoad;
-
   friend class mozilla::nsDisplayImage;
   friend class nsDisplayGradient;
 };

@@ -11,7 +11,6 @@
 #include "mozilla/dom/XULPopupElement.h"
 #include "mozilla/dom/KeyboardEvent.h"
 #include "mozilla/dom/KeyboardEventBinding.h"
-#include "nsMenuBarListener.h"
 #include "nsXULPopupManager.h"
 #include "nsMenuPopupFrame.h"
 
@@ -56,7 +55,7 @@ bool XULButtonElement::HandleKeyPress(KeyboardEvent& keyEvent) {
     return false;
   }
 
-  if (nsMenuBarListener::IsAccessKeyPressed(keyEvent)) {
+  if (keyEvent.IsMenuAccessKeyPressed()) {
     return false;
   }
 

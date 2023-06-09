@@ -146,12 +146,8 @@ void SpeechSynthesis::AdvanceQueue() {
 
   nsAutoString docLang;
   nsCOMPtr<nsPIDOMWindowInner> window = GetOwner();
-  Document* doc = window ? window->GetExtantDoc() : nullptr;
-
-  if (doc) {
-    Element* elm = doc->GetHtmlElement();
-
-    if (elm) {
+  if (Document* doc = window ? window->GetExtantDoc() : nullptr) {
+    if (Element* elm = doc->GetHtmlElement()) {
       elm->GetLang(docLang);
     }
   }
@@ -229,7 +225,8 @@ void SpeechSynthesis::GetVoices(
   nsCOMPtr<nsPIDOMWindowInner> window = GetOwner();
   nsCOMPtr<nsIDocShell> docShell = window ? window->GetDocShell() : nullptr;
 
-  if (nsContentUtils::ShouldResistFingerprinting(docShell)) {
+  if (nsContentUtils::ShouldResistFingerprinting(docShell,
+                                                 RFPTarget::SpeechSynthesis)) {
     return;
   }
 
@@ -302,7 +299,8 @@ SpeechSynthesis::Observe(nsISupports* aSubject, const char* aTopic,
     nsCOMPtr<nsPIDOMWindowInner> window = GetOwner();
     nsCOMPtr<nsIDocShell> docShell = window ? window->GetDocShell() : nullptr;
 
-    if (!nsContentUtils::ShouldResistFingerprinting(docShell)) {
+    if (!nsContentUtils::ShouldResistFingerprinting(
+            docShell, RFPTarget::SpeechSynthesis)) {
       DispatchTrustedEvent(u"voiceschanged"_ns);
       // If we have a pending item, and voices become available, speak it.
       if (!mCurrentTask && !mHoldQueue && HasVoices()) {

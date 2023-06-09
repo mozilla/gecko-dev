@@ -25,10 +25,6 @@
   margin-inline: var(--urlbar-margin-inline);
 }
 
-#search-container[cui-areatype="panel"] {
-  margin: var(--arrowpanel-menuitem-margin);
-}
-
 :root[uidensity=touch] #urlbar-container,
 :root[uidensity=touch] #search-container {
   padding-block: 5px;
@@ -75,7 +71,7 @@
 #urlbar-input,
 #urlbar-scheme,
 .searchbar-textbox {
-  -moz-box-flex: 1;
+  flex: 1;
   background-color: transparent;
   color: inherit;
   border: none;
@@ -264,12 +260,16 @@
 }
 
 #urlbar-container {
-  -moz-box-align: center;
+  align-items: center;
 }
 
 #urlbar-container,
 #wrapper-urlbar-container {
-  -moz-box-flex: 400;
+  flex: 400 0 auto;
+}
+
+:root[chromehidden~="toolbar"] :is(#urlbar-container, #wrapper-urlbar-container) {
+  flex-shrink: 1;
 }
 
 #urlbar-search-splitter {
@@ -308,9 +308,9 @@
 
 #urlbar-search-mode-indicator-close {
   background: url(chrome://global/skin/icons/close.svg) no-repeat center;
-  background-size: 10px 10px;
-  width: 16px;
-  height: 16px;
+  background-size: round(62.5%, 2px);
+  width: round(max(16px, 1em), 2px);
+  height: round(max(16px, 1em), 2px);
   -moz-context-properties: fill, fill-opacity;
   fill-opacity: 0.6;
   fill: currentColor;
@@ -352,7 +352,7 @@
 }
 #star-button[starred] {
   fill-opacity: 1;
-  fill: var(--toolbar-field-icon-fill-attention);
+  fill: var(--toolbarbutton-icon-fill-attention);
 }
 
 /* URL bar and page action buttons */
@@ -513,7 +513,7 @@
   transition-property: background-color, mask-position-x, width, margin-inline-end;
   transition-timing-function: ease-in-out, ease-in-out, step-end, step-end;
   transition-duration: var(--cfr-animation-duration);
-  -moz-box-align: center;
+  align-items: center;
   margin-block: calc((var(--urlbar-min-height) - var(--urlbar-container-padding) - 2px /* border */ - 24px) / 2);
 }
 #cfr-label-container:-moz-locale-dir(rtl) {
@@ -571,7 +571,31 @@
 }
 
 #reader-mode-button[readeractive] > .urlbar-icon {
-  fill: var(--toolbar-field-icon-fill-attention);
+  fill: var(--toolbarbutton-icon-fill-attention);
+  fill-opacity: 1;
+}
+
+/* Picture-in-Picture icon */
+#picture-in-picture-button > .urlbar-icon {
+  list-style-image: url("chrome://global/skin/media/picture-in-picture-open.svg");
+}
+
+#picture-in-picture-button[pipactive] > .urlbar-icon {
+  list-style-image: url("chrome://global/skin/media/picture-in-picture-closed.svg");
+}
+
+#picture-in-picture-button:-moz-locale-dir(rtl) > .urlbar-icon {
+  transform: scaleX(-1);
+}
+
+/* Translations button */
+
+#translations-button > .urlbar-icon {
+  list-style-image: url(chrome://browser/skin/translations.svg);
+}
+
+#translations-button[translationsactive] > .urlbar-icon {
+  fill: var(--toolbarbutton-icon-fill-attention);
   fill-opacity: 1;
 }
 
@@ -626,7 +650,7 @@
 }
 
 #urlbar-zoom-button > .toolbarbutton-text {
-  display: -moz-box;
+  display: flex;
 }
 
 #urlbar-zoom-button > .toolbarbutton-icon {
@@ -637,16 +661,23 @@
 
 #search-container {
   min-width: 125px;
+  width: 125px;
 }
 
 #search-container,
 #wrapper-search-container {
-  -moz-box-flex: 175;
+  flex: 175 175 auto;
 }
 
 #search-container[width] {
-  /* Take something closer to the explicit width when requested */
-  -moz-box-flex: 1;
+  /* Take something closer to the explicit width when requested. Also important
+   * to use flex-basis auto so that the width is actually honored. */
+  flex: 1 auto;
+}
+
+#search-container[cui-areatype="panel"] {
+  margin: var(--arrowpanel-menuitem-margin);
+  width: auto;
 }
 
 #search-container[cui-areatype="panel"] > #searchbar:-moz-lwtheme {
@@ -663,7 +694,7 @@
 }
 
 .searchbar-search-button {
-  -moz-box-align: center;
+  align-items: center;
   fill: currentColor;
 }
 
@@ -720,7 +751,7 @@ moz-input-box > menupopup .context-menu-add-engine:not([image]) {
 moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left::after {
   content: "";
   position: relative;
-  display: -moz-box;
+  display: flex;
   background: url(chrome://browser/skin/search-indicator-badge-add.svg) no-repeat center;
   height: 11px;
   width: 11px;

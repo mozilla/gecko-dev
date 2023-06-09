@@ -14,7 +14,6 @@
 #include "mozilla/PresShell.h"
 #include "mozilla/SVGContainerFrame.h"
 #include "mozilla/SVGObserverUtils.h"
-#include "mozilla/SVGOuterSVGFrame.h"
 #include "mozilla/SVGUtils.h"
 #include "mozilla/dom/SVGForeignObjectElement.h"
 #include "nsDisplayList.h"
@@ -45,7 +44,8 @@ SVGForeignObjectFrame::SVGForeignObjectFrame(ComputedStyle* aStyle,
                                              nsPresContext* aPresContext)
     : nsContainerFrame(aStyle, aPresContext, kClassID), mInReflow(false) {
   AddStateBits(NS_FRAME_REFLOW_ROOT | NS_FRAME_MAY_BE_TRANSFORMED |
-               NS_FRAME_SVG_LAYOUT);
+               NS_FRAME_SVG_LAYOUT | NS_FRAME_FONT_INFLATION_CONTAINER |
+               NS_FRAME_FONT_INFLATION_FLOW_ROOT);
 }
 
 //----------------------------------------------------------------------
@@ -63,21 +63,6 @@ void SVGForeignObjectFrame::Init(nsIContent* aContent,
 
   nsContainerFrame::Init(aContent, aParent, aPrevInFlow);
   AddStateBits(aParent->GetStateBits() & NS_STATE_SVG_CLIPPATH_CHILD);
-  AddStateBits(NS_FRAME_FONT_INFLATION_CONTAINER |
-               NS_FRAME_FONT_INFLATION_FLOW_ROOT);
-  AddStateBits(NS_FRAME_MAY_BE_TRANSFORMED);
-  if (!(mState & NS_FRAME_IS_NONDISPLAY)) {
-    SVGUtils::GetOuterSVGFrame(this)->RegisterForeignObject(this);
-  }
-}
-
-void SVGForeignObjectFrame::DestroyFrom(nsIFrame* aDestructRoot,
-                                        PostDestroyData& aPostDestroyData) {
-  // Only unregister if we registered in the first place:
-  if (!(mState & NS_FRAME_IS_NONDISPLAY)) {
-    SVGUtils::GetOuterSVGFrame(this)->UnregisterForeignObject(this);
-  }
-  nsContainerFrame::DestroyFrom(aDestructRoot, aPostDestroyData);
 }
 
 nsresult SVGForeignObjectFrame::AttributeChanged(int32_t aNameSpaceID,
@@ -165,38 +150,14 @@ void SVGForeignObjectFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
 
 bool SVGForeignObjectFrame::IsSVGTransformed(
     Matrix* aOwnTransform, Matrix* aFromParentTransform) const {
-  bool foundTransform = false;
-
-  // Check if our parent has children-only transforms:
-  nsIFrame* parent = GetParent();
-  if (parent &&
-      parent->IsFrameOfType(nsIFrame::eSVG | nsIFrame::eSVGContainer)) {
-    foundTransform =
-        static_cast<SVGContainerFrame*>(parent)->HasChildrenOnlyTransform(
-            aFromParentTransform);
-  }
-
-  SVGElement* content = static_cast<SVGElement*>(GetContent());
-  SVGAnimatedTransformList* transformList = content->GetAnimatedTransformList();
-  if ((transformList && transformList->HasTransform()) ||
-      content->GetAnimateMotionTransform()) {
-    if (aOwnTransform) {
-      *aOwnTransform = gfx::ToMatrix(
-          content->PrependLocalTransformsTo(gfxMatrix(), eUserSpaceToParent));
-    }
-    foundTransform = true;
-  }
-  return foundTransform;
+  return SVGUtils::IsSVGTransformed(this, aOwnTransform, aFromParentTransform);
 }
 
 void SVGForeignObjectFrame::PaintSVG(gfxContext& aContext,
                                      const gfxMatrix& aTransform,
-                                     imgDrawingParams& aImgParams,
-                                     const nsIntRect* aDirtyRect) {
-  NS_ASSERTION(
-      !NS_SVGDisplayListPaintingEnabled() || (mState & NS_FRAME_IS_NONDISPLAY),
-      "If display lists are enabled, only painting of non-display "
-      "SVG should take this code path");
+                                     imgDrawingParams& aImgParams) {
+  NS_ASSERTION(HasAnyStateBits(NS_FRAME_IS_NONDISPLAY),
+               "Only painting of non-display SVG should take this code path");
 
   if (IsDisabled()) {
     return;
@@ -210,35 +171,6 @@ void SVGForeignObjectFrame::PaintSVG(gfxContext& aContext,
   if (aTransform.IsSingular()) {
     NS_WARNING("Can't render foreignObject element!");
     return;
-  }
-
-  nsRect kidDirtyRect = kid->InkOverflowRect();
-
-  /* Check if we need to draw anything. */
-  if (aDirtyRect) {
-    NS_ASSERTION(!NS_SVGDisplayListPaintingEnabled() ||
-                     (mState & NS_FRAME_IS_NONDISPLAY),
-                 "Display lists handle dirty rect intersection test");
-    // Transform the dirty rect into app units in our userspace.
-    gfxMatrix invmatrix = aTransform;
-    DebugOnly<bool> ok = invmatrix.Invert();
-    NS_ASSERTION(ok, "inverse of non-singular matrix should be non-singular");
-
-    gfxRect transDirtyRect = gfxRect(aDirtyRect->x, aDirtyRect->y,
-                                     aDirtyRect->width, aDirtyRect->height);
-    transDirtyRect = invmatrix.TransformBounds(transDirtyRect);
-
-    kidDirtyRect.IntersectRect(kidDirtyRect,
-                               nsLayoutUtils::RoundGfxRectToAppRect(
-                                   transDirtyRect, AppUnitsPerCSSPixel()));
-
-    // XXX after bug 614732 is fixed, we will compare mRect with aDirtyRect,
-    // not with kidDirtyRect. I.e.
-    // int32_t appUnitsPerDevPx = PresContext()->AppUnitsPerDevPixel();
-    // mRect.ToOutsidePixels(appUnitsPerDevPx).Intersects(*aDirtyRect)
-    if (kidDirtyRect.IsEmpty()) {
-      return;
-    }
   }
 
   aContext.Save();
@@ -275,7 +207,7 @@ void SVGForeignObjectFrame::PaintSVG(gfxContext& aContext,
   if (aImgParams.imageFlags & imgIContainer::FLAG_HIGH_QUALITY_SCALING) {
     flags |= PaintFrameFlags::UseHighQualityScaling;
   }
-  nsLayoutUtils::PaintFrame(&aContext, kid, nsRegion(kidDirtyRect),
+  nsLayoutUtils::PaintFrame(&aContext, kid, nsRegion(kid->InkOverflowRect()),
                             NS_RGBA(0, 0, 0, 0),
                             nsDisplayListBuilderMode::Painting, flags);
 
@@ -283,10 +215,9 @@ void SVGForeignObjectFrame::PaintSVG(gfxContext& aContext,
 }
 
 nsIFrame* SVGForeignObjectFrame::GetFrameForPoint(const gfxPoint& aPoint) {
-  NS_ASSERTION(!NS_SVGDisplayListHitTestingEnabled() ||
-                   (mState & NS_FRAME_IS_NONDISPLAY),
-               "If display lists are enabled, only hit-testing of a "
-               "clipPath's contents should take this code path");
+  NS_ASSERTION(
+      HasAnyStateBits(NS_FRAME_IS_NONDISPLAY),
+      "Only hit-testing of non-display SVG should take this code path");
 
   if (IsDisabled() || HasAnyStateBits(NS_FRAME_IS_NONDISPLAY)) {
     return nullptr;
@@ -350,7 +281,7 @@ void SVGForeignObjectFrame::ReflowSVG() {
 
   DoReflow();
 
-  if (mState & NS_FRAME_FIRST_REFLOW) {
+  if (HasAnyStateBits(NS_FRAME_FIRST_REFLOW)) {
     // Make sure we have our filter property (if any) before calling
     // FinishAndStoreOverflow (subsequent filter changes are handled off
     // nsChangeHint_UpdateEffects):
@@ -506,13 +437,13 @@ void SVGForeignObjectFrame::DoReflow() {
   }
 
   // initiate a synchronous reflow here and now:
-  RefPtr<gfxContext> renderingContext =
+  UniquePtr<gfxContext> renderingContext =
       presContext->PresShell()->CreateReferenceRenderingContext();
 
   mInReflow = true;
 
   WritingMode wm = kid->GetWritingMode();
-  ReflowInput reflowInput(presContext, kid, renderingContext,
+  ReflowInput reflowInput(presContext, kid, renderingContext.get(),
                           LogicalSize(wm, ISize(wm), NS_UNCONSTRAINEDSIZE));
   ReflowOutput desiredSize(reflowInput);
   nsReflowStatus status;
@@ -537,21 +468,6 @@ void SVGForeignObjectFrame::DoReflow() {
                     ReflowChildFlags::NoMoveFrame);
 
   mInReflow = false;
-}
-
-nsRect SVGForeignObjectFrame::GetInvalidRegion() {
-  MOZ_ASSERT(!NS_SVGDisplayListPaintingEnabled(),
-             "Only called by nsDisplayOuterSVG code");
-
-  nsIFrame* kid = PrincipalChildList().FirstChild();
-  if (kid->HasInvalidFrameInSubtree()) {
-    gfxRect r(mRect.x, mRect.y, mRect.width, mRect.height);
-    r.Scale(1.0 / AppUnitsPerCSSPixel());
-    nsRect rect = SVGUtils::ToCanvasBounds(r, GetCanvasTM(), PresContext());
-    rect = SVGUtils::GetPostFilterInkOverflowRect(this, rect);
-    return rect;
-  }
-  return nsRect();
 }
 
 void SVGForeignObjectFrame::AppendDirectlyOwnedAnonBoxes(

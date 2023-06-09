@@ -31,6 +31,8 @@ class MFMediaEngineVideoStream final : public MFMediaEngineStream {
     return "media engine video stream"_ns;
   }
 
+  nsCString GetCodecName() const override;
+
   TrackInfo::TrackType TrackType() override {
     return TrackInfo::TrackType::kVideoTrack;
   }
@@ -49,6 +51,8 @@ class MFMediaEngineVideoStream final : public MFMediaEngineStream {
   void SetConfig(const TrackInfo& aConfig);
 
   RefPtr<MediaDataDecoder::DecodePromise> Drain() override;
+
+  bool IsEncrypted() const override;
 
  private:
   HRESULT
@@ -93,6 +97,9 @@ class MFMediaEngineVideoStream final : public MFMediaEngineStream {
   // return. This promise is used for that case, and will be resolved once we
   // have dcomp image.
   MozPromiseHolder<MediaDataDecoder::DecodePromise> mPendingDrainPromise;
+
+  // Set when `CreateMediaType()` is called.
+  bool mIsEncrypted = false;
 };
 
 }  // namespace mozilla

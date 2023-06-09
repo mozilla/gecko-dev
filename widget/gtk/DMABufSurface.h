@@ -290,9 +290,12 @@ class DMABufSurfaceYUV : public DMABufSurface {
   static already_AddRefed<DMABufSurfaceYUV> CreateYUVSurface(
       int aWidth, int aHeight, void** aPixelData = nullptr,
       int* aLineSizes = nullptr);
-
   static already_AddRefed<DMABufSurfaceYUV> CreateYUVSurface(
       const VADRMPRIMESurfaceDescriptor& aDesc, int aWidth, int aHeight);
+  static already_AddRefed<DMABufSurfaceYUV> CopyYUVSurface(
+      const VADRMPRIMESurfaceDescriptor& aVaDesc, int aWidth, int aHeight);
+  static void ReleaseVADRMPRIMESurfaceDescriptor(
+      VADRMPRIMESurfaceDescriptor& aDesc);
 
   bool Serialize(mozilla::layers::SurfaceDescriptor& aOutDescriptor);
 
@@ -323,8 +326,7 @@ class DMABufSurfaceYUV : public DMABufSurface {
 
   bool UpdateYUVData(void** aPixelData, int* aLineSizes);
   bool UpdateYUVData(const VADRMPRIMESurfaceDescriptor& aDesc, int aWidth,
-                     int aHeight);
-
+                     int aHeight, bool aCopy);
   bool VerifyTextureCreation();
 
  private:
@@ -332,9 +334,18 @@ class DMABufSurfaceYUV : public DMABufSurface {
 
   bool Create(const mozilla::layers::SurfaceDescriptor& aDesc);
   bool Create(int aWidth, int aHeight, void** aPixelData, int* aLineSizes);
-  bool CreateYUVPlane(int aPlane, int aWidth, int aHeight, int aDrmFormat);
+  bool CreateYUVPlane(int aPlane);
+  bool CreateLinearYUVPlane(int aPlane, int aWidth, int aHeight,
+                            int aDrmFormat);
   void UpdateYUVPlane(int aPlane, void* aPixelData, int aLineSize);
 
+  bool MoveYUVDataImpl(const VADRMPRIMESurfaceDescriptor& aDesc, int aWidth,
+                       int aHeight);
+  bool CopyYUVDataImpl(const VADRMPRIMESurfaceDescriptor& aDesc, int aWidth,
+                       int aHeight);
+
+  bool ImportPRIMESurfaceDescriptor(const VADRMPRIMESurfaceDescriptor& aDesc,
+                                    int aWidth, int aHeight);
   bool ImportSurfaceDescriptor(
       const mozilla::layers::SurfaceDescriptorDMABuf& aDesc);
 

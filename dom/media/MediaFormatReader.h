@@ -194,6 +194,8 @@ class MediaFormatReader final
   RefPtr<GenericPromise> RequestDebugInfo(
       dom::MediaFormatReaderDebugInfo& aInfo);
 
+  Maybe<nsCString> GetAudioProcessPerCodec();
+
   // Switch the video decoder to NullDecoderModule. It might takes effective
   // since a few samples later depends on how much demuxed samples are already
   // queued in the original video decoder.
@@ -363,7 +365,9 @@ class MediaFormatReader final
         : mOwner(aOwner),
           mType(aType),
           mMutex("DecoderData"),
-          mDescription("shutdown"),
+          mDescription("uninitialized"),
+          mProcessName(""),
+          mCodecName(""),
           mUpdateScheduled(false),
           mDemuxEOS(false),
           mWaitingForData(false),
@@ -407,14 +411,16 @@ class MediaFormatReader final
     // Only non-null up until the decoder is created.
     RefPtr<TaskQueue> mTaskQueue;
 
-    // Mutex protecting mDescription, mDecoder, mTrackDemuxer and mWorkingInfo
-    // as those can be read outside the TaskQueue.
+    // Mutex protecting mDescription, mDecoder, mTrackDemuxer, mWorkingInfo,
+    // mProcessName and mCodecName as those can be read outside the TaskQueue.
     // They are only written on the TaskQueue however, as such mMutex doesn't
     // need to be held when those members are read on the TaskQueue.
     Mutex mMutex MOZ_UNANNOTATED;
     // The platform decoder.
     RefPtr<MediaDataDecoder> mDecoder;
     nsCString mDescription;
+    nsCString mProcessName;
+    nsCString mCodecName;
     void ShutdownDecoder();
 
     // Only accessed from reader's task queue.
@@ -513,6 +519,9 @@ class MediaFormatReader final
         // TODO: Telemetry?
         return tooManyConsecutiveCrashes ||
                StaticPrefs::media_playback_warnings_as_errors();
+      } else if (mError.ref() ==
+                 NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_MF_CDM_ERR) {
+        return false;
       } else {
         // All other error types are fatal
         return true;

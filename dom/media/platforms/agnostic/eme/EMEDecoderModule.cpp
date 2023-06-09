@@ -69,9 +69,11 @@ class ADTSSampleConverter {
   const uint8_t mFrequencyIndex;
 };
 
-class EMEDecryptor : public MediaDataDecoder,
-                     public DecoderDoctorLifeLogger<EMEDecryptor> {
+class EMEDecryptor final : public MediaDataDecoder,
+                           public DecoderDoctorLifeLogger<EMEDecryptor> {
  public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(EMEDecryptor, final);
+
   EMEDecryptor(MediaDataDecoder* aDecoder, CDMProxy* aProxy,
                TrackInfo::TrackType aType,
                const std::function<MediaEventProducer<TrackInfo::TrackType>*()>&
@@ -261,11 +263,15 @@ class EMEDecryptor : public MediaDataDecoder,
     return mDecoder->GetDescriptionName();
   }
 
+  nsCString GetCodecName() const override { return mDecoder->GetCodecName(); }
+
   ConversionRequired NeedsConversion() const override {
     return mDecoder->NeedsConversion();
   }
 
  private:
+  ~EMEDecryptor() = default;
+
   RefPtr<MediaDataDecoder> mDecoder;
   nsCOMPtr<nsISerialEventTarget> mThread;
   RefPtr<CDMProxy> mProxy;
@@ -464,9 +470,10 @@ EMEDecoderModule::AsyncCreateDecoder(const CreateDecoderParams& aParams) {
 
 media::DecodeSupportSet EMEDecoderModule::SupportsMimeType(
     const nsACString& aMimeType, DecoderDoctorDiagnostics* aDiagnostics) const {
-  Maybe<nsCString> gmp;
-  gmp.emplace(NS_ConvertUTF16toUTF8(mProxy->KeySystem()));
-  return GMPDecoderModule::SupportsMimeType(aMimeType, gmp);
+  Maybe<nsCString> keySystem;
+  keySystem.emplace(NS_ConvertUTF16toUTF8(mProxy->KeySystem()));
+  return GMPDecoderModule::SupportsMimeType(
+      aMimeType, nsLiteralCString(CHROMIUM_CDM_API), keySystem);
 }
 
 }  // namespace mozilla

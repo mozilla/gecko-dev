@@ -190,6 +190,7 @@ pub struct WebRenderOptions {
     /// items, if the zoom factor is relatively small, bilinear filtering should
     /// make the result look quite close to the high-quality zoom, except for glyphs.
     pub low_quality_pinch_zoom: bool,
+    pub max_shared_surface_size: i32,
 }
 
 impl WebRenderOptions {
@@ -258,6 +259,7 @@ impl Default for WebRenderOptions {
             enable_instancing: true,
             reject_software_rasterizer: false,
             low_quality_pinch_zoom: false,
+            max_shared_surface_size: 2048,
         }
     }
 }
@@ -505,7 +507,7 @@ pub fn create_webrender_instance(
             CompositorKind::Draw { max_partial_present_rects, draw_previous_partial_present_regions }
         }
         CompositorConfig::Native { ref compositor } => {
-            let capabilities = compositor.get_capabilities();
+            let capabilities = compositor.get_capabilities(&mut device);
 
             CompositorKind::Native {
                 capabilities,
@@ -532,6 +534,7 @@ pub fn create_webrender_instance(
         force_invalidation: false,
         is_software,
         low_quality_pinch_zoom: options.low_quality_pinch_zoom,
+        max_shared_surface_size: options.max_shared_surface_size,
     };
     info!("WR {:?}", config);
 
@@ -766,6 +769,8 @@ pub fn create_webrender_instance(
         max_primitive_instance_count,
         enable_instancing: options.enable_instancing,
         consecutive_oom_frames: 0,
+        target_frame_publish_id: None,
+        pending_result_msg: None,
     };
 
     // We initially set the flags to default and then now call set_debug_flags

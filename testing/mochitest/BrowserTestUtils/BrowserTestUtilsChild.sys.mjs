@@ -214,8 +214,8 @@ export class BrowserTestUtilsChild extends JSWindowActorChild {
         // should happen immediately
         // upon loading this frame script.
 
-        const { ctypes } = ChromeUtils.import(
-          "resource://gre/modules/ctypes.jsm"
+        const { ctypes } = ChromeUtils.importESModule(
+          "resource://gre/modules/ctypes.sys.mjs"
         );
 
         let dies = function() {
@@ -228,6 +228,19 @@ export class BrowserTestUtilsChild extends JSWindowActorChild {
                 Ci.nsIDebug2
               );
               debug.crashWithOOM();
+              break;
+            }
+            case "CRASH_SYSCALL": {
+              if (Services.appinfo.OS == "Linux") {
+                let libc = ctypes.open("libc.so.6");
+                let chroot = libc.declare(
+                  "chroot",
+                  ctypes.default_abi,
+                  ctypes.int,
+                  ctypes.char.ptr
+                );
+                chroot("/");
+              }
               break;
             }
             case "CRASH_INVALID_POINTER_DEREF": // Fallthrough

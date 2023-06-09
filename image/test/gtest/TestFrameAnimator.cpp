@@ -16,13 +16,14 @@ using namespace mozilla::gfx;
 using namespace mozilla::image;
 
 static void CheckFrameAnimatorBlendResults(const ImageTestCase& aTestCase,
-                                           RasterImage* aImage) {
+                                           RasterImage* aImage, uint8_t aFuzz) {
   // Allow the animation to actually begin.
   aImage->IncrementAnimationConsumers();
 
   // Initialize for the first frame so we can advance.
   TimeStamp now = TimeStamp::Now();
   aImage->RequestRefresh(now);
+  EXPECT_EQ(aImage->GetFrameIndex(imgIContainer::FRAME_CURRENT), 0);
 
   RefPtr<SourceSurface> surface =
       aImage->GetFrame(imgIContainer::FRAME_CURRENT, imgIContainer::FLAG_NONE);
@@ -30,18 +31,19 @@ static void CheckFrameAnimatorBlendResults(const ImageTestCase& aTestCase,
 
   CheckGeneratedSurface(surface, IntRect(0, 0, 50, 50),
                         BGRAColor::Transparent(),
-                        aTestCase.ChooseColor(BGRAColor::Red()));
+                        aTestCase.ChooseColor(BGRAColor::Red()), aFuzz);
 
   // Advance to the next/final frame.
   now = TimeStamp::Now() + TimeDuration::FromMilliseconds(500);
   aImage->RequestRefresh(now);
+  EXPECT_EQ(aImage->GetFrameIndex(imgIContainer::FRAME_CURRENT), 1);
 
   surface =
       aImage->GetFrame(imgIContainer::FRAME_CURRENT, imgIContainer::FLAG_NONE);
   ASSERT_TRUE(surface != nullptr);
   CheckGeneratedSurface(surface, IntRect(0, 0, 50, 50),
                         aTestCase.ChooseColor(BGRAColor::Green()),
-                        aTestCase.ChooseColor(BGRAColor::Red()));
+                        aTestCase.ChooseColor(BGRAColor::Red()), aFuzz);
 }
 
 template <typename Func>
@@ -73,8 +75,10 @@ static void WithFrameAnimatorDecode(const ImageTestCase& aTestCase,
   // Create a metadata decoder first, because otherwise RasterImage will get
   // unhappy about finding out the image is animated during a full decode.
   DecoderType decoderType = DecoderFactory::GetDecoderType(aTestCase.mMimeType);
+  DecoderFlags decoderFlags =
+      DecoderFactory::GetDefaultDecoderFlagsForType(decoderType);
   RefPtr<IDecodingTask> task = DecoderFactory::CreateMetadataDecoder(
-      decoderType, rasterImage, sourceBuffer);
+      decoderType, rasterImage, decoderFlags, sourceBuffer);
   ASSERT_TRUE(task != nullptr);
 
   // Run the metadata decoder synchronously.
@@ -83,7 +87,6 @@ static void WithFrameAnimatorDecode(const ImageTestCase& aTestCase,
 
   // Create an AnimationSurfaceProvider which will manage the decoding process
   // and make this decoder's output available in the surface cache.
-  DecoderFlags decoderFlags = DefaultDecoderFlags();
   SurfaceFlags surfaceFlags = aTestCase.mSurfaceFlags;
   rv = DecoderFactory::CreateAnimationDecoder(
       decoderType, rasterImage, sourceBuffer, aTestCase.mSize, decoderFlags,
@@ -98,9 +101,10 @@ static void WithFrameAnimatorDecode(const ImageTestCase& aTestCase,
   aResultChecker(rasterImage.get());
 }
 
-static void CheckFrameAnimatorBlend(const ImageTestCase& aTestCase) {
+static void CheckFrameAnimatorBlend(const ImageTestCase& aTestCase,
+                                    uint8_t aFuzz = 0) {
   WithFrameAnimatorDecode(aTestCase, [&](RasterImage* aImage) {
-    CheckFrameAnimatorBlendResults(aTestCase, aImage);
+    CheckFrameAnimatorBlendResults(aTestCase, aImage, aFuzz);
   });
 }
 
@@ -119,4 +123,8 @@ TEST_F(ImageFrameAnimator, BlendPNGWithFilter) {
 
 TEST_F(ImageFrameAnimator, BlendWebPWithFilter) {
   CheckFrameAnimatorBlend(BlendAnimatedWebPTestCase());
+}
+
+TEST_F(ImageFrameAnimator, BlendAVIFWithFilter) {
+  CheckFrameAnimatorBlend(BlendAnimatedAVIFTestCase(), 1);
 }

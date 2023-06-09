@@ -66,7 +66,7 @@ class ComputedStyle {
 
   // Returns the computed (not resolved) value of the given property.
   void GetComputedPropertyValue(nsCSSPropertyID aId, nsACString& aOut) const {
-    Servo_GetPropertyValue(this, aId, &aOut);
+    Servo_GetComputedValue(this, aId, &aOut);
   }
 
   // Return the ComputedStyle whose style data should be used for the R,
@@ -228,6 +228,32 @@ class ComputedStyle {
 
   inline mozilla::StylePointerEvents PointerEvents() const;
   inline mozilla::StyleUserSelect UserSelect() const;
+
+  /**
+   * Returns whether the element is a containing block for its absolutely
+   * positioned descendants.
+   * aContextFrame is the frame for which this is the style (or an old style).
+   */
+  inline bool IsAbsPosContainingBlock(const nsIFrame*) const;
+
+  /**
+   * Returns true when the element is a containing block for its fixed-pos
+   * descendants.
+   * aContextFrame is the frame for which this is the style (or an old style).
+   */
+  inline bool IsFixedPosContainingBlock(const nsIFrame*) const;
+
+  /**
+   * Tests for only the sub-parts of IsFixedPosContainingBlock that apply to:
+   *  - nearly all frames, except those that are in SVG text subtrees.
+   *  - frames that support CSS contain:layout and contain:paint and are not
+   *    in SVG text subtrees.
+   *  - frames that support CSS transforms and are not in SVG text subtrees.
+   *
+   * This should be used only when the caller has the style but not the
+   * frame (i.e., when calculating style changes).
+   */
+  inline bool IsFixedPosContainingBlockForNonSVGTextFrames() const;
 
   /**
    * Compute the style changes needed during restyling when this style

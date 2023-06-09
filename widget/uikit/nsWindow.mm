@@ -317,7 +317,7 @@ class nsAutoRetainUIKitObject {
   // Create Cairo objects.
   RefPtr<gfxQuartzSurface> targetSurface;
 
-  RefPtr<gfxContext> targetContext;
+  UniquePtrPtr<gfxContext> targetContext;
   if (gfxPlatform::GetPlatform()->SupportsAzureContentForType(gfx::BackendType::CAIRO)) {
     // This is dead code unless you mess with prefs, but keep it around for
     // debugging.
@@ -396,8 +396,8 @@ void nsWindow::TearDownView() {
 }
 
 bool nsWindow::IsTopLevel() {
-  return mWindowType == eWindowType_toplevel || mWindowType == eWindowType_dialog ||
-         mWindowType == eWindowType_invisible;
+  return mWindowType == WindowType::TopLevel || mWindowType == WindowType::Dialog ||
+         mWindowType == WindowType::Invisible;
 }
 
 //
@@ -405,7 +405,7 @@ bool nsWindow::IsTopLevel() {
 //
 
 nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
-                          const LayoutDeviceIntRect& aRect, nsWidgetInitData* aInitData) {
+                          const LayoutDeviceIntRect& aRect, widget::InitData* aInitData) {
   ALOG("nsWindow[%p]::Create %p/%p [%d %d %d %d]", (void*)this, (void*)aParent,
        (void*)aNativeParent, aRect.x, aRect.y, aRect.width, aRect.height);
   nsWindow* parent = (nsWindow*)aParent;
@@ -433,8 +433,8 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
        mBounds.height);
 
   // Set defaults which can be overriden from aInitData in BaseCreate
-  mWindowType = eWindowType_toplevel;
-  mBorderStyle = eBorderStyle_default;
+  mWindowType = WindowType::TopLevel;
+  mBorderStyle = BorderStyle::Default;
 
   Inherited::BaseCreate(aParent, aInitData);
 
@@ -672,7 +672,6 @@ void* nsWindow::GetNativeData(uint32_t aDataType) {
 
   switch (aDataType) {
     case NS_NATIVE_WIDGET:
-    case NS_NATIVE_DISPLAY:
       retVal = (void*)mNativeView;
       break;
 

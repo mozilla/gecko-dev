@@ -39,6 +39,7 @@ const EXPECTED_SPONSORED_URLBAR_RESULT = {
   source: UrlbarUtils.RESULT_SOURCE.SEARCH,
   heuristic: false,
   payload: {
+    telemetryType: "adm_sponsored",
     url: "http://example.com/sponsored",
     originalUrl: "http://example.com/sponsored",
     displayUrl: "http://example.com/sponsored",
@@ -52,9 +53,17 @@ const EXPECTED_SPONSORED_URLBAR_RESULT = {
     sponsoredAdvertiser: "TestAdvertiser",
     sponsoredIabCategory: "22 - Shopping",
     helpUrl: QuickSuggest.HELP_URL,
-    helpL10n: { id: "firefox-suggest-urlbar-learn-more" },
-    isBlockable: false,
-    blockL10n: { id: "firefox-suggest-urlbar-block" },
+    helpL10n: {
+      id: UrlbarPrefs.get("resultMenu")
+        ? "urlbar-result-menu-learn-more-about-firefox-suggest"
+        : "firefox-suggest-urlbar-learn-more",
+    },
+    isBlockable: UrlbarPrefs.get("quickSuggestBlockingEnabled"),
+    blockL10n: {
+      id: UrlbarPrefs.get("resultMenu")
+        ? "urlbar-result-menu-dismiss-firefox-suggest"
+        : "firefox-suggest-urlbar-block",
+    },
     source: "remote-settings",
   },
 };
@@ -64,6 +73,7 @@ const EXPECTED_NONSPONSORED_URLBAR_RESULT = {
   source: UrlbarUtils.RESULT_SOURCE.SEARCH,
   heuristic: false,
   payload: {
+    telemetryType: "adm_nonsponsored",
     url: "http://example.com/nonsponsored",
     originalUrl: "http://example.com/nonsponsored",
     displayUrl: "http://example.com/nonsponsored",
@@ -77,9 +87,17 @@ const EXPECTED_NONSPONSORED_URLBAR_RESULT = {
     sponsoredAdvertiser: "TestAdvertiser",
     sponsoredIabCategory: "5 - Education",
     helpUrl: QuickSuggest.HELP_URL,
-    helpL10n: { id: "firefox-suggest-urlbar-learn-more" },
-    isBlockable: false,
-    blockL10n: { id: "firefox-suggest-urlbar-block" },
+    helpL10n: {
+      id: UrlbarPrefs.get("resultMenu")
+        ? "urlbar-result-menu-learn-more-about-firefox-suggest"
+        : "firefox-suggest-urlbar-learn-more",
+    },
+    isBlockable: UrlbarPrefs.get("quickSuggestBlockingEnabled"),
+    blockL10n: {
+      id: UrlbarPrefs.get("resultMenu")
+        ? "urlbar-result-menu-dismiss-firefox-suggest"
+        : "firefox-suggest-urlbar-block",
+    },
     source: "remote-settings",
   },
 };

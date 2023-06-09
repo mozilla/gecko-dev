@@ -32,41 +32,30 @@ class EffectSet {
  public:
   EffectSet()
       : mCascadeNeedsUpdate(false),
-        mAnimationGeneration(0)
-#ifdef DEBUG
-        ,
-        mActiveIterators(0),
-        mCalledPropertyDtor(false)
-#endif
-        ,
         mMayHaveOpacityAnim(false),
         mMayHaveTransformAnim(false) {
     MOZ_COUNT_CTOR(EffectSet);
   }
 
   ~EffectSet() {
-    MOZ_ASSERT(mCalledPropertyDtor,
-               "must call destructor through element property dtor");
-    MOZ_ASSERT(mActiveIterators == 0,
+    MOZ_ASSERT(!IsBeingEnumerated(),
                "Effect set should not be destroyed while it is being "
                "enumerated");
     MOZ_COUNT_DTOR(EffectSet);
   }
-  static void PropertyDtor(void* aObject, nsAtom* aPropertyName,
-                           void* aPropertyValue, void* aData);
 
   // Methods for supporting cycle-collection
   void Traverse(nsCycleCollectionTraversalCallback& aCallback);
 
-  static EffectSet* GetEffectSet(const dom::Element* aElement,
-                                 PseudoStyleType aPseudoType);
-  static EffectSet* GetOrCreateEffectSet(dom::Element* aElement,
-                                         PseudoStyleType aPseudoType);
+  static EffectSet* Get(const dom::Element* aElement,
+                        PseudoStyleType aPseudoType);
+  static EffectSet* GetOrCreate(dom::Element* aElement,
+                                PseudoStyleType aPseudoType);
 
-  static EffectSet* GetEffectSetForFrame(const nsIFrame* aFrame,
-                                         const nsCSSPropertyIDSet& aProperties);
-  static EffectSet* GetEffectSetForFrame(const nsIFrame* aFrame,
-                                         DisplayItemType aDisplayItemType);
+  static EffectSet* GetForFrame(const nsIFrame* aFrame,
+                                const nsCSSPropertyIDSet& aProperties);
+  static EffectSet* GetForFrame(const nsIFrame* aFrame,
+                                DisplayItemType aDisplayItemType);
   // Gets the EffectSet associated with the specified frame's content.
   //
   // Typically the specified frame should be a "style frame".
@@ -80,16 +69,16 @@ class EffectSet {
   // In such a situation, passing in the primary frame here will return nullptr
   // despite the fact that it has a transform animation applied to it.
   //
-  // GetEffectSetForFrame, above, handles this by automatically looking up the
+  // GetForFrame, above, handles this by automatically looking up the
   // EffectSet on the corresponding style frame when querying transform
   // properties. Unless you are sure you know what you are doing, you should
-  // try using GetEffectSetForFrame first.
+  // try using GetForFrame first.
   //
   // If you decide to use this, consider documenting why you are sure it is ok
   // to use this.
-  static EffectSet* GetEffectSetForStyleFrame(const nsIFrame* aStyleFrame);
+  static EffectSet* GetForStyleFrame(const nsIFrame* aStyleFrame);
 
-  static EffectSet* GetEffectSetForEffect(const dom::KeyframeEffect* aEffect);
+  static EffectSet* GetForEffect(const dom::KeyframeEffect* aEffect);
 
   static void DestroyEffectSet(dom::Element* aElement,
                                PseudoStyleType aPseudoType);
@@ -193,24 +182,20 @@ class EffectSet {
   void UpdateAnimationGeneration(nsPresContext* aPresContext);
   uint64_t GetAnimationGeneration() const { return mAnimationGeneration; }
 
-  static nsAtom** GetEffectSetPropertyAtoms();
-
   const nsCSSPropertyIDSet& PropertiesWithImportantRules() const {
     return mPropertiesWithImportantRules;
   }
   nsCSSPropertyIDSet& PropertiesWithImportantRules() {
     return mPropertiesWithImportantRules;
   }
-  nsCSSPropertyIDSet& PropertiesForAnimationsLevel() {
+  nsCSSPropertyIDSet PropertiesForAnimationsLevel() const {
     return mPropertiesForAnimationsLevel;
   }
-  nsCSSPropertyIDSet PropertiesForAnimationsLevel() const {
+  nsCSSPropertyIDSet& PropertiesForAnimationsLevel() {
     return mPropertiesForAnimationsLevel;
   }
 
  private:
-  static nsAtom* GetEffectSetPropertyAtom(PseudoStyleType aPseudoType);
-
   OwningEffectSet mEffects;
 
   // Refresh driver timestamp from the moment when the animations which produce
@@ -222,21 +207,13 @@ class EffectSet {
   // so scrollbars can be updated), so this tracks the last time we did that.
   TimeStamp mLastOverflowAnimationSyncTime;
 
-  // Dirty flag to represent when the mPropertiesWithImportantRules and
-  // mPropertiesForAnimationsLevel on effects in this set might need to be
-  // updated.
-  //
-  // Set to true any time the set of effects is changed or when
-  // one the effects goes in or out of the "in effect" state.
-  bool mCascadeNeedsUpdate;
-
   // RestyleManager keeps track of the number of animation restyles.
   // 'mini-flushes' (see nsTransitionManager::UpdateAllThrottledStyles()).
   // mAnimationGeneration is the sequence number of the last flush where a
   // transition/animation changed.  We keep a similar count on the
   // corresponding layer so we can check that the layer is up to date with
   // the animation manager.
-  uint64_t mAnimationGeneration;
+  uint64_t mAnimationGeneration = 0;
 
   // Specifies the compositor-animatable properties that are overridden by
   // !important rules.
@@ -249,13 +226,19 @@ class EffectSet {
 #ifdef DEBUG
   // Track how many iterators are referencing this effect set when we are
   // destroyed, we can assert that nothing is still pointing to us.
-  uint64_t mActiveIterators;
-
-  bool mCalledPropertyDtor;
+  uint64_t mActiveIterators = 0;
 #endif
 
-  bool mMayHaveOpacityAnim;
-  bool mMayHaveTransformAnim;
+  // Dirty flag to represent when the mPropertiesWithImportantRules and
+  // mPropertiesForAnimationsLevel on effects in this set might need to be
+  // updated.
+  //
+  // Set to true any time the set of effects is changed or when
+  // one the effects goes in or out of the "in effect" state.
+  bool mCascadeNeedsUpdate = false;
+
+  bool mMayHaveOpacityAnim = false;
+  bool mMayHaveTransformAnim = false;
 };
 
 }  // namespace mozilla

@@ -41,18 +41,6 @@
       // Chrome's test domains.
       "pinningtest.appspot.com",
       "pinning-test.badssl.com",
-      // Dropbox
-      "dropbox.com",
-      "www.dropbox.com",
-      // Twitter
-      "api.twitter.com",
-      "business.twitter.com",
-      "dev.twitter.com",
-      "mobile.twitter.com",
-      "oauth.twitter.com",
-      "platform.twitter.com",
-      "twimg.com",
-      "www.twitter.com",
       // Tor
       "torproject.org",
       "blog.torproject.org",
@@ -62,18 +50,28 @@
       // SpiderOak
       "spideroak.com"
     ],
-    "exclude_domains" : [
-      // Chrome's entry for twitter.com doesn't include subdomains, so replace
-      // it with our own entry below which also uses an expanded pinset.
-      "twitter.com"
-    ]
+    "exclude_domains" : []
    },
   "pinsets": [
     {
       "name": "mozilla_services",
       "sha256_hashes": [
+        // Current Digicert root hierarchy (G1)
+        // Digicert is migrating users off this root hierarchy
+        // https://knowledge.digicert.com/generalinformation/digicert-root-and-intermediate-ca-certificate-updates-2023.html
         "DigiCert Global Root CA",
         "DigiCert High Assurance EV Root CA",
+        // New Digicert root hierarchy (G2)
+        // Digicert is migrating users to this root hierarchy
+        // https://knowledge.digicert.com/generalinformation/digicert-root-and-intermediate-ca-certificate-updates-2023.html
+        "DigiCert Global Root G2",
+        // Future Digicert root hierarchy (G5)
+        // Digicert will be switching to this root hierarchy in the future
+        // https://knowledge.digicert.com/generalinformation/digicert-g5-root-and-intermediate-ca-certificate-migration.html
+        "DigiCert TLS ECC P384 Root G5",
+        "DigiCert TLS RSA4096 Root G5",
+        // Current Let’s Encrypt root hierachy
+        // https://letsencrypt.org/certificates/
         "ISRG Root X1"
       ]
     },
@@ -193,12 +191,7 @@
       "include_subdomains": false, "pins": "mozilla_test",
       "test_mode": false },
     { "name": "test-mode.pinning.example.com", "include_subdomains": true,
-      "pins": "mozilla_test", "test_mode": true },
-    // Expand twitter's pinset to include all of *.twitter.com and use
-    // twitterCDN. More specific rules take precedence because we search for
-    // exact domain name first.
-    { "name": "twitter.com", "include_subdomains": true,
-      "pins": "twitterCDN", "test_mode": false }
+      "pins": "mozilla_test", "test_mode": true }
   ],
   // When pinning to non-root certs, like intermediates,
   // place the PEM of the pinned certificate in this array

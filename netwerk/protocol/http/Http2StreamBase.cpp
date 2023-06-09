@@ -21,6 +21,7 @@
 #include "Http2Stream.h"
 
 #include "mozilla/BasePrincipal.h"
+#include "mozilla/StaticPrefs_network.h"
 #include "mozilla/Telemetry.h"
 #include "nsAlgorithm.h"
 #include "nsHttp.h"
@@ -31,9 +32,9 @@
 
 namespace mozilla::net {
 
-Http2StreamBase::Http2StreamBase(uint64_t aTransactionTabId,
+Http2StreamBase::Http2StreamBase(uint64_t aTransactionBrowserId,
                                  Http2Session* session, int32_t priority,
-                                 uint64_t bcId)
+                                 uint64_t currentBrowserId)
     : mSession(
           do_GetWeakReference(static_cast<nsISupportsWeakReference*>(session))),
       mRequestHeadersDone(0),
@@ -41,8 +42,8 @@ Http2StreamBase::Http2StreamBase(uint64_t aTransactionTabId,
       mAllHeadersReceived(0),
       mQueued(0),
       mSocketTransport(session->SocketTransport()),
-      mCurrentTopBrowsingContextId(bcId),
-      mTransactionTabId(aTransactionTabId),
+      mCurrentBrowserId(currentBrowserId),
+      mTransactionBrowserId(aTransactionBrowserId),
       mTxInlineFrameSize(Http2Session::kDefaultBufferSize),
       mChunkSize(session->SendingChunkSize()),
       mRequestBlockedOnRead(0),
@@ -554,19 +555,25 @@ void Http2StreamBase::UpdateTransportReadEvents(uint32_t count) {
 void Http2StreamBase::UpdateTransportSendEvents(uint32_t count) {
   mTotalSent += count;
 
+  // Setting the TCP send buffer, introduced in
+  // https://bugzilla.mozilla.org/show_bug.cgi?id=790184, which the following
+  // comment refers to, is being removed once we verify no increases in error
+  // rate.
+  //
   // normally on non-windows platform we use TCP autotuning for
   // the socket buffers, and this works well (managing enough
   // buffers for BDP while conserving memory) for HTTP even when
   // it creates really deep queues. However this 'buffer bloat' is
   // a problem for http/2 because it ruins the low latency properties
   // necessary for PING and cancel to work meaningfully.
-  //
+
   // If this stream represents a large upload, disable autotuning for
   // the session and cap the send buffers by default at 128KB.
   // (10Mbit/sec @ 100ms)
   //
   uint32_t bufferSize = gHttpHandler->SpdySendBufferSize();
-  if ((mTotalSent > bufferSize) && !mSetTCPSocketBuffer) {
+  if (StaticPrefs::network_http_http2_send_buffer_size() > 0 &&
+      (mTotalSent > bufferSize) && !mSetTCPSocketBuffer) {
     mSetTCPSocketBuffer = 1;
     mSocketTransport->SetSendBufferSize(bufferSize);
   }
@@ -954,7 +961,7 @@ void Http2StreamBase::UpdatePriorityDependency() {
   mPriorityDependency = GetPriorityDependencyFromTransaction(trans);
 
   if (gHttpHandler->ActiveTabPriority() &&
-      mTransactionTabId != mCurrentTopBrowsingContextId &&
+      mTransactionBrowserId != mCurrentBrowserId &&
       mPriorityDependency != Http2Session::kUrgentStartGroupID) {
     LOG3(
         ("Http2StreamBase::UpdatePriorityDependency %p "
@@ -971,7 +978,7 @@ void Http2StreamBase::UpdatePriorityDependency() {
        this, mPriorityDependency));
 }
 
-void Http2StreamBase::TopBrowsingContextIdChanged(uint64_t id) {
+void Http2StreamBase::CurrentBrowserIdChanged(uint64_t id) {
   if (!mStreamID) {
     // For pushed streams, we ignore the direct call from the session and
     // instead let it come to the internal function from the pushed stream, so
@@ -979,18 +986,18 @@ void Http2StreamBase::TopBrowsingContextIdChanged(uint64_t id) {
     return;
   }
 
-  TopBrowsingContextIdChangedInternal(id);
+  CurrentBrowserIdChangedInternal(id);
 }
 
-void Http2StreamBase::TopBrowsingContextIdChangedInternal(uint64_t id) {
+void Http2StreamBase::CurrentBrowserIdChangedInternal(uint64_t id) {
   MOZ_ASSERT(gHttpHandler->ActiveTabPriority());
   RefPtr<Http2Session> session = Session();
   LOG3(
-      ("Http2StreamBase::TopBrowsingContextIdChangedInternal "
-       "%p bcId=%" PRIx64 "\n",
+      ("Http2StreamBase::CurrentBrowserIdChangedInternal "
+       "%p browserId=%" PRIx64 "\n",
        this, id));
 
-  mCurrentTopBrowsingContextId = id;
+  mCurrentBrowserId = id;
 
   if (!session->UseH2Deps()) {
     return;
@@ -1002,10 +1009,10 @@ void Http2StreamBase::TopBrowsingContextIdChangedInternal(uint64_t id) {
     return;
   }
 
-  if (mTransactionTabId != mCurrentTopBrowsingContextId) {
+  if (mTransactionBrowserId != mCurrentBrowserId) {
     mPriorityDependency = Http2Session::kBackgroundGroupID;
     LOG3(
-        ("Http2StreamBase::TopBrowsingContextIdChangedInternal %p "
+        ("Http2StreamBase::CurrentBrowserIdChangedInternal %p "
          "move into background group.\n",
          this));
 
@@ -1018,7 +1025,7 @@ void Http2StreamBase::TopBrowsingContextIdChangedInternal(uint64_t id) {
 
     mPriorityDependency = GetPriorityDependencyFromTransaction(trans);
     LOG3(
-        ("Http2StreamBase::TopBrowsingContextIdChangedInternal %p "
+        ("Http2StreamBase::CurrentBrowserIdChangedInternal %p "
          "depends on stream 0x%X\n",
          this, mPriorityDependency));
   }

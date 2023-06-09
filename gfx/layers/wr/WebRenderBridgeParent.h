@@ -133,8 +133,9 @@ class WebRenderBridgeParent final : public PWebRenderBridgeParent,
   mozilla::ipc::IPCResult RecvSetFocusTarget(
       const FocusTarget& aFocusTarget) override;
   mozilla::ipc::IPCResult RecvParentCommands(
+      const wr::IdNamespace& aIdNamespace,
       nsTArray<WebRenderParentCommand>&& commands) override;
-  mozilla::ipc::IPCResult RecvGetSnapshot(PTextureParent* aTexture,
+  mozilla::ipc::IPCResult RecvGetSnapshot(NotNull<PTextureParent*> aTexture,
                                           bool* aNeedsYFlip) override;
 
   mozilla::ipc::IPCResult RecvSetLayersObserverEpoch(
@@ -289,13 +290,6 @@ class WebRenderBridgeParent final : public PWebRenderBridgeParent,
 
   void BeginRecording(const TimeStamp& aRecordingStart);
 
-  /**
-   * Write the frames collected since the call to BeginRecording to disk.
-   *
-   * If there is not currently a recorder, this is a no-op.
-   */
-  RefPtr<wr::WebRenderAPI::WriteCollectedFramesPromise> WriteCollectedFrames();
-
 #if defined(MOZ_WIDGET_ANDROID)
   /**
    * Request a screengrab for android
@@ -304,13 +298,9 @@ class WebRenderBridgeParent final : public PWebRenderBridgeParent,
   void MaybeCaptureScreenPixels();
 #endif
   /**
-   * Return the frames collected since the call to BeginRecording encoded
-   * as data URIs.
-   *
-   * If there is not currently a recorder, this is a no-op and the promise will
-   * be rejected.
+   * Stop recording and the frames collected since the call to BeginRecording
    */
-  RefPtr<wr::WebRenderAPI::GetCollectedFramesPromise> GetCollectedFrames();
+  RefPtr<wr::WebRenderAPI::EndRecordingPromise> EndRecording();
 
   void DisableNativeCompositor();
   void AddPendingScrollPayload(CompositionPayload& aPayload,
@@ -320,6 +310,8 @@ class WebRenderBridgeParent final : public PWebRenderBridgeParent,
       const VsyncId& aCompositeStartId);
 
   RefPtr<WebRenderBridgeParentRef> GetWebRenderBridgeParentRef();
+
+  void FlushPendingWrTransactionEventsWithWait();
 
  private:
   class ScheduleSharedSurfaceRelease;

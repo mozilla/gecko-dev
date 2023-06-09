@@ -300,6 +300,27 @@ IMFMediaEngineClassFactory : public IUnknown {
 
 #  endif /* __IMFMediaEngineClassFactory_INTERFACE_DEFINED__ */
 
+#  ifndef __IMFMediaEngineClassFactory4_INTERFACE_DEFINED__
+#    define __IMFMediaEngineClassFactory4_INTERFACE_DEFINED__
+
+/* interface IMFMediaEngineClassFactory4 */
+/* [local][uuid][object] */
+
+EXTERN_C const IID IID_IMFMediaEngineClassFactory4;
+
+MIDL_INTERFACE("fbe256c1-43cf-4a9b-8cb8-ce8632a34186")
+IMFMediaEngineClassFactory4 : public IUnknown {
+ public:
+  virtual HRESULT STDMETHODCALLTYPE CreateContentDecryptionModuleFactory(
+      /* [annotation][in] */
+      _In_ LPCWSTR keySystem,
+      /* [annotation][in] */
+      _In_ REFIID riid,
+      /* [annotation][iid_is][out] */
+      _Outptr_ LPVOID * ppvObject) = 0;
+};
+#  endif  // __IMFMediaEngineClassFactory4_INTERFACE_DEFINED__
+
 #  ifndef __IMFMediaEngine_INTERFACE_DEFINED__
 #    define __IMFMediaEngine_INTERFACE_DEFINED__
 
@@ -623,6 +644,72 @@ IMFMediaEngineEx : public IMFMediaEngine {
       _In_ BOOL fEnableTimer) = 0;
 };
 #  endif /* __IMFMediaEngineEx_INTERFACE_DEFINED__ */
+
+#  ifndef __IMFCdmSuspendNotify_INTERFACE_DEFINED__
+#    define __IMFCdmSuspendNotify_INTERFACE_DEFINED__
+
+/* interface IMFCdmSuspendNotify */
+/* [unique][uuid][object] */
+
+EXTERN_C const IID IID_IMFCdmSuspendNotify;
+
+MIDL_INTERFACE("7a5645d2-43bd-47fd-87b7-dcd24cc7d692")
+IMFCdmSuspendNotify : public IUnknown {
+ public:
+  virtual HRESULT STDMETHODCALLTYPE Begin(void) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE End(void) = 0;
+};
+
+#  endif /* __IMFCdmSuspendNotify_INTERFACE_DEFINED__ */
+
+#  ifndef __IMFMediaEngineProtectedContent_INTERFACE_DEFINED__
+#    define __IMFMediaEngineProtectedContent_INTERFACE_DEFINED__
+
+/* interface IMFMediaEngineProtectedContent */
+/* [local][uuid][object] */
+
+EXTERN_C const IID IID_IMFMediaEngineProtectedContent;
+
+MIDL_INTERFACE("9f8021e8-9c8c-487e-bb5c-79aa4779938c")
+IMFMediaEngineProtectedContent : public IUnknown {
+ public:
+  virtual HRESULT STDMETHODCALLTYPE ShareResources(
+      /* [annotation] */
+      _In_ IUnknown * pUnkDeviceContext) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE GetRequiredProtections(
+      /* [annotation][out] */
+      _Out_ DWORD * pFrameProtectionFlags) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE SetOPMWindow(
+      /* [annotation][in] */
+      _In_ HWND hwnd) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE TransferVideoFrame(
+      /* [annotation][in] */
+      _In_ IUnknown * pDstSurf,
+      /* [annotation][in] */
+      _In_opt_ const MFVideoNormalizedRect* pSrc,
+      /* [annotation][in] */
+      _In_ const RECT* pDst,
+      /* [annotation][in] */
+      _In_opt_ const MFARGB* pBorderClr,
+      /* [annotation][out] */
+      _Out_ DWORD* pFrameProtectionFlags) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE SetContentProtectionManager(
+      /* [annotation][in] */
+      _In_opt_ IMFContentProtectionManager * pCPM) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE SetApplicationCertificate(
+      /* [annotation][in] */
+      _In_reads_bytes_(cbBlob) const BYTE* pbBlob,
+      /* [annotation][in] */
+      _In_ DWORD cbBlob) = 0;
+};
+
+#  endif /* __IMFMediaEngineProtectedContent_INTERFACE_DEFINED__ */
 
 #endif  // extra class copy from mfmediaengine.h
 #endif  // DOM_MEDIA_PLATFORM_WMF_MFMEDIAENGINENOTIFY_H

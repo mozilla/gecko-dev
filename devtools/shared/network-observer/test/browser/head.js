@@ -26,7 +26,7 @@ const URL_ROOT = CHROME_URL_ROOT.replace(
  */
 async function loadURL(browser, url) {
   const loaded = BrowserTestUtils.browserLoaded(browser);
-  BrowserTestUtils.loadURI(browser, url);
+  BrowserTestUtils.loadURIString(browser, url);
   return loaded;
 }
 
@@ -54,12 +54,7 @@ function createNetworkEventOwner(event) {
     addEventTimings: () => {},
     addResponseCache: () => {},
     addResponseContent: () => {},
-    addResponseCookies: () => {},
-    addResponseHeaders: () => {},
     addResponseStart: () => {},
-    addRequestCookies: () => {},
-    addRequestHeaders: () => {},
-    addRequestPostData: () => {},
     addSecurityInfo: () => {},
     addServerTimings: () => {},
   };

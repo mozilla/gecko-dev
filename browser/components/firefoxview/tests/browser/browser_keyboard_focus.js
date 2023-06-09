@@ -1,12 +1,8 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-const { TabsSetupFlowManager } = ChromeUtils.importESModule(
-  "resource:///modules/firefox-view-tabs-setup-manager.sys.mjs"
-);
-
-XPCOMUtils.defineLazyModuleGetters(globalThis, {
-  SyncedTabs: "resource://services-sync/SyncedTabs.jsm",
+ChromeUtils.defineESModuleGetters(globalThis, {
+  SyncedTabs: "resource://services-sync/SyncedTabs.sys.mjs",
 });
 
 const SYNCED_URI = syncedTabsData1[0].tabs[1].url;
@@ -16,7 +12,7 @@ add_task(async function test_keyboard_focus() {
     set: [["accessibility.tabfocus", 7]],
   });
 
-  await withFirefoxView({ win: window }, async browser => {
+  await withFirefoxView({}, async browser => {
     const { document } = browser.contentWindow;
 
     const sandbox = setupRecentDeviceListMocks();
@@ -61,7 +57,9 @@ add_task(async function test_keyboard_focus() {
 
     window.FirefoxViewHandler.openTab();
 
-    let recentlyClosedEle = document.querySelector(".closed-tab-li-main");
+    let recentlyClosedEle = await TestUtils.waitForCondition(() =>
+      document.querySelector(".closed-tab-li-main")
+    );
     document.querySelectorAll(".page-section-header")[1].focus();
 
     EventUtils.synthesizeKey("KEY_Tab");

@@ -222,6 +222,14 @@ class EditorBase : public nsIEditor,
   }
 
   /**
+   * @return Ancestor limiter of normal selection
+   */
+  [[nodiscard]] nsIContent* GetSelectionAncestorLimiter() const {
+    Selection* selection = GetSelection(SelectionType::eNormal);
+    return selection ? selection->GetAncestorLimiter() : nullptr;
+  }
+
+  /**
    * Fast non-refcounting editor root element accessor
    */
   Element* GetRoot() const { return mRootElement; }
@@ -1665,39 +1673,28 @@ class EditorBase : public nsIEditor,
       const nsAString& aStringToInsert, SelectionHandling aSelectionHandling);
 
   /**
-   * InsertTextWithTransaction() inserts aStringToInsert to aPointToInsert or
-   * better insertion point around it.  If aPointToInsert isn't in a text node,
-   * this method looks for the nearest point in a text node with
-   * FindBetterInsertionPoint().  If there is no text node, this creates
-   * new text node and put aStringToInsert to it.
+   * Insert aStringToInsert to aPointToInsert or better insertion point around
+   * it.  If aPointToInsert isn't in a text node, this method looks for the
+   * nearest point in a text node with FindBetterInsertionPoint().  If there is
+   * no text node, this creates new text node and put aStringToInsert to it.
    *
    * @param aDocument       The document of this editor.
    * @param aStringToInsert The string to insert.
    * @param aPointToInsert  The point to insert aStringToInsert.
    *                        Must be valid DOM point.
-   * @return                If succeeded, returns the point after inserted
-   *                        aStringToInsert. So, when this method actually
-   *                        inserts string, returns a point in the text node.
-   *                        Otherwise, returns aPointToInsert.
    */
-  [[nodiscard]] MOZ_CAN_RUN_SCRIPT virtual Result<EditorDOMPoint, nsresult>
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT virtual Result<InsertTextResult, nsresult>
   InsertTextWithTransaction(Document& aDocument,
                             const nsAString& aStringToInsert,
                             const EditorDOMPoint& aPointToInsert);
 
   /**
-   * InsertTextIntoTextNodeWithTransaction() inserts aStringToInsert into
-   * aOffset of aTextNode with transaction.
-   *
-   * @param aStringToInsert     String to be inserted.
-   * @param aPointToInsert      The insertion point.
-   * @param aSuppressIME        true if it's not a part of IME composition.
-   *                            E.g., adjusting white-spaces during composition.
-   *                            false, otherwise.
+   * Insert aStringToInsert to aPointToInsert.
    */
-  MOZ_CAN_RUN_SCRIPT nsresult InsertTextIntoTextNodeWithTransaction(
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<InsertTextResult, nsresult>
+  InsertTextIntoTextNodeWithTransaction(
       const nsAString& aStringToInsert,
-      const EditorDOMPointInText& aPointToInsert, bool aSuppressIME = false);
+      const EditorDOMPointInText& aPointToInsert);
 
   /**
    * SetTextNodeWithoutTransaction() is optimized path to set new value to
@@ -1828,15 +1825,17 @@ class EditorBase : public nsIEditor,
                                     ErrorResult& aRv);
 
   /**
-   * DeleteTextWithTransaction() removes text in the range from aTextNode.
+   * Delete text in the range in aTextNode.  Use
+   * `HTMLEditor::ReplaceTextWithTransaction` if you'll insert text there (and
+   * if you want to use it in `TextEditor`, move it into `EditorBase`).
    *
    * @param aTextNode           The text node which should be modified.
    * @param aOffset             Start offset of removing text in aTextNode.
    * @param aLength             Length of removing text.
    */
-  MOZ_CAN_RUN_SCRIPT nsresult DeleteTextWithTransaction(dom::Text& aTextNode,
-                                                        uint32_t aOffset,
-                                                        uint32_t aLength);
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<CaretPoint, nsresult>
+  DeleteTextWithTransaction(dom::Text& aTextNode, uint32_t aOffset,
+                            uint32_t aLength);
 
   /**
    * MarkElementDirty() sets a special dirty attribute on the element.
@@ -2547,32 +2546,29 @@ class EditorBase : public nsIEditor,
    *                            be ignored.
    * @param aRangesToDelete     The ranges to delete content.
    */
-  [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<CaretPoint, nsresult>
   DeleteRangesWithTransaction(nsIEditor::EDirection aDirectionAndAmount,
                               nsIEditor::EStripWrappers aStripWrappers,
                               const AutoRangeArray& aRangesToDelete);
 
   /**
-   * Create an aggregate transaction for delete the content in aRangesToDelete.
-   * The result may include DeleteNodeTransactions and/or DeleteTextTransactions
-   * as its children.
+   * Create a transaction for delete the content in aRangesToDelete.
+   * The result may include DeleteRangeTransaction (for deleting non-collapsed
+   * range), DeleteNodeTransactions and DeleteTextTransactions (for deleting
+   * collapsed range) as its children.
    *
    * @param aHowToHandleCollapsedRange
    *                            How to handle collapsed ranges.
    * @param aRangesToDelete     The ranges to delete content.
-   * @return                    If it can remove the content in ranges, returns
-   *                            an aggregate transaction which has some
-   *                            DeleteNodeTransactions and/or
-   *                            DeleteTextTransactions as its children.
    */
-  already_AddRefed<EditAggregateTransaction>
+  already_AddRefed<DeleteMultipleRangesTransaction>
   CreateTransactionForDeleteSelection(
       HowToHandleCollapsedRange aHowToHandleCollapsedRange,
       const AutoRangeArray& aRangesToDelete);
 
   /**
-   * Create a transaction for removing the nodes and/or text around
-   * aRangeToDelete.
+   * Create a DeleteNodeTransaction or DeleteTextTransaction for removing a
+   * nodes or some text around aRangeToDelete.
    *
    * @param aCollapsedRange     The range to be removed.  This must be
    *                            collapsed.
@@ -2580,11 +2576,9 @@ class EditorBase : public nsIEditor,
    *                            How to handle aCollapsedRange.  Must
    *                            be HowToHandleCollapsedRange::ExtendBackward or
    *                            HowToHandleCollapsedRange::ExtendForward.
-   * @return                    The transaction to remove content around the
-   *                            range.  Its type is DeleteNodeTransaction or
-   *                            DeleteTextTransaction.
    */
-  already_AddRefed<EditTransactionBase> CreateTransactionForCollapsedRange(
+  already_AddRefed<DeleteContentTransactionBase>
+  CreateTransactionForCollapsedRange(
       const nsRange& aCollapsedRange,
       HowToHandleCollapsedRange aHowToHandleCollapsedRange);
 

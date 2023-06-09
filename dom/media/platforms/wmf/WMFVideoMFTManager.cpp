@@ -336,7 +336,7 @@ MediaResult WMFVideoMFTManager::InitInternal() {
       }
     }
 
-    if (gfxVars::HwDecodedVideoZeroCopy() && mKnowsCompositor &&
+    if (gfx::gfxVars::HwDecodedVideoZeroCopy() && mKnowsCompositor &&
         mKnowsCompositor->UsingHardwareWebRender() && mDXVA2Manager &&
         mDXVA2Manager->SupportsZeroCopyNV12Texture()) {
       mZeroCopyNV12Texture = true;
@@ -1077,6 +1077,20 @@ nsCString WMFVideoMFTManager::GetDescriptionName() const {
   return nsPrintfCString("wmf %s codec %s video decoder - %s, %s",
                          StreamTypeToString(mStreamType),
                          hw ? "hardware" : "software", dxvaName, formatName);
+}
+nsCString WMFVideoMFTManager::GetCodecName() const {
+  switch (mStreamType) {
+    case WMFStreamType::H264:
+      return "h264"_ns;
+    case WMFStreamType::VP8:
+      return "vp8"_ns;
+    case WMFStreamType::VP9:
+      return "vp9"_ns;
+    case WMFStreamType::AV1:
+      return "av1"_ns;
+    default:
+      return "unknown"_ns;
+  };
 }
 
 }  // namespace mozilla

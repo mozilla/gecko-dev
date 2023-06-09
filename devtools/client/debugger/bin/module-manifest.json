@@ -215,7 +215,6 @@
       "../../babel-loader/lib/index.js??ref--1!../../../packages/devtools-source-map/src/utils/index.js": 64,
       "../../babel-loader/lib/index.js??ref--1!../../devtools-modules/src/utils/event-emitter.js": 65,
       "../../fuzzaldrin-plus/lib/scorer.js": 66,
-      "../../classnames/index.js": 67,
       "../../@babel/types/lib/utils/shallowEqual.js": 68,
       "../../lodash/_Stack.js": 69,
       "../../lodash/_Map.js": 70,
@@ -1092,7 +1091,6 @@
       "../node_modules/extract-text-webpack-plugin/dist/loader.js??ref--3-0!../node_modules/css-loader/index.js??ref--3-1!../node_modules/postcss-loader/lib/index.js!../node_modules/react-aria-components/src/tabs/tab-list.css": 940,
       "../node_modules/babel-loader/lib/index.js??ref--1!../node_modules/react-aria-components/src/tabs/tabs.js": 941,
       "../node_modules/babel-loader/lib/index.js??ref--1!../node_modules/react-aria-components/src/utils/unique-id.js": 942,
-      "../node_modules/classnames/index.js": 943,
       "../node_modules/babel-loader/lib/index.js??ref--1!../packages/devtools-splitter/index.js": 944,
       "../node_modules/babel-loader/lib/index.js??ref--1!../packages/devtools-splitter/src/SplitBox.js": 945,
       "../node_modules/babel-loader/lib/index.js??ref--1!../packages/devtools-splitter/src/Draggable.js": 946,
@@ -1253,7 +1251,26 @@
       "../node_modules/path-browserify/index.js": 1101,
       "../node_modules/babel-loader/lib/index.js??ref--1!../packages/pretty-fast/pretty-fast.js": 1102,
       "../node_modules/acorn/dist/acorn.mjs": 1103,
-      "../packages/pretty-fast/node_modules/acorn/dist/acorn.mjs": 1104
+      "../packages/pretty-fast/node_modules/acorn/dist/acorn.mjs": 1104,
+      "../node_modules/babel-loader/lib/index.js??ref--1!workers/pretty-print/pretty-fast.js": 1105,
+      "../node_modules/acorn/dist/acorn.es.js": 1106,
+      "../node_modules/@babel/generator/node_modules/source-map/lib/util.js": 1107,
+      "../node_modules/@babel/generator/node_modules/source-map/lib/source-map-generator.js": 1108,
+      "../node_modules/@babel/generator/node_modules/source-map/lib/base64-vlq.js": 1109,
+      "../node_modules/@babel/generator/node_modules/source-map/lib/array-set.js": 1110,
+      "../node_modules/source-map/lib/read-wasm.js": 1111,
+      "../node_modules/@babel/generator/node_modules/source-map/source-map.js": 1112,
+      "../node_modules/@babel/generator/node_modules/source-map/lib/base64.js": 1113,
+      "../node_modules/@babel/generator/node_modules/source-map/lib/mapping-list.js": 1114,
+      "../node_modules/@babel/generator/node_modules/source-map/lib/source-map-consumer.js": 1115,
+      "../node_modules/@babel/generator/node_modules/source-map/lib/binary-search.js": 1116,
+      "../node_modules/@babel/generator/node_modules/source-map/lib/quick-sort.js": 1117,
+      "../node_modules/@babel/generator/node_modules/source-map/lib/source-node.js": 1118,
+      "../node_modules/source-map/lib/wasm.js": 1119,
+      "external \"devtools/client/shared/vendor/micromatch/micromatch\"": 1120,
+      "../node_modules/node-libs-browser/node_modules/buffer/index.js": 1121,
+      "../node_modules/node-libs-browser/node_modules/base64-js/index.js": 1122,
+      "../node_modules/node-libs-browser/node_modules/ieee754/index.js": 1123
     },
     "usedIds": {
       "0": 0,
@@ -2360,7 +2377,26 @@
       "1101": 1101,
       "1102": 1102,
       "1103": 1103,
-      "1104": 1104
+      "1104": 1104,
+      "1105": 1105,
+      "1106": 1106,
+      "1107": 1107,
+      "1108": 1108,
+      "1109": 1109,
+      "1110": 1110,
+      "1111": 1111,
+      "1112": 1112,
+      "1113": 1113,
+      "1114": 1114,
+      "1115": 1115,
+      "1116": 1116,
+      "1117": 1117,
+      "1118": 1118,
+      "1119": 1119,
+      "1120": 1120,
+      "1121": 1121,
+      "1122": 1122,
+      "1123": 1123
     }
   },
   "chunks": {
@@ -2376,10 +2412,7 @@
     },
     "byBlocks": {},
     "usedIds": {
-      "0": 0,
-      "1": 1,
-      "4": 4,
-      "5": 5
+      "1": 1
     }
   },
   "extract-text-webpack-plugin ../../extract-text-webpack-plugin/dist ../../css-loader/index.js??ref--3-1!../../postcss-loader/lib/index.js!../../../packages/devtools-contextmenu/menu.css": [
@@ -2503,7 +2536,7 @@
         "byName": {},
         "byBlocks": {},
         "usedIds": {
-          "0": 0
+          "1": 1
         }
       }
     }
@@ -2524,7 +2557,7 @@
         "byName": {},
         "byBlocks": {},
         "usedIds": {
-          "0": 0
+          "1": 1
         }
       }
     }

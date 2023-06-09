@@ -11,7 +11,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   MessageManagerDestroyedPromise:
     "chrome://remote/content/marionette/sync.sys.mjs",
   TabManager: "chrome://remote/content/shared/TabManager.sys.mjs",
-  WebElementEventTarget: "chrome://remote/content/marionette/dom.sys.mjs",
   windowManager: "chrome://remote/content/shared/WindowManager.sys.mjs",
 });
 
@@ -34,7 +33,7 @@ export class Context {
    * @param {string} s
    *     Context string serialisation.
    *
-   * @return {Context}
+   * @returns {Context}
    *     Context.
    *
    * @throws {TypeError}
@@ -65,7 +64,7 @@ Context.Content = "content";
  */
 browser.Context = class {
   /**
-   * @param {ChromeWindow} win
+   * @param {ChromeWindow} window
    *     ChromeWindow that contains the top-level browsing context.
    * @param {GeckoDriver} driver
    *     Reference to driver instance.
@@ -123,7 +122,7 @@ browser.Context = class {
    * browser, represented by the <code>&lt;xul:browser&gt;</code>,
    * has been detached.
    *
-   * @return {boolean}
+   * @returns {boolean}
    *     True if browsing context has been discarded, false otherwise.
    */
   get closed() {
@@ -133,7 +132,7 @@ browser.Context = class {
   /**
    * Gets the position and dimensions of the top-level browsing context.
    *
-   * @return {Map.<string, number>}
+   * @returns {Map.<string, number>}
    *     Object with |x|, |y|, |width|, and |height| properties.
    */
   get rect() {
@@ -165,7 +164,7 @@ browser.Context = class {
   /**
    * Close the current window.
    *
-   * @return {Promise}
+   * @returns {Promise}
    *     A promise which is resolved when the current window has been closed.
    */
   async closeWindow() {
@@ -175,7 +174,7 @@ browser.Context = class {
   /**
    * Focus the current window.
    *
-   * @return {Promise}
+   * @returns {Promise}
    *     A promise which is resolved when the current window has been focused.
    */
   async focusWindow() {
@@ -188,7 +187,7 @@ browser.Context = class {
   /**
    * Open a new browser window.
    *
-   * @return {Promise}
+   * @returns {Promise}
    *     A promise resolving to the newly created chrome window.
    */
   openBrowserWindow(focus = false, isPrivate = false) {
@@ -202,7 +201,7 @@ browser.Context = class {
   /**
    * Close the current tab.
    *
-   * @return {Promise}
+   * @returns {Promise}
    *     A promise which is resolved when the current tab has been closed.
    *
    * @throws UnsupportedOperationError
@@ -286,7 +285,7 @@ browser.Context = class {
    *      A boolean value which determins whether to focus
    *      the window. Defaults to true.
    *
-   * @return {Tab}
+   * @returns {Tab}
    *     The selected tab.
    *
    * @throws UnsupportedOperationError
@@ -312,9 +311,11 @@ browser.Context = class {
       await lazy.TabManager.selectTab(this.tab);
     }
 
-    // TODO(ato): Currently tied to curBrowser, but should be moved to
-    // WebReference when introduced by https://bugzil.la/1400256.
-    this.eventObserver = new lazy.WebElementEventTarget(this.messageManager);
+    // By accessing the content browser's message manager a new browsing
+    // context is created for browserless tabs, which is needed to successfully
+    // run the WebDriver's is browsing context open step. This is temporary
+    // until we find a better solution on bug 1812258.
+    this.messageManager;
 
     return this.tab;
   }
@@ -324,7 +325,7 @@ browser.Context = class {
    * if it is not already assigned, and if a) we already have a session
    * or b) we're starting a new session and it is the right start frame.
    *
-   * @param {xul:browser} target
+   * @param {XULBrowser} target
    *     The <xul:browser> that was the target of the originating message.
    */
   register(target) {
@@ -357,7 +358,7 @@ export const WindowState = {
    * @param {number} windowState
    *     Attribute from {@link nsIDOMChromeWindow.windowState}.
    *
-   * @return {WindowState}
+   * @returns {WindowState}
    *     JSON representation.
    *
    * @throws {TypeError}

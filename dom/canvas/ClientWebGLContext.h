@@ -34,8 +34,9 @@ class ClientWebGLExtensionBase;
 class HostWebGLContext;
 
 namespace dom {
+class OwningHTMLCanvasElementOrOffscreenCanvas;
 class WebGLChild;
-}
+}  // namespace dom
 
 namespace gfx {
 class DrawTargetWebgl;
@@ -175,6 +176,8 @@ class ContextGenerationInfo final {
 
   Maybe<uvec2> mDrawingBufferSize;
 
+  webgl::ProvokingVertex mProvokingVertex = webgl::ProvokingVertex::LastVertex;
+
   ObjectId NextId() { return mLastId += 1; }
 };
 
@@ -275,7 +278,7 @@ class WebGLBufferJS final : public nsWrapperCache, public webgl::ObjectJS {
       : webgl::ObjectJS(webgl) {}
 
  private:
-  ~WebGLBufferJS() = default;
+  ~WebGLBufferJS();
 
  public:
   JSObject* WrapObject(JSContext*, JS::Handle<JSObject*>) override;
@@ -312,7 +315,7 @@ class WebGLFramebufferJS final : public nsWrapperCache, public webgl::ObjectJS {
   bool mInOpaqueRAF = false;
 
  private:
-  ~WebGLFramebufferJS() = default;
+  ~WebGLFramebufferJS();
 
   void EnsureColorAttachments();
 
@@ -404,7 +407,7 @@ class WebGLQueryJS final : public nsWrapperCache,
       : webgl::ObjectJS(webgl) {}
 
  private:
-  ~WebGLQueryJS() = default;
+  ~WebGLQueryJS();
 
  public:
   JSObject* WrapObject(JSContext*, JS::Handle<JSObject*>) override;
@@ -425,7 +428,7 @@ class WebGLRenderbufferJS final : public nsWrapperCache,
 
   explicit WebGLRenderbufferJS(const ClientWebGLContext& webgl)
       : webgl::ObjectJS(webgl) {}
-  ~WebGLRenderbufferJS() = default;
+  ~WebGLRenderbufferJS();
 
  public:
   JSObject* WrapObject(JSContext*, JS::Handle<JSObject*>) override;
@@ -443,7 +446,7 @@ class WebGLSamplerJS final : public nsWrapperCache, public webgl::ObjectJS {
       : webgl::ObjectJS(webgl) {}
 
  private:
-  ~WebGLSamplerJS() = default;
+  ~WebGLSamplerJS();
 
  public:
   JSObject* WrapObject(JSContext*, JS::Handle<JSObject*>) override;
@@ -493,7 +496,7 @@ class WebGLSyncJS final : public nsWrapperCache,
   friend class webgl::AvailabilityRunnable;
 
   bool mCanBeAvailable = false;
-  bool mHasWarnedNotAvailable = false;
+  uint8_t mNumQueriesBeforeFirstFrameBoundary = 0;
   bool mSignaled = false;
 
  public:
@@ -504,7 +507,7 @@ class WebGLSyncJS final : public nsWrapperCache,
       : webgl::ObjectJS(webgl) {}
 
  private:
-  ~WebGLSyncJS() = default;
+  ~WebGLSyncJS();
 
  public:
   JSObject* WrapObject(JSContext*, JS::Handle<JSObject*>) override;
@@ -525,7 +528,7 @@ class WebGLTextureJS final : public nsWrapperCache, public webgl::ObjectJS {
       : webgl::ObjectJS(webgl) {}
 
  private:
-  ~WebGLTextureJS() = default;
+  ~WebGLTextureJS();
 
  public:
   JSObject* WrapObject(JSContext*, JS::Handle<JSObject*>) override;
@@ -550,7 +553,7 @@ class WebGLTransformFeedbackJS final : public nsWrapperCache,
   explicit WebGLTransformFeedbackJS(const ClientWebGLContext&);
 
  private:
-  ~WebGLTransformFeedbackJS() = default;
+  ~WebGLTransformFeedbackJS();
 
  public:
   JSObject* WrapObject(JSContext*, JS::Handle<JSObject*>) override;
@@ -603,7 +606,7 @@ class WebGLVertexArrayJS final : public nsWrapperCache, public webgl::ObjectJS {
   explicit WebGLVertexArrayJS(const ClientWebGLContext&);
 
  private:
-  ~WebGLVertexArrayJS() = default;
+  ~WebGLVertexArrayJS();
 
  public:
   JSObject* WrapObject(JSContext*, JS::Handle<JSObject*>) override;
@@ -970,7 +973,8 @@ class ClientWebGLContext final : public nsICanvasRenderingContextInternal,
 
   void ResetBitmap() override;
 
-  UniquePtr<uint8_t[]> GetImageBuffer(int32_t* out_format) override;
+  UniquePtr<uint8_t[]> GetImageBuffer(int32_t* out_format,
+                                      gfx::IntSize* out_imageSize) override;
   NS_IMETHOD GetInputStream(const char* mimeType,
                             const nsAString& encoderOptions,
                             nsIInputStream** out_stream) override;
@@ -1435,7 +1439,8 @@ class ClientWebGLContext final : public nsICanvasRenderingContextInternal,
   void RawBufferData(GLenum target, const uint8_t* srcBytes, size_t srcLen,
                      GLenum usage);
   void RawBufferSubData(GLenum target, WebGLsizeiptr dstByteOffset,
-                        const uint8_t* srcBytes, size_t srcLen);
+                        const uint8_t* srcBytes, size_t srcLen,
+                        bool unsynchronized = false);
 
   void BufferSubData(GLenum target, WebGLsizeiptr dstByteOffset,
                      const dom::ArrayBufferView& src, GLuint srcElemOffset = 0,
@@ -2159,6 +2164,9 @@ class ClientWebGLContext final : public nsICanvasRenderingContextInternal,
                     dom::CallerType callerType, ErrorResult& rv);
 
  protected:
+  bool IsExtensionForbiddenForCaller(const WebGLExtensionID ext,
+                                     const dom::CallerType callerType) const;
+
   RefPtr<ClientWebGLExtensionBase> GetExtension(WebGLExtensionID ext,
                                                 dom::CallerType callerType);
   void RequestExtension(WebGLExtensionID) const;
@@ -2182,6 +2190,8 @@ class ClientWebGLContext final : public nsICanvasRenderingContextInternal,
                             ErrorResult& rv) {
     GetParameter(cx, pname, retval, rv, true);
   }
+
+  void ProvokingVertex(GLenum rawMode) const;
 
   // -------------------------------------------------------------------------
   // Client-side methods.  Calls in the Host are forwarded to the client.

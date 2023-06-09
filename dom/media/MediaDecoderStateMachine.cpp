@@ -24,7 +24,7 @@
 #include "mozilla/StaticPrefs_media.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/TaskQueue.h"
-#include "mozilla/Tuple.h"
+
 #include "nsIMemoryReporter.h"
 #include "nsPrintfCString.h"
 #include "nsTArray.h"
@@ -251,11 +251,11 @@ class MediaDecoderStateMachine::StateObject {
   MediaQueue<VideoData>& VideoQueue() const { return mMaster->mVideoQueue; }
 
   template <class S, typename... Args, size_t... Indexes>
-  auto CallEnterMemberFunction(S* aS, Tuple<Args...>& aTuple,
+  auto CallEnterMemberFunction(S* aS, std::tuple<Args...>& aTuple,
                                std::index_sequence<Indexes...>)
       -> decltype(ReturnTypeHelper(&S::Enter)) {
     AUTO_PROFILER_LABEL("StateObject::CallEnterMemberFunction", MEDIA_PLAYBACK);
-    return aS->Enter(std::move(Get<Indexes>(aTuple))...);
+    return aS->Enter(std::move(std::get<Indexes>(aTuple))...);
   }
 
   // Note this function will delete the current state object.
@@ -268,7 +268,7 @@ class MediaDecoderStateMachine::StateObject {
     // So we 1) pass the parameters by reference, but then 2) immediately copy
     // them into a Tuple to be safe against modification, and finally 3) move
     // the elements of the Tuple into the final function call.
-    auto copiedArgs = MakeTuple(std::forward<Ts>(aArgs)...);
+    auto copiedArgs = std::make_tuple(std::forward<Ts>(aArgs)...);
 
     // Copy mMaster which will reset to null.
     auto* master = mMaster;
@@ -905,6 +905,7 @@ class MediaDecoderStateMachine::LoopingDecodingState
   }
 
   void Exit() override {
+    MOZ_DIAGNOSTIC_ASSERT(mMaster->OnTaskQueue());
     SLOG("Leaving looping state, offset [a=%" PRId64 ",v=%" PRId64
          "], endtime [a=%" PRId64 ",v=%" PRId64 "], track duration [a=%" PRId64
          ",v=%" PRId64 "], waiting=%s",
@@ -949,6 +950,13 @@ class MediaDecoderStateMachine::LoopingDecodingState
     DecodingState::Exit();
   }
 
+  ~LoopingDecodingState() {
+    MOZ_DIAGNOSTIC_ASSERT(!mAudioDataRequest.Exists());
+    MOZ_DIAGNOSTIC_ASSERT(!mVideoDataRequest.Exists());
+    MOZ_DIAGNOSTIC_ASSERT(!mAudioSeekRequest.Exists());
+    MOZ_DIAGNOSTIC_ASSERT(!mVideoSeekRequest.Exists());
+  }
+
   State GetState() const override { return DECODER_STATE_LOOPING_DECODING; }
 
   void HandleAudioDecoded(AudioData* aAudio) override {
@@ -991,7 +999,9 @@ class MediaDecoderStateMachine::LoopingDecodingState
         "]",
         AudioQueue().GetOffset().ToMicroseconds(),
         mMaster->mAudioTrackDecodedDuration->ToMicroseconds());
-    RequestDataFromStartPosition(TrackInfo::TrackType::kAudioTrack);
+    if (!IsRequestingDataFromStartPosition(MediaData::Type::AUDIO_DATA)) {
+      RequestDataFromStartPosition(TrackInfo::TrackType::kAudioTrack);
+    }
     ProcessSamplesWaitingAdjustmentIfAny();
   }
 
@@ -1013,7 +1023,9 @@ class MediaDecoderStateMachine::LoopingDecodingState
         "]",
         VideoQueue().GetOffset().ToMicroseconds(),
         mMaster->mVideoTrackDecodedDuration->ToMicroseconds());
-    RequestDataFromStartPosition(TrackInfo::TrackType::kVideoTrack);
+    if (!IsRequestingDataFromStartPosition(MediaData::Type::VIDEO_DATA)) {
+      RequestDataFromStartPosition(TrackInfo::TrackType::kVideoTrack);
+    }
     ProcessSamplesWaitingAdjustmentIfAny();
   }
 
@@ -1042,7 +1054,7 @@ class MediaDecoderStateMachine::LoopingDecodingState
                                   : SeekTarget::Track::VideoOnly))
         ->Then(
             OwnerThread(), __func__,
-            [this, isAudio]() mutable -> void {
+            [this, isAudio, master = RefPtr{mMaster}]() mutable -> void {
               AUTO_PROFILER_LABEL(
                   nsPrintfCString(
                       "LoopingDecodingState::RequestDataFromStartPosition(%s)::"
@@ -1050,6 +1062,12 @@ class MediaDecoderStateMachine::LoopingDecodingState
                       isAudio ? "audio" : "video")
                       .get(),
                   MEDIA_PLAYBACK);
+              if (auto& state = master->mStateObj;
+                  state &&
+                  state->GetState() != DECODER_STATE_LOOPING_DECODING) {
+                MOZ_RELEASE_ASSERT(false, "This shouldn't happen!");
+                return;
+              }
               if (isAudio) {
                 mAudioSeekRequest.Complete();
               } else {
@@ -1074,7 +1092,8 @@ class MediaDecoderStateMachine::LoopingDecodingState
                 RequestDataFromStartPosition(seekingType);
               }
             },
-            [this, isAudio](const SeekRejectValue& aReject) mutable -> void {
+            [this, isAudio, master = RefPtr{mMaster}](
+                const SeekRejectValue& aReject) mutable -> void {
               AUTO_PROFILER_LABEL(
                   nsPrintfCString("LoopingDecodingState::"
                                   "RequestDataFromStartPosition(%s)::"
@@ -1082,6 +1101,12 @@ class MediaDecoderStateMachine::LoopingDecodingState
                                   isAudio ? "audio" : "video")
                       .get(),
                   MEDIA_PLAYBACK);
+              if (auto& state = master->mStateObj;
+                  state &&
+                  state->GetState() != DECODER_STATE_LOOPING_DECODING) {
+                MOZ_RELEASE_ASSERT(false, "This shouldn't happen!");
+                return;
+              }
               if (isAudio) {
                 mAudioSeekRequest.Complete();
               } else {
@@ -1098,12 +1123,18 @@ class MediaDecoderStateMachine::LoopingDecodingState
         ->RequestAudioData()
         ->Then(
             OwnerThread(), __func__,
-            [this](const RefPtr<AudioData>& aAudio) {
+            [this, master = RefPtr{mMaster}](const RefPtr<AudioData>& aAudio) {
               AUTO_PROFILER_LABEL(
                   "LoopingDecodingState::"
                   "RequestAudioDataFromReader::"
                   "RequestDataResolved",
                   MEDIA_PLAYBACK);
+              if (auto& state = master->mStateObj;
+                  state &&
+                  state->GetState() != DECODER_STATE_LOOPING_DECODING) {
+                MOZ_RELEASE_ASSERT(false, "This shouldn't happen!");
+                return;
+              }
               mIsReachingAudioEOS = false;
               mAudioDataRequest.Complete();
               SLOG(
@@ -1121,12 +1152,18 @@ class MediaDecoderStateMachine::LoopingDecodingState
               HandleAudioDecoded(aAudio);
               ProcessSamplesWaitingAdjustmentIfAny();
             },
-            [this](const MediaResult& aError) {
+            [this, master = RefPtr{mMaster}](const MediaResult& aError) {
               AUTO_PROFILER_LABEL(
                   "LoopingDecodingState::"
                   "RequestAudioDataFromReader::"
                   "RequestDataRejected",
                   MEDIA_PLAYBACK);
+              if (auto& state = master->mStateObj;
+                  state &&
+                  state->GetState() != DECODER_STATE_LOOPING_DECODING) {
+                MOZ_RELEASE_ASSERT(false, "This shouldn't happen!");
+                return;
+              }
               mAudioDataRequest.Complete();
               HandleError(aError, true /* isAudio */);
             })
@@ -1140,12 +1177,18 @@ class MediaDecoderStateMachine::LoopingDecodingState
                            false /* aRequestNextVideoKeyFrame */)
         ->Then(
             OwnerThread(), __func__,
-            [this](const RefPtr<VideoData>& aVideo) {
+            [this, master = RefPtr{mMaster}](const RefPtr<VideoData>& aVideo) {
               AUTO_PROFILER_LABEL(
                   "LoopingDecodingState::"
                   "RequestVideoDataFromReaderAfterEOS()::"
                   "RequestDataResolved",
                   MEDIA_PLAYBACK);
+              if (auto& state = master->mStateObj;
+                  state &&
+                  state->GetState() != DECODER_STATE_LOOPING_DECODING) {
+                MOZ_RELEASE_ASSERT(false, "This shouldn't happen!");
+                return;
+              }
               mIsReachingVideoEOS = false;
               mVideoDataRequest.Complete();
               SLOG(
@@ -1164,12 +1207,18 @@ class MediaDecoderStateMachine::LoopingDecodingState
               HandleVideoDecoded(aVideo);
               ProcessSamplesWaitingAdjustmentIfAny();
             },
-            [this](const MediaResult& aError) {
+            [this, master = RefPtr{mMaster}](const MediaResult& aError) {
               AUTO_PROFILER_LABEL(
                   "LoopingDecodingState::"
                   "RequestVideoDataFromReaderAfterEOS()::"
                   "RequestDataRejected",
                   MEDIA_PLAYBACK);
+              if (auto& state = master->mStateObj;
+                  state &&
+                  state->GetState() != DECODER_STATE_LOOPING_DECODING) {
+                MOZ_RELEASE_ASSERT(false, "This shouldn't happen!");
+                return;
+              }
               mVideoDataRequest.Complete();
               HandleError(aError, false /* isAudio */);
             })
@@ -1487,6 +1536,15 @@ class MediaDecoderStateMachine::LoopingDecodingState
     MOZ_DIAGNOSTIC_ASSERT(aType == MediaData::Type::VIDEO_DATA);
     return mMaster->IsWaitingVideoData() ||
            IsDataWaitingForTimestampAdjustment(MediaData::Type::VIDEO_DATA);
+  }
+
+  bool IsRequestingDataFromStartPosition(MediaData::Type aType) const {
+    MOZ_DIAGNOSTIC_ASSERT(aType == MediaData::Type::AUDIO_DATA ||
+                          aType == MediaData::Type::VIDEO_DATA);
+    if (aType == MediaData::Type::AUDIO_DATA) {
+      return mAudioSeekRequest.Exists() || mAudioDataRequest.Exists();
+    }
+    return mVideoSeekRequest.Exists() || mVideoDataRequest.Exists();
   }
 
   bool mIsReachingAudioEOS;
@@ -3290,6 +3348,7 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
       mVideoDecodeSuspendTimer(mTaskQueue),
       mVideoDecodeMode(VideoDecodeMode::Normal),
       mIsMSE(aDecoder->IsMSE()),
+      mShouldResistFingerprinting(aDecoder->ShouldResistFingerprinting()),
       mSeamlessLoopingAllowed(false),
       INIT_MIRROR(mStreamName, nsAutoString()),
       INIT_MIRROR(mSinkDevice, nullptr),
@@ -3375,8 +3434,8 @@ MediaSink* MediaDecoderStateMachine::CreateAudioSink() {
 
   auto audioSinkCreator = [s = RefPtr<MediaDecoderStateMachine>(this), this]() {
     MOZ_ASSERT(OnTaskQueue());
-    AudioSink* audioSink =
-        new AudioSink(mTaskQueue, mAudioQueue, Info().mAudio);
+    AudioSink* audioSink = new AudioSink(mTaskQueue, mAudioQueue, Info().mAudio,
+                                         mShouldResistFingerprinting);
     mAudibleListener.DisconnectIfExists();
     mAudibleListener = audioSink->AudibleEvent().Connect(
         mTaskQueue, this, &MediaDecoderStateMachine::AudioAudibleChanged);
@@ -4344,8 +4403,8 @@ RefPtr<GenericPromise> MediaDecoderStateMachine::SetSink(
     const RefPtr<AudioDeviceInfo>& aDevice) {
   MOZ_ASSERT(OnTaskQueue());
   if (mIsMediaSinkSuspended) {
-    // Don't change sink id in a suspended sink.
-    return GenericPromise::CreateAndReject(NS_ERROR_ABORT, __func__);
+    // Don't create a new media sink when suspended.
+    return GenericPromise::CreateAndResolve(false, __func__);
   }
 
   if (mOutputCaptureState != MediaDecoder::OutputCaptureState::None) {

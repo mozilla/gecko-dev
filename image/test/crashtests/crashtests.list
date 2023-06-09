@@ -38,6 +38,7 @@ load delaytest.html?523528-2.gif
 
 load delaytest.html?1262549-1.gif
 load delaytest.html?1277397-1.jpg
+load delaytest.html?1277397-2.jpg
 
 # Bug 1160801 - Ensure that we handle invalid disposal types.
 load invalid-disposal-method-1.gif
@@ -62,10 +63,22 @@ load truncated-second-frame.png # Bug 863975
 load 1509998.gif
 
 load 1526717-1.html
-skip-if(ThreadSanitizer) load 1629490-1.html
+skip-if(ThreadSanitizer) pref(widget.windows.window_occlusion_tracking.enabled,false) load 1629490-1.html # Bug 1819154
 
-HTTP load 1634839-1.html
-HTTP load 1634839-2.html
+pref(widget.windows.window_occlusion_tracking.enabled,false) HTTP load 1634839-1.html # Bug 1819154
+pref(widget.windows.window_occlusion_tracking.enabled,false) HTTP load 1634839-2.html # Bug 1819154
 pref(image.animated.decode-on-demand.batch-size,1) pref(image.animated.decode-on-demand.threshold-kb,0) HTTP load 1676172-1.html
 pref(browser.soft_reload.only_force_validate_top_level_document,false) HTTP load 1763581-1.html
 load 1765871-1.jpg
+
+load 1814561.avif
+load 1814708.avif
+
+load 1814553.avif
+
+load 1814677.avif
+
+load 1814741.avif
+
+load 1814774.avif
+load 1817108.avif

@@ -117,8 +117,13 @@ mozilla::GenericErrorResult<AbortReason> WarpOracle::abort(HandleScript script,
   return res;
 }
 
-void WarpOracle::addScriptSnapshot(WarpScriptSnapshot* scriptSnapshot) {
+void WarpOracle::addScriptSnapshot(WarpScriptSnapshot* scriptSnapshot,
+                                   ICScript* icScript, size_t bytecodeLength) {
   scriptSnapshots_.insertBack(scriptSnapshot);
+  accumulatedBytecodeSize_ += bytecodeLength;
+#ifdef DEBUG
+  runningScriptHash_ = mozilla::AddToHash(runningScriptHash_, icScript->hash());
+#endif
 }
 
 AbortReasonOr<WarpSnapshot*> WarpOracle::createSnapshot() {
@@ -137,6 +142,8 @@ AbortReasonOr<WarpSnapshot*> WarpOracle::createSnapshot() {
           outerScript_->isGenerator() ? " isGenerator" : "",
           outerScript_->isAsync() ? " isAsync" : "");
 #endif
+
+  accumulatedBytecodeSize_ = outerScript_->length();
 
   MOZ_ASSERT(outerScript_->hasJitScript());
   ICScript* icScript = outerScript_->jitScript()->icScript();
@@ -178,14 +185,14 @@ AbortReasonOr<WarpSnapshot*> WarpOracle::createSnapshot() {
   //
   // To avoid this, we store a hash of the stub pointers and entry
   // counts in this snapshot, save that hash in the JitScript if we
-  // have a TranspiledCacheIR bailout, and assert that the hash has
-  // changed when we recompile.
+  // have a TranspiledCacheIR or MonomorphicInlinedStubFolding bailout,
+  // and assert that the hash has changed when we recompile.
   //
   // Note: this assertion catches potential performance issues.
   // Failing this assertion is not a correctness/security problem.
   // We therefore ignore cases involving resource exhaustion (OOM,
   // stack overflow, etc), or stubs purged by GC.
-  HashNumber hash = icScript->hash();
+  HashNumber hash = mozilla::AddToHash(icScript->hash(), runningScriptHash_);
   if (outerScript_->jitScript()->hasFailedICHash()) {
     HashNumber oldHash = outerScript_->jitScript()->getFailedICHash();
     MOZ_ASSERT_IF(hash == oldHash && !js::SupportDifferentialTesting(),
@@ -249,11 +256,7 @@ ICEntry& WarpScriptOracle::getICEntryAndFallback(BytecodeLocation loc,
 
 WarpEnvironment WarpScriptOracle::createEnvironment() {
   // Don't do anything if the script doesn't use the environment chain.
-  // Always make an environment chain if the script needs an arguments object
-  // because ArgumentsObject construction requires the environment chain to be
-  // passed in.
-  if (!script_->jitScript()->usesEnvironmentChain() &&
-      !script_->needsArgsObj()) {
+  if (!script_->jitScript()->usesEnvironmentChain()) {
     return WarpEnvironment(NoEnvironment());
   }
 
@@ -615,7 +618,10 @@ AbortReasonOr<WarpScriptSnapshot*> WarpScriptOracle::createScriptSnapshot() {
       case JSOp::SetLocal:
       case JSOp::InitLexical:
       case JSOp::GetArg:
+      case JSOp::GetFrameArg:
       case JSOp::SetArg:
+      case JSOp::ArgumentsLength:
+      case JSOp::GetActualArg:
       case JSOp::JumpTarget:
       case JSOp::LoopHead:
       case JSOp::Case:
@@ -899,7 +905,9 @@ AbortReasonOr<Ok> WarpScriptOracle::maybeInlineIC(WarpOpSnapshotList& snapshots,
 
   JitCode* jitCode = stub->jitCode();
 
-  if (fallbackStub->trialInliningState() == TrialInliningState::Inlined) {
+  if (fallbackStub->trialInliningState() == TrialInliningState::Inlined ||
+      fallbackStub->trialInliningState() ==
+          TrialInliningState::MonomorphicInlined) {
     bool inlinedCall;
     MOZ_TRY_VAR(inlinedCall, maybeInlineCall(snapshots, loc, stub, fallbackStub,
                                              stubDataCopy));
@@ -922,7 +930,7 @@ AbortReasonOr<bool> WarpScriptOracle::maybeInlineCall(
     WarpOpSnapshotList& snapshots, BytecodeLocation loc, ICCacheIRStub* stub,
     ICFallbackStub* fallbackStub, uint8_t* stubDataCopy) {
   Maybe<InlinableOpData> inlineData = FindInlinableOpData(stub, loc);
-  if (inlineData.isNothing() || !inlineData->icScript) {
+  if (inlineData.isNothing()) {
     return false;
   }
 
@@ -931,8 +939,38 @@ AbortReasonOr<bool> WarpScriptOracle::maybeInlineCall(
     return false;
   }
 
+  bool isTrialInlined =
+      fallbackStub->trialInliningState() == TrialInliningState::Inlined;
+  MOZ_ASSERT_IF(!isTrialInlined, fallbackStub->trialInliningState() ==
+                                     TrialInliningState::MonomorphicInlined);
+
   RootedScript targetScript(cx_, targetFunction->nonLazyScript());
-  ICScript* icScript = inlineData->icScript;
+  ICScript* icScript = nullptr;
+  if (isTrialInlined) {
+    icScript = inlineData->icScript;
+  } else {
+    JitScript* jitScript = targetScript->jitScript();
+    icScript = jitScript->icScript();
+  }
+
+  if (!icScript) {
+    return false;
+  }
+
+  // This is just a cheap check to limit the damage we can do to ourselves if
+  // we try to monomorphically inline an indirectly recursive call.
+  const uint32_t maxInliningDepth = 8;
+  if (!isTrialInlined &&
+      info_->inlineScriptTree()->depth() > maxInliningDepth) {
+    return false;
+  }
+
+  // And this is a second cheap check to ensure monomorphic inlining doesn't
+  // cause us to blow past our script size budget.
+  if (oracle_->accumulatedBytecodeSize() + targetScript->length() >
+      JitOptions.ionMaxScriptSize) {
+    return false;
+  }
 
   // Add the inlined script to the inline script tree.
   LifoAlloc* lifoAlloc = alloc_.lifoAlloc();
@@ -978,11 +1016,13 @@ AbortReasonOr<bool> WarpScriptOracle::maybeInlineCall(
         // If the target script can't be warp-compiled, mark it as
         // uninlineable, clean up, and fall through to the non-inlined path.
         ICEntry* entry = icScript_->icEntryForStub(fallbackStub);
-        fallbackStub->setTrialInliningState(TrialInliningState::Failure);
         fallbackStub->unlinkStub(cx_->zone(), entry, /*prev=*/nullptr, stub);
         targetScript->setUninlineable();
         info_->inlineScriptTree()->removeCallee(inlineScriptTree);
-        icScript_->removeInlinedChild(loc.bytecodeToOffset(script_));
+        if (isTrialInlined) {
+          icScript_->removeInlinedChild(loc.bytecodeToOffset(script_));
+        }
+        fallbackStub->setTrialInliningState(TrialInliningState::Failure);
         return false;
       }
       case AbortReason::Error:
@@ -994,7 +1034,11 @@ AbortReasonOr<bool> WarpScriptOracle::maybeInlineCall(
   }
 
   WarpScriptSnapshot* scriptSnapshot = maybeScriptSnapshot.unwrap();
-  oracle_->addScriptSnapshot(scriptSnapshot);
+  if (!isTrialInlined) {
+    scriptSnapshot->markIsMonomorphicInlined();
+  }
+
+  oracle_->addScriptSnapshot(scriptSnapshot, icScript, targetScript->length());
 
   if (!AddOpSnapshot<WarpInlinedCall>(alloc_, snapshots, offset,
                                       cacheIRSnapshot, scriptSnapshot, info)) {

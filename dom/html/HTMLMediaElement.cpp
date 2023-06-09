@@ -135,8 +135,8 @@
 #include <limits>
 #include <type_traits>
 
-mozilla::LazyLogModule gMediaElementLog("nsMediaElement");
-mozilla::LazyLogModule gMediaElementEventsLog("nsMediaElementEvents");
+mozilla::LazyLogModule gMediaElementLog("HTMLMediaElement");
+mozilla::LazyLogModule gMediaElementEventsLog("HTMLMediaElementEvents");
 
 extern mozilla::LazyLogModule gAutoplayPermissionLog;
 #define AUTOPLAY_LOG(msg, ...) \
@@ -3174,7 +3174,7 @@ void HTMLMediaElement::Seek(double aTime, SeekTarget::Type aSeekType,
   // synchronous errors are returned using aRv, not promise rejections.
 
   // aTime should be non-NaN.
-  MOZ_ASSERT(!mozilla::IsNaN(aTime));
+  MOZ_ASSERT(!std::isnan(aTime));
 
   // Seeking step1, Set the media element's show poster flag to false.
   // https://html.spec.whatwg.org/multipage/media.html#dom-media-seek
@@ -4601,6 +4601,9 @@ void HTMLMediaElement::UpdateWakeLock() {
 }
 
 void HTMLMediaElement::CreateAudioWakeLockIfNeeded() {
+  if (AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed)) {
+    return;
+  }
   if (!mWakeLock) {
     RefPtr<power::PowerManagerService> pmService =
         power::PowerManagerService::GetInstance();
@@ -4657,7 +4660,7 @@ void HTMLMediaElement::GetEventTargetParent(EventChainPreVisitor& aVisitor) {
         return;
       }
       HTMLInputElement* el = nullptr;
-      if (node->IsInNativeAnonymousSubtree() || node->IsInUAWidget()) {
+      if (node->ChromeOnlyAccess()) {
         if (node->IsHTMLElement(nsGkAtoms::input)) {
           // The node is a <input type="range">
           el = static_cast<HTMLInputElement*>(node);
@@ -4725,11 +4728,11 @@ bool HTMLMediaElement::IsHTMLFocusable(bool aWithMouse, bool* aIsFocusable,
 
 int32_t HTMLMediaElement::TabIndexDefault() { return 0; }
 
-nsresult HTMLMediaElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
-                                        const nsAttrValue* aValue,
-                                        const nsAttrValue* aOldValue,
-                                        nsIPrincipal* aMaybeScriptedPrincipal,
-                                        bool aNotify) {
+void HTMLMediaElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                                    const nsAttrValue* aValue,
+                                    const nsAttrValue* aOldValue,
+                                    nsIPrincipal* aMaybeScriptedPrincipal,
+                                    bool aNotify) {
   if (aNameSpaceID == kNameSpaceID_None) {
     if (aName == nsGkAtoms::src) {
       mSrcMediaSource = nullptr;
@@ -4782,9 +4785,10 @@ nsresult HTMLMediaElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
       aNameSpaceID, aName, aValue, aOldValue, aMaybeScriptedPrincipal, aNotify);
 }
 
-nsresult HTMLMediaElement::OnAttrSetButNotChanged(
-    int32_t aNamespaceID, nsAtom* aName, const nsAttrValueOrString& aValue,
-    bool aNotify) {
+void HTMLMediaElement::OnAttrSetButNotChanged(int32_t aNamespaceID,
+                                              nsAtom* aName,
+                                              const nsAttrValueOrString& aValue,
+                                              bool aNotify) {
   AfterMaybeChangeAttr(aNamespaceID, aName, aNotify);
 
   return nsGenericHTMLElement::OnAttrSetButNotChanged(aNamespaceID, aName,
@@ -6306,6 +6310,10 @@ bool HTMLMediaElement::HadCrossOriginRedirects() {
   return false;
 }
 
+bool HTMLMediaElement::ShouldResistFingerprinting() const {
+  return OwnerDoc()->ShouldResistFingerprinting();
+}
+
 already_AddRefed<nsIPrincipal> HTMLMediaElement::GetCurrentVideoPrincipal() {
   if (mDecoder) {
     return mDecoder->GetCurrentPrincipal();
@@ -6332,7 +6340,7 @@ void HTMLMediaElement::NotifyDecoderPrincipalChanged() {
 }
 
 void HTMLMediaElement::Invalidate(bool aImageSizeChanged,
-                                  Maybe<nsIntSize>& aNewIntrinsicSize,
+                                  const Maybe<nsIntSize>& aNewIntrinsicSize,
                                   bool aForceInvalidate) {
   nsIFrame* frame = GetPrimaryFrame();
   if (aNewIntrinsicSize) {

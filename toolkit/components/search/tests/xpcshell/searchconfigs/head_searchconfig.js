@@ -12,18 +12,18 @@ const { AppConstants } = ChromeUtils.importESModule(
 
 ChromeUtils.defineESModuleGetters(this, {
   Region: "resource://gre/modules/Region.sys.mjs",
+  RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
   SearchEngine: "resource://gre/modules/SearchEngine.sys.mjs",
   SearchEngineSelector: "resource://gre/modules/SearchEngineSelector.sys.mjs",
   SearchTestUtils: "resource://testing-common/SearchTestUtils.sys.mjs",
   SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
+  sinon: "resource://testing-common/Sinon.sys.mjs",
 });
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   AddonManager: "resource://gre/modules/AddonManager.jsm",
   AddonTestUtils: "resource://testing-common/AddonTestUtils.jsm",
   ObjectUtils: "resource://gre/modules/ObjectUtils.jsm",
-  RemoteSettings: "resource://services-settings/remote-settings.js",
-  sinon: "resource://testing-common/Sinon.jsm",
 });
 
 XPCOMUtils.defineLazyGlobalGetters(this, ["fetch"]);
@@ -456,7 +456,7 @@ class SearchConfigTest {
       if (rule.codes) {
         this._assertCorrectCodes(location, engine, rule);
       }
-      if (rule.searchUrlCode || rule.searchFormUrlCode || rule.suggestUrlCode) {
+      if (rule.searchUrlCode || rule.suggestUrlCode) {
         this._assertCorrectUrlCode(location, engine, rule);
       }
       if (rule.aliases) {
@@ -571,19 +571,17 @@ class SearchConfigTest {
         submission.uri.query.split("&").includes(rule.searchUrlCode),
         `Expected "${rule.searchUrlCode}" in search url "${submission.uri.spec}"`
       );
+      let uri = engine.searchForm;
+      this.assertOk(
+        !uri.includes(rule.searchUrlCode),
+        `"${rule.searchUrlCode}" should not be in the search form URL.`
+      );
     }
     if (rule.searchUrlCodeNotInQuery) {
       const submission = engine.getSubmission("test", URLTYPE_SEARCH_HTML);
       this.assertOk(
         submission.uri.includes(rule.searchUrlCodeNotInQuery),
         `Expected "${rule.searchUrlCodeNotInQuery}" in search url "${submission.uri.spec}"`
-      );
-    }
-    if (rule.searchFormUrlCode) {
-      const uri = engine.searchForm;
-      this.assertOk(
-        uri.includes(rule.searchFormUrlCode),
-        `Expected "${rule.searchFormUrlCode}" in "${uri}"`
       );
     }
     if (rule.suggestUrlCode) {

@@ -17,6 +17,7 @@ use crate::util::{FastTransform, LayoutToWorldFastTransform, MatrixHelpers, Scal
 use smallvec::SmallVec;
 use std::collections::hash_map::Entry;
 use crate::util::TransformedRectKind;
+use peek_poke::PeekPoke;
 
 
 /// An id that identifies coordinate systems in the SpatialTree. Each
@@ -51,7 +52,7 @@ impl CoordinateSystem {
     }
 }
 
-#[derive(Debug, Copy, Clone, Eq, Hash, MallocSizeOf, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, Hash, MallocSizeOf, PartialEq, PeekPoke, Default)]
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 pub struct SpatialNodeIndex(pub u32);
@@ -906,6 +907,31 @@ impl SpatialTree {
                     info.current_offset = LayoutVector2D::zero();
                 }
                 SpatialNodeType::ReferenceFrame(..) => {}
+            }
+        });
+    }
+
+    pub fn get_last_sampled_scroll_offsets(
+        &self,
+    ) -> FastHashMap<ExternalScrollId, Vec<SampledScrollOffset>> {
+        let mut result = FastHashMap::default();
+        self.visit_nodes(|_, node| {
+            if let SpatialNodeType::ScrollFrame(ref scrolling) = node.node_type {
+                result.insert(scrolling.external_id, scrolling.offsets.clone());
+            }
+        });
+        result
+    }
+
+    pub fn apply_last_sampled_scroll_offsets(
+        &mut self,
+        last_sampled_offsets: FastHashMap<ExternalScrollId, Vec<SampledScrollOffset>>,
+    ) {
+        self.visit_nodes_mut(|_, node| {
+            if let SpatialNodeType::ScrollFrame(ref mut scrolling) = node.node_type {
+                if let Some(offsets) = last_sampled_offsets.get(&scrolling.external_id) {
+                    scrolling.offsets = offsets.clone();
+                }
             }
         });
     }

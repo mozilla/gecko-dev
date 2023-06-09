@@ -130,6 +130,11 @@ void js::BaseScript::finalize(JS::GCContext* gcx) {
   // the script itself will not be marked as having bytecode.
   if (hasBytecode()) {
     JSScript* script = this->asJSScript();
+    JSRuntime* rt = gcx->runtime();
+
+    if (rt->hasJitRuntime() && rt->jitRuntime()->hasInterpreterEntryMap()) {
+      rt->jitRuntime()->getInterpreterEntryMap()->remove(script);
+    }
 
     if (coverage::IsLCovEnabled()) {
       coverage::CollectScriptCoverage(script, true);
@@ -1331,9 +1336,9 @@ JSLinearString* ScriptSource::functionBodyString(JSContext* cx) {
   return substring(cx, start, stop);
 }
 
-template <typename Unit>
+template <typename ContextT, typename Unit>
 [[nodiscard]] bool ScriptSource::setUncompressedSourceHelper(
-    JSContext* cx, EntryUnits<Unit>&& source, size_t length,
+    ContextT* cx, EntryUnits<Unit>&& source, size_t length,
     SourceRetrievable retrievable) {
   auto& cache = SharedImmutableStringsCache::getSingleton();
 
@@ -1448,7 +1453,7 @@ void ScriptSource::triggerConvertToCompressedSource(
 
 template <typename Unit>
 [[nodiscard]] bool ScriptSource::initializeWithUnretrievableCompressedSource(
-    JSContext* cx, UniqueChars&& compressed, size_t rawLength,
+    FrontendContext* fc, UniqueChars&& compressed, size_t rawLength,
     size_t sourceLength) {
   MOZ_ASSERT(data.is<Missing>(), "shouldn't be double-initializing");
   MOZ_ASSERT(compressed != nullptr);
@@ -1456,7 +1461,7 @@ template <typename Unit>
   auto& cache = SharedImmutableStringsCache::getSingleton();
   auto deduped = cache.getOrCreate(std::move(compressed), rawLength);
   if (!deduped) {
-    ReportOutOfMemory(cx);
+    ReportOutOfMemory(fc);
     return false;
   }
 
@@ -1478,10 +1483,10 @@ template <typename Unit>
 }
 
 template bool ScriptSource::initializeWithUnretrievableCompressedSource<
-    Utf8Unit>(JSContext* cx, UniqueChars&& compressed, size_t rawLength,
+    Utf8Unit>(FrontendContext* fc, UniqueChars&& compressed, size_t rawLength,
               size_t sourceLength);
 template bool ScriptSource::initializeWithUnretrievableCompressedSource<
-    char16_t>(JSContext* cx, UniqueChars&& compressed, size_t rawLength,
+    char16_t>(FrontendContext* fc, UniqueChars&& compressed, size_t rawLength,
               size_t sourceLength);
 
 template <typename Unit>
@@ -1799,7 +1804,7 @@ bool ScriptSource::xdrFinalizeEncoder(JSContext* cx,
   auto cleanup = mozilla::MakeScopeExit([&] { xdrEncoder_.reset(); });
 
   AutoReportFrontendContext fc(cx);
-  XDRStencilEncoder encoder(cx, &fc, buffer);
+  XDRStencilEncoder encoder(&fc, buffer);
 
   frontend::BorrowingCompilationStencil borrowingStencil(
       xdrEncoder_.merger_->getResult());
@@ -1818,24 +1823,23 @@ void ScriptSource::xdrAbortEncoder() { xdrEncoder_.reset(); }
 
 template <typename Unit>
 [[nodiscard]] bool ScriptSource::initializeUnretrievableUncompressedSource(
-    JSContext* cx, EntryUnits<Unit>&& source, size_t length) {
+    FrontendContext* fc, EntryUnits<Unit>&& source, size_t length) {
   MOZ_ASSERT(data.is<Missing>(), "must be initializing a fresh ScriptSource");
-  return setUncompressedSourceHelper(cx, std::move(source), length,
+  return setUncompressedSourceHelper(fc, std::move(source), length,
                                      SourceRetrievable::No);
 }
 
 template bool ScriptSource::initializeUnretrievableUncompressedSource(
-    JSContext* cx, EntryUnits<Utf8Unit>&& source, size_t length);
+    FrontendContext* fc, EntryUnits<Utf8Unit>&& source, size_t length);
 template bool ScriptSource::initializeUnretrievableUncompressedSource(
-    JSContext* cx, EntryUnits<char16_t>&& source, size_t length);
+    FrontendContext* fc, EntryUnits<char16_t>&& source, size_t length);
 
 // Format and return a cx->pod_malloc'ed URL for a generated script like:
 //   {filename} line {lineno} > {introducer}
 // For example:
 //   foo.js line 7 > eval
 // indicating code compiled by the call to 'eval' on line 7 of foo.js.
-UniqueChars js::FormatIntroducedFilename(JSContext* cx, const char* filename,
-                                         unsigned lineno,
+UniqueChars js::FormatIntroducedFilename(const char* filename, unsigned lineno,
                                          const char* introducer) {
   // Compute the length of the string in advance, so we can allocate a
   // buffer of the right size on the first shot.
@@ -1849,7 +1853,7 @@ UniqueChars js::FormatIntroducedFilename(JSContext* cx, const char* filename,
   size_t introducerLen = strlen(introducer);
   size_t len = filenameLen + 6 /* == strlen(" line ") */ + linenoLen +
                3 /* == strlen(" > ") */ + introducerLen + 1 /* \0 */;
-  UniqueChars formatted(cx->pod_malloc<char>(len));
+  UniqueChars formatted(js_pod_malloc<char>(len));
   if (!formatted) {
     return nullptr;
   }
@@ -1861,7 +1865,7 @@ UniqueChars js::FormatIntroducedFilename(JSContext* cx, const char* filename,
   return formatted;
 }
 
-bool ScriptSource::initFromOptions(JSContext* cx, FrontendContext* fc,
+bool ScriptSource::initFromOptions(FrontendContext* fc,
                                    const ReadOnlyCompileOptions& options) {
   MOZ_ASSERT(!filename_);
   MOZ_ASSERT(!introducerFilename_);
@@ -1870,6 +1874,7 @@ bool ScriptSource::initFromOptions(JSContext* cx, FrontendContext* fc,
   delazificationMode_ = options.eagerDelazificationStrategy();
 
   startLine_ = options.lineno;
+  startColumn_ = options.column;
   introductionType_ = options.introductionType;
   setIntroductionOffset(options.introductionOffset);
   // The parameterListEnd_ is initialized later by setParameterListEnd, before
@@ -1880,21 +1885,22 @@ bool ScriptSource::initFromOptions(JSContext* cx, FrontendContext* fc,
     const char* filename =
         options.filename() ? options.filename() : "<unknown>";
     UniqueChars formatted = FormatIntroducedFilename(
-        cx, filename, options.introductionLineno, options.introductionType);
+        filename, options.introductionLineno, options.introductionType);
     if (!formatted) {
+      ReportOutOfMemory(fc);
       return false;
     }
     if (!setFilename(fc, std::move(formatted))) {
       return false;
     }
   } else if (options.filename()) {
-    if (!setFilename(cx, fc, options.filename())) {
+    if (!setFilename(fc, options.filename())) {
       return false;
     }
   }
 
   if (options.introducerFilename()) {
-    if (!setIntroducerFilename(cx, fc, options.introducerFilename())) {
+    if (!setIntroducerFilename(fc, options.introducerFilename())) {
       return false;
     }
   }
@@ -1926,9 +1932,8 @@ SharedImmutableTwoByteString ScriptSource::getOrCreateStringZ(
   return GetOrCreateStringZ<SharedImmutableTwoByteString>(fc, std::move(str));
 }
 
-bool ScriptSource::setFilename(JSContext* cx, FrontendContext* fc,
-                               const char* filename) {
-  UniqueChars owned = DuplicateString(cx, filename);
+bool ScriptSource::setFilename(FrontendContext* fc, const char* filename) {
+  UniqueChars owned = DuplicateString(fc, filename);
   if (!owned) {
     return false;
   }
@@ -1938,12 +1943,17 @@ bool ScriptSource::setFilename(JSContext* cx, FrontendContext* fc,
 bool ScriptSource::setFilename(FrontendContext* fc, UniqueChars&& filename) {
   MOZ_ASSERT(!filename_);
   filename_ = getOrCreateStringZ(fc, std::move(filename));
-  return bool(filename_);
+  if (filename_) {
+    filenameHash_ =
+        mozilla::HashStringKnownLength(filename_.chars(), filename_.length());
+    return true;
+  }
+  return false;
 }
 
-bool ScriptSource::setIntroducerFilename(JSContext* cx, FrontendContext* fc,
+bool ScriptSource::setIntroducerFilename(FrontendContext* fc,
                                          const char* filename) {
-  UniqueChars owned = DuplicateString(cx, filename);
+  UniqueChars owned = DuplicateString(fc, filename);
   if (!owned) {
     return false;
   }
@@ -1957,26 +1967,17 @@ bool ScriptSource::setIntroducerFilename(FrontendContext* fc,
   return bool(introducerFilename_);
 }
 
-bool ScriptSource::setDisplayURL(JSContext* cx, FrontendContext* fc,
-                                 const char16_t* url) {
-  UniqueTwoByteChars owned = DuplicateString(cx, url);
+bool ScriptSource::setDisplayURL(FrontendContext* fc, const char16_t* url) {
+  UniqueTwoByteChars owned = DuplicateString(fc, url);
   if (!owned) {
     return false;
   }
-  return setDisplayURL(cx, fc, std::move(owned));
+  return setDisplayURL(fc, std::move(owned));
 }
 
-bool ScriptSource::setDisplayURL(JSContext* cx, FrontendContext* fc,
+bool ScriptSource::setDisplayURL(FrontendContext* fc,
                                  UniqueTwoByteChars&& url) {
-  if (hasDisplayURL()) {
-    // FIXME: filename() should be UTF-8 (bug 987069).
-    if (!cx->isHelperThreadContext() &&
-        !WarnNumberLatin1(cx, JSMSG_ALREADY_HAS_PRAGMA, filename(),
-                          "//# sourceURL")) {
-      return false;
-    }
-  }
-
+  MOZ_ASSERT(!hasDisplayURL());
   MOZ_ASSERT(url);
   if (url[0] == '\0') {
     return true;
@@ -1986,9 +1987,8 @@ bool ScriptSource::setDisplayURL(JSContext* cx, FrontendContext* fc,
   return bool(displayURL_);
 }
 
-bool ScriptSource::setSourceMapURL(JSContext* cx, FrontendContext* fc,
-                                   const char16_t* url) {
-  UniqueTwoByteChars owned = DuplicateString(cx, url);
+bool ScriptSource::setSourceMapURL(FrontendContext* fc, const char16_t* url) {
+  UniqueTwoByteChars owned = DuplicateString(fc, url);
   if (!owned) {
     return false;
   }
@@ -2077,8 +2077,8 @@ js::UniquePtr<ImmutableScriptData> js::ImmutableScriptData::new_(
 }
 
 js::UniquePtr<ImmutableScriptData> js::ImmutableScriptData::new_(
-    JSContext* cx, uint32_t totalSize) {
-  void* raw = cx->pod_malloc<uint8_t>(totalSize);
+    FrontendContext* fc, uint32_t totalSize) {
+  void* raw = fc->getAllocator()->pod_malloc<uint8_t>(totalSize);
   MOZ_ASSERT(uintptr_t(raw) % alignof(ImmutableScriptData) == 0);
   UniquePtr<ImmutableScriptData> result(
       reinterpret_cast<ImmutableScriptData*>(raw));
@@ -2167,26 +2167,24 @@ void JSScript::relazify(JSRuntime* rt) {
 // entry already exists and replaces the passed RefPtr with the existing entry.
 /* static */
 bool SharedImmutableScriptData::shareScriptData(
-    JSContext* cx, FrontendContext* fc,
-    RefPtr<SharedImmutableScriptData>& sisd) {
+    FrontendContext* fc, RefPtr<SharedImmutableScriptData>& sisd) {
   MOZ_ASSERT(sisd);
   MOZ_ASSERT(sisd->refCount() == 1);
 
   SharedImmutableScriptData* data = sisd.get();
 
-  // Calculate the hash before taking the lock. Because the data is reference
-  // counted, it also will be freed after releasing the lock if necessary.
   SharedImmutableScriptData::Hasher::Lookup lookup(data);
 
-  AutoLockScriptData lock(cx->runtime());
+  Maybe<AutoLockGlobalScriptData> lock;
+  js::SharedImmutableScriptDataTable& table =
+      fc->scriptDataTableHolder()->getMaybeLocked(lock);
 
-  SharedImmutableScriptDataTable::AddPtr p =
-      cx->scriptDataTable(lock).lookupForAdd(lookup);
+  SharedImmutableScriptDataTable::AddPtr p = table.lookupForAdd(lookup);
   if (p) {
     MOZ_ASSERT(data != *p);
     sisd = *p;
   } else {
-    if (!cx->scriptDataTable(lock).add(p, data)) {
+    if (!table.add(p, data)) {
       ReportOutOfMemory(fc);
       return false;
     }
@@ -2201,12 +2199,9 @@ bool SharedImmutableScriptData::shareScriptData(
   return true;
 }
 
-void js::SweepScriptData(JSRuntime* rt) {
+static void SweepScriptDataTable(SharedImmutableScriptDataTable& table) {
   // Entries are removed from the table when their reference count is one,
   // i.e. when the only reference to them is from the table entry.
-
-  AutoLockScriptData lock(rt);
-  SharedImmutableScriptDataTable& table = rt->scriptDataTable(lock);
 
   for (SharedImmutableScriptDataTable::Enum e(table); !e.empty();
        e.popFront()) {
@@ -2216,6 +2211,13 @@ void js::SweepScriptData(JSRuntime* rt) {
       e.removeFront();
     }
   }
+}
+
+void js::SweepScriptData(JSRuntime* rt) {
+  SweepScriptDataTable(rt->scriptDataTableHolder().getWithoutLock());
+
+  AutoLockGlobalScriptData lock;
+  SweepScriptDataTable(js::globalSharedScriptDataTableHolder.get(lock));
 }
 
 inline size_t PrivateScriptData::allocationSize() const { return endOffset(); }
@@ -2773,7 +2775,7 @@ void js::maybeUpdateWarmUpCount(JSScript* script) {
     ScriptFinalWarmUpCountMap::Ptr p = map->lookup(script);
     MOZ_ASSERT(p);
 
-    mozilla::Get<0>(p->value()) += script->jitScript()->warmUpCount();
+    std::get<0>(p->value()) += script->jitScript()->warmUpCount();
   }
 }
 
@@ -2787,8 +2789,8 @@ void js::maybeSpewScriptFinalWarmUpCount(JSScript* script) {
     ScriptFinalWarmUpCountMap::Ptr p = map->lookup(script);
     MOZ_ASSERT(p);
     auto& tuple = p->value();
-    uint32_t warmUpCount = mozilla::Get<0>(tuple);
-    SharedImmutableString& scriptName = mozilla::Get<1>(tuple);
+    uint32_t warmUpCount = std::get<0>(tuple);
+    SharedImmutableString& scriptName = std::get<1>(tuple);
 
     JSContext* cx = TlsContext.get();
     cx->spewer().enableSpewing();
@@ -2874,8 +2876,8 @@ void CopySpan(const SourceSpan& source, TargetSpan target) {
 js::UniquePtr<ImmutableScriptData> ImmutableScriptData::new_(
     FrontendContext* fc, uint32_t mainOffset, uint32_t nfixed, uint32_t nslots,
     GCThingIndex bodyScopeIndex, uint32_t numICEntries, bool isFunction,
-    uint16_t funLength, mozilla::Span<const jsbytecode> code,
-    mozilla::Span<const SrcNote> notes,
+    uint16_t funLength, uint16_t propertyCountEstimate,
+    mozilla::Span<const jsbytecode> code, mozilla::Span<const SrcNote> notes,
     mozilla::Span<const uint32_t> resumeOffsets,
     mozilla::Span<const ScopeNote> scopeNotes,
     mozilla::Span<const TryNote> tryNotes) {
@@ -2904,6 +2906,7 @@ js::UniquePtr<ImmutableScriptData> ImmutableScriptData::new_(
   data->nslots = nslots;
   data->bodyScopeIndex = bodyScopeIndex;
   data->numICEntries = numICEntries;
+  data->propertyCountEstimate = propertyCountEstimate;
 
   if (isFunction) {
     data->funLength = funLength;
@@ -3195,7 +3198,17 @@ void JSScript::updateJitCodeRaw(JSRuntime* rt) {
   } else if (hasBaselineScript()) {
     setJitCodeRaw(baselineScript()->method()->raw());
   } else if (hasJitScript() && js::jit::IsBaselineInterpreterEnabled()) {
-    setJitCodeRaw(rt->jitRuntime()->baselineInterpreter().codeRaw());
+    bool usingEntryTrampoline = false;
+    if (js::jit::JitOptions.emitInterpreterEntryTrampoline) {
+      auto p = rt->jitRuntime()->getInterpreterEntryMap()->lookup(this);
+      if (p) {
+        setJitCodeRaw(p->value().raw());
+        usingEntryTrampoline = true;
+      }
+    }
+    if (!usingEntryTrampoline) {
+      setJitCodeRaw(rt->jitRuntime()->baselineInterpreter().codeRaw());
+    }
   } else {
     setJitCodeRaw(rt->jitRuntime()->interpreterStub().value);
   }
@@ -3212,7 +3225,7 @@ bool JSScript::hasLoops() {
 }
 
 bool JSScript::mayReadFrameArgsDirectly() {
-  return needsArgsObj() || hasRest();
+  return needsArgsObj() || usesArgumentsIntrinsics() || hasRest();
 }
 
 void JSScript::resetWarmUpCounterToDelayIonCompilation() {
@@ -3310,6 +3323,9 @@ static void DumpMutableScriptFlags(js::JSONPrinter& json,
           break;
         case MutableScriptFlagsEnum::Uninlineable:
           json.value("Uninlineable");
+          break;
+        case MutableScriptFlagsEnum::NoEagerBaselineHint:
+          json.value("NoEagerBaselineHint");
           break;
         case MutableScriptFlagsEnum::FailedBoundsCheck:
           json.value("FailedBoundsCheck");

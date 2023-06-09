@@ -217,7 +217,7 @@ Promise<unsigned long long> writeJSON(DOMString path, any value, ...);
 | -------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | backupTo: string?    | backupFile: string?           | Identifies the path to backup the target file to before performing the write operation. If unspecified, no backup will be performed. Default is null.                     |
 | tmpPath: string?     | tmpPath: string?              | Identifies a path to write to first, before performing a move to overwrite the target file. If unspecified, the target file will be written to directly. Default is null. |
-| noOverwrite: boolean | noOverwrite: boolean          | If true, fail if the destination already exists. Default is false.                                                                                                        |
+| noOverwrite: boolean | mode: 'overwrite' or 'create' | 'create' mode will refuse to overwrite an existing file. Default is 'overwrite'.                                                                                          |
 | flush: boolean       | flush: boolean                | If true, force the OS to flush its internal buffers to disk. Default is false.                                                                                            |
 | encoding: 'utf-8'    | N/A; use `writeUTF8` instead. | Allows the caller to supply a string to be encoded as utf-8 text on disk.                                                                                                 |
 
@@ -371,12 +371,12 @@ Promise<void> makeDirectory(DOMString path, ...);
 
 #### Options
 
-| `OS.File` option        | `IOUtils` option         | Description                                                                                                                                                                                                     |
-| ----------------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ignoreExisting: boolean | ignoreExisting: boolean  | If true, succeed even if the target directory already exists. Default is true.                                                                                                                                  |
-| from: string            | createAncestors: boolean | If true, `IOUtils` will create all missing ancestors in a path. Default is true. This option differs from `OS.File`, which requires the caller to specify a root path from which to create missing directories. |
-| unixMode                | N/A                      | `IOUtils` does not support setting a custom directory mode on unix.                                                                                                                                             |
-| winSecurity             | N/A                      | `IOUtils` does not support setting custom directory security settings on Windows.                                                                                                                               |
+| `OS.File` option        | `IOUtils` option           | Description                                                                                                                                                                                                     |
+| ----------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ignoreExisting: boolean | ignoreExisting: boolean    | If true, succeed even if the target directory already exists. Default is true.                                                                                                                                  |
+| from: string            | createAncestors: boolean   | If true, `IOUtils` will create all missing ancestors in a path. Default is true. This option differs from `OS.File`, which requires the caller to specify a root path from which to create missing directories. |
+| unixMode: number        | permissions: unsigned long | The file mode to create the directory with. Ignored on Windows. Default is 0755.                                                                                                                                |
+| winSecurity             | N/A                        | `IOUtils` does not support setting custom directory security settings on Windows.                                                                                                                               |
 
 #### Example
 

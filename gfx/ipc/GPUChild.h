@@ -27,15 +27,14 @@ class GPUChild final : public ipc::CrashReporterHelper<GeckoProcessType_GPU>,
   typedef mozilla::dom::MemoryReportRequestHost MemoryReportRequestHost;
 
  public:
+  NS_INLINE_DECL_REFCOUNTING(GPUChild, final)
+
   explicit GPUChild(GPUProcessHost* aHost);
-  virtual ~GPUChild();
 
   void Init();
 
   bool EnsureGPUReady();
   void MarkWaitForVarUpdate() { mWaitForVarUpdate = true; }
-
-  base::ProcessHandle GetChildProcessHandle();
 
   // Notifies that an unexpected GPU process shutdown has been noticed by a
   // different IPDL actor, and the GPU process is being torn down as a result.
@@ -90,9 +89,11 @@ class GPUChild final : public ipc::CrashReporterHelper<GeckoProcessType_GPU>,
                                const bool& aMinimizeMemoryUsage,
                                const Maybe<ipc::FileDescriptor>& aDMDFile);
 
-  static void Destroy(UniquePtr<GPUChild>&& aChild);
+  static void Destroy(RefPtr<GPUChild>&& aChild);
 
  private:
+  virtual ~GPUChild();
+
   GPUProcessHost* mHost;
   UniquePtr<MemoryReportRequestHost> mMemoryReportRequest;
   bool mGPUReady;

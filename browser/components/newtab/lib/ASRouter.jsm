@@ -11,6 +11,18 @@ const { AppConstants } = ChromeUtils.importESModule(
   "resource://gre/modules/AppConstants.sys.mjs"
 );
 const lazy = {};
+
+ChromeUtils.defineESModuleGetters(lazy, {
+  Downloader: "resource://services-settings/Attachments.sys.mjs",
+  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
+  MacAttribution: "resource:///modules/MacAttribution.sys.mjs",
+  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
+  SpecialMessageActions:
+    "resource://messaging-system/lib/SpecialMessageActions.sys.mjs",
+  TargetingContext: "resource://messaging-system/targeting/Targeting.sys.mjs",
+  Utils: "resource://services-settings/Utils.sys.mjs",
+});
+
 XPCOMUtils.defineLazyModuleGetters(lazy, {
   SnippetsTestMessageProvider:
     "resource://activity-stream/lib/SnippetsTestMessageProvider.jsm",
@@ -28,18 +40,10 @@ XPCOMUtils.defineLazyModuleGetters(lazy, {
   ASRouterTriggerListeners:
     "resource://activity-stream/lib/ASRouterTriggerListeners.jsm",
   KintoHttpClient: "resource://services-common/kinto-http-client.js",
-  Downloader: "resource://services-settings/Attachments.jsm",
-  RemoteImages: "resource://activity-stream/lib/RemoteImages.jsm",
   RemoteL10n: "resource://activity-stream/lib/RemoteL10n.jsm",
-  ExperimentAPI: "resource://nimbus/ExperimentAPI.jsm",
   setTimeout: "resource://gre/modules/Timer.jsm",
-  NimbusFeatures: "resource://nimbus/ExperimentAPI.jsm",
-  SpecialMessageActions:
-    "resource://messaging-system/lib/SpecialMessageActions.jsm",
-  TargetingContext: "resource://messaging-system/targeting/Targeting.jsm",
-  Utils: "resource://services-settings/Utils.jsm",
-  MacAttribution: "resource:///modules/MacAttribution.jsm",
 });
+
 XPCOMUtils.defineLazyServiceGetters(lazy, {
   BrowserHandler: ["@mozilla.org/browser/clh;1", "nsIBrowserHandler"],
 });
@@ -53,14 +57,14 @@ const { CFRMessageProvider } = ChromeUtils.import(
 const { OnboardingMessageProvider } = ChromeUtils.import(
   "resource://activity-stream/lib/OnboardingMessageProvider.jsm"
 );
-const { RemoteSettings } = ChromeUtils.import(
-  "resource://services-settings/remote-settings.js"
+const { RemoteSettings } = ChromeUtils.importESModule(
+  "resource://services-settings/remote-settings.sys.mjs"
 );
 const { CFRPageActions } = ChromeUtils.import(
   "resource://activity-stream/lib/CFRPageActions.jsm"
 );
-const { AttributionCode } = ChromeUtils.import(
-  "resource:///modules/AttributionCode.jsm"
+const { AttributionCode } = ChromeUtils.importESModule(
+  "resource:///modules/AttributionCode.sys.mjs"
 );
 
 // List of hosts for endpoints that serve router messages.
@@ -94,7 +98,7 @@ const JEXL_PROVIDER_CACHE = new Set(["snippets"]);
 
 // To observe the app locale change notification.
 const TOPIC_INTL_LOCALE_CHANGED = "intl:app-locales-changed";
-const TOPIC_EXPERIMENT_FORCE_ENROLLED = "nimbus:force-enroll";
+const TOPIC_EXPERIMENT_ENROLLMENT_CHANGED = "nimbus:enrollments-updated";
 // To observe the pref that controls if ASRouter should use the remote Fluent files for l10n.
 const USE_REMOTE_L10N_PREF =
   "browser.newtabpage.activity-stream.asrouter.useRemoteL10n";
@@ -104,6 +108,14 @@ const MESSAGING_EXPERIMENTS_DEFAULT_FEATURES = [
   "fxms-message-1",
   "fxms-message-2",
   "fxms-message-3",
+  "fxms-message-4",
+  "fxms-message-5",
+  "fxms-message-6",
+  "fxms-message-7",
+  "fxms-message-8",
+  "fxms-message-9",
+  "fxms-message-10",
+  "fxms-message-11",
   "infobar",
   "moments-page",
   "pbNewtab",
@@ -368,8 +380,8 @@ const MessageLoaderUtils = {
       : MESSAGING_EXPERIMENTS_DEFAULT_FEATURES;
     let experiments = [];
     for (const featureId of featureIds) {
-      let featureAPI = lazy.NimbusFeatures[featureId];
-      let experimentData = lazy.ExperimentAPI.getExperimentMetaData({
+      const featureAPI = lazy.NimbusFeatures[featureId];
+      const experimentData = lazy.ExperimentAPI.getExperimentMetaData({
         featureId,
       });
 
@@ -382,41 +394,56 @@ const MessageLoaderUtils = {
         continue;
       }
 
-      let message = featureAPI.getAllVariables();
+      const featureValue = featureAPI.getAllVariables();
 
-      if (message?.id) {
-        // Cache the Nimbus feature ID on the message because there is not a 1-1
-        // correspondance between templates and features. This is used when
-        // recording expose events (see |sendTriggerMessage|).
-        message._nimbusFeature = featureId;
-        experiments.push(message);
+      // If the value is a multi-message config, add each message in the
+      // messages array. Cache the Nimbus feature ID on each message, because
+      // there is not a 1-1 correspondance between templates and features.
+      // This is used when recording expose events (see |sendTriggerMessage|).
+      const messages =
+        featureValue?.template === "multi" &&
+        Array.isArray(featureValue.messages)
+          ? featureValue.messages
+          : [featureValue];
+      for (const message of messages) {
+        if (message?.id) {
+          message._nimbusFeature = featureId;
+          experiments.push(message);
+        }
       }
 
-      if (!REACH_EVENT_GROUPS.includes(featureId)) {
+      // Add Reach messages from unenrolled sibling branches, provided we are
+      // recording Reach events for this feature. If we are in a rollout, we do
+      // not have sibling branches.
+      if (!REACH_EVENT_GROUPS.includes(featureId) || !experimentData) {
         continue;
       }
 
-      // If we are in a rollout, we do not have sibling branches.
-      if (experimentData) {
-        // Check other sibling branches for triggers, add them to the return
-        // array if found any. The `forReachEvent` label is used to identify
-        // those branches so that they would only used to record the Reach
-        // event.
-        const branches =
-          (await lazy.ExperimentAPI.getAllBranches(experimentData.slug)) || [];
-        for (const branch of branches) {
-          let branchValue = branch[featureId].value;
-          if (
-            branch.slug !== experimentData.branch.slug &&
-            branchValue?.trigger
-          ) {
-            experiments.push({
-              forReachEvent: { sent: false, group: featureId },
-              experimentSlug: experimentData.slug,
-              branchSlug: branch.slug,
-              ...branchValue,
-            });
+      // Check other sibling branches for triggers, add them to the return array
+      // if found any. The `forReachEvent` label is used to identify those
+      // branches so that they would only be used to record the Reach event.
+      const branches =
+        (await lazy.ExperimentAPI.getAllBranches(experimentData.slug)) || [];
+      for (const branch of branches) {
+        let branchValue = branch[featureId].value;
+        if (!branchValue || branch.slug === experimentData.branch.slug) {
+          continue;
+        }
+        const branchMessages =
+          branchValue?.template === "multi" &&
+          Array.isArray(branchValue.messages)
+            ? branchValue.messages
+            : [branchValue];
+        for (const message of branchMessages) {
+          if (!message?.trigger) {
+            continue;
           }
+          experiments.push({
+            forReachEvent: { sent: false, group: featureId },
+            experimentSlug: experimentData.slug,
+            branchSlug: branch.slug,
+            ...message,
+          });
         }
       }
     }
@@ -588,6 +615,7 @@ class _ASRouter {
       providers: [],
       messageBlockList: [],
       messageImpressions: {},
+      screenImpressions: {},
       messages: [],
       groups: [],
       errors: [],
@@ -600,13 +628,14 @@ class _ASRouter {
     this.unblockMessageById = this.unblockMessageById.bind(this);
     this.handleMessageRequest = this.handleMessageRequest.bind(this);
     this.addImpression = this.addImpression.bind(this);
+    this.addScreenImpression = this.addScreenImpression.bind(this);
     this._handleTargetingError = this._handleTargetingError.bind(this);
     this.onPrefChange = this.onPrefChange.bind(this);
     this._onLocaleChanged = this._onLocaleChanged.bind(this);
     this.isUnblockedMessage = this.isUnblockedMessage.bind(this);
     this.unblockAll = this.unblockAll.bind(this);
     this.forceWNPanel = this.forceWNPanel.bind(this);
-    this._onExperimentForceEnrolled = this._onExperimentForceEnrolled.bind(
+    this._onExperimentEnrollmentsUpdated = this._onExperimentEnrollmentsUpdated.bind(
       this
     );
     this.forcePBWindow = this.forcePBWindow.bind(this);
@@ -700,21 +729,6 @@ class _ASRouter {
       if (!providerIDs.includes(prevProvider.id)) {
         invalidProviders.push(prevProvider.id);
       }
-    }
-
-    {
-      // If the feature IDs of the messaging-experiments provider has changed,
-      // then we need to update which features for which we are listening to
-      // changes.
-      const prevExpts = previousProviders.find(
-        p => p.id === "messaging-experiments"
-      );
-      const expts = providers.find(p => p.id === "messaging-experiments");
-
-      this._onFeatureListChanged(
-        prevExpts?.enabled ? prevExpts.featureIds : [],
-        expts?.enabled ? expts.featureIds : []
-      );
     }
 
     return this.setState(prevState => ({
@@ -905,7 +919,26 @@ class _ASRouter {
       await this.setState(this._removePreviewEndpoint(newState));
       await this.cleanupImpressions();
     }
+
+    await this._fireMessagesLoadedTrigger();
+
     return this.state;
+  }
+
+  async _fireMessagesLoadedTrigger() {
+    const win = Services.wm.getMostRecentBrowserWindow() ?? null;
+    const browser = win?.gBrowser?.selectedBrowser ?? null;
+    // pass skipLoadingMessages to avoid infinite recursion. pass browser and
+    // window into context so messages that may need a window or browser can
+    // target accordingly.
+    await this.sendTriggerMessage(
+      {
+        id: "messagesLoaded",
+        browser,
+        context: { browser, browserWindow: win },
+      },
+      true
+    );
   }
 
   async _maybeUpdateL10nAttachment() {
@@ -1003,6 +1036,8 @@ class _ASRouter {
       (await this._storage.get("messageImpressions")) || {};
     const groupImpressions =
       (await this._storage.get("groupImpressions")) || {};
+    const screenImpressions =
+      (await this._storage.get("screenImpressions")) || {};
     const previousSessionEnd =
       (await this._storage.get("previousSessionEnd")) || 0;
 
@@ -1010,6 +1045,7 @@ class _ASRouter {
       messageBlockList,
       groupImpressions,
       messageImpressions,
+      screenImpressions,
       previousSessionEnd,
       ...(lazy.ASRouterPreferences.specialConditions || {}),
       initialized: false,
@@ -1021,8 +1057,8 @@ class _ASRouter {
     lazy.SpecialMessageActions.blockMessageById = this.blockMessageById;
     Services.obs.addObserver(this._onLocaleChanged, TOPIC_INTL_LOCALE_CHANGED);
     Services.obs.addObserver(
-      this._onExperimentForceEnrolled,
-      TOPIC_EXPERIMENT_FORCE_ENROLLED
+      this._onExperimentEnrollmentsUpdated,
+      TOPIC_EXPERIMENT_ENROLLMENT_CHANGED
     );
     Services.prefs.addObserver(USE_REMOTE_L10N_PREF, this);
     // sets .initialized to true and resolves .waitForInitialized promise
@@ -1054,8 +1090,8 @@ class _ASRouter {
       TOPIC_INTL_LOCALE_CHANGED
     );
     Services.obs.removeObserver(
-      this._onExperimentForceEnrolled,
-      TOPIC_EXPERIMENT_FORCE_ENROLLED
+      this._onExperimentEnrollmentsUpdated,
+      TOPIC_EXPERIMENT_ENROLLMENT_CHANGED
     );
     Services.prefs.removeObserver(USE_REMOTE_L10N_PREF, this);
     // If we added any CFR recommendations, they need to be removed
@@ -1119,13 +1155,35 @@ class _ASRouter {
    * and ASRouter._getMessagesContext parameters and values
    */
   async getTargetingParameters(environment, localContext) {
-    const targetingParameters = {};
-    for (const param of Object.keys(environment)) {
-      targetingParameters[param] = await environment[param];
+    // Resolve objects that may contain promises.
+    async function resolve(object) {
+      if (typeof object === "object" && object !== null) {
+        if (Array.isArray(object)) {
+          return Promise.all(object.map(async item => resolve(await item)));
+        }
+
+        if (object instanceof Date) {
+          return object;
+        }
+
+        const target = {};
+        const promises = Object.entries(object).map(async ([key, value]) => [
+          key,
+          await resolve(await value),
+        ]);
+        for (const [key, value] of await Promise.all(promises)) {
+          target[key] = value;
+        }
+        return target;
+      }
+
+      return object;
     }
-    for (const param of Object.keys(localContext)) {
-      targetingParameters[param] = await localContext[param];
-    }
+
+    const targetingParameters = {
+      ...(await resolve(environment)),
+      ...(await resolve(localContext)),
+    };
 
     return targetingParameters;
   }
@@ -1144,7 +1202,11 @@ class _ASRouter {
 
   // Return an object containing targeting parameters used to select messages
   _getMessagesContext() {
-    const { messageImpressions, previousSessionEnd } = this.state;
+    const {
+      messageImpressions,
+      previousSessionEnd,
+      screenImpressions,
+    } = this.state;
 
     return {
       get messageImpressions() {
@@ -1152,6 +1214,9 @@ class _ASRouter {
       },
       get previousSessionEnd() {
         return previousSessionEnd;
+      },
+      get screenImpressions() {
+        return screenImpressions;
       },
     };
   }
@@ -1351,6 +1416,25 @@ class _ASRouter {
     return { message };
   }
 
+  addScreenImpression(screen) {
+    lazy.ASRouterPreferences.console.debug(
+      `entering addScreenImpression for ${screen.id}`
+    );
+
+    const time = Date.now();
+
+    let screenImpressions = { ...this.state.screenImpressions };
+    screenImpressions[screen.id] = time;
+
+    this.setState({ screenImpressions });
+    lazy.ASRouterPreferences.console.debug(
+      screen.id,
+      `screen impression added, screenImpressions[screen.id]: `,
+      screenImpressions[screen.id]
+    );
+    this._storage.set("screenImpressions", screenImpressions);
+  }
+
   addImpression(message) {
     lazy.ASRouterPreferences.console.debug(
       `entering addImpression for ${message.id}`
@@ -1397,10 +1481,8 @@ class _ASRouter {
     // (see https://redux.js.org/recipes/structuring-reducers/prerequisite-concepts#immutable-data-management)
     const impressions = { ...currentImpressions };
     if (item.frequency) {
-      impressions[item.id] = impressions[item.id]
-        ? [...impressions[item.id]]
-        : [];
-      impressions[item.id].push(time);
+      impressions[item.id] = [...(impressions[item.id] ?? []), time];
+
       lazy.ASRouterPreferences.console.debug(
         item.id,
         "impression added, impressions[item.id]: ",
@@ -1679,17 +1761,6 @@ class _ASRouter {
     }
   }
 
-  // Ensure we switch to the Onboarding message after RTAMO addon was installed
-  _updateOnboardingState() {
-    let addonInstallObs = (subject, topic) => {
-      Services.obs.removeObserver(
-        addonInstallObs,
-        "webextension-install-notify"
-      );
-    };
-    Services.obs.addObserver(addonInstallObs, "webextension-install-notify");
-  }
-
   _loadSnippetsAllowHosts() {
     let additionalHosts = [];
     const allowPrefValue = Services.prefs.getStringPref(
@@ -1808,6 +1879,7 @@ class _ASRouter {
       FOCUS: { enabledPref: "browser.promo.focus.enabled" },
       VPN: { enabledPref: "browser.vpn_promo.enabled" },
       PIN: { enabledPref: "browser.promo.pin.enabled" },
+      COOKIE_BANNERS: { enabledPref: "browser.promo.cookiebanners.enabled" },
     };
     await this.loadMessagesFromAllProviders();
 
@@ -1898,9 +1970,31 @@ class _ASRouter {
     );
   }
 
-  async sendTriggerMessage({ tabId, browser, ...trigger }) {
-    await this.loadMessagesFromAllProviders();
-
+  /**
+   * Fire a trigger, look for a matching message, and route it to the
+   * appropriate message handler/messaging surface.
+   * @param {object} trigger
+   * @param {string} trigger.id the name of the trigger, e.g. "openURL"
+   * @param {object} [trigger.param] an object with host, url, type, etc. keys
+   *   whose values are used to match against the message's trigger params
+   * @param {object} [trigger.context] an object with data about the source of
+   *   the trigger, matched against the message's targeting expression
+   * @param {MozBrowser} trigger.browser the browser to route messages to
+   * @param {number} [trigger.tabId] identifier used only for exposure testing
+   * @param {boolean} [skipLoadingMessages=false] pass true to skip looking for
+   *   new messages. use when calling from loadMessagesFromAllProviders to avoid
+   *   recursion. we call this from loadMessagesFromAllProviders in order to
+   *   fire the messagesLoaded trigger.
+   * @returns {Promise<object>}
+   * @resolves {message} an object with the routed message
+   */
+  async sendTriggerMessage(
+    { tabId, browser, ...trigger },
+    skipLoadingMessages = false
+  ) {
+    if (!skipLoadingMessages) {
+      await this.loadMessagesFromAllProviders();
+    }
     const telemetryObject = { tabId };
     TelemetryStopwatch.start("MS_MESSAGE_REQUEST_TIME_MS", telemetryObject);
     // Return all the messages so that it can record the Reach event
@@ -1965,96 +2059,14 @@ class _ASRouter {
     await lazy.ToolbarPanelHub._hideToolbarButton(win);
   }
 
-  async _onExperimentForceEnrolled(subject, topic, slug) {
+  async _onExperimentEnrollmentsUpdated() {
     const experimentProvider = this.state.providers.find(
       p => p.id === "messaging-experiments"
     );
-    if (!experimentProvider.enabled) {
+    if (!experimentProvider?.enabled) {
       return;
     }
-
-    const branch = lazy.ExperimentAPI.getActiveBranch({ slug });
-    const features = branch.features ?? [branch.feature];
-    const featureIds = features.map(feature => feature.featureId);
-
-    this._onFeaturesUpdated(...featureIds);
-
     await this.loadMessagesFromAllProviders([experimentProvider]);
-  }
-
-  /**
-   * Handle a change to the list of featureIds that the messaging-experiments
-   * provider is watching.
-   *
-   * This normally occurs when ASRouter update message providers, which happens
-   * every startup and when the messaging-experiment provider pref changes.
-   *
-   * On startup, |oldFeatures| will be an empty array and we will subscribe to
-   * everything in |newFeatures|.
-   *
-   * When the pref changes, we unsubscribe from |oldFeatures - newFeatures| and
-   * subscribe to |newFeatures - oldFeatures|. Features that are listed in both
-   * sets do not have their subscription status changed. Pref changes are mostly
-   * during unit tests.
-   *
-   * @param {string[]} oldFeatures The list of feature IDs we were previously
-   *                               listening to for new experiments.
-   * @param {string[]} newFeatures The list of feature IDs we are now listening
-   *                               to for new experiments.
-   */
-  _onFeatureListChanged(oldFeatures, newFeatures) {
-    for (const featureId of oldFeatures) {
-      if (!newFeatures.includes(featureId)) {
-        const listener = this._experimentChangedListeners.get(featureId);
-        this._experimentChangedListeners.delete(featureId);
-        lazy.NimbusFeatures[featureId].off(listener);
-      }
-    }
-
-    const newlySubscribed = [];
-
-    for (const featureId of newFeatures) {
-      if (!oldFeatures.includes(featureId)) {
-        const listener = () => this._onFeaturesUpdated(featureId);
-        this._experimentChangedListeners.set(featureId, listener);
-        lazy.NimbusFeatures[featureId].onUpdate(listener);
-
-        newlySubscribed.push(featureId);
-      }
-    }
-
-    // Check for any messages present in the newly subscribed to Nimbus features
-    // so we can prefetch their remote images (if any).
-    this._onFeaturesUpdated(...newlySubscribed);
-  }
-
-  /**
-   * Handle updated experiment features.
-   *
-   * If there are messages for the feature, RemoteImages will prefetch any
-   * images.
-   *
-   * @param {string[]} featureIds The feature IDs that have been updated.
-   */
-  _onFeaturesUpdated(...featureIds) {
-    const messages = [];
-
-    for (const featureId of featureIds) {
-      const featureAPI = lazy.NimbusFeatures[featureId];
-      // If there is no active experiment for the feature, this will return
-      // null.
-      if (lazy.ExperimentAPI.getExperimentMetaData({ featureId })) {
-        // Otherwise, getAllVariables() will return the JSON blob for the
-        // message.
-        messages.push(featureAPI.getAllVariables());
-      }
-    }
-
-    // We are not awaiting this because we want these images to load in the
-    // background.
-    if (messages.length) {
-      lazy.RemoteImages.prefetchImagesFor(messages);
-    }
   }
 
   async forcePBWindow(browser, msg) {

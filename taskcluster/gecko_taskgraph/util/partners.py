@@ -7,7 +7,6 @@ import json
 import logging
 import os
 import xml.etree.ElementTree as ET
-from copy import deepcopy
 from urllib.parse import urlencode
 
 import requests
@@ -16,6 +15,7 @@ from redo import retry
 from taskgraph.util.schema import resolve_keyed_by
 
 from gecko_taskgraph.util.attributes import release_level
+from gecko_taskgraph.util.copy_task import copy_task
 
 # Suppress chatty requests logging
 logging.getLogger("requests").setLevel(logging.WARNING)
@@ -199,7 +199,7 @@ def get_repo_params(repo):
     if repo.startswith("https"):
         # eg https://github.com/mozilla-partners/mozilla-EME-free
         return repo.rsplit("/", 2)[-2:]
-    elif repo.startswith("git@"):
+    if repo.startswith("git@"):
         # eg git@github.com:mozilla-partners/mailru.git
         repo = repo.replace(".git", "")
         return repo.split(":")[-1].split("/")
@@ -391,7 +391,7 @@ def get_partner_config_by_kind(config, kind):
         elif kind.startswith("release-partner-attribution") and isinstance(
             kind_config, dict
         ):
-            all_configs = deepcopy(kind_config.get("configs", []))
+            all_configs = copy_task(kind_config.get("configs", []))
             kind_config["configs"] = []
             for this_config in all_configs:
                 if this_config["campaign"] in partner_subset:
@@ -400,7 +400,7 @@ def get_partner_config_by_kind(config, kind):
 
 
 def _fix_subpartner_locales(orig_config, all_locales):
-    subpartner_config = deepcopy(orig_config)
+    subpartner_config = copy_task(orig_config)
     # Get an ordered list of subpartner locales that is a subset of all_locales
     subpartner_config["locales"] = sorted(
         list(set(orig_config["locales"]) & set(all_locales))
@@ -442,18 +442,17 @@ def fix_partner_config(orig_config):
 def get_ftp_platform(platform):
     if platform.startswith("win32"):
         return "win32"
-    elif platform.startswith("win64-aarch64"):
+    if platform.startswith("win64-aarch64"):
         return "win64-aarch64"
-    elif platform.startswith("win64"):
+    if platform.startswith("win64"):
         return "win64"
-    elif platform.startswith("macosx"):
+    if platform.startswith("macosx"):
         return "mac"
-    elif platform.startswith("linux-"):
+    if platform.startswith("linux-"):
         return "linux-i686"
-    elif platform.startswith("linux64"):
+    if platform.startswith("linux64"):
         return "linux-x86_64"
-    else:
-        raise ValueError(f"Unimplemented platform {platform}")
+    raise ValueError(f"Unimplemented platform {platform}")
 
 
 # Ugh
@@ -466,7 +465,7 @@ def locales_per_build_platform(build_platform, locales):
 
 
 def get_partner_url_config(parameters, graph_config):
-    partner_url_config = deepcopy(graph_config["partner-urls"])
+    partner_url_config = copy_task(graph_config["partner-urls"])
     substitutions = {
         "release-product": parameters["release_product"],
         "release-level": release_level(parameters["project"]),

@@ -7,12 +7,11 @@
 
 "use strict";
 
-const { AppConstants } = ChromeUtils.importESModule(
-  "resource://gre/modules/AppConstants.sys.mjs"
-);
-
 ChromeUtils.defineESModuleGetters(this, {
+  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
+  ExperimentFakes: "resource://testing-common/NimbusTestUtils.sys.mjs",
   PromiseUtils: "resource://gre/modules/PromiseUtils.sys.mjs",
+  PromptTestUtils: "resource://testing-common/PromptTestUtils.sys.mjs",
   ResetProfile: "resource://gre/modules/ResetProfile.sys.mjs",
   SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
   TelemetryTestUtils: "resource://testing-common/TelemetryTestUtils.sys.mjs",
@@ -22,25 +21,26 @@ ChromeUtils.defineESModuleGetters(this, {
   UrlbarSearchUtils: "resource:///modules/UrlbarSearchUtils.sys.mjs",
   UrlbarUtils: "resource:///modules/UrlbarUtils.sys.mjs",
   UrlbarView: "resource:///modules/UrlbarView.sys.mjs",
+  sinon: "resource://testing-common/Sinon.sys.mjs",
 });
 
 XPCOMUtils.defineLazyModuleGetters(this, {
-  PromptTestUtils: "resource://testing-common/PromptTestUtils.jsm",
   AboutNewTab: "resource:///modules/AboutNewTab.jsm",
-  ExperimentAPI: "resource://nimbus/ExperimentAPI.jsm",
-  ExperimentFakes: "resource://testing-common/NimbusTestUtils.jsm",
   ObjectUtils: "resource://gre/modules/ObjectUtils.jsm",
+});
+
+XPCOMUtils.defineLazyGetter(this, "PlacesFrecencyRecalculator", () => {
+  return Cc["@mozilla.org/places/frecency-recalculator;1"].getService(
+    Ci.nsIObserver
+  ).wrappedJSObject;
 });
 
 let sandbox;
 
-/* import-globals-from head-common.js */
 Services.scriptloader.loadSubScript(
   "chrome://mochitests/content/browser/browser/components/urlbar/tests/browser/head-common.js",
   this
 );
-
-const { sinon } = ChromeUtils.import("resource://testing-common/Sinon.jsm");
 
 registerCleanupFunction(async () => {
   // Ensure the Urlbar popup is always closed at the end of a test, to save having
@@ -56,38 +56,6 @@ async function selectAndPaste(str, win = window) {
   win.document.commandDispatcher
     .getControllerForCommand("cmd_paste")
     .doCommand("cmd_paste");
-}
-
-/**
- * Updates the Top Sites feed.
- *
- * @param {Function} condition
- *   A callback that returns true after Top Sites are successfully updated.
- * @param {boolean} searchShortcuts
- *   True if Top Sites search shortcuts should be enabled.
- */
-async function updateTopSites(condition, searchShortcuts = false) {
-  // Toggle the pref to clear the feed cache and force an update.
-  await SpecialPowers.pushPrefEnv({
-    set: [
-      [
-        "browser.newtabpage.activity-stream.discoverystream.endpointSpocsClear",
-        "",
-      ],
-      ["browser.newtabpage.activity-stream.feeds.system.topsites", false],
-      ["browser.newtabpage.activity-stream.feeds.system.topsites", true],
-      [
-        "browser.newtabpage.activity-stream.improvesearch.topSiteSearchShortcuts",
-        searchShortcuts,
-      ],
-    ],
-  });
-
-  // Wait for the feed to be updated.
-  await TestUtils.waitForCondition(() => {
-    let sites = AboutNewTab.getTopSites();
-    return condition(sites);
-  }, "Waiting for top sites to be updated");
 }
 
 /**

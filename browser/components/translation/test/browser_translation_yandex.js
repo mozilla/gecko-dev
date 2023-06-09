@@ -21,10 +21,6 @@ const kApiKeyPref = "browser.translation.yandex.apiKeyOverride";
 const kDetectLanguagePref = "browser.translation.detectLanguage";
 const kShowUIPref = "browser.translation.ui.show";
 
-const { Translation } = ChromeUtils.import(
-  "resource:///modules/translation/TranslationParent.jsm"
-);
-
 add_setup(async function() {
   await SpecialPowers.pushPrefEnv({
     set: [
@@ -66,22 +62,6 @@ add_task(async function test_yandex_translation() {
 
     Assert.ok(result, "There should be a result.");
   });
-
-  gBrowser.removeTab(tab);
-});
-
-/**
- * Ensure that Yandex.Translate is propertly attributed.
- */
-add_task(async function test_yandex_attribution() {
-  // Loading the fixture page.
-  let url = constructFixtureURL("bug1022725-fr.html");
-  let tab = await promiseTestPageLoad(url);
-
-  info("Show an info bar saying the current page is in French");
-  let notif = showTranslationUI(tab, "fr");
-  let attribution = notif._getAnonElt("translationEngine").selectedIndex;
-  Assert.equal(attribution, 1, "Yandex attribution should be shown.");
 
   gBrowser.removeTab(tab);
 });

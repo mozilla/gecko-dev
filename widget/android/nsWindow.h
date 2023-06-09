@@ -129,6 +129,8 @@ class nsWindow final : public nsBaseWidget {
 
   void DetachNatives();
 
+  mozilla::Mutex& GetDestroyMutex() { return mDestroyMutex; }
+
   //
   // nsIWidget
   //
@@ -137,7 +139,7 @@ class nsWindow final : public nsBaseWidget {
   [[nodiscard]] virtual nsresult Create(nsIWidget* aParent,
                                         nsNativeWidget aNativeParent,
                                         const LayoutDeviceIntRect& aRect,
-                                        nsWidgetInitData* aInitData) override;
+                                        InitData* aInitData) override;
   virtual void Destroy() override;
   virtual void SetParent(nsIWidget* aNewParent) override;
   virtual nsIWidget* GetParent(void) override;
@@ -281,6 +283,8 @@ class nsWindow final : public nsBaseWidget {
   GetUiCompositorControllerChild();
 
   mozilla::widget::PlatformCompositorWidgetDelegate* mCompositorWidgetDelegate;
+
+  mozilla::Mutex mDestroyMutex;
 
   friend class mozilla::widget::GeckoViewSupport;
   friend class mozilla::widget::LayerViewSupport;

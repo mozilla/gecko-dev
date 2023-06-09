@@ -15,6 +15,7 @@
  */
 
 import expect from 'expect';
+
 import {getTestState, setupTestBrowserHooks} from './mocha-utils.js';
 
 describe('Browser specs', function () {
@@ -27,7 +28,7 @@ describe('Browser specs', function () {
       const version = await browser.version();
       expect(version.length).toBeGreaterThan(0);
       expect(version.startsWith('Headless')).toBe(
-        isHeadless && headless !== 'chrome'
+        isHeadless && headless !== 'new'
       );
     });
   });

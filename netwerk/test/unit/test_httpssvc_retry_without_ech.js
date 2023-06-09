@@ -4,8 +4,6 @@
 
 "use strict";
 
-ChromeUtils.import("resource://gre/modules/NetUtil.jsm");
-
 let trrServer;
 
 const certOverrideService = Cc[
@@ -35,7 +33,9 @@ registerCleanupFunction(async () => {
   Services.prefs.clearUserPref("network.dns.upgrade_with_https_rr");
   Services.prefs.clearUserPref("network.dns.use_https_rr_as_altsvc");
   Services.prefs.clearUserPref("network.dns.echconfig.enabled");
-  Services.prefs.clearUserPref("network.dns.echconfig.fallback_to_origin");
+  Services.prefs.clearUserPref(
+    "network.dns.echconfig.fallback_to_origin_when_all_failed"
+  );
   if (trrServer) {
     await trrServer.stop();
   }
@@ -77,6 +77,10 @@ add_task(async function testRetryWithoutECH() {
   Services.prefs.setCharPref(
     "network.trr.uri",
     `https://foo.example.com:${trrServer.port}/dns-query`
+  );
+  Services.prefs.setBoolPref(
+    "network.dns.echconfig.fallback_to_origin_when_all_failed",
+    true
   );
 
   // Only the last record is valid to use.

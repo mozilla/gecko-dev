@@ -1,7 +1,7 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
+/* eslint-disable mozilla/valid-lazy */
 
 import {
   CONTEXTUAL_SERVICES_PING_TYPES,
@@ -11,22 +11,22 @@ import {
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
+  ExperimentFakes: "resource://testing-common/NimbusTestUtils.sys.mjs",
+  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
+  QuickSuggestRemoteSettings:
+    "resource:///modules/urlbar/private/QuickSuggestRemoteSettings.sys.mjs",
   SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
   TelemetryTestUtils: "resource://testing-common/TelemetryTestUtils.sys.mjs",
   TestUtils: "resource://testing-common/TestUtils.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarProviderQuickSuggest:
     "resource:///modules/UrlbarProviderQuickSuggest.sys.mjs",
+  UrlbarProvidersManager: "resource:///modules/UrlbarProvidersManager.sys.mjs",
   UrlbarUtils: "resource:///modules/UrlbarUtils.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
-});
-
-XPCOMUtils.defineLazyModuleGetters(lazy, {
-  ExperimentAPI: "resource://nimbus/ExperimentAPI.jsm",
-  ExperimentFakes: "resource://testing-common/NimbusTestUtils.jsm",
-  NimbusFeatures: "resource://nimbus/ExperimentAPI.jsm",
-  sinon: "resource://testing-common/Sinon.jsm",
+  sinon: "resource://testing-common/Sinon.sys.mjs",
 });
 
 let gTestScope;
@@ -36,7 +36,6 @@ let gTestScope;
 // not happen automatically inside system modules like this one because system
 // module lifetimes are the app's lifetime, unlike individual browser chrome and
 // xpcshell tests.
-/* eslint-disable mozilla/valid-lazy */
 Object.defineProperty(lazy, "UrlbarTestUtils", {
   get: () => {
     if (!lazy._UrlbarTestUtils) {
@@ -60,7 +59,6 @@ Object.defineProperty(lazy, "UrlbarTestUtils", {
 // not happen automatically inside system modules like this one because system
 // module lifetimes are the app's lifetime, unlike individual browser chrome and
 // xpcshell tests.
-/* eslint-disable mozilla/valid-lazy */
 Object.defineProperty(lazy, "MerinoTestUtils", {
   get: () => {
     if (!lazy._MerinoTestUtils) {
@@ -78,7 +76,9 @@ Object.defineProperty(lazy, "MerinoTestUtils", {
   },
 });
 
-const DEFAULT_CONFIG = {
+const DEFAULT_CONFIG = {};
+
+const BEST_MATCH_CONFIG = {
   best_match: {
     blocked_suggestion_ids: [],
     min_search_string_length: 4,
@@ -175,6 +175,11 @@ class _QuickSuggestTestUtils {
     return Cu.cloneInto(DEFAULT_CONFIG, this);
   }
 
+  get BEST_MATCH_CONFIG() {
+    // Return a clone so callers can modify it.
+    return Cu.cloneInto(BEST_MATCH_CONFIG, this);
+  }
+
   /**
    * Waits for quick suggest initialization to finish, ensures its data will not
    * be updated again during the test, and also optionally sets it up with mock
@@ -199,29 +204,23 @@ class _QuickSuggestTestUtils {
    *   otherwise.
    */
   async ensureQuickSuggestInit({
-    remoteSettingsResults = null,
+    remoteSettingsResults = [],
     merinoSuggestions = null,
     config = DEFAULT_CONFIG,
   } = {}) {
+    lazy.QuickSuggestRemoteSettings._test_ignoreSettingsSync = true;
+
     this.info?.("ensureQuickSuggestInit calling QuickSuggest.init()");
     lazy.QuickSuggest.init();
 
-    this.info?.("ensureQuickSuggestInit awaiting remoteSettings.readyPromise");
-    let { remoteSettings } = lazy.QuickSuggest;
-    await remoteSettings.readyPromise;
-    this.info?.(
-      "ensureQuickSuggestInit done awaiting remoteSettings.readyPromise"
-    );
-
     this.setConfig(config);
 
-    // Set up the remote settings client. Ignore remote settings syncs that
-    // occur during the test. Clear its results and add the test results.
-    remoteSettings._test_ignoreSettingsSync = true;
-    remoteSettings._test_resultsByKeyword.clear();
+    // Clear remote settings suggestions and add the test suggestions.
+    let admWikipedia = lazy.QuickSuggest.getFeature("AdmWikipedia");
+    admWikipedia._test_suggestionsMap.clear();
     if (remoteSettingsResults) {
       this.info?.("ensureQuickSuggestInit adding remote settings results");
-      await remoteSettings._test_addResults(remoteSettingsResults);
+      await admWikipedia._test_suggestionsMap.add(remoteSettingsResults);
       this.info?.("ensureQuickSuggestInit done adding remote settings results");
     }
 
@@ -237,8 +236,8 @@ class _QuickSuggestTestUtils {
     let cleanup = async () => {
       this.info?.("ensureQuickSuggestInit starting cleanup");
       this.setConfig(DEFAULT_CONFIG);
-      delete remoteSettings._test_ignoreSettingsSync;
-      remoteSettings._test_resultsByKeyword.clear();
+      delete lazy.QuickSuggestRemoteSettings._test_ignoreSettingsSync;
+      admWikipedia._test_suggestionsMap.clear();
       if (merinoSuggestions) {
         lazy.UrlbarPrefs.clear("quicksuggest.dataCollection.enabled");
       }
@@ -250,20 +249,34 @@ class _QuickSuggestTestUtils {
   }
 
   /**
+   * Clears the current remote settings results and adds a new set of results.
+   * This can be used to add remote settings results after
+   * `ensureQuickSuggestInit()` has been called.
+   *
+   * @param {Array} results
+   *   Array of remote settings result objects.
+   */
+  async setRemoteSettingsResults(results) {
+    let admWikipedia = lazy.QuickSuggest.getFeature("AdmWikipedia");
+    admWikipedia._test_suggestionsMap.clear();
+    await admWikipedia._test_suggestionsMap.add(results);
+  }
+
+  /**
    * Sets the quick suggest configuration. You should call this again with
    * `DEFAULT_CONFIG` before your test finishes. See also `withConfig()`.
    *
    * @param {object} config
    *   The config to be applied. See
-   *   {@link QuickSuggestRemoteSettingsClient._setConfig}
+   *   {@link QuickSuggestRemoteSettings._test_setConfig}
    */
   setConfig(config) {
-    lazy.QuickSuggest.remoteSettings._test_setConfig(config);
+    lazy.QuickSuggestRemoteSettings._test_setConfig(config);
   }
 
   /**
    * Sets the quick suggest configuration, calls your callback, and restores the
-   * default configuration.
+   * previous configuration.
    *
    * @param {object} options
    *   The options object.
@@ -275,9 +288,10 @@ class _QuickSuggestTestUtils {
    * @see {@link setConfig}
    */
   async withConfig({ config, callback }) {
+    let original = lazy.QuickSuggestRemoteSettings.config;
     this.setConfig(config);
     await callback();
-    this.setConfig(DEFAULT_CONFIG);
+    this.setConfig(original);
   }
 
   /**
@@ -399,27 +413,35 @@ class _QuickSuggestTestUtils {
       "Result sponsored label"
     );
 
-    let helpButton = row._buttons.get("help");
-    this.Assert.ok(helpButton, "The help button should be present");
     this.Assert.equal(
       result.payload.helpUrl,
       lazy.QuickSuggest.HELP_URL,
       "Result helpURL"
     );
 
-    let blockButton = row._buttons.get("block");
-    if (!isBestMatch) {
-      this.Assert.equal(
-        !!blockButton,
-        lazy.UrlbarPrefs.get("quickSuggestBlockingEnabled"),
-        "The block button is present iff quick suggest blocking is enabled"
+    if (lazy.UrlbarPrefs.get("resultMenu")) {
+      this.Assert.ok(
+        row._buttons.get("menu"),
+        "The menu button should be present"
       );
     } else {
-      this.Assert.equal(
-        !!blockButton,
-        lazy.UrlbarPrefs.get("bestMatchBlockingEnabled"),
-        "The block button is present iff best match blocking is enabled"
-      );
+      let helpButton = row._buttons.get("help");
+      this.Assert.ok(helpButton, "The help button should be present");
+
+      let blockButton = row._buttons.get("block");
+      if (!isBestMatch) {
+        this.Assert.equal(
+          !!blockButton,
+          lazy.UrlbarPrefs.get("quickSuggestBlockingEnabled"),
+          "The block button is present iff quick suggest blocking is enabled"
+        );
+      } else {
+        this.Assert.equal(
+          !!blockButton,
+          lazy.UrlbarPrefs.get("bestMatchBlockingEnabled"),
+          "The block button is present iff best match blocking is enabled"
+        );
+      }
     }
 
     return details;
@@ -458,35 +480,46 @@ class _QuickSuggestTestUtils {
   }
 
   /**
-   * Checks the values of all the quick suggest telemetry scalars.
+   * Checks the values of all the quick suggest telemetry keyed scalars and,
+   * if provided, other non-quick-suggest keyed scalars. Scalar values are all
+   * assumed to be 1.
    *
-   * @param {object} expectedIndexesByScalarName
-   *   Maps scalar names to the expected 1-based indexes of results. If you
-   *   expect a scalar to be incremented, then include it in this object. If you
-   *   expect a scalar not to be incremented, don't include it.
+   * @param {object} expectedKeysByScalarName
+   *   Maps scalar names to keys that are expected to be recorded. The value for
+   *   each key is assumed to be 1. If you expect a scalar to be incremented,
+   *   include it in this object; otherwise, don't include it.
    */
-  assertScalars(expectedIndexesByScalarName) {
+  assertScalars(expectedKeysByScalarName) {
     let scalars = lazy.TelemetryTestUtils.getProcessScalars(
       "parent",
       true,
       true
     );
+
+    // Check all quick suggest scalars.
+    expectedKeysByScalarName = { ...expectedKeysByScalarName };
     for (let scalarName of Object.values(
       lazy.UrlbarProviderQuickSuggest.TELEMETRY_SCALARS
     )) {
-      if (scalarName in expectedIndexesByScalarName) {
+      if (scalarName in expectedKeysByScalarName) {
         lazy.TelemetryTestUtils.assertKeyedScalar(
           scalars,
           scalarName,
-          expectedIndexesByScalarName[scalarName],
+          expectedKeysByScalarName[scalarName],
           1
         );
+        delete expectedKeysByScalarName[scalarName];
       } else {
         this.Assert.ok(
           !(scalarName in scalars),
           "Scalar should not be present: " + scalarName
         );
       }
+    }
+
+    // Check any other remaining scalars that were passed in.
+    for (let [scalarName, key] of Object.entries(expectedKeysByScalarName)) {
+      lazy.TelemetryTestUtils.assertKeyedScalar(scalars, scalarName, key, 1);
     }
   }
 

@@ -30,11 +30,13 @@
   --arrowpanel-dimmed: color-mix(in srgb, currentColor 17%, transparent);
   --arrowpanel-dimmed-further: color-mix(in srgb, currentColor 30%, transparent);
 
-  --panel-description-color: GrayText;
-  --panel-disabled-color: GrayText;
+  --panel-description-color: color-mix(in srgb, currentColor 60%, transparent);
+  --panel-disabled-color: color-mix(in srgb, currentColor 40%, transparent);
 
   --popup-notification-body-width: calc(31em - calc(2 * var(--arrowpanel-padding)));
+
   --toolbarbutton-icon-fill: currentColor;
+  --toolbarbutton-disabled-opacity: 0.4;
 
   --toolbar-field-background-color: Field;
   --toolbar-field-color: FieldText;
@@ -49,6 +51,15 @@
   --toolbar-field-color: black;
   --toolbar-field-focus-color: black;
   --toolbar-field-border-color: transparent;
+}
+
+@media (prefers-contrast) {
+  :root:not(:-moz-lwtheme) {
+    --toolbarbutton-disabled-opacity: 0.3;
+
+    --panel-description-color: inherit;
+    --panel-disabled-color: GrayText;
+  }
 }
 
 :is(menupopup, panel)[type=arrow] {
@@ -136,21 +147,18 @@ xul|label[disabled="true"] {
 
 /* Links */
 
-.text-link {
+.text-link,
+a {
   color: -moz-nativehyperlinktext;
   cursor: pointer;
-}
-
-.text-link:hover {
   text-decoration: underline;
 }
 
-.text-link:-moz-lwtheme {
+:is(a, .text-link):-moz-lwtheme {
   color: inherit;
-  text-decoration: underline;
 }
 
-.text-link:focus-visible {
+:is(a, .text-link):focus-visible {
   outline: var(--focus-outline);
   /* Not using --focus-outline-offset here because that's intended for elements
      with a background, and we only want a slight offset here while not
@@ -235,7 +243,7 @@ button.text-link .button-text {
 @media (-moz-platform: windows) {
   /* Swap the primary and secondary action, because Windows
    * platform conventions put the primary action on the left. */
-  .panel-footer > button[default] {
+  .panel-footer:not(moz-button-group) > button[default] {
     order: -1;
   }
 }
@@ -254,6 +262,7 @@ button.text-link .button-text {
   --panel-border-color: rgba(0,0,0,.4);
   --panel-padding: 0;
   --panel-background: rgba(249,249,250,.8) no-repeat center var(--autoscroll-background-image);
+  --panel-shadow-margin: 4px;
   /* Set pointer-events: none; so that mousemove events can be handled by AutoScrollChild.jsm. */
   pointer-events: none;
 }
@@ -261,8 +270,9 @@ button.text-link .button-text {
 .autoscroller::part(content) {
   border-radius: 100%;
   background-clip: padding-box;
-  box-shadow: 0 0 4px rgba(0,0,0,.2);
-  margin: 4px;
+  box-shadow: 0 0 var(--panel-shadow-margin) rgba(0,0,0,.2);
+  width: 100%;
+  height: 100%;
 }
 
 .autoscroller[scrolldir="NS"] {

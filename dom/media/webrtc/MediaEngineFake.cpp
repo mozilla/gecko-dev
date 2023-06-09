@@ -244,7 +244,7 @@ nsresult MediaEngineFakeVideoSource::Deallocate() {
   return NS_OK;
 }
 
-static void AllocateSolidColorFrame(layers::PlanarYCbCrData& aData, int aWidth,
+static bool AllocateSolidColorFrame(layers::PlanarYCbCrData& aData, int aWidth,
                                     int aHeight, int aY, int aCb, int aCr) {
   MOZ_ASSERT(!(aWidth & 1));
   MOZ_ASSERT(!(aHeight & 1));
@@ -253,6 +253,9 @@ static void AllocateSolidColorFrame(layers::PlanarYCbCrData& aData, int aWidth,
   int cbLen = yLen >> 2;
   int crLen = cbLen;
   uint8_t* frame = (uint8_t*)malloc(yLen + cbLen + crLen);
+  if (!frame) {
+    return false;
+  }
   memset(frame, aY, yLen);
   memset(frame + yLen, aCb, cbLen);
   memset(frame + yLen + cbLen, aCr, crLen);
@@ -266,6 +269,7 @@ static void AllocateSolidColorFrame(layers::PlanarYCbCrData& aData, int aWidth,
   aData.mStereoMode = StereoMode::MONO;
   aData.mYUVColorSpace = gfx::YUVColorSpace::BT601;
   aData.mChromaSubsampling = gfx::ChromaSubsampling::HALF_WIDTH_AND_HEIGHT;
+  return true;
 }
 
 static void ReleaseFrame(layers::PlanarYCbCrData& aData) {
@@ -377,7 +381,10 @@ void MediaEngineFakeVideoSource::GenerateFrame() {
   RefPtr<layers::PlanarYCbCrImage> ycbcr_image =
       mImageContainer->CreatePlanarYCbCrImage();
   layers::PlanarYCbCrData data;
-  AllocateSolidColorFrame(data, mOpts.mWidth, mOpts.mHeight, 0x80, mCb, mCr);
+  if (NS_WARN_IF(!AllocateSolidColorFrame(data, mOpts.mWidth, mOpts.mHeight,
+                                          0x80, mCb, mCr))) {
+    return;
+  }
 
 #ifdef MOZ_WEBRTC
   uint64_t timestamp = PR_Now();
@@ -601,6 +608,7 @@ void MediaEngineFake::EnumerateDevices(
     nsTArray<RefPtr<MediaDevice>>* aDevices) {
   AssertIsOnOwningThread();
   using IsScary = MediaDevice::IsScary;
+  using OsPromptable = MediaDevice::OsPromptable;
 
   if (aMediaSink == MediaSinkEnum::Speaker) {
     NS_WARNING("No default implementation for MediaSinkEnum::Speaker");
@@ -609,16 +617,18 @@ void MediaEngineFake::EnumerateDevices(
   switch (aMediaSource) {
     case MediaSourceEnum::Camera: {
       nsString name = FakeVideoName();
-      aDevices->EmplaceBack(new MediaDevice(
-          this, aMediaSource, name, /*aRawId=*/name,
-          MediaEngineFakeVideoSource::GetGroupId(), IsScary::No));
+      aDevices->EmplaceBack(
+          new MediaDevice(this, aMediaSource, name, /*aRawId=*/name,
+                          MediaEngineFakeVideoSource::GetGroupId(), IsScary::No,
+                          OsPromptable::No));
       return;
     }
     case MediaSourceEnum::Microphone:
-      aDevices->EmplaceBack(new MediaDevice(
-          this, aMediaSource, u"Default Audio Device"_ns,
-          MediaEngineFakeAudioSource::GetUUID(),
-          MediaEngineFakeAudioSource::GetGroupId(), IsScary::No));
+      aDevices->EmplaceBack(
+          new MediaDevice(this, aMediaSource, u"Default Audio Device"_ns,
+                          MediaEngineFakeAudioSource::GetUUID(),
+                          MediaEngineFakeAudioSource::GetGroupId(), IsScary::No,
+                          OsPromptable::No));
       return;
     default:
       MOZ_ASSERT_UNREACHABLE("Unsupported source type");

@@ -4,7 +4,6 @@
 
 "use strict";
 
-/* import-globals-from ../../test/head.js */
 // Import the inspector's head.js first (which itself imports shared-head.js).
 Services.scriptloader.loadSubScript(
   "chrome://mochitests/content/browser/devtools/client/inspector/test/head.js",
@@ -262,7 +261,7 @@ const clickOnInspectIcon = async function(animationInspector, panel, index) {
   info(`Click on an inspect icon in animation target component[${index}]`);
   const animationItemEl = await findAnimationItemByIndex(panel, index);
   const iconEl = animationItemEl.querySelector(
-    ".animation-target .objectBox .open-inspector"
+    ".animation-target .objectBox .highlight-node"
   );
   iconEl.scrollIntoView(false);
   EventUtils.synthesizeMouseAtCenter(iconEl, {}, iconEl.ownerGlobal);

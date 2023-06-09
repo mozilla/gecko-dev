@@ -14,18 +14,20 @@ use crate::shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use crate::str::CssStringWriter;
 use crate::values::computed::font::{FamilyName, FontStretch};
 use crate::values::generics::font::FontStyle as GenericFontStyle;
-#[cfg(feature = "gecko")]
-use crate::values::specified::font::{FontFeatureSettings, FontVariationSettings};
 use crate::values::specified::font::SpecifiedFontStyle;
 use crate::values::specified::font::{
     AbsoluteFontWeight, FontStretch as SpecifiedFontStretch, MetricsOverride,
 };
+#[cfg(feature = "gecko")]
+use crate::values::specified::font::{FontFeatureSettings, FontVariationSettings};
 use crate::values::specified::url::SpecifiedUrl;
 use crate::values::specified::{Angle, NonNegativePercentage};
 #[cfg(feature = "gecko")]
 use cssparser::UnicodeRange;
-use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
-use cssparser::{CowRcStr, SourceLocation};
+use cssparser::{
+    AtRuleParser, CowRcStr, DeclarationListParser, DeclarationParser, Parser, QualifiedRuleParser,
+    SourceLocation,
+};
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError};
@@ -301,7 +303,7 @@ macro_rules! impl_range {
             {
                 self.0.to_css(dest)?;
                 if self.0 != self.1 {
-                    dest.write_str(" ")?;
+                    dest.write_char(' ')?;
                     self.1.to_css(dest)?;
                 }
                 Ok(())
@@ -541,6 +543,12 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for FontFaceRuleParser<'a, 'b> {
     type Error = StyleParseErrorKind<'i>;
 }
 
+impl<'a, 'b, 'i> QualifiedRuleParser<'i> for FontFaceRuleParser<'a, 'b> {
+    type Prelude = ();
+    type QualifiedRule = ();
+    type Error = StyleParseErrorKind<'i>;
+}
+
 impl Parse for Source {
     fn parse<'i, 't>(
         context: &ParserContext,
@@ -691,7 +699,7 @@ impl ToCssWithGuard for FontFaceRuleData {
     fn to_css(&self, _guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
         dest.write_str("@font-face { ")?;
         self.decl_to_css(dest)?;
-        dest.write_str("}")
+        dest.write_char('}')
     }
 }
 

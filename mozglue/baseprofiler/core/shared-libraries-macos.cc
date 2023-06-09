@@ -142,16 +142,21 @@ static void addSharedLibrary(const platform_mach_header* header,
   }
 
   std::string uuid;
+  std::string breakpadId;
   if (uuid_bytes != nullptr) {
     static constexpr char digits[16] = {'0', '1', '2', '3', '4', '5', '6', '7',
                                         '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
-    for (int i = 0; i < 15; ++i) {
+    for (int i = 0; i < 16; ++i) {
       uint8_t byte = uuid_bytes[i];
       uuid += digits[byte >> 4];
       uuid += digits[byte & 0xFu];
     }
+
+    // Breakpad id is the same as the uuid but with the additional trailing 0
+    // for the breakpad id age.
+    breakpadId = uuid;
     // breakpad id age.
-    uuid += '0';
+    breakpadId += '0';
   }
 
   std::string pathStr = path;
@@ -163,9 +168,9 @@ static void addSharedLibrary(const platform_mach_header* header,
   const NXArchInfo* archInfo =
       NXGetArchInfoFromCpuType(header->cputype, header->cpusubtype);
 
-  info.AddSharedLibrary(SharedLibrary(start, start + size, 0, uuid, nameStr,
-                                      pathStr, nameStr, pathStr, std::string{},
-                                      archInfo ? archInfo->name : ""));
+  info.AddSharedLibrary(SharedLibrary(
+      start, start + size, 0, breakpadId, uuid, nameStr, pathStr, nameStr,
+      pathStr, std::string{}, archInfo ? archInfo->name : ""));
 }
 
 // Translate the statically stored sSharedLibrariesList information into a

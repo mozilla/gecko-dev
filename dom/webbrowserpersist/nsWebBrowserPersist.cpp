@@ -415,17 +415,6 @@ NS_IMETHODIMP nsWebBrowserPersist::SaveURI(
     nsIURI* aURI, nsIPrincipal* aPrincipal, uint32_t aCacheKey,
     nsIReferrerInfo* aReferrerInfo, nsICookieJarSettings* aCookieJarSettings,
     nsIInputStream* aPostData, const char* aExtraHeaders, nsISupports* aFile,
-    nsContentPolicyType aContentPolicyType, nsILoadContext* aPrivacyContext) {
-  bool isPrivate = aPrivacyContext && aPrivacyContext->UsePrivateBrowsing();
-  return SavePrivacyAwareURI(aURI, aPrincipal, aCacheKey, aReferrerInfo,
-                             aCookieJarSettings, aPostData, aExtraHeaders,
-                             aFile, aContentPolicyType, isPrivate);
-}
-
-NS_IMETHODIMP nsWebBrowserPersist::SavePrivacyAwareURI(
-    nsIURI* aURI, nsIPrincipal* aPrincipal, uint32_t aCacheKey,
-    nsIReferrerInfo* aReferrerInfo, nsICookieJarSettings* aCookieJarSettings,
-    nsIInputStream* aPostData, const char* aExtraHeaders, nsISupports* aFile,
     nsContentPolicyType aContentPolicy, bool aIsPrivate) {
   NS_ENSURE_TRUE(mFirstAndOnlyUse, NS_ERROR_FAILURE);
   mFirstAndOnlyUse = false;  // Stop people from reusing this object!
@@ -435,7 +424,7 @@ NS_IMETHODIMP nsWebBrowserPersist::SavePrivacyAwareURI(
   rv = GetValidURIFromObject(aFile, getter_AddRefs(fileAsURI));
   NS_ENSURE_SUCCESS(rv, NS_ERROR_INVALID_ARG);
 
-  // SaveURI doesn't like broken uris.
+  // SaveURIInternal doesn't like broken uris.
   mPersistFlags |= PERSIST_FLAGS_FAIL_ON_BROKEN_LINKS;
   rv = SaveURIInternal(aURI, aPrincipal, aContentPolicy, aCacheKey,
                        aReferrerInfo, aCookieJarSettings, aPostData,
@@ -456,7 +445,7 @@ NS_IMETHODIMP nsWebBrowserPersist::SaveChannel(nsIChannel* aChannel,
   rv = aChannel->GetURI(getter_AddRefs(mURI));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // SaveURI doesn't like broken uris.
+  // SaveChannelInternal doesn't like broken uris.
   mPersistFlags |= PERSIST_FLAGS_FAIL_ON_BROKEN_LINKS;
   rv = SaveChannelInternal(aChannel, fileAsURI, false);
   return NS_FAILED(rv) ? rv : NS_OK;

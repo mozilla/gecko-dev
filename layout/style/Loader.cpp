@@ -48,6 +48,7 @@
 #include "nsGkAtoms.h"
 #include "nsIThreadInternal.h"
 #include "nsINetworkPredictor.h"
+#include "nsQueryActor.h"
 #include "nsStringStream.h"
 #include "mozilla/dom/MediaList.h"
 #include "mozilla/dom/ShadowRoot.h"
@@ -1617,6 +1618,18 @@ void Loader::NotifyObservers(SheetLoadData& aData, nsresult aStatus) {
       DecrementOngoingLoadCount();
     }
   }
+  if (!aData.mTitle.IsEmpty() && NS_SUCCEEDED(aStatus)) {
+    nsContentUtils::AddScriptRunner(NS_NewRunnableFunction(
+        "Loader::NotifyObservers - Create PageStyle actor",
+        [doc = RefPtr{mDocument}] {
+          // Force creating the page style actor, if available.
+          // This will no-op if no actor with this name is registered (outside
+          // of desktop Firefox).
+          nsCOMPtr<nsISupports> pageStyleActor =
+              do_QueryActor("PageStyle", doc);
+          Unused << pageStyleActor;
+        }));
+  }
 
   if (aData.mMustNotify) {
     if (nsCOMPtr<nsICSSLoaderObserver> observer = std::move(aData.mObserver)) {
@@ -1699,7 +1712,7 @@ void Loader::MaybeNotifyPreloadUsed(SheetLoadData& aData) {
     return;
   }
 
-  preload->NotifyUsage();
+  preload->NotifyUsage(mDocument);
 }
 
 Result<Loader::LoadSheetResult, nsresult> Loader::LoadInlineStyle(
@@ -1752,8 +1765,8 @@ Result<Loader::LoadSheetResult, nsresult> Loader::LoadInlineStyle(
     sheet = MakeRefPtr<StyleSheet>(eAuthorSheetFeatures, aInfo.mCORSMode,
                                    SRIMetadata{});
     sheet->SetURIs(sheetURI, originalURI, baseURI);
-    nsCOMPtr<nsIReferrerInfo> referrerInfo =
-        ReferrerInfo::CreateForInternalCSSResources(aInfo.mContent->OwnerDoc());
+    nsIReferrerInfo* referrerInfo =
+        aInfo.mContent->OwnerDoc()->ReferrerInfoForInternalCSSAndSVGResources();
     sheet->SetReferrerInfo(referrerInfo);
 
     nsIPrincipal* sheetPrincipal = principal;
@@ -1844,8 +1857,8 @@ Result<Loader::LoadSheetResult, nsresult> Loader::LoadStyleLink(
     if (!aInfo.mContent) {
       return false;
     }
-    const bool privilegedShadowTree = aInfo.mContent->IsInUAWidget() ||
-                                      (aInfo.mContent->IsInShadowTree() &&
+    const bool privilegedShadowTree = aInfo.mContent->IsInShadowTree() &&
+                                      (aInfo.mContent->ChromeOnlyAccess() ||
                                        aInfo.mContent->IsInChromeDocument());
     if (!privilegedShadowTree) {
       return false;

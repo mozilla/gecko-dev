@@ -19,11 +19,9 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ExtensionSearchHandler:
     "resource://gre/modules/ExtensionSearchHandler.sys.mjs",
 
+  UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarResult: "resource:///modules/UrlbarResult.sys.mjs",
 });
-
-// After this time, we'll give up waiting for the extension to return matches.
-const MAXIMUM_ALLOWED_EXTENSION_TIME_MS = 3000;
 
 /**
  * This provider handles results returned by extensions using the WebExtensions
@@ -51,27 +49,6 @@ class ProviderOmnibox extends UrlbarProvider {
    */
   get type() {
     return UrlbarUtils.PROVIDER_TYPE.HEURISTIC;
-  }
-
-  /**
-   * Called when the result's block button is picked. If the provider can block
-   * the result, it should do so and return true. If the provider cannot block
-   * the result, it should return false. The meaning of "blocked" depends on the
-   * provider and the type of result.
-   *
-   * @param {UrlbarQueryContext} queryContext
-   *   The query context.
-   * @param {UrlbarResult} result
-   *   The result that should be blocked.
-   * @returns {boolean}
-   *   Whether the result was blocked.
-   */
-  blockResult(queryContext, result) {
-    if (result.payload.isBlockable) {
-      lazy.ExtensionSearchHandler.handleInputDeleted(result.payload.title);
-    }
-
-    return result.payload.isBlockable;
   }
 
   /**
@@ -179,6 +156,7 @@ class ProviderOmnibox extends UrlbarProvider {
                   queryContext.tokens[0].value,
                   UrlbarUtils.HIGHLIGHT.TYPED,
                 ],
+                blockL10n: { id: "urlbar-result-menu-dismiss-firefox-suggest" },
                 isBlockable: suggestion.deletable,
                 icon: UrlbarUtils.ICON.EXTENSION,
               }
@@ -194,12 +172,24 @@ class ProviderOmnibox extends UrlbarProvider {
     // we add a timer racing with the addition.
     let timeoutPromise = new SkippableTimer({
       name: "ProviderOmnibox",
-      time: MAXIMUM_ALLOWED_EXTENSION_TIME_MS,
+      time: lazy.UrlbarPrefs.get("extension.omnibox.timeout"),
       logger: this.logger,
     }).promise;
     await Promise.race([timeoutPromise, this._resultsPromise]).catch(ex =>
       this.logger.error(ex)
     );
+  }
+
+  onEngagement(isPrivate, state, queryContext, details) {
+    let { result } = details;
+    if (result?.providerName != this.name) {
+      return;
+    }
+
+    if (details.selType == "dismiss" && result.payload.isBlockable) {
+      lazy.ExtensionSearchHandler.handleInputDeleted(result.payload.title);
+      queryContext.view.controller.removeResult(result);
+    }
   }
 }
 

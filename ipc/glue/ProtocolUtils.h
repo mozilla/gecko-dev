@@ -100,10 +100,6 @@ class NeckoParent;
 
 namespace ipc {
 
-#ifdef FUZZING
-class ProtocolFuzzerHelper;
-#endif
-
 // Scoped base::ProcessHandle to ensure base::CloseProcessHandle is called.
 struct ScopedProcessHandleTraits {
   typedef base::ProcessHandle type;
@@ -380,10 +376,6 @@ class ManagedEndpoint;
  * this protocol actor.
  */
 class IToplevelProtocol : public IProtocol {
-#ifdef FUZZING
-  friend class mozilla::ipc::ProtocolFuzzerHelper;
-#endif
-
   template <class PFooSide>
   friend class Endpoint;
 
@@ -393,6 +385,9 @@ class IToplevelProtocol : public IProtocol {
   ~IToplevelProtocol() = default;
 
  public:
+  // All top-level protocols are refcounted.
+  NS_INLINE_DECL_PURE_VIRTUAL_REFCOUNTING
+
   // Shadow methods on IProtocol which are implemented directly on toplevel
   // actors.
   int32_t Register(IProtocol* aRouted);

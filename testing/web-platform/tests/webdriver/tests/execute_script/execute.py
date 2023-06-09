@@ -25,44 +25,25 @@ def test_no_browsing_context(session, closed_frame):
     assert_error(response, "no such window")
 
 
-def test_no_such_element_with_invalid_value(session):
-    element = Element("foo", session)
-
-    result = execute_script(session, "return true;", args=[element])
-    assert_error(result, "no such element")
-
-
-@pytest.mark.parametrize("closed", [False, True], ids=["open", "closed"])
-def test_no_such_element_from_other_window_handle(session, inline, closed):
-    session.url = inline("<div id='parent'><p/>")
-    element = session.find.css("#parent", all=False)
-
-    new_handle = session.new_window()
-
-    if closed:
-        session.window.close()
-
-    session.window_handle = new_handle
-
-    result = execute_script(session, "return true;", args=[element])
-    assert_error(result, "no such element")
-
-
-@pytest.mark.parametrize("closed", [False, True], ids=["open", "closed"])
-def test_no_such_element_from_other_frame(session, url, closed):
-    session.url = url("/webdriver/tests/support/html/subframe.html")
-
-    frame = session.find.css("#delete-frame", all=False)
-    session.switch_frame(frame)
-
-    button = session.find.css("#remove-parent", all=False)
-    if closed:
-        button.click()
-
-    session.switch_frame("parent")
-
-    result = execute_script(session, "return true;", args=[button])
-    assert_error(result, "no such element")
+@pytest.mark.parametrize("expression, expected", [
+    ("null", None),
+    ("undefined", None),
+    ("true", True),
+    ("false", False),
+    ("23", 23),
+    ("'foo'", "foo"),
+    (
+        # Compute value in the runtime to reduce the potential for
+        # interference from encoding literal bytes or escape sequences in
+        # Python and HTTP.
+        "String.fromCharCode(0)",
+        "\x00"
+    )
+])
+def test_primitive_serialization(session, expression, expected):
+    response = execute_script(session, "return {};".format(expression))
+    value = assert_success(response)
+    assert value == expected
 
 
 def test_opening_new_window_keeps_current_window_handle(session, inline):

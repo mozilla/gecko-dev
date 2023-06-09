@@ -5,15 +5,13 @@
 
 /* eslint no-unused-vars: ["error", {vars: "local", args: "none"}] */
 
-var { NetUtil } = ChromeUtils.import("resource://gre/modules/NetUtil.jsm");
 const { TelemetryTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/TelemetryTestUtils.sys.mjs"
 );
 
-let { AddonManager, AddonManagerPrivate } = ChromeUtils.import(
+let { AddonManagerPrivate } = ChromeUtils.import(
   "resource://gre/modules/AddonManager.jsm"
 );
-let { Log } = ChromeUtils.importESModule("resource://gre/modules/Log.sys.mjs");
 
 var pathParts = gTestPath.split("/");
 // Drop the test filename
@@ -1512,21 +1510,6 @@ function waitAppMenuNotificationShown(
 
 function acceptAppMenuNotificationWhenShown(id, addonId) {
   return waitAppMenuNotificationShown(id, addonId, true);
-}
-
-const ABOUT_ADDONS_METHODS = new Set(["action", "view", "link"]);
-function assertAboutAddonsTelemetryEvents(events, filters = {}) {
-  TelemetryTestUtils.assertEvents(events, {
-    category: "addonsManager",
-    method: actual =>
-      filters.methods
-        ? filters.methods.includes(actual)
-        : ABOUT_ADDONS_METHODS.has(actual),
-    object: actual =>
-      filters.objects
-        ? filters.objects.includes(actual)
-        : actual === "aboutAddons",
-  });
 }
 
 /* HTML view helpers */

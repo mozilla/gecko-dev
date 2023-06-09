@@ -55,7 +55,7 @@ export const DSSource = ({
   }
 
   // If we are not a spoc, and can display a time to read value.
-  if (timeToRead) {
+  if (source && timeToRead) {
     return (
       <p className="source clamp time-to-read">
         <FluentOrText
@@ -323,6 +323,12 @@ export class _DSCard extends React.PureComponent {
     }
 
     const { isRecentSave, DiscoveryStream, saveToPocketCard } = this.props;
+    let { source } = this.props;
+    if (!source) {
+      try {
+        source = new URL(this.props.url).hostname;
+      } catch (e) {}
+    }
 
     const {
       pocketButtonEnabled,
@@ -391,7 +397,7 @@ export class _DSCard extends React.PureComponent {
             />
           </div>
           <DefaultMeta
-            source={this.props.source}
+            source={source}
             title={this.props.title}
             excerpt={excerpt}
             newSponsoredLabel={newSponsoredLabel}
@@ -427,7 +433,7 @@ export class _DSCard extends React.PureComponent {
                 dispatch={this.props.dispatch}
                 url={this.props.url}
                 title={this.props.title}
-                source={this.props.source}
+                source={source}
                 type={this.props.type}
                 pocket_id={this.props.pocket_id}
                 shim={this.props.shim}
@@ -452,7 +458,7 @@ export class _DSCard extends React.PureComponent {
             dispatch={this.props.dispatch}
             url={this.props.url}
             title={this.props.title}
-            source={this.props.source}
+            source={source}
             type={this.props.type}
             pocket_id={this.props.pocket_id}
             shim={this.props.shim}

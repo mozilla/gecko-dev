@@ -190,6 +190,57 @@ add_task(async function returnByValueInvalidTypes({ client }) {
   }
 });
 
+add_task(async function returnByValueCyclicValue({ client }) {
+  const { Runtime } = client;
+
+  const { id: executionContextId } = await enableRuntime(client);
+
+  const functionDeclarations = [
+    "() => { const b = { a: 1}; b.b = b; return b; }",
+    "() => window",
+  ];
+
+  for (const functionDeclaration of functionDeclarations) {
+    let errorThrown;
+    try {
+      await Runtime.callFunctionOn({
+        functionDeclaration,
+        executionContextId,
+        returnByValue: true,
+      });
+    } catch (e) {
+      errorThrown = e.message;
+    }
+    ok(errorThrown.includes("Object reference chain is too long"));
+  }
+});
+
+add_task(async function returnByValueNotPossible({ client }) {
+  const { Runtime } = client;
+
+  const { id: executionContextId } = await enableRuntime(client);
+
+  const functionDeclarations = [
+    "() => Symbol('foo')",
+    "() => [Symbol('foo')]",
+    "() => { return {a: Symbol('foo')}; }",
+  ];
+
+  for (const functionDeclaration of functionDeclarations) {
+    let errorThrown;
+    try {
+      await Runtime.callFunctionOn({
+        functionDeclaration,
+        executionContextId,
+        returnByValue: true,
+      });
+    } catch (e) {
+      errorThrown = e.message;
+    }
+    ok(errorThrown.includes("Object couldn't be returned by value"));
+  }
+});
+
 add_task(async function returnByValue({ client }) {
   const { Runtime } = client;
 
@@ -347,23 +398,4 @@ add_task(async function returnByValueArgumentsNotSerializable({ client }) {
       );
     }
   }
-});
-
-add_task(async function returnByValueArgumentsSymbol({ client }) {
-  const { Runtime } = client;
-
-  const { id: executionContextId } = await enableRuntime(client);
-
-  let errorThrown = "";
-  try {
-    await Runtime.callFunctionOn({
-      functionDeclaration: "a => a",
-      arguments: [{ unserializableValue: "Symbol('42')" }],
-      executionContextId,
-      returnByValue: true,
-    });
-  } catch (e) {
-    errorThrown = e.message;
-  }
-  ok(errorThrown, "Symbol cannot be returned as value");
 });

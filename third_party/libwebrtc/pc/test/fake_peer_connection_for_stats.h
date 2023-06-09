@@ -167,6 +167,7 @@ class FakePeerConnectionForStats : public FakePeerConnectionBase {
     dependencies.network_thread = rtc::Thread::Current();
     dependencies.worker_thread = rtc::Thread::Current();
     dependencies.signaling_thread = rtc::Thread::Current();
+    dependencies.media_engine = std::make_unique<cricket::FakeMediaEngine>();
     return dependencies;
   }
 
@@ -224,10 +225,17 @@ class FakePeerConnectionForStats : public FakePeerConnectionBase {
         worker_thread_, network_thread_, signaling_thread_,
         std::move(voice_media_channel), mid, kDefaultSrtpRequired,
         webrtc::CryptoOptions(), context_->ssrc_generator(), transport_name);
-    GetOrCreateFirstTransceiverOfType(cricket::MEDIA_TYPE_AUDIO)
-        ->internal()
-        ->SetChannel(std::move(voice_channel),
-                     [](const std::string&) { return nullptr; });
+    auto transceiver =
+        GetOrCreateFirstTransceiverOfType(cricket::MEDIA_TYPE_AUDIO)
+            ->internal();
+    if (transceiver->channel()) {
+      // This transceiver already has a channel, create a new one.
+      transceiver =
+          CreateTransceiverOfType(cricket::MEDIA_TYPE_AUDIO)->internal();
+    }
+    RTC_DCHECK(!transceiver->channel());
+    transceiver->SetChannel(std::move(voice_channel),
+                            [](const std::string&) { return nullptr; });
     voice_media_channel_ptr->SetStats(initial_stats);
     return voice_media_channel_ptr;
   }
@@ -243,10 +251,17 @@ class FakePeerConnectionForStats : public FakePeerConnectionBase {
         worker_thread_, network_thread_, signaling_thread_,
         std::move(video_media_channel), mid, kDefaultSrtpRequired,
         webrtc::CryptoOptions(), context_->ssrc_generator(), transport_name);
-    GetOrCreateFirstTransceiverOfType(cricket::MEDIA_TYPE_VIDEO)
-        ->internal()
-        ->SetChannel(std::move(video_channel),
-                     [](const std::string&) { return nullptr; });
+    auto transceiver =
+        GetOrCreateFirstTransceiverOfType(cricket::MEDIA_TYPE_VIDEO)
+            ->internal();
+    if (transceiver->channel()) {
+      // This transceiver already has a channel, create a new one.
+      transceiver =
+          CreateTransceiverOfType(cricket::MEDIA_TYPE_VIDEO)->internal();
+    }
+    RTC_DCHECK(!transceiver->channel());
+    transceiver->SetChannel(std::move(video_channel),
+                            [](const std::string&) { return nullptr; });
     video_media_channel_ptr->SetStats(initial_stats);
     return video_media_channel_ptr;
   }
@@ -413,6 +428,11 @@ class FakePeerConnectionForStats : public FakePeerConnectionBase {
         return transceiver;
       }
     }
+    return CreateTransceiverOfType(media_type);
+  }
+
+  rtc::scoped_refptr<RtpTransceiverProxyWithInternal<RtpTransceiver>>
+  CreateTransceiverOfType(cricket::MediaType media_type) {
     auto transceiver = RtpTransceiverProxyWithInternal<RtpTransceiver>::Create(
         signaling_thread_,
         rtc::make_ref_counted<RtpTransceiver>(media_type, context_.get()));

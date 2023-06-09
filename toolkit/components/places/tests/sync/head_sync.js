@@ -15,16 +15,16 @@ var { CanonicalJSON } = ChromeUtils.import(
   "resource://gre/modules/CanonicalJSON.jsm"
 );
 var { Log } = ChromeUtils.importESModule("resource://gre/modules/Log.sys.mjs");
-var { ObjectUtils } = ChromeUtils.import(
-  "resource://gre/modules/ObjectUtils.jsm"
-);
+
 var { PlacesSyncUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/PlacesSyncUtils.sys.mjs"
 );
 var { SyncedBookmarksMirror } = ChromeUtils.importESModule(
   "resource://gre/modules/SyncedBookmarksMirror.sys.mjs"
 );
-var { CommonUtils } = ChromeUtils.import("resource://services-common/utils.js");
+var { CommonUtils } = ChromeUtils.importESModule(
+  "resource://services-common/utils.sys.mjs"
+);
 var { FileTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/FileTestUtils.sys.mjs"
 );
@@ -398,41 +398,8 @@ BookmarkObserver.prototype = {
       }
     }
   },
-  onItemChanged(
-    itemId,
-    property,
-    isAnnoProperty,
-    newValue,
-    lastModified,
-    type,
-    parentId,
-    guid,
-    parentGuid,
-    oldValue,
-    source
-  ) {
-    let params = {
-      itemId,
-      property,
-      isAnnoProperty,
-      newValue,
-      type,
-      parentId,
-      guid,
-      parentGuid,
-      oldValue,
-      source,
-    };
-    if (!this.ignoreDates) {
-      params.lastModified = lastModified;
-    }
-    this.notifications.push({ name: "onItemChanged", params });
-  },
-
-  QueryInterface: ChromeUtils.generateQI(["nsINavBookmarkObserver"]),
 
   check(expectedNotifications) {
-    PlacesUtils.bookmarks.removeObserver(this);
     PlacesUtils.observers.removeListener(
       [
         "bookmark-added",
@@ -457,7 +424,6 @@ BookmarkObserver.prototype = {
 
 function expectBookmarkChangeNotifications(options) {
   let observer = new BookmarkObserver(options);
-  PlacesUtils.bookmarks.addObserver(observer);
   PlacesUtils.observers.addListener(
     [
       "bookmark-added",

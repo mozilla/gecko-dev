@@ -3,8 +3,6 @@
 
 "use strict";
 
-/* import-globals-from ../../../../../toolkit/mozapps/update/tests/browser/head.js */
-
 Services.scriptloader.loadSubScript(
   "chrome://mochitests/content/browser/toolkit/mozapps/update/tests/browser/head.js",
   this
@@ -17,11 +15,6 @@ add_task(async function verify_distribution_info_hides() {
   defaultBranch.setCharPref("distribution.version", "1.0");
 
   let aboutDialog = await waitForAboutDialog();
-
-  await TestUtils.waitForCondition(
-    () => aboutDialog.document.getElementById("currentChannel").value != "",
-    "Waiting for init to complete"
-  );
 
   let distroIdField = aboutDialog.document.getElementById("distributionId");
   let distroField = aboutDialog.document.getElementById("distribution");
@@ -50,11 +43,6 @@ add_task(async function verify_distribution_info_displays() {
   defaultBranch.setCharPref("distribution.about", "About Text");
 
   let aboutDialog = await waitForAboutDialog();
-
-  await TestUtils.waitForCondition(
-    () => aboutDialog.document.getElementById("currentChannel").value != "",
-    "Waiting for init to complete"
-  );
 
   let distroIdField = aboutDialog.document.getElementById("distributionId");
 

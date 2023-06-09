@@ -8,7 +8,6 @@ import {
   getFileURL,
   getDisplayPath,
   getSourceLineCount,
-  isThirdParty,
   isJavaScript,
   isDescendantOfRoot,
   removeThreadActorId,
@@ -250,22 +249,6 @@ describe("sources", () => {
         );
         expect(isJavaScript(source, source.content)).toBe(true);
       }
-    });
-  });
-
-  describe("isThirdParty", () => {
-    it("node_modules", () => {
-      expect(isThirdParty(makeMockSource("/node_modules/foo.js"))).toBe(true);
-    });
-
-    it("bower_components", () => {
-      expect(isThirdParty(makeMockSource("/bower_components/foo.js"))).toBe(
-        true
-      );
-    });
-
-    it("not third party", () => {
-      expect(isThirdParty(makeMockSource("/bar/foo.js"))).toBe(false);
     });
   });
 

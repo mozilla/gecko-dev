@@ -380,6 +380,9 @@ Download.prototype = {
     this.stopped = false;
     this.canceled = false;
     this.error = null;
+    // Avoid serializing the previous error, or it would be restored on the next
+    // startup, even if the download was restarted.
+    delete this._unknownProperties?.errorObj;
     this.hasProgress = false;
     this.hasBlockedData = false;
     this.progress = 0;
@@ -555,8 +558,16 @@ Download.prototype = {
 
               ex = new DownloadError(properties);
             }
-
-            this.error = ex;
+            // Don't store an error if it's an abort caused by shutdown, so the
+            // download can be retried automatically at the next startup.
+            if (
+              originalEx.result != Cr.NS_ERROR_ABORT ||
+              !Services.startup.isInOrBeyondShutdownPhase(
+                Ci.nsIAppStartup.SHUTDOWN_PHASE_APPSHUTDOWNCONFIRMED
+              )
+            ) {
+              this.error = ex;
+            }
           }
           throw ex;
         } finally {
@@ -596,7 +607,7 @@ Download.prototype = {
     this._deferSucceeded.resolve();
 
     if (this.launchWhenSucceeded) {
-      this.launch().catch(Cu.reportError);
+      this.launch().catch(console.error);
 
       // Always schedule files to be deleted at the end of the private browsing
       // mode, regardless of the value of the pref.
@@ -685,7 +696,9 @@ Download.prototype = {
           return Promise.reject(err);
         })
         .catch(err => {
-          this.error = err;
+          if (!this.canceled) {
+            console.error(err);
+          }
           this._notifyChange();
         });
       this._notifyChange();
@@ -1072,7 +1085,7 @@ Download.prototype = {
 
         this._notifyChange();
       }
-    })().catch(Cu.reportError);
+    })().catch(console.error);
   },
 
   /**
@@ -2053,7 +2066,7 @@ DownloadSaver.prototype = {
   addToHistory() {
     if (AppConstants.MOZ_PLACES) {
       lazy.DownloadHistory.addDownloadToHistory(this.download).catch(
-        Cu.reportError
+        console.error
       );
     }
   },

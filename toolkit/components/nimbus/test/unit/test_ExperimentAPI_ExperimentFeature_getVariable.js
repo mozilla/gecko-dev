@@ -3,7 +3,7 @@
 const {
   ExperimentAPI,
   _ExperimentFeature: ExperimentFeature,
-} = ChromeUtils.import("resource://nimbus/ExperimentAPI.jsm");
+} = ChromeUtils.importESModule("resource://nimbus/ExperimentAPI.sys.mjs");
 const { AppConstants } = ChromeUtils.importESModule(
   "resource://gre/modules/AppConstants.sys.mjs"
 );
@@ -64,7 +64,7 @@ add_task(async function test_ExperimentFeature_getVariable_notRegistered() {
       () => {
         instance.getVariable("non_existant_variable");
       },
-      /Nimbus: Warning - variable "non_existant_variable" is not defined in FeatureManifest\.js/,
+      /Nimbus: Warning - variable "non_existant_variable" is not defined in FeatureManifest\.yaml/,
       "should throw in automation for variables not defined in the manifest"
     );
   } else {

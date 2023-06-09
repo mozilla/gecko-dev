@@ -28,66 +28,57 @@ uint64_t IdentifierHashFunc(const char* name, size_t len) {
 
 static ShCompileOptions ChooseValidatorCompileOptions(
     const ShBuiltInResources& resources, const mozilla::gl::GLContext* gl) {
-  ShCompileOptions options = SH_VARIABLES | SH_ENFORCE_PACKING_RESTRICTIONS |
-                             SH_OBJECT_CODE | SH_INIT_GL_POSITION |
-                             SH_INITIALIZE_UNINITIALIZED_LOCALS |
-                             SH_INIT_OUTPUT_VARIABLES;
+  ShCompileOptions options = {};
+  options.variables = true;
+  options.enforcePackingRestrictions = true;
+  options.objectCode = true;
+  options.initGLPosition = true;
+  options.initializeUninitializedLocals = true;
+  options.initOutputVariables = true;
 
 #ifdef XP_MACOSX
-  options |= SH_REMOVE_INVARIANT_AND_CENTROID_FOR_ESSL3;
+  options.removeInvariantAndCentroidForESSL3 = true;
 #else
   // We want to do this everywhere, but to do this on Mac, we need
   // to do it only on Mac OSX > 10.6 as this causes the shader
   // compiler in 10.6 to crash
-  options |= SH_CLAMP_INDIRECT_ARRAY_BOUNDS;
+  options.clampIndirectArrayBounds = true;
 #endif
 
   if (gl->WorkAroundDriverBugs()) {
-#ifdef XP_MACOSX
-    // Work around https://bugs.webkit.org/show_bug.cgi?id=124684,
-    // https://chromium.googlesource.com/angle/angle/+/5e70cf9d0b1bb
-    options |= SH_UNFOLD_SHORT_CIRCUIT;
+    if (kIsMacOS) {
+      // Work around https://bugs.webkit.org/show_bug.cgi?id=124684,
+      // https://chromium.googlesource.com/angle/angle/+/5e70cf9d0b1bb
+      options.unfoldShortCircuit = true;
 
-    // Work around that Mac drivers handle struct scopes incorrectly.
-    options |= SH_REGENERATE_STRUCT_NAMES;
-    options |= SH_INIT_OUTPUT_VARIABLES;
+      // Work around that Mac drivers handle struct scopes incorrectly.
+      options.regenerateStructNames = true;
+      options.initOutputVariables = true;
+      options.initGLPointSize = true;
 
-    if (gl->Vendor() == gl::GLVendor::Intel) {
-      // Work around that Intel drivers on Mac OSX handle for-loop incorrectly.
-      options |= SH_ADD_AND_TRUE_TO_LOOP_CONDITION;
+      if (gl->Vendor() == gl::GLVendor::Intel) {
+        // Work around that Intel drivers on Mac OSX handle for-loop
+        // incorrectly.
+        options.addAndTrueToLoopCondition = true;
 
-      options |= SH_REWRITE_TEXELFETCHOFFSET_TO_TEXELFETCH;
+        options.rewriteTexelFetchOffsetToTexelFetch = true;
+      }
     }
-#endif
 
     if (!gl->IsANGLE() && gl->Vendor() == gl::GLVendor::Intel) {
       // Failures on at least Windows+Intel+OGL on:
       // conformance/glsl/constructors/glsl-construct-mat2.html
-      options |= SH_SCALARIZE_VEC_AND_MAT_CONSTRUCTOR_ARGS;
+      options.scalarizeVecAndMatConstructorArgs = true;
     }
   }
 
-  if (StaticPrefs::webgl_all_angle_options()) {
-    options = -1;
-
-    options ^= SH_INTERMEDIATE_TREE;
-    options ^= SH_LINE_DIRECTIVES;
-    options ^= SH_SOURCE_PATH;
-
-    options ^= SH_LIMIT_EXPRESSION_COMPLEXITY;
-    options ^= SH_LIMIT_CALL_STACK_DEPTH;
-
-    options ^= SH_EXPAND_SELECT_HLSL_INTEGER_POW_EXPRESSIONS;
-    options ^= SH_HLSL_GET_DIMENSIONS_IGNORES_BASE_LEVEL;
-
-    options ^= SH_REMOVE_INVARIANT_AND_CENTROID_FOR_ESSL3;
-  }
+  // -
 
   if (resources.MaxExpressionComplexity > 0) {
-    options |= SH_LIMIT_EXPRESSION_COMPLEXITY;
+    options.limitExpressionComplexity = true;
   }
   if (resources.MaxCallStackDepth > 0) {
-    options |= SH_LIMIT_CALL_STACK_DEPTH;
+    options.limitCallStackDepth = true;
   }
 
   return options;

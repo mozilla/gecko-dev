@@ -16,8 +16,9 @@
 #include <unordered_set>
 #include <utility>
 
-#include "mozilla/gfx/Point.h"               // for IntSize
-#include "mozilla/gfx/Types.h"               // for SurfaceFormat
+#include "mozilla/gfx/Point.h"  // for IntSize
+#include "mozilla/gfx/Types.h"  // for SurfaceFormat
+#include "mozilla/ipc/Shmem.h"
 #include "mozilla/layers/CompositorTypes.h"  // for TextureFlags, etc
 #include "mozilla/layers/LayersSurfaces.h"   // for SurfaceDescriptor
 #include "mozilla/layers/TextureHost.h"
@@ -42,6 +43,21 @@ class RemoteTextureHostWrapper;
 class TextureData;
 class TextureHost;
 
+struct RemoteTextureInfo {
+  RemoteTextureInfo(const RemoteTextureId aTextureId,
+                    const RemoteTextureOwnerId aOwnerId,
+                    const base::ProcessId aForPid)
+      : mTextureId(aTextureId), mOwnerId(aOwnerId), mForPid(aForPid) {}
+
+  const RemoteTextureId mTextureId;
+  const RemoteTextureOwnerId mOwnerId;
+  const base::ProcessId mForPid;
+};
+
+struct RemoteTextureInfoList {
+  std::queue<RemoteTextureInfo> mList;
+};
+
 /**
  * A class provides API for remote texture owners.
  */
@@ -63,7 +79,7 @@ class RemoteTextureOwnerClient final {
   void PushDummyTexture(const RemoteTextureId aTextureId,
                         const RemoteTextureOwnerId aOwnerId);
   void GetLatestBufferSnapshot(const RemoteTextureOwnerId aOwnerId,
-                               const ipc::Shmem& aDestShmem,
+                               const mozilla::ipc::Shmem& aDestShmem,
                                const gfx::IntSize& aSize);
   UniquePtr<TextureData> CreateOrRecycleBufferTextureData(
       const RemoteTextureOwnerId aOwnerId, gfx::IntSize aSize,
@@ -107,7 +123,7 @@ class RemoteTextureMap {
 
   void GetLatestBufferSnapshot(const RemoteTextureOwnerId aOwnerId,
                                const base::ProcessId aForPid,
-                               const ipc::Shmem& aDestShmem,
+                               const mozilla::ipc::Shmem& aDestShmem,
                                const gfx::IntSize& aSize);
 
   // aIsSyncMode defines if RemoteTextureMap::GetRemoteTextureForDisplayList()
@@ -125,12 +141,14 @@ class RemoteTextureMap {
   // In sync mode, mRemoteTextureForDisplayList holds TextureHost of mTextureId.
   // In async mode, it could be previous remote texture's TextureHost that is
   // compatible to the mTextureId's TextureHost.
-  void GetRemoteTextureForDisplayList(
-      RemoteTextureHostWrapper* aTextureHostWrapper);
+  //
+  // return true when aReadyCallback will be called.
+  bool GetRemoteTextureForDisplayList(
+      RemoteTextureHostWrapper* aTextureHostWrapper,
+      std::function<void(const RemoteTextureInfo&)>&& aReadyCallback);
 
   // Get ExternalImageId of remote texture for WebRender rendering.
-  // This synchronously waits until remote texture becomes ready.
-  wr::MaybeExternalImageId GetExternalImageIdOfRemoteTextureSync(
+  wr::MaybeExternalImageId GetExternalImageIdOfRemoteTexture(
       const RemoteTextureId aTextureId, const RemoteTextureOwnerId aOwnerId,
       const base::ProcessId aForPid);
 
@@ -153,6 +171,15 @@ class RemoteTextureMap {
   void UnregisterRemoteTexturePushListener(const RemoteTextureOwnerId aOwnerId,
                                            const base::ProcessId aForPid,
                                            CompositableHost* aListener);
+
+  bool CheckRemoteTextureReady(
+      const RemoteTextureInfo& aInfo,
+      std::function<void(const RemoteTextureInfo&)>&& aCallback);
+
+  bool WaitRemoteTextureReady(const RemoteTextureInfo& aInfo);
+
+  void SuppressRemoteTextureReadyCheck(const RemoteTextureId aTextureId,
+                                       const base::ProcessId aForPid);
 
   UniquePtr<TextureData> GetRecycledBufferTextureData(
       const RemoteTextureOwnerId aOwnerId, const base::ProcessId aForPid,
@@ -184,6 +211,16 @@ class RemoteTextureMap {
     std::shared_ptr<gl::SharedSurface> mSharedSurface;
   };
 
+  struct RenderingReadyCallbackHolder {
+    RenderingReadyCallbackHolder(
+        const RemoteTextureId aTextureId,
+        std::function<void(const RemoteTextureInfo&)>&& aCallback);
+
+    const RemoteTextureId mTextureId;
+    // callback of async RemoteTexture ready
+    std::function<void(const RemoteTextureInfo&)> mCallback;
+  };
+
   struct TextureOwner {
     bool mIsSyncMode = true;
     // Holds TextureDataHolders that wait to be used for building wr display
@@ -191,8 +228,13 @@ class RemoteTextureMap {
     std::deque<UniquePtr<TextureDataHolder>> mWaitingTextureDataHolders;
     // Holds TextureDataHolders that are used for building wr display list.
     std::deque<UniquePtr<TextureDataHolder>> mUsingTextureDataHolders;
+    // Holds async RemoteTexture ready callbacks.
+    std::deque<UniquePtr<RenderingReadyCallbackHolder>>
+        mRenderingReadyCallbackHolders;
+
     RemoteTextureId mLatestTextureId = {0};
     CompositableTextureHostRef mLatestTextureHost;
+    CompositableTextureHostRef mLatestRenderedTextureHost;
     std::stack<UniquePtr<TextureData>> mRecycledTextures;
     std::queue<std::shared_ptr<gl::SharedSurface>> mRecycledSharedSurfaces;
   };
@@ -207,11 +249,21 @@ class RemoteTextureMap {
     // mode. It is for keeping the texture alive during its rendering by
     // WebRender.
     CompositableTextureHostRef mAsyncRemoteTextureHost;
+    bool mReadyCheckSuppressed = false;
   };
 
   void UpdateTexture(const MonitorAutoLock& aProofOfLock,
                      RemoteTextureMap::TextureOwner* aOwner,
                      const RemoteTextureId aTextureId);
+
+  std::vector<std::function<void(const RemoteTextureInfo&)>>
+  GetRenderingReadyCallbacks(const MonitorAutoLock& aProofOfLock,
+                             RemoteTextureMap::TextureOwner* aOwner,
+                             const RemoteTextureId aTextureId);
+
+  std::vector<std::function<void(const RemoteTextureInfo&)>>
+  GetAllRenderingReadyCallbacks(const MonitorAutoLock& aProofOfLock,
+                                RemoteTextureMap::TextureOwner* aOwner);
 
   void KeepTextureDataAliveForTextureHostIfNecessary(
       const MonitorAutoLock& aProofOfLock,

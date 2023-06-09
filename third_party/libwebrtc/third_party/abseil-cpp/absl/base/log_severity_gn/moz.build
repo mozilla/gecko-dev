@@ -16,6 +16,7 @@ FINAL_LIBRARY = "webrtc"
 
 LOCAL_INCLUDES += [
     "!/ipc/ipdl/_ipdlheaders",
+    "!/third_party/libwebrtc/gen",
     "/ipc/chromium/src",
     "/third_party/libwebrtc/",
     "/third_party/libwebrtc/third_party/abseil-cpp/",
@@ -133,6 +134,10 @@ if CONFIG["CPU_ARCH"] == "arm" and CONFIG["OS_TARGET"] == "Android":
 
 if CONFIG["CPU_ARCH"] == "x86" and CONFIG["OS_TARGET"] == "Android":
 
+    CXXFLAGS += [
+        "-msse2"
+    ]
+
     OS_LIBS += [
         "android_support"
     ]
@@ -146,6 +151,10 @@ if CONFIG["CPU_ARCH"] == "arm" and CONFIG["OS_TARGET"] == "Linux":
     DEFINES["_GNU_SOURCE"] = True
 
 if CONFIG["CPU_ARCH"] == "x86" and CONFIG["OS_TARGET"] == "Linux":
+
+    CXXFLAGS += [
+        "-msse2"
+    ]
 
     DEFINES["_GNU_SOURCE"] = True
 

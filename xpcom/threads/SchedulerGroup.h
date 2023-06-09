@@ -37,10 +37,6 @@ class DocGroup;
 
 class SchedulerGroup {
  public:
-  SchedulerGroup();
-
-  NS_INLINE_DECL_PURE_VIRTUAL_REFCOUNTING
-
   class Runnable final : public mozilla::Runnable, public nsIRunnablePriority {
    public:
     Runnable(already_AddRefed<nsIRunnable>&& aRunnable,
@@ -74,10 +70,6 @@ class SchedulerGroup {
   static nsresult UnlabeledDispatch(TaskCategory aCategory,
                                     already_AddRefed<nsIRunnable>&& aRunnable);
 
-  static void MarkVsyncReceived();
-
-  static void MarkVsyncRan();
-
   static nsresult LabeledDispatch(
       TaskCategory aCategory, already_AddRefed<nsIRunnable>&& aRunnable,
       mozilla::PerformanceCounter* aPerformanceCounter);
@@ -85,16 +77,6 @@ class SchedulerGroup {
  protected:
   static nsresult InternalUnlabeledDispatch(
       TaskCategory aCategory, already_AddRefed<Runnable>&& aRunnable);
-
-  // Shuts down this dispatcher. If aXPCOMShutdown is true, invalidates this
-  // dispatcher.
-  void Shutdown(bool aXPCOMShutdown);
-
-  bool mIsRunning;
-
-  // Number of events that are currently enqueued for this SchedulerGroup
-  // (across all queues).
-  size_t mEventCount = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(SchedulerGroup::Runnable,

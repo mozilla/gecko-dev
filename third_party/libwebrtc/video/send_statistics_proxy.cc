@@ -985,6 +985,8 @@ void SendStatisticsProxy::OnSendEncodedImage(
   stats->frames_encoded++;
   stats->total_encode_time_ms += encoded_image.timing_.encode_finish_ms -
                                  encoded_image.timing_.encode_start_ms;
+  if (codec_info)
+    stats->scalability_mode = codec_info->scalability_mode;
   // Report resolution of the top spatial layer.
   bool is_top_spatial_layer =
       codec_info == nullptr || codec_info->end_of_picture;
@@ -1053,11 +1055,12 @@ void SendStatisticsProxy::OnSendEncodedImage(
 }
 
 void SendStatisticsProxy::OnEncoderImplementationChanged(
-    const std::string& implementation_name) {
+    EncoderImplementation implementation) {
   MutexLock lock(&mutex_);
   encoder_changed_ = EncoderChangeEvent{stats_.encoder_implementation_name,
-                                        implementation_name};
-  stats_.encoder_implementation_name = implementation_name;
+                                        implementation.name};
+  stats_.encoder_implementation_name = implementation.name;
+  stats_.power_efficient_encoder = implementation.is_hardware_accelerated;
 }
 
 int SendStatisticsProxy::GetInputFrameRate() const {
@@ -1385,7 +1388,6 @@ void SendStatisticsProxy::FrameCountUpdated(const FrameCounts& frame_counts,
 
 void SendStatisticsProxy::SendSideDelayUpdated(int avg_delay_ms,
                                                int max_delay_ms,
-                                               uint64_t total_delay_ms,
                                                uint32_t ssrc) {
   MutexLock lock(&mutex_);
   VideoSendStream::StreamStats* stats = GetStatsEntry(ssrc);
@@ -1393,7 +1395,6 @@ void SendStatisticsProxy::SendSideDelayUpdated(int avg_delay_ms,
     return;
   stats->avg_delay_ms = avg_delay_ms;
   stats->max_delay_ms = max_delay_ms;
-  stats->total_packet_send_delay_ms = total_delay_ms;
 
   uma_container_->delay_counter_.Add(avg_delay_ms);
   uma_container_->max_delay_counter_.Add(max_delay_ms);

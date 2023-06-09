@@ -4,8 +4,8 @@
 
 "use strict";
 
-const { RemoteSettings } = ChromeUtils.import(
-  "resource://services-settings/remote-settings.js"
+const { RemoteSettings } = ChromeUtils.importESModule(
+  "resource://services-settings/remote-settings.sys.mjs"
 );
 
 // Initializing BrowserGlue requires a profile on Windows.
@@ -15,11 +15,9 @@ const gBrowserGlue = Cc["@mozilla.org/browser/browserglue;1"].getService(
   Ci.nsIObserver
 );
 
-ChromeUtils.defineModuleGetter(
-  this,
-  "LoginBreaches",
-  "resource:///modules/LoginBreaches.jsm"
-);
+ChromeUtils.defineESModuleGetters(this, {
+  LoginBreaches: "resource:///modules/LoginBreaches.sys.mjs",
+});
 
 const TEST_BREACHES = [
   {

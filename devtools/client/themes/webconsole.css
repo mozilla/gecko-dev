@@ -189,9 +189,42 @@
   margin: var(--console-output-vertical-padding) 4px;
 }
 
-@media (max-width: 500px) {
-  .message > .timestamp {
+/* Use a container query as the inline-size of the output might vary when the console is in editor mode */
+@container console-output (width < 500px) {
+  /*
+   * When we export messages, we mount the app as a sibling of the #app-wrapper element,
+   * in a 0-width section which would cause the timestamp to be hidden, so only hide
+   * the timestamp in the "visible" element.
+   */
+  #app-wrapper .message > .timestamp {
     display: none;
+  }
+
+  /**
+   * This element might have:
+   * - the message body
+   * - the repeat bubble
+   * - the location
+   *
+   * What we want here is to display the location one its own line, at the bottom of the
+   * element:
+   * +----------------------------+
+   * |  Message body   | [repeat] |
+   * +----------------------------+
+   * |                   location |
+   * +----------------------------+
+   */
+  .message:not(.message-did-catch) .message-flex-body:not(.error-note) {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    row-gap: 8px;
+  }
+
+  .message-flex-body .message-location {
+    max-width: 100%;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: end;
   }
 }
 
@@ -283,6 +316,12 @@
   stroke: var(--theme-graphs-purple);
 }
 
+.message > .icon.logtrace {
+  background-image: url(chrome://devtools/content/debugger/images/trace.svg);
+  -moz-context-properties: fill, stroke;
+  fill: var(--theme-icon-checked-color);
+}
+
 .message.network-message-blocked > .icon {
   color: var(--theme-icon-error-color);
   background-image: url(chrome://devtools/skin/images/blocked.svg);
@@ -324,7 +363,7 @@
 }
 
 .message-location {
-  max-width: 40vw;
+  max-width: 40%;
   flex-shrink: 0;
   color: var(--frame-link-source);
   margin-left: 1ch;
@@ -565,12 +604,8 @@ html #webconsole-notificationbox {
 
 .cm-s-mozilla a[class] {
   font-style: italic;
-  text-decoration: none;
-}
-
-.cm-s-mozilla a[class]:hover,
-.cm-s-mozilla a[class]:focus {
   text-decoration: underline;
+  text-decoration-skip-ink: none;
 }
 
 a.learn-more-link.webconsole-learn-more-link {
@@ -761,45 +796,56 @@ a.learn-more-link.webconsole-learn-more-link {
   color: var(--theme-comment);
 }
 
+
 /* console.table() */
+.message .consoletable-wrapper {
+  --consoletable-border: var(--theme-splitter-color);
+
+  max-height: 250px;
+  overflow: auto;
+  position: relative;
+  border-width: 1px 0 0 1px;
+  padding: 0;
+  margin-block-end: var(--attachment-margin-block-end);
+  border: 1px solid var(--consoletable-border);
+}
+
 .message .consoletable {
   width: 100%;
-  --consoletable-border: var(--theme-splitter-color);
-  margin-block-end: var(--attachment-margin-block-end);
+  margin: 0;
   color: var(--theme-body-color);
-  display: grid;
-  max-height: 250px;
-  overflow-y: auto;
-  border: 1px solid var(--consoletable-border);
-  /* border at the left side will be added by the inner divs [role=gridcell] */
-  border-left: none;
+  border-spacing: 0;
 }
 
-.consoletable > div {
-  border-left: 1px solid var(--consoletable-border);
+.consoletable :is(th, td) {
+  border: 0 solid var(--consoletable-border);
+  text-overflow: ellipsis;
 }
 
-.consoletable-header {
+.consoletable :is(th, td) + :is(th, td) {
+  border-inline-start-width: 1px;
+}
+
+.consoletable th {
   position: sticky;
   top: 0;
-  border-bottom: 1px solid var(--consoletable-border);
   background-color: var(--theme-toolbar-background);
   color: var(--theme-body-color);
+  border-block-end-width: 1px;
   margin: 0;
   padding: 5px 4px;
   font-weight: inherit;
-  z-index: 1;
-  text-overflow: ellipsis;
 }
 
-.consoletable > [role="gridcell"] {
+.consoletable td {
   background-color: var(--theme-body-background);
   color: var(--theme-body-color);
   padding: 3px 4px;
-  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
 }
 
-.consoletable > [role="gridcell"].even {
+
+.consoletable tr:nth-child(even) td {
   background-color: var(--table-zebra-background);
 }
 

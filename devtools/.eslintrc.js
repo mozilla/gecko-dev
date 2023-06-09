@@ -95,7 +95,7 @@ module.exports = {
         "client/responsive.html/browser/content.js",
         "server/startup/content-process.js",
         "server/startup/frame.js",
-        "shared/loader/base-loader.js",
+        "shared/loader/base-loader.sys.mjs",
         "shared/loader/browser-loader.js",
         "shared/loader/worker-loader.js",
         "startup/aboutdebugging-registration.js",
@@ -218,14 +218,6 @@ module.exports = {
     "no-multi-str": "error",
     // Disallow usage of __proto__ property.
     "no-proto": "error",
-    // Prevent using some properties
-    "no-restricted-properties": [
-      "error",
-      {
-        property: "setupInParent",
-        message: "avoid child/parent communication with setupInParent",
-      },
-    ],
     // Disallow use of assignment in return statement. It is preferable for a
     // single line of code to have only one easily predictable effect.
     "no-return-assign": "error",

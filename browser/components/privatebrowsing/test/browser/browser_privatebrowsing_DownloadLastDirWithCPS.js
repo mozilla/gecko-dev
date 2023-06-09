@@ -21,7 +21,7 @@ function createWindow(aOptions) {
 }
 
 function getFile(downloadLastDir, aURI) {
-  return new Promise(resolve => downloadLastDir.getFileAsync(aURI, resolve));
+  return downloadLastDir.getFileAsync(aURI);
 }
 
 function setFile(downloadLastDir, aURI, aValue) {
@@ -44,8 +44,8 @@ async function runTest() {
   let { FileUtils } = ChromeUtils.importESModule(
     "resource://gre/modules/FileUtils.sys.mjs"
   );
-  let { DownloadLastDir } = ChromeUtils.import(
-    "resource://gre/modules/DownloadLastDir.jsm"
+  let { DownloadLastDir } = ChromeUtils.importESModule(
+    "resource://gre/modules/DownloadLastDir.sys.mjs"
   );
 
   let tmpDir = FileUtils.getDir("TmpD", [], true);

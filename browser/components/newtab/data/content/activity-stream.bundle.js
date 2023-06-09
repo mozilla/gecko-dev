@@ -2,23 +2,75 @@
 var NewtabRenderUtils;
 /******/ (() => { // webpackBootstrap
 /******/ 	"use strict";
-/******/ 	var __webpack_modules__ = ([
-/* 0 */,
-/* 1 */
-/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
-
+/******/ 	// The require scope
+/******/ 	var __webpack_require__ = {};
+/******/ 	
+/************************************************************************/
+/******/ 	/* webpack/runtime/compat get default export */
+/******/ 	(() => {
+/******/ 		// getDefaultExport function for compatibility with non-harmony modules
+/******/ 		__webpack_require__.n = (module) => {
+/******/ 			var getter = module && module.__esModule ?
+/******/ 				() => (module['default']) :
+/******/ 				() => (module);
+/******/ 			__webpack_require__.d(getter, { a: getter });
+/******/ 			return getter;
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/define property getters */
+/******/ 	(() => {
+/******/ 		// define getter functions for harmony exports
+/******/ 		__webpack_require__.d = (exports, definition) => {
+/******/ 			for(var key in definition) {
+/******/ 				if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+/******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+/******/ 				}
+/******/ 			}
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/global */
+/******/ 	(() => {
+/******/ 		__webpack_require__.g = (function() {
+/******/ 			if (typeof globalThis === 'object') return globalThis;
+/******/ 			try {
+/******/ 				return this || new Function('return this')();
+/******/ 			} catch (e) {
+/******/ 				if (typeof window === 'object') return window;
+/******/ 			}
+/******/ 		})();
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/hasOwnProperty shorthand */
+/******/ 	(() => {
+/******/ 		__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/make namespace object */
+/******/ 	(() => {
+/******/ 		// define __esModule on exports
+/******/ 		__webpack_require__.r = (exports) => {
+/******/ 			if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+/******/ 				Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+/******/ 			}
+/******/ 			Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/************************************************************************/
+var __webpack_exports__ = {};
+// ESM COMPAT FLAG
 __webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "MAIN_MESSAGE_TYPE": () => (/* binding */ MAIN_MESSAGE_TYPE),
-/* harmony export */   "CONTENT_MESSAGE_TYPE": () => (/* binding */ CONTENT_MESSAGE_TYPE),
-/* harmony export */   "PRELOAD_MESSAGE_TYPE": () => (/* binding */ PRELOAD_MESSAGE_TYPE),
-/* harmony export */   "UI_CODE": () => (/* binding */ UI_CODE),
-/* harmony export */   "BACKGROUND_PROCESS": () => (/* binding */ BACKGROUND_PROCESS),
-/* harmony export */   "globalImportContext": () => (/* binding */ globalImportContext),
-/* harmony export */   "actionTypes": () => (/* binding */ actionTypes),
-/* harmony export */   "actionCreators": () => (/* binding */ actionCreators),
-/* harmony export */   "actionUtils": () => (/* binding */ actionUtils)
-/* harmony export */ });
+
+// EXPORTS
+__webpack_require__.d(__webpack_exports__, {
+  "NewTab": () => (/* binding */ NewTab),
+  "renderCache": () => (/* binding */ renderCache),
+  "renderWithoutState": () => (/* binding */ renderWithoutState)
+});
+
+;// CONCATENATED MODULE: ./common/Actions.sys.mjs
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -100,6 +152,7 @@ for (const type of [
   "FAKE_FOCUS_SEARCH",
   "FILL_SEARCH_TERM",
   "HANDOFF_SEARCH_TO_AWESOMEBAR",
+  "HIDE_PERSONALIZE",
   "HIDE_PRIVACY_INFO",
   "INIT",
   "NEW_TAB_INIT",
@@ -148,6 +201,7 @@ for (const type of [
   "SET_PREF",
   "SHOW_DOWNLOAD_FILE",
   "SHOW_FIREFOX_ACCOUNTS",
+  "SHOW_PERSONALIZE",
   "SHOW_PRIVACY_INFO",
   "SHOW_SEARCH",
   "SKIPPED_SIGNIN",
@@ -165,11 +219,12 @@ for (const type of [
   "TOP_SITES_CANCEL_EDIT",
   "TOP_SITES_CLOSE_SEARCH_SHORTCUTS_MODAL",
   "TOP_SITES_EDIT",
-  "TOP_SITES_IMPRESSION_STATS",
   "TOP_SITES_INSERT",
   "TOP_SITES_OPEN_SEARCH_SHORTCUTS_MODAL",
+  "TOP_SITES_ORGANIC_IMPRESSION_STATS",
   "TOP_SITES_PIN",
   "TOP_SITES_PREFS_UPDATED",
+  "TOP_SITES_SPONSORED_IMPRESSION_STATS",
   "TOP_SITES_UNPIN",
   "TOP_SITES_UPDATED",
   "TOTAL_BOOKMARKS_REQUEST",
@@ -476,1116 +531,6 @@ const actionUtils = {
   _RouteMessage,
 };
 
-
-/***/ }),
-/* 2 */
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
-
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
-
-const {
-  actionTypes: at
-} = __webpack_require__(1);
-
-const {
-  Dedupe
-} = __webpack_require__(3);
-
-const TOP_SITES_DEFAULT_ROWS = 1;
-const TOP_SITES_MAX_SITES_PER_ROW = 8;
-const PREF_COLLECTION_DISMISSIBLE = "discoverystream.isCollectionDismissible";
-const dedupe = new Dedupe(site => site && site.url);
-const INITIAL_STATE = {
-  App: {
-    // Have we received real data from the app yet?
-    initialized: false,
-    locale: ""
-  },
-  ASRouter: {
-    initialized: false
-  },
-  Snippets: {
-    initialized: false
-  },
-  TopSites: {
-    // Have we received real data from history yet?
-    initialized: false,
-    // The history (and possibly default) links
-    rows: [],
-    // Used in content only to dispatch action to TopSiteForm.
-    editForm: null,
-    // Used in content only to open the SearchShortcutsForm modal.
-    showSearchShortcutsForm: false,
-    // The list of available search shortcuts.
-    searchShortcuts: []
-  },
-  Prefs: {
-    initialized: false,
-    values: {
-      featureConfig: {}
-    }
-  },
-  Dialog: {
-    visible: false,
-    data: {}
-  },
-  Sections: [],
-  Pocket: {
-    isUserLoggedIn: null,
-    pocketCta: {},
-    waitingForSpoc: true
-  },
-  // This is the new pocket configurable layout state.
-  DiscoveryStream: {
-    // This is a JSON-parsed copy of the discoverystream.config pref value.
-    config: {
-      enabled: false,
-      layout_endpoint: ""
-    },
-    layout: [],
-    lastUpdated: null,
-    isPrivacyInfoModalVisible: false,
-    isCollectionDismissible: false,
-    feeds: {
-      data: {// "https://foo.com/feed1": {lastUpdated: 123, data: []}
-      },
-      loaded: false
-    },
-    spocs: {
-      spocs_endpoint: "",
-      lastUpdated: null,
-      data: {// "spocs": {title: "", context: "", items: []},
-        // "placement1": {title: "", context: "", items: []},
-      },
-      loaded: false,
-      frequency_caps: [],
-      blocked: [],
-      placements: []
-    },
-    experimentData: {
-      utmSource: "pocket-newtab",
-      utmCampaign: undefined,
-      utmContent: undefined
-    },
-    recentSavesData: [],
-    isUserLoggedIn: false,
-    recentSavesEnabled: false
-  },
-  Personalization: {
-    lastUpdated: null,
-    initialized: false
-  },
-  Search: {
-    // When search hand-off is enabled, we render a big button that is styled to
-    // look like a search textbox. If the button is clicked, we style
-    // the button as if it was a focused search box and show a fake cursor but
-    // really focus the awesomebar without the focus styles ("hidden focus").
-    fakeFocus: false,
-    // Hide the search box after handing off to AwesomeBar and user starts typing.
-    hide: false
-  }
-};
-
-function App(prevState = INITIAL_STATE.App, action) {
-  switch (action.type) {
-    case at.INIT:
-      return Object.assign({}, prevState, action.data || {}, {
-        initialized: true
-      });
-
-    default:
-      return prevState;
-  }
-}
-
-function ASRouter(prevState = INITIAL_STATE.ASRouter, action) {
-  switch (action.type) {
-    case at.AS_ROUTER_INITIALIZED:
-      return { ...action.data,
-        initialized: true
-      };
-
-    default:
-      return prevState;
-  }
-}
-/**
- * insertPinned - Inserts pinned links in their specified slots
- *
- * @param {array} a list of links
- * @param {array} a list of pinned links
- * @return {array} resulting list of links with pinned links inserted
- */
-
-
-function insertPinned(links, pinned) {
-  // Remove any pinned links
-  const pinnedUrls = pinned.map(link => link && link.url);
-  let newLinks = links.filter(link => link ? !pinnedUrls.includes(link.url) : false);
-  newLinks = newLinks.map(link => {
-    if (link && link.isPinned) {
-      delete link.isPinned;
-      delete link.pinIndex;
-    }
-
-    return link;
-  }); // Then insert them in their specified location
-
-  pinned.forEach((val, index) => {
-    if (!val) {
-      return;
-    }
-
-    let link = Object.assign({}, val, {
-      isPinned: true,
-      pinIndex: index
-    });
-
-    if (index > newLinks.length) {
-      newLinks[index] = link;
-    } else {
-      newLinks.splice(index, 0, link);
-    }
-  });
-  return newLinks;
-}
-
-function TopSites(prevState = INITIAL_STATE.TopSites, action) {
-  let hasMatch;
-  let newRows;
-
-  switch (action.type) {
-    case at.TOP_SITES_UPDATED:
-      if (!action.data || !action.data.links) {
-        return prevState;
-      }
-
-      return Object.assign({}, prevState, {
-        initialized: true,
-        rows: action.data.links
-      }, action.data.pref ? {
-        pref: action.data.pref
-      } : {});
-
-    case at.TOP_SITES_PREFS_UPDATED:
-      return Object.assign({}, prevState, {
-        pref: action.data.pref
-      });
-
-    case at.TOP_SITES_EDIT:
-      return Object.assign({}, prevState, {
-        editForm: {
-          index: action.data.index,
-          previewResponse: null
-        }
-      });
-
-    case at.TOP_SITES_CANCEL_EDIT:
-      return Object.assign({}, prevState, {
-        editForm: null
-      });
-
-    case at.TOP_SITES_OPEN_SEARCH_SHORTCUTS_MODAL:
-      return Object.assign({}, prevState, {
-        showSearchShortcutsForm: true
-      });
-
-    case at.TOP_SITES_CLOSE_SEARCH_SHORTCUTS_MODAL:
-      return Object.assign({}, prevState, {
-        showSearchShortcutsForm: false
-      });
-
-    case at.PREVIEW_RESPONSE:
-      if (!prevState.editForm || action.data.url !== prevState.editForm.previewUrl) {
-        return prevState;
-      }
-
-      return Object.assign({}, prevState, {
-        editForm: {
-          index: prevState.editForm.index,
-          previewResponse: action.data.preview,
-          previewUrl: action.data.url
-        }
-      });
-
-    case at.PREVIEW_REQUEST:
-      if (!prevState.editForm) {
-        return prevState;
-      }
-
-      return Object.assign({}, prevState, {
-        editForm: {
-          index: prevState.editForm.index,
-          previewResponse: null,
-          previewUrl: action.data.url
-        }
-      });
-
-    case at.PREVIEW_REQUEST_CANCEL:
-      if (!prevState.editForm) {
-        return prevState;
-      }
-
-      return Object.assign({}, prevState, {
-        editForm: {
-          index: prevState.editForm.index,
-          previewResponse: null
-        }
-      });
-
-    case at.SCREENSHOT_UPDATED:
-      newRows = prevState.rows.map(row => {
-        if (row && row.url === action.data.url) {
-          hasMatch = true;
-          return Object.assign({}, row, {
-            screenshot: action.data.screenshot
-          });
-        }
-
-        return row;
-      });
-      return hasMatch ? Object.assign({}, prevState, {
-        rows: newRows
-      }) : prevState;
-
-    case at.PLACES_BOOKMARK_ADDED:
-      if (!action.data) {
-        return prevState;
-      }
-
-      newRows = prevState.rows.map(site => {
-        if (site && site.url === action.data.url) {
-          const {
-            bookmarkGuid,
-            bookmarkTitle,
-            dateAdded
-          } = action.data;
-          return Object.assign({}, site, {
-            bookmarkGuid,
-            bookmarkTitle,
-            bookmarkDateCreated: dateAdded
-          });
-        }
-
-        return site;
-      });
-      return Object.assign({}, prevState, {
-        rows: newRows
-      });
-
-    case at.PLACES_BOOKMARKS_REMOVED:
-      if (!action.data) {
-        return prevState;
-      }
-
-      newRows = prevState.rows.map(site => {
-        if (site && action.data.urls.includes(site.url)) {
-          const newSite = Object.assign({}, site);
-          delete newSite.bookmarkGuid;
-          delete newSite.bookmarkTitle;
-          delete newSite.bookmarkDateCreated;
-          return newSite;
-        }
-
-        return site;
-      });
-      return Object.assign({}, prevState, {
-        rows: newRows
-      });
-
-    case at.PLACES_LINKS_DELETED:
-      if (!action.data) {
-        return prevState;
-      }
-
-      newRows = prevState.rows.filter(site => !action.data.urls.includes(site.url));
-      return Object.assign({}, prevState, {
-        rows: newRows
-      });
-
-    case at.UPDATE_SEARCH_SHORTCUTS:
-      return { ...prevState,
-        searchShortcuts: action.data.searchShortcuts
-      };
-
-    case at.SNIPPETS_PREVIEW_MODE:
-      return { ...prevState,
-        rows: []
-      };
-
-    default:
-      return prevState;
-  }
-}
-
-function Dialog(prevState = INITIAL_STATE.Dialog, action) {
-  switch (action.type) {
-    case at.DIALOG_OPEN:
-      return Object.assign({}, prevState, {
-        visible: true,
-        data: action.data
-      });
-
-    case at.DIALOG_CANCEL:
-      return Object.assign({}, prevState, {
-        visible: false
-      });
-
-    case at.DELETE_HISTORY_URL:
-      return Object.assign({}, INITIAL_STATE.Dialog);
-
-    default:
-      return prevState;
-  }
-}
-
-function Prefs(prevState = INITIAL_STATE.Prefs, action) {
-  let newValues;
-
-  switch (action.type) {
-    case at.PREFS_INITIAL_VALUES:
-      return Object.assign({}, prevState, {
-        initialized: true,
-        values: action.data
-      });
-
-    case at.PREF_CHANGED:
-      newValues = Object.assign({}, prevState.values);
-      newValues[action.data.name] = action.data.value;
-      return Object.assign({}, prevState, {
-        values: newValues
-      });
-
-    default:
-      return prevState;
-  }
-}
-
-function Sections(prevState = INITIAL_STATE.Sections, action) {
-  let hasMatch;
-  let newState;
-
-  switch (action.type) {
-    case at.SECTION_DEREGISTER:
-      return prevState.filter(section => section.id !== action.data);
-
-    case at.SECTION_REGISTER:
-      // If section exists in prevState, update it
-      newState = prevState.map(section => {
-        if (section && section.id === action.data.id) {
-          hasMatch = true;
-          return Object.assign({}, section, action.data);
-        }
-
-        return section;
-      }); // Otherwise, append it
-
-      if (!hasMatch) {
-        const initialized = !!(action.data.rows && !!action.data.rows.length);
-        const section = Object.assign({
-          title: "",
-          rows: [],
-          enabled: false
-        }, action.data, {
-          initialized
-        });
-        newState.push(section);
-      }
-
-      return newState;
-
-    case at.SECTION_UPDATE:
-      newState = prevState.map(section => {
-        if (section && section.id === action.data.id) {
-          // If the action is updating rows, we should consider initialized to be true.
-          // This can be overridden if initialized is defined in the action.data
-          const initialized = action.data.rows ? {
-            initialized: true
-          } : {}; // Make sure pinned cards stay at their current position when rows are updated.
-          // Disabling a section (SECTION_UPDATE with empty rows) does not retain pinned cards.
-
-          if (action.data.rows && !!action.data.rows.length && section.rows.find(card => card.pinned)) {
-            const rows = Array.from(action.data.rows);
-            section.rows.forEach((card, index) => {
-              if (card.pinned) {
-                // Only add it if it's not already there.
-                if (rows[index].guid !== card.guid) {
-                  rows.splice(index, 0, card);
-                }
-              }
-            });
-            return Object.assign({}, section, initialized, Object.assign({}, action.data, {
-              rows
-            }));
-          }
-
-          return Object.assign({}, section, initialized, action.data);
-        }
-
-        return section;
-      });
-
-      if (!action.data.dedupeConfigurations) {
-        return newState;
-      }
-
-      action.data.dedupeConfigurations.forEach(dedupeConf => {
-        newState = newState.map(section => {
-          if (section.id === dedupeConf.id) {
-            const dedupedRows = dedupeConf.dedupeFrom.reduce((rows, dedupeSectionId) => {
-              const dedupeSection = newState.find(s => s.id === dedupeSectionId);
-              const [, newRows] = dedupe.group(dedupeSection.rows, rows);
-              return newRows;
-            }, section.rows);
-            return Object.assign({}, section, {
-              rows: dedupedRows
-            });
-          }
-
-          return section;
-        });
-      });
-      return newState;
-
-    case at.SECTION_UPDATE_CARD:
-      return prevState.map(section => {
-        if (section && section.id === action.data.id && section.rows) {
-          const newRows = section.rows.map(card => {
-            if (card.url === action.data.url) {
-              return Object.assign({}, card, action.data.options);
-            }
-
-            return card;
-          });
-          return Object.assign({}, section, {
-            rows: newRows
-          });
-        }
-
-        return section;
-      });
-
-    case at.PLACES_BOOKMARK_ADDED:
-      if (!action.data) {
-        return prevState;
-      }
-
-      return prevState.map(section => Object.assign({}, section, {
-        rows: section.rows.map(item => {
-          // find the item within the rows that is attempted to be bookmarked
-          if (item.url === action.data.url) {
-            const {
-              bookmarkGuid,
-              bookmarkTitle,
-              dateAdded
-            } = action.data;
-            return Object.assign({}, item, {
-              bookmarkGuid,
-              bookmarkTitle,
-              bookmarkDateCreated: dateAdded,
-              type: "bookmark"
-            });
-          }
-
-          return item;
-        })
-      }));
-
-    case at.PLACES_SAVED_TO_POCKET:
-      if (!action.data) {
-        return prevState;
-      }
-
-      return prevState.map(section => Object.assign({}, section, {
-        rows: section.rows.map(item => {
-          if (item.url === action.data.url) {
-            return Object.assign({}, item, {
-              open_url: action.data.open_url,
-              pocket_id: action.data.pocket_id,
-              title: action.data.title,
-              type: "pocket"
-            });
-          }
-
-          return item;
-        })
-      }));
-
-    case at.PLACES_BOOKMARKS_REMOVED:
-      if (!action.data) {
-        return prevState;
-      }
-
-      return prevState.map(section => Object.assign({}, section, {
-        rows: section.rows.map(item => {
-          // find the bookmark within the rows that is attempted to be removed
-          if (action.data.urls.includes(item.url)) {
-            const newSite = Object.assign({}, item);
-            delete newSite.bookmarkGuid;
-            delete newSite.bookmarkTitle;
-            delete newSite.bookmarkDateCreated;
-
-            if (!newSite.type || newSite.type === "bookmark") {
-              newSite.type = "history";
-            }
-
-            return newSite;
-          }
-
-          return item;
-        })
-      }));
-
-    case at.PLACES_LINKS_DELETED:
-      if (!action.data) {
-        return prevState;
-      }
-
-      return prevState.map(section => Object.assign({}, section, {
-        rows: section.rows.filter(site => !action.data.urls.includes(site.url))
-      }));
-
-    case at.PLACES_LINK_BLOCKED:
-      if (!action.data) {
-        return prevState;
-      }
-
-      return prevState.map(section => Object.assign({}, section, {
-        rows: section.rows.filter(site => site.url !== action.data.url)
-      }));
-
-    case at.DELETE_FROM_POCKET:
-    case at.ARCHIVE_FROM_POCKET:
-      return prevState.map(section => Object.assign({}, section, {
-        rows: section.rows.filter(site => site.pocket_id !== action.data.pocket_id)
-      }));
-
-    case at.SNIPPETS_PREVIEW_MODE:
-      return prevState.map(section => ({ ...section,
-        rows: []
-      }));
-
-    default:
-      return prevState;
-  }
-}
-
-function Snippets(prevState = INITIAL_STATE.Snippets, action) {
-  switch (action.type) {
-    case at.SNIPPETS_DATA:
-      return Object.assign({}, prevState, {
-        initialized: true
-      }, action.data);
-
-    case at.SNIPPET_BLOCKED:
-      return Object.assign({}, prevState, {
-        blockList: prevState.blockList.concat(action.data)
-      });
-
-    case at.SNIPPETS_BLOCKLIST_CLEARED:
-      return Object.assign({}, prevState, {
-        blockList: []
-      });
-
-    case at.SNIPPETS_RESET:
-      return INITIAL_STATE.Snippets;
-
-    default:
-      return prevState;
-  }
-}
-
-function Pocket(prevState = INITIAL_STATE.Pocket, action) {
-  switch (action.type) {
-    case at.POCKET_WAITING_FOR_SPOC:
-      return { ...prevState,
-        waitingForSpoc: action.data
-      };
-
-    case at.POCKET_LOGGED_IN:
-      return { ...prevState,
-        isUserLoggedIn: !!action.data
-      };
-
-    case at.POCKET_CTA:
-      return { ...prevState,
-        pocketCta: {
-          ctaButton: action.data.cta_button,
-          ctaText: action.data.cta_text,
-          ctaUrl: action.data.cta_url,
-          useCta: action.data.use_cta
-        }
-      };
-
-    default:
-      return prevState;
-  }
-}
-
-function Personalization(prevState = INITIAL_STATE.Personalization, action) {
-  switch (action.type) {
-    case at.DISCOVERY_STREAM_PERSONALIZATION_LAST_UPDATED:
-      return { ...prevState,
-        lastUpdated: action.data.lastUpdated
-      };
-
-    case at.DISCOVERY_STREAM_PERSONALIZATION_INIT:
-      return { ...prevState,
-        initialized: true
-      };
-
-    default:
-      return prevState;
-  }
-} // eslint-disable-next-line complexity
-
-
-function DiscoveryStream(prevState = INITIAL_STATE.DiscoveryStream, action) {
-  // Return if action data is empty, or spocs or feeds data is not loaded
-  const isNotReady = () => !action.data || !prevState.spocs.loaded || !prevState.feeds.loaded;
-
-  const handlePlacements = handleSites => {
-    const {
-      data,
-      placements
-    } = prevState.spocs;
-    const result = {};
-
-    const forPlacement = placement => {
-      const placementSpocs = data[placement.name];
-
-      if (!placementSpocs || !placementSpocs.items || !placementSpocs.items.length) {
-        return;
-      }
-
-      result[placement.name] = { ...placementSpocs,
-        items: handleSites(placementSpocs.items)
-      };
-    };
-
-    if (!placements || !placements.length) {
-      [{
-        name: "spocs"
-      }].forEach(forPlacement);
-    } else {
-      placements.forEach(forPlacement);
-    }
-
-    return result;
-  };
-
-  const nextState = handleSites => ({ ...prevState,
-    spocs: { ...prevState.spocs,
-      data: handlePlacements(handleSites)
-    },
-    feeds: { ...prevState.feeds,
-      data: Object.keys(prevState.feeds.data).reduce((accumulator, feed_url) => {
-        accumulator[feed_url] = {
-          data: { ...prevState.feeds.data[feed_url].data,
-            recommendations: handleSites(prevState.feeds.data[feed_url].data.recommendations)
-          }
-        };
-        return accumulator;
-      }, {})
-    }
-  });
-
-  switch (action.type) {
-    case at.DISCOVERY_STREAM_CONFIG_CHANGE: // Fall through to a separate action is so it doesn't trigger a listener update on init
-
-    case at.DISCOVERY_STREAM_CONFIG_SETUP:
-      return { ...prevState,
-        config: action.data || {}
-      };
-
-    case at.DISCOVERY_STREAM_EXPERIMENT_DATA:
-      return { ...prevState,
-        experimentData: action.data || {}
-      };
-
-    case at.DISCOVERY_STREAM_LAYOUT_UPDATE:
-      return { ...prevState,
-        lastUpdated: action.data.lastUpdated || null,
-        layout: action.data.layout || []
-      };
-
-    case at.DISCOVERY_STREAM_COLLECTION_DISMISSIBLE_TOGGLE:
-      return { ...prevState,
-        isCollectionDismissible: action.data.value
-      };
-
-    case at.DISCOVERY_STREAM_PREFS_SETUP:
-      return { ...prevState,
-        recentSavesEnabled: action.data.recentSavesEnabled,
-        pocketButtonEnabled: action.data.pocketButtonEnabled,
-        saveToPocketCard: action.data.saveToPocketCard,
-        hideDescriptions: action.data.hideDescriptions,
-        compactImages: action.data.compactImages,
-        imageGradient: action.data.imageGradient,
-        newSponsoredLabel: action.data.newSponsoredLabel,
-        titleLines: action.data.titleLines,
-        descLines: action.data.descLines,
-        readTime: action.data.readTime
-      };
-
-    case at.DISCOVERY_STREAM_RECENT_SAVES:
-      return { ...prevState,
-        recentSavesData: action.data.recentSaves
-      };
-
-    case at.DISCOVERY_STREAM_POCKET_STATE_SET:
-      return { ...prevState,
-        isUserLoggedIn: action.data.isUserLoggedIn
-      };
-
-    case at.HIDE_PRIVACY_INFO:
-      return { ...prevState,
-        isPrivacyInfoModalVisible: false
-      };
-
-    case at.SHOW_PRIVACY_INFO:
-      return { ...prevState,
-        isPrivacyInfoModalVisible: true
-      };
-
-    case at.DISCOVERY_STREAM_LAYOUT_RESET:
-      return { ...INITIAL_STATE.DiscoveryStream,
-        config: prevState.config
-      };
-
-    case at.DISCOVERY_STREAM_FEEDS_UPDATE:
-      return { ...prevState,
-        feeds: { ...prevState.feeds,
-          loaded: true
-        }
-      };
-
-    case at.DISCOVERY_STREAM_FEED_UPDATE:
-      const newData = {};
-      newData[action.data.url] = action.data.feed;
-      return { ...prevState,
-        feeds: { ...prevState.feeds,
-          data: { ...prevState.feeds.data,
-            ...newData
-          }
-        }
-      };
-
-    case at.DISCOVERY_STREAM_SPOCS_CAPS:
-      return { ...prevState,
-        spocs: { ...prevState.spocs,
-          frequency_caps: [...prevState.spocs.frequency_caps, ...action.data]
-        }
-      };
-
-    case at.DISCOVERY_STREAM_SPOCS_ENDPOINT:
-      return { ...prevState,
-        spocs: { ...INITIAL_STATE.DiscoveryStream.spocs,
-          spocs_endpoint: action.data.url || INITIAL_STATE.DiscoveryStream.spocs.spocs_endpoint
-        }
-      };
-
-    case at.DISCOVERY_STREAM_SPOCS_PLACEMENTS:
-      return { ...prevState,
-        spocs: { ...prevState.spocs,
-          placements: action.data.placements || INITIAL_STATE.DiscoveryStream.spocs.placements
-        }
-      };
-
-    case at.DISCOVERY_STREAM_SPOCS_UPDATE:
-      if (action.data) {
-        return { ...prevState,
-          spocs: { ...prevState.spocs,
-            lastUpdated: action.data.lastUpdated,
-            data: action.data.spocs,
-            loaded: true
-          }
-        };
-      }
-
-      return prevState;
-
-    case at.DISCOVERY_STREAM_SPOC_BLOCKED:
-      return { ...prevState,
-        spocs: { ...prevState.spocs,
-          blocked: [...prevState.spocs.blocked, action.data.url]
-        }
-      };
-
-    case at.DISCOVERY_STREAM_LINK_BLOCKED:
-      return isNotReady() ? prevState : nextState(items => items.filter(item => item.url !== action.data.url));
-
-    case at.PLACES_SAVED_TO_POCKET:
-      const addPocketInfo = item => {
-        if (item.url === action.data.url) {
-          return Object.assign({}, item, {
-            open_url: action.data.open_url,
-            pocket_id: action.data.pocket_id,
-            context_type: "pocket"
-          });
-        }
-
-        return item;
-      };
-
-      return isNotReady() ? prevState : nextState(items => items.map(addPocketInfo));
-
-    case at.DELETE_FROM_POCKET:
-    case at.ARCHIVE_FROM_POCKET:
-      return isNotReady() ? prevState : nextState(items => items.filter(item => item.pocket_id !== action.data.pocket_id));
-
-    case at.PLACES_BOOKMARK_ADDED:
-      const updateBookmarkInfo = item => {
-        if (item.url === action.data.url) {
-          const {
-            bookmarkGuid,
-            bookmarkTitle,
-            dateAdded
-          } = action.data;
-          return Object.assign({}, item, {
-            bookmarkGuid,
-            bookmarkTitle,
-            bookmarkDateCreated: dateAdded,
-            context_type: "bookmark"
-          });
-        }
-
-        return item;
-      };
-
-      return isNotReady() ? prevState : nextState(items => items.map(updateBookmarkInfo));
-
-    case at.PLACES_BOOKMARKS_REMOVED:
-      const removeBookmarkInfo = item => {
-        if (action.data.urls.includes(item.url)) {
-          const newSite = Object.assign({}, item);
-          delete newSite.bookmarkGuid;
-          delete newSite.bookmarkTitle;
-          delete newSite.bookmarkDateCreated;
-
-          if (!newSite.context_type || newSite.context_type === "bookmark") {
-            newSite.context_type = "removedBookmark";
-          }
-
-          return newSite;
-        }
-
-        return item;
-      };
-
-      return isNotReady() ? prevState : nextState(items => items.map(removeBookmarkInfo));
-
-    case at.PREF_CHANGED:
-      if (action.data.name === PREF_COLLECTION_DISMISSIBLE) {
-        return { ...prevState,
-          isCollectionDismissible: action.data.value
-        };
-      }
-
-      return prevState;
-
-    default:
-      return prevState;
-  }
-}
-
-function Search(prevState = INITIAL_STATE.Search, action) {
-  switch (action.type) {
-    case at.DISABLE_SEARCH:
-      return Object.assign({ ...prevState,
-        disable: true
-      });
-
-    case at.FAKE_FOCUS_SEARCH:
-      return Object.assign({ ...prevState,
-        fakeFocus: true
-      });
-
-    case at.SHOW_SEARCH:
-      return Object.assign({ ...prevState,
-        disable: false,
-        fakeFocus: false
-      });
-
-    default:
-      return prevState;
-  }
-}
-
-const reducers = {
-  TopSites,
-  App,
-  ASRouter,
-  Snippets,
-  Prefs,
-  Dialog,
-  Sections,
-  Pocket,
-  Personalization,
-  DiscoveryStream,
-  Search
-};
-module.exports = {
-  reducers,
-  INITIAL_STATE,
-  insertPinned,
-  TOP_SITES_DEFAULT_ROWS,
-  TOP_SITES_MAX_SITES_PER_ROW
-};
-
-/***/ }),
-/* 3 */
-/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
-
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "Dedupe": () => (/* binding */ Dedupe)
-/* harmony export */ });
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
-
-class Dedupe {
-  constructor(createKey) {
-    this.createKey = createKey || this.defaultCreateKey;
-  }
-
-  defaultCreateKey(item) {
-    return item;
-  }
-
-  /**
-   * Dedupe any number of grouped elements favoring those from earlier groups.
-   *
-   * @param {Array} groups Contains an arbitrary number of arrays of elements.
-   * @returns {Array} A matching array of each provided group deduped.
-   */
-  group(...groups) {
-    const globalKeys = new Set();
-    const result = [];
-    for (const values of groups) {
-      const valueMap = new Map();
-      for (const value of values) {
-        const key = this.createKey(value);
-        if (!globalKeys.has(key) && !valueMap.has(key)) {
-          valueMap.set(key, value);
-        }
-      }
-      result.push(valueMap);
-      valueMap.forEach((value, key) => globalKeys.add(key));
-    }
-    return result.map(m => Array.from(m.values()));
-  }
-}
-
-
-/***/ })
-/******/ 	]);
-/************************************************************************/
-/******/ 	// The module cache
-/******/ 	var __webpack_module_cache__ = {};
-/******/ 	
-/******/ 	// The require function
-/******/ 	function __webpack_require__(moduleId) {
-/******/ 		// Check if module is in cache
-/******/ 		var cachedModule = __webpack_module_cache__[moduleId];
-/******/ 		if (cachedModule !== undefined) {
-/******/ 			return cachedModule.exports;
-/******/ 		}
-/******/ 		// Create a new module (and put it into the cache)
-/******/ 		var module = __webpack_module_cache__[moduleId] = {
-/******/ 			// no module.id needed
-/******/ 			// no module.loaded needed
-/******/ 			exports: {}
-/******/ 		};
-/******/ 	
-/******/ 		// Execute the module function
-/******/ 		__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
-/******/ 	
-/******/ 		// Return the exports of the module
-/******/ 		return module.exports;
-/******/ 	}
-/******/ 	
-/************************************************************************/
-/******/ 	/* webpack/runtime/compat get default export */
-/******/ 	(() => {
-/******/ 		// getDefaultExport function for compatibility with non-harmony modules
-/******/ 		__webpack_require__.n = (module) => {
-/******/ 			var getter = module && module.__esModule ?
-/******/ 				() => (module['default']) :
-/******/ 				() => (module);
-/******/ 			__webpack_require__.d(getter, { a: getter });
-/******/ 			return getter;
-/******/ 		};
-/******/ 	})();
-/******/ 	
-/******/ 	/* webpack/runtime/define property getters */
-/******/ 	(() => {
-/******/ 		// define getter functions for harmony exports
-/******/ 		__webpack_require__.d = (exports, definition) => {
-/******/ 			for(var key in definition) {
-/******/ 				if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
-/******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
-/******/ 				}
-/******/ 			}
-/******/ 		};
-/******/ 	})();
-/******/ 	
-/******/ 	/* webpack/runtime/global */
-/******/ 	(() => {
-/******/ 		__webpack_require__.g = (function() {
-/******/ 			if (typeof globalThis === 'object') return globalThis;
-/******/ 			try {
-/******/ 				return this || new Function('return this')();
-/******/ 			} catch (e) {
-/******/ 				if (typeof window === 'object') return window;
-/******/ 			}
-/******/ 		})();
-/******/ 	})();
-/******/ 	
-/******/ 	/* webpack/runtime/hasOwnProperty shorthand */
-/******/ 	(() => {
-/******/ 		__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
-/******/ 	})();
-/******/ 	
-/******/ 	/* webpack/runtime/make namespace object */
-/******/ 	(() => {
-/******/ 		// define __esModule on exports
-/******/ 		__webpack_require__.r = (exports) => {
-/******/ 			if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
-/******/ 				Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
-/******/ 			}
-/******/ 			Object.defineProperty(exports, '__esModule', { value: true });
-/******/ 		};
-/******/ 	})();
-/******/ 	
-/************************************************************************/
-var __webpack_exports__ = {};
-// This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
-(() => {
-// ESM COMPAT FLAG
-__webpack_require__.r(__webpack_exports__);
-
-// EXPORTS
-__webpack_require__.d(__webpack_exports__, {
-  "NewTab": () => (/* binding */ NewTab),
-  "renderCache": () => (/* binding */ renderCache),
-  "renderWithoutState": () => (/* binding */ renderWithoutState)
-});
-
-// NAMESPACE OBJECT: ./node_modules/fluent/src/builtins.js
-var builtins_namespaceObject = {};
-__webpack_require__.r(builtins_namespaceObject);
-__webpack_require__.d(builtins_namespaceObject, {
-  "DATETIME": () => (DATETIME),
-  "NUMBER": () => (NUMBER)
-});
-
-// EXTERNAL MODULE: ./common/Actions.sys.mjs
-var Actions_sys = __webpack_require__(1);
 ;// CONCATENATED MODULE: ./common/ActorConstants.sys.mjs
 /* vim: set ts=2 sw=2 sts=2 et tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
@@ -1725,7 +670,7 @@ const ASRouterUtils = {
   },
 
   sendTelemetry(ping) {
-    return ASRouterUtils.sendMessage(Actions_sys.actionCreators.ASRouterUserEvent(ping));
+    return ASRouterUtils.sendMessage(actionCreators.ASRouterUserEvent(ping));
   },
 
   getPreviewEndpoint() {
@@ -1799,8 +744,38 @@ class SimpleHashRouter extends (external_React_default()).PureComponent {
   }
 
 }
-;// CONCATENATED MODULE: ./content-src/components/ASRouterAdmin/ASRouterAdmin.jsx
+;// CONCATENATED MODULE: ./content-src/components/ASRouterAdmin/CopyButton.jsx
 function _extends() { _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends.apply(this, arguments); }
+
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+const CopyButton = ({
+  className,
+  label,
+  copiedLabel,
+  inputSelector,
+  transformer,
+  ...props
+}) => {
+  const [copied, setCopied] = (0,external_React_namespaceObject.useState)(false);
+  const timeout = (0,external_React_namespaceObject.useRef)(null);
+  const onClick = (0,external_React_namespaceObject.useCallback)(() => {
+    let text = document.querySelector(inputSelector).value;
+    if (transformer) text = transformer(text);
+    navigator.clipboard.writeText(text);
+    clearTimeout(timeout.current);
+    setCopied(true);
+    timeout.current = setTimeout(() => setCopied(false), 1500);
+  }, [inputSelector, transformer]);
+  return /*#__PURE__*/external_React_default().createElement("button", _extends({
+    className: className,
+    onClick: e => onClick()
+  }, props), copied && copiedLabel || label);
+};
+;// CONCATENATED MODULE: ./content-src/components/ASRouterAdmin/ASRouterAdmin.jsx
+function ASRouterAdmin_extends() { ASRouterAdmin_extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return ASRouterAdmin_extends.apply(this, arguments); }
 
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -1811,7 +786,8 @@ function _extends() { _extends = Object.assign || function (target) { for (var i
 
 
 
-const Row = props => /*#__PURE__*/external_React_default().createElement("tr", _extends({
+
+const Row = props => /*#__PURE__*/external_React_default().createElement("tr", ASRouterAdmin_extends({
   className: "message-item"
 }, props), props.children);
 
@@ -1907,8 +883,8 @@ class Personalization extends (external_React_default()).PureComponent {
   }
 
   togglePersonalization() {
-    this.props.dispatch(Actions_sys.actionCreators.OnlyToMain({
-      type: Actions_sys.actionTypes.DISCOVERY_STREAM_PERSONALIZATION_TOGGLE
+    this.props.dispatch(actionCreators.OnlyToMain({
+      type: actionTypes.DISCOVERY_STREAM_PERSONALIZATION_TOGGLE
     }));
   }
 
@@ -1949,8 +925,8 @@ class DiscoveryStreamAdmin extends (external_React_default()).PureComponent {
   }
 
   setConfigValue(name, value) {
-    this.props.dispatch(Actions_sys.actionCreators.OnlyToMain({
-      type: Actions_sys.actionTypes.DISCOVERY_STREAM_CONFIG_SET_VALUE,
+    this.props.dispatch(actionCreators.OnlyToMain({
+      type: actionTypes.DISCOVERY_STREAM_CONFIG_SET_VALUE,
       data: {
         name,
         value
@@ -1959,8 +935,8 @@ class DiscoveryStreamAdmin extends (external_React_default()).PureComponent {
   }
 
   restorePrefDefaults(event) {
-    this.props.dispatch(Actions_sys.actionCreators.OnlyToMain({
-      type: Actions_sys.actionTypes.DISCOVERY_STREAM_CONFIG_RESET_DEFAULTS
+    this.props.dispatch(actionCreators.OnlyToMain({
+      type: actionTypes.DISCOVERY_STREAM_CONFIG_RESET_DEFAULTS
     }));
   }
 
@@ -1968,32 +944,32 @@ class DiscoveryStreamAdmin extends (external_React_default()).PureComponent {
     const {
       config
     } = this.props.state.DiscoveryStream;
-    this.props.dispatch(Actions_sys.actionCreators.OnlyToMain({
-      type: Actions_sys.actionTypes.DISCOVERY_STREAM_CONFIG_CHANGE,
+    this.props.dispatch(actionCreators.OnlyToMain({
+      type: actionTypes.DISCOVERY_STREAM_CONFIG_CHANGE,
       data: config
     }));
   }
 
   dispatchSimpleAction(type) {
-    this.props.dispatch(Actions_sys.actionCreators.OnlyToMain({
+    this.props.dispatch(actionCreators.OnlyToMain({
       type
     }));
   }
 
   systemTick() {
-    this.dispatchSimpleAction(Actions_sys.actionTypes.DISCOVERY_STREAM_DEV_SYSTEM_TICK);
+    this.dispatchSimpleAction(actionTypes.DISCOVERY_STREAM_DEV_SYSTEM_TICK);
   }
 
   expireCache() {
-    this.dispatchSimpleAction(Actions_sys.actionTypes.DISCOVERY_STREAM_DEV_EXPIRE_CACHE);
+    this.dispatchSimpleAction(actionTypes.DISCOVERY_STREAM_DEV_EXPIRE_CACHE);
   }
 
   idleDaily() {
-    this.dispatchSimpleAction(Actions_sys.actionTypes.DISCOVERY_STREAM_DEV_IDLE_DAILY);
+    this.dispatchSimpleAction(actionTypes.DISCOVERY_STREAM_DEV_IDLE_DAILY);
   }
 
   syncRemoteSettings() {
-    this.dispatchSimpleAction(Actions_sys.actionTypes.DISCOVERY_STREAM_DEV_SYNC_RS);
+    this.dispatchSimpleAction(actionTypes.DISCOVERY_STREAM_DEV_SYNC_RS);
   }
 
   changeEndpointVariant(event) {
@@ -2019,11 +995,13 @@ class DiscoveryStreamAdmin extends (external_React_default()).PureComponent {
   }
 
   renderFeedData(url) {
+    var _feed$recommendations;
+
     const {
       feeds
     } = this.props.state.DiscoveryStream;
     const feed = feeds.data[url].data;
-    return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("h4", null, "Feed url: ", url), /*#__PURE__*/external_React_default().createElement("table", null, /*#__PURE__*/external_React_default().createElement("tbody", null, feed.recommendations.map(story => this.renderStoryData(story)))));
+    return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("h4", null, "Feed url: ", url), /*#__PURE__*/external_React_default().createElement("table", null, /*#__PURE__*/external_React_default().createElement("tbody", null, (_feed$recommendations = feed.recommendations) === null || _feed$recommendations === void 0 ? void 0 : _feed$recommendations.map(story => this.renderStoryData(story)))));
   }
 
   renderFeedsData() {
@@ -2551,6 +1529,7 @@ class ASRouterAdminInner extends (external_React_default()).PureComponent {
     const impressions = this.state.messageImpressions[msg.id] ? this.state.messageImpressions[msg.id].length : 0;
     const isCollapsed = this.state.collapsedMessages.includes(msg.id);
     const isModified = this.state.modifiedMessages.includes(msg.id);
+    const aboutMessagePreviewSupported = ["infobar", "spotlight", "cfr_doorhanger"].includes(msg.template);
     let itemClassName = "message-item";
 
     if (isBlocked) {
@@ -2583,7 +1562,13 @@ class ASRouterAdminInner extends (external_React_default()).PureComponent {
       className: "button modify" // eslint-disable-next-line react/jsx-no-bind
       ,
       onClick: e => this.modifyJson(msg)
-    }, "Modify"), /*#__PURE__*/external_React_default().createElement("br", null), "(", impressions, " impressions)"), /*#__PURE__*/external_React_default().createElement("td", {
+    }, "Modify"), aboutMessagePreviewSupported ? /*#__PURE__*/external_React_default().createElement(CopyButton, {
+      transformer: text => `about:messagepreview?json=${encodeURIComponent(btoa(text))}`,
+      label: "Share",
+      copiedLabel: "Copied!",
+      inputSelector: `#${msg.id}-textarea`,
+      className: "button share"
+    }) : null, /*#__PURE__*/external_React_default().createElement("br", null), "(", impressions, " impressions)"), /*#__PURE__*/external_React_default().createElement("td", {
       className: "message-summary"
     }, isBlocked && /*#__PURE__*/external_React_default().createElement("tr", null, "Block reason:", isBlockedByGroup && " Blocked by group", isProviderExcluded && " Excluded by provider", isMessageBlocked && " Message blocked"), /*#__PURE__*/external_React_default().createElement("tr", null, /*#__PURE__*/external_React_default().createElement("pre", {
       className: isCollapsed ? "collapsed" : "expanded"
@@ -2701,7 +1686,7 @@ class ASRouterAdminInner extends (external_React_default()).PureComponent {
       className: "helpLink"
     }, /*#__PURE__*/external_React_default().createElement("span", {
       className: "icon icon-small-spacer icon-info"
-    }), " ", /*#__PURE__*/external_React_default().createElement("span", null, "To modify a message, change the JSON and click 'Modify' to see your changes. Click 'Reset' to restore the JSON to the original.")), /*#__PURE__*/external_React_default().createElement("table", null, /*#__PURE__*/external_React_default().createElement("tbody", null, messagesToShow.map(msg => this.renderMessageItem(msg)))));
+    }), " ", /*#__PURE__*/external_React_default().createElement("span", null, "To modify a message, change the JSON and click 'Modify' to see your changes. Click 'Reset' to restore the JSON to the original. Click 'Share' to copy a link to the clipboard that can be used to preview the message by opening the link in Nightly/local builds.")), /*#__PURE__*/external_React_default().createElement("table", null, /*#__PURE__*/external_React_default().createElement("tbody", null, messagesToShow.map(msg => this.renderMessageItem(msg)))));
   }
 
   renderMessagesByGroup() {
@@ -2730,7 +1715,7 @@ class ASRouterAdminInner extends (external_React_default()).PureComponent {
     return /*#__PURE__*/external_React_default().createElement("p", null, /*#__PURE__*/external_React_default().createElement("button", {
       className: "unblock-all ASRouterButton test-only",
       onClick: this.unblockAll
-    }, "Unblock All Snippets"), "Show messages from ", /*#__PURE__*/external_React_default().createElement("select", {
+    }, "Unblock All Snippets"), "Show messages from", " ", /*#__PURE__*/external_React_default().createElement("select", {
       value: this.state.messageFilter,
       onChange: this.onChangeMessageFilter
     }, /*#__PURE__*/external_React_default().createElement("option", {
@@ -3190,7 +2175,7 @@ class CollapseToggle extends (external_React_default()).PureComponent {
       onClick: this.renderAdmin ? this.onCollapseToggle : null
     }, /*#__PURE__*/external_React_default().createElement("span", {
       className: "icon icon-devtools"
-    })), renderAdmin ? /*#__PURE__*/external_React_default().createElement(ASRouterAdminInner, _extends({}, props, {
+    })), renderAdmin ? /*#__PURE__*/external_React_default().createElement(ASRouterAdminInner, ASRouterAdmin_extends({}, props, {
       collapsed: this.state.collapsed
     })) : null);
   }
@@ -3205,9 +2190,7 @@ const ASRouterAdmin = (0,external_ReactRedux_namespaceObject.connect)(state => (
   Personalization: state.Personalization,
   Prefs: state.Prefs
 }))(_ASRouterAdmin);
-;// CONCATENATED MODULE: ./node_modules/fluent/src/types.js
-/* global Intl */
-
+;// CONCATENATED MODULE: ./node_modules/@fluent/bundle/esm/types.js
 /**
  * The `FluentType` class is the base of Fluent's type system.
  *
@@ -3217,183 +2200,154 @@ const ASRouterAdmin = (0,external_ReactRedux_namespaceObject.connect)(state => (
  */
 class FluentType {
   /**
-   * Create an `FluentType` instance.
+   * Create a `FluentType` instance.
    *
-   * @param   {Any}    value - JavaScript value to wrap.
-   * @param   {Object} opts  - Configuration.
-   * @returns {FluentType}
+   * @param value The JavaScript value to wrap.
    */
-  constructor(value, opts) {
+  constructor(value) {
     this.value = value;
-    this.opts = opts;
   }
   /**
    * Unwrap the raw value stored by this `FluentType`.
-   *
-   * @returns {Any}
    */
 
 
   valueOf() {
     return this.value;
   }
+
+}
+/**
+ * A `FluentType` representing no correct value.
+ */
+
+class FluentNone extends FluentType {
   /**
-   * Format this instance of `FluentType` to a string.
-   *
-   * Formatted values are suitable for use outside of the `FluentBundle`.
-   * This method can use `Intl` formatters memoized by the `FluentBundle`
-   * instance passed as an argument.
-   *
-   * @param   {FluentBundle} [bundle]
-   * @returns {string}
+   * Create an instance of `FluentNone` with an optional fallback value.
+   * @param value The fallback value of this `FluentNone`.
+   */
+  constructor(value = "???") {
+    super(value);
+  }
+  /**
+   * Format this `FluentNone` to the fallback string.
    */
 
 
-  toString() {
-    throw new Error("Subclasses of FluentType must implement toString.");
+  toString(scope) {
+    return `{${this.value}}`;
   }
 
 }
-class FluentNone extends FluentType {
-  valueOf() {
-    return null;
-  }
-
-  toString() {
-    return `{${this.value || "???"}}`;
-  }
-
-}
-class FluentNumber extends FluentType {
-  constructor(value, opts) {
-    super(parseFloat(value), opts);
-  }
-
-  toString(bundle) {
-    try {
-      const nf = bundle._memoizeIntlObject(Intl.NumberFormat, this.opts);
-
-      return nf.format(this.value);
-    } catch (e) {
-      // XXX Report the error.
-      return this.value;
-    }
-  }
-
-}
-class FluentDateTime extends FluentType {
-  constructor(value, opts) {
-    super(new Date(value), opts);
-  }
-
-  toString(bundle) {
-    try {
-      const dtf = bundle._memoizeIntlObject(Intl.DateTimeFormat, this.opts);
-
-      return dtf.format(this.value);
-    } catch (e) {
-      // XXX Report the error.
-      return this.value;
-    }
-  }
-
-}
-;// CONCATENATED MODULE: ./node_modules/fluent/src/builtins.js
 /**
- * @overview
+ * A `FluentType` representing a number.
  *
- * The FTL resolver ships with a number of functions built-in.
- *
- * Each function take two arguments:
- *   - args - an array of positional args
- *   - opts - an object of key-value args
- *
- * Arguments to functions are guaranteed to already be instances of
- * `FluentType`.  Functions must return `FluentType` objects as well.
+ * A `FluentNumber` instance stores the number value of the number it
+ * represents. It may also store an option bag of options which will be passed
+ * to `Intl.NumerFormat` when the `FluentNumber` is formatted to a string.
  */
 
+class FluentNumber extends FluentType {
+  /**
+   * Create an instance of `FluentNumber` with options to the
+   * `Intl.NumberFormat` constructor.
+   *
+   * @param value The number value of this `FluentNumber`.
+   * @param opts Options which will be passed to `Intl.NumberFormat`.
+   */
+  constructor(value, opts = {}) {
+    super(value);
+    this.opts = opts;
+  }
+  /**
+   * Format this `FluentNumber` to a string.
+   */
 
-function merge(argopts, opts) {
-  return Object.assign({}, argopts, values(opts));
+
+  toString(scope) {
+    try {
+      const nf = scope.memoizeIntlObject(Intl.NumberFormat, this.opts);
+      return nf.format(this.value);
+    } catch (err) {
+      scope.reportError(err);
+      return this.value.toString(10);
+    }
+  }
+
 }
+/**
+ * A `FluentType` representing a date and time.
+ *
+ * A `FluentDateTime` instance stores the number value of the date it
+ * represents, as a numerical timestamp in milliseconds. It may also store an
+ * option bag of options which will be passed to `Intl.DateTimeFormat` when the
+ * `FluentDateTime` is formatted to a string.
+ */
 
-function values(opts) {
-  const unwrapped = {};
+class FluentDateTime extends FluentType {
+  /**
+   * Create an instance of `FluentDateTime` with options to the
+   * `Intl.DateTimeFormat` constructor.
+   *
+   * @param value The number value of this `FluentDateTime`, in milliseconds.
+   * @param opts Options which will be passed to `Intl.DateTimeFormat`.
+   */
+  constructor(value, opts = {}) {
+    super(value);
+    this.opts = opts;
+  }
+  /**
+   * Format this `FluentDateTime` to a string.
+   */
 
-  for (const [name, opt] of Object.entries(opts)) {
-    unwrapped[name] = opt.valueOf();
+
+  toString(scope) {
+    try {
+      const dtf = scope.memoizeIntlObject(Intl.DateTimeFormat, this.opts);
+      return dtf.format(this.value);
+    } catch (err) {
+      scope.reportError(err);
+      return new Date(this.value).toISOString();
+    }
   }
 
-  return unwrapped;
 }
-
-function NUMBER([arg], opts) {
-  if (arg instanceof FluentNone) {
-    return arg;
-  }
-
-  if (arg instanceof FluentNumber) {
-    return new FluentNumber(arg.valueOf(), merge(arg.opts, opts));
-  }
-
-  return new FluentNone("NUMBER()");
-}
-function DATETIME([arg], opts) {
-  if (arg instanceof FluentNone) {
-    return arg;
-  }
-
-  if (arg instanceof FluentDateTime) {
-    return new FluentDateTime(arg.valueOf(), merge(arg.opts, opts));
-  }
-
-  return new FluentNone("DATETIME()");
-}
-;// CONCATENATED MODULE: ./node_modules/fluent/src/resolver.js
+;// CONCATENATED MODULE: ./node_modules/@fluent/bundle/esm/resolver.js
 /* global Intl */
 
 /**
  * @overview
  *
- * The role of the Fluent resolver is to format a translation object to an
- * instance of `FluentType` or an array of instances.
+ * The role of the Fluent resolver is to format a `Pattern` to an instance of
+ * `FluentValue`. For performance reasons, primitive strings are considered
+ * such instances, too.
  *
  * Translations can contain references to other messages or variables,
  * conditional logic in form of select expressions, traits which describe their
  * grammatical features, and can use Fluent builtins which make use of the
- * `Intl` formatters to format numbers, dates, lists and more into the
- * bundle's language. See the documentation of the Fluent syntax for more
- * information.
+ * `Intl` formatters to format numbers and dates into the bundle's languages.
+ * See the documentation of the Fluent syntax for more information.
  *
  * In case of errors the resolver will try to salvage as much of the
- * translation as possible.  In rare situations where the resolver didn't know
+ * translation as possible. In rare situations where the resolver didn't know
  * how to recover from an error it will return an instance of `FluentNone`.
  *
- * All expressions resolve to an instance of `FluentType`. The caller should
+ * All expressions resolve to an instance of `FluentValue`. The caller should
  * use the `toString` method to convert the instance to a native value.
  *
- * All functions in this file pass around a special object called `scope`.
- * This object stores a set of elements used by all resolve functions:
- *
- *  * {FluentBundle} bundle
- *      bundle for which the given resolution is happening
- *  * {Object} args
- *      list of developer provided arguments that can be used
- *  * {Array} errors
- *      list of errors collected while resolving
- *  * {WeakSet} dirty
- *      Set of patterns already encountered during this resolution.
- *      This is used to prevent cyclic resolutions.
+ * Functions in this file pass around an instance of the `Scope` class, which
+ * stores the data required for successful resolution and error recovery.
  */
+ // The maximum number of placeables which can be expanded in a single call to
+// `formatPattern`. The limit protects against the Billion Laughs and Quadratic
+// Blowup attacks. See https://msdn.microsoft.com/en-us/magazine/ee335713.aspx.
 
- // Prevent expansion of too long placeables.
-
-const MAX_PLACEABLE_LENGTH = 2500; // Unicode bidi isolation characters.
+const MAX_PLACEABLES = 100; // Unicode bidi isolation characters.
 
 const FSI = "\u2068";
 const PDI = "\u2069"; // Helper: match a variant key to the given selector.
 
-function match(bundle, selector, key) {
+function match(scope, selector, key) {
   if (key === selector) {
     // Both are strings.
     return true;
@@ -3405,7 +2359,7 @@ function match(bundle, selector, key) {
   }
 
   if (selector instanceof FluentNumber && typeof key === "string") {
-    let category = bundle._memoizeIntlObject(Intl.PluralRules, selector.opts).select(selector.value);
+    let category = scope.memoizeIntlObject(Intl.PluralRules, selector.opts).select(selector.value);
 
     if (key === category) {
       return true;
@@ -3418,49 +2372,34 @@ function match(bundle, selector, key) {
 
 function getDefault(scope, variants, star) {
   if (variants[star]) {
-    return Type(scope, variants[star]);
+    return resolvePattern(scope, variants[star].value);
   }
 
-  scope.errors.push(new RangeError("No default"));
+  scope.reportError(new RangeError("No default"));
   return new FluentNone();
 } // Helper: resolve arguments to a call expression.
 
 
 function getArguments(scope, args) {
   const positional = [];
-  const named = {};
+  const named = Object.create(null);
 
   for (const arg of args) {
     if (arg.type === "narg") {
-      named[arg.name] = Type(scope, arg.value);
+      named[arg.name] = resolveExpression(scope, arg.value);
     } else {
-      positional.push(Type(scope, arg));
+      positional.push(resolveExpression(scope, arg));
     }
   }
 
-  return [positional, named];
+  return {
+    positional,
+    named
+  };
 } // Resolve an expression to a Fluent type.
 
 
-function Type(scope, expr) {
-  // A fast-path for strings which are the most common case. Since they
-  // natively have the `toString` method they can be used as if they were
-  // a FluentType instance without incurring the cost of creating one.
-  if (typeof expr === "string") {
-    return scope.bundle._transform(expr);
-  } // A fast-path for `FluentNone` which doesn't require any additional logic.
-
-
-  if (expr instanceof FluentNone) {
-    return expr;
-  } // The Runtime AST (Entries) encodes patterns (complex strings with
-  // placeables) as Arrays.
-
-
-  if (Array.isArray(expr)) {
-    return Pattern(scope, expr);
-  }
-
+function resolveExpression(scope, expr) {
   switch (expr.type) {
     case "str":
       return expr.value;
@@ -3471,30 +2410,19 @@ function Type(scope, expr) {
       });
 
     case "var":
-      return VariableReference(scope, expr);
+      return resolveVariableReference(scope, expr);
 
     case "mesg":
-      return MessageReference(scope, expr);
+      return resolveMessageReference(scope, expr);
 
     case "term":
-      return TermReference(scope, expr);
+      return resolveTermReference(scope, expr);
 
     case "func":
-      return FunctionReference(scope, expr);
+      return resolveFunctionReference(scope, expr);
 
     case "select":
-      return SelectExpression(scope, expr);
-
-    case undefined:
-      {
-        // If it's a node with a value, resolve the value.
-        if (expr.value !== null && expr.value !== undefined) {
-          return Type(scope, expr.value);
-        }
-
-        scope.errors.push(new RangeError("No value"));
-        return new FluentNone();
-      }
+      return resolveSelectExpression(scope, expr);
 
     default:
       return new FluentNone();
@@ -3502,18 +2430,27 @@ function Type(scope, expr) {
 } // Resolve a reference to a variable.
 
 
-function VariableReference(scope, {
+function resolveVariableReference(scope, {
   name
 }) {
-  if (!scope.args || !scope.args.hasOwnProperty(name)) {
-    if (scope.insideTermReference === false) {
-      scope.errors.push(new ReferenceError(`Unknown variable: ${name}`));
+  let arg;
+
+  if (scope.params) {
+    // We're inside a TermReference. It's OK to reference undefined parameters.
+    if (Object.prototype.hasOwnProperty.call(scope.params, name)) {
+      arg = scope.params[name];
+    } else {
+      return new FluentNone(`$${name}`);
     }
-
+  } else if (scope.args && Object.prototype.hasOwnProperty.call(scope.args, name)) {
+    // We're in the top-level Pattern or inside a MessageReference. Missing
+    // variables references produce ReferenceErrors.
+    arg = scope.args[name];
+  } else {
+    scope.reportError(new ReferenceError(`Unknown variable: $${name}`));
     return new FluentNone(`$${name}`);
-  }
+  } // Return early if the argument already is an instance of FluentType.
 
-  const arg = scope.args[name]; // Return early if the argument already is an instance of FluentType.
 
   if (arg instanceof FluentType) {
     return arg;
@@ -3529,44 +2466,50 @@ function VariableReference(scope, {
 
     case "object":
       if (arg instanceof Date) {
-        return new FluentDateTime(arg);
+        return new FluentDateTime(arg.getTime());
       }
 
+    // eslint-disable-next-line no-fallthrough
+
     default:
-      scope.errors.push(new TypeError(`Unsupported variable type: ${name}, ${typeof arg}`));
+      scope.reportError(new TypeError(`Variable type not supported: $${name}, ${typeof arg}`));
       return new FluentNone(`$${name}`);
   }
 } // Resolve a reference to another message.
 
 
-function MessageReference(scope, {
+function resolveMessageReference(scope, {
   name,
   attr
 }) {
   const message = scope.bundle._messages.get(name);
 
   if (!message) {
-    const err = new ReferenceError(`Unknown message: ${name}`);
-    scope.errors.push(err);
+    scope.reportError(new ReferenceError(`Unknown message: ${name}`));
     return new FluentNone(name);
   }
 
   if (attr) {
-    const attribute = message.attrs && message.attrs[attr];
+    const attribute = message.attributes[attr];
 
     if (attribute) {
-      return Type(scope, attribute);
+      return resolvePattern(scope, attribute);
     }
 
-    scope.errors.push(new ReferenceError(`Unknown attribute: ${attr}`));
+    scope.reportError(new ReferenceError(`Unknown attribute: ${attr}`));
     return new FluentNone(`${name}.${attr}`);
   }
 
-  return Type(scope, message);
+  if (message.value) {
+    return resolvePattern(scope, message.value);
+  }
+
+  scope.reportError(new ReferenceError(`No value: ${name}`));
+  return new FluentNone(name);
 } // Resolve a call to a Term with key-value arguments.
 
 
-function TermReference(scope, {
+function resolveTermReference(scope, {
   name,
   attr,
   args
@@ -3576,89 +2519,87 @@ function TermReference(scope, {
   const term = scope.bundle._terms.get(id);
 
   if (!term) {
-    const err = new ReferenceError(`Unknown term: ${id}`);
-    scope.errors.push(err);
+    scope.reportError(new ReferenceError(`Unknown term: ${id}`));
     return new FluentNone(id);
-  } // Every TermReference has its own args.
-
-
-  const [, keyargs] = getArguments(scope, args);
-  const local = { ...scope,
-    args: keyargs,
-    insideTermReference: true
-  };
+  }
 
   if (attr) {
-    const attribute = term.attrs && term.attrs[attr];
+    const attribute = term.attributes[attr];
 
     if (attribute) {
-      return Type(local, attribute);
+      // Every TermReference has its own variables.
+      scope.params = getArguments(scope, args).named;
+      const resolved = resolvePattern(scope, attribute);
+      scope.params = null;
+      return resolved;
     }
 
-    scope.errors.push(new ReferenceError(`Unknown attribute: ${attr}`));
+    scope.reportError(new ReferenceError(`Unknown attribute: ${attr}`));
     return new FluentNone(`${id}.${attr}`);
   }
 
-  return Type(local, term);
+  scope.params = getArguments(scope, args).named;
+  const resolved = resolvePattern(scope, term.value);
+  scope.params = null;
+  return resolved;
 } // Resolve a call to a Function with positional and key-value arguments.
 
 
-function FunctionReference(scope, {
+function resolveFunctionReference(scope, {
   name,
   args
 }) {
   // Some functions are built-in. Others may be provided by the runtime via
   // the `FluentBundle` constructor.
-  const func = scope.bundle._functions[name] || builtins_namespaceObject[name];
+  let func = scope.bundle._functions[name];
 
   if (!func) {
-    scope.errors.push(new ReferenceError(`Unknown function: ${name}()`));
+    scope.reportError(new ReferenceError(`Unknown function: ${name}()`));
     return new FluentNone(`${name}()`);
   }
 
   if (typeof func !== "function") {
-    scope.errors.push(new TypeError(`Function ${name}() is not callable`));
+    scope.reportError(new TypeError(`Function ${name}() is not callable`));
     return new FluentNone(`${name}()`);
   }
 
   try {
-    return func(...getArguments(scope, args));
-  } catch (e) {
-    // XXX Report errors.
+    let resolved = getArguments(scope, args);
+    return func(resolved.positional, resolved.named);
+  } catch (err) {
+    scope.reportError(err);
     return new FluentNone(`${name}()`);
   }
 } // Resolve a select expression to the member object.
 
 
-function SelectExpression(scope, {
+function resolveSelectExpression(scope, {
   selector,
   variants,
   star
 }) {
-  let sel = Type(scope, selector);
+  let sel = resolveExpression(scope, selector);
 
   if (sel instanceof FluentNone) {
-    const variant = getDefault(scope, variants, star);
-    return Type(scope, variant);
+    return getDefault(scope, variants, star);
   } // Match the selector against keys of each variant, in order.
 
 
   for (const variant of variants) {
-    const key = Type(scope, variant.key);
+    const key = resolveExpression(scope, variant.key);
 
-    if (match(scope.bundle, sel, key)) {
-      return Type(scope, variant);
+    if (match(scope, sel, key)) {
+      return resolvePattern(scope, variant.value);
     }
   }
 
-  const variant = getDefault(scope, variants, star);
-  return Type(scope, variant);
+  return getDefault(scope, variants, star);
 } // Resolve a pattern (a complex string with placeables).
 
 
-function Pattern(scope, ptn) {
+function resolveComplexPattern(scope, ptn) {
   if (scope.dirty.has(ptn)) {
-    scope.errors.push(new RangeError("Cyclic reference"));
+    scope.reportError(new RangeError("Cyclic reference"));
     return new FluentNone();
   } // Tag the pattern as dirty for the purpose of the current resolution.
 
@@ -3675,18 +2616,22 @@ function Pattern(scope, ptn) {
       continue;
     }
 
-    const part = Type(scope, elem).toString(scope.bundle);
+    scope.placeables++;
+
+    if (scope.placeables > MAX_PLACEABLES) {
+      scope.dirty.delete(ptn); // This is a fatal error which causes the resolver to instantly bail out
+      // on this pattern. The length check protects against excessive memory
+      // usage, and throwing protects against eating up the CPU when long
+      // placeables are deeply nested.
+
+      throw new RangeError(`Too many placeables expanded: ${scope.placeables}, ` + `max allowed is ${MAX_PLACEABLES}`);
+    }
 
     if (useIsolating) {
       result.push(FSI);
     }
 
-    if (part.length > MAX_PLACEABLE_LENGTH) {
-      scope.errors.push(new RangeError("Too many characters in placeable " + `(${part.length}, max allowed is ${MAX_PLACEABLE_LENGTH})`));
-      result.push(part.slice(MAX_PLACEABLE_LENGTH));
-    } else {
-      result.push(part);
-    }
+    result.push(resolveExpression(scope, elem).toString(scope));
 
     if (useIsolating) {
       result.push(PDI);
@@ -3695,42 +2640,396 @@ function Pattern(scope, ptn) {
 
   scope.dirty.delete(ptn);
   return result.join("");
+} // Resolve a simple or a complex Pattern to a FluentString (which is really the
+// string primitive).
+
+function resolvePattern(scope, value) {
+  // Resolve a simple pattern.
+  if (typeof value === "string") {
+    return scope.bundle._transform(value);
+  }
+
+  return resolveComplexPattern(scope, value);
 }
+;// CONCATENATED MODULE: ./node_modules/@fluent/bundle/esm/scope.js
+class Scope {
+  constructor(bundle, errors, args) {
+    /** The Set of patterns already encountered during this resolution.
+     * Used to detect and prevent cyclic resolutions. */
+    this.dirty = new WeakSet();
+    /** A dict of parameters passed to a TermReference. */
+
+    this.params = null;
+    /** The running count of placeables resolved so far. Used to detect the
+      * Billion Laughs and Quadratic Blowup attacks. */
+
+    this.placeables = 0;
+    this.bundle = bundle;
+    this.errors = errors;
+    this.args = args;
+  }
+
+  reportError(error) {
+    if (!this.errors || !(error instanceof Error)) {
+      throw error;
+    }
+
+    this.errors.push(error);
+  }
+
+  memoizeIntlObject(ctor, opts) {
+    let cache = this.bundle._intls.get(ctor);
+
+    if (!cache) {
+      cache = {};
+
+      this.bundle._intls.set(ctor, cache);
+    }
+
+    let id = JSON.stringify(opts);
+
+    if (!cache[id]) {
+      cache[id] = new ctor(this.bundle.locales, opts);
+    }
+
+    return cache[id];
+  }
+
+}
+;// CONCATENATED MODULE: ./node_modules/@fluent/bundle/esm/builtins.js
 /**
- * Format a translation into a string.
+ * @overview
  *
- * @param   {FluentBundle} bundle
- *    A FluentBundle instance which will be used to resolve the
- *    contextual information of the message.
- * @param   {Object}         args
- *    List of arguments provided by the developer which can be accessed
- *    from the message.
- * @param   {Object}         message
- *    An object with the Message to be resolved.
- * @param   {Array}          errors
- *    An error array that any encountered errors will be appended to.
- * @returns {FluentType}
+ * The FTL resolver ships with a number of functions built-in.
+ *
+ * Each function take two arguments:
+ *   - args - an array of positional args
+ *   - opts - an object of key-value args
+ *
+ * Arguments to functions are guaranteed to already be instances of
+ * `FluentValue`.  Functions must return `FluentValues` as well.
  */
 
 
-function resolve(bundle, args, message, errors = []) {
-  const scope = {
-    bundle,
-    args,
-    errors,
-    dirty: new WeakSet(),
-    // TermReferences are resolved in a new scope.
-    insideTermReference: false
-  };
-  return Type(scope, message).toString(bundle);
-}
-;// CONCATENATED MODULE: ./node_modules/fluent/src/error.js
-class FluentError extends Error {}
-;// CONCATENATED MODULE: ./node_modules/fluent/src/resource.js
- // This regex is used to iterate through the beginnings of messages and terms.
-// With the /m flag, the ^ matches at the beginning of every line.
+function values(opts, allowed) {
+  const unwrapped = Object.create(null);
 
-const RE_MESSAGE_START = /^(-?[a-zA-Z][\w-]*) *= */mg; // Both Attributes and Variants are parsed in while loops. These regexes are
+  for (const [name, opt] of Object.entries(opts)) {
+    if (allowed.includes(name)) {
+      unwrapped[name] = opt.valueOf();
+    }
+  }
+
+  return unwrapped;
+}
+
+const NUMBER_ALLOWED = ["unitDisplay", "currencyDisplay", "useGrouping", "minimumIntegerDigits", "minimumFractionDigits", "maximumFractionDigits", "minimumSignificantDigits", "maximumSignificantDigits"];
+/**
+ * The implementation of the `NUMBER()` builtin available to translations.
+ *
+ * Translations may call the `NUMBER()` builtin in order to specify formatting
+ * options of a number. For example:
+ *
+ *     pi = The value of π is {NUMBER($pi, maximumFractionDigits: 2)}.
+ *
+ * The implementation expects an array of `FluentValues` representing the
+ * positional arguments, and an object of named `FluentValues` representing the
+ * named parameters.
+ *
+ * The following options are recognized:
+ *
+ *     unitDisplay
+ *     currencyDisplay
+ *     useGrouping
+ *     minimumIntegerDigits
+ *     minimumFractionDigits
+ *     maximumFractionDigits
+ *     minimumSignificantDigits
+ *     maximumSignificantDigits
+ *
+ * Other options are ignored.
+ *
+ * @param args The positional arguments passed to this `NUMBER()`.
+ * @param opts The named argments passed to this `NUMBER()`.
+ */
+
+function NUMBER(args, opts) {
+  let arg = args[0];
+
+  if (arg instanceof FluentNone) {
+    return new FluentNone(`NUMBER(${arg.valueOf()})`);
+  }
+
+  if (arg instanceof FluentNumber) {
+    return new FluentNumber(arg.valueOf(), { ...arg.opts,
+      ...values(opts, NUMBER_ALLOWED)
+    });
+  }
+
+  if (arg instanceof FluentDateTime) {
+    return new FluentNumber(arg.valueOf(), { ...values(opts, NUMBER_ALLOWED)
+    });
+  }
+
+  throw new TypeError("Invalid argument to NUMBER");
+}
+const DATETIME_ALLOWED = ["dateStyle", "timeStyle", "fractionalSecondDigits", "dayPeriod", "hour12", "weekday", "era", "year", "month", "day", "hour", "minute", "second", "timeZoneName"];
+/**
+ * The implementation of the `DATETIME()` builtin available to translations.
+ *
+ * Translations may call the `DATETIME()` builtin in order to specify
+ * formatting options of a number. For example:
+ *
+ *     now = It's {DATETIME($today, month: "long")}.
+ *
+ * The implementation expects an array of `FluentValues` representing the
+ * positional arguments, and an object of named `FluentValues` representing the
+ * named parameters.
+ *
+ * The following options are recognized:
+ *
+ *     dateStyle
+ *     timeStyle
+ *     fractionalSecondDigits
+ *     dayPeriod
+ *     hour12
+ *     weekday
+ *     era
+ *     year
+ *     month
+ *     day
+ *     hour
+ *     minute
+ *     second
+ *     timeZoneName
+ *
+ * Other options are ignored.
+ *
+ * @param args The positional arguments passed to this `DATETIME()`.
+ * @param opts The named argments passed to this `DATETIME()`.
+ */
+
+function DATETIME(args, opts) {
+  let arg = args[0];
+
+  if (arg instanceof FluentNone) {
+    return new FluentNone(`DATETIME(${arg.valueOf()})`);
+  }
+
+  if (arg instanceof FluentDateTime) {
+    return new FluentDateTime(arg.valueOf(), { ...arg.opts,
+      ...values(opts, DATETIME_ALLOWED)
+    });
+  }
+
+  if (arg instanceof FluentNumber) {
+    return new FluentDateTime(arg.valueOf(), { ...values(opts, DATETIME_ALLOWED)
+    });
+  }
+
+  throw new TypeError("Invalid argument to DATETIME");
+}
+;// CONCATENATED MODULE: ./node_modules/@fluent/bundle/esm/memoizer.js
+const cache = new Map();
+function getMemoizerForLocale(locales) {
+  const stringLocale = Array.isArray(locales) ? locales.join(" ") : locales;
+  let memoizer = cache.get(stringLocale);
+
+  if (memoizer === undefined) {
+    memoizer = new Map();
+    cache.set(stringLocale, memoizer);
+  }
+
+  return memoizer;
+}
+;// CONCATENATED MODULE: ./node_modules/@fluent/bundle/esm/bundle.js
+
+
+
+
+
+/**
+ * Message bundles are single-language stores of translation resources. They are
+ * responsible for formatting message values and attributes to strings.
+ */
+
+class FluentBundle {
+  /**
+   * Create an instance of `FluentBundle`.
+   *
+   * The `locales` argument is used to instantiate `Intl` formatters used by
+   * translations. The `options` object can be used to configure the bundle.
+   *
+   * Examples:
+   *
+   *     let bundle = new FluentBundle(["en-US", "en"]);
+   *
+   *     let bundle = new FluentBundle(locales, {useIsolating: false});
+   *
+   *     let bundle = new FluentBundle(locales, {
+   *       useIsolating: true,
+   *       functions: {
+   *         NODE_ENV: () => process.env.NODE_ENV
+   *       }
+   *     });
+   *
+   * Available options:
+   *
+   *   - `functions` - an object of additional functions available to
+   *     translations as builtins.
+   *
+   *   - `useIsolating` - boolean specifying whether to use Unicode isolation
+   *     marks (FSI, PDI) for bidi interpolations. Default: `true`.
+   *
+   *   - `transform` - a function used to transform string parts of patterns.
+   */
+  constructor(locales, {
+    functions,
+    useIsolating = true,
+    transform = v => v
+  } = {}) {
+    this._terms = new Map();
+    this._messages = new Map();
+    this.locales = Array.isArray(locales) ? locales : [locales];
+    this._functions = {
+      NUMBER: NUMBER,
+      DATETIME: DATETIME,
+      ...functions
+    };
+    this._useIsolating = useIsolating;
+    this._transform = transform;
+    this._intls = getMemoizerForLocale(locales);
+  }
+  /**
+   * Check if a message is present in the bundle.
+   *
+   * @param id - The identifier of the message to check.
+   */
+
+
+  hasMessage(id) {
+    return this._messages.has(id);
+  }
+  /**
+   * Return a raw unformatted message object from the bundle.
+   *
+   * Raw messages are `{value, attributes}` shapes containing translation units
+   * called `Patterns`. `Patterns` are implementation-specific; they should be
+   * treated as black boxes and formatted with `FluentBundle.formatPattern`.
+   *
+   * @param id - The identifier of the message to check.
+   */
+
+
+  getMessage(id) {
+    return this._messages.get(id);
+  }
+  /**
+   * Add a translation resource to the bundle.
+   *
+   * The translation resource must be an instance of `FluentResource`.
+   *
+   *     let res = new FluentResource("foo = Foo");
+   *     bundle.addResource(res);
+   *     bundle.getMessage("foo");
+   *     // → {value: .., attributes: {..}}
+   *
+   * Available options:
+   *
+   *   - `allowOverrides` - boolean specifying whether it's allowed to override
+   *     an existing message or term with a new value. Default: `false`.
+   *
+   * @param   res - FluentResource object.
+   * @param   options
+   */
+
+
+  addResource(res, {
+    allowOverrides = false
+  } = {}) {
+    const errors = [];
+
+    for (let i = 0; i < res.body.length; i++) {
+      let entry = res.body[i];
+
+      if (entry.id.startsWith("-")) {
+        // Identifiers starting with a dash (-) define terms. Terms are private
+        // and cannot be retrieved from FluentBundle.
+        if (allowOverrides === false && this._terms.has(entry.id)) {
+          errors.push(new Error(`Attempt to override an existing term: "${entry.id}"`));
+          continue;
+        }
+
+        this._terms.set(entry.id, entry);
+      } else {
+        if (allowOverrides === false && this._messages.has(entry.id)) {
+          errors.push(new Error(`Attempt to override an existing message: "${entry.id}"`));
+          continue;
+        }
+
+        this._messages.set(entry.id, entry);
+      }
+    }
+
+    return errors;
+  }
+  /**
+   * Format a `Pattern` to a string.
+   *
+   * Format a raw `Pattern` into a string. `args` will be used to resolve
+   * references to variables passed as arguments to the translation.
+   *
+   * In case of errors `formatPattern` will try to salvage as much of the
+   * translation as possible and will still return a string. For performance
+   * reasons, the encountered errors are not returned but instead are appended
+   * to the `errors` array passed as the third argument.
+   *
+   *     let errors = [];
+   *     bundle.addResource(
+   *         new FluentResource("hello = Hello, {$name}!"));
+   *
+   *     let hello = bundle.getMessage("hello");
+   *     if (hello.value) {
+   *         bundle.formatPattern(hello.value, {name: "Jane"}, errors);
+   *         // Returns "Hello, Jane!" and `errors` is empty.
+   *
+   *         bundle.formatPattern(hello.value, undefined, errors);
+   *         // Returns "Hello, {$name}!" and `errors` is now:
+   *         // [<ReferenceError: Unknown variable: name>]
+   *     }
+   *
+   * If `errors` is omitted, the first encountered error will be thrown.
+   */
+
+
+  formatPattern(pattern, args = null, errors = null) {
+    // Resolve a simple pattern without creating a scope. No error handling is
+    // required; by definition simple patterns don't have placeables.
+    if (typeof pattern === "string") {
+      return this._transform(pattern);
+    } // Resolve a complex pattern.
+
+
+    let scope = new Scope(this, errors, args);
+
+    try {
+      let value = resolveComplexPattern(scope, pattern);
+      return value.toString(scope);
+    } catch (err) {
+      if (scope.errors && err instanceof Error) {
+        scope.errors.push(err);
+        return new FluentNone().toString(scope);
+      }
+
+      throw err;
+    }
+  }
+
+}
+;// CONCATENATED MODULE: ./node_modules/@fluent/bundle/esm/resource.js
+// This regex is used to iterate through the beginnings of messages and terms.
+// With the /m flag, the ^ matches at the beginning of every line.
+const RE_MESSAGE_START = /^(-?[a-zA-Z][\w-]*) *= */gm; // Both Attributes and Variants are parsed in while loops. These regexes are
 // used to break out of them.
 
 const RE_ATTRIBUTE_START = /\.([a-zA-Z][\w-]*) *= */y;
@@ -3768,21 +3067,15 @@ const TOKEN_COLON = /\s*:\s*/y; // Note the optional comma. As a deviation from 
 // doesn't enforce commas between call arguments.
 
 const TOKEN_COMMA = /\s*,?\s*/y;
-const TOKEN_BLANK = /\s+/y; // Maximum number of placeables in a single Pattern to protect against Quadratic
-// Blowup attacks. See https://msdn.microsoft.com/en-us/magazine/ee335713.aspx.
-
-const MAX_PLACEABLES = 100;
+const TOKEN_BLANK = /\s+/y;
 /**
- * Fluent Resource is a structure storing a map of parsed localization entries.
+ * Fluent Resource is a structure storing parsed localization entries.
  */
 
-class FluentResource extends Map {
-  /**
-   * Create a new FluentResource from Fluent code.
-   */
-  static fromString(source) {
+class FluentResource {
+  constructor(source) {
+    this.body = [];
     RE_MESSAGE_START.lastIndex = 0;
-    let resource = new this();
     let cursor = 0; // Iterate over the beginnings of messages and terms to efficiently skip
     // comments and recover from errors.
 
@@ -3796,9 +3089,9 @@ class FluentResource extends Map {
       cursor = RE_MESSAGE_START.lastIndex;
 
       try {
-        resource.set(next[1], parseMessage());
+        this.body.push(parseMessage(next[1]));
       } catch (err) {
-        if (err instanceof FluentError) {
+        if (err instanceof SyntaxError) {
           // Don't report any Fluent syntax errors. Skip directly to the
           // beginning of the next message or term.
           continue;
@@ -3806,9 +3099,8 @@ class FluentResource extends Map {
 
         throw err;
       }
-    }
-
-    return resource; // The parser implementation is inlined below for performance reasons.
+    } // The parser implementation is inlined below for performance reasons,
+    // as well as for convenience of accessing `source` and `cursor`.
     // The parser focuses on minimizing the number of false negatives at the
     // expense of increasing the risk of false positives. In other words, it
     // aims at parsing valid Fluent messages with a success rate of 100%, but it
@@ -3820,6 +3112,7 @@ class FluentResource extends Map {
     // The parser makes an extensive use of sticky regexes which can be anchored
     // to any offset of the source string without slicing it. Errors are thrown
     // to bail out of parsing of ill-formed messages.
+
 
     function test(re) {
       re.lastIndex = cursor;
@@ -3862,7 +3155,7 @@ class FluentResource extends Map {
       let result = re.exec(source);
 
       if (result === null) {
-        throw new FluentError(`Expected ${re.toString()}`);
+        throw new SyntaxError(`Expected ${re.toString()}`);
       }
 
       cursor = re.lastIndex;
@@ -3874,45 +3167,43 @@ class FluentResource extends Map {
       return match(re)[1];
     }
 
-    function parseMessage() {
+    function parseMessage(id) {
       let value = parsePattern();
-      let attrs = parseAttributes();
+      let attributes = parseAttributes();
 
-      if (attrs === null) {
-        if (value === null) {
-          throw new FluentError("Expected message value or attributes");
-        }
-
-        return value;
+      if (value === null && Object.keys(attributes).length === 0) {
+        throw new SyntaxError("Expected message value or attributes");
       }
 
       return {
+        id,
         value,
-        attrs
+        attributes
       };
     }
 
     function parseAttributes() {
-      let attrs = {};
+      let attrs = Object.create(null);
 
       while (test(RE_ATTRIBUTE_START)) {
         let name = match1(RE_ATTRIBUTE_START);
         let value = parsePattern();
 
         if (value === null) {
-          throw new FluentError("Expected attribute value");
+          throw new SyntaxError("Expected attribute value");
         }
 
         attrs[name] = value;
       }
 
-      return Object.keys(attrs).length > 0 ? attrs : null;
+      return attrs;
     }
 
     function parsePattern() {
-      // First try to parse any simple text on the same line as the id.
+      let first; // First try to parse any simple text on the same line as the id.
+
       if (test(RE_TEXT_RUN)) {
-        var first = match1(RE_TEXT_RUN);
+        first = match1(RE_TEXT_RUN);
       } // If there's a placeable on the first line, parse a complex pattern.
 
 
@@ -3949,8 +3240,6 @@ class FluentResource extends Map {
 
 
     function parsePatternElements(elements = [], commonIndent) {
-      let placeableCount = 0;
-
       while (true) {
         if (test(RE_TEXT_RUN)) {
           elements.push(match1(RE_TEXT_RUN));
@@ -3958,16 +3247,12 @@ class FluentResource extends Map {
         }
 
         if (source[cursor] === "{") {
-          if (++placeableCount > MAX_PLACEABLES) {
-            throw new FluentError("Too many placeables");
-          }
-
           elements.push(parsePlaceable());
           continue;
         }
 
         if (source[cursor] === "}") {
-          throw new FluentError("Unbalanced closing brace");
+          throw new SyntaxError("Unbalanced closing brace");
         }
 
         let indent = parseIndent();
@@ -3981,21 +3266,19 @@ class FluentResource extends Map {
         break;
       }
 
-      let lastIndex = elements.length - 1; // Trim the trailing spaces in the last element if it's a TextElement.
+      let lastIndex = elements.length - 1;
+      let lastElement = elements[lastIndex]; // Trim the trailing spaces in the last element if it's a TextElement.
 
-      if (typeof elements[lastIndex] === "string") {
-        elements[lastIndex] = trim(elements[lastIndex], RE_TRAILING_SPACES);
+      if (typeof lastElement === "string") {
+        elements[lastIndex] = trim(lastElement, RE_TRAILING_SPACES);
       }
 
       let baked = [];
 
       for (let element of elements) {
-        if (element.type === "indent") {
+        if (element instanceof Indent) {
           // Dedent indented lines by the maximum common indent.
           element = element.value.slice(0, element.value.length - commonIndent);
-        } else if (element.type === "str") {
-          // Optimize StringLiterals into their value.
-          element = element.value;
         }
 
         if (element) {
@@ -4007,7 +3290,7 @@ class FluentResource extends Map {
     }
 
     function parsePlaceable() {
-      consumeToken(TOKEN_BRACE_OPEN, FluentError);
+      consumeToken(TOKEN_BRACE_OPEN, SyntaxError);
       let selector = parseInlineExpression();
 
       if (consumeToken(TOKEN_BRACE_CLOSE)) {
@@ -4016,7 +3299,7 @@ class FluentResource extends Map {
 
       if (consumeToken(TOKEN_ARROW)) {
         let variants = parseVariants();
-        consumeToken(TOKEN_BRACE_CLOSE, FluentError);
+        consumeToken(TOKEN_BRACE_CLOSE, SyntaxError);
         return {
           type: "select",
           selector,
@@ -4024,7 +3307,7 @@ class FluentResource extends Map {
         };
       }
 
-      throw new FluentError("Unclosed placeable");
+      throw new SyntaxError("Unclosed placeable");
     }
 
     function parseInlineExpression() {
@@ -4064,7 +3347,7 @@ class FluentResource extends Map {
             };
           }
 
-          throw new FluentError("Function names must be all upper-case");
+          throw new SyntaxError("Function names must be all upper-case");
         }
 
         if (sigil === "-") {
@@ -4099,7 +3382,7 @@ class FluentResource extends Map {
 
           case undefined:
             // EOF
-            throw new FluentError("Unclosed argument list");
+            throw new SyntaxError("Unclosed argument list");
         }
 
         args.push(parseArgument()); // Commas between arguments are treated as whitespace.
@@ -4142,7 +3425,7 @@ class FluentResource extends Map {
         let value = parsePattern();
 
         if (value === null) {
-          throw new FluentError("Expected variant value");
+          throw new SyntaxError("Expected variant value");
         }
 
         variants[count++] = {
@@ -4156,7 +3439,7 @@ class FluentResource extends Map {
       }
 
       if (star === undefined) {
-        throw new FluentError("Expected default variant");
+        throw new SyntaxError("Expected default variant");
       }
 
       return {
@@ -4166,9 +3449,19 @@ class FluentResource extends Map {
     }
 
     function parseVariantKey() {
-      consumeToken(TOKEN_BRACKET_OPEN, FluentError);
-      let key = test(RE_NUMBER_LITERAL) ? parseNumberLiteral() : match1(RE_IDENTIFIER);
-      consumeToken(TOKEN_BRACKET_CLOSE, FluentError);
+      consumeToken(TOKEN_BRACKET_OPEN, SyntaxError);
+      let key;
+
+      if (test(RE_NUMBER_LITERAL)) {
+        key = parseNumberLiteral();
+      } else {
+        key = {
+          type: "str",
+          value: match1(RE_IDENTIFIER)
+        };
+      }
+
+      consumeToken(TOKEN_BRACKET_CLOSE, SyntaxError);
       return key;
     }
 
@@ -4177,11 +3470,11 @@ class FluentResource extends Map {
         return parseNumberLiteral();
       }
 
-      if (source[cursor] === "\"") {
+      if (source[cursor] === '"') {
         return parseStringLiteral();
       }
 
-      throw new FluentError("Invalid expression");
+      throw new SyntaxError("Invalid expression");
     }
 
     function parseNumberLiteral() {
@@ -4195,7 +3488,7 @@ class FluentResource extends Map {
     }
 
     function parseStringLiteral() {
-      consumeChar("\"", FluentError);
+      consumeChar('"', SyntaxError);
       let value = "";
 
       while (true) {
@@ -4206,7 +3499,7 @@ class FluentResource extends Map {
           continue;
         }
 
-        if (consumeChar("\"")) {
+        if (consumeChar('"')) {
           return {
             type: "str",
             value
@@ -4214,7 +3507,7 @@ class FluentResource extends Map {
         } // We've reached an EOL of EOF.
 
 
-        throw new FluentError("Unclosed string literal");
+        throw new SyntaxError("Unclosed string literal");
       }
     } // Unescape known escape sequences.
 
@@ -4227,13 +3520,13 @@ class FluentResource extends Map {
       if (test(RE_UNICODE_ESCAPE)) {
         let [, codepoint4, codepoint6] = match(RE_UNICODE_ESCAPE);
         let codepoint = parseInt(codepoint4 || codepoint6, 16);
-        return codepoint <= 0xD7FF || 0xE000 <= codepoint // It's a Unicode scalar value.
+        return codepoint <= 0xd7ff || 0xe000 <= codepoint // It's a Unicode scalar value.
         ? String.fromCodePoint(codepoint) // Lonely surrogates can cause trouble when the parsing result is
         // saved using UTF-8. Use U+FFFD REPLACEMENT CHARACTER instead.
         : "�";
       }
 
-      throw new FluentError("Unknown escape sequence");
+      throw new SyntaxError("Unknown escape sequence");
     } // Parse blank space. Return it if it looks like indent before a pattern
     // line. Skip it othwerwise.
 
@@ -4279,283 +3572,24 @@ class FluentResource extends Map {
 
 
     function makeIndent(blank) {
-      let value = blank.replace(RE_BLANK_LINES, "\n");
+      let value = blank.replace(RE_BLANK_LINES, "\n"); // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
       let length = RE_INDENT.exec(blank)[1].length;
-      return {
-        type: "indent",
-        value,
-        length
-      };
+      return new Indent(value, length);
     }
   }
 
 }
-;// CONCATENATED MODULE: ./node_modules/fluent/src/bundle.js
 
+class Indent {
+  constructor(value, length) {
+    this.value = value;
+    this.length = length;
+  }
 
+}
+;// CONCATENATED MODULE: ./node_modules/@fluent/bundle/esm/index.js
 /**
- * Message bundles are single-language stores of translations.  They are
- * responsible for parsing translation resources in the Fluent syntax and can
- * format translation units (entities) to strings.
- *
- * Always use `FluentBundle.format` to retrieve translation units from a
- * bundle. Translations can contain references to other entities or variables,
- * conditional logic in form of select expressions, traits which describe their
- * grammatical features, and can use Fluent builtins which make use of the
- * `Intl` formatters to format numbers, dates, lists and more into the
- * bundle's language. See the documentation of the Fluent syntax for more
- * information.
- */
-
-class FluentBundle {
-  /**
-   * Create an instance of `FluentBundle`.
-   *
-   * The `locales` argument is used to instantiate `Intl` formatters used by
-   * translations.  The `options` object can be used to configure the bundle.
-   *
-   * Examples:
-   *
-   *     const bundle = new FluentBundle(locales);
-   *
-   *     const bundle = new FluentBundle(locales, { useIsolating: false });
-   *
-   *     const bundle = new FluentBundle(locales, {
-   *       useIsolating: true,
-   *       functions: {
-   *         NODE_ENV: () => process.env.NODE_ENV
-   *       }
-   *     });
-   *
-   * Available options:
-   *
-   *   - `functions` - an object of additional functions available to
-   *                   translations as builtins.
-   *
-   *   - `useIsolating` - boolean specifying whether to use Unicode isolation
-   *                    marks (FSI, PDI) for bidi interpolations.
-   *                    Default: true
-   *
-   *   - `transform` - a function used to transform string parts of patterns.
-   *
-   * @param   {string|Array<string>} locales - Locale or locales of the bundle
-   * @param   {Object} [options]
-   * @returns {FluentBundle}
-   */
-  constructor(locales, {
-    functions = {},
-    useIsolating = true,
-    transform = v => v
-  } = {}) {
-    this.locales = Array.isArray(locales) ? locales : [locales];
-    this._terms = new Map();
-    this._messages = new Map();
-    this._functions = functions;
-    this._useIsolating = useIsolating;
-    this._transform = transform;
-    this._intls = new WeakMap();
-  }
-  /*
-   * Return an iterator over public `[id, message]` pairs.
-   *
-   * @returns {Iterator}
-   */
-
-
-  get messages() {
-    return this._messages[Symbol.iterator]();
-  }
-  /*
-   * Check if a message is present in the bundle.
-   *
-   * @param {string} id - The identifier of the message to check.
-   * @returns {bool}
-   */
-
-
-  hasMessage(id) {
-    return this._messages.has(id);
-  }
-  /*
-   * Return the internal representation of a message.
-   *
-   * The internal representation should only be used as an argument to
-   * `FluentBundle.format`.
-   *
-   * @param {string} id - The identifier of the message to check.
-   * @returns {Any}
-   */
-
-
-  getMessage(id) {
-    return this._messages.get(id);
-  }
-  /**
-   * Add a translation resource to the bundle.
-   *
-   * The translation resource must use the Fluent syntax.  It will be parsed by
-   * the bundle and each translation unit (message) will be available in the
-   * bundle by its identifier.
-   *
-   *     bundle.addMessages('foo = Foo');
-   *     bundle.getMessage('foo');
-   *
-   *     // Returns a raw representation of the 'foo' message.
-   *
-   *     bundle.addMessages('bar = Bar');
-   *     bundle.addMessages('bar = Newbar', { allowOverrides: true });
-   *     bundle.getMessage('bar');
-   *
-   *     // Returns a raw representation of the 'bar' message: Newbar.
-   *
-   * Parsed entities should be formatted with the `format` method in case they
-   * contain logic (references, select expressions etc.).
-   *
-   * Available options:
-   *
-   *   - `allowOverrides` - boolean specifying whether it's allowed to override
-   *                      an existing message or term with a new value.
-   *                      Default: false
-   *
-   * @param   {string} source - Text resource with translations.
-   * @param   {Object} [options]
-   * @returns {Array<Error>}
-   */
-
-
-  addMessages(source, options) {
-    const res = FluentResource.fromString(source);
-    return this.addResource(res, options);
-  }
-  /**
-   * Add a translation resource to the bundle.
-   *
-   * The translation resource must be an instance of FluentResource,
-   * e.g. parsed by `FluentResource.fromString`.
-   *
-   *     let res = FluentResource.fromString("foo = Foo");
-   *     bundle.addResource(res);
-   *     bundle.getMessage('foo');
-   *
-   *     // Returns a raw representation of the 'foo' message.
-   *
-   *     let res = FluentResource.fromString("bar = Bar");
-   *     bundle.addResource(res);
-   *     res = FluentResource.fromString("bar = Newbar");
-   *     bundle.addResource(res, { allowOverrides: true });
-   *     bundle.getMessage('bar');
-   *
-   *     // Returns a raw representation of the 'bar' message: Newbar.
-   *
-   * Parsed entities should be formatted with the `format` method in case they
-   * contain logic (references, select expressions etc.).
-   *
-   * Available options:
-   *
-   *   - `allowOverrides` - boolean specifying whether it's allowed to override
-   *                      an existing message or term with a new value.
-   *                      Default: false
-   *
-   * @param   {FluentResource} res - FluentResource object.
-   * @param   {Object} [options]
-   * @returns {Array<Error>}
-   */
-
-
-  addResource(res, {
-    allowOverrides = false
-  } = {}) {
-    const errors = [];
-
-    for (const [id, value] of res) {
-      if (id.startsWith("-")) {
-        // Identifiers starting with a dash (-) define terms. Terms are private
-        // and cannot be retrieved from FluentBundle.
-        if (allowOverrides === false && this._terms.has(id)) {
-          errors.push(`Attempt to override an existing term: "${id}"`);
-          continue;
-        }
-
-        this._terms.set(id, value);
-      } else {
-        if (allowOverrides === false && this._messages.has(id)) {
-          errors.push(`Attempt to override an existing message: "${id}"`);
-          continue;
-        }
-
-        this._messages.set(id, value);
-      }
-    }
-
-    return errors;
-  }
-  /**
-   * Format a message to a string or null.
-   *
-   * Format a raw `message` from the bundle into a string (or a null if it has
-   * a null value).  `args` will be used to resolve references to variables
-   * passed as arguments to the translation.
-   *
-   * In case of errors `format` will try to salvage as much of the translation
-   * as possible and will still return a string.  For performance reasons, the
-   * encountered errors are not returned but instead are appended to the
-   * `errors` array passed as the third argument.
-   *
-   *     const errors = [];
-   *     bundle.addMessages('hello = Hello, { $name }!');
-   *     const hello = bundle.getMessage('hello');
-   *     bundle.format(hello, { name: 'Jane' }, errors);
-   *
-   *     // Returns 'Hello, Jane!' and `errors` is empty.
-   *
-   *     bundle.format(hello, undefined, errors);
-   *
-   *     // Returns 'Hello, name!' and `errors` is now:
-   *
-   *     [<ReferenceError: Unknown variable: name>]
-   *
-   * @param   {Object | string}    message
-   * @param   {Object | undefined} args
-   * @param   {Array}              errors
-   * @returns {?string}
-   */
-
-
-  format(message, args, errors) {
-    // optimize entities which are simple strings with no attributes
-    if (typeof message === "string") {
-      return this._transform(message);
-    } // optimize entities with null values
-
-
-    if (message === null || message.value === null) {
-      return null;
-    } // optimize simple-string entities with attributes
-
-
-    if (typeof message.value === "string") {
-      return this._transform(message.value);
-    }
-
-    return resolve(this, args, message, errors);
-  }
-
-  _memoizeIntlObject(ctor, opts) {
-    const cache = this._intls.get(ctor) || {};
-    const id = JSON.stringify(opts);
-
-    if (!cache[id]) {
-      cache[id] = new ctor(this.locales, opts);
-
-      this._intls.set(ctor, cache);
-    }
-
-    return cache[id];
-  }
-
-}
-;// CONCATENATED MODULE: ./node_modules/fluent/src/index.js
-/*
  * @module fluent
  * @overview
  *
@@ -4563,7 +3597,6 @@ class FluentBundle {
  * framework designed to unleash the expressive power of the natural language.
  *
  */
-
 
 
 
@@ -4607,7 +3640,7 @@ function generateBundles(content) {
       string = content[attr];
     }
 
-    bundle.addMessages(`${key} = ${string}`);
+    bundle.addResource(new FluentResource(`${key} = ${string}`));
   });
   return [bundle];
 }
@@ -4679,33 +3712,27 @@ ImpressionsWrapper.defaultProps = {
   document: __webpack_require__.g.document,
   sendOnMount: true
 };
-;// CONCATENATED MODULE: external "PropTypes"
-const external_PropTypes_namespaceObject = PropTypes;
-var external_PropTypes_default = /*#__PURE__*/__webpack_require__.n(external_PropTypes_namespaceObject);
-;// CONCATENATED MODULE: ./node_modules/fluent-sequence/src/map_sync.js
-/*
+;// CONCATENATED MODULE: ./node_modules/@fluent/sequence/esm/map_sync.js
+/**
  * Synchronously map an identifier or an array of identifiers to the best
  * `FluentBundle` instance(s).
  *
- * @param {Iterable} iterable
- * @param {string|Array<string>} ids
- * @returns {FluentBundle|Array<FluentBundle>}
+ * @param bundles - An iterable of bundles to sift through.
+ * @param ids - An id or ids to map.
  */
-function mapBundleSync(iterable, ids) {
+function mapBundleSync(bundles, ids) {
   if (!Array.isArray(ids)) {
-    return getBundleForId(iterable, ids);
+    return getBundleForId(bundles, ids);
   }
 
-  return ids.map(
-    id => getBundleForId(iterable, id)
-  );
+  return ids.map(id => getBundleForId(bundles, id));
 }
-
 /*
  * Find the best `FluentBundle` with the translation for `id`.
  */
-function getBundleForId(iterable, id) {
-  for (const bundle of iterable) {
+
+function getBundleForId(bundles, id) {
+  for (const bundle of bundles) {
     if (bundle.hasMessage(id)) {
       return bundle;
     }
@@ -4713,36 +3740,36 @@ function getBundleForId(iterable, id) {
 
   return null;
 }
-
-;// CONCATENATED MODULE: ./node_modules/fluent-sequence/src/map_async.js
-/*
+;// CONCATENATED MODULE: ./node_modules/@fluent/sequence/esm/map_async.js
+/**
  * Asynchronously map an identifier or an array of identifiers to the best
  * `FluentBundle` instance(s).
  *
- * @param {AsyncIterable} iterable
- * @param {string|Array<string>} ids
- * @returns {Promise<FluentBundle|Array<FluentBundle>>}
+ * @param bundles - An iterable of bundles to sift through.
+ * @param ids - An id or ids to map.
  */
-async function mapBundleAsync(iterable, ids) {
+async function mapBundleAsync(bundles, ids) {
   if (!Array.isArray(ids)) {
-    for await (const bundle of iterable) {
+    for await (const bundle of bundles) {
       if (bundle.hasMessage(ids)) {
         return bundle;
       }
     }
+
+    return null;
   }
 
+  const foundBundles = new Array(ids.length).fill(null);
   let remainingCount = ids.length;
-  const foundBundles = new Array(remainingCount).fill(null);
 
-  for await (const bundle of iterable) {
+  for await (const bundle of bundles) {
     for (const [index, id] of ids.entries()) {
       if (!foundBundles[index] && bundle.hasMessage(id)) {
         foundBundles[index] = bundle;
         remainingCount--;
-      }
+      } // Return early when all ids have been mapped to bundles.
 
-      // Return early when all ids have been mapped to contexts.
+
       if (remainingCount === 0) {
         return foundBundles;
       }
@@ -4751,17 +3778,14 @@ async function mapBundleAsync(iterable, ids) {
 
   return foundBundles;
 }
-
-;// CONCATENATED MODULE: ./node_modules/fluent-sequence/src/index.js
-/*
+;// CONCATENATED MODULE: ./node_modules/@fluent/sequence/esm/index.js
+/**
  * @module fluent-sequence
  * @overview Manage ordered sequences of FluentBundles.
  */
 
 
-
-
-;// CONCATENATED MODULE: ./node_modules/cached-iterable/src/cached_iterable.mjs
+;// CONCATENATED MODULE: ./node_modules/@fluent/react/node_modules/cached-iterable/src/cached_iterable.mjs
 /*
  * Base CachedIterable class.
  */
@@ -4783,7 +3807,7 @@ class CachedIterable extends Array {
     }
 }
 
-;// CONCATENATED MODULE: ./node_modules/cached-iterable/src/cached_sync_iterable.mjs
+;// CONCATENATED MODULE: ./node_modules/@fluent/react/node_modules/cached-iterable/src/cached_sync_iterable.mjs
 
 
 /*
@@ -4844,7 +3868,7 @@ class CachedSyncIterable extends CachedIterable {
     }
 }
 
-;// CONCATENATED MODULE: ./node_modules/cached-iterable/src/cached_async_iterable.mjs
+;// CONCATENATED MODULE: ./node_modules/@fluent/react/node_modules/cached-iterable/src/cached_async_iterable.mjs
 
 
 /*
@@ -4873,26 +3897,6 @@ class CachedAsyncIterable extends CachedIterable {
     }
 
     /**
-     * Synchronous iterator over the cached elements.
-     *
-     * Return a generator object implementing the iterator protocol over the
-     * cached elements of the original (async or sync) iterable.
-     */
-    [Symbol.iterator]() {
-        const cached = this;
-        let cur = 0;
-
-        return {
-            next() {
-                if (cached.length === cur) {
-                    return {value: undefined, done: true};
-                }
-                return cached[cur++];
-            }
-        };
-    }
-
-    /**
      * Asynchronous iterator caching the yielded elements.
      *
      * Elements yielded by the original iterable will be cached and available
@@ -4907,7 +3911,7 @@ class CachedAsyncIterable extends CachedIterable {
         return {
             async next() {
                 if (cached.length <= cur) {
-                    cached.push(await cached.iterator.next());
+                    cached.push(cached.iterator.next());
                 }
                 return cached[cur++];
             }
@@ -4924,10 +3928,10 @@ class CachedAsyncIterable extends CachedIterable {
         let idx = 0;
         while (idx++ < count) {
             const last = this[this.length - 1];
-            if (last && last.done) {
+            if (last && (await last).done) {
                 break;
             }
-            this.push(await this.iterator.next());
+            this.push(this.iterator.next());
         }
         // Return the last cached {value, done} object to allow the calling
         // code to decide if it needs to call touchNext again.
@@ -4935,96 +3939,18 @@ class CachedAsyncIterable extends CachedIterable {
     }
 }
 
-;// CONCATENATED MODULE: ./node_modules/cached-iterable/src/index.mjs
+;// CONCATENATED MODULE: ./node_modules/@fluent/react/node_modules/cached-iterable/src/index.mjs
 
 
 
-;// CONCATENATED MODULE: ./node_modules/fluent-react/src/localization.js
-
-
-/*
- * `ReactLocalization` handles translation formatting and fallback.
- *
- * The current negotiated fallback chain of languages is stored in the
- * `ReactLocalization` instance in form of an iterable of `FluentBundle`
- * instances.  This iterable is used to find the best existing translation for
- * a given identifier.
- *
- * `Localized` components must subscribe to the changes of the
- * `ReactLocalization`'s fallback chain.  When the fallback chain changes (the
- * `bundles` iterable is set anew), all subscribed compontent must relocalize.
- *
- * The `ReactLocalization` class instances are exposed to `Localized` elements
- * via the `LocalizationProvider` component.
+;// CONCATENATED MODULE: ./node_modules/@fluent/react/esm/markup.js
+let cachedParseMarkup;
+/**
+ * We use a function creator to make the reference to `document` lazy. At the
+ * same time, it's eager enough to throw in `<LocalizationProvider>` as soon as
+ * it's first mounted which reduces the risk of this error making it to the
+ * runtime without developers noticing it in development.
  */
-
-class ReactLocalization {
-  constructor(bundles) {
-    this.bundles = CachedSyncIterable.from(bundles);
-    this.subs = new Set();
-  }
-  /*
-   * Subscribe a `Localized` component to changes of `bundles`.
-   */
-
-
-  subscribe(comp) {
-    this.subs.add(comp);
-  }
-  /*
-   * Unsubscribe a `Localized` component from `bundles` changes.
-   */
-
-
-  unsubscribe(comp) {
-    this.subs.delete(comp);
-  }
-  /*
-   * Set a new `bundles` iterable and trigger the retranslation.
-   */
-
-
-  setBundles(bundles) {
-    this.bundles = CachedSyncIterable.from(bundles); // Update all subscribed Localized components.
-
-    this.subs.forEach(comp => comp.relocalize());
-  }
-
-  getBundle(id) {
-    return mapBundleSync(this.bundles, id);
-  }
-  /*
-   * Find a translation by `id` and format it to a string using `args`.
-   */
-
-
-  getString(id, args, fallback) {
-    const bundle = this.getBundle(id);
-
-    if (bundle === null) {
-      return fallback || id;
-    }
-
-    const msg = bundle.getMessage(id);
-    return bundle.format(msg, args);
-  }
-
-}
-function isReactLocalization(props, propName) {
-  const prop = props[propName];
-
-  if (prop instanceof ReactLocalization) {
-    return null;
-  }
-
-  return new Error(`The ${propName} context field must be an instance of ReactLocalization.`);
-}
-;// CONCATENATED MODULE: ./node_modules/fluent-react/src/markup.js
-/* eslint-env browser */
-let cachedParseMarkup; // We use a function creator to make the reference to `document` lazy. At the
-// same time, it's eager enough to throw in <LocalizationProvider> as soon as
-// it's first mounted which reduces the risk of this error making it to the
-// runtime without developers noticing it in development.
 
 function createParseMarkup() {
   if (typeof document === "undefined") {
@@ -5043,162 +3969,7 @@ function createParseMarkup() {
 
   return cachedParseMarkup;
 }
-;// CONCATENATED MODULE: ./node_modules/fluent-react/src/provider.js
-
-
-
-
-/*
- * The Provider component for the `ReactLocalization` class.
- *
- * Exposes a `ReactLocalization` instance to all descendants via React's
- * context feature.  It makes translations available to all localizable
- * elements in the descendant's render tree without the need to pass them
- * explicitly.
- *
- *     <LocalizationProvider bundles={…}>
- *         …
- *     </LocalizationProvider>
- *
- * The `LocalizationProvider` component takes one prop: `bundles`.  It should
- * be an iterable of `FluentBundle` instances in order of the user's
- * preferred languages.  The `FluentBundle` instances will be used by
- * `ReactLocalization` to format translations.  If a translation is missing in
- * one instance, `ReactLocalization` will fall back to the next one.
- */
-
-class LocalizationProvider extends external_React_namespaceObject.Component {
-  constructor(props) {
-    super(props);
-    const {
-      bundles,
-      parseMarkup
-    } = props;
-
-    if (bundles === undefined) {
-      throw new Error("LocalizationProvider must receive the bundles prop.");
-    }
-
-    if (!bundles[Symbol.iterator]) {
-      throw new Error("The bundles prop must be an iterable.");
-    }
-
-    this.l10n = new ReactLocalization(bundles);
-    this.parseMarkup = parseMarkup || createParseMarkup();
-  }
-
-  getChildContext() {
-    return {
-      l10n: this.l10n,
-      parseMarkup: this.parseMarkup
-    };
-  }
-
-  componentWillReceiveProps(next) {
-    const {
-      bundles
-    } = next;
-
-    if (bundles !== this.props.bundles) {
-      this.l10n.setBundles(bundles);
-    }
-  }
-
-  render() {
-    return external_React_namespaceObject.Children.only(this.props.children);
-  }
-
-}
-LocalizationProvider.childContextTypes = {
-  l10n: isReactLocalization,
-  parseMarkup: (external_PropTypes_default()).func
-};
-LocalizationProvider.propTypes = {
-  children: (external_PropTypes_default()).element.isRequired,
-  bundles: isIterable,
-  parseMarkup: (external_PropTypes_default()).func
-};
-
-function isIterable(props, propName, componentName) {
-  const prop = props[propName];
-
-  if (Symbol.iterator in Object(prop)) {
-    return null;
-  }
-
-  return new Error(`The ${propName} prop supplied to ${componentName} must be an iterable.`);
-}
-;// CONCATENATED MODULE: ./node_modules/fluent-react/src/with_localization.js
-
-
-function withLocalization(Inner) {
-  class WithLocalization extends external_React_namespaceObject.Component {
-    componentDidMount() {
-      const {
-        l10n
-      } = this.context;
-
-      if (l10n) {
-        l10n.subscribe(this);
-      }
-    }
-
-    componentWillUnmount() {
-      const {
-        l10n
-      } = this.context;
-
-      if (l10n) {
-        l10n.unsubscribe(this);
-      }
-    }
-    /*
-     * Rerender this component in a new language.
-     */
-
-
-    relocalize() {
-      // When the `ReactLocalization`'s fallback chain changes, update the
-      // component.
-      this.forceUpdate();
-    }
-    /*
-     * Find a translation by `id` and format it to a string using `args`.
-     */
-
-
-    getString(id, args, fallback) {
-      const {
-        l10n
-      } = this.context;
-
-      if (!l10n) {
-        return fallback || id;
-      }
-
-      return l10n.getString(id, args, fallback);
-    }
-
-    render() {
-      return /*#__PURE__*/(0,external_React_namespaceObject.createElement)(Inner, Object.assign( // getString needs to be re-bound on updates to trigger a re-render
-      {
-        getString: (...args) => this.getString(...args)
-      }, this.props));
-    }
-
-  }
-
-  WithLocalization.displayName = `WithLocalization(${displayName(Inner)})`;
-  WithLocalization.contextTypes = {
-    l10n: isReactLocalization
-  };
-  return WithLocalization;
-}
-
-function displayName(component) {
-  return component.displayName || component.name || "Component";
-}
-;// CONCATENATED MODULE: ./node_modules/fluent-react/vendor/omittedCloseTags.js
+;// CONCATENATED MODULE: ./node_modules/@fluent/react/vendor/omittedCloseTags.js
 /**
  * Copyright (c) 2013-present, Facebook, Inc.
  *
@@ -5226,7 +3997,7 @@ var omittedCloseTags = {
 
 };
 /* harmony default export */ const vendor_omittedCloseTags = (omittedCloseTags);
-;// CONCATENATED MODULE: ./node_modules/fluent-react/vendor/voidElementTags.js
+;// CONCATENATED MODULE: ./node_modules/@fluent/react/vendor/voidElementTags.js
 /**
  * Copyright (c) 2013-present, Facebook, Inc.
  *
@@ -5241,7 +4012,8 @@ var voidElementTags = {
   ...vendor_omittedCloseTags
 };
 /* harmony default export */ const vendor_voidElementTags = (voidElementTags);
-;// CONCATENATED MODULE: ./node_modules/fluent-react/src/localized.js
+;// CONCATENATED MODULE: ./node_modules/@fluent/react/esm/localization.js
+
 
 
 
@@ -5249,173 +4021,166 @@ var voidElementTags = {
 // &amp;, &#0038;, &#x0026;.
 
 const reMarkup = /<|&#?\w+;/;
-/*
- * Prepare props passed to `Localized` for formatting.
+/**
+ * `ReactLocalization` handles translation formatting and fallback.
+ *
+ * The current negotiated fallback chain of languages is stored in the
+ * `ReactLocalization` instance in form of an iterable of `FluentBundle`
+ * instances. This iterable is used to find the best existing translation for
+ * a given identifier.
+ *
+ * The `ReactLocalization` class instances are exposed to `Localized` elements
+ * via the `LocalizationProvider` component.
  */
 
-function toArguments(props) {
-  const args = {};
-  const elems = {};
-
-  for (const [propname, propval] of Object.entries(props)) {
-    if (propname.startsWith("$")) {
-      const name = propname.substr(1);
-      args[name] = propval;
-    } else if ( /*#__PURE__*/(0,external_React_namespaceObject.isValidElement)(propval)) {
-      // We'll try to match localNames of elements found in the translation with
-      // names of elements passed as props. localNames are always lowercase.
-      const name = propname.toLowerCase();
-      elems[name] = propval;
-    }
+class ReactLocalization {
+  constructor(bundles, parseMarkup = createParseMarkup()) {
+    this.bundles = CachedSyncIterable.from(bundles);
+    this.parseMarkup = parseMarkup;
   }
 
-  return [args, elems];
-}
-/*
- * The `Localized` class renders its child with translated props and children.
- *
- *     <Localized id="hello-world">
- *         <p>{'Hello, world!'}</p>
- *     </Localized>
- *
- * The `id` prop should be the unique identifier of the translation.  Any
- * attributes found in the translation will be applied to the wrapped element.
- *
- * Arguments to the translation can be passed as `$`-prefixed props on
- * `Localized`.
- *
- *     <Localized id="hello-world" $username={name}>
- *         <p>{'Hello, { $username }!'}</p>
- *     </Localized>
- *
- *  It's recommended that the contents of the wrapped component be a string
- *  expression.  The string will be used as the ultimate fallback if no
- *  translation is available.  It also makes it easy to grep for strings in the
- *  source code.
- */
-
-
-class Localized extends external_React_namespaceObject.Component {
-  componentDidMount() {
-    const {
-      l10n
-    } = this.context;
-
-    if (l10n) {
-      l10n.subscribe(this);
-    }
+  getBundle(id) {
+    return mapBundleSync(this.bundles, id);
   }
 
-  componentWillUnmount() {
-    const {
-      l10n
-    } = this.context;
-
-    if (l10n) {
-      l10n.unsubscribe(this);
-    }
-  }
-  /*
-   * Rerender this component in a new language.
-   */
-
-
-  relocalize() {
-    // When the `ReactLocalization`'s fallback chain changes, update the
-    // component.
-    this.forceUpdate();
+  areBundlesEmpty() {
+    // Create an iterator and only peek at the first value to see if it contains
+    // anything.
+    return Boolean(this.bundles[Symbol.iterator]().next().done);
   }
 
-  render() {
-    const {
-      l10n,
-      parseMarkup
-    } = this.context;
-    const {
-      id,
-      attrs,
-      children: elem = null
-    } = this.props; // Validate that the child element isn't an array
+  getString(id, vars, fallback) {
+    const bundle = this.getBundle(id);
 
-    if (Array.isArray(elem)) {
-      throw new Error("<Localized/> expected to receive a single " + "React node child");
+    if (bundle) {
+      const msg = bundle.getMessage(id);
+
+      if (msg && msg.value) {
+        let errors = [];
+        let value = bundle.formatPattern(msg.value, vars, errors);
+
+        for (let error of errors) {
+          this.reportError(error);
+        }
+
+        return value;
+      }
+    } else {
+      if (this.areBundlesEmpty()) {
+        this.reportError(new Error("Attempting to get a string when no localization bundles are " + "present."));
+      } else {
+        this.reportError(new Error(`The id "${id}" did not match any messages in the localization ` + "bundles."));
+      }
     }
 
-    if (!l10n) {
-      // Use the wrapped component as fallback.
-      return elem;
-    }
+    return fallback || id;
+  }
 
-    const bundle = l10n.getBundle(id);
+  getElement(sourceElement, id, args = {}) {
+    const bundle = this.getBundle(id);
 
     if (bundle === null) {
-      // Use the wrapped component as fallback.
-      return elem;
-    }
+      if (!id) {
+        this.reportError(new Error("No string id was provided when localizing a component."));
+      } else if (this.areBundlesEmpty()) {
+        this.reportError(new Error("Attempting to get a localized element when no localization bundles are " + "present."));
+      } else {
+        this.reportError(new Error(`The id "${id}" did not match any messages in the localization ` + "bundles."));
+      }
+
+      return /*#__PURE__*/(0,external_React_namespaceObject.createElement)(external_React_namespaceObject.Fragment, null, sourceElement);
+    } // this.getBundle makes the bundle.hasMessage check which ensures that
+    // bundle.getMessage returns an existing message.
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
 
     const msg = bundle.getMessage(id);
-    const [args, elems] = toArguments(this.props);
-    const messageValue = bundle.format(msg, args); // Check if the fallback is a valid element -- if not then it's not
-    // markup (e.g. nothing or a fallback string) so just use the
-    // formatted message value
-
-    if (! /*#__PURE__*/(0,external_React_namespaceObject.isValidElement)(elem)) {
-      return messageValue;
-    } // The default is to forbid all message attributes. If the attrs prop exists
+    let errors = [];
+    let localizedProps; // The default is to forbid all message attributes. If the attrs prop exists
     // on the Localized instance, only set message attributes which have been
     // explicitly allowed by the developer.
 
+    if (args.attrs && msg.attributes) {
+      localizedProps = {};
+      errors = [];
 
-    if (attrs && msg.attrs) {
-      var localizedProps = {};
-
-      for (const [name, allowed] of Object.entries(attrs)) {
-        if (allowed && msg.attrs.hasOwnProperty(name)) {
-          localizedProps[name] = bundle.format(msg.attrs[name], args);
+      for (const [name, allowed] of Object.entries(args.attrs)) {
+        if (allowed && name in msg.attributes) {
+          localizedProps[name] = bundle.formatPattern(msg.attributes[name], args.vars, errors);
         }
       }
-    } // If the wrapped component is a known void element, explicitly dismiss the
+
+      for (let error of errors) {
+        this.reportError(error);
+      }
+    } // If the component to render is a known void element, explicitly dismiss the
     // message value and do not pass it to cloneElement in order to avoid the
     // "void element tags must neither have `children` nor use
     // `dangerouslySetInnerHTML`" error.
 
 
-    if (elem.type in vendor_voidElementTags) {
-      return /*#__PURE__*/(0,external_React_namespaceObject.cloneElement)(elem, localizedProps);
+    if (typeof sourceElement.type === "string" && sourceElement.type in vendor_voidElementTags) {
+      return /*#__PURE__*/(0,external_React_namespaceObject.cloneElement)(sourceElement, localizedProps);
     } // If the message has a null value, we're only interested in its attributes.
     // Do not pass the null value to cloneElement as it would nuke all children
     // of the wrapped component.
 
 
-    if (messageValue === null) {
-      return /*#__PURE__*/(0,external_React_namespaceObject.cloneElement)(elem, localizedProps);
+    if (msg.value === null) {
+      return /*#__PURE__*/(0,external_React_namespaceObject.cloneElement)(sourceElement, localizedProps);
+    }
+
+    errors = [];
+    const messageValue = bundle.formatPattern(msg.value, args.vars, errors);
+
+    for (let error of errors) {
+      this.reportError(error);
     } // If the message value doesn't contain any markup nor any HTML entities,
-    // insert it as the only child of the wrapped component.
+    // insert it as the only child of the component to render.
 
 
-    if (!reMarkup.test(messageValue)) {
-      return /*#__PURE__*/(0,external_React_namespaceObject.cloneElement)(elem, localizedProps, messageValue);
+    if (!reMarkup.test(messageValue) || this.parseMarkup === null) {
+      return /*#__PURE__*/(0,external_React_namespaceObject.cloneElement)(sourceElement, localizedProps, messageValue);
+    }
+
+    let elemsLower;
+
+    if (args.elems) {
+      elemsLower = new Map();
+
+      for (let [name, elem] of Object.entries(args.elems)) {
+        // Ignore elems which are not valid React elements.
+        if (! /*#__PURE__*/(0,external_React_namespaceObject.isValidElement)(elem)) {
+          continue;
+        }
+
+        elemsLower.set(name.toLowerCase(), elem);
+      }
     } // If the message contains markup, parse it and try to match the children
-    // found in the translation with the props passed to this Localized.
+    // found in the translation with the args passed to this function.
 
 
-    const translationNodes = parseMarkup(messageValue);
-    const translatedChildren = translationNodes.map(childNode => {
-      if (childNode.nodeType === childNode.TEXT_NODE) {
-        return childNode.textContent;
-      } // If the child is not expected just take its textContent.
-
-
-      if (!elems.hasOwnProperty(childNode.localName)) {
-        return childNode.textContent;
+    const translationNodes = this.parseMarkup(messageValue);
+    const translatedChildren = translationNodes.map(({
+      nodeName,
+      textContent
+    }) => {
+      if (nodeName === "#text") {
+        return textContent;
       }
 
-      const sourceChild = elems[childNode.localName]; // If the element passed as a prop to <Localized> is a known void element,
+      const childName = nodeName.toLowerCase();
+      const sourceChild = elemsLower === null || elemsLower === void 0 ? void 0 : elemsLower.get(childName); // If the child is not expected just take its textContent.
+
+      if (!sourceChild) {
+        return textContent;
+      } // If the element passed in the elems prop is a known void element,
       // explicitly dismiss any textContent which might have accidentally been
       // defined in the translation to prevent the "void element tags must not
       // have children" error.
 
-      if (sourceChild.type in vendor_voidElementTags) {
+
+      if (typeof sourceChild.type === "string" && sourceChild.type in vendor_voidElementTags) {
         return sourceChild;
       } // TODO Protect contents of elements wrapped in <Localized>
       // https://github.com/projectfluent/fluent.js/issues/184
@@ -5423,21 +4188,166 @@ class Localized extends external_React_namespaceObject.Component {
       // https://github.com/projectfluent/fluent.js/issues/185
 
 
-      return /*#__PURE__*/(0,external_React_namespaceObject.cloneElement)(sourceChild, null, childNode.textContent);
+      return /*#__PURE__*/(0,external_React_namespaceObject.cloneElement)(sourceChild, undefined, textContent);
     });
-    return /*#__PURE__*/(0,external_React_namespaceObject.cloneElement)(elem, localizedProps, ...translatedChildren);
+    return /*#__PURE__*/(0,external_React_namespaceObject.cloneElement)(sourceElement, localizedProps, ...translatedChildren);
+  } // XXX Control this via a prop passed to the LocalizationProvider.
+  // See https://github.com/projectfluent/fluent.js/issues/411.
+
+
+  reportError(error) {
+    /* global console */
+    // eslint-disable-next-line no-console
+    console.warn(`[@fluent/react] ${error.name}: ${error.message}`);
   }
 
 }
-Localized.contextTypes = {
-  l10n: isReactLocalization,
-  parseMarkup: (external_PropTypes_default()).func
+;// CONCATENATED MODULE: ./node_modules/@fluent/react/esm/context.js
+
+let FluentContext = /*#__PURE__*/(0,external_React_namespaceObject.createContext)(null);
+;// CONCATENATED MODULE: ./node_modules/@fluent/react/esm/provider.js
+
+
+/**
+ * The Provider component for the `ReactLocalization` class.
+ *
+ * Exposes a `ReactLocalization` instance to all descendants via React's
+ * context feature.  It makes translations available to all localizable
+ * elements in the descendant's render tree without the need to pass them
+ * explicitly.
+ *
+ * `LocalizationProvider` takes an instance of `ReactLocalization` in the
+ * `l10n` prop. This instance will be made available to `Localized` components
+ * under the provider.
+ *
+ * @example
+ * ```jsx
+ * <LocalizationProvider l10n={…}>
+ *     …
+ * </LocalizationProvider>
+ * ```
+ */
+
+function LocalizationProvider(props) {
+  return /*#__PURE__*/(0,external_React_namespaceObject.createElement)(FluentContext.Provider, {
+    value: props.l10n
+  }, props.children);
+}
+;// CONCATENATED MODULE: ./node_modules/@fluent/react/esm/with_localization.js
+
+
+function withLocalization(Inner) {
+  function WithLocalization(props) {
+    const l10n = (0,external_React_namespaceObject.useContext)(FluentContext);
+
+    if (!l10n) {
+      throw new Error("withLocalization was used without wrapping it in a " + "<LocalizationProvider />.");
+    } // Re-bind getString to trigger a re-render of Inner.
+
+
+    const getString = l10n.getString.bind(l10n);
+    return /*#__PURE__*/(0,external_React_namespaceObject.createElement)(Inner, {
+      getString,
+      ...props
+    });
+  }
+
+  WithLocalization.displayName = `WithLocalization(${displayName(Inner)})`;
+  return WithLocalization;
+}
+
+function displayName(component) {
+  return component.displayName || component.name || "Component";
+}
+;// CONCATENATED MODULE: ./node_modules/@fluent/react/esm/localized.js
+
+
+/**
+ * The `Localized` class renders its child with translated props and children.
+ *
+ * The `id` prop should be the unique identifier of the translation.  Any
+ * attributes found in the translation will be applied to the wrapped element.
+ *
+ * Arguments to the translation can be passed as `$`-prefixed props on
+ * `Localized`.
+ *
+ * It's recommended that the contents of the wrapped component be a string
+ * expression.  The string will be used as the ultimate fallback if no
+ * translation is available.  It also makes it easy to grep for strings in the
+ * source code.
+ *
+ * @example
+ * ```jsx
+ * <Localized id="hello-world">
+ *     <p>{'Hello, world!'}</p>
+ * </Localized>
+ *
+ * <Localized id="hello-world" $username={name}>
+ *     <p>{'Hello, { $username }!'}</p>
+ * </Localized>
+ * ```
+ */
+
+function Localized(props) {
+  const {
+    id,
+    attrs,
+    vars,
+    elems,
+    children
+  } = props;
+  const l10n = (0,external_React_namespaceObject.useContext)(FluentContext);
+
+  if (!l10n) {
+    throw new Error("The <Localized /> component was not properly wrapped in a <LocalizationProvider />.");
+  }
+
+  let source;
+
+  if (Array.isArray(children)) {
+    if (children.length > 1) {
+      throw new Error("Expected to receive a single React element to localize.");
+    } // If it's an array with zero or one element, we can directly get the first one.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
+
+    source = children[0];
+  } else {
+    source = children !== null && children !== void 0 ? children : null;
+  } // Check if the component to render is a valid element -- if not, then
+  // it's either null or a simple fallback string. No need to localize the
+  // attributes or replace.
+
+
+  if (! /*#__PURE__*/(0,external_React_namespaceObject.isValidElement)(source)) {
+    const fallback = typeof source === "string" ? source : undefined;
+    const string = l10n.getString(id, vars, fallback);
+    return /*#__PURE__*/external_React_namespaceObject.createElement(external_React_namespaceObject.Fragment, null, string);
+  }
+
+  return l10n.getElement(source, id, {
+    attrs,
+    vars,
+    elems
+  });
+}
+/* harmony default export */ const localized = (Localized);
+;// CONCATENATED MODULE: ./node_modules/@fluent/react/esm/use_localization.js
+
+
+const useLocalization = () => {
+  const l10n = (0,external_React_namespaceObject.useContext)(FluentContext);
+
+  if (!l10n) {
+    throw new Error("useLocalization was used without wrapping it in a " + "<LocalizationProvider />.");
+  }
+
+  return {
+    l10n
+  };
 };
-Localized.propTypes = {
-  children: (external_PropTypes_default()).node
-};
-;// CONCATENATED MODULE: ./node_modules/fluent-react/src/index.js
-/*
+;// CONCATENATED MODULE: ./node_modules/@fluent/react/esm/index.js
+/**
  * @module fluent-react
  * @overview
  *
@@ -5446,15 +4356,19 @@ Localized.propTypes = {
  * React's Components system and the virtual DOM.  Translations are exposed to
  * components via the provider pattern.
  *
- *     <LocalizationProvider bundles={…}>
- *         <Localized id="hello-world">
- *             <p>{'Hello, world!'}</p>
- *         </Localized>
- *     </LocalizationProvider>
- *
  * Consult the documentation of the `LocalizationProvider` and the `Localized`
  * components for more information.
+ *
+ * @example
+ * ```jsx
+ * <LocalizationProvider l10n={…}>
+ *     <Localized id="hello-world">
+ *         <p>{'Hello, world!'}</p>
+ *     </Localized>
+ * </LocalizationProvider>
+ * ```
  */
+
 
 
 
@@ -5559,8 +4473,6 @@ function safeURI(url) {
   return isAllowed ? url : "";
 }
 ;// CONCATENATED MODULE: ./content-src/asrouter/components/RichText/RichText.jsx
-function RichText_extends() { RichText_extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return RichText_extends.apply(this, arguments); }
-
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -5622,9 +4534,13 @@ function RichText(props) {
     throw new Error(`ASRouter: ${props.localization_id} is not a valid rich text property. If you want it to be processed, you need to add it to asrouter/rich-text-strings.js`);
   }
 
-  return /*#__PURE__*/external_React_default().createElement(Localized, RichText_extends({
-    id: props.localization_id
-  }, ALLOWED_TAGS, props.customElements, convertLinks(props.links, props.sendClick, props.doNotAutoBlock, props.openNewWindow)), /*#__PURE__*/external_React_default().createElement("span", null, props.text));
+  return /*#__PURE__*/external_React_default().createElement(Localized, {
+    id: props.localization_id,
+    elems: { ...ALLOWED_TAGS,
+      ...props.customElements,
+      ...convertLinks(props.links, props.sendClick, props.doNotAutoBlock, props.openNewWindow)
+    }
+  }, /*#__PURE__*/external_React_default().createElement("span", null, props.text));
 }
 ;// CONCATENATED MODULE: ./content-src/asrouter/components/SnippetBase/SnippetBase.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
@@ -7034,7 +5950,7 @@ class ASRouterUISurface extends (external_React_default()).PureComponent {
       case "EnterSnippetsPreviewMode":
         {
           this.props.dispatch({
-            type: Actions_sys.actionTypes.SNIPPETS_PREVIEW_MODE
+            type: actionTypes.SNIPPETS_PREVIEW_MODE
           });
           break;
         }
@@ -7151,7 +6067,7 @@ class ASRouterUISurface extends (external_React_default()).PureComponent {
       ,
       document: this.props.document
     }, /*#__PURE__*/external_React_default().createElement(LocalizationProvider, {
-      bundles: generateBundles(content)
+      l10n: new ReactLocalization(generateBundles(content))
     }, /*#__PURE__*/external_React_default().createElement(SnippetComponent, asrouter_content_extends({}, this.state.message, {
       UISurface: "NEWTAB_FOOTER_BAR",
       onBlock: this.onBlockSelected,
@@ -7236,10 +6152,10 @@ class _ConfirmDialog extends (external_React_default()).PureComponent {
 
   _handleCancelBtn() {
     this.props.dispatch({
-      type: Actions_sys.actionTypes.DIALOG_CANCEL
+      type: actionTypes.DIALOG_CANCEL
     });
-    this.props.dispatch(Actions_sys.actionCreators.UserEvent({
-      event: Actions_sys.actionTypes.DIALOG_CANCEL,
+    this.props.dispatch(actionCreators.UserEvent({
+      event: actionTypes.DIALOG_CANCEL,
       source: this.props.data.eventSource
     }));
   }
@@ -7699,7 +6615,8 @@ class _ContextMenuItem extends (external_React_default()).PureComponent {
       onClick: this.onClick,
       onKeyDown: this.onKeyDown,
       onKeyUp: this.onKeyUp,
-      ref: option.first ? this.focusFirst : null
+      ref: option.first ? this.focusFirst : null,
+      "aria-haspopup": option.id === "newtab-menu-edit-topsites" ? "dialog" : null
     }, /*#__PURE__*/external_React_default().createElement("span", {
       "data-l10n-id": option.string_id || option.id
     })));
@@ -7718,8 +6635,8 @@ const ContextMenuItem = (0,external_ReactRedux_namespaceObject.connect)(state =>
 const _OpenInPrivateWindow = site => ({
   id: "newtab-menu-open-new-private-window",
   icon: "new-window-private",
-  action: Actions_sys.actionCreators.OnlyToMain({
-    type: Actions_sys.actionTypes.OPEN_PRIVATE_WINDOW,
+  action: actionCreators.OnlyToMain({
+    type: actionTypes.OPEN_PRIVATE_WINDOW,
     data: {
       url: site.url,
       referrer: site.referrer
@@ -7745,23 +6662,23 @@ const LinkMenuOptions = {
     id: "newtab-menu-show-privacy-info",
     icon: "info",
     action: {
-      type: Actions_sys.actionTypes.SHOW_PRIVACY_INFO
+      type: actionTypes.SHOW_PRIVACY_INFO
     },
     userEvent: "SHOW_PRIVACY_INFO"
   }),
   AboutSponsored: site => ({
     id: "newtab-menu-show-privacy-info",
     icon: "info",
-    action: Actions_sys.actionCreators.AlsoToMain({
-      type: Actions_sys.actionTypes.ABOUT_SPONSORED_TOP_SITES
+    action: actionCreators.AlsoToMain({
+      type: actionTypes.ABOUT_SPONSORED_TOP_SITES
     }),
     userEvent: "TOPSITE_SPONSOR_INFO"
   }),
   RemoveBookmark: site => ({
     id: "newtab-menu-remove-bookmark",
     icon: "bookmark-added",
-    action: Actions_sys.actionCreators.AlsoToMain({
-      type: Actions_sys.actionTypes.DELETE_BOOKMARK_BY_ID,
+    action: actionCreators.AlsoToMain({
+      type: actionTypes.DELETE_BOOKMARK_BY_ID,
       data: site.bookmarkGuid
     }),
     userEvent: "BOOKMARK_DELETE"
@@ -7769,8 +6686,8 @@ const LinkMenuOptions = {
   AddBookmark: site => ({
     id: "newtab-menu-bookmark",
     icon: "bookmark-hollow",
-    action: Actions_sys.actionCreators.AlsoToMain({
-      type: Actions_sys.actionTypes.BOOKMARK_URL,
+    action: actionCreators.AlsoToMain({
+      type: actionTypes.BOOKMARK_URL,
       data: {
         url: site.url,
         title: site.title,
@@ -7782,8 +6699,8 @@ const LinkMenuOptions = {
   OpenInNewWindow: site => ({
     id: "newtab-menu-open-new-window",
     icon: "new-window",
-    action: Actions_sys.actionCreators.AlsoToMain({
-      type: Actions_sys.actionTypes.OPEN_NEW_WINDOW,
+    action: actionCreators.AlsoToMain({
+      type: actionTypes.OPEN_NEW_WINDOW,
       data: {
         referrer: site.referrer,
         typedBonus: site.typedBonus,
@@ -7804,8 +6721,8 @@ const LinkMenuOptions = {
   BlockUrls: (tiles, pos, eventSource) => ({
     id: "newtab-menu-dismiss",
     icon: "dismiss",
-    action: Actions_sys.actionCreators.AlsoToMain({
-      type: Actions_sys.actionTypes.BLOCK_URL,
+    action: actionCreators.AlsoToMain({
+      type: actionTypes.BLOCK_URL,
       data: tiles.map(site => ({
         url: site.original_url || site.open_url || site.url,
         // pocket_id is only for pocket stories being in highlights, and then dismissed.
@@ -7817,7 +6734,7 @@ const LinkMenuOptions = {
         } : {})
       }))
     }),
-    impression: Actions_sys.actionCreators.ImpressionStats({
+    impression: actionCreators.ImpressionStats({
       source: eventSource,
       block: 0,
       tiles: tiles.map((site, index) => ({
@@ -7836,7 +6753,7 @@ const LinkMenuOptions = {
     id: "menu_action_webext_dismiss",
     string_id: "newtab-menu-dismiss",
     icon: "dismiss",
-    action: Actions_sys.actionCreators.WebExtEvent(Actions_sys.actionTypes.WEBEXT_DISMISS, {
+    action: actionCreators.WebExtEvent(actionTypes.WEBEXT_DISMISS, {
       source: eventSource,
       url: site.url,
       action_position: index
@@ -7846,16 +6763,16 @@ const LinkMenuOptions = {
     id: "newtab-menu-delete-history",
     icon: "delete",
     action: {
-      type: Actions_sys.actionTypes.DIALOG_OPEN,
+      type: actionTypes.DIALOG_OPEN,
       data: {
-        onConfirm: [Actions_sys.actionCreators.AlsoToMain({
-          type: Actions_sys.actionTypes.DELETE_HISTORY_URL,
+        onConfirm: [actionCreators.AlsoToMain({
+          type: actionTypes.DELETE_HISTORY_URL,
           data: {
             url: site.url,
             pocket_id: site.pocket_id,
             forceBlock: site.bookmarkGuid
           }
-        }), Actions_sys.actionCreators.UserEvent(Object.assign({
+        }), actionCreators.UserEvent(Object.assign({
           event: "DELETE",
           source: eventSource,
           action_position: index
@@ -7872,8 +6789,8 @@ const LinkMenuOptions = {
   ShowFile: site => ({
     id: "newtab-menu-show-file",
     icon: "search",
-    action: Actions_sys.actionCreators.OnlyToMain({
-      type: Actions_sys.actionTypes.SHOW_DOWNLOAD_FILE,
+    action: actionCreators.OnlyToMain({
+      type: actionTypes.SHOW_DOWNLOAD_FILE,
       data: {
         url: site.url
       }
@@ -7882,8 +6799,8 @@ const LinkMenuOptions = {
   OpenFile: site => ({
     id: "newtab-menu-open-file",
     icon: "open-file",
-    action: Actions_sys.actionCreators.OnlyToMain({
-      type: Actions_sys.actionTypes.OPEN_DOWNLOAD_FILE,
+    action: actionCreators.OnlyToMain({
+      type: actionTypes.OPEN_DOWNLOAD_FILE,
       data: {
         url: site.url
       }
@@ -7892,8 +6809,8 @@ const LinkMenuOptions = {
   CopyDownloadLink: site => ({
     id: "newtab-menu-copy-download-link",
     icon: "copy",
-    action: Actions_sys.actionCreators.OnlyToMain({
-      type: Actions_sys.actionTypes.COPY_DOWNLOAD_LINK,
+    action: actionCreators.OnlyToMain({
+      type: actionTypes.COPY_DOWNLOAD_LINK,
       data: {
         url: site.url
       }
@@ -7902,8 +6819,8 @@ const LinkMenuOptions = {
   GoToDownloadPage: site => ({
     id: "newtab-menu-go-to-download-page",
     icon: "download",
-    action: Actions_sys.actionCreators.OnlyToMain({
-      type: Actions_sys.actionTypes.OPEN_LINK,
+    action: actionCreators.OnlyToMain({
+      type: actionTypes.OPEN_LINK,
       data: {
         url: site.referrer
       }
@@ -7913,8 +6830,8 @@ const LinkMenuOptions = {
   RemoveDownload: site => ({
     id: "newtab-menu-remove-download",
     icon: "delete",
-    action: Actions_sys.actionCreators.OnlyToMain({
-      type: Actions_sys.actionTypes.REMOVE_DOWNLOAD_FILE,
+    action: actionCreators.OnlyToMain({
+      type: actionTypes.REMOVE_DOWNLOAD_FILE,
       data: {
         url: site.url
       }
@@ -7923,8 +6840,8 @@ const LinkMenuOptions = {
   PinTopSite: (site, index) => ({
     id: "newtab-menu-pin",
     icon: "pin",
-    action: Actions_sys.actionCreators.AlsoToMain({
-      type: Actions_sys.actionTypes.TOP_SITES_PIN,
+    action: actionCreators.AlsoToMain({
+      type: actionTypes.TOP_SITES_PIN,
       data: {
         site,
         index
@@ -7935,8 +6852,8 @@ const LinkMenuOptions = {
   UnpinTopSite: site => ({
     id: "newtab-menu-unpin",
     icon: "unpin",
-    action: Actions_sys.actionCreators.AlsoToMain({
-      type: Actions_sys.actionTypes.TOP_SITES_UNPIN,
+    action: actionCreators.AlsoToMain({
+      type: actionTypes.TOP_SITES_UNPIN,
       data: {
         site: {
           url: site.url
@@ -7948,8 +6865,8 @@ const LinkMenuOptions = {
   SaveToPocket: (site, index, eventSource = "CARDGRID") => ({
     id: "newtab-menu-save-to-pocket",
     icon: "pocket-save",
-    action: Actions_sys.actionCreators.AlsoToMain({
-      type: Actions_sys.actionTypes.SAVE_TO_POCKET,
+    action: actionCreators.AlsoToMain({
+      type: actionTypes.SAVE_TO_POCKET,
       data: {
         site: {
           url: site.url,
@@ -7957,7 +6874,7 @@ const LinkMenuOptions = {
         }
       }
     }),
-    impression: Actions_sys.actionCreators.ImpressionStats({
+    impression: actionCreators.ImpressionStats({
       source: eventSource,
       pocket: 0,
       tiles: [{
@@ -7973,8 +6890,8 @@ const LinkMenuOptions = {
   DeleteFromPocket: site => ({
     id: "newtab-menu-delete-pocket",
     icon: "pocket-delete",
-    action: Actions_sys.actionCreators.AlsoToMain({
-      type: Actions_sys.actionTypes.DELETE_FROM_POCKET,
+    action: actionCreators.AlsoToMain({
+      type: actionTypes.DELETE_FROM_POCKET,
       data: {
         pocket_id: site.pocket_id
       }
@@ -7984,8 +6901,8 @@ const LinkMenuOptions = {
   ArchiveFromPocket: site => ({
     id: "newtab-menu-archive-pocket",
     icon: "pocket-archive",
-    action: Actions_sys.actionCreators.AlsoToMain({
-      type: Actions_sys.actionTypes.ARCHIVE_FROM_POCKET,
+    action: actionCreators.AlsoToMain({
+      type: actionTypes.ARCHIVE_FROM_POCKET,
       data: {
         pocket_id: site.pocket_id
       }
@@ -7996,7 +6913,7 @@ const LinkMenuOptions = {
     id: "newtab-menu-edit-topsites",
     icon: "edit",
     action: {
-      type: Actions_sys.actionTypes.TOP_SITES_EDIT,
+      type: actionTypes.TOP_SITES_EDIT,
       data: {
         index
       }
@@ -8032,7 +6949,7 @@ class _LinkMenu extends (external_React_default()).PureComponent {
       isPrivateBrowsingEnabled,
       siteInfo,
       platform,
-      userEvent = Actions_sys.actionCreators.UserEvent
+      userEvent = actionCreators.UserEvent
     } = props; // Handle special case of default site
 
     const propOptions = site.isDefault && !site.searchTopSite && !site.sponsored_position ? DEFAULT_SITE_MENU_OPTIONS : props.options;
@@ -8230,7 +7147,7 @@ class DSLinkMenu extends (external_React_default()).PureComponent {
       onShow: this.props.onMenuShow,
       options: TOP_STORIES_CONTEXT_MENU_OPTIONS,
       shouldSendImpressionStats: true,
-      userEvent: Actions_sys.actionCreators.DiscoveryStreamUserEvent,
+      userEvent: actionCreators.DiscoveryStreamUserEvent,
       site: {
         referrer: "https://getpocket.com/recommendations",
         title: this.props.title,
@@ -8292,7 +7209,7 @@ const INTERSECTION_RATIO = 0.5;
  *     impression pings separately
  */
 
-class ImpressionStats extends (external_React_default()).PureComponent {
+class ImpressionStats_ImpressionStats extends (external_React_default()).PureComponent {
   // This checks if the given cards are the same as those in the last impression ping.
   // If so, it should not send the same impression ping again.
   _needsImpressionStats(cards) {
@@ -8316,8 +7233,8 @@ class ImpressionStats extends (external_React_default()).PureComponent {
     const cards = props.rows;
 
     if (this.props.flightId) {
-      this.props.dispatch(Actions_sys.actionCreators.OnlyToMain({
-        type: Actions_sys.actionTypes.DISCOVERY_STREAM_SPOC_IMPRESSION,
+      this.props.dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.DISCOVERY_STREAM_SPOC_IMPRESSION,
         data: {
           flightId: this.props.flightId
         }
@@ -8325,8 +7242,8 @@ class ImpressionStats extends (external_React_default()).PureComponent {
 
       if (this.props.source === TOP_SITES_SOURCE) {
         for (const card of cards) {
-          this.props.dispatch(Actions_sys.actionCreators.OnlyToMain({
-            type: Actions_sys.actionTypes.TOP_SITES_IMPRESSION_STATS,
+          this.props.dispatch(actionCreators.OnlyToMain({
+            type: actionTypes.TOP_SITES_SPONSORED_IMPRESSION_STATS,
             data: {
               type: "impression",
               tile_id: card.id,
@@ -8341,7 +7258,7 @@ class ImpressionStats extends (external_React_default()).PureComponent {
     }
 
     if (this._needsImpressionStats(cards)) {
-      props.dispatch(Actions_sys.actionCreators.DiscoveryStreamImpressionStats({
+      props.dispatch(actionCreators.DiscoveryStreamImpressionStats({
         source: props.source.toUpperCase(),
         window_inner_width: window.innerWidth,
         window_inner_height: window.innerHeight,
@@ -8381,7 +7298,7 @@ class ImpressionStats extends (external_React_default()).PureComponent {
     const cards = props.rows;
 
     if (this._needsLoadedContent(cards)) {
-      props.dispatch(Actions_sys.actionCreators.DiscoveryStreamLoadedContent({
+      props.dispatch(actionCreators.DiscoveryStreamLoadedContent({
         source: props.source.toUpperCase(),
         tiles: cards.map(link => ({
           id: link.id,
@@ -8484,7 +7401,7 @@ class ImpressionStats extends (external_React_default()).PureComponent {
   }
 
 }
-ImpressionStats.defaultProps = {
+ImpressionStats_ImpressionStats.defaultProps = {
   IntersectionObserver: __webpack_require__.g.IntersectionObserver,
   document: __webpack_require__.g.document,
   rows: [],
@@ -8513,8 +7430,8 @@ class SafeAnchor extends (external_React_default()).PureComponent {
         metaKey,
         shiftKey
       } = event;
-      this.props.dispatch(Actions_sys.actionCreators.OnlyToMain({
-        type: Actions_sys.actionTypes.OPEN_LINK,
+      this.props.dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.OPEN_LINK,
         data: {
           event: {
             altKey,
@@ -8814,7 +7731,7 @@ const DSSource = ({
   } // If we are not a spoc, and can display a time to read value.
 
 
-  if (timeToRead) {
+  if (source && timeToRead) {
     return /*#__PURE__*/external_React_default().createElement("p", {
       className: "source clamp time-to-read"
     }, /*#__PURE__*/external_React_default().createElement(FluentOrText, {
@@ -8921,7 +7838,7 @@ class _DSCard extends (external_React_default()).PureComponent {
 
   onLinkClick(event) {
     if (this.props.dispatch) {
-      this.props.dispatch(Actions_sys.actionCreators.DiscoveryStreamUserEvent({
+      this.props.dispatch(actionCreators.DiscoveryStreamUserEvent({
         event: "CLICK",
         source: this.props.type.toUpperCase(),
         action_position: this.props.pos,
@@ -8929,7 +7846,7 @@ class _DSCard extends (external_React_default()).PureComponent {
           card_type: this.props.flightId ? "spoc" : "organic"
         }
       }));
-      this.props.dispatch(Actions_sys.actionCreators.ImpressionStats({
+      this.props.dispatch(actionCreators.ImpressionStats({
         source: this.props.type.toUpperCase(),
         click: 0,
         window_inner_width: this.props.windowObj.innerWidth,
@@ -8948,8 +7865,8 @@ class _DSCard extends (external_React_default()).PureComponent {
 
   onSaveClick(event) {
     if (this.props.dispatch) {
-      this.props.dispatch(Actions_sys.actionCreators.AlsoToMain({
-        type: Actions_sys.actionTypes.SAVE_TO_POCKET,
+      this.props.dispatch(actionCreators.AlsoToMain({
+        type: actionTypes.SAVE_TO_POCKET,
         data: {
           site: {
             url: this.props.url,
@@ -8957,7 +7874,7 @@ class _DSCard extends (external_React_default()).PureComponent {
           }
         }
       }));
-      this.props.dispatch(Actions_sys.actionCreators.DiscoveryStreamUserEvent({
+      this.props.dispatch(actionCreators.DiscoveryStreamUserEvent({
         event: "SAVE_TO_POCKET",
         source: "CARDGRID_HOVER",
         action_position: this.props.pos,
@@ -8965,7 +7882,7 @@ class _DSCard extends (external_React_default()).PureComponent {
           card_type: this.props.flightId ? "spoc" : "organic"
         }
       }));
-      this.props.dispatch(Actions_sys.actionCreators.ImpressionStats({
+      this.props.dispatch(actionCreators.ImpressionStats({
         source: "CARDGRID_HOVER",
         pocket: 0,
         tiles: [{
@@ -9066,6 +7983,16 @@ class _DSCard extends (external_React_default()).PureComponent {
       DiscoveryStream,
       saveToPocketCard
     } = this.props;
+    let {
+      source
+    } = this.props;
+
+    if (!source) {
+      try {
+        source = new URL(this.props.url).hostname;
+      } catch (e) {}
+    }
+
     const {
       pocketButtonEnabled,
       hideDescriptions,
@@ -9122,7 +8049,7 @@ class _DSCard extends (external_React_default()).PureComponent {
       title: this.props.title,
       isRecentSave: isRecentSave
     })), /*#__PURE__*/external_React_default().createElement(DefaultMeta, {
-      source: this.props.source,
+      source: source,
       title: this.props.title,
       excerpt: excerpt,
       newSponsoredLabel: newSponsoredLabel,
@@ -9132,7 +8059,7 @@ class _DSCard extends (external_React_default()).PureComponent {
       sponsor: this.props.sponsor,
       sponsored_by_override: this.props.sponsored_by_override,
       saveToPocketCard: saveToPocketCard
-    }), /*#__PURE__*/external_React_default().createElement(ImpressionStats, {
+    }), /*#__PURE__*/external_React_default().createElement(ImpressionStats_ImpressionStats, {
       flightId: this.props.flightId,
       rows: [{
         id: this.props.id,
@@ -9153,7 +8080,7 @@ class _DSCard extends (external_React_default()).PureComponent {
       dispatch: this.props.dispatch,
       url: this.props.url,
       title: this.props.title,
-      source: this.props.source,
+      source: source,
       type: this.props.type,
       pocket_id: this.props.pocket_id,
       shim: this.props.shim,
@@ -9171,7 +8098,7 @@ class _DSCard extends (external_React_default()).PureComponent {
       dispatch: this.props.dispatch,
       url: this.props.url,
       title: this.props.title,
-      source: this.props.source,
+      source: source,
       type: this.props.type,
       pocket_id: this.props.pocket_id,
       shim: this.props.shim,
@@ -9226,7 +8153,7 @@ class DSEmptyState extends (external_React_default()).PureComponent {
         url
       } = feed;
       this.props.dispatch({
-        type: Actions_sys.actionTypes.DISCOVERY_STREAM_FEED_UPDATE,
+        type: actionTypes.DISCOVERY_STREAM_FEED_UPDATE,
         data: {
           feed: { ...feed,
             data: { ...feed.data,
@@ -9245,8 +8172,8 @@ class DSEmptyState extends (external_React_default()).PureComponent {
           waiting: false
         });
       }, 300);
-      this.props.dispatch(Actions_sys.actionCreators.OnlyToMain({
-        type: Actions_sys.actionTypes.DISCOVERY_STREAM_RETRY_FEED,
+      this.props.dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.DISCOVERY_STREAM_RETRY_FEED,
         data: {
           feed
         }
@@ -9289,6 +8216,59 @@ class DSEmptyState extends (external_React_default()).PureComponent {
     }, /*#__PURE__*/external_React_default().createElement("div", {
       className: "empty-state-message"
     }, this.renderState()));
+  }
+
+}
+;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/DSDismiss/DSDismiss.jsx
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+class DSDismiss extends (external_React_default()).PureComponent {
+  constructor(props) {
+    super(props);
+    this.onDismissClick = this.onDismissClick.bind(this);
+    this.onHover = this.onHover.bind(this);
+    this.offHover = this.offHover.bind(this);
+    this.state = {
+      hovering: false
+    };
+  }
+
+  onDismissClick() {
+    if (this.props.onDismissClick) {
+      this.props.onDismissClick();
+    }
+  }
+
+  onHover() {
+    this.setState({
+      hovering: true
+    });
+  }
+
+  offHover() {
+    this.setState({
+      hovering: false
+    });
+  }
+
+  render() {
+    let className = `ds-dismiss
+      ${this.state.hovering ? ` hovering` : ``}
+      ${this.props.extraClasses ? ` ${this.props.extraClasses}` : ``}`;
+    return /*#__PURE__*/external_React_default().createElement("div", {
+      className: className
+    }, this.props.children, /*#__PURE__*/external_React_default().createElement("button", {
+      className: "ds-dismiss-button",
+      "data-l10n-id": "newtab-dismiss-button-tooltip",
+      onHover: this.onHover,
+      onClick: this.onDismissClick,
+      onMouseEnter: this.onHover,
+      onMouseLeave: this.offHover
+    }, /*#__PURE__*/external_React_default().createElement("span", {
+      className: "icon icon-dismiss"
+    })));
   }
 
 }
@@ -9352,7 +8332,7 @@ function _TopicsWidget(props) {
 
   function onLinkClick(topic, positionInCard) {
     if (dispatch) {
-      dispatch(Actions_sys.actionCreators.DiscoveryStreamUserEvent({
+      dispatch(actionCreators.DiscoveryStreamUserEvent({
         event: "CLICK",
         source,
         action_position: position,
@@ -9364,7 +8344,7 @@ function _TopicsWidget(props) {
           } : {})
         }
       }));
-      dispatch(Actions_sys.actionCreators.ImpressionStats({
+      dispatch(actionCreators.ImpressionStats({
         source,
         click: 0,
         window_inner_width: props.windowObj.innerWidth,
@@ -9399,7 +8379,7 @@ function _TopicsWidget(props) {
     url: `https://getpocket.com/${queryParams}`,
     dispatch: dispatch,
     onLinkClick: () => onLinkClick("more-topics")
-  }, "More Topics"), /*#__PURE__*/external_React_default().createElement(ImpressionStats, {
+  }, "More Topics"), /*#__PURE__*/external_React_default().createElement(ImpressionStats_ImpressionStats, {
     dispatch: dispatch,
     rows: [{
       id,
@@ -9427,6 +8407,11 @@ const TopicsWidget = (0,external_ReactRedux_namespaceObject.connect)(state => ({
 
 
 
+
+const PREF_ONBOARDING_EXPERIENCE_DISMISSED = "discoverystream.onboardingExperience.dismissed";
+const CardGrid_INTERSECTION_RATIO = 0.5;
+const CardGrid_VISIBLE = "visible";
+const CardGrid_VISIBILITY_CHANGE_EVENT = "visibilitychange";
 const WIDGET_IDS = {
   TOPICS: 1
 };
@@ -9438,6 +8423,101 @@ function DSSubHeader({
   }, /*#__PURE__*/external_React_default().createElement("h3", {
     className: "section-title-container"
   }, children));
+}
+function OnboardingExperience({
+  children,
+  dispatch,
+  windowObj = __webpack_require__.g
+}) {
+  const [dismissed, setDismissed] = (0,external_React_namespaceObject.useState)(false);
+  const [maxHeight, setMaxHeight] = (0,external_React_namespaceObject.useState)(null);
+  const heightElement = (0,external_React_namespaceObject.useRef)(null);
+  const onDismissClick = (0,external_React_namespaceObject.useCallback)(() => {
+    // We update this as state and redux.
+    // The state update is for this newtab,
+    // and the redux update is for other tabs, offscreen tabs, and future tabs.
+    // We need the state update for this tab to support the transition.
+    setDismissed(true);
+    dispatch(actionCreators.SetPref(PREF_ONBOARDING_EXPERIENCE_DISMISSED, true));
+    dispatch(actionCreators.DiscoveryStreamUserEvent({
+      event: "BLOCK",
+      source: "POCKET_ONBOARDING"
+    }));
+  }, [dispatch]);
+  (0,external_React_namespaceObject.useEffect)(() => {
+    const resizeObserver = new windowObj.ResizeObserver(() => {
+      if (heightElement.current) {
+        setMaxHeight(heightElement.current.offsetHeight);
+      }
+    });
+    const options = {
+      threshold: CardGrid_INTERSECTION_RATIO
+    };
+    const intersectionObserver = new windowObj.IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting && entry.intersectionRatio >= CardGrid_INTERSECTION_RATIO)) {
+        dispatch(actionCreators.DiscoveryStreamUserEvent({
+          event: "IMPRESSION",
+          source: "POCKET_ONBOARDING"
+        })); // Once we have observed an impression, we can stop for this instance of newtab.
+
+        intersectionObserver.unobserve(heightElement.current);
+      }
+    }, options);
+
+    const onVisibilityChange = () => {
+      intersectionObserver.observe(heightElement.current);
+      windowObj.document.removeEventListener(CardGrid_VISIBILITY_CHANGE_EVENT, onVisibilityChange);
+    };
+
+    if (heightElement.current) {
+      resizeObserver.observe(heightElement.current); // Check visibility or setup a visibility event to make
+      // sure we don't fire this for off screen pre loaded tabs.
+
+      if (windowObj.document.visibilityState === CardGrid_VISIBLE) {
+        intersectionObserver.observe(heightElement.current);
+      } else {
+        windowObj.document.addEventListener(CardGrid_VISIBILITY_CHANGE_EVENT, onVisibilityChange);
+      }
+
+      setMaxHeight(heightElement.current.offsetHeight);
+    } // Return unmount callback to clean up observers.
+
+
+    return () => {
+      resizeObserver === null || resizeObserver === void 0 ? void 0 : resizeObserver.disconnect();
+      intersectionObserver === null || intersectionObserver === void 0 ? void 0 : intersectionObserver.disconnect();
+      windowObj.document.removeEventListener(CardGrid_VISIBILITY_CHANGE_EVENT, onVisibilityChange);
+    };
+  }, [dispatch, windowObj]);
+  const style = {};
+
+  if (dismissed) {
+    style.maxHeight = "0";
+    style.opacity = "0";
+    style.transition = "max-height 0.26s ease, opacity 0.26s ease";
+  } else if (maxHeight) {
+    style.maxHeight = `${maxHeight}px`;
+  }
+
+  return /*#__PURE__*/external_React_default().createElement("div", {
+    style: style
+  }, /*#__PURE__*/external_React_default().createElement("div", {
+    className: "ds-onboarding-ref",
+    ref: heightElement
+  }, /*#__PURE__*/external_React_default().createElement("div", {
+    className: "ds-onboarding-container"
+  }, /*#__PURE__*/external_React_default().createElement(DSDismiss, {
+    onDismissClick: onDismissClick,
+    extraClasses: `ds-onboarding`
+  }, /*#__PURE__*/external_React_default().createElement("div", null, /*#__PURE__*/external_React_default().createElement("header", null, /*#__PURE__*/external_React_default().createElement("span", {
+    className: "icon icon-pocket"
+  }), /*#__PURE__*/external_React_default().createElement("span", {
+    "data-l10n-id": "newtab-pocket-onboarding-discover"
+  })), /*#__PURE__*/external_React_default().createElement("p", {
+    "data-l10n-id": "newtab-pocket-onboarding-cta"
+  })), /*#__PURE__*/external_React_default().createElement("div", {
+    className: "ds-onboarding-graphic"
+  })))));
 }
 function CardGrid_IntersectionObserver({
   children,
@@ -9495,8 +8575,8 @@ function RecentSavesContainer({
   const onIntersecting = (0,external_React_namespaceObject.useCallback)(() => setVisible(true), []);
   (0,external_React_namespaceObject.useEffect)(() => {
     if (visible) {
-      dispatch(Actions_sys.actionCreators.AlsoToMain({
-        type: Actions_sys.actionTypes.DISCOVERY_STREAM_POCKET_STATE_INIT
+      dispatch(actionCreators.AlsoToMain({
+        type: actionTypes.DISCOVERY_STREAM_POCKET_STATE_INIT
       }));
     }
   }, [visible, dispatch]); // The user has not yet scrolled to this section,
@@ -9551,7 +8631,7 @@ function RecentSavesContainer({
   }
 
   function onMyListClicked() {
-    dispatch(Actions_sys.actionCreators.DiscoveryStreamUserEvent({
+    dispatch(actionCreators.DiscoveryStreamUserEvent({
       event: "CLICK",
       source: `${source}_VIEW_LIST`
     }));
@@ -9612,6 +8692,7 @@ class _CardGrid extends (external_React_default()).PureComponent {
       compactGrid,
       essentialReadsHeader,
       editorsPicksHeader,
+      onboardingExperience,
       widgets,
       recentSavesEnabled,
       hideDescriptions,
@@ -9621,6 +8702,7 @@ class _CardGrid extends (external_React_default()).PureComponent {
       saveToPocketCard
     } = DiscoveryStream;
     const showRecentSaves = prefs.showRecentSaves && recentSavesEnabled;
+    const isOnboardingExperienceDismissed = prefs[PREF_ONBOARDING_EXPERIENCE_DISMISSED];
     const recs = this.props.data.recommendations.slice(0, items);
     const cards = [];
     let essentialReadsCards = [];
@@ -9713,8 +8795,10 @@ class _CardGrid extends (external_React_default()).PureComponent {
     const hideDescriptionsClassName = !hideDescriptions ? `ds-card-grid-include-descriptions` : ``;
     const compactGridClassName = compactGrid ? `ds-card-grid-compact` : ``;
     const hybridLayoutClassName = hybridLayout ? `ds-card-grid-hybrid-layout` : ``;
-    const gridClassName = `ds-card-grid ds-card-grid-border ${hybridLayoutClassName} ${hideCardBackgroundClass} ${fourCardLayoutClass} ${hideDescriptionsClassName} ${compactGridClassName}`;
-    return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, ((_essentialReadsCards = essentialReadsCards) === null || _essentialReadsCards === void 0 ? void 0 : _essentialReadsCards.length) > 0 && /*#__PURE__*/external_React_default().createElement("div", {
+    const gridClassName = `ds-card-grid ${hybridLayoutClassName} ${hideCardBackgroundClass} ${fourCardLayoutClass} ${hideDescriptionsClassName} ${compactGridClassName}`;
+    return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, !isOnboardingExperienceDismissed && onboardingExperience && /*#__PURE__*/external_React_default().createElement(OnboardingExperience, {
+      dispatch: this.props.dispatch
+    }), ((_essentialReadsCards = essentialReadsCards) === null || _essentialReadsCards === void 0 ? void 0 : _essentialReadsCards.length) > 0 && /*#__PURE__*/external_React_default().createElement("div", {
       className: gridClassName
     }, essentialReadsCards), showRecentSaves && /*#__PURE__*/external_React_default().createElement(RecentSavesContainer, {
       gridClassName: gridClassName,
@@ -9771,59 +8855,6 @@ const CardGrid = (0,external_ReactRedux_namespaceObject.connect)(state => ({
   Prefs: state.Prefs,
   DiscoveryStream: state.DiscoveryStream
 }))(_CardGrid);
-;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/DSDismiss/DSDismiss.jsx
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
-
-class DSDismiss extends (external_React_default()).PureComponent {
-  constructor(props) {
-    super(props);
-    this.onDismissClick = this.onDismissClick.bind(this);
-    this.onHover = this.onHover.bind(this);
-    this.offHover = this.offHover.bind(this);
-    this.state = {
-      hovering: false
-    };
-  }
-
-  onDismissClick() {
-    if (this.props.onDismissClick) {
-      this.props.onDismissClick();
-    }
-  }
-
-  onHover() {
-    this.setState({
-      hovering: true
-    });
-  }
-
-  offHover() {
-    this.setState({
-      hovering: false
-    });
-  }
-
-  render() {
-    let className = `ds-dismiss
-      ${this.state.hovering ? ` hovering` : ``}
-      ${this.props.extraClasses ? ` ${this.props.extraClasses}` : ``}`;
-    return /*#__PURE__*/external_React_default().createElement("div", {
-      className: className
-    }, this.props.children, /*#__PURE__*/external_React_default().createElement("button", {
-      className: "ds-dismiss-button",
-      "data-l10n-id": "newtab-dismiss-button-tooltip",
-      onHover: this.onHover,
-      onClick: this.onDismissClick,
-      onMouseEnter: this.onHover,
-      onMouseLeave: this.offHover
-    }, /*#__PURE__*/external_React_default().createElement("span", {
-      className: "icon icon-dismiss"
-    })));
-  }
-
-}
 ;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/CollectionCardGrid/CollectionCardGrid.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -9868,7 +8899,7 @@ class CollectionCardGrid extends (external_React_default()).PureComponent {
         userEvent
       } = blockUrlOption;
       this.props.dispatch(action);
-      this.props.dispatch(Actions_sys.actionCreators.DiscoveryStreamUserEvent({
+      this.props.dispatch(actionCreators.DiscoveryStreamUserEvent({
         event: userEvent,
         source,
         action_position: pos
@@ -10301,15 +9332,15 @@ class DSPrivacyModal extends (external_React_default()).PureComponent {
   }
 
   onLearnLinkClick(event) {
-    this.props.dispatch(Actions_sys.actionCreators.DiscoveryStreamUserEvent({
+    this.props.dispatch(actionCreators.DiscoveryStreamUserEvent({
       event: "CLICK_PRIVACY_INFO",
       source: "DS_PRIVACY_MODAL"
     }));
   }
 
   onManageLinkClick(event) {
-    this.props.dispatch(Actions_sys.actionCreators.OnlyToMain({
-      type: Actions_sys.actionTypes.SETTINGS_OPEN
+    this.props.dispatch(actionCreators.OnlyToMain({
+      type: actionTypes.SETTINGS_OPEN
     }));
   }
 
@@ -10411,12 +9442,12 @@ class DSSignup extends (external_React_default()).PureComponent {
       const source = this.props.type.toUpperCase(); // Grab the first item in the array as we only have 1 spoc position.
 
       const [spoc] = data.spocs;
-      this.props.dispatch(Actions_sys.actionCreators.DiscoveryStreamUserEvent({
+      this.props.dispatch(actionCreators.DiscoveryStreamUserEvent({
         event: "CLICK",
         source,
         action_position: 0
       }));
-      this.props.dispatch(Actions_sys.actionCreators.ImpressionStats({
+      this.props.dispatch(actionCreators.ImpressionStats({
         source,
         click: 0,
         tiles: [{
@@ -10464,7 +9495,7 @@ class DSSignup extends (external_React_default()).PureComponent {
       dispatch: dispatch,
       onLinkClick: this.onLinkClick,
       url: url
-    }, excerpt)), /*#__PURE__*/external_React_default().createElement(ImpressionStats, {
+    }, excerpt)), /*#__PURE__*/external_React_default().createElement(ImpressionStats_ImpressionStats, {
       flightId: flight_id,
       rows: [{
         id,
@@ -10486,7 +9517,7 @@ class DSSignup extends (external_React_default()).PureComponent {
       onShow: this.onMenuShow,
       options: SIGNUP_CONTEXT_MENU_OPTIONS,
       shouldSendImpressionStats: true,
-      userEvent: Actions_sys.actionCreators.DiscoveryStreamUserEvent,
+      userEvent: actionCreators.DiscoveryStreamUserEvent,
       site: {
         referrer: "https://getpocket.com/recommendations",
         title,
@@ -10531,12 +9562,12 @@ class DSTextPromo extends (external_React_default()).PureComponent {
       const source = this.props.type.toUpperCase(); // Grab the first item in the array as we only have 1 spoc position.
 
       const [spoc] = data.spocs;
-      this.props.dispatch(Actions_sys.actionCreators.DiscoveryStreamUserEvent({
+      this.props.dispatch(actionCreators.DiscoveryStreamUserEvent({
         event: "CLICK",
         source,
         action_position: 0
       }));
-      this.props.dispatch(Actions_sys.actionCreators.ImpressionStats({
+      this.props.dispatch(actionCreators.ImpressionStats({
         source,
         click: 0,
         tiles: [{
@@ -10572,7 +9603,7 @@ class DSTextPromo extends (external_React_default()).PureComponent {
         userEvent
       } = blockUrlOption;
       this.props.dispatch(action);
-      this.props.dispatch(Actions_sys.actionCreators.DiscoveryStreamUserEvent({
+      this.props.dispatch(actionCreators.DiscoveryStreamUserEvent({
         event: userEvent,
         source,
         action_position: index
@@ -10625,7 +9656,7 @@ class DSTextPromo extends (external_React_default()).PureComponent {
       url: url
     }, cta)), /*#__PURE__*/external_React_default().createElement("p", {
       className: "subtitle"
-    }, context)), /*#__PURE__*/external_React_default().createElement(ImpressionStats, {
+    }, context)), /*#__PURE__*/external_React_default().createElement(ImpressionStats_ImpressionStats, {
       flightId: flight_id,
       rows: [{
         id,
@@ -10857,8 +9888,8 @@ class _Card extends (external_React_default()).PureComponent {
     } = event;
 
     if (this.props.link.type === "download") {
-      this.props.dispatch(Actions_sys.actionCreators.OnlyToMain({
-        type: Actions_sys.actionTypes.OPEN_DOWNLOAD_FILE,
+      this.props.dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.OPEN_DOWNLOAD_FILE,
         data: Object.assign(this.props.link, {
           event: {
             button,
@@ -10869,8 +9900,8 @@ class _Card extends (external_React_default()).PureComponent {
         })
       }));
     } else {
-      this.props.dispatch(Actions_sys.actionCreators.OnlyToMain({
-        type: Actions_sys.actionTypes.OPEN_LINK,
+      this.props.dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.OPEN_LINK,
         data: Object.assign(this.props.link, {
           event: {
             altKey,
@@ -10884,20 +9915,20 @@ class _Card extends (external_React_default()).PureComponent {
     }
 
     if (this.props.isWebExtension) {
-      this.props.dispatch(Actions_sys.actionCreators.WebExtEvent(Actions_sys.actionTypes.WEBEXT_CLICK, {
+      this.props.dispatch(actionCreators.WebExtEvent(actionTypes.WEBEXT_CLICK, {
         source: this.props.eventSource,
         url: this.props.link.url,
         action_position: this.props.index
       }));
     } else {
-      this.props.dispatch(Actions_sys.actionCreators.UserEvent(Object.assign({
+      this.props.dispatch(actionCreators.UserEvent(Object.assign({
         event: "CLICK",
         source: this.props.eventSource,
         action_position: this.props.index
       }, this._getTelemetryInfo())));
 
       if (this.props.shouldSendImpressionStats) {
-        this.props.dispatch(Actions_sys.actionCreators.ImpressionStats({
+        this.props.dispatch(actionCreators.ImpressionStats({
           source: this.props.eventSource,
           click: 0,
           tiles: [{
@@ -11264,8 +10295,8 @@ class ComponentPerfTimer extends (external_React_default()).Component {
       const firstRenderKey = `${this.props.id}_first_render_ts`; // value has to be Int32.
 
       const value = parseInt(this.perfSvc.getMostRecentAbsMarkStartByName(dataReadyKey) - this.perfSvc.getMostRecentAbsMarkStartByName(firstRenderKey), 10);
-      this.props.dispatch(Actions_sys.actionCreators.OnlyToMain({
-        type: Actions_sys.actionTypes.SAVE_SESSION_PERF_DATA,
+      this.props.dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.SAVE_SESSION_PERF_DATA,
         // highlights_data_late_by_ms, topsites_data_late_by_ms.
         data: {
           [`${this.props.id}_data_late_by_ms`]: value
@@ -11289,8 +10320,8 @@ class ComponentPerfTimer extends (external_React_default()).Component {
     try {
       const data = {};
       data[key] = this.perfSvc.getMostRecentAbsMarkStartByName(key);
-      this.props.dispatch(Actions_sys.actionCreators.OnlyToMain({
-        type: Actions_sys.actionTypes.SAVE_SESSION_PERF_DATA,
+      this.props.dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.SAVE_SESSION_PERF_DATA,
         data
       }));
     } catch (ex) {// If this failed, it's likely because the `privacy.resistFingerprinting`
@@ -11511,8 +10542,8 @@ class SearchShortcutsForm extends (external_React_default()).PureComponent {
       }
     }); // Tell the feed to do the work.
 
-    this.props.dispatch(Actions_sys.actionCreators.OnlyToMain({
-      type: Actions_sys.actionTypes.UPDATE_PINNED_SEARCH_SHORTCUTS,
+    this.props.dispatch(actionCreators.OnlyToMain({
+      type: actionTypes.UPDATE_PINNED_SEARCH_SHORTCUTS,
       data: {
         addedShortcuts: pinQueue,
         deletedShortcuts: unpinQueue
@@ -11520,7 +10551,7 @@ class SearchShortcutsForm extends (external_React_default()).PureComponent {
     })); // Send the Telemetry pings.
 
     pinQueue.forEach(shortcut => {
-      this.props.dispatch(Actions_sys.actionCreators.UserEvent({
+      this.props.dispatch(actionCreators.UserEvent({
         source: TOP_SITES_SOURCE,
         event: "SEARCH_EDIT_ADD",
         value: {
@@ -11529,7 +10560,7 @@ class SearchShortcutsForm extends (external_React_default()).PureComponent {
       }));
     });
     unpinQueue.forEach(shortcut => {
-      this.props.dispatch(Actions_sys.actionCreators.UserEvent({
+      this.props.dispatch(actionCreators.UserEvent({
         source: TOP_SITES_SOURCE,
         event: "SEARCH_EDIT_DELETE",
         value: {
@@ -11578,8 +10609,910 @@ class SearchShortcutsForm extends (external_React_default()).PureComponent {
   }
 
 }
-// EXTERNAL MODULE: ./common/Reducers.jsm
-var Reducers = __webpack_require__(2);
+;// CONCATENATED MODULE: ./common/Dedupe.sys.mjs
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+class Dedupe {
+  constructor(createKey) {
+    this.createKey = createKey || this.defaultCreateKey;
+  }
+
+  defaultCreateKey(item) {
+    return item;
+  }
+
+  /**
+   * Dedupe any number of grouped elements favoring those from earlier groups.
+   *
+   * @param {Array} groups Contains an arbitrary number of arrays of elements.
+   * @returns {Array} A matching array of each provided group deduped.
+   */
+  group(...groups) {
+    const globalKeys = new Set();
+    const result = [];
+    for (const values of groups) {
+      const valueMap = new Map();
+      for (const value of values) {
+        const key = this.createKey(value);
+        if (!globalKeys.has(key) && !valueMap.has(key)) {
+          valueMap.set(key, value);
+        }
+      }
+      result.push(valueMap);
+      valueMap.forEach((value, key) => globalKeys.add(key));
+    }
+    return result.map(m => Array.from(m.values()));
+  }
+}
+
+;// CONCATENATED MODULE: ./common/Reducers.sys.mjs
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+const TOP_SITES_DEFAULT_ROWS = 1;
+const TOP_SITES_MAX_SITES_PER_ROW = 8;
+const PREF_COLLECTION_DISMISSIBLE = "discoverystream.isCollectionDismissible";
+
+const dedupe = new Dedupe(site => site && site.url);
+
+const INITIAL_STATE = {
+  App: {
+    // Have we received real data from the app yet?
+    initialized: false,
+    locale: "",
+    isForStartupCache: false,
+    customizeMenuVisible: false,
+  },
+  ASRouter: { initialized: false },
+  Snippets: { initialized: false },
+  TopSites: {
+    // Have we received real data from history yet?
+    initialized: false,
+    // The history (and possibly default) links
+    rows: [],
+    // Used in content only to dispatch action to TopSiteForm.
+    editForm: null,
+    // Used in content only to open the SearchShortcutsForm modal.
+    showSearchShortcutsForm: false,
+    // The list of available search shortcuts.
+    searchShortcuts: [],
+  },
+  Prefs: {
+    initialized: false,
+    values: { featureConfig: {} },
+  },
+  Dialog: {
+    visible: false,
+    data: {},
+  },
+  Sections: [],
+  Pocket: {
+    isUserLoggedIn: null,
+    pocketCta: {},
+    waitingForSpoc: true,
+  },
+  // This is the new pocket configurable layout state.
+  DiscoveryStream: {
+    // This is a JSON-parsed copy of the discoverystream.config pref value.
+    config: { enabled: false, layout_endpoint: "" },
+    layout: [],
+    lastUpdated: null,
+    isPrivacyInfoModalVisible: false,
+    isCollectionDismissible: false,
+    feeds: {
+      data: {
+        // "https://foo.com/feed1": {lastUpdated: 123, data: []}
+      },
+      loaded: false,
+    },
+    spocs: {
+      spocs_endpoint: "",
+      lastUpdated: null,
+      data: {
+        // "spocs": {title: "", context: "", items: []},
+        // "placement1": {title: "", context: "", items: []},
+      },
+      loaded: false,
+      frequency_caps: [],
+      blocked: [],
+      placements: [],
+    },
+    experimentData: {
+      utmSource: "pocket-newtab",
+      utmCampaign: undefined,
+      utmContent: undefined,
+    },
+    recentSavesData: [],
+    isUserLoggedIn: false,
+    recentSavesEnabled: false,
+  },
+  Personalization: {
+    lastUpdated: null,
+    initialized: false,
+  },
+  Search: {
+    // When search hand-off is enabled, we render a big button that is styled to
+    // look like a search textbox. If the button is clicked, we style
+    // the button as if it was a focused search box and show a fake cursor but
+    // really focus the awesomebar without the focus styles ("hidden focus").
+    fakeFocus: false,
+    // Hide the search box after handing off to AwesomeBar and user starts typing.
+    hide: false,
+  },
+};
+
+function App(prevState = INITIAL_STATE.App, action) {
+  switch (action.type) {
+    case actionTypes.INIT:
+      return Object.assign({}, prevState, action.data || {}, {
+        initialized: true,
+      });
+    case actionTypes.TOP_SITES_UPDATED:
+      // Toggle `isForStartupCache` when receiving the `TOP_SITES_UPDATE` action
+      // so that sponsored tiles can be rendered as usual. See Bug 1826360.
+      return Object.assign({}, prevState, action.data || {}, {
+        isForStartupCache: false,
+      });
+    case actionTypes.SHOW_PERSONALIZE:
+      return Object.assign({}, prevState, {
+        customizeMenuVisible: true,
+      });
+    case actionTypes.HIDE_PERSONALIZE:
+      return Object.assign({}, prevState, {
+        customizeMenuVisible: false,
+      });
+    default:
+      return prevState;
+  }
+}
+
+function ASRouter(prevState = INITIAL_STATE.ASRouter, action) {
+  switch (action.type) {
+    case actionTypes.AS_ROUTER_INITIALIZED:
+      return { ...action.data, initialized: true };
+    default:
+      return prevState;
+  }
+}
+
+/**
+ * insertPinned - Inserts pinned links in their specified slots
+ *
+ * @param {array} a list of links
+ * @param {array} a list of pinned links
+ * @return {array} resulting list of links with pinned links inserted
+ */
+function insertPinned(links, pinned) {
+  // Remove any pinned links
+  const pinnedUrls = pinned.map(link => link && link.url);
+  let newLinks = links.filter(link =>
+    link ? !pinnedUrls.includes(link.url) : false
+  );
+  newLinks = newLinks.map(link => {
+    if (link && link.isPinned) {
+      delete link.isPinned;
+      delete link.pinIndex;
+    }
+    return link;
+  });
+
+  // Then insert them in their specified location
+  pinned.forEach((val, index) => {
+    if (!val) {
+      return;
+    }
+    let link = Object.assign({}, val, { isPinned: true, pinIndex: index });
+    if (index > newLinks.length) {
+      newLinks[index] = link;
+    } else {
+      newLinks.splice(index, 0, link);
+    }
+  });
+
+  return newLinks;
+}
+
+function TopSites(prevState = INITIAL_STATE.TopSites, action) {
+  let hasMatch;
+  let newRows;
+  switch (action.type) {
+    case actionTypes.TOP_SITES_UPDATED:
+      if (!action.data || !action.data.links) {
+        return prevState;
+      }
+      return Object.assign(
+        {},
+        prevState,
+        { initialized: true, rows: action.data.links },
+        action.data.pref ? { pref: action.data.pref } : {}
+      );
+    case actionTypes.TOP_SITES_PREFS_UPDATED:
+      return Object.assign({}, prevState, { pref: action.data.pref });
+    case actionTypes.TOP_SITES_EDIT:
+      return Object.assign({}, prevState, {
+        editForm: {
+          index: action.data.index,
+          previewResponse: null,
+        },
+      });
+    case actionTypes.TOP_SITES_CANCEL_EDIT:
+      return Object.assign({}, prevState, { editForm: null });
+    case actionTypes.TOP_SITES_OPEN_SEARCH_SHORTCUTS_MODAL:
+      return Object.assign({}, prevState, { showSearchShortcutsForm: true });
+    case actionTypes.TOP_SITES_CLOSE_SEARCH_SHORTCUTS_MODAL:
+      return Object.assign({}, prevState, { showSearchShortcutsForm: false });
+    case actionTypes.PREVIEW_RESPONSE:
+      if (
+        !prevState.editForm ||
+        action.data.url !== prevState.editForm.previewUrl
+      ) {
+        return prevState;
+      }
+      return Object.assign({}, prevState, {
+        editForm: {
+          index: prevState.editForm.index,
+          previewResponse: action.data.preview,
+          previewUrl: action.data.url,
+        },
+      });
+    case actionTypes.PREVIEW_REQUEST:
+      if (!prevState.editForm) {
+        return prevState;
+      }
+      return Object.assign({}, prevState, {
+        editForm: {
+          index: prevState.editForm.index,
+          previewResponse: null,
+          previewUrl: action.data.url,
+        },
+      });
+    case actionTypes.PREVIEW_REQUEST_CANCEL:
+      if (!prevState.editForm) {
+        return prevState;
+      }
+      return Object.assign({}, prevState, {
+        editForm: {
+          index: prevState.editForm.index,
+          previewResponse: null,
+        },
+      });
+    case actionTypes.SCREENSHOT_UPDATED:
+      newRows = prevState.rows.map(row => {
+        if (row && row.url === action.data.url) {
+          hasMatch = true;
+          return Object.assign({}, row, { screenshot: action.data.screenshot });
+        }
+        return row;
+      });
+      return hasMatch
+        ? Object.assign({}, prevState, { rows: newRows })
+        : prevState;
+    case actionTypes.PLACES_BOOKMARK_ADDED:
+      if (!action.data) {
+        return prevState;
+      }
+      newRows = prevState.rows.map(site => {
+        if (site && site.url === action.data.url) {
+          const { bookmarkGuid, bookmarkTitle, dateAdded } = action.data;
+          return Object.assign({}, site, {
+            bookmarkGuid,
+            bookmarkTitle,
+            bookmarkDateCreated: dateAdded,
+          });
+        }
+        return site;
+      });
+      return Object.assign({}, prevState, { rows: newRows });
+    case actionTypes.PLACES_BOOKMARKS_REMOVED:
+      if (!action.data) {
+        return prevState;
+      }
+      newRows = prevState.rows.map(site => {
+        if (site && action.data.urls.includes(site.url)) {
+          const newSite = Object.assign({}, site);
+          delete newSite.bookmarkGuid;
+          delete newSite.bookmarkTitle;
+          delete newSite.bookmarkDateCreated;
+          return newSite;
+        }
+        return site;
+      });
+      return Object.assign({}, prevState, { rows: newRows });
+    case actionTypes.PLACES_LINKS_DELETED:
+      if (!action.data) {
+        return prevState;
+      }
+      newRows = prevState.rows.filter(
+        site => !action.data.urls.includes(site.url)
+      );
+      return Object.assign({}, prevState, { rows: newRows });
+    case actionTypes.UPDATE_SEARCH_SHORTCUTS:
+      return { ...prevState, searchShortcuts: action.data.searchShortcuts };
+    case actionTypes.SNIPPETS_PREVIEW_MODE:
+      return { ...prevState, rows: [] };
+    default:
+      return prevState;
+  }
+}
+
+function Dialog(prevState = INITIAL_STATE.Dialog, action) {
+  switch (action.type) {
+    case actionTypes.DIALOG_OPEN:
+      return Object.assign({}, prevState, { visible: true, data: action.data });
+    case actionTypes.DIALOG_CANCEL:
+      return Object.assign({}, prevState, { visible: false });
+    case actionTypes.DELETE_HISTORY_URL:
+      return Object.assign({}, INITIAL_STATE.Dialog);
+    default:
+      return prevState;
+  }
+}
+
+function Prefs(prevState = INITIAL_STATE.Prefs, action) {
+  let newValues;
+  switch (action.type) {
+    case actionTypes.PREFS_INITIAL_VALUES:
+      return Object.assign({}, prevState, {
+        initialized: true,
+        values: action.data,
+      });
+    case actionTypes.PREF_CHANGED:
+      newValues = Object.assign({}, prevState.values);
+      newValues[action.data.name] = action.data.value;
+      return Object.assign({}, prevState, { values: newValues });
+    default:
+      return prevState;
+  }
+}
+
+function Sections(prevState = INITIAL_STATE.Sections, action) {
+  let hasMatch;
+  let newState;
+  switch (action.type) {
+    case actionTypes.SECTION_DEREGISTER:
+      return prevState.filter(section => section.id !== action.data);
+    case actionTypes.SECTION_REGISTER:
+      // If section exists in prevState, update it
+      newState = prevState.map(section => {
+        if (section && section.id === action.data.id) {
+          hasMatch = true;
+          return Object.assign({}, section, action.data);
+        }
+        return section;
+      });
+      // Otherwise, append it
+      if (!hasMatch) {
+        const initialized = !!(action.data.rows && !!action.data.rows.length);
+        const section = Object.assign(
+          { title: "", rows: [], enabled: false },
+          action.data,
+          { initialized }
+        );
+        newState.push(section);
+      }
+      return newState;
+    case actionTypes.SECTION_UPDATE:
+      newState = prevState.map(section => {
+        if (section && section.id === action.data.id) {
+          // If the action is updating rows, we should consider initialized to be true.
+          // This can be overridden if initialized is defined in the action.data
+          const initialized = action.data.rows ? { initialized: true } : {};
+
+          // Make sure pinned cards stay at their current position when rows are updated.
+          // Disabling a section (SECTION_UPDATE with empty rows) does not retain pinned cards.
+          if (
+            action.data.rows &&
+            !!action.data.rows.length &&
+            section.rows.find(card => card.pinned)
+          ) {
+            const rows = Array.from(action.data.rows);
+            section.rows.forEach((card, index) => {
+              if (card.pinned) {
+                // Only add it if it's not already there.
+                if (rows[index].guid !== card.guid) {
+                  rows.splice(index, 0, card);
+                }
+              }
+            });
+            return Object.assign(
+              {},
+              section,
+              initialized,
+              Object.assign({}, action.data, { rows })
+            );
+          }
+
+          return Object.assign({}, section, initialized, action.data);
+        }
+        return section;
+      });
+
+      if (!action.data.dedupeConfigurations) {
+        return newState;
+      }
+
+      action.data.dedupeConfigurations.forEach(dedupeConf => {
+        newState = newState.map(section => {
+          if (section.id === dedupeConf.id) {
+            const dedupedRows = dedupeConf.dedupeFrom.reduce(
+              (rows, dedupeSectionId) => {
+                const dedupeSection = newState.find(
+                  s => s.id === dedupeSectionId
+                );
+                const [, newRows] = dedupe.group(dedupeSection.rows, rows);
+                return newRows;
+              },
+              section.rows
+            );
+
+            return Object.assign({}, section, { rows: dedupedRows });
+          }
+
+          return section;
+        });
+      });
+
+      return newState;
+    case actionTypes.SECTION_UPDATE_CARD:
+      return prevState.map(section => {
+        if (section && section.id === action.data.id && section.rows) {
+          const newRows = section.rows.map(card => {
+            if (card.url === action.data.url) {
+              return Object.assign({}, card, action.data.options);
+            }
+            return card;
+          });
+          return Object.assign({}, section, { rows: newRows });
+        }
+        return section;
+      });
+    case actionTypes.PLACES_BOOKMARK_ADDED:
+      if (!action.data) {
+        return prevState;
+      }
+      return prevState.map(section =>
+        Object.assign({}, section, {
+          rows: section.rows.map(item => {
+            // find the item within the rows that is attempted to be bookmarked
+            if (item.url === action.data.url) {
+              const { bookmarkGuid, bookmarkTitle, dateAdded } = action.data;
+              return Object.assign({}, item, {
+                bookmarkGuid,
+                bookmarkTitle,
+                bookmarkDateCreated: dateAdded,
+                type: "bookmark",
+              });
+            }
+            return item;
+          }),
+        })
+      );
+    case actionTypes.PLACES_SAVED_TO_POCKET:
+      if (!action.data) {
+        return prevState;
+      }
+      return prevState.map(section =>
+        Object.assign({}, section, {
+          rows: section.rows.map(item => {
+            if (item.url === action.data.url) {
+              return Object.assign({}, item, {
+                open_url: action.data.open_url,
+                pocket_id: action.data.pocket_id,
+                title: action.data.title,
+                type: "pocket",
+              });
+            }
+            return item;
+          }),
+        })
+      );
+    case actionTypes.PLACES_BOOKMARKS_REMOVED:
+      if (!action.data) {
+        return prevState;
+      }
+      return prevState.map(section =>
+        Object.assign({}, section, {
+          rows: section.rows.map(item => {
+            // find the bookmark within the rows that is attempted to be removed
+            if (action.data.urls.includes(item.url)) {
+              const newSite = Object.assign({}, item);
+              delete newSite.bookmarkGuid;
+              delete newSite.bookmarkTitle;
+              delete newSite.bookmarkDateCreated;
+              if (!newSite.type || newSite.type === "bookmark") {
+                newSite.type = "history";
+              }
+              return newSite;
+            }
+            return item;
+          }),
+        })
+      );
+    case actionTypes.PLACES_LINKS_DELETED:
+      if (!action.data) {
+        return prevState;
+      }
+      return prevState.map(section =>
+        Object.assign({}, section, {
+          rows: section.rows.filter(
+            site => !action.data.urls.includes(site.url)
+          ),
+        })
+      );
+    case actionTypes.PLACES_LINK_BLOCKED:
+      if (!action.data) {
+        return prevState;
+      }
+      return prevState.map(section =>
+        Object.assign({}, section, {
+          rows: section.rows.filter(site => site.url !== action.data.url),
+        })
+      );
+    case actionTypes.DELETE_FROM_POCKET:
+    case actionTypes.ARCHIVE_FROM_POCKET:
+      return prevState.map(section =>
+        Object.assign({}, section, {
+          rows: section.rows.filter(
+            site => site.pocket_id !== action.data.pocket_id
+          ),
+        })
+      );
+    case actionTypes.SNIPPETS_PREVIEW_MODE:
+      return prevState.map(section => ({ ...section, rows: [] }));
+    default:
+      return prevState;
+  }
+}
+
+function Snippets(prevState = INITIAL_STATE.Snippets, action) {
+  switch (action.type) {
+    case actionTypes.SNIPPETS_DATA:
+      return Object.assign({}, prevState, { initialized: true }, action.data);
+    case actionTypes.SNIPPET_BLOCKED:
+      return Object.assign({}, prevState, {
+        blockList: prevState.blockList.concat(action.data),
+      });
+    case actionTypes.SNIPPETS_BLOCKLIST_CLEARED:
+      return Object.assign({}, prevState, { blockList: [] });
+    case actionTypes.SNIPPETS_RESET:
+      return INITIAL_STATE.Snippets;
+    default:
+      return prevState;
+  }
+}
+
+function Pocket(prevState = INITIAL_STATE.Pocket, action) {
+  switch (action.type) {
+    case actionTypes.POCKET_WAITING_FOR_SPOC:
+      return { ...prevState, waitingForSpoc: action.data };
+    case actionTypes.POCKET_LOGGED_IN:
+      return { ...prevState, isUserLoggedIn: !!action.data };
+    case actionTypes.POCKET_CTA:
+      return {
+        ...prevState,
+        pocketCta: {
+          ctaButton: action.data.cta_button,
+          ctaText: action.data.cta_text,
+          ctaUrl: action.data.cta_url,
+          useCta: action.data.use_cta,
+        },
+      };
+    default:
+      return prevState;
+  }
+}
+
+function Reducers_sys_Personalization(prevState = INITIAL_STATE.Personalization, action) {
+  switch (action.type) {
+    case actionTypes.DISCOVERY_STREAM_PERSONALIZATION_LAST_UPDATED:
+      return {
+        ...prevState,
+        lastUpdated: action.data.lastUpdated,
+      };
+    case actionTypes.DISCOVERY_STREAM_PERSONALIZATION_INIT:
+      return {
+        ...prevState,
+        initialized: true,
+      };
+    default:
+      return prevState;
+  }
+}
+
+// eslint-disable-next-line complexity
+function DiscoveryStream(prevState = INITIAL_STATE.DiscoveryStream, action) {
+  // Return if action data is empty, or spocs or feeds data is not loaded
+  const isNotReady = () =>
+    !action.data || !prevState.spocs.loaded || !prevState.feeds.loaded;
+
+  const handlePlacements = handleSites => {
+    const { data, placements } = prevState.spocs;
+    const result = {};
+
+    const forPlacement = placement => {
+      const placementSpocs = data[placement.name];
+
+      if (
+        !placementSpocs ||
+        !placementSpocs.items ||
+        !placementSpocs.items.length
+      ) {
+        return;
+      }
+
+      result[placement.name] = {
+        ...placementSpocs,
+        items: handleSites(placementSpocs.items),
+      };
+    };
+
+    if (!placements || !placements.length) {
+      [{ name: "spocs" }].forEach(forPlacement);
+    } else {
+      placements.forEach(forPlacement);
+    }
+    return result;
+  };
+
+  const nextState = handleSites => ({
+    ...prevState,
+    spocs: {
+      ...prevState.spocs,
+      data: handlePlacements(handleSites),
+    },
+    feeds: {
+      ...prevState.feeds,
+      data: Object.keys(prevState.feeds.data).reduce(
+        (accumulator, feed_url) => {
+          accumulator[feed_url] = {
+            data: {
+              ...prevState.feeds.data[feed_url].data,
+              recommendations: handleSites(
+                prevState.feeds.data[feed_url].data.recommendations
+              ),
+            },
+          };
+          return accumulator;
+        },
+        {}
+      ),
+    },
+  });
+
+  switch (action.type) {
+    case actionTypes.DISCOVERY_STREAM_CONFIG_CHANGE:
+    // Fall through to a separate action is so it doesn't trigger a listener update on init
+    case actionTypes.DISCOVERY_STREAM_CONFIG_SETUP:
+      return { ...prevState, config: action.data || {} };
+    case actionTypes.DISCOVERY_STREAM_EXPERIMENT_DATA:
+      return { ...prevState, experimentData: action.data || {} };
+    case actionTypes.DISCOVERY_STREAM_LAYOUT_UPDATE:
+      return {
+        ...prevState,
+        lastUpdated: action.data.lastUpdated || null,
+        layout: action.data.layout || [],
+      };
+    case actionTypes.DISCOVERY_STREAM_COLLECTION_DISMISSIBLE_TOGGLE:
+      return {
+        ...prevState,
+        isCollectionDismissible: action.data.value,
+      };
+    case actionTypes.DISCOVERY_STREAM_PREFS_SETUP:
+      return {
+        ...prevState,
+        recentSavesEnabled: action.data.recentSavesEnabled,
+        pocketButtonEnabled: action.data.pocketButtonEnabled,
+        saveToPocketCard: action.data.saveToPocketCard,
+        hideDescriptions: action.data.hideDescriptions,
+        compactImages: action.data.compactImages,
+        imageGradient: action.data.imageGradient,
+        newSponsoredLabel: action.data.newSponsoredLabel,
+        titleLines: action.data.titleLines,
+        descLines: action.data.descLines,
+        readTime: action.data.readTime,
+      };
+    case actionTypes.DISCOVERY_STREAM_RECENT_SAVES:
+      return {
+        ...prevState,
+        recentSavesData: action.data.recentSaves,
+      };
+    case actionTypes.DISCOVERY_STREAM_POCKET_STATE_SET:
+      return {
+        ...prevState,
+        isUserLoggedIn: action.data.isUserLoggedIn,
+      };
+    case actionTypes.HIDE_PRIVACY_INFO:
+      return {
+        ...prevState,
+        isPrivacyInfoModalVisible: false,
+      };
+    case actionTypes.SHOW_PRIVACY_INFO:
+      return {
+        ...prevState,
+        isPrivacyInfoModalVisible: true,
+      };
+    case actionTypes.DISCOVERY_STREAM_LAYOUT_RESET:
+      return { ...INITIAL_STATE.DiscoveryStream, config: prevState.config };
+    case actionTypes.DISCOVERY_STREAM_FEEDS_UPDATE:
+      return {
+        ...prevState,
+        feeds: {
+          ...prevState.feeds,
+          loaded: true,
+        },
+      };
+    case actionTypes.DISCOVERY_STREAM_FEED_UPDATE:
+      const newData = {};
+      newData[action.data.url] = action.data.feed;
+      return {
+        ...prevState,
+        feeds: {
+          ...prevState.feeds,
+          data: {
+            ...prevState.feeds.data,
+            ...newData,
+          },
+        },
+      };
+    case actionTypes.DISCOVERY_STREAM_SPOCS_CAPS:
+      return {
+        ...prevState,
+        spocs: {
+          ...prevState.spocs,
+          frequency_caps: [...prevState.spocs.frequency_caps, ...action.data],
+        },
+      };
+    case actionTypes.DISCOVERY_STREAM_SPOCS_ENDPOINT:
+      return {
+        ...prevState,
+        spocs: {
+          ...INITIAL_STATE.DiscoveryStream.spocs,
+          spocs_endpoint:
+            action.data.url ||
+            INITIAL_STATE.DiscoveryStream.spocs.spocs_endpoint,
+        },
+      };
+    case actionTypes.DISCOVERY_STREAM_SPOCS_PLACEMENTS:
+      return {
+        ...prevState,
+        spocs: {
+          ...prevState.spocs,
+          placements:
+            action.data.placements ||
+            INITIAL_STATE.DiscoveryStream.spocs.placements,
+        },
+      };
+    case actionTypes.DISCOVERY_STREAM_SPOCS_UPDATE:
+      if (action.data) {
+        return {
+          ...prevState,
+          spocs: {
+            ...prevState.spocs,
+            lastUpdated: action.data.lastUpdated,
+            data: action.data.spocs,
+            loaded: true,
+          },
+        };
+      }
+      return prevState;
+    case actionTypes.DISCOVERY_STREAM_SPOC_BLOCKED:
+      return {
+        ...prevState,
+        spocs: {
+          ...prevState.spocs,
+          blocked: [...prevState.spocs.blocked, action.data.url],
+        },
+      };
+    case actionTypes.DISCOVERY_STREAM_LINK_BLOCKED:
+      return isNotReady()
+        ? prevState
+        : nextState(items =>
+            items.filter(item => item.url !== action.data.url)
+          );
+
+    case actionTypes.PLACES_SAVED_TO_POCKET:
+      const addPocketInfo = item => {
+        if (item.url === action.data.url) {
+          return Object.assign({}, item, {
+            open_url: action.data.open_url,
+            pocket_id: action.data.pocket_id,
+            context_type: "pocket",
+          });
+        }
+        return item;
+      };
+      return isNotReady()
+        ? prevState
+        : nextState(items => items.map(addPocketInfo));
+
+    case actionTypes.DELETE_FROM_POCKET:
+    case actionTypes.ARCHIVE_FROM_POCKET:
+      return isNotReady()
+        ? prevState
+        : nextState(items =>
+            items.filter(item => item.pocket_id !== action.data.pocket_id)
+          );
+
+    case actionTypes.PLACES_BOOKMARK_ADDED:
+      const updateBookmarkInfo = item => {
+        if (item.url === action.data.url) {
+          const { bookmarkGuid, bookmarkTitle, dateAdded } = action.data;
+          return Object.assign({}, item, {
+            bookmarkGuid,
+            bookmarkTitle,
+            bookmarkDateCreated: dateAdded,
+            context_type: "bookmark",
+          });
+        }
+        return item;
+      };
+      return isNotReady()
+        ? prevState
+        : nextState(items => items.map(updateBookmarkInfo));
+
+    case actionTypes.PLACES_BOOKMARKS_REMOVED:
+      const removeBookmarkInfo = item => {
+        if (action.data.urls.includes(item.url)) {
+          const newSite = Object.assign({}, item);
+          delete newSite.bookmarkGuid;
+          delete newSite.bookmarkTitle;
+          delete newSite.bookmarkDateCreated;
+          if (!newSite.context_type || newSite.context_type === "bookmark") {
+            newSite.context_type = "removedBookmark";
+          }
+          return newSite;
+        }
+        return item;
+      };
+      return isNotReady()
+        ? prevState
+        : nextState(items => items.map(removeBookmarkInfo));
+    case actionTypes.PREF_CHANGED:
+      if (action.data.name === PREF_COLLECTION_DISMISSIBLE) {
+        return {
+          ...prevState,
+          isCollectionDismissible: action.data.value,
+        };
+      }
+      return prevState;
+    default:
+      return prevState;
+  }
+}
+
+function Search(prevState = INITIAL_STATE.Search, action) {
+  switch (action.type) {
+    case actionTypes.DISABLE_SEARCH:
+      return Object.assign({ ...prevState, disable: true });
+    case actionTypes.FAKE_FOCUS_SEARCH:
+      return Object.assign({ ...prevState, fakeFocus: true });
+    case actionTypes.SHOW_SEARCH:
+      return Object.assign({ ...prevState, disable: false, fakeFocus: false });
+    default:
+      return prevState;
+  }
+}
+
+const reducers = {
+  TopSites,
+  App,
+  ASRouter,
+  Snippets,
+  Prefs,
+  Dialog,
+  Sections,
+  Pocket,
+  Personalization: Reducers_sys_Personalization,
+  DiscoveryStream,
+  Search,
+};
+
 ;// CONCATENATED MODULE: ./content-src/components/TopSites/TopSiteFormInput.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -11678,7 +11611,7 @@ class TopSiteFormInput extends (external_React_default()).PureComponent {
       "data-l10n-id": this.props.placeholderId // Set focus on error if the url field is valid or when the input is first rendered and is empty
       // eslint-disable-next-line jsx-a11y/no-autofocus
       ,
-      autoFocus: this.props.shouldFocus,
+      autoFocus: this.props.autoFocusOnOpen,
       disabled: this.props.loading
     }), this.renderLoadingOrCloseButton(), validationError && /*#__PURE__*/external_React_default().createElement("aside", {
       className: "error-tooltip",
@@ -11717,10 +11650,16 @@ const TopSiteImpressionWrapper_INTERSECTION_RATIO = 0.5;
 class TopSiteImpressionWrapper extends (external_React_default()).PureComponent {
   _dispatchImpressionStats() {
     const {
+      actionType,
       tile
     } = this.props;
-    this.props.dispatch(Actions_sys.actionCreators.OnlyToMain({
-      type: Actions_sys.actionTypes.TOP_SITES_IMPRESSION_STATS,
+
+    if (!actionType) {
+      return;
+    }
+
+    this.props.dispatch(actionCreators.OnlyToMain({
+      type: actionType,
       data: {
         type: "impression",
         ...tile
@@ -11817,6 +11756,7 @@ class TopSiteImpressionWrapper extends (external_React_default()).PureComponent 
 TopSiteImpressionWrapper.defaultProps = {
   IntersectionObserver: __webpack_require__.g.IntersectionObserver,
   document: __webpack_require__.g.document,
+  actionType: null,
   tile: null
 };
 ;// CONCATENATED MODULE: ./content-src/components/TopSites/TopSite.jsx
@@ -11825,6 +11765,7 @@ function TopSite_extends() { TopSite_extends = Object.assign || function (target
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 
 
 
@@ -12042,14 +11983,12 @@ class TopSiteLink extends (external_React_default()).PureComponent {
       };
     } else if (link.customScreenshotURL) {
       // assume high quality custom screenshot and use rich icon styles and class names
-      // TopSite spoc experiment only
-      const spocImgURL = link.type === SPOC_TYPE ? link.customScreenshotURL : "";
       imageClassName = "top-site-icon rich-icon";
       imageStyle = {
         backgroundColor: link.backgroundColor,
-        backgroundImage: hasScreenshotImage ? `url(${this.state.screenshotImage.url})` : `url('${spocImgURL}')`
+        backgroundImage: hasScreenshotImage ? `url(${this.state.screenshotImage.url})` : ""
       };
-    } else if (tippyTopIcon || faviconSize >= MIN_RICH_FAVICON_SIZE) {
+    } else if (tippyTopIcon || link.type === SPOC_TYPE || faviconSize >= MIN_RICH_FAVICON_SIZE) {
       // styles and class names for top sites with rich icons
       imageClassName = "top-site-icon rich-icon";
       imageStyle = {
@@ -12104,6 +12043,52 @@ class TopSiteLink extends (external_React_default()).PureComponent {
       };
     }
 
+    let impressionStats = null;
+
+    if (link.type === SPOC_TYPE) {
+      // Record impressions for Pocket tiles.
+      impressionStats = /*#__PURE__*/external_React_default().createElement(ImpressionStats_ImpressionStats, {
+        flightId: link.flightId,
+        rows: [{
+          id: link.id,
+          pos: link.pos,
+          shim: link.shim && link.shim.impression,
+          advertiser: title.toLocaleLowerCase()
+        }],
+        dispatch: this.props.dispatch,
+        source: TOP_SITES_SOURCE
+      });
+    } else if (isSponsored(link)) {
+      // Record impressions for non-Pocket sponsored tiles.
+      impressionStats = /*#__PURE__*/external_React_default().createElement(TopSiteImpressionWrapper, {
+        actionType: actionTypes.TOP_SITES_SPONSORED_IMPRESSION_STATS,
+        tile: {
+          position: this.props.index,
+          tile_id: link.sponsored_tile_id || -1,
+          reporting_url: link.sponsored_impression_url,
+          advertiser: title.toLocaleLowerCase(),
+          source: NEWTAB_SOURCE
+        } // For testing.
+        ,
+        IntersectionObserver: this.props.IntersectionObserver,
+        document: this.props.document,
+        dispatch: this.props.dispatch
+      });
+    } else {
+      // Record impressions for organic tiles.
+      impressionStats = /*#__PURE__*/external_React_default().createElement(TopSiteImpressionWrapper, {
+        actionType: actionTypes.TOP_SITES_ORGANIC_IMPRESSION_STATS,
+        tile: {
+          position: this.props.index,
+          source: NEWTAB_SOURCE
+        } // For testing.
+        ,
+        IntersectionObserver: this.props.IntersectionObserver,
+        document: this.props.document,
+        dispatch: this.props.dispatch
+      });
+    }
+
     return /*#__PURE__*/external_React_default().createElement("li", TopSite_extends({
       className: topSiteOuterClassName,
       onDrop: this.onDragEvent,
@@ -12147,26 +12132,7 @@ class TopSiteLink extends (external_React_default()).PureComponent {
     }), title || /*#__PURE__*/external_React_default().createElement("br", null), /*#__PURE__*/external_React_default().createElement("span", {
       className: "sponsored-label",
       "data-l10n-id": "newtab-topsite-sponsored"
-    })))), children, link.type === SPOC_TYPE ? /*#__PURE__*/external_React_default().createElement(ImpressionStats, {
-      flightId: link.flightId,
-      rows: [{
-        id: link.id,
-        pos: link.pos,
-        shim: link.shim && link.shim.impression,
-        advertiser: title.toLocaleLowerCase()
-      }],
-      dispatch: this.props.dispatch,
-      source: TOP_SITES_SOURCE
-    }) : null, link.sponsored_position ? /*#__PURE__*/external_React_default().createElement(TopSiteImpressionWrapper, {
-      tile: {
-        position: this.props.index + 1,
-        tile_id: link.sponsored_tile_id || -1,
-        reporting_url: link.sponsored_impression_url,
-        advertiser: title.toLocaleLowerCase(),
-        source: NEWTAB_SOURCE
-      },
-      dispatch: this.props.dispatch
-    }) : null));
+    })))), children, impressionStats));
   }
 
 }
@@ -12214,7 +12180,7 @@ class TopSite extends (external_React_default()).PureComponent {
   }
 
   userEvent(event) {
-    this.props.dispatch(Actions_sys.actionCreators.UserEvent(Object.assign({
+    this.props.dispatch(actionCreators.UserEvent(Object.assign({
       event,
       source: TOP_SITES_SOURCE,
       action_position: this.props.index
@@ -12235,8 +12201,8 @@ class TopSite extends (external_React_default()).PureComponent {
     } = event;
 
     if (!this.props.link.searchTopSite) {
-      this.props.dispatch(Actions_sys.actionCreators.OnlyToMain({
-        type: Actions_sys.actionTypes.OPEN_LINK,
+      this.props.dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.OPEN_LINK,
         data: Object.assign(this.props.link, {
           event: {
             altKey,
@@ -12246,11 +12212,11 @@ class TopSite extends (external_React_default()).PureComponent {
             shiftKey
           }
         })
-      })); // Fire off a spoc specific impression.
+      }));
 
       if (this.props.link.type === SPOC_TYPE) {
-        // Record a Pocket click.
-        this.props.dispatch(Actions_sys.actionCreators.ImpressionStats({
+        // Record a Pocket-specific click.
+        this.props.dispatch(actionCreators.ImpressionStats({
           source: TOP_SITES_SOURCE,
           click: 0,
           tiles: [{
@@ -12258,48 +12224,57 @@ class TopSite extends (external_React_default()).PureComponent {
             pos: this.props.link.pos,
             shim: this.props.link.shim && this.props.link.shim.click
           }]
-        })); // Record a click for sponsored topsites.
+        })); // Record a click for a Pocket sponsored tile.
 
         const title = this.props.link.label || this.props.link.hostname;
-        this.props.dispatch(Actions_sys.actionCreators.OnlyToMain({
-          type: Actions_sys.actionTypes.TOP_SITES_IMPRESSION_STATS,
+        this.props.dispatch(actionCreators.OnlyToMain({
+          type: actionTypes.TOP_SITES_SPONSORED_IMPRESSION_STATS,
           data: {
             type: "click",
-            position: this.props.link.pos + 1,
+            position: this.props.link.pos,
             tile_id: this.props.link.id,
             advertiser: title.toLocaleLowerCase(),
             source: NEWTAB_SOURCE
           }
         }));
-      }
-
-      if (this.props.link.sendAttributionRequest) {
-        this.props.dispatch(Actions_sys.actionCreators.OnlyToMain({
-          type: Actions_sys.actionTypes.PARTNER_LINK_ATTRIBUTION,
-          data: {
-            targetURL: this.props.link.url,
-            source: "newtab"
-          }
-        }));
-      }
-
-      if (this.props.link.sponsored_position) {
+      } else if (isSponsored(this.props.link)) {
+        // Record a click for a non-Pocket sponsored tile.
         const title = this.props.link.label || this.props.link.hostname;
-        this.props.dispatch(Actions_sys.actionCreators.OnlyToMain({
-          type: Actions_sys.actionTypes.TOP_SITES_IMPRESSION_STATS,
+        this.props.dispatch(actionCreators.OnlyToMain({
+          type: actionTypes.TOP_SITES_SPONSORED_IMPRESSION_STATS,
           data: {
             type: "click",
-            position: this.props.index + 1,
+            position: this.props.index,
             tile_id: this.props.link.sponsored_tile_id || -1,
             reporting_url: this.props.link.sponsored_click_url,
             advertiser: title.toLocaleLowerCase(),
             source: NEWTAB_SOURCE
           }
         }));
+      } else {
+        // Record a click for an organic tile.
+        this.props.dispatch(actionCreators.OnlyToMain({
+          type: actionTypes.TOP_SITES_ORGANIC_IMPRESSION_STATS,
+          data: {
+            type: "click",
+            position: this.props.index,
+            source: NEWTAB_SOURCE
+          }
+        }));
+      }
+
+      if (this.props.link.sendAttributionRequest) {
+        this.props.dispatch(actionCreators.OnlyToMain({
+          type: actionTypes.PARTNER_LINK_ATTRIBUTION,
+          data: {
+            targetURL: this.props.link.url,
+            source: "newtab"
+          }
+        }));
       }
     } else {
-      this.props.dispatch(Actions_sys.actionCreators.OnlyToMain({
-        type: Actions_sys.actionTypes.FILL_SEARCH_TERM,
+      this.props.dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.FILL_SEARCH_TERM,
         data: {
           label: this.props.link.label
         }
@@ -12374,7 +12349,7 @@ class TopSitePlaceholder extends (external_React_default()).PureComponent {
 
   onEditButtonClick() {
     this.props.dispatch({
-      type: Actions_sys.actionTypes.TOP_SITES_EDIT,
+      type: actionTypes.TOP_SITES_EDIT,
       data: {
         index: this.props.index
       }
@@ -12386,7 +12361,7 @@ class TopSitePlaceholder extends (external_React_default()).PureComponent {
       className: `placeholder ${this.props.className || ""}`,
       isDraggable: false
     }), /*#__PURE__*/external_React_default().createElement("button", {
-      "aria-haspopup": "true",
+      "aria-haspopup": "dialog",
       className: "context-menu-button edit-button icon",
       "data-l10n-id": "newtab-menu-topsites-placeholder-tooltip",
       onClick: this.onEditButtonClick
@@ -12394,7 +12369,7 @@ class TopSitePlaceholder extends (external_React_default()).PureComponent {
   }
 
 }
-class TopSiteList extends (external_React_default()).PureComponent {
+class _TopSiteList extends (external_React_default()).PureComponent {
   static get DEFAULT_STATE() {
     return {
       activeIndex: null,
@@ -12407,7 +12382,7 @@ class TopSiteList extends (external_React_default()).PureComponent {
 
   constructor(props) {
     super(props);
-    this.state = TopSiteList.DEFAULT_STATE;
+    this.state = _TopSiteList.DEFAULT_STATE;
     this.onDragEvent = this.onDragEvent.bind(this);
     this.onActivate = this.onActivate.bind(this);
   }
@@ -12419,13 +12394,13 @@ class TopSiteList extends (external_React_default()).PureComponent {
 
       if (prevTopSites && prevTopSites[this.state.draggedIndex] && prevTopSites[this.state.draggedIndex].url === this.state.draggedSite.url && (!newTopSites[this.state.draggedIndex] || newTopSites[this.state.draggedIndex].url !== this.state.draggedSite.url)) {
         // We got the new order from the redux store via props. We can clear state now.
-        this.setState(TopSiteList.DEFAULT_STATE);
+        this.setState(_TopSiteList.DEFAULT_STATE);
       }
     }
   }
 
   userEvent(event, index) {
-    this.props.dispatch(Actions_sys.actionCreators.UserEvent({
+    this.props.dispatch(actionCreators.UserEvent({
       event,
       source: TOP_SITES_SOURCE,
       action_position: index
@@ -12448,7 +12423,7 @@ class TopSiteList extends (external_React_default()).PureComponent {
       case "dragend":
         if (!this.dropped) {
           // If there was no drop event, reset the state to the default.
-          this.setState(TopSiteList.DEFAULT_STATE);
+          this.setState(_TopSiteList.DEFAULT_STATE);
         }
 
         break;
@@ -12469,8 +12444,8 @@ class TopSiteList extends (external_React_default()).PureComponent {
       case "drop":
         if (index !== this.state.draggedIndex) {
           this.dropped = true;
-          this.props.dispatch(Actions_sys.actionCreators.AlsoToMain({
-            type: Actions_sys.actionTypes.TOP_SITES_INSERT,
+          this.props.dispatch(actionCreators.AlsoToMain({
+            type: actionTypes.TOP_SITES_INSERT,
             data: {
               site: {
                 url: this.state.draggedSite.url,
@@ -12495,7 +12470,7 @@ class TopSiteList extends (external_React_default()).PureComponent {
   _getTopSites() {
     // Make a copy of the sites to truncate or extend to desired length
     let topSites = this.props.TopSites.rows.slice();
-    topSites.length = this.props.TopSitesRows * Reducers.TOP_SITES_MAX_SITES_PER_ROW;
+    topSites.length = this.props.TopSitesRows * TOP_SITES_MAX_SITES_PER_ROW;
     return topSites;
   }
   /**
@@ -12594,13 +12569,22 @@ class TopSiteList extends (external_React_default()).PureComponent {
         slotProps.className = "hide-for-narrow";
       }
 
-      topSitesUI.push(!link ? /*#__PURE__*/external_React_default().createElement(TopSitePlaceholder, TopSite_extends({}, slotProps, commonProps)) : /*#__PURE__*/external_React_default().createElement(TopSite, TopSite_extends({
-        link: link,
-        activeIndex: this.state.activeIndex,
-        onActivate: this.onActivate
-      }, slotProps, commonProps, {
-        colors: props.colors
-      })));
+      let topSiteLink; // Use a placeholder if the link is empty or it's rendering a sponsored
+      // tile for the about:home startup cache.
+
+      if (!link || props.App.isForStartupCache && isSponsored(link)) {
+        topSiteLink = /*#__PURE__*/external_React_default().createElement(TopSitePlaceholder, TopSite_extends({}, slotProps, commonProps));
+      } else {
+        topSiteLink = /*#__PURE__*/external_React_default().createElement(TopSite, TopSite_extends({
+          link: link,
+          activeIndex: this.state.activeIndex,
+          onActivate: this.onActivate
+        }, slotProps, commonProps, {
+          colors: props.colors
+        }));
+      }
+
+      topSitesUI.push(topSiteLink);
     }
 
     return /*#__PURE__*/external_React_default().createElement("ul", {
@@ -12609,6 +12593,9 @@ class TopSiteList extends (external_React_default()).PureComponent {
   }
 
 }
+const TopSiteList = (0,external_ReactRedux_namespaceObject.connect)(state => ({
+  App: state.App
+}))(_TopSiteList);
 ;// CONCATENATED MODULE: ./content-src/components/TopSites/TopSiteForm.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -12676,7 +12663,7 @@ class TopSiteForm extends (external_React_default()).PureComponent {
       validationError: false
     });
     this.props.dispatch({
-      type: Actions_sys.actionTypes.PREVIEW_REQUEST_CANCEL
+      type: actionTypes.PREVIEW_REQUEST_CANCEL
     });
   }
 
@@ -12715,14 +12702,14 @@ class TopSiteForm extends (external_React_default()).PureComponent {
         site.customScreenshotURL = null;
       }
 
-      this.props.dispatch(Actions_sys.actionCreators.AlsoToMain({
-        type: Actions_sys.actionTypes.TOP_SITES_PIN,
+      this.props.dispatch(actionCreators.AlsoToMain({
+        type: actionTypes.TOP_SITES_PIN,
         data: {
           site,
           index
         }
       }));
-      this.props.dispatch(Actions_sys.actionCreators.UserEvent({
+      this.props.dispatch(actionCreators.UserEvent({
         source: TOP_SITES_SOURCE,
         event: "TOP_SITES_EDIT",
         action_position: index
@@ -12735,13 +12722,13 @@ class TopSiteForm extends (external_React_default()).PureComponent {
     event.preventDefault();
 
     if (this.validateForm()) {
-      this.props.dispatch(Actions_sys.actionCreators.AlsoToMain({
-        type: Actions_sys.actionTypes.PREVIEW_REQUEST,
+      this.props.dispatch(actionCreators.AlsoToMain({
+        type: actionTypes.PREVIEW_REQUEST,
         data: {
           url: this.cleanUrl(this.state.customScreenshotUrl)
         }
       }));
-      this.props.dispatch(Actions_sys.actionCreators.UserEvent({
+      this.props.dispatch(actionCreators.UserEvent({
         source: TOP_SITES_SOURCE,
         event: "PREVIEW_REQUEST"
       }));
@@ -12865,7 +12852,8 @@ class TopSiteForm extends (external_React_default()).PureComponent {
       onChange: this.onLabelChange,
       value: this.state.label,
       titleId: "newtab-topsites-title-label",
-      placeholderId: "newtab-topsites-title-input"
+      placeholderId: "newtab-topsites-title-input",
+      autoFocusOnOpen: true
     }), /*#__PURE__*/external_React_default().createElement(TopSiteFormInput, {
       onChange: this.onUrlChange,
       shouldFocus: this.state.validationError && !this.validateUrl(this.state.url),
@@ -12980,8 +12968,8 @@ class _TopSites extends (external_React_default()).PureComponent {
     const topSitesPinned = topSites.filter(site => !!site.isPinned).length;
     const searchShortcuts = topSites.filter(site => !!site.searchTopSite).length; // Dispatch telemetry event with the count of TopSites images types.
 
-    this.props.dispatch(Actions_sys.actionCreators.AlsoToMain({
-      type: Actions_sys.actionTypes.SAVE_SESSION_PERF_DATA,
+    this.props.dispatch(actionCreators.AlsoToMain({
+      type: actionTypes.SAVE_SESSION_PERF_DATA,
       data: {
         topsites_icon_stats: topSitesIconsStats,
         topsites_pinned: topSitesPinned,
@@ -12996,7 +12984,7 @@ class _TopSites extends (external_React_default()).PureComponent {
 
   _getVisibleTopSites() {
     // We hide 2 sites per row when not in the wide layout.
-    let sitesPerRow = Reducers.TOP_SITES_MAX_SITES_PER_ROW; // $break-point-widest = 1072px (from _variables.scss)
+    let sitesPerRow = TOP_SITES_MAX_SITES_PER_ROW; // $break-point-widest = 1072px (from _variables.scss)
 
     if (!__webpack_require__.g.matchMedia(`(min-width: 1072px)`).matches) {
       sitesPerRow -= 2;
@@ -13014,22 +13002,22 @@ class _TopSites extends (external_React_default()).PureComponent {
   }
 
   onEditFormClose() {
-    this.props.dispatch(Actions_sys.actionCreators.UserEvent({
+    this.props.dispatch(actionCreators.UserEvent({
       source: TOP_SITES_SOURCE,
       event: "TOP_SITES_EDIT_CLOSE"
     }));
     this.props.dispatch({
-      type: Actions_sys.actionTypes.TOP_SITES_CANCEL_EDIT
+      type: actionTypes.TOP_SITES_CANCEL_EDIT
     });
   }
 
   onSearchShortcutsFormClose() {
-    this.props.dispatch(Actions_sys.actionCreators.UserEvent({
+    this.props.dispatch(actionCreators.UserEvent({
       source: TOP_SITES_SOURCE,
       event: "SEARCH_EDIT_CLOSE"
     }));
     this.props.dispatch({
-      type: Actions_sys.actionTypes.TOP_SITES_CLOSE_SEARCH_SHORTCUTS_MODAL
+      type: actionTypes.TOP_SITES_CLOSE_SEARCH_SHORTCUTS_MODAL
     });
   }
 
@@ -13100,8 +13088,7 @@ class _TopSites extends (external_React_default()).PureComponent {
 
 }
 const TopSites_TopSites = (0,external_ReactRedux_namespaceObject.connect)((state, props) => ({
-  // For SPOC Experiment only, take TopSites from DiscoveryStream TopSites that takes in SPOC Data
-  TopSites: props.TopSitesWithSpoc || state.TopSites,
+  TopSites: state.TopSites,
   Prefs: state.Prefs,
   TopSitesRows: state.Prefs.values.topSitesRows
 }))(_TopSites);
@@ -13153,7 +13140,7 @@ class Section extends (external_React_default()).PureComponent {
     const cards = props.rows.slice(0, maxCards);
 
     if (this.needsImpressionStats(cards)) {
-      props.dispatch(Actions_sys.actionCreators.ImpressionStats({
+      props.dispatch(actionCreators.ImpressionStats({
         source: props.eventSource,
         tiles: cards.map(link => ({
           id: link.guid
@@ -13254,8 +13241,8 @@ class Section extends (external_React_default()).PureComponent {
 
   sendNewTabRehydrated(initialized) {
     if (initialized && !this.renderNotified) {
-      this.props.dispatch(Actions_sys.actionCreators.AlsoToMain({
-        type: Actions_sys.actionTypes.NEW_TAB_REHYDRATED,
+      this.props.dispatch(actionCreators.AlsoToMain({
+        type: actionTypes.NEW_TAB_REHYDRATED,
         data: {}
       }));
       this.renderNotified = true;
@@ -13439,7 +13426,7 @@ class _Sections extends (external_React_default()).PureComponent {
   }
 
 }
-const Sections = (0,external_ReactRedux_namespaceObject.connect)(state => ({
+const Sections_Sections = (0,external_ReactRedux_namespaceObject.connect)(state => ({
   Sections: state.Sections,
   Prefs: state.Prefs
 }))(_Sections);
@@ -13500,7 +13487,7 @@ class Navigation_Topic extends (external_React_default()).PureComponent {
 
   onLinkClick(event) {
     if (this.props.dispatch) {
-      this.props.dispatch(Actions_sys.actionCreators.DiscoveryStreamUserEvent({
+      this.props.dispatch(actionCreators.DiscoveryStreamUserEvent({
         event: "CLICK",
         source: "POPULAR_TOPICS",
         action_position: 0,
@@ -13840,100 +13827,6 @@ const selectLayoutRender = ({
     layoutRender
   };
 };
-;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/TopSites/TopSites.jsx
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
-
-
-
-class TopSites_TopSites_TopSites extends (external_React_default()).PureComponent {
-  // Find a SPOC that doesn't already exist in User's TopSites
-  getFirstAvailableSpoc(topSites, data) {
-    const {
-      spocs
-    } = data;
-
-    if (!spocs || spocs.length === 0) {
-      return null;
-    }
-
-    const userTopSites = new Set(topSites.map(topSite => topSite && topSite.url)); // We "clean urls" with http in TopSiteForm.jsx
-    // Spoc domains are in the format 'sponsorname.com'
-
-    return spocs.find(spoc => !userTopSites.has(spoc.url) && !userTopSites.has(`http://${spoc.domain}`) && !userTopSites.has(`https://${spoc.domain}`) && !userTopSites.has(`http://www.${spoc.domain}`) && !userTopSites.has(`https://www.${spoc.domain}`));
-  }
-
-  reformatImageURL(url, width, height) {
-    // Change the image URL to request a size tailored for the parent container width
-    // Also: force JPEG, quality 60, no upscaling, no EXIF data
-    // Uses Thumbor: https://thumbor.readthedocs.io/en/latest/usage.html
-    return `https://img-getpocket.cdn.mozilla.net/${width}x${height}/filters:format(jpeg):quality(60):no_upscale():strip_exif()/${encodeURIComponent(url)}`;
-  } // For the time being we only support 1 position.
-
-
-  insertSpocContent(TopSites, data, promoPosition) {
-    if (!TopSites.rows || TopSites.rows.length === 0 || !data.spocs || data.spocs.length === 0) {
-      return null;
-    }
-
-    let topSites = [...TopSites.rows];
-    const topSiteSpoc = this.getFirstAvailableSpoc(topSites, data);
-
-    if (!topSiteSpoc) {
-      return null;
-    }
-
-    const link = {
-      customScreenshotURL: this.reformatImageURL(topSiteSpoc.raw_image_src, 40, 40),
-      type: "SPOC",
-      label: topSiteSpoc.title || topSiteSpoc.sponsor,
-      title: topSiteSpoc.title || topSiteSpoc.sponsor,
-      url: topSiteSpoc.url,
-      flightId: topSiteSpoc.flight_id,
-      id: topSiteSpoc.id,
-      guid: topSiteSpoc.id,
-      shim: topSiteSpoc.shim,
-      // For now we are assuming position based on intended position.
-      // Actual position can shift based on other content.
-      // We also hard code left and right to be 0 and 7.
-      // We send the intended position in the ping.
-      pos: promoPosition
-    }; // Remove first contile or regular topsite, then insert new spoc into position.
-
-    const replaceIndex = topSites.findIndex((topSite, index) => index >= promoPosition && (!topSite || topSite.show_sponsored_label || !(topSite.isPinned || topSite.searchTopSite))); // If we found something to replace, first remove it.
-
-    if (replaceIndex !== -1) {
-      topSites.splice(replaceIndex, 1);
-    }
-
-    topSites.splice(promoPosition, 0, link);
-    return { ...TopSites,
-      rows: topSites
-    };
-  }
-
-  render() {
-    const {
-      header = {},
-      data,
-      promoPositions,
-      TopSites
-    } = this.props;
-    const TopSitesWithSpoc = TopSites && data && promoPositions !== null && promoPositions !== void 0 && promoPositions.length ? this.insertSpocContent(TopSites, data, promoPositions[0].index) : null;
-    return /*#__PURE__*/external_React_default().createElement("div", {
-      className: `ds-top-sites ${TopSitesWithSpoc ? "top-sites-spoc" : ""}`
-    }, /*#__PURE__*/external_React_default().createElement(TopSites_TopSites, {
-      isFixed: true,
-      title: header.title,
-      TopSitesWithSpoc: TopSitesWithSpoc
-    }));
-  }
-
-}
-const TopSites = (0,external_ReactRedux_namespaceObject.connect)(state => ({
-  TopSites: state.TopSites
-}))(TopSites_TopSites_TopSites);
 ;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamBase/DiscoveryStreamBase.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -14026,24 +13919,19 @@ class _DiscoveryStreamBase extends (external_React_default()).PureComponent {
   }
 
   renderComponent(component, embedWidth) {
-    var _component$spocs, _component$spocs$posi;
+    var _component$header;
 
     switch (component.type) {
       case "Highlights":
         return /*#__PURE__*/external_React_default().createElement(Highlights, null);
 
       case "TopSites":
-        let positions = [];
-
-        if (component !== null && component !== void 0 && (_component$spocs = component.spocs) !== null && _component$spocs !== void 0 && (_component$spocs$posi = _component$spocs.positions) !== null && _component$spocs$posi !== void 0 && _component$spocs$posi.length) {
-          positions = component.spocs.positions;
-        }
-
-        return /*#__PURE__*/external_React_default().createElement(TopSites, {
-          header: component.header,
-          data: component.data,
-          promoPositions: positions
-        });
+        return /*#__PURE__*/external_React_default().createElement("div", {
+          className: "ds-top-sites"
+        }, /*#__PURE__*/external_React_default().createElement(TopSites_TopSites, {
+          isFixed: true,
+          title: (_component$header = component.header) === null || _component$header === void 0 ? void 0 : _component$header.title
+        }));
 
       case "TextPromo":
         return /*#__PURE__*/external_React_default().createElement(DSTextPromo, {
@@ -14117,6 +14005,7 @@ class _DiscoveryStreamBase extends (external_React_default()).PureComponent {
           fourCardLayout: component.properties.fourCardLayout,
           compactGrid: component.properties.compactGrid,
           essentialReadsHeader: component.properties.essentialReadsHeader,
+          onboardingExperience: component.properties.onboardingExperience,
           editorsPicksHeader: component.properties.editorsPicksHeader,
           recentSavesEnabled: this.props.DiscoveryStream.recentSavesEnabled,
           hideDescriptions: this.props.DiscoveryStream.hideDescriptions
@@ -14313,7 +14202,7 @@ class ContentSection extends (external_React_default()).PureComponent {
   }
 
   inputUserEvent(eventSource, status) {
-    this.props.dispatch(Actions_sys.actionCreators.UserEvent({
+    this.props.dispatch(actionCreators.UserEvent({
       event: "PREF_CHANGED",
       source: eventSource,
       value: {
@@ -14677,7 +14566,7 @@ class _Search extends (external_React_default()).PureComponent {
   handleEvent(event) {
     // Also track search events with our own telemetry
     if (event.detail.type === "Search") {
-      this.props.dispatch(Actions_sys.actionCreators.UserEvent({
+      this.props.dispatch(actionCreators.UserEvent({
         event: "SEARCH"
       }));
     }
@@ -14688,22 +14577,22 @@ class _Search extends (external_React_default()).PureComponent {
   }
 
   doSearchHandoff(text) {
-    this.props.dispatch(Actions_sys.actionCreators.OnlyToMain({
-      type: Actions_sys.actionTypes.HANDOFF_SEARCH_TO_AWESOMEBAR,
+    this.props.dispatch(actionCreators.OnlyToMain({
+      type: actionTypes.HANDOFF_SEARCH_TO_AWESOMEBAR,
       data: {
         text
       }
     }));
     this.props.dispatch({
-      type: Actions_sys.actionTypes.FAKE_FOCUS_SEARCH
+      type: actionTypes.FAKE_FOCUS_SEARCH
     });
-    this.props.dispatch(Actions_sys.actionCreators.UserEvent({
+    this.props.dispatch(actionCreators.UserEvent({
       event: "SEARCH_HANDOFF"
     }));
 
     if (text) {
       this.props.dispatch({
-        type: Actions_sys.actionTypes.DISABLE_SEARCH
+        type: actionTypes.DISABLE_SEARCH
       });
     }
   }
@@ -14851,7 +14740,7 @@ class _Search extends (external_React_default()).PureComponent {
   }
 
 }
-const Search = (0,external_ReactRedux_namespaceObject.connect)(state => ({
+const Search_Search = (0,external_ReactRedux_namespaceObject.connect)(state => ({
   Prefs: state.Prefs
 }))(_Search);
 ;// CONCATENATED MODULE: ./content-src/components/Base/Base.jsx
@@ -14960,8 +14849,7 @@ class BaseContent extends (external_React_default()).PureComponent {
     this.onWindowScroll = debounce(this.onWindowScroll.bind(this), 5);
     this.setPref = this.setPref.bind(this);
     this.state = {
-      fixedSearch: false,
-      customizeMenuVisible: false
+      fixedSearch: false
     };
   }
 
@@ -14991,29 +14879,29 @@ class BaseContent extends (external_React_default()).PureComponent {
   }
 
   openPreferences() {
-    this.props.dispatch(Actions_sys.actionCreators.OnlyToMain({
-      type: Actions_sys.actionTypes.SETTINGS_OPEN
+    this.props.dispatch(actionCreators.OnlyToMain({
+      type: actionTypes.SETTINGS_OPEN
     }));
-    this.props.dispatch(Actions_sys.actionCreators.UserEvent({
+    this.props.dispatch(actionCreators.UserEvent({
       event: "OPEN_NEWTAB_PREFS"
     }));
   }
 
   openCustomizationMenu() {
-    this.setState({
-      customizeMenuVisible: true
+    this.props.dispatch({
+      type: actionTypes.SHOW_PERSONALIZE
     });
-    this.props.dispatch(Actions_sys.actionCreators.UserEvent({
+    this.props.dispatch(actionCreators.UserEvent({
       event: "SHOW_PERSONALIZE"
     }));
   }
 
   closeCustomizationMenu() {
-    if (this.state.customizeMenuVisible) {
-      this.setState({
-        customizeMenuVisible: false
+    if (this.props.App.customizeMenuVisible) {
+      this.props.dispatch({
+        type: actionTypes.HIDE_PERSONALIZE
       });
-      this.props.dispatch(Actions_sys.actionCreators.UserEvent({
+      this.props.dispatch(actionCreators.UserEvent({
         event: "HIDE_PERSONALIZE"
       }));
     }
@@ -15026,7 +14914,7 @@ class BaseContent extends (external_React_default()).PureComponent {
   }
 
   setPref(pref, value) {
-    this.props.dispatch(Actions_sys.actionCreators.SetPref(pref, value));
+    this.props.dispatch(actionCreators.SetPref(pref, value));
   }
 
   render() {
@@ -15037,7 +14925,8 @@ class BaseContent extends (external_React_default()).PureComponent {
       App
     } = props;
     const {
-      initialized
+      initialized,
+      customizeMenuVisible
     } = App;
     const prefs = props.Prefs.values;
     const isDiscoveryStream = props.DiscoveryStream.config && props.DiscoveryStream.config.enabled;
@@ -15045,7 +14934,6 @@ class BaseContent extends (external_React_default()).PureComponent {
     const pocketEnabled = prefs["feeds.section.topstories"] && prefs["feeds.system.topstories"];
     const noSectionsEnabled = !prefs["feeds.topsites"] && !pocketEnabled && filteredSections.filter(section => section.enabled).length === 0;
     const searchHandoffEnabled = prefs["improvesearch.handoffToAwesomebar"];
-    const showCustomizationMenu = this.state.customizeMenuVisible;
     const enabledSections = {
       topSitesEnabled: prefs["feeds.topsites"],
       pocketEnabled: prefs["feeds.section.topstories"],
@@ -15069,7 +14957,7 @@ class BaseContent extends (external_React_default()).PureComponent {
       enabledSections: enabledSections,
       pocketRegion: pocketRegion,
       mayHaveSponsoredTopSites: mayHaveSponsoredTopSites,
-      showing: showCustomizationMenu
+      showing: customizeMenuVisible
     }), /*#__PURE__*/external_React_default().createElement("div", {
       className: outerClassName,
       onClick: this.closeCustomizationMenu
@@ -15077,7 +14965,7 @@ class BaseContent extends (external_React_default()).PureComponent {
       className: hasSnippet ? "has-snippet" : ""
     }, prefs.showSearch && /*#__PURE__*/external_React_default().createElement("div", {
       className: "non-collapsible-section"
-    }, /*#__PURE__*/external_React_default().createElement(ErrorBoundary, null, /*#__PURE__*/external_React_default().createElement(Search, Base_extends({
+    }, /*#__PURE__*/external_React_default().createElement(ErrorBoundary, null, /*#__PURE__*/external_React_default().createElement(Search_Search, Base_extends({
       showLogo: noSectionsEnabled || prefs["logowordmark.alwaysVisible"],
       handoffEnabled: searchHandoffEnabled
     }, props.Search)))), /*#__PURE__*/external_React_default().createElement(ASRouterUISurface, {
@@ -15091,7 +14979,7 @@ class BaseContent extends (external_React_default()).PureComponent {
       className: "borderless-error"
     }, /*#__PURE__*/external_React_default().createElement(DiscoveryStreamBase, {
       locale: props.App.locale
-    })) : /*#__PURE__*/external_React_default().createElement(Sections, null)), /*#__PURE__*/external_React_default().createElement(ConfirmDialog, null))));
+    })) : /*#__PURE__*/external_React_default().createElement(Sections_Sections, null)), /*#__PURE__*/external_React_default().createElement(ConfirmDialog, null))));
   }
 
 }
@@ -15149,8 +15037,8 @@ class DetectUserSessionStart {
     try {
       let visibility_event_rcvd_ts = this._perfService.getMostRecentAbsMarkStartByName("visibility_event_rcvd_ts");
 
-      this._store.dispatch(Actions_sys.actionCreators.AlsoToMain({
-        type: Actions_sys.actionTypes.SAVE_SESSION_PERF_DATA,
+      this._store.dispatch(actionCreators.AlsoToMain({
+        type: actionTypes.SAVE_SESSION_PERF_DATA,
         data: {
           visibility_event_rcvd_ts
         }
@@ -15187,7 +15075,7 @@ const external_Redux_namespaceObject = Redux;
 const MERGE_STORE_ACTION = "NEW_TAB_INITIAL_STATE";
 const OUTGOING_MESSAGE_NAME = "ActivityStream:ContentToMain";
 const INCOMING_MESSAGE_NAME = "ActivityStream:MainToContent";
-const EARLY_QUEUED_ACTIONS = [Actions_sys.actionTypes.SAVE_SESSION_PERF_DATA];
+const EARLY_QUEUED_ACTIONS = [actionTypes.SAVE_SESSION_PERF_DATA];
 /**
  * A higher-order function which returns a reducer that, on MERGE_STORE action,
  * will return the action.data object merged into the previous state.
@@ -15224,7 +15112,7 @@ function mergeStateReducer(mainReducer) {
 const messageMiddleware = store => next => action => {
   const skipLocal = action.meta && action.meta.skipLocal;
 
-  if (Actions_sys.actionUtils.isSendToMain(action)) {
+  if (actionUtils.isSendToMain(action)) {
     RPMSendAsyncMessage(OUTGOING_MESSAGE_NAME, action);
   }
 
@@ -15252,7 +15140,7 @@ const rehydrationMiddleware = ({
     }
 
     const isMergeStoreAction = action.type === MERGE_STORE_ACTION;
-    const isRehydrationRequest = action.type === Actions_sys.actionTypes.NEW_TAB_STATE_REQUEST;
+    const isRehydrationRequest = action.type === actionTypes.NEW_TAB_STATE_REQUEST;
 
     if (isRehydrationRequest) {
       getState.didRequestInitialState = true;
@@ -15265,13 +15153,13 @@ const rehydrationMiddleware = ({
     } // If init happened after our request was made, we need to re-request
 
 
-    if (getState.didRequestInitialState && action.type === Actions_sys.actionTypes.INIT) {
-      return next(Actions_sys.actionCreators.AlsoToMain({
-        type: Actions_sys.actionTypes.NEW_TAB_STATE_REQUEST
+    if (getState.didRequestInitialState && action.type === actionTypes.INIT) {
+      return next(actionCreators.AlsoToMain({
+        type: actionTypes.NEW_TAB_STATE_REQUEST
       }));
     }
 
-    if (Actions_sys.actionUtils.isBroadcastToContent(action) || Actions_sys.actionUtils.isSendToOneContent(action) || Actions_sys.actionUtils.isSendToPreloaded(action)) {
+    if (actionUtils.isBroadcastToContent(action) || actionUtils.isSendToOneContent(action) || actionUtils.isSendToPreloaded(action)) {
       // Note that actions received before didRehydrate will not be dispatched
       // because this could negatively affect preloading and the the state
       // will be replaced by rehydration anyway.
@@ -15299,7 +15187,7 @@ const queueEarlyMessageMiddleware = ({
   return next => action => {
     if (getState.receivedFromMain) {
       next(action);
-    } else if (Actions_sys.actionUtils.isFromMain(action)) {
+    } else if (actionUtils.isFromMain(action)) {
       next(action);
       getState.receivedFromMain = true; // Sending out all the early actions as main is ready now
 
@@ -15355,7 +15243,7 @@ const NewTab = ({
   store: store
 }, /*#__PURE__*/external_React_default().createElement(Base, null));
 function renderWithoutState() {
-  const store = initStore(Reducers.reducers);
+  const store = initStore(reducers);
   new DetectUserSessionStart(store).sendEventOrAddListener(); // If this document has already gone into the background by the time we've reached
   // here, we can deprioritize requesting the initial state until the event loop
   // frees up. If, however, the visibility changes, we then send the request.
@@ -15370,8 +15258,8 @@ function renderWithoutState() {
       }
 
       didRequest = true;
-      store.dispatch(Actions_sys.actionCreators.AlsoToMain({
-        type: Actions_sys.actionTypes.NEW_TAB_STATE_REQUEST
+      store.dispatch(actionCreators.AlsoToMain({
+        type: actionTypes.NEW_TAB_STATE_REQUEST
       }));
     }
   }
@@ -15390,14 +15278,12 @@ function renderWithoutState() {
   }), document.getElementById("root"));
 }
 function renderCache(initialState) {
-  const store = initStore(Reducers.reducers, initialState);
+  const store = initStore(reducers, initialState);
   new DetectUserSessionStart(store).sendEventOrAddListener();
   external_ReactDOM_default().hydrate( /*#__PURE__*/external_React_default().createElement(NewTab, {
     store: store
   }), document.getElementById("root"));
 }
-})();
-
 NewtabRenderUtils = __webpack_exports__;
 /******/ })()
 ;

@@ -52,8 +52,6 @@ ChromeUtils.defineModuleGetter(
   "ExtensionPermissions",
   "resource://gre/modules/ExtensionPermissions.jsm"
 );
-ChromeUtils.defineModuleGetter(lazy, "OS", "resource://gre/modules/osfile.jsm");
-
 XPCOMUtils.defineLazyGetter(
   lazy,
   "apiManager",
@@ -216,7 +214,7 @@ class MockExtension {
         });
       })
       .then(() => {
-        return lazy.OS.File.remove(this.file.path);
+        return IOUtils.remove(this.file.path, { retryReadonly: true });
       });
   }
 
@@ -279,7 +277,7 @@ const ExtensionTestAssertions = {
     extWrapper,
     apiNs,
     apiEvent,
-    { primed, persisted = true }
+    { primed, persisted = true, primedListenersCount }
   ) {
     if (primed && !persisted) {
       throw new Error(
@@ -300,16 +298,25 @@ const ExtensionTestAssertions = {
     for (const info of listenersInfo) {
       if (primed) {
         lazy.Assert.ok(
-          info.primed,
+          info.listeners.some(listener => listener.primed),
           `${apiNs}.${apiEvent} listener expected to be primed`
         );
       } else {
-        lazy.Assert.equal(
-          info.primed,
-          undefined,
+        lazy.Assert.ok(
+          !info.listeners.some(listener => listener.primed),
           `${apiNs}.${apiEvent} listener expected to not be primed`
         );
       }
+    }
+    if (primed && primedListenersCount > 0) {
+      lazy.Assert.equal(
+        listenersInfo.reduce((acc, info) => {
+          acc += info.listeners.length;
+          return acc;
+        }, 0),
+        primedListenersCount,
+        `Got the expected number of ${apiNs}.${apiEvent} listeners to be primed`
+      );
     }
   },
 };
@@ -521,7 +528,7 @@ ExtensionTestCommon = class ExtensionTestCommon {
     for (let filename in files) {
       let script = files[filename];
       if (!instanceOf(script, "ArrayBuffer")) {
-        script = new TextEncoder("utf-8").encode(script).buffer;
+        script = new TextEncoder().encode(script).buffer;
       }
 
       let stream = Cc[
@@ -701,7 +708,7 @@ ExtensionTestCommon = class ExtensionTestCommon {
         // By default we set TEST_NO_DELAYED_STARTUP to true
         TEST_NO_DELAYED_STARTUP: !data.delayedStartup,
       },
-      data.startupReason
+      data.startupReason ?? "ADDON_INSTALL"
     );
   }
 };

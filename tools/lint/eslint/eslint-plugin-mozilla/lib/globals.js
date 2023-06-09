@@ -13,6 +13,45 @@ const fs = require("fs");
 const helpers = require("./helpers");
 const htmlparser = require("htmlparser2");
 
+const callExpressionDefinitions = [
+  /^loader\.lazyGetter\((?:globalThis|this), "(\w+)"/,
+  /^loader\.lazyServiceGetter\((?:globalThis|this), "(\w+)"/,
+  /^loader\.lazyRequireGetter\((?:globalThis|this), "(\w+)"/,
+  /^XPCOMUtils\.defineLazyGetter\((?:globalThis|this), "(\w+)"/,
+  /^XPCOMUtils\.defineLazyModuleGetter\((?:globalThis|this), "(\w+)"/,
+  /^ChromeUtils\.defineLazyGetter\((?:globalThis|this), "(\w+)"/,
+  /^ChromeUtils\.defineModuleGetter\((?:globalThis|this), "(\w+)"/,
+  /^XPCOMUtils\.defineLazyPreferenceGetter\((?:globalThis|this), "(\w+)"/,
+  /^XPCOMUtils\.defineLazyProxy\((?:globalThis|this), "(\w+)"/,
+  /^XPCOMUtils\.defineLazyScriptGetter\((?:globalThis|this), "(\w+)"/,
+  /^XPCOMUtils\.defineLazyServiceGetter\((?:globalThis|this), "(\w+)"/,
+  /^XPCOMUtils\.defineConstant\((?:globalThis|this), "(\w+)"/,
+  /^DevToolsUtils\.defineLazyModuleGetter\((?:globalThis|this), "(\w+)"/,
+  /^DevToolsUtils\.defineLazyGetter\((?:globalThis|this), "(\w+)"/,
+  /^Object\.defineProperty\((?:globalThis|this), "(\w+)"/,
+  /^Reflect\.defineProperty\((?:globalThis|this), "(\w+)"/,
+  /^this\.__defineGetter__\("(\w+)"/,
+];
+
+const callExpressionMultiDefinitions = [
+  "XPCOMUtils.defineLazyGlobalGetters(this,",
+  "XPCOMUtils.defineLazyGlobalGetters(globalThis,",
+  "XPCOMUtils.defineLazyModuleGetters(this,",
+  "XPCOMUtils.defineLazyModuleGetters(globalThis,",
+  "XPCOMUtils.defineLazyServiceGetters(this,",
+  "XPCOMUtils.defineLazyServiceGetters(globalThis,",
+  "ChromeUtils.defineESModuleGetters(this,",
+  "ChromeUtils.defineESModuleGetters(globalThis,",
+  "loader.lazyRequireGetter(this,",
+  "loader.lazyRequireGetter(globalThis,",
+];
+
+const subScriptMatches = [
+  /Services\.scriptloader\.loadSubScript\("(.*?)", this\)/,
+];
+
+const workerImportFilenameMatch = /(.*\/)*((.*?)\.jsm?)/;
+
 /**
  * Parses a list of "name:boolean_value" or/and "name" options divided by comma
  * or whitespace.
@@ -71,6 +110,234 @@ var globalDiscoveryInProgressForFiles = new Set();
  * so we store the globals for just the last HTML file processed.
  */
 var lastHTMLGlobals = {};
+
+/**
+ * Attempts to convert an CallExpressions that look like module imports
+ * into global variable definitions.
+ *
+ * @param  {Object} node
+ *         The AST node to convert.
+ * @param  {boolean} isGlobal
+ *         True if the current node is in the global scope.
+ *
+ * @return {Array}
+ *         An array of objects that contain details about the globals:
+ *         - {String} name
+ *                    The name of the global.
+ *         - {Boolean} writable
+ *                     If the global is writeable or not.
+ */
+function convertCallExpressionToGlobals(node, isGlobal) {
+  let express = node.expression;
+  if (
+    express.type === "CallExpression" &&
+    express.callee.type === "MemberExpression" &&
+    express.callee.object &&
+    express.callee.object.type === "Identifier" &&
+    express.arguments.length === 1 &&
+    express.arguments[0].type === "ArrayExpression" &&
+    express.callee.property.type === "Identifier" &&
+    express.callee.property.name === "importGlobalProperties"
+  ) {
+    return express.arguments[0].elements.map(literal => {
+      return {
+        explicit: true,
+        name: literal.value,
+        writable: false,
+      };
+    });
+  }
+
+  let source;
+  try {
+    source = helpers.getASTSource(node);
+  } catch (e) {
+    return [];
+  }
+
+  // The definition matches below must be in the global scope for us to define
+  // a global, so bail out early if we're not a global.
+  if (!isGlobal) {
+    return [];
+  }
+
+  for (let reg of subScriptMatches) {
+    let match = source.match(reg);
+    if (match) {
+      return getGlobalsForScript(match[1], "script").map(g => {
+        // We don't want any loadSubScript globals to be explicit, as this
+        // could trigger no-unused-vars when importing multiple variables
+        // from a script and not using all of them.
+        g.explicit = false;
+        return g;
+      });
+    }
+  }
+
+  for (let reg of callExpressionDefinitions) {
+    let match = source.match(reg);
+    if (match) {
+      return [{ name: match[1], writable: true, explicit: true }];
+    }
+  }
+
+  if (
+    callExpressionMultiDefinitions.some(expr => source.startsWith(expr)) &&
+    node.expression.arguments[1]
+  ) {
+    let arg = node.expression.arguments[1];
+    if (arg.type === "ObjectExpression") {
+      return arg.properties
+        .map(p => ({
+          name: p.type === "Property" && p.key.name,
+          writable: true,
+          explicit: true,
+        }))
+        .filter(g => g.name);
+    }
+    if (arg.type === "ArrayExpression") {
+      return arg.elements
+        .map(p => ({
+          name: p.type === "Literal" && p.value,
+          writable: true,
+          explicit: true,
+        }))
+        .filter(g => typeof g.name == "string");
+    }
+  }
+
+  if (
+    node.expression.callee.type == "MemberExpression" &&
+    node.expression.callee.property.type == "Identifier" &&
+    node.expression.callee.property.name == "defineLazyScriptGetter"
+  ) {
+    // The case where we have a single symbol as a string has already been
+    // handled by the regexp, so we have an array of symbols here.
+    return node.expression.arguments[1].elements.map(n => ({
+      name: n.value,
+      writable: true,
+      explicit: true,
+    }));
+  }
+
+  return [];
+}
+
+/**
+ * Attempts to convert an AssignmentExpression into a global variable
+ * definition if it applies to `this` in the global scope.
+ *
+ * @param  {Object} node
+ *         The AST node to convert.
+ * @param  {boolean} isGlobal
+ *         True if the current node is in the global scope.
+ *
+ * @return {Array}
+ *         An array of objects that contain details about the globals:
+ *         - {String} name
+ *                    The name of the global.
+ *         - {Boolean} writable
+ *                     If the global is writeable or not.
+ */
+function convertThisAssignmentExpressionToGlobals(node, isGlobal) {
+  if (
+    isGlobal &&
+    node.expression.left &&
+    node.expression.left.object &&
+    node.expression.left.object.type === "ThisExpression" &&
+    node.expression.left.property &&
+    node.expression.left.property.type === "Identifier"
+  ) {
+    return [{ name: node.expression.left.property.name, writable: true }];
+  }
+  return [];
+}
+
+/**
+ * Attempts to convert an ExpressionStatement to likely global variable
+ * definitions.
+ *
+ * @param  {Object} node
+ *         The AST node to convert.
+ * @param  {boolean} isGlobal
+ *         True if the current node is in the global scope.
+ *
+ * @return {Array}
+ *         An array of objects that contain details about the globals:
+ *         - {String} name
+ *                    The name of the global.
+ *         - {Boolean} writable
+ *                     If the global is writeable or not.
+ */
+function convertWorkerExpressionToGlobals(node, isGlobal, dirname) {
+  let results = [];
+  let expr = node.expression;
+
+  if (
+    node.expression.type === "CallExpression" &&
+    expr.callee &&
+    expr.callee.type === "Identifier" &&
+    expr.callee.name === "importScripts"
+  ) {
+    for (var arg of expr.arguments) {
+      var match = arg.value && arg.value.match(workerImportFilenameMatch);
+      if (match) {
+        if (!match[1]) {
+          let filePath = path.resolve(dirname, match[2]);
+          if (fs.existsSync(filePath)) {
+            let additionalGlobals = module.exports.getGlobalsForFile(filePath);
+            results = results.concat(additionalGlobals);
+          }
+        }
+        // Import with relative/absolute path should explicitly use
+        // `import-globals-from` comment.
+      }
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Attempts to load the globals for a given script.
+ *
+ * @param {string} src
+ *   The source path or url of the script to look for.
+ * @param {string} type
+ *   The type of the current file (script/module).
+ * @param {string} [dir]
+ *   The directory of the current file.
+ * @returns {object[]}
+ *   An array of objects with details of the globals in them.
+ */
+function getGlobalsForScript(src, type, dir) {
+  let scriptName;
+  if (src.includes("http:")) {
+    // We don't handle this currently as the paths are complex to match.
+  } else if (src.startsWith("chrome://mochikit/content/")) {
+    // Various ways referencing test files.
+    src = src.replace("chrome://mochikit/content/", "/");
+    scriptName = path.join(helpers.rootDir, "testing", "mochitest", src);
+  } else if (src.startsWith("chrome://mochitests/content/browser")) {
+    src = src.replace("chrome://mochitests/content/browser", "");
+    scriptName = path.join(helpers.rootDir, src);
+  } else if (src.includes("SimpleTest")) {
+    // This is another way of referencing test files...
+    scriptName = path.join(helpers.rootDir, "testing", "mochitest", src);
+  } else if (src.startsWith("/tests/")) {
+    scriptName = path.join(helpers.rootDir, src.substring(7));
+  } else if (dir) {
+    // Fallback to hoping this is a relative path.
+    scriptName = path.join(dir, src);
+  }
+  if (scriptName && fs.existsSync(scriptName)) {
+    return module.exports.getGlobalsForFile(scriptName, {
+      ecmaVersion: helpers.getECMAVersion(),
+      sourceType: type,
+    });
+  }
+  return [];
+}
 
 /**
  * An object that returns found globals for given AST node types. Each prototype
@@ -163,12 +430,9 @@ GlobalsForNode.prototype = {
     // Note: We check the expression types here and only call the necessary
     // functions to aid performance.
     if (node.expression.type === "AssignmentExpression") {
-      globals = helpers.convertThisAssignmentExpressionToGlobals(
-        node,
-        isGlobal
-      );
+      globals = convertThisAssignmentExpressionToGlobals(node, isGlobal);
     } else if (node.expression.type === "CallExpression") {
-      globals = helpers.convertCallExpressionToGlobals(node, isGlobal);
+      globals = convertCallExpressionToGlobals(node, isGlobal);
     }
 
     // Here we assume that if importScripts is set in the global scope, then
@@ -177,7 +441,7 @@ GlobalsForNode.prototype = {
     //
     // If this is testing context without path, ignore import.
     if (globalScope && globalScope.set.get("importScripts") && this.dirname) {
-      let workerDetails = helpers.convertWorkerExpressionToGlobals(
+      let workerDetails = convertWorkerExpressionToGlobals(
         node,
         isGlobal,
         this.dirname
@@ -349,40 +613,7 @@ module.exports = {
       if (!script.src) {
         continue;
       }
-      let scriptName;
-      if (script.src.includes("http:")) {
-        // We don't handle this currently as the paths are complex to match.
-      } else if (script.src.includes("chrome")) {
-        // This is one way of referencing test files.
-        script.src = script.src.replace("chrome://mochikit/content/", "/");
-        scriptName = path.join(
-          helpers.rootDir,
-          "testing",
-          "mochitest",
-          script.src
-        );
-      } else if (script.src.includes("SimpleTest")) {
-        // This is another way of referencing test files...
-        scriptName = path.join(
-          helpers.rootDir,
-          "testing",
-          "mochitest",
-          script.src
-        );
-      } else if (script.src.startsWith("/tests/")) {
-        scriptName = path.join(helpers.rootDir, script.src.substring(7));
-      } else {
-        // Fallback to hoping this is a relative path.
-        scriptName = path.join(dir, script.src);
-      }
-      if (scriptName && fs.existsSync(scriptName)) {
-        globals.push(
-          ...module.exports.getGlobalsForFile(scriptName, {
-            ecmaVersion: helpers.getECMAVersion(),
-            sourceType: script.type,
-          })
-        );
-      }
+      globals.push(...getGlobalsForScript(script.src, script.type, dir));
     }
 
     lastHTMLGlobals.filePath = filePath;

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use authenticator::{
-    authenticatorservice::{AuthenticatorService, CtapVersion},
+    authenticatorservice::AuthenticatorService,
     ctap2::commands::StatusCode,
     errors::{AuthenticatorError, CommandError, HIDError},
     statecallback::StateCallback,
@@ -14,7 +14,7 @@ use std::env;
 use std::sync::mpsc::{channel, RecvError};
 
 fn print_usage(program: &str, opts: Options) {
-    let brief = format!("Usage: {} [options]", program);
+    let brief = format!("Usage: {program} [options]");
     print!("{}", opts.usage(&brief));
 }
 
@@ -42,7 +42,7 @@ fn main() {
         return;
     }
 
-    let mut manager = AuthenticatorService::new(CtapVersion::CTAP2)
+    let mut manager = AuthenticatorService::new()
         .expect("The auth service should initialize safely");
 
     if !matches.opt_present("no-u2f-usb-hid") {
@@ -55,7 +55,7 @@ fn main() {
             timeout_s * 1_000
         }
         Err(e) => {
-            println!("{}", e);
+            println!("{e}");
             print_usage(&program, opts);
             return;
         }
@@ -86,12 +86,12 @@ fn main() {
 
     let (status_tx, status_rx) = channel::<StatusUpdate>();
     let (reset_tx, reset_rx) = channel();
-    let rs_tx = reset_tx.clone();
+    let rs_tx = reset_tx;
     let callback = StateCallback::new(Box::new(move |rv| {
         let _ = rs_tx.send(rv);
     }));
 
-    if let Err(e) = manager.reset(timeout_ms, status_tx.clone(), callback) {
+    if let Err(e) = manager.reset(timeout_ms, status_tx, callback) {
         panic!("Couldn't register: {:?}", e);
     };
 
@@ -106,10 +106,10 @@ fn main() {
                 return;
             }
             Ok(StatusUpdate::DeviceSelected(dev_info)) => {
-                println!("STATUS: Continuing with device: {}", dev_info);
+                println!("STATUS: Continuing with device: {dev_info}");
                 break;
             }
-            Ok(StatusUpdate::PinError(..)) => panic!("Reset should never ask for a PIN!"),
+            Ok(StatusUpdate::PinUvError(..)) => panic!("Reset should never ask for a PIN!"),
             Ok(_) => { /* Ignore all other updates */ }
             Err(RecvError) => {
                 println!("RecvError");

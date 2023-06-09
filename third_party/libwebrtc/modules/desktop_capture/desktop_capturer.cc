@@ -25,14 +25,18 @@
 #include "rtc_base/win/windows_version.h"
 #endif  // defined(RTC_ENABLE_WIN_WGC)
 
-#if defined(WEBRTC_USE_PIPEWIRE) || defined(WEBRTC_USE_X11)
-#include <gtk/gtk.h>
-#include <gtk/gtkx.h>
+#if defined(WEBRTC_USE_PIPEWIRE)
+#include "modules/desktop_capture/linux/wayland/base_capturer_pipewire.h"
 #endif
 
 namespace webrtc {
 
 DesktopCapturer::~DesktopCapturer() = default;
+
+DelegatedSourceListController*
+DesktopCapturer::GetDelegatedSourceListController() {
+  return nullptr;
+}
 
 void DesktopCapturer::SetSharedMemoryFactory(
     std::unique_ptr<SharedMemoryFactory> shared_memory_factory) {}
@@ -76,6 +80,29 @@ std::unique_ptr<DesktopCapturer> DesktopCapturer::CreateWindowCapturer(
   }
 
   return capturer;
+}
+
+// static
+std::unique_ptr<DesktopCapturer> DesktopCapturer::CreateGenericCapturer(
+    const DesktopCaptureOptions& options) {
+  std::unique_ptr<DesktopCapturer> capturer = CreateRawGenericCapturer(options);
+  if (capturer && options.detect_updated_region()) {
+    capturer.reset(new DesktopCapturerDifferWrapper(std::move(capturer)));
+  }
+
+  return capturer;
+}
+
+std::unique_ptr<DesktopCapturer> DesktopCapturer::CreateRawGenericCapturer(
+    const DesktopCaptureOptions& options) {
+#if defined(WEBRTC_USE_PIPEWIRE)
+  if (options.allow_pipewire() && DesktopCapturer::IsRunningUnderWayland()) {
+    return std::make_unique<BaseCapturerPipeWire>(options,
+                                                  CaptureType::kAnyScreenContent);
+  }
+#endif  // defined(WEBRTC_USE_PIPEWIRE)
+
+  return nullptr;
 }
 
 // static

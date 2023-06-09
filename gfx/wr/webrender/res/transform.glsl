@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-flat varying vec4 vTransformBounds;
+flat varying highp vec4 vTransformBounds;
 
 #ifdef WR_VERTEX_SHADER
 
@@ -22,8 +22,8 @@ struct Transform {
 Transform fetch_transform(int id) {
     Transform transform;
 
-    transform.is_axis_aligned = (id >> 24) == 0;
-    int index = id & 0x00ffffff;
+    transform.is_axis_aligned = (id >> 23) == 0;
+    int index = id & 0x007fffff;
 
     // Create a UV base coord for each 8 texels.
     // This is required because trying to use an offset

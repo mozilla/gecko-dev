@@ -6,6 +6,7 @@
 
 //! Different kind of helpers to interact with Gecko values.
 
+use crate::color::{AbsoluteColor, ColorSpace};
 use crate::counter_style::{Symbol, Symbols};
 use crate::gecko_bindings::bindings;
 use crate::gecko_bindings::structs::CounterStylePtr;
@@ -13,24 +14,27 @@ use crate::values::generics::CounterStyle;
 use crate::values::Either;
 use crate::Atom;
 use app_units::Au;
-use cssparser::RGBA;
 use std::cmp::max;
 
-/// Convert a given RGBA value to `nscolor`.
-pub fn convert_rgba_to_nscolor(rgba: &RGBA) -> u32 {
-    ((rgba.alpha as u32) << 24) |
-        ((rgba.blue as u32) << 16) |
-        ((rgba.green as u32) << 8) |
-        (rgba.red as u32)
+/// Convert a color value to `nscolor`.
+pub fn convert_absolute_color_to_nscolor(color: &AbsoluteColor) -> u32 {
+    let srgb = color.to_color_space(ColorSpace::Srgb);
+    u32::from_le_bytes([
+        (srgb.components.0 * 255.0).round() as u8,
+        (srgb.components.1 * 255.0).round() as u8,
+        (srgb.components.2 * 255.0).round() as u8,
+        (srgb.alpha * 255.0).round() as u8,
+    ])
 }
 
-/// Convert a given `nscolor` to a Servo RGBA value.
-pub fn convert_nscolor_to_rgba(color: u32) -> RGBA {
-    RGBA::new(
-        (color & 0xff) as u8,
-        (color >> 8 & 0xff) as u8,
-        (color >> 16 & 0xff) as u8,
-        (color >> 24 & 0xff) as u8,
+/// Convert a given `nscolor` to a Servo AbsoluteColor value.
+pub fn convert_nscolor_to_absolute_color(color: u32) -> AbsoluteColor {
+    let [r, g, b, a] = color.to_le_bytes();
+    AbsoluteColor::srgb(
+        r as f32 / 255.0,
+        g as f32 / 255.0,
+        b as f32 / 255.0,
+        a as f32 / 255.0,
     )
 }
 

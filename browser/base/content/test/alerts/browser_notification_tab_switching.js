@@ -4,13 +4,14 @@
 
 "use strict";
 
-const { PermissionTestUtils } = ChromeUtils.import(
-  "resource://testing-common/PermissionTestUtils.jsm"
+const { PermissionTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/PermissionTestUtils.sys.mjs"
 );
 
 var tab;
 var notification;
 var notificationURL =
+  // eslint-disable-next-line @microsoft/sdl/no-insecure-url
   "http://example.org/browser/browser/base/content/test/alerts/file_dom_notifications.html";
 var newWindowOpenedFromTab;
 

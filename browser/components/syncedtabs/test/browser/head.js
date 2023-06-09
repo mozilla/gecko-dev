@@ -1,4 +1,3 @@
-var { XPCOMUtils } = ChromeUtils.importESModule(
-  "resource://gre/modules/XPCOMUtils.sys.mjs"
+var { sinon } = ChromeUtils.importESModule(
+  "resource://testing-common/Sinon.sys.mjs"
 );
-var { sinon } = ChromeUtils.import("resource://testing-common/Sinon.jsm");

@@ -8,8 +8,8 @@ const { XPCOMUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/XPCOMUtils.sys.mjs"
 );
 
-XPCOMUtils.defineLazyModuleGetters(this, {
-  schema: "resource:///modules/policies/schema.jsm",
+ChromeUtils.defineESModuleGetters(this, {
+  schema: "resource:///modules/policies/schema.sys.mjs",
 });
 
 function col(text, className) {
@@ -288,11 +288,13 @@ function generateDocumentation() {
     BackgroundAppUpdate: "BackgroundAppUpdate2",
     Certificates: "CertificatesDescription",
     DisableMasterPasswordCreation: "DisablePrimaryPasswordCreation",
+    DisablePocket: "DisablePocket2",
     DisableSetDesktopBackground: "DisableSetAsDesktopBackground",
     FirefoxHome: "FirefoxHome2",
     Permissions: "Permissions2",
     SanitizeOnShutdown: "SanitizeOnShutdown2",
     WindowsSSO: "Windows10SSO",
+    SecurityDevices: "SecurityDevices2",
   };
 
   for (let policyName in schema.properties) {

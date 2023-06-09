@@ -12,7 +12,7 @@ dynamic_freetype = []
 static_freetype = ["freetype/freetype-sys"]
 capture = ["api/serialize", "serde", "smallvec/serde"]
 replay = ["api/deserialize", "serde", "smallvec/serde"]
-gecko = ["fog", "glean"]
+gecko = ["firefox-on-glean", "glean"]
 
 [dependencies]
 api = { version = "0.62.0", path = "../webrender_api", package = "webrender_api" }
@@ -25,14 +25,14 @@ tracy-rs = "0.1.2"
 log = "0.4"
 lazy_static = "1"
 fxhash = "0.2.1"
-glean = { version = "51.8.2", optional = true }
-fog = { version = "0.1.0", optional = true }
+glean = { version = "52.7.0", optional = true }
+firefox-on-glean = { version = "0.1.0", optional = true }
 serde = { optional = true, version = "1.0", features = ["serde_derive"] }
 
 [dev-dependencies]
-env_logger = "0.9"
+env_logger = { version = "0.10", default_features = false }
 euclid = "0.22"
-gleam = "0.13"
+gleam = "0.15"
 glutin = "0.28"
 rayon = "1"
 winit = "0.26"

@@ -10,6 +10,7 @@ defaults pref(gfx.font_rendering.fallback.async,false)
 == capitalize-7.html capitalize-7-ref.html
 == capitalize-7a.html capitalize-7-ref.html
 == capitalize-8.html capitalize-8-ref.html
+== capitalize-9.html capitalize-9-ref.html
 == lowercase-1.html lowercase-ref.html
 == lowercase-sigma-1.html lowercase-sigma-1-ref.html
 random-if(winWidget) == small-caps-1.html small-caps-1-ref.html # fails if default font supports 'smcp'
@@ -40,6 +41,9 @@ fuzzy(0-1,0-80) == all-title.html all-title-ref.html
 == fullwidth-1.html fullwidth-1-ref.html
 == fullwidth-2.html fullwidth-2-ref.html
 == fullwidth-all.html fullwidth-all-ref.html
+
+pref(layout.css.text-transform.uppercase-eszett.enabled,false) == uppercase-eszett-1.html uppercase-eszett-1a-ref.html
+pref(layout.css.text-transform.uppercase-eszett.enabled,true)  == uppercase-eszett-1.html uppercase-eszett-1b-ref.html
 
 # Reset default prefs
 defaults

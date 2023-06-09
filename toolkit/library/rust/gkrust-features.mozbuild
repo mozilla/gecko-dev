@@ -29,7 +29,7 @@ if CONFIG['MOZ_RUST_SIMD']:
 
 # This feature is not yet supported on all platforms, and this check needs to
 # match MOZ_CUBEB_REMOTING in CubebUtils.cpp.
-if (CONFIG['OS_ARCH'] == 'Linux' and CONFIG['OS_TARGET'] != 'Android') or CONFIG['OS_ARCH'] == 'Darwin' or (CONFIG['OS_ARCH'] == 'WINNT' and CONFIG['CPU_ARCH'] != 'aarch64'):
+if (CONFIG['OS_ARCH'] == 'Linux' and CONFIG['OS_TARGET'] != 'Android') or CONFIG['OS_ARCH'] == 'Darwin' or CONFIG['OS_ARCH'] == 'WINNT':
     gkrust_features += ['cubeb-remoting']
 
 if CONFIG['MOZ_MEMORY']:
@@ -49,9 +49,6 @@ if CONFIG['MOZ_GECKO_PROFILER_PARSE_ELF']:
 
 if CONFIG['MOZ_BITS_DOWNLOAD']:
     gkrust_features += ['bitsdownload']
-
-if CONFIG['MOZ_NEW_XULSTORE']:
-    gkrust_features += ['new_xulstore']
 
 if CONFIG['LIBFUZZER']:
     gkrust_features += ['libfuzzer']

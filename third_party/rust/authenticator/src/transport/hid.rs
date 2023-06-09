@@ -1,5 +1,5 @@
 use crate::consts::{HIDCmd, CID_BROADCAST};
-use crate::crypto::ECDHSecret;
+use crate::crypto::SharedSecret;
 use crate::ctap2::commands::get_info::AuthenticatorInfo;
 use crate::transport::{errors::HIDError, Nonce};
 use crate::u2ftypes::{U2FDevice, U2FDeviceInfo, U2FHIDCont, U2FHIDInit, U2FHIDInitResp};
@@ -28,9 +28,8 @@ where
     fn is_u2f(&mut self) -> bool;
     fn get_authenticator_info(&self) -> Option<&AuthenticatorInfo>;
     fn set_authenticator_info(&mut self, authenticator_info: AuthenticatorInfo);
-    fn set_shared_secret(&mut self, secret: ECDHSecret);
-    fn get_shared_secret(&self) -> Option<&ECDHSecret>;
-    fn clone_device_as_write_only(&self) -> Result<Self, HIDError>;
+    fn set_shared_secret(&mut self, secret: SharedSecret);
+    fn get_shared_secret(&self) -> Option<&SharedSecret>;
 
     // Initialize on a protocol-level
     fn initialize(&mut self, noncecmd: Nonce) -> Result<(), HIDError> {
@@ -49,7 +48,7 @@ where
 
         // Send Init to broadcast address to create a new channel
         self.set_cid(CID_BROADCAST);
-        let (cmd, raw) = self.sendrecv(HIDCmd::Init, &nonce)?;
+        let (cmd, raw) = self.sendrecv(HIDCmd::Init, &nonce, &|| true)?;
         if cmd != HIDCmd::Init {
             return Err(HIDError::DeviceError);
         }
@@ -65,7 +64,7 @@ where
             .get_property("Product")
             .unwrap_or_else(|_| String::from("Unknown Device"));
 
-        self.set_device_info(U2FDeviceInfo {
+        let info = U2FDeviceInfo {
             vendor_name: vendor.as_bytes().to_vec(),
             device_name: product.as_bytes().to_vec(),
             version_interface: rsp.version_interface,
@@ -73,7 +72,9 @@ where
             version_minor: rsp.version_minor,
             version_build: rsp.version_build,
             cap_flags: rsp.cap_flags,
-        });
+        };
+        debug!("{:?}: {:?}", self.id(), info);
+        self.set_device_info(info);
 
         // A CTAPHID host SHALL accept a response size that is longer than the
         // anticipated size to allow for future extensions of the protocol, yet
@@ -84,15 +85,37 @@ where
         Ok(())
     }
 
-    fn sendrecv(&mut self, cmd: HIDCmd, send: &[u8]) -> io::Result<(HIDCmd, Vec<u8>)> {
+    fn sendrecv(
+        &mut self,
+        cmd: HIDCmd,
+        send: &[u8],
+        keep_alive: &dyn Fn() -> bool,
+    ) -> io::Result<(HIDCmd, Vec<u8>)> {
         let cmd: u8 = cmd.into();
         self.u2f_write(cmd, send)?;
         loop {
             let (cmd, data) = self.u2f_read()?;
             if cmd != HIDCmd::Keepalive {
-                break Ok((cmd, data));
+                return Ok((cmd, data));
+            }
+            // The authenticator might send us HIDCmd::Keepalive messages indefinitely, e.g. if
+            // it's waiting for user presence. The keep_alive function is used to cancel the
+            // transaction.
+            if !keep_alive() {
+                break;
             }
         }
+
+        // If this is a CTAP2 device we can tell the authenticator to cancel the transaction on its
+        // side as well. There's nothing to do for U2F/CTAP1 devices.
+        if self.get_authenticator_info().is_some() {
+            self.u2f_write(u8::from(HIDCmd::Cancel), &[])?;
+        }
+        // For CTAP2 devices we expect to read
+        //  (HIDCmd::Cbor, [CTAP2_ERR_KEEPALIVE_CANCEL])
+        // for U2F/CTAP1 we expect to read
+        //  (HIDCmd::Keepalive, [status]).
+        self.u2f_read()
     }
 
     fn u2f_write(&mut self, cmd: u8, send: &[u8]) -> io::Result<()> {
@@ -126,11 +149,5 @@ where
         };
         trace!("u2f_read({:?}) cmd={:?}: {:04X?}", self.id(), cmd, &data);
         Ok((cmd, data))
-    }
-
-    fn cancel(&mut self) -> Result<(), HIDError> {
-        let cancel: u8 = HIDCmd::Cancel.into();
-        self.u2f_write(cancel, &[])?;
-        Ok(())
     }
 }

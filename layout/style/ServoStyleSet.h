@@ -7,6 +7,7 @@
 #ifndef mozilla_ServoStyleSet_h
 #define mozilla_ServoStyleSet_h
 
+#include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/AnonymousContentKey.h"
 #include "mozilla/AtomArray.h"
 #include "mozilla/EnumeratedArray.h"
@@ -25,9 +26,10 @@
 #include "nsIMemoryReporter.h"
 #include "nsTArray.h"
 #include "nsIMemoryReporter.h"
+#include "nsSize.h"
 
 namespace mozilla {
-enum class MediaFeatureChangeReason : uint16_t;
+enum class MediaFeatureChangeReason : uint8_t;
 enum class StylePageSizeOrientation : uint8_t;
 enum class StyleRuleChangeKind : uint32_t;
 
@@ -220,6 +222,18 @@ class ServoStyleSet {
                                      IsProbe::Yes);
   }
 
+  /**
+   * @brief Get a style for a highlight pseudo element.
+   *
+   * The highlight is identified by its name `aHighlightName`.
+   *
+   * Returns null if there are no rules matching for the highlight pseudo
+   * element.
+   */
+  already_AddRefed<ComputedStyle> ProbeHighlightPseudoElementStyle(
+      const dom::Element& aOriginatingElement, const nsAtom* aHighlightName,
+      ComputedStyle* aParentStyle);
+
   // Resolves style for a (possibly-pseudo) Element without assuming that the
   // style has been resolved. If the element was unstyled and a new style
   // was resolved, it is not stored in the DOM. (That is, the element remains
@@ -234,17 +248,15 @@ class ServoStyleSet {
       PseudoStyleType, ComputedStyle* aParentStyle);
 
   // Get a ComputedStyle for an anonymous box. The pseudo type must be
-  // a non-inheriting anon box.
+  // a non-inheriting anon box, and must not be page-content.
+  // See ResolvePageContentStyle for resolving page-content style.
   already_AddRefed<ComputedStyle> ResolveNonInheritingAnonymousBoxStyle(
-      PseudoStyleType aType) {
-    return ResolveNonInheritingAnonymousBoxStyle(aType, nullptr);
-  }
+      PseudoStyleType aType);
 
+  // Get a ComputedStyle for a pageContent box with the specified page-name.
+  // A page name that is null or the empty atom gets the global page style.
   already_AddRefed<ComputedStyle> ResolvePageContentStyle(
-      const nsAtom* aPageName) {
-    return ResolveNonInheritingAnonymousBoxStyle(PseudoStyleType::pageContent,
-                                                 aPageName);
-  }
+      const nsAtom* aPageName);
 
   already_AddRefed<ComputedStyle> ResolveXULTreePseudoStyle(
       dom::Element* aParentElement, nsCSSAnonBoxPseudoStaticAtom* aPseudoTag,
@@ -253,12 +265,20 @@ class ServoStyleSet {
   size_t SheetCount(Origin) const;
   StyleSheet* SheetAt(Origin, size_t aIndex) const;
 
-  // Gets the default orientation of CSS pages.
-  // This will return portrait or landscape both for a landscape/portrait
-  // value to page-size, as well as for an explicit size or paper name which
-  // is not square.
-  // If the value is auto or square, then returns nothing.
-  Maybe<StylePageSizeOrientation> GetDefaultPageSizeOrientation(
+  struct FirstPageSizeAndOrientation {
+    Maybe<StylePageSizeOrientation> orientation;
+    Maybe<nsSize> size;
+  };
+  // Gets the specified orientation and size used when the first page printed
+  // has the name |aFirstPageName|, based on the page-size property.
+  //
+  // If the specified size is just an orientation, then the size will be set to
+  // nothing and the orientation will be set accordingly.
+  // If the specified size is auto or square, then the orientation will be set
+  // to nothing.
+  // Otherwise, the size will and orientation is determined by the specified
+  // page size.
+  FirstPageSizeAndOrientation GetFirstPageSizeAndOrientation(
       const nsAtom* aFirstPageName);
 
   void AppendAllNonDocumentAuthorSheets(nsTArray<StyleSheet*>& aArray) const;
@@ -443,6 +463,26 @@ class ServoStyleSet {
                                     nsAtom* aAttribute) const;
 
   /**
+   * Returns true if a modification to an attribute with the specified local
+   * name might require us to restyle the element's siblings.
+   */
+  bool MightHaveNthOfAttributeDependency(const dom::Element&,
+                                         nsAtom* aAttribute) const;
+
+  /**
+   * Returns true if a modification to a class might require us to restyle the
+   * element's siblings.
+   */
+  bool MightHaveNthOfClassDependency(const dom::Element&);
+
+  /**
+   * Returns true if a modification to an ID might require us to restyle the
+   * element's siblings.
+   */
+  bool MightHaveNthOfIDDependency(const dom::Element&, nsAtom* aOldID,
+                                  nsAtom* aNewID) const;
+
+  /**
    * Returns true if a change in event state on an element might require
    * us to restyle the element.
    *
@@ -451,6 +491,12 @@ class ServoStyleSet {
    * in a style sheet.
    */
   bool HasStateDependency(const dom::Element&, dom::ElementState) const;
+
+  /**
+   * Returns true if a change in event state on an element might require
+   * us to restyle the element's siblings.
+   */
+  bool HasNthOfStateDependency(const dom::Element&, dom::ElementState) const;
 
   /**
    * Returns true if a change in document state might require us to restyle the
@@ -595,9 +641,6 @@ class ServoStyleSet {
   EnumeratedArray<nsCSSAnonBoxes::NonInheriting,
                   nsCSSAnonBoxes::NonInheriting::_Count, RefPtr<ComputedStyle>>
       mNonInheritingComputedStyles;
-
-  already_AddRefed<ComputedStyle> ResolveNonInheritingAnonymousBoxStyle(
-      PseudoStyleType aType, const nsAtom* aPageName);
 
  public:
   void PutCachedAnonymousContentStyles(

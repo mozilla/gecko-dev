@@ -71,6 +71,7 @@ class nsDOMCSSAttributeDeclaration;
 class nsDOMStringMap;
 class nsDOMTokenList;
 class nsFocusManager;
+class nsGenericHTMLFormControlElementWithState;
 class nsGlobalWindowInner;
 class nsGlobalWindowOuter;
 class nsIAutoCompletePopup;
@@ -89,6 +90,7 @@ class nsIFrame;
 class nsIHTMLCollection;
 class nsIMozBrowserFrame;
 class nsIPrincipal;
+class nsIScreen;
 class nsIScrollableFrame;
 class nsIURI;
 class nsMappedAttributes;
@@ -128,6 +130,7 @@ class DOMIntersectionObserver;
 class DOMMatrixReadOnly;
 class Element;
 class ElementOrCSSPseudoElement;
+class PopoverData;
 class Promise;
 class Sanitizer;
 class ShadowRoot;
@@ -152,7 +155,7 @@ already_AddRefed<nsContentList> NS_GetContentList(nsINode* aRootNode,
   NODE_FLAG_BIT(NODE_TYPE_SPECIFIC_BITS_OFFSET + (n_))
 
 // Element-specific flags
-enum {
+enum : uint32_t {
   // Whether this node has dirty descendants for Servo's style system.
   ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO = ELEMENT_FLAG_BIT(0),
   // Whether this node has dirty descendants for animation-only restyle for
@@ -566,13 +569,59 @@ class Element : public FragmentOrElement {
   void ClearServoData() { ClearServoData(GetComposedDoc()); }
   void ClearServoData(Document* aDocument);
 
+  PopoverData* GetPopoverData() const {
+    const nsExtendedDOMSlots* slots = GetExistingExtendedDOMSlots();
+    return slots ? slots->mPopoverData.get() : nullptr;
+  }
+
+  PopoverData& EnsurePopoverData() {
+    if (auto* popoverData = GetPopoverData()) {
+      return *popoverData;
+    }
+    return CreatePopoverData();
+  }
+
+  // https://html.spec.whatwg.org/multipage/popover.html#popover-invoker
+  bool HasPopoverInvoker() const;
+  void SetHasPopoverInvoker(bool);
+
+  bool IsAutoPopover() const;
+  bool IsPopoverOpen() const;
+
+  /**
+   * https://html.spec.whatwg.org/multipage/popover.html#topmost-popover-ancestor
+   */
+  mozilla::dom::Element* GetTopmostPopoverAncestor() const;
+
+  ElementAnimationData* GetAnimationData() const {
+    if (!MayHaveAnimations()) {
+      return nullptr;
+    }
+    const nsExtendedDOMSlots* slots = GetExistingExtendedDOMSlots();
+    return slots ? slots->mAnimations.get() : nullptr;
+  }
+
+  ElementAnimationData& EnsureAnimationData() {
+    if (auto* anim = GetAnimationData()) {
+      return *anim;
+    }
+    return CreateAnimationData();
+  }
+
+ private:
+  ElementAnimationData& CreateAnimationData();
+  PopoverData& CreatePopoverData();
+
+ public:
+  void ClearPopoverData();
+
   /**
    * Gets the custom element data used by web components custom element.
    * Custom element data is created at the first attempt to enqueue a callback.
    *
    * @return The custom element data or null if none.
    */
-  inline CustomElementData* GetCustomElementData() const {
+  CustomElementData* GetCustomElementData() const {
     if (!HasCustomElementData()) {
       return nullptr;
     }
@@ -1034,8 +1083,6 @@ class Element : public FragmentOrElement {
    */
   uint32_t GetAttrCount() const { return mAttrs.AttrCount(); }
 
-  virtual bool IsNodeOfType(uint32_t aFlags) const override;
-
   /**
    * Get the class list of this element (this corresponds to the value of the
    * class attribute).  This may be null if there are no classes, but that's not
@@ -1209,6 +1256,18 @@ class Element : public FragmentOrElement {
       ErrorResult& aError);
   already_AddRefed<nsIHTMLCollection> GetElementsByClassName(
       const nsAString& aClassNames);
+
+  /**
+   * Returns attribute associated element for the given attribute name, see
+   * https://html.spec.whatwg.org/multipage/common-dom-interfaces.html#attr-associated-element
+   */
+  Element* GetAttrAssociatedElement(nsAtom* aAttr) const;
+
+  /**
+   * Sets an attribute element for the given attribute.
+   * https://html.spec.whatwg.org/multipage/common-dom-interfaces.html#explicitly-set-attr-element
+   */
+  void ExplicitlySetAttrElement(nsAtom* aAttr, Element* aElement);
 
   PseudoStyleType GetPseudoElementType() const {
     nsresult rv = NS_OK;
@@ -1868,9 +1927,8 @@ class Element : public FragmentOrElement {
    *        will be null.
    * @param aNotify Whether we plan to notify document observers.
    */
-  virtual nsresult BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
-                                 const nsAttrValueOrString* aValue,
-                                 bool aNotify);
+  virtual void BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
+                             const nsAttrValue* aValue, bool aNotify);
 
   /**
    * Hook that is called by Element::SetAttr to allow subclasses to
@@ -1894,11 +1952,11 @@ class Element : public FragmentOrElement {
    *        principal is directly responsible for the attribute change.
    * @param aNotify Whether we plan to notify document observers.
    */
-  virtual nsresult AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
-                                const nsAttrValue* aValue,
-                                const nsAttrValue* aOldValue,
-                                nsIPrincipal* aMaybeScriptedPrincipal,
-                                bool aNotify);
+  virtual void AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
+                            const nsAttrValue* aValue,
+                            const nsAttrValue* aOldValue,
+                            nsIPrincipal* aMaybeScriptedPrincipal,
+                            bool aNotify);
 
   /**
    * This function shall be called just before the id attribute changes. It will
@@ -1916,7 +1974,7 @@ class Element : public FragmentOrElement {
    * @param aValue the new id value. Will be null if the id is being unset.
    */
   void PreIdMaybeChange(int32_t aNamespaceID, nsAtom* aName,
-                        const nsAttrValueOrString* aValue);
+                        const nsAttrValue* aValue);
 
   /**
    * This function shall be called just after the id attribute changes. It will
@@ -1949,11 +2007,9 @@ class Element : public FragmentOrElement {
    *        a parsed nsAttrValue.
    * @param aNotify Whether we plan to notify document observers.
    */
-  // Note that this is inlined so that when subclasses call it it gets
-  // inlined.  Those calls don't go through a vtable.
-  virtual nsresult OnAttrSetButNotChanged(int32_t aNamespaceID, nsAtom* aName,
-                                          const nsAttrValueOrString& aValue,
-                                          bool aNotify);
+  virtual void OnAttrSetButNotChanged(int32_t aNamespaceID, nsAtom* aName,
+                                      const nsAttrValueOrString& aValue,
+                                      bool aNotify);
 
   /**
    * Hook to allow subclasses to produce a different EventListenerManager if
@@ -2041,6 +2097,8 @@ class Element : public FragmentOrElement {
    * (e.g. _blank).
    */
   virtual void GetLinkTarget(nsAString& aTarget);
+
+  virtual bool Translate() const;
 
  protected:
   enum class ReparseAttributes { No, Yes };

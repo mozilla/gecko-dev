@@ -16,8 +16,8 @@ fn parse_comment() {
 
 #[test]
 fn parse_types() {
-    parse_str("let a : i32 = 2;").unwrap();
-    assert!(parse_str("let a : x32 = 2;").is_err());
+    parse_str("const a : i32 = 2;").unwrap();
+    assert!(parse_str("const a : x32 = 2;").is_err());
     parse_str("var t: texture_2d<f32>;").unwrap();
     parse_str("var t: texture_cube_array<i32>;").unwrap();
     parse_str("var t: texture_multisampled_2d<u32>;").unwrap();
@@ -48,7 +48,7 @@ fn parse_type_inference() {
 fn parse_type_cast() {
     parse_str(
         "
-        let a : i32 = 2;
+        const a : i32 = 2;
         fn main() {
             var x: f32 = f32(a);
             x = f32(i32(a + 1) / 2);
@@ -249,8 +249,7 @@ fn parse_switch() {
             var pos: f32;
             switch (3) {
                 case 0, 1: { pos = 0.0; }
-                case 2: { pos = 1.0; fallthrough; }
-                case 3: {}
+                case 2: { pos = 1.0; }
                 default: { pos = 3.0; }
             }
         }
@@ -267,9 +266,25 @@ fn parse_switch_optional_colon_in_case() {
             var pos: f32;
             switch (3) {
                 case 0, 1 { pos = 0.0; }
-                case 2 { pos = 1.0; fallthrough; }
-                case 3 {}
+                case 2 { pos = 1.0; }
                 default { pos = 3.0; }
+            }
+        }
+    ",
+    )
+    .unwrap();
+}
+
+#[test]
+fn parse_switch_default_in_case() {
+    parse_str(
+        "
+        fn main() {
+            var pos: f32;
+            switch (3) {
+                case 0, 1: { pos = 0.0; }
+                case 2: {}
+                case default, 3: { pos = 3.0; }
             }
         }
     ",
@@ -342,10 +357,10 @@ fn parse_texture_query() {
         "
         var t: texture_multisampled_2d_array<f32>;
         fn foo() {
-            var dim: vec2<i32> = textureDimensions(t);
+            var dim: vec2<u32> = textureDimensions(t);
             dim = textureDimensions(t, 0);
-            let layers: i32 = textureNumLayers(t);
-            let samples: i32 = textureNumSamples(t);
+            let layers: u32 = textureNumLayers(t);
+            let samples: u32 = textureNumSamples(t);
         }
     ",
     )
@@ -452,6 +467,16 @@ fn parse_storage_buffers() {
         "
         @group(0) @binding(0)
         var<storage,read_write> foo: array<u32>;
+        ",
+    )
+    .unwrap();
+}
+
+#[test]
+fn parse_alias() {
+    parse_str(
+        "
+        alias Vec4 = vec4<f32>;
         ",
     )
     .unwrap();

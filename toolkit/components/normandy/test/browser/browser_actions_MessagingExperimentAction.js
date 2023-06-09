@@ -1,15 +1,17 @@
 "use strict";
 
-const { BaseAction } = ChromeUtils.import(
-  "resource://normandy/actions/BaseAction.jsm"
+const { BaseAction } = ChromeUtils.importESModule(
+  "resource://normandy/actions/BaseAction.sys.mjs"
 );
-const { Uptake } = ChromeUtils.import("resource://normandy/lib/Uptake.jsm");
-const { MessagingExperimentAction } = ChromeUtils.import(
-  "resource://normandy/actions/MessagingExperimentAction.jsm"
+const { Uptake } = ChromeUtils.importESModule(
+  "resource://normandy/lib/Uptake.sys.mjs"
+);
+const { MessagingExperimentAction } = ChromeUtils.importESModule(
+  "resource://normandy/actions/MessagingExperimentAction.sys.mjs"
 );
 
-const { _ExperimentManager, ExperimentManager } = ChromeUtils.import(
-  "resource://nimbus/lib/ExperimentManager.jsm"
+const { _ExperimentManager, ExperimentManager } = ChromeUtils.importESModule(
+  "resource://nimbus/lib/ExperimentManager.sys.mjs"
 );
 
 decorate_task(

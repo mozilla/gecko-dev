@@ -459,7 +459,7 @@ Finder.prototype = {
           return;
         }
       } catch (ex) {
-        Cu.reportError(ex);
+        console.error(ex);
       }
     }
 
@@ -808,7 +808,11 @@ Finder.prototype = {
 
 export function GetClipboardSearchString(aLoadContext) {
   let searchString = "";
-  if (!Services.clipboard.supportsFindClipboard()) {
+  if (
+    !Services.clipboard.isClipboardTypeSupported(
+      Services.clipboard.kFindClipboard
+    )
+  ) {
     return searchString;
   }
 
@@ -817,12 +821,12 @@ export function GetClipboardSearchString(aLoadContext) {
       Ci.nsITransferable
     );
     trans.init(aLoadContext);
-    trans.addDataFlavor("text/unicode");
+    trans.addDataFlavor("text/plain");
 
     Services.clipboard.getData(trans, Ci.nsIClipboard.kFindClipboard);
 
     let data = {};
-    trans.getTransferData("text/unicode", data);
+    trans.getTransferData("text/plain", data);
     if (data.value) {
       data = data.value.QueryInterface(Ci.nsISupportsString);
       searchString = data.toString();
@@ -833,7 +837,12 @@ export function GetClipboardSearchString(aLoadContext) {
 }
 
 export function SetClipboardSearchString(aSearchString) {
-  if (!aSearchString || !Services.clipboard.supportsFindClipboard()) {
+  if (
+    !aSearchString ||
+    !Services.clipboard.isClipboardTypeSupported(
+      Services.clipboard.kFindClipboard
+    )
+  ) {
     return;
   }
 

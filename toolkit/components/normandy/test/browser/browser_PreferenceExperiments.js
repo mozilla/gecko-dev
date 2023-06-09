@@ -1,19 +1,16 @@
 "use strict";
 
-const { TelemetryEnvironment } = ChromeUtils.importESModule(
-  "resource://gre/modules/TelemetryEnvironment.sys.mjs"
+const { PreferenceExperiments } = ChromeUtils.importESModule(
+  "resource://normandy/lib/PreferenceExperiments.sys.mjs"
 );
-const { PreferenceExperiments } = ChromeUtils.import(
-  "resource://normandy/lib/PreferenceExperiments.jsm"
+const { CleanupManager } = ChromeUtils.importESModule(
+  "resource://normandy/lib/CleanupManager.sys.mjs"
 );
-const { CleanupManager } = ChromeUtils.import(
-  "resource://normandy/lib/CleanupManager.jsm"
+const { NormandyUtils } = ChromeUtils.importESModule(
+  "resource://normandy/lib/NormandyUtils.sys.mjs"
 );
-const { NormandyUtils } = ChromeUtils.import(
-  "resource://normandy/lib/NormandyUtils.jsm"
-);
-const { NormandyTestUtils } = ChromeUtils.import(
-  "resource://testing-common/NormandyTestUtils.jsm"
+const { NormandyTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/NormandyTestUtils.sys.mjs"
 );
 
 // Save ourselves some typing

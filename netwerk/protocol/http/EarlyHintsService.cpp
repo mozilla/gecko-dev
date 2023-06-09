@@ -8,6 +8,7 @@
 #include "EarlyHintsService.h"
 #include "EarlyHintPreconnect.h"
 #include "EarlyHintPreloader.h"
+#include "mozilla/dom/LinkStyle.h"
 #include "mozilla/PreloadHashKey.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/glean/GleanMetrics.h"
@@ -88,8 +89,10 @@ void EarlyHintsService::EarlyHint(const nsACString& aLinkHeader,
   for (auto& linkHeader : linkHeaders) {
     CollectLinkTypeTelemetry(linkHeader.mRel);
     if (linkHeader.mRel.LowerCaseEqualsLiteral("preconnect")) {
+      mLinkType |= dom::LinkStyle::ePRECONNECT;
       EarlyHintPreconnect::MaybePreconnect(linkHeader, aBaseURI, principal);
     } else if (linkHeader.mRel.LowerCaseEqualsLiteral("preload")) {
+      mLinkType |= dom::LinkStyle::ePRELOAD;
       EarlyHintPreloader::MaybeCreateAndInsertPreload(
           mOngoingEarlyHints, linkHeader, aBaseURI, principal,
           cookieJarSettings, aReferrerPolicy, aCSPHeader);
@@ -105,7 +108,7 @@ void EarlyHintsService::FinalResponse(uint32_t aResponseStatus) {
 
 void EarlyHintsService::Cancel(const nsACString& aReason) {
   CollectTelemetry(Nothing());
-  mOngoingEarlyHints->CancelAllOngoingPreloads(aReason);
+  mOngoingEarlyHints->CancelAll(aReason);
 }
 
 void EarlyHintsService::RegisterLinksAndGetConnectArgs(

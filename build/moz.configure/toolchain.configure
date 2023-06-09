@@ -95,16 +95,23 @@ with only_when(host_is_osx | target_is_osx):
             )
         return Version(obj["Version"])
 
-    @depends("--with-macos-sdk", host)
+    def sdk_min_version():
+        return "13.0"
+
+    @depends(
+        "--with-macos-sdk",
+        host,
+        bootstrap_path(
+            "MacOSX{}.sdk".format(sdk_min_version()),
+            when=depends("--with-macos-sdk")(lambda x: not x),
+        ),
+    )
     @imports(_from="__builtin__", _import="Exception")
     @imports(_from="os.path", _import="isdir")
     @imports(_from="os", _import="listdir")
-    def macos_sdk(sdk, host):
-        # When we change the SDK we build with, please update the manual SDK
-        # installation docs:
-        # https://firefox-source-docs.mozilla.org/setup/macos_build.html#macos-sdk-is-unsupported
-        sdk_min_version = Version("11.3")
-
+    def macos_sdk(sdk, host, bootstrapped):
+        if bootstrapped:
+            sdk = [bootstrapped]
         if sdk:
             sdk = sdk[0]
             try:
@@ -144,13 +151,10 @@ with only_when(host_is_osx | target_is_osx):
                 "tools are selected during the Xcode/Developer Tools installation."
                 % sdk
             )
-        sdk_installation_docs_url = "https://firefox-source-docs.mozilla.org/setup/macos_build.html#macos-sdk-is-unsupported"
-        if version < sdk_min_version:
+        if version < Version(sdk_min_version()):
             die(
                 'SDK version "%s" is too old. Please upgrade to at least %s. Try '
-                "updating your system Xcode. If that's not sufficient, see the manual "
-                "SDK installation docs: %s"
-                % (version, sdk_min_version, sdk_installation_docs_url)
+                "updating your system Xcode." % (version, sdk_min_version())
             )
         return sdk
 
@@ -240,8 +244,12 @@ add_old_configure_assignment("TOOLCHAIN_PREFIX", first_toolchain_prefix)
 include("compilers-util.configure")
 
 
-def try_preprocess(compiler, language, source, onerror=None):
-    return try_invoke_compiler(compiler, language, source, ["-E"], onerror)
+def try_preprocess(
+    configure_cache, compiler, language, source, onerror=None, wrapper=[]
+):
+    return try_invoke_compiler(
+        configure_cache, compiler, language, source, ["-E"], onerror, wrapper
+    )
 
 
 @imports(_from="mozbuild.configure.constants", _import="CompilerType")
@@ -250,7 +258,7 @@ def try_preprocess(compiler, language, source, onerror=None):
 @imports(_from="mozbuild.configure.constants", _import="OS_preprocessor_checks")
 @imports(_from="textwrap", _import="dedent")
 @imports(_from="__builtin__", _import="Exception")
-def get_compiler_info(compiler, language):
+def get_compiler_info(configure_cache, compiler, language):
     """Returns information about the given `compiler` (command line in the
     form of a list or tuple), in the given `language`.
 
@@ -324,7 +332,7 @@ def get_compiler_info(compiler, language):
     """
     )
 
-    result = try_preprocess(compiler, language, check)
+    result = try_preprocess(configure_cache, compiler, language, check)
 
     if not result:
         raise FatalCheckError("Unknown compiler or compiler not supported.")
@@ -402,8 +410,8 @@ def same_arch_different_bits():
 
 @imports(_from="mozbuild.shellutil", _import="quote")
 @imports(_from="mozbuild.configure.constants", _import="OS_preprocessor_checks")
-def check_compiler(compiler, language, target):
-    info = get_compiler_info(compiler, language)
+def check_compiler(configure_cache, compiler, language, target, android_version):
+    info = get_compiler_info(configure_cache, compiler, language)
 
     flags = []
 
@@ -437,6 +445,13 @@ def check_compiler(compiler, language, target):
     # Check compiler target
     # --------------------------------------------------------------------
     has_target = False
+    if target.os == "Android" and android_version:
+        # This makes clang define __ANDROID_API__ and use versioned library
+        # directories from the NDK.
+        toolchain = "%s%d" % (target.toolchain, android_version)
+    else:
+        toolchain = target.toolchain
+
     if info.type == "clang":
         # Add the target explicitly when the target is aarch64 macosx, because
         # the Xcode clang target is named differently, and we need to work around
@@ -455,7 +470,7 @@ def check_compiler(compiler, language, target):
             or not info.endianness
             or info.endianness != target.endianness
         ):
-            flags.append("--target=%s" % target.toolchain)
+            flags.append("--target=%s" % toolchain)
             has_target = True
 
         # Add target flag when there is an OS mismatch (e.g. building for Android on
@@ -464,7 +479,7 @@ def check_compiler(compiler, language, target):
         elif target.os in OS_preprocessor_checks and (
             not info.os or info.os != target.os
         ):
-            flags.append("--target=%s" % target.toolchain)
+            flags.append("--target=%s" % toolchain)
             has_target = True
 
     if not has_target and (not info.cpu or info.cpu != target.cpu):
@@ -474,9 +489,9 @@ def check_compiler(compiler, language, target):
         elif (info.cpu, target.cpu) in same_arch:
             flags.append("-m64")
         elif info.type == "clang-cl" and target.cpu == "aarch64":
-            flags.append("--target=%s" % target.toolchain)
+            flags.append("--target=%s" % toolchain)
         elif info.type == "clang":
-            flags.append("--target=%s" % target.toolchain)
+            flags.append("--target=%s" % toolchain)
 
     return namespace(
         type=info.type,
@@ -558,9 +573,19 @@ option(
 )
 
 
-@depends_if("WINSYSROOT", when=is_windows)
-def winsysroot(winsysroot):
-    return winsysroot[0]
+@depends(
+    "WINSYSROOT",
+    bootstrap_path(
+        "vs",
+        when=depends("WINSYSROOT", when=is_windows)(lambda x: not x),
+    ),
+    when=is_windows,
+)
+def winsysroot(winsysroot, bootstrapped):
+    if bootstrapped:
+        return bootstrapped
+    if winsysroot:
+        return winsysroot[0]
 
 
 option(
@@ -655,6 +680,18 @@ def vc_toolchain_search_path(vc_compiler_path, original_path):
     return result
 
 
+@depends_if(vc_compiler_path, when=is_windows)
+def vc_compiler_version(vc_compiler_path):
+    version = Version(
+        os.path.basename(
+            os.path.dirname(os.path.dirname(os.path.dirname(vc_compiler_path[0])))
+        )
+    )
+    # MSVC path with version 14.x is actually version 19.x
+    if version.major == 14:
+        return f"19.{version.minor}"
+
+
 clang_search_path = bootstrap_search_path("clang/bin")
 
 
@@ -681,18 +718,13 @@ def rust_search_path(rust_path, search_order, original_path):
     return result
 
 
-# As a workaround until bug 1516228 and bug 1516253 are fixed, set the PATH
-# variable for the build to contain the toolchain search path.
-#
-# FIXME(bug 1802573): The two bugs above are fixed, do we still need that?
-#
 # Prepend the mozilla-build msys2 path, since otherwise we can get mismatched
 # cygwin dll errors during configure if we get called from another msys2
 # environment, see bug 1801826.
-@depends(mozillabuild_bin_paths, vc_toolchain_search_path)
+@depends(mozillabuild_bin_paths)
 @imports("os")
-def altered_path(mozillabuild_bin_paths, vc_toolchain_search_path):
-    altered_path = mozillabuild_bin_paths + list(vc_toolchain_search_path)
+def altered_path(mozillabuild_bin_paths):
+    altered_path = mozillabuild_bin_paths
     for p in os.environ["PATH"].split(os.pathsep):
         if p not in altered_path:
             altered_path.append(p)
@@ -860,7 +892,13 @@ def default_c_compilers(host_or_target, other_c_compiler=None):
         host_or_target, target, toolchain_prefix, *other_c_compiler
     ):
         if host_or_target.kernel == "WINNT":
-            supported = types = ("clang-cl", "clang")
+            if host_or_target.abi:
+                if host_or_target.abi == "msvc":
+                    supported = types = ("clang-cl",)
+                elif host_or_target.abi == "mingw":
+                    supported = types = ("clang",)
+            else:
+                supported = types = ("clang-cl", "clang")
         elif host_or_target.kernel == "Darwin":
             types = ("clang",)
             supported = ("clang", "gcc")
@@ -1178,12 +1216,15 @@ def compiler(
     )
 
     @depends(
+        configure_cache,
         compiler,
         provided_compiler,
         compiler_wrapper,
         host_or_target,
         sysroot,
         macos_target,
+        android_version,
+        vc_compiler_version,
         multiarch_dir,
         winsysroot,
         host,
@@ -1192,12 +1233,15 @@ def compiler(
     @imports(_from="mozbuild.shellutil", _import="quote")
     @imports("os")
     def valid_compiler(
+        configure_cache,
         compiler,
         provided_compiler,
         compiler_wrapper,
         host_or_target,
         sysroot,
         macos_target,
+        android_version,
+        vc_compiler_version,
         multiarch_dir,
         winsysroot,
         host,
@@ -1218,7 +1262,23 @@ def compiler(
             wrapper.extend(provided_compiler.wrapper)
             flags.extend(provided_compiler.flags)
 
-        info = check_compiler(wrapper + [compiler] + flags, language, host_or_target)
+        info = check_compiler(
+            configure_cache,
+            wrapper + [compiler] + flags,
+            language,
+            host_or_target,
+            android_version,
+        )
+
+        # When not given an explicit compatibility version, clang-cl tries
+        # to get one from MSVC, which might not even be the one used by the
+        # build. And when it can't find one, its default might also not match
+        # what the build is using. So if we were able to figure out the version
+        # we're building with, explicitly use that.
+        # This also means that, as a side effect, clang-cl will not try to find
+        # MSVC, which saves a little overhead.
+        if info.type == "clang-cl" and vc_compiler_version:
+            flags.append(f"-fms-compatibility-version={vc_compiler_version}")
 
         if info.type == "clang" and language == "C++" and host_or_target.os == "OSX":
             flags.append("-stdlib=libc++")
@@ -1236,7 +1296,11 @@ def compiler(
             if info.flags:
                 flags += info.flags
                 info = check_compiler(
-                    wrapper + [compiler] + flags, language, host_or_target
+                    configure_cache,
+                    wrapper + [compiler] + flags,
+                    language,
+                    host_or_target,
+                    android_version,
                 )
         except FatalCheckError:
             pass
@@ -1327,13 +1391,21 @@ def compiler(
                         # to support it, so check we're using a patched version.
                         info.version >= "15.0"
                         and try_preprocess(
-                            wrapper + [compiler] + flags + overlay_flags,
+                            configure_cache,
+                            [compiler] + flags + overlay_flags,
                             language,
                             "",
                             onerror=lambda: False,
+                            wrapper=wrapper,
                         )
                     ):
                         flags.extend(overlay_flags)
+
+        if (info.type, host_or_target.abi) in (
+            ("clang", "msvc"),
+            ("clang-cl", "mingw"),
+        ):
+            raise FatalCheckError("Unknown compiler or compiler not supported.")
 
         # If you want to bump the version check here ensure the version
         # is known for Xcode in get_compiler_info.
@@ -1354,13 +1426,16 @@ def compiler(
                     % (host_or_target.alias, info.version)
                 )
 
+        if host_or_target.os == "Android":
+            # Need at least clang 13 for compiler-rt/libunwind being the default.
+            if info.type == "clang" and info.version < "13.0":
+                raise FatalCheckError(
+                    "Only clang/llvm 13.0 or newer is supported for %s (found version %s)."
+                    % (host_or_target.alias, info.version)
+                )
+
         if info.flags:
             raise FatalCheckError("Unknown compiler or compiler not supported.")
-
-        # Recent clang defaults to compiler-rt, but we want libgcc for compat
-        # with the older NDKs we use.
-        if host_or_target.os == "Android":
-            flags.append("--rtlib=libgcc")
 
         return namespace(
             wrapper=wrapper,
@@ -1504,6 +1579,32 @@ host_cxx_compiler = compiler(
     other_compiler=cxx_compiler,
     other_c_compiler=c_compiler,
 )
+
+
+@template
+def windows_abi(host_or_target, c_compiler):
+    @depends(host_or_target)
+    def windows_abi(host_or_target):
+        if host_or_target.os == "WINNT":
+            return host_or_target.abi
+
+    @depends(host_or_target, windows_abi)
+    def need_windows_abi_from_compiler(host_or_target, windows_abi):
+        return host_or_target.os == "WINNT" and windows_abi is None
+
+    @depends(host_or_target, c_compiler, when=need_windows_abi_from_compiler)
+    def windows_abi_from_compiler(host_or_target, c_compiler):
+        if host_or_target.os == "WINNT":
+            if c_compiler.type == "clang-cl":
+                return "msvc"
+            return "mingw"
+
+    return windows_abi | windows_abi_from_compiler
+
+
+target_windows_abi = windows_abi(target, c_compiler)
+host_windows_abi = windows_abi(host, host_c_compiler)
+
 
 # Generic compiler-based conditions.
 building_with_gcc = depends(c_compiler)(lambda info: info.type == "gcc")
@@ -1760,7 +1861,8 @@ def linker_ldflags_tmpl(host_or_target):
             target,
             target_sysroot,
             target_multiarch_dir,
-            android_platform,
+            android_sysroot,
+            android_version,
             c_compiler,
             developer_options,
         )
@@ -1770,6 +1872,7 @@ def linker_ldflags_tmpl(host_or_target):
             host,
             host_sysroot,
             host_multiarch_dir,
+            dependable(None),
             dependable(None),
             host_c_compiler,
             developer_options,
@@ -1782,7 +1885,8 @@ def linker_ldflags_tmpl(host_or_target):
         target,
         sysroot,
         multiarch_dir,
-        android_platform,
+        android_sysroot,
+        android_version,
         c_compiler,
         developer_options,
     ):
@@ -1808,11 +1912,17 @@ def linker_ldflags_tmpl(host_or_target):
                         sysroot.path, multiarch_dir, sysroot.stdcxx_version
                     )
                 )
-        if android_platform:
-            flags.append("-L{}/usr/lib".format(android_platform))
-            flags.append("-Wl,--rpath-link={}/usr/lib".format(android_platform))
-            flags.append("--sysroot")
-            flags.append(android_platform)
+        if android_sysroot:
+            # BFD/gold linkers need a manual --rpath-link for indirect
+            # dependencies.
+            flags += [
+                "-Wl,--rpath-link={}/usr/lib/{}".format(
+                    android_sysroot, target.toolchain
+                ),
+                "-Wl,--rpath-link={}/usr/lib/{}/{}".format(
+                    android_sysroot, target.toolchain, android_version
+                ),
+            ]
         if (
             developer_options
             and linker
@@ -3091,3 +3201,6 @@ set_config("MMX_FLAGS", ["-mmmx"])
 set_config("SSE_FLAGS", ["-msse"])
 set_config("SSE2_FLAGS", ["-msse2"])
 set_config("SSSE3_FLAGS", ["-mssse3"])
+set_config("SSE4_2_FLAGS", ["-msse4.2"])
+set_config("FMA_FLAGS", ["-mfma"])
+set_config("AVX2_FLAGS", ["-mavx2"])

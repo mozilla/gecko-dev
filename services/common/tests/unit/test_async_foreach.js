@@ -1,8 +1,12 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-const { Async } = ChromeUtils.import("resource://services-common/async.js");
-const { sinon } = ChromeUtils.import("resource://testing-common/Sinon.jsm");
+const { Async } = ChromeUtils.importESModule(
+  "resource://services-common/async.sys.mjs"
+);
+const { sinon } = ChromeUtils.importESModule(
+  "resource://testing-common/Sinon.sys.mjs"
+);
 
 function makeArray(length) {
   // Start at 1 so that we can just divide by yieldEvery to get the expected

@@ -2,7 +2,7 @@
  * @licstart The following is the entire license notice for the
  * JavaScript code in this page
  *
- * Copyright 2022 Mozilla Foundation
+ * Copyright 2023 Mozilla Foundation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -582,19 +582,29 @@ class Field extends _pdf_object.PDFObject {
     } else if (typeof value === "string") {
       switch (this._fieldType) {
         case _common.FieldType.none:
-          this._value = !isNaN(value) ? parseFloat(value) : value;
-          break;
+          {
+            this._originalValue = value;
+            const _value = value.trim().replace(",", ".");
+            this._value = !isNaN(_value) ? parseFloat(_value) : value;
+            break;
+          }
         case _common.FieldType.number:
         case _common.FieldType.percent:
-          const number = parseFloat(value);
-          this._value = !isNaN(number) ? number : 0;
-          break;
+          {
+            const _value = value.trim().replace(",", ".");
+            const number = parseFloat(_value);
+            this._value = !isNaN(number) ? number : 0;
+            break;
+          }
         default:
           this._value = value;
       }
     } else {
       this._value = value;
     }
+  }
+  _getValue() {
+    return this._originalValue ?? this.value;
   }
   _setChoiceValue(value) {
     if (this.multipleSelection) {
@@ -1227,7 +1237,7 @@ class AForm {
     if (!actions) {
       actions = [];
       this._dateActionsCache.set(cFormat, actions);
-      cFormat.replace(/(d+)|(m+)|(y+)|(H+)|(M+)|(s+)/g, function (match, d, m, y, H, M, s) {
+      cFormat.replaceAll(/(d+)|(m+)|(y+)|(H+)|(M+)|(s+)/g, function (match, d, m, y, H, M, s) {
         if (d) {
           actions.push((n, date) => {
             if (n >= 1 && n <= 31) {
@@ -2393,7 +2403,8 @@ class EventDispatcher {
     if (event.rc) {
       source.obj.value = event.value;
       this.runCalculate(source, event);
-      const savedValue = event.value = source.obj.value;
+      const savedValue = source.obj._getValue();
+      event.value = source.obj.value;
       let formattedValue = null;
       if (this.runActions(source, source, event, "Format")) {
         formattedValue = event.value?.toString?.();
@@ -3657,7 +3668,7 @@ class ProxyHandler {
         const data = {
           id: obj._id
         };
-        data[prop] = obj[prop];
+        data[prop] = prop === "value" ? obj._getValue() : obj[prop];
         if (!obj._siblings) {
           obj._send(data);
         } else {
@@ -3753,7 +3764,7 @@ class Util extends _pdf_object.PDFObject {
     const ZERO = 4;
     const HASH = 8;
     let i = 0;
-    return args[0].replace(pattern, function (match, nDecSep, cFlags, nWidth, nPrecision, cConvChar) {
+    return args[0].replaceAll(pattern, function (match, nDecSep, cFlags, nWidth, nPrecision, cConvChar) {
       if (cConvChar !== "d" && cConvChar !== "f" && cConvChar !== "s" && cConvChar !== "x") {
         const buf = ["%"];
         for (const str of [nDecSep, cFlags, nWidth, nPrecision, cConvChar]) {
@@ -3945,7 +3956,7 @@ class Util extends _pdf_object.PDFObject {
       seconds: oDate.getSeconds()
     };
     const patterns = /(mmmm|mmm|mm|m|dddd|ddd|dd|d|yyyy|yy|HH|H|hh|h|MM|M|ss|s|tt|t|\\.)/g;
-    return cFormat.replace(patterns, function (match, pattern) {
+    return cFormat.replaceAll(patterns, function (match, pattern) {
       if (pattern in handlers) {
         return handlers[pattern](data);
       }
@@ -4164,10 +4175,10 @@ class Util extends _pdf_object.PDFObject {
           }
         }
       };
-      const escapedFormat = cFormat.replace(/[.*+\-?^${}()|[\]\\]/g, "\\$&");
+      const escapedFormat = cFormat.replaceAll(/[.*+\-?^${}()|[\]\\]/g, "\\$&");
       const patterns = /(mmmm|mmm|mm|m|dddd|ddd|dd|d|yyyy|yy|HH|H|hh|h|MM|M|ss|s|tt|t)/g;
       const actions = [];
-      const re = escapedFormat.replace(patterns, function (match, patternElement) {
+      const re = escapedFormat.replaceAll(patterns, function (match, patternElement) {
         const {
           pattern,
           action
@@ -4247,8 +4258,8 @@ Object.defineProperty(exports, "initSandbox", ({
   }
 }));
 var _initialization = __w_pdfjs_require__(1);
-const pdfjsVersion = '3.3.56';
-const pdfjsBuild = '1e938a688';
+const pdfjsVersion = '3.6.126';
+const pdfjsBuild = '3f89a99a5';
 })();
 
 /******/ 	return __webpack_exports__;

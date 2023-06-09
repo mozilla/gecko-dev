@@ -12,6 +12,7 @@
 #include "unicode/uniset.h"
 #include "unicode/unistr.h"
 #include "unicode/usetiter.h"
+#include "unicode/utf16.h"  // For U16_NEXT
 #endif  // V8_INTL_SUPPORT
 
 namespace v8 {
@@ -1306,26 +1307,6 @@ RegExpParserState* RegExpParserImpl<CharT>::ParseOpenParenthesis(
       state->builder()->flags(), zone());
 }
 
-#ifdef DEBUG
-namespace {
-
-bool IsSpecialClassEscape(base::uc32 c) {
-  switch (c) {
-    case 'd':
-    case 'D':
-    case 's':
-    case 'S':
-    case 'w':
-    case 'W':
-      return true;
-    default:
-      return false;
-  }
-}
-
-}  // namespace
-#endif
-
 // In order to know whether an escape is a backreference or not we have to scan
 // the entire regexp and find the number of capturing parentheses.  However we
 // don't want to scan the regexp twice unless it is necessary.  This mini-parser
@@ -2191,7 +2172,7 @@ base::uc32 RegExpParserImpl<CharT>::ParseCharacterEscape(
     InClassEscapeState in_class_escape_state,
     bool* is_escaped_unicode_character) {
   DCHECK_EQ('\\', current());
-  DCHECK(has_next() && !IsSpecialClassEscape(Next()));
+  DCHECK(has_next());
 
   Advance();
 
@@ -2547,7 +2528,6 @@ RegExpTree* RegExpParserImpl<CharT>::ParseClassStringDisjunction(
   // We don't need to handle missing closing '}' here.
   // If the character class is correctly closed, ParseClassSetCharacter will
   // report an error.
-  DCHECK_EQ(current(), '}');
   Advance();
   return nullptr;
 }
@@ -2749,6 +2729,7 @@ RegExpTree* RegExpParserImpl<CharT>::ParseClassUnion(
         // range.
         if (!ranges->is_empty() || !strings->empty()) {
           if (needs_case_folding) {
+            CharacterRange::Canonicalize(ranges);
             CharacterRange::AddUnicodeCaseEquivalents(ranges, zone());
           }
           may_contain_strings |= !strings->empty();
@@ -2770,6 +2751,7 @@ RegExpTree* RegExpParserImpl<CharT>::ParseClassUnion(
   // Add the range we started building as operand.
   if (!ranges->is_empty() || !strings->empty()) {
     if (needs_case_folding) {
+      CharacterRange::Canonicalize(ranges);
       CharacterRange::AddUnicodeCaseEquivalents(ranges, zone());
     }
     may_contain_strings |= !strings->empty();
@@ -2881,10 +2863,14 @@ RegExpTree* RegExpParserImpl<CharT>::ParseCharacterClass(
       zone()->template New<ZoneList<CharacterRange>>(2, zone());
   if (current() == ']') {
     Advance();
-    RegExpClassRanges::ClassRangesFlags class_ranges_flags;
-    if (is_negated) class_ranges_flags = RegExpClassRanges::NEGATED;
-    return zone()->template New<RegExpClassRanges>(zone(), ranges,
-                                                   class_ranges_flags);
+    if (unicode_sets()) {
+      return RegExpClassSetExpression::Empty(zone(), is_negated);
+    } else {
+      RegExpClassRanges::ClassRangesFlags class_ranges_flags;
+      if (is_negated) class_ranges_flags = RegExpClassRanges::NEGATED;
+      return zone()->template New<RegExpClassRanges>(zone(), ranges,
+                                                     class_ranges_flags);
+    }
   }
 
   if (!unicode_sets()) {

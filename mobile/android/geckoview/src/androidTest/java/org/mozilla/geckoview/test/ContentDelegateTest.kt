@@ -17,6 +17,7 @@ import org.junit.Assume.assumeThat
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.geckoview.* // ktlint-disable no-wildcard-imports
+import org.mozilla.geckoview.ContentBlocking.CookieBannerMode
 import org.mozilla.geckoview.GeckoDisplay.SurfaceInfo
 import org.mozilla.geckoview.GeckoSession.ContentDelegate
 import org.mozilla.geckoview.GeckoSession.NavigationDelegate
@@ -26,6 +27,7 @@ import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.AssertCalled
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.IgnoreCrash
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.NullDelegate
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.WithDisplay
+import java.io.ByteArrayInputStream
 
 @RunWith(AndroidJUnit4::class)
 @MediumTest
@@ -43,6 +45,38 @@ class ContentDelegateTest : BaseSessionTest() {
                 )
             }
         })
+    }
+
+    @Test fun openInAppRequest() {
+        // Testing WebResponse behavior
+        val data = "Hello, World.".toByteArray()
+        val fileHeader = "attachment; filename=\"hello-world.txt\""
+        val requestExternal = true
+        val skipConfirmation = true
+        var response = WebResponse.Builder(HELLO_HTML_PATH)
+            .statusCode(200)
+            .body(ByteArrayInputStream(data))
+            .addHeader("Content-Type", "application/txt")
+            .addHeader("Content-Length", data.size.toString())
+            .addHeader("Content-Disposition", fileHeader)
+            .requestExternalApp(requestExternal)
+            .skipConfirmation(skipConfirmation)
+            .build()
+        assertThat(
+            "Filename matches as expected",
+            response.headers["Content-Disposition"],
+            equalTo(fileHeader)
+        )
+        assertThat(
+            "Request external response matches as expected.",
+            requestExternal,
+            equalTo(response.requestExternalApp)
+        )
+        assertThat(
+            "Skipping the confirmation matches as expected.",
+            skipConfirmation,
+            equalTo(response.skipConfirmation)
+        )
     }
 
     @Test fun downloadOneRequest() {
@@ -72,6 +106,8 @@ class ContentDelegateTest : BaseSessionTest() {
                 assertThat("Content type should match", response.headers.get("content-type"), equalTo("text/plain"))
                 assertThat("Content length should be non-zero", response.headers.get("Content-Length")!!.toLong(), greaterThan(0L))
                 assertThat("Filename should match", response.headers.get("cONTent-diSPOsiTion"), equalTo("attachment; filename=\"download.txt\""))
+                assertThat("Request external response should not be set.", response.requestExternalApp, equalTo(false))
+                assertThat("Should not skip the confirmation on a regular download.", response.skipConfirmation, equalTo(false))
             }
         })
     }
@@ -367,6 +403,52 @@ class ContentDelegateTest : BaseSessionTest() {
         })
     }
 
+    @Test fun cookieBannerDetectedEvent() {
+        sessionRule.setPrefsUntilTestEnd(
+            mapOf(
+                "cookiebanners.service.mode" to CookieBannerMode.COOKIE_BANNER_MODE_REJECT
+            )
+        )
+
+        val detectHandled = GeckoResult<Void>()
+        mainSession.delegateUntilTestEnd(object : GeckoSession.ContentDelegate {
+            override fun onCookieBannerDetected(
+                session: GeckoSession
+            ) {
+                detectHandled.complete(null)
+            }
+        })
+
+        mainSession.loadTestPath(HELLO_HTML_PATH)
+        mainSession.waitForPageStop()
+        mainSession.triggerCookieBannerDetected()
+
+        sessionRule.waitForResult(detectHandled)
+    }
+
+    @Test fun cookieBannerHandledEvent() {
+        sessionRule.setPrefsUntilTestEnd(
+            mapOf(
+                "cookiebanners.service.mode" to CookieBannerMode.COOKIE_BANNER_MODE_REJECT
+            )
+        )
+
+        val handleHandled = GeckoResult<Void>()
+        mainSession.delegateUntilTestEnd(object : GeckoSession.ContentDelegate {
+            override fun onCookieBannerHandled(
+                session: GeckoSession
+            ) {
+                handleHandled.complete(null)
+            }
+        })
+
+        mainSession.loadTestPath(HELLO_HTML_PATH)
+        mainSession.waitForPageStop()
+        mainSession.triggerCookieBannerHandled()
+
+        sessionRule.waitForResult(handleHandled)
+    }
+
     @WithDisplay(width = 100, height = 100)
     @Test
     fun setCursor() {
@@ -554,5 +636,25 @@ class ContentDelegateTest : BaseSessionTest() {
         })
         mainSession.loadTestPath(HUNG_SCRIPT)
         sessionRule.waitForPageStop(mainSession)
+    }
+
+    /**
+     * Test that the display mode is applied to CSS media query
+     */
+    @Test fun displayMode() {
+        val pwaSession = sessionRule.createOpenSession(
+            GeckoSessionSettings.Builder(mainSession.settings)
+                .displayMode(GeckoSessionSettings.DISPLAY_MODE_FULLSCREEN)
+                .build()
+        )
+        pwaSession.loadTestPath(HELLO_HTML_PATH)
+        pwaSession.waitForPageStop()
+
+        val matches = pwaSession.evaluateJS("window.matchMedia('(display-mode: fullscreen)').matches") as Boolean
+        assertThat(
+            "display-mode should be fullscreen",
+            matches,
+            equalTo(true)
+        )
     }
 }

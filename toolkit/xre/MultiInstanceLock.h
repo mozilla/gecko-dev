@@ -10,6 +10,7 @@
 #ifdef XP_WIN
 #  include <windows.h>
 #endif
+#include "nsIFile.h"
 
 // These functions manage "multi-instance locks", which are a type of lock
 // specifically designed to allow instances of an application, process, or other
@@ -86,6 +87,12 @@ bool IsOtherInstanceRunning(MultiInstLockHandle lock, bool* aResult);
 // path for the currently running binary. When aAppFile is not null,
 // this function ensures the file path is properly normalized.
 already_AddRefed<nsIFile> GetNormalizedAppFile(nsIFile* aAppFile);
+
+// Computes the file path of multi instance lock
+// Returns true when successful - false otherwise
+bool GetMultiInstanceLockFileName(const char* nameToken,
+                                  const char16_t* installPath,
+                                  nsCString& filePath);
 
 };  // namespace mozilla
 

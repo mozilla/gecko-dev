@@ -1815,7 +1815,19 @@ const NativePanHandlerForMac = {
   delta: -50,
 };
 
+const NativePanHandlerForHeadless = {
+  beginPhase: SpecialPowers.DOMWindowUtils.PHASE_BEGIN,
+  updatePhase: SpecialPowers.DOMWindowUtils.PHASE_UPDATE,
+  endPhase: SpecialPowers.DOMWindowUtils.PHASE_END,
+  promiseNativePanEvent: promiseNativeTouchpadPanEventAndWaitForObserver,
+  delta: 50,
+};
+
 function getPanHandler() {
+  if (SpecialPowers.isHeadless) {
+    return NativePanHandlerForHeadless;
+  }
+
   switch (getPlatform()) {
     case "linux":
       return NativePanHandlerForLinux;
@@ -1840,7 +1852,7 @@ if (!window.hasOwnProperty("NativePanHandler")) {
   });
 }
 
-async function panRightToLeft(aElement, aX, aY, aMultiplier) {
+async function panRightToLeftBegin(aElement, aX, aY, aMultiplier) {
   await NativePanHandler.promiseNativePanEvent(
     aElement,
     aX,
@@ -1849,6 +1861,9 @@ async function panRightToLeft(aElement, aX, aY, aMultiplier) {
     0,
     NativePanHandler.beginPhase
   );
+}
+
+async function panRightToLeftUpdate(aElement, aX, aY, aMultiplier) {
   await NativePanHandler.promiseNativePanEvent(
     aElement,
     aX,
@@ -1857,6 +1872,9 @@ async function panRightToLeft(aElement, aX, aY, aMultiplier) {
     0,
     NativePanHandler.updatePhase
   );
+}
+
+async function panRightToLeftEnd(aElement, aX, aY, aMultiplier) {
   await NativePanHandler.promiseNativePanEvent(
     aElement,
     aX,
@@ -1865,6 +1883,12 @@ async function panRightToLeft(aElement, aX, aY, aMultiplier) {
     0,
     NativePanHandler.endPhase
   );
+}
+
+async function panRightToLeft(aElement, aX, aY, aMultiplier) {
+  await panRightToLeftBegin(aElement, aX, aY, aMultiplier);
+  await panRightToLeftUpdate(aElement, aX, aY, aMultiplier);
+  await panRightToLeftEnd(aElement, aX, aY, aMultiplier);
 }
 
 async function panLeftToRight(aElement, aX, aY, aMultiplier) {

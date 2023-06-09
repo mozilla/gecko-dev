@@ -32,6 +32,8 @@ static LazyLogModule sThreadPoolLog("nsThreadPool");
 
 static MOZ_THREAD_LOCAL(nsThreadPool*) gCurrentThreadPool;
 
+void nsThreadPool::InitTLS() { gCurrentThreadPool.infallibleInit(); }
+
 // DESIGN:
 //  o  Allocate anonymous threads.
 //  o  Use nsThreadPool::Run as the main routine for each thread.
@@ -45,6 +47,10 @@ static MOZ_THREAD_LOCAL(nsThreadPool*) gCurrentThreadPool;
 NS_IMPL_ISUPPORTS_INHERITED(nsThreadPool, Runnable, nsIThreadPool,
                             nsIEventTarget)
 
+nsThreadPool* nsThreadPool::GetCurrentThreadPool() {
+  return gCurrentThreadPool.get();
+}
+
 nsThreadPool::nsThreadPool()
     : Runnable("nsThreadPool"),
       mMutex("[nsThreadPool.mMutex]"),
@@ -53,13 +59,11 @@ nsThreadPool::nsThreadPool()
       mIdleThreadLimit(DEFAULT_IDLE_THREAD_LIMIT),
       mIdleThreadTimeout(DEFAULT_IDLE_THREAD_TIMEOUT),
       mIdleCount(0),
+      mQoSPriority(nsIThread::QOS_PRIORITY_NORMAL),
       mStackSize(nsIThreadManager::DEFAULT_STACK_SIZE),
       mShutdown(false),
       mRegressiveMaxIdleTime(false),
       mIsAPoolThreadFree(true) {
-  static std::once_flag flag;
-  std::call_once(flag, [] { gCurrentThreadPool.infallibleInit(); });
-
   LOG(("THRD-P(%p) constructor!!!\n", this));
 }
 
@@ -172,6 +176,18 @@ void nsThreadPool::ShutdownThread(nsIThread* aThread) {
                         &nsIThread::AsyncShutdown));
 }
 
+NS_IMETHODIMP
+nsThreadPool::SetQoSForThreads(nsIThread::QoSPriority aPriority) {
+  MutexAutoLock lock(mMutex);
+  mQoSPriority = aPriority;
+
+  // We don't notify threads here to observe the change, because we don't want
+  // to create spurious wakeups during idle. Rather, we want threads to simply
+  // observe the change on their own if they wake up to do some task.
+
+  return NS_OK;
+}
+
 // This event 'runs' for the lifetime of the worker thread.  The actual
 // eventqueue is mEvents, and is shared by all the worker threads.  This
 // means that the set of threads together define the delay seen by a new
@@ -210,6 +226,7 @@ nsThreadPool::Run() {
   bool exitThread = false;
   bool wasIdle = false;
   TimeStamp idleSince;
+  nsIThread::QoSPriority threadPriority = nsIThread::QOS_PRIORITY_NORMAL;
 
   // This thread is an nsThread created below with NS_NewNamedThread()
   static_cast<nsThread*>(current.get())
@@ -220,6 +237,13 @@ nsThreadPool::Run() {
     MutexAutoLock lock(mMutex);
     listener = mListener;
     LOG(("THRD-P(%p) enter %s\n", this, mName.BeginReading()));
+
+    // Go ahead and check for thread priority. If priority is normal, do nothing
+    // because threads are created with default priority.
+    if (threadPriority != mQoSPriority) {
+      current->SetThreadQoS(threadPriority);
+      threadPriority = mQoSPriority;
+    }
   }
 
   if (listener) {
@@ -235,6 +259,12 @@ nsThreadPool::Run() {
     {
       MutexAutoLock lock(mMutex);
 
+      // Before getting the next event, we can adjust priority as needed.
+      if (threadPriority != mQoSPriority) {
+        current->SetThreadQoS(threadPriority);
+        threadPriority = mQoSPriority;
+      }
+
       event = mEvents.GetEvent(lock, &delay);
       if (!event) {
         TimeStamp now = TimeStamp::Now();
@@ -243,7 +273,7 @@ nsThreadPool::Run() {
         TimeDuration timeout = TimeDuration::FromMilliseconds(
             static_cast<double>(mIdleThreadTimeout) / idleTimeoutDivider);
 
-        // If we are shutting down, then don't keep any idle threads
+        // If we are shutting down, then don't keep any idle threads.
         if (mShutdown) {
           exitThread = true;
         } else {
@@ -301,9 +331,12 @@ nsThreadPool::Run() {
       // to run.
       DelayForChaosMode(ChaosFeature::TaskRunning, 1000);
 
-      // We'll handle the case of unstarted threads available
-      // when we sample.
-      current->SetRunningEventDelay(delay, TimeStamp::Now());
+      if (profiler_thread_is_being_profiled(
+              ThreadProfilingFeatures::Sampling)) {
+        // We'll handle the case of unstarted threads available
+        // when we sample.
+        current->SetRunningEventDelay(delay, TimeStamp::Now());
+      }
 
       LogRunnable::Run log(event);
       AUTO_PROFILE_FOLLOWING_RUNNABLE(event);
@@ -342,25 +375,9 @@ nsThreadPool::Dispatch(already_AddRefed<nsIRunnable> aEvent, uint32_t aFlags) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  if (aFlags & DISPATCH_SYNC) {
-    nsCOMPtr<nsIThread> thread;
-    nsThreadManager::get().GetCurrentThread(getter_AddRefs(thread));
-    if (NS_WARN_IF(!thread)) {
-      return NS_ERROR_NOT_AVAILABLE;
-    }
-
-    RefPtr<nsThreadSyncDispatch> wrapper =
-        new nsThreadSyncDispatch(thread.forget(), std::move(aEvent));
-    PutEvent(wrapper);
-
-    SpinEventLoopUntil("nsThreadPool::Dispatch"_ns, [&, wrapper]() -> bool {
-      return !wrapper->IsPending();
-    });
-  } else {
-    NS_ASSERTION(aFlags == NS_DISPATCH_NORMAL || aFlags == NS_DISPATCH_AT_END,
-                 "unexpected dispatch flags");
-    PutEvent(std::move(aEvent), aFlags);
-  }
+  NS_ASSERTION(aFlags == NS_DISPATCH_NORMAL || aFlags == NS_DISPATCH_AT_END,
+               "unexpected dispatch flags");
+  PutEvent(std::move(aEvent), aFlags);
   return NS_OK;
 }
 

@@ -80,8 +80,16 @@ const void* CompileRuntime::addressOfMegamorphicCache() {
   return &runtime()->caches().megamorphicCache;
 }
 
+const void* CompileRuntime::addressOfMegamorphicSetPropCache() {
+  return &runtime()->caches().megamorphicSetPropCache;
+}
+
 const void* CompileRuntime::addressOfStringToAtomCache() {
   return &runtime()->caches().stringToAtomCache;
+}
+
+const void* CompileRuntime::addressOfLastBufferedWholeCell() {
+  return runtime()->gc.addressOfLastBufferedWholeCell();
 }
 
 const DOMCallbacks* CompileRuntime::DOMcallbacks() {
@@ -158,31 +166,25 @@ const void* CompileZone::addressOfBigIntNurseryCurrentEnd() {
   return zone()->runtimeFromAnyThread()->gc.addressOfBigIntNurseryCurrentEnd();
 }
 
-uint32_t* CompileZone::addressOfNurseryAllocCount() {
-  return zone()->runtimeFromAnyThread()->gc.addressOfNurseryAllocCount();
-}
-
 void* CompileZone::addressOfNurseryAllocatedSites() {
   JSRuntime* rt = zone()->runtimeFromAnyThread();
   return rt->gc.nursery().addressOfNurseryAllocatedSites();
 }
 
 bool CompileZone::canNurseryAllocateStrings() {
-  return zone()->runtimeFromAnyThread()->gc.nursery().canAllocateStrings() &&
-         zone()->allocNurseryStrings;
+  return zone()->allocNurseryStrings();
 }
 
 bool CompileZone::canNurseryAllocateBigInts() {
-  return zone()->runtimeFromAnyThread()->gc.nursery().canAllocateBigInts() &&
-         zone()->allocNurseryBigInts;
+  return zone()->allocNurseryBigInts();
 }
 
-uintptr_t CompileZone::nurseryCellHeader(JS::TraceKind traceKind,
-                                         gc::CatchAllAllocSite siteKind) {
-  gc::AllocSite* site = siteKind == gc::CatchAllAllocSite::Optimized
-                            ? zone()->optimizedAllocSite()
-                            : zone()->unknownAllocSite();
-  return gc::NurseryCellHeader::MakeValue(site, traceKind);
+gc::AllocSite* CompileZone::catchAllAllocSite(JS::TraceKind traceKind,
+                                              gc::CatchAllAllocSite siteKind) {
+  if (siteKind == gc::CatchAllAllocSite::Optimized) {
+    return zone()->optimizedAllocSite();
+  }
+  return zone()->unknownAllocSite(traceKind);
 }
 
 JS::Realm* CompileRealm::realm() { return reinterpret_cast<JS::Realm*>(this); }

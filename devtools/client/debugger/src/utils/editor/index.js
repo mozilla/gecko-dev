@@ -12,6 +12,7 @@ import { createEditor } from "./create-editor";
 import { findNext, findPrev } from "./source-search";
 
 import { isWasm, lineToWasmOffset, wasmOffsetToLine } from "../wasm";
+import { createLocation } from "../location";
 
 let editor;
 
@@ -70,8 +71,8 @@ export function toEditorLine(sourceId, lineOrOffset) {
   return lineOrOffset ? lineOrOffset - 1 : 1;
 }
 
-export function fromEditorLine(sourceId, line) {
-  if (isWasm(sourceId)) {
+export function fromEditorLine(sourceId, line, sourceIsWasm) {
+  if (sourceIsWasm) {
     return lineToWasmOffset(sourceId, line) || 0;
   }
 
@@ -194,13 +195,12 @@ export function getSourceLocationFromMouseEvent({ codeMirror }, source, e) {
     left: e.clientX,
     top: e.clientY,
   });
-  const sourceId = source.id;
 
-  return {
-    sourceId,
-    line: fromEditorLine(sourceId, line),
-    column: isWasm(sourceId) ? 0 : ch + 1,
-  };
+  return createLocation({
+    source,
+    line: fromEditorLine(source.id, line, isWasm(source.id)),
+    column: isWasm(source.id) ? 0 : ch + 1,
+  });
 }
 
 export function forEachLine(codeMirror, iter) {
@@ -210,7 +210,7 @@ export function forEachLine(codeMirror, iter) {
 }
 
 export function removeLineClass(codeMirror, line, className) {
-  codeMirror.removeLineClass(line, "wrapClass", className);
+  codeMirror.removeLineClass(line, "wrap", className);
 }
 
 export function clearLineClass(codeMirror, className) {

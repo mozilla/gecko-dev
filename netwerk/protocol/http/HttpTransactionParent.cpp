@@ -88,7 +88,7 @@ nsresult HttpTransactionParent::Init(
     nsIInputStream* requestBody, uint64_t requestContentLength,
     bool requestBodyHasHeaders, nsIEventTarget* target,
     nsIInterfaceRequestor* callbacks, nsITransportEventSink* eventsink,
-    uint64_t topLevelOuterContentWindowId, HttpTrafficCategory trafficCategory,
+    uint64_t browserId, HttpTrafficCategory trafficCategory,
     nsIRequestContext* requestContext, ClassOfService classOfService,
     uint32_t initialRwin, bool responseTimeoutEnabled, uint64_t channelId,
     TransactionObserverFunc&& transactionObserver,
@@ -101,7 +101,7 @@ nsresult HttpTransactionParent::Init(
   }
 
   mEventsink = eventsink;
-  mTargetThread = GetCurrentEventTarget();
+  mTargetThread = GetCurrentSerialEventTarget();
   mChannelId = channelId;
   mTransactionObserver = std::move(transactionObserver);
   mOnPushCallback = std::move(aOnPushCallback);
@@ -123,14 +123,13 @@ nsresult HttpTransactionParent::Init(
   Maybe<H2PushedStreamArg> pushedStreamArg;
   if (aTransWithPushedStream && aPushedStreamId) {
     MOZ_ASSERT(aTransWithPushedStream->AsHttpTransactionParent());
-    pushedStreamArg.emplace();
-    pushedStreamArg.ref().transWithPushedStreamParent() =
-        aTransWithPushedStream->AsHttpTransactionParent();
-    pushedStreamArg.ref().pushedStreamId() = aPushedStreamId;
+    pushedStreamArg.emplace(
+        WrapNotNull(aTransWithPushedStream->AsHttpTransactionParent()),
+        aPushedStreamId);
   }
 
   nsCOMPtr<nsIThrottledInputChannel> throttled = do_QueryInterface(mEventsink);
-  Maybe<PInputChannelThrottleQueueParent*> throttleQueue;
+  Maybe<NotNull<PInputChannelThrottleQueueParent*>> throttleQueue;
   if (throttled) {
     nsCOMPtr<nsIInputChannelThrottleQueue> queue;
     nsresult rv = throttled->GetThrottleQueue(getter_AddRefs(queue));
@@ -140,14 +139,14 @@ nsresult HttpTransactionParent::Init(
             queue.get()));
       RefPtr<InputChannelThrottleQueueParent> tqParent = do_QueryObject(queue);
       MOZ_ASSERT(tqParent);
-      throttleQueue.emplace(tqParent.get());
+      throttleQueue.emplace(WrapNotNull(tqParent.get()));
     }
   }
 
   // TODO: Figure out if we have to implement nsIThreadRetargetableRequest in
   // bug 1544378.
   if (!SendInit(caps, infoArgs, *requestHead, ipcStream, requestContentLength,
-                requestBodyHasHeaders, topLevelOuterContentWindowId,
+                requestBodyHasHeaders, browserId,
                 static_cast<uint8_t>(trafficCategory), requestContextID,
                 classOfService, initialRwin, responseTimeoutEnabled, mChannelId,
                 !!mTransactionObserver, pushedStreamArg, throttleQueue,
@@ -220,7 +219,7 @@ already_AddRefed<nsIEventTarget> HttpTransactionParent::GetODATarget() {
   }
 
   if (!target) {
-    target = GetMainThreadEventTarget();
+    target = GetMainThreadSerialEventTarget();
   }
   return target.forget();
 }
@@ -266,12 +265,15 @@ void HttpTransactionParent::SetDNSWasRefreshed() {
   Unused << SendSetDNSWasRefreshed();
 }
 
-void HttpTransactionParent::GetNetworkAddresses(NetAddr& self, NetAddr& peer,
-                                                bool& aResolvedByTRR,
-                                                bool& aEchConfigUsed) {
+void HttpTransactionParent::GetNetworkAddresses(
+    NetAddr& self, NetAddr& peer, bool& aResolvedByTRR,
+    nsIRequest::TRRMode& aEffectiveTRRMode, TRRSkippedReason& aSkipReason,
+    bool& aEchConfigUsed) {
   self = mSelfAddr;
   peer = mPeerAddr;
   aResolvedByTRR = mResolvedByTRR;
+  aEffectiveTRRMode = mEffectiveTRRMode;
+  aSkipReason = mTRRSkipReason;
   aEchConfigUsed = mEchConfigUsed;
 }
 
@@ -400,7 +402,7 @@ already_AddRefed<nsHttpConnectionInfo> HttpTransactionParent::GetConnInfo()
 }
 
 already_AddRefed<nsIEventTarget> HttpTransactionParent::GetNeckoTarget() {
-  nsCOMPtr<nsIEventTarget> target = GetMainThreadEventTarget();
+  nsCOMPtr<nsIEventTarget> target = GetMainThreadSerialEventTarget();
   return target.forget();
 }
 
@@ -410,19 +412,21 @@ mozilla::ipc::IPCResult HttpTransactionParent::RecvOnStartRequest(
     const TimingStructArgs& aTimings, const int32_t& aProxyConnectResponseCode,
     nsTArray<uint8_t>&& aDataForSniffer, const Maybe<nsCString>& aAltSvcUsed,
     const bool& aDataToChildProcess, const bool& aRestarted,
-    const uint32_t& aHTTPSSVCReceivedStage, const bool& aSupportsHttp3) {
+    const uint32_t& aHTTPSSVCReceivedStage, const bool& aSupportsHttp3,
+    const nsIRequest::TRRMode& aMode, const TRRSkippedReason& aTrrSkipReason) {
   mEventQ->RunOrEnqueue(new NeckoTargetChannelFunctionEvent(
-      this, [self = UnsafePtr<HttpTransactionParent>(this), aStatus,
-             aResponseHead, securityInfo = nsCOMPtr{aSecurityInfo},
-             aProxyConnectFailed, aTimings, aProxyConnectResponseCode,
-             aDataForSniffer = CopyableTArray{std::move(aDataForSniffer)},
-             aAltSvcUsed, aDataToChildProcess, aRestarted,
-             aHTTPSSVCReceivedStage, aSupportsHttp3]() mutable {
+      this,
+      [self = UnsafePtr<HttpTransactionParent>(this), aStatus, aResponseHead,
+       securityInfo = nsCOMPtr{aSecurityInfo}, aProxyConnectFailed, aTimings,
+       aProxyConnectResponseCode,
+       aDataForSniffer = CopyableTArray{std::move(aDataForSniffer)},
+       aAltSvcUsed, aDataToChildProcess, aRestarted, aHTTPSSVCReceivedStage,
+       aSupportsHttp3, aMode, aTrrSkipReason]() mutable {
         self->DoOnStartRequest(
             aStatus, aResponseHead, securityInfo, aProxyConnectFailed, aTimings,
             aProxyConnectResponseCode, std::move(aDataForSniffer), aAltSvcUsed,
             aDataToChildProcess, aRestarted, aHTTPSSVCReceivedStage,
-            aSupportsHttp3);
+            aSupportsHttp3, aMode, aTrrSkipReason);
       }));
   return IPC_OK();
 }
@@ -451,7 +455,8 @@ void HttpTransactionParent::DoOnStartRequest(
     const TimingStructArgs& aTimings, const int32_t& aProxyConnectResponseCode,
     nsTArray<uint8_t>&& aDataForSniffer, const Maybe<nsCString>& aAltSvcUsed,
     const bool& aDataToChildProcess, const bool& aRestarted,
-    const uint32_t& aHTTPSSVCReceivedStage, const bool& aSupportsHttp3) {
+    const uint32_t& aHTTPSSVCReceivedStage, const bool& aSupportsHttp3,
+    const nsIRequest::TRRMode& aMode, const TRRSkippedReason& aSkipReason) {
   LOG(("HttpTransactionParent::DoOnStartRequest [this=%p aStatus=%" PRIx32
        "]\n",
        this, static_cast<uint32_t>(aStatus)));
@@ -466,6 +471,8 @@ void HttpTransactionParent::DoOnStartRequest(
   mDataSentToChildProcess = aDataToChildProcess;
   mHTTPSSVCReceivedStage = aHTTPSSVCReceivedStage;
   mSupportsHTTP3 = aSupportsHttp3;
+  mEffectiveTRRMode = aMode;
+  mTRRSkipReason = aSkipReason;
 
   mSecurityInfo = aSecurityInfo;
 
@@ -505,6 +512,8 @@ mozilla::ipc::IPCResult HttpTransactionParent::RecvOnTransportStatus(
     mSelfAddr = aNetworkAddressArg->selfAddr();
     mPeerAddr = aNetworkAddressArg->peerAddr();
     mResolvedByTRR = aNetworkAddressArg->resolvedByTRR();
+    mEffectiveTRRMode = aNetworkAddressArg->mode();
+    mTRRSkipReason = aNetworkAddressArg->trrSkipReason();
     mEchConfigUsed = aNetworkAddressArg->echConfigUsed();
   }
   mEventsink->OnTransportStatus(nullptr, aStatus, aProgress, aProgressMax);

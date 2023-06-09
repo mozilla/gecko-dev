@@ -32,10 +32,10 @@ static const unsigned MaxResultsForJitInlineCall = MaxResultsForJitEntry;
 // returned in registers.
 static const unsigned MaxRegisterResults = 1;
 
-// A magic value of the FramePointer to indicate after a return to the entry
+// A magic value of the InstanceReg to indicate after a return to the entry
 // stub that an exception has been caught and that we should throw.
 
-static const unsigned FailFP = 0xbad;
+static const unsigned FailInstanceReg = 0xbad;
 
 // The following thresholds were derived from a microbenchmark. If we begin to
 // ship this optimization for more platforms, we will need to extend this list.
@@ -52,11 +52,23 @@ static const uint32_t MaxInlineMemoryFillLength = 0;
 #endif
 
 // The size we round all super type vectors to. All accesses below this length
-// can avoid bounds checks. The value of three was chosen here to match V8,
-// eventually we should get data of our own to support this.
+// can avoid bounds checks. The value of 8 was chosen after a bit of profiling
+// with the Dart Barista benchmark.
 //
-// Keep wasm/gc/casting.js in sync with this constant.
-static const uint32_t MinSuperTypeVectorLength = 3;
+// Keep jit-tests/tests/wasm/gc/casting.js in sync with this constant.
+static const uint32_t MinSuperTypeVectorLength = 8;
+
+// An exported wasm function may have a 'jit entry' stub attached that can be
+// called using the JS JIT ABI. This relies on the pointer we store in the
+// `NativeJitInfoOrInterpretedScriptSlot` slot of JSFunction to have a
+// compatible representation with BaseScript/SelfHostedLazyScript so that
+// `masm.loadJitCodeRaw` works.
+//
+// We store jit entry pointers in an array (see wasm::JumpTable) and store the
+// pointer to a function's jit entry in the JSFunction slot. We rely on the
+// below offset of each entry in the jump table to be compatible with
+// BaseScript/SelfHostedLazyScript.
+static const uint32_t JumpTableJitEntryOffset = 0;
 
 }  // namespace wasm
 }  // namespace js

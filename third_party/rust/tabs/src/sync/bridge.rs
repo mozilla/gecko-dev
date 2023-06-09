@@ -2,12 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::sync::{Arc, Mutex};
-
-use crate::error::{ApiResult, Result, TabsApiError};
+use crate::error::TabsApiError;
 use crate::sync::engine::TabsSyncImpl;
 use crate::TabsStore;
-use error_support::handle_error;
+use anyhow::Result;
+use std::sync::{Arc, Mutex};
 use sync15::bso::{IncomingBso, OutgoingBso};
 use sync15::engine::{ApplyResults, BridgedEngine, CollSyncIds, EngineSyncAssociation};
 use sync15::{ClientData, ServerTimestamp};
@@ -45,140 +44,116 @@ impl BridgedEngineImpl {
 }
 
 impl BridgedEngine for BridgedEngineImpl {
-    type Error = TabsApiError;
-
-    fn last_sync(&self) -> ApiResult<i64> {
-        handle_error! {
-            Ok(self
-                .sync_impl
-                .lock()
-                .unwrap()
-                .last_sync
-                .unwrap_or_default()
-                .as_millis())
-        }
+    fn last_sync(&self) -> Result<i64> {
+        Ok(self
+            .sync_impl
+            .lock()
+            .unwrap()
+            .get_last_sync()?
+            .unwrap_or_default()
+            .as_millis())
     }
 
-    fn set_last_sync(&self, last_sync_millis: i64) -> ApiResult<()> {
-        handle_error! {
-            self.sync_impl.lock().unwrap().last_sync =
-                Some(ServerTimestamp::from_millis(last_sync_millis));
-            Ok(())
-        }
+    fn set_last_sync(&self, last_sync_millis: i64) -> Result<()> {
+        self.sync_impl
+            .lock()
+            .unwrap()
+            .set_last_sync(ServerTimestamp::from_millis(last_sync_millis))?;
+        Ok(())
     }
 
-    fn sync_id(&self) -> ApiResult<Option<String>> {
-        handle_error! {
-            Ok(match self.sync_impl.lock().unwrap().get_sync_assoc() {
-                EngineSyncAssociation::Connected(id) => Some(id.coll.to_string()),
-                EngineSyncAssociation::Disconnected => None,
-            })
-        }
+    fn sync_id(&self) -> Result<Option<String>> {
+        Ok(match self.sync_impl.lock().unwrap().get_sync_assoc()? {
+            EngineSyncAssociation::Connected(id) => Some(id.coll.to_string()),
+            EngineSyncAssociation::Disconnected => None,
+        })
     }
 
-    fn reset_sync_id(&self) -> ApiResult<String> {
-        handle_error! {
-            let new_id = SyncGuid::random().to_string();
+    fn reset_sync_id(&self) -> Result<String> {
+        let new_id = SyncGuid::random().to_string();
+        let new_coll_ids = CollSyncIds {
+            global: SyncGuid::empty(),
+            coll: new_id.clone().into(),
+        };
+        self.sync_impl
+            .lock()
+            .unwrap()
+            .reset(&EngineSyncAssociation::Connected(new_coll_ids))?;
+        Ok(new_id)
+    }
+
+    fn ensure_current_sync_id(&self, sync_id: &str) -> Result<String> {
+        let mut sync_impl = self.sync_impl.lock().unwrap();
+        let assoc = sync_impl.get_sync_assoc()?;
+        if matches!(assoc, EngineSyncAssociation::Connected(c) if c.coll == sync_id) {
+            log::debug!("ensure_current_sync_id is current");
+        } else {
             let new_coll_ids = CollSyncIds {
                 global: SyncGuid::empty(),
-                coll: new_id.clone().into(),
+                coll: sync_id.into(),
             };
-            self.sync_impl
-                .lock()
-                .unwrap()
-                .reset(EngineSyncAssociation::Connected(new_coll_ids))?;
-            Ok(new_id)
+            sync_impl.reset(&EngineSyncAssociation::Connected(new_coll_ids))?;
         }
+        Ok(sync_id.to_string())
     }
 
-    fn ensure_current_sync_id(&self, sync_id: &str) -> ApiResult<String> {
-        handle_error! {
-            let mut sync_impl = self.sync_impl.lock().unwrap();
-            let assoc = sync_impl.get_sync_assoc();
-            if matches!(assoc, EngineSyncAssociation::Connected(c) if c.coll == sync_id) {
-                log::debug!("ensure_current_sync_id is current");
-            } else {
-                let new_coll_ids = CollSyncIds {
-                    global: SyncGuid::empty(),
-                    coll: sync_id.into(),
-                };
-                sync_impl.reset(EngineSyncAssociation::Connected(new_coll_ids))?;
-            }
-            Ok(sync_id.to_string()) // this is a bit odd, why the result?
-        }
+    fn prepare_for_sync(&self, client_data: &str) -> Result<()> {
+        let data: ClientData = serde_json::from_str(client_data)?;
+        Ok(self.sync_impl.lock().unwrap().prepare_for_sync(data)?)
     }
 
-    fn prepare_for_sync(&self, client_data: &str) -> ApiResult<()> {
-        handle_error! {
-            let data: ClientData = serde_json::from_str(client_data)?;
-            self.sync_impl.lock().unwrap().prepare_for_sync(data)
-        }
-    }
-
-    fn sync_started(&self) -> ApiResult<()> {
+    fn sync_started(&self) -> Result<()> {
         // This is a no-op for the Tabs Engine
         Ok(())
     }
 
-    fn store_incoming(&self, incoming: Vec<IncomingBso>) -> ApiResult<()> {
-        handle_error! {
-            // Store the incoming payload in memory so we can use it in apply
-            *(self.incoming.lock().unwrap()) = incoming;
-            Ok(())
-        }
+    fn store_incoming(&self, incoming: Vec<IncomingBso>) -> Result<()> {
+        // Store the incoming payload in memory so we can use it in apply
+        *(self.incoming.lock().unwrap()) = incoming;
+        Ok(())
     }
 
-    fn apply(&self) -> ApiResult<ApplyResults> {
-        handle_error! {
-            let mut incoming = self.incoming.lock().unwrap();
-            // We've a reference to a Vec<> but it's owned by the mutex - swap the mutex owned
-            // value for an empty vec so we can consume the original.
-            let mut records = Vec::new();
-            std::mem::swap(&mut records, &mut *incoming);
-            let mut telem = sync15::telemetry::Engine::new("tabs");
+    fn apply(&self) -> Result<ApplyResults> {
+        let mut incoming = self.incoming.lock().unwrap();
+        // We've a reference to a Vec<> but it's owned by the mutex - swap the mutex owned
+        // value for an empty vec so we can consume the original.
+        let mut records = Vec::new();
+        std::mem::swap(&mut records, &mut *incoming);
+        let mut telem = sync15::telemetry::Engine::new("tabs");
 
-            let mut sync_impl = self.sync_impl.lock().unwrap();
-            let outgoing = sync_impl.apply_incoming(records, &mut telem)?;
+        let mut sync_impl = self.sync_impl.lock().unwrap();
+        let outgoing = sync_impl.apply_incoming(records, &mut telem)?;
 
-            Ok(ApplyResults {
-                records: outgoing,
-                num_reconciled: Some(0),
-            })
-        }
+        Ok(ApplyResults {
+            records: outgoing,
+            num_reconciled: Some(0),
+        })
     }
 
-    fn set_uploaded(&self, server_modified_millis: i64, ids: &[SyncGuid]) -> ApiResult<()> {
-        handle_error! {
-            self
-                .sync_impl
-                .lock()
-                .unwrap()
-                .sync_finished(ServerTimestamp::from_millis(server_modified_millis), ids)
-        }
+    fn set_uploaded(&self, server_modified_millis: i64, ids: &[SyncGuid]) -> Result<()> {
+        Ok(self
+            .sync_impl
+            .lock()
+            .unwrap()
+            .sync_finished(ServerTimestamp::from_millis(server_modified_millis), ids)?)
     }
 
-    fn sync_finished(&self) -> ApiResult<()> {
-        handle_error! {
-            *(self.incoming.lock().unwrap()) = Vec::default();
-            Ok(())
-        }
+    fn sync_finished(&self) -> Result<()> {
+        *(self.incoming.lock().unwrap()) = Vec::default();
+        Ok(())
     }
 
-    fn reset(&self) -> ApiResult<()> {
-        handle_error! {
-            self.sync_impl
-                .lock()
-                .unwrap()
-                .reset(EngineSyncAssociation::Disconnected)?;
-            Ok(())
-        }
+    fn reset(&self) -> Result<()> {
+        self.sync_impl
+            .lock()
+            .unwrap()
+            .reset(&EngineSyncAssociation::Disconnected)?;
+        Ok(())
     }
 
-    fn wipe(&self) -> ApiResult<()> {
-        handle_error! {
-            self.sync_impl.lock().unwrap().wipe()?;
-            Ok(())
-        }
+    fn wipe(&self) -> Result<()> {
+        self.sync_impl.lock().unwrap().wipe()?;
+        Ok(())
     }
 }
 
@@ -192,94 +167,96 @@ impl TabsBridgedEngine {
         Self { bridge_impl }
     }
 
-    pub fn last_sync(&self) -> ApiResult<i64> {
+    pub fn last_sync(&self) -> Result<i64> {
         self.bridge_impl.last_sync()
     }
 
-    pub fn set_last_sync(&self, last_sync: i64) -> ApiResult<()> {
+    pub fn set_last_sync(&self, last_sync: i64) -> Result<()> {
         self.bridge_impl.set_last_sync(last_sync)
     }
 
-    pub fn sync_id(&self) -> ApiResult<Option<String>> {
+    pub fn sync_id(&self) -> Result<Option<String>> {
         self.bridge_impl.sync_id()
     }
 
-    pub fn reset_sync_id(&self) -> ApiResult<String> {
+    pub fn reset_sync_id(&self) -> Result<String> {
         self.bridge_impl.reset_sync_id()
     }
 
-    pub fn ensure_current_sync_id(&self, sync_id: &str) -> ApiResult<String> {
+    pub fn ensure_current_sync_id(&self, sync_id: &str) -> Result<String> {
         self.bridge_impl.ensure_current_sync_id(sync_id)
     }
 
-    pub fn prepare_for_sync(&self, client_data: &str) -> ApiResult<()> {
+    pub fn prepare_for_sync(&self, client_data: &str) -> Result<()> {
         self.bridge_impl.prepare_for_sync(client_data)
     }
 
-    pub fn sync_started(&self) -> ApiResult<()> {
+    pub fn sync_started(&self) -> Result<()> {
         self.bridge_impl.sync_started()
     }
 
     // Decode the JSON-encoded IncomingBso's that UniFFI passes to us
-    fn convert_incoming_bsos(&self, incoming: Vec<String>) -> ApiResult<Vec<IncomingBso>> {
-        handle_error! {
-            let mut bsos = Vec::with_capacity(incoming.len());
-            for inc in incoming {
-                bsos.push(serde_json::from_str::<IncomingBso>(&inc)?);
-            }
-            Ok(bsos)
+    fn convert_incoming_bsos(&self, incoming: Vec<String>) -> Result<Vec<IncomingBso>> {
+        let mut bsos = Vec::with_capacity(incoming.len());
+        for inc in incoming {
+            bsos.push(serde_json::from_str::<IncomingBso>(&inc)?);
         }
+        Ok(bsos)
     }
 
     // Encode OutgoingBso's into JSON for UniFFI
-    fn convert_outgoing_bsos(&self, outgoing: Vec<OutgoingBso>) -> ApiResult<Vec<String>> {
-        handle_error! {
-            let mut bsos = Vec::with_capacity(outgoing.len());
-            for e in outgoing {
-                bsos.push(serde_json::to_string(&e)?);
-            }
-            Ok(bsos)
+    fn convert_outgoing_bsos(&self, outgoing: Vec<OutgoingBso>) -> Result<Vec<String>> {
+        let mut bsos = Vec::with_capacity(outgoing.len());
+        for e in outgoing {
+            bsos.push(serde_json::to_string(&e)?);
         }
+        Ok(bsos)
     }
 
-    pub fn store_incoming(&self, incoming: Vec<String>) -> ApiResult<()> {
+    pub fn store_incoming(&self, incoming: Vec<String>) -> Result<()> {
         self.bridge_impl
             .store_incoming(self.convert_incoming_bsos(incoming)?)
     }
 
-    pub fn apply(&self) -> ApiResult<Vec<String>> {
+    pub fn apply(&self) -> Result<Vec<String>> {
         let apply_results = self.bridge_impl.apply()?;
         self.convert_outgoing_bsos(apply_results.records)
     }
 
-    pub fn set_uploaded(&self, server_modified_millis: i64, guids: Vec<SyncGuid>) -> ApiResult<()> {
+    pub fn set_uploaded(&self, server_modified_millis: i64, guids: Vec<SyncGuid>) -> Result<()> {
         self.bridge_impl
             .set_uploaded(server_modified_millis, &guids)
     }
 
-    pub fn sync_finished(&self) -> ApiResult<()> {
+    pub fn sync_finished(&self) -> Result<()> {
         self.bridge_impl.sync_finished()
     }
 
-    pub fn reset(&self) -> ApiResult<()> {
+    pub fn reset(&self) -> Result<()> {
         self.bridge_impl.reset()
     }
 
-    pub fn wipe(&self) -> ApiResult<()> {
+    pub fn wipe(&self) -> Result<()> {
         self.bridge_impl.wipe()
+    }
+}
+
+impl From<anyhow::Error> for TabsApiError {
+    fn from(value: anyhow::Error) -> Self {
+        TabsApiError::UnexpectedTabsError {
+            reason: value.to_string(),
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::storage::RemoteTab;
+    use crate::storage::{RemoteTab, TABS_CLIENT_TTL};
     use crate::sync::record::TabsRecordTab;
     use serde_json::json;
     use std::collections::HashMap;
-    use sync15::{ClientData, RemoteClient};
-
-    const TTL_1_YEAR: u32 = 31_622_400;
+    use sync15::{ClientData, DeviceType, RemoteClient};
 
     // A copy of the normal "engine" tests but which go via the bridge
     #[test]
@@ -294,7 +271,7 @@ mod tests {
                 title: "my first tab".to_string(),
                 url_history: vec!["http://1.com".to_string()],
                 icon: None,
-                last_used: 0,
+                last_used: 2,
             },
             RemoteTab {
                 title: "my second tab".to_string(),
@@ -315,7 +292,7 @@ mod tests {
                     RemoteClient {
                         fxa_device_id: None,
                         device_name: "my device".to_string(),
-                        device_type: None,
+                        device_type: sync15::DeviceType::Unknown,
                     },
                 ),
                 (
@@ -323,7 +300,7 @@ mod tests {
                     RemoteClient {
                         fxa_device_id: None,
                         device_name: "device with no tabs".to_string(),
-                        device_type: None,
+                        device_type: DeviceType::Unknown,
                     },
                 ),
                 (
@@ -331,7 +308,7 @@ mod tests {
                     RemoteClient {
                         fxa_device_id: None,
                         device_name: "device with a tab".to_string(),
-                        device_type: None,
+                        device_type: DeviceType::Unknown,
                     },
                 ),
             ]),
@@ -416,7 +393,7 @@ mod tests {
                 "clientName": "my device",
                 "tabs": serde_json::to_value(expected_tabs).unwrap(),
             }).to_string(),
-            "ttl": TTL_1_YEAR,
+            "ttl": TABS_CLIENT_TTL,
         });
 
         assert_eq!(ours, expected);
@@ -431,6 +408,8 @@ mod tests {
         let store = Arc::new(TabsStore::new_with_mem_path("test-meta"));
         let bridge = store.bridged_engine();
 
+        // Should not error or panic
+        assert_eq!(bridge.last_sync().unwrap(), 0);
         bridge.set_last_sync(3).unwrap();
         assert_eq!(bridge.last_sync().unwrap(), 3);
 

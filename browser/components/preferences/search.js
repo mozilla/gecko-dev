@@ -148,7 +148,7 @@ var gSearchPane = {
     updateCheckboxEnabled();
 
     window.addEventListener("unload", () => {
-      NimbusFeatures.urlbar.off(onNimbus);
+      NimbusFeatures.urlbar.offUpdate(onNimbus);
     });
   },
 
@@ -310,7 +310,7 @@ var gSearchPane = {
           // away from.
           if (engineList.inputField.hidden && engineList.view) {
             let selection = engineList.view.selection;
-            if (selection.count > 0) {
+            if (selection?.count > 0) {
               selection.toggleSelect(selection.currentIndex);
             }
             engineList.blur();
@@ -681,7 +681,7 @@ EngineStore.prototype = {
 
   // Callback for Array's some(). A thisObj must be passed to some()
   _isSameEngine(aEngineClone) {
-    return aEngineClone.originalEngine == this.originalEngine;
+    return aEngineClone.originalEngine.id == this.originalEngine.id;
   },
 
   addEngine(aEngine) {
@@ -690,7 +690,7 @@ EngineStore.prototype = {
 
   updateEngine(newEngine) {
     let engineToUpdate = this._engines.findIndex(
-      e => e.originalEngine == newEngine
+      e => e.originalEngine.id == newEngine.id
     );
     if (engineToUpdate != -1) {
       this.engines[engineToUpdate] = this._cloneEngine(newEngine);

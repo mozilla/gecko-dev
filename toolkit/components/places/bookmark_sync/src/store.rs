@@ -16,8 +16,6 @@ use xpcom::interfaces::{mozISyncedBookmarksMerger, nsINavBookmarksService};
 use crate::driver::{AbortController, Driver};
 use crate::error::{Error, Result};
 
-pub const LMANNO_FEEDURI: &'static str = "livemark/feedURI";
-
 extern "C" {
     fn NS_NavBookmarksTotalSyncChanges() -> i64;
 }
@@ -321,15 +319,11 @@ impl<'s> dogear::Store for Store<'s> {
                     b.syncStatus, b.lastModified / 1000 AS localModified,
                     IFNULL(b.title, '') AS title,
                     (SELECT h.url FROM moz_places h WHERE h.id = b.fk) AS url,
-                    EXISTS(SELECT 1 FROM moz_items_annos a
-                           JOIN moz_anno_attributes n ON n.id = a.anno_attribute_id
-                           WHERE a.item_id = b.id AND
-                                 n.name = '{}') AS isLivemark
+                    0 AS isLivemark
              FROM moz_bookmarks b
              JOIN moz_bookmarks p ON p.id = b.parent
              WHERE b.guid <> '{}'
              ORDER BY b.parent, b.position",
-            LMANNO_FEEDURI,
             dogear::ROOT_GUID,
         ))?;
         while let Some(step) = items_statement.step()? {
@@ -537,7 +531,8 @@ fn update_local_items_in_places<'t>(
         let mut statement = db.prepare(format!(
             "INSERT OR IGNORE INTO moz_places(url, url_hash, rev_host, hidden,
                                               frecency, guid)
-             SELECT u.url, u.hash, u.revHost, 0,
+             SELECT u.url, u.hash, u.revHost,
+                    (CASE WHEN u.url BETWEEN 'place:' AND 'place:' || X'FFFF' THEN 1 ELSE 0 END),
                     (CASE v.kind WHEN {} THEN 0 ELSE -1 END),
                     IFNULL((SELECT h.guid FROM moz_places h
                             WHERE h.url_hash = u.hash AND
@@ -979,9 +974,9 @@ fn remove_local_items(
         "WITH
          ops(guid, level) AS (VALUES {})
          INSERT INTO itemsRemoved(itemId, parentId, position, type, title,
-                                  placeId, guid, parentGuid, level)
+                                  placeId, guid, parentGuid, level, keywordRemoved)
          SELECT b.id, b.parent, b.position, b.type, IFNULL(b.title, \"\"), b.fk,
-                b.guid, p.guid, n.level
+                b.guid, p.guid, n.level, EXISTS(SELECT 1 FROM moz_keywords k WHERE k.place_id = b.fk)
          FROM ops n
          JOIN moz_bookmarks b ON b.guid = n.guid
          JOIN moz_bookmarks p ON p.id = b.parent",
@@ -1033,6 +1028,25 @@ fn remove_local_items(
         )?;
     }
     annos_statement.execute()?;
+
+    debug!(
+        driver,
+        "Removing keywords associated with deleted bookmarks"
+    );
+    let mut keywords_statement = db.prepare(format!(
+        "DELETE FROM moz_keywords
+         WHERE place_id IN (SELECT b.fk FROM moz_bookmarks b
+            WHERE b.guid IN ({}))",
+        repeat_sql_vars(ops.len()),
+    ))?;
+    for (index, op) in ops.iter().enumerate() {
+        controller.err_if_aborted()?;
+        keywords_statement.bind_by_index(
+            index as u32,
+            nsString::from(&*op.local_node().guid.as_str()),
+        )?;
+    }
+    keywords_statement.execute()?;
 
     debug!(driver, "Removing deleted items from Places");
     let mut delete_statement = db.prepare(format!(

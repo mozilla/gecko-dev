@@ -54,26 +54,32 @@ add_task(async function tipIsSecondResult() {
   );
   Assert.equal(
     UrlbarTestUtils.getSelectedElementIndex(window),
-    1,
-    "The first element should be selected."
+    UrlbarPrefs.get("resultMenu") ? 2 : 1,
+    "Selected element index"
   );
 
-  EventUtils.synthesizeKey("KEY_ArrowDown");
+  EventUtils.synthesizeKey("KEY_Tab");
   Assert.ok(
     UrlbarTestUtils.getSelectedElement(window).classList.contains(
-      "urlbarView-button-help"
+      UrlbarPrefs.get("resultMenu")
+        ? "urlbarView-button-menu"
+        : "urlbarView-button-help"
     ),
-    "The selected element should be the tip help button."
+    UrlbarPrefs.get("resultMenu")
+      ? "The selected element should be the tip menu button."
+      : "The selected element should be the tip help button."
   );
   Assert.equal(
     UrlbarTestUtils.getSelectedRowIndex(window),
     1,
-    "getSelectedRowIndex should return 1 even though the help button is selected."
+    UrlbarPrefs.get("resultMenu")
+      ? "getSelectedRowIndex should return 1 even though the menu button is selected."
+      : "getSelectedRowIndex should return 1 even though the help button is selected."
   );
   Assert.equal(
     UrlbarTestUtils.getSelectedElementIndex(window),
-    2,
-    "The third element should be selected."
+    UrlbarPrefs.get("resultMenu") ? 3 : 2,
+    "Selected element index"
   );
 
   // If this test is running alone, the one-offs will rebuild themselves when
@@ -98,12 +104,16 @@ add_task(async function tipIsSecondResult() {
     "No results should be selected."
   );
 
-  EventUtils.synthesizeKey("KEY_ArrowUp");
+  EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true });
   Assert.ok(
     UrlbarTestUtils.getSelectedElement(window).classList.contains(
-      "urlbarView-button-help"
+      UrlbarPrefs.get("resultMenu")
+        ? "urlbarView-button-menu"
+        : "urlbarView-button-help"
     ),
-    "The selected element should be the tip help button."
+    UrlbarPrefs.get("resultMenu")
+      ? "The selected element should be the tip menu button."
+      : "The selected element should be the tip help button."
   );
 
   gURLBar.view.close();
@@ -133,7 +143,7 @@ add_task(async function tipIsOnlyResult() {
     "The first and only result should be a tip."
   );
 
-  EventUtils.synthesizeKey("KEY_ArrowDown");
+  EventUtils.synthesizeKey("KEY_Tab");
   Assert.ok(
     UrlbarTestUtils.getSelectedElement(window).classList.contains(
       "urlbarView-button-0"
@@ -146,12 +156,16 @@ add_task(async function tipIsOnlyResult() {
     "The first element should be selected."
   );
 
-  EventUtils.synthesizeKey("KEY_ArrowDown");
+  EventUtils.synthesizeKey("KEY_Tab");
   Assert.ok(
     UrlbarTestUtils.getSelectedElement(window).classList.contains(
-      "urlbarView-button-help"
+      UrlbarPrefs.get("resultMenu")
+        ? "urlbarView-button-menu"
+        : "urlbarView-button-help"
     ),
-    "The selected element should be the tip help button."
+    UrlbarPrefs.get("resultMenu")
+      ? "The selected element should be the tip menu button."
+      : "The selected element should be the tip help button."
   );
   Assert.equal(
     UrlbarTestUtils.getSelectedElementIndex(window),
@@ -166,12 +180,16 @@ add_task(async function tipIsOnlyResult() {
     "There should be no selection."
   );
 
-  EventUtils.synthesizeKey("KEY_ArrowUp");
+  EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true });
   Assert.ok(
     UrlbarTestUtils.getSelectedElement(window).classList.contains(
-      "urlbarView-button-help"
+      UrlbarPrefs.get("resultMenu")
+        ? "urlbarView-button-menu"
+        : "urlbarView-button-help"
     ),
-    "The selected element should be the tip help button."
+    UrlbarPrefs.get("resultMenu")
+      ? "The selected element should be the tip menu button."
+      : "The selected element should be the tip help button."
   );
 
   gURLBar.view.close();
@@ -224,8 +242,8 @@ add_task(async function tipHasNoHelpButton() {
   );
   Assert.equal(
     UrlbarTestUtils.getSelectedElementIndex(window),
-    1,
-    "The first element should be selected."
+    UrlbarPrefs.get("resultMenu") ? 2 : 1,
+    "Selected element index"
   );
 
   EventUtils.synthesizeKey("KEY_ArrowDown");

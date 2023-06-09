@@ -5,7 +5,6 @@
 
 let sandbox;
 
-/* import-globals-from ../../browser/head-common.js */
 Services.scriptloader.loadSubScript(
   "chrome://mochitests/content/browser/browser/components/urlbar/tests/browser/head-common.js",
   this
@@ -97,6 +96,15 @@ async function setUpTelemetryTest({
   merinoSuggestions = null,
   config = QuickSuggestTestUtils.DEFAULT_CONFIG,
 }) {
+  if (UrlbarPrefs.get("resultMenu")) {
+    todo(
+      false,
+      "telemetry for the result menu to be implemented in bug 1790020"
+    );
+    await SpecialPowers.pushPrefEnv({
+      set: [["browser.urlbar.resultMenu", false]],
+    });
+  }
   await SpecialPowers.pushPrefEnv({
     set: [
       // Enable blocking on primary sponsored and nonsponsored suggestions so we
@@ -166,6 +174,9 @@ async function setUpTelemetryTest({
  *     {Array} pings
  *       A list of expected recorded custom telemetry pings. If no pings are
  *       expected, pass an empty array.
+ * @param {string} options.providerName
+ *   The name of the provider that is expected to create the UrlbarResult for
+ *   the suggestion.
  * @param {Function} options.teardown
  *   If given, this function will be called after each selectable test. If
  *   picking an element causes side effects that need to be cleaned up before
@@ -178,6 +189,7 @@ async function doTelemetryTest({
   suggestion,
   impressionOnly,
   selectables,
+  providerName = UrlbarProviderQuickSuggest.name,
   teardown = null,
   showSuggestion = () =>
     UrlbarTestUtils.promiseAutocompleteResultPopup({
@@ -195,6 +207,7 @@ async function doTelemetryTest({
   let selectableClassLists = await doImpressionOnlyTest({
     index,
     suggestion,
+    providerName,
     showSuggestion,
     expected: impressionOnly,
   });
@@ -256,6 +269,7 @@ async function doTelemetryTest({
 
     await doSelectableTest({
       suggestion,
+      providerName,
       showSuggestion,
       index,
       className,
@@ -290,6 +304,9 @@ async function doTelemetryTest({
  *   The expected index of the suggestion in the results list.
  * @param {object} options.suggestion
  *   The suggestion being tested.
+ * @param {string} options.providerName
+ *   The name of the provider that is expected to create the UrlbarResult for
+ *   the suggestion.
  * @param {object} options.expected
  *   An object describing the expected impression-only telemetry. It must have
  *   the following properties:
@@ -310,6 +327,7 @@ async function doTelemetryTest({
 async function doImpressionOnlyTest({
   index,
   suggestion,
+  providerName,
   expected,
   showSuggestion,
 }) {
@@ -321,21 +339,21 @@ async function doImpressionOnlyTest({
   info("Showing suggestion");
   await showSuggestion();
 
-  // Get the quick suggest row.
-  let row = await validateSuggestionRow(index, suggestion);
+  // Get the suggestion row.
+  let row = await validateSuggestionRow(index, suggestion, providerName);
   if (!row) {
     Assert.ok(
       false,
-      "Couldn't get quick suggest row, stopping impression-only test"
+      "Couldn't get suggestion row, stopping impression-only test"
     );
     await spyCleanup();
     return null;
   }
 
-  // We need to get a selectable non-quick-suggest row so we can pick it to
-  // trigger impression-only telemetry. For simplicity we'll look for a row that
-  // will load a URL when picked. We'll also verify no other rows are quick
-  // suggests.
+  // We need to get a different selectable row so we can pick it to trigger
+  // impression-only telemetry. For simplicity we'll look for a row that will
+  // load a URL when picked. We'll also verify no other rows are from the
+  // expected provider.
   let otherRow;
   let rowCount = UrlbarTestUtils.getResultCount(window);
   for (let i = 0; i < rowCount; i++) {
@@ -343,16 +361,15 @@ async function doImpressionOnlyTest({
       let r = await UrlbarTestUtils.waitForAutocompleteResultAt(window, i);
       Assert.notEqual(
         r.result.providerName,
-        UrlbarProviderQuickSuggest.name,
-        "No other row should be a quick suggest: index = " + i
+        providerName,
+        "No other row should be from expected provider: index = " + i
       );
       if (
         !otherRow &&
         (r.result.payload.url ||
           (r.result.type == UrlbarUtils.RESULT_TYPE.SEARCH &&
             (r.result.payload.query || r.result.payload.suggestion))) &&
-        (r.hasAttribute("selectable") ||
-          r.querySelector("urlbarView-row-inner[selectable]"))
+        r.hasAttribute("row-selectable")
       ) {
         otherRow = r;
       }
@@ -361,7 +378,7 @@ async function doImpressionOnlyTest({
   if (!otherRow) {
     Assert.ok(
       false,
-      "Couldn't get a selectable non-quick-suggest row with a URL, stopping impression-only test"
+      "Couldn't get a different selectable row with a URL, stopping impression-only test"
     );
     await spyCleanup();
     return null;
@@ -374,27 +391,28 @@ async function doImpressionOnlyTest({
     selectableClassLists.push([...element.classList]);
   }
 
-  // Pick the non-quick-suggest row. Assumptions:
+  // Pick the different row. Assumptions:
   // * The middle of the row is selectable
   // * Picking the row will load a page
-  info("Clicking non-quick-suggest row and waiting for view to close");
+  info("Clicking different row and waiting for view to close");
   let loadPromise = BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
   await UrlbarTestUtils.promisePopupClose(window, () =>
     EventUtils.synthesizeMouseAtCenter(otherRow, {})
   );
 
-  info("Waiting for page to load after clicking non-quick-suggest row");
+  info("Waiting for page to load after clicking different row");
   await loadPromise;
 
   // Check telemetry.
-  info("Checking scalars");
+  info("Checking scalars. Expected: " + JSON.stringify(expected.scalars));
   QuickSuggestTestUtils.assertScalars(expected.scalars);
 
-  info("Checking events");
+  info("Checking events. Expected: " + JSON.stringify([expected.event]));
   QuickSuggestTestUtils.assertEvents([expected.event]);
 
-  info("Checking pings");
-  QuickSuggestTestUtils.assertPings(spy, expected.ping ? [expected.ping] : []);
+  let expectedPings = expected.ping ? [expected.ping] : [];
+  info("Checking pings. Expected: " + JSON.stringify(expectedPings));
+  QuickSuggestTestUtils.assertPings(spy, expectedPings);
 
   // Clean up.
   await PlacesUtils.history.clear();
@@ -416,6 +434,9 @@ async function doImpressionOnlyTest({
  *   The expected index of the suggestion in the results list.
  * @param {object} options.suggestion
  *   The suggestion being tested.
+ * @param {string} options.providerName
+ *   The name of the provider that is expected to create the UrlbarResult for
+ *   the suggestion.
  * @param {string} options.className
  *   An HTML class name that should uniquely identify the selectable element
  *   within its row.
@@ -428,13 +449,14 @@ async function doImpressionOnlyTest({
  *       The expected recorded event.
  *     {Array} pings
  *       A list of expected recorded custom telemetry pings. If no pings are
- *       expected, pass an empty array.
+ *       expected, leave this undefined or pass an empty array.
  * @param {Function} options.showSuggestion
  *   This function should open the view and show the suggestion.
  */
 async function doSelectableTest({
   index,
   suggestion,
+  providerName,
   className,
   expected,
   showSuggestion,
@@ -447,12 +469,9 @@ async function doSelectableTest({
   info("Showing suggestion");
   await showSuggestion();
 
-  let row = await validateSuggestionRow(index, suggestion);
+  let row = await validateSuggestionRow(index, suggestion, providerName);
   if (!row) {
-    Assert.ok(
-      false,
-      "Couldn't get quick suggest row, stopping selectable test"
-    );
+    Assert.ok(false, "Couldn't get suggestion row, stopping selectable test");
     await spyCleanup();
     return;
   }
@@ -482,14 +501,15 @@ async function doSelectableTest({
     }
   }
 
-  info("Checking scalars");
+  info("Checking scalars. Expected: " + JSON.stringify(expected.scalars));
   QuickSuggestTestUtils.assertScalars(expected.scalars);
 
-  info("Checking events");
+  info("Checking events. Expected: " + JSON.stringify([expected.event]));
   QuickSuggestTestUtils.assertEvents([expected.event]);
 
-  info("Checking pings");
-  QuickSuggestTestUtils.assertPings(spy, expected.pings);
+  let expectedPings = expected.pings ?? [];
+  info("Checking pings. Expected: " + JSON.stringify(expectedPings));
+  QuickSuggestTestUtils.assertPings(spy, expectedPings);
 
   if (className == "urlbarView-button-block") {
     await QuickSuggest.blockedSuggestions.clear();
@@ -509,16 +529,19 @@ async function doSelectableTest({
  *   The expected index of the quick suggest row.
  * @param {object} suggestion
  *   The expected suggestion.
+ * @param {string} providerName
+ *   The name of the provider that is expected to create the UrlbarResult for
+ *   the suggestion.
  * @returns {Element}
  *   If the row is the expected suggestion, the row element is returned.
  *   Otherwise null is returned.
  */
-async function validateSuggestionRow(index, suggestion) {
+async function validateSuggestionRow(index, suggestion, providerName) {
   let rowCount = UrlbarTestUtils.getResultCount(window);
   Assert.less(
     index,
     rowCount,
-    "Expected quick suggest row index should be < row count"
+    "Expected suggestion row index should be < row count"
   );
   if (rowCount <= index) {
     return null;
@@ -527,16 +550,16 @@ async function validateSuggestionRow(index, suggestion) {
   let row = await UrlbarTestUtils.waitForAutocompleteResultAt(window, index);
   Assert.equal(
     row.result.providerName,
-    UrlbarProviderQuickSuggest.name,
-    "Expected quick suggest row should actually be a quick suggest"
+    providerName,
+    "Expected suggestion row should be from expected provider"
   );
   Assert.equal(
     row.result.payload.url,
     suggestion.url,
-    "The quick suggest row should represent the expected suggestion"
+    "The suggestion row should represent the expected suggestion"
   );
   if (
-    row.result.providerName != UrlbarProviderQuickSuggest.name ||
+    row.result.providerName != providerName ||
     row.result.payload.url != suggestion.url
   ) {
     return null;

@@ -6,12 +6,13 @@ var Cm = Components.manager;
 
 // Shared logging for all HTTP server functions.
 var { Log } = ChromeUtils.importESModule("resource://gre/modules/Log.sys.mjs");
-var { CommonUtils } = ChromeUtils.import("resource://services-common/utils.js");
+var { CommonUtils } = ChromeUtils.importESModule(
+  "resource://services-common/utils.sys.mjs"
+);
 var { TestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/TestUtils.sys.mjs"
 );
 var {
-  AccountState,
   MockFxaStorageManager,
   SyncTestingInfrastructure,
   configureFxAccountIdentity,
@@ -25,7 +26,9 @@ var {
   sumHistogram,
   syncTestLogging,
   waitForZeroTimer,
-} = ChromeUtils.import("resource://testing-common/services/sync/utils.js");
+} = ChromeUtils.importESModule(
+  "resource://testing-common/services/sync/utils.sys.mjs"
+);
 
 const SYNC_HTTP_LOGGER = "Sync.Test.Server";
 

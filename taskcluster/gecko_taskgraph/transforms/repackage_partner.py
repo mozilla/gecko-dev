@@ -163,7 +163,7 @@ def make_job_description(config, jobs):
 
         worker = {
             "chain-of-trust": True,
-            "max-run-time": 7200 if build_platform.startswith("win") else 3600,
+            "max-run-time": 3600,
             "taskcluster-proxy": True if get_artifact_prefix(dep_job) else False,
             "env": {
                 "REPACK_ID": repack_id,
@@ -172,7 +172,7 @@ def make_job_description(config, jobs):
             "skip-artifacts": True,
         }
 
-        worker_type = "b-linux"
+        worker_type = "b-linux-gcp"
         worker["docker-image"] = {"in-tree": "debian11-amd64-build"}
 
         worker["artifacts"] = _generate_task_output_files(
@@ -246,7 +246,7 @@ def _generate_download_config(
                 },
             ],
         }
-    elif build_platform.startswith("win"):
+    if build_platform.startswith("win"):
         download_config = [
             {
                 "artifact": f"{locale_path}target.zip",

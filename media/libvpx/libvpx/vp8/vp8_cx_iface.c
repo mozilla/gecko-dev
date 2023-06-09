@@ -1233,8 +1233,8 @@ static vpx_codec_err_t vp8e_set_scalemode(vpx_codec_alg_priv_t *ctx,
   if (data) {
     int res;
     vpx_scaling_mode_t scalemode = *(vpx_scaling_mode_t *)data;
-    res = vp8_set_internal_size(ctx->cpi, (VPX_SCALING)scalemode.h_scaling_mode,
-                                (VPX_SCALING)scalemode.v_scaling_mode);
+    res = vp8_set_internal_size(ctx->cpi, scalemode.h_scaling_mode,
+                                scalemode.v_scaling_mode);
 
     if (!res) {
       /*force next frame a key frame to effect scaling mode */

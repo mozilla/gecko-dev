@@ -150,10 +150,10 @@ function standardTreeWalkerFilter(node) {
       : nodeFilterConstants.FILTER_SKIP;
   }
 
-  // Ignore all native anonymous content inside a non-XUL document.
+  // Ignore all native anonymous roots inside a non-XUL document.
   // We need to do this to skip things like form controls, scrollbars,
   // video controls, etc (see bug 1187482).
-  if (!isInXULDocument(node) && isNativeAnonymous(node)) {
+  if (isNativeAnonymous(node) && !isInXULDocument(node)) {
     return nodeFilterConstants.FILTER_SKIP;
   }
 
@@ -185,17 +185,6 @@ function allAnonymousContentTreeWalkerFilter(node) {
       : nodeFilterConstants.FILTER_SKIP;
   }
   return nodeFilterConstants.FILTER_ACCEPT;
-}
-
-/**
- * This DeepTreeWalker filter only accepts <scrollbar> anonymous content.
- */
-function scrollbarTreeWalkerFilter(node) {
-  if (node.nodeName === "scrollbar" && nodeHasSize(node)) {
-    return nodeFilterConstants.FILTER_ACCEPT;
-  }
-
-  return nodeFilterConstants.FILTER_SKIP;
 }
 
 /**
@@ -361,7 +350,7 @@ function getClosestBackgroundColor(node) {
     const computedStyle = CssLogic.getComputedStyle(current);
     if (computedStyle) {
       const currentStyle = computedStyle.getPropertyValue("background-color");
-      if (colorUtils.isValidCSSColor(currentStyle)) {
+      if (InspectorUtils.isValidCSSColor(currentStyle)) {
         const currentCssColor = new colorUtils.CssColor(currentStyle);
         if (!currentCssColor.isTransparent()) {
           return currentCssColor.rgba;
@@ -467,11 +456,7 @@ async function getBackgroundColor({ rawNode: node, walker }) {
     !node.firstChild
   ) {
     return {
-      value: colorUtils.colorToRGBA(
-        getClosestBackgroundColor(node),
-        true,
-        true
-      ),
+      value: getClosestBackgroundColorInRGBA(node),
     };
   }
 
@@ -481,11 +466,7 @@ async function getBackgroundColor({ rawNode: node, walker }) {
   // Avoid creating doc walker by returning early.
   if (quads.length === 0 || !quads[0].bounds) {
     return {
-      value: colorUtils.colorToRGBA(
-        getClosestBackgroundColor(node),
-        true,
-        true
-      ),
+      value: getClosestBackgroundColorInRGBA(node),
     };
   }
 
@@ -503,11 +484,7 @@ async function getBackgroundColor({ rawNode: node, walker }) {
     firstChild.nodeType !== Node.TEXT_NODE
   ) {
     return {
-      value: colorUtils.colorToRGBA(
-        getClosestBackgroundColor(node),
-        true,
-        true
-      ),
+      value: getClosestBackgroundColorInRGBA(node),
     };
   }
 
@@ -520,11 +497,7 @@ async function getBackgroundColor({ rawNode: node, walker }) {
   // Fall back to calculating contrast against closest bg if there are no text props.
   if (!props) {
     return {
-      value: colorUtils.colorToRGBA(
-        getClosestBackgroundColor(node),
-        true,
-        true
-      ),
+      value: getClosestBackgroundColorInRGBA(node),
     };
   }
 
@@ -539,15 +512,22 @@ async function getBackgroundColor({ rawNode: node, walker }) {
 
   return (
     bgColor || {
-      value: colorUtils.colorToRGBA(
-        getClosestBackgroundColor(node),
-        true,
-        true
-      ),
+      value: getClosestBackgroundColorInRGBA(node),
     }
   );
 }
 
+/**
+ *
+ * @param {DOMNode} node: The node we want the background color of
+ * @returns {Array[r,g,b,a]}
+ */
+function getClosestBackgroundColorInRGBA(node) {
+  const { r, g, b, a } = InspectorUtils.colorToRGBA(
+    getClosestBackgroundColor(node)
+  );
+  return [r, g, b, a];
+}
 /**
  * Indicates if a document is ready (i.e. if it's not loading anymore)
  *
@@ -586,7 +566,6 @@ module.exports = {
   imageToImageData,
   isNodeDead,
   nodeDocument,
-  scrollbarTreeWalkerFilter,
   standardTreeWalkerFilter,
   noAnonymousContentTreeWalkerFilter,
 };

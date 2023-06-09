@@ -10,7 +10,6 @@
 #include "builtin/ModuleObject.h"
 #include "debugger/DebugAPI.h"
 #include "gc/GC.h"
-#include "jit/arm/Simulator-arm.h"
 #include "jit/Bailouts.h"
 #include "jit/BaselineFrame.h"
 #include "jit/BaselineIC.h"
@@ -22,11 +21,9 @@
 #include "jit/JitFrames.h"
 #include "jit/JitRuntime.h"
 #include "jit/JitSpewer.h"
-#include "jit/loong64/Simulator-loong64.h"
-#include "jit/mips32/Simulator-mips32.h"
-#include "jit/mips64/Simulator-mips64.h"
 #include "jit/RematerializedFrame.h"
 #include "jit/SharedICRegisters.h"
+#include "jit/Simulator.h"
 #include "js/friend/StackLimits.h"  // js::AutoCheckRecursionLimit, js::ReportOverRecursed
 #include "js/Utility.h"
 #include "util/Memory.h"
@@ -234,7 +231,8 @@ class MOZ_STACK_CLASS BaselineStackBuilder {
   }
   BufferPointer<BaselineFrame>& blFrame() { return blFrame_.ref(); }
 
-  void setNextCallee(JSFunction* nextCallee);
+  void setNextCallee(JSFunction* nextCallee,
+                     TrialInliningState trialInliningState);
   JSFunction* nextCallee() const { return nextCallee_; }
 
   jsbytecode* pc() const { return pc_; }
@@ -483,12 +481,21 @@ bool BaselineStackBuilder::initFrame() {
   return true;
 }
 
-void BaselineStackBuilder::setNextCallee(JSFunction* nextCallee) {
+void BaselineStackBuilder::setNextCallee(
+    JSFunction* nextCallee, TrialInliningState trialInliningState) {
   nextCallee_ = nextCallee;
 
-  // Update icScript_ to point to the icScript of nextCallee
-  const uint32_t pcOff = script_->pcToOffset(pc_);
-  icScript_ = icScript_->findInlinedChild(pcOff);
+  if (trialInliningState == TrialInliningState::Inlined) {
+    // Update icScript_ to point to the icScript of nextCallee
+    const uint32_t pcOff = script_->pcToOffset(pc_);
+    icScript_ = icScript_->findInlinedChild(pcOff);
+  } else {
+    // If we don't know for certain that it's TrialInliningState::Inlined,
+    // just use the callee's own ICScript. We could still have the trial
+    // inlined ICScript available, but we also could not if we transitioned
+    // to TrialInliningState::Failure after being monomorphic inlined.
+    icScript_ = nextCallee->nonLazyScript()->jitScript()->icScript();
+  }
 }
 
 bool BaselineStackBuilder::done() {
@@ -1005,7 +1012,10 @@ bool BaselineStackBuilder::buildStubFrame(uint32_t frameSize,
   if (!writePtr(CalleeToToken(calleeFun, pushedNewTarget), "CalleeToken")) {
     return false;
   }
-  setNextCallee(calleeFun);
+  const ICEntry& icScriptEntry = icScript_->icEntryFromPCOffset(pcOff);
+  ICFallbackStub* icScriptFallback =
+      icScript_->fallbackStubForICEntry(&icScriptEntry);
+  setNextCallee(calleeFun, icScriptFallback->trialInliningState());
 
   // Push BaselineStub frame descriptor
   size_t baselineStubFrameDescr =
@@ -1482,7 +1492,8 @@ bool jit::BailoutIonToBaseline(JSContext* cx, JitActivation* activation,
              prevFrameType == FrameType::BaselineStub ||
              prevFrameType == FrameType::Rectifier ||
              prevFrameType == FrameType::IonICCall ||
-             prevFrameType == FrameType::BaselineJS);
+             prevFrameType == FrameType::BaselineJS ||
+             prevFrameType == FrameType::BaselineInterpreterEntry);
 #endif
 
   // All incoming frames are going to look like this:
@@ -1697,7 +1708,11 @@ static bool CopyFromRematerializedFrame(JSContext* cx, JitActivation* act,
     *frame->valueSlot(i) = rematFrame->locals()[i];
   }
 
-  frame->setReturnValue(rematFrame->returnValue());
+  if (frame->script()->noScriptRval()) {
+    frame->setReturnValue(UndefinedValue());
+  } else {
+    frame->setReturnValue(rematFrame->returnValue());
+  }
 
   // Don't copy over the hasCachedSavedFrame bit. The new BaselineFrame we're
   // building has a different AbstractFramePtr, so it won't be found in the
@@ -1735,6 +1750,11 @@ bool jit::FinishBailoutToBaseline(BaselineBailoutInfo* bailoutInfoArg) {
   MOZ_DIAGNOSTIC_ASSERT(*bailoutInfo->bailoutKind != BailoutKind::Unreachable);
 
   JSContext* cx = TlsContext.get();
+
+  // jit::Bailout(), jit::InvalidationBailout(), and jit::HandleException()
+  // should have reset the counter to zero.
+  MOZ_ASSERT(!cx->isInUnsafeRegion());
+
   BaselineFrame* topFrame = GetTopBaselineFrame(cx);
 
   // We have to get rid of the rematerialized frame, whether it is
@@ -1887,6 +1907,20 @@ bool jit::FinishBailoutToBaseline(BaselineBailoutInfo* bailoutInfoArg) {
       // invalidate and recompile.
       action = BailoutAction::InvalidateIfFrequent;
       saveFailedICHash = true;
+      break;
+
+    case BailoutKind::MonomorphicInlinedStubFolding:
+      action = BailoutAction::InvalidateIfFrequent;
+      saveFailedICHash = true;
+      if (innerScript != outerScript) {
+        // In the case where this instruction comes from a monomorphic-inlined
+        // ICScript, we need to ensure that we note the connection between the
+        // inner script and the outer script, so that we can properly track if
+        // we add a new case to the folded stub and avoid invalidating the
+        // outer script.
+        cx->lastStubFoldingBailoutChild_ = innerScript;
+        cx->lastStubFoldingBailoutParent_ = outerScript;
+      }
       break;
 
     case BailoutKind::SpeculativePhi:

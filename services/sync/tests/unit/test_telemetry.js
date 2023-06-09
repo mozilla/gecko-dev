@@ -1,14 +1,20 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-const { Service } = ChromeUtils.import("resource://services-sync/service.js");
-const { WBORecord } = ChromeUtils.import("resource://services-sync/record.js");
-const { Resource } = ChromeUtils.import("resource://services-sync/resource.js");
-const { RotaryEngine } = ChromeUtils.import(
-  "resource://testing-common/services/sync/rotaryengine.js"
+const { Service } = ChromeUtils.importESModule(
+  "resource://services-sync/service.sys.mjs"
 );
-const { getFxAccountsSingleton } = ChromeUtils.import(
-  "resource://gre/modules/FxAccounts.jsm"
+const { WBORecord } = ChromeUtils.importESModule(
+  "resource://services-sync/record.sys.mjs"
+);
+const { Resource } = ChromeUtils.importESModule(
+  "resource://services-sync/resource.sys.mjs"
+);
+const { RotaryEngine } = ChromeUtils.importESModule(
+  "resource://testing-common/services/sync/rotaryengine.sys.mjs"
+);
+const { getFxAccountsSingleton } = ChromeUtils.importESModule(
+  "resource://gre/modules/FxAccounts.sys.mjs"
 );
 const fxAccounts = getFxAccountsSingleton();
 
@@ -282,7 +288,16 @@ add_task(async function test_upload_failed() {
     ok(!!ping);
     equal(ping.engines.length, 1);
     equal(ping.engines[0].incoming, null);
-    deepEqual(ping.engines[0].outgoing, [{ sent: 3, failed: 2 }]);
+    deepEqual(ping.engines[0].outgoing, [
+      {
+        sent: 3,
+        failed: 2,
+        failedReasons: [
+          { name: "scotsman", count: 1 },
+          { name: "peppercorn", count: 1 },
+        ],
+      },
+    ]);
     await engine.setLastSync(123);
 
     changes = await engine._tracker.getChangedIDs();
@@ -294,7 +309,16 @@ add_task(async function test_upload_failed() {
     ping = await sync_engine_and_validate_telem(engine, true);
     ok(!!ping);
     equal(ping.engines.length, 1);
-    deepEqual(ping.engines[0].outgoing, [{ sent: 2, failed: 2 }]);
+    deepEqual(ping.engines[0].outgoing, [
+      {
+        sent: 2,
+        failed: 2,
+        failedReasons: [
+          { name: "scotsman", count: 1 },
+          { name: "peppercorn", count: 1 },
+        ],
+      },
+    ]);
   } finally {
     await cleanAndGo(engine, server);
     await engine.finalize();
@@ -346,8 +370,16 @@ add_task(async function test_sync_partialUpload() {
     equal(ping.engines[0].name, "rotary");
     ok(!ping.engines[0].incoming);
     ok(!ping.engines[0].failureReason);
-    deepEqual(ping.engines[0].outgoing, [{ sent: 234, failed: 2 }]);
-
+    deepEqual(ping.engines[0].outgoing, [
+      {
+        sent: 234,
+        failed: 2,
+        failedReasons: [
+          { name: "record-no-23", count: 1 },
+          { name: "record-no-42", count: 1 },
+        ],
+      },
+    ]);
     collection.post = function() {
       throw new Error("Failure");
     };
@@ -385,6 +417,7 @@ add_task(async function test_sync_partialUpload() {
     equal(ping.engines[0].name, "rotary");
     deepEqual(ping.engines[0].incoming, {
       failed: 1,
+      failedReasons: [{ name: "No ciphertext: nothing to decrypt?", count: 1 }],
     });
     ok(!ping.engines[0].outgoing);
     deepEqual(ping.engines[0].failureReason, uploadFailureError);
@@ -614,8 +647,8 @@ add_task(async function test_clean_urls() {
 
 // Test sanitizing guid-related errors with the pattern of <guid: {guid}>
 add_task(async function test_sanitize_bookmarks_guid() {
-  let { ErrorSanitizer } = ChromeUtils.import(
-    "resource://services-sync/telemetry.js"
+  let { ErrorSanitizer } = ChromeUtils.importESModule(
+    "resource://services-sync/telemetry.sys.mjs"
   );
 
   for (let [original, expected] of [
@@ -635,8 +668,8 @@ add_task(async function test_sanitize_bookmarks_guid() {
 
 // Test sanitization of some hard-coded error strings.
 add_task(async function test_clean_errors() {
-  let { ErrorSanitizer } = ChromeUtils.import(
-    "resource://services-sync/telemetry.js"
+  let { ErrorSanitizer } = ChromeUtils.importESModule(
+    "resource://services-sync/telemetry.sys.mjs"
   );
 
   for (let [original, expected] of [
@@ -726,6 +759,7 @@ add_task(async function test_initial_sync_engines() {
       equal(e.outgoing.length, 1);
       notEqual(e.outgoing[0].sent, undefined);
       equal(e.outgoing[0].failed, undefined);
+      equal(e.outgoing[0].failedReasons, undefined);
     }
   } finally {
     await cleanAndGo(engine, server);

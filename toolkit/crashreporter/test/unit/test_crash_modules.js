@@ -8,8 +8,8 @@ add_task(async function run_test() {
 
   await do_crash(
     function() {
-      const { ctypes } = ChromeUtils.import(
-        "resource://gre/modules/ctypes.jsm"
+      const { ctypes } = ChromeUtils.importESModule(
+        "resource://gre/modules/ctypes.sys.mjs"
       );
       // Load and unload a DLL so that it will show up as unloaded in the minidump
       let lib = ctypes.open("wininet");
@@ -19,9 +19,7 @@ add_task(async function run_test() {
       runMinidumpAnalyzer(mdump);
 
       // Refresh updated extra data
-      let data = await OS.File.read(extraFile.path);
-      let decoder = new TextDecoder();
-      extra = JSON.parse(decoder.decode(data));
+      extra = await IOUtils.readJSON(extraFile.path);
 
       // Check unloaded modules
       const unloadedModules = extra.StackTraces.unloaded_modules;

@@ -10,6 +10,7 @@
 #include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/dom/HTMLLinkElement.h"
 #include "mozilla/dom/ScriptLoader.h"
+#include "mozilla/dom/ReferrerInfo.h"
 #include "mozilla/Encoding.h"
 #include "mozilla/FontPreloader.h"
 #include "mozilla/StaticPrefs_network.h"
@@ -187,7 +188,12 @@ PreloadService::PreloadOrCoalesceResult PreloadService::PreloadOrCoalesce(
     PreloadFetch(uri, aCORS, aReferrerPolicy, aEarlyHintPreloaderId);
   }
 
-  return {LookupPreload(preloadKey), false};
+  RefPtr<PreloaderBase> preload = LookupPreload(preloadKey);
+  if (preload && aEarlyHintPreloaderId) {
+    preload->SetForEarlyHints();
+  }
+
+  return {preload, false};
 }
 
 void PreloadService::PreloadScript(nsIURI* aURI, const nsAString& aType,
@@ -218,8 +224,9 @@ void PreloadService::PreloadFont(nsIURI* aURI, const nsAString& aCrossOrigin,
   CORSMode cors = dom::Element::StringToCORSMode(aCrossOrigin);
   auto key = PreloadHashKey::CreateAsFont(aURI, cors);
 
-  // * Bug 1618549: Depending on where we decide to do the deduplication, we may
-  // want to check if the font is already being preloaded here.
+  if (PreloadExists(key)) {
+    return;
+  }
 
   RefPtr<FontPreloader> preloader = new FontPreloader();
   dom::ReferrerPolicy referrerPolicy = PreloadReferrerPolicy(aReferrerPolicy);
@@ -233,8 +240,9 @@ void PreloadService::PreloadFetch(nsIURI* aURI, const nsAString& aCrossOrigin,
   CORSMode cors = dom::Element::StringToCORSMode(aCrossOrigin);
   auto key = PreloadHashKey::CreateAsFetch(aURI, cors);
 
-  // * Bug 1618549: Depending on where we decide to do the deduplication, we may
-  // want to check if a fetch is already being preloaded here.
+  if (PreloadExists(key)) {
+    return;
+  }
 
   RefPtr<FetchPreloader> preloader = new FetchPreloader();
   dom::ReferrerPolicy referrerPolicy = PreloadReferrerPolicy(aReferrerPolicy);

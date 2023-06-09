@@ -4,7 +4,7 @@
 
 /* Permissions */
 
-#trackingGroup {
+.highlighting-group {
   --section-highlight-background-color: color-mix(in srgb, var(--in-content-accent-color) 20%, transparent);
 }
 
@@ -16,7 +16,7 @@
 }
 
 .permission-icon,
-.content-blocking-category .checkbox-label-box,
+.privacy-detailedoption .checkbox-label-box,
 .extra-information-label > image,
 .arrowhead,
 .reload-tabs-button,
@@ -39,6 +39,10 @@
 
 .microphone-icon {
   list-style-image: url(chrome://browser/skin/notification-icons/microphone.svg);
+}
+
+.speaker-icon {
+  list-style-image: url(chrome://global/skin/media/audio.svg);
 }
 
 .desktop-notification-icon {
@@ -75,7 +79,7 @@
   margin-inline-end: 10px;
 }
 
-.content-blocking-category,
+.privacy-detailedoption,
 #fpiIncompatibilityWarning {
   margin: 3px 0;
 }
@@ -89,19 +93,19 @@
   margin-top: 16px;
 }
 
-.content-blocking-category {
+.privacy-detailedoption {
   border-color: var(--in-content-box-border-color);
 }
 
-.content-blocking-category.disabled {
+.privacy-detailedoption.disabled {
   opacity: 0.5;
 }
 
-.content-blocking-category.disabled .radio-check {
+.privacy-detailedoption.disabled .radio-check {
   opacity: 1;
 }
 
-.content-blocking-category > .indent {
+.privacy-detailedoption > .indent {
   margin-inline-end: 22px;
 }
 
@@ -124,7 +128,7 @@
   list-style-image: url("chrome://global/skin/icons/arrow-up-12.svg");
 }
 
-.content-blocking-category.expanded:not(.selected) .reload-tabs {
+.privacy-detailedoption.expanded:not(.selected) .reload-tabs {
   display: none;
 }
 
@@ -165,40 +169,40 @@
   color: inherit;
 }
 
-.content-blocking-category.selected .content-blocking-warning {
+.privacy-detailedoption.selected .content-blocking-warning {
   background-color: var(--section-highlight-background-color);
 }
 
-.content-blocking-category.selected .arrowhead {
+.privacy-detailedoption.selected .arrowhead {
   display: none;
 }
 
-.content-blocking-category.selected {
+.privacy-detailedoption.selected {
   border-color: var(--in-content-accent-color);
 }
 
 @media (prefers-contrast) {
-  .content-blocking-category.selected {
+  .privacy-detailedoption.selected {
     outline: 2px solid var(--in-content-accent-color);
   }
 }
 
 @media not (prefers-contrast) {
-  .content-blocking-category {
+  .privacy-detailedoption {
     background-color: rgba(215, 215, 219, 0.1);
   }
 
-  .content-blocking-category.selected {
+  .privacy-detailedoption.selected {
     background-color: var(--section-highlight-background-color);
   }
 }
 
 .content-blocking-warning-title,
-.content-blocking-category .radio-label-box {
+.privacy-detailedoption .radio-label-box {
   font-weight: bold;
 }
 
-.content-blocking-category:not(.expanded, .selected) .content-blocking-extra-information {
+.privacy-detailedoption:not(.expanded, .selected) .privacy-extra-information {
   visibility: collapse;
 }
 
@@ -209,22 +213,22 @@
 /* Apply display: block to the containers of all the category information, as
  * without this the flex-wrapped blocks inside don't stretch vertically to
  * enclose their content. */
-.content-blocking-category > .indent {
+.privacy-detailedoption > .indent {
   display: block;
 }
 
-.content-blocking-category.expanded .content-blocking-extra-information,
-.content-blocking-category.selected .content-blocking-extra-information {
+.privacy-detailedoption.expanded .privacy-extra-information,
+.privacy-detailedoption.selected .privacy-extra-information {
   display: flex;
   flex-direction: column;
   align-content: stretch;
 }
 
-.content-blocking-extra-information > .indent {
+.privacy-extra-information > .indent {
   margin-bottom: 18px;
 }
 
-.content-blocking-extra-information > .custom-option {
+.privacy-extra-information > .custom-option {
   margin: 10px 0;
 }
 
@@ -244,7 +248,8 @@
   top: 0.65em;
 }
 
-.content-blocking-label {
+.content-blocking-label,
+.doh-label {
   display: list-item;
   line-height: 1.2em;
 }
@@ -273,7 +278,7 @@
   width: 100%;
 }
 
-.content-blocking-category-description {
+.privacy-detailedoption-description {
   font-size: 90%;
   opacity: 0.6;
 }
@@ -302,7 +307,7 @@
 }
 
 #submitHealthReportBox {
-  display: -moz-inline-box;
+  display: inline-flex;
 }
 
 /* Address bar */
@@ -311,54 +316,30 @@
   /* With this value we're trying to keep the apparent vertical space between
      option boxes the same as the apparent vertical space between the labels of
      the checkboxes above the Firefox Suggest subsection. */
-  margin-block-start: 11px;
+  margin-block-start: 18px;
 }
 
 .firefoxSuggestOptionBox:first-of-type {
   /* Similar here: Make the apparent vertical space between the last checkbox
      and first option box the same as elsewhere. */
-  margin-block-start: 5px;
-}
-
-.firefoxSuggestToggle {
-  /* These variables and comments are copied from and override
-     toggle-button.css. We include values for all variables, even those that are
-     the same at the time this comment was written, for sanity and locality of
-     reference. */
-  --button-height: 16px !important;
-  --button-half-height: 8px !important;
-  --button-width: 32px !important;
-  --button-border-width: 1px !important;
-  /* dot-size = button-height - 2*dot-margin - 2*button-border-width */
-  --dot-size: 14px !important;
-  --dot-margin: 0px !important;
-  /* --dot-transform-x = button-width - 2*dot-margin - dot-size - 2*button-border-width */
-  --dot-transform-x: 16px !important;
-}
-
-.firefoxSuggestOptionDescription {
-  /* Prevent the description from flowing under the toggle button.
-     32px = toggle button width
-     1em = a little extra */
-  padding-inline-end: calc(32px + 1em);
-  color: var(--in-content-deemphasized-text);
+  margin-block-start: 11px;
 }
 
 #firefoxSuggestInfoBox {
   margin-block-start: 16px;
-  padding: 12px;
-}
-
-#firefoxSuggestInfoBox > description {
-  margin-inline-start: 2px;
-  margin-block: 2px;
 }
 
 #openSearchEnginePreferences {
-  margin-block-start: 6px;
-  line-height: 30px;
+  margin-block-start: .5em;
 }
 
+#dismissedSuggestions,
 #openSearchEnginePreferences.extraMargin {
-  margin-block-start: 24px;
+  margin-block-start: 2em;
+}
+
+#dohDescription,
+#dohLearnMore,
+#dohStatusSection {
+  line-height: 1.8em;
 }

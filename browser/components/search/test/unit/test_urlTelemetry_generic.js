@@ -10,11 +10,11 @@ ChromeUtils.defineESModuleGetters(this, {
   SearchSERPTelemetry: "resource:///modules/SearchSERPTelemetry.sys.mjs",
   SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
   TelemetryTestUtils: "resource://testing-common/TelemetryTestUtils.sys.mjs",
+  sinon: "resource://testing-common/Sinon.sys.mjs",
 });
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   NetUtil: "resource://gre/modules/NetUtil.jsm",
-  sinon: "resource://testing-common/Sinon.jsm",
 });
 
 const TEST_PROVIDER_INFO = [
@@ -28,6 +28,9 @@ const TEST_PROVIDER_INFO = [
     organicCodes: ["foo"],
     followOnParamNames: ["a"],
     extraAdServersRegexps: [/^https:\/\/www\.example\.com\/ad2/],
+    shoppingTab: {
+      regexp: "&site=shop",
+    },
   },
   {
     telemetryId: "example2",
@@ -50,6 +53,30 @@ const TESTS = [
     expectedAdKey: "example:tagged",
     adUrls: ["https://www.example.com/ad2"],
     nonAdUrls: ["https://www.example.com/ad3"],
+    impression: {
+      provider: "example",
+      tagged: "true",
+      partner_code: "ff",
+      is_shopping_page: "false",
+      shopping_tab_displayed: "false",
+      source: "unknown",
+    },
+  },
+  {
+    title: "Tagged search with shopping",
+    trackingUrl: "https://www.example.com/search?q=test&abc=ff&site=shop",
+    expectedSearchCountEntry: "example:tagged:ff",
+    expectedAdKey: "example:tagged",
+    adUrls: ["https://www.example.com/ad2"],
+    nonAdUrls: ["https://www.example.com/ad3"],
+    impression: {
+      provider: "example",
+      tagged: "true",
+      partner_code: "ff",
+      is_shopping_page: "true",
+      shopping_tab_displayed: "false",
+      source: "unknown",
+    },
   },
   {
     title: "Tagged follow-on",
@@ -58,6 +85,14 @@ const TESTS = [
     expectedAdKey: "example:tagged-follow-on",
     adUrls: ["https://www.example.com/ad2"],
     nonAdUrls: ["https://www.example.com/ad3"],
+    impression: {
+      provider: "example",
+      tagged: "true",
+      partner_code: "tb",
+      is_shopping_page: "false",
+      shopping_tab_displayed: "false",
+      source: "unknown",
+    },
   },
   {
     title: "Organic search matched code",
@@ -66,6 +101,14 @@ const TESTS = [
     expectedAdKey: "example:organic",
     adUrls: ["https://www.example.com/ad2"],
     nonAdUrls: ["https://www.example.com/ad3"],
+    impression: {
+      provider: "example",
+      tagged: "false",
+      partner_code: "foo",
+      is_shopping_page: "false",
+      shopping_tab_displayed: "false",
+      source: "unknown",
+    },
   },
   {
     title: "Organic search non-matched code",
@@ -74,6 +117,14 @@ const TESTS = [
     expectedAdKey: "example:organic",
     adUrls: ["https://www.example.com/ad2"],
     nonAdUrls: ["https://www.example.com/ad3"],
+    impression: {
+      provider: "example",
+      tagged: "false",
+      partner_code: "other",
+      is_shopping_page: "false",
+      shopping_tab_displayed: "false",
+      source: "unknown",
+    },
   },
   {
     title: "Organic search non-matched code 2",
@@ -82,6 +133,14 @@ const TESTS = [
     expectedAdKey: "example:organic",
     adUrls: ["https://www.example.com/ad2"],
     nonAdUrls: ["https://www.example.com/ad3"],
+    impression: {
+      provider: "example",
+      tagged: "false",
+      partner_code: "other",
+      is_shopping_page: "false",
+      shopping_tab_displayed: "false",
+      source: "unknown",
+    },
   },
   {
     title: "Organic search expected organic matched code",
@@ -90,6 +149,14 @@ const TESTS = [
     expectedAdKey: "example:organic",
     adUrls: ["https://www.example.com/ad2"],
     nonAdUrls: ["https://www.example.com/ad3"],
+    impression: {
+      provider: "example",
+      tagged: "false",
+      partner_code: "",
+      is_shopping_page: "false",
+      shopping_tab_displayed: "false",
+      source: "unknown",
+    },
   },
   {
     title: "Organic search no codes",
@@ -98,6 +165,14 @@ const TESTS = [
     expectedAdKey: "example:organic",
     adUrls: ["https://www.example.com/ad2"],
     nonAdUrls: ["https://www.example.com/ad3"],
+    impression: {
+      provider: "example",
+      tagged: "false",
+      partner_code: "",
+      is_shopping_page: "false",
+      shopping_tab_displayed: "false",
+      source: "unknown",
+    },
   },
   {
     title: "Different engines using the same adUrl",
@@ -106,6 +181,14 @@ const TESTS = [
     expectedAdKey: "example2:organic",
     adUrls: ["https://www.example.com/ad2"],
     nonAdUrls: ["https://www.example.com/ad3"],
+    impression: {
+      provider: "example2",
+      tagged: "false",
+      partner_code: "",
+      is_shopping_page: "false",
+      shopping_tab_displayed: "false",
+      source: "unknown",
+    },
   },
 ];
 
@@ -161,6 +244,11 @@ do_get_profile();
 
 add_task(async function setup() {
   Services.prefs.setBoolPref(SearchUtils.BROWSER_SEARCH_PREF + "log", true);
+  Services.prefs.setBoolPref(
+    SearchUtils.BROWSER_SEARCH_PREF + "serpEventTelemetry.enabled",
+    true
+  );
+  Services.fog.initializeFOG();
   await SearchSERPTelemetry.init();
   SearchSERPTelemetry.overrideSearchTelemetryForTests(TEST_PROVIDER_INFO);
   sinon.stub(BrowserSearchTelemetry, "shouldRecordSearchCount").returns(true);
@@ -172,11 +260,16 @@ add_task(async function test_parsing_search_urls() {
     if (test.setUp) {
       test.setUp();
     }
-    SearchSERPTelemetry.updateTrackingStatus(
+    let browser = {
+      getTabBrowser: () => {},
+    };
+    SearchSERPTelemetry.updateTrackingStatus(browser, test.trackingUrl);
+    SearchSERPTelemetry.reportPageImpression(
       {
-        getTabBrowser: () => {},
+        url: test.trackingUrl,
+        hasShoppingTab: false,
       },
-      test.trackingUrl
+      browser
     );
     let scalars = TelemetryTestUtils.getProcessScalars("parent", true, true);
     TelemetryTestUtils.assertKeyedScalar(
@@ -195,8 +288,23 @@ add_task(async function test_parsing_search_urls() {
       }
     }
 
+    let recordedEvents = Glean.serp.impression.testGetValue();
+
+    Assert.equal(
+      recordedEvents.length,
+      1,
+      "should only see one impression event"
+    );
+
+    // To allow deep equality.
+    test.impression.impression_id = recordedEvents[0].extra.impression_id;
+    Assert.deepEqual(recordedEvents[0].extra, test.impression);
+
     if (test.tearDown) {
       test.tearDown();
     }
+
+    // We need to clear Glean events so they don't accumulate for each iteration.
+    Services.fog.testResetFOG();
   }
 });

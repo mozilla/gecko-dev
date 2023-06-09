@@ -42,6 +42,12 @@ class MockPeerConnectionInternal : public PeerConnectionInternal {
               (rtc::scoped_refptr<MediaStreamTrackInterface>,
                const std::vector<std::string>&),
               (override));
+  MOCK_METHOD(RTCErrorOr<rtc::scoped_refptr<RtpSenderInterface>>,
+              AddTrack,
+              (rtc::scoped_refptr<MediaStreamTrackInterface>,
+               const std::vector<std::string>&,
+               const std::vector<RtpEncodingParameters>&),
+              (override));
   MOCK_METHOD(RTCError,
               RemoveTrackOrError,
               (rtc::scoped_refptr<RtpSenderInterface>),
@@ -202,10 +208,6 @@ class MockPeerConnectionInternal : public PeerConnectionInternal {
               configuration,
               (),
               (const, override));
-  MOCK_METHOD(void,
-              ReportSdpFormatReceived,
-              (const SessionDescriptionInterface&),
-              (override));
   MOCK_METHOD(void,
               ReportSdpBundleUsage,
               (const SessionDescriptionInterface&),

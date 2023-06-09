@@ -1,4 +1,3 @@
-var { OS, require } = ChromeUtils.import("resource://gre/modules/osfile.jsm");
 const { makeFakeAppDir } = ChromeUtils.importESModule(
   "resource://testing-common/AppData.sys.mjs"
 );
@@ -7,7 +6,7 @@ var { AppConstants } = ChromeUtils.importESModule(
 );
 
 function getEventDir() {
-  return OS.Path.join(do_get_tempdir().path, "crash-events");
+  return PathUtils.join(do_get_tempdir().path, "crash-events");
 }
 
 function sendCommandAsync(command) {
@@ -140,27 +139,34 @@ async function handleMinidump(callback) {
   let memoryfile = minidump.clone();
   memoryfile.leafName = memoryfile.leafName.slice(0, -4) + ".memory.json.gz";
 
-  let cleanup = function() {
-    [minidump, extrafile, memoryfile].forEach(file => {
+  let cleanup = async function() {
+    for (let file of [minidump, extrafile, memoryfile]) {
       if (file.exists()) {
-        file.remove(false);
+        let file_removed = false;
+        while (!file_removed) {
+          try {
+            file.remove(false);
+            file_removed = true;
+          } catch (e) {
+            // On Windows the file may be locked, wait briefly and try again
+            await new Promise(resolve => do_timeout(50, resolve));
+          }
+        }
       }
-    });
+    }
   };
 
   // Just in case, don't let these files linger.
   registerCleanupFunction(cleanup);
 
   Assert.ok(extrafile.exists());
-  let data = await OS.File.read(extrafile.path);
-  let decoder = new TextDecoder();
-  let extra = JSON.parse(decoder.decode(data));
+  let extra = await IOUtils.readJSON(extrafile.path);
 
   if (callback) {
     await callback(minidump, extra, extrafile, memoryfile);
   }
 
-  cleanup();
+  await cleanup();
 }
 
 function spinEventLoop() {
@@ -340,6 +346,6 @@ async function do_backgroundtask_crash(
 }
 
 // Import binary APIs via js-ctypes.
-var { CrashTestUtils } = ChromeUtils.import(
-  "resource://test/CrashTestUtils.jsm"
+var { CrashTestUtils } = ChromeUtils.importESModule(
+  "resource://test/CrashTestUtils.sys.mjs"
 );

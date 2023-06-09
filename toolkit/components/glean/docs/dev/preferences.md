@@ -38,16 +38,31 @@ Present to allow testing without figuring out how to mock Rust's clock.
 Their values are integer seconds.
 Defaults to 120 (activity), 1200 (inactivity).
 
+## Internal Preferences
+
+`telemetry.fog.artifact_build`
+
+Read-only. This pref is `true` only if `MOZ_ARTIFACT_BUILDS` was set during configure.
+If true, [JOG](./jog) is enabled so that artifact builds will exhibit changes to their Glean metrics.
+
 ## Defines
+
+`MOZ_AUTOMATION`
+
+If set, and `GLEAN_SOURCE_TAGS` isn't set, FOG will set a
+[Glean source tag](https://mozilla.github.io/glean/book/reference/debug/sourceTags.html)
+of `automation`.
+
+If `GLEAN_SOURCE_TAGS` is set, the `automation` source tag will not be added automatically.
+
+If not set, any tags set by `GLEAN_SOURCE_TAGS` will be present.
 
 `MOZ_GLEAN_ANDROID`
 
-If set, recording Glean metrics are a no-op. Glean will not be initialized.
-Only set on Android.
-This define will be removed after we sort out how Android and Geckoview will work
-(see [bug 1670261](https://bugzilla.mozilla.org/show_bug.cgi?id=1670261)).
-It can be queried in C++ via `#ifndef MOZ_GLEAN_ANDROID`,
-and in JS via `AppConstants.MOZ_GLEAN_ANDROID`.
+If set, the Glean SDK is assumed to be managed by something other than FOG, meaning:
+* [GIFFT][gifft] is disabled.
+* FOG doesn't initialize Glean
+* FOG doesn't relay (in)activity or experiment annotations to Glean
 
 `MOZILLA_OFFICIAL`
 
@@ -64,19 +79,18 @@ This mode can be overridden at runtime in two ways:
   then pings are sent to a server operating locally at that port
   (even if the ping has a Debug Tag), to enable testing.
 
-Also, if set, [JOG](./jog) is disabled.
-Artifact builds will not exhibit changes to their Glean metrics.
-
 `MOZILLA_OFFICIAL` tends to be set on most builds released to users,
 including builds distributed by Linux distributions.
 It tends to not be set on local developer builds.
 See [bug 1680025](https://bugzilla.mozilla.org/show_bug.cgi?id=1680025) for details.
 
-`COMPILE_ENVIRONMENT`
+`MOZ_ARTIFACT_BUILDS`
 
-If `COMPILE_ENVIRONMENT` isn't set in the build config,
+If `MOZ_ARTIFACT_BUILDS` is set in the build config,
 [JOG](./jog) will generate a file for the runtime-registration of metrics and pings.
 This is to support [Artifact Builds](/contributing/build/artifact_builds).
+
+See also `telemetry.fog.artifact_build`.
 
 `OS_TARGET`
 
@@ -88,3 +102,4 @@ opts us into a preinit queue that doesn't discard tasks until there are 10^6 of 
 See [bug 1797494](https://bugzilla.mozilla.org/show_bug.cgi?id=1797494) for details.
 
 [gkrust-features]: https://searchfox.org/mozilla-central/source/toolkit/library/rust/gkrust-features.mozbuild
+[gifft]: ../user/gifft

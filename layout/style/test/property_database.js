@@ -262,7 +262,6 @@ var validNonUrlImageValues = [
   "image-set(url(foobar.png) 2x)",
   "image-set(url(foobar.png) 1x, url(bar.png) 2x, url(baz.png) 3x)",
   "image-set('foobar.png', 'bar.png' 2x, url(baz.png) 3x)",
-  "image-set(image-set('foobar.png', 'bar.png' 2x) 1x, url(baz.png) 3x)",
   "image-set(url(foobar.png) type('image/png'))",
   "image-set(url(foobar.png) 1x type('image/png'))",
   "image-set(url(foobar.png) type('image/png') 1x)",
@@ -804,6 +803,7 @@ var invalidNonUrlImageValues = [
 
   "image-set(url(foobar.png) 1x, none)",
   "image-set(garbage)",
+  "image-set(image-set('foobar.png', 'bar.png' 2x) 1x, url(baz.png) 3x)", // Nested image-sets should fail to parse
   "image-set(image-set(garbage))",
   "image-set()",
   "image-set(type('image/png') url(foobar.png) 1x)",
@@ -1379,6 +1379,29 @@ if (/* mozGradientsEnabled */ true) {
     "-moz-radial-gradient(7em 8em at 45px, red, blue)"
   );
 }
+
+const pathValues = {
+  other_values: [
+    "path('')",
+    "path(' ')",
+    "path('M 10 10 20 20 H 90 V 90 Z')",
+    "path('M10 10 20,20H90V90Z')",
+    "path('M 10 10 C 20 20, 40 20, 50 10')",
+    "path('M 10 80 C 40 10, 65 10, 95 80 S 1.5e2 150, 180 80')",
+    "path('M 10 80 Q 95 10 180 80')",
+    "path('M 10 80 Q 52.5 10, 95 80 T 180 80')",
+    "path('M 80 80 A 45 45, 0, 0, 0, 1.25e2 1.25e2 L 125 80 Z')",
+    "path('M100-200h20z')",
+    "path('M10,10L20.6.5z')",
+  ],
+  invalid_values: [
+    "path()",
+    "path(a)",
+    "path('M 10 Z')",
+    "path('M 10-10 20')",
+    "path('M 10 10 C 20 20 40 20')",
+  ],
+};
 
 var gCSSProperties = {
   animation: {
@@ -2856,6 +2879,14 @@ var gCSSProperties = {
     ],
     invalid_values: ["20", "-1px", "50%"],
   },
+  d: {
+    domProp: "d",
+    inherited: false,
+    type: CSS_TYPE_LONGHAND,
+    initial_values: ["none"],
+    other_values: pathValues.other_values,
+    invalid_values: pathValues.invalid_values,
+  },
   "-moz-float-edge": {
     domProp: "MozFloatEdge",
     inherited: false,
@@ -2871,14 +2902,6 @@ var gCSSProperties = {
     initial_values: ["0"],
     other_values: ["1"],
     invalid_values: [],
-  },
-  "-moz-image-region": {
-    domProp: "MozImageRegion",
-    inherited: true,
-    type: CSS_TYPE_LONGHAND,
-    initial_values: ["auto"],
-    other_values: ["rect(3px 20px 15px 4px)", "rect(17px, 21px, 33px, 2px)"],
-    invalid_values: ["rect(17px, 21px, 33, 2px)"],
   },
   "margin-inline": {
     domProp: "marginInline",
@@ -5293,7 +5316,7 @@ var gCSSProperties = {
       "counters(foo, '.', symbols('*'))",
       "counters(foo, '.', symbols(numeric '0' '1'))",
       "image-set(url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAAKElEQVR42u3NQQ0AAAgEoNP+nTWFDzcoQE1udQQCgUAgEAgEAsGTYAGjxAE/G/Q2tQAAAABJRU5ErkJggg==))",
-    ],
+    ].concat(validNonUrlImageValues),
     invalid_values: [
       "counter(foo, none)",
       "counters(bar, '.', none)",
@@ -5308,7 +5331,7 @@ var gCSSProperties = {
       "-moz-alt-content 'foo'",
       "'foo' -moz-alt-content",
       "counter(one, two, three) 'foo'",
-    ],
+    ].concat(invalidNonUrlImageValues),
   },
   "counter-increment": {
     domProp: "counterIncrement",
@@ -5753,24 +5776,88 @@ var gCSSProperties = {
   "font-synthesis": {
     domProp: "fontSynthesis",
     inherited: true,
-    type: CSS_TYPE_LONGHAND,
+    type: CSS_TYPE_SHORTHAND_AND_LONGHAND,
+    subproperties: [
+      "font-synthesis-weight",
+      "font-synthesis-style",
+      "font-synthesis-small-caps",
+    ],
     applies_to_first_letter: true,
     applies_to_first_line: true,
     applies_to_marker: true,
     applies_to_placeholder: true,
     applies_to_cue: true,
-    initial_values: ["weight style small-caps"],
-    other_values: ["none", "weight", "style", "small-caps"],
+    initial_values: [
+      "weight style small-caps",
+      "weight small-caps style",
+      "small-caps weight style",
+      "small-caps style weight",
+      "style weight small-caps",
+      "style small-caps weight",
+    ],
+    other_values: [
+      "none",
+      "weight",
+      "style",
+      "small-caps",
+      "weight style",
+      "style weight",
+      "weight small-caps",
+      "small-caps weight",
+      "style small-caps",
+      "small-caps style",
+    ],
     invalid_values: [
+      "10px",
       "weight none",
       "style none",
       "none style",
+      "none 10px",
       "weight 10px",
       "weight weight",
       "style style",
       "small-caps none",
       "small-caps small-caps",
     ],
+  },
+  "font-synthesis-weight": {
+    domProp: "fontSynthesisWeight",
+    inherited: true,
+    type: CSS_TYPE_LONGHAND,
+    applies_to_first_letter: true,
+    applies_to_first_line: true,
+    applies_to_marker: true,
+    applies_to_placeholder: true,
+    applies_to_cue: true,
+    initial_values: ["auto"],
+    other_values: ["none"],
+    invalid_values: ["auto none", "weight", "normal", "0"],
+  },
+  "font-synthesis-style": {
+    domProp: "fontSynthesisStyle",
+    inherited: true,
+    type: CSS_TYPE_LONGHAND,
+    applies_to_first_letter: true,
+    applies_to_first_line: true,
+    applies_to_marker: true,
+    applies_to_placeholder: true,
+    applies_to_cue: true,
+    initial_values: ["auto"],
+    other_values: ["none"],
+    invalid_values: ["auto none", "style", "normal", "0"],
+  },
+  "font-synthesis-small-caps": {
+    domProp: "fontSynthesisSmallCaps",
+    inherited: true,
+    type: CSS_TYPE_LONGHAND,
+    applies_to_first_letter: true,
+    applies_to_first_line: true,
+    applies_to_marker: true,
+    applies_to_placeholder: true,
+    applies_to_cue: true,
+    initial_values: ["auto"],
+    other_values: ["none"],
+    invalid_values: ["auto none", "small-caps", "normal", "0"],
   },
   "font-variant": {
     domProp: "fontVariant",
@@ -11095,6 +11182,17 @@ var gCSSProperties = {
     alias_for: "filter",
     subproperties: ["filter"],
   },
+  "-webkit-text-security": {
+    domProp: "webkitTextSecurity",
+    inherited: true,
+    type: CSS_TYPE_LONGHAND,
+    applies_to_first_letter: true,
+    applies_to_first_line: true,
+    applies_to_placeholder: true,
+    initial_values: ["none"],
+    other_values: ["circle", "disc", "square"],
+    invalid_values: ["0", "auto", "true", "'*'"],
+  },
   "-webkit-text-fill-color": {
     domProp: "webkitTextFillColor",
     inherited: true,
@@ -12913,8 +13011,13 @@ if (IsCSSPropertyPrefEnabled("layout.css.content-visibility.enabled")) {
     inherited: false,
     type: CSS_TYPE_LONGHAND,
     initial_values: ["visible"],
-    other_values: ["auto", "invisible"],
-    invalid_values: ["partially-visible", "auto auto", "visible invisible"],
+    other_values: ["auto", "hidden"],
+    invalid_values: [
+      "invisible",
+      "partially-visible",
+      "auto auto",
+      "visible hidden",
+    ],
   };
 }
 
@@ -13279,29 +13382,6 @@ gCSSProperties["scrollbar-width"] = {
   invalid_values: ["1px"],
 };
 
-const pathValues = {
-  other_values: [
-    "path('')",
-    "path(' ')",
-    "path('M 10 10 20 20 H 90 V 90 Z')",
-    "path('M10 10 20,20H90V90Z')",
-    "path('M 10 10 C 20 20, 40 20, 50 10')",
-    "path('M 10 80 C 40 10, 65 10, 95 80 S 1.5e2 150, 180 80')",
-    "path('M 10 80 Q 95 10 180 80')",
-    "path('M 10 80 Q 52.5 10, 95 80 T 180 80')",
-    "path('M 80 80 A 45 45, 0, 0, 0, 1.25e2 1.25e2 L 125 80 Z')",
-    "path('M100-200h20z')",
-    "path('M10,10L20.6.5z')",
-  ],
-  invalid_values: [
-    "path()",
-    "path(a)",
-    "path('M 10 Z')",
-    "path('M 10-10 20')",
-    "path('M 10 10 C 20 20 40 20')",
-  ],
-};
-
 if (IsCSSPropertyPrefEnabled("layout.css.motion-path.enabled")) {
   gCSSProperties["offset"] = {
     domProp: "offset",
@@ -13352,22 +13432,28 @@ if (IsCSSPropertyPrefEnabled("layout.css.motion-path.enabled")) {
     inherited: false,
     type: CSS_TYPE_LONGHAND,
     initial_values: ["none"],
-    other_values: pathValues.other_values.concat([
+    other_values: [...pathValues.other_values],
+    invalid_values: [...pathValues.invalid_values],
+  };
+
+  if (IsCSSPropertyPrefEnabled("layout.css.motion-path-ray.enabled")) {
+    gCSSProperties["offset-path"]["other_values"].push(
+      "ray(0deg)",
       "ray(45deg closest-side)",
       "ray(0rad farthest-side)",
       "ray(0.5turn closest-corner contain)",
       "ray(200grad farthest-corner)",
       "ray(sides 180deg)",
       "ray(contain farthest-side 180deg)",
-      "ray(calc(180deg - 45deg) farthest-side)",
-    ]),
-    invalid_values: pathValues.invalid_values.concat([
-      "ray(0deg)",
+      "ray(calc(180deg - 45deg) farthest-side)"
+    );
+
+    gCSSProperties["offset-path"]["invalid_values"].push(
       "ray(closest-side)",
       "ray(0deg, closest-side)",
-      "ray(contain 0deg closest-side contain)",
-    ]),
-  };
+      "ray(contain 0deg closest-side contain)"
+    );
+  }
 
   gCSSProperties["offset-distance"] = {
     domProp: "offsetDistance",
@@ -13405,14 +13491,36 @@ if (IsCSSPropertyPrefEnabled("layout.css.motion-path.enabled")) {
   };
 }
 
-if (IsCSSPropertyPrefEnabled("layout.css.d-property.enabled")) {
-  gCSSProperties["d"] = {
-    domProp: "d",
+if (
+  IsCSSPropertyPrefEnabled("layout.css.motion-path-offset-position.enabled")
+) {
+  if (IsCSSPropertyPrefEnabled("layout.css.motion-path.enabled")) {
+    gCSSProperties["offset"]["subproperties"].push("offset-position");
+    gCSSProperties["offset"]["other_values"].push("top right / top left");
+
+    if (IsCSSPropertyPrefEnabled("layout.css.motion-path-ray.enabled")) {
+      gCSSProperties["offset"]["other_values"].push(
+        "top right ray(45deg closest-side)",
+        "50% 50% ray(0rad farthest-side)"
+      );
+    }
+  }
+
+  gCSSProperties["offset-position"] = {
+    domProp: "offsetPosition",
     inherited: false,
     type: CSS_TYPE_LONGHAND,
-    initial_values: ["none"],
-    other_values: pathValues.other_values,
-    invalid_values: pathValues.invalid_values,
+    initial_values: ["auto"],
+    other_values: [
+      "left bottom",
+      "center center",
+      "calc(20% + 10px) center",
+      "right 30em",
+      "10px 20%",
+      "left -10px top -20%",
+      "right 10% bottom 20em",
+    ],
+    invalid_values: ["none", "10deg", "left 10% top"],
   };
 }
 
@@ -13446,13 +13554,16 @@ if (IsCSSPropertyPrefEnabled("layout.css.step-position-jump.enabled")) {
 
 if (IsCSSPropertyPrefEnabled("layout.css.linear-easing-function.enabled")) {
   let linear_function_other_values = [
-    "linear()",
-    "linear(0.5)",
     "linear(0, 1)",
     "linear(0 0% 50%, 1 50% 100%)",
   ];
 
-  let linear_function_invalid_values = ["linear(0% 0 100%)", "linear(0,)"];
+  let linear_function_invalid_values = [
+    "linear()",
+    "linear(0.5)",
+    "linear(0% 0 100%)",
+    "linear(0,)",
+  ];
   gCSSProperties["animation-timing-function"].other_values.push(
     ...linear_function_other_values
   );
@@ -13468,7 +13579,7 @@ if (IsCSSPropertyPrefEnabled("layout.css.linear-easing-function.enabled")) {
   );
 
   gCSSProperties["animation"].other_values.push(
-    "1s 2s linear() bounce",
+    "1s 2s linear(0, 1) bounce",
     "4s linear(0, 0.5 25% 75%, 1 100% 100%)"
   );
 }
@@ -13565,6 +13676,17 @@ if (IsCSSPropertyPrefEnabled("layout.css.color-scheme.enabled")) {
   };
 }
 
+if (IsCSSPropertyPrefEnabled("layout.css.forced-color-adjust.enabled")) {
+  gCSSProperties["forced-color-adjust"] = {
+    domProp: "forcedColorAdjust",
+    inherited: true,
+    type: CSS_TYPE_LONGHAND,
+    initial_values: ["auto"],
+    other_values: ["none"],
+    invalid_values: [],
+  };
+}
+
 if (IsCSSPropertyPrefEnabled("layout.css.animation-composition.enabled")) {
   gCSSProperties["animation-composition"] = {
     domProp: "animationComposition",
@@ -13634,6 +13756,15 @@ if (IsCSSPropertyPrefEnabled("layout.css.scroll-driven-animations.enabled")) {
       "scroll(nearest)",
       "scroll(inline nearest)",
       "scroll(vertical root)",
+      "scroll(root horizontal)",
+      "view()",
+      "view(inline)",
+      "view(auto)",
+      "view(auto 1px)",
+      "view(inline auto)",
+      "view(vertical auto auto)",
+      "view(horizontal 1px 1%)",
+      "view(1px 1% block)",
     ],
     invalid_values: [
       "bounce, initial",
@@ -13652,6 +13783,7 @@ if (IsCSSPropertyPrefEnabled("layout.css.scroll-driven-animations.enabled")) {
     initial_values: ["none"],
     other_values: [
       "all",
+      "auto",
       "ball",
       "mall",
       "color",
@@ -13664,13 +13796,7 @@ if (IsCSSPropertyPrefEnabled("layout.css.scroll-driven-animations.enabled")) {
       "\\2bounce",
       "-\\2bounce",
     ],
-    invalid_values: [
-      "auto",
-      "bounce, abc",
-      "abc bounce",
-      "10px",
-      "rgb(1, 2, 3)",
-    ],
+    invalid_values: ["abc bounce", "10px", "rgb(1, 2, 3)"],
   };
 
   gCSSProperties["scroll-timeline-axis"] = {
@@ -13687,17 +13813,82 @@ if (IsCSSPropertyPrefEnabled("layout.css.scroll-driven-animations.enabled")) {
     inherited: false,
     type: CSS_TYPE_TRUE_SHORTHAND,
     subproperties: ["scroll-timeline-name", "scroll-timeline-axis"],
-    initial_values: ["none block", "block none", "block", "none"],
+    initial_values: ["none block", "none"],
     other_values: [
+      "auto inline",
       "bounce inline",
       "bounce vertical",
-      "horizontal bounce",
-      "inline \\32bounce",
-      "block -bounce",
-      "vertical \\32 0bounce",
-      "horizontal -\\32 0bounce",
+      "\\32bounce inline",
+      "-bounce block",
+      "\\32 0bounce vertical",
+      "-\\32 0bounce horizontal",
+      "a, b, c",
+      "a block, b inline, c vertical",
     ],
-    invalid_values: ["", "bounce bounce"],
+    invalid_values: ["", "bounce bounce", "horizontal a", "block abc"],
+  };
+
+  gCSSProperties["view-timeline-name"] = {
+    domProp: "viewTimelineName",
+    inherited: false,
+    type: CSS_TYPE_LONGHAND,
+    initial_values: ["none"],
+    other_values: [
+      "all",
+      "auto",
+      "ball",
+      "mall",
+      "color",
+      "foobar",
+      "\\32bounce",
+      "-bounce",
+      "-\\32bounce",
+      "\\32 0bounce",
+      "-\\32 0bounce",
+      "\\2bounce",
+      "-\\2bounce",
+      "bounce, abc",
+      "none, none",
+    ],
+    invalid_values: ["abc bounce", "10px", "rgb(1, 2, 3)"],
+  };
+
+  gCSSProperties["view-timeline-axis"] = {
+    domProp: "viewTimelineAxis",
+    inherited: false,
+    type: CSS_TYPE_LONGHAND,
+    initial_values: ["block"],
+    other_values: ["inline", "vertical", "horizontal", "inline, block"],
+    invalid_values: ["auto", "none", "abc", "inline block"],
+  };
+
+  gCSSProperties["view-timeline-inset"] = {
+    domProp: "viewTimelineInset",
+    inherited: false,
+    type: CSS_TYPE_LONGHAND,
+    initial_values: ["auto"],
+    other_values: ["0px", "1%", "1px 1%", "0px 0%", "calc(0px) auto"],
+    invalid_values: ["none", "rgb(1, 2, 3)", "foo bar", "1px 2px 3px"],
+  };
+
+  gCSSProperties["view-timeline"] = {
+    domProp: "viewTimeline",
+    inherited: false,
+    type: CSS_TYPE_TRUE_SHORTHAND,
+    subproperties: ["view-timeline-name", "view-timeline-axis"],
+    initial_values: ["none block", "none"],
+    other_values: [
+      "auto inline",
+      "bounce inline",
+      "bounce vertical",
+      "\\32bounce inline",
+      "-bounce block",
+      "\\32 0bounce vertical",
+      "-\\32 0bounce horizontal",
+      "a, b, c",
+      "a block, b inline, c vertical",
+    ],
+    invalid_values: ["", ",", "abc abc", "horizontal a", "block abc"],
   };
 }
 

@@ -15,7 +15,6 @@ var { require } = ChromeUtils.importESModule(
 var {
   generateCssProperties,
 } = require("resource://devtools/server/actors/css-properties.js");
-const InspectorUtils = require("InspectorUtils");
 
 // xpcshell can output extra information, so place some delimiter text between
 // the output of the css properties database.
@@ -25,7 +24,6 @@ dump("DEVTOOLS_CSS_DB_DELIMITER");
 dump(
   JSON.stringify({
     cssProperties: cssProperties(),
-    preferences: preferences(),
     pseudoElements: pseudoElements(),
   })
 );
@@ -51,18 +49,6 @@ function cssProperties() {
     }
   }
   return properties;
-}
-
-/**
- * A list of preferences of CSS properties.
- */
-function preferences() {
-  const prefs = InspectorUtils.getCSSPropertyPrefs();
-  const result = [];
-  for (const { name, pref } of prefs) {
-    result.push([name, pref]);
-  }
-  return result;
 }
 
 /**

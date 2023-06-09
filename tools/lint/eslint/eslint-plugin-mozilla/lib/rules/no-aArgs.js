@@ -23,6 +23,11 @@ module.exports = {
       url:
         "https://firefox-source-docs.mozilla.org/code-quality/lint/linters/eslint-plugin-mozilla/no-aArgs.html",
     },
+    messages: {
+      dontUseHungarian:
+        "Parameter '{{name}}' uses Hungarian Notation, consider using '{{suggestion}}' instead.",
+    },
+    schema: [],
     type: "layout",
   },
 
@@ -35,12 +40,11 @@ module.exports = {
             name: param.name,
             suggestion: deHungarianize(param.name),
           };
-          context.report(
-            param,
-            "Parameter '{{name}}' uses Hungarian Notation, " +
-              "consider using '{{suggestion}}' instead.",
-            errorObj
-          );
+          context.report({
+            node: param,
+            messageId: "dontUseHungarian",
+            data: errorObj,
+          });
         }
       }
     }

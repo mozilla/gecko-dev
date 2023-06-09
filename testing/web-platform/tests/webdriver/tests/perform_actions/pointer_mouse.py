@@ -28,7 +28,7 @@ def test_no_browsing_context(session, closed_frame, mouse_chain):
 
 @pytest.mark.parametrize("as_frame", [False, True], ids=["top_context", "child_context"])
 def test_stale_element_reference(session, stale_element, mouse_chain, as_frame):
-    element = stale_element("<input>", "input", as_frame=as_frame)
+    element = stale_element("input#text", as_frame=as_frame)
 
     with pytest.raises(StaleElementReferenceException):
         mouse_chain.click(element=element).perform()
@@ -99,7 +99,7 @@ def test_click_element_center(session, test_actions_page, mouse_chain):
 
 
 def test_click_navigation(session, url, inline):
-    destination = url("/webdriver/tests/actions/support/test_actions_wdspec.html")
+    destination = url("/webdriver/tests/support/html/test_actions.html")
     start = inline("<a href=\"{}\" id=\"link\">destination</a>".format(destination))
 
     def click(link):
@@ -190,5 +190,14 @@ def test_missing_coordinates(session, test_actions_page, mouse_chain, missing):
     outer = session.find.css("#outer", all=False)
     actions = mouse_chain.pointer_move(x=0, y=0, origin=outer)
     del actions._actions[-1][missing]
+    with pytest.raises(InvalidArgumentException):
+        actions.perform()
+
+
+def test_invalid_element_origin(session, test_actions_page, mouse_chain):
+    outer = session.find.css("#outer", all=False)
+    actions = mouse_chain.pointer_move(
+        x=0, y=0, origin={"type": "element", "element": {"sharedId": outer.id}}
+    )
     with pytest.raises(InvalidArgumentException):
         actions.perform()

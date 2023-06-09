@@ -12,6 +12,7 @@ DIRS += [
     "performance",
     "socket",
     "startup",
+    "tracer",
 ]
 
 if CONFIG["MOZ_BUILD_APP"] != "mobile/android":

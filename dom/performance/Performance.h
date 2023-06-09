@@ -122,6 +122,11 @@ class Performance : public DOMEventTargetHelper {
 
   RTPCallerType GetRTPCallerType() const { return mRTPCallerType; }
 
+  bool CrossOriginIsolated() const { return mCrossOriginIsolated; }
+  bool ShouldResistFingerprinting() const {
+    return mShouldResistFingerprinting;
+  }
+
   DOMHighResTimeStamp TimeStampToDOMHighResForRendering(TimeStamp) const;
 
   virtual uint64_t GetRandomTimelineSeed() = 0;
@@ -146,8 +151,6 @@ class Performance : public DOMEventTargetHelper {
   virtual void QueueNavigationTimingEntry() = 0;
 
   virtual void UpdateNavigationTimingEntry() = 0;
-
-  virtual bool CrossOriginIsolated() const = 0;
 
   virtual void DispatchPendingEventTimingEntries() = 0;
 
@@ -205,7 +208,9 @@ class Performance : public DOMEventTargetHelper {
 
   RefPtr<PerformanceService> mPerformanceService;
 
-  enum RTPCallerType mRTPCallerType;
+  const RTPCallerType mRTPCallerType;
+  const bool mCrossOriginIsolated;
+  const bool mShouldResistFingerprinting;
 
  private:
   MOZ_ALWAYS_INLINE bool CanAddResourceTimingEntry();
@@ -216,25 +221,27 @@ class Performance : public DOMEventTargetHelper {
   enum class ResolveTimestampAttribute;
 
   DOMHighResTimeStamp ConvertMarkToTimestampWithString(const nsAString& aName,
-                                                       ErrorResult& aRv);
+                                                       ErrorResult& aRv,
+                                                       bool aReturnUnclamped);
   DOMHighResTimeStamp ConvertMarkToTimestampWithDOMHighResTimeStamp(
       const ResolveTimestampAttribute aAttribute, const double aTimestamp,
       ErrorResult& aRv);
   DOMHighResTimeStamp ConvertMarkToTimestamp(
       const ResolveTimestampAttribute aAttribute,
-      const OwningStringOrDouble& aMarkNameOrTimestamp, ErrorResult& aRv);
+      const OwningStringOrDouble& aMarkNameOrTimestamp, ErrorResult& aRv,
+      bool aReturnUnclamped);
 
   DOMHighResTimeStamp ConvertNameToTimestamp(const nsAString& aName,
                                              ErrorResult& aRv);
 
   DOMHighResTimeStamp ResolveEndTimeForMeasure(
       const Optional<nsAString>& aEndMark,
-      const Maybe<const PerformanceMeasureOptions&>& aOptions,
-      ErrorResult& aRv);
+      const Maybe<const PerformanceMeasureOptions&>& aOptions, ErrorResult& aRv,
+      bool aReturnUnclamped);
   DOMHighResTimeStamp ResolveStartTimeForMeasure(
       const Maybe<const nsAString&>& aStartMark,
-      const Maybe<const PerformanceMeasureOptions&>& aOptions,
-      ErrorResult& aRv);
+      const Maybe<const PerformanceMeasureOptions&>& aOptions, ErrorResult& aRv,
+      bool aReturnUnclamped);
 };
 
 }  // namespace dom

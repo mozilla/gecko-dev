@@ -169,10 +169,6 @@ void JSScript::releaseJitScriptOnFinalize(JS::GCContext* gcx) {
   releaseJitScript(gcx);
 }
 
-void JitScript::CachedIonData::trace(JSTracer* trc) {
-  TraceNullableEdge(trc, &templateEnv, "jitscript-iondata-template-env");
-}
-
 void JitScript::trace(JSTracer* trc) {
   icScript_.trace(trc);
 
@@ -184,8 +180,8 @@ void JitScript::trace(JSTracer* trc) {
     ionScript()->trace(trc);
   }
 
-  if (hasCachedIonData()) {
-    cachedIonData().trace(trc);
+  if (templateEnv_.isSome()) {
+    TraceNullableEdge(trc, templateEnv_.ptr(), "jitscript-template-env");
   }
 
   if (hasInliningRoot()) {
@@ -422,45 +418,51 @@ void ICScript::purgeOptimizedStubs(Zone* zone) {
 #endif
 }
 
-JitScript::CachedIonData::CachedIonData(EnvironmentObject* templateEnv,
-                                        IonBytecodeInfo bytecodeInfo)
-    : templateEnv(templateEnv), bytecodeInfo(bytecodeInfo) {}
+bool JitScript::ensureHasCachedBaselineJitData(JSContext* cx,
+                                               HandleScript script) {
+  if (templateEnv_.isSome()) {
+    return true;
+  }
 
-bool JitScript::ensureHasCachedIonData(JSContext* cx, HandleScript script) {
-  MOZ_ASSERT(script->jitScript() == this);
-
-  if (hasCachedIonData()) {
+  if (!script->function() ||
+      !script->function()->needsFunctionEnvironmentObjects()) {
+    templateEnv_.emplace();
     return true;
   }
 
   Rooted<EnvironmentObject*> templateEnv(cx);
-  if (script->function()) {
-    RootedFunction fun(cx, script->function());
+  Rooted<JSFunction*> fun(cx, script->function());
 
-    if (fun->needsNamedLambdaEnvironment()) {
-      templateEnv = NamedLambdaObject::createTemplateObject(cx, fun);
-      if (!templateEnv) {
-        return false;
-      }
-    }
-
-    if (fun->needsCallObject()) {
-      templateEnv = CallObject::createTemplateObject(cx, script, templateEnv);
-      if (!templateEnv) {
-        return false;
-      }
+  if (fun->needsNamedLambdaEnvironment()) {
+    templateEnv = NamedLambdaObject::createTemplateObject(cx, fun);
+    if (!templateEnv) {
+      return false;
     }
   }
 
-  IonBytecodeInfo bytecodeInfo = AnalyzeBytecodeForIon(cx, script);
+  if (fun->needsCallObject()) {
+    templateEnv = CallObject::createTemplateObject(cx, script, templateEnv);
+    if (!templateEnv) {
+      return false;
+    }
+  }
 
-  UniquePtr<CachedIonData> data =
-      cx->make_unique<CachedIonData>(templateEnv, bytecodeInfo);
-  if (!data) {
+  templateEnv_.emplace(templateEnv);
+  return true;
+}
+
+bool JitScript::ensureHasCachedIonData(JSContext* cx, HandleScript script) {
+  MOZ_ASSERT(script->jitScript() == this);
+
+  if (usesEnvironmentChain_.isSome()) {
+    return true;
+  }
+
+  if (!ensureHasCachedBaselineJitData(cx, script)) {
     return false;
   }
 
-  cachedIonData_ = std::move(data);
+  usesEnvironmentChain_.emplace(ScriptUsesEnvironmentChain(script));
   return true;
 }
 
@@ -635,7 +637,7 @@ gc::AllocSite* JitScript::createAllocSite(JSScript* script) {
   if (!nursery.canCreateAllocSite()) {
     // Don't block attaching an optimized stub, but don't process allocations
     // for this site.
-    return script->zone()->unknownAllocSite();
+    return script->zone()->unknownAllocSite(JS::TraceKind::Object);
   }
 
   if (!allocSites_.reserve(allocSites_.length() + 1)) {
@@ -649,7 +651,7 @@ gc::AllocSite* JitScript::createAllocSite(JSScript* script) {
     return nullptr;
   }
 
-  new (site) gc::AllocSite(script->zone(), script);
+  new (site) gc::AllocSite(script->zone(), script, JS::TraceKind::Object);
 
   allocSites_.infallibleAppend(site);
 
@@ -725,11 +727,6 @@ HashNumber ICScript::hash() {
     h = mozilla::AddToHash(h, stub->enteredCount() == 0);
   }
 
-  if (inlinedChildren_) {
-    for (auto& callsite : *inlinedChildren_) {
-      h = mozilla::AddToHash(h, callsite.callee_->hash());
-    }
-  }
   return h;
 }
 #endif

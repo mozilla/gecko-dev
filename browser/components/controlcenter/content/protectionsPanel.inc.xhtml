@@ -20,9 +20,9 @@
                role="document"
                showheader="true">
       <vbox id="protections-popup-mainView-panel-header-section">
-        <hbox id="protections-popup-mainView-panel-header"
-              class="panel-header panel-header-with-info-button"
-              onclick="gProtectionsHandler.onHeaderClicked(event);">
+        <box id="protections-popup-mainView-panel-header"
+             class="panel-header panel-header-with-info-button"
+             onclick="gProtectionsHandler.onHeaderClicked(event);">
           <html:h1 id="protections-popup-main-header-label"
                  role="heading" aria-level="1">
             <html:span id="protections-popup-mainView-panel-header-span"/>
@@ -33,7 +33,7 @@
           </toolbarbutton>
           <description id="protections-popup-toast-panel-tp-on-desc" data-l10n-id="protections-panel-etp-on-header"></description>
           <description id="protections-popup-toast-panel-tp-off-desc" data-l10n-id="protections-panel-etp-off-header"></description>
-        </hbox>
+        </box>
         <toolbarseparator></toolbarseparator>
 
         <html:div id="messaging-system-message-container" disabled="true">
@@ -43,46 +43,50 @@
 
       <toolbarseparator></toolbarseparator>
       <vbox id="protections-popup-main-body" class="panel-subview-body">
-        <hbox id="protections-popup-tp-switch-section" class="protections-popup-section protections-popup-switch-section">
-          <vbox class="protections-popup-tp-switch-label-box" flex="1" align="start">
-            <label class="protections-popup-switch-header protections-popup-tp-switch-on-header"
-                   role="heading"
-                   aria-level="2" data-l10n-id="protections-panel-etp-on-header"></label>
-            <label class="protections-popup-switch-header protections-popup-tp-switch-off-header"
-                   role="heading"
-                   aria-level="2" data-l10n-id="protections-panel-etp-off-header"></label>
-            <label id="protections-popup-tp-switch-breakage-link"
-                   class="text-link"
-                   onclick="gProtectionsHandler.showSiteNotWorkingView(); gProtectionsHandler.recordClick('sitenotworking_link');" data-l10n-id="protections-panel-site-not-working"></label>
-            <label id="protections-popup-tp-switch-breakage-fixed-link"
-                   class="text-link"
-                   onclick="gProtectionsHandler.showSendReportView(); gProtectionsHandler.recordClick('sitenotworking_link', 'sitefixed');"
-                   data-l10n-id="protections-panel-sitefixedsendreport-label"></label>
-          </vbox>
-          <vbox class="protections-popup-tp-switch-box">
-            <toolbarbutton id="protections-popup-tp-switch"
-                           class="protections-popup-tp-switch"
-                           enabled="false"
-                           oncommand="gProtectionsHandler.onTPSwitchCommand();" />
-          </vbox>
-        </hbox>
+        <vbox id="protections-popup-tp-switch-section" class="protections-popup-section protections-popup-switch-section">
+          <hbox id="protections-popup-tp-switch-section-header" class="protections-popup-switch-section-header">
+            <vbox class="protections-popup-tp-switch-label-box" flex="1" align="start">
+              <label class="protections-popup-switch-header protections-popup-tp-switch-on-header"
+                     role="heading"
+                     aria-level="2" data-l10n-id="protections-panel-etp-on-header"></label>
+              <label class="protections-popup-switch-header protections-popup-tp-switch-off-header"
+                     role="heading"
+                     aria-level="2" data-l10n-id="protections-panel-etp-off-header"></label>
+            </vbox>
+            <vbox class="protections-popup-tp-switch-box">
+              <toolbarbutton id="protections-popup-tp-switch"
+                             class="protections-popup-tp-switch"
+                             enabled="false"
+                             oncommand="gProtectionsHandler.onTPSwitchCommand();" />
+            </vbox>
+          </hbox>
+          <hbox id="protections-popup-tp-switch-section-footer">
+            <toolbarbutton id="protections-popup-tp-switch-breakage-link"
+                           oncommand="gProtectionsHandler.showSiteNotWorkingView(); gProtectionsHandler.recordClick('sitenotworking_link');"
+                           class="subviewbutton subviewbutton-nav" align="center" flex="1">
+              <label flex="1" class="toolbarbutton-text" data-l10n-id="protections-panel-site-not-working"></label>
+            </toolbarbutton>
+            <toolbarbutton id="protections-popup-tp-switch-breakage-fixed-link"
+                           oncommand="gProtectionsHandler.showSendReportView(); gProtectionsHandler.recordClick('sitenotworking_link', 'sitefixed');"
+                           class="subviewbutton subviewbutton-nav" align="center" flex="1">
+              <label flex="1" class="toolbarbutton-text" data-l10n-id="protections-panel-sitefixedsendreport-label"></label>
+            </toolbarbutton>
+          </hbox>
+        </vbox>
 
         <toolbarseparator id="protections-popup-cookie-banner-section-separator"></toolbarseparator>
-        <hbox id="protections-popup-cookie-banner-section" class="protections-popup-section protections-popup-switch-section" uiDisabled="true">
-          <vbox class="protections-popup-tp-switch-label-box" flex="1" align="start">
-            <label class="protections-popup-switch-header protections-popup-cookie-banner-switch-on-header"
-                   role="heading"
-                   aria-level="2" data-l10n-id="protections-panel-cookie-banner-handling-on-header"></label>
-            <label class="protections-popup-switch-header protections-popup-cookie-banner-switch-off-header"
-                   role="heading"
-                   aria-level="2" data-l10n-id="protections-panel-cookie-banner-handling-off-header"></label>
-          </vbox>
-          <vbox class="protections-popup-tp-switch-box">
-            <toolbarbutton id="protections-popup-cookie-banner-switch"
-                           class="protections-popup-tp-switch"
-                           enabled="false"
-                           oncommand="gProtectionsHandler.onCookieBannerSwitchCommand()" />
-          </vbox>
+        <hbox id="protections-popup-cookie-banner-section" class="protections-popup-section" uiDisabled="true" enabled="true" flex="1">
+          <toolbarbutton id="protections-popup-cookie-banner-switch"
+                         class="subviewbutton subviewbutton-nav"
+                         onclick="gProtectionsHandler.onCookieBannerClick()"
+                         flex="1">
+            <vbox flex="1">
+              <label role="heading" class="protections-popup-switch-header" aria-level="2" data-l10n-id="protections-panel-cookie-banner-handling-header"></label>
+              <description id="protections-popup-cookie-banner-undetected" data-l10n-id="protections-panel-cookie-banner-handling-undetected"></description>
+              <description id="protections-popup-cookie-banner-site-disabled" data-l10n-id="protections-panel-cookie-banner-handling-disabled"></description>
+              <description id="protections-popup-cookie-banner-detected" data-l10n-id="protections-panel-cookie-banner-handling-enabled"></description>
+            </vbox>
+          </toolbarbutton>
         </hbox>
 
         <!-- Tracking Protection Section -->
@@ -190,10 +194,10 @@
                data-l10n-id="protections-panel-site-not-working-view">
         <hbox id="protections-popup-siteNotWorkingView-header">
           <vbox class="protections-popup-tp-switch-label-box" flex="1">
-            <label class="protections-popup-tp-switch-on-header"
+            <label class="protections-popup-switch-header protections-popup-tp-switch-on-header"
                    role="heading"
                    aria-level="1" data-l10n-id="protections-panel-etp-on-header"></label>
-            <label class="protections-popup-tp-switch-off-header"
+            <label class="protections-popup-switch-header protections-popup-tp-switch-off-header"
                    role="heading"
                    aria-level="1" data-l10n-id="protections-panel-etp-off-header"></label>
           </vbox>
@@ -214,6 +218,8 @@
               <html:li data-l10n-id="protections-panel-site-not-working-view-issue-list-payments"></html:li>
               <html:li data-l10n-id="protections-panel-site-not-working-view-issue-list-comments"></html:li>
               <html:li data-l10n-id="protections-panel-site-not-working-view-issue-list-videos"></html:li>
+              <html:li data-l10n-id="protections-panel-site-not-working-view-issue-list-fonts"
+                       id="protections-panel-site-not-working-view-issue-list-fonts"></html:li>
             </html:ul>
           </label>
           <label id="protections-popup-siteNotWorkingView-sendReport"
@@ -379,7 +385,7 @@
             data-l10n-id="protections-panel-sendreportview-error"
             hidden="true" role="alert"></label>
         </vbox>
-        <vbox id="protections-popup-sendReportView-footer"
+        <html:moz-button-group id="protections-popup-sendReportView-footer"
               class="panel-footer">
           <button id="protections-popup-sendReportView-cancel"
                   data-l10n-id="protections-panel-content-blocking-breakage-report-view-cancel"
@@ -388,7 +394,37 @@
                   default="true"
                   data-l10n-id="protections-panel-content-blocking-breakage-report-view-send-report"
                   oncommand="gProtectionsHandler.onSendReportClicked(); gProtectionsHandler.recordClick('send_report_submit');"/>
+        </html:moz-button-group>
+    </panelview>
+
+    <!-- Cookie Banner SubView -->
+    <panelview id="protections-popup-cookieBannerView"
+               class="PanelUI-subView"
+               role="document"
+               data-l10n-id="protections-panel-cookie-banner-view-title">
+        <vbox id="protections-popup-cookieBannerView-heading"
+              class="protections-popup-description protections-popup-cookiesView-list-section">
+          <description id="cookieBannerView-disable-site" data-l10n-id="protections-panel-cookie-banner-view-turn-off-for-site" data-l10n-args='{"host":""}'></description>
+          <description id="cookieBannerView-enable-site" data-l10n-id="protections-panel-cookie-banner-view-turn-on-for-site" data-l10n-args='{"host":""}'></description>
+          <description id="cookieBannerView-disable-site-warning" data-l10n-id="protections-panel-cookie-banner-view-cookie-clear-warning"></description>
+          <description id="cookieBannerView-enable-site-description" data-l10n-id="protections-panel-cookie-banner-view-turn-on-description"></description>
         </vbox>
+        <html:moz-button-group class="panel-footer protections-popup-cookieBannerView-footer">
+          <button id="protections-popup-cookieBannerView-cancel"
+                    data-l10n-id="protections-panel-cookie-banner-view-cancel"
+                    oncommand="gProtectionsHandler._protectionsPopupMultiView.goBack();"
+                    class="subviewbutton panel-subview-footer-button" />
+          <button id="protections-popup-cookieBannerView-enable-button"
+                    data-l10n-id="protections-panel-cookie-banner-view-turn-on"
+                    oncommand="gProtectionsHandler.onCookieBannerToggleCommand()"
+                    default="true"
+                    class="subviewbutton panel-subview-footer-button" />
+          <button id="protections-popup-cookieBannerView-disable-button"
+                    data-l10n-id="protections-panel-cookie-banner-view-turn-off"
+                    oncommand="gProtectionsHandler.onCookieBannerToggleCommand()"
+                    default="true"
+                    class="subviewbutton panel-subview-footer-button" />
+        </html:moz-button-group>
     </panelview>
   </panelmultiview>
 </panel>

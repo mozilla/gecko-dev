@@ -135,25 +135,25 @@ bool wasm::DecodeValidatedLocalEntries(const TypeContext& types, Decoder& d,
 }
 
 bool wasm::CheckIsSubtypeOf(Decoder& d, const ModuleEnvironment& env,
-                            size_t opcodeOffset, FieldType actual,
-                            FieldType expected) {
-  if (FieldType::isSubTypeOf(actual, expected)) {
+                            size_t opcodeOffset, FieldType subType,
+                            FieldType superType) {
+  if (FieldType::isSubTypeOf(subType, superType)) {
     return true;
   }
 
-  UniqueChars actualText = ToString(actual, env.types);
-  if (!actualText) {
+  UniqueChars subText = ToString(subType, env.types);
+  if (!subText) {
     return false;
   }
 
-  UniqueChars expectedText = ToString(expected, env.types);
-  if (!expectedText) {
+  UniqueChars superText = ToString(superType, env.types);
+  if (!superText) {
     return false;
   }
 
   UniqueChars error(
       JS_smprintf("type mismatch: expression has type %s but expected %s",
-                  actualText.get(), expectedText.get()));
+                  subText.get(), superText.get()));
   if (!error) {
     return false;
   }
@@ -593,6 +593,7 @@ static bool DecodeFunctionBodyExprs(const ModuleEnvironment& env,
             CHECK(iter.readArrayNewData(&unusedUint1, &unusedUint2, &nothing,
                                         &nothing));
           }
+          case uint32_t(GcOp::ArrayInitFromElemStaticV5):
           case uint32_t(GcOp::ArrayNewElem): {
             uint32_t unusedUint1, unusedUint2;
             CHECK(iter.readArrayNewElem(&unusedUint1, &unusedUint2, &nothing,
@@ -631,25 +632,86 @@ static bool DecodeFunctionBodyExprs(const ModuleEnvironment& env,
             CHECK(iter.readArrayCopy(&unusedInt, &unusedBool, &nothing,
                                      &nothing, &nothing, &nothing, &nothing));
           }
-          case uint16_t(GcOp::RefTest): {
+          case uint16_t(GcOp::RefTestV5): {
             uint32_t typeIndex;
-            CHECK(iter.readRefTest(&typeIndex, &nothing));
+            CHECK(iter.readRefTestV5(&typeIndex, &nothing));
+          }
+          case uint16_t(GcOp::RefCastV5): {
+            uint32_t typeIndex;
+            CHECK(iter.readRefCastV5(&typeIndex, &nothing));
+          }
+          case uint16_t(GcOp::RefTest): {
+            RefType type;
+            CHECK(iter.readRefTest(false, &type, &nothing));
+          }
+          case uint16_t(GcOp::RefTestNull): {
+            RefType type;
+            CHECK(iter.readRefTest(true, &type, &nothing));
           }
           case uint16_t(GcOp::RefCast): {
-            uint32_t typeIndex;
-            CHECK(iter.readRefCast(&typeIndex, &nothing));
+            RefType type;
+            CHECK(iter.readRefCast(false, &type, &nothing));
+          }
+          case uint16_t(GcOp::RefCastNull): {
+            RefType type;
+            CHECK(iter.readRefCast(true, &type, &nothing));
           }
           case uint16_t(GcOp::BrOnCast): {
+            bool unusedOnSuccess;
             uint32_t unusedRelativeDepth;
-            uint32_t typeIndex;
-            CHECK(iter.readBrOnCast(&unusedRelativeDepth, &typeIndex,
-                                    &unusedType, &nothings));
+            RefType unusedDestType;
+            CHECK(iter.readBrOnCast(&unusedOnSuccess, &unusedRelativeDepth,
+                                    &unusedDestType, &unusedType, &nothings));
           }
-          case uint16_t(GcOp::BrOnCastFail): {
+          case uint16_t(GcOp::BrOnCastV5): {
             uint32_t unusedRelativeDepth;
             uint32_t typeIndex;
-            CHECK(iter.readBrOnCastFail(&unusedRelativeDepth, &typeIndex,
-                                        &unusedType, &nothings));
+            CHECK(iter.readBrOnCastV5(&unusedRelativeDepth, &typeIndex,
+                                      &unusedType, &nothings));
+          }
+          case uint16_t(GcOp::BrOnCastFailV5): {
+            uint32_t unusedRelativeDepth;
+            uint32_t typeIndex;
+            CHECK(iter.readBrOnCastFailV5(&unusedRelativeDepth, &typeIndex,
+                                          &unusedType, &nothings));
+          }
+          case uint16_t(GcOp::BrOnCastHeapV5): {
+            uint32_t unusedRelativeDepth;
+            RefType unusedDestType;
+            CHECK(iter.readBrOnCastHeapV5(false, &unusedRelativeDepth,
+                                          &unusedDestType, &unusedType,
+                                          &nothings));
+          }
+          case uint16_t(GcOp::BrOnCastHeapNullV5): {
+            uint32_t unusedRelativeDepth;
+            RefType unusedDestType;
+            CHECK(iter.readBrOnCastHeapV5(true, &unusedRelativeDepth,
+                                          &unusedDestType, &unusedType,
+                                          &nothings));
+          }
+          case uint16_t(GcOp::BrOnCastFailHeapV5): {
+            uint32_t unusedRelativeDepth;
+            RefType unusedDestType;
+            CHECK(iter.readBrOnCastFailHeapV5(false, &unusedRelativeDepth,
+                                              &unusedDestType, &unusedType,
+                                              &nothings));
+          }
+          case uint16_t(GcOp::BrOnCastFailHeapNullV5): {
+            uint32_t unusedRelativeDepth;
+            RefType unusedDestType;
+            CHECK(iter.readBrOnCastFailHeapV5(true, &unusedRelativeDepth,
+                                              &unusedDestType, &unusedType,
+                                              &nothings));
+          }
+          case uint16_t(GcOp::RefAsStructV5): {
+            CHECK(iter.readConversion(
+                ValType(RefType::any()),
+                ValType(RefType::struct_().asNonNullable()), &nothing));
+          }
+          case uint16_t(GcOp::BrOnNonStructV5): {
+            uint32_t unusedRelativeDepth;
+            CHECK(iter.readBrOnNonStructV5(&unusedRelativeDepth, &unusedType,
+                                           &nothings));
           }
           case uint16_t(GcOp::ExternInternalize): {
             CHECK(iter.readRefConversion(RefType::extern_(), RefType::any(),
@@ -1038,8 +1100,7 @@ static bool DecodeFunctionBodyExprs(const ModuleEnvironment& env,
           case uint32_t(SimdOp::I16x8RelaxedLaneSelect):
           case uint32_t(SimdOp::I32x4RelaxedLaneSelect):
           case uint32_t(SimdOp::I64x2RelaxedLaneSelect):
-          case uint32_t(SimdOp::I32x4DotI8x16I7x16AddS):
-          case uint32_t(SimdOp::F32x4RelaxedDotBF16x8AddF32x4): {
+          case uint32_t(SimdOp::I32x4DotI8x16I7x16AddS): {
             if (!env.v128RelaxedEnabled()) {
               return iter.unrecognizedOpcode(&op);
             }
@@ -1057,10 +1118,10 @@ static bool DecodeFunctionBodyExprs(const ModuleEnvironment& env,
             }
             CHECK(iter.readBinary(ValType::V128, &nothing, &nothing));
           }
-          case uint32_t(SimdOp::I32x4RelaxedTruncSSatF32x4):
-          case uint32_t(SimdOp::I32x4RelaxedTruncUSatF32x4):
-          case uint32_t(SimdOp::I32x4RelaxedTruncSatF64x2SZero):
-          case uint32_t(SimdOp::I32x4RelaxedTruncSatF64x2UZero): {
+          case uint32_t(SimdOp::I32x4RelaxedTruncF32x4S):
+          case uint32_t(SimdOp::I32x4RelaxedTruncF32x4U):
+          case uint32_t(SimdOp::I32x4RelaxedTruncF64x2SZero):
+          case uint32_t(SimdOp::I32x4RelaxedTruncF64x2UZero): {
             if (!env.v128RelaxedEnabled()) {
               return iter.unrecognizedOpcode(&op);
             }
@@ -1138,6 +1199,14 @@ static bool DecodeFunctionBodyExprs(const ModuleEnvironment& env,
             CHECK(iter.readTableFill(&unusedTableIndex, &nothing, &nothing,
                                      &nothing));
           }
+#ifdef ENABLE_WASM_MEMORY_CONTROL
+          case uint32_t(MiscOp::MemoryDiscard): {
+            if (!env.memoryControlEnabled()) {
+              return iter.unrecognizedOpcode(&op);
+            }
+            CHECK(iter.readMemDiscard(&nothing, &nothing));
+          }
+#endif
           case uint32_t(MiscOp::TableGrow): {
             uint32_t unusedTableIndex;
             CHECK(iter.readTableGrow(&unusedTableIndex, &nothing, &nothing));
@@ -1642,6 +1711,8 @@ static bool DecodeTypeSection(Decoder& d, ModuleEnvironment* env) {
       return false;
     }
 
+    // First, iterate over the types, validate them and set super types.
+    // Subtyping relationship will be checked in a second iteration.
     for (uint32_t recGroupTypeIndex = 0; recGroupTypeIndex < recGroupLength;
          recGroupTypeIndex++) {
       uint32_t typeIndex =
@@ -1726,17 +1797,26 @@ static bool DecodeTypeSection(Decoder& d, ModuleEnvironment* env) {
       }
 
       if (superTypeDef) {
-        // Check that the super type is compatible with this type
-        if (!TypeDef::canBeSubTypeOf(typeDef, superTypeDef)) {
-          return d.fail("incompatible super type");
-        }
-
         // Check that we aren't creating too deep of a subtyping chain
         if (superTypeDef->subTypingDepth() >= MaxSubTypingDepth) {
           return d.fail("type is too deep");
         }
 
         typeDef->setSuperTypeDef(superTypeDef);
+      }
+    }
+
+    // Check the super types to make sure they are compatible with their
+    // subtypes. This is done in a second iteration to avoid dealing with not
+    // yet loaded types.
+    for (uint32_t recGroupTypeIndex = 0; recGroupTypeIndex < recGroupLength;
+         recGroupTypeIndex++) {
+      TypeDef* typeDef = &recGroup->type(recGroupTypeIndex);
+      if (typeDef->superTypeDef()) {
+        // Check that the super type is compatible with this type
+        if (!TypeDef::canBeSubTypeOf(typeDef, typeDef->superTypeDef())) {
+          return d.fail("incompatible super type");
+        }
       }
     }
 
@@ -1860,15 +1940,24 @@ static bool DecodeLimits(Decoder& d, LimitsKind kind, Limits* limits) {
   return true;
 }
 
-static bool DecodeTableTypeAndLimits(Decoder& d, const FeatureArgs& features,
-                                     const SharedTypeContext& types,
-                                     TableDescVector* tables) {
-  RefType tableElemType;
-  if (!d.readRefType(*types, features, &tableElemType)) {
-    return false;
+static bool DecodeTableTypeAndLimits(Decoder& d, ModuleEnvironment* env) {
+  bool initExprPresent = false;
+  uint8_t typeCode;
+  if (!d.peekByte(&typeCode)) {
+    return d.fail("expected type code");
   }
-  if (!tableElemType.isNullable()) {
-    return d.fail("non-nullable references not supported in tables");
+  if (typeCode == (uint8_t)TypeCode::TableHasInitExpr) {
+    d.uncheckedReadFixedU8();
+    uint8_t flags;
+    if (!d.readFixedU8(&flags) || flags != 0) {
+      return d.fail("expected reserved byte to be 0");
+    }
+    initExprPresent = true;
+  }
+
+  RefType tableElemType;
+  if (!d.readRefType(*env->types, env->features, &tableElemType)) {
+    return false;
   }
 
   Limits limits;
@@ -1888,7 +1977,7 @@ static bool DecodeTableTypeAndLimits(Decoder& d, const FeatureArgs& features,
     return d.fail("too many table elements");
   }
 
-  if (tables->length() >= MaxTables) {
+  if (env->tables.length() >= MaxTables) {
     return d.fail("too many tables");
   }
 
@@ -1900,8 +1989,22 @@ static bool DecodeTableTypeAndLimits(Decoder& d, const FeatureArgs& features,
     maximumLength = Some(uint32_t(*limits.maximum));
   }
 
-  return tables->emplaceBack(tableElemType, initialLength, maximumLength,
-                             /* isAsmJS */ false);
+  Maybe<InitExpr> initExpr;
+  if (initExprPresent) {
+    InitExpr initializer;
+    if (!InitExpr::decodeAndValidate(d, env, tableElemType,
+                                     env->globals.length(), &initializer)) {
+      return false;
+    }
+    initExpr = Some(std::move(initializer));
+  } else {
+    if (!tableElemType.isNullable()) {
+      return d.fail("table with non-nullable references requires initializer");
+    }
+  }
+
+  return env->tables.emplaceBack(tableElemType, initialLength, maximumLength,
+                                 std::move(initExpr), /* isAsmJS */ false);
 }
 
 static bool DecodeGlobalType(Decoder& d, const SharedTypeContext& types,
@@ -2018,11 +2121,10 @@ static bool DecodeImport(Decoder& d, ModuleEnvironment* env) {
       break;
     }
     case DefinitionKind::Table: {
-      if (!DecodeTableTypeAndLimits(d, env->features, env->types,
-                                    &env->tables)) {
+      if (!DecodeTableTypeAndLimits(d, env)) {
         return false;
       }
-      env->tables.back().isImportedOrExported = true;
+      env->tables.back().isImported = true;
       break;
     }
     case DefinitionKind::Memory: {
@@ -2159,7 +2261,7 @@ static bool DecodeTableSection(Decoder& d, ModuleEnvironment* env) {
   }
 
   for (uint32_t i = 0; i < numTables; ++i) {
-    if (!DecodeTableTypeAndLimits(d, env->features, env->types, &env->tables)) {
+    if (!DecodeTableTypeAndLimits(d, env)) {
       return false;
     }
   }
@@ -2339,7 +2441,7 @@ static bool DecodeExport(Decoder& d, ModuleEnvironment* env, NameSet* dupSet) {
       if (tableIndex >= env->tables.length()) {
         return d.fail("exported table index out of bounds");
       }
-      env->tables[tableIndex].isImportedOrExported = true;
+      env->tables[tableIndex].isExported = true;
       return env->exports.emplaceBack(std::move(fieldName), tableIndex,
                                       DefinitionKind::Table);
     }

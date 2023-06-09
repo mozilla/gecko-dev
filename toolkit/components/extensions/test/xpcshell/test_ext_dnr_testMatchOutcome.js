@@ -47,6 +47,33 @@ function makeDnrTestUtils() {
       description
     );
   }
+  async function testCanMatchAnyBlock({ matchedRequests, nonMatchedRequests }) {
+    await dnr.updateSessionRules({
+      addRules: [
+        {
+          // A rule that is supposed to match everything.
+          id: 1,
+          condition: { excludedResourceTypes: [] },
+          action: { type: "block" },
+        },
+      ],
+    });
+    for (let request of matchedRequests) {
+      await testMatchesRequest(
+        request,
+        [1],
+        `${JSON.stringify(request)} - should match wildcard DNR block rule`
+      );
+    }
+    for (let request of nonMatchedRequests) {
+      await testMatchesRequest(
+        request,
+        [],
+        `${JSON.stringify(request)} - should not match any DNR rule`
+      );
+    }
+    await dnr.updateSessionRules({ removeRuleIds: [1] });
+  }
   async function testCanUseAction(type, canUse) {
     await dnr.updateSessionRules({ addRules: [makeDummyRule(1, type)] });
     await testMatchesRequest(
@@ -61,6 +88,7 @@ function makeDnrTestUtils() {
     makeDummyRequest,
     makeDummyRule,
     testMatchesRequest,
+    testCanMatchAnyBlock,
     testCanUseAction,
   });
   return dnrTestUtils;
@@ -144,6 +172,96 @@ add_task(async function resource_type_validation() {
           { matchedRules: [] },
           await testMatchOutcome({ url, type }),
           `testMatchOutcome for type=${type} is allowed`
+        );
+      }
+
+      browser.test.notifyPass();
+    },
+  });
+});
+
+add_task(async function url_validation() {
+  await runAsDNRExtension({
+    background: async dnrTestUtils => {
+      const dnr = browser.declarativeNetRequest;
+      const { testMatchesRequest } = dnrTestUtils;
+
+      const type = "other"; // Dummy resource type.
+      await dnr.updateSessionRules({
+        addRules: [{ id: 1, condition: {}, action: { type: "block" } }],
+      });
+
+      const supportedUrls = [
+        // All schemes that are potentially hooked up to the network are here.
+        "http://example.com/",
+        "https://example.com/",
+        // While host permissions permits more (e.g. file:, moz-extension:),
+        // we don't list them here since they are not hooked up to the network.
+        // Trying to match such URLs is undefined behavior for now.
+      ];
+      const supportedInitiators = [
+        // Supported URLs are also supported initiators.
+        ...supportedUrls,
+        // Note: moz-extension: has more tests in match_initiator_moz_extension.
+        `moz-extension://${location.host}`,
+        "file:///tmp/",
+        // data:-URIs have a null principal.
+        "data:text/plain,",
+      ];
+      const disallowedUrlsOrInitiators = [
+        // about:-URI with system principal:
+        "about:config",
+        // Unprivileged about:-URL:
+        "about:logo",
+        "chrome://extensions/content/dummy.xhtml",
+        "resource://pdf.js/web/viewer.html",
+        // Extensions cannot see "view-source", only the result: bug 1683646.
+        "view-source:http://example.com/",
+        "view-source:about:config",
+        // blob:-URLs do not go through the network. An actual network request
+        // will never have a blob-URI as initiator, always the actual principal
+        // URI. We don't try to extract the actual principal from the blob:-URI
+        // because that is expensive and also performs a validation that the
+        // blob:-URI is still valid, so testMatchOutcome could then return
+        // inconsistent results.
+        URL.createObjectURL(new Blob([])),
+      ];
+      const disallowedUrls = [
+        ...disallowedUrlsOrInitiators,
+        // data:-URIs are not hooked up to the network (bug 1631933), so we do
+        // not support it in the testMatchOutcome API, even though the URL
+        // matches "<all_urls>".
+        "data:text/plain,",
+      ];
+      const disallowedInitiator = [
+        ...disallowedUrlsOrInitiators,
+        // "about:blank" inherits the principal or is null. testMatchOutcome
+        // does not offer a way to specify it more precisely.
+        "about:blank",
+        // This is bogus: A principal URL can never be about:srcdoc. It is
+        // always inherit from something.
+        "about:srcdoc",
+        "moz-extension://someone-elses-extension-here",
+      ];
+
+      for (let url of supportedUrls) {
+        await testMatchesRequest({ url, type }, [1], `Supported url: ${url}`);
+      }
+      for (let initiator of supportedInitiators) {
+        await testMatchesRequest(
+          { url: "http://example.com/", type, initiator },
+          [1],
+          `Supported initiator: ${initiator}`
+        );
+      }
+      for (let url of disallowedUrls) {
+        await testMatchesRequest({ type, url }, [], `Disallowed url: ${url}`);
+      }
+      for (let initiator of disallowedInitiator) {
+        await testMatchesRequest(
+          { url: "http://example.com/", type, initiator },
+          [],
+          `Disallowed initiator: ${initiator}`
         );
       }
 
@@ -255,7 +373,7 @@ add_task(async function rule_priority_and_action_type_precedence() {
 add_task(async function declarativeNetRequest_and_host_permissions() {
   await runAsDNRExtension({
     background: async dnrTestUtils => {
-      const { testCanUseAction } = dnrTestUtils;
+      const { testCanUseAction, testCanMatchAnyBlock } = dnrTestUtils;
 
       // Unlocked by declarativeNetRequest permission:
       await testCanUseAction("allow", true);
@@ -265,6 +383,19 @@ add_task(async function declarativeNetRequest_and_host_permissions() {
       // Unlocked by host permissions:
       await testCanUseAction("redirect", true);
       await testCanUseAction("modifyHeaders", true);
+
+      const url = "https://example.com/";
+      await testCanMatchAnyBlock({
+        matchedRequests: [
+          { url, type: "other" },
+          { url, type: "main_frame" },
+          { url, type: "sub_frame" },
+          { url, initiator: url, type: "other" },
+          { url, initiator: url, type: "main_frame" },
+          { url, initiator: url, type: "sub_frame" },
+        ],
+        nonMatchedRequests: [],
+      });
 
       browser.test.notifyPass();
     },
@@ -277,7 +408,7 @@ add_task(async function declarativeNetRequest_permission_only() {
       host_permissions: [],
     },
     background: async dnrTestUtils => {
-      const { testCanUseAction } = dnrTestUtils;
+      const { testCanUseAction, testCanMatchAnyBlock } = dnrTestUtils;
 
       // Unlocked by declarativeNetRequest permission:
       await testCanUseAction("allow", true);
@@ -287,6 +418,19 @@ add_task(async function declarativeNetRequest_permission_only() {
       // These require host permissions, which we don't have:
       await testCanUseAction("redirect", false);
       await testCanUseAction("modifyHeaders", false);
+
+      const url = "https://example.com/";
+      await testCanMatchAnyBlock({
+        matchedRequests: [
+          { url, type: "other" },
+          { url, type: "main_frame" },
+          { url, type: "sub_frame" },
+          { url, initiator: url, type: "other" },
+          { url, initiator: url, type: "main_frame" },
+          { url, initiator: url, type: "sub_frame" },
+        ],
+        nonMatchedRequests: [],
+      });
 
       browser.test.notifyPass();
     },
@@ -319,7 +463,7 @@ add_task(async function declarativeNetRequestWithHostAccess_only() {
   });
 });
 
-add_task(async function declarativeNetRequestWithHostAccess_only() {
+add_task(async function declarativeNetRequestWithHostAccess_and_host_perm() {
   await runAsDNRExtension({
     manifest: {
       permissions: [
@@ -330,7 +474,7 @@ add_task(async function declarativeNetRequestWithHostAccess_only() {
       host_permissions: ["https://example.com/"],
     },
     background: async dnrTestUtils => {
-      const { testCanUseAction } = dnrTestUtils;
+      const { testCanUseAction, testCanMatchAnyBlock } = dnrTestUtils;
 
       // declarativeNetRequestWithHostAccess + host permissions allows all:
       await testCanUseAction("allow", true);
@@ -339,6 +483,25 @@ add_task(async function declarativeNetRequestWithHostAccess_only() {
       await testCanUseAction("upgradeScheme", true);
       await testCanUseAction("redirect", true);
       await testCanUseAction("modifyHeaders", true);
+
+      const url = "https://example.com/";
+      const urlNoPerm = "https://example.net/?not_in:host_permissions";
+      await testCanMatchAnyBlock({
+        matchedRequests: [
+          { url, type: "other" },
+          { url, type: "main_frame" },
+          { url, type: "sub_frame" },
+          // Navigations do no require host permissions for initiator.
+          { url, initiator: urlNoPerm, type: "main_frame" },
+          { url, initiator: urlNoPerm, type: "sub_frame" },
+        ],
+        nonMatchedRequests: [
+          // url always requires declarativeNetRequest or host permissions.
+          { url: urlNoPerm, type: "other" },
+          // Non-navigations require host permissions for initiator.
+          { url, initiator: urlNoPerm, type: "other" },
+        ],
+      });
 
       browser.test.notifyPass();
     },
@@ -664,6 +827,7 @@ add_task(async function match_request_domains_punycode() {
 });
 
 // Tests: initiatorDomains, excludedInitiatorDomains
+// More tests in: match_initiator_moz_extension.
 add_task(async function match_initiator_domains() {
   await runAsDNRExtension({
     background: async dnrTestUtils => {
@@ -773,6 +937,210 @@ add_task(async function match_initiator_domains() {
   });
 });
 
+// Tests: initiatorDomains, excludedInitiatorDomains with moz-extension:-URLs.
+add_task(async function match_initiator_moz_extension() {
+  let extension = await runAsDNRExtension({
+    manifest: { browser_specific_settings: { gecko: { id: "other@ext" } } },
+    background: async dnrTestUtils => {
+      const dnr = browser.declarativeNetRequest;
+      const { makeDummyAction, testMatchesRequest } = dnrTestUtils;
+
+      // "modifyHeaders" is the only action that allows multiple rule matches.
+      // But we cannot use "modifyHeaders" because that feature depends on
+      // access to "triggering principal". Fortunately, the two test rules in
+      // this test case are mutually exclusive, so the block action works.
+      // TODO bug 1825824: change to makeDummyAction("modifyHeaders").
+      const action = makeDummyAction("block");
+
+      const thisExtensionUUID = location.hostname;
+      await dnr.updateSessionRules({
+        addRules: [
+          {
+            id: 1,
+            condition: {
+              initiatorDomains: [thisExtensionUUID],
+            },
+            action,
+          },
+          {
+            id: 2,
+            condition: {
+              excludedInitiatorDomains: [thisExtensionUUID],
+            },
+            action,
+          },
+        ],
+      });
+
+      const url = "https://do.not.look.here/look_at_initator_instead";
+      const type = "other";
+      // Sanity check with non-moz-extension:-schemes as initiator.
+      await testMatchesRequest(
+        { url, type, initiator: `https://${thisExtensionUUID}/` },
+        [1],
+        "https:+UUID matches initiatorDomains"
+      );
+      await testMatchesRequest(
+        { url, type, initiator: "https://random-uuid-here/" },
+        [2],
+        "https:+UUID matches excludedInitiatorDomains"
+      );
+      // Now test with moz-extension: as initiator.
+      await testMatchesRequest(
+        { url, type, initiator: location.origin },
+        [1],
+        "moz-extension: initiator matches when it should"
+      );
+      await testMatchesRequest(
+        { url, type, initiator: `moz-extension://random-uuid-here/` },
+        [],
+        "moz-extension: from unrelated extension cannot match by default"
+      );
+
+      browser.test.onMessage.addListener(async msg => {
+        browser.test.assertEq("test_with_pref", msg, "expected msg");
+        await testMatchesRequest(
+          { url, type, initiator: `moz-extension://random-uuid-here/` },
+          [2],
+          "With pref, moz-extension: from unrelated extension can match"
+        );
+        browser.test.sendMessage("test_with_pref:done");
+      });
+
+      // Notify to continue. We don't exit yet due to unloadTestAtEnd:false
+      browser.test.notifyPass();
+    },
+    // Continue running the DNR extension because we want to test the current
+    // DNR rules with other extensions.
+    unloadTestAtEnd: false,
+  });
+
+  info("Testing foreign moz-extension request within same ext, with pref on");
+  await runWithPrefs(
+    [["extensions.dnr.match_requests_from_other_extensions", true]],
+    async () => {
+      extension.sendMessage("test_with_pref");
+      await extension.awaitMessage("test_with_pref:done");
+    }
+  );
+
+  const otherExtensionUUID = extension.uuid;
+
+  await runAsDNRExtension({
+    manifest: {
+      // Pass the DNR extension UUID to this extension.
+      description: otherExtensionUUID,
+    },
+    background: async () => {
+      const otherExtensionUUID = browser.runtime.getManifest().description;
+      const dnr = browser.declarativeNetRequest;
+
+      const url = "https://do.not.look.here/look_at_initator_instead";
+      const type = "other";
+
+      browser.test.assertDeepEq(
+        { matchedRules: [] },
+        await dnr.testMatchOutcome({ url, type, initiator: location.origin }),
+        "testMatchOutcome excludes other extensions by default"
+      );
+      browser.test.assertDeepEq(
+        { matchedRules: [] },
+        await dnr.testMatchOutcome(
+          { url, type, initiator: location.origin },
+          { includeOtherExtensions: true }
+        ),
+        "No matches when initiator is moz-extension:, different from DNR ext"
+      );
+      browser.test.assertDeepEq(
+        {
+          matchedRules: [
+            { ruleId: 1, rulesetId: "_session", extensionId: "other@ext" },
+          ],
+        },
+        await dnr.testMatchOutcome(
+          { url, type, initiator: `moz-extension://${otherExtensionUUID}` },
+          { includeOtherExtensions: true }
+        ),
+        "Simulated moz-extension: for original extension finds a match"
+      );
+
+      browser.test.notifyPass();
+    },
+  });
+
+  info("Testing foreign moz-extension request in other ext, with pref on");
+  await runWithPrefs(
+    [["extensions.dnr.match_requests_from_other_extensions", true]],
+    async () => {
+      await runAsDNRExtension({
+        manifest: {
+          // Pass the DNR extension UUID to this extension.
+          description: otherExtensionUUID,
+        },
+        background: async () => {
+          const otherExtensionUUID = browser.runtime.getManifest().description;
+          const dnr = browser.declarativeNetRequest;
+
+          const url = "https://do.not.look.here/look_at_initator_instead";
+          const type = "other";
+
+          // Sanity check: testMatchOutcome for moz-extension:-URL different
+          // from the DNR extension and the current test extension.
+          browser.test.assertDeepEq(
+            {
+              matchedRules: [
+                { ruleId: 2, rulesetId: "_session", extensionId: "other@ext" },
+              ],
+            },
+            await dnr.testMatchOutcome(
+              { url, type, initiator: "moz-extension://random-uuid-here/" },
+              { includeOtherExtensions: true }
+            ),
+            "With pref, moz-extension: from unrelated extensions can match"
+          );
+
+          // Usually, DNR does not affect requests from other extensions. That
+          // was checked in the previous test extension (without pref override).
+          // Here, we check that with the pref override, testMatchOutcome can
+          // return matches from other extensions for the given extension UUID.
+          browser.test.assertDeepEq(
+            {
+              matchedRules: [
+                { ruleId: 2, rulesetId: "_session", extensionId: "other@ext" },
+              ],
+            },
+            await dnr.testMatchOutcome(
+              { url, type, initiator: location.origin },
+              { includeOtherExtensions: true }
+            ),
+            "With pref, moz-extension:-initiator different from DNR ext matches"
+          );
+
+          // Identical test as in the previous test extension (that ran without
+          // the pref override). This verifies that the pref does not affect the
+          // behavior of request matching for requests within that extension.
+          browser.test.assertDeepEq(
+            {
+              matchedRules: [
+                { ruleId: 1, rulesetId: "_session", extensionId: "other@ext" },
+              ],
+            },
+            await dnr.testMatchOutcome(
+              { url, type, initiator: `moz-extension://${otherExtensionUUID}` },
+              { includeOtherExtensions: true }
+            ),
+            "With pref, moz-extension: for DNR ext still matches"
+          );
+
+          browser.test.notifyPass();
+        },
+      });
+    }
+  );
+
+  await extension.unload();
+});
+
 // Tests: urlFilter. For more comprehensive tests, see
 // toolkit/components/extensions/test/xpcshell/test_ext_dnr_urlFilter.js
 add_task(async function match_urlFilter() {
@@ -787,7 +1155,7 @@ add_task(async function match_urlFilter() {
       await dnr.updateSessionRules({
         addRules: [
           // Some patterns that match literally everything:
-          { id: 1, condition: { urlFilter: "*" }, action },
+          { id: 1, condition: { urlFilter: "." }, action },
           { id: 2, condition: { urlFilter: "^" }, action },
           { id: 3, condition: { urlFilter: "|" }, action },
           // Patterns that match the test URLs
@@ -817,6 +1185,57 @@ add_task(async function match_urlFilter() {
         { url: "https://example.com/file.txt", type: "font" },
         [1, 2, 3, 4, 5],
         "urlFilter should match when needed, and correctly with requestDomains"
+      );
+
+      browser.test.notifyPass();
+    },
+  });
+});
+
+// Tests: regexFilter. For more comprehensive tests, see
+// toolkit/components/extensions/test/xpcshell/test_ext_dnr_regexFilter.js
+add_task(async function match_regexFilter() {
+  await runAsDNRExtension({
+    background: async dnrTestUtils => {
+      const dnr = browser.declarativeNetRequest;
+      const { makeDummyAction, testMatchesRequest } = dnrTestUtils;
+
+      // "modifyHeaders" is the only action that allows multiple rule matches.
+      const action = makeDummyAction("modifyHeaders");
+
+      await dnr.updateSessionRules({
+        addRules: [
+          // Some patterns that match literally everything:
+          { id: 1, condition: { regexFilter: ".*" }, action },
+          { id: 2, condition: { regexFilter: "^" }, action },
+          // Patterns that match the test URLs
+          { id: 3, condition: { regexFilter: "https://.xample\\." }, action },
+          { id: 4, condition: { regexFilter: "https://example.com" }, action },
+          {
+            // regexFilter matches, requestDomains matches.
+            id: 5,
+            condition: { regexFilter: "$", requestDomains: ["example.com"] },
+            action,
+          },
+          {
+            // regexFilter matches, requestDomains does not match.
+            id: 6,
+            condition: { regexFilter: "$", requestDomains: ["notexample.com"] },
+            action,
+          },
+          {
+            // regexFilter does not match, requestDomains matches.
+            id: 7,
+            condition: { regexFilter: "notm", requestDomains: ["example.com"] },
+            action,
+          },
+        ],
+      });
+
+      await testMatchesRequest(
+        { url: "https://example.com/file.txt", type: "font" },
+        [1, 2, 3, 4, 5],
+        "regexFilter should match when needed, and correctly with requestDomains"
       );
 
       browser.test.notifyPass();

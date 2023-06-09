@@ -42,8 +42,8 @@ constexpr auto kPixelFormat = ABI::Windows::Graphics::DirectX::
 
 // The maximum time `GetFrame` will wait for a frame to arrive, if we don't have
 // any in the pool.
-constexpr int kMaxWaitForFrameMs = 50;
-constexpr int kMaxWaitForFirstFrameMs = 500;
+constexpr TimeDelta kMaxWaitForFrame = TimeDelta::Millis(50);
+constexpr TimeDelta kMaxWaitForFirstFrame = TimeDelta::Millis(500);
 
 // These values are persisted to logs. Entries should not be renumbered and
 // numeric values should never be reused.
@@ -105,7 +105,7 @@ WgcCaptureSession::~WgcCaptureSession() {
   RemoveEventHandlers();
 }
 
-HRESULT WgcCaptureSession::StartCapture() {
+HRESULT WgcCaptureSession::StartCapture(const DesktopCaptureOptions& options) {
   RTC_DCHECK_RUN_ON(&sequence_checker_);
   RTC_DCHECK(!is_capture_started_);
 
@@ -187,6 +187,15 @@ HRESULT WgcCaptureSession::StartCapture() {
     return hr;
   }
 
+  if (!options.prefer_cursor_embedded()) {
+    ComPtr<ABI::Windows::Graphics::Capture::IGraphicsCaptureSession2> session2;
+    if (SUCCEEDED(session_->QueryInterface(
+            ABI::Windows::Graphics::Capture::IID_IGraphicsCaptureSession2,
+            &session2))) {
+      session2->put_IsCursorCaptureEnabled(false);
+    }
+  }
+
   hr = session_->StartCapture();
   if (FAILED(hr)) {
     RTC_LOG(LS_ERROR) << "Failed to start CaptureSession: " << hr;
@@ -213,8 +222,8 @@ HRESULT WgcCaptureSession::GetFrame(
   RTC_DCHECK(is_capture_started_);
 
   if (frames_in_pool_ < 1)
-    wait_for_frame_event_.Wait(first_frame_ ? kMaxWaitForFirstFrameMs
-                                            : kMaxWaitForFrameMs);
+    wait_for_frame_event_.Wait(first_frame_ ? kMaxWaitForFirstFrame
+                                            : kMaxWaitForFrame);
 
   ComPtr<WGC::IDirect3D11CaptureFrame> capture_frame;
   HRESULT hr = frame_pool_->TryGetNextFrame(&capture_frame);
@@ -388,17 +397,14 @@ HRESULT WgcCaptureSession::OnItemClosed(WGC::IGraphicsCaptureItem* sender,
 
   RTC_LOG(LS_INFO) << "Capture target has been closed.";
   item_closed_ = true;
-  is_capture_started_ = false;
 
   RemoveEventHandlers();
 
-  mapped_texture_ = nullptr;
-  session_ = nullptr;
-  frame_pool_ = nullptr;
-  direct3d_device_ = nullptr;
-  item_ = nullptr;
-  d3d11_device_ = nullptr;
-
+  // Do not attempt to free resources in the OnItemClosed handler, as this
+  // causes a race where we try to delete the item that is calling us. Removing
+  // the event handlers and setting `item_closed_` above is sufficient to ensure
+  // that the resources are no longer used, and the next time the capturer tries
+  // to get a frame, we will report a permanent failure and be destroyed.
   return S_OK;
 }
 

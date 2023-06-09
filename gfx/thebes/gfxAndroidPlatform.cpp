@@ -12,6 +12,7 @@
 #include "mozilla/CountingAllocatorBase.h"
 #include "mozilla/intl/LocaleService.h"
 #include "mozilla/intl/OSPreferences.h"
+#include "mozilla/java/GeckoAppShellWrappers.h"
 #include "mozilla/jni/Utils.h"
 #include "mozilla/layers/AndroidHardwareBuffer.h"
 #include "mozilla/Preferences.h"
@@ -103,22 +104,7 @@ gfxAndroidPlatform::~gfxAndroidPlatform() {
   layers::AndroidHardwareBufferApi::Shutdown();
 }
 
-void gfxAndroidPlatform::InitAcceleration() {
-  gfxPlatform::InitAcceleration();
-  if (XRE_IsParentProcess() && jni::GetAPIVersion() >= 26) {
-    if (StaticPrefs::gfx_use_ahardwarebuffer_content_AtStartup()) {
-      gfxVars::SetUseAHardwareBufferContent(true);
-    }
-    if (StaticPrefs::webgl_enable_ahardwarebuffer()) {
-      gfxVars::SetUseAHardwareBufferSharedSurface(true);
-    }
-  }
-  if (gfx::gfxVars::UseAHardwareBufferContent() ||
-      gfxVars::UseAHardwareBufferSharedSurface()) {
-    layers::AndroidHardwareBufferApi::Init();
-    layers::AndroidHardwareBufferManager::Init();
-  }
-}
+void gfxAndroidPlatform::InitAcceleration() { gfxPlatform::InitAcceleration(); }
 
 already_AddRefed<gfxASurface> gfxAndroidPlatform::CreateOffscreenSurface(
     const IntSize& aSize, gfxImageFormat aFormat) {
@@ -317,6 +303,10 @@ class AndroidVsyncSource final : public VsyncSource,
     if (mObservingVsync) {
       return;
     }
+
+    float fps = java::GeckoAppShell::GetScreenRefreshRate();
+    MOZ_ASSERT(fps > 0.0f);
+    mVsyncRate = TimeDuration::FromMilliseconds(1000.0 / fps);
     mAndroidVsync->RegisterObserver(this, widget::AndroidVsync::RENDER);
     mObservingVsync = true;
   }
@@ -331,7 +321,7 @@ class AndroidVsyncSource final : public VsyncSource,
     mObservingVsync = false;
   }
 
-  TimeDuration GetVsyncRate() override { return mAndroidVsync->GetVsyncRate(); }
+  TimeDuration GetVsyncRate() override { return mVsyncRate; }
 
   void Shutdown() override { DisableVsync(); }
 
@@ -346,12 +336,23 @@ class AndroidVsyncSource final : public VsyncSource,
     NotifyVsync(vsyncTime, outputTime);
   }
 
+  void OnMaybeUpdateRefreshRate() override {
+    NS_DispatchToMainThread(
+        NS_NewRunnableFunction(__func__, [self = RefPtr{this}]() {
+          if (!self->mObservingVsync) {
+            return;
+          }
+          self->DisableVsync();
+          self->EnableVsync();
+        }));
+  }
+
  private:
   virtual ~AndroidVsyncSource() { DisableVsync(); }
 
   RefPtr<widget::AndroidVsync> mAndroidVsync;
+  TimeDuration mVsyncRate;
   bool mObservingVsync = false;
-  TimeDuration mVsyncDuration;
 };
 
 already_AddRefed<mozilla::gfx::VsyncSource>

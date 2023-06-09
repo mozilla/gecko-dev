@@ -28,8 +28,6 @@
 
 using namespace mozilla;
 using namespace mozilla::dom;
-using mozilla::dom::DocGroup;
-using mozilla::dom::HTMLSlotElement;
 
 AutoTArray<RefPtr<nsDOMMutationObserver>, 4>*
     nsDOMMutationObserver::sScheduledMutationObservers = nullptr;
@@ -71,12 +69,11 @@ NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(nsDOMMutationRecord, mTarget,
 // Observer
 
 bool nsMutationReceiverBase::IsObservable(nsIContent* aContent) {
-  return !aContent->ChromeOnlyAccess() &&
-         (Observer()->IsChrome() || !aContent->IsInNativeAnonymousSubtree());
+  return !aContent->ChromeOnlyAccess() || ChromeOnlyNodes();
 }
 
 bool nsMutationReceiverBase::ObservesAttr(nsINode* aRegisterTarget,
-                                          mozilla::dom::Element* aElement,
+                                          Element* aElement,
                                           int32_t aNameSpaceID, nsAtom* aAttr) {
   if (mParent) {
     return mParent->ObservesAttr(aRegisterTarget, aElement, aNameSpaceID,
@@ -141,36 +138,7 @@ void nsMutationReceiver::Disconnect(bool aRemoveFromObserver) {
   }
 }
 
-void nsMutationReceiver::NativeAnonymousChildListChange(nsIContent* aContent,
-                                                        bool aIsRemove) {
-  if (!NativeAnonymousChildList()) {
-    return;
-  }
-
-  nsINode* parent = aContent->GetParentNode();
-  if (!parent || (!Subtree() && Target() != parent) ||
-      (Subtree() && RegisterTarget()->SubtreeRoot() != parent->SubtreeRoot())) {
-    return;
-  }
-
-  nsDOMMutationRecord* m =
-      Observer()->CurrentRecord(nsGkAtoms::nativeAnonymousChildList);
-
-  if (m->mTarget) {
-    return;
-  }
-  m->mTarget = parent;
-
-  if (aIsRemove) {
-    m->mRemovedNodes = new nsSimpleContentList(parent);
-    m->mRemovedNodes->AppendElement(aContent);
-  } else {
-    m->mAddedNodes = new nsSimpleContentList(parent);
-    m->mAddedNodes->AppendElement(aContent);
-  }
-}
-
-void nsMutationReceiver::AttributeWillChange(mozilla::dom::Element* aElement,
+void nsMutationReceiver::AttributeWillChange(Element* aElement,
                                              int32_t aNameSpaceID,
                                              nsAtom* aAttribute,
                                              int32_t aModType) {
@@ -381,12 +349,12 @@ void nsMutationReceiver::NodeWillBeDestroyed(nsINode* aNode) {
 
 void nsAnimationReceiver::RecordAnimationMutation(
     Animation* aAnimation, AnimationMutation aMutationType) {
-  mozilla::dom::AnimationEffect* effect = aAnimation->GetEffect();
+  AnimationEffect* effect = aAnimation->GetEffect();
   if (!effect) {
     return;
   }
 
-  mozilla::dom::KeyframeEffect* keyframeEffect = effect->AsKeyframeEffect();
+  KeyframeEffect* keyframeEffect = effect->AsKeyframeEffect();
   if (!keyframeEffect) {
     return;
   }
@@ -596,8 +564,7 @@ void nsDOMMutationObserver::QueueMutationObserverMicroTask() {
 }
 
 void nsDOMMutationObserver::HandleMutations(mozilla::AutoSlowOperation& aAso) {
-  if (sScheduledMutationObservers ||
-      mozilla::dom::DocGroup::sPendingDocGroups) {
+  if (sScheduledMutationObservers || DocGroup::sPendingDocGroups) {
     HandleMutationsInternal(aAso);
   }
 }
@@ -629,9 +596,10 @@ void nsDOMMutationObserver::RescheduleForRun() {
   }
 }
 
-void nsDOMMutationObserver::Observe(
-    nsINode& aTarget, const mozilla::dom::MutationObserverInit& aOptions,
-    nsIPrincipal& aSubjectPrincipal, mozilla::ErrorResult& aRv) {
+void nsDOMMutationObserver::Observe(nsINode& aTarget,
+                                    const MutationObserverInit& aOptions,
+                                    nsIPrincipal& aSubjectPrincipal,
+                                    ErrorResult& aRv) {
   bool childList = aOptions.mChildList;
   bool attributes =
       aOptions.mAttributes.WasPassed() && aOptions.mAttributes.Value();
@@ -640,10 +608,10 @@ void nsDOMMutationObserver::Observe(
   bool subtree = aOptions.mSubtree;
   bool attributeOldValue = aOptions.mAttributeOldValue.WasPassed() &&
                            aOptions.mAttributeOldValue.Value();
-  bool nativeAnonymousChildList = aOptions.mNativeAnonymousChildList;
   bool characterDataOldValue = aOptions.mCharacterDataOldValue.WasPassed() &&
                                aOptions.mCharacterDataOldValue.Value();
   bool animations = aOptions.mAnimations;
+  bool chromeOnlyNodes = aOptions.mChromeOnlyNodes;
 
   if (!aOptions.mAttributes.WasPassed() &&
       (aOptions.mAttributeOldValue.WasPassed() ||
@@ -656,8 +624,7 @@ void nsDOMMutationObserver::Observe(
     characterData = true;
   }
 
-  if (!(childList || attributes || characterData || animations ||
-        nativeAnonymousChildList)) {
+  if (!(childList || attributes || characterData || animations)) {
     aRv.ThrowTypeError(
         "One of 'childList', 'attributes', 'characterData' must not be false.");
     return;
@@ -688,7 +655,7 @@ void nsDOMMutationObserver::Observe(
   bool allAttrs = true;
   if (aOptions.mAttributeFilter.WasPassed()) {
     allAttrs = false;
-    const mozilla::dom::Sequence<nsString>& filtersAsString =
+    const Sequence<nsString>& filtersAsString =
         aOptions.mAttributeFilter.Value();
     uint32_t len = filtersAsString.Length();
     filters.SetCapacity(len);
@@ -705,10 +672,10 @@ void nsDOMMutationObserver::Observe(
   r->SetSubtree(subtree);
   r->SetAttributeOldValue(attributeOldValue);
   r->SetCharacterDataOldValue(characterDataOldValue);
-  r->SetNativeAnonymousChildList(nativeAnonymousChildList);
   r->SetAttributeFilter(std::move(filters));
   r->SetAllAttributes(allAttrs);
   r->SetAnimations(animations);
+  r->SetChromeOnlyNodes(chromeOnlyNodes);
   r->RemoveClones();
 
   if (!aSubjectPrincipal.IsSystemPrincipal() &&
@@ -766,13 +733,11 @@ void nsDOMMutationObserver::GetObservingInfo(
     info.mSubtree = mr->Subtree();
     info.mAttributeOldValue.Construct(mr->AttributeOldValue());
     info.mCharacterDataOldValue.Construct(mr->CharacterDataOldValue());
-    info.mNativeAnonymousChildList = mr->NativeAnonymousChildList();
     info.mAnimations = mr->Animations();
     nsTArray<RefPtr<nsAtom>>& filters = mr->AttributeFilter();
     if (filters.Length()) {
       info.mAttributeFilter.Construct();
-      mozilla::dom::Sequence<nsString>& filtersAsStrings =
-          info.mAttributeFilter.Value();
+      Sequence<nsString>& filtersAsStrings = info.mAttributeFilter.Value();
       nsString* strings =
           filtersAsStrings.AppendElements(filters.Length(), mozilla::fallible);
       if (!strings) {
@@ -789,18 +754,14 @@ void nsDOMMutationObserver::GetObservingInfo(
 
 // static
 already_AddRefed<nsDOMMutationObserver> nsDOMMutationObserver::Constructor(
-    const mozilla::dom::GlobalObject& aGlobal,
-    mozilla::dom::MutationCallback& aCb, mozilla::ErrorResult& aRv) {
+    const GlobalObject& aGlobal, dom::MutationCallback& aCb, ErrorResult& aRv) {
   nsCOMPtr<nsPIDOMWindowInner> window =
       do_QueryInterface(aGlobal.GetAsSupports());
   if (!window) {
     aRv.Throw(NS_ERROR_FAILURE);
     return nullptr;
   }
-  bool isChrome = nsContentUtils::IsChromeDoc(window->GetExtantDoc());
-  RefPtr<nsDOMMutationObserver> observer =
-      new nsDOMMutationObserver(std::move(window), aCb, isChrome);
-  return observer.forget();
+  return MakeAndAddRef<nsDOMMutationObserver>(std::move(window), aCb);
 }
 
 bool nsDOMMutationObserver::MergeableAttributeRecord(

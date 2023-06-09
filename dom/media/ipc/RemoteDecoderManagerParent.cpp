@@ -28,6 +28,10 @@
 #  include "MFMediaEngineParent.h"
 #endif
 
+#ifdef MOZ_WMF_CDM
+#  include "MFCDMParent.h"
+#endif
+
 namespace mozilla {
 
 #define LOG(msg, ...) \
@@ -103,10 +107,8 @@ void RemoteDecoderManagerParent::ShutdownThreads() {
 void RemoteDecoderManagerParent::ShutdownVideoBridge() {
   if (sRemoteDecoderManagerParentThread) {
     RefPtr<Runnable> task = NS_NewRunnableFunction(
-        "RemoteDecoderManagerParent::ShutdownVideoBridge", []() {
-          VideoBridgeParent::Shutdown();
-          VideoBridgeChild::Shutdown();
-        });
+        "RemoteDecoderManagerParent::ShutdownVideoBridge",
+        []() { VideoBridgeChild::Shutdown(); });
     SyncRunnable::DispatchToThread(sRemoteDecoderManagerParentThread, task);
   }
 }
@@ -253,16 +255,29 @@ bool RemoteDecoderManagerParent::DeallocPMFMediaEngineParent(
   return true;
 }
 
+PMFCDMParent* RemoteDecoderManagerParent::AllocPMFCDMParent(
+    const nsAString& aKeySystem) {
+#ifdef MOZ_WMF_CDM
+  return new MFCDMParent(aKeySystem, this, sRemoteDecoderManagerParentThread);
+#else
+  return nullptr;
+#endif
+}
+
+bool RemoteDecoderManagerParent::DeallocPMFCDMParent(PMFCDMParent* actor) {
+#ifdef MOZ_WMF_CDM
+  static_cast<MFCDMParent*>(actor)->Destroy();
+#endif
+  return true;
+}
+
 void RemoteDecoderManagerParent::Open(
     Endpoint<PRemoteDecoderManagerParent>&& aEndpoint) {
   if (!aEndpoint.Bind(this)) {
     // We can't recover from this.
     MOZ_CRASH("Failed to bind RemoteDecoderManagerParent to endpoint");
   }
-  AddRef();
 }
-
-void RemoteDecoderManagerParent::ActorDealloc() { Release(); }
 
 mozilla::ipc::IPCResult RemoteDecoderManagerParent::RecvReadback(
     const SurfaceDescriptorGPUVideo& aSD, SurfaceDescriptor* aResult) {

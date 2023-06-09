@@ -520,9 +520,6 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64 {
   void testUndefinedSet(Condition cond, const ValueOperand& value,
                         Register dest);
 
-  // higher level tag testing code
-  Address ToPayload(Address value) { return value; }
-
   template <typename T>
   void loadUnboxedValue(const T& address, MIRType type, AnyRegister dest) {
     if (dest.isFloat()) {
@@ -637,6 +634,10 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64 {
     push(ScratchRegister);
   }
   void pushValue(const Address& addr);
+  void pushValue(const BaseIndex& addr, Register scratch) {
+    loadValue(addr, ValueOperand(scratch));
+    pushValue(ValueOperand(scratch));
+  }
 
   void handleFailureWithHandlerTail(Label* profilerExitTail,
                                     Label* bailoutTail);
@@ -736,12 +737,6 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64 {
   void store32(Register src, const BaseIndex& address);
   void store32(Imm32 src, const Address& address);
   void store32(Imm32 src, const BaseIndex& address);
-
-  // NOTE: This will use second scratch on MIPS64. Only ARM needs the
-  // implementation without second scratch.
-  void store32_NoSecondScratch(Imm32 src, const Address& address) {
-    store32(src, address);
-  }
 
   template <typename T>
   void store32Unaligned(Register src, const T& dest) {

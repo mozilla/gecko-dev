@@ -48,6 +48,7 @@ extern void TraceManuallyBarrieredGenericPointerEdge(JSTracer* trc,
 namespace gc {
 
 enum class AllocKind : uint8_t;
+class CellAllocator;  // Declared so subtypes of Cell can friend it easily.
 class StoreBuffer;
 class TenuredCell;
 
@@ -774,7 +775,7 @@ class alignas(gc::CellAlignBytes) TenuredCellWithNonGCPointer
 // for GC.
 class alignas(gc::CellAlignBytes) TenuredCellWithFlags : public TenuredCell {
  protected:
-  TenuredCellWithFlags() = default;
+  TenuredCellWithFlags() { header_.set(0); }
   explicit TenuredCellWithFlags(uintptr_t initial) { header_.set(initial); }
 
   uintptr_t headerFlagsField() const {
@@ -855,6 +856,14 @@ class alignas(gc::CellAlignBytes) CellWithTenuredGCPointer : public BaseCell {
 
 void CellHeaderPostWriteBarrier(JSObject** ptr, JSObject* prev, JSObject* next);
 
+template <typename T>
+constexpr inline bool GCTypeIsTenured() {
+  static_assert(std::is_base_of_v<Cell, T>);
+  static_assert(!std::is_same_v<Cell, T> && !std::is_same_v<TenuredCell, T>);
+
+  return std::is_base_of_v<TenuredCell, T> || std::is_base_of_v<JSAtom, T>;
+}
+
 template <class PtrT>
 class alignas(gc::CellAlignBytes) TenuredCellWithGCPointer
     : public TenuredCell {
@@ -868,7 +877,7 @@ class alignas(gc::CellAlignBytes) TenuredCellWithGCPointer
         std::is_base_of_v<Cell, PtrT>,
         "Only use TenuredCellWithGCPointer for pointers to GC things");
     static_assert(
-        !std::is_base_of_v<TenuredCell, PtrT>,
+        !GCTypeIsTenured<PtrT>,
         "Don't use TenuredCellWithGCPointer for always-tenured GC things");
   }
 

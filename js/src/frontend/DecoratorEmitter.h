@@ -25,12 +25,27 @@ class MOZ_STACK_CLASS DecoratorEmitter {
   [[nodiscard]] bool emitApplyDecoratorsToElementDefinition(
       Kind kind, ParseNode* key, ListNode* decorators, bool isStatic);
 
+  [[nodiscard]] bool emitApplyDecoratorsToFieldDefinition(ParseNode* key,
+                                                          ListNode* decorators,
+                                                          bool isStatic);
+
+  [[nodiscard]] bool emitInitializeFieldOrAccessor();
+
  private:
+  [[nodiscard]] bool emitPropertyKey(ParseNode* key);
+
   [[nodiscard]] bool emitDecorationState();
 
   [[nodiscard]] bool emitUpdateDecorationState();
 
+  [[nodiscard]] bool emitCallDecorator(Kind kind, ParseNode* key, bool isStatic,
+                                       ParseNode* decorator);
+
   [[nodiscard]] bool emitCreateDecoratorAccessObject();
+
+  [[nodiscard]] bool emitCheckIsUndefined();
+
+  [[nodiscard]] bool emitCheckIsCallable();
 
   [[nodiscard]] bool emitCreateAddInitializerFunction();
 

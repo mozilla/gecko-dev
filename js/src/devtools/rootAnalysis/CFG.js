@@ -10,6 +10,11 @@
 
 var TRACING = false;
 
+// When edge.Kind == "Pointer", these are the meanings of the edge.Reference field.
+var PTR_POINTER = 0;
+var PTR_REFERENCE = 1;
+var PTR_RVALUE_REF = 2;
+
 // Find all points (positions within the code) of the body given by the list of
 // bodies and the blockId to match (which will specify an outer function or a
 // loop within it), recursing into loops if needed.
@@ -50,23 +55,18 @@ var Visitor = class {
         }
     }
 
-    // Returns whether we should keep going after seeing this <body, ppoint>
-    // pair. Also records it as visited.
-    visit(body, ppoint, info) {
-        const visited = this.visited_bodies.get(body);
-        const existing = visited.get(ppoint);
-        const action = this.next_action(existing, info);
-        const merged = this.merge_info(existing, info);
-        visited.set(ppoint, merged);
-        return [action, merged];
-    }
+    // Prepend `edge` to the info stored at the successor node, returning
+    // the updated info value. This should be overridden by pretty much any
+    // subclass, as a traversal's semantics are largely determined by this method.
+    extend_path(edge, body, ppoint, successor_value) { return true; }
 
     // Default implementation does a basic "only visit nodes once" search.
     // (Whether this is BFS/DFS/other is determined by the caller.)
 
     // Override if you need to revisit nodes. Valid actions are "continue",
     // "prune", and "done". "continue" means continue with the search. "prune"
-    // means stop at this node, only continue on other edges. "done" means the
+    // means do not continue to predecessors of this node, only continue with
+    // the remaining entries in the work queue. "done" means the
     // whole search is complete even if unvisited nodes remain.
     next_action(prev, current) { return prev ? "prune" : "continue"; }
 
@@ -75,10 +75,33 @@ var Visitor = class {
     // `extend_path`. The node will be updated with the return value.
     merge_info(prev, current) { return true; }
 
-    // Prepend `edge` to the info stored at the successor node, returning
-    // the updated info value. This should be overridden by pretty much any
-    // subclass, as a traversal's semantics are largely determined by this method.
-    extend_path(edge, body, ppoint, successor_path) { return true; }
+    // Default visit() implementation. Subclasses will usually leave this alone
+    // and use the other methods as extension points.
+    //
+    // Take a body, a point within that body, and the info computed by
+    // extend_path() for that point when traversing an edge. Return whether the
+    // search should continue ("continue"), the search should be pruned and
+    // other paths followed ("prune"), or that the whole search is complete and
+    // it is time to return a value ("done", and the value returned by
+    // merge_info() will be returned by the overall search).
+    //
+    // Persistently record the value computed so far at each point, and call
+    // (overridable) next_action() and merge_info() methods with the previous
+    // and freshly-computed value for each point.
+    //
+    // Often, extend_path() will decide how/whether to continue the search and
+    // will return the search action to take, and next_action() will blindly
+    // return it if the point has not yet been visited. (And if it has, it will
+    // prune this branch of the search so that no point is visited multiple
+    // times.)
+    visit(body, ppoint, info) {
+        const visited_value_table = this.visited_bodies.get(body);
+        const existing_value_if_visited = visited_value_table.get(ppoint);
+        const action = this.next_action(existing_value_if_visited, info);
+        const merged = this.merge_info(existing_value_if_visited, info);
+        visited_value_table.set(ppoint, merged);
+        return [action, merged];
+    }
 };
 
 function findMatchingBlock(bodies, blockId) {
@@ -90,50 +113,68 @@ function findMatchingBlock(bodies, blockId) {
     assert(false);
 }
 
-// Perform a mostly breadth-first search through the graph of <body, ppoints>.
-// This is only mostly breadth-first because the visitor decides whether to
-// stop searching when it sees an already-visited node. It can choose to
-// re-visit a node in order to find "better" paths that include a node more
-// than once.
+// For a given function containing a set of bodies, each containing a set of
+// ppoints, perform a mostly breadth-first traversal through the complete graph
+// of all <body, ppoint> nodes throughout all the bodies of the function.
 //
-// The return value depends on how the search finishes. If a 'done' action
-// is returned by visitor.visit(), use the information returned by
-// that call. If the search completes without reaching the entry point of
-// the function (the "root"), return null. If the search manages to reach
-// the root, return the value of the `result_if_reached_root` parameter.
+// When traversing, every <body, ppoint> node is associated with a value that
+// is assigned or updated whenever it is visited. The overall traversal
+// terminates when a given condition is reached, and an arbitrary custom value
+// is returned. If the search completes without the termination condition
+// being reached, it will return the value associated with the entrypoint
+// node, which is initialized to `entrypoint_fallback_value` (and thus serves as
+// the fallback return value if all search paths are pruned before reaching
+// the entrypoint.)
+//
+// The traversal is only *mostly* breadth-first because the visitor decides
+// whether to stop searching when it sees a node. If a node is visited for a
+// second time, the visitor can choose to continue (and thus revisit the node)
+// in order to find "better" paths that may include a node more than once.
+// The search is done in the "upwards" direction -- as in, it starts at the
+// exit point and searches through predecessors.
+//
+// Override visitor.visit() to return an action and a value. The action
+// determines whether the overall search should terminate ('done'), or
+// continues looking through the predecessors of the current node ('continue'),
+// or whether it should just continue processing the work queue without
+// looking at predecessors ('prune').
 //
 // This allows this function to be used in different ways. If the visitor
-// associates a value with each node that chains onto its successors
-// (or predecessors in the "upwards" search order), then this will return
-// a complete path through the graph. But this can also be used to test
-// whether a condition holds (eg "the exit point is reachable after
-// calling SomethingImportant()"), in which case no path is needed and the
-// visitor will cause the return value to be a simple boolean (or null
-// if it terminates the search before reaching the root.)
+// associates a value with each node that chains onto its forward-flow successors
+// (predecessors in the "upwards" search order), then a complete path through
+// the graph will be returned.
 //
-// The information returned by the visitor for a node is often called
-// `path` in the code below, even though it may not represent a path.
+// Alternatively, BFS_upwards() can be used to test whether a condition holds
+// (eg "the exit point is reachable only after calling SomethingImportant()"),
+// in which case no path is needed and the visitor can compute a simple boolean
+// every time it encounters a point. Note that `entrypoint_fallback_value` will
+// still be returned if the search terminates without ever reaching the
+// entrypoint, which is useful for dominator analyses.
 //
+// See the Visitor base class's implementation of visit(), above, for the
+// most commonly used visit logic.
 function BFS_upwards(start_body, start_ppoint, bodies, visitor,
-                     initial_successor_info={},
-                     result_if_reached_root=null)
+                     initial_successor_value = {},
+                     entrypoint_fallback_value=null)
 {
-    const work = [[start_body, start_ppoint, null, initial_successor_info]];
+    let entrypoint_value = entrypoint_fallback_value;
+
+    const work = [[start_body, start_ppoint, null, initial_successor_value]];
     if (TRACING) {
         printErr(`BFS start at ${blockIdentifier(start_body)}:${start_ppoint}`);
     }
 
-    let reached_root = false;
     while (work.length > 0) {
-        const [body, ppoint, edgeToAdd, successor_path] = work.shift();
+        const [body, ppoint, edgeToAdd, successor_value] = work.shift();
         if (TRACING) {
-            printErr(`prepending edge from ${ppoint} to state '${successor_path}'`);
+            const s = edgeToAdd ? " : " + str(edgeToAdd) : "";
+            printErr(`prepending edge from ${ppoint} to state '${successor_value}'${s}`);
         }
-        let path = visitor.extend_path(edgeToAdd, body, ppoint, successor_path);
+        let value = visitor.extend_path(edgeToAdd, body, ppoint, successor_value);
 
-        const [action,  merged_path] = visitor.visit(body, ppoint, path);
+        const [action,  merged_value] = visitor.visit(body, ppoint, value);
         if (action === "done") {
-            return merged_path;
+            return merged_value;
         }
         if (action === "prune") {
             // Do not push anything else to the work queue, but continue processing
@@ -141,7 +182,7 @@ function BFS_upwards(start_body, start_ppoint, bodies, visitor,
             continue;
         }
         assert(action == "continue");
-        path = merged_path;
+        value = merged_value;
 
         const predecessors = getPredecessors(body);
         for (const edge of (predecessors[ppoint] || [])) {
@@ -149,13 +190,12 @@ function BFS_upwards(start_body, start_ppoint, bodies, visitor,
                 // Propagate the search into the exit point of the loop body.
                 const loopBody = findMatchingBlock(bodies, edge.BlockId);
                 const loopEnd = loopBody.Index[1];
-                work.push([loopBody, loopEnd, null, path]);
+                work.push([loopBody, loopEnd, null, value]);
                 // Don't continue to predecessors here without going through
                 // the loop. (The points in this body that enter the loop will
                 // be traversed when we reach the entry point of the loop.)
-            } else {
-                work.push([body, edge.Index[0], edge, path]);
             }
+            work.push([body, edge.Index[0], edge, value]);
         }
 
         // Check for hitting the entry point of a loop body.
@@ -163,26 +203,26 @@ function BFS_upwards(start_body, start_ppoint, bodies, visitor,
             // Propagate to outer body parents that enter the loop body.
             for (const parent of (body.BlockPPoint || [])) {
                 const parentBody = findMatchingBlock(bodies, parent.BlockId);
-                work.push([parentBody, parent.Index, null, path]);
+                work.push([parentBody, parent.Index, null, value]);
             }
 
             // This point is also preceded by the *end* of this loop, for the
             // previous iteration.
-            work.push([body, body.Index[1], null, path]);
+            work.push([body, body.Index[1], null, value]);
         }
 
-        // Check for reaching the root of the function.
+        // Check for reaching the entrypoint of the function.
         if (body === start_body && ppoint == body.Index[0]) {
-            reached_root = true;
+            entrypoint_value = value;
         }
     }
 
     // The search space was exhausted without finding a 'done' state. That
     // might be because all search paths were pruned before reaching the entry
-    // point of the function, in which case reached_root will be false. (If
-    // reached_root is true, then we may still not have visited the entire
-    // graph, if some paths were pruned but at least one made it to the root.)
-    return reached_root ? result_if_reached_root : null;
+    // point of the function, in which case entrypoint_value will still be its initial
+    // value. (If entrypoint_value has been set, then we may still not have visited the
+    // entire graph, if some paths were pruned but at least one made it to the entrypoint.)
+    return entrypoint_value;
 }
 
 // Given the CFG for the constructor call of some RAII, return whether the
@@ -335,6 +375,11 @@ function isImmobileValue(exp) {
     return false;
 }
 
+// Returns whether decl is a body.DefineVariable[] entry for a non-temporary reference.
+function isReferenceDecl(decl) {
+    return decl.Type.Kind == "Pointer" && decl.Type.Reference != PTR_POINTER && decl.Variable.Kind != "Temp";
+}
+
 function expressionIsVariableAddress(exp, variable)
 {
     while (exp.Kind == "Fld")
@@ -452,22 +497,29 @@ function isReturningImmobileValue(edge, variable)
 // start looking at the final point in the function, not one point back from
 // that, since that would skip over the GCing call.
 //
-// Note that this returns true only if the variable's incoming value is used.
-// So this would return false for 'obj':
+// Certain references may be annotated to be live to the end of the function
+// as well (eg AutoCheckCannotGC&& parameters).
+//
+// Note that this returns a nonzero value only if the variable's incoming value is used.
+// So this would return 0 for 'obj':
 //
 //     obj = someFunction();
 //
-// but these would return true:
+// but these would return a positive value:
 //
 //     obj = someFunction(obj);
 //     obj->foo = someFunction();
 //
-function edgeUsesVariable(edge, variable, body)
+function edgeUsesVariable(edge, variable, body, liveToEnd=false)
 {
     if (ignoreEdgeUse(edge, variable, body))
         return 0;
 
-    if (variable.Kind == "Return" && body.Index[1] == edge.Index[1] && body.BlockId.Kind == "Function") {
+    if (variable.Kind == "Return") {
+        liveToEnd = true;
+    }
+
+    if (liveToEnd && body.Index[1] == edge.Index[1] && body.BlockId.Kind == "Function") {
         // The last point in the function body is treated as using the return
         // value. This is the only time the destination point is returned
         // rather than the source point.
@@ -543,19 +595,39 @@ function edgeUsesVariable(edge, variable, body)
     }
 }
 
+// If `decl` is the body.DefineVariable[] declaration of a reference type, then
+// return the expression without the outer dereference. Otherwise, return the
+// original expression.
+function maybeDereference(exp, decl) {
+    if (exp.Kind == "Drf" && exp.Exp[0].Kind == "Var") {
+        if (isReferenceDecl(decl)) {
+            return exp.Exp[0];
+        }
+    }
+    return exp;
+}
+
 function expressionIsVariable(exp, variable)
 {
     return exp.Kind == "Var" && sameVariable(exp.Variable, variable);
 }
 
-function expressionIsMethodOnVariable(exp, variable)
+// Similar to the above, except treat uses of a reference as if they were uses
+// of the dereferenced contents. This requires knowing the type of the
+// variable, and so takes its declaration rather than the variable itself.
+function expressionIsDeclaredVariable(exp, decl)
+{
+    exp = maybeDereference(exp, decl);
+    return expressionIsVariable(exp, decl.Variable);
+}
+
+function expressionIsMethodOnVariableDecl(exp, decl)
 {
     // This might be calling a method on a base class, in which case exp will
     // be an unnamed field of the variable instead of the variable itself.
     while (exp.Kind == "Fld" && exp.Field.Name[0].startsWith("field:"))
         exp = exp.Exp[0];
-
-    return exp.Kind == "Var" && sameVariable(exp.Variable, variable);
+    return expressionIsDeclaredVariable(exp, decl);
 }
 
 // Return whether the edge starts the live range of a variable's value, by setting
@@ -626,6 +698,60 @@ function edgeStartsValueLiveRange(edge, variable)
     return false;
 }
 
+// Return the result of a `matcher` callback on the call found in the given
+// `edge`, if the edge is a direct call to a named function (if not, return false).
+// `matcher` is given the name of the callee (actually, a tuple
+// [fully qualified name, base name]), an array of expressions containing the
+// arguments, and if the result of the call is assigned to a variable,
+// the expression representing that variable(the lhs).
+//
+// https://firefox-source-docs.mozilla.org/js/HazardAnalysis/CFG.html for
+// documentation of the data structure used here.
+function matchEdgeCall(edge, matcher) {
+    if (edge.Kind != "Call") {
+        return false;
+    }
+
+    const callee = edge.Exp[0];
+
+    if (edge.Type.Kind == 'Function' &&
+        edge.Exp[0].Kind == 'Var' &&
+        edge.Exp[0].Variable.Kind == 'Func') {
+        const calleeName = edge.Exp[0].Variable.Name;
+        const args = edge.PEdgeCallArguments;
+        const argExprs = args ? args.Exp : [];
+        const lhs = edge.Exp[1]; // May be undefined
+        return matcher(calleeName, argExprs, lhs);
+    }
+
+    return false;
+}
+
+function edgeMarksVariableGCSafe(edge, variable) {
+    return matchEdgeCall(edge, (calleeName, argExprs, _lhs) => {
+        // explicit JS_HAZ_VARIABLE_IS_GC_SAFE annotation
+        return (calleeName[1] == 'MarkVariableAsGCSafe' &&
+            calleeName[0].includes("JS::detail::MarkVariableAsGCSafe") &&
+            argExprs.length == 1 &&
+            expressionIsVariable(argExprs[0], variable));
+    });
+}
+
+// Match an optional <namespace>:: followed by the class name,
+// and then an optional template parameter marker.
+//
+// Example: mozilla::dom::UniquePtr<...
+//
+function parseTypeName(typeName) {
+    const m = typeName.match(/^(((?:\w|::)+::)?(\w+))\b(\<)?/);
+    if (!m) {
+        return undefined;
+    }
+    const [, type, raw_namespace, classname, is_specialized] = m;
+    const namespace = raw_namespace === null ? "" : raw_namespace;
+    return { type, namespace, classname, is_specialized }
+}
+
 // Return whether an edge "clears out" a variable's value. A simple example
 // would be
 //
@@ -660,28 +786,20 @@ function edgeEndsValueLiveRange(edge, variable, body)
     if (edge.Kind != "Call")
         return false;
 
-    var callee = edge.Exp[0];
-
-    if (edge.Type.Kind == 'Function' &&
-        edge.Exp[0].Kind == 'Var' &&
-        edge.Exp[0].Variable.Kind == 'Func' &&
-        edge.Exp[0].Variable.Name[1] == 'MarkVariableAsGCSafe' &&
-        edge.Exp[0].Variable.Name[0].includes("JS::detail::MarkVariableAsGCSafe") &&
-        expressionIsVariable(edge.PEdgeCallArguments.Exp[0], variable))
-    {
+    if (edgeMarksVariableGCSafe(edge, variable)) {
         // explicit JS_HAZ_VARIABLE_IS_GC_SAFE annotation
         return true;
     }
 
-    if (edge.Type.Kind == 'Function' &&
-        edge.Exp[0].Kind == 'Var' &&
-        edge.Exp[0].Variable.Kind == 'Func' &&
-        edge.Exp[0].Variable.Name[1] == 'move' &&
-        edge.Exp[0].Variable.Name[0].includes('std::move(') &&
-        expressionIsVariable(edge.PEdgeCallArguments.Exp[0], variable) &&
-        edge.Exp[1].Kind == 'Var' &&
-        edge.Exp[1].Variable.Kind == 'Temp')
-    {
+    const decl = lookupVariable(body, variable);
+
+    if (matchEdgeCall(edge, (calleeName, argExprs, lhs) => {
+        return calleeName[1] == 'move' && calleeName[0].includes('std::move(') &&
+            expressionIsDeclaredVariable(argExprs[0], decl) &&
+            lhs &&
+            lhs.Kind == 'Var' &&
+            lhs.Variable.Kind == 'Temp';
+    })) {
         // temp = std::move(var)
         //
         // If var is a UniquePtr, and we pass it into something that takes
@@ -718,19 +836,30 @@ function edgeEndsValueLiveRange(edge, variable, body)
           return true;
     }
 
+    const callee = edge.Exp[0];
+
     if (edge.Type.Kind == 'Function' &&
         edge.Type.TypeFunctionCSU &&
         edge.PEdgeCallInstance &&
-        expressionIsMethodOnVariable(edge.PEdgeCallInstance.Exp, variable))
+        expressionIsMethodOnVariableDecl(edge.PEdgeCallInstance.Exp, decl))
     {
         const typeName = edge.Type.TypeFunctionCSU.Type.Name;
-        const m = typeName.match(/^(((\w|::)+?)(\w+))</);
-        if (m) {
-            const [, type, namespace,, classname] = m;
+
+        // Synthesize a zero-arg constructor name like
+        // mozilla::dom::UniquePtr<T>::UniquePtr(). Note that the `<T>` is
+        // literal -- the pretty name from sixgill will render the actual
+        // constructor name as something like
+        //
+        //   UniquePtr<T>::UniquePtr() [where T = int]
+        //
+        const parsed = parseTypeName(typeName);
+        if (parsed) {
+            const { type, namespace, classname, is_specialized } = parsed;
 
             // special-case: the initial constructor that doesn't provide a value.
             // Useful for things like Maybe<T>.
-            const ctorName = `${namespace}${classname}<T>::${classname}()`;
+            const template = is_specialized ? '<T>' : '';
+            const ctorName = `${namespace}${classname}${template}::${classname}()`;
             if (callee.Kind == 'Var' &&
                 typesWithSafeConstructors.has(type) &&
                 callee.Variable.Name[0].includes(ctorName))
@@ -769,7 +898,17 @@ function edgeEndsValueLiveRange(edge, variable, body)
     return false;
 }
 
-function edgeMovesVariable(edge, variable)
+// Look up a variable in the list of declarations for this body.
+function lookupVariable(body, variable) {
+    for (const decl of (body.DefineVariable || [])) {
+        if (sameVariable(decl.Variable, variable)) {
+            return decl;
+        }
+    }
+    return undefined;
+}
+
+function edgeMovesVariable(edge, variable, body)
 {
     if (edge.Kind != 'Call')
         return false;
@@ -778,10 +917,25 @@ function edgeMovesVariable(edge, variable)
         callee.Variable.Kind == 'Func')
     {
         const { Variable: { Name: [ fullname, shortname ] } } = callee;
-        const [ mangled, unmangled ] = splitFunction(fullname);
-        // Match a UniquePtr move constructor.
-        if (unmangled.match(/::UniquePtr<[^>]*>::UniquePtr\((\w+::)*UniquePtr<[^>]*>&&/))
-            return true;
+
+        // Match an rvalue parameter.
+
+        if (!edge || !edge.PEdgeCallArguments || !edge.PEdgeCallArguments.Exp) {
+            return false;
+        }
+
+        for (const arg of edge.PEdgeCallArguments.Exp) {
+            if (arg.Kind != 'Drf') continue;
+            const val = arg.Exp[0];
+            if (val.Kind == 'Var' && sameVariable(val.Variable, variable)) {
+                // This argument is the variable we're looking for. Return true
+                // if it is passed as an rvalue reference.
+                const type = lookupVariable(body, variable).Type;
+                if (type.Kind == "Pointer" && type.Reference == PTR_RVALUE_REF) {
+                    return true;
+                }
+            }
+        }
     }
 
     return false;
@@ -802,7 +956,7 @@ function basicBlockEatsVariable(variable, body, startpoint)
         }
         const edge = edges[0];
 
-        if (edgeMovesVariable(edge, variable)) {
+        if (edgeMovesVariable(edge, variable, body)) {
             return true;
         }
 
@@ -820,12 +974,102 @@ function basicBlockEatsVariable(variable, body, startpoint)
     return false;
 }
 
-function edgeIsNonReleasingDtor(body, edge, calleeName, functionBodies) {
-    if (edge.Kind !== "Call") {
-        return false;
+var PROP_REFCNT          = 1 << 0;
+var PROP_SHARED_PTR_DTOR = 1 << 1;
+
+function getCalleeProperties(calleeName) {
+    let props = 0;
+
+    if (isRefcountedDtor(calleeName)) {
+        props |= PROP_REFCNT;
     }
-    if (!isRefcountedDtor(calleeName)) {
-        return false;
+    if (calleeName.includes("~shared_ptr()")) {
+        props |= PROP_SHARED_PTR_DTOR;
+    }
+    return props;
+}
+
+// Basic C++ ABI mangling: prefix an identifier with its length, in decimal.
+function mangle(name) {
+    return name.length + name;
+}
+
+var TriviallyDestructibleTypes = new Set([
+    // Single-token types from
+    // https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangling-builtin
+    "void", "wchar_t", "bool", "char", "short", "int", "long", "float", "double",
+    "__int64", "__int128", "__float128", "char32_t", "char16_t", "char8_t",
+    // Remaining observed cases. These are types T in shared_ptr<T> that have
+    // been observed, where the types themselves have trivial destructors, and
+    // the custom deleter doesn't do anything nontrivial that we might care about.
+    "_IO_FILE"
+]);
+function synthesizeDestructorName(className) {
+    if (className.includes("<") || className.includes(" ") || className.includes("{")) {
+        return;
+    }
+    if (TriviallyDestructibleTypes.has(className)) {
+        return;
+    }
+    const parts = className.split("::");
+    const mangled_dtor = "_ZN" + parts.map(p => mangle(p)).join("") + "D2Ev";
+    const pretty_dtor = `void ${className}::~${parts.at(-1)}()`;
+    // Note that there will be a later check to verify that the function name
+    // synthesized here is an actual function, and assert if not (see
+    // assertFunctionExists() in computeCallgraph.js.)
+    return mangled_dtor + "$" + pretty_dtor;
+}
+
+function getCallEdgeProperties(body, edge, calleeName, functionBodies) {
+    let attrs = 0;
+    let extraCalls = [];
+
+    if (edge.Kind !== "Call") {
+        return { attrs, extraCalls };
+    }
+
+    const props = getCalleeProperties(calleeName);
+    if (props & PROP_REFCNT) {
+        // std::swap of two refcounted values thinks it can drop the
+        // ref count to zero. Or rather, it just calls operator=() in a context
+        // where the refcount will never drop to zero.
+        const blockId = blockIdentifier(body);
+        if (blockId.includes("std::swap") || blockId.includes("mozilla::Swap")) {
+            // Replace the refcnt release call with nothing. It's not going to happen.
+            attrs |= ATTR_REPLACED;
+        }
+    }
+
+    if (props & PROP_SHARED_PTR_DTOR) {
+        // Replace shared_ptr<T>::~shared_ptr() calls to T::~T() calls.
+        // Note that this will only apply to simple cases.
+        // Any templatized type, in particular, will be ignored and the original
+        // call tree will be left alone. If this triggers a hazard, then we can
+        // consider extending the mangling support.
+        //
+        // If the call to ~shared_ptr is not replaced, then it might end up calling
+        // an unknown function pointer. This does not always happen-- in some cases,
+        // the call tree below ~shared_ptr will invoke the correct destructor without
+        // going through function pointers.
+        const m = calleeName.match(/shared_ptr<(.*?)>::~shared_ptr\(\)(?: \[with T = ([\w:]+))?/);
+        assert(m);
+        let className = m[1] == "T" ? m[2] : m[1];
+        assert(className != "");
+        // cv qualification does not apply to destructors.
+        className = className.replace("const ", "");
+        className = className.replace("volatile ", "");
+        const dtor = synthesizeDestructorName(className);
+        if (dtor) {
+            attrs |= ATTR_REPLACED;
+            extraCalls.push({
+                attrs: ATTR_SYNTHETIC,
+                name: dtor,
+            });
+        }
+    }
+
+    if ((props & PROP_REFCNT) == 0) {
+        return { attrs, extraCalls };
     }
 
     let callee = edge.Exp[0];
@@ -836,7 +1080,7 @@ function edgeIsNonReleasingDtor(body, edge, calleeName, functionBodies) {
     const instance = edge.PEdgeCallInstance.Exp;
     if (instance.Kind !== "Var") {
         // TODO: handle field destructors
-        return false;
+        return { attrs, extraCalls };
     }
 
     // Test whether the dtor call is dominated by operations on the variable
@@ -849,7 +1093,7 @@ function edgeIsNonReleasingDtor(body, edge, calleeName, functionBodies) {
 
     const variable = instance.Variable;
 
-    const visitor = new class extends Visitor {
+    const visitor = new class DominatorVisitor extends Visitor {
         // Do not revisit nodes. For new nodes, relay the decision made by
         // extend_path.
         next_action(seen, current) { return seen ? "prune" : current; }
@@ -858,7 +1102,7 @@ function edgeIsNonReleasingDtor(body, edge, calleeName, functionBodies) {
         merge_info(seen, current) { return current; }
 
         // Return the action to take from this node.
-        extend_path(edge, body, ppoint, successor_path) {
+        extend_path(edge, body, ppoint, successor_value) {
             if (!edge) {
                 // Dummy edge to join two points.
                 return "continue";
@@ -885,10 +1129,14 @@ function edgeIsNonReleasingDtor(body, edge, calleeName, functionBodies) {
     // safe assignment like refptr.forget() first?
     //
     // In graph terms: return whether the destructor call is dominated by forget() calls (or similar).
-    return !BFS_upwards(
+    const edgeIsNonReleasingDtor = !BFS_upwards(
         body, edge.Index[0], functionBodies, visitor, "start",
-        true // Return value if we reach the root without finding a non-forget() use.
+        false // Return value if we do not reach the root without finding a non-forget() use.
     );
+    if (edgeIsNonReleasingDtor) {
+        attrs |= ATTR_GC_SUPPRESSED | ATTR_NONRELEASING;
+    }
+    return { attrs, extraCalls };
 }
 
 // gcc uses something like "__dt_del " for virtual destructors that it

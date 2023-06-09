@@ -65,7 +65,7 @@ class nsIScrollbarMediator : public nsQueryFrame {
    * aOldPos and aNewPos are scroll positions.
    * The scroll positions start with zero at the left edge; implementors that
    * want zero at the right edge for RTL content will need to adjust
-   * accordingly. (See ScrollFrameHelper::ThumbMoved in nsGfxScrollFrame.cpp.)
+   * accordingly. (See nsHTMLScrollFrame::ThumbMoved in nsGfxScrollFrame.cpp.)
    * @note This method might destroy the frame, pres shell, and other objects.
    */
   virtual void ThumbMoved(nsScrollbarFrame* aScrollbar, nscoord aOldPos,
@@ -81,7 +81,7 @@ class nsIScrollbarMediator : public nsQueryFrame {
    * Obtain the frame for the horizontal or vertical scrollbar, or null
    * if there is no such box.
    */
-  virtual nsIFrame* GetScrollbarBox(bool aVertical) = 0;
+  virtual nsScrollbarFrame* GetScrollbarBox(bool aVertical) = 0;
   /**
    * Show or hide scrollbars on 2 fingers touch.
    * Subclasses should call their ScrollbarActivity's corresponding methods.

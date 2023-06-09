@@ -30,8 +30,9 @@ class RDDChild final : public PRDDChild,
   typedef mozilla::dom::MemoryReportRequestHost MemoryReportRequestHost;
 
  public:
+  NS_INLINE_DECL_REFCOUNTING(RDDChild, final)
+
   explicit RDDChild(RDDProcessHost* aHost);
-  ~RDDChild();
 
   bool Init();
 
@@ -50,14 +51,29 @@ class RDDChild final : public PRDDChild,
       const media::MediaCodecsSupported& aSupported);
   mozilla::ipc::IPCResult RecvFOGData(ByteBuf&& aBuf);
 
+  mozilla::ipc::IPCResult RecvAccumulateChildHistograms(
+      nsTArray<HistogramAccumulation>&& aAccumulations);
+  mozilla::ipc::IPCResult RecvAccumulateChildKeyedHistograms(
+      nsTArray<KeyedHistogramAccumulation>&& aAccumulations);
+  mozilla::ipc::IPCResult RecvUpdateChildScalars(
+      nsTArray<ScalarAction>&& aScalarActions);
+  mozilla::ipc::IPCResult RecvUpdateChildKeyedScalars(
+      nsTArray<KeyedScalarAction>&& aScalarActions);
+  mozilla::ipc::IPCResult RecvRecordChildEvents(
+      nsTArray<ChildEventData>&& events);
+  mozilla::ipc::IPCResult RecvRecordDiscardedData(
+      const DiscardedData& aDiscardedData);
+
   bool SendRequestMemoryReport(const uint32_t& aGeneration,
                                const bool& aAnonymize,
                                const bool& aMinimizeMemoryUsage,
                                const Maybe<ipc::FileDescriptor>& aDMDFile);
 
-  static void Destroy(UniquePtr<RDDChild>&& aChild);
+  static void Destroy(RefPtr<RDDChild>&& aChild);
 
  private:
+  ~RDDChild();
+
   RDDProcessHost* mHost;
   UniquePtr<MemoryReportRequestHost> mMemoryReportRequest;
 #if defined(XP_LINUX) && defined(MOZ_SANDBOX)

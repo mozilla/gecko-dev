@@ -19,6 +19,8 @@ const AUDIO_TOGGLE_ENABLED_PREF =
   "media.videocontrols.picture-in-picture.audio-toggle.enabled";
 const KEYBOARD_CONTROLS_ENABLED_PREF =
   "media.videocontrols.picture-in-picture.keyboard-controls.enabled";
+const CAPTIONS_ENABLED_PREF =
+  "media.videocontrols.picture-in-picture.display-text-tracks.enabled";
 const CAPTIONS_TOGGLE_ENABLED_PREF =
   "media.videocontrols.picture-in-picture.display-text-tracks.toggle.enabled";
 const TEXT_TRACK_FONT_SIZE_PREF =
@@ -78,12 +80,31 @@ function setIsMutedState(isMuted) {
   Player.isMuted = isMuted;
 }
 
-function showSubtitlesButton() {
-  Player.showSubtitlesButton();
+/**
+ * Function to resize and reposition the PiP window
+ * @param {Object} rect
+ *   An object containing `left`, `top`, `width`, and `height` for the PiP
+ *   window
+ */
+function resizeToVideo(rect) {
+  Player.resizeToVideo(rect);
 }
 
-function hideSubtitlesButton() {
-  Player.hideSubtitlesButton();
+/**
+ * Returns an object containing `left`, `top`, `width`, and `height` of the
+ * PiP window before entering fullscreen. Will be null if the PiP window is
+ * not in fullscreen.
+ */
+function getDeferredResize() {
+  return Player.deferredResize;
+}
+
+function enableSubtitlesButton() {
+  Player.enableSubtitlesButton();
+}
+
+function disableSubtitlesButton() {
+  Player.disableSubtitlesButton();
 }
 
 function setScrubberPosition(position) {
@@ -142,6 +163,19 @@ let Player = {
    * Gets updated whenever a new hover state is detected.
    */
   isCurrentHover: false,
+
+  /**
+   * Store the size and position of the window before entering fullscreen and
+   * use this to correctly position the window when exiting fullscreen
+   */
+  deferredResize: null,
+
+  /**
+   * Stores the previous events for seek forward/backward to correctly
+   * record the sequence if 3 clicks happen within a 1 second interval
+   */
+  backwardSequence: [],
+  forwardSequence: [],
 
   /**
    * Initializes the player browser, and sets up the initial state.
@@ -209,6 +243,9 @@ let Player = {
     this.scrubber.addEventListener("change", event => {
       this.handleScrubbingDone(event);
     });
+    this.scrubber.addEventListener("pointerdown", event => {
+      this.recordEvent("seek", {});
+    });
 
     for (let radio of document.querySelectorAll(
       'input[type=radio][name="cc-size"]'
@@ -233,25 +270,24 @@ let Player = {
     if (Services.prefs.getBoolPref(AUDIO_TOGGLE_ENABLED_PREF, false)) {
       const audioButton = document.getElementById("audio");
       audioButton.hidden = false;
-      audioButton.previousElementSibling.hidden = false;
+    }
+
+    if (Services.prefs.getBoolPref(CAPTIONS_ENABLED_PREF, false)) {
+      this.closedCaptionButton.hidden = false;
     }
 
     if (Services.prefs.getBoolPref(IMPROVED_CONTROLS_ENABLED_PREF, false)) {
       const fullscreenButton = document.getElementById("fullscreen");
       fullscreenButton.hidden = false;
-      fullscreenButton.previousElementSibling.hidden = false;
 
       const seekBackwardButton = document.getElementById("seekBackward");
       seekBackwardButton.hidden = false;
-      seekBackwardButton.nextElementSibling.hidden = false;
 
       const seekForwardButton = document.getElementById("seekForward");
       seekForwardButton.hidden = false;
-      seekForwardButton.previousElementSibling.hidden = false;
 
       this.scrubber.hidden = false;
       this.timestamp.hidden = false;
-      this.timestamp.nextElementSibling.hidden = false;
 
       const controlsBottomGradient = document.getElementById(
         "controls-bottom-gradient"
@@ -320,21 +356,29 @@ let Player = {
       case "keydown": {
         if (event.keyCode == KeyEvent.DOM_VK_TAB) {
           this.controls.setAttribute("keying", true);
-          this.actor.sendAsyncMessage("PictureInPicture:ShowVideoControls", {
-            isFullscreen: this.isFullscreen,
-            isVideoControlsShowing: true,
-            playerBottomControlsDOMRect: this.controlsBottom.getBoundingClientRect(),
-            isScrubberShowing: !this.scrubber.hidden,
-          });
+          this.showVideoControls();
         } else if (event.keyCode == KeyEvent.DOM_VK_ESCAPE) {
+          let isSettingsPanelInFocus = this.settingsPanel.contains(
+            document.activeElement
+          );
+
           event.preventDefault();
-          if (this.isFullscreen) {
+
+          if (!this.settingsPanel.classList.contains("hide")) {
+            // If the subtitles settings panel is open, let the ESC key close it
+            this.toggleSubtitlesSettingsPanel({ forceHide: true });
+            if (isSettingsPanelInFocus) {
+              document.getElementById("closed-caption").focus();
+            }
+          } else if (this.isFullscreen) {
             // We handle the ESC key, in fullscreen modus as intent to leave only the fullscreen mode
             document.exitFullscreen();
           } else {
             // We handle the ESC key, as an intent to leave the picture-in-picture modus
             this.onClose();
           }
+        } else if (event.keyCode == KeyEvent.DOM_VK_F) {
+          this.fullscreenModeToggle();
         } else if (
           Services.prefs.getBoolPref(KEYBOARD_CONTROLS_ENABLED_PREF, false) &&
           (event.keyCode != KeyEvent.DOM_VK_SPACE || !event.target.id)
@@ -378,6 +422,13 @@ let Player = {
           }
         });
 
+        // If we are exiting fullscreen we want to resize the window to the
+        // stored size and position
+        if (this.deferredResize && event.type === "MozDOMFullscreen:Exited") {
+          this.resizeToVideo(this.deferredResize);
+          this.deferredResize = null;
+        }
+
         // Sets the title for fullscreen button when PIP is in Enter Fullscreen mode and Exit Fullscreen mode
         const fullscreenButton = document.getElementById("fullscreen");
         let strId = this.isFullscreen
@@ -385,8 +436,9 @@ let Player = {
           : `pictureinpicture-fullscreen-btn`;
         document.l10n.setAttributes(fullscreenButton, strId);
 
+        window.focus();
+
         if (this.isFullscreen) {
-          window.focus();
           this.actor.sendAsyncMessage("PictureInPicture:EnterFullscreen", {
             isFullscreen: true,
             isVideoControlsShowing: null,
@@ -425,7 +477,7 @@ let Player = {
       }
 
       case "draggableregionleftmousedown": {
-        document.querySelector("#settings").classList.add("hide");
+        this.toggleSubtitlesSettingsPanel({ forceHide: true });
         break;
       }
     }
@@ -489,10 +541,16 @@ let Player = {
 
   setScrubberPosition(value) {
     this.scrubber.value = value;
+    this.scrubber.hidden = value === undefined;
+
+    // Also hide the seek buttons when we hide the scrubber
+    this.seekBackward.hidden = value === undefined;
+    this.seekForward.hidden = value === undefined;
   },
 
   setTimestamp(timestamp) {
     this.timestamp.textContent = timestamp;
+    this.timestamp.hidden = timestamp === undefined;
   },
 
   closePipWindow(closeData) {
@@ -550,11 +608,35 @@ let Player = {
 
       case "seekBackward": {
         this.actor.sendAsyncMessage("PictureInPicture:SeekBackward");
+        this.recordEvent("backward", {});
+
+        let secondPreviousEvent = this.backwardSequence.at(-2);
+        if (
+          secondPreviousEvent &&
+          event.timeStamp - secondPreviousEvent < 2000
+        ) {
+          this.recordEvent("backward_sequence", {});
+          this.backwardSequence = [];
+        } else {
+          this.backwardSequence.push(event.timeStamp);
+        }
         break;
       }
 
       case "seekForward": {
         this.actor.sendAsyncMessage("PictureInPicture:SeekForward");
+        this.recordEvent("forward", {});
+
+        let secondPreviousEvent = this.forwardSequence.at(-2);
+        if (
+          secondPreviousEvent &&
+          event.timeStamp - secondPreviousEvent < 2000
+        ) {
+          this.recordEvent("forward_sequence", {});
+          this.forwardSequence = [];
+        } else {
+          this.forwardSequence.push(event.timeStamp);
+        }
         break;
       }
 
@@ -564,29 +646,81 @@ let Player = {
       }
 
       case "closed-caption": {
-        let settingsPanel = document.querySelector("#settings");
-        let settingsPanelVisible = !settingsPanel.classList.contains("hide");
-        if (settingsPanelVisible) {
-          settingsPanel.classList.add("hide");
-          this.controls.removeAttribute("donthide");
-        } else {
-          settingsPanel.classList.remove("hide");
-          this.controls.setAttribute("donthide", true);
+        let options = {};
+        if (event.mozInputSource == MouseEvent.MOZ_SOURCE_KEYBOARD) {
+          options.isKeyboard = true;
         }
+        this.toggleSubtitlesSettingsPanel(options);
         // Early return to prevent hiding the panel below
         return;
       }
 
       case "fullscreen": {
         this.fullscreenModeToggle();
+        this.recordEvent("fullscreen", {
+          enter: (!this.isFullscreen).toString(),
+        });
+        break;
+      }
+
+      case "font-size-selection-radio-small": {
+        document.getElementById("small").click();
+        break;
+      }
+
+      case "font-size-selection-radio-medium": {
+        document.getElementById("medium").click();
+        break;
+      }
+
+      case "font-size-selection-radio-large": {
+        document.getElementById("large").click();
         break;
       }
     }
     // If the click came from a element that is not inside the subtitles settings panel
     // then we want to hide the panel
-    let settingsPanel = document.querySelector("#settings");
-    if (!settingsPanel.contains(event.target)) {
-      document.querySelector("#settings").classList.add("hide");
+    if (!this.settingsPanel.contains(event.target)) {
+      this.toggleSubtitlesSettingsPanel({ forceHide: true });
+    }
+  },
+
+  /**
+   * Function to toggle the visibility of the subtitles settings panel
+   * @param {Object} options [optional] Object containing options for the function
+   *   - forceHide: true to force hide the subtitles settings panel
+   *   - isKeyboard: true if the subtitles button was activated using the keyboard
+   *     to show or hide the subtitles settings panel
+   */
+  toggleSubtitlesSettingsPanel(options) {
+    let settingsPanelVisible = !this.settingsPanel.classList.contains("hide");
+    if (options?.forceHide || settingsPanelVisible) {
+      this.settingsPanel.classList.add("hide");
+      this.closedCaptionButton.setAttribute("aria-expanded", false);
+      this.controls.removeAttribute("donthide");
+
+      if (
+        this.controls.getAttribute("keying") ||
+        this.isCurrentHover ||
+        this.controls.getAttribute("showing")
+      ) {
+        return;
+      }
+
+      this.actor.sendAsyncMessage("PictureInPicture:HideVideoControls", {
+        isFullscreen: this.isFullscreen,
+        isVideoControlsShowing: false,
+        playerBottomControlsDOMRect: null,
+      });
+    } else {
+      this.settingsPanel.classList.remove("hide");
+      this.closedCaptionButton.setAttribute("aria-expanded", true);
+      this.controls.setAttribute("donthide", true);
+      this.showVideoControls();
+
+      if (options?.isKeyboard) {
+        document.querySelector("#subtitles-toggle").focus();
+      }
     }
   },
 
@@ -594,14 +728,32 @@ let Player = {
     this.actor.sendAsyncMessage("PictureInPicture:Pause", {
       reason: "pip-closed",
     });
-    this.closePipWindow({ reason: "close-button" });
+    this.closePipWindow({ reason: "closeButton" });
   },
 
   fullscreenModeToggle() {
     if (this.isFullscreen) {
       document.exitFullscreen();
     } else {
+      this.deferredResize = {
+        left: window.screenX,
+        top: window.screenY,
+        width: window.innerWidth,
+        height: window.innerHeight,
+      };
       document.body.requestFullscreen();
+    }
+  },
+
+  resizeToVideo(rect) {
+    if (this.isFullscreen) {
+      // We store the size and position because resizing the PiP window
+      // while fullscreened will cause issues
+      this.deferredResize = rect;
+    } else {
+      let { left, top, width, height } = rect;
+      window.resizeTo(width, height);
+      window.moveTo(left, top);
     }
   },
 
@@ -865,21 +1017,17 @@ let Player = {
   onMouseEnter() {
     if (!this.isFullscreen) {
       this.isCurrentHover = true;
-      this.actor.sendAsyncMessage("PictureInPicture:ShowVideoControls", {
-        isFullscreen: this.isFullscreen,
-        isVideoControlsShowing: true,
-        playerBottomControlsDOMRect: this.controlsBottom.getBoundingClientRect(),
-        isScrubberShowing: !this.scrubber.hidden,
-      });
+      this.showVideoControls();
     }
   },
 
   onMouseLeave() {
-    if (!this.isFullscreen && !this.controls.getAttribute("donthide")) {
+    if (!this.isFullscreen) {
       this.isCurrentHover = false;
       if (
         !this.controls.getAttribute("showing") &&
-        !this.controls.getAttribute("keying")
+        !this.controls.getAttribute("keying") &&
+        !this.controls.getAttribute("donthide")
       ) {
         this.actor.sendAsyncMessage("PictureInPicture:HideVideoControls", {
           isFullscreen: this.isFullscreen,
@@ -890,11 +1038,9 @@ let Player = {
     }
   },
 
-  showSubtitlesButton() {
-    let subtitlesContent = document.querySelectorAll(".subtitles");
-    for (let ele of subtitlesContent) {
-      ele.hidden = false;
-    }
+  enableSubtitlesButton() {
+    this.closedCaptionButton.disabled = false;
+
     this.alignEndControlsButtonTooltips();
     this.captionsToggleEnabled = true;
     // If the CAPTIONS_TOGGLE_ENABLED_PREF pref is false then we will click
@@ -905,11 +1051,9 @@ let Player = {
     }
   },
 
-  hideSubtitlesButton() {
-    let subtitlesContent = document.querySelectorAll(".subtitles");
-    for (let ele of subtitlesContent) {
-      ele.hidden = true;
-    }
+  disableSubtitlesButton() {
+    this.closedCaptionButton.disabled = true;
+
     this.alignEndControlsButtonTooltips();
   },
 
@@ -917,31 +1061,13 @@ let Player = {
    * Sets focus state inline end tooltip for rightmost playback controls
    */
   alignEndControlsButtonTooltips() {
-    let fullscreenBtn = document.getElementById("fullscreen");
-    let subtitlesBtn = document.getElementById("closed-caption");
     let audioBtn = document.getElementById("audio");
-    let playPauseButton = document.getElementById("playpause");
-    let height = window.outerHeight;
+    let width = window.outerWidth;
 
-    if (!fullscreenBtn.hidden) {
-      // we know the fullscreen button is the right most button (for LTR)
-      audioBtn.classList.replace("inline-end-tooltip", "center-tooltip");
-      subtitlesBtn.classList.replace("inline-end-tooltip", "center-tooltip");
-    } else if (fullscreenBtn.hidden && !subtitlesBtn.hidden && height > 325) {
-      // we know the subtitles button is the right most button (for LTR)
-      audioBtn.classList.replace("inline-end-tooltip", "center-tooltip");
-      playPauseButton.classList.replace("inline-end-tooltip", "center-tooltip");
-      subtitlesBtn.classList.replace("center-tooltip", "inline-end-tooltip");
-    } else if (
-      fullscreenBtn.hidden &&
-      (subtitlesBtn.hidden || height < 325) &&
-      !audioBtn.hidden
-    ) {
-      // we know the audio button is the right most button (for LTR)
+    if (300 < width && width <= 400) {
       audioBtn.classList.replace("center-tooltip", "inline-end-tooltip");
     } else {
-      // we know that play/pause button is the right most button (for LTR)
-      playPauseButton.classList.replace("center-tooltip", "inline-end-tooltip");
+      audioBtn.classList.replace("inline-end-tooltip", "center-tooltip");
     }
   },
 
@@ -952,6 +1078,7 @@ let Player = {
    *  Event context data object
    */
   onResize(event) {
+    this.toggleSubtitlesSettingsPanel({ forceHide: true });
     this.resizeDebouncer.disarm();
     this.resizeDebouncer.arm();
   },
@@ -984,6 +1111,28 @@ let Player = {
   get controlsBottom() {
     delete this.controlsBottom;
     return (this.controlsBottom = document.getElementById("controls-bottom"));
+  },
+
+  get seekBackward() {
+    delete this.seekBackward;
+    return (this.seekBackward = document.getElementById("seekBackward"));
+  },
+
+  get seekForward() {
+    delete this.seekForward;
+    return (this.seekForward = document.getElementById("seekForward"));
+  },
+
+  get closedCaptionButton() {
+    delete this.closedCaptionButton;
+    return (this.closedCaptionButton = document.getElementById(
+      "closed-caption"
+    ));
+  },
+
+  get settingsPanel() {
+    delete this.settingsPanel;
+    return (this.settingsPanel = document.getElementById("settings"));
   },
 
   _isPlaying: false,
@@ -1064,6 +1213,20 @@ let Player = {
   },
 
   /**
+   * Send a message to PiPChild to adjust the subtitles position
+   */
+  showVideoControls() {
+    // offsetParent returns null when the element or any ancestor has display: none
+    // See https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/offsetParent
+    this.actor.sendAsyncMessage("PictureInPicture:ShowVideoControls", {
+      isFullscreen: this.isFullscreen,
+      isVideoControlsShowing: true,
+      playerBottomControlsDOMRect: this.controlsBottom.getBoundingClientRect(),
+      isScrubberShowing: !!this.scrubber.offsetParent,
+    });
+  },
+
+  /**
    * Makes the player controls visible.
    *
    * @param {Boolean} revealIndefinitely
@@ -1081,22 +1244,24 @@ let Player = {
     if (!this.isFullscreen) {
       // revealControls() is called everytime we hover over fullscreen pip window.
       // Only communicate with pipchild when not in fullscreen mode for performance reasons.
-      this.actor.sendAsyncMessage("PictureInPicture:ShowVideoControls", {
-        isFullscreen: false,
-        isVideoControlsShowing: true,
-        playerBottomControlsDOMRect: this.controlsBottom.getBoundingClientRect(),
-        isScrubberShowing: !this.scrubber.hidden,
-      });
+      this.showVideoControls();
     }
 
-    if (!revealIndefinitely && !this.controls.getAttribute("donthide")) {
+    if (!revealIndefinitely) {
       this.showingTimeout = setTimeout(() => {
+        const isHoverOverControlItem = this.controls.querySelector(
+          ".control-item:hover"
+        );
+        if (this.isFullscreen && isHoverOverControlItem) {
+          return;
+        }
         this.controls.removeAttribute("showing");
 
         if (
           !this.isFullscreen &&
           !this.isCurrentHover &&
-          !this.controls.getAttribute("keying")
+          !this.controls.getAttribute("keying") &&
+          !this.controls.getAttribute("donthide")
         ) {
           this.actor.sendAsyncMessage("PictureInPicture:HideVideoControls", {
             isFullscreen: false,

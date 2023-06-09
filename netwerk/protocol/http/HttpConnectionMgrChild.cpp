@@ -48,10 +48,9 @@ HttpConnectionMgrChild::RecvDoShiftReloadConnectionCleanupWithConnInfo(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult
-HttpConnectionMgrChild::RecvUpdateCurrentTopBrowsingContextId(
+mozilla::ipc::IPCResult HttpConnectionMgrChild::RecvUpdateCurrentBrowserId(
     const uint64_t& aId) {
-  mConnMgr->UpdateCurrentTopBrowsingContextId(aId);
+  mConnMgr->UpdateCurrentBrowserId(aId);
   return IPC_OK();
 }
 
@@ -153,6 +152,12 @@ SpeculativeConnectionOverrider::GetIsFromPredictor(bool* aIsFromPredictor) {
 NS_IMETHODIMP
 SpeculativeConnectionOverrider::GetAllow1918(bool* aAllow) {
   *aAllow = mArgs.allow1918();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+SpeculativeConnectionOverrider::GetIgnoreUserCertCheck(bool* aIgnore) {
+  *aIgnore = mArgs.ignoreUserCertCheck();
   return NS_OK;
 }
 

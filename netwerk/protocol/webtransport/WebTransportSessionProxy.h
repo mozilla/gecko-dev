@@ -141,7 +141,9 @@ class WebTransportSessionProxy final : public nsIWebTransport,
   ~WebTransportSessionProxy();
 
   void CloseSessionInternal();
+  void CloseSessionInternalLocked();
   void CallOnSessionClosed();
+  void CallOnSessionClosedLocked();
 
   enum WebTransportSessionProxyState {
     INIT,
@@ -156,8 +158,10 @@ class WebTransportSessionProxy final : public nsIWebTransport,
   WebTransportSessionProxyState mState MOZ_GUARDED_BY(mMutex) =
       WebTransportSessionProxyState::INIT;
   void ChangeState(WebTransportSessionProxyState newState);
-  void CreateStreamInternal(WebTransportStreamCallbackWrapper* aCallback,
+  void CreateStreamInternal(nsIWebTransportStreamCallback* callback,
                             bool aBidi);
+  void DoCreateStream(WebTransportStreamCallbackWrapper* aCallback,
+                      Http3WebTransportSession* aSession, bool aBidi);
   void SendDatagramInternal(const RefPtr<Http3WebTransportSession>& aSession,
                             nsTArray<uint8_t>&& aData, uint64_t aTrackingId);
   void NotifyDatagramReceived(nsTArray<uint8_t>&& aData);
@@ -174,8 +178,13 @@ class WebTransportSessionProxy final : public nsIWebTransport,
   uint64_t mSessionId MOZ_GUARDED_BY(mMutex) = UINT64_MAX;
   uint32_t mCloseStatus MOZ_GUARDED_BY(mMutex) = 0;
   nsCString mReason MOZ_GUARDED_BY(mMutex);
+  bool mStopRequestCalled MOZ_GUARDED_BY(mMutex) = false;
   // This is used to store events happened before OnSessionReady.
+  // Note that these events will be dispatched to the socket thread.
   nsTArray<std::function<void()>> mPendingEvents MOZ_GUARDED_BY(mMutex);
+  nsTArray<std::function<void(nsresult)>> mPendingCreateStreamEvents
+      MOZ_GUARDED_BY(mMutex);
+  nsCOMPtr<nsIEventTarget> mTarget MOZ_GUARDED_BY(mMutex);
 };
 
 }  // namespace mozilla::net

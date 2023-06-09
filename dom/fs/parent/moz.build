@@ -9,6 +9,8 @@ DIRS += [
 ]
 
 EXPORTS.mozilla.dom += [
+    "FileSystemAccessHandle.h",
+    "FileSystemAccessHandleControlParent.h",
     "FileSystemAccessHandleParent.h",
     "FileSystemManagerParent.h",
     "FileSystemManagerParentFactory.h",
@@ -17,6 +19,8 @@ EXPORTS.mozilla.dom += [
 ]
 
 UNIFIED_SOURCES += [
+    "FileSystemAccessHandle.cpp",
+    "FileSystemAccessHandleControlParent.cpp",
     "FileSystemAccessHandleParent.cpp",
     "FileSystemHashSource.cpp",
     "FileSystemManagerParent.cpp",

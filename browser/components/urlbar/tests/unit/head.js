@@ -29,13 +29,13 @@ ChromeUtils.defineESModuleGetters(this, {
   UrlbarResult: "resource:///modules/UrlbarResult.sys.mjs",
   UrlbarTestUtils: "resource://testing-common/UrlbarTestUtils.sys.mjs",
   UrlbarTokenizer: "resource:///modules/UrlbarTokenizer.sys.mjs",
+  sinon: "resource://testing-common/Sinon.sys.mjs",
 });
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   AddonTestUtils: "resource://testing-common/AddonTestUtils.jsm",
   HttpServer: "resource://testing-common/httpd.js",
 });
-const { sinon } = ChromeUtils.import("resource://testing-common/Sinon.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "QuickSuggestTestUtils", () => {
   const { QuickSuggestTestUtils: module } = ChromeUtils.importESModule(
@@ -51,6 +51,12 @@ XPCOMUtils.defineLazyGetter(this, "MerinoTestUtils", () => {
   );
   module.init(this);
   return module;
+});
+
+XPCOMUtils.defineLazyGetter(this, "PlacesFrecencyRecalculator", () => {
+  return Cc["@mozilla.org/places/frecency-recalculator;1"].getService(
+    Ci.nsIObserver
+  ).wrappedJSObject;
 });
 
 SearchTestUtils.init(this);
@@ -126,6 +132,10 @@ function createContext(searchString = "foo", properties = {}) {
     get visibleResults() {
       return context.results;
     },
+    controller: {
+      removeResult() {},
+    },
+    acknowledgeDismissal() {},
   };
   UrlbarTokenizer.tokenize(context);
   return context;
@@ -384,33 +394,6 @@ async function cleanupPlaces() {
 }
 
 /**
- * Returns the frecency of a url.
- *
- * @param {string} aURI The URI or spec to get frecency for.
- * @returns {number} the frecency value.
- */
-function frecencyForUrl(aURI) {
-  let url = aURI;
-  if (aURI instanceof Ci.nsIURI) {
-    url = aURI.spec;
-  } else if (URL.isInstance(aURI)) {
-    url = aURI.href;
-  }
-  let stmt = DBConn().createStatement(
-    "SELECT frecency FROM moz_places WHERE url_hash = hash(?1) AND url = ?1"
-  );
-  stmt.bindByIndex(0, url);
-  try {
-    if (!stmt.executeStep()) {
-      throw new Error("No result for frecency.");
-    }
-    return stmt.getInt32(0);
-  } finally {
-    stmt.finalize();
-  }
-}
-
-/**
  * Creates a UrlbarResult for a bookmark result.
  *
  * @param {UrlbarQueryContext} queryContext
@@ -506,17 +489,22 @@ function makeOmniboxResult(
   queryContext,
   { content, description, keyword, heuristic = false }
 ) {
+  let payload = {
+    title: [description, UrlbarUtils.HIGHLIGHT.TYPED],
+    content: [content, UrlbarUtils.HIGHLIGHT.TYPED],
+    keyword: [keyword, UrlbarUtils.HIGHLIGHT.TYPED],
+    icon: [UrlbarUtils.ICON.EXTENSION],
+  };
+  if (!heuristic) {
+    payload.blockL10n = { id: "urlbar-result-menu-dismiss-firefox-suggest" };
+  }
   let result = new UrlbarResult(
     UrlbarUtils.RESULT_TYPE.OMNIBOX,
     UrlbarUtils.RESULT_SOURCE.ADDON,
-    ...UrlbarResult.payloadAndSimpleHighlights(queryContext.tokens, {
-      title: [description, UrlbarUtils.HIGHLIGHT.TYPED],
-      content: [content, UrlbarUtils.HIGHLIGHT.TYPED],
-      keyword: [keyword, UrlbarUtils.HIGHLIGHT.TYPED],
-      icon: [UrlbarUtils.ICON.EXTENSION],
-    })
+    ...UrlbarResult.payloadAndSimpleHighlights(queryContext.tokens, payload)
   );
   result.heuristic = heuristic;
+
   return result;
 }
 
@@ -725,6 +713,8 @@ function makeRemoteTabResult(
  *   The source of the search result. Defaults to UrlbarUtils.RESULT_SOURCE.SEARCH.
  * @param {boolean} [options.satisfiesAutofillThreshold]
  *   If this search should appear in the autofill section of the box
+ * @param {boolean} [options.trending]
+ *    If the search result is a trending result. `Defaults to false`.
  * @returns {UrlbarResult}
  */
 function makeSearchResult(
@@ -744,6 +734,7 @@ function makeSearchResult(
     inPrivateWindow,
     isPrivateEngine,
     heuristic = false,
+    trending = false,
     type = UrlbarUtils.RESULT_TYPE.SEARCH,
     source = UrlbarUtils.RESULT_SOURCE.SEARCH,
     satisfiesAutofillThreshold = false,
@@ -803,6 +794,7 @@ function makeSearchResult(
 
   if (typeof suggestion == "string") {
     result.payload.lowerCaseSuggestion = result.payload.suggestion.toLocaleLowerCase();
+    result.payload.trending = trending;
   }
 
   if (providerName) {
@@ -821,6 +813,9 @@ function makeSearchResult(
  * @param {object} options Options for the result.
  * @param {string} options.title
  *   The page title.
+ * @param {string} [options.fallbackTitle]
+ *   The provider has capability to use the actual page title though,
+ *   when the provider can’t get the page title, use this value as the fallback.
  * @param {string} options.uri
  *   The page URI.
  * @param {Array} [options.tags]
@@ -840,6 +835,7 @@ function makeVisitResult(
   queryContext,
   {
     title,
+    fallbackTitle,
     uri,
     iconUri,
     providerName,
@@ -850,8 +846,15 @@ function makeVisitResult(
 ) {
   let payload = {
     url: [uri, UrlbarUtils.HIGHLIGHT.TYPED],
-    title: [title, UrlbarUtils.HIGHLIGHT.TYPED],
   };
+
+  if (title) {
+    payload.title = [title, UrlbarUtils.HIGHLIGHT.TYPED];
+  }
+
+  if (fallbackTitle) {
+    payload.fallbackTitle = [fallbackTitle, UrlbarUtils.HIGHLIGHT.TYPED];
+  }
 
   if (iconUri) {
     payload.icon = iconUri;
@@ -895,8 +898,6 @@ function makeVisitResult(
  * @param {string} [options.completed]
  *   The value that would be filled if the autofill result was confirmed.
  *   Has no effect if `autofilled` is not specified.
- * @param {boolean} [options.hasAutofillTitle]
- *   The expected value of the `autofill.hasTitle` property of the first result.
  * @param {Array} options.matches
  *   An array of UrlbarResults.
  */
@@ -905,7 +906,6 @@ async function check_results({
   incompleteSearch,
   autofilled,
   completed,
-  hasAutofillTitle,
   matches = [],
 } = {}) {
   if (!context) {
@@ -918,7 +918,7 @@ async function check_results({
   // return reliable resultsets, thus we have to wait.
   await PlacesTestUtils.promiseAsyncUpdates();
 
-  let controller = UrlbarTestUtils.newMockController({
+  const controller = UrlbarTestUtils.newMockController({
     input: {
       isPrivate: context.isPrivate,
       onFirstResult() {
@@ -961,11 +961,6 @@ async function check_results({
         "The completed autofill value is correct."
       );
     }
-    Assert.equal(
-      context.results[0].autofill.hasTitle,
-      hasAutofillTitle,
-      "The hasTitle flag is correct."
-    );
   }
   if (context.results.length != matches.length) {
     info("Actual results: " + JSON.stringify(context.results));
@@ -1012,8 +1007,8 @@ async function check_results({
       `result.heuristic at result index ${i}`
     );
     Assert.equal(
-      actual.isBestMatch,
-      expected.isBestMatch,
+      !!actual.isBestMatch,
+      !!expected.isBestMatch,
       `result.isBestMatch at result index ${i}`
     );
     if (expected.providerName) {
@@ -1021,6 +1016,13 @@ async function check_results({
         actual.providerName,
         expected.providerName,
         `result.providerName at result index ${i}`
+      );
+    }
+    if (expected.hasOwnProperty("suggestedIndex")) {
+      Assert.equal(
+        actual.suggestedIndex,
+        expected.suggestedIndex,
+        `result.suggestedIndex at result index ${i}`
       );
     }
 

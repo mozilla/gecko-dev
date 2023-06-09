@@ -6,18 +6,14 @@
 const { SiteDataManager } = ChromeUtils.import(
   "resource:///modules/SiteDataManager.jsm"
 );
-const { DownloadUtils } = ChromeUtils.import(
-  "resource://gre/modules/DownloadUtils.jsm"
+const { DownloadUtils } = ChromeUtils.importESModule(
+  "resource://gre/modules/DownloadUtils.sys.mjs"
 );
 
 /* import-globals-from pageInfo.js */
 
-ChromeUtils.defineModuleGetter(
-  this,
-  "LoginHelper",
-  "resource://gre/modules/LoginHelper.jsm"
-);
 ChromeUtils.defineESModuleGetters(this, {
+  LoginHelper: "resource://gre/modules/LoginHelper.sys.mjs",
   PluralForm: "resource://gre/modules/PluralForm.sys.mjs",
 });
 

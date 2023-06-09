@@ -52,10 +52,12 @@ class SVGGeometryElement : public SVGGeometryElementBase {
   explicit SVGGeometryElement(
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
 
-  nsresult AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
-                        const nsAttrValue* aValue, const nsAttrValue* aOldValue,
-                        nsIPrincipal* aSubjectPrincipal, bool aNotify) override;
-  bool IsNodeOfType(uint32_t aFlags) const override;
+  NS_IMPL_FROMNODE_HELPER(SVGGeometryElement, IsSVGGeometryElement())
+
+  void AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
+                    const nsAttrValue* aValue, const nsAttrValue* aOldValue,
+                    nsIPrincipal* aSubjectPrincipal, bool aNotify) override;
+  bool IsSVGGeometryElement() const override { return true; }
 
   /**
    * Causes this element to discard any Path object that GetOrBuildPath may

@@ -110,7 +110,7 @@ function testInit() {
       let loadURIOptions = {
         triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
       };
-      webNav.loadURI(url, loadURIOptions);
+      webNav.fixupAndLoadURIString(url, loadURIOptions);
     };
 
     var listener =
@@ -220,8 +220,8 @@ function Tester(aTests, structuredLogger, aCallback) {
   this.Assert = ChromeUtils.importESModule(
     "resource://testing-common/Assert.sys.mjs"
   ).Assert;
-  this.PerTestCoverageUtils = ChromeUtils.import(
-    "resource://testing-common/PerTestCoverageUtils.jsm"
+  this.PerTestCoverageUtils = ChromeUtils.importESModule(
+    "resource://testing-common/PerTestCoverageUtils.sys.mjs"
   ).PerTestCoverageUtils;
 
   this.PromiseTestUtils.init();
@@ -338,7 +338,13 @@ Tester.prototype = {
       // Thunderbird
       "MailMigrator",
       "SearchIntegration",
+      // lit
+      "reactiveElementVersions",
+      "litHtmlVersions",
+      "litElementVersions",
     ];
+
+    this._repeatingTimers = this._getRepeatingTimers();
 
     this.PerTestCoverageUtils.beforeTestSync();
 
@@ -349,6 +355,17 @@ Tester.prototype = {
     } else {
       this.finish();
     }
+  },
+
+  _getRepeatingTimers() {
+    const kNonRepeatingTimerTypes = [
+      Ci.nsITimer.TYPE_ONE_SHOT,
+      Ci.nsITimer.TYPE_ONE_SHOT_LOW_PRIORITY,
+    ];
+    return Cc["@mozilla.org/timer-manager;1"]
+      .getService(Ci.nsITimerManager)
+      .getTimers()
+      .filter(t => !kNonRepeatingTimerTypes.includes(t.type));
   },
 
   async waitForWindowsReady() {
@@ -594,6 +611,81 @@ Tester.prototype = {
     }
   },
 
+  getNewRepeatingTimers() {
+    let repeatingTimers = this._getRepeatingTimers();
+    let results = [];
+    for (let timer of repeatingTimers) {
+      let { name, delay } = timer;
+      // For now ignore long repeating timers (typically from nsExpirationTracker).
+      if (delay >= 10000) {
+        continue;
+      }
+
+      // Also ignore the nsAvailableMemoryWatcher timer that is started when the
+      // user-interaction-active notification is fired, and stopped when the
+      // user-interaction-inactive notification occurs.
+      // On Linux it's a 5s timer, on other platforms it's 10s, which is already
+      // ignored by the previous case.
+      if (
+        AppConstants.platform == "linux" &&
+        name == "nsAvailableMemoryWatcher"
+      ) {
+        continue;
+      }
+
+      // Ignore nsHttpConnectionMgr timers which show up on browser mochitests
+      // running with http3. See Bug 1829841.
+      if (name == "nsHttpConnectionMgr") {
+        continue;
+      }
+
+      if (
+        !this._repeatingTimers.find(t => t.delay == delay && t.name == name)
+      ) {
+        results.push(timer);
+      }
+    }
+    if (results.length) {
+      ChromeUtils.addProfilerMarker(
+        "NewRepeatingTimers",
+        { category: "Test" },
+        results.map(t => `${t.name}: ${t.delay}ms`).join(", ")
+      );
+    }
+    return results;
+  },
+
+  async ensureNoNewRepeatingTimers() {
+    let newTimers;
+    try {
+      await this.TestUtils.waitForCondition(
+        async function() {
+          // The array returned by nsITimerManager.getTimers doesn't include
+          // timers that are queued in the event loop of their target thread.
+          // By waiting for a tick, we ensure the timers that might fire about
+          // at the same time as our waitForCondition timer will be included.
+          await this.TestUtils.waitForTick();
+
+          newTimers = this.getNewRepeatingTimers();
+          return !newTimers.length;
+        }.bind(this),
+        "waiting for new repeating timers to be cancelled"
+      );
+    } catch (e) {
+      this.Assert.ok(false, e);
+      for (let { name, delay } of newTimers) {
+        this.Assert.ok(
+          false,
+          `test left unexpected repeating timer ${name} (duration: ${delay}ms)`
+        );
+      }
+      // Once the new repeating timers have been reported, add them to
+      // this._repeatingTimers to avoid reporting them again for the next
+      // tests of the manifest.
+      this._repeatingTimers.push(...newTimers);
+    }
+  },
+
   async nextTest() {
     if (this.currentTest) {
       if (this._coverageCollector) {
@@ -696,6 +788,8 @@ Tester.prototype = {
           }
         }
       }, this);
+
+      await this.ensureNoNewRepeatingTimers();
 
       // eslint-disable-next-line no-undef
       await new Promise(resolve => SpecialPowers.flushPrefEnv(resolve));
@@ -861,8 +955,10 @@ Tester.prototype = {
           let path = Services.env.get("MOZ_UPLOAD_DIR");
           let profilePath = PathUtils.join(path, filename);
           try {
-            let profileData = await Services.profiler.getProfileDataAsGzippedArrayBuffer();
-            await IOUtils.write(profilePath, new Uint8Array(profileData));
+            const {
+              profile,
+            } = await Services.profiler.getProfileDataAsGzippedArrayBuffer();
+            await IOUtils.write(profilePath, new Uint8Array(profile));
             this.currentTest.addResult(
               new testResult({
                 name:
@@ -1042,7 +1138,7 @@ Tester.prototype = {
       if (currentTest.timedOut) {
         currentTest.addResult(
           new testResult({
-            name: `Uncaught exception received from previously timed out ${desc}`,
+            name: `Uncaught exception received from previously timed out ${desc} ${task.name}`,
             pass: false,
             ex,
             stack: typeof ex == "object" && "stack" in ex ? ex.stack : null,
@@ -1054,7 +1150,7 @@ Tester.prototype = {
       }
       currentTest.addResult(
         new testResult({
-          name: `Uncaught exception in ${desc}`,
+          name: `Uncaught exception in ${desc} ${task.name}`,
           pass: currentScope.SimpleTest.isExpectingUncaughtException(),
           ex,
           stack: typeof ex == "object" && "stack" in ex ? ex.stack : null,
@@ -1196,6 +1292,13 @@ Tester.prototype = {
     } catch (ex) {
       /* no chrome-harness tools */
     }
+
+    // Ensure we are not idle at the beginning of the test. If we don't do this,
+    // the browser may behave differently if the previous tests ran long.
+    // eg. the session store behavior changes 3 minutes after the last user event.
+    Cc["@mozilla.org/widget/useridleservice;1"]
+      .getService(Ci.nsIUserIdleServiceInternal)
+      .resetIdleTimeOut(0);
 
     // Import head.js script if it exists.
     var currentTestDirPath = this.currentTest.path.substr(
@@ -1345,6 +1448,26 @@ Tester.prototype = {
   QueryInterface: ChromeUtils.generateQI(["nsIConsoleListener"]),
 };
 
+// Note: duplicated in SimpleTest.js . See also bug 1820150.
+function isErrorOrException(err) {
+  // It'd be nice if we had either `Error.isError(err)` or `Error.isInstance(err)`
+  // but we don't, so do it ourselves:
+  if (!err) {
+    return false;
+  }
+  if (err instanceof Ci.nsIException) {
+    return true;
+  }
+  try {
+    let glob = Cu.getGlobalForObject(err);
+    return err instanceof glob.Error;
+  } catch {
+    // getGlobalForObject can be upset if it doesn't get passed an object.
+    // Just do a standard instanceof check using this global and cross fingers:
+  }
+  return err instanceof Error;
+}
+
 /**
  * Represents the result of one test assertion. This is described with a string
  * in traditional logging, and has a "status" and "expected" property used in
@@ -1397,7 +1520,19 @@ function testResult({ name, pass, todo, ex, stack, allowFailure }) {
       // we have an exception - print filename and linenumber information
       this.msg += "at " + ex.fileName + ":" + ex.lineNumber + " - ";
     }
-    this.msg += String(ex);
+
+    if (
+      typeof ex == "string" ||
+      (typeof ex == "object" && isErrorOrException(ex))
+    ) {
+      this.msg += String(ex);
+    } else {
+      try {
+        this.msg += JSON.stringify(ex);
+      } catch {
+        this.msg += String(ex);
+      }
+    }
   }
 
   if (stack) {
@@ -1615,10 +1750,6 @@ function testScope(aTester, aTest, expected) {
 
   this.requestLongerTimeout = function test_requestLongerTimeout(aFactor) {
     self.__timeoutFactor = aFactor;
-  };
-
-  this.copyToProfile = function test_copyToProfile(filename) {
-    self.SimpleTest.copyToProfile(filename);
   };
 
   this.expectUncaughtException = function test_expectUncaughtException(

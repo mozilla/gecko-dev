@@ -1,6 +1,7 @@
 "use strict";
 
 ChromeUtils.defineESModuleGetters(this, {
+  PerfTestHelpers: "resource://testing-common/PerfTestHelpers.sys.mjs",
   PlacesTestUtils: "resource://testing-common/PlacesTestUtils.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   UrlbarTestUtils: "resource://testing-common/UrlbarTestUtils.sys.mjs",
@@ -8,7 +9,6 @@ ChromeUtils.defineESModuleGetters(this, {
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   AboutNewTab: "resource:///modules/AboutNewTab.jsm",
-  PerfTestHelpers: "resource://testing-common/PerfTestHelpers.jsm",
 });
 
 /**
@@ -273,6 +273,15 @@ function disableFxaBadge() {
   });
 }
 
+function rectInBoundingClientRect(r, bcr) {
+  return (
+    bcr.x <= r.x1 &&
+    bcr.y <= r.y1 &&
+    bcr.x + bcr.width >= r.x2 &&
+    bcr.y + bcr.height >= r.y2
+  );
+}
+
 async function getBookmarksToolbarRect() {
   // Temporarily open the bookmarks toolbar to measure its rect
   let bookmarksToolbar = gNavToolbox.querySelector("#PersonalToolbar");
@@ -382,6 +391,7 @@ async function addDummyHistoryEntries(searchStr = "") {
 
   for (let i = 0; i < NUM_VISITS; ++i) {
     visits.push({
+      // eslint-disable-next-line @microsoft/sdl/no-insecure-url
       uri: `http://example.com/urlbar-reflows-${i}`,
       title: `Reflow test for URL bar entry #${i} - ${searchStr}`,
     });
@@ -778,7 +788,7 @@ async function runUrlbarTest(
   };
 
   let urlbarRect = URLBar.textbox.getBoundingClientRect();
-  const SHADOW_SIZE = 14;
+  const SHADOW_SIZE = 17;
   let expectedRects = {
     filter: rects => {
       // We put text into the urlbar so expect its textbox to change.

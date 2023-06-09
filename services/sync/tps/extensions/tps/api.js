@@ -18,7 +18,9 @@ XPCOMUtils.defineLazyServiceGetter(
 async function tpsStartup() {
   try {
     var { TPS } = ChromeUtils.import("resource://tps/tps.jsm");
-    let { goQuitApplication } = ChromeUtils.import("resource://tps/quit.js");
+    let { goQuitApplication } = ChromeUtils.importESModule(
+      "resource://tps/quit.sys.mjs"
+    );
     TPS.goQuitApplication = goQuitApplication;
 
     let testFile = Services.prefs.getStringPref("testing.tps.testFile", "");
@@ -55,22 +57,6 @@ async function tpsStartup() {
     // to kill us if initialization failed.
     Services.startup.quit(Ci.nsIAppStartup.eForceQuit);
   }
-}
-
-function onStartupFinished() {
-  return new Promise(resolve => {
-    const onStartupFinished = () => {
-      Services.obs.removeObserver(
-        onStartupFinished,
-        "browser-delayed-startup-finished"
-      );
-      resolve();
-    };
-    Services.obs.addObserver(
-      onStartupFinished,
-      "browser-delayed-startup-finished"
-    );
-  });
 }
 
 this.tps = class extends ExtensionAPI {

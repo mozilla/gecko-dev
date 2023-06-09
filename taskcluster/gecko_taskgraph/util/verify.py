@@ -275,10 +275,9 @@ def verify_required_signoffs(task, taskgraph, scratch_pad, graph_config, paramet
         def printable_signoff(signoffs):
             if len(signoffs) == 1:
                 return "required signoff {}".format(*signoffs)
-            elif signoffs:
+            if signoffs:
                 return "required signoffs {}".format(", ".join(signoffs))
-            else:
-                return "no required signoffs"
+            return "no required signoffs"
 
         for task in taskgraph.tasks.values():
             required_signoffs = all_required_signoffs[task.label]
@@ -295,31 +294,56 @@ def verify_required_signoffs(task, taskgraph, scratch_pad, graph_config, paramet
 
 
 @verifications.add("full_task_graph")
-def verify_toolchain_alias(task, taskgraph, scratch_pad, graph_config, parameters):
+def verify_aliases(task, taskgraph, scratch_pad, graph_config, parameters):
     """
-    This function verifies that toolchain aliases are not reused.
+    This function verifies that aliases are not reused.
     """
     if task is None:
         return
+    if task.kind not in ("toolchain", "fetch"):
+        return
+    for_kind = scratch_pad.setdefault(task.kind, {})
+    aliases = for_kind.setdefault("aliases", {})
+    alias_attribute = f"{task.kind}-alias"
+    if task.label in aliases:
+        raise Exception(
+            "Task `{}` has a {} of `{}`, masking a task of that name.".format(
+                aliases[task.label],
+                alias_attribute,
+                task.label[len(task.kind) + 1 :],
+            )
+        )
+    labels = for_kind.setdefault("labels", set())
+    labels.add(task.label)
     attributes = task.attributes
-    if "toolchain-alias" in attributes:
-        keys = attributes["toolchain-alias"]
+    if alias_attribute in attributes:
+        keys = attributes[alias_attribute]
         if not keys:
             keys = []
         elif isinstance(keys, str):
             keys = [keys]
         for key in keys:
-            if key in scratch_pad:
+            full_key = f"{task.kind}-{key}"
+            if full_key in labels:
                 raise Exception(
-                    "Duplicate toolchain-alias in tasks "
-                    "`{}`and `{}`: {}".format(
+                    "Task `{}` has a {} of `{}`,"
+                    " masking a task of that name.".format(
                         task.label,
-                        scratch_pad[key],
+                        alias_attribute,
+                        key,
+                    )
+                )
+            if full_key in aliases:
+                raise Exception(
+                    "Duplicate {} in tasks `{}`and `{}`: {}".format(
+                        alias_attribute,
+                        task.label,
+                        aliases[full_key],
                         key,
                     )
                 )
             else:
-                scratch_pad[key] = task.label
+                aliases[full_key] = task.label
 
 
 @verifications.add("optimized_task_graph")

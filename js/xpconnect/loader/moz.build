@@ -49,7 +49,7 @@ EXPORTS.mozilla.loader += [
 ]
 
 EXTRA_JS_MODULES += [
-    "ComponentUtils.jsm",
+    "ComponentUtils.sys.mjs",
     "XPCOMUtils.sys.mjs",
 ]
 
@@ -64,5 +64,3 @@ LOCAL_INCLUDES += [
 ]
 
 include("/ipc/chromium/chromium-config.mozbuild")
-
-REQUIRES_UNIFIED_BUILD = True

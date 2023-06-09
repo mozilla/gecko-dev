@@ -14,8 +14,10 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/types/optional.h"
+#include "api/numerics/samples_stats_counter.h"
 #include "api/units/data_size.h"
 #include "api/units/timestamp.h"
 #include "api/video/video_frame.h"
@@ -42,8 +44,10 @@ bool operator==(const InternalStatsKey& a, const InternalStatsKey& b);
 // Final stats computed for frame after it went through the whole video
 // pipeline from capturing to rendering or dropping.
 struct FrameStats {
-  explicit FrameStats(Timestamp captured_time) : captured_time(captured_time) {}
+  FrameStats(uint16_t frame_id, Timestamp captured_time)
+      : frame_id(frame_id), captured_time(captured_time) {}
 
+  uint16_t frame_id;
   // Frame events timestamp.
   Timestamp captured_time;
   Timestamp pre_encode_time = Timestamp::MinusInfinity();
@@ -60,14 +64,20 @@ struct FrameStats {
   VideoFrameType pre_decoded_frame_type = VideoFrameType::kEmptyFrame;
   DataSize pre_decoded_image_size = DataSize::Bytes(0);
   uint32_t target_encode_bitrate = 0;
+  // There can be multiple qp values for single video frame when simulcast
+  // or SVC is used. In such case multiple EncodedImage's are created by encoder
+  // and each of it will have its own qp value.
+  SamplesStatsCounter qp_values;
 
-  absl::optional<int> rendered_frame_width = absl::nullopt;
-  absl::optional<int> rendered_frame_height = absl::nullopt;
+  absl::optional<int> decoded_frame_width = absl::nullopt;
+  absl::optional<int> decoded_frame_height = absl::nullopt;
 
   // Can be not set if frame was dropped by encoder.
   absl::optional<StreamCodecInfo> used_encoder = absl::nullopt;
   // Can be not set if frame was dropped in the network.
   absl::optional<StreamCodecInfo> used_decoder = absl::nullopt;
+
+  bool decoder_failed = false;
 };
 
 // Describes why comparison was done in overloaded mode (without calculating

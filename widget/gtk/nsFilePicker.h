@@ -45,8 +45,10 @@ class nsFilePicker : public nsBaseFilePicker {
  protected:
   virtual ~nsFilePicker();
 
-  nsresult Show(int16_t* aReturn) override;
+  nsresult Show(nsIFilePicker::ResultCode* aReturn) override;
   void ReadValuesFromFileChooser(void* file_chooser);
+
+  bool WarnForNonReadableFile(void* file_chooser);
 
   static void OnResponse(void* file_chooser, gint response_id,
                          gpointer user_data);
@@ -58,7 +60,7 @@ class nsFilePicker : public nsBaseFilePicker {
   nsCOMArray<nsIFile> mFiles;
 
   int16_t mSelectedType;
-  int16_t mResult;
+  nsIFilePicker::ResultCode mResult;
   bool mRunning;
   bool mAllowURLs;
   nsCString mFileURL;

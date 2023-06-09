@@ -69,7 +69,7 @@ bool WebRenderLayerManager::Initialize(
   static bool hasInitialized = false;
 
   WindowKind windowKind;
-  if (mWidget->WindowType() != eWindowType_popup) {
+  if (mWidget->GetWindowType() != widget::WindowType::Popup) {
     windowKind = WindowKind::MAIN;
   } else {
     windowKind = WindowKind::SECONDARY;
@@ -257,8 +257,9 @@ bool WebRenderLayerManager::EndEmptyTransaction(EndTransactionFlags aFlags) {
   // Since we don't do repeat transactions right now, just set the time
   mAnimationReadyTime = TimeStamp::Now();
 
-  mLatestTransactionId =
-      mTransactionIdAllocator->GetTransactionId(/*aThrottle*/ true);
+  // Don't block on hidden windows on Linux as it may block all rendering.
+  const bool throttle = mWidget->IsMapped();
+  mLatestTransactionId = mTransactionIdAllocator->GetTransactionId(throttle);
 
   if (aFlags & EndTransactionFlags::END_NO_COMPOSITE &&
       !mWebRenderCommandBuilder.NeedsEmptyTransaction()) {
@@ -406,8 +407,9 @@ void WebRenderLayerManager::EndTransactionWithoutLayer(
     nsLayoutUtils::NotifyPaintSkipTransaction(update);
   }
 
-  mLatestTransactionId =
-      mTransactionIdAllocator->GetTransactionId(/*aThrottle*/ true);
+  // Don't block on hidden windows on Linux as it may block all rendering.
+  const bool throttle = mWidget->IsMapped();
+  mLatestTransactionId = mTransactionIdAllocator->GetTransactionId(throttle);
 
   // Get the time of when the refresh driver start its tick (if available),
   // otherwise use the time of when LayerManager::BeginTransaction was called.
@@ -499,7 +501,7 @@ IntRect ToOutsideIntRect(const gfxRect& aRect) {
 }
 
 void WebRenderLayerManager::MakeSnapshotIfRequired(LayoutDeviceIntSize aSize) {
-  if (!mTarget || aSize.IsEmpty()) {
+  if (!mTarget || !mTarget->GetDrawTarget() || aSize.IsEmpty()) {
     return;
   }
 
@@ -529,7 +531,8 @@ void WebRenderLayerManager::MakeSnapshotIfRequired(LayoutDeviceIntSize aSize) {
 
   IntRect bounds = ToOutsideIntRect(mTarget->GetClipExtents());
   bool needsYFlip = false;
-  if (!WrBridge()->SendGetSnapshot(texture->GetIPDLActor(), &needsYFlip)) {
+  if (!WrBridge()->SendGetSnapshot(WrapNotNull(texture->GetIPDLActor()),
+                                   &needsYFlip)) {
     return;
   }
 

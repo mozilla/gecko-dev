@@ -7,9 +7,9 @@ import React, { PureComponent } from "react";
 import { bindActionCreators } from "redux";
 import ReactDOM from "react-dom";
 import { connect } from "../../utils/connect";
-import classnames from "classnames";
 
 import { getLineText } from "./../../utils/source";
+import { createLocation } from "./../../utils/location";
 import { features } from "../../utils/prefs";
 import { getIndentation } from "../../utils/indentation";
 
@@ -42,6 +42,7 @@ import {
   getHighlightedCalls,
   getBlackBoxRanges,
   isSourceBlackBoxed,
+  getHighlightedLineRangeForSelectedSource,
 } from "../../selectors";
 
 // Redux actions
@@ -85,6 +86,7 @@ import {
 import { resizeToggleButton, resizeBreakpointGutter } from "../../utils/ui";
 
 const { debounce } = require("devtools/shared/debounce");
+const classnames = require("devtools/client/shared/classnames.js");
 
 const { appinfo } = Services;
 const isMacOS = appinfo.OS === "Darwin";
@@ -138,6 +140,7 @@ class Editor extends PureComponent {
       skipPausing: PropTypes.bool.isRequired,
       blackboxedRanges: PropTypes.object.isRequired,
       breakableLines: PropTypes.object.isRequired,
+      highlightedLineRange: PropTypes.object,
     };
   }
 
@@ -146,7 +149,6 @@ class Editor extends PureComponent {
     super(props);
 
     this.state = {
-      highlightedLineRange: null,
       editor: null,
       contextMenu: null,
     };
@@ -432,7 +434,11 @@ class Editor extends PureComponent {
       return;
     }
 
-    const location = { line, column: undefined, sourceId };
+    const location = createLocation({
+      line,
+      column: undefined,
+      source: selectedSource,
+    });
 
     if (target.classList.contains("CodeMirror-linenumber")) {
       const lineText = getLineText(
@@ -659,6 +665,7 @@ class Editor extends PureComponent {
       isPaused,
       inlinePreviewEnabled,
       editorWrappingEnabled,
+      highlightedLineRange,
     } = this.props;
     const { editor, contextMenu } = this.state;
 
@@ -674,7 +681,9 @@ class Editor extends PureComponent {
         <EmptyLines editor={editor} />
         <Breakpoints editor={editor} cx={cx} />
         <Preview editor={editor} editorRef={this.$editorWrapper} />
-        <HighlightLines editor={editor} />
+        {highlightedLineRange ? (
+          <HighlightLines editor={editor} range={highlightedLineRange} />
+        ) : null}
         {features.blackboxLines ? <BlackboxLines editor={editor} /> : null}
         <Exceptions />
         {
@@ -734,10 +743,11 @@ Editor.contextTypes = {
 
 const mapStateToProps = state => {
   const selectedSource = getSelectedSource(state);
+  const selectedLocation = getSelectedLocation(state);
 
   return {
     cx: getThreadContext(state),
-    selectedLocation: getSelectedLocation(state),
+    selectedLocation,
     selectedSource,
     selectedSourceTextContent: getSelectedSourceTextContent(state),
     selectedSourceIsBlackBoxed: selectedSource
@@ -745,7 +755,7 @@ const mapStateToProps = state => {
       : null,
     searchOn: getActiveSearch(state) === "file",
     conditionalPanelLocation: getConditionalPanelLocation(state),
-    symbols: getSymbols(state, selectedSource),
+    symbols: getSymbols(state, selectedLocation),
     isPaused: getIsCurrentThreadPaused(state),
     skipPausing: getSkipPausing(state),
     inlinePreviewEnabled: getInlinePreview(state),
@@ -753,6 +763,7 @@ const mapStateToProps = state => {
     highlightedCalls: getHighlightedCalls(state, getCurrentThread(state)),
     blackboxedRanges: getBlackBoxRanges(state),
     breakableLines: getSelectedBreakableLines(state),
+    highlightedLineRange: getHighlightedLineRangeForSelectedSource(state),
   };
 };
 

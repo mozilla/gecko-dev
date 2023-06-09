@@ -5,20 +5,10 @@
 
 const lazy = {};
 
-ChromeUtils.defineModuleGetter(
-  lazy,
-  "RemoteSettings",
-  "resource://services-settings/remote-settings.js"
-);
-
-ChromeUtils.defineModuleGetter(
-  lazy,
-  "Utils",
-  "resource://services-settings/Utils.jsm"
-);
-
 ChromeUtils.defineESModuleGetters(lazy, {
   NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
+  RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
+  Utils: "resource://services-settings/Utils.sys.mjs",
 });
 
 const { BasePromiseWorker } = ChromeUtils.import(

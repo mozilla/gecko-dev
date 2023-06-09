@@ -23,6 +23,7 @@ import mozcrash
 import mozfile
 import six
 from mozlog import get_proxy_logger
+
 from talos import results, talosconfig, utils
 from talos.cmanager import CounterManagement
 from talos.ffsetup import FFSetup
@@ -252,7 +253,7 @@ class TTest(object):
                 ):
                     raise TalosRegression(
                         "Talos has found a regression, if you have questions"
-                        " ask for help in irc on #perf"
+                        " ask for help in matrix on the #perftest channel"
                     )
 
                 # add the results from the browser output

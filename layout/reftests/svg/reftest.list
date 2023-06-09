@@ -81,6 +81,7 @@ fuzzy(0-1,0-10000) == clip-surface-clone-01.svg clip-surface-clone-01-ref.svg
 == clipPath-and-mask-on-outflowElement-01b.html clipPath-on-outflowElement-01-ref.html
 fuzzy(0-1,0-630) == clipPath-and-shape-rendering-01.svg clipPath-and-shape-rendering-01-ref.svg # bug 614840
 == clipPath-and-transform-01.svg pass.svg
+== clipPath-and-transform-02.svg pass.svg
 == clipPath-basic-01.svg pass.svg
 == clipPath-basic-02.svg pass.svg
 == clipPath-basic-03.svg pass.svg
@@ -287,8 +288,8 @@ fuzzy(0-1,0-1) == marker-dynamic-opacity.html marker-dynamic-opacity-ref.html
 == marker-css-transform.html marker-css-transform-ref.html
 == marker-effects-01.svg marker-effects-01-ref.svg
 fuzzy(0-1,0-100) == marker-viewBox-01.svg marker-viewBox-01-ref.svg
-fuzzy(0-1,0-100) == marker-orientation-01.svg marker-orientation-01-ref.svg
-fuzzy(0-1,0-5) == marker-orientation-02.svg marker-orientation-02-ref.svg
+fuzzy(0-65,0-570) == marker-orientation-01.svg marker-orientation-01-ref.svg
+fuzzy(0-65,0-570) == marker-orientation-02.svg marker-orientation-02-ref.svg
 == marker-orientation-03.svg pass.svg
 == marker-orientation-04.svg pass.svg
 == marker-orientation-05.svg pass.svg
@@ -333,7 +334,7 @@ fuzzy(0-1,0-6400) == mask-type-04.svg mask-type-01-ref.svg
 fuzzy(0-3,0-448000) == nesting-invalid-01.svg nesting-invalid-01-ref.svg
 
 fuzzy(0-2,0-1000) == non-scaling-stroke-01.svg non-scaling-stroke-01-ref.svg # bug 1074161 for Win7 and OSX 10.8
-fuzzy-if(gtkWidget,0-1,0-99) fuzzy-if(!contentSameGfxBackendAsCanvas,0-9,0-99) fuzzy-if(Android,0-9,0-586) fails-if(useDrawSnapshot) == non-scaling-stroke-02.svg non-scaling-stroke-02-ref.svg
+fuzzy(0-51,0-900) fuzzy-if(Android,0-51,0-4090) fails-if(useDrawSnapshot) == non-scaling-stroke-02.svg non-scaling-stroke-02-ref.svg
 == non-scaling-stroke-03.svg non-scaling-stroke-03-ref.svg
 
 == objectBoundingBox-and-clipPath.svg pass.svg
@@ -391,14 +392,15 @@ fuzzy(0-1,0-400) == path-06.svg path-06-ref.svg
 fuzzy(0-128,0-100) == pattern-big-image.html pattern-big-image-ref.html
 == pattern-css-transform.html pattern-css-transform-ref.html
 == pattern-invalid-01.svg pattern-invalid-01-ref.svg
-fuzzy(0-1,0-5) == pattern-live-01a.svg pattern-live-01-ref.svg
-fuzzy(0-1,0-5) == pattern-live-01b.svg pattern-live-01-ref.svg
-fuzzy(0-1,0-5) == pattern-live-01c.svg pattern-live-01-ref.svg
-fuzzy(0-1,0-5) == pattern-scale-01a.svg pattern-scale-01-ref.svg
+== pattern-live-01a.svg pattern-live-01-ref.svg
+== pattern-live-01b.svg pattern-live-01-ref.svg
+== pattern-live-01c.svg pattern-live-01-ref.svg
+== pattern-scale-01a.svg pattern-scale-01-ref.svg
 == pattern-scale-01b.svg pattern-scale-01-ref.svg
-fuzzy(0-3,0-5) == pattern-scale-01c.svg pattern-scale-01-ref.svg
-fuzzy(0-2,0-227) == pattern-transform-presence-01.svg pattern-transform-presence-01-ref.svg
-fuzzy(0-72,0-1255) == pattern-transformed-01.svg pattern-transformed-01-ref.svg
+== pattern-scale-01c.svg pattern-scale-01-ref.svg
+== pattern-transform-presence-01.svg pattern-transform-presence-01-ref.svg
+== pattern-transformed-01.svg pattern-transformed-01-ref.svg
+fuzzy(0-27,0-9058) fuzzy-if(Android,0-28,0-11093) == pattern-transformed-02.svg pattern-transformed-02-ref.svg
 
 == polygon-01.svg polygon-01-ref.svg
 == polygon-marker-01.svg pass.svg
@@ -413,7 +415,7 @@ fuzzy(0-72,0-1255) == pattern-transformed-01.svg pattern-transformed-01-ref.svg
 
 == radialGradient-basic-01.svg pass.svg
 == radialGradient-basic-02.svg pass.svg
-fuzzy(0-1,0-5) fuzzy-if(winWidget,0-32,0-223) fuzzy-if(winWidget&&!swgl&&!/^Windows\x20NT\x206\.1/.test(http.oscpu),84-96,21684-21713) skip-if(winWidget&&isCoverageBuild) == radialGradient-basic-03.svg radialGradient-basic-03-ref.html # Bug 1718175 (Win CCov: Bug 1740155)
+fuzzy(0-1,0-5) fuzzy-if(winWidget,0-32,0-223) fuzzy-if(winWidget&&!swgl&&!/^Windows\x20NT\x206\.1/.test(http.oscpu),78-96,21684-21713) skip-if(winWidget&&isCoverageBuild) fuzzy-if(Android&&device,0-4,0-946) == radialGradient-basic-03.svg radialGradient-basic-03-ref.html # Bug 1718175 (Win CCov: Bug 1740155)
 == radialGradient-basic-04.svg pass.svg
 == radialGradient-fr-01.svg pass.svg
 fuzzy(0-1,0-3235) fuzzy-if(winWidget,0-1,0-7030) == radialGradient-fr-02.svg radialGradient-fr-02-ref.svg
@@ -586,7 +588,7 @@ test-pref(svg.use-element.graphics-element-restrictions,1) ref-pref(svg.use-elem
 
 == viewBox-and-pattern-01.svg pass.svg
 == viewBox-and-pattern-02.svg pass.svg
-fuzzy(0-43,0-5) == viewBox-and-pattern-03.svg pass.svg
+== viewBox-and-pattern-03.svg pass.svg
 == viewBox-and-pattern-04.svg pass.svg
 == viewBox-and-symbol-01.svg pass.svg
 == viewBox-invalid-01.svg pass.svg
@@ -631,3 +633,4 @@ fuzzy(0-1,0-150) == mask-opacity-invalidation-1.html mask-opacity-invalidation-1
 skip-if(Android) skip-if(cocoaWidget) skip-if(/^Windows\x20NT\x2010\.0/.test(http.oscpu)) == transform-animation-on-path.html transform-animation-on-path-ref.html #Bug 1638909
 
 fuzzy(0-20,0-110) == 1792313.svg 1792313-ref.svg
+pref(svg.use-element.recursive-clone-limit.enabled,1) != about:blank explosive-use.svg

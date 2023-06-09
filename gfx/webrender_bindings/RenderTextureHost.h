@@ -24,6 +24,7 @@ class GLContext;
 
 namespace wr {
 
+class RenderAndroidHardwareBufferTextureHost;
 class RenderAndroidSurfaceTextureHost;
 class RenderCompositor;
 class RenderDXGITextureHost;
@@ -32,6 +33,7 @@ class RenderDcompSurfaceTextureHost;
 class RenderMacIOSurfaceTextureHost;
 class RenderBufferTextureHost;
 class RenderTextureHostSWGL;
+class RenderTextureHostWrapper;
 
 void ActivateBindAndTexParameteri(gl::GLContext* aGL, GLenum aActiveTexture,
                                   GLenum aBindTarget, GLuint aBindTexture);
@@ -85,6 +87,11 @@ class RenderTextureHost {
     return nullptr;
   }
 
+  virtual RenderAndroidHardwareBufferTextureHost*
+  AsRenderAndroidHardwareBufferTextureHost() {
+    return nullptr;
+  }
+
   virtual RenderAndroidSurfaceTextureHost* AsRenderAndroidSurfaceTextureHost() {
     return nullptr;
   }
@@ -97,6 +104,8 @@ class RenderTextureHost {
 
   virtual bool IsWrappingAsyncRemoteTexture() { return false; }
 
+  virtual void Destroy();
+
  protected:
   virtual ~RenderTextureHost();
 
@@ -108,6 +117,8 @@ class RenderTextureHost {
       gfx::IntSize aTextureSize) const;
 
   bool mIsFromDRMSource;
+
+  friend class RenderTextureHostWrapper;
 };
 
 }  // namespace wr

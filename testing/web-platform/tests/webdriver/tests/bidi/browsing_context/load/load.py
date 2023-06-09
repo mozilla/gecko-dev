@@ -1,5 +1,6 @@
 import pytest
 from tests.support.sync import AsyncPoll
+from webdriver.bidi.modules.script import ContextTarget
 from webdriver.error import TimeoutException
 
 from ... import int_interval
@@ -108,3 +109,29 @@ async def test_new_context(bidi_session, subscribe_events, wait_for_event, type_
     event = await on_entry
 
     assert_navigation_info(event, {"context": new_context["context"], "url": "about:blank"})
+
+
+async def test_document_write(bidi_session, subscribe_events, top_context, wait_for_event):
+    await subscribe_events(events=[CONTEXT_LOAD_EVENT])
+
+    on_entry = wait_for_event(CONTEXT_LOAD_EVENT)
+
+    await bidi_session.script.evaluate(
+        expression="""document.open(); document.write("<h1>Replaced</h1>"); document.close();""",
+        target=ContextTarget(top_context["context"]),
+        await_promise=False
+    )
+
+    event = await on_entry
+    assert_navigation_info(event, {"context": top_context["context"]})
+
+
+async def test_page_with_base_tag(bidi_session, subscribe_events, inline, new_tab, wait_for_event):
+    await subscribe_events(events=[CONTEXT_LOAD_EVENT])
+
+    on_entry = wait_for_event(CONTEXT_LOAD_EVENT)
+    url = inline("""<base href="/relative-path">""")
+    await bidi_session.browsing_context.navigate(context=new_tab["context"], url=url)
+    event = await on_entry
+
+    assert_navigation_info(event, {"context": new_tab["context"], "url": url})

@@ -32,6 +32,7 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   DownloadHistory: "resource://gre/modules/DownloadHistory.sys.mjs",
+  DownloadUtils: "resource://gre/modules/DownloadUtils.sys.mjs",
   Downloads: "resource://gre/modules/Downloads.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
@@ -40,7 +41,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
 XPCOMUtils.defineLazyModuleGetters(lazy, {
   NetUtil: "resource://gre/modules/NetUtil.jsm",
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.jsm",
-  DownloadUtils: "resource://gre/modules/DownloadUtils.jsm",
 });
 
 XPCOMUtils.defineLazyServiceGetters(lazy, {
@@ -127,7 +127,6 @@ var PrefObserver = {
 
 PrefObserver.register({
   // prefName: defaultValue
-  animateNotifications: true,
   openInSystemViewerContextMenuItem: true,
   alwaysOpenInSystemViewerContextMenuItem: true,
 });
@@ -185,14 +184,6 @@ export var DownloadsCommon = {
     }
     delete this.strings;
     return (this.strings = strings);
-  },
-
-  /**
-   * Indicates whether we should show visual notification on the indicator
-   * when a download event is triggered.
-   */
-  get animateNotifications() {
-    return PrefObserver.animateNotifications;
   },
 
   /**
@@ -375,7 +366,7 @@ export var DownloadsCommon = {
     }
     await download.manuallyRemoveData();
     if (clearHistory < 2) {
-      lazy.DownloadHistory.updateMetaData(download).catch(Cu.reportError);
+      lazy.DownloadHistory.updateMetaData(download).catch(console.error);
     }
   },
 
@@ -763,17 +754,6 @@ XPCOMUtils.defineLazyGetter(DownloadsCommon, "error", () => {
   return lazy.DownloadsLogger.error.bind(lazy.DownloadsLogger);
 });
 
-/**
- * Returns true if we are executing on Windows Vista or a later version.
- */
-XPCOMUtils.defineLazyGetter(DownloadsCommon, "isWinVistaOrHigher", function() {
-  let os = Services.appinfo.OS;
-  if (os != "WINNT") {
-    return false;
-  }
-  return parseFloat(Services.sysinfo.getProperty("version")) >= 6;
-});
-
 // DownloadsData
 
 /**
@@ -870,7 +850,7 @@ DownloadsDataCtor.prototype = {
       this._isPrivate ? lazy.Downloads.PRIVATE : lazy.Downloads.PUBLIC
     )
       .then(list => list.removeFinished())
-      .catch(Cu.reportError);
+      .catch(console.error);
   },
 
   // Integration with the asynchronous Downloads back-end
@@ -907,7 +887,7 @@ DownloadsDataCtor.prototype = {
 
         // This state transition code should actually be located in a Downloads
         // API module (bug 941009).
-        lazy.DownloadHistory.updateMetaData(download).catch(Cu.reportError);
+        lazy.DownloadHistory.updateMetaData(download).catch(console.error);
       }
 
       if (
@@ -941,7 +921,7 @@ DownloadsDataCtor.prototype = {
    *        removeView before termination.
    */
   addView(aView) {
-    this._promiseList.then(list => list.addView(aView)).catch(Cu.reportError);
+    this._promiseList.then(list => list.addView(aView)).catch(console.error);
   },
 
   /**
@@ -951,9 +931,7 @@ DownloadsDataCtor.prototype = {
    *        DownloadsView object to be removed.
    */
   removeView(aView) {
-    this._promiseList
-      .then(list => list.removeView(aView))
-      .catch(Cu.reportError);
+    this._promiseList.then(list => list.removeView(aView)).catch(console.error);
   },
 
   // Notifications sent to the most recent browser window only

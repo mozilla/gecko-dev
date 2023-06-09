@@ -12,8 +12,10 @@
 #include "nsWrapperCache.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/ReadableStream.h"
+#include "mozilla/dom/WebTransport.h"
 #include "mozilla/dom/WritableStream.h"
 #include "mozilla/dom/WebTransportSendReceiveStreamBinding.h"
+#include "mozilla/ipc/DataPipe.h"
 
 // #include "mozilla/dom/WebTransportReceiveStream.h"
 // #include "mozilla/dom/WebTransportSendStream.h"
@@ -22,11 +24,18 @@ namespace mozilla::dom {
 class WebTransportBidirectionalStream final : public nsISupports,
                                               public nsWrapperCache {
  public:
-  explicit WebTransportBidirectionalStream(nsIGlobalObject* aGlobal)
-      : mGlobal(aGlobal) {}
+  explicit WebTransportBidirectionalStream(nsIGlobalObject* aGlobal,
+                                           WebTransportReceiveStream* aReadable,
+                                           WebTransportSendStream* aWritable)
+      : mGlobal(aGlobal), mReadable(aReadable), mWritable(aWritable) {}
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(WebTransportBidirectionalStream)
+
+  static already_AddRefed<WebTransportBidirectionalStream> Create(
+      WebTransport* aWebTransport, nsIGlobalObject* aGlobal, uint64_t aStreamId,
+      ::mozilla::ipc::DataPipeReceiver* receiver,
+      ::mozilla::ipc::DataPipeSender* sender, ErrorResult& aRv);
 
   // WebIDL Boilerplate
   nsIGlobalObject* GetParentObject() const;
@@ -35,16 +44,19 @@ class WebTransportBidirectionalStream final : public nsISupports,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL Interface
-  // XXX spec says these should be WebTransportReceiveStream and
-  // WebTransportSendStream
-  // XXX Not implemented
-  already_AddRefed<ReadableStream> Readable() { return nullptr; }
-  already_AddRefed<WritableStream> Writable() { return nullptr; }
+  already_AddRefed<WebTransportReceiveStream> Readable() const {
+    return do_AddRef(mReadable);
+  }
+  already_AddRefed<WebTransportSendStream> Writable() const {
+    return do_AddRef(mWritable);
+  }
 
  private:
   ~WebTransportBidirectionalStream() = default;
 
   nsCOMPtr<nsIGlobalObject> mGlobal;
+  RefPtr<WebTransportReceiveStream> mReadable;
+  RefPtr<WebTransportSendStream> mWritable;
 };
 
 }  // namespace mozilla::dom

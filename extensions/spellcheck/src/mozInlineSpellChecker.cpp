@@ -1722,8 +1722,8 @@ nsresult mozInlineSpellChecker::IsPointInSelection(Selection& aSelection,
   *aRange = nullptr;
 
   nsTArray<nsRange*> ranges;
-  nsresult rv = aSelection.GetRangesForIntervalArray(aNode, aOffset, aNode,
-                                                     aOffset, true, &ranges);
+  nsresult rv = aSelection.GetDynamicRangesForIntervalArray(
+      aNode, aOffset, aNode, aOffset, true, &ranges);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (ranges.Length() == 0) return NS_OK;  // no matches
@@ -1834,11 +1834,12 @@ void mozInlineSpellChecker::UpdateRangesForMisspelledWords(
     const size_t indexOfOldRangeToKeep = aOldRangesForSomeWords.IndexOf(
         nodeOffsetRange, 0, CompareRangeAndNodeOffsetRange{});
     if (indexOfOldRangeToKeep != aOldRangesForSomeWords.NoIndex &&
-        aOldRangesForSomeWords[indexOfOldRangeToKeep]->GetSelection() ==
-        &aSpellCheckerSelection /** TODO: warn in case the old range doesn't
-                                  belong to the selection. This is not critical,
-                                  because other code can always remove them
-                                  before the actual spellchecking happens. */) {
+        aOldRangesForSomeWords[indexOfOldRangeToKeep]->IsInSelection(
+            aSpellCheckerSelection)) {
+      /** TODO: warn in case the old range doesn't
+        belong to the selection. This is not critical,
+        because other code can always remove them
+        before the actual spellchecking happens. */
       MOZ_LOG(sInlineSpellCheckerLog, LogLevel::Verbose,
               ("%s: reusing old range.", __FUNCTION__));
 

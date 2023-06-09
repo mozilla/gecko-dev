@@ -407,39 +407,34 @@ export var E10SUtils = {
       return DEFAULT_REMOTE_TYPE;
     }
 
-    return this.getRemoteTypeForURIObject(
-      uri,
-      aMultiProcess,
-      aRemoteSubframes,
-      aPreferredRemoteType,
-      aCurrentUri,
-      null, //aResultPrincipal
-      false, //aIsSubframe
-      false, // aIsWorker
-      aOriginAttributes
-    );
+    return this.getRemoteTypeForURIObject(uri, {
+      multiProcess: aMultiProcess,
+      remoteSubFrames: aRemoteSubframes,
+      preferredRemoteType: aPreferredRemoteType,
+      currentURI: aCurrentUri,
+      originAttributes: aOriginAttributes,
+    });
   },
 
-  getRemoteTypeForURIObject(
-    aURI,
-    aMultiProcess,
-    aRemoteSubframes,
-    aPreferredRemoteType = DEFAULT_REMOTE_TYPE,
-    aCurrentUri = null,
-    aResultPrincipal = null,
-    aIsSubframe = false,
-    aIsWorker = false,
-    aOriginAttributes = {},
-    aWorkerType = Ci.nsIE10SUtils.REMOTE_WORKER_TYPE_SHARED
-  ) {
-    if (!aMultiProcess) {
+  getRemoteTypeForURIObject(aURI, options) {
+    let {
+      multiProcess = Services.appinfo.browserTabsRemoteAutostart,
+      remoteSubFrames = Services.appinfo.fissionAutostart,
+      preferredRemoteType = DEFAULT_REMOTE_TYPE,
+      currentURI = null,
+      resultPrincipal = null,
+      isWorker = false,
+      originAttributes = {},
+      workerType = Ci.nsIE10SUtils.REMOTE_WORKER_TYPE_SHARED,
+    } = options;
+    if (!multiProcess) {
       return NOT_REMOTE;
     }
 
     switch (aURI.scheme) {
       case "javascript":
         // javascript URIs can load in any, they apply to the current document.
-        return aPreferredRemoteType;
+        return preferredRemoteType;
 
       case "data":
       case "blob":
@@ -448,9 +443,9 @@ export var E10SUtils = {
         // unless it is non-remote. In that case we don't want to load them in
         // the parent process, so we load them in the default remote process,
         // which is sandboxed and limits any risk.
-        return aPreferredRemoteType == NOT_REMOTE
+        return preferredRemoteType == NOT_REMOTE
           ? DEFAULT_REMOTE_TYPE
-          : aPreferredRemoteType;
+          : preferredRemoteType;
 
       case "file":
         return lazy.useSeparateFileUriProcess
@@ -462,7 +457,7 @@ export var E10SUtils = {
         // If the module doesn't exist then an error page will be loading, that
         // should be ok to load in any process
         if (!module) {
-          return aPreferredRemoteType;
+          return preferredRemoteType;
         }
 
         let flags = module.getURIFlags(aURI);
@@ -494,14 +489,7 @@ export var E10SUtils = {
             if (readerModeURI) {
               let innerRemoteType = this.getRemoteTypeForURIObject(
                 readerModeURI,
-                aMultiProcess,
-                aRemoteSubframes,
-                aPreferredRemoteType,
-                aCurrentUri,
-                null, // aResultPrincipal
-                aIsSubframe,
-                aIsWorker,
-                aOriginAttributes
+                options
               );
               if (
                 innerRemoteType &&
@@ -518,7 +506,7 @@ export var E10SUtils = {
         // If the about page can load in parent or child, it should be safe to
         // load in any remote type.
         if (flags & Ci.nsIAboutModule.URI_CAN_LOAD_IN_CHILD) {
-          return aPreferredRemoteType;
+          return preferredRemoteType;
         }
 
         return NOT_REMOTE;
@@ -533,7 +521,7 @@ export var E10SUtils = {
 
         if (
           chromeReg.canLoadURLRemotely(aURI) &&
-          aPreferredRemoteType != NOT_REMOTE
+          preferredRemoteType != NOT_REMOTE
         ) {
           return DEFAULT_REMOTE_TYPE;
         }
@@ -541,14 +529,11 @@ export var E10SUtils = {
         return NOT_REMOTE;
 
       case "moz-extension":
-        if (WebExtensionPolicy.useRemoteWebExtensions) {
-          // Extension iframes should load in the same process
-          // as their outer frame, top-level ones should load
-          // in the extension process.
-          return aIsSubframe ? aPreferredRemoteType : EXTENSION_REMOTE_TYPE;
-        }
-
-        return NOT_REMOTE;
+        // Extension iframes should load in the same process
+        // as their outer frame, but that's handled elsewhere.
+        return WebExtensionPolicy.useRemoteWebExtensions
+          ? EXTENSION_REMOTE_TYPE
+          : NOT_REMOTE;
 
       case "imap":
       case "mailbox":
@@ -570,7 +555,7 @@ export var E10SUtils = {
         if (aURI.scheme.startsWith("ext+")) {
           // We shouldn't even get to this for a worker, throw an unexpected error
           // if we do.
-          if (aIsWorker) {
+          if (isWorker) {
             throw Components.Exception(
               "Unexpected remote worker with extension handled scheme",
               Cr.NS_ERROR_UNEXPECTED
@@ -592,7 +577,7 @@ export var E10SUtils = {
         if (aURI instanceof Ci.nsINestedURI) {
           // We shouldn't even get to this for a worker, throw an unexpected error
           // if we do.
-          if (aIsWorker) {
+          if (isWorker) {
             throw Components.Exception(
               "Unexpected worker with a NestedURI",
               Cr.NS_ERROR_UNEXPECTED
@@ -600,33 +585,23 @@ export var E10SUtils = {
           }
 
           let innerURI = aURI.QueryInterface(Ci.nsINestedURI).innerURI;
-          return this.getRemoteTypeForURIObject(
-            innerURI,
-            aMultiProcess,
-            aRemoteSubframes,
-            aPreferredRemoteType,
-            aCurrentUri,
-            aResultPrincipal,
-            false, // aIsSubframe
-            false, // aIsWorker
-            aOriginAttributes
-          );
+          return this.getRemoteTypeForURIObject(innerURI, options);
         }
 
         var log = this.log();
         log.debug("validatedWebRemoteType()");
-        log.debug(`  aPreferredRemoteType: ${aPreferredRemoteType}`);
+        log.debug(`  aPreferredRemoteType: ${preferredRemoteType}`);
         log.debug(`  aTargetUri: ${this._uriStr(aURI)}`);
-        log.debug(`  aCurrentUri: ${this._uriStr(aCurrentUri)}`);
+        log.debug(`  aCurrentUri: ${this._uriStr(currentURI)}`);
         var remoteType = validatedWebRemoteType(
-          aPreferredRemoteType,
+          preferredRemoteType,
           aURI,
-          aCurrentUri,
-          aResultPrincipal,
-          aRemoteSubframes,
-          aIsWorker,
-          aOriginAttributes,
-          aWorkerType
+          currentURI,
+          resultPrincipal,
+          remoteSubFrames,
+          isWorker,
+          originAttributes,
+          workerType
         );
         log.debug(`  validatedWebRemoteType() returning: ${remoteType}`);
         return remoteType;
@@ -692,18 +667,15 @@ export var E10SUtils = {
       // (which is based on the worker script url) and an initial preferredRemoteType
       // (only set for shared worker, based on the remote type where the shared worker
       // was registered from).
-      return E10SUtils.getRemoteTypeForURIObject(
-        aPrincipal.URI,
-        aIsMultiProcess,
-        aIsFission,
-        aPreferredRemoteType,
-        null,
-        aPrincipal,
-        false, // aIsSubFrame
-        true, // aIsWorker
-        aPrincipal.originAttributes,
-        aWorkerType
-      );
+      return E10SUtils.getRemoteTypeForURIObject(aPrincipal.URI, {
+        multiProcess: aIsMultiProcess,
+        remoteSubFrames: aIsFission,
+        preferredRemoteType: aPreferredRemoteType,
+        resultPrincipal: aPrincipal,
+        originAttributes: aPrincipal.originAttributes,
+        isWorker: true,
+        workerType: aWorkerType,
+      });
     }
 
     // Throw explicitly if we were unable to get a remoteType for the worker.
@@ -745,15 +717,15 @@ export var E10SUtils = {
    * Serialize principal data.
    *
    * @param {nsIPrincipal} principal The principal to serialize.
-   * @return {String} The base64 encoded principal data.
+   * @return {String} The serialized principal data.
    */
   serializePrincipal(principal) {
     let serializedPrincipal = null;
 
     try {
       if (principal) {
-        serializedPrincipal = btoa(
-          Services.scriptSecurityManager.principalToJSON(principal)
+        serializedPrincipal = Services.scriptSecurityManager.principalToJSON(
+          principal
         );
       }
     } catch (e) {
@@ -764,14 +736,13 @@ export var E10SUtils = {
   },
 
   /**
-   * Deserialize a base64 encoded principal (serialized with
-   * serializePrincipal).
+   * Deserialize a principal (serialized with serializePrincipal).
    *
-   * @param {String} principal_b64 A base64 encoded serialized principal.
+   * @param {String} serializedPincipal A serialized principal.
    * @return {nsIPrincipal} A deserialized principal.
    */
-  deserializePrincipal(principal_b64, fallbackPrincipalCallback = null) {
-    if (!principal_b64) {
+  deserializePrincipal(serializedPincipal, fallbackPrincipalCallback = null) {
+    if (!serializedPincipal) {
       if (!fallbackPrincipalCallback) {
         this.log().warn(
           "No principal passed to deserializePrincipal and no fallbackPrincipalCallback"
@@ -784,21 +755,32 @@ export var E10SUtils = {
 
     try {
       let principal;
-      let tmpa = atob(principal_b64);
-      // Both the legacy and new JSON representation of principals are stored as base64
-      // The new kind are the only ones that will start with "{" when decoded.
-      // We check here for the new JSON serialized, if it doesn't start with that continue using nsISerializable.
-      // JSONToPrincipal accepts a *non* base64 encoded string and returns a principal or a null.
-      if (tmpa.startsWith("{")) {
-        principal = Services.scriptSecurityManager.JSONToPrincipal(tmpa);
+      // The current JSON representation of principal is not stored as base64. We start by checking
+      // if the serialized data starts with '{' to determine if we're using the new JSON representation.
+      // If it doesn't we try the two legacy formats, old JSON and nsISerializable.
+      if (serializedPincipal.startsWith("{")) {
+        principal = Services.scriptSecurityManager.JSONToPrincipal(
+          serializedPincipal
+        );
       } else {
-        principal = lazy.serializationHelper.deserializeObject(principal_b64);
+        // Both the legacy and legacy  JSON representation of principals are stored as base64
+        // The legacy JSON kind are the only ones that will start with "{" when decoded.
+        // We check here for the legacy JSON serialized, if it doesn't start with that continue using nsISerializable.
+        // JSONToPrincipal accepts a *non* base64 encoded string and returns a principal or a null.
+        let tmpa = atob(serializedPincipal);
+        if (tmpa.startsWith("{")) {
+          principal = Services.scriptSecurityManager.JSONToPrincipal(tmpa);
+        } else {
+          principal = lazy.serializationHelper.deserializeObject(
+            serializedPincipal
+          );
+        }
       }
       principal.QueryInterface(Ci.nsIPrincipal);
       return principal;
     } catch (e) {
       this.log().error(
-        `Failed to deserialize principal_b64 '${principal_b64}' ${e}`
+        `Failed to deserialize serializedPincipal '${serializedPincipal}' ${e}`
       );
     }
     if (!fallbackPrincipalCallback) {
@@ -987,8 +969,10 @@ XPCOMUtils.defineLazyGetter(
   E10SUtils,
   "SERIALIZED_SYSTEMPRINCIPAL",
   function() {
-    return E10SUtils.serializePrincipal(
-      Services.scriptSecurityManager.getSystemPrincipal()
+    return btoa(
+      E10SUtils.serializePrincipal(
+        Services.scriptSecurityManager.getSystemPrincipal()
+      )
     );
   }
 );

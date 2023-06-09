@@ -1180,6 +1180,14 @@ class WindowsDllDetourPatcher final
         } else if (*origBytes >= 0xb8 && *origBytes <= 0xbf) {
           // mov r32, imm32
           COPY_CODES(5);
+        } else if (*origBytes == 0x8b && (origBytes[1] & kMaskMod) == kModReg) {
+          // 8B /r: mov r32, r/m32
+          COPY_CODES(2);
+        } else if (*origBytes == 0xf7 &&
+                   (origBytes[1] & (kMaskMod | kMaskReg)) ==
+                       (kModReg | (0 << kRegFieldShift))) {
+          // F7 /0 id: test r/m32, imm32
+          COPY_CODES(6);
         } else {
           MOZ_ASSERT_UNREACHABLE("Unrecognized opcode sequence");
           return;
@@ -1290,17 +1298,18 @@ class WindowsDllDetourPatcher final
             return;
           }
         } else if (*origBytes == 0xff) {
-          // JMP /4
-          if ((origBytes[1] & 0xc0) == 0x0 && (origBytes[1] & 0x07) == 0x5) {
+          // JMP/4 or CALL/2
+          if ((origBytes[1] & 0xc0) == 0x0 && (origBytes[1] & 0x07) == 0x5 &&
+              ((origBytes[1] & 0x38) == 0x20 ||
+               (origBytes[1] & 0x38) == 0x10)) {
             origBytes += 2;
             --tramp;  // overwrite the REX.W/REX.RW we copied above
 
+            foundJmp = (origBytes[1] & 0x38) == 0x20;
             if (!GenerateJump(tramp, origBytes.ChasePointerFromDisp(),
-                              JumpType::Jmp)) {
+                              foundJmp ? JumpType::Jmp : JumpType::Call)) {
               return;
             }
-
-            foundJmp = true;
           } else {
             // not support yet!
             MOZ_ASSERT_UNREACHABLE("Unrecognized opcode sequence");

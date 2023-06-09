@@ -19,11 +19,12 @@ class OpusParser;
 
 DDLoggedTypeDeclNameAndBase(OpusDataDecoder, MediaDataDecoder);
 
-class OpusDataDecoder : public MediaDataDecoder,
-                        public DecoderDoctorLifeLogger<OpusDataDecoder> {
+class OpusDataDecoder final : public MediaDataDecoder,
+                              public DecoderDoctorLifeLogger<OpusDataDecoder> {
  public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(OpusDataDecoder, final);
+
   explicit OpusDataDecoder(const CreateDecoderParams& aParams);
-  ~OpusDataDecoder();
 
   RefPtr<InitPromise> Init() override;
   RefPtr<DecodePromise> Decode(MediaRawData* aSample) override;
@@ -33,11 +34,14 @@ class OpusDataDecoder : public MediaDataDecoder,
   nsCString GetDescriptionName() const override {
     return "opus audio decoder"_ns;
   }
+  nsCString GetCodecName() const override { return "opus"_ns; }
 
   // Return true if mimetype is Opus
   static bool IsOpus(const nsACString& aMimeType);
 
  private:
+  ~OpusDataDecoder();
+
   nsresult DecodeHeader(const unsigned char* aData, size_t aLength);
 
   const AudioInfo mInfo;

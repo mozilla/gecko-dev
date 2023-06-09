@@ -80,6 +80,7 @@ const EXPECTED_SPONSORED_RESULT = {
   source: UrlbarUtils.RESULT_SOURCE.SEARCH,
   heuristic: false,
   payload: {
+    telemetryType: "adm_sponsored",
     qsSuggestion: "frab",
     title: "frabbits",
     url: "http://test.com/q=frabbits",
@@ -92,9 +93,17 @@ const EXPECTED_SPONSORED_RESULT = {
     sponsoredIabCategory: "22 - Shopping",
     isSponsored: true,
     helpUrl: QuickSuggest.HELP_URL,
-    helpL10n: { id: "firefox-suggest-urlbar-learn-more" },
-    isBlockable: false,
-    blockL10n: { id: "firefox-suggest-urlbar-block" },
+    helpL10n: {
+      id: UrlbarPrefs.get("resultMenu")
+        ? "urlbar-result-menu-learn-more-about-firefox-suggest"
+        : "firefox-suggest-urlbar-learn-more",
+    },
+    isBlockable: UrlbarPrefs.get("quickSuggestBlockingEnabled"),
+    blockL10n: {
+      id: UrlbarPrefs.get("resultMenu")
+        ? "urlbar-result-menu-dismiss-firefox-suggest"
+        : "firefox-suggest-urlbar-block",
+    },
     displayUrl: "http://test.com/q=frabbits",
     source: "remote-settings",
   },
@@ -105,6 +114,7 @@ const EXPECTED_NONSPONSORED_RESULT = {
   source: UrlbarUtils.RESULT_SOURCE.SEARCH,
   heuristic: false,
   payload: {
+    telemetryType: "adm_nonsponsored",
     qsSuggestion: "nonspon",
     title: "Non-Sponsored",
     url: "http://test.com/?q=nonsponsored",
@@ -117,9 +127,17 @@ const EXPECTED_NONSPONSORED_RESULT = {
     sponsoredIabCategory: "5 - Education",
     isSponsored: false,
     helpUrl: QuickSuggest.HELP_URL,
-    helpL10n: { id: "firefox-suggest-urlbar-learn-more" },
-    isBlockable: false,
-    blockL10n: { id: "firefox-suggest-urlbar-block" },
+    helpL10n: {
+      id: UrlbarPrefs.get("resultMenu")
+        ? "urlbar-result-menu-learn-more-about-firefox-suggest"
+        : "firefox-suggest-urlbar-learn-more",
+    },
+    isBlockable: UrlbarPrefs.get("quickSuggestBlockingEnabled"),
+    blockL10n: {
+      id: UrlbarPrefs.get("resultMenu")
+        ? "urlbar-result-menu-dismiss-firefox-suggest"
+        : "firefox-suggest-urlbar-block",
+    },
     displayUrl: "http://test.com/?q=nonsponsored",
     source: "remote-settings",
   },
@@ -130,6 +148,7 @@ const EXPECTED_HTTP_RESULT = {
   source: UrlbarUtils.RESULT_SOURCE.SEARCH,
   heuristic: false,
   payload: {
+    telemetryType: "adm_sponsored",
     qsSuggestion: HTTP_SEARCH_STRING,
     title: "http suggestion",
     url: "http://" + PREFIX_SUGGESTIONS_STRIPPED_URL,
@@ -142,9 +161,17 @@ const EXPECTED_HTTP_RESULT = {
     sponsoredIabCategory: "22 - Shopping",
     isSponsored: true,
     helpUrl: QuickSuggest.HELP_URL,
-    helpL10n: { id: "firefox-suggest-urlbar-learn-more" },
-    isBlockable: false,
-    blockL10n: { id: "firefox-suggest-urlbar-block" },
+    helpL10n: {
+      id: UrlbarPrefs.get("resultMenu")
+        ? "urlbar-result-menu-learn-more-about-firefox-suggest"
+        : "firefox-suggest-urlbar-learn-more",
+    },
+    isBlockable: UrlbarPrefs.get("quickSuggestBlockingEnabled"),
+    blockL10n: {
+      id: UrlbarPrefs.get("resultMenu")
+        ? "urlbar-result-menu-dismiss-firefox-suggest"
+        : "firefox-suggest-urlbar-block",
+    },
     displayUrl: "http://" + PREFIX_SUGGESTIONS_STRIPPED_URL,
     source: "remote-settings",
   },
@@ -155,6 +182,7 @@ const EXPECTED_HTTPS_RESULT = {
   source: UrlbarUtils.RESULT_SOURCE.SEARCH,
   heuristic: false,
   payload: {
+    telemetryType: "adm_sponsored",
     qsSuggestion: HTTPS_SEARCH_STRING,
     title: "https suggestion",
     url: "https://" + PREFIX_SUGGESTIONS_STRIPPED_URL,
@@ -167,9 +195,17 @@ const EXPECTED_HTTPS_RESULT = {
     sponsoredIabCategory: "22 - Shopping",
     isSponsored: true,
     helpUrl: QuickSuggest.HELP_URL,
-    helpL10n: { id: "firefox-suggest-urlbar-learn-more" },
-    isBlockable: false,
-    blockL10n: { id: "firefox-suggest-urlbar-block" },
+    helpL10n: {
+      id: UrlbarPrefs.get("resultMenu")
+        ? "urlbar-result-menu-learn-more-about-firefox-suggest"
+        : "firefox-suggest-urlbar-learn-more",
+    },
+    isBlockable: UrlbarPrefs.get("quickSuggestBlockingEnabled"),
+    blockL10n: {
+      id: UrlbarPrefs.get("resultMenu")
+        ? "urlbar-result-menu-dismiss-firefox-suggest"
+        : "firefox-suggest-urlbar-block",
+    },
     displayUrl: PREFIX_SUGGESTIONS_STRIPPED_URL,
     source: "remote-settings",
   },
@@ -336,6 +372,32 @@ add_task(async function caseInsensitiveAndLeadingSpaces() {
     context,
     matches: [EXPECTED_SPONSORED_RESULT],
   });
+});
+
+// The provider should not be active for search strings that are empty or
+// contain only spaces.
+add_task(async function emptySearchStringsAndSpaces() {
+  UrlbarPrefs.set("suggest.quicksuggest.nonsponsored", true);
+  UrlbarPrefs.set("suggest.quicksuggest.sponsored", true);
+
+  let searchStrings = ["", " ", "  ", "              "];
+  for (let str of searchStrings) {
+    let msg = JSON.stringify(str) + ` (length = ${str.length})`;
+    info("Testing search string: " + msg);
+
+    let context = createContext(str, {
+      providers: [UrlbarProviderQuickSuggest.name],
+      isPrivate: false,
+    });
+    await check_results({
+      context,
+      matches: [],
+    });
+    Assert.ok(
+      !UrlbarProviderQuickSuggest.isActive(context),
+      "Provider should not be active for search string: " + msg
+    );
+  }
 });
 
 // Results should be returned even when `browser.search.suggest.enabled` is
@@ -741,9 +803,8 @@ add_task(async function setupAndTeardown() {
   // Disable the suggest prefs so the settings client starts out torn down.
   UrlbarPrefs.set("suggest.quicksuggest.nonsponsored", false);
   UrlbarPrefs.set("suggest.quicksuggest.sponsored", false);
-  await QuickSuggest.remoteSettings.readyPromise;
   Assert.ok(
-    !QuickSuggest.remoteSettings._test_rs,
+    !QuickSuggestRemoteSettings._test_rs,
     "Settings client is null after disabling suggest prefs"
   );
 
@@ -751,58 +812,50 @@ add_task(async function setupAndTeardown() {
   // assume all previous tasks left `quicksuggest.enabled` true (from the init
   // task).
   UrlbarPrefs.set("suggest.quicksuggest.nonsponsored", true);
-  await QuickSuggest.remoteSettings.readyPromise;
   Assert.ok(
-    QuickSuggest.remoteSettings._test_rs,
+    QuickSuggestRemoteSettings._test_rs,
     "Settings client is non-null after enabling suggest.quicksuggest.nonsponsored"
   );
 
   UrlbarPrefs.set("suggest.quicksuggest.nonsponsored", false);
-  await QuickSuggest.remoteSettings.readyPromise;
   Assert.ok(
-    !QuickSuggest.remoteSettings._test_rs,
+    !QuickSuggestRemoteSettings._test_rs,
     "Settings client is null after disabling suggest.quicksuggest.nonsponsored"
   );
 
   UrlbarPrefs.set("suggest.quicksuggest.sponsored", true);
-  await QuickSuggest.remoteSettings.readyPromise;
   Assert.ok(
-    QuickSuggest.remoteSettings._test_rs,
+    QuickSuggestRemoteSettings._test_rs,
     "Settings client is non-null after enabling suggest.quicksuggest.sponsored"
   );
 
   UrlbarPrefs.set("suggest.quicksuggest.nonsponsored", true);
-  await QuickSuggest.remoteSettings.readyPromise;
   Assert.ok(
-    QuickSuggest.remoteSettings._test_rs,
+    QuickSuggestRemoteSettings._test_rs,
     "Settings client remains non-null after enabling suggest.quicksuggest.nonsponsored"
   );
 
   UrlbarPrefs.set("suggest.quicksuggest.nonsponsored", false);
-  await QuickSuggest.remoteSettings.readyPromise;
   Assert.ok(
-    QuickSuggest.remoteSettings._test_rs,
+    QuickSuggestRemoteSettings._test_rs,
     "Settings client remains non-null after disabling suggest.quicksuggest.nonsponsored"
   );
 
   UrlbarPrefs.set("suggest.quicksuggest.sponsored", false);
-  await QuickSuggest.remoteSettings.readyPromise;
   Assert.ok(
-    !QuickSuggest.remoteSettings._test_rs,
+    !QuickSuggestRemoteSettings._test_rs,
     "Settings client is null after disabling suggest.quicksuggest.sponsored"
   );
 
   UrlbarPrefs.set("suggest.quicksuggest.nonsponsored", true);
-  await QuickSuggest.remoteSettings.readyPromise;
   Assert.ok(
-    QuickSuggest.remoteSettings._test_rs,
+    QuickSuggestRemoteSettings._test_rs,
     "Settings client is non-null after enabling suggest.quicksuggest.nonsponsored"
   );
 
   UrlbarPrefs.set("quicksuggest.enabled", false);
-  await QuickSuggest.remoteSettings.readyPromise;
   Assert.ok(
-    !QuickSuggest.remoteSettings._test_rs,
+    !QuickSuggestRemoteSettings._test_rs,
     "Settings client is null after disabling quicksuggest.enabled"
   );
 
@@ -810,9 +863,8 @@ add_task(async function setupAndTeardown() {
   UrlbarPrefs.clear("suggest.quicksuggest.nonsponsored");
   UrlbarPrefs.clear("suggest.quicksuggest.sponsored");
   UrlbarPrefs.set("quicksuggest.enabled", true);
-  await QuickSuggest.remoteSettings.readyPromise;
   Assert.ok(
-    !QuickSuggest.remoteSettings._test_rs,
+    !QuickSuggestRemoteSettings._test_rs,
     "Settings client remains null at end of task"
   );
 });
@@ -938,6 +990,7 @@ add_task(async function dedupeAgainstURL_timestamps() {
     source: UrlbarUtils.RESULT_SOURCE.SEARCH,
     heuristic: false,
     payload: {
+      telemetryType: "adm_sponsored",
       originalUrl: TIMESTAMP_SUGGESTION_URL,
       qsSuggestion: TIMESTAMP_SEARCH_STRING,
       title: "Timestamp suggestion",
@@ -948,9 +1001,17 @@ add_task(async function dedupeAgainstURL_timestamps() {
       sponsoredIabCategory: "22 - Shopping",
       isSponsored: true,
       helpUrl: QuickSuggest.HELP_URL,
-      helpL10n: { id: "firefox-suggest-urlbar-learn-more" },
-      isBlockable: false,
-      blockL10n: { id: "firefox-suggest-urlbar-block" },
+      helpL10n: {
+        id: UrlbarPrefs.get("resultMenu")
+          ? "urlbar-result-menu-learn-more-about-firefox-suggest"
+          : "firefox-suggest-urlbar-learn-more",
+      },
+      isBlockable: UrlbarPrefs.get("quickSuggestBlockingEnabled"),
+      blockL10n: {
+        id: UrlbarPrefs.get("resultMenu")
+          ? "urlbar-result-menu-dismiss-firefox-suggest"
+          : "firefox-suggest-urlbar-block",
+      },
       source: "remote-settings",
     },
   };
@@ -1235,18 +1296,17 @@ add_task(async function block() {
 // the value of the `quickSuggestRemoteSettingsDataType` Nimbus variable.
 add_task(async function remoteSettingsDataType() {
   // `QuickSuggestTestUtils.ensureQuickSuggestInit()` stubs
-  // `QuickSuggest.remoteSettings._queueSettingsSync()`, which we want to test
+  // `QuickSuggestRemoteSettings._queueSettingsSync()`, which we want to test
   // below, so remove the stub by calling the cleanup function it returned.
   await cleanUpQuickSuggest();
 
-  // We need to spy on `QuickSuggest.remoteSettings.#rs.get()`, but `#rs` is
+  // We need to spy on `QuickSuggestRemoteSettings.#rs.get()`, but `#rs` is
   // created lazily. Set `suggest.quicksuggest.sponsored` to trigger its
   // creation.
   UrlbarPrefs.set("suggest.quicksuggest.sponsored", true);
-  await QuickSuggest.remoteSettings.readyPromise;
 
   let sandbox = sinon.createSandbox();
-  let spy = sandbox.spy(QuickSuggest.remoteSettings._test_rs, "get");
+  let spy = sandbox.spy(QuickSuggestRemoteSettings._test_rs, "get");
 
   for (let dataType of [undefined, "test-data-type"]) {
     // Set up a mock Nimbus rollout with the data type.
@@ -1256,10 +1316,9 @@ add_task(async function remoteSettingsDataType() {
     }
     let cleanUpNimbus = await UrlbarTestUtils.initNimbusFeature(value);
 
-    // Re-enable remote settings to trigger `remoteSettings.#rs.get()`.
-    await QuickSuggest.remoteSettings.enable(false);
-    await QuickSuggest.remoteSettings.enable(true);
-    await QuickSuggest.remoteSettings.readyPromise;
+    // Re-enable to trigger sync from remote settings.
+    UrlbarPrefs.set("quicksuggest.remoteSettings.enabled", false);
+    UrlbarPrefs.set("quicksuggest.remoteSettings.enabled", true);
 
     let expectedDataType = dataType || "data";
     Assert.ok(

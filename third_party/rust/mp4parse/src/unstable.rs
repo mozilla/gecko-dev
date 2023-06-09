@@ -106,7 +106,7 @@ impl<T: std::cmp::PartialEq> PartialEq<T> for CheckedInteger<T> {
 /// sample data offset (start and end), composition time in microseconds
 /// (start and end) and whether it is a sync sample
 #[repr(C)]
-#[derive(Default, Debug, PartialEq)]
+#[derive(Default, Debug, PartialEq, Eq)]
 pub struct Indice {
     /// The byte offset in the file where the indexed sample begins.
     pub start_offset: CheckedInteger<u64>,
@@ -146,7 +146,7 @@ pub fn create_sample_table(
     };
 
     let (stsc, stco, stsz, stts) = match (&track.stsc, &track.stco, &track.stsz, &track.stts) {
-        (&Some(ref a), &Some(ref b), &Some(ref c), &Some(ref d)) => (a, b, c, d),
+        (Some(a), Some(b), Some(c), Some(d)) => (a, b, c, d),
         _ => return None,
     };
 
@@ -328,7 +328,7 @@ impl<'a> Iterator for TimeOffsetIterator<'a> {
 impl<'a> TimeOffsetIterator<'a> {
     fn next_offset_time(&mut self) -> TrackScaledTime<i64> {
         match self.next() {
-            Some(v) => TrackScaledTime::<i64>(v as i64, self.track_id),
+            Some(v) => TrackScaledTime::<i64>(v, self.track_id),
             _ => TrackScaledTime::<i64>(0, self.track_id),
         }
     }
@@ -489,7 +489,7 @@ where
     })
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Microseconds<T>(pub T);
 
 /// Convert `time` in media's global (mvhd) timescale to microseconds,

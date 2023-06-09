@@ -17,6 +17,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   FileUtils: "resource://gre/modules/FileUtils.sys.mjs",
   JSONFile: "resource://gre/modules/JSONFile.sys.mjs",
+  KeyValueService: "resource://gre/modules/kvstore.sys.mjs",
 });
 
 XPCOMUtils.defineLazyModuleGetters(lazy, {
@@ -29,22 +30,22 @@ XPCOMUtils.defineLazyGetter(
   () => lazy.ExtensionParent.StartupCache
 );
 
-ChromeUtils.defineModuleGetter(
-  lazy,
-  "KeyValueService",
-  "resource://gre/modules/kvstore.jsm"
-);
-
 XPCOMUtils.defineLazyGetter(
   lazy,
   "Management",
   () => lazy.ExtensionParent.apiManager
 );
 
-var EXPORTED_SYMBOLS = ["ExtensionPermissions", "OriginControls"];
-
-// This is the old preference file pre-migration to rkv
-const FILE_NAME = "extension-preferences.json";
+var EXPORTED_SYMBOLS = [
+  "ExtensionPermissions",
+  "OriginControls",
+  // Constants exported for testing purpose.
+  "OLD_JSON_FILENAME",
+  "OLD_RKV_DIRNAME",
+  "RKV_DIRNAME",
+  "VERSION_KEY",
+  "VERSION_VALUE",
+];
 
 function emptyPermissions() {
   return { permissions: [], origins: [] };
@@ -52,10 +53,18 @@ function emptyPermissions() {
 
 const DEFAULT_VALUE = JSON.stringify(emptyPermissions());
 
-const VERSION_KEY = "_version";
-const VERSION_VALUE = 1;
-
 const KEY_PREFIX = "id-";
+
+// This is the old preference file pre-migration to rkv.
+const OLD_JSON_FILENAME = "extension-preferences.json";
+// This is the old path to the rkv store dir (which used to be shared with ExtensionScriptingStore).
+const OLD_RKV_DIRNAME = "extension-store";
+// This is the new path to the rkv store dir.
+const RKV_DIRNAME = "extension-store-permissions";
+
+const VERSION_KEY = "_version";
+
+const VERSION_VALUE = 1;
 
 // Bug 1646182: remove once we fully migrate to rkv
 let prefs;
@@ -72,7 +81,7 @@ class LegacyPermissionStore {
   async _init() {
     let path = PathUtils.join(
       Services.dirsvc.get("ProfD", Ci.nsIFile).path,
-      FILE_NAME
+      OLD_JSON_FILENAME
     );
 
     prefs = new lazy.JSONFile({ path });
@@ -134,8 +143,10 @@ class LegacyPermissionStore {
 }
 
 class PermissionStore {
+  _shouldMigrateFromOldKVStorePath = AppConstants.NIGHTLY_BUILD;
+
   async _init() {
-    const storePath = lazy.FileUtils.getDir("ProfD", ["extension-store"]).path;
+    const storePath = lazy.FileUtils.getDir("ProfD", [RKV_DIRNAME]).path;
     // Make sure the folder exists
     await IOUtils.makeDirectory(storePath, { ignoreExisting: true });
     this._store = await lazy.KeyValueService.getOrCreate(
@@ -143,7 +154,27 @@ class PermissionStore {
       "permissions"
     );
     if (!(await this._store.has(VERSION_KEY))) {
-      await this.maybeMigrateData();
+      // If _shouldMigrateFromOldKVStorePath is true (default only on Nightly channel
+      // where the rkv store has been enabled by default for a while), we need to check
+      // if we would need to import data from the old kvstore path (ProfD/extensions-store)
+      // first, and fallback to try to import from the JSONFile if there was no data in
+      // the old kvstore path.
+      // NOTE: _shouldMigrateFromOldKVStorePath is also explicitly set to true in unit tests
+      // that are meant to explicitly cover this path also when running on on non-Nightly channels.
+      if (this._shouldMigrateFromOldKVStorePath) {
+        // Try to import data from the old kvstore path (ProfD/extensions-store).
+        await this.maybeImportFromOldKVStorePath();
+        if (!(await this._store.has(VERSION_KEY))) {
+          // There was no data in the old kvstore path, migrate any data
+          // available from the LegacyPermissionStore JSONFile if any.
+          await this.maybeMigrateDataFromOldJSONFile();
+        }
+      } else {
+        // On non-Nightly channels, where LegacyPermissionStore was still the
+        // only backend ever enabled, try to import permissions data from the
+        // legacy JSONFile, if any data is available there.
+        await this.maybeMigrateDataFromOldJSONFile();
+      }
     }
   }
 
@@ -170,11 +201,11 @@ class PermissionStore {
     return data;
   }
 
-  async maybeMigrateData() {
+  async maybeMigrateDataFromOldJSONFile() {
     let migrationWasSuccessful = false;
     let oldStore = PathUtils.join(
       Services.dirsvc.get("ProfD", Ci.nsIFile).path,
-      FILE_NAME
+      OLD_JSON_FILENAME
     );
     try {
       await this.migrateFrom(oldStore);
@@ -189,6 +220,42 @@ class PermissionStore {
 
     if (migrationWasSuccessful) {
       IOUtils.remove(oldStore);
+    }
+  }
+
+  async maybeImportFromOldKVStorePath() {
+    try {
+      const oldStorePath = lazy.FileUtils.getDir("ProfD", [OLD_RKV_DIRNAME])
+        .path;
+      if (!(await IOUtils.exists(oldStorePath))) {
+        return;
+      }
+      const oldStore = await lazy.KeyValueService.getOrCreate(
+        oldStorePath,
+        "permissions"
+      );
+      const enumerator = await oldStore.enumerate();
+      const kvpairs = [];
+      while (enumerator.hasMoreElements()) {
+        const { key, value } = enumerator.getNext();
+        kvpairs.push([key, value]);
+      }
+
+      // NOTE: we don't add a VERSION_KEY entry explicitly here because
+      // if the database was not empty the VERSION_KEY is already set to
+      // 1 and will be copied into the new file as part of the pairs
+      // written below (along with the entries for the actual extensions
+      // permissions).
+      if (kvpairs.length) {
+        await this._store.writeMany(kvpairs);
+      }
+
+      // NOTE: the old rkv store path used to be shared with the
+      // ExtensionScriptingStore, and so we are not removing the old
+      // rkv store dir here (that is going to be left to a separate
+      // migration we will be adding to ExtensionScriptingStore).
+    } catch (err) {
+      Cu.reportError(err);
     }
   }
 
@@ -410,9 +477,17 @@ var ExtensionPermissions = {
   _useLegacyStorageBackend: false,
 
   // This is meant for tests only
-  async _uninit() {
-    await store.uninitForTest();
-    store = createStore(!this._useLegacyStorageBackend);
+  async _uninit({ recreateStore = true } = {}) {
+    await store?.uninitForTest();
+    store = null;
+    if (recreateStore) {
+      store = createStore(!this._useLegacyStorageBackend);
+    }
+  },
+
+  // This is meant for tests only
+  _getStore() {
+    return store;
   },
 
   // Convenience listener members for all permission changes.
@@ -426,24 +501,34 @@ var ExtensionPermissions = {
 };
 
 var OriginControls = {
+  allDomains: new MatchPattern("*://*/*"),
+
   /**
    * @typedef {object} OriginControlState
-   * @param {boolean} noAccess     no options, can never access host.
-   * @param {boolean} whenClicked  option to access host when clicked.
-   * @param {boolean} alwaysOn     option to always access this host.
-   * @param {boolean} allDomains   option to access to all domains.
-   * @param {boolean} hasAccess    extension currently has access to host.
+   * @param {boolean} noAccess        no options, can never access host.
+   * @param {boolean} whenClicked     option to access host when clicked.
+   * @param {boolean} alwaysOn        option to always access this host.
+   * @param {boolean} allDomains      option to access to all domains.
+   * @param {boolean} hasAccess       extension currently has access to host.
+   * @param {boolean} temporaryAccess extension has temporary access to the tab.
    */
 
   /**
-   * Get origin controls state for a given extension on a given host.
+   * Get origin controls state for a given extension on a given tab.
    *
    * @param {WebExtensionPolicy} policy
-   * @param {nsIURI} uri
+   * @param {NativeTab} nativeTab
    * @returns {OriginControlState} Extension origin controls for this host include:
    */
-  getState(policy, uri) {
-    let allDomains = new MatchPattern("*://*/*");
+  getState(policy, nativeTab) {
+    // Note: don't use the nativeTab directly because it's different on mobile.
+    let tab = policy?.extension?.tabManager.getWrapper(nativeTab);
+    let temporaryAccess = tab?.hasActiveTabPermission;
+    let uri = tab?.browser.currentURI;
+
+    if (!uri) {
+      return { noAccess: true };
+    }
 
     // activeTab and the resulting whenClicked state is only applicable for MV2
     // extensions with a browser action and MV3 extensions (with or without).
@@ -460,7 +545,7 @@ var OriginControls = {
     }
 
     if (
-      !allDomains.matches(uri) ||
+      !this.allDomains.matches(uri) ||
       WebExtensionPolicy.isRestrictedURI(uri) ||
       (!couldRequest && !hasAccess && !activeTab)
     ) {
@@ -468,15 +553,16 @@ var OriginControls = {
     }
 
     if (!couldRequest && !hasAccess && activeTab) {
-      return { whenClicked: true };
+      return { whenClicked: true, temporaryAccess };
     }
-    if (policy.allowedOrigins.subsumes(allDomains)) {
+    if (policy.allowedOrigins.subsumes(this.allDomains)) {
       return { allDomains: true, hasAccess };
     }
 
     return {
       whenClicked: true,
       alwaysOn: true,
+      temporaryAccess,
       hasAccess,
     };
   },
@@ -484,8 +570,8 @@ var OriginControls = {
   // Whether to show the attention indicator for extension on current tab.
   getAttention(policy, window) {
     if (policy?.manifestVersion >= 3) {
-      let state = this.getState(policy, window.gBrowser.currentURI);
-      return !!state.whenClicked && !state.hasAccess;
+      let state = this.getState(policy, window.gBrowser.selectedTab);
+      return !!state.whenClicked && !state.hasAccess && !state.temporaryAccess;
     }
     return false;
   },
@@ -524,7 +610,7 @@ var OriginControls = {
    *
    * @param {object} params
    * @param {WebExtensionPolicy} params.policy an extension's policy
-   * @param {nsIURI} params.uri                an URI
+   * @param {NativeTab} params.tab             the current tab
    * @param {boolean} params.isAction          this should be true for
    *                                           extensions with a browser
    *                                           action, false otherwise.
@@ -535,10 +621,8 @@ var OriginControls = {
    * @returns {FluentIdInfo?} An object with origin controls message IDs or
    *                        `null` when there is no message for the state.
    */
-  getStateMessageIDs({ policy, uri, isAction = false, hasPopup = false }) {
-    const state = this.getState(policy, uri);
-
-    // TODO: add support for temporary access.
+  getStateMessageIDs({ policy, tab, isAction = false, hasPopup = false }) {
+    const state = this.getState(policy, tab);
 
     const onHoverForAction = hasPopup
       ? "origin-controls-state-runnable-hover-open"
@@ -560,7 +644,9 @@ var OriginControls = {
 
     if (state.whenClicked) {
       return {
-        default: "origin-controls-state-when-clicked",
+        default: state.temporaryAccess
+          ? "origin-controls-state-temporary-access"
+          : "origin-controls-state-when-clicked",
         onHover: "origin-controls-state-hover-run-visit-only",
       };
     }

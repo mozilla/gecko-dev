@@ -40,8 +40,8 @@
     8.5. The stats selection algorithm
       4.  If selector is an RTCRtpReceiver, gather stats for and add the following objects
           to result:
-        - All RTCInboundRTPStreamStats objects corresponding to selector.
-        - All stats objects referenced directly or indirectly by the RTCInboundRTPStreamStats
+        - All RTCInboundRtpStreamStats objects corresponding to selector.
+        - All stats objects referenced directly or indirectly by the RTCInboundRtpStreamStats
           added.
    */
 
@@ -136,7 +136,7 @@
     exchangeIceCandidates(caller, callee);
     exchangeIceCandidates(callee, caller);
     await exchangeOfferAnswer(caller, callee);
-    await waitForIceStateChange(caller, ['checking']);
+    await waitForIceStateChange(callee, ['connected', 'completed']);
     const receiver = callee.getReceivers()[0];
     const statsReport = await receiver.getStats();
     assert_stats_report_has_stats(statsReport, ['candidate-pair', 'local-candidate', 'remote-candidate']);

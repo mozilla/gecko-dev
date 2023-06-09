@@ -61,7 +61,7 @@ static const uint32_t INT64_PIECES = sizeof(int64_t) / sizeof(uintptr_t);
 
 // Represents storage for an operand. For constants, the pointer is tagged
 // with a single bit, and the untagged pointer is a pointer to a Value.
-class LAllocation : public TempObject {
+class LAllocation {
   uintptr_t bits_;
 
   // 3 bits gives us enough for an interesting set of Kinds and also fits
@@ -552,12 +552,18 @@ class LDefinition {
   Type type() const { return (Type)((bits_ >> TYPE_SHIFT) & TYPE_MASK); }
 
   static bool isFloatRegCompatible(Type type, FloatRegister reg) {
+#ifdef JS_CODEGEN_RISCV64
+    if (type == FLOAT32 || type == DOUBLE) {
+      return reg.isSingle() || reg.isDouble();
+    }
+#else
     if (type == FLOAT32) {
       return reg.isSingle();
     }
     if (type == DOUBLE) {
       return reg.isDouble();
     }
+#endif
     MOZ_ASSERT(type == SIMD128);
     return reg.isSimd128();
   }
@@ -1931,6 +1937,8 @@ AnyRegister LAllocation::toRegister() const {
 #  include "jit/arm64/LIR-arm64.h"
 #elif defined(JS_CODEGEN_LOONG64)
 #  include "jit/loong64/LIR-loong64.h"
+#elif defined(JS_CODEGEN_RISCV64)
+#  include "jit/riscv64/LIR-riscv64.h"
 #elif defined(JS_CODEGEN_MIPS32) || defined(JS_CODEGEN_MIPS64)
 #  if defined(JS_CODEGEN_MIPS32)
 #    include "jit/mips32/LIR-mips32.h"

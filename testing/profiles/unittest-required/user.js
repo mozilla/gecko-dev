@@ -121,6 +121,7 @@ user_pref("extensions.installDistroAddons", false);
 // Disable Screenshots by default for now
 user_pref("extensions.screenshots.disabled", true);
 user_pref("extensions.systemAddon.update.url", "http://{server}/dummy-system-addons.xml");
+user_pref("extensions.systemAddon.update.enabled", false);
 user_pref("extensions.update.background.url", "http://{server}/extensions-dummy/updateBackgroundURL");
 // Point update checks to the local testing server for fast failures
 user_pref("extensions.update.url", "http://{server}/extensions-dummy/updateURL");
@@ -145,9 +146,6 @@ user_pref("gfx.logging.level", 1);
 user_pref("identity.fxaccounts.auth.uri", "https://{server}/fxa-dummy/");
 // Ditto for all the FxA content root URI.
 user_pref("identity.fxaccounts.remote.root", "https://{server}/");
-// Avoid idle-daily notifications, to avoid expensive operations that may
-// cause unexpected test timeouts.
-user_pref("idle.lastDailyNotification", -1);
 // Make sure CSS error reporting is enabled for tests
 user_pref("layout.css.report_errors", true);
 // Disable spammy layout warnings because they pollute test logs

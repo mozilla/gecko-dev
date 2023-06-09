@@ -1,7 +1,7 @@
 "use strict";
 
-const { PromptTestUtils } = ChromeUtils.import(
-  "resource://testing-common/PromptTestUtils.jsm"
+const { PromptTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/PromptTestUtils.sys.mjs"
 );
 
 const FOLDER = getRootDirectory(gTestPath).replace(
@@ -19,7 +19,7 @@ add_task(async function() {
     true,
     `${FOLDER}post.html`
   );
-  BrowserTestUtils.loadURI(tab.linkedBrowser, `${FOLDER}post.html`);
+  BrowserTestUtils.loadURIString(tab.linkedBrowser, `${FOLDER}post.html`);
   await browserLoadedPromise;
 
   let finalLoadPromise = BrowserTestUtils.browserLoaded(

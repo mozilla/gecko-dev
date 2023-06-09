@@ -11,6 +11,8 @@
 #include "TimeUnits.h"
 #include "mozilla/ProfilerLabels.h"
 #include "mozilla/ProfilerMarkerTypes.h"
+#include "WMF.h"
+#include "WMFUtils.h"
 
 namespace mozilla {
 
@@ -94,6 +96,10 @@ nsCString MFMediaEngineStreamWrapper::GetDescriptionName() const {
   return mStream ? mStream->GetDescriptionName() : nsLiteralCString("none");
 }
 
+nsCString MFMediaEngineStreamWrapper::GetCodecName() const {
+  return mStream ? mStream->GetCodecName() : nsLiteralCString("none");
+}
+
 MediaDataDecoder::ConversionRequired
 MFMediaEngineStreamWrapper::NeedsConversion() const {
   return mStream ? mStream->NeedsConversion()
@@ -134,8 +140,9 @@ HRESULT MFMediaEngineStream::GenerateStreamDescriptor(
       &mStreamDescriptor));
   RETURN_IF_FAILED(
       mStreamDescriptor->GetStreamIdentifier(&mStreamDescriptorId));
-
-  // TODO : set MF_SD_PROTECTED on descriptor when it's encrypted
+  if (IsEncrypted()) {
+    RETURN_IF_FAILED(mStreamDescriptor->SetUINT32(MF_SD_PROTECTED, 1));
+  }
   return S_OK;
 }
 
@@ -149,12 +156,13 @@ HRESULT MFMediaEngineStream::Start(const PROPVARIANT* aPosition) {
     return MF_E_SHUTDOWN;
   }
   SLOG("Start");
+  const bool isFromCurrentPosition = aPosition->vt == VT_EMPTY;
   RETURN_IF_FAILED(QueueEvent(MEStreamStarted, GUID_NULL, S_OK, aPosition));
   MOZ_ASSERT(mTaskQueue);
   Unused << mTaskQueue->Dispatch(NS_NewRunnableFunction(
-      "MFMediaEngineStream::Start", [self = RefPtr{this}, aPosition, this]() {
-        if (const bool isFromCurrentPosition = aPosition->vt == VT_EMPTY;
-            !isFromCurrentPosition && IsEnded()) {
+      "MFMediaEngineStream::Start",
+      [self = RefPtr{this}, isFromCurrentPosition, this]() {
+        if (!isFromCurrentPosition && IsEnded()) {
           SLOG("Stream restarts again from a new position, reset EOS");
           mReceivedEOS = false;
         }

@@ -5,7 +5,7 @@
 "use strict";
 
 module.exports = {
-  extends: ["plugin:mozilla/require-jsdoc", "plugin:mozilla/valid-jsdoc"],
+  extends: ["plugin:mozilla/require-jsdoc"],
   rules: {
     "block-scoped-var": "error",
     complexity: ["error", { max: 22 }],
@@ -28,7 +28,7 @@ module.exports = {
 
   overrides: [
     {
-      files: "tests/unit/head*.js",
+      files: ["tests/browser/head.js", "tests/unit/head*.js"],
       rules: {
         "no-unused-vars": [
           "error",

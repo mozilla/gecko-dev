@@ -16,16 +16,22 @@
 #include "nsReadableUtils.h"
 #include "nsUnicharUtils.h"
 #include "prtime.h"
+#include "mozIStorageRow.h"
+#include "mozIStorageResultSet.h"
 #include "nsQueryObject.h"
 #include "mozilla/dom/PlacesObservers.h"
 #include "mozilla/dom/PlacesVisit.h"
 #include "mozilla/dom/PlacesVisitRemoved.h"
 #include "mozilla/dom/PlacesVisitTitle.h"
+#include "mozilla/dom/PlacesBookmarkAddition.h"
+#include "mozilla/dom/PlacesBookmarkRemoved.h"
 #include "mozilla/dom/PlacesBookmarkMoved.h"
+#include "mozilla/dom/PlacesBookmarkKeyword.h"
 #include "mozilla/dom/PlacesBookmarkTags.h"
 #include "mozilla/dom/PlacesBookmarkTime.h"
 #include "mozilla/dom/PlacesBookmarkTitle.h"
 #include "mozilla/dom/PlacesBookmarkUrl.h"
+#include "mozilla/dom/PlacesFavicon.h"
 
 #include "nsCycleCollectionParticipant.h"
 
@@ -70,6 +76,7 @@
 #define MAX_PAGE_REMOVES_BEFORE_REFRESH 10
 
 using namespace mozilla;
+using namespace mozilla::dom;
 using namespace mozilla::places;
 
 namespace {
@@ -531,6 +538,30 @@ bool nsNavHistoryContainerResultNode::AreChildrenVisible() {
   }
 
   return true;
+}
+
+nsresult nsNavHistoryContainerResultNode::OnVisitsRemoved(nsIURI* aURI) {
+  if (!AreChildrenVisible()) {
+    return NS_OK;
+  }
+
+  nsNavHistoryResult* result = GetResult();
+  NS_ENSURE_STATE(result);
+  if (result->CanSkipHistoryDetailsNotifications()) {
+    return NS_OK;
+  }
+
+  nsAutoCString spec;
+  nsresult rv = aURI->GetSpec(spec);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMArray<nsNavHistoryResultNode> nodes;
+  FindChildrenByURI(spec, &nodes);
+  for (int32_t i = 0; i < nodes.Count(); i++) {
+    nodes[i]->OnVisitsRemoved();
+  }
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -1215,6 +1246,25 @@ nsNavHistoryResultNode* nsNavHistoryContainerResultNode::FindChildByGuid(
         (mChildren[i]->IsFolder() &&
          mChildren[i]->GetAsFolder()->mTargetFolderGuid == guid)) {
       *nodeIndex = i;
+      return mChildren[i];
+    }
+  }
+  return nullptr;
+}
+
+/**
+ * Searches this folder for a node with the given id/target-folder-id.
+ *
+ * @return the node if found, null otherwise.
+ * @note Does not addref the node!
+ */
+nsNavHistoryResultNode* nsNavHistoryContainerResultNode::FindChildById(
+    int64_t aItemId, uint32_t* aNodeIndex) {
+  for (int32_t i = 0; i < mChildren.Count(); ++i) {
+    if (mChildren[i]->mItemId == aItemId ||
+        (mChildren[i]->IsFolder() &&
+         mChildren[i]->GetAsFolder()->mTargetFolderItemId == aItemId)) {
+      *aNodeIndex = i;
       return mChildren[i];
     }
   }
@@ -1994,12 +2044,6 @@ void nsNavHistoryQueryResultNode::RecursiveSort(SortComparator aComparator) {
   }
 }
 
-NS_IMETHODIMP
-nsNavHistoryQueryResultNode::GetSkipTags(bool* aSkipTags) {
-  *aSkipTags = false;
-  return NS_OK;
-}
-
 nsresult nsNavHistoryQueryResultNode::OnBeginUpdateBatch() { return NS_OK; }
 
 nsresult nsNavHistoryQueryResultNode::OnEndUpdateBatch() {
@@ -2446,51 +2490,6 @@ nsresult nsNavHistoryQueryResultNode::OnItemRemoved(
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsNavHistoryQueryResultNode::OnItemChanged(
-    int64_t aItemId, const nsACString& aProperty, bool aIsAnnotationProperty,
-    const nsACString& aNewValue, PRTime aLastModified, uint16_t aItemType,
-    int64_t aParentId, const nsACString& aGUID, const nsACString& aParentGUID,
-    const nsACString& aOldValue, uint16_t aSource) {
-  if (aItemType != nsINavBookmarksService::TYPE_BOOKMARK) {
-    // No separators or folders in queries.
-    return NS_OK;
-  }
-
-  // Update ourselves first.
-  nsresult rv = nsNavHistoryResultNode::OnItemChanged(
-      aItemId, aProperty, aIsAnnotationProperty, aNewValue, aLastModified,
-      aItemType, aParentId, aGUID, aParentGUID, aOldValue, aSource);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  // Did our uri change?
-  if (aItemId == mItemId && aProperty.EqualsLiteral("uri")) {
-    nsNavHistory* history = nsNavHistory::GetHistoryService();
-    NS_ENSURE_TRUE(history, NS_ERROR_OUT_OF_MEMORY);
-    nsCOMPtr<nsINavHistoryQuery> query;
-    nsCOMPtr<nsINavHistoryQueryOptions> options;
-    rv = history->QueryStringToQuery(mURI, getter_AddRefs(query),
-                                     getter_AddRefs(options));
-    NS_ENSURE_SUCCESS(rv, rv);
-    mQuery = do_QueryObject(query);
-    NS_ENSURE_STATE(mQuery);
-    mOptions = do_QueryObject(options);
-    NS_ENSURE_STATE(mOptions);
-    rv = mOptions->Clone(getter_AddRefs(mOriginalOptions));
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  // History observers should not get OnItemChanged but should get the
-  // corresponding history notifications instead.
-  // For bookmark queries, "all bookmark" observers should get OnItemChanged.
-  // For example, when a title of a bookmark changes, we want that to refresh.
-  if (mLiveUpdate == QUERYUPDATE_COMPLEX_WITH_BOOKMARKS) {
-    return Refresh();
-  }
-
-  return NS_OK;
-}
-
 nsresult nsNavHistoryQueryResultNode::OnItemMoved(
     int64_t aFolder, int32_t aOldIndex, int32_t aNewIndex, uint16_t aItemType,
     const nsACString& aGUID, const nsACString& aOldParentGUID,
@@ -2556,30 +2555,36 @@ nsresult nsNavHistoryQueryResultNode::OnItemUrlChanged(int64_t aItemId,
                                                        const nsACString& aGUID,
                                                        const nsACString& aURL,
                                                        PRTime aLastModified) {
-  if (aItemId != mItemId) {
-    return NS_OK;
+  if (aItemId == mItemId) {
+    nsresult rv = nsNavHistoryResultNode::OnItemUrlChanged(aItemId, aGUID, aURL,
+                                                           aLastModified);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsNavHistory* history = nsNavHistory::GetHistoryService();
+    NS_ENSURE_TRUE(history, NS_ERROR_OUT_OF_MEMORY);
+    nsCOMPtr<nsINavHistoryQuery> query;
+    nsCOMPtr<nsINavHistoryQueryOptions> options;
+    rv = history->QueryStringToQuery(mURI, getter_AddRefs(query),
+                                     getter_AddRefs(options));
+    NS_ENSURE_SUCCESS(rv, rv);
+    mQuery = do_QueryObject(query);
+    NS_ENSURE_STATE(mQuery);
+    mOptions = do_QueryObject(options);
+    NS_ENSURE_STATE(mOptions);
+    rv = mOptions->Clone(getter_AddRefs(mOriginalOptions));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    return Refresh();
   }
-
-  nsresult rv = nsNavHistoryResultNode::OnItemUrlChanged(aItemId, aGUID, aURL,
-                                                         aLastModified);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsNavHistory* history = nsNavHistory::GetHistoryService();
-  NS_ENSURE_TRUE(history, NS_ERROR_OUT_OF_MEMORY);
-  nsCOMPtr<nsINavHistoryQuery> query;
-  nsCOMPtr<nsINavHistoryQueryOptions> options;
-  rv = history->QueryStringToQuery(mURI, getter_AddRefs(query),
-                                   getter_AddRefs(options));
-  NS_ENSURE_SUCCESS(rv, rv);
-  mQuery = do_QueryObject(query);
-  NS_ENSURE_STATE(mQuery);
-  mOptions = do_QueryObject(options);
-  NS_ENSURE_STATE(mOptions);
-  rv = mOptions->Clone(getter_AddRefs(mOriginalOptions));
-  NS_ENSURE_SUCCESS(rv, rv);
 
   if (mLiveUpdate == QUERYUPDATE_COMPLEX_WITH_BOOKMARKS) {
     return Refresh();
+  }
+
+  uint32_t index;
+  nsNavHistoryResultNode* node = FindChildById(aItemId, &index);
+  if (node) {
+    return node->OnItemUrlChanged(aItemId, aGUID, aURL, aLastModified);
   }
 
   return NS_OK;
@@ -3019,39 +3024,14 @@ void nsNavHistoryFolderResultNode::ReindexRange(int32_t aStartIndex,
   }
 }
 
-/**
- * Searches this folder for a node with the given id/target-folder-id.
- *
- * @return the node if found, null otherwise.
- * @note Does not addref the node!
- */
-nsNavHistoryResultNode* nsNavHistoryFolderResultNode::FindChildById(
-    int64_t aItemId, uint32_t* aNodeIndex) {
-  for (int32_t i = 0; i < mChildren.Count(); ++i) {
-    if (mChildren[i]->mItemId == aItemId ||
-        (mChildren[i]->IsFolder() &&
-         mChildren[i]->GetAsFolder()->mTargetFolderItemId == aItemId)) {
-      *aNodeIndex = i;
-      return mChildren[i];
-    }
-  }
-  return nullptr;
-}
-
-// Used by nsNavHistoryFolderResultNode's nsINavBookmarkObserver methods below.
-// If the container is notified of a bookmark event while asynchronous execution
-// is pending, this restarts it and returns.
+// Used by nsNavHistoryFolderResultNode's methods below. If the container is
+// notified of a bookmark event while asynchronous execution is pending, this
+// restarts it and returns.
 #define RESTART_AND_RETURN_IF_ASYNC_PENDING() \
   if (mAsyncPendingStmt) {                    \
     CancelAsyncOpen(true);                    \
     return NS_OK;                             \
   }
-
-NS_IMETHODIMP
-nsNavHistoryFolderResultNode::GetSkipTags(bool* aSkipTags) {
-  *aSkipTags = false;
-  return NS_OK;
-}
 
 nsresult nsNavHistoryFolderResultNode::OnBeginUpdateBatch() { return NS_OK; }
 
@@ -3223,6 +3203,22 @@ nsresult nsNavHistoryFolderResultNode::OnItemRemoved(
   return RemoveChildAt(index);
 }
 
+nsresult nsNavHistoryResultNode::OnItemKeywordChanged(
+    int64_t aItemId, const nsACString& aKeyword) {
+  if (aItemId != mItemId) {
+    return NS_OK;
+  }
+
+  bool shouldNotify = !mParent || mParent->AreChildrenVisible();
+  if (shouldNotify) {
+    nsNavHistoryResult* result = GetResult();
+    NS_ENSURE_STATE(result);
+    NOTIFY_RESULT_OBSERVERS(result, NodeKeywordChanged(this, aKeyword));
+  }
+
+  return NS_OK;
+}
+
 nsresult nsNavHistoryResultNode::OnItemTagsChanged(int64_t aItemId,
                                                    const nsAString& aURL) {
   if (aItemId != mItemId) {
@@ -3329,59 +3325,16 @@ nsresult nsNavHistoryResultNode::OnItemUrlChanged(int64_t aItemId,
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsNavHistoryResultNode::OnItemChanged(
-    int64_t aItemId, const nsACString& aProperty, bool aIsAnnotationProperty,
-    const nsACString& aNewValue, PRTime aLastModified, uint16_t aItemType,
-    int64_t aParentId, const nsACString& aGUID, const nsACString& aParentGUID,
-    const nsACString& aOldValue, uint16_t aSource) {
-  if (aItemId != mItemId) {
-    return NS_OK;
-  }
-
-  mLastModified = aLastModified;
+nsresult nsNavHistoryResultNode::OnVisitsRemoved() {
+  PRTime oldTime = mTime;
+  mTime = 0;
 
   nsNavHistoryResult* result = GetResult();
   NS_ENSURE_STATE(result);
-
-  bool shouldNotify = !mParent || mParent->AreChildrenVisible();
-
-  if (aProperty.EqualsLiteral("cleartime")) {
-    PRTime oldTime = mTime;
-    mTime = 0;
-    if (shouldNotify && !result->CanSkipHistoryDetailsNotifications()) {
-      NOTIFY_RESULT_OBSERVERS(
-          result, NodeHistoryDetailsChanged(this, oldTime, mAccessCount));
-    }
-  } else if (aProperty.EqualsLiteral("keyword")) {
-    if (shouldNotify)
-      NOTIFY_RESULT_OBSERVERS(result, NodeKeywordChanged(this, aNewValue));
-  } else
-    MOZ_ASSERT_UNREACHABLE("Unknown bookmark property changing.");
-
-  if (!mParent) return NS_OK;
-
-  // DO NOT OPTIMIZE THIS TO CHECK aProperty
-  // The sorting methods fall back to each other so we need to re-sort the
-  // result even if it's not set to sort by the given property.
-  int32_t ourIndex = mParent->FindChild(this);
-  NS_ASSERTION(ourIndex >= 0, "Could not find self in parent");
-  if (ourIndex >= 0) mParent->EnsureItemPosition(ourIndex);
+  NOTIFY_RESULT_OBSERVERS(
+      result, NodeHistoryDetailsChanged(this, oldTime, mAccessCount));
 
   return NS_OK;
-}
-
-NS_IMETHODIMP
-nsNavHistoryFolderResultNode::OnItemChanged(
-    int64_t aItemId, const nsACString& aProperty, bool aIsAnnotationProperty,
-    const nsACString& aNewValue, PRTime aLastModified, uint16_t aItemType,
-    int64_t aParentId, const nsACString& aGUID, const nsACString& aParentGUID,
-    const nsACString& aOldValue, uint16_t aSource) {
-  RESTART_AND_RETURN_IF_ASYNC_PENDING();
-
-  return nsNavHistoryResultNode::OnItemChanged(
-      aItemId, aProperty, aIsAnnotationProperty, aNewValue, aLastModified,
-      aItemType, aParentId, aGUID, aParentGUID, aOldValue, aSource);
 }
 
 /**
@@ -3584,7 +3537,6 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsNavHistoryResult)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsINavHistoryResult)
   NS_INTERFACE_MAP_STATIC_AMBIGUOUS(nsNavHistoryResult)
   NS_INTERFACE_MAP_ENTRY(nsINavHistoryResult)
-  NS_INTERFACE_MAP_ENTRY(nsINavBookmarkObserver)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
 NS_INTERFACE_MAP_END
 
@@ -3625,21 +3577,18 @@ nsNavHistoryResult::~nsNavHistoryResult() {
 }
 
 void nsNavHistoryResult::StopObserving() {
-  AutoTArray<PlacesEventType, 11> events;
+  AutoTArray<PlacesEventType, 12> events;
   events.AppendElement(PlacesEventType::Favicon_changed);
   if (mIsBookmarksObserver) {
-    nsNavBookmarks* bookmarks = nsNavBookmarks::GetBookmarksService();
-    if (bookmarks) {
-      bookmarks->RemoveObserver(this);
-      mIsBookmarksObserver = false;
-    }
     events.AppendElement(PlacesEventType::Bookmark_added);
     events.AppendElement(PlacesEventType::Bookmark_removed);
     events.AppendElement(PlacesEventType::Bookmark_moved);
+    events.AppendElement(PlacesEventType::Bookmark_keyword_changed);
     events.AppendElement(PlacesEventType::Bookmark_tags_changed);
     events.AppendElement(PlacesEventType::Bookmark_time_changed);
     events.AppendElement(PlacesEventType::Bookmark_title_changed);
     events.AppendElement(PlacesEventType::Bookmark_url_changed);
+    mIsBookmarksObserver = false;
   }
   if (mIsMobilePrefObserver) {
     Preferences::UnregisterCallback(OnMobilePrefChangedCallback,
@@ -3754,16 +3703,11 @@ void nsNavHistoryResult::EnsureIsObservingBookmarks() {
   if (mIsBookmarksObserver) {
     return;
   }
-  nsNavBookmarks* bookmarks = nsNavBookmarks::GetBookmarksService();
-  if (!bookmarks) {
-    MOZ_ASSERT_UNREACHABLE("Can't create bookmark service");
-    return;
-  }
-  bookmarks->AddObserver(this, true);
-  AutoTArray<PlacesEventType, 8> events;
+  AutoTArray<PlacesEventType, 9> events;
   events.AppendElement(PlacesEventType::Bookmark_added);
   events.AppendElement(PlacesEventType::Bookmark_removed);
   events.AppendElement(PlacesEventType::Bookmark_moved);
+  events.AppendElement(PlacesEventType::Bookmark_keyword_changed);
   events.AppendElement(PlacesEventType::Bookmark_tags_changed);
   events.AppendElement(PlacesEventType::Bookmark_time_changed);
   events.AppendElement(PlacesEventType::Bookmark_title_changed);
@@ -3905,35 +3849,35 @@ nsNavHistoryResult::RemoveObserver(nsINavHistoryResultObserver* aObserver) {
 }
 
 bool nsNavHistoryResult::UpdateHistoryDetailsObservers() {
-  bool observersWantHistoryDetails = false;
-  // One observer set to true is enough to set observersWantHistoryDetails.
-  for (uint32_t i = 0; i < mObservers.Length() && !observersWantHistoryDetails;
-       ++i) {
+  bool skipHistoryDetailsNotifications = false;
+  // One observer set to true is enough to set mObserversWantHistoryDetails.
+  for (uint32_t i = 0;
+       i < mObservers.Length() && !skipHistoryDetailsNotifications; ++i) {
     const nsCOMPtr<nsINavHistoryResultObserver>& entry =
         mObservers.ElementAt(i).GetValue();
     if (entry) {
-      // If the observer doesn't implement the attribute, we assume true.
-      bool observe;
-      observersWantHistoryDetails =
-          NS_FAILED(entry->GetObserveHistoryDetails(&observe)) || observe;
+      entry->GetSkipHistoryDetailsNotifications(
+          &skipHistoryDetailsNotifications);
     }
   }
 
-  mObserversWantHistoryDetails = observersWantHistoryDetails;
+  mObserversWantHistoryDetails = !skipHistoryDetailsNotifications;
   // If one observer wants history details we may have to add the listener.
   if (!CanSkipHistoryDetailsNotifications()) {
     if (!mIsHistoryDetailsObserver) {
-      AutoTArray<PlacesEventType, 2> events;
+      AutoTArray<PlacesEventType, 3> events;
       events.AppendElement(PlacesEventType::Page_visited);
       events.AppendElement(PlacesEventType::Page_title_changed);
+      events.AppendElement(PlacesEventType::Page_removed);
       PlacesObservers::AddListener(events, this);
       mIsHistoryDetailsObserver = true;
       return true;
     }
   } else {
-    AutoTArray<PlacesEventType, 2> events;
+    AutoTArray<PlacesEventType, 3> events;
     events.AppendElement(PlacesEventType::Page_visited);
     events.AppendElement(PlacesEventType::Page_title_changed);
+    events.AppendElement(PlacesEventType::Page_removed);
     PlacesObservers::RemoveListener(events, this);
     mIsHistoryDetailsObserver = false;
   }
@@ -3971,8 +3915,6 @@ void nsNavHistoryResult::requestRefresh(
       ContainerObserverList::NoIndex)
     mRefreshParticipants.AppendElement(aContainer);
 }
-
-// nsINavBookmarkObserver implementation
 
 // Here, it is important that we create a COPY of the observer array. Some
 // observers will requery themselves, which may cause the observer array to
@@ -4045,12 +3987,6 @@ void nsNavHistoryResult::requestRefresh(
   PR_END_MACRO
 
 NS_IMETHODIMP
-nsNavHistoryResult::GetSkipTags(bool* aSkipTags) {
-  *aSkipTags = false;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 nsNavHistoryResult::OnBeginUpdateBatch() {
   // Since we could be observing both history and bookmarks, it's possible both
   // notify the batch.  We can safely ignore nested calls.
@@ -4079,20 +4015,6 @@ nsNavHistoryResult::OnEndUpdateBatch() {
     NOTIFY_RESULT_OBSERVERS(this, Batching(false));
   }
 
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsNavHistoryResult::OnItemChanged(
-    int64_t aItemId, const nsACString& aProperty, bool aIsAnnotationProperty,
-    const nsACString& aNewValue, PRTime aLastModified, uint16_t aItemType,
-    int64_t aParentId, const nsACString& aGUID, const nsACString& aParentGUID,
-    const nsACString& aOldValue, uint16_t aSource) {
-  ENUMERATE_BOOKMARK_CHANGED_OBSERVERS(
-      aParentGUID, aItemId,
-      OnItemChanged(aItemId, aProperty, aIsAnnotationProperty, aNewValue,
-                    aLastModified, aItemType, aParentId, aGUID, aParentGUID,
-                    aOldValue, aSource));
   return NS_OK;
 }
 
@@ -4351,13 +4273,23 @@ void nsNavHistoryResult::HandlePlacesEvent(const PlacesEventSequence& aEvents) {
                         item->mParentGuid, item->mSource, url));
         break;
       }
+      case PlacesEventType::Bookmark_keyword_changed: {
+        const dom::PlacesBookmarkKeyword* keywordEvent =
+            event->AsPlacesBookmarkKeyword();
+        if (NS_WARN_IF(!keywordEvent)) {
+          continue;
+        }
+        ENUMERATE_BOOKMARK_CHANGED_OBSERVERS(
+            keywordEvent->mParentGuid, keywordEvent->mId,
+            OnItemKeywordChanged(keywordEvent->mId, keywordEvent->mKeyword));
+        break;
+      }
       case PlacesEventType::Bookmark_tags_changed: {
         const dom::PlacesBookmarkTags* tagsEvent =
             event->AsPlacesBookmarkTags();
         if (NS_WARN_IF(!tagsEvent)) {
           continue;
         }
-
         ENUMERATE_BOOKMARK_CHANGED_OBSERVERS(
             tagsEvent->mParentGuid, tagsEvent->mId,
             OnItemTagsChanged(tagsEvent->mId, tagsEvent->mUrl));
@@ -4369,7 +4301,6 @@ void nsNavHistoryResult::HandlePlacesEvent(const PlacesEventSequence& aEvents) {
         if (NS_WARN_IF(!timeEvent)) {
           continue;
         }
-
         ENUMERATE_BOOKMARK_CHANGED_OBSERVERS(
             timeEvent->mParentGuid, timeEvent->mId,
             OnItemTimeChanged(timeEvent->mId, timeEvent->mGuid,
@@ -4401,7 +4332,7 @@ void nsNavHistoryResult::HandlePlacesEvent(const PlacesEventSequence& aEvents) {
         ENUMERATE_BOOKMARK_CHANGED_OBSERVERS(
             urlEvent->mParentGuid, urlEvent->mId,
             OnItemUrlChanged(urlEvent->mId, urlEvent->mGuid, url,
-                             urlEvent->mLastModified));
+                             urlEvent->mLastModified * 1000));
         break;
       }
       case PlacesEventType::Page_title_changed: {
@@ -4444,6 +4375,10 @@ void nsNavHistoryResult::HandlePlacesEvent(const PlacesEventSequence& aEvents) {
               OnPageRemovedVisits(uri, removeEvent->mIsPartialVisistsRemoval,
                                   removeEvent->mPageGuid, removeEvent->mReason,
                                   removeEvent->mTransitionType));
+
+          if (!removeEvent->mIsPartialVisistsRemoval && mRootNode) {
+            mRootNode->OnVisitsRemoved(uri);
+          }
         }
 
         break;

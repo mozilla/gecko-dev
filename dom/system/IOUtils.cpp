@@ -35,6 +35,7 @@
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/WorkerCommon.h"
 #include "mozilla/dom/WorkerRef.h"
+#include "mozilla/ipc/LaunchError.h"
 #include "PathUtils.h"
 #include "nsCOMPtr.h"
 #include "nsError.h"
@@ -665,8 +666,9 @@ already_AddRefed<Promise> IOUtils::Remove(GlobalObject& aGlobal,
         DispatchAndResolve<Ok>(
             state->mEventQueue, promise,
             [file = std::move(file), ignoreAbsent = aOptions.mIgnoreAbsent,
-             recursive = aOptions.mRecursive]() {
-              return RemoveSync(file, ignoreAbsent, recursive);
+             recursive = aOptions.mRecursive,
+             retryReadonly = aOptions.mRetryReadonly]() {
+              return RemoveSync(file, ignoreAbsent, recursive, retryReadonly);
             });
       });
 }
@@ -1613,8 +1615,12 @@ Result<Ok, IOUtils::IOError> IOUtils::CopyOrMoveSync(CopyOrMoveFn aMethod,
 /* static */
 Result<Ok, IOUtils::IOError> IOUtils::RemoveSync(nsIFile* aFile,
                                                  bool aIgnoreAbsent,
-                                                 bool aRecursive) {
+                                                 bool aRecursive,
+                                                 bool aRetryReadonly) {
   MOZ_ASSERT(!NS_IsMainThread());
+
+  // Prevent an unused variable warning.
+  (void)aRetryReadonly;
 
   nsresult rv = aFile->Remove(aRecursive);
   if (aIgnoreAbsent && IsFileNotFound(rv)) {
@@ -1634,6 +1640,17 @@ Result<Ok, IOUtils::IOError> IOUtils::RemoveSync(nsIFile* aFile,
           "Specify the `recursive: true` option to mitigate this error",
           aFile->HumanReadablePath().get()));
     }
+
+#ifdef XP_WIN
+
+    if (rv == NS_ERROR_FILE_ACCESS_DENIED && aRetryReadonly) {
+      MOZ_TRY(SetWindowsAttributesSync(aFile, 0, FILE_ATTRIBUTE_READONLY));
+      return RemoveSync(aFile, aIgnoreAbsent, aRecursive,
+                        /* aRetryReadonly = */ false);
+    }
+
+#endif
+
     return Err(err.WithMessage("Could not remove the file at %s",
                                aFile->HumanReadablePath().get()));
   }
@@ -2868,8 +2885,9 @@ uint32_t IOUtils::LaunchProcess(GlobalObject& aGlobal,
   base::ProcessHandle pid;
   static_assert(sizeof(pid) <= sizeof(uint32_t),
                 "WebIDL long should be large enough for a pid");
-  bool ok = base::LaunchApp(argv, options, &pid);
-  if (!ok) {
+  Result<Ok, mozilla::ipc::LaunchError> err =
+      base::LaunchApp(argv, options, &pid);
+  if (err.isErr()) {
     aRv.Throw(NS_ERROR_FAILURE);
     return 0;
   }

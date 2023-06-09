@@ -18,12 +18,29 @@
 // ./test/core/relaxed-simd/relaxed_laneselect.wast:3
 let $0 = instantiate(`(module
     (func (export "i8x16.relaxed_laneselect") (param v128 v128 v128) (result v128) (i8x16.relaxed_laneselect (local.get 0) (local.get 1) (local.get 2)))
-    (func (export "i16x8.relaxed_laneselect") (param v128 v128 v128) (result v128) (i8x16.relaxed_laneselect (local.get 0) (local.get 1) (local.get 2)))
-    (func (export "i32x4.relaxed_laneselect") (param v128 v128 v128) (result v128) (i8x16.relaxed_laneselect (local.get 0) (local.get 1) (local.get 2)))
-    (func (export "i64x2.relaxed_laneselect") (param v128 v128 v128) (result v128) (i8x16.relaxed_laneselect (local.get 0) (local.get 1) (local.get 2)))
+    (func (export "i16x8.relaxed_laneselect") (param v128 v128 v128) (result v128) (i16x8.relaxed_laneselect (local.get 0) (local.get 1) (local.get 2)))
+    (func (export "i32x4.relaxed_laneselect") (param v128 v128 v128) (result v128) (i32x4.relaxed_laneselect (local.get 0) (local.get 1) (local.get 2)))
+    (func (export "i64x2.relaxed_laneselect") (param v128 v128 v128) (result v128) (i64x2.relaxed_laneselect (local.get 0) (local.get 1) (local.get 2)))
+
+    (func (export "i8x16.relaxed_laneselect_cmp") (param v128 v128 v128) (result v128)
+          (i8x16.eq
+            (i8x16.relaxed_laneselect (local.get 0) (local.get 1) (local.get 2))
+            (i8x16.relaxed_laneselect (local.get 0) (local.get 1) (local.get 2))))
+    (func (export "i16x8.relaxed_laneselect_cmp") (param v128 v128 v128) (result v128)
+          (i16x8.eq
+            (i16x8.relaxed_laneselect (local.get 0) (local.get 1) (local.get 2))
+            (i16x8.relaxed_laneselect (local.get 0) (local.get 1) (local.get 2))))
+    (func (export "i32x4.relaxed_laneselect_cmp") (param v128 v128 v128) (result v128)
+          (i32x4.eq
+            (i32x4.relaxed_laneselect (local.get 0) (local.get 1) (local.get 2))
+            (i32x4.relaxed_laneselect (local.get 0) (local.get 1) (local.get 2))))
+    (func (export "i64x2.relaxed_laneselect_cmp") (param v128 v128 v128) (result v128)
+          (i64x2.eq
+            (i64x2.relaxed_laneselect (local.get 0) (local.get 1) (local.get 2))
+            (i64x2.relaxed_laneselect (local.get 0) (local.get 1) (local.get 2))))
 )`);
 
-// ./test/core/relaxed-simd/relaxed_laneselect.wast:10
+// ./test/core/relaxed-simd/relaxed_laneselect.wast:27
 assert_return(
   () => invoke($0, `i8x16.relaxed_laneselect`, [
     i8x16([0x0, 0x1, 0x12, 0x12, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf]),
@@ -38,7 +55,7 @@ assert_return(
   ],
 );
 
-// ./test/core/relaxed-simd/relaxed_laneselect.wast:17
+// ./test/core/relaxed-simd/relaxed_laneselect.wast:34
 assert_return(
   () => invoke($0, `i16x8.relaxed_laneselect`, [
     i16x8([0x0, 0x1, 0x1234, 0x1234, 0x4, 0x5, 0x6, 0x7]),
@@ -53,7 +70,7 @@ assert_return(
   ],
 );
 
-// ./test/core/relaxed-simd/relaxed_laneselect.wast:24
+// ./test/core/relaxed-simd/relaxed_laneselect.wast:41
 assert_return(
   () => invoke($0, `i32x4.relaxed_laneselect`, [
     i32x4([0x0, 0x1, 0x12341234, 0x12341234]),
@@ -68,7 +85,7 @@ assert_return(
   ],
 );
 
-// ./test/core/relaxed-simd/relaxed_laneselect.wast:31
+// ./test/core/relaxed-simd/relaxed_laneselect.wast:48
 assert_return(
   () => invoke($0, `i64x2.relaxed_laneselect`, [
     i64x2([0x0n, 0x1n]),
@@ -78,7 +95,7 @@ assert_return(
   [either(i64x2([0x0n, 0x3n]), i64x2([0x0n, 0x3n]))],
 );
 
-// ./test/core/relaxed-simd/relaxed_laneselect.wast:38
+// ./test/core/relaxed-simd/relaxed_laneselect.wast:55
 assert_return(
   () => invoke($0, `i64x2.relaxed_laneselect`, [
     i64x2([0x1234123412341234n, 0x1234123412341234n]),
@@ -91,4 +108,56 @@ assert_return(
       i64x2([0x1234123412341234n, 0x5678567856785678n]),
     ),
   ],
+);
+
+// ./test/core/relaxed-simd/relaxed_laneselect.wast:64
+assert_return(
+  () => invoke($0, `i8x16.relaxed_laneselect_cmp`, [
+    i8x16([0x0, 0x1, 0x12, 0x12, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf]),
+    i8x16([0x10, 0x11, 0x34, 0x34, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f]),
+    i8x16([0xff, 0x0, 0xf0, 0xf, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0]),
+  ]),
+  [
+    i8x16([0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]),
+  ],
+);
+
+// ./test/core/relaxed-simd/relaxed_laneselect.wast:70
+assert_return(
+  () => invoke($0, `i16x8.relaxed_laneselect_cmp`, [
+    i16x8([0x0, 0x1, 0x1234, 0x1234, 0x4, 0x5, 0x6, 0x7]),
+    i16x8([0x8, 0x9, 0x5678, 0x5678, 0xc, 0xd, 0xe, 0xf]),
+    i16x8([0xffff, 0x0, 0xff00, 0xff, 0x0, 0x0, 0x0, 0x0]),
+  ]),
+  [i16x8([0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff])],
+);
+
+// ./test/core/relaxed-simd/relaxed_laneselect.wast:76
+assert_return(
+  () => invoke($0, `i32x4.relaxed_laneselect_cmp`, [
+    i32x4([0x0, 0x1, 0x12341234, 0x12341234]),
+    i32x4([0x4, 0x5, 0x56785678, 0x56785678]),
+    i32x4([0xffffffff, 0x0, 0xffff0000, 0xffff]),
+  ]),
+  [i32x4([0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff])],
+);
+
+// ./test/core/relaxed-simd/relaxed_laneselect.wast:82
+assert_return(
+  () => invoke($0, `i64x2.relaxed_laneselect_cmp`, [
+    i64x2([0x0n, 0x1n]),
+    i64x2([0x2n, 0x3n]),
+    i64x2([0xffffffffffffffffn, 0x0n]),
+  ]),
+  [i64x2([0xffffffffffffffffn, 0xffffffffffffffffn])],
+);
+
+// ./test/core/relaxed-simd/relaxed_laneselect.wast:88
+assert_return(
+  () => invoke($0, `i64x2.relaxed_laneselect_cmp`, [
+    i64x2([0x1234123412341234n, 0x1234123412341234n]),
+    i64x2([0x5678567856785678n, 0x5678567856785678n]),
+    i64x2([0xffffffff00000000n, 0xffffffffn]),
+  ]),
+  [i64x2([0xffffffffffffffffn, 0xffffffffffffffffn])],
 );

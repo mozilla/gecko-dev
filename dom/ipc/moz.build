@@ -55,6 +55,7 @@ EXPORTS.mozilla.dom += [
     "CSPMessageUtils.h",
     "DocShellMessageUtils.h",
     "EffectsInfo.h",
+    "FilePickerMessageUtils.h",
     "FilePickerParent.h",
     "InProcessChild.h",
     "InProcessParent.h",
@@ -267,9 +268,6 @@ XPCSHELL_TESTS_MANIFESTS += ["tests/xpcshell.ini"]
 
 if CONFIG["MOZ_WIDGET_TOOLKIT"] == "gtk":
     CXXFLAGS += CONFIG["MOZ_GTK3_CFLAGS"]
-
-if CONFIG["FUZZING"] and CONFIG["FUZZING_INTERFACES"]:
-    TEST_DIRS += ["fuzztest"]
 
 # Add libFuzzer configuration directives
 include("/tools/fuzzing/libfuzzer-config.mozbuild")

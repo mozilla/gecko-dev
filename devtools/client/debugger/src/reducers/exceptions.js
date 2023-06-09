@@ -9,7 +9,9 @@
 
 export function initialExceptionsState() {
   return {
-    exceptions: {},
+    // Store exception objects created by actions/exceptions.js's addExceptionFromResources()
+    // This is keyed by source actor id, and values are arrays of exception objects.
+    mutableExceptionsMap: new Map(),
   };
 }
 
@@ -17,31 +19,60 @@ function update(state = initialExceptionsState(), action) {
   switch (action.type) {
     case "ADD_EXCEPTION":
       return updateExceptions(state, action);
+    case "REMOVE_THREAD": {
+      return removeExceptionsFromThread(state, action);
+    }
   }
   return state;
 }
 
 function updateExceptions(state, action) {
+  const { mutableExceptionsMap } = state;
   const { exception } = action;
-  const sourceActorId = exception.sourceActorId;
+  const { sourceActorId } = exception;
 
-  if (state.exceptions[sourceActorId]) {
-    const sourceExceptions = state.exceptions[sourceActorId];
-    return {
-      ...state,
-      exceptions: {
-        ...state.exceptions,
-        [sourceActorId]: [...sourceExceptions, exception],
-      },
-    };
+  let exceptions = mutableExceptionsMap.get(sourceActorId);
+  if (!exceptions) {
+    exceptions = [];
+    mutableExceptionsMap.set(sourceActorId, exceptions);
+  } else if (
+    exceptions.some(({ lineNumber, columnNumber }) => {
+      return (
+        lineNumber == exception.lineNumber &&
+        columnNumber == exception.columnNumber
+      );
+    })
+  ) {
+    // Avoid adding duplicated exceptions for the same line/column
+    return state;
   }
+
+  // As these arrays are only used by getSelectedSourceExceptions selector method,
+  // which coalesce multiple arrays and always return new array instance,
+  // it isn't important to clone these array in case of modification.
+  exceptions.push(exception);
+
   return {
     ...state,
-    exceptions: {
-      ...state.exceptions,
-      [sourceActorId]: [exception],
-    },
   };
+}
+
+function removeExceptionsFromThread(state, action) {
+  const { mutableExceptionsMap } = state;
+  const { threadActorID } = action;
+  const sizeBefore = mutableExceptionsMap.size;
+  for (const [sourceActorId, exceptions] of mutableExceptionsMap) {
+    // All exceptions relates to the same source actor, and so, the same thread actor.
+    if (exceptions[0].threadActorId == threadActorID) {
+      mutableExceptionsMap.delete(sourceActorId);
+    }
+  }
+  if (sizeBefore != mutableExceptionsMap.size) {
+    return {
+      ...state,
+    };
+  }
+  return state;
 }
 
 export default update;

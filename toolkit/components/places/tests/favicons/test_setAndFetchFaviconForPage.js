@@ -66,7 +66,7 @@ add_task(async function() {
 
   for (let test of gTests) {
     info(test.desc);
-    let pageURI = Services.io.newURI(test.href);
+    let pageURI = PlacesUtils.toURI(test.href);
 
     await test.setup();
 
@@ -80,8 +80,7 @@ add_task(async function() {
             return true;
           }
           return false;
-        }),
-      "places"
+        })
     );
 
     PlacesUtils.favicons.setAndFetchFaviconForPage(
@@ -97,7 +96,9 @@ add_task(async function() {
 
     Assert.equal(
       pageGuid,
-      await PlacesTestUtils.fieldInDB(pageURI, "guid"),
+      await PlacesTestUtils.getDatabaseValue("moz_places", "guid", {
+        url: pageURI,
+      }),
       "Page guid is correct"
     );
     let { dataLen, data, mimeType } = await PlacesUtils.promiseFaviconData(

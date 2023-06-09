@@ -70,8 +70,11 @@ typedef struct {
   int actual_num_seg1_blocks;
   int actual_num_seg2_blocks;
   int counter_encode_maxq_scene_change;
+  int qindex_delta[3];
   uint8_t speed;
   int loopfilter_ctrl;
+  int frame_qp;
+  int MBs;
 } LAYER_CONTEXT;
 
 typedef struct SVC {
@@ -255,7 +258,7 @@ int vp9_denoise_svc_non_key(struct VP9_COMP *const cpi);
 
 void vp9_copy_flags_ref_update_idx(struct VP9_COMP *const cpi);
 
-int vp9_one_pass_cbr_svc_start_layer(struct VP9_COMP *const cpi);
+int vp9_one_pass_svc_start_layer(struct VP9_COMP *const cpi);
 
 void vp9_free_svc_cyclic_refresh(struct VP9_COMP *const cpi);
 

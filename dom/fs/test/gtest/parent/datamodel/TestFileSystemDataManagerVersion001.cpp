@@ -4,6 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include <algorithm>
+
 #include "ErrorList.h"
 #include "FileSystemDataManager.h"
 #include "FileSystemDatabaseManagerVersion001.h"
@@ -45,7 +47,7 @@ class MockFileSystemDataManager final : public data::FileSystemDataManager {
   MockFileSystemDataManager(const quota::OriginMetadata& aOriginMetadata,
                             MovingNotNull<nsCOMPtr<nsIEventTarget>> aIOTarget,
                             MovingNotNull<RefPtr<TaskQueue>> aIOTaskQueue)
-      : FileSystemDataManager(aOriginMetadata, std::move(aIOTarget),
+      : FileSystemDataManager(aOriginMetadata, nullptr, std::move(aIOTarget),
                               std::move(aIOTaskQueue)) {}
 
   virtual ~MockFileSystemDataManager() {
@@ -79,8 +81,8 @@ static void MakeDatabaseManagerVersion001(
 
   TEST_TRY_UNWRAP(EntryId rootId, data::GetRootHandle(GetTestOrigin()));
 
-  auto fmRes =
-      FileSystemFileManager::CreateFileSystemFileManager(GetTestOrigin());
+  auto fmRes = FileSystemFileManager::CreateFileSystemFileManager(
+      GetTestOriginMetadata());
   ASSERT_FALSE(fmRes.isErr());
 
   QM_TRY_UNWRAP(auto streamTransportService,
@@ -107,13 +109,18 @@ static void MakeDatabaseManagerVersion001(
 
 class TestFileSystemDatabaseManagerVersion001
     : public quota::test::QuotaManagerDependencyFixture {
+ public:
   void SetUp() override { ASSERT_NO_FATAL_FAILURE(InitializeFixture()); }
 
   void TearDown() override {
     ASSERT_NO_FATAL_FAILURE(ClearStoragesForOrigin(GetTestOriginMetadata()));
     ASSERT_NO_FATAL_FAILURE(ShutdownFixture());
   }
+
+  static ContentType sContentType;
 };
+
+ContentType TestFileSystemDatabaseManagerVersion001::sContentType = "psid"_ns;
 
 TEST_F(TestFileSystemDatabaseManagerVersion001,
        smokeTestCreateRemoveDirectories) {
@@ -216,18 +223,20 @@ TEST_F(TestFileSystemDatabaseManagerVersion001, smokeTestCreateRemoveFiles) {
 
     FileSystemChildMetadata firstChildMeta(rootId, u"First"_ns);
     // If creating is not allowed, getting a file from empty root fails
-    TEST_TRY_UNWRAP_ERR(
-        rv, dm->GetOrCreateFile(firstChildMeta, /* create */ false));
+    TEST_TRY_UNWRAP_ERR(rv, dm->GetOrCreateFile(firstChildMeta, sContentType,
+                                                /* create */ false));
     ASSERT_NSEQ(NS_ERROR_DOM_NOT_FOUND_ERR, rv);
 
     // Creating a file under empty root succeeds
-    TEST_TRY_UNWRAP(EntryId firstChild,
-                    dm->GetOrCreateFile(firstChildMeta, /* create */ true));
+    TEST_TRY_UNWRAP(
+        EntryId firstChild,
+        dm->GetOrCreateFile(firstChildMeta, sContentType, /* create */ true));
 
     // Second time, the same file is returned
-    TEST_TRY_UNWRAP(EntryId firstChildClone,
-                    dm->GetOrCreateFile(firstChildMeta, /* create */ true));
-    ASSERT_STREQ(firstChild.get(), firstChildClone.get());
+    TEST_TRY_UNWRAP(
+        EntryId firstChildClone,
+        dm->GetOrCreateFile(firstChildMeta, sContentType, /* create */ true));
+    ASSERT_EQ(firstChild, firstChildClone);
 
     // Directory listing returns the created file
     PageNumber page = 0;
@@ -239,9 +248,9 @@ TEST_F(TestFileSystemDatabaseManagerVersion001, smokeTestCreateRemoveFiles) {
     auto& firstItemRef = entries.files()[0];
     ASSERT_TRUE(u"First"_ns == firstItemRef.entryName())
     << firstItemRef.entryName();
-    ASSERT_STREQ(firstChild.get(), firstItemRef.entryId().get());
+    ASSERT_EQ(firstChild, firstItemRef.entryId());
 
-    nsString type;
+    ContentType type;
     TimeStamp lastModifiedMilliSeconds;
     Path path;
     nsCOMPtr<nsIFile> file;
@@ -249,7 +258,7 @@ TEST_F(TestFileSystemDatabaseManagerVersion001, smokeTestCreateRemoveFiles) {
                      path, file);
     ASSERT_NSEQ(NS_OK, rv);
 
-    ASSERT_TRUE(type.IsEmpty());
+    ASSERT_STREQ(sContentType, type);
 
     const int64_t nowMilliSeconds = PR_Now() / 1000;
     ASSERT_GE(nowMilliSeconds, lastModifiedMilliSeconds);
@@ -276,8 +285,8 @@ TEST_F(TestFileSystemDatabaseManagerVersion001, smokeTestCreateRemoveFiles) {
 
     EntryId notAChildHash = "0123456789abcdef0123456789abcdef"_ns;
     FileSystemChildMetadata notAChildMeta(notAChildHash, u"Dummy"_ns);
-    TEST_TRY_UNWRAP_ERR(rv,
-                        dm->GetOrCreateFile(notAChildMeta, /* create */ true));
+    TEST_TRY_UNWRAP_ERR(rv, dm->GetOrCreateFile(notAChildMeta, sContentType,
+                                                /* create */ true));
     ASSERT_NSEQ(NS_ERROR_STORAGE_CONSTRAINT, rv);  // Is this a good error?
 
     // We create a directory under root
@@ -299,8 +308,9 @@ TEST_F(TestFileSystemDatabaseManagerVersion001, smokeTestCreateRemoveFiles) {
 
     // Create a file under the new directory
     FileSystemChildMetadata thirdChildMeta(secondChild, u"Third"_ns);
-    TEST_TRY_UNWRAP(EntryId thirdChild,
-                    dm->GetOrCreateFile(thirdChildMeta, /* create */ true));
+    TEST_TRY_UNWRAP(
+        EntryId thirdChild,
+        dm->GetOrCreateFile(thirdChildMeta, sContentType, /* create */ true));
 
     FileSystemEntryPair entryPair(rootId, thirdChild);
     TEST_TRY_UNWRAP(Path entryPath, dm->Resolve(entryPair));
@@ -320,8 +330,8 @@ TEST_F(TestFileSystemDatabaseManagerVersion001, smokeTestCreateRemoveFiles) {
     ASSERT_TRUE(isDeleted);
 
     // The file under the removed directory is no longer accessible.
-    TEST_TRY_UNWRAP_ERR(rv,
-                        dm->GetOrCreateFile(thirdChildMeta, /* create */ true));
+    TEST_TRY_UNWRAP_ERR(rv, dm->GetOrCreateFile(thirdChildMeta, sContentType,
+                                                /* create */ true));
     ASSERT_NSEQ(NS_ERROR_STORAGE_CONSTRAINT, rv);  // Is this a good error?
 
     // The deletion is reflected by the root directory listing
@@ -470,8 +480,9 @@ TEST_F(TestFileSystemDatabaseManagerVersion001,
 
     // Create file in the subdirectory with already existing subsubdirectory
     FileSystemChildMetadata testFileMeta(firstChildDir, u"Subfile"_ns);
-    TEST_TRY_UNWRAP(EntryId testFile,
-                    dm->GetOrCreateFile(testFileMeta, /* create */ true));
+    TEST_TRY_UNWRAP(
+        EntryId testFile,
+        dm->GetOrCreateFile(testFileMeta, sContentType, /* create */ true));
 
     // Get handles to the original locations of the entries
     FileSystemEntryMetadata subSubDir;
@@ -509,15 +520,6 @@ TEST_F(TestFileSystemDatabaseManagerVersion001,
     }
 
     {
-      // Try to rename file to a directory
-      FileSystemEntryMetadata src{testFile, testFileMeta.childName(),
-                                  /* is directory */ false};
-      const FileSystemChildMetadata& dest = firstChildDescendantMeta;
-      TEST_TRY_UNWRAP_ERR(nsresult rv, dm->MoveEntry(src, dest));
-      ASSERT_NSEQ(NS_ERROR_DOM_INVALID_MODIFICATION_ERR, rv);
-    }
-
-    {
       // Try to move subsubdirectory under a file
       FileSystemEntryMetadata src{firstChildDescendant,
                                   firstChildDescendantMeta.childName(),
@@ -526,6 +528,30 @@ TEST_F(TestFileSystemDatabaseManagerVersion001,
                                    firstChildDescendantMeta.childName()};
       TEST_TRY_UNWRAP_ERR(nsresult rv, dm->MoveEntry(src, dest));
       ASSERT_NSEQ(NS_ERROR_STORAGE_CONSTRAINT, rv);
+    }
+
+    {
+      // Silently overwrite a directory with a file using rename
+      FileSystemEntryMetadata src{testFile, testFileMeta.childName(),
+                                  /* is directory */ false};
+      const FileSystemChildMetadata& dest = firstChildDescendantMeta;
+      TEST_TRY_UNWRAP(bool isMoved, dm->MoveEntry(src, dest));
+      ASSERT_TRUE(isMoved);
+    }
+
+    {
+      // Move file back and recreate the directory
+      FileSystemEntryMetadata src{testFile,
+                                  firstChildDescendantMeta.childName(),
+                                  /* is directory */ false};
+
+      TEST_TRY_UNWRAP(bool isMoved, dm->MoveEntry(src, testFileMeta));
+      ASSERT_TRUE(isMoved);
+
+      TEST_TRY_UNWRAP(EntryId firstChildDescendantCheck,
+                      dm->GetOrCreateDirectory(firstChildDescendantMeta,
+                                               /* create */ true));
+      ASSERT_EQ(firstChildDescendant, firstChildDescendantCheck);
     }
 
     {
@@ -550,9 +576,10 @@ TEST_F(TestFileSystemDatabaseManagerVersion001,
       TEST_TRY_UNWRAP(bool isMoved, dm->MoveEntry(src, dest));
       ASSERT_TRUE(isMoved);
 
-      TEST_TRY_UNWRAP(EntryId testFileCheck,
-                      dm->GetOrCreateFile(testFileMeta, /* create */ true));
-      ASSERT_STREQ(testFile, testFileCheck);
+      TEST_TRY_UNWRAP(
+          EntryId testFileCheck,
+          dm->GetOrCreateFile(testFileMeta, sContentType, /* create */ true));
+      ASSERT_EQ(testFile, testFileCheck);
     }
 
     {
@@ -592,22 +619,48 @@ TEST_F(TestFileSystemDatabaseManagerVersion001,
     {
       // Try to get a handle to the old item
       TEST_TRY_UNWRAP_ERR(
-          nsresult rv, dm->GetOrCreateFile(testFileMeta, /* create */ false));
+          nsresult rv,
+          dm->GetOrCreateFile(testFileMeta, sContentType, /* create */ false));
       ASSERT_NSEQ(NS_ERROR_DOM_NOT_FOUND_ERR, rv);
     }
 
     {
-      // Try to move + rename file one level down to collide with
-      // subSubDirectory
+      // Try to move + rename file one level down to collide with a
+      // subSubDirectory, silently overwriting it
       FileSystemEntryMetadata src{testFile, testFileMeta.childName(),
                                   /* is directory */ false};
       FileSystemChildMetadata dest{firstChildDir,
                                    firstChildDescendantMeta.childName()};
-      TEST_TRY_UNWRAP_ERR(nsresult rv, dm->MoveEntry(src, dest));
-      ASSERT_NSEQ(NS_ERROR_DOM_INVALID_MODIFICATION_ERR, rv);
+      TEST_TRY_UNWRAP(bool isMoved, dm->MoveEntry(src, dest));
+      ASSERT_TRUE(isMoved);
     }
 
-    // Rename file first and then try to move it to collide with subSubDirectory
+    {
+      // Restore filename, move file to its original location and recreate
+      // the overwritten directory
+      FileSystemEntryMetadata src{testFile,
+                                  firstChildDescendantMeta.childName(),
+                                  /* is directory */ false};
+      FileSystemChildMetadata dest{rootId, testFileMeta.childName()};
+      TEST_TRY_UNWRAP(bool isMoved, dm->MoveEntry(src, dest));
+      ASSERT_TRUE(isMoved);
+
+      FileSystemChildMetadata oldLocation{firstChildDir,
+                                          firstChildDescendantMeta.childName()};
+
+      // Is there still something out there?
+      TEST_TRY_UNWRAP_ERR(
+          nsresult rv,
+          dm->GetOrCreateFile(oldLocation, sContentType, /* create */ false));
+      ASSERT_NSEQ(NS_ERROR_DOM_NOT_FOUND_ERR, rv);
+
+      TEST_TRY_UNWRAP(EntryId firstChildDescendantCheck,
+                      dm->GetOrCreateDirectory(oldLocation, /* create */ true));
+      ASSERT_EQ(firstChildDescendant, firstChildDescendantCheck);
+    }
+
+    // Rename file first and then try to move it to collide with
+    // subSubDirectory, silently overwriting it
     {
       // Rename
       FileSystemEntryMetadata src{testFile, testFileMeta.childName(),
@@ -625,8 +678,32 @@ TEST_F(TestFileSystemDatabaseManagerVersion001,
                                   /* is directory */ false};
       FileSystemChildMetadata dest{firstChildDir,
                                    firstChildDescendantMeta.childName()};
-      TEST_TRY_UNWRAP_ERR(nsresult rv, dm->MoveEntry(src, dest));
-      ASSERT_NSEQ(NS_ERROR_DOM_INVALID_MODIFICATION_ERR, rv);
+      TEST_TRY_UNWRAP(bool isMoved, dm->MoveEntry(src, dest));
+      ASSERT_TRUE(isMoved);
+    }
+
+    {
+      // Move the file back and recreate the directory
+      FileSystemEntryMetadata src{testFile,
+                                  firstChildDescendantMeta.childName(),
+                                  /* is directory */ false};
+      FileSystemChildMetadata dest{rootId,
+                                   firstChildDescendantMeta.childName()};
+      TEST_TRY_UNWRAP(bool isMoved, dm->MoveEntry(src, dest));
+      ASSERT_TRUE(isMoved);
+
+      FileSystemChildMetadata oldLocation{firstChildDir,
+                                          firstChildDescendantMeta.childName()};
+
+      // Is there still something out there?
+      TEST_TRY_UNWRAP_ERR(
+          nsresult rv,
+          dm->GetOrCreateFile(oldLocation, sContentType, /* create */ false));
+      ASSERT_NSEQ(NS_ERROR_DOM_NOT_FOUND_ERR, rv);
+
+      TEST_TRY_UNWRAP(EntryId firstChildDescendantCheck,
+                      dm->GetOrCreateDirectory(oldLocation, /* create */ true));
+      ASSERT_EQ(firstChildDescendant, firstChildDescendantCheck);
     }
 
     {
@@ -650,10 +727,17 @@ TEST_F(TestFileSystemDatabaseManagerVersion001,
       TEST_TRY_UNWRAP(bool isMoved, dm->MoveEntry(src, dest));
       ASSERT_TRUE(isMoved);
 
+      FileSystemChildMetadata oldLocation{rootId,
+                                          firstChildDescendantMeta.childName()};
+
+      // We should no longer find anything there
+      TEST_TRY_UNWRAP_ERR(nsresult rv, dm->GetOrCreateDirectory(
+                                           oldLocation, /* create */ false));
+      ASSERT_NSEQ(NS_ERROR_DOM_NOT_FOUND_ERR, rv);
+
       TEST_TRY_UNWRAP(
           EntryId testFileCheck,
-          dm->GetOrCreateFile({rootId, firstChildDescendantMeta.childName()},
-                              /* create */ true));
+          dm->GetOrCreateFile(oldLocation, sContentType, /* create */ true));
       ASSERT_NE(testFile, testFileCheck);
       testFile = testFileCheck;
     }
@@ -661,8 +745,9 @@ TEST_F(TestFileSystemDatabaseManagerVersion001,
     // Create a new file in the subsubdirectory
     FileSystemChildMetadata newFileMeta{firstChildDescendant,
                                         testFileMeta.childName()};
-    TEST_TRY_UNWRAP(EntryId newFile,
-                    dm->GetOrCreateFile(newFileMeta, /* create */ true));
+    TEST_TRY_UNWRAP(
+        EntryId newFile,
+        dm->GetOrCreateFile(newFileMeta, sContentType, /* create */ true));
 
     {
       TEST_TRY_UNWRAP(Path entryPath, dm->Resolve({rootId, newFile}));
@@ -690,14 +775,15 @@ TEST_F(TestFileSystemDatabaseManagerVersion001,
       ASSERT_NSEQ(NS_ERROR_DOM_NOT_FOUND_ERR, rv);
 
       // Still under the same parent
-      TEST_TRY_UNWRAP(EntryId handle, dm->GetOrCreateFile(newFileMeta,
-                                                          /* create */ false));
-      ASSERT_STREQ(handle, newFile);
+      TEST_TRY_UNWRAP(
+          EntryId handle,
+          dm->GetOrCreateFile(newFileMeta, sContentType, /* create */ false));
+      ASSERT_EQ(handle, newFile);
 
       TEST_TRY_UNWRAP(
           handle, dm->GetOrCreateDirectory({rootId, testFileMeta.childName()},
                                            /* create */ false));
-      ASSERT_STREQ(handle, firstChildDescendant);
+      ASSERT_EQ(handle, firstChildDescendant);
     }
 
     {
@@ -706,16 +792,6 @@ TEST_F(TestFileSystemDatabaseManagerVersion001,
       ASSERT_EQ(2u, entryPath.Length());
       ASSERT_STREQ(testFileMeta.childName(), entryPath[0]);
       ASSERT_STREQ(testFileMeta.childName(), entryPath[1]);
-    }
-
-    {
-      // Try to overwrite subDirectory with subSubDirectory with rename
-      FileSystemEntryMetadata src{firstChildDescendant,
-                                  firstChildDescendantMeta.childName(),
-                                  /* is directory */ true};
-      FileSystemChildMetadata dest{rootId, firstChildMeta.childName()};
-      TEST_TRY_UNWRAP_ERR(nsresult rv, dm->MoveEntry(src, dest));
-      ASSERT_NSEQ(NS_ERROR_DOM_INVALID_MODIFICATION_ERR, rv);
     }
 
     // Move first file and subSubDirectory back one level down keeping the names
@@ -801,13 +877,13 @@ TEST_F(TestFileSystemDatabaseManagerVersion001,
       // Try to get handles to the old items
       TEST_TRY_UNWRAP_ERR(
           nsresult rv, dm->GetOrCreateFile({rootId, testFileMeta.childName()},
-                                           /* create */ false));
+                                           sContentType, /* create */ false));
       ASSERT_NSEQ(NS_ERROR_DOM_NOT_FOUND_ERR, rv);
 
       TEST_TRY_UNWRAP_ERR(
           rv,
           dm->GetOrCreateFile({rootId, firstChildDescendantMeta.childName()},
-                              /* create */ false));
+                              sContentType, /* create */ false));
       ASSERT_NSEQ(NS_ERROR_DOM_NOT_FOUND_ERR, rv);
 
       TEST_TRY_UNWRAP_ERR(
@@ -823,7 +899,7 @@ TEST_F(TestFileSystemDatabaseManagerVersion001,
 
       TEST_TRY_UNWRAP_ERR(
           rv, dm->GetOrCreateFile({firstChildDir, testFileMeta.childName()},
-                                  /* create */ false));
+                                  sContentType, /* create */ false));
       ASSERT_NSEQ(NS_ERROR_DOM_TYPE_MISMATCH_ERR, rv);
 
       TEST_TRY_UNWRAP_ERR(
@@ -834,7 +910,7 @@ TEST_F(TestFileSystemDatabaseManagerVersion001,
 
       TEST_TRY_UNWRAP_ERR(
           rv, dm->GetOrCreateFile({testFile, newFileMeta.childName()},
-                                  /* create */ false));
+                                  sContentType, /* create */ false));
       ASSERT_NSEQ(NS_ERROR_DOM_NOT_FOUND_ERR, rv);
     }
   };

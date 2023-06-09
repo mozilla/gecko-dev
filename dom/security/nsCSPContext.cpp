@@ -137,7 +137,8 @@ nsCSPContext::ShouldLoad(nsContentPolicyType aContentType,
   if (CSPCONTEXTLOGENABLED()) {
     CSPCONTEXTLOG(("nsCSPContext::ShouldLoad, aContentLocation: %s",
                    aContentLocation->GetSpecOrDefault().get()));
-    CSPCONTEXTLOG((">>>>                      aContentType: %d", aContentType));
+    CSPCONTEXTLOG((">>>>                      aContentType: %s",
+                   NS_CP_ContentTypeName(aContentType)));
   }
 
   // This ShouldLoad function is called from nsCSPService::ShouldLoad,
@@ -243,8 +244,7 @@ bool nsCSPContext::permitsInternal(
 
 /* ===== nsISupports implementation ========== */
 
-NS_IMPL_CLASSINFO(nsCSPContext, nullptr, nsIClassInfo::MAIN_THREAD_ONLY,
-                  NS_CSPCONTEXT_CID)
+NS_IMPL_CLASSINFO(nsCSPContext, nullptr, 0, NS_CSPCONTEXT_CID)
 
 NS_IMPL_ISUPPORTS_CI(nsCSPContext, nsIContentSecurityPolicy, nsISerializable)
 
@@ -1009,13 +1009,12 @@ void StripURIForReporting(nsIURI* aSelfURI, nsIURI* aURI,
   // If the origin of aURI is a globally unique identifier (for example,
   // aURI has a scheme of data, blob, or filesystem), then
   // return the ASCII serialization of uri’s scheme.
-  bool isHttpFtpOrWs =
-      (aURI->SchemeIs("http") || aURI->SchemeIs("https") ||
-       aURI->SchemeIs("ftp") || aURI->SchemeIs("ws") || aURI->SchemeIs("wss"));
+  bool isHttpOrWs = (aURI->SchemeIs("http") || aURI->SchemeIs("https") ||
+                     aURI->SchemeIs("ws") || aURI->SchemeIs("wss"));
 
-  if (!isHttpFtpOrWs) {
+  if (!isHttpOrWs) {
     // not strictly spec compliant, but what we really care about is
-    // http/https and also ftp. If it's not http/https or ftp, then treat aURI
+    // http/https. If it's not http/https, then treat aURI
     // as if it's a globally unique identifier and just return the scheme.
     aURI->GetScheme(outStrippedURI);
     return;

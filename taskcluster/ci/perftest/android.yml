@@ -68,7 +68,8 @@ hw-a51-startup-fenix-cold-main-first-frame:
     description: Run android startup perftest on Fenix on a Samsung A51
     treeherder:
         symbol: perftest(startup-fenix-cmff)
-    platform: android-hw-a51-11-0-arm7-shippable/opt
+        tier: 2
+    platform: android-hw-a51-11-0-aarch64-shippable/opt
     attributes:
         cron: true
     run:
@@ -92,7 +93,8 @@ hw-a51-startup-fenix-cold-view-nav-start:
     description: Run android startup perftest on Fenix on a Samsung A51
     treeherder:
         symbol: perftest(startup-fenix-cvns)
-    platform: android-hw-a51-11-0-arm7-shippable/opt
+        tier: 2
+    platform: android-hw-a51-11-0-aarch64-shippable/opt
     attributes:
         cron: true
     run:
@@ -109,6 +111,106 @@ hw-a51-startup-fenix-cold-view-nav-start:
             --hooks
             testing/performance/hooks_android_startup.py
             --AndroidStartUp-product=fenix
+            --AndroidStartUp-release-channel=nightly
+
+hw-a51-startup-focus-cold-main-first-frame:
+    worker-type: t-bitbar-gw-perf-a51
+    description: Run android startup perftest on Focus on a Samsung A51
+    treeherder:
+        symbol: perftest(startup-focus-cmff)
+        tier: 2
+    platform: android-hw-a51-11-0-aarch64-shippable/opt
+    attributes:
+        cron: true
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $GECKO_PATH &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --flavor=mobile-browser
+            --AndroidStartUp
+            testing/performance/perftest_android_startup.js
+            --browsertime-cycles=0
+            --AndroidStartUp-test-name=cold_main_first_frame
+            --perfherder
+            --hooks
+            testing/performance/hooks_android_startup.py
+            --AndroidStartUp-product=focus
+            --AndroidStartUp-release-channel=nightly
+
+hw-a51-startup-focus-cold-view-nav-start:
+    worker-type: t-bitbar-gw-perf-a51
+    description: Run android startup perftest on Focus on a Samsung A51
+    treeherder:
+        symbol: perftest(startup-focus-cvns)
+        tier: 2
+    platform: android-hw-a51-11-0-aarch64-shippable/opt
+    attributes:
+        cron: true
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $GECKO_PATH &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --flavor=mobile-browser
+            --AndroidStartUp
+            testing/performance/perftest_android_startup.js
+            --browsertime-cycles=0
+            --AndroidStartUp-test-name=cold_view_nav_start
+            --perfherder
+            --hooks
+            testing/performance/hooks_android_startup.py
+            --AndroidStartUp-product=focus
+            --AndroidStartUp-release-channel=nightly
+
+hw-a51-startup-geckoview-cold-main-first-frame:
+    worker-type: t-bitbar-gw-perf-a51
+    description: Run android startup perftest on Geckoview on a Samsung A51
+    treeherder:
+        symbol: perftest(startup-geckoview-cmff)
+        tier: 2
+    platform: android-hw-a51-11-0-aarch64-shippable/opt
+    attributes:
+        cron: true
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $GECKO_PATH &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --flavor=mobile-browser
+            --AndroidStartUp
+            testing/performance/perftest_android_startup.js
+            --browsertime-cycles=0
+            --AndroidStartUp-test-name=cold_main_first_frame
+            --perfherder
+            --hooks
+            testing/performance/hooks_android_startup.py
+            --AndroidStartUp-product=geckoview_example
+            --AndroidStartUp-release-channel=nightly
+
+hw-a51-startup-geckoview-cold-view-nav-start:
+    worker-type: t-bitbar-gw-perf-a51
+    description: Run android startup perftest on Geckoview_example on a Samsung A51
+    treeherder:
+        symbol: perftest(startup-geckoview-cvns)
+        tier: 2
+    platform: android-hw-a51-11-0-aarch64-shippable/opt
+    attributes:
+        cron: true
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $GECKO_PATH &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --flavor=mobile-browser
+            --AndroidStartUp
+            testing/performance/perftest_android_startup.js
+            --browsertime-cycles=0
+            --AndroidStartUp-test-name=cold_view_nav_start
+            --perfherder
+            --hooks
+            testing/performance/hooks_android_startup.py
+            --AndroidStartUp-product=geckoview_example
             --AndroidStartUp-release-channel=nightly
 
 hw-a51-aarch64-view-fenix:

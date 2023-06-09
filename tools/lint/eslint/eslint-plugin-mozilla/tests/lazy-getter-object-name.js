@@ -10,16 +10,17 @@
 var rule = require("../lib/rules/lazy-getter-object-name");
 var RuleTester = require("eslint").RuleTester;
 
-const ruleTester = new RuleTester();
+const ruleTester = new RuleTester({ parserOptions: { ecmaVersion: "latest" } });
 
 // ------------------------------------------------------------------------------
 // Tests
 // ------------------------------------------------------------------------------
 
 function invalidCode(code) {
-  let message =
-    "The variable name of the object passed to ChromeUtils.defineESModuleGetters must be `lazy`";
-  return { code, errors: [{ message, type: "CallExpression" }] };
+  return {
+    code,
+    errors: [{ messageId: "mustUseLazy", type: "CallExpression" }],
+  };
 }
 
 ruleTester.run("lazy-getter-object-name", rule, {

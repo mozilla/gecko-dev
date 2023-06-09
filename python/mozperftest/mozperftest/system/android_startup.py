@@ -4,7 +4,7 @@
 import re
 import statistics
 import time
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 
 import mozdevice
 
@@ -15,6 +15,7 @@ PAGE_START = re.compile("GeckoSession: handleMessage GeckoView:PageStart uri=")
 
 PROD_FENIX = "fenix"
 PROD_FOCUS = "focus"
+PROC_GVEX = "geckoview_example"
 
 KEY_NAME = "name"
 KEY_PRODUCT = "product"
@@ -24,47 +25,49 @@ KEY_ARCHITECTURE = "architecture"
 KEY_TEST_NAME = "test_name"
 
 MEASUREMENT_DATA = ["mean", "median", "standard_deviation"]
+OLD_VERSION_FOCUS_PAGE_START_LINE_COUNT = 3
+NEW_VERSION_FOCUS_PAGE_START_LINE_COUNT = 2
+STDOUT_LINE_COUNT = 2
 
 TEST_COLD_MAIN_FF = "cold_main_first_frame"
 TEST_COLD_MAIN_RESTORE = "cold_main_session_restore"
 TEST_COLD_VIEW_FF = "cold_view_first_frame"
 TEST_COLD_VIEW_NAV_START = "cold_view_nav_start"
-TEST_URI = "https://example.edu"
+TEST_URI = "https://example.com"
 
 BASE_URL_DICT = {
     PROD_FENIX: (
         "https://firefox-ci-tc.services.mozilla.com/api/index/v1/task/"
-        "mobile.v2.fenix.nightly.{date}.latest.{architecture}/artifacts/"
-        "public%2Fbuild%2F{architecture}%2Ftarget.apk"
+        "mobile.v3.firefox-android.apks.fenix-nightly.{date}.latest.{architecture}/artifacts/"
+        "public%2Fbuild%2Ffenix%2F{architecture}%2Ftarget.apk"
     ),
     PROD_FENIX
     + "-latest": (
         "https://firefox-ci-tc.services.mozilla.com/api/index/v1/task/"
-        "mobile.v2.fenix.nightly.latest.{architecture}/artifacts/"
-        "public%2Fbuild%2F{architecture}%2Ftarget.apk"
+        "mobile.v3.firefox-android.apks.fenix-nightly.latest.{architecture}/artifacts/"
+        "public%2Fbuild%2Ffenix%2F{architecture}%2Ftarget.apk"
     ),
     PROD_FOCUS: (
         "https://firefox-ci-tc.services.mozilla.com/api/index/v1/task/"
-        "mobile.v2.focus-android.nightly.{date}.latest.{architecture}/artifacts/"
-        "public%2Fbuild%2Fapp-focus-{architecture}-nightly-unsigned.apk"
-    ),  # Despite the URL including "unsigned", these are actually signed builds.
+        "mobile.v3.firefox-android.apks.focus-nightly.{date}.latest.{architecture}"
+        "/artifacts/public%2Fbuild%2Ffocus%2F{architecture}%2Ftarget.apk"
+    ),
     PROD_FOCUS
     + "-latest": (
         "https://firefox-ci-tc.services.mozilla.com/api/index/v1/task/"
-        "mobile.v2.focus-android.nightly.{date}.latest.{architecture}/artifacts/"
-        "public%2Fbuild%2Fapp-focus-{architecture}-nightly-unsigned.apk"
-    ),  # Despite the URL including "unsigned", these are actually signed builds.
-    PROD_FOCUS
-    + "-v2": (
-        "https://firefox-ci-tc.services.mozilla.com/api/index/v1/task/"
-        "mobile.v2.focus-android.nightly.{date}.latest.{architecture}/artifacts/"
-        "public%2Fbuild%2Ffocus%2F{architecture}%2Ftarget.apk"
+        "mobile.v3.firefox-android.apks.focus-nightly.latest.{architecture}"
+        "/artifacts/public%2Fbuild%2Ffocus%2F{architecture}%2Ftarget.apk"
     ),
-    PROD_FOCUS
-    + "-v2-latest": (
+    PROC_GVEX: (
         "https://firefox-ci-tc.services.mozilla.com/api/index/v1/task/"
-        "mobile.v2.focus-android.nightly.{date}.latest.{architecture}/artifacts/"
-        "public%2Fbuild%2Ffocus%2F{architecture}%2Ftarget.apk"
+        "gecko.v2.mozilla-central.pushdate.{date}.latest.mobile.android-"
+        "{architecture}-debug/artifacts/public%2Fbuild%2Fgeckoview_example.apk"
+    ),
+    PROC_GVEX
+    + "-latest": (
+        "https://firefox-ci-tc.services.mozilla.com/api/index/v1/task/"
+        "gecko.v2.mozilla-central.shippable.latest.mobile.android-"
+        "{architecture}-opt/artifacts/public/build/geckoview_example.apk"
     ),
 }
 PROD_TO_CHANNEL_TO_PKGID = {
@@ -79,6 +82,9 @@ PROD_TO_CHANNEL_TO_PKGID = {
         "beta": "org.mozilla.focus.beta",  # only present since post-fenix update.
         "release": "org.mozilla.focus",
         "debug": "org.mozilla.focus.debug",
+    },
+    PROC_GVEX: {
+        "nightly": "org.mozilla.geckoview_example",
     },
 }
 TEST_LIST = [
@@ -167,8 +173,6 @@ class AndroidStartUp(AndroidDevice):
         super(AndroidStartUp, self).__init__(env, mach_cmd)
         self.android_activity = None
         self.capture_logcat = self.capture_file = self.app_name = None
-        self.download_date = date.today()
-        self.architecture = "armeabi-v7a"
         self.device = mozdevice.ADBDevice(use_root=False)
 
     def run(self, metadata):
@@ -228,14 +232,19 @@ class AndroidStartUp(AndroidDevice):
 
     def run_performance_analysis(self, apk_metadata):
         # Installing the application on the device and getting ready to run the tests
+        install_path = apk_metadata[KEY_NAME]
+        if self.custom_apk_exists():
+            install_path = self.custom_apk_path
+
         self.device.uninstall_app(self.package_id)
-        self.info(f"Installing {apk_metadata[KEY_NAME]}...")
-        app_name = self.device.install_app(apk_metadata[KEY_NAME])
+        self.info(f"Installing {install_path}...")
+        app_name = self.device.install_app(install_path)
         if self.device.is_app_installed(app_name):
             self.info(f"Successfully installed {app_name}")
         else:
             raise AndroidStartUpInstallError("The android app was not installed")
         self.apk_name = apk_metadata[KEY_NAME].split(".")[0]
+
         return self.run_tests()
 
     def run_tests(self):
@@ -324,11 +333,13 @@ class AndroidStartUp(AndroidDevice):
             )
             if is_old_version_of_focus:
                 assert (
-                    page_start_line_count == 3
+                    page_start_line_count
+                    == OLD_VERSION_FOCUS_PAGE_START_LINE_COUNT  # should be 3
                 ), page_start_assert_msg  # Lines: about:blank, target URL, target URL.
             else:
                 assert (
-                    page_start_line_count == 2
+                    page_start_line_count
+                    == NEW_VERSION_FOCUS_PAGE_START_LINE_COUNT  # Should be 2
                 ), page_start_assert_msg  # Lines: about:blank, target URL.
             return __line_to_datetime(
                 page_start_lines[1]
@@ -346,9 +357,8 @@ class AndroidStartUp(AndroidDevice):
         We've been told the start up cache is populated ~60s after first start up. As such,
         we should measure start up with the start up cache populated. If the
         args say we shouldn't wait, we only wait a short duration ~= visual completeness.
-        return 60 if self.startup_cache else 5
         """
-        return 1
+        return 60 if self.startup_cache else 5
 
     def get_start_cmd(self, test_name):
         intent_action_prefix = "android.intent.action.{}"
@@ -380,7 +390,7 @@ class AndroidStartUp(AndroidDevice):
         )
         result_output = self.device.shell_output(resolve_component_args)
         stdout = result_output.splitlines()
-        if len(stdout) != 2:
+        if len(stdout) != STDOUT_LINE_COUNT:  # Should be 2
             raise AndroidStartUpMatchingError(f"expected 2 lines. Got: {stdout}")
         return stdout[1]
 

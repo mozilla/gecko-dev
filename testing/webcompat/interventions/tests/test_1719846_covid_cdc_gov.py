@@ -4,7 +4,7 @@ URL = "https://covid.cdc.gov/covid-data-tracker/#pandemic-vulnerability-index"
 
 
 IFRAME_CSS = "#pviIframe"
-UNSUPPORTED_TEXT = "not support Firefox"
+UNSUPPORTED_TEXT = "not support Internet Explorer"
 
 
 @pytest.mark.asyncio

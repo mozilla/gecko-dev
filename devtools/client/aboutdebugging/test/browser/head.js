@@ -5,7 +5,6 @@
 
 /* eslint-env browser */
 /* eslint no-unused-vars: [2, {"vars": "local"}] */
-/* import-globals-from ../../../shared/test/shared-head.js */
 
 // Load the shared-head file first.
 Services.scriptloader.loadSubScript(
@@ -16,7 +15,6 @@ Services.scriptloader.loadSubScript(
 /* import-globals-from helper-mocks.js */
 Services.scriptloader.loadSubScript(CHROME_URL_ROOT + "helper-mocks.js", this);
 
-/* import-globals-from ../../../webconsole/test/browser/shared-head.js */
 Services.scriptloader.loadSubScript(
   "chrome://mochitests/content/browser/devtools/client/webconsole/test/browser/shared-head.js",
   this
@@ -83,8 +81,12 @@ async function openAboutDevtoolsToolbox(
   shouldWaitToolboxReady = true
 ) {
   info("Open about:devtools-toolbox page");
+
+  info("Wait for the target to appear: " + targetText);
+  await waitUntil(() => findDebugTargetByText(targetText, doc));
+
   const target = findDebugTargetByText(targetText, doc);
-  ok(target, `${targetText} tab target appeared`);
+  ok(target, `${targetText} target appeared`);
 
   const {
     DEBUG_TARGETS,

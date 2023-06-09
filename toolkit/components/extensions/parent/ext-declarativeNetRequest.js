@@ -12,6 +12,22 @@ ChromeUtils.defineESModuleGetters(this, {
 
 var { ExtensionError } = ExtensionUtils;
 
+const PREF_DNR_FEEDBACK = "extensions.dnr.feedback";
+XPCOMUtils.defineLazyPreferenceGetter(
+  this,
+  "dnrFeedbackEnabled",
+  PREF_DNR_FEEDBACK,
+  false
+);
+
+function ensureDNRFeedbackEnabled(apiName) {
+  if (!dnrFeedbackEnabled) {
+    throw new ExtensionError(
+      `${apiName} is only available when the "${PREF_DNR_FEEDBACK}" preference is set to true.`
+    );
+  }
+}
+
 this.declarativeNetRequest = class extends ExtensionAPI {
   onManifestEntry(entryName) {
     if (entryName === "declarative_net_request") {
@@ -51,7 +67,10 @@ this.declarativeNetRequest = class extends ExtensionAPI {
           if (failures.length) {
             throw new ExtensionError(failures[0].message);
           }
-          ruleManager.setSessionRules(ruleValidator.getValidatedRules());
+          let validatedRules = ruleValidator.getValidatedRules();
+          let ruleQuotaCounter = new ExtensionDNR.RuleQuotaCounter();
+          ruleQuotaCounter.tryAddRules("_session", validatedRules);
+          ruleManager.setSessionRules(validatedRules);
         },
 
         async getEnabledRulesets() {
@@ -86,11 +105,46 @@ this.declarativeNetRequest = class extends ExtensionAPI {
           return ExtensionDNR.getRuleManager(extension).getSessionRules();
         },
 
+        isRegexSupported(regexOptions) {
+          const {
+            regex: regexFilter,
+            isCaseSensitive: isUrlFilterCaseSensitive,
+            // requireCapturing: is ignored, as it does not affect validation.
+          } = regexOptions;
+
+          let ruleValidator = new ExtensionDNR.RuleValidator([]);
+          ruleValidator.addRules([
+            {
+              id: 1,
+              condition: { regexFilter, isUrlFilterCaseSensitive },
+              action: { type: "allow" },
+            },
+          ]);
+          let failures = ruleValidator.getFailures();
+          if (failures.length) {
+            // While the UnsupportedRegexReason enum has more entries than just
+            // "syntaxError" (e.g. also "memoryLimitExceeded"), our validation
+            // is currently very permissive, and therefore the only
+            // distinguishable error is "syntaxError".
+            return { isSupported: false, reason: "syntaxError" };
+          }
+          return { isSupported: true };
+        },
+
         async testMatchOutcome(request, options) {
+          ensureDNRFeedbackEnabled("declarativeNetRequest.testMatchOutcome");
           let { url, initiator, ...req } = request;
           req.requestURI = Services.io.newURI(url);
           if (initiator) {
             req.initiatorURI = Services.io.newURI(initiator);
+            if (req.initiatorURI.schemeIs("data")) {
+              // data:-URIs are always opaque, i.e. a null principal. We should
+              // therefore ignore them here.
+              // ExtensionDNR's NetworkIntegration.startDNREvaluation does not
+              // encounter data:-URIs because opaque principals are mapped to a
+              // null initiatorURI. For consistency, we do the same here.
+              req.initiatorURI = null;
+            }
           }
           const matchedRules = ExtensionDNR.getMatchedRulesForRequest(
             req,

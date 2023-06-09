@@ -27,7 +27,8 @@ UtilityProcessImpl::~UtilityProcessImpl() = default;
 void UtilityProcessImpl::LoadLibraryOrCrash(LPCWSTR aLib) {
   HMODULE module = ::LoadLibraryW(aLib);
   if (!module) {
-    MOZ_CRASH("Unable to preload module");
+    DWORD err = ::GetLastError();
+    MOZ_CRASH_UNSAFE_PRINTF("Unable to preload module: 0x%lx", err);
   }
 }
 #endif  // defined(XP_WIN)
@@ -64,8 +65,10 @@ bool UtilityProcessImpl::Init(int aArgc, char* aArgv[]) {
   // Go for it
   mozilla::SandboxTarget::Instance()->StartSandbox();
 #elif defined(__OpenBSD__) && defined(MOZ_SANDBOX)
-  StartOpenBSDSandbox(GeckoProcessType_Utility,
-                      (SandboxingKind)*sandboxingKind);
+  if (*sandboxingKind != SandboxingKind::GENERIC_UTILITY) {
+    StartOpenBSDSandbox(GeckoProcessType_Utility,
+                        (SandboxingKind)*sandboxingKind);
+  }
 #endif
 
   Maybe<const char*> parentBuildID =

@@ -167,13 +167,11 @@
 #include "mozilla/dom/TimeoutHandler.h"
 #include "mozilla/dom/TimeoutManager.h"
 #include "mozilla/dom/ToJSValue.h"
-#include "mozilla/dom/U2F.h"
 #include "mozilla/dom/VRDisplay.h"
 #include "mozilla/dom/VRDisplayEvent.h"
 #include "mozilla/dom/VRDisplayEventBinding.h"
 #include "mozilla/dom/VREventObserver.h"
 #include "mozilla/dom/VisualViewport.h"
-#include "mozilla/dom/WakeLock.h"
 #include "mozilla/dom/WebIDLGlobalNameHash.h"
 #include "mozilla/dom/WindowBinding.h"
 #include "mozilla/dom/WindowContext.h"
@@ -1310,7 +1308,6 @@ void nsGlobalWindowInner::FreeInnerObjects() {
   if (mWindowGlobalChild && !mWindowGlobalChild->IsClosed()) {
     mWindowGlobalChild->Destroy();
   }
-  mWindowGlobalChild = nullptr;
 
   mIntlUtils = nullptr;
 
@@ -1449,7 +1446,6 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(nsGlobalWindowInner)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mStatusbar)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mScrollbars)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mCrypto)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mU2F)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mConsole)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mPaintWorklet)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mExternal)
@@ -1566,7 +1562,6 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsGlobalWindowInner)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mStatusbar)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mScrollbars)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mCrypto)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mU2F)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mConsole)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mPaintWorklet)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mExternal)
@@ -1628,20 +1623,22 @@ bool nsGlobalWindowInner::IsBlackForCC(bool aTracingNeeded) {
 // nsGlobalWindowInner::nsIScriptGlobalObject
 //*****************************************************************************
 
-bool nsGlobalWindowInner::ShouldResistFingerprinting() const {
+bool nsGlobalWindowInner::ShouldResistFingerprinting(
+    RFPTarget aTarget /* = RFPTarget::Unknown */) const {
   if (mDoc) {
-    return mDoc->ShouldResistFingerprinting();
+    return mDoc->ShouldResistFingerprinting(aTarget);
   }
   return nsContentUtils::ShouldResistFingerprinting(
       "If we do not have a document then we do not have any context"
-      "to make an informed RFP choice, so we fall back to the global pref");
+      "to make an informed RFP choice, so we fall back to the global pref",
+      aTarget);
 }
 
 OriginTrials nsGlobalWindowInner::Trials() const {
   return OriginTrials::FromWindow(this);
 }
 
-FontFaceSet* nsGlobalWindowInner::Fonts() {
+FontFaceSet* nsGlobalWindowInner::GetFonts() {
   if (mDoc) {
     return mDoc->Fonts();
   }
@@ -3380,19 +3377,6 @@ Crypto* nsGlobalWindowInner::GetCrypto(ErrorResult& aError) {
   return mCrypto;
 }
 
-mozilla::dom::U2F* nsGlobalWindowInner::GetU2f(ErrorResult& aError) {
-  if (!mU2F) {
-    RefPtr<U2F> u2f = new U2F(this);
-    u2f->Init(aError);
-    if (NS_WARN_IF(aError.Failed())) {
-      return nullptr;
-    }
-
-    mU2F = u2f;
-  }
-  return mU2F;
-}
-
 nsIControllers* nsGlobalWindowInner::GetControllers(ErrorResult& aError) {
   FORWARD_TO_OUTER_OR_THROW(GetControllersOuter, (aError), aError, nullptr);
 }
@@ -3657,7 +3641,7 @@ double nsGlobalWindowInner::GetDevicePixelRatio(CallerType aCallerType,
     return 1.0;
   }
 
-  if (nsContentUtils::ResistFingerprinting(aCallerType)) {
+  if (nsIGlobalObject::ShouldResistFingerprinting(aCallerType)) {
     // Spoofing the DevicePixelRatio causes blurriness in some situations
     // on HiDPI displays. pdf.js is a non-system caller; but it can't
     // expose the fingerprintable information, so we can safely disable
@@ -4615,13 +4599,7 @@ bool nsGlobalWindowInner::ShouldShowFocusRing() {
       StaticPrefs::browser_display_always_show_rings_after_key_focus()) {
     return true;
   }
-  if (StaticPrefs::browser_display_show_focus_rings()) {
-    return true;
-  }
-  if (LookAndFeel::GetInt(LookAndFeel::IntID::ShowKeyboardCues)) {
-    return true;
-  }
-  return false;
+  return StaticPrefs::browser_display_show_focus_rings();
 }
 
 bool nsGlobalWindowInner::TakeFocus(bool aFocus, uint32_t aFocusMethod) {
@@ -7489,7 +7467,7 @@ void nsGlobalWindowInner::InitWasOffline() { mWasOffline = NS_IsOffline(); }
 int16_t nsGlobalWindowInner::Orientation(CallerType aCallerType) {
   // GetOrientationAngle() returns 0, 90, 180 or 270.
   // window.orientation returns -90, 0, 90 or 180.
-  if (nsContentUtils::ResistFingerprinting(aCallerType)) {
+  if (nsIGlobalObject::ShouldResistFingerprinting(aCallerType)) {
     return 0;
   }
   nsScreen* s = GetScreen(IgnoreErrors());
@@ -7518,7 +7496,7 @@ bool nsGlobalWindowInner::IsSecureContext() const {
   return JS::GetIsSecureContext(realm);
 }
 
-External* nsGlobalWindowInner::GetExternal(ErrorResult& aRv) {
+External* nsGlobalWindowInner::External() {
   if (!mExternal) {
     mExternal = new dom::External(ToSupports(this));
   }
@@ -7526,8 +7504,7 @@ External* nsGlobalWindowInner::GetExternal(ErrorResult& aRv) {
   return mExternal;
 }
 
-void nsGlobalWindowInner::GetSidebar(OwningExternalOrWindowProxy& aResult,
-                                     ErrorResult& aRv) {
+void nsGlobalWindowInner::GetSidebar(OwningExternalOrWindowProxy& aResult) {
   // First check for a named frame named "sidebar"
   RefPtr<BrowsingContext> domWindow = GetChildWindow(u"sidebar"_ns);
   if (domWindow) {
@@ -7535,7 +7512,7 @@ void nsGlobalWindowInner::GetSidebar(OwningExternalOrWindowProxy& aResult,
     return;
   }
 
-  RefPtr<External> external = GetExternal(aRv);
+  RefPtr<dom::External> external = External();
   if (external) {
     aResult.SetAsExternal() = external;
   }
@@ -7592,8 +7569,12 @@ void nsGlobalWindowInner::SetReplaceableWindowCoord(
    * just treat this the way we would an IDL replaceable property.
    */
   nsGlobalWindowOuter* outer = GetOuterWindowInternal();
-  if (!outer || !outer->CanMoveResizeWindows(aCallerType) ||
+  if (StaticPrefs::dom_window_position_size_properties_replaceable_enabled() ||
+      !outer || !outer->CanMoveResizeWindows(aCallerType) ||
       mBrowsingContext->IsSubframe()) {
+    MOZ_DIAGNOSTIC_ASSERT(aCallerType != CallerType::System,
+                          "Setting this property in chrome code does nothing "
+                          "anymore, use resizeTo/moveTo as needed");
     RedefineProperty(aCx, aPropName, aValue, aError);
     return;
   }
@@ -7602,78 +7583,6 @@ void nsGlobalWindowInner::SetReplaceableWindowCoord(
   if (!ValueToPrimitive<T, eDefault>(aCx, aValue, aPropName, &value)) {
     aError.Throw(NS_ERROR_UNEXPECTED);
     return;
-  }
-
-  if (ShouldResistFingerprinting()) {
-    bool innerWidthSpecified = false;
-    bool innerHeightSpecified = false;
-    bool outerWidthSpecified = false;
-    bool outerHeightSpecified = false;
-
-    if (strcmp(aPropName, "innerWidth") == 0) {
-      innerWidthSpecified = true;
-    } else if (strcmp(aPropName, "innerHeight") == 0) {
-      innerHeightSpecified = true;
-    } else if (strcmp(aPropName, "outerWidth") == 0) {
-      outerWidthSpecified = true;
-    } else if (strcmp(aPropName, "outerHeight") == 0) {
-      outerHeightSpecified = true;
-    }
-
-    if (innerWidthSpecified || innerHeightSpecified || outerWidthSpecified ||
-        outerHeightSpecified) {
-      nsCOMPtr<nsIBaseWindow> treeOwnerAsWin = outer->GetTreeOwnerWindow();
-      nsCOMPtr<nsIScreenManager> screenMgr(
-          do_GetService("@mozilla.org/gfx/screenmanager;1"));
-
-      if (treeOwnerAsWin && screenMgr) {
-        // Acquire current window size.
-        //
-        // FIXME: This needs to account for full zoom like the outer window code
-        // does! Ideally move there?
-        auto cssScale = treeOwnerAsWin->UnscaledDevicePixelsPerCSSPixel();
-        LayoutDeviceIntRect devWinRect = treeOwnerAsWin->GetPositionAndSize();
-        CSSIntRect cssWinRect = RoundedToInt(devWinRect / cssScale);
-
-        // Acquire content window size.
-        CSSSize contentSize;
-        outer->GetInnerSize(contentSize);
-
-        nsCOMPtr<nsIScreen> screen = screenMgr->ScreenForRect(RoundedToInt(
-            devWinRect / treeOwnerAsWin->DevicePixelsPerDesktopPixel()));
-        if (screen) {
-          int32_t roundedValue = std::round(value);
-          int32_t* targetContentWidth = nullptr;
-          int32_t* targetContentHeight = nullptr;
-          int32_t inputWidth = 0;
-          int32_t inputHeight = 0;
-          int32_t unused = 0;
-
-          CSSIntSize availScreenSize =
-              RoundedToInt(screen->GetAvailRect().Size() / cssScale);
-
-          // Calculate the chrome UI size.
-          CSSIntSize chromeSize = cssWinRect.Size() - RoundedToInt(contentSize);
-
-          if (innerWidthSpecified || outerWidthSpecified) {
-            inputWidth = value;
-            targetContentWidth = &roundedValue;
-            targetContentHeight = &unused;
-          } else if (innerHeightSpecified || outerHeightSpecified) {
-            inputHeight = value;
-            targetContentWidth = &unused;
-            targetContentHeight = &roundedValue;
-          }
-
-          nsContentUtils::CalcRoundedWindowSizeForResistingFingerprinting(
-              chromeSize.width, chromeSize.height, availScreenSize.width,
-              availScreenSize.height, inputWidth, inputHeight,
-              outerWidthSpecified, outerHeightSpecified, targetContentWidth,
-              targetContentHeight);
-          value = T(roundedValue);
-        }
-      }
-    }
   }
 
   (this->*aSetter)(value, aCallerType, aError);
@@ -7689,7 +7598,7 @@ void nsGlobalWindowInner::FireOnNewGlobalObject() {
 
 #if defined(_WINDOWS_) && !defined(MOZ_WRAPPED_WINDOWS_H)
 #  pragma message( \
-      "wrapper failure reason: " MOZ_WINDOWS_WRAPPER_DISABLED_REASON)
+          "wrapper failure reason: " MOZ_WINDOWS_WRAPPER_DISABLED_REASON)
 #  error "Never include unwrapped windows.h in this file!"
 #endif
 
@@ -8004,6 +7913,7 @@ nsPIDOMWindowInner::nsPIDOMWindowInner(nsPIDOMWindowOuter* aOuterWindow,
       mMayHaveFormSelectEventListener(false),
       mMayHaveMouseEnterLeaveEventListener(false),
       mMayHavePointerEnterLeaveEventListener(false),
+      mMayHaveTransitionEventListener(false),
       mMayHaveBeforeInputEventListenerForTelemetry(false),
       mMutationObserverHasObservedNodeForTelemetry(false),
       mOuterWindow(aOuterWindow),

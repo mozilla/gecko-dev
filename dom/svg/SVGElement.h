@@ -119,9 +119,6 @@ class SVGElement : public SVGElementBase  // nsIContent
   nsChangeHint GetAttributeChangeHint(const nsAtom* aAttribute,
                                       int32_t aModType) const override;
 
-  bool IsNodeOfType(uint32_t aFlags) const override;
-  virtual bool IsSVGGraphicsElement() const { return false; }
-
   /**
    * We override the default to unschedule computation of Servo declaration
    * blocks when adopted across documents.
@@ -129,19 +126,6 @@ class SVGElement : public SVGElementBase  // nsIContent
   void NodeInfoChanged(Document* aOldDoc) override;
 
   NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* aAttribute) const override;
-
-  static const MappedAttributeEntry sFillStrokeMap[];
-  static const MappedAttributeEntry sGraphicsMap[];
-  static const MappedAttributeEntry sTextContentElementsMap[];
-  static const MappedAttributeEntry sFontSpecificationMap[];
-  static const MappedAttributeEntry sGradientStopMap[];
-  static const MappedAttributeEntry sViewportsMap[];
-  static const MappedAttributeEntry sMarkersMap[];
-  static const MappedAttributeEntry sColorMap[];
-  static const MappedAttributeEntry sFiltersMap[];
-  static const MappedAttributeEntry sFEFloodMap[];
-  static const MappedAttributeEntry sLightingEffectsMap[];
-  static const MappedAttributeEntry sMaskMap[];
 
   NS_IMPL_FROMNODE(SVGElement, kNameSpaceID_SVG)
 
@@ -367,11 +351,11 @@ class SVGElement : public SVGElementBase  // nsIContent
   // This is because we're not currently passing the correct value for aValue to
   // BeforeSetAttr since it would involve allocating extra SVG value types.
   // See the comment in SVGElement::WillChangeValue.
-  nsresult BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
-                         const nsAttrValueOrString* aValue, bool aNotify) final;
-  nsresult AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
-                        const nsAttrValue* aValue, const nsAttrValue* aOldValue,
-                        nsIPrincipal* aSubjectPrincipal, bool aNotify) override;
+  void BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
+                     const nsAttrValue* aValue, bool aNotify) final;
+  void AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
+                    const nsAttrValue* aValue, const nsAttrValue* aOldValue,
+                    nsIPrincipal* aSubjectPrincipal, bool aNotify) override;
   bool ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
                       const nsAString& aValue,
                       nsIPrincipal* aMaybeScriptedPrincipal,

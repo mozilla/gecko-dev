@@ -1,0 +1,52 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+---
+job-defaults:
+    platform: linux1804-64/opt
+    require-build:
+        by-project:
+            try:
+                linux1804-64/opt: build-linux64/opt
+            default:
+                linux1804-64/opt: build-linux64-shippable/opt
+    fetches:
+        build:
+            - target.tar.bz2
+        toolchain:
+            - linux64-node
+    treeherder:
+        kind: test
+        tier: 1
+    worker-type: t-linux-xlarge-source
+    worker:
+        docker-image: {in-tree: ubuntu1804-test}
+        max-run-time: 3600
+        artifacts:
+            - type: file
+              name: public/remote/pup_errorsummary.json
+              path: /builds/worker/pup_errorsummary.json
+    optimization:
+        skip-unless-expanded: null
+
+puppeteer:
+    description: Puppeteer tests against Firefox CDP-based remote protocol
+    treeherder:
+        symbol: Pup(cdp)
+    run:  # Bug 1651542: Use screenshot feature to warm-up the font cache before the actual test
+        using: run-task
+        command: >
+            cd $GECKO_PATH/ &&
+            $MOZ_FETCHES_DIR/firefox/firefox --screenshot http://example.org &&
+            ./mach puppeteer-test --ci -vv --binary $MOZ_FETCHES_DIR/firefox/firefox --headless --log-tbpl - --log-errorsummary /builds/worker/pup_errorsummary.json
+
+puppeteer-with-bidi:
+    description: Puppeteer tests against Firefox Webdriver BiDi remote protocol
+    treeherder:
+        symbol: Pup(wd)
+    run:  # Bug 1651542: Use screenshot feature to warm-up the font cache before the actual test
+        using: run-task
+        command: >
+            cd $GECKO_PATH/ &&
+            $MOZ_FETCHES_DIR/firefox/firefox --screenshot http://example.org &&
+            ./mach puppeteer-test --ci -vv --binary $MOZ_FETCHES_DIR/firefox/firefox --bidi --log-tbpl - --log-errorsummary /builds/worker/pup_errorsummary.json

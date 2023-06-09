@@ -14,11 +14,19 @@ const TYPED_ARRAY_CLASSES = [
   "Float64Array",
 ];
 
+// Bug 1786299: Puppeteer expects specific error messages.
+const ERROR_CYCLIC_REFERENCE = "Object reference chain is too long";
+const ERROR_CANNOT_RETURN_BY_VALUE = "Object couldn't be returned by value";
+
 function uuid() {
   return Services.uuid
     .generateUUID()
     .toString()
     .slice(1, -1);
+}
+
+function randomInt() {
+  return crypto.getRandomValues(new Uint32Array(1))[0];
 }
 
 /**
@@ -100,7 +108,7 @@ export class ExecutionContext {
       debuggerObj instanceof Debugger.Object &&
       Node.isInstance(debuggerObj.unsafeDereference())
     ) {
-      debuggerObj.nodeId = uuid();
+      debuggerObj.nodeId = randomInt();
       // We do not differentiate between backendNodeId and nodeId (yet)
       debuggerObj.backendNodeId = debuggerObj.nodeId;
     }
@@ -113,16 +121,16 @@ export class ExecutionContext {
   /**
    * Evaluate a Javascript expression.
    *
-   * @param {String} expression
+   * @param {string} expression
    *   The JS expression to evaluate against the JS context.
-   * @param {boolean} options.awaitPromise
+   * @param {boolean} awaitPromise
    *     Whether execution should `await` for resulting value
    *     and return once awaited promise is resolved.
    * @param {boolean} returnByValue
    *     Whether the result is expected to be a JSON object
    *     that should be sent by value.
    *
-   * @return {Object} A multi-form object depending if the execution
+   * @returns {object} A multi-form object depending if the execution
    *   succeed or failed. If the expression failed to evaluate,
    *   it will return an object with an `exceptionDetails` attribute
    *   matching the `ExceptionDetails` CDP type. Otherwise it will
@@ -156,7 +164,7 @@ export class ExecutionContext {
           result = this._debuggee.makeDebuggeeValue(promiseResult);
         } catch (e) {
           // The promise has been rejected
-          return this._returnError(e);
+          return this._returnError(this._debuggee.makeDebuggeeValue(e));
         }
       }
     }
@@ -251,7 +259,7 @@ export class ExecutionContext {
           result = this._debuggee.makeDebuggeeValue(promiseResult);
         } catch (e) {
           // The promise has been rejected
-          return this._returnError(e);
+          return this._returnError(this._debuggee.makeDebuggeeValue(e));
         }
       }
     }
@@ -370,7 +378,7 @@ export class ExecutionContext {
    *
    * @param {Debugger.Object} debuggerObj
    *  The object to serialize
-   * @return {RemoteObject}
+   * @returns {RemoteObject}
    *  The serialized description of the given object
    */
   _toRemoteObject(debuggerObj) {
@@ -468,7 +476,7 @@ export class ExecutionContext {
    *
    * @param {Debugger.Object} debuggerObj
    *  The object to serialize
-   * @return {RemoteObject}
+   * @returns {RemoteObject}
    *  The serialized description of the given object
    */
   _toRemoteObjectByValue(debuggerObj) {
@@ -510,21 +518,48 @@ export class ExecutionContext {
   /**
    * Convert a given `Debugger.Object` to an object.
    *
-   * @param {Debugger.Object} obj
+   * @param {Debugger.Object} debuggerObj
    *  The object to convert
    *
-   * @return {Object}
+   * @returns {object}
    *  The converted object
    */
   _serialize(debuggerObj) {
     const result = this._debuggee.executeInGlobalWithBindings(
-      "JSON.stringify(e)",
+      `
+      JSON.stringify(e, (key, value) => {
+        if (typeof value === "symbol") {
+          // CDP cannot return Symbols
+          throw new Error();
+        }
+
+        return value;
+      });
+    `,
       { e: debuggerObj }
     );
     if (result.throw) {
-      throw new Error("Object is not serializable");
+      const exception = this._toRawObject(result.throw);
+      if (exception.message === "cyclic object value") {
+        throw new Error(ERROR_CYCLIC_REFERENCE);
+      }
+
+      throw new Error(ERROR_CANNOT_RETURN_BY_VALUE);
     }
 
     return JSON.parse(result.return);
+  }
+
+  _toRawObject(maybeDebuggerObject) {
+    if (maybeDebuggerObject instanceof Debugger.Object) {
+      // Retrieve the referent for the provided Debugger.object.
+      // See https://firefox-source-docs.mozilla.org/devtools-user/debugger-api/debugger.object/index.html
+      const rawObject = maybeDebuggerObject.unsafeDereference();
+      return Cu.waiveXrays(rawObject);
+    }
+
+    // If maybeDebuggerObject was not a Debugger.Object, it is a primitive value
+    // which can be used as is.
+    return maybeDebuggerObject;
   }
 }

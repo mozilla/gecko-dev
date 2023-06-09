@@ -42,9 +42,6 @@ pref("dom.capture.enabled", true);
 // Disable Web Push until we get it working
 pref("dom.push.enabled", true);
 
-// enable external storage API
-pref("dom.storageManager.enabled", true);
-
 // enable storage access API
 pref("dom.storage_access.enabled", true);
 
@@ -93,12 +90,9 @@ pref("extensions.formautofill.addresses.capture.enabled", true);
 pref("browser.formfill.debug", false);
 pref("extensions.formautofill.loglevel", "Warn");
 
-#ifdef NIGHTLY_BUILD
 // PDF.js (enabled in StaticPrefList.yaml)
 // Try to convert PDFs sent as octet-stream
 pref("pdfjs.handleOctetStream", true);
 pref("browser.download.open_pdf_attachments_inline", true);
 pref("pdfjs.annotationEditorMode", -1);
-#else
-pref("pdfjs.disabled", true);
-#endif
+pref("pdfjs.enableFloatingToolbar", true);

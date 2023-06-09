@@ -45,6 +45,7 @@ firefox-ci:
         subsuite: ci
     when:
         files-changed:
+            - '.taskcluster.yml'
             - 'taskcluster/ci/**'
             - 'taskcluster/**/*.py'
             - 'tools/tryselect/selectors/auto.py'
@@ -357,6 +358,7 @@ tryselect:
         subsuite: try
     when:
         files-changed:
+            - 'taskcluster/ci/config.yml'
             - 'taskcluster/ci/test/**'
             - 'taskcluster/gecko_taskgraph/transforms/**'
             - 'tools/tryselect/**'
@@ -382,6 +384,7 @@ mozbuild:
                     - macosx64-node-12
                 windows10-64/opt:
                     - win64-node-12
+                    - win64-mozmake
     when:
         files-changed:
             - '**/moz.configure'

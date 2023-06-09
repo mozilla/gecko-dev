@@ -54,6 +54,7 @@ from manifestparser.filters import (
 )
 from manifestparser.util import normsep
 from mozgeckoprofiler import symbolicate_profile_json, view_gecko_profile
+from mozserve import DoHServer, Http3Server
 
 try:
     from marionette_driver.addons import Addons
@@ -91,6 +92,13 @@ import six
 from six.moves.urllib.parse import quote_plus as encodeURIComponent
 from six.moves.urllib_request import urlopen
 
+try:
+    from mozbuild.base import MozbuildObject
+
+    build = MozbuildObject.from_environment(cwd=SCRIPT_DIR)
+except ImportError:
+    build = None
+
 here = os.path.abspath(os.path.dirname(__file__))
 
 NO_TESTS_FOUND = """
@@ -114,11 +122,21 @@ list of valid flavors.
 # of all the log files on treeherder.
 MOZ_LOG = ""
 
+########################################
+# Option for web server log            #
+########################################
+
+# If True, debug logging from the web server will be
+# written to mochitest-server-%d.txt artifacts on
+# treeherder.
+MOCHITEST_SERVER_LOGGING = False
+
 #####################
 # Test log handling #
 #####################
 
 # output processing
+TBPL_RETRY = 4  # Defined in mozharness
 
 
 class MessageLogger(object):
@@ -461,6 +479,8 @@ class MochitestServer(object):
 
     "Web server used to serve Mochitests, for closer fidelity to the real web."
 
+    instance_count = 0
+
     def __init__(self, options, logger):
         if isinstance(options, Namespace):
             options = vars(options)
@@ -481,6 +501,10 @@ class MochitestServer(object):
             "server": shutdownServer,
             "port": self.httpPort,
         }
+        self.debugURL = "http://%(server)s:%(port)s/server/debug?2" % {
+            "server": shutdownServer,
+            "port": self.httpPort,
+        }
         self.testPrefix = "undefined"
 
         if options.get("httpdPath"):
@@ -488,6 +512,8 @@ class MochitestServer(object):
         else:
             self._httpdPath = SCRIPT_DIR
         self._httpdPath = os.path.abspath(self._httpdPath)
+
+        MochitestServer.instance_count += 1
 
     def start(self):
         "Run the Mochitest server, returning the process ID of the server."
@@ -541,11 +567,31 @@ class MochitestServer(object):
             self._utilityPath, "xpcshell" + mozinfo.info["bin_suffix"]
         )
         command = [xpcshell] + args
-        self._process = mozprocess.ProcessHandler(command, cwd=SCRIPT_DIR, env=env)
+        server_logfile = None
+        if MOCHITEST_SERVER_LOGGING and "MOZ_UPLOAD_DIR" in os.environ:
+            server_logfile = os.path.join(
+                os.environ["MOZ_UPLOAD_DIR"],
+                "mochitest-server-%d.txt" % MochitestServer.instance_count,
+            )
+        self._process = mozprocess.ProcessHandler(
+            command, cwd=SCRIPT_DIR, env=env, logfile=server_logfile
+        )
         self._process.run()
         self._log.info("%s : launching %s" % (self.__class__.__name__, command))
         pid = self._process.pid
         self._log.info("runtests.py | Server pid: %d" % pid)
+        if MOCHITEST_SERVER_LOGGING and "MOZ_UPLOAD_DIR" in os.environ:
+            self._log.info("runtests.py enabling server debugging...")
+            i = 0
+            while i < 5:
+                try:
+                    with closing(urlopen(self.debugURL)) as c:
+                        self._log.info(six.ensure_text(c.read()))
+                    break
+                except Exception as e:
+                    self._log.info("exception when enabling debugging: %s" % str(e))
+                    time.sleep(1)
+                    i += 1
 
     def ensureReady(self, timeout):
         assert timeout >= 0
@@ -1113,6 +1159,9 @@ class MochitestDesktop(object):
                 options.xOriginTests = True
             if options.xOriginTests:
                 self.urlOpts.append("xOriginTests=true")
+            if options.comparePrefs:
+                self.urlOpts.append("comparePrefs=true")
+            self.urlOpts.append("ignorePrefsFile=ignorePrefs.json")
 
     def normflavor(self, flavor):
         """
@@ -1331,6 +1380,56 @@ class MochitestDesktop(object):
                 break
         return is_webrtc_tag_present and options.subsuite in ["media"]
 
+    def startHttp3Server(self, options):
+        """
+        Start a Http3 test server.
+        """
+        http3ServerPath = os.path.join(
+            options.utilityPath, "http3server" + mozinfo.info["bin_suffix"]
+        )
+        serverOptions = {}
+        serverOptions["http3ServerPath"] = http3ServerPath
+        serverOptions["profilePath"] = options.profilePath
+        serverOptions["isMochitest"] = True
+        serverOptions["isWin"] = mozinfo.isWin
+        serverOptions["proxyPort"] = options.http3ServerPort
+        env = test_environment(xrePath=options.xrePath, log=self.log)
+        self.http3Server = Http3Server(serverOptions, env, self.log)
+        self.http3Server.start()
+
+        port = self.http3Server.ports().get("MOZHTTP3_PORT_PROXY")
+        if int(port) != options.http3ServerPort:
+            self.http3Server = None
+            raise RuntimeError("Error: Unable to start Http/3 server")
+
+    def startDoHServer(self, options):
+        """
+        Start a DoH test server.
+        """
+        # We try to find the node executable in the path given to us by the user in
+        # the MOZ_NODE_PATH environment variable
+        nodeBin = os.getenv("MOZ_NODE_PATH", None)
+        self.log.info("Use MOZ_NODE_PATH at %s" % (nodeBin))
+        if not nodeBin and build:
+            nodeBin = build.substs.get("NODEJS")
+            self.log.info("Use build node at %s" % (nodeBin))
+
+        serverOptions = {}
+        serverOptions["serverPath"] = os.path.join(
+            SCRIPT_DIR, "DoHServer", "doh_server.js"
+        )
+        serverOptions["nodeBin"] = nodeBin
+        serverOptions["dstServerPort"] = options.http3ServerPort
+        serverOptions["isWin"] = mozinfo.isWin
+        serverOptions["port"] = options.dohServerPort
+        env = test_environment(xrePath=options.xrePath, log=self.log)
+        self.dohServer = DoHServer(serverOptions, env, self.log)
+        self.dohServer.start()
+
+        port = self.dohServer.port()
+        if port != options.dohServerPort:
+            raise RuntimeError("Error: Unable to start DoH server")
+
     def startServers(self, options, debuggerInfo, public=None):
         # start servers and set ports
         # TODO: pass these values, don't set on `self`
@@ -1365,6 +1464,13 @@ class MochitestDesktop(object):
         if self.server is not None:
             self.server.ensureReady(self.SERVER_STARTUP_TIMEOUT)
 
+        self.log.info("use http3 server: %d" % options.useHttp3Server)
+        self.http3Server = None
+        self.dohServer = None
+        if options.useHttp3Server:
+            self.startHttp3Server(options)
+            self.startDoHServer(options)
+
     def stopServers(self):
         """Servers are no longer needed, and perhaps more importantly, anything they
         might spew to console might confuse things."""
@@ -1396,6 +1502,16 @@ class MochitestDesktop(object):
                 self.log.info("Stopping websocket/process bridge")
             except Exception:
                 self.log.critical("Exception stopping websocket/process bridge")
+        if self.http3Server is not None:
+            try:
+                self.http3Server.stop()
+            except Exception:
+                self.log.critical("Exception stopping http3 server")
+        if self.dohServer is not None:
+            try:
+                self.dohServer.stop()
+            except Exception:
+                self.log.critical("Exception stopping doh server")
 
         if hasattr(self, "gstForV4l2loopbackProcess"):
             try:
@@ -1839,6 +1955,12 @@ toolbar#nav-bar {
             d["runFailures"] = True
         content = json.dumps(d)
 
+        shutil.copy(
+            os.path.join(SCRIPT_DIR, "ignorePrefs.json"),
+            os.path.join(options.profilePath, "ignorePrefs.json"),
+        )
+        d["ignorePrefsFile"] = "ignorePrefs.json"
+
         with open(os.path.join(options.profilePath, "testConfig.js"), "w") as config:
             config.write(content)
 
@@ -2111,6 +2233,12 @@ toolbar#nav-bar {
         os.unlink(pwfilePath)
         return 0
 
+    def findFreePort(self, type):
+        with closing(socket.socket(socket.AF_INET, type)) as s:
+            s.bind(("127.0.0.1", 0))
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            return s.getsockname()[1]
+
     def proxy(self, options):
         # proxy
         # use SSL port for legacy compatibility; see
@@ -2118,12 +2246,20 @@ toolbar#nav-bar {
         # - https://bugzilla.mozilla.org/show_bug.cgi?id=899221
         # - https://github.com/mozilla/mozbase/commit/43f9510e3d58bfed32790c82a57edac5f928474d
         #             'ws': str(self.webSocketPort)
-        return {
+        proxyOptions = {
             "remote": options.webServer,
             "http": options.httpPort,
             "https": options.sslPort,
             "ws": options.sslPort,
         }
+
+        if options.useHttp3Server:
+            options.dohServerPort = self.findFreePort(socket.SOCK_STREAM)
+            options.http3ServerPort = self.findFreePort(socket.SOCK_DGRAM)
+            proxyOptions["dohServerPort"] = options.dohServerPort
+            self.log.info("use doh server at port: %d" % options.dohServerPort)
+            self.log.info("use http3 server at port: %d" % options.http3ServerPort)
+        return proxyOptions
 
     def merge_base_profiles(self, options, category):
         """Merge extra profile data from testing/profiles."""
@@ -2306,15 +2442,16 @@ toolbar#nav-bar {
             "browser.tabs.remote.autostart": options.e10s,
             # Enable tracing output for detailed failures in case of
             # failing connection attempts, and hangs (bug 1397201)
-            "marionette.log.level": "Trace",
+            "remote.log.level": "Trace",
             # Disable async font fallback, because the unpredictable
             # extra reflow it can trigger (potentially affecting a later
             # test) results in spurious intermittent failures.
             "gfx.font_rendering.fallback.async": False,
         }
 
+        test_timeout = None
         if options.flavor == "browser" and options.timeout:
-            prefs["testing.browserTestHarness.timeout"] = options.timeout
+            test_timeout = options.timeout
 
         # browser-chrome tests use a fairly short default timeout of 45 seconds;
         # this is sometimes too short on asan and debug, where we expect reduced
@@ -2324,8 +2461,8 @@ toolbar#nav-bar {
             and options.flavor == "browser"
             and options.timeout is None
         ):
-            self.log.info("Increasing default timeout to 90 seconds")
-            prefs["testing.browserTestHarness.timeout"] = 90
+            self.log.info("Increasing default timeout to 90 seconds (asan or debug)")
+            test_timeout = 90
 
         # tsan builds need even more time
         if (
@@ -2333,15 +2470,27 @@ toolbar#nav-bar {
             and options.flavor == "browser"
             and options.timeout is None
         ):
-            self.log.info("Increasing default timeout to 120 seconds")
-            prefs["testing.browserTestHarness.timeout"] = 120
+            self.log.info("Increasing default timeout to 120 seconds (tsan)")
+            test_timeout = 120
 
         if mozinfo.info["os"] == "win" and mozinfo.info["processor"] == "aarch64":
-            extended_timeout = self.DEFAULT_TIMEOUT * 4
+            test_timeout = self.DEFAULT_TIMEOUT * 4
             self.log.info(
-                "Increasing default timeout to {} seconds".format(extended_timeout)
+                "Increasing default timeout to {} seconds (win aarch64)".format(
+                    test_timeout
+                )
             )
-            prefs["testing.browserTestHarness.timeout"] = extended_timeout
+
+        if "MOZ_CHAOSMODE=0xfb" in options.environment and test_timeout:
+            test_timeout *= 2
+            self.log.info(
+                "Increasing default timeout to {} seconds (MOZ_CHAOSMODE)".format(
+                    test_timeout
+                )
+            )
+
+        if test_timeout:
+            prefs["testing.browserTestHarness.timeout"] = test_timeout
 
         if getattr(self, "testRootAbs", None):
             prefs["mochitest.testRoot"] = self.testRootAbs
@@ -2697,15 +2846,23 @@ toolbar#nav-bar {
             )
 
             # start the runner
-            runner.start(
-                debug_args=debug_args, interactive=interactive, outputTimeout=timeout
-            )
-            proc = runner.process_handler
-            self.log.info("runtests.py | Application pid: %d" % proc.pid)
+            try:
+                runner.start(
+                    debug_args=debug_args,
+                    interactive=interactive,
+                    outputTimeout=timeout,
+                )
+                proc = runner.process_handler
+                self.log.info("runtests.py | Application pid: %d" % proc.pid)
 
-            gecko_id = "GECKO(%d)" % proc.pid
-            self.log.process_start(gecko_id)
-            self.message_logger.gecko_id = gecko_id
+                gecko_id = "GECKO(%d)" % proc.pid
+                self.log.process_start(gecko_id)
+                self.message_logger.gecko_id = gecko_id
+            except PermissionError:
+                # treat machine as bad, return
+                return TBPL_RETRY, "Failure to launch browser"
+            except Exception as e:
+                raise e  # unknown error
 
             try:
                 # start marionette and kick off the tests
@@ -2962,6 +3119,9 @@ toolbar#nav-bar {
                     bisection_log = 1
 
             result = self.doTests(options, testsToRun, manifestToFilter)
+            if result == TBPL_RETRY:  # terminate task
+                return result
+
             if options.bisectChunk:
                 status = bisect.post_test(options, self.expectedError, self.result)
             else:
@@ -3009,6 +3169,7 @@ toolbar#nav-bar {
             options.keep_open = False
             options.runUntilFailure = True
             options.profilePath = None
+            options.comparePrefs = True
             result = self.runTests(options)
             result = result or (-2 if self.countfail > 0 else 0)
             self.message_logger.finish()
@@ -3149,6 +3310,7 @@ toolbar#nav-bar {
                 "e10s": options.e10s,
                 "fission": not options.disable_fission,
                 "headless": options.headless,
+                "http3": options.useHttp3Server,
                 # Until the test harness can understand default pref values,
                 # (https://bugzilla.mozilla.org/show_bug.cgi?id=1577912) this value
                 # should by synchronized with the default pref value indicated in
@@ -3157,10 +3319,11 @@ toolbar#nav-bar {
                 # Currently for automation, the pref defaults to true (but can be
                 # overridden with --setpref).
                 "serviceworker_e10s": True,
-                "sessionHistoryInParent": self.extraPrefs.get(
-                    "fission.sessionHistoryInParent", False
-                )
-                or self.extraPrefs.get("fission.autostart", True),
+                "sessionHistoryInParent": not options.disable_fission
+                or not self.extraPrefs.get(
+                    "fission.disableSessionHistoryInParent",
+                    mozinfo.info["os"] == "android",
+                ),
                 "socketprocess_e10s": self.extraPrefs.get(
                     "network.process.enabled", False
                 ),
@@ -3271,6 +3434,8 @@ toolbar#nav-bar {
             # problems if we use the directory provided by the user.
             tests_in_manifest = [t["path"] for t in tests if t["manifest"] == m]
             res = self.runMochitests(options, tests_in_manifest, manifestToFilter=m)
+            if res == TBPL_RETRY:  # terminate task
+                return res
             result = result or res
 
             # Dump the logging buffer
@@ -3576,6 +3741,12 @@ toolbar#nav-bar {
             ignoreMissingLeaks.append("tab")
             ignoreMissingLeaks.append("socket")
 
+        # Provide a floor for Windows chrome leak detection, because we know
+        # we have some Windows-specific shutdown hangs that we avoid by timing
+        # out and leaking memory.
+        if options.flavor == "chrome" and mozinfo.isWin:
+            leakThresholds["default"] += 1296
+
         # Stop leak detection if m-bc code coverage is enabled
         # by maxing out the leak threshold for all processes.
         if options.jscov_dir_prefix:
@@ -3612,7 +3783,7 @@ toolbar#nav-bar {
         self.message_logger.dump_buffered()
         self.message_logger.buffering = False
         self.log.info(error_message)
-        self.log.error("Force-terminating active process(es).")
+        self.log.warning("Force-terminating active process(es).")
 
         browser_pid = browser_pid or proc.pid
         child_pids = self.extract_child_pids(processLog, browser_pid)

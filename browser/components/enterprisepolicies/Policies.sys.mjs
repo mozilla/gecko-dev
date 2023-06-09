@@ -19,12 +19,12 @@ XPCOMUtils.defineLazyServiceGetters(lazy, {
     "nsIHandlerService",
   ],
   gMIMEService: ["@mozilla.org/mime;1", "nsIMIMEService"],
-  gXulStore: ["@mozilla.org/xul/xulstore;1", "nsIXULStore"],
 });
 
 ChromeUtils.defineESModuleGetters(lazy, {
   BookmarksPolicies: "resource:///modules/policies/BookmarksPolicies.sys.mjs",
   FileUtils: "resource://gre/modules/FileUtils.sys.mjs",
+  PdfJsDefaultPreferences: "resource://pdf.js/PdfJsDefaultPreferences.sys.mjs",
   ProxyPolicies: "resource:///modules/policies/ProxyPolicies.sys.mjs",
   WebsiteFilter: "resource:///modules/policies/WebsiteFilter.sys.mjs",
 });
@@ -483,6 +483,10 @@ export var Policies = {
     },
   },
 
+  Containers: {
+    // Queried directly by ContextualIdentityService.sys.mjs
+  },
+
   Cookies: {
     onBeforeUIStartup(manager, param) {
       addAllowDenyPermissions("cookie", param.Allow, param.Block);
@@ -890,7 +894,7 @@ export var Policies = {
         // If this policy was already applied and the user chose to re-hide the
         // menu bar, do not show it again.
         runOncePerModification("displayMenuBar", value, () => {
-          lazy.gXulStore.setValue(
+          Services.xulStore.setValue(
             BROWSER_DOCUMENT_URL,
             "toolbar-menubar",
             "autohide",
@@ -908,7 +912,7 @@ export var Policies = {
             value = "true";
             break;
         }
-        lazy.gXulStore.setValue(
+        Services.xulStore.setValue(
           BROWSER_DOCUMENT_URL,
           "toolbar-menubar",
           "autohide",
@@ -991,6 +995,18 @@ export var Policies = {
         PoliciesUtils.setDefaultPref(
           "privacy.trackingprotection.fingerprinting.enabled",
           param.Fingerprinting,
+          param.Locked
+        );
+      }
+      if ("EmailTracking" in param) {
+        PoliciesUtils.setDefaultPref(
+          "privacy.trackingprotection.emailtracking.enabled",
+          param.EmailTracking,
+          param.Locked
+        );
+        PoliciesUtils.setDefaultPref(
+          "privacy.trackingprotection.emailtracking.pbmode.enabled",
+          param.EmailTracking,
           param.Locked
         );
       }
@@ -1680,7 +1696,7 @@ export var Policies = {
 
   Preferences: {
     onBeforeAddons(manager, param) {
-      const allowedPrefixes = [
+      let allowedPrefixes = [
         "accessibility.",
         "app.update.",
         "browser.",
@@ -1706,13 +1722,20 @@ export var Policies = {
         "ui.",
         "widget.",
       ];
+      if (!AppConstants.MOZ_REQUIRE_SIGNING) {
+        allowedPrefixes.push("xpinstall.signatures.required");
+      }
       const allowedSecurityPrefs = [
         "security.block_fileuri_script_with_wrong_mime",
         "security.default_personal_cert",
         "security.insecure_connection_text.enabled",
         "security.insecure_connection_text.pbmode.enabled",
         "security.mixed_content.block_active_content",
+        "security.osclientcerts.assume_rsa_pss_support",
         "security.osclientcerts.autoload",
+        "security.OCSP.enabled",
+        "security.OCSP.require",
+        "security.ssl.enable_ocsp_stapling",
         "security.ssl.errorReporting.enabled",
         "security.tls.enable_0rtt_data",
         "security.tls.hello_downgrade_check",
@@ -1780,7 +1803,23 @@ export var Policies = {
                 // automatically converting these values to booleans.
                 // Since we allow arbitrary prefs now, we have to do
                 // something different. See bug 1666836.
-                if (
+                // Even uglier, because pdfjs prefs are set async, we need
+                // to get their type from PdfJsDefaultPreferences.
+                if (preference.startsWith("pdfjs.")) {
+                  let preferenceTail = preference.replace("pdfjs.", "");
+                  if (
+                    preferenceTail in lazy.PdfJsDefaultPreferences &&
+                    typeof lazy.PdfJsDefaultPreferences[preferenceTail] ==
+                      "number"
+                  ) {
+                    prefBranch.setIntPref(preference, param[preference].Value);
+                  } else {
+                    prefBranch.setBoolPref(
+                      preference,
+                      !!param[preference].Value
+                    );
+                  }
+                } else if (
                   prefBranch.getPrefType(preference) == prefBranch.PREF_INT ||
                   ![0, 1].includes(param[preference].Value)
                 ) {
@@ -2112,10 +2151,31 @@ export var Policies = {
 
   SecurityDevices: {
     onProfileAfterChange(manager, param) {
-      let securityDevices = param;
       let pkcs11db = Cc["@mozilla.org/security/pkcs11moduledb;1"].getService(
         Ci.nsIPKCS11ModuleDB
       );
+      let securityDevices;
+      if (param.Add || param.Delete) {
+        // We're using the new syntax.
+        securityDevices = param.Add;
+        if (param.Delete) {
+          for (let deviceName of param.Delete) {
+            try {
+              pkcs11db.deleteModule(deviceName);
+            } catch (e) {
+              // Ignoring errors here since it might stick around in policy
+              // after removing. Alternative would be to listModules and
+              // make sure it's there before removing, but that seems
+              // like unnecessary work.
+            }
+          }
+        }
+      } else {
+        securityDevices = param;
+      }
+      if (!securityDevices) {
+        return;
+      }
       for (let deviceName in securityDevices) {
         let foundModule = false;
         for (let module of pkcs11db.listModules()) {

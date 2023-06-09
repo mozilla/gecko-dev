@@ -129,7 +129,11 @@ class Benchmark(object):
         )
 
     def _copy_or_link_files(
-        self, benchmark_path, benchmark_dest, skip_files_and_hidden=True
+        self,
+        benchmark_path,
+        benchmark_dest,
+        skip_files_and_hidden=True,
+        host_from_parent=True,
     ):
         if not benchmark_dest.exists():
             benchmark_dest.mkdir(parents=True, exist_ok=True)
@@ -143,7 +147,9 @@ class Benchmark(object):
             mozfile.remove(str(dest.resolve()))
             shutil.copytree(benchmark_path, dest)
 
-        if any(path.is_file() for path in benchmark_path.iterdir()):
+        if host_from_parent and any(
+            path.is_file() for path in benchmark_path.iterdir()
+        ):
             # Host the parent of this directory to prevent hosting issues
             # (e.g. linked files ending up with different routes)
             host_folder = dest.parent
@@ -241,7 +247,24 @@ class Benchmark(object):
             # Locally, we should always do a full clone
             self._full_clone(benchmark_repository, external_repo_path)
         else:
-            self._update_benchmark_repo(external_repo_path)
+            # Make sure that the repo origin wasn't changed
+            url = (
+                subprocess.check_output(
+                    ["git", "config", "--get", "remote.origin.url"],
+                    cwd=external_repo_path,
+                )
+                .decode("utf-8")
+                .strip()
+            )
+
+            if url != benchmark_repository:
+                LOG.info(
+                    "Removing repo with a different remote origin before installing new one"
+                )
+                mozfile.remove(external_repo_path)
+                self._full_clone(benchmark_repository, external_repo_path)
+            else:
+                self._update_benchmark_repo(external_repo_path)
 
         self._verify_benchmark_revision(benchmark_revision, external_repo_path)
         subprocess.check_call(
@@ -255,6 +278,7 @@ class Benchmark(object):
             pathlib.Path(external_repo_path, benchmark_repo_path),
             benchmark_dest,
             skip_files_and_hidden=False,
+            host_from_parent=self.test.get("host_from_parent", True),
         )
 
         return benchmark_dest

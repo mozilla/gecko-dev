@@ -7,7 +7,6 @@
 #include "mozilla/dom/MediaStreamTrack.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/glean/GleanMetrics.h"
-#include "transportbridge/MediaPipeline.h"
 #include "nsPIDOMWindow.h"
 #include "nsString.h"
 #include "mozilla/dom/VideoStreamTrack.h"
@@ -53,7 +52,8 @@ RTCRtpSender::RTCRtpSender(nsPIDOMWindowInner* aWindow, PeerConnectionImpl* aPc,
                            dom::MediaStreamTrack* aTrack,
                            const Sequence<RTCRtpEncodingParameters>& aEncodings,
                            RTCRtpTransceiver* aTransceiver)
-    : mWindow(aWindow),
+    : mWatchManager(this, AbstractThread::MainThread()),
+      mWindow(aWindow),
       mPc(aPc),
       mSenderTrack(aTrack),
       mTransportHandler(aTransportHandler),
@@ -70,13 +70,10 @@ RTCRtpSender::RTCRtpSender(nsPIDOMWindowInner* aWindow, PeerConnectionImpl* aPc,
   mPipeline = new MediaPipelineTransmit(
       mPc->GetHandle(), aTransportHandler, aCallThread, aStsThread,
       aConduit->type() == MediaSessionConduit::VIDEO, aConduit);
+  mPipeline->InitControl(this);
 
   if (aConduit->type() == MediaSessionConduit::AUDIO) {
     mDtmf = new RTCDTMFSender(aWindow, mTransceiver);
-    GetJsepTransceiver().mSendTrack.SetMaxEncodings(1);
-  } else {
-    GetJsepTransceiver().mSendTrack.SetMaxEncodings(
-        webrtc::kMaxSimulcastStreams);
   }
   mPipeline->SetTrack(mSenderTrack);
 
@@ -90,7 +87,7 @@ RTCRtpSender::RTCRtpSender(nsPIDOMWindowInner* aWindow, PeerConnectionImpl* aPc,
   if (aEncodings.Length()) {
     // This sender was created by addTransceiver with sendEncodings.
     mParameters.mEncodings = aEncodings;
-    SetJsepRids(mParameters);
+    mSimulcastEnvelopeSet = true;
     mozilla::glean::rtcrtpsender::used_sendencodings.AddToNumerator(1);
   } else {
     // This sender was created by addTrack, sRD(offer), or addTransceiver
@@ -103,6 +100,10 @@ RTCRtpSender::RTCRtpSender(nsPIDOMWindowInner* aWindow, PeerConnectionImpl* aPc,
     Unused << mParameters.mEncodings.AppendElement(defaultEncoding, fallible);
     UpdateRestorableEncodings(mParameters.mEncodings);
     MaybeGetJsepRids();
+  }
+
+  if (mDtmf) {
+    mWatchManager.Watch(mTransmitting, &RTCRtpSender::UpdateDtmfSender);
   }
 }
 
@@ -186,8 +187,8 @@ nsTArray<RefPtr<dom::RTCStatsPromise>> RTCRtpSender::GetStatsInternal(
         }));
   }
 
-  promises.AppendElement(
-      InvokeAsync(mPipeline->mCallThread, __func__, [pipeline = mPipeline] {
+  promises.AppendElement(InvokeAsync(
+      mPipeline->mCallThread, __func__, [pipeline = mPipeline, trackName] {
         auto report = MakeUnique<dom::RTCStatsCollection>();
         auto asAudio = pipeline->mConduit->AsAudioSessionConduit();
         auto asVideo = pipeline->mConduit->AsVideoSessionConduit();
@@ -215,10 +216,10 @@ nsTArray<RefPtr<dom::RTCStatsPromise>> RTCRtpSender::GetStatsInternal(
                         webrtc::TimeDelta::Seconds(webrtc::kNtpJan1970)));
                 aRemote.mId.Construct(remoteId);
                 aRemote.mType.Construct(RTCStatsType::Remote_inbound_rtp);
-                aRemote.mSsrc.Construct(ssrc);
+                aRemote.mSsrc = ssrc;
+                aRemote.mKind = kind;
                 aRemote.mMediaType.Construct(
                     kind);  // mediaType is the old name for kind.
-                aRemote.mKind.Construct(kind);
                 aRemote.mLocalId.Construct(localId);
                 if (base_seq) {
                   if (aRtcpData.report_block()
@@ -235,14 +236,14 @@ nsTArray<RefPtr<dom::RTCStatsPromise>> RTCRtpSender::GetStatsInternal(
 
           auto constructCommonOutboundRtpStats =
               [&](RTCOutboundRtpStreamStats& aLocal) {
-                aLocal.mSsrc.Construct(ssrc);
+                aLocal.mSsrc = ssrc;
                 aLocal.mTimestamp.Construct(
                     pipeline->GetTimestampMaker().GetNow());
                 aLocal.mId.Construct(localId);
                 aLocal.mType.Construct(RTCStatsType::Outbound_rtp);
+                aLocal.mKind = kind;
                 aLocal.mMediaType.Construct(
                     kind);  // mediaType is the old name for kind.
-                aLocal.mKind.Construct(kind);
                 if (remoteId.Length()) {
                   aLocal.mRemoteId.Construct(remoteId);
                 }
@@ -342,11 +343,22 @@ nsTArray<RefPtr<dom::RTCStatsPromise>> RTCRtpSender::GetStatsInternal(
               streamStats = Some(kv->second);
             }
 
-            if (!streamStats ||
-                streamStats->rtp_stats.first_packet_time_ms == -1) {
+            if (!streamStats) {
               // By spec: "The lifetime of all RTP monitored objects starts
               // when the RTP stream is first used: When the first RTP packet
               // is sent or received on the SSRC it represents"
+              return;
+            }
+
+            aConduit->GetAssociatedLocalRtxSSRC(ssrc).apply(
+                [&](const auto rtxSsrc) {
+                  auto kv = videoStats->substreams.find(rtxSsrc);
+                  if (kv != videoStats->substreams.end()) {
+                    streamStats->rtp_stats.Add(kv->second.rtp_stats);
+                  }
+                });
+
+            if (streamStats->rtp_stats.first_packet_time_ms == -1) {
               return;
             }
 
@@ -424,6 +436,26 @@ nsTArray<RefPtr<dom::RTCStatsPromise>> RTCRtpSender::GetStatsInternal(
             }
           });
         }
+
+        auto constructCommonMediaSourceStats =
+            [&](RTCMediaSourceStats& aStats) {
+              nsString id = u"mediasource_"_ns + idstr + trackName;
+              aStats.mTimestamp.Construct(
+                  pipeline->GetTimestampMaker().GetNow());
+              aStats.mId.Construct(id);
+              aStats.mType.Construct(RTCStatsType::Media_source);
+              aStats.mTrackIdentifier = trackName;
+              aStats.mKind = kind;
+            };
+
+        // TODO(bug 1804678): Use RTCAudioSourceStats/RTCVideoSourceStats
+        RTCMediaSourceStats mediaSourceStats;
+        constructCommonMediaSourceStats(mediaSourceStats);
+        if (!report->mMediaSourceStats.AppendElement(
+                std::move(mediaSourceStats), fallible)) {
+          mozalloc_handle_oom(0);
+        }
+
         return RTCStatsPromise::CreateAndResolve(std::move(report), __func__);
       }));
 
@@ -434,6 +466,11 @@ nsTArray<RefPtr<dom::RTCStatsPromise>> RTCRtpSender::GetStatsInternal(
   }
 
   return promises;
+}
+
+void RTCRtpSender::GetCapabilities(const GlobalObject&, const nsAString& aKind,
+                                   Nullable<dom::RTCRtpCapabilities>& aResult) {
+  PeerConnectionImpl::GetCapabilities(aKind, aResult, sdp::Direction::kSend);
 }
 
 void RTCRtpSender::WarnAboutBadSetParameters(const nsCString& aError) {
@@ -506,7 +543,9 @@ already_AddRefed<Promise> RTCRtpSender::SetParameters(
   // TODO(bug 1803389): Remove the glean errors once they are no longer needed.
   Maybe<RTCRtpSendParameters> oldParams;
   if (mAllowOldSetParameters) {
-    if (mPendingParameters.isSome()) {
+    if (mLastReturnedParameters.isSome()) {
+      oldParams = mLastReturnedParameters;
+    } else if (mPendingParameters.isSome()) {
       oldParams = mPendingParameters;
     } else {
       oldParams = Some(mParameters);
@@ -537,6 +576,10 @@ already_AddRefed<Promise> RTCRtpSender::SetParameters(
       p->MaybeRejectWithInvalidModificationError(error);
       return p.forget();
     }
+    // Make sure we don't use the old rids in SyncToJsep while we wait for the
+    // queued task below to update mParameters.
+    mPendingRidChangeFromCompatMode = true;
+    mSimulcastEnvelopeSet = true;
     if (!mHaveWarnedBecauseEncodingCountChange) {
       mHaveWarnedBecauseEncodingCountChange = true;
       mozilla::glean::rtcrtpsender_setparameters::warn_length_changed
@@ -550,21 +593,13 @@ already_AddRefed<Promise> RTCRtpSender::SetParameters(
       const auto& newEncoding = paramsCopy.mEncodings[i];
       if (oldEncoding.mRid != newEncoding.mRid) {
         nsCString error("Cannot change rid, or reorder encodings");
-        if (!mAllowOldSetParameters) {
-          if (!mHaveFailedBecauseRidChange) {
-            mHaveFailedBecauseRidChange = true;
-            mozilla::glean::rtcrtpsender_setparameters::fail_rid_changed
-                .AddToNumerator(1);
-          }
-          p->MaybeRejectWithInvalidModificationError(error);
-          return p.forget();
-        }
-        if (!mHaveWarnedBecauseRidChange) {
-          mHaveWarnedBecauseRidChange = true;
-          mozilla::glean::rtcrtpsender_setparameters::warn_rid_changed
+        if (!mHaveFailedBecauseRidChange) {
+          mHaveFailedBecauseRidChange = true;
+          mozilla::glean::rtcrtpsender_setparameters::fail_rid_changed
               .AddToNumerator(1);
         }
-        WarnAboutBadSetParameters(error);
+        p->MaybeRejectWithInvalidModificationError(error);
+        return p.forget();
       }
     }
   }
@@ -616,15 +651,21 @@ already_AddRefed<Promise> RTCRtpSender::SetParameters(
   // This could conceivably happen if we are allowing the old setParameters
   // behavior.
   if (!paramsCopy.mEncodings.Length()) {
-    if (!mHaveFailedBecauseNoEncodings) {
-      mHaveFailedBecauseNoEncodings = true;
-      mozilla::glean::rtcrtpsender_setparameters::fail_no_encodings
-          .AddToNumerator(1);
-    }
+    nsCString error("Cannot set an empty encodings array");
+    if (!mAllowOldSetParameters) {
+      if (!mHaveFailedBecauseNoEncodings) {
+        mHaveFailedBecauseNoEncodings = true;
+        mozilla::glean::rtcrtpsender_setparameters::fail_no_encodings
+            .AddToNumerator(1);
+      }
 
-    p->MaybeRejectWithInvalidModificationError(
-        "Cannot set an empty encodings array");
-    return p.forget();
+      p->MaybeRejectWithInvalidModificationError(error);
+      return p.forget();
+    }
+    // TODO: Add some warning telemetry here
+    WarnAboutBadSetParameters(error);
+    // Just don't do this; it's stupid.
+    paramsCopy.mEncodings = oldParams->mEncodings;
   }
 
   // TODO: Verify remaining read-only parameters
@@ -680,13 +721,9 @@ already_AddRefed<Promise> RTCRtpSender::SetParameters(
   uint32_t serialNumber = ++mNumSetParametersCalls;
   MaybeUpdateConduit();
 
-  if (mAllowOldSetParameters) {
-    SetJsepRids(paramsCopy);
-  }
-
   // If the media stack is successfully configured with parameters,
   // queue a task to run the following steps:
-  GetMainThreadEventTarget()->Dispatch(NS_NewRunnableFunction(
+  GetMainThreadSerialEventTarget()->Dispatch(NS_NewRunnableFunction(
       __func__,
       [this, self = RefPtr<RTCRtpSender>(this), p, paramsCopy, serialNumber] {
         // Set sender.[[LastReturnedParameters]] to null.
@@ -699,6 +736,9 @@ already_AddRefed<Promise> RTCRtpSender::SetParameters(
         // if no subsequent setParameters is pending.
         if (serialNumber == mNumSetParametersCalls) {
           mPendingParameters = Nothing();
+          // Ok, nothing has called SyncToJsep while this async task was
+          // pending. No need for special handling anymore.
+          mPendingRidChangeFromCompatMode = false;
         }
         MOZ_ASSERT(mParameters.mEncodings.Length());
         // Resolve p with undefined.
@@ -798,22 +838,6 @@ void RTCRtpSender::CheckAndRectifyEncodings(
   }
 }
 
-void RTCRtpSender::SetJsepRids(const RTCRtpSendParameters& aParameters) {
-  MOZ_ASSERT(aParameters.mEncodings.Length());
-
-  std::vector<std::string> rids;
-  for (const auto& encoding : aParameters.mEncodings) {
-    if (encoding.mRid.WasPassed()) {
-      rids.push_back(NS_ConvertUTF16toUTF8(encoding.mRid.Value()).get());
-    } else {
-      rids.push_back("");
-    }
-  }
-
-  GetJsepTransceiver().mSendTrack.SetRids(rids);
-  mSimulcastEnvelopeSet = true;
-}
-
 void RTCRtpSender::GetParameters(RTCRtpSendParameters& aParameters) {
   MOZ_ASSERT(mParameters.mEncodings.Length());
   // If sender.[[LastReturnedParameters]] is not null, return
@@ -853,7 +877,7 @@ void RTCRtpSender::GetParameters(RTCRtpSendParameters& aParameters) {
   mLastReturnedParameters = Some(aParameters);
 
   // Queue a task that sets sender.[[LastReturnedParameters]] to null.
-  GetMainThreadEventTarget()->Dispatch(NS_NewRunnableFunction(
+  GetMainThreadSerialEventTarget()->Dispatch(NS_NewRunnableFunction(
       __func__, [this, self = RefPtr<RTCRtpSender>(this)] {
         mLastReturnedParameters = Nothing();
       }));
@@ -949,6 +973,7 @@ void RTCRtpSender::MaybeGetJsepRids() {
       mParameters.mEncodings = ToSendEncodings(jsepRids);
     }
     mSimulcastEnvelopeSet = true;
+    mSimulcastEnvelopeSetByJSEP = true;
   }
 }
 
@@ -990,10 +1015,28 @@ Sequence<RTCRtpEncodingParameters> RTCRtpSender::GetMatchingEncodings(
 }
 
 void RTCRtpSender::SetStreams(
+    const Sequence<OwningNonNull<DOMMediaStream>>& aStreams, ErrorResult& aRv) {
+  if (mPc->IsClosed()) {
+    aRv.ThrowInvalidStateError(
+        "Cannot call setStreams if the peer connection is closed");
+    return;
+  }
+
+  SetStreamsImpl(aStreams);
+  mPc->UpdateNegotiationNeeded();
+}
+
+void RTCRtpSender::SetStreamsImpl(
     const Sequence<OwningNonNull<DOMMediaStream>>& aStreams) {
   mStreams.Clear();
+  std::set<nsString> ids;
   for (const auto& stream : aStreams) {
-    mStreams.AppendElement(stream);
+    nsString id;
+    stream->GetId(id);
+    if (!ids.count(id)) {
+      ids.insert(id);
+      mStreams.AppendElement(stream);
+    }
   }
 }
 
@@ -1068,7 +1111,7 @@ RefPtr<dom::Promise> ReplaceTrackOperation::CallImpl(ErrorResult& aError) {
   }
 
   // Queue a task that runs the following steps:
-  GetMainThreadEventTarget()->Dispatch(NS_NewRunnableFunction(
+  GetMainThreadSerialEventTarget()->Dispatch(NS_NewRunnableFunction(
       __func__, [p, sender, track = mNewTrack]() MOZ_CAN_RUN_SCRIPT_BOUNDARY {
         // If connection.[[IsClosed]] is true, abort these steps.
         // Set sender.[[SenderTrack]] to withTrack.
@@ -1144,6 +1187,12 @@ void RTCRtpSender::SetTrack(const RefPtr<MediaStreamTrack>& aTrack) {
   // Used for RTCPeerConnection.removeTrack and RTCPeerConnection.addTrack
   mSenderTrack = aTrack;
   SeamlessTrackSwitch(aTrack);
+  if (aTrack) {
+    // RFC says (in the section on remote rollback):
+    // However, an RtpTransceiver MUST NOT be removed if a track was attached
+    // to the RtpTransceiver via the addTrack method.
+    mAddTrackCalled = true;
+  }
 }
 
 bool RTCRtpSender::SetSenderTrackWithClosedCheck(
@@ -1158,6 +1207,7 @@ bool RTCRtpSender::SetSenderTrackWithClosedCheck(
 
 void RTCRtpSender::Shutdown() {
   MOZ_ASSERT(NS_IsMainThread());
+  mWatchManager.Shutdown();
   mPipeline->Shutdown();
   mPipeline = nullptr;
 }
@@ -1197,6 +1247,8 @@ void RTCRtpSender::MaybeUpdateConduit() {
     return;
   }
 
+  bool wasTransmitting = mTransmitting;
+
   if (mPipeline->mConduit->type() == MediaSessionConduit::VIDEO) {
     Maybe<VideoConfig> newConfig = GetNewVideoConfig();
     if (newConfig.isSome()) {
@@ -1207,6 +1259,12 @@ void RTCRtpSender::MaybeUpdateConduit() {
     if (newConfig.isSome()) {
       ApplyAudioConfig(*newConfig);
     }
+  }
+
+  if (!mSenderTrack && !wasTransmitting && mTransmitting) {
+    MOZ_LOG(gSenderLog, LogLevel::Debug,
+            ("%s[%s]: %s Starting transmit conduit without send track!",
+             mPc->GetHandle().c_str(), GetMid().c_str(), __FUNCTION__));
   }
 }
 
@@ -1220,8 +1278,20 @@ void RTCRtpSender::SyncFromJsep(const JsepTransceiver& aJsepTransceiver) {
     // Spec says that we do not update our encodings until we're in stable,
     // _unless_ this is the first negotiation.
     std::vector<std::string> rids = aJsepTransceiver.mSendTrack.GetRids();
-    mParameters.mEncodings = GetMatchingEncodings(rids);
-    MOZ_ASSERT(mParameters.mEncodings.Length());
+    if (mSimulcastEnvelopeSetByJSEP && rids.empty()) {
+      // JSEP previously set the simulcast envelope, but now it has no opinion
+      // regarding unicast/simulcast. This can only happen on rollback of the
+      // initial remote offer.
+      mParameters.mEncodings = GetMatchingEncodings(rids);
+      MOZ_ASSERT(mParameters.mEncodings.Length());
+      mSimulcastEnvelopeSetByJSEP = false;
+      mSimulcastEnvelopeSet = false;
+    } else if (!rids.empty()) {
+      // JSEP has an opinion on the simulcast envelope, which trumps anything
+      // we have already.
+      mParameters.mEncodings = GetMatchingEncodings(rids);
+      MOZ_ASSERT(mParameters.mEncodings.Length());
+    }
   }
 
   MaybeUpdateConduit();
@@ -1238,6 +1308,39 @@ void RTCRtpSender::SyncToJsep(JsepTransceiver& aJsepTransceiver) const {
   }
 
   aJsepTransceiver.mSendTrack.UpdateStreamIds(streamIds);
+
+  if (mSimulcastEnvelopeSet) {
+    std::vector<std::string> rids;
+    Maybe<RTCRtpSendParameters> parameters;
+    if (mPendingRidChangeFromCompatMode) {
+      // *sigh* If we have just let a setParameters change our rids, but we have
+      // not yet updated mParameters because the queued task hasn't run yet,
+      // we want to set the _new_ rids on the JsepTrack. So, we are forced to
+      // grab them from mPendingParameters.
+      parameters = mPendingParameters;
+    } else {
+      parameters = Some(mParameters);
+    }
+    for (const auto& encoding : parameters->mEncodings) {
+      if (encoding.mRid.WasPassed()) {
+        rids.push_back(NS_ConvertUTF16toUTF8(encoding.mRid.Value()).get());
+      } else {
+        rids.push_back("");
+      }
+    }
+
+    aJsepTransceiver.mSendTrack.SetRids(rids);
+  }
+
+  if (mTransceiver->IsVideo()) {
+    aJsepTransceiver.mSendTrack.SetMaxEncodings(webrtc::kMaxSimulcastStreams);
+  } else {
+    aJsepTransceiver.mSendTrack.SetMaxEncodings(1);
+  }
+
+  if (mAddTrackCalled) {
+    aJsepTransceiver.SetOnlyExistsBecauseOfSetRemote(false);
+  }
 }
 
 Maybe<RTCRtpSender::VideoConfig> RTCRtpSender::GetNewVideoConfig() {
@@ -1438,15 +1541,18 @@ void RTCRtpSender::UpdateBaseConfig(BaseConfig* aConfig) {
       aConfig->mLocalRtpExtensions = extmaps;
     }
   }
-  aConfig->mTransmitting = GetJsepTransceiver().mSendTrack.GetActive();
+  // RTCRtpTransceiver::IsSending is updated after negotiation completes, in a
+  // queued task (which we may be in right now). Don't use
+  // JsepTrack::GetActive, because that updates before the queued task, which
+  // is too early for some of the things we interact with here (eg;
+  // RTCDTMFSender).
+  aConfig->mTransmitting = mTransceiver->IsSending();
 }
 
 void RTCRtpSender::ApplyVideoConfig(const VideoConfig& aConfig) {
   if (aConfig.mVideoCodec.isSome()) {
     MOZ_ASSERT(aConfig.mSsrcs.size() == aConfig.mVideoCodec->mEncodings.size());
   }
-  mTransmitting = false;
-  Stop();
 
   mSsrcs = aConfig.mSsrcs;
   mCname = aConfig.mCname;
@@ -1457,14 +1563,11 @@ void RTCRtpSender::ApplyVideoConfig(const VideoConfig& aConfig) {
   mVideoRtpRtcpConfig = aConfig.mVideoRtpRtcpConfig;
   mVideoCodecMode = aConfig.mVideoCodecMode;
 
-  if ((mTransmitting = aConfig.mTransmitting)) {
-    Start();
-  }
+  mTransmitting = aConfig.mTransmitting;
 }
 
 void RTCRtpSender::ApplyAudioConfig(const AudioConfig& aConfig) {
   mTransmitting = false;
-  Stop();
 
   mSsrcs = aConfig.mSsrcs;
   mCname = aConfig.mCname;
@@ -1476,25 +1579,12 @@ void RTCRtpSender::ApplyAudioConfig(const AudioConfig& aConfig) {
     mDtmf->SetPayloadType(aConfig.mDtmfPt, aConfig.mDtmfFreq);
   }
 
-  if ((mTransmitting = aConfig.mTransmitting)) {
-    Start();
-  }
+  mTransmitting = aConfig.mTransmitting;
 }
 
 void RTCRtpSender::Stop() {
-  mPipeline->Stop();
-  if (mDtmf) {
-    mDtmf->StopPlayout();
-  }
-}
-
-void RTCRtpSender::Start() {
-  if (!mSenderTrack) {
-    MOZ_LOG(gSenderLog, LogLevel::Debug,
-            ("%s[%s]: %s Starting transmit conduit without send track!",
-             mPc->GetHandle().c_str(), GetMid().c_str(), __FUNCTION__));
-  }
-  mPipeline->Start();
+  MOZ_ASSERT(mTransceiver->Stopped());
+  mTransmitting = false;
 }
 
 bool RTCRtpSender::HasTrack(const dom::MediaStreamTrack* aTrack) const {
@@ -1516,7 +1606,19 @@ RefPtr<MediaPipelineTransmit> RTCRtpSender::GetPipeline() const {
 std::string RTCRtpSender::GetMid() const { return mTransceiver->GetMidAscii(); }
 
 JsepTransceiver& RTCRtpSender::GetJsepTransceiver() {
-  return *mTransceiver->GetJsepTransceiver();
+  return mTransceiver->GetJsepTransceiver();
+}
+
+void RTCRtpSender::UpdateDtmfSender() {
+  if (!mDtmf) {
+    return;
+  }
+
+  if (mTransmitting) {
+    return;
+  }
+
+  mDtmf->StopPlayout();
 }
 
 }  // namespace mozilla::dom

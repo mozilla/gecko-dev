@@ -10,16 +10,18 @@
 var rule = require("../lib/rules/no-useless-run-test");
 var RuleTester = require("eslint").RuleTester;
 
-const ruleTester = new RuleTester({ parserOptions: { ecmaVersion: 6 } });
+const ruleTester = new RuleTester({ parserOptions: { ecmaVersion: "latest" } });
 
 // ------------------------------------------------------------------------------
 // Tests
 // ------------------------------------------------------------------------------
 
 function invalidCode(code, output) {
-  let message =
-    "Useless run_test function - only contains run_next_test; whole function can be removed";
-  return { code, output, errors: [{ message, type: "FunctionDeclaration" }] };
+  return {
+    code,
+    output,
+    errors: [{ messageId: "noUselessRunTest", type: "FunctionDeclaration" }],
+  };
 }
 
 ruleTester.run("no-useless-run-test", rule, {

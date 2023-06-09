@@ -6,6 +6,7 @@
 
 #include "FileSystemSyncAccessHandle.h"
 
+#include "fs/FileSystemAsyncCopy.h"
 #include "fs/FileSystemRequestHandler.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/ErrorResult.h"
@@ -13,91 +14,45 @@
 #include "mozilla/MozPromise.h"
 #include "mozilla/TaskQueue.h"
 #include "mozilla/dom/FileSystemAccessHandleChild.h"
+#include "mozilla/dom/FileSystemAccessHandleControlChild.h"
 #include "mozilla/dom/FileSystemHandleBinding.h"
 #include "mozilla/dom/FileSystemLog.h"
 #include "mozilla/dom/FileSystemManager.h"
+#include "mozilla/dom/FileSystemManagerChild.h"
 #include "mozilla/dom/FileSystemSyncAccessHandleBinding.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/UnionTypes.h"
 #include "mozilla/dom/WorkerCommon.h"
 #include "mozilla/dom/WorkerPrivate.h"
 #include "mozilla/dom/WorkerRef.h"
+#include "mozilla/dom/fs/IPCRejectReporter.h"
 #include "mozilla/dom/fs/TargetPtrHolder.h"
 #include "mozilla/dom/quota/QuotaCommon.h"
 #include "mozilla/dom/quota/ResultExtensions.h"
 #include "mozilla/ipc/RandomAccessStreamUtils.h"
 #include "nsNetCID.h"
-#include "nsStreamUtils.h"
 #include "nsStringStream.h"
 
 namespace mozilla::dom {
 
 namespace {
 
-const uint32_t kStreamCopyBlockSize = 1024 * 1024;
-
 using SizePromise = Int64Promise;
 const auto CreateAndRejectSizePromise = CreateAndRejectInt64Promise;
-
-nsresult AsyncCopy(nsIInputStream* aSource, nsIOutputStream* aSink,
-                   nsISerialEventTarget* aIOTarget, const nsAsyncCopyMode aMode,
-                   const bool aCloseSource, const bool aCloseSink,
-                   std::function<void(uint32_t)>&& aProgressCallback,
-                   MoveOnlyFunction<void(nsresult)>&& aCompleteCallback) {
-  struct CallbackClosure {
-    CallbackClosure(std::function<void(uint32_t)>&& aProgressCallback,
-                    MoveOnlyFunction<void(nsresult)>&& aCompleteCallback) {
-      mProgressCallbackWrapper = MakeUnique<std::function<void(uint32_t)>>(
-          [progressCallback = std::move(aProgressCallback)](uint32_t count) {
-            progressCallback(count);
-          });
-
-      mCompleteCallbackWrapper = MakeUnique<MoveOnlyFunction<void(nsresult)>>(
-          [completeCallback =
-               std::move(aCompleteCallback)](nsresult rv) mutable {
-            auto callback = std::move(completeCallback);
-            callback(rv);
-          });
-    }
-
-    UniquePtr<std::function<void(uint32_t)>> mProgressCallbackWrapper;
-    UniquePtr<MoveOnlyFunction<void(nsresult)>> mCompleteCallbackWrapper;
-  };
-
-  auto* callbackClosure = new CallbackClosure(std::move(aProgressCallback),
-                                              std::move(aCompleteCallback));
-
-  QM_TRY(
-      MOZ_TO_RESULT(NS_AsyncCopy(
-          aSource, aSink, aIOTarget, aMode, kStreamCopyBlockSize,
-          [](void* aClosure, nsresult aRv) {
-            auto* callbackClosure = static_cast<CallbackClosure*>(aClosure);
-            (*callbackClosure->mCompleteCallbackWrapper)(aRv);
-            delete callbackClosure;
-          },
-          callbackClosure, aCloseSource, aCloseSink, /* aCopierCtx */ nullptr,
-          [](void* aClosure, uint32_t aCount) {
-            auto* callbackClosure = static_cast<CallbackClosure*>(aClosure);
-            (*callbackClosure->mProgressCallbackWrapper)(aCount);
-          })),
-      [callbackClosure](nsresult rv) {
-        delete callbackClosure;
-        return rv;
-      });
-
-  return NS_OK;
-}
 
 }  // namespace
 
 FileSystemSyncAccessHandle::FileSystemSyncAccessHandle(
     nsIGlobalObject* aGlobal, RefPtr<FileSystemManager>& aManager,
-    RefPtr<FileSystemAccessHandleChild> aActor, RefPtr<TaskQueue> aIOTaskQueue,
     mozilla::ipc::RandomAccessStreamParams&& aStreamParams,
+    RefPtr<FileSystemAccessHandleChild> aActor,
+    RefPtr<FileSystemAccessHandleControlChild> aControlActor,
+    RefPtr<TaskQueue> aIOTaskQueue,
     const fs::FileSystemEntryMetadata& aMetadata)
     : mGlobal(aGlobal),
       mManager(aManager),
       mActor(std::move(aActor)),
+      mControlActor(std::move(aControlActor)),
       mIOTaskQueue(std::move(aIOTaskQueue)),
       mStreamParams(std::move(aStreamParams)),
       mMetadata(aMetadata),
@@ -110,6 +65,8 @@ FileSystemSyncAccessHandle::FileSystemSyncAccessHandle(
   // FileSystemSyncAccessHandle::Create fails, in which case the not yet
   // fully constructed FileSystemSyncAccessHandle is being destroyed.
   mActor->SetAccessHandle(this);
+
+  mControlActor->SetAccessHandle(this);
 }
 
 FileSystemSyncAccessHandle::~FileSystemSyncAccessHandle() {
@@ -121,9 +78,27 @@ FileSystemSyncAccessHandle::~FileSystemSyncAccessHandle() {
 Result<RefPtr<FileSystemSyncAccessHandle>, nsresult>
 FileSystemSyncAccessHandle::Create(
     nsIGlobalObject* aGlobal, RefPtr<FileSystemManager>& aManager,
-    RefPtr<FileSystemAccessHandleChild> aActor,
     mozilla::ipc::RandomAccessStreamParams&& aStreamParams,
+    mozilla::ipc::ManagedEndpoint<PFileSystemAccessHandleChild>&&
+        aAccessHandleChildEndpoint,
+    mozilla::ipc::Endpoint<PFileSystemAccessHandleControlChild>&&
+        aAccessHandleControlChildEndpoint,
     const fs::FileSystemEntryMetadata& aMetadata) {
+  WorkerPrivate* const workerPrivate = GetCurrentThreadWorkerPrivate();
+  MOZ_ASSERT(workerPrivate);
+
+  auto accessHandleChild = MakeRefPtr<FileSystemAccessHandleChild>();
+
+  QM_TRY(MOZ_TO_RESULT(
+      aManager->ActorStrongRef()->BindPFileSystemAccessHandleEndpoint(
+          std::move(aAccessHandleChildEndpoint), accessHandleChild)));
+
+  auto accessHandleControlChild =
+      MakeRefPtr<FileSystemAccessHandleControlChild>();
+
+  aAccessHandleControlChildEndpoint.Bind(accessHandleControlChild,
+                                         workerPrivate->ControlEventTarget());
+
   QM_TRY_UNWRAP(auto streamTransportService,
                 MOZ_TO_RESULT_GET_TYPED(nsCOMPtr<nsIEventTarget>,
                                         MOZ_SELECT_OVERLOAD(do_GetService),
@@ -134,17 +109,14 @@ FileSystemSyncAccessHandle::Create(
   QM_TRY(MOZ_TO_RESULT(ioTaskQueue));
 
   RefPtr<FileSystemSyncAccessHandle> result = new FileSystemSyncAccessHandle(
-      aGlobal, aManager, std::move(aActor), std::move(ioTaskQueue),
-      std::move(aStreamParams), aMetadata);
+      aGlobal, aManager, std::move(aStreamParams), std::move(accessHandleChild),
+      std::move(accessHandleControlChild), std::move(ioTaskQueue), aMetadata);
 
   auto autoClose = MakeScopeExit([result] {
     MOZ_ASSERT(result->mState == State::Initial);
     result->mState = State::Closed;
     result->mActor->SendClose();
   });
-
-  WorkerPrivate* const workerPrivate = GetCurrentThreadWorkerPrivate();
-  MOZ_ASSERT(workerPrivate);
 
   workerPrivate->AssertIsOnWorkerThread();
 
@@ -202,7 +174,22 @@ void FileSystemSyncAccessHandle::LastRelease() {
 
   if (mActor) {
     PFileSystemAccessHandleChild::Send__delete__(mActor);
+
+    // `PFileSystemAccessHandleChild::Send__delete__` is supposed to call
+    // `FileSystemAccessHandleChild::ActorDestroy` which in turn calls
+    // `FileSystemSyncAccessHandle::ClearActor`, so `mActor` should be be null
+    // at this point.
     MOZ_ASSERT(!mActor);
+  }
+
+  if (mControlActor) {
+    mControlActor->Close();
+
+    // `FileSystemAccessHandleControlChild::Close` is supposed to call
+    // `FileSystemAccessHandleControlChild::ActorDestroy` which in turn calls
+    // `FileSystemSyncAccessHandle::ClearControlActor`, so `mControlActor`
+    // should be be null at this point.
+    MOZ_ASSERT(!mControlActor);
   }
 }
 
@@ -210,6 +197,14 @@ void FileSystemSyncAccessHandle::ClearActor() {
   MOZ_ASSERT(mActor);
 
   mActor = nullptr;
+}
+
+void FileSystemSyncAccessHandle::ClearControlActor() {
+  // `mControlActor` is initialized in the constructor and this method is
+  // supposed to be called only once.
+  MOZ_ASSERT(mControlActor);
+
+  mControlActor = nullptr;
 }
 
 bool FileSystemSyncAccessHandle::IsOpen() const {
@@ -237,13 +232,23 @@ RefPtr<BoolPromise> FileSystemSyncAccessHandle::BeginClose() {
 
   InvokeAsync(mIOTaskQueue, __func__,
               [selfHolder = fs::TargetPtrHolder(this)]() {
-                QM_TRY(MOZ_TO_RESULT(selfHolder->EnsureStream()),
-                       CreateAndRejectBoolPromise);
+                if (selfHolder->mStream) {
+                  LOG(("%p: Closing", selfHolder->mStream.get()));
 
-                LOG(("%p: Closing", selfHolder->mStream.get()));
+                  selfHolder->mStream->OutputStream()->Close();
+                  selfHolder->mStream = nullptr;
+                } else {
+                  LOG(("Closing (no stream)"));
 
-                selfHolder->mStream->OutputStream()->Close();
-                selfHolder->mStream = nullptr;
+                  // If the stream was not deserialized, `mStreamParams` still
+                  // contains a pre-opened file descriptor which needs to be
+                  // closed here by moving `mStreamParams` to a local variable
+                  // (the file descriptor will be closed for real when
+                  // `streamParams` goes out of scope).
+
+                  mozilla::ipc::RandomAccessStreamParams streamParams(
+                      std::move(selfHolder->mStreamParams));
+                }
 
                 return BoolPromise::CreateAndResolve(true, __func__);
               })
@@ -254,16 +259,31 @@ RefPtr<BoolPromise> FileSystemSyncAccessHandle::BeginClose() {
       ->Then(
           mWorkerRef->Private()->ControlEventTarget(), __func__,
           [self = RefPtr(this)](const ShutdownPromise::ResolveOrRejectValue&) {
-            if (self->mActor) {
-              self->mActor->SendClose();
+            if (self->mControlActor) {
+              RefPtr<BoolPromise::Private> promise =
+                  new BoolPromise::Private(__func__);
+
+              self->mControlActor->SendClose(
+                  [promise](void_t&&) { promise->Resolve(true, __func__); },
+                  [promise](const mozilla::ipc::ResponseRejectReason& aReason) {
+                    fs::IPCRejectReporter(aReason);
+
+                    promise->Reject(NS_ERROR_FAILURE, __func__);
+                  });
+
+              return RefPtr<BoolPromise>(promise);
             }
 
-            self->mWorkerRef = nullptr;
+            return BoolPromise::CreateAndResolve(true, __func__);
+          })
+      ->Then(mWorkerRef->Private()->ControlEventTarget(), __func__,
+             [self = RefPtr(this)](const BoolPromise::ResolveOrRejectValue&) {
+               self->mWorkerRef = nullptr;
 
-            self->mState = State::Closed;
+               self->mState = State::Closed;
 
-            self->mClosePromiseHolder.ResolveIfExists(true, __func__);
-          });
+               self->mClosePromiseHolder.ResolveIfExists(true, __func__);
+             });
 
   return OnClose();
 }
@@ -322,12 +342,19 @@ void FileSystemSyncAccessHandle::Truncate(uint64_t aSize, ErrorResult& aError) {
                CreateAndRejectBoolPromise);
 
         LOG(("%p: Truncate to %" PRIu64, selfHolder->mStream.get(), aSize));
-
+        int64_t offset = 0;
+        QM_TRY(MOZ_TO_RESULT(selfHolder->mStream->Tell(&offset)),
+               CreateAndRejectBoolPromise);
         QM_TRY(MOZ_TO_RESULT(selfHolder->mStream->Seek(
                    nsISeekableStream::NS_SEEK_SET, aSize)),
                CreateAndRejectBoolPromise);
 
         QM_TRY(MOZ_TO_RESULT(selfHolder->mStream->SetEOF()),
+               CreateAndRejectBoolPromise);
+        // restore cursor position (clamp to end of file)
+        QM_TRY(MOZ_TO_RESULT(selfHolder->mStream->Seek(
+                   nsISeekableStream::NS_SEEK_SET,
+                   std::min((uint64_t)offset, aSize))),
                CreateAndRejectBoolPromise);
 
         return BoolPromise::CreateAndResolve(true, __func__);
@@ -521,18 +548,12 @@ uint64_t FileSystemSyncAccessHandle::ReadOrWrite(
     return Span{buffer.Data(), buffer.Length()};
   }();
 
-  // Handle seek before read ('at')
-  const auto at = [&aOptions]() -> uint64_t {
-    if (aOptions.mAt.WasPassed()) {
-      return aOptions.mAt.Value();
-    }
-    // Spec says default for at is 0 (2.6)
-    return 0;
-  }();
-
-  const auto offset = CheckedInt<int64_t>(at);
-  QM_TRY(MOZ_TO_RESULT(offset.isValid()), throwAndReturn);
-
+  CheckedInt<int64_t> offset = 0;
+  if (aOptions.mAt.WasPassed()) {
+    // Handle seek before read ('at')
+    offset = CheckedInt<int64_t>(aOptions.mAt.Value());
+    QM_TRY(MOZ_TO_RESULT(offset.isValid()), throwAndReturn);
+  }
   AutoSyncLoopHolder syncLoop(mWorkerRef->Private(), Canceling);
 
   nsCOMPtr<nsISerialEventTarget> syncLoopTarget =
@@ -546,17 +567,19 @@ uint64_t FileSystemSyncAccessHandle::ReadOrWrite(
 
   InvokeAsync(
       mIOTaskQueue, __func__,
-      [selfHolder = fs::TargetPtrHolder(this), dataSpan, offset, aRead,
-       &totalCount]() {
+      [selfHolder = fs::TargetPtrHolder(this), dataSpan,
+       use_offset = aOptions.mAt.WasPassed(), offset, aRead, &totalCount]() {
         QM_TRY(MOZ_TO_RESULT(selfHolder->EnsureStream()),
                CreateAndRejectBoolPromise);
 
-        LOG_VERBOSE(("%p: Seeking to %" PRIu64, selfHolder->mStream.get(),
-                     offset.value()));
+        if (use_offset) {
+          LOG_VERBOSE(("%p: Seeking to %" PRIu64, selfHolder->mStream.get(),
+                       offset.value()));
 
-        QM_TRY(MOZ_TO_RESULT(selfHolder->mStream->Seek(
-                   nsISeekableStream::NS_SEEK_SET, offset.value())),
-               CreateAndRejectBoolPromise);
+          QM_TRY(MOZ_TO_RESULT(selfHolder->mStream->Seek(
+                     nsISeekableStream::NS_SEEK_SET, offset.value())),
+                 CreateAndRejectBoolPromise);
+        }
 
         nsCOMPtr<nsIInputStream> inputStream;
         nsCOMPtr<nsIOutputStream> outputStream;
@@ -584,7 +607,7 @@ uint64_t FileSystemSyncAccessHandle::ReadOrWrite(
         auto promiseHolder = MakeUnique<MozPromiseHolder<BoolPromise>>();
         RefPtr<BoolPromise> promise = promiseHolder->Ensure(__func__);
 
-        QM_TRY(MOZ_TO_RESULT(AsyncCopy(
+        QM_TRY(MOZ_TO_RESULT(fs::AsyncCopy(
                    inputStream, outputStream, GetCurrentSerialEventTarget(),
                    aRead ? NS_ASYNCCOPY_VIA_WRITESEGMENTS
                          : NS_ASYNCCOPY_VIA_READSEGMENTS,

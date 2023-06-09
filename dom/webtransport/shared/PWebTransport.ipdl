@@ -2,10 +2,48 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-using struct mozilla::void_t from "mozilla/ipc/IPCCore.h";
+include PBackgroundSharedTypes;
+
+[RefCounted] using class mozilla::ipc::DataPipeReceiver from "mozilla/ipc/DataPipe.h";
+[RefCounted] using class mozilla::ipc::DataPipeSender from "mozilla/ipc/DataPipe.h";
+using mozilla::TimeStamp from "mozilla/TimeStamp.h";
 
 namespace mozilla {
 namespace dom {
+
+struct UnidirectionalStream {
+  uint64_t streamId;
+  nullable DataPipeSender outStream;
+};
+
+union UnidirectionalStreamResponse {
+  nsresult;
+  UnidirectionalStream;
+};
+
+struct BidirectionalStream {
+  uint64_t streamId;
+  nullable DataPipeReceiver inStream;
+  nullable DataPipeSender outStream;
+};
+
+union BidirectionalStreamResponse {
+  nsresult;
+  BidirectionalStream;
+};
+
+struct ResetError {
+  nsresult error;
+};
+
+struct StopSendingError {
+  nsresult error;
+};
+
+union StreamResetOrStopSendingError {
+  ResetError;
+  StopSendingError;
+};
 
 async protocol PWebTransport
 {
@@ -14,8 +52,35 @@ async protocol PWebTransport
    * TODO: documentation
    */
   async Close(uint32_t code, nsCString reason);
+  async CreateUnidirectionalStream(int64_t? sendOrder)
+      returns(UnidirectionalStreamResponse response);
+  async CreateBidirectionalStream(int64_t? sendOrder)
+      returns(BidirectionalStreamResponse response);
+
+  /**
+  * IPC for sending webtransport datagrams
+  * @param expirationTime time at which the datagram expires
+  * @param data represents the datagram to be transferred
+  */
+  async OutgoingDatagram(uint8_t[] data, TimeStamp expirationTime)
+    returns(nsresult response);
 
  child:
+
+  async IncomingUnidirectionalStream(uint64_t streamId, nullable DataPipeReceiver receive);
+  async IncomingBidirectionalStream(uint64_t streamId, nullable DataPipeReceiver receive, nullable DataPipeSender send);
+
+  /**
+  * IPC for receiving webtransport datagrams
+  * @param receivedTime is the time at which the parent received the datagram
+  * @param data is the datagram received
+  */
+  async IncomingDatagram(uint8_t[] data, TimeStamp receivedTime);
+
+  async RemoteClosed(bool cleanly, uint32_t code, nsCString reason);
+
+  async OnStreamResetOrStopSending(uint64_t streamId,
+                                   StreamResetOrStopSendingError error);
 
   async CloseAll()
       returns(nsresult rv);
@@ -23,4 +88,3 @@ async protocol PWebTransport
 
 } // namespace dom
 } // namespace mozilla
-

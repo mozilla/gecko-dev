@@ -26,6 +26,9 @@ const ERRORS = new Set([
   "NoSuchAlertError",
   "NoSuchElementError",
   "NoSuchFrameError",
+  "NoSuchHandleError",
+  "NoSuchNodeError",
+  "NoSuchScriptError",
   "NoSuchShadowRootError",
   "NoSuchWindowError",
   "ScriptTimeoutError",
@@ -72,7 +75,7 @@ export const error = {
    *
    * @param {*} val
    *     Any value that should be undergo the test for errorness.
-   * @return {boolean}
+   * @returns {boolean}
    *     True if error, false otherwise.
    */
   isError(val) {
@@ -98,7 +101,7 @@ export const error = {
    * @param {*} obj
    *     Arbitrary object to test.
    *
-   * @return {boolean}
+   * @returns {boolean}
    *     True if ``obj`` is of the WebDriverError prototype chain,
    *     false otherwise.
    */
@@ -119,7 +122,7 @@ export const error = {
    * @param {Error} err
    *     Error to conditionally turn into a WebDriverError.
    *
-   * @return {WebDriverError}
+   * @returns {WebDriverError}
    *     If ``err`` is a WebDriverError, it is returned unmodified.
    *     Otherwise an UnknownError type is returned.
    */
@@ -188,7 +191,7 @@ class WebDriverError extends RemoteError {
   }
 
   /**
-   * @return {Object.<string, string>}
+   * @returns {Object<string, string>}
    *     JSON serialisation of error prototype.
    */
   toJSON() {
@@ -203,10 +206,10 @@ class WebDriverError extends RemoteError {
    * Unmarshals a JSON error representation to the appropriate Marionette
    * error type.
    *
-   * @param {Object.<string, string>} json
+   * @param {Object<string, string>} json
    *     Error object.
    *
-   * @return {Error}
+   * @returns {Error}
    *     Error prototype.
    */
   static fromJSON(json) {
@@ -395,6 +398,16 @@ class NoSuchElementError extends WebDriverError {
 }
 
 /**
+ * A command tried to remove an unknown preload script.
+ */
+class NoSuchScriptError extends WebDriverError {
+  constructor(message) {
+    super(message);
+    this.status = "no such script";
+  }
+}
+
+/**
  * A shadow root was not attached to the element.
  */
 class NoSuchShadowRootError extends WebDriverError {
@@ -422,6 +435,27 @@ class NoSuchFrameError extends WebDriverError {
   constructor(message) {
     super(message);
     this.status = "no such frame";
+  }
+}
+
+/**
+ * The handle of a strong object reference could not be found
+ */
+class NoSuchHandleError extends WebDriverError {
+  constructor(message) {
+    super(message);
+    this.status = "no such handle";
+  }
+}
+
+/**
+ * A node as given by its unique shared id could not be found within the cache
+ * of known nodes.
+ */
+class NoSuchNodeError extends WebDriverError {
+  constructor(message) {
+    super(message);
+    this.status = "no such node";
   }
 }
 
@@ -536,6 +570,9 @@ const STATUSES = new Map([
   ["no such alert", NoSuchAlertError],
   ["no such element", NoSuchElementError],
   ["no such frame", NoSuchFrameError],
+  ["no such handle", NoSuchHandleError],
+  ["no such node", NoSuchNodeError],
+  ["no such script", NoSuchScriptError],
   ["no such shadow root", NoSuchShadowRootError],
   ["no such window", NoSuchWindowError],
   ["script timeout", ScriptTimeoutError],

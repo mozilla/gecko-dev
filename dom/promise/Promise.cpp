@@ -39,6 +39,7 @@
 #include "js/StructuredClone.h"
 #include "nsContentUtils.h"
 #include "nsCycleCollectionParticipant.h"
+#include "nsDebug.h"
 #include "nsGlobalWindow.h"
 #include "nsIScriptObjectPrincipal.h"
 #include "nsJSEnvironment.h"
@@ -99,7 +100,32 @@ already_AddRefed<Promise> Promise::Create(
   return p.forget();
 }
 
+// static
+already_AddRefed<Promise> Promise::CreateInfallible(
+    nsIGlobalObject* aGlobal,
+    PropagateUserInteraction aPropagateUserInteraction) {
+  MOZ_ASSERT(aGlobal);
+  RefPtr<Promise> p = new Promise(aGlobal);
+  IgnoredErrorResult rv;
+  p->CreateWrapper(rv, aPropagateUserInteraction);
+  if (rv.Failed() && rv.ErrorCodeIs(NS_ERROR_OUT_OF_MEMORY)) {
+    MOZ_CRASH("Out of memory");
+  }
+
+  // We may have failed to init the wrapper here, because nsIGlobalObject had
+  // null GlobalJSObject. In that case we consider the JS realm is dead, which
+  // means:
+  // 1. This promise can't be settled.
+  // 2. Nothing can subscribe this promise anymore from that realm.
+  // Such condition makes this promise a no-op object.
+  (void)NS_WARN_IF(!p->PromiseObj());
+
+  return p.forget();
+}
+
 bool Promise::MaybePropagateUserInputEventHandling() {
+  MOZ_ASSERT(mPromiseObj,
+             "Should be called only if the wrapper is successfully created");
   JS::PromiseUserInputEventHandlingState state =
       UserActivation::IsHandlingUserInput()
           ? JS::PromiseUserInputEventHandlingState::HadUserInteractionAtCreation
@@ -163,8 +189,13 @@ already_AddRefed<Promise> Promise::All(
     return nullptr;
   }
 
-  for (auto& promise : aPromiseList) {
+  for (const auto& promise : aPromiseList) {
     JS::Rooted<JSObject*> promiseObj(aCx, promise->PromiseObj());
+    if (!promiseObj) {
+      // No-op object will never settle, so we return a no-op Promise here,
+      // which is equivalent of returning the existing no-op one.
+      return do_AddRef(promise);
+    }
     // Just in case, make sure these are all in the context compartment.
     if (!JS_WrapObject(aCx, &promiseObj)) {
       aRv.NoteJSContextException(aCx);
@@ -196,6 +227,11 @@ void Promise::Then(JSContext* aCx,
   // DOMRequest::Then, which is not working with a Promise subclass, so things
   // should be OK.
   JS::Rooted<JSObject*> promise(aCx, PromiseObj());
+  if (!promise) {
+    // This promise is no-op, so do nothing.
+    return;
+  }
+
   if (!JS_WrapObject(aCx, &promise)) {
     aRv.NoteJSContextException(aCx);
     return;
@@ -233,6 +269,9 @@ void Promise::Then(JSContext* aCx,
 static void SettlePromise(Promise* aSettlingPromise, Promise* aCallbackPromise,
                           ErrorResult& aRv) {
   if (!aSettlingPromise) {
+    return;
+  }
+  if (aRv.IsUncatchableException()) {
     return;
   }
   if (aRv.Failed()) {
@@ -319,7 +358,7 @@ void Promise::MaybeResolve(JSContext* aCx, JS::Handle<JS::Value> aValue) {
   NS_ASSERT_OWNINGTHREAD(Promise);
 
   JS::Rooted<JSObject*> p(aCx, PromiseObj());
-  if (!JS::ResolvePromise(aCx, p, aValue)) {
+  if (!p || !JS::ResolvePromise(aCx, p, aValue)) {
     // Now what?  There's nothing sane to do here.
     JS_ClearPendingException(aCx);
   }
@@ -329,7 +368,7 @@ void Promise::MaybeReject(JSContext* aCx, JS::Handle<JS::Value> aValue) {
   NS_ASSERT_OWNINGTHREAD(Promise);
 
   JS::Rooted<JSObject*> p(aCx, PromiseObj());
-  if (!JS::RejectPromise(aCx, p, aValue)) {
+  if (!p || !JS::RejectPromise(aCx, p, aValue)) {
     // Now what?  There's nothing sane to do here.
     JS_ClearPendingException(aCx);
   }
@@ -487,7 +526,7 @@ void Promise::AppendNativeHandler(PromiseNativeHandler* aRunnable) {
   NS_ASSERT_OWNINGTHREAD(Promise);
 
   AutoJSAPI jsapi;
-  if (NS_WARN_IF(!jsapi.Init(mGlobal))) {
+  if (NS_WARN_IF(!mPromiseObj || !jsapi.Init(mGlobal))) {
     // Our API doesn't allow us to return a useful error.  Not like this should
     // happen anyway.
     return;
@@ -963,6 +1002,10 @@ Promise::PromiseState Promise::State() const {
 }
 
 bool Promise::SetSettledPromiseIsHandled() {
+  if (!mPromiseObj) {
+    // Do nothing as it's a no-op promise
+    return false;
+  }
   AutoAllowLegacyScriptExecution exemption;
   AutoEntryScript aes(mGlobal, "Set settled promise handled");
   JSContext* cx = aes.cx();
@@ -971,6 +1014,10 @@ bool Promise::SetSettledPromiseIsHandled() {
 }
 
 bool Promise::SetAnyPromiseIsHandled() {
+  if (!mPromiseObj) {
+    // Do nothing as it's a no-op promise
+    return false;
+  }
   AutoAllowLegacyScriptExecution exemption;
   AutoEntryScript aes(mGlobal, "Set any promise handled");
   JSContext* cx = aes.cx();

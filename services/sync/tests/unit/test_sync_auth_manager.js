@@ -1,31 +1,45 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-const { AuthenticationError, SyncAuthManager } = ChromeUtils.import(
-  "resource://services-sync/sync_auth.js"
+const { AuthenticationError, SyncAuthManager } = ChromeUtils.importESModule(
+  "resource://services-sync/sync_auth.sys.mjs"
 );
-const { Resource } = ChromeUtils.import("resource://services-sync/resource.js");
-const { initializeIdentityWithTokenServerResponse } = ChromeUtils.import(
-  "resource://testing-common/services/sync/fxa_utils.js"
+const { Resource } = ChromeUtils.importESModule(
+  "resource://services-sync/resource.sys.mjs"
 );
-const { HawkClient } = ChromeUtils.import(
-  "resource://services-common/hawkclient.js"
+const {
+  initializeIdentityWithTokenServerResponse,
+} = ChromeUtils.importESModule(
+  "resource://testing-common/services/sync/fxa_utils.sys.mjs"
 );
-const { FxAccounts } = ChromeUtils.import(
-  "resource://gre/modules/FxAccounts.jsm"
+const { HawkClient } = ChromeUtils.importESModule(
+  "resource://services-common/hawkclient.sys.mjs"
 );
-const { FxAccountsClient } = ChromeUtils.import(
-  "resource://gre/modules/FxAccountsClient.jsm"
+const { FxAccounts } = ChromeUtils.importESModule(
+  "resource://gre/modules/FxAccounts.sys.mjs"
+);
+const { FxAccountsClient } = ChromeUtils.importESModule(
+  "resource://gre/modules/FxAccountsClient.sys.mjs"
 );
 const {
   ERRNO_INVALID_AUTH_TOKEN,
   ONLOGIN_NOTIFICATION,
   ONVERIFIED_NOTIFICATION,
 } = ChromeUtils.import("resource://gre/modules/FxAccountsCommon.js");
-const { Service } = ChromeUtils.import("resource://services-sync/service.js");
-const { Status } = ChromeUtils.import("resource://services-sync/status.js");
-const { TokenServerClient, TokenServerClientServerError } = ChromeUtils.import(
-  "resource://services-common/tokenserverclient.js"
+const { Service } = ChromeUtils.importESModule(
+  "resource://services-sync/service.sys.mjs"
+);
+const { Status } = ChromeUtils.importESModule(
+  "resource://services-sync/status.sys.mjs"
+);
+const {
+  TokenServerClient,
+  TokenServerClientServerError,
+} = ChromeUtils.importESModule(
+  "resource://services-common/tokenserverclient.sys.mjs"
+);
+const { AccountState } = ChromeUtils.importESModule(
+  "resource://gre/modules/FxAccounts.sys.mjs"
 );
 
 const SECOND_MS = 1000;

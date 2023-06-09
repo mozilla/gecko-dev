@@ -10,14 +10,15 @@ include NeckoChannelParams;
 include "mozilla/dom/FetchIPCTypes.h";
 include "mozilla/ipc/TransportSecurityInfoUtils.h";
 
-using HeadersGuardEnum from "mozilla/dom/HeadersBinding.h";
-using ReferrerPolicy from "mozilla/dom/ReferrerPolicyBinding.h";
-using RequestCache from "mozilla/dom/RequestBinding.h";
-using RequestCredentials from "mozilla/dom/RequestBinding.h";
-using RequestRedirect from "mozilla/dom/RequestBinding.h";
-using ResponseType from "mozilla/dom/ResponseBinding.h";
+using mozilla::dom::HeadersGuardEnum from "mozilla/dom/HeadersBinding.h";
+using mozilla::dom::ReferrerPolicy from "mozilla/dom/ReferrerPolicyBinding.h";
+using mozilla::dom::RequestCache from "mozilla/dom/RequestBinding.h";
+using mozilla::dom::RequestCredentials from "mozilla/dom/RequestBinding.h";
+using mozilla::dom::RequestRedirect from "mozilla/dom/RequestBinding.h";
+using mozilla::dom::ResponseType from "mozilla/dom/ResponseBinding.h";
 using struct nsID from "nsID.h";
-using FetchDriverObserver::EndReason from "mozilla/dom/FetchDriver.h";
+using mozilla::dom::FetchDriverObserver::EndReason from "mozilla/dom/FetchDriver.h";
+using nsILoadInfo::CrossOriginEmbedderPolicy from "nsILoadInfo.h";
 [RefCounted] using class mozilla::RemoteLazyInputStream from "mozilla/RemoteLazyInputStream.h";
 [RefCounted] using class nsITransportSecurityInfo from "nsITransportSecurityInfo.h";
 
@@ -34,8 +35,9 @@ struct ParentToParentStream {
   nsID uuid;
 };
 
-struct ParentToChildStream {
-  RemoteLazyInputStream stream;
+union ParentToChildStream {
+  nullable RemoteLazyInputStream;
+  IPCStream;
 };
 
 struct ChildToParentStream {
@@ -59,6 +61,7 @@ struct IPCInternalRequest {
   uint32_t contentPolicyType;
   nsString referrer;
   ReferrerPolicy referrerPolicy;
+  ReferrerPolicy environmentReferrerPolicy;
   RequestMode requestMode;
   RequestCredentials requestCredentials;
   RequestCache cacheMode;
@@ -70,6 +73,7 @@ struct IPCInternalRequest {
   uint32_t interceptionContentPolicyType;
   RedirectHistoryEntryInfo[] interceptionRedirectChain;
   bool interceptionFromThirdParty;
+  CrossOriginEmbedderPolicy embedderPolicy;
 };
 
 struct InternalResponseMetadata {
@@ -81,8 +85,11 @@ struct InternalResponseMetadata {
   HeadersEntry[] headers;
   nsresult errorCode;
   nsCString alternativeDataType;
-  nsITransportSecurityInfo securityInfo;
+  nullable nsITransportSecurityInfo securityInfo;
   PrincipalInfo? principalInfo;
+  nsCString bodyBlobURISpec;
+  nsString bodyLocalPath;
+  RequestCredentials credentialsMode;
 };
 
 struct ParentToParentInternalResponse {
@@ -114,7 +121,6 @@ struct ResponseTiming {
 
 struct ResponseEndArgs {
   EndReason endReason;
-  ResponseTiming? timing;
 };
 
 } // namespace ipc

@@ -64,10 +64,7 @@ nsTableRowGroupFrame::~nsTableRowGroupFrame() = default;
 
 void nsTableRowGroupFrame::DestroyFrom(nsIFrame* aDestructRoot,
                                        PostDestroyData& aPostDestroyData) {
-  if (HasAnyStateBits(NS_FRAME_CAN_HAVE_ABSPOS_CHILDREN)) {
-    nsTableFrame::UnregisterPositionedTablePart(this, aDestructRoot);
-  }
-
+  nsTableFrame::MaybeUnregisterPositionedTablePart(this, aDestructRoot);
   nsContainerFrame::DestroyFrom(aDestructRoot, aPostDestroyData);
 }
 
@@ -1436,9 +1433,11 @@ bool nsTableRowGroupFrame::ComputeCustomOverflow(
 void nsTableRowGroupFrame::DidSetComputedStyle(
     ComputedStyle* aOldComputedStyle) {
   nsContainerFrame::DidSetComputedStyle(aOldComputedStyle);
+  nsTableFrame::PositionedTablePartMaybeChanged(this, aOldComputedStyle);
 
-  if (!aOldComputedStyle)  // avoid this on init
-    return;
+  if (!aOldComputedStyle) {
+    return;  // avoid the following on init
+  }
 
   nsTableFrame* tableFrame = GetTableFrame();
   if (tableFrame->IsBorderCollapse() &&

@@ -22,10 +22,12 @@ DDLoggedTypeCustomNameAndBase(RemoteMediaDataDecoder, RemoteMediaDataDecoder,
 // to a 'real' decoder in the GPU or RDD process.
 // All requests get forwarded to a *DecoderChild instance that
 // operates solely on the provided manager and abstract manager threads.
-class RemoteMediaDataDecoder
+class RemoteMediaDataDecoder final
     : public MediaDataDecoder,
       public DecoderDoctorLifeLogger<RemoteMediaDataDecoder> {
  public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(RemoteMediaDataDecoder, final);
+
   explicit RemoteMediaDataDecoder(RemoteDecoderChild* aChild);
 
   // MediaDataDecoder
@@ -40,6 +42,8 @@ class RemoteMediaDataDecoder
   bool IsHardwareAccelerated(nsACString& aFailureReason) const override;
   void SetSeekThreshold(const media::TimeUnit& aTime) override;
   nsCString GetDescriptionName() const override;
+  nsCString GetProcessName() const override;
+  nsCString GetCodecName() const override;
   ConversionRequired NeedsConversion() const override;
 
  private:
@@ -52,6 +56,8 @@ class RemoteMediaDataDecoder
   // Only ever written/modified during decoder initialisation.
   // As such can be accessed from any threads after that.
   nsCString mDescription = "RemoteMediaDataDecoder"_ns;
+  nsCString mProcessName = "unknown"_ns;
+  nsCString mCodecName = "unknown"_ns;
   bool mIsHardwareAccelerated = false;
   nsCString mHardwareAcceleratedReason;
   ConversionRequired mConversion = ConversionRequired::kNeedNone;

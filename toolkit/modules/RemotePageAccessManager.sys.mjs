@@ -48,8 +48,10 @@ export let RemotePageAccessManager = {
         "security.certerrors.permanentOverride",
         "security.enterprise_roots.auto-enabled",
         "security.certerror.hideAddException",
+        "network.trr.display_fallback_warning",
       ],
       RPMGetIntPref: [
+        "security.dialog_enable_delay",
         "services.settings.clock_skew_seconds",
         "services.settings.last_update_seconds",
       ],
@@ -57,6 +59,10 @@ export let RemotePageAccessManager = {
       RPMGetInnerMostURI: ["*"],
       RPMIsWindowPrivate: ["*"],
       RPMAddToHistogram: ["*"],
+    },
+    "about:home": {
+      RPMSendAsyncMessage: ["ActivityStream:ContentToMain"],
+      RPMAddMessageListener: ["ActivityStream:MainToContent"],
     },
     "about:httpsonlyerror": {
       RPMGetFormatURLPref: ["app.support.baseURL"],
@@ -82,6 +88,7 @@ export let RemotePageAccessManager = {
         "OpenTRRPreferences",
       ],
       RPMCheckAlternateHostAvailable: ["*"],
+      RPMRecordTelemetryEvent: ["security.doh.neterror"],
       RPMAddMessageListener: ["*"],
       RPMRemoveMessageListener: ["*"],
       RPMGetFormatURLPref: [
@@ -92,16 +99,28 @@ export let RemotePageAccessManager = {
         "security.certerror.hideAddException",
         "security.xfocsp.errorReporting.automatic",
         "security.xfocsp.errorReporting.enabled",
+        "network.trr.display_fallback_warning",
       ],
-      RPMSetBoolPref: ["security.xfocsp.errorReporting.automatic"],
+      RPMSetBoolPref: [
+        "security.xfocsp.errorReporting.automatic",
+        "network.trr.display_fallback_warning",
+      ],
       RPMAddToHistogram: ["*"],
       RPMGetInnerMostURI: ["*"],
       RPMGetHttpResponseHeader: ["*"],
       RPMIsTRROnlyFailure: ["*"],
-      RPMShowTRROnlyFailureError: ["*"],
+      RPMIsFirefox: ["*"],
+      RPMIsNativeFallbackFailure: ["*"],
       RPMGetTRRSkipReason: ["*"],
       RPMGetTRRDomain: ["*"],
+      RPMIsSiteSpecificTRRError: ["*"],
+      RPMSetTRRDisabledLoadFlags: ["*"],
       RPMSendQuery: ["Browser:AddTRRExcludedDomain"],
+      RPMGetIntPref: ["network.trr.mode"],
+    },
+    "about:newtab": {
+      RPMSendAsyncMessage: ["ActivityStream:ContentToMain"],
+      RPMAddMessageListener: ["ActivityStream:MainToContent"],
     },
     "about:plugins": {
       RPMSendQuery: ["RequestPlugins"],
@@ -222,6 +241,10 @@ export let RemotePageAccessManager = {
       RPMAddMessageListener: ["*"],
       RPMRemoveMessageListener: ["*"],
     },
+    "about:welcome": {
+      RPMSendAsyncMessage: ["ActivityStream:ContentToMain"],
+      RPMAddMessageListener: ["ActivityStream:MainToContent"],
+    },
   },
 
   /**
@@ -273,11 +296,11 @@ export let RemotePageAccessManager = {
       aDocument
     );
     if (!accessMapForFeature) {
-      Cu.reportError(
-        "RemotePageAccessManager does not allow access to Feature: " +
-          aFeature +
-          " for: " +
-          aDocument.location
+      console.error(
+        "RemotePageAccessManager does not allow access to Feature: ",
+        aFeature,
+        " for: ",
+        aDocument.location
       );
 
       return false;
@@ -333,5 +356,21 @@ export let RemotePageAccessManager = {
     // Check if the feature is allowed to be accessed for that URI;
     // if not, deny access.
     return accessMapForURI[aFeature];
+  },
+
+  /**
+   * This function adds a new page to the access map, but can only
+   * be used in a test environment.
+   */
+  addPage(aUrl, aFunctionMap) {
+    if (!Cu.isInAutomation) {
+      throw new Error("Cannot only modify privileges during testing");
+    }
+
+    if (aUrl in this.accessMap) {
+      throw new Error("Cannot modify privileges of existing page");
+    }
+
+    this.accessMap[aUrl] = aFunctionMap;
   },
 };

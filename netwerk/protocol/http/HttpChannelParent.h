@@ -95,8 +95,7 @@ class HttpChannelParent final : public nsIInterfaceRequestor,
 
   void InvokeAsyncOpen(nsresult rv);
 
-  void InvokeEarlyHintPreloader(nsresult rv, uint64_t aEarlyHintPreloaderId,
-                                uint64_t aChannelId);
+  void InvokeEarlyHintPreloader(nsresult rv, uint64_t aEarlyHintPreloaderId);
 
   // Calls SendSetPriority if mIPCClosed is false.
   void DoSendSetPriority(int16_t aValue);
@@ -162,8 +161,7 @@ class HttpChannelParent final : public nsIInterfaceRequestor,
       const uint64_t& aContentWindowId,
       const nsTArray<PreferredAlternativeDataTypeParams>&
           aPreferredAlternativeTypes,
-      const uint64_t& aTopBrowsingContextId,
-      const TimeStamp& aLaunchServiceWorkerStart,
+      const uint64_t& aBrowserId, const TimeStamp& aLaunchServiceWorkerStart,
       const TimeStamp& aLaunchServiceWorkerEnd,
       const TimeStamp& aDispatchFetchEventStart,
       const TimeStamp& aDispatchFetchEventEnd,
@@ -171,7 +169,9 @@ class HttpChannelParent final : public nsIInterfaceRequestor,
       const TimeStamp& aHandleFetchEventEnd,
       const bool& aForceMainDocumentChannel,
       const TimeStamp& aNavigationStartTimeStamp,
-      const uint64_t& aEarlyHintPreloaderId);
+      const uint64_t& aEarlyHintPreloaderId,
+      const nsAString& aClassicScriptHintCharset,
+      const nsAString& aDocumentCharacterSet);
 
   virtual mozilla::ipc::IPCResult RecvSetPriority(
       const int16_t& priority) override;

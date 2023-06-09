@@ -22,7 +22,7 @@ class RemoteWorkerParent final : public PRemoteWorkerParent {
   friend class PRemoteWorkerParent;
 
  public:
-  NS_INLINE_DECL_REFCOUNTING(RemoteWorkerParent)
+  NS_INLINE_DECL_REFCOUNTING(RemoteWorkerParent, override);
 
   RemoteWorkerParent();
 
@@ -43,6 +43,8 @@ class RemoteWorkerParent final : public PRemoteWorkerParent {
   mozilla::ipc::IPCResult RecvError(const ErrorValue& aValue);
 
   mozilla::ipc::IPCResult RecvNotifyLock(const bool& aCreated);
+
+  mozilla::ipc::IPCResult RecvNotifyWebTransport(const bool& aCreated);
 
   mozilla::ipc::IPCResult RecvClose();
 

@@ -9,6 +9,11 @@
 #define NS_TASKBAR_CONTRACTID "@mozilla.org/windows-taskbar;1"
 
 #include "mozilla/Logging.h"
+#include "mozilla/StaticPrefs_widget.h"
+#include "mozilla/WindowsVersion.h"
+#include "WinUtils.h"
+
+using namespace mozilla;
 
 /**
  * TaskbarConcealerImpl
@@ -106,14 +111,14 @@ nsWindow::TaskbarConcealer::GetWindowState(HWND aWnd) {
 
   // Non-nsWindow windows associated with this thread may include file dialogs
   // and IME input popups.
-  nsWindow* pWin = WinUtils::GetNSWindowPtr(aWnd);
+  nsWindow* pWin = widget::WinUtils::GetNSWindowPtr(aWnd);
   if (!pWin) {
     return Nothing();
   }
 
   // nsWindows of other window-classes include tooltips and drop-shadow-bearing
   // menus.
-  if (pWin->mWindowType != eWindowType_toplevel) {
+  if (pWin->mWindowType != WindowType::TopLevel) {
     return Nothing();
   }
 
@@ -336,14 +341,14 @@ void TaskbarConcealerImpl::MarkAsHidingTaskbar(HWND aWnd, bool aMark) {
   }
 
   MOZ_LOG(sTaskbarConcealerLog, LogLevel::Info,
-          ("Calling PrepareFullScreenHWND(%p, %s)", aWnd, sMark));
+          ("Calling PrepareFullScreen(%p, %s)", aWnd, sMark));
 
-  const nsresult hr = mTaskbarInfo->PrepareFullScreenHWND(aWnd, aMark);
+  const nsresult hr = mTaskbarInfo->PrepareFullScreen(aWnd, aMark);
 
   if (FAILED(hr)) {
     MOZ_LOG(sTaskbarConcealerLog, LogLevel::Error,
-            ("Call to PrepareFullScreenHWND(%p, %s) failed with nsresult %x",
-             aWnd, sMark, hr));
+            ("Call to PrepareFullScreen(%p, %s) failed with nsresult %x", aWnd,
+             sMark, hr));
   }
 };
 

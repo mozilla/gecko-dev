@@ -12,31 +12,21 @@
   --toolbar-non-lwt-bgcolor: color-mix(in srgb, -moz-dialog 85%, white);
   --toolbar-non-lwt-textcolor: -moz-dialogtext;
 
-  --panel-separator-color: ThreeDLightShadow;
-
   --chrome-content-separator-color: ThreeDShadow;
 }
 
 @media (-moz-windows-default-theme) {
   :root {
     --toolbar-non-lwt-bgcolor: -moz-dialog;
-
-    --panel-separator-color: hsla(210,4%,10%,.14);
   }
 }
 
 :root:-moz-lwtheme {
   --chrome-content-separator-color: rgba(0,0,0,.3);
-
-  --panel-separator-color: hsla(210,4%,10%,.14);
-}
-
-:root[lwt-popup-brighttext] {
-  --panel-separator-color: rgba(249,249,250,.1);
 }
 
 #menubar-items {
-  -moz-box-orient: vertical; /* for flex hack */
+  flex-direction: column; /* for flex hack */
 }
 
 #main-menubar > menu {
@@ -222,14 +212,14 @@
 }
 
 .titlebar-buttonbox-container {
-  -moz-box-align: stretch;
+  align-items: stretch;
 }
 
 @media (-moz-platform: windows-win7),
        (-moz-platform: windows-win8) {
   /* Preserve window control buttons position at the top of the button box. */
   .titlebar-buttonbox-container {
-    -moz-box-align: start;
+    align-items: flex-start;
   }
 }
 
@@ -323,7 +313,8 @@ menuitem.bookmark-item {
   }
 
   #urlbar:not(:-moz-lwtheme, [focused="true"]) > #urlbar-background,
-  #searchbar:not(:-moz-lwtheme, :focus-within) {
+  #searchbar:not(:-moz-lwtheme, :focus-within),
+  .findbar-textbox:not(:-moz-lwtheme, :focus) {
     border-color: ThreeDShadow;
   }
 }
@@ -382,7 +373,6 @@ toolbarbutton.bookmark-item[dragover="true"][open="true"] {
 #BMB_bookmarksToolbar,
 #panelMenu_bookmarksToolbar {
   list-style-image: url("chrome://browser/skin/places/bookmarksToolbar.svg");
-  -moz-image-region: auto;
 }
 
 /* Status panel */
@@ -454,6 +444,16 @@ panel[touchmode],
 menupopup[touchmode] {
   --arrowpanel-menuitem-padding-block: 12px;
   --arrowpanel-menuitem-padding: var(--arrowpanel-menuitem-padding-block) var(--arrowpanel-menuitem-padding-inline);
+  /* The value for the header back icon padding is selected in a way that the
+   * height of the header and its separator will be equal to the panel inner
+   * top padding plus standard menuitem, so that the header's separator will
+   * be located excatly where a normal toolbarseparator would be located after
+   * the first menuitem, in a menu without a header. */
+  --arrowpanel-header-back-icon-padding: 10px;
+}
+
+:root[uidensity="compact"] panel[touchmode] {
+  --arrowpanel-header-back-icon-padding: 12px;
 }
 
 menupopup[touchmode] :is(menu, menuitem, menucaption) {
@@ -535,11 +535,11 @@ menupopup[touchmode] :is(menu, menuitem, menucaption) {
    * will stretch to pick up the extra space. In that case, the outer icons
    * should align to the start/end of their containing <menuitem>: */
   #context-navigation > .menuitem-iconic:first-child {
-    -moz-box-pack: start;
+    justify-content: flex-start;
   }
 
   #context-navigation > .menuitem-iconic:last-child {
-    -moz-box-pack: end;
+    justify-content: flex-end;
   }
 
   #context-navigation > .menuitem-iconic:last-child,
@@ -566,23 +566,4 @@ menupopup[touchmode] :is(menu, menuitem, menucaption) {
     margin-top: 0;
     margin-inline: 0;
   }
-}
-
-#historySwipeAnimationPreviousArrow {
-  background: url("chrome://browser/skin/history-swipe-arrow.svg")
-              center left / 192px 192px no-repeat transparent;
-  will-change: transform;
-  -moz-context-properties: fill;
-}
-#historySwipeAnimationPreviousArrow:-moz-locale-dir(rtl) {
-  transform: scaleX(-1);
-}
-#historySwipeAnimationNextArrow {
-  background: url("chrome://browser/skin/history-swipe-arrow.svg")
-              center left / 192px 192px no-repeat transparent;
-  will-change: transform;
-  -moz-context-properties: fill;
-}
-#historySwipeAnimationNextArrow:-moz-locale-dir(ltr) {
-  transform: scaleX(-1);
 }

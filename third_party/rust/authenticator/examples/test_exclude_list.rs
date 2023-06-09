@@ -3,16 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use authenticator::{
-    authenticatorservice::{
-        AuthenticatorService, CtapVersion, MakeCredentialsOptions, RegisterArgsCtap2,
-    },
+    authenticatorservice::{AuthenticatorService, RegisterArgs},
     ctap2::commands::StatusCode,
     ctap2::server::{
-        PublicKeyCredentialDescriptor, PublicKeyCredentialParameters, RelyingParty, Transport, User,
+        PublicKeyCredentialDescriptor, PublicKeyCredentialParameters, RelyingParty,
+        ResidentKeyRequirement, Transport, User, UserVerificationRequirement,
     },
-    errors::{AuthenticatorError, CommandError, HIDError, PinError},
+    errors::{AuthenticatorError, CommandError, HIDError},
     statecallback::StateCallback,
-    COSEAlgorithm, Pin, RegisterResult, StatusUpdate,
+    COSEAlgorithm, Pin, RegisterResult, StatusPinUv, StatusUpdate,
 };
 
 use getopts::Options;
@@ -21,7 +20,7 @@ use std::sync::mpsc::{channel, RecvError};
 use std::{env, thread};
 
 fn print_usage(program: &str, opts: Options) {
-    let brief = format!("Usage: {} [options]", program);
+    let brief = format!("Usage: {program} [options]");
     print!("{}", opts.usage(&brief));
 }
 
@@ -48,8 +47,8 @@ fn main() {
         return;
     }
 
-    let mut manager = AuthenticatorService::new(CtapVersion::CTAP2)
-        .expect("The auth service should initialize safely");
+    let mut manager =
+        AuthenticatorService::new().expect("The auth service should initialize safely");
 
     manager.add_u2f_usb_hid_platform_transports();
 
@@ -59,7 +58,7 @@ fn main() {
             timeout_s * 1_000
         }
         Err(e) => {
-            println!("{}", e);
+            println!("{e}");
             print_usage(&program, opts);
             return;
         }
@@ -73,59 +72,69 @@ fn main() {
     );
     let mut challenge = Sha256::new();
     challenge.update(challenge_str.as_bytes());
-    let chall_bytes = challenge.finalize().to_vec();
-
-    // TODO(MS): Needs to be added to RegisterArgsCtap2
-    // let flags = RegisterFlags::empty();
+    let chall_bytes = challenge.finalize().into();
 
     let (status_tx, status_rx) = channel::<StatusUpdate>();
     thread::spawn(move || loop {
         match status_rx.recv() {
+            Ok(StatusUpdate::InteractiveManagement(..)) => {
+                panic!("STATUS: This can't happen when doing non-interactive usage");
+            }
             Ok(StatusUpdate::DeviceAvailable { dev_info }) => {
-                println!("STATUS: device available: {}", dev_info)
+                println!("STATUS: device available: {dev_info}")
             }
             Ok(StatusUpdate::DeviceUnavailable { dev_info }) => {
-                println!("STATUS: device unavailable: {}", dev_info)
+                println!("STATUS: device unavailable: {dev_info}")
             }
             Ok(StatusUpdate::Success { dev_info }) => {
-                println!("STATUS: success using device: {}", dev_info);
+                println!("STATUS: success using device: {dev_info}");
             }
             Ok(StatusUpdate::SelectDeviceNotice) => {
                 println!("STATUS: Please select a device by touching one of them.");
             }
             Ok(StatusUpdate::DeviceSelected(dev_info)) => {
-                println!("STATUS: Continuing with device: {}", dev_info);
+                println!("STATUS: Continuing with device: {dev_info}");
             }
-            Ok(StatusUpdate::PinError(error, sender)) => match error {
-                PinError::PinRequired => {
-                    let raw_pin = rpassword::prompt_password_stderr("Enter PIN: ")
-                        .expect("Failed to read PIN");
-                    sender.send(Pin::new(&raw_pin)).expect("Failed to send PIN");
-                    continue;
-                }
-                PinError::InvalidPin(attempts) => {
-                    println!(
-                        "Wrong PIN! {}",
-                        attempts.map_or(format!("Try again."), |a| format!(
-                            "You have {} attempts left.",
-                            a
-                        ))
-                    );
-                    let raw_pin = rpassword::prompt_password_stderr("Enter PIN: ")
-                        .expect("Failed to read PIN");
-                    sender.send(Pin::new(&raw_pin)).expect("Failed to send PIN");
-                    continue;
-                }
-                PinError::PinAuthBlocked => {
-                    panic!("Too many failed attempts in one row. Your device has been temporarily blocked. Please unplug it and plug in again.")
-                }
-                PinError::PinBlocked => {
-                    panic!("Too many failed attempts. Your device has been blocked. Reset it.")
-                }
-                e => {
-                    panic!("Unexpected error: {:?}", e)
-                }
-            },
+            Ok(StatusUpdate::PinUvError(StatusPinUv::PinRequired(sender))) => {
+                let raw_pin =
+                    rpassword::prompt_password_stderr("Enter PIN: ").expect("Failed to read PIN");
+                sender.send(Pin::new(&raw_pin)).expect("Failed to send PIN");
+                continue;
+            }
+            Ok(StatusUpdate::PinUvError(StatusPinUv::InvalidPin(sender, attempts))) => {
+                println!(
+                    "Wrong PIN! {}",
+                    attempts.map_or("Try again.".to_string(), |a| format!(
+                        "You have {a} attempts left."
+                    ))
+                );
+                let raw_pin =
+                    rpassword::prompt_password_stderr("Enter PIN: ").expect("Failed to read PIN");
+                sender.send(Pin::new(&raw_pin)).expect("Failed to send PIN");
+                continue;
+            }
+            Ok(StatusUpdate::PinUvError(StatusPinUv::PinAuthBlocked)) => {
+                panic!("Too many failed attempts in one row. Your device has been temporarily blocked. Please unplug it and plug in again.")
+            }
+            Ok(StatusUpdate::PinUvError(StatusPinUv::PinBlocked)) => {
+                panic!("Too many failed attempts. Your device has been blocked. Reset it.")
+            }
+            Ok(StatusUpdate::PinUvError(StatusPinUv::InvalidUv(attempts))) => {
+                println!(
+                    "Wrong UV! {}",
+                    attempts.map_or("Try again.".to_string(), |a| format!(
+                        "You have {a} attempts left."
+                    ))
+                );
+                continue;
+            }
+            Ok(StatusUpdate::PinUvError(StatusPinUv::UvBlocked)) => {
+                println!("Too many failed UV-attempts.");
+                continue;
+            }
+            Ok(StatusUpdate::PinUvError(e)) => {
+                panic!("Unexpected error: {:?}", e)
+            }
             Err(RecvError) => {
                 println!("STATUS: end");
                 return;
@@ -140,15 +149,15 @@ fn main() {
         display_name: None,
     };
     let origin = "https://example.com".to_string();
-    let mut ctap_args = RegisterArgsCtap2 {
-        challenge: chall_bytes.clone(),
+    let mut ctap_args = RegisterArgs {
+        client_data_hash: chall_bytes,
         relying_party: RelyingParty {
             id: "example.com".to_string(),
             name: None,
             icon: None,
         },
-        origin: origin.clone(),
-        user: user.clone(),
+        origin,
+        user,
         pub_cred_params: vec![
             PublicKeyCredentialParameters {
                 alg: COSEAlgorithm::ES256,
@@ -158,12 +167,11 @@ fn main() {
             },
         ],
         exclude_list: vec![],
-        options: MakeCredentialsOptions {
-            resident_key: None,
-            user_verification: None,
-        },
+        user_verification_req: UserVerificationRequirement::Preferred,
+        resident_key_req: ResidentKeyRequirement::Discouraged,
         extensions: Default::default(),
         pin: None,
+        use_ctap1_fallback: false,
     };
 
     loop {
@@ -172,12 +180,8 @@ fn main() {
             register_tx.send(rv).unwrap();
         }));
 
-        if let Err(e) = manager.register(
-            timeout_ms,
-            ctap_args.clone().into(),
-            status_tx.clone(),
-            callback,
-        ) {
+        if let Err(e) = manager.register(timeout_ms, ctap_args.clone(), status_tx.clone(), callback)
+        {
             panic!("Couldn't register: {:?}", e);
         };
 
@@ -186,7 +190,7 @@ fn main() {
             .expect("Problem receiving, unable to continue");
         match register_result {
             Ok(RegisterResult::CTAP1(_, _)) => panic!("Requested CTAP2, but got CTAP1 results!"),
-            Ok(RegisterResult::CTAP2(a, _c)) => {
+            Ok(RegisterResult::CTAP2(a)) => {
                 println!("Ok!");
                 println!("Registering again with the key_handle we just got back. This should result in a 'already registered' error.");
                 let registered_key_handle =

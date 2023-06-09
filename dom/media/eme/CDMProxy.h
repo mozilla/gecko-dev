@@ -20,6 +20,9 @@ namespace mozilla {
 class ErrorResult;
 class MediaRawData;
 class ChromiumCDMProxy;
+#ifdef MOZ_WMF_CDM
+class WMFCDMProxy;
+#endif
 
 namespace eme {
 enum DecryptStatus {
@@ -79,18 +82,6 @@ class CDMProxy {
 
  public:
   NS_INLINE_DECL_PURE_VIRTUAL_REFCOUNTING
-
-  // Main thread only.
-  CDMProxy(dom::MediaKeys* aKeys, const nsAString& aKeySystem,
-           bool aDistinctiveIdentifierRequired, bool aPersistentStateRequired)
-      : mKeys(aKeys),
-        mKeySystem(aKeySystem),
-        mCapabilites("CDMProxy::mCDMCaps"),
-        mDistinctiveIdentifierRequired(aDistinctiveIdentifierRequired),
-        mPersistentStateRequired(aPersistentStateRequired),
-        mMainThread(GetMainThreadSerialEventTarget()) {
-    MOZ_ASSERT(NS_IsMainThread());
-  }
 
   // Main thread only.
   // Loads the CDM corresponding to mKeySystem.
@@ -192,7 +183,7 @@ class CDMProxy {
   virtual void Terminated() = 0;
 
   // Threadsafe.
-  virtual const nsCString& GetNodeId() const = 0;
+  const nsCString& GetNodeId() const { return mNodeId; };
 
   // Main thread only.
   virtual void OnSetSessionId(uint32_t aCreateSessionToken,
@@ -239,9 +230,9 @@ class CDMProxy {
   virtual void ResolvePromise(PromiseId aId) = 0;
 
   // Threadsafe.
-  virtual const nsString& KeySystem() const = 0;
+  const nsString& KeySystem() const { return mKeySystem; };
 
-  virtual DataMutex<CDMCaps>& Capabilites() = 0;
+  DataMutex<CDMCaps>& Capabilites() { return mCapabilites; };
 
   // Main thread only.
   virtual void OnKeyStatusesChange(const nsAString& aSessionId) = 0;
@@ -258,7 +249,23 @@ class CDMProxy {
 
   virtual ChromiumCDMProxy* AsChromiumCDMProxy() { return nullptr; }
 
+#ifdef MOZ_WMF_CDM
+  virtual WMFCDMProxy* AsWMFCDMProxy() { return nullptr; }
+#endif
+
  protected:
+  // Main thread only.
+  CDMProxy(dom::MediaKeys* aKeys, const nsAString& aKeySystem,
+           bool aDistinctiveIdentifierRequired, bool aPersistentStateRequired)
+      : mKeys(aKeys),
+        mKeySystem(aKeySystem),
+        mCapabilites("CDMProxy::mCDMCaps"),
+        mDistinctiveIdentifierRequired(aDistinctiveIdentifierRequired),
+        mPersistentStateRequired(aPersistentStateRequired),
+        mMainThread(GetMainThreadSerialEventTarget()) {
+    MOZ_ASSERT(NS_IsMainThread());
+  }
+
   virtual ~CDMProxy() {}
 
   // Helper to enforce that a raw pointer is only accessed on the main thread.

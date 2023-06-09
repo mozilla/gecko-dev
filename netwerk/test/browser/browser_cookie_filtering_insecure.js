@@ -15,7 +15,9 @@ const {
   fetchHelper,
   preclean_test,
   cleanup_test,
-} = ChromeUtils.import("resource://testing-common/cookie_filtering_helper.jsm");
+} = ChromeUtils.importESModule(
+  "resource://testing-common/cookie_filtering_helper.sys.mjs"
+);
 
 async function runSuiteWithContentListener(name, trigger_suite_func, expected) {
   return async function(browser) {
@@ -37,6 +39,7 @@ async function test_insecure_suite_insecure_com() {
   expected.push("test-cookie=png1");
   expected.push("test-cookie=png2");
   // insecure com will not recieve the secure com request with secure cookie
+  expected.push(""); // insecure com will lose visibility of secure com cookie
   expected.push("test-cookie=png3");
   info(expected);
 

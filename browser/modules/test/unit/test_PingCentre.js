@@ -17,19 +17,25 @@ const { UpdateUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/UpdateUtils.sys.mjs"
 );
 
-const { sinon } = ChromeUtils.import("resource://testing-common/Sinon.jsm");
+const { sinon } = ChromeUtils.importESModule(
+  "resource://testing-common/Sinon.sys.mjs"
+);
 
 const FAKE_PING = { event: "fake_event", value: "fake_value", locale: "en-US" };
 const FAKE_ENDPOINT = "https://www.test.com";
 
 let pingCentre;
 let sandbox;
+let fogInitd = false;
 
 function _setUp() {
   Services.prefs.setBoolPref(PingCentreConstants.TELEMETRY_PREF, true);
   Services.prefs.setBoolPref(PingCentreConstants.FHR_UPLOAD_ENABLED_PREF, true);
   Services.prefs.setBoolPref(PingCentreConstants.LOGGING_PREF, true);
   sandbox.restore();
+  if (fogInitd) {
+    Services.fog.testResetFOG();
+  }
 }
 
 add_setup(function setup() {
@@ -48,6 +54,7 @@ add_setup(function setup() {
   if (AppConstants.platform != "android") {
     do_get_profile();
     Services.fog.initializeFOG();
+    fogInitd = true;
   }
 });
 
@@ -140,19 +147,48 @@ add_task(function test_sendStructuredIngestionPing_disabled() {
   Assert.ok(PingCentre._sendStandalonePing.notCalled, "Should not be sent");
 });
 
-add_task(function test_sendStructuredIngestionPing_success() {
+add_task(async function test_sendStructuredIngestionPing_success() {
   _setUp();
   sandbox.stub(PingCentre, "_sendStandalonePing").resolves();
-  pingCentre.sendStructuredIngestionPing(FAKE_PING, FAKE_ENDPOINT);
+  await pingCentre.sendStructuredIngestionPing(
+    FAKE_PING,
+    FAKE_ENDPOINT,
+    "messaging-system"
+  );
 
   Assert.equal(PingCentre._sendStandalonePing.callCount, 1, "Should be sent");
+  Assert.equal(
+    1,
+    Glean.pingCentre.sendSuccessesByNamespace.messaging_system.testGetValue()
+  );
+
+  // Test an unknown namespace
+  await pingCentre.sendStructuredIngestionPing(
+    FAKE_PING,
+    FAKE_ENDPOINT,
+    "different-system"
+  );
+
+  Assert.equal(PingCentre._sendStandalonePing.callCount, 2, "Should be sent");
+  Assert.equal(
+    1,
+    Glean.pingCentre.sendSuccessesByNamespace.__other__.testGetValue()
+  );
 });
 
 add_task(async function test_sendStructuredIngestionPing_failure() {
   _setUp();
   sandbox.stub(PingCentre, "_sendStandalonePing").rejects();
   Assert.equal(undefined, Glean.pingCentre.sendFailures.testGetValue());
-  await pingCentre.sendStructuredIngestionPing(FAKE_PING, FAKE_ENDPOINT);
+  await pingCentre.sendStructuredIngestionPing(
+    FAKE_PING,
+    FAKE_ENDPOINT,
+    "activity-stream"
+  );
 
   Assert.equal(1, Glean.pingCentre.sendFailures.testGetValue());
+  Assert.equal(
+    1,
+    Glean.pingCentre.sendFailuresByNamespace.activity_stream.testGetValue()
+  );
 });

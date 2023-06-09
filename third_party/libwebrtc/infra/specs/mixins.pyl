@@ -73,10 +73,10 @@
       'has_native_resultdb_integration': True
     }
   },
-  'ios-device-15.3': {
+  'ios-device-15.7': {
     'swarming': {
       'dimensions': {
-        'os': 'iOS-15.3',
+        'os': 'iOS-15.7',
         'pool': 'chrome.tests'
       }
     }
@@ -124,36 +124,13 @@
       }
     }
   },
-  'linux': {
-    'swarming': {
-      'dimensions': {
-        'os': 'Ubuntu'
-      }
-    }
+  'isolate_profile_data': {
+    'isolate_profile_data': True
   },
   'linux-bionic': {
     'swarming': {
       'dimensions': {
         'os': 'Ubuntu-18.04'
-      }
-    }
-  },
-  'logdog-butler': {
-    'swarming': {
-      'cipd_packages': [{
-        'cipd_package':
-        'infra/tools/luci/logdog/butler/${platform}',
-        'location':
-        'bin',
-        'revision':
-        'git_revision:ff387eadf445b24c935f1cf7d6ddd279f8a6b04c'
-      }]
-    }
-  },
-  'mac': {
-    'swarming': {
-      'dimensions': {
-        'os': 'Mac'
       }
     }
   },
@@ -171,17 +148,18 @@
       }
     }
   },
-  'mac11_or_mac12': {
-    'swarming': {
-      'dimensions': {
-        'os': 'Mac-11|Mac-12'
-      }
-    }
-  },
-  'mac_12_beta_arm64': {
+  'mac_12_arm64': {
     'swarming': {
       'dimensions': {
         'cpu': 'arm64',
+        'os': 'Mac-12'
+      }
+    }
+  },
+  'mac_12_x64': {
+    'swarming': {
+      'dimensions': {
+        'cpu': 'x86-64',
         'os': 'Mac-12'
       }
     }
@@ -217,9 +195,18 @@
       'args': ['--out-dir', '${ISOLATED_OUTDIR}']
     }
   },
+  'perf-fuchsia-perf-tests': {
+    'merge': {
+      'script': '//tools_webrtc/perf/process_perf_results.py',
+      'args': ['--test-suite', 'fuchsia_perf_tests']
+    },
+    '$mixin_append': {
+      'args': ['--nologs']
+    }
+  },
   'perf-low-bandwidth-audio-perf-test': {
     'merge': {
-      'script': '//tools_webrtc/perf/process_perf_results_py2.py',
+      'script': '//tools_webrtc/perf/process_perf_results.py',
       'args': ['--test-suite', 'low_bandwidth_audio_perf_test']
     }
   },
@@ -234,13 +221,23 @@
     'swarming': {
       'idempotent': False,
       'dimensions': {
-        'pool': 'WebRTC-perf'
+        'pool': 'WebRTC-perf',
+        'gce': '0'
+      }
+    }
+  },
+  'perf-pool-vm': {
+    'swarming': {
+      'idempotent': False,
+      'dimensions': {
+        'pool': 'WebRTC-perf',
+        'gce': '1'
       }
     }
   },
   'perf-webrtc-perf-tests': {
     'merge': {
-      'script': '//tools_webrtc/perf/process_perf_results_py2.py',
+      'script': '//tools_webrtc/perf/process_perf_results.py',
       'args': ['--test-suite', 'webrtc_perf_tests']
     },
     '$mixin_append': {
@@ -249,8 +246,15 @@
   },
   'quick-perf-tests': {
     '$mixin_append': {
-      'args':
-      ['--force_fieldtrials=WebRTC-QuickPerfTest/Enabled/', '--nologs']
+      'args': ['--force_fieldtrials=WebRTC-QuickPerfTest/Enabled/', '--nologs']
+    }
+  },
+  'redfin': {
+    'swarming': {
+      'dimensions': {
+        'device_type': 'redfin',
+        'os': 'Android'
+      }
     }
   },
   'resultdb-gtest-json-format': {
@@ -312,20 +316,20 @@
   },
   'webrtc-xctest': {
     '$mixin_append': {
-      'args': ['--xctest', '--undefok=enable-run-ios-unittests-with-xctest']
-    }
-  },
-  'win': {
-    'swarming': {
-      'dimensions': {
-        'os': 'Windows'
-      }
+      'args': ['--xctest']
     }
   },
   'win10': {
     'swarming': {
       'dimensions': {
         'os': 'Windows-10-19042'
+      }
+    }
+  },
+  'win10-any': {
+    'swarming': {
+      'dimensions': {
+        'os': 'Windows-10'
       }
     }
   },

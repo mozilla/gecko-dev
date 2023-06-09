@@ -22,26 +22,6 @@ const PROGRESS_NOTIFICATION = "addon-progress";
 const CHROMEROOT = extractChromeRoot(gTestPath);
 
 AddonTestUtils.initMochitest(this);
-AddonTestUtils.hookAMTelemetryEvents();
-
-// Assert on the expected "addonsManager.action" telemetry events (and optional filter events to verify
-// by using a given actionType).
-function assertActionAMTelemetryEvent(
-  expectedActionEvents,
-  assertMessage,
-  { actionType } = {}
-) {
-  const events = AddonTestUtils.getAMTelemetryEvents().filter(
-    ({ method, extra }) => {
-      return (
-        method === "action" &&
-        (!actionType ? true : extra && extra.action === actionType)
-      );
-    }
-  );
-
-  Assert.deepEqual(events, expectedActionEvents, assertMessage);
-}
 
 function waitForTick() {
   return new Promise(resolve => executeSoon(resolve));
@@ -53,8 +33,6 @@ function getObserverTopic(aNotificationId) {
     topic = "addon-install-disabled";
   } else if (topic == "addon-progress") {
     topic = "addon-install-started";
-  } else if (topic == "addon-install-restart") {
-    topic = "addon-install-complete";
   } else if (topic == "addon-installed") {
     topic = "webextension-install-notify";
   }
@@ -65,7 +43,7 @@ async function waitForProgressNotification(
   aPanelOpen = false,
   aExpectedCount = 1,
   wantDisabled = true,
-  expectedAnchorID = "addons-notification-icon",
+  expectedAnchorID = "unified-extensions-button",
   win = window
 ) {
   let notificationId = PROGRESS_NOTIFICATION;
@@ -220,7 +198,7 @@ function acceptAppMenuNotificationWhenShown(
 async function waitForNotification(
   aId,
   aExpectedCount = 1,
-  expectedAnchorID = "addons-notification-icon",
+  expectedAnchorID = "unified-extensions-button",
   win = window
 ) {
   info("Waiting for " + aId + " notification");
@@ -590,24 +568,6 @@ var TESTS = [
       permission,
       Services.perms.ALLOW_ACTION,
       "api access in private browsing granted"
-    );
-
-    assertActionAMTelemetryEvent(
-      [
-        {
-          method: "action",
-          object: "doorhanger",
-          value: "on",
-          extra: {
-            action: "privateBrowsingAllowed",
-            view: "postInstall",
-            addonId: addon.id,
-            type: "sitepermission-deprecated",
-          },
-        },
-      ],
-      "Expect telemetry events for privateBrowsingAllowed action",
-      { actionType: "privateBrowsingAllowed" }
     );
 
     await addon.uninstall();
@@ -1017,7 +977,7 @@ var TESTS = [
     });
     gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser, "about:blank");
     await BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
-    BrowserTestUtils.loadURI(gBrowser, path);
+    BrowserTestUtils.loadURIString(gBrowser, path);
     await failPromise;
 
     // Wait for the browser code to add the failure notification
@@ -1074,26 +1034,6 @@ var TESTS = [
     let policy = WebExtensionPolicy.getByID(addon.id);
     ok(policy.privateBrowsingAllowed, "private browsing permission granted");
 
-    // Verify that the expected telemetry event has been collected for the extension allowed on
-    // PB windows from the "post install" notification doorhanger.
-    assertActionAMTelemetryEvent(
-      [
-        {
-          method: "action",
-          object: "doorhanger",
-          value: "on",
-          extra: {
-            action: "privateBrowsingAllowed",
-            view: "postInstall",
-            addonId: addon.id,
-            type: "extension",
-          },
-        },
-      ],
-      "Expect telemetry events for privateBrowsingAllowed action",
-      { actionType: "privateBrowsingAllowed" }
-    );
-
     await addon.uninstall();
 
     await removeTabAndWaitForNotificationClose();
@@ -1108,12 +1048,12 @@ var TESTS = [
       false,
       requestedUrl
     );
-    BrowserTestUtils.loadURI(gBrowser, TESTROOT2 + "enabled.html");
+    BrowserTestUtils.loadURIString(gBrowser, TESTROOT2 + "enabled.html");
     await loadedPromise;
 
     let progressPromise = waitForProgressNotification();
     let notificationPromise = waitForNotification("addon-install-failed");
-    BrowserTestUtils.loadURI(gBrowser, TESTROOT + "corrupt.xpi");
+    BrowserTestUtils.loadURIString(gBrowser, TESTROOT + "corrupt.xpi");
     await progressPromise;
     let panel = await notificationPromise;
 
@@ -1151,7 +1091,7 @@ var TESTS = [
     await new Promise(resolve => executeSoon(resolve));
 
     notificationPromise = waitForNotification("addon-install-blocked");
-    BrowserTestUtils.loadURI(
+    BrowserTestUtils.loadURIString(
       gBrowser,
       TESTROOT + "installtrigger.html?" + triggers
     );
@@ -1184,13 +1124,7 @@ var TESTS = [
       TESTROOT + "installtrigger.html?" + triggers
     );
     let panel = await notificationPromise;
-
     let notification = panel.childNodes[0];
-    // Close the notification
-    let anchor = document.getElementById("addons-notification-icon");
-    anchor.click();
-    // Reopen the notification
-    anchor.click();
 
     ok(PopupNotifications.isPanelOpen, "Notification should still be open");
     is(
@@ -1198,7 +1132,6 @@ var TESTS = [
       1,
       "Should be only one notification"
     );
-    notification = panel.childNodes[0];
     is(
       notification.id,
       "addon-progress-notification",
@@ -1218,7 +1151,7 @@ var TESTS = [
     EventUtils.synthesizeMouseAtCenter(notification.secondaryButton, {});
     await cancelledPromise;
 
-    await new Promise(resolve => executeSoon(resolve));
+    await waitForTick();
 
     ok(!PopupNotifications.isPanelOpen, "Notification should be closed");
 
@@ -1347,26 +1280,6 @@ var TESTS = [
     let policy = WebExtensionPolicy.getByID(addon.id);
     ok(!policy.privateBrowsingAllowed, "private browsing permission removed");
 
-    // Verify that the expected telemetry event has been collected for the extension allowed on
-    // PB windows from the "post install" notification doorhanger.
-    assertActionAMTelemetryEvent(
-      [
-        {
-          method: "action",
-          object: "doorhanger",
-          value: "off",
-          extra: {
-            action: "privateBrowsingAllowed",
-            view: "postInstall",
-            addonId: addon.id,
-            type: "extension",
-          },
-        },
-      ],
-      "Expect telemetry events for privateBrowsingAllowed action",
-      { actionType: "privateBrowsingAllowed" }
-    );
-
     await addon.uninstall();
 
     await removeTabAndWaitForNotificationClose();
@@ -1441,26 +1354,6 @@ var TESTS = [
     let policy = WebExtensionPolicy.getByID(addon.id);
     ok(!policy.privateBrowsingAllowed, "private browsing permission removed");
 
-    // Verify that the expected telemetry event has been collected for the extension allowed on
-    // PB windows from the "post install" notification doorhanger.
-    assertActionAMTelemetryEvent(
-      [
-        {
-          method: "action",
-          object: "doorhanger",
-          value: "off",
-          extra: {
-            action: "privateBrowsingAllowed",
-            view: "postInstall",
-            addonId: addon.id,
-            type: "extension",
-          },
-        },
-      ],
-      "Expect telemetry events for privateBrowsingAllowed action",
-      { actionType: "privateBrowsingAllowed" }
-    );
-
     await addon.uninstall();
 
     await BrowserTestUtils.closeWindow(win);
@@ -1468,10 +1361,7 @@ var TESTS = [
 
   async function test_blockedInstallDomain_with_unified_extensions() {
     await SpecialPowers.pushPrefEnv({
-      set: [
-        ["extensions.unifiedExtensions.enabled", true],
-        ["extensions.install_origins.enabled", true],
-      ],
+      set: [["extensions.install_origins.enabled", true]],
     });
 
     let win = await BrowserTestUtils.openNewBrowserWindow();
@@ -1509,7 +1399,6 @@ var TESTS = [
   async function test_mv3_installOrigins_disallowed_with_unified_extensions() {
     await SpecialPowers.pushPrefEnv({
       set: [
-        ["extensions.unifiedExtensions.enabled", true],
         // Disable signature check because we load an unsigned MV3 extension.
         ["xpinstall.signatures.required", false],
         ["extensions.install_origins.enabled", true],
@@ -1544,7 +1433,6 @@ var TESTS = [
   async function test_mv3_installOrigins_allowed_with_unified_extensions() {
     await SpecialPowers.pushPrefEnv({
       set: [
-        ["extensions.unifiedExtensions.enabled", true],
         // Disable signature check because we load an unsigned MV3 extension.
         ["xpinstall.signatures.required", false],
         // When this pref is disabled, install should be possible.
@@ -1616,10 +1504,6 @@ add_task(async function() {
       ["extensions.InstallTriggerImpl.enabled", true],
       // Relax the user input requirements while running this test.
       ["xpinstall.userActivation.required", false],
-      // This is needed to allow most of the tests to pass no matter the value
-      // of this pref. In the future, we'll want to enable this pref by default
-      // and adjust the assertions on the anchor IDs.
-      ["extensions.unifiedExtensions.enabled", false],
     ],
   });
 
@@ -1654,13 +1538,5 @@ add_task(async function() {
     info("Running " + TESTS[i].name);
     gTestStart = Date.now();
     await TESTS[i]();
-
-    // Check that no unexpected telemetry events for the privateBrowsingAllowed action has been
-    // collected while running the test case.
-    assertActionAMTelemetryEvent(
-      [],
-      "Expect no telemetry events for privateBrowsingAllowed actions",
-      { actionType: "privateBrowsingAllowed" }
-    );
   }
 });

@@ -250,7 +250,6 @@ if CONFIG["MOZ_WAYLAND"]:
     ]
 
 if CONFIG["MOZ_WIDGET_TOOLKIT"] == "cocoa":
-    REQUIRES_UNIFIED_BUILD = True
     EXPORTS.mozilla.layers += [
         "NativeLayerCA.h",
         "SurfacePoolCA.h",
@@ -516,9 +515,6 @@ if CONFIG["CC_TYPE"] == "gcc":
     CXXFLAGS += ["-Wno-maybe-uninitialized"]
 
 UNIFIED_SOURCES += []
-
-if CONFIG["FUZZING"] and CONFIG["FUZZING_INTERFACES"]:
-    TEST_DIRS += ["ipc/fuzztest"]
 
 # Add libFuzzer configuration directives
 include("/tools/fuzzing/libfuzzer-config.mozbuild")

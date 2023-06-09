@@ -257,8 +257,6 @@ class BaselineCodeGen {
   [[nodiscard]] bool emitDebugPrologue();
   [[nodiscard]] bool emitDebugEpilogue();
 
-  template <typename F>
-  [[nodiscard]] bool initEnvironmentChainHelper(const F& initFunctionEnv);
   [[nodiscard]] bool initEnvironmentChain();
 
   [[nodiscard]] bool emitHandleCodeCoverageAtPrologue();
@@ -503,6 +501,8 @@ class BaselineInterpreterGenerator final : private BaselineInterpreterCodeGen {
   // Offset of the jump (tail call) to the debug trap handler trampoline code.
   // When the debugger is enabled, NOPs are patched to calls to this location.
   uint32_t debugTrapHandlerOffset_ = 0;
+
+  BaselineInterpreterPerfSpewer perfSpewer_;
 
  public:
   explicit BaselineInterpreterGenerator(JSContext* cx, TempAllocator& alloc);

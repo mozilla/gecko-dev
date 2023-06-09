@@ -14,11 +14,7 @@
 
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
-
-const { ComponentUtils } = ChromeUtils.import(
-  "resource://gre/modules/ComponentUtils.jsm"
-);
-
+import { ComponentUtils } from "resource://gre/modules/ComponentUtils.sys.mjs";
 import { TestUtils } from "resource://testing-common/TestUtils.sys.mjs";
 
 const lazy = {};
@@ -933,8 +929,8 @@ export var BrowserTestUtils = {
    * @param {string} uri
    *        The URI to load.
    */
-  loadURI(browser, uri) {
-    browser.loadURI(uri, {
+  loadURIString(browser, uri) {
+    browser.fixupAndLoadURIString(uri, {
       triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
     });
   },
@@ -1413,6 +1409,87 @@ export var BrowserTestUtils = {
   },
 
   /**
+   * Waits for the datetime picker popup to be shown.
+   *
+   * @param {Window} win
+   *        A window to expect the popup in.
+   *
+   * @return {Promise}
+   *        Resolves when the popup has been fully opened. The resolution value
+   *        is the select popup.
+   */
+  async waitForDateTimePickerPanelShown(win) {
+    let getPanel = () => win.document.getElementById("DateTimePickerPanel");
+    let panel = getPanel();
+    let ensureReady = async () => {
+      let frame = panel.querySelector("#dateTimePopupFrame");
+      let isValidUrl = () => {
+        return (
+          frame.browsingContext?.currentURI?.spec ==
+            "chrome://global/content/datepicker.xhtml" ||
+          frame.browsingContext?.currentURI?.spec ==
+            "chrome://global/content/timepicker.xhtml"
+        );
+      };
+
+      // Ensure it's loaded.
+      if (!isValidUrl() || frame.contentDocument.readyState != "complete") {
+        await new Promise(resolve => {
+          frame.addEventListener(
+            "load",
+            function listener() {
+              if (isValidUrl()) {
+                frame.removeEventListener("load", listener, { capture: true });
+                resolve();
+              }
+            },
+            { capture: true }
+          );
+        });
+      }
+
+      // Ensure it's ready.
+      if (!frame.contentWindow.PICKER_READY) {
+        await new Promise(resolve => {
+          frame.contentDocument.addEventListener("PickerReady", resolve, {
+            once: true,
+          });
+        });
+      }
+      // And that l10n mutations are flushed.
+      // FIXME(bug 1828721): We should ideally localize everything before
+      // showing the panel.
+      if (frame.contentDocument.hasPendingL10nMutations) {
+        await new Promise(resolve => {
+          frame.contentDocument.addEventListener(
+            "L10nMutationsFinished",
+            resolve,
+            {
+              once: true,
+            }
+          );
+        });
+      }
+    };
+
+    if (!panel) {
+      await this.waitForMutationCondition(
+        win.document,
+        { childList: true, subtree: true },
+        getPanel
+      );
+      panel = getPanel();
+      if (panel.state == "open") {
+        await ensureReady();
+        return panel;
+      }
+    }
+    await this.waitForEvent(panel, "popupshown");
+    await ensureReady();
+    return panel;
+  },
+
+  /**
    * Adds a content event listener on the given browser
    * element. Similar to waitForContentEvent, but the listener will
    * fire until it is removed. A callable object is returned that,
@@ -1852,12 +1929,22 @@ export var BrowserTestUtils = {
    *    function, allowing us to clean up after you if necessary.
    * @param {Window} win
    *    The window where the tabs need to be overflowed.
-   * @param {boolean} overflowAtStart
-   *    Determines whether the new tabs are added at the beginning of the
-   *    URL bar or at the end of it.
+   * @param {object} params [optional]
+   *        Parameters object for BrowserTestUtils.overflowTabs.
+   *        overflowAtStart: bool
+   *          Determines whether the new tabs are added at the beginning of the
+   *          URL bar or at the end of it.
+   *        overflowTabFactor: 3 | 1.1
+   *          Factor that helps in determining the tab count for overflow.
    */
-  async overflowTabs(registerCleanupFunction, win, overflowAtStart = true) {
-    let index = overflowAtStart ? 0 : undefined;
+  async overflowTabs(registerCleanupFunction, win, params = {}) {
+    if (!params.hasOwnProperty("overflowAtStart")) {
+      params.overflowAtStart = true;
+    }
+    if (!params.hasOwnProperty("overflowTabFactor")) {
+      params.overflowTabFactor = 1.1;
+    }
+    let index = params.overflowAtStart ? 0 : undefined;
     let { gBrowser } = win;
     let arrowScrollbox = gBrowser.tabContainer.arrowScrollbox;
     const originalSmoothScroll = arrowScrollbox.smoothScroll;
@@ -1871,7 +1958,7 @@ export var BrowserTestUtils = {
       win.getComputedStyle(gBrowser.selectedTab).minWidth
     );
     let tabCountForOverflow = Math.ceil(
-      (width(arrowScrollbox) / tabMinWidth) * 1.1
+      (width(arrowScrollbox) / tabMinWidth) * params.overflowTabFactor
     );
     while (gBrowser.tabs.length < tabCountForOverflow) {
       BrowserTestUtils.addTab(gBrowser, "about:blank", {
@@ -2709,12 +2796,68 @@ export var BrowserTestUtils = {
       return val;
     });
   },
+
+  /**
+   * A helper function for this test that returns a Promise that resolves
+   * once either the legacy or new migration wizard appears.
+   *
+   * @param {DOMWindow} window
+   *   The top-level window that the about:preferences tab is likely to open
+   *   in if the new migration wizard is enabled.
+   * @returns {Promise<Element>}
+   *   Resolves to the dialog window in the legacy case, and the
+   *   about:preferences tab otherwise.
+   */
+  async waitForMigrationWizard(window) {
+    if (!this._usingNewMigrationWizard) {
+      return this.waitForCondition(() => {
+        let win = Services.wm.getMostRecentWindow("Browser:MigrationWizard");
+        if (win?.document?.readyState == "complete") {
+          return win;
+        }
+        return false;
+      }, "Wait for migration wizard to open");
+    }
+
+    let wizardReady = this.waitForEvent(window, "MigrationWizard:Ready");
+    let wizardTab = await this.waitForNewTab(window.gBrowser, url => {
+      return url.startsWith("about:preferences");
+    });
+    await wizardReady;
+
+    return wizardTab;
+  },
+
+  /**
+   * Closes the migration wizard.
+   *
+   * @param {Element} wizardWindowOrTab
+   *   The XUL dialog window for the migration wizard in the legacy case, and
+   *   the about:preferences tab otherwise. In general, it's probably best to
+   *   just pass whatever BrowserTestUtils.waitForMigrationWizard resolved to
+   *   into this in order to handle both the old and new migration wizard.
+   * @returns {Promise<undefined>}
+   */
+  closeMigrationWizard(wizardWindowOrTab) {
+    if (!this._usingNewMigrationWizard) {
+      return BrowserTestUtils.closeWindow(wizardWindowOrTab);
+    }
+
+    return BrowserTestUtils.removeTab(wizardWindowOrTab);
+  },
 };
 
 XPCOMUtils.defineLazyPreferenceGetter(
   BrowserTestUtils,
   "_httpsFirstEnabled",
   "dom.security.https_first",
+  false
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  BrowserTestUtils,
+  "_usingNewMigrationWizard",
+  "browser.migrate.content-modal.enabled",
   false
 );
 

@@ -111,32 +111,11 @@ void SVGMarkerElement::SetOrientToAuto() {
 
 void SVGMarkerElement::SetOrientToAngle(DOMSVGAngle& angle, ErrorResult& rv) {
   float f = angle.Value();
-  if (!IsFinite(f)) {
+  if (!std::isfinite(f)) {
     rv.ThrowTypeError("Unknown or invalid type");
     return;
   }
   mOrient.SetBaseValue(f, angle.UnitType(), this, true);
-}
-
-//----------------------------------------------------------------------
-// nsIContent methods
-
-NS_IMETHODIMP_(bool)
-SVGMarkerElement::IsAttributeMapped(const nsAtom* name) const {
-  static const MappedAttributeEntry* const map[] = {sFEFloodMap,
-                                                    sFiltersMap,
-                                                    sFontSpecificationMap,
-                                                    sGradientStopMap,
-                                                    sLightingEffectsMap,
-                                                    sMarkersMap,
-                                                    sTextContentElementsMap,
-                                                    sViewportsMap,
-                                                    sColorMap,
-                                                    sFillStrokeMap,
-                                                    sGraphicsMap};
-
-  return FindAttributeDependence(name, map) ||
-         SVGMarkerElementBase::IsAttributeMapped(name);
 }
 
 //----------------------------------------------------------------------

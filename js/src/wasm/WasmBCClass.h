@@ -150,6 +150,14 @@ struct FunctionCall {
   size_t stackArgAreaSize;
 };
 
+enum class PreBarrierKind {
+  // No pre-write barrier is required because the previous value is undefined.
+  None,
+  // Perform a pre-write barrier to mark the previous value if an incremental
+  // GC is underway.
+  Normal,
+};
+
 enum class PostBarrierKind {
   // Remove an existing store buffer entry if the new value does not require
   // one. This is required to preserve invariants with HeapPtr when used for
@@ -211,6 +219,7 @@ struct BaseCompiler final {
   // We call this address from the breakable point when the breakpoint handler
   // is not null.
   NonAssertingLabel debugTrapStub_;
+  uint32_t previousBreakablePoint_;
 
   // BaselineCompileFunctions() "lends" us the StkVector to use in this
   // BaseCompiler object, and that is installed in |stk_| in our constructor.
@@ -941,7 +950,7 @@ struct BaseCompiler final {
   bool callIndirect(uint32_t funcTypeIndex, uint32_t tableIndex,
                     const Stk& indexVal, const FunctionCall& call,
                     CodeOffset* fastCallOffset, CodeOffset* slowCallOffset);
-  CodeOffset callImport(unsigned globalDataOffset, const FunctionCall& call);
+  CodeOffset callImport(unsigned instanceDataOffset, const FunctionCall& call);
 #ifdef ENABLE_WASM_FUNCTION_REFERENCES
   void callRef(const Stk& calleeRef, const FunctionCall& call,
                CodeOffset* fastCallOffset, CodeOffset* slowCallOffset);
@@ -1094,11 +1103,10 @@ struct BaseCompiler final {
   //
   // Table access.
 
-  Address addressOfTableField(const TableDesc& table, uint32_t fieldOffset,
+  Address addressOfTableField(uint32_t tableIndex, uint32_t fieldOffset,
                               RegPtr instance);
-  void loadTableLength(const TableDesc& table, RegPtr instance, RegI32 length);
-  void loadTableElements(const TableDesc& table, RegPtr instance,
-                         RegPtr elements);
+  void loadTableLength(uint32_t tableIndex, RegPtr instance, RegI32 length);
+  void loadTableElements(uint32_t tableIndex, RegPtr instance, RegPtr elements);
 
   //////////////////////////////////////////////////////////////////////
   //
@@ -1305,7 +1313,8 @@ struct BaseCompiler final {
   // Preserves `object` and `value`. Consumes `valueAddr`.
   [[nodiscard]] bool emitBarrieredStore(const Maybe<RegRef>& object,
                                         RegPtr valueAddr, RegRef value,
-                                        PostBarrierKind kind);
+                                        PreBarrierKind preBarrierKind,
+                                        PostBarrierKind postBarrierKind);
 
   // Emits a store of nullptr to a JS object pointer at the address valueAddr.
   // Preserves `valueAddr`.
@@ -1331,8 +1340,7 @@ struct BaseCompiler final {
   // Jump to the given branch, passing results, if the WasmGcObject, `object`,
   // is a subtype of `typeIndex`.
   [[nodiscard]] bool jumpConditionalWithResults(BranchState* b, RegRef object,
-                                                uint32_t typeIndex,
-                                                bool onSuccess);
+                                                RefType type, bool onSuccess);
 #endif
   template <typename Cond>
   [[nodiscard]] bool sniffConditionalControlCmp(Cond compareOp,
@@ -1612,13 +1620,13 @@ struct BaseCompiler final {
   void memFillInlineM32();
   [[nodiscard]] bool emitTableInit();
   [[nodiscard]] bool emitTableFill();
+  [[nodiscard]] bool emitMemDiscard();
   [[nodiscard]] bool emitTableGet();
   [[nodiscard]] bool emitTableGrow();
   [[nodiscard]] bool emitTableSet();
   [[nodiscard]] bool emitTableSize();
 
-  void emitTableBoundsCheck(const TableDesc& table, RegI32 index,
-                            RegPtr instance);
+  void emitTableBoundsCheck(uint32_t tableIndex, RegI32 index, RegPtr instance);
   [[nodiscard]] bool emitTableGetAnyRef(uint32_t tableIndex);
   [[nodiscard]] bool emitTableSetAnyRef(uint32_t tableIndex);
 
@@ -1636,9 +1644,19 @@ struct BaseCompiler final {
   [[nodiscard]] bool emitArraySet();
   [[nodiscard]] bool emitArrayLen(bool decodeIgnoredTypeIndex);
   [[nodiscard]] bool emitArrayCopy();
-  [[nodiscard]] bool emitRefTest();
-  [[nodiscard]] bool emitRefCast();
-  [[nodiscard]] bool emitBrOnCastCommon(bool onSuccess);
+  [[nodiscard]] bool emitRefTestV5();
+  [[nodiscard]] bool emitRefCastV5();
+  [[nodiscard]] bool emitBrOnCastV5(bool onSuccess);
+  [[nodiscard]] bool emitBrOnCastHeapV5(bool onSuccess, bool nullable);
+  [[nodiscard]] bool emitRefAsStructV5();
+  [[nodiscard]] bool emitBrOnNonStructV5();
+  [[nodiscard]] bool emitRefTest(bool nullable);
+  [[nodiscard]] bool emitRefCast(bool nullable);
+  [[nodiscard]] bool emitBrOnCastCommon(bool onSuccess,
+                                        uint32_t labelRelativeDepth,
+                                        const ResultType& labelType,
+                                        const RefType& destType);
+  [[nodiscard]] bool emitBrOnCast();
   [[nodiscard]] bool emitExternInternalize();
   [[nodiscard]] bool emitExternExternalize();
 
@@ -1653,11 +1671,11 @@ struct BaseCompiler final {
     static void emitTrapSite(BaseCompiler* bc);
   };
 
-  RegPtr loadTypeDef(uint32_t typeIndex);
-  // Branch to the label if the WasmGcObject `object` is/is not a subtype of
-  // `typeIndex`.
-  void branchGcObjectType(RegRef object, uint32_t typeIndex, Label* label,
-                          bool onSuccess);
+  // Load a pointer to the TypeDefInstanceData for a given type index
+  RegPtr loadTypeDefInstanceData(uint32_t typeIndex);
+  // Load a pointer to the SuperTypeVector for a given type index
+  RegPtr loadSuperTypeVector(uint32_t typeIndex);
+
   RegPtr emitGcArrayGetData(RegRef rp);
   template <typename NullCheckPolicy>
   RegI32 emitGcArrayGetNumElements(RegRef rp);
@@ -1667,6 +1685,16 @@ struct BaseCompiler final {
   template <typename T, typename NullCheckPolicy>
   void emitGcSetScalar(const T& dst, FieldType type, AnyReg value);
 
+  // Common code for both old and new ref.test instructions.
+  void emitRefTestCommon(const RefType& type);
+  // Common code for both old and new ref.cast instructions.
+  void emitRefCastCommon(const RefType& type);
+
+  // Allocate registers and branch if the given object is a subtype of the given
+  // heap type.
+  void branchGcRefType(RegRef object, const RefType& type, Label* label,
+                       bool onSuccess);
+
   // Write `value` to wasm struct `object`, at `areaBase + areaOffset`.  The
   // caller must decide on the in- vs out-of-lineness before the call and set
   // the latter two accordingly; this routine does not take that into account.
@@ -1675,17 +1703,18 @@ struct BaseCompiler final {
   template <typename NullCheckPolicy>
   [[nodiscard]] bool emitGcStructSet(RegRef object, RegPtr areaBase,
                                      uint32_t areaOffset, FieldType fieldType,
-                                     AnyReg value);
+                                     AnyReg value,
+                                     PreBarrierKind preBarrierKind);
 
   [[nodiscard]] bool emitGcArraySet(RegRef object, RegPtr data, RegI32 index,
-                                    const ArrayType& array, AnyReg value);
+                                    const ArrayType& array, AnyReg value,
+                                    PreBarrierKind preBarrierKind);
 #endif  // ENABLE_WASM_GC
 
 #ifdef ENABLE_WASM_SIMD
   void emitVectorAndNot();
 #  ifdef ENABLE_WASM_RELAXED_SIMD
   void emitDotI8x16I7x16AddS();
-  void emitDotBF16x8AddF32x4();
 #  endif
 
   void loadSplat(MemoryAccessDesc* access);

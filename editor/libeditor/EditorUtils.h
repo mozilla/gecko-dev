@@ -66,7 +66,7 @@ class MOZ_STACK_CLASS CaretPoint {
    * Suggest caret position to aEditorBase.
    */
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult SuggestCaretPointTo(
-      const EditorBase& aEditorBase, const SuggestCaretOptions& aOptions) const;
+      EditorBase& aEditorBase, const SuggestCaretOptions& aOptions) const;
 
   /**
    * IgnoreCaretPointSuggestion() should be called if the method does not want
@@ -92,6 +92,7 @@ class MOZ_STACK_CLASS CaretPoint {
     MOZ_ASSERT(!aOptions.contains(SuggestCaret::AndIgnoreTrivialError));
     MOZ_ASSERT(
         !aOptions.contains(SuggestCaret::OnlyIfTransactionsAllowedToDoIt));
+    mHandledCaretPoint = true;
     if (aOptions.contains(SuggestCaret::OnlyIfHasSuggestion) &&
         !mCaretPoint.IsSet()) {
       return false;
@@ -251,6 +252,45 @@ class MOZ_STACK_CLASS CreateNodeResultBase final : public CaretPoint {
       : CaretPoint(std::move(aCandidateCaretPoint)) {}
 
   RefPtr<NodeType> mNode;
+};
+
+/**
+ * This is a result of inserting text.  If the text inserted as a part of
+ * composition, this does not return CaretPoint.  Otherwise, must return
+ * CaretPoint which is typically same as end of inserted text.
+ */
+class MOZ_STACK_CLASS InsertTextResult final : public CaretPoint {
+ public:
+  InsertTextResult() : CaretPoint(EditorDOMPoint()) {}
+  template <typename EditorDOMPointType>
+  explicit InsertTextResult(const EditorDOMPointType& aEndOfInsertedText)
+      : CaretPoint(EditorDOMPoint()),
+        mEndOfInsertedText(aEndOfInsertedText.template To<EditorDOMPoint>()) {}
+  explicit InsertTextResult(EditorDOMPointInText&& aEndOfInsertedText)
+      : CaretPoint(EditorDOMPoint()),
+        mEndOfInsertedText(std::move(aEndOfInsertedText)) {}
+  template <typename PT, typename CT>
+  InsertTextResult(EditorDOMPointInText&& aEndOfInsertedText,
+                   const EditorDOMPointBase<PT, CT>& aCaretPoint)
+      : CaretPoint(aCaretPoint.template To<EditorDOMPoint>()),
+        mEndOfInsertedText(std::move(aEndOfInsertedText)) {}
+  InsertTextResult(EditorDOMPointInText&& aEndOfInsertedText,
+                   CaretPoint&& aCaretPoint)
+      : CaretPoint(std::move(aCaretPoint)),
+        mEndOfInsertedText(std::move(aEndOfInsertedText)) {
+    UnmarkAsHandledCaretPoint();
+  }
+  InsertTextResult(InsertTextResult&& aOther, EditorDOMPoint&& aCaretPoint)
+      : CaretPoint(std::move(aCaretPoint)),
+        mEndOfInsertedText(std::move(aOther.mEndOfInsertedText)) {}
+
+  [[nodiscard]] bool Handled() const { return mEndOfInsertedText.IsSet(); }
+  const EditorDOMPointInText& EndOfInsertedTextRef() const {
+    return mEndOfInsertedText;
+  }
+
+ private:
+  EditorDOMPointInText mEndOfInsertedText;
 };
 
 /***************************************************************************
@@ -431,7 +471,7 @@ class EditorUtils final {
                                  const nsINode& aParentNode, uint32_t aOffset);
 
   /**
-   * Create an nsITransferable instance which has kUnicodeMime and
+   * Create an nsITransferable instance which has kTextMime and
    * kMozTextInternal flavors.
    */
   static Result<nsCOMPtr<nsITransferable>, nsresult>

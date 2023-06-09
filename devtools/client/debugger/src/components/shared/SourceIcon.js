@@ -10,7 +10,12 @@ import { connect } from "../../utils/connect";
 import AccessibleImage from "./AccessibleImage";
 
 import { getSourceClassnames } from "../../utils/source";
-import { getSymbols, isSourceBlackBoxed, hasPrettyTab } from "../../selectors";
+import {
+  getSymbols,
+  getSelectedLocation,
+  isSourceBlackBoxed,
+  hasPrettyTab,
+} from "../../selectors";
 
 import "./SourceIcon.css";
 
@@ -20,6 +25,7 @@ class SourceIcon extends PureComponent {
       modifier: PropTypes.func.isRequired,
       source: PropTypes.object.isRequired,
       iconClass: PropTypes.string,
+      forTab: PropTypes.bool,
     };
   }
 
@@ -40,10 +46,11 @@ class SourceIcon extends PureComponent {
 }
 
 export default connect((state, props) => {
-  const { source } = props;
-  const symbols = getSymbols(state, source);
+  const { forTab, source } = props;
+  const symbols = getSymbols(state, getSelectedLocation(state));
   const isBlackBoxed = isSourceBlackBoxed(state, source);
-  const hasMatchingPrettyTab = hasPrettyTab(state, source.url);
+  // For the tab icon, we don't want to show the pretty icon for the non-pretty tab
+  const hasMatchingPrettyTab = !forTab && hasPrettyTab(state, source.url);
 
   // This is the key function that will compute the icon type,
   // In addition to the "modifier" implemented by each callsite.

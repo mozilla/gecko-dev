@@ -8,6 +8,10 @@
 #include "RemoteDecoderManagerChild.h"
 #include "mozilla/WindowsVersion.h"
 
+#ifdef MOZ_WMF_CDM
+#  include "WMFCDMProxy.h"
+#endif
+
 namespace mozilla {
 
 #define CLOG(msg, ...)                                                      \
@@ -32,7 +36,16 @@ MFMediaEngineChild::MFMediaEngineChild(MFMediaEngineWrapper* aOwner,
     : mOwner(aOwner),
       mManagerThread(RemoteDecoderManagerChild::GetManagerThread()),
       mMediaEngineId(0 /* invalid id, will be initialized later */),
-      mFrameStats(WrapNotNull(aFrameStats)) {}
+      mFrameStats(WrapNotNull(aFrameStats)) {
+  if (mFrameStats->GetPresentedFrames() > 0) {
+    mAccumulatedPresentedFramesFromPrevEngine =
+        Some(mFrameStats->GetPresentedFrames());
+  }
+  if (mFrameStats->GetDroppedSinkFrames() > 0) {
+    mAccumulatedDroppedFramesFromPrevEngine =
+        Some(mFrameStats->GetDroppedSinkFrames());
+  }
+}
 
 RefPtr<GenericNonExclusivePromise> MFMediaEngineChild::Init(
     bool aShouldPreload) {
@@ -174,19 +187,36 @@ mozilla::ipc::IPCResult MFMediaEngineChild::RecvUpdateStatisticData(
     const StatisticData& aData) {
   AssertOnManagerThread();
   const uint64_t currentRenderedFrames = mFrameStats->GetPresentedFrames();
+  const uint64_t newRenderedFrames = GetUpdatedRenderedFrames(aData);
   // Media engine won't tell us that which stage those dropped frames happened,
   // so we treat all of them as the frames dropped in the a/v sync stage (sink).
   const uint64_t currentDroppedSinkFrames = mFrameStats->GetDroppedSinkFrames();
-  MOZ_ASSERT(aData.renderedFrames() >= currentRenderedFrames);
-  MOZ_ASSERT(aData.droppedFrames() >= currentDroppedSinkFrames);
-  mFrameStats->Accumulate({0, 0, aData.renderedFrames() - currentRenderedFrames,
-                           0, aData.droppedFrames() - currentDroppedSinkFrames,
-                           0});
+  const uint64_t newDroppedSinkFrames = GetUpdatedDroppedFrames(aData);
+  mFrameStats->Accumulate({0, 0, newRenderedFrames - currentRenderedFrames, 0,
+                           newDroppedSinkFrames - currentDroppedSinkFrames, 0});
   CLOG("Update statictis data (rendered %" PRIu64 " -> %" PRIu64
        ", dropped %" PRIu64 " -> %" PRIu64 ")",
        currentRenderedFrames, mFrameStats->GetPresentedFrames(),
        currentDroppedSinkFrames, mFrameStats->GetDroppedSinkFrames());
+  MOZ_ASSERT(mFrameStats->GetPresentedFrames() >= currentRenderedFrames);
+  MOZ_ASSERT(mFrameStats->GetDroppedSinkFrames() >= currentDroppedSinkFrames);
   return IPC_OK();
+}
+
+uint64_t MFMediaEngineChild::GetUpdatedRenderedFrames(
+    const StatisticData& aData) {
+  return mAccumulatedPresentedFramesFromPrevEngine
+             ? (aData.renderedFrames() +
+                *mAccumulatedPresentedFramesFromPrevEngine)
+             : aData.renderedFrames();
+}
+
+uint64_t MFMediaEngineChild::GetUpdatedDroppedFrames(
+    const StatisticData& aData) {
+  return mAccumulatedDroppedFramesFromPrevEngine
+             ? (aData.droppedFrames() +
+                *mAccumulatedDroppedFramesFromPrevEngine)
+             : aData.droppedFrames();
 }
 
 void MFMediaEngineChild::OwnerDestroyed() {
@@ -202,14 +232,22 @@ void MFMediaEngineChild::OwnerDestroyed() {
 
 void MFMediaEngineChild::IPDLActorDestroyed() {
   AssertOnManagerThread();
+  if (!mShutdown) {
+    CLOG("Destroyed actor without shutdown, remote process has crashed!");
+    mOwner->NotifyError(NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_MF_CDM_ERR);
+  }
   mIPDLSelfRef = nullptr;
 }
 
 void MFMediaEngineChild::Shutdown() {
   AssertOnManagerThread();
+  if (mShutdown) {
+    return;
+  }
   SendShutdown();
   mInitPromiseHolder.RejectIfExists(NS_ERROR_FAILURE, __func__);
   mInitEngineRequest.DisconnectIfExists();
+  mShutdown = true;
 }
 
 MFMediaEngineWrapper::MFMediaEngineWrapper(ExternalEngineStateMachine* aOwner,
@@ -299,8 +337,8 @@ void MFMediaEngineWrapper::NotifyEndOfStream(TrackInfo::TrackType aType) {
 }
 
 void MFMediaEngineWrapper::SetMediaInfo(const MediaInfo& aInfo) {
-  WLOG("SetMediaInfo, hasAudio=%d, hasVideo=%d", aInfo.HasAudio(),
-       aInfo.HasVideo());
+  WLOG("SetMediaInfo, hasAudio=%d, hasVideo=%d, encrypted=%d", aInfo.HasAudio(),
+       aInfo.HasVideo(), aInfo.IsEncrypted());
   MOZ_ASSERT(IsInited());
   Unused << ManagerThread()->Dispatch(NS_NewRunnableFunction(
       "MFMediaEngineWrapper::SetMediaInfo", [engine = mEngine, aInfo] {
@@ -308,6 +346,26 @@ void MFMediaEngineWrapper::SetMediaInfo(const MediaInfo& aInfo) {
                            aInfo.HasVideo() ? Some(aInfo.mVideo) : Nothing());
         engine->SendNotifyMediaInfo(info);
       }));
+}
+
+bool MFMediaEngineWrapper::SetCDMProxy(CDMProxy* aProxy) {
+#ifdef MOZ_WMF_CDM
+  WMFCDMProxy* proxy = aProxy->AsWMFCDMProxy();
+  if (!proxy) {
+    WLOG("Only WFMCDM Proxy is supported for the media engine!");
+    return false;
+  }
+
+  const uint64_t proxyId = proxy->GetCDMProxyId();
+  WLOG("SetCDMProxy, CDM-Id=%" PRIu64, proxyId);
+  MOZ_ASSERT(IsInited());
+  Unused << ManagerThread()->Dispatch(NS_NewRunnableFunction(
+      "MFMediaEngineWrapper::SetCDMProxy",
+      [engine = mEngine, proxyId] { engine->SendSetCDMProxyId(proxyId); }));
+  return true;
+#else
+  return false;
+#endif
 }
 
 TimeUnit MFMediaEngineWrapper::GetCurrentPosition() {

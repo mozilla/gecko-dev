@@ -36,6 +36,22 @@ let patterns: string[];
 
 ## Available trigger actions
 
+* [openArticleURL](#openarticleurl)
+* [openBookmarkedURL](#openbookmarkedurl)
+* [frequentVisits](#frequentvisits)
+* [openURL](#openurl)
+* [newSavedLogin](#newsavedlogin)
+* [formAutofill](#formautofill)
+* [contentBlocking](#contentblocking)
+* [defaultBrowserCheck](#defaultbrowsercheck)
+* [captivePortalLogin](#captiveportallogin)
+* [preferenceObserver](#preferenceobserver)
+* [featureCalloutCheck](#featurecalloutcheck)
+* [nthTabClosed](#nthtabclosed)
+* [activityAfterIdle](#activityafteridle)
+* [cookieBannerDetected](#cookiebannerdetected)
+* [messagesLoaded](#messagesloaded)
+
 ### `openArticleURL`
 
 Happens when the user loads a Reader Mode compatible webpage.
@@ -86,6 +102,24 @@ Does not filter by host or patterns.
 
 ```typescript
 let type = "update" | "save";
+```
+
+### `formAutofill`
+
+Happens when the user saves, updates, or uses a credit card or address for form
+autofill. To reduce the trigger's disruptiveness, it does not fire when the user
+is manually editing these items in the manager in about:preferences. For the
+same reason, the trigger only fires after a 10-second delay. The trigger context
+includes an `event` and `type` that can be used in targeting. Possible events
+include `add`, `update`, and `use`. Possible types are `card` and `address`.
+This trigger is especially intended to be used in tandem with the
+`creditCardsSaved` and `addressesSaved` [targeting attributes](../../../../../browser/components/newtab/content-src/asrouter/docs/targeting-attributes.md).
+
+```js
+{
+  trigger: { id: "formAutofill" },
+  targeting: "type == 'card' && event in ['add', 'update']"
+}
 ```
 
 ### `contentBlocking`
@@ -158,5 +192,26 @@ No params or patterns. The `idleForMilliseconds` context variable is available i
 {
   trigger: { id: "activityAfterIdle" },
   targeting: "idleForMilliseconds >= 1200000"
+}
+```
+
+### `cookieBannerDetected`
+
+Happens when the `cookiebannerdetected` window event is dispatched. This event is dispatched when the following conditions are true:
+
+1. The user is presented with a cookie consent banner on the webpage they're viewing,
+2. The domain has a valid ruleset for automatically engaging with the consent banner, and
+3. The user has not explicitly opted in or out of the Cookie Banner Handling feature.
+
+### `messagesLoaded`
+
+Happens as soon as a message is loaded. This trigger does not require any user interaction, and may happen potentially as early as app launch, or at some time after experiment enrollment. Generally intended for use in reach experiments, because most messages cannot be routed unless the surfaces they display in are instantiated in a tabbed browser window (a reach message will not be displayed but its trigger will still be recorded). However, it is still possible to safely use this trigger for a normal message, with some caveats. This is potentially relevant on macOS, where the app can be running with no browser windows open, or even on Windows, where closing all browser windows but leaving open a non-browser window (e.g. the Library) causes the app to remain running.
+
+A `toast_notification` or `update_action` message can function normally under these circumstances. A `toolbar_badge` message will load with or without a window, but will not actually display until a window exists. But messages with templates like `infobar` will have no effect unless a window exists to display them in. Any message using this trigger, regardless of template, can exclude window-less or browser-less contexts by adding the following targeting. This isn't strictly necessary because the messaging surfaces will either work normally or fail gracefully, but it may be desirable to test reach only in certain contexts, so the context objects `browser` and `browserWindow` are provided, corresponding to the selected browser (`gBrowser.selectedBrowser`) and the most recently active chrome window, respectively.
+
+```js
+{
+  trigger: { id: "messagesLoaded" },
+  targeting: "browser && browserWindow"
 }
 ```

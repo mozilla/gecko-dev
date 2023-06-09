@@ -107,10 +107,13 @@ Naga's rules for when `Expression`s are evaluated are as follows:
     [`Atomic`] statement, representing the result of the atomic operation, is
     evaluated when the `Atomic` statement is executed.
 
+-   A [`RayQueryProceedResult`] expression, which is a boolean
+    indicating if the ray query is finished, is evaluated when the
+    [`RayQuery`] statement whose [`Proceed::result`] points to it is
+    executed.
+
 -   All other expressions are evaluated when the (unique) [`Statement::Emit`]
-    statement that covers them is executed. The [`Expression::needs_pre_emit`]
-    method returns `true` if the given expression is one of those variants that
-    does *not* need to be covered by an `Emit` statement.
+    statement that covers them is executed.
 
 Now, strictly speaking, not all `Expression` variants actually care when they're
 evaluated. For example, you can evaluate a [`BinaryOperator::Add`] expression
@@ -168,6 +171,7 @@ need to be stored in a local variable to be carried upwards in the statement
 tree.
 
 [`AtomicResult`]: Expression::AtomicResult
+[`RayQueryProceedResult`]: Expression::RayQueryProceedResult
 [`CallResult`]: Expression::CallResult
 [`Constant`]: Expression::Constant
 [`Derivative`]: Expression::Derivative
@@ -182,6 +186,9 @@ tree.
 [`Call`]: Statement::Call
 [`Emit`]: Statement::Emit
 [`Store`]: Statement::Store
+[`RayQuery`]: Statement::RayQuery
+
+[`Proceed::result`]: RayQueryFunction::Proceed::result
 
 [`Validator::validate`]: valid::Validator::validate
 [`ModuleInfo`]: valid::ModuleInfo
@@ -191,8 +198,9 @@ tree.
     clippy::new_without_default,
     clippy::unneeded_field_pattern,
     clippy::match_like_matches_macro,
-    clippy::if_same_then_else,
-    clippy::derive_partial_eq_without_eq
+    clippy::collapsible_if,
+    clippy::derive_partial_eq_without_eq,
+    clippy::needless_borrowed_reference
 )]
 #![warn(
     trivial_casts,
@@ -200,9 +208,11 @@ tree.
     unused_extern_crates,
     unused_qualifications,
     clippy::pattern_type_mismatch,
-    clippy::missing_const_for_fn
+    clippy::missing_const_for_fn,
+    clippy::rest_pat_in_fully_bound_structs,
+    clippy::match_wildcard_for_single_variants
 )]
-#![deny(clippy::panic)]
+#![cfg_attr(not(test), deny(clippy::panic))]
 
 mod arena;
 pub mod back;
@@ -232,7 +242,11 @@ pub type FastHashMap<K, T> = rustc_hash::FxHashMap<K, T>;
 pub type FastHashSet<K> = rustc_hash::FxHashSet<K>;
 
 /// Map of expressions that have associated variable names
-pub(crate) type NamedExpressions = FastHashMap<Handle<Expression>, String>;
+pub(crate) type NamedExpressions = indexmap::IndexMap<
+    Handle<Expression>,
+    String,
+    std::hash::BuildHasherDefault<rustc_hash::FxHasher>,
+>;
 
 /// Early fragment tests.
 ///
@@ -246,6 +260,7 @@ pub(crate) type NamedExpressions = FastHashMap<Handle<Expression>, String>;
 ///   - GLSL: `layout(early_fragment_tests) in;`
 ///   - HLSL: `Attribute earlydepthstencil`
 ///   - SPIR-V: `ExecutionMode EarlyFragmentTests`
+///   - WGSL: `@early_depth_test`
 ///
 /// For more, see:
 ///   - <https://www.khronos.org/opengl/wiki/Early_Fragment_Test#Explicit_specification>
@@ -265,6 +280,7 @@ pub struct EarlyDepthTest {
 ///     - `depth_any` option behaves as if the layout qualifier was not present.
 ///   - HLSL: `SV_DepthGreaterEqual`/`SV_DepthLessEqual`/`SV_Depth`
 ///   - SPIR-V: `ExecutionMode Depth<Greater/Less/Unchanged>`
+///   - WGSL: `@early_depth_test(greater_equal/less_equal/unchanged)`
 ///
 /// For more, see:
 ///   - <https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_conservative_depth.txt>
@@ -337,6 +353,7 @@ pub enum BuiltIn {
     VertexIndex,
     // fragment
     FragDepth,
+    PointCoord,
     FrontFacing,
     PrimitiveIndex,
     SampleIndex,
@@ -529,6 +546,14 @@ pub enum StorageFormat {
     Rgba32Uint,
     Rgba32Sint,
     Rgba32Float,
+
+    // Normalized 16-bit per channel formats
+    R16Unorm,
+    R16Snorm,
+    Rg16Unorm,
+    Rg16Snorm,
+    Rgba16Unorm,
+    Rgba16Snorm,
 }
 
 /// Sub-class of the image type.
@@ -704,6 +729,12 @@ pub enum TypeInner {
     },
     /// Can be used to sample values from images.
     Sampler { comparison: bool },
+
+    /// Opaque object representing an acceleration structure of geometry.
+    AccelerationStructure,
+
+    /// Locally used handle for ray queries.
+    RayQuery,
 
     /// Array of bindings.
     ///
@@ -961,6 +992,17 @@ pub enum AtomicFunction {
     Exchange { compare: Option<Handle<Expression>> },
 }
 
+/// Hint at which precision to compute a derivative.
+#[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[cfg_attr(feature = "deserialize", derive(Deserialize))]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+pub enum DerivativeControl {
+    Coarse,
+    Fine,
+    None,
+}
+
 /// Axis on which to compute a derivative.
 #[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
@@ -1051,6 +1093,8 @@ pub enum MathFunction {
     Transpose,
     Determinant,
     // bits
+    CountTrailingZeros,
+    CountLeadingZeros,
     CountOneBits,
     ReverseBits,
     ExtractBits,
@@ -1259,7 +1303,7 @@ pub enum Expression {
     /// Load a value indirectly.
     ///
     /// For [`TypeInner::Atomic`] the result is a corresponding scalar.
-    /// For other types behind the pointer<T>, the result is T.
+    /// For other types behind the `pointer<T>`, the result is `T`.
     Load { pointer: Handle<Expression> },
     /// Sample a point from a sampled or a depth image.
     ImageSample {
@@ -1370,6 +1414,7 @@ pub enum Expression {
     /// Compute the derivative on an axis.
     Derivative {
         axis: DerivativeAxis,
+        ctrl: DerivativeControl,
         //modifier,
         expr: Handle<Expression>,
     },
@@ -1399,29 +1444,40 @@ pub enum Expression {
     /// Result of calling another function.
     CallResult(Handle<Function>),
     /// Result of an atomic operation.
-    AtomicResult {
-        kind: ScalarKind,
-        width: Bytes,
-        comparison: bool,
-    },
+    AtomicResult { ty: Handle<Type>, comparison: bool },
     /// Get the length of an array.
     /// The expression must resolve to a pointer to an array with a dynamic size.
     ///
     /// This doesn't match the semantics of spirv's `OpArrayLength`, which must be passed
     /// a pointer to a structure containing a runtime array in its' last field.
     ArrayLength(Handle<Expression>),
+
+    /// Result of a [`Proceed`] [`RayQuery`] statement.
+    ///
+    /// [`Proceed`]: RayQueryFunction::Proceed
+    /// [`RayQuery`]: Statement::RayQuery
+    RayQueryProceedResult,
+
+    /// Return an intersection found by `query`.
+    ///
+    /// If `committed` is true, return the committed result available when
+    RayQueryGetIntersection {
+        query: Handle<Expression>,
+        committed: bool,
+    },
 }
 
 pub use block::Block;
 
 /// The value of the switch case.
 // Clone is used only for error reporting and is not intended for end users
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub enum SwitchValue {
-    Integer(i32),
+    I32(i32),
+    U32(u32),
     Default,
 }
 
@@ -1439,6 +1495,48 @@ pub struct SwitchCase {
     /// If true, the control flow continues to the next case in the list,
     /// or default.
     pub fall_through: bool,
+}
+
+/// An operation that a [`RayQuery` statement] applies to its [`query`] operand.
+///
+/// [`RayQuery` statement]: Statement::RayQuery
+/// [`query`]: Statement::RayQuery::query
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[cfg_attr(feature = "deserialize", derive(Deserialize))]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+pub enum RayQueryFunction {
+    /// Initialize the `RayQuery` object.
+    Initialize {
+        /// The acceleration structure within which this query should search for hits.
+        ///
+        /// The expression must be an [`AccelerationStructure`].
+        ///
+        /// [`AccelerationStructure`]: TypeInner::AccelerationStructure
+        acceleration_structure: Handle<Expression>,
+
+        #[allow(rustdoc::private_intra_doc_links)]
+        /// A struct of detailed parameters for the ray query.
+        ///
+        /// This expression should have the struct type given in
+        /// [`SpecialTypes::ray_desc`]. This is available in the WGSL
+        /// front end as the `RayDesc` type.
+        descriptor: Handle<Expression>,
+    },
+
+    /// Start or continue the query given by the statement's [`query`] operand.
+    ///
+    /// After executing this statement, the `result` expression is a
+    /// [`Bool`] scalar indicating whether there are more intersection
+    /// candidates to consider.
+    ///
+    /// [`query`]: Statement::RayQuery::query
+    /// [`Bool`]: ScalarKind::Bool
+    Proceed {
+        result: Handle<Expression>,
+    },
+
+    Terminate,
 }
 
 //TODO: consider removing `Clone`. It's not valid to clone `Statement::Emit` anyway.
@@ -1464,6 +1562,22 @@ pub enum Statement {
         reject: Block,
     },
     /// Conditionally executes one of multiple blocks, based on the value of the selector.
+    ///
+    /// Each case must have a distinct [`value`], exactly one of which must be
+    /// [`Default`]. The `Default` may appear at any position, and covers all
+    /// values not explicitly appearing in other cases. A `Default` appearing in
+    /// the midst of the list of cases does not shadow the cases that follow.
+    ///
+    /// Some backend languages don't support fallthrough (HLSL due to FXC,
+    /// WGSL), and may translate fallthrough cases in the IR by duplicating
+    /// code. However, all backend languages do support cases selected by
+    /// multiple values, like `case 1: case 2: case 3: { ... }`. This is
+    /// represented in the IR as a series of fallthrough cases with empty
+    /// bodies, except for the last.
+    ///
+    /// [`value`]: SwitchCase::value
+    /// [`body`]: SwitchCase::body
+    /// [`Default`]: SwitchValue::Default
     Switch {
         selector: Handle<Expression>, //int
         cases: Vec<SwitchCase>,
@@ -1547,7 +1661,7 @@ pub enum Statement {
     ///
     /// For [`TypeInner::Atomic`] type behind the pointer, the value
     /// has to be a corresponding scalar.
-    /// For other types behind the pointer<T>, the value is T.
+    /// For other types behind the `pointer<T>`, the value is `T`.
     ///
     /// This statement is a barrier for any operations on the
     /// `Expression::LocalVariable` or `Expression::GlobalVariable`
@@ -1597,6 +1711,15 @@ pub enum Statement {
         function: Handle<Function>,
         arguments: Vec<Handle<Expression>>,
         result: Option<Handle<Expression>>,
+    },
+    RayQuery {
+        /// The [`RayQuery`] object this statement operates on.
+        ///
+        /// [`RayQuery`]: TypeInner::RayQuery
+        query: Handle<Expression>,
+
+        /// The specific operation we're performing on `query`.
+        fun: RayQueryFunction,
     },
 }
 
@@ -1714,6 +1837,26 @@ pub struct EntryPoint {
     pub function: Function,
 }
 
+/// Set of special types that can be optionally generated by the frontends.
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "clone", derive(Clone))]
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[cfg_attr(feature = "deserialize", derive(Deserialize))]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+pub struct SpecialTypes {
+    /// Type for `RayDesc`.
+    ///
+    /// Call [`Module::generate_ray_desc_type`] to populate this if
+    /// needed and return the handle.
+    pub ray_desc: Option<Handle<Type>>,
+
+    /// Type for `RayIntersection`.
+    ///
+    /// Call [`Module::generate_ray_intersection_type`] to populate
+    /// this if needed and return the handle.
+    pub ray_intersection: Option<Handle<Type>>,
+}
+
 /// Shader module.
 ///
 /// A module is a set of constants, global variables and functions, as well as
@@ -1733,6 +1876,8 @@ pub struct EntryPoint {
 pub struct Module {
     /// Arena for the types defined in this module.
     pub types: UniqueArena<Type>,
+    /// Dictionary of special type handles.
+    pub special_types: SpecialTypes,
     /// Arena for the constants defined in this module.
     pub constants: Arena<Constant>,
     /// Arena for the global variables defined in this module.

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { Module } from "chrome://remote/content/shared/messagehandler/Module.sys.mjs";
+import { WindowGlobalBiDiModule } from "chrome://remote/content/webdriver-bidi/modules/WindowGlobalBiDiModule.sys.mjs";
 
 const lazy = {};
 
@@ -10,7 +10,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   LoadListener: "chrome://remote/content/shared/listeners/LoadListener.sys.mjs",
 });
 
-class BrowsingContextModule extends Module {
+class BrowsingContextModule extends WindowGlobalBiDiModule {
   #loadListener;
   #subscribedEvents;
 
@@ -38,7 +38,7 @@ class BrowsingContextModule extends Module {
       // See https://bugzilla.mozilla.org/show_bug.cgi?id=1763122
       navigation: null,
       timestamp: Date.now(),
-      url: data.target.baseURI,
+      url: data.target.URL,
     };
   }
 

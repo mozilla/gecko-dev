@@ -77,7 +77,6 @@ html {
   // sass-lint:disable no-color-literals
 
   --grey-subtitle-1: #696977;
-  --newtab-button-secondary-color: #0060DF;
   --mr-welcome-background-color: #F8F6F4;
   --mr-screen-heading-color: var(--in-content-text-color);
   --mr-welcome-background-gradient: linear-gradient(0deg, rgba(144, 89, 255, 0.2) 0%, rgba(2, 144, 238, 0.2) 100%);
@@ -85,7 +84,6 @@ html {
 
   @media (prefers-color-scheme: dark) {
     --grey-subtitle-1: #FFF;
-    --newtab-button-secondary-color: #FFF;
     --mr-welcome-background-color: #333336;
     --mr-welcome-background-gradient: linear-gradient(0deg, rgba(144, 89, 255, 0.3) 0%, rgba(2, 144, 238, 0.3) 100%);
     --mr-screen-background-color: #62697A;
@@ -145,6 +143,10 @@ html {
     flex-shrink: 0;
   }
 
+  .section-main:not(.embedded-migration) {
+    position: relative;
+  }
+
   .main-content {
     background-color: var(--in-content-page-background);
     border-radius: 20px;
@@ -170,19 +172,14 @@ html {
   }
 
   // Handle conditional display of steps indicator
-  // Don't show on corner screen or when there's
-  // only one centered screen
-  .main-content .no-steps,
-  .screen {
-    &[pos='corner'],
-    &[pos='center'].dialog-initial.dialog-last {
-      .main-content {
-        padding-bottom: 48px;
-      }
+  // Don't show when there's only one screen
+  .main-content .no-steps {
+    .main-content {
+      padding-bottom: 48px;
+    }
 
-      .steps {
-        display: none;
-      }
+    .steps {
+      display: none;
     }
   }
 
@@ -190,6 +187,7 @@ html {
     .arrow-icon {
       -moz-context-properties: fill;
       fill: currentColor;
+      text-decoration: none;
 
       &::after {
         content: '';
@@ -212,12 +210,28 @@ html {
     font-size: 0.72em;
     font-weight: 600;
     padding: 8px 16px;
+    text-decoration: none;
 
     &:hover {
-      text-decoration: none;
       // sass-lint:disable-block no-important
       background-color: var(--in-content-button-background-hover) !important;
       color: var(--in-content-button-text-color-hover);
+    }
+  }
+
+  @mixin text-link-styles {
+    text-decoration: underline;
+    cursor: pointer;
+    color: var(--in-content-link-color);
+
+    &:hover {
+      text-decoration: none;
+      color: var(--in-content-link-color-hover);
+    }
+
+    &:active {
+      text-decoration: none;
+      color: var(--in-content-link-color-active);
     }
   }
 
@@ -375,6 +389,7 @@ html {
       }
 
       .secondary-cta.top {
+        position: fixed;
         padding-inline-end: 0;
 
         button {
@@ -397,6 +412,10 @@ html {
           padding-inline: 35px 20px;
           padding-block: 120px 0;
           box-shadow: none;
+
+          &.no-steps {
+            padding-bottom: 48px;
+          }
 
           &:dir(rtl) {
             border-radius: 8px 0 0 8px;
@@ -432,16 +451,10 @@ html {
               margin: 8px 0;
 
               &.cta-link {
-                color: var(--in-content-link-color);
+                @include text-link-styles;
                 background: none;
                 padding: 0;
                 font-weight: normal;
-                text-decoration: underline;
-                cursor: pointer;
-
-                &:hover {
-                  color: var(--in-content-link-color-hover);
-                }
               }
 
               &.secondary {
@@ -452,8 +465,7 @@ html {
             }
 
             &.additional-cta-container {
-              display: flex;
-              flex-direction: column;
+              flex-wrap: nowrap;
               align-items: start;
             }
 
@@ -483,6 +495,10 @@ html {
             margin-block: 10px 35px;
             text-align: initial;
             align-items: initial;
+
+            &:empty {
+              margin: 0;
+            }
 
             h1 {
               font-size: 24px;
@@ -736,6 +752,10 @@ html {
             }
           }
 
+          .dismiss-button {
+            top: -$small-secondary-section-height;
+          }
+
           &:dir(rtl) {
             margin: 0 auto auto;
 
@@ -747,30 +767,25 @@ html {
 
       }
 
-      // Reposition the "Sign in" button on the welcome screen to move inside
-      // the screen when it would otherwise overlap the screen.
       @media only screen and (max-height: 650px) {
+        // Hide the "Sign in" button on the welcome screen when it would
+        // otherwise overlap the screen. We'd reposition it, but then it would
+        // overlap the dismiss button. We may change the alignment so they don't
+        // overlap in a future revision.
         @media (min-width: 800px) and (max-width: 990px) {
-          .section-main {
-            position: relative;
-
-            .secondary-cta.top {
-              padding: 0;
-              top: 20px;
-              inset-inline-end: 20px;
-            }
+          .section-main .secondary-cta.top {
+            display: none;
           }
         }
 
+        // Reposition the "Sign in" button on the welcome screen to move inside
+        // the screen when it would otherwise overlap the screen.
         @media (max-width: 590px) {
-          .section-main {
-            position: relative;
-
-            .secondary-cta.top {
-              padding: 0;
-              top: 0;
-              inset-inline-end: 0;
-            }
+          .section-main .secondary-cta.top {
+            position: absolute;
+            padding: 0;
+            top: 0;
+            inset-inline-end: 0;
           }
         }
       }
@@ -806,6 +821,10 @@ html {
     @media only screen and (max-width: 800px) {
       text-align: center;
     }
+  }
+
+  .text-link {
+    @include text-link-styles;
   }
 
   .welcome-text {
@@ -1109,19 +1128,25 @@ html {
     color: #5B5B66;
     font-weight: 400;
     font-size: 14px;
+    text-align: initial;
     transition: var(--transition);
     z-index: 1;
 
     .checkbox-container {
       display: flex;
       margin-bottom: 16px;
-      align-items: center;
     }
   }
 
   @media (prefers-color-scheme: dark) {
     .multi-select-container {
       color: #CFCFD8;
+    }
+  }
+
+  @media only screen and (max-width: 800px) {
+    .multi-select-container {
+      padding: 0 30px;
     }
   }
 
@@ -1134,10 +1159,9 @@ html {
     }
 
     .email-link {
+      @include text-link-styles;
       font-size: 16px;
       font-weight: 400;
-      text-decoration: underline;
-      color: var(--in-content-link-color);
       background: none;
 
       &:hover {
@@ -1180,20 +1204,31 @@ html {
   }
 
   .dismiss-button {
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    left: auto;
+    right: 0;
+    box-sizing: border-box;
     padding: 0;
-    margin-block: 30px -45px;
-    margin-inline: 0 30px;
+    margin: 16px;
     display: block;
     float: inline-end;
-    background: url('chrome://global/skin/icons/close.svg') no-repeat center / cover;
-    height: 15px;
-    width: 15px;
+    background: url('chrome://global/skin/icons/close.svg') no-repeat center / 16px;
+    height: 32px;
+    width: 32px;
     align-self: end;
     // override default min-height and min-width for buttons
-    min-height: 15px;
-    min-width: 15px;
+    min-height: 32px;
+    min-width: 32px;
     -moz-context-properties: fill;
     fill: currentColor;
+    transition: var(--transition);
+
+    &:dir(rtl) {
+      left: 0;
+      right: auto;
+    }
   }
 
   @keyframes fadein {
@@ -1326,6 +1361,23 @@ html {
     }
   }
 
+  .additional-cta-container {
+    &[flow] {
+      display: flex;
+      flex-flow: column wrap;
+      align-items: center;
+
+      &[flow='row'] {
+        flex-direction: row;
+        justify-content: center;
+
+        .secondary-cta {
+          flex-basis: 100%;
+        }
+      }
+    }
+  }
+
   .primary,
   .secondary,
   .additional-cta {
@@ -1381,122 +1433,6 @@ html {
     fill: #FFA437;
   }
 
-  [pos='corner'] {
-    min-width: $container-min-width;
-
-    .section-secondary {
-      display: flex;
-      flex-direction: column;
-      margin-inline-start: 6vw;
-
-      .message-text {
-        flex-grow: 1;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-
-        .spacer-top {
-          flex: 1;
-        }
-
-        .spacer-bottom {
-          flex: 1;
-        }
-
-        h1 {
-          color: #FFF;
-          font-weight: bold;
-          font-size: clamp(48px, 7vw, 104px);
-          line-height: 1em;
-          margin: 0 6px;
-          max-width: 5em;
-          text-align: initial;
-          white-space: pre-wrap;
-          text-shadow: 0 4px 8px rgba(0, 0, 0, 0.35);
-        }
-      }
-
-      .attrib-text {
-        height: 18px;
-        margin-bottom: 25px;
-        text-align: initial;
-        font-size: 12px;
-        line-height: 18px;
-        color: #F9F9FB;
-        text-shadow: 0 0 7px rgba(0, 0, 0, 0.6);
-        transition-delay: 0.5s;
-      }
-    }
-
-    .section-main {
-      z-index: 1;
-
-      .main-content {
-        background: transparent;
-        box-shadow: none;
-        display: flex;
-        position: absolute;
-        height: auto;
-        width: 350px;
-        bottom: 0;
-        inset-inline-end: 30px;
-        overflow: visible;
-        transition: var(--transition);
-      }
-
-      .brand-logo {
-        margin-top: 0;
-        transition-delay: 1.2s;
-      }
-
-      .primary,
-      .secondary-cta:not(.top) {
-        transition-delay: 1.7s;
-      }
-
-      .secondary-cta.top {
-        transition-delay: 0.5s;
-      }
-
-      .welcome-text {
-        transition-delay: 1.2s;
-
-        h2 {
-          margin: 10px 6px;
-        }
-      }
-    }
-
-    // Position noodles on first screen
-    // and show solid L for corner positioned screen
-    .solid-L {
-      display: block;
-      width: 1300px;
-      height: 1050px;
-      bottom: -390px;
-      inset-inline-end: -640px;
-      transform: rotate(-80deg);
-      transition-delay: 0.5s;
-    }
-
-    .orange-L {
-      width: 466px;
-      height: 356px;
-      bottom: 270px;
-      inset-inline-end: -245px;
-      transition-delay: 0.8s;
-    }
-
-    .purple-C {
-      width: 467px;
-      height: 382px;
-      bottom: -100px;
-      inset-inline-end: 125px;
-      transform: rotate(-75deg);
-      transition-delay: 0.8s;
-    }
-  }
-
   .screen-1 {
     .section-main {
       z-index: 1;
@@ -1547,7 +1483,8 @@ html {
       transition-delay: 0.8s;
     }
 
-    .tiles-theme-section {
+    .tiles-theme-section,
+    migration-wizard {
       transition-delay: 0.9s;
     }
 
@@ -1561,7 +1498,7 @@ html {
   }
 
   // Delays for transitioning-in of intermediate screens
-  .screen:not(.dialog-initial):not([pos='corner']) {
+  .screen:not(.dialog-initial) {
     .tiles-theme-section,
     .colorway-text {
       transition-delay: 0.2s;
@@ -1621,26 +1558,10 @@ html {
       scale: var(--scale);
     }
 
-    [pos='corner'] {
-      .brand-logo,
-      .welcome-text,
-      .primary,
-      .checkbox-container,
-      .secondary,
-      .secondary-cta:not(.top),
-      .message-text {
-        opacity: 0;
-        translate: 0 var(--translate);
-      }
-
-      .attrib-text,
-      .secondary-cta.top {
-        opacity: 0;
-      }
-    }
-
     .dialog-initial {
-      .main-content {
+
+      .main-content,
+      .dismiss-button {
         translate: 0 calc(-2 * var(--translate));
       }
 
@@ -1651,13 +1572,7 @@ html {
       }
     }
 
-    .screen:not(.dialog-initial):not([pos='corner']) {
-      .steps:not(.progress-bar) {
-        opacity: 0.2;
-      }
-    }
-
-    .screen:not([pos='corner']) {
+    .screen {
       .welcome-text,
       .tiles-theme-section,
       .colorway-text,
@@ -1665,9 +1580,16 @@ html {
       .checkbox-container,
       .secondary,
       .secondary-cta:not(.top),
-      .cta-link {
+      .cta-link,
+      migration-wizard {
         opacity: 0;
         translate: 0 calc(-1 * var(--translate));
+      }
+
+      &:not(.dialog-initial) {
+        .steps:not(.progress-bar) {
+          opacity: 0.2;
+        }
       }
     }
   }
@@ -1680,30 +1602,7 @@ html {
       transition-delay: 0.2s;
     }
 
-    [pos='corner'] {
-      .message-text {
-        opacity: 0;
-        translate: 0 var(--translate);
-      }
-
-      .main-content {
-        opacity: 0;
-        translate: 0 var(--translate);
-        transition-delay: 0.2s;
-      }
-
-      .solid-L {
-        transition-delay: 0.4s;
-      }
-
-      .attrib-text,
-      .secondary-cta.top {
-        opacity: 0;
-        transition-delay: 0.2s;
-      }
-    }
-
-    .screen:not(.dialog-last):not([pos='corner']) {
+    .screen:not(.dialog-last) {
       .main-content {
         overflow: hidden;
       }
@@ -1715,12 +1614,14 @@ html {
         transition-delay: 0.1s;
       }
 
+      // content that is nested between inner main content and navigation CTAs
+      // requires an additional 0.1s transition to avoid overlap
       .tiles-theme-section,
-      .colorway-text {
+      .colorway-text,
+      migration-wizard {
         opacity: 0;
         translate: 0 var(--translate);
         transition-delay: 0.2s;
-
       }
 
       .primary,
@@ -1744,11 +1645,26 @@ html {
         transition-delay: 0s;
       }
 
-      .main-content {
+      .main-content,
+      .dismiss-button {
         opacity: 0;
         translate: 0 calc(2 * var(--translate));
         transition-delay: 0.4s;
       }
+    }
+  }
+
+  migration-wizard {
+    width: unset;
+    transition: var(--transition);
+
+    &::part(buttons) {
+      margin-top: 32px;
+      justify-content: flex-start;
+    }
+
+    &::part(deck) {
+      font-size: 0.83em;
     }
   }
 }

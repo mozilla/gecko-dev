@@ -55,14 +55,16 @@ var PREF_EM_CHECK_COMPATIBILITY = MOZ_COMPATIBILITY_NIGHTLY
   ? PREF_EM_CHECK_COMPATIBILITY_BASE + ".nightly"
   : undefined;
 
-const WEBAPI_INSTALL_HOSTS = ["addons.mozilla.org"];
-const WEBAPI_TEST_INSTALL_HOSTS = [
-  "addons.allizom.org",
-  "addons-dev.allizom.org",
-  "example.com",
-];
+const WEBAPI_INSTALL_HOSTS =
+  AppConstants.MOZ_APP_NAME !== "thunderbird"
+    ? ["addons.mozilla.org"]
+    : ["addons.thunderbird.net"];
+const WEBAPI_TEST_INSTALL_HOSTS =
+  AppConstants.MOZ_APP_NAME !== "thunderbird"
+    ? ["addons.allizom.org", "addons-dev.allizom.org", "example.com"]
+    : ["addons-stage.thunderbird.net", "example.com"];
 
-const AMO_ATTRIBUTION_ALLOWED_SOURCES = ["amo", "disco"];
+const AMO_ATTRIBUTION_ALLOWED_SOURCES = ["amo", "disco", "rtamo"];
 const AMO_ATTRIBUTION_DATA_KEYS = [
   "utm_campaign",
   "utm_content",
@@ -86,20 +88,20 @@ const { PromiseUtils } = ChromeUtils.importESModule(
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
+  TelemetryTimestamps: "resource://gre/modules/TelemetryTimestamps.sys.mjs",
   isGatedPermissionType:
     "resource://gre/modules/addons/siteperms-addon-utils.sys.mjs",
   isKnownPublicSuffix:
     "resource://gre/modules/addons/siteperms-addon-utils.sys.mjs",
   isPrincipalInSitePermissionsBlocklist:
     "resource://gre/modules/addons/siteperms-addon-utils.sys.mjs",
-  TelemetryTimestamps: "resource://gre/modules/TelemetryTimestamps.sys.mjs",
 });
 
 XPCOMUtils.defineLazyModuleGetters(lazy, {
   AddonRepository: "resource://gre/modules/addons/AddonRepository.jsm",
   AbuseReporter: "resource://gre/modules/AbuseReporter.jsm",
   Extension: "resource://gre/modules/Extension.jsm",
-  RemoteSettings: "resource://services-settings/remote-settings.js",
 });
 
 XPCOMUtils.defineLazyPreferenceGetter(
@@ -2212,22 +2214,10 @@ var AddonManagerInternal = {
           install.addon.enable();
         }
 
-        let needsRestart =
-          install.addon.pendingOperations != AddonManager.PENDING_NONE;
-
-        if (!needsRestart) {
-          let subject = {
-            wrappedJSObject: { target: browser, addon: install.addon },
-          };
-          Services.obs.notifyObservers(subject, "webextension-install-notify");
-        } else {
-          self.installNotifyObservers(
-            "addon-install-complete",
-            browser,
-            url,
-            install
-          );
-        }
+        let subject = {
+          wrappedJSObject: { target: browser, addon: install.addon },
+        };
+        Services.obs.notifyObservers(subject, "webextension-install-notify");
       },
     };
 
@@ -3386,7 +3376,7 @@ var AddonManagerInternal = {
       // Throw an appropriate error if the given URL is not valid
       // as an installation source.  Return silently if it is okay.
       function checkInstallUri(uri) {
-        if (!Services.policies.allowedInstallSource(uri)) {
+        if (Services.policies && !Services.policies.allowedInstallSource(uri)) {
           // eslint-disable-next-line no-throw-literal
           return {
             success: false,
@@ -5156,91 +5146,6 @@ AMTelemetry = {
       object,
       value,
       extra: hasExtraVars ? extra : null,
-    });
-  },
-
-  /**
-   * Record an event for when a link is clicked.
-   *
-   * @param {object} opts
-   * @param {string} opts.object
-   *        The object of the event, should be an identifier for where the link
-   *        is located. The accepted values are listed in the
-   *        addonsManager.link object of the Events.yaml file.
-   * @param {string} opts.value The identifier for the link destination.
-   * @param {object} opts.extra
-   *        The extra data to be sent, all keys must be registered in the
-   *        extra_keys section of addonsManager.link in Events.yaml.
-   */
-  recordLinkEvent({ object, value, extra = null }) {
-    this.recordEvent({ method: "link", object, value, extra });
-  },
-
-  /**
-   * Record an event for an action that took place.
-   *
-   * @param {object} opts
-   * @param {string} opts.object
-   *        The object of the event, should an identifier for where the action
-   *        took place. The accepted values are listed in the
-   *        addonsManager.action object of the Events.yaml file.
-   * @param {string} opts.action The identifier for the action.
-   * @param {string} opts.value An optional value for the action.
-   * @param {object} opts.addon
-   *        An optional object with the "id" and "type" properties, for example
-   *        an AddonWrapper object. Passing this will set some extra properties.
-   * @param {string} opts.addon.id
-   *        The add-on ID to assign to extra.addonId.
-   * @param {string} opts.addon.type
-   *        The add-on type to assign to extra.type.
-   * @param {string} opts.view The current view, when object is aboutAddons.
-   * @param {object} opts.extra
-   *        The extra data to be sent, all keys must be registered in the
-   *        extra_keys section of addonsManager.action in Events.yaml. If
-   *        opts.addon is passed then it will overwrite the addonId and type
-   *        properties in this object, if they are set.
-   */
-  recordActionEvent({ object, action, value, addon, view, extra }) {
-    extra = { ...extra, action, addon, view };
-    if (action === "installFromRecommendation") {
-      extra.taar_based = !!addon.taarRecommended;
-    }
-    this.recordEvent({
-      method: "action",
-      object,
-      // Treat null and undefined as null.
-      value: value == null ? null : this.convertToString(value),
-      extra: this.formatExtraVars(extra),
-    });
-  },
-
-  /**
-   * Record an event for a view load in about:addons.
-   *
-   * @param {object} opts
-   * @param {string} opts.view
-   *        The identifier for the view. The accepted values are listed in the
-   *        object property of addonsManager.view object of the Events.yaml
-   *        file.
-   * @param {AddonWrapper} opts.addon
-   *        An optional add-on object related to the event.
-   * @param {string} opts.type
-   *        An optional type for the view. If opts.addon is set it will
-   *        overwrite this value with the type of the add-on.
-   * @param {boolean} opts.taarEnabled
-   *        Set to true if taar-based discovery was enabled when the user
-   *        did switch between about:addons views.
-   */
-  recordViewEvent({ view, addon, type, taarEnabled }) {
-    this.recordEvent({
-      method: "view",
-      object: "aboutAddons",
-      value: view,
-      extra: this.formatExtraVars({
-        type,
-        addon,
-        taar_enabled: taarEnabled,
-      }),
     });
   },
 

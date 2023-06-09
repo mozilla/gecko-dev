@@ -27,12 +27,9 @@ namespace mozilla {
 
 void SVGViewportFrame::PaintSVG(gfxContext& aContext,
                                 const gfxMatrix& aTransform,
-                                imgDrawingParams& aImgParams,
-                                const nsIntRect* aDirtyRect) {
-  NS_ASSERTION(
-      !NS_SVGDisplayListPaintingEnabled() || (mState & NS_FRAME_IS_NONDISPLAY),
-      "If display lists are enabled, only painting of non-display "
-      "SVG should take this code path");
+                                imgDrawingParams& aImgParams) {
+  NS_ASSERTION(HasAnyStateBits(NS_FRAME_IS_NONDISPLAY),
+               "Only painting of non-display SVG should take this code path");
 
   gfxContextAutoSaveRestore autoSR;
 
@@ -50,8 +47,7 @@ void SVGViewportFrame::PaintSVG(gfxContext& aContext,
     SVGUtils::SetClipRect(&aContext, aTransform, clipRect);
   }
 
-  SVGDisplayContainerFrame::PaintSVG(aContext, aTransform, aImgParams,
-                                     aDirtyRect);
+  SVGDisplayContainerFrame::PaintSVG(aContext, aTransform, aImgParams);
 }
 
 void SVGViewportFrame::ReflowSVG() {
@@ -224,10 +220,9 @@ nsresult SVGViewportFrame::AttributeChanged(int32_t aNameSpaceID,
 }
 
 nsIFrame* SVGViewportFrame::GetFrameForPoint(const gfxPoint& aPoint) {
-  NS_ASSERTION(!NS_SVGDisplayListHitTestingEnabled() ||
-                   (mState & NS_FRAME_IS_NONDISPLAY),
-               "If display lists are enabled, only hit-testing of non-display "
-               "SVG should take this code path");
+  NS_ASSERTION(HasAnyStateBits(NS_FRAME_IS_NONDISPLAY),
+               "Only hit-testing of non-display SVG should take this "
+               "code path");
 
   if (StyleDisplay()->IsScrollableOverflow()) {
     Rect clip;

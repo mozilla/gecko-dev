@@ -233,6 +233,69 @@ add_task(async function testTabActivationEvent() {
   await extension.awaitFinish("tabs-events");
   await extension.unload();
 });
+
+add_task(async function test_tabs_event_page() {
+  function background() {
+    const EVENTS = [
+      "onActivated",
+      "onRemoved",
+      "onUpdated",
+    ];
+    browser.tabs.onCreated.addListener(() => {
+      browser.test.sendMessage("onCreated");
+    });
+    for (const event of EVENTS) {
+      browser.tabs[event].addListener(() => {
+      });
+    }
+    browser.test.onMessage.addListener(async msg => {
+      if (msg === "createTab") {
+        await browser.tabs.create({url: "about:blank"});
+      }
+    });
+    browser.test.sendMessage("ready");
+  }
+
+  const apiEvents = ["onActivated", "onCreated", "onRemoved", "onUpdated"];
+  const apiNs = "tabs";
+  const extension = ExtensionTestUtils.loadExtension({
+    manifest: {
+      browser_specific_settings: { gecko: { id: "eventpage@tabs" } },
+      "permissions": ["tabs"],
+      background: { persistent: false },
+    },
+    background,
+  });
+
+  await extension.startup();
+  info("Wait for event page to be started");
+  await extension.awaitMessage("ready");
+  // Sanity check
+  info("Wait for tabs.onCreated listener call");
+  extension.sendMessage("createTab");
+  await extension.awaitMessage("onCreated");
+
+  // on startup, all event listeners should not be primed
+  await assertPersistentListeners(extension, apiNs, apiEvents, { primed: false });
+
+  // when the extension is killed, all event listeners should be primed
+  info("Terminate event page");
+  await extension.terminateBackground({ disableResetIdleForTest: true });
+  await assertPersistentListeners(extension, apiNs, apiEvents, { primed: true });
+
+  // on start up again, all event listeners should not be primed
+  info("Wake up event page on a new tabs.onCreated event");
+  const newWin = window.open();
+  info("Wait for event page to be restarted");
+  await extension.awaitMessage("ready");
+  info("Wait for the primed tabs.onCreated to be received by the event page");
+  await extension.awaitMessage("onCreated");
+  await assertPersistentListeners(extension, apiNs, apiEvents, { primed: false });
+
+  await extension.unload();
+  newWin.close();
+});
+
 </script>
 
 </body>

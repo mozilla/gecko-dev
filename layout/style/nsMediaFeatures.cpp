@@ -94,8 +94,9 @@ static nsSize GetDeviceSize(const Document& aDocument) {
   return size;
 }
 
-bool Gecko_MediaFeatures_WindowsNonNativeMenus() {
-  return LookAndFeel::WindowsNonNativeMenusEnabled();
+bool Gecko_MediaFeatures_WindowsNonNativeMenus(const Document* aDocument) {
+  return LookAndFeel::WindowsNonNativeMenusEnabled() ||
+         aDocument->ShouldAvoidNativeTheme();
 }
 
 bool Gecko_MediaFeatures_IsResourceDocument(const Document* aDocument) {
@@ -130,12 +131,12 @@ void Gecko_MediaFeatures_GetDeviceSize(const Document* aDocument,
   *aHeight = size.height;
 }
 
-uint32_t Gecko_MediaFeatures_GetMonochromeBitsPerPixel(
+int32_t Gecko_MediaFeatures_GetMonochromeBitsPerPixel(
     const Document* aDocument) {
   // The default bits per pixel for a monochrome device. We could propagate this
   // further to nsIPrintSettings, but Gecko doesn't actually know this value
   // from the hardware, so it seems silly to do so.
-  static constexpr uint32_t kDefaultMonochromeBpp = 8;
+  static constexpr int32_t kDefaultMonochromeBpp = 8;
 
   nsPresContext* pc = aDocument->GetPresContext();
   if (!pc) {
@@ -161,7 +162,7 @@ dom::ScreenColorGamut Gecko_MediaFeatures_ColorGamut(
   return colorGamut;
 }
 
-uint32_t Gecko_MediaFeatures_GetColorDepth(const Document* aDocument) {
+int32_t Gecko_MediaFeatures_GetColorDepth(const Document* aDocument) {
   if (Gecko_MediaFeatures_GetMonochromeBitsPerPixel(aDocument) != 0) {
     // If we're a monochrome device, then the color depth is zero.
     return 0;
@@ -169,7 +170,7 @@ uint32_t Gecko_MediaFeatures_GetColorDepth(const Document* aDocument) {
 
   // Use depth of 24 when resisting fingerprinting, or when we're not being
   // rendered.
-  uint32_t depth = 24;
+  int32_t depth = 24;
 
   if (!aDocument->ShouldResistFingerprinting()) {
     if (nsDeviceContext* dx = GetDeviceContextFor(aDocument)) {
@@ -276,10 +277,19 @@ bool Gecko_MediaFeatures_MatchesPlatform(StylePlatform aPlatform) {
 }
 
 bool Gecko_MediaFeatures_PrefersReducedMotion(const Document* aDocument) {
-  if (aDocument->ShouldResistFingerprinting()) {
+  if (aDocument->ShouldResistFingerprinting(
+          RFPTarget::CSSPrefersReducedMotion)) {
     return false;
   }
   return LookAndFeel::GetInt(LookAndFeel::IntID::PrefersReducedMotion, 0) == 1;
+}
+
+bool Gecko_MediaFeatures_PrefersReducedTransparency(const Document* aDocument) {
+  if (aDocument->ShouldResistFingerprinting()) {
+    return false;
+  }
+  return LookAndFeel::GetInt(LookAndFeel::IntID::PrefersReducedTransparency,
+                             0) == 1;
 }
 
 StylePrefersColorScheme Gecko_MediaFeatures_PrefersColorScheme(
@@ -295,7 +305,7 @@ StylePrefersColorScheme Gecko_MediaFeatures_PrefersColorScheme(
 // as a signal.
 StylePrefersContrast Gecko_MediaFeatures_PrefersContrast(
     const Document* aDocument) {
-  if (aDocument->ShouldResistFingerprinting()) {
+  if (aDocument->ShouldResistFingerprinting(RFPTarget::CSSPrefersContrast)) {
     return StylePrefersContrast::NoPreference;
   }
   const auto& prefs = PreferenceSheet::PrefsFor(*aDocument);
@@ -314,6 +324,23 @@ StylePrefersContrast Gecko_MediaFeatures_PrefersContrast(
     return StylePrefersContrast::More;
   }
   return StylePrefersContrast::Custom;
+}
+
+bool Gecko_MediaFeatures_InvertedColors(const Document* aDocument) {
+  if (aDocument->ShouldResistFingerprinting()) {
+    return false;
+  }
+  return LookAndFeel::GetInt(LookAndFeel::IntID::InvertedColors, 0) == 1;
+}
+
+StyleScripting Gecko_MediaFeatures_Scripting(const Document* aDocument) {
+  const auto* doc = aDocument;
+  if (aDocument->IsStaticDocument()) {
+    doc = aDocument->GetOriginalDocument();
+  }
+
+  return doc->IsScriptEnabled() ? StyleScripting::Enabled
+                                : StyleScripting::None;
 }
 
 StyleDynamicRange Gecko_MediaFeatures_DynamicRange(const Document* aDocument) {

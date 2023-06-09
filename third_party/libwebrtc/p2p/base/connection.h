@@ -26,7 +26,6 @@
 #include "p2p/base/stun_request.h"
 #include "p2p/base/transport_description.h"
 #include "rtc_base/async_packet_socket.h"
-#include "rtc_base/message_handler.h"
 #include "rtc_base/network.h"
 #include "rtc_base/numerics/event_based_exponential_moving_average.h"
 #include "rtc_base/rate_tracker.h"
@@ -317,9 +316,21 @@ class Connection : public CandidatePairInterface {
   Port* PortForTest() { return port_.get(); }
   const Port* PortForTest() const { return port_.get(); }
 
+  std::unique_ptr<IceMessage> BuildPingRequestForTest() {
+    RTC_DCHECK_RUN_ON(network_thread_);
+    return BuildPingRequest();
+  }
+
   // Public for unit tests.
   uint32_t acked_nomination() const;
   void set_remote_nomination(uint32_t remote_nomination);
+
+  const std::string& remote_password_for_test() const {
+    return remote_candidate().password();
+  }
+  void set_remote_password_for_test(absl::string_view pwd) {
+    remote_candidate_.set_password(pwd);
+  }
 
  protected:
   // A ConnectionRequest is a simple STUN ping used to determine writability.
@@ -443,7 +454,8 @@ class Connection : public CandidatePairInterface {
   IceCandidatePairState state_ RTC_GUARDED_BY(network_thread_);
   // Time duration to switch from receiving to not receiving.
   absl::optional<int> receiving_timeout_ RTC_GUARDED_BY(network_thread_);
-  int64_t time_created_ms_ RTC_GUARDED_BY(network_thread_);
+  const int64_t time_created_ms_ RTC_GUARDED_BY(network_thread_);
+  const int64_t delta_internal_unix_epoch_ms_ RTC_GUARDED_BY(network_thread_);
   int num_pings_sent_ RTC_GUARDED_BY(network_thread_) = 0;
 
   absl::optional<webrtc::IceCandidatePairDescription> log_description_

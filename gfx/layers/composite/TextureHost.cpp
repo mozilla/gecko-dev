@@ -222,10 +222,11 @@ already_AddRefed<TextureHost> TextureHost::Create(
     case SurfaceDescriptor::TSurfaceDescriptorRecorded: {
       const SurfaceDescriptorRecorded& desc =
           aDesc.get_SurfaceDescriptorRecorded();
+      CompositorBridgeParentBase* actor =
+          aDeallocator ? aDeallocator->AsCompositorBridgeParentBase() : nullptr;
       UniquePtr<SurfaceDescriptor> realDesc =
-          aDeallocator
-              ? aDeallocator->AsCompositorBridgeParentBase()
-                    ->LookupSurfaceDescriptorForClientTexture(desc.textureId())
+          actor
+              ? actor->LookupSurfaceDescriptorForClientTexture(desc.textureId())
               : nullptr;
       if (!realDesc) {
         gfxCriticalNote << "Failed to get descriptor for recorded texture.";
@@ -370,9 +371,7 @@ TextureHost::~TextureHost() {
 }
 
 void TextureHost::Finalize() {
-  if (!(GetFlags() & TextureFlags::BORROWED_EXTERNAL_ID)) {
-    MaybeDestroyRenderTexture();
-  }
+  MaybeDestroyRenderTexture();
 
   if (!(GetFlags() & TextureFlags::DEALLOCATE_CLIENT)) {
     DeallocateSharedData();
@@ -434,6 +433,7 @@ void TextureHost::MaybeDestroyRenderTexture() {
   }
   // When TextureHost created RenderTextureHost, delete it here.
   TextureHost::DestroyRenderTexture(mExternalImageId.ref());
+  mExternalImageId = Nothing();
 }
 
 void TextureHost::DestroyRenderTexture(

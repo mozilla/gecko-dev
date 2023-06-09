@@ -226,12 +226,8 @@ Subsumes
 Security principals
 ~~~~~~~~~~~~~~~~~~~
 
-.. container::
-
-   There are four types of security principal: the system principal,
-   content principals, expanded principals, and the null principal.
-
-.. container::
+There are four types of security principal: the system principal,
+content principals, expanded principals, and the null principal.
 
 .. _System_principal:
 

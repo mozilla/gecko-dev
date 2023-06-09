@@ -2633,23 +2633,21 @@ static void UpdateThreadFunc(void* param) {
     }
 
     if (rv == OK) {
-      if (rv == OK) {
-        NS_tchar updateSettingsPath[MAXPATHLEN];
-        NS_tsnprintf(updateSettingsPath,
-                     sizeof(updateSettingsPath) / sizeof(updateSettingsPath[0]),
+      NS_tchar updateSettingsPath[MAXPATHLEN];
+      NS_tsnprintf(updateSettingsPath,
+                   sizeof(updateSettingsPath) / sizeof(updateSettingsPath[0]),
 #  ifdef XP_MACOSX
-                     NS_T("%s/Contents/Resources/update-settings.ini"),
+                   NS_T("%s/Contents/Resources/update-settings.ini"),
 #  else
-                     NS_T("%s/update-settings.ini"),
+                   NS_T("%s/update-settings.ini"),
 #  endif
-                     gInstallDirPath);
-        MARChannelStringTable MARStrings;
-        if (ReadMARChannelIDs(updateSettingsPath, &MARStrings) != OK) {
-          rv = UPDATE_SETTINGS_FILE_CHANNEL;
-        } else {
-          rv = gArchiveReader.VerifyProductInformation(
-              MARStrings.MARChannelID.get(), MOZ_APP_VERSION);
-        }
+                   gInstallDirPath);
+      MARChannelStringTable MARStrings;
+      if (ReadMARChannelIDs(updateSettingsPath, &MARStrings) != OK) {
+        rv = UPDATE_SETTINGS_FILE_CHANNEL;
+      } else {
+        rv = gArchiveReader.VerifyProductInformation(
+            MARStrings.MARChannelID.get(), MOZ_APP_VERSION);
       }
     }
 #endif
@@ -2725,6 +2723,12 @@ static void UpdateThreadFunc(void* param) {
     putenv(const_cast<char*>("MOZ_TEST_PROCESS_UPDATES="));
 #endif
   } else {
+#ifdef TEST_UPDATER
+    const char* forceErrorCodeString = getenv("MOZ_FORCE_ERROR_CODE");
+    if (forceErrorCodeString && *forceErrorCodeString) {
+      rv = atoi(forceErrorCodeString);
+    }
+#endif
     if (rv) {
       LOG(("failed: %d", rv));
     } else {

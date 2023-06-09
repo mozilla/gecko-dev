@@ -4,6 +4,7 @@
 
 const path = require("path");
 const webpack = require("webpack");
+const { ResourceUriPlugin } = require("./tools/resourceUriPlugin");
 
 const absolute = relPath => path.join(__dirname, relPath);
 
@@ -20,6 +21,10 @@ module.exports = (env = {}) => ({
   // TODO: switch to eval-source-map for faster builds. Requires CSP changes
   devtool: env.development ? "inline-source-map" : false,
   plugins: [
+    // The ResourceUriPlugin handles translating resource URIs in import
+    // statements in .mjs files, in a similar way to what babel-jsm-to-commonjs
+    // does for jsm files.
+    new ResourceUriPlugin({ resourcePathRegEx }),
     new webpack.BannerPlugin(
       `THIS FILE IS AUTO-GENERATED: ${path.basename(__filename)}`
     ),
@@ -29,7 +34,7 @@ module.exports = (env = {}) => ({
     rules: [
       {
         test: /\.jsx?$/,
-        exclude: /node_modules\/(?!(fluent|fluent-react)\/).*/,
+        exclude: /node_modules\/(?!@fluent\/).*/,
         loader: "babel-loader",
         options: {
           presets: ["@babel/preset-react"],

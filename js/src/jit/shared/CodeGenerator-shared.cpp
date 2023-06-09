@@ -832,7 +832,6 @@ void CodeGeneratorShared::ensureOsiSpace() {
   }
   MOZ_ASSERT_IF(!masm.oom(), masm.currentOffset() - lastOsiPointOffset_ >=
                                  Assembler::PatchWrite_NearCallSize());
-  lastOsiPointOffset_ = masm.currentOffset();
 }
 
 uint32_t CodeGeneratorShared::markOsiPoint(LOsiPoint* ins) {
@@ -842,6 +841,7 @@ uint32_t CodeGeneratorShared::markOsiPoint(LOsiPoint* ins) {
   uint32_t offset = masm.currentOffset();
   SnapshotOffset so = ins->snapshot()->snapshotOffset();
   masm.propagateOOM(osiIndices_.append(OsiIndex(offset, so)));
+  lastOsiPointOffset_ = offset;
 
   return offset;
 }
@@ -971,7 +971,7 @@ Label* CodeGeneratorShared::getJumpLabelForBranch(MBasicBlock* block) {
 // This function is not used for MIPS/MIPS64/LOONG64. They have
 // branchToBlock.
 #if !defined(JS_CODEGEN_MIPS32) && !defined(JS_CODEGEN_MIPS64) && \
-    !defined(JS_CODEGEN_LOONG64)
+    !defined(JS_CODEGEN_LOONG64) && !defined(JS_CODEGEN_RISCV64)
 void CodeGeneratorShared::jumpToBlock(MBasicBlock* mir,
                                       Assembler::Condition cond) {
   // Skip past trivial blocks.

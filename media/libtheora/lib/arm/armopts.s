@@ -11,7 +11,7 @@
 ;********************************************************************
 ; Original implementation:
 ;  Copyright (C) 2009 Robin Watts for Pinknoise Productions Ltd
-; last mod: $Id: armopts.s.in 17430 2010-09-22 21:54:09Z tterribe $
+; last mod: $Id$
 ;********************************************************************
 
 ; Set the following to 1 if we have EDSP instructions

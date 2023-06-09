@@ -30,19 +30,19 @@ const AREAS = [
 ];
 
 // Checks that the correct number of clicks are registered against the correct
-// keys in the scalars.
-function assertInteractionScalars(expectedAreas) {
+// keys in the scalars. Also runs keyed scalar checks against non-area types
+// passed in through expectedOther.
+function assertInteractionScalars(expectedAreas, expectedOther = {}) {
   let processScalars =
     Services.telemetry.getSnapshotForKeyedScalars("main", true)?.parent ?? {};
 
-  for (let source of AREAS) {
+  let compareSourceWithExpectations = (source, expected = {}) => {
     let scalars = processScalars?.[`browser.ui.interaction.${source}`] ?? {};
-
-    let expected = expectedAreas[source] ?? {};
 
     let expectedKeys = new Set(
       Object.keys(scalars).concat(Object.keys(expected))
     );
+
     for (let key of expectedKeys) {
       Assert.equal(
         scalars[key],
@@ -50,6 +50,14 @@ function assertInteractionScalars(expectedAreas) {
         `Expected to see the correct value for ${key} in ${source}.`
       );
     }
+  };
+
+  for (let source of AREAS) {
+    compareSourceWithExpectations(source, expectedAreas[source]);
+  }
+
+  for (let source in expectedOther) {
+    compareSourceWithExpectations(source, expectedOther[source]);
   }
 }
 
@@ -63,7 +71,7 @@ const click = el => {
 };
 
 add_task(async function toolbarButtons() {
-  await BrowserTestUtils.withNewTab("http://example.com", async () => {
+  await BrowserTestUtils.withNewTab("https://example.com", async () => {
     let customButton = await new Promise(resolve => {
       CustomizableUI.createWidget({
         // In CSS identifiers cannot start with a number but CustomizableUI accepts that.
@@ -147,26 +155,33 @@ add_task(async function toolbarButtons() {
 
     click(customButton);
 
-    assertInteractionScalars({
-      nav_bar: {
-        "stop-reload-button": 1,
-        "back-button": 2,
-        "12foo": 1,
+    assertInteractionScalars(
+      {
+        nav_bar: {
+          "stop-reload-button": 1,
+          "back-button": 2,
+          "12foo": 1,
+        },
+        tabs_bar: {
+          "alltabs-button": 1,
+          "tab-close-button": 1,
+        },
+        bookmarks_bar: {
+          "bookmark-item": 1,
+        },
       },
-      tabs_bar: {
-        "alltabs-button": 1,
-        "tab-close-button": 1,
-      },
-      bookmarks_bar: {
-        "bookmark-item": 1,
-      },
-    });
+      {
+        all_tabs_panel_entrypoint: {
+          "alltabs-button": 1,
+        },
+      }
+    );
     CustomizableUI.destroyWidget("12foo");
   });
 });
 
 add_task(async function contextMenu() {
-  await BrowserTestUtils.withNewTab("http://example.com", async browser => {
+  await BrowserTestUtils.withNewTab("https://example.com", async browser => {
     Services.telemetry.getSnapshotForKeyedScalars("main", true);
 
     let tab = gBrowser.getTabForBrowser(browser);
@@ -219,8 +234,80 @@ add_task(async function contextMenu() {
   });
 });
 
+add_task(async function contextMenu_entrypoints() {
+  /**
+   * A utility function for this test task that opens the tab context
+   * menu for a particular trigger node, chooses the "Reload Tab" item,
+   * and then waits for the context menu to close.
+   *
+   * @param {Element} triggerNode
+   *   The node that the tab context menu should be triggered with.
+   * @returns {Promise<undefined>}
+   *   Resolves after the context menu has fired the popuphidden event.
+   */
+  let openAndCloseTabContextMenu = async triggerNode => {
+    let contextMenu = document.getElementById("tabContextMenu");
+    let popupShown = BrowserTestUtils.waitForEvent(contextMenu, "popupshown");
+    EventUtils.synthesizeMouseAtCenter(triggerNode, {
+      type: "contextmenu",
+      button: 2,
+    });
+    await popupShown;
+
+    let popupHidden = BrowserTestUtils.waitForEvent(contextMenu, "popuphidden");
+    let menuitem = document.getElementById("context_reloadTab");
+    contextMenu.activateItem(menuitem);
+    await popupHidden;
+  };
+
+  const TAB_CONTEXTMENU_ENTRYPOINT_SCALAR =
+    "browser.ui.interaction.tabs_context_entrypoint";
+  Services.telemetry.clearScalars();
+
+  let scalars = TelemetryTestUtils.getProcessScalars("parent", true, true);
+  TelemetryTestUtils.assertScalarUnset(
+    scalars,
+    TAB_CONTEXTMENU_ENTRYPOINT_SCALAR
+  );
+
+  await openAndCloseTabContextMenu(gBrowser.selectedTab);
+  scalars = TelemetryTestUtils.getProcessScalars("parent", true, true);
+  TelemetryTestUtils.assertKeyedScalar(
+    scalars,
+    TAB_CONTEXTMENU_ENTRYPOINT_SCALAR,
+    "tabs-bar",
+    1
+  );
+
+  gTabsPanel.initElements();
+  let allTabsView = document.getElementById("allTabsMenu-allTabsView");
+  let allTabsPopupShownPromise = BrowserTestUtils.waitForEvent(
+    allTabsView,
+    "ViewShown"
+  );
+  gTabsPanel.showAllTabsPanel(null);
+  await allTabsPopupShownPromise;
+
+  let firstTabItem = gTabsPanel.allTabsViewTabs.children[0];
+  await openAndCloseTabContextMenu(firstTabItem);
+  scalars = TelemetryTestUtils.getProcessScalars("parent", true, true);
+  TelemetryTestUtils.assertKeyedScalar(
+    scalars,
+    TAB_CONTEXTMENU_ENTRYPOINT_SCALAR,
+    "alltabs-menu",
+    1
+  );
+
+  let allTabsPopupHiddenPromise = BrowserTestUtils.waitForEvent(
+    allTabsView.panelMultiView,
+    "PanelMultiViewHidden"
+  );
+  gTabsPanel.hideAllTabsPanel();
+  await allTabsPopupHiddenPromise;
+});
+
 add_task(async function appMenu() {
-  await BrowserTestUtils.withNewTab("http://example.com", async browser => {
+  await BrowserTestUtils.withNewTab("https://example.com", async browser => {
     Services.telemetry.getSnapshotForKeyedScalars("main", true);
 
     let shown = BrowserTestUtils.waitForEvent(
@@ -252,7 +339,7 @@ add_task(async function appMenu() {
 });
 
 add_task(async function devtools() {
-  await BrowserTestUtils.withNewTab("http://example.com", async browser => {
+  await BrowserTestUtils.withNewTab("https://example.com", async browser => {
     Services.telemetry.getSnapshotForKeyedScalars("main", true);
 
     let shown = BrowserTestUtils.waitForEvent(
@@ -300,7 +387,7 @@ add_task(async function devtools() {
 add_task(async function webextension() {
   BrowserUsageTelemetry._resetAddonIds();
 
-  await BrowserTestUtils.withNewTab("http://example.com", async browser => {
+  await BrowserTestUtils.withNewTab("https://example.com", async browser => {
     Services.telemetry.getSnapshotForKeyedScalars("main", true);
 
     function background() {
@@ -331,7 +418,7 @@ add_task(async function webextension() {
         page_action: {
           default_icon: "default.png",
           default_title: "Hello",
-          show_matches: ["http://example.com/*"],
+          show_matches: ["https://example.com/*"],
         },
         commands: {
           test_command: {
@@ -422,7 +509,7 @@ add_task(async function webextension() {
         page_action: {
           default_icon: "default.png",
           default_title: "Hello",
-          show_matches: ["http://example.com/*"],
+          show_matches: ["https://example.com/*"],
         },
         commands: {
           test_command: {
@@ -522,46 +609,44 @@ add_task(async function webextension() {
 
     await extension2.unload();
 
-    // Now test that browser action items in the add-ons panel also get telemetry
-    // recorded for them.
-    if (gUnifiedExtensions.isEnabled) {
-      const extension3 = ExtensionTestUtils.loadExtension({
-        manifest: {
-          version: "1",
-          browser_specific_settings: {
-            gecko: { id: "random_addon3@example.com" },
-          },
-          browser_action: {
-            default_icon: "default.png",
-            default_title: "Hello",
-          },
+    // Now test that browser action items in the add-ons panel also get
+    // telemetry recorded for them.
+    const extension3 = ExtensionTestUtils.loadExtension({
+      manifest: {
+        version: "1",
+        browser_specific_settings: {
+          gecko: { id: "random_addon3@example.com" },
         },
-      });
-
-      await extension3.startup();
-
-      const shown = BrowserTestUtils.waitForPopupEvent(
-        gUnifiedExtensions.panel,
-        "shown"
-      );
-      await gUnifiedExtensions.togglePanel();
-      await shown;
-
-      click("random_addon3_example_com-browser-action");
-      assertInteractionScalars({
-        unified_extensions_area: {
-          addon2: 1,
+        browser_action: {
+          default_icon: "default.png",
+          default_title: "Hello",
         },
-      });
-      const hidden = BrowserTestUtils.waitForPopupEvent(
-        gUnifiedExtensions.panel,
-        "hidden"
-      );
-      await gUnifiedExtensions.panel.hidePopup();
-      await hidden;
+      },
+    });
 
-      await extension3.unload();
-    }
+    await extension3.startup();
+
+    const shown = BrowserTestUtils.waitForPopupEvent(
+      gUnifiedExtensions.panel,
+      "shown"
+    );
+    await gUnifiedExtensions.togglePanel();
+    await shown;
+
+    click("random_addon3_example_com-browser-action");
+    assertInteractionScalars({
+      unified_extensions_area: {
+        addon2: 1,
+      },
+    });
+    const hidden = BrowserTestUtils.waitForPopupEvent(
+      gUnifiedExtensions.panel,
+      "hidden"
+    );
+    await gUnifiedExtensions.panel.hidePopup();
+    await hidden;
+
+    await extension3.unload();
   });
 });
 
@@ -573,7 +658,7 @@ add_task(async function mainMenu() {
 
   BrowserUsageTelemetry._resetAddonIds();
 
-  await BrowserTestUtils.withNewTab("http://example.com", async browser => {
+  await BrowserTestUtils.withNewTab("https://example.com", async browser => {
     Services.telemetry.getSnapshotForKeyedScalars("main", true);
 
     CustomizableUI.setToolbarVisibility("toolbar-menubar", true);
@@ -678,4 +763,205 @@ add_task(async function preferences() {
       },
     });
   });
+});
+
+/**
+ * Context click on a history or bookmark link and open it in a new window.
+ *
+ * @param {Element} link - The link to open.
+ */
+async function openLinkUsingContextMenu(link) {
+  const placesContext = document.getElementById("placesContext");
+  const promisePopup = BrowserTestUtils.waitForEvent(
+    placesContext,
+    "popupshown"
+  );
+  EventUtils.synthesizeMouseAtCenter(link, {
+    button: 2,
+    type: "contextmenu",
+  });
+  await promisePopup;
+  const promiseNewWindow = BrowserTestUtils.waitForNewWindow();
+  placesContext.activateItem(
+    document.getElementById("placesContext_open:newwindow")
+  );
+  const win = await promiseNewWindow;
+  await BrowserTestUtils.closeWindow(win);
+}
+
+async function history_appMenu(useContextClick) {
+  await BrowserTestUtils.withNewTab("https://example.com", async browser => {
+    let shown = BrowserTestUtils.waitForEvent(
+      elem("appMenu-popup"),
+      "popupshown"
+    );
+    click("PanelUI-menu-button");
+    await shown;
+
+    click("appMenu-history-button");
+    shown = BrowserTestUtils.waitForEvent(elem("PanelUI-history"), "ViewShown");
+    await shown;
+
+    let list = document.getElementById("appMenu_historyMenu");
+    let listItem = list.querySelector("toolbarbutton");
+
+    if (useContextClick) {
+      await openLinkUsingContextMenu(listItem);
+    } else {
+      EventUtils.synthesizeMouseAtCenter(listItem, {});
+    }
+
+    let expectedScalars = {
+      nav_bar: {
+        "PanelUI-menu-button": 1,
+      },
+
+      app_menu: { "history-item": 1, "appMenu-history-button": 1 },
+    };
+    assertInteractionScalars(expectedScalars);
+  });
+}
+
+add_task(async function history_appMenu_click() {
+  await history_appMenu(false);
+});
+
+add_task(async function history_appMenu_context_click() {
+  await history_appMenu(true);
+});
+
+async function bookmarks_appMenu(useContextClick) {
+  await BrowserTestUtils.withNewTab("https://example.com", async browser => {
+    let shown = BrowserTestUtils.waitForEvent(
+      elem("appMenu-popup"),
+      "popupshown"
+    );
+
+    shown = BrowserTestUtils.waitForEvent(elem("appMenu-popup"), "popupshown");
+    click("PanelUI-menu-button");
+    await shown;
+
+    click("appMenu-bookmarks-button");
+    shown = BrowserTestUtils.waitForEvent(
+      elem("PanelUI-bookmarks"),
+      "ViewShown"
+    );
+    await shown;
+
+    let list = document.getElementById("panelMenu_bookmarksMenu");
+    let listItem = list.querySelector("toolbarbutton");
+
+    if (useContextClick) {
+      await openLinkUsingContextMenu(listItem);
+    } else {
+      EventUtils.synthesizeMouseAtCenter(listItem, {});
+    }
+
+    let expectedScalars = {
+      nav_bar: {
+        "PanelUI-menu-button": 1,
+      },
+
+      app_menu: { "bookmark-item": 1, "appMenu-bookmarks-button": 1 },
+    };
+    assertInteractionScalars(expectedScalars);
+  });
+}
+
+add_task(async function bookmarks_appMenu_click() {
+  await bookmarks_appMenu(false);
+});
+
+add_task(async function bookmarks_appMenu_context_click() {
+  await bookmarks_appMenu(true);
+});
+
+async function bookmarks_library_navbar(useContextClick) {
+  await BrowserTestUtils.withNewTab("https://example.com", async browser => {
+    CustomizableUI.addWidgetToArea("library-button", "nav-bar");
+    let button = document.getElementById("library-button");
+    button.click();
+    await BrowserTestUtils.waitForEvent(
+      elem("appMenu-libraryView"),
+      "ViewShown"
+    );
+
+    click("appMenu-library-bookmarks-button");
+    await BrowserTestUtils.waitForEvent(elem("PanelUI-bookmarks"), "ViewShown");
+
+    let list = document.getElementById("panelMenu_bookmarksMenu");
+    let listItem = list.querySelector("toolbarbutton");
+
+    if (useContextClick) {
+      await openLinkUsingContextMenu(listItem);
+    } else {
+      EventUtils.synthesizeMouseAtCenter(listItem, {});
+    }
+
+    let expectedScalars = {
+      nav_bar: {
+        "library-button": 1,
+        "bookmark-item": 1,
+        "appMenu-library-bookmarks-button": 1,
+      },
+    };
+    assertInteractionScalars(expectedScalars);
+  });
+
+  CustomizableUI.removeWidgetFromArea("library-button");
+}
+
+add_task(async function bookmarks_library_navbar_click() {
+  await bookmarks_library_navbar(false);
+});
+
+add_task(async function bookmarks_library_navbar_context_click() {
+  await bookmarks_library_navbar(true);
+});
+
+async function history_library_navbar(useContextClick) {
+  await BrowserTestUtils.withNewTab("https://example.com", async browser => {
+    CustomizableUI.addWidgetToArea("library-button", "nav-bar");
+    let button = document.getElementById("library-button");
+    button.click();
+    await BrowserTestUtils.waitForEvent(
+      elem("appMenu-libraryView"),
+      "ViewShown"
+    );
+
+    click("appMenu-library-history-button");
+    let shown = BrowserTestUtils.waitForEvent(
+      elem("PanelUI-history"),
+      "ViewShown"
+    );
+    await shown;
+
+    let list = document.getElementById("appMenu_historyMenu");
+    let listItem = list.querySelector("toolbarbutton");
+
+    if (useContextClick) {
+      await openLinkUsingContextMenu(listItem);
+    } else {
+      EventUtils.synthesizeMouseAtCenter(listItem, {});
+    }
+
+    let expectedScalars = {
+      nav_bar: {
+        "library-button": 1,
+        "history-item": 1,
+        "appMenu-library-history-button": 1,
+      },
+    };
+    assertInteractionScalars(expectedScalars);
+  });
+
+  CustomizableUI.removeWidgetFromArea("library-button");
+}
+
+add_task(async function history_library_navbar_click() {
+  await history_library_navbar(false);
+});
+
+add_task(async function history_library_navbar_context_click() {
+  await history_library_navbar(true);
 });

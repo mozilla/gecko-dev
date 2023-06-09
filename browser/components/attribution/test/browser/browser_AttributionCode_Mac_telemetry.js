@@ -1,13 +1,15 @@
 ChromeUtils.defineESModuleGetters(this, {
   TelemetryTestUtils: "resource://testing-common/TelemetryTestUtils.sys.mjs",
 });
-const { MacAttribution } = ChromeUtils.import(
-  "resource:///modules/MacAttribution.jsm"
+const { MacAttribution } = ChromeUtils.importESModule(
+  "resource:///modules/MacAttribution.sys.mjs"
 );
-const { AttributionIOUtils } = ChromeUtils.import(
-  "resource:///modules/AttributionCode.jsm"
+const { AttributionIOUtils } = ChromeUtils.importESModule(
+  "resource:///modules/AttributionCode.sys.mjs"
 );
-const { sinon } = ChromeUtils.import("resource://testing-common/Sinon.jsm");
+const { sinon } = ChromeUtils.importESModule(
+  "resource://testing-common/Sinon.sys.mjs"
+);
 
 async function assertCacheExistsAndIsEmpty() {
   // We should have written to the cache, and be able to read back

@@ -162,6 +162,7 @@ add_task(async function checkDomainCorrection() {
   info("Try loading a URI that should result in an error page");
   BrowserTestUtils.openNewForegroundTab(
     gBrowser,
+    // eslint-disable-next-line @microsoft/sdl/no-insecure-url
     "http://example/example2/",
     false
   );
@@ -212,7 +213,7 @@ add_task(async function onlyAllow3DESWithDeprecatedTLS() {
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: "about:blank" },
     async browser => {
-      BrowserTestUtils.loadURI(browser, TRIPLEDES_PAGE);
+      BrowserTestUtils.loadURIString(browser, TRIPLEDES_PAGE);
       await BrowserTestUtils.waitForErrorPage(browser);
     }
   );
@@ -222,7 +223,7 @@ add_task(async function onlyAllow3DESWithDeprecatedTLS() {
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: "about:blank" },
     async browser => {
-      BrowserTestUtils.loadURI(browser, TRIPLEDES_PAGE);
+      BrowserTestUtils.loadURIString(browser, TRIPLEDES_PAGE);
       await BrowserTestUtils.browserLoaded(browser, false, TRIPLEDES_PAGE);
     }
   );
@@ -235,7 +236,7 @@ add_task(async function onlyAllow3DESWithDeprecatedTLS() {
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: "about:blank" },
     async browser => {
-      BrowserTestUtils.loadURI(browser, TRIPLEDES_PAGE);
+      BrowserTestUtils.loadURIString(browser, TRIPLEDES_PAGE);
       await BrowserTestUtils.waitForErrorPage(browser);
     }
   );

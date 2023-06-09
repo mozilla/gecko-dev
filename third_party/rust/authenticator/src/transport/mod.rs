@@ -1,18 +1,22 @@
 use crate::consts::{Capability, HIDCmd};
-use crate::crypto::ECDHSecret;
-
-use crate::ctap2::commands::client_pin::{GetKeyAgreement, PinAuth};
-use crate::ctap2::commands::get_info::{AuthenticatorInfo, GetInfo};
+use crate::crypto::{PinUvAuthProtocol, PinUvAuthToken, SharedSecret};
+use crate::ctap2::commands::client_pin::{
+    GetKeyAgreement, GetPinToken, GetPinUvAuthTokenUsingPinWithPermissions,
+    GetPinUvAuthTokenUsingUvWithPermissions, PinUvAuthTokenPermission,
+};
+use crate::ctap2::commands::get_info::{AuthenticatorVersion, GetInfo};
 use crate::ctap2::commands::get_version::GetVersion;
 use crate::ctap2::commands::make_credentials::dummy_make_credentials_cmd;
 use crate::ctap2::commands::selection::Selection;
 use crate::ctap2::commands::{
-    CommandError, PinAuthCommand, Request, RequestCtap1, RequestCtap2, Retryable, StatusCode,
+    CommandError, Request, RequestCtap1, RequestCtap2, Retryable, StatusCode,
 };
 use crate::transport::device_selector::BlinkResult;
 use crate::transport::errors::{ApduErrorStatus, HIDError};
 use crate::transport::hid::HIDDevice;
 use crate::util::io_err;
+use crate::Pin;
+use std::convert::TryFrom;
 use std::thread;
 use std::time::Duration;
 
@@ -75,21 +79,38 @@ pub enum Nonce {
 // TODO(MS): This is the lazy way: FidoDevice currently only extends HIDDevice by more functions,
 //           but the goal is to remove U2FDevice entirely and copy over the trait-definition here
 pub trait FidoDevice: HIDDevice {
-    fn send_msg<'msg, Out, Req: Request<Out>>(&mut self, msg: &'msg Req) -> Result<Out, HIDError> {
+    fn send_msg<Out, Req: Request<Out>>(&mut self, msg: &Req) -> Result<Out, HIDError> {
+        self.send_msg_cancellable(msg, &|| true)
+    }
+
+    fn send_cbor<Req: RequestCtap2>(&mut self, msg: &Req) -> Result<Req::Output, HIDError> {
+        self.send_cbor_cancellable(msg, &|| true)
+    }
+
+    fn send_ctap1<Req: RequestCtap1>(&mut self, msg: &Req) -> Result<Req::Output, HIDError> {
+        self.send_ctap1_cancellable(msg, &|| true)
+    }
+
+    fn send_msg_cancellable<Out, Req: Request<Out>>(
+        &mut self,
+        msg: &Req,
+        keep_alive: &dyn Fn() -> bool,
+    ) -> Result<Out, HIDError> {
         if !self.initialized() {
             return Err(HIDError::DeviceNotInitialized);
         }
 
-        if self.supports_ctap2() && msg.is_ctap2_request() {
-            self.send_cbor(msg)
+        if self.get_authenticator_info().is_some() {
+            self.send_cbor_cancellable(msg, keep_alive)
         } else {
-            self.send_ctap1(msg)
+            self.send_ctap1_cancellable(msg, keep_alive)
         }
     }
 
-    fn send_cbor<'msg, Req: RequestCtap2>(
+    fn send_cbor_cancellable<Req: RequestCtap2>(
         &mut self,
-        msg: &'msg Req,
+        msg: &Req,
+        keep_alive: &dyn Fn() -> bool,
     ) -> Result<Req::Output, HIDError> {
         debug!("sending {:?} to {:?}", msg, self);
 
@@ -101,7 +122,7 @@ pub trait FidoDevice: HIDDevice {
         buf.append(&mut data);
         let buf = buf;
 
-        let (cmd, resp) = self.sendrecv(HIDCmd::Cbor, &buf)?;
+        let (cmd, resp) = self.sendrecv(HIDCmd::Cbor, &buf, keep_alive)?;
         debug!(
             "got from Device {:?} status={:?}: {:?}",
             self.id(),
@@ -115,15 +136,17 @@ pub trait FidoDevice: HIDDevice {
         }
     }
 
-    fn send_ctap1<'msg, Req: RequestCtap1>(
+    fn send_ctap1_cancellable<Req: RequestCtap1>(
         &mut self,
-        msg: &'msg Req,
+        msg: &Req,
+        keep_alive: &dyn Fn() -> bool,
     ) -> Result<Req::Output, HIDError> {
         debug!("sending {:?} to {:?}", msg, self);
-        let data = msg.ctap1_format(self)?;
+        let (data, add_info) = msg.ctap1_format(self)?;
 
-        loop {
-            let (cmd, mut data) = self.sendrecv(HIDCmd::Msg, &data)?;
+        while keep_alive() {
+            // sendrecv will not block with a CTAP1 device
+            let (cmd, mut data) = self.sendrecv(HIDCmd::Msg, &data, &|| true)?;
             debug!(
                 "got from Device {:?} status={:?}: {:?}",
                 self.id(),
@@ -139,7 +162,7 @@ pub trait FidoDevice: HIDDevice {
                 // This will bubble up error if status != no error
                 let status = ApduErrorStatus::from([status[0], status[1]]);
 
-                match msg.handle_response_ctap1(status, &data) {
+                match msg.handle_response_ctap1(status, &data, &add_info) {
                     Ok(out) => return Ok(out),
                     Err(Retryable::Retry) => {
                         // sleep 100ms then loop again
@@ -152,53 +175,63 @@ pub trait FidoDevice: HIDDevice {
                 return Err(HIDError::UnexpectedCmd(cmd.into()));
             }
         }
+
+        Err(HIDError::Command(CommandError::StatusCode(
+            StatusCode::KeepaliveCancel,
+            None,
+        )))
     }
 
     // This is ugly as we have 2 init-functions now, but the fastest way currently.
     fn init(&mut self, nonce: Nonce) -> Result<(), HIDError> {
-        let resp = <Self as HIDDevice>::initialize(self, nonce)?;
-        // TODO(baloo): this logic should be moved to
-        //              transport/mod.rs::Device trait
-        if self.supports_ctap2() {
-            let command = GetInfo::default();
-            let info = self.send_cbor(&command)?;
-            debug!("{:?} infos: {:?}", self.id(), info);
+        <Self as HIDDevice>::initialize(self, nonce)?;
 
-            self.set_authenticator_info(info);
+        // If the device has the CBOR capability flag, then we'll check
+        // for CTAP2 support by sending an authenticatorGetInfo command.
+        // We're not aware of any CTAP2 devices that fail to set the CBOR
+        // capability flag, but we may need to rework this in the future.
+        if self.get_device_info().cap_flags.contains(Capability::CBOR) {
+            let command = GetInfo::default();
+            if let Ok(info) = self.send_cbor(&command) {
+                debug!("{:?}: {:?}", self.id(), info);
+                if info.max_supported_version() != AuthenticatorVersion::U2F_V2 {
+                    // Device supports CTAP2
+                    self.set_authenticator_info(info);
+                    return Ok(());
+                }
+            }
+            // An error from GetInfo might indicate that we're talking
+            // to a CTAP1 device that mistakenly claimed the CBOR capability,
+            // so we fallthrough here.
         }
-        if self.supports_ctap1() {
-            let command = GetVersion::default();
-            // We don't really use the result here
-            self.send_ctap1(&command)?;
-        }
-        Ok(resp)
+        // We want to return an error here if this device doesn't support CTAP1,
+        // so we send a U2F_VERSION command.
+        let command = GetVersion::default();
+        self.send_ctap1(&command)?;
+        Ok(())
     }
 
-    fn block_and_blink(&mut self) -> BlinkResult {
-        let resp;
-        let supports_select_cmd = self
-            .get_authenticator_info()
-            .map_or(false, |i| i.versions.contains(&String::from("FIDO_2_1")));
-        if supports_select_cmd {
+    fn block_and_blink(&mut self, keep_alive: &dyn Fn() -> bool) -> BlinkResult {
+        let supports_select_cmd = self.get_authenticator_info().map_or(false, |i| {
+            i.versions.contains(&AuthenticatorVersion::FIDO_2_1)
+        });
+        let resp = if supports_select_cmd {
             let msg = Selection {};
-            resp = self.send_cbor(&msg);
+            self.send_cbor_cancellable(&msg, keep_alive)
         } else {
             // We need to fake a blink-request, because FIDO2.0 forgot to specify one
             // See: https://fidoalliance.org/specs/fido-v2.0-ps-20190130/fido-client-to-authenticator-protocol-v2.0-ps-20190130.html#using-pinToken-in-authenticatorMakeCredential
-            let mut msg = match dummy_make_credentials_cmd() {
+            let msg = match dummy_make_credentials_cmd() {
                 Ok(m) => m,
                 Err(_) => {
                     return BlinkResult::Cancelled;
                 }
             };
-            // Using a zero-length pinAuth will trigger the device to blink
-            // For CTAP1, this gets ignored anyways and we do a 'normal' register
-            // command, which also just blinks.
-            msg.set_pin_auth(Some(PinAuth::empty_pin_auth()), None);
             info!("Trying to blink: {:?}", &msg);
             // We don't care about the Ok-value, just if it is Ok or not
-            resp = self.send_msg(&msg).map(|_| ());
-        }
+            self.send_msg_cancellable(&msg, keep_alive).map(|_| ())
+        };
+
         match resp {
             // Spec only says PinInvalid or PinNotSet should be returned on the fake touch-request,
             // but Yubikeys for example return PinAuthInvalid. A successful return is also possible
@@ -217,47 +250,90 @@ pub trait FidoDevice: HIDDevice {
                 debug!("Device {:?} got cancelled", &self);
                 BlinkResult::Cancelled
             }
-            // Something unexpected happened, so we assume this device is not usable and interpreting
-            // this equivalent to being cancelled.
+            // Something unexpected happened, so we assume this device is not usable and
+            // interpreting this equivalent to being cancelled.
             e => {
                 info!("Device {:?} received unexpected answer, so we assume an error occurred and we are NOT using this device (assuming the request was cancelled): {:?}", &self, e);
                 BlinkResult::Cancelled
             }
         }
     }
-    fn supports_ctap1(&self) -> bool {
-        // CAPABILITY_NMSG:
-        // If set to 1, authenticator DOES NOT implement U2FHID_MSG function
-        !self.get_device_info().cap_flags.contains(Capability::NMSG)
-    }
 
-    fn supports_ctap2(&self) -> bool {
-        self.get_device_info().cap_flags.contains(Capability::CBOR)
-    }
-
-    fn establish_shared_secret(&mut self) -> Result<(ECDHSecret, AuthenticatorInfo), HIDError> {
-        if !self.supports_ctap2() {
-            return Err(HIDError::UnsupportedCommand);
-        }
-
-        let info = if let Some(authenticator_info) = self.get_authenticator_info().cloned() {
-            authenticator_info
-        } else {
-            // We should already have it, since it is queried upon `init()`, but just to be safe
-            let info_command = GetInfo::default();
-            let info = self.send_cbor(&info_command)?;
-            debug!("infos: {:?}", info);
-
-            self.set_authenticator_info(info.clone());
-            info
+    fn establish_shared_secret(&mut self) -> Result<SharedSecret, HIDError> {
+        // CTAP1 devices don't support establishing a shared secret
+        let info = match self.get_authenticator_info() {
+            Some(info) => info,
+            None => return Err(HIDError::UnsupportedCommand),
         };
+
+        let pin_protocol = PinUvAuthProtocol::try_from(info)?;
 
         // Not reusing the shared secret here, if it exists, since we might start again
         // with a different PIN (e.g. if the last one was wrong)
-        let pin_command = GetKeyAgreement::new(&info)?;
+        let pin_command = GetKeyAgreement::new(pin_protocol);
         let device_key_agreement = self.send_cbor(&pin_command)?;
         let shared_secret = device_key_agreement.shared_secret()?;
         self.set_shared_secret(shared_secret.clone());
-        Ok((shared_secret, info))
+        Ok(shared_secret)
+    }
+
+    /// CTAP 2.0-only version:
+    /// "Getting pinUvAuthToken using getPinToken (superseded)"
+    fn get_pin_token(&mut self, pin: &Option<Pin>) -> Result<PinUvAuthToken, HIDError> {
+        // Asking the user for PIN before establishing the shared secret
+        let pin = pin
+            .as_ref()
+            .ok_or(CommandError::StatusCode(StatusCode::PinRequired, None))?;
+
+        // Not reusing the shared secret here, if it exists, since we might start again
+        // with a different PIN (e.g. if the last one was wrong)
+        let shared_secret = self.establish_shared_secret()?;
+
+        let pin_command = GetPinToken::new(&shared_secret, pin);
+        let pin_token = self.send_cbor(&pin_command)?;
+
+        Ok(pin_token)
+    }
+
+    fn get_pin_uv_auth_token_using_uv_with_permissions(
+        &mut self,
+        permission: PinUvAuthTokenPermission,
+        rp_id: Option<&String>,
+    ) -> Result<PinUvAuthToken, HIDError> {
+        // Explicitly not reusing the shared secret here
+        let shared_secret = self.establish_shared_secret()?;
+        let pin_command = GetPinUvAuthTokenUsingUvWithPermissions::new(
+            &shared_secret,
+            permission,
+            rp_id.cloned(),
+        );
+        let pin_auth_token = self.send_cbor(&pin_command)?;
+
+        Ok(pin_auth_token)
+    }
+
+    fn get_pin_uv_auth_token_using_pin_with_permissions(
+        &mut self,
+        pin: &Option<Pin>,
+        permission: PinUvAuthTokenPermission,
+        rp_id: Option<&String>,
+    ) -> Result<PinUvAuthToken, HIDError> {
+        // Asking the user for PIN before establishing the shared secret
+        let pin = pin
+            .as_ref()
+            .ok_or(CommandError::StatusCode(StatusCode::PinRequired, None))?;
+
+        // Not reusing the shared secret here, if it exists, since we might start again
+        // with a different PIN (e.g. if the last one was wrong)
+        let shared_secret = self.establish_shared_secret()?;
+        let pin_command = GetPinUvAuthTokenUsingPinWithPermissions::new(
+            &shared_secret,
+            pin,
+            permission,
+            rp_id.cloned(),
+        );
+        let pin_auth_token = self.send_cbor(&pin_command)?;
+
+        Ok(pin_auth_token)
     }
 }

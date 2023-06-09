@@ -16,7 +16,8 @@
 #include "mozilla/HashTable.h"      // mozilla::HashSet
 #include "mozilla/Maybe.h"          // mozilla::{Maybe,Nothing,Some}
 #include "mozilla/PodOperations.h"  // mozilla::PodCopy
-#include "mozilla/Variant.h"        // mozilla::AsVariant
+#include "mozilla/Saturate.h"
+#include "mozilla/Variant.h"  // mozilla::AsVariant
 
 #include <algorithm>
 #include <iterator>
@@ -138,7 +139,6 @@ BytecodeEmitter::BytecodeEmitter(BytecodeEmitter* parent, FrontendContext* fc,
                                  CompilationState& compilationState,
                                  EmitterMode emitterMode)
     : sc(sc),
-      cx(sc->cx_),
       fc(fc),
       stackLimit(stackLimit),
       parent(parent),
@@ -2459,11 +2459,19 @@ BytecodeEmitter::createImmutableScriptData() {
   bool isFunction = sc->isFunctionBox();
   uint16_t funLength = isFunction ? sc->asFunctionBox()->length() : 0;
 
+  mozilla::SaturateUint8 propertyCountEstimate = propertyAdditionEstimate;
+
+  // Add fields to the property count estimate.
+  if (isFunction && sc->asFunctionBox()->useMemberInitializers()) {
+    propertyCountEstimate +=
+        sc->asFunctionBox()->memberInitializers().numMemberInitializers;
+  }
+
   return ImmutableScriptData::new_(
       fc, mainOffset(), maxFixedSlots, nslots, bodyScopeIndex,
       bytecodeSection().numICEntries(), isFunction, funLength,
-      bytecodeSection().code(), bytecodeSection().notes(),
-      bytecodeSection().resumeOffsetList().span(),
+      propertyCountEstimate.value(), bytecodeSection().code(),
+      bytecodeSection().notes(), bytecodeSection().resumeOffsetList().span(),
       bytecodeSection().scopeNoteList().span(),
       bytecodeSection().tryNoteList().span());
 }
@@ -4072,6 +4080,20 @@ bool BytecodeEmitter::emitAssignmentOrInit(ParseNodeKind kind, ParseNode* lhs,
   JSOp compoundOp = CompoundAssignmentParseNodeKindToJSOp(kind);
   bool isCompound = compoundOp != JSOp::Nop;
   bool isInit = kind == ParseNodeKind::InitExpr;
+
+  // We estimate the number of properties this could create
+  // if used as constructor merely by counting this.foo = assignment
+  // or init expressions;
+  //
+  // This currently doesn't handle this[x] = foo;
+  if (isInit || kind == ParseNodeKind::AssignExpr) {
+    if (lhs->isKind(ParseNodeKind::DotExpr)) {
+      if (lhs->as<PropertyAccess>().expression().isKind(
+              ParseNodeKind::ThisExpr)) {
+        propertyAdditionEstimate++;
+      }
+    }
+  }
 
   MOZ_ASSERT_IF(isInit, lhs->isKind(ParseNodeKind::DotExpr) ||
                             lhs->isKind(ParseNodeKind::ElemExpr) ||
@@ -7381,6 +7403,32 @@ bool BytecodeEmitter::emitSelfHostedToString(CallNode* callNode) {
   return emit1(JSOp::ToString);
 }
 
+bool BytecodeEmitter::emitSelfHostedIsNullOrUndefined(CallNode* callNode) {
+  ListNode* argsList = &callNode->right()->as<ListNode>();
+
+  MOZ_ASSERT(argsList->count() == 1);
+
+  ParseNode* argNode = argsList->head();
+
+  if (!emitTree(argNode)) {
+    //              [stack] ARG
+    return false;
+  }
+  if (!emit1(JSOp::IsNullOrUndefined)) {
+    //              [stack] ARG IS_NULL_OR_UNDEF
+    return false;
+  }
+  if (!emit1(JSOp::Swap)) {
+    //              [stack] IS_NULL_OR_UNDEF ARG
+    return false;
+  }
+  if (!emit1(JSOp::Pop)) {
+    //              [stack] IS_NULL_OR_UNDEF
+    return false;
+  }
+  return true;
+}
+
 bool BytecodeEmitter::emitSelfHostedGetBuiltinConstructorOrPrototype(
     CallNode* callNode, bool isConstructor) {
   ListNode* argsList = &callNode->right()->as<ListNode>();
@@ -7459,6 +7507,30 @@ bool BytecodeEmitter::emitSelfHostedGetBuiltinSymbol(CallNode* callNode) {
   }
 
   return emit2(JSOp::Symbol, uint8_t(code));
+}
+
+bool BytecodeEmitter::emitSelfHostedArgumentsLength(CallNode* callNode) {
+  MOZ_ASSERT(!sc->asFunctionBox()->needsArgsObj());
+  sc->asFunctionBox()->setUsesArgumentsIntrinsics();
+
+  MOZ_ASSERT(callNode->right()->as<ListNode>().count() == 0);
+
+  return emit1(JSOp::ArgumentsLength);
+}
+
+bool BytecodeEmitter::emitSelfHostedGetArgument(CallNode* callNode) {
+  MOZ_ASSERT(!sc->asFunctionBox()->needsArgsObj());
+  sc->asFunctionBox()->setUsesArgumentsIntrinsics();
+
+  ListNode* argsList = &callNode->right()->as<ListNode>();
+  MOZ_ASSERT(argsList->count() == 1);
+
+  ParseNode* argNode = argsList->head();
+  if (!emitTree(argNode)) {
+    return false;
+  }
+
+  return emit1(JSOp::GetActualArg);
 }
 
 #ifdef DEBUG
@@ -8022,12 +8094,21 @@ bool BytecodeEmitter::emitCallOrNew(CallNode* callNode, ValueUsage valueUsage) {
     if (calleeName == TaggedParserAtomIndex::WellKnown::GetBuiltinSymbol()) {
       return emitSelfHostedGetBuiltinSymbol(callNode);
     }
+    if (calleeName == TaggedParserAtomIndex::WellKnown::ArgumentsLength()) {
+      return emitSelfHostedArgumentsLength(callNode);
+    }
+    if (calleeName == TaggedParserAtomIndex::WellKnown::GetArgument()) {
+      return emitSelfHostedGetArgument(callNode);
+    }
     if (calleeName ==
         TaggedParserAtomIndex::WellKnown::SetIsInlinableLargeFunction()) {
       return emitSelfHostedSetIsInlinableLargeFunction(callNode);
     }
     if (calleeName == TaggedParserAtomIndex::WellKnown::SetCanonicalName()) {
       return emitSelfHostedSetCanonicalName(callNode);
+    }
+    if (calleeName == TaggedParserAtomIndex::WellKnown::IsNullOrUndefined()) {
+      return emitSelfHostedIsNullOrUndefined(callNode);
     }
 #ifdef DEBUG
     if (calleeName ==
@@ -8965,12 +9046,24 @@ bool BytecodeEmitter::emitPropertyList(ListNode* obj, PropertyEmitter& pe,
       if (prop->is<ClassMethod>()) {
         ClassMethod& method = prop->as<ClassMethod>();
         if (method.decorators() && !method.decorators()->empty()) {
-          DecoratorEmitter de(this);
+          DecoratorEmitter::Kind kind;
+          switch (method.accessorType()) {
+            case AccessorType::Getter:
+              kind = DecoratorEmitter::Getter;
+              break;
+            case AccessorType::Setter:
+              kind = DecoratorEmitter::Setter;
+              break;
+            case AccessorType::None:
+              kind = DecoratorEmitter::Method;
+              break;
+          }
+
           // The decorators are applied to the current value on the stack,
           // possibly replacing it.
+          DecoratorEmitter de(this);
           if (!de.emitApplyDecoratorsToElementDefinition(
-                  DecoratorEmitter::Method, key, method.decorators(),
-                  method.isStatic())) {
+                  kind, key, method.decorators(), method.isStatic())) {
             //        [stack] CTOR? OBJ CTOR? KEY? VAL
             return false;
           }
@@ -9571,6 +9664,51 @@ bool BytecodeEmitter::emitCreateMemberInitializers(ClassEmitter& ce,
     }
   }
 
+#ifdef ENABLE_DECORATORS
+  // Index to use to append new initializers returned by decorators to the array
+  if (!emitNumberOp(numInitializers)) {
+    //            [stack] HOMEOBJ HERITAGE? ARRAY INDEX
+    // or:
+    //            [stack] CTOR HOMEOBJ ARRAY INDEX
+    return false;
+  }
+
+  for (ParseNode* propdef : obj->contents()) {
+    if (!propdef->is<ClassField>()) {
+      continue;
+    }
+    ClassField* field = &propdef->as<ClassField>();
+    if (placement == FieldPlacement::Static && !field->isStatic()) {
+      continue;
+    }
+    if (field->decorators() && !field->decorators()->empty()) {
+      DecoratorEmitter de(this);
+      if (!de.emitApplyDecoratorsToFieldDefinition(
+              &field->name(), field->decorators(), field->isStatic())) {
+        //                [stack] HOMEOBJ HERITAGE? ARRAY INDEX INITIALIZERS
+        // or:
+        //                [stack] CTOR HOMEOBJ ARRAY INDEX INITIALIZERS
+        return false;
+      }
+
+      if (!emit1(JSOp::InitElemInc)) {
+        //                [stack] HOMEOBJ HERITAGE? ARRAY INDEX
+        // or:
+        //                [stack] CTOR HOMEOBJ ARRAY INDEX
+        return false;
+      }
+    }
+  }
+
+  // Pop INDEX
+  if (!emitPopN(1)) {
+    //                [stack] HOMEOBJ HERITAGE? ARRAY
+    // or:
+    //                [stack] CTOR HOMEOBJ ARRAY
+    return false;
+  }
+#endif
+
   if (!ce.emitMemberInitializersEnd()) {
     //              [stack] HOMEOBJ HERITAGE?
     // or:
@@ -9847,54 +9985,162 @@ bool BytecodeEmitter::emitInitializeInstanceMembers(
   }
 
   size_t numInitializers = memberInitializers.numMemberInitializers;
-  if (numInitializers == 0) {
-    return true;
-  }
-
-  if (!emitGetName(TaggedParserAtomIndex::WellKnown::dotInitializers())) {
-    //              [stack] ARRAY
-    return false;
-  }
-
-  for (size_t index = 0; index < numInitializers; index++) {
-    if (index < numInitializers - 1) {
-      // We Dup to keep the array around (it is consumed in the bytecode
-      // below) for next iterations of this loop, except for the last
-      // iteration, which avoids an extra Pop at the end of the loop.
-      if (!emit1(JSOp::Dup)) {
-        //          [stack] ARRAY ARRAY
-        return false;
-      }
-    }
-
-    if (!emitNumberOp(index)) {
-      //            [stack] ARRAY? ARRAY INDEX
+  if (numInitializers > 0) {
+    if (!emitGetName(TaggedParserAtomIndex::WellKnown::dotInitializers())) {
+      //              [stack] ARRAY
       return false;
     }
 
+    for (size_t index = 0; index < numInitializers; index++) {
+      if (index < numInitializers - 1) {
+        // We Dup to keep the array around (it is consumed in the bytecode
+        // below) for next iterations of this loop, except for the last
+        // iteration, which avoids an extra Pop at the end of the loop.
+        if (!emit1(JSOp::Dup)) {
+          //          [stack] ARRAY ARRAY
+          return false;
+        }
+      }
+
+      if (!emitNumberOp(index)) {
+        //            [stack] ARRAY? ARRAY INDEX
+        return false;
+      }
+
+      if (!emit1(JSOp::GetElem)) {
+        //            [stack] ARRAY? FUNC
+        return false;
+      }
+
+      // This is guaranteed to run after super(), so we don't need TDZ checks.
+      if (!emitGetName(TaggedParserAtomIndex::WellKnown::dotThis())) {
+        //            [stack] ARRAY? FUNC THIS
+        return false;
+      }
+
+      // Callee is always internal function.
+      if (!emitCall(JSOp::CallIgnoresRv, 0)) {
+        //            [stack] ARRAY? RVAL
+        return false;
+      }
+
+      if (!emit1(JSOp::Pop)) {
+        //            [stack] ARRAY?
+        return false;
+      }
+    }
+#ifdef ENABLE_DECORATORS
+    // Decorators Proposal
+    // https://arai-a.github.io/ecma262-compare/?pr=2417&id=sec-initializeinstanceelements
+    // 4. For each element e of elements, do
+    //     4.a. If elementRecord.[[Kind]] is field or accessor, then
+    //         4.a.i. Perform ? InitializeFieldOrAccessor(O, elementRecord).
+    //
+
+    // TODO: (See Bug 1817993) At the moment, we're applying the initialization
+    // logic in two steps. The pre-decorator initialization code runs, stores
+    // the initial value, and then we retrieve it here and apply the
+    // initializers added by decorators. We should unify these two steps.
+    if (!emitGetName(TaggedParserAtomIndex::WellKnown::dotInitializers())) {
+      //              [stack] ARRAY
+      return false;
+    }
+
+    if (!emit1(JSOp::Dup)) {
+      //          [stack] ARRAY ARRAY
+      return false;
+    }
+
+    if (!emitAtomOp(JSOp::GetProp,
+                    TaggedParserAtomIndex::WellKnown::length())) {
+      //          [stack] ARRAY LENGTH
+      return false;
+    }
+
+    if (!emitNumberOp(static_cast<double>(numInitializers))) {
+      //          [stack] ARRAY LENGTH INDEX
+      return false;
+    }
+
+    WhileEmitter wh(this);
+    // At this point, we have no context to determine offsets in the
+    // code for this while statement. Ideally, it would correspond to
+    // the field we're initializing.
+    if (!wh.emitCond(0, 0, 0)) {
+      //          [stack] ARRAY LENGTH INDEX
+      return false;
+    }
+
+    if (!emit1(JSOp::Dup)) {
+      //          [stack] ARRAY LENGTH INDEX INDEX
+      return false;
+    }
+
+    if (!emitDupAt(2)) {
+      //          [stack] ARRAY LENGTH INDEX INDEX LENGTH
+      return false;
+    }
+
+    if (!emit1(JSOp::Lt)) {
+      //          [stack] ARRAY LENGTH INDEX BOOL
+      return false;
+    }
+
+    if (!wh.emitBody()) {
+      //          [stack] ARRAY LENGTH INDEX
+      return false;
+    }
+
+    if (!emitDupAt(2)) {
+      //          [stack] ARRAY LENGTH INDEX ARRAY
+      return false;
+    }
+
+    if (!emitDupAt(1)) {
+      //          [stack] ARRAY LENGTH INDEX ARRAY INDEX
+      return false;
+    }
+
+    // Retrieve initializers for this field
     if (!emit1(JSOp::GetElem)) {
-      //            [stack] ARRAY? FUNC
+      //            [stack] ARRAY LENGTH INDEX INITIALIZERS
       return false;
     }
 
     // This is guaranteed to run after super(), so we don't need TDZ checks.
     if (!emitGetName(TaggedParserAtomIndex::WellKnown::dotThis())) {
-      //            [stack] ARRAY? FUNC THIS
+      //            [stack] ARRAY LENGTH INDEX INITIALIZERS THIS
       return false;
     }
 
-    // Callee is always internal function.
-    if (!emitCall(JSOp::CallIgnoresRv, 0)) {
-      //            [stack] ARRAY? RVAL
+    if (!emit1(JSOp::Swap)) {
+      //            [stack] ARRAY LENGTH INDEX THIS INITIALIZERS
       return false;
     }
 
-    if (!emit1(JSOp::Pop)) {
-      //            [stack] ARRAY?
+    DecoratorEmitter de(this);
+    if (!de.emitInitializeFieldOrAccessor()) {
+      //            [stack] ARRAY LENGTH INDEX
       return false;
     }
+
+    if (!emit1(JSOp::Inc)) {
+      //            [stack] ARRAY LENGTH INDEX
+      return false;
+    }
+
+    if (!wh.emitEnd()) {
+      //          [stack] ARRAY LENGTH INDEX
+      return false;
+    }
+
+    if (!emitPopN(3)) {
+      //            [stack]
+      return false;
+    }
+    // 5. Return unused.
+#endif
   }
-
   return true;
 }
 
@@ -10610,6 +10856,9 @@ bool BytecodeEmitter::emitInitializeFunctionSpecialNames() {
 
   // Do nothing if the function doesn't have an arguments binding.
   if (funbox->needsArgsObj()) {
+    // Self-hosted code should use the more efficient ArgumentsLength and
+    // GetArgument intrinsics instead of `arguments`.
+    MOZ_ASSERT(emitterMode != BytecodeEmitter::SelfHosting);
     if (!emitInitializeFunctionSpecialName(
             this, TaggedParserAtomIndex::WellKnown::arguments(),
             JSOp::Arguments)) {
@@ -11747,8 +11996,7 @@ bool BytecodeEmitter::intoScriptStencil(ScriptIndex scriptIndex) {
   }
 
   // De-duplicate the bytecode within the runtime.
-  if (!compilationState.sharedData.addAndShare(cx, fc, scriptIndex,
-                                               sharedData)) {
+  if (!compilationState.sharedData.addAndShare(fc, scriptIndex, sharedData)) {
     return false;
   }
 

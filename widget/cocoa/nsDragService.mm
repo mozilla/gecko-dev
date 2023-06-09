@@ -245,7 +245,8 @@ nsresult nsDragService::InvokeDragSessionImpl(nsIArray* aTransferableArray,
       beginDraggingSessionWithItems:[NSArray arrayWithObject:[dragItem autorelease]]
                               event:mNativeDragEvent
                              source:mNativeDragView];
-  draggingSession.animatesToStartingPositionsOnCancelOrFail = YES;
+  draggingSession.animatesToStartingPositionsOnCancelOrFail =
+      !mDataTransfer || mDataTransfer->MozShowFailAnimation();
 
   return NS_OK;
 
@@ -347,7 +348,7 @@ nsDragService::IsDataFlavorSupported(const char* aDataFlavor, bool* _retval) {
   if (dataFlavor.EqualsLiteral(kFileMime)) {
     type = [UTIHelper stringFromPboardType:(NSString*)kUTTypeFileURL];
     allowFileURL = true;
-  } else if (dataFlavor.EqualsLiteral(kUnicodeMime)) {
+  } else if (dataFlavor.EqualsLiteral(kTextMime)) {
     type = [UTIHelper stringFromPboardType:NSPasteboardTypeString];
   } else if (dataFlavor.EqualsLiteral(kHTMLMime)) {
     type = [UTIHelper stringFromPboardType:NSPasteboardTypeHTML];

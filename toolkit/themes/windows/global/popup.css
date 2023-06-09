@@ -77,8 +77,8 @@ menupopup > menu > menupopup {
 }
 
 :is(panel, menupopup)::part(content) {
-  display: -moz-box;
-  -moz-box-flex: 1;
+  display: flex;
+  box-sizing: border-box;
   padding: var(--panel-padding);
   margin: var(--panel-shadow-margin);
   box-shadow: var(--panel-shadow);
@@ -89,10 +89,14 @@ menupopup > menu > menupopup {
   width: var(--panel-width);
   min-width: 0;
   min-height: 0;
+
+  /* Makes popup constraints work */
+  max-height: calc(100% - 2 * var(--panel-shadow-margin));
+  max-width: calc(100% - 2 * var(--panel-shadow-margin));
 }
 
 :is(panel, menupopup)[orient=vertical]::part(content) {
-  -moz-box-orient: vertical;
+  flex-direction: column;
 }
 
 panel[type="arrow"].panel-no-padding::part(content) {

@@ -16,6 +16,7 @@
 #include "mozilla/ChaosMode.h"
 #include "mozilla/CmdLineAndEnvUtils.h"
 #include "mozilla/IOInterposer.h"
+#include "mozilla/ipc/UtilityProcessChild.h"
 #include "mozilla/Likely.h"
 #include "mozilla/MemoryChecking.h"
 #include "mozilla/Poison.h"
@@ -69,7 +70,7 @@
 #include "prtime.h"
 
 #include "nsIAppStartup.h"
-#include "nsAppStartupNotifier.h"
+#include "nsCategoryManagerUtils.h"
 #include "nsIMutableArray.h"
 #include "nsCommandLine.h"
 #include "nsIComponentRegistrar.h"
@@ -116,6 +117,7 @@
 #  include "detect_win32k_conflicts.h"
 #  include "mozilla/PreXULSkeletonUI.h"
 #  include "mozilla/DllPrefetchExperimentRegistryInfo.h"
+#  include "mozilla/WindowsBCryptInitialization.h"
 #  include "mozilla/WindowsDllBlocklist.h"
 #  include "mozilla/WindowsProcessMitigations.h"
 #  include "mozilla/WinHeaderOnlyUtils.h"
@@ -252,6 +254,11 @@
 #  include "nsIStringBundle.h"
 #endif
 
+#ifdef USE_GLX_TEST
+#  include "mozilla/GUniquePtr.h"
+#  include "mozilla/GfxInfo.h"
+#endif
+
 extern uint32_t gRestartMode;
 extern void InstallSignalHandlers(const char* ProgramName);
 
@@ -319,11 +326,6 @@ nsString gProcessStartupShortcut;
 
 #if defined(MOZ_WIDGET_GTK)
 #  include <glib.h>
-#  if defined(DEBUG) || defined(NS_BUILD_REFCNT_LOGGING)
-#    define CLEANUP_MEMORY 1
-#    define PANGO_ENABLE_BACKEND
-#    include <pango/pangofc-fontmap.h>
-#  endif
 #  include "mozilla/WidgetUtilsGtk.h"
 #  include <gtk/gtk.h>
 #  ifdef MOZ_WAYLAND
@@ -333,7 +335,6 @@ nsString gProcessStartupShortcut;
 #  ifdef MOZ_X11
 #    include <gdk/gdkx.h>
 #  endif /* MOZ_X11 */
-#  include <fontconfig/fontconfig.h>
 #endif
 #include "BinaryPath.h"
 
@@ -412,6 +413,51 @@ static void UnexpectedExit() {
     MOZ_CRASH("Exit called by third party code.");
   }
 }
+
+#if defined(MOZ_WAYLAND)
+bool IsWaylandEnabled() {
+  static bool isWaylandEnabled = []() {
+    const char* waylandDisplay = PR_GetEnv("WAYLAND_DISPLAY");
+    if (!waylandDisplay) {
+      return false;
+    }
+    if (!PR_GetEnv("DISPLAY")) {
+      // No X11 display, so try to run wayland.
+      return true;
+    }
+    // MOZ_ENABLE_WAYLAND is our primary Wayland on/off switch.
+    if (const char* waylandPref = PR_GetEnv("MOZ_ENABLE_WAYLAND")) {
+      return *waylandPref == '1';
+    }
+    if (const char* backendPref = PR_GetEnv("GDK_BACKEND")) {
+      if (!strncmp(backendPref, "wayland", 7)) {
+        NS_WARNING(
+            "Wayland backend should be enabled by MOZ_ENABLE_WAYLAND=1."
+            "GDK_BACKEND is a Gtk3 debug variable and may cause issues.");
+        return true;
+      }
+    }
+#  ifdef EARLY_BETA_OR_EARLIER
+    // Enable by default when we're running on a recent enough GTK version. We'd
+    // like to check further details like compositor version and so on ideally
+    // to make sure we don't enable it on old Mutter or what not, but we can't,
+    // so let's assume that if the user is running on a Wayland session by
+    // default we're ok, since either the distro has enabled Wayland by default,
+    // or the user has gone out of their way to use Wayland.
+    //
+    // TODO(emilio): If users hit problems, we might be able to restrict it to
+    // GNOME / KDE  / known-good-desktop environments by checking
+    // XDG_CURRENT_DESKTOP or so...
+    return !gtk_check_version(3, 24, 30);
+#  else
+    return false;
+#  endif
+  }();
+  return isWaylandEnabled;
+}
+#else
+bool IsWaylandEnabled() { return false; }
+#endif
 
 /**
  * Output a string to the user.  This method is really only meant to be used to
@@ -896,25 +942,6 @@ nsIXULRuntime::ContentWin32kLockdownState GetWin32kLockdownState() {
 //
 // - The 'fission.autostart' preference, if it has been configured by the user.
 static const char kPrefFissionAutostart[] = "fission.autostart";
-//
-// - The fission experiment enrollment status set during the previous run, which
-//   is controlled by the following preferences:
-//
-// The current enrollment status as controlled by Normandy. This value is only
-// stored in the default preference branch, and is not persisted across
-// sessions by the preference service. It therefore isn't available early
-// enough at startup, and needs to be synced to a preference in the user
-// branch which is persisted across sessions.
-static const char kPrefFissionExperimentEnrollmentStatus[] =
-    "fission.experiment.enrollmentStatus";
-//
-// The enrollment status to be used at browser startup. This automatically
-// synced from the above enrollmentStatus preference whenever the latter is
-// changed. It can have any of the values defined in the
-// `nsIXULRuntime_ExperimentStatus` enum. Meanings are documented in
-// the declaration of `nsIXULRuntime.fissionExperimentStatus`
-static const char kPrefFissionExperimentStartupEnrollmentStatus[] =
-    "fission.experiment.startupEnrollmentStatus";
 
 // The computed FissionAutostart value for the session, read by content
 // processes to initialize gFissionAutostart.
@@ -923,68 +950,13 @@ static const char kPrefFissionExperimentStartupEnrollmentStatus[] =
 // never be persisted in a profile.
 static const char kPrefFissionAutostartSession[] = "fission.autostart.session";
 
-static nsIXULRuntime::ExperimentStatus gFissionExperimentStatus =
-    nsIXULRuntime::eExperimentStatusUnenrolled;
+//
+// The computed FissionAutostart value for the session, read by content
+// processes to initialize gFissionAutostart.
+
 static bool gFissionAutostart = false;
 static bool gFissionAutostartInitialized = false;
 static nsIXULRuntime::FissionDecisionStatus gFissionDecisionStatus;
-
-namespace mozilla {
-
-bool FissionExperimentEnrolled() {
-  MOZ_ASSERT(XRE_IsParentProcess());
-  return gFissionExperimentStatus == nsIXULRuntime::eExperimentStatusControl ||
-         gFissionExperimentStatus ==
-             nsIXULRuntime::eExperimentStatusTreatment ||
-         gFissionExperimentStatus == nsIXULRuntime::eExperimentStatusRollout;
-}
-
-}  // namespace mozilla
-
-static void FissionExperimentDisqualify() {
-  MOZ_ASSERT(XRE_IsParentProcess());
-  // Setting this pref's user value will be detected by Normandy, causing the
-  // client to be unenrolled from the experiment.
-  Preferences::SetUint(kPrefFissionExperimentEnrollmentStatus,
-                       nsIXULRuntime::eExperimentStatusDisqualified);
-}
-
-static void OnFissionEnrollmentStatusChanged(const char* aPref, void* aData) {
-  Preferences::SetUint(
-      kPrefFissionExperimentStartupEnrollmentStatus,
-      Preferences::GetUint(kPrefFissionExperimentEnrollmentStatus,
-                           nsIXULRuntime::eExperimentStatusUnenrolled));
-}
-
-namespace {
-// This observer is notified during `profile-before-change`, and ensures that
-// the experiment enrollment status is synced over before the browser shuts
-// down, even if it was not modified since FissionAutostart was initialized.
-class FissionEnrollmentStatusShutdownObserver final : public nsIObserver {
- public:
-  NS_DECL_ISUPPORTS
-
-  NS_IMETHOD Observe(nsISupports* aSubject, const char* aTopic,
-                     const char16_t* aData) override {
-    MOZ_ASSERT(!strcmp("profile-before-change", aTopic));
-    OnFissionEnrollmentStatusChanged(kPrefFissionExperimentEnrollmentStatus,
-                                     nullptr);
-    return NS_OK;
-  }
-
- private:
-  ~FissionEnrollmentStatusShutdownObserver() = default;
-};
-NS_IMPL_ISUPPORTS(FissionEnrollmentStatusShutdownObserver, nsIObserver)
-}  // namespace
-
-static void OnFissionAutostartChanged(const char* aPref, void* aData) {
-  MOZ_ASSERT(FissionExperimentEnrolled());
-  if (Preferences::HasUserValue(kPrefFissionAutostart)) {
-    FissionExperimentDisqualify();
-  }
-}
-
 static void EnsureFissionAutostartInitialized() {
   if (gFissionAutostartInitialized) {
     return;
@@ -996,48 +968,6 @@ static void EnsureFissionAutostartInitialized() {
     gFissionAutostart = Preferences::GetBool(kPrefFissionAutostartSession,
                                              false, PrefValueKind::Default);
     return;
-  }
-
-  // Initialize the fission experiment, configuring fission.autostart's
-  // default, before checking other overrides. This allows opting-out of a
-  // fission experiment through about:preferences or about:config from a
-  // safemode session.
-  uint32_t experimentRaw =
-      Preferences::GetUint(kPrefFissionExperimentStartupEnrollmentStatus,
-                           nsIXULRuntime::eExperimentStatusUnenrolled);
-  gFissionExperimentStatus =
-      experimentRaw < nsIXULRuntime::eExperimentStatusCount
-          ? nsIXULRuntime::ExperimentStatus(experimentRaw)
-          : nsIXULRuntime::eExperimentStatusDisqualified;
-
-  // Watch the experiment enrollment status pref to detect experiment
-  // disqualification, and ensure it is propagated for the next restart.
-  Preferences::RegisterCallback(&OnFissionEnrollmentStatusChanged,
-                                kPrefFissionExperimentEnrollmentStatus);
-  if (nsCOMPtr<nsIObserverService> observerService =
-          mozilla::services::GetObserverService()) {
-    nsCOMPtr<nsIObserver> shutdownObserver =
-        new FissionEnrollmentStatusShutdownObserver();
-    observerService->AddObserver(shutdownObserver, "profile-before-change",
-                                 false);
-  }
-
-  // If the user has overridden an active experiment by setting a user value for
-  // "fission.autostart", disqualify the user from the experiment.
-  if (Preferences::HasUserValue(kPrefFissionAutostart) &&
-      FissionExperimentEnrolled()) {
-    FissionExperimentDisqualify();
-    gFissionExperimentStatus = nsIXULRuntime::eExperimentStatusDisqualified;
-  }
-
-  // Configure the default branch for "fission.autostart" based on experiment
-  // enrollment status.
-  if (FissionExperimentEnrolled()) {
-    bool isTreatment =
-        gFissionExperimentStatus == nsIXULRuntime::eExperimentStatusTreatment ||
-        gFissionExperimentStatus == nsIXULRuntime::eExperimentStatusRollout;
-    Preferences::SetBool(kPrefFissionAutostart, isTreatment,
-                         PrefValueKind::Default);
   }
 
   if (!BrowserTabsRemoteAutostart()) {
@@ -1057,15 +987,7 @@ static void EnsureFissionAutostartInitialized() {
     // NOTE: This will take into account changes to the default due to
     // `InitializeFissionExperimentStatus`.
     gFissionAutostart = Preferences::GetBool(kPrefFissionAutostart, false);
-    if (gFissionExperimentStatus == nsIXULRuntime::eExperimentStatusControl) {
-      gFissionDecisionStatus = nsIXULRuntime::eFissionExperimentControl;
-    } else if (gFissionExperimentStatus ==
-               nsIXULRuntime::eExperimentStatusTreatment) {
-      gFissionDecisionStatus = nsIXULRuntime::eFissionExperimentTreatment;
-    } else if (gFissionExperimentStatus ==
-               nsIXULRuntime::eExperimentStatusRollout) {
-      gFissionDecisionStatus = nsIXULRuntime::eFissionEnabledByRollout;
-    } else if (Preferences::HasUserValue(kPrefFissionAutostart)) {
+    if (Preferences::HasUserValue(kPrefFissionAutostart)) {
       gFissionDecisionStatus = gFissionAutostart
                                    ? nsIXULRuntime::eFissionEnabledByUserPref
                                    : nsIXULRuntime::eFissionDisabledByUserPref;
@@ -1086,13 +1008,6 @@ static void EnsureFissionAutostartInitialized() {
   Preferences::SetBool(kPrefFissionAutostartSession, gFissionAutostart,
                        PrefValueKind::Default);
   Preferences::Lock(kPrefFissionAutostartSession);
-
-  // If we're actively enrolled in the fission experiment, disqualify the user
-  // from the experiment if the fission pref is modified.
-  if (FissionExperimentEnrolled()) {
-    Preferences::RegisterCallback(&OnFissionAutostartChanged,
-                                  kPrefFissionAutostart);
-  }
 }
 
 namespace mozilla {
@@ -1110,8 +1025,8 @@ namespace mozilla {
 
 bool SessionHistoryInParent() {
   return FissionAutostart() ||
-         StaticPrefs::
-             fission_sessionHistoryInParent_AtStartup_DoNotUseDirectly();
+         !StaticPrefs::
+             fission_disableSessionHistoryInParent_AtStartup_DoNotUseDirectly();
 }
 
 bool BFCacheInParent() {
@@ -1453,17 +1368,6 @@ nsXULAppInfo::GetWin32kSessionStatus(
 }
 
 NS_IMETHODIMP
-nsXULAppInfo::GetFissionExperimentStatus(ExperimentStatus* aResult) {
-  if (!XRE_IsParentProcess()) {
-    return NS_ERROR_NOT_AVAILABLE;
-  }
-
-  EnsureFissionAutostartInitialized();
-  *aResult = gFissionExperimentStatus;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 nsXULAppInfo::GetFissionDecisionStatus(FissionDecisionStatus* aResult) {
   if (!XRE_IsParentProcess()) {
     return NS_ERROR_NOT_AVAILABLE;
@@ -1707,8 +1611,23 @@ nsXULAppInfo::GetContentThemeDerivedColorSchemeIsDark(bool* aResult) {
 }
 
 NS_IMETHODIMP
+nsXULAppInfo::GetPrefersReducedMotion(bool* aResult) {
+  *aResult =
+      LookAndFeel::GetInt(LookAndFeel::IntID::PrefersReducedMotion, 0) == 1;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 nsXULAppInfo::GetDrawInTitlebar(bool* aResult) {
   *aResult = LookAndFeel::DrawInTitlebar();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsXULAppInfo::GetDesktopEnvironment(nsACString& aDesktopEnvironment) {
+#ifdef MOZ_WIDGET_GTK
+  aDesktopEnvironment.Assign(GetDesktopEnvironmentIdentifier());
+#endif
   return NS_OK;
 }
 
@@ -3751,10 +3670,6 @@ static DWORD WINAPI InitDwriteBG(LPVOID lpdwThreadParam) {
 }
 #endif
 
-#ifdef USE_GLX_TEST
-bool fire_glxtest_process();
-#endif
-
 #include "GeckoProfiler.h"
 #include "ProfilerControl.h"
 
@@ -3795,7 +3710,6 @@ class XREMain {
 #endif
 
   bool mStartOffline = false;
-  bool mShuttingDown = false;
 #if defined(MOZ_HAS_REMOTE)
   bool mDisableRemoteClient = false;
   bool mDisableRemoteServer = false;
@@ -3989,8 +3903,17 @@ int XREMain::XRE_mainInit(bool* aExitFlag) {
       CheckArg("backgroundtask", &backgroundTaskName, CheckArgFlag::None)) {
     backgroundTask = Some(backgroundTaskName);
 
+    CheckArgFlag checkArgFlag =
+#  ifdef XP_WIN
+        CheckArgFlag::None;  // attach-console is consumed below in
+                             // NS_CreateNativeAppSupport on Windows
+#  else
+        CheckArgFlag::RemoveArg;  // but not on non-Windows, so we consume it
+                                  // explicitly here
+#  endif
+
     if (BackgroundTasks::IsNoOutputTaskName(backgroundTask.ref()) &&
-        !CheckArgExists("attach-console") &&
+        !CheckArg("attach-console", nullptr, checkArgFlag) &&
         !EnvHasValue("MOZ_BACKGROUNDTASKS_IGNORE_NO_OUTPUT")) {
       // Suppress output, somewhat crudely.  We need to suppress stderr as well
       // as stdout because assertions, of which there are many, write to stderr.
@@ -4081,17 +4004,6 @@ int XREMain::XRE_mainInit(bool* aExitFlag) {
 #endif
 
   mozilla::startup::IncreaseDescriptorLimits();
-
-#ifdef USE_GLX_TEST
-  // bug 639842 - it's very important to fire this process BEFORE we set up
-  // error handling. indeed, this process is expected to be crashy, and we
-  // don't want the user to see its crashes. That's the whole reason for
-  // doing this in a separate process.
-  //
-  // This call will cause a fork and the fork will terminate itself separately
-  // from the usual shutdown sequence
-  fire_glxtest_process();
-#endif
 
   SetupErrorHandling(gArgv[0]);
 
@@ -4325,7 +4237,7 @@ int XREMain::XRE_mainInit(bool* aExitFlag) {
   // Set up ability to respond to system (Apple) events. This must occur before
   // ProcessUpdates to ensure that links clicked in external applications aren't
   // lost when updates are pending.
-  SetupMacApplicationDelegate();
+  SetupMacApplicationDelegate(&gRestartedByOS);
 
   if (EnvHasValue("MOZ_LAUNCHED_CHILD")) {
     // This is needed, on relaunch, to force the OS to use the "Cocoa Dock
@@ -4527,46 +4439,6 @@ static void PR_CALLBACK ReadAheadDlls_ThreadStart(void* arg) {
     // Load WinTypes.dll for nsOSHelperAppService::GetApplicationDescription
     ReadAheadSystemDll(L"WinTypes.dll");
   }
-}
-#endif
-
-#if defined(MOZ_WAYLAND)
-bool IsWaylandEnabled() {
-  const char* waylandDisplay = PR_GetEnv("WAYLAND_DISPLAY");
-  if (!waylandDisplay) {
-    return false;
-  }
-  if (!PR_GetEnv("DISPLAY")) {
-    // No X11 display, so try to run wayland.
-    return true;
-  }
-  // MOZ_ENABLE_WAYLAND is our primary Wayland on/off switch.
-  if (const char* waylandPref = PR_GetEnv("MOZ_ENABLE_WAYLAND")) {
-    return *waylandPref == '1';
-  }
-  if (const char* backendPref = PR_GetEnv("GDK_BACKEND")) {
-    if (!strncmp(backendPref, "wayland", 7)) {
-      NS_WARNING(
-          "Wayland backend should be enabled by MOZ_ENABLE_WAYLAND=1."
-          "GDK_BACKEND is a Gtk3 debug variable and may cause issues.");
-      return true;
-    }
-  }
-#  ifdef EARLY_BETA_OR_EARLIER
-  // Enable by default when we're running on a recent enough GTK version. We'd
-  // like to check further details like compositor version and so on ideally
-  // to make sure we don't enable it on old Mutter or what not, but we can't,
-  // so let's assume that if the user is running on a Wayland session by
-  // default we're ok, since either the distro has enabled Wayland by default,
-  // or the user has gone out of their way to use Wayland.
-  //
-  // TODO(emilio): If users hit problems, we might be able to restrict it to
-  // GNOME / KDE  / known-good-desktop environments by checking
-  // XDG_CURRENT_DESKTOP or so...
-  return !gtk_check_version(3, 24, 30);
-#  else
-  return false;
-#  endif
 }
 #endif
 
@@ -4817,6 +4689,11 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
     return result;
   }
 
+  bool isBackgroundTaskMode = false;
+#ifdef MOZ_BACKGROUNDTASKS
+  isBackgroundTaskMode = BackgroundTasks::IsBackgroundTaskMode();
+#endif
+
 #ifdef MOZ_HAS_REMOTE
   if (gfxPlatform::IsHeadless()) {
     mDisableRemoteClient = true;
@@ -4828,12 +4705,12 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
   // Init X11 in thread-safe mode. Must be called prior to the first call to
   // XOpenDisplay (called inside gdk_display_open). This is a requirement for
   // off main tread compositing.
-  if (!gfxPlatform::IsHeadless()) {
+  if (!isBackgroundTaskMode && !gfxPlatform::IsHeadless()) {
     XInitThreads();
   }
 #endif
 #if defined(MOZ_WIDGET_GTK)
-  if (!gfxPlatform::IsHeadless()) {
+  if (!isBackgroundTaskMode && !gfxPlatform::IsHeadless()) {
     const char* display_name = nullptr;
     bool saveDisplayArg = false;
 
@@ -4846,10 +4723,7 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
       saveDisplayArg = true;
     }
 
-    bool waylandEnabled = false;
-#  if defined(MOZ_WAYLAND)
-    waylandEnabled = IsWaylandEnabled();
-#  endif
+    bool waylandEnabled = IsWaylandEnabled();
     // On Wayland disabled builds read X11 DISPLAY env exclusively
     // and don't care about different displays.
     if (!waylandEnabled && !display_name) {
@@ -5254,6 +5128,20 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
   // Flush any pending page load events.
   mozilla::glean_pings::Pageload.Submit("startup"_ns);
 
+  if (!isBackgroundTaskMode) {
+#ifdef USE_GLX_TEST
+    GfxInfo::FireGLXTestProcess();
+#endif
+#ifdef MOZ_WAYLAND
+    // Make sure we have wayland connection for main thread.
+    // It's used as template to create display connections
+    // for different threads.
+    if (IsWaylandEnabled()) {
+      MOZ_UNUSED(WaylandDisplayGet());
+    }
+#endif
+  }
+
   return 0;
 }
 
@@ -5471,19 +5359,6 @@ nsresult XREMain::XRE_mainRun() {
       }
     }
 
-#ifndef XP_WIN
-    nsCOMPtr<nsIFile> profileDir;
-    nsAutoCString path;
-    rv = mDirProvider.GetProfileStartupDir(getter_AddRefs(profileDir));
-    if (NS_SUCCEEDED(rv) && NS_SUCCEEDED(profileDir->GetNativePath(path)) &&
-        !IsUtf8(path)) {
-      PR_fprintf(
-          PR_STDERR,
-          "Error: The profile path is not valid UTF-8. Unable to continue.\n");
-      return NS_ERROR_FAILURE;
-    }
-#endif
-
     // Initialize user preferences before notifying startup observers so they're
     // ready in time for early consumers, such as the component loader.
     mDirProvider.InitializeUserPrefs();
@@ -5500,6 +5375,16 @@ nsresult XREMain::XRE_mainRun() {
     // files can't override JS engine start-up prefs.
     mDirProvider.FinishInitializingUserPrefs();
 
+#if defined(MOZ_SANDBOX) && defined(XP_WIN)
+    // Now that we have preferences and the directory provider, we can
+    // finish initializing SandboxBroker. This must happen before the GFX
+    // platform is initialized (which will launch the GPU process), which
+    // occurs when the "app-startup" category is started up below
+    //
+    // After this completes, we are ready to launch sandboxed processes
+    mozilla::SandboxBroker::GeckoDependentInitialize();
+#endif
+
     nsCOMPtr<nsIFile> workingDir;
     rv = NS_GetSpecialDirectory(NS_OS_CURRENT_WORKING_DIR,
                                 getter_AddRefs(workingDir));
@@ -5514,7 +5399,9 @@ nsresult XREMain::XRE_mainRun() {
                        nsICommandLine::STATE_INITIAL_LAUNCH);
     NS_ENSURE_SUCCESS(rv, NS_ERROR_FAILURE);
 
-    nsAppStartupNotifier::NotifyObservers(APPSTARTUP_CATEGORY, cmdLine);
+    // "app-startup" is the name of both the category and the event
+    NS_CreateServicesFromCategory("app-startup", cmdLine, "app-startup",
+                                  nullptr);
 
     appStartup = components::AppStartup::Service();
     NS_ENSURE_TRUE(appStartup, NS_ERROR_FAILURE);
@@ -5539,10 +5426,7 @@ nsresult XREMain::XRE_mainRun() {
     CrashReporter::AnnotateCrashReport(
         CrashReporter::Annotation::useragent_locale, userAgentLocale);
 
-    mShuttingDown =
-        AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed);
-
-    if (!mShuttingDown) {
+    if (!AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed)) {
       /* Special-case services that need early access to the command
           line. */
       nsCOMPtr<nsIObserverService> obsService =
@@ -5576,7 +5460,7 @@ nsresult XREMain::XRE_mainRun() {
     SaveToEnv("XRE_BINARY_PATH=");
     SaveToEnv("XRE_RESTARTED_BY_PROFILE_MANAGER=");
 
-    if (!mShuttingDown) {
+    if (!AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed)) {
 #ifdef XP_MACOSX
       bool lazyHiddenWindow = false;
 #else
@@ -5677,19 +5561,15 @@ nsresult XREMain::XRE_mainRun() {
       CrashReporter::AnnotateCrashReport(
           CrashReporter::Annotation::StartupCrash, false);
 
-      mShuttingDown =
-          AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed);
+      AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed);
     }
 
-    if (!mShuttingDown) {
+    if (!AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed)) {
       rv = cmdLine->Run();
       NS_ENSURE_SUCCESS_LOG(rv, NS_ERROR_FAILURE);
-
-      mShuttingDown =
-          AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed);
     }
 
-    if (!mShuttingDown) {
+    if (!AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed)) {
 #if defined(MOZ_HAS_REMOTE)
       // if we have X remote support, start listening for requests on the
       // proxy window.
@@ -5924,9 +5804,16 @@ int XREMain::XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig) {
     mAppData->directory = mAppData->xreDirectory;
   }
 
-#if defined(XP_WIN) && defined(MOZ_SANDBOX)
+#if defined(XP_WIN)
+#  if defined(MOZ_SANDBOX)
   mAppData->sandboxBrokerServices = aConfig.sandboxBrokerServices;
-#endif
+#  endif  // defined(MOZ_SANDBOX)
+
+  {
+    DebugOnly<bool> result = WindowsBCryptInitialization();
+    MOZ_ASSERT(result);
+  }
+#endif  // defined(XP_WIN)
 
   // Once we unset the exception handler, we lose the ability to properly
   // detect hangs -- they show up as crashes.  We do this as late as possible.
@@ -6119,16 +6006,28 @@ bool XRE_IsE10sParentProcess() {
 #undef GECKO_PROCESS_TYPE
 
 bool XRE_UseNativeEventProcessing() {
+  switch (XRE_GetProcessType()) {
 #if defined(XP_MACOSX) || defined(XP_WIN)
-  if (XRE_IsRDDProcess() || XRE_IsSocketProcess() || XRE_IsUtilityProcess()) {
-    return false;
+    case GeckoProcessType_RDD:
+    case GeckoProcessType_Socket:
+      return false;
+    case GeckoProcessType_Utility: {
+#  if defined(XP_WIN)
+      auto upc = mozilla::ipc::UtilityProcessChild::Get();
+      MOZ_ASSERT(upc);
+      // WindowsUtils is for Windows APIs, which typically require a Windows
+      // native event loop.
+      return upc->mSandbox == mozilla::ipc::SandboxingKind::WINDOWS_UTILS;
+#  else
+      return false;
+#  endif  // defined(XP_WIN)
+    }
+#endif  // defined(XP_MACOSX) || defined(XP_WIN)
+    case GeckoProcessType_Content:
+      return StaticPrefs::dom_ipc_useNativeEventProcessing_content();
+    default:
+      return true;
   }
-#endif
-  if (XRE_IsContentProcess()) {
-    return StaticPrefs::dom_ipc_useNativeEventProcessing_content();
-  }
-
-  return true;
 }
 
 namespace mozilla {
@@ -6231,14 +6130,10 @@ mozilla::BinPathType XRE_GetChildProcBinPathType(
 }
 
 // From mozglue/static/rust/lib.rs
-extern "C" void install_rust_panic_hook();
-extern "C" void install_rust_oom_hook();
+extern "C" void install_rust_hooks();
 
 struct InstallRustHooks {
-  InstallRustHooks() {
-    install_rust_panic_hook();
-    install_rust_oom_hook();
-  }
+  InstallRustHooks() { install_rust_hooks(); }
 };
 
 InstallRustHooks sInstallRustHooks;

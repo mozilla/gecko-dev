@@ -10,7 +10,6 @@
 
 requestLongerTimeout(2);
 
-/* import-globals-from ../../../framework/browser-toolbox/test/helpers-browser-toolbox.js */
 Services.scriptloader.loadSubScript(
   "chrome://mochitests/content/browser/devtools/client/framework/browser-toolbox/test/helpers-browser-toolbox.js",
   this
@@ -99,15 +98,15 @@ add_task(async function testSourceTreeNamesForWebExtensions() {
             !lastThreadLabel,
             "We should only have content process threads first after the main thread"
           );
-          const pid = label.match(/pid (\d+)\)/)[1];
+          const pid = parseInt(label.match(/pid (\d+)\)/)[1], 10);
           ok(
-            pid > lastPID,
+            pid >= lastPID,
             `The content process threads are sorted by incremental PID ${pid} > ${lastPID}`
           );
           lastPID = pid;
         } else {
           ok(
-            label.localeCompare(lastThreadLabel) > 0,
+            label.localeCompare(lastThreadLabel) >= 0,
             `Worker thread labels are sorted alphabeticaly: ${label} vs ${lastThreadLabel}`
           );
           lastThreadLabel = label;

@@ -19,7 +19,7 @@ class CacheDomain {
   static constexpr uint64_t Bounds = ((uint64_t)0x1) << 2;
   static constexpr uint64_t Resolution = ((uint64_t)0x1) << 3;
   static constexpr uint64_t Text = ((uint64_t)0x1) << 4;
-  static constexpr uint64_t DOMNodeID = ((uint64_t)0x1) << 5;
+  static constexpr uint64_t DOMNodeIDAndClass = ((uint64_t)0x1) << 5;
   static constexpr uint64_t State = ((uint64_t)0x1) << 6;
   static constexpr uint64_t GroupInfo = ((uint64_t)0x1) << 7;
   static constexpr uint64_t Actions = ((uint64_t)0x1) << 8;
@@ -82,6 +82,10 @@ static constexpr RelationData kRelationTypeAtoms[] = {
     {nsGkAtoms::aria_flowto, nullptr, RelationType::FLOWS_TO,
      RelationType::FLOWS_FROM},
 };
+
+// The count of numbers needed to serialize an nsRect. This is used when
+// flattening character rects into an array of ints.
+constexpr int32_t kNumbersInRect = 4;
 
 }  // namespace a11y
 }  // namespace mozilla

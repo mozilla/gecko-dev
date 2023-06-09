@@ -45,7 +45,7 @@ class nsFilePicker : public nsBaseWinFilePicker {
   nsFilePicker();
 
   NS_IMETHOD Init(mozIDOMWindowProxy* aParent, const nsAString& aTitle,
-                  int16_t aMode) override;
+                  nsIFilePicker::Mode aMode) override;
 
   NS_DECL_ISUPPORTS
 
@@ -61,8 +61,8 @@ class nsFilePicker : public nsBaseWinFilePicker {
  protected:
   /* method from nsBaseFilePicker */
   virtual void InitNative(nsIWidget* aParent, const nsAString& aTitle) override;
-  nsresult Show(int16_t* aReturnVal) override;
-  nsresult ShowW(int16_t* aReturnVal);
+  nsresult Show(nsIFilePicker::ResultCode* aReturnVal) override;
+  nsresult ShowW(nsIFilePicker::ResultCode* aReturnVal);
   void GetFilterListArray(nsString& aFilterList);
   bool ShowFolderPicker(const nsString& aInitialDir);
   bool ShowFilePicker(const nsString& aInitialDir);

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { getFilename } from "chrome://browser/content/screenshots/fileHelpers.mjs";
+import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 const lazy = {};
 
@@ -12,9 +13,22 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
 });
 
+XPCOMUtils.defineLazyServiceGetters(lazy, {
+  AlertsService: ["@mozilla.org/alerts-service;1", "nsIAlertsService"],
+});
+
+XPCOMUtils.defineLazyGetter(lazy, "screenshotsLocalization", () => {
+  return new Localization(["browser/screenshots.ftl"], true);
+});
+
 const PanelPosition = "bottomright topright";
 const PanelOffsetX = -33;
 const PanelOffsetY = -8;
+// The max dimension for a canvas is defined https://searchfox.org/mozilla-central/rev/f40d29a11f2eb4685256b59934e637012ea6fb78/gfx/cairo/cairo/src/cairo-image-surface.c#62.
+// The max number of pixels for a canvas is 124925329 or 11177 x 11177.
+// We have to limit screenshots to these dimensions otherwise it will cause an error.
+const MAX_CAPTURE_DIMENSION = 32767;
+const MAX_CAPTURE_AREA = 124925329;
 
 export class ScreenshotsComponentParent extends JSWindowActorParent {
   async receiveMessage(message) {
@@ -22,6 +36,8 @@ export class ScreenshotsComponentParent extends JSWindowActorParent {
     switch (message.name) {
       case "Screenshots:CancelScreenshot":
         await ScreenshotsUtils.closePanel(browser);
+        let { reason } = message.data;
+        ScreenshotsUtils.recordTelemetryEvent("canceled", reason, {});
         break;
       case "Screenshots:CopyScreenshot":
         await ScreenshotsUtils.closePanel(browser);
@@ -38,7 +54,7 @@ export class ScreenshotsComponentParent extends JSWindowActorParent {
         );
         break;
       case "Screenshots:ShowPanel":
-        ScreenshotsUtils.createOrDisplayButtons(browser);
+        ScreenshotsUtils.openPanel(browser);
         break;
       case "Screenshots:HidePanel":
         ScreenshotsUtils.closePanel(browser);
@@ -67,6 +83,7 @@ export var ScreenshotsUtils = {
       ) {
         return;
       }
+      Services.telemetry.setEventRecordingEnabled("screenshots", true);
       Services.obs.addObserver(this, "menuitem-screenshot");
       Services.obs.addObserver(this, "screenshots-take-screenshot");
       this.initialized = true;
@@ -83,8 +100,10 @@ export var ScreenshotsUtils = {
     }
   },
   handleEvent(event) {
+    // We need to add back Escape to hide behavior as we have set noautohide="true"
     if (event.type === "keydown" && event.key === "Escape") {
       this.closePanel(event.view.gBrowser.selectedBrowser, true);
+      this.recordTelemetryEvent("canceled", "escape", {});
     }
   },
   observe(subj, topic, data) {
@@ -99,7 +118,7 @@ export var ScreenshotsUtils = {
           // if dialog box is found then the buttons are hidden and we return early
           // else no dialog box is found and we need to toggle the buttons
           // or if retry because the dialog box was closed and we need to show the panel
-          this.togglePanelAndOverlay(browser);
+          this.togglePanelAndOverlay(browser, data);
         }
         break;
       case "screenshots-take-screenshot":
@@ -130,7 +149,8 @@ export var ScreenshotsUtils = {
     if (Services.prefs.getBoolPref("screenshots.browser.component.enabled")) {
       Services.obs.notifyObservers(
         window.event.currentTarget.ownerGlobal,
-        "menuitem-screenshot"
+        "menuitem-screenshot",
+        type
       );
     } else {
       Services.obs.notifyObservers(null, "menuitem-screenshot-extension", type);
@@ -148,13 +168,20 @@ export var ScreenshotsUtils = {
     return actor;
   },
   /**
-   * Open the panel buttons and call child actor to open the overlay
+   * Open the panel buttons
    * @param browser The current browser
    */
-  openPanel(browser) {
-    let actor = this.getActor(browser);
-    actor.sendQuery("Screenshots:ShowOverlay");
+  async openPanel(browser) {
     this.createOrDisplayButtons(browser);
+    let buttonsPanel = this.panelForBrowser(browser);
+    if (buttonsPanel.state !== "open") {
+      await new Promise(resolve => {
+        buttonsPanel.addEventListener("popupshown", resolve, { once: true });
+      });
+    }
+    buttonsPanel
+      .querySelector("screenshots-buttons")
+      .focusFirst({ focusVisible: true });
   },
   /**
    * Close the panel and call child actor to close the overlay
@@ -164,9 +191,7 @@ export var ScreenshotsUtils = {
    * Defaults to false. Will be false when called from didDestroy.
    */
   async closePanel(browser, closeOverlay = false) {
-    let buttonsPanel = browser.ownerDocument.querySelector(
-      "#screenshotsPagePanel"
-    );
+    let buttonsPanel = this.panelForBrowser(browser);
     if (buttonsPanel && buttonsPanel.state !== "closed") {
       buttonsPanel.hidePopup();
     }
@@ -182,21 +207,21 @@ export var ScreenshotsUtils = {
    * Otherwise create or display the buttons.
    * @param browser The current browser.
    */
-  async togglePanelAndOverlay(browser) {
-    let buttonsPanel = browser.ownerDocument.querySelector(
-      "#screenshotsPagePanel"
-    );
+  async togglePanelAndOverlay(browser, data) {
+    let buttonsPanel = this.panelForBrowser(browser);
     let isOverlayShowing = await this.getActor(browser).sendQuery(
       "Screenshots:isOverlayShowing"
     );
+
+    data = data === "retry" ? "preview_retry" : data;
     if (buttonsPanel && (isOverlayShowing || buttonsPanel.state !== "closed")) {
-      buttonsPanel.hidePopup();
-      let actor = this.getActor(browser);
-      return actor.sendQuery("Screenshots:HideOverlay");
+      this.recordTelemetryEvent("canceled", data, {});
+      return this.closePanel(browser, true);
     }
     let actor = this.getActor(browser);
     actor.sendQuery("Screenshots:ShowOverlay");
-    return this.createOrDisplayButtons(browser);
+    this.recordTelemetryEvent("started", data, {});
+    return this.openPanel(browser);
   },
   /**
    * Gets the screenshots dialog box
@@ -237,6 +262,9 @@ export var ScreenshotsUtils = {
     }
     return false;
   },
+  panelForBrowser(browser) {
+    return browser.ownerDocument.querySelector("#screenshotsPagePanel");
+  },
   /**
    * If the buttons panel does not exist then we will replace the buttons
    * panel template with the buttons panel then open the buttons panel and
@@ -245,12 +273,16 @@ export var ScreenshotsUtils = {
    */
   createOrDisplayButtons(browser) {
     let doc = browser.ownerDocument;
-    let buttonsPanel = doc.querySelector("#screenshotsPagePanel");
+    let buttonsPanel = this.panelForBrowser(browser);
+
     if (!buttonsPanel) {
       let template = doc.querySelector("#screenshotsPagePanelTemplate");
       let clone = template.content.cloneNode(true);
       template.replaceWith(clone);
       buttonsPanel = doc.querySelector("#screenshotsPagePanel");
+    } else if (buttonsPanel.state !== "closed") {
+      // early return if the panel is already open
+      return;
     }
 
     buttonsPanel.ownerDocument.addEventListener("keydown", this);
@@ -278,6 +310,50 @@ export var ScreenshotsUtils = {
     let actor = this.getActor(browser);
     return actor.sendQuery("Screenshots:getVisibleBounds");
   },
+  showAlertMessage(title, message) {
+    lazy.AlertsService.showAlertNotification(null, title, message);
+  },
+  /**
+   * The max one dimesion for a canvas is 32767 and the max canvas area is
+   * 124925329. If the width or height is greater than 32767 we will crop the
+   * screenshot to the max width. If the area is still too large for the canvas
+   * we will adjust the height so we can successfully capture the screenshot.
+   * @param {Object} rect The dimensions of the screenshot. The rect will be
+   * modified in place
+   */
+  cropScreenshotRectIfNeeded(rect) {
+    let cropped = false;
+    let width = rect.width * rect.devicePixelRatio;
+    let height = rect.height * rect.devicePixelRatio;
+
+    if (width > MAX_CAPTURE_DIMENSION) {
+      width = MAX_CAPTURE_DIMENSION;
+      cropped = true;
+    }
+    if (height > MAX_CAPTURE_DIMENSION) {
+      height = MAX_CAPTURE_DIMENSION;
+      cropped = true;
+    }
+    if (width * height > MAX_CAPTURE_AREA) {
+      height = Math.floor(MAX_CAPTURE_AREA / width);
+      cropped = true;
+    }
+
+    rect.width = Math.floor(width / rect.devicePixelRatio);
+    rect.height = Math.floor(height / rect.devicePixelRatio);
+
+    if (cropped) {
+      let [
+        errorTitle,
+        errorMessage,
+      ] = lazy.screenshotsLocalization.formatMessagesSync([
+        { id: "screenshots-too-large-error-title" },
+        { id: "screenshots-too-large-error-details" },
+      ]);
+      this.showAlertMessage(errorTitle.value, errorMessage.value);
+      this.recordTelemetryEvent("failed", "screenshot_too_large", null);
+    }
+  },
   /**
    * Add screenshot-ui to the dialog box and then take the screenshot
    * @param browser The current browser.
@@ -294,9 +370,11 @@ export var ScreenshotsUtils = {
     let rect;
     if (type === "full-page") {
       rect = await this.fetchFullPageBounds(browser);
+      type = "full_page";
     } else {
       rect = await this.fetchVisibleBounds(browser);
     }
+    this.recordTelemetryEvent("selected", type, {});
     return this.takeScreenshot(browser, dialog, rect);
   },
   /**
@@ -331,6 +409,8 @@ export var ScreenshotsUtils = {
    * @returns The canvas and snapshot in an object
    */
   async createCanvas(box, browser) {
+    this.cropScreenshotRectIfNeeded(box);
+
     let rect = new DOMRect(box.x1, box.y1, box.width, box.height);
     let { devicePixelRatio } = box;
 
@@ -368,6 +448,8 @@ export var ScreenshotsUtils = {
     this.copyScreenshot(url, browser);
 
     snapshot.close();
+
+    this.recordTelemetryEvent("copy", "overlay_copy", {});
   },
   /**
    * Copy the image to the clipboard
@@ -419,6 +501,8 @@ export var ScreenshotsUtils = {
     await this.downloadScreenshot(title, dataUrl, browser);
 
     snapshot.close();
+
+    this.recordTelemetryEvent("download", "overlay_download", {});
   },
   /**
    * Download the screenshot
@@ -455,5 +539,9 @@ export var ScreenshotsUtils = {
       // Await successful completion of the save via the download manager
       await download.start();
     } catch (ex) {}
+  },
+
+  recordTelemetryEvent(type, object, args) {
+    Services.telemetry.recordEvent("screenshots", type, object, null, args);
   },
 };

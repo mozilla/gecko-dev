@@ -2,17 +2,18 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use std::borrow::Cow;
 use std::collections::{hash_map::Entry, HashMap};
 use std::sync::{Arc, Mutex};
 
-use crate::common_metric_data::CommonMetricData;
+use crate::common_metric_data::{CommonMetricData, CommonMetricDataInternal};
 use crate::error_recording::{record_error, test_get_num_recorded_errors, ErrorType};
 use crate::metrics::{BooleanMetric, CounterMetric, Metric, MetricType, StringMetric};
 use crate::Glean;
 
 const MAX_LABELS: usize = 16;
 const OTHER_LABEL: &str = "__other__";
-const MAX_LABEL_LENGTH: usize = 61;
+const MAX_LABEL_LENGTH: usize = 71;
 
 /// A labeled counter.
 pub type LabeledCounter = LabeledMetric<CounterMetric>;
@@ -23,72 +24,12 @@ pub type LabeledBoolean = LabeledMetric<BooleanMetric>;
 /// A labeled string.
 pub type LabeledString = LabeledMetric<StringMetric>;
 
-/// Checks whether the given label is sane.
-///
-/// The check corresponds to the following regular expression:
-///
-/// ```text
-/// ^[a-z_][a-z0-9_-]{0,29}(\\.[a-z_][a-z0-9_-]{0,29})*$
-/// ```
-///
-/// We do a manul check here instead of using a regex,
-/// because the regex crate adds to the binary size significantly,
-/// and the Glean SDK doesn't use regular expressions anywhere else.
-///
-/// Some examples of good and bad labels:
-///
-/// Good:
-/// * `this.is.fine`
-/// * `this_is_fine_too`
-/// * `this.is_still_fine`
-/// * `thisisfine`
-/// * `_.is_fine`
-/// * `this.is-fine`
-/// * `this-is-fine`
-/// Bad:
-/// * `this.is.not_fine_due_tu_the_length_being_too_long_i_thing.i.guess`
-/// * `1.not_fine`
-/// * `this.$isnotfine`
-/// * `-.not_fine`
-fn matches_label_regex(value: &str) -> bool {
-    let mut iter = value.chars();
-
-    loop {
-        // Match the first letter in the word.
-        match iter.next() {
-            Some('_') | Some('a'..='z') => (),
-            _ => return false,
-        };
-
-        // Match subsequent letters in the word.
-        let mut count = 0;
-        loop {
-            match iter.next() {
-                // We are done, so the whole expression is valid.
-                None => return true,
-                // Valid characters.
-                Some('_') | Some('-') | Some('a'..='z') | Some('0'..='9') => (),
-                // We ended a word, so iterate over the outer loop again.
-                Some('.') => break,
-                // An invalid character
-                _ => return false,
-            }
-            count += 1;
-            // We allow 30 characters per word, but the first one is handled
-            // above outside of this loop, so we have a maximum of 29 here.
-            if count == 29 {
-                return false;
-            }
-        }
-    }
-}
-
 /// A labeled metric.
 ///
 /// Labeled metrics allow to record multiple sub-metrics of the same type under different string labels.
 #[derive(Debug)]
 pub struct LabeledMetric<T> {
-    labels: Option<Vec<String>>,
+    labels: Option<Vec<Cow<'static, str>>>,
     /// Type of the underlying metric
     /// We hold on to an instance of it, which is cloned to create new modified instances.
     submetric: T,
@@ -159,12 +100,12 @@ where
     /// Creates a new labeled metric from the given metric instance and optional list of labels.
     ///
     /// See [`get`](LabeledMetric::get) for information on how static or dynamic labels are handled.
-    pub fn new(meta: CommonMetricData, labels: Option<Vec<String>>) -> LabeledMetric<T> {
+    pub fn new(meta: CommonMetricData, labels: Option<Vec<Cow<'static, str>>>) -> LabeledMetric<T> {
         let submetric = T::new_labeled(meta);
         LabeledMetric::new_inner(submetric, labels)
     }
 
-    fn new_inner(submetric: T, labels: Option<Vec<String>>) -> LabeledMetric<T> {
+    fn new_inner(submetric: T, labels: Option<Vec<Cow<'static, str>>>) -> LabeledMetric<T> {
         let label_map = Default::default();
         LabeledMetric {
             labels,
@@ -244,7 +185,7 @@ where
                     Some(_) => {
                         let label = self.static_label(label);
                         self.new_metric_with_name(combine_base_identifier_and_label(
-                            &self.submetric.meta().name,
+                            &self.submetric.meta().inner.name,
                             label,
                         ))
                     }
@@ -303,13 +244,13 @@ pub fn strip_label(identifier: &str) -> &str {
 /// The errors are logged.
 pub fn validate_dynamic_label(
     glean: &Glean,
-    meta: &CommonMetricData,
+    meta: &CommonMetricDataInternal,
     base_identifier: &str,
     label: &str,
 ) -> String {
     let key = combine_base_identifier_and_label(base_identifier, label);
-    for store in &meta.send_in_pings {
-        if glean.storage().has_metric(meta.lifetime, store, &key) {
+    for store in &meta.inner.send_in_pings {
+        if glean.storage().has_metric(meta.inner.lifetime, store, &key) {
             return key;
         }
     }
@@ -320,8 +261,8 @@ pub fn validate_dynamic_label(
         label_count += 1;
     };
 
-    let lifetime = meta.lifetime;
-    for store in &meta.send_in_pings {
+    let lifetime = meta.inner.lifetime;
+    for store in &meta.inner.send_in_pings {
         glean
             .storage()
             .iter_store_from(lifetime, store, Some(prefix), &mut snapshotter);
@@ -337,8 +278,8 @@ pub fn validate_dynamic_label(
         );
         record_error(glean, meta, ErrorType::InvalidLabel, msg, None);
         true
-    } else if !matches_label_regex(label) {
-        let msg = format!("label must be snake_case, got '{}'", label);
+    } else if label.chars().any(|c| !c.is_ascii() || c.is_ascii_control()) {
+        let msg = format!("label must be printable ascii, got '{}'", label);
         record_error(glean, meta, ErrorType::InvalidLabel, msg, None);
         true
     } else {

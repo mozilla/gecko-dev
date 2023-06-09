@@ -5,7 +5,6 @@
 import React, { Component } from "react";
 import PropTypes from "prop-types";
 import { connect } from "../../utils/connect";
-import classnames from "classnames";
 import { features } from "../../utils/prefs";
 
 import { objectInspector } from "devtools/client/shared/components/reps/index";
@@ -17,14 +16,14 @@ import {
   getAutocompleteMatchset,
   getThreadContext,
 } from "../../selectors";
-import { getValue } from "../../utils/expressions";
-import { getGrip, getFront } from "../../utils/evaluation-result";
+import { getExpressionResultGripAndFront } from "../../utils/expressions";
 
 import { CloseButton } from "../shared/Button";
 
 import "./Expressions.css";
 
 const { debounce } = require("devtools/shared/debounce");
+const classnames = require("devtools/client/shared/classnames.js");
 
 const { ObjectInspector } = objectInspector;
 
@@ -225,19 +224,17 @@ class Expressions extends Component {
       return null;
     }
 
-    let value = getValue(expression);
-    let front = null;
-    if (value && value.unavailable !== true) {
-      value = getGrip(value);
-      front = getFront(value);
-    }
+    const {
+      expressionResultGrip,
+      expressionResultFront,
+    } = getExpressionResultGripAndFront(expression);
 
     const root = {
       name: expression.input,
       path: input,
       contents: {
-        value,
-        front,
+        value: expressionResultGrip,
+        front: expressionResultFront,
       },
     };
 

@@ -55,6 +55,8 @@
         "browser.tabs.tabClipWidth"
       );
       this._hiddenSoundPlayingTabs = new Set();
+      this._allTabs = null;
+      this._visibleTabs = null;
 
       var tab = this.allTabs[0];
       tab.label = this.emptyTabTitle;
@@ -266,7 +268,7 @@
         if (tab) {
           gBrowser.removeTab(tab, {
             animate: true,
-            byMouse: event.mozInputSource == MouseEvent.MOZ_SOURCE_MOUSE,
+            triggeringEvent: event,
           });
         } else if (event.originalTarget.closest("scrollbox")) {
           // The user middleclicked on the tabstrip. Check whether the click
@@ -393,7 +395,7 @@
     }
 
     on_dragstart(event) {
-      var tab = this._getDragTargetTab(event, false);
+      var tab = this._getDragTargetTab(event);
       if (!tab || this._isCustomizing) {
         return;
       }
@@ -526,6 +528,13 @@
       };
 
       event.stopPropagation();
+
+      if (fromTabList) {
+        Services.telemetry.scalarAdd(
+          "browser.ui.interaction.all_tabs_panel_dragstart_tab_event_count",
+          1
+        );
+      }
     }
 
     on_dragover(event) {
@@ -585,7 +594,7 @@
       this._finishAnimateTabMove();
 
       if (effects == "link") {
-        let tab = this._getDragTargetTab(event, true);
+        let tab = this._getDragTargetTab(event, { ignoreTabSides: true });
         if (tab) {
           if (!this._dragTime) {
             this._dragTime = Date.now();
@@ -617,7 +626,7 @@
         }
         newMargin = pixelsToScroll > 0 ? maxMargin : minMargin;
       } else {
-        let newIndex = this._getDropIndex(event, effects == "link");
+        let newIndex = this._getDropIndex(event);
         let children = this.allTabs;
         if (newIndex == children.length) {
           let tabRect = this._getVisibleTabs()
@@ -666,7 +675,7 @@
       event.stopPropagation();
       if (draggedTab && dropEffect == "copy") {
         // copy the dropped tab (wherever it's from)
-        let newIndex = this._getDropIndex(event, false);
+        let newIndex = this._getDropIndex(event);
         let draggedTabCopy;
         for (let tab of movingTabs) {
           let newTab = gBrowser.duplicateTab(tab);
@@ -691,7 +700,7 @@
 
         let dropIndex;
         if (draggedTab._dragData.fromTabList) {
-          dropIndex = this._getDropIndex(event, false);
+          dropIndex = this._getDropIndex(event);
         } else {
           dropIndex =
             "animDropIndex" in draggedTab._dragData &&
@@ -751,7 +760,7 @@
       } else if (draggedTab) {
         // Move the tabs. To avoid multiple tab-switches in the original window,
         // the selected tab should be adopted last.
-        const dropIndex = this._getDropIndex(event, false);
+        const dropIndex = this._getDropIndex(event);
         let newIndex = dropIndex;
         let selectedTab;
         let indexForSelectedTab;
@@ -801,10 +810,10 @@
           inBackground = !inBackground;
         }
 
-        let targetTab = this._getDragTargetTab(event, true);
+        let targetTab = this._getDragTargetTab(event, { ignoreTabSides: true });
         let userContextId = this.selectedItem.getAttribute("usercontextid");
         let replace = !!targetTab;
-        let newIndex = this._getDropIndex(event, true);
+        let newIndex = this._getDropIndex(event);
         let urls = links.map(link => link.url);
         let csp = browserDragAndDrop.getCsp(event);
         let triggeringPrincipal = browserDragAndDrop.getTriggeringPrincipal(
@@ -1027,9 +1036,32 @@
     // Accessor for tabs.  arrowScrollbox has a container for non-tab elements
     // at the end, everything else is <tab>s.
     get allTabs() {
+      if (this._allTabs) {
+        return this._allTabs;
+      }
       let children = Array.from(this.arrowScrollbox.children);
       children.pop();
+      this._allTabs = children;
       return children;
+    }
+
+    _getVisibleTabs() {
+      if (!this._visibleTabs) {
+        this._visibleTabs = Array.prototype.filter.call(
+          this.allTabs,
+          tab => !tab.hidden && !tab.closing
+        );
+      }
+      return this._visibleTabs;
+    }
+
+    _invalidateCachedTabs() {
+      this._allTabs = null;
+      this._visibleTabs = null;
+    }
+
+    _invalidateCachedVisibleTabs() {
+      this._visibleTabs = null;
     }
 
     appendChild(tab) {
@@ -1190,15 +1222,6 @@
 
           break;
       }
-    }
-
-    _getVisibleTabs() {
-      // Cannot access gBrowser before it's initialized.
-      if (!gBrowser) {
-        return this.allTabs[0];
-      }
-
-      return gBrowser.visibleTabs;
     }
 
     _setPositionalAttributes() {
@@ -1893,12 +1916,24 @@
       }
     }
 
-    _getDragTargetTab(event, isLink) {
-      let tab = event.target;
-      while (tab && tab.localName != "tab") {
-        tab = tab.parentNode;
+    /**
+     * Returns the tab where an event happened, or null if it didn't occur on a tab.
+     *
+     * @param {Event} event
+     *   The event for which we want to know on which tab it happened.
+     * @param {object} options
+     * @param {boolean} options.ignoreTabSides
+     *   If set to true: events will only be associated with a tab if they happened
+     *   on its central part (from 25% to 75%); if they happened on the left or right
+     *   sides of the tab, the method will return null.
+     */
+    _getDragTargetTab(event, { ignoreTabSides = false } = {}) {
+      let { target } = event;
+      if (target.nodeType != Node.ELEMENT_NODE) {
+        target = target.parentElement;
       }
-      if (tab && isLink) {
+      let tab = target?.closest("tab");
+      if (tab && ignoreTabSides) {
         let { width } = tab.getBoundingClientRect();
         if (
           event.screenX < tab.screenX + width * 0.25 ||
@@ -1910,31 +1945,16 @@
       return tab;
     }
 
-    _getDropIndex(event, isLink) {
-      var tabs = this.allTabs;
-      var tab = this._getDragTargetTab(event, isLink);
-      if (!RTL_UI) {
-        for (let i = tab ? tab._tPos : 0; i < tabs.length; i++) {
-          if (
-            !tabs[i].hidden &&
-            event.screenX <
-              tabs[i].screenX + tabs[i].getBoundingClientRect().width / 2
-          ) {
-            return i;
-          }
-        }
-      } else {
-        for (let i = tab ? tab._tPos : 0; i < tabs.length; i++) {
-          if (
-            !tabs[i].hidden &&
-            event.screenX >
-              tabs[i].screenX + tabs[i].getBoundingClientRect().width / 2
-          ) {
-            return i;
-          }
-        }
+    _getDropIndex(event) {
+      let tab = this._getDragTargetTab(event);
+      if (!tab) {
+        return this.allTabs.length;
       }
-      return tabs.length;
+      let middle = tab.screenX + tab.getBoundingClientRect().width / 2;
+      let isBeforeMiddle = RTL_UI
+        ? event.screenX > middle
+        : event.screenX < middle;
+      return tab._tPos + (isBeforeMiddle ? 0 : 1);
     }
 
     getDropEffectForTabDrag(event) {

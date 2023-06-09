@@ -24,6 +24,7 @@ job-defaults:
         tier: 2
     run-on-projects: ['mozilla-central']
     optimization: null
+    use-system-python: false
 
 jobs:
     linux64-searchfox/debug:
@@ -37,7 +38,6 @@ jobs:
             max-run-time: 10800
             env:
                 PERFHERDER_EXTRA_OPTIONS: searchfox
-                RUSTC_BOOTSTRAP: "1"
                 MOZSEARCH_PLATFORM: "linux"
         run:
             using: mozharness
@@ -71,7 +71,6 @@ jobs:
             max-run-time: 10800
             env:
                 PERFHERDER_EXTRA_OPTIONS: searchfox
-                RUSTC_BOOTSTRAP: "1"
                 MOZSEARCH_PLATFORM: "macosx"
         run:
             using: mozharness
@@ -109,7 +108,6 @@ jobs:
             max-run-time: 10800
             env:
                 PERFHERDER_EXTRA_OPTIONS: searchfox
-                RUSTC_BOOTSTRAP: "1"
                 MOZSEARCH_PLATFORM: "windows"
         run:
             using: mozharness
@@ -155,7 +153,6 @@ jobs:
             max-run-time: 10800
             env:
                 PERFHERDER_EXTRA_OPTIONS: searchfox
-                RUSTC_BOOTSTRAP: "1"
                 MOZSEARCH_PLATFORM: "android-armv7"
                 GRADLE_USER_HOME: "/builds/worker/checkouts/gecko/mobile/android/gradle/dotgradle-offline"
                 TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android/releng.manifest"

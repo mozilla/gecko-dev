@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsNativeAppSupportBase.h"
+#include "nsComponentManagerUtils.h"
 #include "nsCOMPtr.h"
 #include "nsXPCOM.h"
 #include "nsISupportsPrimitives.h"
@@ -21,6 +22,7 @@
 #include "nsIWidget.h"
 #include "mozilla/Logging.h"
 #include "mozilla/Services.h"
+#include "mozilla/XREAppData.h"
 
 #include <stdlib.h>
 #include <glib.h>
@@ -109,6 +111,8 @@ enum ClientState {
   STATE_INTERACTING,
   STATE_SHUTDOWN_CANCELLED
 };
+
+using namespace mozilla;
 
 static const char* gClientStateTable[] = {"DISCONNECTED", "REGISTERING", "IDLE",
                                           "INTERACTING", "SHUTDOWN_CANCELLED"};

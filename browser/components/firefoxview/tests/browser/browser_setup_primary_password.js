@@ -1,12 +1,8 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-const { TabsSetupFlowManager } = ChromeUtils.importESModule(
-  "resource:///modules/firefox-view-tabs-setup-manager.sys.mjs"
-);
-
-const { LoginTestUtils } = ChromeUtils.import(
-  "resource://testing-common/LoginTestUtils.jsm"
+const { LoginTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/LoginTestUtils.sys.mjs"
 );
 
 async function tearDown(sandbox) {
@@ -36,10 +32,9 @@ add_task(async function test_primary_password_locked() {
   const sandbox = setupMocks();
 
   await withFirefoxView({}, async browser => {
-    sandbox
-      .stub(TabsSetupFlowManager, "syncTabs")
-      .returns(Promise.resolve(null));
-    sandbox.stub(TabsSetupFlowManager, "startFullTabsSync").returns(undefined);
+    sandbox.stub(TabsSetupFlowManager, "syncTabs").resolves(null);
+    const syncedTabsMock = sandbox.stub(SyncedTabs, "getRecentTabs");
+    syncedTabsMock.resolves(getMockTabData(syncedTabsData1));
 
     const { document } = browser.contentWindow;
     Services.obs.notifyObservers(null, UIState.ON_UPDATE);

@@ -94,7 +94,7 @@ class gfxFontconfigFontEntry final : public gfxFT2FontEntryBase {
   nsresult ReadCMAP(FontInfoData* aFontInfoData = nullptr) override;
   bool TestCharacterMap(uint32_t aCh) override;
 
-  const RefPtr<mozilla::gfx::SharedFTFace>& GetFTFace();
+  mozilla::gfx::SharedFTFace* GetFTFace();
   FTUserFontData* GetUserFontData();
 
   FT_MM_Var* GetMMVar() override;
@@ -120,9 +120,12 @@ class gfxFontconfigFontEntry final : public gfxFT2FontEntryBase {
   // pattern for a single face of a family
   RefPtr<FcPattern> mFontPattern;
 
-  // FTFace - initialized when needed
-  RefPtr<mozilla::gfx::SharedFTFace> mFTFace;
-  bool mFTFaceInitialized;
+  // FTFace - initialized when needed. Once mFTFaceInitialized is true,
+  // the face can be accessed without locking.
+  // Note that mFTFace owns a reference to the SharedFTFace, but is not
+  // a RefPtr because we need it to be an atomic.
+  mozilla::Atomic<mozilla::gfx::SharedFTFace*> mFTFace;
+  mozilla::Atomic<bool> mFTFaceInitialized;
 
   // Whether TestCharacterMap should check the actual cmap rather than asking
   // fontconfig about character coverage.
@@ -135,8 +138,13 @@ class gfxFontconfigFontEntry final : public gfxFT2FontEntryBase {
   // query fontconfig for this (so they will only work if fontconfig is
   // recent enough to include support); for downloaded user-fonts we query
   // the FreeType face.
-  bool mHasVariations;
-  bool mHasVariationsInitialized;
+  enum class HasVariationsState : int8_t {
+    Uninitialized = -1,
+    No = 0,
+    Yes = 1,
+  };
+  std::atomic<HasVariationsState> mHasVariations =
+      HasVariationsState::Uninitialized;
 
   class UnscaledFontCache {
    public:

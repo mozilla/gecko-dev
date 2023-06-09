@@ -78,16 +78,12 @@ urlbar-xr-notification-anchor =
     .tooltiptext = Open virtual reality permission panel
 urlbar-storage-access-anchor =
     .tooltiptext = Open browsing activity permission panel
-urlbar-translate-notification-anchor =
-    .tooltiptext = Translate this page
 urlbar-web-rtc-share-screen-notification-anchor =
     .tooltiptext = Manage sharing your windows or screen with the site
 urlbar-indexed-db-notification-anchor =
     .tooltiptext = Open offline storage message panel
 urlbar-password-notification-anchor =
     .tooltiptext = Open save password message panel
-urlbar-translated-notification-anchor =
-    .tooltiptext = Manage page translation
 urlbar-plugins-notification-anchor =
     .tooltiptext = Manage plug-in use
 urlbar-web-rtc-share-devices-notification-anchor =
@@ -114,9 +110,17 @@ urlbar-tip-icon-description =
 
 urlbar-result-menu-button =
     .title = Open menu
+urlbar-result-menu-button-feedback = Feedback
+    .title = Open menu
+urlbar-result-menu-learn-more =
+    .label = Learn more
+    .accesskey = L
 urlbar-result-menu-remove-from-history =
     .label = Remove from history
     .accesskey = R
+urlbar-result-menu-tip-get-help =
+    .label = Get help
+    .accesskey = h
 
 ## Prompts users to use the Urlbar when they open a new tab or visit the
 ## homepage of their default search engine.
@@ -398,7 +402,7 @@ identity-clear-site-data =
 identity-connection-not-secure-security-view = You are not securely connected to this site.
 identity-connection-verified = You are securely connected to this site.
 identity-ev-owner-label = Certificate issued to:
-identity-description-custom-root = Mozilla does not recognize this certificate issuer. It may have been added from your operating system or by an administrator. <label data-l10n-name="link">Learn More</label>
+identity-description-custom-root2 = Mozilla does not recognize this certificate issuer. It may have been added from your operating system or by an administrator.
 identity-remove-cert-exception =
     .label = Remove Exception
     .accesskey = R
@@ -406,14 +410,12 @@ identity-description-insecure = Your connection to this site is not private. Inf
 identity-description-insecure-login-forms = The login information you enter on this page is not secure and could be compromised.
 identity-description-weak-cipher-intro = Your connection to this website uses weak encryption and is not private.
 identity-description-weak-cipher-risk = Other people can view your information or modify the website’s behavior.
-identity-description-active-blocked = { -brand-short-name } has blocked parts of this page that are not secure. <label data-l10n-name="link">Learn More</label>
+identity-description-active-blocked2 = { -brand-short-name } has blocked parts of this page that are not secure.
 identity-description-passive-loaded = Your connection is not private and information you share with the site could be viewed by others.
-identity-description-passive-loaded-insecure = This website contains content that is not secure (such as images). <label data-l10n-name="link">Learn More</label>
-identity-description-passive-loaded-mixed = Although { -brand-short-name } has blocked some content, there is still content on the page that is not secure (such as images). <label data-l10n-name="link">Learn More</label>
+identity-description-passive-loaded-insecure2 = This website contains content that is not secure (such as images).
+identity-description-passive-loaded-mixed2 = Although { -brand-short-name } has blocked some content, there is still content on the page that is not secure (such as images).
 identity-description-active-loaded = This website contains content that is not secure (such as scripts) and your connection to it is not private.
 identity-description-active-loaded-insecure = Information you share with this site could be viewed by others (like passwords, messages, credit cards, etc.).
-identity-learn-more =
-    .value = Learn More
 identity-disable-mixed-content-blocking =
     .label = Disable protection for now
     .accesskey = D
@@ -659,6 +661,16 @@ reader-view-enter-button =
 reader-view-close-button =
     .aria-label = Close Reader View
 
+## Picture-in-Picture urlbar button
+## Variables:
+##   $shortcut (String) - Keyboard shortcut to execute the command.
+
+picture-in-picture-urlbar-button-open =
+ .tooltiptext = Open Picture-in-Picture ({ $shortcut })
+
+picture-in-picture-urlbar-button-close =
+ .tooltiptext = Close Picture-in-Picture ({ $shortcut })
+
 ## Full Screen and Pointer Lock UI
 
 # Please ensure that the domain stays in the `<span data-l10n-name="domain">` markup.
@@ -693,6 +705,11 @@ bookmarks-other-bookmarks-menu =
   .label = Other bookmarks
 bookmarks-mobile-bookmarks-menu =
   .label = Mobile bookmarks
+
+## Variables:
+##   $isVisible (boolean): if the specific element (e.g. bookmarks sidebar,
+##                         bookmarks toolbar, etc.) is visible or not.
+
 bookmarks-tools-sidebar-visibility =
   .label = { $isVisible ->
      [true] Hide bookmarks sidebar
@@ -713,6 +730,9 @@ bookmarks-tools-menu-button-visibility =
      [true] Remove bookmarks menu from toolbar
     *[other] Add bookmarks menu to toolbar
   }
+
+##
+
 bookmarks-search =
   .label = Search bookmarks
 bookmarks-tools =
@@ -760,12 +780,6 @@ repair-text-encoding-button =
 ## Customize Toolbar Buttons
 
 # Variables:
-#  $shortcut (String): keyboard shortcut to open the add-ons manager
-toolbar-addons-themes-button =
-  .label = Add-ons and themes
-  .tooltiptext = Manage your add-ons and themes ({ $shortcut })
-
-# Variables:
 #  $shortcut (String): keyboard shortcut to open settings (only on macOS)
 toolbar-settings-button =
   .label = Settings
@@ -781,6 +795,10 @@ toolbar-overflow-customize-button =
 toolbar-button-email-link =
   .label = Email link
   .tooltiptext = Email a link to this page
+
+toolbar-button-logins =
+  .label = Passwords
+  .tooltiptext = View and manage your saved passwords
 
 # Variables:
 #  $shortcut (String): keyboard shortcut to save a copy of the page
@@ -963,3 +981,7 @@ firefox-relay-offer-how-we-integrate = By continuing, you’ll be able to genera
 #  $sitename (String): name of the site where user enters their Relay mask
 #  $useremail (String): user email that will receive messages
 firefox-relay-offer-what-relay-does = We’ll forward all emails from <strong>{ $sitename }</strong> to <strong>{ $useremail }</strong>.
+
+## Popup Notification
+
+popup-notification-xpinstall-prompt-learn-more = Learn more about installing add-ons safely

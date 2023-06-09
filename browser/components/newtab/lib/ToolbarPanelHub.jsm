@@ -11,12 +11,12 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   Preferences: "resource://gre/modules/Preferences.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
+  SpecialMessageActions:
+    "resource://messaging-system/lib/SpecialMessageActions.sys.mjs",
 });
 
 XPCOMUtils.defineLazyModuleGetters(lazy, {
   EveryWindow: "resource:///modules/EveryWindow.jsm",
-  SpecialMessageActions:
-    "resource://messaging-system/lib/SpecialMessageActions.jsm",
   RemoteL10n: "resource://activity-stream/lib/RemoteL10n.jsm",
 });
 ChromeUtils.defineModuleGetter(
@@ -119,8 +119,8 @@ class _ToolbarPanelHub {
 
   maybeInsertFTL(win) {
     win.MozXULElement.insertFTLIfNeeded("browser/newtab/asrouter.ftl");
-    win.MozXULElement.insertFTLIfNeeded("browser/branding/brandings.ftl");
-    win.MozXULElement.insertFTLIfNeeded("browser/branding/sync-brand.ftl");
+    win.MozXULElement.insertFTLIfNeeded("toolkit/branding/brandings.ftl");
+    win.MozXULElement.insertFTLIfNeeded("toolkit/branding/accounts.ftl");
   }
 
   maybeLoadCustomElement(win) {
@@ -586,10 +586,14 @@ class _ToolbarPanelHub {
   }
 
   /**
-   * @param {object} browser MessageChannel target argument as a response to a user action
+   * @param {object} [browser] MessageChannel target argument as a response to a
+   *   user action. No message is shown if undefined.
    * @param {object[]} messages Messages selected from devtools page
    */
   forceShowMessage(browser, messages) {
+    if (!browser) {
+      return;
+    }
     const win = browser.ownerGlobal;
     const doc = browser.ownerDocument;
     this.removeMessages(win, WHATS_NEW_PANEL_SELECTOR);

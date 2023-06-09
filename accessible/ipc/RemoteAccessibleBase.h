@@ -11,6 +11,7 @@
 #include "mozilla/a11y/CacheConstants.h"
 #include "mozilla/a11y/HyperTextAccessibleBase.h"
 #include "mozilla/a11y/Role.h"
+#include "mozilla/WeakPtr.h"
 #include "AccAttributes.h"
 #include "nsIAccessibleText.h"
 #include "nsIAccessibleTypes.h"
@@ -31,7 +32,13 @@ enum class RelationType;
  * process.
  */
 template <class Derived>
+#ifdef XP_WIN
+class RemoteAccessibleBase : public Accessible,
+                             public HyperTextAccessibleBase,
+                             public SupportsWeakPtr {
+#else
 class RemoteAccessibleBase : public Accessible, public HyperTextAccessibleBase {
+#endif
  public:
   virtual ~RemoteAccessibleBase() { MOZ_ASSERT(!mWrapper); }
 
@@ -178,6 +185,7 @@ class RemoteAccessibleBase : public Accessible, public HyperTextAccessibleBase {
   virtual double MinValue() const override;
   virtual double MaxValue() const override;
   virtual double Step() const override;
+  virtual bool SetCurValue(double aValue) override;
 
   virtual Accessible* ChildAtPoint(
       int32_t aX, int32_t aY,
@@ -194,6 +202,8 @@ class RemoteAccessibleBase : public Accessible, public HyperTextAccessibleBase {
   virtual already_AddRefed<AccAttributes> Attributes() override;
 
   virtual nsAtom* TagName() const override;
+
+  virtual already_AddRefed<nsAtom> InputType() const override;
 
   virtual already_AddRefed<nsAtom> DisplayStyle() const override;
 
@@ -215,7 +225,12 @@ class RemoteAccessibleBase : public Accessible, public HyperTextAccessibleBase {
 
   virtual void SelectionRanges(nsTArray<TextRange>* aRanges) const override;
 
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY virtual bool RemoveFromSelection(
+      int32_t aSelectionNum) override;
+
   virtual Maybe<int32_t> GetIntARIAAttr(nsAtom* aAttrName) const override;
+
+  virtual void Language(nsAString& aLocale) override;
 
   //////////////////////////////////////////////////////////////////////////////
   // SelectAccessible
@@ -359,7 +374,7 @@ class RemoteAccessibleBase : public Accessible, public HyperTextAccessibleBase {
 
   uint32_t GetCachedTextLength();
   Maybe<const nsTArray<int32_t>&> GetCachedTextLines();
-  Maybe<nsTArray<nsRect>> GetCachedCharData();
+  nsRect GetCachedCharRect(int32_t aOffset);
   RefPtr<const AccAttributes> GetCachedTextAttributes();
   RefPtr<const AccAttributes> GetCachedARIAAttributes() const;
 
@@ -423,11 +438,15 @@ class RemoteAccessibleBase : public Accessible, public HyperTextAccessibleBase {
  protected:
   void SetParent(Derived* aParent);
   Maybe<nsRect> RetrieveCachedBounds() const;
-  bool ApplyTransform(nsRect& aCumulativeBounds,
-                      const nsRect& aParentRelativeBounds) const;
-  void ApplyScrollOffset(nsRect& aBounds) const;
+  bool ApplyTransform(nsRect& aCumulativeBounds) const;
+  bool ApplyScrollOffset(nsRect& aBounds) const;
   void ApplyCrossDocOffset(nsRect& aBounds) const;
-  LayoutDeviceIntRect BoundsWithOffset(Maybe<nsRect> aOffset) const;
+  LayoutDeviceIntRect BoundsWithOffset(
+      Maybe<nsRect> aOffset, bool aBoundsAreForHittesting = false) const;
+  bool IsFixedPos() const;
+
+  // This function is used exclusively for hit testing.
+  bool ContainsPoint(int32_t aX, int32_t aY);
 
   virtual void ARIAGroupPosition(int32_t* aLevel, int32_t* aSetSize,
                                  int32_t* aPosInSet) const override;
@@ -444,6 +463,11 @@ class RemoteAccessibleBase : public Accessible, public HyperTextAccessibleBase {
   nsAtom* GetPrimaryAction() const;
 
   virtual nsTArray<int32_t>& GetCachedHyperTextOffsets() override;
+
+  // XXX: Declare ourselves as a template friend to work around a suspected gcc
+  // bug with calling protected functions. See Bug 1825516.
+  template <class>
+  friend class RemoteAccessibleBase;
 
  private:
   uintptr_t mParent;

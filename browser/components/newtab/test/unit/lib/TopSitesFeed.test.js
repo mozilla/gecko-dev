@@ -4,12 +4,12 @@ import {
   actionCreators as ac,
   actionTypes as at,
 } from "common/Actions.sys.mjs";
-import { FakePrefs, GlobalOverrider } from "test/unit/utils";
+import { FAKE_GLOBAL_PREFS, FakePrefs, GlobalOverrider } from "test/unit/utils";
 import {
   insertPinned,
   TOP_SITES_DEFAULT_ROWS,
   TOP_SITES_MAX_SITES_PER_ROW,
-} from "common/Reducers.jsm";
+} from "common/Reducers.sys.mjs";
 import { getDefaultOptions } from "lib/ActivityStreamStorage.jsm";
 import injector from "inject!lib/TopSitesFeed.jsm";
 import { Screenshots } from "lib/Screenshots.jsm";
@@ -113,7 +113,10 @@ describe("Top Sites Feed", () => {
       newtab: {
         getVariable: sinon.stub(),
         onUpdate: sinon.stub(),
-        off: sinon.stub(),
+        offUpdate: sinon.stub(),
+      },
+      pocketNewtab: {
+        getVariable: sinon.stub(),
       },
     };
     globals.set({
@@ -126,7 +129,7 @@ describe("Top Sites Feed", () => {
       Screenshots: fakeScreenshot,
     });
     sandbox.spy(global.XPCOMUtils, "defineLazyGetter");
-    FakePrefs.prototype.prefs["default.sites"] = "https://foo.com/";
+    FAKE_GLOBAL_PREFS.set("default.sites", "https://foo.com/");
     ({ TopSitesFeed, DEFAULT_TOP_SITES } = injector({
       "lib/ActivityStreamPrefs.jsm": { Prefs: FakePrefs },
       "common/Dedupe.jsm": { Dedupe: fakeDedupe },
@@ -611,6 +614,44 @@ describe("Top Sites Feed", () => {
       await feed.getLinksWithDefaults();
 
       assert.calledWith(feed._fetchScreenshot, sinon.match.object, "custom");
+    });
+    describe("discoverystream", () => {
+      let makeStreamData = index => ({
+        layout: [
+          {
+            components: [
+              {
+                placement: {
+                  name: "sponsored-topsites",
+                },
+                spocs: {
+                  positions: [{ index }],
+                },
+              },
+            ],
+          },
+        ],
+        spocs: {
+          data: {
+            "sponsored-topsites": {
+              items: [{ title: "test spoc", url: "https://test-spoc.com" }],
+            },
+          },
+        },
+      });
+      it("should add a sponsored topsite from discoverystream to all the valid indices", async () => {
+        for (let i = 0; i < FAKE_LINKS.length; i++) {
+          feed.store.state.DiscoveryStream = makeStreamData(i);
+          const result = await feed.getLinksWithDefaults();
+          const link = result[i];
+
+          assert.equal(link.type, "SPOC");
+          assert.equal(link.title, "test spoc");
+          assert.equal(link.sponsored_position, i + 1);
+          assert.equal(link.hostname, "test-spoc");
+          assert.equal(link.url, "https://test-spoc.com");
+        }
+      });
     });
   });
   describe("#init", () => {
@@ -2119,6 +2160,108 @@ describe("Top Sites Feed", () => {
       assert.equal(feed._contile.sites.length, 0);
     });
 
+    it("should still return two tiles when Contile provides more than 2 tiles and filtering results in more than 2 tiles", async () => {
+      fakeNimbusFeatures.newtab.getVariable.reset();
+      fakeNimbusFeatures.newtab.getVariable.onCall(0).returns(true);
+      fakeNimbusFeatures.newtab.getVariable.onCall(1).returns(true);
+
+      fetchStub.resolves({
+        ok: true,
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            tiles: [
+              {
+                url: "https://www.test.com",
+                image_url: "images/test-com.png",
+                click_url: "https://www.test-click.com",
+                impression_url: "https://www.test-impression.com",
+                name: "test",
+              },
+              {
+                url: "https://foo.com",
+                image_url: "images/foo-com.png",
+                click_url: "https://www.foo-click.com",
+                impression_url: "https://www.foo-impression.com",
+                name: "foo",
+              },
+              {
+                url: "https://bar.com",
+                image_url: "images/bar-com.png",
+                click_url: "https://www.bar-click.com",
+                impression_url: "https://www.bar-impression.com",
+                name: "bar",
+              },
+              {
+                url: "https://test1.com",
+                image_url: "images/test1-com.png",
+                click_url: "https://www.test1-click.com",
+                impression_url: "https://www.test1-impression.com",
+                name: "test1",
+              },
+              {
+                url: "https://test2.com",
+                image_url: "images/test2-com.png",
+                click_url: "https://www.test2-click.com",
+                impression_url: "https://www.test2-impression.com",
+                name: "test2",
+              },
+            ],
+          }),
+      });
+
+      const fetched = await feed._contile._fetchSites();
+
+      assert.ok(fetched);
+      // Both "foo" and "bar" should be filtered
+      assert.equal(feed._contile.sites.length, 2);
+      assert.equal(feed._contile.sites[0].url, "https://www.test.com");
+      assert.equal(feed._contile.sites[1].url, "https://test1.com");
+    });
+
+    it("should still return two tiles with replacement if the Nimbus variable was unset", async () => {
+      fakeNimbusFeatures.newtab.getVariable.reset();
+      fakeNimbusFeatures.newtab.getVariable.onCall(0).returns(true);
+      fakeNimbusFeatures.newtab.getVariable.onCall(1).returns(undefined);
+      fetchStub.resolves({
+        ok: true,
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            tiles: [
+              {
+                url: "https://www.test.com",
+                image_url: "images/test-com.png",
+                click_url: "https://www.test-click.com",
+                impression_url: "https://www.test-impression.com",
+                name: "test",
+              },
+              {
+                url: "https://foo.com",
+                image_url: "images/foo-com.png",
+                click_url: "https://www.foo-click.com",
+                impression_url: "https://www.foo-impression.com",
+                name: "foo",
+              },
+              {
+                url: "https://test1.com",
+                image_url: "images/test1-com.png",
+                click_url: "https://www.test1-click.com",
+                impression_url: "https://www.test1-impression.com",
+                name: "test1",
+              },
+            ],
+          }),
+      });
+
+      const fetched = await feed._contile._fetchSites();
+
+      assert.ok(fetched);
+      assert.equal(feed._contile.sites.length, 2);
+      assert.equal(feed._contile.sites[0].url, "https://www.test.com");
+      assert.equal(feed._contile.sites[1].url, "https://test1.com");
+    });
+
     it("should filter the blocked sponsors", async () => {
       fetchStub.resolves({
         ok: true,
@@ -2328,6 +2471,60 @@ describe("Top Sites Feed", () => {
       feed._nimbusChangeListener(null, "feature-rollout-loaded");
 
       assert.notCalled(feed._contile.refresh);
+    });
+  });
+
+  describe("#_maybeCapSponsoredLinks", () => {
+    let sponsoredLinks;
+
+    beforeEach(() => {
+      sponsoredLinks = [
+        {
+          url: "https://www.test.com",
+          name: "test",
+          sponsored_position: 1,
+        },
+        {
+          url: "https://www.test1.com",
+          name: "test1",
+          sponsored_position: 2,
+        },
+        {
+          url: "https://www.test2.com",
+          name: "test2",
+          sponsored_position: 3,
+        },
+      ];
+    });
+    afterEach(() => {
+      sandbox.restore();
+    });
+
+    it("should fall back to the default if the Nimbus variable is unspecified", () => {
+      feed._maybeCapSponsoredLinks(sponsoredLinks);
+
+      assert.equal(sponsoredLinks.length, 2);
+    });
+    it("should cap the links if specified by the Nimbus variable", () => {
+      fakeNimbusFeatures.pocketNewtab.getVariable.returns(1);
+
+      feed._maybeCapSponsoredLinks(sponsoredLinks);
+
+      assert.equal(sponsoredLinks.length, 1);
+    });
+    it("should leave all the links if the Nimbus variable is equal to what we have", () => {
+      fakeNimbusFeatures.pocketNewtab.getVariable.returns(3);
+
+      feed._maybeCapSponsoredLinks(sponsoredLinks);
+
+      assert.equal(sponsoredLinks.length, 3);
+    });
+    it("should ignore caps if they are more than what we have", () => {
+      fakeNimbusFeatures.pocketNewtab.getVariable.returns(10);
+
+      feed._maybeCapSponsoredLinks(sponsoredLinks);
+
+      assert.equal(sponsoredLinks.length, 3);
     });
   });
 });

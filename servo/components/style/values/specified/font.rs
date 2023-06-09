@@ -1094,7 +1094,15 @@ impl Parse for FontVariantAlternates {
             return Ok(Default::default());
         }
 
-        let mut alternates = Vec::new();
+        let mut stylistic = None;
+        let mut historical = None;
+        let mut styleset = None;
+        let mut character_variant = None;
+        let mut swash = None;
+        let mut ornaments = None;
+        let mut annotation = None;
+
+        // Parse values for the various alternate types in any order.
         let mut parsed_alternates = VariantAlternatesParsingFlags::empty();
         macro_rules! check_if_parsed(
             ($input:expr, $flag:path) => (
@@ -1107,7 +1115,7 @@ impl Parse for FontVariantAlternates {
         while let Ok(_) = input.try_parse(|input| match *input.next()? {
             Token::Ident(ref value) if value.eq_ignore_ascii_case("historical-forms") => {
                 check_if_parsed!(input, VariantAlternatesParsingFlags::HISTORICAL_FORMS);
-                alternates.push(VariantAlternates::HistoricalForms);
+                historical = Some(VariantAlternates::HistoricalForms);
                 Ok(())
             },
             Token::Function(ref name) => {
@@ -1118,28 +1126,28 @@ impl Parse for FontVariantAlternates {
                             check_if_parsed!(i, VariantAlternatesParsingFlags::SWASH);
                             let location = i.current_source_location();
                             let ident = CustomIdent::from_ident(location, i.expect_ident()?, &[])?;
-                            alternates.push(VariantAlternates::Swash(ident));
+                            swash = Some(VariantAlternates::Swash(ident));
                             Ok(())
                         },
                         "stylistic" => {
                             check_if_parsed!(i, VariantAlternatesParsingFlags::STYLISTIC);
                             let location = i.current_source_location();
                             let ident = CustomIdent::from_ident(location, i.expect_ident()?, &[])?;
-                            alternates.push(VariantAlternates::Stylistic(ident));
+                            stylistic = Some(VariantAlternates::Stylistic(ident));
                             Ok(())
                         },
                         "ornaments" => {
                             check_if_parsed!(i, VariantAlternatesParsingFlags::ORNAMENTS);
                             let location = i.current_source_location();
                             let ident = CustomIdent::from_ident(location, i.expect_ident()?, &[])?;
-                            alternates.push(VariantAlternates::Ornaments(ident));
+                            ornaments = Some(VariantAlternates::Ornaments(ident));
                             Ok(())
                         },
                         "annotation" => {
                             check_if_parsed!(i, VariantAlternatesParsingFlags::ANNOTATION);
                             let location = i.current_source_location();
                             let ident = CustomIdent::from_ident(location, i.expect_ident()?, &[])?;
-                            alternates.push(VariantAlternates::Annotation(ident));
+                            annotation = Some(VariantAlternates::Annotation(ident));
                             Ok(())
                         },
                         "styleset" => {
@@ -1148,7 +1156,7 @@ impl Parse for FontVariantAlternates {
                                 let location = i.current_source_location();
                                 CustomIdent::from_ident(location, i.expect_ident()?, &[])
                             })?;
-                            alternates.push(VariantAlternates::Styleset(idents.into()));
+                            styleset = Some(VariantAlternates::Styleset(idents.into()));
                             Ok(())
                         },
                         "character-variant" => {
@@ -1157,7 +1165,7 @@ impl Parse for FontVariantAlternates {
                                 let location = i.current_source_location();
                                 CustomIdent::from_ident(location, i.expect_ident()?, &[])
                             })?;
-                            alternates.push(VariantAlternates::CharacterVariant(idents.into()));
+                            character_variant = Some(VariantAlternates::CharacterVariant(idents.into()));
                             Ok(())
                         },
                         _ => return Err(i.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
@@ -1170,6 +1178,24 @@ impl Parse for FontVariantAlternates {
         if parsed_alternates.is_empty() {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
+
+        // Collect the parsed values in canonical order, so that we'll serialize correctly.
+        let mut alternates = Vec::new();
+        macro_rules! push_if_some(
+            ($value:expr) => (
+                if let Some(v) = $value {
+                    alternates.push(v);
+                }
+            )
+        );
+        push_if_some!(stylistic);
+        push_if_some!(historical);
+        push_if_some!(styleset);
+        push_if_some!(character_variant);
+        push_if_some!(swash);
+        push_if_some!(ornaments);
+        push_if_some!(annotation);
+
         Ok(FontVariantAlternates(alternates.into()))
     }
 }
@@ -1689,197 +1715,8 @@ impl Parse for FontVariantNumeric {
 /// This property provides low-level control over OpenType or TrueType font features.
 pub type FontFeatureSettings = FontSettings<FeatureTagValue<Integer>>;
 
-#[derive(
-    Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem,
-)]
-/// Whether user agents are allowed to synthesize bold or oblique font faces
-/// when a font family lacks those faces, or a small-caps variant when this is
-/// not supported by the face.
-pub struct FontSynthesis {
-    /// If a `font-weight` is requested that the font family does not contain,
-    /// the user agent may synthesize the requested weight from the weights
-    /// that do exist in the font family.
-    pub weight: bool,
-    /// If a font-style is requested that the font family does not contain,
-    /// the user agent may synthesize the requested style from the normal face in the font family.
-    pub style: bool,
-    /// This bit controls whether the user agent is allowed to synthesize small caps variant
-    /// when a font face lacks it.
-    pub small_caps: bool,
-}
-
-impl FontSynthesis {
-    #[inline]
-    /// Get the default value of font-synthesis
-    pub fn get_initial_value() -> Self {
-        FontSynthesis {
-            weight: true,
-            style: true,
-            small_caps: true,
-        }
-    }
-    #[inline]
-    /// Get the 'none' value of font-synthesis
-    pub fn none() -> Self {
-        FontSynthesis {
-            weight: false,
-            style: false,
-            small_caps: false,
-        }
-    }
-    #[inline]
-    /// Return true if this is the 'none' value
-    pub fn is_none(&self) -> bool {
-        *self == Self::none()
-    }
-}
-
-impl Parse for FontSynthesis {
-    fn parse<'i, 't>(
-        _: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<FontSynthesis, ParseError<'i>> {
-        let mut result = Self::none();
-        while let Ok(ident) = input.try_parse(|i| i.expect_ident_cloned()) {
-            match_ignore_ascii_case! { &ident,
-                "none" if result.is_none() => return Ok(result),
-                "weight" if !result.weight => result.weight = true,
-                "style" if !result.style => result.style = true,
-                "small-caps" if !result.small_caps &&
-                                static_prefs::pref!("layout.css.font-synthesis-small-caps.enabled")
-                                    => result.small_caps = true,
-                _ => return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident))),
-            }
-        }
-        if !result.is_none() {
-            Ok(result)
-        } else {
-            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-        }
-    }
-}
-
-impl ToCss for FontSynthesis {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        if self.is_none() {
-            return dest.write_str("none");
-        }
-
-        let mut need_space = false;
-        if self.weight {
-            dest.write_str("weight")?;
-            need_space = true;
-        }
-        if self.style {
-            if need_space {
-                dest.write_str(" ")?;
-            }
-            dest.write_str("style")?;
-            need_space = true;
-        }
-        if self.small_caps {
-            if need_space {
-                dest.write_str(" ")?;
-            }
-            dest.write_str("small-caps")?;
-        }
-        Ok(())
-    }
-}
-
-impl SpecifiedValueInfo for FontSynthesis {
-    fn collect_completion_keywords(f: KeywordsCollectFn) {
-        f(&["none", "weight", "style"]);
-        if static_prefs::pref!("layout.css.font-synthesis-small-caps.enabled") {
-            f(&["small-caps"]);
-        }
-    }
-}
-
-#[cfg(feature = "gecko")]
-impl From<u8> for FontSynthesis {
-    fn from(bits: u8) -> FontSynthesis {
-        use crate::gecko_bindings::structs;
-
-        FontSynthesis {
-            weight: bits & structs::NS_FONT_SYNTHESIS_WEIGHT as u8 != 0,
-            style: bits & structs::NS_FONT_SYNTHESIS_STYLE as u8 != 0,
-            small_caps: bits & structs::NS_FONT_SYNTHESIS_SMALL_CAPS as u8 != 0,
-        }
-    }
-}
-
-#[cfg(feature = "gecko")]
-impl From<FontSynthesis> for u8 {
-    fn from(v: FontSynthesis) -> u8 {
-        use crate::gecko_bindings::structs;
-
-        let mut bits: u8 = 0;
-        if v.weight {
-            bits |= structs::NS_FONT_SYNTHESIS_WEIGHT as u8;
-        }
-        if v.style {
-            bits |= structs::NS_FONT_SYNTHESIS_STYLE as u8;
-        }
-        if v.small_caps {
-            bits |= structs::NS_FONT_SYNTHESIS_SMALL_CAPS as u8;
-        }
-        bits
-    }
-}
-
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
-/// Allows authors to explicitly specify the language system of the font,
-/// overriding the language system implied by the content language
-pub enum FontLanguageOverride {
-    /// When rendering with OpenType fonts,
-    /// the content language of the element is
-    /// used to infer the OpenType language system
-    Normal,
-    /// Single three-letter case-sensitive OpenType language system tag,
-    /// specifies the OpenType language system to be used instead of
-    /// the language system implied by the language of the element
-    Override(Box<str>),
-}
-
-impl FontLanguageOverride {
-    #[inline]
-    /// Get default value with `normal`
-    pub fn normal() -> FontLanguageOverride {
-        FontLanguageOverride::Normal
-    }
-
-    /// The ToComputedValue implementation for non-system-font
-    /// FontLanguageOverride, used for @font-face descriptors.
-    #[inline]
-    pub fn compute_non_system(&self) -> computed::FontLanguageOverride {
-        match *self {
-            FontLanguageOverride::Normal => computed::FontLanguageOverride::zero(),
-            FontLanguageOverride::Override(ref lang) => {
-                computed::FontLanguageOverride::from_str(lang)
-            },
-        }
-    }
-}
-
-impl ToComputedValue for FontLanguageOverride {
-    type ComputedValue = computed::FontLanguageOverride;
-
-    #[inline]
-    fn to_computed_value(&self, _: &Context) -> computed::FontLanguageOverride {
-        self.compute_non_system()
-    }
-    #[inline]
-    fn from_computed_value(computed: &computed::FontLanguageOverride) -> Self {
-        if *computed == computed::FontLanguageOverride::zero() {
-            return FontLanguageOverride::Normal;
-        }
-        FontLanguageOverride::Override(computed.to_str(&mut [0; 4]).into())
-    }
-}
+/// For font-language-override, use the same representation as the computed value.
+pub use crate::values::computed::font::FontLanguageOverride;
 
 impl Parse for FontLanguageOverride {
     /// normal | <string>
@@ -1891,14 +1728,47 @@ impl Parse for FontLanguageOverride {
             .try_parse(|input| input.expect_ident_matching("normal"))
             .is_ok()
         {
-            return Ok(FontLanguageOverride::Normal);
+            return Ok(FontLanguageOverride::normal());
         }
 
         let string = input.expect_string()?;
-        Ok(FontLanguageOverride::Override(
-            string.as_ref().to_owned().into_boxed_str(),
-        ))
+
+        // The OpenType spec requires tags to be 1 to 4 ASCII characters:
+        // https://learn.microsoft.com/en-gb/typography/opentype/spec/otff#data-types
+        if string.is_empty() || string.len() > 4 || !string.is_ascii() {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+        }
+
+        let mut bytes = [b' '; 4];
+        for (byte, str_byte) in bytes.iter_mut().zip(string.as_bytes()) {
+            *byte = *str_byte;
+        }
+
+        Ok(FontLanguageOverride(u32::from_be_bytes(bytes)))
     }
+}
+
+/// A value for any of the font-synthesis-{weight,style,small-caps} properties.
+#[repr(u8)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+pub enum FontSynthesis {
+    /// This attribute may be synthesized if not supported by a face.
+    Auto,
+    /// Do not attempt to synthesis this style attribute.
+    None,
 }
 
 #[derive(
@@ -1957,7 +1827,6 @@ impl ToCss for FontPalette {
 /// This property provides low-level control over OpenType or TrueType font
 /// variations.
 pub type FontVariationSettings = FontSettings<VariationValue<Number>>;
-
 
 fn parse_one_feature_value<'i, 't>(
     context: &ParserContext,
@@ -2039,6 +1908,7 @@ impl MetricsOverride {
     Copy,
     Debug,
     MallocSizeOf,
+    Parse,
     PartialEq,
     SpecifiedValueInfo,
     ToComputedValue,
@@ -2046,19 +1916,22 @@ impl MetricsOverride {
     ToResolvedValue,
     ToShmem,
 )]
-/// text-zoom. Enable if true, disable if false
-pub struct XTextZoom(#[css(skip)] pub bool);
+#[repr(u8)]
+/// How to do font-size scaling.
+pub enum XTextScale {
+    /// Both min-font-size and text zoom are enabled.
+    All,
+    /// Text-only zoom is enabled, but min-font-size is not honored.
+    ZoomOnly,
+    /// Neither of them is enabled.
+    None,
+}
 
-impl Parse for XTextZoom {
-    fn parse<'i, 't>(
-        _: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<XTextZoom, ParseError<'i>> {
-        debug_assert!(
-            false,
-            "Should be set directly by presentation attributes only."
-        );
-        Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+impl XTextScale {
+    /// Returns whether text zoom is enabled.
+    #[inline]
+    pub fn text_zoom_enabled(self) -> bool {
+        self != Self::None
     }
 }
 

@@ -46,8 +46,9 @@ class nsRubyBaseContainerFrame final : public nsContainerFrame {
                       const ReflowInput& aReflowInput,
                       nsReflowStatus& aStatus) override;
 
-  virtual nscoord GetLogicalBaseline(
-      mozilla::WritingMode aWritingMode) const override;
+  Maybe<nscoord> GetNaturalBaselineBOffset(
+      mozilla::WritingMode aWM,
+      BaselineSharingGroup aBaselineGroup) const override;
 
 #ifdef DEBUG_FRAME_DUMP
   virtual nsresult GetFrameName(nsAString& aResult) const override;

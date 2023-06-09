@@ -79,7 +79,7 @@ reftest.Runner = class {
    * This will open a non-browser window in which the tests will
    * be loaded, and set up various caches for the reftest run.
    *
-   * @param {Object.<Number>} urlCount
+   * @param {Object<number>} urlCount
    *     Object holding a map of URL: number of times the URL
    *     will be opened during the reftest run, where that's
    *     greater than 1.
@@ -281,7 +281,7 @@ reftest.Runner = class {
    * @param {number} timeout
    *     Test timeout in milliseconds.
    *
-   * @return {Object}
+   * @returns {object}
    *     Result object with fields status, message and extra.
    */
   async run(
@@ -782,17 +782,22 @@ browserRect.height: ${browserRect.height}`);
         bottom: margin,
       },
       shrinkToFit: false,
-      printBackground: true,
+      background: true,
     });
+    const printSettings = lazy.print.getPrintSettings(settings);
 
-    const filePath = await lazy.print.printToFile(win.gBrowser, settings);
+    const binaryString = await lazy.print.printToBinaryString(
+      win.gBrowser.browsingContext,
+      printSettings
+    );
 
     try {
-      const pdf = await this.loadPdf(url, filePath);
+      const pdf = await this.loadPdf(binaryString);
       let pages = this.getPages(pageRanges, url, pdf.numPages);
       return [this.renderPages(pdf, pages), pages.size];
-    } finally {
-      await IOUtils.remove(filePath);
+    } catch (e) {
+      lazy.logger.warn(`Loading of pdf failed`);
+      throw e;
     }
   }
 
@@ -810,8 +815,7 @@ browserRect.height: ${browserRect.height}`);
       "resource://pdf.js/build/pdf.worker.js";
   }
 
-  async loadPdf(url, filePath) {
-    const data = await IOUtils.read(filePath);
+  async loadPdf(data) {
     return this.parentWindow.pdfjsLib.getDocument({ data }).promise;
   }
 

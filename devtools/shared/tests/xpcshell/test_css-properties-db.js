@@ -22,15 +22,14 @@
 const {
   PSEUDO_ELEMENTS,
   CSS_PROPERTIES,
-  PREFERENCES,
 } = require("resource://devtools/shared/css/generated/properties-db.js");
+const PREFERENCES = InspectorUtils.getCSSPropertyPrefs();
 const {
   generateCssProperties,
 } = require("resource://devtools/server/actors/css-properties.js");
 const { Preferences } = ChromeUtils.importESModule(
   "resource://gre/modules/Preferences.sys.mjs"
 );
-const InspectorUtils = require("InspectorUtils");
 
 function run_test() {
   const propertiesErrorMessage =
@@ -45,14 +44,6 @@ function run_test() {
     PSEUDO_ELEMENTS,
     InspectorUtils.getCSSPseudoElementNames(),
     "The pseudo elements match on the client and platform. " +
-      propertiesErrorMessage
-  );
-
-  const prefs = InspectorUtils.getCSSPropertyPrefs();
-  deepEqual(
-    PREFERENCES,
-    prefs.map(({ name, pref }) => [name, pref]),
-    "The preferences match on the client and platform. " +
       propertiesErrorMessage
   );
 
@@ -178,12 +169,12 @@ function getKeyMismatches(a, b) {
  * @return {Boolean|undefined}
  */
 function getPreference(propertyName) {
-  const preference = PREFERENCES.find(([prefPropertyName, preferenceKey]) => {
-    return prefPropertyName === propertyName && !!preferenceKey;
+  const preference = PREFERENCES.find(({ name, pref }) => {
+    return name === propertyName && !!pref;
   });
 
   if (preference) {
-    return Preferences.get(preference[1]);
+    return Preferences.get(preference.pref);
   }
   return undefined;
 }

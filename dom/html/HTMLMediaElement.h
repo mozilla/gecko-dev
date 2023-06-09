@@ -353,6 +353,8 @@ class HTMLMediaElement : public nsGenericHTMLElement,
   // redirects.
   bool HadCrossOriginRedirects();
 
+  bool ShouldResistFingerprinting() const override;
+
   // Principal of the currently playing video resource. Anything accessing the
   // image container of this element must have a principal that subsumes this
   // principal. If there are no live video tracks but content has been rendered
@@ -373,7 +375,8 @@ class HTMLMediaElement : public nsGenericHTMLElement,
   // been set.
   void UpdateInitialMediaSize(const nsIntSize& aSize);
 
-  void Invalidate(bool aImageSizeChanged, Maybe<nsIntSize>& aNewIntrinsicSize,
+  void Invalidate(bool aImageSizeChanged,
+                  const Maybe<nsIntSize>& aNewIntrinsicSize,
                   bool aForceInvalidate) override;
 
   // Returns the CanPlayStatus indicating if we can handle the
@@ -1356,14 +1359,14 @@ class HTMLMediaElement : public nsGenericHTMLElement,
   // suspend-video-decoder is disabled.
   void MarkAsTainted();
 
-  virtual nsresult AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
-                                const nsAttrValue* aValue,
-                                const nsAttrValue* aOldValue,
-                                nsIPrincipal* aMaybeScriptedPrincipal,
-                                bool aNotify) override;
-  virtual nsresult OnAttrSetButNotChanged(int32_t aNamespaceID, nsAtom* aName,
-                                          const nsAttrValueOrString& aValue,
-                                          bool aNotify) override;
+  virtual void AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                            const nsAttrValue* aValue,
+                            const nsAttrValue* aOldValue,
+                            nsIPrincipal* aMaybeScriptedPrincipal,
+                            bool aNotify) override;
+  virtual void OnAttrSetButNotChanged(int32_t aNamespaceID, nsAtom* aName,
+                                      const nsAttrValueOrString& aValue,
+                                      bool aNotify) override;
 
   bool DetachExistingMediaKeys();
   bool TryRemoveMediaKeysAssociation();

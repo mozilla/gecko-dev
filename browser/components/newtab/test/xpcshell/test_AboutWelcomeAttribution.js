@@ -7,9 +7,11 @@
 const { AboutWelcomeDefaults } = ChromeUtils.import(
   "resource://activity-stream/aboutwelcome/lib/AboutWelcomeDefaults.jsm"
 );
-const { sinon } = ChromeUtils.import("resource://testing-common/Sinon.jsm");
-const { AttributionCode } = ChromeUtils.import(
-  "resource:///modules/AttributionCode.jsm"
+const { sinon } = ChromeUtils.importESModule(
+  "resource://testing-common/Sinon.sys.mjs"
+);
+const { AttributionCode } = ChromeUtils.importESModule(
+  "resource:///modules/AttributionCode.sys.mjs"
 );
 const { AddonRepository } = ChromeUtils.import(
   "resource://gre/modules/addons/AddonRepository.jsm"

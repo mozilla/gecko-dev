@@ -52,6 +52,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::u32;
 use crate::texture_cache::{TextureCache, TextureCacheHandle, Eviction, TargetShader};
 use crate::picture_textures::PictureTextures;
+use peek_poke::PeekPoke;
 
 // Counter for generating unique native surface ids
 static NEXT_NATIVE_SURFACE_ID: AtomicUsize = AtomicUsize::new(0);
@@ -175,7 +176,7 @@ type RasterizedBlob = FastHashMap<TileOffset, RasterizedBlobImage>;
 
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, PeekPoke, Default)]
 pub struct ImageGeneration(pub u32);
 
 impl ImageGeneration {
@@ -434,7 +435,7 @@ impl RenderTarget {
 
     /// Returns true if this texture was used within `threshold` frames of
     /// the current frame.
-    pub fn used_recently(&self, current_frame_id: FrameId, threshold: usize) -> bool {
+    pub fn used_recently(&self, current_frame_id: FrameId, threshold: u64) -> bool {
         self.last_frame_used + threshold >= current_frame_id
     }
 }
@@ -1823,7 +1824,7 @@ impl ResourceCache {
         &mut self,
         total_bytes_threshold: usize,
         total_bytes_red_line_threshold: usize,
-        frames_threshold: usize,
+        frames_threshold: u64,
     ) {
         // Get the total GPU memory size used by the current render target pool
         let mut rt_pool_size_in_bytes: usize = self.render_target_pool

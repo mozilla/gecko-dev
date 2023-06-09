@@ -14,9 +14,8 @@
 
 #include "nsIFrame.h"
 #include "nsStyleStruct.h"
-#include "nsIContent.h"        // for GetParent()
-#include "nsTextFrame.h"       // for nsTextFrame::ShouldSuppressLineBreak
-#include "mozilla/SVGUtils.h"  // for SVGUtils::IsInSVGTextSubtree
+#include "nsIContent.h"   // for GetParent()
+#include "nsTextFrame.h"  // for nsTextFrame::ShouldSuppressLineBreak
 
 bool nsStyleText::NewlineIsSignificant(const nsTextFrame* aContextFrame) const {
   NS_ASSERTION(aContextFrame->StyleText() == this, "unexpected aContextFrame");
@@ -27,21 +26,19 @@ bool nsStyleText::NewlineIsSignificant(const nsTextFrame* aContextFrame) const {
 
 bool nsStyleText::WhiteSpaceCanWrap(const nsIFrame* aContextFrame) const {
   NS_ASSERTION(aContextFrame->StyleText() == this, "unexpected aContextFrame");
-  return WhiteSpaceCanWrapStyle() &&
-         !mozilla::SVGUtils::IsInSVGTextSubtree(aContextFrame) &&
+  return WhiteSpaceCanWrapStyle() && !aContextFrame->IsInSVGTextSubtree() &&
          !aContextFrame->Style()->IsTextCombined();
 }
 
 bool nsStyleText::WordCanWrap(const nsIFrame* aContextFrame) const {
   NS_ASSERTION(aContextFrame->StyleText() == this, "unexpected aContextFrame");
-  return WordCanWrapStyle() &&
-         !mozilla::SVGUtils::IsInSVGTextSubtree(aContextFrame);
+  return WordCanWrapStyle() && !aContextFrame->IsInSVGTextSubtree();
 }
 
 bool nsStyleDisplay::IsBlockOutside(const nsIFrame* aContextFrame) const {
   NS_ASSERTION(aContextFrame->StyleDisplay() == this,
                "unexpected aContextFrame");
-  if (mozilla::SVGUtils::IsInSVGTextSubtree(aContextFrame)) {
+  if (aContextFrame->IsInSVGTextSubtree()) {
     return aContextFrame->IsBlockFrame();
   }
   return IsBlockOutsideStyle();
@@ -50,7 +47,7 @@ bool nsStyleDisplay::IsBlockOutside(const nsIFrame* aContextFrame) const {
 bool nsStyleDisplay::IsInlineOutside(const nsIFrame* aContextFrame) const {
   NS_ASSERTION(aContextFrame->StyleDisplay() == this,
                "unexpected aContextFrame");
-  if (mozilla::SVGUtils::IsInSVGTextSubtree(aContextFrame)) {
+  if (aContextFrame->IsInSVGTextSubtree()) {
     return !aContextFrame->IsBlockFrame();
   }
   return IsInlineOutsideStyle();
@@ -60,7 +57,7 @@ mozilla::StyleDisplay nsStyleDisplay::GetDisplay(
     const nsIFrame* aContextFrame) const {
   NS_ASSERTION(aContextFrame->StyleDisplay() == this,
                "unexpected aContextFrame");
-  if (mozilla::SVGUtils::IsInSVGTextSubtree(aContextFrame) &&
+  if (aContextFrame->IsInSVGTextSubtree() &&
       mDisplay != mozilla::StyleDisplay::None) {
     return aContextFrame->IsBlockFrame() ? mozilla::StyleDisplay::Block
                                          : mozilla::StyleDisplay::Inline;
@@ -71,8 +68,7 @@ mozilla::StyleDisplay nsStyleDisplay::GetDisplay(
 bool nsStyleDisplay::IsFloating(const nsIFrame* aContextFrame) const {
   NS_ASSERTION(aContextFrame->StyleDisplay() == this,
                "unexpected aContextFrame");
-  return IsFloatingStyle() &&
-         !mozilla::SVGUtils::IsInSVGTextSubtree(aContextFrame);
+  return IsFloatingStyle() && !aContextFrame->IsInSVGTextSubtree();
 }
 
 // If you change this function, also change the corresponding block in
@@ -91,24 +87,6 @@ bool nsStyleDisplay::HasPerspective(const nsIFrame* aContextFrame) const {
          aContextFrame->IsFrameOfType(nsIFrame::eSupportsCSSTransforms);
 }
 
-bool nsStyleDisplay::IsFixedPosContainingBlockForNonSVGTextFrames(
-    const mozilla::ComputedStyle& aStyle) const {
-  // NOTE: Any CSS properties that influence the output of this function
-  // should return FIXPOS_CB_NON_SVG for will-change.
-  NS_ASSERTION(aStyle.StyleDisplay() == this, "unexpected aStyle");
-
-  if (aStyle.IsRootElementStyle()) {
-    return false;
-  }
-
-  if (mWillChange.bits & mozilla::StyleWillChangeBits::FIXPOS_CB_NON_SVG) {
-    return true;
-  }
-
-  return aStyle.StyleEffects()->HasFilters() ||
-         aStyle.StyleEffects()->HasBackdropFilters();
-}
-
 bool nsStyleDisplay::
     IsFixedPosContainingBlockForContainLayoutAndPaintSupportingFrames() const {
   return IsContainPaint() || IsContainLayout() ||
@@ -123,71 +101,32 @@ bool nsStyleDisplay::IsFixedPosContainingBlockForTransformSupportingFrames()
          mWillChange.bits & mozilla::StyleWillChangeBits::PERSPECTIVE;
 }
 
-bool nsStyleDisplay::IsFixedPosContainingBlock(
-    const nsIFrame* aContextFrame) const {
-  const auto* style = aContextFrame->Style();
-  NS_ASSERTION(style->StyleDisplay() == this, "unexpected aContextFrame");
-  // NOTE: Any CSS properties that influence the output of this function
-  // should also handle will-change appropriately.
-  if (mozilla::SVGUtils::IsInSVGTextSubtree(aContextFrame)) {
-    return false;
-  }
-  if (IsFixedPosContainingBlockForNonSVGTextFrames(*style)) {
-    return true;
-  }
-  if (IsFixedPosContainingBlockForContainLayoutAndPaintSupportingFrames() &&
-      aContextFrame->IsFrameOfType(nsIFrame::eSupportsContainLayoutAndPaint)) {
-    return true;
-  }
-  if (IsFixedPosContainingBlockForTransformSupportingFrames() &&
-      aContextFrame->IsFrameOfType(nsIFrame::eSupportsCSSTransforms)) {
-    return true;
-  }
-  return false;
-}
-
-bool nsStyleDisplay::IsAbsPosContainingBlock(
-    const nsIFrame* aContextFrame) const {
-  NS_ASSERTION(aContextFrame->StyleDisplay() == this,
-               "unexpected aContextFrame");
-  if (IsFixedPosContainingBlock(aContextFrame)) {
-    return true;
-  }
-  // NOTE: Any CSS properties that influence the output of this function
-  // should also handle will-change appropriately.
-  return IsPositionedStyle() &&
-         !mozilla::SVGUtils::IsInSVGTextSubtree(aContextFrame);
-}
-
 bool nsStyleDisplay::IsRelativelyOrStickyPositioned(
     const nsIFrame* aContextFrame) const {
   NS_ASSERTION(aContextFrame->StyleDisplay() == this,
                "unexpected aContextFrame");
   return IsRelativelyOrStickyPositionedStyle() &&
-         !mozilla::SVGUtils::IsInSVGTextSubtree(aContextFrame);
+         !aContextFrame->IsInSVGTextSubtree();
 }
 
 bool nsStyleDisplay::IsRelativelyPositioned(
     const nsIFrame* aContextFrame) const {
   NS_ASSERTION(aContextFrame->StyleDisplay() == this,
                "unexpected aContextFrame");
-  return IsRelativelyPositionedStyle() &&
-         !mozilla::SVGUtils::IsInSVGTextSubtree(aContextFrame);
+  return IsRelativelyPositionedStyle() && !aContextFrame->IsInSVGTextSubtree();
 }
 
 bool nsStyleDisplay::IsStickyPositioned(const nsIFrame* aContextFrame) const {
   NS_ASSERTION(aContextFrame->StyleDisplay() == this,
                "unexpected aContextFrame");
-  return IsStickyPositionedStyle() &&
-         !mozilla::SVGUtils::IsInSVGTextSubtree(aContextFrame);
+  return IsStickyPositionedStyle() && !aContextFrame->IsInSVGTextSubtree();
 }
 
 bool nsStyleDisplay::IsAbsolutelyPositioned(
     const nsIFrame* aContextFrame) const {
   NS_ASSERTION(aContextFrame->StyleDisplay() == this,
                "unexpected aContextFrame");
-  return IsAbsolutelyPositionedStyle() &&
-         !mozilla::SVGUtils::IsInSVGTextSubtree(aContextFrame);
+  return IsAbsolutelyPositionedStyle() && !aContextFrame->IsInSVGTextSubtree();
 }
 
 bool nsStyleBackground::HasLocalBackground() const {

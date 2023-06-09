@@ -4,10 +4,15 @@
 _(
   "Make sure the form store follows the Store api and correctly accesses the backend form storage"
 );
-const { FormEngine } = ChromeUtils.import(
-  "resource://services-sync/engines/forms.js"
+const { FormEngine } = ChromeUtils.importESModule(
+  "resource://services-sync/engines/forms.sys.mjs"
 );
-const { Service } = ChromeUtils.import("resource://services-sync/service.js");
+const { Service } = ChromeUtils.importESModule(
+  "resource://services-sync/service.sys.mjs"
+);
+const { SyncedRecordsTelemetry } = ChromeUtils.importESModule(
+  "resource://services-sync/telemetry.sys.mjs"
+);
 
 add_task(async function run_test() {
   let engine = new FormEngine(Service);
@@ -15,7 +20,11 @@ add_task(async function run_test() {
   let store = engine._store;
 
   async function applyEnsureNoFailures(records) {
-    Assert.equal((await store.applyIncomingBatch(records)).length, 0);
+    let countTelemetry = new SyncedRecordsTelemetry();
+    Assert.equal(
+      (await store.applyIncomingBatch(records, countTelemetry)).length,
+      0
+    );
   }
 
   _("Remove any existing entries");

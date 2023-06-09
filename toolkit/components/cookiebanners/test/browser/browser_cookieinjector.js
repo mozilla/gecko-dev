@@ -48,7 +48,7 @@ async function visitTestSites(urls = [ORIGIN_A, ORIGIN_B, ORIGIN_C]) {
   let tab = BrowserTestUtils.addTab(gBrowser, "about:blank");
 
   for (let url of urls) {
-    await BrowserTestUtils.loadURI(tab.linkedBrowser, url);
+    await BrowserTestUtils.loadURIString(tab.linkedBrowser, url);
     await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
   }
 
@@ -82,14 +82,28 @@ add_task(async function test_cookie_injector_disabled() {
  * by pref, but the cookie banner service is disabled or in detect-only mode.
  */
 add_task(async function test_cookie_banner_service_disabled() {
-  for (let mode of [
-    Ci.nsICookieBannerService.MODE_DISABLED,
-    Ci.nsICookieBannerService.MODE_DETECT_ONLY,
+  // Enable in PBM so the service is always initialized.
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      [
+        "cookiebanners.service.mode.privateBrowsing",
+        Ci.nsICookieBannerService.MODE_REJECT,
+      ],
+    ],
+  });
+
+  for (let [serviceMode, detectOnly] of [
+    [Ci.nsICookieBannerService.MODE_DISABLED, false],
+    [Ci.nsICookieBannerService.MODE_DISABLED, true],
+    [Ci.nsICookieBannerService.MODE_REJECT, true],
+    [Ci.nsICookieBannerService.MODE_REJECT_OR_ACCEPT, true],
   ]) {
+    info(`Testing with serviceMode=${serviceMode}; detectOnly=${detectOnly}`);
     await SpecialPowers.pushPrefEnv({
       set: [
-        ["cookiebanners.service.mode", mode],
+        ["cookiebanners.service.mode", serviceMode],
         ["cookiebanners.cookieInjector.enabled", true],
+        ["cookiebanners.service.detectOnly", detectOnly],
       ],
     });
 
@@ -97,6 +111,7 @@ add_task(async function test_cookie_banner_service_disabled() {
     assertNoCookies();
 
     await SiteDataTestUtils.clear();
+    await SpecialPowers.popPrefEnv();
   }
 });
 
@@ -328,7 +343,7 @@ add_task(async function test_pbm() {
     private: true,
   });
   let tab = BrowserTestUtils.addTab(pbmWindow.gBrowser, "about:blank");
-  await BrowserTestUtils.loadURI(tab.linkedBrowser, ORIGIN_A);
+  await BrowserTestUtils.loadURIString(tab.linkedBrowser, ORIGIN_A);
   await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
 
   ok(
@@ -381,7 +396,7 @@ add_task(async function test_container_tab() {
   let tab = BrowserTestUtils.addTab(gBrowser, ORIGIN_B, {
     userContextId: 1,
   });
-  await BrowserTestUtils.loadURI(tab.linkedBrowser, ORIGIN_B);
+  await BrowserTestUtils.loadURIString(tab.linkedBrowser, ORIGIN_B);
   await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
 
   ok(
@@ -564,7 +579,7 @@ add_task(async function test_site_preference_pbm() {
     private: true,
   });
   let tab = BrowserTestUtils.addTab(pbmWindow.gBrowser, "about:blank");
-  await BrowserTestUtils.loadURI(tab.linkedBrowser, ORIGIN_B);
+  await BrowserTestUtils.loadURIString(tab.linkedBrowser, ORIGIN_B);
   await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
 
   ok(
@@ -586,7 +601,7 @@ add_task(async function test_site_preference_pbm() {
     true
   );
 
-  await BrowserTestUtils.loadURI(tab.linkedBrowser, ORIGIN_B);
+  await BrowserTestUtils.loadURIString(tab.linkedBrowser, ORIGIN_B);
   await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
 
   ok(

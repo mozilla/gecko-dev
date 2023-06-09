@@ -30,6 +30,7 @@
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/DocumentInlines.h"
 #include "mozilla/dom/DocGroup.h"
+#include "mozilla/widget/Screen.h"
 #include "nsPresContext.h"
 #include "nsIFrame.h"
 #include "nsIWritablePropertyBag2.h"
@@ -68,7 +69,6 @@
 #include "nsDocShell.h"
 #include "nsIBaseWindow.h"
 #include "nsILayoutHistoryState.h"
-#include "nsIScreen.h"
 #include "nsCharsetSource.h"
 #include "mozilla/ReflowInput.h"
 #include "nsIImageLoadingContent.h"
@@ -696,7 +696,10 @@ nsresult nsDocumentViewer::InitPresentationStuff(bool aDoInitialReflow) {
   NS_ASSERTION(!mPresShell, "Someone should have destroyed the presshell!");
 
   // Now make the shell for the document
-  mPresShell = mDocument->CreatePresShell(mPresContext, mViewManager);
+  nsCOMPtr<Document> doc = mDocument;
+  RefPtr<nsPresContext> presContext = mPresContext;
+  RefPtr<nsViewManager> viewManager = mViewManager;
+  mPresShell = doc->CreatePresShell(presContext, viewManager);
   if (!mPresShell) {
     return NS_ERROR_FAILURE;
   }
@@ -2273,11 +2276,11 @@ nsresult nsDocumentViewer::MakeWindow(const nsSize& aSize,
     // hierarchy will stand alone. otherwise the view will find its own parent
     // widget and "do the right thing" to establish a parent/child widget
     // relationship
-    nsWidgetInitData initData;
-    nsWidgetInitData* initDataPtr;
+    widget::InitData initData;
+    widget::InitData* initDataPtr;
     if (!mParentWidget) {
       initDataPtr = &initData;
-      initData.mWindowType = eWindowType_invisible;
+      initData.mWindowType = widget::WindowType::Invisible;
     } else {
       initDataPtr = nullptr;
     }
@@ -2638,14 +2641,20 @@ MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHODIMP nsDocumentViewer::GetContentSize(
 
   nscoord prefISize;
   {
-    RefPtr<gfxContext> rcx(presShell->CreateReferenceRenderingContext());
-    nscoord maxISize = wm.IsVertical() ? aMaxHeight : aMaxWidth;
+    const auto& constraints = presShell->GetWindowSizeConstraints();
+    aMaxHeight = std::min(aMaxHeight, constraints.mMaxSize.height);
+    aMaxWidth = std::min(aMaxWidth, constraints.mMaxSize.width);
+
+    UniquePtr<gfxContext> rcx(presShell->CreateReferenceRenderingContext());
+    const nscoord minISize = wm.IsVertical() ? constraints.mMinSize.height
+                                             : constraints.mMinSize.width;
+    const nscoord maxISize = wm.IsVertical() ? aMaxHeight : aMaxWidth;
     if (aPrefWidth) {
-      prefISize = std::max(root->GetMinISize(rcx), aPrefWidth);
+      prefISize = std::max(root->GetMinISize(rcx.get()), aPrefWidth);
     } else {
-      prefISize = root->GetPrefISize(rcx);
+      prefISize = root->GetPrefISize(rcx.get());
     }
-    prefISize = std::min(prefISize, maxISize);
+    prefISize = std::max(minISize, std::min(prefISize, maxISize));
   }
 
   // We should never intentionally get here with this sentinel value, but it's
@@ -3250,9 +3259,10 @@ bool nsDocumentViewer::ShouldAttachToTopLevel() {
 
   // On windows, in the parent process we also attach, but just to
   // chrome items
-  nsWindowType winType = mParentWidget->WindowType();
-  if ((winType == eWindowType_toplevel || winType == eWindowType_dialog ||
-       winType == eWindowType_invisible) &&
+  auto winType = mParentWidget->GetWindowType();
+  if ((winType == widget::WindowType::TopLevel ||
+       winType == widget::WindowType::Dialog ||
+       winType == widget::WindowType::Invisible) &&
       mPresContext->IsChrome()) {
     return true;
   }

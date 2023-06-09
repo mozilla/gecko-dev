@@ -54,13 +54,11 @@ impl<'a> Driver<'a> {
         inbound: IncomingChangeset,
         should_refresh_client: bool,
     ) -> Result<OutgoingChangeset> {
-        let mut outgoing = OutgoingChangeset::new(COLLECTION_NAME, inbound.timestamp);
-        outgoing.timestamp = inbound.timestamp;
-
         self.interruptee.err_if_interrupted()?;
         let outgoing_commands = self.command_processor.fetch_outgoing_commands()?;
 
         let mut has_own_client_record = false;
+        let mut changes = Vec::new();
 
         for bso in inbound.changes {
             self.interruptee.err_if_interrupted()?;
@@ -128,9 +126,7 @@ impl<'a> Driver<'a> {
                         ttl: Some(CLIENTS_TTL),
                         ..Default::default()
                     };
-                    outgoing
-                        .changes
-                        .push(OutgoingBso::from_content(envelope, current_client_record)?);
+                    changes.push(OutgoingBso::from_content(envelope, current_client_record)?);
                 }
             } else {
                 // Add the other client to our map of recently synced clients.
@@ -176,9 +172,7 @@ impl<'a> Driver<'a> {
                     ttl: Some(CLIENTS_TTL),
                     ..Default::default()
                 };
-                outgoing
-                    .changes
-                    .push(OutgoingBso::from_content(envelope, new_client)?);
+                changes.push(OutgoingBso::from_content(envelope, new_client)?);
             }
         }
 
@@ -191,12 +185,10 @@ impl<'a> Driver<'a> {
                 ttl: Some(CLIENTS_TTL),
                 ..Default::default()
             };
-            outgoing
-                .changes
-                .push(OutgoingBso::from_content(envelope, current_client_record)?);
+            changes.push(OutgoingBso::from_content(envelope, current_client_record)?);
         }
 
-        Ok(outgoing)
+        Ok(OutgoingChangeset::new(COLLECTION_NAME.into(), changes))
     }
 
     /// Builds a fresh client record for this device.
@@ -205,7 +197,7 @@ impl<'a> Driver<'a> {
         ClientRecord {
             id: settings.fxa_device_id.clone(),
             name: settings.device_name.clone(),
-            typ: settings.device_type.into(),
+            typ: settings.device_type,
             commands: Vec::new(),
             fxa_device_id: Some(settings.fxa_device_id.clone()),
             version: None,
@@ -291,7 +283,7 @@ impl<'a> Engine<'a> {
             global_state.keys_timestamp,
             root_sync_key,
         )?;
-        let mut coll_state = CollState {
+        let coll_state = CollState {
             config: global_state.config.clone(),
             last_modified: global_state
                 .collections
@@ -301,7 +293,7 @@ impl<'a> Engine<'a> {
             key: coll_keys.key_for_collection(COLLECTION_NAME).clone(),
         };
 
-        let inbound = self.fetch_incoming(storage_client, &mut coll_state)?;
+        let inbound = self.fetch_incoming(storage_client, &coll_state)?;
 
         let mut driver = Driver::new(
             self.command_processor,
@@ -311,8 +303,6 @@ impl<'a> Engine<'a> {
 
         let outgoing = driver.sync(inbound, should_refresh_client)?;
         self.recent_clients = driver.recent_clients;
-
-        coll_state.last_modified = outgoing.timestamp;
 
         self.interruptee.err_if_interrupted()?;
         let upload_info =
@@ -332,15 +322,15 @@ impl<'a> Engine<'a> {
     fn fetch_incoming(
         &self,
         storage_client: &Sync15StorageClient,
-        coll_state: &mut CollState,
+        coll_state: &CollState,
     ) -> Result<IncomingChangeset> {
         // Note that, unlike other stores, we always fetch the full collection
         // on every sync, so `inbound` will return all clients, not just the
         // ones that changed since the last sync.
-        let coll_request = CollectionRequest::new(COLLECTION_NAME).full();
+        let coll_request = CollectionRequest::new(COLLECTION_NAME.into()).full();
 
         self.interruptee.err_if_interrupted()?;
-        let inbound = crate::client::fetch_incoming(storage_client, coll_state, &coll_request)?;
+        let inbound = crate::client::fetch_incoming(storage_client, coll_state, coll_request)?;
 
         Ok(inbound)
     }
@@ -489,17 +479,17 @@ mod tests {
             RemoteClient {
                 fxa_device_id: Some("deviceAAAAAA".to_string()),
                 device_name: "Laptop".into(),
-                device_type: Some(DeviceType::Desktop),
+                device_type: DeviceType::Desktop,
             },
             RemoteClient {
                 fxa_device_id: Some("iPhooooooone".to_string()),
                 device_name: "iPhone".into(),
-                device_type: Some(DeviceType::Mobile),
+                device_type: DeviceType::Mobile,
             },
             RemoteClient {
                 fxa_device_id: Some("deviceCCCCCC".to_string()),
                 device_name: "Fenix".into(),
-                device_type: Some(DeviceType::Mobile),
+                device_type: DeviceType::Mobile,
             },
         ];
         let actual_remote_clients = expected_ids
@@ -560,7 +550,7 @@ mod tests {
                 .into_iter()
                 .map(|c| OutgoingBso::to_test_incoming(&c))
                 .collect(),
-            timestamp: outgoing.timestamp,
+            timestamp: ServerTimestamp::default(),
             collection: outgoing.collection,
         };
         if let Value::Array(expected) = expected {
@@ -624,12 +614,12 @@ mod tests {
             RemoteClient {
                 fxa_device_id: Some("deviceAAAAAA".to_string()),
                 device_name: "Laptop".into(),
-                device_type: Some(DeviceType::Desktop),
+                device_type: DeviceType::Desktop,
             },
             RemoteClient {
                 fxa_device_id: Some("iPhooooooone".to_string()),
                 device_name: "iPhone".into(),
-                device_type: Some(DeviceType::Mobile),
+                device_type: DeviceType::Mobile,
             },
         ];
         let actual_remote_clients = expected_ids
@@ -768,12 +758,12 @@ mod tests {
             RemoteClient {
                 fxa_device_id: Some("deviceAAAAAA".to_string()),
                 device_name: "Laptop".into(),
-                device_type: Some(DeviceType::Desktop),
+                device_type: DeviceType::Desktop,
             },
             RemoteClient {
                 fxa_device_id: Some("iPhooooooone".to_string()),
                 device_name: "iPhone".into(),
-                device_type: Some(DeviceType::Mobile),
+                device_type: DeviceType::Mobile,
             },
         ];
         let actual_remote_clients = expected_ids
@@ -799,7 +789,7 @@ mod tests {
                     .into_iter()
                     .map(|c| OutgoingBso::to_test_incoming(&c))
                     .collect(),
-                timestamp: outgoing.timestamp,
+                timestamp: ServerTimestamp::default(),
                 collection: outgoing.collection,
             };
             for (incoming_cleartext, record) in zip(incoming.changes, expected) {

@@ -1204,7 +1204,7 @@ class StackLimitCheck {
   // Use this to check for stack-overflow when entering runtime from JS code.
   bool JsHasOverflowed() {
     js::AutoCheckRecursionLimit recursion(cx_);
-    return !recursion.checkConservativeDontReport(cx_);
+    return !recursion.checkDontReport(cx_);
   }
 
  private:
@@ -1233,6 +1233,10 @@ class Code : public HeapObject {
     return value().toGCThing()->as<js::jit::JitCode>();
   }
 };
+
+// Only used in function signature of functions we don't implement
+// (NativeRegExpMacroAssembler::CheckStackGuardState)
+class InstructionStream {};
 
 // Origin: https://github.com/v8/v8/blob/master/src/codegen/label.h
 class Label {

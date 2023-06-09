@@ -10,7 +10,7 @@
 var rule = require("../lib/rules/use-chromeutils-import");
 var RuleTester = require("eslint").RuleTester;
 
-const ruleTester = new RuleTester({ parserOptions: { ecmaVersion: 6 } });
+const ruleTester = new RuleTester({ parserOptions: { ecmaVersion: "latest" } });
 
 // ------------------------------------------------------------------------------
 // Tests
@@ -47,11 +47,6 @@ ruleTester.run("use-chromeutils-import", rule, {
     {
       code: `Cu.import("resource://gre/modules/AppConstants.jsm", this);`,
       output: `ChromeUtils.import("resource://gre/modules/AppConstants.jsm", this);`,
-      errors: callError(MESSAGE_IMPORT),
-    },
-    {
-      code: `Components.utils.import("resource://gre/modules/AppConstants.jsm");`,
-      output: `ChromeUtils.import("resource://gre/modules/AppConstants.jsm");`,
       errors: callError(MESSAGE_IMPORT),
     },
     {

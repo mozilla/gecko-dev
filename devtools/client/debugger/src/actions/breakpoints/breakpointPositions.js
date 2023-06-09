@@ -18,8 +18,9 @@ import {
 import { makeBreakpointId } from "../../utils/breakpoint";
 import { memoizeableAction } from "../../utils/memoizableAction";
 import { fulfilled } from "../../utils/async-value";
+import { createLocation } from "../../utils/location";
 
-async function mapLocations(generatedLocations, { sourceMapLoader }) {
+async function mapLocations(generatedLocations, { getState, sourceMapLoader }) {
   if (!generatedLocations.length) {
     return [];
   }
@@ -29,7 +30,12 @@ async function mapLocations(generatedLocations, { sourceMapLoader }) {
   );
 
   return originalLocations.map((location, index) => ({
-    location,
+    // SourceMapLoader doesn't know about debugger's source objects
+    // so that we have to fetch it from here
+    location: createLocation({
+      ...location,
+      source: getSource(getState(), location.sourceId),
+    }),
     generatedLocation: generatedLocations[index],
   }));
 }
@@ -63,17 +69,18 @@ function filterByUniqLocation(positions) {
 }
 
 function convertToList(results, source) {
-  const { id, url } = source;
   const positions = [];
 
   for (const line in results) {
     for (const column of results[line]) {
-      positions.push({
-        line: Number(line),
-        column,
-        sourceId: id,
-        sourceUrl: url,
-      });
+      positions.push(
+        createLocation({
+          line: Number(line),
+          column,
+          source,
+          sourceUrl: source.url,
+        })
+      );
     }
   }
 

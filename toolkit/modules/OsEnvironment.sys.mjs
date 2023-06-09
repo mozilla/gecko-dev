@@ -3,19 +3,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
-
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   WindowsRegistry: "resource://gre/modules/WindowsRegistry.sys.mjs",
-});
-
-XPCOMUtils.defineLazyModuleGetters(lazy, {
   WindowsVersionInfo:
-    "resource://gre/modules/components-utils/WindowsVersionInfo.jsm",
+    "resource://gre/modules/components-utils/WindowsVersionInfo.sys.mjs",
 });
 
 export let OsEnvironment = {
@@ -56,7 +51,7 @@ export let OsEnvironment = {
     try {
       haveAppSourcesFeature = OsEnvironment.Policy.windowsVersionHasAppSourcesFeature();
     } catch (ex) {
-      Cu.reportError(ex);
+      console.error(ex);
       Services.telemetry.scalarSet(appSourceScalar, "Error");
       return;
     }
@@ -69,7 +64,7 @@ export let OsEnvironment = {
     try {
       allowedAppSources = OsEnvironment.Policy.getAllowedAppSources();
     } catch (ex) {
-      Cu.reportError(ex);
+      console.error(ex);
       Services.telemetry.scalarSet(appSourceScalar, "Error");
       return;
     }

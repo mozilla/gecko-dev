@@ -32,7 +32,7 @@ arrayvec = "0.7"
 atomic_refcell = "0.1"
 bitflags = "1.0"
 byteorder = "1.0"
-cssparser = "0.29"
+cssparser = "0.31"
 derive_more = { version = "0.99", default-features = false, features = ["add", "add_assign", "deref", "from"] }
 dom = { path = "../../../dom/base/rust" }
 new_debug_unreachable = "1.0"
@@ -73,6 +73,7 @@ servo_url = {path = "../url", optional = true}
 to_shmem = {path = "../to_shmem"}
 to_shmem_derive = {path = "../to_shmem_derive"}
 time = "0.1"
+thin-vec = { version = "0.2.1", features = ["gecko-ffi"] }
 uluru = "3.0"
 unicode-bidi = "0.3"
 unicode-segmentation = "1.0"
@@ -82,7 +83,7 @@ gecko-profiler = { path = "../../../tools/profiler/rust-api" }
 [build-dependencies]
 lazy_static = "1"
 log = { version = "0.4", features = ["std"] }
-bindgen = {version = "0.63", optional = true, default-features = false}
+bindgen = {version = "0.64", optional = true, default-features = false}
 regex = {version = "1.0", optional = true, default-features = false, features = ["perf", "std"]}
 walkdir = "2.1.4"
 toml = {version = "0.5", optional = true, default-features = false}

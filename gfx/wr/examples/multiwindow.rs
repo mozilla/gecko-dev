@@ -44,7 +44,8 @@ impl RenderNotifier for Notifier {
     fn new_frame_ready(&self,
                        _: DocumentId,
                        _scrolled: bool,
-                       composite_needed: bool) {
+                       composite_needed: bool,
+                       _: FramePublishId) {
         self.wake_up(composite_needed);
     }
 }
@@ -275,8 +276,6 @@ impl Window {
 
         txn.set_display_list(
             self.epoch,
-            None,
-            layout_size,
             builder.end(),
         );
         txn.set_root_pipeline(self.pipeline_id);

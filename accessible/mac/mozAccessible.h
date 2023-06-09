@@ -5,6 +5,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#ifndef _MozAccessible_H_
+#define _MozAccessible_H_
+
 #include "AccessibleWrap.h"
 #include "RemoteAccessible.h"
 
@@ -39,8 +42,16 @@ inline mozAccessible* GetNativeFromGeckoAccessible(
   return reinterpret_cast<mozAccessible*>(proxy->GetWrapper());
 }
 
-}  // a11y
-}  // mozilla
+// Checked state values some accessibles return as AXValue.
+enum CheckedState {
+  kUncheckable = -1,
+  kUnchecked = 0,
+  kChecked = 1,
+  kMixed = 2
+};
+
+}  // namespace a11y
+}  // namespace mozilla
 
 @interface mozAccessible : MOXAccessibleBase {
   /**
@@ -274,3 +285,5 @@ inline mozAccessible* GetNativeFromGeckoAccessible(
 - (BOOL)isExpired;
 
 @end
+
+#endif

@@ -188,7 +188,8 @@ class SVGTextFrame final : public SVGDisplayContainerFrame {
         mFontSizeScaleFactor(1.0f),
         mLastContextScale(1.0f),
         mLengthAdjustScaleFactor(1.0f) {
-    AddStateBits(NS_STATE_SVG_TEXT_CORRESPONDENCE_DIRTY |
+    AddStateBits(NS_FRAME_SVG_LAYOUT | NS_FRAME_IS_SVG_TEXT |
+                 NS_STATE_SVG_TEXT_CORRESPONDENCE_DIRTY |
                  NS_STATE_SVG_POSITIONING_DIRTY);
   }
 
@@ -227,8 +228,7 @@ class SVGTextFrame final : public SVGDisplayContainerFrame {
   // ISVGDisplayableFrame interface:
   void NotifySVGChanged(uint32_t aFlags) override;
   void PaintSVG(gfxContext& aContext, const gfxMatrix& aTransform,
-                imgDrawingParams& aImgParams,
-                const nsIntRect* aDirtyRect = nullptr) override;
+                imgDrawingParams& aImgParams) override;
   nsIFrame* GetFrameForPoint(const gfxPoint& aPoint) override;
   void ReflowSVG() override;
   SVGBBox GetBBoxContribution(const Matrix& aToBBoxUserspace,
@@ -391,7 +391,7 @@ class SVGTextFrame final : public SVGDisplayContainerFrame {
    * Schedules mPositions to be recomputed and the covered region to be
    * updated.
    */
-  void NotifyGlyphMetricsChange();
+  void NotifyGlyphMetricsChange(bool aUpdateTextCorrespondence);
 
   /**
    * Recomputes mPositions by calling DoGlyphPositioning if this information

@@ -117,16 +117,14 @@ class TierStatus(object):
         """Record that execution of a tier has begun."""
         self.tier_status[tier] = "active"
         t = self.tiers[tier]
-        # We should ideally use a monotonic clock here. Unfortunately, we won't
-        # have one until Python 3.
-        t["begin_time"] = time.time()
+        t["begin_time"] = time.monotonic()
         self.resources.begin_phase(tier)
 
     def finish_tier(self, tier):
         """Record that execution of a tier has finished."""
         self.tier_status[tier] = "finished"
         t = self.tiers[tier]
-        t["finish_time"] = time.time()
+        t["finish_time"] = time.monotonic()
         t["duration"] = self.resources.finish_phase(tier)
 
     def tiered_resource_usage(self):
@@ -228,7 +226,7 @@ class BuildMonitor(MozbuildObject):
 
     def start(self):
         """Record the start of the build."""
-        self.start_time = time.time()
+        self.start_time = time.monotonic()
         self._finder_start_cpu = self._get_finder_cpu_usage()
 
     def start_resource_recording(self):
@@ -314,7 +312,7 @@ class BuildMonitor(MozbuildObject):
     def finish(self, record_usage=True):
         """Record the end of the build."""
         self.stop_resource_recording()
-        self.end_time = time.time()
+        self.end_time = time.monotonic()
         self._finder_end_cpu = self._get_finder_cpu_usage()
         self.elapsed = self.end_time - self.start_time
 
@@ -1293,6 +1291,15 @@ class BuildDriver(MozbuildObject):
                         )
 
                     if make_dir is None and make_target is None:
+                        return 1
+
+                    if config.is_artifact_build and target.startswith("installers-"):
+                        # See https://bugzilla.mozilla.org/show_bug.cgi?id=1387485
+                        print(
+                            "Localized Builds are not supported with Artifact Builds enabled.\n"
+                            "You should disable Artifact Builds (Use --disable-compile-environment "
+                            "in your mozconfig instead) then re-build to proceed."
+                        )
                         return 1
 
                     # See bug 886162 - we don't want to "accidentally" build

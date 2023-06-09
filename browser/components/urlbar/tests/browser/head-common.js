@@ -1,7 +1,3 @@
-var { XPCOMUtils } = ChromeUtils.importESModule(
-  "resource://gre/modules/XPCOMUtils.sys.mjs"
-);
-
 ChromeUtils.defineESModuleGetters(this, {
   PlacesTestUtils: "resource://testing-common/PlacesTestUtils.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
@@ -85,4 +81,77 @@ async function withHttpServer(
     } catch (ex) {}
     server = null;
   }
+}
+
+/**
+ * Updates the Top Sites feed.
+ *
+ * @param {Function} condition
+ *   A callback that returns true after Top Sites are successfully updated.
+ * @param {boolean} searchShortcuts
+ *   True if Top Sites search shortcuts should be enabled.
+ */
+async function updateTopSites(condition, searchShortcuts = false) {
+  // Toggle the pref to clear the feed cache and force an update.
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      [
+        "browser.newtabpage.activity-stream.discoverystream.endpointSpocsClear",
+        "",
+      ],
+      ["browser.newtabpage.activity-stream.feeds.system.topsites", false],
+      ["browser.newtabpage.activity-stream.feeds.system.topsites", true],
+      [
+        "browser.newtabpage.activity-stream.improvesearch.topSiteSearchShortcuts",
+        searchShortcuts,
+      ],
+    ],
+  });
+
+  // Wait for the feed to be updated.
+  await TestUtils.waitForCondition(() => {
+    let sites = AboutNewTab.getTopSites();
+    return condition(sites);
+  }, "Waiting for top sites to be updated");
+}
+
+/**
+ * Asserts a search term is in the url bar and state values are
+ * what they should be.
+ *
+ * @param {string} searchString
+ *   String that should be matched in the url bar.
+ * @param {object | null} options
+ *   Options for the assertions.
+ * @param {Window | null} options.window
+ *   Window to use for tests.
+ * @param {string | null} options.pageProxyState
+ *   The pageproxystate that should be expected. Defaults to "valid".
+ * @param {string | null} options.userTypedValue
+ *   The userTypedValue that should be expected. Defaults to null.
+ */
+function assertSearchStringIsInUrlbar(
+  searchString,
+  { win = window, pageProxyState = "valid", userTypedValue = null } = {}
+) {
+  Assert.equal(
+    win.gURLBar.value,
+    searchString,
+    `Search string should be the urlbar value.`
+  );
+  Assert.equal(
+    win.gBrowser.selectedBrowser.searchTerms,
+    searchString,
+    `Search terms should match.`
+  );
+  Assert.equal(
+    win.gBrowser.userTypedValue,
+    userTypedValue,
+    "userTypedValue should match."
+  );
+  Assert.equal(
+    win.gURLBar.getAttribute("pageproxystate"),
+    pageProxyState,
+    "Pageproxystate should match."
+  );
 }

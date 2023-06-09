@@ -135,8 +135,6 @@ const URL_ROOT_MOCHI_8888 = CHROME_URL_ROOT.replace(
   "http://mochi.test:8888/"
 );
 
-const TARGET_SWITCHING_PREF = "devtools.target-switching.server.enabled";
-
 try {
   if (isMochitest) {
     Services.scriptloader.loadSubScript(
@@ -220,6 +218,14 @@ Services.prefs.setBoolPref(
   false
 );
 
+// On some Linux platforms, prefers-reduced-motion is enabled, which would
+// trigger the notification to be displayed in the toolbox. Dismiss the message
+// by default.
+Services.prefs.setBoolPref(
+  "devtools.inspector.simple-highlighters.message-dismissed",
+  true
+);
+
 registerCleanupFunction(() => {
   Services.prefs.clearUserPref("devtools.dump.emit");
   Services.prefs.clearUserPref("devtools.inspector.three-pane-enabled");
@@ -230,6 +236,9 @@ registerCleanupFunction(() => {
   Services.prefs.clearUserPref("devtools.toolbox.splitconsoleHeight");
   Services.prefs.clearUserPref(
     "javascript.options.asyncstack_capture_debuggee_only"
+  );
+  Services.prefs.clearUserPref(
+    "devtools.inspector.simple-highlighters.message-dismissed"
   );
 });
 
@@ -566,7 +575,7 @@ async function navigateTo(
   if (uri === browser.currentURI.spec) {
     gBrowser.reloadTab(gBrowser.getTabForBrowser(browser));
   } else {
-    BrowserTestUtils.loadURI(browser, uri);
+    BrowserTestUtils.loadURIString(browser, uri);
   }
 
   if (waitForLoad) {
@@ -787,7 +796,9 @@ function _watchForPanelReload(toolbox, toolId) {
       info("Waiting for inspector updates after page reload");
       await onReloaded;
     };
-  } else if (["netmonitor", "accessibility", "webconsole"].includes(toolId)) {
+  } else if (
+    ["netmonitor", "accessibility", "webconsole", "jsdebugger"].includes(toolId)
+  ) {
     const onReloaded = panel.once("reloaded");
     return async function() {
       info(`Waiting for ${toolId} updates after page reload`);
@@ -917,17 +928,6 @@ async function createAndAttachTargetForTab(tab) {
 
 function isFissionEnabled() {
   return SpecialPowers.useRemoteSubframes;
-}
-
-function isServerTargetSwitchingEnabled() {
-  return Services.prefs.getBoolPref(TARGET_SWITCHING_PREF);
-}
-
-/**
- * Enables server target switching
- */
-async function enableTargetSwitching() {
-  await pushPref(TARGET_SWITCHING_PREF, true);
 }
 
 function isEveryFrameTargetEnabled() {
@@ -1448,8 +1448,12 @@ async function moveWindowTo(win, left, top) {
 
   // Bug 1600809: window move/resize can be async on Linux sometimes.
   // Wait so that the anchor's position is correctly measured.
-  info("Wait for window screenLeft and screenTop to be updated");
-  return waitUntil(() => win.screenLeft === left && win.screenTop === top);
+  return waitUntil(() => {
+    info(
+      `Wait for window screenLeft and screenTop to be updated: (${win.screenLeft}, ${win.screenTop})`
+    );
+    return win.screenLeft === left && win.screenTop === top;
+  });
 }
 
 function getCurrentTestFilePath() {
@@ -2046,4 +2050,86 @@ function waitForTargetProcessed(commands, isExpectedTargetFn) {
 
     commands.targetCommand.on("processed-available-target", onProcessed);
   });
+}
+
+/**
+ * Instantiate a HTTP Server that serves files from a given test folder.
+ * The test folder should be made of multiple sub folder named: v1, v2, v3,...
+ * We will serve the content from one of these sub folder
+ * and switch to the next one, each time `httpServer.switchToNextVersion()`
+ * is called.
+ *
+ * @return Object Test server with two functions:
+ *   - urlFor(path)
+ *     Returns the absolute url for a given file.
+ *   - switchToNextVersion()
+ *     Start serving files from the next available sub folder.
+ *   - backToFirstVersion()
+ *     When running more than one test, helps restart from the first folder.
+ */
+function createVersionizedHttpTestServer(testFolderName) {
+  const httpServer = createTestHTTPServer();
+
+  let currentVersion = 1;
+
+  httpServer.registerPrefixHandler("/", async (request, response) => {
+    response.processAsync();
+    response.setStatusLine(request.httpVersion, 200, "OK");
+    if (request.path.endsWith(".js")) {
+      response.setHeader("Content-Type", "application/javascript");
+    } else if (request.path.endsWith(".js.map")) {
+      response.setHeader("Content-Type", "application/json");
+    }
+    if (request.path == "/" || request.path.endsWith(".html")) {
+      response.setHeader("Content-Type", "text/html");
+    }
+    // If a query string is passed, lookup with a matching file, if available
+    // The '?' is replaced by '.'
+    let fetchResponse;
+
+    if (request.queryString) {
+      const url = `${URL_ROOT}${testFolderName}/v${currentVersion}${request.path}.${request.queryString}`;
+      try {
+        fetchResponse = await fetch(url);
+        // Log this only if the request succeed
+        info(`[test-http-server] serving: ${url}`);
+      } catch (e) {
+        // Ignore any error and proceed without the query string
+        fetchResponse = null;
+      }
+    }
+
+    if (!fetchResponse) {
+      const url = `${URL_ROOT}${testFolderName}/v${currentVersion}${request.path}`;
+      info(`[test-http-server] serving: ${url}`);
+      fetchResponse = await fetch(url);
+    }
+
+    // Ensure forwarding the response headers generated by the other http server
+    // (this can be especially useful when query .sjs files)
+    for (const [name, value] of fetchResponse.headers.entries()) {
+      response.setHeader(name, value);
+    }
+
+    // Override cache settings so that versionized requests are never cached
+    // and we get brand new content for any request.
+    response.setHeader("Cache-Control", "no-store");
+
+    const text = await fetchResponse.text();
+    response.write(text);
+    response.finish();
+  });
+
+  return {
+    switchToNextVersion() {
+      currentVersion++;
+    },
+    backToFirstVersion() {
+      currentVersion = 1;
+    },
+    urlFor(path) {
+      const port = httpServer.identity.primaryPort;
+      return `http://localhost:${port}/${path}`;
+    },
+  };
 }

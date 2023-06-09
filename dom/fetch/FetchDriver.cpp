@@ -8,6 +8,7 @@
 #include "mozilla/DebugOnly.h"
 #include "mozilla/dom/FetchDriver.h"
 
+#include "mozilla/dom/ReferrerInfo.h"
 #include "nsIAsyncVerifyRedirectCallback.h"
 #include "mozilla/dom/Document.h"
 #include "nsICookieJarSettings.h"
@@ -38,6 +39,7 @@
 #include "mozilla/dom/File.h"
 #include "mozilla/dom/PerformanceStorage.h"
 #include "mozilla/dom/PerformanceTiming.h"
+#include "mozilla/dom/ServiceWorkerInterceptController.h"
 #include "mozilla/dom/UserActivation.h"
 #include "mozilla/dom/WorkerCommon.h"
 #include "mozilla/PreloaderBase.h"
@@ -70,7 +72,7 @@ void GetBlobURISpecFromChannel(nsIRequest* aRequest, nsCString& aBlobURISpec) {
   }
 
   nsCOMPtr<nsIURI> uri;
-  nsresult rv = channel->GetURI(getter_AddRefs(uri));
+  nsresult rv = NS_GetFinalChannelURI(channel, getter_AddRefs(uri));
   if (NS_FAILED(rv)) {
     return;
   }
@@ -318,7 +320,8 @@ AlternativeDataStreamListener::CheckListenerChain() { return NS_OK; }
 //-----------------------------------------------------------------------------
 
 NS_IMPL_ISUPPORTS(FetchDriver, nsIStreamListener, nsIChannelEventSink,
-                  nsIInterfaceRequestor, nsIThreadRetargetableStreamListener)
+                  nsIInterfaceRequestor, nsIThreadRetargetableStreamListener,
+                  nsINetworkInterceptController)
 
 FetchDriver::FetchDriver(SafeRefPtr<InternalRequest> aRequest,
                          nsIPrincipal* aPrincipal, nsILoadGroup* aLoadGroup,
@@ -516,7 +519,7 @@ nsresult FetchDriver::HttpFetch(
   RefPtr<PreloaderBase> fetchPreload = FindPreload(uri);
   if (fetchPreload) {
     fetchPreload->RemoveSelf(mDocument);
-    fetchPreload->NotifyUsage(PreloaderBase::LoadBackground::Keep);
+    fetchPreload->NotifyUsage(mDocument, PreloaderBase::LoadBackground::Keep);
 
     rv = fetchPreload->AsyncConsume(this);
     if (NS_SUCCEEDED(rv)) {
@@ -645,6 +648,12 @@ nsresult FetchDriver::HttpFetch(
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
+  if (mAssociatedBrowsingContextID) {
+    nsCOMPtr<nsILoadInfo> loadInfo = chan->LoadInfo();
+    rv = loadInfo->SetWorkerAssociatedBrowsingContextID(
+        mAssociatedBrowsingContextID);
+  }
+
   // If the fetch is created by FetchEvent.request or NavigationPreload request,
   // corresponding InterceptedHttpChannel information need to propagte to the
   // channel of the fetch.
@@ -711,7 +720,7 @@ nsresult FetchDriver::HttpFetch(
     NS_ENSURE_SUCCESS(rv, rv);
 
     // Set the same headers.
-    SetRequestHeaders(httpChan, false);
+    SetRequestHeaders(httpChan, false, false);
 
     // Step 5 of https://fetch.spec.whatwg.org/#main-fetch
     // If request's referrer policy is the empty string and request's client is
@@ -829,6 +838,9 @@ nsresult FetchDriver::HttpFetch(
   }
 
   NotifyNetworkMonitorAlternateStack(chan, std::move(mOriginStack));
+  if (mObserver && httpChan) {
+    mObserver->OnNotifyNetworkMonitorAlternateStack(httpChan->ChannelId());
+  }
 
   // if the preferred alternative data type in InternalRequest is not empty, set
   // the data type on the created channel and also create a
@@ -1170,14 +1182,6 @@ FetchDriver::OnStartRequest(nsIRequest* aRequest) {
 
   response->InitChannelInfo(channel);
 
-  nsCOMPtr<nsIURI> channelURI;
-  rv = channel->GetURI(getter_AddRefs(channelURI));
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    FailWithNetworkError(rv);
-    // Cancel request.
-    return rv;
-  }
-
   nsCOMPtr<nsILoadInfo> loadInfo = channel->LoadInfo();
   // Propagate any tainting from the channel back to our response here.  This
   // step is not reflected in the spec because the spec is written such that
@@ -1372,6 +1376,12 @@ FetchDriver::OnStopRequest(nsIRequest* aRequest, nsresult aStatusCode) {
   RefPtr<AlternativeDataStreamListener> altDataListener =
       std::move(mAltDataListener);
 
+  // For PFetch and ServiceWorker navigationPreload, resource timing should be
+  // reported before the body stream closing.
+  if (mObserver) {
+    mObserver->OnReportPerformanceTiming();
+  }
+
   // We need to check mObserver, which is nulled by FailWithNetworkError(),
   // because in the case of "error" redirect mode, aStatusCode may be NS_OK but
   // mResponse will definitely be null so we must not take the else branch.
@@ -1472,6 +1482,55 @@ void FetchDriver::FinishOnStopRequest(
 }
 
 NS_IMETHODIMP
+FetchDriver::ShouldPrepareForIntercept(nsIURI* aURI, nsIChannel* aChannel,
+                                       bool* aShouldIntercept) {
+  MOZ_ASSERT(aChannel);
+
+  if (mInterceptController) {
+    MOZ_ASSERT(XRE_IsParentProcess());
+    return mInterceptController->ShouldPrepareForIntercept(aURI, aChannel,
+                                                           aShouldIntercept);
+  }
+
+  nsCOMPtr<nsINetworkInterceptController> controller;
+  NS_QueryNotificationCallbacks(nullptr, mLoadGroup,
+                                NS_GET_IID(nsINetworkInterceptController),
+                                getter_AddRefs(controller));
+  if (controller) {
+    return controller->ShouldPrepareForIntercept(aURI, aChannel,
+                                                 aShouldIntercept);
+  }
+
+  *aShouldIntercept = false;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+FetchDriver::ChannelIntercepted(nsIInterceptedChannel* aChannel) {
+  if (mInterceptController) {
+    MOZ_ASSERT(XRE_IsParentProcess());
+    return mInterceptController->ChannelIntercepted(aChannel);
+  }
+
+  nsCOMPtr<nsINetworkInterceptController> controller;
+  NS_QueryNotificationCallbacks(nullptr, mLoadGroup,
+                                NS_GET_IID(nsINetworkInterceptController),
+                                getter_AddRefs(controller));
+  if (controller) {
+    return controller->ChannelIntercepted(aChannel);
+  }
+
+  return NS_OK;
+}
+
+void FetchDriver::EnableNetworkInterceptControl() {
+  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(!mInterceptController);
+  mInterceptController = new ServiceWorkerInterceptController();
+}
+
+NS_IMETHODIMP
 FetchDriver::AsyncOnChannelRedirect(nsIChannel* aOldChannel,
                                     nsIChannel* aNewChannel, uint32_t aFlags,
                                     nsIAsyncVerifyRedirectCallback* aCallback) {
@@ -1486,7 +1545,13 @@ FetchDriver::AsyncOnChannelRedirect(nsIChannel* aOldChannel,
     Unused << oldHttpChannel->ShouldStripRequestBodyHeader(method,
                                                            &rewriteToGET);
 
-    SetRequestHeaders(newHttpChannel, rewriteToGET);
+    // we need to strip Authentication headers for cross-origin requests
+    // Ref: https://fetch.spec.whatwg.org/#http-redirect-fetch
+    bool skipAuthHeader =
+        (StaticPrefs::network_fetch_redirect_stripAuthHeader() &&
+         NS_ShouldRemoveAuthHeaderOnRedirect(aOldChannel, aNewChannel, aFlags));
+
+    SetRequestHeaders(newHttpChannel, rewriteToGET, skipAuthHeader);
   }
 
   // "HTTP-redirect fetch": step 14 "Append locationURL to request's URL list."
@@ -1494,7 +1559,7 @@ FetchDriver::AsyncOnChannelRedirect(nsIChannel* aOldChannel,
   // Response.redirected to true if an internal redirect occurs.  These
   // should be transparent to script.
   nsCOMPtr<nsIURI> uri;
-  MOZ_ALWAYS_SUCCEEDS(aNewChannel->GetURI(getter_AddRefs(uri)));
+  MOZ_ALWAYS_SUCCEEDS(NS_GetFinalChannelURI(aNewChannel, getter_AddRefs(uri)));
 
   nsCOMPtr<nsIURI> uriClone;
   nsresult rv = NS_GetURIWithoutRef(uri, getter_AddRefs(uriClone));
@@ -1577,7 +1642,9 @@ void FetchDriver::SetController(
 PerformanceTimingData* FetchDriver::GetPerformanceTimingData(
     nsAString& aInitiatorType, nsAString& aEntryName) {
   MOZ_ASSERT(XRE_IsParentProcess());
-  MOZ_ASSERT(mChannel);
+  if (!mChannel) {
+    return nullptr;
+  }
 
   nsCOMPtr<nsITimedChannel> timedChannel = do_QueryInterface(mChannel);
   if (!timedChannel) {
@@ -1592,7 +1659,8 @@ PerformanceTimingData* FetchDriver::GetPerformanceTimingData(
 }
 
 void FetchDriver::SetRequestHeaders(nsIHttpChannel* aChannel,
-                                    bool aStripRequestBodyHeader) const {
+                                    bool aStripRequestBodyHeader,
+                                    bool aStripAuthHeader) const {
   MOZ_ASSERT(aChannel);
 
   // nsIHttpChannel has a set of pre-configured headers (Accept,
@@ -1610,6 +1678,11 @@ void FetchDriver::SetRequestHeaders(nsIHttpChannel* aChannel,
          headers[i].mName.LowerCaseEqualsASCII("content-encoding") ||
          headers[i].mName.LowerCaseEqualsASCII("content-language") ||
          headers[i].mName.LowerCaseEqualsASCII("content-location"))) {
+      continue;
+    }
+
+    if (aStripAuthHeader &&
+        headers[i].mName.LowerCaseEqualsASCII("authorization")) {
       continue;
     }
 

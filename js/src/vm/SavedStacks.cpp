@@ -273,24 +273,41 @@ class MutableWrappedPtrOperations<SavedFrame::Lookup, Wrapper>
 };
 
 /* static */
-bool SavedFrame::HashPolicy::hasHash(const Lookup& l) {
-  return SavedFramePtrHasher::hasHash(l.parent);
+bool SavedFrame::HashPolicy::maybeGetHash(const Lookup& l,
+                                          HashNumber* hashOut) {
+  HashNumber parentHash;
+  if (!SavedFramePtrHasher::maybeGetHash(l.parent, &parentHash)) {
+    return false;
+  }
+  *hashOut = calculateHash(l, parentHash);
+  return true;
 }
 
 /* static */
-bool SavedFrame::HashPolicy::ensureHash(const Lookup& l) {
-  return SavedFramePtrHasher::ensureHash(l.parent);
+bool SavedFrame::HashPolicy::ensureHash(const Lookup& l, HashNumber* hashOut) {
+  HashNumber parentHash;
+  if (!SavedFramePtrHasher::ensureHash(l.parent, &parentHash)) {
+    return false;
+  }
+  *hashOut = calculateHash(l, parentHash);
+  return true;
 }
 
 /* static */
 HashNumber SavedFrame::HashPolicy::hash(const Lookup& lookup) {
+  return calculateHash(lookup, SavedFramePtrHasher::hash(lookup.parent));
+}
+
+/* static */
+HashNumber SavedFrame::HashPolicy::calculateHash(const Lookup& lookup,
+                                                 HashNumber parentHash) {
   JS::AutoCheckCannotGC nogc;
   // Assume that we can take line mod 2^32 without losing anything of
   // interest.  If that assumption changes, we'll just need to start with 0
   // and add another overload of AddToHash with more arguments.
   return AddToHash(lookup.line, lookup.column, lookup.source,
                    lookup.functionDisplayName, lookup.asyncCause,
-                   lookup.mutedErrors, SavedFramePtrHasher::hash(lookup.parent),
+                   lookup.mutedErrors, parentHash,
                    JSPrincipalsPtrHasher::hash(lookup.principals));
 }
 
@@ -1442,10 +1459,17 @@ bool SavedStacks::insertFrames(JSContext* cx, MutableHandle<SavedFrame*> frame,
     }
 
     if (framePtr) {
-      // See the comment in Stack.h for why RematerializedFrames
-      // are a special case here.
-      MOZ_ASSERT_IF(seenCached, framePtr->hasCachedSavedFrame() ||
-                                    framePtr->isRematerializedFrame());
+      // In general, when we reach a frame with its hasCachedSavedFrame bit set,
+      // all its parents will have the bit set as well. See the
+      // LiveSavedFrameCache comment in Activation.h for more details. Note that
+      // this invariant does not hold when we are finding the first subsumed
+      // frame. Captures using FirstSubsumedFrame ignore async parents and walk
+      // the real stack. Because we're using different rules for walking the
+      // stack, we can reach frames that weren't cached in a previous AllFrames
+      // traversal.
+      MOZ_ASSERT_IF(
+          seenCached && !capture.is<JS::FirstSubsumedFrame>(),
+          framePtr->hasCachedSavedFrame() || framePtr->isRematerializedFrame());
       seenCached |= framePtr->hasCachedSavedFrame();
 
       if (capture.is<JS::AllFrames>() && framePtr->isInterpreterFrame() &&

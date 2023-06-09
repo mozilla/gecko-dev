@@ -18,6 +18,7 @@
 #include "gfxContext.h"
 #include "nsCOMPtr.h"
 #include "mozilla/ComputedStyle.h"
+#include "nsIFrameInlines.h"
 #include "nsFrameList.h"
 #include "nsStyleConsts.h"
 #include "nsIContent.h"
@@ -250,7 +251,16 @@ bool nsTableFrame::PageBreakAfter(nsIFrame* aSourceFrame,
 }
 
 /* static */
-void nsTableFrame::RegisterPositionedTablePart(nsIFrame* aFrame) {
+void nsTableFrame::PositionedTablePartMaybeChanged(nsIFrame* aFrame,
+                                                   ComputedStyle* aOldStyle) {
+  const bool wasPositioned =
+      aOldStyle && aOldStyle->IsAbsPosContainingBlock(aFrame);
+  const bool isPositioned = aFrame->IsAbsPosContainingBlock();
+  MOZ_ASSERT(isPositioned == aFrame->Style()->IsAbsPosContainingBlock(aFrame));
+  if (wasPositioned == isPositioned) {
+    return;
+  }
+
   nsTableFrame* tableFrame = nsTableFrame::GetTableFrame(aFrame);
   MOZ_ASSERT(tableFrame, "Should have a table frame here");
   tableFrame = static_cast<nsTableFrame*>(tableFrame->FirstContinuation());
@@ -265,13 +275,20 @@ void nsTableFrame::RegisterPositionedTablePart(nsIFrame* aFrame) {
     tableFrame->SetProperty(PositionedTablePartArray(), positionedParts);
   }
 
-  // Add this frame to the list.
-  positionedParts->AppendElement(aFrame);
+  if (isPositioned) {
+    // Add this frame to the list.
+    positionedParts->AppendElement(aFrame);
+  } else {
+    positionedParts->RemoveElement(aFrame);
+  }
 }
 
 /* static */
-void nsTableFrame::UnregisterPositionedTablePart(nsIFrame* aFrame,
-                                                 nsIFrame* aDestructRoot) {
+void nsTableFrame::MaybeUnregisterPositionedTablePart(nsIFrame* aFrame,
+                                                      nsIFrame* aDestructRoot) {
+  if (!aFrame->IsAbsPosContainingBlock()) {
+    return;
+  }
   // Retrieve the table frame, and check if we hit aDestructRoot on the way.
   bool didPassThrough;
   nsTableFrame* tableFrame =
@@ -2999,7 +3016,8 @@ void nsTableFrame::ReflowChildren(TableReflowInput& aReflowInput,
       }
     } else {  // it isn't being reflowed
       aReflowInput.mBCoord += cellSpacingB;
-      LogicalRect kidRect(wm, kidFrame->GetNormalRect(), containerSize);
+      const LogicalRect kidRect =
+          kidFrame->GetLogicalNormalRect(wm, containerSize);
       if (kidRect.BStart(wm) != aReflowInput.mBCoord) {
         // invalidate the old position
         kidFrame->InvalidateFrameSubtree();
@@ -3185,7 +3203,8 @@ void nsTableFrame::DistributeBSizeToRows(const ReflowInput& aReflowInput,
     nsTableRowGroupFrame* rgFrame = rowGroups[rgIdx];
     nscoord amountUsedByRG = 0;
     nscoord bOriginRow = 0;
-    LogicalRect rgNormalRect(wm, rgFrame->GetNormalRect(), containerSize);
+    const LogicalRect rgNormalRect =
+        rgFrame->GetLogicalNormalRect(wm, containerSize);
     if (!rgFrame->HasStyleBSize()) {
       nsTableRowFrame* rowFrame = rgFrame->GetFirstRow();
       while (rowFrame) {
@@ -3193,8 +3212,8 @@ void nsTableFrame::DistributeBSizeToRows(const ReflowInput& aReflowInput,
         // as a dummy containerSize here; we'll adjust the row positions at
         // the end, after the rowGroup size is finalized.
         const nsSize dummyContainerSize;
-        LogicalRect rowNormalRect(wm, rowFrame->GetNormalRect(),
-                                  dummyContainerSize);
+        const LogicalRect rowNormalRect =
+            rowFrame->GetLogicalNormalRect(wm, dummyContainerSize);
         nscoord cellSpacingB = GetRowSpacing(rowFrame->GetRowIndex());
         if ((amountUsed < aAmount) && rowFrame->HasPctBSize()) {
           nscoord pctBSize = rowFrame->GetInitialBSize(pctBasis);
@@ -3328,7 +3347,8 @@ void nsTableFrame::DistributeBSizeToRows(const ReflowInput& aReflowInput,
     nsTableRowGroupFrame* rgFrame = rowGroups[rgIdx];
     nscoord amountUsedByRG = 0;
     nscoord bOriginRow = 0;
-    LogicalRect rgNormalRect(wm, rgFrame->GetNormalRect(), containerSize);
+    const LogicalRect rgNormalRect =
+        rgFrame->GetLogicalNormalRect(wm, containerSize);
     nsRect rgInkOverflow = rgFrame->InkOverflowRect();
     // see if there is an eligible row group or we distribute to all rows
     if (!firstUnStyledRG || !rgFrame->HasStyleBSize() || !eligibleRows) {
@@ -3339,8 +3359,8 @@ void nsTableFrame::DistributeBSizeToRows(const ReflowInput& aReflowInput,
         // as a dummy containerSize here; we'll adjust the row positions at
         // the end, after the rowGroup size is finalized.
         const nsSize dummyContainerSize;
-        LogicalRect rowNormalRect(wm, rowFrame->GetNormalRect(),
-                                  dummyContainerSize);
+        const LogicalRect rowNormalRect =
+            rowFrame->GetLogicalNormalRect(wm, dummyContainerSize);
         nsRect rowInkOverflow = rowFrame->InkOverflowRect();
         // see if there is an eligible row or we distribute to all rows
         if (!firstUnStyledRow || !rowFrame->HasStyleBSize() || !eligibleRows) {
@@ -3512,42 +3532,43 @@ nscoord nsTableFrame::GetRowSpacing(int32_t aStartRowIndex,
   return GetRowSpacing() * (aEndRowIndex - aStartRowIndex);
 }
 
-/* virtual */
-nscoord nsTableFrame::GetLogicalBaseline(WritingMode aWM) const {
-  nscoord baseline;
-  if (!GetNaturalBaselineBOffset(aWM, BaselineSharingGroup::First, &baseline)) {
-    baseline = BSize(aWM);
+nscoord nsTableFrame::SynthesizeFallbackBaseline(
+    mozilla::WritingMode aWM, BaselineSharingGroup aBaselineGroup) const {
+  if (aBaselineGroup == BaselineSharingGroup::Last) {
+    return 0;
   }
-  return baseline;
+  return BSize(aWM);
 }
 
 /* virtual */
-bool nsTableFrame::GetNaturalBaselineBOffset(
-    WritingMode aWM, BaselineSharingGroup aBaselineGroup,
-    nscoord* aBaseline) const {
+Maybe<nscoord> nsTableFrame::GetNaturalBaselineBOffset(
+    WritingMode aWM, BaselineSharingGroup aBaselineGroup) const {
   if (StyleDisplay()->IsContainLayout()) {
-    return false;
+    return Nothing{};
   }
 
   RowGroupArray orderedRowGroups;
   OrderRowGroups(orderedRowGroups);
   // XXX not sure if this should be the size of the containing block instead.
   nsSize containerSize = mRect.Size();
-  auto TableBaseline = [aWM, containerSize](nsTableRowGroupFrame* aRowGroup,
-                                            nsTableRowFrame* aRow) {
-    nscoord rgBStart =
-        LogicalRect(aWM, aRowGroup->GetNormalRect(), containerSize).BStart(aWM);
-    nscoord rowBStart =
-        LogicalRect(aWM, aRow->GetNormalRect(), containerSize).BStart(aWM);
-    return rgBStart + rowBStart + aRow->GetRowBaseline(aWM);
+  auto TableBaseline = [aWM, containerSize](
+                           nsTableRowGroupFrame* aRowGroup,
+                           nsTableRowFrame* aRow) -> Maybe<nscoord> {
+    const nscoord rgBStart =
+        aRowGroup->GetLogicalNormalRect(aWM, containerSize).BStart(aWM);
+    const nscoord rowBStart =
+        aRow->GetLogicalNormalRect(aWM, aRowGroup->GetSize()).BStart(aWM);
+    return aRow->GetRowBaseline(aWM).map(
+        [rgBStart, rowBStart](nscoord aBaseline) {
+          return rgBStart + rowBStart + aBaseline;
+        });
   };
   if (aBaselineGroup == BaselineSharingGroup::First) {
     for (uint32_t rgIndex = 0; rgIndex < orderedRowGroups.Length(); rgIndex++) {
       nsTableRowGroupFrame* rgFrame = orderedRowGroups[rgIndex];
       nsTableRowFrame* row = rgFrame->GetFirstRow();
       if (row) {
-        *aBaseline = TableBaseline(rgFrame, row);
-        return true;
+        return TableBaseline(rgFrame, row);
       }
     }
   } else {
@@ -3555,12 +3576,13 @@ bool nsTableFrame::GetNaturalBaselineBOffset(
       nsTableRowGroupFrame* rgFrame = orderedRowGroups[rgIndex];
       nsTableRowFrame* row = rgFrame->GetLastRow();
       if (row) {
-        *aBaseline = BSize(aWM) - TableBaseline(rgFrame, row);
-        return true;
+        return TableBaseline(rgFrame, row).map([this, aWM](nscoord aBaseline) {
+          return BSize(aWM) - aBaseline;
+        });
       }
     }
   }
-  return false;
+  return Nothing{};
 }
 
 /* ----- global methods ----- */
@@ -5813,7 +5835,8 @@ struct BCBlockDirSeg {
   BCBlockDirSeg();
 
   void Start(BCPaintBorderIterator& aIter, BCBorderOwner aBorderOwner,
-             BCPixelSize aBlockSegISize, BCPixelSize aInlineSegBSize);
+             BCPixelSize aBlockSegISize, BCPixelSize aInlineSegBSize,
+             Maybe<nscoord> aEmptyRowEndSize);
 
   void Initialize(BCPaintBorderIterator& aIter);
   void GetBEndCorner(BCPaintBorderIterator& aIter, BCPixelSize aInlineSegBSize);
@@ -6508,7 +6531,8 @@ BCBlockDirSeg::BCBlockDirSeg()
 void BCBlockDirSeg::Start(BCPaintBorderIterator& aIter,
                           BCBorderOwner aBorderOwner,
                           BCPixelSize aBlockSegISize,
-                          BCPixelSize aInlineSegBSize) {
+                          BCPixelSize aInlineSegBSize,
+                          Maybe<nscoord> aEmptyRowEndBSize) {
   LogicalSide ownerSide = eLogicalSideBStart;
   bool bevel = false;
 
@@ -6527,7 +6551,14 @@ void BCBlockDirSeg::Start(BCPaintBorderIterator& aIter,
   // XXX this assumes that only corners where 2 segments join can be beveled
   mBStartBevelSide =
       (aInlineSegBSize > 0) ? eLogicalSideIEnd : eLogicalSideIStart;
-  mOffsetB += offset;
+  if (aEmptyRowEndBSize && *aEmptyRowEndBSize < offset) {
+    // This segment is starting from an empty row. This will require the the
+    // starting segment to overlap with the previously drawn segment, unless the
+    // empty row's size clears the overlap.
+    mOffsetB += *aEmptyRowEndBSize;
+  } else {
+    mOffsetB += offset;
+  }
   mLength = -offset;
   mWidth = aBlockSegISize;
   mOwner = aBorderOwner;
@@ -7241,12 +7272,14 @@ void BCPaintBorderIterator::AccumulateOrDoActionBlockDirSegment(
   if (!blockDirSeg.mCol) {  // on the first damaged row and the first segment in
                             // the col
     blockDirSeg.Initialize(*this);
-    blockDirSeg.Start(*this, borderOwner, blockSegISize, inlineSegBSize);
+    blockDirSeg.Start(*this, borderOwner, blockSegISize, inlineSegBSize,
+                      Nothing{});
   }
 
   if (!IsDamageAreaBStartMost() &&
       (isSegStart || IsDamageAreaBEndMost() || IsAfterRepeatedHeader() ||
        StartRepeatedFooter())) {
+    Maybe<nscoord> emptyRowEndSize;
     // paint the previous seg or the current one if IsDamageAreaBEndMost()
     if (blockDirSeg.mLength > 0) {
       blockDirSeg.GetBEndCorner(*this, inlineSegBSize);
@@ -7265,8 +7298,12 @@ void BCPaintBorderIterator::AccumulateOrDoActionBlockDirSegment(
         }
       }
       blockDirSeg.AdvanceOffsetB();
+      if (mRow->PrincipalChildList().IsEmpty()) {
+        emptyRowEndSize = Some(mRow->BSize(mTableWM));
+      }
     }
-    blockDirSeg.Start(*this, borderOwner, blockSegISize, inlineSegBSize);
+    blockDirSeg.Start(*this, borderOwner, blockSegISize, inlineSegBSize,
+                      emptyRowEndSize);
   }
   blockDirSeg.IncludeCurrentBorder(*this);
   mPrevInlineSegBSize = inlineSegBSize;

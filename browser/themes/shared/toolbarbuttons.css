@@ -15,11 +15,6 @@
   --toolbarseparator-color: color-mix(in srgb, currentColor 60%, transparent);
 
   --bookmark-block-padding: 4px;
-
-  /* This default value of --toolbarbutton-height is defined to prevent
-     CSS errors for an invalid variable. The value should not get used,
-     as a more specific value should be set when the value will be used. */
-  --toolbarbutton-height: 0;
 }
 
 :root[uidensity=compact] {
@@ -41,13 +36,8 @@
 
 /* ::::: primary toolbar buttons ::::: */
 
-#tabbrowser-arrowscrollbox[scrolledtostart=true]::part(scrollbutton-up),
-#tabbrowser-arrowscrollbox[scrolledtoend=true]::part(scrollbutton-down),
-:root:not([customizing]) .toolbarbutton-1[disabled=true],
-/* specialcase the overflow and the hamburger button so they show up disabled in customize mode. */
-#nav-bar-overflow-button[disabled=true],
-#PanelUI-menu-button[disabled=true] {
-  opacity: 0.4;
+:root:not([customizing]) .toolbarbutton-1[disabled=true] {
+  opacity: var(--toolbarbutton-disabled-opacity);
 }
 
 .toolbarbutton-1 > .toolbarbutton-icon {
@@ -75,7 +65,7 @@ toolbar .toolbarbutton-1 {
   appearance: none;
   margin: 0;
   padding: 0 var(--toolbarbutton-outer-padding);
-  -moz-box-pack: center;
+  justify-content: center;
 }
 
 #TabsToolbar .toolbarbutton-1 {
@@ -149,7 +139,7 @@ toolbar .toolbaritem-combined-buttons > .toolbarbutton-1 {
 
 toolbar .toolbaritem-combined-buttons:not(:hover) > separator {
   content: "";
-  display: -moz-box;
+  display: flex;
   width: 1px;
   height: 16px;
   margin-inline-end: -1px;
@@ -232,7 +222,7 @@ toolbarbutton.bookmark-item:not(.subviewbutton) {
  * how e.g. combined items work, and maybe we should just remove this.
  */
 #PersonalToolbar .toolbarbutton-1 {
-  -moz-box-align: stretch;
+  align-items: stretch;
 }
 #PersonalToolbar .toolbarbutton-1 > .toolbarbutton-icon {
   height: auto;
@@ -269,7 +259,7 @@ toolbarbutton.bookmark-item:not(.subviewbutton) {
 
 /* Force the display of the label for bookmarks */
 .bookmark-item > .toolbarbutton-text {
-  display: -moz-box !important;
+  display: flex !important;
 }
 
 #personal-bookmarks,

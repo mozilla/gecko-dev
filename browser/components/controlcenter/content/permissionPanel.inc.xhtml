@@ -17,11 +17,11 @@
     <panelview id="permission-popup-mainView"
                role="document"
                showheader="true">
-      <vbox id="permission-popup-mainView-panel-header" class="panel-header">
+      <box id="permission-popup-mainView-panel-header" class="panel-header">
         <html:h1>
           <html:span id="permission-popup-mainView-panel-header-span" role="heading" aria-level="1"/>
         </html:h1>
-      </vbox>
+      </box>
       <toolbarseparator></toolbarseparator>
       <hbox class="permission-popup-section">
         <vbox id="permission-popup-permissions-content" flex="1" role="group">
@@ -35,10 +35,10 @@
                 </hbox>
                 <description id="permission-popup-storage-access-permission-list-hint" data-l10n-id="identity-permissions-storage-access-hint"></description>
                 <hbox>
-                  <label id="permission-popup-storage-access-permission-learn-more"
-                       is="text-link"
-                       data-l10n-id="identity-permissions-storage-access-learn-more">
-                  </label>
+                  <html:a is="moz-support-link"
+                          id="permission-popup-storage-access-permission-learn-more"
+                          data-l10n-id="identity-permissions-storage-access-learn-more"
+                          support-page="site-information-third-party-access" />
                 </hbox>
               </vbox>
             </vbox>

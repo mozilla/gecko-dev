@@ -1415,6 +1415,8 @@ static bool BytecodeIsEffectful(JSScript* script, size_t offset) {
     case JSOp::DynamicImport:
     case JSOp::InitialYield:
     case JSOp::Yield:
+    case JSOp::Await:
+    case JSOp::CanSkipAwait:
       return true;
 
     case JSOp::Nop:
@@ -1477,9 +1479,12 @@ static bool BytecodeIsEffectful(JSScript* script, size_t offset) {
     case JSOp::Arguments:
     case JSOp::Rest:
     case JSOp::GetArg:
+    case JSOp::GetFrameArg:
     case JSOp::SetArg:
     case JSOp::GetLocal:
     case JSOp::SetLocal:
+    case JSOp::GetActualArg:
+    case JSOp::ArgumentsLength:
     case JSOp::ThrowSetConst:
     case JSOp::CheckLexical:
     case JSOp::CheckAliasedLexical:
@@ -1606,8 +1611,6 @@ static bool BytecodeIsEffectful(JSScript* script, size_t offset) {
     case JSOp::Resume:
     case JSOp::CheckResumeKind:
     case JSOp::AfterYield:
-    case JSOp::Await:
-    case JSOp::CanSkipAwait:
     case JSOp::MaybeExtractAwaitValue:
     case JSOp::Generator:
     case JSOp::AsyncAwait:
@@ -2245,15 +2248,25 @@ class DebuggerScript::IsInCatchScopeMatcher {
       return false;
     }
 
+    MOZ_ASSERT(!isInCatch_);
     for (const TryNote& tn : script->trynotes()) {
-      if (tn.start <= offset_ && offset_ < tn.start + tn.length &&
-          tn.kind() == TryNoteKind::Catch) {
+      bool inRange = tn.start <= offset_ && offset_ < tn.start + tn.length;
+      if (inRange && tn.kind() == TryNoteKind::Catch) {
         isInCatch_ = true;
+      } else if (isInCatch_) {
+        // For-of loops generate a synthetic catch block to handle
+        // closing the iterator when throwing an exception. The
+        // debugger should ignore these synthetic catch blocks, so
+        // we skip any Catch trynote that is immediately followed
+        // by a ForOf trynote.
+        if (inRange && tn.kind() == TryNoteKind::ForOf) {
+          isInCatch_ = false;
+          continue;
+        }
         return true;
       }
     }
 
-    isInCatch_ = false;
     return true;
   }
   ReturnType match(Handle<WasmInstanceObject*> instance) {

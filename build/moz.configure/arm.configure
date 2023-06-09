@@ -151,26 +151,35 @@ check_and_add_flag(
 )
 
 
+# The set of flags that clang understands
 @depends(
     arch_option,
     thumb_option,
-    thumb_interwork_option,
     fpu_option,
     float_abi_option,
     soft_float_option,
 )
-def all_flags(arch, thumb, interwork, fpu, float_abi, soft_float):
-    return arch + thumb + interwork + fpu + float_abi + soft_float
+def all_clang_arm_flags(arch, thumb, fpu, float_abi, soft_float):
+    return arch + thumb + fpu + float_abi + soft_float
 
 
-add_old_configure_assignment("_ARM_FLAGS", all_flags)
+# All the flags the compiler understands. When the compiler is clang, this
+# still includes unsupported flags, but we live it to configure to fail
+# during a compiler check. These checks aren't available for clang as used
+# by bindgen, so we keep the separate set of flags for clang for bindgen.
+@depends(all_clang_arm_flags, thumb_interwork_option)
+def all_arm_flags(flags, interwork):
+    return flags + interwork
+
+
+add_old_configure_assignment("_ARM_FLAGS", all_arm_flags)
 add_old_configure_assignment("_THUMB_FLAGS", thumb_option)
 
 
-@depends(c_compiler, all_flags)
+@depends(configure_cache, c_compiler, all_arm_flags)
 @checking("ARM version support in compiler", lambda x: x.arm_arch)
 @imports(_from="textwrap", _import="dedent")
-def arm_target(compiler, all_flags):
+def arm_target(configure_cache, compiler, all_arm_flags):
     # We're going to preprocess the following source to figure out some details
     # about the arm target options we have enabled.
     source = dedent(
@@ -206,10 +215,12 @@ def arm_target(compiler, all_flags):
     """
     )
     result = try_invoke_compiler(
-        compiler.wrapper + [compiler.compiler] + compiler.flags,
+        configure_cache,
+        [compiler.compiler] + compiler.flags,
         compiler.language,
         source,
-        ["-E"] + all_flags,
+        ["-E"] + all_arm_flags,
+        wrapper=compiler.wrapper,
     )
     # Metadata emitted by preprocessors such as GCC with LANG=ja_JP.utf-8 may
     # have non-ASCII characters. Treat the output as bytearray.

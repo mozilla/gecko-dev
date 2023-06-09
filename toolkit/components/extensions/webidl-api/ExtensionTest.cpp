@@ -5,12 +5,15 @@
 
 #include "ExtensionTest.h"
 #include "ExtensionEventManager.h"
+#include "ExtensionAPICallFunctionNoReturn.h"
 
 #include "js/Equality.h"            // JS::StrictlyEqual
 #include "js/PropertyAndElement.h"  // JS_GetProperty
 #include "mozilla/dom/ExtensionTestBinding.h"
 #include "nsIGlobalObject.h"
 #include "js/RegExp.h"
+#include "mozilla/dom/WorkerScope.h"
+#include "prenv.h"
 
 namespace mozilla {
 namespace extensions {
@@ -30,6 +33,8 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(ExtensionTest)
   NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
+
+NS_IMPL_WEBEXT_EVENTMGR(ExtensionTest, u"onMessage"_ns, OnMessage)
 
 ExtensionTest::ExtensionTest(nsIGlobalObject* aGlobal,
                              ExtensionBrowser* aExtensionBrowser)
@@ -331,14 +336,6 @@ MOZ_CAN_RUN_SCRIPT void ExtensionTest::AssertThrows(
     JSContext* aCx, dom::Function& aFunction,
     const JS::HandleValue aExpectedError, ErrorResult& aRv) {
   AssertThrows(aCx, aFunction, aExpectedError, EmptyString(), aRv);
-}
-
-ExtensionEventManager* ExtensionTest::OnMessage() {
-  if (!mOnMessageEventMgr) {
-    mOnMessageEventMgr = CreateEventManager(u"onMessage"_ns);
-  }
-
-  return mOnMessageEventMgr;
 }
 
 #define ASSERT_REJECT_UNKNOWN_FAIL_STR "Failed to complete assertRejects call"

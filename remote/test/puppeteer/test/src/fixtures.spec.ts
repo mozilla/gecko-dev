@@ -16,15 +16,16 @@
 
 /* eslint-disable @typescript-eslint/no-var-requires */
 
-import expect from 'expect';
-import {getTestState, itHeadlessOnly} from './mocha-utils.js';
-
 import path from 'path';
 
+import expect from 'expect';
+
+import {getTestState} from './mocha-utils.js';
+
 describe('Fixtures', function () {
-  itHeadlessOnly('dumpio option should work with pipe option', async () => {
+  it('dumpio option should work with pipe option', async () => {
     const {defaultBrowserOptions, puppeteerPath, headless} = getTestState();
-    if (headless === 'chrome') {
+    if (headless === 'new') {
       // This test only works in the old headless mode.
       return;
     }

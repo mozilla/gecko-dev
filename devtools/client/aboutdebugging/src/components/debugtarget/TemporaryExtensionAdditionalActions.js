@@ -10,6 +10,9 @@ const {
 } = require("resource://devtools/client/shared/vendor/react.js");
 const dom = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
 const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
+const {
+  connect,
+} = require("resource://devtools/client/shared/vendor/react-redux.js");
 
 const FluentReact = require("resource://devtools/client/shared/vendor/fluent-react.js");
 const Localized = createFactory(FluentReact.Localized);
@@ -27,6 +30,10 @@ const {
   MESSAGE_LEVEL,
 } = require("resource://devtools/client/aboutdebugging/src/constants.js");
 
+const {
+  getCurrentClient,
+} = require("resource://devtools/client/aboutdebugging/src/modules/runtimes-state-helper.js");
+
 /**
  * This component provides components that reload/remove temporary extension.
  */
@@ -35,6 +42,8 @@ class TemporaryExtensionAdditionalActions extends PureComponent {
     return {
       dispatch: PropTypes.func.isRequired,
       target: Types.debugTarget.isRequired,
+      // Provided by redux state
+      supportsAddonsUninstall: PropTypes.bool.isRequired,
     };
   }
 
@@ -132,6 +141,27 @@ class TemporaryExtensionAdditionalActions extends PureComponent {
     );
   }
 
+  renderRemoveButton() {
+    if (!this.props.supportsAddonsUninstall) {
+      return null;
+    }
+
+    return Localized(
+      {
+        id: "about-debugging-tmp-extension-remove-button",
+      },
+      dom.button(
+        {
+          className:
+            "default-button default-button--micro " +
+            "qa-temporary-extension-remove-button",
+          onClick: e => this.remove(),
+        },
+        "Remove"
+      )
+    );
+  }
+
   render() {
     return [
       dom.div(
@@ -154,20 +184,7 @@ class TemporaryExtensionAdditionalActions extends PureComponent {
             "Reload"
           )
         ),
-        Localized(
-          {
-            id: "about-debugging-tmp-extension-remove-button",
-          },
-          dom.button(
-            {
-              className:
-                "default-button default-button--micro " +
-                "qa-temporary-extension-remove-button",
-              onClick: e => this.remove(),
-            },
-            "Remove"
-          )
-        )
+        this.renderRemoveButton()
       ),
       this.renderReloadError(),
       this.renderTerminateBackgroundScriptError(),
@@ -175,4 +192,13 @@ class TemporaryExtensionAdditionalActions extends PureComponent {
   }
 }
 
-module.exports = TemporaryExtensionAdditionalActions;
+const mapStateToProps = state => {
+  const clientWrapper = getCurrentClient(state.runtimes);
+
+  return {
+    supportsAddonsUninstall:
+      clientWrapper.traits.supportsAddonsUninstall === true,
+  };
+};
+
+module.exports = connect(mapStateToProps)(TemporaryExtensionAdditionalActions);

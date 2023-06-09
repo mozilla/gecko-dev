@@ -68,22 +68,25 @@ bool CurrentThreadIsIonCompiling() {
 #endif  // DEBUG
 
 template <typename T>
-/* static */ bool MovableCellHasher<T>::hasHash(const Lookup& l) {
+/* static */ bool MovableCellHasher<T>::maybeGetHash(const Lookup& l,
+                                                     HashNumber* hashOut) {
   if (!l) {
+    *hashOut = 0;
     return true;
   }
 
-  return l->zoneFromAnyThread()->hasUniqueId(l);
+  return l->zoneFromAnyThread()->maybeGetHashCode(l, hashOut);
 }
 
 template <typename T>
-/* static */ bool MovableCellHasher<T>::ensureHash(const Lookup& l) {
+/* static */ bool MovableCellHasher<T>::ensureHash(const Lookup& l,
+                                                   HashNumber* hashOut) {
   if (!l) {
+    *hashOut = 0;
     return true;
   }
 
-  uint64_t unusedId;
-  return l->zoneFromAnyThread()->getOrCreateUniqueId(l, &unusedId);
+  return l->zoneFromAnyThread()->getOrCreateHashCode(l, hashOut);
 }
 
 template <typename T>
@@ -104,16 +107,14 @@ template <typename T>
 
 template <typename T>
 /* static */ bool MovableCellHasher<T>::match(const Key& k, const Lookup& l) {
-  // Return true if both are null or false if only one is null.
-  if (!k) {
-    return !l;
+  if (k == l) {
+    return true;
   }
-  if (!l) {
+
+  if (!k || !l) {
     return false;
   }
 
-  MOZ_ASSERT(k);
-  MOZ_ASSERT(l);
   MOZ_ASSERT(CurrentThreadCanAccessZone(l->zoneFromAnyThread()) ||
              CurrentThreadIsPerformingGC());
 

@@ -1,10 +1,10 @@
 "use strict";
 
-const { ExperimentStore } = ChromeUtils.import(
-  "resource://nimbus/lib/ExperimentStore.jsm"
+const { ExperimentStore } = ChromeUtils.importESModule(
+  "resource://nimbus/lib/ExperimentStore.sys.mjs"
 );
-const { FeatureManifest } = ChromeUtils.import(
-  "resource://nimbus/FeatureManifest.js"
+const { FeatureManifest } = ChromeUtils.importESModule(
+  "resource://nimbus/FeatureManifest.sys.mjs"
 );
 
 const { SYNC_DATA_PREF_BRANCH, SYNC_DEFAULTS_PREF_BRANCH } = ExperimentStore;
@@ -70,7 +70,7 @@ add_task(async function test_event_updates_main() {
 
   // Set update cb
   store.on(
-    `update:${experiment.branch.features[0].featureId}`,
+    `featureUpdate:${experiment.branch.features[0].featureId}`,
     updateEventCbStub
   );
 
@@ -83,13 +83,18 @@ add_task(async function test_event_updates_main() {
     "Should be called twice: add, update"
   );
   Assert.equal(
-    updateEventCbStub.secondCall.args[1].active,
-    false,
+    updateEventCbStub.firstCall.args[1],
+    "experiment-updated",
+    "Should be called with updated experiment status"
+  );
+  Assert.equal(
+    updateEventCbStub.secondCall.args[1],
+    "experiment-updated",
     "Should be called with updated experiment status"
   );
 
   store.off(
-    `update:${experiment.branch.features[0].featureId}`,
+    `featureUpdate:${experiment.branch.features[0].featureId}`,
     updateEventCbStub
   );
 });
@@ -168,7 +173,7 @@ add_task(async function test_hasExperimentForFeature() {
   );
 });
 
-add_task(async function test_getAll_getAllActive() {
+add_task(async function test_getAll_getAllActiveExperiments() {
   const store = ExperimentFakes.store();
 
   await store.init();
@@ -183,13 +188,13 @@ add_task(async function test_getAll_getAllActive() {
     ".getAll() should return all experiments"
   );
   Assert.deepEqual(
-    store.getAllActive().map(e => e.slug),
+    store.getAllActiveExperiments().map(e => e.slug),
     ["qux"],
-    ".getAllActive() should return all experiments that are active"
+    ".getAllActiveExperiments() should return all experiments that are active"
   );
 });
 
-add_task(async function test_getAll_getAllActive_no_rollouts() {
+add_task(async function test_getAll_getAllActiveExperiments() {
   const store = ExperimentFakes.store();
 
   await store.init();
@@ -205,13 +210,13 @@ add_task(async function test_getAll_getAllActive_no_rollouts() {
     ".getAll() should return all experiments and rollouts"
   );
   Assert.deepEqual(
-    store.getAllActive().map(e => e.slug),
+    store.getAllActiveExperiments().map(e => e.slug),
     ["qux"],
-    ".getAllActive() should return all experiments that are active and no rollouts"
+    ".getAllActiveExperiments() should return all experiments that are active and no rollouts"
   );
 });
 
-add_task(async function test_getAllRollouts() {
+add_task(async function test_getAllActiveRollouts() {
   const store = ExperimentFakes.store();
 
   await store.init();
@@ -226,9 +231,9 @@ add_task(async function test_getAllRollouts() {
     ".getAll() should return all experiments and rollouts"
   );
   Assert.deepEqual(
-    store.getAllRollouts().map(e => e.slug),
+    store.getAllActiveRollouts().map(e => e.slug),
     ["foo", "bar", "baz"],
-    ".getAllRollouts() should return all rollouts"
+    ".getAllActiveRollouts() should return all rollouts"
   );
 });
 
@@ -516,7 +521,7 @@ add_task(async function test_remoteRollout() {
   let updatePromise = new Promise(resolve =>
     store.on(`update:${rollout.slug}`, resolve)
   );
-  store.on("update:aboutwelcome", featureUpdateStub);
+  store.on("featureUpdate:aboutwelcome", featureUpdateStub);
 
   await store.init();
   store.addEnrollment(rollout);

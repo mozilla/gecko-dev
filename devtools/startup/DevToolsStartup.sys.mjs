@@ -39,12 +39,8 @@ ChromeUtils.defineModuleGetter(
   "CustomizableUI",
   "resource:///modules/CustomizableUI.jsm"
 );
-ChromeUtils.defineModuleGetter(
-  lazy,
-  "CustomizableWidgets",
-  "resource:///modules/CustomizableWidgets.jsm"
-);
 ChromeUtils.defineESModuleGetters(lazy, {
+  CustomizableWidgets: "resource:///modules/CustomizableWidgets.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   WebChannel: "resource://gre/modules/WebChannel.sys.mjs",
 });
@@ -220,6 +216,23 @@ XPCOMUtils.defineLazyGetter(lazy, "KeyShortcuts", function() {
     shortcuts.push(...getProfilerKeyShortcuts());
   }
 
+  // Allow toggling the JavaScript tracing not only from DevTools UI,
+  // but also from the web page when it is focused.
+  if (
+    Services.prefs.getBoolPref(
+      "devtools.debugger.features.javascript-tracing",
+      false
+    )
+  ) {
+    shortcuts.push({
+      id: "javascriptTracingToggle",
+      shortcut: getLocalizedKeyShortcut(
+        "devtools-commandkey-javascript-tracing-toggle"
+      ),
+      modifiers: "control,shift",
+    });
+  }
+
   return shortcuts;
 });
 
@@ -290,7 +303,7 @@ export function validateProfilerWebChannelUrl(targetUrl) {
 
 XPCOMUtils.defineLazyGetter(lazy, "ProfilerPopupBackground", function() {
   return ChromeUtils.import(
-    "resource://devtools/client/performance-new/popup/background.jsm.js"
+    "resource://devtools/client/performance-new/shared/background.jsm.js"
   );
 });
 
@@ -441,7 +454,10 @@ DevToolsStartup.prototype = {
    * top-level window.
    */
   onWindowReady(window) {
-    if (this.isDisabledByPolicy()) {
+    if (
+      this.isDisabledByPolicy() ||
+      AppConstants.MOZ_APP_NAME == "thunderbird"
+    ) {
       return;
     }
 
@@ -773,6 +789,13 @@ DevToolsStartup.prototype = {
           lazy.ProfilerPopupBackground.captureProfile("aboutprofiling");
           return;
         }
+      }
+
+      // Ignore the following key shortcut if DevTools aren't yet opened.
+      // The key shortcut is registered in this core component in order to
+      // work even when the web page is focused.
+      if (key.id == "javascriptTracingToggle" && !this.initialized) {
+        return;
       }
 
       // Record the timing at which this event started in order to compute later in
@@ -1187,20 +1210,23 @@ DevToolsStartup.prototype = {
     return this;
   },
 
-  // Keep `DevToolsStartup.helpInfo` synchronized with `BackgroundTasksManager.helpInfo`.
-  /* eslint-disable max-len */
-  helpInfo:
-    "  --jsconsole        Open the Browser Console.\n" +
-    "  --jsdebugger [<path>] Open the Browser Toolbox. Defaults to the local build\n" +
-    "                     but can be overridden by a firefox path.\n" +
-    "  --wait-for-jsdebugger Spin event loop until JS debugger connects.\n" +
-    "                     Enables debugging (some) application startup code paths.\n" +
-    "                     Only has an effect when `--jsdebugger` is also supplied.\n" +
-    "  --devtools         Open DevTools on initial load.\n" +
-    "  --start-debugger-server [ws:][ <port> | <path> ] Start the devtools server on\n" +
-    "                     a TCP port or Unix domain socket path. Defaults to TCP port\n" +
-    "                     6000. Use WebSocket protocol if ws: prefix is specified.\n",
-  /* eslint-disable max-len */
+  get jsdebuggerHelpInfo() {
+    return `  --jsdebugger [<path>] Open the Browser Toolbox. Defaults to the local build
+                     but can be overridden by a firefox path.
+  --wait-for-jsdebugger Spin event loop until JS debugger connects.
+                     Enables debugging (some) application startup code paths.
+                     Only has an effect when \`--jsdebugger\` is also supplied.
+  --start-debugger-server [ws:][ <port> | <path> ] Start the devtools server on
+                     a TCP port or Unix domain socket path. Defaults to TCP port
+                     6000. Use WebSocket protocol if ws: prefix is specified.
+`;
+  },
+
+  get helpInfo() {
+    return `  --jsconsole        Open the Browser Console.
+  --devtools         Open DevTools on initial load.
+${this.jsdebuggerHelpInfo}`;
+  },
 
   classID: Components.ID("{9e9a9283-0ce9-4e4a-8f1c-ba129a032c32}"),
   QueryInterface: ChromeUtils.generateQI(["nsICommandLineHandler"]),

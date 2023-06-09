@@ -6,7 +6,6 @@
 // Test that clicking on the "custom" badge opens the debugger to the pretty-printed
 // custom element definition.
 
-/* import-globals-from ../../../debugger/test/mochitest/shared-head.js */
 Services.scriptloader.loadSubScript(
   "chrome://mochitests/content/browser/devtools/client/debugger/test/mochitest/shared-head.js",
   this
@@ -35,7 +34,7 @@ add_task(async function() {
   const dbg = createDebuggerContext(toolbox);
 
   await waitForSelectedSource(dbg, "shadowdom_open_debugger.min.js");
-  await waitForSelectedLocation(dbg, 2);
+  await waitForSelectedLocation(dbg, 1);
 
   info("Pretty-print source.");
   clickElement(dbg, "prettyPrintButton");
@@ -50,5 +49,5 @@ add_task(async function() {
   customBadge.click();
 
   await waitForSelectedSource(dbg, "shadowdom_open_debugger.min.js:formatted");
-  await waitForSelectedLocation(dbg, 4);
+  await waitForSelectedLocation(dbg, 5);
 });

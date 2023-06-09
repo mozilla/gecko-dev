@@ -6,11 +6,8 @@ const { AddonManager } = ChromeUtils.import(
   "resource://gre/modules/AddonManager.jsm"
 );
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
-import { E10SUtils } from "resource://gre/modules/E10SUtils.sys.mjs";
 
-const { FeatureGate } = ChromeUtils.import(
-  "resource://featuregates/FeatureGate.jsm"
-);
+import { FeatureGate } from "resource://featuregates/FeatureGate.sys.mjs";
 
 const lazy = {};
 
@@ -171,28 +168,30 @@ export var Troubleshoot = {
    * Captures a snapshot of data that may help troubleshooters troubleshoot
    * trouble.
    *
-   * @param done A function that will be asynchronously called when the
-   *             snapshot completes.  It will be passed the snapshot object.
+   * @returns {Promise}
+   *   A promise that is resolved with the snapshot data.
    */
-  snapshot: function snapshot(done) {
-    let snapshot = {};
-    let numPending = Object.keys(dataProviders).length;
-    function providerDone(providerName, providerData) {
-      snapshot[providerName] = providerData;
-      if (--numPending == 0) {
-        // Ensure that done is always and truly called asynchronously.
-        Services.tm.dispatchToMainThread(done.bind(null, snapshot));
+  snapshot() {
+    return new Promise(resolve => {
+      let snapshot = {};
+      let numPending = Object.keys(dataProviders).length;
+      function providerDone(providerName, providerData) {
+        snapshot[providerName] = providerData;
+        if (--numPending == 0) {
+          // Ensure that done is always and truly called asynchronously.
+          Services.tm.dispatchToMainThread(() => resolve(snapshot));
+        }
       }
-    }
-    for (let name in dataProviders) {
-      try {
-        dataProviders[name](providerDone.bind(null, name));
-      } catch (err) {
-        let msg = "Troubleshoot data provider failed: " + name + "\n" + err;
-        Cu.reportError(msg);
-        providerDone(name, msg);
+      for (let name in dataProviders) {
+        try {
+          dataProviders[name](providerDone.bind(null, name));
+        } catch (err) {
+          let msg = "Troubleshoot data provider failed: " + name + "\n" + err;
+          console.error(msg);
+          providerDone(name, msg);
+        }
       }
-    }
+    });
   },
 
   kMaxCrashAge: 3 * 24 * 60 * 60 * 1000, // 3 days
@@ -393,13 +392,16 @@ var dataProviders = {
     );
   },
 
-  processes: function processes(done) {
+  processes: async function processes(done) {
     let remoteTypes = {};
-
-    for (let i = 0; i < Services.ppmm.childCount; i++) {
+    const processInfo = await ChromeUtils.requestProcInfo();
+    for (let i = 0; i < processInfo.children.length; i++) {
       let remoteType;
       try {
-        remoteType = Services.ppmm.getChildAt(i).remoteType;
+        remoteType = processInfo.children[i].type;
+        // Workaround for bug 1790070, since requestProcInfo refers to the preallocated content
+        // process as "preallocated", and the localization string mapping expects "prealloc".
+        remoteType = remoteType === "preallocated" ? "prealloc" : remoteType;
       } catch (e) {}
 
       // The parent process is also managed by the ppmm (because
@@ -407,8 +409,6 @@ var dataProviders = {
       if (!remoteType) {
         continue;
       }
-
-      remoteType = E10SUtils.remoteTypePrefix(remoteType);
 
       if (remoteTypes[remoteType]) {
         remoteTypes[remoteType]++;
@@ -555,13 +555,7 @@ var dataProviders = {
       var gfxInfo = Cc["@mozilla.org/gfx/info;1"].getService(Ci.nsIGfxInfo);
     } catch (e) {}
 
-    let promises = [];
-    // done will be called upon all pending promises being resolved.
-    // add your pending promise to promises when adding new ones.
-    function completed() {
-      Promise.all(promises).then(() => done(data));
-    }
-
+    data.desktopEnvironment = Services.appinfo.desktopEnvironment;
     data.numTotalWindows = 0;
     data.numAcceleratedWindows = 0;
 
@@ -605,56 +599,52 @@ var dataProviders = {
       data.numAcceleratedWindowsMessage = statusMsgForFeature(feature);
     }
 
-    if (!gfxInfo) {
-      completed();
-      return;
-    }
+    if (gfxInfo) {
+      // keys are the names of attributes on nsIGfxInfo, values become the names
+      // of the corresponding properties in our data object.  A null value means
+      // no change.  This is needed so that the names of properties in the data
+      // object are the same as the names of keys in aboutSupport.properties.
+      let gfxInfoProps = {
+        adapterDescription: null,
+        adapterVendorID: null,
+        adapterDeviceID: null,
+        adapterSubsysID: null,
+        adapterRAM: null,
+        adapterDriver: "adapterDrivers",
+        adapterDriverVendor: "driverVendor",
+        adapterDriverVersion: "driverVersion",
+        adapterDriverDate: "driverDate",
 
-    // keys are the names of attributes on nsIGfxInfo, values become the names
-    // of the corresponding properties in our data object.  A null value means
-    // no change.  This is needed so that the names of properties in the data
-    // object are the same as the names of keys in aboutSupport.properties.
-    let gfxInfoProps = {
-      adapterDescription: null,
-      adapterVendorID: null,
-      adapterDeviceID: null,
-      adapterSubsysID: null,
-      adapterRAM: null,
-      adapterDriver: "adapterDrivers",
-      adapterDriverVendor: "driverVendor",
-      adapterDriverVersion: "driverVersion",
-      adapterDriverDate: "driverDate",
+        adapterDescription2: null,
+        adapterVendorID2: null,
+        adapterDeviceID2: null,
+        adapterSubsysID2: null,
+        adapterRAM2: null,
+        adapterDriver2: "adapterDrivers2",
+        adapterDriverVendor2: "driverVendor2",
+        adapterDriverVersion2: "driverVersion2",
+        adapterDriverDate2: "driverDate2",
+        isGPU2Active: null,
 
-      adapterDescription2: null,
-      adapterVendorID2: null,
-      adapterDeviceID2: null,
-      adapterSubsysID2: null,
-      adapterRAM2: null,
-      adapterDriver2: "adapterDrivers2",
-      adapterDriverVendor2: "driverVendor2",
-      adapterDriverVersion2: "driverVersion2",
-      adapterDriverDate2: "driverDate2",
-      isGPU2Active: null,
+        D2DEnabled: "direct2DEnabled",
+        DWriteEnabled: "directWriteEnabled",
+        DWriteVersion: "directWriteVersion",
+        cleartypeParameters: "clearTypeParameters",
+        TargetFrameRate: "targetFrameRate",
+        windowProtocol: null,
+      };
 
-      D2DEnabled: "direct2DEnabled",
-      DWriteEnabled: "directWriteEnabled",
-      DWriteVersion: "directWriteVersion",
-      cleartypeParameters: "clearTypeParameters",
-      TargetFrameRate: "targetFrameRate",
-      windowProtocol: null,
-      desktopEnvironment: null,
-    };
+      for (let prop in gfxInfoProps) {
+        try {
+          data[gfxInfoProps[prop] || prop] = gfxInfo[prop];
+        } catch (e) {}
+      }
 
-    for (let prop in gfxInfoProps) {
-      try {
-        data[gfxInfoProps[prop] || prop] = gfxInfo[prop];
-      } catch (e) {}
-    }
-
-    if ("direct2DEnabled" in data && !data.direct2DEnabled) {
-      data.direct2DEnabledMessage = statusMsgForFeature(
-        Ci.nsIGfxInfo.FEATURE_DIRECT2D
-      );
+      if ("direct2DEnabled" in data && !data.direct2DEnabled) {
+        data.direct2DEnabledMessage = statusMsgForFeature(
+          Ci.nsIGfxInfo.FEATURE_DIRECT2D
+        );
+      }
     }
 
     let doc = new DOMParser().parseFromString("<html/>", "text/html");
@@ -726,25 +716,115 @@ var dataProviders = {
     GetWebGLInfo(data, "webgl1", "webgl");
     GetWebGLInfo(data, "webgl2", "webgl2");
 
-    let infoInfo = gfxInfo.getInfo();
-    if (infoInfo) {
-      data.info = infoInfo;
-    }
-
-    let failureIndices = {};
-
-    let failures = gfxInfo.getFailures(failureIndices);
-    if (failures.length) {
-      data.failures = failures;
-      if (failureIndices.value.length == failures.length) {
-        data.indices = failureIndices.value;
+    if (gfxInfo) {
+      let infoInfo = gfxInfo.getInfo();
+      if (infoInfo) {
+        data.info = infoInfo;
       }
+
+      let failureIndices = {};
+
+      let failures = gfxInfo.getFailures(failureIndices);
+      if (failures.length) {
+        data.failures = failures;
+        if (failureIndices.value.length == failures.length) {
+          data.indices = failureIndices.value;
+        }
+      }
+
+      data.featureLog = gfxInfo.getFeatureLog();
+      data.crashGuards = gfxInfo.getActiveCrashGuards();
     }
 
-    data.featureLog = gfxInfo.getFeatureLog();
-    data.crashGuards = gfxInfo.getActiveCrashGuards();
+    function getNavigator() {
+      for (let win of Services.ww.getWindowEnumerator()) {
+        let winUtils = win.windowUtils;
+        try {
+          // NOTE: windowless browser's windows should not be reported in the graphics troubleshoot report
+          if (
+            winUtils.layerManagerType == "None" ||
+            !winUtils.layerManagerRemote
+          ) {
+            continue;
+          }
+          const nav = win.navigator;
+          if (nav) {
+            return nav;
+          }
+        } catch (e) {
+          continue;
+        }
+      }
+      throw new Error("No window had window.navigator.");
+    }
 
-    completed();
+    const navigator = getNavigator();
+
+    async function GetWebgpuInfo(adapterOpts) {
+      const ret = {};
+      if (!navigator.gpu) {
+        ret["navigator.gpu"] = null;
+        return ret;
+      }
+
+      const requestAdapterkey = `navigator.gpu.requestAdapter(${JSON.stringify(
+        adapterOpts
+      )})`;
+
+      let adapter;
+      try {
+        adapter = await navigator.gpu.requestAdapter(adapterOpts);
+      } catch (e) {
+        // If WebGPU isn't supported or is blocked somehow, include
+        // that in the report. Anything else is an error which should
+        // have consequences (test failures, etc).
+        if (DOMException.isInstance(e) && e.name == "NotSupportedError") {
+          return { [requestAdapterkey]: { not_supported: e.message } };
+        }
+        throw e;
+      }
+
+      if (!adapter) {
+        ret[requestAdapterkey] = null;
+        return ret;
+      }
+      const desc = (ret[requestAdapterkey] = {});
+
+      desc.isFallbackAdapter = adapter.isFallbackAdapter;
+
+      desc.name = adapter.name;
+      if (desc.name === undefined) {
+        desc.name = null; // JSON has no `undefined`.
+      }
+
+      if (adapter.requestAdapterInfo) {
+        // Firefox doesn't have this yet.
+        const info = await adapter.requestAdapterInfo();
+        desc[`requestAdapterInfo()`] = info;
+      } else {
+        desc.requestAdapterInfo = null;
+      }
+
+      desc.features = Array.from(adapter.features).sort();
+
+      desc.limits = {};
+      const keys = Object.keys(Object.getPrototypeOf(adapter.limits)).sort(); // limits not directly enumerable?
+      for (const k of keys) {
+        desc.limits[k] = adapter.limits[k];
+      }
+
+      return ret;
+    }
+
+    // Webgpu info is going to need awaits.
+    (async () => {
+      data.webgpuDefaultAdapter = await GetWebgpuInfo({});
+      data.webgpuFallbackAdapter = await GetWebgpuInfo({
+        forceFallbackAdapter: true,
+      });
+
+      done(data);
+    })();
   },
 
   media: function media(done) {
@@ -886,15 +966,19 @@ var dataProviders = {
 
     const {
       PreferenceExperiments: NormandyPreferenceStudies,
-    } = ChromeUtils.import("resource://normandy/lib/PreferenceExperiments.jsm");
-    const { AddonStudies: NormandyAddonStudies } = ChromeUtils.import(
-      "resource://normandy/lib/AddonStudies.jsm"
+    } = ChromeUtils.importESModule(
+      "resource://normandy/lib/PreferenceExperiments.sys.mjs"
+    );
+    const { AddonStudies: NormandyAddonStudies } = ChromeUtils.importESModule(
+      "resource://normandy/lib/AddonStudies.sys.mjs"
     );
     const {
       PreferenceRollouts: NormandyPreferenceRollouts,
-    } = ChromeUtils.import("resource://normandy/lib/PreferenceRollouts.jsm");
-    const { ExperimentManager } = ChromeUtils.import(
-      "resource://nimbus/lib/ExperimentManager.jsm"
+    } = ChromeUtils.importESModule(
+      "resource://normandy/lib/PreferenceRollouts.sys.mjs"
+    );
+    const { ExperimentManager } = ChromeUtils.importESModule(
+      "resource://nimbus/lib/ExperimentManager.sys.mjs"
     );
 
     // Get Normandy data in parallel, and sort each group by slug.
@@ -911,14 +995,14 @@ var dataProviders = {
         NormandyPreferenceStudies.getAllActive(),
         ExperimentManager.store
           .ready()
-          .then(() => ExperimentManager.store.getAllActive()),
+          .then(() => ExperimentManager.store.getAllActiveExperiments()),
         ExperimentManager.store
           .ready()
-          .then(() => ExperimentManager.store.getAllRollouts()),
+          .then(() => ExperimentManager.store.getAllActiveRollouts()),
       ].map(promise =>
         promise
           .catch(error => {
-            Cu.reportError(error);
+            console.error(error);
             return [];
           })
           .then(items => items.sort((a, b) => a.slug.localeCompare(b.slug)))
@@ -937,8 +1021,8 @@ var dataProviders = {
 
 if (AppConstants.MOZ_CRASHREPORTER) {
   dataProviders.crashes = function crashes(done) {
-    const { CrashReports } = ChromeUtils.import(
-      "resource://gre/modules/CrashReports.jsm"
+    const { CrashReports } = ChromeUtils.importESModule(
+      "resource://gre/modules/CrashReports.sys.mjs"
     );
     let reports = CrashReports.getReports();
     let now = new Date();

@@ -16,7 +16,7 @@ namespace mozilla::dom {
 
 using SVGFEMergeNodeElementBase = SVGFEUnstyledElement;
 
-class SVGFEMergeNodeElement : public SVGFEMergeNodeElementBase {
+class SVGFEMergeNodeElement final : public SVGFEMergeNodeElementBase {
   friend nsresult(::NS_NewSVGFEMergeNodeElement(
       nsIContent** aResult,
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo));
@@ -29,6 +29,9 @@ class SVGFEMergeNodeElement : public SVGFEMergeNodeElementBase {
                      JS::Handle<JSObject*> aGivenProto) override;
 
  public:
+  NS_IMPL_FROMNODE_WITH_TAG(SVGFEMergeNodeElement, kNameSpaceID_SVG,
+                            feMergeNode)
+
   nsresult Clone(dom::NodeInfo*, nsINode** aResult) const override;
 
   bool AttributeAffectsRendering(int32_t aNameSpaceID,

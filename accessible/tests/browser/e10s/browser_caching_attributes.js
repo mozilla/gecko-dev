@@ -548,3 +548,93 @@ addAccessibleTask(
   },
   { chrome: true, topLevel: true, iframe: true, remoteIframe: true }
 );
+
+function untilCacheAttrIs(acc, attr, val, msg) {
+  return untilCacheOk(() => {
+    try {
+      return acc.attributes.getStringProperty(attr) == val;
+    } catch (e) {
+      return false;
+    }
+  }, msg);
+}
+
+function untilCacheAttrAbsent(acc, attr, msg) {
+  return untilCacheOk(() => {
+    try {
+      acc.attributes.getStringProperty(attr);
+    } catch (e) {
+      return true;
+    }
+    return false;
+  }, msg);
+}
+
+/**
+ * Test the class attribute.
+ */
+addAccessibleTask(
+  `
+<div id="oneClass" class="c1">oneClass</div>
+<div id="multiClass" class="c1 c2">multiClass</div>
+<div id="noClass">noClass</div>
+<div id="mutate">mutate</div>
+  `,
+  async function(browser, docAcc) {
+    const oneClass = findAccessibleChildByID(docAcc, "oneClass");
+    testAttrs(oneClass, { class: "c1" }, true);
+    const multiClass = findAccessibleChildByID(docAcc, "multiClass");
+    testAttrs(multiClass, { class: "c1 c2" }, true);
+    const noClass = findAccessibleChildByID(docAcc, "noClass");
+    testAbsentAttrs(noClass, { class: "" });
+
+    const mutate = findAccessibleChildByID(docAcc, "mutate");
+    testAbsentAttrs(mutate, { class: "" });
+    info("Adding class to mutate");
+    await invokeContentTask(browser, [], () => {
+      content.document.getElementById("mutate").className = "c1 c2";
+    });
+    await untilCacheAttrIs(mutate, "class", "c1 c2", "mutate class correct");
+    info("Removing class from mutate");
+    await invokeContentTask(browser, [], () => {
+      content.document.getElementById("mutate").removeAttribute("class");
+    });
+    await untilCacheAttrAbsent(mutate, "class", "mutate class not present");
+  },
+  { chrome: true, topLevel: true }
+);
+
+/**
+ * Test the src attribute.
+ */
+const kImgUrl = "https://example.com/a11y/accessible/tests/mochitest/moz.png";
+addAccessibleTask(
+  `
+<img id="noAlt" src="${kImgUrl}">
+<img id="alt" alt="alt" src="${kImgUrl}">
+<img id="mutate">
+  `,
+  async function(browser, docAcc) {
+    const noAlt = findAccessibleChildByID(docAcc, "noAlt");
+    testAttrs(noAlt, { src: kImgUrl }, true);
+    if (isCacheEnabled && browser.isRemoteBrowser) {
+      // To avoid wasting memory, we don't cache src if there's a name.
+      const alt = findAccessibleChildByID(docAcc, "alt");
+      testAbsentAttrs(alt, { src: "" });
+    }
+
+    const mutate = findAccessibleChildByID(docAcc, "mutate");
+    testAbsentAttrs(mutate, { src: "" });
+    info("Adding src to mutate");
+    await invokeContentTask(browser, [kImgUrl], url => {
+      content.document.getElementById("mutate").src = url;
+    });
+    await untilCacheAttrIs(mutate, "src", kImgUrl, "mutate src correct");
+    info("Removing src from mutate");
+    await invokeContentTask(browser, [], () => {
+      content.document.getElementById("mutate").removeAttribute("src");
+    });
+    await untilCacheAttrAbsent(mutate, "src", "mutate src not present");
+  },
+  { chrome: true, topLevel: true }
+);

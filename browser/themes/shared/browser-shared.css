@@ -14,7 +14,6 @@
 @import url("chrome://browser/skin/addon-notification.css");
 @import url("chrome://browser/skin/identity-credential-notification.css");
 @import url("chrome://browser/skin/urlbarView.css");
-@import url("chrome://browser/skin/translation/infobar.css");
 @import url("chrome://browser/skin/autocomplete.css");
 @import url("chrome://browser/skin/places/editBookmarkPanel.css");
 @import url("chrome://browser/skin/sidebar.css");
@@ -33,6 +32,7 @@
 
   --tabs-navbar-shadow-size: 1px;
 
+  --panel-separator-color: color-mix(in srgb, currentColor 25%, transparent);
   --panel-shortcut-color: inherit;
   --panelui-subview-transition-duration: 150ms;
 
@@ -72,9 +72,9 @@
   --urlbar-box-active-bgcolor: var(--button-active-bgcolor);
   --urlbar-box-text-color: inherit;
   --urlbar-box-hover-text-color: var(--urlbar-box-text-color);
-  --urlbar-min-height: 32px;
+  --urlbar-min-height: max(32px, 1.4em);
   --urlbar-icon-fill-opacity: 0.9;
-  --urlbar-icon-padding: 6px; /* (32px - 2px border - 2px padding - 16px icon) / 2 */
+  --urlbar-icon-padding: calc((var(--urlbar-min-height) - 2px /* border */ - 2px /* padding */ - 16px /* icon */) / 2);
   /* This should be used for icons and chiclets inside the input field. It makes
      the gap around them more uniform when they are close to the field edges */
   --urlbar-icon-border-radius: calc(var(--toolbarbutton-border-radius) - 1px);
@@ -87,7 +87,7 @@
 
   --ext-theme-background-transition: background-color 0.1s cubic-bezier(.17,.67,.83,.67);
 
-  -moz-box-layout: flex;
+  user-select: none;
 }
 
 :root:-moz-lwtheme {
@@ -97,19 +97,18 @@
 @media (prefers-contrast) {
   :root {
     --autocomplete-popup-separator-color: color-mix(in srgb, currentColor 86%, transparent);
+    --panel-separator-color: currentColor;
     --urlbar-icon-fill-opacity: 1;
     --checkbox-checked-border-color: var(--checkbox-checked-bgcolor);
   }
 }
 
 :root[uidensity=compact] {
-  --urlbar-min-height: 26px;
-  --urlbar-icon-padding: 3px; /* (26px - 2px border - 2px padding - 16px icon) / 2 */
+  --urlbar-min-height: max(26px, 1.4em);
 }
 
 :root[uidensity=touch] {
-  --urlbar-min-height: 34px;
-  --urlbar-icon-padding: 7px; /* (34px - 2px border - 2px padding - 16px icon) / 2 */
+  --urlbar-min-height: max(34px, 1.4em);
 }
 
 :root:-moz-lwtheme {
@@ -155,19 +154,13 @@
 
 /* Set link color with proper contrast for WebExt themes */
 
-toolbar .text-link:-moz-lwtheme,
-panel .text-link:-moz-lwtheme {
+:is(toolbar, panel) :is(a, .text-link):-moz-lwtheme {
   color: #0060df;
 }
 
-toolbar[brighttext] .text-link:-moz-lwtheme,
-:root[lwt-popup-brighttext] panel .text-link {
+toolbar[brighttext] :is(a, .text-link):-moz-lwtheme,
+:root[lwt-popup-brighttext] panel :is(a, .text-link) {
   color: var(--lwt-brighttext-url-color);
-}
-
-toolbar .text-link:-moz-lwtheme:not(:hover),
-panel .text-link:-moz-lwtheme:not(:hover) {
-  text-decoration: none;
 }
 
 /* Toolbar / content area border */
@@ -227,10 +220,13 @@ panel .text-link:-moz-lwtheme:not(:hover) {
  * 2) buttons in the toolbar moving horizontally while the window opens,
  *    because the element is first shown at full width and then completely
  *    hidden.
+ * TODO(emilio): The comment above was never quite true (the message did take
+ * horizontal space, see bug 1812636). Figure out how much of this rule is
+ * really needed.
  */
 #PersonalToolbar[collapsed=false] > #personal-toolbar-empty[nowidth] > #personal-toolbar-empty-description {
   margin-inline: 0;
-  width: 0;
+  min-width: 0;
   white-space: nowrap;
   position: relative;
   z-index: 1;
@@ -261,9 +257,10 @@ menupopup::part(drop-indicator-container) {
    * probably simplify this substantially, by making the indicator position:
    * absolute or so (which was never properly supported in XUL). The container
    * should become completely unnecessary then. */
-  -moz-box-flex: 1;
   min-width: 0;
   min-height: 0;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 menupopup::part(drop-indicator-bar) {
@@ -301,20 +298,27 @@ menupopup::part(drop-indicator) {
 /* Find bar */
 
 .browserContainer > findbar {
-  background-color: var(--toolbar-non-lwt-bgcolor);
-  color: var(--toolbar-non-lwt-textcolor);
-  text-shadow: none;
+  background-color: var(--toolbar-bgcolor);
+  color: var(--toolbar-color);
+  border-top-color: var(--chrome-content-separator-color, ThreeDShadow);
 }
 
-:root:not([lwtheme-image]) .browserContainer > findbar:-moz-lwtheme {
+.browserContainer > findbar:-moz-lwtheme {
   background-color: var(--lwt-accent-color);
-  background-image: linear-gradient(var(--toolbar-bgcolor), var(--toolbar-bgcolor));
-  border-top-color: var(--chrome-content-separator-color);
-  color: var(--toolbar-color);
+  background-image: linear-gradient(var(--toolbar-bgcolor), var(--toolbar-bgcolor)), var(--lwt-additional-images);
+  background-repeat: no-repeat, var(--lwt-background-tiling);
+  background-position: right bottom, var(--lwt-background-alignment);
+  background-position-y: bottom !important;
 }
 
 :root:not([lwtheme-image]) .browserContainer > findbar:-moz-lwtheme:-moz-window-inactive {
   background-color: var(--lwt-accent-color-inactive, var(--lwt-accent-color));
+}
+
+:root[lwtheme-image] .browserContainer > findbar {
+  background-image: linear-gradient(var(--toolbar-bgcolor), var(--toolbar-bgcolor)), var(--lwt-header-image), var(--lwt-additional-images);
+  background-repeat: no-repeat, no-repeat, var(--lwt-background-tiling);
+  background-position: center, right bottom, var(--lwt-background-alignment);
 }
 
 /* Private browsing indicator */
@@ -335,7 +339,7 @@ menupopup::part(drop-indicator) {
 /* New Private Browsing Indicator */
 
 #private-browsing-indicator-with-label {
-  -moz-box-align: center;
+  align-items: center;
   margin-inline: 7px;
 }
 
@@ -537,6 +541,12 @@ menupopup::part(drop-indicator) {
   margin-inline-end: 12px;
 }
 
+#contextual-feature-recommendation-notification .cfr-doorhanger-medium-icon {
+  width: 50px;
+  height: 50px;
+  margin-inline-end: 12px;
+}
+
 #contextual-feature-recommendation-notification .popup-notification-body-container {
   width: 100%;
   padding-bottom: 2px;
@@ -560,6 +570,23 @@ menupopup::part(drop-indicator) {
   display: none;
 }
 
+#contextual-feature-recommendation-notification[data-notification-category="addon_recommendation"] .popup-notification-description > b {
+  font-weight: 300;
+  padding-inline-start: 5px;
+}
+
+#contextual-feature-recommendation-notification[data-notification-category="addon_recommendation"] #cfr-notification-footer-learn-more-link {
+  margin-inline-start: 5px;
+}
+
+#contextual-feature-recommendation-notification[data-notification-category="addon_recommendation"] #cfr-notification-header-image {
+  display: none;
+}
+
+#contextual-feature-recommendation-notification[data-notification-category="addon_recommendation"] #cfr-notification-header-label {
+  margin-block-end: 9px;
+}
+
 /*
  * `icon_and_message` CFR doorhanger with: icon, title and subtitle.
  * No panel header is shown
@@ -576,7 +603,6 @@ menupopup::part(drop-indicator) {
 #contextual-feature-recommendation-notification[data-notification-category="icon_and_message"] popupnotificationcontent {
   display: block; /* This forces the subtitle content to wrap */
 }
-
 
 #cfr-notification-feature-steps {
   display: flex;
@@ -891,4 +917,120 @@ popupnotificationcontent {
 
 .reusable-relay-masks > button > span:last-child {
   opacity: 0.6;
+}
+
+#historySwipeAnimationPreviousArrow,
+#historySwipeAnimationNextArrow {
+  will-change: transform;
+}
+
+#historySwipeAnimationPreviousArrow:-moz-locale-dir(rtl),
+#historySwipeAnimationNextArrow:-moz-locale-dir(ltr) {
+  transform: scaleX(-1);
+}
+
+#historySwipeAnimationPreviousArrow > svg,
+#historySwipeAnimationNextArrow > svg {
+  margin: auto 0;
+}
+
+#historySwipeAnimationPreviousArrow,
+#historySwipeAnimationNextArrow {
+  --swipe-nav-icon-primary-color: #0060DF;
+  --swipe-nav-icon-accent-color: #FFFFFF;
+}
+
+@media (-moz-content-prefers-color-scheme: dark) {
+  #historySwipeAnimationPreviousArrow,
+  #historySwipeAnimationNextArrow {
+    --swipe-nav-icon-primary-color: #00DDFF;
+    --swipe-nav-icon-accent-color: #000000;
+  }
+}
+
+@media (prefers-contrast) {
+  #historySwipeAnimationPreviousArrow,
+  #historySwipeAnimationNextArrow {
+    --swipe-nav-icon-primary-color: SelectedItemText;
+    --swipe-nav-icon-accent-color: SelectedItem;
+  }
+}
+
+/*
+ * Styles for the swipe navigation SVG icon.
+ */
+.swipe-nav-icon path {
+  transition: fill 1s;
+}
+
+@media not (-moz-platform: macos) {
+  /*
+   * Styles for the swipe navigation SVG icon.
+   *
+   * `will-navigate` class name is added to the <svg> element when the user's
+   * swipe gesture reached to the point where history navigation will be
+   * triggered. It's used for triggering three animations, an arrow color change,
+   * a circle color change and a glowing effect outer the circle.
+   */
+  .swipe-nav-icon circle {
+    fill: var(--swipe-nav-icon-accent-color);
+    stroke: var(--swipe-nav-icon-primary-color);
+  }
+
+  .swipe-nav-icon circle:first-of-type {
+    fill: var(--swipe-nav-icon-primary-color);
+    transition: opacity 1s;
+    will-change: opacity; /* a workaround for bug 1804189 */
+    opacity: 0;
+  }
+
+  .swipe-nav-icon.will-navigate > circle:not(:first-of-type) {
+    fill: var(--swipe-nav-icon-primary-color);
+  }
+
+  .swipe-nav-icon circle:not(:first-of-type) {
+    transition: fill 1s;
+  }
+
+  .swipe-nav-icon.will-navigate > circle:first-of-type {
+    transition-delay: 0.2s;
+    opacity: 0.2;
+  }
+
+  .swipe-nav-icon.will-navigate > circle:not(:first-of-type) {
+    fill: var(--swipe-nav-icon-primary-color);
+  }
+
+  .swipe-nav-icon path {
+    fill: var(--swipe-nav-icon-primary-color);
+  }
+
+  .swipe-nav-icon.will-navigate > path {
+    fill: var(--swipe-nav-icon-accent-color);
+    stroke: var(--swipe-nav-icon-accent-color);
+  }
+}
+
+@media (-moz-platform: macos) {
+  /*
+   * Styles for the swipe navigation SVG icon.
+   *
+   * `will-navigate` class name is added to the <svg> element when the user's
+   * swipe gesture reached to the point where history navigation will be
+   * triggered.
+   */
+  .swipe-nav-icon-circle-outline,
+  .swipe-nav-icon-arrow {
+    fill: var(--swipe-nav-icon-primary-color);
+  }
+  .swipe-nav-icon-circle {
+    fill: var(--swipe-nav-icon-accent-color);
+  }
+  .swipe-nav-icon.will-navigate > .swipe-nav-icon-circle-outline,
+  .swipe-nav-icon.will-navigate > .swipe-nav-icon-arrow {
+    fill: var(--swipe-nav-icon-accent-color);
+  }
+  .swipe-nav-icon.will-navigate > .swipe-nav-icon-circle {
+    fill: var(--swipe-nav-icon-primary-color);
+  }
 }

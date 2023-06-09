@@ -3,10 +3,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "StartupCache.h"
 #include "StartupCacheInfo.h"
 
 #include "mozilla/Components.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/StaticPtr.h"
 
 using namespace mozilla;
 using namespace mozilla::scache;
@@ -27,6 +29,7 @@ nsresult StartupCacheInfo::GetWroteToDiskCache(bool* aWrote) {
   if (!StartupCache::gStartupCache) {
     *aWrote = false;
   } else {
+    MutexAutoLock lock(StartupCache::gStartupCache->mTableLock);
     *aWrote = StartupCache::gStartupCache->mWrittenOnce;
   }
   return NS_OK;

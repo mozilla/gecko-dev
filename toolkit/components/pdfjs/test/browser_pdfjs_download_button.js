@@ -101,7 +101,7 @@ add_task(async function test_downloading_pdf_nonprivate_window() {
 
       SpecialPowers.clipboardCopyString("");
       DownloadsCommon.copyDownloadLink(dl);
-      const copiedUrl = SpecialPowers.getClipboardData("text/unicode");
+      const copiedUrl = SpecialPowers.getClipboardData("text/plain");
       is(copiedUrl, pdfUrl, "The copied url must be the original one");
 
       is(
@@ -116,7 +116,7 @@ add_task(async function test_downloading_pdf_nonprivate_window() {
         "InitialDownloadsLoaded",
         true
       );
-      BrowserTestUtils.loadURI(browser, "about:downloads");
+      BrowserTestUtils.loadURIString(browser, "about:downloads");
       await downloadsLoaded;
 
       info("Wait for the clipboard to contain the url of the pdf");

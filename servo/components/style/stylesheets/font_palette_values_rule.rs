@@ -44,8 +44,8 @@ impl Parse for FontPaletteOverrideColor {
         let location = input.current_source_location();
         let color = SpecifiedColor::parse(context, input)?;
         // Only absolute colors are accepted here.
-        if let SpecifiedColor::Numeric { parsed: _, authored: _ } = color {
-            Ok(FontPaletteOverrideColor{ index, color })
+        if let SpecifiedColor::Absolute { .. } = color {
+            Ok(FontPaletteOverrideColor { index, color })
         } else {
             Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
@@ -58,7 +58,7 @@ impl ToCss for FontPaletteOverrideColor {
         W: fmt::Write,
     {
         self.index.to_css(dest)?;
-        dest.write_str(" ")?;
+        dest.write_char(' ')?;
         self.color.to_css(dest)
     }
 }
@@ -179,11 +179,13 @@ impl FontPaletteValuesRule {
                 }
             }
             for c in &self.override_colors {
-                if let SpecifiedColor::Numeric { parsed, authored: _ } = &c.color {
+                if let SpecifiedColor::Absolute(ref absolute) = c.color {
                     unsafe {
-                        Gecko_SetFontPaletteOverride(palette_values,
-                                                     c.index.0.value(),
-                                                     *parsed);
+                        Gecko_SetFontPaletteOverride(
+                            palette_values,
+                            c.index.0.value(),
+                            (&absolute.color) as *const _ as *mut _,
+                        );
                     }
                 }
             }
@@ -197,7 +199,7 @@ impl ToCssWithGuard for FontPaletteValuesRule {
         self.name.to_css(&mut CssWriter::new(dest))?;
         dest.write_str(" { ")?;
         self.value_to_css(&mut CssWriter::new(dest))?;
-        dest.write_str("}")
+        dest.write_char('}')
     }
 }
 

@@ -4,21 +4,36 @@
 
 // eslint-disable-next-line import/no-unassigned-import
 import "toolkit-widgets/panel-list.js";
-import { html } from "lit";
-import { ifDefined } from "lit/directives/if-defined.js";
+import { html, ifDefined } from "lit.all.mjs";
 
 export default {
-  title: "Design System/Components/Panel Menu",
+  title: "UI Widgets/Panel Menu",
+  component: "panel-list",
   parameters: {
+    status: "stable",
     actions: {
       handles: ["click"],
     },
+    fluent: `
+panel-list-item-one = Item One
+panel-list-item-two = Item Two (accesskey w)
+panel-list-item-three = Item Three
+panel-list-checked = Checked
+panel-list-badged = Badged, look at me
+panel-list-passwords = Passwords
+panel-list-settings = Settings
+    `,
   },
 };
 
-const openMenu = e => document.querySelector("panel-list").toggle(e);
+const openMenu = e => {
+  e.target
+    .getRootNode()
+    .querySelector("panel-list")
+    .toggle(e);
+};
 
-const Template = ({ open, items }) =>
+const Template = ({ isOpen, items, wideAnchor }) =>
   html`
     <style>
       panel-item[icon="passwords"]::part(button) {
@@ -31,6 +46,9 @@ const Template = ({ open, items }) =>
         position: absolute;
         background-image: url("chrome://global/skin/icons/more.svg");
       }
+      button[wide] {
+        width: 400px !important;
+      }
       .end {
         inset-inline-end: 30px;
       }
@@ -39,14 +57,31 @@ const Template = ({ open, items }) =>
         inset-block-end: 30px;
       }
     </style>
-    <button class="ghost-button icon-button" @click=${openMenu}></button>
-    <button class="ghost-button icon-button end" @click=${openMenu}></button>
-    <button class="ghost-button icon-button bottom" @click=${openMenu}></button>
+    <button
+      class="ghost-button icon-button"
+      @click=${openMenu}
+      ?wide="${wideAnchor}"
+    ></button>
+    <button
+      class="ghost-button icon-button end"
+      @click=${openMenu}
+      ?wide="${wideAnchor}"
+    ></button>
+    <button
+      class="ghost-button icon-button bottom"
+      @click=${openMenu}
+      ?wide="${wideAnchor}"
+    ></button>
     <button
       class="ghost-button icon-button bottom end"
       @click=${openMenu}
+      ?wide="${wideAnchor}"
     ></button>
-    <panel-list ?stay-open=${open} ?open=${open}>
+    <panel-list
+      ?stay-open=${isOpen}
+      ?open=${isOpen}
+      ?min-width-from-anchor=${wideAnchor}
+    >
       ${items.map(i =>
         i == "<hr>"
           ? html`
@@ -58,9 +93,8 @@ const Template = ({ open, items }) =>
                 ?checked=${i.checked}
                 ?badged=${i.badged}
                 accesskey=${ifDefined(i.accesskey)}
-              >
-                ${i.text ?? i}
-              </panel-item>
+                data-l10n-id=${i.l10nId ?? i}
+              ></panel-item>
             `
       )}
     </panel-list>
@@ -68,28 +102,37 @@ const Template = ({ open, items }) =>
 
 export const Simple = Template.bind({});
 Simple.args = {
-  open: false,
+  isOpen: false,
+  wideAnchor: false,
   items: [
-    "Item One",
-    { text: "Item Two (accesskey w)", accesskey: "w" },
-    "Item Three",
+    "panel-list-item-one",
+    { l10nId: "panel-list-item-two", accesskey: "w" },
+    "panel-list-item-three",
     "<hr>",
-    { text: "Checked", checked: true },
-    { text: "Badged, look at me", badged: true, icon: "settings" },
+    { l10nId: "panel-list-checked", checked: true },
+    { l10nId: "panel-list-badged", badged: true, icon: "settings" },
   ],
 };
 
 export const Icons = Template.bind({});
 Icons.args = {
-  open: false,
+  isOpen: false,
+  wideAnchor: false,
   items: [
-    { text: "Passwords", icon: "passwords" },
-    { text: "Settings", icon: "settings" },
+    { l10nId: "panel-list-passwords", icon: "passwords" },
+    { l10nId: "panel-list-settings", icon: "settings" },
   ],
 };
 
 export const Open = Template.bind({});
 Open.args = {
   ...Simple.args,
-  open: true,
+  wideAnchor: false,
+  isOpen: true,
+};
+
+export const Wide = Template.bind({});
+Wide.args = {
+  ...Simple.args,
+  wideAnchor: true,
 };

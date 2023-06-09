@@ -505,6 +505,15 @@ class MochitestArguments(ArgumentContainer):
             },
         ],
         [
+            ["--use-http3-server"],
+            {
+                "dest": "useHttp3Server",
+                "default": False,
+                "help": "Whether to use the Http3 server",
+                "action": "store_true",
+            },
+        ],
+        [
             ["--setpref"],
             {
                 "action": "append",
@@ -908,6 +917,15 @@ class MochitestArguments(ArgumentContainer):
                 "dest": "crashAsPass",
                 "default": False,
                 "help": "treat harness level crashes as passing (used for quarantine jobs).",
+            },
+        ],
+        [
+            ["--compare-preferences"],
+            {
+                "action": "store_true",
+                "dest": "comparePrefs",
+                "default": False,
+                "help": "Compare preferences at the end of each test and report changed ones as failures.",
             },
         ],
     ]

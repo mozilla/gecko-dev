@@ -133,7 +133,6 @@ EXPORTS.mozilla += [
     "StaticMonitor.h",
     "StaticMutex.h",
     "StaticPtr.h",
-    "TupleCycleCollection.h",
 ]
 
 SOURCES += [
@@ -220,6 +219,9 @@ if CONFIG["OS_TARGET"] == "Linux":
     EXPORTS.mozilla += [
         "AvailableMemoryWatcherUtils.h",
     ]
+
+if CONFIG["MOZ_PHC"]:
+    DEFINES["MOZ_PHC"] = True
 
 GeneratedFile("ErrorList.h", script="ErrorList.py", entry_point="error_list_h")
 GeneratedFile(

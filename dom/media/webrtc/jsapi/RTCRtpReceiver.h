@@ -11,34 +11,39 @@
 #include "mozilla/StateMirroring.h"
 #include "mozilla/Maybe.h"
 #include "js/RootingAPI.h"
-#include "libwebrtcglue/MediaConduitInterface.h"
 #include "libwebrtcglue/RtpRtcpConfig.h"
 #include "nsTArray.h"
+#include "mozilla/dom/RTCRtpCapabilitiesBinding.h"
 #include "mozilla/dom/RTCStatsReportBinding.h"
 #include "PerformanceRecorder.h"
 #include "RTCStatsReport.h"
+#include "transportbridge/MediaPipeline.h"
 #include <vector>
 
 class nsPIDOMWindowInner;
 
 namespace mozilla {
-class MediaPipelineReceive;
 class MediaSessionConduit;
 class MediaTransportHandler;
 class JsepTransceiver;
 class PeerConnectionImpl;
+enum class PrincipalPrivacy : uint8_t;
+class RemoteTrackSource;
 
 namespace dom {
 class MediaStreamTrack;
 class Promise;
 class RTCDtlsTransport;
+struct RTCRtpCapabilities;
 struct RTCRtpContributingSource;
 struct RTCRtpSynchronizationSource;
 class RTCRtpTransceiver;
 
-class RTCRtpReceiver : public nsISupports, public nsWrapperCache {
+class RTCRtpReceiver : public nsISupports,
+                       public nsWrapperCache,
+                       public MediaPipelineReceiveControlInterface {
  public:
-  RTCRtpReceiver(nsPIDOMWindowInner* aWindow, bool aPrivacyNeeded,
+  RTCRtpReceiver(nsPIDOMWindowInner* aWindow, PrincipalPrivacy aPrivacy,
                  PeerConnectionImpl* aPc,
                  MediaTransportHandler* aTransportHandler,
                  AbstractThread* aCallThread, nsISerialEventTarget* aStsThread,
@@ -55,6 +60,8 @@ class RTCRtpReceiver : public nsISupports, public nsWrapperCache {
   // webidl
   MediaStreamTrack* Track() const { return mTrack; }
   RTCDtlsTransport* GetTransport() const;
+  static void GetCapabilities(const GlobalObject&, const nsAString& aKind,
+                              Nullable<dom::RTCRtpCapabilities>& aResult);
   already_AddRefed<Promise> GetStats(ErrorResult& aError);
   void GetContributingSources(
       nsTArray<dom::RTCRtpContributingSource>& aSources);
@@ -71,8 +78,8 @@ class RTCRtpReceiver : public nsISupports, public nsWrapperCache {
 
   void Shutdown();
   void BreakCycles();
+  // Terminal state, reached through stopping RTCRtpTransceiver.
   void Stop();
-  void Start();
   bool HasTrack(const dom::MediaStreamTrack* aTrack) const;
   void SyncToJsep(JsepTransceiver& aJsepTransceiver) const;
   void SyncFromJsep(const JsepTransceiver& aJsepTransceiver);
@@ -89,7 +96,7 @@ class RTCRtpReceiver : public nsISupports, public nsWrapperCache {
   };
 
   struct StreamAssociationChanges {
-    std::vector<RefPtr<MediaStreamTrack>> mTracksToMute;
+    std::vector<RefPtr<RTCRtpReceiver>> mReceiversToMute;
     std::vector<StreamAssociation> mStreamAssociationsRemoved;
     std::vector<StreamAssociation> mStreamAssociationsAdded;
     std::vector<TrackEventInfo> mTrackEvents;
@@ -102,10 +109,17 @@ class RTCRtpReceiver : public nsISupports, public nsWrapperCache {
   // This is called when we set a remote description; may be an offer or answer.
   void UpdateStreams(StreamAssociationChanges* aChanges);
 
+  // Called when the privacy-needed state changes on the fly, as a result of
+  // ALPN negotiation.
+  void UpdatePrincipalPrivacy(PrincipalPrivacy aPrivacy);
+
   void OnRtcpBye();
   void OnRtcpTimeout();
 
-  void SetReceiveTrackMuted(bool aMuted);
+  void SetTrackMuteFromRemoteSdp();
+  void OnRtpPacket();
+  void UpdateUnmuteBlockingState();
+  void UpdateReceiveTrackMute();
 
   AbstractCanonical<Ssrc>* CanonicalSsrc() { return &mSsrc; }
   AbstractCanonical<Ssrc>* CanonicalVideoRtxSsrc() { return &mVideoRtxSsrc; }
@@ -123,7 +137,7 @@ class RTCRtpReceiver : public nsISupports, public nsWrapperCache {
   AbstractCanonical<Maybe<RtpRtcpConfig>>* CanonicalVideoRtpRtcpConfig() {
     return &mVideoRtpRtcpConfig;
   }
-  AbstractCanonical<bool>* CanonicalReceiving() { return &mReceiving; }
+  AbstractCanonical<bool>* CanonicalReceiving() override { return &mReceiving; }
 
  private:
   virtual ~RTCRtpReceiver();
@@ -135,6 +149,7 @@ class RTCRtpReceiver : public nsISupports, public nsWrapperCache {
   JsepTransceiver& GetJsepTransceiver();
   const JsepTransceiver& GetJsepTransceiver() const;
 
+  WatchManager<RTCRtpReceiver> mWatchManager;
   nsCOMPtr<nsPIDOMWindowInner> mWindow;
   RefPtr<PeerConnectionImpl> mPc;
   bool mHaveStartedReceiving = false;
@@ -142,6 +157,7 @@ class RTCRtpReceiver : public nsISupports, public nsWrapperCache {
   RefPtr<AbstractThread> mCallThread;
   nsCOMPtr<nsISerialEventTarget> mStsThread;
   RefPtr<dom::MediaStreamTrack> mTrack;
+  RefPtr<RemoteTrackSource> mTrackSource;
   RefPtr<MediaPipelineReceive> mPipeline;
   RefPtr<MediaTransportHandler> mTransportHandler;
   RefPtr<RTCRtpTransceiver> mTransceiver;
@@ -150,16 +166,19 @@ class RTCRtpReceiver : public nsISupports, public nsWrapperCache {
   // where the stream list for the whole RTCPeerConnection lives..
   std::vector<std::string> mStreamIds;
   bool mRemoteSetSendBit = false;
+  Watchable<bool> mReceiveTrackMute{true, "RTCRtpReceiver::mReceiveTrackMute"};
+  // This corresponds to the [[Receptive]] slot on RTCRtpTransceiver.
+  // Its only purpose is suppressing unmute events if true.
+  bool mReceptive = false;
 
   MediaEventListener mRtcpByeListener;
   MediaEventListener mRtcpTimeoutListener;
+  MediaEventListener mUnmuteListener;
 
   Canonical<Ssrc> mSsrc;
   Canonical<Ssrc> mVideoRtxSsrc;
   Canonical<RtpExtList> mLocalRtpExtensions;
-
   Canonical<std::vector<AudioCodecConfig>> mAudioCodecs;
-
   Canonical<std::vector<VideoCodecConfig>> mVideoCodecs;
   Canonical<Maybe<RtpRtcpConfig>> mVideoRtpRtcpConfig;
   Canonical<bool> mReceiving;

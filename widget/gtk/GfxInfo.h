@@ -26,7 +26,6 @@ class GfxInfo final : public GfxInfoBase {
   NS_IMETHOD GetHasBattery(bool* aHasBattery) override;
   NS_IMETHOD GetCleartypeParameters(nsAString& aCleartypeParams) override;
   NS_IMETHOD GetWindowProtocol(nsAString& aWindowProtocol) override;
-  NS_IMETHOD GetDesktopEnvironment(nsAString& aDesktopEnvironment) override;
   NS_IMETHOD GetTestType(nsAString& aTestType) override;
   NS_IMETHOD GetAdapterDescription(nsAString& aAdapterDescription) override;
   NS_IMETHOD GetAdapterDriver(nsAString& aAdapterDriver) override;
@@ -56,6 +55,8 @@ class GfxInfo final : public GfxInfoBase {
 
   NS_IMETHOD_(void) GetData() override;
 
+  static bool FireGLXTestProcess();
+
 #ifdef DEBUG
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIGFXINFODEBUG
@@ -79,8 +80,11 @@ class GfxInfo final : public GfxInfoBase {
 
   virtual bool DoesDriverVendorMatch(const nsAString& aBlocklistVendor,
                                      const nsAString& aDriverVendor) override;
+  static int FireTestProcess(const nsAString& aBinaryFile, int* aOutPipe,
+                             const char** aStringArgs);
 
  private:
+  bool mInitialized = false;
   nsCString mVendorId;
   nsCString mDeviceId;
   nsCString mDriverVendor;
@@ -113,8 +117,12 @@ class GfxInfo final : public GfxInfoBase {
   bool mIsXWayland;
   bool mHasMultipleGPUs;
   bool mGlxTestError;
-  bool mIsVAAPISupported;
+  mozilla::Maybe<bool> mIsVAAPISupported;
 
+  static int sGLXTestPipe;
+  static pid_t sGLXTestPID;
+
+  void GetDataVAAPI();
   void AddCrashReportAnnotations();
 };
 

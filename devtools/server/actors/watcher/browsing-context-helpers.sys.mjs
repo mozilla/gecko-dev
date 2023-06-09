@@ -325,6 +325,7 @@ export function isWindowGlobalPartOfContext(
 
 /**
  * Get all the BrowsingContexts that should be debugged by the given session context.
+ * Consider using WatcherActor.getAllBrowsingContexts(options) which will automatically pass the right sessionContext.
  *
  * Really all of them:
  * - For all the privileged windows (browser.xhtml, browser console, ...)
@@ -367,7 +368,7 @@ export function getAllBrowsingContextsForContext(
       // so we have to cross these boundaries by ourself.
       // (This is also the reason why we aren't using BrowsingContext.getAllBrowsingContextsInSubtree())
       for (const browser of browsingContext.window.document.querySelectorAll(
-        `browser[remote="true"]`
+        `browser[type="content"]`
       )) {
         walk(browser.browsingContext);
       }
@@ -379,13 +380,16 @@ export function getAllBrowsingContextsForContext(
     const topBrowsingContext = BrowsingContext.getCurrentTopByBrowserId(
       sessionContext.browserId
     );
-    // Unfortunately, getCurrentTopByBrowserId is subject to race conditions and may refer to a BrowsingContext
-    // that already navigated away.
-    // Query the current "live" BrowsingContext by going through the embedder element (i.e. the <browser>/<iframe> element)
-    // devtools/client/responsive/test/browser/browser_navigation.js covers this with fission enabled.
-    const realTopBrowsingContext =
-      topBrowsingContext.embedderElement.browsingContext;
-    walk(realTopBrowsingContext);
+    // topBrowsingContext can be null if getCurrentTopByBrowserId is called for a tab that is unloaded.
+    if (topBrowsingContext) {
+      // Unfortunately, getCurrentTopByBrowserId is subject to race conditions and may refer to a BrowsingContext
+      // that already navigated away.
+      // Query the current "live" BrowsingContext by going through the embedder element (i.e. the <browser>/<iframe> element)
+      // devtools/client/responsive/test/browser/browser_navigation.js covers this with fission enabled.
+      const realTopBrowsingContext =
+        topBrowsingContext.embedderElement.browsingContext;
+      walk(realTopBrowsingContext);
+    }
   } else if (
     sessionContext.type == "all" ||
     sessionContext.type == "webextension"

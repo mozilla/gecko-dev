@@ -2,12 +2,14 @@
 
 do_get_profile();
 
-const { Utils } = ChromeUtils.import("resource://services-settings/Utils.jsm");
-const { RemoteSettings } = ChromeUtils.import(
-  "resource://services-settings/remote-settings.js"
+const { Utils } = ChromeUtils.importESModule(
+  "resource://services-settings/Utils.sys.mjs"
 );
-const { RemoteSecuritySettings } = ChromeUtils.import(
-  "resource://gre/modules/psm/RemoteSecuritySettings.jsm"
+const { RemoteSettings } = ChromeUtils.importESModule(
+  "resource://services-settings/remote-settings.sys.mjs"
+);
+const { RemoteSecuritySettings } = ChromeUtils.importESModule(
+  "resource://gre/modules/psm/RemoteSecuritySettings.sys.mjs"
 );
 const { OneCRLBlocklistClient } = RemoteSecuritySettings.init();
 

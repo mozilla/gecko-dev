@@ -55,13 +55,13 @@ already_AddRefed<SVGRect> SVGGraphicsElement::GetBBox(
     const SVGBoundingBoxOptions& aOptions) {
   nsIFrame* frame = GetPrimaryFrame(FlushType::Layout);
 
-  if (!frame || (frame->GetStateBits() & NS_FRAME_IS_NONDISPLAY)) {
+  if (!frame || frame->HasAnyStateBits(NS_FRAME_IS_NONDISPLAY)) {
     return ZeroBBox(*this);
   }
   ISVGDisplayableFrame* svgframe = do_QueryFrame(frame);
 
   if (!svgframe) {
-    if (!SVGUtils::IsInSVGTextSubtree(frame)) {
+    if (!frame->IsInSVGTextSubtree()) {
       return ZeroBBox(*this);
     }
 

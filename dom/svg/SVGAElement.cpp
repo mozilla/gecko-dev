@@ -31,10 +31,6 @@ SVGElement::StringInfo SVGAElement::sStringInfo[3] = {
     {nsGkAtoms::href, kNameSpaceID_XLink, true},
     {nsGkAtoms::target, kNameSpaceID_None, true}};
 
-// static
-const DOMTokenListSupportedToken SVGAElement::sSupportedRelValues[] = {
-    "noreferrer", "noopener", nullptr};
-
 //----------------------------------------------------------------------
 // nsISupports methods
 
@@ -166,21 +162,6 @@ void SVGAElement::UnbindFromTree(bool aNullParent) {
   SVGAElementBase::UnbindFromTree(aNullParent);
 }
 
-NS_IMETHODIMP_(bool)
-SVGAElement::IsAttributeMapped(const nsAtom* name) const {
-  static const MappedAttributeEntry* const map[] = {sFEFloodMap,
-                                                    sFiltersMap,
-                                                    sFontSpecificationMap,
-                                                    sGradientStopMap,
-                                                    sLightingEffectsMap,
-                                                    sMarkersMap,
-                                                    sTextContentElementsMap,
-                                                    sViewportsMap};
-
-  return FindAttributeDependence(name, map) ||
-         SVGAElementBase::IsAttributeMapped(name);
-}
-
 int32_t SVGAElement::TabIndexDefault() { return 0; }
 
 bool SVGAElement::IsFocusableInternal(int32_t* aTabIndex, bool aWithMouse) {
@@ -269,11 +250,11 @@ ElementState SVGAElement::IntrinsicState() const {
   return Link::LinkState() | SVGAElementBase::IntrinsicState();
 }
 
-nsresult SVGAElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
-                                   const nsAttrValue* aValue,
-                                   const nsAttrValue* aOldValue,
-                                   nsIPrincipal* aMaybeScriptedPrincipal,
-                                   bool aNotify) {
+void SVGAElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                               const nsAttrValue* aValue,
+                               const nsAttrValue* aOldValue,
+                               nsIPrincipal* aMaybeScriptedPrincipal,
+                               bool aNotify) {
   if (aName == nsGkAtoms::href && (aNameSpaceID == kNameSpaceID_XLink ||
                                    aNameSpaceID == kNameSpaceID_None)) {
     // We can't assume that null aValue means we no longer have an href, because

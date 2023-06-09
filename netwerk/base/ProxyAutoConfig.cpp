@@ -245,7 +245,7 @@ bool ProxyAutoConfig::ResolveAddress(const nsACString& aHostName,
 
   if (NS_FAILED(dns->AsyncResolveNative(
           aHostName, nsIDNSService::RESOLVE_TYPE_DEFAULT, flags, nullptr,
-          helper, GetCurrentEventTarget(), attrs,
+          helper, GetCurrentSerialEventTarget(), attrs,
           getter_AddRefs(helper->mRequest)))) {
     return false;
   }
@@ -927,10 +927,8 @@ void RemoteProxyAutoConfig::GetProxyForURIWithCallback(
 
   mProxyAutoConfigParent->SendGetProxyForURI(
       aTestURI, aTestHost,
-      [aCallback](Tuple<nsresult, nsCString>&& aResult) {
-        nsresult status;
-        nsCString result;
-        Tie(status, result) = aResult;
+      [aCallback](std::tuple<nsresult, nsCString>&& aResult) {
+        auto [status, result] = aResult;
         aCallback(status, result);
       },
       [aCallback](mozilla::ipc::ResponseRejectReason&& aReason) {

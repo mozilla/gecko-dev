@@ -34,6 +34,7 @@ var resetterMethods = {
     'mozilla::dom::TypedArray_base': new Set(["Reset"]),
     'RefPtr': new Set(["forget"]),
     'nsCOMPtr': new Set(["forget"]),
+    'JS::AutoAssertNoGC': new Set(["reset"]),
 };
 
 function isRefcountedDtor(name) {
@@ -267,7 +268,7 @@ var ignoreFunctions = {
 
     // Stores a function pointer in an AutoProfilerLabelData struct and calls it.
     // And it's in mozglue, which doesn't have access to the attributes yet.
-    "void mozilla::ProfilerLabelEnd(mozilla::Tuple<void*, unsigned int>*)" : true,
+    "void mozilla::ProfilerLabelEnd(std::tuple<void*, unsigned int>*)" : true,
 
     // This gets into PLDHashTable function pointer territory, and should get
     // set up early enough to not do anything when it matters anyway.

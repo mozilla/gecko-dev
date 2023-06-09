@@ -26,18 +26,16 @@ let runWorkerTest = async function(data) {
       cmd: `performance.timeOrigin`,
     });
 
-    const expectedAllEntriesLength = data.workerCall == "runRPTests" ? 0 : 3;
-    const expectedResourceEntriesLength =
-      data.workerCall == "runRPTests" ? 0 : 2;
-    const expectedTestAndMarkEntriesLength =
-      data.workerCall == "runRPTests" ? 0 : 1;
+    const expectedAllEntriesLength = 3;
+    const expectedResourceEntriesLength = 2;
+    const expectedTestAndMarkEntriesLength = 1;
 
     worker.onmessage = function(e) {
       if (e.data.type == "result") {
         if (e.data.resultOf == "performance.timeOrigin") {
           ok(
             isRounded(e.data.result, expectedPrecision),
-            `In a worker, for reduceTimerPrecision, performance.timeOrigin is` +
+            `In a worker, performance.timeOrigin is` +
               ` not correctly rounded: ${e.data.result}`
           );
 
@@ -53,36 +51,29 @@ let runWorkerTest = async function(data) {
           is(
             e.data.result,
             expectedAllEntriesLength,
-            `In a worker, for reduceTimerPrecision: Incorrect number of ` +
+            `In a worker: Incorrect number of ` +
               `entries for performance.getEntries() for workers: ` +
               `${e.data.result}`
           );
 
-          if (data.workerCall == "runRTPTests") {
-            worker.postMessage({
-              type: "getResult",
-              resultOf: "startTimeAndDuration",
-              num: 0,
-            });
-          } else {
-            worker.postMessage({
-              type: "getResult",
-              resultOf: "getEntriesByTypeLength",
-            });
-          }
+          worker.postMessage({
+            type: "getResult",
+            resultOf: "startTimeAndDuration",
+            num: 0,
+          });
         } else if (e.data.resultOf == "startTimeAndDuration") {
           let index = e.data.result.index;
           let startTime = e.data.result.startTime;
           let duration = e.data.result.duration;
           ok(
             isRounded(startTime, expectedPrecision),
-            `In a worker, for reduceTimerPrecision(${expectedPrecision}, ` +
+            `In a worker, for precision(${expectedPrecision}, ` +
               `performance.getEntries(${index}).startTime is not rounded: ` +
               `${startTime}`
           );
           ok(
             isRounded(duration, expectedPrecision),
-            `In a worker, for reduceTimerPrecision(${expectedPrecision}), ` +
+            `In a worker, for precision(${expectedPrecision}), ` +
               `performance.getEntries(${index}).duration is not rounded: ` +
               `${duration}`
           );
@@ -103,14 +94,14 @@ let runWorkerTest = async function(data) {
           is(
             e.data.result.markLength,
             expectedResourceEntriesLength,
-            `In a worker, for reduceTimerPrecision: Incorrect number of ` +
+            `In a worker: Incorrect number of ` +
               `entries for performance.getEntriesByType() for workers: ` +
               `${e.data.result.resourceLength}`
           );
           is(
             e.data.result.testAndMarkLength,
             expectedTestAndMarkEntriesLength,
-            `In a worker, for reduceTimerPrecision: Incorrect number of ` +
+            `In a worker: Incorrect number of ` +
               `entries for performance.getEntriesByName() for workers: ` +
               `${e.data.result.testAndMarkLength}`
           );
@@ -130,45 +121,51 @@ let runWorkerTest = async function(data) {
 add_task(async function runTestsForWorker() {
   // RFP
   await setupAndRunCrossOriginIsolatedTest(
-    true,
-    true,
-    true,
+    {
+      resistFingerprinting: true,
+      reduceTimerPrecision: true,
+      crossOriginIsolated: true,
+    },
     100,
     runWorkerTest,
-    "runRPTests"
+    "runTimerTests"
   );
   await setupAndRunCrossOriginIsolatedTest(
-    true,
-    false,
-    true,
+    {
+      resistFingerprinting: true,
+      crossOriginIsolated: true,
+    },
     13,
     runWorkerTest,
-    "runRPTests"
+    "runTimerTests"
   );
   await setupAndRunCrossOriginIsolatedTest(
-    true,
-    true,
-    true,
+    {
+      resistFingerprinting: true,
+      reduceTimerPrecision: true,
+      crossOriginIsolated: true,
+    },
     0.13,
     runWorkerTest,
-    "runRPTests"
+    "runTimerTests"
   );
 
   // RTP
   await setupAndRunCrossOriginIsolatedTest(
-    false,
-    true,
-    false,
+    {
+      reduceTimerPrecision: true,
+    },
     0.13,
     runWorkerTest,
-    "runRTPTests"
+    "runTimerTests"
   );
   await setupAndRunCrossOriginIsolatedTest(
-    false,
-    true,
-    true,
+    {
+      reduceTimerPrecision: true,
+      crossOriginIsolated: true,
+    },
     0.005,
     runWorkerTest,
-    "runRTPTests"
+    "runTimerTests"
   );
 });

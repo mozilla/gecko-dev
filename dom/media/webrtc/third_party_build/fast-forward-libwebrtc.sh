@@ -5,6 +5,7 @@ function show_error_msg()
   echo "*** ERROR *** $? line $1 $0 did not complete successfully!"
   echo "$ERROR_HELP"
 }
+ERROR_HELP=""
 
 # Print an Error message if `set -eE` causes the script to exit due to a failed command
 trap 'show_error_msg $LINENO' ERR
@@ -37,10 +38,9 @@ if [ "x$HANDLE_NOOP_COMMIT" = "x" ]; then
   HANDLE_NOOP_COMMIT=""
 fi
 
-ERROR_HELP=""
 RESUME=""
-if [ -f log_resume.txt ]; then
-  RESUME=`tail -1 log_resume.txt`
+if [ -f $STATE_DIR/resume_state ]; then
+  RESUME=`tail -1 $STATE_DIR/resume_state`
 fi
 
 GIT_IS_REBASING=`cd $MOZ_LIBWEBRTC_SRC && git status | grep "interactive rebase in progress" | wc -l | tr -d " " || true`
@@ -72,8 +72,8 @@ fi
 find_base_commit
 find_next_commit
 
-echo "looking for ~/$MOZ_LIBWEBRTC_NEXT_BASE.no-op-cherry-pick-msg"
-if [ -f ~/$MOZ_LIBWEBRTC_NEXT_BASE.no-op-cherry-pick-msg ]; then
+echo "looking for $STATE_DIR/$MOZ_LIBWEBRTC_NEXT_BASE.no-op-cherry-pick-msg"
+if [ -f $STATE_DIR/$MOZ_LIBWEBRTC_NEXT_BASE.no-op-cherry-pick-msg ]; then
   echo "***"
   echo "*** detected special commit msg, setting HANDLE_NOOP_COMMIT"
   echo "***"
@@ -81,6 +81,10 @@ if [ -f ~/$MOZ_LIBWEBRTC_NEXT_BASE.no-op-cherry-pick-msg ]; then
 fi
 
 UPSTREAM_ADDED_FILES=""
+
+# Grab the filtered changes from git based on what we vendor.
+FILTERED_GIT_CHANGES=`./mach python $SCRIPT_DIR/filter_git_changes.py \
+   --repo-path $MOZ_LIBWEBRTC_SRC --commit-sha $MOZ_LIBWEBRTC_NEXT_BASE`
 
 # After this point:
 # * eE: All commands should succeed.
@@ -122,7 +126,7 @@ function rebase_mozlibwebrtc_stack {
   ( cd $MOZ_LIBWEBRTC_SRC && \
     git checkout -q $MOZ_LIBWEBRTC_BRANCH && \
     git rebase $MOZ_LIBWEBRTC_NEXT_BASE \
-    &> log-rebase-moz-libwebrtc.txt \
+    &> $LOG_DIR/log-rebase-moz-libwebrtc.txt \
   )
   ERROR_HELP=""
 }
@@ -147,23 +151,21 @@ function regen_mozbuild_files {
   echo "------- Restore moz.build files from repo"
   echo "-------"
   hg revert --include "third_party/libwebrtc/**moz.build" \
-    third_party/libwebrtc &> log-regen-mozbuild-files.txt
+    third_party/libwebrtc &> $LOG_DIR/log-regen-mozbuild-files.txt
 }
 
 function add_new_upstream_files {
   if [ "x$HANDLE_NOOP_COMMIT" == "x1" ]; then
     return
   fi
-  UPSTREAM_ADDED_FILES=`cd $MOZ_LIBWEBRTC_SRC && \
-    git diff -r $MOZ_LIBWEBRTC_BASE -r $MOZ_LIBWEBRTC_NEXT_BASE \
-        --name-status --diff-filter=A \
-        | awk '{print $2;}'`
+  UPSTREAM_ADDED_FILES=`echo "$FILTERED_GIT_CHANGES" | grep "^A" \
+      | awk '{print $2;}' || true`
   if [ "x$UPSTREAM_ADDED_FILES" != "x" ]; then
     echo "-------"
     echo "------- Add new upstream files"
     echo "-------"
     (cd third_party/libwebrtc && hg add $UPSTREAM_ADDED_FILES)
-    echo "$UPSTREAM_ADDED_FILES" &> log-new-upstream-files.txt
+    echo "$UPSTREAM_ADDED_FILES" &> $LOG_DIR/log-new-upstream-files.txt
   fi
 }
 
@@ -171,16 +173,14 @@ function remove_deleted_upstream_files {
   if [ "x$HANDLE_NOOP_COMMIT" == "x1" ]; then
     return
   fi
-  UPSTREAM_DELETED_FILES=`cd $MOZ_LIBWEBRTC_SRC && \
-    git diff -r $MOZ_LIBWEBRTC_BASE -r $MOZ_LIBWEBRTC_NEXT_BASE \
-        --name-status --diff-filter=D \
-        | awk '{print $2;}'`
+  UPSTREAM_DELETED_FILES=`echo "$FILTERED_GIT_CHANGES" | grep "^D" \
+      | awk '{print $2;}' || true`
   if [ "x$UPSTREAM_DELETED_FILES" != "x" ]; then
     echo "-------"
     echo "------- Remove deleted upstream files"
     echo "-------"
     (cd third_party/libwebrtc && hg rm $UPSTREAM_DELETED_FILES)
-    echo "$UPSTREAM_DELETED_FILES" &> log-deleted-upstream-files.txt
+    echo "$UPSTREAM_DELETED_FILES" &> $LOG_DIR/log-deleted-upstream-files.txt
   fi
 }
 
@@ -188,55 +188,53 @@ function handle_renamed_upstream_files {
   if [ "x$HANDLE_NOOP_COMMIT" == "x1" ]; then
     return
   fi
-  UPSTREAM_RENAMED_FILES=`cd $MOZ_LIBWEBRTC_SRC && \
-    git diff -r $MOZ_LIBWEBRTC_BASE -r $MOZ_LIBWEBRTC_NEXT_BASE \
-        --name-status --diff-filter=R \
-        | awk '{print $2 " " $3;}'`
+  UPSTREAM_RENAMED_FILES=`echo "$FILTERED_GIT_CHANGES" | grep "^R" \
+      | awk '{print $2 " " $3;}' || true`
   if [ "x$UPSTREAM_RENAMED_FILES" != "x" ]; then
     echo "-------"
     echo "------- Handle renamed upstream files"
     echo "-------"
     (cd third_party/libwebrtc && echo "$UPSTREAM_RENAMED_FILES" | while read line; do hg rename --after $line; done)
-    echo "$UPSTREAM_RENAMED_FILES" &> log-renamed-upstream-files.txt
+    echo "$UPSTREAM_RENAMED_FILES" &> $LOG_DIR/log-renamed-upstream-files.txt
   fi
 }
 
 if [ $SKIP_TO = "run" ]; then
-  echo "resume2" > log_resume.txt
+  echo "resume2" > $STATE_DIR/resume_state
   rebase_mozlibwebrtc_stack;
 fi
 
 if [ $SKIP_TO = "resume2" ]; then SKIP_TO="run"; fi
 if [ $SKIP_TO = "run" ]; then
-  echo "resume3" > log_resume.txt
+  echo "resume3" > $STATE_DIR/resume_state
   vendor_off_next_commit;
 fi
 
 if [ $SKIP_TO = "resume3" ]; then SKIP_TO="run"; fi
 if [ $SKIP_TO = "run" ]; then
-  echo "resume4" > log_resume.txt
+  echo "resume4" > $STATE_DIR/resume_state
   regen_mozbuild_files;
 fi
 
 if [ $SKIP_TO = "resume4" ]; then SKIP_TO="run"; fi
 if [ $SKIP_TO = "run" ]; then
-  echo "resume5" > log_resume.txt
+  echo "resume5" > $STATE_DIR/resume_state
   remove_deleted_upstream_files;
 fi
 
 if [ $SKIP_TO = "resume5" ]; then SKIP_TO="run"; fi
 if [ $SKIP_TO = "run" ]; then
-  echo "resume6" > log_resume.txt
+  echo "resume6" > $STATE_DIR/resume_state
   add_new_upstream_files;
 fi
 
 if [ $SKIP_TO = "resume6" ]; then SKIP_TO="run"; fi
 if [ $SKIP_TO = "run" ]; then
-  echo "resume7" > log_resume.txt
+  echo "resume7" > $STATE_DIR/resume_state
   handle_renamed_upstream_files;
 fi
 
-echo "" > log_resume.txt
+echo "" > $STATE_DIR/resume_state
 echo "-------"
 echo "------- Commit vendored changes from $MOZ_LIBWEBRTC_NEXT_BASE"
 echo "-------"
@@ -244,15 +242,15 @@ UPSTREAM_SHA=`cd $MOZ_LIBWEBRTC_SRC && \
     git show --name-only $MOZ_LIBWEBRTC_NEXT_BASE \
     | grep "^commit " | awk '{ print $NF }'`
 echo "Bug $MOZ_FASTFORWARD_BUG - Vendor libwebrtc from $MOZ_LIBWEBRTC_NEXT_BASE" \
-    > commit_msg.txt
-echo "" >> commit_msg.txt
-if [ -f ~/$MOZ_LIBWEBRTC_NEXT_BASE.no-op-cherry-pick-msg ]; then
-  cat ~/$MOZ_LIBWEBRTC_NEXT_BASE.no-op-cherry-pick-msg >> commit_msg.txt
-  echo "" >> commit_msg.txt
-  rm ~/$MOZ_LIBWEBRTC_NEXT_BASE.no-op-cherry-pick-msg
+    > $TMP_DIR/commit_msg.txt
+echo "" >> $TMP_DIR/commit_msg.txt
+if [ -f $STATE_DIR/$MOZ_LIBWEBRTC_NEXT_BASE.no-op-cherry-pick-msg ]; then
+  cat $STATE_DIR/$MOZ_LIBWEBRTC_NEXT_BASE.no-op-cherry-pick-msg >> $TMP_DIR/commit_msg.txt
+  echo "" >> $TMP_DIR/commit_msg.txt
+  rm $STATE_DIR/$MOZ_LIBWEBRTC_NEXT_BASE.no-op-cherry-pick-msg
 fi
-echo "Upstream commit: https://webrtc.googlesource.com/src/+/$UPSTREAM_SHA" >> commit_msg.txt
+echo "Upstream commit: https://webrtc.googlesource.com/src/+/$UPSTREAM_SHA" >> $TMP_DIR/commit_msg.txt
 (cd $MOZ_LIBWEBRTC_SRC && \
-git show --name-only $MOZ_LIBWEBRTC_NEXT_BASE | grep "^ ") >> commit_msg.txt
+git show --name-only $MOZ_LIBWEBRTC_NEXT_BASE | grep "^ ") >> $TMP_DIR/commit_msg.txt
 
-hg commit -l commit_msg.txt third_party/libwebrtc
+hg commit -l $TMP_DIR/commit_msg.txt third_party/libwebrtc

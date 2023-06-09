@@ -9,9 +9,6 @@ const TEST_URI =
   "http://example.com/browser/devtools/client/webconsole/" +
   "test/browser/test_jsterm_screenshot_command.html";
 
-const { FileUtils } = ChromeUtils.importESModule(
-  "resource://gre/modules/FileUtils.sys.mjs"
-);
 // on some machines, such as macOS, dpr is set to 2. This is expected behavior, however
 // to keep tests consistant across OSs we are setting the dpr to 1
 const dpr = "--dpr 1";
@@ -101,9 +98,21 @@ add_task(async function() {
     .padStart(2, "0");
   const expectedDateString = `${date.getFullYear()}-${monthString}-${dayString}`;
 
+  let screenshotDir;
+  try {
+    // This will throw if there is not a screenshot directory set for the platform
+    screenshotDir = Services.dirsvc.get("Scrnshts", Ci.nsIFile).path;
+  } catch (e) {
+    const { Downloads } = ChromeUtils.importESModule(
+      "resource://gre/modules/Downloads.sys.mjs"
+    );
+    screenshotDir = await Downloads.getPreferredDownloadsDirectory();
+  }
+
   const {
     renderedDate,
-  } = /Saved to .*Screen Shot (?<renderedDate>\d{4}-\d{2}-\d{2}) at \d{2}.\d{2}.\d{2}/.exec(
+    filePath,
+  } = /Saved to (?<filePath>.*Screen Shot (?<renderedDate>\d{4}-\d{2}-\d{2}) at \d{2}.\d{2}.\d{2}\.png)/.exec(
     message.node.textContent
   ).groups;
   is(
@@ -111,8 +120,14 @@ add_task(async function() {
     expectedDateString,
     `Screenshot file has expected default name (full message: ${message.node.textContent})`
   );
+  is(
+    filePath.startsWith(screenshotDir),
+    true,
+    `Screenshot file is saved in default directory`
+  );
 
-  info("Remove the downloaded screenshot file and cleanup downloads");
+  info("Remove the downloaded screenshot files and cleanup downloads");
   await IOUtils.remove(file.path);
+  await IOUtils.remove(filePath);
   await resetDownloads();
 });

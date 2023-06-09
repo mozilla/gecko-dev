@@ -9,6 +9,7 @@
 
 #include <math.h>
 #include <limits>
+#include <utility>
 
 #include "ImageContainer.h"
 #include "VideoColorSpace.h"
@@ -17,7 +18,7 @@
 #include "mozilla/Result.h"
 #include "mozilla/ResultVariant.h"
 #include "mozilla/ScopeExit.h"
-#include "mozilla/Tuple.h"
+
 #include "mozilla/UniquePtr.h"
 #include "mozilla/dom/CanvasUtils.h"
 #include "mozilla/dom/DOMRect.h"
@@ -53,8 +54,7 @@ NS_INTERFACE_MAP_END
  * The below are helpers to operate ArrayBuffer or ArrayBufferView.
  */
 template <class T>
-static Result<Tuple<RangedPtr<uint8_t>, size_t>, nsresult> GetArrayBufferData(
-    const T& aBuffer) {
+static Result<Span<uint8_t>, nsresult> GetArrayBufferData(const T& aBuffer) {
   // Get buffer's data and length before using it.
   aBuffer.ComputeState();
 
@@ -64,12 +64,10 @@ static Result<Tuple<RangedPtr<uint8_t>, size_t>, nsresult> GetArrayBufferData(
     return Err(NS_ERROR_INVALID_ARG);
   }
 
-  return MakeTuple(RangedPtr(aBuffer.Data(), byteLength.value()),
-                   byteLength.value());
+  return Span<uint8_t>(aBuffer.Data(), byteLength.value());
 }
 
-static Result<Tuple<RangedPtr<uint8_t>, size_t>, nsresult>
-GetSharedArrayBufferData(
+static Result<Span<uint8_t>, nsresult> GetSharedArrayBufferData(
     const MaybeSharedArrayBufferViewOrMaybeSharedArrayBuffer& aBuffer) {
   if (aBuffer.IsArrayBufferView()) {
     return GetArrayBufferData(aBuffer.GetAsArrayBufferView());
@@ -192,12 +190,12 @@ static int32_t CeilingOfHalf(int32_t aValue) {
 
 class YUVBufferReaderBase {
  public:
-  YUVBufferReaderBase(const RangedPtr<uint8_t>& aPtr, int32_t aWidth,
+  YUVBufferReaderBase(const Span<uint8_t>& aBuffer, int32_t aWidth,
                       int32_t aHeight)
-      : mWidth(aWidth), mHeight(aHeight), mStrideY(aWidth), mPtr(aPtr) {}
+      : mWidth(aWidth), mHeight(aHeight), mStrideY(aWidth), mBuffer(aBuffer) {}
   virtual ~YUVBufferReaderBase() = default;
 
-  const uint8_t* DataY() const { return mPtr.get(); }
+  const uint8_t* DataY() const { return mBuffer.data(); }
   const int32_t mWidth;
   const int32_t mHeight;
   const int32_t mStrideY;
@@ -207,26 +205,22 @@ class YUVBufferReaderBase {
     return CheckedInt<size_t>(mStrideY) * mHeight;
   }
 
-  const RangedPtr<uint8_t> mPtr;
+  const Span<uint8_t> mBuffer;
 };
 
 class I420ABufferReader;
 class I420BufferReader : public YUVBufferReaderBase {
  public:
-  I420BufferReader(const RangedPtr<uint8_t>& aPtr, int32_t aWidth,
+  I420BufferReader(const Span<uint8_t>& aBuffer, int32_t aWidth,
                    int32_t aHeight)
-      : YUVBufferReaderBase(aPtr, aWidth, aHeight),
+      : YUVBufferReaderBase(aBuffer, aWidth, aHeight),
         mStrideU(CeilingOfHalf(aWidth)),
         mStrideV(CeilingOfHalf(aWidth)) {}
   virtual ~I420BufferReader() = default;
 
-  const uint8_t* DataU() const {
-    return &mPtr[CheckedInt<ptrdiff_t>(YByteSize().value()).value()];
-  }
+  const uint8_t* DataU() const { return &mBuffer[YByteSize().value()]; }
   const uint8_t* DataV() const {
-    return &mPtr[(CheckedInt<ptrdiff_t>(YByteSize().value()) +
-                  UByteSize().value())
-                     .value()];
+    return &mBuffer[YByteSize().value() + UByteSize().value()];
   }
   virtual I420ABufferReader* AsI420ABufferReader() { return nullptr; }
 
@@ -245,17 +239,16 @@ class I420BufferReader : public YUVBufferReaderBase {
 
 class I420ABufferReader final : public I420BufferReader {
  public:
-  I420ABufferReader(const RangedPtr<uint8_t>& aPtr, int32_t aWidth,
+  I420ABufferReader(const Span<uint8_t>& aBuffer, int32_t aWidth,
                     int32_t aHeight)
-      : I420BufferReader(aPtr, aWidth, aHeight), mStrideA(aWidth) {
+      : I420BufferReader(aBuffer, aWidth, aHeight), mStrideA(aWidth) {
     MOZ_ASSERT(mStrideA == mStrideY);
   }
   virtual ~I420ABufferReader() = default;
 
   const uint8_t* DataA() const {
-    return &mPtr[(CheckedInt<ptrdiff_t>(YByteSize().value()) +
-                  UByteSize().value() + VSize().value())
-                     .value()];
+    return &mBuffer[YByteSize().value() + UByteSize().value() +
+                    VSize().value()];
   }
 
   virtual I420ABufferReader* AsI420ABufferReader() override { return this; }
@@ -265,15 +258,13 @@ class I420ABufferReader final : public I420BufferReader {
 
 class NV12BufferReader final : public YUVBufferReaderBase {
  public:
-  NV12BufferReader(const RangedPtr<uint8_t>& aPtr, int32_t aWidth,
+  NV12BufferReader(const Span<uint8_t>& aBuffer, int32_t aWidth,
                    int32_t aHeight)
-      : YUVBufferReaderBase(aPtr, aWidth, aHeight),
+      : YUVBufferReaderBase(aBuffer, aWidth, aHeight),
         mStrideUV(aWidth + aWidth % 2) {}
   virtual ~NV12BufferReader() = default;
 
-  const uint8_t* DataUV() const {
-    return &mPtr[static_cast<ptrdiff_t>(YByteSize().value())];
-  }
+  const uint8_t* DataUV() const { return &mBuffer[YByteSize().value()]; }
 
   const int32_t mStrideUV;
 };
@@ -458,8 +449,9 @@ static Result<Maybe<gfx::IntSize>, nsCString> MaybeGetDisplaySize(
 }
 
 // https://w3c.github.io/webcodecs/#valid-videoframebufferinit
-static Result<Tuple<gfx::IntSize, Maybe<gfx::IntRect>, Maybe<gfx::IntSize>>,
-              nsCString>
+static Result<
+    std::tuple<gfx::IntSize, Maybe<gfx::IntRect>, Maybe<gfx::IntSize>>,
+    nsCString>
 ValidateVideoFrameBufferInit(const VideoFrameBufferInit& aInit) {
   gfx::IntSize codedSize;
   MOZ_TRY_VAR(codedSize, ToIntSize(aInit.mCodedWidth, aInit.mCodedHeight)
@@ -483,7 +475,7 @@ ValidateVideoFrameBufferInit(const VideoFrameBufferInit& aInit) {
   Maybe<gfx::IntSize> displaySize;
   MOZ_TRY_VAR(displaySize, MaybeGetDisplaySize(aInit));
 
-  return MakeTuple(codedSize, visibleRect, displaySize);
+  return std::make_tuple(codedSize, visibleRect, displaySize);
 }
 
 // https://w3c.github.io/webcodecs/#videoframe-verify-rect-offset-alignment
@@ -736,7 +728,7 @@ static VideoColorSpaceInit PickColorSpace(
 }
 
 // https://w3c.github.io/webcodecs/#validate-videoframeinit
-static Result<Tuple<Maybe<gfx::IntRect>, Maybe<gfx::IntSize>>, nsCString>
+static Result<std::pair<Maybe<gfx::IntRect>, Maybe<gfx::IntSize>>, nsCString>
 ValidateVideoFrameInit(const VideoFrameInit& aInit,
                        const VideoFrame::Format& aFormat,
                        const gfx::IntSize& aCodedSize) {
@@ -761,7 +753,7 @@ ValidateVideoFrameInit(const VideoFrameInit& aInit,
   Maybe<gfx::IntSize> displaySize;
   MOZ_TRY_VAR(displaySize, MaybeGetDisplaySize(aInit));
 
-  return MakeTuple(visibleRect, displaySize);
+  return std::make_pair(visibleRect, displaySize);
 }
 
 /*
@@ -805,13 +797,13 @@ static Result<RefPtr<gfx::DataSourceSurface>, nsCString> AllocateBGRASurface(
 
 static Result<RefPtr<layers::Image>, nsCString> CreateImageFromRawData(
     const gfx::IntSize& aSize, int32_t aStride, gfx::SurfaceFormat aFormat,
-    const RangedPtr<uint8_t>& aPtr) {
+    const Span<uint8_t>& aBuffer) {
   MOZ_ASSERT(!aSize.IsEmpty());
 
   // Wrap the source buffer into a DataSourceSurface.
   RefPtr<gfx::DataSourceSurface> surface =
-      gfx::Factory::CreateWrappingDataSourceSurface(aPtr.get(), aStride, aSize,
-                                                    aFormat);
+      gfx::Factory::CreateWrappingDataSourceSurface(aBuffer.data(), aStride,
+                                                    aSize, aFormat);
   if (!surface) {
     return Err(nsCString("Failed to wrap the raw data into a surface"));
   }
@@ -827,7 +819,7 @@ static Result<RefPtr<layers::Image>, nsCString> CreateImageFromRawData(
 
 static Result<RefPtr<layers::Image>, nsCString> CreateRGBAImageFromBuffer(
     const VideoFrame::Format& aFormat, const gfx::IntSize& aSize,
-    const RangedPtr<uint8_t>& aPtr) {
+    const Span<uint8_t>& aBuffer) {
   const gfx::SurfaceFormat format = aFormat.ToSurfaceFormat();
   MOZ_ASSERT(format == gfx::SurfaceFormat::R8G8B8A8 ||
              format == gfx::SurfaceFormat::R8G8B8X8 ||
@@ -839,19 +831,21 @@ static Result<RefPtr<layers::Image>, nsCString> CreateRGBAImageFromBuffer(
   if (!stride.isValid()) {
     return Err(nsCString("Image size exceeds implementation's limit"));
   }
-  return CreateImageFromRawData(aSize, stride.value(), format, aPtr);
+  return CreateImageFromRawData(aSize, stride.value(), format, aBuffer);
 }
 
 static Result<RefPtr<layers::Image>, nsCString> CreateYUVImageFromBuffer(
     const VideoFrame::Format& aFormat, const VideoColorSpaceInit& aColorSpace,
-    const gfx::IntSize& aSize, const RangedPtr<uint8_t>& aPtr) {
+    const gfx::IntSize& aSize, const Span<uint8_t>& aBuffer) {
   if (aFormat.PixelFormat() == VideoPixelFormat::I420 ||
       aFormat.PixelFormat() == VideoPixelFormat::I420A) {
     UniquePtr<I420BufferReader> reader;
     if (aFormat.PixelFormat() == VideoPixelFormat::I420) {
-      reader.reset(new I420BufferReader(aPtr, aSize.Width(), aSize.Height()));
+      reader.reset(
+          new I420BufferReader(aBuffer, aSize.Width(), aSize.Height()));
     } else {
-      reader.reset(new I420ABufferReader(aPtr, aSize.Width(), aSize.Height()));
+      reader.reset(
+          new I420ABufferReader(aBuffer, aSize.Width(), aSize.Height()));
     }
 
     layers::PlanarYCbCrData data;
@@ -906,7 +900,7 @@ static Result<RefPtr<layers::Image>, nsCString> CreateYUVImageFromBuffer(
   }
 
   if (aFormat.PixelFormat() == VideoPixelFormat::NV12) {
-    NV12BufferReader reader(aPtr, aSize.Width(), aSize.Height());
+    NV12BufferReader reader(aBuffer, aSize.Width(), aSize.Height());
 
     layers::PlanarYCbCrData data;
     data.mPictureRect = gfx::IntRect(0, 0, reader.mWidth, reader.mHeight);
@@ -951,12 +945,12 @@ static Result<RefPtr<layers::Image>, nsCString> CreateYUVImageFromBuffer(
 
 static Result<RefPtr<layers::Image>, nsCString> CreateImageFromBuffer(
     const VideoFrame::Format& aFormat, const VideoColorSpaceInit& aColorSpace,
-    const gfx::IntSize& aSize, const RangedPtr<uint8_t>& aPtr) {
+    const gfx::IntSize& aSize, const Span<uint8_t>& aBuffer) {
   switch (aFormat.PixelFormat()) {
     case VideoPixelFormat::I420:
     case VideoPixelFormat::I420A:
     case VideoPixelFormat::NV12:
-      return CreateYUVImageFromBuffer(aFormat, aColorSpace, aSize, aPtr);
+      return CreateYUVImageFromBuffer(aFormat, aColorSpace, aSize, aBuffer);
     case VideoPixelFormat::I422:
     case VideoPixelFormat::I444:
       // Not yet support for now.
@@ -965,7 +959,7 @@ static Result<RefPtr<layers::Image>, nsCString> CreateImageFromBuffer(
     case VideoPixelFormat::RGBX:
     case VideoPixelFormat::BGRA:
     case VideoPixelFormat::BGRX:
-      return CreateRGBAImageFromBuffer(aFormat, aSize, aPtr);
+      return CreateRGBAImageFromBuffer(aFormat, aSize, aBuffer);
     case VideoPixelFormat::EndGuard_:
       MOZ_ASSERT_UNREACHABLE("unsupported format");
   }
@@ -984,11 +978,11 @@ static Result<RefPtr<VideoFrame>, nsCString> CreateVideoFrameFromBuffer(
     return Err(nsCString("linear RGB is not supported"));
   }
 
-  Tuple<gfx::IntSize, Maybe<gfx::IntRect>, Maybe<gfx::IntSize>> init;
+  std::tuple<gfx::IntSize, Maybe<gfx::IntRect>, Maybe<gfx::IntSize>> init;
   MOZ_TRY_VAR(init, ValidateVideoFrameBufferInit(aInit));
-  gfx::IntSize codedSize = Get<0>(init);
-  Maybe<gfx::IntRect> visibleRect = Get<1>(init);
-  Maybe<gfx::IntSize> displaySize = Get<2>(init);
+  gfx::IntSize codedSize = std::get<0>(init);
+  Maybe<gfx::IntRect> visibleRect = std::get<1>(init);
+  Maybe<gfx::IntSize> displaySize = std::get<2>(init);
 
   VideoFrame::Format format(aInit.mFormat);
   // TODO: Spec doesn't ask for this in ctor but Pixel Format does. See
@@ -1011,24 +1005,21 @@ static Result<RefPtr<VideoFrame>, nsCString> CreateVideoFrameFromBuffer(
   MOZ_TRY_VAR(combinedLayout,
               ComputeLayoutAndAllocationSize(parsedRect, format, optLayout));
 
-  // RangedPtr's range won't change once it's set so no good default RangedPtr
-  // value for using MOZ_TRY_VAR.
-  auto r = GetArrayBufferData(aBuffer);
-  if (r.isErr()) {
-    return Err(nsCString("data is too large"));
-  }
-  Tuple<RangedPtr<uint8_t>, size_t> bufInfo = r.unwrap();
-  RangedPtr<uint8_t> ptr(Get<0>(bufInfo));
-  size_t byteLength = Get<1>(bufInfo);
+  Span<uint8_t> buffer;
+  MOZ_TRY_VAR(buffer, GetArrayBufferData(aBuffer).mapErr([](nsresult aError) {
+    return nsPrintfCString("Failed to get buffer data: %x",
+                           static_cast<uint32_t>(aError));
+  }));
 
-  if (byteLength < static_cast<size_t>(combinedLayout.mAllocationSize)) {
+  if (buffer.size_bytes() <
+      static_cast<size_t>(combinedLayout.mAllocationSize)) {
     return Err(nsCString("data is too small"));
   }
 
   // TODO: If codedSize is (3, 3) and visibleRect is (0, 0, 1, 1) but the data
   // is 2 x 2 RGBA buffer (2 x 2 x 4 bytes), it pass the above check. In this
   // case, we can crop it to a 1 x 1-codedSize image (Bug 1782128).
-  if (byteLength < format.SampleCount(codedSize)) {  // 1 byte/sample
+  if (buffer.size_bytes() < format.SampleCount(codedSize)) {  // 1 byte/sample
     return Err(nsCString("data is too small"));
   }
 
@@ -1044,17 +1035,18 @@ static Result<RefPtr<VideoFrame>, nsCString> CreateVideoFrameFromBuffer(
       aInit.mFormat);
 
   RefPtr<layers::Image> data;
-  MOZ_TRY_VAR(data, CreateImageFromBuffer(format, colorSpace, codedSize, ptr));
+  MOZ_TRY_VAR(data,
+              CreateImageFromBuffer(format, colorSpace, codedSize, buffer));
   MOZ_ASSERT(data);
   MOZ_ASSERT(data->GetSize() == codedSize);
 
   // TODO: Spec should assign aInit.mFormat to inner format value:
   // https://github.com/w3c/webcodecs/issues/509.
   // This comment should be removed once the issue is resolved.
-  return MakeRefPtr<VideoFrame>(
-      aGlobal, data, aInit.mFormat, codedSize, parsedRect,
-      displaySize ? *displaySize : parsedRect.Size(), std::move(duration),
-      aInit.mTimestamp, colorSpace);
+  return MakeRefPtr<VideoFrame>(aGlobal, data, aInit.mFormat, codedSize,
+                                parsedRect,
+                                displaySize ? *displaySize : parsedRect.Size(),
+                                duration, aInit.mTimestamp, colorSpace);
 }
 
 template <class T>
@@ -1115,11 +1107,11 @@ InitializeFrameWithResourceAndSize(
     return Err(nsCString("This image has unsupport format"));
   }
 
-  Tuple<Maybe<gfx::IntRect>, Maybe<gfx::IntSize>> init;
+  std::pair<Maybe<gfx::IntRect>, Maybe<gfx::IntSize>> init;
   MOZ_TRY_VAR(init,
               ValidateVideoFrameInit(aInit, format.ref(), image->GetSize()));
-  Maybe<gfx::IntRect> visibleRect = Get<0>(init);
-  Maybe<gfx::IntSize> displaySize = Get<1>(init);
+  Maybe<gfx::IntRect> visibleRect = init.first;
+  Maybe<gfx::IntSize> displaySize = init.second;
 
   if (aInit.mAlpha == AlphaOption::Discard) {
     format->MakeOpaque();
@@ -1137,48 +1129,28 @@ InitializeFrameWithResourceAndSize(
   const VideoColorSpaceInit colorSpace{};
   return MakeAndAddRef<VideoFrame>(aGlobal, image, format->PixelFormat(),
                                    image->GetSize(), visibleRect.value(),
-                                   displaySize.value(), std::move(duration),
+                                   displaySize.value(), duration,
                                    aInit.mTimestamp.Value(), colorSpace);
 }
 
 // https://w3c.github.io/webcodecs/#videoframe-initialize-frame-from-other-frame
-struct VideoFrameData {
-  VideoFrameData(layers::Image* aImage, const VideoPixelFormat& aFormat,
-                 gfx::IntRect aVisibleRect, gfx::IntSize aDisplaySize,
-                 Maybe<uint64_t> aDuration, int64_t aTimestamp,
-                 const VideoColorSpaceInit& aColorSpace)
-      : mImage(aImage),
-        mFormat(aFormat),
-        mVisibleRect(aVisibleRect),
-        mDisplaySize(aDisplaySize),
-        mDuration(aDuration),
-        mTimestamp(aTimestamp),
-        mColorSpace(aColorSpace) {}
-
-  RefPtr<layers::Image> mImage;
-  VideoFrame::Format mFormat;
-  const gfx::IntRect mVisibleRect;
-  const gfx::IntSize mDisplaySize;
-  const Maybe<uint64_t> mDuration;
-  const int64_t mTimestamp;
-  const VideoColorSpaceInit mColorSpace;
-};
 static Result<already_AddRefed<VideoFrame>, nsCString>
 InitializeFrameFromOtherFrame(nsIGlobalObject* aGlobal, VideoFrameData&& aData,
                               const VideoFrameInit& aInit) {
   MOZ_ASSERT(aGlobal);
   MOZ_ASSERT(aData.mImage);
 
+  VideoFrame::Format format(aData.mFormat);
   if (aInit.mAlpha == AlphaOption::Discard) {
-    aData.mFormat.MakeOpaque();
+    format.MakeOpaque();
     // Keep the alpha data in image for now until it's being rendered.
   }
 
-  Tuple<Maybe<gfx::IntRect>, Maybe<gfx::IntSize>> init;
-  MOZ_TRY_VAR(init, ValidateVideoFrameInit(aInit, aData.mFormat,
-                                           aData.mImage->GetSize()));
-  Maybe<gfx::IntRect> visibleRect = Get<0>(init);
-  Maybe<gfx::IntSize> displaySize = Get<1>(init);
+  std::pair<Maybe<gfx::IntRect>, Maybe<gfx::IntSize>> init;
+  MOZ_TRY_VAR(init,
+              ValidateVideoFrameInit(aInit, format, aData.mImage->GetSize()));
+  Maybe<gfx::IntRect> visibleRect = init.first;
+  Maybe<gfx::IntSize> displaySize = init.second;
 
   InitializeVisibleRectAndDisplaySize(visibleRect, displaySize,
                                       aData.mVisibleRect, aData.mDisplaySize);
@@ -1190,10 +1162,38 @@ InitializeFrameFromOtherFrame(nsIGlobalObject* aGlobal, VideoFrameData&& aData,
                                                    : aData.mTimestamp;
 
   return MakeAndAddRef<VideoFrame>(
-      aGlobal, aData.mImage, aData.mFormat.PixelFormat(),
-      aData.mImage->GetSize(), *visibleRect, *displaySize, std::move(duration),
-      timestamp, aData.mColorSpace);
+      aGlobal, aData.mImage, format.PixelFormat(), aData.mImage->GetSize(),
+      *visibleRect, *displaySize, duration, timestamp, aData.mColorSpace);
 }
+
+/*
+ * Helper classes carrying VideoFrame data
+ */
+
+VideoFrameData::VideoFrameData(layers::Image* aImage,
+                               const VideoPixelFormat& aFormat,
+                               gfx::IntRect aVisibleRect,
+                               gfx::IntSize aDisplaySize,
+                               Maybe<uint64_t> aDuration, int64_t aTimestamp,
+                               const VideoColorSpaceInit& aColorSpace)
+    : mImage(aImage),
+      mFormat(aFormat),
+      mVisibleRect(aVisibleRect),
+      mDisplaySize(aDisplaySize),
+      mDuration(aDuration),
+      mTimestamp(aTimestamp),
+      mColorSpace(aColorSpace) {}
+
+VideoFrameSerializedData::VideoFrameSerializedData(
+    layers::Image* aImage, const VideoPixelFormat& aFormat,
+    gfx::IntSize aCodedSize, gfx::IntRect aVisibleRect,
+    gfx::IntSize aDisplaySize, Maybe<uint64_t> aDuration, int64_t aTimestamp,
+    const VideoColorSpaceInit& aColorSpace,
+    already_AddRefed<nsIURI> aPrincipalURI)
+    : VideoFrameData(aImage, aFormat, aVisibleRect, aDisplaySize, aDuration,
+                     aTimestamp, aColorSpace),
+      mCodedSize(aCodedSize),
+      mPrincipalURI(aPrincipalURI) {}
 
 /*
  * W3C Webcodecs VideoFrame implementation
@@ -1203,14 +1203,14 @@ VideoFrame::VideoFrame(nsIGlobalObject* aParent,
                        const RefPtr<layers::Image>& aImage,
                        const VideoPixelFormat& aFormat, gfx::IntSize aCodedSize,
                        gfx::IntRect aVisibleRect, gfx::IntSize aDisplaySize,
-                       Maybe<uint64_t>&& aDuration, int64_t aTimestamp,
+                       const Maybe<uint64_t>& aDuration, int64_t aTimestamp,
                        const VideoColorSpaceInit& aColorSpace)
     : mParent(aParent),
       mResource(Some(Resource(aImage, VideoFrame::Format(aFormat)))),
       mCodedSize(aCodedSize),
       mVisibleRect(aVisibleRect),
       mDisplaySize(aDisplaySize),
-      mDuration(std::move(aDuration)),
+      mDuration(aDuration),
       mTimestamp(aTimestamp),
       mColorSpace(aColorSpace) {
   MOZ_ASSERT(mParent);
@@ -1569,8 +1569,6 @@ already_AddRefed<VideoFrame> VideoFrame::Constructor(
   }
 
   // Check the usability.
-  // TODO: aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR) if this is _detached_ (bug
-  // 1774306).
   if (!aVideoFrame.mResource) {
     aRv.ThrowInvalidStateError(
         "The VideoFrame is closed or no image found there");
@@ -1625,7 +1623,6 @@ already_AddRefed<VideoFrame> VideoFrame::Constructor(
 Nullable<VideoPixelFormat> VideoFrame::GetFormat() const {
   AssertIsOnOwningThread();
 
-  // TODO: Return Nullable<T>() if this is _detached_ (bug 1774306).
   return mResource
              ? Nullable<VideoPixelFormat>(mResource->mFormat.PixelFormat())
              : Nullable<VideoPixelFormat>();
@@ -1649,8 +1646,6 @@ uint32_t VideoFrame::CodedHeight() const {
 already_AddRefed<DOMRectReadOnly> VideoFrame::GetCodedRect() const {
   AssertIsOnOwningThread();
 
-  // TODO: Return nullptr if this is _detached_ instead of checking resource
-  // (bug 1774306).
   return mResource
              ? MakeAndAddRef<DOMRectReadOnly>(
                    mParent, 0.0f, 0.0f, static_cast<double>(mCodedSize.Width()),
@@ -1662,8 +1657,6 @@ already_AddRefed<DOMRectReadOnly> VideoFrame::GetCodedRect() const {
 already_AddRefed<DOMRectReadOnly> VideoFrame::GetVisibleRect() const {
   AssertIsOnOwningThread();
 
-  // TODO: Return nullptr if this is _detached_ instead of checking resource
-  // (bug 1774306).
   return mResource ? MakeAndAddRef<DOMRectReadOnly>(
                          mParent, static_cast<double>(mVisibleRect.X()),
                          static_cast<double>(mVisibleRect.Y()),
@@ -1712,8 +1705,6 @@ uint32_t VideoFrame::AllocationSize(const VideoFrameCopyToOptions& aOptions,
                                     ErrorResult& aRv) {
   AssertIsOnOwningThread();
 
-  // TODO: Throw error if this is _detached_ instead of checking resource (bug
-  // 1774306).
   if (!mResource) {
     aRv.ThrowInvalidStateError("No media resource in VideoFrame");
     return 0;
@@ -1737,8 +1728,6 @@ already_AddRefed<Promise> VideoFrame::CopyTo(
     const VideoFrameCopyToOptions& aOptions, ErrorResult& aRv) {
   AssertIsOnOwningThread();
 
-  // TODO: Throw error if this is _detached_ instead of checking resource (bug
-  // 1774306).
   if (!mResource) {
     aRv.ThrowInvalidStateError("No media resource in VideoFrame");
     return nullptr;
@@ -1764,11 +1753,9 @@ already_AddRefed<Promise> VideoFrame::CopyTo(
     p->MaybeRejectWithTypeError("Failed to get buffer");
     return p.forget();
   }
-  Tuple<RangedPtr<uint8_t>, size_t> bufInfo = r2.unwrap();
-  RangedPtr<uint8_t> ptr(Get<0>(bufInfo));
-  size_t byteLength = Get<1>(bufInfo);
+  Span<uint8_t> buffer = r2.unwrap();
 
-  if (byteLength < layout.mAllocationSize) {
+  if (buffer.size_bytes() < layout.mAllocationSize) {
     p->MaybeRejectWithTypeError("Destination buffer is too small");
     return p.forget();
   }
@@ -1801,7 +1788,7 @@ already_AddRefed<Promise> VideoFrame::CopyTo(
         l.mSourceWidthBytes / mResource->mFormat.SampleBytes(planes[i]),
         l.mSourceHeight);
     if (!mResource->CopyTo(planes[i], {origin, size},
-                           ptr + static_cast<size_t>(destinationOffset),
+                           buffer.From(destinationOffset),
                            static_cast<size_t>(l.mDestinationStride))) {
       p->MaybeRejectWithTypeError(
           nsPrintfCString("Failed to copy image data in %s plane",
@@ -1822,8 +1809,6 @@ already_AddRefed<Promise> VideoFrame::CopyTo(
 already_AddRefed<VideoFrame> VideoFrame::Clone(ErrorResult& aRv) {
   AssertIsOnOwningThread();
 
-  // TODO: Throw error if this is _detached_ instead of checking resource (bug
-  // 1774306).
   if (!mResource) {
     aRv.ThrowInvalidStateError("No media resource in the VideoFrame now");
     return nullptr;
@@ -1837,7 +1822,6 @@ already_AddRefed<VideoFrame> VideoFrame::Clone(ErrorResult& aRv) {
 void VideoFrame::Close() {
   AssertIsOnOwningThread();
 
-  // TODO: Set _detached_ to `true` (bug 1774306).
   mResource.reset();
   mCodedSize = gfx::IntSize();
   mVisibleRect = gfx::IntRect();
@@ -1847,86 +1831,11 @@ void VideoFrame::Close() {
 
 // https://w3c.github.io/webcodecs/#ref-for-deserialization-steps%E2%91%A0
 /* static */
-JSObject* VideoFrame::ReadStructuredClone(JSContext* aCx,
-                                          nsIGlobalObject* aGlobal,
-                                          JSStructuredCloneReader* aReader,
-                                          const VideoFrameImageData& aData) {
-  if (!IsSameOrigin(aGlobal, aData.mURI.get())) {
+JSObject* VideoFrame::ReadStructuredClone(
+    JSContext* aCx, nsIGlobalObject* aGlobal, JSStructuredCloneReader* aReader,
+    const VideoFrameSerializedData& aData) {
+  if (!IsSameOrigin(aGlobal, aData.mPrincipalURI.get())) {
     return nullptr;
-  }
-
-  VideoPixelFormat format;
-  if (NS_WARN_IF(!JS_ReadBytes(aReader, &format, 1))) {
-    return nullptr;
-  }
-
-  uint32_t codedWidth = 0;
-  uint32_t codedHeight = 0;
-  if (NS_WARN_IF(!JS_ReadUint32Pair(aReader, &codedWidth, &codedHeight))) {
-    return nullptr;
-  }
-
-  uint32_t visibleX = 0;
-  uint32_t visibleY = 0;
-  uint32_t visibleWidth = 0;
-  uint32_t visibleHeight = 0;
-  if (NS_WARN_IF(!JS_ReadUint32Pair(aReader, &visibleX, &visibleY)) ||
-      NS_WARN_IF(!JS_ReadUint32Pair(aReader, &visibleWidth, &visibleHeight))) {
-    return nullptr;
-  }
-
-  uint32_t displayWidth = 0;
-  uint32_t displayHeight = 0;
-  if (NS_WARN_IF(!JS_ReadUint32Pair(aReader, &displayWidth, &displayHeight))) {
-    return nullptr;
-  }
-
-  uint8_t hasDuration = 0;
-  uint32_t durationLow = 0;
-  uint32_t durationHigh = 0;
-  if (NS_WARN_IF(!JS_ReadBytes(aReader, &hasDuration, 1)) ||
-      NS_WARN_IF(!JS_ReadUint32Pair(aReader, &durationLow, &durationHigh))) {
-    return nullptr;
-  }
-  Maybe<uint64_t> duration =
-      hasDuration ? Some(uint64_t(durationHigh) << 32 | durationLow)
-                  : Nothing();
-
-  uint32_t timestampLow = 0;
-  uint32_t timestampHigh = 0;
-  if (NS_WARN_IF(!JS_ReadUint32Pair(aReader, &timestampLow, &timestampHigh))) {
-    return nullptr;
-  }
-  int64_t timestamp = int64_t(timestampHigh) << 32 | timestampLow;
-
-  uint8_t colorSpaceFullRange = 0;
-  uint8_t colorSpaceMatrix = 0;
-  uint8_t colorSpacePrimaries = 0;
-  uint8_t colorSpaceTransfer = 0;
-  if (NS_WARN_IF(!JS_ReadBytes(aReader, &colorSpaceFullRange, 1)) ||
-      NS_WARN_IF(!JS_ReadBytes(aReader, &colorSpaceMatrix, 1)) ||
-      NS_WARN_IF(!JS_ReadBytes(aReader, &colorSpacePrimaries, 1)) ||
-      NS_WARN_IF(!JS_ReadBytes(aReader, &colorSpaceTransfer, 1))) {
-    return nullptr;
-  }
-  VideoColorSpaceInit colorSpace{};
-  if (colorSpaceFullRange < 2) {
-    colorSpace.mFullRange.Construct(colorSpaceFullRange > 0);
-  }
-  if (colorSpaceMatrix <
-      static_cast<uint8_t>(VideoMatrixCoefficients::EndGuard_)) {
-    colorSpace.mMatrix.Construct(
-        static_cast<VideoMatrixCoefficients>(colorSpaceMatrix));
-  }
-  if (colorSpacePrimaries <
-      static_cast<uint8_t>(VideoColorPrimaries::EndGuard_)) {
-    colorSpace.mPrimaries.Construct(
-        static_cast<VideoColorPrimaries>(colorSpacePrimaries));
-  }
-  if (colorSpaceTransfer <
-      static_cast<uint8_t>(VideoTransferCharacteristics::EndGuard_)) {
-    colorSpace.mTransfer.Construct(
-        static_cast<VideoTransferCharacteristics>(colorSpaceTransfer));
   }
 
   JS::Rooted<JS::Value> value(aCx, JS::NullValue());
@@ -1937,10 +1846,9 @@ JSObject* VideoFrame::ReadStructuredClone(JSContext* aCx,
   // be safely destructed while the unrooted return JSObject* is on the stack.
   {
     RefPtr<VideoFrame> frame = MakeAndAddRef<VideoFrame>(
-        aGlobal, aData.mImage, format, gfx::IntSize(codedWidth, codedHeight),
-        gfx::IntRect(visibleX, visibleY, visibleWidth, visibleHeight),
-        gfx::IntSize(displayWidth, displayHeight), std::move(duration),
-        timestamp, colorSpace);
+        aGlobal, aData.mImage, aData.mFormat, aData.mCodedSize,
+        aData.mVisibleRect, aData.mDisplaySize, aData.mDuration,
+        aData.mTimestamp, aData.mColorSpace);
     if (!GetOrCreateDOMReflector(aCx, frame, &value) || !value.isObject()) {
       return nullptr;
     }
@@ -1953,69 +1861,59 @@ bool VideoFrame::WriteStructuredClone(JSStructuredCloneWriter* aWriter,
                                       StructuredCloneHolder* aHolder) const {
   AssertIsOnOwningThread();
 
-  // TODO: Throw error if this is _detached_ instead of checking resource (bug
-  // 1774306).
   if (!mResource) {
     return false;
   }
 
-  const uint8_t format = BitwiseCast<uint8_t>(mResource->mFormat.PixelFormat());
-
-  const uint32_t codedWidth = BitwiseCast<uint32_t>(mCodedSize.Width());
-  const uint32_t codedHeight = BitwiseCast<uint32_t>(mCodedSize.Height());
-
-  const uint32_t visibleX = BitwiseCast<uint32_t>(mVisibleRect.X());
-  const uint32_t visibleY = BitwiseCast<uint32_t>(mVisibleRect.Y());
-  const uint32_t visibleWidth = BitwiseCast<uint32_t>(mVisibleRect.Width());
-  const uint32_t visibleHeight = BitwiseCast<uint32_t>(mVisibleRect.Height());
-
-  const uint32_t displayWidth = BitwiseCast<uint32_t>(mDisplaySize.Width());
-  const uint32_t displayHeight = BitwiseCast<uint32_t>(mDisplaySize.Height());
-
-  const uint8_t hasDuration = mDuration ? 1 : 0;
-  const uint32_t durationLow = mDuration ? uint32_t(*mDuration) : 0;
-  const uint32_t durationHigh = mDuration ? uint32_t(*mDuration >> 32) : 0;
-
-  const uint32_t timestampLow = uint32_t(mTimestamp);
-  const uint32_t timestampHigh = uint32_t(mTimestamp >> 32);
-
-  const uint8_t colorSpaceFullRange =
-      mColorSpace.mFullRange.WasPassed() ? mColorSpace.mFullRange.Value() : 2;
-  const uint8_t colorSpaceMatrix = BitwiseCast<uint8_t>(
-      mColorSpace.mMatrix.WasPassed() ? mColorSpace.mMatrix.Value()
-                                      : VideoMatrixCoefficients::EndGuard_);
-  const uint8_t colorSpacePrimaries = BitwiseCast<uint8_t>(
-      mColorSpace.mPrimaries.WasPassed() ? mColorSpace.mPrimaries.Value()
-                                         : VideoColorPrimaries::EndGuard_);
-  const uint8_t colorSpaceTransfer =
-      BitwiseCast<uint8_t>(mColorSpace.mTransfer.WasPassed()
-                               ? mColorSpace.mTransfer.Value()
-                               : VideoTransferCharacteristics::EndGuard_);
-
   // Indexing the image and send the index to the receiver.
-  const uint32_t index = aHolder->VideoFrameImages().Length();
+  const uint32_t index = aHolder->VideoFrames().Length();
   RefPtr<layers::Image> image(mResource->mImage.get());
   // The serialization is limited to the same process scope so it's ok to
   // serialize a reference instead of a copy.
-  nsIPrincipal* principal = mParent->PrincipalOrNull();
-  nsCOMPtr<nsIURI> uri = principal ? principal->GetURI() : nullptr;
-  aHolder->VideoFrameImages().AppendElement(
-      VideoFrameImageData{image.forget(), uri});
+  aHolder->VideoFrames().AppendElement(VideoFrameSerializedData(
+      image.get(), mResource->mFormat.PixelFormat(), mCodedSize, mVisibleRect,
+      mDisplaySize, mDuration, mTimestamp, mColorSpace, GetPrincipalURI()));
 
-  return !(
-      NS_WARN_IF(!JS_WriteUint32Pair(aWriter, SCTAG_DOM_VIDEOFRAME, index)) ||
-      NS_WARN_IF(!JS_WriteBytes(aWriter, &format, 1)) ||
-      NS_WARN_IF(!JS_WriteUint32Pair(aWriter, codedWidth, codedHeight)) ||
-      NS_WARN_IF(!JS_WriteUint32Pair(aWriter, visibleX, visibleY)) ||
-      NS_WARN_IF(!JS_WriteUint32Pair(aWriter, visibleWidth, visibleHeight)) ||
-      NS_WARN_IF(!JS_WriteUint32Pair(aWriter, displayWidth, displayHeight)) ||
-      NS_WARN_IF(!JS_WriteBytes(aWriter, &hasDuration, 1)) ||
-      NS_WARN_IF(!JS_WriteUint32Pair(aWriter, durationLow, durationHigh)) ||
-      NS_WARN_IF(!JS_WriteUint32Pair(aWriter, timestampLow, timestampHigh)) ||
-      NS_WARN_IF(!JS_WriteBytes(aWriter, &colorSpaceFullRange, 1)) ||
-      NS_WARN_IF(!JS_WriteBytes(aWriter, &colorSpaceMatrix, 1)) ||
-      NS_WARN_IF(!JS_WriteBytes(aWriter, &colorSpacePrimaries, 1)) ||
-      NS_WARN_IF(!JS_WriteBytes(aWriter, &colorSpaceTransfer, 1)));
+  return !NS_WARN_IF(!JS_WriteUint32Pair(aWriter, SCTAG_DOM_VIDEOFRAME, index));
+}
+
+// https://w3c.github.io/webcodecs/#ref-for-transfer-steps%E2%91%A0
+UniquePtr<VideoFrame::TransferredData> VideoFrame::Transfer() {
+  AssertIsOnOwningThread();
+
+  if (!mResource) {
+    return nullptr;
+  }
+
+  Resource r = mResource.extract();
+  auto frame = MakeUnique<TransferredData>(
+      r.mImage.get(), r.mFormat.PixelFormat(), mCodedSize, mVisibleRect,
+      mDisplaySize, mDuration, mTimestamp, mColorSpace, GetPrincipalURI());
+  Close();
+  return frame;
+}
+
+// https://w3c.github.io/webcodecs/#ref-for-transfer-receiving-steps%E2%91%A0
+/* static */
+already_AddRefed<VideoFrame> VideoFrame::FromTransferred(
+    nsIGlobalObject* aGlobal, TransferredData* aData) {
+  MOZ_ASSERT(aData);
+
+  if (!IsSameOrigin(aGlobal, aData->mPrincipalURI.get())) {
+    return nullptr;
+  }
+
+  return MakeAndAddRef<VideoFrame>(aGlobal, aData->mImage, aData->mFormat,
+                                   aData->mCodedSize, aData->mVisibleRect,
+                                   aData->mDisplaySize, aData->mDuration,
+                                   aData->mTimestamp, aData->mColorSpace);
+}
+
+already_AddRefed<nsIURI> VideoFrame::GetPrincipalURI() const {
+  AssertIsOnOwningThread();
+
+  nsIPrincipal* principal = mParent->PrincipalOrNull();
+  return principal ? principal->GetURI() : nullptr;
 }
 
 /*
@@ -2367,7 +2265,7 @@ uint32_t VideoFrame::Resource::Stride(const Format::Plane& aPlane) const {
 
 bool VideoFrame::Resource::CopyTo(const Format::Plane& aPlane,
                                   const gfx::IntRect& aRect,
-                                  RangedPtr<uint8_t>&& aPlaneDest,
+                                  Span<uint8_t>&& aPlaneDest,
                                   size_t aDestinationStride) const {
   auto copyPlane = [&](const uint8_t* aPlaneData) {
     MOZ_ASSERT(aPlaneData);
@@ -2387,11 +2285,11 @@ bool VideoFrame::Resource::CopyTo(const Format::Plane& aPlane,
 
     aPlaneData += offset.value();
     for (int32_t row = 0; row < aRect.Height(); ++row) {
-      PodCopy(aPlaneDest.get(), aPlaneData, elementsBytes.value());
+      PodCopy(aPlaneDest.data(), aPlaneData, elementsBytes.value());
       aPlaneData += Stride(aPlane);
       // Spec asks to move `aDestinationStride` bytes instead of
       // `Stride(aPlane)` forward.
-      aPlaneDest += aDestinationStride;
+      aPlaneDest = aPlaneDest.From(aDestinationStride);
     }
     return true;
   };

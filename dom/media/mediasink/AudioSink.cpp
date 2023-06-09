@@ -34,13 +34,15 @@ static const int64_t AUDIO_FUZZ_FRAMES = 1;
 using media::TimeUnit;
 
 AudioSink::AudioSink(AbstractThread* aThread,
-                     MediaQueue<AudioData>& aAudioQueue, const AudioInfo& aInfo)
+                     MediaQueue<AudioData>& aAudioQueue, const AudioInfo& aInfo,
+                     bool aShouldResistFingerprinting)
     : mPlaying(true),
       mWritten(0),
       mErrored(false),
       mOwnerThread(aThread),
       mFramesParsed(0),
-      mOutputRate(DecideAudioPlaybackSampleRate(aInfo)),
+      mOutputRate(
+          DecideAudioPlaybackSampleRate(aInfo, aShouldResistFingerprinting)),
       mOutputChannels(DecideAudioPlaybackChannels(aInfo)),
       mAudibilityMonitor(
           mOutputRate,
@@ -50,13 +52,21 @@ AudioSink::AudioSink(AbstractThread* aThread,
       mAudioQueue(aAudioQueue),
       mProcessedQueueThresholdMS(
           StaticPrefs::media_audio_audiosink_threshold_ms()) {
+  // Not much to initialize here if there's no audio.
+  if (!aInfo.IsValid()) {
+    mProcessedSPSCQueue = MakeUnique<SPSCQueue<AudioDataValue>>(0);
+    return;
+  }
   // Twice the limit that trigger a refill.
-  float capacitySeconds = mProcessedQueueThresholdMS / 1000.f * 2;
-  mProcessedSPSCQueue =
-      MakeUnique<SPSCQueue<AudioDataValue>>(static_cast<uint32_t>(
-          capacitySeconds * static_cast<float>(mOutputChannels * mOutputRate)));
+  double capacitySeconds = mProcessedQueueThresholdMS / 1000.f * 2;
+  // Clamp to correct boundaries, and align on the channel count
+  int elementCount = static_cast<int>(std::clamp(capacitySeconds * mOutputChannels * mOutputRate,
+                                      0., std::numeric_limits<int>::max() - 1.));
+  elementCount -= elementCount % mOutputChannels;
+  mProcessedSPSCQueue = MakeUnique<SPSCQueue<AudioDataValue>>(elementCount);
   SINK_LOG("Ringbuffer has space for %u elements (%lf seconds)",
-           mProcessedSPSCQueue->Capacity(), capacitySeconds);
+           mProcessedSPSCQueue->Capacity(),
+           static_cast<float>(elementCount) / mOutputChannels / mOutputRate);
   // Determine if the data is likely to be audible when the stream will be
   // ready, if possible.
   RefPtr<AudioData> frontPacket = mAudioQueue.PeekFront();

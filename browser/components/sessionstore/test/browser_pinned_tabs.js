@@ -10,29 +10,6 @@ const NO_TITLE_URL = "data:text/plain,foo";
 const BACKUP_STATE = SessionStore.getBrowserState();
 registerCleanupFunction(() => promiseBrowserState(BACKUP_STATE));
 
-/**
- * This is regrettable, but when `promiseBrowserState` resolves, we're still
- * midway through loading the tabs. To avoid race conditions in URLs for tabs
- * being available, wait for all the loads to finish:
- */
-function promiseSessionStoreLoads(numberOfLoads) {
-  let loadsSeen = 0;
-  return new Promise(resolve => {
-    Services.obs.addObserver(function obs(browser) {
-      loadsSeen++;
-      if (loadsSeen == numberOfLoads) {
-        resolve();
-      }
-      // The typeof check is here to avoid one test messing with everything else by
-      // keeping the observer indefinitely.
-      if (typeof info == "undefined" || loadsSeen >= numberOfLoads) {
-        Services.obs.removeObserver(obs, "sessionstore-debug-tab-restored");
-      }
-      info("Saw load for " + browser.currentURI.spec);
-    }, "sessionstore-debug-tab-restored");
-  });
-}
-
 add_setup(async function() {
   await SpecialPowers.pushPrefEnv({
     set: [
@@ -329,7 +306,7 @@ add_task(async function test_pinned_tab_dataloss() {
   await allTabsRestored;
 
   let tabs = gBrowser.tabs;
-  BrowserTestUtils.crashFrame(tabs[17].linkedBrowser);
+  await BrowserTestUtils.crashFrame(tabs[17].linkedBrowser);
 
   await TestUtils.topicObserved("sessionstore-state-write-complete");
 

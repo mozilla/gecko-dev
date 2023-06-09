@@ -33,9 +33,11 @@
 #include "nsToolkit.h"
 #include "nsCRT.h"
 #include "mozilla/ClearOnShutdown.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/Logging.h"
 #include "mozilla/MiscEvents.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/Telemetry.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/StaticMutex.h"
 #include "mozilla/StaticPrefs_media.h"
@@ -252,6 +254,56 @@ nsIWidget* nsCocoaUtils::GetHiddenWindowWidget() {
   return hiddenWindowWidget;
 }
 
+BOOL nsCocoaUtils::WasLaunchedAtLogin() {
+  ProcessSerialNumber processSerialNumber = {0, kCurrentProcess};
+  ProcessInfoRec processInfoRec = {};
+  processInfoRec.processInfoLength = sizeof(processInfoRec);
+
+  // There is currently no replacement for ::GetProcessInformation, which has
+  // been deprecated since macOS 10.9.
+  if (::GetProcessInformation(&processSerialNumber, &processInfoRec) == noErr) {
+    ProcessInfoRec parentProcessInfo = {};
+    parentProcessInfo.processInfoLength = sizeof(parentProcessInfo);
+    if (::GetProcessInformation(&processInfoRec.processLauncher, &parentProcessInfo) == noErr) {
+      return parentProcessInfo.processSignature == 'lgnw';
+    }
+  }
+  return NO;
+}
+
+BOOL nsCocoaUtils::ShouldRestoreStateDueToLaunchAtLoginImpl() {
+  // Check if we were launched by macOS as a result of having
+  // "Reopen windows..." selected during a restart.
+  if (!WasLaunchedAtLogin()) {
+    return NO;
+  }
+
+  CFStringRef lgnwPlistName = CFSTR("com.apple.loginwindow");
+  CFStringRef saveStateKey = CFSTR("TALLogoutSavesState");
+  CFPropertyListRef lgnwPlist =
+      (CFPropertyListRef)(::CFPreferencesCopyAppValue(saveStateKey, lgnwPlistName));
+  // The .plist doesn't exist unless the user changed the "Reopen windows..."
+  // preference. If it doesn't exist, restore by default (as this is the macOS
+  // default).
+  // https://developer.apple.com/library/mac/documentation/macosx/conceptual/bpsystemstartup/chapters/CustomLogin.html
+  if (!lgnwPlist) {
+    return YES;
+  }
+
+  if (CFBooleanRef shouldRestoreState = static_cast<CFBooleanRef>(lgnwPlist)) {
+    return ::CFBooleanGetValue(shouldRestoreState);
+  }
+
+  return NO;
+}
+
+BOOL nsCocoaUtils::ShouldRestoreStateDueToLaunchAtLogin() {
+  BOOL shouldRestore = ShouldRestoreStateDueToLaunchAtLoginImpl();
+  Telemetry::ScalarSet(Telemetry::ScalarID::STARTUP_IS_RESTORED_BY_MACOS, !!shouldRestore);
+  mozilla::glean::startup::is_restored_by_macos.Set(!!shouldRestore);
+  return shouldRestore;
+}
+
 void nsCocoaUtils::PrepareForNativeAppModalDialog() {
   NS_OBJC_BEGIN_TRY_IGNORE_BLOCK;
 
@@ -411,7 +463,7 @@ nsresult nsCocoaUtils::CreateNSImageFromCGImage(CGImageRef aInputImage, NSImage*
   [NSGraphicsContext setCurrentContext:context];
 
   // Get the Quartz context and draw.
-  CGContextRef imageContext = (CGContextRef)[[NSGraphicsContext currentContext] graphicsPort];
+  CGContextRef imageContext = [[NSGraphicsContext currentContext] CGContext];
   ::CGContextDrawImage(imageContext, *(CGRect*)&imageRect, aInputImage);
 
   [NSGraphicsContext restoreGraphicsState];
@@ -445,15 +497,14 @@ nsresult nsCocoaUtils::CreateNSImageFromImageContainer(imgIContainer* aImage, ui
       return NS_ERROR_FAILURE;
     }
 
-    RefPtr<gfxContext> context = gfxContext::CreateOrNull(drawTarget);
-    MOZ_ASSERT(context);
+    gfxContext context(drawTarget);
 
     SVGImageContext svgContext;
     if (aPresContext && aComputedStyle) {
       SVGImageContext::MaybeStoreContextPaint(svgContext, *aPresContext, *aComputedStyle, aImage);
     }
     mozilla::image::ImgDrawResult res =
-        aImage->Draw(context, scaledSize, ImageRegion::Create(scaledSize), aWhichFrame,
+        aImage->Draw(&context, scaledSize, ImageRegion::Create(scaledSize), aWhichFrame,
                      SamplingFilter::POINT, svgContext, imgIContainer::FLAG_SYNC_DECODE, 1.0);
 
     if (res != mozilla::image::ImgDrawResult::SUCCESS) {
@@ -1694,7 +1745,7 @@ void nsCocoaUtils::SetTransferDataForTypeFromPasteboardItem(nsITransferable* aTr
   }
 
   NSString* pString = nil;
-  if (aFlavor.EqualsLiteral(kUnicodeMime)) {
+  if (aFlavor.EqualsLiteral(kTextMime)) {
     pString = nsCocoaUtils::GetStringForTypeFromPasteboardItem(
         aItem, [UTIHelper stringFromPboardType:NSPasteboardTypeString]);
   } else if (aFlavor.EqualsLiteral(kHTMLMime)) {
@@ -1721,7 +1772,8 @@ void nsCocoaUtils::SetTransferDataForTypeFromPasteboardItem(nsITransferable* aTr
   }
   if (pString) {
     NSData* stringData;
-    if (aFlavor.EqualsLiteral(kRTFMime)) {
+    bool isRTF = aFlavor.EqualsLiteral(kRTFMime);
+    if (isRTF) {
       stringData = [pString dataUsingEncoding:NSASCIIStringEncoding];
     } else {
       stringData = [pString dataUsingEncoding:NSUnicodeStringEncoding];
@@ -1735,8 +1787,7 @@ void nsCocoaUtils::SetTransferDataForTypeFromPasteboardItem(nsITransferable* aTr
 
     // The DOM only wants LF, so convert from MacOS line endings to DOM line endings.
     int32_t signedDataLength = dataLength;
-    nsLinebreakHelpers::ConvertPlatformToDOMLinebreaks(aFlavor, &clipboardDataPtr,
-                                                       &signedDataLength);
+    nsLinebreakHelpers::ConvertPlatformToDOMLinebreaks(isRTF, &clipboardDataPtr, &signedDataLength);
     dataLength = signedDataLength;
 
     // skip BOM (Byte Order Mark to distinguish little or big endian)

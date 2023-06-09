@@ -6,27 +6,21 @@
 
 use crate::values::animated::{Animate, Procedure};
 use crate::values::computed::length::{LengthPercentage, NonNegativeLength};
-use crate::values::computed::{Context, Integer, Number, ToComputedValue};
-use crate::values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
+use crate::values::computed::{Context, Integer, ToComputedValue};
 use crate::values::generics::box_::{
     GenericContainIntrinsicSize, GenericLineClamp, GenericPerspective, GenericVerticalAlign,
 };
 use crate::values::specified::box_ as specified;
 
 pub use crate::values::specified::box_::{
-    AnimationName, AnimationTimeline, Appearance, BreakBetween, BreakWithin,
-    Clear as SpecifiedClear, Contain, ContainerName, ContainerType, ContentVisibility, Display,
-    Float as SpecifiedFloat, Overflow, OverflowAnchor, OverflowClipBox, OverscrollBehavior,
-    ScrollAxis, ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStop, ScrollSnapStrictness,
-    ScrollSnapType, ScrollTimelineName, ScrollbarGutter, TouchAction, TransitionProperty,
-    WillChange,
+    Appearance, BreakBetween, BreakWithin, Clear as SpecifiedClear, Contain, ContainerName,
+    ContainerType, ContentVisibility, Display, Float as SpecifiedFloat, Overflow, OverflowAnchor,
+    OverflowClipBox, OverscrollBehavior, ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStop,
+    ScrollSnapStrictness, ScrollSnapType, ScrollbarGutter, TouchAction, WillChange,
 };
 
 /// A computed value for the `vertical-align` property.
 pub type VerticalAlign = GenericVerticalAlign<LengthPercentage>;
-
-/// A computed value for the `animation-iteration-count` property.
-pub type AnimationIterationCount = GenericAnimationIterationCount<Number>;
 
 /// A computed value for the `contain-intrinsic-size` property.
 pub type ContainIntrinsicSize = GenericContainIntrinsicSize<NonNegativeLength>;
@@ -44,14 +38,6 @@ impl Animate for LineClamp {
             return Ok(Self::none());
         }
         Ok(Self(self.0.animate(&other.0, procedure)?.max(1)))
-    }
-}
-
-impl AnimationIterationCount {
-    /// Returns the value `1.0`.
-    #[inline]
-    pub fn one() -> Self {
-        GenericAnimationIterationCount::Number(1.0)
     }
 }
 

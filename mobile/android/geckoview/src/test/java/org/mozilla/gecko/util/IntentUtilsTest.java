@@ -51,4 +51,16 @@ public class IntentUtilsTest {
     final String uri = "tel:#12345678";
     assertFalse(IntentUtils.isUriSafeForScheme(uri));
   }
+
+  @Test
+  public void unsafeHtmlEncodedTelUri() {
+    assertFalse(IntentUtils.isUriSafeForScheme("tel:*%2306%23"));
+    assertFalse(IntentUtils.isUriSafeForScheme("tel:%2A%2306%23"));
+  }
+
+  @Test
+  public void intentDataWithoutScheme() {
+    final String uri = "intent:non_scheme_intent#Intent;end";
+    assertTrue(IntentUtils.isUriSafeForScheme(uri));
+  }
 }

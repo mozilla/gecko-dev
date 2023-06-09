@@ -82,6 +82,7 @@ const SEAMONKEY = navigator.userAgent.match(/ SeaMonkey\//);
 
 const STATE_BUSY = nsIAccessibleStates.STATE_BUSY;
 
+const SCROLL_TYPE_TOP_EDGE = nsIAccessibleScrollType.SCROLL_TYPE_TOP_EDGE;
 const SCROLL_TYPE_ANYWHERE = nsIAccessibleScrollType.SCROLL_TYPE_ANYWHERE;
 
 const COORDTYPE_SCREEN_RELATIVE =
@@ -847,11 +848,11 @@ function getTextFromClipboard() {
     return "";
   }
 
-  trans.addDataFlavor("text/unicode");
+  trans.addDataFlavor("text/plain");
   Services.clipboard.getData(trans, Services.clipboard.kGlobalClipboard);
 
   var str = {};
-  trans.getTransferData("text/unicode", str);
+  trans.getTransferData("text/plain", str);
 
   if (str) {
     str = str.value.QueryInterface(Ci.nsISupportsString);

@@ -448,13 +448,6 @@ interface nsIDocShell : nsIDocShellTreeItem
   [noscript, notxpcom] nsIDRef HistoryID();
 
   /**
-   * Sets whether a docshell is an app tab. An app tab docshell may behave
-   * differently than a non-app tab docshell in some cases, such as when
-   * handling link clicks. Docshells are not app tabs unless told otherwise.
-   */
-  attribute boolean isAppTab;
-
-  /**
    * Create a new about:blank document and content viewer.
    * @param aPrincipal the principal to use for the new document.
    * @param aPartitionedPrincipal the partitioned principal to use for the new
@@ -630,18 +623,6 @@ interface nsIDocShell : nsIDocShellTreeItem
   [noscript,notxpcom,nostdcall] Document getExtantDocument();
 
   /**
-   * If deviceSizeIsPageSize is set to true, device-width/height media queries
-   * will be calculated from the page size, not the device size.
-   *
-   * Used by the Responsive Design Mode and B2G Simulator.
-   *
-   * Default is False.
-   * Default value can be overriden with
-   * docshell.device_size_is_page_size pref.
-   */
-  [infallible] attribute boolean deviceSizeIsPageSize;
-
-  /**
    * Notify DocShell when the browser is about to start executing JS, and after
    * that execution has stopped.  This only occurs when the Timeline devtool
    * is collecting information.
@@ -718,7 +699,7 @@ interface nsIDocShell : nsIDocShellTreeItem
    * <meta name="viewport"> tag is respected in a specific docshell.
    * Possible values are listed above.
    */
-  [infallible] attribute nsIDocShell_MetaViewportOverride metaViewportOverride;
+  [infallible, setter_can_run_script] attribute nsIDocShell_MetaViewportOverride metaViewportOverride;
 
   /**
    * Attribute that determines whether tracking protection is enabled.

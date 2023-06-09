@@ -152,6 +152,24 @@ div.fold-trigger {
   }
 }
 
+.tab-pane {
+  display: none;
+}
+
+.active-tab-pane {
+  border: 1px solid var(--in-content-border-color);
+  display: block;
+}
+
+.tab-button {
+  color: var(--in-content-button-text-color);
+}
+
+.active-tab-button {
+  color: var(--in-content-button-text-color-active);
+  background: var(--in-content-button-background-active);
+}
+
 .sdp-history {
   display: flex;
   height: 400px;
@@ -170,4 +188,10 @@ div.fold-trigger {
   padding: 1em;
   width: 50%;
   overflow: scroll;
+}
+
+.line-graph {
+  border: 1px solid var(--in-content-border-color);
+  margin-inline: 1px;
+  padding: 1px;
 }

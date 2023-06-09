@@ -1,4 +1,6 @@
-use super::{constants::ConstantSolver, context::Context, Error, ErrorKind, Parser, Result, Span};
+use super::{
+    constants::ConstantSolver, context::Context, Error, ErrorKind, Frontend, Result, Span,
+};
 use crate::{
     proc::ResolveContext, Bytes, Constant, Expression, Handle, ImageClass, ImageDimension,
     ScalarKind, Type, TypeInner, VectorSize,
@@ -224,7 +226,7 @@ pub const fn type_power(kind: ScalarKind, width: Bytes) -> Option<u32> {
     })
 }
 
-impl Parser {
+impl Frontend {
     /// Resolves the types of the expressions until `expr` (inclusive)
     ///
     /// This needs to be done before the [`typifier`] can be queried for
@@ -244,19 +246,12 @@ impl Parser {
         expr: Handle<Expression>,
         meta: Span,
     ) -> Result<()> {
-        let resolve_ctx = ResolveContext {
-            constants: &self.module.constants,
-            types: &self.module.types,
-            global_vars: &self.module.global_variables,
-            local_vars: &ctx.locals,
-            functions: &self.module.functions,
-            arguments: &ctx.arguments,
-        };
+        let resolve_ctx = ResolveContext::with_locals(&self.module, &ctx.locals, &ctx.arguments);
 
         ctx.typifier
             .grow(expr, &ctx.expressions, &resolve_ctx)
             .map_err(|error| Error {
-                kind: ErrorKind::SemanticError(format!("Can't resolve type: {:?}", error).into()),
+                kind: ErrorKind::SemanticError(format!("Can't resolve type: {error:?}").into()),
                 meta,
             })
     }
@@ -300,20 +295,7 @@ impl Parser {
         meta: Span,
     ) -> Result<Handle<Type>> {
         self.typifier_grow(ctx, expr, meta)?;
-        let resolution = &ctx.typifier[expr];
-        Ok(match *resolution {
-            // If the resolution is already a handle return early
-            crate::proc::TypeResolution::Handle(ty) => ty,
-            // If it's a value we need to clone it
-            crate::proc::TypeResolution::Value(_) => match resolution.clone() {
-                // This is unreachable
-                crate::proc::TypeResolution::Handle(ty) => ty,
-                // Add the value to the type arena and return the handle
-                crate::proc::TypeResolution::Value(inner) => {
-                    self.module.types.insert(Type { name: None, inner }, meta)
-                }
-            },
-        })
+        Ok(ctx.typifier.register_type(expr, &mut self.module.types))
     }
 
     /// Invalidates the cached type resolution for `expr` forcing a recomputation
@@ -323,19 +305,12 @@ impl Parser {
         expr: Handle<Expression>,
         meta: Span,
     ) -> Result<()> {
-        let resolve_ctx = ResolveContext {
-            constants: &self.module.constants,
-            types: &self.module.types,
-            global_vars: &self.module.global_variables,
-            local_vars: &ctx.locals,
-            functions: &self.module.functions,
-            arguments: &ctx.arguments,
-        };
+        let resolve_ctx = ResolveContext::with_locals(&self.module, &ctx.locals, &ctx.arguments);
 
         ctx.typifier
             .invalidate(expr, &ctx.expressions, &resolve_ctx)
             .map_err(|error| Error {
-                kind: ErrorKind::SemanticError(format!("Can't resolve type: {:?}", error).into()),
+                kind: ErrorKind::SemanticError(format!("Can't resolve type: {error:?}").into()),
                 meta,
             })
     }

@@ -18,11 +18,15 @@
 #include "api/video/video_codec_type.h"
 #include "api/video_codecs/video_encoder.h"
 #include "modules/video_coding/include/video_error_codes.h"
+#include "modules/video_coding/svc/scalability_mode_util.h"
 #include "rtc_base/logging.h"
 
 namespace webrtc {
 namespace webrtc_pc_e2e {
 namespace {
+
+using EmulatedSFUConfigMap =
+    ::webrtc::webrtc_pc_e2e::QualityAnalyzingVideoEncoder::EmulatedSFUConfigMap;
 
 constexpr size_t kMaxFrameInPipelineCount = 1000;
 constexpr double kNoMultiplier = 1.0;
@@ -56,13 +60,13 @@ QualityAnalyzingVideoEncoder::QualityAnalyzingVideoEncoder(
     absl::string_view peer_name,
     std::unique_ptr<VideoEncoder> delegate,
     double bitrate_multiplier,
-    std::map<std::string, absl::optional<int>> stream_required_spatial_index,
+    EmulatedSFUConfigMap stream_to_sfu_config,
     EncodedImageDataInjector* injector,
     VideoQualityAnalyzerInterface* analyzer)
     : peer_name_(peer_name),
       delegate_(std::move(delegate)),
       bitrate_multiplier_(bitrate_multiplier),
-      stream_required_spatial_index_(std::move(stream_required_spatial_index)),
+      stream_to_sfu_config_(std::move(stream_to_sfu_config)),
       injector_(injector),
       analyzer_(analyzer),
       mode_(SimulcastMode::kNormal),
@@ -80,23 +84,30 @@ int32_t QualityAnalyzingVideoEncoder::InitEncode(
   MutexLock lock(&mutex_);
   codec_settings_ = *codec_settings;
   mode_ = SimulcastMode::kNormal;
-  if (codec_settings->codecType == kVideoCodecVP9) {
+  absl::optional<InterLayerPredMode> inter_layer_pred_mode;
+  if (codec_settings->GetScalabilityMode().has_value()) {
+    inter_layer_pred_mode = ScalabilityModeToInterLayerPredMode(
+        *codec_settings->GetScalabilityMode());
+  } else if (codec_settings->codecType == kVideoCodecVP9) {
     if (codec_settings->VP9().numberOfSpatialLayers > 1) {
-      switch (codec_settings->VP9().interLayerPred) {
-        case InterLayerPredMode::kOn:
-          mode_ = SimulcastMode::kSVC;
-          break;
-        case InterLayerPredMode::kOnKeyPic:
-          mode_ = SimulcastMode::kKSVC;
-          break;
-        case InterLayerPredMode::kOff:
-          mode_ = SimulcastMode::kSimulcast;
-          break;
-        default:
-          RTC_DCHECK_NOTREACHED()
-              << "Unknown codec_settings->VP9().interLayerPred";
-          break;
-      }
+      inter_layer_pred_mode = codec_settings->VP9().interLayerPred;
+    }
+  }
+  if (inter_layer_pred_mode.has_value()) {
+    switch (*inter_layer_pred_mode) {
+      case InterLayerPredMode::kOn:
+        mode_ = SimulcastMode::kSVC;
+        break;
+      case InterLayerPredMode::kOnKeyPic:
+        mode_ = SimulcastMode::kKSVC;
+        break;
+      case InterLayerPredMode::kOff:
+        mode_ = SimulcastMode::kSimulcast;
+        break;
+      default:
+        RTC_DCHECK_NOTREACHED()
+            << "Unknown InterLayerPredMode value " << *inter_layer_pred_mode;
+        break;
     }
   }
   if (codec_settings->numberOfSimulcastStreams > 1) {
@@ -276,14 +287,12 @@ EncodedImageCallback::Result QualityAnalyzingVideoEncoder::OnEncodedImage(
         delegate_->GetEncoderInfo().implementation_name;
   }
 
-  if (!discard) {
-    // Analyzer should see only encoded images, that weren't discarded. But all
-    // not discarded layers have to be passed.
-    VideoQualityAnalyzerInterface::EncoderStats stats;
-    stats.encoder_name = codec_name;
-    stats.target_encode_bitrate = target_encode_bitrate;
-    analyzer_->OnFrameEncoded(peer_name_, frame_id, encoded_image, stats);
-  }
+  VideoQualityAnalyzerInterface::EncoderStats stats;
+  stats.encoder_name = codec_name;
+  stats.target_encode_bitrate = target_encode_bitrate;
+  stats.qp = encoded_image.qp_;
+  analyzer_->OnFrameEncoded(peer_name_, frame_id, encoded_image, stats,
+                            discard);
 
   // Image data injector injects frame id and discard flag into provided
   // EncodedImage and returns the image with a) modified original buffer (in
@@ -311,41 +320,44 @@ bool QualityAnalyzingVideoEncoder::ShouldDiscard(
     uint16_t frame_id,
     const EncodedImage& encoded_image) {
   std::string stream_label = analyzer_->GetStreamLabel(frame_id);
-  absl::optional<int> required_spatial_index =
-      stream_required_spatial_index_[stream_label];
-  if (required_spatial_index) {
-    if (*required_spatial_index == kAnalyzeAnySpatialStream) {
-      return false;
-    }
-    absl::optional<int> cur_spatial_index = encoded_image.SpatialIndex();
-    if (!cur_spatial_index) {
-      cur_spatial_index = 0;
-    }
-    RTC_CHECK(mode_ != SimulcastMode::kNormal)
-        << "Analyzing encoder is in kNormal "
-           "mode, but spatial layer/simulcast "
-           "stream met.";
-    if (mode_ == SimulcastMode::kSimulcast) {
-      // In simulcast mode only encoded images with required spatial index are
-      // interested, so all others have to be discarded.
-      return *cur_spatial_index != *required_spatial_index;
-    } else if (mode_ == SimulcastMode::kSVC) {
-      // In SVC mode encoded images with spatial indexes that are equal or
-      // less than required one are interesting, so all above have to be
-      // discarded.
-      return *cur_spatial_index > *required_spatial_index;
-    } else if (mode_ == SimulcastMode::kKSVC) {
-      // In KSVC mode for key frame encoded images with spatial indexes that
-      // are equal or less than required one are interesting, so all above
-      // have to be discarded. For other frames only required spatial index
-      // is interesting, so all others have to be discarded.
-      if (encoded_image._frameType == VideoFrameType::kVideoFrameKey) {
-        return *cur_spatial_index > *required_spatial_index;
-      } else {
-        return *cur_spatial_index != *required_spatial_index;
-      }
-    } else {
-      RTC_DCHECK_NOTREACHED() << "Unsupported encoder mode";
+  EmulatedSFUConfigMap::mapped_type emulated_sfu_config =
+      stream_to_sfu_config_[stream_label];
+
+  if (!emulated_sfu_config)
+    return false;
+
+  int cur_spatial_index = encoded_image.SpatialIndex().value_or(0);
+  int cur_temporal_index = encoded_image.TemporalIndex().value_or(0);
+
+  if (emulated_sfu_config->target_temporal_index &&
+      cur_temporal_index > *emulated_sfu_config->target_temporal_index)
+    return true;
+
+  if (emulated_sfu_config->target_layer_index) {
+    switch (mode_) {
+      case SimulcastMode::kSimulcast:
+        // In simulcast mode only encoded images with required spatial index are
+        // interested, so all others have to be discarded.
+        return cur_spatial_index != *emulated_sfu_config->target_layer_index;
+      case SimulcastMode::kSVC:
+        // In SVC mode encoded images with spatial indexes that are equal or
+        // less than required one are interesting, so all above have to be
+        // discarded.
+        return cur_spatial_index > *emulated_sfu_config->target_layer_index;
+      case SimulcastMode::kKSVC:
+        // In KSVC mode for key frame encoded images with spatial indexes that
+        // are equal or less than required one are interesting, so all above
+        // have to be discarded. For other frames only required spatial index
+        // is interesting, so all others except the ones depending on the
+        // keyframes can be discarded. There's no good test for that, so we keep
+        // all of temporal layer 0 for now.
+        if (encoded_image._frameType == VideoFrameType::kVideoFrameKey ||
+            cur_temporal_index == 0)
+          return cur_spatial_index > *emulated_sfu_config->target_layer_index;
+        return cur_spatial_index != *emulated_sfu_config->target_layer_index;
+      case SimulcastMode::kNormal:
+        RTC_DCHECK_NOTREACHED() << "Analyzing encoder is in kNormal mode, but "
+                                   "target_layer_index is set";
     }
   }
   return false;
@@ -355,13 +367,13 @@ QualityAnalyzingVideoEncoderFactory::QualityAnalyzingVideoEncoderFactory(
     absl::string_view peer_name,
     std::unique_ptr<VideoEncoderFactory> delegate,
     double bitrate_multiplier,
-    std::map<std::string, absl::optional<int>> stream_required_spatial_index,
+    EmulatedSFUConfigMap stream_to_sfu_config,
     EncodedImageDataInjector* injector,
     VideoQualityAnalyzerInterface* analyzer)
     : peer_name_(peer_name),
       delegate_(std::move(delegate)),
       bitrate_multiplier_(bitrate_multiplier),
-      stream_required_spatial_index_(std::move(stream_required_spatial_index)),
+      stream_to_sfu_config_(std::move(stream_to_sfu_config)),
       injector_(injector),
       analyzer_(analyzer) {}
 QualityAnalyzingVideoEncoderFactory::~QualityAnalyzingVideoEncoderFactory() =
@@ -377,7 +389,7 @@ QualityAnalyzingVideoEncoderFactory::CreateVideoEncoder(
     const SdpVideoFormat& format) {
   return std::make_unique<QualityAnalyzingVideoEncoder>(
       peer_name_, delegate_->CreateVideoEncoder(format), bitrate_multiplier_,
-      stream_required_spatial_index_, injector_, analyzer_);
+      stream_to_sfu_config_, injector_, analyzer_);
 }
 
 }  // namespace webrtc_pc_e2e

@@ -13,6 +13,7 @@
 #include "mozilla/LoadInfo.h"
 #include "mozilla/MozPromiseInlines.h"  // For MozPromise::FromDomPromise
 #include "mozilla/NullPrincipal.h"
+#include "mozilla/ResultVariant.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/StaticPrefs_extensions.h"
 #include "mozilla/StaticPrefs_fission.h"
@@ -472,9 +473,7 @@ WindowGlobalParent* DocumentLoadListener::GetParentWindowContext() const {
 }
 
 bool CheckRecursiveLoad(CanonicalBrowsingContext* aLoadingContext,
-                        nsDocShellLoadState* aLoadState,
-                        DocumentLoadListener* aDLL, bool aIsDocumentLoad,
-                        LoadInfo* aLoadInfo) {
+                        nsDocShellLoadState* aLoadState, bool aIsDocumentLoad) {
   // Bug 136580: Check for recursive frame loading excluding about:srcdoc URIs.
   // srcdoc URIs require their contents to be specified inline, so it isn't
   // possible for undesirable recursion to occur without the aid of a
@@ -524,29 +523,31 @@ bool CheckRecursiveLoad(CanonicalBrowsingContext* aLoadingContext,
 
 // Check that the load state, potentially received from a child process, appears
 // to be performing a load of the specified LoadingSessionHistoryInfo.
-// Returns a static (telemetry-safe) string naming what did not match, or
-// nullptr if it succeeds.
-static const char* ValidateHistoryLoad(
+// Returns a Result<…> containing the SessionHistoryEntry found for the
+// LoadingSessionHistoryInfo as success value if the validation succeeded, or a
+// static (telemetry-safe) string naming what did not match as a failure value
+// if the validation failed.
+static Result<SessionHistoryEntry*, const char*> ValidateHistoryLoad(
     CanonicalBrowsingContext* aLoadingContext,
     nsDocShellLoadState* aLoadState) {
   MOZ_ASSERT(SessionHistoryInParent());
   MOZ_ASSERT(aLoadState->LoadIsFromSessionHistory());
 
   if (!aLoadState->GetLoadingSessionHistoryInfo()) {
-    return "Missing LoadingSessionHistoryInfo";
+    return Err("Missing LoadingSessionHistoryInfo");
   }
 
-  const SessionHistoryInfo* snapshot =
-      SessionHistoryEntry::GetInfoSnapshotForValidationByLoadId(
-          aLoadState->GetLoadingSessionHistoryInfo()->mLoadId);
-  if (!snapshot) {
-    return "Invalid LoadId";
+  SessionHistoryEntry::LoadingEntry* loading = SessionHistoryEntry::GetByLoadId(
+      aLoadState->GetLoadingSessionHistoryInfo()->mLoadId);
+  if (!loading) {
+    return Err("Missing SessionHistoryEntry");
   }
 
+  SessionHistoryInfo* snapshot = loading->mInfoSnapshotForValidation.get();
   // History loads do not inherit principal.
   if (aLoadState->HasInternalLoadFlags(
           nsDocShell::INTERNAL_LOAD_FLAGS_INHERIT_PRINCIPAL)) {
-    return "LOAD_FLAGS_INHERIT_PRINCIPAL";
+    return Err("LOAD_FLAGS_INHERIT_PRINCIPAL");
   }
 
   auto uriEq = [](nsIURI* a, nsIURI* b) -> bool {
@@ -559,34 +560,34 @@ static const char* ValidateHistoryLoad(
 
   // XXX: Needing to do all of this validation manually is kinda gross.
   if (!uriEq(snapshot->GetURI(), aLoadState->URI())) {
-    return "URI";
+    return Err("URI");
   }
   if (!uriEq(snapshot->GetOriginalURI(), aLoadState->OriginalURI())) {
-    return "OriginalURI";
+    return Err("OriginalURI");
   }
   if (!aLoadState->ResultPrincipalURIIsSome() ||
       !uriEq(snapshot->GetResultPrincipalURI(),
              aLoadState->ResultPrincipalURI())) {
-    return "ResultPrincipalURI";
+    return Err("ResultPrincipalURI");
   }
   if (!uriEq(snapshot->GetUnstrippedURI(), aLoadState->GetUnstrippedURI())) {
-    return "UnstrippedURI";
+    return Err("UnstrippedURI");
   }
   if (!principalEq(snapshot->GetTriggeringPrincipal(),
                    aLoadState->TriggeringPrincipal())) {
-    return "TriggeringPrincipal";
+    return Err("TriggeringPrincipal");
   }
   if (!principalEq(snapshot->GetPrincipalToInherit(),
                    aLoadState->PrincipalToInherit())) {
-    return "PrincipalToInherit";
+    return Err("PrincipalToInherit");
   }
   if (!principalEq(snapshot->GetPartitionedPrincipalToInherit(),
                    aLoadState->PartitionedPrincipalToInherit())) {
-    return "PartitionedPrincipalToInherit";
+    return Err("PartitionedPrincipalToInherit");
   }
 
   // Everything matches!
-  return nullptr;
+  return loading->mEntry;
 }
 
 auto DocumentLoadListener::Open(nsDocShellLoadState* aLoadState,
@@ -613,23 +614,27 @@ auto DocumentLoadListener::Open(nsDocShellLoadState* aLoadState,
 
   // Check for infinite recursive object or iframe loads
   if (aLoadState->OriginalFrameSrc() || !mIsDocumentLoad) {
-    if (!CheckRecursiveLoad(loadingContext, aLoadState, this, mIsDocumentLoad,
-                            aLoadInfo)) {
+    if (!CheckRecursiveLoad(loadingContext, aLoadState, mIsDocumentLoad)) {
       *aRv = NS_ERROR_RECURSIVE_DOCUMENT_LOAD;
       mParentChannelListener = nullptr;
       return nullptr;
     }
   }
 
+  auto* documentContext = GetDocumentBrowsingContext();
+
   // If we are using SHIP and this load is from session history, validate that
   // the load matches our local copy of the loading history entry.
   //
   // NOTE: Keep this check in-sync with the check in
   // `nsDocShellLoadState::GetEffectiveTriggeringRemoteType()`!
+  RefPtr<SessionHistoryEntry> existingEntry;
   if (SessionHistoryInParent() && aLoadState->LoadIsFromSessionHistory() &&
       aLoadState->LoadType() != LOAD_ERROR_PAGE) {
-    if (const char* mismatch =
-            ValidateHistoryLoad(loadingContext, aLoadState)) {
+    Result<SessionHistoryEntry*, const char*> result =
+        ValidateHistoryLoad(loadingContext, aLoadState);
+    if (result.isErr()) {
+      const char* mismatch = result.unwrapErr();
       LOG(
           ("DocumentLoadListener::Open with invalid loading history entry "
            "[this=%p, mismatch=%s]",
@@ -642,6 +647,22 @@ auto DocumentLoadListener::Open(nsDocShellLoadState* aLoadState,
 #endif
       *aRv = NS_ERROR_DOM_SECURITY_ERR;
       mParentChannelListener = nullptr;
+      return nullptr;
+    }
+
+    existingEntry = result.unwrap();
+    if (!existingEntry->IsInSessionHistory() &&
+        !documentContext->HasLoadingHistoryEntry(existingEntry)) {
+      SessionHistoryEntry::RemoveLoadId(
+          aLoadState->GetLoadingSessionHistoryInfo()->mLoadId);
+      LOG(
+          ("DocumentLoadListener::Open with disconnected history entry "
+           "[this=%p]",
+           this));
+
+      *aRv = NS_BINDING_ABORTED;
+      mParentChannelListener = nullptr;
+      mChannel = nullptr;
       return nullptr;
     }
   }
@@ -694,20 +715,14 @@ auto DocumentLoadListener::Open(nsDocShellLoadState* aLoadState,
     return nullptr;
   }
 
-  auto* documentContext = GetDocumentBrowsingContext();
   if (documentContext && aLoadState->LoadType() != LOAD_ERROR_PAGE &&
       mozilla::SessionHistoryInParent()) {
     // It's hard to know at this point whether session history will be enabled
     // in the browsing context, so we always create an entry for a load here.
     mLoadingSessionHistoryInfo =
-        documentContext->CreateLoadingSessionHistoryEntryForLoad(aLoadState,
-                                                                 mChannel);
-    if (!mLoadingSessionHistoryInfo) {
-      *aRv = NS_BINDING_ABORTED;
-      mParentChannelListener = nullptr;
-      mChannel = nullptr;
-      return nullptr;
-    }
+        documentContext->CreateLoadingSessionHistoryEntryForLoad(
+            aLoadState, existingEntry, mChannel);
+    MOZ_ASSERT(mLoadingSessionHistoryInfo);
   }
 
   nsCOMPtr<nsIURI> uriBeingLoaded;
@@ -1442,10 +1457,12 @@ bool DocumentLoadListener::ResumeSuspendedChannel(
 void DocumentLoadListener::SerializeRedirectData(
     RedirectToRealChannelArgs& aArgs, bool aIsCrossProcess,
     uint32_t aRedirectFlags, uint32_t aLoadFlags, ContentParent* aParent,
-    nsTArray<EarlyHintConnectArgs>&& aEarlyHints) const {
+    nsTArray<EarlyHintConnectArgs>&& aEarlyHints,
+    uint32_t aEarlyHintLinkType) const {
   aArgs.uri() = GetChannelCreationURI();
   aArgs.loadIdentifier() = mLoadIdentifier;
   aArgs.earlyHints() = std::move(aEarlyHints);
+  aArgs.earlyHintLinkType() = aEarlyHintLinkType;
 
   // I previously used HttpBaseChannel::CloneLoadInfoForRedirect, but that
   // clears the principal to inherit, which fails tests (probably because this
@@ -2081,10 +2098,11 @@ DocumentLoadListener::RedirectToRealChannel(
 
     RedirectToRealChannelArgs args;
     SerializeRedirectData(args, /* aIsCrossProcess */ true, aRedirectFlags,
-                          aLoadFlags, cp, std::move(ehArgs));
+                          aLoadFlags, cp, std::move(ehArgs),
+                          mEarlyHintsService.LinkType());
     if (mTiming) {
       mTiming->Anonymize(args.uri());
-      args.timing() = Some(std::move(mTiming));
+      args.timing() = std::move(mTiming);
     }
 
     auto loadInfo = args.loadInfo();
@@ -2127,10 +2145,11 @@ DocumentLoadListener::RedirectToRealChannel(
   nsTArray<EarlyHintConnectArgs> ehArgs;
   mEarlyHintsService.RegisterLinksAndGetConnectArgs(ehArgs);
 
-  mOpenPromise->Resolve(OpenPromiseSucceededType(
-                            {std::move(aStreamFilterEndpoints), aRedirectFlags,
-                             aLoadFlags, std::move(ehArgs), promise}),
-                        __func__);
+  mOpenPromise->Resolve(
+      OpenPromiseSucceededType({std::move(aStreamFilterEndpoints),
+                                aRedirectFlags, aLoadFlags, std::move(ehArgs),
+                                mEarlyHintsService.LinkType(), promise}),
+      __func__);
 
   // There is no way we could come back here if the promise had been resolved
   // previously. But for clarity and to avoid all doubt, we set this boolean to
@@ -2427,8 +2446,14 @@ DocumentLoadListener::OnStartRequest(nsIRequest* aRequest) {
 
   auto* loadingContext = GetLoadingBrowsingContext();
   if (!loadingContext || loadingContext->IsDiscarded()) {
-    DisconnectListeners(NS_ERROR_UNEXPECTED, NS_ERROR_UNEXPECTED);
+    Cancel(NS_ERROR_UNEXPECTED, "No valid LoadingBrowsingContext."_ns);
     return NS_ERROR_UNEXPECTED;
+  }
+
+  if (AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed)) {
+    Cancel(NS_ERROR_ILLEGAL_DURING_SHUTDOWN,
+           "Aborting OnStartRequest after shutdown started."_ns);
+    return NS_OK;
   }
 
   // Block top-level data URI navigations if triggered by the web. Logging is

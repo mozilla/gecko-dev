@@ -218,15 +218,6 @@ rtc_library("histogram_percentile_counter") {
   absl_deps = [ "//third_party/abseil-cpp/absl/types:optional" ]
 }
 
-rtc_library("location") {
-  visibility = [ "*" ]
-  sources = [
-    "location.cc",
-    "location.h",
-  ]
-  deps = [ "system:rtc_export" ]
-}
-
 rtc_library("race_checker") {
   visibility = [ "*" ]
   sources = [
@@ -292,6 +283,7 @@ rtc_library("sample_counter") {
   absl_deps = [ "//third_party/abseil-cpp/absl/types:optional" ]
 }
 
+if (!build_with_mozilla) { # See Bug 1820869.
 rtc_library("timestamp_aligner") {
   visibility = [ "*" ]
   sources = [
@@ -304,6 +296,7 @@ rtc_library("timestamp_aligner") {
     ":timeutils",
     "system:rtc_export",
   ]
+}
 }
 
 rtc_library("zero_memory") {
@@ -323,7 +316,10 @@ rtc_library("platform_thread_types") {
     "platform_thread_types.cc",
     "platform_thread_types.h",
   ]
-  deps = [ ":macromagic" ]
+  deps = [
+    ":checks",
+    ":macromagic",
+  ]
 }
 
 rtc_source_set("refcount") {
@@ -392,6 +388,8 @@ rtc_library("rtc_event") {
     ]
     deps = [
       ":checks",
+      ":timeutils",
+      "../api/units:time_delta",
       "synchronization:yield_policy",
       "system:warn_current_thread_is_deadlocked",
     ]
@@ -765,7 +763,7 @@ rtc_library("rtc_numerics") {
     "numerics/math_utils.h",
     "numerics/moving_average.cc",
     "numerics/moving_average.h",
-    "numerics/moving_median_filter.h",
+    "numerics/moving_percentile_filter.h",
     "numerics/percentile_filter.h",
     "numerics/running_statistics.h",
     "numerics/sequence_number_util.h",
@@ -803,7 +801,6 @@ config("rtc_json_suppressions") {
   }
 }
 
-if (!build_with_mozilla) {
 rtc_library("rtc_json") {
   public_configs = [ ":rtc_json_suppressions" ]
   poisonous = [ "rtc_json" ]
@@ -813,7 +810,9 @@ rtc_library("rtc_json") {
     "strings/json.h",
   ]
   deps = [ ":stringutils" ]
+if (!build_with_mozilla) {
   all_dependent_configs = [ "//third_party/jsoncpp:jsoncpp_config" ]
+}
   if (rtc_build_json) {
     deps += [ "//third_party/jsoncpp" ]
   } else {
@@ -824,7 +823,6 @@ rtc_library("rtc_json") {
     defines += [ "WEBRTC_EXTERNAL_JSON" ]
   }
   absl_deps = [ "//third_party/abseil-cpp/absl/strings" ]
-}
 }
 
 rtc_library("net_helpers") {
@@ -909,13 +907,18 @@ rtc_library("null_socket_server") {
     ":rtc_event",
     ":socket",
     ":socket_server",
+    "../api/units:time_delta",
     "system:rtc_export",
   ]
 }
 
 rtc_source_set("socket_server") {
   sources = [ "socket_server.h" ]
-  deps = [ ":socket_factory" ]
+  deps = [
+    ":rtc_event",
+    ":socket_factory",
+    "../api/units:time_delta",
+  ]
 }
 
 rtc_library("threading") {
@@ -926,8 +929,6 @@ rtc_library("threading") {
     "async_resolver.h",
     "internal/default_socket_server.cc",
     "internal/default_socket_server.h",
-    "message_handler.cc",
-    "message_handler.h",
     "network_monitor.cc",
     "network_monitor.h",
     "network_monitor_factory.cc",
@@ -936,13 +937,13 @@ rtc_library("threading") {
     "physical_socket_server.h",
     "thread.cc",
     "thread.h",
-    "thread_message.h",
   ]
   absl_deps = [
     "//third_party/abseil-cpp/absl/algorithm:container",
     "//third_party/abseil-cpp/absl/base:core_headers",
     "//third_party/abseil-cpp/absl/cleanup",
     "//third_party/abseil-cpp/absl/functional:any_invocable",
+    "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/strings",
   ]
   deps = [
@@ -952,7 +953,6 @@ rtc_library("threading") {
     ":criticalsection",
     ":event_tracer",
     ":ip_address",
-    ":location",
     ":logging",
     ":macromagic",
     ":network_constants",
@@ -972,6 +972,7 @@ rtc_library("threading") {
     "../api/task_queue",
     "../api/task_queue:pending_task_safety_flag",
     "../api/units:time_delta",
+    "../system_wrappers:field_trial",
     "synchronization:mutex",
     "system:no_unique_address",
     "system:rtc_export",
@@ -1087,7 +1088,6 @@ rtc_library("rtc_base") {
     ":checks",
     ":copy_on_write_buffer",
     ":ip_address",
-    ":location",
     ":logging",
     ":macromagic",
     ":network_constants",
@@ -1116,6 +1116,7 @@ rtc_library("rtc_base") {
     "../api/task_queue:pending_task_safety_flag",
     "../api/transport:field_trial_based_config",
     "../api/units:time_delta",
+    "../rtc_base/experiments:field_trial_parser",
     "../system_wrappers:field_trial",
     "memory:always_valid_pointer",
     "network:sent_packet",
@@ -1130,7 +1131,9 @@ rtc_library("rtc_base") {
   ]
   absl_deps = [
     "//third_party/abseil-cpp/absl/algorithm:container",
+    "//third_party/abseil-cpp/absl/base:core_headers",
     "//third_party/abseil-cpp/absl/container:flat_hash_map",
+    "//third_party/abseil-cpp/absl/functional:any_invocable",
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/strings",
     "//third_party/abseil-cpp/absl/types:optional",
@@ -1138,9 +1141,6 @@ rtc_library("rtc_base") {
   public_configs = []
 
   sources = [
-    "async_invoker.cc",
-    "async_invoker.h",
-    "async_invoker_inl.h",
     "async_packet_socket.cc",
     "async_packet_socket.h",
     "async_tcp_socket.cc",
@@ -1209,9 +1209,6 @@ rtc_library("rtc_base") {
   ]
   if (build_with_mozilla) {
     sources -= [
-      "async_invoker.cc",
-      "async_invoker.h",
-      "async_invoker_inl.h",
       "async_packet_socket.cc",
       "async_packet_socket.h",
       "async_tcp_socket.cc",
@@ -1358,7 +1355,6 @@ rtc_source_set("gtest_prod") {
   sources = [ "gtest_prod_util.h" ]
 }
 
-if (rtc_include_tests) {
 rtc_library("gunit_helpers") {
   testonly = true
   sources = [
@@ -1449,7 +1445,6 @@ rtc_library("rtc_base_tests_utils") {
     ":byte_buffer",
     ":checks",
     ":ip_address",
-    ":location",
     ":logging",
     ":macromagic",
     ":rtc_base",
@@ -1461,6 +1456,10 @@ rtc_library("rtc_base_tests_utils") {
     ":stringutils",
     ":threading",
     ":timeutils",
+    "../api:make_ref_counted",
+    "../api:refcountedbase",
+    "../api:scoped_refptr",
+    "../api/task_queue",
     "../api/units:time_delta",
     "../api/units:timestamp",
     "../test:scoped_key_value_config",
@@ -1473,6 +1472,7 @@ rtc_library("rtc_base_tests_utils") {
     "//third_party/abseil-cpp/absl/algorithm:container",
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/strings",
+    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -1496,7 +1496,6 @@ rtc_library("task_queue_for_test") {
     "//third_party/abseil-cpp/absl/cleanup",
     "//third_party/abseil-cpp/absl/strings",
   ]
-}
 }
 
 if (rtc_include_tests) {
@@ -1554,7 +1553,6 @@ if (rtc_include_tests) {
         ":checks",
         ":gunit_helpers",
         ":ip_address",
-        ":location",
         ":logging",
         ":macromagic",
         ":net_helpers",
@@ -1568,7 +1566,9 @@ if (rtc_include_tests) {
         ":testclient",
         ":threading",
         ":timeutils",
+        "../api/units:time_delta",
         "../system_wrappers",
+        "../test:field_trial",
         "../test:fileutils",
         "../test:test_main",
         "../test:test_support",
@@ -1642,7 +1642,6 @@ if (rtc_include_tests) {
         ":gunit_helpers",
         ":histogram_percentile_counter",
         ":ip_address",
-        ":location",
         ":logging",
         ":macromagic",
         ":mod_ops",
@@ -1688,6 +1687,7 @@ if (rtc_include_tests) {
         "containers:unittests",
         "memory:unittests",
         "synchronization:mutex",
+        "task_utils:repeating_task",
         "third_party/base64",
         "third_party/sigslot",
       ]
@@ -1744,13 +1744,18 @@ if (rtc_include_tests) {
         "numerics/event_based_exponential_moving_average_unittest.cc",
         "numerics/exp_filter_unittest.cc",
         "numerics/moving_average_unittest.cc",
-        "numerics/moving_median_filter_unittest.cc",
+        "numerics/moving_percentile_filter_unittest.cc",
         "numerics/percentile_filter_unittest.cc",
         "numerics/running_statistics_unittest.cc",
         "numerics/sequence_number_util_unittest.cc",
+        "numerics/sequence_numbers_conformance_test.cc",
       ]
       deps = [
         ":rtc_numerics",
+        ":strong_alias",
+        ":timeutils",
+        "../modules:module_api_public",
+        "../net/dcsctp/common:sequence_numbers",
         "../test:test_main",
         "../test:test_support",
       ]
@@ -1804,6 +1809,7 @@ if (rtc_include_tests) {
         ":macromagic",
         ":net_helpers",
         ":null_socket_server",
+        ":refcount",
         ":rtc_base",
         ":rtc_base_tests_utils",
         ":rtc_event",
@@ -1817,6 +1823,7 @@ if (rtc_include_tests) {
         ":threading",
         ":timeutils",
         "../api:array_view",
+        "../api:field_trials_view",
         "../api:make_ref_counted",
         "../api/task_queue",
         "../api/task_queue:pending_task_safety_flag",

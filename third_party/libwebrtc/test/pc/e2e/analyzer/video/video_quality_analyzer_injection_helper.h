@@ -20,7 +20,7 @@
 
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
-#include "api/test/peerconnection_quality_test_fixture.h"
+#include "api/test/pclf/media_configuration.h"
 #include "api/test/stats_observer_interface.h"
 #include "api/test/video_quality_analyzer_interface.h"
 #include "api/video/video_frame.h"
@@ -29,7 +29,10 @@
 #include "api/video_codecs/video_encoder_factory.h"
 #include "rtc_base/synchronization/mutex.h"
 #include "system_wrappers/include/clock.h"
+#include "test/pc/e2e/analyzer/video/analyzing_video_sink.h"
+#include "test/pc/e2e/analyzer/video/analyzing_video_sinks_helper.h"
 #include "test/pc/e2e/analyzer/video/encoded_image_data_injector.h"
+#include "test/pc/e2e/analyzer/video/quality_analyzing_video_encoder.h"
 #include "test/test_video_capturer.h"
 #include "test/testsupport/video_frame_writer.h"
 
@@ -40,8 +43,6 @@ namespace webrtc_pc_e2e {
 // VideoQualityAnalyzerInterface into PeerConnection pipeline.
 class VideoQualityAnalyzerInjectionHelper : public StatsObserverInterface {
  public:
-  using VideoConfig = PeerConnectionE2EQualityTestFixture::VideoConfig;
-
   VideoQualityAnalyzerInjectionHelper(
       Clock* clock,
       std::unique_ptr<VideoQualityAnalyzerInterface> analyzer,
@@ -55,7 +56,7 @@ class VideoQualityAnalyzerInjectionHelper : public StatsObserverInterface {
       absl::string_view peer_name,
       std::unique_ptr<VideoEncoderFactory> delegate,
       double bitrate_multiplier,
-      std::map<std::string, absl::optional<int>> stream_required_spatial_index)
+      QualityAnalyzingVideoEncoder::EmulatedSFUConfigMap stream_to_sfu_config)
       const;
   // Wraps video decoder factory to give video quality analyzer access to
   // received encoded images and frames, that were decoded from them.
@@ -68,14 +69,20 @@ class VideoQualityAnalyzerInjectionHelper : public StatsObserverInterface {
   // `input_dump_file_name`, video will be written into that file.
   std::unique_ptr<test::TestVideoCapturer::FramePreprocessor>
   CreateFramePreprocessor(absl::string_view peer_name,
-                          const VideoConfig& config);
+                          const webrtc::webrtc_pc_e2e::VideoConfig& config);
   // Creates sink, that will allow video quality analyzer to get access to
   // the rendered frames. If corresponding video track has
   // `output_dump_file_name` in its VideoConfig, which was used for
   // CreateFramePreprocessor(...), then video also will be written
   // into that file.
+  // TODO(titovartem): Remove method with `peer_name` only parameter.
   std::unique_ptr<rtc::VideoSinkInterface<VideoFrame>> CreateVideoSink(
       absl::string_view peer_name);
+  // TODO(titovartem): Remove default value for `report_infra_metrics`.
+  std::unique_ptr<AnalyzingVideoSink> CreateVideoSink(
+      absl::string_view peer_name,
+      const VideoSubscription& subscription,
+      bool report_infra_metrics = false);
 
   void Start(std::string test_case_name,
              rtc::ArrayView<const std::string> peer_names,
@@ -100,12 +107,13 @@ class VideoQualityAnalyzerInjectionHelper : public StatsObserverInterface {
   void Stop();
 
  private:
-  class AnalyzingVideoSink final : public rtc::VideoSinkInterface<VideoFrame> {
+  // Deprecated, to be removed when old API isn't used anymore.
+  class AnalyzingVideoSink2 final : public rtc::VideoSinkInterface<VideoFrame> {
    public:
-    explicit AnalyzingVideoSink(absl::string_view peer_name,
-                                VideoQualityAnalyzerInjectionHelper* helper)
+    explicit AnalyzingVideoSink2(absl::string_view peer_name,
+                                 VideoQualityAnalyzerInjectionHelper* helper)
         : peer_name_(peer_name), helper_(helper) {}
-    ~AnalyzingVideoSink() override = default;
+    ~AnalyzingVideoSink2() override = default;
 
     void OnFrame(const VideoFrame& frame) override {
       helper_->OnFrame(peer_name_, frame);
@@ -133,38 +141,6 @@ class VideoQualityAnalyzerInjectionHelper : public StatsObserverInterface {
     }
   };
 
-  class VideoFrameIdsWriter {
-   public:
-    explicit VideoFrameIdsWriter(absl::string_view file_name);
-    ~VideoFrameIdsWriter();
-
-    void WriteFrameId(uint16_t frame_id);
-
-   private:
-    const std::string file_name_;
-    FILE* output_file_;
-  };
-
-  class VideoWriter2 final : public rtc::VideoSinkInterface<VideoFrame> {
-   public:
-    VideoWriter2(test::VideoFrameWriter* video_writer,
-                 VideoFrameIdsWriter* frame_ids_writer,
-                 int sampling_modulo);
-    ~VideoWriter2() override = default;
-
-    void OnFrame(const VideoFrame& frame) override;
-
-   private:
-    test::VideoFrameWriter* const video_writer_;
-    VideoFrameIdsWriter* const frame_ids_writer_;
-    const int sampling_modulo_;
-
-    int64_t frames_counter_ = 0;
-  };
-
-  test::VideoFrameWriter* MaybeCreateVideoWriter(
-      absl::optional<std::string> file_name,
-      const PeerConnectionE2EQualityTestFixture::VideoConfig& config);
   // Creates a deep copy of the frame and passes it to the video analyzer, while
   // passing real frame to the sinks
   void OnFrame(absl::string_view peer_name, const VideoFrame& frame);
@@ -177,12 +153,12 @@ class VideoQualityAnalyzerInjectionHelper : public StatsObserverInterface {
   EncodedImageDataExtractor* extractor_;
 
   std::vector<std::unique_ptr<test::VideoFrameWriter>> video_writers_;
-  std::vector<std::unique_ptr<VideoFrameIdsWriter>> frame_ids_writers_;
 
+  AnalyzingVideoSinksHelper sinks_helper_;
   Mutex mutex_;
   int peers_count_ RTC_GUARDED_BY(mutex_);
   // Map from stream label to the video config.
-  std::map<std::string, VideoConfig> known_video_configs_
+  std::map<std::string, webrtc::webrtc_pc_e2e::VideoConfig> known_video_configs_
       RTC_GUARDED_BY(mutex_);
   std::map<ReceiverStream,
            std::vector<std::unique_ptr<rtc::VideoSinkInterface<VideoFrame>>>>

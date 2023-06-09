@@ -131,10 +131,18 @@ bool nsContentSecurityManager::AllowTopLevelNavigationToDataURI(
     return true;
   }
 
+  ReportBlockedDataURI(uri, loadInfo);
+
+  return false;
+}
+
+void nsContentSecurityManager::ReportBlockedDataURI(nsIURI* aURI,
+                                                    nsILoadInfo* aLoadInfo,
+                                                    bool aIsRedirect) {
   // We're going to block the request, construct the localized error message to
   // report to the console.
   nsAutoCString dataSpec;
-  uri->GetSpec(dataSpec);
+  aURI->GetSpec(dataSpec);
   if (dataSpec.Length() > 50) {
     dataSpec.Truncate(50);
     dataSpec.AppendLiteral("...");
@@ -142,18 +150,20 @@ bool nsContentSecurityManager::AllowTopLevelNavigationToDataURI(
   AutoTArray<nsString, 1> params;
   CopyUTF8toUTF16(NS_UnescapeURL(dataSpec), *params.AppendElement());
   nsAutoString errorText;
-  rv = nsContentUtils::FormatLocalizedString(
-      nsContentUtils::eSECURITY_PROPERTIES, "BlockTopLevelDataURINavigation",
-      params, errorText);
-  NS_ENSURE_SUCCESS(rv, false);
+  const char* stringID =
+      aIsRedirect ? "BlockRedirectToDataURI" : "BlockTopLevelDataURINavigation";
+  nsresult rv = nsContentUtils::FormatLocalizedString(
+      nsContentUtils::eSECURITY_PROPERTIES, stringID, params, errorText);
+  if (NS_FAILED(rv)) {
+    return;
+  }
 
   // Report the localized error message to the console for the loading
   // BrowsingContext's current inner window.
-  RefPtr<BrowsingContext> target = loadInfo->GetBrowsingContext();
+  RefPtr<BrowsingContext> target = aLoadInfo->GetBrowsingContext();
   nsContentUtils::ReportToConsoleByWindowID(
       errorText, nsIScriptError::warningFlag, "DATA_URI_BLOCKED"_ns,
       target ? target->GetCurrentInnerWindowId() : 0);
-  return false;
 }
 
 /* static */
@@ -181,77 +191,9 @@ bool nsContentSecurityManager::AllowInsecureRedirectToDataURI(
     return true;
   }
 
-  nsAutoCString dataSpec;
-  newURI->GetSpec(dataSpec);
-  if (dataSpec.Length() > 50) {
-    dataSpec.Truncate(50);
-    dataSpec.AppendLiteral("...");
-  }
-  nsCOMPtr<Document> doc;
-  nsINode* node = loadInfo->LoadingNode();
-  if (node) {
-    doc = node->OwnerDoc();
-  }
-  AutoTArray<nsString, 1> params;
-  CopyUTF8toUTF16(NS_UnescapeURL(dataSpec), *params.AppendElement());
-  nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
-                                  "DATA_URI_BLOCKED"_ns, doc,
-                                  nsContentUtils::eSECURITY_PROPERTIES,
-                                  "BlockSubresourceRedirectToData", params);
+  ReportBlockedDataURI(newURI, loadInfo, true);
+
   return false;
-}
-
-/* static */
-nsresult nsContentSecurityManager::CheckFTPSubresourceLoad(
-    nsIChannel* aChannel) {
-  // We dissallow using FTP resources as a subresource everywhere.
-  // The only valid way to use FTP resources is loading it as
-  // a top level document.
-
-  nsCOMPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
-  ExtContentPolicyType type = loadInfo->GetExternalContentPolicyType();
-
-  // Allow top-level FTP documents and save-as download of FTP files on
-  // HTTP pages.
-  if (type == ExtContentPolicy::TYPE_DOCUMENT ||
-      type == ExtContentPolicy::TYPE_SAVEAS_DOWNLOAD) {
-    return NS_OK;
-  }
-
-  // Allow the system principal to load everything. This is meant to
-  // temporarily fix downloads and pdf.js.
-  nsIPrincipal* triggeringPrincipal = loadInfo->TriggeringPrincipal();
-  if (triggeringPrincipal->IsSystemPrincipal()) {
-    return NS_OK;
-  }
-
-  nsCOMPtr<nsIURI> uri;
-  nsresult rv = NS_GetFinalChannelURI(aChannel, getter_AddRefs(uri));
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (!uri) {
-    return NS_OK;
-  }
-
-  bool isFtpURI = uri->SchemeIs("ftp");
-  if (!isFtpURI) {
-    return NS_OK;
-  }
-
-  nsCOMPtr<Document> doc;
-  if (nsINode* node = loadInfo->LoadingNode()) {
-    doc = node->OwnerDoc();
-  }
-
-  nsAutoCString spec;
-  uri->GetSpec(spec);
-  AutoTArray<nsString, 1> params;
-  CopyUTF8toUTF16(NS_UnescapeURL(spec), *params.AppendElement());
-
-  nsContentUtils::ReportToConsole(
-      nsIScriptError::warningFlag, "FTP_URI_BLOCKED"_ns, doc,
-      nsContentUtils::eSECURITY_PROPERTIES, "BlockSubresourceFTP", params);
-
-  return NS_ERROR_CONTENT_BLOCKED;
 }
 
 static nsresult ValidateSecurityFlags(nsILoadInfo* aLoadInfo) {
@@ -1593,10 +1535,6 @@ nsresult nsContentSecurityManager::doContentSecurityCheck(
   rv = DoContentSecurityChecks(aChannel, loadInfo);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // Apply this after CSP to match Chrome.
-  rv = CheckFTPSubresourceLoad(aChannel);
-  NS_ENSURE_SUCCESS(rv, rv);
-
   rv = CheckAllowFileProtocolScriptLoad(aChannel);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1622,9 +1560,6 @@ nsContentSecurityManager::AsyncOnChannelRedirect(
 
   nsCOMPtr<nsILoadInfo> loadInfo = aOldChannel->LoadInfo();
   nsresult rv = CheckChannel(aNewChannel);
-  if (NS_SUCCEEDED(rv)) {
-    rv = CheckFTPSubresourceLoad(aNewChannel);
-  }
   if (NS_FAILED(rv)) {
     aOldChannel->Cancel(rv);
     return rv;
@@ -1759,7 +1694,9 @@ bool nsContentSecurityManager::CrossOriginEmbedderPolicyAllowsCredentials(
   if (loadInfo->GetExternalContentPolicyType() ==
           ExtContentPolicy::TYPE_DOCUMENT ||
       loadInfo->GetExternalContentPolicyType() ==
-          ExtContentPolicy::TYPE_SUBDOCUMENT) {
+          ExtContentPolicy::TYPE_SUBDOCUMENT ||
+      loadInfo->GetExternalContentPolicyType() ==
+          ExtContentPolicy::TYPE_WEBSOCKET) {
     return true;
   }
 
@@ -1832,6 +1769,13 @@ void nsContentSecurityManager::GetSerializedOrigin(
   }
 
   aOrigin->GetAsciiOrigin(aSerializedOrigin);
+}
+
+// https://html.spec.whatwg.org/multipage/browsers.html#compatible-with-cross-origin-isolation
+bool nsContentSecurityManager::IsCompatibleWithCrossOriginIsolation(
+    nsILoadInfo::CrossOriginEmbedderPolicy aPolicy) {
+  return aPolicy == nsILoadInfo::EMBEDDER_POLICY_CREDENTIALLESS ||
+         aPolicy == nsILoadInfo::EMBEDDER_POLICY_REQUIRE_CORP;
 }
 
 // ==== nsIContentSecurityManager implementation =====

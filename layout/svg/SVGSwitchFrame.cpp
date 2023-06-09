@@ -50,8 +50,7 @@ class SVGSwitchFrame final : public SVGGFrame {
 
   // ISVGDisplayableFrame interface:
   virtual void PaintSVG(gfxContext& aContext, const gfxMatrix& aTransform,
-                        imgDrawingParams& aImgParams,
-                        const nsIntRect* aDirtyRect = nullptr) override;
+                        imgDrawingParams& aImgParams) override;
   nsIFrame* GetFrameForPoint(const gfxPoint& aPoint) override;
   void ReflowSVG() override;
   virtual SVGBBox GetBBoxContribution(const Matrix& aToBBoxUserspace,
@@ -97,14 +96,11 @@ void SVGSwitchFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
 }
 
 void SVGSwitchFrame::PaintSVG(gfxContext& aContext, const gfxMatrix& aTransform,
-                              imgDrawingParams& aImgParams,
-                              const nsIntRect* aDirtyRect) {
-  NS_ASSERTION(
-      !NS_SVGDisplayListPaintingEnabled() || (mState & NS_FRAME_IS_NONDISPLAY),
-      "If display lists are enabled, only painting of non-display "
-      "SVG should take this code path");
+                              imgDrawingParams& aImgParams) {
+  NS_ASSERTION(HasAnyStateBits(NS_FRAME_IS_NONDISPLAY),
+               "Only painting of non-display SVG should take this code path");
 
-  if (StyleEffects()->mOpacity == 0.0) {
+  if (StyleEffects()->IsTransparent()) {
     return;
   }
 
@@ -114,15 +110,14 @@ void SVGSwitchFrame::PaintSVG(gfxContext& aContext, const gfxMatrix& aTransform,
     if (kid->GetContent()->IsSVGElement()) {
       tm = SVGUtils::GetTransformMatrixInUserSpace(kid) * tm;
     }
-    SVGUtils::PaintFrameWithEffects(kid, aContext, tm, aImgParams, aDirtyRect);
+    SVGUtils::PaintFrameWithEffects(kid, aContext, tm, aImgParams);
   }
 }
 
 nsIFrame* SVGSwitchFrame::GetFrameForPoint(const gfxPoint& aPoint) {
-  NS_ASSERTION(!NS_SVGDisplayListHitTestingEnabled() ||
-                   (mState & NS_FRAME_IS_NONDISPLAY),
-               "If display lists are enabled, only hit-testing of non-display "
-               "SVG should take this code path");
+  NS_ASSERTION(
+      HasAnyStateBits(NS_FRAME_IS_NONDISPLAY),
+      "Only hit-testing of non-display SVG should take this code path");
 
   nsIFrame* kid = GetActiveChildFrame();
   ISVGDisplayableFrame* svgFrame = do_QueryFrame(kid);
@@ -208,7 +203,7 @@ void SVGSwitchFrame::ReflowSVG() {
   // need to remove it _after_ recursing over our children so that they know
   // the initial reflow is currently underway.
 
-  bool isFirstReflow = (mState & NS_FRAME_FIRST_REFLOW);
+  bool isFirstReflow = HasAnyStateBits(NS_FRAME_FIRST_REFLOW);
 
   bool outerSVGHasHadFirstReflow =
       !GetParent()->HasAnyStateBits(NS_FRAME_FIRST_REFLOW);

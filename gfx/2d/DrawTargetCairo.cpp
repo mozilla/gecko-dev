@@ -1203,8 +1203,8 @@ void DrawTargetCairo::ClearRect(const Rect& aRect) {
   AutoPrepareForDrawing prep(this, mContext);
 
   if (!mContext || aRect.Width() < 0 || aRect.Height() < 0 ||
-      !IsFinite(aRect.X()) || !IsFinite(aRect.Width()) ||
-      !IsFinite(aRect.Y()) || !IsFinite(aRect.Height())) {
+      !std::isfinite(aRect.X()) || !std::isfinite(aRect.Width()) ||
+      !std::isfinite(aRect.Y()) || !std::isfinite(aRect.Height())) {
     gfxCriticalNote << "ClearRect with invalid argument " << gfx::hexa(mContext)
                     << " with " << aRect.Width() << "x" << aRect.Height()
                     << " [" << aRect.X() << ", " << aRect.Y() << "]";
@@ -1680,11 +1680,6 @@ void DrawTargetCairo::PopLayer() {
 
   cairo_pattern_destroy(layer.mMaskPattern);
   SetPermitSubpixelAA(layer.mWasPermittingSubpixelAA);
-}
-
-already_AddRefed<PathBuilder> DrawTargetCairo::CreatePathBuilder(
-    FillRule aFillRule /* = FillRule::FILL_WINDING */) const {
-  return MakeAndAddRef<PathBuilderCairo>(aFillRule);
 }
 
 void DrawTargetCairo::ClearSurfaceForUnboundedSource(

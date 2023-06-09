@@ -133,8 +133,8 @@ CodeRange::CodeRange(uint32_t funcIndex, uint32_t funcLineOrBytecode,
       kind_(Function) {
   MOZ_ASSERT(begin_ < ret_);
   MOZ_ASSERT(ret_ < end_);
-  MOZ_ASSERT(offsets.uncheckedCallEntry - begin_ <= UINT8_MAX);
-  MOZ_ASSERT(offsets.tierEntry - begin_ <= UINT8_MAX);
+  MOZ_ASSERT(offsets.uncheckedCallEntry - begin_ <= UINT16_MAX);
+  MOZ_ASSERT(offsets.tierEntry - begin_ <= UINT16_MAX);
   u.funcIndex_ = funcIndex;
   u.func.lineOrBytecode_ = funcLineOrBytecode;
   u.func.beginToUncheckedCallEntry_ = offsets.uncheckedCallEntry - begin_;
@@ -186,7 +186,7 @@ CallIndirectId CallIndirectId::forFuncType(const ModuleEnvironment& moduleEnv,
                           funcType.immediateTypeId());
   }
   return CallIndirectId(CallIndirectIdKind::Global,
-                        moduleEnv.offsetOfTypeId(funcTypeIndex));
+                        moduleEnv.offsetOfTypeDef(funcTypeIndex));
 }
 
 CalleeDesc CalleeDesc::function(uint32_t funcIndex) {
@@ -195,26 +195,30 @@ CalleeDesc CalleeDesc::function(uint32_t funcIndex) {
   c.u.funcIndex_ = funcIndex;
   return c;
 }
-CalleeDesc CalleeDesc::import(uint32_t globalDataOffset) {
+CalleeDesc CalleeDesc::import(uint32_t instanceDataOffset) {
   CalleeDesc c;
   c.which_ = Import;
-  c.u.import.globalDataOffset_ = globalDataOffset;
+  c.u.import.instanceDataOffset_ = instanceDataOffset;
   return c;
 }
-CalleeDesc CalleeDesc::wasmTable(const TableDesc& desc,
+CalleeDesc CalleeDesc::wasmTable(const ModuleEnvironment& moduleEnv,
+                                 const TableDesc& desc, uint32_t tableIndex,
                                  CallIndirectId callIndirectId) {
   CalleeDesc c;
   c.which_ = WasmTable;
-  c.u.table.globalDataOffset_ = desc.globalDataOffset;
+  c.u.table.instanceDataOffset_ =
+      moduleEnv.offsetOfTableInstanceData(tableIndex);
   c.u.table.minLength_ = desc.initialLength;
   c.u.table.maxLength_ = desc.maximumLength;
   c.u.table.callIndirectId_ = callIndirectId;
   return c;
 }
-CalleeDesc CalleeDesc::asmJSTable(const TableDesc& desc) {
+CalleeDesc CalleeDesc::asmJSTable(const ModuleEnvironment& moduleEnv,
+                                  uint32_t tableIndex) {
   CalleeDesc c;
   c.which_ = AsmJSTable;
-  c.u.table.globalDataOffset_ = desc.globalDataOffset;
+  c.u.table.instanceDataOffset_ =
+      moduleEnv.offsetOfTableInstanceData(tableIndex);
   return c;
 }
 CalleeDesc CalleeDesc::builtin(SymbolicAddress callee) {

@@ -1,3 +1,5 @@
+#![allow(clippy::needless_borrowed_reference)]
+
 use criterion::*;
 use std::{fs, path::PathBuf, slice};
 
@@ -10,7 +12,7 @@ fn gather_inputs(folder: &str, extension: &str) -> Vec<Box<[u8]>> {
     for file_entry in read_dir {
         match file_entry {
             Ok(entry) => match entry.path().extension() {
-                Some(ostr) if &*ostr == extension => {
+                Some(ostr) if ostr == extension => {
                     let input = fs::read(entry.path()).unwrap_or_default();
                     list.push(input.into_boxed_slice());
                 }
@@ -26,7 +28,7 @@ fn gather_inputs(folder: &str, extension: &str) -> Vec<Box<[u8]>> {
 }
 
 fn parse_glsl(stage: naga::ShaderStage, inputs: &[Box<[u8]>]) {
-    let mut parser = naga::front::glsl::Parser::default();
+    let mut parser = naga::front::glsl::Frontend::default();
     let options = naga::front::glsl::Options {
         stage,
         defines: Default::default(),
@@ -42,12 +44,12 @@ fn frontends(c: &mut Criterion) {
     #[cfg(all(feature = "wgsl-in", feature = "serialize", feature = "deserialize"))]
     group.bench_function("bin", |b| {
         let inputs_wgsl = gather_inputs("tests/in", "wgsl");
-        let mut parser = naga::front::wgsl::Parser::new();
+        let mut frontend = naga::front::wgsl::Frontend::new();
         let inputs_bin = inputs_wgsl
             .iter()
             .map(|input| {
                 let string = std::str::from_utf8(input).unwrap();
-                let module = parser.parse(string).unwrap();
+                let module = frontend.parse(string).unwrap();
                 bincode::serialize(&module).unwrap()
             })
             .collect::<Vec<_>>();
@@ -64,10 +66,10 @@ fn frontends(c: &mut Criterion) {
             .iter()
             .map(|input| std::str::from_utf8(input).unwrap())
             .collect::<Vec<_>>();
-        let mut parser = naga::front::wgsl::Parser::new();
+        let mut frontend = naga::front::wgsl::Frontend::new();
         b.iter(move || {
             for &input in inputs.iter() {
-                parser.parse(input).unwrap();
+                frontend.parse(input).unwrap();
             }
         });
     });
@@ -79,7 +81,7 @@ fn frontends(c: &mut Criterion) {
             for input in inputs.iter() {
                 let spv =
                     unsafe { slice::from_raw_parts(input.as_ptr() as *const u32, input.len() / 4) };
-                let parser = naga::front::spv::Parser::new(spv.iter().cloned(), &options);
+                let parser = naga::front::spv::Frontend::new(spv.iter().cloned(), &options);
                 parser.parse().unwrap();
             }
         });
@@ -99,12 +101,12 @@ fn frontends(c: &mut Criterion) {
 #[cfg(feature = "wgsl-in")]
 fn gather_modules() -> Vec<naga::Module> {
     let inputs = gather_inputs("tests/in", "wgsl");
-    let mut parser = naga::front::wgsl::Parser::new();
+    let mut frontend = naga::front::wgsl::Frontend::new();
     inputs
         .iter()
         .map(|input| {
             let string = std::str::from_utf8(input).unwrap();
-            parser.parse(string).unwrap()
+            frontend.parse(string).unwrap()
         })
         .collect()
 }
@@ -147,7 +149,7 @@ fn backends(c: &mut Criterion) {
     let inputs = {
         let mut validator = naga::valid::Validator::new(
             naga::valid::ValidationFlags::empty(),
-            naga::valid::Capabilities::empty(),
+            naga::valid::Capabilities::default(),
         );
         let input_modules = gather_modules();
         input_modules
@@ -242,6 +244,7 @@ fn backends(c: &mut Criterion) {
                 version: naga::back::glsl::Version::new_gles(320),
                 writer_flags: naga::back::glsl::WriterFlags::empty(),
                 binding_map: Default::default(),
+                zero_initialize_workgroup_memory: true,
             };
             for &(ref module, ref info) in inputs.iter() {
                 for ep in module.entry_points.iter() {
@@ -250,7 +253,9 @@ fn backends(c: &mut Criterion) {
                         entry_point: ep.name.clone(),
                         multiview: None,
                     };
-                    match naga::back::glsl::Writer::new(
+
+                    // might be `Err` if missing features
+                    if let Ok(mut writer) = naga::back::glsl::Writer::new(
                         &mut string,
                         module,
                         info,
@@ -258,13 +263,9 @@ fn backends(c: &mut Criterion) {
                         &pipeline_options,
                         naga::proc::BoundsCheckPolicies::default(),
                     ) {
-                        Ok(mut writer) => {
-                            let _ = writer.write(); // can error if unsupported
-                        }
-                        Err(_) => {
-                            // missing features
-                        }
-                    };
+                        let _ = writer.write(); // might be `Err` if unsupported
+                    }
+
                     string.clear();
                 }
             }

@@ -17,6 +17,8 @@
 #include "nsISupportsImpl.h"
 
 #include "mozilla/ipc/UtilityProcessSandboxing.h"
+#include "mozilla/ipc/LaunchError.h"
+#include "mozilla/Result.h"
 
 namespace sandbox {
 class BrokerServices;
@@ -29,22 +31,18 @@ class AbstractSandboxBroker {
  public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(AbstractSandboxBroker)
 
-  static AbstractSandboxBroker* Create(GeckoProcessType aProcessType);
-
   virtual void Shutdown() = 0;
-  virtual bool LaunchApp(const wchar_t* aPath, const wchar_t* aArguments,
-                         base::EnvironmentMap& aEnvironment,
-                         GeckoProcessType aProcessType,
-                         const bool aEnableLogging,
-                         const IMAGE_THUNK_DATA* aCachedNtdllThunk,
-                         void** aProcessHandle) = 0;
+  virtual Result<Ok, mozilla::ipc::LaunchError> LaunchApp(
+      const wchar_t* aPath, const wchar_t* aArguments,
+      base::EnvironmentMap& aEnvironment, GeckoProcessType aProcessType,
+      const bool aEnableLogging, const IMAGE_THUNK_DATA* aCachedNtdllThunk,
+      void** aProcessHandle) = 0;
 
   // Security levels for different types of processes
   virtual void SetSecurityLevelForContentProcess(int32_t aSandboxLevel,
                                                  bool aIsFileProcess) = 0;
 
-  virtual void SetSecurityLevelForGPUProcess(
-      int32_t aSandboxLevel, const nsCOMPtr<nsIFile>& aProfileDir) = 0;
+  virtual void SetSecurityLevelForGPUProcess(int32_t aSandboxLevel) = 0;
   virtual bool SetSecurityLevelForRDDProcess() = 0;
   virtual bool SetSecurityLevelForSocketProcess() = 0;
   virtual bool SetSecurityLevelForUtilityProcess(
@@ -88,19 +86,18 @@ class SandboxBroker : public AbstractSandboxBroker {
    */
   static void GeckoDependentInitialize();
 
-  bool LaunchApp(const wchar_t* aPath, const wchar_t* aArguments,
-                 base::EnvironmentMap& aEnvironment,
-                 GeckoProcessType aProcessType, const bool aEnableLogging,
-                 const IMAGE_THUNK_DATA* aCachedNtdllThunk,
-                 void** aProcessHandle) override;
+  Result<Ok, mozilla::ipc::LaunchError> LaunchApp(
+      const wchar_t* aPath, const wchar_t* aArguments,
+      base::EnvironmentMap& aEnvironment, GeckoProcessType aProcessType,
+      const bool aEnableLogging, const IMAGE_THUNK_DATA* aCachedNtdllThunk,
+      void** aProcessHandle) override;
   virtual ~SandboxBroker();
 
   // Security levels for different types of processes
   void SetSecurityLevelForContentProcess(int32_t aSandboxLevel,
                                          bool aIsFileProcess) override;
 
-  void SetSecurityLevelForGPUProcess(
-      int32_t aSandboxLevel, const nsCOMPtr<nsIFile>& aProfileDir) override;
+  void SetSecurityLevelForGPUProcess(int32_t aSandboxLevel) override;
   bool SetSecurityLevelForRDDProcess() override;
   bool SetSecurityLevelForSocketProcess() override;
   bool SetSecurityLevelForGMPlugin(SandboxLevel aLevel,
@@ -131,7 +128,6 @@ class SandboxBroker : public AbstractSandboxBroker {
   void ApplyLoggingPolicy();
 
  private:
-  static sandbox::BrokerServices* sBrokerService;
   static bool sRunningFromNetworkDrive;
   sandbox::TargetPolicy* mPolicy;
 };

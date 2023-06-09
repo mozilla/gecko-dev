@@ -10,7 +10,7 @@
   --in-content-page-color: rgb(21, 20, 26);
   --in-content-page-background: #fff;
   --in-content-text-color: var(--in-content-page-color);
-  --in-content-deemphasized-text: rgb(91, 91, 102);
+  --in-content-deemphasized-text: color-mix(in srgb, currentColor 69%, transparent);
   --in-content-box-background: #fff;
   --in-content-box-background-odd: rgba(12, 12, 13, 0.05); /* grey 90 a05 */
   --in-content-box-border-color: color-mix(in srgb, currentColor 41%, transparent);
@@ -26,17 +26,18 @@
   --in-content-border-invalid: var(--red-50);
   --in-content-border-color: #d7d7db;
   --in-content-error-text-color: #c50042;
+  --in-content-success-icon-color: #2ac3a2;
   --in-content-link-color: var(--in-content-primary-button-background);
   --in-content-link-color-hover: var(--in-content-primary-button-background-hover);
   --in-content-link-color-active: var(--in-content-primary-button-background-active);
   --in-content-link-color-visited: var(--in-content-link-color);
-   /* button background states are also used for checkboxes and radiobuttons */
   --in-content-button-text-color: var(--in-content-text-color);
   --in-content-button-text-color-hover: var(--in-content-text-color);
   --in-content-button-text-color-active: var(--in-content-button-text-color-hover);
-  --in-content-button-background: rgba(207,207,216,.33);
-  --in-content-button-background-hover: rgba(207,207,216,.66);
-  --in-content-button-background-active: rgb(207,207,216);
+   /* button background states are also used for checkboxes and radiobuttons */
+  --in-content-button-background: color-mix(in srgb, currentColor 7%, transparent);
+  --in-content-button-background-hover: color-mix(in srgb, currentColor 14%, transparent);
+  --in-content-button-background-active: color-mix(in srgb, currentColor 21%, transparent);
   --in-content-button-border-color: transparent;
   --in-content-button-border-color-hover: transparent;
   --in-content-button-border-color-active: var(--in-content-button-border-color-hover);
@@ -132,7 +133,7 @@
      * in-content privileged pages and plain-text documents). */
     --in-content-page-background: rgb(28,27,34);
     --in-content-page-color: rgb(251,251,254);
-    --in-content-deemphasized-text: rgb(191,191,201);
+    --in-content-deemphasized-text: color-mix(in srgb, currentColor 75%, transparent);
 
     --in-content-box-background: rgb(35, 34, 43);
     --in-content-box-background-odd: rgba(249,249,250,0.05);
@@ -143,10 +144,8 @@
     --in-content-border-invalid: rgb(255,132,139);
 
     --in-content-error-text-color: #FF9AA2;
+    --in-content-success-icon-color: #54FFBD;
 
-    --in-content-button-background: rgb(43,42,51);
-    --in-content-button-background-hover: rgb(82,82,94);
-    --in-content-button-background-active: rgb(91,91,102);
     --in-content-icon-color: rgb(251,251,254);
 
     --in-content-primary-button-text-color: rgb(43,42,51);
@@ -263,7 +262,6 @@
   appearance: none;
   background-color: var(--in-content-page-background);
   color: var(--in-content-page-color);
-  -moz-box-layout: flex;
 }
 
 :root:not(.system-font-size) {
@@ -435,19 +433,25 @@ xul|tab:focus-visible > .tab-middle > .tab-text {
 
 html|select:not([size], [multiple]) {
   background-image: url("chrome://global/skin/icons/arrow-down-12.svg");
-  background-position: right 3px center;
+  background-position: right 19px center;
   background-repeat: no-repeat;
   background-size: auto 12px;
   -moz-context-properties: fill;
   fill: currentColor;
-  font-size: inherit;
-  line-height: 2.1;
-  padding-inline: 5px 24px;
+  font: inherit;
+  font-weight: 600;
+
+  /* The following padding matches how a menulist is internally spaced.
+   * 15px is the menulist's standard padding-inline, 3px is for
+   * the internal label margin, 12px is the dropmarker's width
+   * and 4px is the dropmarker's margin-inline-end. */
+  padding-inline-start: calc(15px + 3px);
+  padding-inline-end: calc(15px + 12px + 4px);
   text-overflow: ellipsis;
 }
 
 html|select:not([size], [multiple]):dir(rtl) {
-  background-position-x: left 3px;
+  background-position-x: left 19px;
 }
 
 html|select:not([size], [multiple]) > html|option {
@@ -578,7 +582,7 @@ xul|menulist::part(dropmarker) {
   border: none;
   background-color: transparent;
   list-style-image: url("chrome://global/skin/icons/arrow-down-12.svg");
-  -moz-box-align: center;
+  align-items: center;
   -moz-context-properties: fill;
   fill: currentColor;
 }
@@ -686,14 +690,12 @@ xul|search-textbox[disabled="true"] {
 html|a,
 .text-link {
   color: var(--in-content-link-color);
-  text-decoration: none;
 }
 
 html|a:hover,
 .text-link:hover,
 button.text-link:is(:not([disabled="true"]), :enabled):hover {
   color: var(--in-content-link-color-hover);
-  text-decoration: underline;
 }
 
 html|a:visited {
@@ -1072,7 +1074,7 @@ html|*#categories[last-input-type="mouse"] > html|button.category:focus-visible 
   margin-inline-end: 4px; /* add the 4px end-margin of other elements */
   margin-bottom: 15px;
   padding-bottom: 15px;
-  -moz-box-align: baseline;
+  align-items: baseline;
 }
 
 .header-name {
@@ -1257,7 +1259,7 @@ xul|treechildren::-moz-tree-image(selected) {
   background-color: var(--in-content-box-info-background);
   border-radius: 4px;
   min-height: 32px;
-  -moz-box-align: center;
+  align-items: center;
   padding: 4px;
 }
 
@@ -1377,8 +1379,8 @@ input[type="text"][warning]:enabled:not(:focus) {
 }
 
 xul|*.sidebar-footer-link {
-  display: -moz-box;
-  -moz-box-align: center;
+  display: flex;
+  align-items: center;
 }
 
 .sidebar-footer-link:hover {
@@ -1416,7 +1418,7 @@ xul|*.sidebar-footer-link {
 @media (max-width: 830px) {
   .sidebar-footer-list {
     margin-inline-start: 40px;
-    -moz-box-align: start;
+    align-items: flex-start;
   }
 
   .sidebar-footer-link {

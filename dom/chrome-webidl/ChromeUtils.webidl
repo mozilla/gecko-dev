@@ -116,6 +116,26 @@ namespace ChromeUtils {
   HeapSnapshot readHeapSnapshot(DOMString filePath);
 
   /**
+   * Efficient way to know if DevTools are active in the current process.
+   *
+   * This doesn't help know what particular context is being debugged,
+   * but can help strip off code entirely when DevTools aren't used at all.
+   *
+   * BrowsingContext.isWatchedByDevTools is a more precise way to know
+   * when one precise tab is being debugged.
+   */
+  boolean isDevToolsOpened();
+
+  /**
+   * API exposed to DevTools JS code in order to know when devtools are being active in the current process.
+   *
+   * This API counts the number of calls to these methods, allowing to track many DevTools instances.
+   */
+  undefined notifyDevToolsOpened();
+  undefined notifyDevToolsClosed();
+
+
+  /**
    * Return the keys in a weak map.  This operation is
    * non-deterministic because it is affected by the scheduling of the
    * garbage collector and the cycle collector.
@@ -255,6 +275,21 @@ namespace ChromeUtils {
   double dateNow();
 
   /**
+   * Defines a getter on a specified object that will be created upon first
+   * use.
+   *
+   * @param aTarget
+   *        The object to define the lazy getter on.
+   * @param aName
+   *        The name of the getter to define on aTarget.
+   * @param aLambda
+   *        A function that returns what the getter should return.  This will
+   *        only ever be called once.
+   */
+  [Throws]
+  undefined defineLazyGetter(object aTarget, any aName, object aLambda);
+
+  /**
    * IF YOU ADD NEW METHODS HERE, MAKE SURE THEY ARE THREAD-SAFE.
    */
 };
@@ -370,7 +405,7 @@ partial namespace ChromeUtils {
    * nsISupports is implicitly supported, and must not be included in the
    * interface list.
    */
-  [Affects=Nothing, NewObject, Throws]
+  [Affects=Nothing, NewObject]
   MozQueryInterface generateQI(sequence<any> interfaces);
 
   /**
@@ -653,6 +688,25 @@ partial namespace ChromeUtils {
    * Returns whether the background of the element is dark.
    */
   boolean isDarkBackground(Element element);
+
+  /**
+   * Starts the JSOracle process for ORB JavaScript validation, if it hasn't started already.
+   */
+  undefined ensureJSOracleStarted();
+
+  /**
+   * The number of currently alive utility processes.
+   */
+  [ChromeOnly]
+  readonly attribute unsigned long aliveUtilityProcesses;
+
+  /**
+   * Get a list of all possible Utility process Actor Names ; mostly useful to
+   * perform testing and ensure about:processes display is sound and misses no
+   * actor name.
+   */
+  [ChromeOnly]
+  sequence<UTF8String> getAllPossibleUtilityActorNames();
 };
 
 /*
@@ -728,6 +782,7 @@ enum WebIDLUtilityActorName {
   "audioDecoder_WMF",
   "mfMediaEngineCDM",
   "jSOracle",
+  "windowsUtils",
 };
 
 dictionary UtilityActorsDictionary {

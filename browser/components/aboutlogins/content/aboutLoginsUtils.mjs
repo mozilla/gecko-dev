@@ -2,8 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+export const CONCEALED_PASSWORD_TEXT = " ".repeat(8);
+
 /**
- * Dispatches a custom event to the AboutLoginsChild.jsm script which
+ * Dispatches a custom event to the AboutLoginsChild.sys.mjs script which
  * will record the event.
  * @param {object} event.method The telemety event method
  * @param {object} event.object The telemety event object

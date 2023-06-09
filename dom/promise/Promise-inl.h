@@ -11,7 +11,6 @@
 #include <utility>
 
 #include "mozilla/AlreadyAddRefed.h"
-#include "mozilla/TupleCycleCollection.h"
 #include "mozilla/ResultExtensions.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/Promise.h"
@@ -191,9 +190,11 @@ class NativeThenHandler<ResolveCallback, RejectCallback, std::tuple<Args...>,
   }
 
   // mJSArgs are marked with Trace() above, so they can be safely converted to
-  // Handles.
+  // Handles. But we should not circumvent the read barrier, so call
+  // exposeToActiveJS explicitly.
   template <typename T>
-  static JS::Handle<T> GetJSArgHandle(JS::Heap<T>& aArg) {
+  static JS::Handle<T> GetJSArgHandleForCall(JS::Heap<T>& aArg) {
+    aArg.exposeToActiveJS();
     return JS::Handle<T>::fromMarkedLocation(aArg.address());
   }
 
@@ -203,7 +204,7 @@ class NativeThenHandler<ResolveCallback, RejectCallback, std::tuple<Args...>,
       ErrorResult& aRv, std::index_sequence<Indices...>,
       std::index_sequence<JSIndices...>) {
     return aHandler(aCx, aValue, aRv, ArgType(std::get<Indices>(mArgs))...,
-                    GetJSArgHandle(std::get<JSIndices>(mJSArgs))...);
+                    GetJSArgHandleForCall(std::get<JSIndices>(mJSArgs))...);
   }
 
   template <typename TCallback>

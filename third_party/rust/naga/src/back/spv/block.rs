@@ -711,36 +711,22 @@ impl<'w> BlockContext<'w> {
                             .get_constant_scalar(crate::ScalarValue::Float(1.0), width);
 
                         if let Some(size) = maybe_size {
-                            let value = LocalType::Value {
+                            let ty = LocalType::Value {
                                 vector_size: Some(size),
                                 kind: crate::ScalarKind::Float,
                                 width,
                                 pointer_space: None,
-                            };
-
-                            let result_type_id = self.get_type_id(LookupType::Local(value));
+                            }
+                            .into();
 
                             self.temp_list.clear();
                             self.temp_list.resize(size as _, arg1_id);
 
-                            let id = self.gen_id();
-                            block.body.push(Instruction::composite_construct(
-                                result_type_id,
-                                id,
-                                &self.temp_list,
-                            ));
-                            arg1_id = id;
+                            arg1_id = self.writer.get_constant_composite(ty, &self.temp_list);
 
-                            self.temp_list.clear();
-                            self.temp_list.resize(size as _, arg2_id);
+                            self.temp_list.fill(arg2_id);
 
-                            let id = self.gen_id();
-                            block.body.push(Instruction::composite_construct(
-                                result_type_id,
-                                id,
-                                &self.temp_list,
-                            ));
-                            arg2_id = id;
+                            arg2_id = self.writer.get_constant_composite(ty, &self.temp_list);
                         }
 
                         MathOp::Custom(Instruction::ext_inst(
@@ -888,6 +874,100 @@ impl<'w> BlockContext<'w> {
                         id,
                         arg0_id,
                     )),
+                    Mf::CountTrailingZeros => {
+                        let uint = crate::ScalarValue::Uint(32);
+                        let uint_id = match *arg_ty {
+                            crate::TypeInner::Vector { size, width, .. } => {
+                                let ty = LocalType::Value {
+                                    vector_size: Some(size),
+                                    kind: crate::ScalarKind::Uint,
+                                    width,
+                                    pointer_space: None,
+                                }
+                                .into();
+
+                                self.temp_list.clear();
+                                self.temp_list.resize(
+                                    size as _,
+                                    self.writer.get_constant_scalar(uint, width),
+                                );
+
+                                self.writer.get_constant_composite(ty, &self.temp_list)
+                            }
+                            crate::TypeInner::Scalar { width, .. } => {
+                                self.writer.get_constant_scalar(uint, width)
+                            }
+                            _ => unreachable!(),
+                        };
+
+                        let lsb_id = self.gen_id();
+                        block.body.push(Instruction::ext_inst(
+                            self.writer.gl450_ext_inst_id,
+                            spirv::GLOp::FindILsb,
+                            result_type_id,
+                            lsb_id,
+                            &[arg0_id],
+                        ));
+
+                        MathOp::Custom(Instruction::ext_inst(
+                            self.writer.gl450_ext_inst_id,
+                            spirv::GLOp::UMin,
+                            result_type_id,
+                            id,
+                            &[uint_id, lsb_id],
+                        ))
+                    }
+                    Mf::CountLeadingZeros => {
+                        let int = crate::ScalarValue::Sint(31);
+
+                        let (int_type_id, int_id) = match *arg_ty {
+                            crate::TypeInner::Vector { size, width, .. } => {
+                                let ty = LocalType::Value {
+                                    vector_size: Some(size),
+                                    kind: crate::ScalarKind::Sint,
+                                    width,
+                                    pointer_space: None,
+                                }
+                                .into();
+
+                                self.temp_list.clear();
+                                self.temp_list
+                                    .resize(size as _, self.writer.get_constant_scalar(int, width));
+
+                                (
+                                    self.get_type_id(ty),
+                                    self.writer.get_constant_composite(ty, &self.temp_list),
+                                )
+                            }
+                            crate::TypeInner::Scalar { width, .. } => (
+                                self.get_type_id(LookupType::Local(LocalType::Value {
+                                    vector_size: None,
+                                    kind: crate::ScalarKind::Sint,
+                                    width,
+                                    pointer_space: None,
+                                })),
+                                self.writer.get_constant_scalar(int, width),
+                            ),
+                            _ => unreachable!(),
+                        };
+
+                        let msb_id = self.gen_id();
+                        block.body.push(Instruction::ext_inst(
+                            self.writer.gl450_ext_inst_id,
+                            spirv::GLOp::FindUMsb,
+                            int_type_id,
+                            msb_id,
+                            &[arg0_id],
+                        ));
+
+                        MathOp::Custom(Instruction::binary(
+                            spirv::Op::ISub,
+                            result_type_id,
+                            id,
+                            int_id,
+                            msb_id,
+                        ))
+                    }
                     Mf::CountOneBits => MathOp::Custom(Instruction::unary(
                         spirv::Op::BitCount,
                         result_type_id,
@@ -1004,9 +1084,9 @@ impl<'w> BlockContext<'w> {
                 }
             }
             crate::Expression::FunctionArgument(index) => self.function.parameter_id(index),
-            crate::Expression::CallResult(_) | crate::Expression::AtomicResult { .. } => {
-                self.cached[expr_handle]
-            }
+            crate::Expression::CallResult(_)
+            | crate::Expression::AtomicResult { .. }
+            | crate::Expression::RayQueryProceedResult => self.cached[expr_handle],
             crate::Expression::As {
                 expr,
                 kind,
@@ -1062,22 +1142,18 @@ impl<'w> BlockContext<'w> {
                             let zero_scalar_id = self.writer.get_constant_scalar(value, src_width);
                             let zero_id = match src_size {
                                 Some(size) => {
-                                    let vector_type_id =
-                                        self.get_type_id(LookupType::Local(LocalType::Value {
-                                            vector_size: Some(size),
-                                            kind: src_kind,
-                                            width: src_width,
-                                            pointer_space: None,
-                                        }));
-                                    let components = [zero_scalar_id; 4];
+                                    let ty = LocalType::Value {
+                                        vector_size: Some(size),
+                                        kind: src_kind,
+                                        width: src_width,
+                                        pointer_space: None,
+                                    }
+                                    .into();
 
-                                    let zero_id = self.gen_id();
-                                    block.body.push(Instruction::composite_construct(
-                                        vector_type_id,
-                                        zero_id,
-                                        &components[..size as usize],
-                                    ));
-                                    zero_id
+                                    self.temp_list.clear();
+                                    self.temp_list.resize(size as _, zero_scalar_id);
+
+                                    self.writer.get_constant_composite(ty, &self.temp_list)
                                 }
                                 None => zero_scalar_id,
                             };
@@ -1103,28 +1179,25 @@ impl<'w> BlockContext<'w> {
                             let scalar1_id = self.writer.get_constant_scalar(val1, dst_width);
                             let (accept_id, reject_id) = match src_size {
                                 Some(size) => {
-                                    let vector_type_id =
-                                        self.get_type_id(LookupType::Local(LocalType::Value {
-                                            vector_size: Some(size),
-                                            kind,
-                                            width: dst_width,
-                                            pointer_space: None,
-                                        }));
-                                    let components0 = [scalar0_id; 4];
-                                    let components1 = [scalar1_id; 4];
+                                    let ty = LocalType::Value {
+                                        vector_size: Some(size),
+                                        kind,
+                                        width: dst_width,
+                                        pointer_space: None,
+                                    }
+                                    .into();
 
-                                    let vec0_id = self.gen_id();
-                                    block.body.push(Instruction::composite_construct(
-                                        vector_type_id,
-                                        vec0_id,
-                                        &components0[..size as usize],
-                                    ));
-                                    let vec1_id = self.gen_id();
-                                    block.body.push(Instruction::composite_construct(
-                                        vector_type_id,
-                                        vec1_id,
-                                        &components1[..size as usize],
-                                    ));
+                                    self.temp_list.clear();
+                                    self.temp_list.resize(size as _, scalar0_id);
+
+                                    let vec0_id =
+                                        self.writer.get_constant_composite(ty, &self.temp_list);
+
+                                    self.temp_list.fill(scalar1_id);
+
+                                    let vec1_id =
+                                        self.writer.get_constant_composite(ty, &self.temp_list);
+
                                     (vec1_id, vec0_id)
                                 }
                                 None => (scalar1_id, scalar0_id),
@@ -1261,15 +1334,29 @@ impl<'w> BlockContext<'w> {
                 block.body.push(instruction);
                 id
             }
-            crate::Expression::Derivative { axis, expr } => {
-                use crate::DerivativeAxis as Da;
-
+            crate::Expression::Derivative { axis, ctrl, expr } => {
+                use crate::{DerivativeAxis as Axis, DerivativeControl as Ctrl};
+                match ctrl {
+                    Ctrl::Coarse | Ctrl::Fine => {
+                        self.writer.require_any(
+                            "DerivativeControl",
+                            &[spirv::Capability::DerivativeControl],
+                        )?;
+                    }
+                    Ctrl::None => {}
+                }
                 let id = self.gen_id();
                 let expr_id = self.cached[expr];
-                let op = match axis {
-                    Da::X => spirv::Op::DPdx,
-                    Da::Y => spirv::Op::DPdy,
-                    Da::Width => spirv::Op::Fwidth,
+                let op = match (axis, ctrl) {
+                    (Axis::X, Ctrl::Coarse) => spirv::Op::DPdxCoarse,
+                    (Axis::X, Ctrl::Fine) => spirv::Op::DPdxFine,
+                    (Axis::X, Ctrl::None) => spirv::Op::DPdx,
+                    (Axis::Y, Ctrl::Coarse) => spirv::Op::DPdyCoarse,
+                    (Axis::Y, Ctrl::Fine) => spirv::Op::DPdyFine,
+                    (Axis::Y, Ctrl::None) => spirv::Op::DPdy,
+                    (Axis::Width, Ctrl::Coarse) => spirv::Op::FwidthCoarse,
+                    (Axis::Width, Ctrl::Fine) => spirv::Op::FwidthFine,
+                    (Axis::Width, Ctrl::None) => spirv::Op::Fwidth,
                 };
                 block
                     .body
@@ -1299,6 +1386,12 @@ impl<'w> BlockContext<'w> {
                 id
             }
             crate::Expression::ArrayLength(expr) => self.write_runtime_array_length(expr, block)?,
+            crate::Expression::RayQueryGetIntersection { query, committed } => {
+                if !committed {
+                    return Err(Error::FeatureNotImplemented("candidate intersection"));
+                }
+                self.write_ray_query_get_intersection(query, block)
+            }
         };
 
         self.cached[expr_handle] = id;
@@ -1534,12 +1627,7 @@ impl<'w> BlockContext<'w> {
         size: u32,
         block: &mut Block,
     ) {
-        let const_null = self.gen_id();
-        block
-            .body
-            .push(Instruction::constant_null(result_type_id, const_null));
-
-        let mut partial_sum = const_null;
+        let mut partial_sum = self.writer.write_constant_null(result_type_id);
         let last_component = size - 1;
         for index in 0..=last_component {
             // compute the product of the current components
@@ -1680,31 +1768,39 @@ impl<'w> BlockContext<'w> {
                         spirv::SelectionControl::NONE,
                     ));
 
-                    let default_id = self.gen_id();
+                    let mut default_id = None;
+                    // id of previous empty fall-through case
+                    let mut last_id = None;
 
-                    let mut reached_default = false;
                     let mut raw_cases = Vec::with_capacity(cases.len());
                     let mut case_ids = Vec::with_capacity(cases.len());
                     for case in cases.iter() {
+                        // take id of previous empty fall-through case or generate a new one
+                        let label_id = last_id.take().unwrap_or_else(|| self.gen_id());
+
+                        if case.fall_through && case.body.is_empty() {
+                            last_id = Some(label_id);
+                        }
+
+                        case_ids.push(label_id);
+
                         match case.value {
-                            crate::SwitchValue::Integer(value) => {
-                                let label_id = self.gen_id();
-                                // No cases should be added after the default case is encountered
-                                // since the default case catches all
-                                if !reached_default {
-                                    raw_cases.push(super::instructions::Case {
-                                        value: value as Word,
-                                        label_id,
-                                    });
-                                }
-                                case_ids.push(label_id);
+                            crate::SwitchValue::I32(value) => {
+                                raw_cases.push(super::instructions::Case {
+                                    value: value as Word,
+                                    label_id,
+                                });
+                            }
+                            crate::SwitchValue::U32(value) => {
+                                raw_cases.push(super::instructions::Case { value, label_id });
                             }
                             crate::SwitchValue::Default => {
-                                case_ids.push(default_id);
-                                reached_default = true;
+                                default_id = Some(label_id);
                             }
                         }
                     }
+
+                    let default_id = default_id.unwrap();
 
                     self.function.consume(
                         block,
@@ -1716,7 +1812,12 @@ impl<'w> BlockContext<'w> {
                         ..loop_context
                     };
 
-                    for (i, (case, label_id)) in cases.iter().zip(case_ids.iter()).enumerate() {
+                    for (i, (case, label_id)) in cases
+                        .iter()
+                        .zip(case_ids.iter())
+                        .filter(|&(case, _)| !(case.fall_through && case.body.is_empty()))
+                        .enumerate()
+                    {
                         let case_finish_id = if case.fall_through {
                             case_ids[i + 1]
                         } else {
@@ -1728,17 +1829,6 @@ impl<'w> BlockContext<'w> {
                             BlockExit::Branch {
                                 target: case_finish_id,
                             },
-                            inner_context,
-                        )?;
-                    }
-
-                    // If no default was encountered write a empty block to satisfy the presence of
-                    // a block the default label
-                    if !reached_default {
-                        self.write_block(
-                            default_id,
-                            &[],
-                            BlockExit::Branch { target: merge_id },
                             inner_context,
                         )?;
                     }
@@ -1842,28 +1932,7 @@ impl<'w> BlockContext<'w> {
                     return Ok(());
                 }
                 crate::Statement::Barrier(flags) => {
-                    let memory_scope = if flags.contains(crate::Barrier::STORAGE) {
-                        spirv::Scope::Device
-                    } else {
-                        spirv::Scope::Workgroup
-                    };
-                    let mut semantics = spirv::MemorySemantics::ACQUIRE_RELEASE;
-                    semantics.set(
-                        spirv::MemorySemantics::UNIFORM_MEMORY,
-                        flags.contains(crate::Barrier::STORAGE),
-                    );
-                    semantics.set(
-                        spirv::MemorySemantics::WORKGROUP_MEMORY,
-                        flags.contains(crate::Barrier::WORK_GROUP),
-                    );
-                    let exec_scope_id = self.get_index_constant(spirv::Scope::Workgroup as u32);
-                    let mem_scope_id = self.get_index_constant(memory_scope as u32);
-                    let semantics_id = self.get_index_constant(semantics.bits());
-                    block.body.push(Instruction::control_barrier(
-                        exec_scope_id,
-                        mem_scope_id,
-                        semantics_id,
-                    ));
+                    self.writer.write_barrier(flags, &mut block);
                 }
                 crate::Statement::Store { pointer, value } => {
                     let value_id = self.cached[value];
@@ -2079,12 +2148,57 @@ impl<'w> BlockContext<'w> {
                                 value_id,
                             )
                         }
-                        crate::AtomicFunction::Exchange { compare: Some(_) } => {
-                            return Err(Error::FeatureNotImplemented("atomic CompareExchange"));
+                        crate::AtomicFunction::Exchange { compare: Some(cmp) } => {
+                            let scalar_type_id = match *value_inner {
+                                crate::TypeInner::Scalar { kind, width } => {
+                                    self.get_type_id(LookupType::Local(LocalType::Value {
+                                        vector_size: None,
+                                        kind,
+                                        width,
+                                        pointer_space: None,
+                                    }))
+                                }
+                                _ => unimplemented!(),
+                            };
+                            let bool_type_id =
+                                self.get_type_id(LookupType::Local(LocalType::Value {
+                                    vector_size: None,
+                                    kind: crate::ScalarKind::Bool,
+                                    width: crate::BOOL_WIDTH,
+                                    pointer_space: None,
+                                }));
+
+                            let cas_result_id = self.gen_id();
+                            let equality_result_id = self.gen_id();
+                            let mut cas_instr = Instruction::new(spirv::Op::AtomicCompareExchange);
+                            cas_instr.set_type(scalar_type_id);
+                            cas_instr.set_result(cas_result_id);
+                            cas_instr.add_operand(pointer_id);
+                            cas_instr.add_operand(scope_constant_id);
+                            cas_instr.add_operand(semantics_id); // semantics if equal
+                            cas_instr.add_operand(semantics_id); // semantics if not equal
+                            cas_instr.add_operand(value_id);
+                            cas_instr.add_operand(self.cached[cmp]);
+                            block.body.push(cas_instr);
+                            block.body.push(Instruction::binary(
+                                spirv::Op::IEqual,
+                                bool_type_id,
+                                equality_result_id,
+                                cas_result_id,
+                                self.cached[cmp],
+                            ));
+                            Instruction::composite_construct(
+                                result_type_id,
+                                id,
+                                &[cas_result_id, equality_result_id],
+                            )
                         }
                     };
 
                     block.body.push(instruction);
+                }
+                crate::Statement::RayQuery { query, ref fun } => {
+                    self.write_ray_query_function(query, fun, &mut block);
                 }
             }
         }

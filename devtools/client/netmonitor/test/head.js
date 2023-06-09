@@ -7,7 +7,6 @@
  * tests without referencing head.js explicitly.
  */
 
-/* import-globals-from ../../shared/test/shared-head.js */
 /* exported Toolbox, restartNetMonitor, teardown, waitForExplicitFinish,
    verifyRequestItemTarget, waitFor, waitForDispatch, testFilterButtons,
    performRequestsInContent, waitForNetworkEvents, selectIndexAndWaitForSourceEditor,
@@ -23,8 +22,8 @@ Services.scriptloader.loadSubScript(
   this
 );
 
-const { LinkHandlerParent } = ChromeUtils.import(
-  "resource:///actors/LinkHandlerParent.jsm"
+const { LinkHandlerParent } = ChromeUtils.importESModule(
+  "resource:///actors/LinkHandlerParent.sys.mjs"
 );
 
 const {
@@ -113,6 +112,8 @@ const HTTPS_CUSTOM_GET_URL = HTTPS_EXAMPLE_URL + "html_custom-get-page.html";
 const SINGLE_GET_URL = EXAMPLE_URL + "html_single-get-page.html";
 const HTTPS_SINGLE_GET_URL = HTTPS_EXAMPLE_URL + "html_single-get-page.html";
 const STATISTICS_URL = EXAMPLE_URL + "html_statistics-test-page.html";
+const STATISTICS_EDGE_CASE_URL =
+  EXAMPLE_URL + "html_statistics-edge-case-page.html";
 const CURL_URL = EXAMPLE_URL + "html_copy-as-curl.html";
 const HTTPS_CURL_URL = HTTPS_EXAMPLE_URL + "html_copy-as-curl.html";
 const HTTPS_CURL_UTILS_URL = HTTPS_EXAMPLE_URL + "html_curl-utils.html";
@@ -144,7 +145,6 @@ const CORS_SJS_PATH =
   "/browser/devtools/client/netmonitor/test/sjs_cors-test-server.sjs";
 const HSTS_SJS = EXAMPLE_URL + "sjs_hsts-test-server.sjs";
 const METHOD_SJS = EXAMPLE_URL + "sjs_method-test-server.sjs";
-const SLOW_SJS = EXAMPLE_URL + "sjs_slow-test-server.sjs";
 const HTTPS_SLOW_SJS = HTTPS_EXAMPLE_URL + "sjs_slow-test-server.sjs";
 const SET_COOKIE_SAME_SITE_SJS = EXAMPLE_URL + "sjs_set-cookie-same-site.sjs";
 const SEARCH_SJS = EXAMPLE_URL + "sjs_search-test-server.sjs";
@@ -215,16 +215,21 @@ registerCleanupFunction(() => {
   Services.cookies.removeAll();
 });
 
-async function toggleCache(toolbox, disabled) {
-  const options = { cacheDisabled: disabled };
-
+async function disableCacheAndReload(toolbox, waitForLoad) {
   // Disable the cache for any toolbox that it is opened from this point on.
-  Services.prefs.setBoolPref("devtools.cache.disabled", disabled);
+  Services.prefs.setBoolPref("devtools.cache.disabled", true);
 
-  await toolbox.commands.targetConfigurationCommand.updateConfiguration(
-    options
-  );
-  await toolbox.commands.targetCommand.reloadTopLevelTarget();
+  await toolbox.commands.targetConfigurationCommand.updateConfiguration({
+    cacheDisabled: true,
+  });
+
+  // If the page which is reloaded is not found, this will likely cause
+  // reloadTopLevelTarget to not return so let not wait for it.
+  if (waitForLoad) {
+    await toolbox.commands.targetCommand.reloadTopLevelTarget();
+  } else {
+    toolbox.commands.targetCommand.reloadTopLevelTarget();
+  }
 }
 
 /**
@@ -311,11 +316,16 @@ async function waitForAllNetworkUpdateEvents() {
 
 function initNetMonitor(
   url,
-  { requestCount, expectedEventTimings, enableCache = false }
+  {
+    requestCount,
+    expectedEventTimings,
+    waitForLoad = true,
+    enableCache = false,
+  }
 ) {
   info("Initializing a network monitor pane.");
 
-  if (!requestCount) {
+  if (!requestCount && !enableCache) {
     ok(
       false,
       "initNetMonitor should be given a number of requests the page will perform"
@@ -331,7 +341,7 @@ function initNetMonitor(
       ],
     });
 
-    const tab = await addTab(url);
+    const tab = await addTab(url, { waitForLoad });
     info("Net tab added successfully: " + url);
 
     const toolbox = await gDevTools.showToolboxForTab(tab, {
@@ -346,12 +356,18 @@ function initNetMonitor(
     if (!enableCache) {
       info("Disabling cache and reloading page.");
 
-      const requestsDone = waitForNetworkEvents(monitor, requestCount, {
-        expectedEventTimings,
-      });
-      const markersDone = waitForTimelineMarkers(monitor);
-      await toggleCache(toolbox, true);
-      await Promise.all([requestsDone, markersDone]);
+      const allComplete = [];
+      allComplete.push(
+        waitForNetworkEvents(monitor, requestCount, {
+          expectedEventTimings,
+        })
+      );
+
+      if (waitForLoad) {
+        allComplete.push(waitForTimelineMarkers(monitor));
+      }
+      await disableCacheAndReload(toolbox, waitForLoad);
+      await Promise.all(allComplete);
       await clearNetworkEvents(monitor);
     }
 
@@ -363,7 +379,7 @@ function restartNetMonitor(monitor, { requestCount }) {
   info("Restarting the specified network monitor.");
 
   return (async function() {
-    const tab = monitor.toolbox.target.localTab;
+    const tab = monitor.commands.descriptorFront.localTab;
     const url = tab.linkedBrowser.currentURI.spec;
 
     await waitForAllNetworkUpdateEvents();
@@ -1156,18 +1172,37 @@ function queryTelemetryEvents(query) {
   // Return the `extra` field (which is event[5]e).
   return filtersChangedEvents.map(event => event[5]);
 }
-
-function validateRequests(requests, monitor) {
+/**
+ * Check that the provided requests match the requests displayed in the netmonitor.
+ *
+ * @param {array} requests
+ *     The expected requests.
+ * @param {object} monitor
+ *     The netmonitor instance.
+ * @param {object=} options
+ * @param {boolean} allowDifferentOrder
+ *     When set to true, requests are allowed to be in a different order in the
+ *     netmonitor than in the expected requests array. Defaults to false.
+ */
+function validateRequests(requests, monitor, options = {}) {
+  const { allowDifferentOrder } = options;
   const { document, store, windowRequire } = monitor.panelWin;
 
   const { getDisplayedRequests } = windowRequire(
     "devtools/client/netmonitor/src/selectors/index"
   );
+  const sortedRequests = getSortedRequests(store.getState());
 
   requests.forEach((spec, i) => {
     const { method, url, causeType, causeUri, stack } = spec;
 
-    const requestItem = getSortedRequests(store.getState())[i];
+    let requestItem;
+    if (allowDifferentOrder) {
+      requestItem = sortedRequests.find(r => r.url === url);
+    } else {
+      requestItem = sortedRequests[i];
+    }
+
     verifyRequestItemTarget(
       document,
       getDisplayedRequests(store.getState()),

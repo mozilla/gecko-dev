@@ -20,6 +20,7 @@
 #include "nsDocShell.h"
 #include "nsRect.h"
 #include "Units.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/Mutex.h"
 
 // Interfaces needed
@@ -35,25 +36,21 @@
 #include "nsIRemoteTab.h"
 #include "nsIWebProgressListener.h"
 #include "nsITimer.h"
-
-#ifndef MOZ_NEW_XULSTORE
-#  include "nsIXULStore.h"
-#endif
-
-namespace mozilla {
-namespace dom {
-class Element;
-}  // namespace dom
-}  // namespace mozilla
+#include "nsIXULStore.h"
 
 class nsAtom;
 class nsXULTooltipListener;
-struct nsWidgetInitData;
 
 namespace mozilla {
 class PresShell;
 class AppWindowTimerCallback;
 class L10nReadyPromiseHandler;
+namespace dom {
+class Element;
+}  // namespace dom
+namespace widget {
+struct InitData;
+}  // namespace widget
 }  // namespace mozilla
 
 // AppWindow
@@ -103,10 +100,6 @@ class AppWindow final : public nsIBaseWindow,
     MOZ_CAN_RUN_SCRIPT_BOUNDARY
     virtual void UIResolutionChanged() override;
     MOZ_CAN_RUN_SCRIPT_BOUNDARY
-    virtual void FullscreenWillChange(bool aInFullscreen) override;
-    MOZ_CAN_RUN_SCRIPT_BOUNDARY
-    virtual void FullscreenChanged(bool aInFullscreen) override;
-    MOZ_CAN_RUN_SCRIPT_BOUNDARY
     virtual void MacFullscreenMenubarOverlapChanged(
         mozilla::DesktopCoord aOverlapAmount) override;
     MOZ_CAN_RUN_SCRIPT_BOUNDARY
@@ -147,7 +140,7 @@ class AppWindow final : public nsIBaseWindow,
   // AppWindow methods...
   nsresult Initialize(nsIAppWindow* aParent, nsIAppWindow* aOpener,
                       int32_t aInitialWidth, int32_t aInitialHeight,
-                      bool aIsHiddenWindow, nsWidgetInitData& widgetInitData);
+                      bool aIsHiddenWindow, widget::InitData& widgetInitData);
 
   nsDocShell* GetDocShell() { return mDocShell; }
 
@@ -359,6 +352,9 @@ class AppWindow final : public nsIBaseWindow,
   // otherwise happen due to script running as we tear down various things.
   bool mDestroying;
   bool mRegistered;
+  // Indicator for whether the client size, instead of the window size, should
+  // be maintained in case of a change in their relation.
+  bool mDominantClientSize;
   PersistentAttributes mPersistentAttributesDirty;
   PersistentAttributes mPersistentAttributesMask;
   uint32_t mChromeFlags;
@@ -387,9 +383,12 @@ class AppWindow final : public nsIBaseWindow,
   nsresult SetPrimaryRemoteTabSize(int32_t aWidth, int32_t aHeight);
   void SizeShellToWithLimit(int32_t aDesiredWidth, int32_t aDesiredHeight,
                             int32_t shellItemWidth, int32_t shellItemHeight);
-#ifndef MOZ_NEW_XULSTORE
+  nsresult MoveResize(const Maybe<LayoutDeviceIntPoint>& aPosition,
+                      const Maybe<LayoutDeviceIntSize>& aSize, bool aRepaint);
+  nsresult MoveResize(const Maybe<DesktopPoint>& aPosition,
+                      const Maybe<DesktopSize>& aSize, bool aRepaint);
   nsCOMPtr<nsIXULStore> mLocalStore;
-#endif
+  bool mIsWidgetInFullscreen = false;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(AppWindow, NS_APPWINDOW_IMPL_CID)

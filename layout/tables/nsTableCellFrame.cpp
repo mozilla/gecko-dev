@@ -83,10 +83,7 @@ void nsTableCellFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
 
 void nsTableCellFrame::DestroyFrom(nsIFrame* aDestructRoot,
                                    PostDestroyData& aPostDestroyData) {
-  if (HasAnyStateBits(NS_FRAME_CAN_HAVE_ABSPOS_CHILDREN)) {
-    nsTableFrame::UnregisterPositionedTablePart(this, aDestructRoot);
-  }
-
+  nsTableFrame::MaybeUnregisterPositionedTablePart(this, aDestructRoot);
   nsContainerFrame::DestroyFrom(aDestructRoot, aPostDestroyData);
 }
 
@@ -183,9 +180,11 @@ nsresult nsTableCellFrame::AttributeChanged(int32_t aNameSpaceID,
 /* virtual */
 void nsTableCellFrame::DidSetComputedStyle(ComputedStyle* aOldComputedStyle) {
   nsContainerFrame::DidSetComputedStyle(aOldComputedStyle);
+  nsTableFrame::PositionedTablePartMaybeChanged(this, aOldComputedStyle);
 
-  if (!aOldComputedStyle)  // avoid this on init
-    return;
+  if (!aOldComputedStyle) {
+    return;  // avoid the following on init
+  }
 
 #ifdef ACCESSIBILITY
   if (nsAccessibilityService* accService = GetAccService()) {
@@ -1047,14 +1046,9 @@ void nsTableCellFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
     nsRect bgRect = GetRectRelativeToSelf() + aBuilder->ToReferenceFrame(this);
 
     // display background if we need to.
-    AppendedBackgroundType result = AppendedBackgroundType::None;
-    if (aBuilder->IsForEventDelivery() ||
-        !StyleBackground()->IsTransparent(this) ||
-        StyleDisplay()->HasAppearance()) {
-      result = nsDisplayBackgroundImage::AppendBackgroundItemsToTop(
-          aBuilder, this, bgRect, aLists.BorderBackground());
-    }
-
+    const AppendedBackgroundType result =
+        nsDisplayBackgroundImage::AppendBackgroundItemsToTop(
+            aBuilder, this, bgRect, aLists.BorderBackground());
     if (result == AppendedBackgroundType::None) {
       aBuilder->BuildCompositorHitTestInfoIfNeeded(this,
                                                    aLists.BorderBackground());

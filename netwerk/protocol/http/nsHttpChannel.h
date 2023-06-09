@@ -204,6 +204,8 @@ class nsHttpChannel final : public HttpBaseChannel,
                                  const nsAString& aContentType) override;
 
   NS_IMETHOD SetEarlyHintObserver(nsIEarlyHintObserver* aObserver) override;
+  NS_IMETHOD SetWebTransportSessionEventListener(
+      WebTransportSessionEventListener* aListener) override;
 
   void SetWarningReporter(HttpChannelSecurityWarningReporter* aReporter);
   HttpChannelSecurityWarningReporter* GetWarningReporter();
@@ -267,7 +269,8 @@ class nsHttpChannel final : public HttpBaseChannel,
                  true>;
   [[nodiscard]] RefPtr<ChildEndpointPromise> AttachStreamFilter();
 
-  WebTransportSessionEventListener* GetWebTransportSessionEventListener();
+  already_AddRefed<WebTransportSessionEventListener>
+  GetWebTransportSessionEventListener();
 
  private:  // used for alternate service validation
   RefPtr<TransactionObserver> mTransactionObserver;
@@ -770,6 +773,7 @@ class nsHttpChannel final : public HttpBaseChannel,
   nsCOMPtr<nsITimer> mCacheOpenTimer;
   std::function<void(nsHttpChannel*)> mCacheOpenFunc;
   uint32_t mCacheOpenDelay = 0;
+  uint32_t mNetworkTriggerDelay = 0;
 
   // We need to remember which is the source of the response we are using.
   enum ResponseSource {
@@ -846,8 +850,7 @@ class nsHttpChannel final : public HttpBaseChannel,
 
   RefPtr<nsIEarlyHintObserver> mEarlyHintObserver;
   Maybe<nsCString> mOpenerCallingScriptLocation;
-
-  bool mIsForWebTransport{false};
+  RefPtr<WebTransportSessionEventListener> mWebTransportSessionEventListener;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsHttpChannel, NS_HTTPCHANNEL_IID)

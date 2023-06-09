@@ -1,14 +1,6 @@
 {
   "chrome://devtools-startup/content/DevToolsShim.jsm":
     "devtools/startup/DevToolsShim.jsm",
-  "chrome://global/content/certviewer/asn1js_bundle.jsm":
-    "toolkit/components/certviewer/content/vendor/asn1js_bundle.jsm",
-  "chrome://global/content/certviewer/certDecoder.jsm":
-    "toolkit/components/certviewer/content/certDecoder.jsm",
-  "chrome://global/content/certviewer/pkijs_bundle.jsm":
-    "toolkit/components/certviewer/content/vendor/pkijs_bundle.jsm",
-  "chrome://global/content/certviewer/pvutils_bundle.jsm":
-    "toolkit/components/certviewer/content/vendor/pvutils_bundle.jsm",
   "chrome://global/content/tabprompts.jsm":
     "toolkit/components/prompts/content/tabprompts.jsm",
   "chrome://mochikit/content/ShutdownLeaksCollector.jsm":
@@ -249,8 +241,6 @@
     "browser/components/migration/ChromeProfileMigrator.jsm",
   "resource:///modules/ChromeWindowsLoginCrypto.jsm":
     "browser/components/migration/ChromeWindowsLoginCrypto.jsm",
-  "resource:///modules/ColorwayClosetOpener.jsm":
-    "browser/components/colorways/ColorwayClosetOpener.jsm",
   "resource:///modules/CommonNames.jsm":
     "browser/components/places/CommonNames.jsm",
   "resource:///modules/ContentCrashHandlers.jsm":
@@ -329,7 +319,6 @@
     "browser/components/customizableui/PanelMultiView.jsm",
   "resource:///modules/PartnerLinkAttribution.jsm":
     "browser/modules/PartnerLinkAttribution.jsm",
-  "resource:///modules/PermissionUI.jsm": "browser/modules/PermissionUI.jsm",
   "resource:///modules/PingCentre.jsm": "browser/modules/PingCentre.jsm",
   "resource:///modules/PinnedGroupBuilder.jsm":
     "browser/components/places/PinnedGroupBuilder.jsm",
@@ -644,8 +633,6 @@
     "browser/components/newtab/lib/PrefsFeed.jsm",
   "resource://activity-stream/lib/RecommendationProvider.jsm":
     "browser/components/newtab/lib/RecommendationProvider.jsm",
-  "resource://activity-stream/lib/RemoteImages.jsm":
-    "browser/components/newtab/lib/RemoteImages.jsm",
   "resource://activity-stream/lib/RemoteL10n.jsm":
     "browser/components/newtab/lib/RemoteL10n.jsm",
   "resource://activity-stream/lib/Screenshots.jsm":
@@ -740,16 +727,16 @@
     "devtools/client/jsonview/Converter.jsm",
   "resource://devtools/client/jsonview/Sniffer.jsm":
     "devtools/client/jsonview/Sniffer.jsm",
-  "resource://devtools/client/performance-new/popup/background.jsm.js":
-    "devtools/client/performance-new/popup/background.jsm.js",
+  "resource://devtools/client/performance-new/shared/background.jsm.js":
+    "devtools/client/performance-new/shared/background.jsm.js",
   "resource://devtools/client/performance-new/popup/menu-button.jsm.js":
     "devtools/client/performance-new/popup/menu-button.jsm.js",
-  "resource://devtools/client/performance-new/popup/panel.jsm.js":
-    "devtools/client/performance-new/popup/panel.jsm.js",
-  "resource://devtools/client/performance-new/symbolication.jsm.js":
-    "devtools/client/performance-new/symbolication.jsm.js",
-  "resource://devtools/client/performance-new/typescript-lazy-load.jsm.js":
-    "devtools/client/performance-new/typescript-lazy-load.jsm.js",
+  "resource://devtools/client/performance-new/popup/logic.jsm.js":
+    "devtools/client/performance-new/popup/logic.jsm.js",
+  "resource://devtools/client/performance-new/shared/symbolication.jsm.js":
+    "devtools/client/performance-new/shared/symbolication.jsm.js",
+  "resource://devtools/client/performance-new/shared/typescript-lazy-load.jsm.js":
+    "devtools/client/performance-new/shared/typescript-lazy-load.jsm.js",
   "resource://devtools/client/storage/VariablesView.jsm":
     "devtools/client/storage/VariablesView.jsm",
   "resource://devtools/client/styleeditor/StyleEditorUI.jsm":
@@ -953,6 +940,8 @@
   "resource://gre/modules/BrowserTelemetryUtils.jsm":
     "toolkit/modules/BrowserTelemetryUtils.jsm",
   "resource://gre/modules/BrowserUtils.jsm": "toolkit/modules/BrowserUtils.jsm",
+  "resource://gre/modules/CSV.js":
+    "toolkit/components/passwordmgr/CSV.js",
   "resource://gre/modules/CanonicalJSON.jsm":
     "toolkit/modules/CanonicalJSON.jsm",
   "resource://gre/modules/CaptiveDetect.jsm":
@@ -1121,6 +1110,8 @@
   "resource://gre/modules/FinderIterator.jsm":
     "toolkit/modules/FinderIterator.jsm",
   "resource://gre/modules/FinderParent.jsm": "toolkit/modules/FinderParent.jsm",
+  "resource://gre/modules/FirefoxRelay.jsm":
+    "toolkit/components/passwordmgr/FirefoxRelay.jsm",
   "resource://gre/modules/FirstStartup.jsm": "toolkit/modules/FirstStartup.jsm",
   "resource://gre/modules/ForgetAboutSite.jsm":
     "toolkit/components/forgetaboutsite/ForgetAboutSite.jsm",
@@ -1368,8 +1359,6 @@
   "resource://gre/modules/Preferences.jsm": "toolkit/modules/Preferences.jsm",
   "resource://gre/modules/PrincipalsCollector.jsm":
     "toolkit/components/cleardata/PrincipalsCollector.jsm",
-  "resource://gre/modules/PrioPing.jsm":
-    "toolkit/components/telemetry/pings/PrioPing.jsm",
   "resource://gre/modules/PrivateBrowsingUtils.jsm":
     "toolkit/modules/PrivateBrowsingUtils.jsm",
   "resource://gre/modules/ProcessSelector.jsm": "dom/base/ProcessSelector.jsm",
@@ -1438,13 +1427,15 @@
   "resource://gre/modules/ShareDelegate.jsm":
     "mobile/android/components/geckoview/ShareDelegate.jsm",
   "resource://gre/modules/SharedPromptUtils.jsm":
-    "toolkit/components/prompts/src/SharedPromptUtils.jsm",
+    "toolkit/components/prompts/src/PromptUtils.jsm",
   "resource://gre/modules/ShieldContentProcess.jsm":
     "toolkit/components/normandy/ShieldContentProcess.jsm",
   "resource://gre/modules/ShortcutUtils.jsm":
     "toolkit/modules/ShortcutUtils.jsm",
   "resource://gre/modules/SimpleServices.jsm":
     "toolkit/components/utils/SimpleServices.jsm",
+  "resource://gre/modules/SignUpFormRuleset.jsm":
+    "toolkit/components/passwordmgr/SignUpFormRuleset.jsm",
   "resource://gre/modules/SlowScriptDebug.jsm": "dom/base/SlowScriptDebug.jsm",
   "resource://gre/modules/Sqlite.jsm": "toolkit/modules/Sqlite.jsm",
   "resource://gre/modules/SubDialog.jsm": "toolkit/modules/SubDialog.jsm",
@@ -1809,6 +1800,8 @@
     "toolkit/components/pdfjs/content/build/pdf.sandbox.external.js",
   "resource://reftest/AsyncSpellCheckTestHelper.jsm":
     "editor/AsyncSpellCheckTestHelper.jsm",
+  "resource://testing-common/AsyncSpellCheckTestHelper.jsm":
+    "editor/AsyncSpellCheckTestHelper.jsm",
   "resource://reftest/PerTestCoverageUtils.jsm":
     "tools/code-coverage/PerTestCoverageUtils.jsm",
   "resource://reftest/ReftestFissionChild.jsm":
@@ -2034,8 +2027,6 @@
     "browser/components/urlbar/tests/quicksuggest/QuickSuggestTestUtils.jsm",
   "resource://testing-common/RegionTestUtils.jsm":
     "toolkit/modules/tests/xpcshell/RegionTestUtils.jsm",
-  "resource://testing-common/RemoteImagesTestUtils.jsm":
-    "browser/components/newtab/test/RemoteImagesTestUtils.jsm",
   "resource://testing-common/SearchTestUtils.jsm":
     "toolkit/components/search/tests/SearchTestUtils.jsm",
   "resource://testing-common/Sinon.jsm": "testing/modules/Sinon.jsm",

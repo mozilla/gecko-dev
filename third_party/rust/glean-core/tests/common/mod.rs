@@ -58,6 +58,8 @@ pub fn new_glean(tempdir: Option<tempfile::TempDir>) -> (Glean, tempfile::TempDi
         delay_ping_lifetime_io: false,
         app_build: "Unknown".into(),
         use_core_mps: false,
+        trim_data_to_registered_pings: false,
+        log_level: None,
     };
     let glean = Glean::new(cfg).unwrap();
 

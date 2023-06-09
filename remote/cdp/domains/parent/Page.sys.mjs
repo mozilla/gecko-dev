@@ -2,28 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
-
 import { Domain } from "chrome://remote/content/cdp/domains/Domain.sys.mjs";
 
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  clearInterval: "resource://gre/modules/Timer.sys.mjs",
   SessionStore: "resource:///modules/sessionstore/SessionStore.sys.mjs",
-  setInterval: "resource://gre/modules/Timer.sys.mjs",
 
   DialogHandler:
     "chrome://remote/content/cdp/domains/parent/page/DialogHandler.sys.mjs",
   PollPromise: "chrome://remote/content/shared/Sync.sys.mjs",
+  print: "chrome://remote/content/shared/PDF.sys.mjs",
   streamRegistry: "chrome://remote/content/cdp/domains/parent/IO.sys.mjs",
+  Stream: "chrome://remote/content/cdp/StreamRegistry.sys.mjs",
   TabManager: "chrome://remote/content/shared/TabManager.sys.mjs",
   UnsupportedError: "chrome://remote/content/cdp/Error.sys.mjs",
   windowManager: "chrome://remote/content/shared/WindowManager.sys.mjs",
-});
-
-XPCOMUtils.defineLazyModuleGetters(lazy, {
-  OS: "resource://gre/modules/osfile.jsm",
 });
 
 const MAX_CANVAS_DIMENSION = 32767;
@@ -71,7 +65,7 @@ export class Page extends Domain {
   /**
    * Navigates current page to given URL.
    *
-   * @param {Object} options
+   * @param {object} options
    * @param {string} options.url
    *     destination URL
    * @param {string=} options.frameId
@@ -81,7 +75,7 @@ export class Page extends Domain {
    *     referred URL (optional)
    * @param {string=} options.transitionType
    *     intended transition type
-   * @return {Object}
+   * @returns {object}
    *         - frameId {string} frame id that has navigated (or failed to)
    *         - errorText {string=} error message if navigation has failed
    *         - loaderId {string} (not supported)
@@ -182,7 +176,7 @@ export class Page extends Domain {
       referrerURI: referrer,
       triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
     };
-    this.session.browsingContext.loadURI(url, opts);
+    this.session.browsingContext.loadURI(validURL, opts);
     // clients expect loaderId == requestId for a document navigation request
     const { navigationRequestId: loaderId, errorCode } = await requestDone;
     const result = {
@@ -198,7 +192,7 @@ export class Page extends Domain {
   /**
    * Capture page screenshot.
    *
-   * @param {Object} options
+   * @param {object} options
    * @param {Viewport=} options.clip
    *     Capture the screenshot of a given region only.
    * @param {string=} options.format
@@ -206,7 +200,7 @@ export class Page extends Domain {
    * @param {number=} options.quality
    *     Compression quality from range [0..100] (jpeg only). Defaults to 80.
    *
-   * @return {string}
+   * @returns {string}
    *     Base64-encoded image data.
    */
   async captureScreenshot(options = {}) {
@@ -403,8 +397,9 @@ export class Page extends Domain {
    *     {number} height
    *         Height of scrollable area
    *
-   * @return {Promise}
-   * @resolves {layoutViewport, visualViewport, contentSize}
+   * @returns {Promise<object>}
+   *     Promise which resolves with an object with the following properties
+   *     layoutViewport and contentSize
    */
   async getLayoutMetrics() {
     return {
@@ -416,7 +411,9 @@ export class Page extends Domain {
   /**
    * Returns navigation history for the current page.
    *
-   * @return {currentIndex:number, entries:Array<NavigationEntry>}
+   * @returns {Promise<object>}
+   *     Promise which resolves with an object with the following properties
+   *     currentIndex (number) and entries (Array<NavigationEntry>).
    */
   async getNavigationHistory() {
     const { window } = this.session.target;
@@ -452,7 +449,7 @@ export class Page extends Domain {
    * prompt) for this page. This will always close the dialog, either accepting
    * or rejecting it, with the optional prompt filled.
    *
-   * @param {Object} options
+   * @param {object} options
    * @param {boolean=} options.accept
    *    for "confirm", "prompt", "beforeunload" dialogs true will accept
    *    the dialog, false will cancel it. For "alert" dialogs, true or
@@ -472,7 +469,7 @@ export class Page extends Domain {
   /**
    * Navigates current page to the given history entry.
    *
-   * @param {Object} options
+   * @param {object} options
    * @param {number} options.entryId
    *    Unique id of the entry to navigate to.
    */
@@ -505,7 +502,7 @@ export class Page extends Domain {
   /**
    * Print page as PDF.
    *
-   * @param {Object} options
+   * @param {object} options
    * @param {boolean=} options.displayHeaderFooter
    *     Display header and footer. Defaults to false.
    * @param {string=} options.footerTemplate (not supported)
@@ -545,9 +542,9 @@ export class Page extends Domain {
    *     Return as base64-encoded string (ReturnAsBase64),
    *     or stream (ReturnAsStream). Defaults to ReturnAsBase64.
    *
-   * @return {Promise<{data:string, stream:string}>
+   * @returns {Promise<{data:string, stream:Stream}>}
    *     Based on the transferMode setting data is a base64-encoded string,
-   *     or stream is a handle to a OS.File stream.
+   *     or stream is a Stream.
    */
   async printToPDF(options = {}) {
     const {
@@ -593,14 +590,6 @@ export class Page extends Domain {
       throw new TypeError("paperWidth is zero or negative");
     }
 
-    // Create a unique filename for the temporary PDF file
-    const basePath = lazy.OS.Path.join(
-      lazy.OS.Constants.Path.tmpDir,
-      "remote-agent.pdf"
-    );
-    const { file, path: filePath } = await lazy.OS.File.openUnique(basePath);
-    await file.close();
-
     const psService = Cc["@mozilla.org/gfx/printsettings-service;1"].getService(
       Ci.nsIPrintSettingsService
     );
@@ -611,13 +600,16 @@ export class Page extends Domain {
     printSettings.outputFormat = Ci.nsIPrintSettings.kOutputFormatPDF;
     printSettings.printerName = "";
     printSettings.printSilent = true;
-    printSettings.outputDestination =
-      Ci.nsIPrintSettings.kOutputDestinationFile;
-    printSettings.toFileName = filePath;
 
     printSettings.paperSizeUnit = Ci.nsIPrintSettings.kPaperSizeInches;
     printSettings.paperWidth = paperWidth;
     printSettings.paperHeight = paperHeight;
+
+    // Override any os-specific unwriteable margins
+    printSettings.unwriteableMarginTop = 0;
+    printSettings.unwriteableMarginLeft = 0;
+    printSettings.unwriteableMarginBottom = 0;
+    printSettings.unwriteableMarginRight = 0;
 
     printSettings.marginBottom = marginBottom;
     printSettings.marginLeft = marginLeft;
@@ -642,44 +634,37 @@ export class Page extends Domain {
       printSettings.orientation = Ci.nsIPrintSettings.kLandscapeOrientation;
     }
 
+    const retval = { data: null, stream: null };
     const { linkedBrowser } = this.session.target.tab;
 
-    await linkedBrowser.browsingContext.print(printSettings);
+    if (transferMode === PDF_TRANSFER_MODES.stream) {
+      // If we are returning a stream, we write the PDF to disk so that we don't
+      // keep (potentially very large) PDFs in memory. We can then stream them
+      // to the client via the returned Stream.
+      //
+      // NOTE: This is a potentially premature optimization -- it might be fine
+      // to keep these PDFs in memory, but we don't have specifics on how CDP is
+      // used in the field so it is possible that leaving the PDFs in memory
+      // could cause a regression.
+      const path = await IOUtils.createUniqueFile(
+        PathUtils.tempDir,
+        "remote-agent.pdf"
+      );
 
-    // Bug 1603739 - With e10s enabled the promise returned by print() resolves
-    // too early, which means the file hasn't been completely written.
-    await new Promise(resolve => {
-      const DELAY_CHECK_FILE_COMPLETELY_WRITTEN = 100;
+      printSettings.outputDestination =
+        Ci.nsIPrintSettings.kOutputDestinationFile;
+      printSettings.toFileName = path;
 
-      let lastSize = 0;
-      const timerId = lazy.setInterval(async () => {
-        const fileInfo = await lazy.OS.File.stat(filePath);
-        if (lastSize > 0 && fileInfo.size == lastSize) {
-          lazy.clearInterval(timerId);
-          resolve();
-        }
-        lastSize = fileInfo.size;
-      }, DELAY_CHECK_FILE_COMPLETELY_WRITTEN);
-    });
+      await linkedBrowser.browsingContext.print(printSettings);
 
-    const fp = await lazy.OS.File.open(filePath);
-
-    const retval = { data: null, stream: null };
-    if (transferMode == PDF_TRANSFER_MODES.stream) {
-      retval.stream = lazy.streamRegistry.add(fp);
+      retval.stream = lazy.streamRegistry.add(new lazy.Stream(path));
     } else {
-      // return all data as a base64 encoded string
-      let bytes;
-      try {
-        bytes = await fp.read();
-      } finally {
-        fp.close();
-        await lazy.OS.File.remove(filePath);
-      }
+      const binaryString = await lazy.print.printToBinaryString(
+        linkedBrowser.browsingContext,
+        printSettings
+      );
 
-      // Each UCS2 character has an upper byte of 0 and a lower byte matching
-      // the binary data
-      retval.data = btoa(String.fromCharCode.apply(null, bytes));
+      retval.data = btoa(binaryString);
     }
 
     return retval;
@@ -692,7 +677,7 @@ export class Page extends Domain {
    * the native file chooser dialog is not shown.
    * Instead, a protocol event Page.fileChooserOpened is emitted.
    *
-   * @param {Object} options
+   * @param {object} options
    * @param {boolean=} options.enabled
    *     Enabled state of file chooser interception.
    */

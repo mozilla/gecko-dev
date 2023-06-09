@@ -81,6 +81,7 @@ class PresShell;
 class RestyleManager;
 class ServoStyleSet;
 class StaticPresData;
+class TimelineManager;
 struct MediaFeatureChange;
 enum class MediaFeatureChangePropagation : uint8_t;
 enum class ColorScheme : uint8_t;
@@ -238,13 +239,13 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
   /**
    * Returns the root widget for this.
    */
-  already_AddRefed<nsIWidget> GetRootWidget() const;
+  nsIWidget* GetRootWidget() const;
 
   /**
    * Returns the widget which may have native focus and handles text input
    * like keyboard input, IME, etc.
    */
-  already_AddRefed<nsIWidget> GetTextInputHandlingWidget() const {
+  nsIWidget* GetTextInputHandlingWidget() const {
     // Currently, root widget for each PresContext handles text input.
     return GetRootWidget();
   }
@@ -283,6 +284,7 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
   const nsAnimationManager* AnimationManager() const {
     return mAnimationManager.get();
   }
+  mozilla::TimelineManager* TimelineManager() { return mTimelineManager.get(); }
 
   nsRefreshDriver* RefreshDriver() { return mRefreshDriver; }
 
@@ -502,7 +504,9 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
    *
    * XXX Temporary: see http://wiki.mozilla.org/Gecko:PrintPreview
    */
-  float GetPrintPreviewScaleForSequenceFrame() { return mPPScale; }
+  float GetPrintPreviewScaleForSequenceFrameOrScrollbars() const {
+    return mPPScale;
+  }
   void SetPrintPreviewScale(float aScale) { mPPScale = aScale; }
 
   nsDeviceContext* DeviceContext() const { return mDeviceContext; }
@@ -573,6 +577,7 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
   }
   void SetFullZoom(float aZoom);
   void SetOverrideDPPX(float);
+  void SetInRDMPane(bool aInRDMPane);
 
  public:
   float GetFullZoom() { return mFullZoom; }
@@ -824,18 +829,7 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
    */
   uint32_t GetBidi() const;
 
-  /*
-   * Obtain a native theme for rendering our widgets (both form controls and
-   * html)
-   *
-   * Guaranteed to return non-null.
-   */
-  nsITheme* Theme() MOZ_NONNULL_RETURN {
-    if (MOZ_LIKELY(mTheme)) {
-      return mTheme;
-    }
-    return EnsureTheme();
-  }
+  nsITheme* Theme() const MOZ_NONNULL_RETURN;
 
   void RecomputeTheme();
 
@@ -906,6 +900,8 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
   bool IsPrintingOrPrintPreview() const {
     return mType == eContext_Print || mType == eContext_PrintPreview;
   }
+
+  bool IsPrintPreview() const { return mType == eContext_PrintPreview; }
 
   // Is this presentation in a chrome docshell?
   bool IsChrome() const;
@@ -1050,7 +1046,7 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
   bool IsRootContentDocumentCrossProcess() const;
 
   bool HadNonBlankPaint() const { return mHadNonBlankPaint; }
-  bool HadContentfulPaint() const { return mHadContentfulPaint; }
+  bool HadFirstContentfulPaint() const { return mHadFirstContentfulPaint; }
   void NotifyNonBlankPaint();
   void NotifyContentfulPaint();
   void NotifyPaintStatusReset();
@@ -1058,8 +1054,6 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
 
   bool HasEverBuiltInvisibleText() const { return mHasEverBuiltInvisibleText; }
   void SetBuiltInvisibleText() { mHasEverBuiltInvisibleText = true; }
-
-  bool IsDeviceSizePageSize();
 
   bool HasWarnedAboutTooLargeDashedOrDottedRadius() const {
     return mHasWarnedAboutTooLargeDashedOrDottedRadius;
@@ -1079,7 +1073,7 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
 
   bool UpdateContainerQueryStyles();
 
-  mozilla::intl::Bidi& GetBidiEngine();
+  mozilla::intl::Bidi& BidiEngine();
 
   gfxFontFeatureValueSet* GetFontFeatureValuesLookup() const {
     return mFontFeatureValuesLookup;
@@ -1186,6 +1180,7 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
   RefPtr<mozilla::EffectCompositor> mEffectCompositor;
   mozilla::UniquePtr<nsTransitionManager> mTransitionManager;
   mozilla::UniquePtr<nsAnimationManager> mAnimationManager;
+  mozilla::UniquePtr<mozilla::TimelineManager> mTimelineManager;
   mozilla::UniquePtr<mozilla::RestyleManager> mRestyleManager;
   RefPtr<mozilla::CounterStyleManager> mCounterStyleManager;
   const nsStaticAtom* mMedium;
@@ -1352,6 +1347,9 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
 
   unsigned mIsVisual : 1;
 
+  // Are we in the RDM pane?
+  unsigned mInRDMPane : 1;
+
   unsigned mHasWarnedAboutTooLargeDashedOrDottedRadius : 1;
 
   // Have we added quirk.css to the style set?
@@ -1360,7 +1358,7 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
   // Has NotifyNonBlankPaint been called on this PresContext?
   unsigned mHadNonBlankPaint : 1;
   // Has NotifyContentfulPaint been called on this PresContext?
-  unsigned mHadContentfulPaint : 1;
+  unsigned mHadFirstContentfulPaint : 1;
   // True when a contentful paint has happened and this paint doesn't
   // come from the regular tick process. Usually this means a
   // contentful paint was triggered manually.
@@ -1383,7 +1381,7 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
 
   void LastRelease();
 
-  nsITheme* EnsureTheme();
+  void EnsureTheme();
 
 #ifdef DEBUG
  private:

@@ -3,8 +3,8 @@
 
 "use strict";
 
-const { PromptTestUtils } = ChromeUtils.import(
-  "resource://testing-common/PromptTestUtils.jsm"
+const { PromptTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/PromptTestUtils.sys.mjs"
 );
 
 let { HttpServer } = ChromeUtils.import("resource://testing-common/httpd.js");
@@ -137,6 +137,7 @@ add_setup(async function() {
 
 add_task(async function test_check_prompt_origin_display() {
   await checkAlert("https://example.com/", { value: "example.com" });
+  // eslint-disable-next-line @microsoft/sdl/no-insecure-url
   await checkAlert("http://example.com/", { value: "example.com" });
   await checkAlert("data:text/html,<body>", {
     l10nId: "common-dialog-title-null",
@@ -183,12 +184,13 @@ add_task(async function test_check_auth() {
   server.start(-1);
 
   const HOST = `localhost:${server.identity.primaryPort}`;
+  // eslint-disable-next-line @microsoft/sdl/no-insecure-url
   const AUTH_URI = `http://${HOST}/forbidden`;
 
   // Try a simple load:
   await checkDialog(
     "https://example.com/",
-    browser => BrowserTestUtils.loadURI(browser, AUTH_URI),
+    browser => BrowserTestUtils.loadURIString(browser, AUTH_URI),
     HOST,
     "chrome://global/skin/icons/defaultFavicon.svg",
     Ci.nsIPrompt.MODAL_TYPE_TAB
@@ -204,6 +206,7 @@ add_task(async function test_check_auth() {
 
   // Try x-origin subframe:
   await checkDialog(
+    // eslint-disable-next-line @microsoft/sdl/no-insecure-url
     "http://example.org/1",
     subframeLoad,
     HOST,

@@ -66,9 +66,9 @@ pub enum HIDCmd {
     Unknown(u8),
 }
 
-impl Into<u8> for HIDCmd {
-    fn into(self) -> u8 {
-        match self {
+impl From<HIDCmd> for u8 {
+    fn from(v: HIDCmd) -> u8 {
+        match v {
             HIDCmd::Ping => CTAPHID_PING,
             HIDCmd::Msg => CTAPHID_MSG,
             HIDCmd::Lock => CTAPHID_LOCK,
@@ -127,16 +127,6 @@ bitflags! {
         const LOCK = 0x02;
         const CBOR = 0x04;
         const NMSG = 0x08;
-    }
-}
-
-impl Capability {
-    pub fn has_fido1(self) -> bool {
-        !self.contains(Capability::NMSG)
-    }
-
-    pub fn has_fido2(self) -> bool {
-        self.contains(Capability::CBOR)
     }
 }
 

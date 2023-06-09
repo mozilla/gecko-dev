@@ -350,11 +350,13 @@ class PlacesViewBase {
 
   _setEmptyPopupStatus(aPopup, aEmpty) {
     if (!aPopup._emptyMenuitem) {
-      let label = PlacesUIUtils.getString("bookmarksMenuEmptyFolder");
       aPopup._emptyMenuitem = document.createXULElement("menuitem");
-      aPopup._emptyMenuitem.setAttribute("label", label);
       aPopup._emptyMenuitem.setAttribute("disabled", true);
       aPopup._emptyMenuitem.className = "bookmark-item";
+      document.l10n.setAttributes(
+        aPopup._emptyMenuitem,
+        "places-empty-bookmarks-folder"
+      );
       if (this._appendClassToChildren) {
         aPopup._emptyMenuitem.classList.add(this._appendClassToChildren);
       }
@@ -472,7 +474,12 @@ class PlacesViewBase {
   }
 
   nodeURIChanged(aPlacesNode, aURIString) {
-    let elt = this._getDOMNodeForPlacesNode(aPlacesNode);
+    let elt = this._getDOMNodeForPlacesNode(aPlacesNode, true);
+
+    // There's no DOM node, thus there's nothing to be done when the URI changes.
+    if (!elt) {
+      return;
+    }
 
     // Here we need the <menu>.
     if (elt.localName == "menupopup") {
@@ -486,11 +493,11 @@ class PlacesViewBase {
   }
 
   nodeIconChanged(aPlacesNode) {
-    let elt = this._getDOMNodeForPlacesNode(aPlacesNode);
+    let elt = this._getDOMNodeForPlacesNode(aPlacesNode, true);
 
-    // There's no UI representation for the root node, thus there's nothing to
-    // be done when the icon changes.
-    if (elt == this._rootElt) {
+    // There's no UI representation for the root node, or there's no DOM node,
+    // thus there's nothing to be done when the icon changes.
+    if (!elt || elt == this._rootElt) {
       return;
     }
 
@@ -550,7 +557,7 @@ class PlacesViewBase {
 
   // Opt-out of history details updates, since all the views derived from this
   // are not showing them.
-  observeHistoryDetails = false;
+  skipHistoryDetailsNotifications = true;
   nodeHistoryDetailsChanged() {}
   nodeTagsChanged() {}
   nodeDateAddedChanged() {}
@@ -919,6 +926,7 @@ class PlacesToolbar extends PlacesViewBase {
   ];
 
   QueryInterface = ChromeUtils.generateQI([
+    "nsINamed",
     "nsITimerCallback",
     ...PlacesViewBase.interfaces,
   ]);
@@ -1486,7 +1494,7 @@ class PlacesToolbar extends PlacesViewBase {
 
     if (elt == this._rootElt) {
       // Container is the toolbar itself.
-      this._rebuild().catch(Cu.reportError);
+      this._rebuild().catch(console.error);
       return;
     }
 
@@ -1631,6 +1639,10 @@ class PlacesToolbar extends PlacesViewBase {
     let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
     timer.initWithCallback(this, aTime, timer.TYPE_ONE_SHOT);
     return timer;
+  }
+
+  get name() {
+    return "PlacesToolbar";
   }
 
   notify(aTimer) {
@@ -1833,7 +1845,7 @@ class PlacesToolbar extends PlacesViewBase {
       PlacesControllerDragHelper.onDrop(
         dropPoint.ip,
         aEvent.dataTransfer
-      ).catch(Cu.reportError);
+      ).catch(console.error);
       aEvent.preventDefault();
     }
 
@@ -2028,7 +2040,7 @@ class PlacesMenu extends PlacesViewBase {
   }
 }
 
-// This is used from CustomizableWidgets.jsm using a `window` reference,
+// This is used from CustomizableWidgets.sys.mjs using a `window` reference,
 // so we have to expose this on the global.
 this.PlacesPanelview = class PlacesPanelview extends PlacesViewBase {
   constructor(placeUrl, rootElt, viewElt) {
@@ -2178,11 +2190,13 @@ this.PlacesPanelview = class PlacesPanelview extends PlacesViewBase {
 
   _setEmptyPopupStatus(panelview, empty = false) {
     if (!panelview._emptyMenuitem) {
-      let label = PlacesUIUtils.getString("bookmarksMenuEmptyFolder");
       panelview._emptyMenuitem = document.createXULElement("toolbarbutton");
-      panelview._emptyMenuitem.setAttribute("label", label);
       panelview._emptyMenuitem.setAttribute("disabled", true);
       panelview._emptyMenuitem.className = "subviewbutton";
+      document.l10n.setAttributes(
+        panelview._emptyMenuitem,
+        "places-empty-bookmarks-folder"
+      );
       if (this._appendClassToChildren) {
         panelview._emptyMenuitem.classList.add(this._appendClassToChildren);
       }

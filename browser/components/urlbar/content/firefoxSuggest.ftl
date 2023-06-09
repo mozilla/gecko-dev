@@ -34,6 +34,12 @@ urlbar-result-menu-learn-more-about-firefox-suggest =
     .label = Learn more about { -firefox-suggest-brand-name }
     .accesskey = L
 
+# A message shown in a result when the user gives feedback on it.
+firefox-suggest-feedback-acknowledgment = Thanks for your feedback
+
+# A message that replaces a result when the user dismisses it.
+firefox-suggest-dismissal-acknowledgment = Thanks for your feedback. You won’t see this again.
+
 ## These strings are used for weather suggestions in the urlbar.
 
 # This string is displayed above the current temperature
@@ -68,6 +74,17 @@ firefox-suggest-weather-high-low = High: { $high }°{ $unit } · Low: { $low }°
 #   $provider (String) - The name of the weather provider
 firefox-suggest-weather-sponsored = { $provider } · Sponsored
 
+firefox-suggest-weather-command-inaccurate-location =
+  .label = Report inaccurate location
+firefox-suggest-weather-command-show-less-frequently =
+  .label = Show less frequently
+firefox-suggest-weather-command-dont-show-this =
+  .label = Don’t show this
+firefox-suggest-weather-command-not-relevant =
+  .label = Not relevant
+firefox-suggest-weather-command-not-interested =
+  .label = Not interested
+
 ## These strings are used in the preferences UI (about:preferences). Their names
 ## follow the naming conventions of other strings used in the preferences UI.
 
@@ -89,18 +106,21 @@ addressbar-best-match-learn-more = Learn more
 
 # First Firefox Suggest toggle button main label and description. This toggle
 # controls non-sponsored suggestions related to the user's search string.
-addressbar-firefox-suggest-nonsponsored = Suggestions from the web
-addressbar-firefox-suggest-nonsponsored-description = Get suggestions from { -brand-product-name } related to your search.
+addressbar-firefox-suggest-nonsponsored =
+  .label = Suggestions from the web
+  .description = Get suggestions from { -brand-product-name } related to your search.
 
 # Second Firefox Suggest toggle button main label and description. This toggle
 # controls sponsored suggestions related to the user's search string.
-addressbar-firefox-suggest-sponsored = Suggestions from sponsors
-addressbar-firefox-suggest-sponsored-description = Support the development of { -brand-short-name } with occasional sponsored suggestions.
+addressbar-firefox-suggest-sponsored =
+  .label = Suggestions from sponsors
+  .description = Support the development of { -brand-short-name } with occasional sponsored suggestions.
 
 # Third Firefox Suggest toggle button main label and description. This toggle
 # controls data collection related to the user's search string.
-addressbar-firefox-suggest-data-collection = Improve the { -firefox-suggest-brand-name } experience
-addressbar-firefox-suggest-data-collection-description = Help create a richer search experience by allowing { -vendor-short-name } to process your search queries.
+addressbar-firefox-suggest-data-collection =
+  .label = Improve the { -firefox-suggest-brand-name } experience
+  .description = Help create a richer search experience by allowing { -vendor-short-name } to process your search queries.
 
 # The "Learn more" link shown in the Firefox Suggest preferences UI.
 addressbar-locbar-firefox-suggest-learn-more = Learn more
@@ -143,6 +163,12 @@ addressbar-firefox-suggest-info-sponsored = Based on your selection, you’ll re
 # Sponsored suggestions: off
 # Data collection: on
 addressbar-firefox-suggest-info-data = Based on your selection, you won’t receive suggestions from the web or sponsored sites. We will process your search query data to develop the { -firefox-suggest-brand-name } feature.
+
+addressbar-dismissed-suggestions-label = Dismissed suggestions
+addressbar-restore-dismissed-suggestions-description = Restore dismissed suggestions from sponsors and the web.
+addressbar-restore-dismissed-suggestions-button =
+  .label = Restore
+addressbar-restore-dismissed-suggestions-learn-more = Learn more
 
 ## Used as title on the introduction pane. The text can be formatted to span
 ## multiple lines as needed (line breaks are significant).

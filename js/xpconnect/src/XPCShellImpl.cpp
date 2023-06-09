@@ -60,6 +60,7 @@
 #  include "mozilla/ScopeExit.h"
 #  include "mozilla/widget/AudioSession.h"
 #  include "mozilla/WinDllServices.h"
+#  include "mozilla/WindowsBCryptInitialization.h"
 #  include <windows.h>
 #  if defined(MOZ_SANDBOX)
 #    include "XREShellData.h"
@@ -1330,7 +1331,7 @@ int XRE_XPCShellMain(int argc, char** argv, char** envp,
 
     // Initialize e10s check on the main thread, if not already done
     BrowserTabsRemoteAutostart();
-#ifdef XP_WIN
+#if defined(XP_WIN)
     // Plugin may require audio session if installed plugin can initialize
     // asynchronized.
     AutoAudioSession audioSession;
@@ -1351,8 +1352,13 @@ int XRE_XPCShellMain(int argc, char** argv, char** envp,
           "Failed to initialize broker services, sandboxed "
           "processes will fail to start.");
     }
-#  endif
-#endif
+#  endif  // defined(MOZ_SANDBOX)
+
+    {
+      DebugOnly<bool> result = WindowsBCryptInitialization();
+      MOZ_ASSERT(result);
+    }
+#endif  // defined(XP_WIN)
 
 #ifdef MOZ_CODE_COVERAGE
     CodeCoverageHandler::Init();
@@ -1517,13 +1523,6 @@ XPCShellDirProvider::GetFile(const char* prop, bool* persistent,
     file.forget(result);
     return NS_OK;
   }
-#ifdef MOZ_SANDBOX
-  if (!strcmp(prop, NS_APP_CONTENT_PROCESS_TEMP_DIR)) {
-    // Forward to the OS Temp directory
-    *persistent = true;
-    return NS_GetSpecialDirectory(NS_OS_TEMP_DIR, result);
-  }
-#endif
 
   return NS_ERROR_FAILURE;
 }

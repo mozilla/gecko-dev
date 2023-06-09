@@ -100,7 +100,8 @@ impl RenderNotifier for Notifier {
 
     fn new_frame_ready(&self, _: DocumentId,
                        scrolled: bool,
-                       _composite_needed: bool) {
+                       _composite_needed: bool,
+                       _: FramePublishId) {
         self.update(!scrolled);
     }
 }
@@ -552,14 +553,10 @@ impl Wrench {
         display_lists: Vec<(PipelineId, BuiltDisplayList)>,
         scroll_offsets: &HashMap<ExternalScrollId, Vec<SampledScrollOffset>>,
     ) {
-        let root_background_color = Some(ColorF::new(1.0, 1.0, 1.0, 1.0));
-
         let mut txn = Transaction::new();
         for display_list in display_lists {
             txn.set_display_list(
                 Epoch(frame_number),
-                root_background_color,
-                self.window_size_f32(),
                 display_list,
             );
         }

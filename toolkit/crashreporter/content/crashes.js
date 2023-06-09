@@ -4,33 +4,30 @@
 
 let reportURL;
 
-const { CrashReports } = ChromeUtils.import(
-  "resource://gre/modules/CrashReports.jsm"
+const { CrashReports } = ChromeUtils.importESModule(
+  "resource://gre/modules/CrashReports.sys.mjs"
 );
-const { OS } = ChromeUtils.import("resource://gre/modules/osfile.jsm");
 
-ChromeUtils.defineModuleGetter(
-  this,
-  "CrashSubmit",
-  "resource://gre/modules/CrashSubmit.jsm"
-);
+ChromeUtils.defineESModuleGetters(this, {
+  CrashSubmit: "resource://gre/modules/CrashSubmit.sys.mjs",
+});
 
 document.addEventListener("DOMContentLoaded", () => {
   populateReportLists();
   document
     .getElementById("clearUnsubmittedReports")
     .addEventListener("click", () => {
-      clearUnsubmittedReports().catch(Cu.reportError);
+      clearUnsubmittedReports().catch(console.error);
     });
   document
     .getElementById("submitAllUnsubmittedReports")
     .addEventListener("click", () => {
-      submitAllUnsubmittedReports().catch(Cu.reportError);
+      submitAllUnsubmittedReports().catch(console.error);
     });
   document
     .getElementById("clearSubmittedReports")
     .addEventListener("click", () => {
-      clearSubmittedReports().catch(Cu.reportError);
+      clearSubmittedReports().catch(console.error);
     });
 });
 
@@ -190,8 +187,8 @@ async function clearUnsubmittedReports() {
     return;
   }
 
-  await cleanupFolder(CrashReports.pendingDir.path);
-  await clearOldReports();
+  await enqueueCleanup(() => cleanupFolder(CrashReports.pendingDir.path));
+  await enqueueCleanup(clearOldReports);
   document.getElementById("reportListUnsubmitted").classList.add("hidden");
 }
 
@@ -224,11 +221,13 @@ async function clearSubmittedReports() {
     return;
   }
 
-  await cleanupFolder(
-    CrashReports.submittedDir.path,
-    async entry => entry.name.startsWith("bp-") && entry.name.endsWith(".txt")
+  await enqueueCleanup(async () =>
+    cleanupFolder(
+      CrashReports.submittedDir.path,
+      async entry => entry.name.startsWith("bp-") && entry.name.endsWith(".txt")
+    )
   );
-  await clearOldReports();
+  await enqueueCleanup(clearOldReports);
   document.getElementById("reportListSubmitted").classList.add("hidden");
   document.getElementById("noSubmittedReports").classList.remove("hidden");
 }
@@ -246,12 +245,8 @@ async function clearOldReports() {
       return false;
     }
 
-    let date = entry.winLastWriteDate;
-    if (!date) {
-      const stat = await OS.File.stat(entry.path);
-      date = stat.lastModificationDate;
-    }
-    return date < oneYearAgo;
+    const stat = await IOUtils.stat(entry.path);
+    return stat.lastModified < oneYearAgo;
   });
 }
 
@@ -264,19 +259,25 @@ async function clearOldReports() {
  *                          returning whether to delete the file
  */
 async function cleanupFolder(path, filter) {
-  const iterator = new OS.File.DirectoryIterator(path);
+  function entry(path) {
+    return {
+      path,
+      name: PathUtils.filename(path),
+    };
+  }
+  let children;
   try {
-    await iterator.forEach(async entry => {
-      if (!filter || (await filter(entry))) {
-        await OS.File.remove(entry.path);
-      }
-    });
+    children = await IOUtils.getChildren(path);
   } catch (e) {
-    if (!(e instanceof OS.File.Error) || !e.becauseNoSuchFile) {
+    if (DOMException.isInstance(e) || e.name !== "NotFoundError") {
       throw e;
     }
-  } finally {
-    iterator.close();
+  }
+
+  for (const childPath of children) {
+    if (!filter || (await filter(entry(childPath)))) {
+      await IOUtils.remove(childPath);
+    }
   }
 }
 
@@ -289,4 +290,27 @@ function dispatchEvent(name) {
   const event = document.createEvent("Events");
   event.initEvent(name, true, false);
   document.dispatchEvent(event);
+}
+
+let cleanupQueue = Promise.resolve();
+
+/**
+ * Enqueue a cleanup function.
+ *
+ * Instead of directly calling cleanup functions as a result of DOM
+ * interactions, queue them through this function so that we do not have
+ * overlapping executions of cleanup functions.
+ *
+ * Cleanup functions overlapping could cause a race where one function is
+ * attempting to stat a file while another function is attempting to delete it,
+ * causing an exception.
+ *
+ * @param fn The cleanup function to call. It will be called once the last
+ *           cleanup function has resolved.
+ *
+ * @returns A promise to await instead of awaiting the cleanup function.
+ */
+function enqueueCleanup(fn) {
+  cleanupQueue = cleanupQueue.then(fn);
+  return cleanupQueue;
 }

@@ -5,6 +5,7 @@
 
 #include "mozilla/ArrayUtils.h"
 
+#include "mozilla/LookAndFeel.h"
 #include "nscore.h"
 
 #include "nsXPLookAndFeel.h"
@@ -16,6 +17,7 @@
 #include "nsFont.h"
 #include "nsIFrame.h"
 #include "nsIXULRuntime.h"
+#include "nsLayoutUtils.h"
 #include "Theme.h"
 #include "SurfaceCacheUtils.h"
 #include "mozilla/dom/ContentParent.h"
@@ -33,6 +35,7 @@
 #include "mozilla/PreferenceSheet.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/widget/WidgetMessageUtils.h"
+#include "mozilla/dom/KeyboardEventBinding.h"
 #include "mozilla/RelativeLuminanceUtils.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/TelemetryScalarEnums.h"
@@ -145,7 +148,6 @@ static const char sIntPrefs[][45] = {
     "ui.treeScrollLinesMax",
     "accessibility.tabfocus",  // Weird one...
     "ui.chosenMenuItemsShouldBlink",
-    "ui.showKeyboardCues",
     "ui.windowsAccentColorInTitlebar",
     "ui.windowsDefaultTheme",
     "ui.dwmCompositor",
@@ -180,10 +182,11 @@ static const char sIntPrefs[][45] = {
     "ui.GtkCSDReversedPlacement",
     "ui.systemUsesDarkTheme",
     "ui.prefersReducedMotion",
+    "ui.prefersReducedTransparency",
+    "ui.invertedColors",
     "ui.primaryPointerCapabilities",
     "ui.allPointerCapabilities",
-    "ui.systemVerticalScrollbarWidth",
-    "ui.systemHorizontalScrollbarHeight",
+    "ui.systemScrollbarSize",
     "ui.touchDeviceSupportPresent",
     "ui.titlebarRadius",
     "ui.GtkMenuRadius",
@@ -529,9 +532,9 @@ static constexpr struct {
     // need to re-layout.
     {"browser.theme.toolbar-theme"_ns, widget::ThemeChangeKind::AllBits},
     {"browser.theme.content-theme"_ns},
-    {"layout.css.moz-box-flexbox-emulation.enabled"_ns},
     {"mathml.legacy_maction_and_semantics_implementations.disabled"_ns},
     {"mathml.ms_lquote_rquote_attributes.disabled"_ns},
+    {"dom.element.popover.enabled"_ns},
 };
 
 // Read values from the user's preferences.
@@ -546,6 +549,10 @@ void nsXPLookAndFeel::Init() {
   sInitialized = true;
 
   RecomputeColorSchemes();
+
+  if (XRE_IsParentProcess()) {
+    nsLayoutUtils::RecomputeSmoothScrollDefault();
+  }
 
   // XXX If we could reorganize the pref names, we should separate the branch
   //     for each types.  Then, we could reduce the unnecessary loop from
@@ -1168,8 +1175,9 @@ void nsXPLookAndFeel::RefreshImpl() {
   sIntCache.Clear();
   RecomputeColorSchemes();
 
-  // Clear any cached FullLookAndFeel data, which is now invalid.
   if (XRE_IsParentProcess()) {
+    nsLayoutUtils::RecomputeSmoothScrollDefault();
+    // Clear any cached FullLookAndFeel data, which is now invalid.
     widget::RemoteLookAndFeel::ClearCachedData();
   }
 }
@@ -1541,6 +1549,27 @@ bool LookAndFeel::DrawInTitlebar() {
 
 void LookAndFeel::GetThemeInfo(nsACString& aOut) {
   nsLookAndFeel::GetInstance()->GetThemeInfo(aOut);
+}
+
+uint32_t LookAndFeel::GetMenuAccessKey() {
+  return StaticPrefs::ui_key_menuAccessKey();
+}
+
+Modifiers LookAndFeel::GetMenuAccessKeyModifiers() {
+  switch (GetMenuAccessKey()) {
+    case dom::KeyboardEvent_Binding::DOM_VK_SHIFT:
+      return MODIFIER_SHIFT;
+    case dom::KeyboardEvent_Binding::DOM_VK_CONTROL:
+      return MODIFIER_CONTROL;
+    case dom::KeyboardEvent_Binding::DOM_VK_ALT:
+      return MODIFIER_ALT;
+    case dom::KeyboardEvent_Binding::DOM_VK_META:
+      return MODIFIER_META;
+    case dom::KeyboardEvent_Binding::DOM_VK_WIN:
+      return MODIFIER_OS;
+    default:
+      return 0;
+  }
 }
 
 // static

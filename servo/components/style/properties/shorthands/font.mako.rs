@@ -37,7 +37,7 @@
     use crate::properties::longhands::{font_family, font_style, font_size, font_weight, font_stretch};
     use crate::properties::longhands::font_variant_caps;
     use crate::values::specified::text::LineHeight;
-    use crate::values::specified::FontSize;
+    use crate::values::specified::{FontSize, FontWeight};
     use crate::values::specified::font::{FontStretch, FontStretchKeyword};
     #[cfg(feature = "gecko")]
     use crate::values::specified::font::SystemFont;
@@ -222,16 +222,25 @@
                 return Ok(());
             }
 
-            % for name in "style variant_caps weight".split():
+            % for name in "style variant_caps".split():
                 if self.font_${name} != &font_${name}::get_initial_specified_value() {
                     self.font_${name}.to_css(dest)?;
-                    dest.write_str(" ")?;
+                    dest.write_char(' ')?;
                 }
             % endfor
 
+            // The initial specified font-weight value of 'normal' computes as a number (400),
+            // not to the keyword, so we need to check for that as well in order to properly
+            // serialize the computed style.
+            if self.font_weight != &FontWeight::normal() &&
+               self.font_weight != &FontWeight::from_gecko_keyword(400)  {
+                self.font_weight.to_css(dest)?;
+                dest.write_char(' ')?;
+            }
+
             if font_stretch != FontStretchKeyword::Normal {
                 font_stretch.to_css(dest)?;
-                dest.write_str(" ")?;
+                dest.write_char(' ')?;
             }
 
             self.font_size.to_css(dest)?;
@@ -241,7 +250,7 @@
                 self.line_height.to_css(dest)?;
             }
 
-            dest.write_str(" ")?;
+            dest.write_char(' ')?;
             self.font_family.to_css(dest)?;
 
             Ok(())
@@ -322,12 +331,11 @@
                                     ${'font-variant-numeric' if engine == 'gecko' else ''}
                                     ${'font-variant-position' if engine == 'gecko' else ''}"
                     spec="https://drafts.csswg.org/css-fonts-3/#propdef-font-variant">
-    <% gecko_sub_properties = "alternates east_asian emoji ligatures numeric position".split() %>
-    <%
-        sub_properties = ["caps"]
-        if engine == "gecko":
-            sub_properties += gecko_sub_properties
-    %>
+% if engine == 'gecko':
+    <% sub_properties = "ligatures caps alternates numeric east_asian position emoji".split() %>
+% else:
+    <% sub_properties = ["caps"] %>
+% endif
 
 % for prop in sub_properties:
     use crate::properties::longhands::font_variant_${prop};
@@ -438,7 +446,7 @@
             % endif
                     if value != &font_variant_${prop}::get_initial_specified_value() {
                         if has_any {
-                            dest.write_str(" ")?;
+                            dest.write_char(' ')?;
                         }
                         has_any = true;
                         value.to_css(dest)?;
@@ -448,6 +456,87 @@
             }
 
             Ok(())
+        }
+    }
+</%helpers:shorthand>
+
+<%helpers:shorthand name="font-synthesis"
+                    engines="gecko"
+                    flags="SHORTHAND_IN_GETCS"
+                    sub_properties="font-synthesis-weight font-synthesis-style font-synthesis-small-caps"
+                    derive_value_info="False"
+                    spec="https://drafts.csswg.org/css-fonts-3/#propdef-font-variant">
+    <% sub_properties = ["weight", "style", "small_caps"] %>
+
+    use crate::values::specified::FontSynthesis;
+
+    pub fn parse_value<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
+    % for prop in sub_properties:
+        let mut ${prop} = FontSynthesis::None;
+    % endfor
+
+        if input.try_parse(|input| input.expect_ident_matching("none")).is_ok() {
+            // Leave all the individual values as None
+        } else {
+            let mut has_custom_value = false;
+            while !input.is_exhausted() {
+                try_match_ident_ignore_ascii_case! { input,
+                % for prop in sub_properties:
+                    "${prop.replace('_', '-')}" if ${prop} == FontSynthesis::None => {
+                        has_custom_value = true;
+                        ${prop} = FontSynthesis::Auto;
+                        continue;
+                    },
+                % endfor
+                }
+            }
+            if !has_custom_value {
+                return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+            }
+        }
+
+        Ok(expanded! {
+        % for prop in sub_properties:
+            font_synthesis_${prop}: ${prop},
+        % endfor
+        })
+    }
+
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
+            let mut has_any = false;
+
+        % for prop in sub_properties:
+            if self.font_synthesis_${prop} == &FontSynthesis::Auto {
+                if has_any {
+                    dest.write_char(' ')?;
+                }
+                has_any = true;
+                dest.write_str("${prop.replace('_', '-')}")?;
+            }
+        % endfor
+
+            if !has_any {
+                dest.write_str("none")?;
+            }
+
+            Ok(())
+        }
+    }
+
+    // The shorthand takes the sub-property names of the longhands, and not the
+    // 'auto' keyword like they do, so we can't automatically derive this.
+    impl SpecifiedValueInfo for Longhands {
+        fn collect_completion_keywords(f: KeywordsCollectFn) {
+            f(&[
+                "none",
+            % for prop in sub_properties:
+                "${prop.replace('_', '-')}",
+            % endfor
+            ]);
         }
     }
 </%helpers:shorthand>

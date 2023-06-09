@@ -29,6 +29,10 @@ class xpcAccessibleGeneric;
 class DocAccessiblePlatformExtParent;
 #endif
 
+#ifdef ANDROID
+class SessionAccessibility;
+#endif
+
 /*
  * These objects live in the main process and comunicate with and represent
  * an accessible document in a content process.
@@ -151,7 +155,7 @@ class DocAccessibleParent : public RemoteAccessible,
 
   virtual mozilla::ipc::IPCResult RecvCache(
       const mozilla::a11y::CacheUpdateType& aUpdateType,
-      nsTArray<CacheData>&& aData, const bool& aDispatchShowEvent) override;
+      nsTArray<CacheData>&& aData) override;
 
   virtual mozilla::ipc::IPCResult RecvSelectedAccessiblesChanged(
       nsTArray<uint64_t>&& aSelectedIDs,
@@ -173,7 +177,7 @@ class DocAccessibleParent : public RemoteAccessible,
       const a11y::role& aRole, const uint8_t& aRoleMapEntryIndex) final;
 
   virtual mozilla::ipc::IPCResult RecvBindChildDoc(
-      PDocAccessibleParent* aChildDoc, const uint64_t& aID) override;
+      NotNull<PDocAccessibleParent*> aChildDoc, const uint64_t& aID) override;
 
   void Unbind() {
     if (DocAccessibleParent* parent = ParentDoc()) {
@@ -277,9 +281,6 @@ class DocAccessibleParent : public RemoteAccessible,
 #endif
 
 #if !defined(XP_WIN)
-  virtual mozilla::ipc::IPCResult RecvBatch(
-      const uint64_t& aBatchType, nsTArray<BatchData>&& aData) override;
-
   virtual bool DeallocPDocAccessiblePlatformExtParent(
       PDocAccessiblePlatformExtParent* aActor) override;
 
@@ -353,6 +354,10 @@ class DocAccessibleParent : public RemoteAccessible,
   static DocAccessibleParent* GetFrom(dom::BrowsingContext* aBrowsingContext);
 
   size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) override;
+
+#ifdef ANDROID
+  RefPtr<SessionAccessibility> mSessionAccessibility;
+#endif
 
  private:
   ~DocAccessibleParent();

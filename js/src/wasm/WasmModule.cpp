@@ -523,7 +523,7 @@ static const Import& FindImportFunction(const ImportVector& imports,
 }
 
 bool Module::instantiateFunctions(JSContext* cx,
-                                  const JSFunctionVector& funcImports) const {
+                                  const JSObjectVector& funcImports) const {
 #ifdef DEBUG
   for (auto t : code().tiers()) {
     MOZ_ASSERT(funcImports.length() == metadata(t).funcImports.length());
@@ -537,7 +537,11 @@ bool Module::instantiateFunctions(JSContext* cx,
   Tier tier = code().stableTier();
 
   for (size_t i = 0; i < metadata(tier).funcImports.length(); i++) {
-    JSFunction* f = funcImports[i];
+    if (!funcImports[i]->is<JSFunction>()) {
+      continue;
+    }
+
+    JSFunction* f = &funcImports[i]->as<JSFunction>();
     if (!IsWasmExportedFunction(f)) {
       continue;
     }
@@ -745,7 +749,7 @@ bool Module::instantiateLocalTable(JSContext* cx, const TableDesc& td,
 
   SharedTable table;
   Rooted<WasmTableObject*> tableObj(cx);
-  if (td.isImportedOrExported) {
+  if (td.isExported) {
     RootedObject proto(cx, &cx->global()->getPrototype(JSProto_WasmTable));
     tableObj.set(WasmTableObject::create(cx, td.initialLength, td.maximumLength,
                                          td.elemType, proto));
@@ -884,12 +888,15 @@ bool Module::instantiateGlobals(JSContext* cx,
 
 static bool GetFunctionExport(JSContext* cx,
                               Handle<WasmInstanceObject*> instanceObj,
-                              const JSFunctionVector& funcImports,
+                              const JSObjectVector& funcImports,
                               uint32_t funcIndex, MutableHandleFunction func) {
   if (funcIndex < funcImports.length() &&
-      IsWasmExportedFunction(funcImports[funcIndex])) {
-    func.set(funcImports[funcIndex]);
-    return true;
+      funcImports[funcIndex]->is<JSFunction>()) {
+    JSFunction* f = &funcImports[funcIndex]->as<JSFunction>();
+    if (IsWasmExportedFunction(f)) {
+      func.set(f);
+      return true;
+    }
   }
 
   return instanceObj->getExportedFunction(cx, instanceObj, funcIndex, func);
@@ -897,7 +904,7 @@ static bool GetFunctionExport(JSContext* cx,
 
 static bool GetGlobalExport(JSContext* cx,
                             Handle<WasmInstanceObject*> instanceObj,
-                            const JSFunctionVector& funcImports,
+                            const JSObjectVector& funcImports,
                             const GlobalDesc& global, uint32_t globalIndex,
                             const ValVector& globalImportValues,
                             const WasmGlobalObjectVector& globalObjs,
@@ -935,7 +942,7 @@ static bool GetGlobalExport(JSContext* cx,
 
 static bool CreateExportObject(
     JSContext* cx, Handle<WasmInstanceObject*> instanceObj,
-    const JSFunctionVector& funcImports, const WasmTableObjectVector& tableObjs,
+    const JSObjectVector& funcImports, const WasmTableObjectVector& tableObjs,
     Handle<WasmMemoryObject*> memoryObj, const WasmTagObjectVector& tagObjs,
     const ValVector& globalImportValues,
     const WasmGlobalObjectVector& globalObjs, const ExportVector& exports) {
@@ -1071,7 +1078,7 @@ bool Module::instantiate(JSContext* cx, ImportValues& imports,
   }
 
   instance.set(WasmInstanceObject::create(
-      cx, code_, dataSegments_, elemSegments_, metadata().globalDataLength,
+      cx, code_, dataSegments_, elemSegments_, metadata().instanceDataLength,
       memory, std::move(tables), imports.funcs, metadata().globals,
       imports.globalValues, imports.globalObjs, imports.tagObjs, instanceProto,
       std::move(maybeDebug)));

@@ -6,6 +6,8 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   PromiseUtils: "resource://gre/modules/PromiseUtils.sys.mjs",
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
+  QuickSuggestRemoteSettings:
+    "resource:///modules/urlbar/private/QuickSuggestRemoteSettings.sys.mjs",
   TelemetryTestUtils: "resource://testing-common/TelemetryTestUtils.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
 });
@@ -40,7 +42,7 @@ const REQUIRED_SEARCH_PARAMS = [
 // We set the client timeout to a large value to avoid intermittent failures in
 // CI, especially TV tests, where the Merino fetch unexpectedly doesn't finish
 // before the default timeout.
-const CLIENT_TIMEOUT_MS = 1000;
+const CLIENT_TIMEOUT_MS = 2000;
 
 const HISTOGRAM_LATENCY = "FX_URLBAR_MERINO_LATENCY_MS";
 const HISTOGRAM_RESPONSE = "FX_URLBAR_MERINO_RESPONSE";
@@ -55,22 +57,28 @@ const RESPONSE_HISTOGRAM_VALUES = {
   no_suggestion: 4,
 };
 
+const WEATHER_KEYWORD = "weather";
+
+const WEATHER_RS_DATA = {
+  keywords: [WEATHER_KEYWORD],
+};
+
 const WEATHER_SUGGESTION = {
   title: "Weather for San Francisco",
-  url: "http://example.com/weather",
+  url: "https://example.com/weather",
   provider: "accuweather",
   is_sponsored: false,
   score: 0.2,
   icon: null,
   city_name: "San Francisco",
   current_conditions: {
-    url: "http://example.com/weather-current-conditions",
+    url: "https://example.com/weather-current-conditions",
     summary: "Mostly cloudy",
     icon_id: 6,
     temperature: { c: 15.5, f: 60.0 },
   },
   forecast: {
-    url: "http://example.com/weather-forecast",
+    url: "https://example.com/weather-forecast",
     summary: "Pleasant Saturday",
     high: { c: 21.1, f: 70.0 },
     low: { c: 13.9, f: 57.0 },
@@ -94,17 +102,25 @@ class _MerinoTestUtils {
    */
   init(scope) {
     if (!scope) {
-      throw new Error("MerinoTestUtils() must be called with a scope");
+      throw new Error("MerinoTestUtils.init() must be called with a scope");
     }
+
+    this.#initDepth++;
+    scope.info?.("MerinoTestUtils init: Depth is now " + this.#initDepth);
+
     for (let p of TEST_SCOPE_PROPERTIES) {
       this[p] = scope[p];
     }
     // If you add other properties to `this`, null them in `uninit()`.
 
-    this.#server = new MockMerinoServer(scope);
+    if (!this.#server) {
+      this.#server = new MockMerinoServer(scope);
+    }
     lazy.UrlbarPrefs.set("merino.timeoutMs", CLIENT_TIMEOUT_MS);
-
-    scope.registerCleanupFunction?.(() => this.uninit());
+    scope.registerCleanupFunction?.(() => {
+      scope.info?.("MerinoTestUtils cleanup function");
+      this.uninit();
+    });
   }
 
   /**
@@ -114,11 +130,20 @@ class _MerinoTestUtils {
    * you'll need to call this.
    */
   uninit() {
+    this.#initDepth--;
+    this.info?.("MerinoTestUtils uninit: Depth is now " + this.#initDepth);
+
+    if (this.#initDepth) {
+      this.info?.("MerinoTestUtils uninit: Bailing because depth > 0");
+      return;
+    }
+    this.info?.("MerinoTestUtils uninit: Now uninitializing");
+
     for (let p of TEST_SCOPE_PROPERTIES) {
       this[p] = null;
     }
-
     this.#server.uninit();
+    this.#server = null;
     lazy.UrlbarPrefs.clear("merino.timeoutMs");
   }
 
@@ -128,6 +153,24 @@ class _MerinoTestUtils {
    */
   get SEARCH_PARAMS() {
     return SEARCH_PARAMS;
+  }
+
+  /**
+   * @returns {string}
+   *   The weather keyword in `WEATHER_RS_DATA`. Can be used as a search string
+   *   to match the weather suggestion.
+   */
+  get WEATHER_KEYWORD() {
+    return WEATHER_KEYWORD;
+  }
+
+  /**
+   * @returns {object}
+   *   Default remote settings data that sets up `WEATHER_KEYWORD` as the
+   *   keyword for the weather suggestion.
+   */
+  get WEATHER_RS_DATA() {
+    return { ...WEATHER_RS_DATA };
   }
 
   /**
@@ -279,13 +322,13 @@ class _MerinoTestUtils {
     await this.server.start();
     this.server.response.body.suggestions = [WEATHER_SUGGESTION];
 
-    lazy.QuickSuggest.weather._test_setFetchIntervalMs(
-      WEATHER_FETCH_INTERVAL_MS
-    );
+    lazy.QuickSuggestRemoteSettings._test_ignoreSettingsSync = true;
+    lazy.QuickSuggest.weather._test_fetchIntervalMs = WEATHER_FETCH_INTERVAL_MS;
 
     // Enabling weather will trigger a fetch. Wait for it to finish so the
     // suggestion is ready when this function returns.
     let fetchPromise = lazy.QuickSuggest.weather.waitForFetches();
+    lazy.QuickSuggest.weather._test_setRsData({ ...WEATHER_RS_DATA });
     lazy.UrlbarPrefs.set("weather.featureGate", true);
     lazy.UrlbarPrefs.set("suggest.weather", true);
     await fetchPromise;
@@ -299,10 +342,11 @@ class _MerinoTestUtils {
     this.registerCleanupFunction?.(async () => {
       lazy.UrlbarPrefs.clear("weather.featureGate");
       lazy.UrlbarPrefs.clear("suggest.weather");
-      lazy.QuickSuggest.weather._test_setFetchIntervalMs(-1);
+      lazy.QuickSuggest.weather._test_fetchIntervalMs = -1;
     });
   }
 
+  #initDepth = 0;
   #server = null;
 }
 
@@ -318,6 +362,8 @@ class MockMerinoServer {
    *   to access test helpers like `Assert` that are available in the scope.
    */
   constructor(scope) {
+    scope.info?.("MockMerinoServer constructor");
+
     for (let p of TEST_SCOPE_PROPERTIES) {
       this[p] = scope[p];
     }
@@ -337,6 +383,7 @@ class MockMerinoServer {
    * Uninitializes the server.
    */
   uninit() {
+    this.info?.("MockMerinoServer uninit");
     for (let p of TEST_SCOPE_PROPERTIES) {
       this[p] = null;
     }
@@ -466,6 +513,7 @@ class MockMerinoServer {
         request_id: "request_id",
         suggestions: [
           {
+            provider: "adm",
             full_keyword: "full_keyword",
             title: "title",
             url: "url",

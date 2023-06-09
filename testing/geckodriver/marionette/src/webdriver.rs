@@ -13,11 +13,6 @@ pub struct Url {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct LegacyWebElement {
-    pub id: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Locator {
     pub using: Selector,
     pub value: String,
@@ -172,9 +167,9 @@ pub enum Command {
     #[serde(rename = "WebDriver:DismissAlert")]
     DismissAlert,
     #[serde(rename = "WebDriver:ElementClear")]
-    ElementClear(LegacyWebElement),
+    ElementClear { id: String },
     #[serde(rename = "WebDriver:ElementClick")]
-    ElementClick(LegacyWebElement),
+    ElementClick { id: String },
     #[serde(rename = "WebDriver:ElementSendKeys")]
     ElementSendKeys {
         id: String,
@@ -201,6 +196,20 @@ pub enum Command {
         using: Selector,
         value: String,
     },
+    #[serde(rename = "WebDriver:FindElementFromShadowRoot")]
+    FindShadowRootElement {
+        #[serde(rename = "shadowRoot")]
+        shadow_root: String,
+        using: Selector,
+        value: String,
+    },
+    #[serde(rename = "WebDriver:FindElementsFromShadowRoot")]
+    FindShadowRootElements {
+        #[serde(rename = "shadowRoot")]
+        shadow_root: String,
+        using: Selector,
+        value: String,
+    },
     #[serde(rename = "WebDriver:FullscreenWindow")]
     FullscreenWindow,
     #[serde(rename = "WebDriver:Navigate")]
@@ -209,6 +218,10 @@ pub enum Command {
     GetActiveElement,
     #[serde(rename = "WebDriver:GetAlertText")]
     GetAlertText,
+    #[serde(rename = "WebDriver:GetComputedLabel")]
+    GetComputedLabel { id: String },
+    #[serde(rename = "WebDriver:GetComputedRole")]
+    GetComputedRole { id: String },
     #[serde(rename = "WebDriver:GetCookies")]
     GetCookies,
     #[serde(rename = "WebDriver:GetElementCSSValue")]
@@ -224,11 +237,11 @@ pub enum Command {
     #[serde(rename = "WebDriver:GetElementProperty")]
     GetElementProperty { id: String, name: String },
     #[serde(rename = "WebDriver:GetElementRect")]
-    GetElementRect(LegacyWebElement),
+    GetElementRect { id: String },
     #[serde(rename = "WebDriver:GetElementTagName")]
-    GetElementTagName(LegacyWebElement),
+    GetElementTagName { id: String },
     #[serde(rename = "WebDriver:GetElementText")]
-    GetElementText(LegacyWebElement),
+    GetElementText { id: String },
     #[serde(rename = "WebDriver:GetPageSource")]
     GetPageSource,
     #[serde(rename = "WebDriver:GetShadowRoot")]
@@ -248,11 +261,11 @@ pub enum Command {
     #[serde(rename = "WebDriver:Forward")]
     GoForward,
     #[serde(rename = "WebDriver:IsElementDisplayed")]
-    IsDisplayed(LegacyWebElement),
+    IsDisplayed { id: String },
     #[serde(rename = "WebDriver:IsElementEnabled")]
-    IsEnabled(LegacyWebElement),
+    IsEnabled { id: String },
     #[serde(rename = "WebDriver:IsElementSelected")]
-    IsSelected(LegacyWebElement),
+    IsSelected { id: String },
     #[serde(rename = "WebDriver:MaximizeWindow")]
     MaximizeWindow,
     #[serde(rename = "WebDriver:MinimizeWindow")]
@@ -447,6 +460,22 @@ mod tests {
     }
 
     #[test]
+    fn test_json_get_computed_label_command() {
+        assert_ser_de(
+            &Command::GetComputedLabel { id: "foo".into() },
+            json!({"WebDriver:GetComputedLabel": {"id": "foo"}}),
+        );
+    }
+
+    #[test]
+    fn test_json_get_computed_role_command() {
+        assert_ser_de(
+            &Command::GetComputedRole { id: "foo".into() },
+            json!({"WebDriver:GetComputedRole": {"id": "foo"}}),
+        );
+    }
+
+    #[test]
     fn test_json_get_css_value() {
         assert_ser_de(
             &Command::GetCSSValue {
@@ -454,6 +483,30 @@ mod tests {
                 property: "bar".into(),
             },
             json!({"WebDriver:GetElementCSSValue": {"id": "foo", "propertyName": "bar"}}),
+        );
+    }
+
+    #[test]
+    fn test_json_find_shadow_root_element() {
+        assert_ser_de(
+            &Command::FindShadowRootElement {
+                shadow_root: "foo".into(),
+                using: Selector::Css,
+                value: "bar".into(),
+            },
+            json!({"WebDriver:FindElementFromShadowRoot": {"shadowRoot": "foo", "using": "css selector", "value": "bar"}}),
+        );
+    }
+
+    #[test]
+    fn test_json_find_shadow_root_elements() {
+        assert_ser_de(
+            &Command::FindShadowRootElements {
+                shadow_root: "foo".into(),
+                using: Selector::Css,
+                value: "bar".into(),
+            },
+            json!({"WebDriver:FindElementsFromShadowRoot": {"shadowRoot": "foo", "using": "css selector", "value": "bar"}}),
         );
     }
 }

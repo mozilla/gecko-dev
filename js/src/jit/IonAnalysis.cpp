@@ -2704,7 +2704,7 @@ void jit::RenumberBlocks(MIRGraph& graph) {
   }
 }
 
-// A utility for code which deletes blocks. Renumber the remaining blocks,
+// A utility for code which adds/deletes blocks. Renumber the remaining blocks,
 // recompute dominators, and optionally recompute AliasAnalysis dependencies.
 bool jit::AccountForCFGChanges(MIRGenerator* mir, MIRGraph& graph,
                                bool updateAliasAnalysis,
@@ -4003,6 +4003,114 @@ bool jit::EliminateRedundantShapeGuards(MIRGraph& graph) {
   return true;
 }
 
+static bool TryEliminateGCBarriersForAllocation(TempAllocator& alloc,
+                                                MInstruction* allocation) {
+  MOZ_ASSERT(allocation->type() == MIRType::Object);
+
+  JitSpew(JitSpew_RedundantGCBarriers, "Analyzing allocation %s",
+          allocation->opName());
+
+  MBasicBlock* block = allocation->block();
+  MInstructionIterator insIter(block->begin(allocation));
+
+  // Skip `allocation`.
+  MOZ_ASSERT(*insIter == allocation);
+  insIter++;
+
+  // Try to optimize the other instructions in the block.
+  while (insIter != block->end()) {
+    MInstruction* ins = *insIter;
+    insIter++;
+    switch (ins->op()) {
+      case MDefinition::Opcode::Constant:
+      case MDefinition::Opcode::Box:
+      case MDefinition::Opcode::Unbox:
+      case MDefinition::Opcode::AssertCanElidePostWriteBarrier:
+        // These instructions can't trigger GC or affect this analysis in other
+        // ways.
+        break;
+      case MDefinition::Opcode::StoreFixedSlot: {
+        auto* store = ins->toStoreFixedSlot();
+        if (store->object() != allocation) {
+          JitSpew(JitSpew_RedundantGCBarriers,
+                  "Stopped at StoreFixedSlot for other object");
+          return true;
+        }
+        store->setNeedsBarrier(false);
+        JitSpew(JitSpew_RedundantGCBarriers, "Elided StoreFixedSlot barrier");
+        break;
+      }
+      case MDefinition::Opcode::PostWriteBarrier: {
+        auto* barrier = ins->toPostWriteBarrier();
+        if (barrier->object() != allocation) {
+          JitSpew(JitSpew_RedundantGCBarriers,
+                  "Stopped at PostWriteBarrier for other object");
+          return true;
+        }
+#ifdef DEBUG
+        if (!alloc.ensureBallast()) {
+          return false;
+        }
+        MDefinition* value = barrier->value();
+        if (value->type() != MIRType::Value) {
+          value = MBox::New(alloc, value);
+          block->insertBefore(barrier, value->toInstruction());
+        }
+        auto* assert =
+            MAssertCanElidePostWriteBarrier::New(alloc, allocation, value);
+        block->insertBefore(barrier, assert);
+#endif
+        block->discard(barrier);
+        JitSpew(JitSpew_RedundantGCBarriers, "Elided PostWriteBarrier");
+        break;
+      }
+      default:
+        JitSpew(JitSpew_RedundantGCBarriers,
+                "Stopped at unsupported instruction %s", ins->opName());
+        return true;
+    }
+  }
+
+  return true;
+}
+
+bool jit::EliminateRedundantGCBarriers(MIRGraph& graph) {
+  // Peephole optimization for the following pattern:
+  //
+  //   0: MNewCallObject
+  //   1: MStoreFixedSlot(0, ...)
+  //   2: MStoreFixedSlot(0, ...)
+  //   3: MPostWriteBarrier(0, ...)
+  //
+  // If the instructions immediately following the allocation instruction can't
+  // trigger GC and we are storing to the new object's slots, we can elide the
+  // pre-barrier.
+  //
+  // We also eliminate the post barrier and (in debug builds) replace it with an
+  // assertion.
+  //
+  // See also the similar optimizations in WarpBuilder::buildCallObject.
+
+  JitSpew(JitSpew_RedundantGCBarriers, "Begin");
+
+  for (ReversePostorderIterator block = graph.rpoBegin();
+       block != graph.rpoEnd(); block++) {
+    for (MInstructionIterator insIter(block->begin());
+         insIter != block->end();) {
+      MInstruction* ins = *insIter;
+      insIter++;
+
+      if (ins->isNewCallObject()) {
+        if (!TryEliminateGCBarriersForAllocation(graph.alloc(), ins)) {
+          return false;
+        }
+      }
+    }
+  }
+
+  return true;
+}
+
 static bool NeedsKeepAlive(MInstruction* slotsOrElements, MInstruction* use) {
   MOZ_ASSERT(slotsOrElements->type() == MIRType::Elements ||
              slotsOrElements->type() == MIRType::Slots);
@@ -4011,6 +4119,7 @@ static bool NeedsKeepAlive(MInstruction* slotsOrElements, MInstruction* use) {
     return true;
   }
 
+  // Allocating a BigInt can GC, so we have to keep the object alive.
   if (use->type() == MIRType::BigInt) {
     return true;
   }
@@ -4043,6 +4152,8 @@ static bool NeedsKeepAlive(MInstruction* slotsOrElements, MInstruction* use) {
       case MDefinition::Opcode::BoundsCheck:
       case MDefinition::Opcode::GuardElementNotHole:
       case MDefinition::Opcode::SpectreMaskIndex:
+      case MDefinition::Opcode::DebugEnterGCUnsafeRegion:
+      case MDefinition::Opcode::DebugLeaveGCUnsafeRegion:
         iter++;
         break;
       default:
@@ -4108,6 +4219,26 @@ bool jit::AddKeepAliveInstructions(MIRGraph& graph) {
         }
 
         if (!NeedsKeepAlive(ins, use)) {
+#ifdef DEBUG
+          // These two instructions don't start a GC unsafe region, because they
+          // overwrite their elements register at the very start. This ensures
+          // there's no invalidated elements value kept on the stack.
+          if (use->isApplyArray() || use->isConstructArray()) {
+            continue;
+          }
+
+          if (!graph.alloc().ensureBallast()) {
+            return false;
+          }
+
+          // Enter a GC unsafe region while the elements/slots are on the stack.
+          auto* enter = MDebugEnterGCUnsafeRegion::New(graph.alloc());
+          use->block()->insertAfter(ins, enter);
+
+          // Leave the region after the use.
+          auto* leave = MDebugLeaveGCUnsafeRegion::New(graph.alloc());
+          use->block()->insertAfter(use, leave);
+#endif
           continue;
         }
 
@@ -4453,10 +4584,19 @@ bool jit::FoldLoadsWithUnbox(MIRGenerator* mir, MIRGraph& graph) {
       MInstruction* load = ins;
 
       // Ensure there's a single def-use (ignoring resume points) and it's an
-      // unbox.
+      // unbox. Unwrap MLexicalCheck because it's redundant if we have a
+      // fallible unbox (checked below).
       MDefinition* defUse = load->maybeSingleDefUse();
       if (!defUse) {
         continue;
+      }
+      MLexicalCheck* lexicalCheck = nullptr;
+      if (defUse->isLexicalCheck()) {
+        lexicalCheck = defUse->toLexicalCheck();
+        defUse = lexicalCheck->maybeSingleDefUse();
+        if (!defUse) {
+          continue;
+        }
       }
       if (!defUse->isUnbox()) {
         continue;
@@ -4469,12 +4609,14 @@ bool jit::FoldLoadsWithUnbox(MIRGenerator* mir, MIRGraph& graph) {
       if (unbox->block() != *block) {
         continue;
       }
+      MOZ_ASSERT_IF(lexicalCheck, lexicalCheck->block() == *block);
 
       MOZ_ASSERT(!IsMagicType(unbox->type()));
 
-      // If this is a LoadElement, we only support folding it with a fallible
-      // unbox so that we can eliminate the hole check.
-      if (load->isLoadElement() && !unbox->fallible()) {
+      // If this is a LoadElement or if we have a lexical check between the load
+      // and unbox, we only support folding the load with a fallible unbox so
+      // that we can eliminate the MagicValue check.
+      if ((load->isLoadElement() || lexicalCheck) && !unbox->fallible()) {
         continue;
       }
 
@@ -4514,12 +4656,21 @@ bool jit::FoldLoadsWithUnbox(MIRGenerator* mir, MIRGraph& graph) {
 
       block->insertBefore(load, replacement);
       unbox->replaceAllUsesWith(replacement);
+      if (lexicalCheck) {
+        lexicalCheck->replaceAllUsesWith(replacement);
+      }
       load->replaceAllUsesWith(replacement);
 
+      if (lexicalCheck && *insIter == lexicalCheck) {
+        insIter++;
+      }
       if (*insIter == unbox) {
         insIter++;
       }
       block->discard(unbox);
+      if (lexicalCheck) {
+        block->discard(lexicalCheck);
+      }
       block->discard(load);
     }
   }
@@ -4602,6 +4753,123 @@ bool jit::MakeLoopsContiguous(MIRGraph& graph) {
     // Move all blocks between header and backedge that aren't marked to
     // the end of the loop, making the loop itself contiguous.
     MakeLoopContiguous(graph, header, numMarked);
+  }
+
+  return true;
+}
+
+static MDefinition* SkipUnbox(MDefinition* ins) {
+  if (ins->isUnbox()) {
+    return ins->toUnbox()->input();
+  }
+  return ins;
+}
+
+bool jit::OptimizeIteratorIndices(MIRGenerator* mir, MIRGraph& graph) {
+  bool changed = false;
+
+  for (ReversePostorderIterator blockIter = graph.rpoBegin();
+       blockIter != graph.rpoEnd();) {
+    MBasicBlock* block = *blockIter++;
+    for (MInstructionIterator insIter(block->begin());
+         insIter != block->end();) {
+      MInstruction* ins = *insIter;
+      insIter++;
+      if (!graph.alloc().ensureBallast()) {
+        return false;
+      }
+
+      MDefinition* receiver = nullptr;
+      MDefinition* idVal = nullptr;
+      MDefinition* setValue = nullptr;
+      if (ins->isMegamorphicHasProp() &&
+          ins->toMegamorphicHasProp()->hasOwn()) {
+        receiver = ins->toMegamorphicHasProp()->object();
+        idVal = ins->toMegamorphicHasProp()->idVal();
+      } else if (ins->isHasOwnCache()) {
+        receiver = ins->toHasOwnCache()->value();
+        idVal = ins->toHasOwnCache()->idval();
+      } else if (ins->isMegamorphicLoadSlotByValue()) {
+        receiver = ins->toMegamorphicLoadSlotByValue()->object();
+        idVal = ins->toMegamorphicLoadSlotByValue()->idVal();
+      } else if (ins->isGetPropertyCache()) {
+        receiver = ins->toGetPropertyCache()->value();
+        idVal = ins->toGetPropertyCache()->idval();
+      } else if (ins->isMegamorphicSetElement()) {
+        receiver = ins->toMegamorphicSetElement()->object();
+        idVal = ins->toMegamorphicSetElement()->index();
+        setValue = ins->toMegamorphicSetElement()->value();
+      } else if (ins->isSetPropertyCache()) {
+        receiver = ins->toSetPropertyCache()->object();
+        idVal = ins->toSetPropertyCache()->idval();
+        setValue = ins->toSetPropertyCache()->value();
+      }
+
+      if (!receiver) {
+        continue;
+      }
+
+      // Given the following structure (that occurs inside for-in loops):
+      //   obj: some object
+      //   iter: ObjectToIterator <obj>
+      //   iterNext: IteratorMore <iter>
+      //   access: HasProp/GetElem <obj> <iterNext>
+      // If the iterator object has an indices array, we can speed up the
+      // property access:
+      // 1. If the property access is a HasProp looking for own properties,
+      //    then the result will always be true if the iterator has indices,
+      //    because we only populate the indices array for objects with no
+      //    enumerable properties on the prototype.
+      // 2. If the property access is a GetProp, then we can use the contents
+      //    of the indices array to find the correct property faster than
+      //    the megamorphic cache.
+      if (!idVal->isIteratorMore()) {
+        continue;
+      }
+      auto* iterNext = idVal->toIteratorMore();
+
+      if (!iterNext->iterator()->isObjectToIterator()) {
+        continue;
+      }
+
+      MObjectToIterator* iter = iterNext->iterator()->toObjectToIterator();
+      if (SkipUnbox(iter->object()) != SkipUnbox(receiver)) {
+        continue;
+      }
+
+      MInstruction* indicesCheck =
+          MIteratorHasIndices::New(graph.alloc(), iter->object(), iter);
+      MInstruction* replacement;
+      if (ins->isHasOwnCache() || ins->isMegamorphicHasProp()) {
+        MOZ_ASSERT(!setValue);
+        replacement = MConstant::New(graph.alloc(), BooleanValue(true));
+      } else if (ins->isMegamorphicLoadSlotByValue() ||
+                 ins->isGetPropertyCache()) {
+        MOZ_ASSERT(!setValue);
+        replacement =
+            MLoadSlotByIteratorIndex::New(graph.alloc(), receiver, iter);
+      } else {
+        MOZ_ASSERT(ins->isMegamorphicSetElement() || ins->isSetPropertyCache());
+        MOZ_ASSERT(setValue);
+        replacement = MStoreSlotByIteratorIndex::New(graph.alloc(), receiver,
+                                                     iter, setValue);
+      }
+
+      if (!block->wrapInstructionInFastpath(ins, replacement, indicesCheck)) {
+        return false;
+      }
+
+      iter->setWantsIndices(true);
+      changed = true;
+
+      // Advance to join block.
+      blockIter = graph.rpoBegin(block->getSuccessor(0)->getSuccessor(0));
+      break;
+    }
+  }
+  if (changed && !AccountForCFGChanges(mir, graph,
+                                       /*updateAliasAnalysis=*/false)) {
+    return false;
   }
 
   return true;

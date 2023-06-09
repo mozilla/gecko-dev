@@ -95,12 +95,15 @@ const POLICIES_TESTS = [
       EnableTrackingProtection: {
         Cryptomining: true,
         Fingerprinting: true,
+        EmailTracking: true,
         Locked: true,
       },
     },
     lockedPrefs: {
       "privacy.trackingprotection.cryptomining.enabled": true,
       "privacy.trackingprotection.fingerprinting.enabled": true,
+      "privacy.trackingprotection.emailtracking.enabled": true,
+      "privacy.trackingprotection.emailtracking.pbmode.enabled": true,
     },
   },
 
@@ -965,6 +968,26 @@ const POLICIES_TESTS = [
     },
     lockedPrefs: {
       "print.prefer_system_dialog": true,
+    },
+  },
+
+  // Bug 1820195
+  {
+    policies: {
+      Preferences: {
+        "pdfjs.cursorToolOnLoad": {
+          Value: 1,
+          Status: "default",
+        },
+        "pdfjs.sidebarViewOnLoad": {
+          Value: 0,
+          Status: "default",
+        },
+      },
+    },
+    unlockedPrefs: {
+      "pdfjs.cursorToolOnLoad": 1,
+      "pdfjs.sidebarViewOnLoad": 0,
     },
   },
 ];

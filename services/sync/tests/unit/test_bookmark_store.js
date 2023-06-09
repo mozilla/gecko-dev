@@ -6,10 +6,14 @@ const {
   BookmarkFolder,
   BookmarkQuery,
   PlacesItem,
-} = ChromeUtils.import("resource://services-sync/engines/bookmarks.js");
+} = ChromeUtils.importESModule(
+  "resource://services-sync/engines/bookmarks.sys.mjs"
+);
 // `Service` is used as a global in head_helpers.js.
 // eslint-disable-next-line no-unused-vars
-const { Service } = ChromeUtils.import("resource://services-sync/service.js");
+const { Service } = ChromeUtils.importESModule(
+  "resource://services-sync/service.sys.mjs"
+);
 
 const BookmarksToolbarTitle = "toolbar";
 
@@ -273,6 +277,11 @@ add_bookmark_test(async function test_deleted(engine) {
     let newrec = await store.createRecord(bmk1.guid);
     Assert.equal(null, item);
     Assert.equal(newrec.deleted, true);
+    _("Verify that the keyword has been cleared.");
+    let keyword = await PlacesUtils.keywords.fetch({
+      url: "http://getfirefox.com/",
+    });
+    Assert.equal(null, keyword);
   } finally {
     _("Clean up.");
     await store.wipe();

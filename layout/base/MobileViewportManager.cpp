@@ -204,7 +204,7 @@ void MobileViewportManager::SetInitialViewport() {
 CSSToScreenScale MobileViewportManager::ClampZoom(
     const CSSToScreenScale& aZoom, const nsViewportInfo& aViewportInfo) const {
   CSSToScreenScale zoom = aZoom;
-  if (IsNaN(zoom.scale)) {
+  if (std::isnan(zoom.scale)) {
     NS_ERROR("Don't pass NaN to ClampZoom; check caller for 0/0 division");
     zoom = CSSToScreenScale(1.0);
   }
@@ -433,6 +433,11 @@ void MobileViewportManager::UpdateResolutionForContentSizeChange(
   // We try to scale down the contents only IF the document has no
   // initial-scale AND IF it's not restored documents AND IF the resolution
   // has never been changed by APZ.
+  if (MOZ_LOG_TEST(gLog, LogLevel::Debug)) {
+    MVM_LOG("%p: conditions preventing shrink-to-fit: %d %d %d\n", this,
+            mRestoreResolution.isSome(), mContext->IsResolutionUpdatedByApz(),
+            viewportInfo.IsDefaultZoomValid());
+  }
   if (!mRestoreResolution && !mContext->IsResolutionUpdatedByApz() &&
       !viewportInfo.IsDefaultZoomValid()) {
     if (zoom != intrinsicScale) {

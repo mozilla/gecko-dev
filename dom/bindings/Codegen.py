@@ -2240,7 +2240,7 @@ class CGClassConstructor(CGAbstractStaticMethod):
         )
 
         name = self._ctor.identifier.name
-        nativeName = MakeNativeName(self.descriptor.binaryNameFor(name))
+        nativeName = MakeNativeName(self.descriptor.binaryNameFor(name, True))
         callGenerator = CGMethodCall(
             nativeName, True, self.descriptor, self._ctor, isConstructor=True
         )
@@ -2606,7 +2606,6 @@ class PropertyDefiner:
         )
         prefableWithDisablersTemplate = "  { &%s_disablers%d, &%s_specs[%d] }"
         prefableWithoutDisablersTemplate = "  { nullptr, &%s_specs[%d] }"
-        prefCacheTemplate = "&%s[%d].disablers->enabled"
 
         def switchToCondition(condition, specs):
             # Set up pointers to the new sets of specs inside prefableSpecs
@@ -3091,7 +3090,7 @@ class AttrDefiner(PropertyDefiner):
                         raise TypeError(
                             "Can't handle lenient cross-origin "
                             "readable attribute %s.%s"
-                            % (self.descriptor.name, attr.identifier.name)
+                            % (descriptor.name, attr.identifier.name)
                         )
                     if descriptor.interface.hasDescendantWithCrossOriginMembers:
                         accessor = (
@@ -7355,7 +7354,7 @@ def getJSToNativeConversionInfo(
         template = template.rstrip()
         template += fill(
             """
-             else if (!mozilla::IsFinite(${readLoc})) {
+             else if (!std::isfinite(${readLoc})) {
               $*{nonFiniteCode}
             }
             """,
@@ -10321,7 +10320,6 @@ class CGSetterCall(CGPerSignatureCall):
                     self.idlNode
                 )
             elif attr.getExtendedAttribute("Cached"):
-                args = "self"
                 clearSlot = "%s(self);\n" % MakeClearCachedValueNativeName(self.idlNode)
 
         # We have no return value
@@ -10604,7 +10602,7 @@ class CGSpecializedMethod(CGAbstractStaticMethod):
         if method.underlyingAttr:
             return CGSpecializedGetter.makeNativeName(descriptor, method.underlyingAttr)
         name = method.identifier.name
-        return MakeNativeName(descriptor.binaryNameFor(name))
+        return MakeNativeName(descriptor.binaryNameFor(name, method.isStatic()))
 
 
 class CGMethodPromiseWrapper(CGAbstractStaticMethod):
@@ -10701,7 +10699,7 @@ class CGLegacyCallHook(CGAbstractBindingMethod):
 
     def generate_code(self):
         name = self._legacycaller.identifier.name
-        nativeName = MakeNativeName(self.descriptor.binaryNameFor(name))
+        nativeName = MakeNativeName(self.descriptor.binaryNameFor(name, False))
         return CGMethodCall(nativeName, False, self.descriptor, self._legacycaller)
 
     def error_reporting_label(self):
@@ -11174,7 +11172,7 @@ class CGSpecializedGetter(CGAbstractStaticMethod):
     @staticmethod
     def makeNativeName(descriptor, attr):
         name = attr.identifier.name
-        nativeName = MakeNativeName(descriptor.binaryNameFor(name))
+        nativeName = MakeNativeName(descriptor.binaryNameFor(name, attr.isStatic()))
         _, resultOutParam, _, _, _ = getRetvalDeclarationForType(attr.type, descriptor)
         extendedAttrs = descriptor.getExtendedAttributes(attr, getter=True)
         canFail = "needsErrorResult" in extendedAttrs or "canOOM" in extendedAttrs
@@ -11280,7 +11278,7 @@ class CGSpecializedSetter(CGAbstractStaticMethod):
                     "We don't support the setter of %s marked as "
                     "CrossOriginWritable because it takes a Gecko interface "
                     "as the value",
-                    attr.identifier.name,
+                    self.attr.identifier.name,
                 )
             prototypeID, _ = PrototypeIDAndDepth(self.descriptor)
             prefix = fill(
@@ -11338,7 +11336,7 @@ class CGSpecializedSetter(CGAbstractStaticMethod):
     @staticmethod
     def makeNativeName(descriptor, attr):
         name = attr.identifier.name
-        return "Set" + MakeNativeName(descriptor.binaryNameFor(name))
+        return "Set" + MakeNativeName(descriptor.binaryNameFor(name, attr.isStatic()))
 
 
 class CGStaticSetter(CGAbstractStaticBindingMethod):
@@ -12735,7 +12733,7 @@ class CGUnionStruct(CGThing):
     def getStruct(self):
 
         members = [
-            ClassMember("mType", "Type", body="eUninitialized"),
+            ClassMember("mType", "TypeOrUninit", body="eUninitialized"),
             ClassMember("mValue", "Value"),
         ]
         ctor = ClassConstructor(
@@ -13126,6 +13124,23 @@ class CGUnionStruct(CGThing):
                 )
             )
 
+            body = dedent(
+                """
+                MOZ_RELEASE_ASSERT(mType != eUninitialized);
+                return static_cast<Type>(mType);
+                """
+            )
+            methods.append(
+                ClassMethod(
+                    "GetType",
+                    "Type",
+                    [],
+                    bodyInHeader=True,
+                    body=body,
+                    const=True,
+                )
+            )
+
             if CGUnionStruct.isUnionCopyConstructible(self.type):
                 constructors.append(
                     ClassConstructor(
@@ -13161,7 +13176,19 @@ class CGUnionStruct(CGThing):
         else:
             friend = ""
 
+        enumValuesNoUninit = [x for x in enumValues if x != "eUninitialized"]
+
         bases = [ClassBase("AllOwningUnionBase")] if self.ownsMembers else []
+        enums = [
+            ClassEnum("TypeOrUninit", enumValues, visibility="private"),
+            ClassEnum(
+                "Type",
+                enumValuesNoUninit,
+                visibility="public",
+                enumClass=True,
+                values=["TypeOrUninit::" + x for x in enumValuesNoUninit],
+            ),
+        ]
         return CGClass(
             selfName,
             bases=bases,
@@ -13173,7 +13200,7 @@ class CGUnionStruct(CGThing):
             destructor=ClassDestructor(
                 visibility="public", body="Uninit();\n", bodyInHeader=True
             ),
-            enums=[ClassEnum("Type", enumValues, visibility="private")],
+            enums=enums,
             unions=[ClassUnion("Value", unionValues, visibility="private")],
         )
 
@@ -13628,9 +13655,12 @@ class ClassMember(ClassItem):
 
 
 class ClassEnum(ClassItem):
-    def __init__(self, name, entries, values=None, visibility="public"):
+    def __init__(
+        self, name, entries, values=None, visibility="public", enumClass=False
+    ):
         self.entries = entries
         self.values = values
+        self.enumClass = enumClass
         ClassItem.__init__(self, name, visibility)
 
     def declare(self, cgClass):
@@ -13641,8 +13671,13 @@ class ClassEnum(ClassItem):
             else:
                 entry = "%s = %s" % (self.entries[i], self.values[i])
             entries.append(entry)
-        name = "" if not self.name else " " + self.name
-        return "enum%s\n{\n%s\n};\n" % (name, indent(",\n".join(entries)))
+
+        decl = ["enum"]
+        self.enumClass and decl.append("class")
+        self.name and decl.append(self.name)
+        decl = " ".join(decl)
+
+        return "%s\n{\n%s\n};\n" % (decl, indent(",\n".join(entries)))
 
     def define(self, cgClass):
         # Only goes in the header
@@ -14005,7 +14040,7 @@ class CGProxySpecialOperation(CGPerSignatureCall):
         self.checkFound = checkFound
         self.foundVar = foundVar or "found"
 
-        nativeName = MakeNativeName(descriptor.binaryNameFor(operation))
+        nativeName = MakeNativeName(descriptor.binaryNameFor(operation, False))
         operation = descriptor.operations[operation]
         assert len(operation.signatures()) == 1
         signature = operation.signatures()[0]
@@ -14614,7 +14649,6 @@ class CGDOMJSProxyHandler_getOwnPropDescriptor(ClassMethod):
         self.descriptor = descriptor
 
     def getBody(self):
-        indexedGetter = self.descriptor.operations["IndexedGetter"]
         indexedSetter = self.descriptor.operations["IndexedSetter"]
 
         if self.descriptor.isMaybeCrossOriginObject():
@@ -18223,6 +18257,57 @@ class CGForwardDeclarations(CGWrapper):
         CGWrapper.__init__(self, builder.build())
 
 
+def dependencySortDictionariesAndUnionsAndCallbacks(types):
+    def getDependenciesFromType(type):
+        if type.isDictionary():
+            return set([type.unroll().inner])
+        if type.isSequence():
+            return getDependenciesFromType(type.unroll())
+        if type.isUnion():
+            return set([type.unroll()])
+        if type.isRecord():
+            return set([type.unroll().inner])
+        if type.isCallback():
+            return set([type.unroll()])
+        return set()
+
+    def getDependencies(unionTypeOrDictionaryOrCallback):
+        if isinstance(unionTypeOrDictionaryOrCallback, IDLDictionary):
+            deps = set()
+            if unionTypeOrDictionaryOrCallback.parent:
+                deps.add(unionTypeOrDictionaryOrCallback.parent)
+            for member in unionTypeOrDictionaryOrCallback.members:
+                deps |= getDependenciesFromType(member.type)
+            return deps
+
+        if (
+            unionTypeOrDictionaryOrCallback.isType()
+            and unionTypeOrDictionaryOrCallback.isUnion()
+        ):
+            deps = set()
+            for member in unionTypeOrDictionaryOrCallback.flatMemberTypes:
+                deps |= getDependenciesFromType(member)
+            return deps
+
+        assert unionTypeOrDictionaryOrCallback.isCallback()
+        return set()
+
+    def getName(unionTypeOrDictionaryOrCallback):
+        if isinstance(unionTypeOrDictionaryOrCallback, IDLDictionary):
+            return unionTypeOrDictionaryOrCallback.identifier.name
+
+        if (
+            unionTypeOrDictionaryOrCallback.isType()
+            and unionTypeOrDictionaryOrCallback.isUnion()
+        ):
+            return unionTypeOrDictionaryOrCallback.name
+
+        assert unionTypeOrDictionaryOrCallback.isCallback()
+        return unionTypeOrDictionaryOrCallback.identifier.name
+
+    return dependencySortObjects(types, getDependencies, getName)
+
+
 class CGBindingRoot(CGThing):
     """
     Root codegen class for binding generation. Instantiate the class, and call
@@ -18610,53 +18695,8 @@ class CGBindingRoot(CGThing):
         # to most derived so that class inheritance works out.  We also have to
         # generate members before the dictionary that contains them.
 
-        def getDependenciesFromType(type):
-            if type.isDictionary():
-                return set([type.unroll().inner])
-            if type.isSequence():
-                return getDependenciesFromType(type.unroll())
-            if type.isUnion():
-                return set([type.unroll()])
-            if type.isCallback():
-                return set([type.unroll()])
-            return set()
-
-        def getDependencies(unionTypeOrDictionaryOrCallback):
-            if isinstance(unionTypeOrDictionaryOrCallback, IDLDictionary):
-                deps = set()
-                if unionTypeOrDictionaryOrCallback.parent:
-                    deps.add(unionTypeOrDictionaryOrCallback.parent)
-                for member in unionTypeOrDictionaryOrCallback.members:
-                    deps |= getDependenciesFromType(member.type)
-                return deps
-
-            if (
-                unionTypeOrDictionaryOrCallback.isType()
-                and unionTypeOrDictionaryOrCallback.isUnion()
-            ):
-                deps = set()
-                for member in unionTypeOrDictionaryOrCallback.flatMemberTypes:
-                    deps |= getDependenciesFromType(member)
-                return deps
-
-            assert unionTypeOrDictionaryOrCallback.isCallback()
-            return set()
-
-        def getName(unionTypeOrDictionaryOrCallback):
-            if isinstance(unionTypeOrDictionaryOrCallback, IDLDictionary):
-                return unionTypeOrDictionaryOrCallback.identifier.name
-
-            if (
-                unionTypeOrDictionaryOrCallback.isType()
-                and unionTypeOrDictionaryOrCallback.isUnion()
-            ):
-                return unionTypeOrDictionaryOrCallback.name
-
-            assert unionTypeOrDictionaryOrCallback.isCallback()
-            return unionTypeOrDictionaryOrCallback.identifier.name
-
-        for t in dependencySortObjects(
-            dictionaries + unionStructs + callbacks, getDependencies, getName
+        for t in dependencySortDictionariesAndUnionsAndCallbacks(
+            dictionaries + unionStructs + callbacks
         ):
             if t.isDictionary():
                 cgthings.append(CGDictionary(t, config))
@@ -19965,11 +20005,15 @@ class CGJSImplMethod(CGJSImplMember):
 
 # We're always fallible
 def callbackGetterName(attr, descriptor):
-    return "Get" + MakeNativeName(descriptor.binaryNameFor(attr.identifier.name))
+    return "Get" + MakeNativeName(
+        descriptor.binaryNameFor(attr.identifier.name, attr.isStatic())
+    )
 
 
 def callbackSetterName(attr, descriptor):
-    return "Set" + MakeNativeName(descriptor.binaryNameFor(attr.identifier.name))
+    return "Set" + MakeNativeName(
+        descriptor.binaryNameFor(attr.identifier.name, attr.isStatic())
+    )
 
 
 class CGJSImplGetter(CGJSImplMember):
@@ -20051,12 +20095,6 @@ class CGJSImplClass(CGBindingImplClass):
             ccDecl = "NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(%s, %s)\n" % (
                 descriptor.name,
                 parentClass,
-            )
-            constructorBody = dedent(
-                """
-                // Make sure we're an nsWrapperCache already
-                MOZ_ASSERT(static_cast<nsWrapperCache*>(this));
-                """
             )
             extradefinitions = fill(
                 """
@@ -20681,7 +20719,7 @@ class CGCallbackInterface(CGCallback):
             needInitId = True
 
         idlist = [
-            descriptor.binaryNameFor(m.identifier.name)
+            descriptor.binaryNameFor(m.identifier.name, m.isStatic())
             for m in iface.members
             if m.isAttr() or m.isMethod()
         ]
@@ -21233,7 +21271,7 @@ class CallbackOperationBase(CallbackMethod):
         spiderMonkeyInterfacesAreStructs=False,
     ):
         self.singleOperation = singleOperation
-        self.methodName = descriptor.binaryNameFor(jsName)
+        self.methodName = descriptor.binaryNameFor(jsName, False)
         CallbackMethod.__init__(
             self,
             signature,
@@ -21307,7 +21345,7 @@ class CallbackOperation(CallbackOperationBase):
             self,
             signature,
             jsName,
-            MakeNativeName(descriptor.binaryNameFor(jsName)),
+            MakeNativeName(descriptor.binaryNameFor(jsName, False)),
             descriptor,
             descriptor.interface.isSingleOperationInterface(),
             rethrowContentException=descriptor.interface.isJSImplemented(),
@@ -21374,7 +21412,7 @@ class CallbackGetter(CallbackAccessor):
             """,
             atomCacheName=self.descriptorProvider.interface.identifier.name + "Atoms",
             attrAtomName=CGDictionary.makeIdName(
-                self.descriptorProvider.binaryNameFor(self.attrName)
+                self.descriptorProvider.binaryNameFor(self.attrName, False)
             ),
             errorReturn=self.getDefaultRetval(),
         )
@@ -21413,7 +21451,7 @@ class CallbackSetter(CallbackAccessor):
             """,
             atomCacheName=self.descriptorProvider.interface.identifier.name + "Atoms",
             attrAtomName=CGDictionary.makeIdName(
-                self.descriptorProvider.binaryNameFor(self.attrName)
+                self.descriptorProvider.binaryNameFor(self.attrName, False)
             ),
             errorReturn=self.getDefaultRetval(),
         )
@@ -22920,7 +22958,7 @@ class GlobalGenRoots:
         structs = []
 
         def memberToAtomCacheMember(binaryNameFor, m):
-            binaryMemberName = binaryNameFor(m.identifier.name)
+            binaryMemberName = binaryNameFor(m)
             return ClassMember(
                 CGDictionary.makeIdName(binaryMemberName),
                 "PinnedStringId",
@@ -22944,7 +22982,9 @@ class GlobalGenRoots:
             if len(dict.members) == 0:
                 continue
 
-            structs.append(buildAtomCacheStructure(dict, lambda x: x, dict.members))
+            structs.append(
+                buildAtomCacheStructure(dict, lambda m: m.identifier.name, dict.members)
+            )
 
         for d in config.getDescriptors(isJSImplemented=True) + config.getDescriptors(
             isCallback=True
@@ -22963,7 +23003,9 @@ class GlobalGenRoots:
 
             structs.append(
                 buildAtomCacheStructure(
-                    d.interface, lambda x: d.binaryNameFor(x), members
+                    d.interface,
+                    lambda m: d.binaryNameFor(m.identifier.name, m.isStatic()),
+                    members,
                 )
             )
 
@@ -23343,6 +23385,8 @@ class GlobalGenRoots:
             unlinkMethods,
             unionStructs,
         ) = UnionTypes(unionTypes, config)
+
+        unionStructs = dependencySortDictionariesAndUnionsAndCallbacks(unionStructs)
 
         unions = CGList(
             traverseMethods
@@ -24025,14 +24069,11 @@ class CGEventClass(CGBindingImplClass):
         return retVal
 
     def define(self):
-        hasJS = False
-        if any(
-            not (
+        for m in self.membersNeedingTrace:
+            if not (
                 m.type.isAny() or m.type.isObject() or m.type.isSpiderMonkeyInterface()
-            )
-            for m in self.membersNeedingTrace
-        ):
-            raise TypeError("Unknown traceable member type %s" % m.type)
+            ):
+                raise TypeError("Unknown traceable member type %s" % m.type)
 
         if len(self.membersNeedingTrace) > 0:
             dropJS = "mozilla::DropJSObjects(this);\n"

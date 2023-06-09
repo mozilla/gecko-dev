@@ -42,7 +42,11 @@ TEST_F(TestFileOutputStream, extendFileStreamWithSetEOF) {
     quota::QuotaManager* quotaManager = quota::QuotaManager::Get();
 
     auto originMetadata =
-        quota::OriginMetadata{""_ns, "example.com"_ns, "http://example.com"_ns,
+        quota::OriginMetadata{""_ns,
+                              "example.com"_ns,
+                              "http://example.com"_ns,
+                              "http://example.com"_ns,
+                              /* aIsPrivate */ false,
                               quota::PERSISTENCE_TYPE_DEFAULT};
 
     {
@@ -71,8 +75,7 @@ TEST_F(TestFileOutputStream, extendFileStreamWithSetEOF) {
                                             quota::Client::Type::SDB);
 
     {
-      auto testPathRes = quotaManager->GetDirectoryForOrigin(
-          quota::PERSISTENCE_TYPE_DEFAULT, originMetadata.mOrigin);
+      auto testPathRes = quotaManager->GetOriginDirectory(originMetadata);
 
       ASSERT_TRUE(testPathRes.isOk());
 

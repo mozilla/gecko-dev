@@ -10,6 +10,7 @@
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/mscom/COMWrappers.h"
+#include "mozilla/mscom/ProcessRuntime.h"
 #include "mozilla/mscom/Utils.h"
 #include "mozilla/SchedulerGroup.h"
 #include "mozilla/StaticLocalPtr.h"
@@ -163,8 +164,7 @@ RefPtr<EnsureMTA::CreateInstanceAgileRefPromise> EnsureMTA::CreateInstance(
 
   nsCOMPtr<nsIThread> mtaThread(GetPersistentMTAThread());
 
-  return InvokeAsync(mtaThread->SerialEventTarget(), __func__,
-                     std::move(invoker));
+  return InvokeAsync(mtaThread, __func__, std::move(invoker));
 }
 
 /* static */

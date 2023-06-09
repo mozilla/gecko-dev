@@ -9,6 +9,10 @@ const { ExtensionTestUtils } = ChromeUtils.import(
   "resource://testing-common/ExtensionXPCShellUtils.jsm"
 );
 
+const { TestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/TestUtils.sys.mjs"
+);
+
 const {
   createMissingIndexedDBDirs,
   extensionScriptWithMessageListener,
@@ -29,26 +33,21 @@ const { PromiseTestUtils } = ChromeUtils.importESModule(
 PromiseTestUtils.allowMatchingRejectionsGlobally(
   /Message manager disconnected/
 );
+PromiseTestUtils.allowMatchingRejectionsGlobally(
+  /sendRemoveListener on closed conduit/
+);
 
 const { createAppInfo, promiseStartupManager } = AddonTestUtils;
 
 const LEAVE_UUID_PREF = "extensions.webextensions.keepUuidOnUninstall";
 const LEAVE_STORAGE_PREF = "extensions.webextensions.keepStorageOnUninstall";
-const EXTENSION_STORAGE_ENABLED_PREF =
-  "devtools.storage.extensionStorage.enabled";
 
 AddonTestUtils.init(this);
 createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1", "42");
 
 ExtensionTestUtils.init(this);
 
-// This storage actor is gated behind a pref, so make sure it is enabled first
-Services.prefs.setBoolPref(EXTENSION_STORAGE_ENABLED_PREF, true);
-registerCleanupFunction(() => {
-  Services.prefs.clearUserPref(EXTENSION_STORAGE_ENABLED_PREF);
-});
-
-add_task(async function setup() {
+add_setup(async function setup() {
   await promiseStartupManager();
   const dir = createMissingIndexedDBDirs();
 
@@ -61,13 +60,13 @@ add_task(async function setup() {
 add_task(async function test_extension_store_exists() {
   const extension = await startupExtension(getExtensionConfig());
 
-  const { target, extensionStorage } = await openAddonStoragePanel(
+  const { commands, extensionStorage } = await openAddonStoragePanel(
     extension.id
   );
 
   ok(extensionStorage, "Should have an extensionStorage store");
 
-  await shutdown(extension, target);
+  await shutdown(extension, commands);
 });
 
 add_task(
@@ -87,7 +86,7 @@ add_task(
       getExtensionConfig({ background })
     );
 
-    const { target, extensionStorage } = await openAddonStoragePanel(
+    const { commands, extensionStorage } = await openAddonStoragePanel(
       extension.id
     );
 
@@ -98,7 +97,7 @@ add_task(
       "Should have the expected extension host in the extensionStorage store"
     );
 
-    await shutdown(extension, target);
+    await shutdown(extension, commands);
   }
 );
 
@@ -119,7 +118,7 @@ add_task(async function test_panel_live_updates() {
     getExtensionConfig({ background: extensionScriptWithMessageListener })
   );
 
-  const { target, extensionStorage } = await openAddonStoragePanel(
+  const { commands, extensionStorage } = await openAddonStoragePanel(
     extension.id
   );
 
@@ -130,7 +129,7 @@ add_task(async function test_panel_live_updates() {
 
   info("Waiting for extension to bulk add 50 items to storage local");
   const bulkStorageItems = {};
-  // limited by MAX_STORE_OBJECT_COUNT in devtools/server/actors/storage.js
+  // limited by MAX_STORE_OBJECT_COUNT in devtools/server/actors/resources/storage/index.js
   const numItems = 2;
   for (let i = 1; i <= numItems; i++) {
     bulkStorageItems[i] = i;
@@ -320,7 +319,7 @@ add_task(async function test_panel_live_updates() {
     "Got the expected results on populated storage.local"
   );
 
-  await shutdown(extension, target);
+  await shutdown(extension, commands);
 });
 
 /**
@@ -348,7 +347,7 @@ add_task(
     extension.sendMessage("storage-local-set", { a: 123 });
     await extension.awaitMessage("storage-local-set:done");
 
-    const { target, extensionStorage } = await openAddonStoragePanel(
+    const { commands, extensionStorage } = await openAddonStoragePanel(
       extension.id
     );
 
@@ -367,7 +366,7 @@ add_task(
     );
 
     await contentPage.close();
-    await shutdown(extension, target);
+    await shutdown(extension, commands);
   }
 );
 
@@ -397,7 +396,7 @@ add_task(async function test_panel_data_matches_extension_with_no_pages_open() {
   await extension.awaitMessage("storage-local-onChanged");
   await contentPage.close();
 
-  const { target, extensionStorage } = await openAddonStoragePanel(
+  const { commands, extensionStorage } = await openAddonStoragePanel(
     extension.id
   );
 
@@ -415,7 +414,7 @@ add_task(async function test_panel_data_matches_extension_with_no_pages_open() {
     "Got the expected results on populated storage.local"
   );
 
-  await shutdown(extension, target);
+  await shutdown(extension, commands);
 });
 
 /**
@@ -435,7 +434,7 @@ add_task(
       getExtensionConfig({ files: ext_no_bg.files })
     );
 
-    const { target, extensionStorage } = await openAddonStoragePanel(
+    const { commands, extensionStorage } = await openAddonStoragePanel(
       extension.id
     );
 
@@ -494,7 +493,7 @@ add_task(
     );
 
     await contentPage.close();
-    await shutdown(extension, target);
+    await shutdown(extension, commands);
   }
 );
 
@@ -517,7 +516,7 @@ add_task(
 
     const host = await extension.awaitMessage("extension-origin");
 
-    const { target, extensionStorage } = await openAddonStoragePanel(
+    const { commands, extensionStorage } = await openAddonStoragePanel(
       extension.id
     );
 
@@ -589,7 +588,7 @@ add_task(
       );
     }
 
-    await shutdown(extension, target);
+    await shutdown(extension, commands);
   }
 );
 
@@ -611,13 +610,11 @@ add_task(
 
     const host = await extension.awaitMessage("extension-origin");
 
-    const {
-      target,
-      extensionStorage,
-      storageFront,
-    } = await openAddonStoragePanel(extension.id);
+    const { commands, extensionStorage } = await openAddonStoragePanel(
+      extension.id
+    );
 
-    const DEFAULT_VALUE = "value"; // global in devtools/server/actors/storage.js
+    const DEFAULT_VALUE = "value"; // global in devtools/server/actors/resources/storage/index.js
     let items = {
       guid_1: DEFAULT_VALUE,
       guid_2: DEFAULT_VALUE,
@@ -625,7 +622,7 @@ add_task(
     };
 
     info("Adding storage items from the extension");
-    let storesUpdate = storageFront.once("stores-update");
+    let storesUpdate = extensionStorage.once("single-store-update");
     extension.sendMessage("storage-local-set", items);
     await extension.awaitMessage("storage-local-set:done");
 
@@ -638,13 +635,15 @@ add_task(
             [host]: ["guid_1", "guid_2", "guid_3"],
           },
         },
+        changed: undefined,
+        deleted: undefined,
       },
       data,
       "The change data from the storage actor's 'stores-update' event matches the changes made in the client."
     );
 
     info("Waiting for panel to edit some items");
-    storesUpdate = storageFront.once("stores-update");
+    storesUpdate = extensionStorage.once("single-store-update");
     await extensionStorage.editItem({
       host,
       field: "value",
@@ -656,11 +655,13 @@ add_task(
     data = await storesUpdate;
     Assert.deepEqual(
       {
+        added: undefined,
         changed: {
           extensionStorage: {
             [host]: ["guid_1"],
           },
         },
+        deleted: undefined,
       },
       data,
       "The change data from the storage actor's 'stores-update' event matches the changes made in the client."
@@ -680,13 +681,15 @@ add_task(
     );
 
     info("Waiting for panel to remove an item");
-    storesUpdate = storageFront.once("stores-update");
+    storesUpdate = extensionStorage.once("single-store-update");
     await extensionStorage.removeItem(host, "guid_3");
 
     info("Waiting for the storage actor to emit a 'stores-update' event");
     data = await storesUpdate;
     Assert.deepEqual(
       {
+        added: undefined,
+        changed: undefined,
         deleted: {
           extensionStorage: {
             [host]: ["guid_3"],
@@ -710,14 +713,14 @@ add_task(
     );
 
     info("Waiting for panel to remove all items");
-    const storesCleared = storageFront.once("stores-cleared");
+    const storesCleared = extensionStorage.once("single-store-cleared");
     await extensionStorage.removeAll(host);
 
     info("Waiting for the storage actor to emit a 'stores-cleared' event");
     data = await storesCleared;
     Assert.deepEqual(
       {
-        extensionStorage: {
+        clearedHostsOrPaths: {
           [host]: [],
         },
       },
@@ -734,7 +737,7 @@ add_task(
       `The storage items in the extension match the items in the panel`
     );
 
-    await shutdown(extension, target);
+    await shutdown(extension, commands);
   }
 );
 
@@ -781,7 +784,7 @@ add_task(
 
     await extension.awaitMessage("extension-origin");
 
-    const { target, extensionStorage } = await openAddonStoragePanel(
+    const { commands, extensionStorage } = await openAddonStoragePanel(
       extension.id
     );
 
@@ -830,7 +833,7 @@ add_task(
     Services.prefs.setBoolPref(LEAVE_STORAGE_PREF, false);
     Services.prefs.setBoolPref(LEAVE_UUID_PREF, false);
 
-    await shutdown(extension, target);
+    await shutdown(extension, commands);
   }
 );
 
@@ -885,7 +888,7 @@ add_task(async function test_panel_live_reload_for_extension_without_bg_page() {
   await contentPage.close();
 
   info("Opening storage panel");
-  const { target, extensionStorage } = await openAddonStoragePanel(
+  const { commands, extensionStorage } = await openAddonStoragePanel(
     extension.id
   );
 
@@ -916,7 +919,7 @@ add_task(async function test_panel_live_reload_for_extension_without_bg_page() {
     "Got the expected results on populated storage.local"
   );
 
-  await shutdown(extension, target);
+  await shutdown(extension, commands);
 });
 
 /**
@@ -954,7 +957,7 @@ add_task(
     const host = await extension.awaitMessage("extension-origin");
 
     info("Opening storage panel");
-    const { target, extensionStorage } = await openAddonStoragePanel(
+    const { commands, extensionStorage } = await openAddonStoragePanel(
       extension.id
     );
 
@@ -995,7 +998,7 @@ add_task(
       "Got the expected results on populated storage.local"
     );
 
-    await shutdown(extension, target);
+    await shutdown(extension, commands);
   }
 );
 
@@ -1035,7 +1038,7 @@ add_task(
     const host = await extension.awaitMessage("extension-origin");
 
     info("Opening storage panel");
-    const { target, extensionStorage } = await openAddonStoragePanel(
+    const { commands, extensionStorage } = await openAddonStoragePanel(
       extension.id
     );
 
@@ -1053,35 +1056,100 @@ add_task(
       "Got the expected results on populated storage.local"
     );
 
-    await shutdown(extension, target);
+    await shutdown(extension, commands);
   }
 );
 
-/*
- * This task should be last, as it sets a pref to disable the extensionStorage
- * storage actor. Since this pref is set at the beginning of the file, it
- * already will be cleared via registerCleanupFunction when the test finishes.
- */
-add_task(
-  {
-    // This test fails if the extension runs in the main process
-    // like in Thunderbird (see bug 1575183 comment #15 for details).
-    skip_if: () => !WebExtensionPolicy.useRemoteWebExtensions,
-  },
-  async function test_extensionStorage_store_disabled_on_pref() {
-    Services.prefs.setBoolPref(EXTENSION_STORAGE_ENABLED_PREF, false);
+// This test verifies that Bug 1802929 fix doesn't regress.
+add_task(async function test_live_update_with_no_extension_listener() {
+  const EXTENSION_ID = "test_with_no_listeners@xpcshell.mozilla.org";
+  let manifest = {
+    version: "1.0",
+    browser_specific_settings: {
+      gecko: {
+        id: EXTENSION_ID,
+      },
+    },
+  };
 
-    const extension = await startupExtension(getExtensionConfig());
+  function background() {
+    browser.test.onMessage.addListener(async (msg, ...args) => {
+      if (msg !== "storage-local-api-call") {
+        browser.test.fail(`Got unexpected test message: ${msg}`);
+        return;
+      }
 
-    const { target, extensionStorage } = await openAddonStoragePanel(
-      extension.id
-    );
-
-    ok(
-      extensionStorage === null,
-      "Should not have an extensionStorage store when pref disabled"
-    );
-
-    await shutdown(extension, target);
+      const [{ method, methodArgs }] = args;
+      const res = await browser.storage.local[method](...methodArgs);
+      browser.test.sendMessage(`${msg}:done`, res);
+    });
   }
-);
+
+  const extension = await startupExtension(
+    getExtensionConfig({ manifest, background })
+  );
+
+  const { target, extensionStorage } = await openAddonStoragePanel(
+    extension.id
+  );
+
+  const { baseURI } = extension.extension;
+  const host = `${baseURI.scheme}://${baseURI.host}`;
+
+  let { data } = await extensionStorage.getStoreObjects(host);
+  Assert.deepEqual(data, [], "Got the expected results on empty storage.local");
+
+  async function testStorageLocalUpdate(storageValue) {
+    info("Store extension data");
+    await extension.sendMessage("storage-local-api-call", {
+      method: "set",
+      methodArgs: [{ storageKeyName: storageValue }],
+    });
+    await extension.awaitMessage("storage-local-api-call:done");
+
+    info("Verify stored extension data");
+    await extension.sendMessage("storage-local-api-call", {
+      method: "get",
+      methodArgs: [],
+    });
+
+    Assert.deepEqual(
+      await extension.awaitMessage("storage-local-api-call:done"),
+      { storageKeyName: storageValue },
+      "Got the expected value from browser.storage.local.get"
+    );
+
+    await TestUtils.waitForCondition(async () => {
+      const res = await extensionStorage.getStoreObjects(host);
+      return res.data?.length > 0;
+    }, "Wait for the extension storage panel updates");
+
+    data = (await extensionStorage.getStoreObjects(host)).data;
+    Assert.deepEqual(
+      data,
+      [
+        {
+          area: "local",
+          name: "storageKeyName",
+          value: { str: `${storageValue}` },
+          isValueEditable: true,
+        },
+      ],
+      "Expected DevTools Storage panel data to have been updated"
+    );
+  }
+
+  await testStorageLocalUpdate("aStorageValue 01");
+
+  manifest = {
+    ...manifest,
+    version: "2.0",
+  };
+  // "Reload" is most similar to an upgrade, as e.g. storage data is preserved
+  info("Update to version 2.0");
+  await extension.upgrade(getExtensionConfig({ manifest, background }));
+
+  await testStorageLocalUpdate("aStorageValue 02");
+
+  await shutdown(extension, target);
+});

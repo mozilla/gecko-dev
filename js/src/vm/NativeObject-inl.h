@@ -158,6 +158,29 @@ inline void NativeObject::initDenseElements(const Value* src, uint32_t count) {
   elementsRangePostWriteBarrier(0, count);
 }
 
+inline void NativeObject::initDenseElementRange(uint32_t destStart,
+                                                NativeObject* src,
+                                                uint32_t count) {
+  MOZ_ASSERT(count <= src->getDenseInitializedLength());
+
+  // The initialized length must already be set to the correct value.
+  MOZ_ASSERT(destStart + count == getDenseInitializedLength());
+
+  if (!src->denseElementsArePacked()) {
+    markDenseElementsNotPacked();
+  }
+
+  const Value* vp = src->getDenseElements();
+#ifdef DEBUG
+  for (uint32_t i = 0; i < count; ++i) {
+    checkStoredValue(vp[i]);
+  }
+#endif
+  memcpy(reinterpret_cast<Value*>(elements_) + destStart, vp,
+         count * sizeof(Value));
+  elementsRangePostWriteBarrier(destStart, count);
+}
+
 template <typename Iter>
 inline bool NativeObject::initDenseElementsFromRange(JSContext* cx, Iter begin,
                                                      Iter end) {
@@ -442,27 +465,30 @@ inline NativeObject* NativeObject::create(
   const uint32_t slotSpan = shape->slotSpan();
   const size_t nDynamicSlots = calculateDynamicSlots(nfixed, slotSpan, clasp);
 
-  NativeObject* nobj =
-      cx->newCell<NativeObject>(kind, nDynamicSlots, heap, clasp, site);
+  NativeObject* nobj = cx->newCell<NativeObject>(kind, heap, clasp, site);
   if (!nobj) {
     return nullptr;
   }
 
   nobj->initShape(shape);
-  // NOTE: Dynamic slots are created internally by Allocate<JSObject>.
+  nobj->setEmptyElements();
+
   if (!nDynamicSlots) {
     nobj->initEmptyDynamicSlots();
+  } else if (!nobj->allocateInitialSlots(cx, nDynamicSlots)) {
+    return nullptr;
   }
-  nobj->setEmptyElements();
 
   if (slotSpan > 0) {
     nobj->initSlots(nfixed, slotSpan);
   }
 
-  if (clasp->shouldDelayMetadataBuilder()) {
-    cx->realm()->setObjectPendingMetadata(cx, nobj);
-  } else {
-    nobj = SetNewObjectMetadata(cx, nobj);
+  if (MOZ_UNLIKELY(cx->realm()->hasAllocationMetadataBuilder())) {
+    if (clasp->shouldDelayMetadataBuilder()) {
+      cx->realm()->setObjectPendingMetadata(nobj);
+    } else {
+      nobj = SetNewObjectMetadata(cx, nobj);
+    }
   }
 
   js::gc::gcprobes::CreateObject(nobj);
@@ -843,19 +869,21 @@ inline bool IsPackedArray(JSObject* obj) {
 
 // Like AddDataProperty but optimized for plain objects. Plain objects don't
 // have an addProperty hook.
-MOZ_ALWAYS_INLINE bool AddDataPropertyToPlainObject(JSContext* cx,
-                                                    Handle<PlainObject*> obj,
-                                                    HandleId id,
-                                                    HandleValue v) {
+MOZ_ALWAYS_INLINE bool AddDataPropertyToPlainObject(
+    JSContext* cx, Handle<PlainObject*> obj, HandleId id, HandleValue v,
+    uint32_t* resultSlot = nullptr) {
   MOZ_ASSERT(!id.isInt());
 
   uint32_t slot;
-  if (!NativeObject::addProperty(cx, obj, id,
-                                 PropertyFlags::defaultDataPropFlags, &slot)) {
+  if (!resultSlot) {
+    resultSlot = &slot;
+  }
+  if (!NativeObject::addProperty(
+          cx, obj, id, PropertyFlags::defaultDataPropFlags, resultSlot)) {
     return false;
   }
 
-  obj->initSlot(slot, v);
+  obj->initSlot(*resultSlot, v);
 
   MOZ_ASSERT(!obj->getClass()->getAddProperty());
   return true;

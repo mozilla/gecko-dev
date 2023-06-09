@@ -39,6 +39,7 @@
 #include "mozilla/EventForwards.h"
 #include "mozilla/HalScreenConfiguration.h"
 #include "mozilla/HashTable.h"
+#include "mozilla/LazyIdleThread.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/Vector.h"
 #include "mozilla/WindowsDpiAwareness.h"
@@ -46,8 +47,10 @@
 #include "mozilla/gfx/2D.h"
 
 // Starting with version 10.0.22621.0 of the Windows SDK the AR_STATE enum and
-// types are only defined when building for Windows 8 instead of Windows 7.
-#if (WDK_NTDDI_VERSION >= 0x0A00000C) && (WINVER < 0x0602)
+// types are only defined when building for Windows 8 instead of Windows 7
+// (although they are always defined for MinGW)
+#if (WDK_NTDDI_VERSION >= 0x0A00000C) && (WINVER < 0x0602) && \
+    (!defined(__MINGW32__))
 
 enum tagAR_STATE {
   AR_ENABLED = 0x0,
@@ -490,13 +493,6 @@ class WinUtils {
   static LayoutDeviceIntRect ToIntRect(const RECT& aRect);
 
   /**
-   * Helper used in invalidating flash plugin windows owned
-   * by low rights flash containers.
-   */
-  static void InvalidatePluginAsWorkaround(nsIWidget* aWidget,
-                                           const LayoutDeviceIntRect& aRect);
-
-  /**
    * Returns true if the context or IME state is enabled.  Otherwise, false.
    */
   static bool IsIMEEnabled(const InputContext& aInputContext);
@@ -647,7 +643,7 @@ class AsyncFaviconDataReady final : public nsIFaviconDataCallback {
   NS_DECL_ISUPPORTS
   NS_DECL_NSIFAVICONDATACALLBACK
 
-  AsyncFaviconDataReady(nsIURI* aNewURI, nsCOMPtr<nsIThread>& aIOThread,
+  AsyncFaviconDataReady(nsIURI* aNewURI, RefPtr<LazyIdleThread>& aIOThread,
                         const bool aURLShortcut,
                         already_AddRefed<nsIRunnable> aRunnable);
   nsresult OnFaviconDataNotAvailable(void);
@@ -656,7 +652,7 @@ class AsyncFaviconDataReady final : public nsIFaviconDataCallback {
   ~AsyncFaviconDataReady() {}
 
   nsCOMPtr<nsIURI> mNewURI;
-  nsCOMPtr<nsIThread> mIOThread;
+  RefPtr<LazyIdleThread> mIOThread;
   nsCOMPtr<nsIRunnable> mRunnable;
   const bool mURLShortcut;
 };
@@ -709,7 +705,7 @@ class FaviconHelper {
   static const char kShortcutCacheDir[];
   static nsresult ObtainCachedIconFile(
       nsCOMPtr<nsIURI> aFaviconPageURI, nsString& aICOFilePath,
-      nsCOMPtr<nsIThread>& aIOThread, bool aURLShortcut,
+      RefPtr<LazyIdleThread>& aIOThread, bool aURLShortcut,
       already_AddRefed<nsIRunnable> aRunnable = nullptr);
 
   static nsresult HashURI(nsCOMPtr<nsICryptoHash>& aCryptoHash, nsIURI* aUri,
@@ -721,7 +717,7 @@ class FaviconHelper {
 
   static nsresult CacheIconFileFromFaviconURIAsync(
       nsCOMPtr<nsIURI> aFaviconPageURI, nsCOMPtr<nsIFile> aICOFile,
-      nsCOMPtr<nsIThread>& aIOThread, bool aURLShortcut,
+      RefPtr<LazyIdleThread>& aIOThread, bool aURLShortcut,
       already_AddRefed<nsIRunnable> aRunnable);
 
   static int32_t GetICOCacheSecondsTimeout();

@@ -26,8 +26,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 const DYNAMIC_RESULT_TYPE = "onboardTabToSearch";
 const VIEW_TEMPLATE = {
   attributes: {
-    role: "group",
-    selectable: "true",
+    selectable: true,
   },
   children: [
     {
@@ -196,25 +195,10 @@ class ProviderTabToSearch extends UrlbarProvider {
   }
 
   /**
-   * Called when any selectable element in a dynamic result's view is picked.
-   *
-   * @param {UrlbarResult} result
-   *   The result that was picked.
-   * @param {Element} element
-   *   The element in the result's view that was picked.
-   */
-  pickResult(result, element) {
-    element.ownerGlobal.gURLBar.maybeConfirmSearchModeFromResult({
-      result,
-      checkValue: false,
-    });
-  }
-
-  /**
    * Called when a result from the provider is selected. "Selected" refers to
    * the user highlighing the result with the arrow keys/Tab, before it is
    * picked. onSelection is also called when a user clicks a result. In the
-   * event of a click, onSelection is called just before pickResult.
+   * event of a click, onSelection is called just before onEngagement.
    *
    * @param {UrlbarResult} result
    *   The result that was selected.
@@ -266,6 +250,20 @@ class ProviderTabToSearch extends UrlbarProvider {
    *   it describes the search string and picked result.
    */
   onEngagement(isPrivate, state, queryContext, details) {
+    let { result, element } = details;
+    if (
+      result?.providerName == this.name &&
+      result.type == UrlbarUtils.RESULT_TYPE.DYNAMIC
+    ) {
+      // Confirm search mode, but only for the onboarding (dynamic) result. The
+      // input will handle confirming search mode for the non-onboarding
+      // `RESULT_TYPE.SEARCH` result since it sets `providesSearchMode`.
+      element.ownerGlobal.gURLBar.maybeConfirmSearchModeFromResult({
+        result,
+        checkValue: false,
+      });
+    }
+
     if (!this.enginesShown.regular.size && !this.enginesShown.onboarding.size) {
       return;
     }
@@ -398,7 +396,7 @@ class ProviderTabToSearch extends UrlbarProvider {
     for (let engine of engines) {
       // Trim the engine host. This will also be set as the result url, so the
       // Muxer can use it to filter.
-      let [host] = UrlbarUtils.stripPrefixAndTrim(engine.getResultDomain(), {
+      let [host] = UrlbarUtils.stripPrefixAndTrim(engine.searchUrlDomain, {
         stripWww: true,
       });
       // Check if the host may be autofilled.
@@ -413,7 +411,7 @@ class ProviderTabToSearch extends UrlbarProvider {
 
       // Otherwise it may be a partial match that would not be autofilled.
       if (host.includes("." + searchStr.toLocaleLowerCase())) {
-        partialMatchEnginesByHost.set(engine.getResultDomain(), engine);
+        partialMatchEnginesByHost.set(engine.searchUrlDomain, engine);
         // Don't continue here, we are looking for more partial matches.
       }
       // We also try to match the searchForm domain, because otherwise for an
@@ -447,7 +445,7 @@ class ProviderTabToSearch extends UrlbarProvider {
 }
 
 function makeOnboardingResult(engine, satisfiesAutofillThreshold = false) {
-  let [url] = UrlbarUtils.stripPrefixAndTrim(engine.getResultDomain(), {
+  let [url] = UrlbarUtils.stripPrefixAndTrim(engine.searchUrlDomain, {
     stripWww: true,
   });
   url = url.substr(0, url.length - engine.searchUrlPublicSuffix.length);
@@ -469,7 +467,7 @@ function makeOnboardingResult(engine, satisfiesAutofillThreshold = false) {
 }
 
 function makeResult(context, engine, satisfiesAutofillThreshold = false) {
-  let [url] = UrlbarUtils.stripPrefixAndTrim(engine.getResultDomain(), {
+  let [url] = UrlbarUtils.stripPrefixAndTrim(engine.searchUrlDomain, {
     stripWww: true,
   });
   url = url.substr(0, url.length - engine.searchUrlPublicSuffix.length);

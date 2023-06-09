@@ -127,9 +127,9 @@ global.waitForTabLoaded = (tab, url) => {
   });
 };
 
-global.replaceUrlInTab = (gBrowser, tab, url) => {
-  let loaded = waitForTabLoaded(tab, url);
-  gBrowser.loadURI(url, {
+global.replaceUrlInTab = (gBrowser, tab, uri) => {
+  let loaded = waitForTabLoaded(tab, uri.spec);
+  gBrowser.loadURI(uri, {
     flags: Ci.nsIWebNavigation.LOAD_FLAGS_REPLACE_HISTORY,
     triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(), // This is safe from this functions usage however it would be preferred not to dot his.
   });
@@ -1219,6 +1219,12 @@ class TabManager extends TabManagerBase {
 
   wrapTab(nativeTab) {
     return new Tab(this.extension, nativeTab, tabTracker.getId(nativeTab));
+  }
+
+  getWrapper(nativeTab) {
+    if (!nativeTab.ownerGlobal.gBrowserInit.isAdoptingTab()) {
+      return super.getWrapper(nativeTab);
+    }
   }
 }
 

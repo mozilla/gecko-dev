@@ -36,7 +36,7 @@ impl Serialize for HmacSecretResponse {
     {
         match self {
             HmacSecretResponse::Confirmed(x) => serializer.serialize_bool(*x),
-            HmacSecretResponse::Secret(x) => serializer.serialize_bytes(&x),
+            HmacSecretResponse::Secret(x) => serializer.serialize_bytes(x),
         }
     }
 }
@@ -80,7 +80,13 @@ pub struct Extension {
     pub hmac_secret: Option<HmacSecretResponse>,
 }
 
-fn parse_extensions<'a>(input: &'a [u8]) -> IResult<&'a [u8], Extension, NomError<&'a [u8]>> {
+impl Extension {
+    fn has_some(&self) -> bool {
+        self.pin_min_length.is_some() || self.hmac_secret.is_some()
+    }
+}
+
+fn parse_extensions(input: &[u8]) -> IResult<&[u8], Extension, NomError<&[u8]>> {
     serde_to_nom(input)
 }
 
@@ -88,10 +94,12 @@ fn parse_extensions<'a>(input: &'a [u8]) -> IResult<&'a [u8], Extension, NomErro
 pub struct AAGuid(pub [u8; 16]);
 
 impl AAGuid {
-    pub fn from(src: &[u8]) -> Result<AAGuid, ()> {
+    pub fn from(src: &[u8]) -> Result<AAGuid, AuthenticatorError> {
         let mut payload = [0u8; 16];
         if src.len() != payload.len() {
-            Err(())
+            Err(AuthenticatorError::InternalError(String::from(
+                "Failed to parse AAGuid",
+            )))
         } else {
             payload.copy_from_slice(src);
             Ok(AAGuid(payload))
@@ -175,9 +183,9 @@ where
     //         .map_err(|_| NomErr::Error(Context::Code(input, ErrorKind::Custom(42))))
 }
 
-fn parse_attested_cred_data<'a>(
-    input: &'a [u8],
-) -> IResult<&'a [u8], AttestedCredentialData, NomError<&'a [u8]>> {
+fn parse_attested_cred_data(
+    input: &[u8],
+) -> IResult<&[u8], AttestedCredentialData, NomError<&[u8]>> {
     let (rest, aaguid_res) = map(take(16u8), AAGuid::from)(input)?;
     // // We can unwrap here, since we _know_ the input will be 16 bytes error out before calling from()
     let aaguid = aaguid_res.unwrap();
@@ -189,7 +197,7 @@ fn parse_attested_cred_data<'a>(
         (AttestedCredentialData {
             aaguid,
             credential_id,
-            credential_public_key: credential_public_key,
+            credential_public_key,
         }),
     ))
 }
@@ -212,7 +220,7 @@ pub struct AuthenticatorData {
     pub extensions: Extension,
 }
 
-fn parse_ad<'a>(input: &'a [u8]) -> IResult<&'a [u8], AuthenticatorData, NomError<&'a [u8]>> {
+fn parse_ad(input: &[u8]) -> IResult<&[u8], AuthenticatorData, NomError<&[u8]>> {
     let (rest, rp_id_hash_res) = map(take(32u8), RpIdHash::from)(input)?;
     // We can unwrap here, since we _know_ the input to from() will be 32 bytes or error out before calling from()
     let rp_id_hash = rp_id_hash_res.unwrap();
@@ -282,21 +290,45 @@ impl<'de> Deserialize<'de> for AuthenticatorData {
 }
 
 impl AuthenticatorData {
+    // see https://www.w3.org/TR/webauthn-2/#sctn-authenticator-data
+    // Authenticator Data
+    //                   Name Length (in bytes)
+    //               rpIdHash 32
+    //                  flags 1
+    //              signCount 4
+    // attestedCredentialData variable (if present)
+    //             extensions variable (if present)
     pub fn to_vec(&self) -> Result<Vec<u8>, AuthenticatorError> {
         let mut data = Vec::new();
-        data.extend(&self.rp_id_hash.0);
-        data.extend(&[self.flags.bits()]);
-        data.extend(&self.counter.to_be_bytes());
+        data.extend(self.rp_id_hash.0); // (1) "rpIDHash", len=32
+        data.extend([self.flags.bits()]); // (2) "flags", len=1 (u8)
+        data.extend(self.counter.to_be_bytes()); // (3) "signCount", len=4, 32-bit unsigned big-endian integer.
 
-        // TODO(baloo): need to yield credential_data and extensions, but that dependends on flags,
-        //              should we consider another type system?
+        // TODO(MS): Here flags=AT needs to be set, but this data comes from the security device
+        //           and we (probably?) need to just trust the device to set the right flags
         if let Some(cred) = &self.credential_data {
-            data.extend(&cred.aaguid.0);
-            data.extend(&(cred.credential_id.len() as u16).to_be_bytes());
-            data.extend(&cred.credential_id);
+            // see https://www.w3.org/TR/webauthn-2/#sctn-attested-credential-data
+            // Attested Credential Data
+            //                Name Length (in bytes)
+            //              aaguid 16
+            //  credentialIdLength 2
+            //        credentialId L
+            // credentialPublicKey variable
+            data.extend(cred.aaguid.0); // (1) "aaguid", len=16
+            data.extend((cred.credential_id.len() as u16).to_be_bytes()); // (2) "credentialIdLength", len=2, 16-bit unsigned big-endian integer
+            data.extend(&cred.credential_id); // (3) "credentialId", len= see (2)
             data.extend(
+                // (4) "credentialPublicKey", len=variable
                 &serde_cbor::to_vec(&cred.credential_public_key)
                     .map_err(CommandError::Serializing)?,
+            );
+        }
+        // TODO(MS): Here flags=ED needs to be set, but this data comes from the security device
+        //           and we (probably?) need to just trust the device to set the right flags
+        if self.extensions.has_some() {
+            data.extend(
+                // (5) "extensions", len=variable
+                &serde_cbor::to_vec(&self.extensions).map_err(CommandError::Serializing)?,
             );
         }
         Ok(data)
@@ -319,7 +351,7 @@ pub struct Signature(#[serde(with = "serde_bytes")] pub(crate) ByteBuf);
 impl fmt::Debug for Signature {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let value = base64::encode_config(&self.0, base64::URL_SAFE_NO_PAD);
-        write!(f, "Signature({})", value)
+        write!(f, "Signature({value})")
     }
 }
 
@@ -380,35 +412,44 @@ pub enum AttestationStatement {
 // }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
-// See https://www.w3.org/TR/webauthn/#fido-u2f-attestation
+// See https://www.w3.org/TR/webauthn-2/#sctn-fido-u2f-attestation
+// u2fStmtFormat = {
+//                     x5c: [ attestnCert: bytes ],
+//                     sig: bytes
+//                 }
 pub struct AttestationStatementFidoU2F {
-    pub sig: Signature,
-
-    #[serde(rename = "x5c")]
     /// Certificate chain in x509 format
-    pub attestation_cert: Vec<AttestationCertificate>,
+    #[serde(rename = "x5c")]
+    pub attestation_cert: Vec<AttestationCertificate>, // (1) "x5c"
+    pub sig: Signature, // (2) "sig"
 }
 
-#[allow(dead_code)] // TODO(MS): Remove me, once we can parse AttestationStatements and use this function
 impl AttestationStatementFidoU2F {
     pub fn new(cert: &[u8], signature: &[u8]) -> Self {
         AttestationStatementFidoU2F {
-            sig: Signature(ByteBuf::from(signature)),
             attestation_cert: vec![AttestationCertificate(Vec::from(cert))],
+            sig: Signature(ByteBuf::from(signature)),
         }
     }
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
-// TODO(baloo): there is a couple other options than x5c:
-//              https://www.w3.org/TR/webauthn/#packed-attestation
+// https://www.w3.org/TR/webauthn-2/#sctn-packed-attestation
+// packedStmtFormat = {
+//                       alg: COSEAlgorithmIdentifier,
+//                       sig: bytes,
+//                       x5c: [ attestnCert: bytes, * (caCert: bytes) ]
+//                   } //
+//                   {
+//                       alg: COSEAlgorithmIdentifier
+//                       sig: bytes,
+//                   }
 pub struct AttestationStatementPacked {
-    pub alg: COSEAlgorithm,
-    pub sig: Signature,
-
-    #[serde(rename = "x5c")]
+    pub alg: COSEAlgorithm, // (1) "alg"
+    pub sig: Signature,     // (2) "sig"
     /// Certificate chain in x509 format
-    pub attestation_cert: Vec<AttestationCertificate>,
+    #[serde(rename = "x5c", skip_serializing_if = "Vec::is_empty", default)]
+    pub attestation_cert: Vec<AttestationCertificate>, // (3) "x5c"
 }
 
 #[derive(Debug, Deserialize, PartialEq, Eq)]
@@ -492,7 +533,7 @@ impl<'de> Deserialize<'de> for AttestationObject {
                                 }
                             }
                         }
-                        k => return Err(M::Error::custom(format!("unexpected key: {:?}", k))),
+                        k => return Err(M::Error::custom(format!("unexpected key: {k:?}"))),
                     }
                 }
 
@@ -521,29 +562,32 @@ impl Serialize for AttestationObject {
         let map_len = 3;
         let mut map = serializer.serialize_map(Some(map_len))?;
 
-        let auth_data = self
-            .auth_data
-            .to_vec()
-            .map(|v| serde_cbor::Value::Bytes(v))
-            .map_err(|_| SerError::custom("Failed to serialize auth_data"))?;
-
-        map.serialize_entry(&"authData", &auth_data)?;
+        // CTAP2 canonical CBOR order for these entries is ("fmt", "attStmt", "authData")
+        // as strings are sorted by length and then lexically.
+        // see https://www.w3.org/TR/webauthn-2/#attestation-object
         match self.att_statement {
             AttestationStatement::None => {
                 // Even with Att None, an empty map is returned in the cbor!
-                map.serialize_entry(&"fmt", &"none")?;
+                map.serialize_entry(&"fmt", &"none")?; // (1) "fmt"
                 let v = serde_cbor::Value::Map(std::collections::BTreeMap::new());
-                map.serialize_entry(&"attStmt", &v)?;
+                map.serialize_entry(&"attStmt", &v)?; // (2) "attStmt"
             }
             AttestationStatement::Packed(ref v) => {
-                map.serialize_entry(&"fmt", &"packed")?;
-                map.serialize_entry(&"attStmt", v)?;
+                map.serialize_entry(&"fmt", &"packed")?; // (1) "fmt"
+                map.serialize_entry(&"attStmt", v)?; // (2) "attStmt"
             }
             AttestationStatement::FidoU2F(ref v) => {
-                map.serialize_entry(&"fmt", &"fido-u2f")?;
-                map.serialize_entry(&"attStmt", v)?;
+                map.serialize_entry(&"fmt", &"fido-u2f")?; // (1) "fmt"
+                map.serialize_entry(&"attStmt", v)?; // (2) "attStmt"
             }
         }
+
+        let auth_data = self
+            .auth_data
+            .to_vec()
+            .map(serde_cbor::Value::Bytes)
+            .map_err(|_| SerError::custom("Failed to serialize auth_data"))?;
+        map.serialize_entry(&"authData", &auth_data)?; // (3) "authData"
         map.end()
     }
 }
@@ -746,7 +790,7 @@ mod test {
     #[test]
     fn parse_attestation_object() {
         let value: AttestationObject = from_slice(&SAMPLE_ATTESTATION).unwrap();
-        println!("{:?}", value);
+        println!("{value:?}");
 
         //assert_eq!(true, false);
     }
@@ -793,7 +837,7 @@ mod test {
         ];
         let expected = "AAGuid(cb69481e-8ff0-0039-93ec-0a2729a154a8)";
         let result = AAGuid::from(&input).expect("Failed to parse AAGuid");
-        let res_str = format!("{:?}", result);
+        let res_str = format!("{result:?}");
         assert_eq!(expected, &res_str);
     }
 }

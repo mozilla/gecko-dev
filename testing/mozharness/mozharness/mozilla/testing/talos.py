@@ -19,8 +19,9 @@ import shutil
 import subprocess
 import sys
 
-import mozharness
 import six
+
+import mozharness
 from mozharness.base.config import parse_config_file
 from mozharness.base.errors import PythonErrorList
 from mozharness.base.log import CRITICAL, DEBUG, ERROR, INFO, WARNING, OutputParser
@@ -836,16 +837,15 @@ class Talos(
         # run talos tests
         run_tests = os.path.join(self.talos_path, "talos", "run_tests.py")
 
-        mozlog_opts = ["--log-tbpl-level=debug"]
+        # Dynamically set the log level based on the talos config for consistency
+        # throughout the test
+        mozlog_opts = [f"--log-tbpl-level={self.config['log_level']}"]
+
         if not self.run_local and "suite" in self.config:
             fname_pattern = "%s_%%s.log" % self.config["suite"]
             mozlog_opts.append(
                 "--log-errorsummary=%s"
                 % os.path.join(env["MOZ_UPLOAD_DIR"], fname_pattern % "errorsummary")
-            )
-            mozlog_opts.append(
-                "--log-raw=%s"
-                % os.path.join(env["MOZ_UPLOAD_DIR"], fname_pattern % "raw")
             )
 
         def launch_in_debug_mode(cmdline):

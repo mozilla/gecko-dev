@@ -168,7 +168,6 @@
 #include "mozilla/dom/FileBlobImpl.h"
 #include "mozilla/dom/FileSystemSecurity.h"
 #include "mozilla/dom/FilteredNodeIterator.h"
-#include "mozilla/dom/FontTableURIProtocolHandler.h"
 #include "mozilla/dom/FragmentOrElement.h"
 #include "mozilla/dom/FromParser.h"
 #include "mozilla/dom/HTMLFormElement.h"
@@ -330,6 +329,7 @@
 #if defined(MOZ_THUNDERBIRD) || defined(MOZ_SUITE)
 #  include "nsIURIWithSpecialOrigin.h"
 #endif
+#include "nsIUserIdleServiceInternal.h"
 #include "nsIWeakReferenceUtils.h"
 #include "nsIWebNavigation.h"
 #include "nsIWebNavigationInfo.h"
@@ -357,7 +357,6 @@
 #include "nsPresContext.h"
 #include "nsQueryFrame.h"
 #include "nsQueryObject.h"
-#include "nsRFPService.h"
 #include "nsRange.h"
 #include "nsRefPtrHashtable.h"
 #include "nsSandboxFlags.h"
@@ -466,6 +465,9 @@ nsHtml5StringParser* nsContentUtils::sHTMLFragmentParser = nullptr;
 nsParser* nsContentUtils::sXMLFragmentParser = nullptr;
 nsIFragmentContentSink* nsContentUtils::sXMLFragmentSink = nullptr;
 bool nsContentUtils::sFragmentParsingActive = false;
+
+bool nsContentUtils::sMayHaveFormCheckboxStateChangeListeners = false;
+bool nsContentUtils::sMayHaveFormRadioStateChangeListeners = false;
 
 mozilla::LazyLogModule nsContentUtils::gResistFingerprintingLog(
     "nsResistFingerprinting");
@@ -739,7 +741,10 @@ class nsContentUtils::UserInteractionObserver final
 
 static constexpr nsLiteralCString kRfpPrefs[] = {
     "privacy.resistFingerprinting"_ns,
-    "privacy.resistFingerprinting.testGranularityMask"_ns,
+    "privacy.resistFingerprinting.pbmode"_ns,
+    "privacy.fingerprintingProtection"_ns,
+    "privacy.fingerprintingProtection.pbmode"_ns,
+    "privacy.fingerprintingProtection.overrides"_ns,
 };
 
 static void RecomputeResistFingerprintingAllDocs(const char*, void*) {
@@ -750,9 +755,11 @@ static void RecomputeResistFingerprintingAllDocs(const char*, void*) {
     bcGroup->GetDocGroups(docGroups);
     for (auto* docGroup : docGroups) {
       for (Document* doc : *docGroup) {
-        const bool old = doc->ShouldResistFingerprinting();
+        const bool old = doc->ShouldResistFingerprinting(
+            RFPTarget::IgnoreTargetAndReturnCachedValue);
         doc->RecomputeResistFingerprinting();
-        if (old != doc->ShouldResistFingerprinting()) {
+        if (old != doc->ShouldResistFingerprinting(
+                       RFPTarget::IsAlwaysEnabledForPrecompute)) {
           if (auto* pc = doc->GetPresContext()) {
             pc->MediaFeatureValuesChanged(
                 {MediaFeatureChangeReason::PreferenceChange},
@@ -2146,17 +2153,19 @@ bool nsContentUtils::IsCallerChromeOrElementTransformGettersEnabled(
 // Older Should RFP Functions ----------------------------------
 
 /* static */
-bool nsContentUtils::ShouldResistFingerprinting() {
-  return StaticPrefs::privacy_resistFingerprinting();
+bool nsContentUtils::ShouldResistFingerprinting(
+    RFPTarget aTarget /* = RFPTarget::Unknown */) {
+  return nsRFPService::IsRFPEnabledFor(aTarget);
 }
 
 /* static */
 bool nsContentUtils::ShouldResistFingerprinting(
-    nsIGlobalObject* aGlobalObject) {
+    nsIGlobalObject* aGlobalObject,
+    RFPTarget aTarget /* = RFPTarget::Unknown */) {
   if (!aGlobalObject) {
-    return ShouldResistFingerprinting();
+    return ShouldResistFingerprinting("Null Object", aTarget);
   }
-  return aGlobalObject->ShouldResistFingerprinting();
+  return aGlobalObject->ShouldResistFingerprinting(aTarget);
 }
 
 // Newer Should RFP Functions ----------------------------------
@@ -2179,59 +2188,67 @@ inline bool CookieJarSettingsSaysShouldResistFingerprinting(
   nsCOMPtr<nsICookieJarSettings> cookieJarSettings;
   nsresult rv =
       aLoadInfo->GetCookieJarSettings(getter_AddRefs(cookieJarSettings));
+  if (rv == NS_ERROR_NOT_IMPLEMENTED) {
+    // The TRRLoadInfo in particular does not implement this method
+    // In that instance.  We will return false and let other code decide if
+    // we shouldRFP for this connection
+    return false;
+  }
   if (NS_WARN_IF(NS_FAILED(rv))) {
     MOZ_LOG(nsContentUtils::ResistFingerprintingLog(), LogLevel::Info,
             ("Called CookieJarSettingsSaysShouldResistFingerprinting but the "
              "loadinfo's CookieJarSettings couldn't be retrieved"));
-    return true;
+    return false;
   }
   return cookieJarSettings->GetShouldResistFingerprinting();
 }
 
-// These constants are used for privacy.resistFingerprinting.testGranularityMask
-const unsigned int sWebExtensionExemptMask = 0x01;
-const unsigned int sNonPBMExemptMask = 0x02;
-const unsigned int sSpecificDomainsExemptMask = 0x04;
 const char* kExemptedDomainsPrefName =
     "privacy.resistFingerprinting.exemptedDomains";
 
-// --------------------------------------------------------------------------
 /* static */
-bool nsContentUtils::ShouldResistFingerprinting(const char* aJustification) {
+bool nsContentUtils::ShouldResistFingerprinting(
+    const char* aJustification, RFPTarget aTarget /* = RFPTarget::Unknown */) {
   // See comment in header file for information about usage
-  return ShouldResistFingerprinting();
+  return ShouldResistFingerprinting(aTarget);
 }
 
-// ----------------------------------------------------------------------
-bool nsContentUtils::ShouldResistFingerprinting(nsIDocShell* aDocShell) {
+/* static */
+bool nsContentUtils::ShouldResistFingerprinting(
+    CallerType aCallerType, nsIGlobalObject* aGlobalObject,
+    RFPTarget aTarget /* = RFPTarget::Unknown */) {
+  if (aCallerType == CallerType::System) {
+    return false;
+  }
+  return ShouldResistFingerprinting(aGlobalObject, aTarget);
+}
+
+bool nsContentUtils::ShouldResistFingerprinting(
+    nsIDocShell* aDocShell, RFPTarget aTarget /* = RFPTarget::Unknown */) {
   if (!aDocShell) {
     MOZ_LOG(nsContentUtils::ResistFingerprintingLog(), LogLevel::Info,
             ("Called nsContentUtils::ShouldResistFingerprinting(nsIDocShell*) "
              "with NULL docshell"));
-    return ShouldResistFingerprinting();
+    return ShouldResistFingerprinting("Null Object", aTarget);
   }
   Document* doc = aDocShell->GetDocument();
   if (!doc) {
     MOZ_LOG(nsContentUtils::ResistFingerprintingLog(), LogLevel::Info,
             ("Called nsContentUtils::ShouldResistFingerprinting(nsIDocShell*) "
              "with NULL doc"));
-    return ShouldResistFingerprinting();
+    return ShouldResistFingerprinting(aTarget);
   }
-  return doc->ShouldResistFingerprinting();
+  return doc->ShouldResistFingerprinting(aTarget);
 }
 
-// ----------------------------------------------------------------------
 /* static */
-bool nsContentUtils::ShouldResistFingerprinting(nsIChannel* aChannel) {
-  if (!ShouldResistFingerprinting("Legacy quick-check")) {
-    return false;
-  }
-
+bool nsContentUtils::ShouldResistFingerprinting(
+    nsIChannel* aChannel, RFPTarget aTarget /* = RFPTarget::Unknown */) {
   if (!aChannel) {
     MOZ_LOG(nsContentUtils::ResistFingerprintingLog(), LogLevel::Info,
             ("Called nsContentUtils::ShouldResistFingerprinting(nsIChannel* "
              "aChannel) with NULL channel"));
-    return true;
+    return ShouldResistFingerprinting("Null Object", aTarget);
   }
 
   nsCOMPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
@@ -2239,7 +2256,13 @@ bool nsContentUtils::ShouldResistFingerprinting(nsIChannel* aChannel) {
     MOZ_LOG(nsContentUtils::ResistFingerprintingLog(), LogLevel::Info,
             ("Called nsContentUtils::ShouldResistFingerprinting(nsIChannel* "
              "aChannel) but the channel's loadinfo was NULL"));
-    return true;
+    return ShouldResistFingerprinting("Null Object", aTarget);
+  }
+
+  // With this check, we can ensure that the prefs and target say yes, so only
+  // an exemption would cause us to return false.
+  if (!ShouldResistFingerprinting("Positive return check", aTarget)) {
+    return false;
   }
 
   // Document types have no loading principal.  Subdocument types do have a
@@ -2292,71 +2315,67 @@ bool nsContentUtils::ShouldResistFingerprinting(nsIChannel* aChannel) {
 #endif
 
     return ShouldResistFingerprinting_dangerous(
-        channelURI, loadInfo->GetOriginAttributes(), "Internal Call");
+        channelURI, loadInfo->GetOriginAttributes(), "Internal Call", aTarget);
   }
 
   // Case 2: Subresource Load
-  return ShouldResistFingerprinting(loadInfo);
+  return ShouldResistFingerprinting(loadInfo, aTarget);
 }
 
-// ----------------------------------------------------------------------
 /* static */
 bool nsContentUtils::ShouldResistFingerprinting_dangerous(
     nsIURI* aURI, const mozilla::OriginAttributes& aOriginAttributes,
-    const char* aJustification) {
-  if (!ShouldResistFingerprinting("Legacy quick-check")) {
+    const char* aJustification, RFPTarget aTarget /* = RFPTarget::Unknown */) {
+  // With this check, we can ensure that the prefs and target say yes, so only
+  // an exemption would cause us to return false.
+  if (!ShouldResistFingerprinting("Positive return check", aTarget)) {
     return false;
   }
 
-  if (StaticPrefs::privacy_resistFingerprinting_testGranularityMask() &
-      sNonPBMExemptMask) {
-    // if non-PBM exempt mask is true, exempt non-PBM channels.
+  if (!StaticPrefs::privacy_resistFingerprinting_DoNotUseDirectly() &&
+      !StaticPrefs::privacy_fingerprintingProtection_DoNotUseDirectly()) {
+    // If neither of the 'regular' RFP prefs are set, then one (or both)
+    // of the PBM-Only prefs are set (or we would have failed the
+    // Positive return check.)  Therefore, if we are not in PBM, return false
     if (aOriginAttributes.mPrivateBrowsingId == 0) {
       return false;
     }
   }
 
-  bool isExemptDomain = false;
-  // Exclude internal schemes
+  // Exclude internal schemes and web extensions
   if (aURI->SchemeIs("about") || aURI->SchemeIs("chrome") ||
-      aURI->SchemeIs("resource") || aURI->SchemeIs("view-source")) {
+      aURI->SchemeIs("resource") || aURI->SchemeIs("view-source") ||
+      aURI->SchemeIs("moz-extension")) {
     return false;
   }
 
-  if (StaticPrefs::privacy_resistFingerprinting_testGranularityMask() &
-      sWebExtensionExemptMask) {
-    if (aURI->SchemeIs("web-extension")) {
-      return false;
-    }
-  }
+  bool isExemptDomain = false;
+  nsAutoCString list;
+  Preferences::GetCString(kExemptedDomainsPrefName, list);
+  ToLowerCase(list);
+  isExemptDomain = IsURIInList(aURI, list);
 
-  if (StaticPrefs::privacy_resistFingerprinting_testGranularityMask() &
-      sSpecificDomainsExemptMask) {
-    nsAutoCString list;
-    Preferences::GetCString(kExemptedDomainsPrefName, list);
-    ToLowerCase(list);
-    isExemptDomain = IsURIInList(aURI, list);
-
-    if (MOZ_LOG_TEST(nsContentUtils::ResistFingerprintingLog(),
-                     mozilla::LogLevel::Debug)) {
-      nsAutoCString url;
-      aURI->GetHost(url);
-      LogDomainAndPrefList(kExemptedDomainsPrefName, url, isExemptDomain);
-    }
+  if (MOZ_LOG_TEST(nsContentUtils::ResistFingerprintingLog(),
+                   mozilla::LogLevel::Debug)) {
+    nsAutoCString url;
+    aURI->GetHost(url);
+    LogDomainAndPrefList(kExemptedDomainsPrefName, url, isExemptDomain);
   }
 
   return !isExemptDomain;
 }
 
-// ----------------------------------------------------------------------
 /* static */
-bool nsContentUtils::ShouldResistFingerprinting(nsILoadInfo* aLoadInfo) {
+bool nsContentUtils::ShouldResistFingerprinting(
+    nsILoadInfo* aLoadInfo, RFPTarget aTarget /* = RFPTarget::Unknown */) {
   MOZ_ASSERT(aLoadInfo->GetExternalContentPolicyType() !=
                  ExtContentPolicy::TYPE_DOCUMENT &&
              aLoadInfo->GetExternalContentPolicyType() !=
                  ExtContentPolicy::TYPE_SUBDOCUMENT);
 
-  if (!ShouldResistFingerprinting("Legacy quick-check")) {
+  // With this check, we can ensure that the prefs and target say yes, so only
+  // an exemption would cause us to return false.
+  if (!ShouldResistFingerprinting("Positive return check", aTarget)) {
     return false;
   }
 
@@ -2368,28 +2387,28 @@ bool nsContentUtils::ShouldResistFingerprinting(nsILoadInfo* aLoadInfo) {
   // will check the parent's principal
   nsIPrincipal* principal = aLoadInfo->GetLoadingPrincipal();
 
-  if (principal->IsSystemPrincipal()) {
-    return false;
-  }
-
-  MOZ_ASSERT(BasePrincipal::Cast(principal)->OriginAttributesRef() ==
-             aLoadInfo->GetOriginAttributes());
-  return ShouldResistFingerprinting_dangerous(principal, "Internal Call");
+  MOZ_ASSERT_IF(principal,
+                BasePrincipal::Cast(principal)->OriginAttributesRef() ==
+                    aLoadInfo->GetOriginAttributes());
+  return ShouldResistFingerprinting_dangerous(principal, "Internal Call",
+                                              aTarget);
 }
 
-// ----------------------------------------------------------------------
 /* static */
 bool nsContentUtils::ShouldResistFingerprinting_dangerous(
-    nsIPrincipal* aPrincipal, const char* aJustification) {
-  if (!ShouldResistFingerprinting("Legacy quick-check")) {
-    return false;
-  }
-
+    nsIPrincipal* aPrincipal, const char* aJustification,
+    RFPTarget aTarget /* = RFPTarget::Unknown */) {
   if (!aPrincipal) {
     MOZ_LOG(nsContentUtils::ResistFingerprintingLog(), LogLevel::Info,
             ("Called nsContentUtils::ShouldResistFingerprinting(nsILoadInfo* "
              "aChannel) but the loadinfo's loadingprincipal was NULL"));
-    return true;
+    return ShouldResistFingerprinting("Null object", aTarget);
+  }
+
+  // With this check, we can ensure that the prefs and target say yes, so only
+  // an exemption would cause us to return false.
+  if (!ShouldResistFingerprinting("Positive return check", aTarget)) {
+    return false;
   }
 
   if (aPrincipal->IsSystemPrincipal()) {
@@ -2398,9 +2417,11 @@ bool nsContentUtils::ShouldResistFingerprinting_dangerous(
 
   auto originAttributes =
       BasePrincipal::Cast(aPrincipal)->OriginAttributesRef();
-  if (StaticPrefs::privacy_resistFingerprinting_testGranularityMask() &
-      sNonPBMExemptMask) {
-    // if non-PBM exempt mask is true, exempt non-PBM channels.
+  if (!StaticPrefs::privacy_resistFingerprinting_DoNotUseDirectly() &&
+      !StaticPrefs::privacy_fingerprintingProtection_DoNotUseDirectly()) {
+    // If neither of the 'regular' RFP prefs are set, then one (or both)
+    // of the PBM-Only prefs are set (or we would have failed the
+    // Positive return check.)  Therefore, if we are not in PBM, return false
     if (originAttributes.mPrivateBrowsingId == 0) {
       return false;
     }
@@ -2412,24 +2433,19 @@ bool nsContentUtils::ShouldResistFingerprinting_dangerous(
     return false;
   }
 
-  if (StaticPrefs::privacy_resistFingerprinting_testGranularityMask() &
-      sWebExtensionExemptMask) {
-    if (BasePrincipal::Cast(aPrincipal)->AddonPolicy()) {
-      return false;
-    }
+  // Web extension principals are also excluded
+  if (BasePrincipal::Cast(aPrincipal)->AddonPolicy()) {
+    return false;
   }
 
   bool isExemptDomain = false;
-  if (StaticPrefs::privacy_resistFingerprinting_testGranularityMask() &
-      sSpecificDomainsExemptMask) {
-    aPrincipal->IsURIInPrefList(kExemptedDomainsPrefName, &isExemptDomain);
+  aPrincipal->IsURIInPrefList(kExemptedDomainsPrefName, &isExemptDomain);
 
-    if (MOZ_LOG_TEST(nsContentUtils::ResistFingerprintingLog(),
-                     mozilla::LogLevel::Debug)) {
-      nsAutoCString origin;
-      aPrincipal->GetAsciiOrigin(origin);
-      LogDomainAndPrefList(kExemptedDomainsPrefName, origin, isExemptDomain);
-    }
+  if (MOZ_LOG_TEST(nsContentUtils::ResistFingerprintingLog(),
+                   mozilla::LogLevel::Debug)) {
+    nsAutoCString origin;
+    aPrincipal->GetAsciiOrigin(origin);
+    LogDomainAndPrefList(kExemptedDomainsPrefName, origin, isExemptDomain);
   }
 
   // If we've gotten here we have (probably) passed the CookieJarSettings
@@ -2462,7 +2478,6 @@ bool nsContentUtils::ShouldResistFingerprinting_dangerous(
   return !isExemptDomain;
 }
 
-// ------------------------------------------------------------------
 /* static */
 void nsContentUtils::CalcRoundedWindowSizeForResistingFingerprinting(
     int32_t aChromeWidth, int32_t aChromeHeight, int32_t aScreenWidth,
@@ -2680,7 +2695,7 @@ nsINode* nsContentUtils::Retarget(nsINode* aTargetA, nsINode* aTargetB) {
 }
 
 // static
-nsINode* nsContentUtils::GetAnElementForTiming(Element* aTarget,
+Element* nsContentUtils::GetAnElementForTiming(Element* aTarget,
                                                const Document* aDocument,
                                                nsIGlobalObject* aGlobal) {
   if (!aTarget->IsInComposedDoc()) {
@@ -2978,6 +2993,59 @@ BrowserParent* nsContentUtils::GetCommonBrowserParentAncestor(
                    ? aBrowserParent->GetBrowserBridgeParent()->Manager()
                    : nullptr;
       });
+}
+
+/* static */
+Element* nsContentUtils::GetTargetElement(Document* aDocument,
+                                          const nsAString& aAnchorName) {
+  MOZ_ASSERT(aDocument);
+
+  if (aAnchorName.IsEmpty()) {
+    return nullptr;
+  }
+  // 1. If there is an element in the document tree that has an ID equal to
+  //    fragment, then return the first such element in tree order.
+  if (Element* el = aDocument->GetElementById(aAnchorName)) {
+    return el;
+  }
+
+  // 2. If there is an a element in the document tree that has a name
+  // attribute whose value is equal to fragment, then return the first such
+  // element in tree order.
+  //
+  // FIXME(emilio): Why the different code-paths for HTML and non-HTML docs?
+  if (aDocument->IsHTMLDocument()) {
+    nsCOMPtr<nsINodeList> list = aDocument->GetElementsByName(aAnchorName);
+    // Loop through the named nodes looking for the first anchor
+    uint32_t length = list->Length();
+    for (uint32_t i = 0; i < length; i++) {
+      nsIContent* node = list->Item(i);
+      if (node->IsHTMLElement(nsGkAtoms::a)) {
+        return node->AsElement();
+      }
+    }
+  } else {
+    constexpr auto nameSpace = u"http://www.w3.org/1999/xhtml"_ns;
+    // Get the list of anchor elements
+    nsCOMPtr<nsINodeList> list =
+        aDocument->GetElementsByTagNameNS(nameSpace, u"a"_ns);
+    // Loop through the anchors looking for the first one with the given name.
+    for (uint32_t i = 0; true; i++) {
+      nsIContent* node = list->Item(i);
+      if (!node) {  // End of list
+        break;
+      }
+
+      // Compare the name attribute
+      if (node->AsElement()->AttrValueIs(kNameSpaceID_None, nsGkAtoms::name,
+                                         aAnchorName, eCaseMatters)) {
+        return node->AsElement();
+      }
+    }
+  }
+
+  // 3. Return null.
+  return nullptr;
 }
 
 /* static */
@@ -3823,7 +3891,7 @@ nsresult nsContentUtils::LoadImage(
 
   nsIURI* documentURI = aLoadingDocument->GetDocumentURI();
 
-  NS_ASSERTION(loadGroup || IsFontTableURI(documentURI),
+  NS_ASSERTION(loadGroup || aLoadingDocument->IsSVGGlyphsDocument(),
                "Could not get loadgroup; onload may fire too early");
 
   // XXXbz using "documentURI" for the initialDocumentURI is not quite
@@ -4668,6 +4736,13 @@ nsresult nsContentUtils::DispatchInputEvent(
     widgetEvent.mSpecifiedEventType = nsGkAtoms::oninput;
     widgetEvent.mFlags.mCancelable = false;
     widgetEvent.mFlags.mComposed = true;
+    if (IsSafeToRunScript()) {
+      RefPtr<nsPresContext> presContext =
+          aEventTargetElement->OwnerDoc()->GetPresContext();
+      return EventDispatcher::Dispatch(aEventTargetElement, presContext,
+                                       &widgetEvent, nullptr, aEventStatus);
+    }
+
     (new AsyncEventDispatcher(aEventTargetElement, widgetEvent))
         ->RunDOMEventWhenSafe();
     return NS_OK;
@@ -5725,23 +5800,23 @@ bool nsContentUtils::HasNonEmptyTextContent(
 
 /* static */
 bool nsContentUtils::IsInSameAnonymousTree(const nsINode* aNode,
-                                           const nsIContent* aContent) {
+                                           const nsINode* aOtherNode) {
   MOZ_ASSERT(aNode, "Must have a node to work with");
-  MOZ_ASSERT(aContent, "Must have a content to work with");
+  MOZ_ASSERT(aOtherNode, "Must have a content to work with");
 
-  if (aNode->IsInNativeAnonymousSubtree() !=
-      aContent->IsInNativeAnonymousSubtree()) {
+  const bool anon = aNode->IsInNativeAnonymousSubtree();
+  if (anon != aOtherNode->IsInNativeAnonymousSubtree()) {
     return false;
   }
 
-  if (aNode->IsInNativeAnonymousSubtree()) {
-    return aContent->GetClosestNativeAnonymousSubtreeRoot() ==
+  if (anon) {
+    return aOtherNode->GetClosestNativeAnonymousSubtreeRoot() ==
            aNode->GetClosestNativeAnonymousSubtreeRoot();
   }
 
   // FIXME: This doesn't deal with disconnected nodes whatsoever, but it didn't
   // use to either. Maybe that's fine.
-  return aNode->GetContainingShadow() == aContent->GetContainingShadow();
+  return aNode->GetContainingShadow() == aOtherNode->GetContainingShadow();
 }
 
 /* static */
@@ -7271,8 +7346,6 @@ void nsContentUtils::GetSelectionInTextControl(Selection* aSelection,
   // firstChild is either text or a <br> (hence an element).
   MOZ_ASSERT_IF(firstChild, firstChild->IsText() || firstChild->IsElement());
 #endif
-  // Testing IsElement() is faster than testing IsNodeOfType(), since it's
-  // non-virtual.
   if (!firstChild || firstChild->IsElement()) {
     // No text node, so everything is 0
     startOffset = endOffset = 0;
@@ -7783,9 +7856,7 @@ void nsContentUtils::CallOnAllRemoteChildren(
 bool nsContentUtils::IPCDataTransferItemHasKnownFlavor(
     const IPCDataTransferItem& aItem) {
   // Unknown types are converted to kCustomTypesMime.
-  // FIXME(bug 1776879) text/plain is converted to text/unicode still.
-  if (aItem.flavor().EqualsASCII(kCustomTypesMime) ||
-      aItem.flavor().EqualsASCII(kUnicodeMime)) {
+  if (aItem.flavor().EqualsASCII(kCustomTypesMime)) {
     return true;
   }
 
@@ -7944,8 +8015,7 @@ nsresult nsContentUtils::IPCTransferableItemToVariant(
 
 void nsContentUtils::TransferablesToIPCTransferables(
     nsIArray* aTransferables, nsTArray<IPCDataTransfer>& aIPC,
-    bool aInSyncMessage, mozilla::dom::ContentChild* aChild,
-    mozilla::dom::ContentParent* aParent) {
+    bool aInSyncMessage, mozilla::dom::ContentParent* aParent) {
   aIPC.Clear();
   if (aTransferables) {
     uint32_t transferableCount = 0;
@@ -7954,8 +8024,7 @@ void nsContentUtils::TransferablesToIPCTransferables(
       IPCDataTransfer* dt = aIPC.AppendElement();
       nsCOMPtr<nsITransferable> transferable =
           do_QueryElementAt(aTransferables, i);
-      TransferableToIPCTransferable(transferable, dt, aInSyncMessage, aChild,
-                                    aParent);
+      TransferableToIPCTransferable(transferable, dt, aInSyncMessage, aParent);
     }
   }
 }
@@ -8050,9 +8119,8 @@ static IPCDataTransferCString AsIPCDataTransferCString(
 
 void nsContentUtils::TransferableToIPCTransferable(
     nsITransferable* aTransferable, IPCDataTransfer* aIPCDataTransfer,
-    bool aInSyncMessage, mozilla::dom::ContentChild* aChild,
-    mozilla::dom::ContentParent* aParent) {
-  MOZ_ASSERT((aChild && !aParent) || (!aChild && aParent));
+    bool aInSyncMessage, mozilla::dom::ContentParent* aParent) {
+  MOZ_ASSERT_IF(XRE_IsParentProcess(), aParent);
 
   if (aTransferable) {
     nsTArray<nsCString> flavorList;
@@ -8593,13 +8661,6 @@ bool nsContentUtils::IsPreloadType(nsContentPolicyType aType) {
           aType == nsIContentPolicy::TYPE_INTERNAL_FETCH_PRELOAD);
 }
 
-/* static */
-bool nsContentUtils::IsUpgradableDisplayType(ExtContentPolicyType aType) {
-  MOZ_ASSERT(NS_IsMainThread());
-  return (aType == ExtContentPolicy::TYPE_IMAGE ||
-          aType == ExtContentPolicy::TYPE_MEDIA);
-}
-
 // static
 ReferrerPolicy nsContentUtils::GetReferrerPolicyFromChannel(
     nsIChannel* aChannel) {
@@ -8726,47 +8787,59 @@ class BulkAppender {
   void Finish() { mHandle.Finish(mPosition, false); }
 
  private:
-  mozilla::BulkWriteHandle<char16_t> mHandle;
+  BulkWriteHandle<char16_t> mHandle;
   size_type mPosition;
 };
 
 class StringBuilder {
  private:
-  // Try to keep the size of StringBuilder close to a jemalloc bucket size.
-  static const uint32_t STRING_BUFFER_UNITS = 1020;
   class Unit {
    public:
-    Unit() : mAtom(nullptr), mType(eUnknown), mLength(0) {
-      MOZ_COUNT_CTOR(StringBuilder::Unit);
-    }
+    Unit() : mAtom(nullptr) { MOZ_COUNT_CTOR(StringBuilder::Unit); }
     ~Unit() {
-      if (mType == eString || mType == eStringWithEncode) {
-        delete mString;
+      if (mType == Type::String || mType == Type::StringWithEncode) {
+        mString.~nsString();
       }
       MOZ_COUNT_DTOR(StringBuilder::Unit);
     }
 
-    enum Type {
-      eUnknown,
-      eAtom,
-      eString,
-      eStringWithEncode,
-      eLiteral,
-      eTextFragment,
-      eTextFragmentWithEncode,
+    enum class Type : uint8_t {
+      Unknown,
+      Atom,
+      String,
+      StringWithEncode,
+      Literal,
+      TextFragment,
+      TextFragmentWithEncode,
     };
 
     union {
       nsAtom* mAtom;
       const char16_t* mLiteral;
-      nsAutoString* mString;
+      nsString mString;
       const nsTextFragment* mTextFragment;
     };
-    Type mType;
-    uint32_t mLength;
+    uint32_t mLength = 0;
+    Type mType = Type::Unknown;
   };
 
+  static_assert(sizeof(void*) != 8 || sizeof(Unit) <= 3 * sizeof(void*),
+                "Unit should remain small");
+
  public:
+  // Try to keep the size of StringBuilder close to a jemalloc bucket size (the
+  // 16kb one in this case).
+  static constexpr uint32_t TARGET_SIZE = 16 * 1024;
+
+  // The number of units we need to remove from the inline buffer so that the
+  // rest of the builder members fit. A more precise approach would be to
+  // calculate that extra size and use (TARGET_SIZE - OTHER_SIZE) / sizeof(Unit)
+  // or so, but this is simpler.
+  static constexpr uint32_t PADDING_UNITS = sizeof(void*) == 8 ? 1 : 2;
+
+  static constexpr uint32_t STRING_BUFFER_UNITS =
+      TARGET_SIZE / sizeof(Unit) - PADDING_UNITS;
+
   StringBuilder() : mLast(this), mLength(0) { MOZ_COUNT_CTOR(StringBuilder); }
 
   MOZ_COUNTED_DTOR(StringBuilder)
@@ -8774,7 +8847,7 @@ class StringBuilder {
   void Append(nsAtom* aAtom) {
     Unit* u = AddUnit();
     u->mAtom = aAtom;
-    u->mType = Unit::eAtom;
+    u->mType = Unit::Type::Atom;
     uint32_t len = aAtom->GetLength();
     u->mLength = len;
     mLength += len;
@@ -8784,34 +8857,25 @@ class StringBuilder {
   void Append(const char16_t (&aLiteral)[N]) {
     Unit* u = AddUnit();
     u->mLiteral = aLiteral;
-    u->mType = Unit::eLiteral;
+    u->mType = Unit::Type::Literal;
     uint32_t len = N - 1;
     u->mLength = len;
     mLength += len;
   }
 
-  void Append(const nsAString& aString) {
+  void Append(nsString&& aString) {
     Unit* u = AddUnit();
-    u->mString = new nsAutoString(aString);
-    u->mType = Unit::eString;
     uint32_t len = aString.Length();
+    new (&u->mString) nsString(std::move(aString));
+    u->mType = Unit::Type::String;
     u->mLength = len;
     mLength += len;
   }
 
-  void Append(nsAutoString* aString) {
+  void AppendWithAttrEncode(nsString&& aString, uint32_t aLen) {
     Unit* u = AddUnit();
-    u->mString = aString;
-    u->mType = Unit::eString;
-    uint32_t len = aString->Length();
-    u->mLength = len;
-    mLength += len;
-  }
-
-  void AppendWithAttrEncode(nsAutoString* aString, uint32_t aLen) {
-    Unit* u = AddUnit();
-    u->mString = aString;
-    u->mType = Unit::eStringWithEncode;
+    new (&u->mString) nsString(std::move(aString));
+    u->mType = Unit::Type::StringWithEncode;
     u->mLength = aLen;
     mLength += aLen;
   }
@@ -8819,7 +8883,7 @@ class StringBuilder {
   void Append(const nsTextFragment* aTextFragment) {
     Unit* u = AddUnit();
     u->mTextFragment = aTextFragment;
-    u->mType = Unit::eTextFragment;
+    u->mType = Unit::Type::TextFragment;
     uint32_t len = aTextFragment->GetLength();
     u->mLength = len;
     mLength += len;
@@ -8828,7 +8892,7 @@ class StringBuilder {
   void AppendWithEncode(const nsTextFragment* aTextFragment, uint32_t aLen) {
     Unit* u = AddUnit();
     u->mTextFragment = aTextFragment;
-    u->mType = Unit::eTextFragmentWithEncode;
+    u->mType = Unit::Type::TextFragmentWithEncode;
     u->mLength = aLen;
     mLength += aLen;
   }
@@ -8850,19 +8914,19 @@ class StringBuilder {
       for (uint32_t i = 0; i < len; ++i) {
         Unit& u = current->mUnits[i];
         switch (u.mType) {
-          case Unit::eAtom:
+          case Unit::Type::Atom:
             appender.Append(*(u.mAtom));
             break;
-          case Unit::eString:
-            appender.Append(*(u.mString));
+          case Unit::Type::String:
+            appender.Append(u.mString);
             break;
-          case Unit::eStringWithEncode:
-            EncodeAttrString(*(u.mString), appender);
+          case Unit::Type::StringWithEncode:
+            EncodeAttrString(u.mString, appender);
             break;
-          case Unit::eLiteral:
+          case Unit::Type::Literal:
             appender.Append(Span(u.mLiteral, u.mLength));
             break;
-          case Unit::eTextFragment:
+          case Unit::Type::TextFragment:
             if (u.mTextFragment->Is2b()) {
               appender.Append(
                   Span(u.mTextFragment->Get2b(), u.mTextFragment->GetLength()));
@@ -8871,7 +8935,7 @@ class StringBuilder {
                   Span(u.mTextFragment->Get1b(), u.mTextFragment->GetLength()));
             }
             break;
-          case Unit::eTextFragmentWithEncode:
+          case Unit::Type::TextFragmentWithEncode:
             if (u.mTextFragment->Is2b()) {
               EncodeTextFragment(
                   Span(u.mTextFragment->Get2b(), u.mTextFragment->GetLength()),
@@ -8972,11 +9036,14 @@ class StringBuilder {
   }
 
   AutoTArray<Unit, STRING_BUFFER_UNITS> mUnits;
-  mozilla::UniquePtr<StringBuilder> mNext;
+  UniquePtr<StringBuilder> mNext;
   StringBuilder* mLast;
   // mLength is used only in the first StringBuilder object in the linked list.
   CheckedInt<uint32_t> mLength;
 };
+
+static_assert(sizeof(StringBuilder) <= StringBuilder::TARGET_SIZE,
+              "StringBuilder should fit in the target bucket");
 
 }  // namespace
 
@@ -9035,10 +9102,9 @@ static void AppendEncodedCharacters(const nsTextFragment* aText,
   }
 }
 
-static void AppendEncodedAttributeValue(nsAutoString* aValue,
-                                        StringBuilder& aBuilder) {
-  const char16_t* c = aValue->BeginReading();
-  const char16_t* end = aValue->EndReading();
+static uint32_t ExtraSpaceNeededForAttrEncoding(const nsAString& aValue) {
+  const char16_t* c = aValue.BeginReading();
+  const char16_t* end = aValue.EndReading();
 
   uint32_t extraSpaceNeeded = 0;
   while (c < end) {
@@ -9058,57 +9124,67 @@ static void AppendEncodedAttributeValue(nsAutoString* aValue,
     ++c;
   }
 
-  if (extraSpaceNeeded) {
-    aBuilder.AppendWithAttrEncode(aValue, aValue->Length() + extraSpaceNeeded);
+  return extraSpaceNeeded;
+}
+
+static void AppendEncodedAttributeValue(const nsAttrValue& aValue,
+                                        StringBuilder& aBuilder) {
+  if (nsAtom* atom = aValue.GetStoredAtom()) {
+    nsDependentAtomString atomStr(atom);
+    uint32_t space = ExtraSpaceNeededForAttrEncoding(atomStr);
+    if (!space) {
+      aBuilder.Append(atom);
+    } else {
+      aBuilder.AppendWithAttrEncode(nsString(atomStr),
+                                    atomStr.Length() + space);
+    }
+    return;
+  }
+  // NOTE(emilio): In most cases this will just be a reference to the stored
+  // nsStringBuffer.
+  nsString str;
+  aValue.ToString(str);
+  uint32_t space = ExtraSpaceNeededForAttrEncoding(str);
+  if (space) {
+    aBuilder.AppendWithAttrEncode(std::move(str), str.Length() + space);
   } else {
-    aBuilder.Append(aValue);
+    aBuilder.Append(std::move(str));
   }
 }
 
-static void StartElement(Element* aContent, StringBuilder& aBuilder) {
-  nsAtom* localName = aContent->NodeInfo()->NameAtom();
-  int32_t tagNS = aContent->GetNameSpaceID();
+static void StartElement(Element* aElement, StringBuilder& aBuilder) {
+  nsAtom* localName = aElement->NodeInfo()->NameAtom();
+  const int32_t tagNS = aElement->GetNameSpaceID();
 
   aBuilder.Append(u"<");
-  if (aContent->IsHTMLElement() || aContent->IsSVGElement() ||
-      aContent->IsMathMLElement()) {
+  if (tagNS == kNameSpaceID_XHTML || tagNS == kNameSpaceID_SVG ||
+      tagNS == kNameSpaceID_MathML) {
     aBuilder.Append(localName);
   } else {
-    aBuilder.Append(aContent->NodeName());
+    aBuilder.Append(nsString(aElement->NodeName()));
   }
 
-  CustomElementData* ceData = aContent->GetCustomElementData();
-  if (ceData) {
-    nsAtom* isAttr = ceData->GetIs(aContent);
-    if (isAttr && !aContent->HasAttr(kNameSpaceID_None, nsGkAtoms::is)) {
+  if (CustomElementData* ceData = aElement->GetCustomElementData()) {
+    nsAtom* isAttr = ceData->GetIs(aElement);
+    if (isAttr && !aElement->HasAttr(nsGkAtoms::is)) {
       aBuilder.Append(uR"( is=")");
-      aBuilder.Append(nsDependentAtomString(isAttr));
+      aBuilder.Append(isAttr);
       aBuilder.Append(uR"(")");
     }
   }
 
-  int32_t count = aContent->GetAttrCount();
-  for (int32_t i = 0; i < count; i++) {
-    const nsAttrName* name = aContent->GetAttrNameAt(i);
+  uint32_t i = 0;
+  while (BorrowedAttrInfo info = aElement->GetAttrInfoAt(i++)) {
+    const nsAttrName* name = info.mName;
+
     int32_t attNs = name->NamespaceID();
     nsAtom* attName = name->LocalName();
 
     // Filter out any attribute starting with [-|_]moz
+    // FIXME(emilio): Do we still need this?
     nsDependentAtomString attrNameStr(attName);
     if (StringBeginsWith(attrNameStr, u"_moz"_ns) ||
         StringBeginsWith(attrNameStr, u"-moz"_ns)) {
-      continue;
-    }
-
-    auto* attValue = new nsAutoString();
-    aContent->GetAttr(attNs, attName, *attValue);
-
-    // Filter out special case of <br type="_moz*"> used by the editor.
-    // Bug 16988.  Yuck.
-    if (localName == nsGkAtoms::br && tagNS == kNameSpaceID_XHTML &&
-        attName == nsGkAtoms::type && attNs == kNameSpaceID_None &&
-        StringBeginsWith(*attValue, u"_moz"_ns)) {
-      delete attValue;
       continue;
     }
 
@@ -9123,17 +9199,14 @@ static void StartElement(Element* aContent, StringBuilder& aBuilder) {
       aBuilder.Append(u"xmlns:");
     } else if (attNs == kNameSpaceID_XLink) {
       aBuilder.Append(u"xlink:");
-    } else {
-      nsAtom* prefix = name->GetPrefix();
-      if (prefix) {
-        aBuilder.Append(prefix);
-        aBuilder.Append(u":");
-      }
+    } else if (nsAtom* prefix = name->GetPrefix()) {
+      aBuilder.Append(prefix);
+      aBuilder.Append(u":");
     }
 
     aBuilder.Append(attName);
     aBuilder.Append(uR"(=")");
-    AppendEncodedAttributeValue(attValue, aBuilder);
+    AppendEncodedAttributeValue(*info.mValue, aBuilder);
     aBuilder.Append(uR"(")");
   }
 
@@ -9201,13 +9274,13 @@ static inline bool IsVoidTag(Element* aElement) {
 }
 
 bool nsContentUtils::SerializeNodeToMarkup(nsINode* aRoot,
-                                           bool aDescendentsOnly,
+                                           bool aDescendantsOnly,
                                            nsAString& aOut) {
   // If you pass in a DOCUMENT_NODE, you must pass aDescendentsOnly as true
-  MOZ_ASSERT(aDescendentsOnly || aRoot->NodeType() != nsINode::DOCUMENT_NODE);
+  MOZ_ASSERT(aDescendantsOnly || aRoot->NodeType() != nsINode::DOCUMENT_NODE);
 
   nsINode* current =
-      aDescendentsOnly ? aRoot->GetFirstChildOfTemplateOrNode() : aRoot;
+      aDescendantsOnly ? aRoot->GetFirstChildOfTemplateOrNode() : aRoot;
 
   if (!current) {
     return true;
@@ -9250,14 +9323,14 @@ bool nsContentUtils::SerializeNodeToMarkup(nsINode* aRoot,
 
       case nsINode::DOCUMENT_TYPE_NODE: {
         builder.Append(u"<!DOCTYPE ");
-        builder.Append(current->NodeName());
+        builder.Append(nsString(current->NodeName()));
         builder.Append(u">");
         break;
       }
 
       case nsINode::PROCESSING_INSTRUCTION_NODE: {
         builder.Append(u"<?");
-        builder.Append(current->NodeName());
+        builder.Append(nsString(current->NodeName()));
         builder.Append(u" ");
         builder.Append(static_cast<nsIContent*>(current)->GetText());
         builder.Append(u">");
@@ -9273,7 +9346,7 @@ bool nsContentUtils::SerializeNodeToMarkup(nsINode* aRoot,
             elem->IsMathMLElement()) {
           builder.Append(elem->NodeInfo()->NameAtom());
         } else {
-          builder.Append(current->NodeName());
+          builder.Append(nsString(current->NodeName()));
         }
         builder.Append(u">");
       }
@@ -9301,7 +9374,7 @@ bool nsContentUtils::SerializeNodeToMarkup(nsINode* aRoot,
         }
       }
 
-      if (aDescendentsOnly && current == aRoot) {
+      if (aDescendantsOnly && current == aRoot) {
         return builder.ToString(aOut);
       }
     }
@@ -9952,15 +10025,11 @@ bool nsContentUtils::QueryTriggeringPrincipal(
   }
 
   nsCString binary;
-  nsresult rv = Base64Decode(NS_ConvertUTF16toUTF8(loadingStr), binary);
-  if (NS_SUCCEEDED(rv)) {
-    nsCOMPtr<nsIPrincipal> serializedPrin = BasePrincipal::FromJSON(binary);
-    if (serializedPrin) {
-      result = true;
-      serializedPrin.forget(aTriggeringPrincipal);
-    }
-  } else {
-    MOZ_ASSERT(false, "Unable to deserialize base64 principal");
+  nsCOMPtr<nsIPrincipal> serializedPrin =
+      BasePrincipal::FromJSON(NS_ConvertUTF16toUTF8(loadingStr));
+  if (serializedPrin) {
+    result = true;
+    serializedPrin.forget(aTriggeringPrincipal);
   }
 
   if (!result) {
@@ -10382,7 +10451,14 @@ nsContentUtils::UserInteractionObserver::Observe(nsISupports* aSubject,
   } else if (!strcmp(aTopic, kUserInteractionActive)) {
     if (!sUserActive && XRE_IsParentProcess()) {
       glean::RecordPowerMetrics();
+
+      nsCOMPtr<nsIUserIdleServiceInternal> idleService =
+          do_GetService("@mozilla.org/widget/useridleservice;1");
+      if (idleService) {
+        idleService->ResetIdleTimeOut(0);
+      }
     }
+
     sUserActive = true;
   } else {
     NS_WARNING("Unexpected observer notification");
@@ -10552,13 +10628,6 @@ void nsContentUtils::InnerOrOuterWindowDestroyed() {
   --sInnerOrOuterWindowCount;
 }
 
-static bool JSONCreator(const char16_t* aBuf, uint32_t aLen, void* aData) {
-  nsAString* result = static_cast<nsAString*>(aData);
-  result->Append(static_cast<const char16_t*>(aBuf),
-                 static_cast<uint32_t>(aLen));
-  return true;
-}
-
 /* static */
 nsresult nsContentUtils::AnonymizeURI(nsIURI* aURI, nsCString& aAnonymizedURI) {
   MOZ_ASSERT(aURI);
@@ -10574,19 +10643,36 @@ nsresult nsContentUtils::AnonymizeURI(nsIURI* aURI, nsCString& aAnonymizedURI) {
   return exposableURI->GetSpec(aAnonymizedURI);
 }
 
-/* static */
-bool nsContentUtils::StringifyJSON(JSContext* aCx,
-                                   JS::MutableHandle<JS::Value> aValue,
-                                   nsAString& aOutStr) {
-  MOZ_ASSERT(aCx);
-  aOutStr.Truncate();
-  JS::Rooted<JS::Value> value(aCx, aValue.get());
-  nsAutoString serializedValue;
-  NS_ENSURE_TRUE(JS_Stringify(aCx, &value, nullptr, JS::NullHandleValue,
-                              JSONCreator, &serializedValue),
-                 false);
-  aOutStr = serializedValue;
+static bool JSONCreator(const char16_t* aBuf, uint32_t aLen, void* aData) {
+  nsAString* result = static_cast<nsAString*>(aData);
+  result->Append(aBuf, aLen);
   return true;
+}
+
+/* static */
+bool nsContentUtils::StringifyJSON(JSContext* aCx, JS::Handle<JS::Value> aValue,
+                                   nsAString& aOutStr, JSONBehavior aBehavior) {
+  MOZ_ASSERT(aCx);
+  switch (aBehavior) {
+    case UndefinedIsNullStringLiteral: {
+      aOutStr.Truncate();
+      JS::Rooted<JS::Value> value(aCx, aValue);
+      nsAutoString serializedValue;
+      NS_ENSURE_TRUE(JS_Stringify(aCx, &value, nullptr, JS::NullHandleValue,
+                                  JSONCreator, &serializedValue),
+                     false);
+      aOutStr = serializedValue;
+      return true;
+    }
+    case UndefinedIsVoidString: {
+      aOutStr.SetIsVoid(true);
+      return JS::ToJSON(aCx, aValue, nullptr, JS::NullHandleValue, JSONCreator,
+                        &aOutStr);
+    }
+    default:
+      MOZ_ASSERT_UNREACHABLE("Invalid value for aBehavior");
+      return false;
+  }
 }
 
 /* static */
@@ -10602,7 +10688,7 @@ bool nsContentUtils::
                  "Should never have a chrome PresContext in a content process");
 
       return !presContext->GetInProcessRootContentDocumentPresContext()
-                  ->HadContentfulPaint() &&
+                  ->HadFirstContentfulPaint() &&
              nsThreadManager::MainThreadHasPendingHighPriorityEvents();
     }
   }
@@ -10928,6 +11014,16 @@ void nsContentUtils::RequestGeckoTaskBurst() {
   if (appShell) {
     appShell->GeckoTaskBurst();
   }
+}
+
+nsIContent* nsContentUtils::GetClosestLinkInFlatTree(nsIContent* aContent) {
+  for (nsIContent* content = aContent; content;
+       content = content->GetFlattenedTreeParent()) {
+    if (nsContentUtils::IsDraggableLink(content)) {
+      return content;
+    }
+  }
+  return nullptr;
 }
 
 namespace mozilla {

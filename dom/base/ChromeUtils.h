@@ -65,6 +65,11 @@ class ChromeUtils {
   static already_AddRefed<devtools::HeapSnapshot> ReadHeapSnapshot(
       GlobalObject& global, const nsAString& filePath, ErrorResult& rv);
 
+  static bool IsDevToolsOpened();
+  static bool IsDevToolsOpened(GlobalObject& aGlobal);
+  static void NotifyDevToolsOpened(GlobalObject& aGlobal);
+  static void NotifyDevToolsClosed(GlobalObject& aGlobal);
+
   static void NondeterministicGetWeakMapKeys(
       GlobalObject& aGlobal, JS::Handle<JS::Value> aMap,
       JS::MutableHandle<JS::Value> aRetval, ErrorResult& aRv);
@@ -145,8 +150,7 @@ class ChromeUtils {
       const dom::CompileScriptOptionsDictionary& aOptions, ErrorResult& aRv);
 
   static MozQueryInterface* GenerateQI(const GlobalObject& global,
-                                       const Sequence<JS::Value>& interfaces,
-                                       ErrorResult& aRv);
+                                       const Sequence<JS::Value>& interfaces);
 
   static void WaiveXrays(GlobalObject& aGlobal, JS::Handle<JS::Value> aVal,
                          JS::MutableHandle<JS::Value> aRetval,
@@ -208,6 +212,11 @@ class ChromeUtils {
                              const ImportESModuleOptionsDictionary& aOptions,
                              JS::MutableHandle<JSObject*> aRetval,
                              ErrorResult& aRv);
+
+  static void DefineLazyGetter(const GlobalObject& aGlobal,
+                               JS::Handle<JSObject*> aTarget,
+                               JS::Handle<JS::Value> aName,
+                               JS::Handle<JSObject*> aLambda, ErrorResult& aRv);
 
   static void DefineModuleGetter(const GlobalObject& global,
                                  JS::Handle<JSObject*> target,
@@ -284,6 +293,17 @@ class ChromeUtils {
   static bool IsDarkBackground(GlobalObject&, Element&);
 
   static double DateNow(GlobalObject&);
+
+  static void EnsureJSOracleStarted(GlobalObject&);
+
+  static unsigned AliveUtilityProcesses(const GlobalObject&);
+
+  static void GetAllPossibleUtilityActorNames(GlobalObject& aGlobal,
+                                              nsTArray<nsCString>& aNames);
+
+ private:
+  // Number of DevTools session debugging the current process
+  static std::atomic<uint32_t> sDevToolsOpenedCount;
 };
 
 }  // namespace dom

@@ -8,6 +8,7 @@ fuzzy-if(xulRuntime.widgetToolkit=="gtk",0-1,0-11) fuzzy-if(winWidget,0-1,0-1) =
 skip-if(!cocoaWidget) == chrome://reftest/content/xul/mac-tab-toolbar.xhtml chrome://reftest/content/xul/mac-tab-toolbar-ref.xhtml
 != chrome://reftest/content/xul/tree-row-outline-1.xhtml chrome://reftest/content/xul/tree-row-outline-1-notref.xhtml
 == chrome://reftest/content/xul/text-crop.xhtml chrome://reftest/content/xul/text-crop-ref.xhtml
+== chrome://reftest/content/xul/text-crop-002.xhtml chrome://reftest/content/xul/text-crop-002-ref.xhtml
 == chrome://reftest/content/xul/text-small-caps-1.xhtml chrome://reftest/content/xul/text-small-caps-1-ref.xhtml
 fuzzy(0-1,0-2500) == chrome://reftest/content/xul/inactive-fixed-bg-bug1205630.xhtml inactive-fixed-bg-bug1205630-ref.html
 fuzzy(0-1,0-2500) == chrome://reftest/content/xul/inactive-fixed-bg-bug1272525.xhtml inactive-fixed-bg-bug1272525-ref.html
@@ -68,10 +69,10 @@ fuzzy(0-1,0-2500) == chrome://reftest/content/xul/inactive-fixed-bg-bug1272525.x
 skip == chrome://reftest/content/xul/treecell-image-svg-1a.xhtml chrome://reftest/content/xul/treecell-image-svg-1-ref.xhtml # bug 1218954
 skip == chrome://reftest/content/xul/treecell-image-svg-1b.xhtml chrome://reftest/content/xul/treecell-image-svg-1-ref.xhtml # bug 1218954
 
-fuzzy-if(gtkWidget,0-1,0-1) fuzzy-if(winWidget,0-1,0-1) == chrome://reftest/content/xul/treechildren-padding-percent-1.xhtml chrome://reftest/content/xul/treechildren-padding-percent-1-ref.xhtml
-
 != chrome://reftest/content/xul/treetwisty-svg-context-paint-1-not-ref.xhtml chrome://reftest/content/xul/treetwisty-svg-context-paint-1-ref.xhtml
 test-pref(svg.context-properties.content.enabled,true) fuzzy(0-26,0-2) == chrome://reftest/content/xul/treetwisty-svg-context-paint-1.xhtml chrome://reftest/content/xul/treetwisty-svg-context-paint-1-ref.xhtml
+
+== chrome://reftest/content/xul/tree-scrollbar-height-change.xhtml chrome://reftest/content/xul/tree-scrollbar-height-change-ref.xhtml
 
 # resizer (non-native-themed)
 

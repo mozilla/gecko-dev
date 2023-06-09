@@ -7,6 +7,8 @@
 #include "GeckoProfiler.h"
 #include "nsThreadUtils.h"
 #include "mozilla/Span.h"
+#include "mozilla/gfx/Point.h"
+#include "WinUtils.h"
 #include <algorithm>
 #include <type_traits>
 
@@ -163,7 +165,7 @@ class SharedImage {
 
   already_AddRefed<gfx::DrawTarget> CreateDrawTarget() {
     return gfx::Factory::CreateDrawTargetForData(
-        gfx::BackendType::CAIRO, mPixelData, IntSize(mWidth, mHeight),
+        gfx::BackendType::CAIRO, mPixelData, gfx::IntSize(mWidth, mHeight),
         GetStride(), gfx::SurfaceFormat::B8G8R8A8);
   }
 
@@ -249,9 +251,9 @@ class PresentableSharedImage {
     return true;
   }
 
-  bool PresentToWindow(HWND aWindowHandle, nsTransparencyMode aTransparencyMode,
+  bool PresentToWindow(HWND aWindowHandle, TransparencyMode aTransparencyMode,
                        Span<const IpcSafeRect> aDirtyRects) {
-    if (aTransparencyMode == eTransparencyTransparent) {
+    if (aTransparencyMode == TransparencyMode::Transparent) {
       // If our window is a child window or a child-of-a-child, the window
       // that needs to be updated is the top level ancestor of the tree
       HWND topLevelWindow = WinUtils::GetTopLevelHWND(aWindowHandle, true);
@@ -287,8 +289,8 @@ class PresentableSharedImage {
           mDeviceContext, &srcPos, 0 /*colorKey*/, &bf, ULW_ALPHA);
     }
 
-    IntRect sharedImageRect{0, 0, mSharedImage.GetWidth(),
-                            mSharedImage.GetHeight()};
+    gfx::IntRect sharedImageRect{0, 0, mSharedImage.GetWidth(),
+                                 mSharedImage.GetHeight()};
 
     bool result = true;
 
@@ -298,9 +300,9 @@ class PresentableSharedImage {
     }
 
     for (auto& ipcDirtyRect : aDirtyRects) {
-      IntRect dirtyRect{ipcDirtyRect.x, ipcDirtyRect.y, ipcDirtyRect.width,
-                        ipcDirtyRect.height};
-      IntRect bltRect = dirtyRect.Intersect(sharedImageRect);
+      gfx::IntRect dirtyRect{ipcDirtyRect.x, ipcDirtyRect.y, ipcDirtyRect.width,
+                             ipcDirtyRect.height};
+      gfx::IntRect bltRect = dirtyRect.Intersect(sharedImageRect);
 
       if (!::BitBlt(windowDC, bltRect.x /*dstX*/, bltRect.y /*dstY*/,
                     bltRect.width, bltRect.height, mDeviceContext,
@@ -385,7 +387,7 @@ Provider::~Provider() {
 }
 
 bool Provider::Initialize(HWND aWindowHandle, DWORD aTargetProcessId,
-                          nsTransparencyMode aTransparencyMode) {
+                          TransparencyMode aTransparencyMode) {
   MOZ_ASSERT(aWindowHandle);
   MOZ_ASSERT(aTargetProcessId);
 
@@ -441,7 +443,7 @@ bool Provider::Initialize(HWND aWindowHandle, DWORD aTargetProcessId,
     return false;
   }
 
-  mTransparencyMode = aTransparencyMode;
+  mTransparencyMode = uint32_t(aTransparencyMode);
 
   return true;
 }
@@ -453,8 +455,8 @@ Maybe<RemoteBackbufferHandles> Provider::CreateRemoteHandles() {
                               ipc::FileDescriptor(mResponseReadyEvent)));
 }
 
-void Provider::UpdateTransparencyMode(nsTransparencyMode aTransparencyMode) {
-  mTransparencyMode = aTransparencyMode;
+void Provider::UpdateTransparencyMode(TransparencyMode aTransparencyMode) {
+  mTransparencyMode = uint32_t(aTransparencyMode);
 }
 
 void Provider::ThreadMain() {
@@ -571,7 +573,7 @@ void Provider::HandlePresentRequest(const PresentRequestData& aRequestData,
   }
 
   if (!mBackbuffer->PresentToWindow(
-          mWindowHandle, mTransparencyMode,
+          mWindowHandle, GetTransparencyMode(),
           rectSpan.First(aRequestData.lenDirtyRects))) {
     return;
   }

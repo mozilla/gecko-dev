@@ -14,21 +14,23 @@
 var exports = {};
 
 const { createLazyLoaders } = ChromeUtils.import(
-  "resource://devtools/client/performance-new/typescript-lazy-load.jsm.js"
+  "resource://devtools/client/performance-new/shared/typescript-lazy-load.jsm.js"
 );
 
 const lazy = createLazyLoaders({
   CustomizableUI: () =>
     ChromeUtils.import("resource:///modules/CustomizableUI.jsm"),
   CustomizableWidgets: () =>
-    ChromeUtils.import("resource:///modules/CustomizableWidgets.jsm"),
-  PopupPanel: () =>
+    ChromeUtils.importESModule(
+      "resource:///modules/CustomizableWidgets.sys.mjs"
+    ),
+  PopupLogic: () =>
     ChromeUtils.import(
-      "resource://devtools/client/performance-new/popup/panel.jsm.js"
+      "resource://devtools/client/performance-new/popup/logic.jsm.js"
     ),
   Background: () =>
     ChromeUtils.import(
-      "resource://devtools/client/performance-new/popup/background.jsm.js"
+      "resource://devtools/client/performance-new/shared/background.jsm.js"
     ),
 });
 
@@ -110,7 +112,7 @@ function initialize(toggleProfilerKeyShortcuts) {
   /**
    * This is mutable state that will be shared between panel displays.
    *
-   * @type {import("devtools/client/performance-new/popup/panel.jsm.js").State}
+   * @type {import("devtools/client/performance-new/popup/logic.jsm.js").State}
    */
   const panelState = {
     cleanup: [],
@@ -166,7 +168,7 @@ function initialize(toggleProfilerKeyShortcuts) {
           // The popup logic is stored in a separate script so it doesn't have
           // to be parsed at browser startup, and will only be lazily loaded
           // when the popup is viewed.
-          const { initializePopup } = lazy.PopupPanel();
+          const { initializePopup } = lazy.PopupLogic();
 
           initializePopup(panelState, event.target);
         } catch (error) {

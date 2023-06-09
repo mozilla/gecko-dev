@@ -107,7 +107,7 @@ mod writer;
 use std::fmt::Error as FmtError;
 use thiserror::Error;
 
-use crate::proc;
+use crate::{back, proc};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
@@ -191,6 +191,8 @@ pub struct Options {
     pub special_constants_binding: Option<BindTarget>,
     /// Bind target of the push constant buffer
     pub push_constants_target: Option<BindTarget>,
+    /// Should workgroup variables be zero initialized (by polyfilling)?
+    pub zero_initialize_workgroup_memory: bool,
 }
 
 impl Default for Options {
@@ -201,6 +203,7 @@ impl Default for Options {
             fake_missing_bindings: true,
             special_constants_binding: None,
             push_constants_target: None,
+            zero_initialize_workgroup_memory: true,
         }
     }
 }
@@ -276,5 +279,24 @@ pub struct Writer<'a, W> {
     /// Set of expressions that have associated temporary variables
     named_expressions: crate::NamedExpressions,
     wrapped: Wrapped,
+
+    /// A reference to some part of a global variable, lowered to a series of
+    /// byte offset calculations.
+    ///
+    /// See the [`storage`] module for background on why we need this.
+    ///
+    /// Each [`SubAccess`] in the vector is a lowering of some [`Access`] or
+    /// [`AccessIndex`] expression to the level of byte strides and offsets. See
+    /// [`SubAccess`] for details.
+    ///
+    /// This field is a member of [`Writer`] solely to allow re-use of
+    /// the `Vec`'s dynamic allocation. The value is no longer needed
+    /// once HLSL for the access has been generated.
+    ///
+    /// [`Storage`]: crate::AddressSpace::Storage
+    /// [`SubAccess`]: storage::SubAccess
+    /// [`Access`]: crate::Expression::Access
+    /// [`AccessIndex`]: crate::Expression::AccessIndex
     temp_access_chain: Vec<storage::SubAccess>,
+    need_bake_expressions: back::NeedBakeExpressions,
 }

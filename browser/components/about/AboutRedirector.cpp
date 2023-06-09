@@ -73,6 +73,9 @@ static const RedirEntry kRedirMap[] = {
     {"firefoxview", "chrome://browser/content/firefoxview.html",
      nsIAboutModule::ALLOW_SCRIPT | nsIAboutModule::IS_SECURE_CHROME_UI |
          nsIAboutModule::HIDE_FROM_ABOUTABOUT},
+    {"firefoxview-next", "chrome://browser/content/firefoxview-next.html",
+     nsIAboutModule::ALLOW_SCRIPT | nsIAboutModule::IS_SECURE_CHROME_UI |
+         nsIAboutModule::HIDE_FROM_ABOUTABOUT},
     {"policies", "chrome://browser/content/policies/aboutPolicies.html",
      nsIAboutModule::ALLOW_SCRIPT | nsIAboutModule::IS_SECURE_CHROME_UI},
     {"privatebrowsing", "chrome://browser/content/aboutPrivateBrowsing.html",
@@ -106,13 +109,11 @@ static const RedirEntry kRedirMap[] = {
          nsIAboutModule::URI_CAN_LOAD_IN_PRIVILEGEDABOUT_PROCESS |
          nsIAboutModule::URI_SAFE_FOR_UNTRUSTED_CONTENT |
          nsIAboutModule::ALLOW_SCRIPT},
-#ifdef NIGHTLY_BUILD
     {"messagepreview",
      "chrome://browser/content/messagepreview/messagepreview.html",
      nsIAboutModule::URI_MUST_LOAD_IN_CHILD |
          nsIAboutModule::URI_SAFE_FOR_UNTRUSTED_CONTENT |
          nsIAboutModule::ALLOW_SCRIPT | nsIAboutModule::HIDE_FROM_ABOUTABOUT},
-#endif
     {"pocket-saved", "chrome://pocket/content/panels/saved.html",
      nsIAboutModule::URI_SAFE_FOR_UNTRUSTED_CONTENT |
          nsIAboutModule::URI_MUST_LOAD_IN_CHILD | nsIAboutModule::ALLOW_SCRIPT |

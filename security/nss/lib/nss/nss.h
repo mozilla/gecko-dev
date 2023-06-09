@@ -22,10 +22,10 @@
  * The format of the version string should be
  *     "<major version>.<minor version>[.<patch level>[.<build number>]][ <ECC>][ <Beta>]"
  */
-#define NSS_VERSION "3.87" _NSS_CUSTOMIZED
+#define NSS_VERSION "3.89.1" _NSS_CUSTOMIZED
 #define NSS_VMAJOR 3
-#define NSS_VMINOR 87
-#define NSS_VPATCH 0
+#define NSS_VMINOR 89
+#define NSS_VPATCH 1
 #define NSS_VBUILD 0
 #define NSS_BETA PR_FALSE
 
@@ -301,6 +301,28 @@ SECStatus NSS_UnregisterShutdown(NSS_ShutdownFunc sFunc, void *appData);
 #define __NSS_PKCS12_DECODE_FORCE_UNICODE 0x00c
 #define NSS_DEFAULT_LOCKS 0x00d /* lock default values */
 #define NSS_DEFAULT_SSL_LOCK 1  /* lock the ssl default values */
+
+/* NSS_KEY_SIZE_POLICY controls what kinds of operations are subject to
+ * the NSS_XXX_MIN_KEY_SIZE values.
+ *    NSS_KEY_SIZE_POLICY_FLAGS sets and clears all the flags to the input
+ *                              value
+ *     On get it returns all the flags
+ *    NSS_KEY_SIZE_POLICY_SET_FLAGS sets only the flags=1 in theinput value and
+ *                                  does not affect the other flags
+ *     On get it returns all the flags
+ *    NSS_KEY_SIZE_POLICY_CLEAR_FLAGS clears only the flags=1 in the input
+ *                                    value and does not affect the other flags
+ *     On get it returns all the compliment of all the flags
+ *     (cleared flags == 1) */
+#define NSS_KEY_SIZE_POLICY_FLAGS 0x00e
+#define NSS_KEY_SIZE_POLICY_SET_FLAGS 0x00f
+#define NSS_KEY_SIZE_POLICY_CLEAR_FLAGS 0x010
+/* currently defined flags */
+#define NSS_KEY_SIZE_POLICY_SSL_FLAG 1
+#define NSS_KEY_SIZE_POLICY_VERIFY_FLAG 2
+#define NSS_KEY_SIZE_POLICY_SIGN_FLAG 4
+
+#define NSS_ECC_MIN_KEY_SIZE 0x011
 
 /*
  * Set and get global options for the NSS library.

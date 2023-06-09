@@ -9,6 +9,8 @@
 #include "mozilla/dom/JSValidatorUtils.h"
 #include "mozilla/dom/JSOracleParent.h"
 #include "mozilla/RefPtr.h"
+#include "nsCOMPtr.h"
+#include "HttpBaseChannel.h"
 
 namespace mozilla::dom {
 /* static */
@@ -24,7 +26,7 @@ already_AddRefed<JSValidatorParent> JSValidatorParent::Create() {
 }
 
 void JSValidatorParent::IsOpaqueResponseAllowed(
-    const std::function<void(bool, Maybe<Shmem>)>& aCallback) {
+    const std::function<void(Maybe<Shmem>, ValidatorResult)>& aCallback) {
   JSOracleParent::WithJSOracle([=, self = RefPtr{this}](const auto* aParent) {
     if (aParent) {
       MOZ_DIAGNOSTIC_ASSERT(self->CanSend());
@@ -34,14 +36,17 @@ void JSValidatorParent::IsOpaqueResponseAllowed(
               const IsOpaqueResponseAllowedPromise::ResolveOrRejectValue&
                   aResult) {
             if (aResult.IsResolve()) {
-              const Tuple<bool, Maybe<Shmem>>& result = aResult.ResolveValue();
-              aCallback(Get<0>(result), Get<1>(aResult.ResolveValue()));
+              auto [data, result] = aResult.ResolveValue();
+              aCallback(std::move(data), result);
             } else {
-              aCallback(false, Nothing());
+              // For cases like the Utility Process crashes, the promise will be
+              // rejected due to sending failures, and we'll block the request
+              // since we can't validate it.
+              aCallback(Nothing(), ValidatorResult::Failure);
             }
           });
     } else {
-      aCallback(false, Nothing());
+      aCallback(Nothing(), ValidatorResult::Failure);
     }
   });
 }
@@ -65,14 +70,29 @@ void JSValidatorParent::OnDataAvailable(const nsACString& aData) {
       });
 }
 
-void JSValidatorParent::OnStopRequest(nsresult aResult) {
+void JSValidatorParent::OnStopRequest(nsresult aResult, nsIRequest& aRequest) {
   JSOracleParent::WithJSOracle(
-      [self = RefPtr{this}, aResult](const auto* aParent) {
+      [self = RefPtr{this}, aResult,
+       request = nsCOMPtr{&aRequest}](const auto* aParent) {
         if (!aParent) {
           return;
         }
-        if (self->CanSend()) {
-          Unused << self->SendOnStopRequest(aResult);
+        if (self->CanSend() && request) {
+          nsCOMPtr<net::HttpBaseChannel> httpBaseChannel =
+              do_QueryInterface(request);
+          MOZ_ASSERT(httpBaseChannel);
+
+          nsAutoCString contentCharset;
+          Unused << httpBaseChannel->GetContentCharset(contentCharset);
+
+          nsAutoString hintCharset;
+          Unused << httpBaseChannel->GetClassicScriptHintCharset(hintCharset);
+
+          nsAutoString documentCharset;
+          Unused << httpBaseChannel->GetDocumentCharacterSet(documentCharset);
+
+          Unused << self->SendOnStopRequest(aResult, contentCharset,
+                                            hintCharset, documentCharset);
         }
       });
 }

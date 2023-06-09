@@ -122,7 +122,9 @@ class DrawTargetD2D1 : public DrawTarget {
       const Rect& aBounds, SurfaceFormat aFormat) override;
 
   virtual already_AddRefed<PathBuilder> CreatePathBuilder(
-      FillRule aFillRule = FillRule::FILL_WINDING) const override;
+      FillRule aFillRule = FillRule::FILL_WINDING) const override {
+    return PathBuilderD2D::Create(aFillRule);
+  }
 
   virtual already_AddRefed<GradientStops> CreateGradientStops(
       GradientStop* aStops, uint32_t aNumStops,
@@ -191,6 +193,7 @@ class DrawTargetD2D1 : public DrawTarget {
                                          bool aClipIsComplex);
   bool PrepareForDrawing(CompositionOp aOp, const Pattern& aPattern);
   void FinalizeDrawing(CompositionOp aOp, const Pattern& aPattern);
+  bool MaybeClearRect(CompositionOp aOp, const Rect& aBounds);
   void FlushTransformToDC() {
     if (mTransformDirty) {
       mDC->SetTransform(D2DMatrix(mTransform));
@@ -231,8 +234,8 @@ class DrawTargetD2D1 : public DrawTarget {
   already_AddRefed<ID2D1Brush> CreateTransparentBlackBrush();
   already_AddRefed<ID2D1SolidColorBrush> GetSolidColorBrush(
       const D2D_COLOR_F& aColor);
-  already_AddRefed<ID2D1Brush> CreateBrushForPattern(const Pattern& aPattern,
-                                                     Float aAlpha = 1.0f);
+  already_AddRefed<ID2D1Brush> CreateBrushForPattern(
+      const Pattern& aPattern, const DrawOptions& aOptions);
 
   void PushClipGeometry(ID2D1Geometry* aGeometry,
                         const D2D1_MATRIX_3X2_F& aTransform,

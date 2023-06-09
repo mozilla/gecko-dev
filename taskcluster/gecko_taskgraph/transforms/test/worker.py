@@ -13,11 +13,6 @@ LINUX_WORKER_TYPES = {
 
 # windows worker types keyed by test-platform and virtualization
 WINDOWS_WORKER_TYPES = {
-    "windows10-32-mingwclang-qr": {
-        "virtual": "t-win10-64",
-        "virtual-with-gpu": "t-win10-64-gpu-s",
-        "hardware": "t-win10-64-1803-hw",
-    },
     "windows7-32-qr": {
         "virtual": "t-win7-32",
         "virtual-with-gpu": "t-win7-32-gpu",
@@ -33,37 +28,7 @@ WINDOWS_WORKER_TYPES = {
         "virtual-with-gpu": "t-win7-32-gpu",
         "hardware": "t-win10-64-1803-hw",
     },
-    "windows10-32-qr": {
-        "virtual": "t-win10-64",
-        "virtual-with-gpu": "t-win10-64-gpu-s",
-        "hardware": "t-win10-64-1803-hw",
-    },
-    "windows10-32-shippable-qr": {
-        "virtual": "t-win10-64",
-        "virtual-with-gpu": "t-win10-64-gpu-s",
-        "hardware": "t-win10-64-1803-hw",
-    },
-    "windows10-64": {
-        "virtual": "t-win10-64",
-        "virtual-with-gpu": "t-win10-64-gpu-s",
-        "hardware": "t-win10-64-1803-hw",
-    },
-    "windows10-aarch64-qr": {
-        "virtual": "t-win64-aarch64-laptop",
-        "virtual-with-gpu": "t-win64-aarch64-laptop",
-        "hardware": "t-win64-aarch64-laptop",
-    },
-    "windows10-64-devedition": {
-        "virtual": "t-win10-64",
-        "virtual-with-gpu": "t-win10-64-gpu-s",
-        "hardware": "t-win10-64-1803-hw",
-    },
-    "windows10-64-shippable": {
-        "virtual": "t-win10-64",
-        "virtual-with-gpu": "t-win10-64-gpu-s",
-        "hardware": "t-win10-64-1803-hw",
-    },
-    "windows10-64-qr": {
+    "windows10-64": {  # source-test
         "virtual": "t-win10-64",
         "virtual-with-gpu": "t-win10-64-gpu-s",
         "hardware": "t-win10-64-1803-hw",
@@ -73,57 +38,10 @@ WINDOWS_WORKER_TYPES = {
         "virtual-with-gpu": "t-win10-64-gpu-s",
         "hardware": "t-win10-64-1803-hw",
     },
-    "windows10-64-devedition-qr": {
-        "virtual": "t-win10-64",
-        "virtual-with-gpu": "t-win10-64-gpu-s",
-        "hardware": "t-win10-64-1803-hw",
-    },
-    "windows10-64-asan-qr": {
-        "virtual": "t-win10-64",
-        "virtual-with-gpu": "t-win10-64-gpu-s",
-        "hardware": "t-win10-64-1803-hw",
-    },
-    "windows10-64-mingwclang-qr": {
-        "virtual": "t-win10-64",
-        "virtual-with-gpu": "t-win10-64-gpu-s",
-        "hardware": "t-win10-64-1803-hw",
-    },
     "windows10-64-ref-hw-2017": {
         "virtual": "t-win10-64",
         "virtual-with-gpu": "t-win10-64-gpu-s",
         "hardware": "t-win10-64-ref-hw",
-    },
-    "windows10-32-2004-mingwclang-qr": {
-        "virtual": "win10-64-2004",
-        "virtual-with-gpu": "win10-64-2004-gpu",
-    },
-    "windows10-32-2004-qr": {
-        "virtual": "win10-64-2004",
-        "virtual-with-gpu": "win10-64-2004-gpu",
-    },
-    "windows10-32-2004-shippable-qr": {
-        "virtual": "win10-64-2004",
-        "virtual-with-gpu": "win10-64-2004-gpu",
-    },
-    "windows10-64-2004": {
-        "virtual": "win10-64-2004",
-        "virtual-with-gpu": "win10-64-2004-gpu",
-    },
-    "windows10-64-2004-ccov": {
-        "virtual": "win10-64-2004-ssd",
-        "virtual-with-gpu": "win10-64-2004-ssd-gpu",
-    },
-    "windows10-64-2004-ccov-qr": {
-        "virtual": "win10-64-2004-ssd",
-        "virtual-with-gpu": "win10-64-2004-ssd-gpu",
-    },
-    "windows10-64-2004-devedition": {
-        "virtual": "win10-64-2004",
-        "virtual-with-gpu": "win10-64-2004-gpu",
-    },
-    "windows10-64-2004-shippable": {
-        "virtual": "win10-64-2004",
-        "virtual-with-gpu": "win10-64-2004-gpu",
     },
     "windows10-64-2004-qr": {
         "virtual": "win10-64-2004",
@@ -133,23 +51,62 @@ WINDOWS_WORKER_TYPES = {
         "virtual": "win10-64-2004",
         "virtual-with-gpu": "win10-64-2004-gpu",
     },
-    "windows10-64-2004-devedition-qr": {
-        "virtual": "win10-64-2004",
-        "virtual-with-gpu": "win10-64-2004-gpu",
+    "windows11-32-2009-mingwclang-qr": {
+        "virtual": "win11-64-2009",
+        "virtual-with-gpu": "win11-64-2009-gpu",
     },
-    "windows10-64-2004-asan-qr": {
-        "virtual": "win10-64-2004",
-        "virtual-with-gpu": "win10-64-2004-gpu",
+    "windows11-32-2009-qr": {
+        "virtual": "win11-64-2009",
+        "virtual-with-gpu": "win11-64-2009-gpu",
     },
-    "windows10-64-2004-mingwclang-qr": {
-        "virtual": "win10-64-2004",
-        "virtual-with-gpu": "win10-64-2004-gpu",
+    "windows11-32-2009-shippable-qr": {
+        "virtual": "win11-64-2009",
+        "virtual-with-gpu": "win11-64-2009-gpu",
+    },
+    "windows11-64-2009": {
+        "virtual": "win11-64-2009",
+        "virtual-with-gpu": "win11-64-2009-gpu",
+    },
+    "windows11-64-2009-ccov": {
+        "virtual": "win11-64-2009-ssd",
+        "virtual-with-gpu": "win11-64-2009-ssd-gpu",
+    },
+    "windows11-64-2009-ccov-qr": {
+        "virtual": "win11-64-2009-ssd",
+        "virtual-with-gpu": "win11-64-2009-ssd-gpu",
+    },
+    "windows11-64-2009-devedition": {
+        "virtual": "win11-64-2009",
+        "virtual-with-gpu": "win11-64-2009-gpu",
+    },
+    "windows11-64-2009-shippable": {
+        "virtual": "win11-64-2009",
+        "virtual-with-gpu": "win11-64-2009-gpu",
+    },
+    "windows11-64-2009-qr": {
+        "virtual": "win11-64-2009",
+        "virtual-with-gpu": "win11-64-2009-gpu",
+    },
+    "windows11-64-2009-shippable-qr": {
+        "virtual": "win11-64-2009",
+        "virtual-with-gpu": "win11-64-2009-gpu",
+    },
+    "windows11-64-2009-devedition-qr": {
+        "virtual": "win11-64-2009",
+        "virtual-with-gpu": "win11-64-2009-gpu",
+    },
+    "windows11-64-2009-asan-qr": {
+        "virtual": "win11-64-2009",
+        "virtual-with-gpu": "win11-64-2009-gpu",
+    },
+    "windows11-64-2009-mingwclang-qr": {
+        "virtual": "win11-64-2009",
+        "virtual-with-gpu": "win11-64-2009-gpu",
     },
 }
 
 # os x worker types keyed by test-platform
 MACOSX_WORKER_TYPES = {
-    "macosx1014-64": "t-osx-1014",
     "macosx1015-64-power": "t-osx-1015-power",
     "macosx1015-64": "t-osx-1015-r8",
     "macosx1100-64": "t-osx-1100-m1",
@@ -169,8 +126,6 @@ def set_worker_type(config, tasks):
             # This test already has its worker type defined, so just use that (yields below)
             # Unless the value is set to "default", in that case ignore it.
             pass
-        elif test_platform.startswith("macosx1014-64"):
-            task["worker-type"] = MACOSX_WORKER_TYPES["macosx1014-64"]
         elif test_platform.startswith("macosx1015-64"):
             if "--power-test" in task["mozharness"]["extra-options"]:
                 task["worker-type"] = MACOSX_WORKER_TYPES["macosx1015-64-power"]
@@ -186,10 +141,6 @@ def set_worker_type(config, tasks):
                     win_worker_type_platform = WINDOWS_WORKER_TYPES[
                         "windows10-64-ref-hw-2017"
                     ]
-                elif test_platform.startswith("windows10-aarch64-qr"):
-                    win_worker_type_platform = WINDOWS_WORKER_TYPES[
-                        "windows10-aarch64-qr"
-                    ]
                 else:
                     win_worker_type_platform = WINDOWS_WORKER_TYPES["windows10-64"]
             else:
@@ -199,7 +150,7 @@ def set_worker_type(config, tasks):
                 ]
                 if task[
                     "virtualization"
-                ] == "virtual-with-gpu" and test_platform.startswith("windows10"):
+                ] == "virtual-with-gpu" and test_platform.startswith("windows1"):
                     # add in `--requires-gpu` to the mozharness options
                     task["mozharness"]["extra-options"].append("--requires-gpu")
 
@@ -210,11 +161,6 @@ def set_worker_type(config, tasks):
                 task["worker-type"] = "t-bitbar-gw-unit-g5"
             else:
                 task["worker-type"] = "t-bitbar-gw-perf-g5"
-        elif test_platform.startswith("android-hw-p2"):
-            if task["suite"] != "raptor":
-                task["worker-type"] = "t-bitbar-gw-unit-p2"
-            else:
-                task["worker-type"] = "t-bitbar-gw-perf-p2"
         elif test_platform.startswith("android-hw-p5"):
             if task["suite"] != "raptor":
                 task["worker-type"] = "t-bitbar-gw-unit-p5"

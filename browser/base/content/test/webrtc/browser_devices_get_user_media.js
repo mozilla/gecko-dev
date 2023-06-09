@@ -900,8 +900,9 @@ var gTests = [
       await disableObserverVerification();
 
       let browser = gBrowser.selectedBrowser;
-      BrowserTestUtils.loadURI(
+      BrowserTestUtils.loadURIString(
         browser,
+        // eslint-disable-next-line @microsoft/sdl/no-insecure-url
         browser.documentURI.spec.replace("https://", "http://")
       );
       await BrowserTestUtils.browserLoaded(browser);

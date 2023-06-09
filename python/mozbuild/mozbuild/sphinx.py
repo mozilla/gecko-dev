@@ -3,9 +3,13 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import importlib
+from pathlib import Path
 
 from docutils import nodes
 from docutils.parsers.rst import Directive
+from mots.config import FileConfig
+from mots.directory import Directory
+from mots.export import export_to_format
 from sphinx.util.docstrings import prepare_docstring
 from sphinx.util.docutils import ReferenceRole
 
@@ -174,6 +178,37 @@ def format_module(m):
     return lines
 
 
+def find_mots_config_path(app):
+    """Find and return mots config path if it exists."""
+    base_path = Path(app.srcdir).parent
+    config_path = base_path / "mots.yaml"
+    if config_path.exists():
+        return config_path
+
+
+def export_mots(config_path):
+    """Load mots configuration and export it to file."""
+    # Load from disk and initialize configuration and directory.
+    config = FileConfig(config_path)
+    config.load()
+    directory = Directory(config)
+    directory.load()
+
+    # Fetch file format (i.e., "rst") and export path.
+    frmt = config.config["export"]["format"]
+    path = config_path.parent / config.config["export"]["path"]
+
+    # Generate output.
+    output = export_to_format(directory, frmt)
+
+    # Create export directory if it does not exist.
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Write changes to disk.
+    with path.open("w", encoding="utf-8") as f:
+        f.write(output)
+
+
 class MozbuildSymbols(Directive):
     """Directive to insert mozbuild sandbox symbol information."""
 
@@ -248,5 +283,11 @@ def setup(app):
     #
     # Here, we invoke our custom code for staging/generating all our
     # documentation.
+
+    # Export and write "governance" documentation to disk.
+    config_path = find_mots_config_path(app)
+    if config_path:
+        export_mots(config_path)
+
     manager.generate_docs(app)
     app.srcdir = manager.staging_dir

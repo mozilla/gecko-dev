@@ -4,19 +4,28 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "WebGPUChild.h"
+#include "js/RootingAPI.h"
+#include "js/String.h"
+#include "js/TypeDecls.h"
+#include "js/Value.h"
 #include "js/Warnings.h"  // JS::WarnUTF8
+#include "mozilla/Attributes.h"
 #include "mozilla/EnumTypeTraits.h"
+#include "mozilla/dom/Console.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/WebGPUBinding.h"
 #include "mozilla/dom/GPUUncapturedErrorEvent.h"
 #include "mozilla/webgpu/ValidationError.h"
+#include "mozilla/webgpu/WebGPUTypes.h"
 #include "mozilla/webgpu/ffi/wgpu.h"
 #include "Adapter.h"
 #include "DeviceLostInfo.h"
+#include "PipelineLayout.h"
 #include "Sampler.h"
 #include "CompilationInfo.h"
 #include "mozilla/ipc/RawShmem.h"
+#include "nsGlobalWindowInner.h"
 
 namespace mozilla::webgpu {
 
@@ -188,7 +197,7 @@ static ffi::WGPUTextureFormat ConvertTextureFormat(
       result.tag = ffi::WGPUTextureFormat_Bc6hRgbUfloat;
       break;
     case dom::GPUTextureFormat::Bc6h_rgb_float:
-      result.tag = ffi::WGPUTextureFormat_Bc6hRgbSfloat;
+      result.tag = ffi::WGPUTextureFormat_Bc6hRgbFloat;
       break;
     case dom::GPUTextureFormat::Bc7_rgba_unorm:
       result.tag = ffi::WGPUTextureFormat_Bc7RgbaUnorm;
@@ -365,10 +374,15 @@ RawId WebGPUChild::DeviceCreateBuffer(RawId aSelfId,
 
 RawId WebGPUChild::DeviceCreateTexture(RawId aSelfId,
                                        const dom::GPUTextureDescriptor& aDesc) {
-  ffi::WGPUTextureDescriptor desc = {};
+  // Somehow cbindgen does not successfully rename this into
+  // WGPUTextureDescriptor. See wgpu_bindings/cbindgen.toml.
+  ffi::WGPUTextureDescriptor______nsACString__FfiSlice_TextureFormat desc = {};
 
   webgpu::StringHelper label(aDesc.mLabel);
   desc.label = label.Get();
+
+  // TODO: bug 1773723
+  desc.view_formats = {nullptr, 0};
 
   if (aDesc.mSize.IsRangeEnforcedUnsignedLongSequence()) {
     const auto& seq = aDesc.mSize.GetAsRangeEnforcedUnsignedLongSequence();
@@ -418,13 +432,19 @@ RawId WebGPUChild::TextureCreateView(
     desc.dimension = &dimension;
   }
 
+  // Ideally we'd just do something like "aDesc.mMipLevelCount.ptrOr(nullptr)"
+  // but dom::Optional does not seem to have very many nice things.
+  uint32_t mipCount =
+      aDesc.mMipLevelCount.WasPassed() ? aDesc.mMipLevelCount.Value() : 0;
+  uint32_t layerCount =
+      aDesc.mArrayLayerCount.WasPassed() ? aDesc.mArrayLayerCount.Value() : 0;
+
   desc.aspect = ffi::WGPUTextureAspect(aDesc.mAspect);
   desc.base_mip_level = aDesc.mBaseMipLevel;
-  desc.mip_level_count =
-      aDesc.mMipLevelCount.WasPassed() ? aDesc.mMipLevelCount.Value() : 0;
+  desc.mip_level_count = aDesc.mMipLevelCount.WasPassed() ? &mipCount : nullptr;
   desc.base_array_layer = aDesc.mBaseArrayLayer;
   desc.array_layer_count =
-      aDesc.mArrayLayerCount.WasPassed() ? aDesc.mArrayLayerCount.Value() : 0;
+      aDesc.mArrayLayerCount.WasPassed() ? &layerCount : nullptr;
 
   ByteBuf bb;
   RawId id = ffi::wgpu_client_create_texture_view(mClient.get(), aSelfId, &desc,
@@ -693,29 +713,166 @@ RawId WebGPUChild::DeviceCreateBindGroup(
   return id;
 }
 
-already_AddRefed<ShaderModule> WebGPUChild::DeviceCreateShaderModule(
-    Device* aDevice, const dom::GPUShaderModuleDescriptor& aDesc,
+MOZ_CAN_RUN_SCRIPT void reportCompilationMessagesToConsole(
+    const RefPtr<ShaderModule>& aShaderModule,
+    const nsTArray<WebGPUCompilationMessage>& aMessages) {
+  auto* global = aShaderModule->GetParentObject();
+
+  dom::AutoJSAPI api;
+  if (!api.Init(global)) {
+    return;
+  }
+
+  const auto& cx = api.cx();
+
+  ErrorResult rv;
+  RefPtr<dom::Console> console =
+      nsGlobalWindowInner::Cast(global->AsInnerWindow())->GetConsole(cx, rv);
+  if (rv.Failed()) {
+    return;
+  }
+
+  dom::GlobalObject globalObj(cx, global->GetGlobalJSObject());
+
+  dom::Sequence<JS::Value> args;
+  dom::SequenceRooter<JS::Value> msgArgsRooter(cx, &args);
+  auto SetSingleStrAsArgs =
+      [&](const nsString& message, dom::Sequence<JS::Value>* args)
+          MOZ_CAN_RUN_SCRIPT {
+            args->Clear();
+            JS::Rooted<JSString*> jsStr(
+                cx, JS_NewUCStringCopyN(cx, message.Data(), message.Length()));
+            if (!jsStr) {
+              return;
+            }
+            JS::Rooted<JS::Value> val(cx, JS::StringValue(jsStr));
+            if (!args->AppendElement(val, fallible)) {
+              return;
+            }
+          };
+
+  nsString label;
+  aShaderModule->GetLabel(label);
+  auto appendNiceLabelIfPresent = [&label](nsString* buf) MOZ_CAN_RUN_SCRIPT {
+    if (!label.IsEmpty()) {
+      buf->AppendLiteral(u" \"");
+      buf->Append(label);
+      buf->AppendLiteral(u"\"");
+    }
+  };
+
+  // We haven't actually inspected a message for severity, but
+  // it doesn't actually matter, since we don't do anything at
+  // this level.
+  auto highestSeveritySeen = WebGPUCompilationMessageType::Info;
+  uint64_t errorCount = 0;
+  uint64_t warningCount = 0;
+  uint64_t infoCount = 0;
+  for (const auto& message : aMessages) {
+    bool higherThanSeen =
+        static_cast<std::underlying_type_t<WebGPUCompilationMessageType>>(
+            message.messageType) <
+        static_cast<std::underlying_type_t<WebGPUCompilationMessageType>>(
+            highestSeveritySeen);
+    if (higherThanSeen) {
+      highestSeveritySeen = message.messageType;
+    }
+    switch (message.messageType) {
+      case WebGPUCompilationMessageType::Error:
+        errorCount += 1;
+        break;
+      case WebGPUCompilationMessageType::Warning:
+        warningCount += 1;
+        break;
+      case WebGPUCompilationMessageType::Info:
+        infoCount += 1;
+        break;
+    }
+  }
+  switch (highestSeveritySeen) {
+    case WebGPUCompilationMessageType::Info:
+      // shouldn't happen, but :shrug:
+      break;
+    case WebGPUCompilationMessageType::Warning: {
+      nsString msg(
+          u"Encountered one or more warnings while creating shader module");
+      appendNiceLabelIfPresent(&msg);
+      SetSingleStrAsArgs(msg, &args);
+      console->Warn(globalObj, args);
+      break;
+    }
+    case WebGPUCompilationMessageType::Error: {
+      nsString msg(
+          u"Encountered one or more errors while creating shader module");
+      appendNiceLabelIfPresent(&msg);
+      SetSingleStrAsArgs(msg, &args);
+      console->Error(globalObj, args);
+      break;
+    }
+  }
+
+  nsString header;
+  header.AppendLiteral(u"WebGPU compilation info for shader module");
+  appendNiceLabelIfPresent(&header);
+  header.AppendLiteral(u" (");
+  header.AppendInt(errorCount);
+  header.AppendLiteral(u" error(s), ");
+  header.AppendInt(warningCount);
+  header.AppendLiteral(u" warning(s), ");
+  header.AppendInt(infoCount);
+  header.AppendLiteral(u" info)");
+  SetSingleStrAsArgs(header, &args);
+  console->GroupCollapsed(globalObj, args);
+
+  for (const auto& message : aMessages) {
+    SetSingleStrAsArgs(message.message, &args);
+    switch (message.messageType) {
+      case WebGPUCompilationMessageType::Error:
+        console->Error(globalObj, args);
+        break;
+      case WebGPUCompilationMessageType::Warning:
+        console->Warn(globalObj, args);
+        break;
+      case WebGPUCompilationMessageType::Info:
+        console->Info(globalObj, args);
+        break;
+    }
+  }
+  console->GroupEnd(globalObj);
+}
+
+MOZ_CAN_RUN_SCRIPT_FOR_DEFINITION already_AddRefed<ShaderModule>
+WebGPUChild::DeviceCreateShaderModule(
+    Device& aDevice, const dom::GPUShaderModuleDescriptor& aDesc,
     RefPtr<dom::Promise> aPromise) {
-  RawId deviceId = aDevice->mId;
+  RawId deviceId = aDevice.mId;
   RawId moduleId =
       ffi::wgpu_client_make_shader_module_id(mClient.get(), deviceId);
 
   RefPtr<ShaderModule> shaderModule =
-      new ShaderModule(aDevice, moduleId, aPromise);
+      new ShaderModule(&aDevice, moduleId, aPromise);
 
   nsString noLabel;
-  const nsString& label =
-      aDesc.mLabel.WasPassed() ? aDesc.mLabel.Value() : noLabel;
+  nsString& label = noLabel;
+  if (aDesc.mLabel.WasPassed()) {
+    label = aDesc.mLabel.Value();
+    shaderModule->SetLabel(label);
+  }
   SendDeviceCreateShaderModule(deviceId, moduleId, label, aDesc.mCode)
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
           [aPromise,
-           shaderModule](nsTArray<WebGPUCompilationMessage>&& messages) {
-            RefPtr<CompilationInfo> infoObject(
-                new CompilationInfo(shaderModule));
-            infoObject->SetMessages(messages);
-            aPromise->MaybeResolve(infoObject);
-          },
+           shaderModule](nsTArray<WebGPUCompilationMessage>&& messages)
+              MOZ_CAN_RUN_SCRIPT {
+                if (!messages.IsEmpty()) {
+                  reportCompilationMessagesToConsole(shaderModule,
+                                                     std::cref(messages));
+                }
+                RefPtr<CompilationInfo> infoObject(
+                    new CompilationInfo(shaderModule));
+                infoObject->SetMessages(messages);
+                aPromise->MaybeResolve(infoObject);
+              },
           [aPromise](const ipc::ResponseRejectReason& aReason) {
             aPromise->MaybeRejectWithNotSupportedError("IPC error");
           });
@@ -729,14 +886,18 @@ RawId WebGPUChild::DeviceCreateComputePipelineImpl(
   ffi::WGPUComputePipelineDescriptor desc = {};
   nsCString label, entryPoint;
   if (aDesc.mLabel.WasPassed()) {
-    LossyCopyUTF16toASCII(aDesc.mLabel.Value(), label);
+    CopyUTF16toUTF8(aDesc.mLabel.Value(), label);
     desc.label = label.get();
   }
-  if (aDesc.mLayout.WasPassed()) {
-    desc.layout = aDesc.mLayout.Value().mId;
+  if (aDesc.mLayout.IsGPUAutoLayoutMode()) {
+    desc.layout = 0;
+  } else if (aDesc.mLayout.IsGPUPipelineLayout()) {
+    desc.layout = aDesc.mLayout.GetAsGPUPipelineLayout()->mId;
+  } else {
+    MOZ_ASSERT_UNREACHABLE();
   }
   desc.stage.module = aDesc.mCompute.mModule->mId;
-  LossyCopyUTF16toASCII(aDesc.mCompute.mEntryPoint, entryPoint);
+  CopyUTF16toUTF8(aDesc.mCompute.mEntryPoint, entryPoint);
   desc.stage.entry_point = entryPoint.get();
 
   RawId implicit_bgl_ids[WGPUMAX_BIND_GROUPS] = {};
@@ -844,14 +1005,18 @@ RawId WebGPUChild::DeviceCreateRenderPipelineImpl(
   webgpu::StringHelper label(aDesc.mLabel);
   desc.label = label.Get();
 
-  if (aDesc.mLayout.WasPassed()) {
-    desc.layout = aDesc.mLayout.Value().mId;
+  if (aDesc.mLayout.IsGPUAutoLayoutMode()) {
+    desc.layout = 0;
+  } else if (aDesc.mLayout.IsGPUPipelineLayout()) {
+    desc.layout = aDesc.mLayout.GetAsGPUPipelineLayout()->mId;
+  } else {
+    MOZ_ASSERT_UNREACHABLE();
   }
 
   {
     const auto& stage = aDesc.mVertex;
     vertexState.stage.module = stage.mModule->mId;
-    LossyCopyUTF16toASCII(stage.mEntryPoint, vsEntry);
+    CopyUTF16toUTF8(stage.mEntryPoint, vsEntry);
     vertexState.stage.entry_point = vsEntry.get();
 
     for (const auto& vertex_desc : stage.mBuffers) {
@@ -887,7 +1052,7 @@ RawId WebGPUChild::DeviceCreateRenderPipelineImpl(
   if (aDesc.mFragment.WasPassed()) {
     const auto& stage = aDesc.mFragment.Value();
     fragmentState.stage.module = stage.mModule->mId;
-    LossyCopyUTF16toASCII(stage.mEntryPoint, fsEntry);
+    CopyUTF16toUTF8(stage.mEntryPoint, fsEntry);
     fragmentState.stage.entry_point = fsEntry.get();
 
     // Note: we pre-collect the blend states into a different array

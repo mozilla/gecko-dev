@@ -70,7 +70,7 @@ class TRRService : public TRRServiceBase,
   bool IsExcludedFromTRR(const nsACString& aHost);
 
   bool MaybeBootstrap(const nsACString& possible, nsACString& result);
-  void RecordTRRStatus(nsresult aChannelStatus);
+  void RecordTRRStatus(TRR* aTrrRequest);
   bool ParentalControlEnabled() const { return mParentalControlEnabled; }
 
   nsresult DispatchTRRRequest(TRR* aTrrRequest);
@@ -79,12 +79,30 @@ class TRRService : public TRRServiceBase,
 
   bool IsUsingAutoDetectedURL() { return mURISetByDetection; }
 
+  void SetHeuristicDetectionResult(TRRSkippedReason aValue) {
+    mHeuristicDetectionValue = aValue;
+  }
+  TRRSkippedReason GetHeuristicDetectionResult() {
+    return mHeuristicDetectionValue;
+  }
+
+  nsresult LastConfirmationStatus() {
+    return mConfirmation.LastConfirmationStatus();
+  }
+  TRRSkippedReason LastConfirmationSkipReason() {
+    return mConfirmation.LastConfirmationSkipReason();
+  }
+
   // Returns a reference to a static string identifying the current DoH server
   // If the DoH server is not one of the built-in ones it will return "(other)"
   static const nsCString& ProviderKey();
   static void SetProviderDomain(const nsACString& aTRRDomain);
+  // Only called when TRR mode changed.
+  static void SetCurrentTRRMode(nsIDNSService::ResolverMode aMode);
 
   void InitTRRConnectionInfo() override;
+
+  void DontUseTRRThread() { mDontUseTRRThread = true; }
 
  private:
   virtual ~TRRService();
@@ -133,6 +151,7 @@ class TRRService : public TRRServiceBase,
       false};  // set when captive portal check is passed
   Atomic<bool, Relaxed> mDisableIPv6;  // don't even try
   Atomic<bool, Relaxed> mShutdown{false};
+  Atomic<bool, Relaxed> mDontUseTRRThread{false};
 
   // TRR Blocklist storage
   // mTRRBLStorage is only modified on the main thread, but we query whether it
@@ -145,6 +164,9 @@ class TRRService : public TRRServiceBase,
   nsTHashSet<nsCString> mExcludedDomains MOZ_GUARDED_BY(mLock);
   nsTHashSet<nsCString> mDNSSuffixDomains MOZ_GUARDED_BY(mLock);
   nsTHashSet<nsCString> mEtcHostsDomains MOZ_GUARDED_BY(mLock);
+
+  // The result of the TRR heuristic detection
+  TRRSkippedReason mHeuristicDetectionValue = nsITRRSkipReason::TRR_UNSET;
 
   enum class ConfirmationEvent {
     Init,
@@ -238,6 +260,10 @@ class TRRService : public TRRServiceBase,
     // confirmation.
     nsCString mFailedLookups;
 
+    Atomic<TRRSkippedReason, Relaxed> mLastConfirmationSkipReason{
+        nsITRRSkipReason::TRR_UNSET};
+    Atomic<nsresult, Relaxed> mLastConfirmationStatus{NS_OK};
+
     void SetState(enum ConfirmationState aNewState);
 
    public:
@@ -253,7 +279,7 @@ class TRRService : public TRRServiceBase,
 
     void CompleteConfirmation(nsresult aStatus, TRR* aTrrRequest);
 
-    void RecordTRRStatus(nsresult aChannelStatus);
+    void RecordTRRStatus(TRR* aTrrRequest);
 
     // Returns true when handling the event caused a new confirmation task to be
     // dispatched.
@@ -264,6 +290,11 @@ class TRRService : public TRRServiceBase,
     void SetCaptivePortalStatus(int32_t aStatus) {
       mCaptivePortalStatus = aStatus;
     }
+
+    TRRSkippedReason LastConfirmationSkipReason() {
+      return mLastConfirmationSkipReason;
+    }
+    nsresult LastConfirmationStatus() { return mLastConfirmationStatus; }
 
     uintptr_t TaskAddr() { return uintptr_t(mTask.get()); }
 
@@ -312,8 +343,8 @@ class TRRService : public TRRServiceBase,
       mConfirmation.CompleteConfirmation(aStatus, aTrrRequest);
     }
 
-    void RecordTRRStatus(nsresult aChannelStatus) {
-      mConfirmation.RecordTRRStatus(aChannelStatus);
+    void RecordTRRStatus(TRR* aTrrRequest) {
+      mConfirmation.RecordTRRStatus(aTrrRequest);
     }
 
     bool HandleEvent(ConfirmationEvent aEvent) {
@@ -327,6 +358,13 @@ class TRRService : public TRRServiceBase,
 
     void SetCaptivePortalStatus(int32_t aStatus) {
       mConfirmation.SetCaptivePortalStatus(aStatus);
+    }
+
+    TRRSkippedReason LastConfirmationSkipReason() {
+      return mConfirmation.LastConfirmationSkipReason();
+    }
+    nsresult LastConfirmationStatus() {
+      return mConfirmation.LastConfirmationStatus();
     }
 
    private:

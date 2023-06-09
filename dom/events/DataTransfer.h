@@ -84,7 +84,8 @@ class DataTransfer final : public nsISupports, public nsWrapperCache {
                bool aIsExternal, bool aUserCancelled,
                bool aIsCrossDomainSubFrameDrop, int32_t aClipboardType,
                DataTransferItemList* aItems, Element* aDragImage,
-               uint32_t aDragImageX, uint32_t aDragImageY);
+               uint32_t aDragImageX, uint32_t aDragImageY,
+               bool aShowFailAnimation);
 
   ~DataTransfer();
 
@@ -254,7 +255,7 @@ class DataTransfer final : public nsISupports, public nsWrapperCache {
 
   already_AddRefed<nsINode> GetMozSourceNode();
 
-  already_AddRefed<WindowContext> GetSourceWindowContext();
+  already_AddRefed<WindowContext> GetSourceTopWindowContext();
 
   /*
    * Integer version of dropEffect, set to one of the constants in
@@ -364,7 +365,7 @@ class DataTransfer final : public nsISupports, public nsWrapperCache {
                  DataTransfer** aResult);
 
   // converts some formats used for compatibility in aInFormat into aOutFormat.
-  // Text and text/unicode become text/plain, and URL becomes text/uri-list
+  // Text becomes text/plain, and URL becomes text/uri-list
   void GetRealFormat(const nsAString& aInFormat, nsAString& aOutFormat) const;
 
   static bool PrincipalMaySetData(const nsAString& aFormat, nsIVariant* aData,
@@ -379,6 +380,11 @@ class DataTransfer final : public nsISupports, public nsWrapperCache {
   // NOTE: Please don't use this. See the comments in the webidl for more.
   already_AddRefed<DataTransfer> MozCloneForEvent(const nsAString& aEvent,
                                                   ErrorResult& aRv);
+
+  void SetMozShowFailAnimation(bool aShouldAnimate) {
+    mShowFailAnimation = aShouldAnimate;
+  }
+  bool MozShowFailAnimation() const { return mShowFailAnimation; }
 
   // Retrieve a list of clipboard formats supported
   //
@@ -509,6 +515,10 @@ class DataTransfer final : public nsISupports, public nsWrapperCache {
   nsCOMPtr<mozilla::dom::Element> mDragImage;
   uint32_t mDragImageX;
   uint32_t mDragImageY;
+
+  // Whether to animate the drag back to its starting point if it fails.
+  // Not supported everywhere.
+  bool mShowFailAnimation = true;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(DataTransfer, NS_DATATRANSFER_IID)

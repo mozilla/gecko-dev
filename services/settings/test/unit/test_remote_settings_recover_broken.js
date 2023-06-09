@@ -1,15 +1,17 @@
 /* import-globals-from ../../../common/tests/unit/head_helpers.js */
 
-const { SyncHistory } = ChromeUtils.import(
-  "resource://services-settings/SyncHistory.jsm"
+const { SyncHistory } = ChromeUtils.importESModule(
+  "resource://services-settings/SyncHistory.sys.mjs"
 );
-const { RemoteSettingsClient } = ChromeUtils.import(
-  "resource://services-settings/RemoteSettingsClient.jsm"
+const { RemoteSettingsClient } = ChromeUtils.importESModule(
+  "resource://services-settings/RemoteSettingsClient.sys.mjs"
 );
-const { RemoteSettings } = ChromeUtils.import(
-  "resource://services-settings/remote-settings.js"
+const { RemoteSettings } = ChromeUtils.importESModule(
+  "resource://services-settings/remote-settings.sys.mjs"
 );
-const { Utils } = ChromeUtils.import("resource://services-settings/Utils.jsm");
+const { Utils } = ChromeUtils.importESModule(
+  "resource://services-settings/Utils.sys.mjs"
+);
 
 const PREF_SETTINGS_SERVER = "services.settings.server";
 const CHANGES_PATH = "/v1" + Utils.CHANGES_PATH;

@@ -55,9 +55,9 @@ XPCOM_MANIFESTS += [
 ]
 
 EXTRA_JS_MODULES.psm += [
-    "DER.jsm",
-    "RemoteSecuritySettings.jsm",
-    "X509.jsm",
+    "DER.sys.mjs",
+    "RemoteSecuritySettings.sys.mjs",
+    "X509.sys.mjs",
 ]
 
 EXPORTS += [
@@ -218,11 +218,6 @@ GeneratedFile(
 DEFINES["SSL_DISABLE_DEPRECATED_CIPHER_SUITE_NAMES"] = "True"
 DEFINES["NSS_ENABLE_ECC"] = "True"
 
-if not CONFIG["MOZ_SYSTEM_NSS"]:
-    USE_LIBS += [
-        "crmf",
-    ]
-
 # mozpkix is linked statically from the in-tree sources independent of whether
 # system NSS is used or not.
 USE_LIBS += ["mozpkix"]
@@ -281,5 +276,3 @@ for header, array_name, cert in headers_arrays_certs:
     GeneratedFile(
         header, script="gen_cert_header.py", entry_point=array_name, inputs=[cert]
     )
-
-REQUIRES_UNIFIED_BUILD = True

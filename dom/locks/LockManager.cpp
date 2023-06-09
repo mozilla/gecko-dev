@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/LockManager.h"
+#include "mozilla/dom/AutoEntryScript.h"
 #include "mozilla/dom/WorkerCommon.h"
 #include "mozilla/dom/locks/LockManagerChild.h"
 #include "mozilla/dom/locks/LockRequestChild.h"
@@ -96,7 +97,17 @@ static bool ValidateRequestArguments(const nsAString& name,
       return false;
     }
     if (options.mSignal.Value().Aborted()) {
-      aRv.ThrowAbortError("The lock request is aborted");
+      AutoJSAPI jsapi;
+      if (!jsapi.Init(options.mSignal.Value().GetParentObject())) {
+        aRv.ThrowNotSupportedError("Signal's realm isn't active anymore.");
+        return false;
+      }
+
+      JSContext* cx = jsapi.cx();
+      JS::Rooted<JS::Value> reason(cx);
+      options.mSignal.Value().GetReason(cx, &reason);
+      aRv.MightThrowJSException();
+      aRv.ThrowJSException(cx, reason);
       return false;
     }
   }

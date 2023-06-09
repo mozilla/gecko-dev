@@ -15,17 +15,17 @@ ChromeUtils.defineESModuleGetters(this, {
   E10SUtils: "resource://gre/modules/E10SUtils.sys.mjs",
   EventDispatcher: "resource://gre/modules/Messaging.sys.mjs",
   GeckoViewActorManager: "resource://gre/modules/GeckoViewActorManager.sys.mjs",
+  GeckoViewSettings: "resource://gre/modules/GeckoViewSettings.sys.mjs",
   GeckoViewUtils: "resource://gre/modules/GeckoViewUtils.sys.mjs",
+  RemoteSecuritySettings:
+    "resource://gre/modules/psm/RemoteSecuritySettings.sys.mjs",
 });
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   Blocklist: "resource://gre/modules/Blocklist.jsm",
-  GeckoViewSettings: "resource://gre/modules/GeckoViewSettings.jsm",
   HistogramStopwatch: "resource://gre/modules/GeckoViewTelemetry.jsm",
   InitializationTracker: "resource://gre/modules/GeckoViewTelemetry.jsm",
   SafeBrowsing: "resource://gre/modules/SafeBrowsing.jsm",
-  RemoteSecuritySettings:
-    "resource://gre/modules/psm/RemoteSecuritySettings.jsm",
 });
 
 XPCOMUtils.defineLazyGetter(this, "WindowEventDispatcher", () =>
@@ -125,8 +125,26 @@ var ModuleManager = {
     MODULES_INIT_PROBE.finish();
   },
 
-  onNewPrintWindow(aParams) {
-    return PrintUtils.handleStaticCloneCreatedForPrint(aParams.openWindowInfo);
+  onPrintWindow(aParams) {
+    if (!aParams.openWindowInfo.isForWindowDotPrint) {
+      return PrintUtils.handleStaticCloneCreatedForPrint(
+        aParams.openWindowInfo
+      );
+    }
+    const printActor = this.window.moduleManager.getActor(
+      "GeckoViewPrintDelegate"
+    );
+    // Prevents continually making new static browsers
+    if (printActor.browserStaticClone != null) {
+      throw new Error("A prior window.print is still in progress.");
+    }
+    const staticBrowser = PrintUtils.createParentBrowserForStaticClone(
+      aParams.openWindowInfo.parent,
+      aParams.openWindowInfo
+    );
+    printActor.browserStaticClone = staticBrowser;
+    printActor.printRequest();
+    return staticBrowser;
   },
 
   get window() {
@@ -385,6 +403,9 @@ class ModuleInfo {
    * Called before the browser is removed
    */
   onDestroyBrowser() {
+    if (this._impl) {
+      this._impl.onDestroyBrowser();
+    }
     this._contentModuleLoaded = false;
   }
 
@@ -407,7 +428,7 @@ class ModuleInfo {
       return;
     }
 
-    const exports = ChromeUtils.import(aPhase.resource);
+    const exports = ChromeUtils.importESModule(aPhase.resource);
     this._impl = new exports[this._name](this);
   }
 
@@ -524,6 +545,10 @@ function createBrowser() {
   browser.setAttribute("remoteType", E10SUtils.DEFAULT_REMOTE_TYPE);
   browser.setAttribute("messagemanagergroup", "browsers");
 
+  // The browser starts up as inactive for a tab by default.
+  // See: https://bugzilla.mozilla.org/show_bug.cgi?id=1815015
+  browser.setAttribute("initiallyactive", "false");
+
   // This is only needed for mochitests, so that they honor the
   // prefers-color-scheme.content-override pref. GeckoView doesn't set this
   // pref to anything other than the default value otherwise.
@@ -547,7 +572,7 @@ function startup() {
     {
       name: "GeckoViewContent",
       onInit: {
-        resource: "resource://gre/modules/GeckoViewContent.jsm",
+        resource: "resource://gre/modules/GeckoViewContent.sys.mjs",
         actors: {
           GeckoViewContent: {
             parent: {
@@ -594,19 +619,19 @@ function startup() {
     {
       name: "GeckoViewNavigation",
       onInit: {
-        resource: "resource://gre/modules/GeckoViewNavigation.jsm",
+        resource: "resource://gre/modules/GeckoViewNavigation.sys.mjs",
       },
     },
     {
       name: "GeckoViewProcessHangMonitor",
       onInit: {
-        resource: "resource://gre/modules/GeckoViewProcessHangMonitor.jsm",
+        resource: "resource://gre/modules/GeckoViewProcessHangMonitor.sys.mjs",
       },
     },
     {
       name: "GeckoViewProgress",
       onEnable: {
-        resource: "resource://gre/modules/GeckoViewProgress.jsm",
+        resource: "resource://gre/modules/GeckoViewProgress.sys.mjs",
         actors: {
           ProgressDelegate: {
             parent: {
@@ -647,7 +672,7 @@ function startup() {
     {
       name: "GeckoViewSelectionAction",
       onEnable: {
-        resource: "resource://gre/modules/GeckoViewSelectionAction.jsm",
+        resource: "resource://gre/modules/GeckoViewSelectionAction.sys.mjs",
         actors: {
           SelectionActionDelegate: {
             parent: {
@@ -670,7 +695,7 @@ function startup() {
     {
       name: "GeckoViewSettings",
       onInit: {
-        resource: "resource://gre/modules/GeckoViewSettings.jsm",
+        resource: "resource://gre/modules/GeckoViewSettings.sys.mjs",
         actors: {
           GeckoViewSettings: {
             child: {
@@ -683,13 +708,13 @@ function startup() {
     {
       name: "GeckoViewTab",
       onInit: {
-        resource: "resource://gre/modules/GeckoViewTab.jsm",
+        resource: "resource://gre/modules/GeckoViewTab.sys.mjs",
       },
     },
     {
       name: "GeckoViewContentBlocking",
       onInit: {
-        resource: "resource://gre/modules/GeckoViewContentBlocking.jsm",
+        resource: "resource://gre/modules/GeckoViewContentBlocking.sys.mjs",
       },
     },
     {
@@ -745,7 +770,7 @@ function startup() {
     {
       name: "GeckoViewMediaControl",
       onEnable: {
-        resource: "resource://gre/modules/GeckoViewMediaControl.jsm",
+        resource: "resource://gre/modules/GeckoViewMediaControl.sys.mjs",
         actors: {
           MediaControlDelegate: {
             parent: {
@@ -770,10 +795,10 @@ function startup() {
         actors: {
           FormAutofill: {
             parent: {
-              moduleURI: "resource://autofill/FormAutofillParent.jsm",
+              esModuleURI: "resource://autofill/FormAutofillParent.sys.mjs",
             },
             child: {
-              moduleURI: "resource://autofill/FormAutofillChild.jsm",
+              esModuleURI: "resource://autofill/FormAutofillChild.sys.mjs",
               events: {
                 focusin: {},
                 DOMFormBeforeSubmit: {},
@@ -798,6 +823,22 @@ function startup() {
             },
             allFrames: true,
             includeChrome: true,
+          },
+        },
+      },
+    },
+    {
+      name: "GeckoViewPrintDelegate",
+      onInit: {
+        actors: {
+          GeckoViewPrintDelegate: {
+            parent: {
+              moduleURI: "resource:///actors/GeckoViewPrintDelegateParent.jsm",
+            },
+            child: {
+              moduleURI: "resource:///actors/GeckoViewPrintDelegateChild.jsm",
+            },
+            allFrames: true,
           },
         },
       },

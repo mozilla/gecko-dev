@@ -14,13 +14,15 @@
  * limitations under the License.
  */
 import os from 'os';
+
 import expect from 'expect';
+import {KeyInput} from 'puppeteer-core/internal/common/USKeyboardLayout.js';
+
 import {
   getTestState,
   setupTestBrowserHooks,
   setupTestPageAndContextHooks,
 } from './mocha-utils.js';
-import {KeyInput} from '../../lib/cjs/puppeteer/common/USKeyboardLayout.js';
 
 interface Dimensions {
   x: number;
@@ -137,24 +139,21 @@ describe('Mouse', function () {
       })
     ).toBe('button-91');
   });
-  it(
-    'should trigger hover state with removed window.Node',
-    async () => {
-      const {page, server} = getTestState();
+  it('should trigger hover state with removed window.Node', async () => {
+    const {page, server} = getTestState();
 
-      await page.goto(server.PREFIX + '/input/scrollable.html');
+    await page.goto(server.PREFIX + '/input/scrollable.html');
+    await page.evaluate(() => {
+      // @ts-expect-error Expected.
+      return delete window.Node;
+    });
+    await page.hover('#button-6');
+    expect(
       await page.evaluate(() => {
-        // @ts-expect-error Expected.
-        return delete window.Node;
-      });
-      await page.hover('#button-6');
-      expect(
-        await page.evaluate(() => {
-          return document.querySelector('button:hover')!.id;
-        })
-      ).toBe('button-6');
-    }
-  );
+        return document.querySelector('button:hover')!.id;
+      })
+    ).toBe('button-6');
+  });
   it('should set modifier keys on click', async () => {
     const {page, server, isFirefox} = getTestState();
 

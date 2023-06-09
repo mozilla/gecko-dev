@@ -1,10 +1,7 @@
 "use strict";
 
-const { Log } = ChromeUtils.importESModule(
-  "resource://gre/modules/Log.sys.mjs"
-);
-const { LogManager } = ChromeUtils.import(
-  "resource://normandy/lib/LogManager.jsm"
+const { LogManager } = ChromeUtils.importESModule(
+  "resource://normandy/lib/LogManager.sys.mjs"
 );
 
 add_task(async function() {

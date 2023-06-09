@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { html } from "lit";
+import { html } from "lit.all.mjs";
 // Imported for side-effects.
 // eslint-disable-next-line import/no-unassigned-import
 import "toolkit-widgets/message-bar.js";
@@ -15,7 +15,8 @@ const MESSAGE_TYPES = {
 };
 
 export default {
-  title: "Design System/Components/Message Bar",
+  title: "UI Widgets/Message Bar",
+  component: "message-bar",
   argTypes: {
     type: {
       options: Object.keys(MESSAGE_TYPES),
@@ -23,13 +24,20 @@ export default {
       control: { type: "select" },
     },
   },
+  parameters: {
+    status: "stable",
+    fluent: `
+message-bar-text = A very expressive and slightly whimsical message goes here.
+message-bar-button = Click me, please!
+    `,
+  },
 };
 
 const Template = ({ dismissable, type }) =>
   html`
     <message-bar type=${type} ?dismissable=${dismissable}>
-      <span>A very expressive and slightly whimsical message goes here.</span>
-      <button>Click me, please!</button>
+      <span data-l10n-id="message-bar-text"></span>
+      <button data-l10n-id="message-bar-button"></button>
     </message-bar>
   `;
 

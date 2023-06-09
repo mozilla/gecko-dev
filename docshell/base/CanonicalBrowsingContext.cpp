@@ -6,6 +6,7 @@
 
 #include "mozilla/dom/CanonicalBrowsingContext.h"
 
+#include "ErrorList.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/EventForwards.h"
@@ -310,6 +311,8 @@ void CanonicalBrowsingContext::ReplacedBy(
   // SetWithoutSyncing can be used if context hasn't been attached.
   Transaction txn;
   txn.SetBrowserId(GetBrowserId());
+  txn.SetIsAppTab(GetIsAppTab());
+  txn.SetHasSiblings(GetHasSiblings());
   txn.SetHistoryID(GetHistoryID());
   txn.SetExplicitActive(GetExplicitActive());
   txn.SetEmbedderColorSchemes(GetEmbedderColorSchemes());
@@ -325,6 +328,10 @@ void CanonicalBrowsingContext::ReplacedBy(
   txn.SetSuspendMediaWhenInactive(GetSuspendMediaWhenInactive());
   txn.SetDisplayMode(GetDisplayMode());
   txn.SetForceDesktopViewport(GetForceDesktopViewport());
+
+  // Propagate the default load flags so that the TRR mode flags are forwarded
+  // to the new browsing context. See bug 1828643.
+  txn.SetDefaultLoadFlags(GetDefaultLoadFlags());
 
   // As this is a different BrowsingContext, set InitialSandboxFlags to the
   // current flags in the new context so that they also apply to any initial
@@ -560,17 +567,27 @@ void CanonicalBrowsingContext::GetLoadingSessionHistoryInfoFromParent(
 
 UniquePtr<LoadingSessionHistoryInfo>
 CanonicalBrowsingContext::CreateLoadingSessionHistoryEntryForLoad(
-    nsDocShellLoadState* aLoadState, nsIChannel* aChannel) {
+    nsDocShellLoadState* aLoadState, SessionHistoryEntry* existingEntry,
+    nsIChannel* aChannel) {
   RefPtr<SessionHistoryEntry> entry;
   const LoadingSessionHistoryInfo* existingLoadingInfo =
       aLoadState->GetLoadingSessionHistoryInfo();
+  MOZ_ASSERT_IF(!existingLoadingInfo, !existingEntry);
   if (existingLoadingInfo) {
-    entry = SessionHistoryEntry::GetByLoadId(existingLoadingInfo->mLoadId);
-    MOZ_LOG(gSHLog, LogLevel::Verbose,
-            ("SHEntry::GetByLoadId(%" PRIu64 ") -> %p",
-             existingLoadingInfo->mLoadId, entry.get()));
-    if (!entry) {
-      return nullptr;
+    if (existingEntry) {
+      entry = existingEntry;
+    } else {
+      MOZ_ASSERT(!existingLoadingInfo->mLoadIsFromSessionHistory);
+
+      SessionHistoryEntry::LoadingEntry* loadingEntry =
+          SessionHistoryEntry::GetByLoadId(existingLoadingInfo->mLoadId);
+      MOZ_LOG(gSHLog, LogLevel::Verbose,
+              ("SHEntry::GetByLoadId(%" PRIu64 ") -> %p",
+               existingLoadingInfo->mLoadId, entry.get()));
+      if (!loadingEntry) {
+        return nullptr;
+      }
+      entry = loadingEntry->mEntry;
     }
 
     // If the entry was updated, update also the LoadingSessionHistoryInfo.
@@ -608,7 +625,8 @@ CanonicalBrowsingContext::CreateLoadingSessionHistoryEntryForLoad(
         LoadingSessionHistoryEntry{loadingInfo->mLoadId, entry});
   }
 
-  MOZ_ASSERT(SessionHistoryEntry::GetByLoadId(loadingInfo->mLoadId) == entry);
+  MOZ_ASSERT(SessionHistoryEntry::GetByLoadId(loadingInfo->mLoadId)->mEntry ==
+             entry);
 
   return loadingInfo;
 }
@@ -781,7 +799,7 @@ RefPtr<PrintPromise> CanonicalBrowsingContext::Print(
 
   layout::RemotePrintJobParent* remotePrintJob =
       new layout::RemotePrintJobParent(printSettings);
-  printData.remotePrintJobParent() =
+  printData.remotePrintJob() =
       browserParent->Manager()->SendPRemotePrintJobConstructor(remotePrintJob);
 
   if (listener) {
@@ -989,13 +1007,15 @@ void CanonicalBrowsingContext::SessionHistoryCommit(
   // aSessionHistoryEntryId?
 }
 
-static already_AddRefed<nsDocShellLoadState> CreateLoadInfo(
+already_AddRefed<nsDocShellLoadState> CanonicalBrowsingContext::CreateLoadInfo(
     SessionHistoryEntry* aEntry) {
   const SessionHistoryInfo& info = aEntry->Info();
   RefPtr<nsDocShellLoadState> loadState(new nsDocShellLoadState(info.GetURI()));
   info.FillLoadInfo(*loadState);
   UniquePtr<LoadingSessionHistoryInfo> loadingInfo;
   loadingInfo = MakeUnique<LoadingSessionHistoryInfo>(aEntry);
+  mLoadingEntries.AppendElement(
+      LoadingSessionHistoryEntry{loadingInfo->mLoadId, aEntry});
   loadState->SetLoadingSessionHistoryInfo(std::move(loadingInfo));
 
   return loadState.forget();
@@ -1003,7 +1023,7 @@ static already_AddRefed<nsDocShellLoadState> CreateLoadInfo(
 
 void CanonicalBrowsingContext::NotifyOnHistoryReload(
     bool aForceReload, bool& aCanReload,
-    Maybe<RefPtr<nsDocShellLoadState>>& aLoadState,
+    Maybe<NotNull<RefPtr<nsDocShellLoadState>>>& aLoadState,
     Maybe<bool>& aReloadActiveEntry) {
   MOZ_DIAGNOSTIC_ASSERT(!aLoadState);
 
@@ -1017,7 +1037,7 @@ void CanonicalBrowsingContext::NotifyOnHistoryReload(
   }
 
   if (mActiveEntry) {
-    aLoadState.emplace(CreateLoadInfo(mActiveEntry));
+    aLoadState.emplace(WrapMovingNotNull(RefPtr{CreateLoadInfo(mActiveEntry)}));
     aReloadActiveEntry.emplace(true);
     if (aForceReload) {
       shistory->RemoveFrameEntries(mActiveEntry);
@@ -1025,13 +1045,14 @@ void CanonicalBrowsingContext::NotifyOnHistoryReload(
   } else if (!mLoadingEntries.IsEmpty()) {
     const LoadingSessionHistoryEntry& loadingEntry =
         mLoadingEntries.LastElement();
-    aLoadState.emplace(CreateLoadInfo(loadingEntry.mEntry));
+    aLoadState.emplace(
+        WrapMovingNotNull(RefPtr{CreateLoadInfo(loadingEntry.mEntry)}));
     aReloadActiveEntry.emplace(false);
     if (aForceReload) {
-      SessionHistoryEntry* entry =
+      SessionHistoryEntry::LoadingEntry* entry =
           SessionHistoryEntry::GetByLoadId(loadingEntry.mLoadId);
       if (entry) {
-        shistory->RemoveFrameEntries(entry);
+        shistory->RemoveFrameEntries(entry->mEntry);
       }
     }
   }
@@ -1418,9 +1439,25 @@ void CanonicalBrowsingContext::UpdateMediaControlAction(
   });
 }
 
-void CanonicalBrowsingContext::LoadURI(const nsAString& aURI,
+void CanonicalBrowsingContext::LoadURI(nsIURI* aURI,
                                        const LoadURIOptions& aOptions,
                                        ErrorResult& aError) {
+  RefPtr<nsDocShellLoadState> loadState;
+  nsresult rv = nsDocShellLoadState::CreateFromLoadURIOptions(
+      this, aURI, aOptions, getter_AddRefs(loadState));
+  MOZ_ASSERT(rv != NS_ERROR_MALFORMED_URI);
+
+  if (NS_FAILED(rv)) {
+    aError.Throw(rv);
+    return;
+  }
+
+  LoadURI(loadState, true);
+}
+
+void CanonicalBrowsingContext::FixupAndLoadURIString(
+    const nsAString& aURI, const LoadURIOptions& aOptions,
+    ErrorResult& aError) {
   RefPtr<nsDocShellLoadState> loadState;
   nsresult rv = nsDocShellLoadState::CreateFromLoadURIOptions(
       this, aURI, aOptions, getter_AddRefs(loadState));
@@ -1611,7 +1648,7 @@ nsresult CanonicalBrowsingContext::PendingRemotenessChange::FinishTopContent() {
                         "non-remote iframes");
 
   // Abort if our ContentParent died while process switching.
-  if (mContentParent && NS_WARN_IF(mContentParent->IsDead())) {
+  if (mContentParent && NS_WARN_IF(mContentParent->IsShuttingDown())) {
     return NS_ERROR_FAILURE;
   }
 
@@ -1741,7 +1778,7 @@ nsresult CanonicalBrowsingContext::PendingRemotenessChange::FinishSubframe() {
   // If we're creating a new remote browser, and the host process is already
   // dead, abort the process switch.
   if (mContentParent != embedderBrowser->Manager() &&
-      NS_WARN_IF(mContentParent->IsDead())) {
+      NS_WARN_IF(mContentParent->IsShuttingDown())) {
     return NS_ERROR_FAILURE;
   }
 
@@ -1946,7 +1983,7 @@ CanonicalBrowsingContext::ChangeRemoteness(
     return RemotenessPromise::CreateAndReject(NS_ERROR_FAILURE, __func__);
   }
 
-  // Ensure our embedder hasn't been destroyed already.
+  // Ensure our embedder hasn't been destroyed or asked to shutdown already.
   RefPtr<WindowGlobalParent> embedderWindowGlobal = GetEmbedderWindowGlobal();
   if (!embedderWindowGlobal) {
     NS_WARNING("Non-embedded BrowsingContext");
@@ -1955,6 +1992,13 @@ CanonicalBrowsingContext::ChangeRemoteness(
 
   if (!embedderWindowGlobal->CanSend()) {
     NS_WARNING("Embedder already been destroyed.");
+    return RemotenessPromise::CreateAndReject(NS_ERROR_NOT_AVAILABLE, __func__);
+  }
+
+  RefPtr<BrowserParent> embedderBrowser =
+      embedderWindowGlobal->GetBrowserParent();
+  if (embedderBrowser && embedderBrowser->Manager()->IsShuttingDown()) {
+    NS_WARNING("Embedder already asked to shutdown.");
     return RemotenessPromise::CreateAndReject(NS_ERROR_NOT_AVAILABLE, __func__);
   }
 
@@ -2014,8 +2058,6 @@ CanonicalBrowsingContext::ChangeRemoteness(
   }
 
   // Switching a subframe to be local within it's embedding process.
-  RefPtr<BrowserParent> embedderBrowser =
-      embedderWindowGlobal->GetBrowserParent();
   if (embedderBrowser &&
       aOptions.mRemoteType == embedderBrowser->Manager()->GetRemoteType()) {
     MOZ_DIAGNOSTIC_ASSERT(
@@ -2046,7 +2088,7 @@ CanonicalBrowsingContext::ChangeRemoteness(
   // process, and then putting our previous document in the BFCache, try to stay
   // in the same process to avoid creating new processes unnecessarily.
   RefPtr<ContentParent> existingProcess = GetContentParent();
-  if (existingProcess && existingProcess->IsAlive() &&
+  if (existingProcess && !existingProcess->IsShuttingDown() &&
       aOptions.mReplaceBrowsingContext &&
       aOptions.mRemoteType == existingProcess->GetRemoteType()) {
     change->mContentParent = existingProcess;
@@ -2087,7 +2129,7 @@ CanonicalBrowsingContext::ChangeRemoteness(
     change->mContentParent->WaitForLaunchAsync()->Then(
         GetMainThreadSerialEventTarget(), __func__,
         [change](ContentParent*) { change->ProcessLaunched(); },
-        [change](LaunchError) { change->Cancel(NS_ERROR_FAILURE); });
+        [change]() { change->Cancel(NS_ERROR_FAILURE); });
   } else {
     change->ProcessLaunched();
   }
@@ -2333,13 +2375,13 @@ void CanonicalBrowsingContext::SynchronizeLayoutHistoryState() {
       cp->SendGetLayoutHistoryState(this)->Then(
           GetCurrentSerialEventTarget(), __func__,
           [activeEntry = mActiveEntry](
-              const Tuple<RefPtr<nsILayoutHistoryState>, Maybe<Wireframe>>&
+              const std::tuple<RefPtr<nsILayoutHistoryState>, Maybe<Wireframe>>&
                   aResult) {
-            if (mozilla::Get<0>(aResult)) {
-              activeEntry->SetLayoutHistoryState(mozilla::Get<0>(aResult));
+            if (std::get<0>(aResult)) {
+              activeEntry->SetLayoutHistoryState(std::get<0>(aResult));
             }
-            if (mozilla::Get<1>(aResult)) {
-              activeEntry->SetWireframe(mozilla::Get<1>(aResult));
+            if (std::get<1>(aResult)) {
+              activeEntry->SetWireframe(std::get<1>(aResult));
             }
           },
           []() {});
@@ -2447,7 +2489,8 @@ void CanonicalBrowsingContext::RequestRestoreTabContent(
 
     if (data->CanRestoreInto(aWindow->GetDocumentURI())) {
       if (!aWindow->IsInProcess()) {
-        aWindow->SendRestoreTabContent(data, onTabRestoreComplete,
+        aWindow->SendRestoreTabContent(WrapNotNull(data.get()),
+                                       onTabRestoreComplete,
                                        onTabRestoreComplete);
         return;
       }
@@ -2972,6 +3015,16 @@ void CanonicalBrowsingContext::StopApzAutoscroll(nsViewID aScrollId,
 
   mozilla::layers::ScrollableLayerGuid guid(layersId, aPresShellId, aScrollId);
   widget->StopAsyncAutoscroll(guid);
+}
+
+already_AddRefed<nsISHEntry>
+CanonicalBrowsingContext::GetMostRecentLoadingSessionHistoryEntry() {
+  if (mLoadingEntries.IsEmpty()) {
+    return nullptr;
+  }
+
+  RefPtr<SessionHistoryEntry> entry = mLoadingEntries.LastElement().mEntry;
+  return entry.forget();
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(CanonicalBrowsingContext)

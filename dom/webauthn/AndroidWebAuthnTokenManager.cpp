@@ -13,6 +13,8 @@
 #include "JavaExceptions.h"
 #include "mozilla/java/WebAuthnTokenManagerWrappers.h"
 #include "mozilla/jni/Conversions.h"
+#include "mozilla/StaticPrefs_security.h"
+#include "WebAuthnEnumStrings.h"
 
 namespace mozilla {
 namespace jni {
@@ -87,13 +89,12 @@ void AndroidWebAuthnTokenManager::Drop() {
 }
 
 RefPtr<U2FRegisterPromise> AndroidWebAuthnTokenManager::Register(
-    const WebAuthnMakeCredentialInfo& aInfo, bool aForceNoneAttestation,
-    void _status_callback(rust_ctap2_status_update_res*)) {
+    const WebAuthnMakeCredentialInfo& aInfo, bool aForceNoneAttestation) {
   AssertIsOnOwningThread();
 
   ClearPromises();
 
-  GetMainThreadEventTarget()->Dispatch(NS_NewRunnableFunction(
+  GetMainThreadSerialEventTarget()->Dispatch(NS_NewRunnableFunction(
       "java::WebAuthnTokenManager::WebAuthnMakeCredential",
       [self = RefPtr{this}, aInfo, aForceNoneAttestation]() {
         AssertIsOnMainThread();
@@ -143,41 +144,44 @@ RefPtr<U2FRegisterPromise> AndroidWebAuthnTokenManager::Register(
                           java::sdk::Integer::ValueOf(1));
 
           // Get the attestation preference and override if the user asked
-          AttestationConveyancePreference attestation =
-              extra.attestationConveyancePreference();
-
           if (aForceNoneAttestation) {
             // Add UI support to trigger this, bug 1550164
-            attestation = AttestationConveyancePreference::None;
+            GECKOBUNDLE_PUT(authSelBundle, "attestationPreference",
+                            jni::StringParam(u"none"_ns));
+          } else {
+            const nsString& attestation =
+                extra.attestationConveyancePreference();
+            GECKOBUNDLE_PUT(authSelBundle, "attestationPreference",
+                            jni::StringParam(attestation));
           }
-
-          nsString attestPref;
-          attestPref.AssignASCII(
-              AttestationConveyancePreferenceValues::GetString(attestation));
-          GECKOBUNDLE_PUT(authSelBundle, "attestationPreference",
-                          jni::StringParam(attestPref));
 
           const WebAuthnAuthenticatorSelection& sel =
               extra.AuthenticatorSelection();
-          if (sel.requireResidentKey()) {
-            GECKOBUNDLE_PUT(authSelBundle, "requireResidentKey",
-                            java::sdk::Integer::ValueOf(1));
+          // Unfortunately, GMS's FIDO2 API has no option for Passkey. If using
+          // residentKey, credential will be synced with Passkey via Google
+          // account or credential provider service. So this is experimental.
+          if (StaticPrefs::
+                  security_webauthn_webauthn_enable_android_fido2_residentkey()) {
+            GECKOBUNDLE_PUT(authSelBundle, "residentKey",
+                            jni::StringParam(sel.residentKey()));
           }
 
-          if (sel.userVerificationRequirement() ==
-              UserVerificationRequirement::Required) {
+          if (sel.userVerificationRequirement().EqualsLiteral(
+                  MOZ_WEBAUTHN_USER_VERIFICATION_REQUIREMENT_REQUIRED)) {
             GECKOBUNDLE_PUT(authSelBundle, "requireUserVerification",
                             java::sdk::Integer::ValueOf(1));
           }
 
           if (sel.authenticatorAttachment().isSome()) {
-            const AuthenticatorAttachment authenticatorAttachment =
+            const nsString& authenticatorAttachment =
                 sel.authenticatorAttachment().value();
-            if (authenticatorAttachment == AuthenticatorAttachment::Platform) {
+            if (authenticatorAttachment.EqualsLiteral(
+                    MOZ_WEBAUTHN_AUTHENTICATOR_ATTACHMENT_PLATFORM)) {
               GECKOBUNDLE_PUT(authSelBundle, "requirePlatformAttachment",
                               java::sdk::Integer::ValueOf(1));
-            } else if (authenticatorAttachment ==
-                       AuthenticatorAttachment::Cross_platform) {
+            } else if (
+                authenticatorAttachment.EqualsLiteral(
+                    MOZ_WEBAUTHN_AUTHENTICATOR_ATTACHMENT_CROSS_PLATFORM)) {
               GECKOBUNDLE_PUT(authSelBundle, "requireCrossPlatformAttachment",
                               java::sdk::Integer::ValueOf(1));
             }
@@ -276,13 +280,12 @@ void AndroidWebAuthnTokenManager::HandleRegisterResult(
 }
 
 RefPtr<U2FSignPromise> AndroidWebAuthnTokenManager::Sign(
-    const WebAuthnGetAssertionInfo& aInfo,
-    void _status_callback(rust_ctap2_status_update_res*)) {
+    const WebAuthnGetAssertionInfo& aInfo) {
   AssertIsOnOwningThread();
 
   ClearPromises();
 
-  GetMainThreadEventTarget()->Dispatch(NS_NewRunnableFunction(
+  GetMainThreadSerialEventTarget()->Dispatch(NS_NewRunnableFunction(
       "java::WebAuthnTokenManager::WebAuthnGetAssertion",
       [self = RefPtr{this}, aInfo]() {
         AssertIsOnMainThread();

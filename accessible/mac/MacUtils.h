@@ -9,6 +9,8 @@
 #define _MacUtils_H_
 
 #include "nsStringFwd.h"
+#include "mozAccessible.h"
+#include "MOXAccessibleBase.h"
 
 @class NSString;
 @class mozAccessible;
@@ -44,8 +46,17 @@ NSString* LocalizedString(const nsString& aString);
  * nil if no attribute is found.
  */
 NSString* GetAccAttr(mozAccessible* aNativeAccessible, nsAtom* aAttrName);
-}
-}
-}
+
+/**
+ * Return true if the passed raw pointer is a live document accessible. Uses
+ * the provided root doc accessible to check for current documents.
+ */
+bool DocumentExists(Accessible* aDoc, uintptr_t aDocPtr);
+
+NSDictionary* StringAttributesFromAccAttributes(AccAttributes* aAttributes,
+                                                Accessible* aContainer);
+}  // namespace utils
+}  // namespace a11y
+}  // namespace mozilla
 
 #endif

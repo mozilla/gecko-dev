@@ -10,6 +10,7 @@
 #include "VideoUtils.h"
 #include "BufferReader.h"
 #include "mozilla/StaticPrefs_media.h"
+#include "mozilla/Telemetry.h"
 
 namespace mozilla {
 
@@ -30,8 +31,8 @@ FFmpegAudioDecoder<LIBAV_VER>::FFmpegAudioDecoder(FFmpegLibWrapper* aLib,
   }
 
   if (mCodecID == AV_CODEC_ID_MP3) {
-    MOZ_DIAGNOSTIC_ASSERT(
-        aConfig.mCodecSpecificConfig.is<Mp3CodecSpecificData>());
+    // Downgraded from diagnostic assert due to BMO 1776524 on Android.
+    MOZ_ASSERT(aConfig.mCodecSpecificConfig.is<Mp3CodecSpecificData>());
     // Gracefully handle bad data. If don't hit the preceding assert once this
     // has been shipped for awhile, we can remove it and make the following code
     // non-conditional.
@@ -386,13 +387,23 @@ AVCodecID FFmpegAudioDecoder<LIBAV_VER>::GetCodecId(
     }
 #endif
     return AV_CODEC_ID_MP3;
-  } else if (aMimeType.EqualsLiteral("audio/flac")) {
+  }
+  if (aMimeType.EqualsLiteral("audio/flac")) {
     return AV_CODEC_ID_FLAC;
-  } else if (aMimeType.EqualsLiteral("audio/mp4a-latm")) {
+  }
+  if (aMimeType.EqualsLiteral("audio/mp4a-latm")) {
     return AV_CODEC_ID_AAC;
   }
 
   return AV_CODEC_ID_NONE;
+}
+
+nsCString FFmpegAudioDecoder<LIBAV_VER>::GetCodecName() const {
+#if LIBAVCODEC_VERSION_MAJOR > 53
+  return nsCString(mLib->avcodec_descriptor_get(mCodecID)->name);
+#else
+  return "unknown"_ns;
+#endif
 }
 
 FFmpegAudioDecoder<LIBAV_VER>::~FFmpegAudioDecoder() {

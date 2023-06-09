@@ -8,8 +8,16 @@ add_task(async function test_eraseEverything() {
   await PlacesTestUtils.addVisits({
     uri: NetUtil.newURI("http://mozilla.org/"),
   });
-  let frecencyForExample = frecencyForUrl("http://example.com/");
-  let frecencyForMozilla = frecencyForUrl("http://example.com/");
+  let frecencyForExample = await PlacesTestUtils.getDatabaseValue(
+    "moz_places",
+    "frecency",
+    { url: "http://example.com/" }
+  );
+  let frecencyForMozilla = await PlacesTestUtils.getDatabaseValue(
+    "moz_places",
+    "frecency",
+    { url: "http://mozilla.org/" }
+  );
   Assert.ok(frecencyForExample > 0);
   Assert.ok(frecencyForMozilla > 0);
   let unfiledFolder = await PlacesUtils.bookmarks.insert({
@@ -66,23 +74,33 @@ add_task(async function test_eraseEverything() {
   });
   checkBookmarkObject(toolbarBookmarkInFolder);
 
-  await PlacesTestUtils.promiseAsyncUpdates();
-  Assert.ok(frecencyForUrl("http://example.com/") > frecencyForExample);
-  Assert.ok(frecencyForUrl("http://example.com/") > frecencyForMozilla);
-
-  const promise = PlacesTestUtils.waitForNotification(
-    "pages-rank-changed",
-    () => true,
-    "places"
+  await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
+  Assert.ok(
+    (await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
+      url: "http://example.com/",
+    })) > frecencyForExample
+  );
+  Assert.ok(
+    (await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
+      url: "http://example.com/",
+    })) > frecencyForMozilla
   );
 
   await PlacesUtils.bookmarks.eraseEverything();
 
-  // Ensure we get an pages-rank-changed event.
-  await promise;
-
-  Assert.equal(frecencyForUrl("http://example.com/"), frecencyForExample);
-  Assert.equal(frecencyForUrl("http://example.com/"), frecencyForMozilla);
+  await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
+  Assert.equal(
+    await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
+      url: "http://example.com/",
+    }),
+    frecencyForExample
+  );
+  Assert.equal(
+    await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
+      url: "http://example.com/",
+    }),
+    frecencyForMozilla
+  );
 });
 
 add_task(async function test_eraseEverything_roots() {

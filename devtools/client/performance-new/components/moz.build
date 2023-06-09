@@ -3,17 +3,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-DevToolsModules(
-    "AboutProfiling.js",
-    "Description.js",
-    "DevToolsPanel.js",
-    "DevToolsPresetSelection.js",
-    "DirectoryPicker.js",
-    "OnboardingMessage.js",
-    "Presets.js",
-    "ProfilerEventHandling.js",
-    "ProfilerPreferenceObserver.js",
-    "Range.js",
-    "RecordingButton.js",
-    "Settings.js",
-)
+DIRS += [
+    "aboutprofiling",
+    "panel",
+    "shared",
+]

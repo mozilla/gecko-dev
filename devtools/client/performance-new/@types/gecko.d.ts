@@ -24,14 +24,14 @@ declare namespace MockedExports {
     Services: typeof import("Services");
     "resource://gre/modules/AppConstants.sys.mjs": typeof import("resource://gre/modules/AppConstants.sys.mjs");
     "resource:///modules/CustomizableUI.jsm": typeof import("resource:///modules/CustomizableUI.jsm");
-    "resource:///modules/CustomizableWidgets.jsm": typeof import("resource:///modules/CustomizableWidgets.jsm");
+    "resource:///modules/CustomizableWidgets.sys.mjs": typeof import("resource:///modules/CustomizableWidgets.sys.mjs");
     "resource://devtools/shared/loader/Loader.sys.mjs": typeof import("resource://devtools/shared/loader/Loader.sys.mjs");
-    "resource://devtools/client/performance-new/popup/background.jsm.js": typeof import("resource://devtools/client/performance-new/popup/background.jsm.js");
+    "resource://devtools/client/performance-new/shared/background.jsm.js": typeof import("resource://devtools/client/performance-new/shared/background.jsm.js");
+    "resource://devtools/client/performance-new/shared/symbolication.jsm.js": typeof import("resource://devtools/client/performance-new/shared/symbolication.jsm.js");
     "resource://devtools/shared/loader/browser-loader.js": any;
     "resource://devtools/client/performance-new/popup/menu-button.jsm.js": typeof import("resource://devtools/client/performance-new/popup/menu-button.jsm.js");
-    "resource://devtools/client/performance-new/typescript-lazy-load.jsm.js": typeof import("resource://devtools/client/performance-new/typescript-lazy-load.jsm.js");
-    "resource://devtools/client/performance-new/popup/panel.jsm.js": typeof import("resource://devtools/client/performance-new/popup/panel.jsm.js");
-    "resource://devtools/client/performance-new/symbolication.jsm.js": typeof import("resource://devtools/client/performance-new/symbolication.jsm.js");
+    "resource://devtools/client/performance-new/shared/typescript-lazy-load.jsm.js": typeof import("resource://devtools/client/performance-new/shared/typescript-lazy-load.jsm.js");
+    "resource://devtools/client/performance-new/popup/logic.jsm.js": typeof import("resource://devtools/client/performance-new/popup/logic.jsm.js");
     "resource:///modules/PanelMultiView.jsm": typeof import("resource:///modules/PanelMultiView.jsm");
   }
 
@@ -46,7 +46,9 @@ declare namespace MockedExports {
      * Then add the file path to the KnownModules above.
      */
     import: <S extends keyof KnownModules>(module: S) => KnownModules[S];
-    importESModule: <S extends keyof KnownModules>(module: S) => KnownModules[S];
+    importESModule: <S extends keyof KnownModules>(
+      module: S
+    ) => KnownModules[S];
     defineModuleGetter: (target: any, variable: string, path: string) => void;
     defineESModuleGetters: (target: any, mappings: any) => void;
   }
@@ -146,12 +148,21 @@ declare namespace MockedExports {
     arch: string;
   }
 
+  interface ProfileGenerationAdditionalInformation {
+    sharedLibraries: SharedLibrary[];
+  }
+
+  interface ProfileAndAdditionalInformation {
+    profile: ArrayBuffer;
+    additionalInformation?: ProfileGenerationAdditionalInformation;
+  }
+
   type Services = {
     env: {
       set: (name: string, value: string) => void;
       get: (name: string) => string;
       exists: (name: string) => boolean;
-    },
+    };
     prefs: nsIPrefBranch;
     profiler: {
       StartProfiler: (
@@ -174,7 +185,7 @@ declare namespace MockedExports {
       getProfileDataAsArrayBuffer: (sinceTime?: number) => Promise<ArrayBuffer>;
       getProfileDataAsGzippedArrayBuffer: (
         sinceTime?: number
-      ) => Promise<ArrayBuffer>;
+      ) => Promise<ProfileAndAdditionalInformation>;
       IsActive: () => boolean;
       sharedLibraries: SharedLibrary[];
     };
@@ -223,7 +234,7 @@ declare namespace MockedExports {
 
   // TS-TODO
   const CustomizableUIJSM: any;
-  const CustomizableWidgetsJSM: any;
+  const CustomizableWidgetsSYSMJS: any;
   const PanelMultiViewJSM: any;
 
   const LoaderESM: {
@@ -327,13 +338,13 @@ declare module "resource://gre/modules/AppConstants.sys.mjs" {
   export = MockedExports.AppConstantsSYSMJS;
 }
 
-declare module "resource://devtools/client/performance-new/popup/background.jsm.js" {
-  import * as Background from "devtools/client/performance-new/popup/background.jsm.js";
+declare module "resource://devtools/client/performance-new/shared/background.jsm.js" {
+  import * as Background from "devtools/client/performance-new/shared/background.jsm.js";
   export = Background;
 }
 
-declare module "resource://devtools/client/performance-new/symbolication.jsm.js" {
-  import * as PerfSymbolication from "devtools/client/performance-new/symbolication.jsm.js";
+declare module "resource://devtools/client/performance-new/shared/symbolication.jsm.js" {
+  import * as PerfSymbolication from "devtools/client/performance-new/shared/symbolication.jsm.js";
   export = PerfSymbolication;
 }
 
@@ -341,8 +352,8 @@ declare module "resource:///modules/CustomizableUI.jsm" {
   export = MockedExports.CustomizableUIJSM;
 }
 
-declare module "resource:///modules/CustomizableWidgets.jsm" {
-  export = MockedExports.CustomizableWidgetsJSM;
+declare module "resource:///modules/CustomizableWidgets.sys.mjs" {
+  export = MockedExports.CustomizableWidgetsSYSMJS;
 }
 
 declare module "resource:///modules/PanelMultiView.jsm" {

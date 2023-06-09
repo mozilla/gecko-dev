@@ -248,7 +248,7 @@
                 <menuitem id="historyRestoreLastSession"
                           command="Browser:RestoreLastSession" data-l10n-id="menu-history-restore-last-session"/>
                 <menuitem id="hiddenTabsMenu"
-                          oncommand="gTabsPanel.showHiddenTabsPanel(event);"
+                          oncommand="gTabsPanel.showHiddenTabsPanel(event, 'hidden-tabs-menuitem');"
                           hidden="true" data-l10n-id="menu-history-hidden-tabs"/>
                 <menu id="historyUndoMenu"
                       disabled="true" data-l10n-id="menu-history-undo-menu">
@@ -495,6 +495,10 @@
                           data-l10n-id="menu-help-not-deceptive"
                           appmenu-data-l10n-id="appmenu-help-not-deceptive"
                           hidden="true"/>
+                <menuitem id="helpSwitchDevice"
+                          oncommand="openSwitchingDevicesPage();"
+                          data-l10n-id="menu-help-switch-device"
+                          appmenu-data-l10n-id="appmenu-help-switch-device"/>
                 <menuseparator id="aboutSeparator"/>
                 <menuitem id="aboutName"
                           oncommand="openAboutDialog();"
@@ -504,7 +508,7 @@
                           hidden="true"/>
                 <menuitem id="helpPolicySupport"
                           hidden="true"
-                          oncommand="openUILinkIn(Services.policies.getSupportMenu().URL.href, 'tab', {triggeringPrincipal: Services.scriptSecurityManager.createNullPrincipal({})});"/>
+                          oncommand="openTrustedLinkIn(Services.policies.getSupportMenu().URL.href, 'tab');"/>
               </menupopup>
           </menu>
         </menubar>

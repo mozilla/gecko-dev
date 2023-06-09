@@ -3,6 +3,21 @@
 
 "use strict";
 
+const lazy = {};
+
+ChromeUtils.defineESModuleGetters(lazy, {
+  sinon: "resource://testing-common/Sinon.sys.mjs",
+});
+
+let sandbox;
+
+add_task(async function setup() {
+  sandbox = lazy.sinon.createSandbox();
+  registerCleanupFunction(() => {
+    sandbox.restore();
+  });
+});
+
 add_task(async function test_muxer() {
   Assert.throws(
     () => UrlbarProvidersManager.registerMuxer(),
@@ -60,8 +75,8 @@ add_task(async function test_muxer() {
     get name() {
       return "TestMuxer";
     }
-    sort(queryContext) {
-      queryContext.results.sort((a, b) => {
+    sort(queryContext, unsortedResults) {
+      queryContext.results = [...unsortedResults].sort((a, b) => {
         if (b.source == UrlbarUtils.RESULT_SOURCE.TABS) {
           return -1;
         }
@@ -577,10 +592,9 @@ add_task(async function test_badHeuristicsGroups_notFirst_4() {
  *   The expected results.
  */
 async function doBadHeuristicGroupsTest(resultGroups, expectedResults) {
-  Services.prefs.setCharPref(
-    "browser.urlbar.resultGroups",
-    JSON.stringify({ children: resultGroups })
-  );
+  sandbox.stub(UrlbarPrefs, "resultGroups").get(() => {
+    return { children: resultGroups };
+  });
 
   let provider = registerBasicTestProvider(BAD_HEURISTIC_RESULTS);
   let context = createContext("foo", { providers: [provider.name] });
@@ -588,7 +602,7 @@ async function doBadHeuristicGroupsTest(resultGroups, expectedResults) {
   await UrlbarProvidersManager.startQuery(context, controller);
   Assert.deepEqual(context.results, expectedResults);
 
-  Services.prefs.clearUserPref("browser.urlbar.resultGroups");
+  sandbox.restore();
 }
 
 // When `maxRichResults` is positive and taken up by suggested-index result(s),

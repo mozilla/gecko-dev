@@ -38,9 +38,6 @@ let tracker, releaseTrackerLoader;
 // => Avoid loading devtools module as much as possible
 // => If you really have to, lazy load them
 
-const { XPCOMUtils } = ChromeUtils.importESModule(
-  "resource://gre/modules/XPCOMUtils.sys.mjs"
-);
 XPCOMUtils.defineLazyGetter(this, "TrackedObjects", () => {
   return ChromeUtils.importESModule(
     "resource://devtools/shared/test-helpers/tracked-objects.sys.mjs"
@@ -206,10 +203,6 @@ async function stopRecordingAllocations(
         name: recordName + ":parent-process",
         subtests: [
           {
-            name: "objects-with-no-stacks",
-            value: parentProcessData.objectsWithoutStack,
-          },
-          {
             name: "objects-with-stacks",
             value: parentProcessData.objectsWithStack,
           },
@@ -228,10 +221,6 @@ async function stopRecordingAllocations(
     PERFHERDER_DATA.suites.push({
       name: recordName + ":content-process",
       subtests: [
-        {
-          name: "objects-with-no-stacks",
-          value: contentProcessData.objectsWithoutStack,
-        },
         {
           name: "objects-with-stacks",
           value: contentProcessData.objectsWithStack,

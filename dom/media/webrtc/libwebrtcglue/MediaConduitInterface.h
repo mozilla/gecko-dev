@@ -15,12 +15,12 @@
 #include "MediaConduitErrors.h"
 #include "mozilla/media/MediaUtils.h"
 #include "mozilla/MozPromise.h"
-#include "VideoTypes.h"
 #include "WebrtcVideoCodecFactory.h"
 #include "nsTArray.h"
 #include "mozilla/dom/RTCRtpSourcesBinding.h"
 #include "PerformanceRecorder.h"
 #include "transport/mediapacket.h"
+#include "MediaConduitControl.h"
 
 // libwebrtc includes
 #include "api/audio/audio_frame.h"
@@ -51,15 +51,9 @@ struct RTCRtpSourceEntry;
 
 enum class MediaSessionConduitLocalDirection : int { kSend, kRecv };
 
-class VideoConduitControlInterface;
-class AudioConduitControlInterface;
 class VideoSessionConduit;
 class AudioSessionConduit;
 class WebrtcCallWrapper;
-
-using RtpExtList = std::vector<webrtc::RtpExtension>;
-using Ssrc = uint32_t;
-using Ssrcs = std::vector<uint32_t>;
 
 /**
  * 1. Abstract renderer for video data
@@ -164,8 +158,10 @@ class MediaSessionConduit {
 
   virtual bool HasCodecPluginID(uint64_t aPluginID) const = 0;
 
+  // Stuff for driving mute/unmute events
   virtual MediaEventSource<void>& RtcpByeEvent() = 0;
   virtual MediaEventSource<void>& RtcpTimeoutEvent() = 0;
+  virtual MediaEventSource<void>& RtpPacketEvent() = 0;
 
   virtual bool SendRtp(const uint8_t* aData, size_t aLength,
                        const webrtc::PacketOptions& aOptions) = 0;
@@ -404,6 +400,8 @@ class VideoSessionConduit : public MediaSessionConduit {
 
   virtual bool AddFrameHistory(
       dom::Sequence<dom::RTCVideoFrameHistoryInternal>* outHistories) const = 0;
+
+  virtual Maybe<Ssrc> GetAssociatedLocalRtxSSRC(Ssrc aSsrc) const = 0;
 
  protected:
   /* RTCP feedback settings, for unit testing purposes */

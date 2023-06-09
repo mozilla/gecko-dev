@@ -12,11 +12,14 @@
 interface RTCRtpSender {
   readonly attribute MediaStreamTrack? track;
   readonly attribute RTCDtlsTransport? transport;
+  static RTCRtpCapabilities? getCapabilities(DOMString kind);
   [NewObject]
   Promise<undefined> setParameters (RTCRtpSendParameters parameters);
   RTCRtpSendParameters getParameters();
   [Throws]
   Promise<undefined> replaceTrack(MediaStreamTrack? withTrack);
+  [Throws]
+  undefined setStreams(MediaStream... streams);
   [NewObject]
   Promise<RTCStatsReport> getStats();
   [Pref="media.peerconnection.dtmf.enabled"]
@@ -24,7 +27,7 @@ interface RTCRtpSender {
   [ChromeOnly]
   sequence<MediaStream> getStreams();
   [ChromeOnly]
-  undefined setStreams(sequence<MediaStream> streams);
+  undefined setStreamsImpl(MediaStream... streams);
   [ChromeOnly]
   undefined setTrack(MediaStreamTrack? track);
 };

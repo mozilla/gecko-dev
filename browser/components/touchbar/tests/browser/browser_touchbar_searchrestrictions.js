@@ -2,10 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const { XPCOMUtils } = ChromeUtils.importESModule(
-  "resource://gre/modules/XPCOMUtils.sys.mjs"
-);
-
 ChromeUtils.defineESModuleGetters(this, {
   UrlbarUtils: "resource:///modules/UrlbarUtils.sys.mjs",
   UrlbarTestUtils: "resource://testing-common/UrlbarTestUtils.sys.mjs",
@@ -146,7 +142,7 @@ add_task(async function clearURLs() {
   for (let { loadUrl, token } of tests) {
     let browser = win.gBrowser.selectedBrowser;
     let loadedPromise = BrowserTestUtils.browserLoaded(browser, false, loadUrl);
-    BrowserTestUtils.loadURI(browser, loadUrl);
+    BrowserTestUtils.loadURIString(browser, loadUrl);
     await loadedPromise;
     if (win.gURLBar.getAttribute("pageproxystate") != "valid") {
       await TestUtils.waitForCondition(

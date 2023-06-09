@@ -54,6 +54,8 @@
 #include "LayoutConstants.h"
 #include "mozilla/AspectRatio.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/Baseline.h"
+#include "mozilla/EnumSet.h"
 #include "mozilla/EventForwards.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/RelativeTo.h"
@@ -72,7 +74,6 @@
 #include "nsStyleStruct.h"
 #include "Visibility.h"
 #include "nsChangeHint.h"
-#include "mozilla/ComputedStyleInlines.h"
 #include "mozilla/EnumSet.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/CompositorHitTestInfo.h"
@@ -110,8 +111,6 @@ class nsFrameSelection;
 class nsIWidget;
 class nsIScrollableFrame;
 class nsISelectionController;
-class nsBoxLayoutState;
-class nsBoxLayout;
 class nsILineIterator;
 class gfxSkipChars;
 class gfxSkipCharsIterator;
@@ -124,12 +123,11 @@ class nsStyleChangeList;
 class nsViewManager;
 class nsWindowSizes;
 
-struct nsBoxLayoutMetrics;
-struct nsPeekOffsetStruct;
 struct CharacterDataChangeInfo;
 
 namespace mozilla {
 
+enum class PeekOffsetOption : uint8_t;
 enum class PseudoStyleType : uint8_t;
 enum class TableSelectionMode : uint32_t;
 
@@ -144,6 +142,8 @@ class LazyLogModule;
 class PresShell;
 class WidgetGUIEvent;
 class WidgetMouseEvent;
+
+struct PeekOffsetStruct;
 
 namespace layers {
 class Layer;
@@ -346,13 +346,6 @@ class nsReflowStatus final {
 std::ostream& operator<<(std::ostream& aStream, const nsReflowStatus& aStatus);
 
 namespace mozilla {
-
-// https://drafts.csswg.org/css-align-3/#baseline-sharing-group
-enum class BaselineSharingGroup {
-  // NOTE Used as an array index so must be 0 and 1.
-  First = 0,
-  Last = 1,
-};
 
 // Loosely: https://drafts.csswg.org/css-align-3/#shared-alignment-context
 enum class AlignmentContext {
@@ -755,6 +748,18 @@ class nsIFrame : public nsQueryFrame {
   nsIContent* GetContent() const { return mContent; }
 
   /**
+   * @brief Get the closest native anonymous subtree root if the content is in a
+   * native anonymous subtree.
+   *
+   * @return The root of native anonymous subtree which the content belongs to.
+   * Otherwise, nullptr.
+   */
+  nsIContent* GetClosestNativeAnonymousSubtreeRoot() const {
+    return mContent ? mContent->GetClosestNativeAnonymousSubtreeRoot()
+                    : nullptr;
+  }
+
+  /**
    * Get the frame that should be the parent for the frames of child elements
    * May return nullptr during reflow
    */
@@ -888,6 +893,9 @@ class nsIFrame : public nsQueryFrame {
    */
   already_AddRefed<ComputedStyle> ComputeSelectionStyle(
       int16_t aSelectionStatus) const;
+
+  already_AddRefed<ComputedStyle> ComputeHighlightSelectionStyle(
+      const nsAtom* aHighlightName);
 
   /**
    * Accessor functions for geometric parent.
@@ -1145,13 +1153,7 @@ class nsIFrame : public nsQueryFrame {
     SetRect(nsRect(mRect.TopLeft(), aSize), aRebuildDisplayItems);
   }
 
-  void SetPosition(const nsPoint& aPt) {
-    if (mRect.TopLeft() == aPt) {
-      return;
-    }
-    mRect.MoveTo(aPt);
-    MarkNeedsDisplayItemRebuild();
-  }
+  void SetPosition(const nsPoint& aPt);
   void SetPosition(mozilla::WritingMode aWritingMode,
                    const mozilla::LogicalPoint& aPt,
                    const nsSize& aContainerSize) {
@@ -1192,6 +1194,10 @@ class nsIFrame : public nsQueryFrame {
    * Return frame's rect without relative positioning
    */
   nsRect GetNormalRect() const;
+  mozilla::LogicalRect GetLogicalNormalRect(
+      mozilla::WritingMode aWritingMode, const nsSize& aContainerSize) const {
+    return mozilla::LogicalRect(aWritingMode, GetNormalRect(), aContainerSize);
+  }
 
   /**
    * Returns frame's rect as required by the GetBoundingClientRect() DOM API.
@@ -1266,9 +1272,6 @@ class nsIFrame : public nsQueryFrame {
   NS_DECLARE_FRAME_PROPERTY_DELETABLE(PreEffectsBBoxProperty, nsRect)
   NS_DECLARE_FRAME_PROPERTY_DELETABLE(PreTransformOverflowAreasProperty,
                                       mozilla::OverflowAreas)
-
-  NS_DECLARE_FRAME_PROPERTY_DELETABLE(CachedBorderImageDataProperty,
-                                      CachedBorderImageData)
 
   NS_DECLARE_FRAME_PROPERTY_DELETABLE(OverflowAreasProperty,
                                       mozilla::OverflowAreas)
@@ -1524,119 +1527,44 @@ class nsIFrame : public nsQueryFrame {
   bool GetShapeBoxBorderRadii(nscoord aRadii[8]) const;
 
   /**
-   * XXX: this method will likely be replaced by GetVerticalAlignBaseline
-   * Get the position of the frame's baseline, relative to the top of
-   * the frame (its top border edge).  Only valid when Reflow is not
-   * needed.
-   * @note You should only call this on frames with a WM that's parallel to
-   * aWritingMode.
-   * @param aWritingMode the writing-mode of the alignment context, with the
-   * ltr/rtl direction tweak done by nsIFrame::GetWritingMode(nsIFrame*) in
-   * inline contexts (see that method).
+   * `GetNaturalBaselineBOffset`, but determines the baseline sharing group
+   * through `GetDefaultBaselineSharingGroup` (If not specified), and never
+   * fails, returning a synthesized baseline through
+   * `SynthesizeFallbackBaseline`. Unlike `GetNaturalBaselineBOffset`, Result is
+   * always relative to the block start of the frame.
    */
-  virtual nscoord GetLogicalBaseline(mozilla::WritingMode aWritingMode) const;
+  nscoord GetLogicalBaseline(mozilla::WritingMode aWM) const;
+  nscoord GetLogicalBaseline(mozilla::WritingMode aWM,
+                             BaselineSharingGroup aBaselineGroup) const;
 
   /**
-   * Synthesize a first(last) inline-axis baseline based on our margin-box.
-   * An alphabetical baseline is at the start(end) edge and a central baseline
-   * is at the center of our block-axis margin-box (aWM tells which to use).
-   * https://drafts.csswg.org/css-align-3/#synthesize-baselines
-   * @note You should only call this on frames with a WM that's parallel to aWM.
-   * @param aWM the writing-mode of the alignment context
-   * @return an offset from our border-box block-axis start(end) edge for
-   * a first(last) baseline respectively
-   * (implemented in nsIFrameInlines.h)
-   */
-  inline nscoord SynthesizeBaselineBOffsetFromMarginBox(
-      mozilla::WritingMode aWM, BaselineSharingGroup aGroup) const;
-
-  /**
-   * Synthesize a first(last) inline-axis baseline based on our border-box.
-   * An alphabetical baseline is at the start(end) edge and a central baseline
-   * is at the center of our block-axis border-box (aWM tells which to use).
-   * https://drafts.csswg.org/css-align-3/#synthesize-baselines
+   * Return true if the frame has a first(last) inline-axis baseline per
+   * CSS Box Alignment.  If so, the returned baseline is the distance from
+   * the relevant block-axis border-box edge (Start for
+   * BaselineSharingGroup::First, end for BaselineSharingGroup::Last), where
+   * a positive value points towards the content-box.
+   * https://drafts.csswg.org/css-align-3/#baseline-export
    * @note The returned value is only valid when reflow is not needed.
    * @note You should only call this on frames with a WM that's parallel to aWM.
-   * @param aWM the writing-mode of the alignment context
-   * @return an offset from our border-box block-axis start(end) edge for
-   * a first(last) baseline respectively
-   * (implemented in nsIFrameInlines.h)
+   * @param aWM the writing-mode of the alignment context.
+   * @return the baseline offset, if one exists
    */
-  inline nscoord SynthesizeBaselineBOffsetFromBorderBox(
-      mozilla::WritingMode aWM, BaselineSharingGroup aGroup) const;
-
-  /**
-   * Synthesize a first(last) inline-axis baseline based on our content-box.
-   * An alphabetical baseline is at the start(end) edge and a central baseline
-   * is at the center of our block-axis content-box (aWM tells which to use).
-   * https://drafts.csswg.org/css-align-3/#synthesize-baselines
-   * @note The returned value is only valid when reflow is not needed.
-   * @note You should only call this on frames with a WM that's parallel to aWM.
-   * @param aWM the writing-mode of the alignment context
-   * @return an offset from our border-box block-axis start(end) edge for
-   * a first(last) baseline respectively
-   * (implemented in nsIFrameInlines.h)
-   */
-  inline nscoord SynthesizeBaselineBOffsetFromContentBox(
-      mozilla::WritingMode aWM, BaselineSharingGroup aGroup) const;
-
-  /**
-   * Return the position of the frame's inline-axis baseline, or synthesize one
-   * for the given alignment context. The returned baseline is the distance from
-   * the block-axis border-box start(end) edge for aBaselineGroup ::First(Last).
-   * @note The returned value is only valid when reflow is not needed.
-   * @note You should only call this on frames with a WM that's parallel to aWM.
-   * @param aWM the writing-mode of the alignment context
-   * @param aBaselineOffset out-param, only valid if the method returns true
-   * (implemented in nsIFrameInlines.h)
-   */
-  inline nscoord BaselineBOffset(mozilla::WritingMode aWM,
-                                 BaselineSharingGroup aBaselineGroup,
-                                 AlignmentContext aAlignmentContext) const;
-
-  /**
-   * XXX: this method is taking over the role that GetLogicalBaseline has.
-   * Return true if the frame has a CSS2 'vertical-align' baseline.
-   * If it has, then the returned baseline is the distance from the block-
-   * axis border-box start edge.
-   * @note This method should only be used in AlignmentContext::Inline
-   * contexts.
-   * @note The returned value is only valid when reflow is not needed.
-   * @note You should only call this on frames with a WM that's parallel to aWM.
-   * @param aWM the writing-mode of the alignment context
-   * @param aBaseline the baseline offset, only valid if the method returns true
-   */
-  virtual bool GetVerticalAlignBaseline(mozilla::WritingMode aWM,
-                                        nscoord* aBaseline) const {
-    return false;
+  virtual Maybe<nscoord> GetNaturalBaselineBOffset(
+      mozilla::WritingMode aWM, BaselineSharingGroup aBaselineGroup) const {
+    return Nothing{};
   }
 
+  struct CaretBlockAxisMetrics {
+    nscoord mOffset = 0;
+    nscoord mExtent = 0;
+  };
   /**
-   * Return true if the frame has a first(last) inline-axis natural baseline per
-   * CSS Box Alignment.  If so, then the returned baseline is the distance from
-   * the block-axis border-box start(end) edge for aBaselineGroup ::First(Last).
-   * https://drafts.csswg.org/css-align-3/#natural-baseline
-   * @note The returned value is only valid when reflow is not needed.
-   * @note You should only call this on frames with a WM that's parallel to aWM.
-   * @param aWM the writing-mode of the alignment context
-   * @param aBaseline the baseline offset, only valid if the method returns true
+   * Get the offset (Block start of the caret) and extent of the caret in this
+   * frame. The returned offset is corrected for vertical & line-inverted
+   * writing modes.
    */
-  virtual bool GetNaturalBaselineBOffset(mozilla::WritingMode aWM,
-                                         BaselineSharingGroup aBaselineGroup,
-                                         nscoord* aBaseline) const {
-    return false;
-  }
-
-  /**
-   * Get the position of the baseline on which the caret needs to be placed,
-   * relative to the top of the frame.  This is mostly needed for frames
-   * which return a baseline from GetBaseline which is not useful for
-   * caret positioning.
-   */
-  virtual nscoord GetCaretBaseline() const {
-    return GetLogicalBaseline(GetWritingMode());
-  }
-
+  CaretBlockAxisMetrics GetCaretBlockAxisMetrics(mozilla::WritingMode,
+                                                 const nsFontMetrics&) const;
   // Gets the page-name value to be used for the page that contains this frame
   // during paginated reflow.
   const nsAtom* ComputePageValue() const MOZ_NONNULL_RETURN;
@@ -1669,6 +1597,16 @@ class nsIFrame : public nsQueryFrame {
   NS_DECLARE_FRAME_PROPERTY_SMALL_VALUE(VisibilityStateProperty, uint32_t);
 
  protected:
+  /**
+   * Get the position of the baseline on which the caret needs to be placed,
+   * relative to the top of the frame.  This is mostly needed for frames
+   * which return a baseline from GetBaseline which is not useful for
+   * caret positioning.
+   */
+  virtual nscoord GetCaretBaseline() const {
+    return GetLogicalBaseline(GetWritingMode());
+  }
+
   /**
    * Subclasses can call this method to enable visibility tracking for this
    * frame.
@@ -1706,7 +1644,25 @@ class nsIFrame : public nsQueryFrame {
       Visibility aNewVisibility,
       const Maybe<OnNonvisible>& aNonvisibleAction = Nothing());
 
+  /**
+   * Synthesize a baseline for this element. The returned baseline is the
+   * distance from the relevant block-axis border-box edge (Start for
+   * BaselineSharingGroup::First, end for BaselineSharingGroup::Last), where a
+   * positive value points towards the content-box.
+   * @note This always returns a synthesized baseline, even if the element may
+   * have an actual baseline.
+   */
+  virtual nscoord SynthesizeFallbackBaseline(
+      mozilla::WritingMode aWM, BaselineSharingGroup aBaselineGroup) const;
+
  public:
+  /**
+   * Get the suitable baseline sharing group for this element.
+   */
+  virtual BaselineSharingGroup GetDefaultBaselineSharingGroup() const {
+    return BaselineSharingGroup::First;
+  }
+
   ///////////////////////////////////////////////////////////////////////////////
   // Internal implementation for the approximate frame visibility API.
   ///////////////////////////////////////////////////////////////////////////////
@@ -2448,13 +2404,10 @@ class nsIFrame : public nsQueryFrame {
    */
   virtual void MarkIntrinsicISizesDirty();
 
- private:
-  nsBoxLayoutMetrics* BoxMetrics() const;
-
  public:
   /**
    * Make this frame and all descendants dirty (if not already).
-   * Exceptions: XULBoxFrame and TableColGroupFrame children.
+   * Exceptions: TableColGroupFrame children.
    */
   void MarkSubtreeDirty();
 
@@ -3339,23 +3292,22 @@ class nsIFrame : public nsQueryFrame {
     // A frame that participates in inline reflow, i.e., one that
     // requires ReflowInput::mLineLayout.
     eLineParticipant = 1 << 6,
-    eXULBox = 1 << 7,
-    eCanContainOverflowContainers = 1 << 8,
-    eTablePart = 1 << 9,
-    eSupportsCSSTransforms = 1 << 10,
+    eCanContainOverflowContainers = 1 << 7,
+    eTablePart = 1 << 8,
+    eSupportsCSSTransforms = 1 << 9,
 
     // A replaced element that has replaced-element sizing
     // characteristics (i.e., like images or iframes), as opposed to
     // inline-block sizing characteristics (like form controls).
-    eReplacedSizing = 1 << 11,
+    eReplacedSizing = 1 << 10,
 
     // Does this frame class support 'contain: layout' and
     // 'contain:paint' (supporting one is equivalent to supporting the
     // other).
-    eSupportsContainLayoutAndPaint = 1 << 12,
+    eSupportsContainLayoutAndPaint = 1 << 11,
 
     // Does this frame class support `aspect-ratio` property.
-    eSupportsAspectRatio = 1 << 13,
+    eSupportsAspectRatio = 1 << 12,
 
     // These are to allow nsIFrame::Init to assert that IsFrameOfType
     // implementations all call the base class method.  They are only
@@ -3426,12 +3378,6 @@ class nsIFrame : public nsQueryFrame {
    * subclasses.
    */
   bool IsImageFrameOrSubclass() const;
-
-  /**
-   * Returns true if the frame is an instance of SVGGeometryFrame or one
-   * of its subclasses.
-   */
-  inline bool IsSVGGeometryFrameOrSubclass() const;
 
   /**
    * Get this frame's CSS containing block.
@@ -3863,13 +3809,14 @@ class nsIFrame : public nsQueryFrame {
    *
    * @param aPos is defined in nsFrameSelection
    */
-  virtual nsresult PeekOffset(nsPeekOffsetStruct* aPos);
+  virtual nsresult PeekOffset(mozilla::PeekOffsetStruct* aPos);
 
  private:
-  nsresult PeekOffsetForCharacter(nsPeekOffsetStruct* aPos, int32_t aOffset);
-  nsresult PeekOffsetForWord(nsPeekOffsetStruct* aPos, int32_t aOffset);
-  nsresult PeekOffsetForLine(nsPeekOffsetStruct* aPos);
-  nsresult PeekOffsetForLineEdge(nsPeekOffsetStruct* aPos);
+  nsresult PeekOffsetForCharacter(mozilla::PeekOffsetStruct* aPos,
+                                  int32_t aOffset);
+  nsresult PeekOffsetForWord(mozilla::PeekOffsetStruct* aPos, int32_t aOffset);
+  nsresult PeekOffsetForLine(mozilla::PeekOffsetStruct* aPos);
+  nsresult PeekOffsetForLineEdge(mozilla::PeekOffsetStruct* aPos);
 
   /**
    * Search for the first paragraph boundary before or after the given position
@@ -3878,7 +3825,7 @@ class nsIFrame : public nsQueryFrame {
    *              Input: mDirection
    *              Output: mResultContent, mContentOffset
    */
-  nsresult PeekOffsetForParagraph(nsPeekOffsetStruct* aPos);
+  nsresult PeekOffsetForParagraph(mozilla::PeekOffsetStruct* aPos);
 
  public:
   // given a frame five me the first/last leaf available
@@ -3915,7 +3862,7 @@ class nsIFrame : public nsQueryFrame {
     };
 
     /** Transfers frame and offset info for PeekOffset() result */
-    void TransferTo(nsPeekOffsetStruct& aPos) const;
+    void TransferTo(mozilla::PeekOffsetStruct& aPos) const;
     bool Failed() { return !mFrame; }
 
     explicit SelectablePeekReport(nsIFrame* aFrame = nullptr,
@@ -3929,18 +3876,16 @@ class nsIFrame : public nsQueryFrame {
    * Called to find the previous/next non-anonymous selectable leaf frame.
    *
    * @param aDirection the direction to move in (eDirPrevious or eDirNext)
-   * @param aVisual whether bidi caret behavior is visual (true) or logical
-   * (false)
-   * @param aJumpLines whether to allow jumping across line boundaries
-   * @param aScrollViewStop whether to stop when reaching a scroll frame
-   * boundary
+   * @param aOptions the other options which is same as
+   * PeekOffsetStruct::mOptions.
+   * FIXME: Due to the include hell, we cannot use the alias, PeekOffsetOptions
+   * is not available in this header file.
    */
-  SelectablePeekReport GetFrameFromDirection(nsDirection aDirection,
-                                             bool aVisual, bool aJumpLines,
-                                             bool aScrollViewStop,
-                                             bool aForceEditableRegion);
-
-  SelectablePeekReport GetFrameFromDirection(const nsPeekOffsetStruct& aPos);
+  SelectablePeekReport GetFrameFromDirection(
+      nsDirection aDirection,
+      const mozilla::EnumSet<mozilla::PeekOffsetOption>& aOptions);
+  SelectablePeekReport GetFrameFromDirection(
+      const mozilla::PeekOffsetStruct& aPos);
 
   /**
    * Return:
@@ -4139,20 +4084,18 @@ class nsIFrame : public nsQueryFrame {
    * Determines whether a frame is visible for painting;
    * taking into account whether it is painting a selection or printing.
    */
-  bool IsVisibleForPainting();
+  bool IsVisibleForPainting() const;
   /**
    * Determines whether a frame is visible for painting or collapsed;
    * taking into account whether it is painting a selection or printing,
    */
-  bool IsVisibleOrCollapsedForPainting();
+  bool IsVisibleOrCollapsedForPainting() const;
 
   /**
    * Determines if this frame is a stacking context.
    */
   bool IsStackingContext(const nsStyleDisplay*, const nsStyleEffects*);
   bool IsStackingContext();
-
-  virtual bool HonorPrintBackgroundSettings() const { return true; }
 
   // Whether we should paint backgrounds or not.
   struct ShouldPaintBackground {
@@ -4314,103 +4257,12 @@ class nsIFrame : public nsQueryFrame {
    * focusable but removed from the tab order. This is the default on
    * Mac OS X, where fewer items are focusable.
    * @param  [in, optional] aWithMouse, is this focus query for mouse clicking
+   * @param  [in, optional] aCheckVisibility, whether to treat an invisible
+   *   frame as not focusable
    * @return whether the frame is focusable via mouse, kbd or script.
    */
-  [[nodiscard]] Focusable IsFocusable(bool aWithMouse = false);
-
-  // BOX LAYOUT METHODS
-  // These methods have been migrated from nsIBox and are in the process of
-  // being refactored. DO NOT USE OUTSIDE OF XUL.
-  bool IsXULBoxFrame() const { return IsFrameOfType(nsIFrame::eXULBox); }
-
-  enum Halignment { hAlign_Left, hAlign_Right, hAlign_Center };
-
-  enum Valignment { vAlign_Top, vAlign_Middle, vAlign_BaseLine, vAlign_Bottom };
-
-  /**
-   * This calculates the minimum size required for a box based on its state
-   * @param[in] aBoxLayoutState The desired state to calculate for
-   * @return The minimum size
-   */
-  virtual nsSize GetXULMinSize(nsBoxLayoutState& aBoxLayoutState);
-
-  /**
-   * This calculates the preferred size of a box based on its state
-   * @param[in] aBoxLayoutState The desired state to calculate for
-   * @return The preferred size
-   */
-  virtual nsSize GetXULPrefSize(nsBoxLayoutState& aBoxLayoutState);
-
-  /**
-   * This calculates the maximum size for a box based on its state
-   * @param[in] aBoxLayoutState The desired state to calculate for
-   * @return The maximum size
-   */
-  virtual nsSize GetXULMaxSize(nsBoxLayoutState& aBoxLayoutState);
-
-  int32_t GetXULFlex() const;
-  virtual nscoord GetXULBoxAscent(nsBoxLayoutState& aBoxLayoutState);
-  virtual bool IsXULCollapsed();
-  // This does not alter the overflow area. If the caller is changing
-  // the box size, the caller is responsible for updating the overflow
-  // area. It's enough to just call XULLayout or SyncXULLayout on the
-  // box. You can pass true to aRemoveOverflowArea as a
-  // convenience.
-  virtual void SetXULBounds(nsBoxLayoutState& aBoxLayoutState,
-                            const nsRect& aRect,
-                            bool aRemoveOverflowAreas = false);
-  nsresult XULLayout(nsBoxLayoutState& aBoxLayoutState);
-  // Box methods.  Note that these do NOT just get the CSS border, padding,
-  // etc.  They also talk to nsITheme.
-  virtual nsresult GetXULBorderAndPadding(nsMargin& aBorderAndPadding);
-  virtual nsresult GetXULBorder(nsMargin& aBorder);
-  virtual nsresult GetXULPadding(nsMargin& aBorderAndPadding);
-  virtual nsresult GetXULMargin(nsMargin& aMargin);
-  virtual void SetXULLayoutManager(nsBoxLayout* aLayout) {}
-  virtual nsBoxLayout* GetXULLayoutManager() { return nullptr; }
-  nsresult GetXULClientRect(nsRect& aContentRect);
-
-  virtual ReflowChildFlags GetXULLayoutFlags() {
-    return ReflowChildFlags::Default;
-  }
-
-  // For nsSprocketLayout
-  virtual Valignment GetXULVAlign() const { return vAlign_Top; }
-  virtual Halignment GetXULHAlign() const { return hAlign_Left; }
-
-  bool IsXULHorizontal() const {
-    return (mState & NS_STATE_IS_HORIZONTAL) != 0;
-  }
-  bool IsXULNormalDirection() const {
-    return (mState & NS_STATE_IS_DIRECTION_NORMAL) != 0;
-  }
-
-  nsresult XULRedraw(nsBoxLayoutState& aState);
-
-  static bool AddXULPrefSize(nsIFrame* aBox, nsSize& aSize, bool& aWidth,
-                             bool& aHeightSet);
-  static bool AddXULMinSize(nsIFrame* aBox, nsSize& aSize, bool& aWidth,
-                            bool& aHeightSet);
-  static bool AddXULMaxSize(nsIFrame* aBox, nsSize& aSize, bool& aWidth,
-                            bool& aHeightSet);
-  static int32_t ComputeXULFlex(nsIFrame* aBox);
-
-  void AddXULBorderAndPadding(nsSize& aSize);
-
-  static void AddXULBorderAndPadding(nsIFrame* aBox, nsSize& aSize);
-  static void AddXULMargin(nsIFrame* aChild, nsSize& aSize);
-  static void AddXULMargin(nsSize& aSize, const nsMargin& aMargin);
-
-  static nsSize XULBoundsCheckMinMax(const nsSize& aMinSize,
-                                     const nsSize& aMaxSize);
-  static nsSize XULBoundsCheck(const nsSize& aMinSize, const nsSize& aPrefSize,
-                               const nsSize& aMaxSize);
-  static nscoord XULBoundsCheck(nscoord aMinSize, nscoord aPrefSize,
-                                nscoord aMaxSize);
-
-  static nsIFrame* GetChildXULBox(const nsIFrame* aFrame);
-  static nsIFrame* GetNextXULBox(const nsIFrame* aFrame);
-  static nsIFrame* GetParentXULBox(const nsIFrame* aFrame);
+  [[nodiscard]] Focusable IsFocusable(bool aWithMouse = false,
+                                      bool aCheckVisibility = true);
 
  protected:
   // Helper for IsFocusable.
@@ -4418,32 +4270,9 @@ class nsIFrame : public nsQueryFrame {
 
   /**
    * Returns true if this box clips its children, e.g., if this box is an
-   * scrollbox.
+   * scrollbox or has overflow: clip in both axes.
    */
-  virtual bool DoesClipChildrenInBothAxes();
-
-  // We compute and store the HTML content's overflow area. So don't
-  // try to compute it in the box code.
-  virtual bool XULComputesOwnOverflowArea() { return true; }
-
-  nsresult SyncXULLayout(nsBoxLayoutState& aBoxLayoutState);
-
-  bool XULNeedsRecalc(const nsSize& aSize);
-  bool XULNeedsRecalc(nscoord aCoord);
-  void XULSizeNeedsRecalc(nsSize& aSize);
-  void XULCoordNeedsRecalc(nscoord& aCoord);
-
-  nsresult BeginXULLayout(nsBoxLayoutState& aState);
-  NS_IMETHOD DoXULLayout(nsBoxLayoutState& aBoxLayoutState);
-  nsresult EndXULLayout(nsBoxLayoutState& aState);
-
-  nsSize GetUncachedXULMinSize(nsBoxLayoutState& aBoxLayoutState);
-  nsSize GetUncachedXULPrefSize(nsBoxLayoutState& aBoxLayoutState);
-  nsSize GetUncachedXULMaxSize(nsBoxLayoutState& aBoxLayoutState);
-
-  // END OF BOX LAYOUT METHODS
-  // The above methods have been migrated from nsIBox and are in the process of
-  // being refactored. DO NOT USE OUTSIDE OF XUL.
+  bool DoesClipChildrenInBothAxes() const;
 
   /**
    * NOTE: aStatus is assumed to be already-initialized. The reflow statuses of
@@ -4457,13 +4286,6 @@ class nsIFrame : public nsQueryFrame {
                             bool aConstrainBSize = true);
 
  private:
-  void BoxReflow(nsBoxLayoutState& aState, nsPresContext* aPresContext,
-                 ReflowOutput& aDesiredSize, gfxContext* aRenderingContext,
-                 nscoord aX, nscoord aY, nscoord aWidth, nscoord aHeight,
-                 bool aMoveFrame = true);
-
-  NS_IMETHODIMP RefreshSizeCache(nsBoxLayoutState& aState);
-
   Maybe<nscoord> ComputeInlineSizeFromAspectRatio(
       mozilla::WritingMode aWM, const mozilla::LogicalSize& aCBSize,
       const mozilla::LogicalSize& aContentEdgeToBoxSizing,
@@ -4692,6 +4514,13 @@ class nsIFrame : public nsQueryFrame {
   }
 
   /**
+   * Returns true if the frame is an SVGTextFrame or one of its descendants.
+   */
+  bool IsInSVGTextSubtree() const {
+    return HasAnyStateBits(NS_FRAME_IS_SVG_TEXT);
+  }
+
+  /**
    * Return whether this frame keeps track of overflow areas. (Frames for
    * non-display SVG elements -- e.g. <clipPath> -- do not maintain overflow
    * areas, because they're never painted.)
@@ -4722,7 +4551,7 @@ class nsIFrame : public nsQueryFrame {
    * Values that don't result in a 2D matrix will be ignored and an identity
    * matrix will be returned instead.
    */
-  Matrix ComputeWidgetTransform();
+  Matrix ComputeWidgetTransform() const;
 
   /**
    * @return true iff this frame has one or more associated image requests.
@@ -5074,8 +4903,10 @@ class nsIFrame : public nsQueryFrame {
     AddStateBits(NS_FRAME_IN_REFLOW);
   }
 
+ private:
   nsFrameState mState;
 
+ protected:
   /**
    * List of properties attached to the frame.
    */

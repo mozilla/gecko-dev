@@ -1,13 +1,16 @@
 "use strict";
 
-const { ExperimentFakes } = ChromeUtils.import(
-  "resource://testing-common/NimbusTestUtils.jsm"
+const { ExperimentFakes } = ChromeUtils.importESModule(
+  "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
 const { FirstStartup } = ChromeUtils.importESModule(
   "resource://gre/modules/FirstStartup.sys.mjs"
 );
-const { NimbusFeatures } = ChromeUtils.import(
-  "resource://nimbus/ExperimentAPI.jsm"
+const { NimbusFeatures } = ChromeUtils.importESModule(
+  "resource://nimbus/ExperimentAPI.sys.mjs"
+);
+const { EnrollmentsContext } = ChromeUtils.importESModule(
+  "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs"
 );
 const { PanelTestProvider } = ChromeUtils.import(
   "resource://activity-stream/lib/PanelTestProvider.jsm"
@@ -15,8 +18,8 @@ const { PanelTestProvider } = ChromeUtils.import(
 const { TelemetryTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/TelemetryTestUtils.sys.mjs"
 );
-const { TelemetryEvents } = ChromeUtils.import(
-  "resource://normandy/lib/TelemetryEvents.jsm"
+const { TelemetryEvents } = ChromeUtils.importESModule(
+  "resource://normandy/lib/TelemetryEvents.sys.mjs"
 );
 
 add_setup(async function setup() {
@@ -36,7 +39,7 @@ add_task(async function test_updateRecipes_activeExperiments() {
   const onRecipe = sandbox.stub(manager, "onRecipe");
   sinon.stub(loader.remoteSettingsClient, "get").resolves([PASS_FILTER_RECIPE]);
   sandbox.stub(manager.store, "ready").resolves();
-  sandbox.stub(manager.store, "getAllActive").returns([recipe]);
+  sandbox.stub(manager.store, "getAllActiveExperiments").returns([recipe]);
 
   await loader.init();
 
@@ -53,7 +56,7 @@ add_task(async function test_updateRecipes_isFirstRun() {
   const onRecipe = sandbox.stub(manager, "onRecipe");
   sinon.stub(loader.remoteSettingsClient, "get").resolves([PASS_FILTER_RECIPE]);
   sandbox.stub(manager.store, "ready").resolves();
-  sandbox.stub(manager.store, "getAllActive").returns([recipe]);
+  sandbox.stub(manager.store, "getAllActiveExperiments").returns([recipe]);
 
   // Pretend to be in the first startup
   FirstStartup._state = FirstStartup.IN_PROGRESS;
@@ -96,7 +99,7 @@ add_task(async function test_updateRecipes_invalidFeatureId() {
   const onRecipe = sandbox.stub(manager, "onRecipe");
   sinon.stub(loader.remoteSettingsClient, "get").resolves([badRecipe]);
   sandbox.stub(manager.store, "ready").resolves();
-  sandbox.stub(manager.store, "getAllActive").returns([]);
+  sandbox.stub(manager.store, "getAllActiveExperiments").returns([]);
 
   await loader.init();
   ok(onRecipe.notCalled, "No recipes");
@@ -117,7 +120,7 @@ add_task(async function test_updateRecipes_invalidFeatureValue() {
           {
             featureId: "spotlight",
             value: {
-              id: "test-spotlight-invalid-1",
+              template: "spotlight",
             },
           },
         ],
@@ -129,7 +132,7 @@ add_task(async function test_updateRecipes_invalidFeatureValue() {
           {
             featureId: "spotlight",
             value: {
-              id: "test-spotlight-invalid-2",
+              template: "spotlight",
             },
           },
         ],
@@ -140,7 +143,7 @@ add_task(async function test_updateRecipes_invalidFeatureValue() {
   const onRecipe = sandbox.stub(manager, "onRecipe");
   sinon.stub(loader.remoteSettingsClient, "get").resolves([badRecipe]);
   sandbox.stub(manager.store, "ready").resolves();
-  sandbox.stub(manager.store, "getAllActive").returns([]);
+  sandbox.stub(manager.store, "getAllActiveExperiments").returns([]);
 
   await loader.init();
   ok(onRecipe.notCalled, "No recipes");
@@ -158,7 +161,7 @@ add_task(async function test_updateRecipes_invalidRecipe() {
   const onRecipe = sandbox.stub(manager, "onRecipe");
   sinon.stub(loader.remoteSettingsClient, "get").resolves([badRecipe]);
   sandbox.stub(manager.store, "ready").resolves();
-  sandbox.stub(manager.store, "getAllActive").returns([]);
+  sandbox.stub(manager.store, "getAllActiveExperiments").returns([]);
 
   await loader.init();
   ok(onRecipe.notCalled, "No recipes");
@@ -192,12 +195,16 @@ add_task(async function test_updateRecipes_invalidRecipeAfterUpdate() {
     "should call .onRecipe with argument data"
   );
   equal(loader.manager.onFinalize.callCount, 1, "should call .onFinalize once");
+
   ok(
-    loader.manager.onFinalize.calledWith("rs-loader", {
+    onFinalizeCalled(loader.manager.onFinalize, "rs-loader", {
       recipeMismatches: [],
       invalidRecipes: [],
       invalidBranches: new Map(),
       invalidFeatures: new Map(),
+      missingLocale: [],
+      missingL10nIds: new Map(),
+      locale: Services.locale.appLocaleAsBCP47,
       validationEnabled: true,
     }),
     "should call .onFinalize with no mismatches or invalid recipes"
@@ -220,11 +227,14 @@ add_task(async function test_updateRecipes_invalidRecipeAfterUpdate() {
   );
 
   ok(
-    loader.manager.onFinalize.secondCall.calledWith("rs-loader", {
+    onFinalizeCalled(loader.manager.onFinalize.secondCall.args, "rs-loader", {
       recipeMismatches: [],
       invalidRecipes: ["foo"],
       invalidBranches: new Map(),
       invalidFeatures: new Map(),
+      missingLocale: [],
+      missingL10nIds: new Map(),
+      locale: Services.locale.appLocaleAsBCP47,
       validationEnabled: true,
     }),
     "should call .onFinalize with an invalid recipe"
@@ -233,7 +243,7 @@ add_task(async function test_updateRecipes_invalidRecipeAfterUpdate() {
 
 add_task(async function test_updateRecipes_invalidBranchAfterUpdate() {
   const message = await PanelTestProvider.getMessages().then(msgs =>
-    msgs.find(m => m.id === "SPOTLIGHT_MESSAGE_93")
+    msgs.find(m => m.id === "MULTISTAGE_SPOTLIGHT_MESSAGE")
   );
 
   const manager = ExperimentFakes.manager();
@@ -300,11 +310,14 @@ add_task(async function test_updateRecipes_invalidBranchAfterUpdate() {
   );
   equal(loader.manager.onFinalize.callCount, 1, "should call .onFinalize once");
   ok(
-    loader.manager.onFinalize.calledWith("rs-loader", {
+    onFinalizeCalled(loader.manager.onFinalize, "rs-loader", {
       recipeMismatches: [],
       invalidRecipes: [],
       invalidBranches: new Map(),
       invalidFeatures: new Map(),
+      missingLocale: [],
+      missingL10nIds: new Map(),
+      locale: Services.locale.appLocaleAsBCP47,
       validationEnabled: true,
     }),
     "should call .onFinalize with no mismatches or invalid recipes"
@@ -327,11 +340,14 @@ add_task(async function test_updateRecipes_invalidBranchAfterUpdate() {
   );
 
   ok(
-    loader.manager.onFinalize.secondCall.calledWith("rs-loader", {
+    onFinalizeCalled(loader.manager.onFinalize.secondCall.args, "rs-loader", {
       recipeMismatches: [],
       invalidRecipes: [],
-      invalidBranches: new Map([["foo", [badRecipe.branches[0].slug]]]),
+      invalidBranches: new Map([["foo", [badRecipe.branches[1].slug]]]),
       invalidFeatures: new Map(),
+      missingLocale: [],
+      missingL10nIds: new Map(),
+      locale: Services.locale.appLocaleAsBCP47,
       validationEnabled: true,
     }),
     "should call .onFinalize with an invalid branch"
@@ -386,7 +402,7 @@ add_task(async function test_updateRecipes_simpleFeatureInvalidAfterUpdate() {
   };
 
   sinon.spy(loader, "updateRecipes");
-  sinon.spy(loader, "_generateVariablesOnlySchema");
+  sinon.spy(EnrollmentsContext.prototype, "_generateVariablesOnlySchema");
   sinon.stub(loader, "setTimer");
   sinon.stub(loader.remoteSettingsClient, "get").resolves([recipe]);
 
@@ -403,23 +419,26 @@ add_task(async function test_updateRecipes_simpleFeatureInvalidAfterUpdate() {
   );
   equal(loader.manager.onFinalize.callCount, 1, "should call .onFinalize once");
   ok(
-    loader.manager.onFinalize.calledWith("rs-loader", {
+    onFinalizeCalled(loader.manager.onFinalize, "rs-loader", {
       recipeMismatches: [],
       invalidRecipes: [],
       invalidBranches: new Map(),
       invalidFeatures: new Map(),
+      missingLocale: [],
+      missingL10nIds: new Map(),
+      locale: Services.locale.appLocaleAsBCP47,
       validationEnabled: true,
     }),
     "should call .onFinalize with nomismatches or invalid recipes"
   );
 
   ok(
-    loader._generateVariablesOnlySchema.calledOnce,
+    EnrollmentsContext.prototype._generateVariablesOnlySchema.calledOnce,
     "Should have generated a schema for testFeature"
   );
 
   Assert.deepEqual(
-    loader._generateVariablesOnlySchema.returnValues[0],
+    EnrollmentsContext.prototype._generateVariablesOnlySchema.returnValues[0],
     EXPECTED_SCHEMA,
     "should have generated a schema with three fields"
   );
@@ -441,15 +460,20 @@ add_task(async function test_updateRecipes_simpleFeatureInvalidAfterUpdate() {
   );
 
   ok(
-    loader.manager.onFinalize.secondCall.calledWith("rs-loader", {
+    onFinalizeCalled(loader.manager.onFinalize.secondCall.args, "rs-loader", {
       recipeMismatches: [],
       invalidRecipes: [],
       invalidBranches: new Map([["foo", [badRecipe.branches[0].slug]]]),
       invalidFeatures: new Map(),
+      missingLocale: [],
+      missingL10nIds: new Map(),
+      locale: Services.locale.appLocaleAsBCP47,
       validationEnabled: true,
     }),
     "should call .onFinalize with an invalid branch"
   );
+
+  EnrollmentsContext.prototype._generateVariablesOnlySchema.restore();
 });
 
 add_task(async function test_updateRecipes_validationTelemetry() {
@@ -525,8 +549,8 @@ add_task(async function test_updateRecipes_validationTelemetry() {
 
     sinon.stub(manager, "onRecipe");
     sinon.stub(manager.store, "ready").resolves();
-    sinon.stub(manager.store, "getAllActive").returns([]);
-    sinon.stub(manager.store, "getAllRollouts").returns([]);
+    sinon.stub(manager.store, "getAllActiveExperiments").returns([]);
+    sinon.stub(manager.store, "getAllActiveRollouts").returns([]);
 
     const telemetrySpy = sinon.spy(manager, "sendValidationFailedTelemetry");
 
@@ -619,8 +643,8 @@ add_task(async function test_updateRecipes_validationDisabled() {
 
     sinon.stub(manager, "onRecipe");
     sinon.stub(manager.store, "ready").resolves();
-    sinon.stub(manager.store, "getAllActive").returns([]);
-    sinon.stub(manager.store, "getAllRollouts").returns([]);
+    sinon.stub(manager.store, "getAllActiveExperiments").returns([]);
+    sinon.stub(manager.store, "getAllActiveRollouts").returns([]);
 
     const finalizeStub = sinon.stub(manager, "onFinalize");
     const telemetrySpy = sinon.spy(manager, "sendValidationFailedTelemetry");
@@ -633,11 +657,14 @@ add_task(async function test_updateRecipes_validationDisabled() {
       "Should not send validation failed telemetry"
     );
     Assert.ok(
-      finalizeStub.calledWith("rs-loader", {
+      onFinalizeCalled(finalizeStub, "rs-loader", {
         recipeMismatches: [],
         invalidRecipes: [],
         invalidBranches: new Map(),
         invalidFeatures: new Map(),
+        missingLocale: [],
+        missingL10nIds: new Map(),
+        locale: Services.locale.appLocaleAsBCP47,
         validationEnabled: false,
       }),
       "should call .onFinalize with no validation issues"
@@ -677,11 +704,14 @@ add_task(async function test_updateRecipes_appId() {
 
   Assert.equal(manager.onRecipe.callCount, 0, ".onRecipe was never called");
   Assert.ok(
-    manager.onFinalize.calledWith("rs-loader", {
+    onFinalizeCalled(manager.onFinalize, "rs-loader", {
       recipeMismatches: [],
       invalidRecipes: [],
       invalidBranches: new Map(),
       invalidFeatures: new Map(),
+      missingLocale: [],
+      missingL10nIds: new Map(),
+      locale: Services.locale.appLocaleAsBCP47,
       validationEnabled: true,
     }),
     "Should call .onFinalize with no validation issues"
@@ -701,11 +731,14 @@ add_task(async function test_updateRecipes_appId() {
   );
 
   Assert.ok(
-    manager.onFinalize.calledWith("rs-loader", {
+    onFinalizeCalled(manager.onFinalize, "rs-loader", {
       recipeMismatches: [],
       invalidRecipes: [],
       invalidBranches: new Map(),
       invalidFeatures: new Map(),
+      missingLocale: [],
+      missingL10nIds: new Map(),
+      locale: Services.locale.appLocaleAsBCP47,
       validationEnabled: true,
     }),
     "Should call .onFinalize with no validation issues"
@@ -789,11 +822,14 @@ add_task(async function test_updateRecipes_recipeAppId() {
 
   Assert.equal(manager.onRecipe.callCount, 0, ".onRecipe was never called");
   Assert.ok(
-    manager.onFinalize.calledWith("rs-loader", {
+    onFinalizeCalled(manager.onFinalize, "rs-loader", {
       recipeMismatches: [],
       invalidRecipes: [],
       invalidBranches: new Map(),
       invalidFeatures: new Map(),
+      missingLocale: [],
+      missingL10nIds: new Map(),
+      locale: Services.locale.appLocaleAsBCP47,
       validationEnabled: true,
     }),
     "Should call .onFinalize with no validation issues"
@@ -820,7 +856,7 @@ add_task(async function test_updateRecipes_featureValidationOptOut() {
   });
 
   const message = await PanelTestProvider.getMessages().then(msgs =>
-    msgs.find(m => m.id === "SPOTLIGHT_MESSAGE_93")
+    msgs.find(m => m.id === "MULTISTAGE_SPOTLIGHT_MESSAGE")
   );
   delete message.template;
 
@@ -857,22 +893,27 @@ add_task(async function test_updateRecipes_featureValidationOptOut() {
     sinon.stub(manager, "onRecipe");
     sinon.stub(manager, "onFinalize");
     sinon.stub(manager.store, "ready").resolves();
-    sinon.stub(manager.store, "getAllActive").returns([]);
-    sinon.stub(manager.store, "getAllRollouts").returns([]);
+    sinon.stub(manager.store, "getAllActiveExperiments").returns([]);
+    sinon.stub(manager.store, "getAllActiveRollouts").returns([]);
 
     await loader.init();
     ok(
       manager.onRecipe.calledOnceWith(optOutRecipe, "rs-loader"),
       "should call .onRecipe for the opt-out recipe"
     );
+
     ok(
-      manager.onFinalize.calledOnceWith("rs-loader", {
-        recipeMismatches: [],
-        invalidRecipes: [],
-        invalidBranches: new Map([[invalidRecipe.slug, ["control"]]]),
-        invalidFeatures: new Map(),
-        validationEnabled: true,
-      }),
+      manager.onFinalize.calledOnce &&
+        onFinalizeCalled(manager.onFinalize, "rs-loader", {
+          recipeMismatches: [],
+          invalidRecipes: [],
+          invalidBranches: new Map([[invalidRecipe.slug, ["control"]]]),
+          invalidFeatures: new Map(),
+          missingLocale: [],
+          missingL10nIds: new Map(),
+          locale: Services.locale.appLocaleAsBCP47,
+          validationEnabled: true,
+        }),
       "should call .onFinalize with only one invalid recipe"
     );
   }
@@ -909,11 +950,14 @@ add_task(async function test_updateRecipes_invalidFeature_mismatch() {
   sinon.stub(manager, "onRecipe");
   sinon.stub(manager, "onFinalize");
   sinon.stub(manager.store, "ready").resolves();
-  sinon.stub(manager.store, "getAllActive").returns([]);
-  sinon.stub(manager.store, "getAllRollouts").returns([]);
+  sinon.stub(manager.store, "getAllActiveExperiments").returns([]);
+  sinon.stub(manager.store, "getAllActiveRollouts").returns([]);
 
   const telemetrySpy = sinon.stub(manager, "sendValidationFailedTelemetry");
-  const targetingSpy = sinon.spy(loader, "checkTargeting");
+  const targetingSpy = sinon.spy(
+    EnrollmentsContext.prototype,
+    "checkTargeting"
+  );
 
   await loader.init();
   ok(targetingSpy.calledOnce, "Should have checked targeting for recipe");
@@ -925,5 +969,132 @@ add_task(async function test_updateRecipes_invalidFeature_mismatch() {
   ok(
     telemetrySpy.notCalled,
     "Should not have submitted validation failed telemetry"
+  );
+
+  targetingSpy.restore();
+});
+
+add_task(async function test_updateRecipes_rollout_bucketing() {
+  TelemetryEvents.init();
+  Services.fog.testResetFOG();
+  Services.telemetry.snapshotEvents(
+    Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
+    /* clear = */ true
+  );
+
+  const loader = ExperimentFakes.rsLoader();
+  const manager = loader.manager;
+
+  const experiment = ExperimentFakes.recipe("experiment", {
+    branches: [
+      {
+        slug: "control",
+        ratio: 1,
+        features: [
+          {
+            featureId: "testFeature",
+            value: {},
+          },
+        ],
+      },
+    ],
+    bucketConfig: {
+      namespace: "nimbus-test-utils",
+      randomizationUnit: "normandy_id",
+      start: 0,
+      count: 1000,
+      total: 1000,
+    },
+  });
+  const rollout = ExperimentFakes.recipe("rollout", {
+    isRollout: true,
+    branches: [
+      {
+        slug: "rollout",
+        ratio: 1,
+        features: [
+          {
+            featureId: "testFeature",
+            value: {},
+          },
+        ],
+      },
+    ],
+    bucketConfig: {
+      namespace: "nimbus-test-utils",
+      randomizationUnit: "normandy_id",
+      start: 0,
+      count: 1000,
+      total: 1000,
+    },
+  });
+
+  await loader.init();
+  await manager.onStartup();
+  await manager.store.ready();
+
+  sinon
+    .stub(loader.remoteSettingsClient, "get")
+    .resolves([experiment, rollout]);
+
+  await loader.updateRecipes();
+
+  Assert.equal(
+    manager.store.getExperimentForFeature("testFeature")?.slug,
+    experiment.slug,
+    "Should enroll in experiment"
+  );
+  Assert.equal(
+    manager.store.getRolloutForFeature("testFeature")?.slug,
+    rollout.slug,
+    "Should enroll in rollout"
+  );
+
+  experiment.bucketConfig.count = 0;
+  rollout.bucketConfig.count = 0;
+
+  await loader.updateRecipes();
+
+  Assert.equal(
+    manager.store.getExperimentForFeature("testFeature")?.slug,
+    experiment.slug,
+    "Should stay enrolled in experiment -- experiments cannot be resized"
+  );
+  Assert.ok(
+    !manager.store.getRolloutForFeature("testFeature"),
+    "Should unenroll from rollout"
+  );
+
+  const unenrollmentEvents = Glean.nimbusEvents.unenrollment.testGetValue();
+  Assert.equal(
+    unenrollmentEvents.length,
+    1,
+    "Should be one unenrollment event"
+  );
+  Assert.equal(
+    unenrollmentEvents[0].extra.experiment,
+    rollout.slug,
+    "Experiment slug should match"
+  );
+  Assert.equal(
+    unenrollmentEvents[0].extra.reason,
+    "bucketing",
+    "Reason should match"
+  );
+
+  TelemetryTestUtils.assertEvents(
+    [
+      {
+        value: rollout.slug,
+        extra: {
+          reason: "bucketing",
+        },
+      },
+    ],
+    {
+      category: "normandy",
+      method: "unenroll",
+      object: "nimbus_experiment",
+    }
   );
 });

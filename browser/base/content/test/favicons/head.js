@@ -1,19 +1,13 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-var { XPCOMUtils } = ChromeUtils.importESModule(
-  "resource://gre/modules/XPCOMUtils.sys.mjs"
-);
-
 ChromeUtils.defineESModuleGetters(this, {
+  LinkHandlerParent: "resource:///actors/LinkHandlerParent.sys.mjs",
   PlacesTestUtils: "resource://testing-common/PlacesTestUtils.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
+
   XPCShellContentUtils:
     "resource://testing-common/XPCShellContentUtils.sys.mjs",
-});
-
-XPCOMUtils.defineLazyModuleGetters(this, {
-  LinkHandlerParent: "resource:///actors/LinkHandlerParent.jsm",
 });
 
 // Clear the network cache between every test to make sure we get a stable state

@@ -3,25 +3,22 @@
 
 "use strict";
 
-const { RemoteSettings } = ChromeUtils.import(
-  "resource://services-settings/remote-settings.js"
+const { RemoteSettings } = ChromeUtils.importESModule(
+  "resource://services-settings/remote-settings.sys.mjs"
 );
 const {
   _ExperimentFeature: ExperimentFeature,
-  NimbusFeatures,
+
   ExperimentAPI,
-} = ChromeUtils.import("resource://nimbus/ExperimentAPI.jsm");
-const { ExperimentTestUtils } = ChromeUtils.import(
-  "resource://testing-common/NimbusTestUtils.jsm"
+} = ChromeUtils.importESModule("resource://nimbus/ExperimentAPI.sys.mjs");
+const { ExperimentTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
-const { ExperimentManager } = ChromeUtils.import(
-  "resource://nimbus/lib/ExperimentManager.jsm"
+const { ExperimentManager } = ChromeUtils.importESModule(
+  "resource://nimbus/lib/ExperimentManager.sys.mjs"
 );
-const { RemoteSettingsExperimentLoader } = ChromeUtils.import(
-  "resource://nimbus/lib/RemoteSettingsExperimentLoader.jsm"
-);
-const { TelemetryEnvironment } = ChromeUtils.importESModule(
-  "resource://gre/modules/TelemetryEnvironment.sys.mjs"
+const { RemoteSettingsExperimentLoader } = ChromeUtils.importESModule(
+  "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs"
 );
 
 const FOO_FAKE_FEATURE_MANIFEST = {
@@ -96,20 +93,21 @@ const REMOTE_CONFIGURATION_BAR = ExperimentFakes.recipe("bar-rollout", {
 
 const SYNC_DEFAULTS_PREF_BRANCH = "nimbus.syncdefaultsstore.";
 
+add_setup(function() {
+  const client = RemoteSettings("nimbus-desktop-experiments");
+  sinon.stub(client, "get").resolves([]);
+
+  registerCleanupFunction(() => client.get.restore());
+});
+
 async function setup(configuration) {
   const client = RemoteSettings("nimbus-desktop-experiments");
-  await client.db.importChanges(
-    {},
-    Date.now(),
-    configuration || [REMOTE_CONFIGURATION_FOO, REMOTE_CONFIGURATION_BAR],
-    {
-      clear: true,
-    }
+  client.get.resolves(
+    configuration ?? [REMOTE_CONFIGURATION_FOO, REMOTE_CONFIGURATION_BAR]
   );
 
   // Simulate a state where no experiment exists.
-  const cleanup = () =>
-    client.db.importChanges({}, Date.now(), [], { clear: true });
+  const cleanup = () => client.get.resolves([]);
   return { client, cleanup };
 }
 
@@ -348,6 +346,19 @@ add_task(async function test_finalizeRemoteConfigs_cleanup() {
   featureFoo.onUpdate(stubFoo);
   featureBar.onUpdate(stubBar);
   let cleanupPromise = new Promise(resolve => featureBar.onUpdate(resolve));
+
+  // stubFoo and stubBar will be called because the store is ready. We are not interested in these calls.
+  // Reset call history and check calls stats after cleanup.
+  Assert.ok(
+    stubFoo.called,
+    "feature foo update triggered becuase store is ready"
+  );
+  Assert.ok(
+    stubBar.called,
+    "feature bar update triggered because store is ready"
+  );
+  stubFoo.resetHistory();
+  stubBar.resetHistory();
 
   Services.prefs.setStringPref(
     `${SYNC_DEFAULTS_PREF_BRANCH}foo`,

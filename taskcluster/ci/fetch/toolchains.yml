@@ -220,9 +220,9 @@ wine:
     description: wine source code
     fetch:
         type: static-url
-        url: https://dl.winehq.org/wine/source/7.0/wine-7.0.tar.xz
-        sha256: 5b43e27d5c085cb18f97394e46180310d5eef7c1d91c6895432a3889b2de086b
-        size: 27120912
+        url: https://dl.winehq.org/wine/source/8.0/wine-8.0.tar.xz
+        sha256: 0272c20938f8721ae4510afaa8b36037457dd57661e4d664231079b9e91c792e
+        size: 29054044
         gpg-signature:
             sig-url: "{url}.sign"
             key-path: build/unix/build-gcc/DA23579A74D4AD9AF9D3F945CEFAC8EAAF17519D.key
@@ -286,7 +286,7 @@ bomutils:
     fetch:
         type: git
         repo: https://github.com/hogliux/bomutils
-        revision: 3f7dc2dbbc36ca1c957ec629970026f45594a52c
+        revision: 0e7dc7eefefb3a0ba2ef3a432cdc1089ac40740c
 
 rust-size:
     description: rust-size source code
@@ -314,8 +314,8 @@ sccache:
     fetch:
         type: git
         repo: https://github.com/mozilla/sccache
-        # 0.3.1 release
-        revision: 41e408d3e22d3c5a03cc622c93e9348ef80df140
+        # 0.4.1 release
+        revision: d0d1beadd2739653ed878055215c0d9b7decb3b9
 
 fxc2:
     description: fxc2 source code
@@ -329,7 +329,7 @@ mingw-w64:
     fetch:
         type: git
         repo: https://git.code.sf.net/p/mingw-w64/mingw-w64
-        revision: 09def642bf5e8a78195791257ff53fd920c549d1
+        revision: f9500e2d85b9400c0982518663660a127e1dc61a
 
 llvm-mingw:
     description: llvm-mingw source code
@@ -359,12 +359,12 @@ clang-14:
         repo: https://github.com/llvm/llvm-project
         revision: 4bc1d0b51c8e488d78ab69c8b19cfbcd1f7db6a4
 
-clang-15:
-    description: clang 15.0.5 source code
+clang-16:
+    description: clang 16.0.2 source code
     fetch:
         type: git
         repo: https://github.com/llvm/llvm-project
-        revision: 154e88af7ec97d9b9f389e55d45bf07108a9a097
+        revision: 18ddebe1a1a9bde349441631365f0472e9693520
 
 clang-trunk:
     description: clang main branch source code
@@ -378,13 +378,13 @@ clang-trunk:
 # We build stable rust from source so the resulting compiler acts as a nightly
 # rust compiler, allowing to use unstable features like -Zbuild-std and
 # sanitizers.
-rust-1.66.0:
-    description: Rust 1.66.0 source code
+rust-1.69.0:
+    description: Rust 1.69.0 source code
     fetch:
         type: git
         include-dot-git: true
         repo: https://github.com/rust-lang/rust/
-        revision: 69f9c33d71c871fc16ac445211281c6e7a340943
+        revision: 84c898d65adf2f39a5a98507f1fe0ce10a2b8dbc
 
 wasi-sdk:
     description: wasi-sdk-16 source code
@@ -419,7 +419,7 @@ dump-syms:
     fetch:
         type: git
         repo: https://github.com/mozilla/dump_syms/
-        revision: 9680eedbdbc830dbb34fef7823109b4ba11711cf
+        revision: 7cb5f5243f87c562a44259ecb79675ea07842a8f
 
 rust-minidump:
     description: rust-minidump 0.15.2 source code (for minidump-stackwalk)
@@ -611,7 +611,7 @@ cargo-vet:
     fetch:
         type: git
         repo: https://github.com/mozilla/cargo-vet
-        revision: 10edb3b9ab6db1097aacea83118d7fa66391631c
+        revision: 5e63b4bfa82aea238f980a777f51be914bc4d994
 
 symbol-scrapers:
     description: Linux distribution symbol scraper source
@@ -619,3 +619,34 @@ symbol-scrapers:
         type: git
         repo: http://github.com/mozilla/symbol-scrapers
         revision: f61d24345d27760a5c2dc8f9370368bdaa9a4e82
+
+cpython-3.8.10:
+    description: cpython 3.8.10 source code
+    fetch:
+        type: static-url
+        url: https://www.python.org/ftp/python/3.8.10/Python-3.8.10.tgz
+        sha256: b37ac74d2cbad2590e7cd0dd2b3826c29afe89a734090a87bf8c03c45066cb65
+        size: 24720640
+        artifact-name: cpython-source.tar.zst
+        strip-components: 1
+        add-prefix: cpython-source/
+
+cpython-3.8.10.exe:
+    description: cpython 3.8.10 installer
+    fetch:
+        type: static-url
+        url: https://www.python.org/ftp/python/3.8.10/python-3.8.10-amd64.exe
+        sha256: 7628244cb53408b50639d2c1287c659f4e29d3dfdb9084b11aed5870c0c6a48a
+        size: 28296784
+        artifact-name: python-3.8.10-amd64.exe
+
+cpython-3.7.15:
+    description: cpython 3.7.15 source code
+    fetch:
+        type: static-url
+        url: https://www.python.org/ftp/python/3.7.15/Python-3.7.15.tgz
+        sha256: cf2993798ae8430f3af3a00d96d9fdf320719f4042f039380dca79967c25e436
+        size: 24033532
+        artifact-name: cpython-source.tar.zst
+        strip-components: 1
+        add-prefix: cpython-source/

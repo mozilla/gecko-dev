@@ -13,6 +13,8 @@
 #include <algorithm>
 
 #include "api/units/data_rate.h"
+#include "api/units/time_delta.h"
+#include "api/units/timestamp.h"
 #include "test/explicit_key_value_config.h"
 #include "test/gtest.h"
 
@@ -143,15 +145,73 @@ TEST(BitrateProberTest, DiscardsDelayedProbes) {
   EXPECT_FALSE(prober.CurrentCluster(now).has_value());
 }
 
+TEST(BitrateProberTest, LimitsNumberOfPendingProbeClusters) {
+  const FieldTrialBasedConfig config;
+  BitrateProber prober(config);
+  const DataSize kProbeSize = DataSize::Bytes(1000);
+  Timestamp now = Timestamp::Zero();
+  prober.CreateProbeCluster({.at_time = now,
+                             .target_data_rate = DataRate::KilobitsPerSec(900),
+                             .target_duration = TimeDelta::Millis(15),
+                             .target_probe_count = 5,
+                             .id = 0});
+  prober.OnIncomingPacket(kProbeSize);
+  ASSERT_TRUE(prober.is_probing());
+  ASSERT_EQ(prober.CurrentCluster(now)->probe_cluster_id, 0);
+
+  for (int i = 1; i < 11; ++i) {
+    prober.CreateProbeCluster(
+        {.at_time = now,
+         .target_data_rate = DataRate::KilobitsPerSec(900),
+         .target_duration = TimeDelta::Millis(15),
+         .target_probe_count = 5,
+         .id = i});
+    prober.OnIncomingPacket(kProbeSize);
+  }
+  // Expect some clusters has been dropped.
+  EXPECT_TRUE(prober.is_probing());
+  EXPECT_GE(prober.CurrentCluster(now)->probe_cluster_id, 5);
+
+  Timestamp max_expected_probe_time = now + TimeDelta::Seconds(1);
+  while (prober.is_probing() && now < max_expected_probe_time) {
+    now = std::max(now, prober.NextProbeTime(now));
+    prober.ProbeSent(now, kProbeSize);
+  }
+  EXPECT_FALSE(prober.is_probing());
+}
+
 TEST(BitrateProberTest, DoesntInitializeProbingForSmallPackets) {
   const FieldTrialBasedConfig config;
   BitrateProber prober(config);
-
   prober.SetEnabled(true);
-  EXPECT_FALSE(prober.is_probing());
+  ASSERT_FALSE(prober.is_probing());
 
+  prober.CreateProbeCluster({.at_time = Timestamp::Zero(),
+                             .target_data_rate = DataRate::KilobitsPerSec(1000),
+                             .target_duration = TimeDelta::Millis(15),
+                             .target_probe_count = 5,
+                             .id = 0});
   prober.OnIncomingPacket(DataSize::Bytes(100));
+
   EXPECT_FALSE(prober.is_probing());
+}
+
+TEST(BitrateProberTest, DoesInitializeProbingForSmallPacketsIfConfigured) {
+  const test::ExplicitKeyValueConfig config(
+      "WebRTC-Bwe-ProbingBehavior/"
+      "min_packet_size:0bytes/");
+  BitrateProber prober(config);
+  prober.SetEnabled(true);
+  ASSERT_FALSE(prober.is_probing());
+
+  prober.CreateProbeCluster({.at_time = Timestamp::Zero(),
+                             .target_data_rate = DataRate::KilobitsPerSec(1000),
+                             .target_duration = TimeDelta::Millis(15),
+                             .target_probe_count = 5,
+                             .id = 0});
+  prober.OnIncomingPacket(DataSize::Bytes(10));
+
+  EXPECT_TRUE(prober.is_probing());
 }
 
 TEST(BitrateProberTest, VerifyProbeSizeOnHighBitrate) {
@@ -168,6 +228,30 @@ TEST(BitrateProberTest, VerifyProbeSizeOnHighBitrate) {
   // Probe size should ensure a minimum of 1 ms interval.
   EXPECT_GT(prober.RecommendedMinProbeSize(),
             kHighBitrate * TimeDelta::Millis(1));
+}
+
+TEST(BitrateProberTest, ProbeSizeCanBeSetWithFieldTrial) {
+  const test::ExplicitKeyValueConfig trials(
+      "WebRTC-Bwe-ProbingBehavior/min_probe_delta:20ms/");
+  BitrateProber prober(trials);
+  prober.SetEnabled(true);
+
+  const DataRate kHighBitrate = DataRate::KilobitsPerSec(10000);  // 10 Mbps
+
+  prober.CreateProbeCluster({.at_time = Timestamp::Zero(),
+                             .target_data_rate = kHighBitrate,
+                             .target_duration = TimeDelta::Millis(15),
+                             .target_probe_count = 5,
+                             .id = 0});
+  EXPECT_EQ(prober.RecommendedMinProbeSize(),
+            kHighBitrate * TimeDelta::Millis(20));
+
+  prober.OnIncomingPacket(DataSize::Bytes(1000));
+  // Next time to send probe should be "min_probe_delta" if the recommended
+  // number of bytes has been sent.
+  prober.ProbeSent(Timestamp::Zero(), prober.RecommendedMinProbeSize());
+  EXPECT_EQ(prober.NextProbeTime(Timestamp::Zero()),
+            Timestamp::Zero() + TimeDelta::Millis(20));
 }
 
 TEST(BitrateProberTest, MinumumNumberOfProbingPackets) {

@@ -3,20 +3,27 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import os
+import pathlib
+import shutil
+import tempfile
 from unittest import mock
 
 import mozunit
 import pytest
 from tryselect.selectors.perf import (
+    MAX_PERF_TASKS,
     Apps,
     InvalidCategoryException,
+    InvalidRegressionDetectorQuery,
     PerfParser,
     Platforms,
     Suites,
     Variants,
+    run,
+)
+from tryselect.selectors.perfselector.classification import (
     check_for_live_sites,
     check_for_profile,
-    run,
 )
 
 TASKS = [
@@ -738,7 +745,7 @@ def test_category_expansion(
     [
         (
             {},
-            [8, 2, 2, 5],
+            [8, 2, 2, 10, 2, 1],
             2,
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
@@ -748,8 +755,30 @@ def test_category_expansion(
             ),
         ),
         (
+            {"query": "'Pageload 'linux 'firefox"},
+            [8, 2, 2, 10, 2, 1],
+            2,
+            (
+                "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
+                "here once the tests are complete (ensure you select the right framework): "
+                "https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
+                "Revision=revision&newProject=try&newRevision=revision\n"
+            ),
+        ),
+        (
+            {"cached_revision": "cached_base_revision"},
+            [8, 1, 1, 10, 2, 0],
+            2,
+            (
+                "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
+                "here once the tests are complete (ensure you select the right framework): "
+                "https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
+                "Revision=cached_base_revision&newProject=try&newRevision=revision\n"
+            ),
+        ),
+        (
             {"dry_run": True},
-            [8, 1, 1, 5],
+            [8, 1, 1, 10, 2, 0],
             2,
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
@@ -760,7 +789,18 @@ def test_category_expansion(
         ),
         (
             {"show_all": True},
-            [1, 2, 2, 3],
+            [1, 2, 2, 8, 2, 1],
+            0,
+            (
+                "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
+                "here once the tests are complete (ensure you select the right framework): "
+                "https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
+                "Revision=revision&newProject=try&newRevision=revision\n"
+            ),
+        ),
+        (
+            {"show_all": True, "query": "'shippable !32 speedometer 'firefox"},
+            [1, 2, 2, 8, 2, 1],
             0,
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
@@ -771,11 +811,22 @@ def test_category_expansion(
         ),
         (
             {"single_run": True},
-            [8, 1, 1, 4],
+            [8, 1, 1, 4, 2, 0],
             2,
             (
                 "If you need any help, you can find us in the #perf-help Matrix channel:\n"
                 "https://matrix.to/#/#perf-help:mozilla.org\n"
+            ),
+        ),
+        (
+            {"detect_changes": True},
+            [9, 2, 2, 10, 2, 1],
+            2,
+            (
+                "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
+                "here once the tests are complete (ensure you select the right framework): "
+                "https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
+                "Revision=revision&newProject=try&newRevision=revision\n"
             ),
         ),
     ],
@@ -791,6 +842,10 @@ def test_full_run(options, call_counts, log_ind, expected_log_message):
         new_callable=mock.PropertyMock,
         return_value="revision",
     ) as logger, mock.patch(
+        "tryselect.selectors.perf.PerfParser.check_cached_revision",
+    ) as ccr, mock.patch(
+        "tryselect.selectors.perf.PerfParser.save_revision_treeherder"
+    ) as srt, mock.patch(
         "tryselect.selectors.perf.print",
     ) as perf_print:
         fzf.side_effect = [
@@ -802,7 +857,9 @@ def test_full_run(options, call_counts, log_ind, expected_log_message):
             ["", TASKS],
             ["", TASKS],
             ["", TASKS],
+            ["", ["Perftest Change Detector"]],
         ]
+        ccr.return_value = options.get("cached_revision", "")
 
         run(**options)
 
@@ -810,6 +867,67 @@ def test_full_run(options, call_counts, log_ind, expected_log_message):
         assert ptt.call_count == call_counts[1]
         assert logger.call_count == call_counts[2]
         assert perf_print.call_count == call_counts[3]
+        assert ccr.call_count == call_counts[4]
+        assert srt.call_count == call_counts[5]
+        assert perf_print.call_args_list[log_ind][0][0] == expected_log_message
+
+
+@pytest.mark.parametrize(
+    "options, call_counts, log_ind, expected_log_message, expected_failure",
+    [
+        (
+            {"detect_changes": True},
+            [9, 0, 0, 2, 1],
+            1,
+            (
+                "Executing raptor queries: 'browsertime 'benchmark, !clang 'linux "
+                "'shippable, !bytecode, !live, !profil, !chrom, !safari"
+            ),
+            InvalidRegressionDetectorQuery,
+        ),
+    ],
+)
+@pytest.mark.skipif(os.name == "nt", reason="fzf not installed on host")
+def test_change_detection_task_injection_failure(
+    options,
+    call_counts,
+    log_ind,
+    expected_log_message,
+    expected_failure,
+):
+    with mock.patch("tryselect.selectors.perf.push_to_try") as ptt, mock.patch(
+        "tryselect.selectors.perf.run_fzf"
+    ) as fzf, mock.patch(
+        "tryselect.selectors.perf.get_repository_object", new=mock.MagicMock()
+    ), mock.patch(
+        "tryselect.selectors.perf.LogProcessor.revision",
+        new_callable=mock.PropertyMock,
+        return_value="revision",
+    ) as logger, mock.patch(
+        "tryselect.selectors.perf.PerfParser.check_cached_revision"
+    ) as ccr, mock.patch(
+        "tryselect.selectors.perf.print",
+    ) as perf_print:
+        fzf.side_effect = [
+            ["", ["Benchmarks linux"]],
+            ["", TASKS],
+            ["", TASKS],
+            ["", TASKS],
+            ["", TASKS],
+            ["", TASKS],
+            ["", TASKS],
+            ["", TASKS],
+            ["", TASKS],
+        ]
+
+        with pytest.raises(expected_failure):
+            run(**options)
+
+        assert fzf.call_count == call_counts[0]
+        assert ptt.call_count == call_counts[1]
+        assert logger.call_count == call_counts[2]
+        assert perf_print.call_count == call_counts[3]
+        assert ccr.call_count == call_counts[4]
         assert perf_print.call_args_list[log_ind][0][0] == expected_log_message
 
 
@@ -848,6 +966,218 @@ def test_category_rules(query, should_fail):
             PerfParser.run_category_checks()
     else:
         assert PerfParser.run_category_checks()
+
+    # Reset the categories, and variants to expand
+    PerfParser.categories = TEST_CATEGORIES
+    PerfParser.variants = TEST_VARIANTS
+
+
+@pytest.mark.parametrize(
+    "apk_name, apk_content, should_fail, failure_message",
+    [
+        (
+            "real-file",
+            "file-content",
+            False,
+            None,
+        ),
+        ("bad-file", None, True, "Path does not exist:"),
+    ],
+)
+def test_apk_upload(apk_name, apk_content, should_fail, failure_message):
+    with mock.patch("tryselect.selectors.perf.subprocess") as _, mock.patch(
+        "tryselect.selectors.perf.shutil"
+    ) as _:
+        temp_dir = None
+        try:
+            temp_dir = tempfile.mkdtemp()
+            sample_apk = pathlib.Path(temp_dir, apk_name)
+            if apk_content is not None:
+                with sample_apk.open("w") as f:
+                    f.write(apk_content)
+
+            if should_fail:
+                with pytest.raises(Exception) as exc_info:
+                    PerfParser.setup_apk_upload("browsertime", str(sample_apk))
+                assert failure_message in str(exc_info)
+            else:
+                PerfParser.setup_apk_upload("browsertime", str(sample_apk))
+        finally:
+            if temp_dir is not None:
+                shutil.rmtree(temp_dir)
+
+
+@pytest.mark.parametrize(
+    "args, load_data, return_value, call_counts, exists_cache_file",
+    [
+        (
+            "base_commit",
+            {
+                "base_commit": {
+                    "base_revision_treeherder": "2b04563b5",
+                    "date": "2023-03-31",
+                }
+            },
+            "2b04563b5",
+            [1, 0],
+            True,
+        ),
+        (
+            "not_exist_cached_base_commit",
+            {
+                "base_commit": {
+                    "base_revision_treeherder": "2b04563b5",
+                    "date": "2023-03-31",
+                }
+            },
+            None,
+            [1, 0],
+            True,
+        ),
+        (
+            None,
+            {},
+            None,
+            [1, 1],
+            True,
+        ),
+        (
+            None,
+            {},
+            None,
+            [0, 0],
+            False,
+        ),
+    ],
+)
+def test_check_cached_revision(
+    args, load_data, return_value, call_counts, exists_cache_file
+):
+    with mock.patch("tryselect.selectors.perf.json.load") as load, mock.patch(
+        "tryselect.selectors.perf.json.dump"
+    ) as dump, mock.patch(
+        "tryselect.selectors.perf.pathlib.Path.is_file"
+    ) as is_file, mock.patch(
+        "tryselect.selectors.perf.pathlib.Path.open"
+    ):
+        load.return_value = load_data
+        is_file.return_value = exists_cache_file
+        result = PerfParser.check_cached_revision(args)
+
+        assert load.call_count == call_counts[0]
+        assert dump.call_count == call_counts[1]
+        assert result == return_value
+
+
+@pytest.mark.parametrize(
+    "args, call_counts, exists_cache_file",
+    [
+        (
+            ["base_commit", "base_revision_treeherder"],
+            [0, 1],
+            False,
+        ),
+        (
+            ["base_commit", "base_revision_treeherder"],
+            [1, 1],
+            True,
+        ),
+    ],
+)
+def test_save_revision_treeherder(args, call_counts, exists_cache_file):
+    with mock.patch("tryselect.selectors.perf.json.load") as load, mock.patch(
+        "tryselect.selectors.perf.json.dump"
+    ) as dump, mock.patch(
+        "tryselect.selectors.perf.pathlib.Path.is_file"
+    ) as is_file, mock.patch(
+        "tryselect.selectors.perf.pathlib.Path.open"
+    ):
+        is_file.return_value = exists_cache_file
+        PerfParser.save_revision_treeherder(args[0], args[1])
+
+        assert load.call_count == call_counts[0]
+        assert dump.call_count == call_counts[1]
+
+
+@pytest.mark.parametrize(
+    "total_tasks, options, call_counts, expected_log_message, expected_failure",
+    [
+        (
+            MAX_PERF_TASKS + 1,
+            {},
+            [1, 0, 0, 1],
+            (
+                "That's a lot of tests selected (300)!\n"
+                "These tests won't be triggered. If this was unexpected, "
+                "please file a bug in Testing :: Performance."
+            ),
+            True,
+        ),
+        (
+            MAX_PERF_TASKS,
+            {"show_all": True},
+            [9, 0, 0, 8],
+            (
+                "For more information on the performance tests, see our "
+                "PerfDocs here:\nhttps://firefox-source-docs.mozilla.org/testing/perfdocs/"
+            ),
+            False,
+        ),
+        (
+            int((MAX_PERF_TASKS + 2) / 2),
+            {"show_all": True, "try_config": {"rebuild": 2}},
+            [1, 0, 0, 1],
+            (
+                "That's a lot of tests selected (300)!\n"
+                "These tests won't be triggered. If this was unexpected, "
+                "please file a bug in Testing :: Performance."
+            ),
+            True,
+        ),
+        (0, {}, [1, 0, 0, 1], ("No tasks selected"), True),
+    ],
+)
+def test_max_perf_tasks(
+    total_tasks,
+    options,
+    call_counts,
+    expected_log_message,
+    expected_failure,
+):
+    # Set the categories, and variants to expand
+    PerfParser.categories = TEST_CATEGORIES
+    PerfParser.variants = TEST_VARIANTS
+
+    with mock.patch("tryselect.selectors.perf.push_to_try") as ptt, mock.patch(
+        "tryselect.selectors.perf.print",
+    ) as perf_print, mock.patch(
+        "tryselect.selectors.perf.LogProcessor.revision",
+        new_callable=mock.PropertyMock,
+        return_value="revision",
+    ), mock.patch(
+        "tryselect.selectors.perf.PerfParser.perf_push_to_try",
+        new_callable=mock.MagicMock,
+        return_value=("revision1", "revision2"),
+    ) as perf_push_to_try_mock, mock.patch(
+        "tryselect.selectors.perf.PerfParser.get_perf_tasks"
+    ) as get_perf_tasks_mock, mock.patch(
+        "tryselect.selectors.perf.PerfParser.get_tasks"
+    ) as get_tasks_mock, mock.patch(
+        "tryselect.selectors.perf.run_fzf"
+    ) as fzf, mock.patch(
+        "tryselect.selectors.perf.fzf_bootstrap", return_value=mock.MagicMock()
+    ):
+        tasks = ["a-task"] * total_tasks
+        get_tasks_mock.return_value = tasks
+        get_perf_tasks_mock.return_value = tasks, [], []
+
+        run(**options)
+
+        assert perf_push_to_try_mock.call_count == 0 if expected_failure else 1
+        assert ptt.call_count == call_counts[1]
+        assert perf_print.call_count == call_counts[3]
+        assert fzf.call_count == 0
+        assert perf_print.call_args_list[-1][0][0] == expected_log_message
 
 
 if __name__ == "__main__":

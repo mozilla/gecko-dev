@@ -9,7 +9,6 @@ const { AddonTestUtils } = ChromeUtils.import(
 
 AddonTestUtils.initMochitest(this);
 
-hookExtensionsTelemetry();
 AddonTestUtils.hookAMTelemetryEvents();
 
 const kSideloaded = true;
@@ -48,15 +47,14 @@ function getAddonElement(managerWindow, addonId) {
   );
 }
 
-function assertSideloadedAddonElementState(addonElement, checked) {
+function assertSideloadedAddonElementState(addonElement, pressed) {
   const enableBtn = addonElement.querySelector('[action="toggle-disabled"]');
   is(
-    enableBtn.checked,
-    checked,
-    `The enable button is ${!checked ? " not " : ""} checked`
+    enableBtn.pressed,
+    pressed,
+    `The enable button is ${!pressed ? " not " : ""} pressed`
   );
-  is(enableBtn.localName, "input", "The enable button is an input");
-  is(enableBtn.type, "checkbox", "It's a checkbox");
+  is(enableBtn.localName, "moz-toggle", "The enable button is a toggle");
 }
 
 function clickEnableExtension(addonElement) {
@@ -107,12 +105,12 @@ add_task(async function test_sideloading() {
 
   // Navigate away from the starting page to force about:addons to load
   // in a new tab during the tests below.
-  BrowserTestUtils.loadURI(gBrowser.selectedBrowser, "about:robots");
+  BrowserTestUtils.loadURIString(gBrowser.selectedBrowser, "about:robots");
   await BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
 
   registerCleanupFunction(async function() {
     // Return to about:blank when we're done
-    BrowserTestUtils.loadURI(gBrowser.selectedBrowser, "about:blank");
+    BrowserTestUtils.loadURIString(gBrowser.selectedBrowser, "about:blank");
     await BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
   });
 
@@ -315,9 +313,6 @@ add_task(async function test_sideloading() {
 
   // Test post install notification on addon 3.
   await testPostInstallIncognitoCheckbox(addon3);
-
-  // We should have recorded 1 cancelled followed by 2 accepted sideloads.
-  expectTelemetry(["sideloadRejected", "sideloadAccepted", "sideloadAccepted"]);
 
   isnot(
     menuButton.getAttribute("badge-status"),

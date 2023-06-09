@@ -10,8 +10,8 @@
 #include <cstdint>
 #include "gfxFontConstants.h"  // for NS_FONT_KERNING_AUTO, etc
 #include "gfxFontVariations.h"
-#include "mozilla/ServoStyleConstsInlines.h"
-#include "mozilla/StyleColorInlines.h"  // for StyleRGBA
+#include "mozilla/ServoStyleConsts.h"
+#include "mozilla/StyleColorInlines.h"  // for StyleAbsoluteColor
 #include "nsTArray.h"                   // for nsTArray
 
 struct gfxFontFeature;
@@ -42,9 +42,10 @@ struct nsFont final {
       mozilla::StyleFontSizeAdjust::None();
 
   // The estimated background color behind the text. Enables a special
-  // rendering mode when NS_GET_A(.) > 0. Only used for text in the chrome.
-  mozilla::StyleRGBA fontSmoothingBackgroundColor =
-      mozilla::StyleRGBA::Transparent();
+  // rendering mode when the alpha component > 0. Only used for text in the
+  // chrome.
+  mozilla::StyleAbsoluteColor fontSmoothingBackgroundColor =
+      mozilla::StyleAbsoluteColor::Transparent();
 
   // Language system tag, to override document language;
   // this is an OpenType "language system" tag represented as a 32-bit integer
@@ -83,8 +84,12 @@ struct nsFont final {
   uint8_t opticalSizing = NS_FONT_OPTICAL_SIZING_AUTO;
 
   // Synthesis setting, controls use of fake bolding/italics/small-caps
-  uint8_t synthesis = NS_FONT_SYNTHESIS_WEIGHT | NS_FONT_SYNTHESIS_STYLE |
-                      NS_FONT_SYNTHESIS_SMALL_CAPS;
+  mozilla::StyleFontSynthesis synthesisWeight =
+      mozilla::StyleFontSynthesis::Auto;
+  mozilla::StyleFontSynthesis synthesisStyle =
+      mozilla::StyleFontSynthesis::Auto;
+  mozilla::StyleFontSynthesis synthesisSmallCaps =
+      mozilla::StyleFontSynthesis::Auto;
 
   // initialize the font with a fontlist
   nsFont(const mozilla::StyleFontFamily&, mozilla::Length aSize);

@@ -13,17 +13,21 @@
     <link rel="stylesheet" href="chrome://global/skin/in-content/common.css">
     <link rel="stylesheet" href="chrome://activity-stream/content/aboutwelcome/aboutwelcome.css">
     <link rel="localization" href="branding/brand.ftl"/>
-    <link rel="localization" href="browser/branding/sync-brand.ftl"/>
-    <link rel="localization" href="browser/branding/brandings.ftl"/>
     <link rel="localization" href="browser/newtab/onboarding.ftl"/>
     <link rel="localization" href="browser/spotlight.ftl"/>
+    <link rel="localization" href="browser/migrationWizard.ftl"/>
+    <link rel="localization" href="toolkit/branding/accounts.ftl"/>
+    <link rel="localization" href="toolkit/branding/brandings.ftl"/>
   </head>
   <body>
-    <div id="root" class="welcome-container" role="presentation">
+    <div id="multi-stage-message-root" class="welcome-container" role="presentation">
     </div>
     <script src="resource://activity-stream/vendor/react.js"></script>
     <script src="resource://activity-stream/vendor/react-dom.js"></script>
     <script src="chrome://browser/content/contentTheme.js"></script>
     <script src="resource://activity-stream/aboutwelcome/aboutwelcome.bundle.js"></script>
+    <script src="chrome://global/content/elements/named-deck.js" async></script>
+    <script src="chrome://global/content/elements/panel-list.js" async></script>
+    <script src="chrome://browser/content/migration/migration-wizard.mjs" type="module"></script>
   </body>
 </html>

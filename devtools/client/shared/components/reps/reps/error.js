@@ -286,8 +286,8 @@ define(function(require, exports, module) {
       }
 
       if (location && location.includes(" -> ")) {
-        // If the resource was loaded by base-loader.js, the location looks like:
-        // resource://devtools/shared/base-loader.js -> resource://path/to/file.js .
+        // If the resource was loaded by base-loader.sys.mjs, the location looks like:
+        // resource://devtools/shared/base-loader.sys.mjs -> resource://path/to/file.js .
         // What's needed is only the last part after " -> ".
         location = location.split(" -> ").pop();
       }
@@ -320,7 +320,11 @@ define(function(require, exports, module) {
 
   // Registration
   function supportsObject(object) {
-    return object?.isError || object?.class === "DOMException";
+    return (
+      object?.isError ||
+      object?.class === "DOMException" ||
+      object?.class === "Exception"
+    );
   }
 
   // Exports from this module

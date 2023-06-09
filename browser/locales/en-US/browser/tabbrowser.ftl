@@ -17,11 +17,6 @@ tabbrowser-menuitem-close =
 tabbrowser-container-tab-title = { $title } — { $containerName }
 
 # Variables:
-#   $title (String): the title of the current tab.
-tabbrowser-tab-tooltip =
-    .label = { $title }
-
-# Variables:
 #   $tabCount (Number): The number of tabs that will be closed.
 tabbrowser-close-tabs-tooltip =
     .label =
@@ -150,3 +145,6 @@ tabbrowser-context-mute-selected-tabs =
 tabbrowser-context-unmute-selected-tabs =
     .label = Unmute Tabs
     .accesskey = m
+
+# This string is used as an additional tooltip and accessibility description for tabs playing audio
+tabbrowser-tab-audio-playing-description = Playing audio

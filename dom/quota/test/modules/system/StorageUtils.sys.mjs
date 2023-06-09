@@ -48,8 +48,44 @@ export function clearStoragePrefs(optionalPrefsToClear) {
   }
 }
 
+export async function getUsageForOrigin(principal, fromMemory) {
+  const request = Services.qms.getUsageForPrincipal(
+    principal,
+    function() {},
+    fromMemory
+  );
+
+  await new Promise(function(resolve) {
+    request.callback = function() {
+      resolve();
+    };
+  });
+
+  if (request.resultCode != Cr.NS_OK) {
+    throw new RequestError(request.resultCode, request.resultName);
+  }
+
+  return request.result;
+}
+
 export async function clearStoragesForOrigin(principal) {
   const request = Services.qms.clearStoragesForPrincipal(principal);
+
+  await new Promise(function(resolve) {
+    request.callback = function() {
+      resolve();
+    };
+  });
+
+  if (request.resultCode != Cr.NS_OK) {
+    throw new RequestError(request.resultCode, request.resultName);
+  }
+
+  return request.result;
+}
+
+export async function resetStorage() {
+  const request = Services.qms.reset();
 
   await new Promise(function(resolve) {
     request.callback = function() {

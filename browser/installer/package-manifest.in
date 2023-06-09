@@ -104,9 +104,11 @@
 #endif
 #endif
 #ifdef MOZ_GTK
+@BINPATH@/glxtest
 @BINPATH@/@DLL_PREFIX@mozgtk@DLL_SUFFIX@
 #ifdef MOZ_WAYLAND
 @BINPATH@/@DLL_PREFIX@mozwayland@DLL_SUFFIX@
+@BINPATH@/vaapitest
 #endif
 #endif
 
@@ -171,7 +173,6 @@
 
 ; JavaScript components
 @RESPATH@/browser/components/BrowserComponents.manifest
-@RESPATH@/components/toolkitsearch.manifest
 @RESPATH@/components/extensions.manifest
 #ifdef MOZ_UPDATER
 @RESPATH@/components/nsUpdateService.manifest

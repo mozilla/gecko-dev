@@ -81,11 +81,15 @@ class NotNull;
 #define QM_LOG_TEST() MOZ_LOG_TEST(GetQuotaManagerLogger(), LogLevel::Info)
 #define QM_LOG(_args) MOZ_LOG(GetQuotaManagerLogger(), LogLevel::Info, _args)
 
-#define UNKNOWN_FILE_WARNING(_leafName)                                       \
-  NS_WARNING(                                                                 \
-      nsPrintfCString("Something (%s) in the directory that doesn't belong!", \
-                      NS_ConvertUTF16toUTF8(_leafName).get())                 \
-          .get())
+#ifdef DEBUG
+#  define UNKNOWN_FILE_WARNING(_leafName)                                  \
+    NS_WARNING(nsPrintfCString(                                            \
+                   "Something (%s) in the directory that doesn't belong!", \
+                   NS_ConvertUTF16toUTF8(_leafName).get())                 \
+                   .get())
+#else
+#  define UNKNOWN_FILE_WARNING(_leafName) (void)(_leafName);
+#endif
 
 // This macro should be used in directory traversals for files or directories
 // that are unknown for given directory traversal. It should only be called
@@ -1061,6 +1065,13 @@ bool IsSpecificError(const nsresult aValue) {
   return aValue == ErrorValue;
 }
 
+#ifdef QM_ERROR_STACKS_ENABLED
+template <nsresult ErrorValue>
+bool IsSpecificError(const QMResult& aValue) {
+  return aValue.NSResult() == ErrorValue;
+}
+#endif
+
 // Helper template function so that QM_TRY fallback functions that are
 // converting errors into specific in-band success values can be concisely
 // written as ErrToOk<SuccessValueToReturn> (with the return type inferred).
@@ -1070,6 +1081,11 @@ bool IsSpecificError(const nsresult aValue) {
 // and can instead be handled by the success case.
 template <auto SuccessValue, typename V = decltype(SuccessValue)>
 auto ErrToOk(const nsresult aValue) -> Result<V, nsresult> {
+  return V{SuccessValue};
+}
+
+template <auto SuccessValue, typename V = decltype(SuccessValue)>
+auto ErrToOkFromQMResult(const QMResult& aValue) -> Result<V, QMResult> {
   return V{SuccessValue};
 }
 

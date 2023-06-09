@@ -3,10 +3,6 @@
 
 "use strict";
 
-const { WindowGlobalMessageHandler } = ChromeUtils.importESModule(
-  "chrome://remote/content/shared/messagehandler/WindowGlobalMessageHandler.sys.mjs"
-);
-
 const TEST_PAGE = "https://example.com/document-builder.sjs?html=tab";
 
 /**
@@ -21,7 +17,7 @@ add_task(async function() {
   const root = createRootMessageHandler("session-id-event");
 
   info("Add some session data for the command module");
-  await root.addSessionData({
+  await root.addSessionDataItem({
     moduleName: "command",
     category: "testCategory",
     contextDescriptor: contextDescriptorAll,

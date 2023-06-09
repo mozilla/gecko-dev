@@ -286,6 +286,35 @@
 - name: ArrayState
   gen_boilerplate: false
 
+- name: BindFunction
+  gen_boilerplate: false
+
+- name: NewBoundFunction
+  arguments:
+    templateObj: JSObject*
+  result_type: Object
+  alias_set: none
+
+- name: BoundFunctionNumArgs
+  operands:
+    object: Object
+  result_type: Int32
+  movable: true
+  congruent_to: if_operands_equal
+  # A bound function's state is immutable, so there is no
+  # implicit dependency.
+  alias_set: none
+
+- name: GuardBoundFunctionIsConstructor
+  operands:
+    object: Object
+  result_type: Object
+  guard: true
+  movable: true
+  congruent_to: if_operands_equal
+  # The is-constructor flag is immutable for a bound function.
+  alias_set: none
+
 # Setting __proto__ in an object literal.
 - name: MutateProto
   operands:
@@ -308,6 +337,9 @@
     value: Object
 
 - name: Call
+  gen_boilerplate: false
+
+- name: CallClassHook
   gen_boilerplate: false
 
 - name: ApplyArgs
@@ -576,8 +608,15 @@
 - name: ToNumberInt32
   gen_boilerplate: false
 
-- name: ToIntegerInt32
-  gen_boilerplate: false
+- name: BooleanToInt32
+  operands:
+    input: Boolean
+  result_type: Int32
+  movable: true
+  compute_range: custom
+  folds_to: custom
+  congruent_to: if_operands_equal
+  alias_set: none
 
 - name: TruncateToInt32
   gen_boilerplate: false
@@ -989,6 +1028,17 @@
 - name: WasmTrap
   gen_boilerplate: false
 
+# Trap if the given value is null
+- name: WasmTrapIfNull
+  operands:
+    value: RefOrNull
+  arguments:
+    trap: wasm::Trap
+    bytecodeOffset: wasm::BytecodeOffset
+  guard: true
+  type_policy: none
+  result_type: None
+
 - name: LexicalCheck
   gen_boilerplate: false
 
@@ -1259,6 +1309,16 @@
   result_type: None
   guard: true
 
+- name: DebugEnterGCUnsafeRegion
+  result_type: None
+  guard: true
+  alias_set: none
+
+- name: DebugLeaveGCUnsafeRegion
+  result_type: None
+  guard: true
+  alias_set: none
+
 - name: Not
   gen_boilerplate: false
 
@@ -1466,6 +1526,16 @@
   movable: true
   congruent_to: if_operands_equal
   alias_set: none
+
+- name: GuardGlobalGeneration
+  arguments:
+   expected: uint32_t
+   generationAddr: const void*
+  result_type: None
+  guard: true
+  movable: true
+  alias_set: custom
+  congruent_to: custom
 
 - name: GuardIsProxy
   operands:
@@ -1878,17 +1948,33 @@
   gen_boilerplate: false
 
 - name: ObjectToIterator
-  operands:
-    object: Object
-  arguments:
-    enumeratorsAddr: NativeIteratorListHead*
-  result_type:
-    Object
+  gen_boilerplate: false
 
 - name: ValueToIterator
   operands:
     value: Value
   result_type: Object
+
+- name: IteratorHasIndices
+  operands:
+    object: Object
+    iterator: Object
+  result_type: Boolean
+  alias_set: custom
+
+- name: LoadSlotByIteratorIndex
+  operands:
+    object: Object
+    iterator: Object # TODO: add MIRType::NativeIterator?
+  result_type: Value
+  alias_set: custom
+
+- name: StoreSlotByIteratorIndex
+  operands:
+    object: Object
+    iterator: Object
+    value: Value
+  alias_set: custom
 
 # Load the private value expando from a DOM proxy. The target is stored in the
 # proxy object's private slot.
@@ -2270,12 +2356,6 @@
     checkValue: Value
   result_type: Value
   guard: true
-
-- name: FinishBoundFunctionInit
-  operands:
-    bound: Object
-    target: Object
-    argCount: Int32
 
 - name: IsPackedArray
   operands:
@@ -2806,7 +2886,7 @@
 - name: WasmAtomicBinopHeap
   gen_boilerplate: false
 
-- name: WasmLoadGlobalVar
+- name: WasmLoadInstanceDataField
   gen_boilerplate: false
 
 - name: WasmLoadGlobalCell
@@ -2815,7 +2895,7 @@
 - name: WasmLoadTableElement
   gen_boilerplate: false
 
-- name: WasmStoreGlobalVar
+- name: WasmStoreInstanceDataField
   gen_boilerplate: false
 
 - name: WasmStoreGlobalCell
@@ -2831,6 +2911,9 @@
   gen_boilerplate: false
 
 - name: WasmStoreRef
+  gen_boilerplate: false
+
+- name: WasmPostWriteBarrier
   gen_boilerplate: false
 
 - name: WasmParameter
@@ -2960,7 +3043,10 @@
 - name: WasmStoreFieldRefKA
   gen_boilerplate: false
 
-- name: WasmGcObjectIsSubtypeOf
+- name: WasmGcObjectIsSubtypeOfConcrete
+  gen_boilerplate: false
+
+- name: WasmGcObjectIsSubtypeOfAbstract
   gen_boilerplate: false
 
 #ifdef FUZZING_JS_FUZZILLI

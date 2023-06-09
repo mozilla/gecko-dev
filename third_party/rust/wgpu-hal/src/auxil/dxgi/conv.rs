@@ -64,7 +64,7 @@ pub fn map_texture_format_failable(format: wgt::TextureFormat) -> Option<dxgifor
         Tf::Bc5RgUnorm => DXGI_FORMAT_BC5_UNORM,
         Tf::Bc5RgSnorm => DXGI_FORMAT_BC5_SNORM,
         Tf::Bc6hRgbUfloat => DXGI_FORMAT_BC6H_UF16,
-        Tf::Bc6hRgbSfloat => DXGI_FORMAT_BC6H_SF16,
+        Tf::Bc6hRgbFloat => DXGI_FORMAT_BC6H_SF16,
         Tf::Bc7RgbaUnorm => DXGI_FORMAT_BC7_UNORM,
         Tf::Bc7RgbaUnormSrgb => DXGI_FORMAT_BC7_UNORM_SRGB,
         Tf::Etc2Rgb8Unorm
@@ -101,37 +101,109 @@ pub fn map_texture_format_nosrgb(format: wgt::TextureFormat) -> dxgiformat::DXGI
     }
 }
 
-// Note: SRV and UAV can't use the depth formats directly
-pub fn map_texture_format_nodepth(format: wgt::TextureFormat) -> dxgiformat::DXGI_FORMAT {
-    match format {
-        wgt::TextureFormat::Depth16Unorm => dxgiformat::DXGI_FORMAT_R16_UNORM,
-        wgt::TextureFormat::Depth32Float => dxgiformat::DXGI_FORMAT_R32_FLOAT,
-        wgt::TextureFormat::Depth32FloatStencil8 => {
+// SRV and UAV can't use the depth or typeless formats
+// see https://microsoft.github.io/DirectX-Specs/d3d/PlanarDepthStencilDDISpec.html#view-creation
+pub fn map_texture_format_for_srv_uav(
+    format: wgt::TextureFormat,
+    aspect: crate::FormatAspects,
+) -> Option<dxgiformat::DXGI_FORMAT> {
+    Some(match (format, aspect) {
+        (wgt::TextureFormat::Depth16Unorm, crate::FormatAspects::DEPTH) => {
+            dxgiformat::DXGI_FORMAT_R16_UNORM
+        }
+        (wgt::TextureFormat::Depth32Float, crate::FormatAspects::DEPTH) => {
+            dxgiformat::DXGI_FORMAT_R32_FLOAT
+        }
+        (wgt::TextureFormat::Depth32FloatStencil8, crate::FormatAspects::DEPTH) => {
             dxgiformat::DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS
         }
-        wgt::TextureFormat::Stencil8
-        | wgt::TextureFormat::Depth24Plus
-        | wgt::TextureFormat::Depth24PlusStencil8 => dxgiformat::DXGI_FORMAT_R24_UNORM_X8_TYPELESS,
-        _ => {
-            assert_eq!(
-                crate::FormatAspects::from(format),
-                crate::FormatAspects::COLOR
-            );
-            map_texture_format(format)
+        (
+            wgt::TextureFormat::Depth24Plus | wgt::TextureFormat::Depth24PlusStencil8,
+            crate::FormatAspects::DEPTH,
+        ) => dxgiformat::DXGI_FORMAT_R24_UNORM_X8_TYPELESS,
+
+        (wgt::TextureFormat::Depth32FloatStencil8, crate::FormatAspects::STENCIL) => {
+            dxgiformat::DXGI_FORMAT_X32_TYPELESS_G8X24_UINT
         }
-    }
+        (
+            wgt::TextureFormat::Stencil8 | wgt::TextureFormat::Depth24PlusStencil8,
+            crate::FormatAspects::STENCIL,
+        ) => dxgiformat::DXGI_FORMAT_X24_TYPELESS_G8_UINT,
+
+        (format, crate::FormatAspects::COLOR) => map_texture_format(format),
+
+        _ => return None,
+    })
 }
 
-pub fn map_texture_format_depth_typeless(format: wgt::TextureFormat) -> dxgiformat::DXGI_FORMAT {
-    match format {
-        wgt::TextureFormat::Depth16Unorm => dxgiformat::DXGI_FORMAT_R16_TYPELESS,
-        wgt::TextureFormat::Depth32Float => dxgiformat::DXGI_FORMAT_R32_TYPELESS,
-        wgt::TextureFormat::Depth32FloatStencil8 => dxgiformat::DXGI_FORMAT_R32G8X24_TYPELESS,
-        wgt::TextureFormat::Stencil8 => dxgiformat::DXGI_FORMAT_R24G8_TYPELESS,
-        wgt::TextureFormat::Depth24Plus | wgt::TextureFormat::Depth24PlusStencil8 => {
-            dxgiformat::DXGI_FORMAT_R24G8_TYPELESS
+// see https://microsoft.github.io/DirectX-Specs/d3d/PlanarDepthStencilDDISpec.html#planar-layout-for-staging-from-buffer
+pub fn map_texture_format_for_copy(
+    format: wgt::TextureFormat,
+    aspect: crate::FormatAspects,
+) -> Option<dxgiformat::DXGI_FORMAT> {
+    Some(match (format, aspect) {
+        (wgt::TextureFormat::Depth16Unorm, crate::FormatAspects::DEPTH) => {
+            dxgiformat::DXGI_FORMAT_R16_UNORM
         }
-        _ => unreachable!(),
+        (
+            wgt::TextureFormat::Depth32Float | wgt::TextureFormat::Depth32FloatStencil8,
+            crate::FormatAspects::DEPTH,
+        ) => dxgiformat::DXGI_FORMAT_R32_FLOAT,
+
+        (
+            wgt::TextureFormat::Stencil8
+            | wgt::TextureFormat::Depth24PlusStencil8
+            | wgt::TextureFormat::Depth32FloatStencil8,
+            crate::FormatAspects::STENCIL,
+        ) => dxgiformat::DXGI_FORMAT_R8_UINT,
+
+        (format, crate::FormatAspects::COLOR) => map_texture_format(format),
+
+        _ => return None,
+    })
+}
+
+pub fn map_texture_format_for_resource(
+    format: wgt::TextureFormat,
+    usage: crate::TextureUses,
+    has_view_formats: bool,
+    casting_fully_typed_format_supported: bool,
+) -> dxgiformat::DXGI_FORMAT {
+    use wgt::TextureFormat as Tf;
+    use winapi::shared::dxgiformat::*;
+
+    if casting_fully_typed_format_supported {
+        map_texture_format(format)
+
+    // We might view this resource as srgb or non-srgb
+    } else if has_view_formats {
+        match format {
+            Tf::Rgba8Unorm | Tf::Rgba8UnormSrgb => DXGI_FORMAT_R8G8B8A8_TYPELESS,
+            Tf::Bgra8Unorm | Tf::Bgra8UnormSrgb => DXGI_FORMAT_B8G8R8A8_TYPELESS,
+            Tf::Bc1RgbaUnorm | Tf::Bc1RgbaUnormSrgb => DXGI_FORMAT_BC1_TYPELESS,
+            Tf::Bc2RgbaUnorm | Tf::Bc2RgbaUnormSrgb => DXGI_FORMAT_BC2_TYPELESS,
+            Tf::Bc3RgbaUnorm | Tf::Bc3RgbaUnormSrgb => DXGI_FORMAT_BC3_TYPELESS,
+            Tf::Bc7RgbaUnorm | Tf::Bc7RgbaUnormSrgb => DXGI_FORMAT_BC7_TYPELESS,
+            format => map_texture_format(format),
+        }
+
+    // We might view this resource as SRV/UAV but also as DSV
+    } else if format.is_depth_stencil_format()
+        && usage.intersects(
+            crate::TextureUses::RESOURCE
+                | crate::TextureUses::STORAGE_READ
+                | crate::TextureUses::STORAGE_READ_WRITE,
+        )
+    {
+        match format {
+            Tf::Depth16Unorm => DXGI_FORMAT_R16_TYPELESS,
+            Tf::Depth32Float => DXGI_FORMAT_R32_TYPELESS,
+            Tf::Depth32FloatStencil8 => DXGI_FORMAT_R32G8X24_TYPELESS,
+            Tf::Stencil8 | Tf::Depth24Plus | Tf::Depth24PlusStencil8 => DXGI_FORMAT_R24G8_TYPELESS,
+            _ => unreachable!(),
+        }
+    } else {
+        map_texture_format(format)
     }
 }
 
@@ -181,6 +253,6 @@ pub fn map_vertex_format(format: wgt::VertexFormat) -> dxgiformat::DXGI_FORMAT {
     }
 }
 
-pub fn map_acomposite_alpha_mode(_mode: wgt::CompositeAlphaMode) -> native::AlphaMode {
-    native::AlphaMode::Ignore
+pub fn map_acomposite_alpha_mode(_mode: wgt::CompositeAlphaMode) -> d3d12::AlphaMode {
+    d3d12::AlphaMode::Ignore
 }

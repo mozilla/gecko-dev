@@ -169,12 +169,6 @@ dnl Configure platform-specific CPU architecture compiler options.
 dnl ==============================================================
 MOZ_ARCH_OPTS
 
-dnl ========================================================
-dnl Android libstdc++
-dnl ========================================================
-
-MOZ_ANDROID_STLPORT
-
 MOZ_CONFIG_SANITIZE
 
 dnl ========================================================
@@ -240,7 +234,7 @@ if test "$GNU_CC"; then
                   LDFLAGS=$_SAVE_LDFLAGS)
 
     # While sha1 is deterministic, it is slower.
-    if test -z "$DEVELOPER_OPTIONS" -o "$OS_TARGET" = "Android"; then
+    if test -z "$DEVELOPER_OPTIONS"; then
         build_id=sha1
     else
         build_id=uuid
@@ -548,15 +542,6 @@ fi
 AC_LANG_CPLUSPLUS
 
 MOZ_CXX11
-
-case "${OS_TARGET}" in
-WINNT|Darwin|Android)
-  ;;
-*)
-  STL_FLAGS="-I${DIST}/stl_wrappers"
-  WRAP_STL_INCLUDES=1
-  ;;
-esac
 
 dnl Checks for header files.
 dnl ========================================================

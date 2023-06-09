@@ -5,7 +5,7 @@
 import React, { PureComponent } from "react";
 import PropTypes from "prop-types";
 import { connect } from "../../utils/connect";
-import classnames from "classnames";
+import { createLocation } from "../../utils/location";
 import actions from "../../actions";
 import {
   getSelectedSource,
@@ -24,6 +24,8 @@ import { isPretty, getFilename, shouldBlackbox } from "../../utils/source";
 
 import { PaneToggleButton } from "../shared/Button";
 import AccessibleImage from "../shared/AccessibleImage";
+
+const classnames = require("devtools/client/shared/classnames.js");
 
 import "./Footer.css";
 
@@ -200,11 +202,11 @@ class SourceFooter extends PureComponent {
       filename
     );
     const title = L10N.getFormatStr("sourceFooter.mappedSource", filename);
-    const mappedSourceLocation = {
-      sourceId: selectedSource.id,
+    const mappedSourceLocation = createLocation({
+      source: selectedSource,
       line: 1,
       column: 1,
-    };
+    });
     return (
       <button
         className="mapped-source"

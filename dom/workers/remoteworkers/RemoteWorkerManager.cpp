@@ -419,6 +419,7 @@ void RemoteWorkerManager::Launch(RemoteWorkerController* aController,
     pending->mController = aController;
     pending->mData = aData;
 
+    // Launching is async, so we cannot check for failures right here.
     LaunchNewContentProcess(aData);
     return;
   }
@@ -468,9 +469,9 @@ void RemoteWorkerManager::LaunchInternal(
         SchedulerGroup::Dispatch(TaskCategory::Other, r.forget()));
   }
 
-  RemoteWorkerParent* workerActor = static_cast<RemoteWorkerParent*>(
-      aTargetActor->Manager()->SendPRemoteWorkerConstructor(aData));
-  if (NS_WARN_IF(!workerActor)) {
+  RefPtr<RemoteWorkerParent> workerActor = MakeAndAddRef<RemoteWorkerParent>();
+  if (!aTargetActor->Manager()->SendPRemoteWorkerConstructor(workerActor,
+                                                             aData)) {
     AsyncCreationFailed(aController);
     return;
   }
@@ -638,7 +639,8 @@ void RemoteWorkerManager::LaunchNewContentProcess(
 
   nsCOMPtr<nsISerialEventTarget> bgEventTarget = GetCurrentSerialEventTarget();
 
-  using CallbackParamType = ContentParent::LaunchPromise::ResolveOrRejectValue;
+  using LaunchPromiseType = ContentParent::LaunchPromise;
+  using CallbackParamType = LaunchPromiseType::ResolveOrRejectValue;
 
   // A new content process must be requested on the main thread. On success,
   // the success callback will also run on the main thread. On failure, however,
@@ -692,28 +694,38 @@ void RemoteWorkerManager::LaunchNewContentProcess(
         auto remoteType =
             workerRemoteType.IsEmpty() ? DEFAULT_REMOTE_TYPE : workerRemoteType;
 
-        // Request a process making sure to specify aPreferUsed=true.  For a
-        // given remoteType there's a pool size limit.  If we pass aPreferUsed
-        // here, then if there's any process in the pool already, we will use
-        // that.  If we pass false (which is the default if omitted), then this
-        // call will spawn a new process if the pool isn't at its limit yet.
-        //
-        // (Our intent is never to grow the pool size here.  Our logic gets here
-        // because our current logic on PBackground is only aware of
-        // RemoteWorkerServiceParent actors that have registered themselves,
-        // which is fundamentally unaware of processes that will match in the
-        // future when they register.  So we absolutely are fine with and want
-        // any existing processes.)
-        ContentParent::GetNewOrUsedBrowserProcessAsync(
-            /* aRemoteType = */ remoteType,
-            /* aGroup */ nullptr,
-            hal::ProcessPriority::PROCESS_PRIORITY_FOREGROUND,
-            /* aPreferUsed */ true)
-            ->Then(GetCurrentSerialEventTarget(), __func__,
-                   [callback = std::move(callback),
-                    remoteType](const CallbackParamType& aValue) mutable {
-                     callback(aValue, remoteType);
-                   });
+        RefPtr<LaunchPromiseType> onFinished;
+        if (!AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed)) {
+          // Request a process making sure to specify aPreferUsed=true.  For a
+          // given remoteType there's a pool size limit.  If we pass aPreferUsed
+          // here, then if there's any process in the pool already, we will use
+          // that.  If we pass false (which is the default if omitted), then
+          // this call will spawn a new process if the pool isn't at its limit
+          // yet.
+          //
+          // (Our intent is never to grow the pool size here.  Our logic gets
+          // here because our current logic on PBackground is only aware of
+          // RemoteWorkerServiceParent actors that have registered themselves,
+          // which is fundamentally unaware of processes that will match in the
+          // future when they register.  So we absolutely are fine with and want
+          // any existing processes.)
+          onFinished = ContentParent::GetNewOrUsedBrowserProcessAsync(
+              /* aRemoteType = */ remoteType,
+              /* aGroup */ nullptr,
+              hal::ProcessPriority::PROCESS_PRIORITY_FOREGROUND,
+              /* aPreferUsed */ true);
+        } else {
+          // We can find this event still in flight after having been asked to
+          // shutdown. Let's fake a failure to ensure our callback is called
+          // such that we clean up everything properly.
+          onFinished = LaunchPromiseType::CreateAndReject(
+              NS_ERROR_ILLEGAL_DURING_SHUTDOWN, __func__);
+        }
+        onFinished->Then(GetCurrentSerialEventTarget(), __func__,
+                         [callback = std::move(callback),
+                          remoteType](const CallbackParamType& aValue) mutable {
+                           callback(aValue, remoteType);
+                         });
       });
 
   SchedulerGroup::Dispatch(TaskCategory::Other, r.forget());

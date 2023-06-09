@@ -14,6 +14,7 @@
 #  include "mozilla/ScopeExit.h"
 #  include "nsGtkUtils.h"
 #  include "mozilla/StaticPrefs_layout.h"
+#  include "mozilla/StaticPrefs_widget.h"
 #  include "nsWindow.h"
 
 #  include <gdk/gdkwayland.h>
@@ -38,7 +39,7 @@ namespace mozilla {
 static void WaylandVsyncSourceCallbackHandler(void* aData,
                                               struct wl_callback* aCallback,
                                               uint32_t aTime) {
-  RefPtr<WaylandVsyncSource> context(static_cast<WaylandVsyncSource*>(aData));
+  RefPtr context = static_cast<WaylandVsyncSource*>(aData);
   context->FrameCallback(aCallback, aTime);
 }
 
@@ -46,12 +47,12 @@ static const struct wl_callback_listener WaylandVsyncSourceCallbackListener = {
     WaylandVsyncSourceCallbackHandler};
 
 static void NativeLayerRootWaylandVsyncCallback(void* aData, uint32_t aTime) {
-  RefPtr<WaylandVsyncSource> context(static_cast<WaylandVsyncSource*>(aData));
+  RefPtr context = static_cast<WaylandVsyncSource*>(aData);
   context->FrameCallback(nullptr, aTime);
 }
 
 static float GetFPS(TimeDuration aVsyncRate) {
-  return 1000.0 / aVsyncRate.ToMilliseconds();
+  return 1000.0f / float(aVsyncRate.ToMilliseconds());
 }
 
 static nsTArray<WaylandVsyncSource*> gWaylandVsyncSources;
@@ -229,12 +230,17 @@ void WaylandVsyncSource::SetupFrameCallback(const MutexAutoLock& aProofOfLock) {
     wl_display_flush(WaylandDisplayGet()->GetDisplay());
 
     if (!mIdleTimerID) {
-      mIdleTimerID = (int)g_timeout_add(
+      mIdleTimerID = g_timeout_add(
           mIdleTimeout,
           [](void* data) -> gint {
-            auto* vsync = static_cast<WaylandVsyncSource*>(data);
-            vsync->IdleCallback();
-            return true;
+            RefPtr vsync = static_cast<WaylandVsyncSource*>(data);
+            if (vsync->IdleCallback()) {
+              // We want to fire again, so don't clear mIdleTimerID
+              return G_SOURCE_CONTINUE;
+            }
+            // No need for g_source_remove, caller does it for us.
+            vsync->mIdleTimerID = 0;
+            return G_SOURCE_REMOVE;
           },
           this);
     }
@@ -243,7 +249,7 @@ void WaylandVsyncSource::SetupFrameCallback(const MutexAutoLock& aProofOfLock) {
   mCallbackRequested = true;
 }
 
-void WaylandVsyncSource::IdleCallback() {
+bool WaylandVsyncSource::IdleCallback() {
   LOG("WaylandVsyncSource::IdleCallback");
   MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread());
 
@@ -258,20 +264,20 @@ void WaylandVsyncSource::IdleCallback() {
       // here without setting up a new frame callback.
       LOG("  quit, mVsyncEnabled %d mMonitorEnabled %d", mVsyncEnabled,
           mMonitorEnabled);
-      return;
+      return false;
     }
 
-    guint duration = static_cast<guint>(
-        (TimeStamp::Now() - mLastVsyncTimeStamp).ToMilliseconds());
-    if (duration < mIdleTimeout) {
-      return;
+    const auto now = TimeStamp::Now();
+    const auto timeSinceLastVSync = now - mLastVsyncTimeStamp;
+    if (timeSinceLastVSync.ToMilliseconds() < mIdleTimeout) {
+      // We're not idle, we want to fire the timer again.
+      return true;
     }
 
     LOG("  fire idle vsync");
-    CalculateVsyncRate(lock, TimeStamp::Now());
-    mLastVsyncTimeStamp = TimeStamp::Now();
+    CalculateVsyncRate(lock, now);
+    mLastVsyncTimeStamp = lastVSync = now;
 
-    lastVSync = mLastVsyncTimeStamp;
     outputTimestamp = mLastVsyncTimeStamp + mVsyncRate;
     window = mWindow;
   }
@@ -279,11 +285,14 @@ void WaylandVsyncSource::IdleCallback() {
   // This could disable vsync.
   window->NotifyOcclusionState(OcclusionState::OCCLUDED);
 
+  if (window->IsDestroyed()) {
+    return false;
+  }
   // Make sure to fire vsync now even if we get disabled afterwards.
   // This gives an opportunity to clean up after the visibility state change.
-  if (!window->IsDestroyed()) {
-    NotifyVsync(lastVSync, outputTimestamp);
-  }
+  // FIXME: Do we really need to do this?
+  NotifyVsync(lastVSync, outputTimestamp);
+  return StaticPrefs::widget_wayland_vsync_keep_firing_at_idle();
 }
 
 void WaylandVsyncSource::FrameCallback(wl_callback* aCallback, uint32_t aTime) {
@@ -321,19 +330,19 @@ void WaylandVsyncSource::FrameCallback(wl_callback* aCallback, uint32_t aTime) {
   SetupFrameCallback(lock);
 
   int64_t tick = BaseTimeDurationPlatformUtils::TicksFromMilliseconds(aTime);
-  TimeStamp callbackTimeStamp = TimeStamp::FromSystemTime(tick);
-  double duration = (TimeStamp::Now() - callbackTimeStamp).ToMilliseconds();
+  const auto callbackTimeStamp = TimeStamp::FromSystemTime(tick);
+  const auto now = TimeStamp::Now();
 
-  TimeStamp vsyncTimestamp;
-  if (duration < 50 && duration > -50) {
-    vsyncTimestamp = callbackTimeStamp;
-  } else {
-    vsyncTimestamp = TimeStamp::Now();
-  }
+  // If the callback timestamp is close enough to our timestamp, use it,
+  // otherwise use the current time.
+  const TimeStamp& vsyncTimestamp =
+      std::abs((now - callbackTimeStamp).ToMilliseconds()) < 50.0
+          ? callbackTimeStamp
+          : now;
 
   CalculateVsyncRate(lock, vsyncTimestamp);
   mLastVsyncTimeStamp = vsyncTimestamp;
-  TimeStamp outputTimestamp = vsyncTimestamp + mVsyncRate;
+  const TimeStamp outputTimestamp = vsyncTimestamp + mVsyncRate;
 
   {
     MutexAutoUnlock unlock(mMutex);

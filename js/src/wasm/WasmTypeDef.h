@@ -39,6 +39,9 @@ using mozilla::MallocSizeOf;
 
 class RecGroup;
 
+//=========================================================================
+// Function types
+
 // The FuncType class represents a WebAssembly function signature which takes a
 // list of value types and returns an expression type. The engine uses two
 // in-memory representations of the argument Vector's memory (when elements do
@@ -186,8 +189,31 @@ class FuncType {
   // relationship.
   static bool canBeSubTypeOf(const FuncType& subType,
                              const FuncType& superType) {
-    // Temporarily only support equality for function subtyping
-    return FuncType::strictlyEquals(subType, superType);
+    // A subtype must have exactly as many arguments as its supertype
+    if (subType.args().length() != superType.args().length()) {
+      return false;
+    }
+
+    // A subtype must have exactly as many returns as its supertype
+    if (subType.results().length() != superType.results().length()) {
+      return false;
+    }
+
+    // Function result types are covariant
+    for (uint32_t i = 0; i < superType.results().length(); i++) {
+      if (!ValType::isSubTypeOf(subType.results()[i], superType.results()[i])) {
+        return false;
+      }
+    }
+
+    // Function argument types are contravariant
+    for (uint32_t i = 0; i < superType.args().length(); i++) {
+      if (!ValType::isSubTypeOf(superType.args()[i], subType.args()[i])) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   bool canHaveJitEntry() const;
@@ -220,8 +246,9 @@ class FuncType {
   WASM_DECLARE_FRIEND_SERIALIZE(FuncType);
 };
 
-// Structure type.
-//
+//=========================================================================
+// Structure types
+
 // The Module owns a dense array of StructType values that represent the
 // structure types that the module knows about.  It is created from the sparse
 // array of types in the ModuleEnvironment when the Module is created.
@@ -258,10 +285,15 @@ struct StructField {
 
 using StructFieldVector = Vector<StructField, 0, SystemAllocPolicy>;
 
+using InlineTraceOffsetVector = Vector<uint32_t, 2, SystemAllocPolicy>;
+using OutlineTraceOffsetVector = Vector<uint32_t, 0, SystemAllocPolicy>;
+
 class StructType {
  public:
   StructFieldVector fields_;  // Field type, offset, and mutability
   uint32_t size_;             // The size of the type in bytes.
+  InlineTraceOffsetVector inlineTraceOffsets_;
+  OutlineTraceOffsetVector outlineTraceOffsets_;
 
  public:
   StructType() : fields_(), size_(0) {}
@@ -372,7 +404,8 @@ class StructLayout {
   CheckedInt32 close();
 };
 
-// Array type
+//=========================================================================
+// Array types
 
 class ArrayType {
  public:
@@ -441,6 +474,9 @@ WASM_DECLARE_CACHEABLE_POD(ArrayType);
 
 using ArrayTypeVector = Vector<ArrayType, 0, SystemAllocPolicy>;
 
+//=========================================================================
+// SuperTypeVector
+
 // [SMDOC] Super type vector
 //
 // A super type vector is a vector representation of the linked list of super
@@ -471,18 +507,23 @@ using ArrayTypeVector = Vector<ArrayType, 0, SystemAllocPolicy>;
 // ## Example
 //
 // For the following type section:
-//   0: (type (struct))
-//   1: (type (sub 1 (struct)))
-//   2: (type (sub 2 (struct)))
-//   3: (type (sub 3 (struct)))
+//   ..
+//   12: (type (struct))
+//   ..
+//   34: (type (sub 12 (struct)))
+//   ..
+//   56: (type (sub 34 (struct)))
+//   ..
+//   78: (type (sub 56 (struct)))
+//   ..
 //
-// (type 0) would have the following super type vector:
-//   [(type 0)]
+// (type 12) would have the following super type vector:
+//   [(type 12)]
 //
-// (type 3) would have the following super type vector:
-//   [(type 0), (type 1), (type 2), (type 3)]
+// (type 78) would have the following super type vector:
+//   [(type 12), (type 34), (type 56), (type 78)]
 //
-// Checking that (type 3) <: (type 0) can use the fact that (type 0) will
+// Checking that (type 78) <: (type 12) can use the fact that (type 12) will
 // always be present at depth 0 of any super type vector it is in, and
 // therefore check the vector at that index.
 //
@@ -493,28 +534,60 @@ using ArrayTypeVector = Vector<ArrayType, 0, SystemAllocPolicy>;
 // against indices that we know statically are at/below that can skip bounds
 // checking. Extra entries added to reach the minimum size are initialized to
 // null.
-struct SuperTypeVector {
+class SuperTypeVector {
+  SuperTypeVector() : typeDef_(nullptr), length_(0) {}
+
+  // The TypeDef for which this is the supertype vector.  That TypeDef should
+  // point back to this SuperTypeVector.
+  const TypeDef* typeDef_;
+
+  // The length of types stored inline below.
+  uint32_t length_;
+
+ public:
+  // Raw pointers to the super types of this type definition. Ordered from
+  // least-derived to most-derived.  Do not add any fields after this point.
+  const SuperTypeVector* types_[0];
+
   // Batch allocate super type vectors for all the types in a recursion group.
   // Returns a pointer to the first super type vector, which can be used to
   // free all vectors.
   [[nodiscard]] static const SuperTypeVector* createMultipleForRecGroup(
       RecGroup* recGroup);
 
+  const TypeDef* typeDef() const { return typeDef_; }
+  void setTypeDef(const TypeDef* typeDef) { typeDef_ = typeDef; }
+
+  uint32_t length() const { return length_; }
+  void setLength(uint32_t length) { length_ = length; }
+
+  const SuperTypeVector* type(size_t index) const {
+    MOZ_ASSERT(index < length_);
+    return types_[index];
+  }
+  void setType(size_t index, const SuperTypeVector* type) {
+    MOZ_ASSERT(index < length_);
+    types_[index] = type;
+  }
+
   // The length of a super type vector for a specific type def.
   static size_t lengthForTypeDef(const TypeDef& typeDef);
   // The byte size of a super type vector for a specific type def.
   static size_t byteSizeForTypeDef(const TypeDef& typeDef);
 
-  static size_t offsetOfLength() { return offsetof(SuperTypeVector, length); }
+  static size_t offsetOfLength() { return offsetof(SuperTypeVector, length_); }
+  static size_t offsetOfSelfTypeDef() {
+    return offsetof(SuperTypeVector, typeDef_);
+  };
   static size_t offsetOfTypeDefInVector(uint32_t typeDefDepth);
-
-  // The length of types stored inline below.
-  uint32_t length;
-
-  // Raw pointers to the super types of this type definition. Ordered from
-  // least-derived to most-derived.
-  const TypeDef* types[0];
 };
+
+// Ensure it is safe to use `sizeof(SuperTypeVector)` to find the offset of
+// `types_[0]`.
+static_assert(offsetof(SuperTypeVector, types_) == sizeof(SuperTypeVector));
+
+//=========================================================================
+// TypeDef and supporting types
 
 // A tagged container for the various types that can be present in a wasm
 // module's type section.
@@ -528,7 +601,11 @@ enum class TypeDefKind : uint8_t {
 
 class TypeDef {
   uint32_t offsetToRecGroup_;
+
+  // The supertype vector for this TypeDef.  That SuperTypeVector should point
+  // back to this TypeDef.
   const SuperTypeVector* superTypeVector_;
+
   const TypeDef* superTypeDef_;
   uint16_t subTypingDepth_;
   TypeDefKind kind_;
@@ -598,6 +675,8 @@ class TypeDef {
   void setSuperTypeVector(const SuperTypeVector* superTypeVector) {
     superTypeVector_ = superTypeVector;
   }
+
+  static size_t offsetOfKind() { return offsetof(TypeDef, kind_); }
 
   static size_t offsetOfSuperTypeVector() {
     return offsetof(TypeDef, superTypeVector_);
@@ -731,36 +810,46 @@ class TypeDef {
     subTypingDepth_ = superTypeDef_->subTypingDepth_ + 1;
   }
 
-  // Checks if `subType` is a declared sub type of `superType`.
-  static bool isSubTypeOf(const TypeDef* subType, const TypeDef* superType) {
+  // Checks if `subTypeDef` is a declared sub type of `superTypeDef`.
+  static bool isSubTypeOf(const TypeDef* subTypeDef,
+                          const TypeDef* superTypeDef) {
     // Fast path for when the types are equal
-    if (MOZ_LIKELY(subType == superType)) {
+    if (MOZ_LIKELY(subTypeDef == superTypeDef)) {
       return true;
     }
-    const SuperTypeVector* subSuperTypes = subType->superTypeVector();
+    const SuperTypeVector* subSuperTypeVector = subTypeDef->superTypeVector();
 
     // During construction of a recursion group, the super type vector may not
     // have been computed yet, in which case we need to fall back to a linear
     // search.
-    if (!subSuperTypes) {
-      while (subType) {
-        if (subType == superType) {
+    if (!subSuperTypeVector) {
+      while (subTypeDef) {
+        if (subTypeDef == superTypeDef) {
           return true;
         }
-        subType = subType->superTypeDef();
+        subTypeDef = subTypeDef->superTypeDef();
       }
       return false;
     }
 
-    // Otherwise, we need to check if `superType` is one of `subType`s super
-    // types by checking in `subType`s super type vector. We can use the static
-    // information of the depth of `superType` to index directly into the
+    // The supertype vector does exist.  So check it points back here.
+    MOZ_ASSERT(subSuperTypeVector->typeDef() == subTypeDef);
+
+    // We need to check if `superTypeDef` is one of `subTypeDef`s super types
+    // by checking in `subTypeDef`s super type vector. We can use the static
+    // information of the depth of `superTypeDef` to index directly into the
     // vector.
-    uint32_t subTypingDepth = superType->subTypingDepth();
-    if (subTypingDepth >= subSuperTypes->length) {
+    uint32_t subTypingDepth = superTypeDef->subTypingDepth();
+    if (subTypingDepth >= subSuperTypeVector->length()) {
       return false;
     }
-    return subSuperTypes->types[subTypingDepth] == superType;
+
+    const SuperTypeVector* superSuperTypeVector =
+        superTypeDef->superTypeVector();
+    MOZ_ASSERT(superSuperTypeVector);
+    MOZ_ASSERT(superSuperTypeVector->typeDef() == superTypeDef);
+
+    return subSuperTypeVector->type(subTypingDepth) == superSuperTypeVector;
   }
 
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
@@ -776,6 +865,9 @@ using TypeDefPtrVector = Vector<const TypeDef*, 0, SystemAllocPolicy>;
 using TypeDefPtrToIndexMap =
     HashMap<const TypeDef*, uint32_t, PointerHasher<const TypeDef*>,
             SystemAllocPolicy>;
+
+//=========================================================================
+// RecGroup
 
 // A recursion group is a set of type definitions that may refer to each other
 // or to type definitions in another recursion group. There is an ordering
@@ -982,6 +1074,9 @@ using SharedRecGroup = RefPtr<const RecGroup>;
 using MutableRecGroup = RefPtr<RecGroup>;
 using SharedRecGroupVector = Vector<SharedRecGroup, 0, SystemAllocPolicy>;
 
+//=========================================================================
+// TypeContext
+
 // A type context holds the recursion groups and corresponding type definitions
 // defined in a module.
 class TypeContext : public AtomicRefCounted<TypeContext> {
@@ -1117,6 +1212,9 @@ class TypeContext : public AtomicRefCounted<TypeContext> {
 using SharedTypeContext = RefPtr<const TypeContext>;
 using MutableTypeContext = RefPtr<TypeContext>;
 
+//=========================================================================
+// TypeHandle
+
 // An unambiguous strong reference to a type definition in a specific type
 // context.
 class TypeHandle {
@@ -1139,6 +1237,9 @@ class TypeHandle {
   uint32_t index() const { return index_; }
   const TypeDef& def() const { return context_->type(index_); }
 };
+
+//=========================================================================
+// misc
 
 /* static */
 inline uintptr_t TypeDef::forMatch(const TypeDef* typeDef,
@@ -1165,6 +1266,55 @@ inline MatchTypeCode MatchTypeCode::forMatch(PackedTypeCode ptc,
   mtc.typeRef = TypeDef::forMatch(ptc.typeDef(), recGroup);
   mtc.nullable = ptc.isNullable();
   return mtc;
+}
+
+inline RefTypeHierarchy RefType::hierarchy() const {
+  switch (kind()) {
+    case RefType::Func:
+    case RefType::NoFunc:
+      return RefTypeHierarchy::Func;
+    case RefType::Extern:
+    case RefType::NoExtern:
+      return RefTypeHierarchy::Extern;
+    case RefType::Any:
+    case RefType::None:
+    case RefType::Eq:
+    case RefType::Struct:
+    case RefType::Array:
+      return RefTypeHierarchy::Any;
+    case RefType::TypeRef:
+      switch (typeDef()->kind()) {
+        case TypeDefKind::Struct:
+        case TypeDefKind::Array:
+          return RefTypeHierarchy::Any;
+        case TypeDefKind::Func:
+          return RefTypeHierarchy::Func;
+        case TypeDefKind::None:
+          MOZ_CRASH();
+      }
+  }
+  MOZ_CRASH("switch is exhaustive");
+}
+
+inline TableRepr RefType::tableRepr() const {
+  switch (hierarchy()) {
+    case RefTypeHierarchy::Any:
+    case RefTypeHierarchy::Extern:
+      return TableRepr::Ref;
+    case RefTypeHierarchy::Func:
+      return TableRepr::Func;
+  }
+  MOZ_CRASH("switch is exhaustive");
+}
+
+inline bool RefType::isFuncHierarchy() const {
+  return hierarchy() == RefTypeHierarchy::Func;
+}
+inline bool RefType::isExternHierarchy() const {
+  return hierarchy() == RefTypeHierarchy::Extern;
+}
+inline bool RefType::isAnyHierarchy() const {
+  return hierarchy() == RefTypeHierarchy::Any;
 }
 
 /* static */
@@ -1221,9 +1371,26 @@ inline bool RefType::isSubTypeOf(RefType subType, RefType superType) {
     return TypeDef::isSubTypeOf(subType.typeDef(), superType.typeDef());
   }
 
+  // No func is the bottom type of the func hierarchy
+  if (subType.isNoFunc() && superType.hierarchy() == RefTypeHierarchy::Func) {
+    return true;
+  }
+
+  // No extern is the bottom type of the extern hierarchy
+  if (subType.isNoExtern() &&
+      superType.hierarchy() == RefTypeHierarchy::Extern) {
+    return true;
+  }
+
+  // None is the bottom type of the any hierarchy
+  if (subType.isNone() && superType.hierarchy() == RefTypeHierarchy::Any) {
+    return true;
+  }
+
   return false;
 }
 
+//=========================================================================
 // [SMDOC] Signatures and runtime types
 //
 // TypeIdDesc describes the runtime representation of a TypeDef suitable for

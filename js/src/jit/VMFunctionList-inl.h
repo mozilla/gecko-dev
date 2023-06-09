@@ -22,6 +22,7 @@
 #include "vm/AsyncFunction.h"
 #include "vm/AsyncIteration.h"
 #include "vm/BigIntType.h"
+#include "vm/BoundFunctionObject.h"
 #include "vm/EqualityOperations.h"
 #include "vm/Interpreter.h"
 #include "vm/Iteration.h"
@@ -145,9 +146,12 @@ namespace jit {
   _(EnterWith, js::jit::EnterWith)                                             \
   _(ExtractAwaitValue, js::ExtractAwaitValue)                                  \
   _(FinalSuspend, js::jit::FinalSuspend)                                       \
-  _(FinishBoundFunctionInit, JSFunction::finishBoundFunctionInit)              \
   _(FreshenLexicalEnv, js::jit::FreshenLexicalEnv)                             \
   _(FunWithProtoOperation, js::FunWithProtoOperation)                          \
+  _(FunctionBindCreate, js::BoundFunctionObject::createWithTemplate)           \
+  _(FunctionBindImpl, js::BoundFunctionObject::functionBindImpl)               \
+  _(FunctionBindSpecializedBaseline,                                           \
+    js::BoundFunctionObject::functionBindSpecializedBaseline)                  \
   VMFUNCTION_FUZZILLI_LIST(_)                                                  \
   _(GeneratorThrowOrReturn, js::jit::GeneratorThrowOrReturn)                   \
   _(GetAndClearException, js::GetAndClearException)                            \
@@ -155,6 +159,7 @@ namespace jit {
   _(GetImportOperation, js::GetImportOperation)                                \
   _(GetIntrinsicValue, js::jit::GetIntrinsicValue)                             \
   _(GetIterator, js::GetIterator)                                              \
+  _(GetIteratorWithIndices, js::GetIteratorWithIndices)                        \
   _(GetNonSyntacticGlobalThis, js::GetNonSyntacticGlobalThis)                  \
   _(GetOrCreateModuleMetaObject, js::GetOrCreateModuleMetaObject)              \
   _(GetPrototypeOf, js::jit::GetPrototypeOf)                                   \
@@ -247,6 +252,7 @@ namespace jit {
   _(SameValue, js::SameValue)                                                  \
   _(SetArrayLength, js::jit::SetArrayLength)                                   \
   _(SetElementMegamorphic, js::jit::SetElementMegamorphic)                     \
+  _(SetElementMegamorphicCached, js::jit::SetElementMegamorphicCached)         \
   _(SetElementSuper, js::SetElementSuper)                                      \
   _(SetFunctionName, js::SetFunctionName)                                      \
   _(SetIntrinsicOperation, js::SetIntrinsicOperation)                          \
@@ -300,7 +306,6 @@ namespace jit {
   _(DoCheckPrivateFieldFallback, js::jit::DoCheckPrivateFieldFallback, 2)   \
   _(DoCloseIterFallback, js::jit::DoCloseIterFallback, 0)                   \
   _(DoCompareFallback, js::jit::DoCompareFallback, 2)                       \
-  _(DoConcatStringObject, js::jit::DoConcatStringObject, 2)                 \
   _(DoGetElemFallback, js::jit::DoGetElemFallback, 2)                       \
   _(DoGetElemSuperFallback, js::jit::DoGetElemSuperFallback, 3)             \
   _(DoGetIntrinsicFallback, js::jit::DoGetIntrinsicFallback, 0)             \

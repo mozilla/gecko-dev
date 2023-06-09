@@ -12,6 +12,7 @@
 #include "ImageTypes.h"
 #include "imgIContainer.h"
 #include "mozilla/gfx/2D.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/UniquePtr.h"
 #include "nsColor.h"
@@ -25,6 +26,7 @@
 
 class gfxASurface;
 class gfxDrawable;
+class gfxTextRun;
 struct gfxQuad;
 class nsIInputStream;
 class nsIGfxInfo;
@@ -305,7 +307,7 @@ class gfxUtils {
    *
    * @param aOutputOptions Passed directly to imgIEncoder::InitFromData as
    *   the value of the |outputOptions| parameter. Callers are responsible
-   *   for making sure that this is a sane value for the passed MIME-type
+   *   for making sure that this is a reasonable value for the passed MIME-type
    *   (i.e. for the type of encoder that will be created).
    *
    * @aBinaryOrData Flag used to determine if the surface is simply encoded
@@ -324,6 +326,45 @@ class gfxUtils {
                                       const nsAString& aOutputOptions,
                                       BinaryOrData aBinaryOrData, FILE* aFile,
                                       nsACString* aString = nullptr);
+
+  /**
+   * Encodes the given surface to PNG/JPEG/BMP/etc. using imgIEncoder
+   * and returns the result as an nsIInputStream.
+   *
+   * @param aSurface The source surface to encode
+   *
+   * @param aImageType The image type that the surface is to be encoded to.
+   *   Used to create an appropriate imgIEncoder instance to do the encoding.
+   *
+   * @param aOutputOptions Passed directly to imgIEncoder::InitFromData as
+   *   the value of the |outputOptions| parameter. Callers are responsible
+   *   for making sure that this is a reasonable value for the passed MIME-type
+   *   (i.e. for the type of encoder that will be created).
+   *
+   * @param aOutStream pointer to the output stream
+   *
+   */
+  static nsresult EncodeSourceSurfaceAsStream(SourceSurface* aSurface,
+                                              const ImageType aImageType,
+                                              const nsAString& aOutputOptions,
+                                              nsIInputStream** aOutStream);
+
+  /**
+   * Encodes the given surface to PNG/JPEG/BMP/etc. using imgIEncoder
+   * and returns the result as a vector of bytes
+   *
+   * @param aImageType The image type that the surface is to be encoded to.
+   *   Used to create an appropriate imgIEncoder instance to do the encoding.
+   *
+   * @param aOutputOptions Passed directly to imgIEncoder::InitFromData as
+   *   the value of the |outputOptions| parameter. Callers are responsible
+   *   for making sure that this is a reasonable value for the passed MIME-type
+   *   (i.e. for the type of encoder that will be created).
+   *
+   */
+  static mozilla::Maybe<nsTArray<uint8_t>> EncodeSourceSurfaceAsBytes(
+      SourceSurface* aSurface, const ImageType aImageType,
+      const nsAString& aOutputOptions);
 
   /**
    * Write as a PNG file to the path aFile.
@@ -377,8 +418,169 @@ class gfxUtils {
 
 namespace mozilla {
 
-struct StyleRGBA;
-struct StyleAnimatedRGBA;
+// Container for either a single element of type T, or an nsTArray<T>.
+// Provides a minimal subset of nsTArray's API, just enough to support use
+// by ContextState for the clipsAndTransforms list, and by gfxTextRun for
+// its mGlyphRuns.
+// Using this instead of a simple nsTArray avoids an extra allocation in the
+// common case where no more than one element is ever added to the list.
+// Unlike an AutoTArray<..., 1>, this class is memmovable and therefore can
+// be used in ContextState without breaking its movability.
+template <typename T>
+class ElementOrArray {
+  union {
+    T mElement;
+    nsTArray<T> mArray;
+  };
+  enum class Tag : uint8_t {
+    Element,
+    Array,
+  } mTag;
+
+  // gfxTextRun::SortGlyphRuns and SanitizeGlyphRuns directly access the array.
+  friend class ::gfxTextRun;
+  nsTArray<T>& Array() {
+    MOZ_DIAGNOSTIC_ASSERT(mTag == Tag::Array);
+    return mArray;
+  }
+
+ public:
+  // Construct as an empty array.
+  ElementOrArray() : mTag(Tag::Array) { new (&mArray) nsTArray<T>(); }
+
+  // For now, don't support copy/move.
+  ElementOrArray(const ElementOrArray&) = delete;
+  ElementOrArray(ElementOrArray&&) = delete;
+
+  ElementOrArray& operator=(const ElementOrArray&) = delete;
+  ElementOrArray& operator=(ElementOrArray&&) = delete;
+
+  // Destroy the appropriate variant.
+  ~ElementOrArray() {
+    switch (mTag) {
+      case Tag::Element:
+        mElement.~T();
+        break;
+      case Tag::Array:
+        mArray.~nsTArray();
+        break;
+    }
+  }
+
+  size_t Length() const { return mTag == Tag::Element ? 1 : mArray.Length(); }
+
+  T* AppendElement(const T& aElement) {
+    switch (mTag) {
+      case Tag::Element: {
+        // Move the existing element into an array, then append the new one.
+        T temp = std::move(mElement);
+        mElement.~T();
+        mTag = Tag::Array;
+        new (&mArray) nsTArray<T>();
+        mArray.AppendElement(std::move(temp));
+        return mArray.AppendElement(aElement);
+      }
+      case Tag::Array: {
+        // If currently empty, just store the element directly.
+        if (mArray.IsEmpty()) {
+          mArray.~nsTArray();
+          mTag = Tag::Element;
+          new (&mElement) T(aElement);
+          return &mElement;
+        }
+        // Otherwise, append it to the array.
+        return mArray.AppendElement(aElement);
+      }
+      default:
+        MOZ_MAKE_COMPILER_ASSUME_IS_UNREACHABLE("invalid tag");
+    }
+  }
+
+  const T& LastElement() const {
+    return mTag == Tag::Element ? mElement : mArray.LastElement();
+  }
+
+  T& LastElement() {
+    return mTag == Tag::Element ? mElement : mArray.LastElement();
+  }
+
+  bool IsEmpty() const {
+    return mTag == Tag::Element ? false : mArray.IsEmpty();
+  }
+
+  void TruncateLength(uint32_t aLength = 0) {
+    MOZ_DIAGNOSTIC_ASSERT(aLength <= Length());
+    switch (mTag) {
+      case Tag::Element:
+        if (aLength == 0) {
+          // Destroy the single element, and convert to an empty array.
+          mElement.~T();
+          mTag = Tag::Array;
+          new (&mArray) nsTArray<T>();
+        }
+        break;
+      case Tag::Array:
+        mArray.TruncateLength(aLength);
+        break;
+    }
+  }
+
+  void Clear() {
+    switch (mTag) {
+      case Tag::Element:
+        mElement.~T();
+        mTag = Tag::Array;
+        new (&mArray) nsTArray<T>();
+        break;
+      case Tag::Array:
+        mArray.Clear();
+        break;
+    }
+  }
+
+  // Convert from Array to Element storage. Only to be used when the current
+  // state is a single-element array!
+  void ConvertToElement() {
+    MOZ_DIAGNOSTIC_ASSERT(mTag == Tag::Array && mArray.Length() == 1);
+    T temp = std::move(mArray[0]);
+    mArray.~nsTArray();
+    mTag = Tag::Element;
+    new (&mElement) T(std::move(temp));
+  }
+
+  const T& operator[](uint32_t aIndex) const {
+    MOZ_DIAGNOSTIC_ASSERT(aIndex < Length());
+    return mTag == Tag::Element ? mElement : mArray[aIndex];
+  }
+  T& operator[](uint32_t aIndex) {
+    MOZ_DIAGNOSTIC_ASSERT(aIndex < Length());
+    return mTag == Tag::Element ? mElement : mArray[aIndex];
+  }
+
+  // Simple iterators to support range-for loops.
+  const T* begin() const {
+    return mTag == Tag::Array ? mArray.IsEmpty() ? nullptr : &*mArray.begin()
+                              : &mElement;
+  }
+  T* begin() {
+    return mTag == Tag::Array ? mArray.IsEmpty() ? nullptr : &*mArray.begin()
+                              : &mElement;
+  }
+
+  const T* end() const {
+    return mTag == Tag::Array ? begin() + mArray.Length() : &mElement + 1;
+  }
+  T* end() {
+    return mTag == Tag::Array ? begin() + mArray.Length() : &mElement + 1;
+  }
+
+  size_t ShallowSizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) {
+    return mTag == Tag::Array ? mArray.ShallowSizeOfExcludingThis(aMallocSizeOf)
+                              : 0;
+  }
+};
+
+struct StyleAbsoluteColor;
 
 namespace gfx {
 
@@ -390,11 +592,10 @@ namespace gfx {
  * applicable).
  */
 DeviceColor ToDeviceColor(const sRGBColor&);
-DeviceColor ToDeviceColor(const StyleRGBA&);
-DeviceColor ToDeviceColor(const StyleAnimatedRGBA&);
+DeviceColor ToDeviceColor(const StyleAbsoluteColor&);
 DeviceColor ToDeviceColor(nscolor);
 
-sRGBColor ToSRGBColor(const StyleAnimatedRGBA&);
+sRGBColor ToSRGBColor(const StyleAbsoluteColor&);
 
 /**
  * Performs a checked multiply of the given width, height, and bytes-per-pixel

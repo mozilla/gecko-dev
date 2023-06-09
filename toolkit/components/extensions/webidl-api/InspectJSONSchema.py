@@ -3,7 +3,6 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import argparse
-import os
 import sys
 
 # Sanity check (ensure the script has been executed through `mach python`).
@@ -20,16 +19,7 @@ except ModuleNotFoundError or AttributeError:
     )
     sys.exit(1)
 
-# Add the current directory to the module path (needed to be able to load
-# GenerateWebIDLBindings without having to make it recognized as a python package).
-module_dir = os.path.dirname(__file__)
-sys.path.append(module_dir)
-
-from GenerateWebIDLBindings import (
-    APIEntry,
-    load_and_parse_JSONSchema,
-    set_logging_level,
-)
+from GenerateWebIDLBindings import load_and_parse_JSONSchema, set_logging_level
 
 
 def get_args_and_argparser():
@@ -108,8 +98,31 @@ def run_inspect_command(args, schemas, parser):
     # --dump-platform-diffs: print diffs for the JSON schema where we detected
     # differences between the desktop and mobile JSON schema files.
     if args.dump_platform_diffs:
-        for entry in APIEntry.in_multiple_groups:
-            entry.dump_platform_diff(args.diff_command, args.only_if_webidl_diffs)
+        for namespace in schemas.get_all_namespace_names():
+            apiNamespace = schemas.get_namespace(namespace)
+            if len(apiNamespace.schema_groups) <= 1:
+                continue
+            for apiMethod in apiNamespace.functions.values():
+                if len(apiNamespace.schema_groups) <= 1:
+                    continue
+                apiMethod.dump_platform_diff(
+                    args.diff_command, args.only_if_webidl_diffs
+                )
+            for apiEvent in apiNamespace.events.values():
+                if len(apiEvent.schema_groups) <= 1:
+                    continue
+                apiEvent.dump_platform_diff(
+                    args.diff_command, args.only_if_webidl_diffs
+                )
+            for apiProperty in apiNamespace.properties.values():
+                if len(apiProperty.schema_groups) <= 1:
+                    continue
+                apiProperty.dump_platform_diff(
+                    args.diff_command, args.only_if_webidl_diffs
+                )
+            # TODO: ideally we may also want to report differences in the
+            # type definitions, but this requires also some tweaks to adjust
+            # dump_platform_diff expectations and logic.
         return
 
     # Dump the list of all known API namespaces based on all the loaded JSONSchema data.
@@ -137,9 +150,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-else:
-    print(
-        "%s is only meant to be loaded as a script using `mach python %s`"
-        % (__file__, __file__)
-    )
-    sys.exit(1)

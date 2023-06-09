@@ -11,8 +11,8 @@
 // Wrap in a block to prevent leaking to window scope.
 (() => {
   function sendMessageToBrowser(msgName, data) {
-    let { AutoCompleteParent } = ChromeUtils.import(
-      "resource://gre/actors/AutoCompleteParent.jsm"
+    let { AutoCompleteParent } = ChromeUtils.importESModule(
+      "resource://gre/actors/AutoCompleteParent.sys.mjs"
     );
 
     let actor = AutoCompleteParent.getCurrentActor();
@@ -261,8 +261,8 @@
 
     _onCollapse() {
       if (this.showWarningText) {
-        let { FormAutofillParent } = ChromeUtils.import(
-          "resource://autofill/FormAutofillParent.jsm"
+        let { FormAutofillParent } = ChromeUtils.importESModule(
+          "resource://autofill/FormAutofillParent.sys.mjs"
         );
         FormAutofillParent.removeMessageObserver(this);
       }
@@ -298,8 +298,8 @@
       this.showWarningText = this._allFieldCategories && this._focusedCategory;
 
       if (this.showWarningText) {
-        let { FormAutofillParent } = ChromeUtils.import(
-          "resource://autofill/FormAutofillParent.jsm"
+        let { FormAutofillParent } = ChromeUtils.importESModule(
+          "resource://autofill/FormAutofillParent.sys.mjs"
         );
         FormAutofillParent.addMessageObserver(this);
         this.updateWarningNote();

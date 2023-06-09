@@ -11,7 +11,7 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/Result.h"
 #include "mozilla/ResultVariant.h"
-#include "mozilla/Tuple.h"
+
 #include "nsTArray.h"
 
 #include "mozilla/Preferences.h"
@@ -116,11 +116,10 @@ TEST_F(FOGFixture, TestCppDatetimeWorks) {
   ASSERT_THAT(received.value(), BitEq(date));
 }
 
-using mozilla::MakeTuple;
 using mozilla::Some;
-using mozilla::Tuple;
 using mozilla::glean::test_only_ipc::AnEventExtra;
 using mozilla::glean::test_only_ipc::EventWithExtraExtra;
+using std::tuple;
 
 TEST_F(FOGFixture, TestCppEventWorks) {
   test_only_ipc::no_extra_event.Record();
@@ -138,8 +137,8 @@ TEST_F(FOGFixture, TestCppEventWorks) {
   ASSERT_STREQ("test_only.ipc", events[0].mCategory.get());
   ASSERT_STREQ("an_event", events[0].mName.get());
   ASSERT_EQ(1UL, events[0].mExtra.Length());
-  ASSERT_STREQ("extra1", mozilla::Get<0>(events[0].mExtra[0]).get());
-  ASSERT_STREQ("can set extras", mozilla::Get<1>(events[0].mExtra[0]).get());
+  ASSERT_STREQ("extra1", std::get<0>(events[0].mExtra[0]).get());
+  ASSERT_STREQ("can set extras", std::get<1>(events[0].mExtra[0]).get());
 }
 
 TEST_F(FOGFixture, TestCppEventsWithDifferentExtraTypes) {
@@ -157,8 +156,8 @@ TEST_F(FOGFixture, TestCppEventsWithDifferentExtraTypes) {
   // The list of extra key/value pairs can be in any order.
   ASSERT_EQ(3UL, events[0].mExtra.Length());
   for (auto extra : events[0].mExtra) {
-    auto key = mozilla::Get<0>(extra);
-    auto value = mozilla::Get<1>(extra);
+    auto key = std::get<0>(extra);
+    auto value = std::get<1>(extra);
 
     if (key == "extra1"_ns) {
       ASSERT_STREQ("can set extras", value.get());
@@ -257,8 +256,8 @@ TEST_F(FOGFixture, TestCppTimingDistWorks) {
   const uint64_t NANOS_IN_MILLIS = 1e6;
 
   // bug 1701847 - Sleeps don't necessarily round up as you'd expect.
-  // Give ourselves a 40000ns (0.04ms) window to be off on fast machines.
-  const uint64_t EPSILON = 40000;
+  // Give ourselves a 200000ns (0.2ms) window to be off on fast machines.
+  const uint64_t EPSILON = 200000;
 
   // We don't know exactly how long those sleeps took, only that it was at
   // least 15ms total.
@@ -289,6 +288,33 @@ TEST_F(FOGFixture, TestLabeledBooleanWorks) {
                        .ref());
 }
 
+TEST_F(FOGFixture, TestLabeledBooleanWithLabelsWorks) {
+  ASSERT_EQ(mozilla::Nothing(),
+            test_only::mabels_like_labeled_balloons
+                .EnumGet(test_only::MabelsLikeLabeledBalloonsLabel::eWater)
+                .TestGetValue()
+                .unwrap());
+  test_only::mabels_like_labeled_balloons
+      .EnumGet(test_only::MabelsLikeLabeledBalloonsLabel::eWater)
+      .Set(true);
+  test_only::mabels_like_labeled_balloons
+      .EnumGet(test_only::MabelsLikeLabeledBalloonsLabel::eBirthdayParty)
+      .Set(false);
+  ASSERT_EQ(true,
+            test_only::mabels_like_labeled_balloons
+                .EnumGet(test_only::MabelsLikeLabeledBalloonsLabel::eWater)
+                .TestGetValue()
+                .unwrap()
+                .ref());
+  ASSERT_EQ(
+      false,
+      test_only::mabels_like_labeled_balloons
+          .EnumGet(test_only::MabelsLikeLabeledBalloonsLabel::eBirthdayParty)
+          .TestGetValue()
+          .unwrap()
+          .ref());
+}
+
 TEST_F(FOGFixture, TestLabeledCounterWorks) {
   ASSERT_EQ(mozilla::Nothing(),
             test_only::mabels_kitchen_counters.Get("marble"_ns)
@@ -301,6 +327,32 @@ TEST_F(FOGFixture, TestLabeledCounterWorks) {
                    .unwrap()
                    .ref());
   ASSERT_EQ(2, test_only::mabels_kitchen_counters.Get("laminate"_ns)
+                   .TestGetValue()
+                   .unwrap()
+                   .ref());
+}
+
+TEST_F(FOGFixture, TestLabeledCounterWithLabelsWorks) {
+  ASSERT_EQ(
+      mozilla::Nothing(),
+      test_only::mabels_labeled_counters
+          .EnumGet(test_only::MabelsLabeledCountersLabel::eNextToTheFridge)
+          .TestGetValue()
+          .unwrap());
+  test_only::mabels_labeled_counters
+      .EnumGet(test_only::MabelsLabeledCountersLabel::eNextToTheFridge)
+      .Add(1);
+  test_only::mabels_labeled_counters
+      .EnumGet(test_only::MabelsLabeledCountersLabel::eClean)
+      .Add(2);
+  ASSERT_EQ(
+      1, test_only::mabels_labeled_counters
+             .EnumGet(test_only::MabelsLabeledCountersLabel::eNextToTheFridge)
+             .TestGetValue()
+             .unwrap()
+             .ref());
+  ASSERT_EQ(2, test_only::mabels_labeled_counters
+                   .EnumGet(test_only::MabelsLabeledCountersLabel::eClean)
                    .TestGetValue()
                    .unwrap()
                    .ref());
@@ -326,6 +378,35 @@ TEST_F(FOGFixture, TestLabeledStringWorks) {
                    .unwrap()
                    .ref()
                    .get());
+}
+
+TEST_F(FOGFixture, TestLabeledStringWithLabelsWorks) {
+  ASSERT_EQ(mozilla::Nothing(),
+            test_only::mabels_balloon_labels
+                .EnumGet(test_only::MabelsBalloonLabelsLabel::eCelebratory)
+                .TestGetValue()
+                .unwrap());
+  test_only::mabels_balloon_labels
+      .EnumGet(test_only::MabelsBalloonLabelsLabel::eCelebratory)
+      .Set("for birthdays, etc."_ns);
+  test_only::mabels_balloon_labels
+      .EnumGet(test_only::MabelsBalloonLabelsLabel::eCelebratoryAndSnarky)
+      .Set("for retirements and bridal showers"_ns);
+  ASSERT_STREQ("for birthdays, etc.",
+               test_only::mabels_balloon_labels
+                   .EnumGet(test_only::MabelsBalloonLabelsLabel::eCelebratory)
+                   .TestGetValue()
+                   .unwrap()
+                   .ref()
+                   .get());
+  ASSERT_STREQ(
+      "for retirements and bridal showers",
+      test_only::mabels_balloon_labels
+          .EnumGet(test_only::MabelsBalloonLabelsLabel::eCelebratoryAndSnarky)
+          .TestGetValue()
+          .unwrap()
+          .ref()
+          .get());
 }
 
 TEST_F(FOGFixture, TestCppQuantityWorks) {

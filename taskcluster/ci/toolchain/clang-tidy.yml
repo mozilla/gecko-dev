@@ -24,7 +24,7 @@ job-defaults:
             - 'build/build-clang/build-clang.py'
     fetches:
         fetch:
-            - clang-15
+            - clang-16
 
 linux64-clang-tidy:
     index:
@@ -39,7 +39,7 @@ linux64-clang-tidy:
             - 'build/build-clang/clang-tidy-linux64.json'
     fetches:
         toolchain:
-            - linux64-clang-15
+            - linux64-clang-16
             - linux64-toolchain-sysroot
 
 macosx64-clang-tidy:
@@ -52,34 +52,35 @@ macosx64-clang-tidy:
         script: build-clang.sh
         arguments:
             - 'build/build-clang/clang-tidy-macosx64.json'
+            - 'build/build-clang/macosx64.json'
         resources:
             - 'build/build-clang/clang-tidy-macosx64.json'
+            - 'build/build-clang/macosx64.json'
     fetches:
         toolchain:
-            - linux64-cctools-port
-            - linux64-clang-15
-            - macosx64-sdk
+            - linux64-clang-16
+            - macosx64-sdk-toolchain
 
-macosx64-arch64-clang-tidy:
+macosx64-aarch64-clang-tidy:
     index:
         job-name: macosx64-aarch64-clang-tidy
     treeherder:
         symbol: TM(clang-tidy-aarch64)
     worker-type: b-linux-large-gcp
-    worker:
-        env:
-            OSX_ARCH: arm64
     run:
         script: build-clang.sh
         arguments:
             - 'build/build-clang/clang-tidy-macosx64.json'
+            - 'build/build-clang/macosx64.json'
+            - 'build/build-clang/macosx64-aarch64.json'
         resources:
             - 'build/build-clang/clang-tidy-macosx64.json'
+            - 'build/build-clang/macosx64.json'
+            - 'build/build-clang/macosx64-aarch64.json'
     fetches:
         toolchain:
-            - linux64-cctools-port
-            - linux64-clang-15
-            - macosx64-sdk
+            - linux64-clang-16
+            - macosx64-sdk-toolchain
 
 win64-clang-tidy:
     description: "Clang-tidy toolchain build"
@@ -88,20 +89,19 @@ win64-clang-tidy:
     treeherder:
         symbol: TW64(clang-tidy)
         tier: 2
-    worker-type: b-win2012
     worker:
         max-run-time: 7200
     run:
         script: build-clang.sh
         arguments:
             - 'build/build-clang/clang-tidy-win64.json'
+            - 'build/build-clang/win64.json'
         resources:
             - 'build/build-clang/clang-tidy-win64.json'
+            - 'build/build-clang/win64.json'
     fetches:
-        fetch:
-            - cmake
-            - ninja
         toolchain:
+            - linux64-clang-16
             - win64-vs2019
 
 linux64-clang-tidy-external:
@@ -111,11 +111,6 @@ linux64-clang-tidy-external:
         job-name: linux64-clang-tidy-external
     treeherder:
         symbol: TL(clang-tidy-e)
-    worker:
-        artifacts:
-            - name: project/civet/clang-tidy.tar.zst
-              path: /builds/worker/private-artifacts/clang-tidy.tar.zst
-              type: file
     run:
         toolchain-artifact: project/civet/clang-tidy.tar.zst
         script: build-clang-tidy-external.sh
@@ -128,5 +123,5 @@ linux64-clang-tidy-external:
         fetch:
             - civet-source
         toolchain:
-            - linux64-clang-15
+            - linux64-clang-16
             - linux64-toolchain-sysroot

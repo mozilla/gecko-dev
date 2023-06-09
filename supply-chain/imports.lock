@@ -1,19 +1,372 @@
 
 # cargo-vet imports lock
 
-[[audits.bytecodealliance.audits.arbitrary]]
+[[publisher.aho-corasick]]
+version = "0.7.20"
+when = "2022-11-22"
+user-id = 189
+user-login = "BurntSushi"
+user-name = "Andrew Gallant"
+
+[[publisher.async-trait]]
+version = "0.1.64"
+when = "2023-01-30"
+user-id = 3618
+user-login = "dtolnay"
+user-name = "David Tolnay"
+
+[[publisher.audio_thread_priority]]
+version = "0.26.1"
+when = "2022-03-22"
+user-id = 1258
+user-login = "padenot"
+user-name = "Paul Adenot"
+
+[[publisher.authenticator]]
+version = "0.4.0-alpha.14"
+when = "2023-05-02"
+user-id = 175410
+user-login = "jschanck"
+user-name = "John Schanck"
+
+[[publisher.bhttp]]
+version = "0.3.1"
+when = "2023-02-23"
+user-id = 128763
+user-login = "martinthomson"
+user-name = "Martin Thomson"
+
+[[publisher.byteorder]]
+version = "1.4.3"
+when = "2021-03-10"
+user-id = 189
+user-login = "BurntSushi"
+user-name = "Andrew Gallant"
+
+[[publisher.cexpr]]
+version = "0.6.0"
+when = "2021-10-11"
+user-id = 3788
+user-login = "emilio"
+user-name = "Emilio Cobos Álvarez"
+
+[[publisher.core-foundation]]
+version = "0.9.3"
+when = "2022-02-07"
+user-id = 5946
+user-login = "jrmuizel"
+user-name = "Jeff Muizelaar"
+
+[[publisher.core-foundation-sys]]
+version = "0.8.3"
+when = "2021-10-12"
+user-id = 2396
+user-login = "jdm"
+user-name = "Josh Matthews"
+
+[[publisher.core-graphics]]
+version = "0.22.3"
+when = "2021-11-02"
+user-id = 5946
+user-login = "jrmuizel"
+user-name = "Jeff Muizelaar"
+
+[[publisher.core-graphics-types]]
+version = "0.1.1"
+when = "2020-09-15"
+user-id = 2396
+user-login = "jdm"
+user-name = "Josh Matthews"
+
+[[publisher.core-text]]
+version = "19.2.0"
+when = "2021-02-14"
+user-id = 5946
+user-login = "jrmuizel"
+user-name = "Jeff Muizelaar"
+
+[[publisher.dtoa]]
+version = "0.4.8"
+when = "2021-03-29"
+user-id = 3618
+user-login = "dtolnay"
+user-name = "David Tolnay"
+
+[[publisher.etagere]]
+version = "0.2.7"
+when = "2022-05-04"
+user-id = 1281
+user-login = "nical"
+user-name = "Nicolas Silva"
+
+[[publisher.euclid]]
+version = "0.22.7"
+when = "2022-04-04"
+user-id = 1281
+user-login = "nical"
+user-name = "Nicolas Silva"
+
+[[publisher.glean]]
+version = "52.7.0"
+when = "2023-05-10"
+user-id = 48
+user-login = "badboy"
+user-name = "Jan-Erik Rediger"
+
+[[publisher.glean-core]]
+version = "52.7.0"
+when = "2023-05-10"
+user-id = 48
+user-login = "badboy"
+user-name = "Jan-Erik Rediger"
+
+[[publisher.glslopt]]
+version = "0.1.9"
+when = "2021-03-17"
+user-id = 84794
+user-login = "jamienicol"
+user-name = "Jamie Nicol"
+
+[[publisher.headers]]
+version = "0.3.8"
+when = "2022-09-02"
+user-id = 359
+user-login = "seanmonstar"
+user-name = "Sean McArthur"
+
+[[publisher.httparse]]
+version = "1.8.0"
+when = "2022-08-30"
+user-id = 359
+user-login = "seanmonstar"
+user-name = "Sean McArthur"
+
+[[publisher.inherent]]
+version = "1.0.4"
+when = "2023-02-15"
+user-id = 3618
+user-login = "dtolnay"
+user-name = "David Tolnay"
+
+[[publisher.itoa]]
+version = "1.0.5"
+when = "2022-12-17"
+user-id = 3618
+user-login = "dtolnay"
+user-name = "David Tolnay"
+
+[[publisher.memchr]]
+version = "2.5.0"
+when = "2022-04-30"
+user-id = 189
+user-login = "BurntSushi"
+user-name = "Andrew Gallant"
+
+[[publisher.mime]]
+version = "0.3.16"
+when = "2020-01-07"
+user-id = 359
+user-login = "seanmonstar"
+user-name = "Sean McArthur"
+
+[[publisher.num_cpus]]
+version = "1.15.0"
+when = "2022-12-20"
+user-id = 359
+user-login = "seanmonstar"
+user-name = "Sean McArthur"
+
+[[publisher.ohttp]]
+version = "0.3.1"
+when = "2023-02-23"
+user-id = 128763
+user-login = "martinthomson"
+user-name = "Martin Thomson"
+
+[[publisher.paste]]
+version = "1.0.11"
+when = "2022-12-17"
+user-id = 3618
+user-login = "dtolnay"
+user-name = "David Tolnay"
+
+[[publisher.proc-macro-hack]]
+version = "0.5.20+deprecated"
+when = "2022-12-19"
+user-id = 3618
+user-login = "dtolnay"
+user-name = "David Tolnay"
+
+[[publisher.regex]]
+version = "1.7.1"
+when = "2023-01-09"
+user-id = 189
+user-login = "BurntSushi"
+user-name = "Andrew Gallant"
+
+[[publisher.regex-syntax]]
+version = "0.6.28"
+when = "2022-11-05"
+user-id = 189
+user-login = "BurntSushi"
+user-name = "Andrew Gallant"
+
+[[publisher.rust_cascade]]
+version = "1.5.0"
+when = "2023-04-05"
+user-id = 57462
+user-login = "mozkeeler"
+user-name = "Dana Keeler"
+
+[[publisher.ryu]]
+version = "1.0.12"
+when = "2022-12-17"
+user-id = 3618
+user-login = "dtolnay"
+user-name = "David Tolnay"
+
+[[publisher.same-file]]
+version = "1.0.6"
+when = "2020-01-11"
+user-id = 189
+user-login = "BurntSushi"
+user-name = "Andrew Gallant"
+
+[[publisher.serde]]
+version = "1.0.152"
+when = "2022-12-26"
+user-id = 3618
+user-login = "dtolnay"
+user-name = "David Tolnay"
+
+[[publisher.serde_bytes]]
+version = "0.11.9"
+when = "2023-02-05"
+user-id = 3618
+user-login = "dtolnay"
+user-name = "David Tolnay"
+
+[[publisher.serde_derive]]
+version = "1.0.152"
+when = "2022-12-26"
+user-id = 3618
+user-login = "dtolnay"
+user-name = "David Tolnay"
+
+[[publisher.serde_json]]
+version = "1.0.93"
+when = "2023-02-08"
+user-id = 3618
+user-login = "dtolnay"
+user-name = "David Tolnay"
+
+[[publisher.serde_repr]]
+version = "0.1.10"
+when = "2022-12-17"
+user-id = 3618
+user-login = "dtolnay"
+user-name = "David Tolnay"
+
+[[publisher.serde_yaml]]
+version = "0.8.26"
+when = "2022-07-16"
+user-id = 3618
+user-login = "dtolnay"
+user-name = "David Tolnay"
+
+[[publisher.syn]]
+version = "1.0.107"
+when = "2022-12-18"
+user-id = 3618
+user-login = "dtolnay"
+user-name = "David Tolnay"
+
+[[publisher.termcolor]]
+version = "1.2.0"
+when = "2023-01-15"
+user-id = 189
+user-login = "BurntSushi"
+user-name = "Andrew Gallant"
+
+[[publisher.thiserror]]
+version = "1.0.38"
+when = "2022-12-17"
+user-id = 3618
+user-login = "dtolnay"
+user-name = "David Tolnay"
+
+[[publisher.thiserror-impl]]
+version = "1.0.38"
+when = "2022-12-17"
+user-id = 3618
+user-login = "dtolnay"
+user-name = "David Tolnay"
+
+[[publisher.threadbound]]
+version = "0.1.5"
+when = "2022-12-17"
+user-id = 3618
+user-login = "dtolnay"
+user-name = "David Tolnay"
+
+[[publisher.unicode-ident]]
+version = "1.0.6"
+when = "2022-12-17"
+user-id = 3618
+user-login = "dtolnay"
+user-name = "David Tolnay"
+
+[[publisher.unicode-segmentation]]
+version = "1.10.0"
+when = "2022-09-13"
+user-id = 1139
+user-login = "Manishearth"
+user-name = "Manish Goregaokar"
+
+[[publisher.unicode-width]]
+version = "0.1.10"
+when = "2022-09-13"
+user-id = 1139
+user-login = "Manishearth"
+user-name = "Manish Goregaokar"
+
+[[publisher.unicode-xid]]
+version = "0.2.4"
+when = "2022-09-15"
+user-id = 1139
+user-login = "Manishearth"
+user-name = "Manish Goregaokar"
+
+[[publisher.walkdir]]
+version = "2.3.2"
+when = "2021-03-22"
+user-id = 189
+user-login = "BurntSushi"
+user-name = "Andrew Gallant"
+
+[[publisher.winapi-util]]
+version = "0.1.5"
+when = "2020-04-20"
+user-id = 189
+user-login = "BurntSushi"
+user-name = "Andrew Gallant"
+
+[[audits.bytecode-alliance.audits.arbitrary]]
 who = "Nick Fitzgerald <fitzgen@gmail.com>"
 criteria = "safe-to-deploy"
 version = "1.1.0"
 notes = "I am the author of this crate."
 
-[[audits.bytecodealliance.audits.arbitrary]]
+[[audits.bytecode-alliance.audits.arrayref]]
 who = "Nick Fitzgerald <fitzgen@gmail.com>"
 criteria = "safe-to-deploy"
-version = "1.1.4"
-notes = "I am the author of this crate."
+version = "0.3.6"
+notes = """
+Unsafe code, but its logic looks good to me. Necessary given what it is
+doing. Well tested, has quickchecks.
+"""
 
-[[audits.bytecodealliance.audits.arrayvec]]
+[[audits.bytecode-alliance.audits.arrayvec]]
 who = "Nick Fitzgerald <fitzgen@gmail.com>"
 criteria = "safe-to-deploy"
 version = "0.7.2"
@@ -22,7 +375,7 @@ Well documented invariants, good assertions for those invariants in unsafe code,
 and tested with MIRI to boot. LGTM.
 """
 
-[[audits.bytecodealliance.audits.atty]]
+[[audits.bytecode-alliance.audits.atty]]
 who = "Alex Crichton <alex@alexcrichton.com>"
 criteria = "safe-to-deploy"
 version = "0.2.14"
@@ -32,54 +385,70 @@ the environment's terminal information when asked. Does its stated purpose and
 no more.
 """
 
-[[audits.bytecodealliance.audits.bumpalo]]
-who = "Nick Fitzgerald <fitzgen@gmail.com>"
+[[audits.bytecode-alliance.audits.base64]]
+who = "Pat Hickey <phickey@fastly.com>"
 criteria = "safe-to-deploy"
-version = "3.9.1"
-notes = "I am the author of this crate."
+version = "0.21.0"
+notes = "This crate has no dependencies, no build.rs, and contains no unsafe code."
 
-[[audits.bytecodealliance.audits.bumpalo]]
+[[audits.bytecode-alliance.audits.block-buffer]]
+who = "Benjamin Bouvier <public@benj.me>"
+criteria = "safe-to-deploy"
+delta = "0.9.0 -> 0.10.2"
+
+[[audits.bytecode-alliance.audits.bumpalo]]
 who = "Nick Fitzgerald <fitzgen@gmail.com>"
 criteria = "safe-to-deploy"
 version = "3.11.1"
 notes = "I am the author of this crate."
 
-[[audits.bytecodealliance.audits.cc]]
+[[audits.bytecode-alliance.audits.cargo-platform]]
+who = "Pat Hickey <phickey@fastly.com>"
+criteria = "safe-to-deploy"
+version = "0.1.2"
+notes = "no build, no ambient capabilities, no unsafe"
+
+[[audits.bytecode-alliance.audits.cc]]
 who = "Alex Crichton <alex@alexcrichton.com>"
 criteria = "safe-to-deploy"
 version = "1.0.73"
 notes = "I am the author of this crate."
 
-[[audits.bytecodealliance.audits.cfg-if]]
+[[audits.bytecode-alliance.audits.cfg-if]]
 who = "Alex Crichton <alex@alexcrichton.com>"
 criteria = "safe-to-deploy"
 version = "1.0.0"
 notes = "I am the author of this crate."
 
-[[audits.bytecodealliance.audits.codespan-reporting]]
+[[audits.bytecode-alliance.audits.codespan-reporting]]
 who = "Jamey Sharp <jsharp@fastly.com>"
 criteria = "safe-to-deploy"
 version = "0.11.1"
 notes = "This library uses `forbid(unsafe_code)` and has no filesystem or network I/O."
 
-[[audits.bytecodealliance.audits.crypto-common]]
+[[audits.bytecode-alliance.audits.crypto-common]]
 who = "Benjamin Bouvier <public@benj.me>"
 criteria = "safe-to-deploy"
 version = "0.1.3"
 
-[[audits.bytecodealliance.audits.derive_arbitrary]]
+[[audits.bytecode-alliance.audits.derive_arbitrary]]
 who = "Nick Fitzgerald <fitzgen@gmail.com>"
 criteria = "safe-to-deploy"
 version = "1.1.0"
 notes = "I am the author of this crate."
 
-[[audits.bytecodealliance.audits.derive_arbitrary]]
-who = "Nick Fitzgerald <fitzgen@gmail.com>"
+[[audits.bytecode-alliance.audits.foreign-types]]
+who = "Pat Hickey <phickey@fastly.com>"
 criteria = "safe-to-deploy"
-version = "1.1.4"
-notes = "I am the author of this crate."
+version = "0.3.2"
+notes = "This crate defined a macro-rules which creates wrappers working with FFI types. The implementation of this crate appears to be safe, but each use of this macro would need to be vetted for correctness as well."
 
-[[audits.bytecodealliance.audits.form_urlencoded]]
+[[audits.bytecode-alliance.audits.foreign-types-shared]]
+who = "Pat Hickey <phickey@fastly.com>"
+criteria = "safe-to-deploy"
+version = "0.1.1"
+
+[[audits.bytecode-alliance.audits.form_urlencoded]]
 who = "Alex Crichton <alex@alexcrichton.com>"
 criteria = "safe-to-deploy"
 version = "1.1.0"
@@ -89,25 +458,76 @@ more than what it says on the tin. Contains one `unsafe` block related to
 performance around utf-8 validation which is fairly easy to verify as correct.
 """
 
-[[audits.bytecodealliance.audits.heck]]
+[[audits.bytecode-alliance.audits.futures-channel]]
+who = "Pat Hickey <phickey@fastly.com>"
+criteria = "safe-to-deploy"
+version = "0.3.27"
+notes = "build.rs is just detecting the target and setting cfg. unsafety is for implementing a concurrency primitives using atomics and unsafecell, and is not obviously incorrect (this is the sort of thing I wouldn't certify as correct without formal methods)"
+
+[[audits.bytecode-alliance.audits.futures-core]]
+who = "Pat Hickey <phickey@fastly.com>"
+criteria = "safe-to-deploy"
+version = "0.3.27"
+notes = "Unsafe used to implement a concurrency primitive AtomicWaker. Well-commented and not obviously incorrect. Like my other audits of these concurrency primitives inside the futures family, I couldn't certify that it is correct without formal methods, but that is out of scope for this vetting."
+
+[[audits.bytecode-alliance.audits.futures-executor]]
+who = "Pat Hickey <phickey@fastly.com>"
+criteria = "safe-to-deploy"
+version = "0.3.27"
+notes = "Unsafe used to implement the unpark mutex, which is well commented and not obviously incorrect. Like with futures-channel I wouldn't be able to certify it as correct without formal methods."
+
+[[audits.bytecode-alliance.audits.futures-io]]
+who = "Pat Hickey <phickey@fastly.com>"
+criteria = "safe-to-deploy"
+version = "0.3.27"
+
+[[audits.bytecode-alliance.audits.futures-sink]]
+who = "Pat Hickey <phickey@fastly.com>"
+criteria = "safe-to-deploy"
+version = "0.3.27"
+
+[[audits.bytecode-alliance.audits.heck]]
 who = "Alex Crichton <alex@alexcrichton.com>"
 criteria = "safe-to-deploy"
 version = "0.4.0"
 notes = "Contains `forbid_unsafe` and only uses `std::fmt` from the standard library. Otherwise only contains string manipulation."
 
-[[audits.bytecodealliance.audits.id-arena]]
+[[audits.bytecode-alliance.audits.id-arena]]
 who = "Nick Fitzgerald <fitzgen@gmail.com>"
 criteria = "safe-to-deploy"
 version = "2.2.1"
 notes = "I am the author of this crate."
 
-[[audits.bytecodealliance.audits.leb128]]
+[[audits.bytecode-alliance.audits.idna]]
+who = "Alex Crichton <alex@alexcrichton.com>"
+criteria = "safe-to-deploy"
+version = "0.3.0"
+notes = """
+This is a crate without unsafe code or usage of the standard library. The large
+size of this crate comes from the large generated unicode tables file. This
+crate is broadly used throughout the ecosystem and does not contain anything
+suspicious.
+"""
+
+[[audits.bytecode-alliance.audits.leb128]]
 who = "Nick Fitzgerald <fitzgen@gmail.com>"
 criteria = "safe-to-deploy"
 version = "0.2.5"
 notes = "I am the author of this crate."
 
-[[audits.bytecodealliance.audits.percent-encoding]]
+[[audits.bytecode-alliance.audits.memoffset]]
+who = "Alex Crichton <alex@alexcrichton.com>"
+criteria = "safe-to-deploy"
+delta = "0.7.1 -> 0.8.0"
+notes = "This was a small update to the crate which has to do with Rust language features and compiler versions, no substantial changes."
+
+[[audits.bytecode-alliance.audits.peeking_take_while]]
+who = "Nick Fitzgerald <fitzgen@gmail.com>"
+criteria = "safe-to-deploy"
+version = "1.0.0"
+notes = "I am the author of this crate."
+
+[[audits.bytecode-alliance.audits.percent-encoding]]
 who = "Alex Crichton <alex@alexcrichton.com>"
 criteria = "safe-to-deploy"
 version = "2.2.0"
@@ -117,13 +537,36 @@ a few `unsafe` blocks related to utf-8 validation which are locally verifiable
 as correct and otherwise this crate is good to go.
 """
 
-[[audits.bytecodealliance.audits.rustc-demangle]]
+[[audits.bytecode-alliance.audits.pin-utils]]
+who = "Pat Hickey <phickey@fastly.com>"
+criteria = "safe-to-deploy"
+version = "0.1.0"
+
+[[audits.bytecode-alliance.audits.pkg-config]]
+who = "Pat Hickey <phickey@fastly.com>"
+criteria = "safe-to-deploy"
+version = "0.3.25"
+notes = "This crate shells out to the pkg-config executable, but it appears to sanitize inputs reasonably."
+
+[[audits.bytecode-alliance.audits.rustc-demangle]]
 who = "Alex Crichton <alex@alexcrichton.com>"
 criteria = "safe-to-deploy"
 version = "0.1.21"
 notes = "I am the author of this crate."
 
-[[audits.bytecodealliance.audits.unicase]]
+[[audits.bytecode-alliance.audits.semver]]
+who = "Pat Hickey <phickey@fastly.com>"
+criteria = "safe-to-deploy"
+version = "1.0.17"
+notes = "plenty of unsafe pointer and vec tricks, but in well-structured and commented code that appears to be correct"
+
+[[audits.bytecode-alliance.audits.slab]]
+who = "Pat Hickey <phickey@fastly.com>"
+criteria = "safe-to-deploy"
+version = "0.4.6"
+notes = "provides a datastructure implemented using std's Vec. all uses of unsafe are just delegating to the underlying unsafe Vec methods."
+
+[[audits.bytecode-alliance.audits.unicase]]
 who = "Alex Crichton <alex@alexcrichton.com>"
 criteria = "safe-to-deploy"
 version = "2.6.0"
@@ -132,7 +575,7 @@ This crate contains no `unsafe` code and no unnecessary use of the standard
 library.
 """
 
-[[audits.bytecodealliance.audits.unicode-bidi]]
+[[audits.bytecode-alliance.audits.unicode-bidi]]
 who = "Alex Crichton <alex@alexcrichton.com>"
 criteria = "safe-to-deploy"
 version = "0.3.8"
@@ -141,7 +584,7 @@ This crate has no unsafe code and does not use `std::*`. Skimming the crate it
 does not attempt to out of the bounds of what it's already supposed to be doing.
 """
 
-[[audits.bytecodealliance.audits.unicode-normalization]]
+[[audits.bytecode-alliance.audits.unicode-normalization]]
 who = "Alex Crichton <alex@alexcrichton.com>"
 criteria = "safe-to-deploy"
 version = "0.1.19"
@@ -153,179 +596,195 @@ throughout the ecosystem and skimming the crate shows no usage of `std::*` APIs
 and nothing suspicious.
 """
 
-[[audits.bytecodealliance.audits.wasm-encoder]]
+[[audits.bytecode-alliance.audits.wasm-encoder]]
 who = "Alex Crichton <alex@alexcrichton.com>"
 criteria = "safe-to-deploy"
-version = "0.14.0"
+version = "0.25.0"
 notes = "The Bytecode Alliance is the author of this crate."
 
-[[audits.bytecodealliance.audits.wasm-encoder]]
-who = "Alex Crichton <alex@alexcrichton.com>"
-criteria = "safe-to-deploy"
-version = "0.15.0"
-notes = "The Bytecode Alliance is the author of this crate."
-
-[[audits.bytecodealliance.audits.wasm-encoder]]
-who = "Alex Crichton <alex@alexcrichton.com>"
-criteria = "safe-to-deploy"
-version = "0.16.0"
-notes = "The Bytecode Alliance is the author of this crate."
-
-[[audits.bytecodealliance.audits.wasm-encoder]]
-who = "Alex Crichton <alex@alexcrichton.com>"
-criteria = "safe-to-deploy"
-version = "0.17.0"
-notes = "The Bytecode Alliance is the author of this crate."
-
-[[audits.bytecodealliance.audits.wasm-encoder]]
-who = "Alex Crichton <alex@alexcrichton.com>"
-criteria = "safe-to-deploy"
-version = "0.18.0"
-notes = "The Bytecode Alliance is the author of this crate."
-
-[[audits.bytecodealliance.audits.wasm-encoder]]
-who = "Alex Crichton <alex@alexcrichton.com>"
-criteria = "safe-to-deploy"
-version = "0.19.0"
-notes = "The Bytecode Alliance is the author of this crate."
-
-[[audits.bytecodealliance.audits.wasm-smith]]
-who = "Alex Crichton <alex@alexcrichton.com>"
-criteria = "safe-to-deploy"
-version = "0.11.2"
-notes = "The Bytecode Alliance is the author of this crate."
-
-[[audits.bytecodealliance.audits.wasm-smith]]
-who = "Alex Crichton <alex@alexcrichton.com>"
-criteria = "safe-to-deploy"
-version = "0.11.3"
-notes = "The Bytecode Alliance is the author of this crate."
-
-[[audits.bytecodealliance.audits.wasm-smith]]
-who = "Alex Crichton <alex@alexcrichton.com>"
-criteria = "safe-to-deploy"
-version = "0.11.4"
-notes = "The Bytecode Alliance is the author of this crate."
-
-[[audits.bytecodealliance.audits.wasm-smith]]
-who = "Alex Crichton <alex@alexcrichton.com>"
-criteria = "safe-to-deploy"
-version = "0.11.5"
-notes = "The Bytecode Alliance is the author of this crate."
-
-[[audits.bytecodealliance.audits.wasm-smith]]
-who = "Alex Crichton <alex@alexcrichton.com>"
-criteria = "safe-to-deploy"
-version = "0.11.6"
-notes = "The Bytecode Alliance is the author of this crate."
-
-[[audits.bytecodealliance.audits.wasm-smith]]
+[[audits.bytecode-alliance.audits.wasm-smith]]
 who = "Alex Crichton <alex@alexcrichton.com>"
 criteria = "safe-to-run"
-version = "0.11.7"
+version = "0.12.5"
 notes = "The Bytecode Alliance is the author of this crate."
 
-[[audits.bytecodealliance.audits.wasmparser]]
+[[audits.bytecode-alliance.audits.wasmparser]]
 who = "Alex Crichton <alex@alexcrichton.com>"
 criteria = "safe-to-deploy"
-version = "0.87.0"
+version = "0.102.0"
 notes = "The Bytecode Alliance is the author of this crate."
 
-[[audits.bytecodealliance.audits.wasmparser]]
+[[audits.bytecode-alliance.audits.wast]]
 who = "Alex Crichton <alex@alexcrichton.com>"
 criteria = "safe-to-deploy"
-version = "0.88.0"
+version = "55.0.0"
 notes = "The Bytecode Alliance is the author of this crate."
 
-[[audits.bytecodealliance.audits.wasmparser]]
-who = "Alex Crichton <alex@alexcrichton.com>"
-criteria = "safe-to-deploy"
-version = "0.89.0"
-notes = "The Bytecode Alliance is the author of this crate."
-
-[[audits.bytecodealliance.audits.wasmparser]]
-who = "Alex Crichton <alex@alexcrichton.com>"
-criteria = "safe-to-deploy"
-version = "0.89.1"
-notes = "The Bytecode Alliance is the author of this crate."
-
-[[audits.bytecodealliance.audits.wasmparser]]
-who = "Alex Crichton <alex@alexcrichton.com>"
-criteria = "safe-to-deploy"
-version = "0.91.0"
-notes = "The Bytecode Alliance is the author of this crate."
-
-[[audits.bytecodealliance.audits.wasmparser]]
-who = "Alex Crichton <alex@alexcrichton.com>"
-criteria = "safe-to-deploy"
-version = "0.92.0"
-notes = "The Bytecode Alliance is the author of this crate."
-
-[[audits.bytecodealliance.audits.wasmparser]]
-who = "Alex Crichton <alex@alexcrichton.com>"
-criteria = "safe-to-deploy"
-version = "0.93.0"
-notes = "The Bytecode Alliance is the author of this crate."
-
-[[audits.bytecodealliance.audits.wast]]
-who = "Alex Crichton <alex@alexcrichton.com>"
-criteria = "safe-to-deploy"
-version = "35.0.2"
-notes = "The Bytecode Alliance is the author of this crate."
-
-[[audits.bytecodealliance.audits.wast]]
-who = "Alex Crichton <alex@alexcrichton.com>"
-criteria = "safe-to-deploy"
-version = "44.0.0"
-notes = "The Bytecode Alliance is the author of this crate"
-
-[[audits.bytecodealliance.audits.wast]]
-who = "Alex Crichton <alex@alexcrichton.com>"
-criteria = "safe-to-deploy"
-version = "45.0.0"
-notes = "The Bytecode Alliance is the author of this crate"
-
-[[audits.bytecodealliance.audits.wast]]
-who = "Alex Crichton <alex@alexcrichton.com>"
-criteria = "safe-to-deploy"
-version = "46.0.0"
-notes = "The Bytecode Alliance is the author of this crate."
-
-[[audits.bytecodealliance.audits.wast]]
-who = "Alex Crichton <alex@alexcrichton.com>"
-criteria = "safe-to-deploy"
-version = "47.0.0"
-notes = "The Bytecode Alliance is the author of this crate."
-
-[[audits.bytecodealliance.audits.wast]]
-who = "Alex Crichton <alex@alexcrichton.com>"
-criteria = "safe-to-deploy"
-version = "47.0.1"
-notes = "The Bytecode Alliance is the author of this crate."
-
-[[audits.bytecodealliance.audits.wast]]
-who = "Alex Crichton <alex@alexcrichton.com>"
-criteria = "safe-to-deploy"
-version = "48.0.0"
-notes = "The Bytecode Alliance is the author of this crate."
-
-[[audits.embark.audits.anyhow]]
+[[audits.embark-studios.audits.anyhow]]
 who = "Johan Andersson <opensource@embark-studios.com>"
 criteria = "safe-to-deploy"
 version = "1.0.58"
 
-[[audits.embark.audits.cty]]
+[[audits.embark-studios.audits.cty]]
 who = "Johan Andersson <opensource@embark-studios.com>"
 criteria = "safe-to-deploy"
 version = "0.2.2"
 notes = "Inspected it and is a tiny crate with just type definitions"
 
-[[audits.embark.audits.serial_test]]
+[[audits.embark-studios.audits.serial_test]]
 who = "Johan Andersson <opensource@embark-studios.com>"
 criteria = "safe-to-run"
 version = "0.6.0"
 
-[[audits.embark.audits.serial_test_derive]]
+[[audits.embark-studios.audits.serial_test_derive]]
 who = "Johan Andersson <opensource@embark-studios.com>"
 criteria = "safe-to-run"
 version = "0.6.0"
+
+[[audits.google.audits.ash]]
+who = "David Koloski <dkoloski@google.com>"
+criteria = "safe-to-deploy"
+version = "0.37.0+1.3.209"
+notes = "Reviewed on https://fxrev.dev/694269"
+aggregated-from = "https://fuchsia.googlesource.com/fuchsia/+/refs/heads/main/third_party/rust_crates/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.fastrand]]
+who = "George Burgess IV <gbiv@google.com>"
+criteria = "safe-to-deploy"
+version = "1.9.0"
+notes = """
+`does-not-implement-crypto` is certified because this crate explicitly says
+that the RNG here is not cryptographically secure.
+"""
+aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
+
+[[audits.google.audits.h2]]
+who = "ChromeOS"
+criteria = "safe-to-run"
+version = "0.3.14"
+aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
+
+[[audits.google.audits.http]]
+who = "ChromeOS"
+criteria = "safe-to-run"
+version = "0.2.8"
+aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
+
+[[audits.google.audits.http-body]]
+who = "ChromeOS"
+criteria = "safe-to-run"
+version = "0.4.5"
+aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
+
+[[audits.google.audits.httpdate]]
+who = "ChromeOS"
+criteria = "safe-to-run"
+version = "1.0.2"
+aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
+
+[[audits.google.audits.hyper]]
+who = "ChromeOS"
+criteria = "safe-to-run"
+version = "0.14.20"
+aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
+
+[[audits.google.audits.pin-project]]
+who = "ChromeOS"
+criteria = "safe-to-run"
+version = "1.0.12"
+aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
+
+[[audits.google.audits.pin-project-internal]]
+who = "ChromeOS"
+criteria = "safe-to-run"
+version = "1.0.12"
+aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
+
+[[audits.google.audits.proc-macro-error-attr]]
+who = "George Burgess IV <gbiv@google.com>"
+criteria = "safe-to-deploy"
+version = "1.0.4"
+aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
+
+[[audits.google.audits.scoped-tls]]
+who = "George Burgess IV <gbiv@google.com>"
+criteria = "safe-to-run"
+version = "1.0.0"
+aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
+
+[[audits.google.audits.serde_urlencoded]]
+who = "ChromeOS"
+criteria = "safe-to-run"
+version = "0.7.1"
+aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
+
+[[audits.google.audits.tokio-stream]]
+who = "David Koloski <dkoloski@google.com>"
+criteria = "safe-to-deploy"
+version = "0.1.11"
+notes = "Reviewed on https://fxrev.dev/804724"
+aggregated-from = "https://fuchsia.googlesource.com/fuchsia/+/refs/heads/main/third_party/rust_crates/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.tower-service]]
+who = "ChromeOS"
+criteria = "safe-to-run"
+version = "0.3.2"
+aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
+
+[[audits.google.audits.tracing]]
+who = "ChromeOS"
+criteria = "safe-to-run"
+version = "0.1.35"
+aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
+
+[[audits.google.audits.tracing-attributes]]
+who = "ChromeOS"
+criteria = "safe-to-run"
+version = "0.1.22"
+aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
+
+[[audits.google.audits.tracing-core]]
+who = "ChromeOS"
+criteria = "safe-to-run"
+version = "0.1.29"
+aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
+
+[[audits.google.audits.try-lock]]
+who = "ChromeOS"
+criteria = "safe-to-run"
+version = "0.2.3"
+aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
+
+[[audits.google.audits.version_check]]
+who = "George Burgess IV <gbiv@google.com>"
+criteria = "safe-to-deploy"
+version = "0.9.4"
+aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
+
+[[audits.google.audits.want]]
+who = "ChromeOS"
+criteria = "safe-to-run"
+version = "0.3.0"
+aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
+
+[[audits.isrg.audits.block-buffer]]
+who = "David Cook <dcook@divviup.org>"
+criteria = "safe-to-deploy"
+version = "0.9.0"
+
+[[audits.mozilla.audits.either]]
+who = "Nika Layzell <nika@thelayzells.com>"
+criteria = "safe-to-deploy"
+version = "1.6.1"
+notes = """
+Straightforward crate providing the Either enum and trait implementations with
+no unsafe code.
+"""
+aggregated-from = "https://raw.githubusercontent.com/mozilla/cargo-vet/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.lazy_static]]
+who = "Nika Layzell <nika@thelayzells.com>"
+criteria = "safe-to-deploy"
+version = "1.4.0"
+notes = "I have read over the macros, and audited the unsafe code."
+aggregated-from = "https://raw.githubusercontent.com/mozilla/cargo-vet/main/supply-chain/audits.toml"

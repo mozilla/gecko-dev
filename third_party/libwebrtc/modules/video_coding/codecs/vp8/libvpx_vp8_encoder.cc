@@ -25,6 +25,7 @@
 #include "api/video/video_content_type.h"
 #include "api/video/video_frame_buffer.h"
 #include "api/video/video_timing.h"
+#include "api/video_codecs/scalability_mode.h"
 #include "api/video_codecs/vp8_temporal_layers.h"
 #include "api/video_codecs/vp8_temporal_layers_factory.h"
 #include "modules/video_coding/codecs/interface/common_constants.h"
@@ -40,7 +41,7 @@
 #include "rtc_base/logging.h"
 #include "rtc_base/trace_event.h"
 #include "system_wrappers/include/field_trial.h"
-#include "libyuv/include/libyuv/scale.h"
+#include "third_party/libyuv/include/libyuv/scale.h"
 #include "vpx/vp8cx.h"
 
 namespace webrtc {
@@ -1103,6 +1104,17 @@ void LibvpxVp8Encoder::PopulateCodecSpecific(CodecSpecificInfo* codec_specific,
     codec_specific->template_structure->resolutions = {
         RenderResolution(pkt.data.frame.width[0], pkt.data.frame.height[0])};
   }
+  switch (vpx_configs_[encoder_idx].ts_number_layers) {
+    case 1:
+      codec_specific->scalability_mode = ScalabilityMode::kL1T1;
+      break;
+    case 2:
+      codec_specific->scalability_mode = ScalabilityMode::kL1T2;
+      break;
+    case 3:
+      codec_specific->scalability_mode = ScalabilityMode::kL1T3;
+      break;
+  }
 }
 
 int LibvpxVp8Encoder::GetEncodedPartitions(const VideoFrame& input_image,
@@ -1178,8 +1190,6 @@ int LibvpxVp8Encoder::GetEncodedPartitions(const VideoFrame& input_image,
         libvpx_->codec_control(&encoders_[encoder_idx], VP8E_GET_LAST_QUANTIZER,
                                &qp_128);
         encoded_images_[encoder_idx].qp_ = qp_128;
-        encoded_images_[encoder_idx].SetAtTargetQuality(
-            qp_128 <= variable_framerate_experiment_.steady_state_qp);
         encoded_complete_callback_->OnEncodedImage(encoded_images_[encoder_idx],
                                                    &codec_specific);
         const size_t steady_state_size = SteadyStateSize(

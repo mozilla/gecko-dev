@@ -60,7 +60,10 @@ ProfileBufferBlockIndex AddMarkerToBuffer(
   AUTO_BASE_PROFILER_LABEL("baseprofiler::AddMarkerToBuffer", PROFILER);
   return base_profiler_markers_detail::AddMarkerToBuffer<MarkerType>(
       aBuffer, aName, aCategory, std::move(aOptions),
-      ::mozilla::baseprofiler::profiler_capture_backtrace_into,
+      // Do not capture a stack if the NoMarkerStacks feature is set.
+      profiler_active_without_feature(ProfilerFeature::NoMarkerStacks)
+          ? ::mozilla::baseprofiler::profiler_capture_backtrace_into
+          : nullptr,
       aPayloadArguments...);
 }
 
@@ -203,16 +206,19 @@ class MOZ_RAII AutoProfilerTextMarker {
         mText(aText) {
     MOZ_ASSERT(mOptions.Timing().EndTime().IsNull(),
                "AutoProfilerTextMarker options shouldn't have an end time");
-    if (mOptions.Timing().StartTime().IsNull()) {
+    if (profiler_is_active_and_unpaused() &&
+        mOptions.Timing().StartTime().IsNull()) {
       mOptions.Set(MarkerTiming::InstantNow());
     }
   }
 
   ~AutoProfilerTextMarker() {
-    mOptions.TimingRef().SetIntervalEnd();
-    AUTO_PROFILER_STATS(AUTO_BASE_PROFILER_MARKER_TEXT);
-    AddMarker(ProfilerString8View::WrapNullTerminatedString(mMarkerName),
-              mCategory, std::move(mOptions), markers::TextMarker{}, mText);
+    if (profiler_is_active_and_unpaused()) {
+      mOptions.TimingRef().SetIntervalEnd();
+      AUTO_PROFILER_STATS(AUTO_BASE_PROFILER_MARKER_TEXT);
+      AddMarker(ProfilerString8View::WrapNullTerminatedString(mMarkerName),
+                mCategory, std::move(mOptions), markers::TextMarker{}, mText);
+    }
   }
 
  protected:

@@ -10,7 +10,9 @@ use crate::values::computed::{
     Angle, Context, Integer, Length, NonNegativeLength, NonNegativeNumber, Number, Percentage,
     ToComputedValue,
 };
-use crate::values::generics::font::{FeatureTagValue, FontSettings, VariationValue};
+use crate::values::generics::font::{
+    FeatureTagValue, FontSettings, TaggedFontValue, VariationValue,
+};
 use crate::values::generics::{font as generics, NonNegative};
 use crate::values::specified::font::{
     self as specified, KeywordInfo, MAX_FONT_WEIGHT, MIN_FONT_WEIGHT,
@@ -24,10 +26,14 @@ use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, ToCss};
 
 pub use crate::values::computed::Length as MozScriptMinSize;
-pub use crate::values::specified::font::FontPalette;
-pub use crate::values::specified::font::{FontSynthesis, MozScriptSizeMultiplier};
-pub use crate::values::specified::font::{FontVariantAlternates, FontVariantEastAsian, FontVariantLigatures, FontVariantNumeric, XLang, XTextZoom};
+pub use crate::values::specified::font::{FontPalette, FontSynthesis};
+pub use crate::values::specified::font::MozScriptSizeMultiplier;
+pub use crate::values::specified::font::{
+    FontVariantAlternates, FontVariantEastAsian, FontVariantLigatures, FontVariantNumeric, XLang,
+    XTextScale,
+};
 pub use crate::values::specified::Integer as SpecifiedInteger;
+pub use crate::values::specified::Number as SpecifiedNumber;
 
 /// Generic template for font property type classes that use a fixed-point
 /// internal representation with `FRACTION_BITS` for the fractional part.
@@ -424,6 +430,13 @@ pub struct FamilyName {
     pub syntax: FontFamilyNameSyntax,
 }
 
+impl FamilyName {
+    fn is_known_icon_font_family(&self) -> bool {
+        use crate::gecko_bindings::bindings;
+        unsafe { bindings::Gecko_IsKnownIconFontFamily(self.name.as_ptr()) }
+    }
+}
+
 impl ToCss for FamilyName {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
@@ -659,25 +672,55 @@ impl FontFamilyList {
     }
 
     /// If there's a generic font family on the list which is suitable for user
-    /// font prioritization, then move it to the front of the list. Otherwise,
-    /// prepend the default generic.
+    /// font prioritization, then move it ahead of the other families in the list,
+    /// except for any families known to be ligature-based icon fonts, where using a
+    /// generic instead of the site's specified font may cause substantial breakage.
+    /// If no suitable generic is found in the list, insert the default generic ahead
+    /// of all the listed families except for known ligature-based icon fonts.
     pub(crate) fn prioritize_first_generic_or_prepend(&mut self, generic: GenericFontFamily) {
-        let index_of_first_generic = self.iter().position(|f| match *f {
-            SingleFontFamily::Generic(f) => f.valid_for_user_font_prioritization(),
-            _ => false,
-        });
+        let mut index_of_first_generic = None;
+        let mut target_index = None;
 
-        if let Some(0) = index_of_first_generic {
-            return; // Already first
+        for (i, f) in self.iter().enumerate() {
+            match &*f {
+                SingleFontFamily::Generic(f) => {
+                    if index_of_first_generic.is_none() && f.valid_for_user_font_prioritization() {
+                        // If we haven't found a target position, there's nothing to do;
+                        // this entry is already ahead of everything except any whitelisted
+                        // icon fonts.
+                        if target_index.is_none() {
+                            return;
+                        }
+                        index_of_first_generic = Some(i);
+                        break;
+                    }
+                    // A non-prioritized generic (e.g. cursive, fantasy) becomes the target
+                    // position for prioritization, just like arbitrary named families.
+                    if target_index.is_none() {
+                        target_index = Some(i);
+                    }
+                },
+                SingleFontFamily::FamilyName(fam) => {
+                    // Target position for the first generic is in front of the first
+                    // non-whitelisted icon font family we find.
+                    if target_index.is_none() && !fam.is_known_icon_font_family() {
+                        target_index = Some(i);
+                    }
+                },
+            }
         }
 
         let mut new_list = self.list.iter().cloned().collect::<Vec<_>>();
-        let element_to_prepend = match index_of_first_generic {
+        let first_generic = match index_of_first_generic {
             Some(i) => new_list.remove(i),
             None => SingleFontFamily::Generic(generic),
         };
 
-        new_list.insert(0, element_to_prepend);
+        if let Some(i) = target_index {
+            new_list.insert(i, first_generic);
+        } else {
+            new_list.push(first_generic);
+        }
         self.list = crate::ArcSlice::from_iter(new_list.into_iter());
     }
 
@@ -718,18 +761,80 @@ pub type FontFeatureSettings = FontSettings<FeatureTagValue<Integer>>;
 /// The computed value for font-variation-settings.
 pub type FontVariationSettings = FontSettings<VariationValue<Number>>;
 
-/// font-language-override can only have a single three-letter
+// The computed value of font-{feature,variation}-settings discards values
+// with duplicate tags, keeping only the last occurrence of each tag.
+fn dedup_font_settings<T>(settings_list: &mut Vec<T>)
+where
+    T: TaggedFontValue,
+{
+    if settings_list.len() > 1 {
+        settings_list.sort_by_key(|k| k.tag().0);
+        // dedup() keeps the first of any duplicates, but we want the last,
+        // so we implement it manually here.
+        let mut prev_tag = settings_list.last().unwrap().tag();
+        for i in (0..settings_list.len() - 1).rev() {
+            let cur_tag = settings_list[i].tag();
+            if cur_tag == prev_tag {
+                settings_list.remove(i);
+            }
+            prev_tag = cur_tag;
+        }
+    }
+}
+
+impl<T> ToComputedValue for FontSettings<T>
+where
+    T: ToComputedValue,
+    <T as ToComputedValue>::ComputedValue: TaggedFontValue,
+{
+    type ComputedValue = FontSettings<T::ComputedValue>;
+
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        let mut v = self
+            .0
+            .iter()
+            .map(|item| item.to_computed_value(context))
+            .collect::<Vec<_>>();
+        dedup_font_settings(&mut v);
+        FontSettings(v.into_boxed_slice())
+    }
+
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        Self(
+            computed
+                .0
+                .iter()
+                .map(T::from_computed_value)
+                .collect::<Vec<_>>()
+                .into_boxed_slice(),
+        )
+    }
+}
+
+/// font-language-override can only have a single 1-4 ASCII character
 /// OpenType "language system" tag, so we should be able to compute
 /// it and store it as a 32-bit integer
 /// (see http://www.microsoft.com/typography/otspec/languagetags.htm).
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToResolvedValue)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem
+)]
 #[repr(C)]
+#[value_info(other_values = "normal")]
 pub struct FontLanguageOverride(pub u32);
 
 impl FontLanguageOverride {
     #[inline]
     /// Get computed default value of `font-language-override` with 0
-    pub fn zero() -> FontLanguageOverride {
+    pub fn normal() -> FontLanguageOverride {
         FontLanguageOverride(0)
     }
 
@@ -737,30 +842,13 @@ impl FontLanguageOverride {
     #[inline]
     pub(crate) fn to_str(self, storage: &mut [u8; 4]) -> &str {
         *storage = u32::to_be_bytes(self.0);
-        // Safe because we ensure it's ASCII during computing
+        // Safe because we ensure it's ASCII during parsing
         let slice = if cfg!(debug_assertions) {
             std::str::from_utf8(&storage[..]).unwrap()
         } else {
             unsafe { std::str::from_utf8_unchecked(&storage[..]) }
         };
         slice.trim_end()
-    }
-
-    /// Parses a str, return `Self::zero()` if the input isn't a valid OpenType
-    /// "language system" tag.
-    #[inline]
-    pub fn from_str(lang: &str) -> Self {
-        if lang.is_empty() || lang.len() > 4 {
-            return Self::zero();
-        }
-        let mut bytes = [b' '; 4];
-        for (byte, lang_byte) in bytes.iter_mut().zip(lang.as_bytes()) {
-            if !lang_byte.is_ascii() {
-                return Self::zero();
-            }
-            *byte = *lang_byte;
-        }
-        Self(u32::from_be_bytes(bytes))
     }
 
     /// Unsafe because `Self::to_str` requires the value to represent a UTF-8
@@ -963,7 +1051,7 @@ impl ToAnimatedValue for FontStyle {
             // This allows us to animate between normal and oblique values. Per spec,
             // https://drafts.csswg.org/css-fonts-4/#font-style-prop:
             //   Animation type: by computed value type; 'normal' animates as 'oblique 0deg'
-            return generics::FontStyle::Oblique(Angle::from_degrees(0.0))
+            return generics::FontStyle::Oblique(Angle::from_degrees(0.0));
         }
         if self == Self::ITALIC {
             return generics::FontStyle::Italic;
@@ -976,13 +1064,14 @@ impl ToAnimatedValue for FontStyle {
         match animated {
             generics::FontStyle::Normal => Self::NORMAL,
             generics::FontStyle::Italic => Self::ITALIC,
-            generics::FontStyle::Oblique(ref angle) =>
+            generics::FontStyle::Oblique(ref angle) => {
                 if angle.degrees() == 0.0 {
                     // Reverse the conversion done in to_animated_value()
                     Self::NORMAL
                 } else {
                     Self::oblique(angle.degrees())
-                },
+                }
+            },
         }
     }
 }

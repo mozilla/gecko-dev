@@ -48,6 +48,7 @@ class nsFileStreamBase : public nsISeekableStream, public nsIFileMetadata {
                         uint32_t aCount, uint32_t* _retval);
   nsresult IsNonBlocking(bool* aNonBlocking);
   nsresult Flush();
+  nsresult StreamStatus();
   nsresult Write(const char* aBuf, uint32_t aCount, uint32_t* result);
   nsresult WriteFrom(nsIInputStream* aFromStream, uint32_t aCount,
                      uint32_t* _retval);
@@ -137,6 +138,7 @@ class nsFileInputStream : public nsFileStreamBase,
   NS_IMETHOD Close() override;
   NS_IMETHOD Tell(int64_t* aResult) override;
   NS_IMETHOD Available(uint64_t* _retval) override;
+  NS_IMETHOD StreamStatus() override;
   NS_IMETHOD Read(char* aBuf, uint32_t aCount, uint32_t* _retval) override;
   NS_IMETHOD ReadSegments(nsWriteSegmentFun aWriter, void* aClosure,
                           uint32_t aCount, uint32_t* _retval) override {

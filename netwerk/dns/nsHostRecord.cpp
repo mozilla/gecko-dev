@@ -313,7 +313,8 @@ void AddrHostRecord::ResolveComplete() {
                     : Telemetry::LABELS_DNS_LOOKUP_DISPOSITION3::trrFail);
   }
 
-  if (nsHostResolver::Mode() == nsIDNSService::MODE_TRRFIRST) {
+  if (nsHostResolver::Mode() == nsIDNSService::MODE_TRRFIRST ||
+      nsHostResolver::Mode() == nsIDNSService::MODE_TRRONLY) {
     MOZ_ASSERT(mTRRSkippedReason != mozilla::net::TRRSkippedReason::TRR_UNSET);
 
     Telemetry::Accumulate(Telemetry::TRR_SKIP_REASON_TRR_FIRST2,
@@ -340,7 +341,8 @@ void AddrHostRecord::ResolveComplete() {
       }
     }
 
-    if (StaticPrefs::network_trr_retry_on_recoverable_errors()) {
+    if (StaticPrefs::network_trr_retry_on_recoverable_errors() &&
+        nsHostResolver::Mode() == nsIDNSService::MODE_TRRFIRST) {
       nsAutoCString telemetryKey(TRRService::ProviderKey());
 
       if (mFirstTRRSkippedReason != mozilla::net::TRRSkippedReason::TRR_UNSET) {

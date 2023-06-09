@@ -8,6 +8,7 @@
 
 #include <windows.foundation.h>
 
+#include "gfxUtils.h"
 #include "imgIContainer.h"
 #include "imgIRequest.h"
 #include "mozilla/gfx/2D.h"
@@ -248,6 +249,15 @@ Result<nsString, nsresult> ToastNotificationHandler::GetLaunchArgument() {
   // `windowsTag` argument.
   launchArg +=
       u"\n"_ns + nsDependentString(kLaunchArgTag) + u"\n"_ns + mWindowsTag;
+
+  // `logging` argument.
+  if (Preferences::GetBool(
+          "alerts.useSystemBackend.windows.notificationserver.verbose",
+          false)) {
+    // Signal notification to log verbose messages.
+    launchArg +=
+        u"\n"_ns + nsDependentString(kLaunchArgLogging) + u"\nverbose"_ns;
+  }
 
   return launchArg;
 }
@@ -677,16 +687,19 @@ bool ToastNotificationHandler::CreateWindowsNotificationFromXml(
       &mFailedToken);
   NS_ENSURE_TRUE(SUCCEEDED(hr), false);
 
-  ComPtr<IToastNotification2> notification2;
-  hr = mNotification.As(&notification2);
-  NS_ENSURE_TRUE(SUCCEEDED(hr), false);
+  // `IToastNotification2` not supported on versions older than Windows 10.
+  if (IsWin10OrLater()) {
+    ComPtr<IToastNotification2> notification2;
+    hr = mNotification.As(&notification2);
+    NS_ENSURE_TRUE(SUCCEEDED(hr), false);
 
-  HString hTag;
-  hr = hTag.Set(mWindowsTag.get());
-  NS_ENSURE_TRUE(SUCCEEDED(hr), false);
+    HString hTag;
+    hr = hTag.Set(mWindowsTag.get());
+    NS_ENSURE_TRUE(SUCCEEDED(hr), false);
 
-  hr = notification2->put_Tag(hTag.Get());
-  NS_ENSURE_TRUE(SUCCEEDED(hr), false);
+    hr = notification2->put_Tag(hTag.Get());
+    NS_ENSURE_TRUE(SUCCEEDED(hr), false);
+  }
 
   ComPtr<IToastNotificationManagerStatics> toastNotificationManagerStatics =
       GetToastNotificationManagerStatics();
@@ -953,20 +966,24 @@ HRESULT
 ToastNotificationHandler::OnDismiss(
     const ComPtr<IToastNotification>& notification,
     const ComPtr<IToastDismissedEventArgs>& aArgs) {
-  ComPtr<IToastNotification2> notification2;
-  HRESULT hr = notification.As(&notification2);
-  NS_ENSURE_TRUE(SUCCEEDED(hr), E_FAIL);
+  // Multiple dismiss events only occur on Windows 10 and later, prior versions
+  // of Windows didn't include `IToastNotification2`.
+  if (IsWin10OrLater()) {
+    ComPtr<IToastNotification2> notification2;
+    HRESULT hr = notification.As(&notification2);
+    NS_ENSURE_TRUE(SUCCEEDED(hr), E_FAIL);
 
-  HString tagHString;
-  hr = notification2->get_Tag(tagHString.GetAddressOf());
-  NS_ENSURE_TRUE(SUCCEEDED(hr), E_FAIL);
+    HString tagHString;
+    hr = notification2->get_Tag(tagHString.GetAddressOf());
+    NS_ENSURE_TRUE(SUCCEEDED(hr), E_FAIL);
 
-  unsigned int len;
-  const wchar_t* tagPtr = tagHString.GetRawBuffer(&len);
-  nsAutoString tag(tagPtr, len);
+    unsigned int len;
+    const wchar_t* tagPtr = tagHString.GetRawBuffer(&len);
+    nsAutoString tag(tagPtr, len);
 
-  if (FindNotificationByTag(tag, mAumid)) {
-    return S_OK;
+    if (FindNotificationByTag(tag, mAumid)) {
+      return S_OK;
+    }
   }
 
   SendFinished();
@@ -977,6 +994,11 @@ ToastNotificationHandler::OnDismiss(
 HRESULT
 ToastNotificationHandler::OnFail(const ComPtr<IToastNotification>& notification,
                                  const ComPtr<IToastFailedEventArgs>& aArgs) {
+  HRESULT err;
+  aArgs->get_ErrorCode(&err);
+  MOZ_LOG(sWASLog, LogLevel::Error,
+          ("Error creating notification, error: %ld", err));
+
   SendFinished();
   mBackend->RemoveHandler(mName, this);
   return S_OK;
@@ -1022,7 +1044,7 @@ nsresult ToastNotificationHandler::AsyncSaveImage(imgIRequest* aRequest) {
   NS_ENSURE_SUCCESS(rv, rv);
 
   NSID_TrimBracketsASCII uuidStr(uuid);
-  uuidStr.AppendLiteral(".bmp");
+  uuidStr.AppendLiteral(".png");
   mImageFile->AppendNative(uuidStr);
 
   nsCOMPtr<imgIContainer> imgContainer;
@@ -1038,20 +1060,24 @@ nsresult ToastNotificationHandler::AsyncSaveImage(imgIRequest* aRequest) {
       imgIContainer::FRAME_FIRST,
       imgIContainer::FLAG_SYNC_DECODE | imgIContainer::FLAG_ASYNC_NOTIFY);
   nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
-      "ToastNotificationHandler::AsyncWriteBitmap",
+      "ToastNotificationHandler::AsyncWriteImage",
       [self, imageFile, surface]() -> void {
-        nsresult rv;
-        if (!surface) {
-          rv = NS_ERROR_FAILURE;
-        } else {
-          rv = WinUtils::WriteBitmap(imageFile, surface);
+        nsresult rv = NS_ERROR_FAILURE;
+        if (surface) {
+          FILE* file = nullptr;
+          rv = imageFile->OpenANSIFileDesc("wb", &file);
+          if (NS_SUCCEEDED(rv)) {
+            rv = gfxUtils::EncodeSourceSurface(surface, ImageType::PNG, u""_ns,
+                                               gfxUtils::eBinaryEncode, file);
+            fclose(file);
+          }
         }
 
         nsCOMPtr<nsIRunnable> cbRunnable = NS_NewRunnableFunction(
-            "ToastNotificationHandler::AsyncWriteBitmapCb",
+            "ToastNotificationHandler::AsyncWriteImageCb",
             [self, rv]() -> void {
               auto handler = const_cast<ToastNotificationHandler*>(self.get());
-              handler->OnWriteBitmapFinished(rv);
+              handler->OnWriteImageFinished(rv);
             });
 
         NS_DispatchToMainThread(cbRunnable);
@@ -1060,14 +1086,14 @@ nsresult ToastNotificationHandler::AsyncSaveImage(imgIRequest* aRequest) {
   return mBackend->BackgroundDispatch(r);
 }
 
-void ToastNotificationHandler::OnWriteBitmapFinished(nsresult rv) {
+void ToastNotificationHandler::OnWriteImageFinished(nsresult rv) {
   if (NS_SUCCEEDED(rv)) {
-    OnWriteBitmapSuccess();
+    OnWriteImageSuccess();
   }
   TryShowAlert();
 }
 
-nsresult ToastNotificationHandler::OnWriteBitmapSuccess() {
+nsresult ToastNotificationHandler::OnWriteImageSuccess() {
   nsresult rv;
 
   nsCOMPtr<nsIURI> fileURI;

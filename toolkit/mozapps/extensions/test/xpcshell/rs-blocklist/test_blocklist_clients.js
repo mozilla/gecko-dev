@@ -1,15 +1,15 @@
 const { BlocklistPrivate } = ChromeUtils.import(
   "resource://gre/modules/Blocklist.jsm"
 );
-const { Utils: RemoteSettingsUtils } = ChromeUtils.import(
-  "resource://services-settings/Utils.jsm"
+const { Utils: RemoteSettingsUtils } = ChromeUtils.importESModule(
+  "resource://services-settings/Utils.sys.mjs"
 );
-const { RemoteSettings } = ChromeUtils.import(
-  "resource://services-settings/remote-settings.js"
+const { RemoteSettings } = ChromeUtils.importESModule(
+  "resource://services-settings/remote-settings.sys.mjs"
 );
 
-const IS_ANDROID = AppConstants.platform == "android";
-
+const IS_ANDROID_WITH_BLOCKLIST_V2 =
+  AppConstants.platform == "android" && !AppConstants.NIGHTLY_BUILD;
 let gBlocklistClients;
 
 async function clear_state() {
@@ -40,7 +40,7 @@ add_task(async function setup() {
   gBlocklistClients = [
     {
       client: BlocklistPrivate.ExtensionBlocklistRS._client,
-      expectHasDump: IS_ANDROID,
+      expectHasDump: IS_ANDROID_WITH_BLOCKLIST_V2,
     },
     {
       client: BlocklistPrivate.GfxBlocklistRS._client,

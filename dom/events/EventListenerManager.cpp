@@ -33,9 +33,8 @@
 #include "mozilla/dom/UserActivation.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/StaticPrefs_dom.h"
-#include "mozilla/TimelineConsumers.h"
-#include "mozilla/EventTimelineMarker.h"
 #include "mozilla/TimeStamp.h"
+#include "mozilla/dom/ChromeUtils.h"
 
 #include "EventListenerService.h"
 #include "nsCOMPtr.h"
@@ -101,8 +100,7 @@ static uint32_t MutationBitForEventType(EventMessage aEventType) {
 uint32_t EventListenerManager::sMainThreadCreatedCount = 0;
 
 EventListenerManagerBase::EventListenerManagerBase()
-    : mNoListenerForEvent(eVoidEvent),
-      mMayHavePaintEventListener(false),
+    : mMayHavePaintEventListener(false),
       mMayHaveMutationListeners(false),
       mMayHaveCapturingListeners(false),
       mMayHaveSystemGroupListeners(false),
@@ -113,11 +111,13 @@ EventListenerManagerBase::EventListenerManagerBase()
       mMayHaveInputOrCompositionEventListener(false),
       mMayHaveSelectionChangeEventListener(false),
       mMayHaveFormSelectEventListener(false),
+      mMayHaveTransitionEventListener(false),
       mClearingListeners(false),
       mIsMainThreadELM(NS_IsMainThread()),
       mHasNonPrivilegedClickListeners(false),
       mUnknownNonPrivilegedClickListeners(false) {
-  static_assert(sizeof(EventListenerManagerBase) == sizeof(uint32_t),
+  ClearNoListenersForEvents();
+  static_assert(sizeof(EventListenerManagerBase) == sizeof(uint64_t),
                 "Keep the size of EventListenerManagerBase size compact!");
 }
 
@@ -238,7 +238,7 @@ void EventListenerManager::AddEventListenerInternal(
     }
   }
 
-  mNoListenerForEvent = eVoidEvent;
+  ClearNoListenersForEvents();
   mNoListenerForEventAtom = nullptr;
 
   listener =
@@ -459,6 +459,22 @@ void EventListenerManager::AddEventListenerInternal(
             doc->SetUseCounter(eUseCounter_custom_onmozmousepixelscroll);
           }
         }
+        break;
+      case eTransitionStart:
+      case eTransitionRun:
+      case eTransitionEnd:
+      case eTransitionCancel:
+      case eWebkitTransitionEnd:
+        mMayHaveTransitionEventListener = true;
+        if (nsPIDOMWindowInner* window = GetInnerWindowForTarget()) {
+          window->SetHasTransitionEventListeners();
+        }
+        break;
+      case eFormCheckboxStateChange:
+        nsContentUtils::SetMayHaveFormCheckboxStateChangeListeners();
+        break;
+      case eFormRadioStateChange:
+        nsContentUtils::SetMayHaveFormRadioStateChangeListeners();
         break;
       default:
         // XXX Use NS_ASSERTION here to print resolvedEventMessage since
@@ -773,7 +789,7 @@ void EventListenerManager::DisableDevice(EventMessage aEventMessage) {
 void EventListenerManager::NotifyEventListenerRemoved(nsAtom* aUserType) {
   // If the following code is changed, other callsites of EventListenerRemoved
   // and NotifyAboutMainThreadListenerChange should be changed too.
-  mNoListenerForEvent = eVoidEvent;
+  ClearNoListenersForEvents();
   mNoListenerForEventAtom = nullptr;
   if (mTarget) {
     mTarget->EventListenerRemoved(aUserType);
@@ -1299,7 +1315,10 @@ nsresult EventListenerManager::HandleEventSubType(Listener* aListener,
   }
 
   if (NS_SUCCEEDED(result)) {
-    EventCallbackDebuggerNotificationGuard dbgGuard(aCurrentTarget, aDOMEvent);
+    Maybe<EventCallbackDebuggerNotificationGuard> dbgGuard;
+    if (dom::ChromeUtils::IsDevToolsOpened()) {
+      dbgGuard.emplace(aCurrentTarget, aDOMEvent);
+    }
     nsAutoMicroTask mt;
 
     // Event::currentTarget is set in EventDispatcher.
@@ -1461,27 +1480,6 @@ void EventListenerManager::HandleEventInternal(nsPresContext* aPresContext,
               legacyAutoOverride.emplace(*aDOMEvent, eventMessage);
             }
 
-            // Maybe add a marker to the docshell's timeline, but only
-            // bother with all the logic if some docshell is recording.
-            nsCOMPtr<nsIDocShell> docShell;
-            bool needsEndEventMarker = false;
-
-            if (mIsMainThreadELM &&
-                listener->mListenerType != Listener::eNativeListener) {
-              docShell = nsContentUtils::GetDocShellForEventTarget(mTarget);
-              if (docShell) {
-                if (TimelineConsumers::HasConsumer(docShell)) {
-                  needsEndEventMarker = true;
-                  nsAutoString typeStr;
-                  (*aDOMEvent)->GetType(typeStr);
-                  uint16_t phase = (*aDOMEvent)->EventPhase();
-                  TimelineConsumers::AddMarkerForDocShell(
-                      docShell, MakeUnique<EventTimelineMarker>(
-                                    typeStr, phase, MarkerTracingType::START));
-                }
-              }
-            }
-
             aEvent->mFlags.mInPassiveListener = listener->mFlags.mPassive;
             Maybe<Listener> listenerHolder;
             if (listener->mFlags.mOnce) {
@@ -1511,11 +1509,6 @@ void EventListenerManager::HandleEventInternal(nsPresContext* aPresContext,
               aEvent->mFlags.mExceptionWasRaised = true;
             }
             aEvent->mFlags.mInPassiveListener = false;
-
-            if (needsEndEventMarker) {
-              TimelineConsumers::AddMarkerForDocShell(docShell, "DOMEvent",
-                                                      MarkerTracingType::END);
-            }
           }
         }
       }
@@ -1573,8 +1566,13 @@ void EventListenerManager::HandleEventInternal(nsPresContext* aPresContext,
   }
 
   if (mIsMainThreadELM && !hasListener) {
-    mNoListenerForEvent = aEvent->mMessage;
-    mNoListenerForEventAtom = aEvent->mSpecifiedEventType;
+    if (aEvent->mMessage != eUnidentifiedEvent) {
+      mNoListenerForEvents[2] = mNoListenerForEvents[1];
+      mNoListenerForEvents[1] = mNoListenerForEvents[0];
+      mNoListenerForEvents[0] = aEvent->mMessage;
+    } else {
+      mNoListenerForEventAtom = aEvent->mSpecifiedEventType;
+    }
   }
 
   if (aEvent->DefaultPrevented()) {
@@ -1856,7 +1854,7 @@ nsresult EventListenerManager::SetListenerEnabled(
   if (aEnabled) {
     // We may have enabled some listener, clear the cache for which events
     // we don't have listeners.
-    mNoListenerForEvent = eVoidEvent;
+    ClearNoListenersForEvents();
     mNoListenerForEventAtom = nullptr;
   }
   return NS_OK;

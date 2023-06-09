@@ -368,6 +368,7 @@ UniquePtr<ImmutableScriptData> ConvertImmutableScriptData(
       &fc, smooshScriptData.main_offset, smooshScriptData.nfixed,
       smooshScriptData.nslots, GCThingIndex(smooshScriptData.body_scope_index),
       smooshScriptData.num_ic_entries, isFunction, smooshScriptData.fun_length,
+      0,
       mozilla::Span(smooshScriptData.bytecode.data,
                     smooshScriptData.bytecode.len),
       mozilla::Span<const SrcNote>(), mozilla::Span<const uint32_t>(),
@@ -390,7 +391,7 @@ bool ConvertGCThings(JSContext* cx, FrontendContext* fc,
   }
 
   TaggedScriptThingIndex* cursor = nullptr;
-  if (!compilationState.allocateGCThingsUninitialized(cx, fc, scriptIndex,
+  if (!compilationState.allocateGCThingsUninitialized(fc, scriptIndex,
                                                       ngcthings, &cursor)) {
     return false;
   }
@@ -481,8 +482,7 @@ bool ConvertScriptStencil(JSContext* cx, FrontendContext* fc,
       return false;
     }
 
-    if (!compilationState.sharedData.addAndShare(cx, fc, scriptIndex,
-                                                 sharedData)) {
+    if (!compilationState.sharedData.addAndShare(fc, scriptIndex, sharedData)) {
       return false;
     }
 
@@ -595,14 +595,14 @@ bool Smoosh::tryCompileGlobalScriptToExtensibleStencil(
     return true;
   }
 
-  if (!input.initForGlobal(cx, fc)) {
+  if (!input.initForGlobal(fc)) {
     return false;
   }
 
   LifoAllocScope parserAllocScope(&cx->tempLifoAlloc());
 
   Vector<TaggedParserAtomIndex> allAtoms(fc);
-  CompilationState compilationState(cx, fc, parserAllocScope, input);
+  CompilationState compilationState(fc, parserAllocScope, input);
   if (!ConvertAtoms(cx, fc, result, compilationState, allAtoms)) {
     return false;
   }

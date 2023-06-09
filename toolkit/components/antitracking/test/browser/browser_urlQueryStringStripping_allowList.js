@@ -3,8 +3,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* import-globals-from head.js */
-
 "use strict";
 
 const TEST_THIRD_PARTY_DOMAIN = TEST_DOMAIN_2;
@@ -51,6 +49,11 @@ add_setup(async function() {
       ["privacy.query_stripping.enabled", true],
     ],
   });
+
+  let listService = Cc[
+    "@mozilla.org/query-stripping-list-service;1"
+  ].getService(Ci.nsIURLQueryStrippingListService);
+  await listService.testWaitForInit();
 });
 
 add_task(async function doTestsForTabOpen() {

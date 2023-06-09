@@ -3,29 +3,32 @@
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
 import { createSelector } from "reselect";
+import { shallowEqual } from "../utils/shallow-equal";
 
 import { getSelectedSource, getSourceActorsForSource } from "./";
 
-function getExceptionsMap(state) {
-  return state.exceptions.exceptions;
-}
-
 export const getSelectedSourceExceptions = createSelector(
   getSelectedSourceActors,
-  getExceptionsMap,
-  (sourceActors, exceptions) => {
+  // Do not retrieve mutableExceptionsMap as it will never change and createSelector would
+  // prevent re-running the selector in case of modification. state.exception is the `state`
+  // in the reducer, which we take care of cloning in case of new exception.
+  state => state.exceptions,
+  (sourceActors, exceptionsState) => {
+    const { mutableExceptionsMap } = exceptionsState;
     const sourceExceptions = [];
 
-    sourceActors.forEach(sourceActor => {
-      const actorId = sourceActor.id;
-
-      if (exceptions[actorId]) {
-        sourceExceptions.push(...exceptions[actorId]);
+    for (const sourceActor of sourceActors) {
+      const exceptions = mutableExceptionsMap.get(sourceActor.id);
+      if (exceptions) {
+        sourceExceptions.push(...exceptions);
       }
-    });
+    }
 
     return sourceExceptions;
-  }
+  },
+  // Shallow compare both input and output because of arrays being possibly always
+  // different instance but with same content.
+  { equalityCheck: shallowEqual, resultEqualityCheck: shallowEqual }
 );
 
 function getSelectedSourceActors(state) {
@@ -34,10 +37,6 @@ function getSelectedSourceActors(state) {
     return [];
   }
   return getSourceActorsForSource(state, selectedSource.id);
-}
-
-export function hasException(state, line, column) {
-  return !!getSelectedException(state, line, column);
 }
 
 export function getSelectedException(state, line, column) {

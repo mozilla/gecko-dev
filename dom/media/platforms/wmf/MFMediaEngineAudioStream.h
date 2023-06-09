@@ -23,9 +23,13 @@ class MFMediaEngineAudioStream final : public MFMediaEngineStream {
     return "media engine audio stream"_ns;
   }
 
+  nsCString GetCodecName() const override;
+
   TrackInfo::TrackType TrackType() override {
     return TrackInfo::TrackType::kAudioTrack;
   }
+
+  bool IsEncrypted() const override;
 
  private:
   HRESULT CreateMediaType(const TrackInfo& aInfo,

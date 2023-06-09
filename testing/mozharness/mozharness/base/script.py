@@ -25,6 +25,7 @@ import re
 import shutil
 import socket
 import ssl
+import stat
 import subprocess
 import sys
 import tarfile
@@ -37,6 +38,9 @@ from io import BytesIO
 
 import mozinfo
 import six
+from mozprocess import ProcessHandler
+from six import binary_type
+
 from mozharness.base.config import BaseConfig
 from mozharness.base.log import (
     DEBUG,
@@ -50,8 +54,6 @@ from mozharness.base.log import (
     OutputParser,
     SimpleFileLogger,
 )
-from mozprocess import ProcessHandler
-from six import binary_type
 
 try:
     import httplib
@@ -88,6 +90,33 @@ except ImportError:
 
 class ContentLengthMismatch(Exception):
     pass
+
+
+def _validate_tar_member(member, path):
+    def _is_within_directory(directory, target):
+        real_directory = os.path.realpath(directory)
+        real_target = os.path.realpath(target)
+        prefix = os.path.commonprefix([real_directory, real_target])
+        return prefix == real_directory
+
+    member_path = os.path.join(path, member.name)
+    if not _is_within_directory(path, member_path):
+        raise Exception("Attempted path traversal in tar file: " + member.name)
+    if member.issym():
+        link_path = os.path.join(os.path.dirname(member_path), member.linkname)
+        if not _is_within_directory(path, link_path):
+            raise Exception("Attempted link path traversal in tar file: " + member.name)
+    if member.mode & (stat.S_ISUID | stat.S_ISGID):
+        raise Exception("Attempted setuid or setgid in tar file: " + member.name)
+
+
+def _safe_extract(tar, path=".", *, numeric_owner=False):
+    def _files(tar, path):
+        for member in tar:
+            _validate_tar_member(member, path)
+            yield member
+
+    tar.extractall(path, members=_files(tar, path), numeric_owner=numeric_owner)
 
 
 def platform_name():
@@ -696,8 +725,8 @@ class ScriptMixin(PlatformMixin):
             mode (str): string of the form 'filemode[:compression]' (e.g. 'r:gz' or 'r:bz2')
             extract_to (str, optional): where to extract the compressed file.
         """
-        t = tarfile.open(fileobj=compressed_file, mode=mode)
-        t.extractall(path=extract_to)
+        with tarfile.open(fileobj=compressed_file, mode=mode) as t:
+            _safe_extract(t, path=extract_to)
 
     def download_unpack(self, url, extract_to=".", extract_dirs="*", verbose=False):
         """Generic method to download and extract a compressed file without writing it
@@ -1638,12 +1667,11 @@ class ScriptMixin(PlatformMixin):
             )
             return -1
 
-        return_level = INFO
         if returncode not in success_codes:
-            return_level = error_level
             if throw_exception:
                 raise subprocess.CalledProcessError(returncode, command)
-        self.log("Return code: %d" % returncode, level=return_level)
+        # Force level to be INFO as message is not necessary in Treeherder
+        self.log("Return code: %d" % returncode, level=INFO)
 
         if halt_on_failure:
             _fail = False
@@ -1681,6 +1709,7 @@ class ScriptMixin(PlatformMixin):
         fatal_exit_code=2,
         ignore_errors=False,
         success_codes=None,
+        output_filter=None,
     ):
         """Similar to run_command, but where run_command is an
         os.system(command) analog, get_output_from_command is a `command`
@@ -1728,6 +1757,8 @@ class ScriptMixin(PlatformMixin):
               level to `ERROR` for the output of stderr. Defaults to False.
             success_codes (int, optional): numeric value to compare against
               the command return value.
+            output_filter (func, optional): provide a function to filter output
+              so that noise is reduced and lines are sanitized.  default: None
 
         Returns:
             None: if the cwd is not a directory.
@@ -1811,6 +1842,8 @@ class ScriptMixin(PlatformMixin):
                 tmp_stdout_filename
             ):
                 output = self.read_from_file(tmp_stdout_filename, verbose=False)
+                if output_filter:
+                    output = output_filter(output)
                 if not silent:
                     self.log("Output received:", level=log_level)
                     output_lines = output.rstrip().splitlines()
@@ -1822,16 +1855,19 @@ class ScriptMixin(PlatformMixin):
                         self.log(" %s" % line, level=log_level)
                     output = "\n".join(output_lines)
         if os.path.exists(tmp_stderr_filename) and os.path.getsize(tmp_stderr_filename):
-            if not ignore_errors:
-                return_level = ERROR
-            self.log("Errors received:", level=return_level)
             errors = self.read_from_file(tmp_stderr_filename, verbose=False)
-            for line in errors.rstrip().splitlines():
-                if not line or line.isspace():
-                    continue
-                if isinstance(line, binary_type):
-                    line = line.decode("utf-8")
-                self.log(" %s" % line, level=return_level)
+            if output_filter:
+                errors = output_filter(errors)
+            if errors:
+                if not ignore_errors:
+                    return_level = ERROR
+                self.log("Errors received:", level=return_level)
+                for line in errors.rstrip().splitlines():
+                    if not line or line.isspace():
+                        continue
+                    if isinstance(line, binary_type):
+                        line = line.decode("utf-8")
+                    self.log(" %s" % line, level=return_level)
         elif p.returncode not in success_codes and not ignore_errors:
             return_level = ERROR
         # Clean up.
@@ -1840,7 +1876,8 @@ class ScriptMixin(PlatformMixin):
             self.rmtree(tmp_stdout_filename, log_level=DEBUG)
         if p.returncode and throw_exception:
             raise subprocess.CalledProcessError(p.returncode, command)
-        self.log("Return code: %d" % p.returncode, level=return_level)
+        # Force level to be INFO as message is not necessary in Treeherder
+        self.log("Return code: %d" % p.returncode, level=INFO)
         if halt_on_failure and return_level == ERROR:
             self.return_code = fatal_exit_code
             self.fatal(
@@ -1940,6 +1977,7 @@ class ScriptMixin(PlatformMixin):
                 )
                 with tarfile.open(filename) as bundle:
                     for entry in self._filter_entries(bundle.getnames(), extract_dirs):
+                        _validate_tar_member(bundle.getmember(entry), extract_to)
                         if verbose:
                             self.info(" %s" % entry)
                         bundle.extract(entry, path=extract_to)

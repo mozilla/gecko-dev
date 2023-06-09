@@ -635,6 +635,9 @@ class PermissionDelegateTest : BaseSessionTest() {
 
     @Test
     fun autoplayReject() {
+        // Bug 1810736
+        assumeThat(sessionRule.env.isIsolatedProcess, equalTo(false))
+
         // The profile used in automation sets this to false, so we need to hack it back to true here.
         sessionRule.setPrefsUntilTestEnd(
             mapOf(

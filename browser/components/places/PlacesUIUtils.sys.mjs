@@ -16,20 +16,13 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   PromiseUtils: "resource://gre/modules/PromiseUtils.sys.mjs",
+  Weave: "resource://services-sync/main.sys.mjs",
 });
 
 XPCOMUtils.defineLazyModuleGetters(lazy, {
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.jsm",
   CustomizableUI: "resource:///modules/CustomizableUI.jsm",
   OpenInTabsUtils: "resource:///modules/OpenInTabsUtils.jsm",
-  PluralForm: "resource://gre/modules/PluralForm.jsm",
-  Weave: "resource://services-sync/main.js",
-});
-
-XPCOMUtils.defineLazyGetter(lazy, "bundle", function() {
-  return Services.strings.createBundle(
-    "chrome://browser/locale/places/places.properties"
-  );
 });
 
 const gInContentProcess =
@@ -276,12 +269,14 @@ class BookmarkState {
    *   Existing (if there are any) keyword for bookmark
    * @param {boolean} [options.isFolder]
    *   If the item is a folder.
-   * @param {Array.<nsIURI>} [options.children]
+   * @param {Array<{ title: string; url: nsIURI; }>} [options.children]
    *   The list of child URIs to bookmark within the folder.
    * @param {boolean} [options.autosave]
    *   If changes to bookmark fields should be saved immediately after calling
    *   its respective "changed" method, rather than waiting for save() to be
    *   called.
+   * @param {number} [options.index]
+   *   The insertion point index of the bookmark.
    */
   constructor({
     info,
@@ -290,6 +285,7 @@ class BookmarkState {
     isFolder = false,
     children = [],
     autosave = false,
+    index,
   }) {
     this._guid = info.itemGuid;
     this._postData = info.postData;
@@ -309,6 +305,7 @@ class BookmarkState {
         .filter(tag => !!tag.length),
       keyword,
       parentGuid: info.parentGuid,
+      index,
     };
 
     // Edited bookmark
@@ -391,6 +388,7 @@ class BookmarkState {
         tags: this._newState.tags,
         title: this._newState.title ?? this._originalState.title,
         url: this._newState.uri ?? this._originalState.uri,
+        index: this._originalState.index,
       }).transact();
       if (this._newState.keyword) {
         await lazy.PlacesTransactions.EditKeyword({
@@ -412,10 +410,8 @@ class BookmarkState {
     this._guid = await lazy.PlacesTransactions.NewFolder({
       parentGuid: this._newState.parentGuid ?? this._originalState.parentGuid,
       title: this._newState.title ?? this._originalState.title,
-      children: this._children.map(item => ({
-        url: item.uri,
-        title: item.title,
-      })),
+      children: this._children,
+      index: this._originalState.index,
     }).transact();
     return this._guid;
   }
@@ -440,7 +436,7 @@ class BookmarkState {
         tag: this._newState.title,
       })
         .transact()
-        .catch(Cu.reportError);
+        .catch(console.error);
       return this._guid;
     }
 
@@ -532,39 +528,6 @@ export var PlacesUIUtils = {
   // if a bookmark was created or modified.
   lastBookmarkDialogDeferred: null,
 
-  getFormattedString: function PUIU_getFormattedString(key, params) {
-    return lazy.bundle.formatStringFromName(key, params);
-  },
-
-  /**
-   * Get a localized plural string for the specified key name and numeric value
-   * substituting parameters.
-   *
-   * @param {string} aKey
-   *        key for looking up the localized string in the bundle
-   * @param {number} aNumber
-   *        Number based on which the final localized form is looked up
-   * @param {Array} aParams
-   *        Array whose items will substitute #1, #2,... #n parameters
-   *        in the string.
-   *
-   * @see https://developer.mozilla.org/en/Localization_and_Plurals
-   * @returns {string} The localized plural string.
-   */
-  getPluralString: function PUIU_getPluralString(aKey, aNumber, aParams) {
-    let str = lazy.PluralForm.get(aNumber, lazy.bundle.GetStringFromName(aKey));
-
-    // Replace #1 with aParams[0], #2 with aParams[1], and so on.
-    return str.replace(/\#(\d+)/g, function(matchedId, matchedNumber) {
-      let param = aParams[parseInt(matchedNumber, 10) - 1];
-      return param !== undefined ? param : matchedId;
-    });
-  },
-
-  getString: function PUIU_getString(key) {
-    return lazy.bundle.GetStringFromName(key);
-  },
-
   /**
    * Obfuscates a place: URL to use it in xulstore without the risk of
    leaking browsing information. Uses md5 to hash the query string.
@@ -640,7 +603,7 @@ export var PlacesUIUtils = {
         !bookmarkGuid &&
         topUndoEntry != lazy.PlacesTransactions.topUndoEntry
       ) {
-        await lazy.PlacesTransactions.undo().catch(Cu.reportError);
+        await lazy.PlacesTransactions.undo().catch(console.error);
       }
 
       this.lastBookmarkDialogDeferred.resolve(bookmarkGuid);
@@ -945,13 +908,14 @@ export var PlacesUIUtils = {
 
     var uri = Services.io.newURI(aURINode.uri);
     if (uri.schemeIs("javascript") || uri.schemeIs("data")) {
-      const BRANDING_BUNDLE_URI = "chrome://branding/locale/brand.properties";
-      var brandShortName = Services.strings
-        .createBundle(BRANDING_BUNDLE_URI)
-        .GetStringFromName("brandShortName");
-
-      var errorStr = this.getString("load-js-data-url-error");
-      Services.prompt.alert(aWindow, brandShortName, errorStr);
+      const [
+        title,
+        errorStr,
+      ] = PlacesUIUtils.promptLocalization.formatValuesSync([
+        "places-error-title",
+        "places-load-js-data-url-error",
+      ]);
+      Services.prompt.alert(aWindow, title, errorStr);
       return false;
     }
     return true;
@@ -1132,6 +1096,9 @@ export var PlacesUIUtils = {
       }
     }
     if (lazy.OpenInTabsUtils.confirmOpenInTabs(urlsToOpen.length, window)) {
+      if (window.updateTelemetry) {
+        window.updateTelemetry(urlsToOpen);
+      }
       this.openTabset(urlsToOpen, event, window);
     }
   },
@@ -1167,7 +1134,7 @@ export var PlacesUIUtils = {
 
   /**
    * Loads the node's URL in the appropriate tab or window.
-   * see also openUILinkIn
+   * see also URILoadingHelper's openWebLinkIn
    *
    * @param {object} aNode
    *        An uri result node.
@@ -1218,6 +1185,9 @@ export var PlacesUIUtils = {
         private: aPrivate,
         userContextId,
       });
+      if (aWindow.updateTelemetry) {
+        aWindow.updateTelemetry([aNode]);
+      }
     }
   },
 
@@ -1260,7 +1230,7 @@ export var PlacesUIUtils = {
       title = aNode.title;
     }
 
-    return title || this.getString("noTitle");
+    return title || this.promptLocalization.formatValueSync("places-no-title");
   },
 
   shouldShowTabsFromOtherComputersMenuitem() {
@@ -1509,7 +1479,7 @@ export var PlacesUIUtils = {
     let node = event.target.selectedNode;
     if (node) {
       if (event.keyCode == event.DOM_VK_RETURN) {
-        this.openNodeWithEvent(node, event);
+        PlacesUIUtils.openNodeWithEvent(node, event);
       }
     }
   },
@@ -1718,7 +1688,7 @@ export var PlacesUIUtils = {
       event.target.getAttribute("data-usercontextid")
     );
     let triggerNode = this.lastContextMenuTriggerNode;
-    let isManaged = !!triggerNode.closest("#managed-bookmarks");
+    let isManaged = !!triggerNode?.closest("#managed-bookmarks");
     if (isManaged) {
       let window = triggerNode.ownerGlobal;
       window.openTrustedLinkIn(triggerNode.link, "tab", { userContextId });
@@ -1793,7 +1763,7 @@ export var PlacesUIUtils = {
           let contents = [
             { type: lazy.PlacesUtils.TYPE_X_MOZ_URL, entries: [] },
             { type: lazy.PlacesUtils.TYPE_HTML, entries: [] },
-            { type: lazy.PlacesUtils.TYPE_UNICODE, entries: [] },
+            { type: lazy.PlacesUtils.TYPE_PLAINTEXT, entries: [] },
           ];
 
           contents.forEach(function(content) {
@@ -1824,21 +1794,17 @@ export var PlacesUIUtils = {
           );
           break;
         case "placesCmd_open:privatewindow":
-          window.openUILinkIn(this.triggerNode.link, "window", {
-            triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
+          window.openTrustedLinkIn(this.triggerNode.link, "window", {
             private: true,
           });
           break;
         case "placesCmd_open:window":
-          window.openUILinkIn(this.triggerNode.link, "window", {
-            triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
+          window.openTrustedLinkIn(this.triggerNode.link, "window", {
             private: false,
           });
           break;
         case "placesCmd_open:tab": {
-          window.openUILinkIn(this.triggerNode.link, "tab", {
-            triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
-          });
+          window.openTrustedLinkIn(this.triggerNode.link, "tab");
         }
       }
     },
@@ -2034,7 +2000,7 @@ XPCOMUtils.defineLazyGetter(PlacesUIUtils, "URI_FLAVORS", () => {
   return [
     lazy.PlacesUtils.TYPE_X_MOZ_URL,
     TAB_DROP_TYPE,
-    lazy.PlacesUtils.TYPE_UNICODE,
+    lazy.PlacesUtils.TYPE_PLAINTEXT,
   ];
 });
 XPCOMUtils.defineLazyGetter(PlacesUIUtils, "SUPPORTED_FLAVORS", () => {
@@ -2046,6 +2012,13 @@ XPCOMUtils.defineLazyGetter(PlacesUIUtils, "ellipsis", function() {
     "intl.ellipsis",
     Ci.nsIPrefLocalizedString
   ).data;
+});
+
+XPCOMUtils.defineLazyGetter(PlacesUIUtils, "promptLocalization", () => {
+  return new Localization(
+    ["browser/placesPrompts.ftl", "branding/brand.ftl"],
+    true
+  );
 });
 
 XPCOMUtils.defineLazyPreferenceGetter(
@@ -2271,7 +2244,7 @@ function getTransactionsForCopy(items, insertionIndex, insertionParentGuid) {
       });
     } else {
       let title =
-        item.type != lazy.PlacesUtils.TYPE_UNICODE ? item.title : item.uri;
+        item.type != lazy.PlacesUtils.TYPE_PLAINTEXT ? item.title : item.uri;
       transaction = lazy.PlacesTransactions.NewBookmark({
         index,
         parentGuid: insertionParentGuid,

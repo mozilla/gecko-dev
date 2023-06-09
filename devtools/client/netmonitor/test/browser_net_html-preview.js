@@ -39,7 +39,7 @@ const FETCH_CONTENT_4 = addBaseHtmlElements(`
 `);
 
 // Use fetch in order to prevent actually running this code in the test page
-const TEST_HTML = addBaseHtmlElements(`HTML<script>
+const TEST_HTML = addBaseHtmlElements(`<div id="to-copy">HTML</div><script>
   fetch("${BASE_URL}fetch-1.html");
   fetch("${BASE_URL}fetch-2.html");
   fetch("${BASE_URL}fetch-3.html");
@@ -96,41 +96,8 @@ add_task(async function() {
   await selectIndexAndWaitForHtmlView(0, TEST_HTML);
   await selectIndexAndWaitForHtmlView(1, FETCH_CONTENT_1);
   await selectIndexAndWaitForHtmlView(2, FETCH_CONTENT_2);
-  let previewIframe = await selectIndexAndWaitForHtmlView(3, FETCH_CONTENT_3);
-
-  info("Try to click on the link and submit the form");
-  await SpecialPowers.spawn(previewIframe.browsingContext, [], async function(
-    expectedHtml
-  ) {
-    EventUtils.synthesizeMouseAtCenter(
-      content.document.querySelector("a"),
-      {},
-      content
-    );
-    EventUtils.synthesizeMouseAtCenter(
-      content.document.querySelector("form"),
-      {},
-      content
-    );
-  });
-
-  info("Wait for some time to let a chance for the link/form to navigate");
-  await wait(1000);
-
-  info("Verify that the content did not change");
-  await SpecialPowers.spawn(
-    previewIframe.browsingContext,
-    [FETCH_CONTENT_3],
-    async function(expectedHtml) {
-      is(
-        content.document.documentElement.outerHTML,
-        expectedHtml,
-        "Verify that link and form are both disabled and the HTML content stays the same"
-      );
-    }
-  );
-
-  previewIframe = await selectIndexAndWaitForHtmlView(4, FETCH_CONTENT_4);
+  await selectIndexAndWaitForHtmlView(3, FETCH_CONTENT_3);
+  await selectIndexAndWaitForHtmlView(4, FETCH_CONTENT_4);
 
   await teardown(monitor);
 
@@ -185,6 +152,20 @@ add_task(async function() {
         );
       }
     );
+
+    // Only assert copy to clipboard on the first test page
+    if (expectedHtmlPreview == TEST_HTML) {
+      await waitForClipboardPromise(async function() {
+        await SpecialPowers.spawn(iframe.browsingContext, [], async function() {
+          const elt = content.document.getElementById("to-copy");
+          EventUtils.synthesizeMouseAtCenter(elt, { clickCount: 2 }, content);
+          await new Promise(r =>
+            elt.addEventListener("dblclick", r, { once: true })
+          );
+          EventUtils.synthesizeKey("c", { accelKey: true }, content);
+        });
+      }, "HTML");
+    }
 
     return iframe;
   }

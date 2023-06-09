@@ -267,11 +267,7 @@ xpcAccessible::GetLanguage(nsAString& aLanguage) {
   if (!IntlGeneric()) return NS_ERROR_FAILURE;
 
   nsAutoString lang;
-  if (RemoteAccessible* proxy = IntlGeneric()->AsRemote()) {
-    proxy->Language(lang);
-  } else {
-    Intl()->Language(lang);
-  }
+  IntlGeneric()->Language(lang);
 
   aLanguage.Assign(lang);
   return NS_OK;
@@ -762,6 +758,20 @@ xpcAccessible::Announce(const nsAString& aAnnouncement, uint16_t aPriority) {
 #endif
   } else {
     Intl()->Announce(aAnnouncement, aPriority);
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+xpcAccessible::GetComputedARIARole(nsAString& aRole) {
+  if (!IntlGeneric()) {
+    return NS_ERROR_FAILURE;
+  }
+
+  nsStaticAtom* ariaRole = IntlGeneric()->ComputedARIARole();
+  if (ariaRole) {
+    ariaRole->ToString(aRole);
   }
 
   return NS_OK;

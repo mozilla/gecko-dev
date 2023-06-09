@@ -8,6 +8,7 @@
 
 #include "mozilla/dom/Document.h"
 #include "mozilla/StaticPrefs_browser.h"
+#include "mozilla/dom/JSValidatorParent.h"
 #include "ErrorList.h"
 #include "nsContentUtils.h"
 #include "nsHttpResponseHead.h"
@@ -117,7 +118,7 @@ OpaqueResponseBlockedReason GetOpaqueResponseBlockedReason(
 }
 
 OpaqueResponseBlockedReason GetOpaqueResponseBlockedReason(
-    const nsHttpResponseHead& aResponseHead) {
+    nsHttpResponseHead& aResponseHead) {
   nsAutoCString contentType;
   aResponseHead.ContentType(contentType);
 
@@ -191,26 +192,6 @@ bool IsFirstPartialResponse(nsHttpResponseHead& aResponseHead) {
   return responseFirstBytePos == 0;
 }
 
-void LogORBError(nsILoadInfo* aLoadInfo, nsIURI* aURI) {
-  RefPtr<dom::Document> doc;
-  aLoadInfo->GetLoadingDocument(getter_AddRefs(doc));
-
-  nsAutoCString uri;
-  nsresult rv = nsContentUtils::AnonymizeURI(aURI, uri);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return;
-  }
-
-  AutoTArray<nsString, 1> params;
-  CopyUTF8toUTF16(uri, *params.AppendElement());
-
-  MOZ_LOG(gORBLog, LogLevel::Debug,
-          ("%s: Resource blocked: %s ", __func__, uri.get()));
-  nsContentUtils::ReportToConsole(nsIScriptError::warningFlag, "ORB"_ns, doc,
-                                  nsContentUtils::eNECKO_PROPERTIES,
-                                  "ResourceBlockedCORS", params);
-}
-
 OpaqueResponseBlocker::OpaqueResponseBlocker(nsIStreamListener* aNext,
                                              HttpBaseChannel* aChannel,
                                              const nsCString& aContentType,
@@ -269,9 +250,13 @@ OpaqueResponseBlocker::OnStopRequest(nsIRequest* aRequest,
   }
 
   if (mState == State::Sniffing) {
+    // It is the call to JSValidatorParent::OnStopRequest that will trigger the
+    // JS parser.
+    mStartOfJavaScriptValidation = TimeStamp::Now();
+
     MOZ_ASSERT(mJSValidator);
     mPendingOnStopRequestStatus = Some(aStatusCode);
-    mJSValidator->OnStopRequest(aStatusCode);
+    mJSValidator->OnStopRequest(aStatusCode, *aRequest);
     return NS_OK;
   }
 
@@ -348,7 +333,7 @@ nsresult OpaqueResponseBlocker::EnsureOpaqueResponseIsAllowedAfterSniff(
     case OpaqueResponse::Block:
       BlockResponse(httpBaseChannel, NS_ERROR_FAILURE);
       return NS_ERROR_FAILURE;
-    case OpaqueResponse::Alllow:
+    case OpaqueResponse::Allow:
       AllowResponse();
       return NS_OK;
     case OpaqueResponse::Sniff:
@@ -358,6 +343,46 @@ nsresult OpaqueResponseBlocker::EnsureOpaqueResponseIsAllowedAfterSniff(
 
   MOZ_ASSERT(mState == State::Sniffing);
   return ValidateJavaScript(httpBaseChannel, uri, loadInfo);
+}
+
+static void RecordTelemetry(const TimeStamp& aStartOfValidation,
+                            const TimeStamp& aStartOfJavaScriptValidation,
+                            OpaqueResponseBlocker::ValidatorResult aResult) {
+  using ValidatorResult = OpaqueResponseBlocker::ValidatorResult;
+  MOZ_DIAGNOSTIC_ASSERT(aStartOfValidation);
+
+  auto key = [aResult]() {
+    switch (aResult) {
+      case ValidatorResult::JavaScript:
+        return "javascript"_ns;
+      case ValidatorResult::JSON:
+        return "json"_ns;
+      case ValidatorResult::Other:
+        return "other"_ns;
+      case ValidatorResult::Failure:
+        return "failure"_ns;
+    }
+    MOZ_ASSERT_UNREACHABLE("Switch statement should be saturated");
+    return "failure"_ns;
+  }();
+
+  TimeStamp now = TimeStamp::Now();
+  PROFILER_MARKER_TEXT(
+      "ORB safelist check", NETWORK,
+      MarkerTiming::Interval(aStartOfValidation, aStartOfJavaScriptValidation),
+      nsPrintfCString("Receive data for validation (%s)", key.get()));
+
+  PROFILER_MARKER_TEXT(
+      "ORB safelist check", NETWORK,
+      MarkerTiming::Interval(aStartOfJavaScriptValidation, now),
+      nsPrintfCString("JS Validation (%s)", key.get()));
+
+  Telemetry::AccumulateTimeDelta(Telemetry::ORB_RECEIVE_DATA_FOR_VALIDATION_MS,
+                                 key, aStartOfValidation,
+                                 aStartOfJavaScriptValidation);
+
+  Telemetry::AccumulateTimeDelta(Telemetry::ORB_JAVASCRIPT_VALIDATION_MS, key,
+                                 aStartOfJavaScriptValidation, now);
 }
 
 // The specification for ORB is currently being written:
@@ -387,27 +412,35 @@ nsresult OpaqueResponseBlocker::ValidateJavaScript(HttpBaseChannel* aChannel,
     return rv;
   }
 
+  Telemetry::ScalarAdd(
+      Telemetry::ScalarID::OPAQUE_RESPONSE_BLOCKING_JAVASCRIPT_VALIDATION_COUNT,
+      1);
+
   LOGORB("Send %s to the validator", aURI->GetSpecOrDefault().get());
   // https://whatpr.org/fetch/1442.html#orb-algorithm, step 15
   mJSValidator = dom::JSValidatorParent::Create();
   mJSValidator->IsOpaqueResponseAllowed(
       [self = RefPtr{this}, channel = nsCOMPtr{aChannel}, uri = nsCOMPtr{aURI},
-       loadInfo = nsCOMPtr{aLoadInfo}](bool aAllowed,
-                                       Maybe<ipc::Shmem> aSharedData) {
+       loadInfo = nsCOMPtr{aLoadInfo}, startOfValidation = TimeStamp::Now()](
+          Maybe<ipc::Shmem> aSharedData, ValidatorResult aResult) {
         MOZ_LOG(gORBLog, LogLevel::Debug,
                 ("JSValidator resolved for %s with %s",
                  uri->GetSpecOrDefault().get(),
                  aSharedData.isSome() ? "true" : "false"));
-        if (aAllowed) {
+        bool allowed = aResult == ValidatorResult::JavaScript;
+        if (allowed) {
           self->AllowResponse();
         } else {
           self->BlockResponse(channel, NS_ERROR_FAILURE);
-          LogORBError(loadInfo, uri);
+          channel->LogORBError(u"Javascript validation failed"_ns);
         }
-        self->ResolveAndProcessData(channel, aAllowed, aSharedData);
+        self->ResolveAndProcessData(channel, allowed, aSharedData);
         if (aSharedData.isSome()) {
           self->mJSValidator->DeallocShmem(aSharedData.ref());
         }
+
+        RecordTelemetry(startOfValidation, self->mStartOfJavaScriptValidation,
+                        aResult);
 
         Unused << dom::PJSValidatorParent::Send__delete__(self->mJSValidator);
         self->mJSValidator = nullptr;
@@ -427,11 +460,11 @@ void OpaqueResponseBlocker::AllowResponse() {
 }
 
 void OpaqueResponseBlocker::BlockResponse(HttpBaseChannel* aChannel,
-                                          nsresult aReason) {
+                                          nsresult aStatus) {
   LOGORB("Sniffer is done, block response, this=%p", this);
   MOZ_ASSERT(mState == State::Sniffing);
   mState = State::Blocked;
-  mStatus = aReason;
+  mStatus = aStatus;
   aChannel->SetChannelBlockedByOpaqueResponse();
   aChannel->CancelWithReason(mStatus,
                              "OpaqueResponseBlocker::BlockResponse"_ns);

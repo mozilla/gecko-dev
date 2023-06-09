@@ -78,14 +78,6 @@ using mozilla::FilePreferences::kPathSeparator;
 #  define DRIVE_REMOTE 4
 #endif
 
-// MinGW does not know about this error, ensure we do.
-#ifndef ERROR_DEVICE_HARDWARE_ERROR
-#  define ERROR_DEVICE_HARDWARE_ERROR 483L
-#endif
-#ifndef ERROR_CONTENT_BLOCKED
-#  define ERROR_CONTENT_BLOCKED 1296L
-#endif
-
 namespace {
 
 nsresult NewLocalFile(const nsAString& aPath, bool aUseDOSDevicePathSyntax,
@@ -191,7 +183,7 @@ nsresult nsLocalFile::RevealFile(const nsString& aResolvedPath) {
 }
 
 // static
-void nsLocalFile::CheckForReservedFileName(nsString& aFileName) {
+bool nsLocalFile::CheckForReservedFileName(const nsString& aFileName) {
   static const nsLiteralString forbiddenNames[] = {
       u"COM1"_ns, u"COM2"_ns, u"COM3"_ns, u"COM4"_ns, u"COM5"_ns,  u"COM6"_ns,
       u"COM7"_ns, u"COM8"_ns, u"COM9"_ns, u"LPT1"_ns, u"LPT2"_ns,  u"LPT3"_ns,
@@ -204,10 +196,12 @@ void nsLocalFile::CheckForReservedFileName(nsString& aFileName) {
       // invalid name is either the entire string, or a prefix with a period
       if (aFileName.Length() == forbiddenName.Length() ||
           aFileName.CharAt(forbiddenName.Length()) == char16_t('.')) {
-        aFileName.Truncate();
+        return true;
       }
     }
   }
+
+  return false;
 }
 
 class nsDriveEnumerator : public nsSimpleEnumerator,
@@ -1864,13 +1858,27 @@ nsresult nsLocalFile::CopySingleFile(nsIFile* aSourceFile, nsIFile* aDestParent,
     ::GetNamedSecurityInfoW((LPWSTR)destPath.get(), SE_FILE_OBJECT,
                             DACL_SECURITY_INFORMATION, nullptr, nullptr,
                             &pOldDACL, nullptr, &pSD);
-    if (pOldDACL)
-      ::SetNamedSecurityInfoW(
-          (LPWSTR)destPath.get(), SE_FILE_OBJECT,
-          DACL_SECURITY_INFORMATION | UNPROTECTED_DACL_SECURITY_INFORMATION,
-          nullptr, nullptr, pOldDACL, nullptr);
-    if (pSD) {
-      LocalFree((HLOCAL)pSD);
+    UniquePtr<VOID, LocalFreeDeleter> autoFreeSecDesc(pSD);
+    if (pOldDACL) {
+      // Test the current DACL, if we find one that is inherited then we can
+      // skip the reset. This avoids a request for SeTcbPrivilege, which can
+      // cause a lot of audit events if enabled (Bug 1816694).
+      bool inherited = false;
+      for (DWORD i = 0; i < pOldDACL->AceCount; ++i) {
+        VOID* pAce = nullptr;
+        if (::GetAce(pOldDACL, i, &pAce) &&
+            static_cast<PACE_HEADER>(pAce)->AceFlags & INHERITED_ACE) {
+          inherited = true;
+          break;
+        }
+      }
+
+      if (!inherited) {
+        ::SetNamedSecurityInfoW(
+            (LPWSTR)destPath.get(), SE_FILE_OBJECT,
+            DACL_SECURITY_INFORMATION | UNPROTECTED_DACL_SECURITY_INFORMATION,
+            nullptr, nullptr, pOldDACL, nullptr);
+      }
     }
   }
 
@@ -2287,7 +2295,7 @@ nsLocalFile::Load(PRLibrary** aResult) {
 }
 
 NS_IMETHODIMP
-nsLocalFile::Remove(bool aRecursive) {
+nsLocalFile::Remove(bool aRecursive, uint32_t* aRemoveCount) {
   // NOTE:
   //
   // if the working path points to a shortcut, then we will only
@@ -2340,9 +2348,11 @@ nsLocalFile::Remove(bool aRecursive) {
         return rv;
       }
 
+      // XXX: We are ignoring the result of the removal here while
+      // nsLocalFileUnix does not. We should align the behavior. (bug 1779696)
       nsCOMPtr<nsIFile> file;
       while (NS_SUCCEEDED(dirEnum->GetNextFile(getter_AddRefs(file))) && file) {
-        file->Remove(aRecursive);
+        file->Remove(aRecursive, aRemoveCount);
       }
     }
     if (RemoveDirectoryW(mWorkingPath.get()) == 0) {
@@ -2352,6 +2362,10 @@ nsLocalFile::Remove(bool aRecursive) {
     if (DeleteFileW(mWorkingPath.get()) == 0) {
       return ConvertWinError(GetLastError());
     }
+  }
+
+  if (aRemoveCount) {
+    *aRemoveCount += 1;
   }
 
   MakeDirty();

@@ -376,12 +376,7 @@ ifeq ($(MOZ_WIDGET_TOOLKIT),windows)
 resfile = $(notdir $1).res
 # We also build .res files for simple programs if a corresponding manifest
 # exists. We'll generate a .rc file that includes the manifest.
-ifdef GNU_CC
-# Skip on mingw builds because of bug 1657863
-resfile_for_manifest =
-else
 resfile_for_manifest = $(if $(wildcard $(srcdir)/$(notdir $1).manifest),$(call resfile,$1))
-endif
 else
 resfile =
 resfile_for_manifest =
@@ -414,7 +409,7 @@ alltags:
 	find $(topsrcdir) -name dist -prune -o \( -name '*.[hc]' -o -name '*.cp' -o -name '*.cpp' -o -name '*.idl' \) -print | $(TAG_PROGRAM)
 
 define EXPAND_CC_OR_CXX
-$(if $(PROG_IS_C_ONLY_$(1)),$(CC),$(CCC))
+$(if $(PROG_IS_C_ONLY_$(notdir $(1))),$(CC),$(CCC))
 endef
 
 #
@@ -504,10 +499,10 @@ $(LIBRARY): $(OBJS) $(STATIC_LIBS) $(EXTRA_DEPS) $(GLOBAL_DEPS)
 $(WASM_ARCHIVE): $(CWASMOBJS) $(CPPWASMOBJS) $(STATIC_LIBS) $(EXTRA_DEPS) $(GLOBAL_DEPS)
 	$(REPORT_BUILD_VERBOSE)
 	$(RM) $(WASM_ARCHIVE)
-	$(WASM_CXX) -o $@ -Wl,--export-all -Wl,--stack-first -Wl,-z,stack-size=$(if $(MOZ_OPTIMIZE),262144,1048576) -Wl,--no-entry -Wl,--growable-table $(CWASMOBJS) $(CPPWASMOBJS) -lwasi-emulated-process-clocks
+	$(WASM_CXX) -o $@ -Wl,--export-all -Wl,--stack-first -Wl,-z,stack-size=$(if $(MOZ_OPTIMIZE),262144,1048576) -Wl,--no-entry -Wl,--growable-table -Wl,--import-memory -Wl,--import-table $(CWASMOBJS) $(CPPWASMOBJS) -lwasi-emulated-process-clocks
 
 $(addsuffix .c,$(WASM_ARCHIVE)): $(WASM_ARCHIVE) $(DIST)/host/bin/wasm2c$(HOST_BIN_SUFFIX)
-	$(DIST)/host/bin/wasm2c$(HOST_BIN_SUFFIX) -o $@ $<
+	$(DIST)/host/bin/wasm2c$(HOST_BIN_SUFFIX) -o $@ --disable-simd $<
 
 ifeq ($(OS_ARCH),WINNT)
 # Import libraries are created by the rules creating shared libraries.

@@ -29,7 +29,7 @@
  *   the server to match the merged tree.
  *
  * - `BookmarkObserverRecorder` records all changes made to Places during the
- *   merge, then dispatches `nsINavBookmarkObserver` notifications. Places uses
+ *   merge, then dispatches `PlacesObservers` notifications. Places uses
  *   these notifications to update the UI and internal caches. We can't dispatch
  *   during the merge because observers won't see the changes until the merge
  *   transaction commits and the database is consistent again.
@@ -52,13 +52,10 @@ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  Async: "resource://services-common/async.sys.mjs",
   Log: "resource://gre/modules/Log.sys.mjs",
   PlacesSyncUtils: "resource://gre/modules/PlacesSyncUtils.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
-});
-
-XPCOMUtils.defineLazyModuleGetters(lazy, {
-  Async: "resource://services-common/async.js",
 });
 
 XPCOMUtils.defineLazyGetter(lazy, "MirrorLog", () =>
@@ -78,8 +75,6 @@ const DB_TITLE_LENGTH_MAX = 4096;
 // The current mirror database schema version. Bump for migrations, then add
 // migration code to `migrateMirrorSchema`.
 const MIRROR_SCHEMA_VERSION = 8;
-
-const DEFAULT_MAX_FRECENCIES_TO_RECALCULATE = 400;
 
 // Use a shared jankYielder in these functions
 XPCOMUtils.defineLazyGetter(lazy, "yieldState", () => lazy.Async.yieldState());
@@ -539,13 +534,6 @@ export class SyncedBookmarksMirror {
    *         The current local time, in seconds.
    * @param  {Number} [options.remoteTimeSeconds]
    *         The current server time, in seconds.
-   * @param  {Number} [options.maxFrecenciesToRecalculate]
-   *         The maximum number of bookmark URL frecencies to recalculate after
-   *         this merge. Frecency calculation blocks other Places writes, so we
-   *         limit the number of URLs we process at once. We'll process either
-   *         the next set of URLs after the next merge, or all remaining URLs
-   *         when Places automatically fixes invalid frecencies on idle;
-   *         whichever comes first.
    * @param  {Boolean} [options.notifyInStableOrder]
    *         If `true`, fire observer notifications for items in the same folder
    *         in a stable order. This is disabled by default, to avoid the cost
@@ -563,7 +551,6 @@ export class SyncedBookmarksMirror {
   async apply({
     localTimeSeconds,
     remoteTimeSeconds,
-    maxFrecenciesToRecalculate,
     notifyInStableOrder,
     signal = null,
   } = {}) {
@@ -583,7 +570,6 @@ export class SyncedBookmarksMirror {
         finalizeOrInterruptSignal,
         localTimeSeconds,
         remoteTimeSeconds,
-        maxFrecenciesToRecalculate,
         notifyInStableOrder
       );
     } finally {
@@ -597,7 +583,6 @@ export class SyncedBookmarksMirror {
     signal,
     localTimeSeconds,
     remoteTimeSeconds,
-    maxFrecenciesToRecalculate = DEFAULT_MAX_FRECENCIES_TO_RECALCULATE,
     notifyInStableOrder = false
   ) {
     let wasMerged = await withTiming("Merging bookmarks in Rust", () =>
@@ -606,7 +591,6 @@ export class SyncedBookmarksMirror {
 
     if (!wasMerged) {
       lazy.MirrorLog.debug("No changes detected in both mirror and Places");
-      await updateFrecencies(this.db, maxFrecenciesToRecalculate);
       return {};
     }
 
@@ -614,7 +598,6 @@ export class SyncedBookmarksMirror {
     // inflate records for outgoing items.
 
     let observersToNotify = new BookmarkObserverRecorder(this.db, {
-      maxFrecenciesToRecalculate,
       signal,
       notifyInStableOrder,
     });
@@ -1927,7 +1910,8 @@ async function initializeTempMirrorEntities(db) {
     /* We record the original level of the removed item in the tree so that we
        can notify children before parents. */
     level INTEGER NOT NULL DEFAULT -1,
-    isUntagging BOOLEAN NOT NULL DEFAULT 0
+    isUntagging BOOLEAN NOT NULL DEFAULT 0,
+    keywordRemoved BOOLEAN NOT NULL DEFAULT 0
   )`);
 
   await db.execute(
@@ -2069,9 +2053,8 @@ async function withTiming(name, func, recordTiming) {
  * the merge.
  */
 class BookmarkObserverRecorder {
-  constructor(db, { maxFrecenciesToRecalculate, notifyInStableOrder, signal }) {
+  constructor(db, { notifyInStableOrder, signal }) {
     this.db = db;
-    this.maxFrecenciesToRecalculate = maxFrecenciesToRecalculate;
     this.notifyInStableOrder = notifyInStableOrder;
     this.signal = signal;
     this.placesEvents = [];
@@ -2094,7 +2077,6 @@ class BookmarkObserverRecorder {
         "Interrupted before recalculating frecencies for new URLs"
       );
     }
-    await updateFrecencies(this.db, this.maxFrecenciesToRecalculate);
   }
 
   orderBy(level, parent, position) {
@@ -2114,7 +2096,7 @@ class BookmarkObserverRecorder {
     await this.db.execute(
       `SELECT v.itemId AS id, v.parentId, v.parentGuid, v.position, v.type,
               (SELECT h.url FROM moz_places h WHERE h.id = v.placeId) AS url,
-              v.title, v.guid, v.isUntagging
+              v.title, v.guid, v.isUntagging, v.keywordRemoved
        FROM itemsRemoved v
        ${this.orderBy("v.level", "v.parentId", "v.position")}`,
       null,
@@ -2135,6 +2117,9 @@ class BookmarkObserverRecorder {
           isUntagging: row.getResultByName("isUntagging"),
         };
         this.noteItemRemoved(info);
+        if (row.getResultByName("keywordRemoved")) {
+          this.shouldInvalidateKeywords = true;
+        }
       }
     );
     if (this.signal.aborted) {
@@ -2441,22 +2426,6 @@ class BookmarkChangeRecord {
     this.cleartext = cleartext;
     this.synced = false;
   }
-}
-
-async function updateFrecencies(db, limit) {
-  lazy.MirrorLog.trace("Recalculating frecencies for new URLs");
-  await db.execute(
-    `
-    UPDATE moz_places SET
-      frecency = CALCULATE_FRECENCY(id)
-    WHERE id IN (
-      SELECT id FROM moz_places
-      WHERE recalc_frecency = 1
-      ORDER BY frecency DESC
-      LIMIT :limit
-    )`,
-    { limit }
-  );
 }
 
 function bagToNamedCounts(bag, names) {

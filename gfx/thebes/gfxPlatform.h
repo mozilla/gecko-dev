@@ -490,6 +490,8 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
       mozilla::StyleFontFaceSourceFormatKeyword aFormatHint,
       mozilla::StyleFontFaceSourceTechFlags aTechFlags);
 
+  bool IsKnownIconFontFamily(const nsAtom* aFamilyName) const;
+
   virtual bool DidRenderingDeviceReset(
       DeviceResetReason* aResetReason = nullptr) {
     return false;
@@ -751,7 +753,9 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
    * Returns a buffer containing the CMS output profile data. The way this
    * is obtained is platform-specific.
    */
-  virtual nsTArray<uint8_t> GetPlatformCMSOutputProfileData();
+  virtual nsTArray<uint8_t> GetPlatformCMSOutputProfileData() {
+    return GetPrefCMSOutputProfileData();
+  }
 
   /**
    * Return information on how child processes should initialize graphics
@@ -863,13 +867,15 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
   virtual void ImportContentDeviceData(
       const mozilla::gfx::ContentDeviceData& aData);
 
+ public:
   /**
    * Returns the contents of the file pointed to by the
    * gfx.color_management.display_profile pref, if set.
    * Returns an empty array if not set, or if an error occurs
    */
-  nsTArray<uint8_t> GetPrefCMSOutputProfileData();
+  static nsTArray<uint8_t> GetPrefCMSOutputProfileData();
 
+ protected:
   /**
    * If inside a child process and currently being initialized by the
    * SetXPCOMProcessAttributes message, this can be used by subclasses to

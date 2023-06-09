@@ -51,12 +51,12 @@ where
         }
         self.name.to_css(dest)?;
         if self.is_reversed {
-            dest.write_str(")")?;
+            dest.write_char(')')?;
             if self.value == i32::min_value() {
                 return Ok(());
             }
         }
-        dest.write_str(" ")?;
+        dest.write_char(' ')?;
         self.value.to_css(dest)
     }
 }
@@ -238,7 +238,7 @@ impl<Image> Content<Image> {
 
 /// Items for the `content` property.
 #[derive(
-    Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToResolvedValue, ToShmem,
+    Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, SpecifiedValueInfo, ToCss, ToResolvedValue, ToShmem,
 )]
 #[repr(u8)]
 pub enum GenericContentItem<I> {

@@ -4,8 +4,8 @@
                  type="text/css"?>
 <window onload="runTests()"
         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
-  <iframe height="200" width="600" type="content"></iframe>
-  <iframe height="200" width="600" type="content"></iframe>
+  <iframe style="min-height: 200px; min-width: 600px" type="content"></iframe>
+  <iframe style="min-height: 200px; min-width: 600px" type="content"></iframe>
 <script type="application/javascript">
 <![CDATA[
 // Note: We can't use window.frames directly here because the type="content"
@@ -86,9 +86,8 @@ function printpreview(options = {}) {
     let bc = frameElts[0].contentWindow.browsingContext;
     let browser = document.createXULElement("browser");
     browser.setAttribute("type", "content");
-    browser.setAttribute("width", "800");
-    browser.setAttribute("height", "800");
-    browser.style.maxWidth = "800px"; // Deal with XUL silliness.
+    browser.style.minHeight = "800px";
+    browser.style.maxWidth = browser.style.minWidth = "800px";
     browser.setAttribute("initialBrowsingContextGroupId", bc.group.id);
     browser.setAttribute("nodefaultsrc", "true");
     document.documentElement.appendChild(browser);
@@ -1689,6 +1688,26 @@ async function runTest55() {
 
 async function runTest56() {
   await compareFiles("printpreview_image_select.html", "printpreview_image_select_ref.html");
+  requestAnimationFrame(() => setTimeout(runTest57));
+}
+
+// Tests that printing with mixed page sizes doesn't crash.
+// These tests can't actually compare any pages after the first, so this only
+// verifies that we don't crash reflowing.
+async function runTest57() {
+  let test = "printpreview_mixed_page_size_001.html";
+  // The params are just to give the file unique URLs.
+  await compareFiles(test + "?test", test + "?ref");
+  requestAnimationFrame(() => setTimeout(runTest58));
+}
+
+// As with runTest57, this is only testing for crashes.
+// This includes fixed-position content, as this is the only way to get content
+// within the same chain of continuations onto pages with different sizes.
+async function runTest58() {
+  let test = "printpreview_mixed_page_size_002.html";
+  // The params are just to give the file unique URLs.
+  await compareFiles(test + "?test", test + "?ref");
   finish();
 }
 

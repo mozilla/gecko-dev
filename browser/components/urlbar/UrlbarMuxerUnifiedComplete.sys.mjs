@@ -22,6 +22,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "resource:///modules/UrlbarProviderQuickSuggest.sys.mjs",
   UrlbarProviderTabToSearch:
     "resource:///modules/UrlbarProviderTabToSearch.sys.mjs",
+  UrlbarProviderWeather: "resource:///modules/UrlbarProviderWeather.sys.mjs",
   UrlbarSearchUtils: "resource:///modules/UrlbarSearchUtils.sys.mjs",
 });
 
@@ -47,8 +48,10 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
    *
    * @param {UrlbarQueryContext} context
    *   The query context.
+   * @param {Array} unsortedResults
+   *   The array of UrlbarResult that is not sorted yet.
    */
-  sort(context) {
+  sort(context, unsortedResults) {
     // This method is called multiple times per keystroke, so it should be as
     // fast and efficient as possible.  We do two passes through the results:
     // one to collect state for the second pass, and then a second to build the
@@ -75,7 +78,7 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
       urlToTabResultType: new Map(),
       addedRemoteTabUrls: new Set(),
       addedSwitchTabUrls: new Set(),
-      canShowPrivateSearch: context.results.length > 1,
+      canShowPrivateSearch: unsortedResults.length > 1,
       canShowTailSuggestions: true,
       // Form history and remote suggestions added so far.  Used for deduping
       // suggestions.  Also includes the heuristic query string if the heuristic
@@ -89,7 +92,7 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
     };
 
     // Do the first pass over all results to build some state.
-    for (let result of context.results) {
+    for (let result of unsortedResults) {
       // Add each result to the appropriate `resultsByGroup` map.
       let group = UrlbarUtils.getResultGroup(result);
       let resultsByGroup =
@@ -135,8 +138,8 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
     // an engine, show search suggestions first.
     let rootGroup = context.searchMode?.engineName
       ? lazy.UrlbarPrefs.makeResultGroups({ showSearchSuggestionsFirst: true })
-      : lazy.UrlbarPrefs.get("resultGroups");
-    lazy.logger.debug(`Groups: ${rootGroup}`);
+      : lazy.UrlbarPrefs.resultGroups;
+    lazy.logger.debug(`Groups: ${JSON.stringify(rootGroup)}`);
 
     // Fill the root group.
     let [sortedResults] = this._fillGroup(
@@ -248,14 +251,21 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
       if (suggestedIndexResults) {
         // Subtract them from the group's limits so there will be room for them
         // later. Create a new `limits` object so we don't modify the caller's.
-        let span = suggestedIndexResults.reduce((sum, result) => {
-          sum += UrlbarUtils.getSpanForResult(result);
-          return sum;
-        }, 0);
+        let [span, resultCount] = suggestedIndexResults.reduce(
+          ([sum, count], result) => {
+            const spanSize = UrlbarUtils.getSpanForResult(result);
+            sum += spanSize;
+            if (spanSize) {
+              count++;
+            }
+            return [sum, count];
+          },
+          [0, 0]
+        );
         limits = { ...limits };
         limits.availableSpan = Math.max(limits.availableSpan - span, 0);
         limits.maxResultCount = Math.max(
-          limits.maxResultCount - suggestedIndexResults.length,
+          limits.maxResultCount - resultCount,
           0
         );
       }
@@ -607,9 +617,12 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
           // added to later groups.
           break;
         }
+
         addedResults.push(result);
         usedLimits.availableSpan = newUsedSpan;
-        usedLimits.maxResultCount++;
+        if (span) {
+          usedLimits.maxResultCount++;
+        }
         state.usedResultSpan += span;
         this._updateStatePostAdd(result, state);
       }
@@ -639,14 +652,18 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
   // error or increase the complexity threshold.
   // eslint-disable-next-line complexity
   _canAddResult(result, state) {
-    // QuickSuggest results are shown unless they are best matches
-    // that duplicate heuristic results.
+    // QuickSuggest results are shown unless a weather result is also present
+    // or they are navigational suggestions that duplicate the heuristic.
     if (result.providerName == lazy.UrlbarProviderQuickSuggest.name) {
+      if (state.weatherResult) {
+        return false;
+      }
+
       let heuristicUrl = state.context.heuristicResult?.payload.url;
       if (
         heuristicUrl &&
-        !lazy.UrlbarPrefs.get("experimental.hideHeuristic") &&
-        result.isBestMatch
+        result.payload.telemetryType == "top_picks" &&
+        !lazy.UrlbarPrefs.get("experimental.hideHeuristic")
       ) {
         let opts = {
           stripHttp: true,
@@ -654,10 +671,10 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
           stripWww: true,
           trimSlash: true,
         };
-        return (
-          UrlbarUtils.stripPrefixAndTrim(heuristicUrl, opts)[0] !=
-          UrlbarUtils.stripPrefixAndTrim(result.payload.url, opts)[0]
-        );
+        result.payload.dupedHeuristic =
+          UrlbarUtils.stripPrefixAndTrim(heuristicUrl, opts)[0] ==
+          UrlbarUtils.stripPrefixAndTrim(result.payload.url, opts)[0];
+        return !result.payload.dupedHeuristic;
       }
       return true;
     }
@@ -967,6 +984,12 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
    *   Global state that we use to make decisions during this sort.
    */
   _updateStatePreAdd(result, state) {
+    // check if this result should trigger an exposure
+    // if so mark the result properties and skip the rest of the state setting.
+    if (this._checkAndSetExposureProperties(result)) {
+      return;
+    }
+
     // Keep track of the largest heuristic result span.
     if (result.heuristic && this._canAddResult(result, state)) {
       state.maxHeuristicResultSpan = Math.max(
@@ -1065,6 +1088,10 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
       state.quickSuggestResult = result;
     }
 
+    if (result.providerName == lazy.UrlbarProviderWeather.name) {
+      state.weatherResult = result;
+    }
+
     state.hasUnitConversionResult =
       state.hasUnitConversionResult || result.providerName == "UnitConversion";
   }
@@ -1080,6 +1107,11 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
    *   Global state that we use to make decisions during this sort.
    */
   _updateStatePostAdd(result, state) {
+    // bail early if the result will be hidden from the final view.
+    if (result.exposureResultHidden) {
+      return;
+    }
+
     // Update heuristic state.
     if (result.heuristic) {
       state.context.heuristicResult = result;
@@ -1249,14 +1281,49 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
           prevResult = result;
           prevIndex = index;
           sortedResults.splice(index, 0, result);
-          usedLimits.availableSpan += UrlbarUtils.getSpanForResult(result);
-          usedLimits.maxResultCount++;
+
+          // Adjust the limits based on span size.
+          const resultSpan = UrlbarUtils.getSpanForResult(result);
+          usedLimits.availableSpan += resultSpan;
+          if (resultSpan) {
+            usedLimits.maxResultCount++;
+          }
           this._updateStatePostAdd(result, state);
         }
       }
     }
 
     return usedLimits;
+  }
+
+  /**
+   * Checks exposure eligibility and visibility for the given result.
+   * If the result passes the exposure check, we set two properties
+   * on the UrlbarResult: `result.exposureResultType` a string containing
+   * the results of `UrlbarUtils.searchEngagementTelemetryType` and
+   * `result.exposureResultHidden` a boolean which indicates whether the
+   * result should be hidden from the view.
+   *
+   *
+   * @param {UrlbarResult} result
+   *   The result.
+   * @returns {boolean}
+   *   A boolean indicating if this is a hidden exposure result.
+   */
+  _checkAndSetExposureProperties(result) {
+    const exposureResultsPref = lazy.UrlbarPrefs.get("exposureResults");
+    const exposureResults = exposureResultsPref?.split(",");
+    if (exposureResults) {
+      const telemetryType = UrlbarUtils.searchEngagementTelemetryType(result);
+      if (exposureResults.includes(telemetryType)) {
+        result.exposureResultType = telemetryType;
+        result.exposureResultHidden = !lazy.UrlbarPrefs.get(
+          "showExposureResults"
+        );
+      }
+    }
+
+    return result.exposureResultHidden;
   }
 }
 

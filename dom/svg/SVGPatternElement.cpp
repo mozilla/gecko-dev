@@ -113,27 +113,6 @@ already_AddRefed<DOMSVGAnimatedString> SVGPatternElement::Href() {
 }
 
 //----------------------------------------------------------------------
-// nsIContent methods
-
-NS_IMETHODIMP_(bool)
-SVGPatternElement::IsAttributeMapped(const nsAtom* name) const {
-  static const MappedAttributeEntry* const map[] = {sColorMap,
-                                                    sFEFloodMap,
-                                                    sFillStrokeMap,
-                                                    sFiltersMap,
-                                                    sFontSpecificationMap,
-                                                    sGradientStopMap,
-                                                    sGraphicsMap,
-                                                    sLightingEffectsMap,
-                                                    sMarkersMap,
-                                                    sTextContentElementsMap,
-                                                    sViewportsMap};
-
-  return FindAttributeDependence(name, map) ||
-         SVGPatternElementBase::IsAttributeMapped(name);
-}
-
-//----------------------------------------------------------------------
 // SVGElement methods
 
 SVGAnimatedTransformList* SVGPatternElement::GetAnimatedTransformList(

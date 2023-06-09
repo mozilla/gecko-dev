@@ -14,9 +14,11 @@
 #include <type_traits>
 #include "gfxContext.h"
 #include "mozilla/AutoRestore.h"
+#include "mozilla/Baseline.h"
 #include "mozilla/ComputedStyle.h"
 #include "mozilla/CSSAlignUtils.h"
 #include "mozilla/StaticPrefs_layout.h"
+#include "mozilla/dom/Grid.h"
 #include "mozilla/dom/GridBinding.h"
 #include "mozilla/IntegerRange.h"
 #include "mozilla/Maybe.h"
@@ -25,7 +27,6 @@
 #include "mozilla/PresShell.h"
 #include "nsAbsoluteContainingBlock.h"
 #include "nsAlgorithm.h"  // for clamped()
-#include "nsBoxLayoutState.h"
 #include "nsCSSAnonBoxes.h"
 #include "nsCSSFrameConstructor.h"
 #include "nsTHashMap.h"
@@ -303,10 +304,12 @@ struct nsGridContainerFrame::TrackSize {
 
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(TrackSize::StateBits)
 
-namespace mozilla {
-template <>
-struct IsPod<nsGridContainerFrame::TrackSize> : std::true_type {};
-}  // namespace mozilla
+static_assert(
+    std::is_trivially_copyable<nsGridContainerFrame::TrackSize>::value,
+    "Must be trivially copyable");
+static_assert(
+    std::is_trivially_destructible<nsGridContainerFrame::TrackSize>::value,
+    "Must be trivially destructible");
 
 TrackSize::StateBits nsGridContainerFrame::TrackSize::Initialize(
     nscoord aPercentageBasis, const StyleTrackSize& aSize) {
@@ -5344,31 +5347,9 @@ static nscoord ContentContribution(
       iMinSizeClamp = aMinSizeClamp;
     }
     LogicalSize availableSize(childWM, availISize, availBSize);
-    if (MOZ_UNLIKELY(child->IsXULBoxFrame())) {
-      auto* pc = child->PresContext();
-      // For XUL-in-CSS-Grid (e.g. in our frontend code), we defer to XUL's
-      // GetPrefSize() function (which reports an answer in both axes), instead
-      // of actually reflowing.  It's important to avoid the "measuring + final"
-      // two-pass reflow for XUL, because some XUL layout code may incorrectly
-      // optimize away the second reflow in cases where it's really needed.
-      // XXXdholbert We'll remove this special case in bug 1600542.
-      ReflowInput childRI(pc, *aState.mReflowInput, child, availableSize,
-                          Some(cbSize));
-
-      nsBoxLayoutState state(pc, &aState.mRenderingContext, &childRI,
-                             childRI.mReflowDepth);
-      nsSize physicalPrefSize = child->GetXULPrefSize(state);
-      auto prefSize = LogicalSize(childWM, physicalPrefSize);
-      size = prefSize.BSize(childWM);
-
-      // XXXdholbert This won't have percentage margins resolved.
-      // Hopefully we can just avoid those for XUL-content-in-css-grid?
-      size += childRI.ComputedLogicalMargin(childWM).BStartEnd(childWM);
-    } else {
-      size = ::MeasuringReflow(child, aState.mReflowInput, aRC, availableSize,
-                               cbSize, iMinSizeClamp, bMinSizeClamp);
-      size += child->GetLogicalUsedMargin(childWM).BStartEnd(childWM);
-    }
+    size = ::MeasuringReflow(child, aState.mReflowInput, aRC, availableSize,
+                             cbSize, iMinSizeClamp, bMinSizeClamp);
+    size += child->GetLogicalUsedMargin(childWM).BStartEnd(childWM);
     nscoord overflow = size - aMinSizeClamp;
     if (MOZ_UNLIKELY(overflow > 0)) {
       nscoord contentSize = child->ContentSize(childWM).BSize(childWM);
@@ -5816,9 +5797,9 @@ void nsGridContainerFrame::Tracks::InitializeItemBaselines(
       if (state & ItemState::eFirstBaseline) {
         if (grid) {
           if (isOrthogonal == isInlineAxis) {
-            grid->GetBBaseline(BaselineSharingGroup::First, &baseline);
+            baseline = grid->GetBBaseline(BaselineSharingGroup::First);
           } else {
-            grid->GetIBaseline(BaselineSharingGroup::First, &baseline);
+            baseline = grid->GetIBaseline(BaselineSharingGroup::First);
           }
         }
         if (grid || nsLayoutUtils::GetFirstLineBaseline(wm, child, &baseline)) {
@@ -5837,9 +5818,9 @@ void nsGridContainerFrame::Tracks::InitializeItemBaselines(
       } else {
         if (grid) {
           if (isOrthogonal == isInlineAxis) {
-            grid->GetBBaseline(BaselineSharingGroup::Last, &baseline);
+            baseline = grid->GetBBaseline(BaselineSharingGroup::Last);
           } else {
-            grid->GetIBaseline(BaselineSharingGroup::Last, &baseline);
+            baseline = grid->GetIBaseline(BaselineSharingGroup::Last);
           }
         }
         if (grid || nsLayoutUtils::GetLastLineBaseline(wm, child, &baseline)) {
@@ -5980,9 +5961,9 @@ void nsGridContainerFrame::Tracks::InitializeItemBaselinesInMasonryAxis(
       if (state & ItemState::eFirstBaseline) {
         if (grid) {
           if (isOrthogonal == isInlineAxis) {
-            grid->GetBBaseline(BaselineSharingGroup::First, &baseline);
+            baseline = grid->GetBBaseline(BaselineSharingGroup::First);
           } else {
-            grid->GetIBaseline(BaselineSharingGroup::First, &baseline);
+            baseline = grid->GetIBaseline(BaselineSharingGroup::First);
           }
         }
         if (grid || nsLayoutUtils::GetFirstLineBaseline(wm, child, &baseline)) {
@@ -6011,9 +5992,9 @@ void nsGridContainerFrame::Tracks::InitializeItemBaselinesInMasonryAxis(
       } else {
         if (grid) {
           if (isOrthogonal == isInlineAxis) {
-            grid->GetBBaseline(BaselineSharingGroup::Last, &baseline);
+            baseline = grid->GetBBaseline(BaselineSharingGroup::Last);
           } else {
-            grid->GetIBaseline(BaselineSharingGroup::Last, &baseline);
+            baseline = grid->GetIBaseline(BaselineSharingGroup::Last);
           }
         }
         if (grid || nsLayoutUtils::GetLastLineBaseline(wm, child, &baseline)) {
@@ -7176,7 +7157,7 @@ nsGridContainerFrame::GetNearestFragmentainer(
     const GridReflowInput& aState) const {
   Maybe<nsGridContainerFrame::Fragmentainer> data;
   const ReflowInput* gridRI = aState.mReflowInput;
-  if (gridRI->AvailableBSize() == NS_UNCONSTRAINEDSIZE && !GetPrevInFlow()) {
+  if (!gridRI->IsInFragmentedContext()) {
     return data;
   }
   WritingMode wm = aState.mWM;
@@ -8919,6 +8900,13 @@ void nsGridContainerFrame::Reflow(nsPresContext* aPresContext,
     // since this bit is only set by accessing a ChromeOnly property, and
     // therefore can't unduly slow down normal web browsing.
 
+    // Clear our GridFragmentInfo property, which might be holding a stale
+    // dom::Grid object built from previously-computed info. This will
+    // ensure that the next call to GetGridFragments will create a new one.
+    if (mozilla::dom::Grid* grid = TakeProperty(GridFragmentInfo())) {
+      grid->ForgetFrame();
+    }
+
     // Now that we know column and row sizes and positions, set
     // the ComputedGridTrackInfo and related properties
 
@@ -9577,11 +9565,14 @@ nscoord nsGridContainerFrame::SynthesizeBaseline(
     start = child->GetLogicalNormalPosition(aCBWM, aCBPhysicalSize).B(aCBWM);
     size = child->BSize(aCBWM);
     if (grid && aGridOrderItem.mIsInEdgeTrack) {
-      isOrthogonal ? grid->GetIBaseline(aGroup, &baseline)
-                   : grid->GetBBaseline(aGroup, &baseline);
+      baseline = isOrthogonal ? grid->GetIBaseline(aGroup)
+                              : grid->GetBBaseline(aGroup);
     } else if (!isOrthogonal && aGridOrderItem.mIsInEdgeTrack) {
-      baseline =
-          child->BaselineBOffset(childWM, aGroup, AlignmentContext::Grid);
+      baseline = child->GetNaturalBaselineBOffset(childWM, aGroup)
+                     .valueOrFrom([aGroup, child, childWM]() {
+                       return Baseline::SynthesizeBOffsetFromBorderBox(
+                           child, childWM, aGroup);
+                     });
     } else {
       baseline = ::SynthesizeBaselineFromBorderBox(aGroup, childWM, size);
     }
@@ -9589,8 +9580,8 @@ nscoord nsGridContainerFrame::SynthesizeBaseline(
     start = child->GetLogicalNormalPosition(aCBWM, aCBPhysicalSize).I(aCBWM);
     size = child->ISize(aCBWM);
     if (grid && aGridOrderItem.mIsInEdgeTrack) {
-      isOrthogonal ? grid->GetBBaseline(aGroup, &baseline)
-                   : grid->GetIBaseline(aGroup, &baseline);
+      baseline = isOrthogonal ? grid->GetBBaseline(aGroup)
+                              : grid->GetIBaseline(aGroup);
     } else if (isOrthogonal && aGridOrderItem.mIsInEdgeTrack &&
                GetBBaseline(aGroup, childWM, child, &baseline)) {
       if (aGroup == BaselineSharingGroup::Last) {

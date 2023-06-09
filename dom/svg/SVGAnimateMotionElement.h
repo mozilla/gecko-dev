@@ -30,13 +30,16 @@ class SVGAnimateMotionElement final : public SVGAnimationElement {
                      JS::Handle<JSObject*> aGivenProto) override;
 
  public:
+  NS_IMPL_FROMNODE_WITH_TAG(SVGAnimateMotionElement, kNameSpaceID_SVG,
+                            animateMotion)
+
   // nsINode specializations
   nsresult Clone(dom::NodeInfo*, nsINode** aResult) const override;
 
   // SVGAnimationElement
   SMILAnimationFunction& AnimationFunction() override;
-  virtual bool GetTargetAttributeName(int32_t* aNamespaceID,
-                                      nsAtom** aLocalName) const override;
+  bool GetTargetAttributeName(int32_t* aNamespaceID,
+                              nsAtom** aLocalName) const override;
 
   // SVGElement
   nsStaticAtom* GetPathDataAttrName() const override { return nsGkAtoms::path; }

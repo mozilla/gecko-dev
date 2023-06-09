@@ -90,24 +90,22 @@ form#print {
 }
 
 select {
-  min-height: auto;
   margin: 0;
-  padding: 0;
 }
 
 select:not([size], [multiple])[iconic] {
-  padding-inline-start: 28px;
+  padding-inline-start: calc(8px + 16px + 4px); /* spacing before image + image width + spacing after image */
+  background-size: auto 12px, 16px;
+  background-position: right 19px center, left 8px center;
+}
+
+select:not([size], [multiple])[iconic]:dir(rtl) {
+  background-position-x: left 19px, right 8px;
 }
 
 #printer-picker {
-  background-size: auto 12px, 16px;
   background-image: url("chrome://global/skin/icons/arrow-down-12.svg"), url("chrome://global/skin/icons/print.svg");
-  background-position: right 3px center, left 8px center;
   width: 100%;
-}
-
-#printer-picker:dir(rtl) {
-  background-position-x: left 3px, right 8px;
 }
 
 #printer-picker[output="pdf"] {
@@ -198,17 +196,6 @@ input[type="text"] {
   background-position-x: right;
 }
 
-#button-container {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-}
-
-#button-container > button {
-  flex: 1 1 auto;
-  margin: 0;
-}
-
 #custom-range {
   margin-top: 4px;
   margin-inline: 0;
@@ -287,6 +274,7 @@ input[type="number"].photon-number::-moz-number-spin-down {
   border-radius: 0;
   background-color: var(--in-content-button-background);
   background-image: url("chrome://global/skin/icons/arrow-down.svg");
+  background-repeat: no-repeat;
   background-size: 8px;
   background-position: center;
   -moz-context-properties: fill;

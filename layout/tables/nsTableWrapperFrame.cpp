@@ -26,35 +26,41 @@
 using namespace mozilla;
 using namespace mozilla::layout;
 
-nscoord nsTableWrapperFrame::GetFallbackLogicalBaseline(
-    mozilla::WritingMode aWritingMode) const {
+nscoord nsTableWrapperFrame::SynthesizeFallbackBaseline(
+    mozilla::WritingMode aWM, BaselineSharingGroup aBaselineGroup) const {
+  const auto marginBlockEnd = GetLogicalUsedMargin(aWM).BEnd(aWM);
+  if (aWM.IsCentralBaseline()) {
+    return (BSize(aWM) + marginBlockEnd) / 2;
+  }
   // Our fallback baseline is the block-end margin-edge, with respect to the
   // given writing mode.
-  return BSize(aWritingMode) +
-         GetLogicalUsedMargin(aWritingMode).BEnd(aWritingMode);
+  if (aBaselineGroup == BaselineSharingGroup::Last) {
+    return -marginBlockEnd;
+  }
+  return BSize(aWM) + marginBlockEnd;
 }
 
-/* virtual */
-nscoord nsTableWrapperFrame::GetLogicalBaseline(
-    WritingMode aWritingMode) const {
+Maybe<nscoord> nsTableWrapperFrame::GetNaturalBaselineBOffset(
+    WritingMode aWM, BaselineSharingGroup aBaselineGroup) const {
   // Baseline is determined by row
   // (https://drafts.csswg.org/css-align-3/#baseline-export). If the row
   // direction is going to be orthogonal to the parent's writing mode, the
   // resulting baseline wouldn't be valid, so we use the fallback baseline
   // instead.
   if (StyleDisplay()->IsContainLayout() ||
-      GetWritingMode().IsOrthogonalTo(aWritingMode)) {
-    return GetFallbackLogicalBaseline(aWritingMode);
+      GetWritingMode().IsOrthogonalTo(aWM)) {
+    return Nothing{};
   }
-
-  nsIFrame* kid = mFrames.FirstChild();
-  if (!kid) {
-    MOZ_ASSERT_UNREACHABLE("no inner table");
-    return GetFallbackLogicalBaseline(aWritingMode);
-  }
-
-  return kid->GetLogicalBaseline(aWritingMode) +
-         kid->BStart(aWritingMode, mRect.Size());
+  auto* innerTable = InnerTableFrame();
+  return innerTable->GetNaturalBaselineBOffset(aWM, aBaselineGroup)
+      .map([this, aWM, aBaselineGroup, innerTable](nscoord aBaseline) {
+        auto bStart = innerTable->BStart(aWM, mRect.Size());
+        if (aBaselineGroup == BaselineSharingGroup::First) {
+          return aBaseline + bStart;
+        }
+        auto bEnd = bStart + innerTable->BSize(aWM);
+        return BSize(aWM) - (bEnd - aBaseline);
+      });
 }
 
 nsTableWrapperFrame::nsTableWrapperFrame(ComputedStyle* aStyle,

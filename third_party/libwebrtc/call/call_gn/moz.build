@@ -16,12 +16,14 @@ DEFINES["WEBRTC_ENABLE_PROTOBUF"] = "0"
 DEFINES["WEBRTC_LIBRARY_IMPL"] = True
 DEFINES["WEBRTC_MOZILLA_BUILD"] = True
 DEFINES["WEBRTC_NON_STATIC_TRACE_EVENT_HANDLERS"] = "0"
+DEFINES["WEBRTC_STRICT_FIELD_TRIALS"] = "0"
 
 FINAL_LIBRARY = "webrtc"
 
 
 LOCAL_INCLUDES += [
     "!/ipc/ipdl/_ipdlheaders",
+    "!/third_party/libwebrtc/gen",
     "/ipc/chromium/src",
     "/third_party/libwebrtc/",
     "/third_party/libwebrtc/third_party/abseil-cpp/",
@@ -30,8 +32,6 @@ LOCAL_INCLUDES += [
 
 UNIFIED_SOURCES += [
     "/third_party/libwebrtc/call/call.cc",
-    "/third_party/libwebrtc/call/call_factory.cc",
-    "/third_party/libwebrtc/call/degraded_call.cc",
     "/third_party/libwebrtc/call/flexfec_receive_stream_impl.cc",
     "/third_party/libwebrtc/call/receive_time_calculator.cc"
 ]
@@ -191,6 +191,10 @@ if CONFIG["CPU_ARCH"] == "arm" and CONFIG["OS_TARGET"] == "Android":
 
 if CONFIG["CPU_ARCH"] == "x86" and CONFIG["OS_TARGET"] == "Android":
 
+    CXXFLAGS += [
+        "-msse2"
+    ]
+
     OS_LIBS += [
         "android_support"
     ]
@@ -206,6 +210,10 @@ if CONFIG["CPU_ARCH"] == "arm" and CONFIG["OS_TARGET"] == "Linux":
     DEFINES["_GNU_SOURCE"] = True
 
 if CONFIG["CPU_ARCH"] == "x86" and CONFIG["OS_TARGET"] == "Linux":
+
+    CXXFLAGS += [
+        "-msse2"
+    ]
 
     DEFINES["WEBRTC_ENABLE_AVX2"] = True
     DEFINES["_GNU_SOURCE"] = True

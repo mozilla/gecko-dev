@@ -1,7 +1,5 @@
 "use strict";
 
-const { Storage } = ChromeUtils.import("resource://normandy/lib/Storage.jsm");
-
 add_task(async function() {
   const store1 = new Storage("prefix1");
   const store2 = new Storage("prefix2");

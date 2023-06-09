@@ -3,10 +3,6 @@
 
 "use strict";
 
-const { AppConstants } = ChromeUtils.importESModule(
-  "resource://gre/modules/AppConstants.sys.mjs"
-);
-
 // A bunch of assumptions we make about the behavior of the parent process,
 // and which we use as sanity checks. If Firefox evolves, we will need to
 // update these values.
@@ -251,7 +247,7 @@ async function testMemory(element, total, delta, assumptions) {
   );
   if (extractedUnit != "GB") {
     Assert.ok(
-      extractedTotalNumber < 1024,
+      extractedTotalNumber <= 1024,
       `Unitless total memory use is less than 1024: ${extractedTotal}`
     );
   }
@@ -294,8 +290,10 @@ async function testMemory(element, total, delta, assumptions) {
     // Remove the thousands separator that breaks parseFloat.
     extractedDeltaTotal.replace(/,/g, "")
   );
+  // Note: displaying 1024KB can happen if the value is slightly less than
+  // 1024*1024B but rounded to 1024KB.
   Assert.ok(
-    deltaTotalNumber > 0 && deltaTotalNumber < 1024,
+    deltaTotalNumber > 0 && deltaTotalNumber <= 1024,
     `Unitless delta memory use is in (0, 1024): ${extractedDeltaTotal}`
   );
   Assert.ok(
@@ -602,7 +600,7 @@ async function testAboutProcessesWithConfig({ showAllFrames, showThreads }) {
         row.classList.contains("process") &&
         ["web", "webIsolated"].includes(row.process.type),
     },
-    // A utility process with audio decoder.
+    // A utility process with at least one actor.
     {
       name: "utility",
       predicate: row =>
@@ -610,8 +608,7 @@ async function testAboutProcessesWithConfig({ showAllFrames, showThreads }) {
         row.process.type == "utility" &&
         row.classList.contains("process") &&
         row.nextSibling &&
-        row.nextSibling.classList.contains("actor") &&
-        row.nextSibling.actor.actorName === "audioDecoder_Generic",
+        row.nextSibling.classList.contains("actor"),
     },
   ];
   for (let finder of processesToBeFound) {

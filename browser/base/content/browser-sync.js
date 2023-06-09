@@ -5,26 +5,18 @@
 // This file is loaded into the browser window scope.
 /* eslint-env mozilla/browser-window */
 
-const { UIState } = ChromeUtils.import("resource://services-sync/UIState.jsm");
-
-ChromeUtils.defineModuleGetter(
-  this,
-  "FxAccounts",
-  "resource://gre/modules/FxAccounts.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  this,
-  "EnsureFxAccountsWebChannel",
-  "resource://gre/modules/FxAccountsWebChannel.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  this,
-  "Weave",
-  "resource://services-sync/main.js"
+const { UIState } = ChromeUtils.importESModule(
+  "resource://services-sync/UIState.sys.mjs"
 );
 
-XPCOMUtils.defineLazyModuleGetters(this, {
-  SyncedTabs: "resource://services-sync/SyncedTabs.jsm",
+ChromeUtils.defineESModuleGetters(this, {
+  EnsureFxAccountsWebChannel:
+    "resource://gre/modules/FxAccountsWebChannel.sys.mjs",
+
+  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
+  FxAccounts: "resource://gre/modules/FxAccounts.sys.mjs",
+  SyncedTabs: "resource://services-sync/SyncedTabs.sys.mjs",
+  Weave: "resource://services-sync/main.sys.mjs",
 });
 
 const MIN_STATUS_ANIMATION_DURATION = 1600;
@@ -369,7 +361,7 @@ var gSync = {
         "browser/accounts.ftl",
         "browser/appmenu.ftl",
         "browser/sync.ftl",
-        "browser/branding/sync-brand.ftl",
+        "toolkit/branding/accounts.ftl",
       ],
       true
     ));
@@ -667,7 +659,7 @@ var gSync = {
   showSendToDeviceView(anchor) {
     PanelUI.showSubView("PanelUI-sendTabToDevice", anchor);
     let panelViewNode = document.getElementById("PanelUI-sendTabToDevice");
-    this.populateSendTabToDevicesView(panelViewNode);
+    this._populateSendTabToDevicesView(panelViewNode);
   },
 
   showSendToDeviceViewFromFxaMenu(anchor) {
@@ -699,11 +691,11 @@ var gSync = {
     this.emitFxaToolbarTelemetry("sync_tabs_sidebar", panel);
   },
 
-  populateSendTabToDevicesView(panelViewNode, reloadDevices = true) {
+  _populateSendTabToDevicesView(panelViewNode, reloadDevices = true) {
     let bodyNode = panelViewNode.querySelector(".panel-subview-body");
     let panelNode = panelViewNode.closest("panel");
     let browser = gBrowser.selectedBrowser;
-    let url = browser.currentURI.spec;
+    let uri = browser.currentURI;
     let title = browser.contentTitle;
     let multiselected = gBrowser.selectedTab.multiselected;
 
@@ -711,7 +703,7 @@ var gSync = {
     // changes.
     this.populateSendTabToDevicesMenu(
       bodyNode,
-      url,
+      uri,
       title,
       multiselected,
       (clientId, name, clientType, lastModified) => {
@@ -769,7 +761,7 @@ var gSync = {
       // device, and is waiting for it to show up.
       this.refreshFxaDevices().then(_ => {
         if (!window.closed) {
-          this.populateSendTabToDevicesView(panelViewNode, false);
+          this._populateSendTabToDevicesView(panelViewNode, false);
         }
       });
     }
@@ -799,9 +791,26 @@ var gSync = {
     let fxaStatus = document.documentElement.getAttribute("fxastatus");
 
     if (fxaStatus == "not_configured") {
-      this.openFxAEmailFirstPageFromFxaMenu(
-        PanelMultiView.getViewNode(document, "PanelUI-fxa")
-      );
+      let extraParams = {};
+      let fxaButtonVisibilityExperiment =
+        ExperimentAPI.getExperimentMetaData({
+          featureId: "fxaButtonVisibility",
+        }) ??
+        ExperimentAPI.getRolloutMetaData({
+          featureId: "fxaButtonVisibility",
+        });
+      if (fxaButtonVisibilityExperiment) {
+        extraParams = {
+          entrypoint_experiment: fxaButtonVisibilityExperiment.slug,
+          entrypoint_variation: fxaButtonVisibilityExperiment.branch.slug,
+        };
+      }
+
+      let panel =
+        anchor.id == "appMenu-fxa-label2"
+          ? PanelMultiView.getViewNode(document, "PanelUI-fxa")
+          : undefined;
+      this.openFxAEmailFirstPageFromFxaMenu(panel, extraParams);
       PanelUI.hide();
       return;
     }
@@ -943,8 +952,8 @@ var gSync = {
   enableSendTabIfValidTab() {
     // All tabs selected must be sendable for the Send Tab button to be enabled
     // on the FxA menu.
-    let canSendAllURIs = gBrowser.selectedTabs.every(t =>
-      BrowserUtils.isShareableURL(t.linkedBrowser.currentURI)
+    let canSendAllURIs = gBrowser.selectedTabs.every(
+      t => !!BrowserUtils.getShareableURL(t.linkedBrowser.currentURI)
     );
 
     PanelMultiView.getViewNode(
@@ -1197,21 +1206,24 @@ var gSync = {
     }
   },
 
-  async openFxAEmailFirstPage(entryPoint) {
+  async openFxAEmailFirstPage(entryPoint, extraParams = {}) {
     if (!(await FxAccounts.canConnectAccount())) {
       return;
     }
-    const url = await FxAccounts.config.promiseConnectAccountURI(entryPoint);
+    const url = await FxAccounts.config.promiseConnectAccountURI(
+      entryPoint,
+      extraParams
+    );
     switchToTabHavingURI(url, true, { replaceQueryString: true });
   },
 
-  async openFxAEmailFirstPageFromFxaMenu(panel = undefined) {
+  async openFxAEmailFirstPageFromFxaMenu(panel = undefined, extraParams = {}) {
     this.emitFxaToolbarTelemetry("login", panel);
     let entryPoint = "fxa_discoverability_native";
     if (panel) {
       entryPoint = "fxa_app_menu";
     }
-    this.openFxAEmailFirstPage(entryPoint);
+    this.openFxAEmailFirstPage(entryPoint, extraParams);
   },
 
   async openFxAManagePage(entryPoint) {
@@ -1283,12 +1295,18 @@ var gSync = {
 
   populateSendTabToDevicesMenu(
     devicesPopup,
-    url,
+    uri,
     title,
     multiselected,
     createDeviceNodeFn,
     isFxaMenu = false
   ) {
+    uri = BrowserUtils.getShareableURL(uri);
+    if (!uri) {
+      // log an error as everyone should have already checked this.
+      this.log.error("Ignoring request to share a non-sharable URL");
+      return;
+    }
     if (!createDeviceNodeFn) {
       createDeviceNodeFn = (targetId, name, targetType, lastModified) => {
         let eltName = name ? "menuitem" : "menuseparator";
@@ -1319,7 +1337,7 @@ var gSync = {
           targets,
           fragment,
           createDeviceNodeFn,
-          url,
+          uri.spec,
           title,
           multiselected,
           isFxaMenu
@@ -1543,7 +1561,7 @@ var gSync = {
     for (let tab of aTargetTab.multiselected
       ? gBrowser.selectedTabs
       : [aTargetTab]) {
-      if (BrowserUtils.isShareableURL(tab.linkedBrowser.currentURI)) {
+      if (BrowserUtils.getShareableURL(tab.linkedBrowser.currentURI)) {
         hasASendableURI = true;
         break;
       }
@@ -1594,7 +1612,7 @@ var gSync = {
       : contextMenu.browser.currentURI;
     const enabled =
       !this.sendTabConfiguredAndLoading &&
-      BrowserUtils.isShareableURL(targetURI);
+      BrowserUtils.getShareableURL(targetURI);
     const hideItems = this.shouldHideSendContextMenuItems(enabled);
 
     contextMenu.showItem(
@@ -1748,8 +1766,8 @@ var gSync = {
   },
 
   async _disconnectFxaAndSync(deleteLocalData) {
-    const { SyncDisconnect } = ChromeUtils.import(
-      "resource://services-sync/SyncDisconnect.jsm"
+    const { SyncDisconnect } = ChromeUtils.importESModule(
+      "resource://services-sync/SyncDisconnect.sys.mjs"
     );
     // Record telemetry.
     await fxAccounts.telemetry.recordDisconnection(null, "ui");
@@ -1844,18 +1862,21 @@ var gSync = {
 
   openSyncedTabsPanel() {
     let placement = CustomizableUI.getPlacementOfWidget("sync-button");
-    let area = placement && placement.area;
-    let anchor =
-      document.getElementById("sync-button") ||
-      document.getElementById("PanelUI-menu-button");
+    let area = placement?.area;
+    let anchor = document.getElementById("sync-button");
     if (area == CustomizableUI.AREA_FIXED_OVERFLOW_PANEL) {
       // The button is in the overflow panel, so we need to show the panel,
       // then show our subview.
       let navbar = document.getElementById(CustomizableUI.AREA_NAVBAR);
       navbar.overflowable.show().then(() => {
         PanelUI.showSubView("PanelUI-remotetabs", anchor);
-      }, Cu.reportError);
+      }, console.error);
     } else {
+      if (
+        !anchor?.checkVisibility({ checkVisibilityCSS: true, flush: false })
+      ) {
+        anchor = document.getElementById("PanelUI-menu-button");
+      }
       // It is placed somewhere else - just try and show it.
       PanelUI.showSubView("PanelUI-remotetabs", anchor);
     }

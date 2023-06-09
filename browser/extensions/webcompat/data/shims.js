@@ -195,32 +195,28 @@ const AVAILABLE_SHIMS = [
     bug: "1701685",
     matches: [
       {
+        patterns: ["*://pixel.advertising.com/firefox-etp"],
+        target: "tracking-pixel.png",
+        types: ["image", "imageset", "xmlhttprequest"],
+        onlyIfBlockedByETP: true,
+      },
+      {
+        patterns: ["*://cdn.cmp.advertising.com/firefox-etp"],
+        target: "empty-script.js",
+        types: ["xmlhttprequest"],
+        onlyIfBlockedByETP: true,
+      },
+      {
         patterns: ["*://*.advertising.com/*.js*"],
-        target: "https://redirect.firefox.etp/advertisingdotcom_js",
+        target: "https://cdn.cmp.advertising.com/firefox-etp",
         types: ["image", "imageset", "xmlhttprequest"],
         onlyIfBlockedByETP: true,
       },
       {
         patterns: ["*://*.advertising.com/*"],
-        target: "https://redirect.firefox.etp/advertisingdotcom_pixel",
+        target: "https://pixel.advertising.com/firefox-etp",
         types: ["image", "imageset", "xmlhttprequest"],
         onlyIfBlockedByETP: true,
-      },
-      {
-        patterns: ["*://*.adsafeprotected.com/*"],
-        target: "https://redirect.firefox.etp/advertisingdotcom_pixel",
-        types: ["image", "imageset", "xmlhttprequest"],
-        onlyIfBlockedByETP: true,
-      },
-      {
-        patterns: ["https://redirect.firefox.etp/advertisingdotcom_pixel"],
-        target: "tracking-pixel.png",
-        types: ["image", "imageset", "xmlhttprequest"],
-      },
-      {
-        patterns: ["https://redirect.firefox.etp/advertisingdotcom_js"],
-        target: "empty-script.js",
-        types: ["xmlhttprequest"],
       },
     ],
   },
@@ -613,18 +609,19 @@ const AVAILABLE_SHIMS = [
     bug: "1717806",
     matches: [
       {
-        patterns: [
-          "*://ads.stickyadstv.com/auto-user-sync*",
-          "*://ads.stickyadstv.com/user-matching*",
-        ],
-        target: "https://redirect.firefox.etp/stickadstv",
+        patterns: ["https://ads.stickyadstv.com/firefox-etp"],
+        target: "tracking-pixel.png",
         types: ["image", "imageset", "xmlhttprequest"],
         onlyIfBlockedByETP: true,
       },
       {
-        patterns: ["https://redirect.firefox.etp/stickadstv"],
-        target: "tracking-pixel.png",
+        patterns: [
+          "*://ads.stickyadstv.com/auto-user-sync*",
+          "*://ads.stickyadstv.com/user-matching*",
+        ],
+        target: "https://ads.stickyadstv.com/firefox-etp",
         types: ["image", "imageset", "xmlhttprequest"],
+        onlyIfBlockedByETP: true,
       },
     ],
   },
@@ -747,6 +744,20 @@ const AVAILABLE_SHIMS = [
     onlyIfDFPIActive: true,
   },
   {
+    id: "Instagram.com",
+    platform: "android",
+    name: "Instagram.com",
+    bug: "1804445",
+    contentScripts: [
+      {
+        js: "instagram.js",
+        matches: ["*://www.instagram.com/*"],
+        runAt: "document_start",
+      },
+    ],
+    onlyIfDFPIActive: true,
+  },
+  {
     id: "MaxMindGeoIP",
     platform: "all",
     name: "MaxMind GeoIP",
@@ -789,18 +800,6 @@ const AVAILABLE_SHIMS = [
     onlyIfDFPIActive: true,
   },
   {
-    id: "FirebaseSignIn",
-    platform: "all",
-    name: "Firebase Sign-In",
-    bug: "1782772",
-    requestStorageAccessForRedirect: [
-      ["*://*/*", "*://*.firebaseapp.com/*/auth/*signInViaRedirect*"],
-      ["*://*/*", "*://members.rally.allizom.org/*/auth/*signInViaRedirect*"],
-      ["*://*/*", "*://members.rally.mozilla.org/*/auth/*signInViaRedirect*"],
-    ],
-    onlyIfDFPIActive: true,
-  },
-  {
     // keep this below any other shims checking adsafeprotected URLs
     id: "AdSafeProtectedTrackingPixels",
     platform: "all",
@@ -808,11 +807,21 @@ const AVAILABLE_SHIMS = [
     bug: "1717806",
     matches: [
       {
+        patterns: ["https://static.adsafeprotected.com/firefox-etp-pixel"],
+        target: "tracking-pixel.png",
+        types: ["image", "imageset", "xmlhttprequest"],
+      },
+      {
+        patterns: ["https://static.adsafeprotected.com/firefox-etp-js"],
+        target: "empty-script.js",
+        types: ["xmlhttprequest"],
+      },
+      {
         patterns: [
           "*://*.adsafeprotected.com/*.gif*",
           "*://*.adsafeprotected.com/*.png*",
         ],
-        target: "https://redirect.firefox.etp/adsafeprotected_pixel",
+        target: "https://static.adsafeprotected.com/firefox-etp-pixel",
         types: ["image", "imageset", "xmlhttprequest"],
         onlyIfBlockedByETP: true,
       },
@@ -832,28 +841,33 @@ const AVAILABLE_SHIMS = [
           "*://*.adsafeprotected.com/tpl?*",
           "*://*.adsafeprotected.com/services/pub*",
         ],
-        target: "https://redirect.firefox.etp/adsafeprotected_js",
+        target: "https://static.adsafeprotected.com/firefox-etp-js",
         types: ["image", "imageset", "xmlhttprequest"],
         onlyIfBlockedByETP: true,
       },
       {
         // note, fallback case seems to be an image
         patterns: ["*://*.adsafeprotected.com/*"],
-        target: "https://redirect.firefox.etp/adsafeprotected_pixel",
+        target: "https://static.adsafeprotected.com/firefox-etp-pixel",
         types: ["image", "imageset", "xmlhttprequest"],
         onlyIfBlockedByETP: true,
       },
+    ],
+  },
+  {
+    id: "SpotifyEmbed",
+    platform: "all",
+    name: "SpotifyEmbed",
+    bug: "1792395",
+    contentScripts: [
       {
-        patterns: ["https://redirect.firefox.etp/adsafeprotected_pixel"],
-        target: "tracking-pixel.png",
-        types: ["image", "imageset", "xmlhttprequest"],
-      },
-      {
-        patterns: ["https://redirect.firefox.etp/adsafeprotected_js"],
-        target: "empty-script.js",
-        types: ["xmlhttprequest"],
+        js: "spotify-embed.js",
+        matches: ["*://open.spotify.com/embed/*"],
+        runAt: "document_start",
+        allFrames: true,
       },
     ],
+    onlyIfDFPIActive: true,
   },
 ];
 

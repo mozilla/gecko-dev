@@ -272,6 +272,22 @@ class MOZ_STACK_CLASS CallInfo {
     }
   }
 
+  // Prepend `numArgs` arguments. Calls `f(i)` for each new argument.
+  template <typename Fun>
+  [[nodiscard]] bool prependArgs(size_t numArgs, const Fun& f) {
+    size_t numArgsBefore = args_.length();
+    if (!args_.growBy(numArgs)) {
+      return false;
+    }
+    for (size_t i = numArgsBefore; i > 0; i--) {
+      args_[numArgs + i - 1] = args_[i - 1];
+    }
+    for (size_t i = 0; i < numArgs; i++) {
+      args_[i] = f(i);
+    }
+    return true;
+  }
+
   void setImplicitlyUsedUnchecked() {
     auto setFlag = [](MDefinition* def) { def->setImplicitlyUsedUnchecked(); };
     forEachCallOperand(setFlag);
@@ -297,12 +313,12 @@ MCall* MakeCall(TempAllocator& alloc, Undef addUndefined, CallInfo& callInfo,
 
   mozilla::Maybe<DOMObjectKind> objKind;
   if (isDOMCall) {
-    const JSClass* clasp = callInfo.thisArg()->toGuardToClass()->getClass();
-    MOZ_ASSERT(clasp->isDOMClass());
-    if (clasp->isNativeObject()) {
+    const Shape* shape = callInfo.thisArg()->toGuardShape()->shape();
+    MOZ_ASSERT(shape->getObjectClass()->isDOMClass());
+    if (shape->isNative()) {
       objKind.emplace(DOMObjectKind::Native);
     } else {
-      MOZ_ASSERT(clasp->isProxyObject());
+      MOZ_ASSERT(shape->isProxy());
       objKind.emplace(DOMObjectKind::Proxy);
     }
   }

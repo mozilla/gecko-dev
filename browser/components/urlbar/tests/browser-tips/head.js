@@ -8,7 +8,6 @@
 
 "use strict";
 
-/* import-globals-from ../../../../../toolkit/mozapps/update/tests/browser/head.js */
 Services.scriptloader.loadSubScript(
   "chrome://mochitests/content/browser/toolkit/mozapps/update/tests/browser/head.js",
   this
@@ -333,7 +332,11 @@ async function doUpdateTest({
     Assert.ok(button.test(actualButton), "Button regexp");
   }
 
-  Assert.ok(element._buttons.has("help"), "Tip has a help button");
+  if (UrlbarPrefs.get("resultMenu")) {
+    Assert.ok(element._buttons.has("menu"), "Tip has a menu button");
+  } else {
+    Assert.ok(element._buttons.has("help"), "Tip has a help button");
+  }
 
   // Pick the tip and wait for the action.
   let values = await Promise.all([awaitCallback(), pickTip()]);
@@ -488,12 +491,21 @@ function checkIntervention({
       Assert.ok(button.test(actualButton), "Button regexp");
     }
 
-    let helpButton = element._buttons.get("help");
-    Assert.ok(helpButton, "Help button exists");
-    Assert.ok(
-      BrowserTestUtils.is_visible(helpButton),
-      "Help button is visible"
-    );
+    if (UrlbarPrefs.get("resultMenu")) {
+      let menuButton = element._buttons.get("menu");
+      Assert.ok(menuButton, "Menu button exists");
+      Assert.ok(
+        BrowserTestUtils.is_visible(menuButton),
+        "Menu button is visible"
+      );
+    } else {
+      let helpButton = element._buttons.get("help");
+      Assert.ok(helpButton, "Help button exists");
+      Assert.ok(
+        BrowserTestUtils.is_visible(helpButton),
+        "Help button is visible"
+      );
+    }
 
     let values = await Promise.all([awaitCallback(), pickTip()]);
     Assert.ok(true, "Refresh dialog opened");
@@ -582,7 +594,7 @@ async function checkTip(win, expectedTip, closeView = true) {
         `${name} and your browsing history.`;
       break;
     case UrlbarProviderSearchTips.TIP_TYPE.PERSIST:
-      heuristic = true;
+      heuristic = false;
       title =
         "Searching just got simpler." +
         " Try making your search more specific here in the address bar." +

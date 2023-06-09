@@ -9,8 +9,8 @@ Services.prefs.setBoolPref("webextensions.storage.sync.kinto", true);
 do_get_profile(); // so we can use FxAccounts
 
 const { HttpServer } = ChromeUtils.import("resource://testing-common/httpd.js");
-const { CommonUtils } = ChromeUtils.import(
-  "resource://services-common/utils.js"
+const { CommonUtils } = ChromeUtils.importESModule(
+  "resource://services-common/utils.sys.mjs"
 );
 const {
   ExtensionStorageSyncKinto: ExtensionStorageSync,
@@ -23,13 +23,15 @@ const {
     KeyRingEncryptionRemoteTransformer,
   },
 } = ChromeUtils.import("resource://gre/modules/ExtensionStorageSyncKinto.jsm");
-const { BulkKeyBundle } = ChromeUtils.import(
-  "resource://services-sync/keys.js"
+const { BulkKeyBundle } = ChromeUtils.importESModule(
+  "resource://services-sync/keys.sys.mjs"
 );
-const { FxAccountsKeys } = ChromeUtils.import(
-  "resource://gre/modules/FxAccountsKeys.jsm"
+const { FxAccountsKeys } = ChromeUtils.importESModule(
+  "resource://gre/modules/FxAccountsKeys.sys.mjs"
 );
-const { Utils } = ChromeUtils.import("resource://services-sync/util.js");
+const { Utils } = ChromeUtils.importESModule(
+  "resource://services-sync/util.sys.mjs"
+);
 
 const { createAppInfo, promiseStartupManager } = AddonTestUtils;
 
@@ -658,8 +660,8 @@ add_task(async function test_setup() {
 
 add_task(async function test_single_initialization() {
   // Check if we're calling openConnection too often.
-  const { FirefoxAdapter } = ChromeUtils.import(
-    "resource://services-common/kinto-storage-adapter.js"
+  const { FirefoxAdapter } = ChromeUtils.importESModule(
+    "resource://services-common/kinto-storage-adapter.sys.mjs"
   );
   const origOpenConnection = FirefoxAdapter.openConnection;
   let callCount = 0;

@@ -13,7 +13,7 @@
 .meta {
   display: flex;
   align-items: center;
-  padding: 9px 16px;
+  padding: 0 16px 16px;
   border-bottom: 1px solid var(--in-content-border-color);
   background-color: var(--in-content-box-background);
   color: var(--in-content-deemphasized-text);
@@ -52,6 +52,14 @@
   display: contents;
 }
 
+.listHeader {
+  display: flex;
+  justify-content: center;
+  align-content: center;
+  gap: 16px;
+  padding: 16px;
+}
+
 :host(.no-logins) .empty-search-message,
 :host(:not(.empty-search)) .empty-search-message,
 :host(.empty-search:not(.create-login-selected)) ol,
@@ -82,6 +90,7 @@
 }
 
 ol {
+  outline-offset: var(--in-content-focus-outline-inset);
   margin-block: 0;
   padding-inline-start: 0;
   overflow: hidden auto;
@@ -90,13 +99,13 @@ ol {
 }
 
 .create-login-button {
-  margin: 16px;
-}
-
-.create-login-button-container {
-  border-top: 1px solid var(--in-content-border-color);
-  display: flex;
-  flex-direction: column;
+  margin: 0;
+  min-width: auto;
+  background-repeat: no-repeat;
+  background-image: url("chrome://global/skin/icons/plus.svg");
+  background-position: center;
+  -moz-context-properties: fill;
+  fill: currentColor;
 }
 
 .login-list-item {
@@ -117,6 +126,8 @@ ol {
   padding: 4px 16px;
   border-bottom: 1px solid var(--in-content-border-color);
   background-color: var(--in-content-box-background);
+  margin-block-start: 2px;
+  margin-inline: 2px;
 }
 
 .login-list-item:not(.selected):hover {

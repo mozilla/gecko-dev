@@ -17,7 +17,7 @@ add_task(async function() {
     /* includesubframes */ false,
     URL
   );
-  BrowserTestUtils.loadURI(backgroundTab.linkedBrowser, URL);
+  BrowserTestUtils.loadURIString(backgroundTab.linkedBrowser, URL);
   await loadedPromise;
 
   // Get active element in the tab.
@@ -25,6 +25,13 @@ add_task(async function() {
     backgroundTab.linkedBrowser,
     [],
     async function() {
+      // Spec asks us to flush autofocus candidates in the
+      // `update-the-rendering` step, so we need to wait
+      // for a rAF to ensure autofocus candidates are
+      // flushed.
+      await new Promise(r => {
+        content.requestAnimationFrame(r);
+      });
       return content.document.activeElement.tagName;
     }
   );

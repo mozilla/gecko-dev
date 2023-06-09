@@ -574,10 +574,11 @@ void LIRGenerator::visitWasmNeg(MWasmNeg* ins) {
 void LIRGeneratorARM64::lowerUDiv(MDiv* div) {
   LAllocation lhs = useRegister(div->lhs());
   if (div->rhs()->isConstant()) {
-    int32_t rhs = div->rhs()->toConstant()->toInt32();
-    int32_t shift = mozilla::FloorLog2(mozilla::Abs(rhs));
+    // NOTE: the result of toInt32 is coerced to uint32_t.
+    uint32_t rhs = div->rhs()->toConstant()->toInt32();
+    int32_t shift = mozilla::FloorLog2(rhs);
 
-    if (rhs != 0 && uint32_t(1) << shift == mozilla::Abs(rhs)) {
+    if (rhs != 0 && uint32_t(1) << shift == rhs) {
       LDivPowTwoI* lir = new (alloc()) LDivPowTwoI(lhs, shift, false);
       if (div->fallible()) {
         assignSnapshot(lir, div->bailoutKind());
@@ -1047,13 +1048,6 @@ void LIRGenerator::visitWasmTernarySimd128(MWasmTernarySimd128* ins) {
       defineReuseInput(lir, ins, LWasmTernarySimd128::V2);
       break;
     }
-    case wasm::SimdOp::F32x4RelaxedDotBF16x8AddF32x4: {
-      auto* lir = new (alloc()) LWasmTernarySimd128(
-          ins->simdOp(), useRegister(ins->v0()), useRegister(ins->v1()),
-          useRegisterAtStart(ins->v2()), tempSimd128());
-      defineReuseInput(lir, ins, LWasmTernarySimd128::V2);
-      break;
-    }
     default:
       MOZ_CRASH("NYI");
   }
@@ -1338,10 +1332,10 @@ void LIRGenerator::visitWasmUnarySimd128(MWasmUnarySimd128* ins) {
     case wasm::SimdOp::I32x4ExtaddPairwiseI16x8S:
     case wasm::SimdOp::I32x4ExtaddPairwiseI16x8U:
     case wasm::SimdOp::I8x16Popcnt:
-    case wasm::SimdOp::I32x4RelaxedTruncSSatF32x4:
-    case wasm::SimdOp::I32x4RelaxedTruncUSatF32x4:
-    case wasm::SimdOp::I32x4RelaxedTruncSatF64x2SZero:
-    case wasm::SimdOp::I32x4RelaxedTruncSatF64x2UZero:
+    case wasm::SimdOp::I32x4RelaxedTruncF32x4S:
+    case wasm::SimdOp::I32x4RelaxedTruncF32x4U:
+    case wasm::SimdOp::I32x4RelaxedTruncF64x2SZero:
+    case wasm::SimdOp::I32x4RelaxedTruncF64x2UZero:
       break;
     case wasm::SimdOp::I32x4TruncSatF64x2SZero:
     case wasm::SimdOp::I32x4TruncSatF64x2UZero:

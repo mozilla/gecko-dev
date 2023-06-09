@@ -9,10 +9,12 @@ Services.prefs.setBoolPref("webextensions.storage.sync.kinto", true);
 const {
   KintoStorageTestUtils: { EncryptionRemoteTransformer },
 } = ChromeUtils.import("resource://gre/modules/ExtensionStorageSyncKinto.jsm");
-const { CryptoUtils } = ChromeUtils.import(
-  "resource://services-crypto/utils.js"
+const { CryptoUtils } = ChromeUtils.importESModule(
+  "resource://services-crypto/utils.sys.mjs"
 );
-const { Utils } = ChromeUtils.import("resource://services-sync/util.js");
+const { Utils } = ChromeUtils.importESModule(
+  "resource://services-sync/util.sys.mjs"
+);
 
 /**
  * Like Assert.throws, but for generators.

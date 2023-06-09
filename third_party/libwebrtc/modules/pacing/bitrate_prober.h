@@ -33,6 +33,11 @@ struct BitrateProberConfig {
   FieldTrialParameter<TimeDelta> min_probe_delta;
   // Maximum amount of time each probe can be delayed.
   FieldTrialParameter<TimeDelta> max_probe_delay;
+  // This is used to start sending a probe after a large enough packet.
+  // The min packet size is scaled with the bitrate we're probing at.
+  // This defines the max min packet size, meaning that on high bitrates
+  // a packet of at least this size is needed to trigger sending a probe.
+  FieldTrialParameter<DataSize> min_packet_size;
 };
 
 // Note that this class isn't thread-safe by itself and therefore relies
@@ -40,7 +45,7 @@ struct BitrateProberConfig {
 class BitrateProber {
  public:
   explicit BitrateProber(const FieldTrialsView& field_trials);
-  ~BitrateProber();
+  ~BitrateProber() = default;
 
   void SetEnabled(bool enable);
 
@@ -66,7 +71,8 @@ class BitrateProber {
   absl::optional<PacedPacketInfo> CurrentCluster(Timestamp now);
 
   // Returns the minimum number of bytes that the prober recommends for
-  // the next probe, or zero if not probing.
+  // the next probe, or zero if not probing. A probe can consist of multiple
+  // packets that are sent back to back.
   DataSize RecommendedMinProbeSize() const;
 
   // Called to report to the prober that a probe has been sent. In case of
@@ -111,9 +117,6 @@ class BitrateProber {
 
   // Time the next probe should be sent when in kActive state.
   Timestamp next_probe_time_;
-
-  int total_probe_count_;
-  int total_failed_probe_count_;
 
   BitrateProberConfig config_;
 };

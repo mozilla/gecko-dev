@@ -20,6 +20,10 @@
 #  include "mozilla/Sandbox.h"
 #endif
 
+#if defined(XP_OPENBSD) && defined(MOZ_SANDBOX)
+#  include "mozilla/SandboxSettings.h"
+#endif
+
 #if defined(MOZ_SANDBOX) && defined(MOZ_DEBUG) && defined(ENABLE_TESTS)
 #  include "mozilla/SandboxTestingChild.h"
 #endif
@@ -28,6 +32,7 @@
 
 #if defined(XP_WIN)
 #  include "mozilla/WinDllServices.h"
+#  include "mozilla/dom/WindowsUtilsChild.h"
 #endif
 
 #include "nsDebugImpl.h"
@@ -49,7 +54,7 @@ static StaticMutex sUtilityProcessChildMutex;
 static StaticRefPtr<UtilityProcessChild> sUtilityProcessChild
     MOZ_GUARDED_BY(sUtilityProcessChildMutex);
 
-UtilityProcessChild::UtilityProcessChild() {
+UtilityProcessChild::UtilityProcessChild() : mChildStartTime(TimeStamp::Now()) {
   nsDebugImpl::SetMultiprocessMode("Utility");
 }
 
@@ -109,16 +114,38 @@ bool UtilityProcessChild::Init(mozilla::ipc::UntypedEndpoint&& aEndpoint,
 
   mSandbox = (SandboxingKind)aSandboxingKind;
 
+  // At the moment, only ORB uses JSContext in the
+  // Utility Process and ORB uses GENERIC_UTILITY
+  if (mSandbox == SandboxingKind::GENERIC_UTILITY) {
+    JS::DisableJitBackend();
+    if (!JS_Init()) {
+      return false;
+    }
+#if defined(__OpenBSD__) && defined(MOZ_SANDBOX)
+    // Bug 1823458: delay pledge initialization, otherwise
+    // JS_Init triggers sysctl(KERN_PROC_ID) which isnt
+    // permitted with the current pledge.utility config
+    StartOpenBSDSandbox(GeckoProcessType_Utility, mSandbox);
+#endif
+  }
+
   profiler_set_process_name(nsCString("Utility Process"));
 
   // Notify the parent process that we have finished our init and that it can
   // now resolve the pending promise of process startup
   SendInitCompleted();
 
+  PROFILER_MARKER_UNTYPED(
+      "UtilityProcessChild::SendInitCompleted", IPC,
+      MarkerOptions(MarkerTiming::IntervalUntilNowFrom(mChildStartTime)));
+
   RunOnShutdown(
-      [] {
+      [sandboxKind = mSandbox] {
         StaticMutexAutoLock lock(sUtilityProcessChildMutex);
         sUtilityProcessChild = nullptr;
+        if (sandboxKind == SandboxingKind::GENERIC_UTILITY) {
+          JS_ShutDown();
+        }
       },
       ShutdownPhase::XPCOMShutdownFinal);
 
@@ -133,7 +160,8 @@ void CGSShutdownServerConnections();
 
 mozilla::ipc::IPCResult UtilityProcessChild::RecvInit(
     const Maybe<FileDescriptor>& aBrokerFd,
-    const bool& aCanRecordReleaseTelemetry) {
+    const bool& aCanRecordReleaseTelemetry,
+    const bool& aIsReadyForBackgroundProcessing) {
   // Do this now (before closing WindowServer on macOS) to avoid risking
   // blocking in GetCurrentProcess() called on that platform
   mozilla::ipc::SetThisProcessName("Utility Process");
@@ -159,9 +187,13 @@ mozilla::ipc::IPCResult UtilityProcessChild::RecvInit(
 #if defined(XP_WIN)
   if (aCanRecordReleaseTelemetry) {
     RefPtr<DllServices> dllSvc(DllServices::Get());
-    dllSvc->StartUntrustedModulesProcessor(false);
+    dllSvc->StartUntrustedModulesProcessor(aIsReadyForBackgroundProcessing);
   }
 #endif  // defined(XP_WIN)
+
+  PROFILER_MARKER_UNTYPED(
+      "UtilityProcessChild::RecvInit", IPC,
+      MarkerOptions(MarkerTiming::IntervalUntilNowFrom(mChildStartTime)));
   return IPC_OK();
 }
 
@@ -181,8 +213,8 @@ mozilla::ipc::IPCResult UtilityProcessChild::RecvRequestMemoryReport(
     const uint32_t& aGeneration, const bool& aAnonymize,
     const bool& aMinimizeMemoryUsage, const Maybe<FileDescriptor>& aDMDFile,
     const RequestMemoryReportResolver& aResolver) {
-  nsPrintfCString processName("Utility (pid: %" PRIPID
-                              ", sandboxingKind: %" PRIu64 ")",
+  nsPrintfCString processName("Utility (pid %" PRIPID
+                              ", sandboxingKind %" PRIu64 ")",
                               base::GetCurrentProcId(), mSandbox);
 
   mozilla::dom::MemoryReportRequestClient::Start(
@@ -229,6 +261,9 @@ mozilla::ipc::IPCResult UtilityProcessChild::RecvTestTelemetryProbes() {
 mozilla::ipc::IPCResult
 UtilityProcessChild::RecvStartUtilityAudioDecoderService(
     Endpoint<PUtilityAudioDecoderParent>&& aEndpoint) {
+  PROFILER_MARKER_UNTYPED(
+      "UtilityProcessChild::RecvStartUtilityAudioDecoderService", MEDIA,
+      MarkerOptions(MarkerTiming::IntervalUntilNowFrom(mChildStartTime)));
   mUtilityAudioDecoderInstance = new UtilityAudioDecoderParent();
   if (!mUtilityAudioDecoderInstance) {
     return IPC_FAIL(this, "Failing to create UtilityAudioDecoderParent");
@@ -240,6 +275,9 @@ UtilityProcessChild::RecvStartUtilityAudioDecoderService(
 
 mozilla::ipc::IPCResult UtilityProcessChild::RecvStartJSOracleService(
     Endpoint<PJSOracleChild>&& aEndpoint) {
+  PROFILER_MARKER_UNTYPED(
+      "UtilityProcessChild::RecvStartJSOracleService", JS,
+      MarkerOptions(MarkerTiming::IntervalUntilNowFrom(mChildStartTime)));
   mJSOracleInstance = new mozilla::dom::JSOracleChild();
   if (!mJSOracleInstance) {
     return IPC_FAIL(this, "Failing to create JSOracleParent");
@@ -248,6 +286,44 @@ mozilla::ipc::IPCResult UtilityProcessChild::RecvStartJSOracleService(
   mJSOracleInstance->Start(std::move(aEndpoint));
   return IPC_OK();
 }
+
+#if defined(XP_WIN)
+mozilla::ipc::IPCResult UtilityProcessChild::RecvStartWindowsUtilsService(
+    Endpoint<dom::PWindowsUtilsChild>&& aEndpoint) {
+  PROFILER_MARKER_UNTYPED(
+      "UtilityProcessChild::RecvStartWindowsUtilsService", OTHER,
+      MarkerOptions(MarkerTiming::IntervalUntilNowFrom(mChildStartTime)));
+  mWindowsUtilsInstance = new dom::WindowsUtilsChild();
+  if (!mWindowsUtilsInstance) {
+    return IPC_FAIL(this, "Failed to create WindowsUtilsChild");
+  }
+
+  [[maybe_unused]] bool ok = std::move(aEndpoint).Bind(mWindowsUtilsInstance);
+  MOZ_ASSERT(ok);
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult UtilityProcessChild::RecvGetUntrustedModulesData(
+    GetUntrustedModulesDataResolver&& aResolver) {
+  RefPtr<DllServices> dllSvc(DllServices::Get());
+  dllSvc->GetUntrustedModulesData()->Then(
+      GetMainThreadSerialEventTarget(), __func__,
+      [aResolver](Maybe<UntrustedModulesData>&& aData) {
+        aResolver(std::move(aData));
+      },
+      [aResolver](nsresult aReason) { aResolver(Nothing()); });
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult
+UtilityProcessChild::RecvUnblockUntrustedModulesThread() {
+  if (nsCOMPtr<nsIObserverService> obs =
+          mozilla::services::GetObserverService()) {
+    obs->NotifyObservers(nullptr, "unblock-untrusted-modules-thread", nullptr);
+  }
+  return IPC_OK();
+}
+#endif  // defined(XP_WIN)
 
 void UtilityProcessChild::ActorDestroy(ActorDestroyReason aWhy) {
   if (AbnormalShutdown == aWhy) {
@@ -273,6 +349,12 @@ void UtilityProcessChild::ActorDestroy(ActorDestroyReason aWhy) {
     mUtilityAudioDecoderInstance = nullptr;
     timeout = 10 * 1000;
   }
+
+  mJSOracleInstance = nullptr;
+
+#  ifdef XP_WIN
+  mWindowsUtilsInstance = nullptr;
+#  endif
 
   // Wait until all RemoteDecoderManagerParent have closed.
   // It is still possible some may not have clean up yet, and we might hit

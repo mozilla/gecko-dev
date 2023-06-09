@@ -63,10 +63,6 @@
 #include "rtc_base/unique_id_generator.h"
 #include "rtc_base/weak_ptr.h"
 
-namespace cricket {
-class ChannelManager;
-}
-
 namespace webrtc {
 
 // SdpOfferAnswerHandler is a component
@@ -491,10 +487,6 @@ class SdpOfferAnswerHandler : public SdpStateProvider {
   // `desc` can be null. This means that all channels are deleted.
   void RemoveUnusedChannels(const cricket::SessionDescription* desc);
 
-  // Report inferred negotiated SDP semantics from a local/remote answer to the
-  // UMA observer.
-  void ReportNegotiatedSdpSemantics(const SessionDescriptionInterface& answer);
-
   // Finds remote MediaStreams without any tracks and removes them from
   // `remote_streams_` and notifies the observer that the MediaStreams no longer
   // exist.
@@ -573,7 +565,6 @@ class SdpOfferAnswerHandler : public SdpStateProvider {
 
   // ==================================================================
   // Access to pc_ variables
-  cricket::ChannelManager* channel_manager() const;
   cricket::MediaEngineInterface* media_engine() const;
   TransceiverList* transceivers();
   const TransceiverList* transceivers() const;

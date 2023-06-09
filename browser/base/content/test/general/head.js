@@ -246,7 +246,7 @@ function promiseTabLoadEvent(tab, url) {
   let loaded = BrowserTestUtils.browserLoaded(tab.linkedBrowser, false, handle);
 
   if (url) {
-    BrowserTestUtils.loadURI(tab.linkedBrowser, url);
+    BrowserTestUtils.loadURIString(tab.linkedBrowser, url);
   }
 
   return loaded;
@@ -337,31 +337,11 @@ function promiseOnBookmarkItemAdded(aExpectedURI) {
 
 async function loadBadCertPage(url) {
   let loaded = BrowserTestUtils.waitForErrorPage(gBrowser.selectedBrowser);
-  BrowserTestUtils.loadURI(gBrowser.selectedBrowser, url);
+  BrowserTestUtils.loadURIString(gBrowser.selectedBrowser, url);
   await loaded;
 
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function() {
     content.document.getElementById("exceptionDialogButton").click();
   });
   await BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
-}
-
-/**
- * Waits for the stylesheets to be loaded into the browser menu.
- *
- * @param tab
- *        The tab that contains the webpage we're testing.
- * @param styleSheetCount
- *        How many stylesheets we expect to be loaded.
- * @return Promise
- */
-async function promiseStylesheetsLoaded(tab, styleSheetCount) {
-  let styleMenu = tab.ownerGlobal.gPageStyleMenu;
-  let permanentKey = tab.permanentKey;
-
-  await TestUtils.waitForCondition(() => {
-    let menu = styleMenu._pageStyleSheets.get(permanentKey);
-    info(`waiting for sheets: ${menu && menu.filteredStyleSheets.length}`);
-    return menu && menu.filteredStyleSheets.length >= styleSheetCount;
-  }, "waiting for style sheets to load");
 }

@@ -34,7 +34,6 @@ build-clang.py accepts a JSON config format with the following fields:
 * as: Path to the assembler tool.
 * ar: Path to the library archiver tool.
 * ranlib: Path to the ranlib tool (optional).
-* libtool: Path to the libtool tool (optional).
 * ld: Path to the linker.
 * patches: Optional list of patches to apply.
 * build_type: The type of build to make.  Supported types: Release, Debug, RelWithDebInfo or MinSizeRel.
@@ -51,5 +50,4 @@ Environment Variables
 
 The following environment variables are used for cross-compile builds targeting OS X on Linux.
 
-* CROSS_CCTOOLS_PATH: Path to the cctools directory where the cross compiler toolchain is located.
 * CROSS_SYSROOT: Path to the OS X SDK directory for cross compile builds.

@@ -12,6 +12,7 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   executeSoon: "chrome://remote/content/shared/Sync.sys.mjs",
+  isChromeFrame: "chrome://remote/content/shared/Stack.sys.mjs",
   ExecutionContext:
     "chrome://remote/content/cdp/domains/content/runtime/ExecutionContext.sys.mjs",
 });
@@ -29,6 +30,9 @@ addDebuggerToGlobal(globalThis);
 const CONSOLE_API_LEVEL_MAP = {
   warn: "warning",
 };
+
+// Bug 1786299: Puppeteer needs specific error messages.
+const ERROR_CONTEXT_NOT_FOUND = "Cannot find context with specified id";
 
 class SetMap extends Map {
   constructor() {
@@ -111,6 +115,10 @@ export class Runtime extends ContentProcessDomain {
           window: this.content,
           isDefault: true,
         });
+
+        for (const message of lazy.ConsoleAPIStorage.getEvents()) {
+          this.onConsoleLogEvent(message);
+        }
       });
     }
   }
@@ -135,9 +143,7 @@ export class Runtime extends ContentProcessDomain {
       }
     }
     if (!context) {
-      throw new Error(
-        `Unable to get execution context by object ID: ${objectId}`
-      );
+      throw new Error(ERROR_CONTEXT_NOT_FOUND);
     }
     context.releaseObject(objectId);
   }
@@ -147,10 +153,10 @@ export class Runtime extends ContentProcessDomain {
    *
    * Object group of the result is inherited from the target object.
    *
-   * @param {Object} options
+   * @param {object} options
    * @param {string} options.functionDeclaration
    *     Declaration of the function to call.
-   * @param {Array.<Object>=} options.arguments
+   * @param {Array.<object>=} options.arguments
    *     Call arguments. All call arguments must belong to the same
    *     JavaScript world as the target object.
    * @param {boolean=} options.awaitPromise
@@ -167,7 +173,7 @@ export class Runtime extends ContentProcessDomain {
    *     Whether the result is expected to be a JSON object
    *     which should be sent by value.
    *
-   * @return {Object.<RemoteObject, ExceptionDetails>}
+   * @returns {Object<RemoteObject, ExceptionDetails>}
    */
   callFunctionOn(options = {}) {
     if (typeof options.functionDeclaration != "string") {
@@ -211,16 +217,12 @@ export class Runtime extends ContentProcessDomain {
           break;
         }
       }
-      if (!context) {
-        throw new Error(
-          `Unable to get the context for object with id: ${options.objectId}`
-        );
-      }
     } else {
       context = this.contexts.get(options.executionContextId);
-      if (!context) {
-        throw new Error("Cannot find context with specified id");
-      }
+    }
+
+    if (!context) {
+      throw new Error(ERROR_CONTEXT_NOT_FOUND);
     }
 
     return context.callFunctionOn(
@@ -235,7 +237,7 @@ export class Runtime extends ContentProcessDomain {
   /**
    * Evaluate expression on global object.
    *
-   * @param {Object} options
+   * @param {object} options
    * @param {string} options.expression
    *     Expression to evaluate.
    * @param {boolean=} options.awaitPromise
@@ -251,7 +253,7 @@ export class Runtime extends ContentProcessDomain {
    * @param {boolean=} options.userGesture [unsupported]
    *     Whether execution should be treated as initiated by user in the UI.
    *
-   * @return {Object<RemoteObject, exceptionDetails>}
+   * @returns {Object<RemoteObject, exceptionDetails>}
    *     The evaluation result, and optionally exception details.
    */
   evaluate(options = {}) {
@@ -276,7 +278,7 @@ export class Runtime extends ContentProcessDomain {
     if (typeof contextId != "undefined") {
       context = this.contexts.get(contextId);
       if (!context) {
-        throw new Error("Cannot find context with specified id");
+        throw new Error(ERROR_CONTEXT_NOT_FOUND);
       }
     } else {
       context = this._getDefaultContextForWindow();
@@ -310,7 +312,7 @@ export class Runtime extends ContentProcessDomain {
     return this.__debugger;
   }
 
-  _buildStackTrace(stack) {
+  _buildExceptionStackTrace(stack) {
     const callFrames = [];
 
     while (
@@ -327,6 +329,24 @@ export class Runtime extends ContentProcessDomain {
       });
       stack = stack.parent || stack.asyncParent;
     }
+
+    return {
+      callFrames,
+    };
+  }
+
+  _buildConsoleStackTrace(stack = []) {
+    const callFrames = stack
+      .filter(frame => !lazy.isChromeFrame(frame))
+      .map(frame => {
+        return {
+          functionName: frame.functionName,
+          scriptId: frame.sourceId.toString(),
+          url: frame.filename,
+          lineNumber: frame.lineNumber - 1,
+          columnNumber: frame.columnNumber - 1,
+        };
+      });
 
     return {
       callFrames,
@@ -416,7 +436,7 @@ export class Runtime extends ContentProcessDomain {
       executionContextId: context?.id || 0,
       timestamp: payload.timestamp,
       type: payload.type,
-      stackTrace: this._buildStackTrace(payload.stack),
+      stackTrace: this._buildConsoleStackTrace(payload.stack),
     });
   }
 
@@ -440,7 +460,7 @@ export class Runtime extends ContentProcessDomain {
         lineNumber: payload.lineNumber,
         columnNumber: payload.columnNumber,
         url: payload.url,
-        stackTrace: this._buildStackTrace(payload.stack),
+        stackTrace: this._buildExceptionStackTrace(payload.stack),
         executionContextId: context?.id || undefined,
       },
     });
@@ -453,7 +473,7 @@ export class Runtime extends ContentProcessDomain {
    *
    * @param {string} name
    *     Event name
-   * @param {Object=} options
+   * @param {object=} options
    * @param {number} options.windowId
    *     The inner window id of the newly instantiated document.
    * @param {Window} options.window
@@ -465,7 +485,7 @@ export class Runtime extends ContentProcessDomain {
    * @param {string=} options.contextType
    *     "default" or "isolated"
    *
-   * @return {number} ID of created context
+   * @returns {number} ID of created context
    *
    */
   _onContextCreated(name, options = {}) {
@@ -526,12 +546,12 @@ export class Runtime extends ContentProcessDomain {
    *
    * @param {string} name
    *     Event name
-   * @param {Object=} options
-   * @param {number} id
+   * @param {object=} options
+   * @param {number} options.id
    *     The execution context id to destroy.
-   * @param {number} windowId
+   * @param {number} options.windowId
    *     The inner-window id of the execution context to destroy.
-   * @param {number} frameId
+   * @param {number} options.frameId
    *     The frame id of execution context to destroy.
    * Either `id` or `frameId` or `windowId` is passed.
    */
@@ -575,8 +595,14 @@ export class Runtime extends ContentProcessDomain {
   }
 
   onConsoleLogEvent(message) {
-    let entry = fromConsoleAPI(message);
-    this._emitConsoleAPICalled(entry);
+    // From sendConsoleAPIMessage (toolkit/modules/Console.sys.mjs)
+    this._emitConsoleAPICalled({
+      arguments: message.arguments,
+      innerWindowId: message.innerID,
+      stack: message.stacktrace,
+      timestamp: message.timeStamp,
+      type: CONSOLE_API_LEVEL_MAP[message.level] || message.level,
+    });
   }
 
   // nsIObserver
@@ -586,7 +612,7 @@ export class Runtime extends ContentProcessDomain {
    * "exceptionThrown" event if it's a Javascript error, otherwise a
    * "consoleAPICalled" event.
    *
-   * @param {nsIConsoleMessage} message
+   * @param {nsIConsoleMessage} subject
    *     Console message.
    */
   observe(subject, topic, data) {
@@ -601,18 +627,6 @@ export class Runtime extends ContentProcessDomain {
   get QueryInterface() {
     return ChromeUtils.generateQI(["nsIConsoleListener"]);
   }
-}
-
-function fromConsoleAPI(message) {
-  // From sendConsoleAPIMessage (toolkit/modules/Console.sys.mjs)
-  return {
-    arguments: message.arguments,
-    innerWindowId: message.innerID,
-    // TODO: Fetch the stack (Bug 1679981)
-    stack: undefined,
-    timestamp: message.timeStamp,
-    type: CONSOLE_API_LEVEL_MAP[message.level] || message.level,
-  };
 }
 
 function fromScriptError(error) {

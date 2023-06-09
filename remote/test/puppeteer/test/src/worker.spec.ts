@@ -15,17 +15,17 @@
  */
 
 import expect from 'expect';
-import {ConsoleMessage} from '../../lib/cjs/puppeteer/common/ConsoleMessage.js';
-import {WebWorker} from '../../lib/cjs/puppeteer/common/WebWorker.js';
+import {ConsoleMessage} from 'puppeteer-core/internal/common/ConsoleMessage.js';
+import {WebWorker} from 'puppeteer-core/internal/common/WebWorker.js';
+
 import {
-  describeFailsFirefox,
   getTestState,
   setupTestBrowserHooks,
   setupTestPageAndContextHooks,
 } from './mocha-utils.js';
 import {waitEvent} from './utils.js';
 
-describeFailsFirefox('Workers', function () {
+describe('Workers', function () {
   setupTestBrowserHooks();
   setupTestPageAndContextHooks();
   it('Page.workers', async () => {

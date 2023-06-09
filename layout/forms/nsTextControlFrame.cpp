@@ -115,17 +115,7 @@ class nsTextControlFrame::nsAnonDivObserver final
 nsTextControlFrame::nsTextControlFrame(ComputedStyle* aStyle,
                                        nsPresContext* aPresContext,
                                        nsIFrame::ClassID aClassID)
-    : nsContainerFrame(aStyle, aPresContext, aClassID),
-      mFirstBaseline(NS_INTRINSIC_ISIZE_UNKNOWN),
-      mEditorHasBeenInitialized(false),
-      mIsProcessing(false)
-#ifdef DEBUG
-      ,
-      mInEditorInitialization(false)
-#endif
-{
-  ClearCachedValue();
-}
+    : nsContainerFrame(aStyle, aPresContext, aClassID) {}
 
 nsTextControlFrame::~nsTextControlFrame() = default;
 
@@ -188,19 +178,14 @@ LogicalSize nsTextControlFrame::CalcIntrinsicSize(
     gfxContext* aRenderingContext, WritingMode aWM,
     float aFontSizeInflation) const {
   LogicalSize intrinsicSize(aWM);
-  // Get leading and the Average/MaxAdvance char width
-  nscoord lineHeight = 0;
-  nscoord charWidth = 0;
-  nscoord charMaxAdvance = 0;
-
   RefPtr<nsFontMetrics> fontMet =
       nsLayoutUtils::GetFontMetricsForFrame(this, aFontSizeInflation);
-
-  lineHeight =
-      ReflowInput::CalcLineHeight(GetContent(), Style(), PresContext(),
+  nscoord lineHeight =
+      ReflowInput::CalcLineHeight(*Style(), PresContext(), GetContent(),
                                   NS_UNCONSTRAINEDSIZE, aFontSizeInflation);
-  charWidth = fontMet->AveCharWidth();
-  charMaxAdvance = fontMet->MaxAdvance();
+  // Get leading and the Average/MaxAdvance char width
+  nscoord charWidth = fontMet->AveCharWidth();
+  nscoord charMaxAdvance = fontMet->MaxAdvance();
 
   // Set the width equal to the width in characters
   int32_t cols = GetCols();
@@ -247,12 +232,9 @@ LogicalSize nsTextControlFrame::CalcIntrinsicSize(
   if (IsTextArea()) {
     nsIScrollableFrame* scrollableFrame = GetScrollTargetFrame();
     NS_ASSERTION(scrollableFrame, "Child must be scrollable");
-
     if (scrollableFrame) {
-      LogicalMargin scrollbarSizes(
-          aWM, scrollableFrame->GetDesiredScrollbarSizes(PresContext(),
-                                                         aRenderingContext));
-
+      LogicalMargin scrollbarSizes(aWM,
+                                   scrollableFrame->GetDesiredScrollbarSizes());
       intrinsicSize.ISize(aWM) += scrollbarSizes.IStartEnd(aWM);
       intrinsicSize.BSize(aWM) += scrollbarSizes.BStartEnd(aWM);
     }
@@ -631,7 +613,6 @@ LogicalSize nsTextControlFrame::ComputeAutoSize(
       LogicalSize ancestorAutoSize = nsContainerFrame::ComputeAutoSize(
           aRenderingContext, aWM, aCBSize, aAvailableISize, aMargin,
           aBorderPadding, aSizeOverrides, aFlags);
-      // Disabled when there's inflation; see comment in GetXULPrefSize.
       MOZ_ASSERT(inflation != 1.0f ||
                      ancestorAutoSize.ISize(aWM) == autoSize.ISize(aWM),
                  "Incorrect size computed by ComputeAutoSize?");
@@ -650,16 +631,14 @@ Maybe<nscoord> nsTextControlFrame::ComputeBaseline(
   }
   WritingMode wm = aReflowInput.GetWritingMode();
 
-  // Calculate the baseline and store it in mFirstBaseline.
   nscoord lineHeight = aReflowInput.ComputedBSize();
-  float inflation = nsLayoutUtils::FontSizeInflationFor(aFrame);
   if (!aForSingleLineControl || lineHeight == NS_UNCONSTRAINEDSIZE) {
-    lineHeight = ReflowInput::CalcLineHeight(
-        aFrame->GetContent(), aFrame->Style(), aFrame->PresContext(),
-        NS_UNCONSTRAINEDSIZE, inflation);
+    lineHeight = NS_CSS_MINMAX(aReflowInput.GetLineHeight(),
+                               aReflowInput.ComputedMinBSize(),
+                               aReflowInput.ComputedMaxBSize());
   }
   RefPtr<nsFontMetrics> fontMet =
-      nsLayoutUtils::GetFontMetricsForFrame(aFrame, inflation);
+      nsLayoutUtils::GetInflatedFontMetricsForFrame(aFrame);
   return Some(nsLayoutUtils::GetCenteredFontBaseline(fontMet, lineHeight,
                                                      wm.IsLineInverted()) +
               aReflowInput.ComputedLogicalBorderPadding(wm).BStart(wm));
@@ -686,6 +665,7 @@ void nsTextControlFrame::Reflow(nsPresContext* aPresContext,
   aDesiredSize.SetSize(wm, aReflowInput.ComputedSizeWithBorderPadding(wm));
 
   {
+    // Calculate the baseline and store it in mFirstBaseline.
     auto baseline =
         ComputeBaseline(this, aReflowInput, IsSingleLineTextControl());
     mFirstBaseline = baseline.valueOr(NS_INTRINSIC_ISIZE_UNKNOWN);
@@ -818,16 +798,6 @@ void nsTextControlFrame::ReflowTextControlChild(
 
   // consider the overflow
   aParentDesiredSize.mOverflowAreas.UnionWith(desiredSize.mOverflowAreas);
-}
-
-nsSize nsTextControlFrame::GetXULMinSize(nsBoxLayoutState& aState) {
-  // XXXbz why?  Why not the nsBoxFrame sizes?
-  return nsIFrame::GetUncachedXULMinSize(aState);
-}
-
-bool nsTextControlFrame::IsXULCollapsed() {
-  // We're never collapsed in the box sense.
-  return false;
 }
 
 // IMPLEMENTING NS_IFORMCONTROLFRAME
@@ -1315,7 +1285,7 @@ nsTextControlFrame::RestoreState(PresState* aState) {
   return NS_OK;
 }
 
-nsresult nsTextControlFrame::PeekOffset(nsPeekOffsetStruct* aPos) {
+nsresult nsTextControlFrame::PeekOffset(PeekOffsetStruct* aPos) {
   return NS_ERROR_FAILURE;
 }
 

@@ -56,6 +56,9 @@ extern "C" const char* __tsan_default_suppressions() {
          "mutex:libEGL_mesa.so\n"
          // ~GLContextGLX unlocks a libGL mutex.
          "mutex:GLContextGLX::~GLContextGLX\n"
+         // Bug 1825171
+         "mutex:libffi.so\n"
+         "mutex:wl_registry_destroy\n"
          // Bug 1651446 - permanent (ffmpeg)
          "race:libavcodec.so*\n"
          "race:libavutil.so*\n"
@@ -79,6 +82,9 @@ extern "C" const char* __tsan_default_suppressions() {
          "race:fire_glxtest_process\n"
          // Bug 1722721 - WebRender using uninstrumented Mesa drivers
          "race:swrast_dri.so\n"
+         // Bug 1825171
+         "race:libffi.so\n"
+         "race:mozilla::widget::WaylandBuffer::BufferReleaseCallbackHandler\n"
 
 
 
@@ -294,6 +300,12 @@ extern "C" const char* __tsan_default_suppressions() {
          // The Glean init thread is used to perform I/O and other blocking operations.
          // It is never joined with the main thread, but this is being re-evaluated.
          "thread:glean::initialize\n"
+
+         // Bug 1822605 - permanent
+         // A race exists in libvulkan_lvp.so.  This was previously addressed in bug
+         // 1816713. However, libvulkan_lvp.so is unloaded so a called_from_lib
+         // suppression cannot be used.
+         "race:libvulkan_lvp.so\n"
 
       // End of suppressions.
       ;  // Please keep this semicolon.

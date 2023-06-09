@@ -18,10 +18,6 @@
 #include "nsICanvasRenderingContextInternal.h"
 #include "SharedSurfaceGL.h"
 
-#ifdef MOZ_WIDGET_ANDROID
-#  include "mozilla/layers/AndroidHardwareBuffer.h"
-#endif
-
 using namespace mozilla::gfx;
 
 namespace mozilla {
@@ -80,26 +76,8 @@ RefPtr<layers::TextureClient> ShareableCanvasRenderer::GetFrontBufferFromDesc(
     }
   }
 
-  if (desc.type() !=
-      SurfaceDescriptor::TSurfaceDescriptorAndroidHardwareBuffer) {
-    mFrontBufferFromDesc = SharedSurfaceTextureData::CreateTextureClient(
-        desc, format, mData.mSize, flags, textureForwarder);
-  } else {
-#ifdef MOZ_WIDGET_ANDROID
-    const SurfaceDescriptorAndroidHardwareBuffer& bufferDesc =
-        desc.get_SurfaceDescriptorAndroidHardwareBuffer();
-    RefPtr<AndroidHardwareBuffer> buffer =
-        AndroidHardwareBufferManager::Get()->GetBuffer(bufferDesc.bufferId());
-    if (!buffer) {
-      return nullptr;
-    }
-    // TextureClient is created only when AndroidHardwareBuffer does not own it.
-    mFrontBufferFromDesc = buffer->GetTextureClientOfSharedSurfaceTextureData(
-        desc, format, mData.mSize, flags, textureForwarder);
-#else
-    MOZ_ASSERT_UNREACHABLE("unexpected to be called");
-#endif
-  }
+  mFrontBufferFromDesc = SharedSurfaceTextureData::CreateTextureClient(
+      desc, format, mData.mSize, flags, textureForwarder);
   mFrontBufferDesc = desc;
   return mFrontBufferFromDesc;
 }
@@ -142,13 +120,17 @@ void ShareableCanvasRenderer::UpdateCompositableClient() {
   // -
 
   const auto fnGetExistingTc =
-      [&](const Maybe<SurfaceDescriptor>& aDesc) -> RefPtr<TextureClient> {
+      [&](const Maybe<SurfaceDescriptor>& aDesc,
+          bool& aOutLostFrontTexture) -> RefPtr<TextureClient> {
     if (aDesc) {
       return GetFrontBufferFromDesc(*aDesc, flags);
     }
     if (provider) {
-      if (!provider->SetKnowsCompositor(forwarder)) {
+      if (!provider->SetKnowsCompositor(forwarder, aOutLostFrontTexture)) {
         gfxCriticalNote << "BufferProvider::SetForwarder failed";
+        return nullptr;
+      }
+      if (aOutLostFrontTexture) {
         return nullptr;
       }
 
@@ -218,7 +200,12 @@ void ShareableCanvasRenderer::UpdateCompositableClient() {
     EnsurePipeline();
 
     // Let's see if we can get a no-copy TextureClient from the canvas.
-    auto tc = fnGetExistingTc(desc);
+    bool lostFrontTexture = false;
+    auto tc = fnGetExistingTc(desc, lostFrontTexture);
+    if (lostFrontTexture) {
+      // Device reset could cause this.
+      return;
+    }
     if (!tc) {
       // Otherwise, snapshot the surface and copy into a TexClient.
       tc = fnMakeTcFromSnapshot();

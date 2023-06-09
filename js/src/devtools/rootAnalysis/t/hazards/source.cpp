@@ -53,6 +53,12 @@ class AutoSuppressGC {
   AutoSuppressGC() {}
 };
 
+class AutoCheckCannotGC {
+ public:
+  AutoCheckCannotGC() {}
+  ~AutoCheckCannotGC() { asm(""); }
+} ANNOTATE("Invalidated by GC");
+
 extern void GC() ANNOTATE("GC Call");
 extern void invisible();
 
@@ -64,6 +70,8 @@ void GC() {
 }
 
 extern void usecell(Cell*);
+
+extern bool flipcoin();
 
 void suppressedFunction() {
   GC();  // Calls GC, but is always called within AutoSuppressGC
@@ -405,6 +413,16 @@ void safevals() {
     subp->cannotScriptThis();
     use(safe18);
   }
+  {
+    // A use after a GC, but not before. (This does not initialize safe19 by
+    // setting it to a value, because assignment would start its live range, and
+    // this test is to see if a variable with no known live range start requires
+    // a use before the GC or not. It should.)
+    Cell* safe19;
+    GC();
+    extern void initCellPtr(Cell**);
+    initCellPtr(&safe19);
+  }
 }
 
 // Make sure `this` is live at the beginning of a function.
@@ -418,8 +436,12 @@ class Subcell : public Cell {
 template <typename T>
 struct RefPtr {
   ~RefPtr() { GC(); }
-  void forget() {}
+  bool forget() { return true; }
+  bool use() { return true; }
+  void assign_with_AddRef(T* aRawPtr) { asm(""); }
 };
+
+extern bool flipcoin();
 
 Cell* refptr_test1() {
   static Cell cell;
@@ -456,4 +478,89 @@ Cell* refptr_test5() {
   static Cell cell;
   RefPtr<int> r;
   return nullptr;  // returning immobile value, so no hazard
+}
+
+float somefloat = 1.2;
+
+Cell* refptr_test6() {
+  static Cell cell;
+  RefPtr<float> v6;
+  Cell* ref_unsafe6 = &cell;
+  // v6 can be used without an intervening forget() before the end of the
+  // function, even though forget() will be called at least once.
+  v6.forget();
+  if (x) {
+    v6.forget();
+    v6.assign_with_AddRef(&somefloat);
+  }
+  return ref_unsafe6;
+}
+
+Cell* refptr_test7() {
+  static Cell cell;
+  RefPtr<float> v7;
+  Cell* ref_unsafe7 = &cell;
+  // Similar to above, but with a loop.
+  while (flipcoin()) {
+    v7.forget();
+    v7.assign_with_AddRef(&somefloat);
+  }
+  return ref_unsafe7;
+}
+
+Cell* refptr_test8() {
+  static Cell cell;
+  RefPtr<float> v8;
+  Cell* ref_unsafe8 = &cell;
+  // If the loop is traversed, forget() will be called. But that doesn't
+  // matter, because even on the last iteration v8.use() will have been called
+  // (and potentially dropped the refcount or whatever.)
+  while (v8.use()) {
+    v8.forget();
+  }
+  return ref_unsafe8;
+}
+
+Cell* refptr_test9() {
+  static Cell cell;
+  RefPtr<float> v9;
+  Cell* ref_safe9 = &cell;
+  // Even when not going through the loop, forget() will be called and so the
+  // dtor will not Release.
+  while (v9.forget()) {
+    v9.assign_with_AddRef(&somefloat);
+  }
+  return ref_safe9;
+}
+
+Cell* refptr_test10() {
+  static Cell cell;
+  RefPtr<float> v10;
+  Cell* ref_unsafe10 = &cell;
+  // The destructor has a backwards path that skips the loop body.
+  v10.assign_with_AddRef(&somefloat);
+  while (flipcoin()) {
+    v10.forget();
+  }
+  return ref_unsafe10;
+}
+
+std::pair<bool, AutoCheckCannotGC> pair_returning_function() {
+  return std::make_pair(true, AutoCheckCannotGC());
+}
+
+void aggr_init_unsafe() {
+  // nogc will be live after the call, so across the GC.
+  auto [ok, nogc] = pair_returning_function();
+  GC();
+}
+
+void aggr_init_safe() {
+  // The analysis should be able to tell that nogc is only live after the call,
+  // not before. (This is to check for a problem where the return value was
+  // getting stored into a different temporary than the local nogc variable,
+  // and so its initialization was never seen and so it was assumed to be live
+  // throughout the function.)
+  GC();
+  auto [ok, nogc] = pair_returning_function();
 }

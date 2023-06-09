@@ -234,7 +234,7 @@
       menuitem.addEventListener("command", e => {
         let tree = this.parentNode.parentNode;
         tree.stopEditing(true);
-        this.style.MozBoxOrdinalGroup = "";
+        this.style.order = "";
         tree._ensureColumnOrder(tree.NATURAL_ORDER);
         e.preventDefault();
       });
@@ -302,6 +302,10 @@
   customElements.define("treecolpicker", MozTreecolPicker);
 
   class MozTreecol extends MozElements.BaseControl {
+    static get observedAttributes() {
+      return ["primary"];
+    }
+
     static get inheritedAttributes() {
       return {
         ".treecol-sortdirection": "sortdirection,hidden=hideheader",
@@ -311,9 +315,22 @@
 
     static get markup() {
       return `
-        <label class="treecol-text" flex="1" crop="right"></label>
+        <label class="treecol-text" flex="1" crop="end"></label>
         <image class="treecol-sortdirection"></image>
       `;
+    }
+
+    get _tree() {
+      return this.parentNode?.parentNode;
+    }
+
+    _invalidate() {
+      let tree = this._tree;
+      if (!tree || !XULTreeElement.isInstance(tree)) {
+        return;
+      }
+      tree.invalidate();
+      tree.columns?.invalidateColumns();
     }
 
     constructor() {
@@ -323,7 +340,7 @@
         if (event.button != 0) {
           return;
         }
-        if (this.parentNode.parentNode.enableColumnDrag) {
+        if (this._tree.enableColumnDrag) {
           var XUL_NS =
             "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
           var cols = this.parentNode.getElementsByTagNameNS(XUL_NS, "treecol");
@@ -361,7 +378,7 @@
           return;
         }
 
-        var tree = this.parentNode.parentNode;
+        var tree = this._tree;
         if (tree.columns) {
           tree.view.cycleHeader(tree.columns.getColumnFor(this));
         }
@@ -377,17 +394,34 @@
       this.appendChild(this.constructor.fragment);
       this.initializeAttributeInheritance();
       if (this.hasAttribute("ordinal")) {
-        this.style.MozBoxOrdinalGroup = this.getAttribute("ordinal");
+        this.style.order = this.getAttribute("ordinal");
       }
+      if (this.hasAttribute("width")) {
+        this.style.width = this.getAttribute("width") + "px";
+      }
+
+      this._resizeObserver = new ResizeObserver(() => {
+        this._invalidate();
+      });
+      this._resizeObserver.observe(this);
+    }
+
+    disconnectedCallback() {
+      this._resizeObserver?.unobserve(this);
+      this._resizeObserver = null;
+    }
+
+    attributeChangedCallback() {
+      this._invalidate();
     }
 
     set ordinal(val) {
-      this.style.MozBoxOrdinalGroup = val;
+      this.style.order = val;
       this.setAttribute("ordinal", val);
     }
 
     get ordinal() {
-      var val = this.style.MozBoxOrdinalGroup;
+      var val = this.style.order;
       if (val == "") {
         return "1";
       }
@@ -638,6 +672,10 @@
         el.addEventListener("command", stopProp);
       }
       this.shadowRoot.appendChild(this.constructor.fragment);
+
+      this.#verticalScrollbar = this.shadowRoot.querySelector(
+        "scrollbar[orient='vertical']"
+      );
     }
 
     static get inheritedAttributes() {
@@ -659,7 +697,6 @@
 
       this.setAttribute("hidevscroll", "true");
       this.setAttribute("hidehscroll", "true");
-      this.setAttribute("clickthrough", "never");
 
       this.initializeAttributeInheritance();
 
@@ -754,31 +791,20 @@
 
       // This event doesn't retarget, so listen on the shadow DOM directly
       this.shadowRoot.addEventListener("MozMousePixelScroll", event => {
-        if (
-          !(
-            this.getAttribute("allowunderflowscroll") == "true" &&
-            this.getAttribute("hidevscroll") == "true"
-          )
-        ) {
+        if (this.#canScroll(event)) {
           event.preventDefault();
         }
       });
 
       // This event doesn't retarget, so listen on the shadow DOM directly
       this.shadowRoot.addEventListener("DOMMouseScroll", event => {
-        if (
-          !(
-            this.getAttribute("allowunderflowscroll") == "true" &&
-            this.getAttribute("hidevscroll") == "true"
-          )
-        ) {
-          event.preventDefault();
-        }
-
-        if (this._editingColumn) {
+        if (!this.#canScroll(event)) {
           return;
         }
-        if (event.axis == event.HORIZONTAL_AXIS) {
+
+        event.preventDefault();
+
+        if (this._editingColumn) {
           return;
         }
 
@@ -1156,7 +1182,7 @@
         // they are in between columns
         var splitters = this.getElementsByTagName("splitter");
         for (let i = 0; i < splitters.length; ++i) {
-          splitters[i].style.MozBoxOrdinalGroup = (i + 1) * 2;
+          splitters[i].style.order = (i + 1) * 2;
         }
       }
     }
@@ -1199,7 +1225,10 @@
         for (i = 0; i < cols.length; ++i) {
           cols[i].ordinal = parseInt(cols[i].ordinal) - 2;
         }
+      } else {
+        return;
       }
+      this.columns.invalidateColumns();
     }
 
     _getColumnAtX(aX, aThresh, aPos) {
@@ -1341,7 +1370,7 @@
       // in LTR mode, and left side of the cell in RTL mode.
       let left = style.direction == "rtl" ? cellRect.x : textRect.x;
       let scrollbarWidth = window.windowUtils.getBoundsWithoutFlushing(
-        this.shadowRoot.querySelector("scrollbar[orient='vertical']")
+        this.#verticalScrollbar
       ).width;
       // Note: this won't be quite right in RTL for trees using twisties
       // or indentation. bug 1708159 tracks fixing the implementation
@@ -1627,6 +1656,42 @@
       }
 
       return this.changeOpenState(this.currentIndex);
+    }
+
+    #verticalScrollbar = null;
+    #lastScrollEventTimeStampMap = new Map();
+
+    #canScroll(event) {
+      const lastScrollEventTimeStamp = this.#lastScrollEventTimeStampMap.get(
+        event.type
+      );
+      this.#lastScrollEventTimeStampMap.set(event.type, event.timeStamp);
+
+      if (
+        window.windowUtils.getWheelScrollTarget() ||
+        event.axis == event.HORIZONTAL_AXIS ||
+        (this.getAttribute("allowunderflowscroll") == "true" &&
+          this.getAttribute("hidevscroll") == "true")
+      ) {
+        return false;
+      }
+
+      if (
+        event.timeStamp - (lastScrollEventTimeStamp ?? 0) <
+        Services.prefs.getIntPref("mousewheel.scroll_series_timeout")
+      ) {
+        // If the time difference of previous event does not over the timeout,
+        // handle the event in tree as the same seies of events even if the
+        // current position is edge.
+        return true;
+      }
+
+      const curpos = Number(this.#verticalScrollbar.getAttribute("curpos"));
+      return (
+        (event.detail < 0 && 0 < curpos) ||
+        (event.detail > 0 &&
+          curpos < Number(this.#verticalScrollbar.getAttribute("maxpos")))
+      );
     }
   }
 

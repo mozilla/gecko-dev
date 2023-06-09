@@ -73,6 +73,7 @@ static NS_DEFINE_CID(kFrameTraversalCID, NS_FRAMETRAVERSAL_CID);
 #include "nsError.h"
 #include "mozilla/AutoCopyListener.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/Highlight.h"
 #include "mozilla/dom/Selection.h"
 #include "mozilla/dom/ShadowRoot.h"
 #include "mozilla/dom/StaticRange.h"
@@ -128,7 +129,7 @@ static void printRange(nsRange* aDomRange);
 #endif  // PRINT_RANGE
 
 /******************************************************************************
- * nsPeekOffsetStruct
+ * mozilla::PeekOffsetStruct
  ******************************************************************************/
 
 // #define DEBUG_SELECTION // uncomment for printf describing every collapse and
@@ -136,28 +137,25 @@ static void printRange(nsRange* aDomRange);
 
 // #define DEBUG_TABLE_SELECTION 1
 
-nsPeekOffsetStruct::nsPeekOffsetStruct(
-    nsSelectionAmount aAmount, nsDirection aDirection, int32_t aStartOffset,
-    nsPoint aDesiredCaretPos, bool aJumpLines, bool aScrollViewStop,
-    bool aIsKeyboardSelect, bool aVisual, bool aExtend,
-    ForceEditableRegion aForceEditableRegion,
-    EWordMovementType aWordMovementType, bool aTrimSpaces)
+namespace mozilla {
+
+PeekOffsetStruct::PeekOffsetStruct(nsSelectionAmount aAmount,
+                                   nsDirection aDirection, int32_t aStartOffset,
+                                   nsPoint aDesiredCaretPos,
+                                   const PeekOffsetOptions aOptions,
+                                   EWordMovementType aWordMovementType)
     : mAmount(aAmount),
       mDirection(aDirection),
       mStartOffset(aStartOffset),
       mDesiredCaretPos(aDesiredCaretPos),
       mWordMovementType(aWordMovementType),
-      mJumpLines(aJumpLines),
-      mTrimSpaces(aTrimSpaces),
-      mScrollViewStop(aScrollViewStop),
-      mIsKeyboardSelect(aIsKeyboardSelect),
-      mVisual(aVisual),
-      mExtend(aExtend),
-      mForceEditableRegion(aForceEditableRegion == ForceEditableRegion::Yes),
+      mOptions(aOptions),
       mResultContent(),
       mResultFrame(nullptr),
       mContentOffset(0),
       mAttach(CARET_ASSOCIATE_BEFORE) {}
+
+}  // namespace mozilla
 
 // Array which contains index of each SelecionType in Selection::mDOMSelections.
 // For avoiding using if nor switch to retrieve the index, this needs to have
@@ -175,6 +173,7 @@ static const int8_t kIndexOfSelections[] = {
     7,   // SelectionType::eFind
     8,   // SelectionType::eURLSecondary
     9,   // SelectionType::eURLStrikeout
+    -1,  // SelectionType::eHighlight
 };
 
 inline int8_t GetIndexFromSelectionType(SelectionType aSelectionType) {
@@ -233,7 +232,8 @@ struct MOZ_RAII AutoPrepareFocusRange {
       // Scripted command or the user is starting a new explicit multi-range
       // selection.
       for (StyledRange& entry : ranges) {
-        entry.mRange->SetIsGenerated(false);
+        MOZ_ASSERT(entry.mRange->IsDynamicRange());
+        entry.mRange->AsDynamicRange()->SetIsGenerated(false);
       }
       return;
     }
@@ -278,16 +278,19 @@ struct MOZ_RAII AutoPrepareFocusRange {
     nsRange* result{nullptr};
     if (aSelection.GetDirection() == eDirNext) {
       for (size_t i = 0; i < len; ++i) {
-        if (ranges[i].mRange->IsGenerated()) {
-          result = ranges[i].mRange;
+        // This function is only called for selections with type == eNormal.
+        // (see MOZ_ASSERT in constructor).
+        // Therefore, all ranges must be dynamic.
+        if (ranges[i].mRange->AsDynamicRange()->IsGenerated()) {
+          result = ranges[i].mRange->AsDynamicRange();
           break;
         }
       }
     } else {
       size_t i = len;
       while (i--) {
-        if (ranges[i].mRange->IsGenerated()) {
-          result = ranges[i].mRange;
+        if (ranges[i].mRange->AsDynamicRange()->IsGenerated()) {
+          result = ranges[i].mRange->AsDynamicRange();
           break;
         }
       }
@@ -301,10 +304,16 @@ struct MOZ_RAII AutoPrepareFocusRange {
     nsTArray<StyledRange>& ranges = aSelection.mStyledRanges.mRanges;
     size_t i = ranges.Length();
     while (i--) {
-      nsRange* range = ranges[i].mRange;
+      // This function is only called for selections with type == eNormal.
+      // (see MOZ_ASSERT in constructor).
+      // Therefore, all ranges must be dynamic.
+      if (!ranges[i].mRange->IsDynamicRange()) {
+        continue;
+      }
+      nsRange* range = ranges[i].mRange->AsDynamicRange();
       if (range->IsGenerated()) {
-        range->UnregisterSelection();
-        aSelection.SelectFrames(presContext, range, false);
+        range->UnregisterSelection(aSelection);
+        aSelection.SelectFrames(presContext, *range, false);
         ranges.RemoveElementAt(i);
       }
     }
@@ -391,6 +400,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsFrameSelection)
   for (size_t i = 0; i < ArrayLength(tmp->mDomSelections); ++i) {
     tmp->mDomSelections[i] = nullptr;
   }
+  tmp->mHighlightSelections.Clear();
 
   NS_IMPL_CYCLE_COLLECTION_UNLINK(
       mTableSelection.mClosestInclusiveTableCellAncestor)
@@ -412,6 +422,10 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsFrameSelection)
   }
   for (size_t i = 0; i < ArrayLength(tmp->mDomSelections); ++i) {
     NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mDomSelections[i])
+  }
+
+  for (const auto& value : tmp->mHighlightSelections.Values()) {
+    CycleCollectionNoteChild(cb, value.get(), "mHighlightSelections[]");
   }
 
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(
@@ -783,11 +797,11 @@ nsresult nsFrameSelection::MoveCaret(nsDirection aDirection,
   CaretAssociateHint tHint(mCaret.mHint);  // temporary variable so we dont set
                                            // mCaret.mHint until it is necessary
 
-  Result<nsPeekOffsetStruct, nsresult> result = PeekOffsetForCaretMove(
+  Result<PeekOffsetStruct, nsresult> result = PeekOffsetForCaretMove(
       direction, aContinueSelection, aAmount, aMovementStyle, desiredPos);
   nsresult rv;
   if (result.isOk() && result.inspect().mResultContent) {
-    const nsPeekOffsetStruct& pos = result.inspect();
+    const PeekOffsetStruct& pos = result.inspect();
     nsIFrame* theFrame;
     int32_t currentOffset, frameStart, frameEnd;
 
@@ -876,7 +890,7 @@ nsresult nsFrameSelection::MoveCaret(nsDirection aDirection,
   return rv;
 }
 
-Result<nsPeekOffsetStruct, nsresult> nsFrameSelection::PeekOffsetForCaretMove(
+Result<PeekOffsetStruct, nsresult> nsFrameSelection::PeekOffsetForCaretMove(
     nsDirection aDirection, bool aContinueSelection,
     const nsSelectionAmount aAmount, CaretMovementStyle aMovementStyle,
     const nsPoint& aDesiredCaretPos) const {
@@ -896,17 +910,25 @@ Result<nsPeekOffsetStruct, nsresult> nsFrameSelection::PeekOffsetForCaretMove(
     return Err(NS_ERROR_FAILURE);
   }
 
-  const auto kForceEditableRegion =
-      selection->IsEditorSelection()
-          ? nsPeekOffsetStruct::ForceEditableRegion::Yes
-          : nsPeekOffsetStruct::ForceEditableRegion::No;
-
   // set data using mLimiters.mLimiter to stop on scroll views.  If we have a
   // limiter then we stop peeking when we hit scrollable views.  If no limiter
   // then just let it go ahead
-  nsPeekOffsetStruct pos(aAmount, aDirection, offsetused, aDesiredCaretPos,
-                         true, !!mLimiters.mLimiter, true, visualMovement,
-                         aContinueSelection, kForceEditableRegion);
+  PeekOffsetOptions options{PeekOffsetOption::JumpLines,
+                            PeekOffsetOption::IsKeyboardSelect};
+  if (mLimiters.mLimiter) {
+    options += PeekOffsetOption::ScrollViewStop;
+  }
+  if (visualMovement) {
+    options += PeekOffsetOption::Visual;
+  }
+  if (aContinueSelection) {
+    options += PeekOffsetOption::Extend;
+  }
+  if (selection->IsEditorSelection()) {
+    options += PeekOffsetOption::ForceEditableRegion;
+  }
+  PeekOffsetStruct pos(aAmount, aDirection, offsetused, aDesiredCaretPos,
+                       options);
   nsresult rv = frame->PeekOffset(&pos);
   if (NS_FAILED(rv)) {
     return Err(rv);
@@ -955,10 +977,12 @@ nsPrevNextBidiLevels nsFrameSelection::GetPrevNextBidiLevels(
     return levels;
   }
 
+  PeekOffsetOptions peekOffsetOptions{PeekOffsetOption::ScrollViewStop};
+  if (aJumpLines) {
+    peekOffsetOptions += PeekOffsetOption::JumpLines;
+  }
   nsIFrame* newFrame =
-      currentFrame
-          ->GetFrameFromDirection(direction, false, aJumpLines, true, false)
-          .mFrame;
+      currentFrame->GetFrameFromDirection(direction, peekOffsetOptions).mFrame;
 
   FrameBidiData currentBidi = currentFrame->GetBidiData();
   mozilla::intl::BidiEmbeddingLevel currentLevel = currentBidi.embeddingLevel;
@@ -1156,21 +1180,23 @@ void nsFrameSelection::MaintainedRange::AdjustContentOffsets(
     nsIFrame* frame = GetFrameForNodeOffset(aOffsets.content, aOffsets.offset,
                                             CARET_ASSOCIATE_AFTER, &offset);
 
+    PeekOffsetOptions peekOffsetOptions{};
+    if (aScrollViewStop) {
+      peekOffsetOptions += PeekOffsetOption::ScrollViewStop;
+    }
     if (frame && amount == eSelectWord && direction == eDirPrevious) {
       // To avoid selecting the previous word when at start of word,
       // first move one character forward.
-      nsPeekOffsetStruct charPos(eSelectCharacter, eDirNext, offset,
-                                 nsPoint(0, 0), false, aScrollViewStop, false,
-                                 false, false);
+      PeekOffsetStruct charPos(eSelectCharacter, eDirNext, offset,
+                               nsPoint(0, 0), peekOffsetOptions);
       if (NS_SUCCEEDED(frame->PeekOffset(&charPos))) {
         frame = charPos.mResultFrame;
         offset = charPos.mContentOffset;
       }
     }
 
-    nsPeekOffsetStruct pos(amount, direction, offset, nsPoint(0, 0), false,
-                           aScrollViewStop, false, false, false);
-
+    PeekOffsetStruct pos(amount, direction, offset, nsPoint(0, 0),
+                         peekOffsetOptions);
     if (frame && NS_SUCCEEDED(frame->PeekOffset(&pos)) && pos.mResultContent) {
       aOffsets.content = pos.mResultContent;
       aOffsets.offset = pos.mContentOffset;
@@ -1533,6 +1559,12 @@ UniquePtr<SelectionDetails> nsFrameSelection::LookUpSelection(
           kPresentSelectionTypes[j], aSlowCheck);
     }
   }
+  for (auto const& highlightSelection : mHighlightSelections.Values()) {
+    details = highlightSelection->LookUpSelection(
+        aContent, static_cast<uint32_t>(aContentOffset),
+        static_cast<uint32_t>(aContentLength), std::move(details),
+        SelectionType::eHighlight, aSlowCheck);
+  }
 
   return details;
 }
@@ -1562,6 +1594,45 @@ Selection* nsFrameSelection::GetSelection(SelectionType aSelectionType) const {
   if (index < 0) return nullptr;
 
   return mDomSelections[index];
+}
+
+void nsFrameSelection::AddHighlightSelection(
+    const nsAtom* aHighlightName, const mozilla::dom::Highlight& aHighlight) {
+  RefPtr<Selection> selection =
+      aHighlight.CreateHighlightSelection(aHighlightName, this);
+  mHighlightSelections.InsertOrUpdate(aHighlightName, std::move(selection));
+}
+
+void nsFrameSelection::RemoveHighlightSelection(const nsAtom* aHighlightName) {
+  if (auto maybeSelection = mHighlightSelections.MaybeGet(aHighlightName)) {
+    RefPtr<Selection> selection = *maybeSelection;
+    selection->RemoveAllRanges(IgnoreErrors());
+    mHighlightSelections.Remove(aHighlightName);
+  }
+}
+
+void nsFrameSelection::AddHighlightSelectionRange(
+    const nsAtom* aHighlightName, const mozilla::dom::Highlight& aHighlight,
+    mozilla::dom::AbstractRange& aRange) {
+  if (auto lookupResult = mHighlightSelections.Lookup(aHighlightName)) {
+    RefPtr<Selection> selection = lookupResult.Data();
+    selection->AddHighlightRangeAndSelectFramesAndNotifyListeners(aRange);
+  } else {
+    // if the selection does not exist yet, add all of its ranges and exit.
+    RefPtr<Selection> selection =
+        aHighlight.CreateHighlightSelection(aHighlightName, this);
+    lookupResult.Data() = selection;
+  }
+}
+
+void nsFrameSelection::RemoveHighlightSelectionRange(
+    const nsAtom* aHighlightName, mozilla::dom::AbstractRange& aRange) {
+  if (const auto lookupResult = mHighlightSelections.Lookup(aHighlightName)) {
+    // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+    RefPtr<Selection> selection = lookupResult.Data();
+    selection->RemoveRangeAndUnselectFramesAndNotifyListeners(aRange,
+                                                              IgnoreErrors());
+  }
 }
 
 nsresult nsFrameSelection::ScrollSelectionIntoView(SelectionType aSelectionType,
@@ -2127,12 +2198,12 @@ nsFrameSelection::CreateRangeExtendedToSomewhere(
   if (!firstRange || !firstRange->IsPositioned()) {
     return Err(NS_ERROR_FAILURE);
   }
-  Result<nsPeekOffsetStruct, nsresult> result = PeekOffsetForCaretMove(
+  Result<PeekOffsetStruct, nsresult> result = PeekOffsetForCaretMove(
       aDirection, true, aAmount, aMovementStyle, nsPoint(0, 0));
   if (result.isErr()) {
     return Err(NS_ERROR_FAILURE);
   }
-  const nsPeekOffsetStruct& pos = result.inspect();
+  const PeekOffsetStruct& pos = result.inspect();
   RefPtr<RangeType> range;
   if (NS_WARN_IF(!pos.mResultContent)) {
     return range;

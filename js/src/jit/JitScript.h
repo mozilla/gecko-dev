@@ -53,13 +53,6 @@ class IonScript;
 class JitScript;
 class JitZone;
 
-// Information about a script's bytecode, used by WarpBuilder. This is cached
-// in JitScript.
-struct IonBytecodeInfo {
-  bool usesEnvironmentChain = false;
-  bool modifiesArguments = false;
-};
-
 // Magic BaselineScript value indicating Baseline compilation has been disabled.
 static constexpr uintptr_t BaselineDisabledScript = 0x1;
 
@@ -289,27 +282,6 @@ class alignas(uintptr_t) JitScript final : public TrailingArray {
   // Profile string used by the profiler for Baseline Interpreter frames.
   const char* profileString_ = nullptr;
 
-  // Data allocated lazily the first time this script is compiled, inlined, or
-  // analyzed by WarpBuilder. This is done lazily to improve performance and
-  // memory usage as most scripts are never Warp-compiled.
-  struct CachedIonData {
-    // For functions with a call object, template objects to use for the call
-    // object and decl env object (linked via the call object's enclosing
-    // scope).
-    const HeapPtr<EnvironmentObject*> templateEnv = nullptr;
-
-    // Analysis information based on the script and its bytecode.
-    IonBytecodeInfo bytecodeInfo = {};
-
-    CachedIonData(EnvironmentObject* templateEnv, IonBytecodeInfo bytecodeInfo);
-
-    CachedIonData(const CachedIonData&) = delete;
-    void operator=(const CachedIonData&) = delete;
-
-    void trace(JSTracer* trc);
-  };
-  js::UniquePtr<CachedIonData> cachedIonData_;
-
   // Baseline code for the script. Either nullptr, BaselineDisabledScriptPtr or
   // a valid BaselineScript*.
   GCStructPtr<BaselineScript*> baselineScript_;
@@ -317,6 +289,17 @@ class alignas(uintptr_t) JitScript final : public TrailingArray {
   // Ion code for this script. Either nullptr, IonDisabledScriptPtr,
   // IonCompilingScriptPtr or a valid IonScript*.
   GCStructPtr<IonScript*> ionScript_;
+
+  // For functions that need a CallObject and/or NamedLambdaObject, the template
+  // objects used by the Baseline JIT and Ion. If the function needs both a
+  // named lambda object and a call object, the named lambda object template is
+  // linked via the call object's enclosing environment. This field is set the
+  // first time the Baseline JIT compiles this script.
+  mozilla::Maybe<HeapPtr<EnvironmentObject*>> templateEnv_;
+
+  // Analysis data computed lazily the first time this script is compiled or
+  // inlined by WarpBuilder.
+  mozilla::Maybe<bool> usesEnvironmentChain_;
 
   // The size of this allocation.
   Offset endOffset_ = 0;
@@ -352,23 +335,14 @@ class alignas(uintptr_t) JitScript final : public TrailingArray {
 
   Offset endOffset() const { return endOffset_; }
 
-  bool hasCachedIonData() const { return !!cachedIonData_; }
-
-  CachedIonData& cachedIonData() {
-    MOZ_ASSERT(hasCachedIonData());
-    return *cachedIonData_.get();
-  }
-  const CachedIonData& cachedIonData() const {
-    MOZ_ASSERT(hasCachedIonData());
-    return *cachedIonData_.get();
-  }
-
  public:
   JitScript(JSScript* script, Offset fallbackStubsOffset, Offset endOffset,
             const char* profileString);
 
   ~JitScript();
 
+  [[nodiscard]] bool ensureHasCachedBaselineJitData(JSContext* cx,
+                                                    HandleScript script);
   [[nodiscard]] bool ensureHasCachedIonData(JSContext* cx, HandleScript script);
 
   void setHadIonOSR() { flags_.hadIonOSR = true; }
@@ -405,7 +379,7 @@ class alignas(uintptr_t) JitScript final : public TrailingArray {
   }
 
   uint32_t warmUpCount() const { return icScript_.warmUpCount_; }
-  void incWarmUpCount(uint32_t amount) { icScript_.warmUpCount_ += amount; }
+  void incWarmUpCount() { icScript_.warmUpCount_++; }
   void resetWarmUpCount(uint32_t count);
 
   void prepareForDestruction(Zone* zone);
@@ -443,16 +417,9 @@ class alignas(uintptr_t) JitScript final : public TrailingArray {
 
   size_t allocBytes() const { return endOffset(); }
 
-  EnvironmentObject* templateEnvironment() const {
-    return cachedIonData().templateEnv;
-  }
+  EnvironmentObject* templateEnvironment() const { return templateEnv_.ref(); }
 
-  bool modifiesArguments() const {
-    return cachedIonData().bytecodeInfo.modifiesArguments;
-  }
-  bool usesEnvironmentChain() const {
-    return cachedIonData().bytecodeInfo.usesEnvironmentChain;
-  }
+  bool usesEnvironmentChain() const { return *usesEnvironmentChain_; }
 
   gc::AllocSite* createAllocSite(JSScript* script);
 

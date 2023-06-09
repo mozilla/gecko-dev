@@ -23,10 +23,10 @@ XPCOMUtils.defineLazyGetter(lazy, "logger", () => lazy.Log.get());
  * A ContextDescriptor object provides information to decide if a broadcast or
  * a session data item should be applied to a specific MessageHandler context.
  *
- * @typedef {Object} ContextDescriptor
+ * @typedef {object} ContextDescriptor
  * @property {ContextDescriptorType} type
  *     The type of context
- * @property {String=} id
+ * @property {string=} id
  *     Unique id of a given context for the provided type.
  *     For ContextDescriptorType.All, id can be ommitted.
  *     For ContextDescriptorType.TopBrowsingContext, the id should be the
@@ -53,10 +53,10 @@ export const ContextDescriptorType = {
  * Or it can be assembled manually, for instance when emitting an event which
  * relates to a window global from the root layer (eg browsingContext.contextCreated).
  *
- * @typedef {Object} ContextInfo
- * @property {String} contextId
+ * @typedef {object} ContextInfo
+ * @property {string} contextId
  *     Unique id of the MessageHandler corresponding to this context.
- * @property {String} type
+ * @property {string} type
  *     One of MessageHandler.type.
  */
 
@@ -88,17 +88,20 @@ export class MessageHandler extends EventEmitter {
   #contextId;
   #eventsDispatcher;
   #moduleCache;
+  #registry;
   #sessionId;
 
   /**
    * Create a new MessageHandler instance.
    *
-   * @param {String} sessionId
+   * @param {string} sessionId
    *     ID of the session the handler is used for.
-   * @param {Object} context
+   * @param {object} context
    *     The context linked to this MessageHandler instance.
+   * @param {MessageHandlerRegistry} registry
+   *     The MessageHandlerRegistry which owns this MessageHandler instance.
    */
-  constructor(sessionId, context) {
+  constructor(sessionId, context, registry) {
     super();
 
     this.#moduleCache = new lazy.ModuleCache(this);
@@ -107,6 +110,7 @@ export class MessageHandler extends EventEmitter {
     this.#context = context;
     this.#contextId = this.constructor.getIdFromContext(context);
     this.#eventsDispatcher = new lazy.EventsDispatcher(this);
+    this.#registry = registry;
   }
 
   get context() {
@@ -127,6 +131,10 @@ export class MessageHandler extends EventEmitter {
 
   get name() {
     return [this.sessionId, this.constructor.type, this.contextId].join("-");
+  }
+
+  get registry() {
+    return this.#registry;
   }
 
   get sessionId() {
@@ -150,10 +158,10 @@ export class MessageHandler extends EventEmitter {
    *
    * Such events should bubble up to the root of a MessageHandler network.
    *
-   * @param {String} name
+   * @param {string} name
    *     Name of the event. Protocol level events should be of the
    *     form [module name].[event name].
-   * @param {Object} data
+   * @param {object} data
    *     The event's data.
    * @param {ContextInfo=} contextInfo
    *     The event's context info, used to identify the origin of the event.
@@ -178,10 +186,10 @@ export class MessageHandler extends EventEmitter {
   }
 
   /**
-   * @typedef {Object} CommandDestination
-   * @property {String} type
+   * @typedef {object} CommandDestination
+   * @property {string} type
    *     One of MessageHandler.type.
-   * @property {String=} id
+   * @property {string=} id
    *     Unique context identifier. The format depends on the type.
    *     For WINDOW_GLOBAL destinations, this is a browsing context id.
    *     Optional, should only be provided if `contextDescriptor` is missing.
@@ -192,12 +200,12 @@ export class MessageHandler extends EventEmitter {
    */
 
   /**
-   * @typedef {Object} Command
-   * @property {String} commandName
+   * @typedef {object} Command
+   * @property {string} commandName
    *     The name of the command to execute.
-   * @property {String} moduleName
+   * @property {string} moduleName
    *     The name of the module.
-   * @property {Object} params
+   * @property {object} params
    *     Optional command parameters.
    * @property {CommandDestination} destination
    *     The destination describing a debuggable context.
@@ -211,11 +219,11 @@ export class MessageHandler extends EventEmitter {
    * Retrieve all module classes matching the moduleName and destination.
    * See `getAllModuleClasses` (ModuleCache.jsm) for more details.
    *
-   * @param {String} moduleName
+   * @param {string} moduleName
    *     The name of the module.
    * @param {Destination} destination
    *     The destination.
-   * @return {Array.<class<Module>=>}
+   * @returns {Array.<class<Module>|null>}
    *     An array of Module classes.
    */
   getAllModuleClasses(moduleName, destination) {
@@ -229,7 +237,7 @@ export class MessageHandler extends EventEmitter {
    * @param {Command} command
    *     The command that should be either handled in this layer or forwarded to
    *     the next layer leading to the destination.
-   * @return {Promise} A Promise that will resolve with the return value of the
+   * @returns {Promise} A Promise that will resolve with the return value of the
    *     command once it has been executed.
    */
   handleCommand(command) {
@@ -318,13 +326,13 @@ export class MessageHandler extends EventEmitter {
    * Check if the given command is supported in the module
    * for the destination
    *
-   * @param {String} moduleName
+   * @param {string} moduleName
    *     The name of the module.
-   * @param {String} commandName
+   * @param {string} commandName
    *     The name of the command.
    * @param {Destination} destination
    *     The destination.
-   * @return {Boolean}
+   * @returns {boolean}
    *     True if the command is supported.
    */
   supportsCommand(moduleName, commandName, destination) {
@@ -337,7 +345,7 @@ export class MessageHandler extends EventEmitter {
    * Return the context information for this MessageHandler instance, which
    * can be used to identify the origin of an event.
    *
-   * @return {ContextInfo}
+   * @returns {ContextInfo}
    *     The context information for this MessageHandler.
    */
   #getContextInfo() {

@@ -6,12 +6,9 @@ import platform
 import subprocess
 import sys
 import tempfile
+from urllib.request import urlopen
 
-try:
-    from urllib2 import urlopen
-except ImportError:
-    from urllib.request import urlopen
-
+import certifi
 from mach.util import to_optional_path, to_optional_str
 from mozfile import which
 from packaging.version import Version
@@ -164,9 +161,6 @@ class OSXBootstrapperLight(OSXAndroidBootstrapper, BaseBootstrapper):
     def install_browser_artifact_mode_packages(self, mozconfig_builder):
         pass
 
-    def ensure_clang_static_analysis_package(self):
-        pass
-
 
 class OSXBootstrapper(OSXAndroidBootstrapper, BaseBootstrapper):
     def __init__(self, version, **kwargs):
@@ -272,16 +266,6 @@ class OSXBootstrapper(OSXAndroidBootstrapper, BaseBootstrapper):
         if not homebrew_found:
             self.install_homebrew()
 
-    def ensure_clang_static_analysis_package(self):
-        from mozboot import static_analysis
-
-        if platform.machine() == "arm64":
-            self.install_toolchain_static_analysis(
-                static_analysis.MACOS_AARCH64_CLANG_TIDY
-            )
-        else:
-            self.install_toolchain_static_analysis(static_analysis.MACOS_CLANG_TIDY)
-
     def ensure_sccache_packages(self):
         from mozboot import sccache
 
@@ -290,7 +274,9 @@ class OSXBootstrapper(OSXAndroidBootstrapper, BaseBootstrapper):
 
     def install_homebrew(self):
         print(BREW_INSTALL)
-        bootstrap = urlopen(url=HOMEBREW_BOOTSTRAP, timeout=20).read()
+        bootstrap = urlopen(
+            url=HOMEBREW_BOOTSTRAP, cafile=certifi.where(), timeout=20
+        ).read()
         with tempfile.NamedTemporaryFile() as tf:
             tf.write(bootstrap)
             tf.flush()

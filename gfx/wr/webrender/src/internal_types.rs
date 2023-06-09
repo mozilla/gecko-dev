@@ -4,6 +4,7 @@
 
 use api::{ColorF, DocumentId, ExternalImageId, PrimitiveFlags, Parameter, RenderReasons};
 use api::{ImageFormat, NotificationRequest, Shadow, FilterOp, ImageBufferKind};
+use api::FramePublishId;
 use api::units::*;
 use api;
 use crate::render_api::DebugCommand;
@@ -25,6 +26,7 @@ use std::hash::BuildHasherDefault;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{UNIX_EPOCH, SystemTime};
+use peek_poke::PeekPoke;
 
 #[cfg(any(feature = "capture", feature = "replay"))]
 use crate::capture::CaptureConfig;
@@ -36,10 +38,10 @@ use crate::capture::PlainExternalImage;
 pub type FastHashMap<K, V> = HashMap<K, V, BuildHasherDefault<FxHasher>>;
 pub type FastHashSet<K> = HashSet<K, BuildHasherDefault<FxHasher>>;
 
-#[derive(Copy, Clone, Hash, MallocSizeOf, PartialEq, PartialOrd, Debug, Eq, Ord)]
+#[derive(Copy, Clone, Hash, MallocSizeOf, PartialEq, PartialOrd, Debug, Eq, Ord, PeekPoke)]
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
-pub struct FrameId(usize);
+pub struct FrameId(u64);
 
 impl FrameId {
     /// Returns a FrameId corresponding to the first frame.
@@ -53,8 +55,8 @@ impl FrameId {
         FrameId(0)
     }
 
-    /// Returns the backing usize for this FrameId.
-    pub fn as_usize(&self) -> usize {
+    /// Returns the backing u64 for this FrameId.
+    pub fn as_u64(&self) -> u64 {
         self.0
     }
 
@@ -74,16 +76,16 @@ impl Default for FrameId {
     }
 }
 
-impl ::std::ops::Add<usize> for FrameId {
+impl ::std::ops::Add<u64> for FrameId {
     type Output = Self;
-    fn add(self, other: usize) -> FrameId {
+    fn add(self, other: u64) -> FrameId {
         FrameId(self.0 + other)
     }
 }
 
-impl ::std::ops::Sub<usize> for FrameId {
+impl ::std::ops::Sub<u64> for FrameId {
     type Output = Self;
-    fn sub(self, other: usize) -> FrameId {
+    fn sub(self, other: u64) -> FrameId {
         assert!(self.0 >= other, "Underflow subtracting FrameIds");
         FrameId(self.0 - other)
     }
@@ -715,6 +717,7 @@ pub enum ResultMsg {
     },
     PublishPipelineInfo(PipelineInfo),
     PublishDocument(
+        FramePublishId,
         DocumentId,
         RenderedDocument,
         ResourceUpdateList,

@@ -95,13 +95,7 @@ ScriptLoadRequest::ScriptLoadRequest(ScriptKind aKind, nsIURI* aURI,
   }
 }
 
-ScriptLoadRequest::~ScriptLoadRequest() {
-  if (IsMarkedForBytecodeEncoding()) {
-    DropBytecodeCacheReferences();
-  }
-  mLoadContext = nullptr;
-  DropJSObjects(this);
-}
+ScriptLoadRequest::~ScriptLoadRequest() { DropJSObjects(this); }
 
 void ScriptLoadRequest::SetReady() {
   MOZ_ASSERT(!IsReadyToRun());
@@ -142,6 +136,11 @@ ScriptLoadRequest::GetComponentLoadContext() {
 mozilla::dom::WorkerLoadContext* ScriptLoadRequest::GetWorkerLoadContext() {
   MOZ_ASSERT(mLoadContext);
   return mLoadContext->AsWorkerContext();
+}
+
+mozilla::dom::WorkletLoadContext* ScriptLoadRequest::GetWorkletLoadContext() {
+  MOZ_ASSERT(mLoadContext);
+  return mLoadContext->AsWorkletContext();
 }
 
 ModuleLoadRequest* ScriptLoadRequest::AsModuleRequest() {

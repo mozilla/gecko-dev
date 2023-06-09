@@ -37,7 +37,6 @@ add_task(async function trailingSlash() {
     context,
     autofilled: `${origin}/`,
     completed: `http://${origin}/`,
-    hasAutofillTitle: true,
     matches: [
       makeVisitResult(context, {
         uri: `http://${origin}/`,
@@ -62,7 +61,6 @@ add_task(async function trailingSlashWWW() {
     context,
     autofilled: "example.com/",
     completed: "http://www.example.com/",
-    hasAutofillTitle: true,
     matches: [
       makeVisitResult(context, {
         uri: `http://www.${origin}/`,
@@ -86,7 +84,6 @@ add_task(async function port() {
     context,
     autofilled: "example.com:8888/",
     completed: "http://example.com:8888/",
-    hasAutofillTitle: true,
     matches: [
       makeVisitResult(context, {
         uri: `http://${origin}:8888/`,
@@ -111,7 +108,6 @@ add_task(async function portPartial() {
     context,
     autofilled: "example.com:8888/",
     completed: "http://example.com:8888/",
-    hasAutofillTitle: true,
     matches: [
       makeVisitResult(context, {
         uri: `http://${origin}:8888/`,
@@ -136,7 +132,6 @@ add_task(async function preserveCase() {
     context,
     autofilled: "EXaMple.com/",
     completed: "http://example.com/",
-    hasAutofillTitle: true,
     matches: [
       makeVisitResult(context, {
         uri: `http://${origin}/`,
@@ -162,7 +157,6 @@ add_task(async function preserveCasePort() {
     context,
     autofilled: "EXaMple.com:8888/",
     completed: "http://example.com:8888/",
-    hasAutofillTitle: true,
     matches: [
       makeVisitResult(context, {
         uri: `http://${origin}:8888/`,
@@ -188,7 +182,7 @@ add_task(async function portNoMatch1() {
       makeVisitResult(context, {
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
         uri: `http://${origin}:89/`,
-        title: `http://${origin}:89/`,
+        fallbackTitle: `http://${origin}:89/`,
         iconUri: "",
         heuristic: true,
         providerName: HEURISTIC_FALLBACK_PROVIDERNAME,
@@ -212,7 +206,7 @@ add_task(async function portNoMatch2() {
       makeVisitResult(context, {
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
         uri: `http://${origin}:9/`,
-        title: `http://${origin}:9/`,
+        fallbackTitle: `http://${origin}:9/`,
         iconUri: "",
         heuristic: true,
         providerName: HEURISTIC_FALLBACK_PROVIDERNAME,
@@ -236,7 +230,7 @@ add_task(async function trailingSlash_2() {
       makeVisitResult(context, {
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
         uri: "http://example/",
-        title: "http://example/",
+        fallbackTitle: "http://example/",
         iconUri: "page-icon:http://example/",
         heuristic: true,
         providerName: HEURISTIC_FALLBACK_PROVIDERNAME,
@@ -258,7 +252,6 @@ add_task(async function multidotted() {
     context,
     autofilled: "www.example.co.jp:8888/",
     completed: "http://www.example.co.jp:8888/",
-    hasAutofillTitle: true,
     matches: [
       makeVisitResult(context, {
         uri: "http://www.example.co.jp:8888/",
@@ -290,7 +283,6 @@ add_task(async function test_ip() {
         context,
         autofilled: str,
         completed: "http://" + str,
-        hasAutofillTitle: true,
         matches: [
           makeVisitResult(context, {
             uri: "http://" + str,
@@ -317,7 +309,6 @@ add_task(async function large_number_host() {
     context,
     autofilled: "12345example.it:8888/",
     completed: "http://12345example.it:8888/",
-    hasAutofillTitle: true,
     matches: [
       makeVisitResult(context, {
         uri: "http://12345example.it:8888/",
@@ -351,9 +342,21 @@ add_task(async function groupByHost() {
     { uri: "https://mozilla.org/" },
   ]);
 
-  let httpFrec = frecencyForUrl("http://example.com/");
-  let httpsFrec = frecencyForUrl("https://example.com/");
-  let otherFrec = frecencyForUrl("https://mozilla.org/");
+  let httpFrec = await PlacesTestUtils.getDatabaseValue(
+    "moz_places",
+    "frecency",
+    { url: "http://example.com/" }
+  );
+  let httpsFrec = await PlacesTestUtils.getDatabaseValue(
+    "moz_places",
+    "frecency",
+    { url: "https://example.com/" }
+  );
+  let otherFrec = await PlacesTestUtils.getDatabaseValue(
+    "moz_places",
+    "frecency",
+    { url: "https://mozilla.org/" }
+  );
   Assert.less(httpFrec, httpsFrec, "Sanity check");
   Assert.less(httpsFrec, otherFrec, "Sanity check");
 
@@ -375,7 +378,6 @@ add_task(async function groupByHost() {
     context,
     autofilled: "example.com/",
     completed: "https://example.com/",
-    hasAutofillTitle: true,
     matches: [
       makeVisitResult(context, {
         uri: "https://example.com/",
@@ -417,9 +419,27 @@ add_task(async function groupByHostNonDefaultStddevMultiplier() {
     { uri: "https://mozilla.org/" },
   ]);
 
-  let httpFrec = frecencyForUrl("http://example.com/");
-  let httpsFrec = frecencyForUrl("https://example.com/");
-  let otherFrec = frecencyForUrl("https://mozilla.org/");
+  let httpFrec = await PlacesTestUtils.getDatabaseValue(
+    "moz_places",
+    "frecency",
+    {
+      url: "http://example.com/",
+    }
+  );
+  let httpsFrec = await PlacesTestUtils.getDatabaseValue(
+    "moz_places",
+    "frecency",
+    {
+      url: "https://example.com/",
+    }
+  );
+  let otherFrec = await PlacesTestUtils.getDatabaseValue(
+    "moz_places",
+    "frecency",
+    {
+      url: "https://mozilla.org/",
+    }
+  );
   Assert.less(httpFrec, httpsFrec, "Sanity check");
   Assert.less(httpsFrec, otherFrec, "Sanity check");
 
@@ -441,7 +461,6 @@ add_task(async function groupByHostNonDefaultStddevMultiplier() {
     context,
     autofilled: "example.com/",
     completed: "https://example.com/",
-    hasAutofillTitle: true,
     matches: [
       makeVisitResult(context, {
         uri: "https://example.com/",
@@ -533,11 +552,10 @@ add_task(async function suggestHistoryFalse_bookmark_multiple() {
     context,
     autofilled: "example.com/",
     completed: baseURL,
-    hasAutofillTitle: false,
     matches: [
       makeVisitResult(context, {
         uri: baseURL,
-        title: "example.com",
+        fallbackTitle: "example.com",
         heuristic: true,
       }),
       makeBookmarkResult(context, {
@@ -580,7 +598,7 @@ add_task(async function suggestHistoryFalse_bookmark_prefix_multiple() {
       makeVisitResult(context, {
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
         uri: `${search}/`,
-        title: `${search}/`,
+        fallbackTitle: `${search}/`,
         iconUri: "",
         heuristic: true,
         providerName: HEURISTIC_FALLBACK_PROVIDERNAME,
@@ -600,7 +618,7 @@ add_task(async function suggestHistoryFalse_bookmark_prefix_multiple() {
       makeVisitResult(context, {
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
         uri: `${search}/`,
-        title: `${search}/`,
+        fallbackTitle: `${search}/`,
         iconUri: "",
         heuristic: true,
         providerName: HEURISTIC_FALLBACK_PROVIDERNAME,
@@ -620,7 +638,7 @@ add_task(async function suggestHistoryFalse_bookmark_prefix_multiple() {
       makeVisitResult(context, {
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
         uri: `${search}/`,
-        title: `${search}/`,
+        fallbackTitle: `${search}/`,
         iconUri: "",
         heuristic: true,
         providerName: HEURISTIC_FALLBACK_PROVIDERNAME,
@@ -637,11 +655,10 @@ add_task(async function suggestHistoryFalse_bookmark_prefix_multiple() {
     context,
     autofilled: "http://example.com/",
     completed: baseURL,
-    hasAutofillTitle: false,
     matches: [
       makeVisitResult(context, {
         uri: baseURL,
-        title: "example.com",
+        fallbackTitle: "example.com",
         heuristic: true,
       }),
       makeBookmarkResult(context, {
@@ -697,7 +714,6 @@ add_task(async function searchParams() {
     context,
     autofilled: "example.com/",
     completed: "http://example.com/",
-    hasAutofillTitle: true,
     matches: [
       makeVisitResult(context, {
         uri: "http://example.com/",
@@ -759,7 +775,6 @@ add_task(async function searchParams_https() {
     context,
     autofilled: "example.com/",
     completed: "https://example.com/",
-    hasAutofillTitle: true,
     matches: [
       makeVisitResult(context, {
         uri: "https://example.com/",
@@ -794,7 +809,6 @@ add_task(async function originLooksLikePrefix() {
       context,
       autofilled: hostAndPort + "/",
       completed: address,
-      hasAutofillTitle: true,
       matches: [
         makeVisitResult(context, {
           uri: address,
@@ -833,7 +847,7 @@ add_task(async function about() {
         context =>
           makeVisitResult(context, {
             uri: "about:blan",
-            title: "about:blan",
+            fallbackTitle: "about:blan",
             source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
             heuristic: true,
           }),
@@ -887,3 +901,141 @@ add_task(async function place() {
     await cleanup();
   }
 });
+
+add_task(async function nullTitle() {
+  await doTitleTest({
+    visits: [
+      {
+        uri: "http://example.com/",
+        // Set title of visits data to an empty string causes
+        // the title to be null in the database.
+        title: "",
+        frecency: 100,
+      },
+      {
+        uri: "https://www.example.com/",
+        title: "high frecency",
+        frecency: 50,
+      },
+      {
+        uri: "http://www.example.com/",
+        title: "low frecency",
+        frecency: 1,
+      },
+    ],
+    input: "example.com",
+    expected: {
+      autofilled: "example.com/",
+      completed: "http://example.com/",
+      matches: context => [
+        makeVisitResult(context, {
+          uri: "http://example.com/",
+          title: "high frecency",
+          heuristic: true,
+        }),
+        makeVisitResult(context, {
+          uri: "https://www.example.com/",
+          title: "high frecency",
+        }),
+      ],
+    },
+  });
+});
+
+add_task(async function domainTitle() {
+  await doTitleTest({
+    visits: [
+      {
+        uri: "http://example.com/",
+        title: "example.com",
+        frecency: 100,
+      },
+      {
+        uri: "https://www.example.com/",
+        title: "",
+        frecency: 50,
+      },
+      {
+        uri: "http://www.example.com/",
+        title: "lowest frecency but has title",
+        frecency: 1,
+      },
+    ],
+    input: "example.com",
+    expected: {
+      autofilled: "example.com/",
+      completed: "http://example.com/",
+      matches: context => [
+        makeVisitResult(context, {
+          uri: "http://example.com/",
+          title: "lowest frecency but has title",
+          heuristic: true,
+        }),
+        makeVisitResult(context, {
+          uri: "https://www.example.com/",
+          title: "www.example.com",
+        }),
+      ],
+    },
+  });
+});
+
+add_task(async function exactMatchedTitle() {
+  await doTitleTest({
+    visits: [
+      {
+        uri: "http://example.com/",
+        title: "exact match",
+        frecency: 50,
+      },
+      {
+        uri: "https://www.example.com/",
+        title: "high frecency uri",
+        frecency: 100,
+      },
+    ],
+    input: "http://example.com/",
+    expected: {
+      autofilled: "http://example.com/",
+      completed: "http://example.com/",
+      matches: context => [
+        makeVisitResult(context, {
+          uri: "http://example.com/",
+          title: "exact match",
+          heuristic: true,
+        }),
+        makeVisitResult(context, {
+          uri: "https://www.example.com/",
+          title: "high frecency uri",
+        }),
+      ],
+    },
+  });
+});
+
+async function doTitleTest({ visits, input, expected }) {
+  await PlacesTestUtils.addVisits(visits);
+  for (const { uri, frecency } of visits) {
+    // Prepare data.
+    await PlacesUtils.withConnectionWrapper("test::doTitleTest", async db => {
+      await db.execute(
+        `UPDATE moz_places SET frecency = :frecency, recalc_frecency=0 WHERE url = :url`,
+        {
+          frecency,
+          url: uri,
+        }
+      );
+      await db.executeCached("DELETE FROM moz_updateoriginsupdate_temp");
+    });
+  }
+
+  const context = createContext(input, { isPrivate: false });
+  await check_results({
+    context,
+    autofilled: expected.autofilled,
+    completed: expected.completed,
+    matches: expected.matches(context),
+  });
+
+  await cleanup();
+}

@@ -7,7 +7,7 @@ import os
 import sys
 
 from ipdl.ast import CxxInclude, Decl, Loc, QualifiedId, StructDecl
-from ipdl.ast import TypeSpec, UnionDecl, UsingStmt, Visitor, StringLiteral
+from ipdl.ast import UnionDecl, UsingStmt, Visitor, StringLiteral
 from ipdl.ast import ASYNC, SYNC, INTR
 from ipdl.ast import IN, OUT, INOUT
 from ipdl.ast import NOT_NESTED, INSIDE_SYNC_NESTED, INSIDE_CPOW_NESTED
@@ -28,6 +28,9 @@ class TypeVisitor:
         )
 
     def visitVoidType(self, v, *args):
+        pass
+
+    def visitBuiltinCType(self, b, *args):
         pass
 
     def visitImportedCxxType(self, t, *args):
@@ -72,6 +75,9 @@ class TypeVisitor:
         m.basetype.accept(self, *args)
 
     def visitUniquePtrType(self, m, *args):
+        m.basetype.accept(self, *args)
+
+    def visitNotNullType(self, m, *args):
         m.basetype.accept(self, *args)
 
     def visitShmemType(self, s, *args):
@@ -120,7 +126,9 @@ class Type:
     def isRefcounted(self):
         return False
 
-    def isUniquePtr(self):
+    # Should this type be wrapped in `NotNull<T>` unless marked `nullable`?
+
+    def supportsNullable(self):
         return False
 
     def typename(self):
@@ -161,6 +169,29 @@ VOID = VoidType()
 # --------------------
 
 
+class BuiltinCType(Type):
+    def __init__(self, name):
+        self._name = name
+
+    def isCxx(self):
+        return True
+
+    def isAtom(self):
+        return True
+
+    def isSendMoveOnly(self):
+        return False
+
+    def isDataMoveOnly(self):
+        return False
+
+    def name(self):
+        return self._name
+
+    def fullname(self):
+        return self._name
+
+
 class ImportedCxxType(Type):
     def __init__(self, qname, refcounted, sendmoveonly, datamoveonly):
         assert isinstance(qname, QualifiedId)
@@ -177,6 +208,9 @@ class ImportedCxxType(Type):
         return True
 
     def isRefcounted(self):
+        return self.refcounted
+
+    def supportsNullable(self):
         return self.refcounted
 
     def isSendMoveOnly(self):
@@ -220,6 +254,12 @@ class IPDLType(Type):
     def isMaybe(self):
         return False
 
+    def isUniquePtr(self):
+        return False
+
+    def isNotNull(self):
+        return False
+
     def isAtom(self):
         return True
 
@@ -241,6 +281,15 @@ class IPDLType(Type):
     def isManagedEndpoint(self):
         return False
 
+    def hasBaseType(self):
+        return False
+
+
+class SendSemanticsType(IPDLType):
+    def __init__(self, nestedRange, sendSemantics):
+        self.nestedRange = nestedRange
+        self.sendSemantics = sendSemantics
+
     def isAsync(self):
         return self.sendSemantics == ASYNC
 
@@ -250,14 +299,7 @@ class IPDLType(Type):
     def isInterrupt(self):
         return self.sendSemantics is INTR
 
-    def hasReply(self):
-        return self.isSync() or self.isInterrupt()
-
-    def hasBaseType(self):
-        return False
-
-    @classmethod
-    def convertsTo(cls, lesser, greater):
+    def sendSemanticsSatisfiedBy(self, greater):
         def _unwrap(nr):
             if isinstance(nr, dict):
                 return _unwrap(nr["nested"])
@@ -266,6 +308,7 @@ class IPDLType(Type):
             else:
                 raise ValueError("Got unexpected nestedRange value: %s" % nr)
 
+        lesser = self
         lnr0, gnr0, lnr1, gnr1 = (
             _unwrap(lesser.nestedRange[0]),
             _unwrap(greater.nestedRange[0]),
@@ -289,15 +332,13 @@ class IPDLType(Type):
 
         return False
 
-    def needsMoreJuiceThan(self, o):
-        return not IPDLType.convertsTo(self, o)
 
-
-class MessageType(IPDLType):
+class MessageType(SendSemanticsType):
     def __init__(
         self,
         nested,
         prio,
+        replyPrio,
         sendSemantics,
         direction,
         ctor=False,
@@ -310,10 +351,10 @@ class MessageType(IPDLType):
         assert not (ctor and dtor)
         assert not (ctor or dtor) or cdtype is not None
 
+        SendSemanticsType.__init__(self, (nested, nested), sendSemantics)
         self.nested = nested
         self.prio = prio
-        self.nestedRange = (nested, nested)
-        self.sendSemantics = sendSemantics
+        self.replyPrio = replyPrio
         self.direction = direction
         self.params = []
         self.returns = []
@@ -346,17 +387,16 @@ class MessageType(IPDLType):
         return self.direction is INOUT
 
     def hasReply(self):
-        return len(self.returns) or IPDLType.hasReply(self)
+        return len(self.returns) or self.isSync() or self.isInterrupt()
 
     def hasImplicitActorParam(self):
-        return self.isCtor() or self.isDtor()
+        return self.isCtor()
 
 
-class ProtocolType(IPDLType):
+class ProtocolType(SendSemanticsType):
     def __init__(self, qname, nested, sendSemantics, refcounted, needsotherpid):
+        SendSemanticsType.__init__(self, (NOT_NESTED, nested), sendSemantics)
         self.qname = qname
-        self.nestedRange = (NOT_NESTED, nested)
-        self.sendSemantics = sendSemantics
         self.managers = []  # ProtocolType
         self.manages = []
         self.hasDelete = False
@@ -426,15 +466,17 @@ class ProtocolType(IPDLType):
 
 
 class ActorType(IPDLType):
-    def __init__(self, protocol, nullable=False):
+    def __init__(self, protocol):
         self.protocol = protocol
-        self.nullable = nullable
 
     def isActor(self):
         return True
 
     def isRefcounted(self):
         return self.protocol.isRefcounted()
+
+    def supportsNullable(self):
+        return True
 
     def name(self):
         return self.protocol.name()
@@ -658,6 +700,26 @@ class UniquePtrType(IPDLType):
         return "mozilla::UniquePtr<" + self.basetype.fullname() + ">"
 
 
+class NotNullType(IPDLType):
+    def __init__(self, basetype):
+        self.basetype = basetype
+
+    def isAtom(self):
+        return False
+
+    def isNotNull(self):
+        return True
+
+    def hasBaseType(self):
+        return True
+
+    def name(self):
+        return "NotNull<" + self.basetype.name() + ">"
+
+    def fullname(self):
+        return "mozilla::NotNull<" + self.basetype.fullname() + ">"
+
+
 def iteractortypes(t, visited=None):
     """Iterate over any actor(s) buried in |type|."""
     if visited is None:
@@ -703,9 +765,7 @@ def makeBuiltinUsing(tname):
     quals = tname.split("::")
     base = quals.pop()
     quals = quals[0:]
-    return UsingStmt(
-        _builtinloc, TypeSpec(_builtinloc, QualifiedId(_builtinloc, base, quals))
-    )
+    return UsingStmt(_builtinloc, QualifiedId(_builtinloc, base, quals))
 
 
 builtinUsing = [makeBuiltinUsing(t) for t in builtin.Types]
@@ -949,7 +1009,7 @@ class GatherDecls(TcheckVisitor):
                     "NeedsOtherPid" in p.attributes,
                 ),
                 shortname=p.name,
-                fullname=None if 0 == len(qname.quals) else fullname,
+                fullname=fullname,
             )
 
             p.parentEndpointDecl = self.declare(
@@ -1006,7 +1066,13 @@ class GatherDecls(TcheckVisitor):
         for pinc in tu.includes:
             pinc.accept(self)
 
-        # declare imported (and builtin) C++ types
+        # declare imported (and builtin) C and C++ types
+        for ctype in builtin.CTypes:
+            self.declare(
+                loc=_builtinloc,
+                type=BuiltinCType(ctype),
+                shortname=ctype,
+            )
         for using in tu.builtinUsing:
             using.accept(self)
         for using in tu.using:
@@ -1033,10 +1099,7 @@ class GatherDecls(TcheckVisitor):
             return
 
         qname = su.qname()
-        if 0 == len(qname.quals):
-            fullname = None
-        else:
-            fullname = str(qname)
+        fullname = str(qname)
 
         if isinstance(su, StructDecl):
             sutype = StructType(qname, [])
@@ -1129,11 +1192,6 @@ class GatherDecls(TcheckVisitor):
 
     def visitUsingStmt(self, using):
         fullname = str(using.type)
-        if (using.type.basename() == fullname) or using.type.uniqueptr:
-            # Prevent generation of typedefs.  If basename == fullname then
-            # there is nothing to typedef.  With UniquePtrs, basenames
-            # are generic so typedefs would be illegal.
-            fullname = None
 
         self.checkAttributes(
             using.attributes,
@@ -1143,15 +1201,15 @@ class GatherDecls(TcheckVisitor):
             },
         )
 
-        if fullname == "mozilla::ipc::Shmem":
-            ipdltype = ShmemType(using.type.spec)
-        elif fullname == "mozilla::ipc::ByteBuf":
-            ipdltype = ByteBufType(using.type.spec)
-        elif fullname == "mozilla::ipc::FileDescriptor":
-            ipdltype = FDType(using.type.spec)
+        if fullname == "::mozilla::ipc::Shmem":
+            ipdltype = ShmemType(using.type)
+        elif fullname == "::mozilla::ipc::ByteBuf":
+            ipdltype = ByteBufType(using.type)
+        elif fullname == "::mozilla::ipc::FileDescriptor":
+            ipdltype = FDType(using.type)
         else:
             ipdltype = ImportedCxxType(
-                using.type.spec,
+                using.type,
                 using.isRefcounted(),
                 using.isSendMoveOnly(),
                 using.isDataMoveOnly(),
@@ -1178,7 +1236,7 @@ class GatherDecls(TcheckVisitor):
         using.decl = self.declare(
             loc=using.loc,
             type=ipdltype,
-            shortname=using.type.basename(),
+            shortname=using.type.baseid,
             fullname=fullname,
         )
 
@@ -1219,6 +1277,9 @@ class GatherDecls(TcheckVisitor):
 
         if not p.decl.type.isToplevel() and p.decl.type.needsotherpid:
             self.error(p.loc, "[NeedsOtherPid] only applies to toplevel protocols")
+
+        if p.decl.type.isToplevel() and not p.decl.type.isRefcounted():
+            self.error(p.loc, "Toplevel protocols cannot be [ManualDealloc]")
 
         # FIXME/cjones declare all the little C++ thingies that will
         # be generated.  they're not relevant to IPDL itself, but
@@ -1292,6 +1353,7 @@ class GatherDecls(TcheckVisitor):
                 "Tainted": None,
                 "Compress": (None, "all"),
                 "Priority": priorityList,
+                "ReplyPriority": priorityList,
                 "Nested": ("not", "inside_sync", "inside_cpow"),
                 "LegacyIntr": None,
                 "VirtualSendImpl": None,
@@ -1314,6 +1376,16 @@ class GatherDecls(TcheckVisitor):
 
         if md.sendSemantics is not ASYNC and "LazySend" in md.attributes:
             self.error(loc, "non-async message `%s' cannot specify [LazySend]", msgname)
+
+        if md.sendSemantics is not ASYNC and "ReplyPriority" in md.attributes:
+            self.error(
+                loc, "non-async message `%s' cannot specify [ReplyPriority]", msgname
+            )
+
+        if not md.outParams and "ReplyPriority" in md.attributes:
+            self.error(
+                loc, "non-returns message `%s' cannot specify [ReplyPriority]", msgname
+            )
 
         isctor = False
         isdtor = False
@@ -1342,10 +1414,11 @@ class GatherDecls(TcheckVisitor):
         self.symtab.enterScope()
 
         msgtype = MessageType(
-            md.nested(),
-            md.priority(),
-            md.sendSemantics,
-            md.direction,
+            nested=md.nested(),
+            prio=md.priority(),
+            replyPrio=md.replyPriority(),
+            sendSemantics=md.sendSemantics,
+            direction=md.direction,
             ctor=isctor,
             dtor=isdtor,
             cdtype=cdtype,
@@ -1410,13 +1483,18 @@ class GatherDecls(TcheckVisitor):
 
     def _canonicalType(self, itype, typespec):
         loc = typespec.loc
-        if itype.isIPDL():
-            if itype.isProtocol():
-                itype = ActorType(itype, nullable=typespec.nullable)
+        if typespec.uniqueptr:
+            itype = UniquePtrType(itype)
 
-        if typespec.nullable and not (itype.isIPDL() and itype.isActor()):
+        if itype.isIPDL() and itype.isProtocol():
+            itype = ActorType(itype)
+
+        if itype.supportsNullable():
+            if not typespec.nullable:
+                itype = NotNullType(itype)
+        elif typespec.nullable:
             self.error(
-                loc, "`nullable' qualifier for type `%s' makes no sense", itype.name()
+                loc, "`nullable' qualifier for type `%s' is unsupported", itype.name()
             )
 
         if typespec.array:
@@ -1424,9 +1502,6 @@ class GatherDecls(TcheckVisitor):
 
         if typespec.maybe:
             itype = MaybeType(itype)
-
-        if typespec.uniqueptr:
-            itype = UniquePtrType(itype)
 
         return itype
 
@@ -1527,7 +1602,7 @@ class CheckTypes(TcheckVisitor):
         ptype, pname = p.decl.type, p.decl.shortname
 
         for mgrtype in ptype.managers:
-            if mgrtype is not None and ptype.needsMoreJuiceThan(mgrtype):
+            if mgrtype is not None and not ptype.sendSemanticsSatisfiedBy(mgrtype):
                 self.error(
                     p.decl.loc,
                     "protocol `%s' requires more powerful send semantics than its manager `%s' provides",  # NOQA: E501
@@ -1635,7 +1710,7 @@ class CheckTypes(TcheckVisitor):
                 pname,
             )
 
-        if mtype.needsMoreJuiceThan(ptype):
+        if not mtype.sendSemanticsSatisfiedBy(ptype):
             self.error(
                 loc,
                 "message `%s' requires more powerful send semantics than its protocol `%s' provides",  # NOQA: E501

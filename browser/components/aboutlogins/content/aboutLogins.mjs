@@ -14,7 +14,9 @@ const gElements = {
   loginList: document.querySelector("login-list"),
   loginIntro: document.querySelector("login-intro"),
   loginItem: document.querySelector("login-item"),
-  loginFilter: document.querySelector("login-filter"),
+  loginFilter: document
+    .querySelector("login-list")
+    .shadowRoot.querySelector("login-filter"),
   menuButton: document.querySelector("menu-button"),
   // removeAllLogins button is nested inside of menuButton
   get removeAllButton() {
@@ -191,7 +193,7 @@ window.addEventListener("AboutLoginsRemoveAllLoginsDialog", () => {
   }
 });
 
-window.addEventListener("AboutLoginsExportPasswordsDialog", async event => {
+window.addEventListener("AboutLoginsExportPasswordsDialog", async () => {
   recordTelemetryEvent({
     object: "export",
     method: "mgmt_menu_item_used",
@@ -211,6 +213,28 @@ window.addEventListener("AboutLoginsExportPasswordsDialog", async event => {
     // The user cancelled the dialog.
   }
 });
+
+async function interceptFocusKey() {
+  // Intercept Ctrl+F on the page to focus login filter box
+  const [findKey] = await document.l10n.formatMessages([
+    { id: "about-logins-login-filter" },
+  ]);
+  const focusKey = findKey.attributes
+    .find(a => a.name == "key")
+    .value.toLowerCase();
+  document.addEventListener("keydown", event => {
+    if (event.key == focusKey && event.getModifierState("Accel")) {
+      event.preventDefault();
+      document
+        .querySelector("login-list")
+        .shadowRoot.querySelector("login-filter")
+        .shadowRoot.querySelector("input")
+        .focus();
+    }
+  });
+}
+
+await interceptFocusKey();
 
 // Begin code that executes on page load.
 

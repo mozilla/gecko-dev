@@ -8,6 +8,7 @@
 #define mozilla_dom_HTMLAreaElement_h
 
 #include "mozilla/Attributes.h"
+#include "mozilla/dom/AnchorAreaFormRelValues.h"
 #include "mozilla/dom/Link.h"
 #include "nsGenericHTMLElement.h"
 #include "nsGkAtoms.h"
@@ -17,7 +18,9 @@ class EventChainPostVisitor;
 class EventChainPreVisitor;
 namespace dom {
 
-class HTMLAreaElement final : public nsGenericHTMLElement, public Link {
+class HTMLAreaElement final : public nsGenericHTMLElement,
+                              public Link,
+                              public AnchorAreaFormRelValues {
  public:
   explicit HTMLAreaElement(
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
@@ -157,11 +160,11 @@ class HTMLAreaElement final : public nsGenericHTMLElement, public Link {
   virtual JSObject* WrapNode(JSContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) override;
 
-  virtual nsresult AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
-                                const nsAttrValue* aValue,
-                                const nsAttrValue* aOldValue,
-                                nsIPrincipal* aSubjectPrincipal,
-                                bool aNotify) override;
+  virtual void AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
+                            const nsAttrValue* aValue,
+                            const nsAttrValue* aOldValue,
+                            nsIPrincipal* aSubjectPrincipal,
+                            bool aNotify) override;
 
   RefPtr<nsDOMTokenList> mRelList;
 };

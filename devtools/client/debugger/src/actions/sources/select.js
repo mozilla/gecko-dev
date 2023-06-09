@@ -11,7 +11,7 @@ import { isOriginalId } from "devtools/client/shared/source-map-loader/index";
 
 import { setSymbols } from "./symbols";
 import { setInScopeLines } from "../ast";
-import { closeActiveSearch, updateActiveFileSearch } from "../ui";
+import { updateActiveFileSearch } from "../ui";
 import { togglePrettyPrint } from "./prettyPrint";
 import { addTab, closeTab } from "../tabs";
 import { loadSourceText } from "./loadSourceText";
@@ -25,16 +25,13 @@ import { getRelatedMapLocation } from "../../utils/source-maps";
 
 import {
   getSource,
-  getSourceActor,
   getFirstSourceActorForGeneratedSource,
   getSourceByURL,
   getPrettySource,
-  getActiveSearch,
   getSelectedLocation,
   getSelectedSource,
   canPrettyPrintSource,
   getIsCurrentThreadPaused,
-  getLocationSource,
   getSourceTextContent,
   tabExists,
 } from "../../selectors";
@@ -77,7 +74,7 @@ export function selectSourceURL(cx, url, options) {
       return dispatch(setPendingSelectedLocation(cx, url, options));
     }
 
-    const location = createLocation({ ...options, sourceId: source.id });
+    const location = createLocation({ ...options, source });
     return dispatch(selectLocation(cx, location));
   };
 }
@@ -88,18 +85,18 @@ export function selectSourceURL(cx, url, options) {
  * the precise generated/original source passed as argument.
  *
  * @param {Object} cx
- * @param {String} sourceId
+ * @param {String} source
  *        The precise source to select.
- * @param {String} sourceActorId
+ * @param {String} sourceActor
  *        The specific source actor of the source to
  *        select the source text. This is optional.
- * @param {Object} location
- *        Optional precise location to select, if we need to select
- *        a precise line/column.
  */
-export function selectSource(cx, sourceId, sourceActorId, location = {}) {
+export function selectSource(cx, source, sourceActor) {
   return async ({ dispatch }) => {
-    location = createLocation({ ...location, sourceId, sourceActorId });
+    // `createLocation` requires a source object, but we may use selectSource to close the last tab,
+    // where source will be null and the location will be an empty object.
+    const location = source ? createLocation({ source, sourceActor }) : {};
+
     return dispatch(selectSpecificLocation(cx, location));
   };
 }
@@ -122,7 +119,8 @@ export function selectSource(cx, sourceId, sourceActorId, location = {}) {
  *        were currently selecting the other source type.
  */
 export function selectLocation(cx, location, { keepContext = true } = {}) {
-  return async ({ dispatch, getState, sourceMapLoader, client }) => {
+  return async thunkArgs => {
+    const { dispatch, getState, client } = thunkArgs;
     const currentSource = getSelectedSource(getState());
 
     if (!client) {
@@ -131,17 +129,12 @@ export function selectLocation(cx, location, { keepContext = true } = {}) {
       return;
     }
 
-    let source = getLocationSource(getState(), location);
+    let source = location.source;
 
     if (!source) {
       // If there is no source we deselect the current selected source
       dispatch(clearSelectedLocation(cx));
       return;
-    }
-
-    const activeSearch = getActiveSearch(getState());
-    if (activeSearch && activeSearch !== "file") {
-      dispatch(closeActiveSearch());
     }
 
     // Preserve the current source map context (original / generated)
@@ -160,23 +153,17 @@ export function selectLocation(cx, location, { keepContext = true } = {}) {
     ) {
       // getRelatedMapLocation will just convert to the related generated/original location.
       // i.e if the original location is passed, the related generated location will be returned and vice versa.
-      location = await getRelatedMapLocation(
-        getState(),
-        sourceMapLoader,
-        location
-      );
-      source = getLocationSource(getState(), location);
+      location = await getRelatedMapLocation(location, thunkArgs);
+      source = location.source;
     }
 
-    let sourceActor;
-    if (!location.sourceActorId) {
+    let sourceActor = location.sourceActor;
+    if (!sourceActor) {
       sourceActor = getFirstSourceActorForGeneratedSource(
         getState(),
         source.id
       );
-      location.sourceActorId = sourceActor ? sourceActor.actor : null;
-    } else {
-      sourceActor = getSourceActor(getState(), location.sourceActorId);
+      location = createLocation({ ...location, sourceActor });
     }
 
     if (!tabExists(getState(), source.id)) {
@@ -187,7 +174,7 @@ export function selectLocation(cx, location, { keepContext = true } = {}) {
 
     await dispatch(loadSourceText(cx, source, sourceActor));
 
-    await dispatch(setBreakableLines(cx, source.id));
+    await dispatch(setBreakableLines(cx, source, sourceActor));
 
     const loadedSource = getSource(getState(), source.id);
 
@@ -209,7 +196,7 @@ export function selectLocation(cx, location, { keepContext = true } = {}) {
       dispatch(closeTab(cx, loadedSource));
     }
 
-    await dispatch(setSymbols({ cx, source: loadedSource, sourceActor }));
+    await dispatch(setSymbols({ cx, location }));
     dispatch(setInScopeLines(cx));
 
     if (getIsCurrentThreadPaused(getState())) {
@@ -247,17 +234,14 @@ export function selectSpecificLocation(cx, location) {
  * related location in the generated source.
  */
 export function jumpToMappedLocation(cx, location) {
-  return async function({ dispatch, getState, client, sourceMapLoader }) {
+  return async function(thunkArgs) {
+    const { client, dispatch } = thunkArgs;
     if (!client) {
       return null;
     }
 
     // Map to either an original or a generated source location
-    const pairedLocation = await getRelatedMapLocation(
-      getState(),
-      sourceMapLoader,
-      location
-    );
+    const pairedLocation = await getRelatedMapLocation(location, thunkArgs);
 
     return dispatch(selectSpecificLocation(cx, pairedLocation));
   };

@@ -60,7 +60,7 @@ export class WebDriverBiDi {
   /**
    * Create a new WebDriver session.
    *
-   * @param {Object.<string, *>=} capabilities
+   * @param {Object<string, *>=} capabilities
    *     JSON Object containing any of the recognised capabilities as listed
    *     on the `WebDriverSession` class.
    *
@@ -68,7 +68,7 @@ export class WebDriverBiDi {
    *     Optional connection that is not yet accociated with a WebDriver
    *     session, and has to be associated with the new WebDriver session.
    *
-   * @return {Object<String, Capabilities>}
+   * @returns {Object<string, Capabilities>}
    *     Object containing the current session ID, and all its capabilities.
    *
    * @throws {SessionNotCreatedError}
@@ -149,7 +149,7 @@ export class WebDriverBiDi {
    *
    * See https://w3c.github.io/webdriver-bidi/#command-session-status
    *
-   * @return {Object}
+   * @returns {object}
    *     The readiness state.
    */
   getSessionReadinessStatus() {
@@ -218,21 +218,23 @@ export class WebDriverBiDi {
     }
 
     try {
-      try {
-        await IOUtils.remove(this._bidiServerPath);
-      } catch (e) {
-        lazy.logger.warn(
-          `Failed to remove ${this._bidiServerPath} (${e.message})`
-        );
-      }
+      await IOUtils.remove(this._bidiServerPath);
+    } catch (e) {
+      lazy.logger.warn(
+        `Failed to remove ${this._bidiServerPath} (${e.message})`
+      );
+    }
 
+    try {
+      // Close open session
       this.deleteSession();
-
       this.agent.server.registerPathHandler("/session", null);
 
       // Close all open session-less connections
       this._sessionlessConnections.forEach(connection => connection.close());
       this._sessionlessConnections.clear();
+    } catch (e) {
+      lazy.logger.error("Failed to stop protocol", e);
     } finally {
       this._running = false;
     }

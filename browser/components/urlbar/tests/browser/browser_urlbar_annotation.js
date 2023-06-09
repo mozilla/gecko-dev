@@ -23,13 +23,33 @@ const {
   VISIT_SOURCE_SEARCHED,
 } = PlacesUtils.history;
 
+/**
+ * To be used before checking database contents when they depend on a visit
+ * being added to History.
+ *
+ * @param {string} href the page to await notifications for.
+ */
+async function waitForVisitNotification(href) {
+  await PlacesTestUtils.waitForNotification("page-visited", events =>
+    events.some(e => e.url === href)
+  );
+}
+
 async function assertDatabase({ targetURL, expected }) {
-  const frecency = await PlacesTestUtils.fieldInDB(targetURL, "frecency");
+  const frecency = await PlacesTestUtils.getDatabaseValue(
+    "moz_places",
+    "frecency",
+    { url: targetURL }
+  );
   Assert.equal(frecency, expected.frecency, "Frecency is correct");
 
-  const placesId = await PlacesTestUtils.fieldInDB(targetURL, "id");
+  const placesId = await PlacesTestUtils.getDatabaseValue("moz_places", "id", {
+    url: targetURL,
+  });
   const expectedTriggeringPlaceId = expected.triggerURL
-    ? await PlacesTestUtils.fieldInDB(expected.triggerURL, "id")
+    ? await PlacesTestUtils.getDatabaseValue("moz_places", "id", {
+        url: expected.triggerURL,
+      })
     : null;
   const db = await PlacesUtils.promiseDBConnection();
   const rows = await db.execute(
@@ -169,8 +189,9 @@ add_task(async function basic() {
 
     await BrowserTestUtils.withNewTab("about:blank", async () => {
       info("Pick result");
+      let promiseVisited = waitForVisitNotification(payload.url);
       await pickResult({ input, payloadURL: payload.url });
-
+      await promiseVisited;
       info("Check database");
       await assertDatabase({ targetURL: payload.url, expected });
     });
@@ -193,7 +214,12 @@ add_task(async function redirection() {
 
   await BrowserTestUtils.withNewTab("about:home", async () => {
     info("Pick result");
+    let promises = [
+      waitForVisitNotification(payload.url),
+      waitForVisitNotification(redirectTo),
+    ];
     await pickResult({ input, payloadURL: payload.url, redirectTo });
+    await Promise.all(promises);
 
     info("Check database");
     await assertDatabase({
@@ -275,14 +301,18 @@ add_task(async function search() {
         false,
         resultURL
       );
+      let promiseVisited = waitForVisitNotification(resultURL);
       EventUtils.synthesizeKey("KEY_Enter");
       await onLoad;
+      await promiseVisited;
       await assertDatabase({ targetURL: resultURL, expected });
 
       // Open another URL to check whther the source is not inherited.
       const payload = { url: "http://example.com/" };
       const provider = registerProvider(payload);
+      promiseVisited = waitForVisitNotification(payload.url);
       await pickResult({ input, payloadURL: payload.url });
+      await promiseVisited;
       await assertDatabase({
         targetURL: payload.url,
         expected: {

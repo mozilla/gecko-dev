@@ -20,8 +20,6 @@
 #include "nsGenericHTMLElement.h"
 #include "nsPresContext.h"
 #include "nsContentCreatorFunctions.h"
-#include "nsBoxLayoutState.h"
-#include "nsBoxFrame.h"
 #include "nsIContentInlines.h"
 #include "nsImageFrame.h"
 #include "nsIImageLoadingContent.h"
@@ -233,7 +231,7 @@ void nsVideoFrame::Reflow(nsPresContext* aPresContext, ReflowOutput& aMetrics,
       ("enter nsVideoFrame::Reflow: availSize=%d,%d",
        aReflowInput.AvailableWidth(), aReflowInput.AvailableHeight()));
 
-  MOZ_ASSERT(mState & NS_FRAME_IN_REFLOW, "frame is not in reflow");
+  MOZ_ASSERT(HasAnyStateBits(NS_FRAME_IN_REFLOW), "frame is not in reflow");
 
   const WritingMode myWM = aReflowInput.GetWritingMode();
   nscoord contentBoxBSize = aReflowInput.ComputedBSize();
@@ -749,8 +747,7 @@ void nsVideoFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   // but only want to draw mPosterImage conditionally. Others we
   // always add to the display list.
   for (nsIFrame* child : mFrames) {
-    if (child->GetContent() != mPosterImage || shouldDisplayPoster ||
-        child->IsBoxFrame()) {
+    if (child->GetContent() != mPosterImage || shouldDisplayPoster) {
       nsDisplayListBuilder::AutoBuildingDisplayList buildingForChild(
           aBuilder, child,
           aBuilder->GetVisibleRect() - child->GetOffsetTo(this),

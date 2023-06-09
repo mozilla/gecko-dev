@@ -13,17 +13,17 @@
 #include "nsWindowDefs.h"
 
 // Enables debug output for popup rollup hooks
-//#define POPUP_ROLLUP_DEBUG_OUTPUT
+// #define POPUP_ROLLUP_DEBUG_OUTPUT
 
 // Enable window size and state debug output
-//#define WINSTATE_DEBUG_OUTPUT
+// #define WINSTATE_DEBUG_OUTPUT
 
 // nsIWidget defines a set of debug output statements
 // that are called in various places within the code.
-//#define WIDGET_DEBUG_OUTPUT
+// #define WIDGET_DEBUG_OUTPUT
 
 // Enable IS_VK_DOWN debug output
-//#define DEBUG_VK
+// #define DEBUG_VK
 
 namespace mozilla::widget {
 // Windows message debugging data
@@ -43,21 +43,25 @@ extern std::unordered_map<UINT, EventMsgInfo> gAllEvents;
 // RAII-style class to log before and after an event is handled.
 class PrintEvent final {
  public:
-  PrintEvent(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam,
-             LRESULT retValue);
-  void SetResult(bool result) { mResult = mozilla::Some(result); }
+  PrintEvent(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+  void SetResult(LRESULT lresult, bool result) {
+    mRetValue = lresult;
+    mResult = mozilla::Some(result);
+  }
   ~PrintEvent();
 
  private:
   bool PrintEventInternal();
+
   const HWND mHwnd;
   const UINT mMsg;
   const WPARAM mWParam;
   const LPARAM mLParam;
-  const LRESULT mRetValue;
   mozilla::Maybe<long> mEventCounter;
-  // not const because it will be set after the event is handled
+  // not const because these will be set after the event is handled
   mozilla::Maybe<bool> mResult;
+  LRESULT mRetValue = 0;
+
   bool mShouldLogPostCall;
 };
 

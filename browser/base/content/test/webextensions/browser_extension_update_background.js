@@ -7,6 +7,7 @@ const { AddonTestUtils } = ChromeUtils.import(
 );
 
 AddonTestUtils.initMochitest(this);
+AddonTestUtils.hookAMTelemetryEvents();
 
 const ID = "update2@tests.mozilla.org";
 const ID_ICON = "update_icon2@tests.mozilla.org";
@@ -46,18 +47,15 @@ add_setup(async function() {
 
   // Navigate away from the initial page so that about:addons always
   // opens in a new tab during tests
-  BrowserTestUtils.loadURI(gBrowser.selectedBrowser, "about:robots");
+  BrowserTestUtils.loadURIString(gBrowser.selectedBrowser, "about:robots");
   await BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
 
   registerCleanupFunction(async function() {
     // Return to about:blank when we're done
-    BrowserTestUtils.loadURI(gBrowser.selectedBrowser, "about:blank");
+    BrowserTestUtils.loadURIString(gBrowser.selectedBrowser, "about:blank");
     await BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
   });
 });
-
-hookExtensionsTelemetry();
-AddonTestUtils.hookAMTelemetryEvents();
 
 // Helper function to test background updates.
 async function backgroundUpdateTest(url, id, checkIconFn) {
@@ -196,9 +194,6 @@ async function backgroundUpdateTest(url, id, checkIconFn) {
   BrowserTestUtils.removeTab(tab);
 
   is(getBadgeStatus(), "", "Addon alert badge should be gone");
-
-  // Should have recorded 1 canceled followed by 1 accepted update.
-  expectTelemetry(["updateRejected", "updateAccepted"]);
 
   await addon.uninstall();
   await SpecialPowers.popPrefEnv();

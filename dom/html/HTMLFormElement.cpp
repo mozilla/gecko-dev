@@ -77,6 +77,8 @@
 
 #include "nsSandboxFlags.h"
 
+#include "mozilla/dom/HTMLAnchorElement.h"
+
 // images
 #include "mozilla/dom/HTMLImageElement.h"
 #include "mozilla/dom/HTMLButtonElement.h"
@@ -139,12 +141,14 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(HTMLFormElement,
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mControls)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mImageNameLookupTable)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mPastNameLookupTable)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mRelList)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mTargetContext)
   RadioGroupManager::Traverse(tmp, cb);
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(HTMLFormElement,
                                                 nsGenericHTMLElement)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mRelList)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mTargetContext)
   RadioGroupManager::Unlink(tmp);
   tmp->Clear();
@@ -164,13 +168,19 @@ void HTMLFormElement::AsyncEventRunning(AsyncEventDispatcher* aEvent) {
   }
 }
 
+nsDOMTokenList* HTMLFormElement::RelList() {
+  if (!mRelList) {
+    mRelList = new nsDOMTokenList(this, nsGkAtoms::rel, sSupportedRelValues);
+  }
+  return mRelList;
+}
+
 NS_IMPL_ELEMENT_CLONE(HTMLFormElement)
 
 nsIHTMLCollection* HTMLFormElement::Elements() { return mControls; }
 
-nsresult HTMLFormElement::BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
-                                        const nsAttrValueOrString* aValue,
-                                        bool aNotify) {
+void HTMLFormElement::BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
+                                    const nsAttrValue* aValue, bool aNotify) {
   if (aNamespaceID == kNameSpaceID_None) {
     if (aName == nsGkAtoms::action || aName == nsGkAtoms::target) {
       // Don't forget we've notified the password manager already if the
@@ -285,7 +295,7 @@ void HTMLFormElement::RequestSubmit(nsGenericHTMLElement* aSubmitter,
     // 1.2. If submitter's form owner is not this form element, then throw a
     //      "NotFoundError" DOMException.
     if (fc->GetForm() != this) {
-      aRv.Throw(NS_ERROR_DOM_NOT_FOUND_ERR);
+      aRv.ThrowNotFoundError("The submitter is not owned by this form.");
       return;
     }
   }

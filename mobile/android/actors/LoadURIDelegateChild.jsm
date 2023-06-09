@@ -5,14 +5,11 @@
 const { GeckoViewActorChild } = ChromeUtils.importESModule(
   "resource://gre/modules/GeckoViewActorChild.sys.mjs"
 );
-const { LoadURIDelegate } = ChromeUtils.import(
-  "resource://gre/modules/LoadURIDelegate.jsm"
-);
 
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  E10SUtils: "resource://gre/modules/E10SUtils.sys.mjs",
+  LoadURIDelegate: "resource://gre/modules/LoadURIDelegate.sys.mjs",
 });
 
 var EXPORTED_SYMBOLS = ["LoadURIDelegateChild"];
@@ -20,42 +17,11 @@ var EXPORTED_SYMBOLS = ["LoadURIDelegateChild"];
 // Implements nsILoadURIDelegate.
 class LoadURIDelegateChild extends GeckoViewActorChild {
   // nsILoadURIDelegate.
-  loadURI(aUri, aWhere, aFlags, aTriggeringPrincipal) {
-    debug`loadURI: uri=${aUri && aUri.spec}
-                    where=${aWhere} flags=0x${aFlags.toString(16)}
-                    tp=${aTriggeringPrincipal && aTriggeringPrincipal.spec}`;
-
-    // Ignore any load going to the extension process
-    // TODO: Remove workaround after Bug 1619798
-    if (
-      WebExtensionPolicy.useRemoteWebExtensions &&
-      lazy.E10SUtils.getRemoteTypeForURIObject(
-        aUri,
-        /* aMultiProcess */ true,
-        /* aRemoteSubframes */ false,
-        Services.appinfo.remoteType
-      ) == lazy.E10SUtils.EXTENSION_REMOTE_TYPE
-    ) {
-      debug`Bypassing load delegate in the Extension process.`;
-      return false;
-    }
-
-    return LoadURIDelegate.load(
-      this.contentWindow,
-      this.eventDispatcher,
-      aUri,
-      aWhere,
-      aFlags,
-      aTriggeringPrincipal
-    );
-  }
-
-  // nsILoadURIDelegate.
   handleLoadError(aUri, aError, aErrorModule) {
     debug`handleLoadError: uri=${aUri && aUri.spec}
                              displaySpec=${aUri && aUri.displaySpec}
                              error=${aError}`;
-    if (aUri && LoadURIDelegate.isSafeBrowsingError(aError)) {
+    if (aUri && lazy.LoadURIDelegate.isSafeBrowsingError(aError)) {
       const message = {
         type: "GeckoView:ContentBlocked",
         uri: aUri.spec,
@@ -65,7 +31,7 @@ class LoadURIDelegateChild extends GeckoViewActorChild {
       this.eventDispatcher.sendRequest(message);
     }
 
-    return LoadURIDelegate.handleLoadError(
+    return lazy.LoadURIDelegate.handleLoadError(
       this.contentWindow,
       this.eventDispatcher,
       aUri,

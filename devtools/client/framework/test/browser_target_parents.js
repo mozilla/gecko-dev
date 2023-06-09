@@ -101,7 +101,22 @@ add_task(async function() {
   ok(!!workers.length, "list workers returned a non-empty list of workers");
 
   for (const workerDescriptorFront of workers) {
-    const targetFront = await workerDescriptorFront.getTarget();
+    let targetFront;
+    try {
+      targetFront = await workerDescriptorFront.getTarget();
+    } catch (e) {
+      // Ignore race condition where we are trying to connect to a worker
+      // related to a previous test which is being destroyed.
+      if (
+        e.message.includes("nsIWorkerDebugger.initialize") ||
+        targetFront.isDestroyed()
+      ) {
+        info("Failed to connect to " + workerDescriptorFront.url);
+        continue;
+      }
+      throw e;
+    }
+
     is(
       workerDescriptorFront,
       targetFront,

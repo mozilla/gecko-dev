@@ -10,7 +10,6 @@
 
 #include "mozilla/ComputedStyle.h"
 #include "mozilla/SVGTextFrame.h"
-#include "mozilla/SVGUtils.h"
 
 #include "LayoutLogging.h"
 #include "nsBlockFrame.h"
@@ -79,7 +78,7 @@ nsLineLayout::nsLineLayout(nsPresContext* aPresContext,
       mDirtyNextLine(false),
       mLineAtStart(false),
       mHasRuby(false),
-      mSuppressLineWrap(SVGUtils::IsInSVGTextSubtree(LineContainerFrame()))
+      mSuppressLineWrap(LineContainerFrame()->IsInSVGTextSubtree())
 #ifdef DEBUG
       ,
       mSpansAllocated(0),
@@ -1346,7 +1345,9 @@ void nsLineLayout::PlaceFrame(PerFrameData* pfd, ReflowOutput& aMetrics) {
   // its ascent; instead, treat it as a block with baseline at the block-end
   // edge (or block-begin in the case of an "inverted" line).
   if (pfd->mWritingMode.GetBlockDir() != lineWM.GetBlockDir()) {
-    pfd->mAscent = lineWM.IsLineInverted() ? 0 : aMetrics.BSize(lineWM);
+    pfd->mAscent = lineWM.IsAlphabeticalBaseline()
+                       ? lineWM.IsLineInverted() ? 0 : aMetrics.BSize(lineWM)
+                       : aMetrics.BSize(lineWM) / 2;
   } else {
     if (aMetrics.BlockStartAscent() == ReflowOutput::ASK_FOR_BASELINE) {
       pfd->mAscent = pfd->mFrame->GetLogicalBaseline(lineWM);
@@ -1700,7 +1701,7 @@ void nsLineLayout::AdjustLeadings(nsIFrame* spanFrame, PerSpanData* psd,
 
 static float GetInflationForBlockDirAlignment(nsIFrame* aFrame,
                                               nscoord aInflationMinFontSize) {
-  if (SVGUtils::IsInSVGTextSubtree(aFrame)) {
+  if (aFrame->IsInSVGTextSubtree()) {
     const nsIFrame* container =
         nsLayoutUtils::GetClosestFrameOfType(aFrame, LayoutFrameType::SVGText);
     NS_ASSERTION(container, "expected to find an ancestor SVGTextFrame");
@@ -1854,7 +1855,7 @@ void nsLineLayout::VerticalAlignFrames(PerSpanData* psd) {
     float inflation =
         GetInflationForBlockDirAlignment(spanFrame, mInflationMinFontSize);
     nscoord logicalBSize = ReflowInput::CalcLineHeight(
-        spanFrame->GetContent(), spanFrame->Style(), spanFrame->PresContext(),
+        *spanFrame->Style(), spanFrame->PresContext(), spanFrame->GetContent(),
         mLineContainerRI.ComputedHeight(), inflation);
     nscoord contentBSize = spanFramePFD->mBounds.BSize(lineWM) -
                            spanFramePFD->mBorderPadding.BStartEnd(lineWM);
@@ -2014,25 +2015,7 @@ void nsLineLayout::VerticalAlignFrames(PerSpanData* psd) {
       switch (keyword) {
         default:
         case StyleVerticalAlignKeyword::Baseline:
-          if (lineWM.IsVertical() && !lineWM.IsSideways()) {
-            // FIXME: We should really use a central baseline from the
-            // baseline table of the font, rather than assuming it's in
-            // the middle.
-            if (frameSpan) {
-              nscoord borderBoxBSize = pfd->mBounds.BSize(lineWM);
-              nscoord bStartBP = pfd->mBorderPadding.BStart(lineWM);
-              nscoord bEndBP = pfd->mBorderPadding.BEnd(lineWM);
-              nscoord contentBoxBSize = borderBoxBSize - bStartBP - bEndBP;
-              pfd->mBounds.BStart(lineWM) =
-                  revisedBaselineBCoord - contentBoxBSize / 2 - bStartBP;
-            } else {
-              pfd->mBounds.BStart(lineWM) = revisedBaselineBCoord -
-                                            logicalBSize / 2 +
-                                            pfd->mMargin.BStart(lineWM);
-            }
-          } else {
-            pfd->mBounds.BStart(lineWM) = revisedBaselineBCoord - pfd->mAscent;
-          }
+          pfd->mBounds.BStart(lineWM) = revisedBaselineBCoord - pfd->mAscent;
           pfd->mBlockDirAlign = VALIGN_OTHER;
           break;
 
@@ -2140,7 +2123,7 @@ void nsLineLayout::VerticalAlignFrames(PerSpanData* psd) {
         float inflation =
             GetInflationForBlockDirAlignment(frame, mInflationMinFontSize);
         return ReflowInput::CalcLineHeight(
-            frame->GetContent(), frame->Style(), frame->PresContext(),
+            *frame->Style(), frame->PresContext(), frame->GetContent(),
             mLineContainerRI.ComputedBSize(), inflation);
       });
 
@@ -2152,7 +2135,7 @@ void nsLineLayout::VerticalAlignFrames(PerSpanData* psd) {
       // inverted relative to block direction.
       nscoord revisedBaselineBCoord =
           baselineBCoord - offset * lineWM.FlowRelativeToLineRelativeFactor();
-      if (lineWM.IsVertical() && !lineWM.IsSideways()) {
+      if (lineWM.IsCentralBaseline()) {
         // If we're using a dominant center baseline, we align with the center
         // of the frame being placed (bug 1133945).
         pfd->mBounds.BStart(lineWM) =
@@ -3041,6 +3024,39 @@ void nsLineLayout::ExpandInlineRubyBoxes(PerSpanData* aSpan) {
   }
 }
 
+nscoord nsLineLayout::GetHangFrom(const PerSpanData* aSpan, bool aLineIsRTL) {
+  const PerFrameData* pfd = aSpan->mLastFrame;
+  nscoord result = 0;
+  while (pfd) {
+    if (const PerSpanData* childSpan = pfd->mSpan) {
+      return GetHangFrom(childSpan, aLineIsRTL);
+    }
+    if (pfd->mIsTextFrame) {
+      auto* lastText = static_cast<nsTextFrame*>(pfd->mFrame);
+      result = lastText->GetHangableISize();
+      if (result) {
+        // If the hangable space will be at the start edge of the line, due to
+        // its bidi direction being against the line direction, we flag this by
+        // negating the advance.
+        lastText->EnsureTextRun(nsTextFrame::eInflated);
+        auto* textRun = lastText->GetTextRun(nsTextFrame::eInflated);
+        if (textRun && textRun->IsRightToLeft() != aLineIsRTL) {
+          result = -result;
+        }
+      }
+      return result;
+    }
+    if (!pfd->mSkipWhenTrimmingWhitespace) {
+      // If we hit a frame on the end that's not text and not a placeholder or
+      // <br>, then there is no trailing whitespace to hang. Stop the search.
+      return result;
+    }
+    // Scan back for a preceding frame whose whitespace we can hang.
+    pfd = pfd->mPrev;
+  }
+  return result;
+}
+
 // Align inline frames within the line according to the CSS text-align
 // property.
 void nsLineLayout::TextAlignLine(nsLineBox* aLine, bool aIsLastLine) {
@@ -3066,8 +3082,14 @@ void nsLineLayout::TextAlignLine(nsLineBox* aLine, bool aIsLastLine) {
   StyleTextAlign textAlign =
       aIsLastLine ? mStyleText->TextAlignForLastLine() : mStyleText->mTextAlign;
 
-  bool isSVG = SVGUtils::IsInSVGTextSubtree(LineContainerFrame());
-  bool doTextAlign = remainingISize > 0;
+  // Check if there's trailing whitespace we need to "hang" at line-wrap.
+  nscoord hang = 0;
+  if (aLine->IsLineWrapped()) {
+    hang = GetHangFrom(mRootSpan, lineWM.IsBidiRTL());
+  }
+
+  bool isSVG = LineContainerFrame()->IsInSVGTextSubtree();
+  bool doTextAlign = remainingISize > 0 || hang != 0;
 
   int32_t additionalGaps = 0;
   if (!isSVG &&
@@ -3124,31 +3146,40 @@ void nsLineLayout::TextAlignLine(nsLineBox* aLine, bool aIsLastLine) {
 
       case StyleTextAlign::Start:
       case StyleTextAlign::Char:
-        // default alignment is to start edge so do nothing.
+        // Default alignment is to start edge so do nothing, except to apply
+        // any "reverse-hang" amount resulting from reversed-direction trailing
+        // space.
         // Char is for tables so treat as start if we find it in block layout.
+        if (hang < 0) {
+          dx = hang;
+        }
         break;
 
       case StyleTextAlign::Left:
       case StyleTextAlign::MozLeft:
         if (lineWM.IsBidiRTL()) {
-          dx = remainingISize;
+          dx = remainingISize + (hang > 0 ? hang : 0);
+        } else if (hang < 0) {
+          dx = hang;
         }
         break;
 
       case StyleTextAlign::Right:
       case StyleTextAlign::MozRight:
         if (lineWM.IsBidiLTR()) {
-          dx = remainingISize;
+          dx = remainingISize + (hang > 0 ? hang : 0);
+        } else if (hang < 0) {
+          dx = hang;
         }
         break;
 
       case StyleTextAlign::End:
-        dx = remainingISize;
+        dx = remainingISize + (hang > 0 ? hang : 0);
         break;
 
       case StyleTextAlign::Center:
       case StyleTextAlign::MozCenter:
-        dx = remainingISize / 2;
+        dx = (remainingISize + hang) / 2;
         break;
     }
   }

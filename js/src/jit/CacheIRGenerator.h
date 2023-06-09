@@ -9,6 +9,7 @@
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/Maybe.h"
 
 #include <stdint.h>
 
@@ -34,6 +35,7 @@ struct XrayJitInfo;
 
 namespace js {
 
+class BoundFunctionObject;
 class NativeObject;
 class PropertyResult;
 class ProxyObject;
@@ -90,6 +92,9 @@ class MOZ_RAII IRGenerator {
   StringOperandId emitToStringGuard(ValOperandId id, const Value& v);
 
   void emitCalleeGuard(ObjOperandId calleeId, JSFunction* callee);
+
+  void emitOptimisticClassGuard(ObjOperandId objId, JSObject* obj,
+                                GuardClassKind kind);
 
   friend class CacheIRSpewer;
 
@@ -446,9 +451,9 @@ class MOZ_RAII TypeOfIRGenerator : public IRGenerator {
 class MOZ_RAII GetIteratorIRGenerator : public IRGenerator {
   HandleValue val_;
 
-  AttachDecision tryAttachNativeIterator(ValOperandId valId);
+  AttachDecision tryAttachObject(ValOperandId valId);
   AttachDecision tryAttachNullOrUndefined(ValOperandId valId);
-  AttachDecision tryAttachMegamorphic(ValOperandId valId);
+  AttachDecision tryAttachGeneric(ValOperandId valId);
 
  public:
   GetIteratorIRGenerator(JSContext* cx, HandleScript, jsbytecode* pc,
@@ -491,12 +496,18 @@ class MOZ_RAII CallIRGenerator : public IRGenerator {
   friend class InlinableNativeIRGenerator;
 
   ScriptedThisResult getThisShapeForScripted(HandleFunction calleeFunc,
+                                             Handle<JSObject*> newTarget,
                                              MutableHandle<Shape*> result);
 
   ObjOperandId emitFunCallOrApplyGuard(Int32OperandId argcId);
   ObjOperandId emitFunCallGuard(Int32OperandId argcId);
   ObjOperandId emitFunApplyGuard(Int32OperandId argcId);
-  ObjOperandId emitFunApplyArgsGuard(CallFlags::ArgFormat format);
+  mozilla::Maybe<ObjOperandId> emitFunApplyArgsGuard(
+      CallFlags::ArgFormat format);
+
+  void emitCallScriptedGuards(ObjOperandId calleeObjId, JSFunction* calleeFunc,
+                              Int32OperandId argcId, CallFlags flags,
+                              Shape* thisShape, bool isBoundFunction);
 
   AttachDecision tryAttachFunCall(HandleFunction calleeFunc);
   AttachDecision tryAttachFunApply(HandleFunction calleeFunc);
@@ -506,6 +517,7 @@ class MOZ_RAII CallIRGenerator : public IRGenerator {
   AttachDecision tryAttachWasmCall(HandleFunction calleeFunc);
   AttachDecision tryAttachCallNative(HandleFunction calleeFunc);
   AttachDecision tryAttachCallHook(HandleObject calleeObj);
+  AttachDecision tryAttachBoundFunction(Handle<BoundFunctionObject*> calleeObj);
 
   void trackAttached(const char* name /* must be a C string literal */);
 
@@ -535,6 +547,10 @@ class MOZ_RAII InlinableNativeIRGenerator {
   bool ignoresResult() const { return generator_.op_ == JSOp::CallIgnoresRv; }
 
   void emitNativeCalleeGuard();
+  void emitOptimisticClassGuard(ObjOperandId objId, JSObject* obj,
+                                GuardClassKind kind) {
+    generator_.emitOptimisticClassGuard(objId, obj, kind);
+  }
 
   ObjOperandId emitLoadArgsArray();
 
@@ -577,6 +593,9 @@ class MOZ_RAII InlinableNativeIRGenerator {
   AttachDecision tryAttachArrayIsArray();
   AttachDecision tryAttachDataViewGet(Scalar::Type type);
   AttachDecision tryAttachDataViewSet(Scalar::Type type);
+  AttachDecision tryAttachFunctionBind();
+  AttachDecision tryAttachSpecializedFunctionBind(
+      Handle<JSObject*> target, Handle<BoundFunctionObject*> templateObj);
   AttachDecision tryAttachUnsafeGetReservedSlot(InlinableNative native);
   AttachDecision tryAttachUnsafeSetReservedSlot();
   AttachDecision tryAttachIsSuspendedGenerator();
@@ -637,7 +656,6 @@ class MOZ_RAII InlinableNativeIRGenerator {
   AttachDecision tryAttachArrayBufferByteLength(bool isPossiblyWrapped);
   AttachDecision tryAttachIsConstructing();
   AttachDecision tryAttachGetNextMapSetEntryForIterator(bool isMap);
-  AttachDecision tryAttachFinishBoundFunctionInit();
   AttachDecision tryAttachNewArrayIterator();
   AttachDecision tryAttachNewStringIterator();
   AttachDecision tryAttachNewRegExpStringIterator();
@@ -710,16 +728,12 @@ class MOZ_RAII CompareIRGenerator : public IRGenerator {
   AttachDecision tryAttachInt32(ValOperandId lhsId, ValOperandId rhsId);
   AttachDecision tryAttachNumber(ValOperandId lhsId, ValOperandId rhsId);
   AttachDecision tryAttachBigInt(ValOperandId lhsId, ValOperandId rhsId);
-  AttachDecision tryAttachNumberUndefined(ValOperandId lhsId,
-                                          ValOperandId rhsId);
   AttachDecision tryAttachAnyNullUndefined(ValOperandId lhsId,
                                            ValOperandId rhsId);
   AttachDecision tryAttachNullUndefined(ValOperandId lhsId, ValOperandId rhsId);
   AttachDecision tryAttachStringNumber(ValOperandId lhsId, ValOperandId rhsId);
   AttachDecision tryAttachPrimitiveSymbol(ValOperandId lhsId,
                                           ValOperandId rhsId);
-  AttachDecision tryAttachBoolStringOrNumber(ValOperandId lhsId,
-                                             ValOperandId rhsId);
   AttachDecision tryAttachBigIntInt32(ValOperandId lhsId, ValOperandId rhsId);
   AttachDecision tryAttachBigIntNumber(ValOperandId lhsId, ValOperandId rhsId);
   AttachDecision tryAttachBigIntString(ValOperandId lhsId, ValOperandId rhsId);

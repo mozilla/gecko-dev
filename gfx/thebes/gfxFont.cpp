@@ -240,11 +240,13 @@ already_AddRefed<gfxFont> gfxFontCache::Lookup(
   }
 
   RefPtr<gfxFont> font = entry->mFont;
-  MarkUsedLocked(font, lock);
+  if (font->GetExpirationState()->IsTracked()) {
+    RemoveObjectLocked(font, lock);
+  }
   return font.forget();
 }
 
-already_AddRefed<gfxFont> gfxFontCache::MaybeInsert(RefPtr<gfxFont>&& aFont) {
+already_AddRefed<gfxFont> gfxFontCache::MaybeInsert(gfxFont* aFont) {
   MOZ_ASSERT(aFont);
   MutexAutoLock lock(mMutex);
 
@@ -252,35 +254,69 @@ already_AddRefed<gfxFont> gfxFontCache::MaybeInsert(RefPtr<gfxFont>&& aFont) {
           aFont->GetUnicodeRangeMap());
   HashEntry* entry = mFonts.PutEntry(key);
   if (!entry) {
-    return aFont.forget();
+    return do_AddRef(aFont);
   }
 
   // If it is null, then we are inserting a new entry. Otherwise we are
   // attempting to replace an existing font, probably due to a thread race, in
   // which case stick with the original font.
   if (!entry->mFont) {
-    entry->mFont = std::move(aFont);
-    AddObjectLocked(entry->mFont, lock);
+    entry->mFont = aFont;
     // Assert that we can find the entry we just put in (this fails if the key
     // has a NaN float value in it, e.g. 'sizeAdjust').
     MOZ_ASSERT(entry == mFonts.GetEntry(key));
   } else {
-    MarkUsedLocked(entry->mFont, lock);
+    MOZ_ASSERT(entry->mFont != aFont);
+    aFont->Destroy();
+    if (entry->mFont->GetExpirationState()->IsTracked()) {
+      RemoveObjectLocked(entry->mFont, lock);
+    }
   }
 
   return do_AddRef(entry->mFont);
 }
 
-void gfxFontCache::NotifyExpiredLocked(gfxFont* aFont, const AutoLock& aLock) {
-  // If there are outstanding references to the font outside the cache, we
-  // should just mark it as used.
-  if (aFont->GetRefCount() > 1) {
-    MarkUsedLocked(aFont, aLock);
-    return;
+bool gfxFontCache::MaybeDestroy(gfxFont* aFont) {
+  MOZ_ASSERT(aFont);
+  MutexAutoLock lock(mMutex);
+
+  // If the font has a non-zero refcount, then we must have lost the race with
+  // gfxFontCache::Lookup and the same font was reacquired.
+  if (aFont->GetRefCount() > 0) {
+    return false;
   }
 
-  // We should have the last reference to the font.
+  Key key(aFont->GetFontEntry(), aFont->GetStyle(),
+          aFont->GetUnicodeRangeMap());
+  HashEntry* entry = mFonts.GetEntry(key);
+  if (!entry || entry->mFont != aFont) {
+    MOZ_ASSERT(!aFont->GetExpirationState()->IsTracked());
+    return true;
+  }
+
+  // If the font is being tracked, we must have then also lost another race with
+  // gfxFontCache::MaybeDestroy which re-added it to the tracker.
+  if (aFont->GetExpirationState()->IsTracked()) {
+    return false;
+  }
+
+  // Typically this won't fail, but it may during startup/shutdown if the timer
+  // service is not available.
+  nsresult rv = AddObjectLocked(aFont, lock);
+  if (NS_SUCCEEDED(rv)) {
+    return false;
+  }
+
+  mFonts.RemoveEntry(entry);
+  return true;
+}
+
+void gfxFontCache::NotifyExpiredLocked(gfxFont* aFont, const AutoLock& aLock) {
+  MOZ_ASSERT(aFont->GetRefCount() == 0);
+
   RemoveObjectLocked(aFont, aLock);
+  mTrackerDiscard.AppendElement(aFont);
+
   Key key(aFont->GetFontEntry(), aFont->GetStyle(),
           aFont->GetUnicodeRangeMap());
   HashEntry* entry = mFonts.GetEntry(key);
@@ -289,12 +325,11 @@ void gfxFontCache::NotifyExpiredLocked(gfxFont* aFont, const AutoLock& aLock) {
     return;
   }
 
-  mTrackerDiscard.AppendElement(std::move(entry->mFont));
   mFonts.RemoveEntry(entry);
 }
 
 void gfxFontCache::NotifyHandlerEnd() {
-  nsTArray<RefPtr<gfxFont>> discard;
+  nsTArray<gfxFont*> discard;
   {
     MutexAutoLock lock(mMutex);
     discard = std::move(mTrackerDiscard);
@@ -302,27 +337,47 @@ void gfxFontCache::NotifyHandlerEnd() {
   DestroyDiscard(discard);
 }
 
-void gfxFontCache::DestroyDiscard(nsTArray<RefPtr<gfxFont>>& aDiscard) {
+void gfxFontCache::DestroyDiscard(nsTArray<gfxFont*>& aDiscard) {
   for (auto& font : aDiscard) {
-    NS_ASSERTION(font->GetRefCount() == 1,
+    NS_ASSERTION(font->GetRefCount() == 0,
                  "Destroying with refs outside cache!");
     font->ClearCachedWords();
+    font->Destroy();
   }
   aDiscard.Clear();
 }
 
 void gfxFontCache::Flush() {
-  nsTHashtable<HashEntry> discard;
+  nsTArray<gfxFont*> discard;
   {
     MutexAutoLock lock(mMutex);
+    discard.SetCapacity(mFonts.Count());
     for (auto iter = mFonts.Iter(); !iter.Done(); iter.Next()) {
       HashEntry* entry = static_cast<HashEntry*>(iter.Get());
-      RemoveObjectLocked(entry->mFont, lock);
+      if (!entry || !entry->mFont) {
+        MOZ_ASSERT_UNREACHABLE("Invalid font?");
+        continue;
+      }
+
+      if (entry->mFont->GetRefCount() == 0) {
+        // If we are not tracked, then we must have won the race with
+        // gfxFont::MaybeDestroy and it is waiting on the mutex. To avoid a
+        // double free, we let gfxFont::MaybeDestroy handle the freeing when it
+        // acquires the mutex and discovers there is no matching entry in the
+        // hashtable.
+        if (entry->mFont->GetExpirationState()->IsTracked()) {
+          RemoveObjectLocked(entry->mFont, lock);
+          discard.AppendElement(entry->mFont);
+        }
+      } else {
+        MOZ_ASSERT(!entry->mFont->GetExpirationState()->IsTracked());
+      }
     }
     MOZ_ASSERT(IsEmptyLocked(lock),
                "Cache tracker still has fonts after flush!");
-    discard = std::move(mFonts);
+    mFonts.Clear();
   }
+  DestroyDiscard(discard);
 }
 
 /*static*/
@@ -815,11 +870,15 @@ void gfxShapedText::AdjustAdvancesForSyntheticBold(float aSynBoldOffset,
 }
 
 float gfxFont::AngleForSyntheticOblique() const {
-  // If the style doesn't call for italic/oblique, or if the face already
-  // provides it, no synthetic style should be added.
-  if (mStyle.style == FontSlantStyle::NORMAL || !mStyle.allowSyntheticStyle ||
-      !mFontEntry->IsUpright()) {
-    return 0.0f;
+  // First check conditions that mean no synthetic slant should be used:
+  if (mStyle.style == FontSlantStyle::NORMAL) {
+    return 0.0f;  // Requested style is 'normal'.
+  }
+  if (!mStyle.allowSyntheticStyle) {
+    return 0.0f;  // Synthetic obliquing is disabled.
+  }
+  if (!mFontEntry->MayUseSyntheticSlant()) {
+    return 0.0f;  // The resource supports "real" slant, so don't synthesize.
   }
 
   // If style calls for italic, and face doesn't support it, use default
@@ -830,7 +889,7 @@ float gfxFont::AngleForSyntheticOblique() const {
                : FontSlantStyle::DEFAULT_OBLIQUE_DEGREES;
   }
 
-  // Default or custom oblique angle
+  // OK, we're going to use synthetic oblique: return the requested angle.
   return mStyle.style.ObliqueAngle();
 }
 
@@ -2011,10 +2070,22 @@ void gfxFont::DrawOneGlyph(uint32_t aGlyphID, const gfx::Point& aPt,
   gfx::Point devPt(ToDeviceUnits(aPt.x, runParams.devPerApp),
                    ToDeviceUnits(aPt.y, runParams.devPerApp));
 
+  auto* textDrawer = runParams.textDrawer;
+  if (textDrawer) {
+    // If the glyph is entirely outside the clip rect, we don't need to draw it
+    // at all. (We check the font extents here rather than the individual glyph
+    // bounds because that's cheaper to look up, and provides a conservative
+    // "worst case" for where this glyph might want to draw.)
+    LayoutDeviceRect extents =
+        LayoutDeviceRect::FromUnknownRect(aBuffer.mFontParams.fontExtents);
+    extents.MoveBy(LayoutDevicePoint::FromUnknownPoint(devPt));
+    if (!extents.Intersects(runParams.clipRect)) {
+      return;
+    }
+  }
+
   if (FC == FontComplexityT::ComplexFont) {
     const FontDrawParams& fontParams(aBuffer.mFontParams);
-
-    auto* textDrawer = runParams.context->GetTextDrawer();
 
     gfxContextMatrixAutoSaveRestore matrixRestore;
 
@@ -2087,7 +2158,7 @@ bool gfxFont::DrawMissingGlyph(const TextRunDrawParams& aRunParams,
   // we don't have to draw the hexbox for them.
   float advance = aDetails->mAdvance;
   if (aRunParams.drawMode != DrawMode::GLYPH_PATH && advance > 0) {
-    auto* textDrawer = aRunParams.context->GetTextDrawer();
+    auto* textDrawer = aRunParams.textDrawer;
     const Matrix* matPtr = nullptr;
     Matrix mat;
     if (textDrawer) {
@@ -2128,10 +2199,9 @@ bool gfxFont::DrawMissingGlyph(const TextRunDrawParams& aRunParams,
       aRunParams.context->SetMatrix(mat);
     }
 
-    gfxFontMissingGlyphs::DrawMissingGlyph(aDetails->mGlyphID, glyphRect,
-                                           *aRunParams.dt,
-                                           PatternFromState(aRunParams.context),
-                                           1.0 / aRunParams.devPerApp, matPtr);
+    gfxFontMissingGlyphs::DrawMissingGlyph(
+        aDetails->mGlyphID, glyphRect, *aRunParams.dt,
+        PatternFromState(aRunParams.context), matPtr);
   }
   return true;
 }
@@ -2174,8 +2244,25 @@ void gfxFont::DrawEmphasisMarks(const gfxTextRun* aShapedText, gfx::Point* aPt,
   }
 }
 
+nsTArray<mozilla::gfx::sRGBColor>* TextRunDrawParams::GetPaletteFor(
+    const gfxFont* aFont) {
+  auto entry = mPaletteCache.Lookup(aFont);
+  if (!entry) {
+    CacheData newData;
+    newData.mKey = aFont;
+
+    gfxFontEntry* fe = aFont->GetFontEntry();
+    gfxFontEntry::AutoHBFace face = fe->GetHBFace();
+    newData.mPalette = COLRFonts::SetupColorPalette(
+        face, paletteValueSet, fontPalette, fe->FamilyName());
+
+    entry.Set(std::move(newData));
+  }
+  return entry.Data().mPalette.get();
+}
+
 void gfxFont::Draw(const gfxTextRun* aTextRun, uint32_t aStart, uint32_t aEnd,
-                   gfx::Point* aPt, const TextRunDrawParams& aRunParams,
+                   gfx::Point* aPt, TextRunDrawParams& aRunParams,
                    gfx::ShapedTextFlags aOrientation) {
   NS_ASSERTION(aRunParams.drawMode == DrawMode::GLYPH_PATH ||
                    !(int(aRunParams.drawMode) & int(DrawMode::GLYPH_PATH)),
@@ -2196,7 +2283,7 @@ void gfxFont::Draw(const gfxTextRun* aTextRun, uint32_t aStart, uint32_t aEnd,
   if (!fontParams.scaledFont) {
     return;
   }
-  auto* textDrawer = aRunParams.context->GetTextDrawer();
+  auto* textDrawer = aRunParams.textDrawer;
 
   fontParams.obliqueSkew = SkewForSyntheticOblique();
   fontParams.haveSVGGlyphs = GetFontEntry()->TryGetSVGData(this);
@@ -2208,10 +2295,7 @@ void gfxFont::Draw(const gfxTextRun* aTextRun, uint32_t aStart, uint32_t aEnd,
     fontParams.currentColor = aRunParams.context->GetDeviceColor(ctxColor)
                                   ? sRGBColor::FromABGR(ctxColor.ToABGR())
                                   : sRGBColor::OpaqueBlack();
-    gfxFontEntry::AutoHBFace face = GetFontEntry()->GetHBFace();
-    fontParams.palette = COLRFonts::SetupColorPalette(
-        face, aRunParams.paletteValueSet, aRunParams.fontPalette,
-        GetFontEntry()->FamilyName());
+    fontParams.palette = aRunParams.GetPaletteFor(this);
   }
 
   if (textDrawer) {
@@ -2361,7 +2445,21 @@ void gfxFont::Draw(const gfxTextRun* aTextRun, uint32_t aStart, uint32_t aEnd,
   // need to handle it here.
   bool doMultistrikeBold = ApplySyntheticBold() && !textDrawer;
   if (doMultistrikeBold) {
-    gfx::Float xscale = CalcXScale(aRunParams.context->GetDrawTarget());
+    // For screen display, we want to try and repeat strikes with an offset of
+    // one device pixel, accounting for zoom or other transforms that may be
+    // in effect, so compute x-axis scale factor from the drawtarget.
+    // However, when generating PDF output the drawtarget's transform does not
+    // really bear any relation to "device pixels", and may result in an
+    // excessively large offset relative to the font size (bug 1823888), so
+    // we limit it based on the used font size to avoid this.
+    // The constant 48.0 reflects the threshold where the calculation in
+    // gfxFont::GetSyntheticBoldOffset() switches to a simple origin-based
+    // slope, though the exact value is somewhat arbitrary; it's selected to
+    // allow a visible amount of boldness while preventing the offset from
+    // becoming "large" in relation to the glyphs.
+    Float xscale =
+        std::min<Float>(GetAdjustedSize() / 48.0,
+                        CalcXScale(aRunParams.context->GetDrawTarget()));
     fontParams.synBoldOnePixelOffset = aRunParams.direction * xscale;
     if (xscale != 0.0) {
       static const int32_t kMaxExtraStrikes = 128;
@@ -2377,10 +2475,39 @@ void gfxFont::Draw(const gfxTextRun* aTextRun, uint32_t aStart, uint32_t aEnd,
         // use as many strikes as needed for the increased advance
         fontParams.extraStrikes = NS_lroundf(std::max(1.0, extraStrikes));
       }
+    } else {
+      // Degenerate transform?!
+      fontParams.extraStrikes = 0;
     }
   } else {
     fontParams.synBoldOnePixelOffset = 0;
     fontParams.extraStrikes = 0;
+  }
+
+  // Figure out the maximum extents for the font, accounting for synthetic
+  // oblique and bold.
+  if (mFUnitsConvFactor > 0.0) {
+    fontParams.fontExtents = GetFontEntry()->GetFontExtents(mFUnitsConvFactor);
+  } else {
+    // Was it not an sfnt? Maybe on Linux... use arbitrary huge extents, so we
+    // don't inadvertently clip stuff. A bit less efficient than true extents,
+    // but this should be extremely rare.
+    auto size = GetAdjustedSize();
+    fontParams.fontExtents = Rect(-2 * size, -2 * size, 5 * size, 5 * size);
+  }
+  if (fontParams.obliqueSkew != 0.0f) {
+    gfx::Point p(fontParams.fontExtents.x, fontParams.fontExtents.y);
+    gfx::Matrix skew(1, 0, fontParams.obliqueSkew, 1, 0, 0);
+    fontParams.fontExtents = skew.TransformBounds(fontParams.fontExtents);
+  }
+  if (fontParams.extraStrikes) {
+    if (fontParams.isVerticalFont) {
+      fontParams.fontExtents.height +=
+          float(fontParams.extraStrikes) * fontParams.synBoldOnePixelOffset;
+    } else {
+      fontParams.fontExtents.width +=
+          float(fontParams.extraStrikes) * fontParams.synBoldOnePixelOffset;
+    }
   }
 
   bool oldSubpixelAA = aRunParams.dt->GetPermitSubpixelAA();
@@ -2505,7 +2632,7 @@ bool gfxFont::RenderColorGlyph(DrawTarget* aDrawTarget, gfxContext* aContext,
           GetFontEntry()->GetCOLR(), hbShaper->GetHBFont(), paintGraph,
           aDrawTarget, aTextDrawer, aFontParams.scaledFont,
           aFontParams.drawOptions, aPoint, aFontParams.currentColor,
-          aFontParams.palette.get(), aGlyphId, mFUnitsConvFactor);
+          aFontParams.palette, aGlyphId, mFUnitsConvFactor);
     }
   }
 
@@ -2515,7 +2642,7 @@ bool gfxFont::RenderColorGlyph(DrawTarget* aDrawTarget, gfxContext* aContext,
     bool ok = COLRFonts::PaintGlyphLayers(
         GetFontEntry()->GetCOLR(), face, layers, aDrawTarget, aTextDrawer,
         aFontParams.scaledFont, aFontParams.drawOptions, aPoint,
-        aFontParams.currentColor, aFontParams.palette.get());
+        aFontParams.currentColor, aFontParams.palette);
     return ok;
   }
 
@@ -3189,9 +3316,8 @@ void gfxFont::PostShapingFixup(DrawTarget* aDrawTarget, const char16_t* aText,
     const Metrics& metrics = GetMetrics(aVertical ? nsFontMetrics::eVertical
                                                   : nsFontMetrics::eHorizontal);
     if (metrics.maxAdvance > metrics.aveCharWidth) {
-      float synBoldOffset = GetSyntheticBoldOffset() * CalcXScale(aDrawTarget);
-      aShapedText->AdjustAdvancesForSyntheticBold(synBoldOffset, aOffset,
-                                                  aLength);
+      aShapedText->AdjustAdvancesForSyntheticBold(GetSyntheticBoldOffset(),
+                                                  aOffset, aLength);
     }
   }
 }
@@ -3639,8 +3765,10 @@ bool gfxFont::InitFakeSmallCapsRun(
 
           StyleTextTransform globalTransform{StyleTextTransformCase::Uppercase,
                                              {}};
+          // No mask needed; we're doing case conversion, not password-hiding.
+          const char16_t maskChar = 0;
           bool mergeNeeded = nsCaseTransformTextRunFactory::TransformString(
-              origString, convertedString, Some(globalTransform),
+              origString, convertedString, Some(globalTransform), maskChar,
               /* aCaseTransformsOnly = */ false, aLanguage, charsToMergeArray,
               deletedCharsArray);
 
@@ -4157,6 +4285,7 @@ void gfxFont::CreateVerticalMetrics() {
 
   // Read real vertical metrics if available.
   metrics->ideographicWidth = -1.0;
+  metrics->zeroWidth = -1.0;
   gfxFontEntry::AutoTable vheaTable(mFontEntry, kVheaTableTag);
   if (vheaTable && mFUnitsConvFactor >= 0.0) {
     const MetricsHeader* vhea = reinterpret_cast<const MetricsHeader*>(
@@ -4183,10 +4312,19 @@ void gfxFont::CreateVerticalMetrics() {
         uint32_t gid = ProvidesGetGlyph()
                            ? GetGlyph(kWaterIdeograph, 0)
                            : shaper->GetNominalGlyph(kWaterIdeograph);
-        int32_t advance = shaper->GetGlyphVAdvance(gid);
-        // Convert 16.16 fixed-point advance from the shaper to a float.
-        metrics->ideographicWidth =
-            advance < 0 ? metrics->aveCharWidth : advance / 65536.0;
+        if (gid) {
+          int32_t advance = shaper->GetGlyphVAdvance(gid);
+          // Convert 16.16 fixed-point advance from the shaper to a float.
+          metrics->ideographicWidth =
+              advance < 0 ? metrics->aveCharWidth : advance / 65536.0;
+        }
+        gid = ProvidesGetGlyph() ? GetGlyph('0', 0)
+                                 : shaper->GetNominalGlyph('0');
+        if (gid) {
+          int32_t advance = shaper->GetGlyphVAdvance(gid);
+          metrics->zeroWidth =
+              advance < 0 ? metrics->aveCharWidth : advance / 65536.0;
+        }
       }
     }
   }
@@ -4244,10 +4382,13 @@ void gfxFont::CreateVerticalMetrics() {
 
   // Somewhat arbitrary values for now, subject to future refinement...
   metrics->spaceWidth = metrics->aveCharWidth;
-  metrics->zeroWidth = metrics->aveCharWidth;
   metrics->maxHeight = metrics->maxAscent + metrics->maxDescent;
   metrics->xHeight = metrics->emHeight / 2;
   metrics->capHeight = metrics->maxAscent;
+
+  if (metrics->zeroWidth < 0.0) {
+    metrics->zeroWidth = metrics->aveCharWidth;
+  }
 
   if (!mVerticalMetrics.compareExchange(nullptr, metrics)) {
     delete metrics;
@@ -4369,7 +4510,7 @@ gfxFontStyle::gfxFontStyle(FontSlantStyle aStyle, FontWeight aWeight,
       allowSyntheticStyle(aAllowStyleSynthesis),
       allowSyntheticSmallCaps(aAllowSmallCapsSynthesis),
       noFallbackVariantFeatures(true) {
-  MOZ_ASSERT(!mozilla::IsNaN(size));
+  MOZ_ASSERT(!std::isnan(size));
 
   switch (aSizeAdjust.tag) {
     case FontSizeAdjust::Tag::None:
@@ -4391,7 +4532,7 @@ gfxFontStyle::gfxFontStyle(FontSlantStyle aStyle, FontWeight aWeight,
       sizeAdjust = aSizeAdjust.AsIcHeight();
       break;
   }
-  MOZ_ASSERT(!mozilla::IsNaN(sizeAdjust));
+  MOZ_ASSERT(!std::isnan(sizeAdjust));
 
   sizeAdjustBasis = uint8_t(aSizeAdjust.tag);
   // sizeAdjustBasis is currently a small bitfield, so let's assert that the

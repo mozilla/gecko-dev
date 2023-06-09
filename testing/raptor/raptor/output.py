@@ -8,6 +8,7 @@
 import copy
 import json
 import os
+import warnings
 from abc import ABCMeta, abstractmethod
 from collections.abc import Iterable
 
@@ -441,6 +442,9 @@ class PerftestOutput(object):
         if "youtube-playback" in testname:
             # pylint: disable=W1633
             return round(filters.mean(_filter(vals)), 2)
+
+        if "twitch-animation" in testname:
+            return round(filters.geometric_mean(_filter(vals, "run")), 2)
 
         if testname.startswith("supporting_data"):
             if not unit:
@@ -1612,13 +1616,82 @@ class BrowsertimeOutput(PerftestOutput):
         replicates.
         """
 
-        def _filter(data):
+        def _filter_data(data, method, subtest_name):
             import numpy as np
+            from scipy.cluster.vq import kmeans2, whiten
 
-            # Apply a gaussian filter
+            """
+            Take the kmeans of the data, and attempt to filter this way.
+            We'll use hard-coded values to get rid of data that is 2x
+            smaller/larger than the majority of the data. If the data approaches
+            a 35%/65% split, then it won't be filtered as we can't figure
+            out which one is the right mean to take.
+
+            The way that this will work for multi-modal data (more than 2 modes)
+            is that the majority of the modes will end up in either one bin or
+            the other. Taking the group with the most points lets us
+            consistently remove very large outliers out of the data and target the
+            modes with the largest prominence.
+
+            TODO: The seed exists because using a randomized one often gives us
+            multiple results on the same dataset. This should keep things more
+            consistent from one task to the next. We should also look into playing
+            with iterations, but that comes at the cost of processing time (this
+            might not be a valid concern).
+            """
             data = np.asarray(data)
-            data = data[np.where(data > np.mean(data) - np.std(data) * 2)[0]]
-            data = list(data[np.where(data < np.mean(data) + np.std(data) * 2)[0]])
+
+            # Disable kmeans2 empty cluster warnings
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                kmeans, result = kmeans2(
+                    whiten(np.asarray([float(d) for d in data])), 2, seed=1000
+                )
+
+            if len(kmeans) < 2:
+                # Default to a gaussian filter if we didn't get 2 means
+                summary_method = np.mean
+                if method == "geomean":
+                    filters.geometric_mean
+
+                # Apply a gaussian filter
+                data = data[
+                    np.where(data > summary_method(data) - (np.std(data) * 2))[0]
+                ]
+                data = list(
+                    data[np.where(data < summary_method(data) + (np.std(data) * 2))[0]]
+                )
+            else:
+                first_group = data[np.where(result == 0)]
+                secnd_group = data[np.where(result == 1)]
+
+                total_len = len(data)
+                first_len = len(first_group)
+                secnd_len = len(secnd_group)
+
+                ratio = np.ceil((min(first_len, secnd_len) / total_len) * 100)
+                if ratio <= 35:
+                    # If one of the groups are less than 35% of the total
+                    # size, then filter it out if the difference in the
+                    # k-means are large enough (200% difference).
+                    max_mean = max(kmeans)
+                    min_mean = min(kmeans)
+                    if abs(max_mean / min_mean) > 2:
+                        major_group = first_group
+                        major_mean = np.mean(first_group) if first_len > 0 else 0
+                        minor_mean = np.mean(secnd_group) if secnd_len > 0 else 0
+                        if first_len < secnd_len:
+                            major_group = secnd_group
+                            tmp = major_mean
+                            major_mean = minor_mean
+                            minor_mean = tmp
+
+                        LOG.info(
+                            f"{subtest_name}: Filtering out {total_len - len(major_group)} "
+                            f"data points found in minor_group of data with "
+                            f"mean {minor_mean} vs. {major_mean} in major group"
+                        )
+                        data = major_group
 
             return data
 
@@ -1626,7 +1699,7 @@ class BrowsertimeOutput(PerftestOutput):
             # Don't filter with less than 10 data points
             data = subtest["replicates"]
             if len(subtest["replicates"]) > 10:
-                data = _filter(data)
+                data = _filter_data(data, alternative_method, subtest["name"])
             if alternative_method == "geomean":
                 subtest["value"] = round(filters.geometric_mean(data), 1)
             elif alternative_method == "mean":
@@ -1750,50 +1823,76 @@ class BrowsertimeOutput(PerftestOutput):
                     "subtests": {},
                 },
             )
-            # Setting shouldAlert to False whenever self.app is either chrome, chrome-m, chromium
-            if self.app in ("chrome", "chrome-m", "chromium"):
+            # Add the alert window settings if needed
+            for alert_option, schema_name in (
+                ("min_back_window", "minBackWindow"),
+                ("max_back_window", "maxBackWindow"),
+                ("fore_window", "foreWindow"),
+            ):
+                if test.get(alert_option, None) is not None:
+                    suite[schema_name] = int(test[alert_option])
+
+            # Setting shouldAlert to False whenever self.app is either chrome, chrome-m, chromium, chromium-as-release
+            if self.app in ("chrome", "chrome-m", "chromium", "custom-car"):
                 suite["shouldAlert"] = False
             # Check if the test has set optional properties
             if "alert_change_type" in test and "alertChangeType" not in suite:
                 suite["alertChangeType"] = test["alert_change_type"]
 
+            def _process_measurements(measurement_name, replicates):
+                subtest = {}
+                subtest["name"] = measurement_name
+                subtest["lowerIsBetter"] = test["subtest_lower_is_better"]
+                subtest["alertThreshold"] = float(test["alert_threshold"])
+                subtest["unit"] = (
+                    "ms" if measurement_name == "cpuTime" else test["subtest_unit"]
+                )
+
+                # Add the alert window settings if needed here too in case
+                # there is no summary value in the test
+                for schema_name in (
+                    "minBackWindow",
+                    "maxBackWindow",
+                    "foreWindow",
+                ):
+                    if suite.get(schema_name, None) is not None:
+                        subtest[schema_name] = suite[schema_name]
+
+                # if 'alert_on' is set for this particular measurement, then we want to set
+                # the flag in the perfherder output to turn on alerting for this subtest
+                if self.subtest_alert_on is not None:
+                    if measurement_name in self.subtest_alert_on:
+                        LOG.info(
+                            "turning on subtest alerting for measurement type: %s"
+                            % measurement_name
+                        )
+                        subtest["shouldAlert"] = True
+                        if self.app in ("chrome", "chrome-m", "chromium", "custom-car"):
+                            subtest["shouldAlert"] = False
+                    else:
+                        # Explicitly set `shouldAlert` to False so that the measurement
+                        # is not alerted on. Otherwise Perfherder defaults to alerting.
+                        LOG.info(
+                            "turning off subtest alerting for measurement type: %s"
+                            % measurement_name
+                        )
+                        subtest["shouldAlert"] = False
+                subtest["replicates"] = replicates
+                return subtest
+
             if test["type"] in ["pageload", "scenario", "power"]:
                 for measurement_name, replicates in test["measurements"].items():
+                    new_subtest = _process_measurements(measurement_name, replicates)
                     if measurement_name not in suite["subtests"]:
-                        subtest = {}
-                        subtest["name"] = measurement_name
-                        subtest["lowerIsBetter"] = test["subtest_lower_is_better"]
-                        subtest["alertThreshold"] = float(test["alert_threshold"])
-                        subtest["unit"] = test["subtest_unit"]
-
-                        # if 'alert_on' is set for this particular measurement, then we want to set
-                        # the flag in the perfherder output to turn on alerting for this subtest
-                        if self.subtest_alert_on is not None:
-                            if measurement_name in self.subtest_alert_on:
-                                LOG.info(
-                                    "turning on subtest alerting for measurement type: %s"
-                                    % measurement_name
-                                )
-                                subtest["shouldAlert"] = True
-                                if self.app in ("chrome", "chrome-m", "chromium"):
-                                    subtest["shouldAlert"] = False
-                            else:
-                                # Explicitly set `shouldAlert` to False so that the measurement
-                                # is not alerted on. Otherwise Perfherder defaults to alerting.
-                                LOG.info(
-                                    "turning off subtest alerting for measurement type: %s"
-                                    % measurement_name
-                                )
-                                subtest["shouldAlert"] = False
-                        subtest["replicates"] = []
-                        suite["subtests"][measurement_name] = subtest
+                        suite["subtests"][measurement_name] = new_subtest
                     else:
-                        subtest = suite["subtests"][measurement_name]
-
-                    subtest["replicates"].extend(replicates)
+                        suite["subtests"][measurement_name]["replicates"].extend(
+                            new_subtest["replicates"]
+                        )
 
             elif "benchmark" in test["type"]:
                 subtests = None
+
                 if "speedometer" in test["measurements"]:
                     # this includes stylebench
                     subtests, vals = self.parseSpeedometerOutput(test)
@@ -1833,6 +1932,15 @@ class BrowsertimeOutput(PerftestOutput):
                     raise Exception("No benchmark metrics found in browsertime results")
 
                 suite["subtests"] = subtests
+
+                if "cpuTime" in test["measurements"] and test.get(
+                    "gather_cpuTime", None
+                ):
+                    replicates = test["measurements"]["cpuTime"]
+                    cpu_subtest = _process_measurements("cpuTime", replicates)
+                    _process(cpu_subtest)
+                    suite["subtests"].append(cpu_subtest)
+
                 # summarize results for both benchmark type tests
                 if len(subtests) > 1:
                     suite["value"] = self.construct_summary(vals, testname=test["name"])

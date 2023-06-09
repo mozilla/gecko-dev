@@ -55,8 +55,6 @@ class NetworkEventWatcher {
     this.networkEvents = new Map();
 
     this.watcherActor = watcherActor;
-    this.pool = new Pool(watcherActor.conn, "network-events");
-    this.watcherActor.manage(this.pool);
     this.onNetworkEventAvailable = onAvailable;
     this.onNetworkEventUpdated = onUpdated;
     // Boolean to know if we keep previous document network events or not.
@@ -71,15 +69,28 @@ class NetworkEventWatcher {
 
   /**
    * Clear all the network events and the related actors.
+   *
+   * This is called on actor destroy, but also from WatcherActor.clearResources(NETWORK_EVENT)
    */
   clear() {
     this.networkEvents.clear();
     this.listener.clear();
-    this.pool.destroy();
+    if (this._pool) {
+      this._pool.destroy();
+      this._pool = null;
+    }
   }
 
-  get conn() {
-    return this.watcherActor.conn;
+  /**
+   * A protocol.js Pool to store all NetworkEventActor's which may be destroyed on navigations.
+   */
+  get pool() {
+    if (this._pool) {
+      return this._pool;
+    }
+    this._pool = new Pool(this.watcherActor.conn, "network-events");
+    this.watcherActor.manage(this._pool);
+    return this._pool;
   }
 
   /**
@@ -161,6 +172,14 @@ class NetworkEventWatcher {
     return this.listener.getBlockedUrls();
   }
 
+  override(url, path) {
+    this.listener.override(url, path);
+  }
+
+  removeOverride(url) {
+    this.listener.removeOverride(url);
+  }
+
   /**
    * Watch for previous document being unloaded in order to clear
    * all related network events, in case persist is disabled.
@@ -188,8 +207,8 @@ class NetworkEventWatcher {
 
     for (const child of this.pool.poolChildren()) {
       // Destroy all network events matching the destroyed WindowGlobal
-      if (!child.isNavigationRequest) {
-        if (child.innerWindowId == innerWindowId) {
+      if (!child.isNavigationRequest()) {
+        if (child.getInnerWindowId() == innerWindowId) {
           child.destroy();
         }
         // Avoid destroying the navigation request, which is flagged with previous document's innerWindowId.
@@ -205,8 +224,8 @@ class NetworkEventWatcher {
         // But the frontend will receive it after the navigation begins (after will-navigate) and will display it
         // and try to fetch extra data about it. So, avoid destroying its NetworkEventActor.
       } else if (
-        child.innerWindowId &&
-        child.innerWindowId != innerWindowId &&
+        child.getInnerWindowId() &&
+        child.getInnerWindowId() != innerWindowId &&
         windowGlobal.browsingContext ==
           this.watcherActor.browserElement?.browsingContext
       ) {
@@ -256,12 +275,10 @@ class NetworkEventWatcher {
     return false;
   }
 
-  onNetworkEvent(event) {
-    const { channelId } = event;
-
-    if (this.networkEvents.has(channelId)) {
+  onNetworkEvent(networkEventOptions, channel) {
+    if (this.networkEvents.has(channel.channelId)) {
       throw new Error(
-        `Got notified about channel ${channelId} more than once.`
+        `Got notified about channel ${channel.channelId} more than once.`
       );
     }
 
@@ -272,23 +289,42 @@ class NetworkEventWatcher {
         onNetworkEventUpdate: this.onNetworkEventUpdate.bind(this),
         onNetworkEventDestroy: this.onNetworkEventDestroy.bind(this),
       },
-      event
+      networkEventOptions,
+      channel
     );
     this.pool.manage(actor);
 
     const resource = actor.asResource();
-
-    this.networkEvents.set(resource.resourceId, {
+    const isBlocked = !!resource.blockedReason;
+    const networkEvent = {
       browsingContextID: resource.browsingContextID,
       innerWindowId: resource.innerWindowId,
       resourceId: resource.resourceId,
       resourceType: resource.resourceType,
-      isBlocked: !!resource.blockedReason,
-      types: [],
-      resourceUpdates: {},
-    });
+      isBlocked,
+      receivedUpdates: [],
+      resourceUpdates: {
+        // Requests already come with request cookies and headers, so those
+        // should always be considered as available. But the client still
+        // heavily relies on those `Available` flags to fetch additional data,
+        // so it is better to keep them for consistency.
+        requestCookiesAvailable: true,
+        requestHeadersAvailable: true,
+      },
+    };
+    this.networkEvents.set(resource.resourceId, networkEvent);
 
     this.onNetworkEventAvailable([resource]);
+
+    // Blocked requests will not receive further updates and should emit an
+    // update packet immediately.
+    // The frontend expects to receive a dedicated update to consider the
+    // request as completed. TODO: lift this restriction so that we can only
+    // emit a resource available notification if no update is needed.
+    if (isBlocked) {
+      this._emitUpdate(networkEvent);
+    }
+
     return actor;
   }
 
@@ -299,15 +335,7 @@ class NetworkEventWatcher {
       return;
     }
 
-    const {
-      browsingContextID,
-      innerWindowId,
-      resourceId,
-      resourceType,
-      resourceUpdates,
-      types,
-      isBlocked,
-    } = networkEvent;
+    const { resourceUpdates, receivedUpdates } = networkEvent;
 
     switch (updateResource.updateType) {
       case "responseStart":
@@ -321,6 +349,9 @@ class NetworkEventWatcher {
         // in _httpResponseExaminer.
         resourceUpdates.mimeType = updateResource.mimeType;
         resourceUpdates.waitingTime = updateResource.waitingTime;
+
+        resourceUpdates.responseHeadersAvailable = true;
+        resourceUpdates.responseCookiesAvailable = true;
         break;
       case "responseContent":
         resourceUpdates.contentSize = updateResource.contentSize;
@@ -339,34 +370,26 @@ class NetworkEventWatcher {
     }
 
     resourceUpdates[`${updateResource.updateType}Available`] = true;
-    types.push(updateResource.updateType);
+    receivedUpdates.push(updateResource.updateType);
 
-    if (isBlocked) {
-      // Blocked requests
-      if (
-        !types.includes("requestHeaders") ||
-        !types.includes("requestCookies")
-      ) {
-        return;
-      }
-    } else if (
-      // Un-blocked requests
-      !types.includes("requestHeaders") ||
-      !types.includes("requestCookies") ||
-      !types.includes("eventTimings") ||
-      !types.includes("responseContent") ||
-      !types.includes("securityInfo")
-    ) {
-      return;
+    const isComplete =
+      receivedUpdates.includes("eventTimings") &&
+      receivedUpdates.includes("responseContent") &&
+      receivedUpdates.includes("securityInfo");
+
+    if (isComplete) {
+      this._emitUpdate(networkEvent);
     }
+  }
 
+  _emitUpdate(networkEvent) {
     this.onNetworkEventUpdated([
       {
-        resourceType,
-        resourceId,
-        resourceUpdates,
-        browsingContextID,
-        innerWindowId,
+        resourceType: networkEvent.resourceType,
+        resourceId: networkEvent.resourceId,
+        resourceUpdates: networkEvent.resourceUpdates,
+        browsingContextID: networkEvent.browsingContextID,
+        innerWindowId: networkEvent.innerWindowId,
       },
     ]);
   }

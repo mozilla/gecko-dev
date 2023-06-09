@@ -7,6 +7,7 @@
 #include "base/basictypes.h"
 
 #include "BrowserParent.h"
+#include "mozilla/AlreadyAddRefed.h"
 
 #ifdef ACCESSIBILITY
 #  include "mozilla/a11y/DocAccessibleParent.h"
@@ -356,7 +357,7 @@ already_AddRefed<nsPIDOMWindowOuter> BrowserParent::GetParentWindowOuter() {
 already_AddRefed<nsIWidget> BrowserParent::GetTopLevelWidget() {
   if (RefPtr<Element> element = mFrameElement) {
     if (PresShell* presShell = element->OwnerDoc()->GetPresShell()) {
-      return presShell->GetViewManager()->GetRootWidget();
+      return do_AddRef(presShell->GetViewManager()->GetRootWidget());
     }
   }
   return nullptr;
@@ -645,6 +646,11 @@ void BrowserParent::Destroy() {
     return;
   }
 
+  // If we are shutting down everything or we know to be the last
+  // BrowserParent, signal the impending shutdown early to the content process
+  // to avoid to run the SendDestroy before we know we are ExpectingShutdown.
+  Manager()->NotifyTabWillDestroy();
+
   DestroyInternal();
 
   mIsDestroyed = true;
@@ -865,7 +871,7 @@ void BrowserParent::LoadURL(nsDocShellLoadState* aLoadState) {
     return;
   }
 
-  Unused << SendLoadURL(aLoadState, GetShowInfo());
+  Unused << SendLoadURL(WrapNotNull(aLoadState), GetShowInfo());
 }
 
 void BrowserParent::ResumeLoad(uint64_t aPendingSwitchID) {
@@ -1276,14 +1282,9 @@ mozilla::ipc::IPCResult BrowserParent::RecvPDocAccessibleConstructor(
 }
 #endif
 
-PFilePickerParent* BrowserParent::AllocPFilePickerParent(const nsString& aTitle,
-                                                         const int16_t& aMode) {
-  return new FilePickerParent(aTitle, aMode);
-}
-
-bool BrowserParent::DeallocPFilePickerParent(PFilePickerParent* actor) {
-  delete actor;
-  return true;
+already_AddRefed<PFilePickerParent> BrowserParent::AllocPFilePickerParent(
+    const nsString& aTitle, const nsIFilePicker::Mode& aMode) {
+  return MakeAndAddRef<FilePickerParent>(aTitle, aMode);
 }
 
 already_AddRefed<PSessionStoreParent>
@@ -3328,15 +3329,11 @@ BrowserParent::GetAuthPrompt(uint32_t aPromptReason, const nsIID& iid,
   return NS_OK;
 }
 
-PColorPickerParent* BrowserParent::AllocPColorPickerParent(
+already_AddRefed<PColorPickerParent> BrowserParent::AllocPColorPickerParent(
     const nsString& aTitle, const nsString& aInitialColor,
     const nsTArray<nsString>& aDefaultColors) {
-  return new ColorPickerParent(aTitle, aInitialColor, aDefaultColors);
-}
-
-bool BrowserParent::DeallocPColorPickerParent(PColorPickerParent* actor) {
-  delete actor;
-  return true;
+  return MakeAndAddRef<ColorPickerParent>(aTitle, aInitialColor,
+                                          aDefaultColors);
 }
 
 already_AddRefed<nsFrameLoader> BrowserParent::GetFrameLoader(
@@ -3485,10 +3482,12 @@ void BrowserParent::SetRenderLayersInternal(bool aEnabled) {
 
   Unused << SendRenderLayers(aEnabled, mLayerTreeEpoch);
 
-  // Ask the child to repaint using the PHangMonitor channel/thread (which may
-  // be less congested).
+  // Ask the child to repaint/unload layers using the PHangMonitor
+  // channel/thread (which may be less congested).
   if (aEnabled) {
     Manager()->PaintTabWhileInterruptingJS(this, mLayerTreeEpoch);
+  } else {
+    Manager()->UnloadLayersWhileInterruptingJS(this, mLayerTreeEpoch);
   }
 }
 
@@ -3739,7 +3738,8 @@ mozilla::ipc::IPCResult BrowserParent::RecvInvokeDragSession(
     const gfx::SurfaceFormat& aFormat, const LayoutDeviceIntRect& aDragRect,
     nsIPrincipal* aPrincipal, nsIContentSecurityPolicy* aCsp,
     const CookieJarSettingsArgs& aCookieJarSettingsArgs,
-    const MaybeDiscarded<WindowContext>& aSourceWindowContext) {
+    const MaybeDiscarded<WindowContext>& aSourceWindowContext,
+    const MaybeDiscarded<WindowContext>& aSourceTopWindowContext) {
   PresShell* presShell = mFrameElement->OwnerDoc()->GetPresShell();
   if (!presShell) {
     Unused << Manager()->SendEndDragSession(
@@ -3757,7 +3757,8 @@ mozilla::ipc::IPCResult BrowserParent::RecvInvokeDragSession(
 
   RefPtr<RemoteDragStartData> dragStartData = new RemoteDragStartData(
       this, std::move(aTransfers), aDragRect, aPrincipal, aCsp,
-      cookieJarSettings, aSourceWindowContext.GetMaybeDiscarded());
+      cookieJarSettings, aSourceWindowContext.GetMaybeDiscarded(),
+      aSourceTopWindowContext.GetMaybeDiscarded());
 
   if (aVisualDnDData && aVisualDnDData->Size() >= aDragRect.height * aStride) {
     dragStartData->SetVisualization(gfx::CreateDataSourceSurfaceFromData(

@@ -17,7 +17,6 @@
 #include "nsISupportsImpl.h"
 #include "nsNetCID.h"
 #include "nsWeakReference.h"
-#include "mozilla/Mutex.h"
 
 class nsIGlobalObject;
 
@@ -46,15 +45,21 @@ class BodyStreamHolder : public nsISupports {
 
   BodyStreamHolder();
 
-  virtual void NullifyStream() = 0;
+  virtual void NullifyStream() { mReadableStreamBody = nullptr; }
 
-  virtual void MarkAsRead() = 0;
+  virtual void MarkAsRead() {}
 
-  virtual void SetReadableStreamBody(ReadableStream* aBody) = 0;
-  virtual ReadableStream* GetReadableStreamBody() = 0;
+  void SetReadableStreamBody(ReadableStream* aBody) {
+    mReadableStreamBody = aBody;
+  }
+  ReadableStream* GetReadableStreamBody() { return mReadableStreamBody; }
 
  protected:
   virtual ~BodyStreamHolder() = default;
+
+  // This is the ReadableStream exposed to content. It's underlying source is a
+  // BodyStream object.
+  RefPtr<ReadableStream> mReadableStreamBody;
 
  private:
   void StoreBodyStream(BodyStream* aBodyStream);
@@ -73,12 +78,11 @@ class BodyStreamHolder : public nsISupports {
 
 class BodyStream final : public nsIInputStreamCallback,
                          public nsIObserver,
-                         public nsSupportsWeakReference,
-                         public SingleWriterLockOwner {
+                         public nsSupportsWeakReference {
   friend class BodyStreamHolder;
 
  public:
-  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_DECL_ISUPPORTS
   NS_DECL_NSIINPUTSTREAMCALLBACK
   NS_DECL_NSIOBSERVER
 
@@ -91,27 +95,13 @@ class BodyStream final : public nsIInputStreamCallback,
 
   void Close();
 
-  bool OnWritingThread() const override {
-#ifdef MOZ_THREAD_SAFETY_OWNERSHIP_CHECKS_SUPPORTED
-    return _mOwningThread.IsCurrentThread();
-#else
-    return true;
-#endif
-  }
-
   static nsresult RetrieveInputStream(BodyStreamHolder* aStream,
                                       nsIInputStream** aInputStream);
 
  private:
   BodyStream(nsIGlobalObject* aGlobal, BodyStreamHolder* aStreamHolder,
              nsIInputStream* aInputStream);
-  ~BodyStream() = default;
-
-#ifdef DEBUG
-  void AssertIsOnOwningThread() const;
-#else
-  void AssertIsOnOwningThread() const {}
-#endif
+  ~BodyStream();
 
  public:
   // Pull Callback
@@ -130,64 +120,39 @@ class BodyStream final : public nsIInputStreamCallback,
   // This is a script boundary until Bug 1750605 is resolved and allows us
   // to replace this with MOZ_CAN_RUN_SCRIPT.
   MOZ_CAN_RUN_SCRIPT_BOUNDARY void EnqueueChunkWithSizeIntoStream(
-      JSContext* aCx, ReadableStream* aStream, uint64_t bytes,
+      JSContext* aCx, ReadableStream* aStream, uint64_t aAvailableData,
       ErrorResult& aRv);
 
-  void ErrorPropagation(JSContext* aCx,
-                        const MutexSingleWriterAutoLock& aProofOfLock,
-                        ReadableStream* aStream, nsresult aError)
-      MOZ_REQUIRES(mMutex);
+  void ErrorPropagation(JSContext* aCx, ReadableStream* aStream,
+                        nsresult aError);
 
   // TODO: convert this to MOZ_CAN_RUN_SCRIPT (bug 1750605)
   MOZ_CAN_RUN_SCRIPT_BOUNDARY void CloseAndReleaseObjects(
-      JSContext* aCx, const MutexSingleWriterAutoLock& aProofOfLock,
-      ReadableStream* aStream) MOZ_REQUIRES(mMutex);
+      JSContext* aCx, ReadableStream* aStream);
 
   class WorkerShutdown;
 
-  void ReleaseObjects(const MutexSingleWriterAutoLock& aProofOfLock)
-      MOZ_REQUIRES(mMutex);
-
   void ReleaseObjects();
 
+  // The closed state should ultimately be managed by the source algorithms
+  // class. See also bug 1815997.
+  bool IsClosed() { return !mStreamHolder; }
+
   // Common methods
-
-  enum State {
-    // This is the beginning state before any reading operation.
-    eInitializing,
-
-    // RequestDataCallback has not been called yet. We haven't started to read
-    // data from the stream yet.
-    eWaiting,
-
-    // We are reading data in a separate I/O thread.
-    eReading,
-
-    // We are ready to write something in the JS Buffer.
-    eWriting,
-
-    // After a writing, we want to check if the stream is closed. After the
-    // check, we go back to eWaiting. If a reading request happens in the
-    // meantime, we move to eReading state.
-    eChecking,
-
-    // Operation completed.
-    eClosed,
-  };
-
-  // We need a mutex because JS engine can release BodyStream on a non-owning
-  // thread. We must be sure that the releasing of resources doesn't trigger
-  // race conditions.
-  MutexSingleWriter mMutex;
-
-  // Protected by mutex.
-  State mState MOZ_GUARDED_BY(mMutex);  // all writes are from the owning thread
 
   // mGlobal is set on creation, and isn't modified off the owning thread.
   // It isn't set to nullptr until ReleaseObjects() runs.
   nsCOMPtr<nsIGlobalObject> mGlobal;
-  RefPtr<BodyStreamHolder> mStreamHolder MOZ_GUARDED_BY(mMutex);
+  // Same for mStreamHolder. mStreamHolder being nullptr means the stream is
+  // closed.
+  RefPtr<BodyStreamHolder> mStreamHolder;
   nsCOMPtr<nsIEventTarget> mOwningEventTarget;
+  // Same as mGlobal but set to nullptr on OnInputStreamReady (on the owning
+  // thread).
+  // This promise is created by PullCallback and resolved when
+  // OnInputStreamReady succeeds. No need to try hard to settle it though, see
+  // also ReleaseObjects() for the reason.
+  RefPtr<Promise> mPullPromise;
 
   // This is the original inputStream received during the CTOR. It will be
   // converted into an nsIAsyncInputStream and stored into mInputStream at the

@@ -37,8 +37,6 @@ class MacroAssembler;
 struct Address;
 struct Register;
 
-enum class TailCallVMFunctionId;
-
 enum class ICAttachResult { Attached, DuplicateStub, TooLarge, OOM };
 
 bool TryFoldingStubs(JSContext* cx, ICFallbackStub* fallback, JSScript* script,
@@ -54,11 +52,16 @@ ICAttachResult AttachBaselineCacheIRStub(JSContext* cx,
 // BaselineCacheIRCompiler compiles CacheIR to BaselineIC native code.
 class MOZ_RAII BaselineCacheIRCompiler : public CacheIRCompiler {
   bool makesGCCalls_;
+  Register baselineFrameReg_ = FramePointer;
 
-  void tailCallVMInternal(MacroAssembler& masm, TailCallVMFunctionId id);
-
-  template <typename Fn, Fn fn>
-  void tailCallVM(MacroAssembler& masm);
+  // This register points to the baseline frame of the caller. It should only
+  // be used before we enter a stub frame. This is normally the frame pointer
+  // register, but with --enable-ic-frame-pointers we have to allocate a
+  // separate register.
+  inline Register baselineFrameReg() {
+    MOZ_ASSERT(!enteredStubFrame_);
+    return baselineFrameReg_;
+  }
 
   [[nodiscard]] bool emitStoreSlotShared(bool isFixed, ObjOperandId objId,
                                          uint32_t offsetOffset,
@@ -83,8 +86,13 @@ class MOZ_RAII BaselineCacheIRCompiler : public CacheIRCompiler {
                             uint32_t argcFixed, bool isJitCall);
   void pushFunApplyArgsObj(Register argcReg, Register calleeReg,
                            Register scratch, Register scratch2, bool isJitCall);
+  void pushFunApplyNullUndefinedArguments(Register calleeReg, bool isJitCall);
+  void pushBoundFunctionArguments(Register argcReg, Register calleeReg,
+                                  Register scratch, Register scratch2,
+                                  CallFlags flags, uint32_t numBoundArgs,
+                                  bool isJitCall);
   void createThis(Register argcReg, Register calleeReg, Register scratch,
-                  CallFlags flags);
+                  CallFlags flags, bool isBoundFunction);
   template <typename T>
   void storeThis(const T& newThis, Register argcReg, CallFlags flags);
   void updateReturnValue();
@@ -111,7 +119,11 @@ class MOZ_RAII BaselineCacheIRCompiler : public CacheIRCompiler {
                                     uint32_t nargsAndFlagsOffset,
                                     mozilla::Maybe<uint32_t> icScriptOffset);
 
+  BaselineICPerfSpewer perfSpewer_;
+
  public:
+  BaselineICPerfSpewer& perfSpewer() { return perfSpewer_; }
+
   friend class AutoStubFrame;
 
   BaselineCacheIRCompiler(JSContext* cx, TempAllocator& alloc,

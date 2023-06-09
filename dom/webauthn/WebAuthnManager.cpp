@@ -9,6 +9,8 @@
 #include "nsIURIMutator.h"
 #include "nsThreadUtils.h"
 #include "WebAuthnCoseIdentifiers.h"
+#include "WebAuthnEnumStrings.h"
+#include "WebAuthnTransportIdentifiers.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/dom/AuthenticatorAssertionResponse.h"
 #include "mozilla/dom/AuthenticatorAttestationResponse.h"
@@ -20,7 +22,6 @@
 #include "mozilla/dom/WebAuthnUtil.h"
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/PBackgroundChild.h"
-#include "authenticator/src/u2fhid-capi.h"
 
 #ifdef OS_WIN
 #  include "WinWebAuthnManager.h"
@@ -313,8 +314,8 @@ already_AddRefed<Promise> WebAuthnManager::MakeCredential(
       // If current.type does not contain a PublicKeyCredentialType
       // supported by this implementation, then stop processing current and move
       // on to the next element in mPubKeyCredParams.
-      if (aOptions.mPubKeyCredParams[a].mType !=
-          PublicKeyCredentialType::Public_key) {
+      if (!aOptions.mPubKeyCredParams[a].mType.EqualsLiteral(
+              MOZ_WEBAUTHN_PUBLIC_KEY_CREDENTIAL_TYPE_PUBLIC_KEY)) {
         continue;
       }
 
@@ -385,18 +386,44 @@ already_AddRefed<Promise> WebAuthnManager::MakeCredential(
 
   const auto& selection = aOptions.mAuthenticatorSelection;
   const auto& attachment = selection.mAuthenticatorAttachment;
-  const AttestationConveyancePreference& attestation = aOptions.mAttestation;
+  const nsString& attestation = aOptions.mAttestation;
 
   // Attachment
-  Maybe<AuthenticatorAttachment> authenticatorAttachment;
+  Maybe<nsString> authenticatorAttachment;
   if (attachment.WasPassed()) {
     authenticatorAttachment.emplace(attachment.Value());
   }
 
+  // The residentKey field was added in WebAuthn level 2. It takes precedent
+  // over the requireResidentKey field if and only if it is present and it is a
+  // member of the ResidentKeyRequirement enum.
+  static_assert(MOZ_WEBAUTHN_ENUM_STRINGS_VERSION == 2);
+  bool useResidentKeyValue =
+      selection.mResidentKey.WasPassed() &&
+      (selection.mResidentKey.Value().EqualsLiteral(
+           MOZ_WEBAUTHN_RESIDENT_KEY_REQUIREMENT_REQUIRED) ||
+       selection.mResidentKey.Value().EqualsLiteral(
+           MOZ_WEBAUTHN_RESIDENT_KEY_REQUIREMENT_PREFERRED) ||
+       selection.mResidentKey.Value().EqualsLiteral(
+           MOZ_WEBAUTHN_RESIDENT_KEY_REQUIREMENT_DISCOURAGED));
+
+  nsString residentKey;
+  if (useResidentKeyValue) {
+    residentKey = selection.mResidentKey.Value();
+  } else {
+    // "If no value is given then the effective value is required if
+    // requireResidentKey is true or discouraged if it is false or absent."
+    if (selection.mRequireResidentKey) {
+      residentKey.AssignLiteral(MOZ_WEBAUTHN_RESIDENT_KEY_REQUIREMENT_REQUIRED);
+    } else {
+      residentKey.AssignLiteral(
+          MOZ_WEBAUTHN_RESIDENT_KEY_REQUIREMENT_DISCOURAGED);
+    }
+  }
+
   // Create and forward authenticator selection criteria.
-  WebAuthnAuthenticatorSelection authSelection(selection.mRequireResidentKey,
-                                               selection.mUserVerification,
-                                               authenticatorAttachment);
+  WebAuthnAuthenticatorSelection authSelection(
+      residentKey, selection.mUserVerification, authenticatorAttachment);
 
   nsString rpIcon;
   if (aOptions.mRp.mIcon.WasPassed()) {
@@ -547,7 +574,8 @@ already_AddRefed<Promise> WebAuthnManager::GetAssertion(
 
   nsTArray<WebAuthnScopedCredential> allowList;
   for (const auto& s : aOptions.mAllowCredentials) {
-    if (s.mType == PublicKeyCredentialType::Public_key) {
+    if (s.mType.EqualsLiteral(
+            MOZ_WEBAUTHN_PUBLIC_KEY_CREDENTIAL_TYPE_PUBLIC_KEY)) {
       WebAuthnScopedCredential c;
       CryptoBuffer cb;
       cb.Assign(s.mId);
@@ -557,28 +585,22 @@ already_AddRefed<Promise> WebAuthnManager::GetAssertion(
       if (s.mTransports.WasPassed()) {
         uint8_t transports = 0;
 
-        // Transports is a string, but we match it to an enumeration so
-        // that we have forward-compatibility, ignoring unknown transports.
+        // We ignore unknown transports for forward-compatibility, but this
+        // needs to be reviewed if values are added to the
+        // AuthenticatorTransport enum.
+        static_assert(MOZ_WEBAUTHN_ENUM_STRINGS_VERSION == 2);
         for (const nsAString& str : s.mTransports.Value()) {
-          NS_ConvertUTF16toUTF8 cStr(str);
-          int i = FindEnumStringIndexImpl(
-              cStr.get(), cStr.Length(), AuthenticatorTransportValues::strings);
-          if (i < 0) {
-            continue;  // Unknown enum
-          }
-          AuthenticatorTransport t = static_cast<AuthenticatorTransport>(i);
-
-          if (t == AuthenticatorTransport::Usb) {
-            transports |= U2F_AUTHENTICATOR_TRANSPORT_USB;
-          }
-          if (t == AuthenticatorTransport::Nfc) {
-            transports |= U2F_AUTHENTICATOR_TRANSPORT_NFC;
-          }
-          if (t == AuthenticatorTransport::Ble) {
-            transports |= U2F_AUTHENTICATOR_TRANSPORT_BLE;
-          }
-          if (t == AuthenticatorTransport::Internal) {
-            transports |= CTAP_AUTHENTICATOR_TRANSPORT_INTERNAL;
+          if (str.EqualsLiteral(MOZ_WEBAUTHN_AUTHENTICATOR_TRANSPORT_USB)) {
+            transports |= MOZ_WEBAUTHN_AUTHENTICATOR_TRANSPORT_ID_USB;
+          } else if (str.EqualsLiteral(
+                         MOZ_WEBAUTHN_AUTHENTICATOR_TRANSPORT_NFC)) {
+            transports |= MOZ_WEBAUTHN_AUTHENTICATOR_TRANSPORT_ID_NFC;
+          } else if (str.EqualsLiteral(
+                         MOZ_WEBAUTHN_AUTHENTICATOR_TRANSPORT_BLE)) {
+            transports |= MOZ_WEBAUTHN_AUTHENTICATOR_TRANSPORT_ID_BLE;
+          } else if (str.EqualsLiteral(
+                         MOZ_WEBAUTHN_AUTHENTICATOR_TRANSPORT_INTERNAL)) {
+            transports |= MOZ_WEBAUTHN_AUTHENTICATOR_TRANSPORT_ID_INTERNAL;
           }
         }
         c.transports() = transports;
@@ -739,7 +761,7 @@ void WebAuthnManager::FinishMakeCredential(
   credential->SetResponse(attestation);
 
   // Forward client extension results.
-  for (auto& ext : aResult.Extensions()) {
+  for (const auto& ext : aResult.Extensions()) {
     if (ext.type() ==
         WebAuthnExtensionResult::TWebAuthnExtensionResultHmacSecret) {
       bool hmacCreateSecret =
@@ -818,7 +840,7 @@ void WebAuthnManager::FinishGetAssertion(
   credential->SetResponse(assertion);
 
   // Forward client extension results.
-  for (auto& ext : aResult.Extensions()) {
+  for (const auto& ext : aResult.Extensions()) {
     if (ext.type() == WebAuthnExtensionResult::TWebAuthnExtensionResultAppId) {
       bool appid = ext.get_WebAuthnExtensionResultAppId().AppId();
       credential->SetClientExtensionResultAppId(appid);

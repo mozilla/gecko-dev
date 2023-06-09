@@ -6,19 +6,19 @@
 
 requestLongerTimeout(2);
 
-const { FxAccounts } = ChromeUtils.import(
-  "resource://gre/modules/FxAccounts.jsm"
+const { FxAccounts } = ChromeUtils.importESModule(
+  "resource://gre/modules/FxAccounts.sys.mjs"
 );
-let { SyncedTabs } = ChromeUtils.import(
-  "resource://services-sync/SyncedTabs.jsm"
+let { SyncedTabs } = ChromeUtils.importESModule(
+  "resource://services-sync/SyncedTabs.sys.mjs"
 );
-let { UIState } = ChromeUtils.import("resource://services-sync/UIState.jsm");
+let { UIState } = ChromeUtils.importESModule(
+  "resource://services-sync/UIState.sys.mjs"
+);
 
-ChromeUtils.defineModuleGetter(
-  this,
-  "UITour",
-  "resource:///modules/UITour.jsm"
-);
+ChromeUtils.defineESModuleGetters(this, {
+  UITour: "resource:///modules/UITour.sys.mjs",
+});
 
 const DECKINDEX_TABS = 0;
 const DECKINDEX_FETCHING = 1;

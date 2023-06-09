@@ -466,6 +466,7 @@ setup({ "explicit_done": true });
       expression_should_be_known(feature + ": -3dpi");
       expression_should_be_known(feature + ": 0dppx");
       expression_should_be_known(feature + ": 0x");
+      expression_should_be_known(feature + ": calc(6x / 2)");
     }
 
     // Find the resolution using max-resolution
@@ -589,7 +590,7 @@ setup({ "explicit_done": true });
     expression_should_be_known("overflow-block: none")
     expression_should_be_known("overflow-block: paged")
     expression_should_be_known("overflow-block: scroll")
-    expression_should_be_known("overflow-block: optional-paged")
+    expression_should_be_unknown("overflow-block: optional-paged")
     expression_should_be_unknown("overflow-block: some-random-invalid-thing")
 
     // Sanity check for overflow-block
@@ -704,6 +705,31 @@ setup({ "explicit_done": true });
     should_not_apply("not ((width) and (not (height)))");
     query_should_not_be_parseable("not (width) and not (height)");
     query_should_not_be_parseable("not not (width)");
+    query_should_be_parseable("not unknown(width) ");
+
+    testGroup = "three-valued logic"
+    should_not_apply("(unknown)");
+    should_not_apply("not (unknown)");
+    should_not_apply("((unknown) and (width))");
+    should_not_apply("not ((unknown) and (width))");
+    should_not_apply("((unknown) and (height))");
+    should_apply("not ((unknown) and (height))");
+    should_apply("((unknown) or (width))");
+    should_not_apply("not ((unknown) or (width))");
+    should_not_apply("((unknown) or (height))");
+    should_not_apply("not ((unknown) or (height))");
+    should_apply("(width) or (not ((unknown) and (width)))");
+    should_not_apply("(width) and (not ((unknown) and (width)))");
+    should_apply("(width) or (not ((unknown) or (width)))");
+    should_not_apply("(width) and (not ((unknown) or (width)))");
+    should_apply("(width) or (not ((unknown) and (height)))");
+    should_apply("(width) and (not ((unknown) and (height)))");
+    should_apply("(width) or (not ((unknown) or (height)))");
+    should_not_apply("(width) and (not ((unknown) or (height)))");
+    should_not_apply("unknown(width)");
+    should_not_apply("not unknown(width)");
+    should_apply("not (unknown(width) and (height))");
+    should_not_apply("not (unknown(width) or (height))");
 
     testGroup = ""
     done();

@@ -80,14 +80,14 @@
       if (!event) {
         return null;
       }
+      if (event._savedComposedTarget) {
+        return event._savedComposedTarget;
+      }
       if (event.composed) {
         event._savedComposedTarget =
           event.composedTarget || event.composedPath()[0];
       }
-      if (event._savedComposedTarget) {
-        return event._savedComposedTarget;
-      }
-      return event.target;
+      return event._savedComposedTarget || event.target;
     }
 
     show(triggeringEvent) {
@@ -98,6 +98,23 @@
         (triggeringEvent.mozInputSource == MouseEvent.MOZ_SOURCE_KEYBOARD ||
           triggeringEvent.mozInputSource == MouseEvent.MOZ_SOURCE_UNKNOWN);
       this.open = true;
+
+      if (this.parentIsXULPanel()) {
+        this.toggleAttribute("inxulpanel", true);
+        let panel = this.parentElement;
+        panel.hidden = false;
+        panel.openPopup(
+          this.lastAnchorNode,
+          "after_start",
+          0,
+          0,
+          false,
+          false,
+          this.triggeringEvent
+        );
+      } else {
+        this.toggleAttribute("inxulpanel", false);
+      }
     }
 
     hide(triggeringEvent, { force = false } = {}) {
@@ -114,6 +131,16 @@
       let openingEvent = this.triggeringEvent;
       this.triggeringEvent = triggeringEvent;
       this.open = false;
+
+      if (this.parentIsXULPanel()) {
+        // It's possible that we're being programattically hidden, in which
+        // case, we need to hide the XUL panel we're embedded in. If, however,
+        // we're being hidden because the XUL panel is being hidden, calling
+        // hidePopup again on it is a no-op.
+        let panel = this.parentElement;
+        panel.hidePopup();
+      }
+
       let target = this.getTargetForEvent(openingEvent);
       // Refocus the button that opened the menu if we have one.
       if (target && this.wasOpenedByKeyboard) {
@@ -141,8 +168,18 @@
       return document.dir === "rtl";
     }
 
+    parentIsXULPanel() {
+      const XUL_NS =
+        "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
+      return (
+        this.parentElement?.namespaceURI == XUL_NS &&
+        this.parentElement?.localName == "panel"
+      );
+    }
+
     async setAlign() {
-      if (!this.parentElement) {
+      const hostElement = this.parentElement || this.getRootNode().host;
+      if (!hostElement) {
         // This could get called before we're added to the DOM.
         // Nothing to do in that case.
         return;
@@ -150,9 +187,9 @@
 
       // Set the showing attribute to hide the panel until its alignment is set.
       this.setAttribute("showing", "true");
-      // Tell the parent node to hide any overflow in case the panel extends off
+      // Tell the host element to hide any overflow in case the panel extends off
       // the page before the alignment is set.
-      this.parentElement.style.overflow = "hidden";
+      hostElement.style.overflow = "hidden";
 
       // Wait for a layout flush, then find the bounds.
       let {
@@ -173,7 +210,7 @@
         requestAnimationFrame(() =>
           setTimeout(() => {
             let target = this.getTargetForEvent(this.triggeringEvent);
-            let anchorNode = target || this.parentElement;
+            let anchorElement = target || hostElement;
             // It's possible this is being used in a context where windowUtils is
             // not available. In that case, fallback to using the element.
             let getBounds = el =>
@@ -181,7 +218,7 @@
                 ? window.windowUtils.getBoundsWithoutFlushing(el)
                 : el.getBoundingClientRect();
             // Use y since top is reserved.
-            let anchorBounds = getBounds(anchorNode);
+            let anchorBounds = getBounds(anchorElement);
             let panelBounds = getBounds(this);
             resolve({
               anchorHeight: anchorBounds.height,
@@ -199,39 +236,46 @@
         );
       });
 
-      // Calculate the left/right alignment.
-      let align;
-      let leftOffset;
-      let leftAlignX = anchorLeft;
-      let rightAlignX = anchorLeft + anchorWidth - panelWidth;
+      // If we're embedded in a XUL panel, let it handle alignment.
+      if (!this.parentIsXULPanel()) {
+        // Calculate the left/right alignment.
+        let align;
+        let leftOffset;
+        let leftAlignX = anchorLeft;
+        let rightAlignX = anchorLeft + anchorWidth - panelWidth;
 
-      if (this.isDocumentRTL()) {
-        // Prefer aligning on the right.
-        align = rightAlignX < 0 ? "left" : "right";
-      } else {
-        // Prefer aligning on the left.
-        align = leftAlignX + panelWidth > winWidth ? "right" : "left";
+        if (this.isDocumentRTL()) {
+          // Prefer aligning on the right.
+          align = rightAlignX < 0 ? "left" : "right";
+        } else {
+          // Prefer aligning on the left.
+          align = leftAlignX + panelWidth > winWidth ? "right" : "left";
+        }
+        leftOffset = align === "left" ? leftAlignX : rightAlignX;
+
+        let bottomAlignY = anchorTop + anchorHeight;
+        let valign;
+        let topOffset;
+        if (bottomAlignY + panelHeight > winHeight) {
+          topOffset = anchorTop - panelHeight;
+          valign = "top";
+        } else {
+          topOffset = bottomAlignY;
+          valign = "bottom";
+        }
+
+        // Set the alignments and show the panel.
+        this.setAttribute("align", align);
+        this.setAttribute("valign", valign);
+        hostElement.style.overflow = "";
+
+        this.style.left = `${leftOffset + winScrollX}px`;
+        this.style.top = `${topOffset + winScrollY}px`;
       }
-      leftOffset = align === "left" ? leftAlignX : rightAlignX;
 
-      let bottomAlignY = anchorTop + anchorHeight;
-      let valign;
-      let topOffset;
-      if (bottomAlignY + panelHeight > winHeight) {
-        topOffset = anchorTop - panelHeight;
-        valign = "top";
-      } else {
-        topOffset = bottomAlignY;
-        valign = "bottom";
-      }
-
-      // Set the alignments and show the panel.
-      this.setAttribute("align", align);
-      this.setAttribute("valign", valign);
-      this.parentElement.style.overflow = "";
-
-      this.style.left = `${leftOffset + winScrollX}px`;
-      this.style.top = `${topOffset + winScrollY}px`;
+      this.style.minWidth = this.hasAttribute("min-width-from-anchor")
+        ? `${anchorWidth}px`
+        : "";
 
       this.removeAttribute("showing");
     }
@@ -254,6 +298,9 @@
       window.addEventListener("resize", this);
       window.addEventListener("scroll", this, { capture: true });
       window.addEventListener("blur", this);
+      if (this.parentIsXULPanel()) {
+        this.parentElement.addEventListener("popuphidden", this);
+      }
     }
 
     removeHideListeners() {
@@ -264,6 +311,9 @@
       window.removeEventListener("resize", this);
       window.removeEventListener("scroll", this, { capture: true });
       window.removeEventListener("blur", this);
+      if (this.parentIsXULPanel()) {
+        this.parentElement.removeEventListener("popuphidden", this);
+      }
     }
 
     handleEvent(e) {
@@ -280,7 +330,12 @@
       switch (e.type) {
         case "resize":
         case "scroll":
+          if (inPanelList) {
+            break;
+          }
+        // Intentional fall-through
         case "blur":
+        case "popuphidden":
           this.hide();
           break;
         case "click":
@@ -444,6 +499,9 @@
   customElements.define("panel-list", PanelList);
 
   class PanelItem extends HTMLElement {
+    #initialized = false;
+    #defaultSlot;
+
     static get observedAttributes() {
       return ["accesskey"];
     }
@@ -458,12 +516,6 @@
         ? "./panel-item.css"
         : "chrome://global/content/elements/panel-item.css";
 
-      // When click listeners are added to the panel-item it creates a node in
-      // the a11y tree for this element. This breaks the association between the
-      // menu and the button[role="menuitem"] in this shadow DOM and causes
-      // announcement issues with screen readers. (bug 995064)
-      this.setAttribute("role", "presentation");
-
       this.button = document.createElement("button");
       this.button.setAttribute("role", "menuitem");
       this.button.setAttribute("part", "button");
@@ -477,29 +529,37 @@
       let supportLinkSlot = document.createElement("slot");
       supportLinkSlot.name = "support-link";
 
-      let defaultSlot = document.createElement("slot");
-      defaultSlot.style.display = "none";
+      this.#defaultSlot = document.createElement("slot");
+      this.#defaultSlot.style.display = "none";
 
-      this.shadowRoot.append(style, this.button, supportLinkSlot, defaultSlot);
-
-      this.setLabelContents = () => {
-        this.label.textContent = defaultSlot
-          .assignedNodes()
-          .map(node => node.textContent)
-          .join("");
-      };
-      this.setLabelContents();
-
-      // When our content changes, move the text into the label. It doesn't work
-      // with a <slot>, unfortunately.
-      new MutationObserver(this.setLabelContents).observe(this, {
-        characterData: true,
-        childList: true,
-        subtree: true,
-      });
+      this.shadowRoot.append(
+        style,
+        this.button,
+        supportLinkSlot,
+        this.#defaultSlot
+      );
     }
 
     connectedCallback() {
+      if (!this.#initialized) {
+        this.#initialized = true;
+        // When click listeners are added to the panel-item it creates a node in
+        // the a11y tree for this element. This breaks the association between the
+        // menu and the button[role="menuitem"] in this shadow DOM and causes
+        // announcement issues with screen readers. (bug 995064)
+        this.setAttribute("role", "presentation");
+
+        this.#setLabelContents();
+
+        // When our content changes, move the text into the label. It doesn't work
+        // with a <slot>, unfortunately.
+        new MutationObserver(() => this.#setLabelContents()).observe(this, {
+          characterData: true,
+          childList: true,
+          subtree: true,
+        });
+      }
+
       this.panel = this.closest("panel-list");
 
       if (this.panel) {
@@ -542,6 +602,13 @@
           this._accessKey = null;
         }
       }
+    }
+
+    #setLabelContents() {
+      this.label.textContent = this.#defaultSlot
+        .assignedNodes()
+        .map(node => node.textContent)
+        .join("");
     }
 
     get disabled() {

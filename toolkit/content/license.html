@@ -89,6 +89,7 @@
       <li><a href="about:license#disconnect.me">Disconnect.Me License</a>
       <li><a href="about:license#dtoa">dtoa License</a></li>
       <li><a href="about:license#ECCKiila">ECCKiila License</a></li>
+      <li><a href="about:license#fastText">fastText License</a></li>
       <li><a href="about:license#Fiat-Crypto">Fiat-Crypto License</a></li>
       <li><a href="about:license#fuzz-aldrin">fuzz-aldrin License</a></li>
       <li><a href="about:license#hunspell-nl">Dutch Spellchecking Dictionary License</a></li>
@@ -135,6 +136,7 @@
       <li><a href="about:license#matches">matches License</a></li>
       <li><a href="about:license#myspell">MySpell License</a></li>
       <li><a href="about:license#mqtt-packet">mqtt-packet License</a></li>
+      <li><a href="about:license#micromatch">micromatch License</a></li>
       <li><a href="about:license#naturalSort">naturalSort License</a></li>
       <li><a href="about:license#nicer">nICEr License</a></li>
       <li><a href="about:license#node-md5">node-md5 License</a></li>
@@ -2029,6 +2031,7 @@ into source code and to files in the following directories:
 #ifdef MOZ_JXL
     <li><code>third_party/jpeg-xl/</code></li>
 #endif
+    <li><code>third_party/xsimd/</code></li>
 </ul>
 See the individual LICENSE files for copyright owners.</p>
 
@@ -2534,6 +2537,39 @@ OF THIS SOFTWARE OR ITS FITNESS FOR ANY PARTICULAR PURPOSE.
 The MIT License (MIT)
 
 Copyright (c) 2020 Luis Rivera-Zamarripa, Jesús-Javier Chi-Domínguez, Billy Bob Brumley
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+</pre>
+
+
+<hr>
+
+<h1><a id="fastText"></a>fastText License</h1>
+
+<p>This license applies to the files
+  <code>toolkit/components/translations/fasttext/fasttext.js</code>
+  and <code>toolkit/components/translations/fasttext/fasttext_wasm.js</code>
+</p>
+<pre>
+MIT License
+
+Copyright (c) 2016-present, Facebook, Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -4180,6 +4216,42 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 </pre>
+
+</pre>
+
+<hr>
+
+<h1><a id="micromatch"></a>micromatch License</h1>
+
+<p>This license applies to the file
+  <code>devtools/client/shared/vendor/micromatch/micromatch.js</code>.
+</p>
+
+<pre>
+The MIT License (MIT)
+
+Copyright (c) 2014-present, Jon Schlinkert.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+</pre>
+
 
 
 <hr>
@@ -6373,8 +6445,9 @@ THE SOFTWARE.
     <p>This license applies to certain files in the directories
       <code>js/src/irregexp</code>,
       <code>js/src/builtin</code>,
-      <code>js/src/jit/arm</code> and
-      <code>js/src/jit/mips</code>.
+      <code>js/src/jit/arm</code>,
+      <code>js/src/jit/mips</code> and
+      <code>js/src/jit/riscv64</code>.
     </p>
 <pre>
 Copyright 2006-2012 the V8 project authors. All rights reserved.

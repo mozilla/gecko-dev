@@ -181,6 +181,32 @@ linux64-custom-v8:
         ]
         toolchain-artifact: public/build/d8.tar.zst
 
+linux64-custom-car:
+    description: "Custom chromium build"
+    treeherder:
+        symbol: TL(custom-car)
+    worker:
+        docker-image: {in-tree: custom-car-linux}
+        max-run-time: 16200
+    run:
+        script: build-custom-car-linux.sh
+        arguments: [
+            car_linux.tar.zst,
+            is_debug=false,
+            v8_symbol_level=0,
+            target_cpu="x64",
+            enable_nacl=false,
+            symbol_level=0,
+            blink_symbol_level=0,
+            is_component_build=false,
+            dcheck_always_on=false,
+            is_chrome_branded=false,
+            is_official_build=true,
+            chrome_pgo_phase=2,
+            enable_resource_allowlist_generation=false
+        ]
+        toolchain-artifact: public/build/car_linux.tar.zst
+
 browsertime:
     description: "npm install browsertime node_modules"
     treeherder:
@@ -320,36 +346,35 @@ nsis:
 win64-vs2017:
     description: "VS 2017"
     attributes:
-        artifact_prefix: project/gecko/vs
+        local-toolchain: true
     treeherder:
         symbol: TW64(msvc2017)
     worker:
         env:
             MACH_BUILD_PYTHON_NATIVE_PACKAGE_SOURCE: system
     run:
-        script: pack-vs.sh
+        script: get_vs.py
         arguments:
             - build/vs/vs2017.yaml
         resources:
-            - build/vs/pack_vs.py
             - build/vs/vs2017.yaml
         toolchain-artifact: project/gecko/vs/vs.tar.zst
+        toolchain-alias: vs
 
 win64-vs2019:
     description: "VS 2019"
     attributes:
-        artifact_prefix: project/gecko/vs
+        local-toolchain: true
     treeherder:
         symbol: TW64(msvc2019)
     worker:
         env:
             MACH_BUILD_PYTHON_NATIVE_PACKAGE_SOURCE: system
     run:
-        script: pack-vs.sh
+        script: get_vs.py
         arguments:
             - build/vs/vs2019.yaml
         resources:
-            - build/vs/pack_vs.py
             - build/vs/vs2019.yaml
         toolchain-artifact: project/gecko/vs/vs.tar.zst
 

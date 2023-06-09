@@ -4,6 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include <cstdlib>
+#include <cstdint>
 #include <cstring>
 #include <ctime>
 #include <fstream>
@@ -21,13 +22,6 @@ using std::string;
 using std::vector;
 
 namespace PingSender {
-
-const char* kUserAgent = "pingsender/1.0";
-const char* kCustomVersionHeader = "X-PingSender-Version: 1.0";
-const char* kContentEncodingHeader = "Content-Encoding: gzip";
-// The maximum time, in milliseconds, we allow for the connection phase
-// to the server.
-const uint32_t kConnectionTimeoutMs = 30 * 1000;
 
 // Operate in std::string because nul bytes will be preserved
 bool IsValidDestination(std::string aHost) {

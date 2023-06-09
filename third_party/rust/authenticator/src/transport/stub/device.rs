@@ -2,16 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use crate::ctap2::commands::get_info::AuthenticatorInfo;
 use crate::transport::hid::HIDDevice;
 use crate::transport::FidoDevice;
-use crate::transport::{AuthenticatorInfo, ECDHSecret, HIDError};
+use crate::transport::{HIDError, SharedSecret};
 use crate::u2ftypes::{U2FDevice, U2FDeviceInfo};
-use std::hash::{Hash, Hasher};
+use std::hash::Hash;
 use std::io;
 use std::io::{Read, Write};
 use std::path::PathBuf;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Hash, PartialEq, Eq)]
 pub struct Device {}
 
 impl Read for Device {
@@ -31,7 +32,7 @@ impl Write for Device {
 }
 
 impl U2FDevice for Device {
-    fn get_cid<'a>(&'a self) -> &'a [u8; 4] {
+    fn get_cid(&self) -> &[u8; 4] {
         panic!("not implemented");
     }
 
@@ -88,21 +89,11 @@ impl HIDDevice for Device {
         unimplemented!()
     }
 
-    fn set_shared_secret(&mut self, secret: ECDHSecret) {
+    fn set_shared_secret(&mut self, secret: SharedSecret) {
         unimplemented!()
     }
 
-    fn get_shared_secret(&self) -> Option<&ECDHSecret> {
-        unimplemented!()
-    }
-
-    fn clone_device_as_write_only(&self) -> Result<Self, HIDError> {
-        unimplemented!()
-    }
-}
-
-impl Hash for Device {
-    fn hash<H: Hasher>(&self, state: &mut H) {
+    fn get_shared_secret(&self) -> Option<&SharedSecret> {
         unimplemented!()
     }
 }

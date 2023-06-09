@@ -95,8 +95,10 @@ class nsInlineFrame : public nsContainerFrame {
   virtual bool CanContinueTextRun() const override;
 
   virtual void PullOverflowsFromPrevInFlow() override;
-  virtual nscoord GetLogicalBaseline(
-      mozilla::WritingMode aWritingMode) const override;
+
+  Maybe<nscoord> GetNaturalBaselineBOffset(
+      mozilla::WritingMode aWM,
+      BaselineSharingGroup aBaselineGroup) const override;
   virtual bool DrainSelfOverflowList() override;
 
   /**

@@ -233,9 +233,43 @@ addAccessibleTask(
   { topLevel: false, iframe: true, remoteIframe: true }
 );
 
+/**
+ * Test caching of the focusable state in iframes which are initially visibility: hidden.
+ */
+addAccessibleTask(
+  `
+<button id="button"></button>
+<span id="span" tabindex="-1">span</span>`,
+  async function(browser, topDocAcc) {
+    info("Changing visibility on iframe");
+    let reordered = waitForEvent(EVENT_REORDER, topDocAcc);
+    await SpecialPowers.spawn(browser, [DEFAULT_IFRAME_ID], iframeId => {
+      content.document.getElementById(iframeId).style.visibility = "";
+    });
+    await reordered;
+    // The iframe doc a11y tree might not be built yet.
+    const iframeDoc = await TestUtils.waitForCondition(() =>
+      findAccessibleChildByID(topDocAcc, DEFAULT_IFRAME_DOC_BODY_ID)
+    );
+    // Log/verify whether this is an in-process or OOP iframe.
+    await comparePIDs(browser, gIsRemoteIframe);
+    const button = findAccessibleChildByID(iframeDoc, "button");
+    testStates(button, STATE_FOCUSABLE);
+    const span = findAccessibleChildByID(iframeDoc, "span");
+    ok(span, "span Accessible exists");
+    testStates(span, STATE_FOCUSABLE);
+  },
+  {
+    topLevel: false,
+    iframe: true,
+    remoteIframe: true,
+    iframeAttrs: { style: "visibility: hidden;" },
+    skipFissionDocLoad: true,
+  }
+);
+
 function checkOpacity(acc, present) {
-  // eslint-disable-next-line no-unused-vars
-  let [_, extraState] = getStates(acc);
+  let [, extraState] = getStates(acc);
   let currOpacity = extraState & EXT_STATE_OPAQUE;
   return present ? currOpacity : !currOpacity;
 }
@@ -417,4 +451,34 @@ addAccessibleTask(
     testStates(multiNoSel, STATE_FOCUSED, 0, STATE_SELECTED, 0);
   },
   { topLevel: true, iframe: true, remoteIframe: true, chrome: true }
+);
+
+/**
+ * Test invalid state determined via DOM.
+ */
+addAccessibleTask(
+  `<input type="email" id="email">`,
+  async function(browser, docAcc) {
+    const email = findAccessibleChildByID(docAcc, "email");
+    info("Focusing email");
+    let focused = waitForEvent(EVENT_FOCUS, email);
+    email.takeFocus();
+    await focused;
+    info("Typing a");
+    let invalidChanged = waitForStateChange(email, STATE_INVALID, true);
+    EventUtils.sendString("a");
+    await invalidChanged;
+    testStates(email, STATE_INVALID);
+    info("Typing @b");
+    invalidChanged = waitForStateChange(email, STATE_INVALID, false);
+    EventUtils.sendString("@b");
+    await invalidChanged;
+    testStates(email, 0, 0, STATE_INVALID);
+    info("Typing backspace");
+    invalidChanged = waitForStateChange(email, STATE_INVALID, true);
+    EventUtils.synthesizeKey("KEY_Backspace");
+    await invalidChanged;
+    testStates(email, STATE_INVALID);
+  },
+  { chrome: true, topLevel: true, remoteIframe: true }
 );

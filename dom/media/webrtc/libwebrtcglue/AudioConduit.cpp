@@ -336,7 +336,9 @@ void WebrtcAudioConduit::OnControlConfigChange() {
 
   if (mSendStream && sendStreamReconfigureNeeded) {
     MOZ_ASSERT(!sendStreamRecreationNeeded);
-    mSendStream->Reconfigure(mSendStreamConfig);
+    // TODO: Pass a callback here, so we can react to RTCErrors thrown by
+    // libwebrtc.
+    mSendStream->Reconfigure(mSendStreamConfig, nullptr);
   }
 
   if (!mControl.mReceiving) {
@@ -421,6 +423,37 @@ Maybe<webrtc::CallBasicStats> WebrtcAudioConduit::GetCallStats() const {
 void WebrtcAudioConduit::OnRtcpBye() { mRtcpByeEvent.Notify(); }
 
 void WebrtcAudioConduit::OnRtcpTimeout() { mRtcpTimeoutEvent.Notify(); }
+
+void WebrtcAudioConduit::SetTransportActive(bool aActive) {
+  MOZ_ASSERT(mStsThread->IsOnCurrentThread());
+  if (mTransportActive == aActive) {
+    return;
+  }
+
+  // If false, This stops us from sending
+  mTransportActive = aActive;
+
+  // We queue this because there might be notifications to these listeners
+  // pending, and we don't want to drop them by letting this jump ahead of
+  // those notifications. We move the listeners into the lambda in case the
+  // transport comes back up before we disconnect them. (The Connect calls
+  // happen in MediaPipeline)
+  // We retain a strong reference to ourself, because the listeners are holding
+  // a non-refcounted reference to us, and moving them into the lambda could
+  // conceivably allow them to outlive us.
+  if (!aActive) {
+    MOZ_ALWAYS_SUCCEEDS(mCallThread->Dispatch(NS_NewRunnableFunction(
+        __func__,
+        [self = RefPtr<WebrtcAudioConduit>(this),
+         recvRtpListener = std::move(mReceiverRtpEventListener),
+         recvRtcpListener = std::move(mReceiverRtcpEventListener),
+         sendRtcpListener = std::move(mSenderRtcpEventListener)]() mutable {
+          recvRtpListener.DisconnectIfExists();
+          recvRtcpListener.DisconnectIfExists();
+          sendRtcpListener.DisconnectIfExists();
+        })));
+  }
+}
 
 // AudioSessionConduit Implementation
 MediaConduitErrorCode WebrtcAudioConduit::SendAudioFrame(
@@ -518,6 +551,7 @@ void WebrtcAudioConduit::OnRtpReceived(MediaPacket&& aPacket,
                 (uint32_t)ntohl(((uint32_t*)aPacket.data())[2]),
                 (uint32_t)ntohl(((uint32_t*)aPacket.data())[2]));
 
+  mRtpPacketEvent.Notify();
   DeliverPacket(rtc::CopyOnWriteBuffer(aPacket.data(), aPacket.len()),
                 PacketType::RTP);
 }

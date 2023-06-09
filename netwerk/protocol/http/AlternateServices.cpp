@@ -892,7 +892,7 @@ void AltSvcCache::EnsureStorageInited() {
     return;
   }
 
-  nsCOMPtr<nsIEventTarget> main = GetMainThreadEventTarget();
+  nsCOMPtr<nsIEventTarget> main = GetMainThreadSerialEventTarget();
   if (!main) {
     return;
   }
@@ -1310,6 +1310,12 @@ AltSvcOverride::GetAllow1918(bool* allow) {
   // speculative connects for the mapping validation, so override
   // that default here for alt-svc
   *allow = true;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+AltSvcOverride::GetIgnoreUserCertCheck(bool* ignore) {
+  *ignore = false;
   return NS_OK;
 }
 

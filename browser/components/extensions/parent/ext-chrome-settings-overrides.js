@@ -66,7 +66,7 @@ XPCOMUtils.defineLazyGetter(this, "homepagePopup", () => {
       //   3. Trigger the browser's homepage method
       let gBrowser = win.gBrowser;
       let tab = gBrowser.selectedTab;
-      await replaceUrlInTab(gBrowser, tab, "about:blank");
+      await replaceUrlInTab(gBrowser, tab, Services.io.newURI("about:blank"));
       Services.prefs.addObserver(HOMEPAGE_PREF, async function prefObserver() {
         Services.prefs.removeObserver(HOMEPAGE_PREF, prefObserver);
         let loaded = waitForTabLoaded(tab);
@@ -380,7 +380,7 @@ this.chrome_settings_overrides = class extends ExtensionAPI {
         browser: windowTracker.topWindow?.gBrowser.selectedBrowser,
         id: extension.id,
         name: extension.name,
-        icon: extension.iconURL,
+        icon: extension.getPreferredIcon(32),
         currentEngine: defaultEngine.name,
         newEngine: engineName,
         async respond(allow) {

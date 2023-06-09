@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+#![allow(clippy::uninlined_format_args)]
 #![deny(rustdoc::broken_intra_doc_links)]
 #![deny(missing_docs)]
 
@@ -18,17 +19,8 @@
 //! Initialize Glean, register a ping and then send it.
 //!
 //! ```rust,no_run
-//! # use glean::{Configuration, ClientInfoMetrics, Error, private::*};
-//! let cfg = Configuration {
-//!     data_path: "/tmp/data".into(),
-//!     application_id: "org.mozilla.glean_core.example".into(),
-//!     upload_enabled: true,
-//!     max_events: None,
-//!     delay_ping_lifetime_io: false,
-//!     server_endpoint: None,
-//!     uploader: None,
-//!     use_core_mps: false,
-//! };
+//! # use glean::{ConfigurationBuilder, ClientInfoMetrics, Error, private::*};
+//! let cfg = ConfigurationBuilder::new(true, "/tmp/data", "org.mozilla.glean_core.example").build();
 //! glean::initialize(cfg, ClientInfoMetrics::unknown());
 //!
 //! let prototype_ping = PingType::new("prototype", true, true, vec!());
@@ -37,9 +29,10 @@
 //! ```
 
 use std::collections::HashMap;
+use std::path::Path;
 
-pub use configuration::Configuration;
 use configuration::DEFAULT_GLEAN_ENDPOINT;
+pub use configuration::{Builder as ConfigurationBuilder, Configuration};
 pub use core_metrics::ClientInfoMetrics;
 pub use glean_core::{
     metrics::{Datetime, DistributionData, MemoryUnit, Rate, RecordedEvent, TimeUnit, TimerId},
@@ -77,7 +70,7 @@ struct GleanEvents {
 }
 
 impl glean_core::OnGleanEvents for GleanEvents {
-    fn on_initialize_finished(&self) {
+    fn initialize_finished(&self) {
         // intentionally left empty
     }
 
@@ -94,6 +87,11 @@ impl glean_core::OnGleanEvents for GleanEvents {
 
     fn cancel_uploads(&self) -> Result<(), glean_core::CallbackError> {
         // intentionally left empty
+        Ok(())
+    }
+
+    fn shutdown(&self) -> Result<(), glean_core::CallbackError> {
+        self.upload_manager.shutdown();
         Ok(())
     }
 }
@@ -119,6 +117,8 @@ fn initialize_internal(cfg: Configuration, client_info: ClientInfoMetrics) -> Op
         delay_ping_lifetime_io: cfg.delay_ping_lifetime_io,
         app_build: client_info.app_build.clone(),
         use_core_mps: cfg.use_core_mps,
+        trim_data_to_registered_pings: cfg.trim_data_to_registered_pings,
+        log_level: cfg.log_level,
     };
 
     glean_core::glean_initialize(core_cfg, client_info.into(), callbacks);
@@ -169,6 +169,13 @@ pub fn set_experiment_inactive(experiment_id: String) {
     glean_core::glean_set_experiment_inactive(experiment_id)
 }
 
+/// Set the remote configuration values for the metrics' disabled property
+///
+/// See [`glean_core::Glean::set_metrics_enabled_config`].
+pub fn glean_set_metrics_enabled_config(json: String) {
+    glean_core::glean_set_metrics_enabled_config(json)
+}
+
 /// Performs the collection/cleanup operations required by becoming active.
 ///
 /// This functions generates a baseline ping with reason `active`
@@ -203,14 +210,15 @@ pub fn test_get_experiment_data(experiment_id: String) -> Option<RecordedExperim
 }
 
 /// Destroy the global Glean state.
-pub(crate) fn destroy_glean(clear_stores: bool) {
-    glean_core::glean_test_destroy_glean(clear_stores)
+pub(crate) fn destroy_glean(clear_stores: bool, data_path: &Path) {
+    let data_path = data_path.display().to_string();
+    glean_core::glean_test_destroy_glean(clear_stores, Some(data_path))
 }
 
 /// TEST ONLY FUNCTION.
 /// Resets the Glean state and triggers init again.
 pub fn test_reset_glean(cfg: Configuration, client_info: ClientInfoMetrics, clear_stores: bool) {
-    destroy_glean(clear_stores);
+    destroy_glean(clear_stores, &cfg.data_path);
     initialize_internal(cfg, client_info);
     glean_core::join_init();
 }

@@ -4,30 +4,20 @@
 
 //! Specified types for box properties.
 
-use crate::custom_properties::Name as CustomPropertyName;
 use crate::parser::{Parse, ParserContext};
-use crate::properties::{LonghandId, PropertyDeclarationId};
-use crate::properties::{PropertyId, ShorthandId};
+use crate::properties::{LonghandId, PropertyDeclarationId, PropertyId};
 use crate::values::generics::box_::{
-    GenericAnimationIterationCount, GenericLineClamp, GenericPerspective,
-};
-use crate::values::generics::box_::{
-    GenericContainIntrinsicSize, GenericVerticalAlign, VerticalAlignKeyword,
+    GenericLineClamp, GenericPerspective, GenericContainIntrinsicSize, GenericVerticalAlign,
+    VerticalAlignKeyword,
 };
 use crate::values::specified::length::{LengthPercentage, NonNegativeLength};
-use crate::values::specified::{AllowQuirks, Integer, Number};
-use crate::values::{CustomIdent, KeyframesName, TimelineName};
-use crate::Atom;
+use crate::values::specified::{AllowQuirks, Integer};
+use crate::values::CustomIdent;
 use cssparser::Parser;
 use num_traits::FromPrimitive;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, KeywordsCollectFn, ParseError};
 use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
-
-#[cfg(feature = "gecko")]
-fn moz_display_values_enabled(context: &ParserContext) -> bool {
-    context.in_ua_or_chrome_sheet()
-}
 
 #[cfg(not(feature = "servo-layout-2020"))]
 fn flexbox_enabled() -> bool {
@@ -58,8 +48,6 @@ pub enum DisplayOutside {
     InternalTable,
     #[cfg(feature = "gecko")]
     InternalRuby,
-    #[cfg(feature = "gecko")]
-    XUL,
 }
 
 #[allow(missing_docs)]
@@ -102,8 +90,6 @@ pub enum DisplayInside {
     RubyTextContainer,
     #[cfg(feature = "gecko")]
     WebkitBox,
-    #[cfg(feature = "gecko")]
-    MozBox,
 }
 
 #[allow(missing_docs)]
@@ -210,12 +196,6 @@ impl Display {
         DisplayInside::RubyTextContainer,
     );
 
-    /// XUL boxes.
-    #[cfg(feature = "gecko")]
-    pub const MozBox: Self = Self::new(DisplayOutside::Block, DisplayInside::MozBox);
-    #[cfg(feature = "gecko")]
-    pub const MozInlineBox: Self = Self::new(DisplayOutside::Inline, DisplayInside::MozBox);
-
     /// Make a raw display value from <display-outside> and <display-inside> values.
     #[inline]
     const fn new(outside: DisplayOutside, inside: DisplayInside) -> Self {
@@ -320,8 +300,6 @@ impl Display {
             DisplayInside::Flex => true,
             #[cfg(feature = "gecko")]
             DisplayInside::Grid => true,
-            #[cfg(feature = "gecko")]
-            DisplayInside::MozBox => true,
             _ => false,
         }
     }
@@ -360,7 +338,7 @@ impl Display {
                 };
                 Display::from3(DisplayOutside::Block, inside, self.is_list_item())
             },
-            DisplayOutside::Block | DisplayOutside::XUL | DisplayOutside::None => *self,
+            DisplayOutside::Block | DisplayOutside::None => *self,
             #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
             _ => Display::Block,
         }
@@ -413,8 +391,6 @@ impl ToCss for Display {
             Display::InlineBlock => dest.write_str("inline-block"),
             #[cfg(feature = "gecko")]
             Display::WebkitInlineBox => dest.write_str("-webkit-inline-box"),
-            #[cfg(feature = "gecko")]
-            Display::MozInlineBox => dest.write_str("-moz-inline-box"),
             #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
             Display::TableCaption => dest.write_str("table-caption"),
             _ => match (outside, inside) {
@@ -429,11 +405,11 @@ impl ToCss for Display {
                     if self.is_list_item() {
                         if outside != DisplayOutside::Block {
                             outside.to_css(dest)?;
-                            dest.write_str(" ")?;
+                            dest.write_char(' ')?;
                         }
                         if inside != DisplayInside::Flow {
                             inside.to_css(dest)?;
-                            dest.write_str(" ")?;
+                            dest.write_char(' ')?;
                         }
                         dest.write_str("list-item")
                     } else {
@@ -589,10 +565,6 @@ impl Parse for Display {
             "-webkit-box" => Display::WebkitBox,
             #[cfg(feature = "gecko")]
             "-webkit-inline-box" => Display::WebkitInlineBox,
-            #[cfg(feature = "gecko")]
-            "-moz-box" if moz_display_values_enabled(context) => Display::MozBox,
-            #[cfg(feature = "gecko")]
-            "-moz-inline-box" if moz_display_values_enabled(context) => Display::MozInlineBox,
         })
     }
 }
@@ -659,286 +631,6 @@ impl Parse for VerticalAlign {
         Ok(GenericVerticalAlign::Keyword(VerticalAlignKeyword::parse(
             input,
         )?))
-    }
-}
-
-/// https://drafts.csswg.org/css-animations/#animation-iteration-count
-pub type AnimationIterationCount = GenericAnimationIterationCount<Number>;
-
-impl Parse for AnimationIterationCount {
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut ::cssparser::Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        if input
-            .try_parse(|input| input.expect_ident_matching("infinite"))
-            .is_ok()
-        {
-            return Ok(GenericAnimationIterationCount::Infinite);
-        }
-
-        let number = Number::parse_non_negative(context, input)?;
-        Ok(GenericAnimationIterationCount::Number(number))
-    }
-}
-
-impl AnimationIterationCount {
-    /// Returns the value `1.0`.
-    #[inline]
-    pub fn one() -> Self {
-        GenericAnimationIterationCount::Number(Number::new(1.0))
-    }
-}
-
-/// A value for the `animation-name` property.
-#[derive(
-    Clone,
-    Debug,
-    Eq,
-    Hash,
-    MallocSizeOf,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToComputedValue,
-    ToCss,
-    ToResolvedValue,
-    ToShmem,
-)]
-#[value_info(other_values = "none")]
-pub struct AnimationName(pub KeyframesName);
-
-impl AnimationName {
-    /// Get the name of the animation as an `Atom`.
-    pub fn as_atom(&self) -> Option<&Atom> {
-        if self.is_none() {
-            return None;
-        }
-        Some(self.0.as_atom())
-    }
-
-    /// Returns the `none` value.
-    pub fn none() -> Self {
-        AnimationName(KeyframesName::none())
-    }
-
-    /// Returns whether this is the none value.
-    pub fn is_none(&self) -> bool {
-        self.0.is_none()
-    }
-}
-
-impl Parse for AnimationName {
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        if let Ok(name) = input.try_parse(|input| KeyframesName::parse(context, input)) {
-            return Ok(AnimationName(name));
-        }
-
-        input.expect_ident_matching("none")?;
-        Ok(AnimationName(KeyframesName::none()))
-    }
-}
-
-/// A value for the <Scroller> used in scroll().
-///
-/// https://drafts.csswg.org/scroll-animations-1/rewrite#typedef-scroller
-#[derive(
-    Clone,
-    Debug,
-    Eq,
-    Hash,
-    MallocSizeOf,
-    Parse,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToComputedValue,
-    ToCss,
-    ToResolvedValue,
-    ToShmem,
-)]
-#[repr(u8)]
-pub enum Scroller {
-    /// The nearest ancestor scroll container. (Default.)
-    Nearest,
-    /// The document viewport as the scroll container.
-    Root,
-    // FIXME: Bug 1764450: Once we support container-name CSS property (Bug 1744224), we may add
-    // <custom-ident> here, based on the result of the spec issue:
-    // https://github.com/w3c/csswg-drafts/issues/7046
-}
-
-impl Default for Scroller {
-    fn default() -> Self {
-        Self::Nearest
-    }
-}
-
-/// A value for the <Axis> used in scroll().
-///
-/// https://drafts.csswg.org/scroll-animations-1/rewrite#typedef-axis
-#[derive(
-    Clone,
-    Debug,
-    Eq,
-    Hash,
-    MallocSizeOf,
-    Parse,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToComputedValue,
-    ToCss,
-    ToResolvedValue,
-    ToShmem,
-)]
-#[repr(u8)]
-pub enum ScrollAxis {
-    /// The block axis of the scroll container. (Default.)
-    Block = 0,
-    /// The inline axis of the scroll container.
-    Inline = 1,
-    /// The vertical block axis of the scroll container.
-    Vertical = 2,
-    /// The horizontal axis of the scroll container.
-    Horizontal = 3,
-}
-
-impl Default for ScrollAxis {
-    fn default() -> Self {
-        Self::Block
-    }
-}
-
-#[inline]
-fn is_default<T: Default + PartialEq>(value: &T) -> bool {
-    *value == Default::default()
-}
-
-/// A value for the <single-animation-timeline>.
-///
-/// https://drafts.csswg.org/css-animations-2/#typedef-single-animation-timeline
-/// cbindgen:private-default-tagged-enum-constructor=false
-#[derive(
-    Clone,
-    Debug,
-    Eq,
-    Hash,
-    MallocSizeOf,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToComputedValue,
-    ToCss,
-    ToResolvedValue,
-    ToShmem,
-)]
-#[repr(C, u8)]
-pub enum AnimationTimeline {
-    /// Use default timeline. The animation’s timeline is a DocumentTimeline.
-    Auto,
-    /// The scroll-timeline name.
-    /// https://drafts.csswg.org/scroll-animations-1/#scroll-timelines-named
-    Timeline(TimelineName),
-    /// The scroll() notation.
-    /// https://drafts.csswg.org/scroll-animations-1/#scroll-notation
-    #[css(function)]
-    Scroll(
-        #[css(skip_if = "is_default")] ScrollAxis,
-        #[css(skip_if = "is_default")] Scroller,
-    ),
-}
-
-impl AnimationTimeline {
-    /// Returns the `auto` value.
-    pub fn auto() -> Self {
-        Self::Auto
-    }
-
-    /// Returns true if it is auto (i.e. the default value).
-    pub fn is_auto(&self) -> bool {
-        matches!(self, Self::Auto)
-    }
-}
-
-impl Parse for AnimationTimeline {
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        // We are using the same parser for TimelineName and KeyframesName, but animation-timeline
-        // accepts "auto", so need to manually parse this. (We can not derive
-        // Parse because TimelineName excludes only the "none" keyword).
-        //
-        // FIXME: Bug 1733260: we may drop None based on the spec issue:
-        // https://github.com/w3c/csswg-drafts/issues/6674
-        //
-        // If `none` is removed, then we could potentially shrink this the same
-        // way we deal with animation-name.
-        if input.try_parse(|i| i.expect_ident_matching("auto")).is_ok() {
-            return Ok(Self::Auto);
-        }
-
-        if input.try_parse(|i| i.expect_ident_matching("none")).is_ok() {
-            return Ok(AnimationTimeline::Timeline(TimelineName::none()));
-        }
-
-        // https://drafts.csswg.org/scroll-animations-1/rewrite#scroll-notation
-        if input
-            .try_parse(|i| i.expect_function_matching("scroll"))
-            .is_ok()
-        {
-            return input.parse_nested_block(|i| {
-                Ok(Self::Scroll(
-                    i.try_parse(ScrollAxis::parse).unwrap_or(ScrollAxis::Block),
-                    i.try_parse(Scroller::parse).unwrap_or(Scroller::Nearest),
-                ))
-            });
-        }
-
-        TimelineName::parse(context, input).map(AnimationTimeline::Timeline)
-    }
-}
-
-/// A value for the scroll-timeline-name.
-///
-/// Note: The spec doesn't mention `auto` for scroll-timeline-name. However, `auto` is a keyword in
-/// animation-timeline, so we reject `auto` for scroll-timeline-name now.
-///
-/// https://drafts.csswg.org/scroll-animations-1/rewrite#scroll-timeline-name
-#[derive(
-    Clone,
-    Debug,
-    Eq,
-    Hash,
-    MallocSizeOf,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToComputedValue,
-    ToCss,
-    ToResolvedValue,
-    ToShmem,
-)]
-#[repr(C)]
-pub struct ScrollTimelineName(pub TimelineName);
-
-impl ScrollTimelineName {
-    /// Returns the `none` value.
-    pub fn none() -> Self {
-        Self(TimelineName::none())
-    }
-}
-
-impl Parse for ScrollTimelineName {
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        if let Ok(name) = input.try_parse(|input| TimelineName::parse(context, input)) {
-            return Ok(Self(name));
-        }
-
-        input.expect_ident_matching("none")?;
-        Ok(Self(TimelineName::none()))
     }
 }
 
@@ -1056,7 +748,7 @@ impl ToCss for ScrollSnapType {
         }
         self.axis.to_css(dest)?;
         if self.strictness != ScrollSnapStrictness::Proximity {
-            dest.write_str(" ")?;
+            dest.write_char(' ')?;
             self.strictness.to_css(dest)?;
         }
         Ok(())
@@ -1141,7 +833,7 @@ impl ToCss for ScrollSnapAlign {
     {
         self.block.to_css(dest)?;
         if self.block != self.inline {
-            dest.write_str(" ")?;
+            dest.write_char(' ')?;
             self.inline.to_css(dest)?;
         }
         Ok(())
@@ -1611,102 +1303,6 @@ impl Parse for ContainerName {
 /// A specified value for the `perspective` property.
 pub type Perspective = GenericPerspective<NonNegativeLength>;
 
-/// A given transition property, that is either `All`, a longhand or shorthand
-/// property, or an unsupported or custom property.
-#[derive(
-    Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem,
-)]
-pub enum TransitionProperty {
-    /// A shorthand.
-    Shorthand(ShorthandId),
-    /// A longhand transitionable property.
-    Longhand(LonghandId),
-    /// A custom property.
-    Custom(CustomPropertyName),
-    /// Unrecognized property which could be any non-transitionable, custom property, or
-    /// unknown property.
-    Unsupported(CustomIdent),
-}
-
-impl ToCss for TransitionProperty {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        use crate::values::serialize_atom_name;
-        match *self {
-            TransitionProperty::Shorthand(ref s) => s.to_css(dest),
-            TransitionProperty::Longhand(ref l) => l.to_css(dest),
-            TransitionProperty::Custom(ref name) => {
-                dest.write_str("--")?;
-                serialize_atom_name(name, dest)
-            },
-            TransitionProperty::Unsupported(ref i) => i.to_css(dest),
-        }
-    }
-}
-
-impl Parse for TransitionProperty {
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        let location = input.current_source_location();
-        let ident = input.expect_ident()?;
-
-        let id = match PropertyId::parse_ignoring_rule_type(&ident, context) {
-            Ok(id) => id,
-            Err(..) => {
-                return Ok(TransitionProperty::Unsupported(CustomIdent::from_ident(
-                    location,
-                    ident,
-                    &["none"],
-                )?));
-            },
-        };
-
-        Ok(match id.as_shorthand() {
-            Ok(s) => TransitionProperty::Shorthand(s),
-            Err(longhand_or_custom) => match longhand_or_custom {
-                PropertyDeclarationId::Longhand(id) => TransitionProperty::Longhand(id),
-                PropertyDeclarationId::Custom(custom) => TransitionProperty::Custom(custom.clone()),
-            },
-        })
-    }
-}
-
-impl SpecifiedValueInfo for TransitionProperty {
-    fn collect_completion_keywords(f: KeywordsCollectFn) {
-        // `transition-property` can actually accept all properties and
-        // arbitrary identifiers, but `all` is a special one we'd like
-        // to list.
-        f(&["all"]);
-    }
-}
-
-impl TransitionProperty {
-    /// Returns `all`.
-    #[inline]
-    pub fn all() -> Self {
-        TransitionProperty::Shorthand(ShorthandId::All)
-    }
-
-    /// Convert TransitionProperty to nsCSSPropertyID.
-    #[cfg(feature = "gecko")]
-    pub fn to_nscsspropertyid(
-        &self,
-    ) -> Result<crate::gecko_bindings::structs::nsCSSPropertyID, ()> {
-        Ok(match *self {
-            TransitionProperty::Shorthand(ShorthandId::All) => {
-                crate::gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_all_properties
-            },
-            TransitionProperty::Shorthand(ref id) => id.to_nscsspropertyid(),
-            TransitionProperty::Longhand(ref id) => id.to_nscsspropertyid(),
-            TransitionProperty::Custom(..) | TransitionProperty::Unsupported(..) => return Err(()),
-        })
-    }
-}
-
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(
@@ -1785,7 +1381,6 @@ pub enum Appearance {
     /// A searchfield.
     Searchfield,
     /// A multi-line text field, e.g. HTML <textarea>.
-    #[parse(aliases = "textfield-multiline")]
     Textarea,
     /// A checkbox element.
     Checkbox,
@@ -1796,10 +1391,8 @@ pub enum Appearance {
     /// List boxes.
     Listbox,
     /// A horizontal meter bar.
-    #[parse(aliases = "meterbar")]
     Meter,
     /// A horizontal progress bar.
-    #[parse(aliases = "progressbar")]
     ProgressBar,
     /// A typical dialog button.
     Button,

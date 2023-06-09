@@ -13,8 +13,6 @@
 #include <vector>
 
 #include "lib/jxl/ans_params.h"
-#include "lib/jxl/aux_out.h"
-#include "lib/jxl/aux_out_fwd.h"
 #include "lib/jxl/base/status.h"
 #include "lib/jxl/chroma_from_luma.h"
 #include "lib/jxl/dec_ans.h"
@@ -64,6 +62,7 @@ class QuantizedSpline {
 
   Status Dequantize(const Spline::Point& starting_point,
                     int32_t quantization_adjustment, float y_to_x, float y_to_b,
+                    uint64_t* total_estimated_area_reached,
                     Spline& result) const;
 
   Status Decode(const std::vector<uint8_t>& context_map,

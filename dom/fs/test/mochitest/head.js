@@ -15,11 +15,14 @@ async function require_module(id) {
 
     const { Assert } = await import("/tests/dom/quota/test/modules/Assert.js");
 
+    const { Utils } = await import("/tests/dom/quota/test/modules/Utils.js");
+
     const proto = {
       Assert,
       Cr: SpecialPowers.Cr,
       navigator,
       TextEncoder,
+      Utils,
     };
 
     require_module.moduleLoader = new ModuleLoader(base, depth, proto);
@@ -66,6 +69,7 @@ add_setup(async function() {
   const optionalPrefsToSet = [
     ["dom.fs.enabled", true],
     ["dom.fs.writable_file_stream.enabled", true],
+    ["dom.workers.modules.enabled", true],
   ];
 
   await setStoragePrefs(optionalPrefsToSet);

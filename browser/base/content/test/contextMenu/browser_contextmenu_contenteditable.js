@@ -6,6 +6,7 @@
 let contextMenu;
 
 const example_base =
+  // eslint-disable-next-line @microsoft/sdl/no-insecure-url
   "http://example.com/browser/browser/base/content/test/contextMenu/";
 const chrome_base =
   "chrome://mochitests/content/browser/browser/base/content/test/contextMenu/";
@@ -92,9 +93,9 @@ add_task(async function test_contenteditable() {
     "text/html",
     PlacesUtils.toISupportsString("<strong>Bold text</strong>")
   );
-  xferable.addDataFlavor("text/unicode");
+  xferable.addDataFlavor("text/plain");
   xferable.setTransferData(
-    "text/unicode",
+    "text/plain",
     PlacesUtils.toISupportsString("Bold text")
   );
   Services.clipboard.setData(

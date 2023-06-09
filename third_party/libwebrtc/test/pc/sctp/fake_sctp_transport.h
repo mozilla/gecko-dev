@@ -13,6 +13,7 @@
 
 #include <memory>
 
+#include "api/transport/sctp_transport_factory_interface.h"
 #include "media/sctp/sctp_transport_internal.h"
 
 // Used for tests in this file to verify that PeerConnection responds to signals
@@ -20,6 +21,8 @@
 // local/remote ports.
 class FakeSctpTransport : public cricket::SctpTransportInternal {
  public:
+  void SetOnConnectedCallback(std::function<void()> callback) override {}
+  void SetDataChannelSink(webrtc::DataChannelSink* sink) override {}
   void SetDtlsTransport(rtc::PacketTransportInternal* transport) override {}
   bool Start(int local_port, int remote_port, int max_message_size) override {
     local_port_.emplace(local_port);

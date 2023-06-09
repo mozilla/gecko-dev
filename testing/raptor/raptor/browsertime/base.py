@@ -135,6 +135,7 @@ class Browsertime(Perftest):
             "chrome",
             "chrome-m",
             "chromium",
+            "custom-car",
         ):
             if (
                 not self.config.get("run_local", None)
@@ -181,6 +182,18 @@ class Browsertime(Perftest):
 
     def clean_up(self):
         super(Browsertime, self).clean_up()
+
+    def _expose_gecko_profiler(self, extra_profiler_run, test):
+        """Use this method to check if we will use an exposed gecko profiler via browsertime.
+        The exposed gecko profiler let's us control the start/stop during tests.
+        At the moment we would only want this for the Firefox browser and for any test with the
+        `expose_gecko_profiler` field set true (e.g. benchmark tests).
+        """
+        return (
+            extra_profiler_run
+            and test.get("expose_gecko_profiler")
+            and self.config["app"] in ("firefox",)
+        )
 
     def _compose_cmd(self, test, timeout, extra_profiler_run=False):
         """Browsertime has the following overwrite priorities(in order of highest-lowest)
@@ -280,6 +293,9 @@ class Browsertime(Perftest):
             # url load timeout (milliseconds)
             "--pageCompleteCheckPollTimeout",
             "1000",
+            # delay before pageCompleteCheck (milliseconds)
+            "--beforePageCompleteWaitTime",
+            "2000",
             # running browser scripts timeout (milliseconds)
             "--timeouts.pageLoad",
             str(timeout),
@@ -309,6 +325,12 @@ class Browsertime(Perftest):
             "true" if self.config["test_bytecode_cache"] else "false",
             "--firefox.perfStats",
             test.get("perfstats", "false"),
+            "--browsertime.moz_fetch_dir",
+            os.environ.get("MOZ_FETCHES_DIR", "None"),
+            "--browsertime.expose_profiler",
+            "true"
+            if (self._expose_gecko_profiler(extra_profiler_run, test))
+            else "false",
         ]
 
         if test.get("perfstats") == "true":
@@ -353,7 +375,7 @@ class Browsertime(Perftest):
                     browsertime_options.extend(pairing)
 
         priority1_options = self.browsertime_args
-        if self.config["app"] in ("chrome", "chromium", "chrome-m"):
+        if self.config["app"] in ("chrome", "chromium", "chrome-m", "custom-car"):
             priority1_options.extend(self.setup_chrome_args(test))
 
         if self.debug_mode:
@@ -412,6 +434,7 @@ class Browsertime(Perftest):
                 "chromium",
                 "chrome-m",
                 "chrome",
+                "custom-car",
             ):
                 priority1_options.extend(
                     [
@@ -441,6 +464,13 @@ class Browsertime(Perftest):
             ] = self.results_handler.result_dir_for_test(test)
             self._init_gecko_profiling(test)
             priority1_options.append("--firefox.geckoProfiler")
+            if self._expose_gecko_profiler(extra_profiler_run, test):
+                priority1_options.extend(
+                    [
+                        "--firefox.geckoProfilerRecordingType",
+                        "custom",
+                    ]
+                )
             for option, browser_time_option, default in (
                 (
                     "gecko_profile_features",
@@ -460,7 +490,7 @@ class Browsertime(Perftest):
                 (
                     "gecko_profile_entries",
                     "--firefox.geckoProfilerParams.bufferSize",
-                    None,
+                    str(13_107_200 * 5),  # ~500mb
                 ),
             ):
                 # 0 is a valid value. The setting may be present but set to None.
@@ -684,6 +714,10 @@ class Browsertime(Perftest):
         # timeout is a single page-load timeout value (ms) from the test INI
         # this will be used for btime --timeouts.pageLoad
         cmd = self._compose_cmd(test, timeout)
+
+        if test.get("support_class", None):
+            LOG.info("Test support class is modifying the command...")
+            test.get("support_class").modify_command(cmd)
 
         output_timeout = BROWSERTIME_PAGELOAD_OUTPUT_TIMEOUT
         if test.get("type", "") == "scenario":

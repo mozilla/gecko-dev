@@ -13,6 +13,7 @@ const { AppConstants } = ChromeUtils.import(
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  DownloadLastDir: "resource://gre/modules/DownloadLastDir.sys.mjs",
   FileUtils: "resource://gre/modules/FileUtils.sys.mjs",
   ScreenshotsUtils: "resource:///modules/ScreenshotsUtils.sys.mjs",
 });
@@ -20,7 +21,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
 XPCOMUtils.defineLazyModuleGetters(lazy, {
   Downloads: "resource://gre/modules/Downloads.jsm",
   DownloadPaths: "resource://gre/modules/DownloadPaths.jsm",
-  DownloadLastDir: "resource://gre/modules/DownloadLastDir.jsm",
 });
 
 /**
@@ -154,14 +154,18 @@ function getMIMEInfoForType(aMIMEType, aExtension) {
 
 // This is only used after the user has entered a filename.
 function validateFileName(aFileName) {
-  let processed = lazy.DownloadPaths.sanitize(aFileName) || "_";
+  let processed =
+    lazy.DownloadPaths.sanitize(aFileName, {
+      compressWhitespaces: false,
+      allowInvalidFilenames: true,
+    }) || "_";
   if (AppConstants.platform == "android") {
     // If a large part of the filename has been sanitized, then we
     // will use a default filename instead
     if (processed.replace(/_/g, "").length <= processed.length / 2) {
       // We purposefully do not use a localized default filename,
       // which we could have done using
-      // ContentAreaUtils.stringBundle.GetStringFromName("DefaultSaveFileName")
+      // ContentAreaUtils.stringBundle.GetStringFromName("UntitledSaveFileName")
       // since it may contain invalid characters.
       let original = processed;
       processed = "download";
@@ -209,15 +213,15 @@ function appendFiltersForContentType(
  * @param aFpP
  *        A structure (see definition in internalSave(...) method)
  *        containing all the data used within this method.
- * @param window
+ * @param win
  *        The window used for opening the file picker
  * @return Promise
  * @resolve a boolean. When true, it indicates that the file picker dialog
  *          is accepted.
  */
-function promiseTargetFile(aFpP, window) {
+function promiseTargetFile(aFpP, win) {
   return (async function() {
-    let downloadLastDir = new lazy.DownloadLastDir(window);
+    let downloadLastDir = new lazy.DownloadLastDir(win);
 
     // Default to the user's default downloads directory configured
     // through download prefs.
@@ -227,11 +231,7 @@ function promiseTargetFile(aFpP, window) {
 
     // We must prompt for the file name explicitly.
     // If we must prompt because we were asked to...
-    let file = await new Promise(resolve => {
-      downloadLastDir.getFileAsync(null, function getFileAsyncCB(aFile) {
-        resolve(aFile);
-      });
-    });
+    let file = await downloadLastDir.getFileAsync(null);
     if (file && (await IOUtils.exists(file.path))) {
       dir = file;
       dirExists = true;
@@ -245,7 +245,7 @@ function promiseTargetFile(aFpP, window) {
     let fp = makeFilePicker();
     let titleKey = aFpP.fpTitleKey;
     fp.init(
-      window,
+      win,
       ContentAreaUtils.stringBundle.GetStringFromName(titleKey),
       Ci.nsIFilePicker.modeSave
     );

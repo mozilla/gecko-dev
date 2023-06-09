@@ -35,7 +35,7 @@ namespace mozilla {
  * display their contents directly (such as the frames for <marker> or
  * <pattern>) just inherit this class. Frame sub-classes that do or can
  * display their contents directly (such as the frames for inner-<svg> or
- * <g>) inherit our nsDisplayContainerFrame sub-class.
+ * <g>) inherit our SVGDisplayContainerFrame sub-class.
  *
  *                               *** WARNING ***
  *
@@ -141,8 +141,7 @@ class SVGDisplayContainerFrame : public SVGContainerFrame,
 
   // ISVGDisplayableFrame interface:
   void PaintSVG(gfxContext& aContext, const gfxMatrix& aTransform,
-                imgDrawingParams& aImgParams,
-                const nsIntRect* aDirtyRect = nullptr) override;
+                imgDrawingParams& aImgParams) override;
   nsIFrame* GetFrameForPoint(const gfxPoint& aPoint) override;
   void ReflowSVG() override;
   void NotifySVGChanged(uint32_t aFlags) override;

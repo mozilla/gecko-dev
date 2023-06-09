@@ -62,7 +62,7 @@ var gSanitizePromptDialog = {
       this.warningBox.hidden = false;
       document.l10n.setAttributes(
         document.documentElement,
-        "dialog-title-everything"
+        "sanitize-dialog-title-everything"
       );
       let warningDesc = document.getElementById("sanitizeEverythingWarning");
       // Ensure we've translated and sized the warning.
@@ -95,7 +95,7 @@ var gSanitizePromptDialog = {
       }
       document.l10n.setAttributes(
         document.documentElement,
-        "dialog-title-everything"
+        "sanitize-dialog-title-everything"
       );
       return;
     }
@@ -108,7 +108,10 @@ var gSanitizePromptDialog = {
       window.resizeBy(0, -diff);
       warningBox.hidden = true;
     }
-    document.l10n.setAttributes(document.documentElement, "dialog-title");
+    document.l10n.setAttributes(
+      document.documentElement,
+      "sanitize-dialog-title"
+    );
   },
 
   sanitize(event) {
@@ -158,12 +161,12 @@ var gSanitizePromptDialog = {
   },
 
   /**
-   * Return the boolean prefs that enable/disable clearing of various kinds
-   * of history.  The only pref this excludes is privacy.sanitize.timeSpan.
+   * Return the boolean prefs that correspond to the checkboxes on the dialog.
    */
   _getItemPrefs() {
     return Preferences.getAll().filter(
-      p => p.id !== "privacy.sanitize.timeSpan"
+      p =>
+        p.id !== "privacy.sanitize.timeSpan" && p.id !== "privacy.cpd.downloads"
     );
   },
 
@@ -173,7 +176,9 @@ var gSanitizePromptDialog = {
    */
   onReadGeneric() {
     // Find any other pref that's checked and enabled (except for
-    // privacy.sanitize.timeSpan, which doesn't affect the button's status).
+    // privacy.sanitize.timeSpan, which doesn't affect the button's status
+    // and privacy.cpd.downloads which is not controlled directly by a
+    // checkbox).
     var found = this._getItemPrefs().some(
       pref => !!pref.value && !pref.disabled
     );
@@ -199,9 +204,9 @@ var gSanitizePromptDialog = {
     Services.prefs.setIntPref(Sanitizer.PREF_TIMESPAN, this.selectedTimespan);
 
     // Keep the pref for the download history in sync with the history pref.
-    Preferences.get("privacy.cpd.downloads").value = Preferences.get(
-      "privacy.cpd.history"
-    ).value;
+    let historyValue = Preferences.get("privacy.cpd.history").value;
+    Preferences.get("privacy.cpd.downloads").value = historyValue;
+    Services.prefs.setBoolPref("privacy.cpd.downloads", historyValue);
 
     // Now manually set the prefs from their corresponding preference
     // elements.

@@ -25,16 +25,26 @@ UNIFIED_SOURCES += [
     "PacketDumper.cpp",
     "PeerConnectionCtx.cpp",
     "PeerConnectionImpl.cpp",
+    "RemoteTrackSource.cpp",
     "RTCDtlsTransport.cpp",
     "RTCDTMFSender.cpp",
     "RTCRtpReceiver.cpp",
     "RTCRtpSender.cpp",
     "RTCRtpTransceiver.cpp",
+    "RTCSctpTransport.cpp",
     "RTCStatsIdGenerator.cpp",
     "RTCStatsReport.cpp",
     "WebrtcGlobalInformation.cpp",
 ]
 
-FINAL_LIBRARY = "xul"
+EXPORTS.mozilla.dom += [
+    "RTCDtlsTransport.h",
+    "RTCDTMFSender.h",
+    "RTCRtpReceiver.h",
+    "RTCRtpSender.h",
+    "RTCRtpTransceiver.h",
+    "RTCSctpTransport.h",
+    "RTCStatsReport.h",
+]
 
-REQUIRES_UNIFIED_BUILD = True
+FINAL_LIBRARY = "xul"

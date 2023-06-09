@@ -6,6 +6,7 @@
 interface URI;
 interface nsIDocShell;
 interface nsISecureBrowserUI;
+interface nsISHEntry;
 interface nsIPrintSettings;
 interface nsIWebProgress;
 
@@ -71,9 +72,6 @@ interface BrowsingContext {
 
   sequence<BrowsingContext> getAllBrowsingContextsInSubtree();
 
-  BrowsingContext? findChildWithName(DOMString name, BrowsingContext accessor);
-  BrowsingContext? findWithName(DOMString name);
-
   readonly attribute DOMString name;
 
   readonly attribute BrowsingContext? parent;
@@ -130,6 +128,19 @@ interface BrowsingContext {
   [SetterThrows] attribute unsigned long sandboxFlags;
 
   [SetterThrows] attribute boolean isActive;
+
+  /**
+   * Sets whether this is an app tab. Non-same-origin link navigations from app
+   * tabs may be forced to open in new contexts, rather than in the same context.
+   */
+  [SetterThrows] attribute boolean isAppTab;
+
+  /**
+   * Sets whether this is BC has siblings **at the toplevel** (e.g. in a tabbed
+   * browser environment). Used to determine if web content can resize the top
+   * window. Never set correctly for non-top BCs.
+   */
+  [SetterThrows] attribute boolean hasSiblings;
 
   // The inRDMPane flag indicates whether or not Responsive Design Mode is
   // active for the browsing context.
@@ -289,7 +300,22 @@ interface CanonicalBrowsingContext : BrowsingContext {
    * loading.
    *
    * @param aURI
-   *        The URI string to load.  For HTTP and FTP URLs and possibly others,
+   *        The URI to load.  No fixup will be performed on this URI.
+   * @param aLoadURIOptions
+   *        A JSObject defined in LoadURIOptions.webidl holding info like e.g.
+   *        the triggeringPrincipal, the referrer info.
+   */
+  [Throws]
+  undefined loadURI(URI aURI, optional LoadURIOptions aOptions = {});
+
+  /**
+   * Like `loadURI` but takes a DOMString instead. This will use nsIURIFixup
+   * to "fix up" the input if it doesn't parse as a string. If an existing
+   * DOM URL or nsIURI object is available to you, prefer using `loadURI`
+   * directly.
+   *
+   * @param aURI
+   *        The URI to load.  For HTTP and FTP URLs and possibly others,
    *        characters above U+007F will be converted to UTF-8 and then URL-
    *        escaped per the rules of RFC 2396.
    * @param aLoadURIOptions
@@ -297,7 +323,7 @@ interface CanonicalBrowsingContext : BrowsingContext {
    *        the triggeringPrincipal, the referrer info.
    */
   [Throws]
-  undefined loadURI(DOMString aURI, optional LoadURIOptions aOptions = {});
+  undefined fixupAndLoadURIString(DOMString aURI, optional LoadURIOptions aOptions = {});
 
    /**
     * Print the current document.
@@ -320,6 +346,7 @@ interface CanonicalBrowsingContext : BrowsingContext {
   undefined stop(unsigned long aStopFlags);
 
   readonly attribute nsISHistory? sessionHistory;
+  readonly attribute nsISHEntry? activeSessionHistoryEntry;
 
   readonly attribute MediaController? mediaController;
 
@@ -384,6 +411,8 @@ interface CanonicalBrowsingContext : BrowsingContext {
    */
   undefined stopApzAutoscroll(unsigned long long aScrollId,
                               unsigned long aPresShellId);
+
+  readonly attribute nsISHEntry? mostRecentLoadingSessionHistoryEntry;
 };
 
 [Exposed=Window, ChromeOnly]

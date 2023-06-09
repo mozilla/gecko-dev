@@ -4,24 +4,27 @@
 
 import { makeBreakpointId } from "../utils/breakpoint";
 
-export function getSymbols(state, source) {
-  if (!source) {
+export function getSymbols(state, location) {
+  if (!location) {
     return null;
   }
-
-  return state.ast.symbols[source.id] || null;
-}
-
-export function getSourceActorForSymbols(state, source) {
-  if (!source) {
-    return null;
+  if (location.source.isOriginal) {
+    return (
+      state.ast.mutableOriginalSourcesSymbols[location.source.id]?.value || null
+    );
   }
-
-  return state.ast.actors[source.id] || null;
+  if (!location.sourceActor) {
+    throw new Error(
+      "Expects a location with a source actor when passing non-original sources to getSymbols"
+    );
+  }
+  return (
+    state.ast.mutableSourceActorSymbols[location.sourceActor.id]?.value || null
+  );
 }
 
 export function getInScopeLines(state, location) {
-  return state.ast.inScopeLines[makeBreakpointId(location)];
+  return state.ast.mutableInScopeLines[makeBreakpointId(location)]?.lines;
 }
 
 export function hasInScopeLines(state, location) {

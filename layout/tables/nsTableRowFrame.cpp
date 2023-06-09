@@ -5,6 +5,7 @@
 
 #include "nsTableRowFrame.h"
 
+#include "mozilla/Baseline.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/PresShell.h"
 #include "nsTableRowGroupFrame.h"
@@ -125,17 +126,7 @@ NS_QUERYFRAME_TAIL_INHERITING(nsContainerFrame)
 
 nsTableRowFrame::nsTableRowFrame(ComputedStyle* aStyle,
                                  nsPresContext* aPresContext, ClassID aID)
-    : nsContainerFrame(aStyle, aPresContext, aID),
-      mContentBSize(0),
-      mStylePctBSize(0),
-      mStyleFixedBSize(0),
-      mMaxCellAscent(0),
-      mMaxCellDescent(0),
-      mBStartBorderWidth(0),
-      mBEndBorderWidth(0),
-      mIEndContBorderWidth(0),
-      mBStartContBorderWidth(0),
-      mIStartContBorderWidth(0) {
+    : nsContainerFrame(aStyle, aPresContext, aID) {
   mBits.mRowIndex = 0;
   mBits.mHasFixedBSize = 0;
   mBits.mHasPctBSize = 0;
@@ -165,19 +156,18 @@ void nsTableRowFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
 
 void nsTableRowFrame::DestroyFrom(nsIFrame* aDestructRoot,
                                   PostDestroyData& aPostDestroyData) {
-  if (HasAnyStateBits(NS_FRAME_CAN_HAVE_ABSPOS_CHILDREN)) {
-    nsTableFrame::UnregisterPositionedTablePart(this, aDestructRoot);
-  }
-
+  nsTableFrame::MaybeUnregisterPositionedTablePart(this, aDestructRoot);
   nsContainerFrame::DestroyFrom(aDestructRoot, aPostDestroyData);
 }
 
 /* virtual */
 void nsTableRowFrame::DidSetComputedStyle(ComputedStyle* aOldComputedStyle) {
   nsContainerFrame::DidSetComputedStyle(aOldComputedStyle);
+  nsTableFrame::PositionedTablePartMaybeChanged(this, aOldComputedStyle);
 
-  if (!aOldComputedStyle)  // avoid this on init
-    return;
+  if (!aOldComputedStyle) {
+    return;  // avoid the following on init
+  }
 
 #ifdef ACCESSIBILITY
   if (nsAccessibilityService* accService = GetAccService()) {
@@ -408,21 +398,23 @@ void nsTableRowFrame::DidResize() {
 // *including* cells with rowspans
 nscoord nsTableRowFrame::GetMaxCellAscent() const { return mMaxCellAscent; }
 
-nscoord nsTableRowFrame::GetRowBaseline(WritingMode aWM) {
+Maybe<nscoord> nsTableRowFrame::GetRowBaseline(WritingMode aWM) {
   if (mMaxCellAscent) {
-    return mMaxCellAscent;
+    return Some(mMaxCellAscent);
   }
 
   // If we get here, we don't have a baseline on any of the cells in this row.
-
+  if (aWM.IsCentralBaseline()) {
+    return Nothing{};
+  }
   nscoord ascent = 0;
   for (nsIFrame* childFrame : mFrames) {
     MOZ_ASSERT(childFrame->IsTableCellFrame());
-    nscoord s = childFrame->SynthesizeBaselineBOffsetFromContentBox(
-        aWM, BaselineSharingGroup::First);
+    nscoord s = Baseline::SynthesizeBOffsetFromContentBox(
+        childFrame, aWM, BaselineSharingGroup::First);
     ascent = std::max(ascent, s);
   }
-  return ascent;
+  return Some(ascent);
 }
 
 nscoord nsTableRowFrame::GetInitialBSize(nscoord aPctBasis) const {
@@ -782,13 +774,6 @@ void nsTableRowFrame::ReflowChildren(nsPresContext* aPresContext,
     nsRect kidRect = kidFrame->GetRect();
     LogicalPoint origKidNormalPosition =
         kidFrame->GetLogicalNormalPosition(wm, containerSize);
-    // All cells' no-relative-positioning position should be snapped to the
-    // row's bstart edge.
-    // This doesn't hold in vertical-rl mode, where we don't yet know the
-    // correct containerSize for the row frame. In that case, we'll have to
-    // fix up child positions later, after determining our desiredSize.
-    NS_ASSERTION(origKidNormalPosition.B(wm) == 0 || wm.IsVerticalRL(),
-                 "unexpected kid position");
 
     nsRect kidInkOverflow = kidFrame->InkOverflowRect();
     LogicalPoint kidPosition(wm, iCoord, 0);

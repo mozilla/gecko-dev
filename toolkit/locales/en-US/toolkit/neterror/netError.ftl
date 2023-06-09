@@ -26,6 +26,8 @@ neterror-try-again-button = Try Again
 neterror-add-exception-button = Always continue for this site
 neterror-settings-button = Change DNS settings
 neterror-view-certificate-link = View Certificate
+neterror-trr-continue-this-time = Continue this time
+neterror-disable-native-feedback-warning = Always continue
 
 ##
 
@@ -56,14 +58,22 @@ neterror-dns-not-found-hint-firewall = Check that { -brand-short-name } has perm
 ##   $trrDomain (String) - Hostname of the DNS over HTTPS server that is currently in use.
 
 neterror-dns-not-found-trr-only-reason = { -brand-short-name } can’t protect your request for this site’s address through our trusted DNS resolver. Here’s why:
-neterror-dns-not-found-trr-only-attackers = If you continue, a third-party might be able to see what websites you visit or send you to an untrusted site.
+neterror-dns-not-found-trr-third-party-warning2 = You can continue with your default DNS resolver. However, a third-party might be able to see what websites you visit.
 
 neterror-dns-not-found-trr-only-could-not-connect = { -brand-short-name } wasn’t able to connect to { $trrDomain }.
 neterror-dns-not-found-trr-only-timeout = The connection to { $trrDomain } took longer than expected.
 neterror-dns-not-found-trr-offline = You are not connected to the internet.
-neterror-dns-not-found-trr-unknown-host = An address for this website wasn’t found by { $trrDomain }.
+neterror-dns-not-found-trr-unknown-host2 = This website wasn’t found by { $trrDomain }.
 neterror-dns-not-found-trr-server-problem = There was a problem with { $trrDomain }.
 neterror-dns-not-found-trr-unknown-problem = Unexpected problem.
+
+## Native fallback specific messages
+## Variables:
+##   $trrDomain (String) - Hostname of the DNS over HTTPS server that is currently in use.
+
+neterror-dns-not-found-native-fallback-reason = { -brand-short-name } can’t protect your request for this site’s address through our trusted DNS resolver. Here’s why:
+neterror-dns-not-found-native-fallback-heuristic = DNS over HTTPS has been disabled on your network.
+neterror-dns-not-found-native-fallback-not-confirmed2 = { -brand-short-name } wasn’t able to connect to { $trrDomain }.
 
 ##
 

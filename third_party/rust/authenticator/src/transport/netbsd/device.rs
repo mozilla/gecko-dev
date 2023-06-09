@@ -4,11 +4,12 @@
 
 extern crate libc;
 use crate::consts::{CID_BROADCAST, MAX_HID_RPT_SIZE};
+use crate::ctap2::commands::get_info::AuthenticatorInfo;
 use crate::transport::hid::HIDDevice;
 use crate::transport::platform::fd::Fd;
 use crate::transport::platform::monitor::WrappedOpenDevice;
 use crate::transport::platform::uhid;
-use crate::transport::{AuthenticatorInfo, ECDHSecret, FidoDevice, HIDError};
+use crate::transport::{FidoDevice, HIDError, SharedSecret};
 use crate::u2ftypes::{U2FDevice, U2FDeviceInfo};
 use crate::util::io_err;
 use std::ffi::OsString;
@@ -22,7 +23,7 @@ pub struct Device {
     fd: Fd,
     cid: [u8; 4],
     dev_info: Option<U2FDeviceInfo>,
-    secret: Option<ECDHSecret>,
+    secret: Option<SharedSecret>,
     authenticator_info: Option<AuthenticatorInfo>,
 }
 
@@ -40,7 +41,19 @@ impl Device {
             buf[6] = 0;
             buf[7] = 1; // one byte
 
-            self.write(&buf[..])?;
+            // Write ping request.  Each write to the device contains
+            // exactly one report id byte[*] followed by exactly as
+            // many bytes as are in a report, and will be consumed all
+            // at once by /dev/uhidN.  So we use plain write, not
+            // write_all to issue writes in a loop.
+            //
+            // [*] This is only for the internal authenticator-rs API,
+            // not for the USB HID protocol, which for a device with
+            // only one report id excludes the report id byte from the
+            // interrupt in/out pipe transfer format.
+            if self.write(&buf)? != buf.len() {
+                return Err(io_err("write ping failed"));
+            }
 
             // Wait for response
             let mut pfd: libc::pollfd = unsafe { mem::zeroed() };
@@ -55,8 +68,13 @@ impl Device {
                 continue;
             }
 
-            // Read response
-            self.read(&mut buf[..])?;
+            // Read response.  When reports come in they are all
+            // exactly the same size, with no report id byte because
+            // there is only one report.
+            let n = self.read(&mut buf[1..])?;
+            if n != buf.len() - 1 {
+                return Err(io_err("read pong failed"));
+            }
 
             return Ok(());
         }
@@ -186,17 +204,17 @@ impl HIDDevice for Device {
             Ok(_) => (),
             Err(_) => return false,
         }
-        if let Err(_) = self.ping() {
+        if self.ping().is_err() {
             return false;
         }
         true
     }
 
-    fn get_shared_secret(&self) -> Option<&ECDHSecret> {
+    fn get_shared_secret(&self) -> Option<&SharedSecret> {
         self.secret.as_ref()
     }
 
-    fn set_shared_secret(&mut self, secret: ECDHSecret) {
+    fn set_shared_secret(&mut self, secret: SharedSecret) {
         self.secret = Some(secret);
     }
 
@@ -206,21 +224,6 @@ impl HIDDevice for Device {
 
     fn set_authenticator_info(&mut self, authenticator_info: AuthenticatorInfo) {
         self.authenticator_info = Some(authenticator_info);
-    }
-
-    /// This is used for cancellation of blocking read()-requests.
-    /// With this, we can clone the Device, pass it to another thread and call "cancel()" on that.
-    fn clone_device_as_write_only(&self) -> Result<Self, HIDError> {
-        // Try to open the device.
-        let fd = Fd::open(&self.path, libc::O_WRONLY)?;
-        Ok(Self {
-            path: self.path.clone(),
-            fd,
-            cid: self.cid,
-            dev_info: self.dev_info.clone(),
-            secret: self.secret.clone(),
-            authenticator_info: self.authenticator_info.clone(),
-        })
     }
 }
 

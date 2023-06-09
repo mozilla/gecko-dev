@@ -26,11 +26,10 @@ add_task(async function test_protocol_trimming() {
       context,
       autofilled: prot + "://www.mozilla.org/",
       completed: prot + "://www.mozilla.org/",
-      hasAutofillTitle: false,
       matches: [
         makeVisitResult(context, {
           uri: prot + "://www.mozilla.org/",
-          title:
+          fallbackTitle:
             prot == "http" ? "www.mozilla.org" : prot + "://www.mozilla.org",
           heuristic: true,
         }),
@@ -48,11 +47,10 @@ add_task(async function test_protocol_trimming() {
       context,
       autofilled: "www.mozilla.org/",
       completed: prot + "://www.mozilla.org/",
-      hasAutofillTitle: false,
       matches: [
         makeVisitResult(context, {
           uri: prot + "://www.mozilla.org/",
-          title:
+          fallbackTitle:
             prot == "http" ? "www.mozilla.org" : prot + "://www.mozilla.org",
           heuristic: true,
         }),
@@ -72,7 +70,7 @@ add_task(async function test_protocol_trimming() {
         makeVisitResult(context, {
           source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
           uri: `${input.trim()}/`,
-          title: `${input.trim()}/`,
+          fallbackTitle: `${input.trim()}/`,
           iconUri: "",
           heuristic: true,
           providerName: "HeuristicFallback",

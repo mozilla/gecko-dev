@@ -25,7 +25,7 @@ nsFilePickerProxy::~nsFilePickerProxy() = default;
 
 NS_IMETHODIMP
 nsFilePickerProxy::Init(mozIDOMWindowProxy* aParent, const nsAString& aTitle,
-                        int16_t aMode) {
+                        nsIFilePicker::Mode aMode) {
   BrowserChild* browserChild = BrowserChild::GetFrom(aParent);
   if (!browserChild) {
     return NS_ERROR_FAILURE;
@@ -35,7 +35,6 @@ nsFilePickerProxy::Init(mozIDOMWindowProxy* aParent, const nsAString& aTitle,
 
   mMode = aMode;
 
-  NS_ADDREF_THIS();
   browserChild->SendPFilePickerConstructor(this, aTitle, aMode);
 
   mIPCActive = true;
@@ -54,13 +53,13 @@ nsFilePickerProxy::AppendFilter(const nsAString& aTitle,
 }
 
 NS_IMETHODIMP
-nsFilePickerProxy::GetCapture(int16_t* aCapture) {
+nsFilePickerProxy::GetCapture(nsIFilePicker::CaptureTarget* aCapture) {
   *aCapture = mCapture;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsFilePickerProxy::SetCapture(int16_t aCapture) {
+nsFilePickerProxy::SetCapture(nsIFilePicker::CaptureTarget aCapture) {
   mCapture = aCapture;
   return NS_OK;
 }
@@ -120,7 +119,7 @@ nsFilePickerProxy::GetFiles(nsISimpleEnumerator** aFiles) {
   return NS_ERROR_FAILURE;
 }
 
-nsresult nsFilePickerProxy::Show(int16_t* aReturn) {
+nsresult nsFilePickerProxy::Show(nsIFilePicker::ResultCode* aReturn) {
   MOZ_ASSERT(false, "Show is unimplemented; use Open");
   return NS_ERROR_NOT_IMPLEMENTED;
 }
@@ -146,7 +145,7 @@ nsFilePickerProxy::Open(nsIFilePickerShownCallback* aCallback) {
 }
 
 mozilla::ipc::IPCResult nsFilePickerProxy::Recv__delete__(
-    const MaybeInputData& aData, const int16_t& aResult) {
+    const MaybeInputData& aData, const nsIFilePicker::ResultCode& aResult) {
   nsPIDOMWindowInner* inner =
       mParent ? mParent->GetCurrentInnerWindow() : nullptr;
 

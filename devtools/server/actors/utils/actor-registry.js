@@ -189,11 +189,6 @@ const ActorRegistry = {
       constructor: "StyleSheetsActor",
       type: { target: true },
     });
-    this.registerModule("devtools/server/actors/storage", {
-      prefix: "storage",
-      constructor: "StorageActor",
-      type: { target: true },
-    });
     this.registerModule("devtools/server/actors/memory", {
       prefix: "memory",
       constructor: "MemoryActor",
@@ -237,22 +232,6 @@ const ActorRegistry = {
       constructor: "ChangesActor",
       type: { target: true },
     });
-    this.registerModule(
-      "devtools/server/actors/network-monitor/websocket-actor",
-      {
-        prefix: "webSocket",
-        constructor: "WebSocketActor",
-        type: { target: true },
-      }
-    );
-    this.registerModule(
-      "devtools/server/actors/network-monitor/eventsource-actor",
-      {
-        prefix: "eventSource",
-        constructor: "EventSourceActor",
-        type: { target: true },
-      }
-    );
     this.registerModule("devtools/server/actors/manifest", {
       prefix: "manifest",
       constructor: "ManifestActor",
@@ -269,6 +248,11 @@ const ActorRegistry = {
     this.registerModule("devtools/server/actors/screenshot-content", {
       prefix: "screenshotContent",
       constructor: "ScreenshotContentActor",
+      type: { target: true },
+    });
+    this.registerModule("devtools/server/actors/tracer", {
+      prefix: "tracer",
+      constructor: "TracerActor",
       type: { target: true },
     });
   },

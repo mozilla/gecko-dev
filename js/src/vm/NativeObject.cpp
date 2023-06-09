@@ -206,6 +206,9 @@ bool js::NativeObject::isNumFixedSlots(uint32_t nfixed) const {
   return nfixed == numFixedSlotsMaybeForwarded();
 }
 
+uint32_t js::NativeObject::outOfLineNumDynamicSlots() const {
+  return numDynamicSlots();
+}
 #endif /* DEBUG */
 
 mozilla::Maybe<PropertyInfo> js::NativeObject::lookup(JSContext* cx, jsid id) {
@@ -287,6 +290,31 @@ bool NativeObject::growSlotsForNewSlot(JSContext* cx, uint32_t numFixed,
   MOZ_ASSERT(oldCapacity < newCapacity);
 
   return growSlots(cx, oldCapacity, newCapacity);
+}
+
+bool NativeObject::allocateInitialSlots(JSContext* cx, uint32_t capacity) {
+  uint32_t count = ObjectSlots::allocCount(capacity);
+  HeapSlot* allocation = AllocateObjectBuffer<HeapSlot>(cx, this, count);
+  if (!allocation) {
+    // The new object will be unreachable, but we still have to make it safe for
+    // finalization. Also we must check for it during GC compartment checks (see
+    // IsPartiallyInitializedObject).
+    initEmptyDynamicSlots();
+    return false;
+  }
+
+  auto* headerSlots = new (allocation) ObjectSlots(capacity, 0);
+  slots_ = headerSlots->slots();
+
+  Debug_SetSlotRangeToCrashOnTouch(slots_, capacity);
+
+  if (!IsInsideNursery(this)) {
+    AddCellMemory(this, ObjectSlots::allocSize(capacity),
+                  MemoryUse::ObjectSlots);
+  }
+
+  MOZ_ASSERT(hasDynamicSlots());
+  return true;
 }
 
 bool NativeObject::allocateSlots(JSContext* cx, uint32_t newCapacity) {
@@ -525,7 +553,7 @@ DenseElementResult NativeObject::maybeDensifySparseElements(
 
   obj->ensureDenseInitializedLength(newInitializedLength, 0);
 
-  if (cx->compartment()->objectMaybeInIteration(obj)) {
+  if (obj->compartment()->objectMaybeInIteration(obj)) {
     // Mark the densified elements as maybe-in-iteration. See also the comment
     // in GetIterator.
     obj->markDenseElementsMaybeInIteration();

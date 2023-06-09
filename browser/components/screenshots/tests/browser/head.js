@@ -3,6 +3,13 @@
 
 "use strict";
 
+const { TelemetryTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/TelemetryTestUtils.sys.mjs"
+);
+const { UrlbarTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/UrlbarTestUtils.sys.mjs"
+);
+
 const TEST_ROOT = getRootDirectory(gTestPath).replace(
   "chrome://mochitests/content",
   "http://example.com"
@@ -10,12 +17,16 @@ const TEST_ROOT = getRootDirectory(gTestPath).replace(
 
 const TEST_PAGE = TEST_ROOT + "test-page.html";
 const SHORT_TEST_PAGE = TEST_ROOT + "short-test-page.html";
+const LARGE_TEST_PAGE = TEST_ROOT + "large-test-page.html";
+
+const MAX_CAPTURE_DIMENSION = 32767;
+const MAX_CAPTURE_AREA = 124925329;
 
 const gScreenshotUISelectors = {
   panelButtons: "#screenshotsPagePanel",
   fullPageButton: "button.full-page",
   visiblePageButton: "button.visible-page",
-  copyButton: "button.highlight-button-copy",
+  copyButton: "button.#copy",
 };
 
 // MouseEvents is for the mouse events on the Anonymous content
@@ -63,27 +74,22 @@ class ScreenshotsHelper {
   }
 
   async waitForPanel() {
-    return BrowserTestUtils.waitForCondition(async () => {
-      return gBrowser.selectedBrowser.ownerDocument.querySelector(
-        "#screenshotsPagePanel"
-      );
+    let panel = this.browser.ownerDocument.querySelector(
+      "#screenshotsPagePanel"
+    );
+    await BrowserTestUtils.waitForCondition(async () => {
+      if (!panel) {
+        panel = this.browser.ownerDocument.querySelector(
+          "#screenshotsPagePanel"
+        );
+      }
+      return panel?.state === "open" && BrowserTestUtils.is_visible(panel);
     });
+    return panel;
   }
 
   async waitForOverlay() {
-    let panel = gBrowser.selectedBrowser.ownerDocument.querySelector(
-      "#screenshotsPagePanel"
-    );
-    if (!panel) {
-      panel = await this.waitForPanel();
-    }
-    await BrowserTestUtils.waitForMutationCondition(
-      panel,
-      { attributes: true },
-      () => {
-        return BrowserTestUtils.is_visible(panel);
-      }
-    );
+    const panel = await this.waitForPanel();
     ok(BrowserTestUtils.is_visible(panel), "Panel buttons are visible");
 
     await BrowserTestUtils.waitForCondition(async () => {
@@ -94,7 +100,7 @@ class ScreenshotsHelper {
   }
 
   async waitForOverlayClosed() {
-    let panel = gBrowser.selectedBrowser.ownerDocument.querySelector(
+    let panel = this.browser.ownerDocument.querySelector(
       "#screenshotsPagePanel"
     );
     if (!panel) {
@@ -139,6 +145,22 @@ class ScreenshotsHelper {
     await BrowserTestUtils.waitForCondition(async () => {
       let state = await this.getOverlayState();
       return state === newState;
+    }, `Waiting for state change to ${newState}`);
+  }
+
+  async getHoverElementRect() {
+    return ContentTask.spawn(this.browser, null, async () => {
+      let screenshotsChild = content.windowGlobalChild.getActor(
+        "ScreenshotsComponent"
+      );
+      return screenshotsChild._overlay.stateHandler.getHoverElementBoxRect();
+    });
+  }
+
+  async waitForHoverElementRect() {
+    return TestUtils.waitForCondition(async () => {
+      let rect = await this.getHoverElementRect();
+      return rect;
     });
   }
 
@@ -161,6 +183,26 @@ class ScreenshotsHelper {
     );
   }
 
+  /**
+   * This will drag an overlay starting at the given startX and startY coordinates and ending
+   * at the given endX and endY coordinates.
+   *
+   * endY should be at least 70px from the bottom of window and endX should be at least
+   * 265px from the left of the window. If these requirements are not met then the
+   * overlay buttons (cancel, copy, download) will be positioned different from the default
+   * and the methods to click the overlay buttons will not work unless the updated
+   * position coordinates are supplied.
+   * See https://searchfox.org/mozilla-central/rev/af78418c4b5f2c8721d1a06486cf4cf0b33e1e8d/browser/components/screenshots/ScreenshotsOverlayChild.sys.mjs#1789,1798
+   * for how the overlay buttons are positioned when the overlay rect is near the bottom or
+   * left edge of the window.
+   *
+   * Note: The distance of the rect should be greater than 40 to enter in the "dragging" state.
+   * See https://searchfox.org/mozilla-central/rev/af78418c4b5f2c8721d1a06486cf4cf0b33e1e8d/browser/components/screenshots/ScreenshotsOverlayChild.sys.mjs#809
+   * @param {Number} startX The starting X coordinate. The left edge of the overlay rect.
+   * @param {Number} startY The starting Y coordinate. The top edge of the overlay rect.
+   * @param {Number} endX The end X coordinate. The right edge of the overlay rect.
+   * @param {Number} endY The end Y coordinate. The bottom edge of the overlay rect.
+   */
   async dragOverlay(startX, startY, endX, endY) {
     await this.waitForStateChange("crosshairs");
     let state = await this.getOverlayState();
@@ -193,31 +235,81 @@ class ScreenshotsHelper {
   }
 
   async scrollContentWindow(x, y) {
+    let promise = BrowserTestUtils.waitForContentEvent(this.browser, "scroll");
     await ContentTask.spawn(this.browser, [x, y], async ([xPos, yPos]) => {
       content.window.scroll(xPos, yPos);
+
+      await ContentTaskUtils.waitForCondition(() => {
+        return (
+          content.window.scrollX === xPos && content.window.scrollY === yPos
+        );
+      }, `Waiting for window to scroll to ${xPos}, ${yPos}`);
+    });
+    await promise;
+  }
+
+  getWindowPosition() {
+    return ContentTask.spawn(this.browser, [], () => {
+      return {
+        scrollX: content.window.scrollX,
+        scrollY: content.window.scrollY,
+      };
+    });
+  }
+
+  async waitForScrollTo(x, y) {
+    await ContentTask.spawn(this.browser, [x, y], async ([xPos, yPos]) => {
+      await ContentTaskUtils.waitForCondition(() => {
+        info(
+          `Got scrollX: ${content.window.scrollX}. scrollY: ${content.window.scrollY}`
+        );
+        return (
+          content.window.scrollX === xPos && content.window.scrollY === yPos
+        );
+      }, `Waiting for window to scroll to ${xPos}, ${yPos}`);
     });
   }
 
   clickDownloadButton() {
-    mouse.click(this.endX - 60, this.endY + 30);
+    // Click the download button with last x and y position from dragOverlay.
+    // The middle of the copy button is last X - 70 and last Y + 36.
+    // Ex. 500, 500 would be 530, 536
+    mouse.click(this.endX - 70, this.endY + 36);
   }
 
   clickCopyButton(overrideX = null, overrideY = null) {
-    // click copy button with last x and y position from dragOverlay
-    // the middle of the copy button is last X - 163 and last Y + 30.
-    // Ex. 500, 500 would be 336, 530
+    // Click the copy button with last x and y position from dragOverlay.
+    // The middle of the copy button is last X - 183 and last Y + 36.
+    // Ex. 500, 500 would be 317, 536
     if (overrideX && overrideY) {
-      mouse.click(overrideX - 166, overrideY + 30);
+      mouse.click(overrideX - 183, overrideY + 36);
     } else {
-      mouse.click(this.endX - 166, this.endY + 30);
+      mouse.click(this.endX - 183, this.endY + 36);
     }
   }
 
   clickCancelButton() {
-    // click copy button with last x and y position from dragOverlay
-    // the middle of the copy button is last X - 230 and last Y + 30.
-    // Ex. 500, 500 would be 270, 530
-    mouse.click(this.endX - 230, this.endY + 30);
+    // Click the cancel button with last x and y position from dragOverlay.
+    // The middle of the copy button is last X - 259 and last Y + 36.
+    // Ex. 500, 500 would be 241, 536
+    mouse.click(this.endX - 259, this.endY + 36);
+  }
+
+  async clickTestPageElement() {
+    let rect = await ContentTask.spawn(this.browser, [], async () => {
+      let ele = content.document.getElementById("testPageElement");
+      return ele.getBoundingClientRect();
+    });
+
+    let x = Math.floor(rect.x + rect.width / 2);
+    let y = Math.floor(rect.y + rect.height / 2);
+
+    mouse.move(x, y);
+    await this.waitForHoverElementRect();
+    mouse.down(x, y);
+    await this.waitForStateChange("draggingReady");
+    mouse.up(x, y);
+    await this.waitForStateChange("selected");
   }
 
   async zoomBrowser(zoom) {
@@ -241,7 +333,7 @@ class ScreenshotsHelper {
   }
 
   assertPanelVisible() {
-    let panel = gBrowser.selectedBrowser.ownerDocument.querySelector(
+    let panel = this.browser.ownerDocument.querySelector(
       "#screenshotsPagePanel"
     );
     Assert.ok(
@@ -251,7 +343,7 @@ class ScreenshotsHelper {
   }
 
   assertPanelNotVisible() {
-    let panel = gBrowser.selectedBrowser.ownerDocument.querySelector(
+    let panel = this.browser.ownerDocument.querySelector(
       "#screenshotsPagePanel"
     );
     Assert.ok(
@@ -292,12 +384,27 @@ class ScreenshotsHelper {
    */
   getContentDimensions() {
     return SpecialPowers.spawn(this.browser, [], async function() {
-      let doc = content.document.documentElement;
+      let { innerWidth, innerHeight, scrollMaxX, scrollMaxY } = content.window;
+      let width = innerWidth + scrollMaxX;
+      let height = innerHeight + scrollMaxY;
+
+      const scrollbarHeight = {};
+      const scrollbarWidth = {};
+      content.window.windowUtils.getScrollbarSize(
+        false,
+        scrollbarWidth,
+        scrollbarHeight
+      );
+      width -= scrollbarWidth.value;
+      height -= scrollbarHeight.value;
+      innerWidth -= scrollbarWidth.value;
+      innerHeight -= scrollbarHeight.value;
+
       return {
-        clientHeight: doc.clientHeight,
-        clientWidth: doc.clientWidth,
-        scrollHeight: doc.scrollHeight,
-        scrollWidth: doc.scrollWidth,
+        clientHeight: innerHeight,
+        clientWidth: innerWidth,
+        scrollHeight: height,
+        scrollWidth: width,
       };
     });
   }
@@ -311,6 +418,29 @@ class ScreenshotsHelper {
 
       return screenshotsChild._overlay.screenshotsContainer.getSelectionLayerDimensions();
     });
+  }
+
+  async waitForSelectionLayerDimensionChange(oldWidth, oldHeight) {
+    await ContentTask.spawn(
+      this.browser,
+      [oldWidth, oldHeight],
+      async ([prevWidth, prevHeight]) => {
+        let screenshotsChild = content.windowGlobalChild.getActor(
+          "ScreenshotsComponent"
+        );
+
+        await ContentTaskUtils.waitForCondition(() => {
+          let dimensions = screenshotsChild._overlay.screenshotsContainer.getSelectionLayerDimensions();
+          info(
+            `old height: ${prevHeight}. new height: ${dimensions.scrollHeight}.\nold width: ${prevWidth}. new width: ${dimensions.scrollWidth}`
+          );
+          return (
+            dimensions.scrollHeight !== prevHeight &&
+            dimensions.scrollWidth !== prevWidth
+          );
+        }, "Wait for selection box width change");
+      }
+    );
   }
 
   getSelectionBoxDimensions() {
@@ -493,4 +623,50 @@ function getContentDevicePixelRatio(browser) {
   return SpecialPowers.spawn(browser, [], async function() {
     return content.window.devicePixelRatio;
   });
+}
+
+async function clearAllTelemetryEvents() {
+  // Clear everything.
+  info("Clearing all telemetry events");
+  await TestUtils.waitForCondition(() => {
+    Services.telemetry.clearEvents();
+    let events = Services.telemetry.snapshotEvents(
+      Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
+      true
+    );
+    let content = events.content;
+    let parent = events.parent;
+
+    return (!content && !parent) || (!content.length && !parent.length);
+  });
+}
+
+async function waitForScreenshotsEventCount(count, process = "parent") {
+  await TestUtils.waitForCondition(
+    () => {
+      let events = TelemetryTestUtils.getEvents(
+        { category: "screenshots" },
+        { process }
+      );
+
+      info(`Got ${events?.length} event(s)`);
+      info(`Actual events: ${JSON.stringify(events, null, 2)}`);
+      return events.length === count ? events : null;
+    },
+    `Waiting for ${count} ${process} event(s).`,
+    200,
+    100
+  );
+}
+
+async function assertScreenshotsEvents(expectedEvents, process = "parent") {
+  info(`Expected events: ${JSON.stringify(expectedEvents, null, 2)}`);
+  // Make sure we have recorded the correct number of events
+  await waitForScreenshotsEventCount(expectedEvents.length, process);
+
+  TelemetryTestUtils.assertEvents(
+    expectedEvents,
+    { category: "screenshots", clear: true },
+    { process }
+  );
 }

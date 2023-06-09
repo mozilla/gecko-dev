@@ -10,7 +10,6 @@ run-using handlers in `taskcluster/gecko_taskgraph/transforms/job`.
 """
 
 
-import copy
 import json
 import logging
 
@@ -23,6 +22,7 @@ from voluptuous import Any, Exclusive, Extra, Optional, Required
 
 from gecko_taskgraph.transforms.cached_tasks import order_tasks
 from gecko_taskgraph.transforms.task import task_description_schema
+from gecko_taskgraph.util.copy_task import copy_task
 from gecko_taskgraph.util.workertypes import worker_type_implementation
 
 logger = logging.getLogger(__name__)
@@ -62,6 +62,7 @@ job_description_schema = Schema(
             "optimization"
         ],
         Optional("use-sccache"): task_description_schema["use-sccache"],
+        Optional("use-system-python"): bool,
         Optional("priority"): task_description_schema["priority"],
         # The "when" section contains descriptions of the circumstances under which
         # this task should be included in the task graph.  This will be converted
@@ -211,7 +212,7 @@ def make_task_description(config, jobs):
         if job["worker"]["implementation"] == "docker-worker":
             job["run"].setdefault("workdir", "/builds/worker")
 
-        taskdesc = copy.deepcopy(job)
+        taskdesc = copy_task(job)
 
         # fill in some empty defaults to make run implementations easier
         taskdesc.setdefault("attributes", {})
@@ -239,6 +240,34 @@ def get_attribute(dict, key, attributes, attribute_name):
     value = attributes.get(attribute_name)
     if value:
         dict[key] = value
+
+
+@transforms.add
+def use_system_python(config, jobs):
+    for job in jobs:
+        if job.pop("use-system-python", True):
+            yield job
+        else:
+            fetches = job.setdefault("fetches", {})
+            toolchain = fetches.setdefault("toolchain", [])
+
+            moz_python_home = mozpath.join("fetches", "python")
+            if "win" in job["worker"]["os"]:
+                platform = "win64"
+            elif "linux" in job["worker"]["os"]:
+                platform = "linux64"
+            elif "macosx" in job["worker"]["os"]:
+                platform = "macosx64"
+            else:
+                raise ValueError("unexpected worker.os value {}".format(platform))
+
+            toolchain.append("{}-python".format(platform))
+
+            worker = job.setdefault("worker", {})
+            env = worker.setdefault("env", {})
+            env["MOZ_PYTHON_HOME"] = moz_python_home
+
+            yield job
 
 
 @transforms.add

@@ -3,11 +3,13 @@ http://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
 
-const { RemoteSettings } = ChromeUtils.import(
-  "resource://services-settings/remote-settings.js"
+const { RemoteSettings } = ChromeUtils.importESModule(
+  "resource://services-settings/remote-settings.sys.mjs"
 );
 
-let { sinon } = ChromeUtils.import("resource://testing-common/Sinon.jsm");
+let { sinon } = ChromeUtils.importESModule(
+  "resource://testing-common/Sinon.sys.mjs"
+);
 
 // Name of the RemoteSettings collection containing the rules.
 const COLLECTION_NAME = "cookie-banner-rules-list";

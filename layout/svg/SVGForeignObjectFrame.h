@@ -12,7 +12,6 @@
 #include "mozilla/PresShellForwards.h"
 #include "mozilla/UniquePtr.h"
 #include "nsContainerFrame.h"
-#include "nsRegion.h"
 
 class gfxContext;
 
@@ -37,8 +36,6 @@ class SVGForeignObjectFrame final : public nsContainerFrame,
   // nsIFrame:
   void Init(nsIContent* aContent, nsContainerFrame* aParent,
             nsIFrame* aPrevInFlow) override;
-  void DestroyFrom(nsIFrame* aDestructRoot,
-                   PostDestroyData& aPostDestroyData) override;
   nsresult AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
                             int32_t aModType) override;
 
@@ -72,8 +69,7 @@ class SVGForeignObjectFrame final : public nsContainerFrame,
 
   // ISVGDisplayableFrame interface:
   void PaintSVG(gfxContext& aContext, const gfxMatrix& aTransform,
-                imgDrawingParams& aImgParams,
-                const nsIntRect* aDirtyRect = nullptr) override;
+                imgDrawingParams& aImgParams) override;
   nsIFrame* GetFrameForPoint(const gfxPoint& aPoint) override;
   void ReflowSVG() override;
   void NotifySVGChanged(uint32_t aFlags) override;
@@ -82,8 +78,6 @@ class SVGForeignObjectFrame final : public nsContainerFrame,
   bool IsDisplayContainer() override { return true; }
 
   gfxMatrix GetCanvasTM();
-
-  nsRect GetInvalidRegion();
 
   // Return our ::-moz-svg-foreign-content anonymous box.
   void AppendDirectlyOwnedAnonBoxes(nsTArray<OwnedAnonBox>& aResult) override;

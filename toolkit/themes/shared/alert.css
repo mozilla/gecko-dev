@@ -16,15 +16,15 @@
   #alertNotification {
     appearance: none;
     background: transparent;
-    padding: 10px;
   }
 
   #alertBox {
+    margin: 10px;
     border-radius: 1px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.59);
   }
 
-  @media (-moz-windows-default-theme) {
+  @media (-moz-windows-default-theme) and (prefers-color-scheme: light) {
     #alertBox {
       border-color: rgba(107,107,107,.3);
       background-color: rgba(255,255,255,.9);
@@ -145,14 +145,14 @@
 }
 
 .alertTitle {
-  -moz-box-flex: 1;
+  flex: 1;
   font-weight: bold;
   padding: 6px 8px 0;
   width: 255px;
 }
 
 #alertFooter {
-  -moz-box-align: start;
+  align-items: flex-start;
 }
 
 #alertBox:not([hasOrigin]) > box > #alertTextBox,
@@ -161,7 +161,7 @@
 }
 
 #alertSourceLabel {
-  -moz-box-flex: 1;
+  flex: 1;
   font-size: 83.334%;
   color: GrayText;
 }

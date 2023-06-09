@@ -75,6 +75,11 @@ class HTMLEditUtils final {
   }
 
   /**
+   * Return true if inclusive flat tree ancestor has `inert` state.
+   */
+  static bool ContentIsInert(const nsIContent& aContent);
+
+  /**
    * IsNeverContentEditableElementByUser() returns true if the element's content
    * is never editable by user.  E.g., the content is always replaced by
    * native anonymous node or something.
@@ -142,20 +147,10 @@ class HTMLEditUtils final {
 
   /**
    * CanContentsBeJoined() returns true if aLeftContent and aRightContent can be
-   * joined.  At least, Node.nodeName must be same when this returns true.
+   * joined.
    */
-  enum class StyleDifference {
-    // Ignore style information so that callers may join different styled
-    // contents.
-    Ignore,
-    // Compare style information when the contents are any elements.
-    CompareIfElements,
-    // Compare style information only when the contents are <span> elements.
-    CompareIfSpanElements,
-  };
   static bool CanContentsBeJoined(const nsIContent& aLeftContent,
-                                  const nsIContent& aRightContent,
-                                  StyleDifference aStyleDifference);
+                                  const nsIContent& aRightContent);
 
   /**
    * IsBlockElement() returns true if aContent is an element and it should
@@ -340,7 +335,7 @@ class HTMLEditUtils final {
    * IsVisibleTextNode() returns true if aText has visible text.  If it has
    * only white-spaces and they are collapsed, returns false.
    */
-  static bool IsVisibleTextNode(const Text& aText);
+  [[nodiscard]] static bool IsVisibleTextNode(const Text& aText);
 
   /**
    * IsInVisibleTextFrames() returns true if any text in aText is in visible
@@ -496,6 +491,77 @@ class HTMLEditUtils final {
                                   const EmptyCheckOptions& aOptions) {
     return HTMLEditUtils::IsBlockElement(aElement) &&
            HTMLEditUtils::IsEmptyNode(aElement, aOptions);
+  }
+
+  /**
+   * Return true if aListElement is completely empty or it has only one list
+   * item element which is empty.
+   */
+  [[nodiscard]] static bool IsEmptyAnyListElement(const Element& aListElement) {
+    MOZ_ASSERT(HTMLEditUtils::IsAnyListElement(&aListElement));
+    bool foundListItem = false;
+    for (nsIContent* child = aListElement.GetFirstChild(); child;
+         child = child->GetNextSibling()) {
+      if (HTMLEditUtils::IsListItem(child)) {
+        if (foundListItem) {
+          return false;  // 2 list items found.
+        }
+        if (!IsEmptyNode(*child, {EmptyCheckOption::IgnoreEditableState})) {
+          return false;  // found non-empty list item.
+        }
+        foundListItem = true;
+        continue;
+      }
+      if (child->IsElement()) {
+        return false;  // found sublist or illegal child.
+      }
+      if (child->IsText() &&
+          HTMLEditUtils::IsVisibleTextNode(*child->AsText())) {
+        return false;  // found illegal visible text node.
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Return true if aListElement does not have invalid child.
+   */
+  enum class TreatSubListElementAs { Invalid, Valid };
+  [[nodiscard]] static bool IsValidListElement(
+      const Element& aListElement,
+      TreatSubListElementAs aTreatSubListElementAs) {
+    MOZ_ASSERT(HTMLEditUtils::IsAnyListElement(&aListElement));
+    for (nsIContent* child = aListElement.GetFirstChild(); child;
+         child = child->GetNextSibling()) {
+      if (HTMLEditUtils::IsAnyListElement(child)) {
+        if (aTreatSubListElementAs == TreatSubListElementAs::Invalid) {
+          return false;
+        }
+        continue;
+      }
+      if (child->IsHTMLElement(nsGkAtoms::li)) {
+        if (MOZ_UNLIKELY(!aListElement.IsAnyOfHTMLElements(nsGkAtoms::ol,
+                                                           nsGkAtoms::ul))) {
+          return false;
+        }
+        continue;
+      }
+      if (child->IsAnyOfHTMLElements(nsGkAtoms::dt, nsGkAtoms::dd)) {
+        if (MOZ_UNLIKELY(!aListElement.IsAnyOfHTMLElements(nsGkAtoms::dl))) {
+          return false;
+        }
+        continue;
+      }
+      if (MOZ_UNLIKELY(child->IsElement())) {
+        return false;
+      }
+      if (MOZ_LIKELY(child->IsText())) {
+        if (MOZ_UNLIKELY(HTMLEditUtils::IsVisibleTextNode(*child->AsText()))) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   /**
@@ -1331,7 +1397,10 @@ class HTMLEditUtils final {
     return nullptr;
   }
 
-  static Element* GetClosestAncestorAnyListElement(const nsIContent& aContent);
+  [[nodiscard]] static Element* GetClosestAncestorAnyListElement(
+      const nsIContent& aContent);
+  [[nodiscard]] static Element* GetClosestInclusiveAncestorAnyListElement(
+      const nsIContent& aContent);
 
   /**
    * GetClosestAncestorListItemElement() returns a list item element if
@@ -1380,17 +1449,8 @@ class HTMLEditUtils final {
       return EditorDOMRangeType();
     }
     return EditorDOMRangeType(
-        typename EditorDOMRangeType::PointType(
-            firstListItem->GetFirstChild() &&
-                    firstListItem->GetFirstChild()->IsText()
-                ? firstListItem->GetFirstChild()
-                : static_cast<nsIContent*>(firstListItem),
-            0u),
-        EditorDOMRangeType::PointType::AtEndOf(
-            lastListItem->GetLastChild() &&
-                    lastListItem->GetLastChild()->IsText()
-                ? *lastListItem->GetFirstChild()
-                : static_cast<nsIContent&>(*lastListItem)));
+        typename EditorDOMRangeType::PointType(firstListItem, 0u),
+        EditorDOMRangeType::PointType::AtEndOf(*lastListItem));
   }
 
   /**
@@ -1496,16 +1556,20 @@ class HTMLEditUtils final {
    * GetMostDistantAncestorInlineElement() returns the most distant ancestor
    * inline element between aContent and the aEditingHost.  Even if aEditingHost
    * is an inline element, this method never returns aEditingHost as the result.
+   * Optionally, you can specify ancestor limiter content node.  This guarantees
+   * that the result is a descendant of aAncestorLimiter if aContent is a
+   * descendant of aAncestorLimiter.
    */
   static nsIContent* GetMostDistantAncestorInlineElement(
-      const nsIContent& aContent, const Element* aEditingHost = nullptr) {
+      const nsIContent& aContent, const Element* aEditingHost = nullptr,
+      const nsIContent* aAncestorLimiter = nullptr) {
     if (HTMLEditUtils::IsBlockElement(aContent)) {
       return nullptr;
     }
 
     // If aNode is the editing host itself, there is no modifiable inline
     // parent.
-    if (&aContent == aEditingHost) {
+    if (&aContent == aEditingHost || &aContent == aAncestorLimiter) {
       return nullptr;
     }
 
@@ -1523,12 +1587,12 @@ class HTMLEditUtils final {
 
     // Looks for the highest inline parent in the editing host.
     nsIContent* topMostInlineContent = const_cast<nsIContent*>(&aContent);
-    for (nsIContent* content : aContent.AncestorsOfType<nsIContent>()) {
-      if (content == aEditingHost ||
-          !HTMLEditUtils::IsInlineElement(*content)) {
+    for (Element* element : aContent.AncestorsOfType<Element>()) {
+      if (element == aEditingHost || element == aAncestorLimiter ||
+          !HTMLEditUtils::IsInlineElement(*element)) {
         break;
       }
-      topMostInlineContent = content;
+      topMostInlineContent = element;
     }
     return topMostInlineContent;
   }
@@ -1539,13 +1603,20 @@ class HTMLEditUtils final {
    * inline element.
    */
   static Element* GetMostDistantAncestorEditableEmptyInlineElement(
-      const nsIContent& aEmptyContent, const Element* aEditingHost = nullptr) {
+      const nsIContent& aEmptyContent, const Element* aEditingHost = nullptr,
+      const nsIContent* aAncestorLimiter = nullptr) {
+    if (&aEmptyContent == aEditingHost || &aEmptyContent == aAncestorLimiter) {
+      return nullptr;
+    }
     nsIContent* lastEmptyContent = const_cast<nsIContent*>(&aEmptyContent);
-    for (Element* element = aEmptyContent.GetParentElement();
-         element && element != aEditingHost &&
-         HTMLEditUtils::IsInlineElement(*element) &&
-         HTMLEditUtils::IsSimplyEditableNode(*element);
-         element = element->GetParentElement()) {
+    for (Element* element : aEmptyContent.AncestorsOfType<Element>()) {
+      if (element == aEditingHost || element == aAncestorLimiter) {
+        break;
+      }
+      if (!HTMLEditUtils::IsInlineElement(*element) ||
+          !HTMLEditUtils::IsSimplyEditableNode(*element)) {
+        break;
+      }
       if (element->GetChildCount() > 1) {
         for (const nsIContent* child = element->GetFirstChild(); child;
              child = child->GetNextSibling()) {
@@ -1943,16 +2014,7 @@ class HTMLEditUtils final {
   template <typename EditorDOMPointType>
   static EditorDOMPointType GetGoodCaretPointFor(
       nsIContent& aContent, nsIEditor::EDirection aDirectionAndAmount) {
-    MOZ_ASSERT(aDirectionAndAmount == nsIEditor::eNext ||
-               aDirectionAndAmount == nsIEditor::eNextWord ||
-               aDirectionAndAmount == nsIEditor::ePrevious ||
-               aDirectionAndAmount == nsIEditor::ePreviousWord ||
-               aDirectionAndAmount == nsIEditor::eToBeginningOfLine ||
-               aDirectionAndAmount == nsIEditor::eToEndOfLine);
-
-    const bool goingForward = (aDirectionAndAmount == nsIEditor::eNext ||
-                               aDirectionAndAmount == nsIEditor::eNextWord ||
-                               aDirectionAndAmount == nsIEditor::eToEndOfLine);
+    MOZ_ASSERT(nsIEditor::EDirectionIsValidExceptNone(aDirectionAndAmount));
 
     // XXX Why don't we check whether the candidate position is enable or not?
     //     When the result is not editable point, caret will be enclosed in
@@ -1961,12 +2023,14 @@ class HTMLEditUtils final {
     // If we can put caret in aContent, return start or end in it.
     if (aContent.IsText() || HTMLEditUtils::IsContainerNode(aContent) ||
         NS_WARN_IF(!aContent.GetParentNode())) {
-      return EditorDOMPointType(&aContent,
-                                goingForward ? 0 : aContent.Length());
+      return EditorDOMPointType(
+          &aContent, nsIEditor::DirectionIsDelete(aDirectionAndAmount)
+                         ? 0
+                         : aContent.Length());
     }
 
     // If we are going forward, put caret at aContent itself.
-    if (goingForward) {
+    if (nsIEditor::DirectionIsDelete(aDirectionAndAmount)) {
       return EditorDOMPointType(&aContent);
     }
 
@@ -2000,6 +2064,14 @@ class HTMLEditUtils final {
       const nsIContent& aContentToInsert,
       const EditorDOMPointTypeInput& aPointToInsert,
       const Element& aEditingHost);
+
+  /**
+   * GetBetterCaretPositionToInsertText() returns better point to put caret
+   * if aPoint is near a text node or in non-container node.
+   */
+  template <typename EditorDOMPointType, typename EditorDOMPointTypeInput>
+  static EditorDOMPointType GetBetterCaretPositionToInsertText(
+      const EditorDOMPointTypeInput& aPoint, const Element& aEditingHost);
 
   /**
    * ComputePointToPutCaretInElementIfOutside() returns a good point in aElement
@@ -2118,9 +2190,11 @@ class HTMLEditUtils final {
    * aNode.  If a node is a container node and first/last child is editable,
    * returns the child's start or last point recursively.
    */
+  enum class InvisibleText { Recognize, Skip };
   template <typename EditorDOMPointType>
   [[nodiscard]] static EditorDOMPointType GetDeepestEditableStartPointOf(
-      const nsIContent& aContent) {
+      const nsIContent& aContent,
+      InvisibleText aInvisibleText = InvisibleText::Recognize) {
     if (NS_WARN_IF(!EditorUtils::IsEditableContent(
             aContent, EditorBase::EditorType::HTML))) {
       return EditorDOMPointType();
@@ -2128,11 +2202,39 @@ class HTMLEditUtils final {
     EditorDOMPointType result(&aContent, 0u);
     while (true) {
       nsIContent* firstChild = result.GetContainer()->GetFirstChild();
-      if (!firstChild ||
-          (!firstChild->IsText() &&
+      if (!firstChild) {
+        break;
+      }
+      // If the caller wants to skip invisible white-spaces, we should skip
+      // invisible text nodes.
+      if (aInvisibleText == InvisibleText::Skip && firstChild->IsText() &&
+          EditorUtils::IsEditableContent(*firstChild,
+                                         EditorBase::EditorType::HTML) &&
+          !HTMLEditUtils::IsVisibleTextNode(*firstChild->AsText())) {
+        for (nsIContent* nextSibling = firstChild->GetNextSibling();
+             nextSibling; nextSibling = nextSibling->GetNextSibling()) {
+          if (!nextSibling->IsText() ||
+              // We know its previous sibling is very start of a block.
+              // Therefore, we only need to scan the text here.
+              HTMLEditUtils::GetInclusiveNextNonCollapsibleCharOffset(
+                  *firstChild->AsText(), 0u)
+                  .isSome()) {
+            firstChild = nextSibling;
+            break;
+          }
+        }
+      }
+      if ((!firstChild->IsText() &&
            !HTMLEditUtils::IsContainerNode(*firstChild)) ||
           !EditorUtils::IsEditableContent(*firstChild,
                                           EditorBase::EditorType::HTML)) {
+        break;
+      }
+      if (aInvisibleText == InvisibleText::Skip && firstChild->IsText()) {
+        result.Set(firstChild,
+                   HTMLEditUtils::GetInclusiveNextNonCollapsibleCharOffset(
+                       *firstChild->AsText(), 0u)
+                       .valueOr(0u));
         break;
       }
       result.Set(firstChild, 0u);
@@ -2141,7 +2243,8 @@ class HTMLEditUtils final {
   }
   template <typename EditorDOMPointType>
   [[nodiscard]] static EditorDOMPointType GetDeepestEditableEndPointOf(
-      const nsIContent& aContent) {
+      const nsIContent& aContent,
+      InvisibleText aInvisibleText = InvisibleText::Recognize) {
     if (NS_WARN_IF(!EditorUtils::IsEditableContent(
             aContent, EditorBase::EditorType::HTML))) {
       return EditorDOMPointType();
@@ -2149,17 +2252,122 @@ class HTMLEditUtils final {
     auto result = EditorDOMPointType::AtEndOf(aContent);
     while (true) {
       nsIContent* lastChild = result.GetContainer()->GetLastChild();
-      if (!lastChild ||
-          (!lastChild->IsText() &&
+      if (!lastChild) {
+        break;
+      }
+      // If the caller wants to skip invisible white-spaces, we should skip
+      // invisible text nodes.
+      if (aInvisibleText == InvisibleText::Skip && lastChild->IsText() &&
+          EditorUtils::IsEditableContent(*lastChild,
+                                         EditorBase::EditorType::HTML) &&
+          !HTMLEditUtils::IsVisibleTextNode(*lastChild->AsText())) {
+        for (nsIContent* nextSibling = lastChild->GetPreviousSibling();
+             nextSibling; nextSibling = nextSibling->GetPreviousSibling()) {
+          if (!nextSibling->IsText() ||
+              // We know its previous sibling is very start of a block.
+              // Therefore, we only need to scan the text here.
+              HTMLEditUtils::GetPreviousNonCollapsibleCharOffset(
+                  *lastChild->AsText(), lastChild->AsText()->TextDataLength())
+                  .isSome()) {
+            lastChild = nextSibling;
+            break;
+          }
+        }
+      }
+      if ((!lastChild->IsText() &&
            !HTMLEditUtils::IsContainerNode(*lastChild)) ||
           !EditorUtils::IsEditableContent(*lastChild,
                                           EditorBase::EditorType::HTML)) {
+        break;
+      }
+      if (aInvisibleText == InvisibleText::Skip && lastChild->IsText()) {
+        Maybe<uint32_t> visibleCharOffset =
+            HTMLEditUtils::GetPreviousNonCollapsibleCharOffset(
+                *lastChild->AsText(), lastChild->AsText()->TextDataLength());
+        if (visibleCharOffset.isNothing()) {
+          result = EditorDOMPointType::AtEndOf(*lastChild);
+          break;
+        }
+        result.Set(lastChild, visibleCharOffset.value() + 1u);
         break;
       }
       result = EditorDOMPointType::AtEndOf(*lastChild);
     }
     return result;
   }
+
+  /**
+   * Get `#[0-9a-f]{6}` style HTML color value if aColorValue is valid value
+   * for color-specifying attribute. The result is useful to set attributes
+   * of HTML elements which take a color value.
+   *
+   * @param aColorValue         [in] Should be one of `#[0-9a-fA-Z]{3}`,
+   *                            `#[0-9a-fA-Z]{3}` or a color name.
+   * @param aNormalizedValue    [out] Set to `#[0-9a-f]{6}` style color code
+   *                            if this returns true.  Otherwise, returns
+   *                            aColorValue as-is.
+   * @return                    true if aColorValue is valid.  Otherwise, false.
+   */
+  static bool GetNormalizedHTMLColorValue(const nsAString& aColorValue,
+                                          nsAString& aNormalizedValue);
+
+  /**
+   * Return true if aColorValue may be a CSS specific color value or general
+   * keywords of CSS.
+   */
+  [[nodiscard]] static bool MaybeCSSSpecificColorValue(
+      const nsAString& aColorValue);
+
+  /**
+   * Return true if aColorValue can be specified to `color` value of <font>.
+   */
+  [[nodiscard]] static bool CanConvertToHTMLColorValue(
+      const nsAString& aColorValue);
+
+  /**
+   * Convert aColorValue to `#[0-9a-f]{6}` style HTML color value.
+   */
+  static bool ConvertToNormalizedHTMLColorValue(const nsAString& aColorValue,
+                                                nsAString& aNormalizedValue);
+
+  /**
+   * Get serialized color value (`rgb(...)` or `rgba(...)`) or "currentcolor"
+   * if aColorValue is valid. The result is useful to set CSS color property.
+   *
+   * @param aColorValue         [in] Should be valid CSS color value.
+   * @param aZeroAlphaColor     [in] If TransparentKeyword, aNormalizedValue is
+   *                            set to "transparent" if the alpha value is 0.
+   *                            Otherwise, `rgba(...)` value is set.
+   * @param aNormalizedValue    [out] Serialized color value or "currentcolor".
+   * @return                    true if aColorValue is valid.  Otherwise, false.
+   */
+  enum class ZeroAlphaColor { RGBAValue, TransparentKeyword };
+  static bool GetNormalizedCSSColorValue(const nsAString& aColorValue,
+                                         ZeroAlphaColor aZeroAlphaColor,
+                                         nsAString& aNormalizedValue);
+
+  /**
+   * Check whether aColorA and aColorB are same color.
+   *
+   * @param aTransparentKeyword Whether allow to treat "transparent" keyword
+   *                            as a valid value or an invalid value.
+   * @return                    If aColorA and aColorB are valid values and
+   *                            mean same color, returns true.
+   */
+  enum class TransparentKeyword { Invalid, Allowed };
+  static bool IsSameHTMLColorValue(const nsAString& aColorA,
+                                   const nsAString& aColorB,
+                                   TransparentKeyword aTransparentKeyword);
+
+  /**
+   * Check whether aColorA and aColorB are same color.
+   *
+   * @return                    If aColorA and aColorB are valid values and
+   *                            mean same color, returns true.
+   */
+  template <typename CharType>
+  static bool IsSameCSSColorValue(const nsTSubstring<CharType>& aColorA,
+                                  const nsTSubstring<CharType>& aColorB);
 
  private:
   static bool CanNodeContain(nsHTMLTag aParentTagId, nsHTMLTag aChildTagId);

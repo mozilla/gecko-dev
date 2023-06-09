@@ -254,8 +254,8 @@ endif
 export RUSTC_BOOTSTRAP
 endif
 
-target_rust_ltoable := force-cargo-library-build force-cargo-library-udeps force-cargo-library-clippy
-target_rust_nonltoable := force-cargo-test-run force-cargo-library-check $(foreach b,build check,force-cargo-program-$(b))
+target_rust_ltoable := force-cargo-library-build $(ADD_RUST_LTOABLE)
+target_rust_nonltoable := force-cargo-test-run force-cargo-program-build
 
 ifdef MOZ_PGO_RUST
 ifdef MOZ_PROFILE_GENERATE
@@ -301,10 +301,10 @@ endif
 # don't use the prefix when make -n is used, so that cargo doesn't run
 # in that case)
 define RUN_CARGO_INNER
-$(if $(findstring n,$(filter-out --%, $(MAKEFLAGS))),,+)$(CARGO) $(1) $(cargo_build_flags) $(cargo_extra_cli_flags)
+$(if $(findstring n,$(filter-out --%, $(MAKEFLAGS))),,+)$(CARGO) $(1) $(cargo_build_flags) $(CARGO_EXTRA_FLAGS) $(cargo_extra_cli_flags)
 endef
 
-ifdef CARGO_NO_ERR
+ifdef CARGO_CONTINUE_ON_ERROR
 define RUN_CARGO
 -$(RUN_CARGO_INNER)
 endef
@@ -437,7 +437,10 @@ force-cargo-library-build:
 	$(REPORT_BUILD)
 	$(call CARGO_BUILD) --lib $(cargo_target_flag) $(rust_features_flag) -- $(cargo_rustc_flags)
 
-$(RUST_LIBRARY_FILE): force-cargo-library-build
+RUST_LIBRARY_DEP_FILE := $(basename $(RUST_LIBRARY_FILE)).d
+RUST_LIBRARY_DEPS := $(wordlist 2, 10000000, $(if $(wildcard $(RUST_LIBRARY_DEP_FILE)),$(shell cat $(RUST_LIBRARY_DEP_FILE))))
+$(RUST_LIBRARY_FILE): $(CARGO_FILE) $(if $(RUST_LIBRARY_DEPS),$(RUST_LIBRARY_DEPS), force-cargo-library-build)
+	$(if $(RUST_LIBRARY_DEPS),+$(MAKE) force-cargo-library-build,:)
 # When we are building in --enable-release mode; we add an additional check to confirm
 # that we are not importing any networking-related functions in rust code. This reduces
 # the chance of proxy bypasses originating from rust code.
@@ -518,14 +521,34 @@ force-cargo-program-build: $(call resfile,module)
 	$(REPORT_BUILD)
 	$(call CARGO_BUILD) $(addprefix --bin ,$(RUST_CARGO_PROGRAMS)) $(cargo_target_flag) -- $(addprefix -C link-arg=$(CURDIR)/,$(call resfile,module)) $(CARGO_RUSTCFLAGS)
 
-$(RUST_PROGRAMS): force-cargo-program-build ;
+# RUST_PROGRAM_DEPENDENCIES(RUST_PROGRAM)
+# Generates a rule suitable to rebuild RUST_PROGRAM only if its dependencies are
+# obsolete.
+# It relies on the fact that upon build, cargo generates a dependency file named
+# `$(RUST_PROGRAM).d'. Unfortunately the lhs of the rule has an absolute path,
+# so we extract it under the name $(RUST_PROGRAM)_deps below.
+#
+# If the dependencies are empty, the file was not created so we force a rebuild.
+# Otherwise we add it to the dependency list.
+#
+# The actual rule is a bit tricky. The `+' prefix allow for recursive parallel
+# make, and it's skipped (`:') if we already triggered a rebuild as part of the
+# dependency chain.
+#
+define RUST_PROGRAM_DEPENDENCIES
+$(1)_deps := $(wordlist 2, 10000000, $(if $(wildcard $(1).d),$(shell cat $(1).d)))
+$(1): $(CARGO_FILE) $(call resfile,module) $(if $$($(1)_deps),$$($(1)_deps),force-cargo-program-build)
+	$(if $$($(1)_deps),+$(MAKE) force-cargo-program-build,:)
+endef
+
+$(foreach RUST_PROGRAM,$(RUST_PROGRAMS), $(eval $(call RUST_PROGRAM_DEPENDENCIES,$(RUST_PROGRAM))))
 
 ifndef CARGO_NO_AUTO_ARG
 force-cargo-program-%:
 	$(call RUN_CARGO,$*) $(addprefix --bin ,$(RUST_CARGO_PROGRAMS)) $(cargo_target_flag)
 else
 force-cargo-program-%:
-	$(call RUN_CARGO,$*) $(addprefix --bin ,$(RUST_CARGO_PROGRAMS)) $(filter-out --release $(cargo_target_flag))
+	$(call RUN_CARGO,$*)
 endif
 
 else

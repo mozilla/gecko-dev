@@ -12,6 +12,7 @@
 #include "mozilla/dom/FileSystemManagerChild.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/StorageManager.h"
+#include "mozilla/dom/fs/ManagedMozPromiseRequestHolder.h"
 #include "mozilla/dom/quota/QuotaCommon.h"
 #include "mozilla/dom/quota/ResultExtensions.h"
 
@@ -42,19 +43,53 @@ NS_IMPL_CYCLE_COLLECTION(FileSystemManager, mGlobal, mStorageManager);
 void FileSystemManager::Shutdown() {
   mShutdown.Flip();
 
-  if (mBackgroundRequestHandler->FileSystemManagerChildStrongRef()) {
-    // FileSystemAccessHandles prevent shutdown until they are full closed, so
-    // at this point, we should see no open FileSystemAccessHandles.
-    MOZ_ASSERT(mBackgroundRequestHandler->FileSystemManagerChildStrongRef()
-                   ->AllSyncAccessHandlesClosed());
+  auto shutdownAndDisconnect = [self = RefPtr(this)]() {
+    self->mBackgroundRequestHandler->Shutdown();
 
-    mBackgroundRequestHandler->FileSystemManagerChildStrongRef()
-        ->CloseAllWritableFileStreams();
+    for (RefPtr<PromiseRequestHolder<BoolPromise>> holder :
+         self->mPromiseRequestHolders.ForwardRange()) {
+      holder->DisconnectIfExists();
+    }
+  };
+
+  if (NS_IsMainThread()) {
+    if (mBackgroundRequestHandler->FileSystemManagerChildStrongRef()) {
+      mBackgroundRequestHandler->FileSystemManagerChildStrongRef()
+          ->CloseAllWritables(
+              [shutdownAndDisconnect = std::move(shutdownAndDisconnect)]() {
+                shutdownAndDisconnect();
+              });
+    } else {
+      shutdownAndDisconnect();
+    }
+  } else {
+    if (mBackgroundRequestHandler->FileSystemManagerChildStrongRef()) {
+      // FileSystemAccessHandles and FileSystemWritableFileStreams prevent
+      // shutdown until they are full closed, so at this point, they all should
+      // be closed.
+      MOZ_ASSERT(mBackgroundRequestHandler->FileSystemManagerChildStrongRef()
+                     ->AllSyncAccessHandlesClosed());
+      MOZ_ASSERT(mBackgroundRequestHandler->FileSystemManagerChildStrongRef()
+                     ->AllWritableFileStreamsClosed());
+    }
+
+    shutdownAndDisconnect();
   }
+}
 
-  mBackgroundRequestHandler->Shutdown();
+const RefPtr<FileSystemManagerChild>& FileSystemManager::ActorStrongRef()
+    const {
+  return mBackgroundRequestHandler->FileSystemManagerChildStrongRef();
+}
 
-  mCreateFileSystemManagerChildPromiseRequestHolder.DisconnectIfExists();
+void FileSystemManager::RegisterPromiseRequestHolder(
+    PromiseRequestHolder<BoolPromise>* aHolder) {
+  mPromiseRequestHolders.AppendElement(aHolder);
+}
+
+void FileSystemManager::UnregisterPromiseRequestHolder(
+    PromiseRequestHolder<BoolPromise>* aHolder) {
+  mPromiseRequestHolders.RemoveElement(aHolder);
 }
 
 void FileSystemManager::BeginRequest(
@@ -78,22 +113,23 @@ void FileSystemManager::BeginRequest(
   QM_TRY_INSPECT(const auto& principalInfo, mGlobal->GetStorageKey(), QM_VOID,
                  [&aFailure](nsresult rv) { aFailure(rv); });
 
-  mBackgroundRequestHandler->CreateFileSystemManagerChild(principalInfo)
-      ->Then(
-          GetCurrentSerialEventTarget(), __func__,
-          [self = RefPtr<FileSystemManager>(this),
-           success = std::move(aSuccess), failure = std::move(aFailure)](
-              const BoolPromise::ResolveOrRejectValue& aValue) {
-            self->mCreateFileSystemManagerChildPromiseRequestHolder.Complete();
+  auto holder = MakeRefPtr<PromiseRequestHolder<BoolPromise>>(this);
 
-            if (aValue.IsResolve()) {
-              success(self->mBackgroundRequestHandler
-                          ->FileSystemManagerChildStrongRef());
-            } else {
-              failure(aValue.RejectValue());
-            }
-          })
-      ->Track(mCreateFileSystemManagerChildPromiseRequestHolder);
+  mBackgroundRequestHandler->CreateFileSystemManagerChild(principalInfo)
+      ->Then(GetCurrentSerialEventTarget(), __func__,
+             [self = RefPtr<FileSystemManager>(this), holder,
+              success = std::move(aSuccess), failure = std::move(aFailure)](
+                 const BoolPromise::ResolveOrRejectValue& aValue) {
+               holder->Complete();
+
+               if (aValue.IsResolve()) {
+                 success(self->mBackgroundRequestHandler
+                             ->FileSystemManagerChildStrongRef());
+               } else {
+                 failure(aValue.RejectValue());
+               }
+             })
+      ->Track(*holder);
 }
 
 already_AddRefed<Promise> FileSystemManager::GetDirectory(ErrorResult& aError) {

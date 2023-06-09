@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "d3d12"
-version = "0.5.0"
+version = "0.6.0"
 authors = ["gfx-rs developers"]
 description = "Low level D3D12 API wrapper"
 documentation = "https://docs.rs/d3d12"
@@ -33,8 +33,8 @@ repository = "https://github.com/gfx-rs/d3d12-rs"
 [package.metadata.docs.rs]
 default-target = "x86_64-pc-windows-msvc"
 
-[dependencies.bitflags]
-version = "1"
+[dependencies]
+bitflags = "1"
 
 [dependencies.libloading]
 version = "0.7"

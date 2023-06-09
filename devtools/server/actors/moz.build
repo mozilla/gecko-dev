@@ -41,7 +41,6 @@ DevToolsModules(
     "highlighters.js",
     "layout.js",
     "manifest.js",
-    "media-rule.js",
     "memory.js",
     "object.js",
     "page-style.js",
@@ -54,14 +53,13 @@ DevToolsModules(
     "screenshot-content.js",
     "screenshot.js",
     "source.js",
-    "storage.js",
     "string.js",
     "style-rule.js",
-    "style-sheet.js",
     "style-sheets.js",
     "target-configuration.js",
     "thread-configuration.js",
     "thread.js",
+    "tracer.js",
     "watcher.js",
     "webbrowser.js",
     "webconsole.js",
@@ -84,9 +82,6 @@ with Files("performance*"):
 
 with Files("source.js"):
     BUG_COMPONENT = ("DevTools", "Debugger")
-
-with Files("storage.js"):
-    BUG_COMPONENT = ("DevTools", "Storage Inspector")
 
 with Files("stylesheets.js"):
     BUG_COMPONENT = ("DevTools", "Style Editor")

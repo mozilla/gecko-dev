@@ -14,8 +14,10 @@ namespace mozilla {
 
 DDLoggedTypeDeclNameAndBase(AudioTrimmer, MediaDataDecoder);
 
-class AudioTrimmer : public MediaDataDecoder {
+class AudioTrimmer final : public MediaDataDecoder {
  public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(AudioTrimmer, final);
+
   AudioTrimmer(already_AddRefed<MediaDataDecoder> aDecoder,
                const CreateDecoderParams& aParams)
       : mDecoder(aDecoder) {}
@@ -29,12 +31,16 @@ class AudioTrimmer : public MediaDataDecoder {
   RefPtr<FlushPromise> Flush() override;
   RefPtr<ShutdownPromise> Shutdown() override;
   nsCString GetDescriptionName() const override;
+  nsCString GetProcessName() const override;
+  nsCString GetCodecName() const override;
   bool IsHardwareAccelerated(nsACString& aFailureReason) const override;
   void SetSeekThreshold(const media::TimeUnit& aTime) override;
   bool SupportDecoderRecycling() const override;
   ConversionRequired NeedsConversion() const override;
 
  private:
+  ~AudioTrimmer() = default;
+
   // Apply trimming information on decoded data. aRaw can be null as it's only
   // used for logging purposes.
   RefPtr<DecodePromise> HandleDecodedResult(

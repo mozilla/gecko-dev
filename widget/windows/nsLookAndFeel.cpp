@@ -70,6 +70,42 @@ static nsresult SystemWantsDarkTheme(int32_t& darkThemeEnabled) {
   return rv;
 }
 
+static int32_t SystemColorFilter() {
+  nsresult rv = NS_OK;
+  nsCOMPtr<nsIWindowsRegKey> colorFilteringKey =
+      do_CreateInstance("@mozilla.org/windows-registry-key;1", &rv);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return 0;
+  }
+
+  rv = colorFilteringKey->Open(
+      nsIWindowsRegKey::ROOT_KEY_CURRENT_USER,
+      u"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Accessibility\\ATConfig\\colorfiltering"_ns,
+      nsIWindowsRegKey::ACCESS_QUERY_VALUE);
+  if (NS_FAILED(rv)) {
+    return 0;
+  }
+
+  // The Active value is set to 1 when the "Turn on color filters" setting
+  // in the Color filters section of Windows' Ease of Access settings is turned
+  // on. If it is disabled (Active == 0 or does not exist), do not report having
+  // a color filter.
+  uint32_t active;
+  rv = colorFilteringKey->ReadIntValue(u"Active"_ns, &active);
+  if (NS_FAILED(rv) || active == 0) {
+    return 0;
+  }
+
+  // The FilterType value is set to whichever filter is enabled.
+  uint32_t filterType;
+  rv = colorFilteringKey->ReadIntValue(u"FilterType"_ns, &filterType);
+  if (NS_SUCCEEDED(rv)) {
+    return filterType;
+  }
+
+  return 0;
+}
+
 nsLookAndFeel::nsLookAndFeel() {
   mozilla::Telemetry::Accumulate(mozilla::Telemetry::TOUCH_ENABLED_DEVICE,
                                  WinUtils::IsTouchDeviceSupportPresent());
@@ -85,11 +121,12 @@ void nsLookAndFeel::RefreshImpl() {
   nsXPLookAndFeel::RefreshImpl();
 }
 
-static bool UseNonNativeMenuColors() {
+static bool UseNonNativeMenuColors(ColorScheme aScheme) {
   if (!LookAndFeel::WindowsNonNativeMenusEnabled()) {
     return false;
   }
-  return LookAndFeel::GetInt(LookAndFeel::IntID::WindowsDefaultTheme);
+  return LookAndFeel::GetInt(LookAndFeel::IntID::WindowsDefaultTheme) ||
+         aScheme == ColorScheme::Dark;
 }
 
 nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme,
@@ -99,7 +136,7 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme,
   auto IsHighlightColor = [&] {
     switch (aID) {
       case ColorID::MozMenuhover:
-        return !UseNonNativeMenuColors();
+        return !UseNonNativeMenuColors(aScheme);
       case ColorID::Highlight:
       case ColorID::Selecteditem:
         // We prefer the generic dark selection color if we don't have an
@@ -116,7 +153,7 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme,
   auto IsHighlightTextColor = [&] {
     switch (aID) {
       case ColorID::MozMenubarhovertext:
-        if (UseNonNativeMenuColors()) {
+        if (UseNonNativeMenuColors(aScheme)) {
           return false;
         }
         if (!nsUXThemeData::IsAppThemed()) {
@@ -124,7 +161,7 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme,
         }
         [[fallthrough]];
       case ColorID::MozMenuhovertext:
-        if (UseNonNativeMenuColors()) {
+        if (UseNonNativeMenuColors(aScheme)) {
           return false;
         }
         return !mColorMenuHoverText;
@@ -231,7 +268,7 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme,
       idx = COLOR_GRAYTEXT;
       break;
     case ColorID::MozMenubarhovertext:
-      if (UseNonNativeMenuColors()) {
+      if (UseNonNativeMenuColors(aScheme)) {
         aColor = kNonNativeMenuText;
         return NS_OK;
       }
@@ -241,7 +278,7 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme,
       }
       [[fallthrough]];
     case ColorID::MozMenuhovertext:
-      if (UseNonNativeMenuColors()) {
+      if (UseNonNativeMenuColors(aScheme)) {
         aColor = kNonNativeMenuText;
         return NS_OK;
       }
@@ -252,11 +289,11 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme,
       idx = COLOR_HIGHLIGHTTEXT;
       break;
     case ColorID::MozMenuhover:
-      MOZ_ASSERT(UseNonNativeMenuColors());
+      MOZ_ASSERT(UseNonNativeMenuColors(aScheme));
       aColor = NS_RGB(0xe0, 0xe0, 0xe6);
       return NS_OK;
     case ColorID::MozMenuhoverdisabled:
-      if (UseNonNativeMenuColors()) {
+      if (UseNonNativeMenuColors(aScheme)) {
         aColor = NS_RGB(0xf0, 0xf0, 0xf3);
         return NS_OK;
       }
@@ -278,7 +315,7 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme,
       idx = COLOR_INFOTEXT;
       break;
     case ColorID::Menu:
-      if (UseNonNativeMenuColors()) {
+      if (UseNonNativeMenuColors(aScheme)) {
         aColor = NS_RGB(0xf9, 0xf9, 0xfb);
         return NS_OK;
       }
@@ -286,7 +323,7 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme,
       break;
     case ColorID::Menutext:
     case ColorID::MozMenubartext:
-      if (UseNonNativeMenuColors()) {
+      if (UseNonNativeMenuColors(aScheme)) {
         aColor = kNonNativeMenuText;
         return NS_OK;
       }
@@ -481,12 +518,6 @@ nsresult nsLookAndFeel::NativeGetInt(IntID aID, int32_t& aResult) {
     case IntID::WindowsDefaultTheme:
       aResult = nsUXThemeData::IsDefaultWindowTheme();
       break;
-    case IntID::ShowKeyboardCues: {
-      BOOL show = FALSE;
-      ::SystemParametersInfoW(SPI_GETKEYBOARDCUES, 0, &show, 0);
-      aResult = show;
-      break;
-    }
     case IntID::DWMCompositor:
       aResult = gfxWindowsPlatform::GetPlatform()->DwmCompositionEnabled();
       break;
@@ -603,16 +634,29 @@ nsresult nsLookAndFeel::NativeGetInt(IntID aID, int32_t& aResult) {
     case IntID::SystemUsesDarkTheme:
       res = SystemWantsDarkTheme(aResult);
       break;
-    case IntID::SystemVerticalScrollbarWidth:
-      aResult = WinUtils::GetSystemMetricsForDpi(SM_CXVSCROLL, 96);
-      break;
-    case IntID::SystemHorizontalScrollbarHeight:
-      aResult = WinUtils::GetSystemMetricsForDpi(SM_CXHSCROLL, 96);
+    case IntID::SystemScrollbarSize:
+      aResult = std::max(WinUtils::GetSystemMetricsForDpi(SM_CXVSCROLL, 96),
+                         WinUtils::GetSystemMetricsForDpi(SM_CXHSCROLL, 96));
       break;
     case IntID::PrefersReducedMotion: {
       BOOL enable = TRUE;
       ::SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION, 0, &enable, 0);
       aResult = !enable;
+      break;
+    }
+    case IntID::PrefersReducedTransparency: {
+      // Prefers reduced transparency if the option for "Transparency Effects"
+      // is disabled
+      aResult = !WindowsUIUtils::ComputeTransparencyEffects();
+      break;
+    }
+    case IntID::InvertedColors: {
+      int32_t colorFilter = SystemColorFilter();
+
+      // Color filter values
+      // 1: Inverted
+      // 2: Grayscale inverted
+      aResult = colorFilter == 1 || colorFilter == 2 ? 1 : 0;
       break;
     }
     case IntID::PrimaryPointerCapabilities: {

@@ -54,15 +54,10 @@ var ExtensionsUI = {
   sideloaded: new Set(),
   updates: new Set(),
   sideloadListener: null,
-  histogram: null,
 
   pendingNotifications: new WeakMap(),
 
   async init() {
-    this.histogram = Services.telemetry.getHistogramById(
-      "EXTENSION_INSTALL_PROMPT_RESULT"
-    );
-
     Services.obs.addObserver(this, "webextension-permission-prompt");
     Services.obs.addObserver(this, "webextension-update-permissions");
     Services.obs.addObserver(this, "webextension-install-notify");
@@ -121,13 +116,13 @@ var ExtensionsUI = {
     this.emit("change");
   },
 
-  showAddonsManager(tabbrowser, strings, icon, histkey) {
+  showAddonsManager(tabbrowser, strings, icon) {
     let global = tabbrowser.selectedBrowser.ownerGlobal;
     return global
       .BrowserOpenAddonsMgr("addons://list/extension")
       .then(aomWin => {
         let aomBrowser = aomWin.docShell.chromeEventHandler;
-        return this.showPermissionsPrompt(aomBrowser, strings, icon, histkey);
+        return this.showPermissionsPrompt(aomBrowser, strings, icon);
       });
   },
 
@@ -146,7 +141,7 @@ var ExtensionsUI = {
       num_strings: strings.msgs.length,
     });
 
-    this.showAddonsManager(tabbrowser, strings, addon.iconURL, "sideload").then(
+    this.showAddonsManager(tabbrowser, strings, addon.iconURL).then(
       async answer => {
         if (answer) {
           await addon.enable();
@@ -174,22 +169,19 @@ var ExtensionsUI = {
       num_strings: info.strings.msgs.length,
     });
 
-    this.showAddonsManager(
-      browser,
-      info.strings,
-      info.addon.iconURL,
-      "update"
-    ).then(answer => {
-      if (answer) {
-        info.resolve();
-      } else {
-        info.reject();
+    this.showAddonsManager(browser, info.strings, info.addon.iconURL).then(
+      answer => {
+        if (answer) {
+          info.resolve();
+        } else {
+          info.reject();
+        }
+        // At the moment, this prompt will re-appear next time we do an update
+        // check.  See bug 1332360 for proposal to avoid this.
+        this.updates.delete(info);
+        this._updateNotifications();
       }
-      // At the moment, this prompt will re-appear next time we do an update
-      // check.  See bug 1332360 for proposal to avoid this.
-      this.updates.delete(info);
-      this._updateNotifications();
-    });
+    );
   },
 
   observe(subject, topic, data) {
@@ -231,19 +223,6 @@ var ExtensionsUI = {
         ? "chrome://global/skin/icons/warning.svg"
         : info.icon;
 
-      let histkey;
-      if (info.type == "sideload") {
-        histkey = "sideload";
-      } else if (info.type == "update") {
-        histkey = "update";
-      } else if (info.source == "AMO") {
-        histkey = "installAmo";
-      } else if (info.source == "local") {
-        histkey = "installLocal";
-      } else {
-        histkey = "installWeb";
-      }
-
       if (info.type == "sideload") {
         lazy.AMTelemetry.recordManageEvent(info.addon, "sideload_prompt", {
           num_strings: strings.msgs.length,
@@ -255,15 +234,13 @@ var ExtensionsUI = {
         });
       }
 
-      this.showPermissionsPrompt(browser, strings, icon, histkey).then(
-        answer => {
-          if (answer) {
-            info.resolve();
-          } else {
-            info.reject();
-          }
+      this.showPermissionsPrompt(browser, strings, icon).then(answer => {
+        if (answer) {
+          info.resolve();
+        } else {
+          info.reject();
         }
-      );
+      });
     } else if (topic == "webextension-update-permissions") {
       let info = subject.wrappedJSObject;
       info.type = "update";
@@ -363,7 +340,7 @@ var ExtensionsUI = {
     return strings;
   },
 
-  async showPermissionsPrompt(target, strings, icon, histkey) {
+  async showPermissionsPrompt(target, strings, icon) {
     let { browser, window } = getTabBrowser(target);
 
     // Wait for any pending prompts to complete before showing the next one.
@@ -379,6 +356,15 @@ var ExtensionsUI = {
           let textEl = doc.getElementById("addon-webext-perm-text");
           textEl.textContent = strings.text;
           textEl.hidden = !strings.text;
+
+          // By default, multiline strings don't get formatted properly. These
+          // are presently only used in site permission add-ons, so we treat it
+          // as a special case to avoid unintended effects on other things.
+          let isMultiline = strings.text.includes("\n\n");
+          textEl.classList.toggle(
+            "addon-webext-perm-text-multiline",
+            isMultiline
+          );
 
           let listIntroEl = doc.getElementById("addon-webext-perm-intro");
           listIntroEl.textContent = strings.listIntro;
@@ -431,6 +417,9 @@ var ExtensionsUI = {
         persistent: true,
         eventCallback,
         removeOnDismissal: true,
+        popupOptions: {
+          position: "bottomright topright",
+        },
       };
       // The prompt/notification machinery has a special affordance wherein
       // certain subsets of the header string can be designated "names", and
@@ -451,9 +440,6 @@ var ExtensionsUI = {
         label: strings.acceptText,
         accessKey: strings.acceptKey,
         callback: () => {
-          if (histkey) {
-            this.histogram.add(histkey + "Accepted");
-          }
           resolve(true);
         },
       };
@@ -462,19 +448,10 @@ var ExtensionsUI = {
           label: strings.cancelText,
           accessKey: strings.cancelKey,
           callback: () => {
-            if (histkey) {
-              this.histogram.add(histkey + "Rejected");
-            }
             resolve(false);
           },
         },
       ];
-
-      if (browser.ownerGlobal.gUnifiedExtensions.isEnabled) {
-        options.popupOptions = {
-          position: "bottomright topright",
-        };
-      }
 
       window.PopupNotifications.show(
         browser,
@@ -576,24 +553,12 @@ var ExtensionsUI = {
           origins: [],
         };
 
-        let value;
         // The checkbox has been changed at this point, otherwise we would
         // have exited early above.
         if (checkbox.checked) {
           await lazy.ExtensionPermissions.add(addon.id, incognitoPermission);
-          value = "on";
         } else if (hasIncognito) {
           await lazy.ExtensionPermissions.remove(addon.id, incognitoPermission);
-          value = "off";
-        }
-        if (value !== undefined) {
-          lazy.AMTelemetry.recordActionEvent({
-            addon,
-            object: "doorhanger",
-            action: "privateBrowsingAllowed",
-            view: "postInstall",
-            value,
-          });
         }
         // Reload the extension if it is already enabled.  This ensures any change
         // on the private browsing permission is properly handled.
@@ -639,8 +604,9 @@ var ExtensionsUI = {
     }
 
     let win = popup.ownerGlobal;
-    let uri = win.gBrowser.currentURI;
-    let state = lazy.OriginControls.getState(policy, uri);
+    let tab = win.gBrowser.selectedTab;
+    let uri = tab.linkedBrowser?.currentURI;
+    let state = lazy.OriginControls.getState(policy, tab);
 
     let doc = popup.ownerDocument;
     let whenClicked, alwaysOn, allDomains;

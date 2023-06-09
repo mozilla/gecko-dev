@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import {
+  CONCEALED_PASSWORD_TEXT,
   recordTelemetryEvent,
   promptForPrimaryPassword,
 } from "../aboutLoginsUtils.mjs";
@@ -77,15 +78,9 @@ export default class LoginItem extends HTMLElement {
     );
     this._favicon = this.shadowRoot.querySelector(".login-item-favicon");
     this._title = this.shadowRoot.querySelector(".login-item-title");
-    this._timeCreated = this.shadowRoot.querySelector(".time-created");
-    this._timeChanged = this.shadowRoot.querySelector(".time-changed");
-    this._timeUsed = this.shadowRoot.querySelector(".time-used");
     this._breachAlert = this.shadowRoot.querySelector(".breach-alert");
     this._breachAlertLink = this._breachAlert.querySelector(".alert-link");
     this._breachAlertDate = this._breachAlert.querySelector(".alert-date");
-    this._breachAlertLearnMoreLink = this._breachAlert.querySelector(
-      ".alert-learn-more-link"
-    );
     this._vulnerableAlert = this.shadowRoot.querySelector(".vulnerable-alert");
     this._vulnerableAlertLink = this._vulnerableAlert.querySelector(
       ".alert-link"
@@ -96,7 +91,6 @@ export default class LoginItem extends HTMLElement {
 
     this.render();
 
-    this._breachAlertLearnMoreLink.addEventListener("click", this);
     this._cancelButton.addEventListener("click", this);
     this._copyPasswordButton.addEventListener("click", this);
     this._copyUsernameButton.addEventListener("click", this);
@@ -111,6 +105,12 @@ export default class LoginItem extends HTMLElement {
     this._originDisplayInput.addEventListener("click", this);
     this._revealCheckbox.addEventListener("click", this);
     this._vulnerableAlertLearnMoreLink.addEventListener("click", this);
+
+    this._passwordInput.addEventListener("focus", this);
+    this._passwordInput.addEventListener("blur", this);
+    this._passwordDisplayInput.addEventListener("focus", this);
+    this._passwordDisplayInput.addEventListener("blur", this);
+
     window.addEventListener("AboutLoginsInitialLoginSelected", this);
     window.addEventListener("AboutLoginsLoginSelected", this);
     window.addEventListener("AboutLoginsShowBlankLogin", this);
@@ -153,7 +153,6 @@ export default class LoginItem extends HTMLElement {
       !this._breachesMap || !this._breachesMap.has(this._login.guid);
     if (!this._breachAlert.hidden) {
       const breachDetails = this._breachesMap.get(this._login.guid);
-      this._breachAlertLearnMoreLink.href = breachDetails.breachAlertURL;
       this._breachAlertLink.href = this._login.origin;
       document.l10n.setAttributes(
         this._breachAlertLink,
@@ -195,15 +194,6 @@ export default class LoginItem extends HTMLElement {
     if (onlyUpdateErrorsAndAlerts) {
       return;
     }
-    document.l10n.setAttributes(this._timeCreated, "login-item-time-created", {
-      timeCreated: this._login.timeCreated || "",
-    });
-    document.l10n.setAttributes(this._timeChanged, "login-item-time-changed", {
-      timeChanged: this._login.timePasswordChanged || "",
-    });
-    document.l10n.setAttributes(this._timeUsed, "login-item-time-used", {
-      timeUsed: this._login.timeLastUsed || "",
-    });
 
     this._favicon.src = `page-icon:${this._login.origin}`;
     this._title.textContent = this._login.title;
@@ -228,9 +218,7 @@ export default class LoginItem extends HTMLElement {
       // In masked non-edit mode we use a different "display" element to render
       // the masked password so that one cannot simply remove/change
       // @type=password to reveal the real password.
-      this._passwordDisplayInput.value = " ".repeat(
-        this._login.password.length
-      );
+      this._passwordDisplayInput.value = CONCEALED_PASSWORD_TEXT;
     }
 
     if (this.dataset.editing) {
@@ -251,6 +239,26 @@ export default class LoginItem extends HTMLElement {
     );
     this._updatePasswordRevealState();
     this._updateOriginDisplayState();
+    this.#updateTimeline();
+  }
+
+  #updateTimeline() {
+    let timeline = this.shadowRoot.querySelector("login-timeline");
+    timeline.hidden = !this._login.guid;
+    timeline.history = [
+      {
+        actionId: "login-item-timeline-action-created",
+        time: this._login.timeCreated,
+      },
+      {
+        actionId: "login-item-timeline-action-updated",
+        time: this._login.timePasswordChanged,
+      },
+      {
+        actionId: "login-item-timeline-action-used",
+        time: this._login.timeLastUsed,
+      },
+    ];
   }
 
   setBreaches(breachesByLoginGUID) {
@@ -320,14 +328,36 @@ export default class LoginItem extends HTMLElement {
         break;
       }
       case "blur": {
+        if (this.dataset.editing && event.target === this._passwordInput) {
+          this._revealCheckbox.checked = false;
+          this._updatePasswordRevealState();
+        }
+
+        if (event.target === this._passwordDisplayInput) {
+          this._revealCheckbox.checked = !!this.dataset.editing;
+          this._updatePasswordRevealState();
+        }
+
         // Add https:// prefix if one was not provided.
         let originValue = this._originInput.value.trim();
         if (!originValue) {
           return;
         }
+
         if (!originValue.match(/:\/\//)) {
           this._originInput.value = "https://" + originValue;
         }
+
+        break;
+      }
+      case "focus": {
+        const { target } = event;
+
+        if (target === this._passwordDisplayInput) {
+          this._revealCheckbox.checked = !!this.dataset.editing;
+          this._updatePasswordRevealState();
+        }
+
         break;
       }
       case "click": {
@@ -484,12 +514,7 @@ export default class LoginItem extends HTMLElement {
           this._handleOriginClick();
         }
         if (classList.contains("alert-learn-more-link")) {
-          if (event.currentTarget.closest(".breach-alert")) {
-            this._recordTelemetryEvent({
-              object: "existing_login",
-              method: "learn_more_breach",
-            });
-          } else if (event.currentTarget.closest(".vulnerable-alert")) {
+          if (event.currentTarget.closest(".vulnerable-alert")) {
             this._recordTelemetryEvent({
               object: "existing_login",
               method: "learn_more_vuln",
@@ -831,11 +856,10 @@ export default class LoginItem extends HTMLElement {
 
     if (shouldEdit) {
       this._passwordInput.style.removeProperty("width");
-      this._passwordDisplayInput.style.removeProperty("width");
     } else {
       // Need to set a shorter width than -moz-available so the reveal checkbox
       // will still appear next to the password.
-      this._passwordDisplayInput.style.width = this._passwordInput.style.width =
+      this._passwordInput.style.width =
         (this._login.password || "").length + "ch";
     }
 
@@ -850,6 +874,8 @@ export default class LoginItem extends HTMLElement {
     this._passwordInput.tabIndex = inputTabIndex;
     if (shouldEdit) {
       this.dataset.editing = true;
+      this._usernameInput.focus();
+      this._usernameInput.select();
     } else {
       delete this.dataset.editing;
       // Only reset the reveal checkbox when exiting 'edit' mode
@@ -869,11 +895,22 @@ export default class LoginItem extends HTMLElement {
     let inputType = checked ? "text" : "password";
     this._passwordInput.type = inputType;
 
+    if (this.dataset.editing) {
+      this._passwordDisplayInput.removeAttribute("tabindex");
+    } else {
+      this._passwordDisplayInput.setAttribute("tabindex", -1);
+    }
+
     // Swap which <input> is in the document depending on whether we need the
     // real .value (which means that the primary password was already entered,
     // if applicable)
-    if (checked || this.dataset.editing) {
+    if (checked || this.dataset.isNewLogin) {
       this._passwordDisplayInput.replaceWith(this._passwordInput);
+
+      // Focus the input if it hasn't been already.
+      if (this.dataset.editing && inputType === "text") {
+        this._passwordInput.focus();
+      }
     } else {
       this._passwordInput.replaceWith(this._passwordDisplayInput);
     }

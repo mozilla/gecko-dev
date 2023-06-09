@@ -6,6 +6,10 @@
 #include "domstubs.idl"
 #include "nsIDroppedLinkHandler.idl"
 
+%{C++
+#include "mozilla/dom/BindingDeclarations.h"
+%}
+
 interface nsIWebBrowserChrome;
 
 webidl ContentFrameMessageManager;
@@ -31,11 +35,6 @@ interface nsIBrowserChild : nsISupports
   Promise contentTransformsReceived();
 
   readonly attribute uint64_t tabId;
-
-  /*
-   * Indicates whether or not there are other tabs in this tab's window.
-   */
-  attribute boolean hasSiblings;
 
   /**
    * Send a message from the BrowserChild to the BrowserParent that a

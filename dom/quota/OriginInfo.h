@@ -23,6 +23,7 @@ class OriginInfo final {
 
  public:
   OriginInfo(GroupInfo* aGroupInfo, const nsACString& aOrigin,
+             const nsACString& aStorageOrigin, bool aIsPrivate,
              const ClientUsageArray& aClientUsages, uint64_t aUsage,
              int64_t aAccessTime, bool aPersisted, bool aDirectoryExists);
 
@@ -100,9 +101,11 @@ class OriginInfo final {
   ClientUsageArray mClientUsages;
   GroupInfo* mGroupInfo;
   const nsCString mOrigin;
+  const nsCString mStorageOrigin;
   bool mIsExtension;
   uint64_t mUsage;
   int64_t mAccessTime;
+  bool mIsPrivate;
   bool mAccessed;
   bool mPersisted;
   /**

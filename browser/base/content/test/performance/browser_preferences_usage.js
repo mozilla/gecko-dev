@@ -153,6 +153,7 @@ add_task(async function open_10_tabs() {
     tabs.push(
       await BrowserTestUtils.openNewForegroundTab(
         gBrowser,
+        // eslint-disable-next-line @microsoft/sdl/no-insecure-url
         "http://example.com",
         true,
         true
@@ -189,13 +190,6 @@ add_task(async function navigate_around() {
     },
   };
 
-  if (AppConstants.NIGHTLY_BUILD) {
-    knownProblematicPrefs["toolkit.telemetry.cachedClientID"] = {
-      // Bug 1712391: Only an issue in tests where pref is not populated early on
-      // in startup. Code path is only accessed in Nightly builds.
-    };
-  }
-
   if (SpecialPowers.useRemoteSubframes) {
     // We access this when considering starting a new content process.
     // Because there is no complete list of content process types,
@@ -212,8 +206,8 @@ add_task(async function navigate_around() {
     knownProblematicPrefs[
       "dom.ipc.keepProcessesAlive.webIsolated.perOrigin"
     ] = {
-      min: 50,
-      max: 51,
+      min: 100,
+      max: 102,
     };
     if (AppConstants.platform == "linux") {
       // The following sandbox pref is covered by
@@ -221,15 +215,6 @@ add_task(async function navigate_around() {
       knownProblematicPrefs["security.sandbox.content.force-namespace"] = {
         min: 45,
         max: 55,
-      };
-      // This was previously being read in the content process, but
-      // bug 1725573 moved it into the parent process.  We also block
-      // the main thread on requests to the X server, which is likely
-      // more problematic than the pref read.  These issues are covered
-      // by https://bugzilla.mozilla.org/show_bug.cgi?id=1729080
-      knownProblematicPrefs["gfx.color_management.display_profile"] = {
-        min: 45,
-        max: 50,
       };
     } else if (AppConstants.platform == "win") {
       // The following 2 graphics prefs are covered by
@@ -245,11 +230,11 @@ add_task(async function navigate_around() {
       // The following 2 sandbox prefs are covered by
       // https://bugzilla.mozilla.org/show_bug.cgi?id=1639494
       knownProblematicPrefs["security.sandbox.content.read_path_whitelist"] = {
-        min: 48,
+        min: 47,
         max: 55,
       };
       knownProblematicPrefs["security.sandbox.logging.enabled"] = {
-        min: 48,
+        min: 47,
         max: 55,
       };
     }
@@ -259,14 +244,17 @@ add_task(async function navigate_around() {
 
   let tab = await BrowserTestUtils.openNewForegroundTab(
     gBrowser,
+    // eslint-disable-next-line @microsoft/sdl/no-insecure-url
     "http://example.com",
     true,
     true
   );
 
   let urls = [
+    // eslint-disable-next-line @microsoft/sdl/no-insecure-url
     "http://example.com/",
     "https://example.com/",
+    // eslint-disable-next-line @microsoft/sdl/no-insecure-url
     "http://example.org/",
     "https://example.org/",
   ];
@@ -274,7 +262,7 @@ add_task(async function navigate_around() {
   for (let i = 0; i < 50; i++) {
     let url = urls[i % urls.length];
     info(`Navigating to ${url}...`);
-    BrowserTestUtils.loadURI(tab.linkedBrowser, url);
+    BrowserTestUtils.loadURIString(tab.linkedBrowser, url);
     await BrowserTestUtils.browserLoaded(tab.linkedBrowser, false, url);
     info(`Loaded ${url}.`);
   }

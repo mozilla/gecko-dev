@@ -17,11 +17,7 @@ if (AppConstants.MOZ_UPDATER) {
   );
 }
 
-async function init(aEvent) {
-  if (aEvent.target != document) {
-    return;
-  }
-
+function init() {
   let defaults = Services.prefs.getDefaultBranch(null);
   let distroId = defaults.getCharPref("distribution.id", "");
   if (distroId) {
@@ -71,8 +67,6 @@ async function init(aEvent) {
 
   document.l10n.setAttributes(versionField, versionId, versionAttributes);
 
-  await document.l10n.translateElements([versionField]);
-
   // Show a release notes link if we have a URL.
   let relNotesLink = document.getElementById("releasenotes");
   let relNotesPrefType = Services.prefs.getPrefType(
@@ -91,27 +85,21 @@ async function init(aEvent) {
   if (AppConstants.MOZ_UPDATER) {
     gAppUpdater = new appUpdater({ buttonAutoFocus: true });
 
-    let channelLabel = document.getElementById("currentChannel");
-    let currentChannelText = document.getElementById("currentChannelText");
-    channelLabel.value = UpdateUtils.UpdateChannel;
+    let channelLabel = document.getElementById("currentChannelText");
+    let channelAttrs = document.l10n.getAttributes(channelLabel);
+    let channel = UpdateUtils.UpdateChannel;
+    document.l10n.setAttributes(channelLabel, channelAttrs.id, { channel });
     if (
-      /^release($|\-)/.test(channelLabel.value) ||
+      /^release($|\-)/.test(channel) ||
       Services.sysinfo.getProperty("isPackagedApp")
     ) {
-      currentChannelText.hidden = true;
+      channelLabel.hidden = true;
     }
   }
 
   if (AppConstants.IS_ESR) {
     document.getElementById("release").hidden = false;
   }
-
-  window.sizeToContent();
-
-  if (AppConstants.platform == "macosx") {
-    window.moveTo(
-      screen.availWidth / 2 - window.outerWidth / 2,
-      screen.availHeight / 5
-    );
-  }
 }
+
+init();

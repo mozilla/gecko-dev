@@ -8,6 +8,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
 });
 
+import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
+
 export function nsWebHandlerApp() {}
 
 nsWebHandlerApp.prototype = {
@@ -74,8 +76,9 @@ nsWebHandlerApp.prototype = {
     var escapedUriSpecToHandle = encodeURIComponent(aURI.spec);
 
     // insert the encoded URI and create the object version.
-    var uriSpecToSend = this.uriTemplate.replace("%s", escapedUriSpecToHandle);
-    var uriToSend = Services.io.newURI(uriSpecToSend);
+    var uriToSend = Services.io.newURI(
+      this.uriTemplate.replace("%s", escapedUriSpecToHandle)
+    );
 
     let policy = WebExtensionPolicy.getByURI(uriToSend);
     let privateAllowed = !policy || policy.privateBrowsingAllowed;
@@ -102,12 +105,17 @@ nsWebHandlerApp.prototype = {
 
       let triggeringPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
       Services.tm.dispatchToMainThread(() =>
-        aBrowsingContext.loadURI(uriSpecToSend, { triggeringPrincipal })
+        aBrowsingContext.loadURI(uriToSend, { triggeringPrincipal })
       );
       return;
     }
 
-    let win = Services.wm.getMostRecentWindow("navigator:browser");
+    // The window type depends on the app.
+    const windowType =
+      AppConstants.MOZ_APP_NAME == "thunderbird"
+        ? "mail:3pane"
+        : "navigator:browser";
+    let win = Services.wm.getMostRecentWindow(windowType);
 
     // If this is an extension handler, check private browsing access.
     if (!privateAllowed && lazy.PrivateBrowsingUtils.isWindowPrivate(win)) {

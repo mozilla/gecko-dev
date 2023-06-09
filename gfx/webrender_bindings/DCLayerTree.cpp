@@ -6,6 +6,16 @@
 
 #include "DCLayerTree.h"
 
+// -
+
+#include "mozilla/gfx/AllOfDcomp.h"
+#include <d3d11.h>
+#include <d3d11_1.h>
+#include <dxgi1_2.h>
+
+// -
+
+#include "gfxWindowsPlatform.h"
 #include "GLContext.h"
 #include "GLContextEGL.h"
 #include "mozilla/gfx/DeviceManagerDx.h"
@@ -23,15 +33,15 @@
 #include "nsPrintfCString.h"
 #include "WinUtils.h"
 
-#undef _WIN32_WINNT
-#define _WIN32_WINNT _WIN32_WINNT_WINBLUE
-#undef NTDDI_VERSION
-#define NTDDI_VERSION NTDDI_WINBLUE
+// -
 
-#include <d3d11.h>
-#include <d3d11_1.h>
-#include <dcomp.h>
-#include <dxgi1_2.h>
+#if defined(__MINGW32__)  // 64 defines both 32 and 64
+// We need to fake some things, while we wait on updates to mingw's dcomp.h
+// header. Just enough that we can successfully fail to work there.
+#  define MOZ_MINGW_DCOMP_H_INCOMPLETE
+struct IDCompositionColorMatrixEffect : public IDCompositionFilterEffect {};
+struct IDCompositionTableTransferEffect : public IDCompositionFilterEffect {};
+#endif  // defined(__MINGW32__)
 
 namespace mozilla {
 namespace wr {
@@ -567,6 +577,16 @@ void DCExternalSurfaceWrapper::AttachExternalImage(
   }
 }
 
+template <class ToT>
+struct QI {
+  template <class FromT>
+  [[nodiscard]] static inline RefPtr<ToT> From(FromT* const from) {
+    RefPtr<ToT> to;
+    (void)from->QueryInterface(static_cast<ToT**>(getter_AddRefs(to)));
+    return to;
+  }
+};
+
 DCSurface* DCExternalSurfaceWrapper::EnsureSurfaceForExternalImage(
     wr::ExternalImageId aExternalImage) {
   if (mSurface) {
@@ -591,14 +611,117 @@ DCSurface* DCExternalSurfaceWrapper::EnsureSurfaceForExternalImage(
       mSurface = nullptr;
     }
   }
-
-  if (mSurface) {
-    // Add surface's visual which will contain video data to our root visual.
-    mVisual->AddVisual(mSurface->GetVisual(), TRUE, nullptr);
-  } else {
+  if (!mSurface) {
     gfxCriticalNote << "Failed to create a surface for external image: "
                     << gfx::hexa(texture);
+    return nullptr;
   }
+  const auto textureSwgl = texture->AsRenderTextureHostSWGL();
+  MOZ_ASSERT(textureSwgl);  // Covered above.
+
+  // Add surface's visual which will contain video data to our root visual.
+  const auto surfaceVisual = mSurface->GetVisual();
+  mVisual->AddVisual(surfaceVisual, true, nullptr);
+
+  // -
+  // Apply color management.
+
+  [&]() {
+    const auto cmsMode = GfxColorManagementMode();
+    if (cmsMode == CMSMode::Off) return;
+
+    const auto dcomp = mDCLayerTree->GetCompositionDevice();
+    const auto dcomp3 = QI<IDCompositionDevice3>::From(dcomp);
+    if (!dcomp3) {
+      NS_WARNING(
+          "No IDCompositionDevice3, cannot use dcomp for color management.");
+      return;
+    }
+
+    // -
+
+    const auto cspace = [&]() {
+      const auto rangedCspace = textureSwgl->GetYUVColorSpace();
+      const auto info = FromYUVRangedColorSpace(rangedCspace);
+      auto ret = ToColorSpace2(info.space);
+      if (ret == gfx::ColorSpace2::Display && cmsMode == CMSMode::All) {
+        ret = gfx::ColorSpace2::SRGB;
+      }
+      return ret;
+    }();
+
+    const bool rec709GammaAsSrgb =
+        StaticPrefs::gfx_color_management_rec709_gamma_as_srgb();
+    const bool rec2020GammaAsRec709 =
+        StaticPrefs::gfx_color_management_rec2020_gamma_as_rec709();
+
+    auto cspaceDesc = color::ColorspaceDesc{};
+    switch (cspace) {
+      case gfx::ColorSpace2::Display:
+        return;  // No color management needed!
+      case gfx::ColorSpace2::SRGB:
+        cspaceDesc.chrom = color::Chromaticities::Srgb();
+        cspaceDesc.tf = color::PiecewiseGammaDesc::Srgb();
+        break;
+
+      case gfx::ColorSpace2::DISPLAY_P3:
+        cspaceDesc.chrom = color::Chromaticities::DisplayP3();
+        cspaceDesc.tf = color::PiecewiseGammaDesc::DisplayP3();
+        break;
+
+      case gfx::ColorSpace2::BT601_525:
+        cspaceDesc.chrom = color::Chromaticities::Rec601_525_Ntsc();
+        if (rec709GammaAsSrgb) {
+          cspaceDesc.tf = color::PiecewiseGammaDesc::Srgb();
+        } else {
+          cspaceDesc.tf = color::PiecewiseGammaDesc::Rec709();
+        }
+        break;
+
+      case gfx::ColorSpace2::BT709:
+        cspaceDesc.chrom = color::Chromaticities::Rec709();
+        if (rec709GammaAsSrgb) {
+          cspaceDesc.tf = color::PiecewiseGammaDesc::Srgb();
+        } else {
+          cspaceDesc.tf = color::PiecewiseGammaDesc::Rec709();
+        }
+        break;
+
+      case gfx::ColorSpace2::BT2020:
+        cspaceDesc.chrom = color::Chromaticities::Rec2020();
+        if (rec2020GammaAsRec709 && rec709GammaAsSrgb) {
+          cspaceDesc.tf = color::PiecewiseGammaDesc::Srgb();
+        } else if (rec2020GammaAsRec709) {
+          cspaceDesc.tf = color::PiecewiseGammaDesc::Rec709();
+        } else {
+          // Just Rec709 with slightly more precision.
+          cspaceDesc.tf = color::PiecewiseGammaDesc::Rec2020_12bit();
+        }
+        break;
+    }
+
+    const auto cprofileIn = color::ColorProfileDesc::From(cspaceDesc);
+    auto cprofileOut = mDCLayerTree->OutputColorProfile();
+    bool pretendSrgb = StaticPrefs::gfx_color_management_native_srgb();
+    if (pretendSrgb) {
+      cprofileOut = color::ColorProfileDesc::From({
+          color::Chromaticities::Srgb(),
+          color::PiecewiseGammaDesc::Srgb(),
+      });
+    }
+    const auto conversion = color::ColorProfileConversionDesc::From({
+        .src = cprofileIn,
+        .dst = cprofileOut,
+    });
+
+    // -
+
+    auto chain = ColorManagementChain::From(*dcomp3, conversion);
+    mCManageChain = Some(chain);
+
+    surfaceVisual->SetEffect(mCManageChain->last.get());
+  }();
+
   return mSurface.get();
 }
 
@@ -634,8 +757,11 @@ void DCLayerTree::AddSurface(wr::NativeSurfaceId aId,
 
   wr::DeviceIntPoint virtualOffset = surface->GetVirtualOffset();
 
-  gfx::Matrix transform(aTransform.m11, aTransform.m12, aTransform.m21,
-                        aTransform.m22, aTransform.m41, aTransform.m42);
+  float sx = aTransform.scale.x;
+  float sy = aTransform.scale.y;
+  float tx = aTransform.offset.x;
+  float ty = aTransform.offset.y;
+  gfx::Matrix transform(sx, 0.0, 0.0, sy, tx, ty);
 
   surface->PresentExternalSurface(transform);
 
@@ -1096,13 +1222,37 @@ void DCSurfaceVideo::PresentVideo() {
     return;
   }
 
-  HRESULT hr;
-  hr = mVideoSwapChain->Present(0, 0);
+  auto start = TimeStamp::Now();
+  HRESULT hr = mVideoSwapChain->Present(0, 0);
+  auto end = TimeStamp::Now();
+
   if (FAILED(hr) && hr != DXGI_STATUS_OCCLUDED) {
     gfxCriticalNoteOnce << "video Present failed: " << gfx::hexa(hr);
   }
 
   mPrevTexture = mRenderTextureHost;
+
+  // Disable video overlay if mVideoSwapChain->Present() is too slow. It drops
+  // fps.
+
+  if (!StaticPrefs::gfx_webrender_dcomp_video_check_slow_present()) {
+    return;
+  }
+
+  const auto maxWaitDurationMs = 2.0;
+  const auto maxSlowPresentCount = 5;
+  const auto duration = (end - start).ToMilliseconds();
+
+  if (duration > maxWaitDurationMs) {
+    mSlowPresentCount++;
+  } else {
+    mSlowPresentCount = 0;
+  }
+
+  if (mSlowPresentCount > maxSlowPresentCount) {
+    gfxCriticalNoteOnce << "Video swapchain present is slow";
+    RenderThread::Get()->HandleWebRenderError(WebRenderError::VIDEO_OVERLAY);
+  }
 }
 
 DXGI_FORMAT DCSurfaceVideo::GetSwapChainFormat() {
@@ -1200,6 +1350,50 @@ static Maybe<DXGI_COLOR_SPACE_TYPE> GetSourceDXGIColorSpace(
     const gfx::YUVRangedColorSpace aYUVColorSpace) {
   const auto info = FromYUVRangedColorSpace(aYUVColorSpace);
   return GetSourceDXGIColorSpace(info.space, info.range);
+}
+
+static void SetNvidiaVideoSuperRes(ID3D11VideoContext* videoContext,
+                                   ID3D11VideoProcessor* videoProcessor,
+                                   bool enabled) {
+  LOG("SetNvidiaVideoSuperRes() enabled=%d", enabled);
+
+  // Undocumented NVIDIA driver constants
+  constexpr GUID nvGUID = {0xD43CE1B3,
+                           0x1F4B,
+                           0x48AC,
+                           {0xBA, 0xEE, 0xC3, 0xC2, 0x53, 0x75, 0xE6, 0xF7}};
+
+  constexpr UINT nvExtensionVersion = 0x1;
+  constexpr UINT nvExtensionMethodSuperResolution = 0x2;
+  struct {
+    UINT version;
+    UINT method;
+    UINT enable;
+  } streamExtensionInfo = {nvExtensionVersion, nvExtensionMethodSuperResolution,
+                           enabled ? 0 : 1u};
+
+  HRESULT hr;
+  hr = videoContext->VideoProcessorSetStreamExtension(
+      videoProcessor, 0, &nvGUID, sizeof(streamExtensionInfo),
+      &streamExtensionInfo);
+
+  // Ignore errors as could be unsupported
+  if (FAILED(hr)) {
+    LOG("SetNvidiaVideoSuperRes() error: %lx", hr);
+    return;
+  }
+}
+
+static UINT GetVendorId(ID3D11VideoDevice* const videoDevice) {
+  RefPtr<IDXGIDevice> dxgiDevice;
+  RefPtr<IDXGIAdapter> adapter;
+  videoDevice->QueryInterface((IDXGIDevice**)getter_AddRefs(dxgiDevice));
+  dxgiDevice->GetAdapter(getter_AddRefs(adapter));
+
+  DXGI_ADAPTER_DESC adapterDesc;
+  adapter->GetDesc(&adapterDesc);
+
+  return adapterDesc.VendorId;
 }
 
 bool DCSurfaceVideo::CallVideoProcessorBlt() {
@@ -1327,6 +1521,12 @@ bool DCSurfaceVideo::CallVideoProcessorBlt() {
                       << gfx::hexa(hr);
       return false;
     }
+  }
+
+  const UINT vendorId = GetVendorId(videoDevice);
+  if (vendorId == 0x10DE &&
+      StaticPrefs::gfx_webrender_super_resolution_nvidia_AtStartup()) {
+    SetNvidiaVideoSuperRes(videoContext, videoProcessor, true);
   }
 
   hr = videoContext->VideoProcessorBlt(videoProcessor, mOutputView, 0, 1,
@@ -1587,6 +1787,137 @@ void DCLayerTree::DestroyEGLSurface() {
     mEGLImage = EGL_NO_IMAGE;
   }
 }
+
+// -
+
+color::ColorProfileDesc DCLayerTree::QueryOutputColorProfile() {
+  // GPU process can't simply init gfxPlatform, (and we don't need most of it)
+  // but we do need gfxPlatform::GetCMSOutputProfile().
+  // So we steal what we need through the window:
+  const auto outputProfileData =
+      gfxWindowsPlatform::GetPlatformCMSOutputProfileData_Impl();
+
+  const auto qcmsProfile = qcms_profile_from_memory(
+      outputProfileData.Elements(), outputProfileData.Length());
+  const auto release = MakeScopeExit([&]() {
+    if (qcmsProfile) {
+      qcms_profile_release(qcmsProfile);
+    }
+  });
+
+  const bool print = gfxEnv::MOZ_GL_SPEW();
+
+  const auto ret = [&]() {
+    if (qcmsProfile) {
+      return color::ColorProfileDesc::From(*qcmsProfile);
+    }
+    if (print) {
+      printf_stderr(
+          "Missing or failed to load display color profile, defaulting to "
+          "sRGB.\n");
+    }
+    const auto MISSING_PROFILE_DEFAULT_SPACE = color::ColorspaceDesc{
+        color::Chromaticities::Srgb(),
+        color::PiecewiseGammaDesc::Srgb(),
+    };
+    return color::ColorProfileDesc::From(MISSING_PROFILE_DEFAULT_SPACE);
+  }();
+
+  if (print) {
+    const auto gammaGuess = color::GuessGamma(ret.linearFromTf.r);
+    printf_stderr(
+        "Display profile:\n"
+        "  Approx Gamma: %f\n"
+        "  XYZ-D65 Red  : %f, %f, %f\n"
+        "  XYZ-D65 Green: %f, %f, %f\n"
+        "  XYZ-D65 Blue : %f, %f, %f\n",
+        gammaGuess, ret.xyzd65FromLinearRgb.at(0, 0),
+        ret.xyzd65FromLinearRgb.at(0, 1), ret.xyzd65FromLinearRgb.at(0, 2),
+
+        ret.xyzd65FromLinearRgb.at(1, 0), ret.xyzd65FromLinearRgb.at(1, 1),
+        ret.xyzd65FromLinearRgb.at(1, 2),
+
+        ret.xyzd65FromLinearRgb.at(2, 0), ret.xyzd65FromLinearRgb.at(2, 1),
+        ret.xyzd65FromLinearRgb.at(2, 2));
+  }
+
+  return ret;
+}
+
+inline D2D1_MATRIX_5X4_F to_D2D1_MATRIX_5X4_F(const color::mat4& m) {
+  return D2D1_MATRIX_5X4_F{{{
+      m.rows[0][0],
+      m.rows[1][0],
+      m.rows[2][0],
+      m.rows[3][0],
+      m.rows[0][1],
+      m.rows[1][1],
+      m.rows[2][1],
+      m.rows[3][1],
+      m.rows[0][2],
+      m.rows[1][2],
+      m.rows[2][2],
+      m.rows[3][2],
+      m.rows[0][3],
+      m.rows[1][3],
+      m.rows[2][3],
+      m.rows[3][3],
+      0,
+      0,
+      0,
+      0,
+  }}};
+}
+
+ColorManagementChain ColorManagementChain::From(
+    IDCompositionDevice3& dcomp,
+    const color::ColorProfileConversionDesc& conv) {
+  auto ret = ColorManagementChain{};
+
+#if !defined(MOZ_MINGW_DCOMP_H_INCOMPLETE)
+
+  const auto Append = [&](const RefPtr<IDCompositionFilterEffect>& afterLast) {
+    if (ret.last) {
+      afterLast->SetInput(0, ret.last, 0);
+    }
+    ret.last = afterLast;
+  };
+
+  const auto MaybeAppendColorMatrix = [&](const color::mat4& m) {
+    RefPtr<IDCompositionColorMatrixEffect> e;
+    if (approx(m, color::mat4::Identity())) return e;
+    dcomp.CreateColorMatrixEffect(getter_AddRefs(e));
+    MOZ_ASSERT(e);
+    if (!e) return e;
+    e->SetMatrix(to_D2D1_MATRIX_5X4_F(m));
+    Append(e);
+    return e;
+  };
+  const auto MaybeAppendTableTransfer = [&](const color::RgbTransferTables& t) {
+    RefPtr<IDCompositionTableTransferEffect> e;
+    if (!t.r.size() && !t.g.size() && !t.b.size()) return e;
+    dcomp.CreateTableTransferEffect(getter_AddRefs(e));
+    MOZ_ASSERT(e);
+    if (!e) return e;
+    e->SetRedTable(t.r.data(), t.r.size());
+    e->SetGreenTable(t.g.data(), t.g.size());
+    e->SetBlueTable(t.b.data(), t.b.size());
+    Append(e);
+    return e;
+  };
+
+  ret.srcRgbFromSrcYuv = MaybeAppendColorMatrix(conv.srcRgbFromSrcYuv);
+  ret.srcLinearFromSrcTf = MaybeAppendTableTransfer(conv.srcLinearFromSrcTf);
+  ret.dstLinearFromSrcLinear =
+      MaybeAppendColorMatrix(color::mat4(conv.dstLinearFromSrcLinear));
+  ret.dstTfFromDstLinear = MaybeAppendTableTransfer(conv.dstTfFromDstLinear);
+
+#endif  // !defined(MOZ_MINGW_DCOMP_H_INCOMPLETE)
+
+  return ret;
+}
+
+ColorManagementChain::~ColorManagementChain() = default;
 
 }  // namespace wr
 }  // namespace mozilla

@@ -15,12 +15,14 @@
  */
 
 import path from 'path';
+
 import expect from 'expect';
+import {TimeoutError} from 'puppeteer';
+
 import {
   getTestState,
   setupTestBrowserHooks,
   setupTestPageAndContextHooks,
-  describeFailsFirefox,
 } from './mocha-utils.js';
 
 const FILE_TO_UPLOAD = path.join(__dirname, '/../assets/file-to-upload.txt');
@@ -29,7 +31,7 @@ describe('input tests', function () {
   setupTestBrowserHooks();
   setupTestPageAndContextHooks();
 
-  describeFailsFirefox('input', function () {
+  describe('input', function () {
     it('should upload the file', async () => {
       const {page, server} = getTestState();
 
@@ -76,7 +78,7 @@ describe('input tests', function () {
     });
   });
 
-  describeFailsFirefox('Page.waitForFileChooser', function () {
+  describe('Page.waitForFileChooser', function () {
     it('should work when file input is attached to DOM', async () => {
       const {page} = getTestState();
 
@@ -101,33 +103,33 @@ describe('input tests', function () {
       expect(chooser).toBeTruthy();
     });
     it('should respect timeout', async () => {
-      const {page, puppeteer} = getTestState();
+      const {page} = getTestState();
 
       let error!: Error;
       await page.waitForFileChooser({timeout: 1}).catch(error_ => {
         return (error = error_);
       });
-      expect(error).toBeInstanceOf(puppeteer.errors.TimeoutError);
+      expect(error).toBeInstanceOf(TimeoutError);
     });
     it('should respect default timeout when there is no custom timeout', async () => {
-      const {page, puppeteer} = getTestState();
+      const {page} = getTestState();
 
       page.setDefaultTimeout(1);
       let error!: Error;
       await page.waitForFileChooser().catch(error_ => {
         return (error = error_);
       });
-      expect(error).toBeInstanceOf(puppeteer.errors.TimeoutError);
+      expect(error).toBeInstanceOf(TimeoutError);
     });
     it('should prioritize exact timeout over default timeout', async () => {
-      const {page, puppeteer} = getTestState();
+      const {page} = getTestState();
 
       page.setDefaultTimeout(0);
       let error!: Error;
       await page.waitForFileChooser({timeout: 1}).catch(error_ => {
         return (error = error_);
       });
-      expect(error).toBeInstanceOf(puppeteer.errors.TimeoutError);
+      expect(error).toBeInstanceOf(TimeoutError);
     });
     it('should work with no timeout', async () => {
       const {page} = getTestState();
@@ -159,7 +161,7 @@ describe('input tests', function () {
     });
   });
 
-  describeFailsFirefox('FileChooser.accept', function () {
+  describe('FileChooser.accept', function () {
     it('should accept single file', async () => {
       const {page} = getTestState();
 
@@ -325,7 +327,7 @@ describe('input tests', function () {
     });
   });
 
-  describeFailsFirefox('FileChooser.cancel', function () {
+  describe('FileChooser.cancel', function () {
     it('should cancel dialog', async () => {
       const {page} = getTestState();
 
@@ -373,7 +375,7 @@ describe('input tests', function () {
     });
   });
 
-  describeFailsFirefox('FileChooser.isMultiple', () => {
+  describe('FileChooser.isMultiple', () => {
     it('should work for single file pick', async () => {
       const {page} = getTestState();
 

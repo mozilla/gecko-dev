@@ -263,7 +263,7 @@ impl ToCss for QueryFeatureExpression {
     where
         W: fmt::Write,
     {
-        dest.write_str("(")?;
+        dest.write_char('(')?;
 
         match self.kind {
             QueryFeatureExpressionKind::Empty => self.write_name(dest)?,
@@ -321,6 +321,20 @@ fn disabled_by_pref(feature: &Atom, context: &ParserContext) -> bool {
         if *feature == atom!("prefers-contrast") {
             return !context.in_ua_or_chrome_sheet() &&
                 !static_prefs::pref!("layout.css.prefers-contrast.enabled");
+        }
+
+        // prefers-reduced-transparency is always enabled in the ua and chrome. On
+        // the web it is hidden behind a preference (see Bug 1822176).
+        if *feature == atom!("prefers-reduced-transparency") {
+            return !context.in_ua_or_chrome_sheet() &&
+                !static_prefs::pref!("layout.css.prefers-reduced-transparency.enabled");
+        }
+
+        // inverted-colors is always enabled in the ua and chrome. On
+        // the web it is hidden behind a preferenc.
+        if *feature == atom!("inverted-colors") {
+            return !context.in_ua_or_chrome_sheet() &&
+                !static_prefs::pref!("layout.css.inverted-colors.enabled");
         }
     }
     false
@@ -663,8 +677,8 @@ impl QueryFeatureExpression {
 pub enum QueryExpressionValue {
     /// A length.
     Length(Length),
-    /// A (non-negative) integer.
-    Integer(u32),
+    /// An integer.
+    Integer(i32),
     /// A floating point value.
     Float(CSSFloat),
     /// A boolean value, specified as an integer (i.e., either 0 or 1).
@@ -705,12 +719,12 @@ impl QueryExpressionValue {
     ) -> Result<QueryExpressionValue, ParseError<'i>> {
         Ok(match for_feature.evaluator {
             Evaluator::OptionalLength(..) | Evaluator::Length(..) => {
-                let length = Length::parse_non_negative(context, input)?;
+                let length = Length::parse(context, input)?;
                 QueryExpressionValue::Length(length)
             },
             Evaluator::Integer(..) => {
-                let integer = Integer::parse_non_negative(context, input)?;
-                QueryExpressionValue::Integer(integer.value() as u32)
+                let integer = Integer::parse(context, input)?;
+                QueryExpressionValue::Integer(integer.value())
             },
             Evaluator::BoolInteger(..) => {
                 let integer = Integer::parse_non_negative(context, input)?;

@@ -635,9 +635,9 @@ extern JS_PUBLIC_API bool JS_IsNativeFunction(JSObject* funobj, JSNative call);
 /** Return whether the given function is a valid constructor. */
 extern JS_PUBLIC_API bool JS_IsConstructor(JSFunction* fun);
 
-extern JS_PUBLIC_API bool JS_IsFunctionBound(JSFunction* fun);
+extern JS_PUBLIC_API bool JS_ObjectIsBoundFunction(JSObject* obj);
 
-extern JS_PUBLIC_API JSObject* JS_GetBoundFunctionTarget(JSFunction* fun);
+extern JS_PUBLIC_API JSObject* JS_GetBoundFunctionTarget(JSObject* obj);
 
 extern JS_PUBLIC_API JSObject* JS_GetGlobalFromScript(JSScript* script);
 
@@ -829,6 +829,7 @@ extern JS_PUBLIC_API void JS_SetOffthreadIonCompilationEnabled(JSContext* cx,
   Register(FULL_DEBUG_CHECKS, "jit.full-debug-checks") \
   Register(JUMP_THRESHOLD, "jump-threshold") \
   Register(NATIVE_REGEXP_ENABLE, "native_regexp.enable") \
+  Register(JIT_HINTS_ENABLE, "jitHints.enable") \
   Register(SIMULATOR_ALWAYS_INTERRUPT, "simulator.always-interrupt")      \
   Register(SPECTRE_INDEX_MASKING, "spectre.index-masking") \
   Register(SPECTRE_OBJECT_MITIGATIONS, "spectre.object-mitigations") \

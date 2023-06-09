@@ -5,7 +5,7 @@
 #define _TRANSCEIVERIMPL_H_
 
 #include <string>
-#include "libwebrtcglue/MediaConduitControl.h"
+#include "mozilla/StateMirroring.h"
 #include "mozilla/RefPtr.h"
 #include "nsCOMPtr.h"
 #include "nsISerialEventTarget.h"
@@ -15,6 +15,7 @@
 #include "jsep/JsepSession.h"
 #include "transport/transportlayer.h"  // For TransportLayer::State
 #include "mozilla/dom/RTCRtpTransceiverBinding.h"
+#include "RTCStatsReport.h"
 
 class nsIPrincipal;
 
@@ -33,6 +34,7 @@ class RTCStatsIdGenerator;
 class WebrtcCallWrapper;
 class JsepTrackNegotiatedDetails;
 class PeerConnectionImpl;
+enum class PrincipalPrivacy : uint8_t;
 
 namespace dom {
 class RTCDtlsTransport;
@@ -50,9 +52,7 @@ class RTCRtpSender;
  * Audio/VideoConduit for feeding RTP/RTCP into webrtc.org for decoding, and
  * feeding audio/video frames into webrtc.org for encoding into RTP/RTCP.
  */
-class RTCRtpTransceiver : public nsISupports,
-                          public nsWrapperCache,
-                          public sigslot::has_slots<> {
+class RTCRtpTransceiver : public nsISupports, public nsWrapperCache {
  public:
   /**
    * |aSendTrack| might or might not be set.
@@ -71,6 +71,8 @@ class RTCRtpTransceiver : public nsISupports,
   nsresult UpdateTransport();
 
   nsresult UpdateConduit();
+
+  void UpdatePrincipalPrivacy(PrincipalPrivacy aPrivacy);
 
   void ResetSync();
 
@@ -100,27 +102,21 @@ class RTCRtpTransceiver : public nsISupports,
   void Stop(ErrorResult& aRv);
   void SetDirectionInternal(RTCRtpTransceiverDirection aDirection);
   bool HasBeenUsedToSend() const { return mHasBeenUsedToSend; }
-  void SetAddTrackMagic();
 
   bool CanSendDTMF() const;
   bool Stopped() const { return mStopped; }
-  void SyncToJsep() const;
-  void SyncFromJsep();
-  void SetJsepSession(JsepSession* aJsepSession);
+  void SyncToJsep(JsepSession& aSession) const;
+  void SyncFromJsep(const JsepSession& aSession);
   std::string GetMidAscii() const;
 
-  void UpdateDtlsTransportState(const std::string& aTransportId,
-                                TransportLayer::State aState);
   void SetDtlsTransport(RTCDtlsTransport* aDtlsTransport, bool aStable);
   void RollbackToStableDtlsTransport();
 
   std::string GetTransportId() const {
-    return mJsepTransceiver->mTransport.mTransportId;
+    return mJsepTransceiver.mTransport.mTransportId;
   }
 
-  RefPtr<JsepTransceiver> GetJsepTransceiver() const {
-    return mJsepTransceiver;
-  }
+  JsepTransceiver& GetJsepTransceiver() { return mJsepTransceiver; }
 
   bool IsVideo() const;
 
@@ -193,7 +189,8 @@ class RTCRtpTransceiver : public nsISupports,
   RefPtr<PeerConnectionImpl> mPc;
   RefPtr<MediaTransportHandler> mTransportHandler;
   const std::string mTransceiverId;
-  RefPtr<JsepTransceiver> mJsepTransceiver;
+  // Copy of latest from the JSEP engine.
+  JsepTransceiver mJsepTransceiver;
   nsCOMPtr<nsISerialEventTarget> mStsThread;
   // state for webrtc.org that is shared between all transceivers
   RefPtr<WebrtcCallWrapper> mCallWrapper;
@@ -215,7 +212,7 @@ class RTCRtpTransceiver : public nsISupports,
   bool mStopped = false;
   bool mShutdown = false;
   bool mHasBeenUsedToSend = false;
-  bool mPrivacyNeeded = false;
+  PrincipalPrivacy mPrincipalPrivacy;
   bool mShouldRemove = false;
   bool mHasTransport = false;
   bool mIsVideo;

@@ -184,19 +184,26 @@ impl SupportsCondition {
         }
     }
 
+    /// Parses an `@import` condition as per
+    /// https://drafts.csswg.org/css-cascade-5/#typedef-import-conditions
+    pub fn parse_for_import<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        input.expect_function_matching("supports")?;
+        input.parse_nested_block(parse_condition_or_declaration)
+    }
+
     /// <https://drafts.csswg.org/css-conditional-3/#supports_condition_in_parens>
     fn parse_in_parens<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        // Whitespace is normally taken care of in `Parser::next`,
-        // but we want to not include it in `pos` for the SupportsCondition::FutureSyntax cases.
-        while input.try_parse(Parser::expect_whitespace).is_ok() {}
+        // Whitespace is normally taken care of in `Parser::next`, but we want to not include it in
+        // `pos` for the SupportsCondition::FutureSyntax cases.
+        input.skip_whitespace();
         let pos = input.position();
         let location = input.current_source_location();
         match *input.next()? {
             Token::ParenthesisBlock => {
                 let nested = input
                     .try_parse(|input| input.parse_nested_block(parse_condition_or_declaration));
-                if nested.is_ok() {
-                    return nested;
+                if let Ok(nested) = nested {
+                    return Ok(Self::Parenthesized(Box::new(nested)));
                 }
             },
             Token::Function(ref ident) => {
@@ -265,7 +272,7 @@ pub fn parse_condition_or_declaration<'i, 't>(
     input: &mut Parser<'i, 't>,
 ) -> Result<SupportsCondition, ParseError<'i>> {
     if let Ok(condition) = input.try_parse(SupportsCondition::parse) {
-        Ok(SupportsCondition::Parenthesized(Box::new(condition)))
+        Ok(condition)
     } else {
         Declaration::parse(input).map(SupportsCondition::Declaration)
     }
@@ -282,9 +289,9 @@ impl ToCss for SupportsCondition {
                 cond.to_css(dest)
             },
             SupportsCondition::Parenthesized(ref cond) => {
-                dest.write_str("(")?;
+                dest.write_char('(')?;
                 cond.to_css(dest)?;
-                dest.write_str(")")
+                dest.write_char(')')
             },
             SupportsCondition::And(ref vec) => {
                 let mut first = true;
@@ -309,31 +316,29 @@ impl ToCss for SupportsCondition {
                 Ok(())
             },
             SupportsCondition::Declaration(ref decl) => {
-                dest.write_str("(")?;
-                decl.to_css(dest)?;
-                dest.write_str(")")
+                decl.to_css(dest)
             },
             SupportsCondition::Selector(ref selector) => {
                 dest.write_str("selector(")?;
                 selector.to_css(dest)?;
-                dest.write_str(")")
+                dest.write_char(')')
             },
             SupportsCondition::MozBoolPref(ref name) => {
                 dest.write_str("-moz-bool-pref(")?;
                 let name =
                     str::from_utf8(name.as_bytes()).expect("Should be parsed from valid UTF-8");
                 name.to_css(dest)?;
-                dest.write_str(")")
+                dest.write_char(')')
             },
             SupportsCondition::FontFormat(ref kw) => {
                 dest.write_str("font-format(")?;
                 kw.to_css(dest)?;
-                dest.write_str(")")
+                dest.write_char(')')
             },
             SupportsCondition::FontTech(ref flag) => {
                 dest.write_str("font-tech(")?;
                 flag.to_css(dest)?;
-                dest.write_str(")")
+                dest.write_char(')')
             },
             SupportsCondition::FutureSyntax(ref s) => dest.write_str(&s),
         }

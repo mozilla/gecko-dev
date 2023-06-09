@@ -150,6 +150,9 @@ class JS_PUBLIC_API TransitiveCompileOptions {
   // strict-mode.
   bool forceStrictMode_ = false;
 
+  // The Realm of this script is configured to resist fingerprinting.
+  bool shouldResistFingerprinting_ = false;
+
   // The context has specified that source pragmas should be parsed.
   bool sourcePragmas_ = true;
 
@@ -187,8 +190,6 @@ class JS_PUBLIC_API TransitiveCompileOptions {
   // Top-level await is enabled by default but is not supported for chrome
   // modules loaded with ChromeUtils.importModule.
   bool topLevelAwait = true;
-
-  bool useFdlibmForSinCosTan = false;
 
   bool importAssertions = false;
 
@@ -264,6 +265,9 @@ class JS_PUBLIC_API TransitiveCompileOptions {
   // Read-only accessors for non-POD options. The proper way to set these
   // depends on the derived type.
   bool mutedErrors() const { return mutedErrors_; }
+  bool shouldResistFingerprinting() const {
+    return shouldResistFingerprinting_;
+  }
   bool forceFullParse() const {
     return eagerDelazificationIsOneOf<
         DelazificationOption::ParseEverythingEagerly>();
@@ -302,12 +306,13 @@ class JS_PUBLIC_API TransitiveCompileOptions {
 #if defined(DEBUG) || defined(JS_JITSPEW)
   template <typename Printer>
   void dumpWith(Printer& print) const {
-#  define PrintFields_(Name) print(#  Name, Name)
+#  define PrintFields_(Name) print(#Name, Name)
     PrintFields_(filename_);
     PrintFields_(introducerFilename_);
     PrintFields_(sourceMapURL_);
     PrintFields_(mutedErrors_);
     PrintFields_(forceStrictMode_);
+    PrintFields_(shouldResistFingerprinting_);
     PrintFields_(sourcePragmas_);
     PrintFields_(skipFilenameValidation_);
     PrintFields_(hideScriptFromDebugger_);
@@ -322,7 +327,6 @@ class JS_PUBLIC_API TransitiveCompileOptions {
     PrintFields_(allowHTMLComments);
     PrintFields_(nonSyntacticScope);
     PrintFields_(topLevelAwait);
-    PrintFields_(useFdlibmForSinCosTan);
     PrintFields_(importAssertions);
     PrintFields_(borrowBuffer);
     PrintFields_(usePinnedBytecode);
@@ -381,7 +385,7 @@ class JS_PUBLIC_API ReadOnlyCompileOptions : public TransitiveCompileOptions {
   template <typename Printer>
   void dumpWith(Printer& print) const {
     this->TransitiveCompileOptions::dumpWith(print);
-#  define PrintFields_(Name) print(#  Name, Name)
+#  define PrintFields_(Name) print(#Name, Name)
     PrintFields_(lineno);
     PrintFields_(column);
     PrintFields_(scriptSourceOffset);

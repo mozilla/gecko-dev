@@ -10,6 +10,7 @@
 #include <shlwapi.h>
 #include <cderr.h>
 
+#include "mozilla/Assertions.h"
 #include "mozilla/BackgroundHangMonitor.h"
 #include "mozilla/ProfilerLabels.h"
 #include "mozilla/UniquePtr.h"
@@ -87,7 +88,8 @@ nsFilePicker::nsFilePicker() : mSelectedType(1) {}
 NS_IMPL_ISUPPORTS(nsFilePicker, nsIFilePicker)
 
 NS_IMETHODIMP nsFilePicker::Init(mozIDOMWindowProxy* aParent,
-                                 const nsAString& aTitle, int16_t aMode) {
+                                 const nsAString& aTitle,
+                                 nsIFilePicker::Mode aMode) {
   nsCOMPtr<nsPIDOMWindowOuter> window = do_QueryInterface(aParent);
   nsIDocShell* docShell = window ? window->GetDocShell() : nullptr;
   mLoadContext = do_QueryInterface(docShell);
@@ -235,6 +237,10 @@ bool nsFilePicker::ShowFilePicker(const nsString& aInitialDir) {
       // to trick users (bug 271732)
       if (IsDefaultPathLink()) fos |= FOS_NODEREFERENCELINKS;
       break;
+
+    case modeGetFolder:
+      MOZ_ASSERT(false, "file-picker opened in directory-picker mode");
+      return false;
   }
 
   HRESULT hr = dialog->SetOptions(fos);
@@ -265,7 +271,11 @@ bool nsFilePicker::ShowFilePicker(const nsString& aInitialDir) {
 
   // default extension to append to new files
   if (!mDefaultExtension.IsEmpty()) {
-    hr = dialog->SetDefaultExtension(mDefaultExtension.get());
+    // We don't want environment variables expanded in the extension either.
+    nsAutoString sanitizedExtension(mDefaultExtension);
+    sanitizedExtension.ReplaceChar('%', '_');
+
+    hr = dialog->SetDefaultExtension(sanitizedExtension.get());
     if (FAILED(hr)) {
       return false;
     }
@@ -364,7 +374,7 @@ bool nsFilePicker::ShowFilePicker(const nsString& aInitialDir) {
 ///////////////////////////////////////////////////////////////////////////////
 // nsIFilePicker impl.
 
-nsresult nsFilePicker::ShowW(int16_t* aReturnVal) {
+nsresult nsFilePicker::ShowW(nsIFilePicker::ResultCode* aReturnVal) {
   NS_ENSURE_ARG_POINTER(aReturnVal);
 
   *aReturnVal = returnCancel;
@@ -398,7 +408,7 @@ nsresult nsFilePicker::ShowW(int16_t* aReturnVal) {
 
   RememberLastUsedDirectory();
 
-  int16_t retValue = returnOK;
+  nsIFilePicker::ResultCode retValue = returnOK;
   if (mMode == modeSave) {
     // Windows does not return resultReplace, we must check if file
     // already exists.
@@ -415,7 +425,9 @@ nsresult nsFilePicker::ShowW(int16_t* aReturnVal) {
   return NS_OK;
 }
 
-nsresult nsFilePicker::Show(int16_t* aReturnVal) { return ShowW(aReturnVal); }
+nsresult nsFilePicker::Show(nsIFilePicker::ResultCode* aReturnVal) {
+  return ShowW(aReturnVal);
+}
 
 NS_IMETHODIMP
 nsFilePicker::GetFile(nsIFile** aFile) {
@@ -524,7 +536,9 @@ void nsFilePicker::InitNative(nsIWidget* aParent, const nsAString& aTitle) {
 
 NS_IMETHODIMP
 nsFilePicker::AppendFilter(const nsAString& aTitle, const nsAString& aFilter) {
-  mComFilterList.Append(aTitle, aFilter);
+  nsAutoString sanitizedFilter(aFilter);
+  sanitizedFilter.ReplaceChar('%', '_');
+  mComFilterList.Append(aTitle, sanitizedFilter);
   return NS_OK;
 }
 

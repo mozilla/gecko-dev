@@ -27,9 +27,9 @@ Http3WebTransportSession::~Http3WebTransportSession() = default;
 
 nsresult Http3WebTransportSession::ReadSegments() {
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
-
-  if (mSendState == WRITING_DATAGRAM) {
-    mSendState = WAITING_DATAGRAM;
+  LOG(("Http3WebTransportSession::ReadSegments %p mSendState=%d mRecvState=%d",
+       this, mSendState, mRecvState));
+  if (mSendState == PROCESSING_DATAGRAM) {
     return NS_OK;
   }
 
@@ -102,7 +102,7 @@ nsresult Http3WebTransportSession::ReadSegments() {
     } else if (!transactionBytes) {
       mTransaction->OnTransportStatus(nullptr, NS_NET_STATUS_WAITING_FOR, 0);
 
-      mSendState = WAITING_DATAGRAM;
+      mSendState = PROCESSING_DATAGRAM;
       rv = NS_OK;
       again = false;
     }
@@ -194,7 +194,7 @@ nsresult Http3WebTransportSession::OnReadSegment(const char* buf,
       // Successfully activated.
       mTransaction->OnTransportStatus(nullptr, NS_NET_STATUS_SENDING_TO, 0);
 
-      mSendState = WAITING_DATAGRAM;
+      mSendState = PROCESSING_DATAGRAM;
       break;
     default:
       MOZ_ASSERT(false, "We are done sending this request!");
@@ -319,6 +319,7 @@ nsresult Http3WebTransportSession::OnWriteSegment(char* buf, uint32_t count,
 }
 
 void Http3WebTransportSession::Close(nsresult aResult) {
+  LOG(("Http3WebTransportSession::Close %p", this));
   if (mListener) {
     mListener->OnSessionClosed(0, ""_ns);
     mListener = nullptr;
@@ -328,25 +329,36 @@ void Http3WebTransportSession::Close(nsresult aResult) {
     mTransaction = nullptr;
   }
   mRecvState = RECV_DONE;
+  mSendState = SEND_DONE;
+
+  mSession->CloseWebTransportConn();
+  mSession = nullptr;
 }
 
 void Http3WebTransportSession::OnSessionClosed(uint32_t aStatus,
-                                               nsACString& aReason) {
-  MOZ_ASSERT(!mTransaction);
+                                               const nsACString& aReason) {
+  if (mTransaction) {
+    mTransaction->Close(NS_BASE_STREAM_CLOSED);
+    mTransaction = nullptr;
+  }
   if (mListener) {
     mListener->OnSessionClosed(aStatus, aReason);
     mListener = nullptr;
   }
   mRecvState = RECV_DONE;
+  mSendState = SEND_DONE;
+
+  mSession->CloseWebTransportConn();
 }
 
 void Http3WebTransportSession::CloseSession(uint32_t aStatus,
-                                            nsACString& aReason) {
+                                            const nsACString& aReason) {
   if ((mRecvState != CLOSE_PENDING) && (mRecvState != RECV_DONE)) {
     mStatus = aStatus;
     mReason = aReason;
     mSession->ConnectSlowConsumer(this);
     mRecvState = CLOSE_PENDING;
+    mSendState = SEND_DONE;
   }
   mListener = nullptr;
 }
@@ -441,11 +453,10 @@ void Http3WebTransportSession::SendDatagram(nsTArray<uint8_t>&& aData,
                                             uint64_t aTrackingId) {
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
   LOG(("Http3WebTransportSession::SendDatagram this=%p", this));
-  if (mRecvState != ACTIVE) {
+  if (mSendState != PROCESSING_DATAGRAM) {
     return;
   }
 
-  mSendState = WRITING_DATAGRAM;
   mSession->SendDatagram(this, aData, aTrackingId);
   mSession->StreamHasDataToWrite(this);
 }
@@ -474,13 +485,32 @@ void Http3WebTransportSession::OnOutgoingDatagramOutCome(
     uint64_t aId, WebTransportSessionEventListener::DatagramOutcome aOutCome) {
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
   LOG(("Http3WebTransportSession::OnOutgoingDatagramOutCome this=%p id=%" PRIx64
-       ", outCome=%d",
-       this, aId, static_cast<uint32_t>(aOutCome)));
+       ", outCome=%d mRecvState=%d",
+       this, aId, static_cast<uint32_t>(aOutCome), mRecvState));
   if (mRecvState != ACTIVE || !mListener || !aId) {
     return;
   }
 
   mListener->OnOutgoingDatagramOutCome(aId, aOutCome);
+}
+
+void Http3WebTransportSession::OnStreamStopSending(uint64_t aId,
+                                                   nsresult aError) {
+  LOG(("OnStreamStopSending id:%" PRId64, aId));
+  if (!mListener) {
+    return;
+  }
+
+  mListener->OnStopSending(aId, aError);
+}
+
+void Http3WebTransportSession::OnStreamReset(uint64_t aId, nsresult aError) {
+  LOG(("OnStreamReset id:%" PRId64, aId));
+  if (!mListener) {
+    return;
+  }
+
+  mListener->OnResetReceived(aId, aError);
 }
 
 }  // namespace mozilla::net

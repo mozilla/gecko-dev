@@ -26,6 +26,7 @@
 #include "vm/GlobalObject.h"
 #include "vm/JSContext.h"
 #include "vm/JSObject.h"
+#include "vm/JSScript.h"
 #include "vm/PropMap.h"
 #include "vm/Scope.h"
 #include "vm/Shape.h"
@@ -160,17 +161,26 @@ Node::Node(HandleValue value) {
   }
 }
 
+static bool IsSafeToExposeToJS(JSObject* obj) {
+  if (obj->is<js::EnvironmentObject>() || obj->is<js::ScriptSourceObject>() ||
+      obj->is<js::DebugEnvironmentProxy>()) {
+    return false;
+  }
+  if (obj->is<JSFunction>() && js::IsInternalFunctionObject(*obj)) {
+    return false;
+  }
+  return true;
+}
+
 Value Node::exposeToJS() const {
   Value v;
 
   if (is<JSObject>()) {
-    JSObject& obj = *as<JSObject>();
-    if (obj.is<js::EnvironmentObject>()) {
-      v.setUndefined();
-    } else if (obj.is<JSFunction>() && js::IsInternalFunctionObject(obj)) {
-      v.setUndefined();
+    JSObject* obj = as<JSObject>();
+    if (IsSafeToExposeToJS(obj)) {
+      v.setObject(*obj);
     } else {
-      v.setObject(obj);
+      v.setUndefined();
     }
   } else if (is<JSString>()) {
     v.setString(as<JSString>());

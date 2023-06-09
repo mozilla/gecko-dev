@@ -328,7 +328,7 @@ var gEditItemOverlay = {
     }
 
     if (showOrCollapse("keywordRow", isBookmark, "keyword")) {
-      await this._initKeywordField().catch(Cu.reportError);
+      await this._initKeywordField().catch(console.error);
       // paneInfo can be null if paneInfo is uninitialized while
       // the process above is awaiting initialization
       if (instance != this._instance || this._paneInfo == null) {
@@ -341,7 +341,7 @@ var gEditItemOverlay = {
     if (showOrCollapse("tagsRow", isURI || bulkTagging, "tags")) {
       this._initTagsField();
     } else if (!this._element("tagsSelectorRow").hidden) {
-      this.toggleTagsSelector().catch(Cu.reportError);
+      this.toggleTagsSelector().catch(console.error);
     }
 
     // Folder picker.
@@ -349,7 +349,7 @@ var gEditItemOverlay = {
     // not cheap (we don't always have the parent), and there's no use case for
     // this (it's only the Star UI that shows the folderPicker)
     if (showOrCollapse("folderRow", isItem, "folderPicker")) {
-      await this._initFolderMenuList(parentGuid).catch(Cu.reportError);
+      await this._initFolderMenuList(parentGuid).catch(console.error);
       if (instance != this._instance || this._paneInfo == null) {
         return;
       }
@@ -357,22 +357,20 @@ var gEditItemOverlay = {
 
     // Selection count.
     if (showOrCollapse("selectionCount", bulkTagging)) {
-      this._element(
-        "itemsCountText"
-      ).value = PlacesUIUtils.getPluralString(
-        "detailsPane.itemsCountLabel",
-        uris.length,
-        [uris.length]
+      document.l10n.setAttributes(
+        this._element("itemsCountText"),
+        "places-details-pane-items-count",
+        { count: uris.length }
       );
     }
 
     // Observe changes.
     if (!this._observersAdded) {
-      PlacesUtils.bookmarks.addObserver(this);
       this.handlePlacesEvents = this.handlePlacesEvents.bind(this);
       PlacesUtils.observers.addListener(
         [
           "bookmark-moved",
+          "bookmark-keyword-changed",
           "bookmark-tags-changed",
           "bookmark-title-changed",
           "bookmark-url-changed",
@@ -560,8 +558,6 @@ var gEditItemOverlay = {
     }
   },
 
-  QueryInterface: ChromeUtils.generateQI(["nsINavBookmarkObserver"]),
-
   _element(aID) {
     return document.getElementById("editBMPanel_" + aID);
   },
@@ -577,15 +573,15 @@ var gEditItemOverlay = {
       // Hide the tag selector if it was previously visible.
       var tagsSelectorRow = this._element("tagsSelectorRow");
       if (!tagsSelectorRow.hidden) {
-        this.toggleTagsSelector().catch(Cu.reportError);
+        this.toggleTagsSelector().catch(console.error);
       }
     }
 
     if (this._observersAdded) {
-      PlacesUtils.bookmarks.removeObserver(this);
       PlacesUtils.observers.removeListener(
         [
           "bookmark-moved",
+          "bookmark-keyword-changed",
           "bookmark-tags-changed",
           "bookmark-title-changed",
           "bookmark-url-changed",
@@ -626,7 +622,7 @@ var gEditItemOverlay = {
         if (anyChanges && this._paneInfo) {
           this._mayUpdateFirstEditField("tagsField");
         }
-      }, Cu.reportError);
+      }, console.error);
     }
   },
 
@@ -679,14 +675,14 @@ var gEditItemOverlay = {
           tags: removedTags,
         })
           .transact()
-          .catch(Cu.reportError);
+          .catch(console.error);
         this.transactionPromises.push(promise);
         promises.push(promise);
       }
       if (newTags.length) {
         let promise = PlacesTransactions.Tag({ urls: aURIs, tags: newTags })
           .transact()
-          .catch(Cu.reportError);
+          .catch(console.error);
         this.transactionPromises.push(promise);
         promises.push(promise);
       }
@@ -778,7 +774,7 @@ var gEditItemOverlay = {
         this._paneInfo.title = tag;
       }
       let promise = PlacesTransactions.RenameTag({ oldTag, tag }).transact();
-      this.transactionPromises.push(promise.catch(Cu.reportError));
+      this.transactionPromises.push(promise.catch(console.error));
       await promise;
       return;
     }
@@ -788,7 +784,7 @@ var gEditItemOverlay = {
       guid: this._paneInfo.itemGuid,
       title: this._namePicker.value,
     }).transact();
-    this.transactionPromises.push(promise.catch(Cu.reportError));
+    this.transactionPromises.push(promise.catch(console.error));
     await promise;
   },
 
@@ -814,7 +810,7 @@ var gEditItemOverlay = {
     this.transactionPromises.push(
       PlacesTransactions.EditUrl({ guid, url: newURI })
         .transact()
-        .catch(Cu.reportError)
+        .catch(console.error)
     );
   },
 
@@ -830,7 +826,7 @@ var gEditItemOverlay = {
     this.transactionPromises.push(
       PlacesTransactions.EditKeyword({ guid, keyword, postData, oldKeyword })
         .transact()
-        .catch(Cu.reportError)
+        .catch(console.error)
     );
   },
 
@@ -941,7 +937,7 @@ var gEditItemOverlay = {
         guid: this._paneInfo.itemGuid,
         newParentGuid: containerGuid,
       }).transact();
-      this.transactionPromises.push(promise.catch(Cu.reportError));
+      this.transactionPromises.push(promise.catch(console.error));
       await promise;
 
       // Auto-show the bookmarks toolbar when adding / moving an item there.
@@ -1122,7 +1118,7 @@ var gEditItemOverlay = {
       title,
       index: await ip.getIndex(),
     }).transact();
-    this.transactionPromises.push(promise.catch(Cu.reportError));
+    this.transactionPromises.push(promise.catch(console.error));
     let guid = await promise;
 
     this._folderTree.focus();
@@ -1189,9 +1185,18 @@ var gEditItemOverlay = {
             bm.title
           );
           break;
+        case "bookmark-keyword-changed":
+          if (!this._paneInfo.isItem || this._paneInfo.itemId != event.id) {
+            return;
+          }
+
+          if (this._paneInfo.visibleRows.has("keywordRow")) {
+            this._initKeywordField(event.keyword).catch(console.error);
+          }
+          break;
         case "bookmark-tags-changed":
           if (this._paneInfo.visibleRows.has("tagsRow")) {
-            this._onTagsChange(event.guid).catch(Cu.reportError);
+            this._onTagsChange(event.guid).catch(console.error);
           }
           break;
         case "bookmark-title-changed":
@@ -1214,7 +1219,7 @@ var gEditItemOverlay = {
 
             if (this._paneInfo.visibleRows.has("tagsRow")) {
               delete this._paneInfo._cachedCommonTags;
-              this._onTagsChange(event.guid, newURI).catch(Cu.reportError);
+              this._onTagsChange(event.guid, newURI).catch(console.error);
             }
           }
           break;
@@ -1317,30 +1322,6 @@ var gEditItemOverlay = {
           break;
         }
       }
-    }
-  },
-
-  // nsINavBookmarkObserver
-  onItemChanged(
-    aItemId,
-    aProperty,
-    aIsAnnotationProperty,
-    aValue,
-    aLastModified,
-    aItemType,
-    aParentId,
-    aGuid
-  ) {
-    if (!this._paneInfo.isItem || this._paneInfo.itemId != aItemId) {
-      return;
-    }
-
-    switch (aProperty) {
-      case "keyword":
-        if (this._paneInfo.visibleRows.has("keywordRow")) {
-          this._initKeywordField(aValue).catch(Cu.reportError);
-        }
-        break;
     }
   },
 

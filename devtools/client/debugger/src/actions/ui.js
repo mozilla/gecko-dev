@@ -20,6 +20,7 @@ import {
 import { searchContents } from "./file-search";
 import { copyToTheClipboard } from "../utils/clipboard";
 import { isFulfilled } from "../utils/async-value";
+import { primaryPaneTabs } from "../constants";
 
 export function setPrimaryPaneTab(tabName) {
   return { type: "SET_PRIMARY_PANE_TAB", tabName };
@@ -41,6 +42,18 @@ export function setActiveSearch(activeSearch) {
 
     if (getQuickOpenEnabled(getState())) {
       dispatch({ type: "CLOSE_QUICK_OPEN" });
+    }
+
+    // Open start panel if it was collapsed so the project search UI is visible
+    if (
+      activeSearch === primaryPaneTabs.PROJECT_SEARCH &&
+      getPaneCollapse(getState(), "start")
+    ) {
+      dispatch({
+        type: "TOGGLE_PANE",
+        position: "start",
+        paneCollapsed: false,
+      });
     }
 
     dispatch({
@@ -116,7 +129,7 @@ export function showSource(cx, sourceId) {
 
     dispatch(setPrimaryPaneTab("sources"));
 
-    dispatch(selectSource(cx, source.id));
+    dispatch(selectSource(cx, source));
   };
 }
 
@@ -136,8 +149,15 @@ export function togglePaneCollapse(position, paneCollapsed) {
 }
 
 /**
- * @memberof actions/sources
- * @static
+ * Highlight one or many lines in CodeMirror for a given source.
+ *
+ * @param {Object} location
+ * @param {String} location.sourceId
+ *        The precise source to highlight.
+ * @param {Number} location.start
+ *        The 1-based index of first line to highlight.
+ * @param {Number} location.end
+ *        The 1-based index of last line to highlight.
  */
 export function highlightLineRange(location) {
   return {
@@ -153,10 +173,6 @@ export function flashLineRange(location) {
   };
 }
 
-/**
- * @memberof actions/sources
- * @static
- */
 export function clearHighlightLineRange() {
   return {
     type: "CLEAR_HIGHLIGHT_LINES",
@@ -225,11 +241,24 @@ export function setOrientation(orientation) {
   return { type: "SET_ORIENTATION", orientation };
 }
 
+export function setSearchOptions(searchKey, searchOptions) {
+  return { type: "SET_SEARCH_OPTIONS", searchKey, searchOptions };
+}
+
 export function copyToClipboard(location) {
   return ({ dispatch, getState }) => {
     const content = getSourceContent(getState(), location);
     if (content && isFulfilled(content) && content.value.type === "text") {
       copyToTheClipboard(content.value.value);
     }
+  };
+}
+
+export function setJavascriptTracingLogMethod(value) {
+  return ({ dispatch, getState }) => {
+    dispatch({
+      type: "SET_JAVASCRIPT_TRACING_LOG_METHOD",
+      value,
+    });
   };
 }

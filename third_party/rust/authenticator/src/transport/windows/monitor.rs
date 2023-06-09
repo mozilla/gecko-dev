@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::transport::device_selector::DeviceSelectorEvent;
+use crate::transport::device_selector::{DeviceID, DeviceSelectorEvent};
 use crate::transport::platform::winapi::DeviceInfoSet;
 use runloop::RunLoop;
 use std::collections::{HashMap, HashSet};
@@ -44,27 +44,37 @@ where
     }
 
     pub fn run(&mut self, alive: &dyn Fn() -> bool) -> Result<(), Box<dyn Error>> {
-        let mut stored = HashSet::new();
+        let mut current = HashSet::new();
+        let mut previous;
 
         while alive() {
             let device_info_set = DeviceInfoSet::new()?;
-            let devices = HashSet::from_iter(device_info_set.devices());
+            previous = current;
+            current = HashSet::from_iter(device_info_set.devices());
 
             // Remove devices that are gone.
-            for path in stored.difference(&devices) {
+            for path in previous.difference(&current) {
                 self.remove_device(path);
             }
 
-            let paths: Vec<_> = devices.difference(&stored).cloned().collect();
-            self.selector_sender
-                .send(DeviceSelectorEvent::DevicesAdded(paths.clone()))?;
-            // Add devices that were plugged in.
-            for path in paths {
-                self.add_device(&path);
+            let added: Vec<String> = current.difference(&previous).cloned().collect();
+
+            // We have to notify additions in batches to avoid
+            // arbitrarily selecting the first added device.
+            if !added.is_empty()
+                && self
+                    .selector_sender
+                    .send(DeviceSelectorEvent::DevicesAdded(added.clone()))
+                    .is_err()
+            {
+                // Send only fails if the receiver hung up. We should exit the loop.
+                break;
             }
 
-            // Remember the new set.
-            stored = devices;
+            // Add devices that were plugged in.
+            for path in added {
+                self.add_device(&path);
+            }
 
             // Wait a little before looking for devices again.
             thread::sleep(Duration::from_millis(100));
@@ -76,7 +86,7 @@ where
         Ok(())
     }
 
-    fn add_device(&mut self, path: &String) {
+    fn add_device(&mut self, path: &DeviceID) {
         let f = self.new_device_cb.clone();
         let path = path.clone();
         let key = path.clone();
@@ -95,7 +105,7 @@ where
         }
     }
 
-    fn remove_device(&mut self, path: &String) {
+    fn remove_device(&mut self, path: &DeviceID) {
         let _ = self
             .selector_sender
             .send(DeviceSelectorEvent::DeviceRemoved(path.clone()));

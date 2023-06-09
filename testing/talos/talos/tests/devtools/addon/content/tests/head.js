@@ -93,25 +93,54 @@ async function waitForPendingPaints(toolbox) {
 }
 exports.waitForPendingPaints = waitForPendingPaints;
 
+/*
+ * Waits until the element targeted by the provided selector
+ * becomes available
+ */
+exports.waitForDOMElement = async function(target, selector) {
+  await waitForDOMPredicate(
+    target,
+    () => target.querySelector(selector) !== null
+  );
+};
+
+/*
+ * Wait for the predicate condition to be a truthy
+ */
+function waitForDOMPredicate(
+  target,
+  predicate,
+  options = { attributes: true, childList: true, subtree: true }
+) {
+  return new Promise(resolve => {
+    const observer = new target.ownerGlobal.MutationObserver(mutations => {
+      for (const mutation of mutations) {
+        if (predicate(mutation.target)) {
+          resolve();
+          observer.disconnect();
+          break;
+        }
+      }
+    });
+
+    observer.observe(target, options);
+  });
+}
+
+exports.waitForDOMPredicate = waitForDOMPredicate;
+
 const openToolbox = async function(tool = "webconsole", onLoad) {
   dump(`Open toolbox on '${tool}'\n`);
   let tab = getActiveTab();
 
   dump(`Open toolbox - Call showToolboxForTab\n`);
-  let onToolboxCreated = gDevTools.once("toolbox-created");
-  let showPromise = gDevTools.showToolboxForTab(tab, { toolId: tool });
-
-  dump(`Open toolbox - Wait for "toolbox-created"\n`);
-  let toolbox = await onToolboxCreated;
+  const toolbox = await gDevTools.showToolboxForTab(tab, { toolId: tool });
 
   if (typeof onLoad == "function") {
     dump(`Open toolbox - Wait for custom onLoad callback\n`);
     let panel = await toolbox.getPanelWhenReady(tool);
     await onLoad(toolbox, panel);
   }
-
-  dump(`Open toolbox - Wait for showToolbox to resolve\n`);
-  await showPromise;
 
   return toolbox;
 };

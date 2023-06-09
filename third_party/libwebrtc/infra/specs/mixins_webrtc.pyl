@@ -35,10 +35,18 @@
       }
     }
   },
-  'ios-device-15.3': {
+  'hammerhead': {
     'swarming': {
       'dimensions': {
-        'os': 'iOS-15.3',
+        'device_type': 'hammerhead',
+        'os': 'Android'
+      }
+    }
+  },
+  'ios-device-15.7': {
+    'swarming': {
+      'dimensions': {
+        'os': 'iOS-15.7',
         'pool': 'chrome.tests',
       },
     },
@@ -107,39 +115,6 @@
       },
     }
   },
-  'quick-perf-tests': {
-    '$mixin_append': {
-      'args': [
-        '--force_fieldtrials=WebRTC-QuickPerfTest/Enabled/',
-        '--nologs',
-      ],
-    }
-  },
-  'linux': {
-    'swarming': {
-      'dimensions': {
-        'os': 'Ubuntu'
-      }
-    }
-  },
-  'logdog-butler': {
-    'swarming': {
-      'cipd_packages': [
-        {
-          "cipd_package": 'infra/tools/luci/logdog/butler/${platform}',
-          'location': 'bin',
-          'revision': 'git_revision:ff387eadf445b24c935f1cf7d6ddd279f8a6b04c',
-        },
-      ],
-    },
-  },
-  'mac': {
-    'swarming': {
-      'dimensions': {
-        'os': 'Mac',
-      }
-    }
-  },
   'mac-m1-cpu': {
     'swarming': {
       'dimensions': {
@@ -154,16 +129,25 @@
       }
     }
   },
-  'mac11_or_mac12': {
+  'marshmallow_generic': {
     'swarming': {
       'dimensions': {
-        'os': 'Mac-11|Mac-12'
+        'device_os': 'M'
       }
     }
   },
+  'perf-fuchsia-perf-tests': {
+    'merge': {
+      'script': '//tools_webrtc/perf/process_perf_results.py',
+      'args': ['--test-suite', 'fuchsia_perf_tests'],
+    },
+    '$mixin_append': {
+      'args': ['--nologs'],
+    },
+  },
   'perf-low-bandwidth-audio-perf-test': {
     'merge': {
-      'script': '//tools_webrtc/perf/process_perf_results_py2.py',
+      'script': '//tools_webrtc/perf/process_perf_results.py',
       'args': ['--test-suite', 'low_bandwidth_audio_perf_test'],
     },
   },
@@ -182,16 +166,42 @@
       'idempotent': False,
       'dimensions': {
         'pool': 'WebRTC-perf',
+        'gce': '0',
+      },
+    },
+  },
+  'perf-pool-vm': {
+    'swarming': {
+      'idempotent': False,
+      'dimensions': {
+        'pool': 'WebRTC-perf',
+        'gce': '1',
       },
     },
   },
   'perf-webrtc-perf-tests': {
     'merge': {
-      'script': '//tools_webrtc/perf/process_perf_results_py2.py',
+      'script': '//tools_webrtc/perf/process_perf_results.py',
       'args': ['--test-suite', 'webrtc_perf_tests'],
     },
     '$mixin_append': {
       'args': ['--nologs']
+    }
+  },
+  'quick-perf-tests': {
+    '$mixin_append': {
+      'args': [
+        '--force_fieldtrials=WebRTC-QuickPerfTest/Enabled/',
+        '--nologs',
+      ],
+    }
+  },
+  'redfin': {
+    'swarming': {
+      'dimensions': {
+        'device_type': 'redfin',
+        'os': 'Android'
+      }
     }
   },
   'resultdb-gtest-json-format': {
@@ -210,6 +220,14 @@
       'result_format': 'json'
     }
   },
+  'shamu': {
+    'swarming': {
+      'dimensions': {
+        'device_type': 'shamu',
+        'os': 'Android',
+      },
+    },
+  },
   'shards-2': {
     'swarming': {
       'shards': 2,
@@ -223,14 +241,6 @@
   'shards-6': {
     'swarming': {
       'shards': 6,
-    },
-  },
-  'shamu': {
-    'swarming': {
-      'dimensions': {
-        'device_type': 'shamu',
-        'os': 'Android',
-      },
     },
   },
   'timeout-2h': {
@@ -249,15 +259,29 @@
     '$mixin_append': {
       'args': [
         '--xctest',
-        '--undefok=enable-run-ios-unittests-with-xctest',
       ],
     },
   },
-  'win': {
-    'swarming': {
-      'dimensions': {
-        'os': 'Windows'
+  'xcode_12d4e': {
+    '$mixin_append': {
+      'args': ['--xcode-build-version', '12d4e'],
+      'swarming': {
+        'named_caches': [{
+          'name': 'xcode_ios_12d4e',
+          'path': 'Xcode.app'
+        }]
       }
     }
-  }
+  },
+  'xcode_13_main': {
+    '$mixin_append': {
+      'args': ['--xcode-build-version', '13c100']
+    },
+    'swarming': {
+      'named_caches': [{
+        'name': 'xcode_ios_13c100',
+        'path': 'Xcode.app'
+      }]
+    }
+  },
 }

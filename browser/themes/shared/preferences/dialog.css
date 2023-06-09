@@ -18,7 +18,7 @@ dialog {
 
 .contentPane,
 dialog::part(content-box) {
-  -moz-box-flex: 1;
+  flex: 1;
   /* This allows the focus ring to display fully when scrolling is enabled. */
   padding: 4px;
 }
@@ -30,7 +30,7 @@ dialog.doScroll::part(content-box) {
 }
 
 tree:not(#rejectsTree) {
-  height: 15em;
+  min-height: 15em;
 }
 
 .actionButtons {

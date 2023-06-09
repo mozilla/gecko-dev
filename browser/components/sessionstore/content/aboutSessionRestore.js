@@ -30,14 +30,6 @@ window.onload = function() {
     toggleTabs.onclick = toggleHiddenTabs;
   }
 
-  // pages used by this script may have a link that needs to be updated to
-  // the in-product link.
-  let anchor = document.getElementById("linkMoreTroubleshooting");
-  if (anchor) {
-    let baseURL = Services.urlFormatter.formatURLPref("app.support.baseURL");
-    anchor.setAttribute("href", baseURL + "troubleshooting");
-  }
-
   // wire up click handlers for the radio buttons if they exist.
   for (let radioId of ["radioRestoreAll", "radioRestoreChoose"]) {
     let button = document.getElementById(radioId);
@@ -210,7 +202,7 @@ function restoreSession() {
 
 function startNewSession() {
   if (Services.prefs.getIntPref("browser.startup.page") == 0) {
-    getBrowserWindow().gBrowser.loadURI("about:blank", {
+    getBrowserWindow().gBrowser.loadURI(Services.io.newURI("about:blank"), {
       triggeringPrincipal: Services.scriptSecurityManager.createNullPrincipal(
         {}
       ),

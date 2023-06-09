@@ -26,15 +26,6 @@ SVGTransformableElement::Transform() {
 //----------------------------------------------------------------------
 // nsIContent methods
 
-NS_IMETHODIMP_(bool)
-SVGTransformableElement::IsAttributeMapped(const nsAtom* name) const {
-  static const MappedAttributeEntry* const map[] = {sColorMap, sFillStrokeMap,
-                                                    sGraphicsMap};
-
-  return FindAttributeDependence(name, map) ||
-         SVGElement::IsAttributeMapped(name);
-}
-
 nsChangeHint SVGTransformableElement::GetAttributeChangeHint(
     const nsAtom* aAttribute, int32_t aModType) const {
   nsChangeHint retval =
@@ -44,7 +35,7 @@ nsChangeHint SVGTransformableElement::GetAttributeChangeHint(
     nsIFrame* frame =
         const_cast<SVGTransformableElement*>(this)->GetPrimaryFrame();
     retval |= nsChangeHint_InvalidateRenderingObservers;
-    if (!frame || (frame->GetStateBits() & NS_FRAME_IS_NONDISPLAY)) {
+    if (!frame || frame->HasAnyStateBits(NS_FRAME_IS_NONDISPLAY)) {
       return retval;
     }
 

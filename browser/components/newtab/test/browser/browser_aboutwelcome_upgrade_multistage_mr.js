@@ -3,8 +3,14 @@
 const { OnboardingMessageProvider } = ChromeUtils.import(
   "resource://activity-stream/lib/OnboardingMessageProvider.jsm"
 );
-const { SpecialMessageActions } = ChromeUtils.import(
-  "resource://messaging-system/lib/SpecialMessageActions.jsm"
+const { SpecialMessageActions } = ChromeUtils.importESModule(
+  "resource://messaging-system/lib/SpecialMessageActions.sys.mjs"
+);
+const {
+  assertFirefoxViewTabSelected,
+  closeFirefoxViewTab,
+} = ChromeUtils.importESModule(
+  "resource://testing-common/FirefoxViewTestUtils.sys.mjs"
 );
 
 const HOMEPAGE_PREF = "browser.startup.homepage";
@@ -13,7 +19,7 @@ const PINPBM_DISABLED_PREF = "browser.startup.upgradeDialog.pinPBM.disabled";
 
 // A bunch of the helper functions here are variants of the helper functions in
 // browser_aboutwelcome_multistage_mr.js, because the onboarding
-// experimence runs in the parent process rather than elsewhere.
+// experience runs in the parent process rather than elsewhere.
 // If these start to get used in more than just the two files, it may become
 // worth refactoring them to avoid duplicated code, and hoisting them
 // into head.js.
@@ -285,7 +291,7 @@ add_task(async function test_aboutwelcome_upgrade_show_firefox_view() {
   await BrowserTestUtils.waitForEvent(gBrowser, "TabSwitchDone");
   assertFirefoxViewTabSelected(gBrowser.ownerGlobal);
 
-  closeFirefoxViewTab();
+  closeFirefoxViewTab(gBrowser.ownerGlobal);
   await BrowserTestUtils.removeTab(gBrowser.selectedTab);
 });
 

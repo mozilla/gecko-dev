@@ -25,7 +25,7 @@ static void getCurrentValueCB(AtkValue* obj, GValue* value) {
 
   memset(value, 0, sizeof(GValue));
   double accValue = acc->CurValue();
-  if (IsNaN(accValue)) return;
+  if (std::isnan(accValue)) return;
 
   g_value_init(value, G_TYPE_DOUBLE);
   g_value_set_double(value, accValue);
@@ -39,7 +39,7 @@ static void getMaximumValueCB(AtkValue* obj, GValue* value) {
 
   memset(value, 0, sizeof(GValue));
   double accValue = acc->MaxValue();
-  if (IsNaN(accValue)) return;
+  if (std::isnan(accValue)) return;
 
   g_value_init(value, G_TYPE_DOUBLE);
   g_value_set_double(value, accValue);
@@ -53,7 +53,7 @@ static void getMinimumValueCB(AtkValue* obj, GValue* value) {
 
   memset(value, 0, sizeof(GValue));
   double accValue = acc->MinValue();
-  if (IsNaN(accValue)) return;
+  if (std::isnan(accValue)) return;
 
   g_value_init(value, G_TYPE_DOUBLE);
   g_value_set_double(value, accValue);
@@ -67,7 +67,7 @@ static void getMinimumIncrementCB(AtkValue* obj, GValue* minimumIncrement) {
 
   memset(minimumIncrement, 0, sizeof(GValue));
   double accValue = acc->Step();
-  if (IsNaN(accValue)) {
+  if (std::isnan(accValue)) {
     accValue = 0;  // zero if the minimum increment is undefined
   }
 
@@ -76,19 +76,13 @@ static void getMinimumIncrementCB(AtkValue* obj, GValue* minimumIncrement) {
 }
 
 static gboolean setCurrentValueCB(AtkValue* obj, const GValue* value) {
-  RemoteAccessible* proxy = nullptr;
-  AccessibleWrap* accWrap = GetAccessibleWrap(ATK_OBJECT(obj));
-  if (!accWrap) {
-    proxy = GetProxy(ATK_OBJECT(obj));
-    if (!proxy) {
-      return FALSE;
-    }
+  Accessible* acc = GetInternalObj(ATK_OBJECT(obj));
+  if (!acc) {
+    return false;
   }
 
   double accValue = g_value_get_double(value);
-  return accWrap ? accWrap->SetCurValue(accValue)
-                 : proxy->SetCurValue(accValue);
-}
+  return acc->SetCurValue(accValue);
 }
 
 void valueInterfaceInitCB(AtkValueIface* aIface) {
@@ -100,4 +94,5 @@ void valueInterfaceInitCB(AtkValueIface* aIface) {
   aIface->get_minimum_value = getMinimumValueCB;
   aIface->get_minimum_increment = getMinimumIncrementCB;
   aIface->set_current_value = setCurrentValueCB;
+}
 }

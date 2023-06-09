@@ -17,6 +17,7 @@
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/PluginCrashedEvent.h"
+#include "nsThreadUtils.h"
 #if defined(XP_LINUX) && defined(MOZ_SANDBOX)
 #  include "mozilla/SandboxInfo.h"
 #endif
@@ -41,6 +42,29 @@ namespace mozilla {
 LogModule* GetGMPLog() {
   static LazyLogModule sLog("GMP");
   return sLog;
+}
+
+LogModule* GetGMPLibraryLog() {
+  static LazyLogModule sLog("GMPLibrary");
+  return sLog;
+}
+
+GMPLogLevel GetGMPLibraryLogLevel() {
+  switch (GetGMPLibraryLog()->Level()) {
+    case LogLevel::Disabled:
+      return kGMPLogQuiet;
+    case LogLevel::Error:
+      return kGMPLogError;
+    case LogLevel::Warning:
+      return kGMPLogWarning;
+    case LogLevel::Info:
+      return kGMPLogInfo;
+    case LogLevel::Debug:
+      return kGMPLogDebug;
+    case LogLevel::Verbose:
+      return kGMPLogDetail;
+  }
+  return kGMPLogInvalid;
 }
 
 #ifdef __CLASS__
@@ -354,7 +378,7 @@ nsCOMPtr<nsIAsyncShutdownClient> GeckoMediaPluginService::GetShutdownBarrier() {
 nsresult GeckoMediaPluginService::GMPDispatch(nsIRunnable* event,
                                               uint32_t flags) {
   nsCOMPtr<nsIRunnable> r(event);
-  return GMPDispatch(r.forget());
+  return GMPDispatch(r.forget(), flags);
 }
 
 nsresult GeckoMediaPluginService::GMPDispatch(

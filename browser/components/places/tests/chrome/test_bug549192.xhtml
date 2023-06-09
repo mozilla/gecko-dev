@@ -28,7 +28,7 @@
         flatList="true"
         flex="1">
     <treecols>
-      <treecol label="Title" id="title" anonid="title" primary="true" style="-moz-box-ordinal-group: 1;" flex="1"/>
+      <treecol label="Title" id="title" anonid="title" primary="true" style="order: 1;" flex="1"/>
     </treecols>
     <treechildren flex="1"/>
   </tree>
@@ -108,8 +108,7 @@
 
           const promiseRemoved = PlacesTestUtils.waitForNotification(
             "page-removed",
-            events => events[0].url === node.uri,
-            "places"
+            events => events[0].url === node.uri
           );
 
           tree.controller.remove();

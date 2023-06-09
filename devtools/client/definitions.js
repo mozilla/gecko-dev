@@ -45,7 +45,7 @@ loader.lazyGetter(
   this,
   "NewPerformancePanel",
   () =>
-    require("resource://devtools/client/performance-new/panel.js")
+    require("resource://devtools/client/performance-new/panel/panel.js")
       .PerformancePanel
 );
 loader.lazyGetter(
@@ -261,7 +261,7 @@ Tools.performance = {
   id: "performance",
   ordinal: 6,
   icon: "chrome://devtools/skin/images/tool-profiler.svg",
-  url: "chrome://devtools/content/performance-new/index.xhtml",
+  url: "chrome://devtools/content/performance-new/panel/index.xhtml",
   visibilityswitch: "devtools.performance.enabled",
   label: l10n("performance.label"),
   panelLabel: l10n("performance.panelLabel"),
@@ -280,7 +280,9 @@ Tools.performance = {
     // use the performance panel; about:debugging provides a "Profile performance" button
     // which can be used instead, without having the overhead of starting a remote toolbox.
     // Also accept the Browser Toolbox, so that we can profile its process via a second browser toolbox.
-    return toolbox.target.isLocalTab || toolbox.isBrowserToolbox;
+    return (
+      toolbox.commands.descriptorFront.isLocalTab || toolbox.isBrowserToolbox
+    );
   },
   build(frame, toolbox, commands) {
     return new NewPerformancePanel(frame, toolbox, commands);
@@ -298,7 +300,11 @@ Tools.memory = {
   tooltip: l10n("memory.tooltip"),
 
   isToolSupported(toolbox) {
-    return !toolbox.target.isAddon && !toolbox.target.isWorkerTarget;
+    const { descriptorFront } = toolbox.commands;
+    return (
+      !descriptorFront.isWebExtensionDescriptor &&
+      !descriptorFront.isWorkerDescriptor
+    );
   },
 
   build(frame, toolbox, commands) {
@@ -355,7 +361,14 @@ Tools.storage = {
   inMenu: false,
 
   isToolSupported(toolbox) {
-    return toolbox.target.hasActor("storage");
+    const { descriptorFront } = toolbox.commands;
+    // Storage is available on all contexts debugging a BrowsingContext.
+    // As of today, this is all but worker toolboxes.
+    return (
+      descriptorFront.isTabDescriptor ||
+      descriptorFront.isParentProcessDescriptor ||
+      descriptorFront.isWebExtensionDescriptor
+    );
   },
 
   build(iframeWindow, toolbox, commands) {
@@ -490,7 +503,7 @@ exports.ToolboxButtons = [
       "toolbox.buttons.responsive",
       osString == "Darwin" ? "Cmd+Opt+M" : "Ctrl+Shift+M"
     ),
-    isToolSupported: toolbox => toolbox.target.isLocalTab,
+    isToolSupported: toolbox => toolbox.commands.descriptorFront.isLocalTab,
     onClick(event, toolbox) {
       const { localTab } = toolbox.commands.descriptorFront;
       const browserWindow = localTab.ownerDocument.defaultView;
@@ -578,7 +591,8 @@ function createHighlightButton(highlighterName, id) {
   return {
     id: `command-button-${id}`,
     description: l10n(`toolbox.buttons.${id}`),
-    isToolSupported: toolbox => !toolbox.target.chrome,
+    isToolSupported: toolbox =>
+      toolbox.commands.descriptorFront.isTabDescriptor,
     async onClick(event, toolbox) {
       const inspectorFront = await toolbox.target.getFront("inspector");
       const highlighter = await inspectorFront.getOrCreateHighlighterByType(

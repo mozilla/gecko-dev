@@ -38,10 +38,10 @@ class Watchtower {
   static bool watchPropertyRemoveSlow(JSContext* cx, Handle<NativeObject*> obj,
                                       HandleId id);
   static bool watchPropertyChangeSlow(JSContext* cx, Handle<NativeObject*> obj,
-                                      HandleId id);
+                                      HandleId id, PropertyFlags flags);
   static bool watchFreezeOrSealSlow(JSContext* cx, Handle<NativeObject*> obj);
   static bool watchProtoChangeSlow(JSContext* cx, HandleObject obj);
-  static void watchObjectSwapSlow(JSContext* cx, HandleObject a,
+  static bool watchObjectSwapSlow(JSContext* cx, HandleObject a,
                                   HandleObject b);
 
  public:
@@ -50,12 +50,14 @@ class Watchtower {
         {ObjectFlag::IsUsedAsPrototype, ObjectFlag::UseWatchtowerTestingLog});
   }
   static bool watchesPropertyRemove(NativeObject* obj) {
-    return obj->hasAnyFlag(
-        {ObjectFlag::IsUsedAsPrototype, ObjectFlag::UseWatchtowerTestingLog});
+    return obj->hasAnyFlag({ObjectFlag::IsUsedAsPrototype,
+                            ObjectFlag::GenerationCountedGlobal,
+                            ObjectFlag::UseWatchtowerTestingLog});
   }
   static bool watchesPropertyChange(NativeObject* obj) {
-    return obj->hasAnyFlag(
-        {ObjectFlag::IsUsedAsPrototype, ObjectFlag::UseWatchtowerTestingLog});
+    return obj->hasAnyFlag({ObjectFlag::IsUsedAsPrototype,
+                            ObjectFlag::GenerationCountedGlobal,
+                            ObjectFlag::UseWatchtowerTestingLog});
   }
   static bool watchesFreezeOrSeal(NativeObject* obj) {
     return obj->hasAnyFlag({ObjectFlag::UseWatchtowerTestingLog});
@@ -87,11 +89,11 @@ class Watchtower {
     return watchPropertyRemoveSlow(cx, obj, id);
   }
   static bool watchPropertyChange(JSContext* cx, Handle<NativeObject*> obj,
-                                  HandleId id) {
+                                  HandleId id, PropertyFlags flags) {
     if (MOZ_LIKELY(!watchesPropertyChange(obj))) {
       return true;
     }
-    return watchPropertyChangeSlow(cx, obj, id);
+    return watchPropertyChangeSlow(cx, obj, id, flags);
   }
   static bool watchFreezeOrSeal(JSContext* cx, Handle<NativeObject*> obj) {
     if (MOZ_LIKELY(!watchesFreezeOrSeal(obj))) {
@@ -105,11 +107,11 @@ class Watchtower {
     }
     return watchProtoChangeSlow(cx, obj);
   }
-  static void watchObjectSwap(JSContext* cx, HandleObject a, HandleObject b) {
+  static bool watchObjectSwap(JSContext* cx, HandleObject a, HandleObject b) {
     if (MOZ_LIKELY(!watchesObjectSwap(a, b))) {
-      return;
+      return true;
     }
-    watchObjectSwapSlow(cx, a, b);
+    return watchObjectSwapSlow(cx, a, b);
   }
 };
 

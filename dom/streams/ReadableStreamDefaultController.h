@@ -101,9 +101,6 @@ class ReadableStreamDefaultController final : public ReadableStreamController,
     mStrategySizeAlgorithm = aStrategySizeAlgorithm;
   }
 
-  ReadableStream* GetStream() { return mStream; }
-  void SetStream(ReadableStream* aStream);
-
  private:
   // Internal Slots:
   bool mCloseRequested = false;
@@ -114,8 +111,9 @@ class ReadableStreamDefaultController final : public ReadableStreamController,
   bool mStarted = false;
   double mStrategyHWM = false;
   RefPtr<QueuingStrategySize> mStrategySizeAlgorithm;
-  RefPtr<ReadableStream> mStream;
 };
+
+namespace streams_abstract {
 
 MOZ_CAN_RUN_SCRIPT void SetUpReadableStreamDefaultController(
     JSContext* aCx, ReadableStream* aStream,
@@ -157,6 +155,8 @@ bool ReadableStreamDefaultControllerCanCloseOrEnqueueAndThrow(
 
 bool ReadableStreamDefaultControllerShouldCallPull(
     ReadableStreamDefaultController* aController);
+
+}  // namespace streams_abstract
 
 }  // namespace mozilla::dom
 

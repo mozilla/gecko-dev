@@ -36,6 +36,7 @@ namespace mozilla::dom {
 
 class ScriptLoadContext;
 class WorkerLoadContext;
+class WorkletLoadContext;
 
 }  // namespace mozilla::dom
 
@@ -209,8 +210,8 @@ class ScriptLoadRequest
   };
 
   bool IsFetching() const { return mState == State::Fetching; }
-
   bool IsCompiling() const { return mState == State::Compiling; }
+  bool IsLoadingImports() const { return mState == State::LoadingImports; }
 
   bool IsReadyToRun() const {
     return mState == State::Ready || mState == State::Canceled;
@@ -314,6 +315,8 @@ class ScriptLoadRequest
 
   mozilla::dom::WorkerLoadContext* GetWorkerLoadContext();
 
+  mozilla::dom::WorkletLoadContext* GetWorkletLoadContext();
+
   const ScriptKind mKind;  // Whether this is a classic script or a module
                            // script.
 
@@ -345,7 +348,8 @@ class ScriptLoadRequest
   nsCOMPtr<nsIPrincipal> mOriginPrincipal;
 
   // Keep the URI's filename alive during off thread parsing.
-  // Also used by workers to report on errors while loading.
+  // Also used by workers to report on errors while loading, and used by
+  // worklets as the file name in compile options.
   nsAutoCString mURL;
 
   // The base URL used for resolving relative module imports.

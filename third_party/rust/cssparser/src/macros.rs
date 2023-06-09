@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use matches::matches;
 use std::mem::MaybeUninit;
 
 /// Expands to a `match` expression with string patterns,
@@ -13,11 +12,9 @@ use std::mem::MaybeUninit;
 /// # Example
 ///
 /// ```rust
-/// #[macro_use] extern crate cssparser;
-///
 /// # fn main() {}  // Make doctest not wrap everything in its own main
 /// # fn dummy(function_name: &String) { let _ =
-/// match_ignore_ascii_case! { &function_name,
+/// cssparser::match_ignore_ascii_case! { &function_name,
 ///     "rgb" => parse_rgb(..),
 /// #   #[cfg(not(something))]
 ///     "rgba" => parse_rgba(..),
@@ -52,7 +49,7 @@ macro_rules! match_ignore_ascii_case {
                     $( $( $pattern )+ )+
                 }
             }
-            _cssparser_internal_to_lowercase!($input, cssparser_internal::MAX_LENGTH => lowercase);
+            $crate::_cssparser_internal_to_lowercase!($input, cssparser_internal::MAX_LENGTH => lowercase);
             // "A" is a short string that we know is different for every string pattern,
             // since we’ve verified that none of them include ASCII upper case letters.
             match lowercase.unwrap_or("A") {
@@ -75,12 +72,10 @@ macro_rules! match_ignore_ascii_case {
 /// ## Example:
 ///
 /// ```rust
-/// #[macro_use] extern crate cssparser;
-///
 /// # fn main() {}  // Make doctest not wrap everything in its own main
 ///
 /// fn color_rgb(input: &str) -> Option<(u8, u8, u8)> {
-///     ascii_case_insensitive_phf_map! {
+///     cssparser::ascii_case_insensitive_phf_map! {
 ///         keyword -> (u8, u8, u8) = {
 ///             "red" => (255, 0, 0),
 ///             "green" => (0, 255, 0),
@@ -109,9 +104,19 @@ macro_rules! ascii_case_insensitive_phf_map {
                     $key => $value,
                 )*
             };
-            _cssparser_internal_to_lowercase!(input, _cssparser_internal::MAX_LENGTH => lowercase);
+            $crate::_cssparser_internal_to_lowercase!(input, _cssparser_internal::MAX_LENGTH => lowercase);
             lowercase.and_then(|s| MAP.get(s))
         }
+    }
+}
+
+/// Create a new array of MaybeUninit<T> items, in an uninitialized state.
+#[inline(always)]
+pub fn _cssparser_internal_create_uninit_array<const N: usize>() -> [MaybeUninit<u8>; N] {
+    unsafe {
+        // SAFETY: An uninitialized `[MaybeUninit<_>; LEN]` is valid.
+        // See: https://doc.rust-lang.org/stable/core/mem/union.MaybeUninit.html#method.uninit_array
+        MaybeUninit::<[MaybeUninit<u8>; N]>::uninit().assume_init()
     }
 }
 
@@ -126,11 +131,7 @@ macro_rules! ascii_case_insensitive_phf_map {
 #[doc(hidden)]
 macro_rules! _cssparser_internal_to_lowercase {
     ($input: expr, $BUFFER_SIZE: expr => $output: ident) => {
-        #[allow(unsafe_code)]
-        let mut buffer = unsafe {
-            ::std::mem::MaybeUninit::<[::std::mem::MaybeUninit<u8>; $BUFFER_SIZE]>::uninit()
-                .assume_init()
-        };
+        let mut buffer = $crate::_cssparser_internal_create_uninit_array::<{ $BUFFER_SIZE }>();
         let input: &str = $input;
         let $output = $crate::_cssparser_internal_to_lowercase(&mut buffer, input);
     };
@@ -157,22 +158,21 @@ pub fn _cssparser_internal_to_lowercase<'a>(
         input: &'a str,
         first_uppercase: usize,
     ) -> &'a str {
-        unsafe {
-            // This cast doesn't change the pointer's validity
-            // since `u8` has the same layout as `MaybeUninit<u8>`:
-            let input_bytes = &*(input.as_bytes() as *const [u8] as *const [MaybeUninit<u8>]);
+        // This cast doesn't change the pointer's validity
+        // since `u8` has the same layout as `MaybeUninit<u8>`:
+        let input_bytes =
+            unsafe { &*(input.as_bytes() as *const [u8] as *const [MaybeUninit<u8>]) };
 
-            buffer.copy_from_slice(&*input_bytes);
+        buffer.copy_from_slice(&*input_bytes);
 
-            // Same as above re layout, plus these bytes have been initialized:
-            let buffer = &mut *(buffer as *mut [MaybeUninit<u8>] as *mut [u8]);
+        // Same as above re layout, plus these bytes have been initialized:
+        let buffer = unsafe { &mut *(buffer as *mut [MaybeUninit<u8>] as *mut [u8]) };
 
-            buffer[first_uppercase..].make_ascii_lowercase();
-            // `buffer` was initialized to a copy of `input`
-            // (which is `&str` so well-formed UTF-8)
-            // then ASCII-lowercased (which preserves UTF-8 well-formedness):
-            ::std::str::from_utf8_unchecked(buffer)
-        }
+        buffer[first_uppercase..].make_ascii_lowercase();
+        // `buffer` was initialized to a copy of `input`
+        // (which is `&str` so well-formed UTF-8)
+        // then ASCII-lowercased (which preserves UTF-8 well-formedness):
+        unsafe { ::std::str::from_utf8_unchecked(buffer) }
     }
 
     Some(

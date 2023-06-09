@@ -18,12 +18,12 @@ const BLANK_URL_FOR_CLEARING = "data:text/html;charset=UTF-8,%3C%21%2D%2DCLEAR%2
 const { setTimeout, clearTimeout } = ChromeUtils.importESModule(
     "resource://gre/modules/Timer.sys.mjs"
 );
-const { onSpellCheck } = ChromeUtils.import(
-    "resource://reftest/AsyncSpellCheckTestHelper.jsm"
+const { onSpellCheck } = ChromeUtils.importESModule(
+    "resource://reftest/AsyncSpellCheckTestHelper.sys.mjs"
 );
 
 // This will load chrome Custom Elements inside chrome documents:
-ChromeUtils.import("resource://gre/modules/CustomElementsListener.jsm");
+ChromeUtils.importESModule("resource://gre/modules/CustomElementsListener.sys.mjs");
 
 var gBrowserIsRemote;
 var gHaveCanvasSnapshot = false;
@@ -195,7 +195,7 @@ function doPrintMode(contentRootElement) {
     }
 }
 
-function setupPrintMode() {
+function setupPrintMode(contentRootElement) {
     var PSSVC =
         Cc[PRINTSETTINGS_CONTRACTID].getService(Ci.nsIPrintSettingsService);
     var ps = PSSVC.createNewPrintSettings();
@@ -215,8 +215,12 @@ function setupPrintMode() {
     ps.footerStrCenter = "";
     ps.footerStrRight = "";
 
-    ps.printBGColors = true;
-    ps.printBGImages = true;
+    const printBackgrounds = (() => {
+        const attr = contentRootElement.getAttribute("reftest-paged-backgrounds");
+        return !attr || attr != "false";
+    })();
+    ps.printBGColors = printBackgrounds;
+    ps.printBGImages = printBackgrounds;
 
     docShell.contentViewer.setPageModeForTesting(/* aPageMode */ true, ps);
 }
@@ -737,7 +741,7 @@ function WaitForTestEnd(contentRootElement, inPrintMode, spellCheckedElements, f
 
             if (!inPrintMode && doPrintMode(contentRootElement)) {
                 LogInfo("MakeProgress: setting up print mode");
-                setupPrintMode();
+                setupPrintMode(contentRootElement);
             }
 
             if (hasReftestWait && !shouldWaitForReftestWaitRemoval(contentRootElement)) {
@@ -1014,7 +1018,7 @@ async function OnDocumentLoad(uri)
     } else {
         if (doPrintMode(contentRootElement)) {
             LogInfo("OnDocumentLoad setting up print mode");
-            setupPrintMode();
+            setupPrintMode(contentRootElement);
             inPrintMode = true;
         }
 
@@ -1153,7 +1157,7 @@ function LoadURI(uri)
     let loadURIOptions = {
       triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
     };
-    webNavigation().loadURI(uri, loadURIOptions);
+    webNavigation().loadURI(Services.io.newURI(uri), loadURIOptions);
 }
 
 function LogError(str)

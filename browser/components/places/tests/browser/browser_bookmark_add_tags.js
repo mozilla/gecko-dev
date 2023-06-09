@@ -7,10 +7,8 @@
 /**
  * Tests that multiple tags can be added to a bookmark using the star-shaped button, the library and the sidebar.
  */
-
-StarUI._createPanelIfNeeded();
-const bookmarkPanel = document.getElementById("editBookmarkPanel");
-const bookmarkStar = BookmarkingUI.star;
+let bookmarkPanel;
+let bookmarkStar;
 
 async function clickBookmarkStar() {
   let shownPromise = promisePopupShown(bookmarkPanel);
@@ -24,35 +22,39 @@ async function hideBookmarksPanel(callback) {
   await hiddenPromise;
 }
 
-add_setup(function() {
-  let oldTimeout = StarUI._autoCloseTimeout;
-
-  bookmarkPanel.setAttribute("animate", false);
-
-  StarUI._autoCloseTimeout = 1000;
-
-  registerCleanupFunction(async () => {
-    StarUI._autoCloseTimeout = oldTimeout;
-    bookmarkPanel.removeAttribute("animate");
-    await PlacesUtils.bookmarks.eraseEverything();
-  });
+registerCleanupFunction(async () => {
+  await PlacesUtils.bookmarks.eraseEverything();
 });
 
 add_task(async function test_add_bookmark_tags_from_bookmarkProperties() {
   const TEST_URL = "about:robots";
 
+  // Open a new window with delayed apply disabled.
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.bookmarks.editDialog.delayedApply.enabled", false]],
+  });
+  let win = await BrowserTestUtils.openNewBrowserWindow();
   let tab = await BrowserTestUtils.openNewForegroundTab({
-    gBrowser,
+    gBrowser: win.gBrowser,
     opening: TEST_URL,
     waitForStateStop: true,
   });
 
+  win.StarUI._createPanelIfNeeded();
+  win.StarUI._autoCloseTimeout = 1000;
+  bookmarkPanel = win.document.getElementById("editBookmarkPanel");
+  bookmarkPanel.setAttribute("animate", false);
+  bookmarkStar = win.BookmarkingUI.star;
+
   // Cleanup.
   registerCleanupFunction(async function() {
     BrowserTestUtils.removeTab(tab);
+    BrowserTestUtils.closeWindow(win);
   });
 
-  let bookmarkPanelTitle = document.getElementById("editBookmarkPanelTitle");
+  let bookmarkPanelTitle = win.document.getElementById(
+    "editBookmarkPanelTitle"
+  );
 
   // The bookmarks panel is expected to auto-close after this step.
   await hideBookmarksPanel(async () => {
@@ -79,10 +81,9 @@ add_task(async function test_add_bookmark_tags_from_bookmarkProperties() {
   );
   let promiseNotification = PlacesTestUtils.waitForNotification(
     "bookmark-added",
-    events => events.some(({ url }) => !url || url == TEST_URL),
-    "places"
+    events => events.some(({ url }) => !url || url == TEST_URL)
   );
-  await fillBookmarkTextField("editBMPanel_tagsField", "tag1", window);
+  await fillBookmarkTextField("editBMPanel_tagsField", "tag1", win);
   await promiseNotification;
   let bookmarks = [];
   await PlacesUtils.bookmarks.fetch({ url: TEST_URL }, bm =>
@@ -97,21 +98,15 @@ add_task(async function test_add_bookmark_tags_from_bookmarkProperties() {
     PlacesUtils.tagging.getTagsForURI(Services.io.newURI(TEST_URL)),
     ["tag1"]
   );
-  let doneButton = document.getElementById("editBookmarkPanelDoneButton");
+  let doneButton = win.document.getElementById("editBookmarkPanelDoneButton");
   await hideBookmarksPanel(() => doneButton.click());
 
   // Click the bookmark star again, add more tags.
   await clickBookmarkStar();
   promiseNotification = PlacesTestUtils.waitForNotification(
-    "bookmark-tags-changed",
-    () => true,
-    "places"
+    "bookmark-tags-changed"
   );
-  await fillBookmarkTextField(
-    "editBMPanel_tagsField",
-    "tag1, tag2, tag3",
-    window
-  );
+  await fillBookmarkTextField("editBMPanel_tagsField", "tag1, tag2, tag3", win);
   await promiseNotification;
   await hideBookmarksPanel(() => doneButton.click());
 
@@ -133,6 +128,77 @@ add_task(async function test_add_bookmark_tags_from_bookmarkProperties() {
   // Cleanup.
   await PlacesUtils.bookmarks.eraseEverything();
 });
+
+add_task(
+  async function test_add_bookmark_tags_from_bookmarkProperties_delayed_apply() {
+    const TEST_URL = "about:robots";
+
+    // Open a new window with delayed apply enabled.
+    await SpecialPowers.pushPrefEnv({
+      set: [["browser.bookmarks.editDialog.delayedApply.enabled", true]],
+    });
+    const win = await BrowserTestUtils.openNewBrowserWindow();
+
+    // Cleanup.
+    registerCleanupFunction(async () => {
+      await BrowserTestUtils.closeWindow(win);
+    });
+
+    await BrowserTestUtils.withNewTab(
+      { gBrowser: win.gBrowser, url: TEST_URL },
+      async () => {
+        win.StarUI._createPanelIfNeeded();
+
+        // Click the bookmark star.
+        const panel = win.document.getElementById("editBookmarkPanel");
+        const star = win.BookmarkingUI.star;
+        let shownPromise = promisePopupShown(panel);
+        star.click();
+        await shownPromise;
+
+        // Add a tag and save changes.
+        await fillBookmarkTextField("editBMPanel_tagsField", "tag1", win);
+        const doneButton = win.document.getElementById(
+          "editBookmarkPanelDoneButton"
+        );
+        const bookmarkAddedPromise = PlacesTestUtils.waitForNotification(
+          "bookmark-added",
+          events => events.some(({ url }) => !url || url == TEST_URL)
+        );
+        doneButton.click();
+        await bookmarkAddedPromise;
+        Assert.deepEqual(
+          PlacesUtils.tagging.getTagsForURI(Services.io.newURI(TEST_URL)),
+          ["tag1"],
+          "The initial set of tags is correct."
+        );
+
+        // Click the bookmark star again, add more tags.
+        shownPromise = promisePopupShown(panel);
+        star.click();
+        await shownPromise;
+        await fillBookmarkTextField(
+          "editBMPanel_tagsField",
+          "tag1, tag2, tag3",
+          win
+        );
+        const tagsChangedPromise = PlacesTestUtils.waitForNotification(
+          "bookmark-tags-changed"
+        );
+        doneButton.click();
+        await tagsChangedPromise;
+        Assert.deepEqual(
+          PlacesUtils.tagging.getTagsForURI(Services.io.newURI(TEST_URL)),
+          ["tag1", "tag2", "tag3"],
+          "The updated set of tags is correct."
+        );
+
+        // Cleanup.
+        await PlacesUtils.bookmarks.eraseEverything();
+      }
+    );
+  }
+);
 
 add_task(async function test_add_bookmark_tags_from_library() {
   const uri = "http://example.com/";

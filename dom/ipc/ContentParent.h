@@ -78,9 +78,6 @@ using mozilla::loader::PScriptCacheParent;
 namespace ipc {
 class CrashReporterHost;
 class TestShellParent;
-#ifdef FUZZING
-class ProtocolFuzzerHelper;
-#endif
 class SharedPreferenceSerializer;
 }  // namespace ipc
 
@@ -132,14 +129,10 @@ class ContentParent final : public PContentParent,
   friend class mozilla::PreallocatedProcessManagerImpl;
   friend class PContentParent;
   friend class mozilla::dom::RemoteWorkerManager;
-#ifdef FUZZING
-  friend class mozilla::ipc::ProtocolFuzzerHelper;
-#endif
 
  public:
-  using LaunchError = mozilla::ipc::LaunchError;
   using LaunchPromise =
-      mozilla::MozPromise<RefPtr<ContentParent>, LaunchError, false>;
+      mozilla::MozPromise<RefPtr<ContentParent>, nsresult, false>;
 
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_CONTENTPARENT_IID)
 
@@ -325,17 +318,6 @@ class ContentParent final : public PContentParent,
   // been updated and so full reflows are in order.
   static void NotifyUpdatedFonts(bool aFullRebuild);
 
-#if defined(XP_WIN)
-  /**
-   * Windows helper for firing off an update window request to a plugin
-   * instance.
-   *
-   * aWidget - the eWindowType_plugin_ipc_chrome widget associated with
-   *           this plugin window.
-   */
-  static void SendAsyncUpdate(nsIWidget* aWidget);
-#endif
-
   mozilla::ipc::IPCResult RecvCreateGMPService();
 
   mozilla::ipc::IPCResult RecvRemovePermission(
@@ -360,6 +342,9 @@ class ContentParent final : public PContentParent,
 
   virtual nsresult DoSendAsyncMessage(const nsAString& aMessage,
                                       StructuredCloneData& aData) override;
+
+  /** Notify that a tab is about to send Destroy to its child. */
+  void NotifyTabWillDestroy();
 
   /** Notify that a tab is beginning its destruction sequence. */
   void NotifyTabDestroying();
@@ -396,6 +381,12 @@ class ContentParent final : public PContentParent,
   }
   bool IsAlive() const override;
   bool IsInitialized() const;
+  bool IsSignaledImpendingShutdown() const {
+    return mIsSignaledImpendingShutdown;
+  }
+  bool IsShuttingDown() const {
+    return IsDead() || IsSignaledImpendingShutdown();
+  }
   bool IsDead() const { return mLifecycleState == LifecycleState::DEAD; }
 
   bool IsForBrowser() const { return mIsForBrowser; }
@@ -574,6 +565,9 @@ class ContentParent final : public PContentParent,
   void PaintTabWhileInterruptingJS(BrowserParent* aBrowserParent,
                                    const layers::LayersObserverEpoch& aEpoch);
 
+  void UnloadLayersWhileInterruptingJS(
+      BrowserParent* aBrowserParent, const layers::LayersObserverEpoch& aEpoch);
+
   void CancelContentJSExecutionIfRunning(
       BrowserParent* aBrowserParent,
       nsIRemoteTab::NavigationType aNavigationType,
@@ -690,7 +684,6 @@ class ContentParent final : public PContentParent,
                                     const char* aOperation) const;
 
   void ActorDestroy(ActorDestroyReason why) override;
-  void ActorDealloc() override;
 
   bool ShouldContinueFromReplyTimeout() override;
 
@@ -790,16 +783,20 @@ class ContentParent final : public PContentParent,
   /**
    * We might want to reuse barely used content processes if certain criteria
    * are met.
+   *
+   * With Fission this is a no-op.
    */
-  bool TryToRecycle();
+  bool TryToRecycleE10SOnly();
 
   /**
    * If this process is currently being recycled, unmark it as the recycled
    * content process.
    * If `aForeground` is true, will also restore the process' foreground
    * priority if it was previously the recycled content process.
+   *
+   * With Fission this is a no-op.
    */
-  void StopRecycling(bool aForeground = true);
+  void StopRecyclingE10SOnly(bool aForeground);
 
   /**
    * Removing it from the static array so it won't be returned for new tabs in
@@ -830,6 +827,8 @@ class ContentParent final : public PContentParent,
    * This potentially cancels mainthread content JS execution.
    */
   void SignalImpendingShutdownToContentJS();
+
+  bool CheckTabDestroyWillKeepAlive(uint32_t aExpectedBrowserCount);
 
   /**
    * Check if this process is ready to be shut down, and if it is, begin the
@@ -997,8 +996,9 @@ class ContentParent final : public PContentParent,
   mozilla::ipc::IPCResult RecvSetClipboard(
       const IPCDataTransfer& aDataTransfer, const bool& aIsPrivateData,
       nsIPrincipal* aRequestingPrincipal,
+      mozilla::Maybe<CookieJarSettingsArgs> aCookieJarSettingsArgs,
       const nsContentPolicyType& aContentPolicyType,
-      const int32_t& aWhichClipboard);
+      nsIReferrerInfo* aReferrerInfo, const int32_t& aWhichClipboard);
 
   mozilla::ipc::IPCResult RecvGetClipboard(nsTArray<nsCString>&& aTypes,
                                            const int32_t& aWhichClipboard,
@@ -1484,21 +1484,7 @@ class ContentParent final : public PContentParent,
 
   void AssertAlive();
 
-  /**
-   * Called when a subprocess succesfully launches.
-   *
-   * May submit telemetry if the new number of content processes is greater
-   * than the previous maximum.
-   *
-   * This will submit telemetry about the time delta between this content
-   * process launch and the last content process launch.
-   */
-  static void DidLaunchSubprocess();
-
  private:
-  // Released in ActorDealloc; deliberately not exposed to the CC.
-  RefPtr<ContentParent> mSelfRef;
-
   // If you add strong pointers to cycle collected objects here, be sure to
   // release these objects in ShutDownProcess.  See the comment there for more
   // details.
@@ -1583,6 +1569,7 @@ class ContentParent final : public PContentParent,
   uint8_t mGMPCreated : 1;
 
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
+  bool mNotifiedImpendingShutdownOnTabWillDestroy = false;
   bool mBlockShutdownCalled;
 #endif
 
@@ -1596,7 +1583,7 @@ class ContentParent final : public PContentParent,
   ScopedClose mChildXSocketFdDup;
 #endif
 
-  PProcessHangMonitorParent* mHangMonitorActor;
+  RefPtr<PProcessHangMonitorParent> mHangMonitorActor;
 
   UniquePtr<gfx::DriverCrashGuard> mDriverCrashGuard;
   UniquePtr<MemoryReportRequestHost> mMemoryReportRequest;
@@ -1657,7 +1644,6 @@ class ContentParent final : public PContentParent,
 
   static uint32_t sMaxContentProcesses;
   static uint32_t sPageLoadEventCounter;
-  static Maybe<TimeStamp> sLastContentProcessLaunch;
 
   bool mIsSignaledImpendingShutdown = false;
   bool mIsNotifiedShutdownSuccess = false;

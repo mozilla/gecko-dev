@@ -38,6 +38,7 @@
 #include "nsReadableUtils.h"
 #include "nsStyleConsts.h"
 #include "nsTextControlFrame.h"
+#include "nsThreadUtils.h"
 #include "nsXULControllers.h"
 
 NS_IMPL_NS_NEW_HTML_ELEMENT_CHECK_PARSER(TextArea)
@@ -352,6 +353,13 @@ void HTMLTextAreaElement::GetDefaultValue(nsAString& aDefaultValue,
 
 void HTMLTextAreaElement::SetDefaultValue(const nsAString& aDefaultValue,
                                           ErrorResult& aError) {
+  // setting the value of an textarea element using `.defaultValue = "foo"`
+  // must be interpreted as a two-step operation:
+  // 1. clearing all child nodes
+  // 2. adding a new text node with the new content
+  // Step 1 must therefore collapse the Selection to 0.
+  // Calling `SetNodeTextContent()` with an empty string will do that for us.
+  nsContentUtils::SetNodeTextContent(this, EmptyString(), true);
   nsresult rv = nsContentUtils::SetNodeTextContent(this, aDefaultValue, true);
   if (NS_SUCCEEDED(rv) && !mValueChanged) {
     Reset();
@@ -381,8 +389,8 @@ bool HTMLTextAreaElement::ParseAttribute(int32_t aNamespaceID,
       return true;
     }
   }
-  return nsGenericHTMLElement::ParseAttribute(aNamespaceID, aAttribute, aValue,
-                                              aMaybeScriptedPrincipal, aResult);
+  return TextControlElement::ParseAttribute(aNamespaceID, aAttribute, aValue,
+                                            aMaybeScriptedPrincipal, aResult);
 }
 
 void HTMLTextAreaElement::MapAttributesIntoRule(
@@ -814,9 +822,9 @@ void HTMLTextAreaElement::UnbindFromTree(bool aNullParent) {
   UpdateState(false);
 }
 
-nsresult HTMLTextAreaElement::BeforeSetAttr(int32_t aNameSpaceID, nsAtom* aName,
-                                            const nsAttrValueOrString* aValue,
-                                            bool aNotify) {
+void HTMLTextAreaElement::BeforeSetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                                        const nsAttrValue* aValue,
+                                        bool aNotify) {
   if (aNotify && aName == nsGkAtoms::disabled &&
       aNameSpaceID == kNameSpaceID_None) {
     mDisabledChanged = true;
@@ -847,18 +855,43 @@ void HTMLTextAreaElement::ContentRemoved(nsIContent* aChild,
 void HTMLTextAreaElement::ContentChanged(nsIContent* aContent) {
   if (!mValueChanged && mDoneAddingChildren &&
       nsContentUtils::IsInSameAnonymousTree(this, aContent)) {
-    // Hard to say what the reset can trigger, so be safe pending
-    // further auditing.
-    nsCOMPtr<nsIMutationObserver> kungFuDeathGrip(this);
-    Reset();
+    if (mState->IsSelectionCached()) {
+      // In case the content is *replaced*, i.e. by calling
+      // `.textContent = "foo";`,
+      // firstly the old content is removed, then the new content is added.
+      // As per wpt, this must collapse the selection to 0.
+      // Removing and adding of an element is routed through here, but due to
+      // the script runner `Reset()` is only invoked after the append operation.
+      // Therefore, `Reset()` would adjust the Selection to the new value, not
+      // to 0.
+      // By forcing a selection update here, the selection is reset in order to
+      // comply with the wpt.
+      auto& props = mState->GetSelectionProperties();
+      nsAutoString resetVal;
+      GetDefaultValue(resetVal, IgnoreErrors());
+      props.SetMaxLength(resetVal.Length());
+      props.SetStart(props.GetStart());
+      props.SetEnd(props.GetEnd());
+    }
+    // We should wait all ranges finish handling the mutation before updating
+    // the anonymous subtree with a call of Reset.
+    nsContentUtils::AddScriptRunner(NS_NewRunnableFunction(
+        "ResetHTMLTextAreaElementIfValueHasNotChangedYet",
+        [self = RefPtr{this}]() {
+          // However, if somebody has already changed the value, we don't need
+          // to keep doing this.
+          if (!self->mValueChanged) {
+            self->Reset();
+          }
+        }));
   }
 }
 
-nsresult HTMLTextAreaElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
-                                           const nsAttrValue* aValue,
-                                           const nsAttrValue* aOldValue,
-                                           nsIPrincipal* aSubjectPrincipal,
-                                           bool aNotify) {
+void HTMLTextAreaElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                                       const nsAttrValue* aValue,
+                                       const nsAttrValue* aOldValue,
+                                       nsIPrincipal* aSubjectPrincipal,
+                                       bool aNotify) {
   if (aNameSpaceID == kNameSpaceID_None) {
     if (aName == nsGkAtoms::required || aName == nsGkAtoms::disabled ||
         aName == nsGkAtoms::readonly) {

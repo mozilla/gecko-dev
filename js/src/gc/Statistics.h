@@ -24,6 +24,7 @@
 
 namespace js {
 
+class Sprinter;
 class JSONPrinter;
 
 namespace gcstats {
@@ -51,6 +52,10 @@ enum Count {
   // not collecting the atoms zone.
   COUNT_CELLS_MARKED,
 
+  // Number of times work was donated to a requesting thread during parallel
+  // marking.
+  COUNT_PARALLEL_MARK_INTERRUPTIONS,
+
   COUNT_LIMIT
 };
 
@@ -62,16 +67,8 @@ enum Stat {
   // Number of strings deduplicated.
   STAT_STRINGS_DEDUPLICATED,
 
-  // Number of realms that had nursery strings disabled due to large numbers
-  // being tenured.
-  STAT_NURSERY_STRING_REALMS_DISABLED,
-
   // Number of BigInts tenured.
   STAT_BIGINTS_TENURED,
-
-  // Number of realms that had nursery BigInts disabled due to large numbers
-  // being tenured.
-  STAT_NURSERY_BIGINT_REALMS_DISABLED,
 
   STAT_LIMIT
 };
@@ -104,6 +101,8 @@ struct Trigger {
 };
 
 #define FOR_EACH_GC_PROFILE_TIME(_)                                 \
+  _(Total, "total", PhaseKind::NONE)                                \
+  _(Background, "bgwrk", PhaseKind::NONE)                           \
   _(BeginCallback, "bgnCB", PhaseKind::GC_BEGIN)                    \
   _(MinorForMajor, "evct4m", PhaseKind::EVICT_NURSERY_FOR_MAJOR_GC) \
   _(WaitBgThread, "waitBG", PhaseKind::WAIT_BACKGROUND_THREAD)      \
@@ -114,6 +113,9 @@ struct Trigger {
   _(EndCallback, "endCB", PhaseKind::GC_END)                        \
   _(MinorGC, "minor", PhaseKind::MINOR_GC)                          \
   _(EvictNursery, "evict", PhaseKind::EVICT_NURSERY)
+
+static const char* const MajorGCProfilePrefix = "MajorGC:";
+static const char* const MinorGCProfilePrefix = "MinorGC:";
 
 const char* ExplainAbortReason(GCAbortReason reason);
 
@@ -224,20 +226,12 @@ struct Statistics {
   }
   bool hasTrigger() const { return recordedTrigger.isSome(); }
 
-  void noteNurseryAlloc() { allocsSinceMinorGC.nursery++; }
-
   // tenured allocs don't include nursery evictions.
   void setAllocsSinceMinorGCTenured(uint32_t allocs) {
-    allocsSinceMinorGC.tenured = allocs;
+    tenuredAllocsSinceMinorGC = allocs;
   }
 
-  uint32_t allocsSinceMinorGCNursery() { return allocsSinceMinorGC.nursery; }
-
-  uint32_t allocsSinceMinorGCTenured() { return allocsSinceMinorGC.tenured; }
-
-  uint32_t* addressOfAllocsSinceMinorGCNursery() {
-    return &allocsSinceMinorGC.nursery;
-  }
+  uint32_t allocsSinceMinorGCTenured() { return tenuredAllocsSinceMinorGC; }
 
   void beginNurseryCollection(JS::GCReason reason);
   void endNurseryCollection(JS::GCReason reason);
@@ -388,10 +382,7 @@ struct Statistics {
    * These events cannot be kept in the above array, we need to take their
    * address.
    */
-  struct {
-    uint32_t nursery;
-    uint32_t tenured;
-  } allocsSinceMinorGC;
+  uint32_t tenuredAllocsSinceMinorGC;
 
   /* Total GC heap size before and after the GC ran. */
   size_t preTotalHeapBytes;
@@ -444,11 +435,9 @@ struct Statistics {
   /* Profiling data. */
 
   enum class ProfileKey {
-    Total,
-    Background,
-#define DEFINE_TIME_KEY(name, text, phase) name,
-    FOR_EACH_GC_PROFILE_TIME(DEFINE_TIME_KEY)
-#undef DEFINE_TIME_KEY
+#define DEFINE_PROFILE_KEY(name, _1, _2) name,
+    FOR_EACH_GC_PROFILE_TIME(DEFINE_PROFILE_KEY)
+#undef DEFINE_PROFILE_KEY
         KeyCount
   };
 
@@ -461,6 +450,9 @@ struct Statistics {
   ProfileDurations totalTimes_;
   uint64_t sliceCount_;
 
+  char formatBuffer_[32];
+  static constexpr int FormatBufferLength = sizeof(formatBuffer_);
+
   JSContext* context();
 
   Phase currentPhase() const;
@@ -471,6 +463,8 @@ struct Statistics {
 
   void sendGCTelemetry();
   void sendSliceTelemetry(const SliceData& slice);
+
+  TimeDuration sumTotalParallelTime(PhaseKind phaseKind) const;
 
   void recordPhaseBegin(Phase phase);
   void recordPhaseEnd(Phase phase);
@@ -499,7 +493,14 @@ struct Statistics {
   double computeMMU(TimeDuration resolution) const;
 
   void printSliceProfile();
-  void printProfileTimes(const ProfileDurations& times);
+  ProfileDurations getProfileTimes(const SliceData& slice) const;
+  void updateTotalProfileTimes(const ProfileDurations& times);
+  const char* formatGCStates(const SliceData& slice);
+  const char* formatGCFlags(const SliceData& slice);
+  const char* formatBudget(const SliceData& slice);
+  const char* formatTotalSlices();
+  static bool printProfileTimes(const ProfileDurations& times,
+                                Sprinter& sprinter);
 };
 
 struct MOZ_RAII AutoGCSlice {

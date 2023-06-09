@@ -7,6 +7,7 @@
 #ifndef MOZILLA_LAYERS_WEBRENDERAPI_H
 #define MOZILLA_LAYERS_WEBRENDERAPI_H
 
+#include <queue>
 #include <stdint.h>
 #include <vector>
 #include <unordered_map>
@@ -15,12 +16,14 @@
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/gfx/CompositorHitTestInfo.h"
 #include "mozilla/layers/IpcResourceUpdateQueue.h"
+#include "mozilla/layers/RemoteTextureMap.h"
 #include "mozilla/layers/ScrollableLayerGuid.h"
 #include "mozilla/layers/SyncObject.h"
 #include "mozilla/layers/CompositionRecorder.h"
 #include "mozilla/MozPromise.h"
 #include "mozilla/Range.h"
 #include "mozilla/TimeStamp.h"
+#include "mozilla/UniquePtr.h"
 #include "mozilla/VsyncDispatcher.h"
 #include "mozilla/webrender/webrender_ffi.h"
 #include "mozilla/webrender/WebRenderTypes.h"
@@ -112,9 +115,7 @@ class TransactionBuilder final {
 
   void RemovePipeline(PipelineId aPipelineId);
 
-  void SetDisplayList(const gfx::DeviceColor& aBgColor, Epoch aEpoch,
-                      const wr::LayoutSize& aViewportSize,
-                      wr::WrPipelineId pipeline_id,
+  void SetDisplayList(Epoch aEpoch, wr::WrPipelineId pipeline_id,
                       wr::BuiltDisplayListDescriptor dl_descriptor,
                       wr::Vec<uint8_t>& dl_items_data,
                       wr::Vec<uint8_t>& dl_cache_data,
@@ -197,6 +198,8 @@ class TransactionBuilder final {
   void Notify(wr::Checkpoint aWhen, UniquePtr<NotificationHandler> aHandler);
 
   void Clear();
+
+  Transaction* Take();
 
   bool UseSceneBuilderThread() const { return mUseSceneBuilderThread; }
   layers::WebRenderBackend GetBackendType() { return mApiBackend; }
@@ -297,25 +300,15 @@ class WebRenderAPI final {
   void BeginRecording(const TimeStamp& aRecordingStart,
                       wr::PipelineId aRootPipelineId);
 
-  typedef MozPromise<bool, nsresult, true> WriteCollectedFramesPromise;
-  typedef MozPromise<layers::CollectedFrames, nsresult, true>
-      GetCollectedFramesPromise;
+  typedef MozPromise<layers::FrameRecording, nsresult, true>
+      EndRecordingPromise;
 
-  /**
-   * Write the frames collected since the call to BeginRecording() to disk.
-   *
-   * If there is not currently a recorder, this is a no-op.
-   */
-  RefPtr<WriteCollectedFramesPromise> WriteCollectedFrames();
+  RefPtr<EndRecordingPromise> EndRecording();
 
-  /**
-   * Return the frames collected since the call to BeginRecording() encoded
-   * as data URIs.
-   *
-   * If there is not currently a recorder, this is a no-op and the promise will
-   * be rejected.
-   */
-  RefPtr<GetCollectedFramesPromise> GetCollectedFrames();
+  layers::RemoteTextureInfoList* GetPendingRemoteTextureInfoList();
+
+  void FlushPendingWrTransactionEventsWithoutWait();
+  void FlushPendingWrTransactionEventsWithWait();
 
  protected:
   WebRenderAPI(wr::DocumentHandle* aHandle, wr::WindowId aId,
@@ -330,6 +323,95 @@ class WebRenderAPI final {
   void WaitFlushed();
 
   void UpdateDebugFlags(uint32_t aFlags);
+  bool CheckIsRemoteTextureReady(layers::RemoteTextureInfoList* aList);
+  void WaitRemoteTextureReady(layers::RemoteTextureInfoList* aList);
+
+  enum class RemoteTextureWaitType : uint8_t {
+    AsyncWait = 0,
+    FlushWithWait = 1,
+    FlushWithoutWait = 2
+  };
+
+  void HandleWrTransactionEvents(RemoteTextureWaitType aType);
+
+  class WrTransactionEvent {
+   public:
+    enum class Tag {
+      Transaction,
+      PendingRemoteTextures,
+    };
+    const Tag mTag;
+
+    struct TransactionWrapper {
+      TransactionWrapper(wr::Transaction* aTxn, bool aUseSceneBuilderThread)
+          : mTxn(aTxn), mUseSceneBuilderThread(aUseSceneBuilderThread) {}
+
+      ~TransactionWrapper() {
+        if (mTxn) {
+          wr_transaction_delete(mTxn);
+        }
+      }
+
+      wr::Transaction* mTxn;
+      const bool mUseSceneBuilderThread;
+    };
+
+   private:
+    WrTransactionEvent(const Tag aTag,
+                       UniquePtr<TransactionWrapper>&& aTransaction)
+        : mTag(aTag), mTransaction(std::move(aTransaction)) {
+      MOZ_ASSERT(mTag == Tag::Transaction);
+    }
+    WrTransactionEvent(
+        const Tag aTag,
+        UniquePtr<layers::RemoteTextureInfoList>&& aPendingRemoteTextures)
+        : mTag(aTag),
+          mPendingRemoteTextures(std::move(aPendingRemoteTextures)) {
+      MOZ_ASSERT(mTag == Tag::PendingRemoteTextures);
+    }
+
+    UniquePtr<TransactionWrapper> mTransaction;
+    UniquePtr<layers::RemoteTextureInfoList> mPendingRemoteTextures;
+
+   public:
+    static WrTransactionEvent Transaction(wr::Transaction* aTxn,
+                                          bool aUseSceneBuilderThread) {
+      auto transaction =
+          MakeUnique<TransactionWrapper>(aTxn, aUseSceneBuilderThread);
+      return WrTransactionEvent(Tag::Transaction, std::move(transaction));
+    }
+
+    static WrTransactionEvent PendingRemoteTextures(
+        UniquePtr<layers::RemoteTextureInfoList>&& aPendingRemoteTextures) {
+      return WrTransactionEvent(Tag::PendingRemoteTextures,
+                                std::move(aPendingRemoteTextures));
+    }
+
+    wr::Transaction* Transaction() {
+      if (mTag == Tag::Transaction) {
+        return mTransaction->mTxn;
+      }
+      MOZ_ASSERT_UNREACHABLE("unexpected to be called");
+      return nullptr;
+    }
+
+    bool UseSceneBuilderThread() {
+      if (mTag == Tag::Transaction) {
+        return mTransaction->mUseSceneBuilderThread;
+      }
+      MOZ_ASSERT_UNREACHABLE("unexpected to be called");
+      return true;
+    }
+
+    layers::RemoteTextureInfoList* RemoteTextureInfoList() {
+      if (mTag == Tag::PendingRemoteTextures) {
+        MOZ_ASSERT(mPendingRemoteTextures);
+        return mPendingRemoteTextures.get();
+      }
+      MOZ_ASSERT_UNREACHABLE("unexpected to be called");
+      return nullptr;
+    }
+  };
 
   wr::DocumentHandle* mDocHandle;
   wr::WindowId mId;
@@ -343,6 +425,9 @@ class WebRenderAPI final {
   bool mCaptureSequence;
   layers::SyncHandle mSyncHandle;
   bool mRendererDestroyed;
+
+  UniquePtr<layers::RemoteTextureInfoList> mPendingRemoteTextureInfoList;
+  std::queue<WrTransactionEvent> mPendingWrTransactionEvents;
 
   // We maintain alive the root api to know when to shut the render backend
   // down, and the root api for the document to know when to delete the
@@ -600,22 +685,19 @@ class DisplayListBuilder final {
                           const wr::LayoutPoint& aStartPoint,
                           const wr::LayoutPoint& aEndPoint,
                           const nsTArray<wr::GradientStop>& aStops,
-                          wr::ExtendMode aExtendMode,
-                          const wr::LayoutSideOffsets& aOutset);
+                          wr::ExtendMode aExtendMode);
 
   void PushBorderRadialGradient(
       const wr::LayoutRect& aBounds, const wr::LayoutRect& aClip,
       bool aIsBackfaceVisible, const wr::LayoutSideOffsets& aWidths, bool aFill,
       const wr::LayoutPoint& aCenter, const wr::LayoutSize& aRadius,
-      const nsTArray<wr::GradientStop>& aStops, wr::ExtendMode aExtendMode,
-      const wr::LayoutSideOffsets& aOutset);
+      const nsTArray<wr::GradientStop>& aStops, wr::ExtendMode aExtendMode);
 
   void PushBorderConicGradient(
       const wr::LayoutRect& aBounds, const wr::LayoutRect& aClip,
       bool aIsBackfaceVisible, const wr::LayoutSideOffsets& aWidths, bool aFill,
       const wr::LayoutPoint& aCenter, const float aAngle,
-      const nsTArray<wr::GradientStop>& aStops, wr::ExtendMode aExtendMode,
-      const wr::LayoutSideOffsets& aOutset);
+      const nsTArray<wr::GradientStop>& aStops, wr::ExtendMode aExtendMode);
 
   void PushText(const wr::LayoutRect& aBounds, const wr::LayoutRect& aClip,
                 bool aIsBackfaceVisible, const wr::ColorF& aColor,
@@ -684,11 +766,11 @@ class DisplayListBuilder final {
 
   Maybe<SideBits> GetContainingFixedPosSideBits(const ActiveScrolledRoot* aAsr);
 
-  already_AddRefed<gfxContext> GetTextContext(
-      wr::IpcResourceUpdateQueue& aResources,
-      const layers::StackingContextHelper& aSc,
-      layers::RenderRootStateManager* aManager, nsDisplayItem* aItem,
-      nsRect& aBounds, const gfx::Point& aDeviceOffset);
+  gfxContext* GetTextContext(wr::IpcResourceUpdateQueue& aResources,
+                             const layers::StackingContextHelper& aSc,
+                             layers::RenderRootStateManager* aManager,
+                             nsDisplayItem* aItem, nsRect& aBounds,
+                             const gfx::Point& aDeviceOffset);
 
   // Try to avoid using this when possible.
   wr::WrState* Raw() { return mWrState; }
@@ -771,7 +853,7 @@ class DisplayListBuilder final {
   Maybe<wr::LayoutRect> mSuspendedClipChainLeaf;
 
   RefPtr<layout::TextDrawTarget> mCachedTextDT;
-  RefPtr<gfxContext> mCachedContext;
+  mozilla::UniquePtr<gfxContext> mCachedContext;
 
   FixedPosScrollTargetTracker* mActiveFixedPosTracker;
 

@@ -2,10 +2,10 @@ use crate::auxil::{self, dxgi::result::HResult as _};
 
 use super::conv;
 use std::{mem, ops::Range, ptr};
-use winapi::um::d3d12;
+use winapi::um::d3d12 as d3d12_ty;
 
-fn make_box(origin: &wgt::Origin3d, size: &crate::CopyExtent) -> d3d12::D3D12_BOX {
-    d3d12::D3D12_BOX {
+fn make_box(origin: &wgt::Origin3d, size: &crate::CopyExtent) -> d3d12_ty::D3D12_BOX {
+    d3d12_ty::D3D12_BOX {
         left: origin.x,
         top: origin.y,
         right: origin.x + size.width,
@@ -19,30 +19,31 @@ impl crate::BufferTextureCopy {
     fn to_subresource_footprint(
         &self,
         format: wgt::TextureFormat,
-    ) -> d3d12::D3D12_PLACED_SUBRESOURCE_FOOTPRINT {
-        let desc = format.describe();
-        d3d12::D3D12_PLACED_SUBRESOURCE_FOOTPRINT {
+    ) -> d3d12_ty::D3D12_PLACED_SUBRESOURCE_FOOTPRINT {
+        let (block_width, block_height) = format.block_dimensions();
+        d3d12_ty::D3D12_PLACED_SUBRESOURCE_FOOTPRINT {
             Offset: self.buffer_layout.offset,
-            Footprint: d3d12::D3D12_SUBRESOURCE_FOOTPRINT {
-                Format: auxil::dxgi::conv::map_texture_format(format),
+            Footprint: d3d12_ty::D3D12_SUBRESOURCE_FOOTPRINT {
+                Format: auxil::dxgi::conv::map_texture_format_for_copy(
+                    format,
+                    self.texture_base.aspect,
+                )
+                .unwrap(),
                 Width: self.size.width,
                 Height: self
                     .buffer_layout
                     .rows_per_image
-                    .map_or(self.size.height, |count| {
-                        count.get() * desc.block_dimensions.1 as u32
-                    }),
+                    .map_or(self.size.height, |count| count * block_height),
                 Depth: self.size.depth,
                 RowPitch: {
-                    let actual = match self.buffer_layout.bytes_per_row {
-                        Some(count) => count.get(),
+                    let actual = self.buffer_layout.bytes_per_row.unwrap_or_else(|| {
                         // this may happen for single-line updates
-                        None => {
-                            (self.size.width / desc.block_dimensions.0 as u32)
-                                * desc.block_size as u32
-                        }
-                    };
-                    crate::auxil::align_to(actual, d3d12::D3D12_TEXTURE_DATA_PITCH_ALIGNMENT)
+                        let block_size = format
+                            .block_size(Some(self.texture_base.aspect.map()))
+                            .unwrap();
+                        (self.size.width / block_width) * block_size
+                    });
+                    wgt::math::align_to(actual, d3d12_ty::D3D12_TEXTURE_DATA_PITCH_ALIGNMENT)
                 },
             },
         }
@@ -228,20 +229,34 @@ impl super::CommandEncoder {
 
 impl crate::CommandEncoder<super::Api> for super::CommandEncoder {
     unsafe fn begin_encoding(&mut self, label: crate::Label) -> Result<(), crate::DeviceError> {
-        let list = match self.free_lists.pop() {
-            Some(list) => {
-                list.reset(self.allocator, native::PipelineState::null());
-                list
+        let list = loop {
+            if let Some(list) = self.free_lists.pop() {
+                let reset_result = list
+                    .reset(self.allocator, d3d12::PipelineState::null())
+                    .into_result();
+                if reset_result.is_ok() {
+                    break Some(list);
+                } else {
+                    unsafe {
+                        list.destroy();
+                    }
+                }
+            } else {
+                break None;
             }
-            None => self
-                .device
+        };
+
+        let list = if let Some(list) = list {
+            list
+        } else {
+            self.device
                 .create_graphics_command_list(
-                    native::CmdListType::Direct,
+                    d3d12::CmdListType::Direct,
                     self.allocator,
-                    native::PipelineState::null(),
+                    d3d12::PipelineState::null(),
                     0,
                 )
-                .into_device_result("Create command list")?,
+                .into_device_result("Create command list")?
         };
 
         if let Some(label) = label {
@@ -256,18 +271,29 @@ impl crate::CommandEncoder<super::Api> for super::CommandEncoder {
     }
     unsafe fn discard_encoding(&mut self) {
         if let Some(list) = self.list.take() {
-            list.close();
-            self.free_lists.push(list);
+            if list.close().into_result().is_ok() {
+                self.free_lists.push(list);
+            } else {
+                unsafe {
+                    list.destroy();
+                }
+            }
         }
     }
     unsafe fn end_encoding(&mut self) -> Result<super::CommandBuffer, crate::DeviceError> {
         let raw = self.list.take().unwrap();
-        raw.close();
-        Ok(super::CommandBuffer { raw })
+        let closed = raw.close().into_result().is_ok();
+        Ok(super::CommandBuffer { raw, closed })
     }
     unsafe fn reset_all<I: Iterator<Item = super::CommandBuffer>>(&mut self, command_buffers: I) {
         for cmd_buf in command_buffers {
-            self.free_lists.push(cmd_buf.raw);
+            if cmd_buf.closed {
+                self.free_lists.push(cmd_buf.raw);
+            } else {
+                unsafe {
+                    cmd_buf.raw.destroy();
+                }
+            }
         }
         self.allocator.reset();
     }
@@ -289,28 +315,28 @@ impl crate::CommandEncoder<super::Api> for super::CommandEncoder {
             let s0 = conv::map_buffer_usage_to_state(barrier.usage.start);
             let s1 = conv::map_buffer_usage_to_state(barrier.usage.end);
             if s0 != s1 {
-                let mut raw = d3d12::D3D12_RESOURCE_BARRIER {
-                    Type: d3d12::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
-                    Flags: d3d12::D3D12_RESOURCE_BARRIER_FLAG_NONE,
+                let mut raw = d3d12_ty::D3D12_RESOURCE_BARRIER {
+                    Type: d3d12_ty::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
+                    Flags: d3d12_ty::D3D12_RESOURCE_BARRIER_FLAG_NONE,
                     u: unsafe { mem::zeroed() },
                 };
                 unsafe {
-                    *raw.u.Transition_mut() = d3d12::D3D12_RESOURCE_TRANSITION_BARRIER {
+                    *raw.u.Transition_mut() = d3d12_ty::D3D12_RESOURCE_TRANSITION_BARRIER {
                         pResource: barrier.buffer.resource.as_mut_ptr(),
-                        Subresource: d3d12::D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+                        Subresource: d3d12_ty::D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
                         StateBefore: s0,
                         StateAfter: s1,
                     }
                 };
                 self.temp.barriers.push(raw);
             } else if barrier.usage.start == crate::BufferUses::STORAGE_READ_WRITE {
-                let mut raw = d3d12::D3D12_RESOURCE_BARRIER {
-                    Type: d3d12::D3D12_RESOURCE_BARRIER_TYPE_UAV,
-                    Flags: d3d12::D3D12_RESOURCE_BARRIER_FLAG_NONE,
+                let mut raw = d3d12_ty::D3D12_RESOURCE_BARRIER {
+                    Type: d3d12_ty::D3D12_RESOURCE_BARRIER_TYPE_UAV,
+                    Flags: d3d12_ty::D3D12_RESOURCE_BARRIER_FLAG_NONE,
                     u: unsafe { mem::zeroed() },
                 };
                 unsafe {
-                    *raw.u.UAV_mut() = d3d12::D3D12_RESOURCE_UAV_BARRIER {
+                    *raw.u.UAV_mut() = d3d12_ty::D3D12_RESOURCE_UAV_BARRIER {
                         pResource: barrier.buffer.resource.as_mut_ptr(),
                     }
                 };
@@ -345,61 +371,53 @@ impl crate::CommandEncoder<super::Api> for super::CommandEncoder {
             let s0 = conv::map_texture_usage_to_state(barrier.usage.start);
             let s1 = conv::map_texture_usage_to_state(barrier.usage.end);
             if s0 != s1 {
-                let mut raw = d3d12::D3D12_RESOURCE_BARRIER {
-                    Type: d3d12::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
-                    Flags: d3d12::D3D12_RESOURCE_BARRIER_FLAG_NONE,
+                let mut raw = d3d12_ty::D3D12_RESOURCE_BARRIER {
+                    Type: d3d12_ty::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
+                    Flags: d3d12_ty::D3D12_RESOURCE_BARRIER_FLAG_NONE,
                     u: unsafe { mem::zeroed() },
                 };
                 unsafe {
-                    *raw.u.Transition_mut() = d3d12::D3D12_RESOURCE_TRANSITION_BARRIER {
+                    *raw.u.Transition_mut() = d3d12_ty::D3D12_RESOURCE_TRANSITION_BARRIER {
                         pResource: barrier.texture.resource.as_mut_ptr(),
-                        Subresource: d3d12::D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+                        Subresource: d3d12_ty::D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
                         StateBefore: s0,
                         StateAfter: s1,
                     }
                 };
 
-                let mip_level_count = match barrier.range.mip_level_count {
-                    Some(count) => count.get(),
-                    None => barrier.texture.mip_level_count - barrier.range.base_mip_level,
-                };
-                let array_layer_count = match barrier.range.array_layer_count {
-                    Some(count) => count.get(),
-                    None => barrier.texture.array_layer_count() - barrier.range.base_array_layer,
-                };
+                let tex_mip_level_count = barrier.texture.mip_level_count;
+                let tex_array_layer_count = barrier.texture.array_layer_count();
 
-                if barrier.range.aspect == wgt::TextureAspect::All
-                    && barrier.range.base_mip_level == 0
-                    && mip_level_count == barrier.texture.mip_level_count
-                    && barrier.range.base_array_layer == 0
-                    && array_layer_count == barrier.texture.array_layer_count()
-                {
+                if barrier.range.is_full_resource(
+                    barrier.texture.format,
+                    tex_mip_level_count,
+                    tex_array_layer_count,
+                ) {
                     // Only one barrier if it affects the whole image.
                     self.temp.barriers.push(raw);
                 } else {
                     // Selected texture aspect is relevant if the texture format has both depth _and_ stencil aspects.
-                    let planes = if crate::FormatAspects::from(barrier.texture.format)
-                        .contains(crate::FormatAspects::DEPTH | crate::FormatAspects::STENCIL)
-                    {
+                    let planes = if barrier.texture.format.is_combined_depth_stencil_format() {
                         match barrier.range.aspect {
                             wgt::TextureAspect::All => 0..2,
-                            wgt::TextureAspect::StencilOnly => 1..2,
                             wgt::TextureAspect::DepthOnly => 0..1,
+                            wgt::TextureAspect::StencilOnly => 1..2,
                         }
                     } else {
-                        0..1
+                        match barrier.texture.format {
+                            wgt::TextureFormat::Stencil8 => 1..2,
+                            wgt::TextureFormat::Depth24Plus => 0..2, // TODO: investigate why tests fail if we set this to 0..1
+                            _ => 0..1,
+                        }
                     };
 
-                    for rel_mip_level in 0..mip_level_count {
-                        for rel_array_layer in 0..array_layer_count {
+                    for mip_level in barrier.range.mip_range(tex_mip_level_count) {
+                        for array_layer in barrier.range.layer_range(tex_array_layer_count) {
                             for plane in planes.clone() {
                                 unsafe {
-                                    raw.u.Transition_mut().Subresource =
-                                        barrier.texture.calc_subresource(
-                                            barrier.range.base_mip_level + rel_mip_level,
-                                            barrier.range.base_array_layer + rel_array_layer,
-                                            plane,
-                                        );
+                                    raw.u.Transition_mut().Subresource = barrier
+                                        .texture
+                                        .calc_subresource(mip_level, array_layer, plane);
                                 };
                                 self.temp.barriers.push(raw);
                             }
@@ -407,13 +425,13 @@ impl crate::CommandEncoder<super::Api> for super::CommandEncoder {
                     }
                 }
             } else if barrier.usage.start == crate::TextureUses::STORAGE_READ_WRITE {
-                let mut raw = d3d12::D3D12_RESOURCE_BARRIER {
-                    Type: d3d12::D3D12_RESOURCE_BARRIER_TYPE_UAV,
-                    Flags: d3d12::D3D12_RESOURCE_BARRIER_FLAG_NONE,
+                let mut raw = d3d12_ty::D3D12_RESOURCE_BARRIER {
+                    Type: d3d12_ty::D3D12_RESOURCE_BARRIER_TYPE_UAV,
+                    Flags: d3d12_ty::D3D12_RESOURCE_BARRIER_FLAG_NONE,
                     u: unsafe { mem::zeroed() },
                 };
                 unsafe {
-                    *raw.u.UAV_mut() = d3d12::D3D12_RESOURCE_UAV_BARRIER {
+                    *raw.u.UAV_mut() = d3d12_ty::D3D12_RESOURCE_UAV_BARRIER {
                         pResource: barrier.texture.resource.as_mut_ptr(),
                     }
                 };
@@ -480,14 +498,14 @@ impl crate::CommandEncoder<super::Api> for super::CommandEncoder {
         T: Iterator<Item = crate::TextureCopy>,
     {
         let list = self.list.unwrap();
-        let mut src_location = d3d12::D3D12_TEXTURE_COPY_LOCATION {
+        let mut src_location = d3d12_ty::D3D12_TEXTURE_COPY_LOCATION {
             pResource: src.resource.as_mut_ptr(),
-            Type: d3d12::D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+            Type: d3d12_ty::D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
             u: unsafe { mem::zeroed() },
         };
-        let mut dst_location = d3d12::D3D12_TEXTURE_COPY_LOCATION {
+        let mut dst_location = d3d12_ty::D3D12_TEXTURE_COPY_LOCATION {
             pResource: dst.resource.as_mut_ptr(),
-            Type: d3d12::D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+            Type: d3d12_ty::D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
             u: unsafe { mem::zeroed() },
         };
 
@@ -522,14 +540,14 @@ impl crate::CommandEncoder<super::Api> for super::CommandEncoder {
         T: Iterator<Item = crate::BufferTextureCopy>,
     {
         let list = self.list.unwrap();
-        let mut src_location = d3d12::D3D12_TEXTURE_COPY_LOCATION {
+        let mut src_location = d3d12_ty::D3D12_TEXTURE_COPY_LOCATION {
             pResource: src.resource.as_mut_ptr(),
-            Type: d3d12::D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
+            Type: d3d12_ty::D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
             u: unsafe { mem::zeroed() },
         };
-        let mut dst_location = d3d12::D3D12_TEXTURE_COPY_LOCATION {
+        let mut dst_location = d3d12_ty::D3D12_TEXTURE_COPY_LOCATION {
             pResource: dst.resource.as_mut_ptr(),
-            Type: d3d12::D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+            Type: d3d12_ty::D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
             u: unsafe { mem::zeroed() },
         };
         for r in regions {
@@ -564,14 +582,14 @@ impl crate::CommandEncoder<super::Api> for super::CommandEncoder {
         T: Iterator<Item = crate::BufferTextureCopy>,
     {
         let list = self.list.unwrap();
-        let mut src_location = d3d12::D3D12_TEXTURE_COPY_LOCATION {
+        let mut src_location = d3d12_ty::D3D12_TEXTURE_COPY_LOCATION {
             pResource: src.resource.as_mut_ptr(),
-            Type: d3d12::D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+            Type: d3d12_ty::D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
             u: unsafe { mem::zeroed() },
         };
-        let mut dst_location = d3d12::D3D12_TEXTURE_COPY_LOCATION {
+        let mut dst_location = d3d12_ty::D3D12_TEXTURE_COPY_LOCATION {
             pResource: dst.resource.as_mut_ptr(),
-            Type: d3d12::D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
+            Type: d3d12_ty::D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
             u: unsafe { mem::zeroed() },
         };
         for r in regions {
@@ -605,7 +623,7 @@ impl crate::CommandEncoder<super::Api> for super::CommandEncoder {
         unsafe {
             self.list.unwrap().EndQuery(
                 set.raw.as_mut_ptr(),
-                d3d12::D3D12_QUERY_TYPE_TIMESTAMP,
+                d3d12_ty::D3D12_QUERY_TYPE_TIMESTAMP,
                 index,
             )
         };
@@ -637,7 +655,7 @@ impl crate::CommandEncoder<super::Api> for super::CommandEncoder {
 
     unsafe fn begin_render_pass(&mut self, desc: &crate::RenderPassDescriptor<super::Api>) {
         unsafe { self.begin_pass(super::PassKind::Render, desc.label) };
-        let mut color_views = [native::CpuDescriptor { ptr: 0 }; crate::MAX_COLOR_ATTACHMENTS];
+        let mut color_views = [d3d12::CpuDescriptor { ptr: 0 }; crate::MAX_COLOR_ATTACHMENTS];
         for (rtv, cat) in color_views.iter_mut().zip(desc.color_attachments.iter()) {
             if let Some(cat) = cat.as_ref() {
                 *rtv = cat.target.view.handle_rtv.unwrap().raw;
@@ -690,17 +708,17 @@ impl crate::CommandEncoder<super::Api> for super::CommandEncoder {
         }
 
         if let Some(ref ds) = desc.depth_stencil_attachment {
-            let mut flags = native::ClearFlags::empty();
-            let aspects = ds.target.view.format_aspects;
+            let mut flags = d3d12::ClearFlags::empty();
+            let aspects = ds.target.view.aspects;
             if !ds.depth_ops.contains(crate::AttachmentOps::LOAD)
                 && aspects.contains(crate::FormatAspects::DEPTH)
             {
-                flags |= native::ClearFlags::DEPTH;
+                flags |= d3d12::ClearFlags::DEPTH;
             }
             if !ds.stencil_ops.contains(crate::AttachmentOps::LOAD)
                 && aspects.contains(crate::FormatAspects::STENCIL)
             {
-                flags |= native::ClearFlags::STENCIL;
+                flags |= d3d12::ClearFlags::STENCIL;
             }
 
             if !ds_view.is_null() && !flags.is_empty() {
@@ -714,7 +732,7 @@ impl crate::CommandEncoder<super::Api> for super::CommandEncoder {
             }
         }
 
-        let raw_vp = d3d12::D3D12_VIEWPORT {
+        let raw_vp = d3d12_ty::D3D12_VIEWPORT {
             TopLeftX: 0.0,
             TopLeftY: 0.0,
             Width: desc.extent.width as f32,
@@ -722,7 +740,7 @@ impl crate::CommandEncoder<super::Api> for super::CommandEncoder {
             MinDepth: 0.0,
             MaxDepth: 1.0,
         };
-        let raw_rect = d3d12::D3D12_RECT {
+        let raw_rect = d3d12_ty::D3D12_RECT {
             left: 0,
             top: 0,
             right: desc.extent.width as i32,
@@ -740,28 +758,28 @@ impl crate::CommandEncoder<super::Api> for super::CommandEncoder {
             // All the targets are expected to be in `COLOR_TARGET` state,
             // but D3D12 has special source/destination states for the resolves.
             for resolve in self.pass.resolves.iter() {
-                let mut barrier = d3d12::D3D12_RESOURCE_BARRIER {
-                    Type: d3d12::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
-                    Flags: d3d12::D3D12_RESOURCE_BARRIER_FLAG_NONE,
+                let mut barrier = d3d12_ty::D3D12_RESOURCE_BARRIER {
+                    Type: d3d12_ty::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
+                    Flags: d3d12_ty::D3D12_RESOURCE_BARRIER_FLAG_NONE,
                     u: unsafe { mem::zeroed() },
                 };
                 //Note: this assumes `D3D12_RESOURCE_STATE_RENDER_TARGET`.
                 // If it's not the case, we can include the `TextureUses` in `PassResove`.
                 unsafe {
-                    *barrier.u.Transition_mut() = d3d12::D3D12_RESOURCE_TRANSITION_BARRIER {
+                    *barrier.u.Transition_mut() = d3d12_ty::D3D12_RESOURCE_TRANSITION_BARRIER {
                         pResource: resolve.src.0.as_mut_ptr(),
                         Subresource: resolve.src.1,
-                        StateBefore: d3d12::D3D12_RESOURCE_STATE_RENDER_TARGET,
-                        StateAfter: d3d12::D3D12_RESOURCE_STATE_RESOLVE_SOURCE,
+                        StateBefore: d3d12_ty::D3D12_RESOURCE_STATE_RENDER_TARGET,
+                        StateAfter: d3d12_ty::D3D12_RESOURCE_STATE_RESOLVE_SOURCE,
                     }
                 };
                 self.temp.barriers.push(barrier);
                 unsafe {
-                    *barrier.u.Transition_mut() = d3d12::D3D12_RESOURCE_TRANSITION_BARRIER {
+                    *barrier.u.Transition_mut() = d3d12_ty::D3D12_RESOURCE_TRANSITION_BARRIER {
                         pResource: resolve.dst.0.as_mut_ptr(),
                         Subresource: resolve.dst.1,
-                        StateBefore: d3d12::D3D12_RESOURCE_STATE_RENDER_TARGET,
-                        StateAfter: d3d12::D3D12_RESOURCE_STATE_RESOLVE_DEST,
+                        StateBefore: d3d12_ty::D3D12_RESOURCE_STATE_RENDER_TARGET,
+                        StateAfter: d3d12_ty::D3D12_RESOURCE_STATE_RESOLVE_DEST,
                     }
                 };
                 self.temp.barriers.push(barrier);
@@ -846,7 +864,7 @@ impl crate::CommandEncoder<super::Api> for super::CommandEncoder {
             log::trace!("\tBind element[{}] = dynamic", root_index);
             self.pass.root_elements[root_index] = super::RootElement::DynamicOffsetBuffer {
                 kind,
-                address: gpu_base + offset as native::GpuAddress,
+                address: gpu_base + offset as d3d12::GpuAddress,
             };
             root_index += 1;
         }
@@ -951,7 +969,7 @@ impl crate::CommandEncoder<super::Api> for super::CommandEncoder {
     }
 
     unsafe fn set_viewport(&mut self, rect: &crate::Rect<f32>, depth_range: Range<f32>) {
-        let raw_vp = d3d12::D3D12_VIEWPORT {
+        let raw_vp = d3d12_ty::D3D12_VIEWPORT {
             TopLeftX: rect.x,
             TopLeftY: rect.y,
             Width: rect.w,
@@ -962,7 +980,7 @@ impl crate::CommandEncoder<super::Api> for super::CommandEncoder {
         unsafe { self.list.unwrap().RSSetViewports(1, &raw_vp) };
     }
     unsafe fn set_scissor_rect(&mut self, rect: &crate::Rect<u32>) {
-        let raw_rect = d3d12::D3D12_RECT {
+        let raw_rect = d3d12_ty::D3D12_RECT {
             left: rect.x as i32,
             top: rect.y as i32,
             right: (rect.x + rect.w) as i32,

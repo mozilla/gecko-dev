@@ -82,10 +82,6 @@ NS_IMPL_ISUPPORTS(AsyncDeleteAllFaviconsFromDisk, nsIRunnable)
 const char FaviconHelper::kJumpListCacheDir[] = "jumpListCache";
 const char FaviconHelper::kShortcutCacheDir[] = "shortcutCache";
 
-// Prefix for path used by NT calls.
-const wchar_t kNTPrefix[] = L"\\??\\";
-const size_t kNTPrefixLen = ArrayLength(kNTPrefix) - 1;
-
 struct CoTaskMemFreePolicy {
   void operator()(void* aPtr) { ::CoTaskMemFree(aPtr); }
 };
@@ -784,51 +780,6 @@ MSG WinUtils::InitMSG(UINT aMessage, WPARAM wParam, LPARAM lParam, HWND aWnd) {
   return msg;
 }
 
-static BOOL WINAPI EnumFirstChild(HWND hwnd, LPARAM lParam) {
-  *((HWND*)lParam) = hwnd;
-  return FALSE;
-}
-
-/* static */
-void WinUtils::InvalidatePluginAsWorkaround(nsIWidget* aWidget,
-                                            const LayoutDeviceIntRect& aRect) {
-  aWidget->Invalidate(aRect);
-
-  // XXX - Even more evil workaround!! See bug 762948, flash's bottom
-  // level sandboxed window doesn't seem to get our invalidate. We send
-  // an invalidate to it manually. This is totally specialized for this
-  // bug, for other child window structures this will just be a more or
-  // less bogus invalidate but since that should not have any bad
-  // side-effects this will have to do for now.
-  HWND current = (HWND)aWidget->GetNativeData(NS_NATIVE_WINDOW);
-
-  RECT windowRect;
-  RECT parentRect;
-
-  ::GetWindowRect(current, &parentRect);
-
-  HWND next = current;
-  do {
-    current = next;
-    ::EnumChildWindows(current, &EnumFirstChild, (LPARAM)&next);
-    ::GetWindowRect(next, &windowRect);
-    // This is relative to the screen, adjust it to be relative to the
-    // window we're reconfiguring.
-    windowRect.left -= parentRect.left;
-    windowRect.top -= parentRect.top;
-  } while (next != current && windowRect.top == 0 && windowRect.left == 0);
-
-  if (windowRect.top == 0 && windowRect.left == 0) {
-    RECT rect;
-    rect.left = aRect.X();
-    rect.top = aRect.Y();
-    rect.right = aRect.XMost();
-    rect.bottom = aRect.YMost();
-
-    ::InvalidateRect(next, &rect, FALSE);
-  }
-}
-
 #ifdef MOZ_PLACES
 /************************************************************************
  * Constructs as AsyncFaviconDataReady Object
@@ -840,7 +791,7 @@ void WinUtils::InvalidatePluginAsWorkaround(nsIWidget* aWidget,
  ************************************************************************/
 
 AsyncFaviconDataReady::AsyncFaviconDataReady(
-    nsIURI* aNewURI, nsCOMPtr<nsIThread>& aIOThread, const bool aURLShortcut,
+    nsIURI* aNewURI, RefPtr<LazyIdleThread>& aIOThread, const bool aURLShortcut,
     already_AddRefed<nsIRunnable> aRunnable)
     : mNewURI(aNewURI),
       mIOThread(aIOThread),
@@ -1129,7 +1080,7 @@ AsyncDeleteAllFaviconsFromDisk::~AsyncDeleteAllFaviconsFromDisk() {}
  */
 nsresult FaviconHelper::ObtainCachedIconFile(
     nsCOMPtr<nsIURI> aFaviconPageURI, nsString& aICOFilePath,
-    nsCOMPtr<nsIThread>& aIOThread, bool aURLShortcut,
+    RefPtr<LazyIdleThread>& aIOThread, bool aURLShortcut,
     already_AddRefed<nsIRunnable> aRunnable) {
   nsCOMPtr<nsIRunnable> runnable = aRunnable;
   // Obtain the ICO file path
@@ -1234,7 +1185,7 @@ nsresult FaviconHelper::GetOutputIconPath(nsCOMPtr<nsIURI> aFaviconPageURI,
 // page aFaviconPageURI and stores it to disk at the path of aICOFile.
 nsresult FaviconHelper::CacheIconFileFromFaviconURIAsync(
     nsCOMPtr<nsIURI> aFaviconPageURI, nsCOMPtr<nsIFile> aICOFile,
-    nsCOMPtr<nsIThread>& aIOThread, bool aURLShortcut,
+    RefPtr<LazyIdleThread>& aIOThread, bool aURLShortcut,
     already_AddRefed<nsIRunnable> aRunnable) {
   nsCOMPtr<nsIRunnable> runnable = aRunnable;
 #ifdef MOZ_PLACES
@@ -1476,8 +1427,11 @@ nsresult WinUtils::WriteBitmap(nsIFile* aFile, SourceSurface* surface) {
 /* static */
 uint32_t WinUtils::IsTouchDeviceSupportPresent() {
   int32_t touchCapabilities = ::GetSystemMetrics(SM_DIGITIZER);
-  return (touchCapabilities & NID_READY) &&
-         (touchCapabilities & (NID_EXTERNAL_TOUCH | NID_INTEGRATED_TOUCH));
+  int32_t touchFlags = NID_EXTERNAL_TOUCH | NID_INTEGRATED_TOUCH;
+  if (StaticPrefs::dom_w3c_pointer_events_scroll_by_pen_enabled()) {
+    touchFlags |= NID_EXTERNAL_PEN | NID_INTEGRATED_PEN;
+  }
+  return (touchCapabilities & NID_READY) && (touchCapabilities & touchFlags);
 }
 
 /* static */

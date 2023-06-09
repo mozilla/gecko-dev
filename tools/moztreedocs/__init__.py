@@ -53,7 +53,11 @@ def read_build_config(docdir):
             # topsrcdir always uses POSIX-style path, normalize it for proper comparison.
             absdir = os.path.normpath(os.path.join(build.topsrcdir, reldir, value))
             if not is_main and absdir not in (docdir, MAIN_DOC_PATH):
-                continue
+                # allow subpaths of absdir (i.e. docdir = <absdir>/sub/path/)
+                if docdir.startswith(absdir):
+                    key = os.path.join(key, docdir.split(f"{key}/")[-1])
+                else:
+                    continue
 
             assert key
             if key.startswith("/"):
@@ -76,6 +80,8 @@ def read_build_config(docdir):
 class _SphinxManager(object):
     """Manages the generation of Sphinx documentation for the tree."""
 
+    NO_AUTODOC = False
+
     def __init__(self, topsrcdir, main_path):
         self.topsrcdir = topsrcdir
         self.conf_py_path = os.path.join(main_path, "conf.py")
@@ -88,6 +94,10 @@ class _SphinxManager(object):
 
     def generate_docs(self, app):
         """Generate/stage documentation."""
+        if self.NO_AUTODOC:
+            logger.info("Python/JS API documentation generation will be skipped")
+            app.config["extensions"].remove("sphinx.ext.autodoc")
+            app.config["extensions"].remove("sphinx_js")
         self.staging_dir = os.path.join(app.outdir, "_staging")
 
         logger.info("Reading Sphinx metadata from build configuration")
@@ -96,8 +106,8 @@ class _SphinxManager(object):
         logger.info("Staging static documentation")
         self._synchronize_docs(app)
 
-        logger.info("Generating Python API documentation")
-        self._generate_python_api_docs()
+        if not self.NO_AUTODOC:
+            self._generate_python_api_docs()
 
     def _generate_python_api_docs(self):
         """Generate Python API doc files."""
@@ -172,7 +182,11 @@ class _SphinxManager(object):
 
         copier = FileCopier()
         m.populate_registry(copier)
-        copier.copy(self.staging_dir, remove_empty_directories=False)
+
+        # In the case of livereload, we don't want to delete unmodified (unaccounted) files.
+        copier.copy(
+            self.staging_dir, remove_empty_directories=False, remove_unaccounted=False
+        )
 
         with open(self.index_path, "r") as fh:
             data = fh.read()

@@ -54,8 +54,8 @@ class Http3WebTransportSession final : public Http3StreamBase,
 
   nsresult TryActivating();
   void TransactionIsDone(nsresult aResult);
-  void CloseSession(uint32_t aStatus, nsACString& aReason);
-  void OnSessionClosed(uint32_t aStatus, nsACString& aReason);
+  void CloseSession(uint32_t aStatus, const nsACString& aReason);
+  void OnSessionClosed(uint32_t aStatus, const nsACString& aReason);
 
   void CreateOutgoingBidirectionalStream(
       std::function<void(Result<RefPtr<Http3WebTransportStream>, nsresult>&&)>&&
@@ -76,6 +76,9 @@ class Http3WebTransportSession final : public Http3StreamBase,
 
   void OnOutgoingDatagramOutCome(
       uint64_t aId, WebTransportSessionEventListener::DatagramOutcome aOutCome);
+
+  void OnStreamStopSending(uint64_t aId, nsresult aError);
+  void OnStreamReset(uint64_t aId, nsresult aError);
 
  private:
   virtual ~Http3WebTransportSession();
@@ -99,8 +102,8 @@ class Http3WebTransportSession final : public Http3StreamBase,
   enum SendStreamState {
     PREPARING_HEADERS,
     WAITING_TO_ACTIVATE,
-    WAITING_DATAGRAM,
-    WRITING_DATAGRAM,
+    PROCESSING_DATAGRAM,
+    SEND_DONE,
   } mSendState{PREPARING_HEADERS};
 
   nsCString mFlatHttpRequestHeaders;

@@ -4,6 +4,7 @@
 
 use std::collections::HashMap;
 
+use crate::common_metric_data::CommonMetricDataInternal;
 use crate::error_recording::{record_error, test_get_num_recorded_errors, ErrorType};
 use crate::event_database::RecordedEvent;
 use crate::metrics::MetricType;
@@ -20,12 +21,12 @@ const MAX_LENGTH_EXTRA_KEY_VALUE: usize = 500;
 /// records a timestamp, the event's name and a set of custom values.
 #[derive(Clone, Debug)]
 pub struct EventMetric {
-    meta: CommonMetricData,
+    meta: CommonMetricDataInternal,
     allowed_extra_keys: Vec<String>,
 }
 
 impl MetricType for EventMetric {
-    fn meta(&self) -> &CommonMetricData {
+    fn meta(&self) -> &CommonMetricDataInternal {
         &self.meta
     }
 }
@@ -38,7 +39,7 @@ impl EventMetric {
     /// Creates a new event metric.
     pub fn new(meta: CommonMetricData, allowed_extra_keys: Vec<String>) -> Self {
         Self {
-            meta,
+            meta: meta.into(),
             allowed_extra_keys,
         }
     }
@@ -67,7 +68,15 @@ impl EventMetric {
     ///             If any key is not allowed, an error is reported and no event is recorded.
     pub fn record_with_time(&self, timestamp: u64, extra: HashMap<String, String>) {
         let metric = self.clone();
-        crate::launch_with_glean(move |glean| metric.record_sync(glean, timestamp, extra));
+        crate::launch_with_glean(move |glean| {
+            let sent = metric.record_sync(glean, timestamp, extra);
+            if sent {
+                let state = crate::global_state().lock().unwrap();
+                if let Err(e) = state.callbacks.trigger_upload() {
+                    log::error!("Triggering upload failed. Error: {}", e);
+                }
+            }
+        });
     }
 
     /// Validate that extras are empty or all extra keys are allowed.
@@ -103,20 +112,30 @@ impl EventMetric {
     }
 
     /// Records an event.
+    ///
+    /// ## Returns
+    ///
+    /// `true` if a ping was submitted and should be uploaded.
+    /// `false` otherwise.
     #[doc(hidden)]
-    pub fn record_sync(&self, glean: &Glean, timestamp: u64, extra: HashMap<String, String>) {
+    pub fn record_sync(
+        &self,
+        glean: &Glean,
+        timestamp: u64,
+        extra: HashMap<String, String>,
+    ) -> bool {
         if !self.should_record(glean) {
-            return;
+            return false;
         }
 
         let extra_strings = match self.validate_extra(glean, extra) {
             Ok(extra) => extra,
-            Err(()) => return,
+            Err(()) => return false,
         };
 
         glean
             .event_storage()
-            .record(glean, &self.meta, timestamp, extra_strings);
+            .record(glean, &self.meta, timestamp, extra_strings)
     }
 
     /// **Test-only API (exported for FFI purposes).**
@@ -130,7 +149,7 @@ impl EventMetric {
     ) -> Option<Vec<RecordedEvent>> {
         let queried_ping_name = ping_name
             .into()
-            .unwrap_or_else(|| &self.meta().send_in_pings[0]);
+            .unwrap_or_else(|| &self.meta().inner.send_in_pings[0]);
 
         glean
             .event_storage()
@@ -155,7 +174,7 @@ impl EventMetric {
     ///
     /// * `error` - The type of error
     /// * `ping_name` - represents the optional name of the ping to retrieve the
-    ///   metric for. Defaults to the first value in `send_in_pings`.
+    ///   metric for. inner to the first value in `send_in_pings`.
     ///
     /// # Returns
     ///

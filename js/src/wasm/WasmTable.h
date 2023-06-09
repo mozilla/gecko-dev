@@ -74,11 +74,11 @@ class Table : public ShareableBase<Table> {
   TableRepr repr() const { return elemType_.tableRepr(); }
 
   bool isAsmJS() const {
-    MOZ_ASSERT(elemType_.isFunc());
+    MOZ_ASSERT(elemType_.isFuncHierarchy());
     return isAsmJS_;
   }
 
-  bool isFunction() const { return elemType().isFunc(); }
+  bool isFunction() const { return elemType().isFuncHierarchy(); }
   uint32_t length() const { return length_; }
   Maybe<uint32_t> maximum() const { return maximum_; }
 
@@ -115,6 +115,13 @@ class Table : public ShareableBase<Table> {
   [[nodiscard]] bool movingGrowable() const;
   [[nodiscard]] bool addMovingGrowObserver(JSContext* cx,
                                            WasmInstanceObject* instance);
+
+  void fillUninitialized(uint32_t index, uint32_t fillCount, HandleAnyRef ref,
+                         JSContext* cx);
+#ifdef DEBUG
+  void assertRangeNull(uint32_t index, uint32_t length) const;
+  void assertRangeNotNull(uint32_t index, uint32_t length) const;
+#endif  // DEBUG
 
   // about:memory reporting:
 

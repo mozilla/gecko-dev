@@ -15,6 +15,8 @@ enum RTCStatsType {
   "outbound-rtp",
   "remote-inbound-rtp",
   "remote-outbound-rtp",
+  "media-source",
+  "peer-connection",
   "csrc",
   "data-channel",
   "session",
@@ -32,9 +34,9 @@ dictionary RTCStats {
 };
 
 dictionary RTCRtpStreamStats : RTCStats {
-  unsigned long ssrc;
+  required unsigned long ssrc;
+  required DOMString kind;
   DOMString mediaType;
-  DOMString kind;
   DOMString transportId;
   DOMString codecId;
 };
@@ -55,16 +57,18 @@ enum RTCCodecType {
 };
 
 dictionary RTCReceivedRtpStreamStats: RTCRtpStreamStats {
-  unsigned long packetsReceived;
-  unsigned long packetsLost;
+  unsigned long long packetsReceived;
+  long long packetsLost;
   double jitter;
   unsigned long discardedPackets; // non-standard alias for packetsDiscarded
   unsigned long packetsDiscarded;
 };
 
 dictionary RTCInboundRtpStreamStats : RTCReceivedRtpStreamStats {
+  required DOMString trackIdentifier;
   DOMString remoteId;
   unsigned long framesDecoded;
+  unsigned long framesDropped;
   unsigned long frameWidth;
   unsigned long frameHeight;
   double framesPerSecond;
@@ -131,6 +135,16 @@ dictionary RTCOutboundRtpStreamStats : RTCSentRtpStreamStats {
 dictionary RTCRemoteOutboundRtpStreamStats : RTCSentRtpStreamStats {
   DOMString localId;
   DOMHighResTimeStamp remoteTimestamp;
+};
+
+dictionary RTCMediaSourceStats : RTCStats {
+  required DOMString trackIdentifier;
+  required DOMString kind;
+};
+
+dictionary RTCPeerConnectionStats : RTCStats {
+  unsigned long dataChannelsOpened;
+  unsigned long dataChannelsClosed;
 };
 
 dictionary RTCRTPContributingSourceStats : RTCStats {
@@ -251,6 +265,8 @@ dictionary RTCStatsCollection {
   sequence<RTCOutboundRtpStreamStats>       outboundRtpStreamStats = [];
   sequence<RTCRemoteInboundRtpStreamStats>  remoteInboundRtpStreamStats = [];
   sequence<RTCRemoteOutboundRtpStreamStats> remoteOutboundRtpStreamStats = [];
+  sequence<RTCMediaSourceStats>             mediaSourceStats = [];
+  sequence<RTCPeerConnectionStats>          peerConnectionStats = [];
   sequence<RTCRTPContributingSourceStats>   rtpContributingSourceStats = [];
   sequence<RTCIceCandidatePairStats>        iceCandidatePairStats = [];
   sequence<RTCIceCandidateStats>            iceCandidateStats = [];

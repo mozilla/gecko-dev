@@ -290,8 +290,12 @@ bool js::Throw(JSContext* cx, HandleId id, unsigned errorNumber,
 
 /*** PropertyDescriptor operations and DefineProperties *********************/
 
+#ifndef ENABLE_DECORATORS
+// These are defined by CommonPropertyNames.h and WellKnownAtom.{cpp,h}
+// when decorators are enabled.
 static const char js_getter_str[] = "getter";
 static const char js_setter_str[] = "setter";
+#endif
 
 static Result<> CheckCallable(JSContext* cx, JSObject* obj,
                               const char* fieldName) {
@@ -1028,12 +1032,13 @@ bool NativeObject::prepareForSwap(JSContext* cx,
 
   if (hasDynamicElements()) {
     ObjectElements* elements = getElementsHeader();
+    void* allocatedElements = getUnshiftedElementsHeader();
     size_t count = elements->numAllocatedElements();
     size_t size = count * sizeof(HeapSlot);
 
     if (isTenured()) {
       RemoveCellMemory(this, size, MemoryUse::ObjectElements);
-    } else if (cx->nursery().isInside(elements)) {
+    } else if (cx->nursery().isInside(allocatedElements)) {
       // Move nursery allocated elements in case they end up in a tenured
       // object.
       ObjectElements* newElements =
@@ -1045,7 +1050,7 @@ bool NativeObject::prepareForSwap(JSContext* cx,
       memmove(newElements, elements, size);
       elements_ = newElements->elements();
     } else {
-      cx->nursery().removeMallocedBuffer(elements, size);
+      cx->nursery().removeMallocedBuffer(allocatedElements, size);
     }
     MOZ_ASSERT(hasDynamicElements());
   }
@@ -1095,11 +1100,12 @@ bool NativeObject::fixupAfterSwap(JSContext* cx, Handle<NativeObject*> obj,
 
   if (obj->hasDynamicElements()) {
     ObjectElements* elements = obj->getElementsHeader();
-    MOZ_ASSERT(!cx->nursery().isInside(elements));
+    void* allocatedElements = obj->getUnshiftedElementsHeader();
+    MOZ_ASSERT(!cx->nursery().isInside(allocatedElements));
     size_t size = elements->numAllocatedElements() * sizeof(HeapSlot);
     if (obj->isTenured()) {
       AddCellMemory(obj, size, MemoryUse::ObjectElements);
-    } else if (!cx->nursery().registerMallocedBuffer(elements, size)) {
+    } else if (!cx->nursery().registerMallocedBuffer(allocatedElements, size)) {
       return false;
     }
   }
@@ -1228,7 +1234,9 @@ void JSObject::swap(JSContext* cx, HandleObject a, HandleObject b,
   MOZ_RELEASE_ASSERT(js::ObjectMayBeSwapped(a));
   MOZ_RELEASE_ASSERT(js::ObjectMayBeSwapped(b));
 
-  Watchtower::watchObjectSwap(cx, a, b);
+  if (!Watchtower::watchObjectSwap(cx, a, b)) {
+    oomUnsafe.crash("watchObjectSwap");
+  }
 
   // Ensure we update any embedded nursery pointers in either object.
   gc::StoreBuffer& storeBuffer = cx->runtime()->gc.storeBuffer();
@@ -1245,15 +1253,6 @@ void JSObject::swap(JSContext* cx, HandleObject a, HandleObject b,
   }
 
   unsigned r = NotifyGCPreSwap(a, b);
-
-  // Don't swap objects that may currently be participating in shape
-  // teleporting optimizations.
-  //
-  // See: ReshapeForProtoMutation, ReshapeForShadowedProp
-  MOZ_ASSERT_IF(a->is<NativeObject>() && a->isUsedAsPrototype(),
-                a->taggedProto() == TaggedProto());
-  MOZ_ASSERT_IF(b->is<NativeObject>() && b->isUsedAsPrototype(),
-                b->taggedProto() == TaggedProto());
 
   bool aIsProxyWithInlineValues =
       a->is<ProxyObject>() && a->as<ProxyObject>().usingInlineValueArray();
@@ -3259,7 +3258,7 @@ js::gc::AllocKind JSObject::allocKindForTenure(
     MOZ_ASSERT(nobj.numFixedSlots() == 0);
 
     /* Use minimal size object if we are just going to copy the pointer. */
-    if (!nursery.isInside(nobj.getElementsHeader())) {
+    if (!nursery.isInside(nobj.getUnshiftedElementsHeader())) {
       return gc::AllocKind::OBJECT0_BACKGROUND;
     }
 

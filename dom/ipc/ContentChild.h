@@ -99,7 +99,7 @@ class ContentChild final : public PContentChild,
   };
 
   MOZ_CAN_RUN_SCRIPT_BOUNDARY nsresult ProvideWindowCommon(
-      BrowserChild* aTabOpener, nsIOpenWindowInfo* aOpenWindowInfo,
+      NotNull<BrowserChild*> aTabOpener, nsIOpenWindowInfo* aOpenWindowInfo,
       uint32_t aChromeFlags, bool aCalledFromJS, nsIURI* aURI,
       const nsAString& aName, const nsACString& aFeatures, bool aForceNoOpener,
       bool aForceNoReferrer, bool aIsPopupRequested,
@@ -268,6 +268,9 @@ class ContentChild final : public PContentChild,
 
   mozilla::ipc::IPCResult RecvSetConnectivity(const bool& connectivity);
   mozilla::ipc::IPCResult RecvSetCaptivePortalState(const int32_t& state);
+  mozilla::ipc::IPCResult RecvSetTRRMode(
+      const nsIDNSService::ResolverMode& mode,
+      const nsIDNSService::ResolverMode& modeFromPref);
 
   mozilla::ipc::IPCResult RecvBidiKeyboardNotify(const bool& isLangRTL,
                                                  const bool& haveBidiKeyboards);
@@ -411,6 +414,7 @@ class ContentChild final : public PContentChild,
 
   mozilla::ipc::IPCResult RecvInvokeDragSession(
       const MaybeDiscarded<WindowContext>& aSourceWindowContext,
+      const MaybeDiscarded<WindowContext>& aSourceTopWindowContext,
       nsTArray<IPCDataTransfer>&& aTransfers, const uint32_t& aAction);
 
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
@@ -478,7 +482,7 @@ class ContentChild final : public PContentChild,
 #endif
 
   PContentPermissionRequestChild* AllocPContentPermissionRequestChild(
-      const nsTArray<PermissionRequest>& aRequests, nsIPrincipal* aPrincipal,
+      Span<const PermissionRequest> aRequests, nsIPrincipal* aPrincipal,
       nsIPrincipal* aTopLevelPrincipal, const bool& aIsHandlingUserInput,
       const bool& aMaybeUnsafePermissionDelegate, const TabId& aTabId);
   bool DeallocPContentPermissionRequestChild(
@@ -562,7 +566,7 @@ class ContentChild final : public PContentChild,
 
   // PURLClassifierLocalChild
   PURLClassifierLocalChild* AllocPURLClassifierLocalChild(
-      nsIURI* aUri, const nsTArray<IPCURLClassifierFeature>& aFeatures);
+      nsIURI* aUri, Span<const IPCURLClassifierFeature> aFeatures);
   bool DeallocPURLClassifierLocalChild(PURLClassifierLocalChild* aActor);
 
   PLoginReputationChild* AllocPLoginReputationChild(nsIURI* aUri);

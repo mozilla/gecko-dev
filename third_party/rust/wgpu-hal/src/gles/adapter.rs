@@ -186,10 +186,21 @@ impl super::Adapter {
         let extensions = gl.supported_extensions();
 
         let (vendor_const, renderer_const) = if extensions.contains("WEBGL_debug_renderer_info") {
+            // emscripten doesn't enable "WEBGL_debug_renderer_info" extension by default. so, we do it manually.
+            // See https://github.com/gfx-rs/wgpu/issues/3245 for context
+            #[cfg(target_os = "emscripten")]
+            if unsafe { super::emscripten::enable_extension("WEBGL_debug_renderer_info\0") } {
+                (GL_UNMASKED_VENDOR_WEBGL, GL_UNMASKED_RENDERER_WEBGL)
+            } else {
+                (glow::VENDOR, glow::RENDERER)
+            }
+            // glow already enables WEBGL_debug_renderer_info on wasm32-unknown-unknown target by default.
+            #[cfg(not(target_os = "emscripten"))]
             (GL_UNMASKED_VENDOR_WEBGL, GL_UNMASKED_RENDERER_WEBGL)
         } else {
             (glow::VENDOR, glow::RENDERER)
         };
+
         let (vendor, renderer) = {
             let vendor = unsafe { gl.get_parameter_string(vendor_const) };
             let renderer = unsafe { gl.get_parameter_string(renderer_const) };
@@ -304,10 +315,11 @@ impl super::Adapter {
                 && (vertex_shader_storage_blocks != 0 || vertex_ssbo_false_zero),
         );
         downlevel_flags.set(wgt::DownlevelFlags::FRAGMENT_STORAGE, supports_storage);
-        downlevel_flags.set(
-            wgt::DownlevelFlags::ANISOTROPIC_FILTERING,
-            extensions.contains("EXT_texture_filter_anisotropic"),
-        );
+        if extensions.contains("EXT_texture_filter_anisotropic") {
+            let max_aniso =
+                unsafe { gl.get_parameter_i32(glow::MAX_TEXTURE_MAX_ANISOTROPY_EXT) } as u32;
+            downlevel_flags.set(wgt::DownlevelFlags::ANISOTROPIC_FILTERING, max_aniso >= 16);
+        }
         downlevel_flags.set(
             wgt::DownlevelFlags::BUFFER_BINDINGS_NOT_16_BYTE_ALIGNED,
             !(cfg!(target_arch = "wasm32") || is_angle),
@@ -318,8 +330,16 @@ impl super::Adapter {
             !cfg!(target_arch = "wasm32"),
         );
         downlevel_flags.set(
+            wgt::DownlevelFlags::UNRESTRICTED_EXTERNAL_TEXTURE_COPIES,
+            !cfg!(target_arch = "wasm32"),
+        );
+        downlevel_flags.set(
             wgt::DownlevelFlags::FULL_DRAW_INDEX_UINT32,
             max_element_index == u32::MAX,
+        );
+        downlevel_flags.set(
+            wgt::DownlevelFlags::MULTISAMPLED_SHADING,
+            ver >= (3, 2) || extensions.contains("OES_sample_variables"),
         );
 
         let mut features = wgt::Features::empty()
@@ -347,6 +367,7 @@ impl super::Adapter {
             wgt::Features::SHADER_PRIMITIVE_INDEX,
             ver >= (3, 2) || extensions.contains("OES_geometry_shader"),
         );
+        features.set(wgt::Features::SHADER_EARLY_DEPTH_TEST, ver >= (3, 1));
         let gles_bcn_exts = [
             "GL_EXT_texture_compression_s3tc_srgb",
             "GL_EXT_texture_compression_rgtc",
@@ -376,11 +397,11 @@ impl super::Adapter {
         if extensions.contains("WEBGL_compressed_texture_astc")
             || extensions.contains("GL_OES_texture_compression_astc")
         {
-            features.insert(wgt::Features::TEXTURE_COMPRESSION_ASTC_LDR);
+            features.insert(wgt::Features::TEXTURE_COMPRESSION_ASTC);
             features.insert(wgt::Features::TEXTURE_COMPRESSION_ASTC_HDR);
         } else {
             features.set(
-                wgt::Features::TEXTURE_COMPRESSION_ASTC_LDR,
+                wgt::Features::TEXTURE_COMPRESSION_ASTC,
                 extensions.contains("GL_KHR_texture_compression_astc_ldr"),
             );
             features.set(
@@ -578,6 +599,8 @@ impl super::Adapter {
                     features,
                     shading_language_version,
                     max_texture_size,
+                    next_shader_id: Default::default(),
+                    program_cache: Default::default(),
                 }),
             },
             info: Self::make_info(vendor, renderer),
@@ -649,7 +672,7 @@ impl crate::Adapter<super::Api> for super::Adapter {
             device: super::Device {
                 shared: Arc::clone(&self.shared),
                 main_vao,
-                #[cfg(feature = "renderdoc")]
+                #[cfg(all(not(target_arch = "wasm32"), feature = "renderdoc"))]
                 render_doc: Default::default(),
             },
             queue: super::Queue {
@@ -683,7 +706,12 @@ impl crate::Adapter<super::Api> for super::Adapter {
                     .lock()
                     .get_parameter_i32(glow::MAX_SAMPLES)
             };
-            if max_samples >= 8 {
+            if max_samples >= 16 {
+                Tfc::MULTISAMPLE_X2
+                    | Tfc::MULTISAMPLE_X4
+                    | Tfc::MULTISAMPLE_X8
+                    | Tfc::MULTISAMPLE_X16
+            } else if max_samples >= 8 {
                 Tfc::MULTISAMPLE_X2 | Tfc::MULTISAMPLE_X4 | Tfc::MULTISAMPLE_X8
             } else if max_samples >= 4 {
                 Tfc::MULTISAMPLE_X2 | Tfc::MULTISAMPLE_X4
@@ -716,7 +744,7 @@ impl crate::Adapter<super::Api> for super::Adapter {
 
         let bcn_features = feature_fn(wgt::Features::TEXTURE_COMPRESSION_BC, filterable);
         let etc2_features = feature_fn(wgt::Features::TEXTURE_COMPRESSION_ETC2, filterable);
-        let astc_features = feature_fn(wgt::Features::TEXTURE_COMPRESSION_ASTC_LDR, filterable);
+        let astc_features = feature_fn(wgt::Features::TEXTURE_COMPRESSION_ASTC, filterable);
         let astc_hdr_features = feature_fn(wgt::Features::TEXTURE_COMPRESSION_ASTC_HDR, filterable);
 
         let private_caps_fn = |f, caps| {
@@ -803,7 +831,7 @@ impl crate::Adapter<super::Api> for super::Adapter {
             | Tf::Bc4RSnorm
             | Tf::Bc5RgUnorm
             | Tf::Bc5RgSnorm
-            | Tf::Bc6hRgbSfloat
+            | Tf::Bc6hRgbFloat
             | Tf::Bc6hRgbUfloat
             | Tf::Bc7RgbaUnorm
             | Tf::Bc7RgbaUnormSrgb => bcn_features,

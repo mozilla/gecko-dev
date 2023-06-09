@@ -40,6 +40,7 @@ headers = [
 raw-lines = [
     # FIXME(emilio): Incrementally remove these "pub use"s. Probably
     # mozilla::css and mozilla::dom are easier.
+    "#[allow(unknown_lints, ambiguous_glob_reexports)]",
     "pub use self::root::*;",
     "pub use self::root::mozilla::*;",
     "pub use self::root::mozilla::css::*;",
@@ -105,6 +106,7 @@ rusty-enums = [
     "mozilla::StyleUserInput",
     "mozilla::StyleBoxDirection",
     "mozilla::StyleRubyAlign",
+    "mozilla::StyleTextSecurity",
     "mozilla::StyleTextSizeAdjust",
     "mozilla::StyleHyphens",
     "mozilla::StyleRubyPosition",
@@ -152,6 +154,7 @@ rusty-enums = [
     "mozilla::StyleTopLayer",
     "mozilla::StyleIsolation",
     "mozilla::StyleTextOrientation",
+    "mozilla::StyleMozBoxCollapse",
     "mozilla::StyleMozBoxLayout",
     "mozilla::StyleTextCombineUpright",
     "mozilla::StyleUnicodeBidi",
@@ -267,6 +270,7 @@ allowlist-types = [
     "mozilla::MediumFeaturesChangedResult",
     "nsAttrName",
     "nsAttrValue",
+    "MiscContainer",
     "nscolor",
     "nsChangeHint",
     "nsCSSCounterDesc",
@@ -388,7 +392,8 @@ opaque-types = [
                             # for clang.
     "mozilla::SeenPtrs",
     "mozilla::SupportsWeakPtr",
-    "mozilla::Tuple",
+    "std::tuple",
+    "std::tuple_.*", # Causes "Cannot find type _Pred in this scope" error on mac, like rust-skia#571
     "SupportsWeakPtr",
     "mozilla::detail::WeakReference",
     "mozilla::WeakPtr",
@@ -422,7 +427,8 @@ opaque-types = [
 # All cbindgen-types are in mod "structs::root::mozilla".
 # FIXME(emilio): We probably want to automate this somehow...
 cbindgen-types = [
-    { gecko = "StyleAnimationTimeline", servo = "crate::values::computed::box_::AnimationTimeline" },
+    { gecko = "StyleAnimationIterationCount", servo = "crate::values::computed::AnimationIterationCount" },
+    { gecko = "StyleAnimationTimeline", servo = "crate::values::computed::AnimationTimeline" },
     { gecko = "StyleAppearance", servo = "crate::values::specified::Appearance" },
     { gecko = "StyleAspectRatio", servo = "crate::values::computed::position::AspectRatio" },
     { gecko = "StyleComputedFontStretchRange", servo = "crate::font_face::ComputedFontStretchRange" },
@@ -435,6 +441,7 @@ cbindgen-types = [
     { gecko = "StyleDisplayMode", servo = "crate::gecko::media_features::DisplayMode" },
     { gecko = "StylePlatform", servo = "crate::gecko::media_features::Platform" },
     { gecko = "StylePrefersColorScheme", servo = "crate::gecko::media_features::PrefersColorScheme" },
+    { gecko = "StyleScripting", servo = "crate::gecko::media_features::Scripting" },
     { gecko = "StyleDynamicRange", servo = "crate::gecko::media_features::DynamicRange" },
     { gecko = "StyleFillRule", servo = "crate::values::generics::basic_shape::FillRule" },
     { gecko = "StyleFontDisplay", servo = "crate::font_face::FontDisplay" },
@@ -463,8 +470,10 @@ cbindgen-types = [
     { gecko = "StyleScrollSnapStop", servo = "crate::values::computed::ScrollSnapStop" },
     { gecko = "StyleScrollSnapStrictness", servo = "crate::values::computed::ScrollSnapStrictness" },
     { gecko = "StyleScrollSnapType", servo = "crate::values::computed::ScrollSnapType" },
+    { gecko = "StyleAnimationName", servo = "crate::values::computed::AnimationName" },
     { gecko = "StyleScrollTimelineName", servo = "crate::values::computed::ScrollTimelineName" },
     { gecko = "StyleScrollAxis", servo = "crate::values::computed::ScrollAxis" },
+    { gecko = "StyleViewTimelineInset", servo = "crate::values::computed::ViewTimelineInset" },
     { gecko = "StyleResize", servo = "crate::values::computed::Resize" },
     { gecko = "StyleOverflowClipBox", servo = "crate::values::computed::OverflowClipBox" },
     { gecko = "StyleFloat", servo = "crate::values::computed::Float" },
@@ -546,7 +555,7 @@ cbindgen-types = [
     { gecko = "StyleSystemFont", servo = "crate::values::specified::font::SystemFont" },
     { gecko = "StyleGenericColorOrAuto", servo = "crate::values::generics::color::ColorOrAuto" },
     { gecko = "StyleGenericScrollbarColor", servo = "crate::values::generics::ui::ScrollbarColor" },
-    { gecko = "StyleRGBA", servo = "cssparser::RGBA" },
+    { gecko = "StyleAbsoluteColor", servo = "crate::color::AbsoluteColor" },
     { gecko = "StyleOrigin", servo = "crate::stylesheets::Origin" },
     { gecko = "StyleGenericVerticalAlign", servo = "crate::values::generics::box_::VerticalAlign" },
     { gecko = "StyleVerticalAlignKeyword", servo = "crate::values::generics::box_::VerticalAlignKeyword" },
@@ -621,10 +630,12 @@ cbindgen-types = [
     { gecko = "StyleFontSizeKeyword", servo = "crate::values::specified::font::FontSizeKeyword" },
     { gecko = "StyleCaptionSide", servo = "crate::values::computed::table::CaptionSide" },
     { gecko = "StylePageName", servo = "crate::values::specified::page::PageName" },
+    { gecko = "StylePageOrientation", servo = "crate::values::generics::page::PageOrientation" },
     { gecko = "StylePageSize", servo = "crate::values::computed::page::PageSize" },
     { gecko = "StyleDProperty", servo = "crate::values::specified::svg::DProperty" },
     { gecko = "StyleImageRendering", servo = "crate::values::computed::ImageRendering" },
     { gecko = "StylePrintColorAdjust", servo = "crate::values::computed::PrintColorAdjust" },
+    { gecko = "StyleForcedColorAdjust", servo = "crate::values::computed::ForcedColorAdjust" },
     { gecko = "StyleScrollbarGutter", servo = "crate::values::computed::ScrollbarGutter" },
     { gecko = "StyleHyphenateCharacter", servo = "crate::values::computed::HyphenateCharacter" },
     { gecko = "StyleContentVisibility", servo = "crate::values::computed::ContentVisibility" },
@@ -633,7 +644,10 @@ cbindgen-types = [
     { gecko = "StyleFontWeight", servo = "crate::values::computed::font::FontWeight" },
     { gecko = "StyleFontStretch", servo = "crate::values::computed::font::FontStretch" },
     { gecko = "StyleFontPalette", servo = "crate::values::computed::font::FontPalette" },
+    { gecko = "StyleFontSynthesis", servo = "crate::values::computed::font::FontSynthesis" },
     { gecko = "StyleBoolInteger", servo = "crate::values::computed::BoolInteger" },
+    { gecko = "StyleTime", servo = "crate::values::computed::Time" },
+    { gecko = "StyleXTextScale", servo = "crate::values::computed::XTextScale" },
 ]
 
 mapped-generic-types = [

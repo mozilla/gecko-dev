@@ -21,12 +21,9 @@ if CONFIG["OS_TARGET"] != "Android":
         "TestCounters.cpp",
         "TestEvents.cpp",
         "TestHistograms.cpp",
-        "TestOrigins.cpp",
         "TestScalars.cpp",
     ]
 
 FINAL_LIBRARY = "xul-gtest"
 
 include("/ipc/chromium/chromium-config.mozbuild")
-
-REQUIRES_UNIFIED_BUILD = True

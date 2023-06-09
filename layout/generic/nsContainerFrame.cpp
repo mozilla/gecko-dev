@@ -7,6 +7,7 @@
 /* base class #1 for rendering objects that have child lists */
 
 #include "nsContainerFrame.h"
+#include "mozilla/widget/InitData.h"
 #include "nsContainerFrameInlines.h"
 
 #include "mozilla/ComputedStyle.h"
@@ -34,7 +35,6 @@
 #include "nsError.h"
 #include "nsDisplayList.h"
 #include "nsIBaseWindow.h"
-#include "nsBoxLayoutState.h"
 #include "nsCSSFrameConstructor.h"
 #include "nsBlockFrame.h"
 #include "nsPlaceholderFrame.h"
@@ -718,126 +718,6 @@ void nsContainerFrame::ReparentFrames(nsFrameList& aFrameList,
   }
 }
 
-static nsIWidget* GetPresContextContainerWidget(nsPresContext* aPresContext) {
-  nsCOMPtr<nsISupports> container = aPresContext->Document()->GetContainer();
-  nsCOMPtr<nsIBaseWindow> baseWindow = do_QueryInterface(container);
-  if (!baseWindow) return nullptr;
-
-  nsCOMPtr<nsIWidget> mainWidget;
-  baseWindow->GetMainWidget(getter_AddRefs(mainWidget));
-  return mainWidget;
-}
-
-static bool IsTopLevelWidget(nsIWidget* aWidget) {
-  nsWindowType windowType = aWidget->WindowType();
-  return windowType == eWindowType_toplevel ||
-         windowType == eWindowType_dialog || windowType == eWindowType_popup ||
-         windowType == eWindowType_sheet;
-}
-
-void nsContainerFrame::SyncWindowProperties(nsPresContext* aPresContext,
-                                            nsIFrame* aFrame, nsView* aView,
-                                            gfxContext* aRC, uint32_t aFlags) {
-  if (!aView || !aView->HasWidget()) {
-    return;
-  }
-
-  {
-    const bool isValid = aFrame->IsCanvasFrame() || aFrame->IsViewportFrame();
-    if (!isValid) {
-      return;
-    }
-  }
-
-  nsCOMPtr<nsIWidget> windowWidget =
-      GetPresContextContainerWidget(aPresContext);
-  if (!windowWidget || !IsTopLevelWidget(windowWidget)) {
-    return;
-  }
-
-  nsViewManager* vm = aView->GetViewManager();
-  nsView* rootView = vm->GetRootView();
-
-  if (aView != rootView) {
-    return;
-  }
-
-  Element* rootElement = aPresContext->Document()->GetRootElement();
-  if (!rootElement) {
-    return;
-  }
-
-  nsIFrame* rootFrame =
-      aPresContext->PresShell()->FrameConstructor()->GetRootElementStyleFrame();
-  if (!rootFrame) {
-    return;
-  }
-
-  if (aFlags & SET_ASYNC) {
-    aView->SetNeedsWindowPropertiesSync();
-    return;
-  }
-
-  RefPtr<nsPresContext> kungFuDeathGrip(aPresContext);
-  AutoWeakFrame weak(rootFrame);
-
-  if (!aPresContext->PresShell()->GetRootScrollFrame()) {
-    // Scrollframes use native widgets which don't work well with
-    // translucent windows, at least in Windows XP. So if the document
-    // has a root scrollrame it's useless to try to make it transparent,
-    // we'll just get something broken.
-    // We can change this to allow translucent toplevel HTML documents
-    // (e.g. to do something like Dashboard widgets), once we
-    // have broad support for translucent scrolled documents, but be
-    // careful because apparently some Firefox extensions expect
-    // openDialog("something.html") to produce an opaque window
-    // even if the HTML doesn't have a background-color set.
-    auto* canvas = aPresContext->PresShell()->GetCanvasFrame();
-    nsTransparencyMode mode = nsLayoutUtils::GetFrameTransparency(
-        canvas ? canvas : aFrame, rootFrame);
-    StyleWindowShadow shadow = rootFrame->StyleUIReset()->mWindowShadow;
-    nsCOMPtr<nsIWidget> viewWidget = aView->GetWidget();
-    viewWidget->SetTransparencyMode(mode);
-    windowWidget->SetWindowShadowStyle(shadow);
-
-    // For macOS, apply color scheme overrides to the top level window widget.
-    if (auto scheme = aPresContext->GetOverriddenOrEmbedderColorScheme()) {
-      windowWidget->SetColorScheme(scheme);
-    }
-  }
-
-  if (!aRC) {
-    return;
-  }
-
-  if (!weak.IsAlive()) {
-    return;
-  }
-
-  nsSize minSize(0, 0);
-  nsSize maxSize(NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
-  if (rootFrame->IsXULBoxFrame()) {
-    nsBoxLayoutState aState(aPresContext, aRC);
-    minSize = rootFrame->GetXULMinSize(aState);
-    maxSize = rootFrame->GetXULMaxSize(aState);
-  } else {
-    auto* pos = rootFrame->StylePosition();
-    if (pos->mMinWidth.ConvertsToLength()) {
-      minSize.width = pos->mMinWidth.ToLength();
-    }
-    if (pos->mMinHeight.ConvertsToLength()) {
-      minSize.height = pos->mMinHeight.ToLength();
-    }
-    if (pos->mMaxWidth.ConvertsToLength()) {
-      maxSize.width = pos->mMaxWidth.ToLength();
-    }
-    if (pos->mMaxHeight.ConvertsToLength()) {
-      maxSize.height = pos->mMaxHeight.ToLength();
-    }
-  }
-  SetSizeConstraints(aPresContext, windowWidget, minSize, maxSize);
-}
-
 void nsContainerFrame::SetSizeConstraints(nsPresContext* aPresContext,
                                           nsIWidget* aWidget,
                                           const nsSize& aMinSize,
@@ -869,16 +749,19 @@ void nsContainerFrame::SetSizeConstraints(nsPresContext* aPresContext,
   // The sizes are in inner window sizes, so convert them into outer window
   // sizes. Use a size of (200, 200) as only the difference between the inner
   // and outer size is needed.
-  LayoutDeviceIntSize windowSize =
-      aWidget->ClientToWindowSize(LayoutDeviceIntSize(200, 200));
-  if (constraints.mMinSize.width)
-    constraints.mMinSize.width += windowSize.width - 200;
-  if (constraints.mMinSize.height)
-    constraints.mMinSize.height += windowSize.height - 200;
-  if (constraints.mMaxSize.width != NS_MAXSIZE)
-    constraints.mMaxSize.width += windowSize.width - 200;
-  if (constraints.mMaxSize.height != NS_MAXSIZE)
-    constraints.mMaxSize.height += windowSize.height - 200;
+  const LayoutDeviceIntSize sizeDiff = aWidget->ClientToWindowSizeDifference();
+  if (constraints.mMinSize.width) {
+    constraints.mMinSize.width += sizeDiff.width;
+  }
+  if (constraints.mMinSize.height) {
+    constraints.mMinSize.height += sizeDiff.height;
+  }
+  if (constraints.mMaxSize.width != NS_MAXSIZE) {
+    constraints.mMaxSize.width += sizeDiff.width;
+  }
+  if (constraints.mMaxSize.height != NS_MAXSIZE) {
+    constraints.mMaxSize.height += sizeDiff.height;
+  }
 
   aWidget->SetSizeConstraints(constraints);
 }
@@ -1257,24 +1140,41 @@ void nsContainerFrame::ReflowOverflowContainerChildren(
           frame->HasAnyStateBits(NS_FRAME_IS_OVERFLOW_CONTAINER),
           "overflow container frame must have overflow container bit set");
       WritingMode wm = frame->GetWritingMode();
-      nsSize containerSize = aContainerSize.valueOr(
-          aReflowInput.AvailableSize(wm).GetPhysicalSize(wm));
+      nsSize containerSize =
+          aContainerSize ? *aContainerSize
+                         : aReflowInput.AvailableSize(wm).GetPhysicalSize(wm);
       LogicalRect prevRect = prevInFlow->GetLogicalRect(wm, containerSize);
 
       // Initialize reflow params
       LogicalSize availSpace(wm, prevRect.ISize(wm),
                              aReflowInput.AvailableSize(wm).BSize(wm));
       ReflowOutput desiredSize(aReflowInput);
-      ReflowInput frameState(aPresContext, aReflowInput, frame, availSpace);
-      nsReflowStatus frameStatus;
 
-      // Reflow
+      StyleSizeOverrides sizeOverride;
+      if (frame->IsFlexItem()) {
+        // A flex item's size is determined by the flex algorithm, not solely by
+        // its style. Thus, the following overrides are necessary.
+        //
+        // Use the overflow container flex item's prev-in-flow inline-size since
+        // this continuation's inline-size is the same.
+        sizeOverride.mStyleISize.emplace(
+            StyleSize::LengthPercentage(LengthPercentage::FromAppUnits(
+                frame->StylePosition()->mBoxSizing == StyleBoxSizing::Border
+                    ? prevRect.ISize(wm)
+                    : prevInFlow->ContentSize(wm).ISize(wm))));
+
+        // An overflow container's block-size must be 0.
+        sizeOverride.mStyleBSize.emplace(
+            StyleSize::LengthPercentage(LengthPercentage::FromAppUnits(0)));
+      }
+      ReflowInput reflowInput(aPresContext, aReflowInput, frame, availSpace,
+                              Nothing(), {}, sizeOverride);
+
       LogicalPoint pos(wm, prevRect.IStart(wm), 0);
-      ReflowChild(frame, aPresContext, desiredSize, frameState, wm, pos,
+      nsReflowStatus frameStatus;
+      ReflowChild(frame, aPresContext, desiredSize, reflowInput, wm, pos,
                   containerSize, aFlags, frameStatus, &tracker);
-      // XXXfr Do we need to override any shrinkwrap effects here?
-      // e.g. desiredSize.Width() = prevRect.width;
-      FinishReflowChild(frame, aPresContext, desiredSize, &frameState, wm, pos,
+      FinishReflowChild(frame, aPresContext, desiredSize, &reflowInput, wm, pos,
                         containerSize, aFlags);
 
       // Handle continuations
@@ -2325,18 +2225,13 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
   const bool isGridItem = IsGridItem();
   const bool isFlexItem =
       IsFlexItem() && !parentFrame->HasAnyStateBits(
-                          NS_STATE_FLEX_IS_EMULATING_LEGACY_WEBKIT_BOX |
-                          NS_STATE_FLEX_IS_EMULATING_LEGACY_MOZ_BOX);
-  // This variable only gets set (and used) if isFlexItem is true.  It
+                          NS_STATE_FLEX_IS_EMULATING_LEGACY_WEBKIT_BOX);
+  // This variable only gets meaningfully set if isFlexItem is true.  It
   // indicates which axis (in this frame's own WM) corresponds to its
   // flex container's main axis.
-  LogicalAxis flexMainAxis =
-      eLogicalAxisInline;  // (init to make valgrind happy)
-
-  if (isFlexItem) {
-    flexMainAxis = nsFlexContainerFrame::IsItemInlineAxisMainAxis(this)
-                       ? eLogicalAxisInline
-                       : eLogicalAxisBlock;
+  LogicalAxis flexMainAxis = eLogicalAxisBlock;
+  if (isFlexItem && nsFlexContainerFrame::IsItemInlineAxisMainAxis(this)) {
+    flexMainAxis = eLogicalAxisInline;
   }
 
   // Handle intrinsic sizes and their interaction with

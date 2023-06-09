@@ -85,6 +85,11 @@
 #else
 #  define WASM_MEMORY64_ENABLED 0
 #endif
+#ifdef ENABLE_WASM_MEMORY_CONTROL
+#  define WASM_MEMORY_CONTROL_ENABLED 1
+#else
+#  define WASM_MEMORY_CONTROL_ENABLED 0
+#endif
 #ifdef ENABLE_WASM_MOZ_INTGEMM
 #  define WASM_MOZ_INTGEMM_ENABLED 1
 #else
@@ -93,13 +98,13 @@
 
 // clang-format off
 #define JS_FOR_WASM_FEATURES(DEFAULT, TENTATIVE, EXPERIMENTAL)                \
-  EXPERIMENTAL(/* capitalized name   */ ExtendedConst,                        \
-               /* lower case name    */ extendedConst,                        \
-               /* compile predicate  */ WASM_EXTENDED_CONST_ENABLED,          \
-               /* compiler predicate */ true,                                 \
-               /* flag predicate     */ true,                                 \
-               /* shell flag         */ "extended-const",                     \
-               /* preference name    */ "extended_const")                     \
+  TENTATIVE(/* capitalized name   */ ExtendedConst,                           \
+            /* lower case name    */ extendedConst,                           \
+            /* compile predicate  */ WASM_EXTENDED_CONST_ENABLED,             \
+            /* compiler predicate */ true,                                    \
+            /* flag predicate     */ true,                                    \
+            /* shell flag         */ "extended-const",                        \
+            /* preference name    */ "extended_const")                        \
   TENTATIVE(                                                                  \
       /* capitalized name   */ Exceptions,                                    \
       /* lower case name    */ exceptions,                                    \
@@ -113,7 +118,7 @@
                /* compile predicate  */ WASM_FUNCTION_REFERENCES_ENABLED,     \
                /* compiler predicate */ BaselineAvailable(cx) ||              \
                                         IonAvailable(cx),                     \
-               /* flag predicate     */ !IsFuzzingIon(cx),                    \
+               /* flag predicate     */ true,                                 \
                /* shell flag         */ "function-references",                \
                /* preference name    */ "function_references")                \
   EXPERIMENTAL(/* capitalized name   */ Gc,                                   \
@@ -138,6 +143,14 @@
       /* flag predicate     */ true,                                          \
       /* shell flag         */ "memory64",                                    \
       /* preference name    */ "memory64")                                    \
+  EXPERIMENTAL(                                                               \
+      /* capitalized name   */ MemoryControl,                                 \
+      /* lower case name    */ memoryControl,                                 \
+      /* compile predicate  */ WASM_MEMORY_CONTROL_ENABLED,                   \
+      /* compiler predicate */ BaselineAvailable(cx) || IonAvailable(cx),     \
+      /* flag predicate     */ true,                                          \
+      /* shell flag         */ "memory-control",                              \
+      /* preference name    */ "memory_control")                              \
   EXPERIMENTAL(/* capitalized name   */ MozIntGemm,                           \
                /* lower case name    */ mozIntGemm,                           \
                /* compile predicate  */ WASM_MOZ_INTGEMM_ENABLED,             \

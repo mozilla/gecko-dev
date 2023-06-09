@@ -26,9 +26,6 @@
 
 using namespace mozilla;
 
-// interval in milliseconds between internal idle time requests.
-#define MIN_IDLE_POLL_INTERVAL_MSEC (5 * PR_MSEC_PER_SEC) /* 5 sec */
-
 // After the twenty four hour period expires for an idle daily, this is the
 // amount of idle time we wait for before actually firing the idle-daily
 // event.
@@ -408,6 +405,13 @@ nsUserIdleService::AddIdleObserver(nsIObserver* aObserver,
   // high either - no more than ~136 years.
   NS_ENSURE_ARG_RANGE(aIdleTimeInS, 1, (UINT32_MAX / 10) - 1);
 
+  if (profiler_thread_is_being_profiled_for_markers()) {
+    nsAutoCString timeCStr;
+    timeCStr.AppendInt(aIdleTimeInS);
+    PROFILER_MARKER_TEXT("UserIdle::AddObserver", OTHER, MarkerStack::Capture(),
+                         timeCStr);
+  }
+
   if (XRE_IsContentProcess()) {
     dom::ContentChild* cpc = dom::ContentChild::GetSingleton();
     cpc->AddIdleObserver(aObserver, aIdleTimeInS);
@@ -452,10 +456,8 @@ nsUserIdleService::AddIdleObserver(nsIObserver* aObserver,
 #endif
 
     mDeltaToNextIdleSwitchInS = aIdleTimeInS;
+    ReconfigureTimer();
   }
-
-  // Ensure timer is running.
-  ReconfigureTimer();
 
   return NS_OK;
 }
@@ -465,6 +467,13 @@ nsUserIdleService::RemoveIdleObserver(nsIObserver* aObserver,
                                       uint32_t aTimeInS) {
   NS_ENSURE_ARG_POINTER(aObserver);
   NS_ENSURE_ARG(aTimeInS);
+
+  if (profiler_thread_is_being_profiled_for_markers()) {
+    nsAutoCString timeCStr;
+    timeCStr.AppendInt(aTimeInS);
+    PROFILER_MARKER_TEXT("UserIdle::RemoveObserver", OTHER,
+                         MarkerStack::Capture(), timeCStr);
+  }
 
   if (XRE_IsContentProcess()) {
     dom::ContentChild* cpc = dom::ContentChild::GetSingleton();
@@ -626,11 +635,6 @@ bool nsUserIdleService::PollIdleTime(uint32_t* /*aIdleTime*/) {
   return false;
 }
 
-bool nsUserIdleService::UsePollMode() {
-  uint32_t dummy;
-  return PollIdleTime(&dummy);
-}
-
 nsresult nsUserIdleService::GetDisabled(bool* aResult) {
   *aResult = mDisabled;
   return NS_OK;
@@ -764,6 +768,9 @@ void nsUserIdleService::IdleTimerCallback(void) {
                         "Idle timer callback: tell observer %p user is idle",
                         notifyList[numberOfPendingNotifications]);
 #endif
+    nsAutoCString timeCStr;
+    timeCStr.AppendInt(currentIdleTimeInS);
+    AUTO_PROFILER_MARKER_TEXT("UserIdle::IdleCallback", OTHER, {}, timeCStr);
     notifyList[numberOfPendingNotifications]->Observe(this, OBSERVER_TOPIC_IDLE,
                                                       timeStr.get());
   }
@@ -858,26 +865,6 @@ void nsUserIdleService::ReconfigureTimer(void) {
   __android_log_print(LOG_LEVEL, LOG_TAG, "next timeout %0.f msec from now",
                       nextTimeoutDuration.ToMilliseconds());
 #endif
-
-  // Check if we should correct the timeout time because we should poll before.
-  if ((mIdleObserverCount > 0) && UsePollMode()) {
-    TimeStamp pollTimeout =
-        curTime + TimeDuration::FromMilliseconds(MIN_IDLE_POLL_INTERVAL_MSEC);
-
-    if (nextTimeoutAt > pollTimeout) {
-      MOZ_LOG(
-          sLog, LogLevel::Debug,
-          ("idleService: idle observers, reducing timeout to %lu msec from now",
-           MIN_IDLE_POLL_INTERVAL_MSEC));
-#ifdef MOZ_WIDGET_ANDROID
-      __android_log_print(
-          LOG_LEVEL, LOG_TAG,
-          "idle observers, reducing timeout to %lu msec from now",
-          MIN_IDLE_POLL_INTERVAL_MSEC);
-#endif
-      nextTimeoutAt = pollTimeout;
-    }
-  }
 
   SetTimerExpiryIfBefore(nextTimeoutAt);
 }

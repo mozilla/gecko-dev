@@ -6,22 +6,28 @@
 
 EXPORTS.mozilla.dom += [
     "FileSystemAccessHandleChild.h",
+    "FileSystemAccessHandleControlChild.h",
     "FileSystemManagerChild.h",
     "FileSystemWritableFileStreamChild.h",
 ]
 
 UNIFIED_SOURCES += [
     "FileSystemAccessHandleChild.cpp",
+    "FileSystemAccessHandleControlChild.cpp",
+    "FileSystemAsyncCopy.cpp",
     "FileSystemBackgroundRequestHandler.cpp",
     "FileSystemChildFactory.cpp",
     "FileSystemDirectoryIteratorFactory.cpp",
     "FileSystemManagerChild.cpp",
     "FileSystemRequestHandler.cpp",
+    "FileSystemShutdownBlocker.cpp",
+    "FileSystemThreadSafeStreamOwner.cpp",
     "FileSystemWritableFileStreamChild.cpp",
 ]
 
 LOCAL_INCLUDES += [
     "/dom/fs/include",
+    "/netwerk/base",
 ]
 
 FINAL_LIBRARY = "xul"
