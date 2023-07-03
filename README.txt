@@ -14,7 +14,7 @@ on https://firefox-source-docs.mozilla.org/, you can try asking your question on
 Nightly development builds can be downloaded from:
 
     https://archive.mozilla.org/pub/firefox/nightly/latest-mozilla-central/
-            - or -
+            - or 
     https://www.mozilla.org/firefox/channel/desktop/#nightly
 
 Keep in mind that nightly builds, which are used by Firefox developers for
