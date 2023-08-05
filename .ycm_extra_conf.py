@@ -1,6 +1,6 @@
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import json
 import os
@@ -13,7 +13,7 @@ sys.dont_write_bytecode = True
 
 path = os.path.abspath(os.path.join(os.path.dirname(__file__), "mach"))
 
-# If mach is not here, we're on the objdir go to the srcdir.
+If mach is not here, we're on the objdir go to the srcdir.
 if not os.path.exists(path):
     with open(os.path.join(os.path.dirname(__file__), "mozinfo.json")) as info:
         config = json.loads(info.read())
@@ -36,9 +36,9 @@ def _is_likely_cpp_header(filename):
 def Settings(**kwargs):
     if kwargs["language"] == "cfamily":
         return FlagsForFile(kwargs["filename"])
-    # This is useful for generic language server protocols, like rust-analyzer,
-    # to discover the right project root instead of guessing based on where the
-    # closest Cargo.toml is.
+    This is useful for generic language server protocols, like rust-analyzer,
+    to discover the right project root instead of guessing based on where the
+    closest Cargo.toml is.
     return {
         "project_directory": ".",
     }
@@ -50,9 +50,9 @@ def FlagsForFile(filename):
 
     flag_list = shlex.split(output)
 
-    # This flag is added by Fennec for android build and causes ycmd to fail to parse the file.
-    # Removing this flag is a workaround until ycmd starts to handle this flag properly.
-    # https://github.com/Valloric/YouCompleteMe/issues/1490
+    This flag is added by Fennec for android build and causes ycmd to fail to parse the file.
+    Removing this flag is a workaround until ycmd starts to handle this flag properly.
+    https://github.com/Valloric/YouCompleteMe/issues/1490
     final_flags = [x for x in flag_list if not x.startswith("-march=armv")]
 
     if _is_likely_cpp_header(filename):
