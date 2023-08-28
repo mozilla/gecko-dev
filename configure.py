@@ -1,6 +1,6 @@
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import codecs
 import errno
@@ -72,14 +72,14 @@ def main(argv):
     sandbox = ConfigureSandbox(config, os.environ, argv)
 
     if not sandbox._help:
-        # This limitation has mostly to do with GNU make. Since make can't represent
-        # variables with spaces without correct quoting and many paths are used
-        # without proper quoting, using paths with spaces commonly results in
-        # targets or dependencies being treated as multiple paths. This, of course,
-        # undermines the ability for make to perform up-to-date checks and makes
-        # the build system not work very efficiently. In theory, a non-make build
-        # backend will make this limitation go away. But there is likely a long tail
-        # of things that will need fixing due to e.g. lack of proper path quoting.
+        This limitation has mostly to do with GNU make. Since make can't represent
+        variables with spaces without correct quoting and many paths are used
+        without proper quoting, using paths with spaces commonly results in
+        targets or dependencies being treated as multiple paths. This, of course,
+        undermines the ability for make to perform up-to-date checks and makes
+        the build system not work very efficiently. In theory, a non-make build
+        backend will make this limitation go away. But there is likely a long tail
+        of things that will need fixing due to e.g. lack of proper path quoting.
         topsrcdir = os.path.realpath(os.path.dirname(__file__))
         if len(topsrcdir.split()) > 1:
             print(
