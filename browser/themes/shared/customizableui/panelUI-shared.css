@@ -178,9 +178,11 @@ panelview {
     one view to another runs, which would otherwise happen if the new view has
     more height than the old one because that would mean that during the
     animation the height of the multiview will be too short for the new view. */
+  /* commented out based on bug report  https://bugzilla.mozilla.org/show_bug.cgi?id=1894414 :
+  
   &[transitioning] > .panel-viewcontainer > .panel-viewstack > panelview > .panel-subview-body {
     overflow-y: hidden;
-  }
+  } */
 }
 
 .panel-subview-body {
