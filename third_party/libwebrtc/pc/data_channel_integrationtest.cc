@@ -295,8 +295,10 @@ TEST_P(DataChannelIntegrationTest, EndToEndCallWithSctpDataChannelFullBuffer) {
       DataChannelInterface::DataState::kClosing,
       DataChannelInterface::DataState::kClosed};
 
+  // Debug data channels are very slow, use a long timeout for those slow,
+  // heavily parallelized runs.
   EXPECT_EQ_WAIT(DataChannelInterface::DataState::kClosed,
-                 caller()->data_observer()->state(), kDefaultTimeout);
+                 caller()->data_observer()->state(), kLongTimeout);
   EXPECT_THAT(caller()->data_observer()->states(),
               ::testing::ElementsAreArray(expected_states));
 
