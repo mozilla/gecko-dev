@@ -663,6 +663,12 @@ void SctpDataChannel::OnTransportChannelClosed(RTCError error) {
 void SctpDataChannel::OnBufferedAmountLow() {
   RTC_DCHECK_RUN_ON(network_thread_);
   MaybeSendOnBufferedAmountChanged();
+
+  if (state_ == DataChannelInterface::kClosing && !started_closing_procedure_ &&
+      id_n_.has_value() && buffered_amount() == 0) {
+    started_closing_procedure_ = true;
+    controller_->RemoveSctpDataStream(*id_n_);
+  }
 }
 
 DataChannelStats SctpDataChannel::GetStats() const {

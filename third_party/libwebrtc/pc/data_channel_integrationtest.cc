@@ -253,6 +253,57 @@ TEST_P(DataChannelIntegrationTest,
     EXPECT_EQ_WAIT(data, caller()->data_observer()->last_message(),
                    kDefaultTimeout);
   }
+  caller()->data_channel()->Close();
+
+  EXPECT_EQ_WAIT(caller()->data_observer()->state(),
+                 webrtc::DataChannelInterface::kClosed, kDefaultTimeout);
+  EXPECT_EQ_WAIT(callee()->data_observer()->state(),
+                 webrtc::DataChannelInterface::kClosed, kDefaultTimeout);
+}
+
+// This test sets up a call between two parties with an SCTP
+// data channel only, and sends enough messages to fill the queue and then
+// closes on the caller. We expect the state to transition to closed on both
+// caller and callee.
+TEST_P(DataChannelIntegrationTest, EndToEndCallWithSctpDataChannelFullBuffer) {
+  ASSERT_TRUE(CreatePeerConnectionWrappers());
+  ConnectFakeSignaling();
+  // Expect that data channel created on caller side will show up for callee as
+  // well.
+  caller()->CreateDataChannel();
+  caller()->CreateAndSetAndSignalOffer();
+  ASSERT_TRUE_WAIT(SignalingStateStable(), kDefaultTimeout);
+  // Caller data channel should already exist (it created one). Callee data
+  // channel may not exist yet, since negotiation happens in-band, not in SDP.
+  ASSERT_NE(nullptr, caller()->data_channel());
+  ASSERT_TRUE_WAIT(callee()->data_channel() != nullptr, kDefaultTimeout);
+  EXPECT_TRUE_WAIT(caller()->data_observer()->IsOpen(), kDefaultTimeout);
+  EXPECT_TRUE_WAIT(callee()->data_observer()->IsOpen(), kDefaultTimeout);
+
+  std::string data(256 * 1024, 'a');
+  for (size_t queued_size = 0;
+       queued_size < webrtc::DataChannelInterface::MaxSendQueueSize();
+       queued_size += data.size()) {
+    caller()->data_channel()->SendAsync(DataBuffer(data), nullptr);
+  }
+
+  caller()->data_channel()->Close();
+
+  DataChannelInterface::DataState expected_states[] = {
+      DataChannelInterface::DataState::kConnecting,
+      DataChannelInterface::DataState::kOpen,
+      DataChannelInterface::DataState::kClosing,
+      DataChannelInterface::DataState::kClosed};
+
+  EXPECT_EQ_WAIT(DataChannelInterface::DataState::kClosed,
+                 caller()->data_observer()->state(), kDefaultTimeout);
+  EXPECT_THAT(caller()->data_observer()->states(),
+              ::testing::ElementsAreArray(expected_states));
+
+  EXPECT_EQ_WAIT(DataChannelInterface::DataState::kClosed,
+                 callee()->data_observer()->state(), kDefaultTimeout);
+  EXPECT_THAT(callee()->data_observer()->states(),
+              ::testing::ElementsAreArray(expected_states));
 }
 
 // This test sets up a call between two parties with an SCTP
