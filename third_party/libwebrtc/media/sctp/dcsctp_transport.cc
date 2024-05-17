@@ -19,6 +19,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
 #include "api/array_view.h"
+#include "api/data_channel_interface.h"
 #include "api/environment/environment.h"
 #include "media/base/media_channel.h"
 #include "net/dcsctp/public/dcsctp_socket_factory.h"
@@ -192,6 +193,10 @@ bool DcSctpTransport::Start(int local_sctp_port,
     // Don't close the connection automatically on too many retransmissions.
     options.max_retransmissions = absl::nullopt;
     options.max_init_retransmits = absl::nullopt;
+    options.per_stream_send_queue_limit =
+        DataChannelInterface::MaxSendQueueSize();
+    // This is just set to avoid denial-of-service. Practically unlimited.
+    options.max_send_buffer_size = std::numeric_limits<size_t>::max();
 
     std::unique_ptr<dcsctp::PacketObserver> packet_observer;
     if (RTC_LOG_CHECK_LEVEL(LS_VERBOSE)) {
