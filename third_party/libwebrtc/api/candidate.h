@@ -31,12 +31,16 @@ RTC_EXPORT absl::string_view IceCandidateTypeToString(IceCandidateType);
 
 namespace cricket {
 
-// TODO(tommi): These are temporarily here, moved from `port.h` and will
-// eventually be removed once we use enums instead of strings for these values.
-RTC_EXPORT extern const absl::string_view LOCAL_PORT_TYPE;
-RTC_EXPORT extern const absl::string_view STUN_PORT_TYPE;
-RTC_EXPORT extern const absl::string_view PRFLX_PORT_TYPE;
-RTC_EXPORT extern const absl::string_view RELAY_PORT_TYPE;
+// TODO(tommi): Remove. No usage in WebRTC now, remove once downstream projects
+// don't have reliance.
+[[deprecated("Use IceCandidateType")]] static constexpr char LOCAL_PORT_TYPE[] =
+    "local";
+[[deprecated("Use IceCandidateType")]] static constexpr char STUN_PORT_TYPE[] =
+    "stun";
+[[deprecated("Use IceCandidateType")]] static constexpr char PRFLX_PORT_TYPE[] =
+    "prflx";
+[[deprecated("Use IceCandidateType")]] static constexpr char RELAY_PORT_TYPE[] =
+    "relay";
 
 // TURN servers are limited to 32 in accordance with
 // https://w3c.github.io/webrtc-pc/#dom-rtcconfiguration-iceservers

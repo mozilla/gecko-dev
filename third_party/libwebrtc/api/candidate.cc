@@ -37,11 +37,6 @@ absl::string_view IceCandidateTypeToString(IceCandidateType type) {
 
 namespace cricket {
 
-ABSL_CONST_INIT const absl::string_view LOCAL_PORT_TYPE = "local";
-ABSL_CONST_INIT const absl::string_view STUN_PORT_TYPE = "stun";
-ABSL_CONST_INIT const absl::string_view PRFLX_PORT_TYPE = "prflx";
-ABSL_CONST_INIT const absl::string_view RELAY_PORT_TYPE = "relay";
-
 Candidate::Candidate()
     : id_(rtc::CreateRandomString(8)),
       component_(ICE_CANDIDATE_COMPONENT_DEFAULT),

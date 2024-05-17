@@ -122,8 +122,6 @@ typedef std::vector<CandidateStats> CandidateStatsList;
 
 const char* ProtoToString(ProtocolType proto);
 absl::optional<ProtocolType> StringToProto(absl::string_view proto_name);
-webrtc::IceCandidateType PortTypeToIceCandidateType(
-    const absl::string_view type);
 
 struct ProtocolAddress {
   rtc::SocketAddress address;
