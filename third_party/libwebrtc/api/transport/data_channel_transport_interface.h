@@ -86,6 +86,10 @@ class DataChannelSink {
   // TODO(https://crbug.com/webrtc/10360): Make pure virtual when all
   // consumers updated.
   virtual void OnTransportClosed(RTCError error) {}
+
+  // The data channel's buffered_amount has fallen to or below the threshold
+  // set when calling `SetBufferedAmountLowThreshold`
+  virtual void OnBufferedAmountLow(int channel_id) = 0;
 };
 
 // Transport for data channels.
@@ -120,6 +124,8 @@ class DataChannelTransportInterface {
   virtual bool IsReadyToSend() const = 0;
 
   virtual size_t buffered_amount(int channel_id) const = 0;
+  virtual size_t buffered_amount_low_threshold(int channel_id) const = 0;
+  virtual void SetBufferedAmountLowThreshold(int channel_id, size_t bytes) = 0;
 };
 
 }  // namespace webrtc

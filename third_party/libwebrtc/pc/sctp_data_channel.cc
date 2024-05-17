@@ -662,6 +662,10 @@ void SctpDataChannel::OnTransportChannelClosed(RTCError error) {
   CloseAbruptlyWithError(std::move(error));
 }
 
+void SctpDataChannel::OnBufferedAmountLow() {
+  RTC_DCHECK_RUN_ON(network_thread_);
+}
+
 DataChannelStats SctpDataChannel::GetStats() const {
   RTC_DCHECK_RUN_ON(network_thread_);
   DataChannelStats stats{internal_id_,        id(),         label(),

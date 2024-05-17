@@ -381,6 +381,18 @@ size_t DcSctpTransport::buffered_amount(int sid) const {
   return socket_->buffered_amount(dcsctp::StreamID(sid));
 }
 
+size_t DcSctpTransport::buffered_amount_low_threshold(int sid) const {
+  if (!socket_)
+    return 0;
+  return socket_->buffered_amount_low_threshold(dcsctp::StreamID(sid));
+}
+
+void DcSctpTransport::SetBufferedAmountLowThreshold(int sid, size_t bytes) {
+  if (!socket_)
+    return;
+  socket_->SetBufferedAmountLowThreshold(dcsctp::StreamID(sid), bytes);
+}
+
 void DcSctpTransport::set_debug_name_for_testing(const char* debug_name) {
   debug_name_ = debug_name;
 }
@@ -443,6 +455,13 @@ void DcSctpTransport::OnTotalBufferedAmountLow() {
     if (data_channel_sink_) {
       data_channel_sink_->OnReadyToSend();
     }
+  }
+}
+
+void DcSctpTransport::OnBufferedAmountLow(dcsctp::StreamID stream_id) {
+  RTC_DCHECK_RUN_ON(network_thread_);
+  if (data_channel_sink_) {
+    data_channel_sink_->OnBufferedAmountLow(*stream_id);
   }
 }
 

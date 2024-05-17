@@ -53,6 +53,8 @@ class SctpTransport : public SctpTransportInterface,
   void SetDataSink(DataChannelSink* sink) override;
   bool IsReadyToSend() const override;
   size_t buffered_amount(int channel_id) const override;
+  size_t buffered_amount_low_threshold(int channel_id) const override;
+  void SetBufferedAmountLowThreshold(int channel_id, size_t bytes) override;
 
   // Internal functions
   void Clear();

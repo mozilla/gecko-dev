@@ -64,6 +64,8 @@ class FakeCricketSctpTransport : public cricket::SctpTransportInternal {
     return max_inbound_streams_;
   }
   size_t buffered_amount(int sid) const override { return 0; }
+  size_t buffered_amount_low_threshold(int sid) const override { return 0; }
+  void SetBufferedAmountLowThreshold(int sid, size_t bytes) override {}
 
   void SendSignalAssociationChangeCommunicationUp() {
     ASSERT_TRUE(on_connected_callback_);

@@ -42,6 +42,14 @@ class MockDataChannelTransport : public DataChannelTransportInterface {
   MOCK_METHOD(void, SetDataSink, (DataChannelSink * sink), (override));
   MOCK_METHOD(bool, IsReadyToSend, (), (const, override));
   MOCK_METHOD(size_t, buffered_amount, (int channel_id), (const, override));
+  MOCK_METHOD(size_t,
+              buffered_amount_low_threshold,
+              (int channel_id),
+              (const, override));
+  MOCK_METHOD(void,
+              SetBufferedAmountLowThreshold,
+              (int channel_id, size_t bytes),
+              (override));
 };
 
 // Convenience class for tests to ensure that shutdown methods for DCC

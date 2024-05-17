@@ -106,6 +106,17 @@ size_t SctpTransport::buffered_amount(int channel_id) const {
   return internal_sctp_transport_->buffered_amount(channel_id);
 }
 
+size_t SctpTransport::buffered_amount_low_threshold(int channel_id) const {
+  RTC_DCHECK_RUN_ON(owner_thread_);
+  return internal_sctp_transport_->buffered_amount_low_threshold(channel_id);
+}
+
+void SctpTransport::SetBufferedAmountLowThreshold(int channel_id,
+                                                  size_t bytes) {
+  RTC_DCHECK_RUN_ON(owner_thread_);
+  internal_sctp_transport_->SetBufferedAmountLowThreshold(channel_id, bytes);
+}
+
 rtc::scoped_refptr<DtlsTransportInterface> SctpTransport::dtls_transport()
     const {
   RTC_DCHECK_RUN_ON(owner_thread_);
