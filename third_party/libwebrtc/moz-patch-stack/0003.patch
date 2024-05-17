@@ -1,164 +1,290 @@
-From: Johannes Kron <kron@webrtc.org>
-Date: Wed, 3 Apr 2024 10:38:13 +0000
-Subject: (cherry-pick-branch-heads/6367) [M124] Use predefined SdpVideoFormats
- when returning supported formats
+From: Victor Boivie <boivie@webrtc.org>
+Date: Tue, 26 Mar 2024 11:04:46 +0100
+Subject: (cherry-pick-branch-heads/6367) [M124] Revert "pc: Include SCTP
+ queued bytes in buffered_amount"
 
-The predefined SdpVideoFormats were not used everywhere,
-which caused a discrepancy between send/receive capabilities
-for AV1. This CL solves the immediate problems by making sure
-send/receive capabilities for AV1 are reported the same way.
+This breaks file transfers with Chrome Remote Desktop, as reported in
+the internal bug tracker.
 
-(cherry picked from commit 82598402e095ec6638b6cf3dc8e7f6d35cc3d737)
+This reverts commit fea41f540c72d15c4f499fead611a0c5e65db8ec.
 
-Fixed: chromium:331565934
-Change-Id: I073091b7b5f987c7f434c17276fd84047ec723c2
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/344681
-Reviewed-by: Harald Alvestrand <hta@webrtc.org>
-Commit-Queue: Johannes Kron <kron@webrtc.org>
-Cr-Original-Commit-Position: refs/heads/main@{#41991}
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/348720
-Cr-Commit-Position: refs/branch-heads/6367@{#3}
+Bug: chromium:331346276
+Change-Id: Ib41351a474bc40e7688d14dc445f53e68b5833ae
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/344501
+Commit-Queue: Victor Boivie <boivie@webrtc.org>
+Reviewed-by: Florent Castelli <orphis@webrtc.org>
+Reviewed-by: Tomas Gunnarsson <tommi@webrtc.org>
+Cr-Commit-Position: refs/branch-heads/6367@{#2}
 Cr-Branched-From: 802552a8030d82ad07b72aa738f814f3a0030810-refs/heads/main@{#41921}
 ---
- api/video_codecs/sdp_video_format.cc          |  7 +++++++
- api/video_codecs/sdp_video_format.h           |  8 ++++++++
- ...o_decoder_factory_template_dav1d_adapter.h |  5 +----
- ...oder_factory_template_libaom_av1_adapter.h |  2 +-
- ...oder_factory_template_libvpx_vp8_adapter.h |  2 +-
- .../test/videocodec_test_fixture_impl.cc      |  4 +++-
- modules/video_coding/codecs/vp9/vp9.cc        | 20 ++++++-------------
- 7 files changed, 27 insertions(+), 21 deletions(-)
+ api/transport/data_channel_transport_interface.h |  2 --
+ media/sctp/dcsctp_transport.cc                   |  6 ------
+ media/sctp/dcsctp_transport.h                    |  1 -
+ media/sctp/sctp_transport_internal.h             |  2 --
+ pc/data_channel_controller.cc                    |  8 --------
+ pc/data_channel_controller.h                     |  1 -
+ pc/data_channel_controller_unittest.cc           | 15 ---------------
+ pc/data_channel_integrationtest.cc               |  8 +++-----
+ pc/sctp_data_channel.cc                          |  6 +-----
+ pc/sctp_data_channel.h                           |  1 -
+ pc/sctp_transport.cc                             |  6 ------
+ pc/sctp_transport.h                              |  1 -
+ pc/sctp_transport_unittest.cc                    |  2 +-
+ pc/test/fake_data_channel_controller.h           |  2 --
+ test/pc/sctp/fake_sctp_transport.h               | 11 +++--------
+ 15 files changed, 8 insertions(+), 64 deletions(-)
 
-diff --git a/api/video_codecs/sdp_video_format.cc b/api/video_codecs/sdp_video_format.cc
-index 7921064c0f..fc26ac9dab 100644
---- a/api/video_codecs/sdp_video_format.cc
-+++ b/api/video_codecs/sdp_video_format.cc
-@@ -138,6 +138,13 @@ SdpVideoFormat::SdpVideoFormat(
-       parameters(parameters),
-       scalability_modes(scalability_modes) {}
+diff --git a/api/transport/data_channel_transport_interface.h b/api/transport/data_channel_transport_interface.h
+index 27d7de6364..cdae6fee19 100644
+--- a/api/transport/data_channel_transport_interface.h
++++ b/api/transport/data_channel_transport_interface.h
+@@ -118,8 +118,6 @@ class DataChannelTransportInterface {
+   // Note: the default implementation always returns false (as it assumes no one
+   // has implemented the interface).  This default implementation is temporary.
+   virtual bool IsReadyToSend() const = 0;
+-
+-  virtual size_t buffered_amount(int channel_id) const = 0;
+ };
  
-+SdpVideoFormat::SdpVideoFormat(
-+    const SdpVideoFormat& format,
-+    const absl::InlinedVector<ScalabilityMode, kScalabilityModeCount>& modes)
-+    : SdpVideoFormat(format) {
-+  scalability_modes = modes;
-+}
+ }  // namespace webrtc
+diff --git a/media/sctp/dcsctp_transport.cc b/media/sctp/dcsctp_transport.cc
+index 52890b3bd2..dffaa43060 100644
+--- a/media/sctp/dcsctp_transport.cc
++++ b/media/sctp/dcsctp_transport.cc
+@@ -375,12 +375,6 @@ absl::optional<int> DcSctpTransport::max_inbound_streams() const {
+   return socket_->options().announced_maximum_incoming_streams;
+ }
+ 
+-size_t DcSctpTransport::buffered_amount(int sid) const {
+-  if (!socket_)
+-    return 0;
+-  return socket_->buffered_amount(dcsctp::StreamID(sid));
+-}
+-
+ void DcSctpTransport::set_debug_name_for_testing(const char* debug_name) {
+   debug_name_ = debug_name;
+ }
+diff --git a/media/sctp/dcsctp_transport.h b/media/sctp/dcsctp_transport.h
+index 21a6a9513f..36efc70ffe 100644
+--- a/media/sctp/dcsctp_transport.h
++++ b/media/sctp/dcsctp_transport.h
+@@ -66,7 +66,6 @@ class DcSctpTransport : public cricket::SctpTransportInternal,
+   int max_message_size() const override;
+   absl::optional<int> max_outbound_streams() const override;
+   absl::optional<int> max_inbound_streams() const override;
+-  size_t buffered_amount(int sid) const override;
+   void set_debug_name_for_testing(const char* debug_name) override;
+ 
+  private:
+diff --git a/media/sctp/sctp_transport_internal.h b/media/sctp/sctp_transport_internal.h
+index 705f5bd3e6..8a7450f405 100644
+--- a/media/sctp/sctp_transport_internal.h
++++ b/media/sctp/sctp_transport_internal.h
+@@ -140,8 +140,6 @@ class SctpTransportInternal {
+   virtual absl::optional<int> max_outbound_streams() const = 0;
+   // Returns the current negotiated max # of inbound streams.
+   virtual absl::optional<int> max_inbound_streams() const = 0;
+-  // Returns the amount of buffered data in the send queue for a stream.
+-  virtual size_t buffered_amount(int sid) const = 0;
+ 
+   // Helper for debugging.
+   virtual void set_debug_name_for_testing(const char* debug_name) = 0;
+diff --git a/pc/data_channel_controller.cc b/pc/data_channel_controller.cc
+index fbe639f96b..208160e1c1 100644
+--- a/pc/data_channel_controller.cc
++++ b/pc/data_channel_controller.cc
+@@ -89,14 +89,6 @@ void DataChannelController::OnChannelStateChanged(
+       }));
+ }
+ 
+-size_t DataChannelController::buffered_amount(StreamId sid) const {
+-  RTC_DCHECK_RUN_ON(network_thread());
+-  if (!data_channel_transport_) {
+-    return 0;
+-  }
+-  return data_channel_transport_->buffered_amount(sid.stream_id_int());
+-}
+-
+ void DataChannelController::OnDataReceived(
+     int channel_id,
+     DataMessageType type,
+diff --git a/pc/data_channel_controller.h b/pc/data_channel_controller.h
+index d2a9a1a135..d7ac3706b0 100644
+--- a/pc/data_channel_controller.h
++++ b/pc/data_channel_controller.h
+@@ -54,7 +54,6 @@ class DataChannelController : public SctpDataChannelControllerInterface,
+   void RemoveSctpDataStream(StreamId sid) override;
+   void OnChannelStateChanged(SctpDataChannel* channel,
+                              DataChannelInterface::DataState state) override;
+-  size_t buffered_amount(StreamId sid) const override;
+ 
+   // Implements DataChannelSink.
+   void OnDataReceived(int channel_id,
+diff --git a/pc/data_channel_controller_unittest.cc b/pc/data_channel_controller_unittest.cc
+index caf9a76c41..7d4e60467e 100644
+--- a/pc/data_channel_controller_unittest.cc
++++ b/pc/data_channel_controller_unittest.cc
+@@ -41,7 +41,6 @@ class MockDataChannelTransport : public DataChannelTransportInterface {
+   MOCK_METHOD(RTCError, CloseChannel, (int channel_id), (override));
+   MOCK_METHOD(void, SetDataSink, (DataChannelSink * sink), (override));
+   MOCK_METHOD(bool, IsReadyToSend, (), (const, override));
+-  MOCK_METHOD(size_t, buffered_amount, (int channel_id), (const, override));
+ };
+ 
+ // Convenience class for tests to ensure that shutdown methods for DCC
+@@ -168,20 +167,6 @@ TEST_F(DataChannelControllerTest, MaxChannels) {
+   }
+ }
+ 
+-TEST_F(DataChannelControllerTest, BufferedAmountIncludesFromTransport) {
+-  NiceMock<MockDataChannelTransport> transport;
+-  EXPECT_CALL(transport, buffered_amount(0)).WillOnce(Return(4711));
+-  ON_CALL(*pc_, GetSctpSslRole_n).WillByDefault([&]() {
+-    return rtc::SSL_CLIENT;
+-  });
+-
+-  DataChannelControllerForTest dcc(pc_.get(), &transport);
+-  auto dc = dcc.InternalCreateDataChannelWithProxy(
+-                   "label", InternalDataChannelInit(DataChannelInit()))
+-                .MoveValue();
+-  EXPECT_EQ(dc->buffered_amount(), 4711u);
+-}
+-
+ // Test that while a data channel is in the `kClosing` state, its StreamId does
+ // not get re-used for new channels. Only once the state reaches `kClosed`
+ // should a StreamId be available again for allocation.
+diff --git a/pc/data_channel_integrationtest.cc b/pc/data_channel_integrationtest.cc
+index a31481d634..5a8004c72a 100644
+--- a/pc/data_channel_integrationtest.cc
++++ b/pc/data_channel_integrationtest.cc
+@@ -1042,16 +1042,14 @@ TEST_P(DataChannelIntegrationTest,
+                  kDefaultTimeout);
+   // Cause a temporary network outage
+   virtual_socket_server()->set_drop_probability(1.0);
+-  // Fill the SCTP socket buffer until queued data starts to build.
+-  constexpr size_t kBufferedDataInSctpSocket = 2'000'000;
++  // Fill the buffer until queued data starts to build
+   size_t packet_counter = 0;
+-  while (caller()->data_channel()->buffered_amount() <
+-             kBufferedDataInSctpSocket &&
++  while (caller()->data_channel()->buffered_amount() < 1 &&
+          packet_counter < 10000) {
+     packet_counter++;
+     caller()->data_channel()->Send(DataBuffer("Sent while blocked"));
+   }
+-  if (caller()->data_channel()->buffered_amount() > kBufferedDataInSctpSocket) {
++  if (caller()->data_channel()->buffered_amount()) {
+     RTC_LOG(LS_INFO) << "Buffered data after " << packet_counter << " packets";
+   } else {
+     RTC_LOG(LS_INFO) << "No buffered data after " << packet_counter
+diff --git a/pc/sctp_data_channel.cc b/pc/sctp_data_channel.cc
+index 7ec314d2f7..8aa5fbd974 100644
+--- a/pc/sctp_data_channel.cc
++++ b/pc/sctp_data_channel.cc
+@@ -485,11 +485,7 @@ Priority SctpDataChannel::priority() const {
+ 
+ uint64_t SctpDataChannel::buffered_amount() const {
+   RTC_DCHECK_RUN_ON(network_thread_);
+-  uint64_t buffered_amount = queued_send_data_.byte_count();
+-  if (controller_ != nullptr && id_n_.has_value()) {
+-    buffered_amount += controller_->buffered_amount(*id_n_);
+-  }
+-  return buffered_amount;
++  return queued_send_data_.byte_count();
+ }
+ 
+ void SctpDataChannel::Close() {
+diff --git a/pc/sctp_data_channel.h b/pc/sctp_data_channel.h
+index 0be234bd16..fdbf2053e3 100644
+--- a/pc/sctp_data_channel.h
++++ b/pc/sctp_data_channel.h
+@@ -55,7 +55,6 @@ class SctpDataChannelControllerInterface {
+   // Notifies the controller of state changes.
+   virtual void OnChannelStateChanged(SctpDataChannel* data_channel,
+                                      DataChannelInterface::DataState state) = 0;
+-  virtual size_t buffered_amount(StreamId sid) const = 0;
+ 
+  protected:
+   virtual ~SctpDataChannelControllerInterface() {}
+diff --git a/pc/sctp_transport.cc b/pc/sctp_transport.cc
+index 5f505e0296..7f55e39d9e 100644
+--- a/pc/sctp_transport.cc
++++ b/pc/sctp_transport.cc
+@@ -100,12 +100,6 @@ bool SctpTransport::IsReadyToSend() const {
+   return internal_sctp_transport_->ReadyToSendData();
+ }
+ 
+-size_t SctpTransport::buffered_amount(int channel_id) const {
+-  RTC_DCHECK_RUN_ON(owner_thread_);
+-  RTC_DCHECK(internal_sctp_transport_);
+-  return internal_sctp_transport_->buffered_amount(channel_id);
+-}
+-
+ rtc::scoped_refptr<DtlsTransportInterface> SctpTransport::dtls_transport()
+     const {
+   RTC_DCHECK_RUN_ON(owner_thread_);
+diff --git a/pc/sctp_transport.h b/pc/sctp_transport.h
+index 79cb3aed2c..076dee5318 100644
+--- a/pc/sctp_transport.h
++++ b/pc/sctp_transport.h
+@@ -52,7 +52,6 @@ class SctpTransport : public SctpTransportInterface,
+   RTCError CloseChannel(int channel_id) override;
+   void SetDataSink(DataChannelSink* sink) override;
+   bool IsReadyToSend() const override;
+-  size_t buffered_amount(int channel_id) const override;
+ 
+   // Internal functions
+   void Clear();
+diff --git a/pc/sctp_transport_unittest.cc b/pc/sctp_transport_unittest.cc
+index f0401c1b10..d18543f20c 100644
+--- a/pc/sctp_transport_unittest.cc
++++ b/pc/sctp_transport_unittest.cc
+@@ -63,7 +63,6 @@ class FakeCricketSctpTransport : public cricket::SctpTransportInternal {
+   absl::optional<int> max_inbound_streams() const override {
+     return max_inbound_streams_;
+   }
+-  size_t buffered_amount(int sid) const override { return 0; }
+ 
+   void SendSignalAssociationChangeCommunicationUp() {
+     ASSERT_TRUE(on_connected_callback_);
+@@ -213,4 +212,5 @@ TEST_F(SctpTransportTest, CloseWhenTransportCloses) {
+   ASSERT_EQ_WAIT(SctpTransportState::kClosed, observer_.State(),
+                  kDefaultTimeout);
+ }
 +
- SdpVideoFormat::SdpVideoFormat(const SdpVideoFormat&) = default;
- SdpVideoFormat::SdpVideoFormat(SdpVideoFormat&&) = default;
- SdpVideoFormat& SdpVideoFormat::operator=(const SdpVideoFormat&) = default;
-diff --git a/api/video_codecs/sdp_video_format.h b/api/video_codecs/sdp_video_format.h
-index 112f53fd1b..e7da486a53 100644
---- a/api/video_codecs/sdp_video_format.h
-+++ b/api/video_codecs/sdp_video_format.h
-@@ -36,6 +36,14 @@ struct RTC_EXPORT SdpVideoFormat {
-       const CodecParameterMap& parameters,
-       const absl::InlinedVector<ScalabilityMode, kScalabilityModeCount>&
-           scalability_modes);
-+  // Creates a new SdpVideoFormat object identical to the supplied
-+  // SdpVideoFormat except the scalability_modes that are set to be the same as
-+  // the supplied scalability modes.
-+  SdpVideoFormat(
-+      const SdpVideoFormat& format,
-+      const absl::InlinedVector<ScalabilityMode, kScalabilityModeCount>&
-+          scalability_modes);
-+
-   SdpVideoFormat(const SdpVideoFormat&);
-   SdpVideoFormat(SdpVideoFormat&&);
-   SdpVideoFormat& operator=(const SdpVideoFormat&);
-diff --git a/api/video_codecs/video_decoder_factory_template_dav1d_adapter.h b/api/video_codecs/video_decoder_factory_template_dav1d_adapter.h
-index f38d46994b..7bc0bbb8fc 100644
---- a/api/video_codecs/video_decoder_factory_template_dav1d_adapter.h
-+++ b/api/video_codecs/video_decoder_factory_template_dav1d_adapter.h
-@@ -21,10 +21,7 @@
- namespace webrtc {
- struct Dav1dDecoderTemplateAdapter {
-   static std::vector<SdpVideoFormat> SupportedFormats() {
--    return {SdpVideoFormat("AV1"),
--            SdpVideoFormat(
--                "AV1", {{"profile",
--                         AV1ProfileToString(AV1Profile::kProfile1).data()}})};
-+    return {SdpVideoFormat::AV1Profile0(), SdpVideoFormat::AV1Profile1()};
-   }
- 
-   static std::unique_ptr<VideoDecoder> CreateDecoder(
-diff --git a/api/video_codecs/video_encoder_factory_template_libaom_av1_adapter.h b/api/video_codecs/video_encoder_factory_template_libaom_av1_adapter.h
-index 0f801ad3c7..3f551dea8d 100644
---- a/api/video_codecs/video_encoder_factory_template_libaom_av1_adapter.h
-+++ b/api/video_codecs/video_encoder_factory_template_libaom_av1_adapter.h
-@@ -24,7 +24,7 @@ struct LibaomAv1EncoderTemplateAdapter {
-   static std::vector<SdpVideoFormat> SupportedFormats() {
-     absl::InlinedVector<ScalabilityMode, kScalabilityModeCount>
-         scalability_modes = LibaomAv1EncoderSupportedScalabilityModes();
--    return {SdpVideoFormat("AV1", CodecParameterMap(), scalability_modes)};
-+    return {SdpVideoFormat(SdpVideoFormat::AV1Profile0(), scalability_modes)};
-   }
- 
-   static std::unique_ptr<VideoEncoder> CreateEncoder(
-diff --git a/api/video_codecs/video_encoder_factory_template_libvpx_vp8_adapter.h b/api/video_codecs/video_encoder_factory_template_libvpx_vp8_adapter.h
-index c60aa04795..de6d975267 100644
---- a/api/video_codecs/video_encoder_factory_template_libvpx_vp8_adapter.h
-+++ b/api/video_codecs/video_encoder_factory_template_libvpx_vp8_adapter.h
-@@ -28,7 +28,7 @@ struct LibvpxVp8EncoderTemplateAdapter {
-       scalability_modes.push_back(scalability_mode);
-     }
- 
--    return {SdpVideoFormat("VP8", CodecParameterMap(), scalability_modes)};
-+    return {SdpVideoFormat(SdpVideoFormat::VP8(), scalability_modes)};
-   }
- 
-   static std::unique_ptr<VideoEncoder> CreateEncoder(
-diff --git a/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc b/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc
-index dae3997631..2abeb0513a 100644
---- a/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc
-+++ b/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc
-@@ -178,7 +178,9 @@ SdpVideoFormat CreateSdpVideoFormat(
- 
-     return SdpVideoFormat(config.codec_name, codec_params);
-   } else if (config.codec_settings.codecType == kVideoCodecVP9) {
--    return SdpVideoFormat(config.codec_name, {{"profile-id", "0"}});
-+    return SdpVideoFormat::VP9Profile0();
-+  } else if (config.codec_settings.codecType == kVideoCodecAV1) {
-+    return SdpVideoFormat::AV1Profile0();
-   }
- 
-   return SdpVideoFormat(config.codec_name);
-diff --git a/modules/video_coding/codecs/vp9/vp9.cc b/modules/video_coding/codecs/vp9/vp9.cc
-index 8799f2cdd5..d2cbd52a64 100644
---- a/modules/video_coding/codecs/vp9/vp9.cc
-+++ b/modules/video_coding/codecs/vp9/vp9.cc
-@@ -46,15 +46,11 @@ std::vector<SdpVideoFormat> SupportedVP9Codecs(bool add_scalability_modes) {
-       }
+ }  // namespace webrtc
+diff --git a/pc/test/fake_data_channel_controller.h b/pc/test/fake_data_channel_controller.h
+index c65449b010..89cdce738d 100644
+--- a/pc/test/fake_data_channel_controller.h
++++ b/pc/test/fake_data_channel_controller.h
+@@ -128,8 +128,6 @@ class FakeDataChannelController
      }
    }
--  std::vector<SdpVideoFormat> supported_formats{SdpVideoFormat(
--      cricket::kVp9CodecName,
--      {{kVP9FmtpProfileId, VP9ProfileToString(VP9Profile::kProfile0)}},
--      scalability_modes)};
-+  std::vector<SdpVideoFormat> supported_formats{
-+      SdpVideoFormat(SdpVideoFormat::VP9Profile0(), scalability_modes)};
-   if (vpx_supports_high_bit_depth) {
--    supported_formats.push_back(SdpVideoFormat(
--        cricket::kVp9CodecName,
--        {{kVP9FmtpProfileId, VP9ProfileToString(VP9Profile::kProfile2)}},
--        scalability_modes));
-+    supported_formats.push_back(
-+        SdpVideoFormat(SdpVideoFormat::VP9Profile2(), scalability_modes));
-   }
  
-   return supported_formats;
-@@ -69,12 +65,8 @@ std::vector<SdpVideoFormat> SupportedVP9DecoderCodecs() {
-   // The WebRTC internal decoder supports VP9 profile 1 and 3. However, there's
-   // currently no way of sending VP9 profile 1 or 3 using the internal encoder.
-   // It would require extended support for I444, I422, and I440 buffers.
--  supported_formats.push_back(SdpVideoFormat(
--      cricket::kVp9CodecName,
--      {{kVP9FmtpProfileId, VP9ProfileToString(VP9Profile::kProfile1)}}));
--  supported_formats.push_back(SdpVideoFormat(
--      cricket::kVp9CodecName,
--      {{kVP9FmtpProfileId, VP9ProfileToString(VP9Profile::kProfile3)}}));
-+  supported_formats.push_back(SdpVideoFormat::VP9Profile1());
-+  supported_formats.push_back(SdpVideoFormat::VP9Profile3());
-   return supported_formats;
- #else
-   return std::vector<SdpVideoFormat>();
+-  size_t buffered_amount(webrtc::StreamId sid) const override { return 0; }
+-
+   // Set true to emulate the SCTP stream being blocked by congestion control.
+   void set_send_blocked(bool blocked) {
+     network_thread_->BlockingCall([&]() {
+diff --git a/test/pc/sctp/fake_sctp_transport.h b/test/pc/sctp/fake_sctp_transport.h
+index 6aef57a241..96c126640c 100644
+--- a/test/pc/sctp/fake_sctp_transport.h
++++ b/test/pc/sctp/fake_sctp_transport.h
+@@ -41,14 +41,9 @@ class FakeSctpTransport : public cricket::SctpTransportInternal {
+   bool ReadyToSendData() override { return true; }
+   void set_debug_name_for_testing(const char* debug_name) override {}
+ 
+-  int max_message_size() const override { return max_message_size_; }
+-  absl::optional<int> max_outbound_streams() const override {
+-    return absl::nullopt;
+-  }
+-  absl::optional<int> max_inbound_streams() const override {
+-    return absl::nullopt;
+-  }
+-  size_t buffered_amount(int sid) const override { return 0; }
++  int max_message_size() const { return max_message_size_; }
++  absl::optional<int> max_outbound_streams() const { return absl::nullopt; }
++  absl::optional<int> max_inbound_streams() const { return absl::nullopt; }
+   int local_port() const {
+     RTC_DCHECK(local_port_);
+     return *local_port_;

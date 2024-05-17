@@ -1,54 +1,98 @@
-From: Ilya Nikolaevskiy <ilnik@webrtc.org>
-Date: Wed, 20 Mar 2024 15:09:20 +0100
-Subject: (cherry-pick-branch-heads/6367) [M124] Adjust min vp9 simulcast
- bitrate to closer mimic SVC behaviour
+From: Michael Froman <mjfroman@mac.com>
+Date: Fri, 17 May 2024 11:46:30 -0500
+Subject: (tmp-cherry-pick) Revert "Stop exponential probing if 2xmax allocated
+ bitrate lower than BWE." (802dd5bdbd)
 
-If SVC is used, the minimum bitrate would be 30kbps, instead of 49, as
-configured in svc_config.h, because the overall stream will get min_bitrate
-from the default VP8 simulcast configuration, and this 30kbps will be
-allocated to the stream for svc_rate_allocator to divide between layers.
+This reverts commit 5a4ce031019bce349ad65e76aa5da6d0f8e5989e.
 
-However, with the configuration before this change, 49kbps would be always
-allocated to the lowest simulcast stream.
+Reason for revert: Breaks tests in downstream project.
 
-(cherry picked from commit f49a8262cc4b89549375cde7b962bbf5ee3c0d07)
+Original change's description:
+> Stop exponential probing if 2xmax allocated bitrate lower than BWE.
+>
+> Without this, if max allocated bitrate is lowered while exponential probing is ongoing, a new probe can be sent at a rate of the new low max allocated bitrate which may cause BWE to decrease.
+>
+> Bug: webrtc:14928
+> Change-Id: Id8e314740c2403d3b801d28f634dbc718f77c16e
+> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/343384
+> Reviewed-by: Diep Bui <diepbp@webrtc.org>
+> Commit-Queue: Per Kjellander <perkj@webrtc.org>
+> Cr-Commit-Position: refs/heads/main@{#41929}
 
-Bug: webrtc:15852, chromium:330672089
-Change-Id: I1c77f45654af8850180a83f8e3f4428cc42d086e
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/343760
-Commit-Queue: Ilya Nikolaevskiy <ilnik@webrtc.org>
-Reviewed-by: Sergey Silkin <ssilkin@webrtc.org>
-Cr-Original-Commit-Position: refs/heads/main@{#41940}
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/343981
-Cr-Commit-Position: refs/branch-heads/6367@{#1}
-Cr-Branched-From: 802552a8030d82ad07b72aa738f814f3a0030810-refs/heads/main@{#41921}
+Bug: webrtc:14928
+Change-Id: I0d48b37bfb8684fd490f5685e510b438a83254b9
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/343900
+Commit-Queue: Ying Wang <yinwa@webrtc.org>
+Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Reviewed-by: Ying Wang <yinwa@webrtc.org>
+Cr-Commit-Position: refs/heads/main@{#41958}
 ---
- video/config/simulcast.cc          | 2 +-
- video/config/simulcast_unittest.cc | 1 -
- 2 files changed, 1 insertion(+), 2 deletions(-)
+ .../goog_cc/probe_controller.cc               |  8 +-----
+ .../goog_cc/probe_controller_unittest.cc      | 26 -------------------
+ 2 files changed, 1 insertion(+), 33 deletions(-)
 
-diff --git a/video/config/simulcast.cc b/video/config/simulcast.cc
-index 2c600c8572..ce19fbb0a2 100644
---- a/video/config/simulcast.cc
-+++ b/video/config/simulcast.cc
-@@ -123,7 +123,7 @@ constexpr const SimulcastFormat kSimulcastFormatsVP9[] = {
-      webrtc::DataRate::KilobitsPerSec(121)},
-     {320, 180, 1, webrtc::DataRate::KilobitsPerSec(142),
-      webrtc::DataRate::KilobitsPerSec(142),
--     webrtc::DataRate::KilobitsPerSec(49)},
-+     webrtc::DataRate::KilobitsPerSec(30)},
-     {240, 135, 1, webrtc::DataRate::KilobitsPerSec(101),
-      webrtc::DataRate::KilobitsPerSec(101),
-      webrtc::DataRate::KilobitsPerSec(30)},
-diff --git a/video/config/simulcast_unittest.cc b/video/config/simulcast_unittest.cc
-index 8dbc003738..e518d9bf1e 100644
---- a/video/config/simulcast_unittest.cc
-+++ b/video/config/simulcast_unittest.cc
-@@ -548,7 +548,6 @@ TEST(SimulcastTest, BitratesBasedOnCodec) {
-   EXPECT_NE(streams_vp9[0].max_bitrate_bps, streams_vp8[0].max_bitrate_bps);
-   EXPECT_NE(streams_vp9[0].target_bitrate_bps,
-             streams_vp8[0].target_bitrate_bps);
--  EXPECT_NE(streams_vp9[0].min_bitrate_bps, streams_vp8[0].min_bitrate_bps);
+diff --git a/modules/congestion_controller/goog_cc/probe_controller.cc b/modules/congestion_controller/goog_cc/probe_controller.cc
+index 6c3667b9df..31727051a8 100644
+--- a/modules/congestion_controller/goog_cc/probe_controller.cc
++++ b/modules/congestion_controller/goog_cc/probe_controller.cc
+@@ -294,13 +294,7 @@ std::vector<ProbeClusterConfig> ProbeController::SetEstimatedBitrate(
  
-   EXPECT_NE(streams_vp9[1].max_bitrate_bps, streams_vp8[1].max_bitrate_bps);
-   EXPECT_NE(streams_vp9[1].target_bitrate_bps,
+   if (state_ == State::kWaitingForProbingResult) {
+     // Continue probing if probing results indicate channel has greater
+-    // capacity unless we already reached the needed bitrate.
+-    if (bitrate > max_bitrate_ ||
+-        (!max_total_allocated_bitrate_.IsZero() &&
+-         bitrate > 2 * max_total_allocated_bitrate_)) {
+-      // No need to continue probing.
+-      min_bitrate_to_probe_further_ = DataRate::PlusInfinity();
+-    }
++    // capacity.
+     DataRate network_state_estimate_probe_further_limit =
+         config_.network_state_estimate_probing_interval->IsFinite() &&
+                 network_estimate_
+diff --git a/modules/congestion_controller/goog_cc/probe_controller_unittest.cc b/modules/congestion_controller/goog_cc/probe_controller_unittest.cc
+index fb5fc2df7f..6e34a2962d 100644
+--- a/modules/congestion_controller/goog_cc/probe_controller_unittest.cc
++++ b/modules/congestion_controller/goog_cc/probe_controller_unittest.cc
+@@ -23,10 +23,8 @@
+ #include "test/gmock.h"
+ #include "test/gtest.h"
+ 
+-using ::testing::Gt;
+ using ::testing::IsEmpty;
+ using ::testing::NiceMock;
+-using ::testing::SizeIs;
+ 
+ namespace webrtc {
+ namespace test {
+@@ -327,30 +325,6 @@ TEST(ProbeControllerTest, TestExponentialProbing) {
+   EXPECT_EQ(probes[0].target_data_rate.bps(), 2 * 1800);
+ }
+ 
+-TEST(ProbeControllerTest, ExponentialProbingStopIfMaxAllocatedBitrateLow) {
+-  ProbeControllerFixture fixture;
+-  std::unique_ptr<ProbeController> probe_controller =
+-      fixture.CreateController();
+-  ASSERT_THAT(
+-      probe_controller->OnNetworkAvailability({.network_available = true}),
+-      IsEmpty());
+-  auto probes = probe_controller->SetBitrates(
+-      kMinBitrate, kStartBitrate, kMaxBitrate, fixture.CurrentTime());
+-  ASSERT_THAT(probes, SizeIs(Gt(0)));
+-
+-  // Repeated probe normally is sent when estimated bitrate climbs above
+-  // 0.7 * 6 * kStartBitrate = 1260. But since allocated bitrate i slow, expect
+-  // exponential probing to stop.
+-  probes = probe_controller->OnMaxTotalAllocatedBitrate(kStartBitrate,
+-                                                        fixture.CurrentTime());
+-  EXPECT_THAT(probes, IsEmpty());
+-
+-  probes = probe_controller->SetEstimatedBitrate(
+-      DataRate::BitsPerSec(1800), BandwidthLimitedCause::kDelayBasedLimited,
+-      fixture.CurrentTime());
+-  EXPECT_THAT(probes, IsEmpty());
+-}
+-
+ TEST(ProbeControllerTest, TestExponentialProbingTimeout) {
+   ProbeControllerFixture fixture;
+   std::unique_ptr<ProbeController> probe_controller =
