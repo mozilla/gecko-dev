@@ -233,7 +233,6 @@ int H264DecoderImpl::AVGetBuffer2(AVCodecContext* context,
   int total_size = y_size + 2 * uv_size;
 
   av_frame->format = context->pix_fmt;
-  av_frame->reordered_opaque = context->reordered_opaque;
 
   // Create a VideoFrame object, to keep a reference to the buffer.
   // TODO(nisse): The VideoFrame's timestamp and rotation info is not used.
@@ -381,8 +380,6 @@ int32_t H264DecoderImpl::Decode(const EncodedImage& input_image,
     return WEBRTC_VIDEO_CODEC_ERROR;
   }
   packet->size = static_cast<int>(input_image.size());
-  int64_t frame_timestamp_us = input_image.ntp_time_ms_ * 1000;  // ms -> μs
-  av_context_->reordered_opaque = frame_timestamp_us;
 
   int result = avcodec_send_packet(av_context_.get(), packet.get());
 
@@ -398,10 +395,6 @@ int32_t H264DecoderImpl::Decode(const EncodedImage& input_image,
     ReportError();
     return WEBRTC_VIDEO_CODEC_ERROR;
   }
-
-  // We don't expect reordering. Decoded frame timestamp should match
-  // the input one.
-  RTC_DCHECK_EQ(av_frame_->reordered_opaque, frame_timestamp_us);
 
   // TODO(sakal): Maybe it is possible to get QP directly from FFmpeg.
   h264_bitstream_parser_.ParseBitstream(input_image);
