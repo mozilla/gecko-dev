@@ -53,7 +53,7 @@ rtc_library("frame_generator_impl") {
     "../api:frame_generator_api",
     "../api:scoped_refptr",
     "../api:sequence_checker",
-    "../api/environment:environment_factory",
+    "../api/environment",
     "../api/video:encoded_image",
     "../api/video:video_frame",
     "../api/video:video_frame_i010",
@@ -76,7 +76,10 @@ rtc_library("frame_generator_impl") {
     "../rtc_base/system:file_wrapper",
     "../system_wrappers",
   ]
-  absl_deps = [ "//third_party/abseil-cpp/absl/types:optional" ]
+  absl_deps = [
+    "//third_party/abseil-cpp/absl/strings:string_view",
+    "//third_party/abseil-cpp/absl/types:optional",
+  ]
 }
 
 rtc_library("y4m_frame_generator") {
