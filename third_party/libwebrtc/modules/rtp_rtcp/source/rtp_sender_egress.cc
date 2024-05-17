@@ -253,13 +253,24 @@ void RtpSenderEgress::CompleteSendPacket(const Packet& compound_packet,
   // Downstream code actually uses this flag to distinguish between media and
   // everything else.
   options.is_retransmit = !is_media;
+
+  // Set Packet id from transport sequence number header extension if it is
+  // used. The source of the header extension is
+  // RtpPacketToSend::transport_sequence_number(), but the extension is only 16
+  // bit and will wrap. We should be able to use the 64bit value as id, but in
+  // order to not change behaviour we use the 16bit extension value if it is
+  // used.
   absl::optional<uint16_t> packet_id =
       packet->GetExtension<TransportSequenceNumber>();
   if (packet_id.has_value()) {
     options.packet_id = *packet_id;
     options.included_in_feedback = true;
     options.included_in_allocation = true;
-    AddPacketToTransportFeedback(*packet_id, *packet, pacing_info);
+  } else if (packet->transport_sequence_number()) {
+    options.packet_id = *packet->transport_sequence_number();
+  }
+  if (options.packet_id >= 0) {
+    AddPacketToTransportFeedback(options.packet_id, *packet, pacing_info);
   }
 
   if (packet->packet_type() != RtpPacketMediaType::kPadding &&

@@ -820,6 +820,46 @@ TEST_F(RtpSenderEgressTest, SendPacketSetsPacketOptions) {
   EXPECT_TRUE(transport_.last_packet()->options.is_retransmit);
 }
 
+TEST_F(RtpSenderEgressTest, SendPacketSetsPacketOptionsIdFromExtension) {
+  header_extensions_.RegisterByUri(kTransportSequenceNumberExtensionId,
+                                   TransportSequenceNumber::Uri());
+  RtpSenderEgress sender(DefaultConfig(), &packet_history_);
+
+  // 64-bit transport sequence number.
+  const int64_t kTransportSequenceNumber = 0xFFFF000F;
+  std::unique_ptr<RtpPacketToSend> packet = BuildRtpPacket();
+  packet->set_transport_sequence_number(kTransportSequenceNumber);
+
+  EXPECT_CALL(send_packet_observer_, OnSendPacket);
+  sender.SendPacket(std::move(packet), PacedPacketInfo());
+
+  ASSERT_TRUE(transport_.last_packet().has_value());
+  EXPECT_EQ(
+      transport_.last_packet()->packet.GetExtension<TransportSequenceNumber>(),
+      kTransportSequenceNumber & 0xFFFF);
+  PacketOptions packet_options = transport_.last_packet()->options;
+  // 16 bit packet id.
+  EXPECT_EQ(packet_options.packet_id, kTransportSequenceNumber & 0xFFFF);
+}
+
+TEST_F(RtpSenderEgressTest,
+       SendPacketSetsPacketOptionsIdFromRtpSendPacketIfNotUsingExtension) {
+  RtpSenderEgress sender(DefaultConfig(), &packet_history_);
+  // 64-bit transport sequence number.
+  const int64_t kTransportSequenceNumber = 0xFFFF000F;
+  std::unique_ptr<RtpPacketToSend> packet = BuildRtpPacket();
+  packet->set_transport_sequence_number(kTransportSequenceNumber);
+
+  EXPECT_CALL(send_packet_observer_, OnSendPacket);
+  sender.SendPacket(std::move(packet), PacedPacketInfo());
+
+  ASSERT_TRUE(transport_.last_packet().has_value());
+  ASSERT_FALSE(
+      transport_.last_packet()->packet.HasExtension<TransportSequenceNumber>());
+  PacketOptions packet_options = transport_.last_packet()->options;
+  EXPECT_EQ(packet_options.packet_id, kTransportSequenceNumber);
+}
+
 TEST_F(RtpSenderEgressTest, SendPacketUpdatesStats) {
   const size_t kPayloadSize = 1000;
 
