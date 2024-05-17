@@ -1784,13 +1784,7 @@ void VideoStreamEncoder::MaybeEncodeVideoFrame(const VideoFrame& video_frame,
   // According to the testcase
   // InitialFrameDropOffWhenEncoderDisabledScaling, the return value
   // from GetScalingSettings should enable or disable the frame drop.
-
-  // Update input frame rate before we start using it. If we update it after
-  // any potential frame drop we are going to artificially increase frame sizes.
-  // Poll the rate before updating, otherwise we risk the rate being estimated
-  // a little too high at the start of the call when then window is small.
   uint32_t framerate_fps = GetInputFramerateFps();
-  frame_cadence_adapter_->UpdateFrameRate();
 
   int64_t now_ms = env_.clock().TimeInMilliseconds();
   if (pending_encoder_reconfiguration_) {
