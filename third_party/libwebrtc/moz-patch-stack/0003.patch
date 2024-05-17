@@ -1,34 +1,164 @@
-From: Michael Froman <mfroman@mozilla.com>
-Date: Fri, 9 Jul 2021 18:14:00 -0500
-Subject: Bug 1654112 - mutex changes to fix tsan errors. r=ng
+From: Johannes Kron <kron@webrtc.org>
+Date: Wed, 3 Apr 2024 10:38:13 +0000
+Subject: (cherry-pick-branch-heads/6367) [M124] Use predefined SdpVideoFormats
+ when returning supported formats
 
-Differential Revision: https://phabricator.services.mozilla.com/D119674
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/3d5503acf9a4b22e02c4300f29e4fbfed406ea2c
+The predefined SdpVideoFormats were not used everywhere,
+which caused a discrepancy between send/receive capabilities
+for AV1. This CL solves the immediate problems by making sure
+send/receive capabilities for AV1 are reported the same way.
+
+(cherry picked from commit 82598402e095ec6638b6cf3dc8e7f6d35cc3d737)
+
+Fixed: chromium:331565934
+Change-Id: I073091b7b5f987c7f434c17276fd84047ec723c2
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/344681
+Reviewed-by: Harald Alvestrand <hta@webrtc.org>
+Commit-Queue: Johannes Kron <kron@webrtc.org>
+Cr-Original-Commit-Position: refs/heads/main@{#41991}
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/348720
+Cr-Commit-Position: refs/branch-heads/6367@{#3}
+Cr-Branched-From: 802552a8030d82ad07b72aa738f814f3a0030810-refs/heads/main@{#41921}
 ---
- rtc_base/logging.cc | 5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
+ api/video_codecs/sdp_video_format.cc          |  7 +++++++
+ api/video_codecs/sdp_video_format.h           |  8 ++++++++
+ ...o_decoder_factory_template_dav1d_adapter.h |  5 +----
+ ...oder_factory_template_libaom_av1_adapter.h |  2 +-
+ ...oder_factory_template_libvpx_vp8_adapter.h |  2 +-
+ .../test/videocodec_test_fixture_impl.cc      |  4 +++-
+ modules/video_coding/codecs/vp9/vp9.cc        | 20 ++++++-------------
+ 7 files changed, 27 insertions(+), 21 deletions(-)
 
-diff --git a/rtc_base/logging.cc b/rtc_base/logging.cc
-index ad2303735e..9c2d3b0a39 100644
---- a/rtc_base/logging.cc
-+++ b/rtc_base/logging.cc
-@@ -275,8 +275,8 @@ void LogMessage::LogTimestamps(bool on) {
- }
+diff --git a/api/video_codecs/sdp_video_format.cc b/api/video_codecs/sdp_video_format.cc
+index 7921064c0f..fc26ac9dab 100644
+--- a/api/video_codecs/sdp_video_format.cc
++++ b/api/video_codecs/sdp_video_format.cc
+@@ -138,6 +138,13 @@ SdpVideoFormat::SdpVideoFormat(
+       parameters(parameters),
+       scalability_modes(scalability_modes) {}
  
- void LogMessage::LogToDebug(LoggingSeverity min_sev) {
--  g_dbg_sev = min_sev;
-   webrtc::MutexLock lock(&GetLoggingLock());
-+  g_dbg_sev = min_sev;
-   UpdateMinLogSeverity();
- }
++SdpVideoFormat::SdpVideoFormat(
++    const SdpVideoFormat& format,
++    const absl::InlinedVector<ScalabilityMode, kScalabilityModeCount>& modes)
++    : SdpVideoFormat(format) {
++  scalability_modes = modes;
++}
++
+ SdpVideoFormat::SdpVideoFormat(const SdpVideoFormat&) = default;
+ SdpVideoFormat::SdpVideoFormat(SdpVideoFormat&&) = default;
+ SdpVideoFormat& SdpVideoFormat::operator=(const SdpVideoFormat&) = default;
+diff --git a/api/video_codecs/sdp_video_format.h b/api/video_codecs/sdp_video_format.h
+index 112f53fd1b..e7da486a53 100644
+--- a/api/video_codecs/sdp_video_format.h
++++ b/api/video_codecs/sdp_video_format.h
+@@ -36,6 +36,14 @@ struct RTC_EXPORT SdpVideoFormat {
+       const CodecParameterMap& parameters,
+       const absl::InlinedVector<ScalabilityMode, kScalabilityModeCount>&
+           scalability_modes);
++  // Creates a new SdpVideoFormat object identical to the supplied
++  // SdpVideoFormat except the scalability_modes that are set to be the same as
++  // the supplied scalability modes.
++  SdpVideoFormat(
++      const SdpVideoFormat& format,
++      const absl::InlinedVector<ScalabilityMode, kScalabilityModeCount>&
++          scalability_modes);
++
+   SdpVideoFormat(const SdpVideoFormat&);
+   SdpVideoFormat(SdpVideoFormat&&);
+   SdpVideoFormat& operator=(const SdpVideoFormat&);
+diff --git a/api/video_codecs/video_decoder_factory_template_dav1d_adapter.h b/api/video_codecs/video_decoder_factory_template_dav1d_adapter.h
+index f38d46994b..7bc0bbb8fc 100644
+--- a/api/video_codecs/video_decoder_factory_template_dav1d_adapter.h
++++ b/api/video_codecs/video_decoder_factory_template_dav1d_adapter.h
+@@ -21,10 +21,7 @@
+ namespace webrtc {
+ struct Dav1dDecoderTemplateAdapter {
+   static std::vector<SdpVideoFormat> SupportedFormats() {
+-    return {SdpVideoFormat("AV1"),
+-            SdpVideoFormat(
+-                "AV1", {{"profile",
+-                         AV1ProfileToString(AV1Profile::kProfile1).data()}})};
++    return {SdpVideoFormat::AV1Profile0(), SdpVideoFormat::AV1Profile1()};
+   }
  
-@@ -460,6 +460,9 @@ void LogMessage::OutputToDebug(const LogLineRef& log_line) {
+   static std::unique_ptr<VideoDecoder> CreateDecoder(
+diff --git a/api/video_codecs/video_encoder_factory_template_libaom_av1_adapter.h b/api/video_codecs/video_encoder_factory_template_libaom_av1_adapter.h
+index 0f801ad3c7..3f551dea8d 100644
+--- a/api/video_codecs/video_encoder_factory_template_libaom_av1_adapter.h
++++ b/api/video_codecs/video_encoder_factory_template_libaom_av1_adapter.h
+@@ -24,7 +24,7 @@ struct LibaomAv1EncoderTemplateAdapter {
+   static std::vector<SdpVideoFormat> SupportedFormats() {
+     absl::InlinedVector<ScalabilityMode, kScalabilityModeCount>
+         scalability_modes = LibaomAv1EncoderSupportedScalabilityModes();
+-    return {SdpVideoFormat("AV1", CodecParameterMap(), scalability_modes)};
++    return {SdpVideoFormat(SdpVideoFormat::AV1Profile0(), scalability_modes)};
+   }
  
- // static
- bool LogMessage::IsNoop(LoggingSeverity severity) {
-+  // Added MutexLock to fix tsan warnings on accessing g_dbg_sev. (mjf)
-+  // See https://bugs.chromium.org/p/chromium/issues/detail?id=1228729
-+  webrtc::MutexLock lock(&GetLoggingLock());
-   if (severity >= g_dbg_sev || severity >= g_min_sev)
-     return false;
-   return streams_empty_.load(std::memory_order_relaxed);
+   static std::unique_ptr<VideoEncoder> CreateEncoder(
+diff --git a/api/video_codecs/video_encoder_factory_template_libvpx_vp8_adapter.h b/api/video_codecs/video_encoder_factory_template_libvpx_vp8_adapter.h
+index c60aa04795..de6d975267 100644
+--- a/api/video_codecs/video_encoder_factory_template_libvpx_vp8_adapter.h
++++ b/api/video_codecs/video_encoder_factory_template_libvpx_vp8_adapter.h
+@@ -28,7 +28,7 @@ struct LibvpxVp8EncoderTemplateAdapter {
+       scalability_modes.push_back(scalability_mode);
+     }
+ 
+-    return {SdpVideoFormat("VP8", CodecParameterMap(), scalability_modes)};
++    return {SdpVideoFormat(SdpVideoFormat::VP8(), scalability_modes)};
+   }
+ 
+   static std::unique_ptr<VideoEncoder> CreateEncoder(
+diff --git a/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc b/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc
+index dae3997631..2abeb0513a 100644
+--- a/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc
++++ b/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc
+@@ -178,7 +178,9 @@ SdpVideoFormat CreateSdpVideoFormat(
+ 
+     return SdpVideoFormat(config.codec_name, codec_params);
+   } else if (config.codec_settings.codecType == kVideoCodecVP9) {
+-    return SdpVideoFormat(config.codec_name, {{"profile-id", "0"}});
++    return SdpVideoFormat::VP9Profile0();
++  } else if (config.codec_settings.codecType == kVideoCodecAV1) {
++    return SdpVideoFormat::AV1Profile0();
+   }
+ 
+   return SdpVideoFormat(config.codec_name);
+diff --git a/modules/video_coding/codecs/vp9/vp9.cc b/modules/video_coding/codecs/vp9/vp9.cc
+index 8799f2cdd5..d2cbd52a64 100644
+--- a/modules/video_coding/codecs/vp9/vp9.cc
++++ b/modules/video_coding/codecs/vp9/vp9.cc
+@@ -46,15 +46,11 @@ std::vector<SdpVideoFormat> SupportedVP9Codecs(bool add_scalability_modes) {
+       }
+     }
+   }
+-  std::vector<SdpVideoFormat> supported_formats{SdpVideoFormat(
+-      cricket::kVp9CodecName,
+-      {{kVP9FmtpProfileId, VP9ProfileToString(VP9Profile::kProfile0)}},
+-      scalability_modes)};
++  std::vector<SdpVideoFormat> supported_formats{
++      SdpVideoFormat(SdpVideoFormat::VP9Profile0(), scalability_modes)};
+   if (vpx_supports_high_bit_depth) {
+-    supported_formats.push_back(SdpVideoFormat(
+-        cricket::kVp9CodecName,
+-        {{kVP9FmtpProfileId, VP9ProfileToString(VP9Profile::kProfile2)}},
+-        scalability_modes));
++    supported_formats.push_back(
++        SdpVideoFormat(SdpVideoFormat::VP9Profile2(), scalability_modes));
+   }
+ 
+   return supported_formats;
+@@ -69,12 +65,8 @@ std::vector<SdpVideoFormat> SupportedVP9DecoderCodecs() {
+   // The WebRTC internal decoder supports VP9 profile 1 and 3. However, there's
+   // currently no way of sending VP9 profile 1 or 3 using the internal encoder.
+   // It would require extended support for I444, I422, and I440 buffers.
+-  supported_formats.push_back(SdpVideoFormat(
+-      cricket::kVp9CodecName,
+-      {{kVP9FmtpProfileId, VP9ProfileToString(VP9Profile::kProfile1)}}));
+-  supported_formats.push_back(SdpVideoFormat(
+-      cricket::kVp9CodecName,
+-      {{kVP9FmtpProfileId, VP9ProfileToString(VP9Profile::kProfile3)}}));
++  supported_formats.push_back(SdpVideoFormat::VP9Profile1());
++  supported_formats.push_back(SdpVideoFormat::VP9Profile3());
+   return supported_formats;
+ #else
+   return std::vector<SdpVideoFormat>();

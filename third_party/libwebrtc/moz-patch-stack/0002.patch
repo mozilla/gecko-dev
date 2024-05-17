@@ -1,43 +1,290 @@
-From: Nico Grunbaum <na-g@nostrum.com>
-Date: Sat, 13 Feb 2021 04:20:00 -0800
-Subject: Bug 1654112 - Add pid_t to desktop_capture_types.h; r=pehrsons
+From: Victor Boivie <boivie@webrtc.org>
+Date: Tue, 26 Mar 2024 11:04:46 +0100
+Subject: (cherry-pick-branch-heads/6367) [M124] Revert "pc: Include SCTP
+ queued bytes in buffered_amount"
 
-Upstreaming bug 1697385
+This breaks file transfers with Chrome Remote Desktop, as reported in
+the internal bug tracker.
 
-Also includes:
-Bug 1654112 - Clarifying prev. rev that moved pid_t into the global namespace; r=dminor
+This reverts commit fea41f540c72d15c4f499fead611a0c5e65db8ec.
 
-Differential Revision: https://phabricator.services.mozilla.com/D107897
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/539b69f0e21118a1898f1ef689577c7193ff7be7
+Bug: chromium:331346276
+Change-Id: Ib41351a474bc40e7688d14dc445f53e68b5833ae
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/344501
+Commit-Queue: Victor Boivie <boivie@webrtc.org>
+Reviewed-by: Florent Castelli <orphis@webrtc.org>
+Reviewed-by: Tomas Gunnarsson <tommi@webrtc.org>
+Cr-Commit-Position: refs/branch-heads/6367@{#2}
+Cr-Branched-From: 802552a8030d82ad07b72aa738f814f3a0030810-refs/heads/main@{#41921}
 ---
- modules/desktop_capture/desktop_capture_types.h | 4 ++++
- modules/video_capture/video_capture.h           | 1 +
- 2 files changed, 5 insertions(+)
+ api/transport/data_channel_transport_interface.h |  2 --
+ media/sctp/dcsctp_transport.cc                   |  6 ------
+ media/sctp/dcsctp_transport.h                    |  1 -
+ media/sctp/sctp_transport_internal.h             |  2 --
+ pc/data_channel_controller.cc                    |  8 --------
+ pc/data_channel_controller.h                     |  1 -
+ pc/data_channel_controller_unittest.cc           | 15 ---------------
+ pc/data_channel_integrationtest.cc               |  8 +++-----
+ pc/sctp_data_channel.cc                          |  6 +-----
+ pc/sctp_data_channel.h                           |  1 -
+ pc/sctp_transport.cc                             |  6 ------
+ pc/sctp_transport.h                              |  1 -
+ pc/sctp_transport_unittest.cc                    |  2 +-
+ pc/test/fake_data_channel_controller.h           |  2 --
+ test/pc/sctp/fake_sctp_transport.h               | 11 +++--------
+ 15 files changed, 8 insertions(+), 64 deletions(-)
 
-diff --git a/modules/desktop_capture/desktop_capture_types.h b/modules/desktop_capture/desktop_capture_types.h
-index a4e3e897fd..e777a45f92 100644
---- a/modules/desktop_capture/desktop_capture_types.h
-+++ b/modules/desktop_capture/desktop_capture_types.h
-@@ -13,6 +13,10 @@
+diff --git a/api/transport/data_channel_transport_interface.h b/api/transport/data_channel_transport_interface.h
+index 27d7de6364..cdae6fee19 100644
+--- a/api/transport/data_channel_transport_interface.h
++++ b/api/transport/data_channel_transport_interface.h
+@@ -118,8 +118,6 @@ class DataChannelTransportInterface {
+   // Note: the default implementation always returns false (as it assumes no one
+   // has implemented the interface).  This default implementation is temporary.
+   virtual bool IsReadyToSend() const = 0;
+-
+-  virtual size_t buffered_amount(int channel_id) const = 0;
+ };
  
- #include <stdint.h>
+ }  // namespace webrtc
+diff --git a/media/sctp/dcsctp_transport.cc b/media/sctp/dcsctp_transport.cc
+index 52890b3bd2..dffaa43060 100644
+--- a/media/sctp/dcsctp_transport.cc
++++ b/media/sctp/dcsctp_transport.cc
+@@ -375,12 +375,6 @@ absl::optional<int> DcSctpTransport::max_inbound_streams() const {
+   return socket_->options().announced_maximum_incoming_streams;
+ }
  
-+#ifdef XP_WIN      // Moving this into the global namespace
-+typedef int pid_t; // matching what used to be in
-+#endif             // video_capture_defines.h
+-size_t DcSctpTransport::buffered_amount(int sid) const {
+-  if (!socket_)
+-    return 0;
+-  return socket_->buffered_amount(dcsctp::StreamID(sid));
+-}
+-
+ void DcSctpTransport::set_debug_name_for_testing(const char* debug_name) {
+   debug_name_ = debug_name;
+ }
+diff --git a/media/sctp/dcsctp_transport.h b/media/sctp/dcsctp_transport.h
+index 21a6a9513f..36efc70ffe 100644
+--- a/media/sctp/dcsctp_transport.h
++++ b/media/sctp/dcsctp_transport.h
+@@ -66,7 +66,6 @@ class DcSctpTransport : public cricket::SctpTransportInternal,
+   int max_message_size() const override;
+   absl::optional<int> max_outbound_streams() const override;
+   absl::optional<int> max_inbound_streams() const override;
+-  size_t buffered_amount(int sid) const override;
+   void set_debug_name_for_testing(const char* debug_name) override;
+ 
+  private:
+diff --git a/media/sctp/sctp_transport_internal.h b/media/sctp/sctp_transport_internal.h
+index 705f5bd3e6..8a7450f405 100644
+--- a/media/sctp/sctp_transport_internal.h
++++ b/media/sctp/sctp_transport_internal.h
+@@ -140,8 +140,6 @@ class SctpTransportInternal {
+   virtual absl::optional<int> max_outbound_streams() const = 0;
+   // Returns the current negotiated max # of inbound streams.
+   virtual absl::optional<int> max_inbound_streams() const = 0;
+-  // Returns the amount of buffered data in the send queue for a stream.
+-  virtual size_t buffered_amount(int sid) const = 0;
+ 
+   // Helper for debugging.
+   virtual void set_debug_name_for_testing(const char* debug_name) = 0;
+diff --git a/pc/data_channel_controller.cc b/pc/data_channel_controller.cc
+index fbe639f96b..208160e1c1 100644
+--- a/pc/data_channel_controller.cc
++++ b/pc/data_channel_controller.cc
+@@ -89,14 +89,6 @@ void DataChannelController::OnChannelStateChanged(
+       }));
+ }
+ 
+-size_t DataChannelController::buffered_amount(StreamId sid) const {
+-  RTC_DCHECK_RUN_ON(network_thread());
+-  if (!data_channel_transport_) {
+-    return 0;
+-  }
+-  return data_channel_transport_->buffered_amount(sid.stream_id_int());
+-}
+-
+ void DataChannelController::OnDataReceived(
+     int channel_id,
+     DataMessageType type,
+diff --git a/pc/data_channel_controller.h b/pc/data_channel_controller.h
+index d2a9a1a135..d7ac3706b0 100644
+--- a/pc/data_channel_controller.h
++++ b/pc/data_channel_controller.h
+@@ -54,7 +54,6 @@ class DataChannelController : public SctpDataChannelControllerInterface,
+   void RemoveSctpDataStream(StreamId sid) override;
+   void OnChannelStateChanged(SctpDataChannel* channel,
+                              DataChannelInterface::DataState state) override;
+-  size_t buffered_amount(StreamId sid) const override;
+ 
+   // Implements DataChannelSink.
+   void OnDataReceived(int channel_id,
+diff --git a/pc/data_channel_controller_unittest.cc b/pc/data_channel_controller_unittest.cc
+index caf9a76c41..7d4e60467e 100644
+--- a/pc/data_channel_controller_unittest.cc
++++ b/pc/data_channel_controller_unittest.cc
+@@ -41,7 +41,6 @@ class MockDataChannelTransport : public DataChannelTransportInterface {
+   MOCK_METHOD(RTCError, CloseChannel, (int channel_id), (override));
+   MOCK_METHOD(void, SetDataSink, (DataChannelSink * sink), (override));
+   MOCK_METHOD(bool, IsReadyToSend, (), (const, override));
+-  MOCK_METHOD(size_t, buffered_amount, (int channel_id), (const, override));
+ };
+ 
+ // Convenience class for tests to ensure that shutdown methods for DCC
+@@ -168,20 +167,6 @@ TEST_F(DataChannelControllerTest, MaxChannels) {
+   }
+ }
+ 
+-TEST_F(DataChannelControllerTest, BufferedAmountIncludesFromTransport) {
+-  NiceMock<MockDataChannelTransport> transport;
+-  EXPECT_CALL(transport, buffered_amount(0)).WillOnce(Return(4711));
+-  ON_CALL(*pc_, GetSctpSslRole_n).WillByDefault([&]() {
+-    return rtc::SSL_CLIENT;
+-  });
+-
+-  DataChannelControllerForTest dcc(pc_.get(), &transport);
+-  auto dc = dcc.InternalCreateDataChannelWithProxy(
+-                   "label", InternalDataChannelInit(DataChannelInit()))
+-                .MoveValue();
+-  EXPECT_EQ(dc->buffered_amount(), 4711u);
+-}
+-
+ // Test that while a data channel is in the `kClosing` state, its StreamId does
+ // not get re-used for new channels. Only once the state reaches `kClosed`
+ // should a StreamId be available again for allocation.
+diff --git a/pc/data_channel_integrationtest.cc b/pc/data_channel_integrationtest.cc
+index a31481d634..5a8004c72a 100644
+--- a/pc/data_channel_integrationtest.cc
++++ b/pc/data_channel_integrationtest.cc
+@@ -1042,16 +1042,14 @@ TEST_P(DataChannelIntegrationTest,
+                  kDefaultTimeout);
+   // Cause a temporary network outage
+   virtual_socket_server()->set_drop_probability(1.0);
+-  // Fill the SCTP socket buffer until queued data starts to build.
+-  constexpr size_t kBufferedDataInSctpSocket = 2'000'000;
++  // Fill the buffer until queued data starts to build
+   size_t packet_counter = 0;
+-  while (caller()->data_channel()->buffered_amount() <
+-             kBufferedDataInSctpSocket &&
++  while (caller()->data_channel()->buffered_amount() < 1 &&
+          packet_counter < 10000) {
+     packet_counter++;
+     caller()->data_channel()->Send(DataBuffer("Sent while blocked"));
+   }
+-  if (caller()->data_channel()->buffered_amount() > kBufferedDataInSctpSocket) {
++  if (caller()->data_channel()->buffered_amount()) {
+     RTC_LOG(LS_INFO) << "Buffered data after " << packet_counter << " packets";
+   } else {
+     RTC_LOG(LS_INFO) << "No buffered data after " << packet_counter
+diff --git a/pc/sctp_data_channel.cc b/pc/sctp_data_channel.cc
+index 7ec314d2f7..8aa5fbd974 100644
+--- a/pc/sctp_data_channel.cc
++++ b/pc/sctp_data_channel.cc
+@@ -485,11 +485,7 @@ Priority SctpDataChannel::priority() const {
+ 
+ uint64_t SctpDataChannel::buffered_amount() const {
+   RTC_DCHECK_RUN_ON(network_thread_);
+-  uint64_t buffered_amount = queued_send_data_.byte_count();
+-  if (controller_ != nullptr && id_n_.has_value()) {
+-    buffered_amount += controller_->buffered_amount(*id_n_);
+-  }
+-  return buffered_amount;
++  return queued_send_data_.byte_count();
+ }
+ 
+ void SctpDataChannel::Close() {
+diff --git a/pc/sctp_data_channel.h b/pc/sctp_data_channel.h
+index 0be234bd16..fdbf2053e3 100644
+--- a/pc/sctp_data_channel.h
++++ b/pc/sctp_data_channel.h
+@@ -55,7 +55,6 @@ class SctpDataChannelControllerInterface {
+   // Notifies the controller of state changes.
+   virtual void OnChannelStateChanged(SctpDataChannel* data_channel,
+                                      DataChannelInterface::DataState state) = 0;
+-  virtual size_t buffered_amount(StreamId sid) const = 0;
+ 
+  protected:
+   virtual ~SctpDataChannelControllerInterface() {}
+diff --git a/pc/sctp_transport.cc b/pc/sctp_transport.cc
+index 5f505e0296..7f55e39d9e 100644
+--- a/pc/sctp_transport.cc
++++ b/pc/sctp_transport.cc
+@@ -100,12 +100,6 @@ bool SctpTransport::IsReadyToSend() const {
+   return internal_sctp_transport_->ReadyToSendData();
+ }
+ 
+-size_t SctpTransport::buffered_amount(int channel_id) const {
+-  RTC_DCHECK_RUN_ON(owner_thread_);
+-  RTC_DCHECK(internal_sctp_transport_);
+-  return internal_sctp_transport_->buffered_amount(channel_id);
+-}
+-
+ rtc::scoped_refptr<DtlsTransportInterface> SctpTransport::dtls_transport()
+     const {
+   RTC_DCHECK_RUN_ON(owner_thread_);
+diff --git a/pc/sctp_transport.h b/pc/sctp_transport.h
+index 79cb3aed2c..076dee5318 100644
+--- a/pc/sctp_transport.h
++++ b/pc/sctp_transport.h
+@@ -52,7 +52,6 @@ class SctpTransport : public SctpTransportInterface,
+   RTCError CloseChannel(int channel_id) override;
+   void SetDataSink(DataChannelSink* sink) override;
+   bool IsReadyToSend() const override;
+-  size_t buffered_amount(int channel_id) const override;
+ 
+   // Internal functions
+   void Clear();
+diff --git a/pc/sctp_transport_unittest.cc b/pc/sctp_transport_unittest.cc
+index f0401c1b10..d18543f20c 100644
+--- a/pc/sctp_transport_unittest.cc
++++ b/pc/sctp_transport_unittest.cc
+@@ -63,7 +63,6 @@ class FakeCricketSctpTransport : public cricket::SctpTransportInternal {
+   absl::optional<int> max_inbound_streams() const override {
+     return max_inbound_streams_;
+   }
+-  size_t buffered_amount(int sid) const override { return 0; }
+ 
+   void SendSignalAssociationChangeCommunicationUp() {
+     ASSERT_TRUE(on_connected_callback_);
+@@ -213,4 +212,5 @@ TEST_F(SctpTransportTest, CloseWhenTransportCloses) {
+   ASSERT_EQ_WAIT(SctpTransportState::kClosed, observer_.State(),
+                  kDefaultTimeout);
+ }
 +
- namespace webrtc {
+ }  // namespace webrtc
+diff --git a/pc/test/fake_data_channel_controller.h b/pc/test/fake_data_channel_controller.h
+index c65449b010..89cdce738d 100644
+--- a/pc/test/fake_data_channel_controller.h
++++ b/pc/test/fake_data_channel_controller.h
+@@ -128,8 +128,6 @@ class FakeDataChannelController
+     }
+   }
  
- enum class CaptureType { kWindow, kScreen, kAnyScreenContent };
-diff --git a/modules/video_capture/video_capture.h b/modules/video_capture/video_capture.h
-index f31b239c71..7279bed476 100644
---- a/modules/video_capture/video_capture.h
-+++ b/modules/video_capture/video_capture.h
-@@ -13,6 +13,7 @@
+-  size_t buffered_amount(webrtc::StreamId sid) const override { return 0; }
+-
+   // Set true to emulate the SCTP stream being blocked by congestion control.
+   void set_send_blocked(bool blocked) {
+     network_thread_->BlockingCall([&]() {
+diff --git a/test/pc/sctp/fake_sctp_transport.h b/test/pc/sctp/fake_sctp_transport.h
+index 6aef57a241..96c126640c 100644
+--- a/test/pc/sctp/fake_sctp_transport.h
++++ b/test/pc/sctp/fake_sctp_transport.h
+@@ -41,14 +41,9 @@ class FakeSctpTransport : public cricket::SctpTransportInternal {
+   bool ReadyToSendData() override { return true; }
+   void set_debug_name_for_testing(const char* debug_name) override {}
  
- #include "api/video/video_rotation.h"
- #include "api/video/video_sink_interface.h"
-+#include "modules/desktop_capture/desktop_capture_types.h"
- #include "modules/video_capture/raw_video_sink_interface.h"
- #include "modules/video_capture/video_capture_defines.h"
- #include <set>
+-  int max_message_size() const override { return max_message_size_; }
+-  absl::optional<int> max_outbound_streams() const override {
+-    return absl::nullopt;
+-  }
+-  absl::optional<int> max_inbound_streams() const override {
+-    return absl::nullopt;
+-  }
+-  size_t buffered_amount(int sid) const override { return 0; }
++  int max_message_size() const { return max_message_size_; }
++  absl::optional<int> max_outbound_streams() const { return absl::nullopt; }
++  absl::optional<int> max_inbound_streams() const { return absl::nullopt; }
+   int local_port() const {
+     RTC_DCHECK(local_port_);
+     return *local_port_;
