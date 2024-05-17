@@ -108,6 +108,10 @@ enum class WaitUntil : bool { kZero = false, kNonZero = true };
 
 constexpr int64_t kRtcpIntervalMs = 1000;
 
+// Some of the test cases are expected to time out.
+// Use a shorter timeout window than the default one for those.
+constexpr TimeDelta kReducedTimeout = TimeDelta::Seconds(10);
+
 enum VideoFormat {
   kGeneric,
   kVP8,
@@ -519,18 +523,15 @@ class FakeReceiveStatistics : public ReceiveStatisticsProvider {
 
 class UlpfecObserver : public test::EndToEndTest {
  public:
-  // Some of the test cases are expected to time out.
-  // Use a shorter timeout window than the default one for those.
-  static constexpr TimeDelta kReducedTimeout = TimeDelta::Seconds(10);
-
-  UlpfecObserver(bool header_extensions_enabled,
-                 bool use_nack,
-                 bool expect_red,
-                 bool expect_ulpfec,
-                 const std::string& codec,
-                 VideoEncoderFactory* encoder_factory)
-      : EndToEndTest(expect_ulpfec ? test::VideoTestConstants::kDefaultTimeout
-                                   : kReducedTimeout),
+  UlpfecObserver(
+      bool header_extensions_enabled,
+      bool use_nack,
+      bool expect_red,
+      bool expect_ulpfec,
+      const std::string& codec,
+      VideoEncoderFactory* encoder_factory,
+      const TimeDelta& timeout = test::VideoTestConstants::kDefaultTimeout)
+      : EndToEndTest(timeout),
         encoder_factory_(encoder_factory),
         payload_name_(codec),
         use_nack_(use_nack),
@@ -692,7 +693,8 @@ class VideoSendStreamWithoutUlpfecTest : public test::CallTest {
 TEST_F(VideoSendStreamWithoutUlpfecTest, NoUlpfecIfDisabledThroughFieldTrial) {
   test::FunctionVideoEncoderFactory encoder_factory(
       []() { return VP8Encoder::Create(); });
-  UlpfecObserver test(false, false, false, false, "VP8", &encoder_factory);
+  UlpfecObserver test(false, false, false, false, "VP8", &encoder_factory,
+                      kReducedTimeout);
   RunBaseTest(&test);
 }
 
@@ -704,7 +706,8 @@ TEST_F(VideoSendStreamTest, DoesNotUtilizeUlpfecForH264WithNackEnabled) {
   test::FunctionVideoEncoderFactory encoder_factory([]() {
     return std::make_unique<test::FakeH264Encoder>(Clock::GetRealTimeClock());
   });
-  UlpfecObserver test(false, true, false, false, "H264", &encoder_factory);
+  UlpfecObserver test(false, true, false, false, "H264", &encoder_factory,
+                      kReducedTimeout);
   RunBaseTest(&test);
 }
 
@@ -728,7 +731,9 @@ TEST_F(VideoSendStreamTest, DoesUtilizeUlpfecForVp8WithNackEnabled) {
 TEST_F(VideoSendStreamTest, DoesUtilizeUlpfecForVp9WithNackEnabled) {
   test::FunctionVideoEncoderFactory encoder_factory(
       []() { return VP9Encoder::Create(); });
-  UlpfecObserver test(false, true, true, true, "VP9", &encoder_factory);
+  // Use kLongTimeout timeout because the test is flaky with kDefaultTimeout.
+  UlpfecObserver test(false, true, true, true, "VP9", &encoder_factory,
+                      test::VideoTestConstants::kLongTimeout);
   RunBaseTest(&test);
 }
 #endif  // defined(RTC_ENABLE_VP9)
