@@ -349,10 +349,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fc01107426c3adebb
  39 files changed, 573 insertions(+), 85 deletions(-)
 
 diff --git a/api/rtp_headers.cc b/api/rtp_headers.cc
-index 0573e54684..40d4690397 100644
+index b45bf40e54..77ea5fc2a5 100644
 --- a/api/rtp_headers.cc
 +++ b/api/rtp_headers.cc
-@@ -26,7 +26,8 @@ RTPHeaderExtension::RTPHeaderExtension()
+@@ -34,7 +34,8 @@ RTPHeaderExtension::RTPHeaderExtension()
        videoRotation(kVideoRotation_0),
        hasVideoContentType(false),
        videoContentType(VideoContentType::UNSPECIFIED),
@@ -363,10 +363,10 @@ index 0573e54684..40d4690397 100644
  RTPHeaderExtension::RTPHeaderExtension(const RTPHeaderExtension& other) =
      default;
 diff --git a/api/rtp_headers.h b/api/rtp_headers.h
-index 5d4d4190d5..9868365f24 100644
+index 3ea643d37e..ef423d3bfb 100644
 --- a/api/rtp_headers.h
 +++ b/api/rtp_headers.h
-@@ -89,6 +89,19 @@ inline bool operator!=(const AbsoluteCaptureTime& lhs,
+@@ -112,6 +112,19 @@ inline bool operator!=(const AbsoluteCaptureTime& lhs,
    return !(lhs == rhs);
  }
  
@@ -386,7 +386,7 @@ index 5d4d4190d5..9868365f24 100644
  struct RTPHeaderExtension {
    RTPHeaderExtension();
    RTPHeaderExtension(const RTPHeaderExtension& other);
-@@ -144,9 +157,9 @@ struct RTPHeaderExtension {
+@@ -173,9 +186,9 @@ struct RTPHeaderExtension {
    std::string mid;
  
    absl::optional<ColorSpace> color_space;
@@ -787,10 +787,10 @@ index de68885519..099b0be1a3 100644
    method_ = new_method;
  }
 diff --git a/modules/rtp_rtcp/source/rtp_header_extensions.cc b/modules/rtp_rtcp/source/rtp_header_extensions.cc
-index 9f0374b299..c51692b818 100644
+index b77c293d6e..5ade66d83b 100644
 --- a/modules/rtp_rtcp/source/rtp_header_extensions.cc
 +++ b/modules/rtp_rtcp/source/rtp_header_extensions.cc
-@@ -423,6 +423,45 @@ bool PlayoutDelayLimits::Write(rtc::ArrayView<uint8_t> data,
+@@ -440,6 +440,45 @@ bool PlayoutDelayLimits::Write(rtc::ArrayView<uint8_t> data,
    return true;
  }
  
@@ -837,10 +837,10 @@ index 9f0374b299..c51692b818 100644
  //
  // E.g. default video or screenshare.
 diff --git a/modules/rtp_rtcp/source/rtp_header_extensions.h b/modules/rtp_rtcp/source/rtp_header_extensions.h
-index 7f039ec8ac..9187cb97bc 100644
+index 941b79a536..1ca9c7fc08 100644
 --- a/modules/rtp_rtcp/source/rtp_header_extensions.h
 +++ b/modules/rtp_rtcp/source/rtp_header_extensions.h
-@@ -305,6 +305,21 @@ class ColorSpaceExtension {
+@@ -314,6 +314,21 @@ class ColorSpaceExtension {
    static size_t WriteLuminance(uint8_t* data, float f, int denominator);
  };
  
@@ -878,7 +878,7 @@ index 2a95a3a816..b152cdbd9e 100644
    }
  }
 diff --git a/modules/rtp_rtcp/source/rtp_packet_unittest.cc b/modules/rtp_rtcp/source/rtp_packet_unittest.cc
-index 922a4b15f4..669947838b 100644
+index ccdb5f8a75..da4abe0131 100644
 --- a/modules/rtp_rtcp/source/rtp_packet_unittest.cc
 +++ b/modules/rtp_rtcp/source/rtp_packet_unittest.cc
 @@ -123,6 +123,18 @@ constexpr uint8_t kPacketWithMid[] = {
@@ -900,7 +900,7 @@ index 922a4b15f4..669947838b 100644
  constexpr uint32_t kCsrcs[] = {0x34567890, 0x32435465};
  constexpr uint8_t kPayload[] = {'p', 'a', 'y', 'l', 'o', 'a', 'd'};
  constexpr uint8_t kPacketPaddingSize = 8;
-@@ -399,6 +411,24 @@ TEST(RtpPacketTest, FailsToSetUnregisteredExtension) {
+@@ -402,6 +414,24 @@ TEST(RtpPacketTest, FailsToSetUnregisteredExtension) {
    EXPECT_EQ(packet.GetExtension<TransportSequenceNumber>(), absl::nullopt);
  }
  
@@ -1650,7 +1650,7 @@ index b171cfe11e..df7f173f58 100644
  
  //////////////////////////////////////////////////////////////////////
 diff --git a/test/fuzzers/rtp_packet_fuzzer.cc b/test/fuzzers/rtp_packet_fuzzer.cc
-index 02fc64a2dc..371900eb2d 100644
+index be4e9a3e85..23a1828915 100644
 --- a/test/fuzzers/rtp_packet_fuzzer.cc
 +++ b/test/fuzzers/rtp_packet_fuzzer.cc
 @@ -164,6 +164,11 @@ void FuzzOneInput(const uint8_t* data, size_t size) {

@@ -1561,7 +1561,7 @@ TEST_P(WebRtcVoiceEngineTestFake, OnPacketReceivedIdentifiesExtensions) {
   webrtc::RtpPacketReceived reference_packet(&extension_map);
   constexpr uint8_t kAudioLevel = 123;
   reference_packet.SetExtension<webrtc::AudioLevelExtension>(
-      /*voice_activity=*/true, kAudioLevel);
+      webrtc::AudioLevel(/*voice_activity=*/true, kAudioLevel));
   //  Create a packet without the extension map but with the same content.
   webrtc::RtpPacketReceived received_packet;
   ASSERT_TRUE(received_packet.Parse(reference_packet.Buffer()));
@@ -1569,12 +1569,10 @@ TEST_P(WebRtcVoiceEngineTestFake, OnPacketReceivedIdentifiesExtensions) {
   receive_channel_->OnPacketReceived(received_packet);
   rtc::Thread::Current()->ProcessMessages(0);
 
-  bool voice_activity;
-  uint8_t audio_level;
+  webrtc::AudioLevel audio_level;
   EXPECT_TRUE(call_.last_received_rtp_packet()
-                  .GetExtension<webrtc::AudioLevelExtension>(&voice_activity,
-                                                             &audio_level));
-  EXPECT_EQ(audio_level, kAudioLevel);
+                  .GetExtension<webrtc::AudioLevelExtension>(&audio_level));
+  EXPECT_EQ(audio_level.level(), kAudioLevel);
 }
 
 // Test that we apply codecs properly.
