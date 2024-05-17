@@ -1,44 +1,29 @@
 From: Andreas Pehrson <apehrson@mozilla.com>
 Date: Mon, 6 May 2024 07:28:00 +0000
-Subject: Bug 1892329 - Invert _captureThread check in
- VideoCaptureModuleV4L2::StartCapture. r=webrtc-reviewers,mjf
+Subject: Bug 1892329 - Revert bug 1892045 (changeset 0b54a6f17243).
+ r=webrtc-reviewers,mjf
 
-Differential Revision: https://phabricator.services.mozilla.com/D208186
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/6ed6737b8214bf664642eb17cbf66a8c8450e569
+Differential Revision: https://phabricator.services.mozilla.com/D208185
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/8ba14327877a0428a0eaf018d71579f2441ac7ac
 ---
- .../video_capture/linux/video_capture_v4l2.cc | 21 +++++++++++--------
- 1 file changed, 12 insertions(+), 9 deletions(-)
+ modules/video_capture/linux/video_capture_v4l2.cc | 7 +------
+ 1 file changed, 1 insertion(+), 6 deletions(-)
 
 diff --git a/modules/video_capture/linux/video_capture_v4l2.cc b/modules/video_capture/linux/video_capture_v4l2.cc
-index 74af348a6c..29ca864e19 100644
+index e3061556e8..74af348a6c 100644
 --- a/modules/video_capture/linux/video_capture_v4l2.cc
 +++ b/modules/video_capture/linux/video_capture_v4l2.cc
-@@ -303,16 +303,19 @@ int32_t VideoCaptureModuleV4L2::StartCapture(
-   }
+@@ -304,12 +304,7 @@ int32_t VideoCaptureModuleV4L2::StartCapture(
  
    // start capture thread;
--  if (_captureThread.empty()) {
--    quit_ = false;
--    _captureThread = rtc::PlatformThread::SpawnJoinable(
--        [self = scoped_refptr(this)] {
--          while (self->CaptureProcess()) {
--          }
--        },
--        "CaptureThread",
--        rtc::ThreadAttributes().SetPriority(rtc::ThreadPriority::kHigh));
-+  if (!_captureThread.empty()) {
-+    return 0;
-   }
-+
-+  quit_ = false;
-+
-+  _captureThread = rtc::PlatformThread::SpawnJoinable(
-+      [self = scoped_refptr(this)] {
-+        while (self->CaptureProcess()) {
-+        }
-+      },
-+      "CaptureThread",
-+      rtc::ThreadAttributes().SetPriority(rtc::ThreadPriority::kHigh));
-   return 0;
- }
- 
+   if (_captureThread.empty()) {
+-    {
+-      // Probably can't be accessed from another thread with
+-      // _captureThread empty, but the analyzer doesn't know this
+-      MutexLock lock(&capture_lock_);
+-      quit_ = false;
+-    }
++    quit_ = false;
+     _captureThread = rtc::PlatformThread::SpawnJoinable(
+         [self = scoped_refptr(this)] {
+           while (self->CaptureProcess()) {
