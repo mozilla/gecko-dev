@@ -93,7 +93,7 @@ index cca9a40250..a63067141d 100644
    }
    return 0;
 diff --git a/modules/rtp_rtcp/source/rtp_rtcp_interface.h b/modules/rtp_rtcp/source/rtp_rtcp_interface.h
-index f196d11b58..bc8da63ab6 100644
+index 34a8fdf039..8a5b7007ff 100644
 --- a/modules/rtp_rtcp/source/rtp_rtcp_interface.h
 +++ b/modules/rtp_rtcp/source/rtp_rtcp_interface.h
 @@ -277,7 +277,7 @@ class RtpRtcpInterface : public RtcpFeedbackSenderInterface {
