@@ -117,7 +117,7 @@ rtc_library("normalize_simulcast_size_experiment") {
   ]
   deps = [
     "..:logging",
-    "../../system_wrappers:field_trial",
+    "../../api:field_trials_view",
   ]
   absl_deps = [ "//third_party/abseil-cpp/absl/types:optional" ]
 }
@@ -287,6 +287,7 @@ if (rtc_include_tests && !build_with_chromium) {
       "../../api/video:video_frame",
       "../../api/video_codecs:video_codecs_api",
       "../../system_wrappers:field_trial",
+      "../../test:explicit_key_value_config",
       "../../test:field_trial",
       "../../test:scoped_key_value_config",
       "../../test:test_main",

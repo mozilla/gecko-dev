@@ -28,10 +28,10 @@ Cr-Branched-From: 802552a8030d82ad07b72aa738f814f3a0030810-refs/heads/main@{#419
  2 files changed, 1 insertion(+), 2 deletions(-)
 
 diff --git a/video/config/simulcast.cc b/video/config/simulcast.cc
-index 2c600c8572..ce19fbb0a2 100644
+index 6db23d1aa2..42d644ee06 100644
 --- a/video/config/simulcast.cc
 +++ b/video/config/simulcast.cc
-@@ -123,7 +123,7 @@ constexpr const SimulcastFormat kSimulcastFormatsVP9[] = {
+@@ -126,7 +126,7 @@ constexpr const SimulcastFormat kSimulcastFormatsVP9[] = {
       webrtc::DataRate::KilobitsPerSec(121)},
      {320, 180, 1, webrtc::DataRate::KilobitsPerSec(142),
       webrtc::DataRate::KilobitsPerSec(142),
