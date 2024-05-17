@@ -1,649 +1,164 @@
-From: Michael Froman <mjfroman@mac.com>
-Date: Fri, 17 May 2024 17:45:23 -0500
-Subject: (tmp-cherry-pick) Revert "FrameCadenceAdapter keep track of Input
- framerate" (d427e83a15)
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+From: Johannes Kron <kron@webrtc.org>
+Date: Wed, 3 Apr 2024 10:38:13 +0000
+Subject: (cherry-pick-branch-heads/6367) [M124] Use predefined SdpVideoFormats
+ when returning supported formats
 
-This reverts commit 784af1f42e89735587c442855fa01fc90475c449.
+The predefined SdpVideoFormats were not used everywhere,
+which caused a discrepancy between send/receive capabilities
+for AV1. This CL solves the immediate problems by making sure
+send/receive capabilities for AV1 are reported the same way.
 
-Reason for revert: Seems like test test_support_unittests
- ResolutionAdaptsToAvailableBandwidth is flaky with this cl.
+(cherry picked from commit 82598402e095ec6638b6cf3dc8e7f6d35cc3d737)
 
-Original change's description:
-> FrameCadenceAdapter keep track of Input framerate
->
-> Refactor FrameCandenceAdapter to keep track of input frame rate.
->
-> Also a field trial WebRTC-FrameCadenceAdapter-UseVideoFrameTimestamp is added to control if VideoFrame timestamp should be used or local clock when calculating frame rate.
-> Uma is recorded to tell if input frame timestamp is monotonically increasing.
->
-> Bug: webrtc:10481, webrtc:15887
-> Change-Id: I6d698e9f9dcfe8c023d2d35371435c47f70102b0
-> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/342760
-> Commit-Queue: Per Kjellander <perkj@webrtc.org>
-> Reviewed-by: Erik Språng <sprang@webrtc.org>
-> Cr-Commit-Position: refs/heads/main@{#41967}
-
-Bug: webrtc:10481, webrtc:15887
-Change-Id: Id9672764768f2f40f8e711e990ad8ac18c28efcc
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/344560
-Commit-Queue: Per Kjellander <perkj@webrtc.org>
-Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
-Owners-Override: Per Kjellander <perkj@webrtc.org>
-Reviewed-by: Mirko Bonadei <mbonadei@webrtc.org>
-Cr-Commit-Position: refs/heads/main@{#41969}
+Fixed: chromium:331565934
+Change-Id: I073091b7b5f987c7f434c17276fd84047ec723c2
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/344681
+Reviewed-by: Harald Alvestrand <hta@webrtc.org>
+Commit-Queue: Johannes Kron <kron@webrtc.org>
+Cr-Original-Commit-Position: refs/heads/main@{#41991}
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/348720
+Cr-Commit-Position: refs/branch-heads/6367@{#3}
+Cr-Branched-From: 802552a8030d82ad07b72aa738f814f3a0030810-refs/heads/main@{#41921}
 ---
- experiments/field_trials.py                   |  3 -
- .../pcc/pcc_network_controller_unittest.cc    |  3 +-
- video/frame_cadence_adapter.cc                | 71 +++++--------------
- video/frame_cadence_adapter.h                 |  4 ++
- video/frame_cadence_adapter_unittest.cc       | 62 ++++------------
- video/video_stream_encoder.cc                 |  6 ++
- video/video_stream_encoder_unittest.cc        | 71 ++++++++-----------
- 7 files changed, 72 insertions(+), 148 deletions(-)
+ api/video_codecs/sdp_video_format.cc          |  7 +++++++
+ api/video_codecs/sdp_video_format.h           |  8 ++++++++
+ ...o_decoder_factory_template_dav1d_adapter.h |  5 +----
+ ...oder_factory_template_libaom_av1_adapter.h |  2 +-
+ ...oder_factory_template_libvpx_vp8_adapter.h |  2 +-
+ .../test/videocodec_test_fixture_impl.cc      |  4 +++-
+ modules/video_coding/codecs/vp9/vp9.cc        | 20 ++++++-------------
+ 7 files changed, 27 insertions(+), 21 deletions(-)
 
-diff --git a/experiments/field_trials.py b/experiments/field_trials.py
-index 6580ac9009..85b073bb86 100755
---- a/experiments/field_trials.py
-+++ b/experiments/field_trials.py
-@@ -80,9 +80,6 @@ ACTIVE_FIELD_TRIALS: FrozenSet[FieldTrial] = frozenset([
-     FieldTrial('WebRTC-EncoderDataDumpDirectory',
-                'b/296242528',
-                date(2024, 4, 1)),
--    FieldTrial('WebRTC-FrameCadenceAdapter-UseVideoFrameTimestamp',
--               'webrtc:15887',
--               date(2024, 10, 1)),
-     FieldTrial('WebRTC-IPv6NetworkResolutionFixes',
-                'webrtc:14334',
-                date(2024, 4, 1)),
-diff --git a/modules/congestion_controller/pcc/pcc_network_controller_unittest.cc b/modules/congestion_controller/pcc/pcc_network_controller_unittest.cc
-index f7cf2c45c9..31bc13f824 100644
---- a/modules/congestion_controller/pcc/pcc_network_controller_unittest.cc
-+++ b/modules/congestion_controller/pcc/pcc_network_controller_unittest.cc
-@@ -112,8 +112,7 @@ TEST(PccNetworkControllerTest, UpdatesTargetSendRate) {
-   ret_net->UpdateConfig(
-       [](NetworkSimulationConfig* c) { c->delay = TimeDelta::Millis(200); });
-   s.RunFor(TimeDelta::Seconds(35));
--  EXPECT_LE(client->target_rate().kbps(), 200);
--  EXPECT_GT(client->target_rate().kbps(), 90);
-+  EXPECT_NEAR(client->target_rate().kbps(), 170, 50);
- }
+diff --git a/api/video_codecs/sdp_video_format.cc b/api/video_codecs/sdp_video_format.cc
+index 7921064c0f..fc26ac9dab 100644
+--- a/api/video_codecs/sdp_video_format.cc
++++ b/api/video_codecs/sdp_video_format.cc
+@@ -138,6 +138,13 @@ SdpVideoFormat::SdpVideoFormat(
+       parameters(parameters),
+       scalability_modes(scalability_modes) {}
  
- }  // namespace test
-diff --git a/video/frame_cadence_adapter.cc b/video/frame_cadence_adapter.cc
-index 77f4ba9c74..4aea1acec6 100644
---- a/video/frame_cadence_adapter.cc
-+++ b/video/frame_cadence_adapter.cc
-@@ -12,7 +12,6 @@
- 
- #include <algorithm>
- #include <atomic>
--#include <cstdint>
- #include <deque>
- #include <memory>
- #include <utility>
-@@ -59,15 +58,15 @@ class AdapterMode {
-   virtual absl::optional<uint32_t> GetInputFrameRateFps() = 0;
- 
-   // Updates the frame rate.
--  virtual void UpdateFrameRate(Timestamp frame_timestamp) = 0;
-+  virtual void UpdateFrameRate() = 0;
- };
- 
- // Implements a pass-through adapter. Single-threaded.
- class PassthroughAdapterMode : public AdapterMode {
-  public:
--  explicit PassthroughAdapterMode(
--      FrameCadenceAdapterInterface::Callback* callback)
--      : callback_(callback) {
-+  PassthroughAdapterMode(Clock* clock,
-+                         FrameCadenceAdapterInterface::Callback* callback)
-+      : clock_(clock), callback_(callback) {
-     sequence_checker_.Detach();
-   }
- 
-@@ -81,18 +80,16 @@ class PassthroughAdapterMode : public AdapterMode {
- 
-   absl::optional<uint32_t> GetInputFrameRateFps() override {
-     RTC_DCHECK_RUN_ON(&sequence_checker_);
--    return last_frame_rate_;
-+    return input_framerate_.Rate(clock_->TimeInMilliseconds());
-   }
- 
--  void UpdateFrameRate(Timestamp frame_timestamp) override {
-+  void UpdateFrameRate() override {
-     RTC_DCHECK_RUN_ON(&sequence_checker_);
--    // RateStatistics will calculate a too high rate immediately after Update.
--    last_frame_rate_ = input_framerate_.Rate(frame_timestamp.ms());
--    input_framerate_.Update(1, frame_timestamp.ms());
-+    input_framerate_.Update(1, clock_->TimeInMilliseconds());
-   }
- 
-  private:
--  absl::optional<uint64_t> last_frame_rate_;
-+  Clock* const clock_;
-   FrameCadenceAdapterInterface::Callback* const callback_;
-   RTC_NO_UNIQUE_ADDRESS SequenceChecker sequence_checker_;
-   // Input frame rate statistics for use when not in zero-hertz mode.
-@@ -128,7 +125,7 @@ class ZeroHertzAdapterMode : public AdapterMode {
-                bool queue_overload,
-                const VideoFrame& frame) override;
-   absl::optional<uint32_t> GetInputFrameRateFps() override;
--  void UpdateFrameRate(Timestamp frame_timestamp) override {}
-+  void UpdateFrameRate() override {}
- 
-   // Notified on dropped frames.
-   void OnDiscardedFrame();
-@@ -286,14 +283,12 @@ class VSyncEncodeAdapterMode : public AdapterMode {
- 
-   absl::optional<uint32_t> GetInputFrameRateFps() override {
-     RTC_DCHECK_RUN_ON(&queue_sequence_checker_);
--    return last_frame_rate_;
-+    return input_framerate_.Rate(clock_->TimeInMilliseconds());
-   }
- 
--  void UpdateFrameRate(Timestamp frame_timestamp) override {
-+  void UpdateFrameRate() override {
-     RTC_DCHECK_RUN_ON(&queue_sequence_checker_);
--    // RateStatistics will calculate a too high rate immediately after Update.
--    last_frame_rate_ = input_framerate_.Rate(frame_timestamp.ms());
--    input_framerate_.Update(1, frame_timestamp.ms());
-+    input_framerate_.Update(1, clock_->TimeInMilliseconds());
-   }
- 
-   void EncodeAllEnqueuedFrames();
-@@ -313,8 +308,6 @@ class VSyncEncodeAdapterMode : public AdapterMode {
-   RTC_NO_UNIQUE_ADDRESS SequenceChecker queue_sequence_checker_;
-   rtc::scoped_refptr<PendingTaskSafetyFlag> queue_safety_flag_;
-   // Input frame rate statistics for use when not in zero-hertz mode.
--  absl::optional<uint64_t> last_frame_rate_
--      RTC_GUARDED_BY(queue_sequence_checker_);
-   RateStatistics input_framerate_ RTC_GUARDED_BY(queue_sequence_checker_){
-       FrameCadenceAdapterInterface::kFrameRateAveragingWindowSizeMs, 1000};
-   FrameCadenceAdapterInterface::Callback* const callback_;
-@@ -322,8 +315,8 @@ class VSyncEncodeAdapterMode : public AdapterMode {
-   Metronome* metronome_;
-   TaskQueueBase* const worker_queue_;
-   RTC_NO_UNIQUE_ADDRESS SequenceChecker worker_sequence_checker_;
--  // `worker_safety_` protects tasks on the worker queue related to
--  // `metronome_` since metronome usage must happen on worker thread.
-+  // `worker_safety_` protects tasks on the worker queue related to `metronome_`
-+  // since metronome usage must happen on worker thread.
-   ScopedTaskSafetyDetached worker_safety_;
-   Timestamp expected_next_tick_ RTC_GUARDED_BY(worker_sequence_checker_) =
-       Timestamp::PlusInfinity();
-@@ -346,6 +339,7 @@ class FrameCadenceAdapterImpl : public FrameCadenceAdapterInterface {
-   void SetZeroHertzModeEnabled(
-       absl::optional<ZeroHertzModeParams> params) override;
-   absl::optional<uint32_t> GetInputFrameRateFps() override;
-+  void UpdateFrameRate() override;
-   void UpdateLayerQualityConvergence(size_t spatial_index,
-                                      bool quality_converged) override;
-   void UpdateLayerStatus(size_t spatial_index, bool enabled) override;
-@@ -360,7 +354,6 @@ class FrameCadenceAdapterImpl : public FrameCadenceAdapterInterface {
-       const VideoTrackSourceConstraints& constraints) override;
- 
-  private:
--  void UpdateFrameRate(Timestamp frame_timestamp);
-   // Called from OnFrame in both pass-through and zero-hertz mode.
-   void OnFrameOnMainQueue(Timestamp post_time,
-                           bool queue_overload,
-@@ -390,13 +383,6 @@ class FrameCadenceAdapterImpl : public FrameCadenceAdapterInterface {
-   // Kill-switch for the queue overload mechanism in zero-hertz mode.
-   const bool frame_cadence_adapter_zero_hertz_queue_overload_enabled_;
- 
--  // Field trial for using timestamp from video frames, rather than clock when
--  // calculating input frame rate.
--  const bool use_video_frame_timestamp_;
--  // Used for verifying that timestamps are monotonically increasing.
--  absl::optional<Timestamp> last_incoming_frame_timestamp_;
--  bool incoming_frame_timestamp_monotonically_increasing_ = true;
--
-   // The three possible modes we're under.
-   absl::optional<PassthroughAdapterMode> passthrough_adapter_;
-   absl::optional<ZeroHertzAdapterMode> zero_hertz_adapter_;
-@@ -851,8 +837,6 @@ FrameCadenceAdapterImpl::FrameCadenceAdapterImpl(
-           !field_trials.IsDisabled("WebRTC-ZeroHertzScreenshare")),
-       frame_cadence_adapter_zero_hertz_queue_overload_enabled_(
-           !field_trials.IsDisabled("WebRTC-ZeroHertzQueueOverload")),
--      use_video_frame_timestamp_(field_trials.IsEnabled(
--          "WebRTC-FrameCadenceAdapter-UseVideoFrameTimestamp")),
-       metronome_(metronome),
-       worker_queue_(worker_queue) {}
- 
-@@ -865,10 +849,6 @@ FrameCadenceAdapterImpl::~FrameCadenceAdapterImpl() {
-     absl::Cleanup cleanup = [adapter = std::move(vsync_encode_adapter_)] {};
-     worker_queue_->PostTask([cleanup = std::move(cleanup)] {});
-   }
--
--  RTC_HISTOGRAM_BOOLEAN(
--      "WebRTC.Video.InputFrameTimestampMonotonicallyIncreasing",
--      incoming_frame_timestamp_monotonically_increasing_);
- }
- 
- void FrameCadenceAdapterImpl::Initialize(Callback* callback) {
-@@ -879,7 +859,7 @@ void FrameCadenceAdapterImpl::Initialize(Callback* callback) {
-     vsync_encode_adapter_ = std::make_unique<VSyncEncodeAdapterMode>(
-         clock_, queue_, safety_.flag(), metronome_, worker_queue_, callback_);
-   } else {
--    passthrough_adapter_.emplace(callback);
-+    passthrough_adapter_.emplace(clock_, callback);
-   }
-   ConfigureCurrentAdapterWithoutZeroHertz();
- }
-@@ -897,7 +877,7 @@ absl::optional<uint32_t> FrameCadenceAdapterImpl::GetInputFrameRateFps() {
-   return current_adapter_mode_->GetInputFrameRateFps();
- }
- 
--void FrameCadenceAdapterImpl::UpdateFrameRate(Timestamp frame_timestamp) {
-+void FrameCadenceAdapterImpl::UpdateFrameRate() {
-   RTC_DCHECK_RUN_ON(queue_);
-   // The frame rate need not be updated for the zero-hertz adapter. The
-   // vsync encode and passthrough adapter however uses it. Always pass frames
-@@ -905,10 +885,10 @@ void FrameCadenceAdapterImpl::UpdateFrameRate(Timestamp frame_timestamp) {
-   // there be an adapter switch.
-   if (metronome_) {
-     RTC_CHECK(vsync_encode_adapter_);
--    vsync_encode_adapter_->UpdateFrameRate(frame_timestamp);
-+    vsync_encode_adapter_->UpdateFrameRate();
-   } else {
-     RTC_CHECK(passthrough_adapter_);
--    passthrough_adapter_->UpdateFrameRate(frame_timestamp);
-+    passthrough_adapter_->UpdateFrameRate();
-   }
- }
- 
-@@ -999,19 +979,6 @@ void FrameCadenceAdapterImpl::OnFrameOnMainQueue(Timestamp post_time,
-                                                  const VideoFrame& frame) {
-   RTC_DCHECK_RUN_ON(queue_);
-   current_adapter_mode_->OnFrame(post_time, queue_overload, frame);
--  if (last_incoming_frame_timestamp_ &&
--      last_incoming_frame_timestamp_ >=
--          Timestamp::Micros(frame.timestamp_us())) {
--    RTC_LOG(LS_ERROR)
--        << "Incoming frame timestamp is not monotonically increasing"
--        << " current: " << frame.timestamp_us()
--        << " last: " << last_incoming_frame_timestamp_.value().us();
--    incoming_frame_timestamp_monotonically_increasing_ = false;
--  }
--  last_incoming_frame_timestamp_ = Timestamp::Micros(frame.timestamp_us());
--  Timestamp update_frame_rate_timestamp =
--      use_video_frame_timestamp_ ? *last_incoming_frame_timestamp_ : post_time;
--  UpdateFrameRate(update_frame_rate_timestamp);
- }
- 
- bool FrameCadenceAdapterImpl::IsZeroHertzScreenshareEnabled() const {
-diff --git a/video/frame_cadence_adapter.h b/video/frame_cadence_adapter.h
-index 0dc2e5ab7e..ec8e667b04 100644
---- a/video/frame_cadence_adapter.h
-+++ b/video/frame_cadence_adapter.h
-@@ -99,6 +99,10 @@ class FrameCadenceAdapterInterface
-   // zero-hertz mode is off, and returns the max framerate in zero-hertz mode.
-   virtual absl::optional<uint32_t> GetInputFrameRateFps() = 0;
- 
-+  // Updates frame rate. This is done unconditionally irrespective of adapter
-+  // mode.
-+  virtual void UpdateFrameRate() = 0;
++SdpVideoFormat::SdpVideoFormat(
++    const SdpVideoFormat& format,
++    const absl::InlinedVector<ScalabilityMode, kScalabilityModeCount>& modes)
++    : SdpVideoFormat(format) {
++  scalability_modes = modes;
++}
 +
-   // Updates quality convergence status for an enabled spatial layer.
-   // Convergence means QP has dropped to a low-enough level to warrant ceasing
-   // to send identical frames at high frequency.
-diff --git a/video/frame_cadence_adapter_unittest.cc b/video/frame_cadence_adapter_unittest.cc
-index 94dfecc9c3..54548de9bb 100644
---- a/video/frame_cadence_adapter_unittest.cc
-+++ b/video/frame_cadence_adapter_unittest.cc
-@@ -10,8 +10,6 @@
- 
- #include "video/frame_cadence_adapter.h"
- 
--#include <cstdint>
--#include <memory>
- #include <utility>
- #include <vector>
- 
-@@ -136,8 +134,7 @@ TEST(FrameCadenceAdapterTest, FrameRateFollowsRateStatisticsByDefault) {
-   test::ScopedKeyValueConfig no_field_trials;
-   GlobalSimulatedTimeController time_controller(Timestamp::Zero());
-   auto adapter = CreateAdapter(no_field_trials, time_controller.GetClock());
--  MockCallback callback;
--  adapter->Initialize(&callback);
-+  adapter->Initialize(nullptr);
- 
-   // Create an "oracle" rate statistics which should be followed on a sequence
-   // of frames.
-@@ -146,13 +143,10 @@ TEST(FrameCadenceAdapterTest, FrameRateFollowsRateStatisticsByDefault) {
- 
-   for (int frame = 0; frame != 10; ++frame) {
-     time_controller.AdvanceTime(TimeDelta::Millis(10));
--    absl::optional<int64_t> expected_fps =
--        rate.Rate(time_controller.GetClock()->TimeInMilliseconds());
-     rate.Update(1, time_controller.GetClock()->TimeInMilliseconds());
--    // FrameCadanceAdapter::OnFrame post the frame to another sequence.
--    adapter->OnFrame(CreateFrameWithTimestamps(&time_controller));
--    time_controller.AdvanceTime(TimeDelta::Millis(0));
--    EXPECT_EQ(expected_fps, adapter->GetInputFrameRateFps())
-+    adapter->UpdateFrameRate();
-+    EXPECT_EQ(rate.Rate(time_controller.GetClock()->TimeInMilliseconds()),
-+              adapter->GetInputFrameRateFps())
-         << " failed for frame " << frame;
-   }
- }
-@@ -162,8 +156,7 @@ TEST(FrameCadenceAdapterTest,
-   ZeroHertzFieldTrialDisabler feature_disabler;
-   GlobalSimulatedTimeController time_controller(Timestamp::Zero());
-   auto adapter = CreateAdapter(feature_disabler, time_controller.GetClock());
--  MockCallback callback;
--  adapter->Initialize(&callback);
-+  adapter->Initialize(nullptr);
- 
-   // Create an "oracle" rate statistics which should be followed on a sequence
-   // of frames.
-@@ -172,14 +165,10 @@ TEST(FrameCadenceAdapterTest,
- 
-   for (int frame = 0; frame != 10; ++frame) {
-     time_controller.AdvanceTime(TimeDelta::Millis(10));
--    absl::optional<int64_t> expected_fps =
--        rate.Rate(time_controller.GetClock()->TimeInMilliseconds());
--
-     rate.Update(1, time_controller.GetClock()->TimeInMilliseconds());
--    // FrameCadanceAdapter::OnFrame post the frame to another sequence.
--    adapter->OnFrame(CreateFrameWithTimestamps(&time_controller));
--    time_controller.AdvanceTime(TimeDelta::Millis(0));
--    EXPECT_EQ(adapter->GetInputFrameRateFps(), expected_fps)
-+    adapter->UpdateFrameRate();
-+    EXPECT_EQ(rate.Rate(time_controller.GetClock()->TimeInMilliseconds()),
-+              adapter->GetInputFrameRateFps())
-         << " failed for frame " << frame;
-   }
- }
-@@ -188,16 +177,13 @@ TEST(FrameCadenceAdapterTest, FrameRateFollowsMaxFpsWhenZeroHertzActivated) {
-   ZeroHertzFieldTrialEnabler enabler;
-   GlobalSimulatedTimeController time_controller(Timestamp::Zero());
-   auto adapter = CreateAdapter(enabler, time_controller.GetClock());
--  MockCallback callback;
--  adapter->Initialize(&callback);
-+  adapter->Initialize(nullptr);
-   adapter->SetZeroHertzModeEnabled(
-       FrameCadenceAdapterInterface::ZeroHertzModeParams{});
-   adapter->OnConstraintsChanged(VideoTrackSourceConstraints{0, 1});
-   for (int frame = 0; frame != 10; ++frame) {
-     time_controller.AdvanceTime(TimeDelta::Millis(10));
--    // FrameCadanceAdapter::OnFrame post the frame to another sequence.
--    adapter->OnFrame(CreateFrameWithTimestamps(&time_controller));
--    time_controller.AdvanceTime(TimeDelta::Millis(0));
-+    adapter->UpdateFrameRate();
-     EXPECT_EQ(adapter->GetInputFrameRateFps(), 1u);
-   }
- }
-@@ -230,8 +216,7 @@ TEST(FrameCadenceAdapterTest,
-   ZeroHertzFieldTrialEnabler enabler;
-   GlobalSimulatedTimeController time_controller(Timestamp::Zero());
-   auto adapter = CreateAdapter(enabler, time_controller.GetClock());
--  MockCallback callback;
--  adapter->Initialize(&callback);
-+  adapter->Initialize(nullptr);
-   adapter->SetZeroHertzModeEnabled(
-       FrameCadenceAdapterInterface::ZeroHertzModeParams{});
-   adapter->OnConstraintsChanged(VideoTrackSourceConstraints{0, 1});
-@@ -241,16 +226,15 @@ TEST(FrameCadenceAdapterTest,
-   for (int frame = 0; frame != MAX; ++frame) {
-     time_controller.AdvanceTime(TimeDelta::Millis(10));
-     rate.Update(1, time_controller.GetClock()->TimeInMilliseconds());
--    adapter->OnFrame(CreateFrameWithTimestamps(&time_controller));
--    time_controller.AdvanceTime(TimeDelta::Millis(0));
-+    adapter->UpdateFrameRate();
-   }
-   // Turn off zero hertz on the next-last frame; after the last frame we
-   // should see a value that tracks the rate oracle.
-   adapter->SetZeroHertzModeEnabled(absl::nullopt);
-   // Last frame.
-   time_controller.AdvanceTime(TimeDelta::Millis(10));
--  adapter->OnFrame(CreateFrameWithTimestamps(&time_controller));
--  time_controller.AdvanceTime(TimeDelta::Millis(0));
-+  rate.Update(1, time_controller.GetClock()->TimeInMilliseconds());
-+  adapter->UpdateFrameRate();
- 
-   EXPECT_EQ(rate.Rate(time_controller.GetClock()->TimeInMilliseconds()),
-             adapter->GetInputFrameRateFps());
-@@ -1054,24 +1038,6 @@ TEST_F(FrameCadenceAdapterMetricsTest, RecordsTimeUntilFirstFrame) {
-       ElementsAre(Pair(666, 1)));
- }
- 
--TEST_F(FrameCadenceAdapterMetricsTest,
--       RecordsFrameTimestampMonotonicallyIncreasing) {
--  MockCallback callback;
--  test::ScopedKeyValueConfig no_field_trials;
--  std::unique_ptr<FrameCadenceAdapterInterface> adapter =
--      CreateAdapter(no_field_trials, time_controller_.GetClock());
--  adapter->Initialize(&callback);
--  time_controller_.AdvanceTime(TimeDelta::Millis(666));
--  adapter->OnFrame(CreateFrameWithTimestamps(&time_controller_));
--  adapter->OnFrame(CreateFrameWithTimestamps(&time_controller_));
--  time_controller_.AdvanceTime(TimeDelta::Zero());
--  adapter = nullptr;
--  DepleteTaskQueues();
--  EXPECT_THAT(metrics::Samples(
--                  "WebRTC.Video.InputFrameTimestampMonotonicallyIncreasing"),
--              ElementsAre(Pair(false, 1)));
--}
--
- TEST(FrameCadenceAdapterRealTimeTest, TimestampsDoNotDrift) {
-   // This regression test must be performed in realtime because of limitations
-   // in GlobalSimulatedTimeController.
-diff --git a/video/video_stream_encoder.cc b/video/video_stream_encoder.cc
-index 2f4c6e927d..3b104ef265 100644
---- a/video/video_stream_encoder.cc
-+++ b/video/video_stream_encoder.cc
-@@ -1784,7 +1784,13 @@ void VideoStreamEncoder::MaybeEncodeVideoFrame(const VideoFrame& video_frame,
-   // According to the testcase
-   // InitialFrameDropOffWhenEncoderDisabledScaling, the return value
-   // from GetScalingSettings should enable or disable the frame drop.
+ SdpVideoFormat::SdpVideoFormat(const SdpVideoFormat&) = default;
+ SdpVideoFormat::SdpVideoFormat(SdpVideoFormat&&) = default;
+ SdpVideoFormat& SdpVideoFormat::operator=(const SdpVideoFormat&) = default;
+diff --git a/api/video_codecs/sdp_video_format.h b/api/video_codecs/sdp_video_format.h
+index 112f53fd1b..e7da486a53 100644
+--- a/api/video_codecs/sdp_video_format.h
++++ b/api/video_codecs/sdp_video_format.h
+@@ -36,6 +36,14 @@ struct RTC_EXPORT SdpVideoFormat {
+       const CodecParameterMap& parameters,
+       const absl::InlinedVector<ScalabilityMode, kScalabilityModeCount>&
+           scalability_modes);
++  // Creates a new SdpVideoFormat object identical to the supplied
++  // SdpVideoFormat except the scalability_modes that are set to be the same as
++  // the supplied scalability modes.
++  SdpVideoFormat(
++      const SdpVideoFormat& format,
++      const absl::InlinedVector<ScalabilityMode, kScalabilityModeCount>&
++          scalability_modes);
 +
-+  // Update input frame rate before we start using it. If we update it after
-+  // any potential frame drop we are going to artificially increase frame sizes.
-+  // Poll the rate before updating, otherwise we risk the rate being estimated
-+  // a little too high at the start of the call when then window is small.
-   uint32_t framerate_fps = GetInputFramerateFps();
-+  frame_cadence_adapter_->UpdateFrameRate();
+   SdpVideoFormat(const SdpVideoFormat&);
+   SdpVideoFormat(SdpVideoFormat&&);
+   SdpVideoFormat& operator=(const SdpVideoFormat&);
+diff --git a/api/video_codecs/video_decoder_factory_template_dav1d_adapter.h b/api/video_codecs/video_decoder_factory_template_dav1d_adapter.h
+index f38d46994b..7bc0bbb8fc 100644
+--- a/api/video_codecs/video_decoder_factory_template_dav1d_adapter.h
++++ b/api/video_codecs/video_decoder_factory_template_dav1d_adapter.h
+@@ -21,10 +21,7 @@
+ namespace webrtc {
+ struct Dav1dDecoderTemplateAdapter {
+   static std::vector<SdpVideoFormat> SupportedFormats() {
+-    return {SdpVideoFormat("AV1"),
+-            SdpVideoFormat(
+-                "AV1", {{"profile",
+-                         AV1ProfileToString(AV1Profile::kProfile1).data()}})};
++    return {SdpVideoFormat::AV1Profile0(), SdpVideoFormat::AV1Profile1()};
+   }
  
-   int64_t now_ms = env_.clock().TimeInMilliseconds();
-   if (pending_encoder_reconfiguration_) {
-diff --git a/video/video_stream_encoder_unittest.cc b/video/video_stream_encoder_unittest.cc
-index 6769a2806e..7b21f20e29 100644
---- a/video/video_stream_encoder_unittest.cc
-+++ b/video/video_stream_encoder_unittest.cc
-@@ -574,7 +574,7 @@ class AdaptingFrameForwarder : public test::FrameForwarder {
-                 .set_video_frame_buffer(rtc::make_ref_counted<TestBuffer>(
-                     nullptr, out_width, out_height))
-                 .set_ntp_time_ms(video_frame.ntp_time_ms())
--                .set_timestamp_ms(video_frame.timestamp_us() * 1000)
-+                .set_timestamp_ms(99)
-                 .set_rotation(kVideoRotation_0)
-                 .build();
-         if (video_frame.has_update_rect()) {
-@@ -791,6 +791,7 @@ class MockFrameCadenceAdapter : public FrameCadenceAdapterInterface {
-               (override));
-   MOCK_METHOD(void, OnFrame, (const VideoFrame&), (override));
-   MOCK_METHOD(absl::optional<uint32_t>, GetInputFrameRateFps, (), (override));
-+  MOCK_METHOD(void, UpdateFrameRate, (), (override));
-   MOCK_METHOD(void,
-               UpdateLayerQualityConvergence,
-               (size_t spatial_index, bool converged),
-@@ -951,7 +952,7 @@ class VideoStreamEncoderTest : public ::testing::Test {
-         .set_video_frame_buffer(rtc::make_ref_counted<TestBuffer>(
-             destruction_event, codec_width_, codec_height_))
-         .set_ntp_time_ms(ntp_time_ms)
--        .set_timestamp_ms(ntp_time_ms)
-+        .set_timestamp_ms(99)
-         .set_rotation(kVideoRotation_0)
-         .build();
+   static std::unique_ptr<VideoDecoder> CreateDecoder(
+diff --git a/api/video_codecs/video_encoder_factory_template_libaom_av1_adapter.h b/api/video_codecs/video_encoder_factory_template_libaom_av1_adapter.h
+index 0f801ad3c7..3f551dea8d 100644
+--- a/api/video_codecs/video_encoder_factory_template_libaom_av1_adapter.h
++++ b/api/video_codecs/video_encoder_factory_template_libaom_av1_adapter.h
+@@ -24,7 +24,7 @@ struct LibaomAv1EncoderTemplateAdapter {
+   static std::vector<SdpVideoFormat> SupportedFormats() {
+     absl::InlinedVector<ScalabilityMode, kScalabilityModeCount>
+         scalability_modes = LibaomAv1EncoderSupportedScalabilityModes();
+-    return {SdpVideoFormat("AV1", CodecParameterMap(), scalability_modes)};
++    return {SdpVideoFormat(SdpVideoFormat::AV1Profile0(), scalability_modes)};
    }
-@@ -963,7 +964,7 @@ class VideoStreamEncoderTest : public ::testing::Test {
-         .set_video_frame_buffer(rtc::make_ref_counted<TestBuffer>(
-             destruction_event, codec_width_, codec_height_))
-         .set_ntp_time_ms(ntp_time_ms)
--        .set_timestamp_ms(ntp_time_ms)
-+        .set_timestamp_ms(99)
-         .set_rotation(kVideoRotation_0)
-         .set_update_rect(VideoFrame::UpdateRect{offset_x, 0, 1, 1})
-         .build();
-@@ -997,7 +998,7 @@ class VideoStreamEncoderTest : public ::testing::Test {
-         .set_video_frame_buffer(rtc::make_ref_counted<FakeNativeBuffer>(
-             destruction_event, width, height))
-         .set_ntp_time_ms(ntp_time_ms)
--        .set_timestamp_ms(ntp_time_ms)
-+        .set_timestamp_ms(99)
-         .set_rotation(kVideoRotation_0)
-         .build();
-   }
-@@ -1010,7 +1011,7 @@ class VideoStreamEncoderTest : public ::testing::Test {
-         .set_video_frame_buffer(rtc::make_ref_counted<FakeNV12NativeBuffer>(
-             destruction_event, width, height))
-         .set_ntp_time_ms(ntp_time_ms)
--        .set_timestamp_ms(ntp_time_ms)
-+        .set_timestamp_ms(99)
-         .set_rotation(kVideoRotation_0)
-         .build();
-   }
-@@ -1532,7 +1533,6 @@ class VideoStreamEncoderTest : public ::testing::Test {
-       if (num_received_layers_ == num_expected_layers_) {
-         encoded_frame_event_.Set();
-       }
--
-       return Result(Result::OK, last_timestamp_);
+ 
+   static std::unique_ptr<VideoEncoder> CreateEncoder(
+diff --git a/api/video_codecs/video_encoder_factory_template_libvpx_vp8_adapter.h b/api/video_codecs/video_encoder_factory_template_libvpx_vp8_adapter.h
+index c60aa04795..de6d975267 100644
+--- a/api/video_codecs/video_encoder_factory_template_libvpx_vp8_adapter.h
++++ b/api/video_codecs/video_encoder_factory_template_libvpx_vp8_adapter.h
+@@ -28,7 +28,7 @@ struct LibvpxVp8EncoderTemplateAdapter {
+       scalability_modes.push_back(scalability_mode);
      }
  
-@@ -1663,34 +1663,28 @@ TEST_F(VideoStreamEncoderTest, DropsFramesBeforeFirstOnBitrateUpdated) {
-   // The encoder will cache up to one frame for a short duration. Adding two
-   // frames means that the first frame will be dropped and the second frame will
-   // be sent when the encoder is enabled.
--  const int64_t kFrame1TimestampMs = CurrentTimeMs();
--  video_source_.IncomingCapturedFrame(
--      CreateFrame(kFrame1TimestampMs, &frame_destroyed_event));
-+  video_source_.IncomingCapturedFrame(CreateFrame(1, &frame_destroyed_event));
-   AdvanceTime(TimeDelta::Millis(10));
--  const int64_t kFrame2TimestampMs = CurrentTimeMs();
--  video_source_.IncomingCapturedFrame(CreateFrame(kFrame2TimestampMs, nullptr));
-+  video_source_.IncomingCapturedFrame(CreateFrame(2, nullptr));
-   AdvanceTime(TimeDelta::Zero());
-   EXPECT_TRUE(frame_destroyed_event.Wait(kDefaultTimeout));
- 
-   video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
-       kTargetBitrate, kTargetBitrate, kTargetBitrate, 0, 0, 0);
- 
--  // The pending frame should be encoded.
--  WaitForEncodedFrame(kFrame2TimestampMs);
--
--  const int64_t kFrame3TimestampMs = CurrentTimeMs();
--  video_source_.IncomingCapturedFrame(CreateFrame(kFrame3TimestampMs, nullptr));
-+  // The pending frame should be received.
-+  WaitForEncodedFrame(2);
-+  video_source_.IncomingCapturedFrame(CreateFrame(3, nullptr));
- 
--  WaitForEncodedFrame(kFrame3TimestampMs);
-+  WaitForEncodedFrame(3);
-   video_stream_encoder_->Stop();
- }
- 
- TEST_F(VideoStreamEncoderTest, DropsFramesWhenRateSetToZero) {
--  int64_t time_ms = 123;
-   video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
-       kTargetBitrate, kTargetBitrate, kTargetBitrate, 0, 0, 0);
--  video_source_.IncomingCapturedFrame(CreateFrame(time_ms, nullptr));
--  WaitForEncodedFrame(time_ms);
-+  video_source_.IncomingCapturedFrame(CreateFrame(1, nullptr));
-+  WaitForEncodedFrame(1);
- 
-   video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
-       DataRate::Zero(), DataRate::Zero(), DataRate::Zero(), 0, 0, 0);
-@@ -1698,17 +1692,14 @@ TEST_F(VideoStreamEncoderTest, DropsFramesWhenRateSetToZero) {
-   // The encoder will cache up to one frame for a short duration. Adding two
-   // frames means that the first frame will be dropped and the second frame will
-   // be sent when the encoder is resumed.
--  time_ms += 30;
--  video_source_.IncomingCapturedFrame(CreateFrame(time_ms, nullptr));
--  time_ms += 30;
--  video_source_.IncomingCapturedFrame(CreateFrame(time_ms, nullptr));
-+  video_source_.IncomingCapturedFrame(CreateFrame(2, nullptr));
-+  video_source_.IncomingCapturedFrame(CreateFrame(3, nullptr));
- 
-   video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
-       kTargetBitrate, kTargetBitrate, kTargetBitrate, 0, 0, 0);
--  WaitForEncodedFrame(time_ms);
--  time_ms += 20;
--  video_source_.IncomingCapturedFrame(CreateFrame(time_ms, nullptr));
--  WaitForEncodedFrame(time_ms);
-+  WaitForEncodedFrame(3);
-+  video_source_.IncomingCapturedFrame(CreateFrame(4, nullptr));
-+  WaitForEncodedFrame(4);
-   video_stream_encoder_->Stop();
- }
- 
-@@ -4716,24 +4707,20 @@ TEST_F(VideoStreamEncoderTest,
- TEST_F(VideoStreamEncoderTest, CpuLimitedHistogramIsReported) {
-   const int kWidth = 640;
-   const int kHeight = 360;
--  int64_t ntp_timestamp_ms = 123;
- 
-   video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
-       kTargetBitrate, kTargetBitrate, kTargetBitrate, 0, 0, 0);
- 
-   for (int i = 1; i <= SendStatisticsProxy::kMinRequiredMetricsSamples; ++i) {
--    video_source_.IncomingCapturedFrame(
--        CreateFrame(ntp_timestamp_ms, kWidth, kHeight));
--    WaitForEncodedFrame(ntp_timestamp_ms);
--    ntp_timestamp_ms += 20;
-+    video_source_.IncomingCapturedFrame(CreateFrame(i, kWidth, kHeight));
-+    WaitForEncodedFrame(i);
+-    return {SdpVideoFormat("VP8", CodecParameterMap(), scalability_modes)};
++    return {SdpVideoFormat(SdpVideoFormat::VP8(), scalability_modes)};
    }
  
-   video_stream_encoder_->TriggerCpuOveruse();
-   for (int i = 1; i <= SendStatisticsProxy::kMinRequiredMetricsSamples; ++i) {
--    video_source_.IncomingCapturedFrame(
--        CreateFrame(ntp_timestamp_ms, kWidth, kHeight));
--    WaitForEncodedFrame(ntp_timestamp_ms);
--    ntp_timestamp_ms += 20;
-+    video_source_.IncomingCapturedFrame(CreateFrame(
-+        SendStatisticsProxy::kMinRequiredMetricsSamples + i, kWidth, kHeight));
-+    WaitForEncodedFrame(SendStatisticsProxy::kMinRequiredMetricsSamples + i);
+   static std::unique_ptr<VideoEncoder> CreateEncoder(
+diff --git a/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc b/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc
+index dae3997631..2abeb0513a 100644
+--- a/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc
++++ b/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc
+@@ -178,7 +178,9 @@ SdpVideoFormat CreateSdpVideoFormat(
+ 
+     return SdpVideoFormat(config.codec_name, codec_params);
+   } else if (config.codec_settings.codecType == kVideoCodecVP9) {
+-    return SdpVideoFormat(config.codec_name, {{"profile-id", "0"}});
++    return SdpVideoFormat::VP9Profile0();
++  } else if (config.codec_settings.codecType == kVideoCodecAV1) {
++    return SdpVideoFormat::AV1Profile0();
    }
  
-   video_stream_encoder_->Stop();
-@@ -4752,16 +4739,13 @@ TEST_F(VideoStreamEncoderTest,
-       kTargetBitrate, kTargetBitrate, kTargetBitrate, 0, 0, 0);
-   const int kWidth = 640;
-   const int kHeight = 360;
--  int64_t ntp_timestamp_ms = 123;
- 
-   video_stream_encoder_->SetSource(&video_source_,
-                                    webrtc::DegradationPreference::DISABLED);
- 
-   for (int i = 1; i <= SendStatisticsProxy::kMinRequiredMetricsSamples; ++i) {
--    video_source_.IncomingCapturedFrame(
--        CreateFrame(ntp_timestamp_ms, kWidth, kHeight));
--    WaitForEncodedFrame(ntp_timestamp_ms);
--    ntp_timestamp_ms += 20;
-+    video_source_.IncomingCapturedFrame(CreateFrame(i, kWidth, kHeight));
-+    WaitForEncodedFrame(i);
+   return SdpVideoFormat(config.codec_name);
+diff --git a/modules/video_coding/codecs/vp9/vp9.cc b/modules/video_coding/codecs/vp9/vp9.cc
+index 8799f2cdd5..d2cbd52a64 100644
+--- a/modules/video_coding/codecs/vp9/vp9.cc
++++ b/modules/video_coding/codecs/vp9/vp9.cc
+@@ -46,15 +46,11 @@ std::vector<SdpVideoFormat> SupportedVP9Codecs(bool add_scalability_modes) {
+       }
+     }
+   }
+-  std::vector<SdpVideoFormat> supported_formats{SdpVideoFormat(
+-      cricket::kVp9CodecName,
+-      {{kVP9FmtpProfileId, VP9ProfileToString(VP9Profile::kProfile0)}},
+-      scalability_modes)};
++  std::vector<SdpVideoFormat> supported_formats{
++      SdpVideoFormat(SdpVideoFormat::VP9Profile0(), scalability_modes)};
+   if (vpx_supports_high_bit_depth) {
+-    supported_formats.push_back(SdpVideoFormat(
+-        cricket::kVp9CodecName,
+-        {{kVP9FmtpProfileId, VP9ProfileToString(VP9Profile::kProfile2)}},
+-        scalability_modes));
++    supported_formats.push_back(
++        SdpVideoFormat(SdpVideoFormat::VP9Profile2(), scalability_modes));
    }
  
-   video_stream_encoder_->Stop();
-@@ -5532,7 +5516,7 @@ TEST_F(VideoStreamEncoderTest,
-   // Reconfigure the encoder with a new (higher max framerate), max fps should
-   // still respect the adaptation.
-   video_encoder_config.simulcast_layers[0].max_framerate = kHighFramerate;
--  source.IncomingCapturedFrame(CreateFrame(2, kFrameWidth, kFrameHeight));
-+  source.IncomingCapturedFrame(CreateFrame(1, kFrameWidth, kFrameHeight));
-   video_stream_encoder_->ConfigureEncoder(std::move(video_encoder_config),
-                                           kMaxPayloadLength);
-   video_stream_encoder_->WaitUntilTaskQueueIsIdle();
-@@ -9529,6 +9513,7 @@ TEST(VideoStreamEncoderFrameCadenceTest, UsesFrameCadenceAdapterForFrameRate) {
-                                          /*max_data_payload_length=*/1000);
- 
-   EXPECT_CALL(*adapter_ptr, GetInputFrameRateFps);
-+  EXPECT_CALL(*adapter_ptr, UpdateFrameRate);
-   PassAFrame(encoder_queue, video_stream_encoder_callback, /*ntp_time_ms=*/1);
-   factory.DepleteTaskQueues();
- }
+   return supported_formats;
+@@ -69,12 +65,8 @@ std::vector<SdpVideoFormat> SupportedVP9DecoderCodecs() {
+   // The WebRTC internal decoder supports VP9 profile 1 and 3. However, there's
+   // currently no way of sending VP9 profile 1 or 3 using the internal encoder.
+   // It would require extended support for I444, I422, and I440 buffers.
+-  supported_formats.push_back(SdpVideoFormat(
+-      cricket::kVp9CodecName,
+-      {{kVP9FmtpProfileId, VP9ProfileToString(VP9Profile::kProfile1)}}));
+-  supported_formats.push_back(SdpVideoFormat(
+-      cricket::kVp9CodecName,
+-      {{kVP9FmtpProfileId, VP9ProfileToString(VP9Profile::kProfile3)}}));
++  supported_formats.push_back(SdpVideoFormat::VP9Profile1());
++  supported_formats.push_back(SdpVideoFormat::VP9Profile3());
+   return supported_formats;
+ #else
+   return std::vector<SdpVideoFormat>();
