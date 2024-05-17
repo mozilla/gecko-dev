@@ -209,6 +209,11 @@ void RtpSenderEgress::SendPacket(std::unique_ptr<RtpPacketToSend> packet,
   if (packet->HasExtension<AbsoluteSendTime>()) {
     packet->SetExtension<AbsoluteSendTime>(AbsoluteSendTime::To24Bits(now));
   }
+  if (packet->HasExtension<TransportSequenceNumber>() &&
+      packet->transport_sequence_number()) {
+    packet->SetExtension<TransportSequenceNumber>(
+        *packet->transport_sequence_number() & 0xFFFF);
+  }
 
   if (packet->HasExtension<VideoTimingExtension>()) {
     if (populate_network2_timestamp_) {

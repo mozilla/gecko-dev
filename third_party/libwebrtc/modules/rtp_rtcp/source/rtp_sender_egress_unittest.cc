@@ -370,6 +370,23 @@ TEST_F(RtpSenderEgressTest, WritesNetwork2ToTimingExtension) {
   EXPECT_EQ(video_timing.pacer_exit_delta_ms, kPacerExitMs);
 }
 
+TEST_F(RtpSenderEgressTest, WritesTransportSequenceNumberExtensionIfAllocated) {
+  RtpSenderEgress sender(DefaultConfig(), &packet_history_);
+  header_extensions_.RegisterByUri(kTransportSequenceNumberExtensionId,
+                                   TransportSequenceNumber::Uri());
+  std::unique_ptr<RtpPacketToSend> packet = BuildRtpPacket();
+  ASSERT_TRUE(packet->HasExtension<TransportSequenceNumber>());
+  const int64_t kTransportSequenceNumber = 0xFFFF000F;
+  packet->set_transport_sequence_number(kTransportSequenceNumber);
+
+  sender.SendPacket(std::move(packet), PacedPacketInfo());
+
+  ASSERT_TRUE(transport_.last_packet().has_value());
+  EXPECT_EQ(
+      transport_.last_packet()->packet.GetExtension<TransportSequenceNumber>(),
+      kTransportSequenceNumber & 0xFFFF);
+}
+
 TEST_F(RtpSenderEgressTest, OnSendPacketUpdated) {
   std::unique_ptr<RtpSenderEgress> sender = CreateRtpSenderEgress();
   header_extensions_.RegisterByUri(kTransportSequenceNumberExtensionId,

@@ -27,7 +27,7 @@
 
 namespace webrtc {
 
-PacketRouter::PacketRouter() : PacketRouter(0) {}
+PacketRouter::PacketRouter() : PacketRouter(1) {}
 
 PacketRouter::PacketRouter(uint16_t start_transport_seq)
     : last_send_module_(nullptr),
@@ -161,8 +161,7 @@ void PacketRouter::SendPacket(std::unique_ptr<RtpPacketToSend> packet,
   bool assign_transport_sequence_number =
       packet->HasExtension<TransportSequenceNumber>();
   if (assign_transport_sequence_number) {
-    packet->SetExtension<TransportSequenceNumber>((transport_seq_ + 1) &
-                                                  0xFFFF);
+    packet->set_transport_sequence_number(transport_seq_);
   }
 
   uint32_t ssrc = packet->Ssrc();

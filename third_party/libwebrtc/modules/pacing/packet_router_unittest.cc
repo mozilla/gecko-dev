@@ -390,31 +390,28 @@ TEST_F(PacketRouterTest, SendPacketAssignsTransportSequenceNumbers) {
   packet_router_.AddSendRtpModule(&rtp_1, false);
   packet_router_.AddSendRtpModule(&rtp_2, false);
 
-  // Transport sequence numbers start at 1, for historical reasons.
-  uint16_t transport_sequence_number = 1;
-
   auto packet = BuildRtpPacket(kSsrc1);
   EXPECT_TRUE(packet->ReserveExtension<TransportSequenceNumber>());
-  EXPECT_CALL(
-      rtp_1,
-      TrySendPacket(Pointee(Property(
-                        &RtpPacketToSend::GetExtension<TransportSequenceNumber>,
-                        transport_sequence_number)),
-                    _))
-      .WillOnce(Return(true));
+  EXPECT_CALL(rtp_1, TrySendPacket)
+      .WillOnce([&](std::unique_ptr<RtpPacketToSend> packet,
+                    const PacedPacketInfo& pacing_info) {
+        // Transport sequence numbers start at 1 per default, for historical
+        // reasons.
+        EXPECT_EQ(packet->transport_sequence_number(), 1);
+        return true;
+      });
   packet_router_.SendPacket(std::move(packet), PacedPacketInfo());
 
-  ++transport_sequence_number;
   packet = BuildRtpPacket(kSsrc2);
   EXPECT_TRUE(packet->ReserveExtension<TransportSequenceNumber>());
 
-  EXPECT_CALL(
-      rtp_2,
-      TrySendPacket(Pointee(Property(
-                        &RtpPacketToSend::GetExtension<TransportSequenceNumber>,
-                        transport_sequence_number)),
-                    _))
-      .WillOnce(Return(true));
+  EXPECT_CALL(rtp_2, TrySendPacket)
+
+      .WillOnce([&](std::unique_ptr<RtpPacketToSend> packet,
+                    const PacedPacketInfo& pacing_info) {
+        EXPECT_EQ(packet->transport_sequence_number(), 2);
+        return true;
+      });
   packet_router_.SendPacket(std::move(packet), PacedPacketInfo());
 
   packet_router_.OnBatchComplete();
@@ -435,13 +432,14 @@ TEST_F(PacketRouterTest, DoesNotIncrementTransportSequenceNumberOnSendFailure) {
   // Return failure status code to make sure sequence number is not incremented.
   auto packet = BuildRtpPacket(kSsrc);
   EXPECT_TRUE(packet->ReserveExtension<TransportSequenceNumber>());
-  EXPECT_CALL(
-      rtp,
-      TrySendPacket(Pointee(Property(
-                        &RtpPacketToSend::GetExtension<TransportSequenceNumber>,
-                        kStartTransportSequenceNumber)),
-                    _))
-      .WillOnce(Return(false));
+  EXPECT_CALL(rtp, TrySendPacket)
+
+      .WillOnce([&](std::unique_ptr<RtpPacketToSend> packet,
+                    const PacedPacketInfo& pacing_info) {
+        EXPECT_EQ(packet->transport_sequence_number(),
+                  kStartTransportSequenceNumber);
+        return false;
+      });
   packet_router_.SendPacket(std::move(packet), PacedPacketInfo());
 
   // Send another packet, verify transport sequence number is still at the
@@ -449,13 +447,13 @@ TEST_F(PacketRouterTest, DoesNotIncrementTransportSequenceNumberOnSendFailure) {
   packet = BuildRtpPacket(kSsrc);
   EXPECT_TRUE(packet->ReserveExtension<TransportSequenceNumber>());
 
-  EXPECT_CALL(
-      rtp,
-      TrySendPacket(Pointee(Property(
-                        &RtpPacketToSend::GetExtension<TransportSequenceNumber>,
-                        kStartTransportSequenceNumber)),
-                    _))
-      .WillOnce(Return(true));
+  EXPECT_CALL(rtp, TrySendPacket)
+      .WillOnce([&](std::unique_ptr<RtpPacketToSend> packet,
+                    const PacedPacketInfo& pacing_info) {
+        EXPECT_EQ(packet->transport_sequence_number(),
+                  kStartTransportSequenceNumber);
+        return false;
+      });
   packet_router_.SendPacket(std::move(packet), PacedPacketInfo());
 
   packet_router_.OnBatchComplete();
