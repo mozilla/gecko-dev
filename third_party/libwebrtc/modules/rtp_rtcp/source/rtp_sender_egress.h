@@ -110,9 +110,6 @@ class RtpSenderEgress {
   };
   void CompleteSendPacket(const Packet& compound_packet, bool last_in_batch);
   bool HasCorrectSsrc(const RtpPacketToSend& packet) const;
-  void AddPacketToTransportFeedback(uint16_t packet_id,
-                                    const RtpPacketToSend& packet,
-                                    const PacedPacketInfo& pacing_info);
 
   // Sends packet on to `transport_`, leaving the RTP module.
   bool SendPacketToNetwork(const RtpPacketToSend& packet,

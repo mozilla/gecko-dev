@@ -269,8 +269,9 @@ void RtpSenderEgress::CompleteSendPacket(const Packet& compound_packet,
   } else if (packet->transport_sequence_number()) {
     options.packet_id = *packet->transport_sequence_number();
   }
-  if (options.packet_id >= 0) {
-    AddPacketToTransportFeedback(options.packet_id, *packet, pacing_info);
+  if (options.packet_id >= 0 && transport_feedback_observer_) {
+    transport_feedback_observer_->OnAddPacket(
+        RtpPacketSendInfo::From(*packet, pacing_info));
   }
 
   if (packet->packet_type() != RtpPacketMediaType::kPadding &&
@@ -413,42 +414,6 @@ bool RtpSenderEgress::HasCorrectSsrc(const RtpPacketToSend& packet) const {
       return packet.Ssrc() == ssrc_ || packet.Ssrc() == flexfec_ssrc_;
   }
   return false;
-}
-
-void RtpSenderEgress::AddPacketToTransportFeedback(
-    uint16_t packet_id,
-    const RtpPacketToSend& packet,
-    const PacedPacketInfo& pacing_info) {
-  if (transport_feedback_observer_) {
-    RtpPacketSendInfo packet_info;
-    packet_info.transport_sequence_number = packet_id;
-    packet_info.rtp_timestamp = packet.Timestamp();
-    packet_info.length = packet.size();
-    packet_info.pacing_info = pacing_info;
-    packet_info.packet_type = packet.packet_type();
-
-    switch (*packet_info.packet_type) {
-      case RtpPacketMediaType::kAudio:
-      case RtpPacketMediaType::kVideo:
-        packet_info.media_ssrc = ssrc_;
-        packet_info.rtp_sequence_number = packet.SequenceNumber();
-        break;
-      case RtpPacketMediaType::kRetransmission:
-        // For retransmissions, we're want to remove the original media packet
-        // if the retransmit arrives - so populate that in the packet info.
-        packet_info.media_ssrc = ssrc_;
-        packet_info.rtp_sequence_number =
-            *packet.retransmitted_sequence_number();
-        break;
-      case RtpPacketMediaType::kPadding:
-      case RtpPacketMediaType::kForwardErrorCorrection:
-        // We're not interested in feedback about these packets being received
-        // or lost.
-        break;
-    }
-
-    transport_feedback_observer_->OnAddPacket(packet_info);
-  }
 }
 
 bool RtpSenderEgress::SendPacketToNetwork(const RtpPacketToSend& packet,
