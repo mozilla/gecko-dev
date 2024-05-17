@@ -414,8 +414,7 @@ HttpAuthResult HttpAuthenticate(absl::string_view challenge,
     if (neg) {
       const size_t max_steps = 10;
       if (++neg->steps >= max_steps) {
-        RTC_LOG(LS_WARNING) << "AsyncHttpsProxySocket::Authenticate(Negotiate) "
-                               "too many retries";
+        RTC_LOG(LS_WARNING) << "HttpAuthenticate (Negotiate) too many retries";
         return HAR_ERROR;
       }
       steps = neg->steps;

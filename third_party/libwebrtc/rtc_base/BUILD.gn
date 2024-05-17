@@ -1424,14 +1424,8 @@ rtc_library("dscp") {
 rtc_library("proxy_info") {
 if (!build_with_mozilla) {
   visibility = [ "*" ]
-  sources = [
-    "proxy_info.cc",
-    "proxy_info.h",
-  ]
-  deps = [
-    ":crypt_string",
-    ":socket_address",
-  ]
+  sources = [ "proxy_info.h" ]
+  deps = []
 }
 }
 

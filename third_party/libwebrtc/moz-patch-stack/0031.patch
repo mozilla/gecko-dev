@@ -1050,7 +1050,7 @@ index b8345841fa..7289dbe0a8 100644
          "/config/external/nspr",
          "/nsprpub/lib/ds",
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index abc8916e29..db3481e694 100644
+index 7086afa437..96da3c773d 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
 @@ -327,6 +327,7 @@ rtc_library("sample_counter") {
@@ -1165,23 +1165,20 @@ index abc8916e29..db3481e694 100644
  
  if (rtc_include_tests) {
    rtc_library("async_packet_socket_unittest") {
-@@ -1394,6 +1412,7 @@ rtc_library("dscp") {
+@@ -1394,10 +1412,12 @@ rtc_library("dscp") {
  }
  
  rtc_library("proxy_info") {
 +if (!build_with_mozilla) {
    visibility = [ "*" ]
-   sources = [
-     "proxy_info.cc",
-@@ -1404,6 +1423,7 @@ rtc_library("proxy_info") {
-     ":socket_address",
-   ]
+   sources = [ "proxy_info.h" ]
+   deps = []
  }
 +}
  
  rtc_library("file_rotating_stream") {
    sources = [
-@@ -1432,6 +1452,7 @@ rtc_library("data_rate_limiter") {
+@@ -1426,6 +1446,7 @@ rtc_library("data_rate_limiter") {
  }
  
  rtc_library("unique_id_generator") {
@@ -1189,7 +1186,7 @@ index abc8916e29..db3481e694 100644
    sources = [
      "unique_id_generator.cc",
      "unique_id_generator.h",
-@@ -1446,6 +1467,7 @@ rtc_library("unique_id_generator") {
+@@ -1440,6 +1461,7 @@ rtc_library("unique_id_generator") {
    ]
    absl_deps = [ "//third_party/abseil-cpp/absl/strings" ]
  }
@@ -1197,7 +1194,7 @@ index abc8916e29..db3481e694 100644
  
  rtc_library("crc32") {
    sources = [
-@@ -1473,6 +1495,7 @@ rtc_library("stream") {
+@@ -1467,6 +1489,7 @@ rtc_library("stream") {
  }
  
  rtc_library("rtc_certificate_generator") {
@@ -1205,7 +1202,7 @@ index abc8916e29..db3481e694 100644
    visibility = [ "*" ]
    sources = [
      "rtc_certificate_generator.cc",
-@@ -1490,8 +1513,10 @@ rtc_library("rtc_certificate_generator") {
+@@ -1484,8 +1507,10 @@ rtc_library("rtc_certificate_generator") {
      "//third_party/abseil-cpp/absl/types:optional",
    ]
  }
@@ -1216,7 +1213,7 @@ index abc8916e29..db3481e694 100644
    visibility = [ "*" ]
    sources = [
      "helpers.cc",
-@@ -1592,6 +1617,7 @@ rtc_library("ssl") {
+@@ -1586,6 +1611,7 @@ rtc_library("ssl") {
      deps += [ ":win32" ]
    }
  }
@@ -1224,7 +1221,7 @@ index abc8916e29..db3481e694 100644
  
  rtc_library("crypt_string") {
    sources = [
-@@ -1601,6 +1627,7 @@ rtc_library("crypt_string") {
+@@ -1595,6 +1621,7 @@ rtc_library("crypt_string") {
  }
  
  rtc_library("http_common") {
@@ -1232,7 +1229,7 @@ index abc8916e29..db3481e694 100644
    sources = [
      "http_common.cc",
      "http_common.h",
-@@ -1617,6 +1644,7 @@ rtc_library("http_common") {
+@@ -1611,6 +1638,7 @@ rtc_library("http_common") {
  
    absl_deps = [ "//third_party/abseil-cpp/absl/strings" ]
  }
@@ -1240,7 +1237,7 @@ index abc8916e29..db3481e694 100644
  
  rtc_source_set("gtest_prod") {
    sources = [ "gtest_prod_util.h" ]
-@@ -2176,7 +2204,7 @@ if (rtc_include_tests) {
+@@ -2170,7 +2198,7 @@ if (rtc_include_tests) {
    }
  }
  
