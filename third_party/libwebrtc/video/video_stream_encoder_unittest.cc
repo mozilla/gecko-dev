@@ -8956,19 +8956,20 @@ class VideoStreamEncoderWithRealEncoderTest
 
   void SetUp() override {
     VideoStreamEncoderTest::SetUp();
+    Environment env = CreateEnvironment(&field_trials_);
     std::unique_ptr<VideoEncoder> encoder;
     switch (codec_type_) {
       case kVideoCodecVP8:
-        encoder = VP8Encoder::Create();
+        encoder = CreateVp8Encoder(env);
         break;
       case kVideoCodecVP9:
-        encoder = VP9Encoder::Create();
+        encoder = CreateVp9Encoder(env);
         break;
       case kVideoCodecAV1:
-        encoder = CreateLibaomAv1Encoder();
+        encoder = CreateLibaomAv1Encoder(env);
         break;
       case kVideoCodecH264:
-        encoder = H264Encoder::Create();
+        encoder = CreateH264Encoder(env);
         break;
       case kVideoCodecH265:
         // TODO(bugs.webrtc.org/13485): Use a fake encoder

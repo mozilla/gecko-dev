@@ -121,6 +121,18 @@ std::vector<SdpVideoFormat> SupportedH264DecoderCodecs() {
   return supportedCodecs;
 }
 
+H264EncoderSettings H264EncoderSettings::Parse(const SdpVideoFormat& format) {
+  if (auto it = format.parameters.find(cricket::kH264FmtpPacketizationMode);
+      it != format.parameters.end()) {
+    if (it->second == "0") {
+      return {.packetization_mode = H264PacketizationMode::SingleNalUnit};
+    } else if (it->second == "1") {
+      return {.packetization_mode = H264PacketizationMode::NonInterleaved};
+    }
+  }
+  return {};
+}
+
 absl::Nonnull<std::unique_ptr<VideoEncoder>> CreateH264Encoder(
     const Environment& env,
     H264EncoderSettings settings) {

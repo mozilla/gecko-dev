@@ -64,6 +64,10 @@ class RTC_EXPORT H264Encoder : public VideoEncoder {
 };
 
 struct H264EncoderSettings {
+  // Use factory function rather than constructor to allow to create
+  // `H264EncoderSettings` with designated initializers.
+  static H264EncoderSettings Parse(const SdpVideoFormat& format);
+
   H264PacketizationMode packetization_mode =
       H264PacketizationMode::NonInterleaved;
 };
