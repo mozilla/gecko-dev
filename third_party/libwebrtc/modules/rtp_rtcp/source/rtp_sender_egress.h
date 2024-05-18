@@ -143,7 +143,6 @@ class RtpSenderEgress {
   absl::optional<uint16_t> last_sent_seq_ RTC_GUARDED_BY(worker_queue_);
   absl::optional<uint16_t> last_sent_rtx_seq_ RTC_GUARDED_BY(worker_queue_);
 
-  TransportFeedbackObserver* const transport_feedback_observer_;
   SendPacketObserver* const send_packet_observer_;
   StreamDataCountersCallback* const rtp_stats_callback_;
   BitrateStatisticsObserver* const bitrate_callback_;

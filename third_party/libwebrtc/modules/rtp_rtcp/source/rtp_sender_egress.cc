@@ -94,7 +94,6 @@ RtpSenderEgress::RtpSenderEgress(const RtpRtcpInterface::Configuration& config,
       is_audio_(config.audio),
       need_rtp_packet_infos_(config.need_rtp_packet_infos),
       fec_generator_(config.fec_generator),
-      transport_feedback_observer_(config.transport_feedback_callback),
       send_packet_observer_(config.send_packet_observer),
       rtp_stats_callback_(config.rtp_stats_callback),
       bitrate_callback_(config.send_bitrate_observer),
@@ -107,6 +106,9 @@ RtpSenderEgress::RtpSenderEgress(const RtpRtcpInterface::Configuration& config,
                                          kRtpSequenceNumberMapMaxEntries)
                                    : nullptr) {
   RTC_DCHECK(worker_queue_);
+  RTC_DCHECK(config.transport_feedback_callback == nullptr)
+      << "transport_feedback_callback is no longer used and will soon be "
+         "deleted.";
   if (bitrate_callback_) {
     update_task_ = RepeatingTaskHandle::DelayedStart(worker_queue_,
                                                      kUpdateInterval, [this]() {
@@ -268,10 +270,6 @@ void RtpSenderEgress::CompleteSendPacket(const Packet& compound_packet,
     options.included_in_allocation = true;
   } else if (packet->transport_sequence_number()) {
     options.packet_id = *packet->transport_sequence_number();
-  }
-  if (options.packet_id >= 0 && transport_feedback_observer_) {
-    transport_feedback_observer_->OnAddPacket(
-        RtpPacketSendInfo::From(*packet, pacing_info));
   }
 
   if (packet->packet_type() != RtpPacketMediaType::kPadding &&

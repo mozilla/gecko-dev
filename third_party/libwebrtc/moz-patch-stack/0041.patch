@@ -255,7 +255,7 @@ index 67da5b8700..ea3863bddb 100644
    RtcpLossNotificationObserver* const rtcp_loss_notification_observer_;
    NetworkStateEstimateObserver* const network_state_estimate_observer_;
 diff --git a/modules/rtp_rtcp/source/rtp_rtcp_interface.h b/modules/rtp_rtcp/source/rtp_rtcp_interface.h
-index 35095f7f69..e10a6004da 100644
+index e53bfbb58e..68c2b2ab56 100644
 --- a/modules/rtp_rtcp/source/rtp_rtcp_interface.h
 +++ b/modules/rtp_rtcp/source/rtp_rtcp_interface.h
 @@ -74,6 +74,9 @@ class RtpRtcpInterface : public RtcpFeedbackSenderInterface {
@@ -266,8 +266,8 @@ index 35095f7f69..e10a6004da 100644
 +    RtcpEventObserver* rtcp_event_observer = nullptr;
 +
      NetworkStateEstimateObserver* network_state_estimate_observer = nullptr;
-     TransportFeedbackObserver* transport_feedback_callback = nullptr;
-     VideoBitrateAllocationObserver* bitrate_allocation_observer = nullptr;
+ 
+     // DEPRECATED, transport_feedback_callback is no longer invoked by the RTP
 diff --git a/video/rtp_video_stream_receiver2.cc b/video/rtp_video_stream_receiver2.cc
 index ad366d367e..54e64f3309 100644
 --- a/video/rtp_video_stream_receiver2.cc
