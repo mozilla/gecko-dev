@@ -355,7 +355,7 @@ std::unique_ptr<VideoStreamEncoderInterface> CreateVideoStreamEncoder(
   TaskQueueBase* encoder_queue_ptr = encoder_queue.get();
   return std::make_unique<VideoStreamEncoder>(
       env, num_cpu_cores, stats_proxy, encoder_settings,
-      std::make_unique<OveruseFrameDetector>(stats_proxy),
+      std::make_unique<OveruseFrameDetector>(env, stats_proxy),
       FrameCadenceAdapterInterface::Create(
           &env.clock(), encoder_queue_ptr, metronome,
           /*worker_queue=*/TaskQueueBase::Current(), env.field_trials()),

@@ -227,8 +227,9 @@ class FakeNV12NativeBuffer : public webrtc::VideoFrameBuffer {
 
 class CpuOveruseDetectorProxy : public OveruseFrameDetector {
  public:
-  explicit CpuOveruseDetectorProxy(CpuOveruseMetricsObserver* metrics_observer)
-      : OveruseFrameDetector(metrics_observer),
+  CpuOveruseDetectorProxy(const Environment& env,
+                          CpuOveruseMetricsObserver* metrics_observer)
+      : OveruseFrameDetector(env, metrics_observer),
         last_target_framerate_fps_(-1),
         framerate_updated_event_(true /* manual_reset */,
                                  false /* initially_signaled */) {}
@@ -389,6 +390,7 @@ auto FpsEqResolutionGt(const rtc::VideoSinkWants& other_wants) {
 class VideoStreamEncoderUnderTest : public VideoStreamEncoder {
  public:
   VideoStreamEncoderUnderTest(
+      const Environment& env,
       TimeController* time_controller,
       std::unique_ptr<FrameCadenceAdapterInterface> cadence_adapter,
       std::unique_ptr<webrtc::TaskQueueBase, webrtc::TaskQueueDeleter>
@@ -397,16 +399,15 @@ class VideoStreamEncoderUnderTest : public VideoStreamEncoder {
       const VideoStreamEncoderSettings& settings,
       VideoStreamEncoder::BitrateAllocationCallbackType
           allocation_callback_type,
-      const FieldTrialsView& field_trials,
       int num_cores)
       : VideoStreamEncoder(
-            CreateEnvironment(&field_trials, time_controller->GetClock()),
+            env,
             num_cores,
             stats_proxy,
             settings,
             std::unique_ptr<OveruseFrameDetector>(
                 overuse_detector_proxy_ =
-                    new CpuOveruseDetectorProxy(stats_proxy)),
+                    new CpuOveruseDetectorProxy(env, stats_proxy)),
             std::move(cadence_adapter),
             std::move(encoder_queue),
             allocation_callback_type),
@@ -710,13 +711,14 @@ class SimpleVideoStreamEncoderFactory {
       std::unique_ptr<FrameCadenceAdapterInterface> zero_hertz_adapter,
       std::unique_ptr<TaskQueueBase, TaskQueueDeleter> encoder_queue,
       const FieldTrialsView* field_trials = nullptr) {
+    Environment env = CreateEnvironment(&field_trials_, field_trials,
+                                        time_controller_.GetClock());
     auto result = std::make_unique<AdaptedVideoStreamEncoder>(
-        CreateEnvironment(&field_trials_, field_trials,
-                          time_controller_.GetClock()),
+        env,
         /*number_of_cores=*/1,
         /*stats_proxy=*/stats_proxy_.get(), encoder_settings_,
-        std::make_unique<CpuOveruseDetectorProxy>(
-            /*stats_proxy=*/nullptr),
+        std::make_unique<CpuOveruseDetectorProxy>(env,
+                                                  /*stats_proxy=*/nullptr),
         std::move(zero_hertz_adapter), std::move(encoder_queue),
         VideoStreamEncoder::BitrateAllocationCallbackType::
             kVideoBitrateAllocation);
@@ -886,7 +888,7 @@ class VideoStreamEncoderTest : public ::testing::Test {
     if (video_stream_encoder_)
       video_stream_encoder_->Stop();
 
-    auto encoder_queue = GetTaskQueueFactory()->CreateTaskQueue(
+    auto encoder_queue = env_.task_queue_factory().CreateTaskQueue(
         "EncoderQueue", TaskQueueFactory::Priority::NORMAL);
     TaskQueueBase* encoder_queue_ptr = encoder_queue.get();
     std::unique_ptr<FrameCadenceAdapterInterface> cadence_adapter =
@@ -894,9 +896,10 @@ class VideoStreamEncoderTest : public ::testing::Test {
             time_controller_.GetClock(), encoder_queue_ptr,
             /*metronome=*/nullptr, /*worker_queue=*/nullptr, field_trials_);
     video_stream_encoder_ = std::make_unique<VideoStreamEncoderUnderTest>(
-        &time_controller_, std::move(cadence_adapter), std::move(encoder_queue),
-        stats_proxy_.get(), video_send_config_.encoder_settings,
-        allocation_callback_type, field_trials_, num_cores);
+        env_, &time_controller_, std::move(cadence_adapter),
+        std::move(encoder_queue), stats_proxy_.get(),
+        video_send_config_.encoder_settings, allocation_callback_type,
+        num_cores);
     video_stream_encoder_->SetSink(&sink_, /*rotation_applied=*/false);
     video_stream_encoder_->SetSource(
         &video_source_, webrtc::DegradationPreference::MAINTAIN_FRAMERATE);
@@ -1627,12 +1630,12 @@ class VideoStreamEncoderTest : public ::testing::Test {
   int64_t CurrentTimeMs() { return clock()->CurrentTime().ms(); }
 
  protected:
-  virtual TaskQueueFactory* GetTaskQueueFactory() {
-    return time_controller_.GetTaskQueueFactory();
-  }
-
   test::ScopedKeyValueConfig field_trials_;
   GlobalSimulatedTimeController time_controller_{Timestamp::Micros(1234)};
+  const Environment env_ =
+      CreateEnvironment(&field_trials_,
+                        time_controller_.GetClock(),
+                        time_controller_.GetTaskQueueFactory());
   VideoSendStream::Config video_send_config_;
   VideoEncoderConfig video_encoder_config_;
   int codec_width_;
@@ -9428,7 +9431,7 @@ TEST(VideoStreamEncoderSimpleTest, CreateDestroy) {
   // simply be deleted.
   VideoStreamEncoder encoder(
       env, 1, &stats_proxy, encoder_settings,
-      std::make_unique<CpuOveruseDetectorProxy>(&stats_proxy),
+      std::make_unique<CpuOveruseDetectorProxy>(env, &stats_proxy),
       std::move(adapter), std::move(encoder_queue),
       VideoStreamEncoder::BitrateAllocationCallbackType::
           kVideoBitrateAllocation);
