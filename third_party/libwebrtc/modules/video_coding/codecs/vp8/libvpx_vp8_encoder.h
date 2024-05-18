@@ -129,8 +129,6 @@ class LibvpxVp8Encoder : public VideoEncoder {
   int number_of_cores_ = 0;
   uint32_t rc_max_intra_target_ = 0;
   int num_active_streams_ = 0;
-  const std::unique_ptr<Vp8FrameBufferControllerFactory>
-      frame_buffer_controller_factory_;
   std::unique_ptr<Vp8FrameBufferController> frame_buffer_controller_;
   const std::vector<VideoEncoder::ResolutionBitrateLimits>
       resolution_bitrate_limits_;

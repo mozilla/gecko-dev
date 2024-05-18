@@ -314,8 +314,6 @@ LibvpxVp8Encoder::LibvpxVp8Encoder(std::unique_ptr<LibvpxInterface> interface,
                                    VP8Encoder::Settings settings)
     : libvpx_(std::move(interface)),
       rate_control_settings_(RateControlSettings::ParseFromFieldTrials()),
-      frame_buffer_controller_factory_(
-          std::move(settings.frame_buffer_controller_factory)),
       resolution_bitrate_limits_(std::move(settings.resolution_bitrate_limits)),
       key_frame_request_(kMaxSimulcastStreams, false),
       last_encoder_output_time_(kMaxSimulcastStreams,
@@ -537,14 +535,9 @@ int LibvpxVp8Encoder::InitEncode(const VideoCodec* inst,
   }
 
   RTC_DCHECK(!frame_buffer_controller_);
-  if (frame_buffer_controller_factory_) {
-    frame_buffer_controller_ = frame_buffer_controller_factory_->Create(
-        *inst, settings, fec_controller_override_);
-  } else {
-    Vp8TemporalLayersFactory factory;
-    frame_buffer_controller_ =
-        factory.Create(*inst, settings, fec_controller_override_);
-  }
+  Vp8TemporalLayersFactory factory;
+  frame_buffer_controller_ =
+      factory.Create(*inst, settings, fec_controller_override_);
   RTC_DCHECK(frame_buffer_controller_);
 
   number_of_cores_ = settings.number_of_cores;
