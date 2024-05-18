@@ -24,7 +24,6 @@
 #include "api/environment/environment.h"
 #include "api/field_trials_view.h"
 #include "api/scoped_refptr.h"
-#include "api/transport/field_trial_based_config.h"
 #include "api/video/encoded_image.h"
 #include "api/video/i420_buffer.h"
 #include "api/video/video_frame.h"
@@ -78,8 +77,7 @@ aom_superblock_size_t GetSuperblockSize(int width, int height, int threads) {
 
 class LibaomAv1Encoder final : public VideoEncoder {
  public:
-  LibaomAv1Encoder(const absl::optional<LibaomAv1EncoderAuxConfig>& aux_config,
-                   const FieldTrialsView& trials);
+  LibaomAv1Encoder(const Environment& env, LibaomAv1EncoderSettings settings);
   ~LibaomAv1Encoder();
 
   int InitEncode(const VideoCodec* codec_settings,
@@ -125,7 +123,7 @@ class LibaomAv1Encoder final : public VideoEncoder {
   bool rates_configured_;
   absl::optional<aom_svc_params_t> svc_params_;
   VideoCodec encoder_settings_;
-  absl::optional<LibaomAv1EncoderAuxConfig> aux_config_;
+  LibaomAv1EncoderSettings settings_;
   aom_image_t* frame_for_encode_;
   aom_codec_ctx_t ctx_;
   aom_codec_enc_cfg_t cfg_;
@@ -174,19 +172,17 @@ int GetMaxConsecutiveFrameDrop(const FieldTrialsView& field_trials) {
   return maxdrop;
 }
 
-LibaomAv1Encoder::LibaomAv1Encoder(
-    const absl::optional<LibaomAv1EncoderAuxConfig>& aux_config,
-    const FieldTrialsView& trials)
+LibaomAv1Encoder::LibaomAv1Encoder(const Environment& env,
+                                   LibaomAv1EncoderSettings settings)
     : inited_(false),
       rates_configured_(false),
-      aux_config_(aux_config),
+      settings_(std::move(settings)),
       frame_for_encode_(nullptr),
       encoded_image_callback_(nullptr),
       timestamp_(0),
-      disable_frame_dropping_(absl::StartsWith(
-          trials.Lookup("WebRTC-LibaomAv1Encoder-DisableFrameDropping"),
-          "Enabled")),
-      max_consec_frame_drop_(GetMaxConsecutiveFrameDrop(trials)) {}
+      disable_frame_dropping_(env.field_trials().IsEnabled(
+          "WebRTC-LibaomAv1Encoder-DisableFrameDropping")),
+      max_consec_frame_drop_(GetMaxConsecutiveFrameDrop(env.field_trials())) {}
 
 LibaomAv1Encoder::~LibaomAv1Encoder() {
   Release();
@@ -380,10 +376,10 @@ bool LibaomAv1Encoder::SetEncoderControlParameters(int param_id,
 // Speed 11 is used for screen sharing.
 // Lower means slower/better quality, higher means fastest/lower quality.
 int LibaomAv1Encoder::GetCpuSpeed(int width, int height) {
-  if (aux_config_) {
-    if (auto it = aux_config_->max_pixel_count_to_cpu_speed.lower_bound(width *
-                                                                        height);
-        it != aux_config_->max_pixel_count_to_cpu_speed.end()) {
+  if (!settings_.max_pixel_count_to_cpu_speed.empty()) {
+    if (auto it =
+            settings_.max_pixel_count_to_cpu_speed.lower_bound(width * height);
+        it != settings_.max_pixel_count_to_cpu_speed.end()) {
       return it->second;
     }
 
@@ -877,23 +873,7 @@ VideoEncoder::EncoderInfo LibaomAv1Encoder::GetEncoderInfo() const {
 absl::Nonnull<std::unique_ptr<VideoEncoder>> CreateLibaomAv1Encoder(
     const Environment& env,
     LibaomAv1EncoderSettings settings) {
-  if (settings.max_pixel_count_to_cpu_speed.empty()) {
-    return std::make_unique<LibaomAv1Encoder>(absl::nullopt,
-                                              env.field_trials());
-  } else {
-    return std::make_unique<LibaomAv1Encoder>(settings, env.field_trials());
-  }
-}
-
-std::unique_ptr<VideoEncoder> CreateLibaomAv1Encoder() {
-  return std::make_unique<LibaomAv1Encoder>(absl::nullopt,
-                                            FieldTrialBasedConfig());
-}
-
-std::unique_ptr<VideoEncoder> CreateLibaomAv1Encoder(
-    const LibaomAv1EncoderAuxConfig& aux_config) {
-  return std::make_unique<LibaomAv1Encoder>(aux_config,
-                                            FieldTrialBasedConfig());
+  return std::make_unique<LibaomAv1Encoder>(env, std::move(settings));
 }
 
 }  // namespace webrtc
