@@ -149,7 +149,7 @@ index 8d88ce23c6..9ee9ed3e76 100644
    return ss.str();
  }
 diff --git a/call/video_receive_stream.h b/call/video_receive_stream.h
-index a1fc204e7c..01ac7e0ba4 100644
+index afcbcb0531..c190ac7bf5 100644
 --- a/call/video_receive_stream.h
 +++ b/call/video_receive_stream.h
 @@ -20,6 +20,7 @@
@@ -160,7 +160,7 @@ index a1fc204e7c..01ac7e0ba4 100644
  #include "api/crypto/crypto_options.h"
  #include "api/rtp_headers.h"
  #include "api/rtp_parameters.h"
-@@ -241,6 +242,8 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {
+@@ -251,6 +252,8 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {
        // meta data is expected to be present in generic frame descriptor
        // RTP header extension).
        std::set<int> raw_payload_types;
@@ -269,7 +269,7 @@ index e53bfbb58e..68c2b2ab56 100644
  
      // DEPRECATED, transport_feedback_callback is no longer invoked by the RTP
 diff --git a/video/rtp_video_stream_receiver2.cc b/video/rtp_video_stream_receiver2.cc
-index 6ccdcd2d7e..0f226d380a 100644
+index 73fcdf5bc1..e8c13de119 100644
 --- a/video/rtp_video_stream_receiver2.cc
 +++ b/video/rtp_video_stream_receiver2.cc
 @@ -83,7 +83,8 @@ std::unique_ptr<ModuleRtpRtcpImpl2> CreateRtpRtcpModule(

@@ -211,6 +211,9 @@ class RtpVideoStreamReceiver2 : public LossNotificationSender,
   absl::optional<uint32_t> LastReceivedFrameRtpTimestamp() const;
   absl::optional<int64_t> LastReceivedKeyframePacketMs() const;
 
+  absl::optional<RtpRtcpInterface::SenderReportStats> GetSenderReportStats()
+      const;
+
   // Mozilla modification: VideoReceiveStream2 and friends do not surface RTCP
   // stats at all, and even on the most recent libwebrtc code there does not
   // seem to be any support for these stats right now. So, we hack this in.

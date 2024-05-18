@@ -10,10 +10,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/c385bb870413b925a
  1 file changed, 4 insertions(+), 3 deletions(-)
 
 diff --git a/call/video_receive_stream.h b/call/video_receive_stream.h
-index 01ac7e0ba4..01fb08a009 100644
+index c190ac7bf5..fa3e0e9b67 100644
 --- a/call/video_receive_stream.h
 +++ b/call/video_receive_stream.h
-@@ -152,9 +152,10 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {
+@@ -154,9 +154,10 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {
      RtcpPacketTypeCounter rtcp_packet_type_counts;
      absl::optional<RtpReceiveStats> rtx_rtp_stats;
  
