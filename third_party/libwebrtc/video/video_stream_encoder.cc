@@ -1186,6 +1186,8 @@ void VideoStreamEncoder::ReconfigureEncoder() {
       encoder_config_.codec_type == kVideoCodecAV1) {
     // Spatial layers configuration might impose some parity restrictions,
     // thus some cropping might be needed.
+    RTC_CHECK_GE(last_frame_info_->width, codec.width);
+    RTC_CHECK_GE(last_frame_info_->height, codec.height);
     crop_width_ = last_frame_info_->width - codec.width;
     crop_height_ = last_frame_info_->height - codec.height;
     ApplySpatialLayerBitrateLimits(
