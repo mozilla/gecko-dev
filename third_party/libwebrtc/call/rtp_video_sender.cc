@@ -214,8 +214,6 @@ std::vector<RtpStreamSender> CreateRtpStreamSenders(
   configuration.network_link_rtcp_observer = transport->GetRtcpObserver();
   configuration.network_state_estimate_observer =
       transport->network_state_estimate_observer();
-  configuration.transport_feedback_callback =
-      transport->transport_feedback_observer();
   configuration.rtt_stats = observers.rtcp_rtt_stats;
   configuration.rtcp_packet_type_counter_observer =
       observers.rtcp_type_observer;
