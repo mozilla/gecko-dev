@@ -319,6 +319,10 @@ deps = {
     'url': 'https://chromium.googlesource.com/external/mockito/mockito.git@04a2a289a4222f80ad20717c25144981210d2eac',
     'condition': 'checkout_android',
   },
+  'src/third_party/instrumented_libs': {
+    'url': Var('chromium_git') + '/chromium/third_party/instrumented_libraries.git' + '@' + '0afcd954d906cd988fa5e55807c19f1443080657',
+    'condition': 'checkout_instrumented_libraries',
+  },
 
   # Used by boringssl.
   'src/third_party/nasm': {
@@ -1727,11 +1731,6 @@ deps = {
       ],
       'condition': 'checkout_android',
       'dep_type': 'cipd',
-  },
-
-  'src/third_party/instrumented_libs': {
-    'url': Var('chromium_git') + '/chromium/third_party/instrumented_libraries.git' + '@' + '0afcd954d906cd988fa5e55807c19f1443080657',
-    'condition': 'checkout_instrumented_libraries',
   },
 
   'src/third_party/android_deps/libs/javax_annotation_javax_annotation_api': {
