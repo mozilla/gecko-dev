@@ -83,10 +83,10 @@ index f38d46994b..7bc0bbb8fc 100644
  
    static std::unique_ptr<VideoDecoder> CreateDecoder(
 diff --git a/api/video_codecs/video_encoder_factory_template_libaom_av1_adapter.h b/api/video_codecs/video_encoder_factory_template_libaom_av1_adapter.h
-index 0f801ad3c7..3f551dea8d 100644
+index 70789ebccd..36daacc6d9 100644
 --- a/api/video_codecs/video_encoder_factory_template_libaom_av1_adapter.h
 +++ b/api/video_codecs/video_encoder_factory_template_libaom_av1_adapter.h
-@@ -24,7 +24,7 @@ struct LibaomAv1EncoderTemplateAdapter {
+@@ -25,7 +25,7 @@ struct LibaomAv1EncoderTemplateAdapter {
    static std::vector<SdpVideoFormat> SupportedFormats() {
      absl::InlinedVector<ScalabilityMode, kScalabilityModeCount>
          scalability_modes = LibaomAv1EncoderSupportedScalabilityModes();
@@ -96,10 +96,10 @@ index 0f801ad3c7..3f551dea8d 100644
  
    static std::unique_ptr<VideoEncoder> CreateEncoder(
 diff --git a/api/video_codecs/video_encoder_factory_template_libvpx_vp8_adapter.h b/api/video_codecs/video_encoder_factory_template_libvpx_vp8_adapter.h
-index c60aa04795..de6d975267 100644
+index 26c4c866a6..262b00d42e 100644
 --- a/api/video_codecs/video_encoder_factory_template_libvpx_vp8_adapter.h
 +++ b/api/video_codecs/video_encoder_factory_template_libvpx_vp8_adapter.h
-@@ -28,7 +28,7 @@ struct LibvpxVp8EncoderTemplateAdapter {
+@@ -29,7 +29,7 @@ struct LibvpxVp8EncoderTemplateAdapter {
        scalability_modes.push_back(scalability_mode);
      }
  
