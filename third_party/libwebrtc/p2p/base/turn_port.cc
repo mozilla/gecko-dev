@@ -312,6 +312,20 @@ TurnPort::~TurnPort() {
   }
 }
 
+void TurnPort::set_realm(absl::string_view realm) {
+  if (realm.empty()) {
+    // Fail silently since this reduces the entropy going into the hash but log
+    // a warning.
+    RTC_LOG(LS_WARNING) << "Setting realm to the empty string, "
+                        << "this is not supported.";
+    return;
+  }
+  if (realm != realm_) {
+    realm_ = std::string(realm);
+    UpdateHash();
+  }
+}
+
 rtc::SocketAddress TurnPort::GetLocalAddress() const {
   return socket_ ? socket_->GetLocalAddress() : rtc::SocketAddress();
 }
