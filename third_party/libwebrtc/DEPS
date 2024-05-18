@@ -17,6 +17,8 @@ vars = {
   # the gn arg 'use_clang_coverage').
   'checkout_clang_coverage_tools': False,
 
+  'chromium_git': 'https://chromium.googlesource.com',
+
   # Keep the Chromium default of generating location tags.
   'generate_location_tags': True,
 
@@ -1703,6 +1705,11 @@ deps = {
       'dep_type': 'cipd',
   },
 
+  'src/third_party/instrumented_libs': {
+    'url': Var('chromium_git') + '/chromium/third_party/instrumented_libraries.git' + '@' + '0afcd954d906cd988fa5e55807c19f1443080657',
+    'condition': 'checkout_instrumented_libraries',
+  },
+
   'src/third_party/android_deps/libs/javax_annotation_javax_annotation_api': {
       'packages': [
           {
@@ -2532,30 +2539,6 @@ hooks = [
     ],
   },
   {
-    'name': 'msan_chained_origins_focal',
-    'pattern': '.',
-    'condition': 'checkout_instrumented_libraries',
-    'action': [ 'python3',
-                'src/third_party/depot_tools/download_from_google_storage.py',
-                '--no_resume',
-                '--no_auth',
-                '--bucket', 'chromium-instrumented-libraries',
-                '-s', 'src/third_party/instrumented_libraries/binaries/msan-chained-origins-focal.tgz.sha1',
-              ],
-  },
-  {
-    'name': 'msan_no_origins_focal',
-    'pattern': '.',
-    'condition': 'checkout_instrumented_libraries',
-    'action': [ 'python3',
-                'src/third_party/depot_tools/download_from_google_storage.py',
-                '--no_resume',
-                '--no_auth',
-                '--bucket', 'chromium-instrumented-libraries',
-                '-s', 'src/third_party/instrumented_libraries/binaries/msan-no-origins-focal.tgz.sha1',
-              ],
-  },
-  {
     # Download test resources, i.e. video and audio files from Google Storage.
     'pattern': '.',
     'action': ['download_from_google_storage',
@@ -2602,7 +2585,9 @@ hooks = [
   },
 ]
 
-recursedeps = []
+recursedeps = [
+  'src/third_party/instrumented_libs',
+]
 
 # Define rules for which include paths are allowed in our source.
 include_rules = [
