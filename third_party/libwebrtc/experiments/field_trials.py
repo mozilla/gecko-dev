@@ -10,6 +10,7 @@
 
 import datetime
 from datetime import date
+import hashlib
 import sys
 from typing import FrozenSet, List, Set
 
@@ -162,6 +163,8 @@ INDEFINITE = date(datetime.MAXYEAR, 1, 1)
 
 # These field trials precedes the policy in `g3doc/field-trials.md` and are
 # therefore not required to follow it. Do not add any new field trials here.
+# If you remove an entry you should also update
+# POLICY_EXEMPT_FIELD_TRIALS_DIGEST.
 POLICY_EXEMPT_FIELD_TRIALS: FrozenSet[FieldTrial] = frozenset([
     # keep-sorted start
     FieldTrial('UseTwccPlrForAna',
@@ -913,6 +916,9 @@ POLICY_EXEMPT_FIELD_TRIALS: FrozenSet[FieldTrial] = frozenset([
     # keep-sorted end
 ])  # yapf: disable
 
+POLICY_EXEMPT_FIELD_TRIALS_DIGEST: str = \
+    '023f4ce749a699f0ab811093b9f568d604da28a8'
+
 REGISTERED_FIELD_TRIALS: FrozenSet[FieldTrial] = ACTIVE_FIELD_TRIALS.union(
     POLICY_EXEMPT_FIELD_TRIALS)
 
@@ -1013,6 +1019,17 @@ def validate_field_trials(
       A list of explanations for invalid field trials.
     """
     invalid = []
+
+    sha1 = hashlib.sha1()
+    for trial in sorted(POLICY_EXEMPT_FIELD_TRIALS, key=lambda f: f.key):
+        sha1.update(trial.key.encode('ascii'))
+    if sha1.hexdigest() != POLICY_EXEMPT_FIELD_TRIALS_DIGEST:
+        invalid.append(
+            'POLICY_EXEMPT_FIELD_TRIALS has been modified. Please note that '
+            'you must not add any new entries there. If you removed an entry '
+            'you should also update POLICY_EXEMPT_FIELD_TRIALS_DIGEST. The'
+            f'new digest is "{sha1.hexdigest()}".')
+
     for trial in field_trials:
         if not trial.key.startswith('WebRTC-'):
             invalid.append(f'{trial.key} does not start with "WebRTC-".')
@@ -1020,10 +1037,16 @@ def validate_field_trials(
             invalid.append(f'{trial.key} must have an associated bug.')
         if trial.end_date >= INDEFINITE:
             invalid.append(f'{trial.key} must have an end date.')
+
     return invalid
 
 
 def cmd_header(args: argparse.Namespace) -> None:
+    if not args.no_validation:
+        if errors := validate_field_trials():
+            print('\n'.join(sorted(errors)))
+            sys.exit(1)
+
     args.output.write(registry_header())
 
 
@@ -1070,6 +1093,12 @@ def main() -> None:
                                type=argparse.FileType('w'),
                                required=False,
                                help='output file')
+    parser_header.add_argument(
+        '--no-validation',
+        default=False,
+        action='store_true',
+        required=False,
+        help='whether to validate the field trials before writing')
     parser_header.set_defaults(cmd=cmd_header)
 
     parser_expired = subcommand.add_parser(
