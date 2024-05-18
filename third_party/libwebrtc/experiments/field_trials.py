@@ -30,6 +30,12 @@ class FieldTrial:
     bug: str
     end_date: date
 
+    def bug_url(self) -> str:
+        project, _, bug_id = self.bug.partition(':')
+        if not project or not bug_id:
+            return ''
+        return f'https://crbug.com/{project}/{bug_id}'
+
 
 # As per the policy in `g3doc/field-trials.md`, all field trials should be
 # registered in the container below.
@@ -1031,11 +1037,13 @@ def cmd_expired(args: argparse.Namespace) -> None:
     if len(expired) <= 0:
         return
 
-    expired_by_date = sorted([(f.end_date, f.key) for f in expired])
+    expired_by_date = sorted(expired, key=lambda f: (f.end_date, f.key))
     print('\n'.join(
-        f'{key} {"expired" if date <= today else "expires"} on {date}'
-        for date, key in expired_by_date))
-    if any(date <= today for date, _ in expired_by_date):
+        f'{f.key} '
+        f'{f"<{f.bug_url()}> " if f.bug_url() else ""}'
+        f'{"expired" if f.end_date <= today else "expires"} on {f.end_date}'
+        for f in expired_by_date))
+    if any(f.end_date <= today for f in expired_by_date):
         sys.exit(1)
 
 
