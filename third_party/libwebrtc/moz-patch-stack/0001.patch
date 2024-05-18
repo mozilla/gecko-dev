@@ -1454,10 +1454,10 @@ index 5ec1fd4a83..e46e050609 100644
  
    int64_t _lastProcessFrameTimeNanos RTC_GUARDED_BY(capture_checker_);
 diff --git a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
-index 055ec67693..118003733a 100644
+index d7a59ee790..2d626e95dd 100644
 --- a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
 +++ b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
-@@ -254,6 +254,7 @@ LibvpxVp9Encoder::LibvpxVp9Encoder(const Environment& env,
+@@ -249,6 +249,7 @@ LibvpxVp9Encoder::LibvpxVp9Encoder(const Environment& env,
        first_frame_in_picture_(true),
        ss_info_needed_(false),
        force_all_active_layers_(false),
@@ -1465,7 +1465,7 @@ index 055ec67693..118003733a 100644
        is_flexible_mode_(false),
        variable_framerate_experiment_(
            ParseVariableFramerateConfig(env.field_trials())),
-@@ -578,6 +579,7 @@ int LibvpxVp9Encoder::InitEncode(const VideoCodec* inst,
+@@ -573,6 +574,7 @@ int LibvpxVp9Encoder::InitEncode(const VideoCodec* inst,
  
    force_key_frame_ = true;
    pics_since_key_ = 0;
@@ -1473,7 +1473,7 @@ index 055ec67693..118003733a 100644
  
    scalability_mode_ = inst->GetScalabilityMode();
    if (scalability_mode_.has_value()) {
-@@ -1165,6 +1167,14 @@ int LibvpxVp9Encoder::Encode(const VideoFrame& input_image,
+@@ -1153,6 +1155,14 @@ int LibvpxVp9Encoder::Encode(const VideoFrame& input_image,
      config_changed_ = false;
    }
  
@@ -1488,7 +1488,7 @@ index 055ec67693..118003733a 100644
    RTC_DCHECK_EQ(input_image.width(), raw_->d_w);
    RTC_DCHECK_EQ(input_image.height(), raw_->d_h);
  
-@@ -1287,6 +1297,48 @@ int LibvpxVp9Encoder::Encode(const VideoFrame& input_image,
+@@ -1275,6 +1285,48 @@ int LibvpxVp9Encoder::Encode(const VideoFrame& input_image,
    return WEBRTC_VIDEO_CODEC_OK;
  }
  
