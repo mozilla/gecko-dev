@@ -587,7 +587,6 @@ rtc_library("webrtc_vp8") {
     "../../rtc_base/experiments:encoder_info_settings",
     "../../rtc_base/experiments:field_trial_parser",
     "../../rtc_base/experiments:rate_control_settings",
-    "../../system_wrappers:field_trial",
     "../../system_wrappers:metrics",
     "svc:scalability_mode_util",
     "//third_party/libyuv",

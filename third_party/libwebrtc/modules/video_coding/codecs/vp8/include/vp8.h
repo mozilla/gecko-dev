@@ -30,15 +30,6 @@ absl::Nonnull<std::unique_ptr<VideoEncoder>> CreateVp8Encoder(
     const Environment& env,
     Vp8EncoderSettings settings = {});
 
-// Deprecated, use CreateVp8Encoder above, bugs.webrtc.org/15860
-class VP8Encoder {
- public:
-  using Settings = Vp8EncoderSettings;
-
-  static std::unique_ptr<VideoEncoder> Create();
-  static std::unique_ptr<VideoEncoder> Create(Settings settings);
-};
-
 std::unique_ptr<VideoDecoder> CreateVp8Decoder(const Environment& env);
 
 }  // namespace webrtc
