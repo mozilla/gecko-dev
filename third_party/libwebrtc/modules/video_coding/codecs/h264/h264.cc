@@ -145,23 +145,6 @@ absl::Nonnull<std::unique_ptr<VideoEncoder>> CreateH264Encoder(
 #endif
 }
 
-std::unique_ptr<H264Encoder> H264Encoder::Create() {
-  return Create(cricket::CreateVideoCodec(cricket::kH264CodecName));
-}
-
-std::unique_ptr<H264Encoder> H264Encoder::Create(
-    const cricket::VideoCodec& codec) {
-  RTC_DCHECK(H264Encoder::IsSupported());
-#if defined(WEBRTC_USE_H264)
-  RTC_CHECK(g_rtc_use_h264);
-  RTC_LOG(LS_INFO) << "Creating H264EncoderImpl.";
-  return std::make_unique<H264EncoderImpl>(codec);
-#else
-  RTC_DCHECK_NOTREACHED();
-  return nullptr;
-#endif
-}
-
 bool H264Encoder::IsSupported() {
   return IsH264CodecSupported();
 }

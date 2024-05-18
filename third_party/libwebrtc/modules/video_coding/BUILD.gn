@@ -481,6 +481,7 @@ rtc_library("webrtc_h264") {
 
   defines = []
   deps = [
+    ":codec_globals_headers",
     ":video_codec_interface",
     ":video_coding_utility",
     "../../api/environment",
@@ -492,7 +493,6 @@ rtc_library("webrtc_h264") {
     "../../api/video_codecs:scalability_mode",
     "../../api/video_codecs:video_codecs_api",
     "../../common_video",
-    "../../media:codec",
     "../../media:media_constants",
     "../../media:rtc_media_base",
     "../../rtc_base:checks",
@@ -500,7 +500,6 @@ rtc_library("webrtc_h264") {
     "../../rtc_base:logging",
     "../../rtc_base:timeutils",
     "../../rtc_base/system:rtc_export",
-    "../../system_wrappers:field_trial",
     "../../system_wrappers:metrics",
     "svc:scalability_structures",
     "svc:scalable_video_controller",
