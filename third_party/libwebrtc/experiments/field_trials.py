@@ -49,7 +49,7 @@ ACTIVE_FIELD_TRIALS: FrozenSet[FieldTrial] = frozenset([
                date(2024, 4, 1)),
     FieldTrial('WebRTC-Audio-OpusGeneratePlc',
                'webrtc:13322',
-               date(2024, 4, 1)),
+               date(2025, 4, 1)),
     FieldTrial('WebRTC-Audio-PriorityBitrate',
                'webrtc:15769',
                date(2024, 4, 1)),
