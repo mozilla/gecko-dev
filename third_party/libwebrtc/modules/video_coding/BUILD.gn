@@ -130,6 +130,7 @@ rtc_library("h26x_packet_buffer") {
   ]
   deps = [
     ":codec_globals_headers",
+    ":h264_sprop_parameter_sets",
     ":packet_buffer",
     "../../api:array_view",
     "../../api:rtp_packet_info",
@@ -162,6 +163,17 @@ rtc_library("frame_helpers") {
   absl_deps = [ "//third_party/abseil-cpp/absl/container:inlined_vector" ]
 }
 
+rtc_library("h264_sprop_parameter_sets") {
+  sources = [
+    "h264_sprop_parameter_sets.cc",
+    "h264_sprop_parameter_sets.h",
+  ]
+  deps = [
+    "../../rtc_base:logging",
+    "../../rtc_base/third_party/base64",
+  ]
+}
+
 rtc_library("video_coding") {
   visibility = [ "*" ]
   sources = [
@@ -172,8 +184,6 @@ rtc_library("video_coding") {
     "fec_rate_table.h",
     "generic_decoder.cc",
     "generic_decoder.h",
-    "h264_sprop_parameter_sets.cc",
-    "h264_sprop_parameter_sets.h",
     "h264_sps_pps_tracker.cc",
     "h264_sps_pps_tracker.h",
     "include/video_codec_initializer.h",
@@ -203,6 +213,7 @@ rtc_library("video_coding") {
     ":codec_globals_headers",
     ":encoded_frame",
     ":frame_helpers",
+    ":h264_sprop_parameter_sets",
     ":video_codec_interface",
     ":video_coding_utility",
     ":webrtc_vp8_scalability",
@@ -1173,6 +1184,7 @@ if (rtc_include_tests) {
       ":encoded_frame",
       ":frame_dependencies_calculator",
       ":frame_helpers",
+      ":h264_sprop_parameter_sets",
       ":h26x_packet_buffer",
       ":nack_requester",
       ":packet_buffer",

@@ -128,6 +128,7 @@ rtc_library("video") {
     "../modules/rtp_rtcp:rtp_rtcp_format",
     "../modules/rtp_rtcp:rtp_video_header",
     "../modules/video_coding",
+    "../modules/video_coding:h264_sprop_parameter_sets",
     "../modules/video_coding:nack_requester",
     "../modules/video_coding:packet_buffer",
     "../modules/video_coding:video_codec_interface",
