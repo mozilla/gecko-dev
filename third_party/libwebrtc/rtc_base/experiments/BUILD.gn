@@ -167,18 +167,6 @@ rtc_library("encoder_info_settings") {
   ]
 }
 
-rtc_library("rtt_mult_experiment") {
-  sources = [
-    "rtt_mult_experiment.cc",
-    "rtt_mult_experiment.h",
-  ]
-  deps = [
-    "..:logging",
-    "../../system_wrappers:field_trial",
-  ]
-  absl_deps = [ "//third_party/abseil-cpp/absl/types:optional" ]
-}
-
 rtc_library("rate_control_settings") {
   sources = [
     "rate_control_settings.cc",
@@ -262,7 +250,6 @@ if (rtc_include_tests && !build_with_chromium) {
       "quality_scaler_settings_unittest.cc",
       "quality_scaling_experiment_unittest.cc",
       "rate_control_settings_unittest.cc",
-      "rtt_mult_experiment_unittest.cc",
       "stable_target_rate_experiment_unittest.cc",
       "struct_parameters_parser_unittest.cc",
     ]
@@ -279,7 +266,6 @@ if (rtc_include_tests && !build_with_chromium) {
       ":quality_scaler_settings",
       ":quality_scaling_experiment",
       ":rate_control_settings",
-      ":rtt_mult_experiment",
       ":stable_target_rate_experiment",
       "..:gunit_helpers",
       "../:rtc_base_tests_utils",

@@ -292,7 +292,6 @@ rtc_library("video_stream_buffer_controller") {
     "../rtc_base:checks",
     "../rtc_base:logging",
     "../rtc_base:macromagic",
-    "../rtc_base/experiments:rtt_mult_experiment",
     "../system_wrappers",
     "../system_wrappers:field_trial",
   ]

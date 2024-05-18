@@ -25,7 +25,6 @@ rtc_library("encoded_frame") {
     "../../modules/rtp_rtcp:rtp_video_header",
     "../../rtc_base:checks",
     "../../rtc_base/experiments:alr_experiment",
-    "../../rtc_base/experiments:rtt_mult_experiment",
     "../../rtc_base/system:rtc_export",
     "../../system_wrappers",
   ]
@@ -254,7 +253,6 @@ rtc_library("video_coding") {
     "../../rtc_base/experiments:field_trial_parser",
     "../../rtc_base/experiments:min_video_bitrate_experiment",
     "../../rtc_base/experiments:rate_control_settings",
-    "../../rtc_base/experiments:rtt_mult_experiment",
     "../../rtc_base/synchronization:mutex",
     "../../rtc_base/system:no_unique_address",
     "../../rtc_base/task_utils:repeating_task",
