@@ -164,9 +164,6 @@ INDEFINITE = date(datetime.MAXYEAR, 1, 1)
 # POLICY_EXEMPT_FIELD_TRIALS_DIGEST.
 POLICY_EXEMPT_FIELD_TRIALS: FrozenSet[FieldTrial] = frozenset([
     # keep-sorted start
-    FieldTrial('UseTwccPlrForAna',
-               'webrtc:7058',
-               date(2024, 4, 1)),
     FieldTrial('WebRTC-AddNetworkCostToVpn',
                'webrtc:13097',
                date(2024, 4, 1)),
@@ -914,7 +911,7 @@ POLICY_EXEMPT_FIELD_TRIALS: FrozenSet[FieldTrial] = frozenset([
 ])  # yapf: disable
 
 POLICY_EXEMPT_FIELD_TRIALS_DIGEST: str = \
-    '023f4ce749a699f0ab811093b9f568d604da28a8'
+    '3026f839766eb90355893fa0f1af8e9bf0d0dca1'
 
 REGISTERED_FIELD_TRIALS: FrozenSet[FieldTrial] = ACTIVE_FIELD_TRIALS.union(
     POLICY_EXEMPT_FIELD_TRIALS)
