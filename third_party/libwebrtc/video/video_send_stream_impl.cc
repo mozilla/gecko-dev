@@ -801,7 +801,7 @@ void VideoSendStreamImpl::OnEncoderConfigurationChanged(
         PayloadStringToCodecType(config_.rtp.payload_name);
 
     const absl::optional<DataRate> experimental_min_bitrate =
-        GetExperimentalMinVideoBitrate(codec_type);
+        GetExperimentalMinVideoBitrate(env_.field_trials(), codec_type);
     encoder_min_bitrate_bps_ =
         experimental_min_bitrate
             ? experimental_min_bitrate->bps()

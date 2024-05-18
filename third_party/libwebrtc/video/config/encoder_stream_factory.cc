@@ -136,7 +136,7 @@ std::vector<webrtc::VideoStream> EncoderStreamFactory::CreateEncoderStreams(
                 encoder_config.number_of_streams);
 
   const absl::optional<webrtc::DataRate> experimental_min_bitrate =
-      GetExperimentalMinVideoBitrate(encoder_config.codec_type);
+      GetExperimentalMinVideoBitrate(trials_, encoder_config.codec_type);
 
   bool is_simulcast = (encoder_config.number_of_streams > 1);
   // If scalability mode was specified, don't treat {active,inactive,inactive}

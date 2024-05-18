@@ -222,11 +222,11 @@ rtc_library("min_video_bitrate_experiment") {
   ]
   deps = [
     ":field_trial_parser",
+    "../../api:field_trials_view",
     "../../api/units:data_rate",
     "../../api/video:video_frame",
     "../../rtc_base:checks",
     "../../rtc_base:logging",
-    "../../system_wrappers:field_trial",
   ]
   absl_deps = [ "//third_party/abseil-cpp/absl/types:optional" ]
 }
