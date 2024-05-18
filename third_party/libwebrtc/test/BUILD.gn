@@ -1016,6 +1016,7 @@ rtc_library("fake_video_codecs") {
     "../api:fec_controller_api",
     "../api:scoped_refptr",
     "../api:sequence_checker",
+    "../api/environment",
     "../api/task_queue",
     "../api/video:encoded_image",
     "../api/video:video_bitrate_allocation",
