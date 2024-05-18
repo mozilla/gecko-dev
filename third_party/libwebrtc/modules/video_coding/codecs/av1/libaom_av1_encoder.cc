@@ -626,6 +626,8 @@ int32_t LibaomAv1Encoder::Encode(
       MaybeRewrapImgWithFormat(AOM_IMG_FMT_I420);
       auto i420_buffer = mapped_buffer->GetI420();
       RTC_DCHECK(i420_buffer);
+      RTC_CHECK_EQ(i420_buffer->width(), frame_for_encode_->d_w);
+      RTC_CHECK_EQ(i420_buffer->height(), frame_for_encode_->d_h);
       frame_for_encode_->planes[AOM_PLANE_Y] =
           const_cast<unsigned char*>(i420_buffer->DataY());
       frame_for_encode_->planes[AOM_PLANE_U] =
@@ -641,6 +643,8 @@ int32_t LibaomAv1Encoder::Encode(
       MaybeRewrapImgWithFormat(AOM_IMG_FMT_NV12);
       const NV12BufferInterface* nv12_buffer = mapped_buffer->GetNV12();
       RTC_DCHECK(nv12_buffer);
+      RTC_CHECK_EQ(nv12_buffer->width(), frame_for_encode_->d_w);
+      RTC_CHECK_EQ(nv12_buffer->height(), frame_for_encode_->d_h);
       frame_for_encode_->planes[AOM_PLANE_Y] =
           const_cast<unsigned char*>(nv12_buffer->DataY());
       frame_for_encode_->planes[AOM_PLANE_U] =
