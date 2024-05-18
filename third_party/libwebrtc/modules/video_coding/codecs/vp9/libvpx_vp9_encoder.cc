@@ -226,25 +226,10 @@ void LibvpxVp9Encoder::EncoderOutputCodedPacketCallback(vpx_codec_cx_pkt* pkt,
 LibvpxVp9Encoder::LibvpxVp9Encoder(const Environment& env,
                                    Vp9EncoderSettings settings,
                                    std::unique_ptr<LibvpxInterface> interface)
-    : LibvpxVp9Encoder(std::move(interface),
-                       settings.profile,
-                       env.field_trials()) {}
-
-LibvpxVp9Encoder::LibvpxVp9Encoder(const cricket::VideoCodec& codec,
-                                   std::unique_ptr<LibvpxInterface> interface,
-                                   const FieldTrialsView& trials)
-    : LibvpxVp9Encoder(
-          std::move(interface),
-          ParseSdpForVP9Profile(codec.params).value_or(VP9Profile::kProfile0),
-          trials) {}
-
-LibvpxVp9Encoder::LibvpxVp9Encoder(std::unique_ptr<LibvpxInterface> interface,
-                                   VP9Profile profile,
-                                   const FieldTrialsView& trials)
     : libvpx_(std::move(interface)),
       encoded_image_(),
       encoded_complete_callback_(nullptr),
-      profile_(profile),
+      profile_(settings.profile),
       inited_(false),
       timestamp_(0),
       rc_max_intra_target_(0),
@@ -258,31 +243,30 @@ LibvpxVp9Encoder::LibvpxVp9Encoder(std::unique_ptr<LibvpxInterface> interface,
       num_spatial_layers_(0),
       num_active_spatial_layers_(0),
       first_active_layer_(0),
-      layer_deactivation_requires_key_frame_(absl::StartsWith(
-          trials.Lookup("WebRTC-Vp9IssueKeyFrameOnLayerDeactivation"),
-          "Enabled")),
+      layer_deactivation_requires_key_frame_(env.field_trials().IsEnabled(
+          "WebRTC-Vp9IssueKeyFrameOnLayerDeactivation")),
       is_svc_(false),
       inter_layer_pred_(InterLayerPredMode::kOn),
       external_ref_control_(false),  // Set in InitEncode because of tests.
       trusted_rate_controller_(
-          RateControlSettings::ParseFromKeyValueConfig(&trials)
+          RateControlSettings::ParseFromKeyValueConfig(&env.field_trials())
               .LibvpxVp9TrustedRateController()),
       first_frame_in_picture_(true),
       ss_info_needed_(false),
       force_all_active_layers_(false),
       num_cores_(0),
       is_flexible_mode_(false),
-      variable_framerate_experiment_(ParseVariableFramerateConfig(trials)),
+      variable_framerate_experiment_(
+          ParseVariableFramerateConfig(env.field_trials())),
       variable_framerate_controller_(
           variable_framerate_experiment_.framerate_limit),
-      quality_scaler_experiment_(ParseQualityScalerConfig(trials)),
+      quality_scaler_experiment_(ParseQualityScalerConfig(env.field_trials())),
       external_ref_ctrl_(
-          !absl::StartsWith(trials.Lookup("WebRTC-Vp9ExternalRefCtrl"),
-                            "Disabled")),
-      performance_flags_(ParsePerformanceFlagsFromTrials(trials)),
+          !env.field_trials().IsDisabled("WebRTC-Vp9ExternalRefCtrl")),
+      performance_flags_(ParsePerformanceFlagsFromTrials(env.field_trials())),
       num_steady_state_frames_(0),
       config_changed_(true),
-      svc_frame_drop_config_(ParseSvcFrameDropConfig(trials)) {
+      svc_frame_drop_config_(ParseSvcFrameDropConfig(env.field_trials())) {
   codec_ = {};
   memset(&svc_params_, 0, sizeof(vpx_svc_extra_cfg_t));
 }
