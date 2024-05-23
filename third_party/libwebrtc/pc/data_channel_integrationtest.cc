@@ -1042,14 +1042,16 @@ TEST_P(DataChannelIntegrationTest,
                  kDefaultTimeout);
   // Cause a temporary network outage
   virtual_socket_server()->set_drop_probability(1.0);
-  // Fill the buffer until queued data starts to build
+  // Fill the SCTP socket buffer until queued data starts to build.
+  constexpr size_t kBufferedDataInSctpSocket = 2'000'000;
   size_t packet_counter = 0;
-  while (caller()->data_channel()->buffered_amount() < 1 &&
+  while (caller()->data_channel()->buffered_amount() <
+             kBufferedDataInSctpSocket &&
          packet_counter < 10000) {
     packet_counter++;
     caller()->data_channel()->Send(DataBuffer("Sent while blocked"));
   }
-  if (caller()->data_channel()->buffered_amount()) {
+  if (caller()->data_channel()->buffered_amount() > kBufferedDataInSctpSocket) {
     RTC_LOG(LS_INFO) << "Buffered data after " << packet_counter << " packets";
   } else {
     RTC_LOG(LS_INFO) << "No buffered data after " << packet_counter

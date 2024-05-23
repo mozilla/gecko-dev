@@ -89,6 +89,14 @@ void DataChannelController::OnChannelStateChanged(
       }));
 }
 
+size_t DataChannelController::buffered_amount(StreamId sid) const {
+  RTC_DCHECK_RUN_ON(network_thread());
+  if (!data_channel_transport_) {
+    return 0;
+  }
+  return data_channel_transport_->buffered_amount(sid.stream_id_int());
+}
+
 void DataChannelController::OnDataReceived(
     int channel_id,
     DataMessageType type,

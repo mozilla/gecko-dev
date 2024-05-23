@@ -63,6 +63,7 @@ class FakeCricketSctpTransport : public cricket::SctpTransportInternal {
   absl::optional<int> max_inbound_streams() const override {
     return max_inbound_streams_;
   }
+  size_t buffered_amount(int sid) const override { return 0; }
 
   void SendSignalAssociationChangeCommunicationUp() {
     ASSERT_TRUE(on_connected_callback_);
@@ -212,5 +213,4 @@ TEST_F(SctpTransportTest, CloseWhenTransportCloses) {
   ASSERT_EQ_WAIT(SctpTransportState::kClosed, observer_.State(),
                  kDefaultTimeout);
 }
-
 }  // namespace webrtc

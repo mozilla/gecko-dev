@@ -128,6 +128,8 @@ class FakeDataChannelController
     }
   }
 
+  size_t buffered_amount(webrtc::StreamId sid) const override { return 0; }
+
   // Set true to emulate the SCTP stream being blocked by congestion control.
   void set_send_blocked(bool blocked) {
     network_thread_->BlockingCall([&]() {

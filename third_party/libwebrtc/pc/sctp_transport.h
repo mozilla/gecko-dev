@@ -52,6 +52,7 @@ class SctpTransport : public SctpTransportInterface,
   RTCError CloseChannel(int channel_id) override;
   void SetDataSink(DataChannelSink* sink) override;
   bool IsReadyToSend() const override;
+  size_t buffered_amount(int channel_id) const override;
 
   // Internal functions
   void Clear();

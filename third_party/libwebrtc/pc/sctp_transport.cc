@@ -100,6 +100,12 @@ bool SctpTransport::IsReadyToSend() const {
   return internal_sctp_transport_->ReadyToSendData();
 }
 
+size_t SctpTransport::buffered_amount(int channel_id) const {
+  RTC_DCHECK_RUN_ON(owner_thread_);
+  RTC_DCHECK(internal_sctp_transport_);
+  return internal_sctp_transport_->buffered_amount(channel_id);
+}
+
 rtc::scoped_refptr<DtlsTransportInterface> SctpTransport::dtls_transport()
     const {
   RTC_DCHECK_RUN_ON(owner_thread_);

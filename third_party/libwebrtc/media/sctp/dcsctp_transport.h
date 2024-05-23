@@ -66,6 +66,7 @@ class DcSctpTransport : public cricket::SctpTransportInternal,
   int max_message_size() const override;
   absl::optional<int> max_outbound_streams() const override;
   absl::optional<int> max_inbound_streams() const override;
+  size_t buffered_amount(int sid) const override;
   void set_debug_name_for_testing(const char* debug_name) override;
 
  private:

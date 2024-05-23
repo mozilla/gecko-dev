@@ -375,6 +375,12 @@ absl::optional<int> DcSctpTransport::max_inbound_streams() const {
   return socket_->options().announced_maximum_incoming_streams;
 }
 
+size_t DcSctpTransport::buffered_amount(int sid) const {
+  if (!socket_)
+    return 0;
+  return socket_->buffered_amount(dcsctp::StreamID(sid));
+}
+
 void DcSctpTransport::set_debug_name_for_testing(const char* debug_name) {
   debug_name_ = debug_name;
 }

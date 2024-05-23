@@ -485,7 +485,11 @@ Priority SctpDataChannel::priority() const {
 
 uint64_t SctpDataChannel::buffered_amount() const {
   RTC_DCHECK_RUN_ON(network_thread_);
-  return queued_send_data_.byte_count();
+  uint64_t buffered_amount = queued_send_data_.byte_count();
+  if (controller_ != nullptr && id_n_.has_value()) {
+    buffered_amount += controller_->buffered_amount(*id_n_);
+  }
+  return buffered_amount;
 }
 
 void SctpDataChannel::Close() {
