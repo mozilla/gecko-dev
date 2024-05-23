@@ -1,44 +1,23 @@
-From: Andreas Pehrson <apehrson@mozilla.com>
-Date: Mon, 6 May 2024 07:28:00 +0000
-Subject: Bug 1892329 - Invert _captureThread check in
- VideoCaptureModuleV4L2::StartCapture. r=webrtc-reviewers,mjf
+From: Michael Froman <mfroman@mozilla.com>
+Date: Fri, 17 May 2024 22:30:00 -0500
+Subject: Bug 1897501 - (fix-09bb4f09e1) keep default python intepreter as
+ python3
 
-Differential Revision: https://phabricator.services.mozilla.com/D208186
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/6ed6737b8214bf664642eb17cbf66a8c8450e569
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b21ca84c8b2620a98515624de0e43a237698726c
 ---
- .../video_capture/linux/video_capture_v4l2.cc | 21 +++++++++++--------
- 1 file changed, 12 insertions(+), 9 deletions(-)
+ .gn | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/modules/video_capture/linux/video_capture_v4l2.cc b/modules/video_capture/linux/video_capture_v4l2.cc
-index 74af348a6c..29ca864e19 100644
---- a/modules/video_capture/linux/video_capture_v4l2.cc
-+++ b/modules/video_capture/linux/video_capture_v4l2.cc
-@@ -303,16 +303,19 @@ int32_t VideoCaptureModuleV4L2::StartCapture(
-   }
+diff --git a/.gn b/.gn
+index 5796d30b7b..23da4f21b9 100644
+--- a/.gn
++++ b/.gn
+@@ -13,7 +13,7 @@ buildconfig = "//build/config/BUILDCONFIG.gn"
  
-   // start capture thread;
--  if (_captureThread.empty()) {
--    quit_ = false;
--    _captureThread = rtc::PlatformThread::SpawnJoinable(
--        [self = scoped_refptr(this)] {
--          while (self->CaptureProcess()) {
--          }
--        },
--        "CaptureThread",
--        rtc::ThreadAttributes().SetPriority(rtc::ThreadPriority::kHigh));
-+  if (!_captureThread.empty()) {
-+    return 0;
-   }
-+
-+  quit_ = false;
-+
-+  _captureThread = rtc::PlatformThread::SpawnJoinable(
-+      [self = scoped_refptr(this)] {
-+        while (self->CaptureProcess()) {
-+        }
-+      },
-+      "CaptureThread",
-+      rtc::ThreadAttributes().SetPriority(rtc::ThreadPriority::kHigh));
-   return 0;
- }
+ # The python interpreter to use by default. On Windows, this will look
+ # for vpython3.exe and vpython3.bat.
+-script_executable = "vpython3"
++script_executable = "python3"
  
+ # The secondary source root is a parallel directory tree where
+ # GN build files are placed when they can not be placed directly
