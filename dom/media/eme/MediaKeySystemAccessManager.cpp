@@ -75,6 +75,26 @@ void MediaKeySystemAccessManager::PendingRequest::ResolvePromise(
   }
 }
 
+void MediaKeySystemAccessManager::PendingRequestWithMozPromise::
+    RejectPromiseWithInvalidAccessError(const nsACString& aReason) {
+  mAccessPromise.RejectIfExists(NS_ERROR_FAILURE, __func__);
+}
+
+void MediaKeySystemAccessManager::PendingRequestWithMozPromise::
+    RejectPromiseWithNotSupportedError(const nsACString& aReason) {
+  mAccessPromise.RejectIfExists(NS_ERROR_FAILURE, __func__);
+}
+
+void MediaKeySystemAccessManager::PendingRequestWithMozPromise::
+    RejectPromiseWithTypeError(const nsACString& aReason) {
+  mAccessPromise.RejectIfExists(NS_ERROR_FAILURE, __func__);
+}
+
+void MediaKeySystemAccessManager::PendingRequestWithMozPromise::ResolvePromise(
+    MediaKeySystemAccess* aAccess) {
+  mAccessPromise.ResolveIfExists(aAccess, __func__);
+}
+
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(MediaKeySystemAccessManager)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIObserver)
   NS_INTERFACE_MAP_ENTRY(nsIObserver)
@@ -135,6 +155,18 @@ void MediaKeySystemAccessManager::Request(
   MOZ_ASSERT(NS_IsMainThread());
   CheckDoesWindowSupportProtectedMedia(
       MakeUnique<PendingRequest>(aPromise, aKeySystem, aConfigs));
+}
+
+RefPtr<MediaKeySystemAccessManager::MediaKeySystemAccessPromise>
+MediaKeySystemAccessManager::Request(
+    const nsAString& aKeySystem,
+    const Sequence<MediaKeySystemConfiguration>& aConfigs) {
+  MOZ_ASSERT(NS_IsMainThread());
+  auto request = MakeUnique<PendingRequestWithMozPromise>(aKeySystem, aConfigs);
+  RefPtr<MediaKeySystemAccessPromise> promise =
+      request->mAccessPromise.Ensure(__func__);
+  CheckDoesWindowSupportProtectedMedia(std::move(request));
+  return promise;
 }
 
 void MediaKeySystemAccessManager::CheckDoesWindowSupportProtectedMedia(

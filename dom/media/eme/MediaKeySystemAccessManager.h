@@ -109,9 +109,17 @@ class MediaKeySystemAccessManager final : public nsIObserver, public nsINamed {
   NS_DECL_NSIOBSERVER
   NS_DECL_NSINAMED
 
+  using MediaKeySystemAccessPromise =
+      MozPromise<RefPtr<MediaKeySystemAccess>, MediaResult, true>;
+
   // Entry point for the navigator to call into the manager.
   void Request(DetailedPromise* aPromise, const nsAString& aKeySystem,
                const Sequence<MediaKeySystemConfiguration>& aConfig);
+
+  // This is used for creating a key system access for Media Capabilities API.
+  RefPtr<MediaKeySystemAccessPromise> Request(
+      const nsAString& aKeySystem,
+      const Sequence<MediaKeySystemConfiguration>& aConfigs);
 
   void Shutdown();
 
@@ -123,7 +131,7 @@ class MediaKeySystemAccessManager final : public nsIObserver, public nsINamed {
 
     PendingRequest(DetailedPromise* aPromise, const nsAString& aKeySystem,
                    const Sequence<MediaKeySystemConfiguration>& aConfigs);
-    ~PendingRequest();
+    virtual ~PendingRequest();
 
     // The JS promise associated with this request.
     RefPtr<DetailedPromise> mPromise;
@@ -145,12 +153,28 @@ class MediaKeySystemAccessManager final : public nsIObserver, public nsINamed {
     nsCOMPtr<nsITimer> mTimer = nullptr;
 
     // Convenience methods to reject/resolve the wrapped promise.
-    void RejectPromiseWithInvalidAccessError(const nsACString& aReason);
-    void RejectPromiseWithNotSupportedError(const nsACString& aReason);
-    void RejectPromiseWithTypeError(const nsACString& aReason);
-    void ResolvePromise(MediaKeySystemAccess* aAccess);
+    virtual void RejectPromiseWithInvalidAccessError(const nsACString& aReason);
+    virtual void RejectPromiseWithNotSupportedError(const nsACString& aReason);
+    virtual void RejectPromiseWithTypeError(const nsACString& aReason);
+    virtual void ResolvePromise(MediaKeySystemAccess* aAccess);
 
     void CancelTimer();
+  };
+
+  struct PendingRequestWithMozPromise : public PendingRequest {
+    PendingRequestWithMozPromise(
+        const nsAString& aKeySystem,
+        const Sequence<MediaKeySystemConfiguration>& aConfigs)
+        : PendingRequest(nullptr, aKeySystem, aConfigs) {};
+    ~PendingRequestWithMozPromise() = default;
+
+    MozPromiseHolder<MediaKeySystemAccessPromise> mAccessPromise;
+
+    void RejectPromiseWithInvalidAccessError(
+        const nsACString& aReason) override;
+    void RejectPromiseWithNotSupportedError(const nsACString& aReason) override;
+    void RejectPromiseWithTypeError(const nsACString& aReason) override;
+    void ResolvePromise(MediaKeySystemAccess* aAccess) override;
   };
 
   // Check if the application (e.g. a GeckoView app) allows protected media in
