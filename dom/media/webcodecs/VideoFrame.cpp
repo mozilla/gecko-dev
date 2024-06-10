@@ -61,6 +61,11 @@ namespace mozilla::dom {
 #endif  // LOGW
 #define LOGW(msg, ...) LOG_INTERNAL(Warning, msg, ##__VA_ARGS__)
 
+#ifdef LOGE
+#  undef LOGE
+#endif  // LOGE
+#define LOGE(msg, ...) LOG_INTERNAL(Error, msg, ##__VA_ARGS__)
+
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(VideoFrame)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(VideoFrame)
   tmp->CloseIfNeeded();
@@ -2389,6 +2394,7 @@ bool VideoFrame::Resource::CopyTo(const Format::Plane& aPlane,
 }
 
 #undef LOGW
+#undef LOGE
 #undef LOG_INTERNAL
 
 }  // namespace mozilla::dom
