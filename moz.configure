@@ -908,6 +908,14 @@ set_config("ZLIB_IN_MOZGLUE", zlib_in_mozglue)
 set_define("ZLIB_IN_MOZGLUE", zlib_in_mozglue)
 
 
+with only_when(cross_compiling):
+    option(
+        env="JS_BINARY",
+        nargs=1,
+        help="Host JavaScript runtime, if any, to use during cross compiles",
+    )
+    set_config("JS_BINARY", depends_if("JS_BINARY")(lambda value: value[0]))
+
 # Please do not add configure checks from here on.
 
 # Fallthrough to autoconf-based configure
