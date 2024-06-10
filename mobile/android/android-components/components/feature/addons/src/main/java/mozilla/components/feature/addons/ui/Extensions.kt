@@ -37,9 +37,27 @@ private val dateParser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.ROO
 fun Addon.translateName(context: Context): String = translatableName.translate(this, context)
 
 /**
+ * A short to get the display name of an add-on.
+ */
+fun Addon.displayName(context: Context): String = if (this.translatableName.isNotEmpty()) {
+    this.translateName(context)
+} else {
+    this.id
+}
+
+/**
  * A shortcut to get the localized summary of an add-on.
  */
 fun Addon.translateSummary(context: Context): String = translatableSummary.translate(this, context)
+
+/**
+ * A shortcut to get the display summary of an add-on.
+ */
+fun Addon.summary(context: Context): String? = if (this.translatableSummary.isNotEmpty()) {
+    this.translateSummary(context)
+} else {
+    null
+}
 
 /**
  * A shortcut to get the localized description of an add-on.
