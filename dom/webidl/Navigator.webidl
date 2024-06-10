@@ -161,7 +161,7 @@ partial interface Navigator {
 // https://wicg.github.io/media-capabilities/#idl-index
 [Exposed=Window]
 partial interface Navigator {
-  [SameObject, Func="mozilla::dom::MediaCapabilities::Enabled"]
+  [SameObject]
   readonly attribute MediaCapabilities mediaCapabilities;
 };
 
