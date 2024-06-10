@@ -118,12 +118,13 @@ async function testCreateBackupHelper(sandbox, taskFn) {
   let stagingPath = PathUtils.join(backupsFolderPath, "staging");
 
   // For now, we expect a single backup only to be saved. There should also be
-  // a single compressed file for the staging folder.
+  // a single compressed file for the staging folder, and a single HTML file
+  // export.
   let backupsChildren = await IOUtils.getChildren(backupsFolderPath);
   Assert.equal(
     backupsChildren.length,
-    2,
-    "There should only be 2 items in the backups folder"
+    3,
+    "There should only be 3 items in the backups folder"
   );
 
   // The folder and the compressed file should have the same filename, but
