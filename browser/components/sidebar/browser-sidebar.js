@@ -214,7 +214,7 @@ var SidebarController = {
 
     if (this.sidebarRevampEnabled) {
       await import("chrome://browser/content/sidebar/sidebar-main.mjs");
-      document.getElementById("sidebar-main").hidden = false;
+      document.getElementById("sidebar-main").hidden = !window.toolbar.visible;
       document.getElementById("sidebar-header").hidden = true;
       this._sidebarMain = document.querySelector("sidebar-main");
     } else {
@@ -429,6 +429,12 @@ var SidebarController = {
     let sourceController = sourceWindow.SidebarController;
     if (!sourceController || !sourceController._box) {
       // no source UI or no _box means we also can't adopt the state.
+      return false;
+    }
+
+    // If window is a popup, hide the sidebar
+    if (!window.toolbar.visible && this.sidebarRevampEnabled) {
+      document.getElementById("sidebar-main").hidden = true;
       return false;
     }
 
@@ -711,6 +717,9 @@ var SidebarController = {
     }
     if (sidebar.menuL10nId) {
       menuitem.dataset.l10nId = sidebar.menuL10nId;
+    }
+    if (!window.toolbar.visible) {
+      menuitem.setAttribute("disabled", "true");
     }
     return menuitem;
   },
