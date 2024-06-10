@@ -118,7 +118,8 @@ static Maybe<ffi::WGPUFeatures> ToWGPUFeatures(
       return Some(WGPUFeatures_INDIRECT_FIRST_INSTANCE);
 
     case dom::GPUFeatureName::Shader_f16:
-      return Some(WGPUFeatures_SHADER_F16);
+      // This feature is not fully implemented upstream.
+      return Nothing();  // Some(WGPUFeatures_SHADER_F16);
 
     case dom::GPUFeatureName::Rg11b10ufloat_renderable:
       return Some(WGPUFeatures_RG11B10UFLOAT_RENDERABLE);
