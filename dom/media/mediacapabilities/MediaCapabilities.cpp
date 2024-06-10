@@ -27,6 +27,7 @@
 #include "mozilla/dom/MediaCapabilitiesBinding.h"
 #include "mozilla/dom/MediaSource.h"
 #include "mozilla/dom/Promise.h"
+#include "mozilla/dom/WorkerCommon.h"
 #include "mozilla/dom/WorkerPrivate.h"
 #include "mozilla/dom/WorkerRef.h"
 #include "mozilla/layers/KnowsCompositor.h"
@@ -116,6 +117,7 @@ static nsCString MediaDecodingConfigurationToStr(
 MediaCapabilities::MediaCapabilities(nsIGlobalObject* aParent)
     : mParent(aParent) {}
 
+// https://w3c.github.io/media-capabilities/#dom-mediacapabilities-decodinginfo
 already_AddRefed<Promise> MediaCapabilities::DecodingInfo(
     const MediaDecodingConfiguration& aConfiguration, ErrorResult& aRv) {
   RefPtr<Promise> promise = Promise::Create(mParent, aRv);
@@ -131,6 +133,27 @@ already_AddRefed<Promise> MediaCapabilities::DecodingInfo(
         "'audio' or 'video' member of argument of "
         "MediaCapabilities.decodingInfo");
     return nullptr;
+  }
+
+  // If configuration.keySystemConfiguration exists, run the following substeps:
+  if (aConfiguration.mKeySystemConfiguration.WasPassed()) {
+    // If the global object is of type WorkerGlobalScope, return a Promise
+    // rejected with a newly created DOMException whose name is
+    // InvalidStateError.
+    if (IsWorkerGlobal(mParent->GetGlobalJSObject())) {
+      promise->MaybeRejectWithInvalidStateError(
+          "key system configuration is not allowed in the worker scope");
+      return promise.forget();
+    }
+    // If the global object’s relevant settings object is a non-secure context,
+    // return a Promise rejected with a newly created DOMException whose name is
+    // SecurityError.
+    if (auto* window = mParent->GetAsInnerWindow();
+        window && !window->IsSecureContext()) {
+      promise->MaybeRejectWithSecurityError(
+          "key system configuration is not allowed in a non-secure context");
+      return promise.forget();
+    }
   }
 
   LOG("Processing %s", MediaDecodingConfigurationToStr(aConfiguration).get());
