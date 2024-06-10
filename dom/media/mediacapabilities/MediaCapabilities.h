@@ -12,6 +12,7 @@
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Maybe.h"
+#include "mozilla/dom/MediaKeySystemAccessManager.h"
 #include "mozilla/dom/NonRefcountedDOMObject.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
@@ -73,6 +74,10 @@ class MediaCapabilities final : public nsISupports, public nsWrapperCache {
   void CreateMediaCapabilitiesDecodingInfo(
       const MediaDecodingConfiguration& aConfiguration, ErrorResult& aRv,
       Promise* aPromise);
+
+  RefPtr<MediaKeySystemAccessManager::MediaKeySystemAccessPromise>
+  CheckEncryptedDecodingSupport(
+      const MediaDecodingConfiguration& aConfiguration);
 
   nsCOMPtr<nsIGlobalObject> mParent;
 };
