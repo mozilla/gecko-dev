@@ -10,6 +10,7 @@
 #ifndef XP_WIN
 #  include <unistd.h>
 #endif
+#include "mozilla/AppShutdown.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/CheckedInt.h"
@@ -1555,6 +1556,11 @@ void XMLHttpRequestMainThread::Open(const nsACString& aMethod,
   }
   if (!mPrincipal) {
     aRv.Throw(NS_ERROR_NOT_INITIALIZED);
+    return;
+  }
+
+  if (AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed)) {
+    aRv.Throw(NS_ERROR_ILLEGAL_DURING_SHUTDOWN);
     return;
   }
 
