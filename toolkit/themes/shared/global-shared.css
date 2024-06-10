@@ -11,6 +11,7 @@
 @import url("chrome://global/content/widgets.css");
 
 @import url("close-icon.css");
+@import url("undo-icon.css");
 
 @namespace xul url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
 @namespace html url("http://www.w3.org/1999/xhtml");

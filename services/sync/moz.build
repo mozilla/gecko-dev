@@ -31,6 +31,7 @@ EXTRA_JS_MODULES["services-sync"] += [
     "modules/sync_auth.sys.mjs",
     "modules/SyncDisconnect.sys.mjs",
     "modules/SyncedTabs.sys.mjs",
+    "modules/TabsStore.sys.mjs",
     "modules/telemetry.sys.mjs",
     "modules/UIState.sys.mjs",
     "modules/util.sys.mjs",

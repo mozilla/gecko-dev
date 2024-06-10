@@ -29,7 +29,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   ReaderMode: "resource://gre/modules/ReaderMode.sys.mjs",
-  TabsStore: "resource://gre/modules/RustTabs.sys.mjs",
+  getTabsStore: "resource://services-sync/TabsStore.sys.mjs",
   RemoteTabRecord: "resource://gre/modules/RustTabs.sys.mjs",
 });
 
@@ -126,8 +126,7 @@ TabEngine.prototype = {
   async initialize() {
     await SyncEngine.prototype.initialize.call(this);
 
-    let path = PathUtils.join(PathUtils.profileDir, "synced-tabs.db");
-    this._rustStore = await lazy.TabsStore.init(path);
+    this._rustStore = await lazy.getTabsStore();
     this._bridge = await this._rustStore.bridgedEngine();
 
     // Uniffi doesn't currently only support async methods, so we'll need to hardcode
@@ -377,7 +376,7 @@ export const TabProvider = {
       if (runningByteLength >= bytesMax) {
         log.warn(
           `Can't fit all tabs in sync payload: have ${winTabs.length},
-             but can only fit ${tabRecords.length}.`
+              but can only fit ${tabRecords.length}.`
         );
         break;
       }

@@ -9,6 +9,9 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   CLIENT_NOT_CONFIGURED: "resource://services-sync/constants.sys.mjs",
   Weave: "resource://services-sync/main.sys.mjs",
+  getRemoteCommandStore: "resource://services-sync/TabsStore.sys.mjs",
+  RemoteCommand: "resource://services-sync/TabsStore.sys.mjs",
+  FxAccounts: "resource://gre/modules/FxAccounts.sys.mjs",
 });
 
 // The Sync XPCOM service
@@ -28,6 +31,9 @@ function escapeRegExp(string) {
 // of a regularly scheduled sync. The intent is that consumers just listen
 // for this notification and update their UI in response.
 const TOPIC_TABS_CHANGED = "services.sync.tabs.changed";
+
+// A topic we fire whenever we have queued a new remote tabs command.
+const TOPIC_TABS_COMMAND_QUEUED = "services.sync.tabs.command-queued";
 
 // The interval, in seconds, before which we consider the existing list
 // of tabs "fresh enough" and don't force a new sync.
@@ -381,5 +387,41 @@ export var SyncedTabs = {
   async getRecentTabs(maxCount, extraParams) {
     let clients = await this.getTabClients();
     return this._internal._createRecentTabsList(clients, maxCount, extraParams);
+  },
+};
+
+// Remote tab management public interface.
+export var SyncedTabsManagement = {
+  // A mock-point for tests.
+  async _getStore() {
+    return await lazy.getRemoteCommandStore();
+  },
+
+  /// Enqueue a tab to close on a remote device.
+  async enqueueTabToClose(deviceId, url) {
+    let store = await this._getStore();
+    let command = new lazy.RemoteCommand.CloseTab(url);
+    if (!store.addRemoteCommand(deviceId, command)) {
+      lazy.log.warn(
+        "Could not queue a remote tab close - it was already queued"
+      );
+    } else {
+      lazy.log.info("Queued remote tab close command.");
+    }
+    // fxAccounts commands infrastructure is lazily initialized, at which point
+    // it registers observers etc - make sure it's initialized;
+    lazy.FxAccounts.commands;
+    Services.obs.notifyObservers(null, TOPIC_TABS_COMMAND_QUEUED);
+  },
+
+  /// Remove a tab from the queue of commands for a remote device.
+  async removePendingTabToClose(deviceId, url) {
+    let store = await this._getStore();
+    let command = new lazy.RemoteCommand.CloseTab(url);
+    if (!store.removeRemoteCommand(deviceId, command)) {
+      lazy.log.warn("Could not remove a remote tab close - it was not queued");
+    } else {
+      lazy.log.info("Removed queued remote tab close command.");
+    }
   },
 };

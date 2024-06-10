@@ -1335,10 +1335,12 @@ panelview .toolbarbutton-1 {
   min-width: 0;
 }
 
-.remotetabs-close {
-  width: 18px;
+.remotetabs-icon {
+  width: 20px;
   margin-inline-end: 4px;
+  padding: 4px;
 }
+
 #PanelUI-fxa-menu-account-settings-button > .toolbarbutton-icon {
   border-radius: 50%;
 }

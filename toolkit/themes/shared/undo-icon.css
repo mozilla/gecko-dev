@@ -1,0 +1,41 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+.undo-icon {
+  appearance: none;
+  -moz-context-properties: fill, fill-opacity;
+  list-style-image: url(chrome://global/skin/icons/undo.svg);
+  border-radius: var(--border-radius-small);
+  color: inherit;
+  fill: currentColor;
+  padding: 2px;
+  width: 20px;
+  height: auto;
+}
+
+.undo-icon {
+  &:hover {
+    @media not (prefers-contrast) {
+      background-color: color-mix(in srgb, currentColor 10%, transparent);
+    }
+    @media (prefers-contrast) {
+      outline: 1px solid currentColor;
+    }
+
+    &:active {
+      background-color: color-mix(in srgb, currentColor 20%, transparent);
+    }
+  }
+
+  > .button-icon,
+  > .button-box > .button-icon,
+  > .toolbarbutton-icon {
+    margin: 0;
+  }
+
+  > .button-box > .button-text,
+  > .toolbarbutton-text {
+    display: none;
+  }
+}

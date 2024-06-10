@@ -23,6 +23,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   BulkKeyBundle: "resource://services-sync/keys.sys.mjs",
   CryptoWrapper: "resource://services-sync/record.sys.mjs",
   PushCrypto: "resource://gre/modules/PushCrypto.sys.mjs",
+  getRemoteCommandStore: "resource://services-sync/TabsStore.sys.mjs",
+  RemoteCommand: "resource://services-sync/TabsStore.sys.mjs",
 });
 
 XPCOMUtils.defineLazyPreferenceGetter(
@@ -35,6 +37,8 @@ XPCOMUtils.defineLazyPreferenceGetter(
     return new Set(val.split("|"));
   }
 );
+
+const TOPIC_TABS_CHANGED = "services.sync.tabs.changed";
 
 export class FxAccountsCommands {
   constructor(fxAccountsInternal) {
@@ -504,8 +508,10 @@ export class SendTab {
 
 /**
  * Close Tabs is built on-top of device commands and handles
- * actions a client wants to perform on tabs found on other devices
+ * actions a client wants to perform on tabs found on other devices.
  * This class is very similar to the Send Tab component in FxAccountsCommands
+ * (and indeed, it might make sense to combine these so there's better
+ * error handling/retry logic for send tab)
  *
  * Devices exchange keys wrapped in the oldsync key between themselves (getEncryptedCloseTabKeys)
  * during the device registration flow. The FxA server can theoretically never
@@ -516,69 +522,169 @@ export class SendTab {
  * and the FxA server stores it (without re-encrypting).
  * A web-push notifies the receiver that a new command is available.
  * The receiver decrypts the payload using its private key.
+ *
+ * This implementation uses the "tabs store" to persist the close requests, and also
+ * to act as the queue for commands to send. There's simple retry logic etc so that
+ * even if the device is offline the command should be sent when the network comes back up.
+ *
+ * This means that consumers generally *do not* call this object directly - consumers will
+ * typically use the capabilities exposed in SyncedTabs.sys.mjs to queue the commands. This
+ * code listens for observer notifications sent by that module to handle the queue.
  */
 export class CloseRemoteTab {
+  // The delay between a command being queued and it being actioned. This delay
+  // is primarily to support "undo" functionality in the UI.
+  DELAY = 5000;
+
+  // The timer ID if we have one scheduled, otherwise null
+  #timer = null;
+
   constructor(commands, fxAccountsInternal) {
     this._commands = commands;
     this._fxai = fxAccountsInternal;
-    this.pendingClosedTabs = new Map();
-    // pushes happen per device, making a timer per device makes sending
-    // the pushes a little more sane
-    this.pushTimers = new Map();
+    Services.obs.addObserver(this, "services.sync.tabs.command-queued");
+    log.trace("CloseRemoteTab observer created");
   }
 
-  /**
-   * Sending a push everytime the user wants to close a tab on a remote device
-   * could lead to excessive notifications to the users device, push throttling, etc
-   * so we add the tabs to a queue and have a timer that sends the push after a certain
-   * amount of "inactivity"
-   */
-  /**
-   * @param {Device} targetDevice - Device object (typically returned by fxAccounts.getDevicesList()).
-   * @param {String} tab - url for the tab to close
-   * @param {Integer} how far to delay, in miliseconds, the push for this timer
-   */
-  enqueueTabToClose(targetDevice, tab, pushDelay = 6000) {
-    if (this.pendingClosedTabs.has(targetDevice.id)) {
-      this.pendingClosedTabs.get(targetDevice.id).tabs.push(tab);
+  // Used for tests - when in the browser this object lives forever.
+  shutdown() {
+    if (this.#timer) {
+      clearTimeout(this.#timer);
+    }
+    Services.obs.removeObserver(this, "services.sync.tabs.command-queued");
+  }
+
+  observe(subject, topic, data) {
+    log.trace(
+      `CloseRemoteTab observed topic=${topic}, data=${data}, subject=${subject}`
+    );
+    switch (topic) {
+      case "services.sync.tabs.command-queued":
+        this.flushQueue().catch(e => {
+          log.error("Failed to flush the outgoing queue", e);
+        });
+        break;
+      default:
+        log.error(`unexpected observer topic: ${topic}`);
+    }
+  }
+
+  async flushQueue() {
+    // get all the queued items to work out what's ready to send. If a device has queued item less than
+    // our pushDelay, then we don't send *any* command for that device yet, but ensure a timer is set
+    // for the delay.
+    let store = await lazy.getRemoteCommandStore();
+    let pending = await store.getUnsentCommands();
+    log.trace("flushQueue total queued items", pending.length);
+    // any timeRequested less than `sendThreshold` should be sent now.
+    let now = this.now();
+    let sendThreshold = now - this.DELAY;
+    // make a map of deviceId -> device
+    let recentDevices = this._fxai.device.recentDeviceList;
+    if (!recentDevices.length) {
+      // If we can't map a device ID to the device with the keys etc, we are screwed!
+      log.error(
+        "Trying to handle a queued tab command but no devices are available"
+      );
+      return;
+    }
+    let deviceMap = new Map(recentDevices.map(d => [d.id, d]));
+    // make a map of commands keyed by device ID.
+    let byDevice = Map.groupBy(pending, c => c.deviceId);
+    let nextTime = Infinity;
+    let didSend = false;
+    for (let [deviceId, commands] of byDevice) {
+      let device = deviceMap.get(deviceId);
+      if (!device) {
+        // If we can't map *this* device ID to a device with the keys etc, we are screwed!
+        // This however *is* possible if the target device was disconnected before we had a chance to send it,
+        // so remove this item.
+        log.warn(
+          "Trying to handle a queued tab command for an unknown device",
+          deviceId
+        );
+        for (const command of commands) {
+          await store.removeRemoteCommand(deviceId, command);
+        }
+        continue;
+      }
+      let toSend = [];
+      for (const command of commands) {
+        if (!(command.command instanceof lazy.RemoteCommand)) {
+          log.error(`ignoring unknown pending command ${command}`);
+          // I guess we should try and delete it, but this is already "impossible", so :shrug
+          continue;
+        }
+        if (command.timeRequested <= sendThreshold) {
+          log.trace(
+            `command for url ${command.command.url} was queued for sending ${
+              (now - command.timeRequested) / 1000
+            }s ago, so sending it now`
+          );
+          toSend.push(command);
+        } else {
+          log.trace(
+            `command for url ${command.command.url} was queued for sending ${
+              (now - command.timeRequested) / 1000
+            }s ago, so ensuring the next timer is set for it.`
+          );
+          nextTime = Math.min(nextTime, command.timeRequested + this.DELAY);
+        }
+      }
+      if (toSend.length) {
+        let urls = toSend.map(c => c.command.url);
+        // XXX - failure should cause a new error handling timer strategy (eg, ideally exponential backoff etc)
+        if (await this._sendCloseTabPush(device, urls)) {
+          // success! Mark them as sent.
+          for (let cmd of toSend) {
+            log.trace(
+              `Setting pending command for device ${deviceId} as sent`,
+              cmd
+            );
+            await store.setPendingCommandSent(cmd);
+            didSend = true;
+          }
+        } else {
+          // We should investigate a better backoff strategy
+          // https://bugzilla.mozilla.org/show_bug.cgi?id=1899433
+          // For now just say 60s.
+          nextTime = Math.min(nextTime, now + 60000);
+        }
+      }
+    }
+    if (didSend) {
+      Services.obs.notifyObservers(null, TOPIC_TABS_CHANGED);
+    }
+
+    if (nextTime == Infinity) {
+      log.info(`No new close-tab timer needed because there's nothing to do`);
     } else {
-      this.pendingClosedTabs.set(targetDevice.id, {
-        device: targetDevice,
-        tabs: [tab],
-      });
+      // We set the timer to be just a little bit more than requested (XXX - probably not necessary?!)
+      let delay = nextTime - now + 10;
+      this._ensureTimer(delay);
     }
-
-    // extend the timer
-    this._refreshPushTimer(targetDevice.id, pushDelay);
   }
 
-  async _refreshPushTimer(deviceId, pushDelay) {
-    // If the user is still performing "actions" for this device
-    // reset the timer to send the push
-    if (this.pushTimers.has(deviceId)) {
-      clearTimeout(this.pushTimers.get(deviceId));
+  async _ensureTimer(timeout) {
+    log.info(
+      `Setting a new close-tab timer with delay=${timeout} with existing timer=${!!this
+        .#timer}`
+    );
+
+    if (this.#timer) {
+      clearTimeout(this.#timer);
     }
 
-    // There is a possibility that the browser closes before this actually executes
-    // we should catch the browser as it's closing and immediately fire these
+    // If the browser shuts down while a timer exists we should force the send
+    // While we should pick up the command after a restart, we don't know
+    // how long that will be.
     // See https://bugzilla.mozilla.org/show_bug.cgi?id=1888299
-    const timerId = setTimeout(async () => {
-      let { device, tabs } = this.pendingClosedTabs.get(deviceId);
-      // send a push notification for this specific device
-      await this._sendCloseTabPush(device, tabs);
-
-      // Clear the timer
-      this.pushTimers.delete(deviceId);
-      // We also need to locally store the tabs we sent so the user doesn't
-      // see these anymore
-      this.pendingClosedTabs.delete(deviceId);
-
-      // This is used for tests only, to get around timer woes
-      Observers.notify("test:fxaccounts:commands:close-uri:sent");
-    }, pushDelay);
-
-    // Store the new timer with the device
-    this.pushTimers.set(deviceId, timerId);
+    this.#timer = setTimeout(async () => {
+      // XXX - this might be racey - if a new timer fires before this promise resolves - it
+      // might seem unlikely, but network is involved!
+      await this.flushQueue();
+      this.#timer = null;
+    }, timeout);
   }
 
   /**
@@ -605,9 +711,11 @@ export class CloseRemoteTab {
         this._fxai.telemetry.sanitizeDeviceId(target.id),
         { flowID, streamID }
       );
+      return true;
     } catch (error) {
       // We should also show the user there was some kind've error
       log.error("Error while invoking a send tab command.", error);
+      return false;
     }
   }
 
@@ -779,6 +887,11 @@ export class CloseRemoteTab {
         await this._generateAndPersistEncryptedCloseTabKeys();
     }
     return encryptedCloseTabKeys;
+  }
+
+  // hook points for tests.
+  now() {
+    return Date.now();
   }
 }
 

@@ -46,6 +46,7 @@
   skin/classic/global/popupnotification.css                (../../shared/popupnotification.css)
   skin/classic/global/splitter.css                         (../../shared/splitter.css)
   skin/classic/global/toolbarbutton.css                    (../../shared/toolbarbutton.css)
+  skin/classic/global/undo-icon.css                        (../../shared/undo-icon.css)
   skin/classic/global/tree/tree.css                        (../../shared/tree/tree.css)
   skin/classic/global/dirListing/dirListing.css            (../../shared/dirListing/dirListing.css)
 #ifdef XP_MACOSX
