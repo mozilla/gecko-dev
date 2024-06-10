@@ -882,7 +882,6 @@ void Notification::UnpersistNotification() {
   }
 }
 
-// https://notifications.spec.whatwg.org/#create-a-notification
 already_AddRefed<Notification> Notification::CreateInternal(
     nsIGlobalObject* aGlobal, const nsAString& aID, const nsAString& aTitle,
     const NotificationOptions& aOptions, ErrorResult& aRv) {
@@ -904,7 +903,6 @@ already_AddRefed<Notification> Notification::CreateInternal(
     id = convertedID;
   }
 
-  // Step 20: Set notification’s silent preference to options["silent"].
   bool silent = false;
   if (StaticPrefs::dom_webnotifications_silent_enabled()) {
     silent = aOptions.mSilent;
@@ -913,16 +911,12 @@ already_AddRefed<Notification> Notification::CreateInternal(
   nsTArray<uint32_t> vibrate;
   if (StaticPrefs::dom_webnotifications_vibrate_enabled() &&
       aOptions.mVibrate.WasPassed()) {
-    // Step 4: If options["silent"] is true and options["vibrate"] exists, then
-    // throw a TypeError.
     if (silent) {
       aRv.ThrowTypeError(
           "Silent notifications must not specify vibration patterns.");
       return nullptr;
     }
 
-    // Step 17: If options["vibrate"] exists, then validate and normalize it and
-    // set notification’s vibration pattern to the return value.
     const OwningUnsignedLongOrUnsignedLongSequence& value =
         aOptions.mVibrate.Value();
     if (value.IsUnsignedLong()) {
@@ -934,17 +928,10 @@ already_AddRefed<Notification> Notification::CreateInternal(
     }
   }
 
-  // Step 15: If options["icon"] exists, then parse it using baseURL, and if
-  // that does not return failure, set notification’s icon URL to the return
-  // value. (Otherwise icon URL is not set.)
-  nsString iconUrl = aOptions.mIcon;
-  NotificationBehavior behavior{aOptions.mMozbehavior};
-  ResolveIconAndSoundURL(aGlobal, iconUrl, behavior.mSoundFile);
-
   RefPtr<Notification> notification = new Notification(
       aGlobal, id, aTitle, aOptions.mBody, aOptions.mDir, aOptions.mLang,
-      aOptions.mTag, iconUrl, aOptions.mRequireInteraction, silent,
-      std::move(vibrate), behavior);
+      aOptions.mTag, aOptions.mIcon, aOptions.mRequireInteraction, silent,
+      std::move(vibrate), aOptions.mMozbehavior);
   return notification.forget();
 }
 
@@ -1392,6 +1379,12 @@ void Notification::ShowInternal() {
     return;
   }
 
+  // Preparing for Step 4.2 the fetch steps. The actual work happens in
+  // nsIAlertNotification::LoadImage
+  nsAutoString iconUrl;
+  nsAutoString soundUrl;
+  ResolveIconAndSoundURL(iconUrl, soundUrl);
+
   // Step 4.3 the show steps, which are almost all about processing `tag` and
   // then displaying the notification. Both are handled by
   // nsIAlertsService::ShowAlert/PersistentNotification. The below is all about
@@ -1430,7 +1423,7 @@ void Notification::ShowInternal() {
       behavior.Truncate();
     }
     observer = new ServiceWorkerNotificationObserver(
-        mScope, GetPrincipal(), mID, mTitle, mDir, mLang, mBody, mTag, mIconUrl,
+        mScope, GetPrincipal(), mID, mTitle, mDir, mLang, mBody, mTag, iconUrl,
         mDataAsBase64, behavior);
   }
   MOZ_ASSERT(observer);
@@ -1454,7 +1447,7 @@ void Notification::ShowInternal() {
       do_CreateInstance(ALERT_NOTIFICATION_CONTRACTID);
   NS_ENSURE_TRUE_VOID(alert);
   nsIPrincipal* principal = GetPrincipal();
-  rv = alert->Init(alertName, mIconUrl, mTitle, mBody, true, uniqueCookie,
+  rv = alert->Init(alertName, iconUrl, mTitle, mBody, true, uniqueCookie,
                    NS_ConvertASCIItoUTF16(GetEnumString(mDir)), mLang,
                    mDataAsBase64, GetPrincipal(), inPrivateBrowsing,
                    requireInteraction, mSilent, mVibrate);
@@ -1647,13 +1640,12 @@ NotificationPermission Notification::TestPermission(nsIPrincipal* aPrincipal) {
   }
 }
 
-nsresult Notification::ResolveIconAndSoundURL(nsIGlobalObject* aGlobal,
-                                              nsString& iconUrl,
+nsresult Notification::ResolveIconAndSoundURL(nsString& iconUrl,
                                               nsString& soundUrl) {
   AssertIsOnMainThread();
   nsresult rv = NS_OK;
 
-  nsCOMPtr<nsIURI> baseUri = nullptr;
+  nsIURI* baseUri = nullptr;
 
   // XXXnsm If I understand correctly, the character encoding for resolving
   // URIs in new specs is dictated by the URL spec, which states that unless
@@ -1665,31 +1657,33 @@ nsresult Notification::ResolveIconAndSoundURL(nsIGlobalObject* aGlobal,
   // thread.
   auto encoding = UTF_8_ENCODING;
 
-  if (nsCOMPtr<nsPIDOMWindowInner> window = aGlobal->GetAsInnerWindow()) {
-    if (RefPtr<Document> doc = window->GetExtantDoc()) {
+  if (mWorkerPrivate) {
+    baseUri = mWorkerPrivate->GetBaseURI();
+  } else {
+    Document* doc = GetOwner() ? GetOwner()->GetExtantDoc() : nullptr;
+    if (doc) {
       baseUri = doc->GetBaseURI();
       encoding = doc->GetDocumentCharacterSet();
     } else {
       NS_WARNING("No document found for main thread notification!");
       return NS_ERROR_FAILURE;
     }
-  } else if (WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate()) {
-    baseUri = workerPrivate->GetBaseURI();
   }
 
   if (baseUri) {
-    if (iconUrl.Length() > 0) {
+    if (mIconUrl.Length() > 0) {
       nsCOMPtr<nsIURI> srcUri;
-      rv = NS_NewURI(getter_AddRefs(srcUri), iconUrl, encoding, baseUri);
+      rv = NS_NewURI(getter_AddRefs(srcUri), mIconUrl, encoding, baseUri);
       if (NS_SUCCEEDED(rv)) {
         nsAutoCString src;
         srcUri->GetSpec(src);
         CopyUTF8toUTF16(src, iconUrl);
       }
     }
-    if (soundUrl.Length() > 0) {
+    if (mBehavior.mSoundFile.Length() > 0) {
       nsCOMPtr<nsIURI> srcUri;
-      rv = NS_NewURI(getter_AddRefs(srcUri), soundUrl, encoding, baseUri);
+      rv = NS_NewURI(getter_AddRefs(srcUri), mBehavior.mSoundFile, encoding,
+                     baseUri);
       if (NS_SUCCEEDED(rv)) {
         nsAutoCString src;
         srcUri->GetSpec(src);

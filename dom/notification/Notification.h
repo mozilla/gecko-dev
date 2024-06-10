@@ -327,8 +327,7 @@ class Notification : public DOMEventTargetHelper,
 
   bool CreateWorkerRef();
 
-  static nsresult ResolveIconAndSoundURL(nsIGlobalObject* aGlobal,
-                                         nsString& iconUrl, nsString& soundUrl);
+  nsresult ResolveIconAndSoundURL(nsString&, nsString&);
 
   // Only used for Notifications on Workers, worker thread only.
   RefPtr<StrongWorkerRef> mWorkerRef;
