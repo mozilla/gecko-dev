@@ -1007,8 +1007,7 @@ nsresult nsCSPContext::GatherSecurityPolicyViolationEventData(
     StripURIForReporting(
         mSelfURI,
         aOriginalURI ? aOriginalURI
-                     :
-                           aCSPViolationData.mResource.as<nsCOMPtr<nsIURI>>().get(),
+                     : aCSPViolationData.mResource.as<nsCOMPtr<nsIURI>>().get(),
         aEffectiveDirective, reportBlockedURI);
     CopyUTF8toUTF16(reportBlockedURI, aViolationEventInit.mBlockedURI);
   } else {
