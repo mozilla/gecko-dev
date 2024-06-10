@@ -969,6 +969,7 @@ nsresult ModuleLoaderBase::StartDynamicImport(ModuleLoadRequest* aRequest) {
   nsresult rv = StartModuleLoad(aRequest);
   if (NS_FAILED(rv)) {
     mLoader->ReportErrorToConsole(aRequest, rv);
+    RemoveDynamicImport(aRequest);
     FinishDynamicImportAndReject(aRequest, rv);
   }
   return rv;
@@ -1003,6 +1004,9 @@ void ModuleLoaderBase::FinishDynamicImport(
   // succeeded, evaluationPromise may still be null, but in this case it will
   // be handled by rejecting the dynamic module import promise in the JSAPI.
   MOZ_ASSERT_IF(NS_FAILED(aResult), !aEvaluationPromise);
+
+  // The request should been removed from mDynamicImportRequests.
+  MOZ_ASSERT(!aRequest->mLoader->HasDynamicImport(aRequest));
 
   // Complete the dynamic import, report failures indicated by aResult or as a
   // pending exception on the context.
@@ -1090,6 +1094,10 @@ void ModuleLoaderBase::CancelDynamicImport(ModuleLoadRequest* aRequest,
 
   RefPtr<ScriptLoadRequest> req = mDynamicImportRequests.Steal(aRequest);
   if (!aRequest->IsCanceled()) {
+    // If the mDynamicPromise has been cleared, then it should be remove from
+    // mDynamicImportRequests as well.
+    MOZ_ASSERT(aRequest->mDynamicPromise);
+
     aRequest->Cancel();
     // FinishDynamicImport must happen exactly once for each dynamic import
     // request. If the load is aborted we do it when we remove the request

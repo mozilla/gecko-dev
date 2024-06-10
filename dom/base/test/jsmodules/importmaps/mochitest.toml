@@ -45,6 +45,7 @@ support-files = [
 
 ["test_importMap_with_external_script.html"]
 ["test_importMap_with_nonexisting_module.html"]
+["test_invalid_dynamic_import.html"]
 ["test_dynamic_importMap_with_external_script.html"]
 ["test_dynamic_importMap_load_completes.html"]
 ["test_shared_submodules_with_modulepreload.html"]

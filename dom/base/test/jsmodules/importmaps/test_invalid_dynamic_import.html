@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';">
+</head>
+
+<title>Test an invalid dynamic import</title>
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<script>
+  SimpleTest.waitForExplicitFinish();
+
+  function testLoaded() {
+    import("data:text/javascript,void 0").then(() => {
+      ok(false, "data URL shouldn't be loaded");
+    }).catch((e) => {
+      ok(true, "data URL should be blocked");
+    }).finally(() => {
+      SimpleTest.finish();
+    });
+  }
+</script>
+<body onload='testLoaded()'></body>
+</html>
