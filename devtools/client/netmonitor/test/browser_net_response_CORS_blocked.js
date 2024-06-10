@@ -39,8 +39,12 @@ add_task(async function testCORSNotificationPresent() {
   info("Waiting until the requests appear in netmonitor");
   await wait;
 
-  info("selecting first request");
-  const firstItem = document.querySelectorAll(".request-list-item")[0];
+  // If the NetworkObserver is configured to use early events, we should detect
+  // the flight request (POST) before the preflight request (OPTIONS).
+  // So the preflight request will be at index 1.
+  // Bug 1901504 will remove the earlyEvents=false option.
+  info("selecting preflight request at index 1");
+  const firstItem = document.querySelectorAll(".request-list-item")[1];
   EventUtils.sendMouseEvent({ type: "mousedown" }, firstItem);
 
   const waitForRespPanel = waitForDOM(
@@ -96,8 +100,12 @@ add_task(async function testCORSNotificationNotPresent() {
   info("waiting for requests to appear in netmonitor");
   await wait;
 
-  info("selecting first request");
-  const firstItem = document.querySelectorAll(".request-list-item")[0];
+  // If the NetworkObserver is configured to use early events, we should detect
+  // the flight request (POST) before the preflight request (OPTIONS).
+  // So the preflight request will be at index 1.
+  // Bug 1901504 will remove the earlyEvents=false option.
+  info("selecting preflight request at index 1");
+  const firstItem = document.querySelectorAll(".request-list-item")[1];
   EventUtils.sendMouseEvent({ type: "mousedown" }, firstItem);
 
   const waitForRespPanel = waitForDOM(document, "#response-panel");
