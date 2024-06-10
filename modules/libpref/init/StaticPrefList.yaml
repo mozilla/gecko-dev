@@ -10957,11 +10957,6 @@
   value: false
   mirror: always
 
-- name: media.media-capabilities.enabled
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
-
 - name: media.media-capabilities.screen.enabled
   type: RelaxedAtomicBool
   value: false

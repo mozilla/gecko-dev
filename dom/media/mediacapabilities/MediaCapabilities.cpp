@@ -649,10 +649,6 @@ already_AddRefed<layers::KnowsCompositor> MediaCapabilities::GetCompositor() {
   return knows->GetForMedia().forget();
 }
 
-bool MediaCapabilities::Enabled(JSContext* aCx, JSObject* aGlobal) {
-  return StaticPrefs::media_media_capabilities_enabled();
-}
-
 JSObject* MediaCapabilities::WrapObject(JSContext* aCx,
                                         JS::Handle<JSObject*> aGivenProto) {
   return MediaCapabilities_Binding::Wrap(aCx, this, aGivenProto);

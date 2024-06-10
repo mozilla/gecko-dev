@@ -60,8 +60,6 @@ class MediaCapabilities final : public nsISupports, public nsWrapperCache {
   JSObject* WrapObject(JSContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
-  static bool Enabled(JSContext* aCx, JSObject* aGlobal);
-
  private:
   virtual ~MediaCapabilities() = default;
   Maybe<MediaContainerType> CheckVideoConfiguration(
