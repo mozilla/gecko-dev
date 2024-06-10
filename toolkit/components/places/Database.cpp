@@ -54,6 +54,11 @@
 // Whether on corruption we should try to fix the database by cloning it.
 #define PREF_DATABASE_CLONEONCORRUPTION "places.database.cloneOnCorruption"
 
+#define PREF_DATABASE_FAVICONS_LASTCORRUPTION \
+  "places.database.lastFaviconsCorruptionInDaysFromEpoch"
+#define PREF_DATABASE_PLACES_LASTCORRUPTION \
+  "places.database.lastPlacesCorruptionInDaysFromEpoch"
+
 // Set to specify the size of the places database growth increments in kibibytes
 #define PREF_GROWTH_INCREMENT_KIB "places.database.growthIncrementKiB"
 
@@ -101,6 +106,8 @@
 
 // Legacy item annotation used by the old Sync engine.
 #define SYNC_PARENT_ANNO "sync/parent"
+
+#define USEC_PER_DAY 86400000000LL
 
 using namespace mozilla;
 
@@ -334,6 +341,18 @@ nsresult AttachDatabase(nsCOMPtr<mozIStorageConnection>& aDBConn,
   Unused << aDBConn->ExecuteSimpleSQL(journalSizePragma);
 
   return NS_OK;
+}
+
+PRTime GetNow() {
+  nsNavHistory* history = nsNavHistory::GetHistoryService();
+  PRTime now;
+  if (history) {
+    // Optimization to avoid calling PR_Now() too often.
+    now = history->GetNow();
+  } else {
+    now = PR_Now();
+  }
+  return now;
 }
 
 }  // namespace
@@ -573,6 +592,12 @@ nsresult Database::EnsureConnection() {
     if (NS_SUCCEEDED(rv) && !databaseExisted) {
       mDatabaseStatus = nsINavHistoryService::DATABASE_STATUS_CREATE;
     } else if (rv == NS_ERROR_FILE_CORRUPTED) {
+      // Set places last corruption time in prefs for troubleshooting.
+      CheckedInt<int32_t> daysSinceEpoch = GetNow() / USEC_PER_DAY;
+      if (daysSinceEpoch.isValid()) {
+        Preferences::SetInt(PREF_DATABASE_PLACES_LASTCORRUPTION,
+                            daysSinceEpoch.value());
+      }
       // The database is corrupt, backup and replace it with a new one.
       rv = BackupAndReplaceDatabaseFile(storage, DATABASE_FILENAME, true, true);
       // Fallback to catch-all handler.
@@ -615,6 +640,16 @@ nsresult Database::EnsureConnection() {
       // Some errors may not indicate a database corruption, for those cases we
       // just bail out without throwing away a possibly valid places.sqlite.
       if (rv == NS_ERROR_FILE_CORRUPTED) {
+        // Set places and favicons last corruption time in prefs for
+        // troubleshooting.
+        CheckedInt<int32_t> daysSinceEpoch = GetNow() / USEC_PER_DAY;
+        if (daysSinceEpoch.isValid()) {
+          Preferences::SetInt(PREF_DATABASE_PLACES_LASTCORRUPTION,
+                              daysSinceEpoch.value());
+          Preferences::SetInt(PREF_DATABASE_FAVICONS_LASTCORRUPTION,
+                              daysSinceEpoch.value());
+        }
+
         // Since we don't know which database is corrupt, we must replace both.
         rv = BackupAndReplaceDatabaseFile(storage, DATABASE_FAVICONS_FILENAME,
                                           false, false);
@@ -1061,7 +1096,15 @@ nsresult Database::SetupDatabaseConnection(
   // Attach the favicons database to the main connection.
   rv = EnsureFaviconsDatabaseAttached(aStorage);
   if (NS_FAILED(rv)) {
-    // The favicons database may be corrupt. Try to replace and reattach it.
+    // The favicons database may be corrupt.
+    // Set last corruption time in prefs for troubleshooting.
+    CheckedInt<int32_t> daysSinceEpoch = GetNow() / USEC_PER_DAY;
+    if (daysSinceEpoch.isValid()) {
+      Preferences::SetInt(PREF_DATABASE_FAVICONS_LASTCORRUPTION,
+                          daysSinceEpoch.value());
+    }
+
+    // Try to replace and reattach it.
     nsCOMPtr<nsIFile> iconsFile;
     rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR,
                                 getter_AddRefs(iconsFile));

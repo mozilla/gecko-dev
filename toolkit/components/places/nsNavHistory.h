@@ -354,6 +354,14 @@ class nsNavHistory final : public nsSupportsWeakReference,
       const nsTArray<mozilla::places::QueryKeyValuePair>& aTokens,
       nsNavHistoryQuery* aQuery, nsNavHistoryQueryOptions* aOptions);
 
+  /**
+   * Calculates and returns value for mCachedNow.
+   * This is an hack to avoid calling PR_Now() too often, as is the case when
+   * we're asked the ageindays of many history entries in a row.  A timer is
+   * set which will clear our valid flag after a short timeout.
+   */
+  PRTime GetNow();
+
  private:
   ~nsNavHistory();
 
@@ -373,13 +381,6 @@ class nsNavHistory final : public nsSupportsWeakReference,
    */
   void LoadPrefs();
 
-  /**
-   * Calculates and returns value for mCachedNow.
-   * This is an hack to avoid calling PR_Now() too often, as is the case when
-   * we're asked the ageindays of many history entries in a row.  A timer is
-   * set which will clear our valid flag after a short timeout.
-   */
-  PRTime GetNow();
   PRTime mCachedNow;
   nsCOMPtr<nsITimer> mExpireNowTimer;
   /**
