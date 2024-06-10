@@ -41,6 +41,7 @@ EXPORTS += [
 
 UNIFIED_SOURCES += [
     "CSPEvalChecker.cpp",
+    "CSPViolationData.cpp",
     "DOMSecurityMonitor.cpp",
     "FramingChecker.cpp",
     "nsContentSecurityManager.cpp",
