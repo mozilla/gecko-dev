@@ -828,7 +828,6 @@ class GCRuntime {
   template <class ZoneIterT>
   IncrementalProgress markWeakReferences(SliceBudget& budget);
   IncrementalProgress markWeakReferencesInCurrentGroup(SliceBudget& budget);
-  template <class ZoneIterT>
   IncrementalProgress markGrayRoots(SliceBudget& budget,
                                     gcstats::PhaseKind phase);
   void markBufferedGrayRoots(JS::Zone* zone);
@@ -850,7 +849,7 @@ class GCRuntime {
   void groupZonesForSweeping(JS::GCReason reason);
   [[nodiscard]] bool findSweepGroupEdges();
   [[nodiscard]] bool addEdgesForMarkQueue();
-  void getNextSweepGroup();
+  void moveToNextSweepGroup();
   void resetGrayList(Compartment* comp);
   IncrementalProgress beginMarkingSweepGroup(JS::GCContext* gcx,
                                              SliceBudget& budget);
@@ -901,6 +900,9 @@ class GCRuntime {
   void backgroundFinalize(JS::GCContext* gcx, Zone* zone, AllocKind kind,
                           Arena** empty);
   void assertBackgroundSweepingFinished();
+#ifdef DEBUG
+  bool zoneInCurrentSweepGroup(Zone* zone) const;
+#endif
 
   bool allCCVisibleZonesWereCollected();
   void sweepZones(JS::GCContext* gcx, bool destroyingRuntime);

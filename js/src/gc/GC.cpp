@@ -1079,8 +1079,9 @@ void GCRuntime::restoreSharedAtomsZone() {
   MOZ_ASSERT(rt->isMainRuntime());
   MOZ_ASSERT(rt->childRuntimeCount == 0);
 
+  // Insert at start to preserve invariant that atoms zones come first.
   AutoEnterOOMUnsafeRegion oomUnsafe;
-  if (!zones().append(sharedAtomsZone_)) {
+  if (!zones().insert(zones().begin(), sharedAtomsZone_)) {
     oomUnsafe.crash("restoreSharedAtomsZone");
   }
 
@@ -3372,6 +3373,8 @@ void GCRuntime::finishCollection(JS::GCReason reason) {
   for (GCZonesIter zone(this); !zone.done(); zone.next()) {
     zone->changeGCState(Zone::Finished, Zone::NoGC);
     zone->notifyObservingDebuggers();
+    zone->gcNextGraphNode = nullptr;
+    zone->gcNextGraphComponent = nullptr;
   }
 
 #ifdef JS_GC_ZEAL
@@ -3404,6 +3407,8 @@ void GCRuntime::checkGCStateNotInUse() {
     MOZ_ASSERT(!zone->wasGCStarted());
     MOZ_ASSERT(!zone->needsIncrementalBarrier());
     MOZ_ASSERT(!zone->isOnList());
+    MOZ_ASSERT(!zone->gcNextGraphNode);
+    MOZ_ASSERT(!zone->gcNextGraphComponent);
   }
 
   MOZ_ASSERT(zonesToMaybeCompact.ref().isEmpty());
