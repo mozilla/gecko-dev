@@ -72,6 +72,10 @@ class MediaCapabilities final : public nsISupports, public nsWrapperCache {
   bool CheckTypeForFile(const nsAString& aType);
   bool CheckTypeForEncoder(const nsAString& aType);
   already_AddRefed<layers::KnowsCompositor> GetCompositor();
+  void CreateMediaCapabilitiesDecodingInfo(
+      const MediaDecodingConfiguration& aConfiguration, ErrorResult& aRv,
+      Promise* aPromise);
+
   nsCOMPtr<nsIGlobalObject> mParent;
 };
 
