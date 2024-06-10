@@ -469,7 +469,14 @@ NS_IMPL_RELEASE_INHERITED(XMLHttpRequestMainThread, XMLHttpRequestEventTarget)
 
 void XMLHttpRequestMainThread::DisconnectFromOwner() {
   XMLHttpRequestEventTarget::DisconnectFromOwner();
-  Abort();
+  // Worker-owned XHRs have their own complicated state machine that does not
+  // expect Abort() to be called here.  The worker state machine cleanup will
+  // take care of ensuring the XHR is aborted in a timely fashion since the
+  // worker itself will inherently be canceled at the same time this is
+  // happening.
+  if (!mForWorker) {
+    Abort();
+  }
 }
 
 size_t XMLHttpRequestMainThread::SizeOfEventTargetIncludingThis(
