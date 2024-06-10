@@ -40,13 +40,12 @@ const makeExtension = ({ manifest: manifestProps, ...otherProps }) => {
 
 add_task(async function setup() {
   // Among the longest running mochitests here, often times out on ASAN builds.
-  if (AppConstants.ASAN) {
+  if (AppConstants.ASAN || AppConstants.TSAN) {
     SimpleTest.requestLongerTimeout(5);
+    await SpecialPowers.pushPrefEnv({
+      set: [["extensions.background.idle.timeout", 300_000]],
+    });
   }
-
-  await SpecialPowers.pushPrefEnv({
-    set: [["extensions.manifestV3.enabled", true]],
-  });
 });
 
 add_task(async function test_validate_registerContentScripts_params() {
