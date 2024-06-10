@@ -74,6 +74,9 @@ struct GpuOverlayInfo {
   UINT mYuy2OverlaySupportFlags = 0;
   UINT mBgra8OverlaySupportFlags = 0;
   UINT mRgb10a2OverlaySupportFlags = 0;
+
+  bool mSupportsVpSuperResolution = false;
+  bool mSupportsVpAutoHDR = false;
 };
 
 // -
