@@ -592,8 +592,7 @@ class alignas(16) Instance {
   static int32_t stringTest(Instance* instance, void* stringArg);
   static void* stringCast(Instance* instance, void* stringArg);
   static void* stringFromCharCodeArray(Instance* instance, void* arrayArg,
-                                       uint32_t arrayStart,
-                                       uint32_t arrayCount);
+                                       uint32_t arrayStart, uint32_t arrayEnd);
   static int32_t stringIntoCharCodeArray(Instance* instance, void* stringArg,
                                          void* arrayArg, uint32_t arrayStart);
   static void* stringFromCharCode(Instance* instance, uint32_t charCode);

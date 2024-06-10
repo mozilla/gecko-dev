@@ -1996,18 +1996,16 @@ void* Instance::stringCast(Instance* instance, void* stringArg) {
 /* static */
 void* Instance::stringFromCharCodeArray(Instance* instance, void* arrayArg,
                                         uint32_t arrayStart,
-                                        uint32_t arrayCount) {
+                                        uint32_t arrayEnd) {
   JSContext* cx = instance->cx();
   RootedAnyRef arrayRef(cx, AnyRef::fromCompiledCode(arrayArg));
   Rooted<WasmArrayObject*> array(cx, UncheckedCastToArrayI16<true>(arrayRef));
 
-  CheckedUint32 lastIndexPlus1 =
-      CheckedUint32(arrayStart) + CheckedUint32(arrayCount);
-  if (!lastIndexPlus1.isValid() ||
-      lastIndexPlus1.value() > array->numElements_) {
+  if (arrayStart > arrayEnd || arrayEnd > array->numElements_) {
     ReportTrapError(cx, JSMSG_WASM_OUT_OF_BOUNDS);
     return nullptr;
   }
+  uint32_t arrayCount = arrayEnd - arrayStart;
 
   // GC is disabled on this call since it can cause the array to move,
   // invalidating the data pointer we pass as a parameter
@@ -3109,7 +3107,7 @@ class MOZ_RAII ReturnToJSResultCollector {
   Maybe<StackResultsRooter> rooter_;
 
  public:
-  explicit ReturnToJSResultCollector(const ResultType& type) : type_(type){};
+  explicit ReturnToJSResultCollector(const ResultType& type) : type_(type) {};
   bool init(JSContext* cx) {
     bool needRooter = false;
     ABIResultIter iter(type_);

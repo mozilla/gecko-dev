@@ -144,15 +144,15 @@ let polyFillImports = {
     }
     return string;
   },
-  fromCharCodeArray: (array, arrayStart, arrayCount) => {
+  fromCharCodeArray: (array, arrayStart, arrayEnd) => {
     arrayStart >>>= 0;
-    arrayCount >>>= 0;
-    let length = arrayLength(array);
-    if (BigInt(arrayStart) + BigInt(arrayCount) > BigInt(length)) {
+    arrayEnd >>>= 0;
+    if (arrayStart > arrayEnd ||
+        arrayEnd > arrayLength(array)) {
       throw new WebAssembly.RuntimeError();
     }
     let result = '';
-    for (let i = arrayStart; i < arrayStart + arrayCount; i++) {
+    for (let i = arrayStart; i < arrayEnd; i++) {
       result += String.fromCharCode(arrayGet(array, i));
     }
     return result;
@@ -361,7 +361,7 @@ for (let a of testStrings) {
   }
 }
 
-// fromCharCodeArray length is an unsigned integer
+// fromCharCodeArray endIndex is an unsigned integer
 {
   let arrayMutI16 = createArrayMutI16(1);
   assertErrorMessage(() => assertSameBehavior(
@@ -369,4 +369,16 @@ for (let a of testStrings) {
     polyfillExports['fromCharCodeArray'],
     arrayMutI16, 1, -1
   ), WebAssembly.RuntimeError, /./);
+}
+
+// fromCharCodeArray is startIndex and endIndex, not a count
+{
+  let arrayMutI16 = createArrayMutI16(1);
+  // Ask for [1, 1) to get an empty string. If misinterpreted as a count, this
+  // will result in a trap.
+  assertEq(assertSameBehavior(
+    builtinExports['fromCharCodeArray'],
+    polyfillExports['fromCharCodeArray'],
+    arrayMutI16, 1, 1
+  ), "");
 }
