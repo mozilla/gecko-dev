@@ -78,7 +78,21 @@ else
   # ending guidance is appropriate regarding changes in
   # third_party/libwebrtc between the old central we're currently
   # based on and the new central we're rebasing onto.
-  bash dom/media/webrtc/third_party_build/verify_vendoring.sh
+  echo "Restoring patch-stack..."
+  ./mach python $SCRIPT_DIR/restore_patch_stack.py --repo-path $MOZ_LIBWEBRTC_SRC
+  echo "Verify vendoring..."
+  ERROR_HELP=$"When verify_vendoring.sh is successful, run the following in bash:
+  (source $SCRIPT_DIR/use_config_env.sh ;
+   ./mach python $SCRIPT_DIR/save_patch_stack.py \\
+    --repo-path $MOZ_LIBWEBRTC_SRC \\
+    --target-branch-head $MOZ_TARGET_UPSTREAM_BRANCH_HEAD  \\
+    --separate-commit-bug-number $MOZ_FASTFORWARD_BUG )
+
+Then resume running this script:
+  bash $0
+"
+  bash $SCRIPT_DIR/verify_vendoring.sh || (echo "$ERROR_HELP" ; exit 1)
+  ERROR_HELP=""
 
   if [ "x" == "x$MOZ_TOP_FF" ]; then
     MOZ_TOP_FF=`hg log -r . -T"{node|short}"`
@@ -283,6 +297,11 @@ When verify_vendoring.sh is successful, run the following in bash:
     --target-branch-head $MOZ_TARGET_UPSTREAM_BRANCH_HEAD  \\
     --separate-commit-bug-number $MOZ_FASTFORWARD_BUG )
 "
+echo "Restoring patch-stack..."
+# restore to make sure new no-op commit files are in the state directory
+# in case the user is instructed to save the patch-stack.
+./mach python $SCRIPT_DIR/restore_patch_stack.py --repo-path $MOZ_LIBWEBRTC_SRC
+echo "Verify vendoring..."
 bash $SCRIPT_DIR/verify_vendoring.sh &> $LOG_DIR/log-verify.txt || PATCH_STACK_FIXUP="$FIXUP_INSTRUCTIONS"
 echo "Done checking for new mercurial changes in third_party/libwebrtc"
 
