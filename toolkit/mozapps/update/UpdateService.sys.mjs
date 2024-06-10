@@ -2297,6 +2297,7 @@ class Update {
     "statusText",
     "type",
     "unsupported",
+    "platformVersion",
   ];
 
   /**
@@ -2393,6 +2394,7 @@ class Update {
           case "serviceURL":
           case "statusText":
           case "type":
+          case "platformVersion":
             this[attr.name] = attr.value;
             break;
           default:
@@ -4347,6 +4349,13 @@ export class UpdateManager {
         this._readyUpdate = null;
       } else if (status == STATE_SUCCEEDED && this._readyUpdate) {
         this.#updateInstalledAtStartup = this._readyUpdate;
+        // Bug 1889785 - When deciding whether or not to show a What's New Page, we
+        // rely on both `Services.appinfo.platformVersion` and this value. But Balrog
+        // doesn't guarantee that the value that it sends will match appinfo.
+        // We synchronize the values here so they are consistent.
+        this.#updateInstalledAtStartup.platformVersion =
+          Services.appinfo.platformVersion;
+        this.saveUpdates();
       }
     }
 
@@ -4442,6 +4451,9 @@ export class UpdateManager {
         }
         if (status == STATE_SUCCEEDED && this._readyUpdate) {
           this.#updateInstalledAtStartup = this._readyUpdate;
+          this.#updateInstalledAtStartup.platformVersion =
+            Services.appinfo.platformVersion;
+          this.saveUpdates();
         }
       }
       updates = this._loadXMLFileIntoArray(FILE_UPDATES_XML);
@@ -4612,6 +4624,16 @@ export class UpdateManager {
    */
   get updateInstalledAtStartup() {
     return this.#updateInstalledAtStartup;
+  }
+
+  /**
+   * See nsIUpdateService.idl
+   */
+  get lastUpdateInstalled() {
+    if (this.updateInstalledAtStartup) {
+      return this.updateInstalledAtStartup;
+    }
+    return this._getUpdates().find(u => u.state == STATE_SUCCEEDED) ?? null;
   }
 
   #addUpdateToHistory(aUpdate) {

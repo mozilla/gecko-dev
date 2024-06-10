@@ -15,7 +15,7 @@ async function run_test() {
 
   setUpdateChannel("test_channel");
 
-  let patchProps = {
+  let patchProps1 = {
     type: "partial",
     url: "http://partial/",
     size: "86",
@@ -24,12 +24,13 @@ async function run_test() {
     custom1: 'custom1_attr="custom1 patch value"',
     custom2: 'custom2_attr="custom2 patch value"',
   };
-  let patches = getLocalPatchString(patchProps);
-  let updateProps = {
+  let patches1 = getLocalPatchString(patchProps1);
+  let updateProps1 = {
     type: "major",
     name: "New",
     displayVersion: "version 4",
     appVersion: "4.0",
+    platformVersion: "4.0",
     buildID: "20070811053724",
     detailsURL: "http://details1/",
     serviceURL: "http://service1/",
@@ -43,11 +44,11 @@ async function run_test() {
     custom1: 'custom1_attr="custom1 value"',
     custom2: 'custom2_attr="custom2 value"',
   };
-  let updates = getLocalUpdateString(updateProps, patches);
-  writeUpdatesToXMLFile(getLocalUpdatesXMLString(updates), true);
+  let updates1 = getLocalUpdateString(updateProps1, patches1);
+  writeUpdatesToXMLFile(getLocalUpdatesXMLString(updates1), true);
   writeStatusFile(STATE_SUCCEEDED);
 
-  patchProps = {
+  let patchProps2 = {
     type: "complete",
     url: "http://complete/",
     size: "75",
@@ -56,11 +57,12 @@ async function run_test() {
     custom1: 'custom3_attr="custom3 patch value"',
     custom2: 'custom4_attr="custom4 patch value"',
   };
-  patches = getLocalPatchString(patchProps);
-  updateProps = {
+  let patches2 = getLocalPatchString(patchProps2);
+  let updateProps2 = {
     type: "minor",
     name: "Existing",
     appVersion: "3.0",
+    platformVersion: "3.0",
     detailsURL: "http://details2/",
     serviceURL: "http://service2/",
     statusText: getString("patchApplyFailure"),
@@ -71,8 +73,8 @@ async function run_test() {
     custom1: 'custom3_attr="custom3 value"',
     custom2: 'custom4_attr="custom4 value"',
   };
-  updates = getLocalUpdateString(updateProps, patches);
-  writeUpdatesToXMLFile(getLocalUpdatesXMLString(updates), false);
+  let updates2 = getLocalUpdateString(updateProps2, patches2);
+  writeUpdatesToXMLFile(getLocalUpdatesXMLString(updates2), false);
 
   await standardInit();
 
@@ -326,6 +328,11 @@ async function run_test() {
     "the update appVersion attribute" + MSG_SHOULD_EQUAL
   );
   Assert.equal(
+    update.platformVersion,
+    "3.0",
+    "the update platformVersion attribute" + MSG_SHOULD_EQUAL
+  );
+  Assert.equal(
     update.detailsURL,
     "http://details2/",
     "the update detailsURL attribute" + MSG_SHOULD_EQUAL
@@ -506,6 +513,7 @@ async function run_test() {
 
   let attrNames = [
     "appVersion",
+    "platformVersion",
     "buildID",
     "channel",
     "detailsURL",
@@ -535,6 +543,19 @@ async function run_test() {
     "URL",
   ];
   checkIllegalProperties(patch, attrNames);
+  writeUpdatesToXMLFile(getLocalUpdatesXMLString(updates1), false);
+  reloadUpdateManagerData(false);
+  const updateHistory = await gUpdateManager.getHistory();
+  Assert.equal(
+    updateHistory.length,
+    1,
+    "the length of the refreshed update history should be one"
+  );
+  Assert.equal(
+    updateHistory[0].platformVersion,
+    "4.0",
+    "the platformVersion of the update should be 4.0"
+  );
 
   executeSoon(doTestFinish);
 }

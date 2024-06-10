@@ -35,6 +35,7 @@ async function run_test() {
     name: "Minor Test",
     displayVersion: "version 2.1a1pre",
     appVersion: "2.1a1pre",
+    platformVersion: "2.0",
     buildID: "20080811053724",
     detailsURL: "http://details/",
     promptWaitTime: "345600",
@@ -69,6 +70,11 @@ async function run_test() {
     bestUpdate.appVersion,
     "2.1a1pre",
     "the update appVersion attribute" + MSG_SHOULD_EQUAL
+  );
+  Assert.equal(
+    bestUpdate.platformVersion,
+    "2.0",
+    "the update platformVersion attribute" + MSG_SHOULD_EQUAL
   );
   Assert.equal(
     bestUpdate.buildID,

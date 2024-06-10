@@ -138,6 +138,7 @@ function getRemoteUpdateString(aUpdateProps, aPatches) {
     custom2: null,
     detailsURL: URL_HTTP_UPDATE_SJS + "?uiURL=DETAILS",
     displayVersion: null,
+    platformVersion: null,
     name: "App Update Test",
     promptWaitTime: null,
     type: "major",
@@ -239,6 +240,7 @@ function getLocalUpdateString(aUpdateProps, aPatches) {
     custom2: null,
     detailsURL: URL_HTTP_UPDATE_SJS + "?uiURL=DETAILS",
     displayVersion: null,
+    platformVersion: null,
     foregroundDownload: "true",
     installDate: "1238441400314",
     isCompleteUpdate: "true",
@@ -333,6 +335,8 @@ function getUpdateString(aUpdateProps) {
     ? 'displayVersion="' + aUpdateProps.displayVersion + '" '
     : "";
   let appVersion = 'appVersion="' + aUpdateProps.appVersion + '" ';
+  let platformVersion =
+    'platformVersion="' + aUpdateProps.platformVersion + '" ';
   // Not specifying a detailsURL will cause a leak due to bug 470244
   let detailsURL = 'detailsURL="' + aUpdateProps.detailsURL + '" ';
   let promptWaitTime = aUpdateProps.promptWaitTime
@@ -356,6 +360,7 @@ function getUpdateString(aUpdateProps) {
     name +
     displayVersion +
     appVersion +
+    platformVersion +
     detailsURL +
     promptWaitTime +
     disableBITS +

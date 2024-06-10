@@ -130,6 +130,8 @@ prefs = [
 
 ["browser_doorhanger_sp_patch_partialApplyFailure_complete_staging.js"]
 
+["browser_showWhatsNewPageTest.js"]
+
 # Telemetry Update Ping Tests
 
 ["browser_telemetry_updatePing_downloaded_ready.js"]
