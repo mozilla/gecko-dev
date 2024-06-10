@@ -224,11 +224,8 @@ add_task(async function test() {
       await Services.fog.testFlushAllChildren();
       Assert.equal(Glean.pdfjsEditingHighlight.deleted.testGetValue(), 1);
 
-      await SpecialPowers.spawn(browser, [], async function () {
-        const viewer = content.wrappedJSObject.PDFViewerApplication;
-        viewer.pdfDocument.annotationStorage.resetModified();
-        await viewer.close();
-      });
+      await waitForPdfJSClose(browser);
+      await SpecialPowers.popPrefEnv();
     }
   );
 });

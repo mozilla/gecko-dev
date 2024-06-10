@@ -17,8 +17,6 @@ async function checkFormState(formsEnabled) {
   } else {
     ok(!formInput, "Form input not available");
   }
-  let viewer = content.wrappedJSObject.PDFViewerApplication;
-  await viewer.close();
 }
 
 add_task(async function test_defaults() {
@@ -45,6 +43,7 @@ add_task(async function test_defaults() {
       );
 
       await SpecialPowers.spawn(browser, [true], checkFormState);
+      await waitForPdfJSClose(browser);
     }
   );
 });
@@ -80,6 +79,8 @@ add_task(async function test_disabling() {
         [false /* formsEnabled */],
         checkFormState
       );
+      await waitForPdfJSClose(browser);
+      await SpecialPowers.popPrefEnv();
     }
   );
 });

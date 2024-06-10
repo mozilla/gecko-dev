@@ -113,6 +113,8 @@ add_task(async function test_downloading_pdf_nonprivate_window() {
         "InitialDownloadsLoaded",
         true
       );
+      await waitForPdfJSClose(browser);
+
       BrowserTestUtils.startLoadingURIString(browser, "about:downloads");
       await downloadsLoaded;
 
@@ -122,4 +124,6 @@ add_task(async function test_downloading_pdf_nonprivate_window() {
       });
     }
   );
+
+  await SpecialPowers.popPrefEnv();
 });

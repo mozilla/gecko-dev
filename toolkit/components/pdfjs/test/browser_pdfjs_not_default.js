@@ -16,7 +16,7 @@ add_task(async function test_pdfjs_not_default() {
 
   changeMimeHandler(oldAction[0], oldAction[1]);
 
-  gBrowser.removeTab(tab);
+  await waitForPdfJSClose(tab.linkedBrowser, /* closeTab = */ true);
 });
 
 function getPdfjsActor() {

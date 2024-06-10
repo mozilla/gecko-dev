@@ -355,11 +355,7 @@ add_task(async function test_copy_paste_undo_redo() {
         "All the FreeText editors must have been deleted"
       );
 
-      await SpecialPowers.spawn(browser, [], async function () {
-        var viewer = content.wrappedJSObject.PDFViewerApplication;
-        viewer.pdfDocument.annotationStorage.resetModified();
-        await viewer.close();
-      });
+      await waitForPdfJSClose(browser);
     }
   );
 });

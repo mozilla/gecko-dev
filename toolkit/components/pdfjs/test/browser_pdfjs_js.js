@@ -44,6 +44,9 @@ add_task(async function test_js_sandbox() {
           is(sandboxDestroyCount, 1, "Sandbox must have been destroyed");
         });
       });
+
+      await waitForPdfJSClose(browser);
+      await SpecialPowers.popPrefEnv();
     }
   );
 });
