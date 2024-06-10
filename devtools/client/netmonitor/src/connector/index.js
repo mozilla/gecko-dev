@@ -144,16 +144,29 @@ class Connector {
     this._harMetadataCollector.destroy();
   }
 
-  clear() {
+  /**
+   * Clear network data from the connector.
+   *
+   * @param {object} options
+   * @param {boolean} options.isExplicitClear
+   *     Set to true if the call to clear requests is explicitly requested by
+   *     the user, to false if this is an automated clear, eg on navigation.
+   *
+   */
+  clear({ isExplicitClear }) {
     // Clear all the caches in the data provider
     this.dataProvider.clear();
 
     this._harMetadataCollector.clear();
 
-    this.commands.resourceCommand.clearResources(Connector.NETWORK_RESOURCES);
-    this.emitForTests("clear-network-resources");
+    if (isExplicitClear) {
+      // Only clear the resources if the clear was initiated explicitly by the
+      // UI, in other cases (eg navigation) the server handles the cleanup.
+      this.commands.resourceCommand.clearResources(Connector.NETWORK_RESOURCES);
+      this.emitForTests("clear-network-resources");
+    }
 
-    // Disable the realted network logs in the webconsole
+    // Disable the related network logs in the webconsole
     this.toolbox.disableAllConsoleNetworkLogs();
   }
 
@@ -265,7 +278,7 @@ class Connector {
     if (this.actions) {
       if (!Services.prefs.getBoolPref(DEVTOOLS_ENABLE_PERSISTENT_LOG_PREF)) {
         this.actions.batchReset();
-        this.actions.clearRequests();
+        this.actions.clearRequests({ isExplicitClear: false });
       } else {
         // If the log is persistent, just clear all accumulated timing markers.
         this.actions.clearTimingMarkers();

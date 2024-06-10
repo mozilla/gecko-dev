@@ -32,7 +32,7 @@ HarImporter.prototype = {
   },
 
   doImport(har) {
-    this.actions.clearRequests();
+    this.actions.clearRequests({ isExplicitClear: true });
 
     // Helper map for pages.
     const pages = new Map();

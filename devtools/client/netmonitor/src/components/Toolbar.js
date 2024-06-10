@@ -666,7 +666,8 @@ module.exports = connect(
     selectedRequest: getSelectedRequest(state),
   }),
   dispatch => ({
-    clearRequests: () => dispatch(Actions.clearRequests()),
+    clearRequests: () =>
+      dispatch(Actions.clearRequests({ isExplicitClear: true })),
     disableBrowserCache: disabled =>
       dispatch(Actions.disableBrowserCache(disabled)),
     enablePersistentLogs: (enabled, skipTelemetry) =>
