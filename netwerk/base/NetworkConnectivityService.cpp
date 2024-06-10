@@ -407,6 +407,10 @@ already_AddRefed<nsIChannel> NetworkConnectivityService::SetupIPCheckChannel(
   nsresult rv;
   nsAutoCString url;
 
+  if (AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed)) {
+    return nullptr;
+  }
+
   if (ipv4) {
     rv = Preferences::GetCString("network.connectivity-service.IPv4.url", url);
   } else {
