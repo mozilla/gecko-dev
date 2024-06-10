@@ -144,10 +144,11 @@ class MediaKeySystemAccessManager final : public nsIObserver, public nsINamed {
     // CDM install.
     nsCOMPtr<nsITimer> mTimer = nullptr;
 
-    // Convenience methods to reject the wrapped promise.
+    // Convenience methods to reject/resolve the wrapped promise.
     void RejectPromiseWithInvalidAccessError(const nsACString& aReason);
     void RejectPromiseWithNotSupportedError(const nsACString& aReason);
     void RejectPromiseWithTypeError(const nsACString& aReason);
+    void ResolvePromise(MediaKeySystemAccess* aAccess);
 
     void CancelTimer();
   };
