@@ -439,6 +439,12 @@ AttachDecision GetPropIRGenerator::tryAttachStub() {
       TRY_ATTACH(tryAttachArgumentsObjectCallee(obj, objId, id));
       TRY_ATTACH(tryAttachProxy(obj, objId, id, receiverId));
 
+      if (!isSuper() && mode_ == ICState::Mode::Megamorphic &&
+          JSOp(*pc_) != JSOp::GetBoundName) {
+        attachMegamorphicNativeSlotPermissive(objId, id);
+        return AttachDecision::Attach;
+      }
+
       trackAttached(IRGenerator::NotAttached);
       return AttachDecision::NoAction;
     }
@@ -1109,6 +1115,29 @@ void GetPropIRGenerator::attachMegamorphicNativeSlot(ObjOperandId objId,
   trackAttached("GetProp.MegamorphicNativeSlot");
 }
 
+void GetPropIRGenerator::attachMegamorphicNativeSlotPermissive(
+    ObjOperandId objId, jsid id) {
+  MOZ_ASSERT(mode_ == ICState::Mode::Megamorphic);
+
+  // We don't support GetBoundName because environment objects have
+  // lookupProperty hooks and GetBoundName is usually not megamorphic.
+  MOZ_ASSERT(JSOp(*pc_) != JSOp::GetBoundName);
+  // It is not worth the complexity to support super here because we'd have
+  // to plumb the receiver through everywhere, so we just skip it.
+  MOZ_ASSERT(!isSuper());
+
+  if (cacheKind_ == CacheKind::GetProp) {
+    writer.megamorphicLoadSlotPermissiveResult(objId, id);
+  } else {
+    MOZ_ASSERT(cacheKind_ == CacheKind::GetElem);
+    writer.megamorphicLoadSlotByValuePermissiveResult(objId,
+                                                      getElemKeyValueId());
+  }
+  writer.returnFromIC();
+
+  trackAttached("GetProp.MegamorphicNativeSlotPermissive");
+}
+
 AttachDecision GetPropIRGenerator::tryAttachNative(HandleObject obj,
                                                    ObjOperandId objId,
                                                    HandleId id,
@@ -1147,6 +1176,14 @@ AttachDecision GetPropIRGenerator::tryAttachNative(HandleObject obj,
     case NativeGetPropKind::NativeGetter: {
       auto* nobj = &obj->as<NativeObject>();
       MOZ_ASSERT(!IsWindow(nobj));
+
+      // If we're in megamorphic mode, we assume that a specialized
+      // getter call is just going to end up failing later, so we let this
+      // get handled further down the chain by
+      // attachMegamorphicNativeSlotPermissive
+      if (!isSuper() && mode_ == ICState::Mode::Megamorphic) {
+        return AttachDecision::NoAction;
+      }
 
       maybeEmitIdGuard(id);
 
