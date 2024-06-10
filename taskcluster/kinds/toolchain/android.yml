@@ -250,3 +250,15 @@ linux64-android-gradle-dependencies-lite:
             - linux64-android-sdk-linux-repack
             - linux64-jdk-repack
             - linux64-node
+
+linux64-android-xmlstarlet:
+    description: "Tool for finding xml paths on Android"
+    treeherder:
+        symbol: TL(xmlstarlet)
+    run:
+        script: android-xmlstarlet.sh
+        toolchain-artifact: public/build/android-xmlstarlet.tar.zst
+        toolchain-alias: android-xmlstarlet
+    fetches:
+        fetch:
+            - xmlstarlet-1.6.1
