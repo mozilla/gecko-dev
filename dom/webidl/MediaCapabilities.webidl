@@ -14,12 +14,30 @@ dictionary MediaConfiguration {
   AudioConfiguration audio;
 };
 
+// https://w3c.github.io/media-capabilities/#dictdef-mediaconfiguration
 dictionary MediaDecodingConfiguration : MediaConfiguration {
   required MediaDecodingType type;
+  MediaCapabilitiesKeySystemConfiguration keySystemConfiguration;
 };
 
 dictionary MediaEncodingConfiguration : MediaConfiguration {
   required MediaEncodingType type;
+};
+
+// https://w3c.github.io/media-capabilities/#mediacapabilitieskeysystemconfiguration
+dictionary MediaCapabilitiesKeySystemConfiguration {
+  required DOMString keySystem;
+  DOMString initDataType = "";
+  MediaKeysRequirement distinctiveIdentifier = "optional";
+  MediaKeysRequirement persistentState = "optional";
+  sequence<DOMString> sessionTypes;
+  KeySystemTrackConfiguration audio;
+  KeySystemTrackConfiguration video;
+};
+
+dictionary KeySystemTrackConfiguration {
+  DOMString robustness = "";
+  DOMString? encryptionScheme = null;
 };
 
 enum MediaDecodingType {
