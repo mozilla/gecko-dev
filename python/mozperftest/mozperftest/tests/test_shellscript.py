@@ -17,7 +17,9 @@ def running_env(**kw):
 
 
 def test_shell_script_metric_parsing():
-    mach_cmd, metadata, env = running_env(tests=[str(EXAMPLE_SHELL_TEST)])
+    mach_cmd, metadata, env = running_env(
+        app="firefox", tests=[str(EXAMPLE_SHELL_TEST)]
+    )
 
     runner = ShellScriptRunner(env, mach_cmd)
     line_handler = runner.line_handler_wrapper()
@@ -43,7 +45,9 @@ def test_shell_script_metric_parsing():
 @mock.patch("mozperftest.test.shellscript.ShellScriptRunner.parse_metrics")
 @mock.patch("mozperftest.test.shellscript.mozprocess.run_and_wait")
 def test_shell_script(mocked_mozprocess, mocked_metrics):
-    mach_cmd, metadata, env = running_env(tests=[str(EXAMPLE_SHELL_TEST)])
+    mach_cmd, metadata, env = running_env(
+        app="firefox", tests=[str(EXAMPLE_SHELL_TEST)]
+    )
 
     mocked_metrics.return_value = [
         {"name": "metric1", "values": [1, 2]},
