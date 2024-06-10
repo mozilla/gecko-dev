@@ -36,7 +36,22 @@ static const PlanarYCbCrData* GetPlanarYCbCrData(Image* aImage) {
   }
 }
 
-static already_AddRefed<SourceSurface> GetSourceSurface(Image* aImage) {
+static nsresult MapRv(int aRv) {
+  // Docs for libyuv::ConvertToI420 say:
+  // Returns 0 for successful; -1 for invalid parameter. Non-zero for failure.
+  switch (aRv) {
+    case 0:
+      return NS_OK;
+    case -1:
+      return NS_ERROR_INVALID_ARG;
+    default:
+      return NS_ERROR_FAILURE;
+  }
+}
+
+namespace mozilla {
+
+already_AddRefed<SourceSurface> GetSourceSurface(Image* aImage) {
   if (!aImage->AsGLImage() || NS_IsMainThread()) {
     return aImage->GetAsSourceSurface();
   }
@@ -52,21 +67,6 @@ static already_AddRefed<SourceSurface> GetSourceSurface(Image* aImage) {
 
   return surf.forget();
 }
-
-static nsresult MapRv(int aRv) {
-  // Docs for libyuv::ConvertToI420 say:
-  // Returns 0 for successful; -1 for invalid parameter. Non-zero for failure.
-  switch (aRv) {
-    case 0:
-      return NS_OK;
-    case -1:
-      return NS_ERROR_INVALID_ARG;
-    default:
-      return NS_ERROR_FAILURE;
-  }
-}
-
-namespace mozilla {
 
 nsresult ConvertToI420(Image* aImage, uint8_t* aDestY, int aDestStrideY,
                        uint8_t* aDestU, int aDestStrideU, uint8_t* aDestV,
