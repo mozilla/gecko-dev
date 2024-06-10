@@ -35,6 +35,7 @@ def test_verify_options(filedir):
         benchmark_revision=None,
         benchmark_branch=None,
         post_startup_delay=None,
+        power_test=False,
     )
     parser = ArgumentParser()
 
@@ -64,6 +65,7 @@ def test_verify_options(filedir):
         benchmark_revision=None,
         benchmark_branch=None,
         post_startup_delay=None,
+        power_test=False,
     )
     verify_options(parser, args)  # assert no exception
 
@@ -87,6 +89,7 @@ def test_verify_options(filedir):
         benchmark_revision=None,
         benchmark_branch=None,
         post_startup_delay=None,
+        power_test=False,
     )
     verify_options(parser, args)  # assert no exception
 
@@ -110,6 +113,7 @@ def test_verify_options(filedir):
         benchmark_revision=None,
         benchmark_branch=None,
         post_startup_delay=None,
+        power_test=False,
     )
     verify_options(parser, args)  # assert no exception
 
@@ -133,6 +137,7 @@ def test_verify_options(filedir):
         benchmark_revision=None,
         benchmark_branch=None,
         post_startup_delay=None,
+        power_test=False,
     )
     verify_options(parser, args)  # assert no exception
 
@@ -156,6 +161,7 @@ def test_verify_options(filedir):
         benchmark_revision=None,
         benchmark_branch=None,
         post_startup_delay=None,
+        power_test=False,
     )
     parser = ArgumentParser()
 
@@ -237,6 +243,44 @@ def test_perftest_setup_with_args(ConcretePerftest, args, settings_to_check):
     perftest = ConcretePerftest(**vars(args))
     for setting, expected in settings_to_check:
         assert getattr(perftest, setting) == expected
+
+
+@pytest.mark.parametrize(
+    "args, expected_failure",
+    [
+        # Test that post_startup_delay is 30s as expected
+        [
+            {
+                "app": "firefox",
+                "binary": "org.mozilla.reference.browser",
+                "activity": None,
+                "intent": "android.intent.action.MAIN",
+                "gecko_profile": "False",
+                "is_release_build": False,
+                "host": "sophie",
+                "chimera": False,
+                "browsertime_video": False,
+                "browsertime_visualmetrics": False,
+                "fission": True,
+                "fission_mobile": False,
+                "test_bytecode_cache": False,
+                "webext": False,
+                "extra_prefs": [],
+                "benchmark_repository": None,
+                "benchmark_revision": None,
+                "benchmark_branch": None,
+                "post_startup_delay": None,
+                "power_test": True,
+            },
+            SystemExit,
+        ],
+    ],
+)
+def test_verify_options_failure(ConcretePerftest, args, expected_failure):
+    args = Namespace(**args)
+    parser = ArgumentParser()
+    with pytest.raises(expected_failure):
+        verify_options(parser, args)
 
 
 if __name__ == "__main__":

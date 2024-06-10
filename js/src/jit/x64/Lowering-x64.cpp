@@ -7,6 +7,7 @@
 #include "jit/x64/Lowering-x64.h"
 
 #include "jit/Lowering.h"
+#include "jit/MIR-wasm.h"
 #include "jit/MIR.h"
 #include "jit/x64/Assembler-x64.h"
 

@@ -65,6 +65,28 @@ def test_android():
         android(metadata)
 
 
+@mock.patch("mozperftest.system.VersionProducer", new=mock.MagicMock())
+@mock.patch("mozperftest.system.android.ADBLoggedDevice", new=FakeDevice)
+def test_android_with_binary():
+    args = {
+        "flavor": "mobile-browser",
+        "android-install-apk": ["this.apk"],
+        "android": True,
+        "android-timeout": 30,
+        "android-capture-adb": "stdout",
+        "app": "fenix",
+        "binary": "org.mozilla.fenix-fake",
+    }
+
+    mach_cmd, metadata, env = get_running_env(**args)
+    system = env.layers[SYSTEM]
+    with system as android, silence(system):
+        android(metadata)
+
+    android_layer = get_android_device_layer(system.layers)
+    assert android_layer.app_name == "org.mozilla.fenix-fake"
+
+
 @mock.patch("mozperftest.system.android.ADBLoggedDevice")
 def test_android_perf_tuning_rooted(device):
     # Check to make sure that performance tuning runs

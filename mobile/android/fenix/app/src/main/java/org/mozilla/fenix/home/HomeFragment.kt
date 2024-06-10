@@ -82,10 +82,12 @@ import mozilla.components.feature.top.sites.TopSitesProviderConfig
 import mozilla.components.lib.state.ext.consumeFlow
 import mozilla.components.lib.state.ext.consumeFrom
 import mozilla.components.service.glean.private.NoExtras
+import mozilla.components.service.nimbus.messaging.Message
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
 import mozilla.components.support.utils.ext.isLandscape
 import mozilla.components.ui.colors.PhotonColors
 import org.mozilla.fenix.BrowserDirection
+import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.GleanMetrics.HomeScreen
 import org.mozilla.fenix.GleanMetrics.Homepage
 import org.mozilla.fenix.GleanMetrics.Logins
@@ -169,7 +171,7 @@ class HomeFragment : Fragment() {
     @VisibleForTesting
     @Suppress("VariableNaming")
     internal var _binding: FragmentHomeBinding? = null
-    private val binding get() = _binding!!
+    internal val binding get() = _binding!!
 
     private val homeViewModel: HomeScreenViewModel by activityViewModels()
 
@@ -243,7 +245,13 @@ class HomeFragment : Fragment() {
     private var lastAppliedWallpaperName: String = Wallpaper.defaultName
 
     private val topSitesFeature = ViewBoundFeatureWrapper<TopSitesFeature>()
-    private val messagingFeature = ViewBoundFeatureWrapper<MessagingFeature>()
+
+    @VisibleForTesting
+    internal val messagingFeatureHomescreen = ViewBoundFeatureWrapper<MessagingFeature>()
+
+    @VisibleForTesting
+    internal val messagingFeatureMicrosurvey = ViewBoundFeatureWrapper<MessagingFeature>()
+
     private val recentTabsListFeature = ViewBoundFeatureWrapper<RecentTabsListFeature>()
     private val recentSyncedTabFeature = ViewBoundFeatureWrapper<RecentSyncedTabFeature>()
     private val bookmarksFeature = ViewBoundFeatureWrapper<BookmarksFeature>()
@@ -315,7 +323,7 @@ class HomeFragment : Fragment() {
         }
 
         if (requireContext().settings().isExperimentationEnabled) {
-            messagingFeature.set(
+            messagingFeatureHomescreen.set(
                 feature = MessagingFeature(
                     appStore = requireComponents.appStore,
                     surface = FenixMessageSurfaceId.HOMESCREEN,
@@ -323,6 +331,8 @@ class HomeFragment : Fragment() {
                 owner = viewLifecycleOwner,
                 view = binding.root,
             )
+
+            initializeMicrosurveyFeature()
         }
 
         if (requireContext().settings().showTopSitesFeature) {
@@ -473,8 +483,8 @@ class HomeFragment : Fragment() {
             initializeNavBar(activity)
         }
 
-        if (!shouldAddNavigationBar && shouldShowMicrosurveyPrompt()) {
-            initializeMicrosurveyPrompt(requireContext())
+        if (FeatureFlags.microsurveysEnabled) {
+            listenForMicrosurveyMessage(requireContext())
         }
 
         sessionControlView = SessionControlView(
@@ -522,7 +532,7 @@ class HomeFragment : Fragment() {
         }
 
         // If the microsurvey feature is visible, we should update it's state.
-        if (shouldShowMicrosurveyPrompt()) {
+        if (shouldShowMicrosurveyPrompt(requireContext()) && !shouldUpdateNavBarState) {
             updateMicrosurveyPromptForConfigurationChange(
                 parent = binding.homeLayout,
                 bottomToolbarContainerView = _bottomToolbarContainerView?.toolbarContainerView,
@@ -543,10 +553,6 @@ class HomeFragment : Fragment() {
      */
     private fun shouldAddNavigationBar(context: Context) =
         IncompleteRedesignToolbarFeature(context.settings()).isEnabled && !context.isLandscape() && !isTablet()
-
-    // TODO FXDROID-1970 detekt does not like inlining this
-    private val shouldShowMicrosurveyPrompt = false
-    private fun shouldShowMicrosurveyPrompt() = shouldShowMicrosurveyPrompt
 
     @Suppress("LongMethod")
     private fun initializeNavBar(activity: HomeActivity) {
@@ -582,7 +588,7 @@ class HomeFragment : Fragment() {
             composableContent = {
                 FirefoxTheme {
                     Column {
-                        if (shouldShowMicrosurveyPrompt()) {
+                        if (currentlyDisplayedMessage != null) {
                             MicrosurveyRequestPrompt()
                         }
 
@@ -649,6 +655,22 @@ class HomeFragment : Fragment() {
         )
     }
 
+    @VisibleForTesting
+    internal fun initializeMicrosurveyFeature(
+        isMicrosurveyEnabled: Boolean = FeatureFlags.microsurveysEnabled,
+    ) {
+        if (isMicrosurveyEnabled) {
+            messagingFeatureMicrosurvey.set(
+                feature = MessagingFeature(
+                    appStore = requireComponents.appStore,
+                    surface = FenixMessageSurfaceId.MICROSURVEY,
+                ),
+                owner = viewLifecycleOwner,
+                view = binding.root,
+            )
+        }
+    }
+
     private fun initializeMicrosurveyPrompt(context: Context) {
         val isToolbarAtTheBottom = isToolbarAtBottom(context)
         // The toolbar view has already been added directly to the container.
@@ -663,7 +685,9 @@ class HomeFragment : Fragment() {
             composableContent = {
                 FirefoxTheme {
                     Column {
-                        MicrosurveyRequestPrompt()
+                        if (currentlyDisplayedMessage != null) {
+                            MicrosurveyRequestPrompt()
+                        }
 
                         if (isToolbarAtTheBottom) {
                             // TODO android bottom bar shadow causing gap FXDROID-2056
@@ -676,6 +700,33 @@ class HomeFragment : Fragment() {
             },
         )
     }
+
+    private var currentlyDisplayedMessage: Message? = null
+
+    /**
+     * Listens for the microsurvey message and initializes the microsurvey prompt if one is available.
+     */
+    private fun listenForMicrosurveyMessage(context: Context) {
+        binding.root.consumeFrom(context.components.appStore, viewLifecycleOwner) {
+            it.messaging.messageToShow[FenixMessageSurfaceId.MICROSURVEY]?.let { message ->
+                if (message.id != currentlyDisplayedMessage?.id) {
+                    context.components.settings.shouldShowMicrosurveyPrompt = true
+                    currentlyDisplayedMessage = message
+                    if (shouldAddNavigationBar(context)) {
+                        _bottomToolbarContainerView?.toolbarContainerView.let {
+                            binding.homeLayout.removeView(it)
+                        }
+                        reinitializeNavBar()
+                    } else {
+                        initializeMicrosurveyPrompt(requireContext())
+                    }
+                }
+            }
+        }
+    }
+
+    private fun shouldShowMicrosurveyPrompt(context: Context) =
+        context.components.settings.shouldShowMicrosurveyPrompt
 
     private fun isToolbarAtBottom(context: Context) =
         context.components.settings.toolbarPosition == ToolbarPosition.BOTTOM

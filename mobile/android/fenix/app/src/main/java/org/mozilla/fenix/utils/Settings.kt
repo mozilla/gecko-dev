@@ -2043,4 +2043,12 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         default = { false },
         featureFlag = FxNimbus.features.toolbarRedesign.value().enabled,
     )
+
+    /**
+     * Indicates if a microsurvey should be shown to the user.
+     */
+    var shouldShowMicrosurveyPrompt by booleanPreference(
+        appContext.getPreferenceKey(R.string.pref_key_should_show_microsurvey_prompt),
+        default = false,
+    )
 }

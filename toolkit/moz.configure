@@ -3345,6 +3345,47 @@ set_define(
     when=depends("--enable-parental-controls")(lambda x: not x),
 )
 
+# Automation renaming
+# ==============================================================
+
+with only_when("MOZ_AUTOMATION"):
+    option(env="MOZ_SIMPLE_PACKAGE_NAME", nargs=1, help="Package name override")
+    set_config(
+        "MOZ_SIMPLE_PACKAGE_NAME", depends_if("MOZ_SIMPLE_PACKAGE_NAME")(lambda x: x[0])
+    )
+    option(env="MOZ_PKG_SPECIAL", nargs=1, help="Name of special moz flavor")
+    set_config("MOZ_PKG_SPECIAL", depends_if("MOZ_PKG_SPECIAL")(lambda x: x[0]))
+
+
+# OSX Packaging
+# ==============================================================
+
+with only_when(target_is_osx):
+    option(
+        "--with-macbundlename-prefix",
+        nargs=1,
+        help="prefix for the mac bundle name",
+    )
+
+    @depends_if("--with-macbundlename-prefix")
+    def mac_bundle_name(value):
+        return value[0]
+
+    add_old_configure_assignment("MOZ_MACBUNDLE_NAME_PREFIX", mac_bundle_name)
+
+    option(env="DMG_TOOL", nargs=1, help="Path to the dmg tool")
+    set_config("DMG_TOOL", depends_if("DMG_TOOL")(lambda x: x[0]))
+
+
+# JS Packaging
+# ==============================================================
+
+option(
+    env="MOZ_PACKAGE_JSSHELL",
+    help="whether the installer bundles the JS shell",
+)
+set_config("MOZ_PACKAGE_JSSHELL", depends_if("MOZ_PACKAGE_JSSHELL")(lambda x: bool(x)))
+
 
 # Sandboxing support
 # ==============================================================

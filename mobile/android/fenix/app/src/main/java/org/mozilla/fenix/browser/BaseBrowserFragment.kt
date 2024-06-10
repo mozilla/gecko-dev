@@ -99,8 +99,10 @@ import mozilla.components.feature.session.SwipeRefreshFeature
 import mozilla.components.feature.sitepermissions.SitePermissionsFeature
 import mozilla.components.feature.webauthn.WebAuthnFeature
 import mozilla.components.lib.state.ext.consumeFlow
+import mozilla.components.lib.state.ext.consumeFrom
 import mozilla.components.lib.state.ext.flowScoped
 import mozilla.components.service.glean.private.NoExtras
+import mozilla.components.service.nimbus.messaging.Message
 import mozilla.components.service.sync.autofill.DefaultCreditCardValidationDelegate
 import mozilla.components.service.sync.logins.DefaultLoginValidationDelegate
 import mozilla.components.service.sync.logins.LoginsApiException
@@ -183,6 +185,8 @@ import org.mozilla.fenix.ext.updateNavBarForConfigurationChange
 import org.mozilla.fenix.home.HomeScreenViewModel
 import org.mozilla.fenix.home.SharedViewModel
 import org.mozilla.fenix.library.bookmarks.BookmarksSharedViewModel
+import org.mozilla.fenix.messaging.FenixMessageSurfaceId
+import org.mozilla.fenix.messaging.MessagingFeature
 import org.mozilla.fenix.microsurvey.ui.MicrosurveyRequestPrompt
 import org.mozilla.fenix.perf.MarkersFragmentLifecycleCallbacks
 import org.mozilla.fenix.settings.SupportUtils
@@ -239,6 +243,9 @@ abstract class BaseBrowserFragment :
 
     protected val readerViewFeature = ViewBoundFeatureWrapper<ReaderViewFeature>()
     protected val thumbnailsFeature = ViewBoundFeatureWrapper<BrowserThumbnails>()
+
+    @VisibleForTesting
+    internal val messagingFeatureMicrosurvey = ViewBoundFeatureWrapper<MessagingFeature>()
 
     private val sessionFeature = ViewBoundFeatureWrapper<SessionFeature>()
     private val contextMenuFeature = ViewBoundFeatureWrapper<ContextMenuFeature>()
@@ -514,8 +521,8 @@ abstract class BaseBrowserFragment :
             )
         }
 
-        if (!shouldAddNavigationBar && shouldShowMicrosurveyPrompt()) {
-            initializeMicrosurveyPrompt(
+        if (FeatureFlags.microsurveysEnabled) {
+            listenForMicrosurveyMessage(
                 browserToolbar = browserToolbarView.view,
                 view = view,
                 context = context,
@@ -1040,6 +1047,8 @@ abstract class BaseBrowserFragment :
             ),
             bottomToolbarHeight = bottomToolbarHeight,
         )
+
+        initializeMicrosurveyFeature(context)
     }
 
     private fun showUndoSnackbar(message: String) {
@@ -1244,7 +1253,9 @@ abstract class BaseBrowserFragment :
         if (isToolbarDynamic(context)) {
             getEngineView().setDynamicToolbarMaxHeight(topToolbarHeight + bottomToolbarHeight)
 
-            if (IncompleteRedesignToolbarFeature(context.settings()).isEnabled || shouldShowMicrosurveyPrompt()) {
+            if (IncompleteRedesignToolbarFeature(context.settings()).isEnabled ||
+                shouldShowMicrosurveyPrompt(context)
+            ) {
                 (getSwipeRefreshLayout().layoutParams as CoordinatorLayout.LayoutParams).behavior =
                     EngineViewClippingBehavior(
                         context = context,
@@ -1290,10 +1301,6 @@ abstract class BaseBrowserFragment :
     private fun shouldAddNavigationBar(context: Context) =
         IncompleteRedesignToolbarFeature(context.settings()).isEnabled && !context.isLandscape() && !isTablet()
 
-    // TODO FXDROID-1970 detekt does not like inlining this
-    private val shouldShowMicrosurveyPrompt = false
-    private fun shouldShowMicrosurveyPrompt() = shouldShowMicrosurveyPrompt
-
     @Suppress("LongMethod")
     private fun initializeNavBar(
         browserToolbar: BrowserToolbar,
@@ -1331,7 +1338,7 @@ abstract class BaseBrowserFragment :
             composableContent = {
                 FirefoxTheme {
                     Column {
-                        if (shouldShowMicrosurveyPrompt()) {
+                        if (currentlyDisplayedMessage != null) {
                             MicrosurveyRequestPrompt()
                         }
 
@@ -1417,13 +1424,29 @@ abstract class BaseBrowserFragment :
         )
     }
 
+    @VisibleForTesting
+    internal fun initializeMicrosurveyFeature(
+        context: Context,
+        microsurveyEnabled: Boolean = FeatureFlags.microsurveysEnabled,
+    ) {
+        if (context.settings().isExperimentationEnabled && microsurveyEnabled) {
+            messagingFeatureMicrosurvey.set(
+                feature = MessagingFeature(
+                    appStore = requireComponents.appStore,
+                    surface = FenixMessageSurfaceId.MICROSURVEY,
+                ),
+                owner = viewLifecycleOwner,
+                view = binding.root,
+            )
+        }
+    }
+
     private fun initializeMicrosurveyPrompt(
         browserToolbar: BrowserToolbar,
         view: View,
         context: Context,
     ) {
         val isToolbarAtBottom = isToolbarAtBottom(context)
-
         // The toolbar view has already been added directly to the container.
         // See initializeNavBar for more details on improving this.
         if (isToolbarAtBottom) {
@@ -1437,7 +1460,9 @@ abstract class BaseBrowserFragment :
             composableContent = {
                 FirefoxTheme {
                     Column {
-                        MicrosurveyRequestPrompt()
+                        if (currentlyDisplayedMessage != null) {
+                            MicrosurveyRequestPrompt()
+                        }
 
                         if (isToolbarAtBottom) {
                             AndroidView(factory = { _ -> browserToolbar })
@@ -1461,6 +1486,41 @@ abstract class BaseBrowserFragment :
             view = view,
         )
     }
+
+    private var currentlyDisplayedMessage: Message? = null
+
+    /**
+     * Listens for the microsurvey message and initializes the microsurvey prompt if one is available.
+     */
+    private fun listenForMicrosurveyMessage(
+        browserToolbar: BrowserToolbar,
+        view: View,
+        context: Context,
+    ) {
+        binding.root.consumeFrom(context.components.appStore, viewLifecycleOwner) {
+            it.messaging.messageToShow[FenixMessageSurfaceId.MICROSURVEY]?.let { message ->
+                if (message.id != currentlyDisplayedMessage?.id) {
+                    context.components.settings.shouldShowMicrosurveyPrompt = true
+                    currentlyDisplayedMessage = message
+                    if (shouldAddNavigationBar(context)) {
+                        _bottomToolbarContainerView?.toolbarContainerView.let {
+                            binding.browserLayout.removeView(it)
+                        }
+                        reinitializeNavBar()
+                    } else {
+                        initializeMicrosurveyPrompt(
+                            browserToolbar = browserToolbar,
+                            view = view,
+                            context = context,
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private fun shouldShowMicrosurveyPrompt(context: Context) =
+        context.components.settings.shouldShowMicrosurveyPrompt
 
     private fun isToolbarAtBottom(context: Context) =
         context.components.settings.toolbarPosition == ToolbarPosition.BOTTOM
@@ -1920,7 +1980,7 @@ abstract class BaseBrowserFragment :
         }
 
         // If the microsurvey feature is visible, we should update it's state.
-        if (shouldShowMicrosurveyPrompt()) {
+        if (shouldShowMicrosurveyPrompt(requireContext()) && !shouldUpdateNavBarState) {
             updateMicrosurveyPromptForConfigurationChange(
                 parent = binding.browserLayout,
                 bottomToolbarContainerView = _bottomToolbarContainerView?.toolbarContainerView,

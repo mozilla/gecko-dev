@@ -76,6 +76,8 @@ add_task(async function test() {
         redPixels / total >= 0.1,
         `Not enough red pixels: only ${redPixels} / ${total} red pixels!`
       );
+
+      await waitForPdfJSClose(browser);
     }
   );
 });

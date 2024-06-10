@@ -209,11 +209,8 @@ add_task(async function test() {
         "Should have 1 alt_text_keyboard"
       );
 
-      await SpecialPowers.spawn(browser, [], async function () {
-        const viewer = content.wrappedJSObject.PDFViewerApplication;
-        viewer.pdfDocument.annotationStorage.resetModified();
-        await viewer.close();
-      });
+      await waitForPdfJSClose(browser);
+      await SpecialPowers.popPrefEnv();
     }
   );
 });

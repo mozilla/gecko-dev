@@ -72,6 +72,8 @@ skip-if = ["verify && debug && os == 'win'"]
 
 ["browser_rules_at_scope.js"]
 
+["browser_rules_at_starting-style.js"]
+
 ["browser_rules_authored.js"]
 
 ["browser_rules_authored_color.js"]

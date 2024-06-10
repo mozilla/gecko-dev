@@ -98,6 +98,12 @@ Running on vanilla Browsertime:
 
   ./mach browsertime --android --browser firefox https://www.sitespeed.io
 
+Running Power Usage tests on Mobile
+-----------------------------------
+To gather power usage tests on mobile, you can pass ``--power-test`` to ``./mach raptor``. This will only work if the phone is hooked up to a `supported USB power meter <https://github.com/fqueze/usb-power-profiling/tree/5a6fc823ea4dd0553f810f29a04c43a3c9c49147?tab=readme-ov-file#supported-devices>`_.
+
+The data output is originally in picoWattHours, but are converted to microWattHours for the Perfherder Data JSON. The power usage is from the start of the pageload until the pageComplete check in browsertime completes.
+
 Running on Google Chrome
 ------------------------
 Chrome releases are tied to a specific version of ChromeDriver -- you will need to ensure the two are aligned.

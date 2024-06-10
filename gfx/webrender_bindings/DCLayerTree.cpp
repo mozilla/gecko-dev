@@ -55,6 +55,179 @@ extern LazyLogModule gRenderThreadLog;
   MOZ_LOG(gDcompSurface, LogLevel::Debug, \
           ("DCSurfaceHandle=%p, " msg, this, ##__VA_ARGS__))
 
+static UINT GetVendorId(ID3D11VideoDevice* const aVideoDevice) {
+  RefPtr<IDXGIDevice> dxgiDevice;
+  RefPtr<IDXGIAdapter> adapter;
+  aVideoDevice->QueryInterface((IDXGIDevice**)getter_AddRefs(dxgiDevice));
+  dxgiDevice->GetAdapter(getter_AddRefs(adapter));
+
+  DXGI_ADAPTER_DESC adapterDesc;
+  adapter->GetDesc(&adapterDesc);
+
+  return adapterDesc.VendorId;
+}
+
+// Undocumented NVIDIA VSR data
+struct NvidiaVSRGetData_v1 {
+  UINT vsrGPUisVSRCapable : 1;   // 01/32, 1: GPU is VSR capable
+  UINT vsrOtherFieldsValid : 1;  // 02/32, 1: Other status fields are valid
+  // remaining fields are valid if vsrOtherFieldsValid is set - requires
+  // previous execution of VPBlt with SetStreamExtension for VSR enabled.
+  UINT vsrEnabled : 1;           // 03/32, 1: VSR is enabled
+  UINT vsrIsInUseForThisVP : 1;  // 04/32, 1: VSR is in use by this Video
+                                 // Processor
+  UINT vsrLevel : 3;             // 05-07/32, 0-4 current level
+  UINT vsrReserved : 21;         // 32-07
+};
+
+static Result<NvidiaVSRGetData_v1, HRESULT> GetNvidiaVpSuperResolutionInfo(
+    ID3D11VideoContext* aVideoContext, ID3D11VideoProcessor* aVideoProcessor) {
+  MOZ_ASSERT(aVideoContext);
+  MOZ_ASSERT(aVideoProcessor);
+
+  // Undocumented NVIDIA driver constants
+  constexpr GUID nvGUID = {0xD43CE1B3,
+                           0x1F4B,
+                           0x48AC,
+                           {0xBA, 0xEE, 0xC3, 0xC2, 0x53, 0x75, 0xE6, 0xF7}};
+
+  NvidiaVSRGetData_v1 data{};
+  HRESULT hr = aVideoContext->VideoProcessorGetStreamExtension(
+      aVideoProcessor, 0, &nvGUID, sizeof(data), &data);
+
+  if (FAILED(hr)) {
+    return Err(hr);
+  }
+  return data;
+}
+
+static void AddProfileMarkerForNvidiaVpSuperResolutionInfo(
+    ID3D11VideoContext* aVideoContext, ID3D11VideoProcessor* aVideoProcessor) {
+  MOZ_ASSERT(profiler_thread_is_being_profiled_for_markers());
+
+  auto res = GetNvidiaVpSuperResolutionInfo(aVideoContext, aVideoProcessor);
+  if (res.isErr()) {
+    return;
+  }
+
+  auto data = res.unwrap();
+
+  nsPrintfCString str(
+      "SuperResolution VP Capable %u OtherFieldsValid %u Enabled %u InUse %u "
+      "Level %u",
+      data.vsrGPUisVSRCapable, data.vsrOtherFieldsValid, data.vsrEnabled,
+      data.vsrIsInUseForThisVP, data.vsrLevel);
+  PROFILER_MARKER_TEXT("DCSurfaceVideo", GRAPHICS, {}, str);
+}
+
+static HRESULT SetNvidiaVpSuperResolution(ID3D11VideoContext* aVideoContext,
+                                          ID3D11VideoProcessor* aVideoProcessor,
+                                          bool aEnable) {
+  LOG("SetNvidiaVpSuperResolution() aEnable=%d", aEnable);
+
+  // Undocumented NVIDIA driver constants
+  constexpr GUID nvGUID = {0xD43CE1B3,
+                           0x1F4B,
+                           0x48AC,
+                           {0xBA, 0xEE, 0xC3, 0xC2, 0x53, 0x75, 0xE6, 0xF7}};
+
+  constexpr UINT nvExtensionVersion = 0x1;
+  constexpr UINT nvExtensionMethodSuperResolution = 0x2;
+  struct {
+    UINT version;
+    UINT method;
+    UINT enable;
+  } streamExtensionInfo = {nvExtensionVersion, nvExtensionMethodSuperResolution,
+                           aEnable ? 1u : 0};
+
+  HRESULT hr;
+  hr = aVideoContext->VideoProcessorSetStreamExtension(
+      aVideoProcessor, 0, &nvGUID, sizeof(streamExtensionInfo),
+      &streamExtensionInfo);
+  return hr;
+}
+
+static HRESULT SetVpSuperResolution(UINT aGpuVendorId,
+                                    ID3D11VideoContext* aVideoContext,
+                                    ID3D11VideoProcessor* aVideoProcessor,
+                                    bool aEnable) {
+  MOZ_ASSERT(aVideoContext);
+  MOZ_ASSERT(aVideoProcessor);
+
+  if (aGpuVendorId == 0x10DE) {
+    return SetNvidiaVpSuperResolution(aVideoContext, aVideoProcessor, aEnable);
+  }
+  return E_NOTIMPL;
+}
+
+static bool GetNvidiaRTXVideoTrueHDRSupported(
+    ID3D11VideoContext* aVideoContext, ID3D11VideoProcessor* aVideoProcessor) {
+  const GUID kNvidiaTrueHDRInterfaceGUID = {
+      0xfdd62bb4,
+      0x620b,
+      0x4fd7,
+      {0x9a, 0xb3, 0x1e, 0x59, 0xd0, 0xd5, 0x44, 0xb3}};
+  UINT available = 0;
+  HRESULT hr = aVideoContext->VideoProcessorGetStreamExtension(
+      aVideoProcessor, 0, &kNvidiaTrueHDRInterfaceGUID, sizeof(available),
+      &available);
+  if (FAILED(hr)) {
+    return false;
+  }
+
+  bool driverSupportsTrueHdr = (available == 1);
+  return driverSupportsTrueHdr;
+}
+
+static HRESULT SetNvidiaRTXVideoTrueHDR(ID3D11VideoContext* aVideoContext,
+                                        ID3D11VideoProcessor* aVideoProcessor,
+                                        bool aEnable) {
+  constexpr GUID kNvidiaTrueHDRInterfaceGUID = {
+      0xfdd62bb4,
+      0x620b,
+      0x4fd7,
+      {0x9a, 0xb3, 0x1e, 0x59, 0xd0, 0xd5, 0x44, 0xb3}};
+  constexpr UINT kStreamExtensionMethodTrueHDR = 0x3;
+  const UINT TrueHDRVersion4 = 4;
+  struct {
+    UINT version;
+    UINT method;
+    UINT enable : 1;
+    UINT reserved : 31;
+  } streamExtensionInfo = {TrueHDRVersion4, kStreamExtensionMethodTrueHDR,
+                           aEnable ? 1u : 0u, 0u};
+  HRESULT hr = aVideoContext->VideoProcessorSetStreamExtension(
+      aVideoProcessor, 0, &kNvidiaTrueHDRInterfaceGUID,
+      sizeof(streamExtensionInfo), &streamExtensionInfo);
+  return hr;
+}
+
+static bool GetVpAutoHDRSupported(UINT aGpuVendorId,
+                                  ID3D11VideoContext* aVideoContext,
+                                  ID3D11VideoProcessor* aVideoProcessor) {
+  MOZ_ASSERT(aVideoContext);
+  MOZ_ASSERT(aVideoProcessor);
+
+  if (aGpuVendorId == 0x10DE) {
+    return GetNvidiaRTXVideoTrueHDRSupported(aVideoContext, aVideoProcessor);
+  }
+  return false;
+}
+
+static HRESULT SetVpAutoHDR(UINT aGpuVendorId,
+                            ID3D11VideoContext* aVideoContext,
+                            ID3D11VideoProcessor* aVideoProcessor,
+                            bool aEnable) {
+  MOZ_ASSERT(aVideoContext);
+  MOZ_ASSERT(aVideoProcessor);
+
+  if (aGpuVendorId == 0x10DE) {
+    return SetNvidiaRTXVideoTrueHDR(aVideoContext, aVideoProcessor, aEnable);
+  }
+  MOZ_ASSERT_UNREACHABLE("Unexpected to be called");
+  return E_NOTIMPL;
+}
+
 StaticAutoPtr<GpuOverlayInfo> DCLayerTree::sGpuOverlayInfo;
 
 /* static */
@@ -292,6 +465,24 @@ bool DCLayerTree::InitializeVideoOverlaySupport() {
   }
 
   info->mSupportsOverlays = info->mSupportsHardwareOverlays;
+
+  // Check VpSuperResolution and VpAutoHDR support.
+  const auto size = gfx::IntSize(100, 100);
+  if (EnsureVideoProcessor(size, size)) {
+    const UINT vendorId = GetVendorId(mVideoDevice);
+    if (vendorId == 0x10DE) {
+      auto res = GetNvidiaVpSuperResolutionInfo(mVideoContext, mVideoProcessor);
+      if (res.isOk() && res.unwrap().vsrGPUisVSRCapable) {
+        info->mSupportsVpSuperResolution = true;
+      }
+    }
+
+    const bool driverSupportVpAutoHDR =
+        GetVpAutoHDRSupported(vendorId, mVideoContext, mVideoProcessor);
+    if (driverSupportVpAutoHDR) {
+      info->mSupportsVpAutoHDR = true;
+    }
+  }
 
   // Note: "UniquePtr::release" here is saying "release your ownership stake
   // on your pointer, so that our StaticAutoPtr can take over ownership".
@@ -1021,6 +1212,9 @@ layers::OverlayInfo DCLayerTree::GetOverlayInfo() {
       FlagsToOverlaySupportType(sGpuOverlayInfo->mRgb10a2OverlaySupportFlags,
                                 /* aSoftwareOverlaySupported */ false);
 
+  info.mSupportsVpSuperResolution = sGpuOverlayInfo->mSupportsVpSuperResolution;
+  info.mSupportsVpAutoHDR = sGpuOverlayInfo->mSupportsVpAutoHDR;
+
   return info;
 }
 
@@ -1177,164 +1371,6 @@ void DCSurfaceVideo::AttachExternalImage(wr::ExternalImageId aExternalImage) {
   }
 
   mRenderTextureHost = texture;
-}
-
-static UINT GetVendorId(ID3D11VideoDevice* const aVideoDevice) {
-  RefPtr<IDXGIDevice> dxgiDevice;
-  RefPtr<IDXGIAdapter> adapter;
-  aVideoDevice->QueryInterface((IDXGIDevice**)getter_AddRefs(dxgiDevice));
-  dxgiDevice->GetAdapter(getter_AddRefs(adapter));
-
-  DXGI_ADAPTER_DESC adapterDesc;
-  adapter->GetDesc(&adapterDesc);
-
-  return adapterDesc.VendorId;
-}
-
-struct NvidiaVSRGetData_v1 {
-  UINT vsrGPUisVSRCapable : 1;   // 01/32, 1: GPU is VSR capable
-  UINT vsrOtherFieldsValid : 1;  // 02/32, 1: Other status fields are valid
-  // remaining fields are valid if vsrOtherFieldsValid is set - requires
-  // previous execution of VPBlt with SetStreamExtension for VSR enabled.
-  UINT vsrEnabled : 1;           // 03/32, 1: VSR is enabled
-  UINT vsrIsInUseForThisVP : 1;  // 04/32, 1: VSR is in use by this Video
-                                 // Processor
-  UINT vsrLevel : 3;             // 05-07/32, 0-4 current level
-  UINT vsrReserved : 21;         // 32-07
-};
-
-static void AddProfileMarkerForNvidiaVpSuperResolutionInfo(
-    ID3D11VideoContext* aVideoContext, ID3D11VideoProcessor* aVideoProcessor) {
-  MOZ_ASSERT(profiler_thread_is_being_profiled_for_markers());
-
-  // Undocumented NVIDIA driver constants
-  constexpr GUID nvGUID = {0xD43CE1B3,
-                           0x1F4B,
-                           0x48AC,
-                           {0xBA, 0xEE, 0xC3, 0xC2, 0x53, 0x75, 0xE6, 0xF7}};
-
-  NvidiaVSRGetData_v1 data{};
-  HRESULT hr = aVideoContext->VideoProcessorGetStreamExtension(
-      aVideoProcessor, 0, &nvGUID, sizeof(data), &data);
-
-  if (FAILED(hr)) {
-    return;
-  }
-
-  nsPrintfCString str(
-      "SuperResolution VP Capable %u OtherFieldsValid %u Enabled %u InUse %u "
-      "Level %u",
-      data.vsrGPUisVSRCapable, data.vsrOtherFieldsValid, data.vsrEnabled,
-      data.vsrIsInUseForThisVP, data.vsrLevel);
-  PROFILER_MARKER_TEXT("DCSurfaceVideo", GRAPHICS, {}, str);
-}
-
-static HRESULT SetNvidiaVpSuperResolution(ID3D11VideoContext* aVideoContext,
-                                          ID3D11VideoProcessor* aVideoProcessor,
-                                          bool aEnable) {
-  LOG("SetNvidiaVpSuperResolution() aEnable=%d", aEnable);
-
-  // Undocumented NVIDIA driver constants
-  constexpr GUID nvGUID = {0xD43CE1B3,
-                           0x1F4B,
-                           0x48AC,
-                           {0xBA, 0xEE, 0xC3, 0xC2, 0x53, 0x75, 0xE6, 0xF7}};
-
-  constexpr UINT nvExtensionVersion = 0x1;
-  constexpr UINT nvExtensionMethodSuperResolution = 0x2;
-  struct {
-    UINT version;
-    UINT method;
-    UINT enable;
-  } streamExtensionInfo = {nvExtensionVersion, nvExtensionMethodSuperResolution,
-                           aEnable ? 1u : 0};
-
-  HRESULT hr;
-  hr = aVideoContext->VideoProcessorSetStreamExtension(
-      aVideoProcessor, 0, &nvGUID, sizeof(streamExtensionInfo),
-      &streamExtensionInfo);
-  return hr;
-}
-
-static HRESULT SetVpSuperResolution(UINT aGpuVendorId,
-                                    ID3D11VideoContext* aVideoContext,
-                                    ID3D11VideoProcessor* aVideoProcessor,
-                                    bool aEnable) {
-  MOZ_ASSERT(aVideoContext);
-  MOZ_ASSERT(aVideoProcessor);
-
-  if (aGpuVendorId == 0x10DE) {
-    return SetNvidiaVpSuperResolution(aVideoContext, aVideoProcessor, aEnable);
-  }
-  return E_NOTIMPL;
-}
-
-static bool GetNvidiaRTXVideoTrueHDRSupported(
-    ID3D11VideoContext* aVideoContext, ID3D11VideoProcessor* aVideoProcessor) {
-  const GUID kNvidiaTrueHDRInterfaceGUID = {
-      0xfdd62bb4,
-      0x620b,
-      0x4fd7,
-      {0x9a, 0xb3, 0x1e, 0x59, 0xd0, 0xd5, 0x44, 0xb3}};
-  UINT available = 0;
-  HRESULT hr = aVideoContext->VideoProcessorGetStreamExtension(
-      aVideoProcessor, 0, &kNvidiaTrueHDRInterfaceGUID, sizeof(available),
-      &available);
-  if (FAILED(hr)) {
-    return false;
-  }
-
-  bool driverSupportsTrueHdr = (available == 1);
-  return driverSupportsTrueHdr;
-}
-
-static HRESULT SetNvidiaRTXVideoTrueHDR(ID3D11VideoContext* aVideoContext,
-                                        ID3D11VideoProcessor* aVideoProcessor,
-                                        bool aEnable) {
-  constexpr GUID kNvidiaTrueHDRInterfaceGUID = {
-      0xfdd62bb4,
-      0x620b,
-      0x4fd7,
-      {0x9a, 0xb3, 0x1e, 0x59, 0xd0, 0xd5, 0x44, 0xb3}};
-  constexpr UINT kStreamExtensionMethodTrueHDR = 0x3;
-  const UINT TrueHDRVersion4 = 4;
-  struct {
-    UINT version;
-    UINT method;
-    UINT enable : 1;
-    UINT reserved : 31;
-  } streamExtensionInfo = {TrueHDRVersion4, kStreamExtensionMethodTrueHDR,
-                           aEnable ? 1u : 0u, 0u};
-  HRESULT hr = aVideoContext->VideoProcessorSetStreamExtension(
-      aVideoProcessor, 0, &kNvidiaTrueHDRInterfaceGUID,
-      sizeof(streamExtensionInfo), &streamExtensionInfo);
-  return hr;
-}
-
-static bool GetVpAutoHDRSupported(UINT aGpuVendorId,
-                                  ID3D11VideoContext* aVideoContext,
-                                  ID3D11VideoProcessor* aVideoProcessor) {
-  MOZ_ASSERT(aVideoContext);
-  MOZ_ASSERT(aVideoProcessor);
-
-  if (aGpuVendorId == 0x10DE) {
-    return GetNvidiaRTXVideoTrueHDRSupported(aVideoContext, aVideoProcessor);
-  }
-  return false;
-}
-
-static HRESULT SetVpAutoHDR(UINT aGpuVendorId,
-                            ID3D11VideoContext* aVideoContext,
-                            ID3D11VideoProcessor* aVideoProcessor,
-                            bool aEnable) {
-  MOZ_ASSERT(aVideoContext);
-  MOZ_ASSERT(aVideoProcessor);
-
-  if (aGpuVendorId == 0x10DE) {
-    return SetNvidiaRTXVideoTrueHDR(aVideoContext, aVideoProcessor, aEnable);
-  }
-  MOZ_ASSERT_UNREACHABLE("Unexpected to be called");
-  return E_NOTIMPL;
 }
 
 bool DCSurfaceVideo::CalculateSwapChainSize(gfx::Matrix& aTransform) {

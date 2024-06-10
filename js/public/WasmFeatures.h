@@ -190,6 +190,15 @@
     /* flag fuzz enable   */ false,                                     \
     /* preference name    */ test_serialization)                        \
   FEATURE(                                                              \
+    /* capitalized name   */ ExperimentalCompilePipeline,               \
+    /* lower case name    */ experimentalCompilePipeline,               \
+    /* compile predicate  */ true,                                      \
+    /* compiler predicate */ true,                                      \
+    /* flag predicate     */ true,                                      \
+    /* flag force enable  */ false,                                     \
+    /* flag fuzz enable   */ false,                                     \
+    /* preference name    */ experimental_compile_pipeline)             \
+  FEATURE(                                                              \
     /* capitalized name   */ BranchHinting,                             \
     /* lower case name    */ branchHinting,                             \
     /* compile predicate  */ WASM_BRANCH_HINTING_ENABLED,               \

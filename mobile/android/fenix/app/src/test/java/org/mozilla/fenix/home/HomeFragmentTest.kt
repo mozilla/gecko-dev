@@ -26,6 +26,7 @@ import mozilla.components.feature.top.sites.TopSite
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -63,6 +64,8 @@ class HomeFragmentTest {
         every { homeFragment.context } answers { context }
         every { context.components.settings } answers { settings }
         every { context.components.core } answers { core }
+        every { homeFragment.binding } returns mockk(relaxed = true)
+        every { homeFragment.viewLifecycleOwner } returns mockk(relaxed = true)
     }
 
     @Test
@@ -190,5 +193,23 @@ class HomeFragmentTest {
             unmockkStatic("org.mozilla.fenix.utils.UndoKt")
             unmockkStatic("androidx.lifecycle.LifecycleOwnerKt")
         }
+    }
+
+    @Test
+    fun `WHEN isMicrosurveyEnabled is true GIVEN a call to initializeMicrosurveyFeature THEN messagingFeature is initialized`() {
+        assertNull(homeFragment.messagingFeatureMicrosurvey.get())
+
+        homeFragment.initializeMicrosurveyFeature(isMicrosurveyEnabled = true)
+
+        assertNotNull(homeFragment.messagingFeatureMicrosurvey.get())
+    }
+
+    @Test
+    fun `WHEN isMicrosurveyEnabled is false GIVEN a call to initializeMicrosurveyFeature THEN messagingFeature is not initialized`() {
+        assertNull(homeFragment.messagingFeatureMicrosurvey.get())
+
+        homeFragment.initializeMicrosurveyFeature(isMicrosurveyEnabled = false)
+
+        assertNull(homeFragment.messagingFeatureMicrosurvey.get())
     }
 }

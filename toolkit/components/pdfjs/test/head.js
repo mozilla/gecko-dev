@@ -1,14 +1,62 @@
-async function waitForPdfJS(browser, url) {
+function waitForPdfJS(browser, url = null) {
   // Runs tests after all "load" event handlers have fired off
-  let loadPromise = BrowserTestUtils.waitForContentEvent(
-    browser,
-    "documentloaded",
-    false,
-    null,
-    true
-  );
-  BrowserTestUtils.startLoadingURIString(browser, url);
+  const loadPromise = new Promise(resolve => {
+    let pageCounter = 0;
+    const removeEventListener1 = BrowserTestUtils.addContentEventListener(
+      browser,
+      "pagerender",
+      () => {
+        pageCounter += 1;
+      },
+      { capture: false, wantUntrusted: true }
+    );
+    const removeEventListener2 = BrowserTestUtils.addContentEventListener(
+      browser,
+      "textlayerrendered",
+      () => {
+        pageCounter -= 1;
+        if (pageCounter === 0) {
+          removeEventListener1();
+          removeEventListener2();
+          resolve();
+        }
+      },
+      { capture: false, wantUntrusted: true }
+    );
+  });
+  if (url) {
+    BrowserTestUtils.startLoadingURIString(browser, url);
+  }
   return loadPromise;
+}
+
+async function waitForPdfJSClose(browser, closeTab = false) {
+  const hasPDFjs = await SpecialPowers.spawn(
+    browser,
+    [],
+    () => !!content.wrappedJSObject.PDFViewerApplication
+  );
+  if (hasPDFjs) {
+    const closePromise = BrowserTestUtils.waitForContentEvent(
+      browser,
+      "pagesdestroy",
+      false,
+      null,
+      true
+    );
+    await SpecialPowers.spawn(browser, [], async () => {
+      const viewer = content.wrappedJSObject.PDFViewerApplication;
+      viewer.unbindWindowEvents();
+      await viewer.close();
+    });
+    await closePromise;
+  }
+  if (closeTab) {
+    const tab = gBrowser.getTabForBrowser(browser);
+    if (tab) {
+      BrowserTestUtils.removeTab(tab);
+    }
+  }
 }
 
 async function waitForPdfJSAnnotationLayer(browser, url) {
@@ -19,8 +67,8 @@ async function waitForPdfJSAnnotationLayer(browser, url) {
     null,
     true
   );
-  BrowserTestUtils.startLoadingURIString(browser, url);
-  return loadPromise;
+  let pagePromise = waitForPdfJS(browser, url);
+  return Promise.all([pagePromise, loadPromise]);
 }
 
 async function waitForPdfJSAllLayers(browser, url, layers) {
@@ -45,9 +93,14 @@ async function waitForPdfJSAllLayers(browser, url, layers) {
     null,
     true
   );
+  let pagePromise = waitForPdfJS(browser, url);
 
-  BrowserTestUtils.startLoadingURIString(browser, url);
-  await Promise.all([loadPromise, annotationPromise, annotationEditorPromise]);
+  await Promise.all([
+    pagePromise,
+    loadPromise,
+    annotationPromise,
+    annotationEditorPromise,
+  ]);
 
   await SpecialPowers.spawn(browser, [layers], async function (layers) {
     const { ContentTaskUtils } = ChromeUtils.importESModule(
@@ -80,8 +133,8 @@ async function waitForPdfJSCanvas(browser, url) {
     null,
     true
   );
-  BrowserTestUtils.startLoadingURIString(browser, url);
-  return loadPromise;
+  const pagePromise = waitForPdfJS(browser, url);
+  return Promise.all([pagePromise, loadPromise]);
 }
 
 async function waitForPdfJSSandbox(browser) {
@@ -95,25 +148,31 @@ async function waitForPdfJSSandbox(browser) {
   return loadPromise;
 }
 
-async function waitForSelector(browser, selector, message) {
+async function waitForSelector(
+  browser,
+  selector,
+  message,
+  checkVisibility = true
+) {
   return SpecialPowers.spawn(
     browser,
-    [selector, message],
-    async function (sel, msg) {
+    [selector, message, checkVisibility],
+    async function (sel, msg, checkVis) {
       const { ContentTaskUtils } = ChromeUtils.importESModule(
         "resource://testing-common/ContentTaskUtils.sys.mjs"
       );
       const { document } = content;
-
       await ContentTaskUtils.waitForCondition(
         () => !!document.querySelector(sel),
         `${sel} must be displayed`
       );
 
-      await ContentTaskUtils.waitForCondition(
-        () => ContentTaskUtils.isVisible(document.querySelector(sel)),
-        msg
-      );
+      if (checkVis) {
+        await ContentTaskUtils.waitForCondition(
+          () => ContentTaskUtils.isVisible(document.querySelector(sel)),
+          msg
+        );
+      }
     }
   );
 }

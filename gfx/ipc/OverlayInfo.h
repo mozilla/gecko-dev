@@ -32,6 +32,9 @@ struct OverlayInfo {
   OverlaySupportType mBgra8Overlay = OverlaySupportType::None;
   OverlaySupportType mRgb10a2Overlay = OverlaySupportType::None;
 
+  bool mSupportsVpSuperResolution = false;
+  bool mSupportsVpAutoHDR = false;
+
   friend struct IPC::ParamTraits<OverlayInfo>;
 };
 

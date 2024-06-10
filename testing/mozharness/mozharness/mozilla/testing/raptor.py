@@ -628,6 +628,15 @@ class Raptor(
                     "help": "Take a screenshot when the test fails.",
                 },
             ],
+            [
+                ["--power-test"],
+                {
+                    "action": "store_true",
+                    "dest": "power_test",
+                    "default": False,
+                    "help": "Run power usage testing on mobile tests using a USB power meter.",
+                },
+            ],
         ]
         + testing_config_options
         + copy.deepcopy(code_coverage_config_options)
@@ -1114,6 +1123,8 @@ class Raptor(
             or os.environ.get("MOZ_AUTOMATION", None) is not None
         ):
             options.extend(["--screenshot-on-failure"])
+        if self.config.get("power_test", False):
+            options.extend("--power-test")
 
         for (arg,), details in Raptor.browsertime_options:
             # Allow overriding defaults on the `./mach raptor-test ...` command-line

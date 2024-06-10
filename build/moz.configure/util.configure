@@ -501,12 +501,17 @@ def project_flag(env=None, set_as_define=False, **kwargs):
     if not env:
         configure_error("A project_flag must be passed a variable name to set.")
 
+    if kwargs.get("nargs", 0) not in (0, 1):
+        configure_error("A project_flag must be passed nargs={0,1}.")
+
     opt = option(env=env, possible_origins=("implied",), **kwargs)
 
     @depends(opt.option)
     def option_implementation(value):
         if value:
-            if len(value):
+            if len(value) == 1:
+                return value[0]
+            elif len(value):
                 return value
             return bool(value)
 

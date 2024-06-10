@@ -3049,6 +3049,44 @@ llvm_config = check_prog(
 add_old_configure_assignment("LLVM_CONFIG", llvm_config)
 
 
+@template
+def llvm_tool(name):
+    @depends(host_c_compiler, c_compiler, bindgen_config_paths)
+    def llvm_tool(host_c_compiler, c_compiler, bindgen_config_paths):
+        clang = None
+        for compiler in (host_c_compiler, c_compiler):
+            if compiler and compiler.type == "clang":
+                clang = compiler.compiler
+                break
+            elif compiler and compiler.type == "clang-cl":
+                clang = os.path.join(os.path.dirname(compiler.compiler), "clang")
+                break
+
+        if not clang and bindgen_config_paths:
+            clang = bindgen_config_paths.clang_path
+        tool = name
+        if clang:
+            out = check_cmd_output(
+                clang, "--print-prog-name=%s" % tool, onerror=lambda: None
+            )
+            if out:
+                tool = out.rstrip()
+        return (tool,)
+
+    return llvm_tool
+
+
+llvm_objdump = check_prog(
+    "LLVM_OBJDUMP",
+    llvm_tool("llvm-objdump"),
+    what="llvm-objdump",
+    when="--enable-compile-environment",
+    paths=clang_search_path,
+)
+
+add_old_configure_assignment("LLVM_OBJDUMP", llvm_objdump)
+
+
 option(
     "--enable-clang-plugin-alpha",
     env="ENABLE_CLANG_PLUGIN_ALPHA",

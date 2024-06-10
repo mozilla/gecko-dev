@@ -268,6 +268,23 @@ def fixture_check_ping_for_experiment(experiment_slug, variables):
     return _check_ping_for_experiment
 
 
+@pytest.fixture(name="open_app")
+def fixture_open_app():
+    def _():
+        command = "nimbus-cli --app fenix --channel developer open"
+        try:
+            subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as e:
+            e.output
+            raise
+        else:
+            logging.info("Opening app to allow for testing")
+        finally:
+            time.sleep(5)
+
+    return _
+
+
 @pytest.fixture(name="setup_experiment")
 def fixture_setup_experiment(
     experiment_slug,

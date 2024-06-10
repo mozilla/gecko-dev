@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2024-05-16T14:45:06.160796+00:00'
+updated_at: '2024-06-10T14:16:11.478989+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -476,6 +476,10 @@ people:
     bmo_id: 559949
     name: Julian Descottes
     nick: jdescottes
+  - &jeddai
+    bmo_id: 710471
+    name: Charlie Humphreys
+    nick: jeddai
   - &jesup
     bmo_id: 11539
     name: Randell Jesup
@@ -3428,6 +3432,7 @@ modules:
         peers:
           - *Gijs
           - *emcminn
+          - *jeddai
         machine_name: normandy
 
       - machine_name: firefox_view
@@ -4334,5 +4339,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 611fc859adea1938ca1f58fff06f810b74b4c3cf
-  export: dd8ae72f677a4e255fbcf78f91d04482956d8c12
+  config: 30b94193541538ca2c2df58e6748b3bdb8fd301d
+  export: ced1998560bc3776f1113eb26bdfe6ce936d8019

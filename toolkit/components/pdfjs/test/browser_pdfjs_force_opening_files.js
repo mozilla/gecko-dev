@@ -13,7 +13,7 @@ add_task(async function test_file_opening() {
   // the default - because files from disk should always use pdfjs, unless
   // it is forcibly disabled.
   let openedWindow = false;
-  let windowOpenedPromise = new Promise(resolve => {
+  const windowOpenedPromise = new Promise(resolve => {
     addWindowListener(
       "chrome://mozapps/content/downloads/unknownContentType.xhtml",
       () => {
@@ -24,23 +24,27 @@ add_task(async function test_file_opening() {
   });
 
   // Open the tab with a system principal:
-  var tab = BrowserTestUtils.addTab(gBrowser, dirFileObj.path);
-
-  let pdfjsLoadedPromise = TestUtils.waitForCondition(() => {
-    let { contentPrincipal } = tab.linkedBrowser;
-    return (contentPrincipal?.URI?.spec || "").endsWith("viewer.html");
-  });
-  await Promise.race([pdfjsLoadedPromise, windowOpenedPromise]);
+  var tab = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    dirFileObj.path
+  );
+  await Promise.race([
+    windowOpenedPromise,
+    waitForSelector(
+      tab.linkedBrowser,
+      ".textLayer .endOfContent",
+      "Wait for text layer."
+    ),
+  ]);
   ok(!openedWindow, "Shouldn't open an unknownContentType window!");
-
-  BrowserTestUtils.removeTab(tab);
+  await waitForPdfJSClose(tab.linkedBrowser, /* closeTab = */ true);
 
   // Now try opening it from the file directory:
   tab = await BrowserTestUtils.openNewForegroundTab(
     gBrowser,
     dirFileObj.parent.path
   );
-  pdfjsLoadedPromise = BrowserTestUtils.browserLoaded(
+  const pdfjsLoadedPromise = BrowserTestUtils.browserLoaded(
     tab.linkedBrowser,
     false,
     url => url.endsWith("test.pdf")
@@ -48,18 +52,24 @@ add_task(async function test_file_opening() {
   await SpecialPowers.spawn(tab.linkedBrowser, [], () => {
     content.document.querySelector("a[href$='test.pdf']").click();
   });
-  await Promise.race([pdfjsLoadedPromise, windowOpenedPromise]);
+  await Promise.race([windowOpenedPromise, pdfjsLoadedPromise]);
   ok(
     !openedWindow,
     "Shouldn't open an unknownContentType window for PDFs from file: links!"
   );
 
-  registerCleanupFunction(function () {
+  await waitForSelector(
+    tab.linkedBrowser,
+    ".textLayer .endOfContent",
+    "Wait for text layer."
+  );
+
+  registerCleanupFunction(async () => {
     if (listenerCleanup) {
       listenerCleanup();
     }
     changeMimeHandler(oldAction[0], oldAction[1]);
-    gBrowser.removeTab(tab);
+    await waitForPdfJSClose(tab.linkedBrowser, /* closeTab = */ true);
   });
 });
 

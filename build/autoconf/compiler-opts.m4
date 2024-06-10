@@ -8,37 +8,6 @@ dnl A high level macro for selecting compiler options.
 AC_DEFUN([MOZ_COMPILER_OPTS],
 [
 dnl ========================================================
-dnl = Identical Code Folding
-dnl ========================================================
-
-if test "$CC_TYPE" != "clang-cl" -a "$GCC_USE_GNU_LD" -a -z "$MOZ_DISABLE_ICF" -a -z "$DEVELOPER_OPTIONS"; then
-    AC_CACHE_CHECK([whether the linker supports Identical Code Folding],
-        moz_cv_opt_ld_supports_icf,
-        [echo 'int foo() {return 42;}' \
-              'int bar() {return 42;}' \
-              'int main() {return 0;}' > conftest.${ac_ext}
-        # If the linker supports ICF, foo and bar symbols will have
-        # the same address
-        if AC_TRY_COMMAND([${CC-cc} -o conftest${ac_exeext} $LDFLAGS -Wl,--icf=safe -ffunction-sections conftest.${ac_ext} $LIBS 1>&2]) &&
-           test -s conftest${ac_exeext} &&
-           $LLVM_OBJDUMP -t conftest${ac_exeext} | awk changequote(<<, >>)'{a[<<$>>6] = <<$>>1} END {if (a["foo"] && (a["foo"] != a["bar"])) { exit 1 }}'changequote([, ]); then
-            moz_cv_opt_ld_supports_icf=yes
-        else
-            moz_cv_opt_ld_supports_icf=no
-        fi
-        rm -rf conftest*])
-    if test "$moz_cv_opt_ld_supports_icf" = yes; then
-        _SAVE_LDFLAGS="$LDFLAGS -Wl,--icf=safe"
-        LDFLAGS="$LDFLAGS -Wl,--icf=safe -Wl,--print-icf-sections"
-        AC_TRY_LINK([], [],
-                    [LD_PRINT_ICF_SECTIONS=-Wl,--print-icf-sections],
-                    [LD_PRINT_ICF_SECTIONS=])
-        AC_SUBST([LD_PRINT_ICF_SECTIONS])
-        LDFLAGS="$_SAVE_LDFLAGS"
-    fi
-fi
-
-dnl ========================================================
 dnl = Detect static linkage of libstdc++
 dnl ========================================================
 

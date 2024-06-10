@@ -474,13 +474,6 @@ if test -n "${TARGET_CPU}" -a -n "${TARGET_COMPILER_ABI}"; then
     TARGET_XPCOM_ABI="${TARGET_CPU}-${TARGET_COMPILER_ABI}"
 fi
 
-dnl We can't run TRY_COMPILE tests on Windows, so hard-code some
-dnl features that Windows actually does support.
-
-if test -n "$SKIP_COMPILER_CHECKS"; then
-   AC_DEFINE(HAVE_FORCEINLINE)
-fi # SKIP_COMPILER_CHECKS
-
 dnl Mozilla specific options
 dnl ========================================================
 dnl The macros used for command line options
@@ -579,8 +572,6 @@ AC_SUBST(MOZ_POST_PROGRAM_COMMAND)
 
 AC_SUBST(MOZ_APP_DISPLAYNAME)
 
-AC_SUBST(MOZ_PKG_SPECIAL)
-
 dnl Echo the CFLAGS to remove extra whitespace.
 CFLAGS=`echo \
 	$_COMPILATION_CFLAGS \
@@ -646,7 +637,6 @@ AC_SUBST(TARGET_XPCOM_ABI)
 
 AC_SUBST(DSO_LDOPTS)
 AC_SUBST(BIN_SUFFIX)
-AC_SUBST(USE_N32)
 AC_SUBST(WIN32_CONSOLE_EXE_LDFLAGS)
 AC_SUBST(WIN32_GUI_EXE_LDFLAGS)
 

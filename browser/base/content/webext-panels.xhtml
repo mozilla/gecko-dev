@@ -52,15 +52,7 @@
            overflowpadding="4"
            norolluponanchor="true" />
 
-    <menupopup id="contentAreaContextMenu"
-               onpopupshowing="if (event.target != this)
-                                 return true;
-                               gContextMenu = new nsContextMenu(this, event.shiftKey);
-                               return gContextMenu.shouldDisplay;"
-               onpopuphiding="if (event.target != this)
-                                return;
-                              gContextMenu.hiding(this);
-                              gContextMenu = null;">
+    <menupopup id="contentAreaContextMenu">
 #include browser-context.inc
     </menupopup>
   </popupset>

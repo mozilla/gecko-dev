@@ -299,11 +299,7 @@ class AddonsManagerAdapter(
             holder.reviewCountView.text = String.format(reviewCount, getFormattedAmount(it.reviews))
         }
 
-        val addonName = if (addon.translatableName.isNotEmpty()) {
-            addon.translateName(context)
-        } else {
-            addon.id
-        }
+        val addonName = addon.displayName(context)
 
         holder.titleView.text = addonName
 

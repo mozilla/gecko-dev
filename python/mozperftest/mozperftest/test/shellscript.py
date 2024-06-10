@@ -9,6 +9,7 @@ import signal
 import mozprocess
 
 from mozperftest.layers import Layer
+from mozperftest.utils import temp_dir
 
 
 class UnknownScriptError(Exception):
@@ -99,7 +100,10 @@ class ShellScriptRunner(Layer):
             line = line.decode("utf-8")
             if "perfMetrics" in line:
                 self.metrics.append(line)
-            self.info(line.strip())
+
+            # Bug 1900056 - Use a different logger in mozperftest because the current
+            # one can't handle messages with curly braces or JSONs in them
+            print(line.strip())
 
         return _line_handler
 
@@ -124,17 +128,21 @@ class ShellScriptRunner(Layer):
             self.error("Process output timed out")
             self.kill(proc)
 
-        os.environ["BROWSER_BINARY"] = metadata.binary
-        mozprocess.run_and_wait(
-            cmd,
-            output_line_handler=self.line_handler_wrapper(),
-            env=os.environ,
-            timeout=self.get_arg("process-timeout"),
-            timeout_handler=timeout_handler,
-            output_timeout=self.get_arg("output-timeout"),
-            output_timeout_handler=output_timeout_handler,
-            text=False,
-        )
+        with temp_dir() as testing_dir:
+            os.environ["APP"] = self.get_arg("app")
+            os.environ["TESTING_DIR"] = testing_dir
+            os.environ["BROWSER_BINARY"] = metadata.binary
+
+            mozprocess.run_and_wait(
+                cmd,
+                output_line_handler=self.line_handler_wrapper(),
+                env=os.environ,
+                timeout=self.get_arg("process-timeout"),
+                timeout_handler=timeout_handler,
+                output_timeout=self.get_arg("output-timeout"),
+                output_timeout_handler=output_timeout_handler,
+                text=False,
+            )
 
         metadata.add_result(
             {

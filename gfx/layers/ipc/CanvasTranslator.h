@@ -335,7 +335,7 @@ class CanvasTranslator final : public gfx::InlineTranslator,
   void ClearCachedResources();
 
   already_AddRefed<gfx::DataSourceSurface>
-  GetRecycledDataSurfaceForSurfaceDescriptor(TextureHost* aTextureHost);
+  MaybeRecycleDataSurfaceForSurfaceDescriptor(TextureHost* aTextureHost);
 
   const RefPtr<TaskQueue> mTranslationTaskQueue;
   const RefPtr<SharedSurfacesHolder> mSharedSurfacesHolder;
@@ -400,6 +400,7 @@ class CanvasTranslator final : public gfx::InlineTranslator,
   Atomic<bool> mIPDLClosed{false};
   bool mIsInTransaction = false;
   bool mDeviceResetInProgress = false;
+
   RefPtr<gfx::DataSourceSurface> mUsedDataSurfaceForSurfaceDescriptor;
 };
 

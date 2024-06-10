@@ -36,16 +36,13 @@ add_task(async function test() {
       Assert.equal(Glean.pdfjs.used.testGetValue() || 0, 0);
 
       // check that PDF is opened with internal viewer
-      await waitForPdfJSCanvas(browser, TESTROOT + "file_pdfjs_test.pdf");
+      await waitForPdfJS(browser, TESTROOT + "file_pdfjs_test.pdf");
 
       await Services.fog.testFlushAllChildren();
       Assert.ok(Glean.pdfjs.timeToView.testGetValue().sum !== 0);
       Assert.equal(Glean.pdfjs.used.testGetValue(), 1);
 
-      await SpecialPowers.spawn(browser, [], async function () {
-        var viewer = content.wrappedJSObject.PDFViewerApplication;
-        await viewer.close();
-      });
+      await waitForPdfJSClose(browser);
     }
   );
 });

@@ -22,7 +22,7 @@ function test() {
   );
 
   waitForExplicitFinish();
-  registerCleanupFunction(function () {
+  registerCleanupFunction(async function () {
     Services.prefs.clearUserPref(
       "browser.download.always_ask_before_handling_new_types"
     );

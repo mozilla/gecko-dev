@@ -17,6 +17,7 @@
 #include "jit/CacheIROpsGenerated.h"
 #include "jit/CacheIRReader.h"
 #include "jit/LIR.h"
+#include "jit/MIR-wasm.h"
 #include "jit/MIR.h"
 #include "jit/MIRGenerator.h"
 #include "jit/MIRGraph.h"

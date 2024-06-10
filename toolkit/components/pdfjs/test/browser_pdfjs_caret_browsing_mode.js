@@ -73,10 +73,7 @@ add_task(async function test() {
         );
       });
 
-      await SpecialPowers.spawn(browser, [], async function () {
-        const viewer = content.wrappedJSObject.PDFViewerApplication;
-        await viewer.close();
-      });
+      await waitForPdfJSClose(browser);
     }
   );
 });

@@ -347,33 +347,6 @@ set_config("WASM_OBJ_SUFFIX", "wasm")
 
 
 @template
-def llvm_tool(name):
-    @depends(host_c_compiler, c_compiler, bindgen_config_paths)
-    def llvm_tool(host_c_compiler, c_compiler, bindgen_config_paths):
-        clang = None
-        for compiler in (host_c_compiler, c_compiler):
-            if compiler and compiler.type == "clang":
-                clang = compiler.compiler
-                break
-            elif compiler and compiler.type == "clang-cl":
-                clang = os.path.join(os.path.dirname(compiler.compiler), "clang")
-                break
-
-        if not clang and bindgen_config_paths:
-            clang = bindgen_config_paths.clang_path
-        tool = name
-        if clang:
-            out = check_cmd_output(
-                clang, "--print-prog-name=%s" % tool, onerror=lambda: None
-            )
-            if out:
-                tool = out.rstrip()
-        return (tool,)
-
-    return llvm_tool
-
-
-@template
 def plain_llvm_or_prefixed(name, llvm_name=None):
     # look for a tool, using the following alternatives, in that order:
     # 1. llvm-${llvm_name}, or llvm-${name} if ${llvm_name} is not provided
@@ -388,17 +361,6 @@ def plain_llvm_or_prefixed(name, llvm_name=None):
         return tuple(commands)
 
     return plain_llvm_or_prefixed
-
-
-llvm_objdump = check_prog(
-    "LLVM_OBJDUMP",
-    llvm_tool("llvm-objdump"),
-    what="llvm-objdump",
-    when="--enable-compile-environment",
-    paths=clang_search_path,
-)
-
-add_old_configure_assignment("LLVM_OBJDUMP", llvm_objdump)
 
 
 def validate_readelf(path):
@@ -809,13 +771,6 @@ check_prog(
     paths=clang_search_path,
 )
 
-option("--disable-icf", help="Disable Identical Code Folding")
-
-add_old_configure_assignment(
-    "MOZ_DISABLE_ICF", "1", when=depends("--enable-icf")(lambda x: not x)
-)
-
-
 option(
     "--enable-strip",
     when=compile_environment,
@@ -952,6 +907,14 @@ def zlib_in_mozglue(system_zlib, js_shared, linker, os):
 set_config("ZLIB_IN_MOZGLUE", zlib_in_mozglue)
 set_define("ZLIB_IN_MOZGLUE", zlib_in_mozglue)
 
+
+with only_when(cross_compiling):
+    option(
+        env="JS_BINARY",
+        nargs=1,
+        help="Host JavaScript runtime, if any, to use during cross compiles",
+    )
+    set_config("JS_BINARY", depends_if("JS_BINARY")(lambda value: value[0]))
 
 # Please do not add configure checks from here on.
 

@@ -153,7 +153,6 @@ if test -n "$_WIN32_MSVC"; then
     # Since we're skipping compiler and library checks, hard-code
     # some facts here.
     AC_DEFINE(HAVE_IO_H)
-    AC_DEFINE(HAVE_ISATTY)
 fi
 
 fi # COMPILE_ENVIRONMENT
@@ -500,13 +499,6 @@ if test -n "${TARGET_CPU}" -a -n "${TARGET_COMPILER_ABI}"; then
     AC_DEFINE_UNQUOTED(TARGET_XPCOM_ABI, ["${TARGET_XPCOM_ABI}"])
 fi
 
-dnl We can't run TRY_COMPILE tests on Windows, so hard-code some
-dnl features that Windows actually does support.
-
-if test -n "$SKIP_COMPILER_CHECKS"; then
-   AC_DEFINE(HAVE_FORCEINLINE)
-fi # SKIP_COMPILER_CHECKS
-
 dnl Mozilla specific options
 dnl ========================================================
 dnl The macros used for command line options
@@ -520,8 +512,6 @@ dnl ========================================================
 
 MOZ_BRANDING_DIRECTORY=
 MOZ_OFFICIAL_BRANDING=
-MOZ_NO_SMART_CARDS=
-MOZ_BINARY_EXTENSIONS=
 MOZ_DEVTOOLS=server
 
 dnl ========================================================
@@ -663,19 +653,9 @@ AC_SUBST(MOZ_STUB_INSTALLER)
 
 AC_SUBST_LIST(MOZ_FIX_LINK_PATHS)
 
-AC_SUBST(MOZ_POST_PROGRAM_COMMAND)
-
-if test -n "$MOZ_BINARY_EXTENSIONS"; then
-  AC_DEFINE(MOZ_BINARY_EXTENSIONS)
-fi
-
 dnl ========================================================
-dnl = Mac bundle name prefix
+dnl = Mac bundle name
 dnl ========================================================
-MOZ_ARG_WITH_STRING(macbundlename-prefix,
-[  --with-macbundlename-prefix=prefix
-                          Prefix for MOZ_MACBUNDLE_NAME],
-[ MOZ_MACBUNDLE_NAME_PREFIX="$withval"])
 
 MOZ_MACBUNDLE_NAME=$MOZ_APP_DISPLAYNAME
 if test "$MOZ_MACBUNDLE_NAME_PREFIX"; then
@@ -798,8 +778,6 @@ AC_DEFINE_UNQUOTED(BROWSER_CHROME_URL, $BROWSER_CHROME_URL)
 AC_DEFINE_UNQUOTED(BROWSER_CHROME_URL_QUOTED, "$BROWSER_CHROME_URL")
 
 AC_SUBST(MOZ_APP_MAXVERSION)
-AC_SUBST(MOZ_PKG_SPECIAL)
-AC_SUBST(MOZ_SIMPLE_PACKAGE_NAME)
 
 if test "$MOZILLA_OFFICIAL"; then
     # Build revisions should always be present in official builds
@@ -890,19 +868,12 @@ AC_SUBST(TARGET_XPCOM_ABI)
 
 AC_SUBST(DSO_LDOPTS)
 AC_SUBST(BIN_SUFFIX)
-AC_SUBST(USE_N32)
 AC_SUBST(WIN32_CONSOLE_EXE_LDFLAGS)
 AC_SUBST(WIN32_GUI_EXE_LDFLAGS)
 
 AC_SUBST(MOZ_DEVTOOLS)
 
-AC_SUBST(MOZ_PACKAGE_JSSHELL)
-
-AC_SUBST(DMG_TOOL)
-
-dnl Host JavaScript runtime, if any, to use during cross compiles.
-AC_SUBST(JS_BINARY)
-
+dnl Used specifically by Thunderbird
 AC_SUBST(NSS_EXTRA_SYMBOLS_FILE)
 
 dnl Set various defines and substitutions

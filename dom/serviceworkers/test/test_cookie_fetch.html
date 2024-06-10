@@ -56,6 +56,8 @@
       ["dom.serviceWorkers.testing.enabled", true],
       // Bug 1617611: Fix all the tests broken by "cookies SameSite=lax by default"
       ["network.cookie.sameSite.laxByDefault", false],
+      // Bug 1874001: Fix all the tests broken by 3pc blocking by default in TCP.
+      ["network.cookie.cookieBehavior.optInPartitioning", false],
     ]}, runTest);
   };
 </script>
