@@ -9,7 +9,6 @@
 #include "APZCTreeManager.h"
 #include "TreeTraversal.h"  // for BreadthFirstSearch
 #include "mozilla/gfx/CompositorHitTestInfo.h"
-#include "mozilla/layers/CompositorBridgeParent.h"
 #include "mozilla/webrender/WebRenderAPI.h"
 #include "nsDebug.h"        // for NS_ASSERTION
 #include "nsIXULRuntime.h"  // for FissionAutostart
@@ -92,12 +91,6 @@ IAPZHitTester::HitTestResult WRHitTester::GetAPZCAtPoint(
       wr->HitTest(wr::ToWorldPoint(aHitTestPoint));
 
   Maybe<wr::WrHitResult> chosenResult;
-  // It's possible for the WebRender hit test to produce a result with
-  // a LayersId whose corresponding layer tree has already been
-  // torn down (e.g. during window/tab shutdown, or navigation to
-  // a different domain). This is expected, so avoid debug assertions
-  // firing in this scenario.
-  DebugOnly<bool> layersIdExists = true;
   for (const wr::WrHitResult& result : results) {
     ScrollableLayerGuid guid{result.mLayersId, 0, result.mScrollId};
     APZCTM_LOG("Examining result with guid %s hit info 0x%x... ",
@@ -126,11 +119,8 @@ IAPZHitTester::HitTestResult WRHitTester::GetAPZCAtPoint(
       // a known issue related to inactive scroll frames that can cause this
       // to fire (see bug 1634763), which is fixed in Fission mode and not
       // worth fixing in non-Fission mode.
-      layersIdExists =
-          CompositorBridgeParent::GetIndirectShadowTree(result.mLayersId);
       if (FissionAutostart()) {
-        MOZ_ASSERT(result.mScrollId == ScrollableLayerGuid::NULL_SCROLL_ID ||
-                   !layersIdExists);
+        MOZ_ASSERT(result.mScrollId == ScrollableLayerGuid::NULL_SCROLL_ID);
       } else {
         NS_ASSERTION(
             result.mScrollId == ScrollableLayerGuid::NULL_SCROLL_ID,
@@ -141,8 +131,7 @@ IAPZHitTester::HitTestResult WRHitTester::GetAPZCAtPoint(
       if (!node) {
         // Should never happen, but handle gracefully in release builds just
         // in case.
-        MOZ_ASSERT(!layersIdExists,
-                   "No root node found for hit-test result layers id");
+        MOZ_ASSERT(false);
         chosenResult = Some(result);
         break;
       }
@@ -174,9 +163,7 @@ IAPZHitTester::HitTestResult WRHitTester::GetAPZCAtPoint(
     return hit;
   }
 
-  MOZ_ASSERT(
-      hit.mTargetApzc || !layersIdExists,
-      "A hit-test result with a valid layers id should have a target APZC");
+  MOZ_ASSERT(hit.mTargetApzc);
   hit.mLayersId = chosenResult->mLayersId;
   ScrollableLayerGuid::ViewID scrollId = chosenResult->mScrollId;
   gfx::CompositorHitTestInfo hitInfo = chosenResult->mHitInfo;
