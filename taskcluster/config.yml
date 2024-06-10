@@ -242,6 +242,7 @@ treeherder:
         'perftest-detect': 'Performance regression detection tooling'
         'perftest-chrome': 'Performance tests using Chrone'
         'perftest-http3': 'Performance tests with HTTP/3'
+        'perftest-fenix': 'Performance tests using Fenix'
         'l10n': 'Localization checks'
         'fxrec': 'Desktop startup recorder (fxrecord)'
         'wc': 'webcompat'
