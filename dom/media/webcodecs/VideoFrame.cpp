@@ -11,6 +11,7 @@
 #include <utility>
 
 #include "ImageContainer.h"
+#include "ImageConversion.h"
 #include "VideoColorSpace.h"
 #include "WebCodecsUtils.h"
 #include "js/StructuredClone.h"
@@ -2294,69 +2295,6 @@ bool VideoFrame::Resource::CopyTo(const Format::Plane& aPlane,
     return true;
   };
 
-  if (mImage->GetFormat() == ImageFormat::MOZ2D_SURFACE) {
-    RefPtr<gfx::SourceSurface> surface = mImage->GetAsSourceSurface();
-    if (NS_WARN_IF(!surface)) {
-      return false;
-    }
-
-    RefPtr<gfx::DataSourceSurface> dataSurface = surface->GetDataSurface();
-    if (NS_WARN_IF(!dataSurface)) {
-      return false;
-    }
-
-    gfx::DataSourceSurface::ScopedMap map(dataSurface,
-                                          gfx::DataSourceSurface::READ);
-    if (NS_WARN_IF(!map.IsMapped())) {
-      return false;
-    }
-
-    const gfx::SurfaceFormat format = dataSurface->GetFormat();
-
-    if (format == gfx::SurfaceFormat::R8G8B8A8 ||
-        format == gfx::SurfaceFormat::R8G8B8X8 ||
-        format == gfx::SurfaceFormat::B8G8R8A8 ||
-        format == gfx::SurfaceFormat::B8G8R8X8) {
-      MOZ_ASSERT(aPlane == Format::Plane::RGBA);
-
-      // The mImage's format can be different from mFormat (since Gecko prefers
-      // BGRA). To get the data in the matched format, we create a temp buffer
-      // holding the image data in that format and then copy them to
-      // `aDestination`.
-      const gfx::SurfaceFormat f = mFormat->ToSurfaceFormat();
-      MOZ_ASSERT(f == gfx::SurfaceFormat::R8G8B8A8 ||
-                 f == gfx::SurfaceFormat::R8G8B8X8 ||
-                 f == gfx::SurfaceFormat::B8G8R8A8 ||
-                 f == gfx::SurfaceFormat::B8G8R8X8);
-
-      // TODO: We could use Factory::CreateWrappingDataSourceSurface to wrap
-      // `aDestination` to avoid extra copy.
-      RefPtr<gfx::DataSourceSurface> tempSurface =
-          gfx::Factory::CreateDataSourceSurfaceWithStride(
-              dataSurface->GetSize(), f, map.GetStride());
-      if (NS_WARN_IF(!tempSurface)) {
-        return false;
-      }
-
-      gfx::DataSourceSurface::ScopedMap tempMap(tempSurface,
-                                                gfx::DataSourceSurface::WRITE);
-      if (NS_WARN_IF(!tempMap.IsMapped())) {
-        return false;
-      }
-
-      if (!gfx::SwizzleData(map.GetData(), map.GetStride(),
-                            dataSurface->GetFormat(), tempMap.GetData(),
-                            tempMap.GetStride(), tempSurface->GetFormat(),
-                            tempSurface->GetSize())) {
-        return false;
-      }
-
-      return copyPlane(tempMap.GetData());
-    }
-
-    return false;
-  }
-
   if (mImage->GetFormat() == ImageFormat::PLANAR_YCBCR) {
     switch (aPlane) {
       case Format::Plane::Y:
@@ -2384,12 +2322,76 @@ bool VideoFrame::Resource::CopyTo(const Format::Plane& aPlane,
       case Format::Plane::A:
         MOZ_ASSERT_UNREACHABLE("invalid plane");
     }
+    return false;
   }
 
-  // TODO: ImageFormat::MAC_IOSURFACE or ImageFormat::DMABUF
-  LOGW("Cannot copy image data of an unrecognized format");
+  // Attempt to copy data from the underlying SourceSurface. Only copying from
+  // RGB format to RGB format is supported.
 
-  return false;
+  RefPtr<gfx::SourceSurface> surface = GetSourceSurface(mImage.get());
+  if (NS_WARN_IF(!surface)) {
+    LOGE("Failed to get SourceSurface from the image");
+    return false;
+  }
+
+  RefPtr<gfx::DataSourceSurface> dataSurface = surface->GetDataSurface();
+  if (NS_WARN_IF(!dataSurface)) {
+    LOGE("Failed to get DataSourceSurface from the SourceSurface");
+    return false;
+  }
+
+  gfx::DataSourceSurface::ScopedMap map(dataSurface,
+                                        gfx::DataSourceSurface::READ);
+  if (NS_WARN_IF(!map.IsMapped())) {
+    LOGE("Failed to map the DataSourceSurface");
+    return false;
+  }
+
+  const gfx::SurfaceFormat format = dataSurface->GetFormat();
+
+  if (aPlane != Format::Plane::RGBA ||
+      (format != gfx::SurfaceFormat::R8G8B8A8 &&
+       format != gfx::SurfaceFormat::R8G8B8X8 &&
+       format != gfx::SurfaceFormat::B8G8R8A8 &&
+       format != gfx::SurfaceFormat::B8G8R8X8)) {
+    LOGE("The conversion between RGB and non-RGB is unsupported");
+    return false;
+  }
+
+  // The mImage's format can be different from mFormat (since Gecko prefers
+  // BGRA). To get the data in the matched format, we create a temp buffer
+  // holding the image data in that format and then copy them to `aDestination`.
+  const gfx::SurfaceFormat f = mFormat->ToSurfaceFormat();
+  MOZ_ASSERT(
+      f == gfx::SurfaceFormat::R8G8B8A8 || f == gfx::SurfaceFormat::R8G8B8X8 ||
+      f == gfx::SurfaceFormat::B8G8R8A8 || f == gfx::SurfaceFormat::B8G8R8X8);
+
+  // TODO: We could use Factory::CreateWrappingDataSourceSurface to wrap
+  // `aDestination` to avoid extra copy.
+  RefPtr<gfx::DataSourceSurface> tempSurface =
+      gfx::Factory::CreateDataSourceSurfaceWithStride(dataSurface->GetSize(), f,
+                                                      map.GetStride());
+  if (NS_WARN_IF(!tempSurface)) {
+    LOGE("Failed to create a temporary DataSourceSurface");
+    return false;
+  }
+
+  gfx::DataSourceSurface::ScopedMap tempMap(tempSurface,
+                                            gfx::DataSourceSurface::WRITE);
+  if (NS_WARN_IF(!tempMap.IsMapped())) {
+    LOGE("Failed to map the temporary DataSourceSurface");
+    return false;
+  }
+
+  if (!gfx::SwizzleData(map.GetData(), map.GetStride(),
+                        dataSurface->GetFormat(), tempMap.GetData(),
+                        tempMap.GetStride(), tempSurface->GetFormat(),
+                        tempSurface->GetSize())) {
+    LOGE("Failed to write data into temporary DataSourceSurface");
+    return false;
+  }
+
+  return copyPlane(tempMap.GetData());
 }
 
 #undef LOGW
