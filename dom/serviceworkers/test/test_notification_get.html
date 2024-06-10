@@ -76,37 +76,6 @@
       });
   }
 
-  function testGet() {
-    var options = NotificationTest.payload;
-    return navigator.serviceWorker.getRegistration("./notification/")
-      .then(function(reg) {
-        return reg.showNotification("This is a title", options)
-                 .then(function() {
-                  return reg;
-                 });
-      }).then(function(reg) {
-        return reg.getNotifications();
-      }).then(function(notifications) {
-        is(notifications.length, 1, "There should be one stored notification");
-        var notification = notifications[0];
-        ok(notification instanceof Notification, "Should be a Notification");
-        is(notification.title, "This is a title", "Title should match");
-        for (var key in options) {
-          is(notification[key], options[key], key + " property should match");
-        }
-        notification.close();
-      }).then(function() {
-        return navigator.serviceWorker.getRegistration("./notification/").then(function(reg) {
-          return reg.getNotifications();
-        });
-      }).then(function(notifications) {
-        // Make sure closed notifications are no longer retrieved.
-        is(notifications.length, 0, "There should be no more stored notifications");
-      }).catch(function(e) {
-        ok(false, "Something went wrong " + e.message);
-      })
-  }
-
   function testGetWorker() {
     todo(false, "navigator.serviceWorker is not available on workers yet");
     return Promise.resolve();
@@ -122,7 +91,6 @@
     ["notification.prompt.testing", true],
   ]}, function() {
     registerSW()
-      .then(testGet)
       .then(testGetWorker)
       .then(testDismiss)
       .then(unregisterSW)

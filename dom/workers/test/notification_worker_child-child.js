@@ -41,7 +41,11 @@ if (self.Notification) {
       is(notification.lang, options.lang, "lang should get set");
       is(notification.body, options.body, "body should get set");
       is(notification.tag, options.tag, "tag should get set");
-      is(notification.icon, options.icon, "icon should get set");
+      is(
+        notification.icon,
+        new URL(options.icon, location.href).toString(),
+        "icon should get set"
+      );
 
       // store notification in test context
       this.notification = notification;
