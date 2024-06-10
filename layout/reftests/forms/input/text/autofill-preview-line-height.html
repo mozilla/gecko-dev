@@ -8,5 +8,5 @@
   SpecialPowers.Cc["@mozilla.org/satchel/form-fill-controller;1"].getService(SpecialPowers.Ci.nsIFormFillController).markAsAutoCompletableField(input);
   input.getBoundingClientRect(); // previewValue setter depends on the reframe posted by markAsAutoCompletableField() having being processed...
   input.previewValue = "Autofill";
-  SpecialPowers.wrap(window).windowUtils.addManuallyManagedState(input, "-moz-autofill-preview");
+  input.autofillState = "preview";
 </script>
