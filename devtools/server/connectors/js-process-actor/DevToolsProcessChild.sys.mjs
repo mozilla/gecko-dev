@@ -498,7 +498,7 @@ export class DevToolsProcessChild extends JSProcessActorChild {
   didDestroy() {
     // Unregister all the active watchers.
     // This will destroy all the active target actors and unregister the target observers.
-    for (const watcherDataObject of ContentProcessWatcherRegistry.getAllWatchersDataObjects()) {
+    for (const watcherDataObject of ContentProcessWatcherRegistry.getAllExistingWatchersDataObjects()) {
       this.#destroyWatcher(watcherDataObject);
     }
 

@@ -743,6 +743,12 @@ class WindowGlobalTargetActor extends BaseTargetActor {
     }
     this.destroying = true;
 
+    // Force flushing pending resources if the actor isn't already destroyed.
+    // This helps notify the client about pending resources on navigation.
+    if (!this.isDestroyed()) {
+      this.emitResources();
+    }
+
     // Tell the thread actor that the window global is closed, so that it may terminate
     // instead of resuming the debuggee script.
     // TODO: Bug 997119: Remove this coupling with thread actor

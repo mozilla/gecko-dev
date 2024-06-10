@@ -104,6 +104,16 @@ export const ContentProcessWatcherRegistry = {
   },
 
   /**
+   * Similar to `getAllWatcherDataObjects`, but will only return the already existing registered watchers in this process.
+   */
+  getAllExistingWatchersDataObjects() {
+    if (!gAllWatcherData) {
+      return [];
+    }
+    return gAllWatcherData.values();
+  },
+
+  /**
    * Get the watcher data object for a given watcher actor.
    *
    * @param {String} watcherActorID

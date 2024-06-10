@@ -148,6 +148,10 @@ add_task(async function testParentProcessRequests() {
     IMAGE_URI,
     "The third resource is for the second image request"
   );
+  await waitFor(
+    () => secondImageRequest.fromCache,
+    "Wait for fromCache attribute to be set asynchronously via a resource update"
+  );
   ok(secondImageRequest.fromCache, "The second image request is cached");
   ok(
     secondImageRequest.chromeContext,
