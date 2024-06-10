@@ -43,6 +43,7 @@ support-files = [
   "empty-altsvc.js^headers^",
   "empty.html",
   "file_iframe_document_open.html",
+  "file_iframe_document_open_partitioned.html",
   "file_localStorage.html",
   "popup.html",
   "redirect.sjs",
