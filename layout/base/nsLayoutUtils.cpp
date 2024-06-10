@@ -4109,13 +4109,11 @@ bool nsLayoutUtils::IsViewportScrollbarFrame(nsIFrame* aFrame) {
  * 0.
  */
 template <typename LengthPercentageLike>
-static bool GetAbsoluteCoord(const LengthPercentageLike& aStyle,
-                             nscoord& aResult) {
-  if (!aStyle.ConvertsToLength()) {
-    return false;
+static Maybe<nscoord> GetAbsoluteCoord(const LengthPercentageLike& aSize) {
+  if (!aSize.ConvertsToLength()) {
+    return Nothing();
   }
-  aResult = std::max(0, aStyle.ToLength());
-  return true;
+  return Some(std::max(0, aSize.ToLength()));
 }
 
 static nscoord GetBSizePercentBasisAdjustment(StyleBoxSizing aBoxSizing,
@@ -4123,27 +4121,27 @@ static nscoord GetBSizePercentBasisAdjustment(StyleBoxSizing aBoxSizing,
                                               bool aHorizontalAxis,
                                               bool aResolvesAgainstPaddingBox);
 
-static bool GetPercentBSize(const LengthPercentage& aStyle, nsIFrame* aFrame,
-                            bool aHorizontalAxis, nscoord& aResult);
+static Maybe<nscoord> GetPercentBSize(const LengthPercentage& aSize,
+                                      nsIFrame* aFrame, bool aHorizontalAxis);
 
-// Only call on style coords for which GetAbsoluteCoord returned false.
+// Only call on aSize for which GetAbsoluteCoord returned Nothing().
 template <typename SizeOrMaxSize>
-static bool GetPercentBSize(const SizeOrMaxSize& aStyle, nsIFrame* aFrame,
-                            bool aHorizontalAxis, nscoord& aResult) {
-  if (!aStyle.IsLengthPercentage()) {
-    return false;
+static Maybe<nscoord> GetPercentBSize(const SizeOrMaxSize& aSize,
+                                      nsIFrame* aFrame, bool aHorizontalAxis) {
+  if (!aSize.IsLengthPercentage()) {
+    return Nothing();
   }
-  return GetPercentBSize(aStyle.AsLengthPercentage(), aFrame, aHorizontalAxis,
-                         aResult);
+  return GetPercentBSize(aSize.AsLengthPercentage(), aFrame, aHorizontalAxis);
 }
 
-static bool GetPercentBSize(const LengthPercentage& aStyle, nsIFrame* aFrame,
-                            bool aHorizontalAxis, nscoord& aResult) {
-  if (!aStyle.HasPercent()) {
-    return false;
+// Only call on aSize for which GetAbsoluteCoord returned Nothing().
+static Maybe<nscoord> GetPercentBSize(const LengthPercentage& aSize,
+                                      nsIFrame* aFrame, bool aHorizontalAxis) {
+  if (!aSize.HasPercent()) {
+    return Nothing();
   }
 
-  MOZ_ASSERT(!aStyle.ConvertsToLength(),
+  MOZ_ASSERT(!aSize.ConvertsToLength(),
              "GetAbsoluteCoord should have handled this");
 
   // During reflow, ScrollContainerFrame::ReflowScrolledFrame uses
@@ -4154,16 +4152,20 @@ static bool GetPercentBSize(const LengthPercentage& aStyle, nsIFrame* aFrame,
   nsIFrame* f = aFrame->GetContainingBlock(nsIFrame::SKIP_SCROLLED_FRAME);
   if (!f) {
     MOZ_ASSERT_UNREACHABLE("top of frame tree not a containing block");
-    return false;
+    return Nothing();
   }
 
-  WritingMode wm = f->GetWritingMode();
+  // Helper to compute the block-size, max-block-size, and min-block-size later
+  // in this function.
+  auto GetBSize = [&](const auto& aSize) {
+    return GetAbsoluteCoord(aSize).orElse(
+        [&]() { return GetPercentBSize(aSize, f, aHorizontalAxis); });
+  };
 
+  WritingMode wm = f->GetWritingMode();
   const nsStylePosition* pos = f->StylePosition();
-  const auto& bSizeCoord = pos->BSize(wm);
-  nscoord h;
-  if (!GetAbsoluteCoord(bSizeCoord, h) &&
-      !GetPercentBSize(bSizeCoord, f, aHorizontalAxis, h)) {
+  Maybe<nscoord> bSize = GetBSize(pos->BSize(wm));
+  if (!bSize) {
     LayoutFrameType fType = f->Type();
     if (fType != LayoutFrameType::Viewport &&
         fType != LayoutFrameType::Canvas &&
@@ -4173,32 +4175,26 @@ static bool GetPercentBSize(const LengthPercentage& aStyle, nsIFrame* aFrame,
       // percentage heights?  The spec is somewhat unclear, and not doing
       // so is simpler and avoids troubling discontinuities in behavior,
       // so I'll choose not to. -LDB
-      return false;
+      return Nothing();
     }
     // For the viewport, canvas, and page-content kids, the percentage
     // basis is just the parent block-size.
-    h = f->BSize(wm);
-    if (h == NS_UNCONSTRAINEDSIZE) {
+    bSize.emplace(f->BSize(wm));
+    if (*bSize == NS_UNCONSTRAINEDSIZE) {
       // We don't have a percentage basis after all
-      return false;
+      return Nothing();
     }
   }
 
-  const auto& maxBSizeCoord = pos->MaxBSize(wm);
-
-  nscoord maxh;
-  if (GetAbsoluteCoord(maxBSizeCoord, maxh) ||
-      GetPercentBSize(maxBSizeCoord, f, aHorizontalAxis, maxh)) {
-    if (maxh < h) h = maxh;
+  if (Maybe<nscoord> maxBSize = GetBSize(pos->MaxBSize(wm))) {
+    if (*maxBSize < *bSize) {
+      *bSize = *maxBSize;
+    }
   }
 
-  const auto& minBSizeCoord = pos->MinBSize(wm);
-
-  nscoord minh;
-  if (GetAbsoluteCoord(minBSizeCoord, minh) ||
-      GetPercentBSize(minBSizeCoord, f, aHorizontalAxis, minh)) {
-    if (minh > h) {
-      h = minh;
+  if (Maybe<nscoord> minBSize = GetBSize(pos->MinBSize(wm))) {
+    if (*minBSize > *bSize) {
+      *bSize = *minBSize;
     }
   }
 
@@ -4210,50 +4206,45 @@ static bool GetPercentBSize(const LengthPercentage& aStyle, nsIFrame* aFrame,
   // without hardcoding a check for f being a fieldset-content frame is a bit of
   // a pain.
   const bool resolvesAgainstPaddingBox = aFrame->IsAbsolutelyPositioned();
-  h += GetBSizePercentBasisAdjustment(pos->mBoxSizing, f, aHorizontalAxis,
-                                      resolvesAgainstPaddingBox);
+  *bSize += GetBSizePercentBasisAdjustment(pos->mBoxSizing, f, aHorizontalAxis,
+                                           resolvesAgainstPaddingBox);
 
-  aResult = std::max(aStyle.Resolve(std::max(h, 0)), 0);
-  return true;
+  return Some(std::max(aSize.Resolve(std::max(*bSize, 0)), 0));
 }
 
-// Return true if aStyle can be resolved to a definite value and if so
-// return that value in aResult.
-static bool GetDefiniteSize(const LengthPercentage& aStyle, nsIFrame* aFrame,
-                            bool aIsInlineAxis,
-                            const Maybe<LogicalSize>& aPercentageBasis,
-                            nscoord* aResult) {
-  if (aStyle.ConvertsToLength()) {
-    *aResult = aStyle.ToLength();
-    return true;
+// If aSize can be resolved to a definite value, returns it; otherwise returns
+// Nothing().
+static Maybe<nscoord> GetDefiniteSize(
+    const LengthPercentage& aSize, nsIFrame* aFrame, bool aIsInlineAxis,
+    const Maybe<LogicalSize>& aPercentageBasis) {
+  if (aSize.ConvertsToLength()) {
+    return Some(aSize.ToLength());
   }
 
   if (!aPercentageBasis) {
-    return false;
+    return Nothing();
   }
 
   auto wm = aFrame->GetWritingMode();
   nscoord pb = aIsInlineAxis ? aPercentageBasis.value().ISize(wm)
                              : aPercentageBasis.value().BSize(wm);
   if (pb == NS_UNCONSTRAINEDSIZE) {
-    return false;
+    return Nothing();
   }
-  *aResult = std::max(0, aStyle.Resolve(pb));
-  return true;
+  return Some(std::max(0, aSize.Resolve(pb)));
 }
 
-// Return true if aStyle can be resolved to a definite value and if so
-// return that value in aResult.
+// If aSize can be resolved to a definite value, returns it; otherwise returns
+// Nothing().
 template <typename SizeOrMaxSize>
-static bool GetDefiniteSize(const SizeOrMaxSize& aStyle, nsIFrame* aFrame,
-                            bool aIsInlineAxis,
-                            const Maybe<LogicalSize>& aPercentageBasis,
-                            nscoord* aResult) {
-  if (!aStyle.IsLengthPercentage()) {
-    return false;
+static Maybe<nscoord> GetDefiniteSize(
+    const SizeOrMaxSize& aSize, nsIFrame* aFrame, bool aIsInlineAxis,
+    const Maybe<LogicalSize>& aPercentageBasis) {
+  if (!aSize.IsLengthPercentage()) {
+    return Nothing();
   }
-  return GetDefiniteSize(aStyle.AsLengthPercentage(), aFrame, aIsInlineAxis,
-                         aPercentageBasis, aResult);
+  return GetDefiniteSize(aSize.AsLengthPercentage(), aFrame, aIsInlineAxis,
+                         aPercentageBasis);
 }
 
 // NOTE: this function will be replaced by GetDefiniteSizeTakenByBoxSizing (bug
@@ -4281,19 +4272,21 @@ static nscoord GetBSizePercentBasisAdjustment(StyleBoxSizing aBoxSizing,
         stylePadding.Get(aHorizontalAxis ? eSideTop : eSideLeft);
     const LengthPercentage& paddingEnd =
         stylePadding.Get(aHorizontalAxis ? eSideBottom : eSideRight);
-    nscoord pad;
+
     // XXXbz Calling GetPercentBSize on padding values looks bogus, since
     // percent padding is always a percentage of the inline-size of the
     // containing block.  We should perhaps just treat non-absolute paddings
     // here as 0 instead, except that in some cases the width may in fact be
     // known.  See bug 1231059.
-    if (GetAbsoluteCoord(paddingStart, pad) ||
-        GetPercentBSize(paddingStart, aFrame, aHorizontalAxis, pad)) {
-      adjustment += aResolvesAgainstPaddingBox ? pad : -pad;
+    auto GetPadding = [&](const LengthPercentage& aPadding) {
+      return GetAbsoluteCoord(aPadding).orElse(
+          [&]() { return GetPercentBSize(aPadding, aFrame, aHorizontalAxis); });
+    };
+    if (Maybe<nscoord> pad = GetPadding(paddingStart)) {
+      adjustment += aResolvesAgainstPaddingBox ? *pad : -*pad;
     }
-    if (GetAbsoluteCoord(paddingEnd, pad) ||
-        GetPercentBSize(paddingEnd, aFrame, aHorizontalAxis, pad)) {
-      adjustment += aResolvesAgainstPaddingBox ? pad : -pad;
+    if (Maybe<nscoord> pad = GetPadding(paddingEnd)) {
+      adjustment += aResolvesAgainstPaddingBox ? *pad : -*pad;
     }
   }
   return adjustment;
@@ -4322,23 +4315,28 @@ static nscoord GetDefiniteSizeTakenByBoxSizing(
           stylePadding.Get(isHorizontalAxis ? eSideLeft : eSideTop);
       const LengthPercentage& pEnd =
           stylePadding.Get(isHorizontalAxis ? eSideRight : eSideBottom);
-      nscoord pad;
+
       // XXXbz Calling GetPercentBSize on padding values looks bogus, since
       // percent padding is always a percentage of the inline-size of the
       // containing block.  We should perhaps just treat non-absolute paddings
       // here as 0 instead, except that in some cases the width may in fact be
       // known.  See bug 1231059.
-      if (GetDefiniteSize(pStart, aFrame, aIsInlineAxis, aPercentageBasis,
-                          &pad) ||
-          (aPercentageBasis.isNothing() &&
-           GetPercentBSize(pStart, aFrame, isHorizontalAxis, pad))) {
-        sizeTakenByBoxSizing += pad;
+      auto GetPadding =
+          [&](const LengthPercentage& aPadding) -> Maybe<nscoord> {
+        if (Maybe<nscoord> padding = GetDefiniteSize(
+                aPadding, aFrame, aIsInlineAxis, aPercentageBasis)) {
+          return padding;
+        }
+        if (aPercentageBasis) {
+          return Nothing();
+        }
+        return GetPercentBSize(aPadding, aFrame, isHorizontalAxis);
+      };
+      if (Maybe<nscoord> pad = GetPadding(pStart)) {
+        sizeTakenByBoxSizing += *pad;
       }
-      if (GetDefiniteSize(pEnd, aFrame, aIsInlineAxis, aPercentageBasis,
-                          &pad) ||
-          (aPercentageBasis.isNothing() &&
-           GetPercentBSize(pEnd, aFrame, isHorizontalAxis, pad))) {
-        sizeTakenByBoxSizing += pad;
+      if (Maybe<nscoord> pad = GetPadding(pEnd)) {
+        sizeTakenByBoxSizing += *pad;
       }
     }
   }
@@ -4351,72 +4349,72 @@ static nscoord GetDefiniteSizeTakenByBoxSizing(
  * (-moz-fit-content for width, and -moz-available) have no effect on
  * intrinsic widths.
  */
-static bool GetIntrinsicCoord(nsIFrame::ExtremumLength aStyle,
-                              gfxContext* aRenderingContext, nsIFrame* aFrame,
-                              Maybe<nscoord> aISizeFromAspectRatio,
-                              nsIFrame::SizeProperty aProperty,
-                              nscoord aContentBoxToBoxSizingDiff,
-                              nscoord& aResult) {
-  if (aStyle == nsIFrame::ExtremumLength::MozAvailable) {
-    return false;
+static Maybe<nscoord> GetIntrinsicCoord(nsIFrame::ExtremumLength aLength,
+                                        gfxContext* aRenderingContext,
+                                        nsIFrame* aFrame,
+                                        Maybe<nscoord> aISizeFromAspectRatio,
+                                        nsIFrame::SizeProperty aProperty,
+                                        nscoord aContentBoxToBoxSizingDiff) {
+  if (aLength == nsIFrame::ExtremumLength::MozAvailable) {
+    return Nothing();
   }
 
-  if (aStyle == nsIFrame::ExtremumLength::FitContentFunction) {
+  if (aLength == nsIFrame::ExtremumLength::FitContentFunction) {
     // fit-content() should be handled by the caller.
-    return false;
+    return Nothing();
   }
 
-  if (aStyle == nsIFrame::ExtremumLength::FitContent) {
+  if (aLength == nsIFrame::ExtremumLength::FitContent) {
     switch (aProperty) {
       case nsIFrame::SizeProperty::Size:
         // handle like 'width: auto'
-        return false;
+        return Nothing();
       case nsIFrame::SizeProperty::MaxSize:
         // constrain large 'width' values down to max-content
-        aStyle = nsIFrame::ExtremumLength::MaxContent;
+        aLength = nsIFrame::ExtremumLength::MaxContent;
         break;
       case nsIFrame::SizeProperty::MinSize:
         // constrain small 'width' or 'max-width' values up to min-content
-        aStyle = nsIFrame::ExtremumLength::MinContent;
+        aLength = nsIFrame::ExtremumLength::MinContent;
         break;
     }
   }
 
-  NS_ASSERTION(aStyle == nsIFrame::ExtremumLength::MinContent ||
-                   aStyle == nsIFrame::ExtremumLength::MaxContent,
+  NS_ASSERTION(aLength == nsIFrame::ExtremumLength::MinContent ||
+                   aLength == nsIFrame::ExtremumLength::MaxContent,
                "should have reduced everything remaining to one of these");
 
   // If aFrame is a container for font size inflation, then shrink
   // wrapping inside of it should not apply font size inflation.
   AutoMaybeDisableFontInflation an(aFrame);
 
+  nscoord result;
   if (aISizeFromAspectRatio) {
-    aResult = *aISizeFromAspectRatio;
-  } else if (aStyle == nsIFrame::ExtremumLength::MaxContent) {
-    aResult = aFrame->GetPrefISize(aRenderingContext);
+    result = *aISizeFromAspectRatio;
+  } else if (aLength == nsIFrame::ExtremumLength::MaxContent) {
+    result = aFrame->GetPrefISize(aRenderingContext);
   } else {
-    aResult = aFrame->GetMinISize(aRenderingContext);
+    result = aFrame->GetMinISize(aRenderingContext);
   }
 
-  aResult += aContentBoxToBoxSizingDiff;
-
-  return true;
+  result += aContentBoxToBoxSizingDiff;
+  return Some(result);
 }
 
 template <typename SizeOrMaxSize>
-static bool GetIntrinsicCoord(const SizeOrMaxSize& aStyle,
-                              gfxContext* aRenderingContext, nsIFrame* aFrame,
-                              Maybe<nscoord> aISizeFromAspectRatio,
-                              nsIFrame::SizeProperty aProperty,
-                              nscoord aContentBoxToBoxSizingDiff,
-                              nscoord& aResult) {
-  auto length = nsIFrame::ToExtremumLength(aStyle);
+static Maybe<nscoord> GetIntrinsicCoord(const SizeOrMaxSize& aSize,
+                                        gfxContext* aRenderingContext,
+                                        nsIFrame* aFrame,
+                                        Maybe<nscoord> aISizeFromAspectRatio,
+                                        nsIFrame::SizeProperty aProperty,
+                                        nscoord aContentBoxToBoxSizingDiff) {
+  auto length = nsIFrame::ToExtremumLength(aSize);
   if (!length) {
-    return false;
+    return Nothing();
   }
   return GetIntrinsicCoord(*length, aRenderingContext, aFrame,
                            aISizeFromAspectRatio, aProperty,
-                           aContentBoxToBoxSizingDiff, aResult);
+                           aContentBoxToBoxSizingDiff);
 }
 
 #undef DEBUG_INTRINSIC_WIDTH
@@ -4432,7 +4430,7 @@ static nscoord GetFitContentSizeForMaxOrPreferredSize(
     const nscoord aMaxContentSize) {
   MOZ_ASSERT(aProperty != nsIFrame::SizeProperty::MinSize);
 
-  nscoord size = NS_UNCONSTRAINEDSIZE;
+  nscoord size;
   // 1. Treat fit-content()'s arg as a plain LengthPercentage
   // However, we have to handle the cyclic percentage contribution first.
   //
@@ -4443,7 +4441,9 @@ static nscoord GetFitContentSizeForMaxOrPreferredSize(
     // FIXME: This doesn't follow the spec for calc(). We should fix this in
     // Bug 1463700.
     size = 0;
-  } else if (!GetAbsoluteCoord(aStyleSize, size)) {
+  } else if (Maybe<nscoord> length = GetAbsoluteCoord(aStyleSize)) {
+    size = *length;
+  } else {
     // As initial value. Case (a) and (b) in the spec.
     size = aInitialValue;
   }
@@ -4464,11 +4464,11 @@ static nscoord GetFitContentSizeForMaxOrPreferredSize(
                        (@see IntrinsicForContainer)
  * @param aContentMinSize ditto min content size
  * @param aStyleSize a 'width' or 'height' property value
- * @param aFixedMinSize if aStyleMinSize is a definite size then this points to
- *                      the value, otherwise nullptr
+ * @param aFixedMinSize if aStyleMinSize is a definite size then this contains
+ *                      the value, otherwise Nothing()
  * @param aStyleMinSize a 'min-width' or 'min-height' property value
- * @param aFixedMaxSize if aStyleMaxSize is a definite size then this points to
- *                      the value, otherwise nullptr
+ * @param aFixedMaxSize if aStyleMaxSize is a definite size then this contains
+ *                      the value, otherwise Nothing()
  * @param aStyleMaxSize a 'max-width' or 'max-height' property value
  * @param aISizeFromAspectRatio the content-box inline size computed from
  *                              aspect-ratio and the definite block size.
@@ -4481,8 +4481,8 @@ static nscoord AddIntrinsicSizeOffset(
     gfxContext* aRenderingContext, nsIFrame* aFrame,
     const nsIFrame::IntrinsicSizeOffsetData& aOffsets, IntrinsicISizeType aType,
     StyleBoxSizing aBoxSizing, nscoord aContentSize, nscoord aContentMinSize,
-    const StyleSize& aStyleSize, const nscoord* aFixedMinSize,
-    const StyleSize& aStyleMinSize, const nscoord* aFixedMaxSize,
+    const StyleSize& aStyleSize, const Maybe<nscoord> aFixedMinSize,
+    const StyleSize& aStyleMinSize, const Maybe<nscoord> aFixedMaxSize,
     const StyleMaxSize& aStyleMaxSize, Maybe<nscoord> aISizeFromAspectRatio,
     uint32_t aFlags, PhysicalAxis aAxis) {
   nscoord result = aContentSize;
@@ -4528,17 +4528,16 @@ static nscoord AddIntrinsicSizeOffset(
   }
 
   // Compute size.
-  nscoord size = NS_UNCONSTRAINEDSIZE;
   if (aType == IntrinsicISizeType::MinISize &&
       aFrame->IsPercentageResolvedAgainstZero(aStyleSize, aStyleMaxSize)) {
     // XXX bug 1463700: this doesn't handle calc() according to spec
     result = 0;  // let |min| handle padding/border/margin
-  } else if (GetAbsoluteCoord(aStyleSize, size) ||
-             GetIntrinsicCoord(aStyleSize, aRenderingContext, aFrame,
-                               aISizeFromAspectRatio,
-                               nsIFrame::SizeProperty::Size,
-                               contentBoxToBoxSizingDiff, size)) {
-    result = size + coordOutsideSize;
+  } else if (Maybe<nscoord> size = GetAbsoluteCoord(aStyleSize).orElse([&]() {
+               return GetIntrinsicCoord(
+                   aStyleSize, aRenderingContext, aFrame, aISizeFromAspectRatio,
+                   nsIFrame::SizeProperty::Size, contentBoxToBoxSizingDiff);
+             })) {
+    result = *size + coordOutsideSize;
   } else if (aStyleSize.IsFitContentFunction()) {
     // |result| here is the content size or border size, depends on
     // StyleBoxSizing. We use it as the initial value when handling the cyclic
@@ -4554,47 +4553,50 @@ static nscoord AddIntrinsicSizeOffset(
   }
 
   // Compute max-size.
-  nscoord maxSize = aFixedMaxSize ? *aFixedMaxSize : 0;
-  if (aFixedMaxSize ||
-      GetIntrinsicCoord(aStyleMaxSize, aRenderingContext, aFrame,
-                        aISizeFromAspectRatio, nsIFrame::SizeProperty::MaxSize,
-                        contentBoxToBoxSizingDiff, maxSize)) {
-    maxSize += coordOutsideSize;
-    if (result > maxSize) {
-      result = maxSize;
+  Maybe<nscoord> maxSize = aFixedMaxSize.orElse([&]() {
+    return GetIntrinsicCoord(
+        aStyleMaxSize, aRenderingContext, aFrame, aISizeFromAspectRatio,
+        nsIFrame::SizeProperty::MaxSize, contentBoxToBoxSizingDiff);
+  });
+  if (maxSize) {
+    *maxSize += coordOutsideSize;
+    if (result > *maxSize) {
+      result = *maxSize;
     }
   } else if (aStyleMaxSize.IsFitContentFunction()) {
     nscoord fitContentFuncSize = GetFitContentSizeForMaxOrPreferredSize(
         aType, nsIFrame::SizeProperty::MaxSize, aFrame,
         aStyleMaxSize.AsFitContentFunction(), NS_UNCONSTRAINEDSIZE, minContent,
         maxContent);
-    maxSize = NSCoordSaturatingAdd(fitContentFuncSize, coordOutsideSize);
-    if (result > maxSize) {
-      result = maxSize;
+    maxSize.emplace(NSCoordSaturatingAdd(fitContentFuncSize, coordOutsideSize));
+    if (result > *maxSize) {
+      result = *maxSize;
     }
   }
 
   // Compute min-size.
-  nscoord minSize = aFixedMinSize ? *aFixedMinSize : 0;
-  if (aFixedMinSize ||
-      GetIntrinsicCoord(aStyleMinSize, aRenderingContext, aFrame,
-                        aISizeFromAspectRatio, nsIFrame::SizeProperty::MinSize,
-                        contentBoxToBoxSizingDiff, minSize)) {
-    minSize += coordOutsideSize;
-    if (result < minSize) {
-      result = minSize;
+  Maybe<nscoord> minSize = aFixedMinSize.orElse([&]() {
+    return GetIntrinsicCoord(
+        aStyleMinSize, aRenderingContext, aFrame, aISizeFromAspectRatio,
+        nsIFrame::SizeProperty::MinSize, contentBoxToBoxSizingDiff);
+  });
+  if (minSize) {
+    *minSize += coordOutsideSize;
+    if (result < *minSize) {
+      result = *minSize;
     }
   } else if (aStyleMinSize.IsFitContentFunction()) {
-    if (!GetAbsoluteCoord(aStyleMinSize.AsFitContentFunction(), minSize)) {
+    minSize = GetAbsoluteCoord(aStyleMinSize.AsFitContentFunction());
+    if (!minSize) {
       // FIXME: Bug 1463700, we should resolve only the percentage part to 0
       // such as min-width: fit-content(calc(50% + 50px)).
-      minSize = 0;
+      minSize.emplace(0);
     }
     nscoord fitContentFuncSize =
-        std::max(minContent, std::min(maxContent, minSize));
-    minSize = NSCoordSaturatingAdd(fitContentFuncSize, coordOutsideSize);
-    if (result < minSize) {
-      result = minSize;
+        std::max(minContent, std::min(maxContent, *minSize));
+    *minSize = NSCoordSaturatingAdd(fitContentFuncSize, coordOutsideSize);
+    if (result < *minSize) {
+      result = *minSize;
     }
   }
 
@@ -4707,21 +4709,18 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
   //     intrinsic minimum width
   nscoord result = 0, min = 0;
 
-  nscoord maxISize;
-  bool haveFixedMaxISize = GetAbsoluteCoord(styleMaxISize, maxISize);
-  nscoord minISize;
+  Maybe<nscoord> fixedMaxISize = GetAbsoluteCoord(styleMaxISize);
+  Maybe<nscoord> fixedMinISize;
 
   // Treat "min-width: auto" as 0.
-  bool haveFixedMinISize;
   if (styleMinISize.IsAuto()) {
     // NOTE: Technically, "auto" is supposed to behave like "min-content" on
     // flex items. However, we don't need to worry about that here, because
     // flex items' min-sizes are intentionally ignored until the flex
     // container explicitly considers them during space distribution.
-    minISize = 0;
-    haveFixedMinISize = true;
+    fixedMinISize.emplace(0);
   } else {
-    haveFixedMinISize = GetAbsoluteCoord(styleMinISize, minISize);
+    fixedMinISize = GetAbsoluteCoord(styleMinISize);
   }
 
   auto childWM = aFrame->GetWritingMode();
@@ -4755,6 +4754,19 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
                    : LogicalSize(childWM);
       };
 
+  // Helper to compute the block-size, max-block-size, and min-block-size later
+  // in this function.
+  auto GetBSize = [&](const auto& aSize) -> Maybe<nscoord> {
+    if (Maybe<nscoord> bSize =
+            GetDefiniteSize(aSize, aFrame, !isInlineAxis, aPercentageBasis)) {
+      return bSize;
+    }
+    if (aPercentageBasis) {
+      return Nothing();
+    }
+    return GetPercentBSize(aSize, aFrame, horizontalAxis);
+  };
+
   Maybe<nscoord> iSizeFromAspectRatio;
   Maybe<LogicalSize> contentBoxSizeToBoxSizingAdjust;
 
@@ -4764,7 +4776,7 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
   // If we have a specified width (or a specified 'min-width' greater
   // than the specified 'max-width', which works out to the same thing),
   // don't even bother getting the frame's intrinsic width, because in
-  // this case GetAbsoluteCoord(styleISize, w) will always succeed, so
+  // this case GetAbsoluteCoord(styleISize) will always succeed, so
   // we'll never need the intrinsic dimensions.
   if (styleISize.IsMaxContent() || styleISize.IsMinContent()) {
     MOZ_ASSERT(isInlineAxis);
@@ -4776,8 +4788,8 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
   } else if (!styleISize.ConvertsToLength() &&
              !(styleISize.IsFitContentFunction() &&
                styleISize.AsFitContentFunction().ConvertsToLength()) &&
-             !(haveFixedMinISize && haveFixedMaxISize &&
-               maxISize <= minISize)) {
+             !(fixedMaxISize && fixedMinISize &&
+               *fixedMaxISize <= *fixedMinISize)) {
 #ifdef DEBUG_INTRINSIC_WIDTH
     ++gNoiseIndent;
 #endif
@@ -4883,30 +4895,23 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
         // MIN_INTRINSIC_ISIZE (which is fine, because this should only be used
         // inside a check for that flag).
         nscoord minContentSize = result;
-        nscoord h;
-        if (GetDefiniteSize(styleBSize, aFrame, !isInlineAxis, aPercentageBasis,
-                            &h) ||
-            (aPercentageBasis.isNothing() &&
-             GetPercentBSize(styleBSize, aFrame, horizontalAxis, h))) {
-          h = std::max(0, h - bSizeTakenByBoxSizing);
+        if (Maybe<nscoord> bSize = GetBSize(styleBSize)) {
+          *bSize = std::max(0, *bSize - bSizeTakenByBoxSizing);
           // We are computing the size of |aFrame|, so we use the inline & block
           // dimensions of |aFrame|.
           result = ratio.ComputeRatioDependentSize(
               isInlineAxis ? LogicalAxis::Inline : LogicalAxis::Block, childWM,
-              h, *contentBoxSizeToBoxSizingAdjust);
+              *bSize, *contentBoxSizeToBoxSizingAdjust);
           // We have got the iSizeForAspectRatio value, so we don't need to
           // compute this again below.
           iSizeFromAspectRatio.emplace(result);
         }
 
-        if (GetDefiniteSize(styleMaxBSize, aFrame, !isInlineAxis,
-                            aPercentageBasis, &h) ||
-            (aPercentageBasis.isNothing() &&
-             GetPercentBSize(styleMaxBSize, aFrame, horizontalAxis, h))) {
-          h = std::max(0, h - bSizeTakenByBoxSizing);
+        if (Maybe<nscoord> maxBSize = GetBSize(styleMaxBSize)) {
+          *maxBSize = std::max(0, *maxBSize - bSizeTakenByBoxSizing);
           nscoord maxISize = ratio.ComputeRatioDependentSize(
               isInlineAxis ? LogicalAxis::Inline : LogicalAxis::Block, childWM,
-              h, *contentBoxSizeToBoxSizingAdjust);
+              *maxBSize, *contentBoxSizeToBoxSizingAdjust);
           if (maxISize < result) {
             result = maxISize;
           }
@@ -4915,14 +4920,11 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
           }
         }
 
-        if (GetDefiniteSize(styleMinBSize, aFrame, !isInlineAxis,
-                            aPercentageBasis, &h) ||
-            (aPercentageBasis.isNothing() &&
-             GetPercentBSize(styleMinBSize, aFrame, horizontalAxis, h))) {
-          h = std::max(0, h - bSizeTakenByBoxSizing);
+        if (Maybe<nscoord> minBSize = GetBSize(styleMinBSize)) {
+          *minBSize = std::max(0, *minBSize - bSizeTakenByBoxSizing);
           nscoord minISize = ratio.ComputeRatioDependentSize(
               isInlineAxis ? LogicalAxis::Inline : LogicalAxis::Block, childWM,
-              h, *contentBoxSizeToBoxSizingAdjust);
+              *minBSize, *contentBoxSizeToBoxSizingAdjust);
           if (minISize > result) {
             result = minISize;
           }
@@ -4966,11 +4968,7 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
     // this branch only if |aAxis| is the inline axis of |aFrame|.
     const StyleSize& styleBSize =
         horizontalAxis ? stylePos->mHeight : stylePos->mWidth;
-    nscoord bSize;
-    if (GetDefiniteSize(styleBSize, aFrame, !isInlineAxis, aPercentageBasis,
-                        &bSize) ||
-        (aPercentageBasis.isNothing() &&
-         GetPercentBSize(styleBSize, aFrame, horizontalAxis, bSize))) {
+    if (Maybe<nscoord> bSize = GetBSize(styleBSize)) {
       // We cannot reuse |boxSizing| because it may be updated to content-box
       // in the above if-branch.
       const StyleBoxSizing boxSizingForAR = stylePos->mBoxSizing;
@@ -4981,9 +4979,9 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
       nscoord bSizeTakenByBoxSizing =
           GetDefiniteSizeTakenByBoxSizing(boxSizingForAR, aFrame, !isInlineAxis,
                                           ignorePadding, aPercentageBasis);
-      bSize -= bSizeTakenByBoxSizing;
+      *bSize -= bSizeTakenByBoxSizing;
       iSizeFromAspectRatio.emplace(
-          ar.ComputeRatioDependentSize(LogicalAxis::Inline, childWM, bSize,
+          ar.ComputeRatioDependentSize(LogicalAxis::Inline, childWM, *bSize,
                                        *contentBoxSizeToBoxSizingAdjust));
     }
   }
@@ -4991,8 +4989,7 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
   nscoord contentBoxSize = result;
   result = AddIntrinsicSizeOffset(
       aRenderingContext, aFrame, offsets, aType, boxSizing, result, min,
-      styleISize, haveFixedMinISize ? &minISize : nullptr, styleMinISize,
-      haveFixedMaxISize ? &maxISize : nullptr, styleMaxISize,
+      styleISize, fixedMinISize, styleMinISize, fixedMaxISize, styleMaxISize,
       iSizeFromAspectRatio, aFlags, aAxis);
   nscoord overflow = result - aMarginBoxMinSizeClamp;
   if (MOZ_UNLIKELY(overflow > 0)) {
@@ -5064,14 +5061,12 @@ nscoord nsLayoutUtils::MinSizeContributionForAxis(
     }
   }
 
-  nscoord minSize;
-  nscoord* fixedMinSize = nullptr;
+  Maybe<nscoord> fixedMinSize;
   if (size.IsAuto()) {
     if (aFrame->StyleDisplay()->IsScrollableOverflow()) {
       // min-[width|height]:auto with scrollable overflow computes to
       // zero.
-      minSize = 0;
-      fixedMinSize = &minSize;
+      fixedMinSize.emplace(0);
     } else {
       size = aAxis == PhysicalAxis::Horizontal ? stylePos->mWidth
                                                : stylePos->mHeight;
@@ -5081,23 +5076,22 @@ nscoord nsLayoutUtils::MinSizeContributionForAxis(
         size = StyleSize::Auto();
       }
 
-      if (GetAbsoluteCoord(size, minSize)) {
+      fixedMinSize = GetAbsoluteCoord(size);
+      if (fixedMinSize) {
         // We have a definite width/height.  This is the "specified size" in:
         // https://drafts.csswg.org/css-grid/#min-size-auto
-        fixedMinSize = &minSize;
       } else if (aFrame->IsPercentageResolvedAgainstZero(size, maxSize)) {
         // XXX bug 1463700: this doesn't handle calc() according to spec
-        minSize = 0;
-        fixedMinSize = &minSize;
+        fixedMinSize.emplace(0);
       }
       // fall through - the caller will have to deal with "transferred size"
     }
-  } else if (GetAbsoluteCoord(size, minSize)) {
-    fixedMinSize = &minSize;
-  } else if (size.IsLengthPercentage()) {
-    MOZ_ASSERT(size.HasPercent());
-    minSize = 0;
-    fixedMinSize = &minSize;
+  } else {
+    fixedMinSize = GetAbsoluteCoord(size);
+    if (!fixedMinSize && size.IsLengthPercentage()) {
+      MOZ_ASSERT(size.HasPercent());
+      fixedMinSize.emplace(0);
+    }
   }
 
   if (!fixedMinSize) {
@@ -5127,10 +5121,11 @@ nscoord nsLayoutUtils::MinSizeContributionForAxis(
   nscoord result = 0;
   nscoord min = 0;
   // Note: aISizeFromAspectRatio is Nothing() here because we don't handle
-  // "content size" cases here (i.e. |fixedMinSize| is false here).
+  // "content size" cases here (i.e. we've returned earlier when |fixedMinSize|
+  // is Nothing()).
   result = AddIntrinsicSizeOffset(
       aRC, aFrame, offsets, aType, stylePos->mBoxSizing, result, min, size,
-      fixedMinSize, size, nullptr, maxSize, Nothing(), aFlags, aAxis);
+      fixedMinSize, size, Nothing(), maxSize, Nothing(), aFlags, aAxis);
 
 #ifdef DEBUG_INTRINSIC_WIDTH
   nsIFrame::IndentBy(stderr, gNoiseIndent);
