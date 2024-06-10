@@ -116,6 +116,8 @@ support-files = [
 
 ["browser_net_basic-search.js"]
 
+["browser_net_block-before-network.js"]
+
 ["browser_net_block-context.js"]
 
 ["browser_net_block-csp.js"]
