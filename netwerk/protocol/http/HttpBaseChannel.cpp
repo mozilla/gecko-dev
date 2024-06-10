@@ -549,8 +549,12 @@ HttpBaseChannel::SetDocshellUserAgentOverride() {
   }
 
   NS_ConvertUTF16toUTF8 utf8CustomUserAgent(customUserAgent);
-  nsresult rv = SetRequestHeader("User-Agent"_ns, utf8CustomUserAgent, false);
-  if (NS_FAILED(rv)) return rv;
+  nsresult rv = SetRequestHeaderInternal(
+      "User-Agent"_ns, utf8CustomUserAgent, false,
+      nsHttpHeaderArray::eVarietyRequestEnforceDefault);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
 
   return NS_OK;
 }
@@ -1970,6 +1974,13 @@ HttpBaseChannel::GetRequestHeader(const nsACString& aHeader,
 NS_IMETHODIMP
 HttpBaseChannel::SetRequestHeader(const nsACString& aHeader,
                                   const nsACString& aValue, bool aMerge) {
+  return SetRequestHeaderInternal(aHeader, aValue, aMerge,
+                                  nsHttpHeaderArray::eVarietyRequestOverride);
+}
+
+nsresult HttpBaseChannel::SetRequestHeaderInternal(
+    const nsACString& aHeader, const nsACString& aValue, bool aMerge,
+    nsHttpHeaderArray::HeaderVariety aVariety) {
   const nsCString& flatHeader = PromiseFlatCString(aHeader);
   const nsCString& flatValue = PromiseFlatCString(aValue);
 

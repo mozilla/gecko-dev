@@ -726,6 +726,10 @@ class HttpBaseChannel : public nsHashPropertyBag,
 
   void MaybeResumeAsyncOpen();
 
+  nsresult SetRequestHeaderInternal(const nsACString& aHeader,
+                                    const nsACString& aValue, bool aMerge,
+                                    nsHttpHeaderArray::HeaderVariety aVariety);
+
  protected:
   nsCString mSpec;  // ASCII encoded URL spec
   nsCString mContentTypeHint;
