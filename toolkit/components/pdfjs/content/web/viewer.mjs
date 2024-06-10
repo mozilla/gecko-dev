@@ -1626,8 +1626,10 @@ class DownloadManager {
     this.downloadData(data, filename, contentType);
     return false;
   }
-  download(blob, url, filename, options = {}) {
-    const blobUrl = URL.createObjectURL(blob);
+  download(data, url, filename, options = {}) {
+    const blobUrl = URL.createObjectURL(new Blob([data], {
+      type: "application/pdf"
+    }));
     FirefoxCom.request("download", {
       blobUrl,
       originalUrl: url,
@@ -8431,7 +8433,7 @@ class PDFViewer {
   #scaleTimeoutId = null;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "4.4.10";
+    const viewerVersion = "4.4.16";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -11060,12 +11062,9 @@ const PDFViewerApplication = {
     try {
       this._ensureDownloadComplete();
       const data = await this.pdfDocument.getData();
-      const blob = new Blob([data], {
-        type: "application/pdf"
-      });
-      await this.downloadManager.download(blob, url, filename, options);
+      this.downloadManager.download(data, url, filename, options);
     } catch {
-      await this.downloadManager.downloadUrl(url, filename, options);
+      this.downloadManager.downloadUrl(url, filename, options);
     }
   },
   async save(options = {}) {
@@ -11079,10 +11078,7 @@ const PDFViewerApplication = {
     try {
       this._ensureDownloadComplete();
       const data = await this.pdfDocument.saveDocument();
-      const blob = new Blob([data], {
-        type: "application/pdf"
-      });
-      await this.downloadManager.download(blob, url, filename, options);
+      this.downloadManager.download(data, url, filename, options);
     } catch (reason) {
       console.error(`Error when saving the document: ${reason.message}`);
       await this.download(options);
@@ -12603,8 +12599,8 @@ function webViewerReportTelemetry({
 
 
 
-const pdfjsVersion = "4.4.10";
-const pdfjsBuild = "5c51d5622";
+const pdfjsVersion = "4.4.16";
+const pdfjsBuild = "593ce9683";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;
