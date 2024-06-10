@@ -12,12 +12,75 @@ check_and_add_flag("-fno-sized-deallocation", compiler=cxx_compiler)
 check_and_add_flag("-fno-aligned-new", compiler=cxx_compiler)
 
 
+# Identical Code Folding
+option(
+    "--enable-icf",
+    help="{Enable|Disable} Identical Code Folding",
+    default=~developer_options,
+)
+enable_icf = depends("--enable-icf")(lambda v: bool(v))
+
+
 with only_when(building_with_gnu_compatible_cc):
-    with only_when(~developer_options):
+    with only_when(~developer_options | enable_icf):
         add_flag("-ffunction-sections")
         add_flag("-fdata-sections")
     add_flag("-fno-math-errno")
     add_flag("-fno-exceptions", compiler=cxx_compiler)
+
+
+@depends(
+    c_compiler,
+    extra_toolchain_flags,
+    linker_ldflags,
+    llvm_objdump,
+    when=building_with_gnu_compatible_cc & gcc_use_gnu_ld & enable_icf,
+)
+@checking("whether the linker supports Identical Code Folding")
+@imports("os")
+@imports(_from="tempfile", _import="mkstemp")
+def linker_supports_icf(
+    c_compiler, extra_toolchain_flags, linker_ldflags, llvm_objdump
+):
+    fd, bin_path = mkstemp(prefix="conftest.", suffix=".out")
+    os.close(fd)
+    try:
+        if (
+            try_invoke_compiler(
+                None,
+                [c_compiler.compiler] + c_compiler.flags + linker_ldflags,
+                c_compiler.language,
+                """
+                                 int foo() {return 42;}
+                                 int bar() {return 42;}
+                                 int main() {return 0;}
+                                 """,
+                ["-o", bin_path, "-Wl,--icf=safe", "-ffunction-sections"]
+                + (extra_toolchain_flags or []),
+                wrapper=c_compiler.wrapper,
+                onerror=lambda: None,
+            )
+            is not None
+        ):
+            objdump_command = [llvm_objdump, "-t", bin_path]
+            result = check_cmd_output(*objdump_command, onerror=lambda: None)
+            if result is not None:
+                sym_addr = {
+                    line[5]: line[0]
+                    for line in [line.split() for line in result.splitlines()]
+                    if len(line) >= 6
+                }
+                foo_addr = sym_addr.get("foo")
+                bar_addr = sym_addr.get("bar")
+                return foo_addr == bar_addr and foo_addr is not None
+    finally:
+        if os.path.exists(bin_path):
+            os.remove(bin_path)
+
+
+@depends(linker_flags, when=linker_supports_icf)
+def add_icf_flags(linker_flags):
+    linker_flags.ldflags.append("-Wl,--icf=safe")
 
 
 # Please keep these last in this file.

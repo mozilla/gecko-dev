@@ -347,33 +347,6 @@ set_config("WASM_OBJ_SUFFIX", "wasm")
 
 
 @template
-def llvm_tool(name):
-    @depends(host_c_compiler, c_compiler, bindgen_config_paths)
-    def llvm_tool(host_c_compiler, c_compiler, bindgen_config_paths):
-        clang = None
-        for compiler in (host_c_compiler, c_compiler):
-            if compiler and compiler.type == "clang":
-                clang = compiler.compiler
-                break
-            elif compiler and compiler.type == "clang-cl":
-                clang = os.path.join(os.path.dirname(compiler.compiler), "clang")
-                break
-
-        if not clang and bindgen_config_paths:
-            clang = bindgen_config_paths.clang_path
-        tool = name
-        if clang:
-            out = check_cmd_output(
-                clang, "--print-prog-name=%s" % tool, onerror=lambda: None
-            )
-            if out:
-                tool = out.rstrip()
-        return (tool,)
-
-    return llvm_tool
-
-
-@template
 def plain_llvm_or_prefixed(name, llvm_name=None):
     # look for a tool, using the following alternatives, in that order:
     # 1. llvm-${llvm_name}, or llvm-${name} if ${llvm_name} is not provided
@@ -388,17 +361,6 @@ def plain_llvm_or_prefixed(name, llvm_name=None):
         return tuple(commands)
 
     return plain_llvm_or_prefixed
-
-
-llvm_objdump = check_prog(
-    "LLVM_OBJDUMP",
-    llvm_tool("llvm-objdump"),
-    what="llvm-objdump",
-    when="--enable-compile-environment",
-    paths=clang_search_path,
-)
-
-add_old_configure_assignment("LLVM_OBJDUMP", llvm_objdump)
 
 
 def validate_readelf(path):
@@ -808,13 +770,6 @@ check_prog(
     when=compile_environment & target_is_darwin & js_standalone,
     paths=clang_search_path,
 )
-
-option("--disable-icf", help="Disable Identical Code Folding")
-
-add_old_configure_assignment(
-    "MOZ_DISABLE_ICF", "1", when=depends("--enable-icf")(lambda x: not x)
-)
-
 
 option(
     "--enable-strip",
