@@ -1034,6 +1034,14 @@ class Browsertime(Perftest):
                 f"and output_timeout={output_timeout}"
             )
 
+            if self.config["power_test"]:
+                if not self.config["run_local"]:
+                    env["USB_POWER_METER_SERIAL_NUMBER"] = os.environ.get(
+                        "USB_POWER_METER_SERIAL_NUMBER", ""
+                    )
+
+                cmd.extend(["--android.usbPowerTesting", "true"])
+
             mozprocess.run_and_wait(
                 cmd,
                 output_line_handler=_create_line_handler(),

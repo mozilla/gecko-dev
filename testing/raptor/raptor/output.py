@@ -1854,9 +1854,12 @@ class BrowsertimeOutput(PerftestOutput):
                 subtest["name"] = measurement_name
                 subtest["lowerIsBetter"] = test["subtest_lower_is_better"]
                 subtest["alertThreshold"] = float(test["alert_threshold"])
-                subtest["unit"] = (
-                    "ms" if measurement_name == "cpuTime" else test["subtest_unit"]
-                )
+                if measurement_name == "cpuTime":
+                    subtest["unit"] = "ms"
+                elif measurement_name == "powerUsage":
+                    subtest["unit"] = "uWh"
+                else:
+                    subtest["unit"] = test["subtest_unit"]
 
                 # Add the alert window settings if needed here too in case
                 # there is no summary value in the test
@@ -1958,6 +1961,12 @@ class BrowsertimeOutput(PerftestOutput):
                     cpu_subtest = _process_measurements("cpuTime", replicates)
                     _process(cpu_subtest)
                     suite["subtests"].append(cpu_subtest)
+
+                if "powerUsage" in test["measurements"]:
+                    replicates = test["measurements"]["powerUsage"]
+                    power_subtest = _process_measurements("powerUsage", replicates)
+                    power_subtest["value"] = round(filters.mean(replicates), 2)
+                    suite["subtests"].append(power_subtest)
 
                 # summarize results for both benchmark type tests
                 if len(subtests) > 1:

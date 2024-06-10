@@ -66,9 +66,13 @@ class MotionMarkSupport(BasePythonSupport):
         for measurement_name, replicates in test["measurements"].items():
             if not replicates:
                 continue
+            if self.is_additional_metric(measurement_name):
+                continue
             suite["subtests"].append(
                 self._build_subtest(measurement_name, replicates, test)
             )
+
+        self.add_additional_metrics(test, suite, **kwargs)
         suite["subtests"].sort(key=lambda subtest: subtest["name"])
 
         score = 0

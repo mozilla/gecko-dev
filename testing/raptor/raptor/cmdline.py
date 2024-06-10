@@ -534,6 +534,13 @@ def create_parser(mach_interface=False):
         default=False,
         help="Take a screenshot when the test fails.",
     )
+    add_arg(
+        "--power-test",
+        action="store_true",
+        dest="power_test",
+        default=False,
+        help="Gather power usage measurements on this test (Android only).",
+    )
 
     add_logging_group(parser)
     return parser
@@ -625,6 +632,9 @@ def verify_options(parser, args):
     if args.post_startup_delay:
         if args.post_startup_delay < 0:
             parser.error("--post-startup-delay must be a positive integer (in ms).")
+
+    if args.power_test and args.app not in FIREFOX_ANDROID_APPS + CHROME_ANDROID_APPS:
+        parser.error("--power-test is only available with Android apps.")
 
 
 def parse_args(argv=None):
