@@ -395,18 +395,7 @@
 
   <menupopup id="contentAreaContextMenu"
 # read by macOS cocoa code to enable the "services" menu here:
-             showservicesmenu="true"
-             onpopupshowing="if (event.target != this)
-                               return true;
-                             gContextMenu = new nsContextMenu(this, event.shiftKey);
-                             if (gContextMenu.shouldDisplay)
-                               updateEditUIVisibility();
-                             return gContextMenu.shouldDisplay;"
-             onpopuphiding="if (event.target != this)
-                              return;
-                            gContextMenu.hiding(this);
-                            gContextMenu = null;
-                            updateEditUIVisibility();">
+             showservicesmenu="true">
 #include browser-context.inc
   </menupopup>
 

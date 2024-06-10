@@ -3,6 +3,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+<script src="chrome://browser/content/browser-context.js" hidden="true" />
+
 #ifdef XP_MACOSX
       <menuitem id="context-back"
                 data-l10n-id="main-context-menu-back-mac"
