@@ -35,6 +35,7 @@ namespace mozilla {
 template <typename... Ts>
 class Variant;
 namespace dom {
+struct CSPViolationData;
 class Element;
 }
 namespace ipc {
@@ -113,7 +114,8 @@ class nsCSPContext : public nsIContentSecurityPolicy {
    */
   nsresult GatherSecurityPolicyViolationEventData(
       Resource& aResource, nsIURI* aOriginalURI,
-      const nsAString& aViolatedDirective, uint32_t aViolatedPolicyIndex,
+      const nsAString& aEffectiveDirective,
+      const mozilla::dom::CSPViolationData& aCSPViolationData,
       const nsAString& aSourceFile, const nsAString& aScriptSample,
       uint32_t aLineNum, uint32_t aColumnNum,
       mozilla::dom::SecurityPolicyViolationEventInit& aViolationEventInit);

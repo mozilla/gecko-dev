@@ -46,6 +46,7 @@
 #include "mozilla/Variant.h"
 #include "mozilla/dom/CSPReportBinding.h"
 #include "mozilla/dom/CSPDictionariesBinding.h"
+#include "mozilla/dom/CSPViolationData.h"
 #include "mozilla/ipc/PBackgroundSharedTypes.h"
 #include "mozilla/dom/WindowGlobalParent.h"
 #include "nsINetworkInterceptController.h"
@@ -968,12 +969,13 @@ void StripURIForReporting(nsIURI* aSelfURI, nsIURI* aURI,
 
 nsresult nsCSPContext::GatherSecurityPolicyViolationEventData(
     Resource& aResource, nsIURI* aOriginalURI,
-    const nsAString& aEffectiveDirective, uint32_t aViolatedPolicyIndex,
-    const nsAString& aSourceFile, const nsAString& aScriptSample,
-    uint32_t aLineNum, uint32_t aColumnNum,
+    const nsAString& aEffectiveDirective,
+    const CSPViolationData& aCSPViolationData, const nsAString& aSourceFile,
+    const nsAString& aScriptSample, uint32_t aLineNum, uint32_t aColumnNum,
     mozilla::dom::SecurityPolicyViolationEventInit& aViolationEventInit) {
   EnsureIPCPoliciesRead();
-  NS_ENSURE_ARG_MAX(aViolatedPolicyIndex, mPolicies.Length() - 1);
+  NS_ENSURE_ARG_MAX(aCSPViolationData.mViolatedPolicyIndex,
+                    mPolicies.Length() - 1);
 
   MOZ_ASSERT(ValidateDirectiveName(aEffectiveDirective),
              "Invalid directive name");
@@ -1016,7 +1018,8 @@ nsresult nsCSPContext::GatherSecurityPolicyViolationEventData(
 
   // original-policy
   nsAutoString originalPolicy;
-  rv = this->GetPolicyString(aViolatedPolicyIndex, originalPolicy);
+  rv = this->GetPolicyString(aCSPViolationData.mViolatedPolicyIndex,
+                             originalPolicy);
   NS_ENSURE_SUCCESS(rv, rv);
   aViolationEventInit.mOriginalPolicy = originalPolicy;
 
@@ -1039,7 +1042,7 @@ nsresult nsCSPContext::GatherSecurityPolicyViolationEventData(
 
   // disposition
   aViolationEventInit.mDisposition =
-      mPolicies[aViolatedPolicyIndex]->getReportOnlyFlag()
+      mPolicies[aCSPViolationData.mViolatedPolicyIndex]->getReportOnlyFlag()
           ? mozilla::dom::SecurityPolicyViolationEventDisposition::Report
           : mozilla::dom::SecurityPolicyViolationEventDisposition::Enforce;
 
@@ -1456,8 +1459,10 @@ class CSPReportSenderRunnable final : public Runnable {
     Resource resource = mBlockedURI ? Resource(mBlockedURI.get())
                                     : Resource(mBlockedContentSource);
 
+    CSPViolationData cspViolationData{mViolatedPolicyIndex};
+
     nsresult rv = mCSPContext->GatherSecurityPolicyViolationEventData(
-        resource, mOriginalURI, effectiveDirective, mViolatedPolicyIndex,
+        resource, mOriginalURI, effectiveDirective, cspViolationData,
         mSourceFile, mReportSample ? mScriptSample : EmptyString(), mLineNum,
         mColumnNum, init);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -1472,7 +1477,7 @@ class CSPReportSenderRunnable final : public Runnable {
     }
 
     // 2) send reports for the policy that was violated
-    mCSPContext->SendReports(init, mViolatedPolicyIndex);
+    mCSPContext->SendReports(init, cspViolationData.mViolatedPolicyIndex);
 
     // 3) log to console (one per policy violation)
     ReportToConsole();

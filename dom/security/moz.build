@@ -13,6 +13,7 @@ DIRS += ["featurepolicy", "sanitizer", "trusted-types"]
 
 EXPORTS.mozilla.dom += [
     "CSPEvalChecker.h",
+    "CSPViolationData.h",
     "DOMSecurityMonitor.h",
     "FramingChecker.h",
     "nsContentSecurityManager.h",
