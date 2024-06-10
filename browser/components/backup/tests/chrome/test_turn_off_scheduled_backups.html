@@ -2,11 +2,11 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Tests for the turn-on-scheduled-backups component</title>
+  <title>Tests for the turn-off-scheduled-backups component</title>
   <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
   <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
   <script
-  src="chrome://browser/content/backup/turn-on-scheduled-backups.mjs"
+  src="chrome://browser/content/backup/turn-off-scheduled-backups.mjs"
   type="module"
 ></script>
   <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
@@ -17,32 +17,32 @@
     );
 
     /**
-     * Tests that adding a turn-on-scheduled-backups element to the DOM causes it to
+     * Tests that adding a turn-off-scheduled-backups element to the DOM causes it to
      * fire a BackupUI:InitWidget event.
      */
     add_task(async function test_initWidget() {
-      let turnOnScheduledBackups = document.createElement("turn-on-scheduled-backups");
+      let turnOffScheduledBackups = document.createElement("turn-off-scheduled-backups");
       let content = document.getElementById("content");
 
       let sawInitWidget = BrowserTestUtils.waitForEvent(content, "BackupUI:InitWidget");
-      content.appendChild(turnOnScheduledBackups);
+      content.appendChild(turnOffScheduledBackups);
       await sawInitWidget;
       ok(true, "Saw BackupUI:InitWidget");
 
-      turnOnScheduledBackups.remove();
+      turnOffScheduledBackups.remove();
     });
 
     /**
      * Tests that pressing the confirm button will dispatch the expected events.
      */
     add_task(async function test_confirm() {
-      let turnOnScheduledBackups = document.getElementById("test-turn-on-scheduled-backups");
-      let confirmButton = turnOnScheduledBackups.confirmButtonEl;
+      let turnOffScheduledBackups = document.getElementById("test-turn-off-scheduled-backups");
+      let confirmButton = turnOffScheduledBackups.confirmButtonEl;
 
       ok(confirmButton, "Confirm button should be found");
 
       let content = document.getElementById("content");
-      let promise = BrowserTestUtils.waitForEvent(content, "turnOnScheduledBackups");
+      let promise = BrowserTestUtils.waitForEvent(content, "turnOffScheduledBackups");
 
       confirmButton.click()
 
@@ -54,8 +54,8 @@
      * Tests that pressing the cancel button will dispatch the expected events.
      */
     add_task(async function test_cancel() {
-      let turnOnScheduledBackups = document.getElementById("test-turn-on-scheduled-backups");
-      let cancelButton = turnOnScheduledBackups.cancelButtonEl;
+      let turnOffScheduledBackups = document.getElementById("test-turn-off-scheduled-backups");
+      let cancelButton = turnOffScheduledBackups.cancelButtonEl;
 
       ok(cancelButton, "Cancel button should be found");
 
@@ -67,29 +67,12 @@
       await promise;
       ok(true, "Detected event after selecting the cancel button");
     })
-
-    /**
-     * Tests that selecting the checkbox for enabling backup encryption will show more
-     * options to configure the password needed for encryption.
-     */
-    add_task(async function test_expandedPasswords() {
-      let turnOnScheduledBackups = document.getElementById("test-turn-on-scheduled-backups");
-      let passwordsCheckbox = turnOnScheduledBackups.passwordOptionsCheckboxEl;
-
-      ok(passwordsCheckbox, "Passwords checkbox should be found");
-      ok(!turnOnScheduledBackups.passwordOptionsExpandedEl, "Passwords expanded options should not be found");
-
-      passwordsCheckbox.click();
-      await turnOnScheduledBackups.updateComplete;
-
-      ok(turnOnScheduledBackups.passwordOptionsExpandedEl, "Passwords expanded options should be found");
-    })
   </script>
 </head>
 <body>
 <p id="display"></p>
 <div id="content" style="display: none">
-  <turn-on-scheduled-backups id="test-turn-on-scheduled-backups"></turn-on-scheduled-backups>
+  <turn-off-scheduled-backups id="test-turn-off-scheduled-backups"></turn-off-scheduled-backups>
 </div>
 <pre id="test"></pre>
 </body>

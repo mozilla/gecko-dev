@@ -70,7 +70,7 @@ add_task(async function test_turn_on_scheduled_backups_confirm() {
     let confirmButton = turnOnScheduledBackups.confirmButtonEl;
     let promise = BrowserTestUtils.waitForEvent(
       window,
-      "scheduledBackupsConfirm"
+      "turnOnScheduledBackups"
     );
 
     Assert.ok(confirmButton, "Confirm button should be found");
@@ -84,5 +84,57 @@ add_task(async function test_turn_on_scheduled_backups_confirm() {
       "browser.backup.scheduled.enabled"
     );
     Assert.ok(scheduledPrefVal, "Scheduled backups pref should be true");
+  });
+});
+
+/**
+ * Tests that the turn off scheduled backups dialog can set
+ * browser.backup.scheduled.enabled to false from the settings page.
+ */
+add_task(async function test_turn_off_scheduled_backups_confirm() {
+  await BrowserTestUtils.withNewTab("about:preferences", async browser => {
+    await SpecialPowers.pushPrefEnv({
+      set: [["browser.backup.scheduled.enabled", true]],
+    });
+
+    let settings = browser.contentDocument.querySelector("backup-settings");
+
+    await settings.updateComplete;
+
+    let turnOffButton = settings.scheduledBackupsButtonEl;
+
+    Assert.ok(
+      turnOffButton,
+      "Button to turn off scheduled backups should be found"
+    );
+
+    turnOffButton.click();
+
+    await settings.updateComplete;
+
+    let turnOffScheduledBackups = settings.turnOffScheduledBackupsEl;
+
+    Assert.ok(
+      turnOffScheduledBackups,
+      "turn-off-scheduled-backups should be found"
+    );
+
+    let confirmButton = turnOffScheduledBackups.confirmButtonEl;
+    let promise = BrowserTestUtils.waitForEvent(
+      window,
+      "turnOffScheduledBackups"
+    );
+
+    Assert.ok(confirmButton, "Confirm button should be found");
+
+    confirmButton.click();
+
+    await promise;
+    await settings.updateComplete;
+
+    let scheduledPrefVal = Services.prefs.getBoolPref(
+      "browser.backup.scheduled.enabled"
+    );
+    Assert.ok(!scheduledPrefVal, "Scheduled backups pref should be false");
   });
 });

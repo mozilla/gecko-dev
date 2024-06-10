@@ -441,7 +441,7 @@ let JSWINDOWACTORS = {
       esModuleURI: "resource:///actors/BackupUIChild.sys.mjs",
       events: {
         "BackupUI:InitWidget": { wantUntrusted: true },
-        "BackupUI:ScheduledBackupsConfirm": { wantUntrusted: true },
+        "BackupUI:ToggleScheduledBackups": { wantUntrusted: true },
       },
     },
     matches: ["about:preferences*", "about:settings*"],

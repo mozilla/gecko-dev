@@ -32,4 +32,13 @@ turn-on-scheduled-backups-encryption-repeat-password-label = Repeat password
 turn-on-scheduled-backups-cancel-button = Cancel
 turn-on-scheduled-backups-confirm-button = Turn on backup
 
+## These strings are displayed in a modal when users want to turn off scheduled backups.
+
+turn-off-scheduled-backups-header = Turn off backup?
+turn-off-scheduled-backups-description = This also deletes all of your backup data. It can’t be undone.
+turn-off-scheduled-backups-support-link = Learn more
+
+turn-off-scheduled-backups-cancel-button = Cancel
+turn-off-scheduled-backups-confirm-button = Turn off and delete backup
+
 ##

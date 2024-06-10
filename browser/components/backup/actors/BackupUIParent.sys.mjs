@@ -69,8 +69,8 @@ export class BackupUIParent extends JSWindowActorParent {
   receiveMessage(message) {
     if (message.name == "RequestState") {
       this.sendState();
-    } else if (message.name == "ScheduledBackupsConfirm") {
-      this.#bs.setScheduledBackups(true);
+    } else if (message.name == "ToggleScheduledBackups") {
+      this.#bs.setScheduledBackups(message.data?.isScheduledBackupsEnabled);
     }
   }
 
