@@ -9,6 +9,7 @@
 #include "mozilla/MathAlgorithms.h"
 
 #include "jit/Lowering.h"
+#include "jit/MIR-wasm.h"
 #include "jit/MIR.h"
 #include "wasm/WasmFeatures.h"  // for wasm::ReportSimdAnalysis
 

@@ -66,6 +66,7 @@ pid_t gettid_pthread() {
 #include "jit/Jitdump.h"
 #include "jit/JitSpewer.h"
 #include "jit/LIR.h"
+#include "jit/MIR-wasm.h"
 #include "jit/MIR.h"
 #include "js/ColumnNumber.h"  // JS::LimitedColumnNumberOneOrigin, JS::ColumnNumberOffset
 #include "js/JitCodeAPI.h"

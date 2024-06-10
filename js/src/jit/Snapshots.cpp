@@ -10,6 +10,7 @@
 #ifdef TRACK_SNAPSHOTS
 #  include "jit/LIR.h"
 #endif
+#include "jit/MIR-wasm.h"
 #include "jit/MIR.h"
 #include "jit/Recover.h"
 #include "js/Printer.h"

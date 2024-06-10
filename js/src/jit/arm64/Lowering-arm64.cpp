@@ -10,6 +10,7 @@
 
 #include "jit/arm64/Assembler-arm64.h"
 #include "jit/Lowering.h"
+#include "jit/MIR-wasm.h"
 #include "jit/MIR.h"
 #include "wasm/WasmFeatures.h"  // for wasm::ReportSimdAnalysis
 

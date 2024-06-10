@@ -19,6 +19,7 @@
 #include "jit/JitSpewer.h"
 #include "jit/LIR.h"
 #include "jit/MacroAssembler.h"
+#include "jit/MIR-wasm.h"
 #include "jit/MIR.h"
 #include "jit/MIRGraph.h"
 #include "jit/SharedICRegisters.h"

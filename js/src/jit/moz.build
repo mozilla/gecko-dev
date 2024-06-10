@@ -66,6 +66,7 @@ UNIFIED_SOURCES += [
     "LIR.cpp",
     "Lowering.cpp",
     "MacroAssembler.cpp",
+    "MIR-wasm.cpp",
     "MIR.cpp",
     "MIRGraph.cpp",
     "MoveResolver.cpp",

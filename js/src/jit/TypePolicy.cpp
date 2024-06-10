@@ -7,6 +7,7 @@
 #include "jit/TypePolicy.h"
 
 #include "jit/JitAllocPolicy.h"
+#include "jit/MIR-wasm.h"
 #include "jit/MIR.h"
 #include "jit/MIRGraph.h"
 #include "js/ScalarType.h"  // js::Scalar::Type

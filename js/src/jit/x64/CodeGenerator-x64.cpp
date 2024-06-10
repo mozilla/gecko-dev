@@ -7,6 +7,7 @@
 #include "jit/x64/CodeGenerator-x64.h"
 
 #include "jit/CodeGenerator.h"
+#include "jit/MIR-wasm.h"
 #include "jit/MIR.h"
 #include "js/ScalarType.h"  // js::Scalar::Type
 

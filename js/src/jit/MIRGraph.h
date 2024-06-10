@@ -14,6 +14,7 @@
 #include "jit/FixedList.h"
 #include "jit/InlineScriptTree.h"
 #include "jit/JitAllocPolicy.h"
+#include "jit/MIR-wasm.h"
 #include "jit/MIR.h"
 
 namespace js {
