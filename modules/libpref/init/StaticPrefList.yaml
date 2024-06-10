@@ -9534,6 +9534,12 @@
   value: false
   mirror: always
 
+# field-sizing CSS property
+- name: layout.css.field-sizing.enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 # Whether supports() conditions in @import is enabled
 - name: layout.css.import-supports.enabled
   type: RelaxedAtomicBool

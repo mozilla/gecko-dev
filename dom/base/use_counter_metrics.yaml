@@ -16512,6 +16512,23 @@ use.counter.css.page:
     send_in_pings:
       - use-counters
 
+  css_field_sizing:
+    type: counter
+    description: >
+      Whether a page used the CSS property field-sizing.
+      Compare against `use.counter.top_level_content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
   css_flex_direction:
     type: counter
     description: >
@@ -28435,6 +28452,23 @@ use.counter.css.doc:
     type: counter
     description: >
       Whether a document used the CSS property empty-cells.
+      Compare against `use.counter.content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  css_field_sizing:
+    type: counter
+    description: >
+      Whether a document used the CSS property field-sizing.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:

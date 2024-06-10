@@ -12,6 +12,7 @@ prefs = [
   "layout.css.basic-shape-xywh.enabled=true",
   "layout.css.transform-box-content-stroke.enabled=true",
   "layout.css.transition-behavior.enabled=true",
+  "layout.css.field-sizing.enabled=true",
 ]
 support-files = [
   "animation_utils.js",
