@@ -40,6 +40,11 @@
         min-width: 10px;
         min-height: 10px;
         display: inline-block;
+
+        /* starting-style rules should be ignored by the computed view */
+        @starting-style {
+          background-color: honeydew;
+        }
       }
       </style>
   </head>

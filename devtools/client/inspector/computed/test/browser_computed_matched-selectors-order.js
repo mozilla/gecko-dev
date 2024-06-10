@@ -7,6 +7,7 @@
 const TEST_URI = URL_ROOT + "doc_matched_selectors.html";
 
 add_task(async function () {
+  await pushPref("layout.css.starting-style-at-rules.enabled", true);
   await addTab(TEST_URI);
   const { inspector, view } = await openComputedView();
 

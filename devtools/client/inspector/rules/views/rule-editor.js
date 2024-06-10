@@ -263,6 +263,8 @@ RuleEditor.prototype = {
             }
           }
           selectorContainer.append(this.doc.createTextNode(text));
+        } else if (ancestorData.type == "starting-style") {
+          selectorContainer.append(this.doc.createTextNode(`@starting-style`));
         } else if (ancestorData.selectors) {
           ancestorData.selectors.forEach((selector, i) => {
             if (i !== 0) {
