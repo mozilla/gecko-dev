@@ -276,7 +276,10 @@ pub const GPU_TOTAL_MEM: usize = 133;
 
 pub const GPU_CACHE_PREPARE_TIME: usize = 134;
 
-pub const NUM_PROFILER_EVENTS: usize = 135;
+pub const FRAME_SEND_TIME: usize = 135;
+pub const UPDATE_DOCUMENT_TIME: usize = 136;
+
+pub const NUM_PROFILER_EVENTS: usize = 137;
 
 pub struct Profiler {
     counters: Vec<Counter>,
@@ -489,6 +492,8 @@ impl Profiler {
             float("GPU total mem", "MB", GPU_TOTAL_MEM, Expected::none()),
 
             float("GPU cache preapre", "ms", GPU_CACHE_PREPARE_TIME, Expected::none()),
+            float("Frame send", "ms", FRAME_SEND_TIME, Expected::none()),
+            float("Update document", "ms", UPDATE_DOCUMENT_TIME, Expected::none()),
         ];
 
         let mut counters = Vec::with_capacity(profile_counters.len());
@@ -2013,14 +2018,18 @@ impl From<FullFrameStats> for ProfilerFrame {
 pub struct CpuFrameTimings {
     pub total: f64,
     pub api_send: f64,
+    pub update_document: f64,
     pub visibility: f64,
     pub prepare: f64,
     pub glyph_resolve: f64,
     pub batching: f64,
+    pub frame_building_other: f64,
+    pub frame_send: f64,
     pub renderer: f64,
     pub uploads: f64,
     pub gpu_cache: f64,
     pub draw_calls: f64,
+    pub unknown: f64,
 }
 
 impl CpuFrameTimings {
@@ -2031,22 +2040,31 @@ impl CpuFrameTimings {
         let prepare = counters[FRAME_PREPARE_TIME].get().unwrap_or(0.0);
         let glyph_resolve = counters[GLYPH_RESOLVE_TIME].get().unwrap_or(0.0);
         let batching = counters[FRAME_BATCHING_TIME].get().unwrap_or(0.0);
+        let frame_send = counters[FRAME_SEND_TIME].get().unwrap_or(0.0);
         let renderer = counters[RENDERER_TIME].get().unwrap_or(0.0);
         let uploads = counters[TEXTURE_CACHE_UPDATE_TIME].get().unwrap_or(0.0);
         let gpu_cache = counters[GPU_CACHE_PREPARE_TIME].get().unwrap_or(0.0);
+        let frame_build = visibility + prepare + glyph_resolve + batching;
+        let update_document = counters[UPDATE_DOCUMENT_TIME].get().unwrap_or(0.0) - frame_build;
         let draw_calls = renderer - uploads - gpu_cache;
+        let unknown = (total - (api_send + update_document + frame_build + frame_send + renderer)).max(0.0);
+        let frame_building_other = (counters[FRAME_BUILDING_TIME].get().unwrap_or(0.0) - frame_build).max(0.0);
 
         CpuFrameTimings {
             total,
             api_send,
+            update_document,
             visibility,
             prepare,
             glyph_resolve,
             batching,
+            frame_building_other,
+            frame_send,
             renderer,
             uploads,
             gpu_cache,
             draw_calls,
+            unknown,
         }
     }
 
@@ -2063,16 +2081,23 @@ impl CpuFrameTimings {
             total_time: ms_to_ns(self.total),
             // Number the label so that they are displayed in order.
             samples: vec![
-                sample(self.api_send, "1. send", ColorF { r: 0.5, g: 0.5, b: 0.5, a: 1.0 }),
+                // Compositor -> frame building
+                sample(self.api_send, "01. send", ColorF { r: 0.5, g: 0.5, b: 0.5, a: 1.0 }),
                 // Frame building
-                sample(self.visibility, "2. visibility", ColorF { r: 0.0, g: 0.5, b: 0.9, a: 1.0 }),
-                sample(self.prepare, "3. prepare", ColorF { r: 0.0, g: 0.4, b: 0.3, a: 1.0 }),
-                sample(self.glyph_resolve, "4. glyph resolve", ColorF { r: 0.0, g: 0.7, b: 0.4, a: 1.0 }),
-                sample(self.batching, "5. batching", ColorF { r: 0.0, g: 0.1, b: 0.5, a: 1.0 }),
+                sample(self.update_document, "02. update document", ColorF { r: 0.2, g: 0.2, b: 0.7, a: 1.0 }),
+                sample(self.visibility, "03. visibility", ColorF { r: 0.0, g: 0.5, b: 0.9, a: 1.0 }),
+                sample(self.prepare, "04. prepare", ColorF { r: 0.0, g: 0.4, b: 0.3, a: 1.0 }),
+                sample(self.glyph_resolve, "05. glyph resolve", ColorF { r: 0.0, g: 0.7, b: 0.4, a: 1.0 }),
+                sample(self.batching, "06. batching", ColorF { r: 0.2, g: 0.3, b: 0.7, a: 1.0 }),
+                sample(self.frame_building_other, "07. frame build (other)", ColorF { r: 0.1, g: 0.7, b: 0.7, a: 1.0 }),
+                // Frame building -> renderer
+                sample(self.frame_send, "08. frame send", ColorF { r: 1.0, g: 0.8, b: 0.8, a: 1.0 }),
                 // Renderer
-                sample(self.uploads, "6. texture uploads", ColorF { r: 0.8, g: 0.0, b: 0.3, a: 1.0 }),
-                sample(self.gpu_cache, "7. gpu cache update", ColorF { r: 0.5, g: 0.0, b: 0.4, a: 1.0 }),
-                sample(self.draw_calls, "8. draw calls", ColorF { r: 1.0, g: 0.5, b: 0.0, a: 1.0 }),
+                sample(self.uploads, "09. texture uploads", ColorF { r: 0.8, g: 0.0, b: 0.3, a: 1.0 }),
+                sample(self.gpu_cache, "10. gpu cache update", ColorF { r: 0.5, g: 0.0, b: 0.4, a: 1.0 }),
+                sample(self.draw_calls, "11. draw calls", ColorF { r: 1.0, g: 0.5, b: 0.0, a: 1.0 }),
+                // Unaccounted time
+                sample(self.unknown, "12. unknown", ColorF { r: 0.3, g: 0.3, b: 0.3, a: 1.0 }),
             ],
         }
     }
