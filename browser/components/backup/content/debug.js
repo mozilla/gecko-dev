@@ -140,39 +140,6 @@ let DebugUI = {
         }
         break;
       }
-      case "extract-from-archive": {
-        let backupsDir = PathUtils.join(
-          PathUtils.profileDir,
-          BackupService.PROFILE_FOLDER_NAME
-        );
-        let fp = Cc["@mozilla.org/filepicker;1"].createInstance(
-          Ci.nsIFilePicker
-        );
-        fp.init(
-          window.browsingContext,
-          "Choose an archive file",
-          Ci.nsIFilePicker.modeOpen
-        );
-        fp.displayDirectory = await IOUtils.getDirectory(backupsDir);
-        let result = await new Promise(resolve => fp.open(resolve));
-        if (result == Ci.nsIFilePicker.returnCancel) {
-          break;
-        }
-
-        let extractionStatus = document.querySelector("#extraction-status");
-        extractionStatus.textContent = "Extracting...";
-
-        let path = fp.file.path;
-        let dest = PathUtils.join(PathUtils.parent(path), "extraction.zip");
-        let service = BackupService.get();
-        try {
-          await service.extractCompressedSnapshotFromArchive(path, dest);
-          extractionStatus.textContent = `Extracted ZIP file to ${dest}`;
-        } catch (e) {
-          extractionStatus.textContent = `Failed to extract: ${e.message} Check the console for the full exception.`;
-          throw e;
-        }
-      }
     }
   },
 

@@ -15,9 +15,6 @@ skip-if = ["apple_silicon && automation"] # bug 1729538
 support-files = ["data/test_xulstore.json"]
 
 ["test_BackupService.js"]
-support-files = ["data/test_archive.template.html"]
-
-["test_BackupService_archive.js"]
 
 ["test_BackupService_enable_disable_encryption.js"]
 skip-if = ["apple_silicon && automation"] # bug 1729538
