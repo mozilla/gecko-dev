@@ -98,7 +98,7 @@ static PROFILER_PRESETS: &'static[(&'static str, &'static str)] = &[
 
     (&"Render reasons", &"Reason scene, Reason animated property, Reason resource update, Reason async image, Reason clear resources, Reason APZ, Reason resize, Reason widget, Reason cache flush, Reason snapshot, Reason resource hook, Reason config change, Reason content sync, Reason flush, On vsync, Reason testing, Reason other"),
 
-    (&"Slow frame breakdown", &"Total slow frames CPU, Total slow frames GPU, Slow: frame build, Slow: upload, Slow: render, Slow: draw calls, Slow: targets, Slow: blobs, Slow scroll frames"),
+    (&"Slow frame breakdown", &"Total slow frames CPU, Total slow frames GPU, Slow: frame build, Slow: upload, Slow: render, Slow: draw calls, Slow: targets, Slow: blobs, Slow: after scene, Slow scroll frames"),
 ];
 
 fn find_preset(name: &str) -> Option<&'static str> {
@@ -268,15 +268,15 @@ pub const SLOW_RENDER_COUNT: usize = 126;
 pub const SLOW_DRAW_CALLS_COUNT: usize = 127;
 pub const SLOW_TARGETS_COUNT: usize = 128;
 pub const SLOW_BLOB_COUNT: usize = 129;
+pub const SLOW_SCROLL_AFTER_SCENE_COUNT: usize = 130;
 
-pub const GPU_CACHE_MEM: usize = 130;
-pub const GPU_BUFFER_MEM: usize = 131;
-pub const GPU_TOTAL_MEM: usize = 132;
+pub const GPU_CACHE_MEM: usize = 131;
+pub const GPU_BUFFER_MEM: usize = 132;
+pub const GPU_TOTAL_MEM: usize = 133;
 
+pub const GPU_CACHE_PREPARE_TIME: usize = 134;
 
-pub const GPU_CACHE_PREPARE_TIME: usize = 133;
-
-pub const NUM_PROFILER_EVENTS: usize = 134;
+pub const NUM_PROFILER_EVENTS: usize = 135;
 
 pub struct Profiler {
     counters: Vec<Counter>,
@@ -307,6 +307,8 @@ pub struct Profiler {
     slow_targets_count: u64,
     /// Slow uploads with a high number of blob tiles.
     slow_blob_count: u64,
+    /// Slow scrolling or animation frame after a scene build.
+    slow_scroll_after_scene_count: u64,
 
     ui: Vec<Item>,
 }
@@ -480,6 +482,7 @@ impl Profiler {
             int("Slow: draw calls", "%", SLOW_DRAW_CALLS_COUNT, Expected::none()),
             int("Slow: targets", "%", SLOW_TARGETS_COUNT, Expected::none()),
             int("Slow: blobs", "%", SLOW_BLOB_COUNT, Expected::none()),
+            int("Slow: after scene", "%", SLOW_SCROLL_AFTER_SCENE_COUNT, Expected::none()),
 
             float("GPU cache mem", "MB", GPU_CACHE_MEM, Expected::none()),
             float("GPU buffer mem", "MB", GPU_BUFFER_MEM, Expected::none()),
@@ -515,6 +518,7 @@ impl Profiler {
             slow_draw_calls_count: 0,
             slow_targets_count: 0,
             slow_blob_count: 0,
+            slow_scroll_after_scene_count: 0,
 
             ui: Vec::new(),
         }
@@ -550,6 +554,10 @@ impl Profiler {
 
         let frame = CpuFrameTimings::new(&self.counters);
         self.slow_scroll_frames.push(frame.to_profiler_frame());
+
+        if self.counters[RENDER_REASON_SCENE].value > 0.5 {
+            self.slow_scroll_after_scene_count += 1;
+        }
 
         let frame_build = self.counters[FRAME_BUILDING_TIME].value;
         let uploads = self.counters[TEXTURE_CACHE_UPDATE_TIME].value;
@@ -629,6 +637,7 @@ impl Profiler {
         self.counters[SLOW_DRAW_CALLS_COUNT].set(self.slow_draw_calls_count as f64 * div);
         self.counters[SLOW_TARGETS_COUNT].set(self.slow_targets_count as f64 * div);
         self.counters[SLOW_BLOB_COUNT].set(self.slow_blob_count as f64 * div);
+        self.counters[SLOW_SCROLL_AFTER_SCENE_COUNT].set(self.slow_scroll_after_scene_count as f64 * div);
 
         self.update_total_gpu_mem();
 
