@@ -18,8 +18,10 @@ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  EngineProcess: "chrome://global/content/ml/EngineProcess.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   PdfJsTelemetry: "resource://pdf.js/PdfJsTelemetry.sys.mjs",
+  PipelineOptions: "chrome://global/content/ml/EngineProcess.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   SetClipboardSearchString: "resource://gre/modules/Finder.sys.mjs",
 });
@@ -72,6 +74,8 @@ export class PdfjsParent extends JSWindowActorParent {
         return this._recordExposure();
       case "PDFJS:Parent:reportTelemetry":
         return this._reportTelemetry(aMsg);
+      case "PDFJS:Parent:mlGuess":
+        return this._mlGuess(aMsg);
     }
     return undefined;
   }
@@ -90,6 +94,20 @@ export class PdfjsParent extends JSWindowActorParent {
 
   _reportTelemetry(aMsg) {
     lazy.PdfJsTelemetry.report(aMsg.data);
+  }
+
+  async _mlGuess({ data: { service, request } }) {
+    if (!lazy.EngineProcess) {
+      return null;
+    }
+    if (service !== "image-to-text") {
+      throw new Error("Invalid service");
+    }
+    const engineParent = await lazy.EngineProcess.getMLEngineParent();
+    const pipelineOptions = new lazy.PipelineOptions({ taskName: service });
+    const engine = engineParent.getEngine(pipelineOptions);
+
+    return engine.run(request);
   }
 
   _saveURL(aMsg) {

@@ -296,6 +296,16 @@ class ChromeActions {
     }
   }
 
+  async mlGuess(data, sendResponse) {
+    const actor = getActor(this.domWindow);
+    if (!actor) {
+      sendResponse(null);
+      return;
+    }
+    const response = await actor.sendQuery("PDFJS:Parent:mlGuess", data);
+    sendResponse(response);
+  }
+
   download(data) {
     const { originalUrl, options } = data;
     const blobUrl = data.blobUrl || originalUrl;
