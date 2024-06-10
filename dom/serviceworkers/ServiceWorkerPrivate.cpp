@@ -405,7 +405,7 @@ Result<IPCInternalRequest, nsresult> GetIPCInternalRequest(
       method, {spec}, ipcHeadersGuard, ipcHeaders, Nothing(), -1,
       alternativeDataType, contentPolicyType, referrer, referrerPolicy,
       environmentReferrerPolicy, requestMode, requestCredentials, cacheMode,
-      requestRedirect, integrity, false, fragment, principalInfo,
+      requestRedirect, integrity, fragment, principalInfo,
       interceptionPrincipalInfo, contentPolicyType, redirectChain,
       isThirdPartyChannel, embedderPolicy);
 }
