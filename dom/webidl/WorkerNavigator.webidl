@@ -25,7 +25,7 @@ partial interface WorkerNavigator {
 // https://wicg.github.io/media-capabilities/#idl-index
 [Exposed=Worker]
 partial interface WorkerNavigator {
-  [SameObject]
+  [SameObject, Func="mozilla::dom::MediaCapabilities::Enabled"]
   readonly attribute MediaCapabilities mediaCapabilities;
 };
 

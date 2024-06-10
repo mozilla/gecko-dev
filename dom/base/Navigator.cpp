@@ -182,8 +182,6 @@ void Navigator::Invalidate() {
   // Don't clear mWindow here so we know we've got a non-null mWindow
   // until we're unlinked.
 
-  mInvalidated = true;
-
   mPlugins = nullptr;
 
   mPermissions = nullptr;
@@ -2209,24 +2207,12 @@ already_AddRefed<Promise> Navigator::RequestMediaKeySystemAccess(
     return nullptr;
   }
 
-  auto* manager = GetOrCreateMediaKeySystemAccessManager();
-  if (!manager) {
-    return nullptr;
-  }
-
-  manager->Request(promise, aKeySystem, aConfigs);
-  return promise.forget();
-}
-
-MediaKeySystemAccessManager*
-Navigator::GetOrCreateMediaKeySystemAccessManager() {
-  if (mInvalidated) {
-    return nullptr;
-  }
   if (!mMediaKeySystemAccessManager) {
     mMediaKeySystemAccessManager = new MediaKeySystemAccessManager(mWindow);
   }
-  return mMediaKeySystemAccessManager;
+
+  mMediaKeySystemAccessManager->Request(promise, aKeySystem, aConfigs);
+  return promise.forget();
 }
 
 CredentialsContainer* Navigator::Credentials() {

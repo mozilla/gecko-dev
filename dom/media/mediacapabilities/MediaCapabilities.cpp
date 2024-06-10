@@ -19,7 +19,6 @@
 #include "PDMFactory.h"
 #include "VPXDecoder.h"
 #include "mozilla/ClearOnShutdown.h"
-#include "mozilla/EMEUtils.h"
 #include "mozilla/SchedulerGroup.h"
 #include "mozilla/StaticPrefs_media.h"
 #include "mozilla/TaskQueue.h"
@@ -27,9 +26,7 @@
 #include "mozilla/dom/DOMMozPromiseRequestHolder.h"
 #include "mozilla/dom/MediaCapabilitiesBinding.h"
 #include "mozilla/dom/MediaSource.h"
-#include "mozilla/dom/Navigator.h"
 #include "mozilla/dom/Promise.h"
-#include "mozilla/dom/WorkerCommon.h"
 #include "mozilla/dom/WorkerPrivate.h"
 #include "mozilla/dom/WorkerRef.h"
 #include "mozilla/layers/KnowsCompositor.h"
@@ -88,11 +85,14 @@ static nsCString AudioConfigurationToStr(const AudioConfiguration* aConfig) {
 }
 
 static nsCString MediaCapabilitiesInfoToStr(
-    const MediaCapabilitiesInfo& aInfo) {
+    const MediaCapabilitiesInfo* aInfo) {
+  if (!aInfo) {
+    return nsCString();
+  }
   auto str = nsPrintfCString("[supported:%s smooth:%s powerEfficient:%s]",
-                             aInfo.mSupported ? "true" : "false",
-                             aInfo.mSmooth ? "true" : "false",
-                             aInfo.mPowerEfficient ? "true" : "false");
+                             aInfo->Supported() ? "true" : "false",
+                             aInfo->Smooth() ? "true" : "false",
+                             aInfo->PowerEfficient() ? "true" : "false");
   return std::move(str);
 }
 
@@ -116,7 +116,6 @@ static nsCString MediaDecodingConfigurationToStr(
 MediaCapabilities::MediaCapabilities(nsIGlobalObject* aParent)
     : mParent(aParent) {}
 
-// https://w3c.github.io/media-capabilities/#dom-mediacapabilities-decodinginfo
 already_AddRefed<Promise> MediaCapabilities::DecodingInfo(
     const MediaDecodingConfiguration& aConfiguration, ErrorResult& aRv) {
   RefPtr<Promise> promise = Promise::Create(mParent, aRv);
@@ -128,43 +127,12 @@ already_AddRefed<Promise> MediaCapabilities::DecodingInfo(
   // rejected with a TypeError.
   if (!aConfiguration.mVideo.WasPassed() &&
       !aConfiguration.mAudio.WasPassed()) {
-    promise->MaybeRejectWithTypeError(
+    aRv.ThrowTypeError<MSG_MISSING_REQUIRED_DICTIONARY_MEMBER>(
         "'audio' or 'video' member of argument of "
         "MediaCapabilities.decodingInfo");
-    return promise.forget();
+    return nullptr;
   }
 
-  // If configuration.keySystemConfiguration exists, run the following substeps:
-  if (aConfiguration.mKeySystemConfiguration.WasPassed()) {
-    // If the global object is of type WorkerGlobalScope, return a Promise
-    // rejected with a newly created DOMException whose name is
-    // InvalidStateError.
-    if (IsWorkerGlobal(mParent->GetGlobalJSObject())) {
-      promise->MaybeRejectWithInvalidStateError(
-          "key system configuration is not allowed in the worker scope");
-      return promise.forget();
-    }
-    // If the global object’s relevant settings object is a non-secure context,
-    // return a Promise rejected with a newly created DOMException whose name is
-    // SecurityError.
-    if (auto* window = mParent->GetAsInnerWindow();
-        window && !window->IsSecureContext()) {
-      promise->MaybeRejectWithSecurityError(
-          "key system configuration is not allowed in a non-secure context");
-      return promise.forget();
-    }
-  }
-
-  // In parallel, run the Create a MediaCapabilitiesDecodingInfo algorithm with
-  // configuration and resolve p with its result.
-  CreateMediaCapabilitiesDecodingInfo(aConfiguration, aRv, promise);
-  return promise.forget();
-}
-
-// https://w3c.github.io/media-capabilities/#create-media-capabilities-decoding-info
-void MediaCapabilities::CreateMediaCapabilitiesDecodingInfo(
-    const MediaDecodingConfiguration& aConfiguration, ErrorResult& aRv,
-    Promise* aPromise) {
   LOG("Processing %s", MediaDecodingConfigurationToStr(aConfiguration).get());
 
   bool supported = true;
@@ -176,8 +144,8 @@ void MediaCapabilities::CreateMediaCapabilitiesDecodingInfo(
   if (aConfiguration.mVideo.WasPassed()) {
     videoContainer = CheckVideoConfiguration(aConfiguration.mVideo.Value());
     if (!videoContainer) {
-      aPromise->MaybeRejectWithTypeError("Invalid VideoConfiguration");
-      return;
+      aRv.ThrowTypeError<MSG_INVALID_MEDIA_VIDEO_CONFIGURATION>();
+      return nullptr;
     }
 
     // We have a video configuration and it is valid. Check if it is supported.
@@ -190,8 +158,8 @@ void MediaCapabilities::CreateMediaCapabilitiesDecodingInfo(
   if (aConfiguration.mAudio.WasPassed()) {
     audioContainer = CheckAudioConfiguration(aConfiguration.mAudio.Value());
     if (!audioContainer) {
-      aPromise->MaybeRejectWithTypeError("Invalid AudioConfiguration");
-      return;
+      aRv.ThrowTypeError<MSG_INVALID_MEDIA_AUDIO_CONFIGURATION>();
+      return nullptr;
     }
     // We have an audio configuration and it is valid. Check if it is supported.
     supported &=
@@ -202,14 +170,12 @@ void MediaCapabilities::CreateMediaCapabilitiesDecodingInfo(
   }
 
   if (!supported) {
-    MediaCapabilitiesDecodingInfo info;
-    info.mSupported = false;
-    info.mSmooth = false;
-    info.mPowerEfficient = false;
+    auto info = MakeUnique<MediaCapabilitiesInfo>(
+        false /* supported */, false /* smooth */, false /* power efficient */);
     LOG("%s -> %s", MediaDecodingConfigurationToStr(aConfiguration).get(),
-        MediaCapabilitiesInfoToStr(info).get());
-    aPromise->MaybeResolve(std::move(info));
-    return;
+        MediaCapabilitiesInfoToStr(info.get()).get());
+    promise->MaybeResolve(std::move(info));
+    return promise.forget();
   }
 
   nsTArray<UniquePtr<TrackInfo>> tracks;
@@ -221,17 +187,17 @@ void MediaCapabilities::CreateMediaCapabilitiesDecodingInfo(
     // describing a single media codec. Otherwise, it MUST contain no
     // parameters.
     if (videoTracks.Length() != 1) {
-      aPromise->MaybeRejectWithTypeError(nsPrintfCString(
-          "The provided type '%s' does not have a 'codecs' parameter.",
-          videoContainer->OriginalString().get()));
-      return;
+      promise->MaybeRejectWithTypeError<MSG_NO_CODECS_PARAMETER>(
+          videoContainer->OriginalString());
+      return promise.forget();
     }
     MOZ_DIAGNOSTIC_ASSERT(videoTracks.ElementAt(0),
                           "must contain a valid trackinfo");
     // If the type refers to an audio codec, reject now.
     if (videoTracks[0]->GetType() != TrackInfo::kVideoTrack) {
-      aPromise->MaybeRejectWithTypeError("Invalid VideoConfiguration");
-      return;
+      promise
+          ->MaybeRejectWithTypeError<MSG_INVALID_MEDIA_VIDEO_CONFIGURATION>();
+      return promise.forget();
     }
     tracks.AppendElements(std::move(videoTracks));
   }
@@ -243,82 +209,21 @@ void MediaCapabilities::CreateMediaCapabilitiesDecodingInfo(
     // describing a single media codec. Otherwise, it MUST contain no
     // parameters.
     if (audioTracks.Length() != 1) {
-      aPromise->MaybeRejectWithTypeError(nsPrintfCString(
-          "The provided type '%s' does not have a 'codecs' parameter.",
-          audioContainer->OriginalString().get()));
-      return;
+      promise->MaybeRejectWithTypeError<MSG_NO_CODECS_PARAMETER>(
+          audioContainer->OriginalString());
+      return promise.forget();
     }
     MOZ_DIAGNOSTIC_ASSERT(audioTracks.ElementAt(0),
                           "must contain a valid trackinfo");
     // If the type refers to a video codec, reject now.
     if (audioTracks[0]->GetType() != TrackInfo::kAudioTrack) {
-      aPromise->MaybeRejectWithTypeError("Invalid AudioConfiguration");
-      return;
+      promise
+          ->MaybeRejectWithTypeError<MSG_INVALID_MEDIA_AUDIO_CONFIGURATION>();
+      return promise.forget();
     }
     tracks.AppendElements(std::move(audioTracks));
   }
 
-  // If configuration.keySystemConfiguration exists:
-  if (aConfiguration.mKeySystemConfiguration.WasPassed()) {
-    MOZ_ASSERT(
-        NS_IsMainThread(),
-        "Key system configuration qurey can not run on the worker thread!");
-
-    auto* mainThread = GetMainThreadSerialEventTarget();
-    if (!mainThread) {
-      aPromise->MaybeRejectWithInvalidStateError(
-          "The main thread is shutted down");
-      return;
-    }
-
-    // This check isn't defined in the spec but exists in web platform tests, so
-    // we perform the check as well in order to reduce the web compatibility
-    // issues. https://github.com/w3c/media-capabilities/issues/220
-    const auto& keySystemConfig =
-        aConfiguration.mKeySystemConfiguration.Value();
-    if ((keySystemConfig.mVideo.WasPassed() &&
-         !aConfiguration.mVideo.WasPassed()) ||
-        (keySystemConfig.mAudio.WasPassed() &&
-         !aConfiguration.mAudio.WasPassed())) {
-      aPromise->MaybeRejectWithTypeError(
-          "The type of decoding config doesn't match the type of key system "
-          "config");
-      return;
-    }
-    CheckEncryptedDecodingSupport(aConfiguration)
-        ->Then(mainThread, __func__,
-               [promise = RefPtr<Promise>{aPromise},
-                self = RefPtr<MediaCapabilities>{this}, aConfiguration,
-                this](MediaKeySystemAccessManager::MediaKeySystemAccessPromise::
-                          ResolveOrRejectValue&& aValue) {
-                 if (aValue.IsReject()) {
-                   MediaCapabilitiesDecodingInfo info;
-                   info.mSupported = false;
-                   info.mSmooth = false;
-                   info.mPowerEfficient = false;
-                   LOG("%s -> %s",
-                       MediaDecodingConfigurationToStr(aConfiguration).get(),
-                       MediaCapabilitiesInfoToStr(info).get());
-                   promise->MaybeResolve(std::move(info));
-                   return;
-                 }
-                 MediaCapabilitiesDecodingInfo info;
-                 info.mSupported = true;
-                 info.mSmooth = true;
-                 info.mKeySystemAccess = aValue.ResolveValue();
-                 MOZ_ASSERT(info.mKeySystemAccess);
-                 MediaKeySystemConfiguration config;
-                 info.mKeySystemAccess->GetConfiguration(config);
-                 info.mPowerEfficient = IsHardwareDecryptionSupported(config);
-                 LOG("%s -> %s",
-                     MediaDecodingConfigurationToStr(aConfiguration).get(),
-                     MediaCapabilitiesInfoToStr(info).get());
-                 promise->MaybeResolve(std::move(info));
-               });
-    return;
-  }
-
-  // Otherwise, run the following steps:
   using CapabilitiesPromise = MozPromise<MediaCapabilitiesInfo, MediaResult,
                                          /* IsExclusive = */ true>;
   nsTArray<RefPtr<CapabilitiesPromise>> promises;
@@ -346,12 +251,10 @@ void MediaCapabilities::CreateMediaCapabilitiesDecodingInfo(
               return CapabilitiesPromise::CreateAndReject(NS_ERROR_FAILURE,
                                                           __func__);
             }
-            MediaCapabilitiesDecodingInfo info;
-            info.mSupported = true;
-            info.mSmooth = true;
-            info.mPowerEfficient = true;
-            return CapabilitiesPromise::CreateAndResolve(std::move(info),
-                                                         __func__);
+            return CapabilitiesPromise::CreateAndResolve(
+                MediaCapabilitiesInfo(true /* supported */, true /* smooth */,
+                                      true /* power efficient */),
+                __func__);
           }));
       continue;
     }
@@ -421,11 +324,10 @@ void MediaCapabilities::CreateMediaCapabilitiesDecodingInfo(
                             p = CapabilitiesPromise::CreateAndReject(
                                 std::move(aValue.RejectValue()), __func__);
                           } else if (shouldResistFingerprinting) {
-                            MediaCapabilitiesDecodingInfo info;
-                            info.mSupported = true;
-                            info.mSmooth = true;
-                            info.mPowerEfficient = false;
-                            p = CapabilitiesPromise::CreateAndResolve(std::move(info), __func__);
+                            p = CapabilitiesPromise::CreateAndResolve(
+                                MediaCapabilitiesInfo(true /* supported */,
+                                true /* smooth */, false /* power efficient */),
+                                __func__);
                           } else {
                             MOZ_ASSERT(config->IsVideo());
                             if (StaticPrefs::media_mediacapabilities_from_database()) {
@@ -449,12 +351,12 @@ void MediaCapabilities::CreateMediaCapabilitiesDecodingInfo(
                                     bool smooth = score < 0 || score >
                                       StaticPrefs::
                                         media_mediacapabilities_drop_threshold();
-                                    MediaCapabilitiesDecodingInfo info;
-                                    info.mSupported = true;
-                                    info.mSmooth = smooth;
-                                    info.mPowerEfficient = powerEfficient;
                                     return CapabilitiesPromise::
-                                        CreateAndResolve(std::move(info), __func__);
+                                        CreateAndResolve(
+                                            MediaCapabilitiesInfo(
+                                                true, smooth,
+                                                powerEfficient),
+                                            __func__);
                                   },
                                   [](nsresult rv) {
                                     return CapabilitiesPromise::
@@ -467,11 +369,9 @@ void MediaCapabilities::CreateMediaCapabilitiesDecodingInfo(
                               // decoding is hardware accelerated it will be
                               // smooth and power efficient, otherwise we use
                               // the benchmark to estimate
-                              MediaCapabilitiesDecodingInfo info;
-                              info.mSupported = true;
-                              info.mSmooth = true;
-                              info.mPowerEfficient = true;
-                              p = CapabilitiesPromise::CreateAndResolve(std::move(info), __func__);
+                              p = CapabilitiesPromise::CreateAndResolve(
+                                  MediaCapabilitiesInfo(true, true, true),
+                                  __func__);
                             } else {
                               nsAutoCString reason;
                               bool smooth = true;
@@ -499,11 +399,11 @@ void MediaCapabilities::CreateMediaCapabilitiesDecodingInfo(
                                   smooth = needed > 2;
                                 }
                               }
-                              MediaCapabilitiesDecodingInfo info;
-                              info.mSupported = true;
-                              info.mSmooth = smooth;
-                              info.mPowerEfficient = powerEfficient;
-                              p = CapabilitiesPromise::CreateAndResolve(std::move(info), __func__);
+
+                              p = CapabilitiesPromise::CreateAndResolve(
+                                  MediaCapabilitiesInfo(true /* supported */,
+                                                        smooth, powerEfficient),
+                                  __func__);
                             }
                           }
                           MOZ_ASSERT(p.get(), "the promise has been created");
@@ -539,8 +439,9 @@ void MediaCapabilities::CreateMediaCapabilitiesDecodingInfo(
           holder->DisconnectIfExists();
         });
     if (NS_WARN_IF(!workerRef)) {
-      aPromise->MaybeRejectWithInvalidStateError("The worker is shutting down");
-      return;
+      // The worker is shutting down.
+      aRv.Throw(NS_ERROR_FAILURE);
+      return nullptr;
     }
   }
 
@@ -551,115 +452,37 @@ void MediaCapabilities::CreateMediaCapabilitiesDecodingInfo(
 
   CapabilitiesPromise::All(targetThread, promises)
       ->Then(targetThread, __func__,
-             [promise = RefPtr<Promise>{aPromise}, tracks = std::move(tracks),
-              workerRef, holder, aConfiguration, self,
+             [promise, tracks = std::move(tracks), workerRef, holder,
+              aConfiguration, self,
               this](CapabilitiesPromise::AllPromiseType::ResolveOrRejectValue&&
                         aValue) {
                holder->Complete();
                if (aValue.IsReject()) {
-                 MediaCapabilitiesDecodingInfo info;
-                 info.mSupported = false;
-                 info.mSmooth = false;
-                 info.mPowerEfficient = false;
+                 auto info = MakeUnique<MediaCapabilitiesInfo>(
+                     false /* supported */, false /* smooth */,
+                     false /* power efficient */);
                  LOG("%s -> %s",
                      MediaDecodingConfigurationToStr(aConfiguration).get(),
-                     MediaCapabilitiesInfoToStr(info).get());
+                     MediaCapabilitiesInfoToStr(info.get()).get());
                  promise->MaybeResolve(std::move(info));
                  return;
                }
                bool powerEfficient = true;
                bool smooth = true;
                for (auto&& capability : aValue.ResolveValue()) {
-                 smooth &= capability.mSmooth;
-                 powerEfficient &= capability.mPowerEfficient;
+                 smooth &= capability.Smooth();
+                 powerEfficient &= capability.PowerEfficient();
                }
-               MediaCapabilitiesDecodingInfo info;
-               info.mSupported = true;
-               info.mSmooth = smooth;
-               info.mPowerEfficient = powerEfficient;
+               auto info = MakeUnique<MediaCapabilitiesInfo>(
+                   true /* supported */, smooth, powerEfficient);
                LOG("%s -> %s",
                    MediaDecodingConfigurationToStr(aConfiguration).get(),
-                   MediaCapabilitiesInfoToStr(info).get());
+                   MediaCapabilitiesInfoToStr(info.get()).get());
                promise->MaybeResolve(std::move(info));
              })
       ->Track(*holder);
-}
 
-// https://www.w3.org/TR/media-capabilities/#is-encrypted-decode-supported
-RefPtr<MediaKeySystemAccessManager::MediaKeySystemAccessPromise>
-MediaCapabilities::CheckEncryptedDecodingSupport(
-    const MediaDecodingConfiguration& aConfiguration) {
-  using MediaKeySystemAccessPromise =
-      MediaKeySystemAccessManager::MediaKeySystemAccessPromise;
-  auto* window = mParent->GetAsInnerWindow();
-  if (NS_WARN_IF(!window)) {
-    return MediaKeySystemAccessPromise::CreateAndReject(NS_ERROR_FAILURE,
-                                                        __func__);
-  }
-
-  auto* manager = window->Navigator()->GetOrCreateMediaKeySystemAccessManager();
-  if (NS_WARN_IF(!manager)) {
-    return MediaKeySystemAccessPromise::CreateAndReject(NS_ERROR_FAILURE,
-                                                        __func__);
-  }
-
-  // Let emeConfiguration be a new MediaKeySystemConfiguration, and initialize
-  // it as follows
-  Sequence<MediaKeySystemConfiguration> configs;
-  auto* emeConfig = configs.AppendElement(fallible);
-  if (NS_WARN_IF(!emeConfig)) {
-    return MediaKeySystemAccessPromise::CreateAndReject(NS_ERROR_FAILURE,
-                                                        __func__);
-  }
-
-  const auto& keySystemConfig = aConfiguration.mKeySystemConfiguration.Value();
-  if (!keySystemConfig.mInitDataType.IsEmpty()) {
-    if (NS_WARN_IF(!emeConfig->mInitDataTypes.AppendElement(
-            keySystemConfig.mInitDataType, fallible))) {
-      return MediaKeySystemAccessPromise::CreateAndReject(NS_ERROR_FAILURE,
-                                                          __func__);
-    }
-  }
-  emeConfig->mDistinctiveIdentifier = keySystemConfig.mDistinctiveIdentifier;
-  emeConfig->mPersistentState = keySystemConfig.mPersistentState;
-  if (keySystemConfig.mSessionTypes.WasPassed() &&
-      !keySystemConfig.mSessionTypes.Value().IsEmpty()) {
-    emeConfig->mSessionTypes.Construct();
-    for (const auto& type : keySystemConfig.mSessionTypes.Value()) {
-      if (NS_WARN_IF(!emeConfig->mSessionTypes.Value().AppendElement(
-              type, fallible))) {
-        return MediaKeySystemAccessPromise::CreateAndReject(NS_ERROR_FAILURE,
-                                                            __func__);
-      }
-    }
-  }
-  if (aConfiguration.mAudio.WasPassed()) {
-    auto* capabilitiy = emeConfig->mAudioCapabilities.AppendElement(fallible);
-    if (NS_WARN_IF(!capabilitiy)) {
-      return MediaKeySystemAccessPromise::CreateAndReject(NS_ERROR_FAILURE,
-                                                          __func__);
-    }
-    capabilitiy->mContentType = aConfiguration.mAudio.Value().mContentType;
-    if (keySystemConfig.mAudio.WasPassed()) {
-      const auto& config = keySystemConfig.mAudio.Value();
-      capabilitiy->mRobustness = config.mRobustness;
-      capabilitiy->mEncryptionScheme = config.mEncryptionScheme;
-    }
-  }
-  if (aConfiguration.mVideo.WasPassed()) {
-    auto* capabilitiy = emeConfig->mVideoCapabilities.AppendElement(fallible);
-    if (NS_WARN_IF(!capabilitiy)) {
-      return MediaKeySystemAccessPromise::CreateAndReject(NS_ERROR_FAILURE,
-                                                          __func__);
-    }
-    capabilitiy->mContentType = aConfiguration.mVideo.Value().mContentType;
-    if (keySystemConfig.mVideo.WasPassed()) {
-      const auto& config = keySystemConfig.mVideo.Value();
-      capabilitiy->mRobustness = config.mRobustness;
-      capabilitiy->mEncryptionScheme = config.mEncryptionScheme;
-    }
-  }
-  return manager->Request(keySystemConfig.mKeySystem, configs);
+  return promise.forget();
 }
 
 already_AddRefed<Promise> MediaCapabilities::EncodingInfo(
@@ -702,10 +525,7 @@ already_AddRefed<Promise> MediaCapabilities::EncodingInfo(
         CheckTypeForEncoder(aConfiguration.mAudio.Value().mContentType);
   }
 
-  MediaCapabilitiesInfo info;
-  info.mSupported = supported;
-  info.mSmooth = supported;
-  info.mPowerEfficient = false;
+  auto info = MakeUnique<MediaCapabilitiesInfo>(supported, supported, false);
   promise->MaybeResolve(std::move(info));
 
   return promise.forget();
@@ -799,6 +619,10 @@ already_AddRefed<layers::KnowsCompositor> MediaCapabilities::GetCompositor() {
   return knows->GetForMedia().forget();
 }
 
+bool MediaCapabilities::Enabled(JSContext* aCx, JSObject* aGlobal) {
+  return StaticPrefs::media_media_capabilities_enabled();
+}
+
 JSObject* MediaCapabilities::WrapObject(JSContext* aCx,
                                         JS::Handle<JSObject*> aGivenProto) {
   return MediaCapabilities_Binding::Wrap(aCx, this, aGivenProto);
@@ -813,5 +637,13 @@ NS_IMPL_CYCLE_COLLECTING_ADDREF(MediaCapabilities)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(MediaCapabilities)
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(MediaCapabilities, mParent)
+
+// MediaCapabilitiesInfo
+bool MediaCapabilitiesInfo::WrapObject(
+    JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
+    JS::MutableHandle<JSObject*> aReflector) {
+  return MediaCapabilitiesInfo_Binding::Wrap(aCx, this, aGivenProto,
+                                             aReflector);
+}
 
 }  // namespace mozilla::dom

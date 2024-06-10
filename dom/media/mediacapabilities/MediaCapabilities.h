@@ -12,7 +12,6 @@
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Maybe.h"
-#include "mozilla/dom/MediaKeySystemAccessManager.h"
 #include "mozilla/dom/NonRefcountedDOMObject.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
@@ -61,6 +60,8 @@ class MediaCapabilities final : public nsISupports, public nsWrapperCache {
   JSObject* WrapObject(JSContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
+  static bool Enabled(JSContext* aCx, JSObject* aGlobal);
+
  private:
   virtual ~MediaCapabilities() = default;
   Maybe<MediaContainerType> CheckVideoConfiguration(
@@ -71,15 +72,29 @@ class MediaCapabilities final : public nsISupports, public nsWrapperCache {
   bool CheckTypeForFile(const nsAString& aType);
   bool CheckTypeForEncoder(const nsAString& aType);
   already_AddRefed<layers::KnowsCompositor> GetCompositor();
-  void CreateMediaCapabilitiesDecodingInfo(
-      const MediaDecodingConfiguration& aConfiguration, ErrorResult& aRv,
-      Promise* aPromise);
-
-  RefPtr<MediaKeySystemAccessManager::MediaKeySystemAccessPromise>
-  CheckEncryptedDecodingSupport(
-      const MediaDecodingConfiguration& aConfiguration);
-
   nsCOMPtr<nsIGlobalObject> mParent;
+};
+
+class MediaCapabilitiesInfo final : public NonRefcountedDOMObject {
+ public:
+  // WebIDL methods
+  bool Supported() const { return mSupported; }
+  bool Smooth() const { return mSmooth; }
+  bool PowerEfficient() const { return mPowerEfficient; }
+  // End WebIDL methods
+
+  MediaCapabilitiesInfo(bool aSupported, bool aSmooth, bool aPowerEfficient)
+      : mSupported(aSupported),
+        mSmooth(aSmooth),
+        mPowerEfficient(aPowerEfficient) {}
+
+  bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
+                  JS::MutableHandle<JSObject*> aReflector);
+
+ private:
+  bool mSupported;
+  bool mSmooth;
+  bool mPowerEfficient;
 };
 
 }  // namespace dom

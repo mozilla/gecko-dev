@@ -256,8 +256,6 @@ class Navigator final : public nsISupports, public nsWrapperCache {
 
   already_AddRefed<dom::UserActivation> UserActivation();
 
-  MediaKeySystemAccessManager* GetOrCreateMediaKeySystemAccessManager();
-
  private:
   void ValidateShareData(const ShareData& aData, ErrorResult& aRv);
   RefPtr<MediaKeySystemAccessManager> mMediaKeySystemAccessManager;
@@ -308,9 +306,6 @@ class Navigator final : public nsISupports, public nsWrapperCache {
   RefPtr<dom::PrivateAttribution> mPrivateAttribution;
   RefPtr<dom::UserActivation> mUserActivation;
   RefPtr<dom::WakeLockJS> mWakeLock;
-
-  // True if Invalidate() has been called.
-  bool mInvalidated = false;
 };
 
 }  // namespace mozilla::dom
