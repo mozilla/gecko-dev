@@ -5884,7 +5884,7 @@
 
 - name: gfx.canvas.remote.recycle-used-data-surface
   type: RelaxedAtomicBool
-  value: false
+  value: true
   mirror: always
 
 - name: gfx.canvas.willreadfrequently.enabled

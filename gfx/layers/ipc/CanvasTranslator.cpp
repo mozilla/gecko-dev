@@ -10,6 +10,7 @@
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/CanvasManagerParent.h"
 #include "mozilla/gfx/CanvasRenderThread.h"
+#include "mozilla/gfx/DataSourceSurfaceWrapper.h"
 #include "mozilla/gfx/DrawTargetWebgl.h"
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/gfx/GPUParent.h"
@@ -866,6 +867,7 @@ void CanvasTranslator::PrepareShmem(int64_t aTextureId) {
 
 void CanvasTranslator::ClearCachedResources() {
   mUsedDataSurfaceForSurfaceDescriptor = nullptr;
+
   if (mSharedContext) {
     // If there are any DrawTargetWebgls, then try to cache their framebuffers
     // in software surfaces, just in case the GL context is lost. So long as
@@ -1155,6 +1157,7 @@ bool CanvasTranslator::PushRemoteTexture(int64_t aTextureId, TextureData* aData,
 
 void CanvasTranslator::ClearTextureInfo() {
   mUsedDataSurfaceForSurfaceDescriptor = nullptr;
+
   for (auto const& entry : mTextureInfo) {
     if (entry.second.mTextureData) {
       entry.second.mTextureData->Unlock();
@@ -1217,7 +1220,7 @@ static bool SDIsSupportedRemoteDecoder(const SurfaceDescriptor& sd) {
 }
 
 already_AddRefed<gfx::DataSourceSurface>
-CanvasTranslator::GetRecycledDataSurfaceForSurfaceDescriptor(
+CanvasTranslator::MaybeRecycleDataSurfaceForSurfaceDescriptor(
     TextureHost* aTextureHost) {
   if (!StaticPrefs::gfx_canvas_remote_recycle_used_data_surface()) {
     return nullptr;
@@ -1240,10 +1243,19 @@ CanvasTranslator::GetRecycledDataSurfaceForSurfaceDescriptor(
       aTextureHost->GetSize() == usedSurf->GetSize()) {
     // Reuse previously used DataSourceSurface if it is not used and same
     // size/format.
-    return usedSurf.forget();
+    usedSurf = aTextureHost->GetAsSurface(usedSurf);
+    // Wrap DataSourceSurface with DataSourceSurfaceWrapper to force upload in
+    // DrawTargetWebgl::DrawSurface().
+    RefPtr<gfx::DataSourceSurface> surf =
+        new gfx::DataSourceSurfaceWrapper(usedSurf);
+    return surf.forget();
   }
-  usedSurf = nullptr;
-  return nullptr;
+  usedSurf = aTextureHost->GetAsSurface(nullptr);
+  // Wrap DataSourceSurface with DataSourceSurfaceWrapper to force upload in
+  // DrawTargetWebgl::DrawSurface().
+  RefPtr<gfx::DataSourceSurface> surf =
+      new gfx::DataSourceSurfaceWrapper(usedSurf);
+  return surf.forget();
 }
 
 already_AddRefed<gfx::SourceSurface>
@@ -1277,18 +1289,14 @@ CanvasTranslator::LookupSourceSurfaceFromSurfaceDescriptor(
       RemoteDecoderVideoSubDescriptor::TSurfaceDescriptorMacIOSurface) {
     MOZ_ASSERT(texture->AsMacIOSurfaceTextureHost());
 
-    RefPtr<gfx::DataSourceSurface> reuseSurf =
-        GetRecycledDataSurfaceForSurfaceDescriptor(texture);
-    RefPtr<gfx::DataSourceSurface> surf = texture->GetAsSurface(reuseSurf);
-    mUsedDataSurfaceForSurfaceDescriptor = surf;
+    RefPtr<gfx::DataSourceSurface> surf =
+        MaybeRecycleDataSurfaceForSurfaceDescriptor(texture);
     return surf.forget();
   }
 
   if (subdescType == RemoteDecoderVideoSubDescriptor::Tnull_t) {
-    RefPtr<gfx::DataSourceSurface> reuseSurf =
-        GetRecycledDataSurfaceForSurfaceDescriptor(texture);
-    RefPtr<gfx::DataSourceSurface> surf = texture->GetAsSurface(reuseSurf);
-    mUsedDataSurfaceForSurfaceDescriptor = surf;
+    RefPtr<gfx::DataSourceSurface> surf =
+        MaybeRecycleDataSurfaceForSurfaceDescriptor(texture);
     return surf.forget();
   }
 
