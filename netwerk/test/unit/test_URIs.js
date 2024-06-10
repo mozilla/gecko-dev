@@ -799,6 +799,59 @@ add_task(function check_space_escaping() {
   uri = Services.io.newURI("http://example.com/test%20path#test%20path");
 });
 
+add_task(function check_space_with_query_and_ref() {
+  let url = Services.io.newURI("data:space");
+  Assert.equal(url.spec, "data:space");
+
+  url = Services.io.newURI("data:space ?");
+  Assert.equal(url.spec, "data:space ?");
+  url = Services.io.newURI("data:space #");
+  Assert.equal(url.spec, "data:space #");
+
+  url = Services.io.newURI("data:space?");
+  Assert.equal(url.spec, "data:space?");
+  url = Services.io.newURI("data:space#");
+  Assert.equal(url.spec, "data:space#");
+
+  url = Services.io.newURI("data:space ?query");
+  Assert.equal(url.spec, "data:space ?query");
+  url = url.mutate().setQuery("").finalize();
+  Assert.equal(url.spec, "data:space");
+
+  url = Services.io.newURI("data:space #ref");
+  Assert.equal(url.spec, "data:space #ref");
+  url = url.mutate().setRef("").finalize();
+  Assert.equal(url.spec, "data:space");
+
+  url = Services.io.newURI("data:space?query#ref");
+  Assert.equal(url.spec, "data:space?query#ref");
+  url = url.mutate().setRef("").finalize();
+  Assert.equal(url.spec, "data:space?query");
+  url = url.mutate().setQuery("").finalize();
+  Assert.equal(url.spec, "data:space");
+
+  url = Services.io.newURI("data:space#ref?query");
+  Assert.equal(url.spec, "data:space#ref?query");
+  url = url.mutate().setQuery("").finalize();
+  Assert.equal(url.spec, "data:space#ref?query");
+  url = url.mutate().setRef("").finalize();
+  Assert.equal(url.spec, "data:space");
+
+  url = Services.io.newURI("data:space ?query#ref");
+  Assert.equal(url.spec, "data:space ?query#ref");
+  url = url.mutate().setRef("").finalize();
+  Assert.equal(url.spec, "data:space ?query");
+  url = url.mutate().setQuery("").finalize();
+  Assert.equal(url.spec, "data:space");
+
+  url = Services.io.newURI("data:space #ref?query");
+  Assert.equal(url.spec, "data:space #ref?query");
+  url = url.mutate().setQuery("").finalize();
+  Assert.equal(url.spec, "data:space #ref?query");
+  url = url.mutate().setRef("").finalize();
+  Assert.equal(url.spec, "data:space");
+});
+
 add_task(function check_schemeIsNull() {
   let uri = Services.io.newURI("data:text/plain,aaa");
   Assert.ok(!uri.schemeIs(null));

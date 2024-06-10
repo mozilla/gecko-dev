@@ -431,9 +431,13 @@ nsresult nsSimpleURI::SetPathQueryRefInternal(const nsACString& aPath) {
   const auto* queryEnd =
       std::find_if(pathEnd, end, [](char c) { return c == '#'; });
 
-  rv = SetQuery(Substring(pathEnd, queryEnd));
-  if (NS_FAILED(rv)) {
-    return rv;
+  // Bug 1874118: If the URL does not contain a '?' or '?' appears after '#',
+  // SetQuery will not execute, preventing TrimTrailingCharactersFromPath
+  if (pathEnd != end && *pathEnd == '?') {
+    rv = SetQuery(Substring(pathEnd, queryEnd));
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
   }
 
   if (queryEnd == end) {
