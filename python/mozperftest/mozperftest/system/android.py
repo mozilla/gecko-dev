@@ -223,6 +223,9 @@ class AndroidDevice(Layer):
         self.capture_adb = self._set_output_path(self.get_arg("capture-adb"))
         self.capture_logcat = self._set_output_path(self.get_arg("capture-logcat"))
 
+        if metadata.binary:
+            self.app_name = metadata.binary
+
         # capture the logs produced by ADBDevice
         logger_name = "mozperftest-adb"
         logger = mozlog.structuredlog.StructuredLogger(logger_name)
