@@ -395,4 +395,8 @@
 
     <!--Translations -->
     <string name="pref_key_ignore_translations_data_saver_warning" translatable="false">pref_key_ignore_translations_data_saver_warning</string>
+
+    <!-- Microsurvey -->
+    <string name="pref_key_should_show_microsurvey_prompt" translatable="false">pref_key_should_show_microsurvey_prompt</string>
+
 </resources>
