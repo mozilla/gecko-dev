@@ -8820,6 +8820,12 @@
   value: false
   mirror: always
 
+# Is eager first-letter processing during intrinsic size computation enabled?
+- name: layout.css.intrinsic-size-first-letter.enabled
+  type: bool
+  value: true
+  mirror: always
+
 # Which model to use for CSS letter-spacing:
 #   0 - Gecko legacy model, spacing added to trailing side of letter
 #   1 - WebKit/Blink-compatible, spacing always added to right-hand side

@@ -8761,6 +8761,10 @@ bool nsTextFrame::IsCurrentFontInflation(float aInflation) const {
 }
 
 void nsTextFrame::MaybeSplitFramesForFirstLetter() {
+  if (!StaticPrefs::layout_css_intrinsic_size_first_letter_enabled()) {
+    return;
+  }
+
   if (GetParent()->IsFloating() && GetContentLength() > 0) {
     // We've already claimed our first-letter content, don't try again.
     return;
@@ -9334,6 +9338,10 @@ void nsTextFrame::SetFirstLetterLength(int32_t aLength) {
 
   mContentLengthHint = aLength;
   nsTextFrame* next = static_cast<nsTextFrame*>(GetNextInFlow());
+  if (!aLength && !next) {
+    return;
+  }
+
   if (aLength > GetContentLength()) {
     // Stealing some text from our next-in-flow; this happens with floating
     // first-letter, which is initially given a zero-length range, with all
@@ -9342,7 +9350,7 @@ void nsTextFrame::SetFirstLetterLength(int32_t aLength) {
       MOZ_ASSERT_UNREACHABLE("Expected a next-in-flow; first-letter broken?");
       return;
     }
-  } else {
+  } else if (!next) {
     // We need to create a continuation for the parent first-letter frame,
     // and move any kids after this frame to the new one; if there are none,
     // a new continuing text frame will be created there.
