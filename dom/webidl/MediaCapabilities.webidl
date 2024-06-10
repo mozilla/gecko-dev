@@ -94,10 +94,17 @@ dictionary MediaCapabilitiesInfo {
   required boolean powerEfficient;
 };
 
+// https://w3c.github.io/media-capabilities/#dictdef-mediacapabilitiesinfo
+dictionary MediaCapabilitiesDecodingInfo : MediaCapabilitiesInfo {
+  // This doesn't match the spec, see https://github.com/w3c/media-capabilities/issues/219
+  required MediaKeySystemAccess? keySystemAccess;
+  // TODO : implement configuration
+};
+
 [Exposed=(Window, Worker)]
 interface MediaCapabilities {
   [NewObject]
-  Promise<MediaCapabilitiesInfo> decodingInfo(MediaDecodingConfiguration configuration);
+  Promise<MediaCapabilitiesDecodingInfo> decodingInfo(MediaDecodingConfiguration configuration);
   [NewObject]
   Promise<MediaCapabilitiesInfo> encodingInfo(MediaEncodingConfiguration configuration);
 };
