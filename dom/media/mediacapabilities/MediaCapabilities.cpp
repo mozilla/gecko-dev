@@ -270,6 +270,21 @@ void MediaCapabilities::CreateMediaCapabilitiesDecodingInfo(
           "The main thread is shutted down");
       return;
     }
+
+    // This check isn't defined in the spec but exists in web platform tests, so
+    // we perform the check as well in order to reduce the web compatibility
+    // issues. https://github.com/w3c/media-capabilities/issues/220
+    const auto& keySystemConfig =
+        aConfiguration.mKeySystemConfiguration.Value();
+    if ((keySystemConfig.mVideo.WasPassed() &&
+         !aConfiguration.mVideo.WasPassed()) ||
+        (keySystemConfig.mAudio.WasPassed() &&
+         !aConfiguration.mAudio.WasPassed())) {
+      aPromise->MaybeRejectWithTypeError(
+          "The type of decoding config doesn't match the type of key system "
+          "config");
+      return;
+    }
     CheckEncryptedDecodingSupport(aConfiguration)
         ->Then(mainThread, __func__,
                [promise = RefPtr<Promise>{aPromise},
