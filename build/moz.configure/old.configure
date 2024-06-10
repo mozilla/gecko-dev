@@ -103,6 +103,7 @@ def old_configure_options(*options):
     "--prefix",
     "--with-branding",
     "--with-distribution-id",
+    "--with-macbundlename-prefix",
     "--x-includes",
     "--x-libraries",
 )

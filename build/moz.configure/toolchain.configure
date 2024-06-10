@@ -342,14 +342,6 @@ def first_toolchain_prefix(toolchain_prefix, target):
 set_config("TOOLCHAIN_PREFIX", first_toolchain_prefix)
 add_old_configure_assignment("TOOLCHAIN_PREFIX", first_toolchain_prefix)
 
-with only_when(cross_compiling):
-    option(
-        env="JS_BINARY",
-        nargs=1,
-        help="Host JavaScript runtime, if any, to use during cross compiles",
-    )
-    set_config("JS_BINARY", depends_if("JS_BINARY")(lambda value: value[0]))
-
 
 # Compilers
 # ==============================================================
