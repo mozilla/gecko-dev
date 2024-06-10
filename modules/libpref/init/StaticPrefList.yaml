@@ -10592,7 +10592,7 @@
 # Enable PlayReady DRM for EME
 -   name: media.eme.playready.enabled
     type: RelaxedAtomicBool
-#if defined(MOZ_WMF_CDM) && defined(IS_NIGHTLY_OR_DEV_EDITION)
+#if defined(MOZ_WMF_CDM) && defined(DEV_EDITION_OR_EARLY_BETA_OR_EARLIER)
     value: true
 #else
     value: false
