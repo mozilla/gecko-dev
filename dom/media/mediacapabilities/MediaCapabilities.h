@@ -77,28 +77,6 @@ class MediaCapabilities final : public nsISupports, public nsWrapperCache {
   nsCOMPtr<nsIGlobalObject> mParent;
 };
 
-class MediaCapabilitiesInfo final : public NonRefcountedDOMObject {
- public:
-  // WebIDL methods
-  bool Supported() const { return mSupported; }
-  bool Smooth() const { return mSmooth; }
-  bool PowerEfficient() const { return mPowerEfficient; }
-  // End WebIDL methods
-
-  MediaCapabilitiesInfo(bool aSupported, bool aSmooth, bool aPowerEfficient)
-      : mSupported(aSupported),
-        mSmooth(aSmooth),
-        mPowerEfficient(aPowerEfficient) {}
-
-  bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
-                  JS::MutableHandle<JSObject*> aReflector);
-
- private:
-  bool mSupported;
-  bool mSmooth;
-  bool mPowerEfficient;
-};
-
 }  // namespace dom
 
 }  // namespace mozilla
