@@ -19,6 +19,7 @@
 #include "PDMFactory.h"
 #include "VPXDecoder.h"
 #include "mozilla/ClearOnShutdown.h"
+#include "mozilla/EMEUtils.h"
 #include "mozilla/SchedulerGroup.h"
 #include "mozilla/StaticPrefs_media.h"
 #include "mozilla/TaskQueue.h"
@@ -26,6 +27,7 @@
 #include "mozilla/dom/DOMMozPromiseRequestHolder.h"
 #include "mozilla/dom/MediaCapabilitiesBinding.h"
 #include "mozilla/dom/MediaSource.h"
+#include "mozilla/dom/Navigator.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/WorkerCommon.h"
 #include "mozilla/dom/WorkerPrivate.h"
@@ -256,9 +258,52 @@ void MediaCapabilities::CreateMediaCapabilitiesDecodingInfo(
     tracks.AppendElements(std::move(audioTracks));
   }
 
-  // TODO : implement 'Check Encrypted Decoding Support'
-  // https://www.w3.org/TR/media-capabilities/#is-encrypted-decode-supported
+  // If configuration.keySystemConfiguration exists:
+  if (aConfiguration.mKeySystemConfiguration.WasPassed()) {
+    MOZ_ASSERT(
+        NS_IsMainThread(),
+        "Key system configuration qurey can not run on the worker thread!");
 
+    auto* mainThread = GetMainThreadSerialEventTarget();
+    if (!mainThread) {
+      aPromise->MaybeRejectWithInvalidStateError(
+          "The main thread is shutted down");
+      return;
+    }
+    CheckEncryptedDecodingSupport(aConfiguration)
+        ->Then(mainThread, __func__,
+               [promise = RefPtr<Promise>{aPromise},
+                self = RefPtr<MediaCapabilities>{this}, aConfiguration,
+                this](MediaKeySystemAccessManager::MediaKeySystemAccessPromise::
+                          ResolveOrRejectValue&& aValue) {
+                 if (aValue.IsReject()) {
+                   MediaCapabilitiesDecodingInfo info;
+                   info.mSupported = false;
+                   info.mSmooth = false;
+                   info.mPowerEfficient = false;
+                   LOG("%s -> %s",
+                       MediaDecodingConfigurationToStr(aConfiguration).get(),
+                       MediaCapabilitiesInfoToStr(info).get());
+                   promise->MaybeResolve(std::move(info));
+                   return;
+                 }
+                 MediaCapabilitiesDecodingInfo info;
+                 info.mSupported = true;
+                 info.mSmooth = true;
+                 info.mKeySystemAccess = aValue.ResolveValue();
+                 MOZ_ASSERT(info.mKeySystemAccess);
+                 MediaKeySystemConfiguration config;
+                 info.mKeySystemAccess->GetConfiguration(config);
+                 info.mPowerEfficient = IsHardwareDecryptionSupported(config);
+                 LOG("%s -> %s",
+                     MediaDecodingConfigurationToStr(aConfiguration).get(),
+                     MediaCapabilitiesInfoToStr(info).get());
+                 promise->MaybeResolve(std::move(info));
+               });
+    return;
+  }
+
+  // Otherwise, run the following steps:
   using CapabilitiesPromise = MozPromise<MediaCapabilitiesInfo, MediaResult,
                                          /* IsExclusive = */ true>;
   nsTArray<RefPtr<CapabilitiesPromise>> promises;
@@ -523,6 +568,83 @@ void MediaCapabilities::CreateMediaCapabilitiesDecodingInfo(
                promise->MaybeResolve(std::move(info));
              })
       ->Track(*holder);
+}
+
+// https://www.w3.org/TR/media-capabilities/#is-encrypted-decode-supported
+RefPtr<MediaKeySystemAccessManager::MediaKeySystemAccessPromise>
+MediaCapabilities::CheckEncryptedDecodingSupport(
+    const MediaDecodingConfiguration& aConfiguration) {
+  using MediaKeySystemAccessPromise =
+      MediaKeySystemAccessManager::MediaKeySystemAccessPromise;
+  auto* window = mParent->GetAsInnerWindow();
+  if (NS_WARN_IF(!window)) {
+    return MediaKeySystemAccessPromise::CreateAndReject(NS_ERROR_FAILURE,
+                                                        __func__);
+  }
+
+  auto* manager = window->Navigator()->GetOrCreateMediaKeySystemAccessManager();
+  if (NS_WARN_IF(!manager)) {
+    return MediaKeySystemAccessPromise::CreateAndReject(NS_ERROR_FAILURE,
+                                                        __func__);
+  }
+
+  // Let emeConfiguration be a new MediaKeySystemConfiguration, and initialize
+  // it as follows
+  Sequence<MediaKeySystemConfiguration> configs;
+  auto* emeConfig = configs.AppendElement(fallible);
+  if (NS_WARN_IF(!emeConfig)) {
+    return MediaKeySystemAccessPromise::CreateAndReject(NS_ERROR_FAILURE,
+                                                        __func__);
+  }
+
+  const auto& keySystemConfig = aConfiguration.mKeySystemConfiguration.Value();
+  if (!keySystemConfig.mInitDataType.IsEmpty()) {
+    if (NS_WARN_IF(!emeConfig->mInitDataTypes.AppendElement(
+            keySystemConfig.mInitDataType, fallible))) {
+      return MediaKeySystemAccessPromise::CreateAndReject(NS_ERROR_FAILURE,
+                                                          __func__);
+    }
+  }
+  emeConfig->mDistinctiveIdentifier = keySystemConfig.mDistinctiveIdentifier;
+  emeConfig->mPersistentState = keySystemConfig.mPersistentState;
+  if (keySystemConfig.mSessionTypes.WasPassed() &&
+      !keySystemConfig.mSessionTypes.Value().IsEmpty()) {
+    emeConfig->mSessionTypes.Construct();
+    for (const auto& type : keySystemConfig.mSessionTypes.Value()) {
+      if (NS_WARN_IF(!emeConfig->mSessionTypes.Value().AppendElement(
+              type, fallible))) {
+        return MediaKeySystemAccessPromise::CreateAndReject(NS_ERROR_FAILURE,
+                                                            __func__);
+      }
+    }
+  }
+  if (aConfiguration.mAudio.WasPassed()) {
+    auto* capabilitiy = emeConfig->mAudioCapabilities.AppendElement(fallible);
+    if (NS_WARN_IF(!capabilitiy)) {
+      return MediaKeySystemAccessPromise::CreateAndReject(NS_ERROR_FAILURE,
+                                                          __func__);
+    }
+    capabilitiy->mContentType = aConfiguration.mAudio.Value().mContentType;
+    if (keySystemConfig.mAudio.WasPassed()) {
+      const auto& config = keySystemConfig.mAudio.Value();
+      capabilitiy->mRobustness = config.mRobustness;
+      capabilitiy->mEncryptionScheme = config.mEncryptionScheme;
+    }
+  }
+  if (aConfiguration.mVideo.WasPassed()) {
+    auto* capabilitiy = emeConfig->mVideoCapabilities.AppendElement(fallible);
+    if (NS_WARN_IF(!capabilitiy)) {
+      return MediaKeySystemAccessPromise::CreateAndReject(NS_ERROR_FAILURE,
+                                                          __func__);
+    }
+    capabilitiy->mContentType = aConfiguration.mVideo.Value().mContentType;
+    if (keySystemConfig.mVideo.WasPassed()) {
+      const auto& config = keySystemConfig.mVideo.Value();
+      capabilitiy->mRobustness = config.mRobustness;
+      capabilitiy->mEncryptionScheme = config.mEncryptionScheme;
+    }
+  }
+  return manager->Request(keySystemConfig.mKeySystem, configs);
 }
 
 already_AddRefed<Promise> MediaCapabilities::EncodingInfo(
