@@ -457,6 +457,12 @@ function waitForOtherInstances() {
     PREF_APP_UPDATE_CHECK_ONLY_INSTANCE_TIMEOUT,
     ONLY_INSTANCE_CHECK_DEFAULT_TIMEOUT_MS
   );
+
+  // return immediately if timeout value is invalid.
+  if (timeout <= 0) {
+    return Promise.resolve(isOtherInstanceRunning());
+  }
+
   // Don't allow the pref to set a super high timeout and break this feature.
   if (timeout > ONLY_INSTANCE_CHECK_MAX_TIMEOUT_MS) {
     timeout = ONLY_INSTANCE_CHECK_MAX_TIMEOUT_MS;
@@ -466,6 +472,11 @@ function waitForOtherInstances() {
     PREF_APP_UPDATE_CHECK_ONLY_INSTANCE_INTERVAL,
     ONLY_INSTANCE_CHECK_DEFAULT_POLL_INTERVAL_MS
   );
+
+  if (interval <= 0) {
+    interval = ONLY_INSTANCE_CHECK_DEFAULT_POLL_INTERVAL_MS;
+  }
+
   // Don't allow an interval longer than the timeout.
   interval = Math.min(interval, timeout);
 
