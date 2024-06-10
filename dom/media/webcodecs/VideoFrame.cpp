@@ -5,7 +5,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/VideoFrame.h"
-#include "mozilla/dom/VideoFrameBinding.h"
 
 #include <math.h>
 #include <limits>
@@ -19,7 +18,6 @@
 #include "mozilla/ResultVariant.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/Try.h"
-
 #include "mozilla/UniquePtr.h"
 #include "mozilla/dom/CanvasUtils.h"
 #include "mozilla/dom/DOMRect.h"
@@ -34,12 +32,13 @@
 #include "mozilla/dom/StructuredCloneHolder.h"
 #include "mozilla/dom/StructuredCloneTags.h"
 #include "mozilla/dom/UnionTypes.h"
+#include "mozilla/dom/VideoFrameBinding.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/Swizzle.h"
 #include "mozilla/layers/LayersSurfaces.h"
-#include "nsLayoutUtils.h"
 #include "nsIPrincipal.h"
 #include "nsIURI.h"
+#include "nsLayoutUtils.h"
 
 extern mozilla::LazyLogModule gWebCodecsLog;
 
