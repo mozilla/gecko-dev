@@ -407,9 +407,11 @@ class ElementStyle {
           // get the initial value from the registered property definition.
           if (
             isCssVariable(computedProp.name) &&
-            !computedProp.textProp.invisible
+            !computedProp.textProp.invisible &&
+            // variables set in starting-style rules should only impact the starting style
+            // value, not the "final" one.
+            !isPropInStartingStyle
           ) {
-            // XXX We should differentiate variables set in starting-style rules
             variables.set(computedProp.name, computedProp.value);
           }
         }

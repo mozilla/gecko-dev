@@ -32,6 +32,7 @@ const TEST_URI = `
       }
 
       main, [data-test="in-starting-style"] {
+        --my-color: black !important;
         background-color: dodgerblue;
         padding-top: 1px;
         margin-top: 1px !important;
@@ -58,6 +59,8 @@ const TEST_URI = `
     }
 
     main, [data-test="top-level"] {
+      --my-color: white;
+      color: var(--my-color);
       background-color: firebrick;
       padding-top: 2px !important;
       margin-top: 2px;
@@ -232,6 +235,24 @@ add_task(async function () {
   ok(
     !isPropertyOverridden(view, 5, { "outline-color": "forestgreen" }),
     "outline-color value in first layer in starting style rule is not overridden as it's declared with !important"
+  );
+
+  info(
+    "Check that CSS variables set in starting-style are not impacting the var() tooltip"
+  );
+  ok(
+    !isPropertyOverridden(view, 2, { "--my-color": "white" }),
+    "--my-color value in top level rule is not overridden"
+  );
+  const variableEl = getRuleViewProperty(
+    view,
+    `main, [data-test="top-level"]`,
+    "color"
+  ).valueSpan.querySelector(".ruleview-variable");
+  is(
+    variableEl.dataset.variable,
+    "--my-color = white",
+    "variable popup for --my-color has the expected value"
   );
 
   async function assertRules(nodeSelector, expectedRules) {
