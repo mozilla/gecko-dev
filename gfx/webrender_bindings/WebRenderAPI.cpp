@@ -744,6 +744,10 @@ void WebRenderAPI::SetInt(wr::IntParameter aKey, int32_t aValue) {
   wr_api_set_int(mDocHandle, aKey, aValue);
 }
 
+void WebRenderAPI::SetFloat(wr::FloatParameter aKey, float aValue) {
+  wr_api_set_float(mDocHandle, aKey, aValue);
+}
+
 void WebRenderAPI::SetClearColor(const gfx::DeviceColor& aColor) {
   RenderThread::Get()->SetClearColor(mId, ToColorF(aColor));
 }

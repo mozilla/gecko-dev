@@ -1820,6 +1820,11 @@ pub extern "C" fn wr_api_set_int(dh: &mut DocumentHandle, param_name: IntParamet
 }
 
 #[no_mangle]
+pub extern "C" fn wr_api_set_float(dh: &mut DocumentHandle, param_name: FloatParameter, val: f32) {
+    dh.api.set_parameter(Parameter::Float(param_name, val));
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn wr_api_accumulate_memory_report(
     dh: &mut DocumentHandle,
     report: &mut MemoryReport,

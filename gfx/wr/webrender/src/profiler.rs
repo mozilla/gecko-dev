@@ -290,6 +290,7 @@ pub struct Profiler {
     start: u64,
     avg_over_period: u64,
     num_graph_samples: usize,
+    slow_cpu_frame_threshold: f32,
 
     // For FPS computation. Updated in update().
     frame_timestamps_within_last_second: Vec<u64>,
@@ -511,6 +512,7 @@ impl Profiler {
             counters,
             start: precise_time_ns(),
             avg_over_period: ONE_SECOND_NS / 2,
+            slow_cpu_frame_threshold: 10.0,
 
             num_graph_samples: 500, // Would it be useful to control this via a pref?
             frame_timestamps_within_last_second: Vec::new(),
@@ -526,6 +528,15 @@ impl Profiler {
             slow_scroll_after_scene_count: 0,
 
             ui: Vec::new(),
+        }
+    }
+
+    pub fn set_parameter(&mut self, param: &api::Parameter) {
+        match param {
+            api::Parameter::Float(api::FloatParameter::SlowCpuFrameThreshold, threshold) => {
+                self.slow_cpu_frame_threshold = *threshold;
+            }
+            _ => {}
         }
     }
 
@@ -621,7 +632,7 @@ impl Profiler {
         let slow_cpu = self.update_slow_event(
             SLOW_FRAME,
             &[TOTAL_FRAME_CPU_TIME],
-            15.0,
+            self.slow_cpu_frame_threshold as f64,
         );
         self.update_slow_event(
             SLOW_TXN,
