@@ -12,7 +12,7 @@ mozpower >= 1.0.0
 mozversion >= 1.0
 ../condprofile
 aiohttp==3.7.4.post0
-https://pypi.pub.build.mozilla.org/pub/arsenic-19.1-py3-none-any.whl
+https://pypi.pub.build.mozilla.org/pub/arsenic-21.8-py3-none-any.whl
 requests==2.22.0
 pyyaml==5.1.2
-structlog==15.2.0
+structlog==20.2.0

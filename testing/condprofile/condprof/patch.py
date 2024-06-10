@@ -9,7 +9,9 @@ from arsenic.connection import *
 
 
 @ensure_task
-async def request(self, *, url: str, method: str, data=None) -> Tuple[int, Any]:
+async def request(
+    self, *, url: str, method: str, data=None, timeout=None
+) -> Tuple[int, Any]:
     if data is None:
         data = {}
     if method not in {"POST", "PUT"}:
@@ -24,7 +26,7 @@ async def request(self, *, url: str, method: str, data=None) -> Tuple[int, Any]:
     )
 
     async with self.session.request(
-        url=full_url, method=method, data=body, headers=headers
+        url=full_url, method=method, data=body, headers=headers, timeout=timeout
     ) as response:
         response_body = await response.read()
         try:
