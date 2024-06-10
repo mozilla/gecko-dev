@@ -6,6 +6,7 @@ import * as DefaultBackupResources from "resource:///modules/backup/BackupResour
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
+const BACKUP_DIR_PREF_NAME = "browser.backup.location";
 const SCHEDULED_BACKUPS_ENABLED_PREF_NAME = "browser.backup.scheduled.enabled";
 const lazy = {};
 
@@ -37,6 +38,13 @@ ChromeUtils.defineLazyGetter(lazy, "ZipWriter", () =>
   Components.Constructor("@mozilla.org/zipwriter;1", "nsIZipWriter", "open")
 );
 
+ChromeUtils.defineLazyGetter(lazy, "gFluentStrings", function () {
+  return new Localization(
+    ["branding/brand.ftl", "preview/backupSettings.ftl"],
+    true
+  );
+});
+
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "scheduledBackupsPref",
@@ -46,6 +54,20 @@ XPCOMUtils.defineLazyPreferenceGetter(
     let bs = BackupService.get();
     if (bs) {
       bs.onUpdateScheduledBackups(newVal);
+    }
+  }
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "backupDirPref",
+  BACKUP_DIR_PREF_NAME,
+  Services.dirsvc.get("Docs", Ci.nsIFile)
+    .path /* Default directory is Documents */,
+  async function onUpdateLocationDirPath(_pref, _prevVal, newVal) {
+    let bs = BackupService.get();
+    if (bs) {
+      await bs.onUpdateLocationDirPath(newVal);
     }
   }
 );
@@ -70,6 +92,13 @@ export class BackupService extends EventTarget {
    * @type {Map<string, BackupResource>}
    */
   #resources = new Map();
+
+  /**
+   * The name of the backup folder. Should be localized.
+   *
+   * @see BACKUP_DIR_NAME
+   */
+  static #backupFolderName = null;
 
   /**
    * Set to true if a backup is currently in progress. Causes stateUpdate()
@@ -112,7 +141,12 @@ export class BackupService extends EventTarget {
    * @type {object}
    */
   #_state = {
-    backupFilePath: "Documents", // TODO: make save location configurable (bug 1895943)
+    backupDirPath: lazy.backupDirPref,
+    defaultParent: {
+      path: BackupService.DEFAULT_PARENT_DIR_PATH,
+      fileName: PathUtils.filename(BackupService.DEFAULT_PARENT_DIR_PATH),
+      iconURL: this.getIconFromFilePath(BackupService.DEFAULT_PARENT_DIR_PATH),
+    },
     backupInProgress: false,
     scheduledBackupsEnabled: lazy.scheduledBackupsPref,
     encryptionEnabled: false,
@@ -151,6 +185,29 @@ export class BackupService extends EventTarget {
    * @type {ArchiveEncryptionState|null|undefined}
    */
   #encState = undefined;
+
+  /**
+   * The path of the default parent directory for saving backups.
+   * The current default is the Documents directory.
+   *
+   * @returns {string} The path of the default parent directory
+   */
+  static get DEFAULT_PARENT_DIR_PATH() {
+    return Services.dirsvc.get("Docs", Ci.nsIFile).path;
+  }
+
+  /**
+   * The localized name for the user's backup folder.
+   *
+   * @returns {string} The localized backup folder name
+   */
+  static get BACKUP_DIR_NAME() {
+    if (!BackupService.#backupFolderName) {
+      BackupService.#backupFolderName =
+        lazy.gFluentStrings.formatValueSync("backup-folder-name");
+    }
+    return BackupService.#backupFolderName;
+  }
 
   /**
    * The name of the folder within the profile folder where this service reads
@@ -921,6 +978,65 @@ export class BackupService extends EventTarget {
     } finally {
       await IOUtils.remove(postRecoveryFile, { ignoreAbsent: true });
       this.#postRecoveryResolver();
+    }
+  }
+
+  /**
+   * Sets the parent directory of the backups folder. Calling this function will update
+   * browser.backup.location.
+   *
+   * @param {string} parentDirPath directory path
+   */
+  setParentDirPath(parentDirPath) {
+    try {
+      if (!parentDirPath || !PathUtils.filename(parentDirPath)) {
+        throw new Error("Parent directory path is invalid.");
+      }
+      // Recreate the backups path with the new parent directory.
+      let fullPath = PathUtils.join(
+        parentDirPath,
+        BackupService.BACKUP_DIR_NAME
+      );
+      Services.prefs.setStringPref(BACKUP_DIR_PREF_NAME, fullPath);
+    } catch (e) {
+      lazy.logConsole.error(
+        `Failed to set parent directory ${parentDirPath}. ${e}`
+      );
+    }
+  }
+
+  /**
+   * Updates backupDirPath in the backup service state. Should be called every time the value
+   * for browser.backup.location changes.
+   *
+   * @param {string} newDirPath the new directory path for storing backups
+   */
+  async onUpdateLocationDirPath(newDirPath) {
+    lazy.logConsole.debug(`Updating backup location to ${newDirPath}`);
+
+    this.#_state.backupDirPath = newDirPath;
+    this.stateUpdate();
+  }
+
+  /**
+   * Returns the moz-icon URL of a file. To get the moz-icon URL, the
+   * file path is convered to a fileURI. If there is a problem retreiving
+   * the moz-icon due to an invalid file path, return null instead.
+   *
+   * @param {string} path Path of the file to read its icon from.
+   * @returns {string|null} The moz-icon URL of the specified file, or
+   *  null if the icon cannot be retreived.
+   */
+  getIconFromFilePath(path) {
+    if (!path) {
+      return null;
+    }
+
+    try {
+      let fileURI = PathUtils.toFileURI(path);
+      return `moz-icon:${fileURI}?size=16`;
+    } catch (e) {
+      return null;
     }
   }
 

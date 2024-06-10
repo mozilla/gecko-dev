@@ -19,7 +19,7 @@ export class BackupUIChild extends JSWindowActorChild {
    * @param {Event} event
    *   The custom event that the widget fired.
    */
-  handleEvent(event) {
+  async handleEvent(event) {
     /**
      * BackupUI:InitWidget sends a message to the parent to request the BackupService state
      * which will result in a `backupServiceState` property of the widget to be set when that
@@ -31,6 +31,31 @@ export class BackupUIChild extends JSWindowActorChild {
       this.sendAsyncMessage("RequestState");
     } else if (event.type == "BackupUI:ToggleScheduledBackups") {
       this.sendAsyncMessage("ToggleScheduledBackups", event.detail);
+    } else if (event.type == "BackupUI:ShowFilepicker") {
+      let targetNodeName = event.target.nodeName;
+      let { path, filename, iconURL } = await this.sendQuery("ShowFilepicker", {
+        win: event.detail?.win,
+      });
+
+      let widgets = ChromeUtils.nondeterministicGetWeakSetKeys(
+        this.#inittedWidgets
+      );
+
+      for (let widget of widgets) {
+        if (widget.isConnected && widget.nodeName == targetNodeName) {
+          widget.dispatchEvent(
+            new CustomEvent("BackupUI:SelectNewFilepickerPath", {
+              bubbles: true,
+              detail: {
+                path,
+                filename,
+                iconURL,
+              },
+            })
+          );
+          break;
+        }
+      }
     }
   }
 

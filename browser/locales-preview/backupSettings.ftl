@@ -2,6 +2,11 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+# This string is used to name the folder that users will save backups to.
+# "Restore" is an action and intended for prompting users to select this folder
+# when following backup restoration steps.
+backup-folder-name = Restore { -brand-product-name }
+
 settings-data-backup-header = Backup
 settings-data-backup-toggle = Manage backup
 

@@ -38,8 +38,12 @@
      */
     add_task(async function test_turnOnScheduledBackupsDialog() {
       let settings = document.getElementById("test-backup-settings");
+      const testDefaultName = "test-default-path";
       settings.backupServiceState = {
-        scheduledBackupsEnabled: false,
+        defaultParent: {
+          path: PathUtils.join(PathUtils.tempDir, testDefaultName),
+          fileName: testDefaultName,
+        }
       }
 
       await settings.updateComplete;
@@ -73,7 +77,12 @@
      */
      add_task(async function test_turnOffScheduledBackupsDialog() {
       let settings = document.getElementById("test-backup-settings");
+      const testDefaultName = "test-default-path";
       settings.backupServiceState = {
+        defaultParent: {
+          path: PathUtils.join(PathUtils.tempDir, testDefaultName),
+          fileName: testDefaultName,
+        },
         scheduledBackupsEnabled: true,
       }
 

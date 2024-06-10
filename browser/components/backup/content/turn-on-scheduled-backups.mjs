@@ -10,8 +10,15 @@ import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
  * scheduled backups.
  */
 export default class TurnOnScheduledBackups extends MozLitElement {
+  #placeholderIconURL = "chrome://global/skin/icons/page-portrait.svg";
+
   static properties = {
-    backupFilePath: { type: String },
+    defaultIconURL: { type: String, reflect: true },
+    defaultLabel: { type: String, reflect: true },
+    defaultPath: { type: String, reflect: true },
+    _newIconURL: { type: String },
+    _newLabel: { type: String },
+    _newPath: { type: String },
     showPasswordOptions: { type: Boolean, reflect: true },
   };
 
@@ -19,15 +26,22 @@ export default class TurnOnScheduledBackups extends MozLitElement {
     return {
       cancelButtonEl: "#backup-turn-on-scheduled-cancel-button",
       confirmButtonEl: "#backup-turn-on-scheduled-confirm-button",
+      filePathButtonEl: "#backup-location-filepicker-button",
+      filePathInputCustomEl: "#backup-location-filepicker-input-custom",
+      filePathInputDefaultEl: "#backup-location-filepicker-input-default",
       passwordOptionsCheckboxEl: "#sensitive-data-checkbox-input",
       passwordOptionsExpandedEl: "#passwords",
-      recommendedFolderInputEl: "#backup-location-filepicker-input",
     };
   }
 
   constructor() {
     super();
-    this.backupFilePath = null;
+    this.defaultIconURL = "";
+    this.defaultLabel = "";
+    this.defaultPath = "";
+    this._newIconURL = "";
+    this._newLabel = "";
+    this._newPath = "";
     this.showPasswordOptions = false;
   }
 
@@ -40,10 +54,28 @@ export default class TurnOnScheduledBackups extends MozLitElement {
     this.dispatchEvent(
       new CustomEvent("BackupUI:InitWidget", { bubbles: true })
     );
+
+    this.addEventListener("BackupUI:SelectNewFilepickerPath", this);
   }
 
-  handleChooseLocation() {
-    // TODO: show file picker (bug 1895943)
+  handleEvent(event) {
+    if (event.type == "BackupUI:SelectNewFilepickerPath") {
+      let { path, filename, iconURL } = event.detail;
+      this._newPath = path;
+      this._newLabel = filename;
+      this._newIconURL = iconURL;
+    }
+  }
+
+  async handleChooseLocation() {
+    this.dispatchEvent(
+      new CustomEvent("BackupUI:ShowFilepicker", {
+        bubbles: true,
+        detail: {
+          win: window.browsingContext,
+        },
+      })
+    );
   }
 
   handleCancel() {
@@ -53,14 +85,12 @@ export default class TurnOnScheduledBackups extends MozLitElement {
         composed: true,
       })
     );
-    this.showPasswordOptions = false;
-    this.passwordOptionsCheckboxEl.checked = false;
+    this.resetChanges();
   }
 
   handleConfirm() {
     /**
      * TODO:
-     * We should pass save location to BackupUIParent here (bug 1895943).
      * If encryption is enabled via this dialog, ensure a password is set and pass it to BackupUIParent (bug 1895981).
      * Before confirmation, verify passwords match and FxA format rules (bug 1896772).
      */
@@ -68,14 +98,60 @@ export default class TurnOnScheduledBackups extends MozLitElement {
       new CustomEvent("turnOnScheduledBackups", {
         bubbles: true,
         composed: true,
+        detail: {
+          parentDirPath: this._newPath || this.defaultPath,
+        },
       })
     );
-    this.showPasswordOptions = false;
-    this.passwordOptionsCheckboxEl.checked = false;
+    this.resetChanges();
   }
 
   handleTogglePasswordOptions() {
     this.showPasswordOptions = this.passwordOptionsCheckboxEl?.checked;
+  }
+
+  resetChanges() {
+    this._newPath = "";
+    this._newIconURL = "";
+    this._newLabel = "";
+    this.showPasswordOptions = false;
+    this.passwordOptionsCheckboxEl.checked = false;
+  }
+
+  defaultFilePathInputTemplate() {
+    let filename = this.defaultLabel;
+    let iconURL = this.defaultIconURL || this.#placeholderIconURL;
+
+    return html`
+      <input
+        id="backup-location-filepicker-input-default"
+        class="backup-location-filepicker-input"
+        type="text"
+        readonly
+        data-l10n-id="turn-on-scheduled-backups-location-default-folder"
+        data-l10n-args=${JSON.stringify({
+          recommendedFolder: filename,
+        })}
+        data-l10n-attrs="value"
+        style=${`background-image: url(${iconURL})`}
+      />
+    `;
+  }
+
+  customFilePathInputTemplate() {
+    let filename = this._newLabel;
+    let iconURL = this._newIconURL || this.#placeholderIconURL;
+
+    return html`
+      <input
+        id="backup-location-filepicker-input-custom"
+        class="backup-location-filepicker-input"
+        type="text"
+        readonly
+        value=${filename}
+        style=${`background-image: url(${iconURL})`}
+      />
+    `;
   }
 
   allOptionsTemplate() {
@@ -87,18 +163,10 @@ export default class TurnOnScheduledBackups extends MozLitElement {
             for="backup-location-filepicker-input"
             data-l10n-id="turn-on-scheduled-backups-location-label"
           ></label>
-          <!-- TODO: show folder icon (bug 1895943) -->
           <div id="backup-location-filepicker">
-            <input
-              id="backup-location-filepicker-input"
-              type="text"
-              readonly
-              data-l10n-id="turn-on-scheduled-backups-location-default-folder"
-              data-l10n-args=${JSON.stringify({
-                recommendedFolder: this.backupFilePath,
-              })}
-              data-l10n-attrs="value"
-            />
+            ${!this._newPath
+              ? this.defaultFilePathInputTemplate()
+              : this.customFilePathInputTemplate()}
             <moz-button
               id="backup-location-filepicker-button"
               @click=${this.handleChooseLocation}

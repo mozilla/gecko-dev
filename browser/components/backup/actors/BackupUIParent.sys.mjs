@@ -66,12 +66,49 @@ export class BackupUIParent extends JSWindowActorParent {
    * @param {ReceiveMessageArgument} message
    *   The message received from the BackupUIChild.
    */
-  receiveMessage(message) {
+  async receiveMessage(message) {
     if (message.name == "RequestState") {
       this.sendState();
     } else if (message.name == "ToggleScheduledBackups") {
-      this.#bs.setScheduledBackups(message.data?.isScheduledBackupsEnabled);
+      let { isScheduledBackupsEnabled, parentDirPath } = message.data;
+
+      if (isScheduledBackupsEnabled && parentDirPath) {
+        this.#bs.setParentDirPath(parentDirPath);
+      }
+
+      this.#bs.setScheduledBackups(isScheduledBackupsEnabled);
+
+      return true;
+
+      /**
+       * TODO: (Bug 1900125) we should create a backup at the specified dir path once we turn on
+       * scheduled backups. The backup folder in the chosen directory should contain
+       * the archive file, which we create using BackupService.createArchive implemented in
+       * Bug 1897498.
+       */
+    } else if (message.name == "ShowFilepicker") {
+      let { win } = message.data;
+
+      let fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
+      fp.init(win, "", Ci.nsIFilePicker.modeGetFolder);
+      let result = await new Promise(resolve => fp.open(resolve));
+
+      if (result === Ci.nsIFilePicker.returnCancel) {
+        return false;
+      }
+
+      let path = fp.file.path;
+      let iconURL = this.#bs.getIconFromFilePath(path);
+      let filename = PathUtils.filename(path);
+
+      return {
+        path,
+        filename,
+        iconURL,
+      };
     }
+
+    return null;
   }
 
   /**

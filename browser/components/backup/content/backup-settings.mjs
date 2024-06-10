@@ -36,8 +36,9 @@ export default class BackupSettings extends MozLitElement {
   constructor() {
     super();
     this.backupServiceState = {
-      backupFilePath: "Documents", // TODO: make save location configurable (bug 1895943)
+      backupDirPath: "",
       backupInProgress: false,
+      defaultParent: {},
       scheduledBackupsEnabled: false,
     };
   }
@@ -66,6 +67,7 @@ export default class BackupSettings extends MozLitElement {
             bubbles: true,
             composed: true,
             detail: {
+              ...event.detail,
               isScheduledBackupsEnabled: true,
             },
           })
@@ -108,9 +110,12 @@ export default class BackupSettings extends MozLitElement {
   }
 
   turnOnScheduledBackupsDialogTemplate() {
+    let { fileName, path, iconURL } = this.backupServiceState.defaultParent;
     return html`<dialog id="turn-on-scheduled-backups-dialog">
       <turn-on-scheduled-backups
-        .backupFilePath=${this.backupServiceState.backupFilePath}
+        defaultlabel=${fileName}
+        defaultpath=${path}
+        defaulticonurl=${iconURL}
       ></turn-on-scheduled-backups>
     </dialog>`;
   }
