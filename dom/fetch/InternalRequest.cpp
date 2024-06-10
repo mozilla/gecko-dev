@@ -104,7 +104,7 @@ InternalRequest::InternalRequest(
     RequestRedirect aRequestRedirect, RequestCredentials aRequestCredentials,
     const nsACString& aReferrer, ReferrerPolicy aReferrerPolicy,
     RequestPriority aPriority, nsContentPolicyType aContentPolicyType,
-    const nsAString& aIntegrity)
+    const nsAString& aIntegrity, const bool& aKeepAlive)
     : mMethod(aMethod),
       mHeaders(aHeaders),
       mBodyLength(InternalResponse::UNKNOWN_BODY_SIZE),
@@ -117,7 +117,8 @@ InternalRequest::InternalRequest(
       mCacheMode(aCacheMode),
       mRedirectMode(aRequestRedirect),
       mPriorityMode(aPriority),
-      mIntegrity(aIntegrity) {
+      mIntegrity(aIntegrity),
+      mKeepalive(aKeepAlive) {
   MOZ_ASSERT(!aURL.IsEmpty());
   AddURL(aURL, aFragment);
 }
@@ -138,6 +139,7 @@ InternalRequest::InternalRequest(const InternalRequest& aOther,
       mRedirectMode(aOther.mRedirectMode),
       mPriorityMode(aOther.mPriorityMode),
       mIntegrity(aOther.mIntegrity),
+      mKeepalive(aOther.mKeepalive),
       mMozErrors(aOther.mMozErrors),
       mFragment(aOther.mFragment),
       mSkipServiceWorker(aOther.mSkipServiceWorker),
@@ -176,6 +178,7 @@ InternalRequest::InternalRequest(const IPCInternalRequest& aIPCRequest)
       mCacheMode(aIPCRequest.cacheMode()),
       mRedirectMode(aIPCRequest.requestRedirect()),
       mIntegrity(aIPCRequest.integrity()),
+      mKeepalive(aIPCRequest.keepalive()),
       mFragment(aIPCRequest.fragment()),
       mEmbedderPolicy(aIPCRequest.embedderPolicy()),
       mInterceptionContentPolicyType(static_cast<nsContentPolicyType>(
@@ -224,6 +227,7 @@ void InternalRequest::ToIPCInternalRequest(
   aIPCRequest->cacheMode() = mCacheMode;
   aIPCRequest->requestRedirect() = mRedirectMode;
   aIPCRequest->integrity() = mIntegrity;
+  aIPCRequest->keepalive() = mKeepalive;
   aIPCRequest->fragment() = mFragment;
   aIPCRequest->embedderPolicy() = mEmbedderPolicy;
 
