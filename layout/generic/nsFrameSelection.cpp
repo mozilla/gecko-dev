@@ -3101,7 +3101,8 @@ void AutoCopyListener::OnSelectionChange(Document* aDocument,
     return;  // Don't care if we are still dragging.
   }
 
-  if (!aDocument || aSelection.IsCollapsed()) {
+  if (!aDocument ||
+      aSelection.AreNormalAndCrossShadowBoundaryRangesCollapsed()) {
 #ifdef DEBUG_CLIPBOARD
     fprintf(stderr, "CLIPBOARD: no selection/collapsed selection\n");
 #endif

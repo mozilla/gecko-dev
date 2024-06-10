@@ -59,6 +59,7 @@ support-files = [
   "bug1576154.sjs",
   "chrome/bug418986-1.js",
   "copypaste.js",
+  "copypaste_shadow_dom.js",
   "delayedServerEvents.sjs",
   "eventsource_message.sjs",
   "eventsource_reconnect.sjs",
@@ -1177,6 +1178,12 @@ skip-if = [
 ]
 
 ["test_copypaste.html"]
+skip-if = [
+  "os == 'android'",
+  "headless", #bug 904183
+]
+
+["test_copypaste_shadow_dom.html"]
 skip-if = [
   "os == 'android'",
   "headless", #bug 904183

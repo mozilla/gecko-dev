@@ -235,6 +235,7 @@ interface nsIDocumentEncoder : nsISupports
    */
   const unsigned long RequiresReinitAfterOutput = (1 << 28);
 
+  const unsigned long AllowCrossShadowBoundary = (1 << 29);
   /**
    * Initialize with a pointer to the document and the mime type.
    * Resets wrap column to 72 and resets node fixup.
