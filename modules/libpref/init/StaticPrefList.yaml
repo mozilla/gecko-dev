@@ -13485,13 +13485,6 @@
   value: 256*1024*1024 # 256 Mb
   mirror: always
 
-# Whether JAR entries that defate to a different size than RealSize/orglen
-# are considered corrupted or not
-- name: network.jar.require_size_match
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
-
 # When decompressing an archived entry we need to allocate a buffer
 # large enough to hold the uncompressed entry. This pref specifies the max
 # size of such a buffer.
