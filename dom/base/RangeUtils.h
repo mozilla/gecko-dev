@@ -16,6 +16,32 @@ namespace mozilla {
 
 namespace dom {
 class AbstractRange;
+
+/**
+ * ShadowDOMSelectionHelpers contains the static methods to help extra values
+ * based on whether or not the iterator allows to iterate nodes cross the shadow
+ * boundary.
+ */
+struct ShadowDOMSelectionHelpers {
+  ShadowDOMSelectionHelpers() = delete;
+
+  static nsINode* GetStartContainer(const AbstractRange* aRange,
+                                    bool aAllowCrossShadowBoundary);
+
+  static uint32_t StartOffset(const AbstractRange* aRange,
+                              bool aAllowCrossShadowBoundary);
+
+  static nsINode* GetEndContainer(const AbstractRange* aRange,
+                                  bool aAllowCrossShadowBoundary);
+
+  static uint32_t EndOffset(const AbstractRange* aRange,
+                            bool aAllowCrossShadowBoundary);
+
+  static nsINode* GetParentNode(nsINode& aNode, bool aAllowCrossShadowBoundary);
+
+  static ShadowRoot* GetShadowRoot(const nsINode* aNode,
+                                   bool aAllowCrossShadowBoundary);
+};
 }  // namespace dom
 
 class RangeUtils final {
