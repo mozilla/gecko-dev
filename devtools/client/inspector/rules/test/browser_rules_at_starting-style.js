@@ -30,9 +30,53 @@ const TEST_URI = `
       h1, [data-test="in-starting-style"] {
         background-color: salmon;
       }
+
+      main, [data-test="in-starting-style"] {
+        background-color: dodgerblue;
+        padding-top: 1px;
+        margin-top: 1px !important;
+        outline-color: dodgerblue;
+      }
+
+      @layer {
+        main, [data-test="in-starting-style-layer"] {
+          background-color: forestgreen;
+          padding-top: 4px;
+          margin-top: 4px;
+          outline-color: forestgreen !important;
+        }
+      }
+
+      @layer {
+        main, [data-test="in-starting-style-layer-2"] {
+          background-color: cyan;
+          padding-top: 5px;
+          margin-top: 5px;
+          outline-color: cyan !important;
+        }
+      }
+    }
+
+    main, [data-test="top-level"] {
+      background-color: firebrick;
+      padding-top: 2px !important;
+      margin-top: 2px;
+      transition: all 1s 1000s;
+      outline-color: firebrick;
+      outline-width: 5px;
+      outline-style: solid;
+      outline-offset: 10px;
+
+      @starting-style {
+        background-color: goldenrod;
+        padding-top: 3px;
+        margin-top: 3px;
+        outline-color: goldenrod;
+      }
     }
   </style>
-  <h1>Hello @starting-style!</h1>`;
+  <h1>Hello @starting-style!</h1>
+  <main>Testing override</main>`;
 
 add_task(async function () {
   await pushPref("layout.css.starting-style-at-rules.enabled", true);
@@ -72,7 +116,123 @@ add_task(async function () {
     },
   ]);
 
-  // TODO: Check overridden and "transitioned" properties
+  await assertRules("main", [
+    { selector: `element`, ancestorRulesData: null },
+    {
+      selector: `&`,
+      ancestorRulesData: [
+        `main, [data-test="top-level"] {`,
+        "  @starting-style {",
+      ],
+    },
+    {
+      selector: `main, [data-test="top-level"]`,
+      ancestorRulesData: null,
+    },
+    {
+      selector: `main, [data-test="in-starting-style"]`,
+      ancestorRulesData: ["@starting-style {"],
+    },
+    {
+      selector: `main, [data-test="in-starting-style-layer-2"]`,
+      ancestorRulesData: [`@starting-style {`, "  @layer {"],
+    },
+    {
+      selector: `main, [data-test="in-starting-style-layer"]`,
+      ancestorRulesData: [`@starting-style {`, "  @layer {"],
+    },
+  ]);
+
+  await selectNode("main", inspector);
+
+  info("Check that we're handling overridden properties correctly");
+  //Check background-color
+  ok(
+    !isPropertyOverridden(view, 1, { "background-color": "goldenrod" }),
+    "background-color value in last starting-style rule is not overridden"
+  );
+  ok(
+    !isPropertyOverridden(view, 2, { "background-color": "firebrick" }),
+    "background-color value in top level rule is not overridden, even if the property is also set in a starting style rule"
+  );
+  ok(
+    isPropertyOverridden(view, 3, { "background-color": "dodgerblue" }),
+    "background-color value in top-level starting style rule is overridden"
+  );
+  ok(
+    isPropertyOverridden(view, 4, { "background-color": "cyan" }),
+    "background-color value in second layer in starting style rule is overridden"
+  );
+  ok(
+    isPropertyOverridden(view, 5, { "background-color": "forestgreen" }),
+    "background-color value in first layer in starting style rule is overridden"
+  );
+
+  //Check padding-top
+  ok(
+    isPropertyOverridden(view, 1, { "padding-top": "3px" }),
+    "padding-top value in last starting-style rule is overridden by the !important set on the top level rule"
+  );
+  ok(
+    !isPropertyOverridden(view, 2, { "padding-top": "2px" }),
+    "padding-top value in top level rule is not overridden"
+  );
+  ok(
+    isPropertyOverridden(view, 3, { "padding-top": "1px" }),
+    "padding-top value in top-level starting style rule is overridden"
+  );
+  ok(
+    isPropertyOverridden(view, 4, { "padding-top": "5px" }),
+    "padding-top value in second layer in starting style rule is overridden"
+  );
+  ok(
+    isPropertyOverridden(view, 5, { "padding-top": "4px" }),
+    "padding-top value in first layer in starting style rule is overridden"
+  );
+
+  //Check margin-top
+  ok(
+    isPropertyOverridden(view, 1, { "margin-top": "3px" }),
+    "margin-top value in last starting-style rule is overridden by the !important set on another starting-style rule"
+  );
+  ok(
+    !isPropertyOverridden(view, 2, { "margin-top": "2px" }),
+    "margin-top value in top level rule is not overridden"
+  );
+  ok(
+    !isPropertyOverridden(view, 3, { "margin-top": "1px" }),
+    "margin-top value in top-level starting style rule is not overridden, since it's declared with !important"
+  );
+  ok(
+    isPropertyOverridden(view, 4, { "margin-top": "5px" }),
+    "margin-top value in second layer in starting style rule is overridden"
+  );
+  ok(
+    isPropertyOverridden(view, 5, { "margin-top": "4px" }),
+    "margin-top value in first layer in starting style rule is overridden"
+  );
+
+  //Check outline-color
+  ok(
+    isPropertyOverridden(view, 1, { "outline-color": "goldenrod" }),
+    "outline-color value in last starting-style rule is overridden by the !important set on another startint-style rule"
+  );
+  ok(
+    !isPropertyOverridden(view, 2, { "outline-color": "firebrick" }),
+    "outline-color value in top level rule is not overridden"
+  );
+  ok(
+    isPropertyOverridden(view, 3, { "outline-color": "dodgerblue" }),
+    "outline-color value in top-level starting style rule is overridden"
+  );
+  ok(
+    isPropertyOverridden(view, 4, { "outline-color": "cyan" }),
+    "outline-color value in second layer in starting style rule is overridden even if it was declared with !important"
+  );
+  ok(
+    !isPropertyOverridden(view, 5, { "outline-color": "forestgreen" }),
+    "outline-color value in first layer in starting style rule is not overridden as it's declared with !important"
+  );
 
   async function assertRules(nodeSelector, expectedRules) {
     await selectNode(nodeSelector, inspector);
@@ -124,3 +284,11 @@ add_task(async function () {
     }
   }
 });
+
+function isPropertyOverridden(view, ruleIndex, property) {
+  return getTextProperty(
+    view,
+    ruleIndex,
+    property
+  ).editor.element.classList.contains("ruleview-overridden");
+}
