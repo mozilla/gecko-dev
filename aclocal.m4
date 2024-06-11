@@ -12,6 +12,7 @@ builtin(include, build/autoconf/mozheader.m4)dnl
 builtin(include, build/autoconf/compiler-opts.m4)dnl
 builtin(include, build/autoconf/arch.m4)dnl
 builtin(include, build/autoconf/clang-plugin.m4)dnl
+builtin(include, build/autoconf/sanitize.m4)dnl
 
 MOZ_PROG_CHECKMSYS()
 

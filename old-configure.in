@@ -168,6 +168,10 @@ if test "$COMPILE_ENVIRONMENT"; then
     MOZ_ARCH_OPTS
 fi # COMPILE_ENVIRONMENT
 
+if test -n "$COMPILE_ENVIRONMENT"; then
+   MOZ_CONFIG_SANITIZE
+fi
+
 dnl ========================================================
 dnl GNU specific defaults
 dnl ========================================================
