@@ -21,6 +21,8 @@ https_first_disabled = true
 ["browser_protectionsUI_background_tabs.js"]
 https_first_disabled = true
 
+["browser_protectionsUI_bounce_tracking_protection.js"]
+
 ["browser_protectionsUI_categories.js"]
 https_first_disabled = true
 
