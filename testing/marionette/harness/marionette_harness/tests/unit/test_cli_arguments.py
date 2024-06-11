@@ -28,8 +28,23 @@ class TestCommandLineArguments(MarionetteTestCase):
         )
         self.assertIsNone(debugger_address)
 
+        # With CDP enabled the capability has to be returned
+        self.marionette.set_pref("remote.active-protocols", 2)
+        self.marionette.quit()
+
+        self.marionette.instance.app_args.append("-remote-debugging-port")
+        self.marionette.start_session()
+
+        debugger_address = self.marionette.session_capabilities.get(
+            "moz:debuggerAddress"
+        )
+
+        self.assertEqual(debugger_address, "127.0.0.1:9222")
+        result = requests.get(url="http://{}/json/version".format(debugger_address))
+        self.assertTrue(result.ok)
+
         # With BiDi only enabled the capability shouldn't be returned
-        self.marionette.set_pref("remote.active-protocols", 1)
+        self.marionette.clear_pref("remote.active-protocols")
         self.marionette.quit()
 
         self.marionette.instance.app_args.append("-remote-debugging-port")
@@ -40,24 +55,14 @@ class TestCommandLineArguments(MarionetteTestCase):
         )
         self.assertIsNone(debugger_address)
 
-        # Clean the profile so that the preference is definetely reset.
+        # Clean the profile so that the preference is definitely reset.
         self.marionette.quit(in_app=False, clean=True)
-
-        # With all protocols enabled again the capability has to be returned
-        self.marionette.start_session()
-        debugger_address = self.marionette.session_capabilities.get(
-            "moz:debuggerAddress"
-        )
-
-        self.assertEqual(debugger_address, "127.0.0.1:9222")
-        result = requests.get(url="http://{}/json/version".format(debugger_address))
-        self.assertTrue(result.ok)
 
     def test_websocket_url(self):
         # By default Remote Agent is not enabled
         self.assertNotIn("webSocketUrl", self.marionette.session_capabilities)
 
-        # With CDP only enabled the capability is still not returned
+        # With CDP enabled the capability is not returned
         self.marionette.set_pref("remote.active-protocols", 2)
 
         self.marionette.quit()
@@ -66,10 +71,10 @@ class TestCommandLineArguments(MarionetteTestCase):
 
         self.assertNotIn("webSocketUrl", self.marionette.session_capabilities)
 
-        # Clean the profile so that the preference is definetely reset.
-        self.marionette.quit(in_app=False, clean=True)
-
-        # With all protocols enabled again the capability has to be returned
+        # With BiDi only enabled the capability is returned
+        self.marionette.clear_pref("remote.active-protocols")
+        self.marionette.quit()
+        self.marionette.instance.app_args.append("-remote-debugging-port")
         self.marionette.start_session({"webSocketUrl": True})
 
         session_id = self.marionette.session_id
@@ -78,6 +83,9 @@ class TestCommandLineArguments(MarionetteTestCase):
         self.assertEqual(
             websocket_url, "ws://127.0.0.1:9222/session/{}".format(session_id)
         )
+
+        # Clean the profile so that the preference is definitely reset.
+        self.marionette.quit(in_app=False, clean=True)
 
     # An issue in the command line argument handling lead to open Firefox on
     # random URLs when remote-debugging-port is set to an explicit value, on macos.

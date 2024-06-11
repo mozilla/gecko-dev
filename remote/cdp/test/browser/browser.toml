@@ -5,9 +5,13 @@ args = [
   "--remote-debugging-port",
   "--remote-allow-origins=null",
 ]
-prefs = [ # Bug 1600054: Make CDP Fission compatible
+prefs = [
+  # CDP protocol is not Fission compatible
   "fission.bfcacheInParent=false",
   "fission.webContentIsolationStrategy=0",
+
+  # Only enable CDP protocol
+  "remote.active-protocols=2",
 ]
 skip-if = [
   "display == 'wayland'" # Bug 1861933: Timestamp unreliable due to worker setup
@@ -22,6 +26,8 @@ support-files = [
 ["browser_cdp.js"]
 
 ["browser_httpd.js"]
+
+["browser_interface.js"]
 
 ["browser_main_target.js"]
 

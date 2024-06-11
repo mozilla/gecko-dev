@@ -40,10 +40,10 @@ class Browser:
         self.remote_agent_host = None
         self.remote_agent_port = None
 
-        if self.extra_prefs is not None:
-            self.profile.set_preferences(self.extra_prefs)
+        active_protocols = 0
 
         if use_cdp:
+            active_protocols += 2
             self.cdp_port_file = os.path.join(
                 self.profile.profile, "DevToolsActivePort"
             )
@@ -51,11 +51,18 @@ class Browser:
                 os.remove(self.cdp_port_file)
 
         if use_bidi:
+            active_protocols += 1
             self.webdriver_bidi_file = os.path.join(
                 self.profile.profile, "WebDriverBiDiServer.json"
             )
             with suppress(FileNotFoundError):
                 os.remove(self.webdriver_bidi_file)
+
+        # Avoid modifying extra_prefs to prevent side-effects with the "browser" fixture,
+        # which checks session equality and would create a new session each time.
+        prefs = self.extra_prefs or {}
+        prefs.update({"remote.active-protocols": active_protocols})
+        self.profile.set_preferences(prefs)
 
         cmdargs = ["-no-remote"]
         if self.use_bidi or self.use_cdp:
