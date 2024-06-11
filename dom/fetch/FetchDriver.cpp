@@ -675,7 +675,7 @@ nsresult FetchDriver::HttpFetch(
   }
 
   // If the fetch is created by FetchEvent.request or NavigationPreload request,
-  // corresponding InterceptedHttpChannel information need to propagte to the
+  // corresponding InterceptedHttpChannel information need to propagate to the
   // channel of the fetch.
   if (mRequest->GetInterceptionTriggeringPrincipalInfo()) {
     auto principalOrErr = mozilla::ipc::PrincipalInfoToPrincipal(
