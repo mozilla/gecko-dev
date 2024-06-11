@@ -1966,3 +1966,21 @@ characteristics:
       # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
       # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
       - highly_sensitive
+
+  keyboard_layout:
+    type: string
+    description: >
+      Name of the current keyboard layout.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tihuang@mozilla.com
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1886178
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1886178
+    expires: never
+    data_sensitivity:
+      - interaction
