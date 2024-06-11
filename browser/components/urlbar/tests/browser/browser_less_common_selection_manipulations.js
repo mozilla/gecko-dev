@@ -15,6 +15,9 @@
  * they can manipulate the selection further, and check the results again.
  * We want to ensure the final selection is the expected one, even if in the
  * future we change our trimming strategy for the input field value.
+ *
+ * Note: there's a few +-1 adjustments to text lengths that are apparently
+ * necessary in --headless mode.
  */
 
 const tests = [
@@ -97,7 +100,7 @@ const tests = [
       this._expectedSelectedText = gURLBar.value.substring(0, 5);
       await selectWithMouseDrag(
         getTextWidth(gURLBar.value[0]) / 2 - 1,
-        getTextWidth(gURLBar.value.substring(0, 5))
+        getTextWidth(gURLBar.value.substring(0, 5)) + 1
       );
     },
     get selection() {
@@ -151,8 +154,8 @@ const tests = [
     async openPanel() {
       this._expectedSelectedText = gURLBar.value.substring(5, 10);
       await selectWithMouseDrag(
-        getTextWidth(gURLBar.value.substring(0, 5)),
-        getTextWidth(gURLBar.value.substring(0, 10))
+        getTextWidth(gURLBar.value.substring(0, 5)) + 1,
+        getTextWidth(gURLBar.value.substring(0, 10)) + 1
       );
     },
     get selection() {

@@ -59,7 +59,7 @@ add_task(async function () {
   info("Backspaced value is " + gURLBar.value);
   await UrlbarTestUtils.promiseSearchComplete(window);
 
-  let editedValue = gURLBar.value;
+  let editedValue = gURLBar.untrimmedValue;
   Assert.equal(
     UrlbarTestUtils.getSelectedRowIndex(window),
     initialIndex,
@@ -68,7 +68,7 @@ add_task(async function () {
   Assert.notEqual(editedValue, nextResult.url, "The URL has changed.");
 
   let docLoad = BrowserTestUtils.waitForDocLoadAndStopIt(
-    "http://" + editedValue,
+    editedValue,
     gBrowser.selectedBrowser
   );
 
