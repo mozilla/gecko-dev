@@ -5,6 +5,7 @@
   <title>fetchpriority affects the urgency parameter of HTTP</title>
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/utils.js"></script>
   <script src="support/priority-dependent-content.js"></script>
   <link rel="stylesheet" href="support/resources/priority-dependent-content.py?as-type=style&resource-id=style_low" fetchpriority="low">
   <link rel="stylesheet" href="support/resources/priority-dependent-content.py?as-type=style&resource-id=style_high" fetchpriority="high">
@@ -91,7 +92,7 @@
                 await new Promise((resolve, reject) => {
                     link.onload = resolve;
                     link.onerror = reject;
-                    link.href = `support/resources/priority-dependent-content.py?as-type=font&resource-id=font_${priority}`;
+                    link.href = `support/resources/priority-dependent-content.py?as-type=font&resource-id=font_${priority}_${token()}&use-cache=true`;
                     document.body.appendChild(link);
                 });
                 let response = await fetch(link.href, {cache: "force-cache"});

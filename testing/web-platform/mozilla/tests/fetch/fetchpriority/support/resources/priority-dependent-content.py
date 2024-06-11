@@ -58,6 +58,17 @@ def get_content(as_type, resource_id, urgency):
 </svg>'
             % (resource_id, urgency, size, size, size, size),
         )
+    duration_ms = (urgency + 1) * 10
+    if as_type == "audio":
+        return (
+            "audio/opus",
+            get_content_from_file("audio_%dms.opus" % duration_ms),
+        )
+    if as_type == "video":
+        return (
+            "video/webm",
+            get_content_from_file("video_%dms.webm" % duration_ms),
+        )
     if as_type == "font":
         return (
             "font/woff2",
@@ -67,6 +78,12 @@ def get_content(as_type, resource_id, urgency):
 
 
 def main(request, response):
+    # Normally, we should never re-use the cache but we sometimes need that
+    # for font tests.
+    use_cache = False
+    if b"use-cache" in request.GET:
+        use_cache = request.GET[b"use-cache"].decode("utf-8") == "true"
+
     as_type = request.GET[b"as-type"].decode("utf-8")
     resource_id = request.GET[b"resource-id"].decode("utf-8")
     if re.match(r"^\w[\w\-]*$", resource_id) is None:
@@ -87,5 +104,7 @@ def main(request, response):
     # https://www.rfc-editor.org/rfc/rfc9218.html#section-5
     response.status = 200
     response.headers[b"content-type"] = content_type
+    if not use_cache:
+        response.headers[b"Cache-Control"] = b"no-store"
     response.write_status_headers()
     response.writer.write_data(item=content, last=True)
