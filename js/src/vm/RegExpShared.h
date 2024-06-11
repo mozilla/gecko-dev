@@ -468,8 +468,9 @@ class RegExpRealm {
   }
 };
 
-RegExpRunStatus ExecuteRegExpAtomRaw(RegExpShared* re, JSLinearString* input,
-                                     size_t start, MatchPairs* matchPairs);
+RegExpRunStatus ExecuteRegExpAtomRaw(RegExpShared* re,
+                                     const JSLinearString* input, size_t start,
+                                     MatchPairs* matchPairs);
 
 } /* namespace js */
 

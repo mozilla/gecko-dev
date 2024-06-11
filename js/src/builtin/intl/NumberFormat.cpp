@@ -951,7 +951,7 @@ static bool IsNonDecimalNumber(mozilla::Range<const CharT> chars) {
   return false;
 }
 
-static bool IsNonDecimalNumber(JSLinearString* str) {
+static bool IsNonDecimalNumber(const JSLinearString* str) {
   JS::AutoCheckCannotGC nogc;
   return str->hasLatin1Chars() ? IsNonDecimalNumber(str->latin1Range(nogc))
                                : IsNonDecimalNumber(str->twoByteRange(nogc));

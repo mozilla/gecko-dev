@@ -739,7 +739,7 @@ inline JSLinearString* js::StaticStrings::getUnitStringForElement(
 }
 
 inline JSLinearString* js::StaticStrings::getUnitStringForElement(
-    JSContext* cx, JSLinearString* str, size_t index) {
+    JSContext* cx, const JSLinearString* str, size_t index) {
   MOZ_ASSERT(index < str->length());
 
   char16_t c = str->latin1OrTwoByteChar(index);

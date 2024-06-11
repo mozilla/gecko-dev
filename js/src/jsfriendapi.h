@@ -453,7 +453,8 @@ JS_PUBLIC_API bool AppendUnique(JSContext* cx, JS::MutableHandleIdVector base,
  *
  * If it is, returns true and outputs the index in *indexp.
  */
-JS_PUBLIC_API bool StringIsArrayIndex(JSLinearString* str, uint32_t* indexp);
+JS_PUBLIC_API bool StringIsArrayIndex(const JSLinearString* str,
+                                      uint32_t* indexp);
 
 /**
  * Overload of StringIsArrayIndex taking a (char16_t*,length) pair. Behaves

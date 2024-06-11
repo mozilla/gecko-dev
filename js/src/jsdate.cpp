@@ -1841,7 +1841,7 @@ static bool ParseDate(DateTimeInfo::ForceUTC forceUTC, const CharT* s,
   return true;
 }
 
-static bool ParseDate(DateTimeInfo::ForceUTC forceUTC, JSLinearString* s,
+static bool ParseDate(DateTimeInfo::ForceUTC forceUTC, const JSLinearString* s,
                       ClippedTime* result) {
   AutoCheckCannotGC nogc;
   return s->hasLatin1Chars()

@@ -1260,7 +1260,7 @@ bool js::EqualChars(const JSLinearString* str1, const JSLinearString* str2) {
   return EqualChars(str1->latin1Chars(nogc), str2->twoByteChars(nogc), len);
 }
 
-bool js::HasSubstringAt(JSLinearString* text, JSLinearString* pat,
+bool js::HasSubstringAt(const JSLinearString* text, const JSLinearString* pat,
                         size_t start) {
   MOZ_ASSERT(start + pat->length() <= text->length());
 
@@ -1325,7 +1325,8 @@ bool js::EqualStrings(const JSLinearString* str1, const JSLinearString* str2) {
   return EqualChars(str1, str2);
 }
 
-int32_t js::CompareChars(const char16_t* s1, size_t len1, JSLinearString* s2) {
+int32_t js::CompareChars(const char16_t* s1, size_t len1,
+                         const JSLinearString* s2) {
   AutoCheckCannotGC nogc;
   return s2->hasLatin1Chars()
              ? CompareChars(s1, len1, s2->latin1Chars(nogc), s2->length())
@@ -1386,7 +1387,7 @@ int32_t js::CompareStrings(const JSLinearString* str1,
   return CompareStringsImpl(str1, str2);
 }
 
-bool js::StringIsAscii(JSLinearString* str) {
+bool js::StringIsAscii(const JSLinearString* str) {
   JS::AutoCheckCannotGC nogc;
   if (str->hasLatin1Chars()) {
     return mozilla::IsAscii(
@@ -1395,11 +1396,11 @@ bool js::StringIsAscii(JSLinearString* str) {
   return mozilla::IsAscii(Span(str->twoByteChars(nogc), str->length()));
 }
 
-bool js::StringEqualsAscii(JSLinearString* str, const char* asciiBytes) {
+bool js::StringEqualsAscii(const JSLinearString* str, const char* asciiBytes) {
   return StringEqualsAscii(str, asciiBytes, strlen(asciiBytes));
 }
 
-bool js::StringEqualsAscii(JSLinearString* str, const char* asciiBytes,
+bool js::StringEqualsAscii(const JSLinearString* str, const char* asciiBytes,
                            size_t length) {
   MOZ_ASSERT(JS::StringIsASCII(Span(asciiBytes, length)));
 

@@ -639,7 +639,7 @@ template bool js::HasRegExpMetaChars<Latin1Char>(const Latin1Char* chars,
 template bool js::HasRegExpMetaChars<char16_t>(const char16_t* chars,
                                                size_t length);
 
-bool js::StringHasRegExpMetaChars(JSLinearString* str) {
+bool js::StringHasRegExpMetaChars(const JSLinearString* str) {
   AutoCheckCannotGC nogc;
   if (str->hasLatin1Chars()) {
     return HasRegExpMetaChars(str->latin1Chars(nogc), str->length());
@@ -924,7 +924,8 @@ static size_t StepBackToLeadSurrogate(const JSLinearString* input,
   return index;
 }
 
-static RegExpRunStatus ExecuteAtomImpl(RegExpShared* re, JSLinearString* input,
+static RegExpRunStatus ExecuteAtomImpl(RegExpShared* re,
+                                       const JSLinearString* input,
                                        size_t start, MatchPairs* matches) {
   MOZ_ASSERT(re->pairCount() == 1);
   size_t length = input->length();
@@ -961,8 +962,8 @@ static RegExpRunStatus ExecuteAtomImpl(RegExpShared* re, JSLinearString* input,
 }
 
 RegExpRunStatus js::ExecuteRegExpAtomRaw(RegExpShared* re,
-                                         JSLinearString* input, size_t start,
-                                         MatchPairs* matchPairs) {
+                                         const JSLinearString* input,
+                                         size_t start, MatchPairs* matchPairs) {
   AutoUnsafeCallWithABI unsafe;
   return ExecuteAtomImpl(re, input, start, matchPairs);
 }

@@ -226,7 +226,7 @@ extern JSLinearString* EscapeRegExpPattern(JSContext* cx, Handle<JSAtom*> src);
 template <typename CharT>
 extern bool HasRegExpMetaChars(const CharT* chars, size_t length);
 
-extern bool StringHasRegExpMetaChars(JSLinearString* str);
+extern bool StringHasRegExpMetaChars(const JSLinearString* str);
 
 } /* namespace js */
 
