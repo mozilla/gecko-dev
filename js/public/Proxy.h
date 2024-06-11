@@ -554,9 +554,8 @@ inline void SetProxyReservedSlot(JSObject* obj, size_t n,
 
 inline void SetProxyPrivate(JSObject* obj, const JS::Value& value) {
 #ifdef DEBUG
-  if (gc::detail::ObjectIsMarkedBlack(obj)) {
-    JS::AssertValueIsNotGray(value);
-  }
+  JS::AssertObjectIsNotGray(obj);
+  JS::AssertValueIsNotGray(value);
 #endif
 
   JS::Value* vp = &detail::GetProxyDataLayout(obj)->values()->privateSlot;
