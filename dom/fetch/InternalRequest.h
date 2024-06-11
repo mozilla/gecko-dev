@@ -95,7 +95,7 @@ class InternalRequest final : public AtomicSafeRefCounted<InternalRequest> {
                   const nsACString& aReferrer, ReferrerPolicy aReferrerPolicy,
                   RequestPriority aPriority,
                   nsContentPolicyType aContentPolicyType,
-                  const nsAString& aIntegrity);
+                  const nsAString& aIntegrity, const bool& aKeepAlive);
 
   explicit InternalRequest(const IPCInternalRequest& aIPCRequest);
 

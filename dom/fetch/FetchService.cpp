@@ -118,6 +118,7 @@ nsresult FetchService::FetchInstance::Initialize(FetchArgs&& aArgs) {
   // Get needed information for FetchDriver from passed-in channel.
   if (mArgs.is<NavigationPreloadArgs>()) {
     mRequest = mArgs.as<NavigationPreloadArgs>().mRequest.clonePtr();
+    mArgsType = FetchArgsType::NavigationPreload;
     nsIChannel* channel = mArgs.as<NavigationPreloadArgs>().mChannel;
     FETCH_LOG(("FetchInstance::Initialize [%p] request[%p], channel[%p]", this,
                mRequest.unsafeGetRawPtr(), channel));
@@ -163,9 +164,36 @@ nsresult FetchService::FetchInstance::Initialize(FetchArgs&& aArgs) {
 
     // Get PerformanceStorage from channel
     mPerformanceStorage = loadInfo->GetPerformanceStorage();
+  } else if (mArgs.is<MainThreadFetchArgs>()) {
+    mArgsType = FetchArgsType::MainThreadFetch;
+
+    mRequest = mArgs.as<MainThreadFetchArgs>().mRequest.clonePtr();
+
+    FETCH_LOG(("FetchInstance::Initialize [%p] request[%p]", this,
+               mRequest.unsafeGetRawPtr()));
+
+    auto principalOrErr = PrincipalInfoToPrincipal(
+        mArgs.as<MainThreadFetchArgs>().mPrincipalInfo);
+    if (principalOrErr.isErr()) {
+      return principalOrErr.unwrapErr();
+    }
+    mPrincipal = principalOrErr.unwrap();
+    nsresult rv = NS_NewLoadGroup(getter_AddRefs(mLoadGroup), mPrincipal);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+
+    if (mArgs.as<MainThreadFetchArgs>().mCookieJarSettings.isSome()) {
+      net::CookieJarSettings::Deserialize(
+          mArgs.as<MainThreadFetchArgs>().mCookieJarSettings.ref(),
+          getter_AddRefs(mCookieJarSettings));
+    }
+
+    return NS_OK;
+
   } else {
-    mIsWorkerFetch = true;
     mRequest = mArgs.as<WorkerFetchArgs>().mRequest.clonePtr();
+    mArgsType = FetchArgsType::WorkerFetch;
 
     FETCH_LOG(("FetchInstance::Initialize [%p] request[%p]", this,
                mRequest.unsafeGetRawPtr()));
@@ -215,10 +243,14 @@ RefPtr<FetchServicePromises> FetchService::FetchInstance::Fetch() {
       GetMainThreadSerialEventTarget(),  // MainThreadEventTarget
       mCookieJarSettings,                // CookieJarSettings
       mPerformanceStorage,               // PerformanceStorage
-      false                              // IsTrackingFetch
+      // For service workers we set
+      // tracking fetch to false, but for Keepalive
+      // requests from main thread this needs to be
+      // changed. See Bug 1892406
+      false  // IsTrackingFetch
   );
 
-  if (mIsWorkerFetch) {
+  if (mArgsType == FetchArgsType::WorkerFetch) {
     auto& args = mArgs.as<WorkerFetchArgs>();
     mFetchDriver->SetWorkerScript(args.mWorkerScript);
     MOZ_ASSERT(args.mClientInfo.isSome());
@@ -233,7 +265,6 @@ RefPtr<FetchServicePromises> FetchService::FetchInstance::Fetch() {
   }
 
   mFetchDriver->EnableNetworkInterceptControl();
-
   mPromises = MakeRefPtr<FetchServicePromises>();
 
   // Call FetchDriver::Fetch to start fetching.
@@ -283,19 +314,20 @@ void FetchService::FetchInstance::OnResponseEnd(
   FETCH_LOG(("FetchInstance::OnResponseEnd [%p] %s", this,
              aReason == eAborted ? "eAborted" : "eNetworking"));
 
-  if (mIsWorkerFetch) {
+  MOZ_ASSERT(mRequest);
+  if (mArgsType != FetchArgsType::NavigationPreload) {
     FlushConsoleReport();
     nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
-        __func__, [endArgs = ResponseEndArgs(aReason),
-                   actorID = mArgs.as<WorkerFetchArgs>().mActorID]() {
+        __func__,
+        [endArgs = ResponseEndArgs(aReason), actorID = GetActorID()]() {
           FETCH_LOG(("FetchInstance::OnResponseEnd, Runnable"));
           RefPtr<FetchParent> actor = FetchParent::GetActorByID(actorID);
           if (actor) {
             actor->OnResponseEnd(std::move(endArgs));
           }
         });
-    MOZ_ALWAYS_SUCCEEDS(mArgs.as<WorkerFetchArgs>().mEventTarget->Dispatch(
-        r, nsIThread::DISPATCH_NORMAL));
+    MOZ_ALWAYS_SUCCEEDS(
+        GetBackgroundEventTarget()->Dispatch(r, nsIThread::DISPATCH_NORMAL));
   }
 
   MOZ_ASSERT(mPromises);
@@ -347,19 +379,20 @@ void FetchService::FetchInstance::OnResponseAvailableInternal(
   FETCH_LOG(
       ("FetchInstance::OnResponseAvailableInternal [%p] response body: %p",
        this, body.get()));
+  MOZ_ASSERT(mRequest);
 
-  if (mIsWorkerFetch) {
+  if (mArgsType != FetchArgsType::NavigationPreload) {
     nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
-        __func__, [response = mResponse.clonePtr(),
-                   actorID = mArgs.as<WorkerFetchArgs>().mActorID]() mutable {
+        __func__,
+        [response = mResponse.clonePtr(), actorID = GetActorID()]() mutable {
           FETCH_LOG(("FetchInstance::OnResponseAvailableInternal Runnable"));
           RefPtr<FetchParent> actor = FetchParent::GetActorByID(actorID);
           if (actor) {
             actor->OnResponseAvailableInternal(std::move(response));
           }
         });
-    MOZ_ALWAYS_SUCCEEDS(mArgs.as<WorkerFetchArgs>().mEventTarget->Dispatch(
-        r, nsIThread::DISPATCH_NORMAL));
+    MOZ_ALWAYS_SUCCEEDS(
+        GetBackgroundEventTarget()->Dispatch(r, nsIThread::DISPATCH_NORMAL));
   }
 
   MOZ_ASSERT(mPromises);
@@ -372,6 +405,11 @@ bool FetchService::FetchInstance::NeedOnDataAvailable() {
   if (mArgs.is<WorkerFetchArgs>()) {
     return mArgs.as<WorkerFetchArgs>().mNeedOnDataAvailable;
   }
+
+  if (mArgs.is<MainThreadFetchArgs>()) {
+    return mArgs.as<MainThreadFetchArgs>().mNeedOnDataAvailable;
+  }
+
   return false;
 }
 
@@ -382,40 +420,42 @@ void FetchService::FetchInstance::OnDataAvailable() {
     return;
   }
 
-  if (mIsWorkerFetch) {
-    nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
-        __func__, [actorID = mArgs.as<WorkerFetchArgs>().mActorID]() {
+  MOZ_ASSERT(mRequest);
+
+  if (mArgsType != FetchArgsType::NavigationPreload) {
+    nsCOMPtr<nsIRunnable> r =
+        NS_NewRunnableFunction(__func__, [actorID = GetActorID()]() {
           FETCH_LOG(("FetchInstance::OnDataAvailable, Runnable"));
           RefPtr<FetchParent> actor = FetchParent::GetActorByID(actorID);
           if (actor) {
             actor->OnDataAvailable();
           }
         });
-    MOZ_ALWAYS_SUCCEEDS(mArgs.as<WorkerFetchArgs>().mEventTarget->Dispatch(
-        r, nsIThread::DISPATCH_NORMAL));
+    MOZ_ALWAYS_SUCCEEDS(
+        GetBackgroundEventTarget()->Dispatch(r, nsIThread::DISPATCH_NORMAL));
   }
 }
 
 void FetchService::FetchInstance::FlushConsoleReport() {
   FETCH_LOG(("FetchInstance::FlushConsoleReport [%p]", this));
 
-  if (mIsWorkerFetch) {
+  if (mArgsType != FetchArgsType::NavigationPreload) {
     if (!mReporter) {
       return;
     }
     nsTArray<net::ConsoleReportCollected> reports;
     mReporter->StealConsoleReports(reports);
     nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
-        __func__, [actorID = mArgs.as<WorkerFetchArgs>().mActorID,
-                   consoleReports = std::move(reports)]() {
+        __func__,
+        [actorID = GetActorID(), consoleReports = std::move(reports)]() {
           FETCH_LOG(("FetchInstance::FlushConsolReport, Runnable"));
           RefPtr<FetchParent> actor = FetchParent::GetActorByID(actorID);
           if (actor) {
             actor->OnFlushConsoleReport(std::move(consoleReports));
           }
         });
-    MOZ_ALWAYS_SUCCEEDS(mArgs.as<WorkerFetchArgs>().mEventTarget->Dispatch(
-        r, nsIThread::DISPATCH_NORMAL));
+    MOZ_ALWAYS_SUCCEEDS(
+        GetBackgroundEventTarget()->Dispatch(r, nsIThread::DISPATCH_NORMAL));
   }
 }
 
@@ -440,20 +480,19 @@ void FetchService::FetchInstance::OnReportPerformanceTiming() {
   }
   timing.timingData() = performanceTiming->ToIPC();
   // Force replace initiatorType for ServiceWorkerNavgationPreload.
-  if (!mIsWorkerFetch) {
+  if (mArgsType == FetchArgsType::NavigationPreload) {
     timing.initiatorType() = u"navigation"_ns;
   } else {
     nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
-        __func__,
-        [actorID = mArgs.as<WorkerFetchArgs>().mActorID, timing = timing]() {
+        __func__, [actorID = GetActorID(), timing = timing]() {
           FETCH_LOG(("FetchInstance::OnReportPerformanceTiming, Runnable"));
           RefPtr<FetchParent> actor = FetchParent::GetActorByID(actorID);
           if (actor) {
             actor->OnReportPerformanceTiming(std::move(timing));
           }
         });
-    MOZ_ALWAYS_SUCCEEDS(mArgs.as<WorkerFetchArgs>().mEventTarget->Dispatch(
-        r, nsIThread::DISPATCH_NORMAL));
+    MOZ_ALWAYS_SUCCEEDS(
+        GetBackgroundEventTarget()->Dispatch(r, nsIThread::DISPATCH_NORMAL));
   }
 
   mPromises->ResolveResponseTimingPromise(std::move(timing), __func__);
@@ -464,7 +503,9 @@ void FetchService::FetchInstance::OnNotifyNetworkMonitorAlternateStack(
   FETCH_LOG(("FetchInstance::OnNotifyNetworkMonitorAlternateStack [%p]", this));
   MOZ_ASSERT(mFetchDriver);
   MOZ_ASSERT(mPromises);
-  if (!mIsWorkerFetch) {
+  if (mArgsType != FetchArgsType::WorkerFetch) {
+    // We need to support this for Main thread fetch requests as well
+    // See Bug 1897129
     return;
   }
 
@@ -481,6 +522,36 @@ void FetchService::FetchInstance::OnNotifyNetworkMonitorAlternateStack(
 
   MOZ_ALWAYS_SUCCEEDS(mArgs.as<WorkerFetchArgs>().mEventTarget->Dispatch(
       r, nsIThread::DISPATCH_NORMAL));
+}
+
+nsID FetchService::FetchInstance::GetActorID() {
+  if (mArgsType == FetchArgsType::WorkerFetch) {
+    return mArgs.as<WorkerFetchArgs>().mActorID;
+  }
+
+  if (mArgsType == FetchArgsType::MainThreadFetch) {
+    return mArgs.as<MainThreadFetchArgs>().mActorID;
+  }
+
+  MOZ_ASSERT_UNREACHABLE("GetActorID called for unexpected mArgsType");
+
+  return {};
+}
+
+nsCOMPtr<nsISerialEventTarget>
+FetchService::FetchInstance::GetBackgroundEventTarget() {
+  if (mArgsType == FetchArgsType::WorkerFetch) {
+    return mArgs.as<WorkerFetchArgs>().mEventTarget;
+  }
+
+  if (mArgsType == FetchArgsType::MainThreadFetch) {
+    return mArgs.as<MainThreadFetchArgs>().mEventTarget;
+  }
+
+  MOZ_ASSERT_UNREACHABLE(
+      "GetBackgroundEventTarget called for unexpected mArgsType");
+
+  return {};
 }
 
 // FetchService
@@ -512,6 +583,23 @@ RefPtr<FetchServicePromises> FetchService::NetworkErrorResponse(
     nsresult aRv, const FetchArgs& aArgs) {
   if (aArgs.is<WorkerFetchArgs>()) {
     const WorkerFetchArgs& args = aArgs.as<WorkerFetchArgs>();
+    nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
+        __func__, [aRv, actorID = args.mActorID]() mutable {
+          FETCH_LOG(
+              ("FetchService::PropagateErrorResponse runnable aError: 0x%X",
+               (uint32_t)aRv));
+          RefPtr<FetchParent> actor = FetchParent::GetActorByID(actorID);
+          if (actor) {
+            actor->OnResponseAvailableInternal(
+                InternalResponse::NetworkError(aRv));
+            actor->OnResponseEnd(
+                ResponseEndArgs(FetchDriverObserver::eAborted));
+          }
+        });
+    MOZ_ALWAYS_SUCCEEDS(
+        args.mEventTarget->Dispatch(r, nsIThread::DISPATCH_NORMAL));
+  } else if (aArgs.is<MainThreadFetchArgs>()) {
+    const MainThreadFetchArgs& args = aArgs.as<MainThreadFetchArgs>();
     nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
         __func__, [aRv, actorID = args.mActorID]() mutable {
           FETCH_LOG(
@@ -635,7 +723,8 @@ RefPtr<FetchServicePromises> FetchService::Fetch(FetchArgs&& aArgs) {
   // Create FetchInstance
   RefPtr<FetchInstance> fetch = MakeRefPtr<FetchInstance>();
 
-  // Call FetchInstance::Initialize() to get needed information for FetchDriver
+  // Call FetchInstance::Initialize() to get needed information for
+  // FetchDriver
   nsresult rv = fetch->Initialize(std::move(aArgs));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return NetworkErrorResponse(rv, fetch->Args());

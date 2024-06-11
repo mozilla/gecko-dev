@@ -50,10 +50,16 @@ class FetchChild final : public PFetchChild, public AbortFollower {
 
   void SetCSPEventListener(nsICSPEventListener* aListener);
 
-  static RefPtr<FetchChild> Create(WorkerPrivate* aWorkerPrivate,
-                                   RefPtr<Promise> aPromise,
-                                   RefPtr<AbortSignalImpl> aSignalImpl,
-                                   RefPtr<FetchObserver> aObserver);
+  // Creates the actor for worker fetch requests
+  static RefPtr<FetchChild> CreateForWorker(WorkerPrivate* aWorkerPrivate,
+                                            RefPtr<Promise> aPromise,
+                                            RefPtr<AbortSignalImpl> aSignalImpl,
+                                            RefPtr<FetchObserver> aObserver);
+
+  // Creates the actor for main thread fetch requests
+  static RefPtr<FetchChild> CreateForMainThread(
+      RefPtr<Promise> aPromise, RefPtr<AbortSignalImpl> aSignalImpl,
+      RefPtr<FetchObserver> aObserver);
 
   FetchChild(RefPtr<Promise>&& aPromise, RefPtr<AbortSignalImpl>&& aSignalImpl,
              RefPtr<FetchObserver>&& aObserver);
@@ -76,6 +82,7 @@ class FetchChild final : public PFetchChild, public AbortFollower {
   void ActorDestroy(ActorDestroyReason aReason) override;
 
   RefPtr<ThreadSafeWorkerRef> mWorkerRef;
+  bool mIsKeepAliveRequest;
   RefPtr<Promise> mPromise;
   RefPtr<AbortSignalImpl> mSignalImpl;
   RefPtr<FetchObserver> mFetchObserver;

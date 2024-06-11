@@ -67,6 +67,7 @@ struct IPCInternalRequest {
   RequestCache cacheMode;
   RequestRedirect requestRedirect;
   nsString integrity;
+  bool keepalive;
   nsCString fragment;
   PrincipalInfo? principalInfo;
   PrincipalInfo? interceptionTriggeringPrincipalInfo;
