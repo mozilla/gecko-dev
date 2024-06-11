@@ -273,7 +273,10 @@ pub const GPU_CACHE_MEM: usize = 130;
 pub const GPU_BUFFER_MEM: usize = 131;
 pub const GPU_TOTAL_MEM: usize = 132;
 
-pub const NUM_PROFILER_EVENTS: usize = 133;
+
+pub const GPU_CACHE_PREPARE_TIME: usize = 133;
+
+pub const NUM_PROFILER_EVENTS: usize = 134;
 
 pub struct Profiler {
     counters: Vec<Counter>,
@@ -480,6 +483,8 @@ impl Profiler {
             float("GPU cache mem", "MB", GPU_CACHE_MEM, Expected::none()),
             float("GPU buffer mem", "MB", GPU_BUFFER_MEM, Expected::none()),
             float("GPU total mem", "MB", GPU_TOTAL_MEM, Expected::none()),
+
+            float("GPU cache preapre", "ms", GPU_CACHE_PREPARE_TIME, Expected::none()),
         ];
 
         let mut counters = Vec::with_capacity(profile_counters.len());
