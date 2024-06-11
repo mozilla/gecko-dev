@@ -1,5 +1,4 @@
-# Simple Browser Linux
-
+# Simple Browser Firefox Codebase
 ![License: MPL](https://img.shields.io/badge/license-MPL-orange)
 ![Language: C++](https://img.shields.io/badge/language-c%2B%2B-hotpink)
 ![Lines of code](https://img.shields.io/badge/total_lines-25M%2B-lightgrey)
