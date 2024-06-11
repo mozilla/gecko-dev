@@ -1,4 +1,0 @@
-content test1 test/
-content test2 test/ contentaccessible=yes
-content test3 test/ contentaccessible=no
-content test4 test/ contentaccessible
