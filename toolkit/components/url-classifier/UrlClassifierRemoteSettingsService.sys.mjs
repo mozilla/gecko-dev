@@ -125,9 +125,11 @@ UrlClassifierRemoteSettingsService.prototype = {
     );
     stream.setData(payload, payload.length);
 
-    aListener.onStartRequest(null);
-    aListener.onDataAvailable(null, stream, 0, payload.length);
-    aListener.onStopRequest(null, Cr.NS_OK);
+    try {
+      aListener.onStartRequest(null);
+      aListener.onDataAvailable(null, stream, 0, payload.length);
+      aListener.onStopRequest(null, Cr.NS_OK);
+    } catch (e) {}
   },
 
   fetchList(aPayload, aListener) {

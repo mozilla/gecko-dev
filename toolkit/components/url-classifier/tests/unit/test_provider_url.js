@@ -6,6 +6,27 @@ function updateVersion(version) {
   updateAppInfo({ version });
 }
 
+add_setup(function () {
+  // We have to set up this pref since the new Remote Settings pref is not designed to have
+  // appVer in its url (Bug 1899359)
+  let prefValue = Services.prefs.getCharPref(
+    "browser.safebrowsing.provider.mozilla.updateURL"
+  );
+
+  if (prefValue.includes("moz-sbrs")) {
+    Services.prefs.setCharPref(
+      "browser.safebrowsing.provider.mozilla.updateURL",
+      "https://shavar.services.mozilla.com/downloads?client=SAFEBROWSING_ID&appver=%MAJOR_VERSION%&pver=2.2"
+    );
+  }
+
+  registerCleanupFunction(() => {
+    Services.prefs.clearUserPref(
+      "browser.safebrowsing.provider.mozilla.updateURL"
+    );
+  });
+});
+
 add_test(function test_provider_url() {
   let urls = [
     "browser.safebrowsing.provider.google.updateURL",
