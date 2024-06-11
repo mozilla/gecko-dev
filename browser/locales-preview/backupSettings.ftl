@@ -2,11 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-# This string is used to name the folder that users will save backups to.
-# "Restore" is an action and intended for prompting users to select this folder
-# when following backup restoration steps.
-backup-folder-name = Restore { -brand-product-name }
-
 settings-data-backup-header = Backup
 settings-data-backup-toggle = Manage backup
 
@@ -36,14 +31,5 @@ turn-on-scheduled-backups-encryption-repeat-password-label = Repeat password
 
 turn-on-scheduled-backups-cancel-button = Cancel
 turn-on-scheduled-backups-confirm-button = Turn on backup
-
-## These strings are displayed in a modal when users want to turn off scheduled backups.
-
-turn-off-scheduled-backups-header = Turn off backup?
-turn-off-scheduled-backups-description = This also deletes all of your backup data. It can’t be undone.
-turn-off-scheduled-backups-support-link = Learn more
-
-turn-off-scheduled-backups-cancel-button = Cancel
-turn-off-scheduled-backups-confirm-button = Turn off and delete backup
 
 ##
