@@ -18,8 +18,10 @@
 /*! @} - end defgroup gf_group_algo */
 
 #include <assert.h>
+#include <limits.h>
 #include <stdint.h>
 
+#include "aom_dsp/aom_dsp_common.h"
 #include "aom_mem/aom_mem.h"
 #include "config/aom_config.h"
 #include "config/aom_scale_rtcd.h"
@@ -3401,14 +3403,16 @@ static int get_section_target_bandwidth(AV1_COMP *cpi) {
   CurrentFrame *const current_frame = &cm->current_frame;
   RATE_CONTROL *const rc = &cpi->rc;
   TWO_PASS *const twopass = &cpi->ppi->twopass;
-  int section_target_bandwidth;
+  int64_t section_target_bandwidth;
   const int frames_left = (int)(twopass->stats_buf_ctx->total_stats->count -
                                 current_frame->frame_number);
   if (cpi->ppi->lap_enabled)
-    section_target_bandwidth = (int)rc->avg_frame_bandwidth;
-  else
-    section_target_bandwidth = (int)(twopass->bits_left / frames_left);
-  return section_target_bandwidth;
+    section_target_bandwidth = rc->avg_frame_bandwidth;
+  else {
+    section_target_bandwidth = twopass->bits_left / frames_left;
+    section_target_bandwidth = AOMMIN(section_target_bandwidth, INT_MAX);
+  }
+  return (int)section_target_bandwidth;
 }
 
 static INLINE void set_twopass_params_based_on_fp_stats(
@@ -4267,8 +4271,9 @@ void av1_twopass_postencode_update(AV1_COMP *cpi) {
       if (rc->projected_frame_size < fast_extra_thresh) {
         p_rc->vbr_bits_off_target_fast +=
             fast_extra_thresh - rc->projected_frame_size;
-        p_rc->vbr_bits_off_target_fast = AOMMIN(p_rc->vbr_bits_off_target_fast,
-                                                (4 * rc->avg_frame_bandwidth));
+        p_rc->vbr_bits_off_target_fast =
+            AOMMIN(p_rc->vbr_bits_off_target_fast,
+                   (4 * (int64_t)rc->avg_frame_bandwidth));
       }
     }
 

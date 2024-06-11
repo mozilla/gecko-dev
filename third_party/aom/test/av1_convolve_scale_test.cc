@@ -14,6 +14,7 @@
 
 #include "third_party/googletest/src/googletest/include/gtest/gtest.h"
 
+#include "config/aom_config.h"
 #include "config/av1_rtcd.h"
 
 #include "aom_ports/aom_timer.h"
@@ -393,6 +394,20 @@ INSTANTIATE_TEST_SUITE_P(
     ::testing::Combine(::testing::Values(av1_convolve_2d_scale_neon),
                        ::testing::ValuesIn(kBlockDim)));
 #endif  // HAVE_NEON
+
+#if HAVE_NEON_DOTPROD
+INSTANTIATE_TEST_SUITE_P(
+    NEON_DOTPROD, LowBDConvolveScaleTest,
+    ::testing::Combine(::testing::Values(av1_convolve_2d_scale_neon_dotprod),
+                       ::testing::ValuesIn(kBlockDim)));
+#endif  // HAVE_NEON_DOTPROD
+
+#if HAVE_NEON_I8MM
+INSTANTIATE_TEST_SUITE_P(
+    NEON_I8MM, LowBDConvolveScaleTest,
+    ::testing::Combine(::testing::Values(av1_convolve_2d_scale_neon_i8mm),
+                       ::testing::ValuesIn(kBlockDim)));
+#endif  // HAVE_NEON_I8MM
 
 #if HAVE_SSE4_1
 INSTANTIATE_TEST_SUITE_P(

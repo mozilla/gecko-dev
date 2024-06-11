@@ -837,21 +837,7 @@ BLOCK_SIZE av1_select_sb_size(const AV1EncoderConfig *const oxcf, int width,
                ? BLOCK_128X128
                : BLOCK_64X64;
   } else if (oxcf->mode == REALTIME) {
-    if (oxcf->tune_cfg.content == AOM_CONTENT_SCREEN) {
-      const TileConfig *const tile_cfg = &oxcf->tile_cfg;
-      const int num_tiles =
-          (1 << tile_cfg->tile_columns) * (1 << tile_cfg->tile_rows);
-      // For multi-thread encode: if the number of (128x128) superblocks
-      // per tile is low use 64X64 superblock.
-      if (oxcf->row_mt == 1 && oxcf->max_threads >= 4 &&
-          oxcf->max_threads >= num_tiles && AOMMIN(width, height) > 720 &&
-          (width * height) / (128 * 128 * num_tiles) <= 38)
-        return BLOCK_64X64;
-      else
-        return AOMMIN(width, height) >= 720 ? BLOCK_128X128 : BLOCK_64X64;
-    } else {
-      return AOMMIN(width, height) > 720 ? BLOCK_128X128 : BLOCK_64X64;
-    }
+    return AOMMIN(width, height) > 720 ? BLOCK_128X128 : BLOCK_64X64;
   }
 
   // TODO(any): Possibly could improve this with a heuristic.

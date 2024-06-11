@@ -47,7 +47,7 @@ static INLINE void convolve_2d_sr_vert_12tap_sve2(
     const int dst_stride, int w, int h, const int16x8_t y_filter_0_7,
     const int16x8_t y_filter_4_11) {
   // The no-op filter should never be used here.
-  assert(vgetq_lane_s16(x_filter_0_7, 5) != 128);
+  assert(vgetq_lane_s16(y_filter_0_7, 5) != 128);
 
   const int bd = 8;
   const int16x8_t sub_const = vdupq_n_s16(1 << (bd - 1));

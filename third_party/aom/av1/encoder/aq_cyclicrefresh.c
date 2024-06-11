@@ -103,15 +103,15 @@ int av1_cyclic_refresh_estimate_bits_at_q(const AV1_COMP *cpi,
     weight_segment2 = 0;
   }
   // Take segment weighted average for estimated bits.
-  const int estimated_bits =
-      (int)((1.0 - weight_segment1 - weight_segment2) *
-                av1_estimate_bits_at_q(cpi, base_qindex, correction_factor) +
-            weight_segment1 *
-                av1_estimate_bits_at_q(cpi, base_qindex + cr->qindex_delta[1],
-                                       correction_factor) +
-            weight_segment2 *
-                av1_estimate_bits_at_q(cpi, base_qindex + cr->qindex_delta[2],
-                                       correction_factor));
+  const int estimated_bits = (int)round(
+      (1.0 - weight_segment1 - weight_segment2) *
+          av1_estimate_bits_at_q(cpi, base_qindex, correction_factor) +
+      weight_segment1 *
+          av1_estimate_bits_at_q(cpi, base_qindex + cr->qindex_delta[1],
+                                 correction_factor) +
+      weight_segment2 *
+          av1_estimate_bits_at_q(cpi, base_qindex + cr->qindex_delta[2],
+                                 correction_factor));
   return estimated_bits;
 }
 
@@ -139,13 +139,13 @@ int av1_cyclic_refresh_rc_bits_per_mb(const AV1_COMP *cpi, int i,
   int deltaq = compute_deltaq(cpi, i, cr->rate_ratio_qdelta);
   const int accurate_estimate = cpi->sf.hl_sf.accurate_bit_estimate;
   // Take segment weighted average for bits per mb.
-  bits_per_mb =
-      (int)((1.0 - weight_segment) *
-                av1_rc_bits_per_mb(cpi, cm->current_frame.frame_type, i,
-                                   correction_factor, accurate_estimate) +
-            weight_segment * av1_rc_bits_per_mb(
-                                 cpi, cm->current_frame.frame_type, i + deltaq,
-                                 correction_factor, accurate_estimate));
+  bits_per_mb = (int)round(
+      (1.0 - weight_segment) *
+          av1_rc_bits_per_mb(cpi, cm->current_frame.frame_type, i,
+                             correction_factor, accurate_estimate) +
+      weight_segment * av1_rc_bits_per_mb(cpi, cm->current_frame.frame_type,
+                                          i + deltaq, correction_factor,
+                                          accurate_estimate));
   return bits_per_mb;
 }
 

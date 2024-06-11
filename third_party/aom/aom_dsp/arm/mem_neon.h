@@ -642,6 +642,28 @@ static INLINE void store_s16_4x4(int16_t *s, ptrdiff_t dst_stride,
   vst1_s16(s, s3);
 }
 
+static INLINE void store_s16_4x8(int16_t *s, ptrdiff_t dst_stride,
+                                 const int16x4_t s0, const int16x4_t s1,
+                                 const int16x4_t s2, const int16x4_t s3,
+                                 const int16x4_t s4, const int16x4_t s5,
+                                 const int16x4_t s6, const int16x4_t s7) {
+  vst1_s16(s, s0);
+  s += dst_stride;
+  vst1_s16(s, s1);
+  s += dst_stride;
+  vst1_s16(s, s2);
+  s += dst_stride;
+  vst1_s16(s, s3);
+  s += dst_stride;
+  vst1_s16(s, s4);
+  s += dst_stride;
+  vst1_s16(s, s5);
+  s += dst_stride;
+  vst1_s16(s, s6);
+  s += dst_stride;
+  vst1_s16(s, s7);
+}
+
 static INLINE void store_s16_8x4(int16_t *s, ptrdiff_t dst_stride,
                                  const int16x8_t s0, const int16x8_t s1,
                                  const int16x8_t s2, const int16x8_t s3) {

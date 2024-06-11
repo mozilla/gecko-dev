@@ -635,7 +635,6 @@ function(setup_aom_test_targets)
   if(CONFIG_AV1_ENCODER
      AND ENABLE_TESTS
      AND CONFIG_WEBM_IO
-     AND NOT BUILD_SHARED_LIBS
      AND NOT CONFIG_REALTIME_ONLY)
     add_executable(test_aom_rc ${AOM_RC_TEST_SOURCES})
     target_link_libraries(test_aom_rc ${AOM_LIB_LINK_TYPE} aom_av1_rc aom_gtest)

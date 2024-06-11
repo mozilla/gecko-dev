@@ -671,7 +671,7 @@ static aom_codec_err_t validate_config(aom_codec_alg_priv_t *ctx,
     ERROR("max_frame_area out of range [..2^30]");
   }
   RANGE_CHECK(cfg, g_timebase.den, 1, 1000000000);
-  RANGE_CHECK(cfg, g_timebase.num, 1, cfg->g_timebase.den);
+  RANGE_CHECK(cfg, g_timebase.num, 1, 1000000000);
   RANGE_CHECK_HI(cfg, g_profile, MAX_PROFILES - 1);
 
   RANGE_CHECK_HI(cfg, rc_target_bitrate, 2000000);

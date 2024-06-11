@@ -16,6 +16,8 @@
 
 #include "aom_dsp/x86/synonyms.h"
 
+#define ROW_OFFSET 5
+
 #define PROCESS_RESIZE_Y_WD8                                           \
   /* ah0 ah1 ... ah7 */                                                \
   const __m128i AH = _mm_add_epi16(l0, l7);                            \
@@ -200,7 +202,6 @@ void av1_resize_horz_dir_sse2(const uint8_t *const input, int in_stride,
   __m128i coeffs_x[2];
   const int bits = FILTER_BITS;
   const int dst_stride = width2;
-  const int remain_col = filtered_length % 16;
   const __m128i round_const_bits = _mm_set1_epi32((1 << bits) >> 1);
   const __m128i round_shift_bits = _mm_cvtsi32_si128(bits);
 
@@ -215,15 +216,27 @@ void av1_resize_horz_dir_sse2(const uint8_t *const input, int in_stride,
 
   for (int i = 0; i < height; ++i) {
     int filter_offset = 0;
+    int row01_offset = ROW_OFFSET;
+    int remain_col = filtered_length;
+    // To avoid pixel over-read at frame boundary, processing of 16 pixels
+    // is done using the core loop only if sufficient number of pixels required
+    // for the load are present.The remaining pixels are processed separately.
     for (int j = 0; j <= filtered_length - 16; j += 16) {
+      if (remain_col == 18 || remain_col == 20) {
+        break;
+      }
+      const int is_last_cols16 = (j == filtered_length - 16);
+      // While processing the last 16 pixels of the row, ensure that only valid
+      // pixels are loaded.
+      if (is_last_cols16) row01_offset = 0;
       const int in_idx = i * in_stride + j - filter_offset;
       const int out_idx = i * dst_stride + j / 2;
-
+      remain_col -= 16;
       // a0 a1 a2 a3 .... a15
       __m128i row00 = _mm_loadu_si128((__m128i *)&input[in_idx]);
       // a8 a9 a10 a11 .... a23
-      __m128i row01 =
-          _mm_loadu_si128((__m128i *)&input[in_idx + 5 + filter_offset]);
+      __m128i row01 = _mm_loadu_si128(
+          (__m128i *)&input[in_idx + row01_offset + filter_offset]);
       filter_offset = 3;
 
       // Pad start pixels to the left, while processing the first pixels in the
@@ -237,11 +250,11 @@ void av1_resize_horz_dir_sse2(const uint8_t *const input, int in_stride,
 
       // Pad end pixels to the right, while processing the last pixels in the
       // row.
-      const int is_last_cols16 = (j == filtered_length - 16);
       if (is_last_cols16) {
         const __m128i end_pixel_row0 =
             _mm_set1_epi8((char)input[i * in_stride + filtered_length - 1]);
-        row01 = blend(row01, end_pixel_row0, end_pad_mask);
+        row01 = blend(_mm_srli_si128(row01, ROW_OFFSET), end_pixel_row0,
+                      end_pad_mask);
       }
 
       // a2 a3 a4 a5 a6 a7 a8 a9 .... a17
@@ -318,10 +331,6 @@ void av1_resize_horz_dir_sse2(const uint8_t *const input, int in_stride,
     }
 
     int wd_processed = filtered_length - remain_col;
-    // When the remaining width is 2, the above code would not have taken
-    // care of padding required for (filtered_length - 4)th pixel. Hence,
-    // process that pixel again with the C code.
-    wd_processed = (remain_col == 2) ? wd_processed - 2 : wd_processed;
     if (remain_col) {
       const int in_idx = (in_stride * i);
       const int out_idx = (wd_processed / 2) + width2 * i;

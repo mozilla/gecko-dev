@@ -267,6 +267,7 @@ if(CONFIG_AV1_ENCODER)
               "${AOM_ROOT}/aom_dsp/x86/masked_variance_intrin_ssse3.c"
               "${AOM_ROOT}/aom_dsp/x86/quantize_ssse3.c"
               "${AOM_ROOT}/aom_dsp/x86/variance_impl_ssse3.c"
+              "${AOM_ROOT}/aom_dsp/x86/variance_ssse3.c"
               "${AOM_ROOT}/aom_dsp/x86/jnt_variance_ssse3.c")
 
   list(APPEND AOM_DSP_ENCODER_INTRIN_SSE4_1
