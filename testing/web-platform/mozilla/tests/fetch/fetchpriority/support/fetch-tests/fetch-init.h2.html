@@ -71,11 +71,10 @@
         request_init: {}
       },
     ];
-    let fetchResponses = [];
     for (const data of kData) {
-        fetchResponses.push(fetch(data.request_info, data.request_init));
+        const response = fetch(data.request_info, data.request_init);
+        opener.postMessage("ChildLoaded", "*");
     }
-    Promise.all(fetchResponses).finally(() => opener.postMessage("ChildLoaded", "*"));
   }
 </script>
 </body>

@@ -15,7 +15,6 @@ using mozilla::dom::ReferrerPolicy from "mozilla/dom/ReferrerPolicyBinding.h";
 using mozilla::dom::RequestCache from "mozilla/dom/RequestBinding.h";
 using mozilla::dom::RequestCredentials from "mozilla/dom/RequestBinding.h";
 using mozilla::dom::RequestRedirect from "mozilla/dom/RequestBinding.h";
-using mozilla::dom::RequestPriority from "mozilla/dom/RequestBinding.h";
 using mozilla::dom::ResponseType from "mozilla/dom/ResponseBinding.h";
 using struct nsID from "nsID.h";
 using mozilla::dom::FetchDriverObserver::EndReason from "mozilla/dom/FetchDriver.h";
@@ -60,7 +59,6 @@ struct IPCInternalRequest {
   int64_t bodySize;
   nsCString preferredAlternativeDataType;
   uint32_t contentPolicyType;
-  int32_t internalPriority;
   nsCString referrer;
   ReferrerPolicy referrerPolicy;
   ReferrerPolicy environmentReferrerPolicy;
@@ -68,7 +66,6 @@ struct IPCInternalRequest {
   RequestCredentials requestCredentials;
   RequestCache cacheMode;
   RequestRedirect requestRedirect;
-  RequestPriority requestPriority;
   nsString integrity;
   nsCString fragment;
   PrincipalInfo? principalInfo;

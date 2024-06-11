@@ -103,13 +103,6 @@ const kExpectedRequestsOfFetchAPIDisabled = [
     },
 ];
 
-// fetchpriority.js observes "http-on-opening-request" to determine the internal
-// priority of opening requests. For requests intercepted by a worker which in
-// turn perform a global fetch with a non-empty destination, such as in
-// fetchpriority-urgency-destination.https.h2.html, this does not provide
-// correct expectations. Consequently, this case is not handled in tests below.
-// For details, see bug 1881040.
-
 export const kTestData = [
     {   testFileName: "fetch-init.h2.html",
         expectedRequests: kExpectedRequestsOfFetchAPI

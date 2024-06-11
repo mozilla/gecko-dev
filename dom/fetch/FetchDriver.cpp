@@ -675,7 +675,7 @@ nsresult FetchDriver::HttpFetch(
   }
 
   // If the fetch is created by FetchEvent.request or NavigationPreload request,
-  // corresponding InterceptedHttpChannel information need to propagate to the
+  // corresponding InterceptedHttpChannel information need to propagte to the
   // channel of the fetch.
   if (mRequest->GetInterceptionTriggeringPrincipalInfo()) {
     auto principalOrErr = mozilla::ipc::PrincipalInfoToPrincipal(
@@ -854,49 +854,14 @@ nsresult FetchDriver::HttpFetch(
         StaticPrefs::privacy_trackingprotection_lower_network_priority()) {
       p->SetPriority(nsISupportsPriority::PRIORITY_LOWEST);
     } else if (StaticPrefs::network_fetchpriority_enabled()) {
+      // TODO: Bug 1881040 - we need to take into account of destination for the
+      // fetchpriority mapping.
       const auto fetchPriority = ToFetchPriority(mRequest->GetPriorityMode());
-      // According to step 15 of https://fetch.spec.whatwg.org/#concept-fetch
-      // request’s priority, initiator, destination, and render-blocking are
-      // used in an implementation-defined manner to set the internal priority.
+      // The spec defines the priority to be set in an implementation defined
+      // manner (<https://fetch.spec.whatwg.org/#concept-fetch>, step 15.
       // See corresponding preferences in StaticPrefList.yaml for more context.
-      const int32_t supportsPriorityDelta = [this, &fetchPriority]() {
-        auto destination = mRequest->GetInterceptionTriggeringPrincipalInfo()
-                               ? mRequest->InterceptionDestination()
-                               : mRequest->Destination();
-        switch (destination) {
-          case RequestDestination::Font:
-            return FETCH_PRIORITY_ADJUSTMENT_FOR(link_preload_font,
-                                                 fetchPriority);
-          case RequestDestination::Style:
-            return FETCH_PRIORITY_ADJUSTMENT_FOR(link_preload_style,
-                                                 fetchPriority);
-          case RequestDestination::Script:
-          case RequestDestination::Audioworklet:
-          case RequestDestination::Paintworklet:
-          case RequestDestination::Sharedworker:
-          case RequestDestination::Worker:
-          case RequestDestination::Xslt:
-            return FETCH_PRIORITY_ADJUSTMENT_FOR(link_preload_script,
-                                                 fetchPriority);
-          case RequestDestination::Image:
-            return FETCH_PRIORITY_ADJUSTMENT_FOR(images, fetchPriority);
-          case RequestDestination::Audio:
-          case RequestDestination::Track:
-          case RequestDestination::Video:
-            return FETCH_PRIORITY_ADJUSTMENT_FOR(media, fetchPriority);
-          case RequestDestination::Document:
-          case RequestDestination::Embed:
-          case RequestDestination::Frame:
-          case RequestDestination::Iframe:
-          case RequestDestination::Manifest:
-          case RequestDestination::Object:
-          case RequestDestination::Report:
-          case RequestDestination::_empty:
-            return FETCH_PRIORITY_ADJUSTMENT_FOR(global_fetch_api,
-                                                 fetchPriority);
-        };
-      }();
-      p->SetPriority(mRequest->InternalPriority());
+      const int32_t supportsPriorityDelta =
+          FETCH_PRIORITY_ADJUSTMENT_FOR(global_fetch_api, fetchPriority);
       p->AdjustPriority(supportsPriorityDelta);
     }
   }

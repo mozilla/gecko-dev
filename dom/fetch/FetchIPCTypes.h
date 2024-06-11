@@ -39,10 +39,6 @@ struct ParamTraits<mozilla::dom::RequestRedirect>
     : public mozilla::dom::WebIDLEnumSerializer<mozilla::dom::RequestRedirect> {
 };
 template <>
-struct ParamTraits<mozilla::dom::RequestPriority>
-    : public mozilla::dom::WebIDLEnumSerializer<mozilla::dom::RequestPriority> {
-};
-template <>
 struct ParamTraits<mozilla::dom::ResponseType>
     : public mozilla::dom::WebIDLEnumSerializer<mozilla::dom::ResponseType> {};
 

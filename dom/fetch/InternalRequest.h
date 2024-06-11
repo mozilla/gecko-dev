@@ -17,7 +17,6 @@
 #include "nsIChannelEventSink.h"
 #include "nsIInputStream.h"
 #include "nsISupportsImpl.h"
-#include "nsISupportsPriority.h"
 #include "mozilla/net/NeckoChannelParams.h"
 #ifdef DEBUG
 #  include "nsIURLParser.h"
@@ -87,6 +86,16 @@ class InternalRequest final : public AtomicSafeRefCounted<InternalRequest> {
  public:
   MOZ_DECLARE_REFCOUNTED_TYPENAME(InternalRequest)
   InternalRequest(const nsACString& aURL, const nsACString& aFragment);
+  InternalRequest(const nsACString& aURL, const nsACString& aFragment,
+                  const nsACString& aMethod,
+                  already_AddRefed<InternalHeaders> aHeaders,
+                  RequestCache aCacheMode, RequestMode aMode,
+                  RequestRedirect aRequestRedirect,
+                  RequestCredentials aRequestCredentials,
+                  const nsACString& aReferrer, ReferrerPolicy aReferrerPolicy,
+                  RequestPriority aPriority,
+                  nsContentPolicyType aContentPolicyType,
+                  const nsAString& aIntegrity);
 
   explicit InternalRequest(const IPCInternalRequest& aIPCRequest);
 
@@ -272,11 +281,6 @@ class InternalRequest final : public AtomicSafeRefCounted<InternalRequest> {
     return MapContentPolicyTypeToRequestDestination(mContentPolicyType);
   }
 
-  int32_t InternalPriority() const { return mInternalPriority; }
-  void SetInternalPriority(int32_t aInternalPriority) {
-    mInternalPriority = aInternalPriority;
-  }
-
   bool UnsafeRequest() const { return mUnsafeRequest; }
 
   void SetUnsafeRequest() { mUnsafeRequest = true; }
@@ -374,10 +378,6 @@ class InternalRequest final : public AtomicSafeRefCounted<InternalRequest> {
   nsContentPolicyType InterceptionContentPolicyType() const {
     return mInterceptionContentPolicyType;
   }
-  RequestDestination InterceptionDestination() const {
-    return MapContentPolicyTypeToRequestDestination(
-        mInterceptionContentPolicyType);
-  }
   void SetInterceptionContentPolicyType(nsContentPolicyType aContentPolicyType);
 
   const nsTArray<RedirectHistoryEntryInfo>& InterceptionRedirectChain() const {
@@ -439,8 +439,6 @@ class InternalRequest final : public AtomicSafeRefCounted<InternalRequest> {
   nsCString mPreferredAlternativeDataType;
 
   nsContentPolicyType mContentPolicyType;
-
-  int32_t mInternalPriority = nsISupportsPriority::PRIORITY_NORMAL;
 
   // Empty string: no-referrer
   // "about:client": client (default)

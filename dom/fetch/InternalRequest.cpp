@@ -45,7 +45,6 @@ SafeRefPtr<InternalRequest> InternalRequest::GetRequestConstructorCopy(
   copy->mContentPolicyType = mContentPolicyTypeOverridden
                                  ? mContentPolicyType
                                  : nsIContentPolicy::TYPE_FETCH;
-  copy->mInternalPriority = mInternalPriority;
   copy->mMode = mMode;
   copy->mCredentialsMode = mCredentialsMode;
   copy->mCacheMode = mCacheMode;
@@ -98,6 +97,30 @@ InternalRequest::InternalRequest(const nsACString& aURL,
   MOZ_ASSERT(!aURL.IsEmpty());
   AddURL(aURL, aFragment);
 }
+InternalRequest::InternalRequest(
+    const nsACString& aURL, const nsACString& aFragment,
+    const nsACString& aMethod, already_AddRefed<InternalHeaders> aHeaders,
+    RequestCache aCacheMode, RequestMode aMode,
+    RequestRedirect aRequestRedirect, RequestCredentials aRequestCredentials,
+    const nsACString& aReferrer, ReferrerPolicy aReferrerPolicy,
+    RequestPriority aPriority, nsContentPolicyType aContentPolicyType,
+    const nsAString& aIntegrity)
+    : mMethod(aMethod),
+      mHeaders(aHeaders),
+      mBodyLength(InternalResponse::UNKNOWN_BODY_SIZE),
+      mContentPolicyType(aContentPolicyType),
+      mReferrer(aReferrer),
+      mReferrerPolicy(aReferrerPolicy),
+      mEnvironmentReferrerPolicy(ReferrerPolicy::_empty),
+      mMode(aMode),
+      mCredentialsMode(aRequestCredentials),
+      mCacheMode(aCacheMode),
+      mRedirectMode(aRequestRedirect),
+      mPriorityMode(aPriority),
+      mIntegrity(aIntegrity) {
+  MOZ_ASSERT(!aURL.IsEmpty());
+  AddURL(aURL, aFragment);
+}
 InternalRequest::InternalRequest(const InternalRequest& aOther,
                                  ConstructorGuard)
     : mMethod(aOther.mMethod),
@@ -105,7 +128,6 @@ InternalRequest::InternalRequest(const InternalRequest& aOther,
       mHeaders(new InternalHeaders(*aOther.mHeaders)),
       mBodyLength(InternalResponse::UNKNOWN_BODY_SIZE),
       mContentPolicyType(aOther.mContentPolicyType),
-      mInternalPriority(aOther.mInternalPriority),
       mReferrer(aOther.mReferrer),
       mReferrerPolicy(aOther.mReferrerPolicy),
       mEnvironmentReferrerPolicy(aOther.mEnvironmentReferrerPolicy),
@@ -146,7 +168,6 @@ InternalRequest::InternalRequest(const IPCInternalRequest& aIPCRequest)
       mPreferredAlternativeDataType(aIPCRequest.preferredAlternativeDataType()),
       mContentPolicyType(
           static_cast<nsContentPolicyType>(aIPCRequest.contentPolicyType())),
-      mInternalPriority(aIPCRequest.internalPriority()),
       mReferrer(aIPCRequest.referrer()),
       mReferrerPolicy(aIPCRequest.referrerPolicy()),
       mEnvironmentReferrerPolicy(aIPCRequest.environmentReferrerPolicy()),
@@ -154,7 +175,6 @@ InternalRequest::InternalRequest(const IPCInternalRequest& aIPCRequest)
       mCredentialsMode(aIPCRequest.requestCredentials()),
       mCacheMode(aIPCRequest.cacheMode()),
       mRedirectMode(aIPCRequest.requestRedirect()),
-      mPriorityMode(aIPCRequest.requestPriority()),
       mIntegrity(aIPCRequest.integrity()),
       mFragment(aIPCRequest.fragment()),
       mEmbedderPolicy(aIPCRequest.embedderPolicy()),
@@ -196,7 +216,6 @@ void InternalRequest::ToIPCInternalRequest(
   aIPCRequest->bodySize() = mBodyLength;
   aIPCRequest->preferredAlternativeDataType() = mPreferredAlternativeDataType;
   aIPCRequest->contentPolicyType() = mContentPolicyType;
-  aIPCRequest->internalPriority() = mInternalPriority;
   aIPCRequest->referrer() = mReferrer;
   aIPCRequest->referrerPolicy() = mReferrerPolicy;
   aIPCRequest->environmentReferrerPolicy() = mEnvironmentReferrerPolicy;
@@ -204,25 +223,12 @@ void InternalRequest::ToIPCInternalRequest(
   aIPCRequest->requestCredentials() = mCredentialsMode;
   aIPCRequest->cacheMode() = mCacheMode;
   aIPCRequest->requestRedirect() = mRedirectMode;
-  aIPCRequest->requestPriority() = mPriorityMode;
   aIPCRequest->integrity() = mIntegrity;
   aIPCRequest->fragment() = mFragment;
   aIPCRequest->embedderPolicy() = mEmbedderPolicy;
 
   if (mPrincipalInfo) {
     aIPCRequest->principalInfo() = Some(*mPrincipalInfo);
-  }
-
-  if (mInterceptionTriggeringPrincipalInfo) {
-    aIPCRequest->interceptionTriggeringPrincipalInfo() =
-        Some(*mInterceptionTriggeringPrincipalInfo);
-    aIPCRequest->interceptionContentPolicyType() =
-        mInterceptionContentPolicyType;
-    if (!mInterceptionRedirectChain.IsEmpty()) {
-      aIPCRequest->interceptionRedirectChain().Assign(
-          mInterceptionRedirectChain);
-    }
-    aIPCRequest->interceptionFromThirdParty() = mInterceptionFromThirdParty;
   }
 
   if (mBodyStream) {
