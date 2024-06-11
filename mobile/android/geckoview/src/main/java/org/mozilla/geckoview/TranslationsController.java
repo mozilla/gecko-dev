@@ -127,8 +127,6 @@ public class TranslationsController {
      * Manage the language model or models. Options are to download or delete a BCP 47 language or
      * all or cache.
      *
-     * <p>Bug 1869404 will add an option for deleting translations model "cache".
-     *
      * @param options contain language, operation, and operation level to perform on the model
      * @return the request proceeded as expected or an exception.
      */
