@@ -828,12 +828,6 @@ bool Navigator::Vibrate(const nsTArray<uint32_t>& aPattern) {
 
   nsTArray<uint32_t> pattern = SanitizeVibratePattern(aPattern);
 
-  // The spec says we check dom.vibrator.enabled after we've done the sanity
-  // checking on the pattern.
-  if (!StaticPrefs::dom_vibrator_enabled()) {
-    return true;
-  }
-
   mRequestedVibrationPattern = std::move(pattern);
 
   PermissionDelegateHandler* permissionHandler =

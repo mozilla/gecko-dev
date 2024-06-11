@@ -148,7 +148,9 @@ partial interface Navigator {
 partial interface Navigator {
     // We don't support sequences in unions yet
     //boolean vibrate ((unsigned long or sequence<unsigned long>) pattern);
+    [Pref="dom.vibrator.enabled"]
     boolean vibrate(unsigned long duration);
+    [Pref="dom.vibrator.enabled"]
     boolean vibrate(sequence<unsigned long> pattern);
 };
 
