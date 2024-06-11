@@ -18,12 +18,6 @@ unset ENABLE_CLANG_PLUGIN
 # We don't have a native LLVM_SYMBOLIZER yet
 unset LLVM_SYMBOLIZER
 
-# Add the path to the clang_rt used, so it can be packaged with the build.
-if [ -d "$MOZ_FETCHES_DIR/clang" ]; then
-    CLANG_LIB_DIR="$(cd $MOZ_FETCHES_DIR/clang/lib/clang/*/lib/linux && pwd)"
-    export MOZ_CLANG_RT_ASAN_LIB_PATH="${CLANG_LIB_DIR}/libclang_rt.asan-x86_64-android.so"
-fi
-
 # Package js shell.
 export MOZ_PACKAGE_JSSHELL=1
 

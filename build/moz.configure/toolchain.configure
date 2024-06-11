@@ -2428,6 +2428,86 @@ def asan():
     return True
 
 
+with only_when(asan):
+    option(
+        env="MOZ_CLANG_RT_ASAN_LIB_PATH",
+        nargs=1,
+        help="Path to clang runtime asan library",
+    )
+
+    @depends(
+        c_compiler,
+        target,
+        "MOZ_CLANG_RT_ASAN_LIB_PATH",
+    )
+    @imports("os")
+    @imports("glob")
+    def clang_rt_asan_lib_path(c_compiler, target, clang_rt_asan_lib):
+        if clang_rt_asan_lib:
+            if os.path.exists(clang_rt_asan_lib[0]):
+                return clang_rt_asan_lib[0]
+            else:
+                die(
+                    f"Specified MOZ_CLANG_RT_ASAN_LIB_PATH value '{clang_rt_asan_lib}' doesn't exist. "
+                )
+
+        # Look for the ASan runtime binary
+        if c_compiler.type == "clang-cl":
+            cpu = {"x86": "i386"}.get(target.cpu, target.cpu)
+            clang_rt_asan_lib = f"clang_rt.asan_dynamic-{target.cpu}.dll"
+            subdir = "windows"
+        elif target.os == "Android":
+            cpu = {"x86": "i686"}.get(target.cpu, target.cpu)
+            clang_rt_asan_lib = f"libclang_rt.asan-{cpu}-android.so"
+            subdir = "linux"
+        else:
+            return
+
+        search_path = os.path.join(
+            os.path.dirname(c_compiler.compiler),
+            "..",
+            "lib",
+            "clang",
+            "*",
+            "lib",
+            subdir,
+            clang_rt_asan_lib,
+        )
+        if candidates := glob.glob(search_path):
+            return candidates[0]
+
+        die(
+            f"Couldn't find {clang_rt_asan_lib}. "
+            f"It should be available in the same location as {c_compiler.type}."
+        )
+
+    set_config("MOZ_CLANG_RT_ASAN_LIB_PATH", clang_rt_asan_lib_path)
+
+
+@depends(
+    c_compiler,
+    target,
+    compilation_flags,
+    linker_flags,
+    build_environment,
+    when=asan,
+)
+def asan_flags(c_compiler, target, compilation_flags, linker_flags, build_env):
+    if c_compiler.type == "clang-cl":
+        # Suppressing errors in recompiled code.
+        if target.os == "WINNT":
+            flag = f"-fsanitize-blacklist={build_env.topsrcdir}/build/sanitizers/asan_blacklist_win.txt"
+            compilation_flags.cflags.append(flag)
+            compilation_flags.cxxflags.append(flag)
+
+    asan_flag = "-fsanitize=address"
+    compilation_flags.cflags.append(asan_flag)
+    compilation_flags.cxxflags.append(asan_flag)
+
+    if c_compiler.type != "clang-cl":
+        linker_flags.ldflags.extend([asan_flag, "-rdynamic"])
+
+
 add_old_configure_assignment("MOZ_ASAN", asan)
 set_define("MOZ_ASAN", True, when=asan)
 set_config("MOZ_ASAN", True, when=asan)
@@ -2631,6 +2711,7 @@ set_config("MOZ_UNSIGNED_OVERFLOW_SANITIZE", True, when=ub_unsigned_overflow_san
 any_ubsan = ubsan | ub_signed_overflow_san | ub_unsigned_overflow_san
 set_define("MOZ_UBSAN", True, when=any_ubsan)
 set_config("MOZ_UBSAN", any_ubsan)
+
 
 # Security Hardening
 # ==============================================================

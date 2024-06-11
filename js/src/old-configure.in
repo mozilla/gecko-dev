@@ -168,8 +168,6 @@ dnl Configure platform-specific CPU architecture compiler options.
 dnl ==============================================================
 MOZ_ARCH_OPTS
 
-MOZ_CONFIG_SANITIZE
-
 dnl ========================================================
 dnl GNU specific defaults
 dnl ========================================================
