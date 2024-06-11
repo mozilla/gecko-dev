@@ -13,7 +13,7 @@ let registration;
 
 const registerServiceWorker = async function() {
   try {
-    registration = await navigator.serviceWorker.register("controlled-sw.js");
+    registration = await navigator.serviceWorker.register("controlled-sw.worker.js");
     dump("Controlled service worker registered\n");
   } catch (e) {
     dump("Controlled service worker not registered: " + e + "\n");

@@ -9,10 +9,12 @@ Services.scriptloader.loadSubScript(
   this
 );
 
-const FETCH_SW_JS = URL_ROOT_SSL + "resources/service-workers/fetch-sw.js";
+const FETCH_SW_JS =
+  URL_ROOT_SSL + "resources/service-workers/fetch-sw.worker.js";
 const FETCH_SW_HTML = URL_ROOT_SSL + "resources/service-workers/fetch-sw.html";
 
-const EMPTY_SW_JS = URL_ROOT_SSL + "resources/service-workers/empty-sw.js";
+const EMPTY_SW_JS =
+  URL_ROOT_SSL + "resources/service-workers/empty-sw.worker.js";
 const EMPTY_SW_HTML = URL_ROOT_SSL + "resources/service-workers/empty-sw.html";
 
 /**
