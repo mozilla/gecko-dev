@@ -570,11 +570,10 @@ pub type VoidPtrToSizeFn = unsafe extern "C" fn(ptr: *const c_void) -> usize;
 ///  - Add a new enum variant here.
 ///  - Add the entry in WR_BOOL_PARAMETER_LIST in gfxPlatform.cpp.
 ///  - React to the parameter change anywhere in WebRender where a SetParam message is received.
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Parameter {
     Bool(BoolParameter, bool),
     Int(IntParameter, i32),
-    Float(FloatParameter, f32),
 }
 
 /// Boolean configuration option.
@@ -592,14 +591,6 @@ pub enum BoolParameter {
 #[repr(u32)]
 pub enum IntParameter {
     BatchedUploadThreshold = 0,
-}
-
-/// Floating point configuration option.
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-#[repr(u32)]
-pub enum FloatParameter {
-    /// The minimum time for the CPU portion of a frame to be considered slow
-    SlowCpuFrameThreshold = 0,
 }
 
 /// Flags to track why we are rendering.

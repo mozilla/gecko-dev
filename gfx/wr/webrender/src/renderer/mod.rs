@@ -1147,7 +1147,6 @@ impl Renderer {
                 }
                 ResultMsg::SetParameter(ref param) => {
                     self.device.set_parameter(param);
-                    self.profiler.set_parameter(param);
                 }
                 ResultMsg::DebugOutput(output) => match output {
                     #[cfg(feature = "capture")]
@@ -1430,7 +1429,6 @@ impl Renderer {
     ) -> Result<RenderResults, Vec<RendererError>> {
         profile_scope!("render");
         let mut results = RenderResults::default();
-        self.profile.end_time_if_started(profiler::FRAME_SEND_TIME);
         self.profile.start_time(profiler::RENDERER_TIME);
 
         self.staging_texture_pool.begin_frame();
@@ -1560,15 +1558,6 @@ impl Renderer {
         let _gm = self.gpu_profiler.start_marker("end frame");
         self.gpu_profiler.end_frame();
 
-        let t = self.profile.end_time(profiler::RENDERER_TIME);
-        self.profile.end_time_if_started(profiler::TOTAL_FRAME_CPU_TIME);
-
-        let current_time = precise_time_ns();
-        if device_size.is_some() {
-            let time = profiler::ns_to_ms(current_time - self.last_time);
-            self.profile.set(profiler::FRAME_TIME, time);
-        }
-
         let debug_overlay = device_size.and_then(|device_size| {
             // Bind a surface to draw the debug / profiler information to.
             self.bind_debug_overlay(device_size).map(|draw_target| {
@@ -1582,9 +1571,17 @@ impl Renderer {
             })
         });
 
+        let t = self.profile.end_time(profiler::RENDERER_TIME);
+        self.profile.end_time_if_started(profiler::TOTAL_FRAME_CPU_TIME);
         Telemetry::record_renderer_time(Duration::from_micros((t * 1000.00) as u64));
         if self.profile.get(profiler::SHADER_BUILD_TIME).is_none() {
           Telemetry::record_renderer_time_no_sc(Duration::from_micros((t * 1000.00) as u64));
+        }
+
+        let current_time = precise_time_ns();
+        if device_size.is_some() {
+            let time = profiler::ns_to_ms(current_time - self.last_time);
+            self.profile.set(profiler::FRAME_TIME, time);
         }
 
         if self.max_recorded_profiles > 0 {

@@ -29,7 +29,6 @@ use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::sync::atomic::{AtomicBool, Ordering};
 
 pub static GLYPH_FLASHING: AtomicBool = AtomicBool::new(false);
-const GLYPH_BATCH_SIZE: usize = 32;
 
 impl FontContexts {
     /// Get access to the font context associated to the current thread.
@@ -100,7 +99,7 @@ impl GlyphRasterizer {
 
         // If the batch for this font instance is big enough, kick off an async
         // job to start rasterizing these glyphs on other threads now.
-        if batch_size >= GLYPH_BATCH_SIZE {
+        if batch_size >= 8 {
             let container = self.pending_glyph_requests.get_mut(&font).unwrap();
             let glyphs = mem::replace(container, SmallVec::new());
             self.flush_glyph_requests(font, glyphs, true);
@@ -186,8 +185,7 @@ impl GlyphRasterizer {
             // possible and in that task use rayon's fork join dispatch to rasterize the
             // glyphs in the thread pool.
             profile_scope!("spawning process_glyph jobs");
-            let tx = self.glyph_tx.clone();
-            self.workers.spawn(move || {
+            self.workers.install(|| {
                 FontContext::begin_rasterize(&font);
                 // If the FontContext supports distributing a font across multiple threads,
                 // then use par_iter so different glyphs of the same font are processed on
@@ -195,14 +193,14 @@ impl GlyphRasterizer {
                 if FontContext::distribute_across_threads() {
                     glyphs.par_iter().for_each(|key| {
                         let job = process_glyph(key);
-                        tx.send(job).unwrap();
+                        self.glyph_tx.send(job).unwrap();
                     });
                 } else {
                     // For FontContexts that prefer to localize a font to a single thread,
                     // just process all the glyphs on the same worker to avoid contention.
                     for key in glyphs {
                         let job = process_glyph(&key);
-                        tx.send(job).unwrap();
+                        self.glyph_tx.send(job).unwrap();
                     }
                 }
                 FontContext::end_rasterize(&font);

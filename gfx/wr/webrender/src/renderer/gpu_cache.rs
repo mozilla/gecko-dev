@@ -8,10 +8,11 @@ use malloc_size_of::MallocSizeOfOps;
 use crate::{
     device::{CustomVAO, Device, DrawTarget, Program, ReadTarget, Texture, TextureFilter, UploadPBOPool, VBO},
     gpu_cache::{GpuBlockData, GpuCacheUpdate, GpuCacheUpdateList},
-    internal_types::{FrameId, RenderTargetInfo, Swizzle},
+    internal_types::{RenderTargetInfo, Swizzle},
     prim_store::DeferredResolve,
     profiler,
     render_api::MemoryReport,
+    internal_types::FrameId,
 };
 
 /// Enabling this toggle would force the GPU cache scattered texture to
@@ -488,18 +489,10 @@ impl super::Renderer {
         &mut self,
         deferred_resolves: &[DeferredResolve],
     ) -> Result<(), super::RendererError> {
-        self.profile.start_time(profiler::GPU_CACHE_PREPARE_TIME);
-
         if self.pending_gpu_cache_clear {
             let use_scatter =
                 matches!(self.gpu_cache_texture.bus, GpuCacheBus::Scatter { .. });
-            let new_cache = match GpuCacheTexture::new(&mut self.device, use_scatter) {
-                Ok(cache) => cache,
-                Err(err) => {
-                    self.profile.end_time(profiler::GPU_CACHE_PREPARE_TIME);
-                    return Err(err);
-                }
-            };
+            let new_cache = GpuCacheTexture::new(&mut self.device, use_scatter)?;
             let old_cache = mem::replace(&mut self.gpu_cache_texture, new_cache);
             old_cache.deinit(&mut self.device);
             self.pending_gpu_cache_clear = false;
@@ -517,8 +510,6 @@ impl super::Renderer {
             self.gpu_cache_texture.texture.as_ref().unwrap(),
             Swizzle::default(),
         );
-
-        self.profile.end_time(profiler::GPU_CACHE_PREPARE_TIME);
 
         Ok(())
     }

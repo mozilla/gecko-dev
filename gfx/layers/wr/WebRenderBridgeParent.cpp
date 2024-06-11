@@ -1642,8 +1642,6 @@ void WebRenderBridgeParent::UpdateParameters() {
   mApi->SetBatchingLookback(count);
   mApi->SetInt(wr::IntParameter::BatchedUploadThreshold,
                gfxVars::WebRenderBatchedUploadThreshold());
-  uint32_t slow_cpu_frame = gfxVars::WebRenderSlowCpuFrameThreshold();
-  mApi->SetFloat(wr::FloatParameter::SlowCpuFrameThreshold, slow_cpu_frame);
 
   mBlobTileSize = gfxVars::WebRenderBlobTileSize();
 }

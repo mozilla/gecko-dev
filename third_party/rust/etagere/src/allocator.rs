@@ -42,7 +42,6 @@ struct Shelf {
     prev: ShelfIndex,
     next: ShelfIndex,
     first_item: ItemIndex,
-    first_unallocated: ItemIndex,
     is_empty: bool,
 }
 
@@ -53,8 +52,6 @@ struct Item {
     width: u16,
     prev: ItemIndex,
     next: ItemIndex,
-    prev_unallocated: ItemIndex,
-    next_unallocated: ItemIndex,
     shelf: ShelfIndex,
     allocated: bool,
     generation: u16,
@@ -151,7 +148,6 @@ impl AtlasAllocator {
                 next,
                 is_empty: true,
                 first_item,
-                first_unallocated: first_item,
             });
 
             self.items.push(Item {
@@ -159,8 +155,6 @@ impl AtlasAllocator {
                 width: self.shelf_width,
                 prev: ItemIndex::NONE,
                 next: ItemIndex::NONE,
-                prev_unallocated: ItemIndex::NONE,
-                next_unallocated: ItemIndex::NONE,
                 shelf: current,
                 allocated: false,
                 generation: 1,
@@ -219,14 +213,14 @@ impl AtlasAllocator {
                 continue;
             }
 
-            let mut item_idx = shelf.first_unallocated;
+            let mut item_idx = shelf.first_item;
             while item_idx.is_some() {
                 let item = &self.items[item_idx.index()];
                 if !item.allocated && item.width >= width {
                     break;
                 }
 
-                item_idx = item.next_unallocated;
+                item_idx = item.next;
             }
 
             if item_idx.is_some() {
@@ -263,7 +257,6 @@ impl AtlasAllocator {
                 prev: selected_shelf,
                 next: shelf.next,
                 first_item: ItemIndex::NONE,
-                first_unallocated: ItemIndex::NONE,
                 is_empty: true,
             });
 
@@ -272,15 +265,12 @@ impl AtlasAllocator {
                 width: self.shelf_width,
                 prev: ItemIndex::NONE,
                 next: ItemIndex::NONE,
-                prev_unallocated: ItemIndex::NONE,
-                next_unallocated: ItemIndex::NONE,
                 shelf: new_shelf_idx,
                 allocated: false,
                 generation: 1,
             });
 
             self.shelves[new_shelf_idx.index()].first_item = new_item_idx;
-            self.shelves[new_shelf_idx.index()].first_unallocated = new_item_idx;
 
             let next = self.shelves[selected_shelf.index()].next;
             self.shelves[selected_shelf.index()].height = height;
@@ -302,8 +292,6 @@ impl AtlasAllocator {
                 width: item.width - width,
                 prev: selected_item,
                 next: item.next,
-                prev_unallocated: item.prev_unallocated,
-                next_unallocated: item.next_unallocated,
                 shelf: item.shelf,
                 allocated: false,
                 generation: 1,
@@ -315,31 +303,7 @@ impl AtlasAllocator {
             if item.next.is_some() {
                 self.items[item.next.index()].prev = new_item_idx;
             }
-
-            // Replace the item in the "unallocated" list.
-            let shelf = &mut self.shelves[selected_shelf.index()];
-            if shelf.first_unallocated == selected_item {
-                shelf.first_unallocated = new_item_idx;
-            }
-            if item.prev_unallocated.is_some() {
-                self.items[item.prev_unallocated.index()].next_unallocated = new_item_idx;
-            }
-            if item.next_unallocated.is_some() {
-                self.items[item.next_unallocated.index()].prev_unallocated = new_item_idx;
-            }
         } else {
-            // Remove the item from the "unallocated" list.
-            let shelf = &mut self.shelves[selected_shelf.index()];
-            if shelf.first_unallocated == selected_item {
-                shelf.first_unallocated = item.next_unallocated;
-            }
-            if item.prev_unallocated.is_some() {
-                self.items[item.prev_unallocated.index()].next_unallocated = item.next_unallocated;
-            }
-            if item.next_unallocated.is_some() {
-                self.items[item.next_unallocated.index()].prev_unallocated = item.prev_unallocated;
-            }
-
             width = item.width;
         }
 
@@ -373,6 +337,7 @@ impl AtlasAllocator {
     pub fn deallocate(&mut self, id: AllocId) {
         let item_idx = ItemIndex(id.index());
 
+        //let item = self.items[item_idx.index()].clone();
         let Item { mut prev, mut next, mut width, allocated, shelf, generation, .. } = self.items[item_idx.index()];
         assert!(allocated);
         assert_eq!(generation, id.generation(), "Invalid AllocId");
@@ -385,18 +350,6 @@ impl AtlasAllocator {
 
             let next_next = self.items[next.index()].next;
             let next_width = self.items[next.index()].width;
-            // Remove next from the "unallocated" list.
-            let next_unallocated = self.items[next.index()].next_unallocated;
-            let prev_unallocated = self.items[next.index()].prev_unallocated;
-            if self.shelves[shelf.index()].first_unallocated == next {
-                self.shelves[shelf.index()].first_unallocated = next_unallocated;
-            }
-            if prev_unallocated.is_some() {
-                self.items[prev_unallocated.index()].next_unallocated = next_unallocated;
-            }
-            if next_unallocated.is_some() {
-                self.items[next_unallocated.index()].prev_unallocated = prev_unallocated;
-            }
 
             self.items[item_idx.index()].next = next_next;
             self.items[item_idx.index()].width += next_width;
@@ -414,8 +367,6 @@ impl AtlasAllocator {
 
         if prev.is_some() && !self.items[prev.index()].allocated {
             // Merge the item into the previous one.
-            // No need to add the item_idx to the "unallocated" list since it
-            // is getting merged into an already unallocated item.
 
             self.items[prev.index()].next = next;
             self.items[prev.index()].width += width;
@@ -428,15 +379,6 @@ impl AtlasAllocator {
             self.remove_item(item_idx);
 
             prev = self.items[prev.index()].prev;
-        } else {
-            // Insert item_idx in the "unallocated" list.
-            let first = self.shelves[shelf.index()].first_unallocated;
-            if first.is_some() {
-                self.items[first.index()].prev_unallocated = item_idx;
-            }
-            self.items[item_idx.index()].next_unallocated = first;
-            self.items[item_idx.index()].prev_unallocated = ItemIndex::NONE;
-            self.shelves[shelf.index()].first_unallocated = item_idx;
         }
 
         if prev.is_none() && next.is_none() {
@@ -594,16 +536,12 @@ impl AtlasAllocator {
             prev_empty = shelf.is_empty;
 
             let mut accum_w = 0;
-            let mut accum_unallocated_w = 0;
             let mut prev_allocated = true;
             let mut item_idx = shelf.first_item;
             let mut prev_item_idx = ItemIndex::NONE;
             while item_idx.is_some() {
                 let item = &self.items[item_idx.index()];
                 accum_w += item.width;
-                if !item.allocated {
-                    accum_unallocated_w += item.width;
-                }
 
                 assert_eq!(item.prev, prev_item_idx);
 
@@ -617,24 +555,6 @@ impl AtlasAllocator {
             }
 
             assert_eq!(accum_w, self.shelf_width);
-
-            // Traverse the shelf's unallocated list, validate it and check that it matches
-            // the amount of unallocated space we found from traversing the whole shelf. 
-            accum_w = 0;
-            let mut item_idx = shelf.first_unallocated;
-            let mut prev_unallocated_idx = ItemIndex::NONE;
-            while item_idx.is_some() {
-                let item = &self.items[item_idx.index()];
-                assert!(!item.allocated);
-
-                assert_eq!(item.prev_unallocated, prev_unallocated_idx);
-                accum_w += item.width;
-
-                prev_unallocated_idx = item_idx;
-                item_idx = item.next_unallocated;
-            }
-
-            assert_eq!(accum_w, accum_unallocated_w, "items missing from the unallocated list?");
 
             shelf_idx = shelf.next;
         }
