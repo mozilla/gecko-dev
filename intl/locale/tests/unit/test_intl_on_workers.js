@@ -9,7 +9,7 @@ function run_test() {
 
   let mainThreadLocale = Intl.NumberFormat().resolvedOptions().locale;
   let testWorker = new Worker(
-    "chrome://locale/content/intl_on_workers_worker.js"
+    "chrome://locale/content/intl_on_workers.worker.js"
   );
   testWorker.onmessage = function (e) {
     try {
