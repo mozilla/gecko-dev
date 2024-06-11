@@ -1,5 +1,0 @@
----
-command: cargo-clippy
-continue_on_error: true
-requires_export: true
-# cargo_build_flags: []

@@ -1,6 +1,0 @@
-{
-    "stages": "3",
-    "pgo": true,
-    "ranlib": "{MOZ_FETCHES_DIR}/clang/bin/llvm-ranlib",
-    "ar": "{MOZ_FETCHES_DIR}/clang/bin/llvm-ar"
-}

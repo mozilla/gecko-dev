@@ -1,5 +1,0 @@
-{
-    "patches": [
-        "partial-revert-llvmorg-15-init-11205-gcead4eceb01b_clang_18.patch"
-    ]
-}

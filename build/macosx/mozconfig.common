@@ -1,8 +1,0 @@
-if test `uname -s` = Linux; then
-  . $topsrcdir/build/macosx/cross-mozconfig.common
-fi
-
-if [ -n "$TASKCLUSTER_PGO_PROFILE_USE" -a -z "$USE_ARTIFACT" ]; then
-    # Keep using ld64 on PGO/LTO builds because of performance regressions when using lld.
-    ac_add_options --enable-linker=ld64
-fi

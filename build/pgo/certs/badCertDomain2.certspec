@@ -1,3 +1,0 @@
-subject:badcertdomain2.example.com
-issuer:printableString/CN=Temporary Certificate Authority/O=Mozilla Testing/OU=Profile Guided Optimization
-extension:subjectAlternativeName:badcertdomain2.example.com

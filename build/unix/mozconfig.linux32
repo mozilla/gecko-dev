@@ -1,6 +1,0 @@
-. "$topsrcdir/build/unix/mozconfig.linux"
-
-CFLAGS="$CFLAGS -march=pentium-m -msse -msse2 -mfpmath=sse"
-CXXFLAGS="$CXXFLAGS -march=pentium-m -msse -msse2 -mfpmath=sse"
-
-ac_add_options --target=i686-pc-linux

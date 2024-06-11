@@ -1,4 +1,0 @@
-subject:untrusted-expired.example.com
-issuer:Unknown CA
-extension:subjectAlternativeName:untrusted-expired.example.com
-validity:20121012-20121012

@@ -1,4 +1,0 @@
-subject:sha256ee.example.com
-issuer:printableString/CN=Temporary Certificate Authority/O=Mozilla Testing/OU=Profile Guided Optimization
-extension:subjectAlternativeName:sha256ee.example.com
-signature:sha256WithRSAEncryption

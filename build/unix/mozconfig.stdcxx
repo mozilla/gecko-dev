@@ -1,2 +1,0 @@
-# Avoid dependency on libstdc++ 4.7
-export MOZ_STDCXX_COMPAT=1

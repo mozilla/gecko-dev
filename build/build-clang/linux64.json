@@ -1,5 +1,0 @@
-{
-    "cc": "/usr/lib/llvm-13/bin/clang",
-    "cxx": "/usr/lib/llvm-13/bin/clang++",
-    "as": "/usr/lib/llvm-13/bin/clang"
-}

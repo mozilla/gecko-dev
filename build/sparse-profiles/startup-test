@@ -1,6 +1,0 @@
-%include build/sparse-profiles/mozharness
-
-[include]
-# for fetch-content
-path:taskcluster/scripts/misc/
-
