@@ -13,7 +13,6 @@
 #include "ServiceWorkerRegistrationChild.h"
 #include "ServiceWorkerRegistrationParent.h"
 #include "mozilla/dom/WorkerRef.h"
-#include "mozilla/ProfilerMarkers.h"
 
 namespace mozilla::dom {
 
@@ -31,8 +30,6 @@ void InitServiceWorkerContainerParent(PServiceWorkerContainerParent* aActor) {
 void InitServiceWorkerRegistrationParent(
     PServiceWorkerRegistrationParent* aActor,
     const IPCServiceWorkerRegistrationDescriptor& aDescriptor) {
-  AUTO_PROFILER_MARKER_TEXT("InitServiceWorkerRegistrationParent", DOM, {},
-                            ""_ns);
   auto actor = static_cast<ServiceWorkerRegistrationParent*>(aActor);
   actor->Init(aDescriptor);
 }
