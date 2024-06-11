@@ -549,8 +549,6 @@ dictionary GPUPipelineLayoutDescriptor
  Exposed=(Window, DedicatedWorker), SecureContext]
 interface GPUShaderModule {
     [Throws]
-    Promise<GPUCompilationInfo> compilationInfo(); // To be removed with <https://bugzilla.mozilla.org/show_bug.cgi?id=1846892>
-    [Throws]
     Promise<GPUCompilationInfo> getCompilationInfo();
 };
 GPUShaderModule includes GPUObjectBase;
