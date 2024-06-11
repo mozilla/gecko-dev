@@ -534,6 +534,13 @@ class InactivePropertyHelper {
         fixId: "inactive-css-ruby-element-fix",
         msgId: "inactive-css-ruby-element",
       },
+      // resize property used on non-overflowing elements or replaced elements other than textarea.
+      {
+        invalidProperties: ["resize"],
+        when: () => !this.isScrollContainer && !this.isResizableReplacedElement,
+        fixId: "inactive-css-resize-fix",
+        msgId: "inactive-css-resize",
+      },
       // text-wrap: balance; used on elements exceeding the threshold line number
       {
         invalidProperties: ["text-wrap"],
@@ -1175,6 +1182,15 @@ class InactivePropertyHelper {
     return !(
       overflowValues.includes("visible") || overflowValues.includes("clip")
     );
+  }
+
+  /**
+   * Check if the current node is a replaced element that can be resized.
+   */
+  get isResizableReplacedElement() {
+    // There might be more replaced elements that can be resized in the future.
+    // (See bug 1280920 and its dependencies.)
+    return this.localName === "textarea";
   }
 
   /**
