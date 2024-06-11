@@ -182,10 +182,8 @@ RuleEditor.prototype = {
             }`,
           });
 
-          // We can't use a button, otherwise a line break is added when copy/pasting the rule
-          const jumpToNodeButton = createChild(selectorContainer, "span", {
+          const jumpToNodeButton = createChild(selectorContainer, "button", {
             class: "open-inspector",
-            role: "button",
             title: l10n("rule.containerQuery.selectContainerButton.tooltip"),
           });
 

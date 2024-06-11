@@ -177,7 +177,6 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_rules_conditional_import.js"]
 
 ["browser_rules_container-queries.js"]
-fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_rules_content_01.js"]
 
