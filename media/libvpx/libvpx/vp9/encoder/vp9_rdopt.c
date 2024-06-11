@@ -3435,7 +3435,7 @@ int vp9_active_edge_sb(VP9_COMP *cpi, int mi_row, int mi_col) {
 }
 
 #if !CONFIG_REALTIME_ONLY
-void init_frame_mv(int_mv frame_mv[MB_MODE_COUNT][MAX_REF_FRAMES]) {
+static void init_frame_mv(int_mv frame_mv[MB_MODE_COUNT][MAX_REF_FRAMES]) {
   for (int mode = 0; mode < MB_MODE_COUNT; ++mode) {
     for (int ref_frame = 0; ref_frame < MAX_REF_FRAMES; ++ref_frame) {
       frame_mv[mode][ref_frame].as_int = INVALID_MV;

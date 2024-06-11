@@ -442,6 +442,22 @@ check_neon_sve_bridge_compiles() {
 #include <arm_neon_sve_bridge.h>
 EOF
     compile_result=$?
+    if [ ${compile_result} -eq 0 ]; then
+      # Check whether the compiler can compile SVE functions that require
+      # backup/restore of SVE registers according to AAPCS. Clang for Windows
+      # used to fail this, see
+      # https://github.com/llvm/llvm-project/issues/80009.
+      check_cc -march=armv8.2-a+dotprod+i8mm+sve <<EOF
+#include <arm_sve.h>
+void other(void);
+svfloat32_t func(svfloat32_t a) {
+  other();
+  return a;
+}
+EOF
+      compile_result=$?
+    fi
+
     if [ ${compile_result} -ne 0 ]; then
       log_echo "  disabling sve: arm_neon_sve_bridge.h not supported by compiler"
       log_echo "  disabling sve2: arm_neon_sve_bridge.h not supported by compiler"
@@ -1005,7 +1021,15 @@ EOF
   # Process architecture variants
   case ${toolchain} in
     arm*)
-      soft_enable runtime_cpu_detect
+      case ${toolchain} in
+        armv7*-darwin*)
+          # Runtime cpu detection is not defined for these targets.
+          enabled runtime_cpu_detect && disable_feature runtime_cpu_detect
+          ;;
+        *)
+          soft_enable runtime_cpu_detect
+          ;;
+      esac
 
       if [ ${tgt_isa} = "armv7" ] || [ ${tgt_isa} = "armv7s" ]; then
         soft_enable neon

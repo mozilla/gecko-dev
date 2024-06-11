@@ -404,25 +404,46 @@ INSTANTIATE_TEST_SUITE_P(
         ::testing::Values(::libvpx_test::kTwoPassGood),
         ::testing::Range(0, 4)));  // cpu_used
 
-// Split this into two instantiations so that we can distinguish
-// between very slow runs ( ie cpu_speed 0 ) vs ones that can be
+constexpr libvpx_test::TestMode kOnePassTestModes[] = {
+  libvpx_test::kRealTime,
+#if !CONFIG_REALTIME_ONLY
+  libvpx_test::kOnePassGood,
+#endif
+};
+
+// Split this into multiple instantiations so that we can distinguish
+// between very slow runs ( i.e., cpu_speed 0 ) vs ones that can be
 // run nightly by adding Large to the title.
 INSTANTIATE_TEST_SUITE_P(
     VP9, VPxEncoderThreadTest,
     ::testing::Combine(
         ::testing::Values(
             static_cast<const libvpx_test::CodecFactory *>(&libvpx_test::kVP9)),
-        ONE_PASS_TEST_MODES, ::testing::Range(3, 10),  // cpu_used
-        ::testing::Range(0, 3),                        // tile_columns
-        ::testing::Range(2, 5)));                      // threads
+        ::testing::ValuesIn(kOnePassTestModes),
+        ::testing::Range(3, 10),   // cpu_used
+        ::testing::Range(0, 3),    // tile_columns
+        ::testing::Range(2, 5)));  // threads
 
 INSTANTIATE_TEST_SUITE_P(
     VP9Large, VPxEncoderThreadTest,
     ::testing::Combine(
         ::testing::Values(
             static_cast<const libvpx_test::CodecFactory *>(&libvpx_test::kVP9)),
-        ONE_PASS_TEST_MODES, ::testing::Range(0, 3),  // cpu_used
-        ::testing::Range(0, 3),                       // tile_columns
-        ::testing::Range(2, 5)));                     // threads
+        ::testing::ValuesIn(kOnePassTestModes),
+        ::testing::Range(0, 3),    // cpu_used
+        ::testing::Range(0, 3),    // tile_columns
+        ::testing::Range(2, 5)));  // threads
+
+#if !CONFIG_REALTIME_ONLY
+INSTANTIATE_TEST_SUITE_P(
+    VP9LargeBest, VPxEncoderThreadTest,
+    ::testing::Combine(
+        ::testing::Values(
+            static_cast<const libvpx_test::CodecFactory *>(&libvpx_test::kVP9)),
+        ::testing::Values(libvpx_test::kOnePassBest),
+        ::testing::Range(0, 10),   // cpu_used
+        ::testing::Range(0, 3),    // tile_columns
+        ::testing::Range(2, 5)));  // threads
+#endif
 
 }  // namespace

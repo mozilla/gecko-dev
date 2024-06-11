@@ -22,6 +22,7 @@ typedef struct EXT_RATECTRL {
   vpx_rc_funcs_t funcs;
   vpx_rc_config_t ratectrl_config;
   vpx_rc_firstpass_stats_t rc_firstpass_stats;
+  FILE *log_file;
 } EXT_RATECTRL;
 
 vpx_codec_err_t vp9_extrc_init(EXT_RATECTRL *ext_ratectrl);
