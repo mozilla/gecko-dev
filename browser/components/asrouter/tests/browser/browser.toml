@@ -45,5 +45,7 @@ skip-if = [
 
 ["browser_feature_callout_panel.js"]
 
+["browser_feature_callout.js"]
+
 ["browser_trigger_listeners.js"]
 https_first_disabled = true

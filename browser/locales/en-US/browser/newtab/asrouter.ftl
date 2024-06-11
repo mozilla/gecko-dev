@@ -171,24 +171,6 @@ mr2022-background-update-toast-primary-button-label = Open { -brand-shorter-name
 # exceeding characters will be truncated.
 mr2022-background-update-toast-secondary-button-label = Remind Me Later
 
-## Firefox View CFR
-
-firefoxview-cfr-primarybutton = Try it
-  .accesskey = T
-firefoxview-cfr-secondarybutton = Not now
-  .accesskey = N
-firefoxview-cfr-header-v2 = Quickly pick up where you left off
-firefoxview-cfr-body-v2 = Get recently closed tabs back, plus seamlessly hop between devices with { -firefoxview-brand-name }.
-
-## Firefox View Spotlight
-
-firefoxview-spotlight-promo-title = Say hello to { -firefoxview-brand-name }
-
-# “Poof” refers to the expression to convey when something or someone suddenly disappears, or in this case, reappears. For example, “Poof, it’s gone.”
-firefoxview-spotlight-promo-subtitle = Want that open tab on your phone? Grab it. Need that site you just visited? Poof, it’s back with { -firefoxview-brand-name }.
-firefoxview-spotlight-promo-primarybutton = See how it works
-firefoxview-spotlight-promo-secondarybutton = Skip
-
 ## Cookie Banner Handling CFR
 
 cookie-banner-blocker-onboarding-header = { -brand-short-name } just refused a cookie banner for you

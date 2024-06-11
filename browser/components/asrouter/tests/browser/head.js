@@ -12,6 +12,7 @@ ChromeUtils.defineESModuleGetters(this, {
 
   PlacesTestUtils: "resource://testing-common/PlacesTestUtils.sys.mjs",
   QueryCache: "resource:///modules/asrouter/ASRouterTargeting.sys.mjs",
+  AboutWelcomeParent: "resource:///actors/AboutWelcomeParent.sys.mjs",
 });
 const { FxAccounts } = ChromeUtils.importESModule(
   "resource://gre/modules/FxAccounts.sys.mjs"
@@ -26,6 +27,7 @@ const calloutId = "feature-callout";
 const calloutSelector = `#${calloutId}.featureCallout`;
 const calloutCTASelector = `#${calloutId} :is(.primary, .secondary)`;
 const calloutDismissSelector = `#${calloutId} .dismiss-button`;
+const CTASelector = `#${calloutId} :is(.primary, .secondary)`;
 
 function pushPrefs(...prefs) {
   return SpecialPowers.pushPrefEnv({ set: prefs });
@@ -62,3 +64,63 @@ async function waitForCalloutRemoved(target) {
     () => !target.querySelector(calloutSelector)
   );
 }
+
+/**
+ * A helper to check that correct telemetry was sent by AWSendEventTelemetry.
+ * This is a wrapper around sinon's spy functionality.
+ *
+ * @example
+ *  let spy = new TelemetrySpy();
+ *  element.click();
+ *  spy.assertCalledWith({ event: "CLICK" });
+ *  spy.restore();
+ */
+class TelemetrySpy {
+  /**
+   * @param {object} [sandbox] A pre-existing sinon sandbox to build the spy in.
+   *                           If not provided, a new sandbox will be created.
+   */
+  constructor(sandbox = sinon.createSandbox()) {
+    this.sandbox = sandbox;
+    this.spy = this.sandbox
+      .spy(AboutWelcomeParent.prototype, "onContentMessage")
+      .withArgs("AWPage:TELEMETRY_EVENT");
+    registerCleanupFunction(() => this.restore());
+  }
+  /**
+   * Assert that AWSendEventTelemetry sent the expected telemetry object.
+   *
+   * @param {object} expectedData
+   */
+  assertCalledWith(expectedData) {
+    let match = this.spy.calledWith("AWPage:TELEMETRY_EVENT", expectedData);
+    if (match) {
+      ok(true, "Expected telemetry sent");
+    } else if (this.spy.called) {
+      ok(
+        false,
+        `Wrong telemetry sent: ${JSON.stringify(this.spy.lastCall.args)}`
+      );
+    } else {
+      ok(false, "No telemetry sent");
+    }
+  }
+  reset() {
+    this.spy.resetHistory();
+  }
+  restore() {
+    this.sandbox.restore();
+  }
+}
+
+/**
+ * NOTE: Should be replaced with synthesizeMouseAtCenter for
+ * simulating user input. See Bug 1798322
+ *
+ * Clicks the primary button in the feature callout dialog
+ *
+ * @param {document} doc Document object
+ */
+const clickCTA = async doc => {
+  doc.querySelector(CTASelector).click();
+};

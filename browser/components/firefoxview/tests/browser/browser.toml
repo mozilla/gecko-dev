@@ -10,21 +10,6 @@ prefs = [
 
 ["browser_entrypoint_management.js"]
 
-["browser_feature_callout.js"]
-skip-if = ["true"] # Bug 1869605 and # Bug 1870296
-
-["browser_feature_callout_position.js"]
-skip-if = ["true"] # Bug 1869605 and # Bug 1870296
-
-["browser_feature_callout_resize.js"]
-skip-if = ["true"] # Bug 1869605 and # Bug 1870296
-
-["browser_feature_callout_targeting.js"]
-skip-if = ["true"] # Bug 1869605 and # Bug 1870296
-
-["browser_feature_callout_theme.js"]
-skip-if = ["true"] # Bug 1869605 and # Bug 1870296
-
 ["browser_firefoxview.js"]
 
 ["browser_firefoxview_dragDrop_pinned_tab.js"]
