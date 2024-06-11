@@ -22,6 +22,26 @@ const PREDEFINED_COLORS = {
   baseline: "orange",
   ion: "blue",
   wasm: "purple",
+
+  label: "lightblue",
+};
+
+// Indexes of attributes in arrays
+const INDEXES = {
+  stacks: {
+    prefix: 0,
+    frame: 1,
+  },
+  frames: {
+    location: 0,
+    relevantForJS: 1,
+    innerWindowID: 2,
+    implementation: 3,
+    line: 4,
+    column: 5,
+    category: 6,
+    subcategory: 7,
+  },
 };
 
 /**
@@ -155,27 +175,34 @@ class GeckoProfileCollector {
         data: [],
       },
       stackTable: {
-        schema: {
-          prefix: 0,
-          frame: 1,
-        },
+        schema: INDEXES.stacks,
         data: [],
       },
       frameTable: {
-        schema: {
-          location: 0,
-          relevantForJS: 1,
-          innerWindowID: 2,
-          implementation: 3,
-          line: 4,
-          column: 5,
-          category: 6,
-          subcategory: 7,
-        },
+        schema: INDEXES.frames,
         data: [],
       },
       stringTable: [],
     };
+  }
+
+  /**
+   * Called when a DOM Event just fired (and some listener in JS is about to run).
+   *
+   * @param {String} domEventName
+   */
+  logDOMEvent(domEventName) {
+    const frameIndex = this.#getOrCreateLabelFrame(domEventName);
+    this.#currentStackIndex = this.#getOrCreateStack(
+      frameIndex,
+      this.#currentStackIndex
+    );
+
+    this.#thread.samples.data.push([
+      this.#currentStackIndex,
+      ChromeUtils.dateNow() - this.#startTime,
+      0, // eventDelay
+    ]);
   }
 
   /**
@@ -206,7 +233,9 @@ class GeckoProfileCollector {
     }
 
     this.#currentStackIndex =
-      this.#thread.stackTable.data[this.#currentStackIndex][0];
+      this.#thread.stackTable.data[this.#currentStackIndex][
+        INDEXES.stacks.prefix
+      ];
 
     // Record a sample for the parent's stack (or null if there is none [i.e. on top level frame pop])
     // so that the frontend considers that the last executed frame stops its execution.
@@ -215,6 +244,57 @@ class GeckoProfileCollector {
       ChromeUtils.dateNow() - this.#startTime,
       0, // eventDelay
     ]);
+
+    // If we popped and now are on a label frame, with a null line,
+    // automatically also pop that label frame.
+    if (this.#currentStackIndex !== null) {
+      const currentFrameIndex =
+        this.#thread.stackTable.data[this.#currentStackIndex][
+          INDEXES.stacks.frame
+        ];
+      const currentFrameLine =
+        this.#thread.frameTable.data[currentFrameIndex][INDEXES.frames.line];
+      if (currentFrameLine == null) {
+        this.onFramePop();
+      }
+    }
+  }
+
+  /**
+   * Get a frame index for a label frame name.
+   * Label frame are fake frames in order to display arbitrary strings in the stack chart.
+   *
+   * @param {String} label
+   * @return {Number}
+   *         Frame index for this label frame.
+   */
+  #getOrCreateLabelFrame(label) {
+    const { frameTable, stringTable } = this.#thread;
+    const key = `label:${label}`;
+    let frameIndex = this.#frameMap.get(key);
+
+    if (frameIndex === undefined) {
+      frameIndex = frameTable.data.length;
+      const locationStringIndex = stringTable.length;
+
+      stringTable.push(label);
+
+      const categoryIndex = this.#getOrCreateCategory("label");
+
+      frameTable.data.push([
+        locationStringIndex,
+        true, // relevantForJS
+        0, // innerWindowID
+        null, // implementation
+        null, // line
+        null, // column
+        categoryIndex,
+        0, // subcategory
+      ]);
+      this.#frameMap.set(key, frameIndex);
+    }
+
+    return frameIndex;
   }
 
   /**
