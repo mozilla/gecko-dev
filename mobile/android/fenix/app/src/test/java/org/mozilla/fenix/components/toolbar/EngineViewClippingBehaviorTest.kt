@@ -8,6 +8,7 @@ import android.view.View
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.toolbar.BrowserToolbar
 import mozilla.components.concept.engine.EngineView
@@ -34,6 +35,10 @@ class EngineViewClippingBehaviorTest {
         val engineView: EngineView = spy(FakeEngineView(testContext))
         val engineParentView: View = spy(View(testContext))
         val toolbar: BrowserToolbar = mock()
+        val coordinatorLayout: CoordinatorLayout = mock()
+
+        doReturn(TOOLBAR_PARENT_HEIGHT).`when`(coordinatorLayout).height
+        doReturn(TOOLBAR_TOP_WHEN_POSITIONED_AT_BOTTOM).`when`(toolbar).top
         doReturn(Y_DOWN_TRANSITION).`when`(toolbar).translationY
 
         assertEquals(0f, engineParentView.translationY)
@@ -46,7 +51,7 @@ class EngineViewClippingBehaviorTest {
         ).apply {
             this.engineView = engineView
         }.run {
-            onDependentViewChanged(mock(), mock(), toolbar)
+            onDependentViewChanged(coordinatorLayout, engineParentView, toolbar)
         }
 
         // We want to position the engine view popup content
@@ -66,6 +71,10 @@ class EngineViewClippingBehaviorTest {
         val engineView: EngineView = spy(FakeEngineView(testContext))
         val engineParentView: View = spy(View(testContext))
         val toolbar: ToolbarContainerView = mock()
+        val coordinatorLayout: CoordinatorLayout = mock()
+
+        doReturn(TOOLBAR_PARENT_HEIGHT).`when`(coordinatorLayout).height
+        doReturn(TOOLBAR_TOP_WHEN_POSITIONED_AT_BOTTOM).`when`(toolbar).top
         doReturn(Y_DOWN_TRANSITION).`when`(toolbar).translationY
 
         assertEquals(0f, engineParentView.translationY)
@@ -78,7 +87,7 @@ class EngineViewClippingBehaviorTest {
         ).apply {
             this.engineView = engineView
         }.run {
-            onDependentViewChanged(mock(), mock(), toolbar)
+            onDependentViewChanged(coordinatorLayout, engineParentView, toolbar)
         }
 
         // We want to position the engine view popup content
@@ -99,6 +108,10 @@ class EngineViewClippingBehaviorTest {
         val engineView: EngineView = spy(FakeEngineView(testContext))
         val engineParentView: View = spy(View(testContext))
         val toolbar: BrowserToolbar = mock()
+        val coordinatorLayout: CoordinatorLayout = mock()
+
+        doReturn(TOOLBAR_PARENT_HEIGHT).`when`(coordinatorLayout).height
+        doReturn(TOOLBAR_TOP_WHEN_POSITIONED_AT_TOP).`when`(toolbar).top
         doReturn(Y_UP_TRANSITION).`when`(toolbar).translationY
 
         assertEquals(0f, engineParentView.translationY)
@@ -111,7 +124,7 @@ class EngineViewClippingBehaviorTest {
         ).apply {
             this.engineView = engineView
         }.run {
-            onDependentViewChanged(mock(), mock(), toolbar)
+            onDependentViewChanged(coordinatorLayout, engineParentView, toolbar)
         }
 
         verify(engineView).setVerticalClipping(Y_UP_TRANSITION.toInt())
@@ -131,6 +144,11 @@ class EngineViewClippingBehaviorTest {
         val engineParentView: View = spy(View(testContext))
         val toolbar: BrowserToolbar = mock()
         val toolbarContainerView: ToolbarContainerView = mock()
+        val coordinatorLayout: CoordinatorLayout = mock()
+
+        doReturn(TOOLBAR_PARENT_HEIGHT).`when`(coordinatorLayout).height
+        doReturn(TOOLBAR_TOP_WHEN_POSITIONED_AT_TOP).`when`(toolbar).top
+        doReturn(TOOLBAR_TOP_WHEN_POSITIONED_AT_BOTTOM).`when`(toolbarContainerView).top
         doReturn(Y_UP_TRANSITION).`when`(toolbar).translationY
         doReturn(Y_DOWN_TRANSITION).`when`(toolbarContainerView).translationY
 
@@ -142,8 +160,8 @@ class EngineViewClippingBehaviorTest {
         ).apply {
             this.engineView = engineView
         }.run {
-            onDependentViewChanged(mock(), mock(), toolbar)
-            onDependentViewChanged(mock(), mock(), toolbarContainerView)
+            onDependentViewChanged(coordinatorLayout, engineParentView, toolbar)
+            onDependentViewChanged(coordinatorLayout, engineParentView, toolbarContainerView)
         }
 
         val doubleClipping = Y_UP_TRANSITION - Y_DOWN_TRANSITION
@@ -156,6 +174,11 @@ class EngineViewClippingBehaviorTest {
         val engineParentView: View = spy(View(testContext))
         val toolbar: BrowserToolbar = mock()
         val toolbarContainerView: ToolbarContainerView = mock()
+        val coordinatorLayout: CoordinatorLayout = mock()
+
+        doReturn(TOOLBAR_PARENT_HEIGHT).`when`(coordinatorLayout).height
+        doReturn(TOOLBAR_TOP_WHEN_POSITIONED_AT_TOP).`when`(toolbar).top
+        doReturn(TOOLBAR_TOP_WHEN_POSITIONED_AT_BOTTOM).`when`(toolbarContainerView).top
         doReturn(Y_UP_TRANSITION).`when`(toolbar).translationY
         doReturn(Y_DOWN_TRANSITION).`when`(toolbarContainerView).translationY
 
@@ -167,8 +190,8 @@ class EngineViewClippingBehaviorTest {
         ).apply {
             this.engineView = engineView
         }.run {
-            onDependentViewChanged(mock(), mock(), toolbar)
-            onDependentViewChanged(mock(), mock(), toolbarContainerView)
+            onDependentViewChanged(coordinatorLayout, engineParentView, toolbar)
+            onDependentViewChanged(coordinatorLayout, engineParentView, toolbarContainerView)
         }
 
         // The top of the parent should be positioned right below the toolbar,
@@ -188,6 +211,10 @@ class EngineViewClippingBehaviorTest {
         val engineView: EngineView = spy(FakeEngineView(testContext))
         val engineParentView: View = spy(View(testContext))
         val toolbar: BrowserToolbar = mock()
+        val coordinatorLayout: CoordinatorLayout = mock()
+
+        doReturn(TOOLBAR_PARENT_HEIGHT).`when`(coordinatorLayout).height
+        doReturn(TOOLBAR_TOP_WHEN_POSITIONED_AT_TOP).`when`(toolbar).top
         doReturn(largeYUpTransition).`when`(toolbar).translationY
 
         EngineViewClippingBehavior(
@@ -199,7 +226,7 @@ class EngineViewClippingBehaviorTest {
             this.engineView = engineView
             this.recentBottomToolbarTranslation = Y_DOWN_TRANSITION
         }.run {
-            onDependentViewChanged(mock(), mock(), toolbar)
+            onDependentViewChanged(coordinatorLayout, engineParentView, toolbar)
         }
 
         val doubleClipping = largeYUpTransition - Y_DOWN_TRANSITION
@@ -212,9 +239,15 @@ class EngineViewClippingBehaviorTest {
     @Test
     fun `GIVEN bottom toolbar is much bigger than top WHEN top stopped shifting && bottom is shifting THEN bottom clipping && engineParentView shifting is still accurate`() {
         val largeYBottomTransition = 500f
+        val largeBottomToolbarTop = TOOLBAR_PARENT_HEIGHT - 500
+
         val engineView: EngineView = spy(FakeEngineView(testContext))
         val engineParentView: View = spy(View(testContext))
         val toolbarContainerView: ToolbarContainerView = mock()
+        val coordinatorLayout: CoordinatorLayout = mock()
+
+        doReturn(TOOLBAR_PARENT_HEIGHT).`when`(coordinatorLayout).height
+        doReturn(largeBottomToolbarTop).`when`(toolbarContainerView).top
         doReturn(largeYBottomTransition).`when`(toolbarContainerView).translationY
 
         EngineViewClippingBehavior(
@@ -226,7 +259,7 @@ class EngineViewClippingBehaviorTest {
             this.engineView = engineView
             this.recentTopToolbarTranslation = Y_UP_TRANSITION
         }.run {
-            onDependentViewChanged(mock(), mock(), toolbarContainerView)
+            onDependentViewChanged(coordinatorLayout, engineParentView, toolbarContainerView)
         }
 
         val doubleClipping = Y_UP_TRANSITION - largeYBottomTransition
@@ -287,6 +320,9 @@ class EngineViewClippingBehaviorTest {
     }
 }
 
+private const val TOOLBAR_PARENT_HEIGHT = 2200
 private const val TOOLBAR_HEIGHT = 100f
+private const val TOOLBAR_TOP_WHEN_POSITIONED_AT_TOP = 0
+private const val TOOLBAR_TOP_WHEN_POSITIONED_AT_BOTTOM = 2100
 private const val Y_UP_TRANSITION = -42f
 private const val Y_DOWN_TRANSITION = -42f
