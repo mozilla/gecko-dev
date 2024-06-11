@@ -624,13 +624,17 @@
 .ruleview-flex,
 .ruleview-grid,
 .ruleview-shapeswatch {
+  background-color: transparent;
+  border: none;
   -moz-context-properties: stroke;
   stroke: var(--theme-icon-color);
+  /* Prevent line break when copy/pasting an entire rule */
+  user-select: auto;
 }
 
 .ruleview-flex.active,
 .ruleview-grid.active,
-.ruleview-shapeswatch.active {
+.ruleview-shapeswatch[aria-pressed="true"] {
   stroke: var(--theme-icon-checked-color);
 }
 

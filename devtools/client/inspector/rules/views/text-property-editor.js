@@ -816,6 +816,8 @@ TextPropertyEditor.prototype = {
           })
           .join("");
       shapeToggle.setAttribute("data-mode", mode);
+      shapeToggle.setAttribute("aria-pressed", false);
+      shapeToggle.setAttribute("title", l10n("rule.shapeToggle.tooltip"));
     }
 
     // Now that we have updated the property's value, we might have a pending

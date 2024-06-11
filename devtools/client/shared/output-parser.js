@@ -909,10 +909,8 @@ class OutputParser {
 
     const container = this.#createNode("span", {});
 
-    const toggle = this.#createNode("span", {
+    const toggleButton = this.#createNode("button", {
       class: options.shapeSwatchClass,
-      tabindex: "0",
-      role: "button",
     });
 
     const lowerCaseShape = shape.toLowerCase();
@@ -924,7 +922,7 @@ class OutputParser {
           class: options.shapeClass,
         });
 
-        container.appendChild(toggle);
+        container.appendChild(toggleButton);
 
         appendText(valContainer, shape.substring(0, coordsBegin));
 

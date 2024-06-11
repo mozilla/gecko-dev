@@ -31,8 +31,9 @@ add_task(async function () {
 
   info("Checking the initial state of the CSS shape toggle in the rule-view.");
   ok(shapesToggle, "Shapes highlighter toggle is visible.");
-  ok(
-    !shapesToggle.classList.contains("active"),
+  is(
+    shapesToggle.getAttribute("aria-pressed"),
+    "false",
     "Shapes highlighter toggle button is not active."
   );
   ok(
@@ -52,8 +53,9 @@ add_task(async function () {
     "Checking the CSS shapes highlighter is created and toggle button is active in " +
       "the rule-view."
   );
-  ok(
-    shapesToggle.classList.contains("active"),
+  is(
+    shapesToggle.getAttribute("aria-pressed"),
+    "true",
     "Shapes highlighter toggle is active."
   );
   ok(
@@ -71,9 +73,10 @@ add_task(async function () {
     "Checking the CSS shapes highlighter is not shown and toggle button is not " +
       "active in the rule-view."
   );
-  ok(
-    !shapesToggle.classList.contains("active"),
-    "shapes highlighter toggle button is not active."
+  is(
+    shapesToggle.getAttribute("aria-pressed"),
+    "false",
+    "Shapes highlighter toggle button is not active."
   );
   ok(
     !highlighters.shapesHighlighterShown,
