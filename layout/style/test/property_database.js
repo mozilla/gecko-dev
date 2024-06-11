@@ -14319,19 +14319,6 @@ if (IsCSSPropertyPrefEnabled("layout.css.transition-behavior.enabled")) {
   }
 }
 
-if (IsCSSPropertyPrefEnabled("layout.css.field-sizing.enabled")) {
-  Object.assign(gCSSProperties, {
-    "field-sizing": {
-      domProp: "fieldSizing",
-      inherited: false,
-      type: CSS_TYPE_LONGHAND,
-      initial_values: ["fixed"],
-      other_values: ["content"],
-      invalid_values: ["none", "auto"],
-    },
-  });
-}
-
 // Copy aliased properties' fields from their alias targets. Keep this logic
 // at the bottom of this file to ensure all the aliased properties are
 // processed.

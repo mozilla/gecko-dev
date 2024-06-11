@@ -130,12 +130,6 @@ enum class StyleScrollbarWidth : uint8_t {
   None,
 };
 
-// field-sizing
-enum class StyleFieldSizing : bool {
-  Fixed,
-  Content,
-};
-
 // Shape source type
 enum class StyleShapeSourceType : uint8_t {
   None,

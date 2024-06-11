@@ -432,14 +432,3 @@ ${helpers.predefined_type(
     rule_types_allowed=DEFAULT_RULES_EXCEPT_KEYFRAME,
     affects="",
 )}
-
-${helpers.single_keyword(
-    "field-sizing",
-    "fixed content",
-    engines="gecko",
-    gecko_enum_prefix="StyleFieldSizing",
-    animation_value_type="discrete",
-    gecko_pref="layout.css.field-sizing.enabled",
-    spec="https://drafts.csswg.org/css-ui/#field-sizing",
-    affects="layout",
-)}
