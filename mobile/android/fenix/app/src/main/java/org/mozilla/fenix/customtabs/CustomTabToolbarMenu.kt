@@ -126,6 +126,7 @@ class CustomTabToolbarMenu(
         val menuItems = listOfNotNull(
             poweredBy.apply { visible = { !isSandboxCustomTab } },
             BrowserMenuDivider().apply { visible = { !isSandboxCustomTab } },
+            sharePage.apply { visible = { isNavBarEnabled && !isSandboxCustomTab } },
             desktopMode,
             findInPage,
             openInApp.apply { visible = ::shouldShowOpenInApp },
@@ -146,6 +147,14 @@ class CustomTabToolbarMenu(
         initialState = { session?.content?.desktopMode ?: false },
     ) { checked ->
         onItemTapped.invoke(ToolbarMenu.Item.RequestDesktop(checked))
+    }
+
+    private val sharePage = BrowserMenuImageText(
+        label = context.getString(R.string.browser_menu_share),
+        imageResource = R.drawable.ic_share,
+        iconTintColorResource = primaryTextColor(),
+    ) {
+        onItemTapped.invoke(ToolbarMenu.Item.Share)
     }
 
     private val findInPage = BrowserMenuImageText(
