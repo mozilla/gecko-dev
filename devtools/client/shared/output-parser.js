@@ -865,15 +865,12 @@ class OutputParser {
   #appendHighlighterToggle(text, className) {
     const container = this.#createNode("span", {});
 
-    const toggle = this.#createNode("span", {
+    const toggleButton = this.#createNode("button", {
       class: className,
     });
 
-    const value = this.#createNode("span", {});
-    value.textContent = text;
-
-    container.appendChild(toggle);
-    container.appendChild(value);
+    const value = this.#createNode("span", {}, text);
+    container.append(toggleButton, value);
     this.#parsed.push(container);
   }
 

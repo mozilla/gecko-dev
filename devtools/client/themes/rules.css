@@ -632,9 +632,11 @@
   user-select: auto;
 }
 
-.ruleview-flex.active,
-.ruleview-grid.active,
-.ruleview-shapeswatch[aria-pressed="true"] {
+:is(
+  .ruleview-flex,
+  .ruleview-grid,
+  .ruleview-shapeswatch
+)[aria-pressed="true"] {
   stroke: var(--theme-icon-checked-color);
 }
 

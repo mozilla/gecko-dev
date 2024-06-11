@@ -51,11 +51,17 @@ add_task(async function () {
     flexboxToggle && overriddenFlexboxToggle,
     "Flexbox highlighter toggles are visible."
   );
-  ok(
-    !flexboxToggle.classList.contains("active") &&
-      !overriddenFlexboxToggle.classList.contains("active"),
-    "Flexbox highlighter toggle buttons are not active."
+  is(
+    flexboxToggle.getAttribute("aria-pressed"),
+    "false",
+    "Flexbox highlighter toggle buttons is not active…"
   );
+  is(
+    overriddenFlexboxToggle.getAttribute("aria-pressed"),
+    "false",
+    "… and overriden Flexbox highlighter toggle buttons isn't active either"
+  );
+
   ok(
     !getActiveHighlighter(HIGHLIGHTER_TYPE),
     "No flexbox highlighter exists in the rule-view."
@@ -76,11 +82,17 @@ add_task(async function () {
     "Checking the flexbox highlighter is created and toggle buttons are active in " +
       "the rule-view."
   );
-  ok(
-    flexboxToggle.classList.contains("active") &&
-      overriddenFlexboxToggle.classList.contains("active"),
-    "Flexbox highlighter toggle is active."
+  is(
+    flexboxToggle.getAttribute("aria-pressed"),
+    "true",
+    "Flexbox highlighter toggle is active…"
   );
+  is(
+    overriddenFlexboxToggle.getAttribute("aria-pressed"),
+    "true",
+    "… and overriden Flexbox highlighter toggle buttons is active as well"
+  );
+
   ok(
     getActiveHighlighter(HIGHLIGHTER_TYPE),
     "Flexbox highlighter created in the rule-view."
@@ -102,10 +114,15 @@ add_task(async function () {
     "Checking the flexbox highlighter is not shown and toggle buttons are not " +
       "active in the rule-view."
   );
-  ok(
-    !flexboxToggle.classList.contains("active") &&
-      !overriddenFlexboxToggle.classList.contains("active"),
-    "Flexbox highlighter toggle buttons are not active."
+  is(
+    flexboxToggle.getAttribute("aria-pressed"),
+    "false",
+    "Flexbox highlighter toggle buttons is not active…"
+  );
+  is(
+    overriddenFlexboxToggle.getAttribute("aria-pressed"),
+    "false",
+    "… and overriden Flexbox highlighter toggle buttons isn't active either"
   );
   ok(
     !getNodeForActiveHighlighter(HIGHLIGHTER_TYPE),

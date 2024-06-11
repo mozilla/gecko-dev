@@ -529,18 +529,18 @@ CssRuleView.prototype = {
         }
         break;
 
-      // Toggle the "active" class on swatches next to flex and inline-flex CSS properties
+      // Toggle the "aria-pressed" attribute on swatches next to flex and inline-flex CSS properties
       // when the FlexboxHighlighter is shown/hidden for the currently selected node.
       case this.inspector.highlighters.TYPES.FLEXBOX:
         {
           const query = ".js-toggle-flexbox-highlighter";
           for (const node of this.styleDocument.querySelectorAll(query)) {
-            node.classList.toggle("active", eventName == "highlighter-shown");
+            node.setAttribute("aria-pressed", eventName == "highlighter-shown");
           }
         }
         break;
 
-      // Toggle the "active" class on swatches next to grid CSS properties
+      // Toggle the "aria-pressed" class on swatches next to grid CSS properties
       // when the GridHighlighter is shown/hidden for the currently selected node.
       case this.inspector.highlighters.TYPES.GRID:
         {
@@ -550,7 +550,10 @@ CssRuleView.prototype = {
             // not currently selected. The Rules view shows `display: grid` declarations
             // only for the selected node. Avoid mistakenly marking them as "active".
             if (data.nodeFront === this.inspector.selection.nodeFront) {
-              node.classList.toggle("active", eventName == "highlighter-shown");
+              node.setAttribute(
+                "aria-pressed",
+                eventName == "highlighter-shown"
+              );
             }
 
             // When the max limit of grid highlighters is reached (default 3),

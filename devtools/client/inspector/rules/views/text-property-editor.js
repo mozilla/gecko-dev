@@ -784,8 +784,8 @@ TextPropertyEditor.prototype = {
     const flexToggle = this.valueSpan.querySelector(".ruleview-flex");
     if (flexToggle) {
       flexToggle.setAttribute("title", l10n("rule.flexToggle.tooltip"));
-      flexToggle.classList.toggle(
-        "active",
+      flexToggle.setAttribute(
+        "aria-pressed",
         this.ruleView.inspector.highlighters.getNodeForActiveHighlighter(
           this.ruleView.inspector.highlighters.TYPES.FLEXBOX
         ) === nodeFront
@@ -795,8 +795,8 @@ TextPropertyEditor.prototype = {
     const gridToggle = this.valueSpan.querySelector(".ruleview-grid");
     if (gridToggle) {
       gridToggle.setAttribute("title", l10n("rule.gridToggle.tooltip"));
-      gridToggle.classList.toggle(
-        "active",
+      gridToggle.setAttribute(
+        "aria-pressed",
         this.ruleView.highlighters.gridHighlighters.has(nodeFront)
       );
       gridToggle.toggleAttribute(
