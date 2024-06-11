@@ -1,3 +1,14 @@
+Simple Browser Linux
+
+HUGE ANNOUNCEMENT!
+
+Eventually all versions of Simple Browser will be firefox based
+(Simple Browser C# will still be updated and supported)
+
+DEFAULT:
+
+
+
 An explanation of the Firefox Source Code Directory Structure and links to
 project pages with documentation can be found at:
 
