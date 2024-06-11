@@ -98,36 +98,6 @@ impl CommandRunner for Command {
     }
 }
 
-struct MockCommand {
-    command_line: String,
-}
-
-impl CommandRunner for MockCommand {
-    fn new() -> Self {
-        MockCommand {
-            command_line: String::new(),
-        }
-    }
-    fn arg(&mut self, arg: &str) -> &mut Self {
-        self.command_line.push_str(arg);
-        self.command_line.push(' ');
-        self
-    }
-    fn args(&mut self, args: &[&str]) -> &mut Self {
-        for arg in args {
-            self.command_line.push_str(arg);
-            self.command_line.push(' ');
-        }
-        self
-    }
-    fn spawn(&mut self) -> std::io::Result<()> {
-        Ok(())
-    }
-    fn to_string(&mut self) -> std::io::Result<String> {
-        Ok(self.command_line.clone())
-    }
-}
-
 // The message length is a 32-bit integer in native byte order
 pub fn read_message_length<R: Read>(mut reader: R) -> std::io::Result<u32> {
     let mut buffer = [0u8; 4];
@@ -308,6 +278,37 @@ mod tests {
     use super::*;
     use std::io::Cursor;
     use tempfile::NamedTempFile;
+
+    struct MockCommand {
+        command_line: String,
+    }
+
+    impl CommandRunner for MockCommand {
+        fn new() -> Self {
+            MockCommand {
+                command_line: String::new(),
+            }
+        }
+        fn arg(&mut self, arg: &str) -> &mut Self {
+            self.command_line.push_str(arg);
+            self.command_line.push(' ');
+            self
+        }
+        fn args(&mut self, args: &[&str]) -> &mut Self {
+            for arg in args {
+                self.command_line.push_str(arg);
+                self.command_line.push(' ');
+            }
+            self
+        }
+        fn spawn(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+        fn to_string(&mut self) -> std::io::Result<String> {
+            Ok(self.command_line.clone())
+        }
+    }
+
     #[test]
     fn test_validate_url() {
         let valid_test_cases = vec![
