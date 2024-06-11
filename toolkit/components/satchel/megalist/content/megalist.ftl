@@ -38,6 +38,9 @@ passwords-command-export = Export Passwords…
 passwords-command-remove-all = Remove All Passwords…
 passwords-command-settings = Settings
 passwords-command-help = Help
+passwords-command-sort-name = Sort By Name (A-Z)
+# This message can be seen when sorting logins by breached or vulnerable alerts.
+passwords-command-sort-alerts = Sort By Alerts
 
 passwords-os-auth-dialog-caption = { -brand-full-name }
 

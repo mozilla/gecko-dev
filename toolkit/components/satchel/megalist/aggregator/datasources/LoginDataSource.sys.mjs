@@ -21,6 +21,13 @@ XPCOMUtils.defineLazyPreferenceGetter(
   false
 );
 
+// Precedence values when sorting logins by alerts.
+const ALERT_VALUES = {
+  breached: 0,
+  vulnerable: 1,
+  none: 2,
+};
+
 /**
  * Data source for Logins.
  *
@@ -37,6 +44,7 @@ export class LoginDataSource extends DataSourceBase {
   #enabled;
   #header;
   #exportPasswordsStrings;
+  #sortId;
 
   constructor(...args) {
     super(...args);
@@ -90,7 +98,12 @@ export class LoginDataSource extends DataSourceBase {
         { id: "Export", label: "passwords-command-export" },
         { id: "RemoveAll", label: "passwords-command-remove-all" },
         { id: "Settings", label: "passwords-command-settings" },
-        { id: "Help", label: "passwords-command-help" }
+        { id: "Help", label: "passwords-command-help" },
+        { id: "SortByName", label: "passwords-command-sort-name" },
+        {
+          id: "SortByAlerts",
+          label: "passwords-command-sort-alerts",
+        }
       );
       this.#header.executeImport = async () =>
         this.#importFromFile(
@@ -114,6 +127,20 @@ export class LoginDataSource extends DataSourceBase {
           strings.passwordsExportFilePickerDefaultFileName.concat(".csv"),
         FilePickerCsvFilterTitle:
           strings.passwordsExportFilePickerCsvFilterTitle,
+      };
+
+      this.#header.executeSortByName = () => {
+        if (this.#sortId !== "name") {
+          this.#sortId = "name";
+          this.#reloadDataSource();
+        }
+      };
+
+      this.#header.executeSortByAlerts = async () => {
+        if (this.#sortId !== "alerts") {
+          this.#sortId = "alerts";
+          this.#reloadDataSource();
+        }
       };
 
       this.#originPrototype = this.prototypeDataLine({
@@ -281,6 +308,8 @@ export class LoginDataSource extends DataSourceBase {
         },
       });
 
+      // Sort by origin, then by username, then by GUID
+      this.#sortId = "name";
       Services.obs.addObserver(this, "passwordmgr-storage-changed");
       Services.prefs.addObserver("signon.rememberSignons", this);
       Services.prefs.addObserver(
@@ -548,8 +577,23 @@ export class LoginDataSource extends DataSourceBase {
       if (parts.length > 1) {
         parts.length -= 1;
       }
+      const isLoginBreached = breachesMap.has(login.guid);
+      const isLoginVulnerable = lazy.LoginBreaches.isVulnerablePassword(login);
+
+      let alertValue;
+      if (isLoginBreached) {
+        alertValue = ALERT_VALUES.breached;
+      } else if (isLoginVulnerable) {
+        alertValue = ALERT_VALUES.vulnerable;
+      } else {
+        alertValue = ALERT_VALUES.none;
+      }
+
       const domain = parts.reverse().join(".");
-      const lineId = `${domain}:${login.username}:${login.guid}`;
+      const lineId =
+        this.#sortId === "alerts"
+          ? `${alertValue}:${domain}:${login.username}:${login.guid}`
+          : `${domain}:${login.username}:${login.guid}`;
 
       let originLine = this.addOrUpdateLine(
         login,
@@ -563,10 +607,9 @@ export class LoginDataSource extends DataSourceBase {
         this.#passwordPrototype
       );
 
-      originLine.breached = breachesMap.has(login.guid);
-      passwordLine.vulnerable = lazy.LoginBreaches.isVulnerablePassword(login);
+      originLine.breached = isLoginBreached;
+      passwordLine.vulnerable = isLoginVulnerable;
     });
-
     this.afterReloadingDataSource();
   }
 
