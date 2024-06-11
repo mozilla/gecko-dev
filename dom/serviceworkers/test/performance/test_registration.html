@@ -10,24 +10,16 @@
 
   "use strict";
 
-  // "Total" register() time, including process startup.  We don't cause it all,
-  // but we're affected by it.
   const REGISTRATION = "Registration";
-
-  // Targeted timing of regristration machinery.
-  const REGISTRATION_INTERNALS = "Registration Internals";
-
   const ACTIVATION = "Activation";
-
   const UNREGISTRATION = "Unregistration";
 
-  var journal = {};
+  var journal = [];
   journal[REGISTRATION] = [];
-  journal[REGISTRATION_INTERNALS] = [];
   journal[ACTIVATION] = [];
   journal[UNREGISTRATION] = [];
 
-  const ITERATIONS = 11;
+  const ITERATIONS = 10;
 
   var perfMetadata = {
     owner: "DOM LWS",
@@ -40,7 +32,6 @@
           // Here, we can't use the constants defined above because perfherder
           // grabs data from the parse tree.
           { name: "Registration", unit: "ms", shouldAlert: true },
-          { name: "Registration Internals", unit: "ms", shouldAlert: true },
           { name: "Activation", unit: "ms", shouldAlert: true },
           { name: "Unregistration", unit: "ms", shouldAlert: true },
         ],
@@ -51,14 +42,21 @@
     },
   };
 
+  function create_iframe(url) {
+    return new Promise(function(res) {
+      let iframe = document.createElement("iframe");
+      iframe.src = url;
+      iframe.onload = function() { res(iframe) }
+      document.body.appendChild(iframe);
+    });
+  }
+
   add_task(async () => {
     await SpecialPowers.pushPrefEnv({
       set: [["dom.serviceWorkers.testing.enabled", true]]
     });
 
     async function measure() {
-      await startProfiler();
-
       let begin_ts = performance.now();
       let reg = await navigator.serviceWorker.register("sw_empty.js");
       let reg_ts = performance.now();
@@ -67,17 +65,7 @@
       await reg.unregister();
       let unreg_ts = performance.now();
 
-      let pdata = await stopProfiler();
-      let duration_ms = inspectProfile(pdata, [
-        "SWM Register",
-        "SWRJ AsyncExecute",
-        "InitServiceWorkerRegistrationParent",
-        "SWC Register",
-        "SWC Register (inner)"
-      ]);
-
       journal[REGISTRATION].push(reg_ts - begin_ts);
-      journal[REGISTRATION_INTERNALS].push(duration_ms);
       journal[ACTIVATION].push(act_ts - reg_ts);
       journal[UNREGISTRATION].push(unreg_ts - act_ts);
     }

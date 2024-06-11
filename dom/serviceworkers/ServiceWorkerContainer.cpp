@@ -200,8 +200,6 @@ already_AddRefed<nsIURI> GetBaseURIFromGlobal(nsIGlobalObject* aGlobal,
 already_AddRefed<Promise> ServiceWorkerContainer::Register(
     const nsAString& aScriptURL, const RegistrationOptions& aOptions,
     const CallerType aCallerType, ErrorResult& aRv) {
-  AUTO_PROFILER_MARKER_TEXT("SWC Register", DOM, {}, ""_ns);
-
   // Note, we can't use GetGlobalIfValid() from the start here.  If we
   // hit a storage failure we want to log a message with the final
   // scope string we put together below.
@@ -377,8 +375,6 @@ already_AddRefed<Promise> ServiceWorkerContainer::Register(
       [self,
        outer](const IPCServiceWorkerRegistrationDescriptorOrCopyableErrorResult&
                   aResult) {
-        AUTO_PROFILER_MARKER_TEXT("SWC Register (inner)", DOM, {}, ""_ns);
-
         if (aResult.type() ==
             IPCServiceWorkerRegistrationDescriptorOrCopyableErrorResult::
                 TCopyableErrorResult) {

@@ -8,7 +8,6 @@
 
 #include "mozilla/dom/WorkerCommon.h"
 #include "ServiceWorkerManager.h"
-#include "mozilla/ProfilerMarkers.h"
 
 namespace mozilla::dom {
 
@@ -20,8 +19,6 @@ ServiceWorkerRegisterJob::ServiceWorkerRegisterJob(
 
 void ServiceWorkerRegisterJob::AsyncExecute() {
   MOZ_ASSERT(NS_IsMainThread());
-
-  AUTO_PROFILER_MARKER_TEXT("SWRJ AsyncExecute", DOM, {}, ""_ns);
 
   RefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
   if (Canceled() || !swm) {

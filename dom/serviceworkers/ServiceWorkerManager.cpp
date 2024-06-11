@@ -834,8 +834,6 @@ ServiceWorkerManager::RegisterForTest(nsIPrincipal* aPrincipal,
 RefPtr<ServiceWorkerRegistrationPromise> ServiceWorkerManager::Register(
     const ClientInfo& aClientInfo, const nsACString& aScopeURL,
     const nsACString& aScriptURL, ServiceWorkerUpdateViaCache aUpdateViaCache) {
-  AUTO_PROFILER_MARKER_TEXT("SWM Register", DOM, {}, ""_ns);
-
   nsCOMPtr<nsIURI> scopeURI;
   nsresult rv = NS_NewURI(getter_AddRefs(scopeURI), aScopeURL);
   if (NS_FAILED(rv)) {
