@@ -33,8 +33,8 @@ class GeckoProfileCollector {
   #stackMap = new Map();
   #frameMap = new Map();
   #categories = DEFAULT_CATEGORIES;
-  #currentStack = [];
-  #time = 0;
+  #currentStackIndex = null;
+  #startTime = null;
 
   /**
    * Initialize the profiler and be ready to receive samples.
@@ -42,6 +42,7 @@ class GeckoProfileCollector {
   start() {
     this.#reset();
     this.#thread = this.#getEmptyThread();
+    this.#startTime = ChromeUtils.dateNow();
   }
 
   /**
@@ -70,8 +71,7 @@ class GeckoProfileCollector {
     this.#stackMap = new Map();
     this.#frameMap = new Map();
     this.#categories = DEFAULT_CATEGORIES;
-    this.#currentStack = [];
-    this.#time = 0;
+    this.#currentStackIndex = null;
   }
 
   /**
@@ -81,29 +81,31 @@ class GeckoProfileCollector {
    *         Gecko profile object.
    */
   #getEmptyProfile() {
-    const httpHandler = Cc[
-      "@mozilla.org/network/protocol;1?name=http"
-    ].getService(Ci.nsIHttpProtocolHandler);
+    const httpHandler = isWorker
+      ? {}
+      : Cc["@mozilla.org/network/protocol;1?name=http"].getService(
+          Ci.nsIHttpProtocolHandler
+        );
     return {
       meta: {
-        // Currently interval is 1, but we could change it to a lower number
-        // when we have durations coming from js tracer.
+        // Currently interval is 1, but the frontend mostly ignores this (mandatory) attribute.
+        // Instead it relies on sample's 'time' attribute to position frames in the stack chart.
         interval: 1,
-        startTime: 0,
-        product: Services.appinfo.name,
+        startTime: this.#startTime,
+        product: Services.appinfo?.name,
         importedFrom: "JS Tracer",
         version: 28,
         presymbolicated: true,
-        abi: Services.appinfo.XPCOMABI,
+        abi: Services.appinfo?.XPCOMABI,
         misc: httpHandler.misc,
         oscpu: httpHandler.oscpu,
         platform: httpHandler.platform,
-        processType: Services.appinfo.processType,
+        processType: Services.appinfo?.processType,
         categories: [],
         stackwalk: 0,
-        toolkit: Services.appinfo.widgetToolkit,
-        appBuildID: Services.appinfo.appBuildID,
-        sourceURL: Services.appinfo.sourceURL,
+        toolkit: Services.appinfo?.widgetToolkit,
+        appBuildID: Services.appinfo?.appBuildID,
+        sourceURL: Services.appinfo?.sourceURL,
         physicalCPUs: 0,
         logicalCPUs: 0,
         CPUName: "",
@@ -130,7 +132,8 @@ class GeckoProfileCollector {
       name: "GeckoMain",
       "eTLD+1": "JS Tracer",
       isMainThread: true,
-      pid: Services.appinfo.processID,
+      // In workers, you wouldn't have access to appinfo
+      pid: Services.appinfo?.processID,
       tid: 0,
       samples: {
         schema: {
@@ -176,78 +179,80 @@ class GeckoProfileCollector {
   }
 
   /**
-   * Record a new sample to be stored in the Gecko profile object.
+   * Called when a new function is called.
    *
-   * @param {Object} frame
-   *        Object describing a frame with following attributes:
-   *        - {String} name
-   *          Human readable name for this frame.
-   *        - {String} url
-   *          URL of the running script.
-   *        - {Number} lineNumber
-   *          Line currently executing for this script.
-   *        - {Number} columnNumber
-   *          Column currently executing for this script.
-   *        - {String} category
-   *          Which JS implementation is being used for this frame: interpreter, baseline, ion or wasm.
-   *          See Debugger.frame.implementation.
+   * @param {Object} frameInfo
    */
-  addSample(frame, depth) {
-    const currentDepth = this.#currentStack.length;
-    if (currentDepth == depth) {
-      // We are in the same depth and executing another frame. Replace the
-      // current frame with the new one.
-      this.#currentStack[currentDepth] = frame;
-    } else if (currentDepth < depth) {
-      // We are going deeper in the stack. Push the new frame.
-      this.#currentStack.push(frame);
-    } else {
-      // We are going back in the stack. Pop frames until we reach the right depth.
-      this.#currentStack.length = depth;
-      this.#currentStack[depth] = frame;
-    }
+  onEnterFrame(frameInfo) {
+    const frameIndex = this.#getOrCreateFrame(frameInfo);
+    this.#currentStackIndex = this.#getOrCreateStack(
+      frameIndex,
+      this.#currentStackIndex
+    );
 
-    const stack = this.#currentStack.reduce((prefix, stackFrame) => {
-      const frameIndex = this.#getOrCreateFrame(stackFrame);
-      return this.#getOrCreateStack(frameIndex, prefix);
-    }, null);
     this.#thread.samples.data.push([
-      stack,
-      // We put simply 1 sample (1ms) for each frame. We can change it in the
-      // future if we can get the duration of the frame.
-      this.#time++,
+      this.#currentStackIndex,
+      ChromeUtils.dateNow() - this.#startTime,
       0, // eventDelay
     ]);
   }
 
-  #getOrCreateFrame(frame) {
+  /**
+   * Called when a function call ends and returns.
+   */
+  onFramePop() {
+    if (this.#currentStackIndex === null) {
+      return;
+    }
+
+    this.#currentStackIndex =
+      this.#thread.stackTable.data[this.#currentStackIndex][0];
+
+    // Record a sample for the parent's stack (or null if there is none [i.e. on top level frame pop])
+    // so that the frontend considers that the last executed frame stops its execution.
+    this.#thread.samples.data.push([
+      this.#currentStackIndex,
+      ChromeUtils.dateNow() - this.#startTime,
+      0, // eventDelay
+    ]);
+  }
+
+  /**
+   * Get the unique index for the given frame.
+   *
+   * @param {Object} frameInfo
+   * @return {Number}
+   *         The index for the given frame.
+   */
+  #getOrCreateFrame(frameInfo) {
     const { frameTable, stringTable } = this.#thread;
-    const frameString = `${frame.name}:${frame.url}:${frame.lineNumber}:${frame.columnNumber}:${frame.category}`;
-    let frameIndex = this.#frameMap.get(frameString);
+    const key = `${frameInfo.sourceId}:${frameInfo.lineNumber}:${frameInfo.columnNumber}:${frameInfo.category}`;
+    let frameIndex = this.#frameMap.get(key);
 
     if (frameIndex === undefined) {
       frameIndex = frameTable.data.length;
-      const location = stringTable.length;
+      const locationStringIndex = stringTable.length;
+
       // Profiler frontend except a particular string to match the source URL:
       // `functionName (http://script.url/:1234:1234)`
       // https://github.com/firefox-devtools/profiler/blob/dab645b2db7e1b21185b286f96dd03b77f68f5c3/src/profile-logic/process-profile.js#L518
       stringTable.push(
-        `${frame.name} (${frame.url}:${frame.lineNumber}:${frame.columnNumber})`
+        `${frameInfo.name} (${frameInfo.url}:${frameInfo.lineNumber}:${frameInfo.columnNumber})`
       );
 
-      const category = this.#getOrCreateCategory(frame.category);
+      const categoryIndex = this.#getOrCreateCategory(frameInfo.category);
 
       frameTable.data.push([
-        location,
+        locationStringIndex,
         true, // relevantForJS
         0, // innerWindowID
         null, // implementation
-        frame.lineNumber, // line
-        frame.columnNumber, // column
-        category,
+        frameInfo.lineNumber, // line
+        frameInfo.columnNumber, // column
+        categoryIndex,
         0, // subcategory
       ]);
-      this.#frameMap.set(frameString, frameIndex);
+      this.#frameMap.set(key, frameIndex);
     }
 
     return frameIndex;
@@ -256,14 +261,14 @@ class GeckoProfileCollector {
   #getOrCreateStack(frameIndex, prefix) {
     const { stackTable } = this.#thread;
     const key = prefix === null ? `${frameIndex}` : `${frameIndex},${prefix}`;
-    let stack = this.#stackMap.get(key);
+    let stackIndex = this.#stackMap.get(key);
 
-    if (stack === undefined) {
-      stack = stackTable.data.length;
+    if (stackIndex === undefined) {
+      stackIndex = stackTable.data.length;
       stackTable.data.push([prefix, frameIndex]);
-      this.#stackMap.set(key, stack);
+      this.#stackMap.set(key, stackIndex);
     }
-    return stack;
+    return stackIndex;
   }
 
   #getOrCreateCategory(category) {
