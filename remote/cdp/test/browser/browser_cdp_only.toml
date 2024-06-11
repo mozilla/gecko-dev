@@ -5,19 +5,18 @@ args = [
   "--remote-debugging-port",
   "--remote-allow-origins=null",
 ]
+
 prefs = [ # Bug 1600054: Make CDP Fission compatible
   "fission.bfcacheInParent=false",
   "fission.webContentIsolationStrategy=0",
+  "remote.active-protocols=2",
 ]
 skip-if = [
   "display == 'wayland'" # Bug 1861933: Timestamp unreliable due to worker setup
 ]
 support-files = [
-  "!/remote/cdp/test/browser/chrome-remote-interface.js",
-  "!/remote/cdp/test/browser/head.js",
+  "chrome-remote-interface.js",
   "head.js",
 ]
 
-["browser_describeNode.js"]
-
-["browser_resolveNode.js"]
+["browser_interface.js"]
