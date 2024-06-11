@@ -757,6 +757,15 @@ struct RoleDescrComparator {
   return [self moxEditableAncestor];
 }
 
+- (NSString*)moxLanguage {
+  MOZ_ASSERT(mGeckoAccessible);
+
+  nsAutoString lang;
+  mGeckoAccessible->Language(lang);
+
+  return nsCocoaUtils::ToNSString(lang);
+}
+
 #ifndef RELEASE_OR_BETA
 - (NSString*)moxMozDebugDescription {
   NS_OBJC_BEGIN_TRY_BLOCK_RETURN;

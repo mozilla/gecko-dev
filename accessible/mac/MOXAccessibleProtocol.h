@@ -338,6 +338,9 @@
 // AXPlaceholderValue
 - (NSString* _Nullable)moxPlaceholderValue;
 
+// AXLanguage
+- (NSString* _Nullable)moxLanguage;
+
 // AXMozDebugDescription
 - (NSString* _Nullable)moxMozDebugDescription;
 
