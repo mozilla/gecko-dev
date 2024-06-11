@@ -1744,7 +1744,7 @@ export var PanelView = class extends AssociatedToNode {
         let isDown =
           keyCode == "ArrowDown" || (keyCode == "Tab" && !event.shiftKey);
         let button = this.moveSelection(isDown, keyCode != "Tab");
-        Services.focus.setFocus(button, Services.focus.FLAG_BYKEY);
+        button.focus();
         break;
       }
       case "Home":
