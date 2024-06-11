@@ -5,7 +5,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "default"
+        "revision": "ff6c9d55d4c1d558576bb6ca615179d8f9969f21"
     },
     "he": {
         "platforms": [
@@ -13,7 +13,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "default"
+        "revision": "ff6c9d55d4c1d558576bb6ca615179d8f9969f21"
     },
     "it": {
         "platforms": [
@@ -21,7 +21,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "default"
+        "revision": "ff6c9d55d4c1d558576bb6ca615179d8f9969f21"
     },
     "ja": {
         "platforms": [
@@ -29,6 +29,6 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "default"
+        "revision": "ff6c9d55d4c1d558576bb6ca615179d8f9969f21"
     }
 }
