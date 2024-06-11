@@ -98,6 +98,7 @@ class TenuringTracer final : public JSTracer {
   void traceObjectSlots(NativeObject* nobj, uint32_t start, uint32_t end);
   void traceObjectElements(JS::Value* vp, uint32_t count);
   void traceString(JSString* str);
+  void traceBigInt(JS::BigInt* bi);
 
   // Methods to promote a live cell or get the pointer to its new location if
   // that has already happened. The store buffers call these.
@@ -115,6 +116,15 @@ class TenuringTracer final : public JSTracer {
   MOZ_ALWAYS_INLINE JSObject* onNonForwardedNurseryObject(JSObject* obj);
   MOZ_ALWAYS_INLINE JSString* onNonForwardedNurseryString(JSString* str);
   MOZ_ALWAYS_INLINE JS::BigInt* onNonForwardedNurseryBigInt(JS::BigInt* bi);
+
+  // The dependent string chars needs to be relocated if the base which it's
+  // using chars from has been deduplicated.
+  template <typename CharT>
+  void relocateDependentStringChars(JSDependentString* tenuredDependentStr,
+                                    JSLinearString* baseOrRelocOverlay,
+                                    size_t* offset,
+                                    bool* rootBaseNotYetForwarded,
+                                    JSLinearString** rootBase);
 
   inline void insertIntoObjectFixupList(gc::RelocationOverlay* entry);
   inline void insertIntoStringFixupList(gc::StringRelocationOverlay* entry);

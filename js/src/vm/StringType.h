@@ -851,7 +851,7 @@ class JSString : public js::gc::CellWithLengthAndFlags {
 
   void traceChildren(JSTracer* trc);
 
-  inline void traceBaseAndRecordOldRoot(JSTracer* trc);
+  inline void traceBaseFromStoreBuffer(JSTracer* trc);
 
   // Override base class implementation to tell GC about permanent atoms.
   bool isPermanentAndMayBeShared() const { return isPermanentAtom(); }
@@ -1214,9 +1214,9 @@ class JSDependentString : public JSLinearString {
   inline JSLinearString* rootBaseDuringMinorGC();
 
   template <typename CharT>
-  inline void updatePromotedBaseImpl();
+  inline void sweepTypedAfterMinorGC();
 
-  inline void updatePromotedBase();
+  inline void sweepAfterMinorGC();
 
 #if defined(DEBUG) || defined(JS_JITSPEW) || defined(JS_CACHEIR_SPEW)
   void dumpOwnRepresentationFields(js::JSONPrinter& json) const;
