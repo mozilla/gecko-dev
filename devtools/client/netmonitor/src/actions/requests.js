@@ -143,16 +143,11 @@ function removeSelectedCustomRequest() {
 }
 /**
  * Clear all requests
- *
- * @param {object} options
- * @param {boolean} options.isExplicitClear
- *     Set to true if the call to clear requests is explicitly requested by the
- *     user, to false if this is an automated clear, eg on navigation.
  */
-function clearRequests({ isExplicitClear }) {
+function clearRequests() {
   return ({ dispatch, connector }) => {
     dispatch({ type: CLEAR_REQUESTS });
-    connector.clear({ isExplicitClear });
+    connector.clear();
   };
 }
 

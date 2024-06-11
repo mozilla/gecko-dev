@@ -421,7 +421,7 @@ async function clearNetworkEvents(monitor) {
   await waitForAllNetworkUpdateEvents();
 
   info("Clearing the network requests in the UI");
-  store.dispatch(Actions.clearRequests({ isExplicitClear: true }));
+  store.dispatch(Actions.clearRequests());
 }
 
 function teardown(monitor, privateWindow) {

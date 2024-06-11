@@ -65,7 +65,6 @@ class NetworkEventWatcher {
     this.listener = new lazy.NetworkObserver({
       ignoreChannelFunction: this.shouldIgnoreChannel.bind(this),
       onNetworkEvent: this.onNetworkEvent.bind(this),
-      earlyEvents: true,
     });
 
     Services.obs.addObserver(this, "window-global-destroyed");

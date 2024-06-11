@@ -39,11 +39,8 @@ add_task(async function () {
   info("Waiting until the requests appear in netmonitor");
   await wait;
 
-  // If the NetworkObserver is configured to use early events, we should detect
-  // the flight request (POST) before the preflight request (OPTIONS).
-  // Bug 1901504 will remove the earlyEvents=false option.
-  info("Checking the flight and preflight methods");
-  ["POST", "OPTIONS"].forEach((method, index) => {
+  info("Checking the preflight and flight methods");
+  ["OPTIONS", "POST"].forEach((method, index) => {
     verifyRequestItemTarget(
       document,
       getDisplayedRequests(store.getState()),
