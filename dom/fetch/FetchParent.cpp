@@ -332,9 +332,17 @@ void FetchParent::ActorDestroy(ActorDestroyReason aReason) {
     entry.Remove();
     FETCH_LOG(("FetchParent::ActorDestroy entry [%p] removed", this));
   }
+  // mRequest can be null when FetchParent has not yet received RecvFetchOp()
+  if (!mRequest) {
+    return;
+  }
   // Force to abort the existing fetch.
   // Actor can be destoried by shutdown when still fetching.
-  RecvAbortFetchOp();
+  if (mRequest->GetKeepalive()) {
+    FETCH_LOG(("Skip aborting fetch as the request is marked keepalive"));
+  } else {
+    RecvAbortFetchOp();
+  }
   // mBackgroundEventTarget = nullptr;
 }
 
