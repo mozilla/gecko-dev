@@ -17300,7 +17300,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
    * **page cycles**: 25
    * **page timeout**: 60000
    * **playback**: mitmproxy
-   * **playback pageset manifest**: mitm8-linux-firefox-bing-search.manifest
+   * **playback pageset manifest**: mitm8-darwin-firefox-bing-search.manifest
    * **playback version**: 8.1.1
    * **test url**: `<https://www.bing.com/search?q=barack+obama>`__
    * **type**: pageload
