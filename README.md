@@ -23,7 +23,7 @@ If you still need help, you can also try asking your question on Mozilla Matrix 
 
 ## Nightly development builds can be downloaded from:
 
- [Releases](https://github.com/Daniel-McGuire-Corporation/SimpleBrowser-FB/releases)
+ [Releases](https://github.com/Daniel-McGuire-Corporation/SimpleBrowser-Fire/releases)
 
 [Firefox official nightly](https://www.mozilla.org/firefox/channel/desktop/#nightly)
 > [!NOTE]
