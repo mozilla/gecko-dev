@@ -435,6 +435,11 @@ export const SpecialMessageActions = {
         await this.pinFirefoxToTaskbar(window, action.data?.privatePin);
         break;
       case "PIN_AND_DEFAULT":
+        // We must explicitly await pinning to the taskbar before
+        // trying to set as default. If we fall back to setting
+        // as default through the Windows Settings menu that interferes
+        // with showing the pinning notification as we no longer have
+        // window focus.
         await this.pinFirefoxToTaskbar(window, action.data?.privatePin);
         await this.setDefaultBrowser(window);
         break;
