@@ -862,6 +862,7 @@ nsresult FetchDriver::HttpFetch(
       // See corresponding preferences in StaticPrefList.yaml for more context.
       const int32_t supportsPriorityDelta =
           FETCH_PRIORITY_ADJUSTMENT_FOR(global_fetch_api, fetchPriority);
+      p->SetPriority(mRequest->InternalPriority());
       p->AdjustPriority(supportsPriorityDelta);
     }
   }
