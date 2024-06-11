@@ -49,6 +49,9 @@ Var ExtensionRecommender
 Var PageName
 Var PreventRebootRequired
 Var RegisterDefaultAgent
+; Will be the registry hive that we are going to write things like class keys
+; into. This will generally be HKLM if running with elevation, otherwise HKCU.
+Var RegHive
 
 ; Telemetry ping fields
 Var SetAsDefault
@@ -425,11 +428,11 @@ Section "-Application" APP_IDX
   ClearErrors
   WriteRegStr HKLM "Software\Mozilla" "${BrandShortName}InstallerTest" "Write Test"
   ${If} ${Errors}
-    StrCpy $TmpVal "HKCU" ; used primarily for logging
+    StrCpy $RegHive "HKCU"
   ${Else}
     SetShellVarContext all  ; Set SHCTX to HKLM
     DeleteRegValue HKLM "Software\Mozilla" "${BrandShortName}InstallerTest"
-    StrCpy $TmpVal "HKLM" ; used primarily for logging
+    StrCpy $RegHive "HKLM"
     ${RegCleanMain} "Software\Mozilla"
     ${RegCleanUninstall}
     ${UpdateProtocolHandlers}
@@ -475,7 +478,7 @@ Section "-Application" APP_IDX
                                  "${AppRegName} URL" "true"
 
   ; The keys below can be set in HKCU if needed.
-  ${If} $TmpVal == "HKLM"
+  ${If} $RegHive == "HKLM"
     ; Set the Start Menu Internet and Registered App HKLM registry keys.
     ${SetStartMenuInternet} "HKLM"
     ${FixShellIconHandler} "HKLM"
@@ -496,7 +499,7 @@ Section "-Application" APP_IDX
     Pop $R0
     ${If} $R0 == "true"
     ; Only proceed if we have HKLM write access
-    ${AndIf} $TmpVal == "HKLM"
+    ${AndIf} $RegHive == "HKLM"
       ; The user is an admin, so we should default to installing the service.
       StrCpy $InstallMaintenanceService "1"
     ${Else}
@@ -517,15 +520,15 @@ Section "-Application" APP_IDX
   ; These need special handling on uninstall since they may be overwritten by
   ; an install into a different location.
   StrCpy $0 "Software\Microsoft\Windows\CurrentVersion\App Paths\${FileMainEXE}"
-  ${WriteRegStr2} $TmpVal "$0" "" "$INSTDIR\${FileMainEXE}" 0
-  ${WriteRegStr2} $TmpVal "$0" "Path" "$INSTDIR" 0
+  ${WriteRegStr2} $RegHive "$0" "" "$INSTDIR\${FileMainEXE}" 0
+  ${WriteRegStr2} $RegHive "$0" "Path" "$INSTDIR" 0
 
   StrCpy $0 "Software\Microsoft\MediaPlayer\ShimInclusionList\$R9"
-  ${CreateRegKey} "$TmpVal" "$0" 0
+  ${CreateRegKey} "$RegHive" "$0" 0
   StrCpy $0 "Software\Microsoft\MediaPlayer\ShimInclusionList\plugin-container.exe"
-  ${CreateRegKey} "$TmpVal" "$0" 0
+  ${CreateRegKey} "$RegHive" "$0" 0
 
-  ${If} $TmpVal == "HKLM"
+  ${If} $RegHive == "HKLM"
     ; Set the permitted LSP Categories
     ${SetAppLSPCategories} ${LSP_CATEGORIES}
   ${EndIf}
@@ -540,7 +543,7 @@ Section "-Application" APP_IDX
   WriteRegDWORD HKCU ${MOZ_LAUNCHER_SUBKEY} "$INSTDIR\${FileMainEXE}|Telemetry" 1
 !endif
 
-  ${WriteToastNotificationRegistration} $TmpVal
+  ${WriteToastNotificationRegistration} $RegHive
 
   ; Create shortcuts
   ${LogHeader} "Adding Shortcuts"
@@ -564,7 +567,7 @@ Section "-Application" APP_IDX
   Call FixShortcutAppModelIDs
   ; If the current context is all also perform Win7 taskbar and start menu link
   ; maintenance for the current user context.
-  ${If} $TmpVal == "HKLM"
+  ${If} $RegHive == "HKLM"
     SetShellVarContext current  ; Set SHCTX to HKCU
     Call FixShortcutAppModelIDs
     SetShellVarContext all  ; Set SHCTX to HKLM
@@ -633,9 +636,9 @@ Section "-Application" APP_IDX
   ${TouchStartMenuShortcut}
   SetShellVarContext current
   ${TouchStartMenuShortcut}
-  ${If} $TmpVal == "HKLM"
+  ${If} $RegHive == "HKLM"
     SetShellVarContext all
-  ${ElseIf} $TmpVal == "HKCU"
+  ${ElseIf} $RegHive == "HKCU"
     SetShellVarContext current
   ${EndIf}
 
@@ -702,7 +705,7 @@ Section "-Application" APP_IDX
 !endif
 
 !ifdef MOZ_MAINTENANCE_SERVICE
-  ${If} $TmpVal == "HKLM"
+  ${If} $RegHive == "HKLM"
     ; Add the registry keys for allowed certificates.
     ${AddMaintCertKeys}
   ${EndIf}

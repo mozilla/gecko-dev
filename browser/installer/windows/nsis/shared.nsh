@@ -22,11 +22,11 @@
   ClearErrors
   WriteRegStr HKLM "Software\Mozilla" "${BrandShortName}InstallerTest" "Write Test"
   ${If} ${Errors}
-    StrCpy $TmpVal "HKCU"
+    StrCpy $RegHive "HKCU"
   ${Else}
     SetShellVarContext all    ; Set SHCTX to all users (e.g. HKLM)
     DeleteRegValue HKLM "Software\Mozilla" "${BrandShortName}InstallerTest"
-    StrCpy $TmpVal "HKLM"
+    StrCpy $RegHive "HKLM"
     ${RegCleanMain} "Software\Mozilla"
     ${RegCleanUninstall}
     ${UpdateProtocolHandlers}
@@ -54,9 +54,9 @@
   ${UpdateShortcutsBranding}
   ${TouchStartMenuShortcut}
   Call FixShortcutAppModelIDs
-  ${If} $TmpVal == "HKLM"
+  ${If} $RegHive == "HKLM"
     SetShellVarContext all
-  ${ElseIf} $TmpVal == "HKCU"
+  ${ElseIf} $RegHive == "HKCU"
     SetShellVarContext current
   ${EndIf}
 
@@ -66,9 +66,9 @@
   ${SetAppKeys}
   ${FixClassKeys}
   ${SetUninstallKeys}
-  ${If} $TmpVal == "HKLM"
+  ${If} $RegHive == "HKLM"
     ${SetStartMenuInternet} HKLM
-  ${ElseIf} $TmpVal == "HKCU"
+  ${ElseIf} $RegHive == "HKCU"
     ${SetStartMenuInternet} HKCU
   ${EndIf}
 
@@ -112,20 +112,12 @@
     Pop $TmpVal ; get "Marker"
   ${EndIf}
 
-  ClearErrors
-  WriteRegStr HKLM "Software\Mozilla" "${BrandShortName}InstallerTest" "Write Test"
-  ${If} ${Errors}
-    StrCpy $TmpVal "HKCU"
-  ${Else}
-    StrCpy $TmpVal "HKLM"
-  ${EndIf}
-
 !ifdef MOZ_MAINTENANCE_SERVICE
   Call IsUserAdmin
   Pop $R0
   ${If} $R0 == "true"
   ; Only proceed if we have HKLM write access
-  ${AndIf} $TmpVal == "HKLM"
+  ${AndIf} $RegHive == "HKLM"
     ; We check to see if the maintenance service install was already attempted.
     ; Since the Maintenance service can be installed either x86 or x64,
     ; always use the 64-bit registry for checking if an attempt was made.
@@ -169,14 +161,14 @@
   ${ResetLauncherProcessDefaults}
 !endif
 
-  ${WriteToastNotificationRegistration} $TmpVal
+  ${WriteToastNotificationRegistration} $RegHive
 
 ; Make sure the scheduled task registration for the default browser agent gets
 ; updated, but only if we're not the instance of PostUpdate that was started
 ; by the service, because this needs to run as the actual user. Also, don't do
 ; that if the installer was told not to register the agent task at all.
 !ifdef MOZ_DEFAULT_BROWSER_AGENT
-${If} $TmpVal == "HKCU"
+${If} $RegHive == "HKCU"
   ClearErrors
   ReadRegDWORD $0 HKCU "Software\Mozilla\${AppName}\Installer\$AppUserModelID" \
                     "DidRegisterDefaultBrowserAgent"
@@ -184,7 +176,7 @@ ${If} $TmpVal == "HKCU"
   ${OrIf} ${Errors}
     ExecWait '"$INSTDIR\default-browser-agent.exe" register-task $AppUserModelID'
   ${EndIf}
-${ElseIf} $TmpVal == "HKLM"
+${ElseIf} $RegHive == "HKLM"
   ; If we're the privileged PostUpdate, make sure that the unprivileged one
   ; will have permission to create a task by clearing out the old one first.
   ExecWait '"$INSTDIR\default-browser-agent.exe" unregister-task $AppUserModelID'
@@ -782,6 +774,7 @@ ${RemoveDefaultBrowserAgentShortcut}
 !define FixShellIconHandler "!insertmacro FixShellIconHandler"
 
 ; Add Software\Mozilla\ registry entries (uses SHCTX).
+; This expects $RegHive to already have been set correctly.
 !macro SetAppKeys
   ; Check if this is an ESR release and if so add registry values so it is
   ; possible to determine that this is an ESR install (bug 726781).
@@ -795,43 +788,44 @@ ${RemoveDefaultBrowserAgentShortcut}
 
   ${GetLongPath} "$INSTDIR" $8
   StrCpy $0 "Software\Mozilla\${BrandFullNameInternal}\${AppVersion}$3 (${ARCH} ${AB_CD})\Main"
-  ${WriteRegStr2} $TmpVal "$0" "Install Directory" "$8" 0
-  ${WriteRegStr2} $TmpVal "$0" "PathToExe" "$8\${FileMainEXE}" 0
+  ${WriteRegStr2} $RegHive "$0" "Install Directory" "$8" 0
+  ${WriteRegStr2} $RegHive "$0" "PathToExe" "$8\${FileMainEXE}" 0
 
   StrCpy $0 "Software\Mozilla\${BrandFullNameInternal}\${AppVersion}$3 (${ARCH} ${AB_CD})\Uninstall"
-  ${WriteRegStr2} $TmpVal "$0" "Description" "${BrandFullNameInternal} ${AppVersion}$3 (${ARCH} ${AB_CD})" 0
+  ${WriteRegStr2} $RegHive "$0" "Description" "${BrandFullNameInternal} ${AppVersion}$3 (${ARCH} ${AB_CD})" 0
 
   StrCpy $0 "Software\Mozilla\${BrandFullNameInternal}\${AppVersion}$3 (${ARCH} ${AB_CD})"
-  ${WriteRegStr2} $TmpVal  "$0" "" "${AppVersion}$3 (${ARCH} ${AB_CD})" 0
+  ${WriteRegStr2} $RegHive  "$0" "" "${AppVersion}$3 (${ARCH} ${AB_CD})" 0
   ${If} "$3" == ""
     DeleteRegValue SHCTX "$0" "ESR"
   ${Else}
-    ${WriteRegDWORD2} $TmpVal "$0" "ESR" 1 0
+    ${WriteRegDWORD2} $RegHive "$0" "ESR" 1 0
   ${EndIf}
 
   StrCpy $0 "Software\Mozilla\${BrandFullNameInternal} ${AppVersion}$3\bin"
-  ${WriteRegStr2} $TmpVal "$0" "PathToExe" "$8\${FileMainEXE}" 0
+  ${WriteRegStr2} $RegHive "$0" "PathToExe" "$8\${FileMainEXE}" 0
 
   StrCpy $0 "Software\Mozilla\${BrandFullNameInternal} ${AppVersion}$3\extensions"
-  ${WriteRegStr2} $TmpVal "$0" "Components" "$8\components" 0
-  ${WriteRegStr2} $TmpVal "$0" "Plugins" "$8\plugins" 0
+  ${WriteRegStr2} $RegHive "$0" "Components" "$8\components" 0
+  ${WriteRegStr2} $RegHive "$0" "Plugins" "$8\plugins" 0
 
   StrCpy $0 "Software\Mozilla\${BrandFullNameInternal} ${AppVersion}$3"
-  ${WriteRegStr2} $TmpVal "$0" "GeckoVer" "${GREVersion}" 0
+  ${WriteRegStr2} $RegHive "$0" "GeckoVer" "${GREVersion}" 0
   ${If} "$3" == ""
     DeleteRegValue SHCTX "$0" "ESR"
   ${Else}
-    ${WriteRegDWORD2} $TmpVal "$0" "ESR" 1 0
+    ${WriteRegDWORD2} $RegHive "$0" "ESR" 1 0
   ${EndIf}
 
   StrCpy $0 "Software\Mozilla\${BrandFullNameInternal}$3"
-  ${WriteRegStr2} $TmpVal "$0" "" "${GREVersion}" 0
-  ${WriteRegStr2} $TmpVal "$0" "CurrentVersion" "${AppVersion}$3 (${ARCH} ${AB_CD})" 0
+  ${WriteRegStr2} $RegHive "$0" "" "${GREVersion}" 0
+  ${WriteRegStr2} $RegHive "$0" "CurrentVersion" "${AppVersion}$3 (${ARCH} ${AB_CD})" 0
 !macroend
 !define SetAppKeys "!insertmacro SetAppKeys"
 
 ; Add uninstall registry entries. This macro tests for write access to determine
 ; if the uninstall keys should be added to HKLM or HKCU.
+; This expects $RegHive to already have been set correctly.
 !macro SetUninstallKeys
   ; Check if this is an ESR release and if so add registry values so it is
   ; possible to determine that this is an ESR install (bug 726781).
@@ -894,7 +888,7 @@ ${RemoveDefaultBrowserAgentShortcut}
     ${GetSize} "$8" "/S=0K" $R2 $R3 $R4
     ${WriteRegDWORD2} $1 "$0" "EstimatedSize" $R2 0
 
-    ${If} "$TmpVal" == "HKLM"
+    ${If} "$RegHive" == "HKLM"
       SetShellVarContext all     ; Set SHCTX to all users (e.g. HKLM)
     ${Else}
       SetShellVarContext current  ; Set SHCTX to the current user (e.g. HKCU)
@@ -941,6 +935,7 @@ ${RemoveDefaultBrowserAgentShortcut}
 
 ; Add app specific handler registry entries under Software\Classes if they
 ; don't exist (does not use SHCTX).
+; This expects $RegHive to already have been set correctly.
 !macro FixClassKeys
   StrCpy $1 "SOFTWARE\Classes"
 
@@ -949,21 +944,21 @@ ${RemoveDefaultBrowserAgentShortcut}
   ReadRegStr $0 HKCR ".shtml" "Content Type"
   ${If} "$0" == ""
     StrCpy $0 "$1\.shtml"
-    ${WriteRegStr2} $TmpVal "$1\.shtml" "" "shtmlfile" 0
-    ${WriteRegStr2} $TmpVal "$1\.shtml" "Content Type" "text/html" 0
-    ${WriteRegStr2} $TmpVal "$1\.shtml" "PerceivedType" "text" 0
+    ${WriteRegStr2} $RegHive "$1\.shtml" "" "shtmlfile" 0
+    ${WriteRegStr2} $RegHive "$1\.shtml" "Content Type" "text/html" 0
+    ${WriteRegStr2} $RegHive "$1\.shtml" "PerceivedType" "text" 0
   ${EndIf}
 
   ReadRegStr $0 HKCR ".xht" "Content Type"
   ${If} "$0" == ""
-    ${WriteRegStr2} $TmpVal "$1\.xht" "" "xhtfile" 0
-    ${WriteRegStr2} $TmpVal "$1\.xht" "Content Type" "application/xhtml+xml" 0
+    ${WriteRegStr2} $RegHive "$1\.xht" "" "xhtfile" 0
+    ${WriteRegStr2} $RegHive "$1\.xht" "Content Type" "application/xhtml+xml" 0
   ${EndIf}
 
   ReadRegStr $0 HKCR ".xhtml" "Content Type"
   ${If} "$0" == ""
-    ${WriteRegStr2} $TmpVal "$1\.xhtml" "" "xhtmlfile" 0
-    ${WriteRegStr2} $TmpVal "$1\.xhtml" "Content Type" "application/xhtml+xml" 0
+    ${WriteRegStr2} $RegHive "$1\.xhtml" "" "xhtmlfile" 0
+    ${WriteRegStr2} $RegHive "$1\.xhtml" "Content Type" "application/xhtml+xml" 0
   ${EndIf}
 
   ; Remove possibly badly associated file types
@@ -1412,6 +1407,7 @@ ${RemoveDefaultBrowserAgentShortcut}
 ; an edgecase. If removing existing pinned shortcuts with the same application
 ; model ID removes a pinned pinned Start Menu shortcut this will also add a
 ; pinned Start Menu shortcut.
+; This expects $RegHive to already have been set correctly.
 !macro PinToTaskBar
   StrCpy $8 "false" ; Whether a shortcut had to be created
   ${IsPinnedToTaskBar} "$INSTDIR\${FileMainEXE}" $R9
@@ -1487,7 +1483,7 @@ ${RemoveDefaultBrowserAgentShortcut}
           ${EndIf}
         ${EndIf}
 
-        ${If} $TmpVal == "HKCU"
+        ${If} $RegHive == "HKCU"
           SetShellVarContext current ; Set SHCTX to the current user
         ${Else}
           SetShellVarContext all ; Set SHCTX to all users
