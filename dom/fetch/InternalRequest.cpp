@@ -98,30 +98,6 @@ InternalRequest::InternalRequest(const nsACString& aURL,
   MOZ_ASSERT(!aURL.IsEmpty());
   AddURL(aURL, aFragment);
 }
-InternalRequest::InternalRequest(
-    const nsACString& aURL, const nsACString& aFragment,
-    const nsACString& aMethod, already_AddRefed<InternalHeaders> aHeaders,
-    RequestCache aCacheMode, RequestMode aMode,
-    RequestRedirect aRequestRedirect, RequestCredentials aRequestCredentials,
-    const nsACString& aReferrer, ReferrerPolicy aReferrerPolicy,
-    RequestPriority aPriority, nsContentPolicyType aContentPolicyType,
-    const nsAString& aIntegrity)
-    : mMethod(aMethod),
-      mHeaders(aHeaders),
-      mBodyLength(InternalResponse::UNKNOWN_BODY_SIZE),
-      mContentPolicyType(aContentPolicyType),
-      mReferrer(aReferrer),
-      mReferrerPolicy(aReferrerPolicy),
-      mEnvironmentReferrerPolicy(ReferrerPolicy::_empty),
-      mMode(aMode),
-      mCredentialsMode(aRequestCredentials),
-      mCacheMode(aCacheMode),
-      mRedirectMode(aRequestRedirect),
-      mPriorityMode(aPriority),
-      mIntegrity(aIntegrity) {
-  MOZ_ASSERT(!aURL.IsEmpty());
-  AddURL(aURL, aFragment);
-}
 InternalRequest::InternalRequest(const InternalRequest& aOther,
                                  ConstructorGuard)
     : mMethod(aOther.mMethod),
@@ -178,6 +154,7 @@ InternalRequest::InternalRequest(const IPCInternalRequest& aIPCRequest)
       mCredentialsMode(aIPCRequest.requestCredentials()),
       mCacheMode(aIPCRequest.cacheMode()),
       mRedirectMode(aIPCRequest.requestRedirect()),
+      mPriorityMode(aIPCRequest.requestPriority()),
       mIntegrity(aIPCRequest.integrity()),
       mFragment(aIPCRequest.fragment()),
       mEmbedderPolicy(aIPCRequest.embedderPolicy()),
@@ -227,6 +204,7 @@ void InternalRequest::ToIPCInternalRequest(
   aIPCRequest->requestCredentials() = mCredentialsMode;
   aIPCRequest->cacheMode() = mCacheMode;
   aIPCRequest->requestRedirect() = mRedirectMode;
+  aIPCRequest->requestPriority() = mPriorityMode;
   aIPCRequest->integrity() = mIntegrity;
   aIPCRequest->fragment() = mFragment;
   aIPCRequest->embedderPolicy() = mEmbedderPolicy;
