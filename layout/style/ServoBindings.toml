@@ -139,7 +139,6 @@ rusty-enums = [
     "mozilla::StyleListStylePosition",
     "mozilla::StylePointerEvents",
     "mozilla::StyleScrollbarWidth",
-    "mozilla::StyleFieldSizing",
     "mozilla::StyleWhiteSpaceCollapse",
     "mozilla::StyleTextWrapMode",
     "mozilla::StyleTextRendering",
