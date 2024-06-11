@@ -247,6 +247,7 @@
 #include "vm/JSContext-inl.h"
 #include "vm/Realm-inl.h"
 #include "vm/Stack-inl.h"
+#include "vm/StringType-inl.h"
 
 using namespace js;
 using namespace js::gc;

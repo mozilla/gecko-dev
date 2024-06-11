@@ -79,9 +79,7 @@ inline void JSString::traceChildren(JSTracer* trc) {
     asRope().traceChildren(trc);
   }
 }
-inline void JSString::traceBaseFromStoreBuffer(JSTracer* trc) {
-  MOZ_ASSERT(!d.s.u3.base->isTenured());
-
+inline void JSString::traceBaseAndRecordOldRoot(JSTracer* trc) {
   // Contract the base chain so that this tenured dependent string points
   // directly at the root base that owns its chars.
   JSLinearString* root = asDependent().rootBaseDuringMinorGC();
@@ -91,6 +89,10 @@ inline void JSString::traceBaseFromStoreBuffer(JSTracer* trc) {
     // Do not update the actual base to the tenured string yet. This string will
     // need to be swept in order to update its chars ptr to be relative to the
     // root, and that update requires information from the overlay.
+
+    if (!root->isTenured()) {
+      storeBuffer()->putWholeCell(this);
+    }
   }
 }
 template <uint32_t opts>
