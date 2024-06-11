@@ -1,7 +1,7 @@
 # Simple Browser Linux
 We will stick with this version of firefox until no longer supported by Mozilla.
-> Eventually all versions of Simple Browser will be firefox based
-> (Simple Browser C# will still be updated and supported)
+> <sub>Eventually all versions of Simple Browser will be firefox based</sub>
+> <sub>(Simple Browser C# will still be updated and supported)</sub>
 
 
 -------------------------------
